@@ -5,6 +5,12 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- ドキュメントコメントを検証する（存在しない cref を CS1574、引数の対応違いを CS1572 / CS1573 で検出）。
+         ライブラリと違い XML は配布物へ出さない（検証だけに使う）。
+         記載のない公開メンバーの指摘（CS1591）は、アプリ・テスト・サンプルでは対象外にする。 -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>EsUtil.Feature.Marquee.AvaloniaUI.Sample</RootNamespace>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>

@@ -157,7 +157,7 @@ grid.Add(marquee);     // 選択オーバーレイ（上。入力を受け取る
 ## テスト
 
 ```powershell
-dotnet test src/EsUtil.Feature.Marquee.ControlMewUI/tests/EsUtil.Feature.Marquee.ControlMewUI.Tests.csproj
+dotnet test src/EsUtil.Feature.Marquee.ControlMewUI/tests/MewUI/EsUtil.Feature.Marquee.ControlMewUI.Tests.csproj
 ```
 
 - 描画（ハンドル・十字マーカー・外側/内側の装飾）の画素検証は UI 非依存の描画層（`EsUtil.Feature.Marquee.Presenter`）のテストが担うため、本プロジェクトは描画のテストを持たない。

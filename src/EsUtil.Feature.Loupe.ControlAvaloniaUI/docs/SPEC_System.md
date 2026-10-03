@@ -116,7 +116,7 @@ flowchart TB
     end
     subgraph Core["EsUtil.Feature.Loupe.Core プロジェクト（UI 非依存）"]
         direction TB
-        Pos["Loupe（公開ファサード）<br/>public sealed class（Loupe.cs）<br/>値型 LoupeLayout と幾何を解決する"]
+        Pos["LoupeCore（公開ファサード）<br/>public sealed class（LoupeCore.cs）<br/>値型 LoupeLayout と幾何を解決する"]
         Opt["LoupeOptions<br/>public sealed record<br/>（基本サイズ・拡大率）"]
         Geo["LoupeGeometry<br/>public readonly record struct<br/>（描画面・拡大画像・切り出し領域）"]
         Coerce["LoupeCore.Limits<br/>ファサードの入れ子（数値スキーマ）"]
@@ -209,7 +209,7 @@ flowchart TB
 - **責務**: ログの書式・レベルを UI 間で揃え、定義の所有者を出力の主体ごとに分ける
 - **本 UI が呼ぶ定義**: **本プロジェクトの `LoupeUiLogMessage`** が単一所有する（`LogSourceChanged`（Debug。 設定名は本 UI が付与）/ `LogUpdateError`（Error））。 拡大元画像はコントロール固有の値であり（コアのファサードは画像を保持しない）、画像の寸法の文字列化は画像型（`EsBitmap.ToSizeText`）または本 UI が行う
 - **コアが出力する定義**: `EsUtil.Feature.Loupe.Core` の `LoupeLogMessage`（internal）が持つ（設定値・拡大中心の変更。 **設定名はコアが付与**し、UI 層は値だけを渡す）
-- **本 UI 固有のログ**: 中間ビットマップを生成する描画パイプライン固有の `LogRenderCore` / `LogGenerateAsyncDone` は **本プロジェクトの `LoupeRenderLog`**（`Logging/LoupeRenderLog.cs`・`internal static partial class`）が所有する
+- **本 UI 固有のログ**: 中間ビットマップを生成する描画パイプライン固有の `LogRenderCore` / `LogGenerateAsyncDone` は **本プロジェクトの `LoupeRenderLog`**（`src/EsUtil.Feature.Loupe.ControlAvaloniaUI/src/AvaloniaUI/Logging/LoupeRenderLog.cs`・`internal static partial class`）が所有する
 - **依存**: Microsoft.Extensions.Logging
 
 ### 6.7 上位AP（消費側）

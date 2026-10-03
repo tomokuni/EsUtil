@@ -24,7 +24,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象 | `MarqueeControl` |
-| プロジェクト | `src/EsUtil.Feature.Marquee.ControlAvaloniaUI/src/EsUtil.Feature.Marquee.ControlAvaloniaUI.csproj` |
+| プロジェクト | `src/EsUtil.Feature.Marquee.ControlAvaloniaUI/src/AvaloniaUI/EsUtil.Feature.Marquee.ControlAvaloniaUI.csproj` |
 | 名前空間 | `EsUtil.Feature.Marquee.AvaloniaUI` |
 | 対象フレームワーク | `net10.0` |
 | UIフレームワーク | Avalonia 12.1 |

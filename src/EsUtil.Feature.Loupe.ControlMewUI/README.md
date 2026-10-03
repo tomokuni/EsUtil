@@ -146,8 +146,8 @@ src/EsUtil.Feature.Loupe.ControlMewUI/
 ## ビルドとテスト
 
 ```powershell
-dotnet build src/EsUtil.Feature.Loupe.ControlMewUI/src/EsUtil.Feature.Loupe.ControlMewUI.csproj
-dotnet test src/EsUtil.Feature.Loupe.ControlMewUI/tests/EsUtil.Feature.Loupe.ControlMewUI.Tests.csproj
+dotnet build src/EsUtil.Feature.Loupe.ControlMewUI/src/MewUI/EsUtil.Feature.Loupe.ControlMewUI.csproj
+dotnet test src/EsUtil.Feature.Loupe.ControlMewUI/tests/MewUI/EsUtil.Feature.Loupe.ControlMewUI.Tests.csproj
 ```
 
 本プロジェクトは `GenerateDocumentationFile` を有効にし、**存在しないメンバーへの `<see cref>` をビルド警告（CS1574）で検出**します（XML は検証にのみ使い、配布物へは出しません）。

@@ -111,28 +111,28 @@ stateDiagram-v2
 
 | ファイル | 型 | 可視性 | 責務 |
 | --- | --- | --- | --- |
-| `src/MarqueeCore.cs` | `MarqueeCore` | public | ファサード。 設定・環境値の保持、入力の通知、外部操作、幾何の解決、効果の適用 |
-| `src/Core/Interaction/MarqueeSession.cs` | `MarqueeSession` | internal | 入力の解釈と状態遷移の判断。 通知と効果を返す |
-| `src/Core/Interaction/MarqueeState.cs` | `MarqueeState` | internal | 選択矩形・ドラッグ・nudge の状態保持。 **状態は操作（遷移メソッド）でのみ変わり、読み取りはプロパティ**（矛盾した状態を作れない） |
-| `src/MarqueeCore.Geometry.cs` | `MarqueeCore`（**partial**） | internal | 幾何の**内部手順**（注目矩形の DIP 変換・ハンドル位置・始点マーカー。 注目矩形とポートは 1 回だけ解決する）。 公開の入口 `ResolveGeometry` は `MarqueeCore.cs` が持つ |
-| `src/MarqueeGeometry.cs` | `MarqueeGeometry` | public | 1 フレーム分の幾何（`ClientSize` / `FocusDipRect` / `FocusSourceRect` / `Handles` / `Marker` / `MouseSourcePosition` / `MouseDipPosition` ＋ `ClientRect`）。 **コアが責任を持つ値の全量**。 マウス位置は文言用の対象座標と配置用の DIP の両方を渡す（描画層が座標変換ポートを持たないため） |
-| `src/MarqueeRenderRequest.cs` | `MarqueeRenderRequest` | public | 幾何解決の入力（設定・状態・描画時に決まる値）。 `MarqueeRenderRequest.Create` が値の組を 1 箇所に閉じ、`MarqueeCore.CreateRequest` が状態を写して生成する。 **本値から導出する値（座標変換ポートの決定・注目矩形の決定・DIP 変換）は本値のインスタンスメンバーが単一所有する**（`ResolvedPort` / `Focus` / `ResolveFocusDipRect` / `ToDipRect` / `ToSourceRect`） |
-| `src/MarqueeOptions.cs` | `MarqueeOptions` | public | 設定の値オブジェクト。 既定値を単一所有し、生成時に安全域（`MarqueeCore.Limits`）へ補正する（寸法・対話パラメータのみ。 体裁と表示可否は描画層の外観が単一所有する） |
-| `src/MarqueeHandles.cs` | `MarqueeHandles` | public | ドラッグハンドルの幾何（8 方向の矩形・枠線の太さ） |
-| `src/MarqueeMarker.cs` | `MarqueeMarker` | public | 始点マーカー（十字線）の幾何（中心・半幅。 線の太さは描画層の外観が持つ） |
-| `src/MarqueeSnapshot.cs` | `MarqueeSnapshot` | public | 状態のスナップショット（`readonly record struct`。 値型のため通知でヒープを確保しない） |
-| `src/MarqueeNotice.cs` | `MarqueeNotice` | public | 通知（種別・通知座標・スナップショット。 値型） |
-| `src/MarqueeNoticeKind.cs` | `MarqueeNoticeKind` | public | 通知の種別 |
-| `src/Core/Interaction/MarqueeFeedback.cs` | `MarqueeFeedback` | internal | 効果（適用順を単一所有。 適用先は `IMarqueeEffects`） |
-| `src/Core/Interaction/MarqueeCursorActions.cs` | `MarqueeCursorActions` | internal | 要求するカーソル操作のフラグ |
-| `src/Core/Interaction/MarqueeCaptureAction.cs` | `MarqueeCaptureAction` | internal | 要求するポインターキャプチャの操作 |
-| `src/IMarqueeEffects.cs` | `IMarqueeEffects` | public | 効果の適用先（フォーカス・再描画・カーソル操作・カーソル形状・ポインターキャプチャ・座標変換） |
-| `src/Core/Contract/MarqueeEffectsBase.cs` | `MarqueeEffectsBase` | public abstract | 効果の既定実装（全メンバーが virtual の空実装） |
-| `src/MarqueeHitTarget.cs` | `MarqueeHitTarget` | public | ヒット対象 |
-| `src/MarqueeCursorKind.cs` | `MarqueeCursorKind` | public | カーソル形状の種別 |
-| `src/MarqueeInteractionState.cs` | `MarqueeInteractionState` | public | 対話状態 |
-| `src/Core/Logging/MarqueeLogMessage.cs` | `MarqueeLogMessage` | internal | LoggerMessage 定義（入力の判断・設定変更） |
-| `src/Core/Selection/MarqueeSelection.cs` | `MarqueeSelection` | internal readonly record struct | 選択矩形の値と、その値だけから決まる純粋な幾何計算（正規化・ハンドル位置・対角・境界クリップ・ドラッグ変形。 状態機械と幾何の解決が使うため internal） |
+| `src/EsUtil.Feature.Marquee.Core/src/MarqueeCore.cs` | `MarqueeCore` | public | ファサード。 設定・環境値の保持、入力の通知、外部操作、幾何の解決、効果の適用 |
+| `src/EsUtil.Feature.Marquee.Core/src/Core/Interaction/MarqueeSession.cs` | `MarqueeSession` | internal | 入力の解釈と状態遷移の判断。 通知と効果を返す |
+| `src/EsUtil.Feature.Marquee.Core/src/Core/Interaction/MarqueeState.cs` | `MarqueeState` | internal | 選択矩形・ドラッグ・nudge の状態保持。 **状態は操作（遷移メソッド）でのみ変わり、読み取りはプロパティ**（矛盾した状態を作れない） |
+| `src/EsUtil.Feature.Marquee.Core/src/MarqueeCore.Geometry.cs` | `MarqueeCore`（**partial**） | internal | 幾何の**内部手順**（注目矩形の DIP 変換・ハンドル位置・始点マーカー。 注目矩形とポートは 1 回だけ解決する）。 公開の入口 `ResolveGeometry` は `MarqueeCore.cs` が持つ |
+| `src/EsUtil.Feature.Marquee.Core/src/MarqueeGeometry.cs` | `MarqueeGeometry` | public | 1 フレーム分の幾何（`ClientSize` / `FocusDipRect` / `FocusSourceRect` / `Handles` / `Marker` / `MouseSourcePosition` / `MouseDipPosition` ＋ `ClientRect`）。 **コアが責任を持つ値の全量**。 マウス位置は文言用の対象座標と配置用の DIP の両方を渡す（描画層が座標変換ポートを持たないため） |
+| `src/EsUtil.Feature.Marquee.Core/src/MarqueeRenderRequest.cs` | `MarqueeRenderRequest` | public | 幾何解決の入力（設定・状態・描画時に決まる値）。 `MarqueeRenderRequest.Create` が値の組を 1 箇所に閉じ、`MarqueeCore.CreateRequest` が状態を写して生成する。 **本値から導出する値（座標変換ポートの決定・注目矩形の決定・DIP 変換）は本値のインスタンスメンバーが単一所有する**（`ResolvedPort` / `Focus` / `ResolveFocusDipRect` / `ToDipRect` / `ToSourceRect`） |
+| `src/EsUtil.Feature.Marquee.Core/src/MarqueeOptions.cs` | `MarqueeOptions` | public | 設定の値オブジェクト。 既定値を単一所有し、生成時に安全域（`MarqueeCore.Limits`）へ補正する（寸法・対話パラメータのみ。 体裁と表示可否は描画層の外観が単一所有する） |
+| `src/EsUtil.Feature.Marquee.Core/src/MarqueeHandles.cs` | `MarqueeHandles` | public | ドラッグハンドルの幾何（8 方向の矩形・枠線の太さ） |
+| `src/EsUtil.Feature.Marquee.Core/src/MarqueeMarker.cs` | `MarqueeMarker` | public | 始点マーカー（十字線）の幾何（中心・半幅。 線の太さは描画層の外観が持つ） |
+| `src/EsUtil.Feature.Marquee.Core/src/MarqueeSnapshot.cs` | `MarqueeSnapshot` | public | 状態のスナップショット（`readonly record struct`。 値型のため通知でヒープを確保しない） |
+| `src/EsUtil.Feature.Marquee.Core/src/MarqueeNotice.cs` | `MarqueeNotice` | public | 通知（種別・通知座標・スナップショット。 値型） |
+| `src/EsUtil.Feature.Marquee.Core/src/MarqueeNoticeKind.cs` | `MarqueeNoticeKind` | public | 通知の種別 |
+| `src/EsUtil.Feature.Marquee.Core/src/Core/Interaction/MarqueeFeedback.cs` | `MarqueeFeedback` | internal | 効果（適用順を単一所有。 適用先は `IMarqueeEffects`） |
+| `src/EsUtil.Feature.Marquee.Core/src/Core/Interaction/MarqueeCursorActions.cs` | `MarqueeCursorActions` | internal | 要求するカーソル操作のフラグ |
+| `src/EsUtil.Feature.Marquee.Core/src/Core/Interaction/MarqueeCaptureAction.cs` | `MarqueeCaptureAction` | internal | 要求するポインターキャプチャの操作 |
+| `src/EsUtil.Feature.Marquee.Core/src/IMarqueeEffects.cs` | `IMarqueeEffects` | public | 効果の適用先（フォーカス・再描画・カーソル操作・カーソル形状・ポインターキャプチャ・座標変換） |
+| `src/EsUtil.Feature.Marquee.Core/src/Core/Contract/MarqueeEffectsBase.cs` | `MarqueeEffectsBase` | public abstract | 効果の既定実装（全メンバーが virtual の空実装） |
+| `src/EsUtil.Feature.Marquee.Core/src/MarqueeHitTarget.cs` | `MarqueeHitTarget` | public | ヒット対象 |
+| `src/EsUtil.Feature.Marquee.Core/src/MarqueeCursorKind.cs` | `MarqueeCursorKind` | public | カーソル形状の種別 |
+| `src/EsUtil.Feature.Marquee.Core/src/MarqueeInteractionState.cs` | `MarqueeInteractionState` | public | 対話状態 |
+| `src/EsUtil.Feature.Marquee.Core/src/Core/Logging/MarqueeLogMessage.cs` | `MarqueeLogMessage` | internal | LoggerMessage 定義（入力の判断・設定変更） |
+| `src/EsUtil.Feature.Marquee.Core/src/Core/Selection/MarqueeSelection.cs` | `MarqueeSelection` | internal readonly record struct | 選択矩形の値と、その値だけから決まる純粋な幾何計算（正規化・ハンドル位置・対角・境界クリップ・ドラッグ変形。 状態機械と幾何の解決が使うため internal） |
 
 ## 5. 例外処理ポリシー
 

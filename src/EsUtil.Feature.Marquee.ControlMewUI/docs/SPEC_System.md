@@ -245,10 +245,10 @@ classDiagram
     }
 
     SkiaCanvasView <|-- MarqueeControl
-    MarqueeControl *-- Marquee : 操作の唯一の窓口（公開ファサード）
+    MarqueeControl *-- MarqueeCore : 操作の唯一の窓口（公開ファサード）
     MarqueeControl *-- ラベル要素の配置 : 子要素として配置（テキスト要素。常に最上位）
     MarqueeControl ..> IMarqueeEffects : 実装（effects の適用先）
-    Marquee *-- MarqueeSession : 状態管理（入力の解釈）
+    MarqueeCore *-- MarqueeSession : 状態管理（入力の解釈）
     Marquee ..> MarqueeNotice : 通知を UI へ転送（UI は公開イベントへ）
     Marquee ..> MarqueeFeedback : 効果を IMarqueeEffects 経由で適用
     MarqueeControl ..> MarqueeSkiaPainter : 描画（図形）

@@ -160,18 +160,17 @@ dotnet run --project sample/EsUtil.Feature.Marquee.ControlAvaloniaUI.Sample.cspr
 ## 9. プロジェクト構成
 
 ```text
-MarqueeControl/
-├── src/
-│   ├── MarqueeControl.csproj     # 独立プロジェクト（EsUtil.Feature.Marquee.Core + EsUtil.Feature.Marquee.Presenter + Platform.AvaloniaUI を参照）
-│   ├── MarqueeControl.cs         # 公開 API + 効果の適用 + 通知の転送 + ポインター入力 + 描画の起動
-│   ├── MarqueeControl.Input.cs   # キーボード入力（フォーカス非依存。コア型 EsKey への変換と通知）
-│   ├── MarqueeControl.Visual.cs     # 内部: 描画計画（`Layers` の順）を自 UI の描画面へ写し、ラベル要素を配置する
-│   ├── SelectionRectEventArgs.cs  # 公開イベント引数（選択矩形通知）
-│   ├── MarqueePointEventArgs.cs  # 公開イベント引数（座標通知）
-│   ├── MarqueeRenderedEventArgs.cs  # 公開イベント引数（描画完了。描画コンテキストと描画内容を通知する）
-│   └── （ラベル要素（`Border` + `TextBlock`）の配置は本コントロールが行う）
-├── sample/                        # サンプルアプリ（sample/README.md 参照）
-└── tests/                         # 単体テスト（公開 API 経由）
+EsUtil.Feature.Marquee.ControlAvaloniaUI/
+├── src/AvaloniaUI/                          # UI 層（Avalonia 固有の描画と配線）
+│   ├── EsUtil.Feature.Marquee.ControlAvaloniaUI.csproj  # 独立プロジェクト（Core + Presenter + Platform.AvaloniaUI を参照）
+│   ├── MarqueeControl.cs                    # 公開 API + 効果の適用 + 通知の転送 + ポインター入力 + 描画の起動
+│   ├── MarqueeControl.Input.cs              # キーボード入力（フォーカス非依存。コア型 EsKey への変換と通知）
+│   ├── MarqueeControl.Visual.cs             # 描画計画（`Layers` の順）を自 UI の描画面へ写し、ラベル要素を配置する
+│   ├── MarqueeContextPainter.cs             # 描画計画を DrawingContext へ写す
+│   └── SelectionRectEventArgs.cs / MarqueePointEventArgs.cs / MarqueeRenderedEventArgs.cs  # 公開イベント引数
+├── docs/                                    # SPEC_API.md（API リファレンス）/ SPEC_System.md（システム仕様書）
+├── sample/                                  # サンプルアプリ（sample/README.md 参照）
+└── tests/                                   # 単体テスト（公開 API 経由）
 ```
 
 ### 9.1 共有コア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）
@@ -182,14 +181,16 @@ UI 非依存の幾何計算・状態機械・入力の解釈は `src/EsUtil.Feat
 
 ```text
 EsUtil.Feature.Marquee.Core/
-├── src/
-│   ├── Marquee.cs / MarqueeCore.Geometry.cs     # 公開ファサードとその partial（幾何の解決）
-│   ├── AvaloniaUI/Contract/                            # 効果の契約（IMarqueeEffects / MarqueeEffectsBase）
-│   ├── AvaloniaUI/Drawing/                             # 幾何の契約（MarqueeGeometry / MarqueeHandles / MarqueeMarker / MarqueeRenderRequest）
-│   ├── AvaloniaUI/Interaction/                         # 入力と通知・状態機械（MarqueeHitTarget / MarqueeInteractionState / MarqueeSnapshot / MarqueeNotice / MarqueeCursorKind / MarqueeSession / MarqueeState）
-│   ├── AvaloniaUI/Setting/                             # 設定の値（MarqueeOptions）
-│   ├── AvaloniaUI/Logging/                             # ログ定義（MarqueeLogMessage。内部）
-│   └── Selection/                           # 内部（純粋な幾何計算）
+├── src/                                     # 公開面は src/ 直下（利用者の using は 1 本）
+│   ├── MarqueeCore.cs / MarqueeCore.Geometry.cs / MarqueeCore.Limits.cs  # 公開ファサード（partial）
+│   ├── IMarqueeEffects.cs / MarqueeGeometry.cs / MarqueeHandles.cs / MarqueeMarker.cs / MarqueeRenderRequest.cs
+│   ├── MarqueeOptions.cs / MarqueeSnapshot.cs / MarqueeNotice.cs / MarqueeNoticeKind.cs
+│   ├── MarqueeHitTarget.cs / MarqueeInteractionState.cs / MarqueeCursorKind.cs
+│   └── Core/                                # internal（層の内側へ置く）
+│       ├── Contract/                        # 効果の契約（MarqueeEffectsBase）
+│       ├── Interaction/                     # 状態機械（MarqueeSession / MarqueeState / MarqueeFeedback / MarqueeCaptureAction / MarqueeCursorActions）
+│       ├── Logging/                         # ログ定義（MarqueeLogMessage）
+│       └── Selection/                       # 選択矩形の幾何（MarqueeSelection）
 └── tests/                                   # 単体テスト（UI 非依存・並列実行）
 ```
 

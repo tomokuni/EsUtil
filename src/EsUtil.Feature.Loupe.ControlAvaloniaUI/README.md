@@ -216,7 +216,7 @@ dotnet run --project sample/EsUtil.Feature.Loupe.ControlAvaloniaUI.Sample.csproj
 
 ```text
 EsUtil.Feature.Loupe.ControlAvaloniaUI/
-├── src/
+├── src/AvaloniaUI/         # UI 層（Avalonia 固有の描画と配線）
 │   ├── EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj
 │   ├── LoupeControl.cs         # 公開 Panel（コードのみ。AXAML を持たない。公開API一覧・StyledProperty・公開プロパティ・公開メソッド・ラベル要素の配置・非公開実装）
 │   ├── LoupeRenderPipeline.cs      # ソース解決と描画の起動（IImage 型判定と Bitmap の複製は UI 固有。描画先は DrawingContext）
@@ -227,8 +227,8 @@ EsUtil.Feature.Loupe.ControlAvaloniaUI/
 ├── tests/                  # UI 依存の単体テスト（Avalonia ヘッドレス・直列）
 └── docs/                   # SPEC_API.md（API リファレンス）/ SPEC_System.md（システム仕様書）
 
-../EsUtil.Feature.Loupe.Core/       # UI フレームワーク非依存の設定・計算・寸法・判断・ログ定義（設定の単一値 / 寸法 / 数値補正 / 表示位置・サイズ / 切り出し領域と可否 / ラベル配置 / 区画数の切り上げ / 描画完了時の表示情報）
-../EsUtil.Feature.Loupe.Presenter/     # 描画計画と外観の単一所有（LoupePresenter / LoupeAppearance / LoupeDrawPlan）
+src/EsUtil.Feature.Loupe.Core/       # UI フレームワーク非依存の設定・計算・寸法・判断・ログ定義（設定の単一値 / 寸法 / 数値補正 / 表示位置・サイズ / 切り出し領域と可否 / ラベル配置 / 区画数の切り上げ / 描画完了時の表示情報）
+src/EsUtil.Feature.Loupe.Presenter/     # 描画計画と外観の単一所有（LoupePresenter / LoupeAppearance / LoupeDrawPlan）
 ```
 
 ## 13. ライセンス

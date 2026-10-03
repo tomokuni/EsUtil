@@ -28,18 +28,18 @@
 ## 2. 実行方法
 
 ```powershell
-dotnet run --project sample/EsUtil.Feature.Loupe.ControlAvaloniaUI.Sample.csproj
+dotnet run --project src/EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/EsUtil.Feature.Loupe.ControlAvaloniaUI.Sample.csproj
 ```
 
 リリース構成で実行する場合:
 
 ```powershell
-dotnet run -c Release --project sample/EsUtil.Feature.Loupe.ControlAvaloniaUI.Sample.csproj
+dotnet run -c Release --project src/EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/EsUtil.Feature.Loupe.ControlAvaloniaUI.Sample.csproj
 ```
 
 ### バッチファイル（リリースビルド＆起動）
 
-`sample/RunSample.bat` をダブルクリックすると、リリースビルドを行った後、サンプルアプリケーションを起動します。
+`src/EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/RunSample.bat` をダブルクリックすると、リリースビルドを行った後、サンプルアプリケーションを起動します。
 
 ```text
 RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil.Feature.Loupe.ControlAvaloniaUI.Sample.exe を起動

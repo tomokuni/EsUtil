@@ -50,7 +50,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象 | `EsUtil.Feature.Loupe.ControlAvaloniaUI`（公開クラスは `LoupeControl`） |
-| プロジェクト | `src/EsUtil.Feature.Loupe.ControlAvaloniaUI/src/EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj` |
+| プロジェクト | `src/EsUtil.Feature.Loupe.ControlAvaloniaUI/src/AvaloniaUI/EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj` |
 | 名前空間 | `EsUtil.Feature.Loupe.AvaloniaUI` |
 | 対象フレームワーク | `net10.0` |
 | UIフレームワーク | Avalonia 12.1 |
@@ -519,7 +519,7 @@ private void RefreshLoupe()
 動作確認用サンプルは次のプロジェクトです。
 
 ```powershell
-dotnet run --project sample/EsUtil.Feature.Loupe.ControlAvaloniaUI.Sample.csproj
+dotnet run --project src/EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/EsUtil.Feature.Loupe.ControlAvaloniaUI.Sample.csproj
 ```
 
 サンプルでは次を確認できます。

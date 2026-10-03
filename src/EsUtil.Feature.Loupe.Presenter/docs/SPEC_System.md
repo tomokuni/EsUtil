@@ -75,16 +75,16 @@ sequenceDiagram
 
 | ファイル | 型 | 可視性 | 責務 |
 | --- | --- | --- | --- |
-| `src/LoupePresenter.cs` | `LoupePresenter` | public | 提示のファサード。 コアのラップ、外観の保持、描画計画（`ResolveDrawPlan`）と表示レイアウト（`ResolveLayout`）の解決、層の組合せ表の単一所有 |
-| `src/LoupeAppearance.cs` | `LoupeAppearance` | public | 外観（色・フォント・角丸・枠線の太さ・ラベルのオフセット・表示可否）の単一所有と補正 |
-| `src/LoupeDrawPlan.cs` | `LoupeDrawPlan` | public | 描画計画の値（UI が見る唯一の描画値） |
-| `src/LoupeDrawLayer.cs` | `LoupeDrawLayer` | public | 描画層と順序の単一所有 |
-| `src/Presenter/Drawing/LoupeTextPlacement.cs` | `LoupeTextPlacement` | public | 文言・基準点・描画領域 |
-| `src/LoupePresenter.DrawPlan.cs` | `LoupePresenter`（`DrawPlan` partial） | internal | 十字線（縦横 2 本）と枠線（4 辺）の矩形の計算 |
-| `src/LoupeLabelPlacement.cs` | `LoupeLabelPlacement` | public | ラベル要素の配置指示 |
-| `src/LoupePresenter.LabelPlan.cs` | `LoupePresenter`（`LabelPlan` partial） | internal | 実寸 → 配置指示の写像（クランプの単一所有） |
-| `src/LoupePresenter.LabelTexts.cs` | `LoupePresenter`（`LabelTexts` partial） | internal | 文言（`EsPoint.Format`）と基準点（左上の内側）の生成 |
-| `src/Presenter/Logging/LoupePresenterLogMessage.cs` | `LoupePresenterLogMessage` | internal | 本層のログ定義（生成・ロガー設定・本層が単一所有する外観の変更・コアへの転送） |
+| `src/EsUtil.Feature.Loupe.Presenter/src/LoupePresenter.cs` | `LoupePresenter` | public | 提示のファサード。 コアのラップ、外観の保持、描画計画（`ResolveDrawPlan`）と表示レイアウト（`ResolveLayout`）の解決、層の組合せ表の単一所有 |
+| `src/EsUtil.Feature.Loupe.Presenter/src/LoupeAppearance.cs` | `LoupeAppearance` | public | 外観（色・フォント・角丸・枠線の太さ・ラベルのオフセット・表示可否）の単一所有と補正 |
+| `src/EsUtil.Feature.Loupe.Presenter/src/LoupeDrawPlan.cs` | `LoupeDrawPlan` | public | 描画計画の値（UI が見る唯一の描画値） |
+| `src/EsUtil.Feature.Loupe.Presenter/src/LoupeDrawLayer.cs` | `LoupeDrawLayer` | public | 描画層と順序の単一所有 |
+| `src/EsUtil.Feature.Loupe.Presenter/src/Presenter/Drawing/LoupeTextPlacement.cs` | `LoupeTextPlacement` | public | 文言・基準点・描画領域 |
+| `src/EsUtil.Feature.Loupe.Presenter/src/LoupePresenter.DrawPlan.cs` | `LoupePresenter`（`DrawPlan` partial） | internal | 十字線（縦横 2 本）と枠線（4 辺）の矩形の計算 |
+| `src/EsUtil.Feature.Loupe.Presenter/src/LoupeLabelPlacement.cs` | `LoupeLabelPlacement` | public | ラベル要素の配置指示 |
+| `src/EsUtil.Feature.Loupe.Presenter/src/LoupePresenter.LabelPlan.cs` | `LoupePresenter`（`LabelPlan` partial） | internal | 実寸 → 配置指示の写像（クランプの単一所有） |
+| `src/EsUtil.Feature.Loupe.Presenter/src/LoupePresenter.LabelTexts.cs` | `LoupePresenter`（`LabelTexts` partial） | internal | 文言（`EsPoint.Format`）と基準点（左上の内側）の生成 |
+| `src/EsUtil.Feature.Loupe.Presenter/src/Presenter/Logging/LoupePresenterLogMessage.cs` | `LoupePresenterLogMessage` | internal | 本層のログ定義（生成・ロガー設定・本層が単一所有する外観の変更・コアへの転送） |
 
 ## 5. 例外処理ポリシー
 

@@ -104,13 +104,13 @@ flowchart TB
     end
     subgraph Core["EsUtil.Feature.Marquee.Core（UI 非依存）"]
         direction TB
-        Fac["Marquee<br/>public sealed<br/>Marquee.cs<br/>（公開ファサード = 操作の唯一の窓口）"]
+        Fac["MarqueeCore<br/>public sealed<br/>MarqueeCore.cs<br/>（公開ファサード = 操作の唯一の窓口）"]
         Eff["IMarqueeEffects<br/>public interface<br/>（UI へ要求する効果の適用先）"]
         Ses["MarqueeSession<br/>internal sealed<br/>MarqueeSession.cs<br/>（状態管理クラス: 入力の解釈 ＋ 通知 ＋ 効果）"]
         Ntc["MarqueeNotice<br/>public<br/>（コア → UI の通知）"]
         Fbk["MarqueeFeedback<br/>internal<br/>（コア → UI の効果。適用はファサード）"]
         Stt["MarqueeState<br/>internal sealed<br/>MarqueeState.cs<br/>（状態保持 ＋ 更新ロジック）"]
-        Geo["MarqueeSelection<br/>internal readonly record struct<br/>Selection/MarqueeSelection.cs"]
+        Geo["MarqueeSelection<br/>internal readonly record struct<br/>MarqueeSelection.cs"]
         Hdl["MarqueeHitTarget<br/>public enum"]
         Hdl2["MarqueeInteractionState<br/>public enum"]
         Hdl3["MarqueeSnapshot<br/>public record<br/>（EsRect / EsPoint）"]
@@ -176,7 +176,7 @@ flowchart TB
   - プロパティ: `Log`（保持・`NullLogger` へのフォールバックはコアが単一所有） / `SizeLabelOverrideProvider`（外側の装飾のラベル文言。 デリゲートのため設定値に含めない） / `HasSelection` / `SelectionSourceRect`
   - メソッド: `SetCoordTransform(ICoordTransform?)` / `SetSelection` / `ResetSelection` / `RequestCancel` / `RequestConfirm` / `RefreshOverlay` / **`InvalidateRender()`**（描画に関わる変更の唯一の入口。 図形の層・ラベル・配置をまとめて無効化する）
 - **構成（薄い層）**: 公開 API・入力の受付・効果の適用・通知の転送・描画の起動のみを集約し、判断（状態遷移・確定/キャンセル・スナップ・クリック検出・装飾の描画内容）と描画の手順はコアと描画層へ委譲する
-- **依存**: Marquee（公開ファサード）/ IMarqueeEffects / MarqueeSession（間接） / MarqueeOptions / MarqueeNotice / MarqueeGeometry（EsUtil.Feature.Marquee.Core）/ MarqueePresenter（描画計画と配置の写像）/ MarqueeAppearance / MarqueeDrawPlan（EsUtil.Feature.Marquee.Presenter）/ ICoordTransform（EsUtil.Platform.Core）/ ICursorService（EsUtil.Platform.Core の `Native`）/ ScreenConverter（Platform.AvaloniaUI）
+- **依存**: MarqueeCore（公開ファサード）/ IMarqueeEffects / MarqueeSession（間接） / MarqueeOptions / MarqueeNotice / MarqueeGeometry（EsUtil.Feature.Marquee.Core）/ MarqueePresenter（描画計画と配置の写像）/ MarqueeAppearance / MarqueeDrawPlan（EsUtil.Feature.Marquee.Presenter）/ ICoordTransform（EsUtil.Platform.Core）/ ICursorService（EsUtil.Platform.Core の `Native`）/ ScreenConverter（Platform.AvaloniaUI）
 
 ### 6.2 MarqueeCore（公開ファサード・コア）
 

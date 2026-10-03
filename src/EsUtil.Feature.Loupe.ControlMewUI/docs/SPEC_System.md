@@ -168,7 +168,7 @@ classDiagram
     SkiaCanvasView <|-- ShapeCanvas
     Panel <|-- LoupeControl
     LoupeControl *-- ShapeCanvas : 子（図形の描画）
-    LoupeControl *-- Loupe : 操作の唯一の窓口（公開ファサード）
+    LoupeControl *-- LoupeCore : 操作の唯一の窓口（公開ファサード）
     LoupeControl ..> LoupePresenter : 描画計画の解決を委譲する
     LoupeControl ..> LoupeAppearance : 外観（Appearance プロパティ）
     LoupeControl ..> LoupeSkiaPainter : 描画の写し（SKCanvas）
