@@ -4,7 +4,7 @@ using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Native;
 
-/// <summary><see cref="WinCursorService"/> と <see cref="CursorNative"/>（Win32 P/Invoke）の単体テスト。</summary>
+/// <summary><see cref="WinCursorService"/> と <see cref="WinNative"/>（Win32 P/Invoke）の単体テスト。</summary>
 /// <remarks>
 /// Win32 API は実環境で動作するため、例外なく呼び出せることと状態追跡（ShowCursor の重複呼び出し抑制）を確認する。<br/>
 /// <see cref="WinCursorService"/> は UI スレッド（Dispatcher）に依存せず <c>PixelPoint</c> のみを扱うため、<br/>

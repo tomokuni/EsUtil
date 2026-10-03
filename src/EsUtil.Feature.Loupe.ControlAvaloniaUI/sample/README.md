@@ -60,7 +60,7 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 | 色コンボボックス | `Appearance`（`CrossColor` / `PasteboardColor` / `BorderColor`。 「なし」で描画なし） |
 | 枠線の太さ | `Appearance.BorderThickness` |
 | 描画スケール | `ClientToPixelScaling`（DIP→物理ピクセル変換の確認） |
-| 選択矩形オーバーレイ | `SelectionRectVisible` チェック・`SelectionSourceRect`（X / Y / W / H）の編集（対象座標 = 元画像ピクセル）。 テスト画像上に破線の枠＋座標ラベルが表示され、ルーペ内にも破線が描画される |
+| 選択矩形オーバーレイ | `SelectionRectVisible` チェック・選択矩形（`SelectionRectX` / `SelectionRectY` / `SelectionRectWidth` / `SelectionRectHeight`）の編集（対象座標 = 元画像ピクセル）。 テスト画像上に破線の枠＋座標ラベルが表示され、ルーペ内にも破線が描画される |
 | Clear() ボタン | `Clear()` を呼び出し、非表示＋Bitmap 解放 |
 | RequestRender() ボタン | `RequestRender()` を呼び出し、プロパティ変更を伴わない再生成を要求 |
 
@@ -74,8 +74,8 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 - [ ] `ClientToPixelScaling` を 0.5〜2.0 に変更すると Bitmap の物理ピクセルサイズが変化する
 - [ ] `Options.RequestedSize` を変更すると表示サイズが変化する（基本サイズがそのまま表示サイズになる）
 - [ ] `SelectionRectVisible` を ON にすると、テスト画像上に選択矩形の破線枠＋座標ラベルが表示され、場所が一目でわかる
-- [ ] `SelectionRectVisible` を ON にすると、`SelectionSourceRect`（対象座標）の枠線がルーペ画像上にも破線で描画される（ズーム 2 倍以上）
-- [ ] `SelectionSourceRect` の X / Y / W / H を変更すると、テスト画像上の枠とルーペ内の破線の位置・サイズが変化する
+- [ ] `SelectionRectVisible` を ON にすると、選択矩形（対象座標）の枠線がルーペ画像上にも破線で描画される（ズーム 2 倍以上）
+- [ ] 選択矩形の X / Y / W / H を変更すると、テスト画像上の枠とルーペ内の破線の位置・サイズが変化する
 - [ ] `SelectionRectColorA` / `SelectionRectColorB`（「なし」で非表示・不透明度は色のアルファ）が破線に反映される
 - [ ] チェック OFF / `Clear()` で Bitmap が解放され、チェック ON で再表示される
 - [ ] `RequestRender()` で再生成が要求され、`Rendered` が発火する
@@ -111,7 +111,7 @@ EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/
 3. **ルーペの表示/非表示**: 「ルーペを表示」チェックで切り替えます（非表示時は Bitmap 解放）。
 4. **外観の変更**: ズーム・サイズ・色・タイルサイズ・枠の太さ・描画スケールをスライダー/コンボボックスで変更します（即時反映）。
 5. **基本サイズ（Options.RequestedSize）**: スライダーで基本サイズを変更すると、その値がそのまま表示サイズになります。
-6. **選択矩形オーバーレイ**: 「選択矩形を表示」を ON にすると、`SelectionSourceRect`（対象座標 = 元画像ピクセル）の枠線がルーペ画像上に 2 色破線（色A/色B）で表示されます（ズーム 2 倍以上）。 X / Y / W / H・色A / 色B を変更できます（不透明度は色のアルファに統合）。
+6. **選択矩形オーバーレイ**: 「選択矩形を表示」を ON にすると、選択矩形（対象座標 = 元画像ピクセル）の枠線がルーペ画像上に 2 色破線（色A/色B）で表示されます（ズーム 2 倍以上）。 X / Y / W / H・色A / 色B を変更できます（不透明度は色のアルファに統合）。
 7. **API 呼び出し**: `Clear()` / `RequestRender()` ボタンで各公開 API の動作を確認できます。
 8. **拡張例**: 設定パネル上部の見本は、提示層を派生して見た目を差し替えた例です（次節）。
 

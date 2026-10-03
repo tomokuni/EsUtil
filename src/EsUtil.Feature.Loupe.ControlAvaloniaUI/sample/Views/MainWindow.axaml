@@ -93,7 +93,7 @@
                     <TextBlock Text="選択矩形オーバーレイ（破線）" FontWeight="Bold"/>
                     <CheckBox Content="選択矩形を表示（SelectionRectVisible）" IsChecked="{Binding SelectionRectVisible, Mode=TwoWay}"/>
 
-                    <TextBlock Text="選択矩形（SelectionRect・ドメイン座標 = 元画像ピクセル）"/>
+                    <TextBlock Text="選択矩形（SelectionRect・対象座標 = 元画像ピクセル）"/>
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <TextBlock VerticalAlignment="Center" Text="X:"/>
                         <NumericUpDown Minimum="0" Maximum="800" Increment="10"

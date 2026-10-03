@@ -225,8 +225,7 @@ EsUtil.Feature.Loupe.ControlAvaloniaUI/
 │   └── （ラベル要素（`Border` + `TextBlock`）の配置は本コントロールが行う）
 ├── sample/                 # 独立サンプルアプリ（sample/README.md 参照）
 ├── tests/                  # UI 依存の単体テスト（Avalonia ヘッドレス・直列）
-├── SPEC_ExtFunc.md         # 外部機能仕様書
-└── SPEC_System.md          # システム仕様書
+└── docs/                   # SPEC_API.md（API リファレンス）/ SPEC_System.md（システム仕様書）
 
 ../EsUtil.Feature.Loupe.Core/       # UI フレームワーク非依存の設定・計算・寸法・判断・ログ定義（設定の単一値 / 寸法 / 数値補正 / 表示位置・サイズ / 切り出し領域と可否 / ラベル配置 / 区画数の切り上げ / 描画完了時の表示情報）
 ../EsUtil.Feature.Loupe.Presenter/     # 描画計画と外観の単一所有（LoupePresenter / LoupeAppearance / LoupeDrawPlan）

@@ -130,9 +130,7 @@ Avalonia 版の Trace ログ（再描画パイプライン）は持ちません�
 ```text
 src/EsUtil.Feature.Loupe.ControlMewUI/
 ├── README.md                # 本ファイル
-├── SPEC_ExtFunc.md          # 外部機能仕様書
-├── SPEC_System.md           # システム仕様書
-├── src/
+├── docs/                    # SPEC_API.md（API リファレンス）/ SPEC_System.md（システム仕様書）`r`n├── src/
 │   ├── EsUtil.Feature.Loupe.ControlMewUI.csproj   # net10.0 / MewUI 0.21.1 固定
 │   ├── LoupeControl.cs             # Panel 派生のコントロール（描画は LoupeSkiaPainter へ委譲する）
 │   ├── LoupeRenderedEventArgs.cs   # 描画完了の通知（キャンバスと表示情報）

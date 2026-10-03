@@ -1463,7 +1463,7 @@ public class MarqueeControlTests
     /// <remarks>
     /// 図形の描画（描画フェーズ）とラベルの配置（配置フェーズ）が同じ描画内容を共有しないと、<br/>
     /// 選択矩形・装飾・ラベル文言の解決と確保が 1 フレームで 2 回走る。<br/>
-    /// サイズラベルの文言プロバイダは <see cref="MarqueeCore.ResolveContent"/> が 1 回だけ評価するため、<br/>
+    /// サイズラベルの文言プロバイダは <see cref="MarqueePresenter.ResolveDrawPlan"/> が 1 回だけ評価するため、<br/>
     /// その呼び出し回数が 1 フレームの解決回数になる（選択がありサイズラベルを表示する場合のみ評価される）。
     /// </remarks>
     [AvaloniaFact]

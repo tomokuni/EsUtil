@@ -9,7 +9,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests;
 /// <summary>Avalonia ヘッドレステストのアプリケーションビルダー（アセンブリ属性方式）。</summary>
 /// <remarks>
 /// <c>[AvaloniaFact]</c> / <c>[AvaloniaTheory]</c> のテストは本クラスが提供する AppBuilder で
-/// Avalonia を初期化する（<see cref="AvaloniaTestApplication"/> アセンブリ属性）。<br/>
+/// Avalonia を初期化する（<see cref="Avalonia.Headless.AvaloniaTestApplicationAttribute"/> アセンブリ属性）。<br/>
 /// Skia を有効化することで WriteableBitmap のピクセル操作（書き込み・読み取り）が利用可能になる。<br/>
 /// テストは全て UI スレッドで実行されるため、コントロール生成や描画操作が可能になる。<br/>
 /// </remarks>

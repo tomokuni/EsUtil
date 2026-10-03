@@ -11,7 +11,7 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// <see cref="NullLogger"/>（IsEnabled=false）の両方で全メソッドを直接呼び、
 /// LoggerMessage 生成コードの state 走査（Count・インデクサ・列挙・範囲外アクセス）と
 /// IsEnabled 分岐の両パスを網羅する。<br/>
-/// <c>Win</c> 系サービスのログ経路（<see cref="Win.WinCursorService"/> / <see cref="Win.WinWindowService"/>）は
+/// <c>Win</c> 系サービスのログ経路（<see cref="EsUtil.Platform.Core.Native.Win.WinCursorService"/> / <see cref="EsUtil.Platform.Core.Native.Win.WinWindowService"/>）は
 /// 実機検証が必要なため、本テストで定義を直接検証する（カバレッジ維持）。<br/>
 /// 例外を受け取る定義（<c>LogCaptureFailed</c>）も例外を渡して経路を通す。
 /// </remarks>

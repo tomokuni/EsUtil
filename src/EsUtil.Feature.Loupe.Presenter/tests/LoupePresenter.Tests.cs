@@ -9,7 +9,7 @@ namespace EsUtil.Feature.Loupe.Tests;
 /// <summary><see cref="LoupePresenter"/> の単体テスト（外観の保持・変更の記録・コアへの伝搬）。</summary>
 /// <remarks>
 /// 提示層が単一所有するもの（外観・描画計画）のうち、外観の保持と変更ログ、および
-/// コアへ伝搬する値の通過の記録を検証する（描画計画の解決は <see cref="LoupeDrawPlan.Tests"/> が担う）。<br/>
+/// コアへ伝搬する値の通過の記録を検証する（描画計画の解決は <see cref="LoupeDrawPlanTests"/> が担う）。<br/>
 /// UI フレームワークに依存しないため、UI 初期化なしの <c>[Fact]</c> で並列検証できる。
 /// </remarks>
 public class LoupePresenterTests

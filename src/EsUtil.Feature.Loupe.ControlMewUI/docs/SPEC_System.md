@@ -244,7 +244,7 @@ sequenceDiagram
 | `LoupeSkiaPainter`（描画実装） | `SKBitmap` + `SKCanvas`（`TestHelper.LoupeSkiaPainter` 経由）へ実際に描画し、**画素を実測**して検証する（ウィンドウ不要で並行実行できる） |
 | `LoupeControl` | `MewProperty` の補正・既定値・要求サイズを検証する（MewUI の要素生成はホスト登録を要しない） |
 | コアロジック | `EsUtil.Feature.Loupe.Core.Tests` が担保する（本プロジェクトでは再検証しない） |
-| アプリ組み込み | `App.MewUI/verify-ui.ps1` が実機の画素を実測して検証する |
+| アプリ組み込み | `App.MewUI` の実機検証（撮影した画素の実測）で確認する |
 
 ## 未実装・今後の対応
 

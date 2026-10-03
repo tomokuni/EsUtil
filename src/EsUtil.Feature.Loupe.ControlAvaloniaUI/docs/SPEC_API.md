@@ -50,7 +50,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象 | `EsUtil.Feature.Loupe.ControlAvaloniaUI`（公開クラスは `LoupeControl`） |
-| プロジェクト | `EsUtil.Feature.Loupe.ControlAvaloniaUI/src/EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj` |
+| プロジェクト | `src/EsUtil.Feature.Loupe.ControlAvaloniaUI/src/EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj` |
 | 名前空間 | `EsUtil.Feature.Loupe.AvaloniaUI` |
 | 対象フレームワーク | `net10.0` |
 | UIフレームワーク | Avalonia 12.1 |

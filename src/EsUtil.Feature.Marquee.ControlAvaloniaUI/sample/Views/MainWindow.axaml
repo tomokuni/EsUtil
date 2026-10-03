@@ -82,7 +82,7 @@
                                 Value="{Binding HandleHitRadius, Mode=TwoWay}"/>
                     </DockPanel>
 
-                    <TextBlock Text="最小選択サイズ（MinSelectionSize・ドメイン座標）" FontSize="11"/>
+                    <TextBlock Text="最小選択サイズ（MinSelectionSize・対象座標）" FontSize="11"/>
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Right" Text="{Binding MinSelectionSizeText}" FontSize="11"/>
                         <Slider Minimum="1" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True"

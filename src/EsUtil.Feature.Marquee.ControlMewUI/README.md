@@ -25,7 +25,6 @@ MewUI は API が安定化中（0.x）のため、パッケージのバージョ
 ## 使い方
 
 ```csharp
-using EsUtil.Feature.Marquee.Setting;
 using EsUtil.Feature.Marquee.MewUI;
 using EsUtil.Feature.Marquee;                     // MarqueeOptions（コア）と MarqueeAppearance（描画にだけ必要な外観）
 using EsUtil.Platform.Core.Coord;

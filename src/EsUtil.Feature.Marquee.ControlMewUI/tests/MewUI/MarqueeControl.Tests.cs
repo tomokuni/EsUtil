@@ -480,7 +480,7 @@ public class MarqueeControlTests
     /// <summary>1 フレーム分の描画内容は 1 回だけ解決されることを検証する。</summary>
     /// <remarks>
     /// 配置と描画で同じ描画内容を共有しないと、選択矩形・装飾・ラベル文言の解決と確保が 1 フレームで 2 回走る。<br/>
-    /// サイズラベルの文言プロバイダは <see cref="MarqueePresenter.ResolveContent"/> が 1 回だけ評価するため、<br/>
+    /// サイズラベルの文言プロバイダは <see cref="MarqueePresenter.ResolveDrawPlan"/> が 1 回だけ評価するため、<br/>
     /// その呼び出し回数が 1 フレームの解決回数になる（選択がありサイズラベルを表示する場合のみ評価される）。<br/>
     /// 同じ基準サイズで配置を繰り返しても再解決しない（状態が変わった場合だけ再解決する）。
     /// </remarks>

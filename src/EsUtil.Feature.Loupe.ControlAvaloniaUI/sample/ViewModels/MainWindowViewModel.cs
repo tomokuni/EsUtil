@@ -98,14 +98,14 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     // ====================================================================
-    // 選択矩形の破線オーバーレイ（SelectionSourceRect 系）
+    // 選択矩形の破線オーバーレイ（SelectionRectX / Y / Width / Height）
     // ====================================================================
 
     private bool _selectionRectVisible;
 
     /// <summary>選択矩形の破線オーバーレイを表示するかどうか（SelectionRectVisible）。</summary>
     /// <remarks>
-    /// true にすると <see cref="SelectionSourceRect"/>（対象座標系 = 元画像ピクセル座標）の枠線を
+    /// true にすると 選択矩形（<see cref="SelectionRectX"/> / <see cref="SelectionRectY"/> / <see cref="SelectionRectWidth"/> / <see cref="SelectionRectHeight"/>。 対象座標系 = 元画像ピクセル座標）の枠線を
     /// ルーペ画像上に破線で描画する（ズーム 2 倍以上で有効）。<br/>
     /// </remarks>
     public bool SelectionRectVisible
