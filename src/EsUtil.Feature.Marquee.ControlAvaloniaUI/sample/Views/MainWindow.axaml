@@ -1,0 +1,177 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:marquee="clr-namespace:EsUtil.Feature.Marquee.AvaloniaUI;assembly=EsUtil.Feature.Marquee.ControlAvaloniaUI"
+        xmlns:sample="clr-namespace:EsUtil.Feature.Marquee.AvaloniaUI.Sample.Presentation"
+        xmlns:vm="clr-namespace:EsUtil.Feature.Marquee.AvaloniaUI.Sample.ViewModels"
+        x:Class="EsUtil.Feature.Marquee.AvaloniaUI.Sample.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="MarqueeControl 動作確認サンプル"
+        Width="1000" Height="1020"
+        WindowStartupLocation="CenterScreen">
+
+    <DockPanel>
+
+        <!-- ───────────────────────── 上: 操作ガイド ───────────────────────── -->
+        <Border DockPanel.Dock="Top" Padding="10" Background="#FAFAFA"
+                BorderBrush="#DDDDDD" BorderThickness="0,0,0,1">
+            <StackPanel Spacing="4">
+                <TextBlock Text="MarqueeControl サンプル" FontSize="16" FontWeight="Bold"/>
+                <TextBlock Text="{Binding StatusText}" FontSize="12" TextWrapping="Wrap"/>
+                <TextBlock FontSize="11" Foreground="Gray" TextWrapping="Wrap"
+                           Text="マウスドラッグ: 新規選択 / 選択矩形の移動・リサイズ（ハンドル） / 選択外クリック: キャンセル"/>
+                <TextBlock FontSize="11" Foreground="Gray" TextWrapping="Wrap"
+                           Text="矢印キー: nudge（ドメイン1Pixel移動・フォーカスが必要）"/>
+                <TextBlock FontSize="11" Foreground="Gray" TextWrapping="Wrap"
+                           Text="Escape: キャンセル要求 / Enter: 確定要求（コントロールが自己処理し ConfirmRequested / CancelRequested を発火）"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ───────────────────────── 左: 設定パネル ───────────────────────── -->
+        <Border DockPanel.Dock="Left" Width="280" Padding="10"
+                BorderBrush="#DDDDDD" BorderThickness="0,0,1,0" Background="#FAFAFA">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="8">
+
+                    <!-- 拡張例: 既定の提示層（MarqueePresenter）を派生して外観と装飾を差し替える。
+                         コントロールを通さず、公開 API だけで提示層と描画実装を組み合わせられることを示す -->
+                    <TextBlock Text="拡張例（派生 Presenter）" FontSize="13" FontWeight="Bold"/>
+                    <TextBlock FontSize="10" Foreground="Gray" TextWrapping="Wrap"
+                               Text="GuideMarqueePresenter が解決した描画計画（破線枠 + 三分割ガイド）を MarqueeContextPainter で描いた見本です。Core の公開 API だけで作れます。"/>
+                    <Border BorderBrush="#CCCCCC" BorderThickness="1" Background="#202020" Height="170">
+                        <sample:GuideMarqueePreview/>
+                    </Border>
+
+                    <Separator/>
+
+                    <TextBlock Text="コントロール設定" FontSize="13" FontWeight="Bold"/>
+
+                    <TextBlock Text="枠線の太さ（BorderThickness）" FontSize="11"/>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding BorderThicknessText}" FontSize="11"/>
+                        <Slider Minimum="0.5" Maximum="8" TickFrequency="0.5" IsSnapToTickEnabled="True"
+                                Value="{Binding BorderThickness, Mode=TwoWay}"/>
+                    </DockPanel>
+
+                    <TextBlock Text="枠線の色（BorderColor・不透明度は色のアルファ）" FontSize="11"/>
+                    <ComboBox ItemsSource="{Binding ColorChoices}" SelectedItem="{Binding BorderColorOption, Mode=TwoWay}"/>
+
+                    <TextBlock Text="ハンドルのサイズ（HandleSize）" FontSize="11"/>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding HandleSizeText}" FontSize="11"/>
+                        <Slider Minimum="2" Maximum="30" TickFrequency="1" IsSnapToTickEnabled="True"
+                                Value="{Binding HandleSize, Mode=TwoWay}"/>
+                    </DockPanel>
+
+                    <TextBlock Text="ハンドルの色（HandleColor）" FontSize="11"/>
+                    <ComboBox ItemsSource="{Binding ColorChoices}" SelectedItem="{Binding HandleColorOption, Mode=TwoWay}"/>
+
+                    <TextBlock Text="十字マーカーの色（MarkerColor）" FontSize="11"/>
+                    <ComboBox ItemsSource="{Binding ColorChoices}" SelectedItem="{Binding MarkerColorOption, Mode=TwoWay}"/>
+
+                    <TextBlock Text="十字マーカーの長さ（MarkerLength・全長DIP）" FontSize="11"/>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding MarkerLengthText}" FontSize="11"/>
+                        <Slider Minimum="8" Maximum="40" TickFrequency="2" IsSnapToTickEnabled="True"
+                                Value="{Binding MarkerLength, Mode=TwoWay}"/>
+                    </DockPanel>
+
+                    <TextBlock Text="ハンドル判定半径（HandleHitRadius・DIP座標）" FontSize="11"/>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding HandleHitRadiusText}" FontSize="11"/>
+                        <Slider Minimum="2" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True"
+                                Value="{Binding HandleHitRadius, Mode=TwoWay}"/>
+                    </DockPanel>
+
+                    <TextBlock Text="最小選択サイズ（MinSelectionSize・ドメイン座標）" FontSize="11"/>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding MinSelectionSizeText}" FontSize="11"/>
+                        <Slider Minimum="1" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True"
+                                Value="{Binding MinSelectionSize, Mode=TwoWay}"/>
+                    </DockPanel>
+
+                    <Separator/>
+
+                    <CheckBox Content="画像外の選択を禁止（ClampToSourceBounds）" IsChecked="{Binding ClampToSourceBounds, Mode=TwoWay}"
+                              FontSize="11" ToolTip.Tip="ON: 領域選択・移動・nudge を画像境界内にクリップ / OFF: 画像外も選択可能（既定）"/>
+
+                    <Separator/>
+
+                    <TextBlock Text="操作" FontSize="13" FontWeight="Bold"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="選択をクリア" Click="OnClearClicked"/>
+                        <Button Content="固定矩形" Click="OnSetFixedClicked"/>
+                        <Button Content="ログクリア" Click="OnClearLogClicked"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="確定要求" Click="OnConfirmClicked"/>
+                        <Button Content="キャンセル要求" Click="OnCancelClicked"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ───────────────────────── 右: 選択面 + ログ表示（一体・サイズ可変） ───────────────────────── -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" MinHeight="200"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="180" MinHeight="80"/>
+            </Grid.RowDefinitions>
+
+            <!-- 選択面（画像のズーム・スクロール対応） -->
+            <Border Grid.Row="0" Background="White" BorderBrush="#CCCCCC" BorderThickness="1" Margin="10">
+                <Grid>
+                    <ScrollViewer x:Name="ImageScroll"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+                        <Canvas x:Name="CanvasHost" Background="White" ClipToBounds="False"
+                                PointerPressed="OnCanvasPointerPressed"
+                                PointerWheelChanged="OnCanvasWheelChanged">
+
+                            <!-- 背景画像（ズーム・スクロール可能なドメイン面） -->
+                            <Image x:Name="BackdropImage" Stretch="Fill" IsHitTestVisible="False"/>
+
+                            <!-- MarqueeControl（選択面。ズーム倍率に応じてサイズと座標ポートを更新）
+                                 寸法・対話パラメータは Options（1 つの設定値）で指定するため、
+                                 コードビハインド（ApplyControlSettings）で ViewModel から一括設定する -->
+                            <marquee:MarqueeControl x:Name="Marquee"/>
+                        </Canvas>
+                    </ScrollViewer>
+
+                    <!-- 拡大率表示（選択面の右上） -->
+                    <Border HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Margin="8" Padding="8,3" CornerRadius="3"
+                            Background="#B0000000" IsHitTestVisible="False">
+                        <TextBlock Text="{Binding ZoomText}" Foreground="White" FontSize="12" FontWeight="Bold"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- 分割バー（ドラッグで選択面とログ表示のサイズを変更） -->
+            <GridSplitter Grid.Row="1" Height="5" Margin="10,0"
+                          HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                          Background="#DDDDDD" ShowsPreview="False"/>
+
+            <!-- 操作ログ表示（選択面と一体） -->
+            <Border Grid.Row="2" Background="#FAFAFA" BorderBrush="#CCCCCC" BorderThickness="1"
+                    Margin="10,0,10,10" Padding="8">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,4">
+                        <TextBlock Text="操作ログ" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding LogCountText}" FontSize="11" Foreground="Gray" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ScrollViewer x:Name="LogScroll" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding LogLines}" FontSize="11">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" FontFamily="Consolas"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+    </DockPanel>
+</Window>

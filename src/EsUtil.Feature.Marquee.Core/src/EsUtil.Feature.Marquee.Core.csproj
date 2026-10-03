@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Feature.Marquee</RootNamespace>
+    <AssemblyName>EsUtil.Feature.Marquee.Core</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- ドキュメントコメントを検証する（存在しないメンバーへの cref を CS1574、公開メンバーの未記載を CS1591 で検出）。
+         XML は配布物（bin / publish）へ出さない（検証だけに使う）。 -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 入力の判断と描画状態変更のログ定義（LoggerMessage ソース生成）をコアが所有する -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 内部契約（状態機械・描画入力・幾何計算）はコアの単体テストからのみ参照する。
+         UI 実装とホストが使う公開面（設定・通知・フレーム・描画計算）は public のため IVT 不要。 -->
+    <InternalsVisibleTo Include="EsUtil.Feature.Marquee.Core.Tests" />
+  </ItemGroup>
+
+</Project>

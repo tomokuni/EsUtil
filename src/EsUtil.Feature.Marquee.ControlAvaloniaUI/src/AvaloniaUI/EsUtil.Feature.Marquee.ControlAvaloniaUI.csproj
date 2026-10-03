@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Feature.Marquee.AvaloniaUI</RootNamespace>
+    <AssemblyName>EsUtil.Feature.Marquee.ControlAvaloniaUI</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- ドキュメントコメントを検証する（存在しないメンバーへの cref を CS1574、公開メンバーの未記載を CS1591 で検出）。
+         XML は配布物（bin / publish）へ出さない（検証だけに使う）。 -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="[12.*,)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Feature.Marquee.ControlAvaloniaUI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 共有プラットフォーム抽象（カーソル操作: ICursorService / WinCursorService） -->
+    <ProjectReference Include="..\..\..\App.Platform.AvaloniaUI\src\App.Platform.AvaloniaUI.csproj" />
+    <!-- UI 非依存のコア（選択幾何・状態機械） -->
+    <ProjectReference Include="..\..\..\EsUtil.Feature.Marquee.Core\src\EsUtil.Feature.Marquee.Core.csproj" />
+    <!-- コントロール化の転送規則と描画手順（層の順序と描画ポートへの写し）を単一所有する UI 非依存層 -->
+    <ProjectReference Include="..\..\..\EsUtil.Feature.Marquee.Presenter\src\EsUtil.Feature.Marquee.Presenter.csproj" />
+  </ItemGroup>
+
+</Project>

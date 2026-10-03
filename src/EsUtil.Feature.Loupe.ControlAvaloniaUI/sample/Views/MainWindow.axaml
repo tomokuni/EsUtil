@@ -1,0 +1,180 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loupe="clr-namespace:EsUtil.Feature.Loupe.AvaloniaUI;assembly=EsUtil.Feature.Loupe.ControlAvaloniaUI"
+        xmlns:sample="clr-namespace:EsUtil.Feature.Loupe.AvaloniaUI.Sample.Presentation"
+        xmlns:vm="clr-namespace:EsUtil.Feature.Loupe.AvaloniaUI.Sample.ViewModels"
+        x:Class="EsUtil.Feature.Loupe.AvaloniaUI.Sample.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="LoupeControl 動作確認サンプル"
+        Width="1180" Height="760"
+        WindowStartupLocation="CenterScreen">
+
+    <DockPanel>
+
+        <!-- ───────────────────────── 左: 設定パネル ───────────────────────── -->
+        <Border DockPanel.Dock="Left" Width="360" Padding="12"
+                BorderBrush="#DDDDDD" BorderThickness="0,0,1,0" Background="#FAFAFA">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="10">
+
+                    <TextBlock Text="LoupeControl サンプル" FontSize="16" FontWeight="Bold"/>
+                    <TextBlock Text="テスト画像上をマウスで移動すると拡大表示されます。" FontSize="12" TextWrapping="Wrap"/>
+
+                    <Separator/>
+
+                    <!-- 拡張例: 既定の提示層（LoupePresenter）を派生して外観と装飾を差し替える。
+                         コントロールを通さず、公開 API だけで提示層と描画実装を組み合わせられることを示す -->
+                    <TextBlock Text="拡張例（派生 Presenter）" FontWeight="Bold"/>
+                    <TextBlock FontSize="11" Foreground="Gray" TextWrapping="Wrap"
+                               Text="GridLoupePresenter が解決した描画計画（中心の格子線 + 四隅の鉤）を LoupeContextPainter で描いた見本です。Core の公開 API だけで作れます。"/>
+                    <Border BorderBrush="#CCCCCC" BorderThickness="1" Background="#202020"
+                            Height="150" HorizontalAlignment="Left">
+                        <sample:GridLoupePreview/>
+                    </Border>
+
+                    <Separator/>
+
+                    <CheckBox Content="ルーペを表示（IsVisible）" IsChecked="{Binding IsLoupeVisible, Mode=TwoWay}"/>
+
+                    <!-- 拡大率 -->
+                    <TextBlock Text="拡大率（ZoomLevel）"/>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding ZoomText}" VerticalAlignment="Center"/>
+                        <Slider Minimum="1" Maximum="16" TickFrequency="1" IsSnapToTickEnabled="True"
+                                Value="{Binding ZoomLevel, Mode=TwoWay}"/>
+                    </DockPanel>
+
+                    <!-- ルーペサイズ（RequestedSize。表示サイズはコントロールがクランプを内包） -->
+                    <TextBlock Text="ルーペサイズ（RequestedSize・DIP）"/>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding RequestedSizeText}" VerticalAlignment="Center"/>
+                        <Slider Minimum="80" Maximum="600" TickFrequency="20" IsSnapToTickEnabled="True"
+                                Value="{Binding RequestedSize, Mode=TwoWay}"/>
+                    </DockPanel>
+
+                    <Separator/>
+
+                    <!-- 十字線 -->
+                    <TextBlock Text="十字線の色（CrossColor・不透明度は色のアルファ）"/>
+                    <ComboBox ItemsSource="{Binding CrossColorOptions}" SelectedItem="{Binding CrossColorOption}"/>
+
+                    <Separator/>
+
+                    <!-- 画像外（ペーストボード） -->
+                    <TextBlock Text="画像外の色（PasteboardColor）"/>
+                    <ComboBox ItemsSource="{Binding PasteboardColorOptions}" SelectedItem="{Binding PasteboardColorOption}"/>
+
+                    <Separator/>
+
+                    <!-- 枠線 -->
+                    <TextBlock Text="枠線の色（BorderColor）"/>
+                    <ComboBox ItemsSource="{Binding BorderColorOptions}" SelectedItem="{Binding BorderColorOption}"/>
+
+                    <TextBlock Text="枠線の太さ（BorderThickness）"/>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding BorderThicknessText}" VerticalAlignment="Center"/>
+                        <Slider Minimum="1" Maximum="16" TickFrequency="1" IsSnapToTickEnabled="True"
+                                Value="{Binding BorderThickness, Mode=TwoWay}"/>
+                    </DockPanel>
+
+                    <Separator/>
+
+                    <!-- 描画スケール -->
+                    <TextBlock Text="描画スケール（ClientToPixelScaling・DIP→ピクセル）"/>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding ClientToPixelScalingText}" VerticalAlignment="Center"/>
+                        <Slider Minimum="0.5" Maximum="2" TickFrequency="0.25" IsSnapToTickEnabled="True"
+                                Value="{Binding ClientToPixelScaling, Mode=TwoWay}"/>
+                    </DockPanel>
+
+                    <Separator/>
+
+                    <!-- 選択矩形の破線オーバーレイ -->
+                    <TextBlock Text="選択矩形オーバーレイ（破線）" FontWeight="Bold"/>
+                    <CheckBox Content="選択矩形を表示（SelectionRectVisible）" IsChecked="{Binding SelectionRectVisible, Mode=TwoWay}"/>
+
+                    <TextBlock Text="選択矩形（SelectionRect・ドメイン座標 = 元画像ピクセル）"/>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock VerticalAlignment="Center" Text="X:"/>
+                        <NumericUpDown Minimum="0" Maximum="800" Increment="10"
+                                       Value="{Binding SelectionRectX, Mode=TwoWay}" Width="110"/>
+                        <TextBlock VerticalAlignment="Center" Text="Y:"/>
+                        <NumericUpDown Minimum="0" Maximum="600" Increment="10"
+                                       Value="{Binding SelectionRectY, Mode=TwoWay}" Width="110"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock VerticalAlignment="Center" Text="W:"/>
+                        <NumericUpDown Minimum="0" Maximum="800" Increment="10"
+                                       Value="{Binding SelectionRectWidth, Mode=TwoWay}" Width="110"/>
+                        <TextBlock VerticalAlignment="Center" Text="H:"/>
+                        <NumericUpDown Minimum="0" Maximum="600" Increment="10"
+                                       Value="{Binding SelectionRectHeight, Mode=TwoWay}" Width="110"/>
+                    </StackPanel>
+
+                    <TextBlock Text="※ 中心座標ラベルはルーペコントロールが左上に表示します。"
+                               FontSize="11" Foreground="Gray" TextWrapping="Wrap"/>
+
+                    <Separator/>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="Clear()" Click="OnClearClicked"/>
+                        <Button Content="RequestRender()" Click="OnRequestRenderClicked"/>
+                    </StackPanel>
+                    <TextBlock Text="Clear(): 非表示にして Bitmap 解放 / RequestRender(): プロパティ変更を伴わない再生成要求（API 検証用）"
+                               FontSize="11" TextWrapping="Wrap" Foreground="Gray"/>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ───────────────────────── 右: テスト画像 + ルーペ ───────────────────────── -->
+        <Grid>
+
+            <Canvas x:Name="CanvasHost" Background="White" ClipToBounds="True"
+                    PointerMoved="OnCanvasPointerMoved" >
+
+                <!-- テスト画像（Stretch=None で原寸表示） -->
+                <Image x:Name="TestImage" Source="{Binding SourceImage}" Stretch="None"/>
+
+                <!-- 選択矩形の場所表示（テスト画像上のオーバーレイ枠。ルーペ内の破線と連動） -->
+                <Rectangle Canvas.Left="{Binding SelectionRectX}"
+                           Canvas.Top="{Binding SelectionRectY}"
+                           Width="{Binding SelectionRectWidth}"
+                           Height="{Binding SelectionRectHeight}"
+                           Stroke="#FF8C00"
+                           StrokeThickness="2"
+                           StrokeDashArray="4,2"
+                           Fill="#30FF8C00"
+                           IsHitTestVisible="False"
+                           IsVisible="{Binding SelectionRectVisible}"/>
+                <TextBlock Canvas.Left="{Binding SelectionRectX}"
+                           Canvas.Top="{Binding SelectionRectY}"
+                           Margin="4,-20,0,0"
+                           FontSize="11" FontWeight="SemiBold" Foreground="Orange"
+                           Background="#DDFFFFFF" Padding="3,1"
+                           Text="{Binding SelectionRectLabel}"
+                           IsHitTestVisible="False"
+                           IsVisible="{Binding SelectionRectVisible}"/>
+
+                <!-- ルーペ（マウス追従・Binding 方式） -->
+                <loupe:LoupeControl x:Name="Loupe"
+                                    IsHitTestVisible="False"
+                                    IsVisible="{Binding IsLoupeVisible, Mode=TwoWay}"
+                                    Source="{Binding SourceImage}"
+                                    CenterPoint="{Binding CenterPoint}"
+                                    Options="{Binding Options}"
+                                    Appearance="{Binding Appearance}"
+                                    ClientToPixelScaling="{Binding ClientToPixelScaling}"/>
+
+            </Canvas>
+
+            <!-- 座標情報 -->
+            <Border HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10" Padding="8"
+                    Background="#DDFFFFFF" CornerRadius="3">
+                <TextBlock FontSize="12" Text="{Binding CoordText}"/>
+            </Border>
+
+        </Grid>
+
+    </DockPanel>
+</Window>

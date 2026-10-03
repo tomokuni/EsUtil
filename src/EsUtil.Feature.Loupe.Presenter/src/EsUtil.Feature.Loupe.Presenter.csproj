@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Feature.Loupe</RootNamespace>
+    <AssemblyName>EsUtil.Feature.Loupe.Presenter</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- ドキュメントコメントを検証する（存在しないメンバーへの cref を CS1574、公開メンバーの未記載を CS1591 で検出）。
+         XML は配布物（bin / publish）へ出さない（検証だけに使う）。 -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 本層は「コアをコントロールへ組み込むときにだけ必要な処理」と「描画層（提示・外観・描画計画）」を単一所有する。
+         描画 API は本層で抽象化しない（UI フレームワークごとの描画モデルの差を吸収しきれないため、描画は各 UI が行う）。
+         UI フレームワークは参照しない（UI は本層を参照する）。 -->
+    <ProjectReference Include="..\..\EsUtil.Feature.Loupe.Core\src\EsUtil.Feature.Loupe.Core.csproj" />
+    <ProjectReference Include="..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Feature.Loupe.Presenter.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- UI が出力するログ定義（LoggerMessage ソース生成）を本層が所有する -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Feature.Loupe.AvaloniaUI</RootNamespace>
+    <AssemblyName>EsUtil.Feature.Loupe.ControlAvaloniaUI</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- ドキュメントコメントを検証する（存在しないメンバーへの cref を CS1574、公開メンバーの未記載を CS1591 で検出）。
+         XML は配布物（bin / publish）へ出さない（検証だけに使う）。 -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="[12.*,)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- UI 非依存の純粋ロジック（Core）と座標変換ポートを参照する -->
+    <ProjectReference Include="..\..\..\EsUtil.Feature.Loupe.Core\src\EsUtil.Feature.Loupe.Core.csproj" />
+    <!-- コントロール化の再描画スケジューリングと描画手順（層の順序と描画ポートへの写し）を単一所有する UI 非依存層 -->
+    <ProjectReference Include="..\..\..\EsUtil.Feature.Loupe.Presenter\src\EsUtil.Feature.Loupe.Presenter.csproj" />
+    <ProjectReference Include="..\..\..\App.Platform.AvaloniaUI\src\App.Platform.AvaloniaUI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- tests/ は独立したテストプロジェクトのため、本プロジェクトのコンパイル対象から除外する（src/ の外） -->
+    <Compile Remove="..\tests\**" />
+    <None Remove="..\tests\**" />
+    <Page Remove="..\tests\**" />
+    <AvaloniaXaml Remove="..\tests\**" />
+    <EmbeddedResource Remove="..\tests\**" />
+    <!-- sample/ は独立したサンプルアプリケーションのため、本プロジェクトのコンパイル対象から除外する（src/ の外） -->
+    <Compile Remove="..\sample\**" />
+    <None Remove="..\sample\**" />
+    <Page Remove="..\sample\**" />
+    <AvaloniaXaml Remove="..\sample\**" />
+    <EmbeddedResource Remove="..\sample\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Feature.Loupe.ControlAvaloniaUI.Tests" />
+  </ItemGroup>
+
+</Project>

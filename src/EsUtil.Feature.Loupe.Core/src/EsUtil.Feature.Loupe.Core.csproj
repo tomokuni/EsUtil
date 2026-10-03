@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Feature.Loupe</RootNamespace>
+    <AssemblyName>EsUtil.Feature.Loupe.Core</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- ドキュメントコメントを検証する（存在しないメンバーへの cref を CS1574、公開メンバーの未記載を CS1591 で検出）。
+         XML は配布物（bin / publish）へ出さない（検証だけに使う）。 -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 設定変更のログ定義（LoggerMessage ソース生成）をコアが所有する。
+         EsUtil.Platform.Core 経由の推移参照でも解決できるが、本コアが直接使う依存のため明示する
+         （EsUtil.Platform.Core が参照を外すと本コアが壊れるため）。 -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 内部手順（配置の幾何・描画入力の導出）はファサード（Loupe）の実装詳細であり、
+         単体テストにのみ公開する（UI 実装・ホストは参照しない）。 -->
+    <InternalsVisibleTo Include="EsUtil.Feature.Loupe.Core.Tests" />
+  </ItemGroup>
+
+  <!-- 状態機械は持たない（公開面はファサードとその契約）。他アセンブリへの InternalsVisibleTo はテストのみ。 -->
+
+</Project>

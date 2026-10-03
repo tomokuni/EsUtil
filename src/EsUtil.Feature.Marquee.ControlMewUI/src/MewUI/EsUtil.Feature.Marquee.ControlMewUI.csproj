@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Feature.Marquee.MewUI</RootNamespace>
+    <AssemblyName>EsUtil.Feature.Marquee.ControlMewUI</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- MewUI は API が安定化中（0.x）。破壊的変更を避けるためバージョンを固定する。 -->
+    <MewUIVersion>0.21.1</MewUIVersion>
+    <!-- ドキュメントコメントを検証する（存在しないメンバーへの cref を CS1574、公開メンバーの未記載を CS1591 で検出）。
+         XML は配布物（bin / publish）へ出さない（検証だけに使う）。 -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- SkiaCanvasView（枠線・ハンドル・マーカー・座標ラベルを描画する） -->
+    <PackageReference Include="Aprillz.MewUI.Skia" Version="$(MewUIVersion)" />
+    <!-- 操作ログ（LoggerMessage ソース生成・NullLogger。Avalonia 版と同一の書式） -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- UI 非依存の選択幾何・状態機械（Core）とコア幾何型を参照する -->
+    <ProjectReference Include="..\..\..\EsUtil.Feature.Marquee.Core\src\EsUtil.Feature.Marquee.Core.csproj" />
+    <!-- コントロール化の転送規則と描画手順（層の順序と描画ポートへの写し）を単一所有する UI 非依存層 -->
+    <ProjectReference Include="..\..\..\EsUtil.Feature.Marquee.Presenter\src\EsUtil.Feature.Marquee.Presenter.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- カーソル操作の既定実装（Win32・UI 非依存）。状態機械は抽象のみに依存し、既定実装の解決は本 UI 層が行う。 -->
+    <!-- MewUI のキー型 ⇔ コアのキー型（EsKey）の相互変換（キー入力をコアへ通知するため） -->
+    <ProjectReference Include="..\..\..\App.Platform.MewUI\src\App.Platform.MewUI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- tests/ は独立したテストプロジェクトのため、本プロジェクトのコンパイル対象から除外する（src/ の外） -->
+    <Compile Remove="..\tests\**" />
+    <None Remove="..\tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Feature.Marquee.ControlMewUI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\App.Platform.Skia\src\App.Platform.Skia.csproj" />
+  </ItemGroup>
+
+</Project>

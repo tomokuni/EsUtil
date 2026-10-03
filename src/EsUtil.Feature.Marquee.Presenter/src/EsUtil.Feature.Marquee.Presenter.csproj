@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Feature.Marquee</RootNamespace>
+    <AssemblyName>EsUtil.Feature.Marquee.Presenter</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- ドキュメントコメントを検証する（存在しないメンバーへの cref を CS1574、公開メンバーの未記載を CS1591 で検出）。
+         XML は配布物（bin / publish）へ出さない（検証だけに使う）。 -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 本層は「コアをコントロールへ組み込むときにだけ必要な処理」と「描画手順」を単一所有する。
+         描画手順はコアの契約（IMarqueeRenderer）の既定実装として本層に置く。
+         UI フレームワークは参照しない（UI はアダプタとして本層を参照する）。 -->
+    <ProjectReference Include="..\..\EsUtil.Feature.Marquee.Core\src\EsUtil.Feature.Marquee.Core.csproj" />
+    <ProjectReference Include="..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 本層が単一所有する設定（外観・表示スケーリング係数）の変更ログ（LoggerMessage ソース生成）を持つ -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 内部型（本層が単一所有する設定の変更ログ定義）は本層の内部手順であり、
+         単体テストにのみ公開する（UI 実装・ホストは参照しない）。 -->
+    <InternalsVisibleTo Include="EsUtil.Feature.Marquee.Presenter.Tests" />
+  </ItemGroup>
+
+</Project>

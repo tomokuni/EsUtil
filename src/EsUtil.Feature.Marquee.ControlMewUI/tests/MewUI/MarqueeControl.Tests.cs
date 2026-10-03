@@ -1,0 +1,505 @@
+using Aprillz.MewUI;
+using Aprillz.MewUI.Controls;
+using EsUtil.Platform.Core.Native;
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
+using Microsoft.Extensions.Logging;
+using Xunit;
+using DrawingColor = System.Drawing.Color;
+using EsUtil.Feature.Marquee.Core.Interaction;
+using EsUtil.Feature.Marquee;
+
+namespace EsUtil.Feature.Marquee.MewUI.Tests;
+
+/// <summary>テストで使用するカーソルサービスのスパイ（呼び出しを記録する）。</summary>
+/// <remarks>位置の取得・移動は記録のみ行い、表示切替の呼び出し履歴を検証に使用する。</remarks>
+internal sealed class CursorServiceSpy : ICursorService
+{
+    /// <summary><see cref="ShowCursor"/> に渡された値の履歴（呼び出し順）。</summary>
+    public List<bool> ShowCalls { get; } = [];
+
+    /// <summary>カーソル位置の設定履歴（呼び出し順）。</summary>
+    public List<EsPointInt> MovedCalls { get; } = [];
+
+    /// <summary><see cref="ICursorService.GetCursorScreenPoint"/> の戻り値。</summary>
+    public EsPointInt CursorPoint { get; set; }
+
+    /// <inheritdoc/>
+    public EsPointInt GetCursorScreenPoint() => CursorPoint;
+
+    /// <inheritdoc/>
+    public void SetCursorScreenPoint(EsPointInt point)
+    {
+        CursorPoint = point;
+        MovedCalls.Add(point);
+    }
+
+    /// <inheritdoc/>
+    public void ShowCursor(bool show) => ShowCalls.Add(show);
+}
+
+/// <summary><see cref="MarqueeControl"/>（MewUI 版）の単体テスト（公開 API 経由の状態・イベント検証）。</summary>
+/// <remarks>
+/// コントロールの生成とプロパティ設定・公開メソッドのみを検証するため、ウィンドウ表示を必要としない。<br/>
+/// 入力（マウス・キー）はウィンドウを必要とするため、公開 API 経由で検証できる範囲に限定する。<br/>
+/// カーソルサービスはスパイを注入する（Win32 実装を生成しない）。
+/// </remarks>
+public class MarqueeControlTests
+{
+    /// <summary>テスト用の MarqueeControl を生成する。</summary>
+    /// <param name="cursor">カーソルサービスのスパイ。</param>
+    /// <returns>生成したコントロール。</returns>
+    private static MarqueeControl CreateControl(CursorServiceSpy cursor)
+        => new(cursor) { Width = 200, Height = 200, Options = TestOptions };
+
+    /// <summary>テスト用の設定（最小サイズを 10 にしてドラッグ判定をしやすくする）。</summary>
+    private static MarqueeOptions TestOptions
+        => MarqueeOptions.Default with { HandleHitRadius = 12.0, MinSelectionSize = 10.0 };
+
+    /// <summary>対象の境界 200x200 を持つコントロールを生成する。</summary>
+    /// <param name="cursor">カーソルサービスのスパイ。</param>
+    /// <returns>座標変換ポートを設定したコントロール。</returns>
+    private static MarqueeControl CreateBounded(CursorServiceSpy cursor)
+    {
+        var control = CreateControl(cursor);
+        control.SetCoordTransform(new CoordTransform(p => p, p => p, () => new EsSize(200, 200)));
+        return control;
+    }
+
+    // ====================================================================
+    // 設定の既定値
+    // ====================================================================
+
+    [Fact]
+    public void 設定の既定値がAvalonia版と一致する()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+        var options = control.Options;
+
+        // ハンドルの枠線の既定は装飾の枠線と同じ DarkGray（#FFA9A9A9。 設定画面の選択枠の色と一致）
+        // 外観の既定は枠線と暗転を描く
+        Assert.Equal(2.0, control.Appearance.OuterBorderThickness);
+        Assert.True(control.Appearance.ShowHandles);
+        Assert.Equal(10.0, options.HandleSize);
+        Assert.Equal(12.0, options.HandleHitRadius);
+        Assert.Equal(10.0, options.MinSelectionSize); // CreateControl で設定
+        Assert.True(options.ClampToSourceBounds);
+        Assert.Equal(16.0, options.MarkerLength);
+        Assert.True(control.Appearance.ShowCoordLabel);
+        Assert.Equal(1.0, control.ClientToPixelScaling);
+
+        // 設定を指定しない場合の既定値はコアの MarqueeOptions.Default と一致する
+        Assert.Equal(MarqueeOptions.Default, new MarqueeControl().Options);
+    }
+
+    [Fact]
+    public void 設定を変更すると反映される()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+
+        control.Options = MarqueeOptions.Default with
+        {
+            HandleSize = 14.0,
+            MarkerLength = 24.0,
+        };
+        control.Appearance = MarqueeAppearance.Default with
+        {
+            ShowHandles = false,
+            ShowCoordLabel = false,
+            OuterBorderThickness = 3.0,
+        };
+        control.HighlightSourceRect = new EsRect(1, 2, 3, 4);
+
+        var options = control.Options;
+        Assert.Equal(3.0, control.Appearance.OuterBorderThickness);
+        Assert.False(control.Appearance.ShowHandles);
+        Assert.Equal(14.0, options.HandleSize);
+        Assert.Equal(24.0, options.MarkerLength);
+        Assert.False(control.Appearance.ShowCoordLabel);
+        Assert.Equal(new EsRect(1, 2, 3, 4), control.HighlightSourceRect);
+    }
+
+    [Fact]
+    public void CoordLabelFontSize_NaNや範囲外は安全値に補正される()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+
+        // NaN → 既定値 12（外観が補正を単一所有する）
+        control.Appearance = control.Appearance with { CoordLabelFontSize = double.NaN };
+        Assert.Equal(12.0, control.Appearance.CoordLabelFontSize);
+
+        // 上限 48 にクランプ
+        control.Appearance = control.Appearance with { CoordLabelFontSize = 100.0 };
+        Assert.Equal(48.0, control.Appearance.CoordLabelFontSize);
+
+        // 下限 6 にクランプ
+        control.Appearance = control.Appearance with { CoordLabelFontSize = 1.0 };
+        Assert.Equal(6.0, control.Appearance.CoordLabelFontSize);
+    }
+
+    // ====================================================================
+    // CurrentSnapshot
+    // ====================================================================
+
+    [Fact]
+    public void CurrentSnapshot_未選択時の全項目が初期値になる()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+
+        var snapshot = control.CurrentSnapshot;
+
+        Assert.Equal(MarqueeInteractionState.NoSelection, snapshot.State);
+        Assert.Equal(default, snapshot.SelectionSourceRect);
+        Assert.Equal(MarqueeHitTarget.None, snapshot.ActiveTarget);
+        Assert.False(snapshot.HasSelection);
+        Assert.False(snapshot.IsMouseDown);
+        Assert.False(snapshot.NudgeActive);
+    }
+
+    [Fact]
+    public void CurrentSnapshot_選択時は選択状態を返す()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+
+        control.SetSelection(new EsRect(10, 10, 50, 40));
+
+        var snapshot = control.CurrentSnapshot;
+        Assert.Equal(MarqueeInteractionState.Selected, snapshot.State);
+        Assert.Equal(new EsRect(10, 10, 50, 40), snapshot.SelectionSourceRect);
+        Assert.True(snapshot.HasSelection);
+    }
+
+    // ====================================================================
+    // SetSelection / ResetSelection / 境界クリップ
+    // ====================================================================
+
+    [Fact]
+    public void SetSelection_選択矩形を復元しSelectionChangedを発火する()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+        SelectionRectEventArgs? raised = null;
+        control.SelectionChanged += (_, e) => raised = e;
+
+        control.SetSelection(new EsRect(10, 10, 50, 40));
+
+        Assert.NotNull(raised);
+        Assert.Equal(new EsRect(10, 10, 50, 40), raised!.Rect);
+        // Snapshot はイベント引数の矩形と同一の選択矩形（対象座標）を保持する
+        Assert.Equal(new EsRect(10, 10, 50, 40), raised.Snapshot.SelectionSourceRect);
+        Assert.Equal(MarqueeInteractionState.Selected, raised.Snapshot.State);
+    }
+
+    [Fact]
+    public void SetSelection_境界外の矩形は境界内へクリップされる()
+    {
+        var control = CreateBounded(new CursorServiceSpy());
+        SelectionRectEventArgs? raised = null;
+        control.SelectionChanged += (_, e) => raised = e;
+
+        // 画像外にはみ出す矩形（右下が 200 超え）を復元 → 境界内 (200,200) にクリップされる
+        control.SetSelection(new EsRect(150, 150, 100, 100));
+
+        Assert.NotNull(raised);
+        Assert.Equal(new EsRect(150, 150, 50, 50), raised!.Rect);
+    }
+
+    [Fact]
+    public void ClampToSourceBounds_ON切替時に既存の選択矩形がクリップされる()
+    {
+        var control = CreateBounded(new CursorServiceSpy());
+        var rects = new List<EsRect>();
+        control.SelectionChanged += (_, e) => rects.Add(e.Rect);
+
+        // 既定は ON のため、OFF → ON の切替シナリオを明示する
+        control.Options = control.Options with { ClampToSourceBounds = false };
+
+        // 画像外にはみ出す矩形（左上が負・右下が 200 超え）を選択状態にする（OFF のためクリップされない）
+        control.SetSelection(new EsRect(-50, -30, 300, 260));
+        Assert.Equal(new EsRect(-50, -30, 300, 260), rects[^1]);
+
+        // ON に切り替えた瞬間に境界内 (0,0)-(200,200) へクリップされる
+        control.Options = control.Options with { ClampToSourceBounds = true };
+        Assert.Equal(new EsRect(0, 0, 200, 200), rects[^1]);
+    }
+
+    [Fact]
+    public void ClampToSourceBounds_ON切替時に境界内の矩形は変更されない()
+    {
+        var control = CreateBounded(new CursorServiceSpy());
+        var rects = new List<EsRect>();
+        control.SelectionChanged += (_, e) => rects.Add(e.Rect);
+
+        control.SetSelection(new EsRect(20, 20, 100, 80));
+        Assert.Single(rects);
+
+        // 境界内の矩形なので、ON に切り替えてもクリップされない（SelectionChanged は再発火しない）
+        control.Options = control.Options with { ClampToSourceBounds = true };
+
+        Assert.Single(rects);
+        Assert.Equal(new EsRect(20, 20, 100, 80), rects[^1]);
+    }
+
+    [Fact]
+    public void ResetSelection_選択状態を初期化する()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+        control.SetSelection(new EsRect(10, 10, 50, 40));
+
+        control.ResetSelection();
+
+        Assert.False(control.CurrentSnapshot.HasSelection);
+        Assert.Equal(MarqueeInteractionState.NoSelection, control.CurrentSnapshot.State);
+    }
+
+    // ====================================================================
+    // RequestConfirm / RequestCancel
+    // ====================================================================
+
+    [Fact]
+    public void RequestConfirm_選択確定後にConfirmRequestedを発火し選択をクリアする()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+        SelectionRectEventArgs? raised = null;
+        control.ConfirmRequested += (_, e) => raised = e;
+
+        control.SetSelection(new EsRect(10, 10, 50, 40));
+        control.RequestConfirm();
+
+        Assert.NotNull(raised);
+        Assert.Equal(new EsRect(10, 10, 50, 40), raised!.Rect);
+        // 確定後は選択状態がクリアされる（Marquee の残留を防ぐ）
+        Assert.False(control.CurrentSnapshot.HasSelection);
+    }
+
+    [Fact]
+    public void RequestConfirm_選択なしでは発火しない()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+        var raised = false;
+        control.ConfirmRequested += (_, _) => raised = true;
+
+        control.RequestConfirm();
+
+        Assert.False(raised);
+    }
+
+    [Fact]
+    public void RequestCancel_選択ありなら選択を破棄してCancelRequestedを発火する()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+        var raised = false;
+        control.CancelRequested += (_, _) => raised = true;
+
+        control.SetSelection(new EsRect(10, 10, 50, 40));
+        control.RequestCancel();
+
+        Assert.True(raised);
+        Assert.False(control.CurrentSnapshot.HasSelection);
+    }
+
+    [Fact]
+    public void RequestCancel_選択なしでもCancelRequestedを発火する()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+        var raised = false;
+        control.CancelRequested += (_, _) => raised = true;
+
+        control.RequestCancel();
+
+        Assert.True(raised);
+    }
+
+    // ====================================================================
+    // ログ
+    // ====================================================================
+
+    [Fact]
+    public void Log_既定はNullLoggerで例外にならない()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+
+        // ログ出力を伴う操作を実行しても例外にならない（既定は NullLogger）
+        control.Options = control.Options with { ClampToSourceBounds = false };
+        control.SetSelection(new EsRect(10, 10, 50, 40));
+        control.RequestCancel();
+    }
+
+    [Fact]
+    public void Log_null設定はNullLoggerへフォールバックする()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+
+        control.Log = null!;
+        control.RequestCancel();
+    }
+
+    [Fact]
+    public void Log_設定変更を出力する()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+        var logger = new RecordingLogger();
+        control.Log = logger;
+        logger.Messages.Clear();
+        logger.Levels.Clear();
+
+        var options = control.Options with { ClampToSourceBounds = false };
+        control.Options = options;
+
+        // 「値を所有する主体が記録する」規則により、コアが Debug で記録し、提示層を通過したことを Trace で記録する
+        // （どの層まで値が伝搬したかをログの接頭辞から追える）
+        Assert.Equal(
+            [
+                "[Marquee.Core] Setting: ClampToSourceBounds True → False",
+                $"[Marquee.Presenter] Forwarded: Options HandleSize={options.HandleSize}, MinSelectionSize={options.MinSelectionSize}",
+            ],
+            logger.Messages);
+        Assert.Equal([LogLevel.Debug, LogLevel.Trace], logger.Levels);
+    }
+
+    [Fact]
+    public void Log_同じ値の再設定では出力しない()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+        var logger = new RecordingLogger();
+        control.Log = logger;
+        logger.Messages.Clear();
+
+        // 既定値（true）と同じ値を設定してもログは流れない（外観設定の再適用でログが溢れない）
+        control.Options = control.Options with { ClampToSourceBounds = true };
+
+        Assert.Empty(logger.Messages);
+    }
+
+    [Fact]
+    public void Log_外観の変更は変化した項目だけを出力する()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+        var logger = new RecordingLogger();
+        control.Log = logger;
+        logger.Messages.Clear();
+
+        // 外観を保持するのは提示層であり、変更の記録も提示層が行う（コアは外観を知らない）。
+        // 変化した項目だけを出力する（外観の再適用でログが溢れない）。
+        control.Appearance = control.Appearance with { HandleBorderColor = DrawingColor.Red };
+
+        Assert.Equal(
+            "[Marquee.Presenter] Setting: HandleBorderColor #FFA9A9A9 → #FFFF0000",
+            Assert.Single(logger.Messages));
+    }
+
+    [Fact]
+    public void Log_外観の同値再設定では出力しない()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+        var logger = new RecordingLogger();
+        control.Log = logger;
+        logger.Messages.Clear();
+
+        control.Appearance = control.Appearance with { };
+
+        Assert.Empty(logger.Messages);
+    }
+
+    [Fact]
+    public void Log_確定要求を出力する()
+    {
+        var control = CreateControl(new CursorServiceSpy());
+        var logger = new RecordingLogger();
+        control.Log = logger;
+        control.SetSelection(new EsRect(10, 10, 50, 40));
+
+        control.RequestConfirm();
+
+        Assert.Contains("[Marquee.Core] ConfirmRequested: rect=(10, 10, 50, 40)", logger.Messages);
+    }
+
+    // ====================================================================
+    // 基底 UIElement のマウスイベント（本 UI 固有の公開面）
+    // ====================================================================
+
+    /// <summary>基底 <c>MouseDown</c> は処理済み（<c>Handled</c>）でも通知されることを検証する。</summary>
+    /// <remarks>
+    /// 本コントロールは押下・解放の公開イベントを持たない（基底 <c>UIElement</c> が同名のイベントを提供するため）。<br/>
+    /// 基底の <c>OnMouseDown</c> は <c>Handled</c> を見ずに <c>MouseDown</c> を発火する（実装を実測で確認した）ため、<br/>
+    /// 本コントロールが処理済みにしてもホストの購読者は呼ばれる。<br/>
+    /// <b>本番のコントロールでは検証できない</b>: <c>MouseEventArgs.GetPosition</c> がウィンドウ接続を要求するため、<br/>
+    /// 配送の規則だけを検証用の最小コントロールで実測する。
+    /// </remarks>
+    [Fact]
+    public void 基底のMouseDownはHandledでも通知される()
+    {
+        var probe = new MouseEventProbe();
+        var raised = 0;
+        probe.MouseDown += _ => raised++;
+
+        var e = CreateMouseArgs(leftButton: true);
+        probe.RaiseDown(e);
+        e.Handled = true;
+        probe.RaiseDown(e);
+
+        Assert.Equal(2, raised);
+    }
+
+    /// <summary>基底 <c>MouseUp</c> も処理済み（<c>Handled</c>）でも通知されることを検証する。</summary>
+    [Fact]
+    public void 基底のMouseUpはHandledでも通知される()
+    {
+        var probe = new MouseEventProbe();
+        var raised = 0;
+        probe.MouseUp += _ => raised++;
+
+        var e = CreateMouseArgs(leftButton: true);
+        probe.RaiseUp(e);
+        e.Handled = true;
+        probe.RaiseUp(e);
+
+        Assert.Equal(2, raised);
+    }
+
+    /// <summary>検証用のマウスイベント引数を生成する。</summary>
+    /// <param name="leftButton">左ボタンが押下されたか。</param>
+    /// <returns>生成したイベント引数。</returns>
+    private static MouseEventArgs CreateMouseArgs(bool leftButton)
+        => new(default, default, MouseButton.Left, leftButton, false, false, clickCount: 1, ModifierKeys.None);
+
+    /// <summary>基底 <see cref="UIElement"/> のマウスイベント配送を実測するための検証用コントロール。</summary>
+    /// <remarks>
+    /// 本番のコントロールは座標変換（<c>GetPosition</c>）でウィンドウを要求するため、<br/>
+    /// 配送の規則だけを切り出して検証する（保護メソッドを公開して呼び出す）。
+    /// </remarks>
+    private sealed class MouseEventProbe : Control
+    {
+        /// <summary>保護された <c>OnMouseDown</c> を呼び出す。</summary>
+        /// <param name="e">イベント引数。</param>
+        public void RaiseDown(MouseEventArgs e) => OnMouseDown(e);
+
+        /// <summary>保護された <c>OnMouseUp</c> を呼び出す。</summary>
+        /// <param name="e">イベント引数。</param>
+        public void RaiseUp(MouseEventArgs e) => OnMouseUp(e);
+    }
+    /// <summary>1 フレーム分の描画内容は 1 回だけ解決されることを検証する。</summary>
+    /// <remarks>
+    /// 配置と描画で同じ描画内容を共有しないと、選択矩形・装飾・ラベル文言の解決と確保が 1 フレームで 2 回走る。<br/>
+    /// サイズラベルの文言プロバイダは <see cref="MarqueePresenter.ResolveContent"/> が 1 回だけ評価するため、<br/>
+    /// その呼び出し回数が 1 フレームの解決回数になる（選択がありサイズラベルを表示する場合のみ評価される）。<br/>
+    /// 同じ基準サイズで配置を繰り返しても再解決しない（状態が変わった場合だけ再解決する）。
+    /// </remarks>
+    [Fact]
+    public void 描画内容は1フレームにつき1回だけ解決される()
+    {
+        var cursor = new CursorServiceSpy();
+        var control = CreateControl(cursor);
+        control.SetSelection(new EsRect(20, 20, 60, 60));
+
+        var resolves = 0;
+        control.SizeLabelOverrideProvider = () =>
+        {
+            resolves++;
+            return "S";
+        };
+
+        control.Arrange(new Rect(0, 0, 200, 200));
+        control.Arrange(new Rect(0, 0, 200, 200));
+
+        Assert.Equal(1, resolves);
+    }}

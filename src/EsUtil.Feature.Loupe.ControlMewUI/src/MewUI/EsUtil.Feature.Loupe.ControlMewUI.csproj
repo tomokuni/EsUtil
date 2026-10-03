@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Feature.Loupe.MewUI</RootNamespace>
+    <AssemblyName>EsUtil.Feature.Loupe.ControlMewUI</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- MewUI は API が安定化中（0.x）。破壊的変更を避けるためバージョンを固定する。 -->
+    <MewUIVersion>0.21.1</MewUIVersion>
+    <!-- ドキュメントコメントを検証する（存在しないメンバーへの cref を CS1574、公開メンバーの未記載を CS1591 で検出）。
+         XML は配布物（bin / publish）へ出さない（検証だけに使う）。 -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- SkiaCanvasView（コアの EsBitmap をそのまま描画する） -->
+    <PackageReference Include="Aprillz.MewUI.Skia" Version="$(MewUIVersion)" />
+    <!-- 設定変更・描画例外のログ（LoggerMessage ソース生成・NullLogger。Avalonia 版と同一の書式） -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- UI 非依存の純粋ロジック（Core） -->
+    <ProjectReference Include="..\..\..\EsUtil.Feature.Loupe.Core\src\EsUtil.Feature.Loupe.Core.csproj" />
+    <!-- 描画手順（層の順序と描画ポートへの写し）とコントロール化の規則を単一所有する UI 非依存層 -->
+    <ProjectReference Include="..\..\..\EsUtil.Feature.Loupe.Presenter\src\EsUtil.Feature.Loupe.Presenter.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <!-- コアの色型 → MewUI の色型へ変換する Interop（色変換の単一所有者） -->
+    <ProjectReference Include="..\..\..\App.Platform.MewUI\src\App.Platform.MewUI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- tests/ は独立したテストプロジェクトのため、本プロジェクトのコンパイル対象から除外する（src/ の外） -->
+    <Compile Remove="..\tests\**" />
+    <None Remove="..\tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Feature.Loupe.ControlMewUI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\App.Platform.Skia\src\App.Platform.Skia.csproj" />
+  </ItemGroup>
+
+</Project>
