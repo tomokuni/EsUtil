@@ -1,4 +1,4 @@
-# EsUtil.Feature.Loupe.ControlMewUI 外部機能仕様書
+# EsUtil.Feature.Loupe.ControlMewUI API リファレンス
 
 `LoupeControl`（MewUI 版ルーペ）が外部利用者へ提供する機能と公開 API の仕様です。
 内部実装の詳細（描画手順・キャッシュ等）は記載しません。

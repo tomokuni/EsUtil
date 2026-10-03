@@ -1,8 +1,8 @@
-# MarqueeControl システム仕様書（SPEC_System）
+# EsUtil.Feature.Marquee.ControlAvaloniaUI システム仕様書
 
 ## 目次
 
-- [MarqueeControl システム仕様書（SPEC\_System）](#marqueecontrol-システム仕様書spec_system)
+- [MarqueeControl システム仕様書（SPEC\_System）](#esutilfeaturemarqueecontrolavaloniaui-システム仕様書)
   - [目次](#目次)
   - [1. システム概要](#1-システム概要)
   - [2. 技術スタック](#2-技術スタック)

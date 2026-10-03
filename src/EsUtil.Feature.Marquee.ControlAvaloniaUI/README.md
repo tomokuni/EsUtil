@@ -1,10 +1,10 @@
-# MarqueeControl
+# EsUtil.Feature.Marquee.ControlAvaloniaUI
 
 > プロジェクト名: `EsUtil.Feature.Marquee.ControlAvaloniaUI`（Avalonia UI 版）。 UI 非依存のロジックは `EsUtil.Feature.Marquee.Core`、MewUI 版は `EsUtil.Feature.Marquee.ControlMewUI` にあります。
 
 ## 目次
 
-- [MarqueeControl](#marqueecontrol)
+- [EsUtil.Feature.Marquee.ControlAvaloniaUI](#esutilfeaturemarqueecontrolavaloniaui)
   - [目次](#目次)
   - [1. 概要](#1-概要)
   - [2. 機能一覧](#2-機能一覧)
@@ -154,8 +154,8 @@ dotnet run --project sample/EsUtil.Feature.Marquee.ControlAvaloniaUI.Sample.cspr
 
 ## 8. ドキュメント
 
-- [外部機能仕様書](SPEC_ExtFunc.md)
-- [システム仕様書](SPEC_System.md)
+- [外部機能仕様書](docs/SPEC_API.md)
+- [システム仕様書](docs/SPEC_System.md)
 
 ## 9. プロジェクト構成
 

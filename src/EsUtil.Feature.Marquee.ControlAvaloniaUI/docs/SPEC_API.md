@@ -1,4 +1,4 @@
-# MarqueeControl 外部機能仕様書
+# EsUtil.Feature.Marquee.ControlAvaloniaUI API リファレンス
 
 ## 目次
 

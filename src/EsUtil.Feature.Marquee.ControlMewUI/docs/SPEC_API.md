@@ -1,4 +1,4 @@
-# EsUtil.Feature.Marquee.ControlMewUI 外部機能仕様書
+# EsUtil.Feature.Marquee.ControlMewUI API リファレンス
 
 `EsUtil.Feature.Marquee.ControlMewUI` の外部仕様（公開 API・イベント・動作）を記載します。 内部実装の詳細は記載しません。
 

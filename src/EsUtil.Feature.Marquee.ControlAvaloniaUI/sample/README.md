@@ -1,8 +1,8 @@
-# MarqueeControl サンプルアプリケーション
+# EsUtil.Feature.Marquee.ControlAvaloniaUI サンプルアプリケーション
 
 ## 目次
 
-- [MarqueeControl サンプルアプリケーション](#marqueecontrol-サンプルアプリケーション)
+- [EsUtil.Feature.Marquee.ControlAvaloniaUI サンプルアプリケーション](#esutilfeaturemarqueecontrolavaloniaui-サンプルアプリケーション)
   - [目次](#目次)
   - [1. 概要](#1-概要)
   - [2. 実行方法](#2-実行方法)

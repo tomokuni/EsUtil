@@ -1,10 +1,10 @@
-# LoupeControl
+# EsUtil.Feature.Loupe.ControlAvaloniaUI
 
 > プロジェクト名: `EsUtil.Feature.Loupe.ControlAvaloniaUI`（Avalonia UI 版）。 UI 非依存のロジックは `EsUtil.Feature.Loupe.Core`、MewUI 版は `EsUtil.Feature.Loupe.ControlMewUI` にあります。
 
 ## 目次
 
-- [LoupeControl](#loupecontrol)
+- [EsUtil.Feature.Loupe.ControlAvaloniaUI](#esutilfeatureloupecontrolavaloniaui)
   - [目次](#目次)
   - [1. 概要](#1-概要)
   - [2. 機能一覧](#2-機能一覧)
@@ -206,8 +206,8 @@ dotnet run --project sample/EsUtil.Feature.Loupe.ControlAvaloniaUI.Sample.csproj
 
 ## 11. ドキュメント
 
-- [外部機能仕様書](SPEC_ExtFunc.md)
-- [システム仕様書](SPEC_System.md)
+- [外部機能仕様書](docs/SPEC_API.md)
+- [システム仕様書](docs/SPEC_System.md)
 - [サンプルアプリケーション](sample/README.md)
 
 ## 12. プロジェクト構成

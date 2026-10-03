@@ -1,8 +1,8 @@
-# LoupeControl 外部機能仕様書
+# EsUtil.Feature.Loupe.ControlAvaloniaUI API リファレンス
 
 ## 目次
 
-- [LoupeControl 外部機能仕様書](#loupecontrol-外部機能仕様書)
+- [EsUtil.Feature.Loupe.ControlAvaloniaUI API リファレンス](#esutilfeatureloupecontrolavaloniaui-api-リファレンス)
   - [目次](#目次)
   - [1. 文書概要](#1-文書概要)
   - [2. 目的](#2-目的)

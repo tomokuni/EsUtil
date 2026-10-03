@@ -1,8 +1,8 @@
-# LoupeControl サンプルアプリケーション
+# EsUtil.Feature.Loupe.ControlAvaloniaUI サンプルアプリケーション
 
 ## 目次
 
-- [LoupeControl サンプルアプリケーション](#loupecontrol-サンプルアプリケーション)
+- [EsUtil.Feature.Loupe.ControlAvaloniaUI サンプルアプリケーション](#esutilfeatureloupecontrolavaloniaui-サンプルアプリケーション)
   - [目次](#目次)
   - [1. 概要](#1-概要)
   - [2. 実行方法](#2-実行方法)

@@ -1,8 +1,8 @@
-# LoupeControl システム仕様書（SPEC_System）
+# EsUtil.Feature.Loupe.ControlAvaloniaUI システム仕様書
 
 ## 目次
 
-- [LoupeControl システム仕様書（SPEC\_System）](#loupecontrol-システム仕様書spec_system)
+- [LoupeControl システム仕様書（SPEC\_System）](#esutilfeatureloupecontrolavaloniaui-システム仕様書)
   - [目次](#目次)
   - [1. システム概要](#1-システム概要)
   - [2. 技術スタック](#2-技術スタック)
