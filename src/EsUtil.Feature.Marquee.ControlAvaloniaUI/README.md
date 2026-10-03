@@ -162,7 +162,7 @@ dotnet run --project sample/EsUtil.Feature.Marquee.ControlAvaloniaUI.Sample.cspr
 ```text
 MarqueeControl/
 ├── src/
-│   ├── MarqueeControl.csproj     # 独立プロジェクト（EsUtil.Feature.Marquee.Core + EsUtil.Feature.Marquee.Presenter + App.Platform.AvaloniaUI を参照）
+│   ├── MarqueeControl.csproj     # 独立プロジェクト（EsUtil.Feature.Marquee.Core + EsUtil.Feature.Marquee.Presenter + Platform.AvaloniaUI を参照）
 │   ├── MarqueeControl.cs         # 公開 API + 効果の適用 + 通知の転送 + ポインター入力 + 描画の起動
 │   ├── MarqueeControl.Input.cs   # キーボード入力（フォーカス非依存。コア型 EsKey への変換と通知）
 │   ├── MarqueeControl.Visual.cs     # 内部: 描画計画（`Layers` の順）を自 UI の描画面へ写し、ラベル要素を配置する

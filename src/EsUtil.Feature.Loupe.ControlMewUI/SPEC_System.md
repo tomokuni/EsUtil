@@ -47,7 +47,7 @@ Avalonia 版と MewUI 版の間に依存はありません（互いを参照し�
 | `EsUtil.Feature.Loupe.Core` | 数値の安全域補正、表示レイアウト、切り出し領域の幾何（`LoupeGeometry`）。 設定（`LoupeOptions`）の単一所有 |
 | `EsUtil.Feature.Loupe.Presenter` | 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（`LoupeAppearance`）の単一所有。 UI 非依存であり、UI フレームワークを参照しない |
 | `EsUtil.Feature.Loupe.ControlMewUI` | 提示層が解決した描画計画を `LoupeSkiaPainter` で `SKCanvas` へ写す。 `MewProperty` による入力の受付。 DPI の自動追従 |
-| ホスト（`App.App.MewUI` 等） | `Source` / `CenterPoint` の設定、表示位置の決定（コアのファサード `ResolveLayout` を利用） |
+| ホスト（`App.MewUI` 等） | `Source` / `CenterPoint` の設定、表示位置の決定（コアのファサード `ResolveLayout` を利用） |
 
 ## コンポーネント構成
 
@@ -244,7 +244,7 @@ sequenceDiagram
 | `LoupeSkiaPainter`（描画実装） | `SKBitmap` + `SKCanvas`（`TestHelper.LoupeSkiaPainter` 経由）へ実際に描画し、**画素を実測**して検証する（ウィンドウ不要で並行実行できる） |
 | `LoupeControl` | `MewProperty` の補正・既定値・要求サイズを検証する（MewUI の要素生成はホスト登録を要しない） |
 | コアロジック | `EsUtil.Feature.Loupe.Core.Tests` が担保する（本プロジェクトでは再検証しない） |
-| アプリ組み込み | `App.App.MewUI/verify-ui.ps1` が実機の画素を実測して検証する |
+| アプリ組み込み | `App.MewUI/verify-ui.ps1` が実機の画素を実測して検証する |
 
 ## 未実装・今後の対応
 

@@ -371,9 +371,9 @@ public class LoupeCoreTests
 
         Assert.Equal(
             [
-                "[Loupe.Core] Facade created: RequestedSize=200, ZoomLevel=8",
-                "[Loupe.Core] Logger attached",
-                "[Loupe.Core] Logger attached",
+                "[Loupe] Facade created: RequestedSize=200, ZoomLevel=8",
+                "[Loupe] Logger attached",
+                "[Loupe] Logger attached",
             ],
             logger.Messages);
     }
@@ -392,8 +392,8 @@ public class LoupeCoreTests
 
         Assert.Equal(
             [
-                "[Loupe.Core] Facade created: RequestedSize=200, ZoomLevel=8",
-                "[Loupe.Core] Logger attached",
+                "[Loupe] Facade created: RequestedSize=200, ZoomLevel=8",
+                "[Loupe] Logger attached",
             ],
             logger.Messages);
 
@@ -402,9 +402,9 @@ public class LoupeCoreTests
 
         Assert.Equal(
             [
-                "[Loupe.Core] Facade created: RequestedSize=200, ZoomLevel=8",
-                "[Loupe.Core] Logger attached",
-                "[Loupe.Core] Logger attached",
+                "[Loupe] Facade created: RequestedSize=200, ZoomLevel=8",
+                "[Loupe] Logger attached",
+                "[Loupe] Logger attached",
             ],
             logger.Messages);
     }
@@ -419,7 +419,7 @@ public class LoupeCoreTests
 
         loupe.PositionOffset = 20;
 
-        Assert.Equal("[Loupe.Core] Setting: PositionOffset 0 → 20", Assert.Single(logger.Messages));
+        Assert.Equal("[Loupe] Setting: PositionOffset 0 → 20", Assert.Single(logger.Messages));
     }
 
     /// <summary>座標変換ポートの設定が変化したときだけ記録されることを検証する。</summary>
@@ -437,8 +437,8 @@ public class LoupeCoreTests
 
         Assert.Equal(
             [
-                "[Loupe.Core] Setting: CoordTransform null → CoordTransform",
-                "[Loupe.Core] Setting: CoordTransform CoordTransform → null",
+                "[Loupe] Setting: CoordTransform null → CoordTransform",
+                "[Loupe] Setting: CoordTransform CoordTransform → null",
             ],
             logger.Messages);
     }
@@ -456,7 +456,7 @@ public class LoupeCoreTests
         loupe.CenterPoint = new EsPoint(10, 20);
 
         Assert.Equal([LogLevel.Trace], logger.Levels);
-        Assert.Equal("[Loupe.Core] Setting: CenterPoint null → (10, 20)", Assert.Single(logger.Messages));
+        Assert.Equal("[Loupe] Setting: CenterPoint null → (10, 20)", Assert.Single(logger.Messages));
     }
 
     /// <summary>表示位置オフセットの変更が変化したときだけ記録されることを検証する。</summary>
@@ -473,8 +473,8 @@ public class LoupeCoreTests
 
         Assert.Equal(
             [
-                "[Loupe.Core] Setting: PositionOffset 0 → 20",
-                "[Loupe.Core] Setting: PositionOffset 20 → 8",
+                "[Loupe] Setting: PositionOffset 0 → 20",
+                "[Loupe] Setting: PositionOffset 20 → 8",
             ],
             logger.Messages);
     }

@@ -24,8 +24,8 @@ public class MarqueePresenterLogMessageTests
 
         Assert.Equal(
             [
-                "[Marquee.Presenter] Setting: ShowHandles True → False",
-                "[Marquee.Presenter] Setting: OuterBorderThickness 2 → 5",
+                "[Marquee] Setting: ShowHandles True → False",
+                "[Marquee] Setting: OuterBorderThickness 2 → 5",
             ],
             logger.Messages);
     }
@@ -51,7 +51,7 @@ public class MarqueePresenterLogMessageTests
         logger.LogAppearanceChanged(before, after);
 
         Assert.Equal(
-            "[Marquee.Presenter] Setting: OverlayColor #80000000 → #FF000000",
+            "[Marquee] Setting: OverlayColor #80000000 → #FF000000",
             Assert.Single(logger.Messages));
     }
 
@@ -103,6 +103,6 @@ public class MarqueePresenterLogMessageTests
 
         logger.LogSettingChanged("DisplayScaleScaling", 0.0, 1.25);
 
-        Assert.Equal("[Marquee.Presenter] Setting: DisplayScaleScaling 0 → 1.25", Assert.Single(logger.Messages));
+        Assert.Equal("[Marquee] Setting: DisplayScaleScaling 0 → 1.25", Assert.Single(logger.Messages));
     }
 }

@@ -189,7 +189,7 @@ dotnet test src/EsUtil.Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Te
 
 ## 9. ログ
 
-ロガーは `MarqueeCore.Log` で受け取り（**コンストラクターからの注入も可能**）、**生成**（`[Marquee.Core] Facade created`。 Information。 生成時の設定を 1 度だけ）・**入力の判断**（`[Marquee.Core] MouseDown` / `MouseUp` / `DoubleClick` / `DragStart` / `KeyDown` / `ConfirmRequested` / `CancelRequested` 等。 Debug。 位置の記録は Trace）・**設定の変更**（`[Marquee.Core] Setting: {名前} {前} → {後}`）を出力します。 ロガー未設定（null）は出力なしです。
+ロガーは `MarqueeCore.Log` で受け取り（**コンストラクターからの注入も可能**）、**生成**（`[Marquee] Facade created`。 Information。 生成時の設定を 1 度だけ）・**入力の判断**（`[Marquee] MouseDown` / `MouseUp` / `DoubleClick` / `DragStart` / `KeyDown` / `ConfirmRequested` / `CancelRequested` 等。 Debug。 位置の記録は Trace）・**設定の変更**（`[Marquee] Setting: {名前} {前} → {後}`）を出力します。 ロガー未設定（null）は出力なしです。
 
 **出力の方針**（頻度でレベルを分ける）:
 
@@ -205,7 +205,7 @@ dotnet test src/EsUtil.Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Te
 
 **差分検出（変化した項目だけを出力する判断）と「同値なら出力しない」規則は本コアが単一所有します**（UI 層は前後の値を渡さず、変更を通知するだけです）。 ログ基盤（ファイル出力・レベル制御）はホストが所有し、本コアは定義だけを持ちます。 **描画にだけ必要な設定（外観・表示スケーリング係数）の変更ログは描画層が所有します**。
 
-**メッセージの接頭辞は、そのログを定義しているアセンブリ名（本コアは `[Marquee.Core]`）とします**（規則は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有する）。
+**メッセージの接頭辞は、そのログを定義しているアセンブリ名（本コアは `[Marquee]`）とします**（規則は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有する）。
 
 ## 10. 名称（Marquee の由来）
 

@@ -46,7 +46,7 @@ SaveEvidence は、Windows デスクトップ上の画面をキャプチャし�
 | **ビルドツール** | MSBuild / .NET SDK 10.0 |
 | **ログ** | Microsoft.Extensions.Logging（LoggerMessage ソース生成） |
 | **テスト** | xUnit v3 / Avalonia.Headless.XUnit |
-| **依存プロジェクト** | `EsUtil.Feature.Loupe.Core`（UI 非依存の計算ロジック）/ `EsUtil.Feature.Loupe.Presenter`（描画の手順・ラベル計画）/ `App.Platform.AvaloniaUI`（コア型の相互変換・画像コンテナ・`DrawingContext`） |
+| **依存プロジェクト** | `EsUtil.Feature.Loupe.Core`（UI 非依存の計算ロジック）/ `EsUtil.Feature.Loupe.Presenter`（描画の手順・ラベル計画）/ `Platform.AvaloniaUI`（コア型の相互変換・画像コンテナ・`DrawingContext`） |
 
 ## 3. アーキテクチャ
 
@@ -101,7 +101,7 @@ flowchart TB
         Pip["LoupeRenderPipeline<br/>internal static class<br/>（ソース解決と描画の起動）"]
         Src["LoupeSourceResolver<br/>internal static class<br/>（IImage の型判定・破棄済み検出）"]
         Rdr["LoupeContextPainter<br/>public static class<br/>（描画計画を DrawingContext へ写す描画実装）"]
-        Brs["SolidColorBrushCache<br/>public static class<br/>App.Platform.AvaloniaUI.Imaging<br/>（色 → ブラシの共有キャッシュ）"]
+        Brs["SolidColorBrushCache<br/>public static class<br/>Platform.AvaloniaUI.Imaging<br/>（色 → ブラシの共有キャッシュ）"]
         Evt["LoupeRenderedEventArgs<br/>public sealed class<br/>LoupeRenderedEventArgs.cs"]
         RLog["LoupeRenderLog<br/>internal static partial class<br/>（本プロジェクト固有のログ）"]
     end
@@ -163,7 +163,7 @@ flowchart TB
     - 座標単位: `Options.RequestedSize` は DIP、描画計画へ渡す表示サイズと枠線の太さも DIP（物理ピクセルへの換算は提示層が `DpiScaler.ScaleToPixel` へ委譲する）
   - 値の補正: コアの設定値（`LoupeOptions`）は型の生成時に補正される（UI は関与しない）。 環境値の `ClientToPixelScaling` のみ `coerce` コールバックで矯正する
 - **公開API**: 入力（`Source: IImage?` / `CenterPoint`）/ 設定（`Options`（コアの `LoupeOptions` が単一所有する基本サイズ・拡大率。 UI は設定値を保持しない）/ 外観（`Appearance`（`LoupeAppearance`。 `System.Drawing.Color` で受け取り描画時にブラシへ変換する）））/ 環境（`ClientToPixelScaling`）/ ログ（`Log`）/ イベント（`Rendered`・`LoupeRenderedEventArgs` で描画済み Bitmap・切り出し左上・スケールを通知。 ホストが Bitmap へオーバーレイ（線分・選択枠等）を直接描画できる）/ 操作（`Clear` / `RequestRender` / `SetCoordTransform` / `PositionOffset` / `RefreshPosition`）
-- **依存**: LoupePresenter（描画計画と配置の写像）/ LoupeAppearance（`EsUtil.Feature.Loupe.Presenter`） / LoupeUiLogMessage（本プロジェクト） / LoupeContextPainter / LoupeRenderCoordinator / LoupeRenderPipeline / LoupeSourceResolver（本プロジェクト） / LoupeOptions / Loupe（`EsUtil.Feature.Loupe.Core`） / DrawingContext（App.Platform.AvaloniaUI） / Avalonia / ILogger
+- **依存**: LoupePresenter（描画計画と配置の写像）/ LoupeAppearance（`EsUtil.Feature.Loupe.Presenter`） / LoupeUiLogMessage（本プロジェクト） / LoupeContextPainter / LoupeRenderCoordinator / LoupeRenderPipeline / LoupeSourceResolver（本プロジェクト） / LoupeOptions / Loupe（`EsUtil.Feature.Loupe.Core`） / DrawingContext（Platform.AvaloniaUI） / Avalonia / ILogger
 
 ### 6.2 LoupeContextPainter（描画実装）
 
@@ -171,14 +171,14 @@ flowchart TB
 - **責務**: 描画計画（`LoupeDrawPlan`）を Avalonia の描画 API（`DrawingContext`）へ写す（**層の順序も描く値も計画が単一所有する**ため、本クラスは順に描くだけである）
   **公開API**: `LoupeContextPainter.Paint(DrawingContext context, EsBitmap? source, in LoupeDrawPlan plan)`（図形のみ。 **テキストは描かない**。 中心座標ラベルはコントロールが UI 要素として配置する）
 - **特徴**: 描画の可否は計画が解決済み（非表示の項目は空の矩形列として渡る）であり、本クラスは分岐を持たない。 枠線の太さの物理ピクセルへの換算と装飾の矩形の導出も**提示層が解決済み**である（本クラスは計算を持たない）。 色 → ブラシの共有は `SolidColorBrushCache` が単一所有する
-- **依存**: EsUtil.Feature.Loupe.Presenter（`LoupeDrawPlan` / `LoupeAppearance` / `LoupeDrawLayer`）/ App.Platform.AvaloniaUI（`DrawingContext`（相互変換）/ `SolidColorBrushCache`）/ EsUtil.Platform.Core（`EsBitmap` / `System.Drawing.Color`）
+- **依存**: EsUtil.Feature.Loupe.Presenter（`LoupeDrawPlan` / `LoupeAppearance` / `LoupeDrawLayer`）/ Platform.AvaloniaUI（`DrawingContext`（相互変換）/ `SolidColorBrushCache`）/ EsUtil.Platform.Core（`EsBitmap` / `System.Drawing.Color`）
 
 ### 6.3 描画責務分割
 
 - 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（色・枠線の太さ・表示可否）は**提示層（`EsUtil.Feature.Loupe.Presenter`）が単一所有**し、Avalonia 版と MewUI 版が同じ計画を共有する。
 - 各 UI の描画実装（Avalonia は `LoupeContextPainter`、MewUI は `LoupeSkiaPainter`）は**計画を自 UI の描画 API へ写すだけ**である（順序の判断も描く値の算出も持たない）。
 - 描画 API の抽象（旧 `IEsCanvas`）は持たない。 UI フレームワークをまたぐ描画の抽象は、フレームワークごとの描画モデルの差を吸収しきれないためである。
-- `SolidColorBrushCache`（`App.Platform.AvaloniaUI.Imaging`）: コアの色型（`System.Drawing.Color`）→ `SolidColorBrush` の変換と容量制限付きキャッシュを単一所有する。 描画実装（`LoupeContextPainter`）とラベル要素の配置（本コントロールとマーキー）が共用する。
+- `SolidColorBrushCache`（`Platform.AvaloniaUI.Imaging`）: コアの色型（`System.Drawing.Color`）→ `SolidColorBrush` の変換と容量制限付きキャッシュを単一所有する。 描画実装（`LoupeContextPainter`）とラベル要素の配置（本コントロールとマーキー）が共用する。
 
 > 十字線・枠線の矩形計算、枠線の太さの換算、拡大描画の矩形計算は提示層（`EsUtil.Feature.Loupe.Presenter`）が単一所有します（MewUI 版と共用）。
 > 本プロジェクトは `DrawingContext` への写しと要素の配置を担います。

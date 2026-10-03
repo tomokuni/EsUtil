@@ -31,7 +31,7 @@ internal static partial class LoupeLogMessage
     /// <summary>ファサードの生成（生成時の設定）を記録する。</summary>
     /// <remarks>
     /// LogLevel: Information<br/>
-    /// 出力書式: <c>[Loupe.Core] Facade created: RequestedSize={RequestedSize}, ZoomLevel={ZoomLevel}</c><br/>
+    /// 出力書式: <c>[Loupe] Facade created: RequestedSize={RequestedSize}, ZoomLevel={ZoomLevel}</c><br/>
     /// <b>コンストラクタでロガーが注入された場合はその時点で出力し</b>、注入されなかった場合はロガーが初めて<br/>
     /// 設定された時点で 1 度だけ出力する（生成時点では出力先が未設定のため、その場では記録できない。
     /// どちらの経路でも生成時の設定を 1 度だけ記録し、どの設定で生成されたファサードからのログかを追えるようにする）。
@@ -39,25 +39,25 @@ internal static partial class LoupeLogMessage
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="requestedSize">生成時の要求サイズ（DIP）。</param>
     /// <param name="zoomLevel">生成時の拡大率。</param>
-    [LoggerMessage(LogLevel.Information, "[Loupe.Core] Facade created: RequestedSize={RequestedSize}, ZoomLevel={ZoomLevel}")]
+    [LoggerMessage(LogLevel.Information, "[Loupe] Facade created: RequestedSize={RequestedSize}, ZoomLevel={ZoomLevel}")]
     internal static partial void LogFacadeCreated(this ILogger logger, int requestedSize, int zoomLevel);
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
     /// <remarks>
-    /// LogLevel: Debug<br/>出力書式: <c>[Loupe.Core] Logger attached</c><br/>
+    /// LogLevel: Debug<br/>出力書式: <c>[Loupe] Logger attached</c><br/>
     /// ログの出力を開始した契機を残す（以降の設定変更のログがどの時点から有効かを追えるようにする）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    [LoggerMessage(LogLevel.Debug, "[Loupe.Core] Logger attached")]
+    [LoggerMessage(LogLevel.Debug, "[Loupe] Logger attached")]
     internal static partial void LogLoggerAttached(this ILogger logger);
 
     /// <summary>設定値変更のログ（変更前後）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Loupe.Core] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Loupe] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "[Loupe.Core] Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Debug, "[Loupe] Setting: {Name} {OldValue} → {NewValue}")]
     internal static partial void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue);
 
     /// <summary>頻度の高い設定値変更のログ（変更前後。 最も低いレベルで出力する）。</summary>
@@ -69,7 +69,7 @@ internal static partial class LoupeLogMessage
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Trace, "[Loupe.Core] Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Trace, "[Loupe] Setting: {Name} {OldValue} → {NewValue}")]
     internal static partial void LogSettingChangedTrace(this ILogger logger, string name, string oldValue, string newValue);
 
     /// <summary>整数設定値の変更ログ（同値の再設定では出力しない）。</summary>
@@ -139,7 +139,7 @@ internal static partial class LoupeLogMessage
 
     /// <summary>拡大中心（対象座標）の変更ログ（同値の再設定では出力しない）。</summary>
     /// <remarks>
-    /// LogLevel: Trace<br/>出力書式: <c>[Loupe.Core] Setting: CenterPoint {OldValue} → {NewValue}</c><br/>
+    /// LogLevel: Trace<br/>出力書式: <c>[Loupe] Setting: CenterPoint {OldValue} → {NewValue}</c><br/>
     /// 中心はマウス移動のたびに設定される（最も頻度が高い）ため、<b>最も低いレベル（Trace）</b>で記録する<br/>
     /// （既定の出力では溢れさせない。 必要時にレベルを下げて追う）。<br/>
     /// 「変化したときだけ出力する」判断を本メソッドが単一所有する（出力をコアが行うため、UI 層は同値判定を持たない）。
@@ -159,7 +159,7 @@ internal static partial class LoupeLogMessage
 
     /// <summary>座標変換ポートの設定変更を記録する（同値の再設定では出力しない）。</summary>
     /// <remarks>
-    /// LogLevel: Debug<br/>出力書式: <c>[Loupe.Core] Setting: CoordTransform {OldValue} → {NewValue}</c><br/>
+    /// LogLevel: Debug<br/>出力書式: <c>[Loupe] Setting: CoordTransform {OldValue} → {NewValue}</c><br/>
     /// 値は未設定（<c>null</c> = 等価変換）またはポートの実装型名で表す（ポートは値として比較・整形できないため）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>

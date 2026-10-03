@@ -12,16 +12,16 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Logging;
 internal static partial class LoupeRenderLog
 {
     /// <summary>再描画コアの実行ログ。</summary>
-    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Loupe.ControlAvaloniaUI] RenderCore: generation={Generation}</c></remarks>
+    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Loupe] RenderCore: generation={Generation}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="generation">描画世代番号。</param>
-    [LoggerMessage(LogLevel.Trace, "[Loupe.ControlAvaloniaUI] RenderCore: generation={Generation}")]
+    [LoggerMessage(LogLevel.Trace, "[Loupe] RenderCore: generation={Generation}")]
     public static partial void LogRenderCore(this ILogger logger, long generation);
 
     /// <summary>非同期描画の完了・破棄ログ。</summary>
     /// <remarks>
     /// LogLevel: Trace<br/>
-    /// 出力書式: <c>[Loupe.ControlAvaloniaUI] GenerateAsync done: set={Set} disposed={Disposed} visible={Visible} gen={Generation} current={Current}</c>
+    /// 出力書式: <c>[Loupe] GenerateAsync done: set={Set} disposed={Disposed} visible={Visible} gen={Generation} current={Current}</c>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="set">生成したビットマップを表示へ反映したかどうか。</param>
@@ -29,6 +29,6 @@ internal static partial class LoupeRenderLog
     /// <param name="visible">表示状態。</param>
     /// <param name="generation">生成したビットマップの世代番号。</param>
     /// <param name="current">判定時点の最新世代番号。</param>
-    [LoggerMessage(LogLevel.Trace, "[Loupe.ControlAvaloniaUI] GenerateAsync done: set={Set} disposed={Disposed} visible={Visible} gen={Generation} current={Current}")]
+    [LoggerMessage(LogLevel.Trace, "[Loupe] GenerateAsync done: set={Set} disposed={Disposed} visible={Visible} gen={Generation} current={Current}")]
     public static partial void LogGenerateAsyncDone(this ILogger logger, bool set, bool disposed, bool visible, long generation, long current);
 }

@@ -42,7 +42,7 @@ public class LoupePresenterTests
 
         presenter.Appearance = LoupeAppearance.Default with { ShowCrosshair = false };
 
-        Assert.Equal("[Loupe.Presenter] Setting: ShowCrosshair True → False", Assert.Single(logger.Messages));
+        Assert.Equal("[Loupe] Setting: ShowCrosshair True → False", Assert.Single(logger.Messages));
     }
 
     /// <summary>同値の再設定では記録しないことを検証する。</summary>
@@ -72,12 +72,12 @@ public class LoupePresenterTests
 
         Assert.Equal(
             [
-                "[Loupe.Core] Facade created: RequestedSize=160, ZoomLevel=4",
-                "[Loupe.Core] Logger attached",
-                "[Loupe.Presenter] Presenter created",
-                "[Loupe.Presenter] Logger attached",
-                "[Loupe.Core] Logger attached",
-                "[Loupe.Presenter] Logger attached",
+                "[Loupe] Facade created: RequestedSize=160, ZoomLevel=4",
+                "[Loupe] Logger attached",
+                "[Loupe] Presenter created",
+                "[Loupe] Logger attached",
+                "[Loupe] Logger attached",
+                "[Loupe] Logger attached",
             ],
             logger.Messages);
     }
@@ -93,10 +93,10 @@ public class LoupePresenterTests
 
         Assert.Equal(
             [
-                "[Loupe.Core] Facade created: RequestedSize=160, ZoomLevel=4",
-                "[Loupe.Core] Logger attached",
-                "[Loupe.Presenter] Presenter created",
-                "[Loupe.Presenter] Logger attached",
+                "[Loupe] Facade created: RequestedSize=160, ZoomLevel=4",
+                "[Loupe] Logger attached",
+                "[Loupe] Presenter created",
+                "[Loupe] Logger attached",
             ],
             logger.Messages);
 
@@ -119,9 +119,9 @@ public class LoupePresenterTests
 
         Assert.Equal(
             [
-                "[Loupe.Core] Setting: ZoomLevel 4 → 8",
-                "[Loupe.Presenter] Forwarded: Options RequestedSize=160, ZoomLevel=8",
-                "[Loupe.Presenter] Setting: ShowCrosshair True → False",
+                "[Loupe] Setting: ZoomLevel 4 → 8",
+                "[Loupe] Forwarded: Options RequestedSize=160, ZoomLevel=8",
+                "[Loupe] Setting: ShowCrosshair True → False",
             ],
             logger.Messages);
     }
@@ -151,16 +151,16 @@ public class LoupePresenterTests
             .Zip(logger.Levels, static (message, level) => (message, level))
             .Where(static entry =>
                 entry.level == LogLevel.Trace &&
-                entry.message.StartsWith("[Loupe.Presenter] ", StringComparison.Ordinal))
+                entry.message.Contains("Forwarded: ", StringComparison.Ordinal))
             .Select(static entry => entry.message);
 
         Assert.Equal(
             [
-                "[Loupe.Presenter] Forwarded: Options RequestedSize=200, ZoomLevel=8",
-                "[Loupe.Presenter] Forwarded: ClientToPixelScaling 1.25",
-                "[Loupe.Presenter] Forwarded: CenterPoint (10, 20)",
-                "[Loupe.Presenter] Forwarded: PositionOffset 16",
-                "[Loupe.Presenter] Forwarded: SetCoordTransform CoordTransform",
+                "[Loupe] Forwarded: Options RequestedSize=200, ZoomLevel=8",
+                "[Loupe] Forwarded: ClientToPixelScaling 1.25",
+                "[Loupe] Forwarded: CenterPoint (10, 20)",
+                "[Loupe] Forwarded: PositionOffset 16",
+                "[Loupe] Forwarded: SetCoordTransform CoordTransform",
             ],
             traceMessages);
     }
@@ -183,8 +183,8 @@ public class LoupePresenterTests
         // コアの変更ログ（Debug）と本層の通過ログ（Trace）がこの順で出力される
         Assert.Equal(
             [
-                "[Loupe.Core] Setting: ZoomLevel 4 → 8",
-                "[Loupe.Presenter] Forwarded: Options RequestedSize=160, ZoomLevel=8",
+                "[Loupe] Setting: ZoomLevel 4 → 8",
+                "[Loupe] Forwarded: Options RequestedSize=160, ZoomLevel=8",
             ],
             logger.Messages);
     }

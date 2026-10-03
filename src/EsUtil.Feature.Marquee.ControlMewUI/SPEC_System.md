@@ -18,7 +18,7 @@ nudge セッション・ダブルクリックの確定/キャンセル・ハン�
 | 対象フレームワーク | .NET 10（`net10.0`） |
 | 言語 | C# 14 |
 | UI フレームワーク | MewUI（`Aprillz.MewUI.Skia` **0.21.1 固定**） |
-| 描画 | SkiaSharp（本プロジェクトが自 UI の描画 API で描画計画を写す。 描画の部品は `App.Platform.Skia`） |
+| 描画 | SkiaSharp（本プロジェクトが自 UI の描画 API で描画計画を写す。 描画の部品は `Platform.Skia`） |
 | 基底コントロール | `Aprillz.MewUI.Skia.Controls.SkiaCanvasView` |
 | プロパティシステム | `MewProperty<T>`（`MewPropertyOptions.AffectsRender`） |
 | カーソル操作 | `ICursorService`（`EsUtil.Platform.Core` の `Native`。 既定実装は `Native.Win`） |
@@ -36,7 +36,7 @@ UI 層（EsUtil.Feature.Marquee.ControlAvaloniaUI / EsUtil.Feature.Marquee.Contr
     └──> EsUtil.Feature.Marquee.Core   何を計算するか + 判断（状態・値・純粋計算・コア⇔UI の契約）
            └──> EsUtil.Platform.Core（Es* 値型・ICoordTransform・ICursorService）
 ※ Core は提示層を参照しない（提示層がコアの幾何を使う向きだけ）。
-※ 本コントロール（UI 層）は EsUtil.Platform.Core（Win32 実装は `Native.Win`）・App.Platform.MewUI・App.Platform.Skia も参照する。
+※ 本コントロール（UI 層）は EsUtil.Platform.Core（Win32 実装は `Native.Win`）・Platform.MewUI・Platform.Skia も参照する。
 ```
 
 ### 責務の分担
@@ -404,4 +404,4 @@ OnPaintSurface(canvas, info)
 | `ScrollViewer` の自動連携 | ホストが変化を検知して `RefreshOverlay()` を呼ぶ方式で代替 |
 | フォーカス非依存の矢印キー nudge | フォーカス依存で実装（`TopLevel` のキー購読は行わない） |
 | 通常ホイールのスクロールログ | スクロールの実処理はホストが担うため出力しない（操作ログの定義はコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）が所有し、本層が所有する設定（外観・表示スケーリング係数）の変更ログは提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）が所有する。 書式・レベルとも Avalonia 版と同じ） |
-| 実ウィンドウへの組み込み | `App.Parts.CapturePreviewControl.MewUI` を経由して配線済み（撮影・切り出しの両方） |
+| 実ウィンドウへの組み込み | `Parts.CapturePreviewControl.MewUI` を経由して配線済み（撮影・切り出しの両方） |

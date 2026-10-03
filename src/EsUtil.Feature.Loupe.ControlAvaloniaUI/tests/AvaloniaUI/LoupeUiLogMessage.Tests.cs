@@ -41,8 +41,8 @@ public class LoupeUiLogMessageTests
         var logger = new RecordingLogger();
         InvokeAll(logger);
 
-        Assert.Equal("[Loupe.ControlAvaloniaUI] Setting: Source 8x6 → null", logger.Messages[0]);
-        Assert.Equal("[Loupe.ControlAvaloniaUI] Update exception", logger.Messages[1]);
+        Assert.Equal("[Loupe] Setting: Source 8x6 → null", logger.Messages[0]);
+        Assert.Equal("[Loupe] Update exception", logger.Messages[1]);
     }
 
     /// <summary>拡大元画像のログが同一インスタンスの再設定では出力されないことを検証する。</summary>
@@ -70,8 +70,8 @@ public class LoupeUiLogMessageTests
         logger.LogSourceChanged(oldImage, null);
 
         Assert.Equal(2, logger.Messages.Count);
-        Assert.Equal("[Loupe.ControlAvaloniaUI] Setting: Source 8x6 → 8x6", logger.Messages[0]);
-        Assert.Equal("[Loupe.ControlAvaloniaUI] Setting: Source 8x6 → null", logger.Messages[1]);
+        Assert.Equal("[Loupe] Setting: Source 8x6 → 8x6", logger.Messages[0]);
+        Assert.Equal("[Loupe] Setting: Source 8x6 → null", logger.Messages[1]);
     }
 
     /// <summary>破棄済みの画像を渡しても例外にならず、型名で代用されることを検証する。</summary>
@@ -86,7 +86,7 @@ public class LoupeUiLogMessageTests
 
         // ログ出力で例外を発生させない（寸法が取れない場合は型名を出す）
         Assert.Equal(
-            "[Loupe.ControlAvaloniaUI] Setting: Source EsBitmapAvaloniaImage → null",
+            "[Loupe] Setting: Source EsBitmapAvaloniaImage → null",
             Assert.Single(logger.Messages));
     }
 
@@ -99,7 +99,7 @@ public class LoupeUiLogMessageTests
         logger.LogUpdateError(new InvalidOperationException("失敗"));
 
         // メッセージ本体は例外本文を含まない（例外は構造化ログのフィールドとして渡す）
-        Assert.Equal("[Loupe.ControlAvaloniaUI] Update exception", Assert.Single(logger.Messages));
+        Assert.Equal("[Loupe] Update exception", Assert.Single(logger.Messages));
     }
 
     /// <summary>テスト用の画像を生成する。</summary>

@@ -39,8 +39,8 @@ public class LoupeUiLogMessageTests
         var logger = new RecordingLogger();
         InvokeAll(logger);
 
-        Assert.Equal("[Loupe.ControlMewUI] Setting: Source 8x6 → null", logger.Messages[0]);
-        Assert.Equal("[Loupe.ControlMewUI] Update exception", logger.Messages[1]);
+        Assert.Equal("[Loupe] Setting: Source 8x6 → null", logger.Messages[0]);
+        Assert.Equal("[Loupe] Update exception", logger.Messages[1]);
     }
 
     /// <summary>拡大元画像のログが同一インスタンスの再設定では出力されないことを検証する。</summary>
@@ -68,8 +68,8 @@ public class LoupeUiLogMessageTests
         logger.LogSourceChanged(oldBitmap, null);
 
         Assert.Equal(2, logger.Messages.Count);
-        Assert.Equal("[Loupe.ControlMewUI] Setting: Source 8x6 → 8x6", logger.Messages[0]);
-        Assert.Equal("[Loupe.ControlMewUI] Setting: Source 8x6 → null", logger.Messages[1]);
+        Assert.Equal("[Loupe] Setting: Source 8x6 → 8x6", logger.Messages[0]);
+        Assert.Equal("[Loupe] Setting: Source 8x6 → null", logger.Messages[1]);
     }
 
     /// <summary>例外ログに例外が渡されることを検証する。</summary>
@@ -81,7 +81,7 @@ public class LoupeUiLogMessageTests
         logger.LogUpdateError(new InvalidOperationException("失敗"));
 
         // メッセージ本体は例外本文を含まない（例外は構造化ログのフィールドとして渡す）
-        Assert.Equal("[Loupe.ControlMewUI] Update exception", Assert.Single(logger.Messages));
+        Assert.Equal("[Loupe] Update exception", Assert.Single(logger.Messages));
     }
 
     /// <summary>全ログメソッドを指定ロガーで呼び出す。</summary>

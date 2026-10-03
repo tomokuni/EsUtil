@@ -349,8 +349,8 @@ public class MarqueeControlTests
         // （どの層まで値が伝搬したかをログの接頭辞から追える）
         Assert.Equal(
             [
-                "[Marquee.Core] Setting: ClampToSourceBounds True → False",
-                $"[Marquee.Presenter] Forwarded: Options HandleSize={options.HandleSize}, MinSelectionSize={options.MinSelectionSize}",
+                "[Marquee] Setting: ClampToSourceBounds True → False",
+                $"[Marquee] Forwarded: Options HandleSize={options.HandleSize}, MinSelectionSize={options.MinSelectionSize}",
             ],
             logger.Messages);
         Assert.Equal([LogLevel.Debug, LogLevel.Trace], logger.Levels);
@@ -383,7 +383,7 @@ public class MarqueeControlTests
         control.Appearance = control.Appearance with { HandleBorderColor = DrawingColor.Red };
 
         Assert.Equal(
-            "[Marquee.Presenter] Setting: HandleBorderColor #FFA9A9A9 → #FFFF0000",
+            "[Marquee] Setting: HandleBorderColor #FFA9A9A9 → #FFFF0000",
             Assert.Single(logger.Messages));
     }
 
@@ -410,7 +410,7 @@ public class MarqueeControlTests
 
         control.RequestConfirm();
 
-        Assert.Contains("[Marquee.Core] ConfirmRequested: rect=(10, 10, 50, 40)", logger.Messages);
+        Assert.Contains("[Marquee] ConfirmRequested: rect=(10, 10, 50, 40)", logger.Messages);
     }
 
     // ====================================================================

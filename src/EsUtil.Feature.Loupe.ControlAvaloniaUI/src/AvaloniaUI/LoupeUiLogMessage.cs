@@ -19,7 +19,7 @@ internal static partial class LoupeUiLogMessage
     /// <param name="oldValue">変更前の拡大元画像（未設定は null）。</param>
     /// <param name="newValue">変更後の拡大元画像（未設定は null）。</param>
     /// <remarks>
-    /// LogLevel: Debug<br/>出力書式: <c>[Loupe.ControlAvaloniaUI] Setting: Source {OldValue} → {NewValue}</c><br/>
+    /// LogLevel: Debug<br/>出力書式: <c>[Loupe] Setting: Source {OldValue} → {NewValue}</c><br/>
     /// 「別のインスタンスに差し替わったか」の判断（参照の同一性）を本メソッドが単一所有する<br/>
     /// （寸法が同じ別画像への差し替えは変更として記録する）。
     /// </remarks>
@@ -39,17 +39,17 @@ internal static partial class LoupeUiLogMessage
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
     /// <remarks>本文の書式はコアの設定変更ログと揃える（接頭辞だけが本プロジェクトを表す）。</remarks>
-    [LoggerMessage(LogLevel.Debug, "[Loupe.ControlAvaloniaUI] Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Debug, "[Loupe] Setting: {Name} {OldValue} → {NewValue}")]
     private static partial void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue);
 
     /// <summary>ルーペ描画の例外エラーログ。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="exception">発生した例外。</param>
     /// <remarks>
-    /// LogLevel: Error<br/>出力書式: <c>[Loupe.ControlAvaloniaUI] Update exception</c>（例外スタックトレース付き）<br/>
+    /// LogLevel: Error<br/>出力書式: <c>[Loupe] Update exception</c>（例外スタックトレース付き）<br/>
     /// 例外の記録は描画を実行する UI が行う（コアは描画 API を持たず例外を検知しない）。
     /// </remarks>
-    [LoggerMessage(LogLevel.Error, "[Loupe.ControlAvaloniaUI] Update exception")]
+    [LoggerMessage(LogLevel.Error, "[Loupe] Update exception")]
     public static partial void LogUpdateError(this ILogger logger, Exception exception);
 
     /// <summary>ソース画像の寸法をログ用の文字列（<c>幅x高さ</c>）へ整形する。</summary>

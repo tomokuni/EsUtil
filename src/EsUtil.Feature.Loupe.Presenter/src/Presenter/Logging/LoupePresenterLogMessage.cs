@@ -25,32 +25,32 @@ internal static partial class LoupePresenterLogMessage
 
     /// <summary>提示層の生成を記録する。</summary>
     /// <remarks>
-    /// LogLevel: Information<br/>出力書式: <c>[Loupe.Presenter] Presenter created</c><br/>
+    /// LogLevel: Information<br/>出力書式: <c>[Loupe] Presenter created</c><br/>
     /// 生成時点では出力先が未設定のため、<b>ロガーが設定された時点で 1 度だけ</b>記録する。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    [LoggerMessage(LogLevel.Information, "[Loupe.Presenter] Presenter created")]
+    [LoggerMessage(LogLevel.Information, "[Loupe] Presenter created")]
     internal static partial void LogPresenterCreated(this ILogger logger);
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
     /// <remarks>
-    /// LogLevel: Trace<br/>出力書式: <c>[Loupe.Presenter] Logger attached</c><br/>
+    /// LogLevel: Trace<br/>出力書式: <c>[Loupe] Logger attached</c><br/>
     /// 本層はロガーをコアへ伝搬するだけであり、値の変換を行わない（通過の確認を Trace で残す）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    [LoggerMessage(LogLevel.Trace, "[Loupe.Presenter] Logger attached")]
+    [LoggerMessage(LogLevel.Trace, "[Loupe] Logger attached")]
     internal static partial void LogLoggerAttached(this ILogger logger);
 
     /// <summary>コアへ伝搬した値を記録する（本層を通過した確認用）。</summary>
     /// <remarks>
-    /// LogLevel: Trace<br/>出力書式: <c>[Loupe.Presenter] Forwarded: {Name} {Value}</c><br/>
+    /// LogLevel: Trace<br/>出力書式: <c>[Loupe] Forwarded: {Name} {Value}</c><br/>
     /// 値の整形は型ごとのオーバーロードが単一所有する（呼び出し側に整形処理を置かない）。<br/>
     /// 設定（値が変化したときにのみ意味を持つもの）は <see cref="LogAppearanceChanged"/> が Debug で記録する。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="name">値の名前（項目名）。</param>
     /// <param name="value">整形済みの値。</param>
-    [LoggerMessage(LogLevel.Trace, "[Loupe.Presenter] Forwarded: {Name} {Value}")]
+    [LoggerMessage(LogLevel.Trace, "[Loupe] Forwarded: {Name} {Value}")]
     internal static partial void LogForwarded(this ILogger logger, string name, string value);
 
     /// <summary>設定（<see cref="LoupeOptions"/>）をコアへ伝搬したことを記録する。</summary>
@@ -86,12 +86,12 @@ internal static partial class LoupePresenterLogMessage
         => logger.LogForwarded(name, value?.GetType().Name ?? Null);
 
     /// <summary>設定値変更のログ（変更前後）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Loupe.Presenter] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Loupe] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "[Loupe.Presenter] Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Debug, "[Loupe] Setting: {Name} {OldValue} → {NewValue}")]
     internal static partial void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue);
 
     /// <summary>整数設定値の変更ログ（同値の再設定では出力しない）。</summary>

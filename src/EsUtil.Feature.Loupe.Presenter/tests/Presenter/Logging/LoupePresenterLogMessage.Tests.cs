@@ -24,8 +24,8 @@ public class LoupePresenterLogMessageTests
 
         Assert.Equal(
             [
-                "[Loupe.Presenter] Setting: ShowCrosshair True → False",
-                "[Loupe.Presenter] Setting: BorderThickness 2 → 5",
+                "[Loupe] Setting: ShowCrosshair True → False",
+                "[Loupe] Setting: BorderThickness 2 → 5",
             ],
             logger.Messages);
     }
@@ -51,7 +51,7 @@ public class LoupePresenterLogMessageTests
         logger.LogAppearanceChanged(before, after);
 
         Assert.Equal(
-            "[Loupe.Presenter] Setting: CrossColor #66FF0000 → #80FF0000",
+            "[Loupe] Setting: CrossColor #66FF0000 → #80FF0000",
             Assert.Single(logger.Messages));
     }
 
@@ -70,9 +70,9 @@ public class LoupePresenterLogMessageTests
         logger.LogAppearanceChanged(before, after);
 
         Assert.Equal(3, logger.Messages.Count);
-        Assert.Equal("[Loupe.Presenter] Setting: PasteboardColor #FF535353 → #01020304", logger.Messages[0]);
-        Assert.Equal("[Loupe.Presenter] Setting: ShowBorder True → False", logger.Messages[1]);
-        Assert.Equal("[Loupe.Presenter] Setting: ShowCoordLabel True → False", logger.Messages[2]);
+        Assert.Equal("[Loupe] Setting: PasteboardColor #FF535353 → #01020304", logger.Messages[0]);
+        Assert.Equal("[Loupe] Setting: ShowBorder True → False", logger.Messages[1]);
+        Assert.Equal("[Loupe] Setting: ShowCoordLabel True → False", logger.Messages[2]);
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public class LoupePresenterLogMessageTests
         logger.LogAppearanceChanged(before, after);
 
         Assert.Equal(
-            "[Loupe.Presenter] Setting: CoordLabelFontSize 12 → 24.5",
+            "[Loupe] Setting: CoordLabelFontSize 12 → 24.5",
             Assert.Single(logger.Messages));
     }
 
@@ -123,6 +123,6 @@ public class LoupePresenterLogMessageTests
 
         logger.LogSettingChanged("ClientToPixelScaling", 1.0, 1.25);
 
-        Assert.Equal("[Loupe.Presenter] Setting: ClientToPixelScaling 1 → 1.25", Assert.Single(logger.Messages));
+        Assert.Equal("[Loupe] Setting: ClientToPixelScaling 1 → 1.25", Assert.Single(logger.Messages));
     }
 }

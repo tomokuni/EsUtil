@@ -33,7 +33,7 @@
   <ItemGroup>
     <!-- カーソル操作の既定実装（Win32・UI 非依存）。状態機械は抽象のみに依存し、既定実装の解決は本 UI 層が行う。 -->
     <!-- MewUI のキー型 ⇔ コアのキー型（EsKey）の相互変換（キー入力をコアへ通知するため） -->
-    <ProjectReference Include="..\..\..\App.Platform.MewUI\src\App.Platform.MewUI.csproj" />
+    <ProjectReference Include="..\..\..\Platform.MewUI\src\Platform.MewUI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,7 +48,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\App.Platform.Skia\src\App.Platform.Skia.csproj" />
+    <ProjectReference Include="..\..\..\Platform.Skia\src\Platform.Skia.csproj" />
   </ItemGroup>
 
 </Project>

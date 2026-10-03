@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\App.Platform.Skia\src\App.Platform.Skia.csproj" />
+    <ProjectReference Include="..\..\..\Platform.Skia\src\Platform.Skia.csproj" />
   </ItemGroup>
 
 </Project>

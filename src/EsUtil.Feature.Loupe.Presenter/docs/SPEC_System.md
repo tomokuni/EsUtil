@@ -42,8 +42,8 @@
 
 ```mermaid
 graph LR
-  UI["UI 実装"] --> R[Loupe.Presenter]
-  R --> B[Loupe.Core]
+  UI["UI 実装"] --> R[Loupe]
+  R --> B[Loupe]
   B --> D[EsUtil.Platform.Core]
 ```
 
@@ -121,7 +121,7 @@ dotnet test src/EsUtil.Feature.Loupe.Presenter/tests/EsUtil.Feature.Loupe.Presen
 
 ## 9. ログ
 
-本層が出力するログの定義と書式は本層が単一所有します（`[Loupe.Presenter]` の接頭辞。 規則は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有します）。
+本層が出力するログの定義と書式は本層が単一所有します（`[Loupe]` の接頭辞。 規則は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有します）。
 
 **値の保持と変更の記録はコアが行います**（`EsUtil.Feature.Loupe.Core` の `LoupeLogMessage`）。 本層はコアへ伝搬するだけの値についても**本層を通過したことを Trace で記録**します（ホストの設定が本層を通ったかを確認できるようにするため。 既定の出力では溢れさせません）。
 
@@ -136,4 +136,4 @@ dotnet test src/EsUtil.Feature.Loupe.Presenter/tests/EsUtil.Feature.Loupe.Presen
 
 **生成の記録は、ロガーが注入された時点（コンストラクターまたは初回の `Log` 設定）に行います**（構築時点では出力先が未設定であり、その場で出力しても記録が残らないため。 コアも同じ規則で生成を記録します）。
 
-**UI が出力するログ（拡大元画像の変更・描画の例外）の定義と書式も本層が単一所有します**（`[Loupe.Presenter]` の接頭辞。 規則は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有します）。 **UI 固有の処理に対応するログは各 UI 実装が所有します**（中間ビットマップを生成する描画パイプライン固有のログ等）。
+**UI が出力するログ（拡大元画像の変更・描画の例外）の定義と書式も本層が単一所有します**（`[Loupe]` の接頭辞。 規則は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有します）。 **UI 固有の処理に対応するログは各 UI 実装が所有します**（中間ビットマップを生成する描画パイプライン固有のログ等）。

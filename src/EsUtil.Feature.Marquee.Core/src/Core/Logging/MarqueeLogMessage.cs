@@ -28,7 +28,7 @@ internal static partial class MarqueeLogMessage
     /// <summary>ファサードの生成（生成時の設定）を記録する。</summary>
     /// <remarks>
     /// LogLevel: Information<br/>
-    /// 出力書式: <c>[Marquee.Core] Facade created: HandleSize={HandleSize}, MinSelectionSize={MinSelectionSize}</c><br/>
+    /// 出力書式: <c>[Marquee] Facade created: HandleSize={HandleSize}, MinSelectionSize={MinSelectionSize}</c><br/>
     /// <b>コンストラクタでロガーが注入された場合はその時点で出力し</b>、注入されなかった場合はロガーが初めて<br/>
     /// 設定された時点で 1 度だけ出力する（生成時点では出力先が未設定のため、その場では記録できない。 どちらの経路でも<br/>
     /// 生成時の設定を 1 度だけ記録し、どの設定で生成されたファサードからのログかを追えるようにする）。
@@ -36,100 +36,100 @@ internal static partial class MarqueeLogMessage
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="handleSize">生成時のハンドルの一辺サイズ（DIP）。</param>
     /// <param name="minSelectionSize">生成時の選択矩形の最小サイズ（対象座標）。</param>
-    [LoggerMessage(LogLevel.Information, "[Marquee.Core] Facade created: HandleSize={HandleSize}, MinSelectionSize={MinSelectionSize}")]
+    [LoggerMessage(LogLevel.Information, "[Marquee] Facade created: HandleSize={HandleSize}, MinSelectionSize={MinSelectionSize}")]
     internal static partial void LogFacadeCreated(this ILogger logger, double handleSize, double minSelectionSize);
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
     /// <remarks>
-    /// LogLevel: Debug<br/>出力書式: <c>[Marquee.Core] Logger attached</c><br/>
+    /// LogLevel: Debug<br/>出力書式: <c>[Marquee] Logger attached</c><br/>
     /// ログの出力を開始した契機を残す（以降の設定変更のログがどの時点から有効かを追えるようにする）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee.Core] Logger attached")]
+    [LoggerMessage(LogLevel.Debug, "[Marquee] Logger attached")]
     internal static partial void LogLoggerAttached(this ILogger logger);
 
     /// <summary>ポインター押下（マウス Down）のログ。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee.Core] MouseDown: pos=({X}, {Y}) clickCount={ClickCount} hasSelection={HasSelection}</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] MouseDown: pos=({X}, {Y}) clickCount={ClickCount} hasSelection={HasSelection}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
     /// <param name="clickCount">クリック数（2 = ダブルクリック）。</param>
     /// <param name="hasSelection">選択矩形の有無。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee.Core] MouseDown: pos=({X}, {Y}) clickCount={ClickCount} hasSelection={HasSelection}")]
+    [LoggerMessage(LogLevel.Debug, "[Marquee] MouseDown: pos=({X}, {Y}) clickCount={ClickCount} hasSelection={HasSelection}")]
     internal static partial void LogMouseDown(this ILogger logger, double x, double y, int clickCount, bool hasSelection);
 
     /// <summary>ポインター解放（マウス Up）のログ。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee.Core] MouseUp: pos=({X}, {Y}) wasDragging={WasDragging} hasSelection={HasSelection}</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] MouseUp: pos=({X}, {Y}) wasDragging={WasDragging} hasSelection={HasSelection}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
     /// <param name="wasDragging">ドラッグ中だったかどうか。</param>
     /// <param name="hasSelection">選択矩形の有無。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee.Core] MouseUp: pos=({X}, {Y}) wasDragging={WasDragging} hasSelection={HasSelection}")]
+    [LoggerMessage(LogLevel.Debug, "[Marquee] MouseUp: pos=({X}, {Y}) wasDragging={WasDragging} hasSelection={HasSelection}")]
     internal static partial void LogMouseUp(this ILogger logger, double x, double y, bool wasDragging, bool hasSelection);
 
     /// <summary>ダブルクリックのログ。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee.Core] DoubleClick: pos=({X}, {Y}) inside={Inside}</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] DoubleClick: pos=({X}, {Y}) inside={Inside}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
     /// <param name="inside">選択矩形の内側かどうか。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee.Core] DoubleClick: pos=({X}, {Y}) inside={Inside}")]
+    [LoggerMessage(LogLevel.Debug, "[Marquee] DoubleClick: pos=({X}, {Y}) inside={Inside}")]
     internal static partial void LogDoubleClick(this ILogger logger, double x, double y, bool inside);
 
     /// <summary>マウス押下直前の位置のログ（移動の高頻度ログは行わない）。</summary>
-    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Marquee.Core] Position before MouseDown: pos=({X}, {Y})</c></remarks>
+    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Marquee] Position before MouseDown: pos=({X}, {Y})</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
-    [LoggerMessage(LogLevel.Trace, "[Marquee.Core] Position before MouseDown: pos=({X}, {Y})")]
+    [LoggerMessage(LogLevel.Trace, "[Marquee] Position before MouseDown: pos=({X}, {Y})")]
     internal static partial void LogPositionBeforeDown(this ILogger logger, double x, double y);
 
     /// <summary>マウス解放直後の位置のログ（移動の高頻度ログは行わない）。</summary>
-    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Marquee.Core] Position after MouseUp: pos=({X}, {Y})</c></remarks>
+    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Marquee] Position after MouseUp: pos=({X}, {Y})</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
-    [LoggerMessage(LogLevel.Trace, "[Marquee.Core] Position after MouseUp: pos=({X}, {Y})")]
+    [LoggerMessage(LogLevel.Trace, "[Marquee] Position after MouseUp: pos=({X}, {Y})")]
     internal static partial void LogPositionAfterUp(this ILogger logger, double x, double y);
 
     /// <summary>マウスドラッグ開始（新規選択・ハンドル操作）のログ。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee.Core] DragStart: handle={Handle} pos=({X}, {Y})</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] DragStart: handle={Handle} pos=({X}, {Y})</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="handle">操作対象のハンドル（None = 新規選択）。</param>
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee.Core] DragStart: handle={Handle} pos=({X}, {Y})")]
+    [LoggerMessage(LogLevel.Debug, "[Marquee] DragStart: handle={Handle} pos=({X}, {Y})")]
     internal static partial void LogDragStart(this ILogger logger, string handle, double x, double y);
 
     /// <summary>キー入力（矢印キー nudge・Enter 確定・Escape キャンセル）のログ。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee.Core] KeyDown: key={Key} handled={Handled}</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] KeyDown: key={Key} handled={Handled}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="key">押下されたキー。</param>
     /// <param name="handled">処理されたかどうか。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee.Core] KeyDown: key={Key} handled={Handled}")]
+    [LoggerMessage(LogLevel.Debug, "[Marquee] KeyDown: key={Key} handled={Handled}")]
     internal static partial void LogKeyDown(this ILogger logger, string key, bool handled);
 
     /// <summary>確定要求（Enter・ダブルクリック・API 呼び出し）のログ。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee.Core] ConfirmRequested: rect={Rect}</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] ConfirmRequested: rect={Rect}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="rect">確定する選択矩形（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee.Core] ConfirmRequested: rect={Rect}")]
+    [LoggerMessage(LogLevel.Debug, "[Marquee] ConfirmRequested: rect={Rect}")]
     internal static partial void LogConfirmRequested(this ILogger logger, string rect);
 
     /// <summary>キャンセル要求（Escape・枠外ダブルクリック・API 呼び出し）のログ。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee.Core] CancelRequested</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] CancelRequested</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee.Core] CancelRequested")]
+    [LoggerMessage(LogLevel.Debug, "[Marquee] CancelRequested")]
     internal static partial void LogCancelRequested(this ILogger logger);
 
     /// <summary>設定値変更のログ（変更前後）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee.Core] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値。</param>
     /// <param name="newValue">変更後の値。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee.Core] Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Debug, "[Marquee] Setting: {Name} {OldValue} → {NewValue}")]
     internal static partial void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue);
 
     /// <summary>頻度の高い設定値変更のログ（変更前後。 最も低いレベルで出力する）。</summary>
@@ -141,12 +141,12 @@ internal static partial class MarqueeLogMessage
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Trace, "[Marquee.Core] Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Trace, "[Marquee] Setting: {Name} {OldValue} → {NewValue}")]
     internal static partial void LogSettingChangedTrace(this ILogger logger, string name, string oldValue, string newValue);
 
     /// <summary>ハイライト矩形（頻度の高い設定値）の変更ログ（同値の再設定では出力しない）。</summary>
     /// <remarks>
-    /// LogLevel: Trace<br/>出力書式: <c>[Marquee.Core] Setting: HighlightSourceRect {OldValue} → {NewValue}</c><br/>
+    /// LogLevel: Trace<br/>出力書式: <c>[Marquee] Setting: HighlightSourceRect {OldValue} → {NewValue}</c><br/>
     /// ハイライト矩形はホストがカーソル下の要素の検出結果として与える値であり、<b>最も頻度が高い</b>（ホバーのたびに変わりうる）ため<br/>
     /// 最も低いレベル（Trace）で記録する（既定の出力では溢れさせない。 必要時にレベルを下げて追う）。<br/>
     /// 「変化したときだけ出力する」判断を本メソッドが単一所有する（出力をコアが行うため、UI 層は同値判定を持たない）。
@@ -166,7 +166,7 @@ internal static partial class MarqueeLogMessage
 
     /// <summary>座標変換ポートの設定変更を記録する（同値の再設定では出力しない）。</summary>
     /// <remarks>
-    /// LogLevel: Debug<br/>出力書式: <c>[Marquee.Core] Setting: CoordTransform {OldValue} → {NewValue}</c><br/>
+    /// LogLevel: Debug<br/>出力書式: <c>[Marquee] Setting: CoordTransform {OldValue} → {NewValue}</c><br/>
     /// 値は未設定（<c>null</c> = 等価変換）またはポートの実装型名で表す（ポートは値として比較・整形できないため）。<br/>
     /// 低頻度のメソッド呼び出しのため Debug で記録する。
     /// </remarks>

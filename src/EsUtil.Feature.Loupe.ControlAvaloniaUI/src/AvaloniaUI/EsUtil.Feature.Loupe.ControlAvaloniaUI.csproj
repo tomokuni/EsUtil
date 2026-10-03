@@ -24,7 +24,7 @@
     <ProjectReference Include="..\..\..\EsUtil.Feature.Loupe.Core\src\EsUtil.Feature.Loupe.Core.csproj" />
     <!-- コントロール化の再描画スケジューリングと描画手順（層の順序と描画ポートへの写し）を単一所有する UI 非依存層 -->
     <ProjectReference Include="..\..\..\EsUtil.Feature.Loupe.Presenter\src\EsUtil.Feature.Loupe.Presenter.csproj" />
-    <ProjectReference Include="..\..\..\App.Platform.AvaloniaUI\src\App.Platform.AvaloniaUI.csproj" />
+    <ProjectReference Include="..\..\..\Platform.AvaloniaUI\src\Platform.AvaloniaUI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

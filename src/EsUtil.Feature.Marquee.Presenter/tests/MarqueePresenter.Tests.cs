@@ -107,12 +107,12 @@ public class MarqueePresenterTests
 
         Assert.Equal(
             [
-                "[Marquee.Core] Facade created: HandleSize=10, MinSelectionSize=6",
-                "[Marquee.Core] Logger attached",
-                "[Marquee.Presenter] Presenter created",
-                "[Marquee.Presenter] Logger attached",
-                "[Marquee.Core] Logger attached",
-                "[Marquee.Presenter] Logger attached",
+                "[Marquee] Facade created: HandleSize=10, MinSelectionSize=6",
+                "[Marquee] Logger attached",
+                "[Marquee] Presenter created",
+                "[Marquee] Logger attached",
+                "[Marquee] Logger attached",
+                "[Marquee] Logger attached",
             ],
             logger.Messages);
     }
@@ -128,10 +128,10 @@ public class MarqueePresenterTests
 
         Assert.Equal(
             [
-                "[Marquee.Core] Facade created: HandleSize=10, MinSelectionSize=6",
-                "[Marquee.Core] Logger attached",
-                "[Marquee.Presenter] Presenter created",
-                "[Marquee.Presenter] Logger attached",
+                "[Marquee] Facade created: HandleSize=10, MinSelectionSize=6",
+                "[Marquee] Logger attached",
+                "[Marquee] Presenter created",
+                "[Marquee] Logger attached",
             ],
             logger.Messages);
 
@@ -153,8 +153,8 @@ public class MarqueePresenterTests
 
         Assert.Equal(
             [
-                "[Marquee.Core] Setting: ClientToSourceScaling 1 → 1.25",
-                "[Marquee.Presenter] Forwarded: ClientToSourceScaling 1.25",
+                "[Marquee] Setting: ClientToSourceScaling 1 → 1.25",
+                "[Marquee] Forwarded: ClientToSourceScaling 1.25",
             ],
             logger.Messages);
         Assert.Equal([LogLevel.Debug, LogLevel.Trace], logger.Levels);
@@ -176,7 +176,7 @@ public class MarqueePresenterTests
 
         presenter.Appearance = MarqueeAppearance.Default with { ShowHandles = false };
 
-        Assert.Equal("[Marquee.Presenter] Setting: ShowHandles True → False", Assert.Single(logger.Messages));
+        Assert.Equal("[Marquee] Setting: ShowHandles True → False", Assert.Single(logger.Messages));
     }
 
     /// <summary>表示スケーリングの変更が記録されることを検証する。</summary>
@@ -190,7 +190,7 @@ public class MarqueePresenterTests
 
         presenter.DisplayScaleScaling = 1.25;
 
-        Assert.Equal("[Marquee.Presenter] Setting: DisplayScaleScaling 0 → 1.25", Assert.Single(logger.Messages));
+        Assert.Equal("[Marquee] Setting: DisplayScaleScaling 0 → 1.25", Assert.Single(logger.Messages));
     }
 
     /// <summary>ハイライト矩形がコアへ委譲され、注目矩形として優先されることを検証する。</summary>

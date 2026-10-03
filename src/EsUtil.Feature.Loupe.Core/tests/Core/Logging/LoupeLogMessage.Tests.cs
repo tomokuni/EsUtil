@@ -42,12 +42,12 @@ public class LoupeLogMessageTests
         var logger = new RecordingLogger();
         InvokeAll(logger);
 
-        Assert.Equal("[Loupe.Core] Facade created: RequestedSize=160, ZoomLevel=4", logger.Messages[0]);
-        Assert.Equal("[Loupe.Core] Logger attached", logger.Messages[1]);
-        Assert.Equal("[Loupe.Core] Setting: ZoomLevel 4 → 8", logger.Messages[2]);
-        Assert.Equal("[Loupe.Core] Setting: RequestedSize 160 → 240", logger.Messages[3]);
-        Assert.Equal("[Loupe.Core] Setting: CenterPoint (1.5, 2.5) → null", logger.Messages[4]);
-        Assert.Equal("[Loupe.Core] Setting: ZoomLevel 4 → 8", logger.Messages[5]);
+        Assert.Equal("[Loupe] Facade created: RequestedSize=160, ZoomLevel=4", logger.Messages[0]);
+        Assert.Equal("[Loupe] Logger attached", logger.Messages[1]);
+        Assert.Equal("[Loupe] Setting: ZoomLevel 4 → 8", logger.Messages[2]);
+        Assert.Equal("[Loupe] Setting: RequestedSize 160 → 240", logger.Messages[3]);
+        Assert.Equal("[Loupe] Setting: CenterPoint (1.5, 2.5) → null", logger.Messages[4]);
+        Assert.Equal("[Loupe] Setting: ZoomLevel 4 → 8", logger.Messages[5]);
     }
 
     /// <summary>生成の記録が Information、ロガー設定の記録が Debug で出力されることを検証する。</summary>
@@ -73,7 +73,7 @@ public class LoupeLogMessageTests
         logger.LogCenterPointChanged(new EsPoint(10, 20), new EsPoint(30, 40));
 
         Assert.Equal([LogLevel.Trace], logger.Levels);
-        Assert.Equal("[Loupe.Core] Setting: CenterPoint (10, 20) → (30, 40)", Assert.Single(logger.Messages));
+        Assert.Equal("[Loupe] Setting: CenterPoint (10, 20) → (30, 40)", Assert.Single(logger.Messages));
     }
 
     /// <summary>座標変換ポートの変更が未設定と実装型名で記録されることを検証する。</summary>
@@ -89,8 +89,8 @@ public class LoupeLogMessageTests
 
         Assert.Equal(
             [
-                "[Loupe.Core] Setting: CoordTransform null → CoordTransform",
-                "[Loupe.Core] Setting: CoordTransform CoordTransform → null",
+                "[Loupe] Setting: CoordTransform null → CoordTransform",
+                "[Loupe] Setting: CoordTransform CoordTransform → null",
             ],
             logger.Messages);
     }
@@ -104,8 +104,8 @@ public class LoupeLogMessageTests
         logger.LogCenterPointChanged(new EsPoint(10, 20), null);
         logger.LogCenterPointChanged(null, new EsPoint(30, 40));
 
-        Assert.Equal("[Loupe.Core] Setting: CenterPoint (10, 20) → null", logger.Messages[0]);
-        Assert.Equal("[Loupe.Core] Setting: CenterPoint null → (30, 40)", logger.Messages[1]);
+        Assert.Equal("[Loupe] Setting: CenterPoint (10, 20) → null", logger.Messages[0]);
+        Assert.Equal("[Loupe] Setting: CenterPoint null → (30, 40)", logger.Messages[1]);
     }
 
     /// <summary>真偽設定値のログが変化したときだけ出力されることを検証する。</summary>
@@ -121,7 +121,7 @@ public class LoupeLogMessageTests
         logger.LogSettingChanged("ShowBorder", true, false);   // 変化 → 出力
         logger.LogSettingChanged("ShowBorder", false, false);  // 同値 → 出力しない
 
-        Assert.Equal("[Loupe.Core] Setting: ShowBorder True → False", Assert.Single(logger.Messages));
+        Assert.Equal("[Loupe] Setting: ShowBorder True → False", Assert.Single(logger.Messages));
     }
 
     /// <summary>数値設定値のログが変化したときだけ出力されることを検証する。</summary>
@@ -136,8 +136,8 @@ public class LoupeLogMessageTests
         logger.LogSettingChanged("ClientToPixelScaling", 1.5, 1.5);  // 同値 → 出力しない
 
         Assert.Equal(2, logger.Messages.Count);
-        Assert.Equal("[Loupe.Core] Setting: ZoomLevel 4 → 8", logger.Messages[0]);
-        Assert.Equal("[Loupe.Core] Setting: ClientToPixelScaling 1 → 1.5", logger.Messages[1]);
+        Assert.Equal("[Loupe] Setting: ZoomLevel 4 → 8", logger.Messages[0]);
+        Assert.Equal("[Loupe] Setting: ClientToPixelScaling 1 → 1.5", logger.Messages[1]);
     }
 
     /// <summary>数値のログがカルチャに依存しないことを検証する。</summary>
@@ -153,7 +153,7 @@ public class LoupeLogMessageTests
 
             logger.LogSettingChanged((string)"ClientToPixelScaling", 1.0, 2.5);
 
-            Assert.Equal("[Loupe.Core] Setting: ClientToPixelScaling 1 → 2.5", logger.Messages[0]);
+            Assert.Equal("[Loupe] Setting: ClientToPixelScaling 1 → 2.5", logger.Messages[0]);
         }
         finally
         {
@@ -186,8 +186,8 @@ public class LoupeLogMessageTests
 
         Assert.Equal(
             [
-                "[Loupe.Core] Setting: RequestedSize 160 → 240",
-                "[Loupe.Core] Setting: ZoomLevel 4 → 8",
+                "[Loupe] Setting: RequestedSize 160 → 240",
+                "[Loupe] Setting: ZoomLevel 4 → 8",
             ],
             logger.Messages);
     }
@@ -212,8 +212,8 @@ public class LoupeLogMessageTests
 
         Assert.Equal(
             [
-                "[Loupe.Core] Setting: RequestedSize 160 → 240",
-                "[Loupe.Core] Setting: ZoomLevel 4 → 8",
+                "[Loupe] Setting: RequestedSize 160 → 240",
+                "[Loupe] Setting: ZoomLevel 4 → 8",
             ],
             logger.Messages);
     }
