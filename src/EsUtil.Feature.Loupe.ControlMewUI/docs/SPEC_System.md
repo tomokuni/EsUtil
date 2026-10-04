@@ -44,7 +44,7 @@
 層の全体像（Core / Presenter / UI）は [`src/README.md`](../README.md) を参照してください。
 
 ```text
-UI 層（EsUtil.Feature.Loupe.ControlAvaloniaUI / EsUtil.Feature.Loupe.ControlMewUI）
+UI 層（Avalonia / MewUI の実装）
   入力の受付・効果の適用・通知の転送・描画先の用意・ラベル要素の配置
     └──> EsUtil.Feature.Loupe.Presenter   どう描くか（描画計画の解決と外観の単一所有）
            └──> EsUtil.Feature.Loupe.Core   何を描くか + 判断（状態・値・純粋計算・幾何）
@@ -62,7 +62,7 @@ Avalonia 版と MewUI 版の間に依存はありません（互いを参照し�
 | `EsUtil.Feature.Loupe.Core` | 数値の安全域補正、表示レイアウト、切り出し領域の幾何（`LoupeGeometry`）。 設定（`LoupeOptions`）の単一所有 |
 | `EsUtil.Feature.Loupe.Presenter` | 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（`LoupeAppearance`）の単一所有。 UI 非依存であり、UI フレームワークを参照しない |
 | `EsUtil.Feature.Loupe.ControlMewUI` | 提示層が解決した描画計画を `LoupeSkiaPainter` で `SKCanvas` へ写す。 `MewProperty` による入力の受付。 DPI の自動追従 |
-| ホスト（`App.MewUI` 等） | `Source` / `CenterPoint` の設定、表示位置の決定（コアのファサード `ResolveLayout` を利用） |
+| ホスト（上位のアプリ） | `Source` / `CenterPoint` の設定、表示位置の決定（コアのファサード `ResolveLayout` を利用） |
 
 ## 4. コンポーネント構成
 
@@ -259,7 +259,7 @@ sequenceDiagram
 | `LoupeSkiaPainter`（描画実装） | `SKBitmap` + `SKCanvas`（`TestHelper.LoupeSkiaPainter` 経由）へ実際に描画し、**画素を実測**して検証する（ウィンドウ不要で並行実行できる） |
 | `LoupeControl` | `MewProperty` の補正・既定値・要求サイズを検証する（MewUI の要素生成はホスト登録を要しない） |
 | コアロジック | `EsUtil.Feature.Loupe.Core.Tests` が担保する（本プロジェクトでは再検証しない） |
-| アプリ組み込み | `App.MewUI` の実機検証（撮影した画素の実測）で確認する |
+| アプリ組み込み | 上位のアプリの実機検証（撮影した画素の実測）で確認する |
 
 ## 9. 未実装・今後の対応
 
@@ -267,7 +267,7 @@ sequenceDiagram
 | --- | --- |
 | 座標変換ポート | 実装済み（`SetCoordTransform`。 ホストが設定し、コントロールはファサードへ転送する。 Avalonia 版と同じ API） |
 | 再生成の要求メソッド | `Clear` / `RequestRender` 相当（現在はプロパティ変更で自動再描画） |
-| 座標ラベル以外の文字描画 | 日本語のフォントフォールバック（ラベルは `EsUtil.Feature.Marquee.ControlMewUI`（選択矩形の外側の装飾）側で対応済み。 本コントロールの座標ラベルは数値のみのため未適用） |
+| 座標ラベル以外の文字描画 | 日本語のフォントフォールバック（ラベルは別機能の選択矩形コントロール（外側の装飾）側で対応済み。 本コントロールの座標ラベルは数値のみのため未適用） |
 
 ## 10. ログ
 

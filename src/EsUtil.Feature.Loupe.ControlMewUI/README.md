@@ -1,6 +1,6 @@
 # EsUtil.Feature.Loupe.ControlMewUI
 
-`EsUtil.Feature.Loupe.ControlAvaloniaUI`（Avalonia UI 実装）と同じ **UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、描画（`SKCanvas`）と入力の受付のみを **MewUI** で実装したルーペ（拡大鏡）コントロールです。
+対になる Avalonia UI 実装と同じ **UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、描画（`SKCanvas`）と入力の受付のみを **MewUI** で実装したルーペ（拡大鏡）コントロールです。
 
 ## 1. 目的
 
@@ -112,7 +112,7 @@ if (layout.Position is { } position)
 | --- | --- | --- |
 | `Rendered` | `LoupeRenderedEventArgs` | 描画完了の通知（描画先キャンバス・一辺の物理ピクセル・切り出し領域の左上・スケール）。 ホストはハンドラ内でキャンバスへオーバーレイを追加描画できる |
 
-オーバーレイの描画位置は `(対象座標 − CaptureTopLeft) × Scale` で求めます（破線の例は `Parts.CapturePreviewControl.MewUI`）。
+オーバーレイの描画位置は `(対象座標 − CaptureTopLeft) × Scale` で求めます（破線の例は上位のホストにある）。
 
 ## 7. ログ
 
@@ -154,7 +154,7 @@ dotnet test src/EsUtil.Feature.Loupe.ControlMewUI/tests/MewUI/EsUtil.Feature.Lou
 
 ## 10. 関連ドキュメント
 
-- `../EsUtil.Feature.Loupe.Core/README.md` — 共有する UI 非依存ロジック
-- `../EsUtil.Feature.Loupe.Presenter/README.md` — 共有する UI 非依存の描画層
-- `../EsUtil.Feature.Loupe.ControlAvaloniaUI/README.md` — Avalonia 版ルーペ
-- `../App.MewUI/README.md` — 組み込み先のアプリ
+- [共有する UI 非依存ロジック](../EsUtil.Feature.Loupe.Core/README.md)
+- [共有する UI 非依存の描画層](../EsUtil.Feature.Loupe.Presenter/README.md)
+- [対になる Avalonia 版ルーペ](../EsUtil.Feature.Loupe.ControlAvaloniaUI/README.md)
+- [組み込み先のアプリ](../App.MewUI/README.md)

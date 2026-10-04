@@ -94,7 +94,7 @@ public class MarqueeStateTests
         Assert.Equal(MarqueeHitTarget.TopRight, snapshot.ActiveTarget);
         Assert.Equal(new EsPoint(7, 8), snapshot.MousePosition);
         Assert.True(snapshot.IsMouseDown);
-        Assert.True(snapshot.NudgeActive);
+        Assert.True(snapshot.IsNudgeActive);
         Assert.True(snapshot.HasSelection);
     }
 
@@ -359,7 +359,7 @@ public class MarqueeStateTests
         Assert.False(state.HasSelection);
         Assert.False(state.IsDragging);
         Assert.False(state.IsMouseDown);
-        Assert.False(state.NudgeActive);
+        Assert.False(state.IsNudgeActive);
         Assert.Equal(default, state.StartPoint);
         // 抑制位置も破棄される（過去の抑制が次の移動を食わない）
         Assert.False(state.ConsumeSuppressedEcho(new EsPoint(1, 2), 0.5));
@@ -373,7 +373,7 @@ public class MarqueeStateTests
 
         state.Reset();
 
-        Assert.False(state.NudgeActive);
+        Assert.False(state.IsNudgeActive);
     }
 
     [Fact]
@@ -399,7 +399,7 @@ public class MarqueeStateTests
         state.SetSelection(new EsRect(30, 40, 50, 60));
 
         Assert.Equal(new EsRect(30, 40, 50, 60), state.SelectionSourceRect);
-        Assert.False(state.NudgeActive);
+        Assert.False(state.IsNudgeActive);
     }
 
     [Fact]
@@ -411,7 +411,7 @@ public class MarqueeStateTests
         var ended = state.EndNudge();
 
         Assert.True(ended);
-        Assert.False(state.NudgeActive);
+        Assert.False(state.IsNudgeActive);
     }
 
     [Fact]

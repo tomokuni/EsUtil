@@ -48,7 +48,7 @@ public class MarqueeControlTests
         public EsPointInt Position { get; set; } = screenPoint;
 
         /// <summary>カーソルの表示状態（ShowCursor の呼び出し結果）。</summary>
-        public bool Visible { get; set; } = true;
+        public bool IsVisible { get; set; } = true;
 
         /// <summary>SetCursorScreenPoint で最後に設定された画面物理座標。</summary>
         public EsPointInt? LastSetPoint { get; private set; }
@@ -60,7 +60,7 @@ public class MarqueeControlTests
         public void SetCursorScreenPoint(EsPointInt point) => LastSetPoint = point;
 
         /// <summary>マウスポインターの表示 / 非表示切替。</summary>
-        public void ShowCursor(bool show) => Visible = show;
+        public void ShowCursor(bool show) => IsVisible = show;
     }
 
     /// <summary>左ボタン押下状態の PointerPointProperties を生成する。</summary>
@@ -832,11 +832,11 @@ public class MarqueeControlTests
         // ドラッグ開始 → nudge（カーソル非表示）
         control.RaiseEvent(new PointerPressedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(10, 10)), 0UL, LeftPressed(), KeyModifiers.None, 1));
         control.RaiseEvent(new KeyEventArgs { Key = Key.Right, RoutedEvent = InputElement.KeyDownEvent });
-        Assert.False(mock.Visible);
+        Assert.False(mock.IsVisible);
 
         // nudge 中の押下 → nudge リセット（EndNudge）+ カーソル再表示
         control.RaiseEvent(new PointerPressedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(50, 50)), 0UL, LeftPressed(), KeyModifiers.None, 1));
-        Assert.True(mock.Visible);
+        Assert.True(mock.IsVisible);
         window.Close();
     }
 
@@ -884,11 +884,11 @@ public class MarqueeControlTests
         // ドラッグ開始 → nudge（カーソル非表示）
         control.RaiseEvent(new PointerPressedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(10, 10)), 0UL, LeftPressed(), KeyModifiers.None, 1));
         control.RaiseEvent(new KeyEventArgs { Key = Key.Right, RoutedEvent = InputElement.KeyDownEvent });
-        Assert.False(mock.Visible);
+        Assert.False(mock.IsVisible);
 
         // nudge 中に外部から SetSelection → カーソルが再表示される（非表示残留の防止）
         control.SetSelection(new Rect(10, 10, 50, 40));
-        Assert.True(mock.Visible);
+        Assert.True(mock.IsVisible);
         window.Close();
     }
 
@@ -906,13 +906,13 @@ public class MarqueeControlTests
         // ドラッグ開始 → nudge（カーソル非表示）
         control.RaiseEvent(new PointerPressedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(10, 10)), 0UL, LeftPressed(), KeyModifiers.None, 1));
         control.RaiseEvent(new KeyEventArgs { Key = Key.Right, RoutedEvent = InputElement.KeyDownEvent });
-        Assert.False(mock.Visible);
+        Assert.False(mock.IsVisible);
 
         // フォーカスが別のコントロールへ移る → nudge 終了（nudge を継続できない文脈でカーソルを隠したままにしない）
         other.Focus();
 
-        Assert.False(control.CurrentSnapshot.NudgeActive);
-        Assert.True(mock.Visible);
+        Assert.False(control.CurrentSnapshot.IsNudgeActive);
+        Assert.True(mock.IsVisible);
         window.Close();
     }
 
@@ -927,11 +927,11 @@ public class MarqueeControlTests
         // ドラッグ開始 → nudge（カーソル非表示）
         control.RaiseEvent(new PointerPressedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(10, 10)), 0UL, LeftPressed(), KeyModifiers.None, 1));
         control.RaiseEvent(new KeyEventArgs { Key = Key.Right, RoutedEvent = InputElement.KeyDownEvent });
-        Assert.False(mock.Visible);
+        Assert.False(mock.IsVisible);
 
         // ウィンドウを閉じる → ビジュアルツリー切断 → カーソル再表示
         window.Close();
-        Assert.True(mock.Visible);
+        Assert.True(mock.IsVisible);
     }
 
     // ====================================================================
@@ -1107,11 +1107,11 @@ public class MarqueeControlTests
 
         // nudge → カーソル非表示
         control.RaiseEvent(new KeyEventArgs { Key = Key.Right, RoutedEvent = InputElement.KeyDownEvent });
-        Assert.False(mock.Visible);
+        Assert.False(mock.IsVisible);
 
         // キャンセル（Escape）→ ResetSelection → カーソル再表示（非表示残留の防止）
         control.RaiseEvent(new KeyEventArgs { Key = Key.Escape, RoutedEvent = InputElement.KeyDownEvent });
-        Assert.True(mock.Visible);
+        Assert.True(mock.IsVisible);
         window.Close();
     }
 
@@ -1171,7 +1171,7 @@ public class MarqueeControlTests
         // （移動した位置 (80,80) に表示されない。 SetCursorScreenPoint は再表示前に行われる）
         control.RaiseEvent(new PointerReleasedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(80, 80)), 0UL, LeftReleased(), KeyModifiers.None, MouseButton.Left));
 
-        Assert.True(mock.Visible);
+        Assert.True(mock.IsVisible);
         Assert.NotNull(mock.LastSetPoint);
         Assert.Equal(nudgeScreenPos.ToEsPointInt(), mock.LastSetPoint!.Value);
         window.Close();

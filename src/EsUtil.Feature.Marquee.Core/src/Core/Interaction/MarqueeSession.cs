@@ -96,7 +96,7 @@ internal sealed class MarqueeSession
 
     /// <summary>nudge（矢印キー微調整）中かどうか。</summary>
     /// <value>nudge 中の場合は true。</value>
-    internal bool NudgeActive => _state.NudgeActive;
+    internal bool IsNudgeActive => _state.IsNudgeActive;
 
     /// <summary>直近のマウス位置（対象座標。 カーソル座標ラベルの描画に使用する）。</summary>
     /// <value>直近のマウス位置。 未移動時は既定値。</value>
@@ -149,7 +149,7 @@ internal sealed class MarqueeSession
 
         // nudge 中は nudge 位置を押下位置として扱い、ポインターを再表示する（nudge 位置と押下位置のずれを防ぐ）
         var cursor = MarqueeCursorActions.None;
-        if (_state.NudgeActive)
+        if (_state.IsNudgeActive)
         {
             position = _state.StartPoint;
             _state.EndNudge();
@@ -166,8 +166,8 @@ internal sealed class MarqueeSession
         Log.LogDragStart(handle.ToString(), position.X, position.Y);
         var feedback = new MarqueeFeedback
         {
-            Redraw = true,
-            RequestFocus = true,
+            ShouldRedraw = true,
+            ShouldRequestFocus = true,
             Capture = MarqueeCaptureAction.Capture,
             Cursor = cursor,
         };
@@ -221,19 +221,19 @@ internal sealed class MarqueeSession
         {
             return new MarqueeFeedback
             {
-                UpdateCursorShape = true,
+                ShouldUpdateCursorShape = true,
                 CursorKind = ToCursorKind(_state.HitTest(position, hitRadius)),
             };
         }
 
         var cursor = new MarqueeFeedback
         {
-            UpdateCursorShape = true,
+            ShouldUpdateCursorShape = true,
             CursorKind = ToCursorKind(_state.HitTest(position, hitRadius)),
         };
 
         // nudge 中はエコー移動で選択矩形・マウス位置を上書きしない（解放時の追従位置が実マウス位置へ飛ぶのを防ぐ）
-        if (_state.NudgeActive)
+        if (_state.IsNudgeActive)
         {
             return cursor;
         }
@@ -251,7 +251,7 @@ internal sealed class MarqueeSession
             NotifyAt(MarqueeNoticeKind.MarkerPositionMoved, position);
         }
 
-        return cursor with { Redraw = true };
+        return cursor with { ShouldRedraw = true };
     }
 
     /// <summary>ポインター解放（左ボタン）を通知する。</summary>
@@ -270,7 +270,7 @@ internal sealed class MarqueeSession
         Log.LogPositionAfterUp(position.X, position.Y);
 
         var wasDragging = _state.IsDragging;
-        var wasNudging = _state.NudgeActive;
+        var wasNudging = _state.IsNudgeActive;
         var nudgePosition = wasNudging ? _state.GetMarkerPosition() : default;
 
         if (wasDragging)
@@ -290,7 +290,7 @@ internal sealed class MarqueeSession
             }
         }
 
-        var feedback = new MarqueeFeedback { Redraw = true, Capture = MarqueeCaptureAction.Release };
+        var feedback = new MarqueeFeedback { ShouldRedraw = true, Capture = MarqueeCaptureAction.Release };
         if (wasNudging)
         {
             // nudge の状態は最小サイズ未満のキャンセル経路（状態の初期化）で既に解除されている場合があるため、
@@ -308,7 +308,7 @@ internal sealed class MarqueeSession
             {
                 Cursor = feedback.Cursor | MarqueeCursorActions.MoveTo,
                 CursorSourcePosition = nudgePosition,
-                UpdateCursorShape = true,
+                ShouldUpdateCursorShape = true,
                 CursorKind = ToCursorKind(_state.HitTest(nudgePosition, ToSourceRadius())),
             };
         }
@@ -332,17 +332,17 @@ internal sealed class MarqueeSession
         if (key == EsKey.Escape)
         {
             Log.LogKeyDown(key.ToString(), handled: true);
-            return RequestCancel() with { Handled = true };
+            return RequestCancel() with { IsHandled = true };
         }
 
         if (key is EsKey.Enter or EsKey.Return)
         {
             Log.LogKeyDown(key.ToString(), handled: true);
-            return RequestConfirm() with { Handled = true };
+            return RequestConfirm() with { IsHandled = true };
         }
 
         var feedback = NudgeByKey(key, cursorPosition);
-        if (feedback.Handled)
+        if (feedback.IsHandled)
         {
             Log.LogKeyDown(key.ToString(), handled: true);
         }
@@ -388,7 +388,7 @@ internal sealed class MarqueeSession
             _state.SetMousePosition(current);
         }
 
-        var feedback = new MarqueeFeedback { Handled = true, Redraw = true };
+        var feedback = new MarqueeFeedback { IsHandled = true, ShouldRedraw = true };
         if (_state.BeginNudge())
         {
             feedback = feedback with { Cursor = MarqueeCursorActions.Hide };
@@ -430,7 +430,7 @@ internal sealed class MarqueeSession
     internal MarqueeFeedback SetSelection(EsRect rect)
     {
         // 選択の復元は nudge 状態を解除するため、解除の判定は復元より前に行う（カーソルの再表示を落とさない）
-        var feedback = WithNudgeEnded(new MarqueeFeedback { Redraw = true });
+        var feedback = WithNudgeEnded(new MarqueeFeedback { ShouldRedraw = true });
         var selectionSourceRect = Options.ClampToSourceBounds ? _state.ClipRectToBounds(rect) : rect;
         _state.SetSelection(selectionSourceRect);
         NotifyState(MarqueeNoticeKind.SelectionChanged);
@@ -441,7 +441,7 @@ internal sealed class MarqueeSession
     /// <returns>UI 層が適用する効果（再描画。 nudge 中だった場合はカーソルの再表示）。</returns>
     internal MarqueeFeedback Reset()
     {
-        var feedback = WithNudgeEnded(new MarqueeFeedback { Redraw = true });
+        var feedback = WithNudgeEnded(new MarqueeFeedback { ShouldRedraw = true });
         _state.Reset();
         return feedback;
     }
@@ -461,7 +461,7 @@ internal sealed class MarqueeSession
 
         Log.LogConfirmRequested(_state.SelectionSourceRect);
         NotifyState(MarqueeNoticeKind.ConfirmRequested);
-        var feedback = WithNudgeEnded(new MarqueeFeedback { Redraw = true });
+        var feedback = WithNudgeEnded(new MarqueeFeedback { ShouldRedraw = true });
         _state.Reset();
         return feedback;
     }
@@ -473,11 +473,11 @@ internal sealed class MarqueeSession
     {
         Log.LogCancelRequested();
         // キャンセルは nudge も終了させる（nudge 位置の十字マーカーとカーソル非表示を残留させない）
-        var feedback = WithNudgeEnded(new MarqueeFeedback { Redraw = false });
+        var feedback = WithNudgeEnded(new MarqueeFeedback { ShouldRedraw = false });
         if (_state.IsDragging || _state.HasSelection)
         {
             _state.Reset();
-            feedback = feedback with { Redraw = true };
+            feedback = feedback with { ShouldRedraw = true };
         }
         NotifyEmpty(MarqueeNoticeKind.CancelRequested);
         return feedback;
@@ -495,7 +495,7 @@ internal sealed class MarqueeSession
         {
             NotifyState(MarqueeNoticeKind.SelectionChanged);
         }
-        return new MarqueeFeedback { Redraw = true };
+        return new MarqueeFeedback { ShouldRedraw = true };
     }
 
     /// <summary>設定（<see cref="MarqueeOptions"/>）を反映する。</summary>
@@ -538,7 +538,7 @@ internal sealed class MarqueeSession
     /// </remarks>
     private MarqueeFeedback WithNudgeEnded(in MarqueeFeedback feedback)
         => _state.EndNudge()
-            ? feedback with { Redraw = true, Cursor = feedback.Cursor | MarqueeCursorActions.Show }
+            ? feedback with { ShouldRedraw = true, Cursor = feedback.Cursor | MarqueeCursorActions.Show }
             : feedback;
 
     /// <summary>ダブルクリックを処理する（選択矩形の内側なら確定、外側ならキャンセル）。</summary>
@@ -559,7 +559,7 @@ internal sealed class MarqueeSession
             Log.LogConfirmRequested(_state.SelectionSourceRect);
             NotifyAt(MarqueeNoticeKind.ConfirmRequested, position);
             _state.Reset();
-            return new MarqueeFeedback { Redraw = true, Cursor = cursor };
+            return new MarqueeFeedback { ShouldRedraw = true, Cursor = cursor };
         }
 
         Log.LogCancelRequested();

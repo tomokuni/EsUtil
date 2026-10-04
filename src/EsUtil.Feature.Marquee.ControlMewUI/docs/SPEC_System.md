@@ -48,7 +48,7 @@ nudge セッション・ダブルクリックの確定/キャンセル・ハン�
 層の全体像（Core / Presenter / UI）は [`src/README.md`](../README.md) を参照してください。
 
 ```text
-UI 層（EsUtil.Feature.Marquee.ControlAvaloniaUI / EsUtil.Feature.Marquee.ControlMewUI）
+UI 層（Avalonia / MewUI の実装）
   入力の受付・効果の適用・通知の転送・描画（自 UI の描画 API）・ラベル要素の配置
     ├──> EsUtil.Feature.Marquee.Presenter   どう見せるか（描画計画の解決）＋ 外観 ＋ 組み込み先があるときだけ必要な規則
     └──> EsUtil.Feature.Marquee.Core   何を計算するか + 判断（状態・値・純粋計算・コア⇔UI の契約）
@@ -176,8 +176,8 @@ classDiagram
     }
     class MarqueeFeedback {
         <<internal / EsUtil.Feature.Marquee.Core>>
-        +bool Handled / Redraw / RequestFocus
-        +bool UpdateCursorShape / MarqueeCursorKind CursorKind
+        +bool IsHandled / ShouldRedraw / ShouldRequestFocus
+        +bool ShouldUpdateCursorShape / MarqueeCursorKind CursorKind
         +MarqueeCursorActions Cursor / EsPoint CursorSourcePosition
         +MarqueeCaptureAction Capture
     }
@@ -339,7 +339,7 @@ sequenceDiagram
     Ctl->>Fac: KeyDown(EsKey, cursorPosition)
     Fac->>Ses: KeyDown
     alt nudge 未開始
-        Ses->>St: NudgeActive = true
+        Ses->>St: IsNudgeActive = true
         Fac-->>Ctl: 効果（Hide: カーソル非表示）を IMarqueeEffects 経由で適用
         Ctl->>Cur: ShowCursor(false)
     end
@@ -352,7 +352,7 @@ sequenceDiagram
     Fac->>Ses: EndNudge
     Fac-->>Ctl: 効果（Show: カーソル再表示）
     Ctl->>Cur: ShowCursor(true)
-    Ses->>St: NudgeActive = false
+    Ses->>St: IsNudgeActive = false
 ```
 
 ## 8. 状態遷移
@@ -422,4 +422,4 @@ OnPaintSurface(canvas, info)
 | `ScrollViewer` の自動連携 | ホストが変化を検知して `RefreshOverlay()` を呼ぶ方式で代替 |
 | フォーカス非依存の矢印キー nudge | フォーカス依存で実装（`TopLevel` のキー購読は行わない） |
 | 通常ホイールのスクロールログ | スクロールの実処理はホストが担うため出力しない（操作ログの定義はコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）が所有し、本層が所有する設定（外観・表示スケーリング係数）の変更ログは提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）が所有する。 書式・レベルとも Avalonia 版と同じ） |
-| 実ウィンドウへの組み込み | `Parts.CapturePreviewControl.MewUI` を経由して配線済み（撮影・切り出しの両方） |
+| 実ウィンドウへの組み込み | 上位のホストを経由して配線済み（撮影・切り出しの両方） |

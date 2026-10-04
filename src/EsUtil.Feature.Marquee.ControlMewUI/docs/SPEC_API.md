@@ -104,7 +104,7 @@ Avalonia 版と同一の挙動になります。
 
 | プロパティ | 型 | 説明 |
 | --- | --- | --- |
-| `CurrentSnapshot` | `MarqueeSnapshot` | 現在の状態（State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / NudgeActive / HasSelection。 `readonly record struct`） |
+| `CurrentSnapshot` | `MarqueeSnapshot` | 現在の状態（State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / IsNudgeActive / HasSelection。 `readonly record struct`） |
 
 ## 7. イベント
 

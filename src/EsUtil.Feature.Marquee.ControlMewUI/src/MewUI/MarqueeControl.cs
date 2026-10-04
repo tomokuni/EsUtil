@@ -162,6 +162,7 @@ public sealed class MarqueeControl : Panel
         Add(_shapes);
 
         // フォーカスを失ったら nudge を終了する（カーソル非表示の残留防止）
+        // `this.` は必須である（外すと MewUI の引数なしの OnLostFocus へ解決されて CS1501 になる）
         this.OnLostFocus(EndNudge);
     }
 

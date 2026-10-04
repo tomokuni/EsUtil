@@ -1,6 +1,6 @@
 # EsUtil.Feature.Marquee.ControlAvaloniaUI
 
-> プロジェクト名: `EsUtil.Feature.Marquee.ControlAvaloniaUI`（Avalonia UI 版）。 UI 非依存のロジックは `EsUtil.Feature.Marquee.Core`、MewUI 版は `EsUtil.Feature.Marquee.ControlMewUI` にあります。
+> プロジェクト名: `EsUtil.Feature.Marquee.ControlAvaloniaUI`（Avalonia UI 版）。 UI 非依存のロジックは `EsUtil.Feature.Marquee.Core`、MewUI 版は対になるコントロール（別プロジェクト）にあります。
 
 ## 目次
 

@@ -258,7 +258,7 @@ control.ResetSelection();           // 状態と nudge の初期化
 
 | プロパティ | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
-| `CurrentSnapshot` | `MarqueeSnapshot` | - | 現在の選択状態のスナップショット（**ポーリング不要の完全状態**。 `readonly record struct`）。 `State` / `SelectionSourceRect` / `ActiveTarget` / `MousePosition` / `IsMouseDown` / `NudgeActive` / `HasSelection` を公開。 イベント引数の Snapshot と同一形式。 選択状態の判定（確定・キャンセル等の操作分岐）は `CurrentSnapshot.HasSelection` を使用 |
+| `CurrentSnapshot` | `MarqueeSnapshot` | - | 現在の選択状態のスナップショット（**ポーリング不要の完全状態**。 `readonly record struct`）。 `State` / `SelectionSourceRect` / `ActiveTarget` / `MousePosition` / `IsMouseDown` / `IsNudgeActive` / `HasSelection` を公開。 イベント引数の Snapshot と同一形式。 選択状態の判定（確定・キャンセル等の操作分岐）は `CurrentSnapshot.HasSelection` を使用 |
 | `HasSelection` | `bool` | `false` | 選択矩形があるかどうか（スナップショットの生成を伴わない軽量な読み取り。 描画のたびに参照する） |
 | `SelectionSourceRect` | `EsRect` | `0x0` | 現在の選択矩形（対象座標。 未選択時は 0x0） |
 
@@ -338,7 +338,7 @@ StyledProperty は同ファイルに定義されます（Avalonia のバイン�
 | 型 | 説明 |
 | --- | --- |
 | `MarqueeInteractionState` enum | 操作状態（NoSelection / StartPointNudging / Dragging / DraggingNudging / Selected / SelectedNudging）。 コアが所有 |
-| `MarqueeSnapshot` readonly record struct | 状態 Snapshot（State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / NudgeActive。 `HasSelection` は導出プロパティ）。 値セマンティクスで比較可能。 **`SelectionSourceRect` は `EsRect`、`MousePosition` は `EsPoint`**（UI 非依存）。 ドラッグ中かどうかは `State`（`Dragging` / `DraggingNudging`）で判定する |
+| `MarqueeSnapshot` readonly record struct | 状態 Snapshot（State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / IsNudgeActive。 `HasSelection` は導出プロパティ）。 値セマンティクスで比較可能。 **`SelectionSourceRect` は `EsRect`、`MousePosition` は `EsPoint`**（UI 非依存）。 ドラッグ中かどうかは `State`（`Dragging` / `DraggingNudging`）で判定する |
 | `SelectionRectEventArgs` | 選択矩形通知（`Rect` は Avalonia 型・対象座標系。 `Snapshot` を同梱） |
 | `MarqueePointEventArgs` | 座標通知（`Point` は Avalonia 型・対象座標系。 `Snapshot` を同梱） |
 | `MarqueeRenderedEventArgs` | 描画完了通知（`Context` = `DrawingContext`（描画中のみ有効）/ `Content` = `MarqueeDrawPlan`（外観・注目矩形・装飾矩形・ハンドル・マーカー・層の順序・ラベル配置）） |

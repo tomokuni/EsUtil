@@ -44,10 +44,10 @@ public class MarqueeFeedbackTests
     {
         var feedback = new MarqueeFeedback
         {
-            RequestFocus = true,
-            UpdateCursorShape = true,
+            ShouldRequestFocus = true,
+            ShouldUpdateCursorShape = true,
             CursorKind = MarqueeCursorKind.DiagonalNWSE,
-            Redraw = true,
+            ShouldRedraw = true,
         };
         var effects = new EffectsSpy();
 
@@ -59,7 +59,7 @@ public class MarqueeFeedbackTests
     [Fact]
     internal void ApplyVisual_要求されていない効果は適用しない()
     {
-        var feedback = new MarqueeFeedback { Redraw = true };
+        var feedback = new MarqueeFeedback { ShouldRedraw = true };
         var effects = new EffectsSpy();
 
         feedback.ApplyVisual(effects);
@@ -89,7 +89,7 @@ public class MarqueeFeedbackTests
                      MarqueeCursorKind.Vertical, MarqueeCursorKind.Horizontal, MarqueeCursorKind.Move,
                  })
         {
-            new MarqueeFeedback { UpdateCursorShape = true, CursorKind = kind }.ApplyVisual(effects);
+            new MarqueeFeedback { ShouldUpdateCursorShape = true, CursorKind = kind }.ApplyVisual(effects);
         }
 
         Assert.Equal(

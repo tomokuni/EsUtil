@@ -1,6 +1,6 @@
 # EsUtil.Feature.Loupe.ControlAvaloniaUI
 
-> プロジェクト名: `EsUtil.Feature.Loupe.ControlAvaloniaUI`（Avalonia UI 版）。 UI 非依存のロジックは `EsUtil.Feature.Loupe.Core`、MewUI 版は `EsUtil.Feature.Loupe.ControlMewUI` にあります。
+> プロジェクト名: `EsUtil.Feature.Loupe.ControlAvaloniaUI`（Avalonia UI 版）。 UI 非依存のロジックは `EsUtil.Feature.Loupe.Core`、MewUI 版は対になるコントロール（別プロジェクト）にあります。
 
 ## 目次
 

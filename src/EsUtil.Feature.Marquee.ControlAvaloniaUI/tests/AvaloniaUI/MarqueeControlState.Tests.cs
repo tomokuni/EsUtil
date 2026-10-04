@@ -101,7 +101,7 @@ public class MarqueeControlStateTests
         Assert.Equal(MarqueeHitTarget.None, snap0.ActiveTarget);
         Assert.False(snap0.HasSelection);
         Assert.False(snap0.IsMouseDown);
-        Assert.False(snap0.NudgeActive);
+        Assert.False(snap0.IsNudgeActive);
 
         // 選択時: State=Selected / SelectionSourceRect 反映 / HasSelection=true
         control.SetSelection(new Rect(10, 10, 50, 40));
@@ -109,7 +109,7 @@ public class MarqueeControlStateTests
         Assert.Equal(MarqueeInteractionState.Selected, snap1.State);
         Assert.Equal(new EsRect(10, 10, 50, 40), snap1.SelectionSourceRect);
         Assert.True(snap1.HasSelection);
-        Assert.False(snap1.NudgeActive);
+        Assert.False(snap1.IsNudgeActive);
     }
 
     [Fact]

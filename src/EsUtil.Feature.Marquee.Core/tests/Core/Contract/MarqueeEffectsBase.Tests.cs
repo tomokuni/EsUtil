@@ -51,7 +51,7 @@ public class MarqueeEffectsBaseTests
 
         marquee.KeyDown(EsKey.Right, new EsPoint(10, 10));
 
-        Assert.True(marquee.CreateSnapshot().NudgeActive, "nudge が開始していない");
+        Assert.True(marquee.CreateSnapshot().IsNudgeActive, "nudge が開始していない");
     }
 
     /// <summary>再描画だけを実装した最小の効果（独自コントロールの例）。</summary>

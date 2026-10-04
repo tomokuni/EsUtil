@@ -38,7 +38,7 @@
 
 SaveEvidence は、Windows デスクトップ上の画面をキャプチャし、プレビュー・編集・保存するための Avalonia UI アプリケーションです（.NET 10.0 / C# 14 / MVVM）。
 
-本プロジェクト（MarqueeControl）は、このシステムのうち**領域選択ドラッグ矩形**の UI・操作・描画を自己完結する再利用可能なコントロールです。 上位 AP（Parts.CapturePreviewControl.AvaloniaUI / app）に依存せず、マウス操作・キーボード操作（nudge）・描画をコントロール内で完結します。
+本プロジェクト（MarqueeControl）は、このシステムのうち**領域選択ドラッグ矩形**の UI・操作・描画を自己完結する再利用可能なコントロールです。 上位のアプリ（撮影スタック）に依存せず、マウス操作・キーボード操作（nudge）・描画をコントロール内で完結します。
 
 ## 2. 技術スタック
 
@@ -264,7 +264,7 @@ flowchart TB
 ### 6.12 公開イベント引数
 
 - `MarqueeInteractionState` enum（public）: NoSelection / StartPointNudging / Dragging / DraggingNudging / Selected / SelectedNudging
-- `MarqueeSnapshot` readonly record struct（public）: State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / NudgeActive / HasSelection。 座標は UI 非依存の `EsRect` / `EsPoint`（各 UI の境界で自前の型へ変換する）。 値型のため通知のたびにヒープを確保しない
+- `MarqueeSnapshot` readonly record struct（public）: State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / IsNudgeActive / HasSelection。 座標は UI 非依存の `EsRect` / `EsPoint`（各 UI の境界で自前の型へ変換する）。 値型のため通知のたびにヒープを確保しない
 - `SelectionRectEventArgs`（public）: Rect（Avalonia）+ Snapshot
 - `MarqueePointEventArgs`（public）: Point（Avalonia）+ Snapshot
 - `MarqueeRenderedEventArgs`（public）: Context（`DrawingContext`。 描画中のみ有効）+ Content（`MarqueeDrawPlan`。 描画計画）

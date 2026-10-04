@@ -151,7 +151,7 @@ public class MarqueeControlTests
         Assert.Equal(MarqueeHitTarget.None, snapshot.ActiveTarget);
         Assert.False(snapshot.HasSelection);
         Assert.False(snapshot.IsMouseDown);
-        Assert.False(snapshot.NudgeActive);
+        Assert.False(snapshot.IsNudgeActive);
     }
 
     [Fact]

@@ -47,7 +47,7 @@ internal sealed class MarqueeState
     internal MarqueeHitTarget ActiveTarget { get; private set; }
 
     /// <summary>nudge（矢印キー微調整）中かどうか。</summary>
-    internal bool NudgeActive { get; private set; }
+    internal bool IsNudgeActive { get; private set; }
 
     /// <summary>座標変換ポート（ToSource = UI 論理座標→対象 / ToDip = 対象→UI 論理座標 / SourceArea = 対象の境界）。</summary>
     /// <remarks>環境値（注入された依存）であるため、設定は <see cref="SetPort"/> で行う。</remarks>
@@ -82,7 +82,7 @@ internal sealed class MarqueeState
     internal MarqueeInteractionState GetInteractionState()
     {
         // 優先順位: nudge 状態を最優先で合成し、次にドラッグ/選択状態を判定する
-        if (NudgeActive)
+        if (IsNudgeActive)
         {
             return HasSelection ? MarqueeInteractionState.SelectedNudging
                 : IsDragging ? MarqueeInteractionState.DraggingNudging
@@ -104,7 +104,7 @@ internal sealed class MarqueeState
             ActiveTarget,
             mousePosition ?? LastMousePosition,
             IsMouseDown,
-            NudgeActive);
+            IsNudgeActive);
 
     /// <summary>選択状態と nudge 状態を初期化する。</summary>
     /// <remarks>nudge 中だった場合は nudge 状態を終了する（カーソルの再表示はセッションが効果として要求する）。</remarks>
@@ -142,7 +142,7 @@ internal sealed class MarqueeState
     /// </remarks>
     internal bool BeginNudge()
     {
-        if (NudgeActive)
+        if (IsNudgeActive)
         {
             return false;
         }
@@ -152,7 +152,7 @@ internal sealed class MarqueeState
             StartPoint = LastMousePosition;
         }
 
-        NudgeActive = true;
+        IsNudgeActive = true;
         return true;
     }
 
@@ -161,12 +161,12 @@ internal sealed class MarqueeState
     /// <remarks>本メソッドは状態のみを更新する（カーソルの再表示は効果としてセッションが UI 層へ要求する）。</remarks>
     internal bool EndNudge()
     {
-        if (!NudgeActive)
+        if (!IsNudgeActive)
         {
             return false;
         }
 
-        NudgeActive = false;
+        IsNudgeActive = false;
         return true;
     }
 

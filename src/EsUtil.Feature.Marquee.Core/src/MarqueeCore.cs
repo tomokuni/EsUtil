@@ -265,7 +265,7 @@ public sealed partial class MarqueeCore
     {
         var feedback = _session.KeyDown(key, cursorPosition);
         Apply(feedback);
-        return feedback.Handled;
+        return feedback.IsHandled;
     }
 
     /// <summary>nudge を終了する（カーソルを再表示する）。</summary>
@@ -317,7 +317,7 @@ public sealed partial class MarqueeCore
             _session.Options,
             clientSize,
             _session.HasSelection ? _session.SelectionSourceRect : null,
-            _session.NudgeActive,
+            _session.IsNudgeActive,
             _session.MarkerPosition,
             _session.LastMousePosition,
             _coordPort,

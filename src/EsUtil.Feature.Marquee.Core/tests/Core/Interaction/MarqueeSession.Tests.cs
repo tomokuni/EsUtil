@@ -64,8 +64,8 @@ public class MarqueeSessionTests
         Assert.False(session.HasSelection);
         Assert.Equal(new EsRect(10, 10, 0, 0), session.SelectionSourceRect);
         Assert.Equal([MarqueeNoticeKind.SelectionStarted], Kinds(notices));
-        Assert.True(feedback.Redraw);
-        Assert.True(feedback.RequestFocus);
+        Assert.True(feedback.ShouldRedraw);
+        Assert.True(feedback.ShouldRequestFocus);
         Assert.Equal(MarqueeCaptureAction.Capture, feedback.Capture);
     }
 
@@ -119,8 +119,8 @@ public class MarqueeSessionTests
             [MarqueeNoticeKind.ConfirmRequested],
             Kinds(notices));
         Assert.False(session.HasSelection);
-        Assert.True(feedback.Redraw);
-        Assert.False(feedback.RequestFocus);
+        Assert.True(feedback.ShouldRedraw);
+        Assert.False(feedback.ShouldRequestFocus);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public class MarqueeSessionTests
             [MarqueeNoticeKind.CancelRequested],
             Kinds(notices));
         Assert.True(session.HasSelection);
-        Assert.False(feedback.Redraw);
+        Assert.False(feedback.ShouldRedraw);
     }
 
     [Fact]
@@ -150,7 +150,7 @@ public class MarqueeSessionTests
 
         var feedback = session.Press(session.State.StartPoint, clickCount: 1);
 
-        Assert.False(session.NudgeActive);
+        Assert.False(session.IsNudgeActive);
         Assert.True(feedback.Cursor.HasFlag(MarqueeCursorActions.Show));
         Assert.Equal([MarqueeNoticeKind.MarkerPositionMoved, MarqueeNoticeKind.SelectionStarted], Kinds(notices));
     }
@@ -173,8 +173,8 @@ public class MarqueeSessionTests
         Assert.Equal(
             [MarqueeNoticeKind.SelectionChanged, MarqueeNoticeKind.MarkerPositionMoved],
             Kinds(notices));
-        Assert.True(feedback.Redraw);
-        Assert.True(feedback.UpdateCursorShape);
+        Assert.True(feedback.ShouldRedraw);
+        Assert.True(feedback.ShouldUpdateCursorShape);
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public class MarqueeSessionTests
         // 1 回目: 抑制されて通知なし（カーソル形状のみ更新）
         var first = session.Move(nudgePosition);
         Assert.Empty(notices);
-        Assert.True(first.UpdateCursorShape);
+        Assert.True(first.ShouldUpdateCursorShape);
 
         // 2 回目: 抑制は解除済みで通知される
         session.Move(nudgePosition);
@@ -275,11 +275,11 @@ public class MarqueeSessionTests
 
         var feedback = session.Release(new EsPoint(500, 500));
 
-        Assert.False(session.NudgeActive);
+        Assert.False(session.IsNudgeActive);
         Assert.True(feedback.Cursor.HasFlag(MarqueeCursorActions.MoveTo));
         Assert.Equal(nudgePosition, feedback.CursorSourcePosition);
         Assert.True(feedback.Cursor.HasFlag(MarqueeCursorActions.Show));
-        Assert.True(feedback.UpdateCursorShape);
+        Assert.True(feedback.ShouldUpdateCursorShape);
 
         // 抑制: nudge 位置へのエコー移動は矩形を上書きしない（通知も発生しない）
         var rectBefore = session.SelectionSourceRect;
@@ -302,8 +302,8 @@ public class MarqueeSessionTests
 
         var feedback = session.KeyDown(EsKey.Escape, null);
 
-        Assert.True(feedback.Handled);
-        Assert.True(feedback.Redraw);
+        Assert.True(feedback.IsHandled);
+        Assert.True(feedback.ShouldRedraw);
         Assert.Equal([MarqueeNoticeKind.CancelRequested], Kinds(notices));
         Assert.False(session.HasSelection);
     }
@@ -319,7 +319,7 @@ public class MarqueeSessionTests
 
         var feedback = session.KeyDown(key, null);
 
-        Assert.True(feedback.Handled);
+        Assert.True(feedback.IsHandled);
         Assert.Equal([MarqueeNoticeKind.ConfirmRequested], Kinds(notices));
         Assert.False(session.HasSelection);
     }
@@ -332,9 +332,9 @@ public class MarqueeSessionTests
         var feedback = session.KeyDown(EsKey.Enter, null);
 
         // 確定要求は発火しないが、キーは処理済み（上位が既定動作へ流さない）
-        Assert.True(feedback.Handled);
+        Assert.True(feedback.IsHandled);
         Assert.Empty(notices);
-        Assert.False(feedback.Redraw);
+        Assert.False(feedback.ShouldRedraw);
     }
 
     [Fact]
@@ -344,11 +344,11 @@ public class MarqueeSessionTests
 
         var feedback = session.KeyDown(EsKey.Left, new EsPoint(100, 100));
 
-        Assert.True(feedback.Handled);
-        Assert.True(feedback.Redraw);
+        Assert.True(feedback.IsHandled);
+        Assert.True(feedback.ShouldRedraw);
         Assert.True(feedback.Cursor.HasFlag(MarqueeCursorActions.Hide));
         Assert.True(feedback.Cursor.HasFlag(MarqueeCursorActions.MoveTo));
-        Assert.True(session.NudgeActive);
+        Assert.True(session.IsNudgeActive);
         Assert.Contains(MarqueeNoticeKind.SelectionChanged, Kinds(notices));
         Assert.Contains(MarqueeNoticeKind.MarkerPositionMoved, Kinds(notices));
     }
@@ -362,8 +362,8 @@ public class MarqueeSessionTests
 
         var feedback = session.KeyDown(EsKey.Left, null);
 
-        Assert.False(feedback.Handled);
-        Assert.False(session.NudgeActive);
+        Assert.False(feedback.IsHandled);
+        Assert.False(session.IsNudgeActive);
         Assert.Empty(notices);
     }
 
@@ -374,8 +374,8 @@ public class MarqueeSessionTests
 
         var feedback = session.KeyDown(EsKey.A, null);
 
-        Assert.False(feedback.Handled);
-        Assert.False(session.NudgeActive);
+        Assert.False(feedback.IsHandled);
+        Assert.False(session.IsNudgeActive);
     }
 
     [Fact]
@@ -434,8 +434,8 @@ public class MarqueeSessionTests
 
         var feedback = session.EndNudge();
 
-        Assert.False(session.NudgeActive);
-        Assert.True(feedback.Redraw);
+        Assert.False(session.IsNudgeActive);
+        Assert.True(feedback.ShouldRedraw);
         Assert.True(feedback.Cursor.HasFlag(MarqueeCursorActions.Show));
     }
 
@@ -446,7 +446,7 @@ public class MarqueeSessionTests
 
         var feedback = session.EndNudge();
 
-        Assert.False(feedback.Redraw);
+        Assert.False(feedback.ShouldRedraw);
         Assert.Equal(MarqueeCursorActions.None, feedback.Cursor);
     }
 
@@ -464,7 +464,7 @@ public class MarqueeSessionTests
         Assert.Equal(new EsRect(50, 50, 100, 80), session.SelectionSourceRect);
         Assert.True(session.HasSelection);
         Assert.Equal([MarqueeNoticeKind.SelectionChanged], Kinds(notices));
-        Assert.True(feedback.Redraw);
+        Assert.True(feedback.ShouldRedraw);
     }
 
     [Fact]
@@ -501,8 +501,8 @@ public class MarqueeSessionTests
 
         Assert.False(session.HasSelection);
         Assert.False(session.IsDragging);
-        Assert.False(session.NudgeActive);
-        Assert.True(feedback.Redraw);
+        Assert.False(session.IsNudgeActive);
+        Assert.True(feedback.ShouldRedraw);
     }
 
     [Fact]
@@ -516,10 +516,10 @@ public class MarqueeSessionTests
         // 対話状態の破棄（nudge の終了とカーソル再表示の要求を含む）は Reset が単一所有する
         var feedback = session.Reset();
 
-        Assert.False(session.NudgeActive);
+        Assert.False(session.IsNudgeActive);
         Assert.False(session.HasSelection);
         Assert.False(session.IsDragging);
-        Assert.True(feedback.Redraw);
+        Assert.True(feedback.ShouldRedraw);
         Assert.True(feedback.Cursor.HasFlag(MarqueeCursorActions.Show));
     }
 
@@ -533,7 +533,7 @@ public class MarqueeSessionTests
 
         var feedback = session.SetSelection(new EsRect(10, 20, 30, 40));
 
-        Assert.False(session.NudgeActive);
+        Assert.False(session.IsNudgeActive);
         Assert.Equal(new EsRect(10, 20, 30, 40), session.SelectionSourceRect);
         Assert.True(feedback.Cursor.HasFlag(MarqueeCursorActions.Show));
     }
@@ -550,7 +550,7 @@ public class MarqueeSessionTests
 
         var feedback = session.RequestConfirm();
 
-        Assert.False(session.NudgeActive);
+        Assert.False(session.IsNudgeActive);
         Assert.False(session.HasSelection);
         Assert.True(feedback.Cursor.HasFlag(MarqueeCursorActions.Show));
     }
@@ -563,8 +563,8 @@ public class MarqueeSessionTests
 
         var feedback = session.RequestCancel();
 
-        Assert.False(session.NudgeActive);
-        Assert.True(feedback.Redraw);
+        Assert.False(session.IsNudgeActive);
+        Assert.True(feedback.ShouldRedraw);
         Assert.True(feedback.Cursor.HasFlag(MarqueeCursorActions.Show));
     }
 
@@ -581,7 +581,7 @@ public class MarqueeSessionTests
         Assert.Equal(MarqueeNoticeKind.ConfirmRequested, notice.Kind);
         Assert.Equal(new EsRect(50, 50, 100, 80), notice.Snapshot.SelectionSourceRect);
         Assert.False(session.HasSelection);
-        Assert.True(feedback.Redraw);
+        Assert.True(feedback.ShouldRedraw);
     }
 
     [Fact]
@@ -592,7 +592,7 @@ public class MarqueeSessionTests
         var feedback = session.RequestConfirm();
 
         Assert.Empty(notices);
-        Assert.False(feedback.Redraw);
+        Assert.False(feedback.ShouldRedraw);
     }
 
     [Fact]
@@ -618,7 +618,7 @@ public class MarqueeSessionTests
 
         Assert.Equal([MarqueeNoticeKind.CancelRequested], Kinds(notices));
         Assert.False(session.HasSelection);
-        Assert.True(feedback.Redraw);
+        Assert.True(feedback.ShouldRedraw);
     }
 
     [Fact]
@@ -629,7 +629,7 @@ public class MarqueeSessionTests
         var feedback = session.RequestCancel();
 
         Assert.Equal([MarqueeNoticeKind.CancelRequested], Kinds(notices));
-        Assert.False(feedback.Redraw);
+        Assert.False(feedback.ShouldRedraw);
     }
 
     [Fact]
@@ -645,7 +645,7 @@ public class MarqueeSessionTests
 
         Assert.Equal(new EsRect(150, 150, 50, 50), session.SelectionSourceRect);
         Assert.Equal([MarqueeNoticeKind.SelectionChanged], Kinds(notices));
-        Assert.True(feedback.Redraw);
+        Assert.True(feedback.ShouldRedraw);
     }
 
     [Fact]
@@ -690,8 +690,8 @@ public class MarqueeSessionTests
 
         var feedback = session.ApplyOptions(session.Options);
 
-        Assert.False(feedback.Redraw);
-        Assert.False(feedback.Handled);
+        Assert.False(feedback.ShouldRedraw);
+        Assert.False(feedback.IsHandled);
         Assert.Empty(notices);
         Assert.Empty(logger.Messages);
     }
@@ -753,7 +753,7 @@ public class MarqueeSessionTests
 
         Assert.Equal(new EsRect(150, 150, 50, 50), session.SelectionSourceRect);
         Assert.Equal([MarqueeNoticeKind.SelectionChanged], Kinds(notices));
-        Assert.True(feedback.Redraw);
+        Assert.True(feedback.ShouldRedraw);
         Assert.Equal("[Marquee] Setting: ClampToSourceBounds False → True", Assert.Single(logger.Messages));
     }
 
