@@ -49,6 +49,8 @@ graph LR
 | `EsWindowState.cs` | UI フレームワーク非依存のウィンドウ表示状態（列挙型）。 `Avalonia.Controls.WindowState` と同名のメンバーを持つ |
 | `HotKeyModifiers.cs` | ホットキー修飾キーのフラグ列挙型 |
 | `HotKeySetting.cs` | ホットキー設定の値オブジェクト（record） |
+| `EsKeyExtensions.cs` | キーの正規化（未定義値を `None` へ寄せる拡張メソッド `Normalize`） |
+| `EnumCanonical.cs` | 同じ値を持つ別名（重複値）を持つ列挙型の代表名による解決（各 Interop が共有する） |
 | `src/EsUtil.Platform.Core/src/Native/ICaptureService.cs` | 画面領域キャプチャの抽象 |
 | `src/EsUtil.Platform.Core/src/Native/ICursorService.cs` | OS カーソル操作の抽象 |
 | `src/EsUtil.Platform.Core/src/Native/IWindowService.cs` | ネイティブウィンドウ操作の抽象 |
