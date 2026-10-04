@@ -313,7 +313,7 @@ public class MarqueePresenterTests
         var plan = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
 
         Assert.Equal(2, plan.Labels.Count);
-        Assert.Contains("(10, 20)", plan.Labels[0].Text);
+        Assert.Contains("(10, 20)", plan.Labels[0].Text, StringComparison.Ordinal);
         Assert.Equal("(30, 40)", plan.Labels[1].Text);
     }
 

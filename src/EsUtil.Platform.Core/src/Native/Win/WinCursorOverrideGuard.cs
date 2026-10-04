@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
@@ -57,7 +58,7 @@ public sealed class WinCursorOverrideGuard(ILogger? logger = null) : ICursorOver
         if (_originalWndProc == IntPtr.Zero)
         {
             // 差し替えに失敗すると OS によるカーソル上書きを抑止できない（OS 操作の失敗）
-            _log.LogCursorGuardSubclassFailed(hwnd.ToString("X"));
+            _log.LogCursorGuardSubclassFailed(hwnd.ToString("X", CultureInfo.InvariantCulture));
         }
     }
 

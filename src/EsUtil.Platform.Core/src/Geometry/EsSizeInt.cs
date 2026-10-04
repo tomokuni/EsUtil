@@ -18,7 +18,7 @@ public readonly record struct EsSizeInt(int Width, int Height)
 {
     /// <summary>幅・高さとも 0 のサイズを取得する。</summary>
     /// <value>幅・高さとも 0 のサイズ。</value>
-    public static readonly EsSizeInt Zero = default;
+    public static readonly EsSizeInt Zero;
 
     /// <summary>幅または高さが 0 以下かどうか（面積を持たない）を取得する。</summary>
     /// <value>幅または高さが 0 以下の場合は true。</value>

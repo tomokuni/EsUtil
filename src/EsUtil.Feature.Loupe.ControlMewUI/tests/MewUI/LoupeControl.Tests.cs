@@ -2,6 +2,7 @@ using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
 using EsUtil.Platform.Core.Geometry;
+using System.Globalization;
 using SkiaSharp;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
@@ -384,6 +385,6 @@ public class LoupeControlTests
         Assert.Equal(RequestedSizeMax, control.Options.RequestedSize);
         Assert.Contains(
             logger.Messages,
-            message => message.Contains(RequestedSizeMax.ToString(), StringComparison.Ordinal));
+            message => message.Contains(RequestedSizeMax.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal));
     }
 }

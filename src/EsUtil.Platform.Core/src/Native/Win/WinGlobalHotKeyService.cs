@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
@@ -42,7 +43,7 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
         if (_originalWndProc == IntPtr.Zero)
         {
             // 差し替えに失敗すると、ホットキーを登録できても押下を検出できない
-            _log.LogHotKeySubclassFailed(hWnd.ToString("X"));
+            _log.LogHotKeySubclassFailed(hWnd.ToString("X", CultureInfo.InvariantCulture));
         }
     }
 
@@ -98,7 +99,7 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
     {
         if (msg == WinNative.WM_HOTKEY)
         {
-            var id = (int)wParam;
+            var id = checked((int)wParam);
             if (_registeredHotKeys.TryGetValue(id, out var action))
                 HotKeyPressed?.Invoke(action);
             return new IntPtr(1);

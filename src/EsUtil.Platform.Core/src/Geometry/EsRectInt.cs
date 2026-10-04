@@ -21,7 +21,7 @@ public readonly record struct EsRectInt(int X, int Y, int Width, int Height)
 {
     /// <summary>空の矩形（全て 0）を取得する。</summary>
     /// <value>左上が原点で幅・高さとも 0 の矩形。</value>
-    public static readonly EsRectInt Empty = default;
+    public static readonly EsRectInt Empty;
 
     /// <summary>右端の X 座標（左端 + 幅）を取得する（排他的境界）。</summary>
     /// <value>右端の X 座標（整数）。</value>

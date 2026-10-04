@@ -28,7 +28,7 @@ public readonly record struct EsRect(double X, double Y, double Width, double He
 {
     /// <summary>空の矩形（全て 0）を取得する。</summary>
     /// <value>左上が原点で幅・高さとも 0 の矩形。</value>
-    public static readonly EsRect Empty = default;
+    public static readonly EsRect Empty;
 
     /// <summary>幅・高さが終点を含むかどうか（ピクセル数へ変換するときの <c>+1</c> の判断）を取得する。</summary>
     /// <value><see cref="EsRectInterval.HalfOpen"/>（幅 = ピクセル数。 既定）または <see cref="EsRectInterval.Closed"/>。</value>

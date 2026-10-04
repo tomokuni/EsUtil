@@ -14,7 +14,7 @@ public readonly record struct EsThickness(double Left, double Top, double Right,
 {
     /// <summary>4 辺とも 0 の厚さを取得する。</summary>
     /// <value>左・上・右・下とも 0 の厚さ。</value>
-    public static readonly EsThickness Zero = default;
+    public static readonly EsThickness Zero;
 
     /// <summary>4 辺に同じ厚さを持つ枠を生成する。</summary>
     /// <param name="uniform">全辺に適用する厚さ。</param>

@@ -1,5 +1,6 @@
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Runtime.InteropServices;
 
 namespace EsUtil.Platform.Core.Native.Win;
@@ -112,7 +113,7 @@ public sealed class WinElementFinder(ILogger? logger = null) : IElementFinder
         if (!WinNative.GetWindowRect(hWnd, out var rect))
         {
             // 矩形を取得できないウィンドウは選択対象にできない（列挙の内部で起こりうるため Debug）
-            _log.LogWindowRectUnavailable(hWnd.ToString("X"));
+            _log.LogWindowRectUnavailable(hWnd.ToString("X", CultureInfo.InvariantCulture));
             return false;
         }
 
@@ -121,7 +122,7 @@ public sealed class WinElementFinder(ILogger? logger = null) : IElementFinder
         var handle = new EsPlatformHandle(hWnd, "HWND");
         if (!TryGetWindowVisibleRect(handle, out var visibleRect))
         {
-            _log.LogWindowRectUnavailable(hWnd.ToString("X"));
+            _log.LogWindowRectUnavailable(hWnd.ToString("X", CultureInfo.InvariantCulture));
             return false;
         }
         var title = GetWindowTitle(handle);

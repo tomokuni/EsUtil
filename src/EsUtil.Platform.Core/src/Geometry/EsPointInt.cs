@@ -22,7 +22,7 @@ public readonly record struct EsPointInt(int X, int Y)
 {
     /// <summary>原点（0, 0）を取得する。</summary>
     /// <value>X・Y とも 0 の整数座標。</value>
-    public static readonly EsPointInt Zero = default;
+    public static readonly EsPointInt Zero;
 
     /// <summary>原点かどうか（X・Y とも 0）を取得する。</summary>
     /// <value>X・Y とも 0 の場合は true。</value>

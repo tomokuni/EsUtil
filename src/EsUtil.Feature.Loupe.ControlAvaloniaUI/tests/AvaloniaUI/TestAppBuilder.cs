@@ -13,7 +13,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests;
 /// Skia を有効化することで WriteableBitmap のピクセル操作（書き込み・読み取り）が利用可能になる。<br/>
 /// テストは全て UI スレッドで実行されるため、コントロール生成や描画操作が可能になる。<br/>
 /// </remarks>
-public class TestAppBuilder
+public static class TestAppBuilder
 {
     /// <summary>Avalonia ヘッドレステスト用の AppBuilder を構成する。</summary>
     /// <returns>構成済みの AppBuilder。</returns>

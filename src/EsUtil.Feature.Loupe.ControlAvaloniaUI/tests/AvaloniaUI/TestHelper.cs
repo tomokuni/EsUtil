@@ -35,8 +35,13 @@ public static class TestHelper
     /// <summary>条件が成立するまで Dispatcher をポンプする（上限で打ち切る）。</summary>
     /// <param name="control">対象のコントロール（描画ジョブの発生源）。</param>
     /// <param name="condition">成立を待つ条件。</param>
-    /// <remarks>上限に達しても例外にはしない（成立の検証は呼び出し側が行う）。</remarks>
+    /// <remarks>
+    /// 上限に達しても例外にはしない（成立の検証は呼び出し側が行う）。<br/>
+    /// <b>receiver を本文で使わない</b>が、拡張メソッドの呼び出し記法（<c>control.PumpUntilAsync()</c>）のために引数は必要である。
+    /// </remarks>
+#pragma warning disable IDE0060 // 未使用のパラメーター（拡張メソッドの receiver は呼び出し記法のために必要）
     public static async Task PumpUntilAsync(this LoupeControl control, Func<bool> condition)
+#pragma warning restore IDE0060
     {
         for (var i = 0; i < PumpLimit && !condition(); i++)
         {
@@ -47,7 +52,10 @@ public static class TestHelper
 
     /// <summary>保留中の描画ジョブを数回実行する（描画が発生しないことの検証用）。</summary>
     /// <param name="control">対象のコントロール。</param>
+    /// <remarks>receiver を本文で使わない理由は <see cref="PumpUntilAsync"/> と同じ。</remarks>
+#pragma warning disable IDE0060 // 未使用のパラメーター（拡張メソッドの receiver は呼び出し記法のために必要）
     public static async Task PumpAsync(this LoupeControl control)
+#pragma warning restore IDE0060
     {
         for (var i = 0; i < PumpOnce; i++)
         {

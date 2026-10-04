@@ -14,7 +14,7 @@ namespace EsUtil.Platform.Core.Geometry;
 /// <param name="bottom">下辺の矩形。</param>
 /// <param name="left">左辺の矩形。</param>
 /// <param name="right">右辺の矩形。</param>
-public readonly struct EsRectEdges(EsRect top, EsRect bottom, EsRect left, EsRect right)
+public readonly record struct EsRectEdges(EsRect top, EsRect bottom, EsRect left, EsRect right)
 {
     /// <summary>辺の本数（常に 4）。</summary>
     /// <value>4。</value>

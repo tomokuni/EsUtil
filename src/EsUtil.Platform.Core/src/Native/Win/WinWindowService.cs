@@ -1,3 +1,4 @@
+using System.Globalization;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 
@@ -36,13 +37,13 @@ public sealed class WinWindowService(ILogger? logger = null) : IWindowService
         var exStyle = WinNative.GetWindowLongPtr(nativeHwnd, WinNative.GWL_EXSTYLE);
         if (exStyle == IntPtr.Zero)
         {
-            _log.LogWindowStyleQueryFailed(nativeHwnd.ToString("X"));
+            _log.LogWindowStyleQueryFailed(nativeHwnd.ToString("X", CultureInfo.InvariantCulture));
             return;
         }
 
         var success = WinNative.SetWindowLongPtr(nativeHwnd, WinNative.GWL_EXSTYLE,
             new IntPtr(exStyle.ToInt64() | WinNative.WS_EX_TOOLWINDOW)) != IntPtr.Zero;
-        _log.LogWindowHiddenFromTaskSwitcher(nativeHwnd.ToString("X"), success);
+        _log.LogWindowHiddenFromTaskSwitcher(nativeHwnd.ToString("X", CultureInfo.InvariantCulture), success);
     }
 
     /// <summary>ウィンドウをキャプチャから除外する/除外を解除する（仕様 6.2.1）。</summary>
@@ -62,11 +63,11 @@ public sealed class WinWindowService(ILogger? logger = null) : IWindowService
 
         var affinity = exclude ? WinNative.WDA_EXCLUDEFROMCAPTURE : WinNative.WDA_NONE;
         var success = WinNative.SetWindowDisplayAffinity(nativeHwnd, affinity);
-        _log.LogCaptureExclusionChanged(nativeHwnd.ToString("X"), exclude, success);
+        _log.LogCaptureExclusionChanged(nativeHwnd.ToString("X", CultureInfo.InvariantCulture), exclude, success);
         if (success && exclude)
         {
             // 除外設定が DWM に反映されるまで 1 フレーム待つ（設定直後のキャプチャを防ぐ）
-            WinNative.DwmFlush();
+            _ = WinNative.DwmFlush();
         }
         return success;
     }
@@ -88,7 +89,7 @@ public sealed class WinWindowService(ILogger? logger = null) : IWindowService
         var success = WinNative.SetWindowPos(nativeHwnd, IntPtr.Zero,
             bounds.X, bounds.Y, bounds.Width, bounds.Height,
             WinNative.SWP_NOZORDER | WinNative.SWP_NOACTIVATE);
-        _log.LogWindowBoundsChanged(nativeHwnd.ToString("X"), bounds.X, bounds.Y, bounds.Width, bounds.Height, success);
+        _log.LogWindowBoundsChanged(nativeHwnd.ToString("X", CultureInfo.InvariantCulture), bounds.X, bounds.Y, bounds.Width, bounds.Height, success);
         return success;
     }
 
@@ -119,6 +120,6 @@ public sealed class WinWindowService(ILogger? logger = null) : IWindowService
         var posted = WinNative.PostMessage(nativeHwnd, WinNative.WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
 
         // OS 操作の結果を記録する（いずれかが失敗しても処理は続行する。 退避はベストエフォート）
-        _log.LogWindowEvacuated(nativeHwnd.ToString("X"), unsetTopmost, wasVisible, posted);
+        _log.LogWindowEvacuated(nativeHwnd.ToString("X", CultureInfo.InvariantCulture), unsetTopmost, wasVisible, posted);
     }
 }
