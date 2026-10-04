@@ -25,12 +25,26 @@ public sealed record HotKeySetting(HotKeyModifiers Modifiers, EsKey Key)
 
     private static string KeyToSymbolString(EsKey key) => key switch
     {
-        EsKey.D0 => "0", EsKey.D1 => "1", EsKey.D2 => "2", EsKey.D3 => "3", EsKey.D4 => "4",
-        EsKey.D5 => "5", EsKey.D6 => "6", EsKey.D7 => "7", EsKey.D8 => "8", EsKey.D9 => "9",
-        EsKey.OemTilde => "`", EsKey.OemMinus => "-", EsKey.OemPlus => "=",
-        EsKey.OemOpenBrackets => "[", EsKey.OemCloseBrackets => "]", EsKey.OemPipe => "\\",
+        EsKey.D0 => "0",
+        EsKey.D1 => "1",
+        EsKey.D2 => "2",
+        EsKey.D3 => "3",
+        EsKey.D4 => "4",
+        EsKey.D5 => "5",
+        EsKey.D6 => "6",
+        EsKey.D7 => "7",
+        EsKey.D8 => "8",
+        EsKey.D9 => "9",
+        EsKey.OemTilde => "`",
+        EsKey.OemMinus => "-",
+        EsKey.OemPlus => "=",
+        EsKey.OemOpenBrackets => "[",
+        EsKey.OemCloseBrackets => "]",
+        EsKey.OemPipe => "\\",
         EsKey.OemSemicolon => ";",
-        EsKey.OemComma => ",", EsKey.OemPeriod => ".", EsKey.OemQuestion => "/",
+        EsKey.OemComma => ",",
+        EsKey.OemPeriod => ".",
+        EsKey.OemQuestion => "/",
         _ => key.ToString()
     };
 }

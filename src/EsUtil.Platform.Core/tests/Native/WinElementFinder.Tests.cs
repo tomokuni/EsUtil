@@ -132,7 +132,7 @@ public class WinElementFinderTests
         {
             if (w.Handle is not { } handle) continue;
 
-            var ok = finder.TryGetWindowVisibleRect(handle, out var rect);
+            var ok = WinElementFinder.TryGetWindowVisibleRect(handle, out var rect);
 
             // 除外条件（0x0 サイズ）が適用済みのウィンドウのため、正のサイズの矩形が取得できる
             Assert.True(ok);

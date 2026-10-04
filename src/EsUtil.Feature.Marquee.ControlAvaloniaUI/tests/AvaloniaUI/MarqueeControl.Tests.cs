@@ -1416,8 +1416,7 @@ public class MarqueeControlTests
         => [.. control.Children.OfType<Border>().Select(border => ((TextBlock)border.Child!).Text!)];
 
     /// <summary>レイアウト パスを進める（ラベル要素は配置フェーズで更新される）。</summary>
-    /// <param name="control">対象のコントロール。</param>
-    private static async Task PumpLayoutAsync(MarqueeControl control)
+    private static async Task PumpLayoutAsync()
     {
         for (var i = 0; i < 8; i++)
         {
@@ -1446,14 +1445,14 @@ public class MarqueeControlTests
         // ドラッグして選択を作る（カーソル位置が座標ラベルの基準になる）
         control.RaiseEvent(new PointerPressedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(20, 20)), 0UL, LeftPressed(), KeyModifiers.None, 1));
         control.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, control, pointer, window, ToScreenPoint(control, new Point(50, 40)), 0UL, LeftPressed(), KeyModifiers.None));
-        await PumpLayoutAsync(control);
+        await PumpLayoutAsync();
 
         // 文言はコアの EsPoint.Format が単一所有する
         Assert.Contains("(50, 40)", LabelTexts(control));
 
         // 続けて移動すると要素の文言が追従する（配置の無効化が効いている）
         control.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, control, pointer, window, ToScreenPoint(control, new Point(80, 70)), 0UL, LeftPressed(), KeyModifiers.None));
-        await PumpLayoutAsync(control);
+        await PumpLayoutAsync();
 
         Assert.Contains("(80, 70)", LabelTexts(control));
         window.Close();
@@ -1480,9 +1479,9 @@ public class MarqueeControlTests
             return "S";
         };
 
-        await PumpLayoutAsync(control);
+        await PumpLayoutAsync();
         window.CaptureRenderedFrame();
-        await PumpLayoutAsync(control);
+        await PumpLayoutAsync();
 
         Assert.Equal(1, resolves);
         window.Close();
@@ -1537,7 +1536,7 @@ public class MarqueeControlTests
         };
         var window = Show(control);
         control.SetSelection(new Rect(40, 60, 100, 80));
-        await PumpLayoutAsync(control);
+        await PumpLayoutAsync();
 
         var border = Assert.Single(control.Children.OfType<Border>());
 

@@ -53,7 +53,7 @@ public class LoupeUiLogMessageTests
         var logger = new RecordingLogger();
 
         logger.LogSourceChanged(image, image);
-        logger.LogSourceChanged((IImage?)null, null);
+        logger.LogSourceChanged(null, null);
 
         Assert.Empty(logger.Messages);
     }

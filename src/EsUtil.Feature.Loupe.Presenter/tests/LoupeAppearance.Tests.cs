@@ -50,7 +50,8 @@ public class LoupeAppearanceTests
 
     /// <summary>枠線の太さが生成時に安全域へ補正されることを検証する。</summary>
     [Fact]
-    internal void 枠線の太さが生成時に安全域へ補正される()    {
+    internal void 枠線の太さが生成時に安全域へ補正される()
+    {
         var paint = new LoupeAppearance { BorderThickness = 1000 };
 
         Assert.Equal(EsUtil.Feature.Loupe.LoupeCore.Limits.BorderThicknessMax, paint.BorderThickness);

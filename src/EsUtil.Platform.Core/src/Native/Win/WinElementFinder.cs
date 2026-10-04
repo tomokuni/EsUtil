@@ -12,7 +12,9 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// Windows の操作が失敗した場合は記録する（列挙の失敗は Warning、1 件ごとの矩形取得の失敗は Debug）。<br/>
 /// 継承不可。<br/>
 /// </remarks>
-public sealed class WinElementFinder : IElementFinder
+/// <remarks><see cref="WinElementFinder"/> の新しいインスタンスを初期化します。</remarks>
+/// <param name="logger">ロガー。 null の場合は出力なし。</param>
+public sealed class WinElementFinder(ILogger? logger = null) : IElementFinder
 {
     /// <summary>クラス名取得バッファのサイズ（文字数）。</summary>
     private const int ClassNameBufferSize = 256;
@@ -24,16 +26,9 @@ public sealed class WinElementFinder : IElementFinder
     private const string ListFilter = "List";
 
     /// <summary>ロガー（null の場合は出力なし）。</summary>
-    private readonly ILogger _log;
+    private readonly ILogger _log = logger.OrNullLogger();
 
     private IReadOnlyList<EsRectInt>? _screenBounds;
-
-    /// <summary><see cref="WinElementFinder"/> の新しいインスタンスを初期化します。</summary>
-    /// <param name="logger">ロガー。 null の場合は出力なし。</param>
-    public WinElementFinder(ILogger? logger = null)
-    {
-        _log = logger.OrNullLogger();
-    }
 
     /// <summary>全ディスプレイモニターの矩形（画面物理座標）を列挙する（自己完結）。</summary>
     /// <returns>各モニターの矩形リスト。</returns>
@@ -252,7 +247,7 @@ public sealed class WinElementFinder : IElementFinder
     /// <see cref="WinNative.TryGetVisibleRect"/> に委譲する（<see cref="WinCaptureService"/> と共用・単一所有）。<br/>
     /// インターフェイスからは公開せず、<see cref="FindWindowUnderCursor"/> の内部実装として使用する。
     /// </remarks>
-    internal bool TryGetWindowVisibleRect(EsPlatformHandle handle, out EsRectInt rect)
+    internal static bool TryGetWindowVisibleRect(EsPlatformHandle handle, out EsRectInt rect)
     {
         if (!WinNative.TryGetVisibleRect(handle.Handle, out var nativeRect))
         {
@@ -268,7 +263,7 @@ public sealed class WinElementFinder : IElementFinder
     /// <param name="handle">タイトルを取得するウィンドウのハンドル。</param>
     /// <returns>ウィンドウタイトル。 取得できない場合は空文字。</returns>
     /// <remarks>インターフェイスからは公開せず、<see cref="FindWindowUnderCursor"/> の内部実装として使用する。</remarks>
-    internal string GetWindowTitle(EsPlatformHandle handle)
+    internal static string GetWindowTitle(EsPlatformHandle handle)
     {
         var hWnd = handle.Handle;
         var len = WinNative.GetWindowTextLengthW(hWnd);

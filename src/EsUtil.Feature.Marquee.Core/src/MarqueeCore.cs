@@ -379,7 +379,7 @@ public sealed partial class MarqueeCore
     /// <b>再描画は要求しない</b>: 設定は UI の公開プロパティ（変更通知を持つ）から渡されるため、<br/>
     /// 描画の更新は UI が観測して行う（コアは入力に伴う再描画だけを効果として要求する）。
     /// </remarks>
-    private bool SetIfChanged<T>(ref T field, T value, out T previous)
+    private static bool SetIfChanged<T>(ref T field, T value, out T previous)
     {
         previous = field;
         if (EqualityComparer<T>.Default.Equals(previous, value))

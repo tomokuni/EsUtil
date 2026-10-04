@@ -16,7 +16,9 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// ホスト（アプリ）が生成して注入する（テストではモックを注入できる）。<br/>
 /// 継承不可。<br/>
 /// </remarks>
-public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
+/// <remarks><see cref="WinCursorOverrideGuard"/> の新しいインスタンスを初期化します。</remarks>
+/// <param name="logger">ロガー。 null の場合は出力なし。</param>
+public sealed class WinCursorOverrideGuard(ILogger? logger = null) : ICursorOverrideGuard
 {
     /// <summary>lParam 下位ワード（ヒットテスト結果）を取得するための 16bit マスク。</summary>
     private const int LowWordMask = 0xFFFF;
@@ -31,14 +33,7 @@ public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
     private WinNative.WndProcDelegate? _wndProcDelegate;
 
     /// <summary>ロガー（null の場合は出力なし）。</summary>
-    private readonly ILogger _log;
-
-    /// <summary><see cref="WinCursorOverrideGuard"/> の新しいインスタンスを初期化します。</summary>
-    /// <param name="logger">ロガー。 null の場合は出力なし。</param>
-    public WinCursorOverrideGuard(ILogger? logger = null)
-    {
-        _log = logger.OrNullLogger();
-    }
+    private readonly ILogger _log = logger.OrNullLogger();
 
     /// <summary>サブクラス化が設定されているかどうか。</summary>
     public bool IsAttached => _hwnd != IntPtr.Zero;

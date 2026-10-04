@@ -147,9 +147,11 @@ public sealed class MarqueeControl : Panel
         Focusable = true;
         _cursor = cursorService ?? new WinCursorService();
         _effects = new Effects(this);
-        _marquee = new MarqueePresenter(_effects, _cursor, Options);
-        // 現在の環境値（倍率）を提示層へ引き継ぐ（以降の変更はプロパティ変更ハンドラが伝搬する）
-        _marquee.ClientToSourceScaling = GetValue(ClientToSourceScalingProperty);
+        _marquee = new MarqueePresenter(_effects, _cursor, Options)
+        {
+            // 現在の環境値（倍率）を提示層へ引き継ぐ（以降の変更はプロパティ変更ハンドラが伝搬する）
+            ClientToSourceScaling = GetValue(ClientToSourceScalingProperty)
+        };
         _marquee.Notified += OnNotified;
         // 外観（色・ラベル体裁・表示可否）とハイライト矩形（ホストが与える実行時状態）は提示層が単一所有する
         _marquee.Appearance = GetValue(AppearanceProperty);

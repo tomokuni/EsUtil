@@ -62,7 +62,7 @@ public readonly record struct MarqueeRenderRequest(
     /// 選ばれた矩形だけを DIP 変換する（両方を変換して片方を捨てない）。
     /// </remarks>
     internal EsRect? ResolveFocusDipRect(ICoordTransform port)
-        => Focus is { } focus ? ToDipRect(focus, port) : null;
+        => Focus is { } focus ? global::EsUtil.Feature.Marquee.MarqueeRenderRequest.ToDipRect(focus, port) : null;
 
     /// <summary>設定・状態と描画時に決まる値から描画の入力を組み立てる。</summary>
     /// <param name="options">選択矩形の設定。</param>
@@ -125,7 +125,7 @@ public readonly record struct MarqueeRenderRequest(
     /// <see cref="EsRectInterval.HalfOpen"/>（ホストが与えるハイライト矩形・検出結果）は <c>+1</c> しない<br/>
     /// （既に全ピクセルを含む矩形を <c>+1</c> すると 1px 大きく表示される）。
     /// </remarks>
-    internal EsRect ToDipRect(EsRect logical, ICoordTransform port)
+    internal static EsRect ToDipRect(EsRect logical, ICoordTransform port)
     {
         var topLeft = port.ToDip(new EsPoint(logical.X, logical.Y));
         var bottomRight = port.ToDip(logical.IsClosedInterval
@@ -140,7 +140,7 @@ public readonly record struct MarqueeRenderRequest(
     /// <param name="port">解決済みの座標変換ポート（<see cref="ICoordTransform.ToSource"/> = DIP → 対象）。</param>
     /// <returns>対象座標の矩形。</returns>
     /// <remarks>ホストが「矩形から表示スケールを解決する」ために使う（コアはモニタを知らない）。</remarks>
-    internal EsRect ToSourceRect(EsRect dipRect, ICoordTransform port)
+    internal static EsRect ToSourceRect(EsRect dipRect, ICoordTransform port)
     {
         var topLeft = port.ToSource(dipRect.TopLeft);
         var bottomRight = port.ToSource(dipRect.BottomRight);

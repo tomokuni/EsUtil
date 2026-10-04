@@ -866,4 +866,5 @@ public class MarqueeSessionTests
 
             Assert.NotEqual(MarqueeCursorKind.Default, MarqueeSession.ToCursorKind(handle));
         }
-    }}
+    }
+}

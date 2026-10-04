@@ -33,7 +33,7 @@ public class EsPointIntTests
     [Fact]
     internal void ToEsPoint_原点は原点のまま()
     {
-        Assert.Equal(default(EsPoint), new EsPointInt(0, 0).ToEsPoint());
+        Assert.Equal(default, new EsPointInt(0, 0).ToEsPoint());
     }
 
     // ====================================================================

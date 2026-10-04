@@ -500,4 +500,5 @@ public class MarqueeControlTests
         control.Arrange(new Rect(0, 0, 200, 200));
 
         Assert.Equal(1, resolves);
-    }}
+    }
+}

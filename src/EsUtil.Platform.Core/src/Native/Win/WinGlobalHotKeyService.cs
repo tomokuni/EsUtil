@@ -13,22 +13,17 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// 使用している場合にも起こり、その場合はホットキーが機能しない（原因をログから特定できるようにする）。
 /// </remarks>
 /// <typeparam name="T">ホットキーに割り当てるアクションの識別子。</typeparam>
-public sealed class WinGlobalHotKeyService<T> : IGlobalHotKeyService<T> where T : notnull
+/// <remarks><see cref="WinGlobalHotKeyService{T}"/> の新しいインスタンスを初期化します。</remarks>
+/// <param name="logger">ロガー。 null の場合は出力なし。</param>
+public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalHotKeyService<T> where T : notnull
 {
     private IntPtr _hWnd;
     private IntPtr _originalWndProc;
     private WinNative.WndProcDelegate? _wndProcDelegate;
     private int _currentId;
     private readonly Dictionary<int, T> _registeredHotKeys = [];
-    private readonly ILogger _log;
+    private readonly ILogger _log = logger.OrNullLogger();
     private bool _disposed;
-
-    /// <summary><see cref="WinGlobalHotKeyService{T}"/> の新しいインスタンスを初期化します。</summary>
-    /// <param name="logger">ロガー。 null の場合は出力なし。</param>
-    public WinGlobalHotKeyService(ILogger? logger = null)
-    {
-        _log = logger.OrNullLogger();
-    }
 
     /// <inheritdoc/>
     public event Action<T>? HotKeyPressed;

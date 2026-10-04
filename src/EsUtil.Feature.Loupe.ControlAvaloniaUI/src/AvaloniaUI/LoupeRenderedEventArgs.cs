@@ -18,18 +18,12 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI;
 /// 表示位置・表示サイズ・拡大率・拡大中心は、描画に必要な値をホストが既に保持しているため通知しない<br/>
 /// （必要な場合は <see cref="LoupeControl"/> の公開プロパティから取得する）。
 /// </remarks>
-public sealed class LoupeRenderedEventArgs : EventArgs
+/// <remarks>表示情報を初期化する。</remarks>
+/// <param name="bitmap">描画済みのルーペ画像（EsBitmap）。</param>
+/// <param name="captureTopLeft">切り出し領域の左上（対象座標）。 中心未設定時は null。</param>
+/// <param name="scale">対象座標 → ルーペ画像ピクセル座標の変換係数。</param>
+public sealed class LoupeRenderedEventArgs(EsBitmap bitmap, Point? captureTopLeft, double scale) : EventArgs
 {
-    /// <summary>表示情報を初期化する。</summary>
-    /// <param name="bitmap">描画済みのルーペ画像（EsBitmap）。</param>
-    /// <param name="captureTopLeft">切り出し領域の左上（対象座標）。 中心未設定時は null。</param>
-    /// <param name="scale">対象座標 → ルーペ画像ピクセル座標の変換係数。</param>
-    public LoupeRenderedEventArgs(EsBitmap bitmap, Point? captureTopLeft, double scale)
-    {
-        Bitmap = bitmap;
-        CaptureTopLeft = captureTopLeft;
-        Scale = scale;
-    }
 
     /// <summary>描画済みのルーペ画像（EsBitmap）。 イベントハンドラ内でピクセルへオーバーレイを描画できる。</summary>
     /// <remarks>
@@ -37,13 +31,13 @@ public sealed class LoupeRenderedEventArgs : EventArgs
     /// <see cref="LoupeControl"/> が表示へ反映する（イベントは表示反映前に同期的に発火する）。<br/>
     /// <see cref="Bitmap"/> の所有権は <see cref="LoupeControl"/> が保持する（ホスト側で Dispose しないこと）。
     /// </remarks>
-    public EsBitmap Bitmap { get; }
+    public EsBitmap Bitmap { get; } = bitmap;
 
     /// <summary>切り出し領域の左上（対象座標）。 中心未設定時は null。</summary>
     /// <value>切り出し領域の左上（元画像ピクセル座標）。 null の場合はオーバーレイを描画できない。</value>
-    public Point? CaptureTopLeft { get; }
+    public Point? CaptureTopLeft { get; } = captureTopLeft;
 
     /// <summary>対象座標 → ルーペ画像ピクセル座標の変換係数。</summary>
     /// <value>変換係数（拡大率と同値。 DPI スケーリングの影響を受けない）。</value>
-    public double Scale { get; }
+    public double Scale { get; } = scale;
 }

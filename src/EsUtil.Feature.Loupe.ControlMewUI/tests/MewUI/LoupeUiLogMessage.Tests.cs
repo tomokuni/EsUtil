@@ -51,7 +51,7 @@ public class LoupeUiLogMessageTests
         var logger = new RecordingLogger();
 
         logger.LogSourceChanged(bitmap, bitmap);
-        logger.LogSourceChanged((EsBitmap?)null, null);
+        logger.LogSourceChanged(null, null);
 
         Assert.Empty(logger.Messages);
     }

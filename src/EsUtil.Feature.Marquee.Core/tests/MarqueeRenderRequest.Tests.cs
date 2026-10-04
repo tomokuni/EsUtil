@@ -90,7 +90,7 @@ public class MarqueeRenderRequestTests
     {
         var logical = new EsRect(10, 20, 30, 40, EsRectInterval.Closed);
 
-        var result = CreateRequest().ToDipRect(logical, CoordTransform.Identity);
+        var result = MarqueeRenderRequest.ToDipRect(logical, CoordTransform.Identity);
 
         Assert.Equal(new EsRect(10, 20, 31, 41), result);
     }
@@ -101,7 +101,7 @@ public class MarqueeRenderRequestTests
     {
         var logical = new EsRect(20, 40, 40, 80);
 
-        var result = CreateRequest().ToDipRect(logical, CoordTransform.ClientToSource(() => 2.0));
+        var result = MarqueeRenderRequest.ToDipRect(logical, CoordTransform.ClientToSource(() => 2.0));
 
         // ToDip = 対象 ÷ 2（左上 (20,40) → (10,20)、右下 (60,120) → (30,60)）
         Assert.Equal(new EsRect(10, 20, 20, 40), result);
@@ -113,7 +113,7 @@ public class MarqueeRenderRequestTests
     {
         var logical = new EsRect(10, 20, 30, 40);
 
-        var result = CreateRequest().ToDipRect(logical, CoordTransform.Identity);
+        var result = MarqueeRenderRequest.ToDipRect(logical, CoordTransform.Identity);
 
         Assert.Equal(new EsRect(10, 20, 30, 40), result);
     }
@@ -143,7 +143,7 @@ public class MarqueeRenderRequestTests
     {
         var dip = new EsRect(10, 20, 30, 40);
 
-        var result = CreateRequest().ToSourceRect(dip, CoordTransform.Identity);
+        var result = MarqueeRenderRequest.ToSourceRect(dip, CoordTransform.Identity);
 
         Assert.Equal(dip, result);
     }
@@ -154,7 +154,7 @@ public class MarqueeRenderRequestTests
     {
         var dip = new EsRect(10, 20, 30, 40);
 
-        var result = CreateRequest().ToSourceRect(dip, CoordTransform.ClientToSource(() => 2.0));
+        var result = MarqueeRenderRequest.ToSourceRect(dip, CoordTransform.ClientToSource(() => 2.0));
 
         // ToSource = DIP × 2（左上 (10,20) → (20,40)、右下 (40,60) → (80,120)）
         Assert.Equal(new EsRect(20, 40, 60, 80), result);

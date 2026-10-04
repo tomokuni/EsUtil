@@ -32,9 +32,6 @@ public class LoupeSkiaPainterTests
     /// <summary>ペーストボードの赤（画素比較用）。</summary>
     private static readonly SKColor s_backgroundPixel = new(255, 0, 0);
 
-    /// <summary>描画されていない画素（透明）。</summary>
-    private static readonly SKColor s_transparent = new(0, 0, 0, 0);
-
     /// <summary>ルーペの一辺（物理ピクセル）。</summary>
     private const int LoupeSize = 32;
 

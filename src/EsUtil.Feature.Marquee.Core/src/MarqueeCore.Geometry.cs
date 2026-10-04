@@ -35,7 +35,7 @@ public sealed partial class MarqueeCore
     /// 寸法（ハンドルの一辺と枠線の太さ・マーカーの長さ）は設定から読む（本コアは固定値を持たない）。<br/>
     /// 表示可否（ハンドル・ラベルを描くか）は描画層（外観）が判断するため、本メソッドは常に値があれば幾何を返す。
     /// </remarks>
-    public MarqueeGeometry ResolveGeometry(in MarqueeRenderRequest request)
+    public static MarqueeGeometry ResolveGeometry(in MarqueeRenderRequest request)
     {
         var port = request.ResolvedPort;
         var focus = request.Focus;
@@ -70,7 +70,7 @@ public sealed partial class MarqueeCore
         }
 
         var options = request.Options;
-        var dip = request.ToDipRect(rect, port);
+        var dip = MarqueeRenderRequest.ToDipRect(rect, port);
         var half = options.HandleSize / 2;
         var selection = new MarqueeSelection(dip);
         var rects = new List<EsRect>(s_directionalHandles.Count);

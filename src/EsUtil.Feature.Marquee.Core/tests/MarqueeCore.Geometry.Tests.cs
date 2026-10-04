@@ -26,7 +26,7 @@ public class MarqueeCoreGeometryTests
     {
         var marquee = CreateMarquee();
 
-        var geometry = marquee.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
+        var geometry = MarqueeCore.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
 
         Assert.Null(geometry.FocusDipRect);
         Assert.Null(geometry.FocusSourceRect);
@@ -42,7 +42,7 @@ public class MarqueeCoreGeometryTests
         // ドラッグの選択矩形は閉区間（始点・終点のピクセルを含む）である
         marquee.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
 
-        var geometry = marquee.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
+        var geometry = MarqueeCore.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
 
         // 選択矩形は閉区間（終点 +1）として DIP へ変換される（対象座標はそのまま保持する）
         Assert.Equal(new EsRect(10, 20, 101, 51), geometry.FocusDipRect);
@@ -61,7 +61,7 @@ public class MarqueeCoreGeometryTests
         marquee.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
         marquee.HighlightSourceRect = new EsRect(1, 2, 3, 4);
 
-        var geometry = marquee.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
+        var geometry = MarqueeCore.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
 
         // ハイライト矩形は検出結果（全ピクセルを含む）のため半開区間のまま与えられ、+1 しない
         Assert.Equal(new EsRect(1, 2, 3, 4), geometry.FocusDipRect);
@@ -77,7 +77,7 @@ public class MarqueeCoreGeometryTests
         var marquee = CreateMarquee();
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
 
-        var geometry = marquee.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
+        var geometry = MarqueeCore.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
 
         Assert.NotNull(geometry.Handles);
     }
@@ -94,7 +94,7 @@ public class MarqueeCoreGeometryTests
         // ドラッグ中に矢印キーで矩形を動かす（nudge に入ると始点マーカーが可視になる）
         Assert.True(marquee.KeyDown(EsKey.Right, cursorPosition: null));
 
-        var geometry = marquee.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
+        var geometry = MarqueeCore.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
 
         Assert.NotNull(geometry.Marker);
         // 半幅（MarkerLength / 2）はコアが解決済みで渡す（線の太さは体裁のため描画層の外観が持つ）
@@ -111,7 +111,7 @@ public class MarqueeCoreGeometryTests
             p => new EsPoint(p.X / 2, p.Y / 2), p => new EsPoint(p.X * 2, p.Y * 2), () => null));
         marquee.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
 
-        var geometry = marquee.ResolveGeometry(marquee.CreateRequest(default));
+        var geometry = MarqueeCore.ResolveGeometry(marquee.CreateRequest(default));
 
         // 選択領域は閉区間（終点 +1）で変換される（(10,20)-(111,71) → (20,40)-(222,142)）
         Assert.Equal(new EsRect(20, 40, 202, 102), geometry.FocusDipRect);
@@ -124,7 +124,7 @@ public class MarqueeCoreGeometryTests
     {
         var marquee = CreateMarquee();
 
-        var geometry = marquee.ResolveGeometry(marquee.CreateRequest(new EsSize(320, 240)));
+        var geometry = MarqueeCore.ResolveGeometry(marquee.CreateRequest(new EsSize(320, 240)));
 
         Assert.Equal(new EsSize(320, 240), geometry.ClientSize);
         Assert.Equal(new EsRect(0, 0, 320, 240), geometry.ClientRect);
@@ -142,14 +142,14 @@ public class MarqueeCoreGeometryTests
         marquee.Move(new EsPoint(30, 40));
 
         // 等価変換では両者が一致する
-        var identity = marquee.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
+        var identity = MarqueeCore.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
         Assert.Equal(new EsPoint(30, 40), identity.MouseSourcePosition);
         Assert.Equal(new EsPoint(30, 40), identity.MouseDipPosition);
 
         // ToDip（対象 → DIP）が半分になるポートでは DIP だけが変わる
         marquee.SetCoordTransform(new CoordTransform(
             p => new EsPoint(p.X * 2, p.Y * 2), p => new EsPoint(p.X / 2, p.Y / 2), () => null));
-        var scaled = marquee.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
+        var scaled = MarqueeCore.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
         Assert.Equal(new EsPoint(30, 40), scaled.MouseSourcePosition);
         Assert.Equal(new EsPoint(15, 20), scaled.MouseDipPosition);
     }

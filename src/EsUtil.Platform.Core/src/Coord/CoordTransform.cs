@@ -10,7 +10,15 @@ namespace EsUtil.Platform.Core.Coord;
 /// <b>軸はローカル DIP と対象座標の 1 つだけである</b>: DIP とデバイスピクセルの換算は <see cref="DpiScaler"/> が単一所有する。<br/>
 /// 原点基準の等方スケーリングの純粋計算（乗算・除算）も本クラスが単一所有する。
 /// </remarks>
-public sealed class CoordTransform : ICoordTransform
+/// <remarks><see cref="ICoordTransform"/> の新しいインスタンスを初期化する。</remarks>
+/// <param name="toSource">ローカル DIP 座標を対象座標へ変換する関数。</param>
+/// <param name="toDip">対象座標をローカル DIP 座標へ変換する関数。</param>
+/// <param name="sourceArea">対象座標の境界を返す関数（null = 無制限）。</param>
+/// <remarks>変換関数は呼び出し毎に評価されるため、ズーム・スクロール等の動的変化を反映できる。</remarks>
+public sealed class CoordTransform(
+    Func<EsPoint, EsPoint> toSource,
+    Func<EsPoint, EsPoint> toDip,
+    Func<EsSize?> sourceArea) : ICoordTransform
 {
     /// <summary>等価変換（ローカル DIP = 対象座標・境界なし）の既定ポート。</summary>
     public static ICoordTransform Identity { get; } = new CoordTransform(
@@ -67,24 +75,9 @@ public sealed class CoordTransform : ICoordTransform
     internal static (double X, double Y) DividePoint(double x, double y, double factor)
         => (x / factor, y / factor);
 
-    private readonly Func<EsPoint, EsPoint> _toSource;
-    private readonly Func<EsPoint, EsPoint> _toDip;
-    private readonly Func<EsSize?> _sourceArea;
-
-    /// <summary><see cref="ICoordTransform"/> の新しいインスタンスを初期化する。</summary>
-    /// <param name="toSource">ローカル DIP 座標を対象座標へ変換する関数。</param>
-    /// <param name="toDip">対象座標をローカル DIP 座標へ変換する関数。</param>
-    /// <param name="sourceArea">対象座標の境界を返す関数（null = 無制限）。</param>
-    /// <remarks>変換関数は呼び出し毎に評価されるため、ズーム・スクロール等の動的変化を反映できる。</remarks>
-    public CoordTransform(
-        Func<EsPoint, EsPoint> toSource,
-        Func<EsPoint, EsPoint> toDip,
-        Func<EsSize?> sourceArea)
-    {
-        _toSource = toSource;
-        _toDip = toDip;
-        _sourceArea = sourceArea;
-    }
+    private readonly Func<EsPoint, EsPoint> _toSource = toSource;
+    private readonly Func<EsPoint, EsPoint> _toDip = toDip;
+    private readonly Func<EsSize?> _sourceArea = sourceArea;
 
     /// <inheritdoc/>
     public EsPoint ToSource(EsPoint dip) => _toSource(dip);

@@ -10,16 +10,6 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests;
 /// </remarks>
 public class LoupeRenderCoordinatorTests
 {
-    /// <summary>テスト用のコーディネーターを生成する（表示状態のみ注入）。</summary>
-    /// <param name="isVisible">表示状態（モック）。</param>
-    /// <returns>ポストを同期実行するコーディネーター。</returns>
-    private static LoupeRenderCoordinator Create(bool isVisible)
-        => new(
-            isVisible: () => isVisible,
-            releaseBitmap: () => { },
-            startRender: _ => { },
-            logRenderCore: _ => { },
-            post: action => action()); // 実行キューを同期実行に置き換え、並列テスト可能にする
 
     /// <summary>テスト用のコーディネーターと、直近に採番された世代番号を保持するホルダーを生成する。</summary>
     /// <param name="isVisible">表示状態（モック）。</param>

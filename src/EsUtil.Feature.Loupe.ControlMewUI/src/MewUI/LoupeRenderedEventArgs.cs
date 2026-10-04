@@ -17,35 +17,28 @@ namespace EsUtil.Feature.Loupe.MewUI;
 /// 拡大率・拡大中心は、描画に必要な値をホストが既に保持しているため通知しない<br/>
 /// （必要な場合は <see cref="LoupeControl"/> の公開プロパティから取得する）。
 /// </remarks>
-public sealed class LoupeRenderedEventArgs : EventArgs
+/// <remarks>表示情報を初期化する。</remarks>
+/// <param name="canvas">ルーペを描画したキャンバス（描画済み。 追加描画はイベントハンドラ内で行う）。</param>
+/// <param name="clientPixelSize">ルーペの一辺のサイズ（物理ピクセル）。</param>
+/// <param name="captureTopLeft">切り出し領域の左上（対象座標）。 中心未設定時は null。</param>
+/// <param name="scale">対象座標 → ルーペ画像ピクセル座標の変換係数。</param>
+public sealed class LoupeRenderedEventArgs(SKCanvas canvas, int clientPixelSize, EsPoint? captureTopLeft, double scale) : EventArgs
 {
-    /// <summary>表示情報を初期化する。</summary>
-    /// <param name="canvas">ルーペを描画したキャンバス（描画済み。 追加描画はイベントハンドラ内で行う）。</param>
-    /// <param name="clientPixelSize">ルーペの一辺のサイズ（物理ピクセル）。</param>
-    /// <param name="captureTopLeft">切り出し領域の左上（対象座標）。 中心未設定時は null。</param>
-    /// <param name="scale">対象座標 → ルーペ画像ピクセル座標の変換係数。</param>
-    public LoupeRenderedEventArgs(SKCanvas canvas, int clientPixelSize, EsPoint? captureTopLeft, double scale)
-    {
-        Canvas = canvas;
-        ClientPixelSize = clientPixelSize;
-        CaptureTopLeft = captureTopLeft;
-        Scale = scale;
-    }
 
     /// <summary>ルーペを描画したキャンバスを取得する。</summary>
     /// <value>描画済みのキャンバス（座標系はルーペ画像のピクセル）。 ホストはここへオーバーレイを追加描画できる。</value>
     /// <remarks>イベントハンドラ内でのみ使用できる（描画が終わると内容は表示へ反映される）。</remarks>
-    public SKCanvas Canvas { get; }
+    public SKCanvas Canvas { get; } = canvas;
 
     /// <summary>ルーペの一辺のサイズ（物理ピクセル）を取得する。</summary>
     /// <value>一辺の物理ピクセル数。</value>
-    public int ClientPixelSize { get; }
+    public int ClientPixelSize { get; } = clientPixelSize;
 
     /// <summary>切り出し領域の左上（対象座標）を取得する。</summary>
     /// <value>切り出し領域の左上。 中心が未設定の場合は null（オーバーレイを描画できない）。</value>
-    public EsPoint? CaptureTopLeft { get; }
+    public EsPoint? CaptureTopLeft { get; } = captureTopLeft;
 
     /// <summary>対象座標 → ルーペ画像ピクセル座標の変換係数を取得する。</summary>
     /// <value>変換係数（拡大率と同値。 DPI スケーリングの影響を受けない）。</value>
-    public double Scale { get; }
+    public double Scale { get; } = scale;
 }

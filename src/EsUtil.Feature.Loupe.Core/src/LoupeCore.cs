@@ -221,7 +221,7 @@ public sealed partial class LoupeCore
     /// 変更前の値も返すため、変更を検出した側（設定の変更ログ）が前後を比較できる。<br/>
     /// 本クラスは <c>field</c> キーワードを使わず明示的なフィールドを持つ（<c>field</c> は <c>ref</c> 引数へ渡せないため）。
     /// </remarks>
-    private bool SetIfChanged<T>(ref T field, T value, out T previous)
+    private static bool SetIfChanged<T>(ref T field, T value, out T previous)
     {
         previous = field;
         if (EqualityComparer<T>.Default.Equals(previous, value))

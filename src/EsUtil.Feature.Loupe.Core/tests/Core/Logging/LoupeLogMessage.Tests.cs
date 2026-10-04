@@ -151,7 +151,7 @@ public class LoupeLogMessageTests
             CultureInfo.CurrentCulture = new CultureInfo("de-DE");
             var logger = new RecordingLogger();
 
-            logger.LogSettingChanged((string)"ClientToPixelScaling", 1.0, 2.5);
+            logger.LogSettingChanged("ClientToPixelScaling", 1.0, 2.5);
 
             Assert.Equal("[Loupe] Setting: ClientToPixelScaling 1 → 2.5", logger.Messages[0]);
         }

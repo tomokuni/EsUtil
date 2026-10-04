@@ -13,17 +13,12 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// ホスト（アプリ）が生成して注入する（テストではモックを注入できる）。<br/>
 /// 継承不可。<br/>
 /// </remarks>
-public sealed class WinWindowService : IWindowService
+/// <remarks><see cref="WinWindowService"/> の新しいインスタンスを初期化します。</remarks>
+/// <param name="logger">ロガー。 null の場合は出力なし。</param>
+public sealed class WinWindowService(ILogger? logger = null) : IWindowService
 {
     /// <summary>ロガー（null の場合は出力なし）。</summary>
-    private readonly ILogger _log;
-
-    /// <summary><see cref="WinWindowService"/> の新しいインスタンスを初期化します。</summary>
-    /// <param name="logger">ロガー。 null の場合は出力なし。</param>
-    public WinWindowService(ILogger? logger = null)
-    {
-        _log = logger.OrNullLogger();
-    }
+    private readonly ILogger _log = logger.OrNullLogger();
 
     /// <summary>ウィンドウをタスクバー / Alt+Tab に表示しないよう設定する（選択オーバーレイ用、仕様 2.2）。</summary>
     /// <param name="handle">対象ウィンドウの識別子。</param>

@@ -119,7 +119,7 @@ public sealed class LoupeControl : Panel
     private readonly List<Border> _labels = [];
 
     /// <summary>再描画のバッチ化コーディネーター（Dispatcher へのポストで 1 フレームに 1 回に結合）。</summary>
-    private LoupeRenderCoordinator _renderCoordinator;
+    private readonly LoupeRenderCoordinator _renderCoordinator;
 
     /// <summary>ルーペ中心（<see cref="CenterPoint"/>）からの右下オフセット（DIP）を取得または設定する。</summary>
     /// <value>カーソル位置（ルーペ中心）からの右下方向へのオフセット量（DIP）。</value>
