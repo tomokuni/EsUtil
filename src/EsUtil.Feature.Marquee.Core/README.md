@@ -33,7 +33,7 @@ marquee.Release(new EsPoint(400, 300));
 var geometry = marquee.ResolveGeometry(marquee.CreateRequest(new EsSize(800, 600)));
 
 // 通知（公開イベントへ転送する）
-marquee.Notified += (_, notice) => Raise(notice);
+marquee.Notified += notice => Raise(notice);
 ```
 
 **ホイール操作とビューポートの変化の追従は本コアにありません**（組み込み先が存在して初めて意味を持つ処理のため、ホストがビューポートへ転送します）。

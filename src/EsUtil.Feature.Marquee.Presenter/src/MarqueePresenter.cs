@@ -161,15 +161,15 @@ public partial class MarqueePresenter
     }
 
     /// <summary>上位（UI 層）へ伝える通知を取得する。 UI 層は自 UI の公開イベントへ転送する。</summary>
-    /// <remarks>通知の種別と公開イベントの対応は UI 層が持ち、判断（確定・キャンセル等）はコアが済ませている。</remarks>
-    // CA1003: 理由は MarqueeCore.Notified と同じ（値型の通知でヒープ確保を避ける）。
-#pragma warning disable CA1003
-    public event EventHandler<MarqueeNotice>? Notified
+    /// <remarks>
+    /// 通知の種別と公開イベントの対応は UI 層が持ち、判断（確定・キャンセル等）はコアが済ませている。<br/>
+    /// <b>素のデリゲート（<see cref="Action{T}"/>）で公開する</b>（理由は <see cref="MarqueeCore.Notified"/> と同じ）。
+    /// </remarks>
+    public event Action<MarqueeNotice>? Notified
     {
         add => _core.Notified += value;
         remove => _core.Notified -= value;
     }
-#pragma warning restore CA1003
 
     // ====================================================================
     // コアへの委譲（設定・状態・環境値）

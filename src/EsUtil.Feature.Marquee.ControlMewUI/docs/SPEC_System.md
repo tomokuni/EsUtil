@@ -115,7 +115,7 @@ classDiagram
         +RequestCancel() void
         +RefreshOverlay() void
         -OnPaintSurface(canvas, info) void
-        -OnNotified(sender, notice) void
+        -OnNotified(notice) void
         -ToScreen(sourcePos) EsPointInt
         -CaptureMouse(capture) void
     }

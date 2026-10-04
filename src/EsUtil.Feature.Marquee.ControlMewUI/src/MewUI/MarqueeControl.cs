@@ -704,13 +704,12 @@ public sealed class MarqueeControl : Panel
     }
 
     /// <summary>コアからの通知を公開イベントへ転送する（判断はしない）。</summary>
-    /// <param name="sender">送信元（ファサード）。</param>
     /// <param name="notice">通知の種別・座標・スナップショット。</param>
     /// <remarks>
     /// 転送のみを担う（確定/キャンセルの判断・状態の更新はコアが済ませている）。<br/>
     /// 本 UI は押下・解放の公開イベントを持たない（基底 <c>UIElement</c> の同名メンバーがサービスを提供済みのため）。
     /// </remarks>
-    private void OnNotified(object? sender, MarqueeNotice notice)
+    private void OnNotified(MarqueeNotice notice)
     {
         switch (notice.Kind)
         {

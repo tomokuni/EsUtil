@@ -170,7 +170,7 @@ public class MarqueeCoreTests
     {
         var marquee = CreateMarquee(null, out _);
         var notices = new List<MarqueeNotice>();
-        marquee.Notified += (_, notice) => notices.Add(notice);
+        marquee.Notified += notice => notices.Add(notice);
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
         notices.Clear();
 
@@ -197,7 +197,7 @@ public class MarqueeCoreTests
     {
         var marquee = CreateMarquee(null, out var effects);
         var notices = new List<MarqueeNotice>();
-        marquee.Notified += (_, notice) => notices.Add(notice);
+        marquee.Notified += notice => notices.Add(notice);
 
         var handled = marquee.KeyDown(EsKey.Right, new EsPoint(100, 100));
 
@@ -287,19 +287,6 @@ public class MarqueeCoreTests
     // 通知の転送
     // ====================================================================
 
-    [Fact]
-    internal void Notified_送信元はファサード自身になる()
-    {
-        var marquee = CreateMarquee(null, out _);
-        object? sender = null;
-        var notices = new List<MarqueeNotice>();
-        marquee.Notified += (s, notice) => { sender = s; notices.Add(notice); };
-
-        marquee.Press(new EsPoint(10, 10), clickCount: 1);
-
-        Assert.Same(marquee, sender);
-        Assert.Equal([MarqueeNoticeKind.SelectionStarted], notices.Select(n => n.Kind));
-    }
 
     [Fact]
     internal void Notified_購読者がいない場合は何も起きない()
@@ -322,7 +309,7 @@ public class MarqueeCoreTests
     {
         var marquee = CreateMarquee(null, out _);
         var notices = new List<MarqueeNotice>();
-        marquee.Notified += (_, notice) => notices.Add(notice);
+        marquee.Notified += notice => notices.Add(notice);
 
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
 
@@ -346,7 +333,7 @@ public class MarqueeCoreTests
     {
         var marquee = CreateMarquee(null, out _);
         var notices = new List<MarqueeNotice>();
-        marquee.Notified += (_, notice) => notices.Add(notice);
+        marquee.Notified += notice => notices.Add(notice);
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
         notices.Clear();
 
@@ -361,7 +348,7 @@ public class MarqueeCoreTests
     {
         var marquee = CreateMarquee(null, out _);
         var notices = new List<MarqueeNotice>();
-        marquee.Notified += (_, notice) => notices.Add(notice);
+        marquee.Notified += notice => notices.Add(notice);
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
         notices.Clear();
 

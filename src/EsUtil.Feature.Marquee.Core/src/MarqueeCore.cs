@@ -95,12 +95,12 @@ public sealed partial class MarqueeCore
     }
 
     /// <summary>上位（UI 層）へ伝える通知。 UI 層は自 UI の公開イベントへ転送する。</summary>
-    /// <remarks>通知の種別と公開イベントの対応は UI 層が持ち、判断（確定・キャンセル等）は本クラスが済ませている。</remarks>
-    // CA1003: イベント引数を EventArgs 派生にするのが原則だが、MarqueeNotice は値型のままにする
-    //（ポインター移動のたびに通知するためヒープ確保を避ける。 MarqueeCoreTests.Move_ポインター移動はヒープを確保しない が担保する）。
-#pragma warning disable CA1003
-    public event EventHandler<MarqueeNotice>? Notified;
-#pragma warning restore CA1003
+    /// <remarks>
+    /// 通知の種別と公開イベントの対応は UI 層が持ち、判断（確定・キャンセル等）は本クラスが済ませている。<br/>
+    /// <b>素のデリゲート（<see cref="Action{T}"/>）で公開する</b>: 本層は UI 非依存であり、<see cref="System.EventHandler{T}"/> の規約
+    /// （sender と <see cref="EventArgs"/>) を強制しない。 UI 層は本通知を自分の <see cref="System.EventHandler{T}"/> イベントへ変換して公開する。
+    /// </remarks>
+    public event Action<MarqueeNotice>? Notified;
 
     /// <summary>設定の変更ログの出力先を取得または設定する。</summary>
     /// <value>ロガー。 null を設定した場合は出力なし（<see cref="LoggerFallback"/> が吸収する）。</value>
@@ -349,9 +349,8 @@ public sealed partial class MarqueeCore
     }
 
     /// <summary>セッションの通知を本クラスの通知として転送する。</summary>
-    /// <param name="sender">送信元（セッション）。</param>
     /// <param name="notice">通知（種別・座標・スナップショット）。</param>
-    private void OnSessionNotified(object? sender, MarqueeNotice notice) => Notified?.Invoke(this, notice);
+    private void OnSessionNotified(MarqueeNotice notice) => Notified?.Invoke(notice);
 
     /// <summary>生成時の設定を 1 度だけ記録する（既に記録済みの場合は何もしない）。</summary>
     /// <remarks>

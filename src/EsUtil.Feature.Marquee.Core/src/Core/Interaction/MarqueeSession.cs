@@ -48,7 +48,7 @@ internal sealed class MarqueeSession
     }
 
     /// <summary>上位（UI 層）へ伝える通知。 UI 層は自 UI の公開イベントへ転送する。</summary>
-    internal event EventHandler<MarqueeNotice>? Notified;
+    internal event Action<MarqueeNotice>? Notified;
 
     /// <summary>選択・ドラッグ・nudge の状態（本クラスが内部で使用する状態機械）。</summary>
     /// <value>状態機械。 外部は <see cref="CreateSnapshot"/> または各読み取りプロパティを使う。</value>
@@ -592,15 +592,15 @@ internal sealed class MarqueeSession
     /// <param name="kind">通知の種別。</param>
     /// <param name="position">通知する座標（対象座標）。</param>
     private void NotifyAt(MarqueeNoticeKind kind, EsPoint position)
-        => Notified?.Invoke(this, new MarqueeNotice(kind, position, _state.CreateSnapshot(position)));
+        => Notified?.Invoke(new MarqueeNotice(kind, position, _state.CreateSnapshot(position)));
 
     /// <summary>現在のマウス位置で通知を発火する（選択矩形の変更・確定など、通知座標を持たない通知）。</summary>
     /// <param name="kind">通知の種別。</param>
     private void NotifyState(MarqueeNoticeKind kind)
-        => Notified?.Invoke(this, new MarqueeNotice(kind, _state.LastMousePosition, _state.CreateSnapshot()));
+        => Notified?.Invoke(new MarqueeNotice(kind, _state.LastMousePosition, _state.CreateSnapshot()));
 
     /// <summary>座標を持たない通知を発火する（キャンセルなど）。</summary>
     /// <param name="kind">通知の種別。</param>
     private void NotifyEmpty(MarqueeNoticeKind kind)
-        => Notified?.Invoke(this, new MarqueeNotice(kind, default, _state.CreateSnapshot()));
+        => Notified?.Invoke(new MarqueeNotice(kind, default, _state.CreateSnapshot()));
 }

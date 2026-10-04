@@ -585,13 +585,12 @@ public sealed partial class MarqueeControl : Panel
     }
 
     /// <summary>コアからの通知を公開イベントへ転送する（判断はしない）。</summary>
-    /// <param name="sender">送信元（ファサード）。</param>
     /// <param name="notice">通知の種別・座標・スナップショット。</param>
     /// <remarks>
     /// 転送のみを担う（確定/キャンセルの判断・状態の更新はコアが済ませている）。<br/>
     /// 各 UI のイベント引数の型（Avalonia の <see cref="Rect"/> / <see cref="Point"/>）へ境界変換する。
     /// </remarks>
-    private void OnNotified(object? sender, MarqueeNotice notice)
+    private void OnNotified(MarqueeNotice notice)
     {
         switch (notice.Kind)
         {

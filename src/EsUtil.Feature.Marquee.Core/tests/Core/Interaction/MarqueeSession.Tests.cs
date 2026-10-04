@@ -21,7 +21,7 @@ public class MarqueeSessionTests
     {
         var session = new MarqueeSession { Log = NullLogger.Instance };
         var collected = new List<MarqueeNotice>();
-        session.Notified += (_, notice) => collected.Add(notice);
+        session.Notified += notice => collected.Add(notice);
         notices = collected;
         return session;
     }
