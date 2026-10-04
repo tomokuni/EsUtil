@@ -227,7 +227,7 @@ public class LoupeControlTests
         control.CenterPoint = new Point(100, 100);
 
         // 非表示のため描画は要求されない（Rendered は発火しない）
-        await control.PumpAsync();
+        await TestHelper.PumpAsync();
         Assert.Null(control.LoupeBitmap);
         Assert.False(control.IsVisible);
 
@@ -304,7 +304,7 @@ public class LoupeControlTests
         control.CenterPoint = new Point(5, 5);
 
         // 描画の例外（未対応型）はアプリを落とさずログへ記録される（開始側が fire-and-forget で例外を観測する）
-        await control.PumpUntilAsync(() => sink.HasError);
+        await TestHelper.PumpUntilAsync(() => sink.HasError);
 
         Assert.True(sink.HasError);
     }
@@ -321,7 +321,7 @@ public class LoupeControlTests
 
         // 明示的な再生成要求（RequestRender）経由の生成失敗 → 開始側の例外観測でログへ記録される
         control.RequestRender();
-        await control.PumpUntilAsync(() => sink.HasError);
+        await TestHelper.PumpUntilAsync(() => sink.HasError);
 
         Assert.True(sink.HasError);
     }
@@ -340,7 +340,7 @@ public class LoupeControlTests
         // 生成（Dispatcher への反映待ち）中に非表示へ切り替えると、
         // 反映時に IsVisible=false のため生成ビットマップは破棄される
         control.IsVisible = false;
-        await control.PumpAsync();
+        await TestHelper.PumpAsync();
 
         Assert.Null(control.LoupeBitmap);
         Assert.False(control.IsVisible);
@@ -545,11 +545,11 @@ public class LoupeControlTests
         window.Show();
 
         control.CenterPoint = new Point(1, 2);
-        await control.PumpAsync();
+        await TestHelper.PumpAsync();
         Assert.Equal("(1, 2)", LabelText(control));
 
         control.CenterPoint = new Point(3, 4);
-        await control.PumpAsync();
+        await TestHelper.PumpAsync();
 
         Assert.Equal("(3, 4)", LabelText(control));
         window.Close();
