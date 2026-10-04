@@ -2,15 +2,14 @@
 
 ## 目次
 
-- [EsUtil.Feature.Loupe.ControlAvaloniaUI サンプルアプリケーション](#esutilfeatureloupecontrolavaloniaui-サンプルアプリケーション)
-  - [目次](#目次)
-  - [1. 概要](#1-概要)
-  - [2. 実行方法](#2-実行方法)
-  - [3. 操作方法](#3-操作方法)
-  - [4. 検証項目（動作確認チェックリスト）](#4-検証項目動作確認チェックリスト)
-  - [5. 構成](#5-構成)
-  - [6. 使い方（初めての方向け）](#6-使い方初めての方向け)
-  - [7. 拡張例（派生 Presenter）](#7-拡張例派生-presenter)
+- [1. 概要](#1-概要)
+- [2. 実行方法](#2-実行方法)
+  - [2.1 バッチファイル（リリースビルド＆起動）](#21-バッチファイルリリースビルド起動)
+- [3. 操作方法](#3-操作方法)
+- [4. 検証項目（動作確認チェックリスト）](#4-検証項目動作確認チェックリスト)
+- [5. 構成](#5-構成)
+- [6. 使い方（初めての方向け）](#6-使い方初めての方向け)
+- [7. 拡張例（派生 Presenter）](#7-拡張例派生-presenter)
 
 ---
 
@@ -37,7 +36,7 @@ dotnet run --project src/EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/EsUtil.Fe
 dotnet run -c Release --project src/EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/EsUtil.Feature.Loupe.ControlAvaloniaUI.Sample.csproj
 ```
 
-### バッチファイル（リリースビルド＆起動）
+### 2.1 バッチファイル（リリースビルド＆起動）
 
 `src/EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/RunSample.bat` をダブルクリックすると、リリースビルドを行った後、サンプルアプリケーションを起動します。
 

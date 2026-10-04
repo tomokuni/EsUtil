@@ -4,20 +4,20 @@
 
 ## 目次
 
-- [EsUtil.Feature.Marquee.ControlAvaloniaUI](#esutilfeaturemarqueecontrolavaloniaui)
-  - [目次](#目次)
-  - [1. 概要](#1-概要)
-  - [2. 機能一覧](#2-機能一覧)
-  - [3. システム要件](#3-システム要件)
-  - [4. インストール](#4-インストール)
-  - [5. クイックスタート](#5-クイックスタート)
-    - [AXAML](#axaml)
-    - [Code-behind（設定・イベント購読・座標ポート設定）](#code-behind設定イベント購読座標ポート設定)
-  - [6. 座標系](#6-座標系)
-  - [7. サンプル](#7-サンプル)
-  - [8. ドキュメント](#8-ドキュメント)
-  - [9. プロジェクト構成](#9-プロジェクト構成)
-  - [10. ライセンス](#10-ライセンス)
+- [1. 概要](#1-概要)
+- [2. 機能一覧](#2-機能一覧)
+- [3. システム要件](#3-システム要件)
+- [4. インストール](#4-インストール)
+- [5. クイックスタート](#5-クイックスタート)
+  - [5.1 AXAML](#51-axaml)
+  - [5.2 Code-behind（設定・イベント購読・座標ポート設定）](#52-code-behind設定イベント購読座標ポート設定)
+- [6. 座標系](#6-座標系)
+- [7. サンプル](#7-サンプル)
+- [8. ドキュメント](#8-ドキュメント)
+- [9. プロジェクト構成](#9-プロジェクト構成)
+  - [9.1 共有コア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）](#91-共有コアesutilfeaturemarqueecoreと提示層esutilfeaturemarqueepresenter)
+  - [9.2 装飾（提示層が単一所有する）](#92-装飾提示層が単一所有する)
+- [10. ライセンス](#10-ライセンス)
 
 ---
 
@@ -72,7 +72,7 @@ using EsUtil.Platform.Core.Geometry;         // EsPoint / EsSize（コア提供�
 
 ## 5. クイックスタート
 
-### AXAML
+### 5.1 AXAML
 
 ```xml
 <Window xmlns="https://github.com/avaloniaui"
@@ -86,7 +86,7 @@ using EsUtil.Platform.Core.Geometry;         // EsPoint / EsSize（コア提供�
 
 外観（色・フォントサイズ・枠線の太さ・表示可否）は外観の単一値（`Appearance`）、計算に必要な設定（寸法・対話パラメータ）は設定値（`Options`）にまとまっているため、AXAML の属性では指定せずコード（またはバインディング）から設定します。
 
-### Code-behind（設定・イベント購読・座標ポート設定）
+### 5.2 Code-behind（設定・イベント購読・座標ポート設定）
 
 ```csharp
 var marquee = new MarqueeControl

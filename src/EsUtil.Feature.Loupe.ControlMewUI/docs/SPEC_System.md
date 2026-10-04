@@ -2,7 +2,22 @@
 
 `LoupeControl`（MewUI 版ルーペ）のシステム概要・アーキテクチャ・依存関係・設計判断を記載します。
 
-## システム概要
+## 目次
+
+- [1. システム概要](#1-システム概要)
+- [2. 技術スタック](#2-技術スタック)
+- [3. アーキテクチャ](#3-アーキテクチャ)
+  - [3.1 依存方向](#31-依存方向)
+  - [3.2 責務の分担](#32-責務の分担)
+- [4. コンポーネント構成](#4-コンポーネント構成)
+- [5. クラス図](#5-クラス図)
+- [6. シーケンス図（描画）](#6-シーケンス図描画)
+- [7. 設計判断](#7-設計判断)
+- [8. テスト方針](#8-テスト方針)
+- [9. 未実装・今後の対応](#9-未実装今後の対応)
+- [10. ログ](#10-ログ)
+
+## 1. システム概要
 
 `EsUtil.Feature.Loupe.ControlMewUI` は、Avalonia 版 `LoupeControl` と**同一の UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と描画層（`EsUtil.Feature.Loupe.Presenter`）** を使い、
 描画（`SKCanvas`）と入力の受付のみを MewUI（SkiaSharp）で実装したルーペコントロールです。
@@ -11,7 +26,7 @@
 本プロジェクトはその計算結果をキャンバスへ描画するだけです。
 これにより **UI ごとの見た目の差を作らずに済み**、UI 追加時の再実装は描画 API の呼び出しのみになります。
 
-## 技術スタック
+## 2. 技術スタック
 
 | 区分 | 採用技術 |
 | --- | --- |
@@ -22,9 +37,9 @@
 | 基底コントロール | `Aprillz.MewUI.Controls.Panel`（図形は子の `SkiaCanvasView` が描画する） |
 | プロパティシステム | `MewProperty<T>`（`MewPropertyOptions.AffectsRender` / `AffectsLayout`） |
 
-## アーキテクチャ
+## 3. アーキテクチャ
 
-### 依存方向
+### 3.1 依存方向
 
 層の全体像（Core / Presenter / UI）は [`src/README.md`](../README.md) を参照してください。
 
@@ -40,7 +55,7 @@ UI 層（EsUtil.Feature.Loupe.ControlAvaloniaUI / EsUtil.Feature.Loupe.ControlMe
 Avalonia 版と MewUI 版の間に依存はありません（互いを参照しません）。
 両者に共通する計算は必ず `EsUtil.Feature.Loupe.Core` を経由します。
 
-### 責務の分担
+### 3.2 責務の分担
 
 | 層 | 責務 |
 | --- | --- |
@@ -49,7 +64,7 @@ Avalonia 版と MewUI 版の間に依存はありません（互いを参照し�
 | `EsUtil.Feature.Loupe.ControlMewUI` | 提示層が解決した描画計画を `LoupeSkiaPainter` で `SKCanvas` へ写す。 `MewProperty` による入力の受付。 DPI の自動追従 |
 | ホスト（`App.MewUI` 等） | `Source` / `CenterPoint` の設定、表示位置の決定（コアのファサード `ResolveLayout` を利用） |
 
-## コンポーネント構成
+## 4. コンポーネント構成
 
 ```text
 src/EsUtil.Feature.Loupe.ControlMewUI/
@@ -70,7 +85,7 @@ src/EsUtil.Feature.Loupe.ControlMewUI/
 | `LoupeSkiaPainter`（描画実装） | 描画計画（`LoupeDrawPlan`。 層の順序・矩形・拡大画像の切り出しと描画の矩形）を Skia の描画 API へ写す。 **描く層とその順序は計画が単一所有する**（`LoupeDrawLayer` を先頭から処理し、中心座標ラベルは処理しない）。 色は計画の外観（`LoupeAppearance`）を使う |
 | `LoupeRenderTarget`（テスト） | ウィンドウ不要の描画先。 `SKBitmap` と `SKCanvas` を保持し、画素を読み取る |
 
-## クラス図
+## 5. クラス図
 
 ```mermaid
 classDiagram
@@ -181,7 +196,7 @@ classDiagram
     Loupe ..> EsPoint : ラベル文字列（Format）
 ```
 
-## シーケンス図（描画）
+## 6. シーケンス図（描画）
 
 ```mermaid
 sequenceDiagram
@@ -212,7 +227,7 @@ sequenceDiagram
     end
 ```
 
-## 設計判断
+## 7. 設計判断
 
 1. **中間ビットマップを持たない**。 Avalonia 版は `RenderTargetBitmap` に描いて `EsBitmap` へコピーするが、
    MewUI 版は `SkiaCanvasView` のキャンバスへ直接描画する（コピーとメモリ確保を排除）。
@@ -237,7 +252,7 @@ sequenceDiagram
    （Avalonia 版の `coerce` コールバック + `Changed` クラスハンドラと同じ契約。 規則と書式はコアが単一所有する）。
 設定（`Options`）の数値項目はコアの型が、外観（`Appearance`）の数値項目は提示層の型が生成時に補正するため、コントロールは `coerce` を登録しない（環境値の `ClientToPixelScaling` のみ登録する）。
 
-## テスト方針
+## 8. テスト方針
 
 | 対象 | 方針 |
 | --- | --- |
@@ -246,7 +261,7 @@ sequenceDiagram
 | コアロジック | `EsUtil.Feature.Loupe.Core.Tests` が担保する（本プロジェクトでは再検証しない） |
 | アプリ組み込み | `App.MewUI` の実機検証（撮影した画素の実測）で確認する |
 
-## 未実装・今後の対応
+## 9. 未実装・今後の対応
 
 | 項目 | 内容 |
 | --- | --- |
@@ -254,7 +269,7 @@ sequenceDiagram
 | 再生成の要求メソッド | `Clear` / `RequestRender` 相当（現在はプロパティ変更で自動再描画） |
 | 座標ラベル以外の文字描画 | 日本語のフォントフォールバック（ラベルは `EsUtil.Feature.Marquee.ControlMewUI`（選択矩形の外側の装飾）側で対応済み。 本コントロールの座標ラベルは数値のみのため未適用） |
 
-## ログ
+## 10. ログ
 
 設定変更を Debug、描画の例外を Error で記録します（Avalonia 版と同一の書式）。
 

@@ -2,13 +2,13 @@
 
 `EsUtil.Feature.Loupe.ControlAvaloniaUI`（Avalonia UI 実装）と同じ **UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、描画（`SKCanvas`）と入力の受付のみを **MewUI** で実装したルーペ（拡大鏡）コントロールです。
 
-## 目的
+## 1. 目的
 
 ルーペのロジック（数値の安全域補正・切り出し領域の計算・表示レイアウト）は `EsUtil.Feature.Loupe.Core` が単一所有し、描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（色・枠線の太さ・表示可否）は UI 非依存の提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance`）が単一所有します。
 本プロジェクトはその計画を `SKCanvas` へ **Skia のキャンバスへ描画させるだけ** の層です。
 そのため Avalonia 版と**同じ設定・同じ見た目**になり、設定ファイル（`%LOCALAPPDATA%\SaveEvidence\settings.json`）も両 UI で共用できます。 層構成（Core / Presenter / UI）の全体像は [`src/README.md`](../README.md) を参照してください。
 
-## 特徴
+## 2. 特徴
 
 | 項目 | 内容 |
 | --- | --- |
@@ -20,7 +20,7 @@
 | 連続再描画 | **無効**。 プロパティ変更時にのみ再描画する（静止画のため） |
 | 位置決め | **本コントロールは位置を持たない**。 ホストが `ResolveLayout`（コアのファサード）の結果で配置する |
 
-## インストール（プロジェクト参照）
+## 3. インストール（プロジェクト参照）
 
 ```xml
 <ProjectReference Include="..\..\EsUtil.Feature.Loupe.ControlMewUI\src\EsUtil.Feature.Loupe.ControlMewUI.csproj" />
@@ -28,7 +28,7 @@
 
 パッケージは `Aprillz.MewUI.Skia` を参照します（バージョンは `MewUIVersion` プロパティで 0.21.1 に固定）。
 
-## 使い方
+## 4. 使い方
 
 ```csharp
 using EsUtil.Feature.Loupe;                    // LoupeOptions（コア）と LoupeAppearance（描画にだけ必要な外観）
@@ -70,7 +70,7 @@ if (layout.Position is { } position)
 
 > **注意**: `ResolveLayout` はコアのファサード（`EsUtil.Feature.Loupe.Core` の `LoupeCore`、`public` 型）の API です（汎用コアとして公開されており、`InternalsVisibleTo` は不要です）。
 
-## プロパティ
+## 5. プロパティ
 
 | プロパティ | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
@@ -106,7 +106,7 @@ if (layout.Position is { } position)
 
 数値の安全域への補正と変更ログはプロパティの登録（`MewProperty.Register` の `coerce` / `changed`）へ渡します。 したがってバインディングなど setter を経由しない設定でも安全域が保たれ、変更が記録されます（補正の規則はコアの `LoupeCore.Limits`、設定値の変更ログはコアの `LoupeLogMessage` が、外観の変更ログは提示層の `LoupePresenterLogMessage` が、拡大元画像の変更と描画の例外のログは**本プロジェクトの `LoupeUiLogMessage`** が単一所有します）。 設定（`Options`）と外観（`Appearance`）の数値項目はそれぞれの型が生成時に補正するため、本コントロールは補正を登録しません（環境値の `ClientToPixelScaling` のみ `coerce` を登録します）。
 
-## イベント
+## 6. イベント
 
 | イベント | 引数 | 説明 |
 | --- | --- | --- |
@@ -114,7 +114,7 @@ if (layout.Position is { } position)
 
 オーバーレイの描画位置は `(対象座標 − CaptureTopLeft) × Scale` で求めます（破線の例は `Parts.CapturePreviewControl.MewUI`）。
 
-## ログ
+## 7. ログ
 
 `Log` プロパティへ `ILogger` を設定すると、設定変更と描画の例外を出力します（既定は出力なし）。 書式は Avalonia 版と同一です。
 
@@ -125,7 +125,7 @@ if (layout.Position is { } position)
 
 Avalonia 版の Trace ログ（再描画パイプライン）は持ちません（MewUI 版は中間ビットマップを作らず同期描画するため）。
 
-## 構成
+## 8. 構成
 
 ```text
 src/EsUtil.Feature.Loupe.ControlMewUI/
@@ -143,7 +143,7 @@ src/EsUtil.Feature.Loupe.ControlMewUI/
     └── LoupeRenderedEventArgs.Tests.cs # 描画完了通知の引数
 ```
 
-## ビルドとテスト
+## 9. ビルドとテスト
 
 ```powershell
 dotnet build src/EsUtil.Feature.Loupe.ControlMewUI/src/MewUI/EsUtil.Feature.Loupe.ControlMewUI.csproj
@@ -152,7 +152,7 @@ dotnet test src/EsUtil.Feature.Loupe.ControlMewUI/tests/MewUI/EsUtil.Feature.Lou
 
 本プロジェクトは `GenerateDocumentationFile` を有効にし、**存在しないメンバーへの `<see cref>` をビルド警告（CS1574）で検出**します（XML は検証にのみ使い、配布物へは出しません）。
 
-## 関連ドキュメント
+## 10. 関連ドキュメント
 
 - `../EsUtil.Feature.Loupe.Core/README.md` — 共有する UI 非依存ロジック
 - `../EsUtil.Feature.Loupe.Presenter/README.md` — 共有する UI 非依存の描画層

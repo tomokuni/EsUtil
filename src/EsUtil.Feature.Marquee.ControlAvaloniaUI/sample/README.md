@@ -2,19 +2,17 @@
 
 ## 目次
 
-- [EsUtil.Feature.Marquee.ControlAvaloniaUI サンプルアプリケーション](#esutilfeaturemarqueecontrolavaloniaui-サンプルアプリケーション)
-  - [目次](#目次)
-  - [1. 概要](#1-概要)
-  - [2. 実行方法](#2-実行方法)
-    - [バッチファイル（リリースビルド＆起動）](#バッチファイルリリースビルド起動)
-  - [3. 操作方法](#3-操作方法)
-  - [4. 背景画像のズーム・スクロール](#4-背景画像のズームスクロール)
-  - [5. 使い方（初めての方向け）](#5-使い方初めての方向け)
-  - [6. ログ表示について](#6-ログ表示について)
-  - [7. 検証項目（動作確認チェックリスト）](#7-検証項目動作確認チェックリスト)
-  - [8. 座標ポートについて](#8-座標ポートについて)
-  - [9. 構成](#9-構成)
-  - [10. 拡張例（派生 Presenter）](#10-拡張例派生-presenter)
+- [1. 概要](#1-概要)
+- [2. 実行方法](#2-実行方法)
+  - [2.1 バッチファイル（リリースビルド＆起動）](#21-バッチファイルリリースビルド起動)
+- [3. 操作方法](#3-操作方法)
+- [4. 背景画像のズーム・スクロール](#4-背景画像のズームスクロール)
+- [5. 使い方（初めての方向け）](#5-使い方初めての方向け)
+- [6. ログ表示について](#6-ログ表示について)
+- [7. 検証項目（動作確認チェックリスト）](#7-検証項目動作確認チェックリスト)
+- [8. 座標ポートについて](#8-座標ポートについて)
+- [9. 構成](#9-構成)
+- [10. 拡張例（派生 Presenter）](#10-拡張例派生-presenter)
 
 ---
 
@@ -43,7 +41,7 @@ dotnet run --project src/EsUtil.Feature.Marquee.ControlAvaloniaUI/sample/EsUtil.
 dotnet run -c Release --project src/EsUtil.Feature.Marquee.ControlAvaloniaUI/sample/EsUtil.Feature.Marquee.ControlAvaloniaUI.Sample.csproj
 ```
 
-### バッチファイル（リリースビルド＆起動）
+### 2.1 バッチファイル（リリースビルド＆起動）
 
 `src/EsUtil.Feature.Marquee.ControlAvaloniaUI/sample/RunSample.bat` をダブルクリックすると、リリースビルドを行った後、サンプルアプリケーションを起動します。
 

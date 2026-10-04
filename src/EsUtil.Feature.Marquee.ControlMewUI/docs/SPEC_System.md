@@ -2,7 +2,25 @@
 
 MarqueeControl（MewUI 版）のシステム概要・アーキテクチャ・依存関係・設計判断を記載します。
 
-## システム概要
+## 目次
+
+- [1. システム概要](#1-システム概要)
+- [2. 技術スタック](#2-技術スタック)
+- [3. アーキテクチャ](#3-アーキテクチャ)
+  - [3.1 依存方向](#31-依存方向)
+  - [3.2 責務の分担](#32-責務の分担)
+  - [3.3 設計判断](#33-設計判断)
+- [4. コンポーネント構成](#4-コンポーネント構成)
+- [5. クラス図](#5-クラス図)
+- [6. シーケンス図（新規選択のドラッグ）](#6-シーケンス図新規選択のドラッグ)
+- [7. シーケンス図（矢印キー nudge）](#7-シーケンス図矢印キー-nudge)
+- [8. 状態遷移](#8-状態遷移)
+- [9. 描画フロー](#9-描画フロー)
+- [10. エラー処理ポリシー](#10-エラー処理ポリシー)
+- [11. 実装上の注意（実測・設計から得た知見）](#11-実装上の注意実測設計から得た知見)
+- [12. 未実装（今後の判断）](#12-未実装今後の判断)
+
+## 1. システム概要
 
 `EsUtil.Feature.Marquee.ControlMewUI` は、Avalonia 版 `MarqueeControl` と**同一の UI 非依存コア（`EsUtil.Feature.Marquee.Core`）と描画層（`EsUtil.Feature.Marquee.Presenter`）**を使い、
 入力の受付・効果の適用・通知の転送・描画ポートの適合のみを MewUI（SkiaSharp）で実装したドラッグ矩形コントロールです。
@@ -11,7 +29,7 @@ MarqueeControl（MewUI 版）のシステム概要・アーキテクチャ・依
 nudge セッション・ダブルクリックの確定/キャンセル・ハンドルのスナップ・クリック検出・最小サイズによるキャンセルの判断）は
 両 UI で完全に共通であり、本プロジェクトは入力をコア（公開ファサード `MarqueeCore`）へ通知し、返された効果を適用し、描画計画（提示層の `MarqueePresenter.ResolveDrawPlan`）を自 UI の描画 API（Skia）で描きます。
 
-## 技術スタック
+## 2. 技術スタック
 
 | 区分 | 採用技術 |
 | --- | --- |
@@ -23,9 +41,9 @@ nudge セッション・ダブルクリックの確定/キャンセル・ハン�
 | プロパティシステム | `MewProperty<T>`（`MewPropertyOptions.AffectsRender`） |
 | カーソル操作 | `ICursorService`（`EsUtil.Platform.Core` の `Native`。 既定実装は `Native.Win`） |
 
-## アーキテクチャ
+## 3. アーキテクチャ
 
-### 依存方向
+### 3.1 依存方向
 
 層の全体像（Core / Presenter / UI）は [`src/README.md`](../README.md) を参照してください。
 
@@ -39,7 +57,7 @@ UI 層（EsUtil.Feature.Marquee.ControlAvaloniaUI / EsUtil.Feature.Marquee.Contr
 ※ 本コントロール（UI 層）は EsUtil.Platform.Core（Win32 実装は `Native.Win`）・Platform.MewUI・Platform.Skia も参照する。
 ```
 
-### 責務の分担
+### 3.2 責務の分担
 
 | 層 | 責務 |
 | --- | --- |
@@ -48,7 +66,7 @@ UI 層（EsUtil.Feature.Marquee.ControlAvaloniaUI / EsUtil.Feature.Marquee.Contr
 | `EsUtil.Feature.Marquee.ControlMewUI` | 入力（マウス・キー）をコア型へ変換して提示層へ通知する、`IMarqueeEffects` を実装して要求された効果（再描画・フォーカス・マウスキャプチャ・カーソル形状/操作）を適用する、通知を公開イベントへ転送する、**描画計画を自 UI の描画 API（Skia）で描く**、DPI の追従 |
 | ホスト | 座標変換ポートの設定、選択の復元・確定・キャンセル、重ね順の管理、ビューポート変化の通知 |
 
-### 設計判断
+### 3.3 設計判断
 
 | 判断 | 理由 |
 | --- | --- |
@@ -62,7 +80,7 @@ UI 層（EsUtil.Feature.Marquee.ControlAvaloniaUI / EsUtil.Feature.Marquee.Contr
 | マウスダウン・アップのイベントを公開しない | `UIElement` が同名メンバー（＝同じ情報を提供するイベント）を持つため、本コントロールでは公開しない（重複を避ける） |
 | ログの出力先を持つ | 入力を持つコントロールは操作ログが必要（上位 AP はドラッグ・nudge 用のキー・マウスイベントを直接検出しないため）。 既定は `NullLogger` で、ホストが `Log` プロパティで注入する（保持・フォールバック・ファサードへの伝搬はコアが単一所有する） |
 
-## コンポーネント構成
+## 4. コンポーネント構成
 
 ```text
 src/EsUtil.Feature.Marquee.ControlMewUI/
@@ -87,7 +105,7 @@ src/EsUtil.Feature.Marquee.ControlMewUI/
 | UI 層のラベル要素 | 親パネルの子要素（`Border` + `TextBlock`）としてサイズ・座標ラベルを配置する。 文言と基準点は提示層が、色とフォントサイズは `MarqueeAppearance` が単一所有し、実寸から配置矩形を求める写像は `MarqueePresenter`（`LabelPlan` partial）（提示層）が単一所有する |
 | `MarqueePointEventArgs` / `SelectionRectEventArgs` / `MarqueeRenderedEventArgs` | 通知時点の座標（矩形）とスナップショットの組・描画完了（描画先と描画内容の契約） |
 
-## クラス図
+## 5. クラス図
 
 ```mermaid
 classDiagram
@@ -259,7 +277,7 @@ classDiagram
     MarqueeState ..> MarqueeSelection : 幾何計算
 ```
 
-## シーケンス図（新規選択のドラッグ）
+## 6. シーケンス図（新規選択のドラッグ）
 
 ```mermaid
 sequenceDiagram
@@ -305,7 +323,7 @@ sequenceDiagram
     end
 ```
 
-## シーケンス図（矢印キー nudge）
+## 7. シーケンス図（矢印キー nudge）
 
 ```mermaid
 sequenceDiagram
@@ -337,7 +355,7 @@ sequenceDiagram
     Ses->>St: NudgeActive = false
 ```
 
-## 状態遷移
+## 8. 状態遷移
 
 コアの `MarqueeState.GetInteractionState()` が合成する対話状態です（nudge が最優先）。
 
@@ -356,7 +374,7 @@ stateDiagram-v2
     StartPointNudging --> Selected : ドラッグ確定
 ```
 
-## 描画フロー
+## 9. 描画フロー
 
 ```text
 OnPaintSurface(canvas, info)
@@ -373,7 +391,7 @@ OnPaintSurface(canvas, info)
 
 背景は塗りません（透明のままにして下の画像を透かします）。 **選択枠線は装飾の外枠が描きます**（別々に描くと線幅が二重になるため）。 **サイズ・座標ラベルはコントロールがテキスト要素として表示します**（実寸測定は描画 API 依存のためコントロールが行い、配置指示は `MarqueePresenter`（`LabelPlan` partial）（提示層）が単一所有する）。
 
-## エラー処理ポリシー
+## 10. エラー処理ポリシー
 
 | 条件 | 動作 |
 | --- | --- |
@@ -382,7 +400,7 @@ OnPaintSurface(canvas, info)
 | `Appearance.CoordLabelFontSize` に NaN / ∞ | 既定値（12）へ補正する |
 | 破棄済みの画像を描画しようとした | 本コントロールは画像を扱わない（対象外） |
 
-## 実装上の注意（実測・設計から得た知見）
+## 11. 実装上の注意（実測・設計から得た知見）
 
 1. **生のポインター入力（Mouse 系）は公開イベント化しない**。 押下・解放・クリック・移動は入力そのものであり、ホストは自 UI の入力イベントで観測できる（押下状態は `CurrentSnapshot.IsMouseDown`）。
    参考として、MewUI の基底 `UIElement` は `MouseDown` / `MouseUp` を CLR イベントとして持つため、派生コントロールが同名の公開イベントを宣言すると `CS0108`（メンバーの隠蔽）になる（`new` を付けても同名の別物が並ぶ）。
@@ -397,7 +415,7 @@ OnPaintSurface(canvas, info)
    太さの安全域への補正は外観（`MarqueeAppearance.OuterBorderThickness` / `InnerBorderThickness`）の生成時に適用される（本計算は補正を持たない）。
    描画テストの期待値はこの前提で書く。
 
-## 未実装（今後の判断）
+## 12. 未実装（今後の判断）
 
 | 項目 | 状況 |
 | --- | --- |

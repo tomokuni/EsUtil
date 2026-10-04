@@ -27,7 +27,7 @@ UI フレームワーク非依存の共通基盤の型を提供するライブ�
 
 - .NET 10 / C# 14
 - Microsoft.Extensions.Logging.Abstractions（`LoggerFallback` のロガー抽象のみ。 Microsoft 公式パッケージ）
-- System.Drawing.Common（`Native/Imaging` の `System.Drawing.Bitmap` 変換のみ。 Microsoft 公式パッケージ。 Windows 専用）
+- System.Drawing.Common（`src/EsUtil.Platform.Core/src/Native/Imaging` の `System.Drawing.Bitmap` 変換のみ。 Microsoft 公式パッケージ。 Windows 専用）
 - UI フレームワークは一切参照しない
 
 ## 3. アーキテクチャ
@@ -39,7 +39,7 @@ graph LR
 
 - `EsUtil.Platform.Core` は他プロジェクトへ依存しない末端の共有ライブラリです。
 - 各 UI 実装は、コア型と自身の型（例: `Avalonia.Input.Key` / `Avalonia.Point` / `IPlatformHandle`）を相互変換する Interop 層を個別に用意します（本プロジェクトは UI 型を参照しません）。
-- サービス抽象（`ICaptureService` 等）とその Windows 実装（Win32）は、本プロジェクトの `Native/` 配下が提供します。 **実行時のプラットフォーム分岐（ファクトリ）を持たず、ホストが `Native/Win` の具象を生成して抽象型として注入します**。 テストは抽象を実装したモックを注入するため、Win32 実行環境を必要としません。
+- サービス抽象（`ICaptureService` 等）とその Windows 実装（Win32）は、本プロジェクトの `src/EsUtil.Platform.Core/src/Native` 配下が提供します。 **実行時のプラットフォーム分岐（ファクトリ）を持たず、ホストが `src/EsUtil.Platform.Core/src/Native/Win` の具象を生成して抽象型として注入します**。 テストは抽象を実装したモックを注入するため、Win32 実行環境を必要としません。
 
 ## 4. コンポーネント構成
 

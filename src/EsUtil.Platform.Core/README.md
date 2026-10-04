@@ -6,7 +6,7 @@ UI フレームワーク非依存の **共通基盤の型**（キーと入力・
 
 UI フレームワークに依存していた型を本プロジェクトへ切り出すことで、上位のアプリ・コントロールから、UI フレームワーク非依存のまま利用できます。
 
-**実行時のプラットフォーム分岐を持ちません**。 OS サービスの Windows 実装（`Native/Win`）はホストが生成して抽象型として注入します。 テストはモックを注入できるため、Win32 実行環境を必要としません。
+**実行時のプラットフォーム分岐を持ちません**。 OS サービスの Windows 実装（`src/EsUtil.Platform.Core/src/Native/Win`）はホストが生成して抽象型として注入します。 テストはモックを注入できるため、Win32 実行環境を必要としません。
 
 ## 2. 使い方
 
@@ -45,7 +45,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 
 ## 4. 依存
 
-- 外部パッケージは Microsoft 公式のみです（`Microsoft.Extensions.Logging.Abstractions`、`Native/Imaging` の `System.Drawing.Common`）。
+- 外部パッケージは Microsoft 公式のみです（`Microsoft.Extensions.Logging.Abstractions`、`src/EsUtil.Platform.Core/src/Native/Imaging` の `System.Drawing.Common`）。
 - UI フレームワーク（Avalonia / MewUI / WinUI / WinForms）と SkiaSharp を参照しません（Skia への依存は Skia を使用する層が単一所有する）。
 - 他のプロジェクトは本プロジェクトへ依存します（本プロジェクトは他のプロジェクトを参照しません）。
 

@@ -2,37 +2,35 @@
 
 ## 目次
 
-- [MarqueeControl システム仕様書（SPEC\_System）](#esutilfeaturemarqueecontrolavaloniaui-システム仕様書)
-  - [目次](#目次)
-  - [1. システム概要](#1-システム概要)
-  - [2. 技術スタック](#2-技術スタック)
-  - [3. アーキテクチャ](#3-アーキテクチャ)
-    - [3.1 レイヤー構造](#31-レイヤー構造)
-    - [3.2 依存方向](#32-依存方向)
-  - [4. 例外処理ポリシー](#4-例外処理ポリシー)
-    - [4.1 基本方針](#41-基本方針)
-    - [4.2 本プロジェクト固有の例外処理](#42-本プロジェクト固有の例外処理)
-  - [5. コンポーネント図](#5-コンポーネント図)
-  - [6. コンポーネント一覧](#6-コンポーネント一覧)
-    - [6.1 MarqueeControl](#61-marqueecontrol)
-    - [6.2 MarqueeCore（公開ファサード・コア）](#62-marqueecore公開ファサードコア)
-    - [6.3 MarqueeState](#63-marqueestate)
-    - [6.4 MarqueeSelection](#64-marqueeselection)
-    - [6.5 MarqueePresenter（EsUtil.Feature.Marquee.Presenter）](#65-marqueepresenteresutilfeaturemarqueepresenter)
-    - [6.6 MarqueeAppearance（EsUtil.Feature.Marquee.Presenter）](#66-marqueeappearanceesutilfeaturemarqueepresenter)
-    - [6.7 MarqueePresenter.LabelPlan（EsUtil.Feature.Marquee.Presenter）](#67-marqueepresenterlabelplanesutilfeaturemarqueepresenter)
-    - [6.8 ラベル要素の配置（本コントロールの内部実装）](#68-ラベル要素の配置本コントロールの内部実装)
-    - [6.9 MarqueeContextPainter（本プロジェクト）](#69-marqueecontextpainter本プロジェクト)
-    - [6.10 MarqueeCore（コアの幾何解決）](#610-marqueecoreコアの幾何解決)
-    - [6.11 MarqueeHitTarget](#611-marqueehittarget)
-    - [6.12 公開イベント引数](#612-公開イベント引数)
-  - [7. 依存ルール](#7-依存ルール)
-  - [8. ライフサイクル](#8-ライフサイクル)
-    - [8.1 状態の初期化と破棄（所有権）](#81-状態の初期化と破棄所有権)
-  - [9. ログ](#9-ログ)
-    - [9.1 ログ定義一覧](#91-ログ定義一覧)
-      - [コア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）](#コアesutilfeaturemarqueecoreloggingmarqueelogmessage)
-      - [提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）](#提示層esutilfeaturemarqueepresenterloggingmarqueepresenterlogmessage)
+- [1. システム概要](#1-システム概要)
+- [2. 技術スタック](#2-技術スタック)
+- [3. アーキテクチャ](#3-アーキテクチャ)
+  - [3.1 レイヤー構造](#31-レイヤー構造)
+  - [3.2 依存方向](#32-依存方向)
+- [4. 例外処理ポリシー](#4-例外処理ポリシー)
+  - [4.1 基本方針](#41-基本方針)
+  - [4.2 本プロジェクト固有の例外処理](#42-本プロジェクト固有の例外処理)
+- [5. コンポーネント図](#5-コンポーネント図)
+- [6. コンポーネント一覧](#6-コンポーネント一覧)
+  - [6.1 MarqueeControl](#61-marqueecontrol)
+  - [6.2 MarqueeCore（公開ファサード・コア）](#62-marqueecore公開ファサードコア)
+  - [6.3 MarqueeState](#63-marqueestate)
+  - [6.4 MarqueeSelection](#64-marqueeselection)
+  - [6.5 MarqueePresenter（EsUtil.Feature.Marquee.Presenter）](#65-marqueepresenteresutilfeaturemarqueepresenter)
+  - [6.6 MarqueeAppearance（EsUtil.Feature.Marquee.Presenter）](#66-marqueeappearanceesutilfeaturemarqueepresenter)
+  - [6.7 MarqueePresenter.LabelPlan（EsUtil.Feature.Marquee.Presenter）](#67-marqueepresenterlabelplanesutilfeaturemarqueepresenter)
+  - [6.8 ラベル要素の配置（本コントロールの内部実装）](#68-ラベル要素の配置本コントロールの内部実装)
+  - [6.9 MarqueeContextPainter（本プロジェクト）](#69-marqueecontextpainter本プロジェクト)
+  - [6.10 MarqueeCore（コアの幾何解決）](#610-marqueecoreコアの幾何解決)
+  - [6.11 MarqueeHitTarget](#611-marqueehittarget)
+  - [6.12 公開イベント引数](#612-公開イベント引数)
+- [7. 依存ルール](#7-依存ルール)
+- [8. ライフサイクル](#8-ライフサイクル)
+  - [8.1 状態の初期化と破棄（所有権）](#81-状態の初期化と破棄所有権)
+- [9. ログ](#9-ログ)
+  - [9.1 ログ定義一覧](#91-ログ定義一覧)
+    - [9.1.1 コア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）](#911-コアesutilfeaturemarqueecoreloggingmarqueelogmessage)
+    - [9.1.2 提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）](#912-提示層esutilfeaturemarqueepresenterloggingmarqueepresenterlogmessage)
 
 ---
 
@@ -343,7 +341,7 @@ sequenceDiagram
 
 ### 9.1 ログ定義一覧
 
-#### コア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）
+#### 9.1.1 コア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）
 
 | レベル | メソッド | 出力内容 |
 | --- | --- | --- |
@@ -358,7 +356,7 @@ sequenceDiagram
 | `Trace` | `MarqueeLogMessage.LogPositionAfterUp` | Up 直後のマウス位置 |
 | `Debug` | `MarqueeLogMessage.LogSettingChanged` | 設定値変更（変更前後） |
 
-#### 提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）
+#### 9.1.2 提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）
 
 | レベル | メソッド | 出力内容 |
 | --- | --- | --- |
