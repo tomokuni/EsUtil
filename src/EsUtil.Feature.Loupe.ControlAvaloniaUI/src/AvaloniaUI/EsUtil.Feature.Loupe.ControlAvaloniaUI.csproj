@@ -22,20 +22,6 @@
     <ProjectReference Include="..\..\..\Platform.AvaloniaUI\src\Platform.AvaloniaUI.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- tests/ は独立したテストプロジェクトのため、本プロジェクトのコンパイル対象から除外する（src/ の外） -->
-    <Compile Remove="..\tests\**" />
-    <None Remove="..\tests\**" />
-    <Page Remove="..\tests\**" />
-    <AvaloniaXaml Remove="..\tests\**" />
-    <EmbeddedResource Remove="..\tests\**" />
-    <!-- sample/ は独立したサンプルアプリケーションのため、本プロジェクトのコンパイル対象から除外する（src/ の外） -->
-    <Compile Remove="..\sample\**" />
-    <None Remove="..\sample\**" />
-    <Page Remove="..\sample\**" />
-    <AvaloniaXaml Remove="..\sample\**" />
-    <EmbeddedResource Remove="..\sample\**" />
-  </ItemGroup>
 
   <ItemGroup>
     <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->

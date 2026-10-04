@@ -18,12 +18,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- tests/ は独立したテストプロジェクトのため、本プロジェクトのコンパイル対象から除外する（src/ の外） -->
-    <Compile Remove="..\tests\**" />
-    <None Remove="..\tests\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
     <InternalsVisibleTo Include="EsUtil.Platform.Core.Tests" />
   </ItemGroup>
