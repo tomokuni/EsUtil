@@ -10,31 +10,15 @@ namespace EsUtil.Platform.Core.Geometry;
 /// <b>注意</b>: <c>IReadOnlyList&lt;T&gt;</c> を実装させないこと（値型をインターフェース経由で扱うとボックス化が発生する）。
 /// </remarks>
 /// <remarks>4 辺の矩形を指定して初期化する。</remarks>
-/// <param name="top">上辺の矩形。</param>
-/// <param name="bottom">下辺の矩形。</param>
-/// <param name="left">左辺の矩形。</param>
-/// <param name="right">右辺の矩形。</param>
-public readonly record struct EsRectEdges(EsRect top, EsRect bottom, EsRect left, EsRect right)
+/// <param name="Top">上辺の矩形（矩形の上端に置く、高さが太さ分の矩形）。</param>
+/// <param name="Bottom">下辺の矩形（矩形の下端に置く、高さが太さ分の矩形）。</param>
+/// <param name="Left">左辺の矩形（上下の辺の内側へ収まる、幅が太さ分の矩形）。</param>
+/// <param name="Right">右辺の矩形（上下の辺の内側へ収まる、幅が太さ分の矩形）。</param>
+public readonly record struct EsRectEdges(EsRect Top, EsRect Bottom, EsRect Left, EsRect Right)
 {
     /// <summary>辺の本数（常に 4）。</summary>
     /// <value>4。</value>
     public const int Count = 4;
-
-    /// <summary>上辺の矩形を取得する。</summary>
-    /// <value>矩形の上端に置く、高さが太さ分の矩形。</value>
-    public EsRect Top { get; } = top;
-
-    /// <summary>下辺の矩形を取得する。</summary>
-    /// <value>矩形の下端に置く、高さが太さ分の矩形。</value>
-    public EsRect Bottom { get; } = bottom;
-
-    /// <summary>左辺の矩形を取得する。</summary>
-    /// <value>上下の辺の内側へ収まる、幅が太さ分の矩形。</value>
-    public EsRect Left { get; } = left;
-
-    /// <summary>右辺の矩形を取得する。</summary>
-    /// <value>上下の辺の内側へ収まる、幅が太さ分の矩形。</value>
-    public EsRect Right { get; } = right;
 
     /// <summary>列挙順（上・下・左・右）で辺の矩形を取得する。</summary>
     /// <param name="index">0〜3 の位置（0 = 上 / 1 = 下 / 2 = 左 / 3 = 右）。</param>

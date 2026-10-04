@@ -73,8 +73,10 @@ public static class TestHelper
     /// <summary>ログ出力を収集するテスト用 ILogger 実装（例外ログの検証用）。</summary>
     public sealed class ListLogger : ILogger
     {
-        /// <summary>収集したログメッセージ。</summary>
-        public List<string> Messages { get; } = [];
+        /// <summary>収集したログメッセージ（読み取り専用で公開し、追加は本クラスだけが行う）。</summary>
+        public IReadOnlyList<string> Messages => _messages;
+
+        private readonly List<string> _messages = [];
 
         /// <summary>Error レベルのログが記録されたか。</summary>
         public bool HasError { get; private set; }
@@ -110,7 +112,7 @@ public static class TestHelper
                 }
             }
 
-            Messages.Add(formatter(state, exception));
+            _messages.Add(formatter(state, exception));
             if (logLevel == LogLevel.Error)
             {
                 HasError = true;

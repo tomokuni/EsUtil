@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>EsUtil.Feature.Marquee.AvaloniaUI</RootNamespace>
-    <AssemblyName>EsUtil.Feature.Marquee.ControlAvaloniaUI</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

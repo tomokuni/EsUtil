@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>EsUtil.Feature.Loupe</RootNamespace>
-    <AssemblyName>EsUtil.Feature.Loupe.Presenter</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>

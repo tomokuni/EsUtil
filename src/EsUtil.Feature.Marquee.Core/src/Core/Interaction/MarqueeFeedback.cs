@@ -52,17 +52,17 @@ internal readonly record struct MarqueeFeedback
     /// </remarks>
     internal void ApplyCursor(ICursorService cursor, IMarqueeEffects effects)
     {
-        if (Cursor.HasFlag(MarqueeCursorActions.MoveTo))
+        if ((Cursor & MarqueeCursorActions.MoveTo) != 0)
         {
             cursor.SetCursorScreenPoint(effects.ToScreenPoint(CursorSourcePosition));
         }
 
-        if (Cursor.HasFlag(MarqueeCursorActions.Hide))
+        if ((Cursor & MarqueeCursorActions.Hide) != 0)
         {
             cursor.ShowCursor(false);
         }
 
-        if (Cursor.HasFlag(MarqueeCursorActions.Show))
+        if ((Cursor & MarqueeCursorActions.Show) != 0)
         {
             cursor.ShowCursor(true);
         }
