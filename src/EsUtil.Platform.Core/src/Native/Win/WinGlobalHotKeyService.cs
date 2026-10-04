@@ -51,6 +51,7 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
     /// <inheritdoc/>
     public void RegisterAll(IReadOnlyList<(T Action, HotKeySetting Setting)> registrations)
     {
+        ArgumentNullException.ThrowIfNull(registrations);
         // 全解除は一度だけ行う（RegisterCore 内では解除しない。 空辞書の無駄なスキャンを回避）
         UnregisterAll();
         foreach (var (action, setting) in registrations)

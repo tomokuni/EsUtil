@@ -168,14 +168,14 @@ public class LoupeControlTests
     /// 描画面（物理ピクセル）と割り当て領域（DIP）の比を唯一の算出元にする。
     /// </remarks>
     [Fact]
-    internal void ApplySurfaceScaling_描画面の比を実効倍率として保持する()
+    internal void ApplyClientPixelScaling_描画面の比を実効倍率として保持する()
     {
         // 125% の環境: 240 DIP の要素の描画面は 300 物理ピクセルになる
         var control = new LoupeControl { Options = LoupeOptions.Default with { RequestedSize = 240 } };
         Layout(control, 240);
         Assert.Equal(ClientToPixelScalingDefault, control.ClientToPixelScaling);
 
-        var scaling = control.ApplySurfaceScaling(new SKImageInfo(300, 300));
+        var scaling = control.ApplyClientPixelScaling(new SKImageInfo(300, 300));
 
         Assert.Equal(1.25, scaling, 3);
         Assert.Equal(1.25, control.ClientToPixelScaling, 3);
@@ -183,13 +183,13 @@ public class LoupeControlTests
 
     /// <summary>描画面の比が保持値と一致する場合はそのまま返すことを検証する。</summary>
     [Fact]
-    internal void ApplySurfaceScaling_一致する場合は保持値をそのまま返す()
+    internal void ApplyClientPixelScaling_一致する場合は保持値をそのまま返す()
     {
         // 等倍（96 DPI）の環境: 240 DIP の要素の描画面は 240 物理ピクセルになる
         var control = new LoupeControl { Options = LoupeOptions.Default with { RequestedSize = 240 } };
         Layout(control, 240);
 
-        var scaling = control.ApplySurfaceScaling(new SKImageInfo(240, 240));
+        var scaling = control.ApplyClientPixelScaling(new SKImageInfo(240, 240));
 
         Assert.Equal(ClientToPixelScalingDefault, scaling, 3);
         Assert.Equal(ClientToPixelScalingDefault, control.ClientToPixelScaling, 3);
@@ -201,14 +201,14 @@ public class LoupeControlTests
     /// 物理ピクセルサイズを決めるため、ルーペ領域（描画面）と拡大画像の大きさが一致する。
     /// </remarks>
     [Fact]
-    internal void ApplySurfaceScaling_倍率とDIPの積が描画面と一致する()
+    internal void ApplyClientPixelScaling_倍率とDIPの積が描画面と一致する()
     {
         var control = new LoupeControl { Options = LoupeOptions.Default with { RequestedSize = 180 } };
         Layout(control, 180);
 
         // 180 DIP × 1.25 = 225 物理ピクセル（切り上げなしで一致する値を使う）
         var info = new SKImageInfo(225, 225);
-        var scaling = control.ApplySurfaceScaling(info);
+        var scaling = control.ApplyClientPixelScaling(info);
 
         Assert.Equal(info.Width, scaling * control.Bounds.Size.Width, 3);
     }

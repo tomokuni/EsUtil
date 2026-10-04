@@ -110,6 +110,8 @@ public sealed partial class LoupeCore
         get => _options;
         set
         {
+            ArgumentNullException.ThrowIfNull(value);
+
             if (SetIfChanged(ref _options, value, out var previous))
             {
                 Log.LogOptionsChanged(previous, value);

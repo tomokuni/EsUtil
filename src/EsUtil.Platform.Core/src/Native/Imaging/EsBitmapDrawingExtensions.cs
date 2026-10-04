@@ -29,6 +29,8 @@ public static class EsBitmapDrawingExtensions
     [SupportedOSPlatform("windows")]
     public static EsBitmap ToEsBitmap(this DrawingBitmap bitmap)
     {
+        ArgumentNullException.ThrowIfNull(bitmap);
+
         var w = bitmap.Width;
         var h = bitmap.Height;
         var data = bitmap.LockBits(new DrawingRect(0, 0, w, h), DrawingImageLockMode.ReadOnly, DrawingPixelFormat.Format32bppPArgb);
@@ -76,6 +78,7 @@ public static class EsBitmapDrawingExtensions
     [SupportedOSPlatform("windows")]
     public static DrawingBitmap ToDrawingBitmap(this EsBitmap bitmap)
     {
+        ArgumentNullException.ThrowIfNull(bitmap);
         bitmap.ThrowIfDisposed();
         var width = bitmap.Size.Width;
         var height = bitmap.Size.Height;

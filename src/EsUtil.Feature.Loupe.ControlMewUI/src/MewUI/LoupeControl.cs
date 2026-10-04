@@ -399,7 +399,7 @@ public sealed class LoupeControl : Panel
     /// 描画面（物理ピクセル）と割り当て領域（DIP）の比は実際に描くときの倍率そのものであるため、こちらを保持値とする<br/>
     /// （保持値の変更はファサードへ伝搬されるため、拡大画像の物理ピクセルサイズの算出元は 1 つに保たれる）。
     /// </remarks>
-    internal double ApplySurfaceScaling(SKImageInfo info)
+    internal double ApplyClientPixelScaling(SKImageInfo info)
     {
         var resolved = ClientPixelScale.Resolve(info.Width, Bounds.Size.Width, ClientToPixelScaling);
 
@@ -432,7 +432,7 @@ public sealed class LoupeControl : Panel
         // （表面は要素の大きさそのものであるため、要素の大きさと描画サイズが一致する）。
         // 倍率は描画面と割り当て領域（DIP）の比から求め、保持値とファサードへも反映する
         // （反映しないと、拡大画像がルーペ領域より小さい倍率で描かれる）。
-        var scaling = ApplySurfaceScaling(info);
+        var scaling = ApplyClientPixelScaling(info);
         var plan = _presenter.ResolveDrawPlan(
             DpiScaler.ToDip(info.Size.ToEsSize(), scaling).Width, MewUITextMeasure.Measure);
 
