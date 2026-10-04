@@ -2,8 +2,21 @@ namespace EsUtil.Platform.Core;
 
 /// <summary>UI フレームワーク非依存のキー識別子。</summary>
 /// <remarks>
-/// メンバー名は Avalonia.Input.Key と同一にし、ホットキー設定の文字列表現・シリアライズの互換性を保つ。<br/>
-/// 各 UI 実装（Avalonia/MewUI）は、自身のキー型との相互変換を Interop 層で提供する。<br/>
+/// メンバー集合と名前は <c>Avalonia.Input.Key</c> と<b>完全に一致</b>する（実測 2026-10-05: 両者とも 223 メンバー・差分 0）。<br/>
+/// 値は列挙の序数であり、<b>順序に意味を持たせない</b>（キー体系をまたぐ数値の対応は保証されない）。 対応付けは名前で行う。<br/>
+/// <br/>
+/// <b>他のキー体系との関係（実測 2026-10-05）</b>:<br/>
+/// - <c>System.Windows.Input.Key</c>（.NET / WPF。 202 メンバー）… <b>本型が上位互換</b>である（本型のみ 21 件 = <c>Fn*Arrow</c> 4 / <c>Media*</c> 17）。<br/>
+/// - <c>Aprillz.MewUI.Key</c>（MewUI。 91 メンバー）… <b>本型が上位互換</b>である（本型のみ 133 件。 名前が異なる組は <c>Back</c> ⇔ <c>Backspace</c> の 1 組のみ）。<br/>
+/// - <c>Windows.System.VirtualKey</c>（WinUI 3 が使う WinRT 射影。 172 メンバー）… 値は Win32 仮想キーコードそのものだが、<br/>
+///   名前は別体系（88 件が不一致。 例: <c>D0</c> ⇔ <c>Number0</c> / <c>NumLock</c> ⇔ <c>NumberKeyLock</c>）であり、<br/>
+///   <b>記号キー（<c>Oem*</c>）とメディア キー（<c>Volume*</c> / <c>Media*</c> / <c>Launch*</c>）を持たず</b>、<br/>
+///   代わりにキー以外の入力（マウス ボタン 5・ゲームパッド 32）が混在するため、本型の基盤にはしない。<br/>
+///   Win32 仮想キーコードへの変換は <c>WinNative.KeyToWin32VirtualKey</c> が単一所有する（本型の値は序数のため直接使えない）。<br/>
+/// <br/>
+/// <b>変換</b>: 各 UI 実装は自身のキー型との相互変換を Interop 層で提供する（<b>名前ベース</b>である理由は、<br/>
+/// ホットキーを <c>JsonStringEnumConverter</c> が名前で保存するため。 名前を変えると既存の設定ファイルが読めなくなる）。<br/>
+/// <b>追加・改名の方針</b>: <c>Avalonia.Input.Key</c> に追随する（追随漏れは往復テストが検出する）。
 /// </remarks>
 public enum EsKey
 {

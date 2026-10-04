@@ -45,7 +45,7 @@ graph LR
 
 | ファイル | 内容 |
 | --- | --- |
-| `EsKey.cs` | UI フレームワーク非依存のキー識別子（列挙型）。 `Avalonia.Input.Key` と同名のメンバーを持つ |
+| `EsKey.cs` | UI フレームワーク非依存のキー識別子（列挙型）。 `Avalonia.Input.Key` と名前集合が完全一致し（223 メンバー）、WPF / MewUI のキー型の上位互換である（往復テストが追随を強制する） |
 | `EsWindowState.cs` | UI フレームワーク非依存のウィンドウ表示状態（列挙型）。 `Avalonia.Controls.WindowState` と同名のメンバーを持つ |
 | `HotKeyModifiers.cs` | ホットキー修飾キーのフラグ列挙型 |
 | `HotKeySetting.cs` | ホットキー設定の値オブジェクト（record） |
