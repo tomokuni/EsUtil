@@ -58,7 +58,7 @@
 | `Options` | 選択の設定（寸法・対話パラメータ）。 コアへ委譲する |
 | `ClientToSourceScaling` / `HighlightSourceRect` | 環境値・ホストが与える実行時状態。 コアへ委譲する |
 | `Log` | ロガー。 null は `NullLogger` へ吸収される。 **コンストラクターで未注入の場合は初回の設定時に本層とコアの生成を 1 度だけ記録する** |
-| `Notified` | 通知（`MarqueeNotice`）。 UI 層は自 UI の公開イベントへ転送する |
+| `Subscribe` | 通知（`MarqueeNotice`）の購読（`IDisposable`。 解除は `Dispose`）。 UI 層は自 UI の公開イベントへ転送する |
 | `HasSelection` / `SelectionSourceRect` / `CreateSnapshot(EsPoint?)` | 状態の読み取り |
 | `SetCoordTransform(ICoordTransform?)` / `ToSource(EsPoint)` / `ToDip(EsPoint)` | 座標変換（コアへ委譲） |
 | `Press(EsPoint, int)` / `Move(EsPoint)` / `Release(EsPoint)` / `KeyDown(EsKey, EsPoint?)` / `EndNudge()` | 入力の転送（コアへ委譲） |

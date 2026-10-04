@@ -22,11 +22,13 @@ public interface IGlobalHotKeyService<T> : IDisposable where T : notnull
     /// <summary>全ホットキーを解除する。</summary>
     void UnregisterAll();
 
-    /// <summary>ホットキーが押下されたときに発生する。</summary>
+    /// <summary>ホットキーの押下を購読する。</summary>
+    /// <param name="onPressed">押下されたホットキーに対応するアクションを受け取る処理。</param>
+    /// <returns>購読を解除する <see cref="IDisposable"/>。</returns>
     /// <remarks>
     /// WM_HOTKEY メッセージを受信した実装が、対応するアクションを配信する。<br/>
-    /// <b>素のデリゲート（<see cref="Action{T}"/>）で公開する</b>: 本層（最下層）は UI 非依存であり、
-    /// <see cref="System.EventHandler{T}"/> の規約（sender と <see cref="EventArgs"/>）を強制しない。
+    /// <b><c>event</c> を使わない理由</b>: 配信するのはホットキーに割り当てた識別子（<typeparamref name="T"/>）であり、
+    /// これを <see cref="EventArgs"/> 派生のクラスへ包むと本層（UI 非依存）の公開面が増えるため。
     /// </remarks>
-    event Action<T>? HotKeyPressed;
+    IDisposable Subscribe(Action<T> onPressed);
 }

@@ -7,7 +7,7 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <summary>Windows 実装の <see cref="IGlobalHotKeyService{T}"/>。</summary>
 /// <remarks>
 /// RegisterHotKey / UnregisterHotKey Win32 API でホットキーを登録管理し、<br/>
-/// WndProc サブクラス化で WM_HOTKEY メッセージを捕捉して <see cref="HotKeyPressed"/> で配信する。<br/>
+/// WndProc サブクラス化で WM_HOTKEY メッセージを捕捉して <see cref="Subscribe"/> の購読者へ配信する。<br/>
 /// P/Invoke 呼び出しは <c>EsUtil.Platform.Core.Native.Win.WinNative</c> に委譲する。<br/>
 /// デリゲートはフィールドに保持し、WndProc の呼び出し中に GC されないようにする。<br/>
 /// <b>OS 操作の失敗は記録する</b>（登録・解除・WndProc の差し替え）。 登録の失敗は他のアプリが同じ組み合わせを<br/>
@@ -23,11 +23,12 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
     private WinNative.WndProcDelegate? _wndProcDelegate;
     private int _currentId;
     private readonly Dictionary<int, T> _registeredHotKeys = [];
+    private readonly CallbackList<T> _pressed = new();
     private readonly ILogger _log = logger.OrNullLogger();
     private bool _disposed;
 
     /// <inheritdoc/>
-    public event Action<T>? HotKeyPressed;
+    public IDisposable Subscribe(Action<T> onPressed) => _pressed.Add(onPressed);
 
     /// <inheritdoc/>
     public void Initialize(IntPtr hWnd)
@@ -78,6 +79,7 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
         {
             UnregisterAll();
             Detach();
+            _pressed.Clear();
             _disposed = true;
         }
     }
@@ -101,7 +103,7 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
         {
             var id = checked((int)wParam);
             if (_registeredHotKeys.TryGetValue(id, out var action))
-                HotKeyPressed?.Invoke(action);
+                _pressed.Raise(action);
             return new IntPtr(1);
         }
         return WinNative.CallWindowProc(_originalWndProc, hWnd, msg, wParam, lParam);
@@ -110,7 +112,7 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
     /// <summary>1件のホットキーを登録する。</summary>
     /// <remarks>
     /// <see cref="RegisterAll"/> が事前に全解除しているため、個別解除は行わない。<br/>
-    /// 登録に失敗した場合は記録する（失敗したホットキーは <see cref="HotKeyPressed"/> を発火しない）。
+    /// 登録に失敗した場合は記録する（失敗したホットキーは <see cref="Subscribe"/> の購読者へ配信されない）。
     /// </remarks>
     private void RegisterCore(T action, HotKeySetting setting)
     {

@@ -11,7 +11,7 @@ namespace EsUtil.Feature.Marquee.Core.Interaction;
 /// <summary>Marquee の対話（選択・ドラッグ・nudge）の状態を管理し、入力を通知されて状態を更新する状態管理クラス（Mediator パターン: 入力と状態の仲介）。</summary>
 /// <remarks>
 /// 提供機能: UI 層から入力（ポインター押下・移動・解放・ホイール以外のキー）を通知されると、状態を更新し、<br/>
-/// 「上位へ伝える通知（<see cref="Notified"/>）」と「画面へ反映する効果（<see cref="MarqueeFeedback"/>）」を返す。<br/>
+/// 「上位へ伝える通知（<see cref="Subscribe"/>）」と「画面へ反映する効果（<see cref="MarqueeFeedback"/>）」を返す。<br/>
 /// <br/>
 /// 責務の境界:<br/>
 /// - 本クラス: 入力の解釈と状態遷移の判断（nudge セッションの開始・終了、ダブルクリックの確定/キャンセル、<br/>
@@ -47,8 +47,19 @@ internal sealed class MarqueeSession
         Options = options ?? MarqueeOptions.Default;
     }
 
-    /// <summary>上位（UI 層）へ伝える通知。 UI 層は自 UI の公開イベントへ転送する。</summary>
-    internal event Action<MarqueeNotice>? Notified;
+    /// <summary>上位（UI 層）へ伝える通知の購読（値型の通知のため <c>event</c> を使わない）。</summary>
+    private readonly CallbackList<MarqueeNotice> _notified = new();
+
+    /// <summary>上位（UI 層）へ伝える通知を購読する。</summary>
+    /// <param name="notify">通知を受け取る処理。</param>
+    /// <returns>購読を解除する <see cref="IDisposable"/>。</returns>
+    /// <remarks>
+    /// <b><c>event</c> を使わない理由</b>: <see cref="MarqueeNotice"/> は値型（<c>record struct</c>）であり、
+    /// <see cref="System.EventHandler{T}"/> の <c>T</c>（<see cref="EventArgs"/> 派生）にできない。<br/>
+    /// 値型のまま通知するため、ポインター移動のたびにヒープを確保しない
+    /// （<c>MarqueeCoreTests.Move_ポインター移動はヒープを確保しない</c> が担保する）。
+    /// </remarks>
+    internal IDisposable Subscribe(Action<MarqueeNotice> notify) => _notified.Add(notify);
 
     /// <summary>選択・ドラッグ・nudge の状態（本クラスが内部で使用する状態機械）。</summary>
     /// <value>状態機械。 外部は <see cref="CreateSnapshot"/> または各読み取りプロパティを使う。</value>
@@ -592,15 +603,15 @@ internal sealed class MarqueeSession
     /// <param name="kind">通知の種別。</param>
     /// <param name="position">通知する座標（対象座標）。</param>
     private void NotifyAt(MarqueeNoticeKind kind, EsPoint position)
-        => Notified?.Invoke(new MarqueeNotice(kind, position, _state.CreateSnapshot(position)));
+        => _notified.Raise(new MarqueeNotice(kind, position, _state.CreateSnapshot(position)));
 
     /// <summary>現在のマウス位置で通知を発火する（選択矩形の変更・確定など、通知座標を持たない通知）。</summary>
     /// <param name="kind">通知の種別。</param>
     private void NotifyState(MarqueeNoticeKind kind)
-        => Notified?.Invoke(new MarqueeNotice(kind, _state.LastMousePosition, _state.CreateSnapshot()));
+        => _notified.Raise(new MarqueeNotice(kind, _state.LastMousePosition, _state.CreateSnapshot()));
 
     /// <summary>座標を持たない通知を発火する（キャンセルなど）。</summary>
     /// <param name="kind">通知の種別。</param>
     private void NotifyEmpty(MarqueeNoticeKind kind)
-        => Notified?.Invoke(new MarqueeNotice(kind, default, _state.CreateSnapshot()));
+        => _notified.Raise(new MarqueeNotice(kind, default, _state.CreateSnapshot()));
 }

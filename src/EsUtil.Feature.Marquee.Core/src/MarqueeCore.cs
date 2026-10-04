@@ -31,7 +31,7 @@ namespace EsUtil.Feature.Marquee;
 /// 層の順序に従った描画手順は描画層（本コアを参照する上位の層）が単一所有する。<br/>
 /// <br/>
 /// <b>UI 層の責務</b>: 入力イベントの受付と座標変換（<see cref="ToSource"/> / <see cref="ToDip"/>）、<br/>
-/// <see cref="IMarqueeEffects"/> の実装、通知（<see cref="Notified"/>）の公開イベントへの転送、<br/>
+/// <see cref="IMarqueeEffects"/> の実装、通知（<see cref="Subscribe"/>）の公開イベントへの転送、<br/>
 /// 返された描画内容の反映（図形は描画実装へ委譲、文字はテキスト要素の配置）。<b>描画順はコアの指示に従う</b>。<br/>
 /// <br/>
 /// <b>依存分離</b>: UI 非依存のコア型（<see cref="EsPoint"/> / <see cref="EsRect"/> / <see cref="EsKey"/>）と<br/>
@@ -85,7 +85,6 @@ public sealed partial class MarqueeCore
         _effects = effects;
         _cursor = cursor;
         _session = new MarqueeSession(options ?? MarqueeOptions.Default);
-        _session.Notified += OnSessionNotified;
 
         if (logger is not null)
         {
@@ -94,13 +93,16 @@ public sealed partial class MarqueeCore
         }
     }
 
-    /// <summary>上位（UI 層）へ伝える通知。 UI 層は自 UI の公開イベントへ転送する。</summary>
+    /// <summary>上位（UI 層）へ伝える通知を購読する。 UI 層は自 UI の公開イベントへ転送する。</summary>
+    /// <param name="notify">通知を受け取る処理。</param>
+    /// <returns>購読を解除する <see cref="IDisposable"/>。</returns>
     /// <remarks>
     /// 通知の種別と公開イベントの対応は UI 層が持ち、判断（確定・キャンセル等）は本クラスが済ませている。<br/>
-    /// <b>素のデリゲート（<see cref="Action{T}"/>）で公開する</b>: 本層は UI 非依存であり、<see cref="System.EventHandler{T}"/> の規約
-    /// （sender と <see cref="EventArgs"/>) を強制しない。 UI 層は本通知を自分の <see cref="System.EventHandler{T}"/> イベントへ変換して公開する。
+    /// <b><c>event</c> を使わない理由</b>: <see cref="MarqueeNotice"/> は値型であり <see cref="System.EventHandler{T}"/> の
+    /// <c>T</c>（<see cref="EventArgs"/> 派生）にできない（値型の通知でヒープを確保しないための設計）。<br/>
+    /// UI 層は本通知を自分の <see cref="System.EventHandler{T}"/> イベントへ変換して公開する。
     /// </remarks>
-    public event Action<MarqueeNotice>? Notified;
+    public IDisposable Subscribe(Action<MarqueeNotice> notify) => _session.Subscribe(notify);
 
     /// <summary>設定の変更ログの出力先を取得または設定する。</summary>
     /// <value>ロガー。 null を設定した場合は出力なし（<see cref="LoggerFallback"/> が吸収する）。</value>
@@ -347,10 +349,6 @@ public sealed partial class MarqueeCore
             _effects.SetPointerCapture(feedback.Capture == MarqueeCaptureAction.Capture);
         }
     }
-
-    /// <summary>セッションの通知を本クラスの通知として転送する。</summary>
-    /// <param name="notice">通知（種別・座標・スナップショット）。</param>
-    private void OnSessionNotified(MarqueeNotice notice) => Notified?.Invoke(notice);
 
     /// <summary>生成時の設定を 1 度だけ記録する（既に記録済みの場合は何もしない）。</summary>
     /// <remarks>

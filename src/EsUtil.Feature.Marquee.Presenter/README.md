@@ -50,9 +50,9 @@ protected override void Render(DrawingContext context)
 
 | グループ | 型 |
 | --- | --- |
-| 提示 | `MarqueePresenter`（描画計画の解決。 `sealed` ではない） / `Drawing.MarqueeDrawPlan` / `Drawing.MarqueeDrawLayer` / `Drawing.MarqueeTextPlacement` |
-| 外観 | `Setting.MarqueeAppearance`（色・ラベルの体裁・枠線の太さ・表示可否） |
-| ラベル | `Label.MarqueeLabelPlacement`（配置指示） |
+| 提示 | `MarqueePresenter`（描画計画の解決。 `sealed` ではない） / `MarqueeDrawPlan` / `MarqueeDrawLayer` / `Drawing.MarqueeTextPlacement` |
+| 外観 | `MarqueeAppearance`（色・ラベルの体裁・枠線の太さ・表示可否） |
+| ラベル | `MarqueeLabelPlacement`（配置指示） |
 | ログ | `Logging.MarqueePresenterLogMessage`（internal） |
 
 ## 4. 依存

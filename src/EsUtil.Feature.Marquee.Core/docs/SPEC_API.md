@@ -60,7 +60,7 @@
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
 | `MarqueeCore(IMarqueeEffects, ICursorService?, MarqueeOptions?)` | ctor | `effects` は null 不可。 `cursor` は null 可（カーソル操作を行わない）。 描画実装も外観も受け取らない（描画は UI の関心事であり、本コアは描画 API を持たない） |
-| `Notified` | event | 通知（`MarqueeNotice`） |
+| `Subscribe` | `IDisposable Subscribe(Action<MarqueeNotice>)` | 通知（`MarqueeNotice`）の購読。 解除は戻り値の `Dispose`（値型の通知は `event` を使わない） |
 | `Log` | property | ロガー。 null は `NullLogger` へ吸収される |
 | `Options` | property | 設定。 設定すると対話パラメータを反映し、**変化した項目をログ出力**し、境界外選択の禁止の変化時のみ即時クリップを行う |
 | `ClientToSourceScaling` | property | 座標変換ポート未指定時に適用する倍率。 既定は `Limits.ClientToSourceScalingDefault`（1.0）。 設定時は 0.1〜8.0 へ補正される |

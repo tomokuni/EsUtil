@@ -186,7 +186,7 @@ flowchart TB
   - 設定・環境値の保持: `Options` / `Appearance` / `ClientToSourceScaling` / `DisplayScaleScaling` / `SizeLabelOverrideProvider` / `Log` / `SetCoordTransform`
   - 効果の適用: `IMarqueeEffects`（UI が実装）へフォーカス・再描画・カーソル形状・ポインターキャプチャ・座標変換を要求する（適用順の単一所有）
   - ホイール操作はホストが行う（本コントロールは通知も要求も持たない。 コントロール化を前提とした処理は UI 層の責務である）
-  - 通知: `Notified`（状態機械の通知をそのまま転送する）
+  - 通知: `Subscribe(Action<MarqueeNotice>)`（状態機械の通知をそのまま転送する。 解除は戻り値の `Dispose`）
 - **内部実装**: 状態機械 `MarqueeSession`（`internal`）を保持・利用する（幾何の解決は同じ型の `MarqueeCore.Geometry.cs`（partial）の公開メソッド `CreateRequest` / `ResolveGeometry` として実装する）
 - **可視性**: public（ファサードのみ。 内部の状態機械は `internal` で隠す）
 - **備考**: 設定・効果の適用・通知の転送・描画内容の解決を 1 型に集約したため、UI 層は自 UI の公開プロパティ・公開イベント・描画 API へつなぐだけになる（ホイールは本コントロールも提示層も扱わず、ホスト（UI 層）がビューポートへ転送する）

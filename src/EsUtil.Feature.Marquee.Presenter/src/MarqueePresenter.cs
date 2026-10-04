@@ -160,16 +160,14 @@ public partial class MarqueePresenter
         }
     }
 
-    /// <summary>上位（UI 層）へ伝える通知を取得する。 UI 層は自 UI の公開イベントへ転送する。</summary>
+    /// <summary>上位（UI 層）へ伝える通知を購読する。 UI 層は自 UI の公開イベントへ転送する。</summary>
+    /// <param name="notify">通知を受け取る処理。</param>
+    /// <returns>購読を解除する <see cref="IDisposable"/>。</returns>
     /// <remarks>
-    /// 通知の種別と公開イベントの対応は UI 層が持ち、判断（確定・キャンセル等）はコアが済ませている。<br/>
-    /// <b>素のデリゲート（<see cref="Action{T}"/>）で公開する</b>（理由は <see cref="MarqueeCore.Notified"/> と同じ）。
+    /// 通知の種別と公開イベントの対応は UI 層が持ち、判断（確定・キャンセル等）はコアが済ませている（コアへ委譲する）。<br/>
+    /// <see cref="MarqueeNotice"/> は値型のため <c>event</c> を使わない（<see cref="MarqueeCore.Subscribe"/> と同じ理由）。
     /// </remarks>
-    public event Action<MarqueeNotice>? Notified
-    {
-        add => _core.Notified += value;
-        remove => _core.Notified -= value;
-    }
+    public IDisposable Subscribe(Action<MarqueeNotice> notify) => _core.Subscribe(notify);
 
     // ====================================================================
     // コアへの委譲（設定・状態・環境値）

@@ -410,7 +410,7 @@ OS 依存のカーソル操作を抽象化します（UI フレームワーク�
 | `Initialize` | `void Initialize(IntPtr hWnd)` | ウィンドウハンドルを設定しフックを設定 |
 | `RegisterAll` | `void RegisterAll(IReadOnlyList<(T Action, HotKeySetting Setting)> registrations)` | ホットキーとアクションの対応を登録 |
 | `UnregisterAll` | `void UnregisterAll()` | 全ホットキーを解除 |
-| `HotKeyPressed` | `event Action<T>? HotKeyPressed` | ホットキー押下時に対応するアクションを配信（UI を持たない層のため素のデリゲート） |
+| `Subscribe` | `IDisposable Subscribe(Action<T> onPressed)` | ホットキー押下の購読（値型の通知は `event` を使わない）。 解除は戻り値の `Dispose` |
 
 ### 2.14 `Native.ElementFinderResults`（readonly record struct）
 

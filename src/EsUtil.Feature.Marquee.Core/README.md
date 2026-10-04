@@ -33,7 +33,7 @@ marquee.Release(new EsPoint(400, 300));
 var geometry = marquee.ResolveGeometry(marquee.CreateRequest(new EsSize(800, 600)));
 
 // 通知（公開イベントへ転送する）
-marquee.Notified += notice => Raise(notice);
+marquee.Subscribe(notice => Raise(notice));
 ```
 
 **ホイール操作とビューポートの変化の追従は本コアにありません**（組み込み先が存在して初めて意味を持つ処理のため、ホストがビューポートへ転送します）。
@@ -43,10 +43,10 @@ marquee.Notified += notice => Raise(notice);
 | グループ | 型 |
 | --- | --- |
 | ファサード | `MarqueeCore`（操作の唯一の窓口） / `MarqueeCore.Limits`（既定値・安全域・未設定の解決規則） |
-| 幾何 | `Drawing.MarqueeGeometry` / `Drawing.MarqueeHandles` / `Drawing.MarqueeMarker` / `Drawing.MarqueeRenderRequest` |
-| 効果と通知 | `Contract.IMarqueeEffects` / `Contract.MarqueeEffectsBase` / `Interaction.MarqueeNotice` / `Interaction.MarqueeNoticeKind` / `Interaction.MarqueeCursorKind` |
-| 状態の値 | `Interaction.MarqueeHitTarget` / `Interaction.MarqueeInteractionState` / `Interaction.MarqueeSnapshot` |
-| 設定 | `Setting.MarqueeOptions`（寸法・対話パラメータ。 色・フォント・表示可否は持たない） |
+| 幾何 | `MarqueeGeometry` / `MarqueeHandles` / `MarqueeMarker` / `MarqueeRenderRequest` |
+| 効果と通知 | `IMarqueeEffects` / `Contract.MarqueeEffectsBase` / `MarqueeNotice` / `MarqueeNoticeKind` / `MarqueeCursorKind` |
+| 状態の値 | `MarqueeHitTarget` / `MarqueeInteractionState` / `MarqueeSnapshot` |
+| 設定 | `MarqueeOptions`（寸法・対話パラメータ。 色・フォント・表示可否は持たない） |
 | ログ | `Logging.MarqueeLogMessage`（internal） |
 
 ## 4. 依存

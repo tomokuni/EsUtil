@@ -130,7 +130,7 @@ classDiagram
         +RequestConfirm() / RequestCancel() void
         +SetCoordTransform(port) void
         +ResolveGeometry(request) MarqueeGeometry
-        +Notified
+        +Subscribe(notify) IDisposable
     }
     class IMarqueeEffects {
         <<EsUtil.Feature.Marquee.Core / UI が実装>>
@@ -148,7 +148,7 @@ classDiagram
         +EndNudge() MarqueeFeedback
         +SetSelection(rect) MarqueeFeedback
         +SetPort(port) void
-        +Notified EventHandler~MarqueeNotice~
+        +Subscribe(notify) IDisposable
     }
     class MarqueeNotice {
         <<EsUtil.Feature.Marquee.Core>>

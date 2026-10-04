@@ -170,7 +170,7 @@ public class MarqueeCoreTests
     {
         var marquee = CreateMarquee(null, out _);
         var notices = new List<MarqueeNotice>();
-        marquee.Notified += notice => notices.Add(notice);
+        marquee.Subscribe(notice => notices.Add(notice));
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
         notices.Clear();
 
@@ -197,7 +197,7 @@ public class MarqueeCoreTests
     {
         var marquee = CreateMarquee(null, out var effects);
         var notices = new List<MarqueeNotice>();
-        marquee.Notified += notice => notices.Add(notice);
+        marquee.Subscribe(notice => notices.Add(notice));
 
         var handled = marquee.KeyDown(EsKey.Right, new EsPoint(100, 100));
 
@@ -309,7 +309,7 @@ public class MarqueeCoreTests
     {
         var marquee = CreateMarquee(null, out _);
         var notices = new List<MarqueeNotice>();
-        marquee.Notified += notice => notices.Add(notice);
+        marquee.Subscribe(notice => notices.Add(notice));
 
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
 
@@ -333,7 +333,7 @@ public class MarqueeCoreTests
     {
         var marquee = CreateMarquee(null, out _);
         var notices = new List<MarqueeNotice>();
-        marquee.Notified += notice => notices.Add(notice);
+        marquee.Subscribe(notice => notices.Add(notice));
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
         notices.Clear();
 
@@ -348,7 +348,7 @@ public class MarqueeCoreTests
     {
         var marquee = CreateMarquee(null, out _);
         var notices = new List<MarqueeNotice>();
-        marquee.Notified += notice => notices.Add(notice);
+        marquee.Subscribe(notice => notices.Add(notice));
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
         notices.Clear();
 

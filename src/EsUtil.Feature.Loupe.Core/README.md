@@ -54,9 +54,9 @@ var capture = geometry.MagnifiedImage;   // 切り出し領域・描画元・描
 | グループ | 型 |
 | --- | --- |
 | ファサード | `LoupeCore`（操作の唯一の窓口） / `LoupeCore.Limits`（既定値と安全域・補正） |
-| 描画の幾何 | `Drawing.LoupeGeometry` / `Drawing.LoupeMagnifiedImage` |
-| 設定 | `Setting.LoupeOptions`（表示サイズ・拡大率。 色・フォント・表示可否は持たない） |
-| 表示レイアウト | `Placement.LoupeLayout`（表示サイズと表示位置） |
+| 描画の幾何 | `LoupeGeometry` / `LoupeMagnifiedImage` |
+| 設定 | `LoupeOptions`（表示サイズ・拡大率。 色・フォント・表示可否は持たない） |
+| 表示レイアウト | `LoupeLayout`（表示サイズと表示位置） |
 | ログ | `Logging.LoupeLogMessage`（internal） |
 
 ## 4. 依存

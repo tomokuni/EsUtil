@@ -51,9 +51,9 @@ protected override void Render(DrawingContext context)
 
 | グループ | 型 |
 | --- | --- |
-| 提示 | `LoupePresenter`（描画計画の解決。 `sealed` ではない） / `Drawing.LoupeDrawPlan` / `Drawing.LoupeDrawLayer` / `Drawing.LoupeTextPlacement` |
-| 外観 | `Setting.LoupeAppearance`（色・フォント・角丸・枠線の太さ・ラベルのオフセット・表示可否） |
-| ラベル | `Label.LoupeLabelPlacement`（配置指示） |
+| 提示 | `LoupePresenter`（描画計画の解決。 `sealed` ではない） / `LoupeDrawPlan` / `LoupeDrawLayer` / `Drawing.LoupeTextPlacement` |
+| 外観 | `LoupeAppearance`（色・フォント・角丸・枠線の太さ・ラベルのオフセット・表示可否） |
+| ラベル | `LoupeLabelPlacement`（配置指示） |
 | ログ | `Logging.LoupePresenterLogMessage`（internal） |
 
 ## 4. 依存

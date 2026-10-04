@@ -124,7 +124,7 @@ public sealed partial class MarqueeControl : Panel
             // 現在の環境値（倍率）を提示層へ引き継ぐ（以降の変更はプロパティ変更ハンドラが伝搬する）
             ClientToSourceScaling = GetValue(ClientToSourceScalingProperty)
         };
-        _marquee.Notified += OnNotified;
+        _marquee.Subscribe(OnNotified);
         // 外観（色・ラベル体裁・表示可否）とハイライト矩形（ホストが与える実行時状態）は提示層が単一所有する
         // （本層は公開プロパティを委譲するだけである）
         _marquee.Appearance = GetValue(AppearanceProperty);

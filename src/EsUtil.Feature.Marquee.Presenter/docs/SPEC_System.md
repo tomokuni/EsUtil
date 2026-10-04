@@ -70,7 +70,7 @@ sequenceDiagram
     UI->>P: Press / Move / Release / KeyDown（対象座標）
     P->>M: 入力の転送
     M-->>P: 効果（IMarqueeEffects 経由）・通知
-    P-->>UI: Notified を転送
+    P-->>UI: Subscribe の購読者へ通知
     UI->>H: 公開イベント
     UI->>P: ResolveDrawPlan(描画領域のサイズ, 実寸測定)
     P->>M: CreateRequest(描画領域のサイズ)
