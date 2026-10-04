@@ -17,7 +17,8 @@
 - [9. プロジェクト構成](#9-プロジェクト構成)
   - [9.1 共有コア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）](#91-共有コアesutilfeaturemarqueecoreと提示層esutilfeaturemarqueepresenter)
   - [9.2 装飾（提示層が単一所有する）](#92-装飾提示層が単一所有する)
-- [10. ライセンス](#10-ライセンス)
+- [10. テスト](#10-テスト)
+- [11. ライセンス](#11-ライセンス)
 
 ---
 
@@ -198,6 +199,14 @@ EsUtil.Feature.Marquee.Core/
 
 選択矩形の**外側・内側に描く装飾**（暗転マスク・外枠・ハイライト・内側の塗り）は、選択矩形コントロール単体の概念ではない（撮影オーバーレイ等へ組み込むときの表示である）ため、提示層（`EsUtil.Feature.Marquee.Presenter`）が単一所有します。 装飾の矩形は `MarqueePresenter`（`DrawPlan` partial） が計算し、表示可否と太さと色は外観（`MarqueeAppearance`）が持ち、描画順は `MarqueePresenter` が決めます（詳細は同プロジェクトの `README.md`）。
 
-## 10. ライセンス
+## 10. テスト
+
+`src/EsUtil.Feature.Marquee.ControlAvaloniaUI/tests` が本プロジェクトのテストを持ちます（xUnit v3）。 実行手順と合否基準は [検証手順.md](../../.github/検証手順.md) が定めます。
+
+`powershell
+dotnet test src/EsUtil.Feature.Marquee.ControlAvaloniaUI/tests/AvaloniaUI/EsUtil.Feature.Marquee.ControlAvaloniaUI.Tests.csproj
+`
+
+## 11. ライセンス
 
 MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。

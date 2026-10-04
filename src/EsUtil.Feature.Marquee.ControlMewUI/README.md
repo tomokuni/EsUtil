@@ -3,7 +3,11 @@
 `MarqueeControl`（リサイズ可能なドラッグ矩形）の **MewUI 版**です。 Avalonia 版と同一の UI 非依存コア（`EsUtil.Feature.Marquee.Core`）と描画層（`EsUtil.Feature.Marquee.Presenter`）を使い、
 入力の受付と効果の適用・カーソル制御・描画ポートの適合のみを MewUI で実装しています。 層構成（Core / Presenter / UI）の全体像は [`src/README.md`](../README.md) を参照してください。
 
-## 1. 特徴
+## 1. 概要
+
+`MarqueeControl`（リサイズ可能なドラッグ矩形）の **MewUI 版**です。 UI 非依存のコア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）を共有し、**描画と入力の受付だけ**を MewUI で実装します。
+
+## 2. 特徴
 
 - **コア共有**: 選択矩形の幾何計算・状態機械・**入力の解釈（nudge セッション・確定/キャンセル・スナップ・クリック検出・最小サイズ判定）**は `EsUtil.Feature.Marquee.Core` が単一所有します（UI 層は公開ファサード `MarqueeCore` だけを参照し、内部の状態機械・フレーム解決には触れません）。
   Avalonia 版と MewUI 版の挙動は同じ計算に基づきます。
@@ -13,7 +17,7 @@
 - **DPI 追従**: `OnDpiChanged` でスケーリング係数を更新し、DIP 座標で描画します（枠線・ハンドルの画面上の大きさを保ちます）。
 - **コア型のイベント引数**: イベントの座標は UI 非依存のコア型（`EsPoint` / `EsRect`）で公開します（境界変換が不要）。
 
-## 2. インストール
+## 3. インストール
 
 ```xml
 <PackageReference Include="Aprillz.MewUI.Skia" Version="0.21.1" />
@@ -22,7 +26,7 @@
 
 MewUI は API が安定化中（0.x）のため、パッケージのバージョンは固定してください（`MewUIVersion` プロパティで一元管理）。
 
-## 3. 使い方
+## 4. 使い方
 
 ```csharp
 using EsUtil.Feature.Marquee.MewUI;
@@ -67,7 +71,7 @@ grid.Add(cropView);     // 画像（下）
 grid.Add(marquee);     // 選択オーバーレイ（上。入力を受け取る）
 ```
 
-## 4. 操作
+## 5. 操作
 
 | 操作 | 動作 |
 | --- | --- |
@@ -82,7 +86,7 @@ grid.Add(marquee);     // 選択オーバーレイ（上。入力を受け取る
 
 矢印キーの nudge は本コントロールにフォーカスがある場合のみ動作します（マウス押下時に自動でフォーカスを取得します）。
 
-## 5. Avalonia 版との違い
+## 6. Avalonia 版との違い
 
 | 項目 | Avalonia 版 | MewUI 版 |
 | --- | --- | --- |
@@ -95,7 +99,7 @@ grid.Add(marquee);     // 選択オーバーレイ（上。入力を受け取る
 | 描画 | 中間ビットマップ経由（自 UI の描画 API） | キャンバスへ直接描画（自 UI の描画 API） |
 | 文字（ラベル・座標ラベル）の表示 | UI 層が配置したテキスト要素（`Border` + `TextBlock`） | 同左（図形は `Rendered` の `Content.Layers` の順にコントロールが描く） |
 
-## 6. 主なプロパティ
+## 7. 主なプロパティ
 
 | プロパティ | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
@@ -132,7 +136,7 @@ grid.Add(marquee);     // 選択オーバーレイ（上。入力を受け取る
 
 色は UI 非依存の `System.Drawing.Color` で指定します。 設定の一部だけを変える場合は `MarqueeOptions.Default with { ... }` / `MarqueeAppearance.Default with { ... }` で指定します（指定しない項目は既定値を保つ）。
 
-## 7. 主なメソッド
+## 8. 主なメソッド
 
 | メソッド | 説明 |
 | --- | --- |
@@ -144,7 +148,7 @@ grid.Add(marquee);     // 選択オーバーレイ（上。入力を受け取る
 | `InvalidateRender()` | 描画に関わる変更の唯一の入口（図形の Skia キャンバス・ラベル・配置をまとめて無効化する） |
 | `CurrentSnapshot` | 現在の状態のスナップショット（`MarqueeSnapshot`） |
 
-## 8. イベント
+## 9. イベント
 
 `SelectionStarted` / `SelectionChanged` / `SelectionCompleted` / `SelectionCancelled` /
 `LoupePositionMoved` /
@@ -154,7 +158,7 @@ grid.Add(marquee);     // 選択オーバーレイ（上。入力を受け取る
 
 `Rendered` は描画完了の通知です（描画のたびに発火し、引数の `Content` に装飾・ハンドル・マーカー・ラベルと層の順序が含まれます）。 コントロールの描画中に発火するため、ハンドラ内で描画を完了させます。
 
-## 9. テスト
+## 10. テスト
 
 ```powershell
 dotnet test src/EsUtil.Feature.Marquee.ControlMewUI/tests/MewUI/EsUtil.Feature.Marquee.ControlMewUI.Tests.csproj
@@ -167,7 +171,7 @@ dotnet test src/EsUtil.Feature.Marquee.ControlMewUI/tests/MewUI/EsUtil.Feature.M
 
 入力の解釈（nudge セッション・確定/キャンセル・スナップ・クリック検出・最小サイズ判定）はコアが担うため、その検証は `EsUtil.Feature.Marquee.Core.Tests` が行います。
 
-## 10. 操作ログ
+## 11. 操作ログ
 
 `Log` プロパティへ `ILogger` を設定すると、操作ログを出力します（既定は出力なし）。 書式・レベルは Avalonia 版と同一です。  
 ログはコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）と提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）が定義し、ロガーはファサード（`MarqueeCore.Log`）が保持します。 本プロジェクトはログ定義を持ちません。
@@ -179,12 +183,17 @@ dotnet test src/EsUtil.Feature.Marquee.ControlMewUI/tests/MewUI/EsUtil.Feature.M
 
 定義はコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）と提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）が持ち、本プロジェクトは定義を持ちません。
 
-## 11. 未対応
+## 12. 未対応
 
 - `ScrollViewer` の自動連携を行わない（ホストが変化を検知して `RefreshOverlay()` を呼ぶ）。
 - フォーカス非依存の矢印キー nudge。
   - 文字（ラベル・座標ラベル）の要素配置（UI 層の責務。 配置矩形は描画層 `EsUtil.Feature.Marquee.Presenter` の `MarqueePresenter`（`LabelPlan` partial） が求める）。
 
-## 12. ライセンス
+## 13. ドキュメント
+
+- [docs/SPEC_API.md](docs/SPEC_API.md) — 公開 API のリファレンス
+- [docs/SPEC_System.md](docs/SPEC_System.md) — アーキテクチャ・依存・設計判断
+
+## 14. ライセンス
 
 MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。

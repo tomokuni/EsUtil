@@ -21,7 +21,8 @@
 - [10. サンプルアプリケーション](#10-サンプルアプリケーション)
 - [11. ドキュメント](#11-ドキュメント)
 - [12. プロジェクト構成](#12-プロジェクト構成)
-- [13. ライセンス](#13-ライセンス)
+- [13. テスト](#13-テスト)
+- [14. ライセンス](#14-ライセンス)
 
 ---
 
@@ -229,6 +230,14 @@ src/EsUtil.Feature.Loupe.Core/       # UI フレームワーク非依存の設�
 src/EsUtil.Feature.Loupe.Presenter/     # 描画計画と外観の単一所有（LoupePresenter / LoupeAppearance / LoupeDrawPlan）
 ```
 
-## 13. ライセンス
+## 13. テスト
+
+`src/EsUtil.Feature.Loupe.ControlAvaloniaUI/tests` が本プロジェクトのテストを持ちます（xUnit v3）。 実行手順と合否基準は [検証手順.md](../../.github/検証手順.md) が定めます。
+
+`powershell
+dotnet test src/EsUtil.Feature.Loupe.ControlAvaloniaUI/tests/AvaloniaUI/EsUtil.Feature.Loupe.ControlAvaloniaUI.Tests.csproj
+`
+
+## 14. ライセンス
 
 MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。

@@ -158,3 +158,7 @@ dotnet test src/EsUtil.Feature.Loupe.ControlMewUI/tests/MewUI/EsUtil.Feature.Lou
 - [共有する UI 非依存の描画層](../EsUtil.Feature.Loupe.Presenter/README.md)
 - [対になる Avalonia 版ルーペ](../EsUtil.Feature.Loupe.ControlAvaloniaUI/README.md)
 - [組み込み先のアプリ](../App.MewUI/README.md)
+
+## 11. ライセンス
+
+MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。
