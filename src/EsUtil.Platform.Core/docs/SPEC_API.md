@@ -68,7 +68,7 @@ UI フレームワーク非依存のキー識別子。 **メンバー集合と�
 
 - **他のキー体系とは上位互換の関係**です（実測 2026-10-05）。 `System.Windows.Input.Key`（.NET / WPF。 202 メンバー）と `Aprillz.MewUI.Key`（91 メンバー）は本型の**部分集合**です。
 - `Windows.System.VirtualKey`（WinUI 3 が使う WinRT 射影。 172 メンバー）は**名前が別体系**（88 件が不一致）で、記号キー（`Oem*`）とメディア キー（`Volume*` / `Media*` / `Launch*`）を持たず、キー以外（マウス ボタン・ゲームパッド）が混在するため、本型の基盤にはしません。
-- **Avalonia 側には同じ値を持つ別名が 30 組あります**（`Return` / `Enter`、`CapsLock` / `Capital`、`OemTilde` / `Oem3` 等）。 別名の同一性は保てないため、**変換の契約は「キーの値が保たれる」**とします（代表名へ正規化されます）。
+- **Avalonia 側には同じ値を持つ別名が 29 組あります**（`Return` / `Enter`、`CapsLock` / `Capital`、`OemTilde` / `Oem3` 等。 実測: 223 名に対し異なる値は 194）。 本型は値の指定が無い（連番）ため**重複を持ちません**。 別名の同一性は保てないため、**変換の契約は「キーの値が保たれる」**とします（**代表名へ正規化**され、どの名前が代表かは .NET が保証しません。 実測: 29 組中 10 組が宣言順の先頭と異なる）。 なお順方向（本型 → Avalonia）では 2 つの別名が**同じ値へ衝突**するため、Avalonia 側から元の名前は復元できません。
 - **各 UI 実装は自身のキー型との相互変換を Interop 層で提供**します（名前ベース。 未定義値は `None`）。 Win32 の仮想キーコードへの変換は `Native.Win.WinNative.KeyToWin32VirtualKey` が単一所有します（未対応のキーは `0` = 登録できない値）。
 - **`Avalonia.Input.Key` への追随は往復テストが強制**します（`src/Platform.AvaloniaUI/tests/EsKeyAvaloniaInterop.Tests.cs`。 双方向の名前集合一致・往復・未定義値）。
 
