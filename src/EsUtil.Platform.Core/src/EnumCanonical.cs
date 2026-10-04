@@ -43,4 +43,24 @@ public static class EnumCanonical
 
         return Enum.TryParse(source.ToString(), out target);
     }
+
+    /// <summary>名前（文字列）で列挙型のメンバーを解決する（大文字小文字を区別しない）。</summary>
+    /// <typeparam name="TTarget">解決先の列挙型。</typeparam>
+    /// <param name="name">メンバーの名前。</param>
+    /// <param name="target">解決した値。 解決できなかった場合は <c>default</c>。</param>
+    /// <returns>解決できた場合は true。</returns>
+    /// <remarks>
+    /// 文字列の解釈には <see cref="Enum.TryParse{T}(string, out T)"/> を使うが、<b>数値文字列を受理する</b>ため、<br/>
+    /// 解釈の直後に <see cref="Enum.IsDefined{T}(T)"/> で検査して列挙に無い値（<c>"999"</c>・負値）を拒否する。<br/>
+    /// 文字列を受け取る入口（設定ファイル・ユーザー入力の解釈）は本メソッドを使う。<br/>
+    /// <b>別名（同じ値の複数の名前）の解決</b>は本メソッドの対象外である（名前で値を引くだけであり正規化しない）。<br/>
+    /// 代表名への正規化が必要な場合は列挙値を受ける方の <see cref="TryParse{TSource, TTarget}(TSource, out TTarget)"/> を使う。
+    /// </remarks>
+    public static bool TryParse<TTarget>(string name, out TTarget target)
+        where TTarget : struct, Enum
+    {
+        target = default;
+
+        return Enum.TryParse(name, ignoreCase: true, out target) && Enum.IsDefined(target);
+    }
 }

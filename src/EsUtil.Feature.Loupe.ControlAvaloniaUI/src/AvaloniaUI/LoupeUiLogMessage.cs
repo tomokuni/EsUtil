@@ -38,6 +38,8 @@ internal static partial class LoupeUiLogMessage
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
+    /// LogLevel: Debug<br/>
+    /// 出力書式: <c>[Loupe] Setting: {Name} {OldValue} → {NewValue}</c>
     /// <remarks>本文の書式はコアの設定変更ログと揃える（接頭辞だけが本プロジェクトを表す）。</remarks>
     [LoggerMessage(LogLevel.Debug, "[Loupe] Setting: {Name} {OldValue} → {NewValue}")]
     private static partial void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue);

@@ -2,7 +2,7 @@ namespace EsUtil.Platform.Core;
 
 /// <summary><see cref="EsKey"/> の正規化（値の妥当性へ寄せる）を提供する。</summary>
 /// <remarks>
-/// <b>正規化する理由</b>: <see cref="Enum.TryParse{T}(string, out T)"/> は<b>数値文字列を受理する</b>ため、<br/>
+/// <b>正規化する理由</b>: <see cref="System.Enum"/> の文字列解釈（<c>Enum.TryParse</c>）は<b>数値文字列を受理する</b>ため、<br/>
 /// 文字列から作られた値には列挙に無い値（例: <c>"999"</c> → <c>(EsKey)999</c>）が混入しうる。<br/>
 /// また <see cref="EsKey"/> の別名は存在しない（223 名 = 223 値）が、他のキー体系（<c>Avalonia.Input.Key</c> 等）を<br/>
 /// 経由した値は<b>代表名へ正規化</b>されている（<see cref="EnumCanonical"/> を参照）。<br/>

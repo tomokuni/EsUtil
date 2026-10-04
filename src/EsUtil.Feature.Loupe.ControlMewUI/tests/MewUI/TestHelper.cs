@@ -15,7 +15,7 @@ internal static class TestHelper
     /// <remarks>名称は <c>nameof</c> で参照できない（protected のためアクセス違反になる）。</remarks>
     private static readonly MethodInfo s_setValue = typeof(MewObject)
         .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
-        .First(method => method.Name == "SetValue" && method.IsGenericMethodDefinition && method.GetParameters().Length == 2);
+        .First(method => string.Equals(method.Name, "SetValue", StringComparison.Ordinal) && method.IsGenericMethodDefinition && method.GetParameters().Length == 2);
 
     /// <summary>プロパティの setter を経由せずに値を設定する（MewUI のバインディング基盤と同じ経路の検証用）。</summary>
     /// <typeparam name="T">プロパティの値型。</typeparam>

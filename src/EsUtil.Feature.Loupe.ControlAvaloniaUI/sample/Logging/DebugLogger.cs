@@ -14,7 +14,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Logging;
 public sealed class DebugLogger : ILogger
 {
     /// <summary>ログファイルへ書くための排他ロック。</summary>
-    private static readonly object s_fileLock = new();
+    private static readonly Lock s_fileLock = new();
 
     /// <summary>全ログレベルを受け入れる（フィルタなし）。</summary>
     /// <param name="logLevel">ログレベル。</param>

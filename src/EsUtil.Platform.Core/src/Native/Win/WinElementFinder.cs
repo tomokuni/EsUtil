@@ -226,7 +226,7 @@ public sealed class WinElementFinder(ILogger? logger = null) : IElementFinder
     /// 「タイトル空」を条件に除外する（タイトル付きの実際の UWP アプリは選択対象に残す）。
     /// </remarks>
     internal static bool IsExcludedFrame(string className, string? title)
-        => className == "ApplicationFrameWindow" && string.IsNullOrEmpty(title);
+        => string.Equals(className, "ApplicationFrameWindow", StringComparison.Ordinal) && string.IsNullOrEmpty(title);
 
     /// <summary>タスクバー / デスクトップウィンドウのクラス名かどうかを判定する（純粋関数・テスト容易）。</summary>
     /// <param name="className">クラス名。</param>

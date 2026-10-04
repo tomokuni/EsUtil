@@ -13,7 +13,7 @@ internal sealed class EffectsSpy : IMarqueeEffects
     public List<string> Calls { get; } = [];
 
     /// <summary>再描画の要求回数。</summary>
-    public int RedrawCount => Calls.Count(c => c == "redraw");
+    public int RedrawCount => Calls.Count(c => string.Equals(c, "redraw", StringComparison.Ordinal));
 
     /// <summary>対象座標 → 画面物理座標の変換倍率。</summary>
     public int ScreenScale { get; set; } = 2;

@@ -64,6 +64,8 @@ internal static partial class LoupeLogMessage
     /// <remarks>
     /// LogLevel: Trace（書式は <see cref="LogSettingChanged(ILogger, string, string, string)"/> と同一）<br/>
     /// マウス移動ごとに変わる値（拡大中心）が使う（既定の出力では溢れさせない）。
+    /// LogLevel: Trace<br/>
+    /// 出力書式: <c>[Loupe] Setting: {Name} {OldValue} → {NewValue}</c>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="name">設定名。</param>
