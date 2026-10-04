@@ -86,4 +86,18 @@ public readonly record struct EsPointInt(int X, int Y)
     /// <param name="b">2 つ目の座標。</param>
     /// <returns>成分ごとの差。</returns>
     public static EsPointInt operator -(EsPointInt a, EsPointInt b) => new(a.X - b.X, a.Y - b.Y);
+
+    // 演算子の代替メソッド（CA2225）。 演算子を持たない言語や、演算子を書けない文脈からも呼べるようにする。
+
+    /// <summary>2 つの座標を成分ごとに加算する（演算子 <c>+</c> の代替）。</summary>
+    /// <param name="a">1 つ目の座標。</param>
+    /// <param name="b">2 つ目の座標。</param>
+    /// <returns>成分ごとの和。</returns>
+    public static EsPointInt Add(EsPointInt a, EsPointInt b) => new(a.X + b.X, a.Y + b.Y);
+
+    /// <summary>2 つの座標を成分ごとに減算する（演算子 <c>-</c> の代替）。</summary>
+    /// <param name="a">1 つ目の座標。</param>
+    /// <param name="b">2 つ目の座標。</param>
+    /// <returns>成分ごとの差。</returns>
+    public static EsPointInt Subtract(EsPointInt a, EsPointInt b) => new(a.X - b.X, a.Y - b.Y);
 }

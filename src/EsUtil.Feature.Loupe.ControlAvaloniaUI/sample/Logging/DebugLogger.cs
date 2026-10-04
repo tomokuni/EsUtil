@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using EsUtil.Platform.Core;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Logging;
 
@@ -56,7 +57,7 @@ public sealed class DebugLogger : ILogger
                     $"{DateTime.Now:HH:mm:ss.fff} {message}{Environment.NewLine}");
             }
         }
-        catch
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
         {
             // ログファイル書き込み失敗（権限・パス不足等）は無視する（描画診断を妨げない）。
         }

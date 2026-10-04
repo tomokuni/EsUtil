@@ -9,4 +9,4 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// そのため本コレクションで直列化する（Avalonia ヘッドレス初期化は不要）。
 /// </remarks>
 [CollectionDefinition("Win32", DisableParallelization = true)]
-public sealed class Win32Collection;
+public sealed class Win32Group;

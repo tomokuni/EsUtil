@@ -7,7 +7,9 @@ namespace EsUtil.Feature.Marquee;
 /// UI 層は本通知を自 UI の公開イベント引数へ変換して発火するだけである（判断・状態更新はコアが実施済み）。<br/>
 /// <see cref="Position"/> は点座標を表す通知（<see cref="MarqueeNoticeKind.MarkerPositionMoved"/> 等）で使用する。<br/>
 /// 矩形の通知（SelectionChanged / SelectionCompleted 等）では選択矩形（<see cref="Snapshot"/>）を使用する。<br/>
-/// <b>値型</b>である: ポインター移動のたびに通知するためヒープ確保を避ける。
+/// <b>値型</b>である: ポインター移動のたびに通知するためヒープ確保を避ける（<c>MarqueeCoreTests.Move_ポインター移動はヒープを確保しない</c> が担保する）。<br/>
+/// <b>イベント引数の規約（CA1003）の例外</b>: フレームワークの指針は <see cref="EventArgs"/> 派生を求めるが、<br/>
+/// 本型は値型のままとし、公開するイベント側で理由付きの抑止を行う（描画・操作の連続発生で確保すると GC が増えるため）。
 /// </remarks>
 /// <param name="Kind">通知の種別。</param>
 /// <param name="Position">通知時点の座標（対象座標）。 点座標を持たない通知では既定値。</param>

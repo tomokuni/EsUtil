@@ -96,7 +96,11 @@ public sealed partial class MarqueeCore
 
     /// <summary>上位（UI 層）へ伝える通知。 UI 層は自 UI の公開イベントへ転送する。</summary>
     /// <remarks>通知の種別と公開イベントの対応は UI 層が持ち、判断（確定・キャンセル等）は本クラスが済ませている。</remarks>
+    // CA1003: イベント引数を EventArgs 派生にするのが原則だが、MarqueeNotice は値型のままにする
+    //（ポインター移動のたびに通知するためヒープ確保を避ける。 MarqueeCoreTests.Move_ポインター移動はヒープを確保しない が担保する）。
+#pragma warning disable CA1003
     public event EventHandler<MarqueeNotice>? Notified;
+#pragma warning restore CA1003
 
     /// <summary>設定の変更ログの出力先を取得または設定する。</summary>
     /// <value>ロガー。 null を設定した場合は出力なし（<see cref="LoggerFallback"/> が吸収する）。</value>

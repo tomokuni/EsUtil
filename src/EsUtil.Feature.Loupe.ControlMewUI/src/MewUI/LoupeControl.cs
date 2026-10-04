@@ -441,7 +441,7 @@ public sealed class LoupeControl : Panel
             // 描画の手順（層の順序と描画 API への写し）は LoupeSkiaPainter が単一所有する
             LoupeSkiaPainter.Paint(canvas, Source, in plan);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
         {
             // 描画の例外はアプリを落とさずログへ記録する（キャンバスは中途半端な状態になりうるが、次の描画で復帰する）
             Log.LogUpdateError(ex);

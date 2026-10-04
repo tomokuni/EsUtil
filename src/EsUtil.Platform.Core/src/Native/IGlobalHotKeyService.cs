@@ -23,6 +23,6 @@ public interface IGlobalHotKeyService<T> : IDisposable where T : notnull
     void UnregisterAll();
 
     /// <summary>ホットキーが押下されたときに発生する。</summary>
-    /// <remarks>WM_HOTKEY メッセージを受信した実装が、対応するアクションを配信する。</remarks>
-    event Action<T>? HotKeyPressed;
+    /// <remarks>WM_HOTKEY メッセージを受信した実装が、対応するアクション を配信する。 イベントの型は <see cref="EventHandler{T}"/>（引数は <see cref="EventArgs"/> 派生）に統一する（CA1003）。</remarks>
+    event EventHandler<HotKeyPressedEventArgs<T>>? HotKeyPressed;
 }

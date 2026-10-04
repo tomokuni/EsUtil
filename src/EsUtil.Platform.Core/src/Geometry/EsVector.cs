@@ -148,4 +148,41 @@ public readonly record struct EsVector(double X, double Y)
     /// <param name="k">除数。</param>
     /// <returns>成分ごとに除算したベクター。</returns>
     public static EsVector operator /(EsVector vector, double k) => new(vector.X / k, vector.Y / k);
+
+    // 演算子の代替メソッド（CA2225）。 演算子を持たない言語や、演算子を書けない文脈からも呼べるようにする。
+
+    /// <summary>2 つのベクターを成分ごとに加算する（演算子 <c>+</c> の代替）。</summary>
+    /// <param name="a">1 つ目のベクター。</param>
+    /// <param name="b">2 つ目のベクター。</param>
+    /// <returns>成分ごとの和。</returns>
+    public static EsVector Add(EsVector a, EsVector b) => new(a.X + b.X, a.Y + b.Y);
+
+    /// <summary>2 つのベクターを成分ごとに減算する（演算子 <c>-</c> の代替）。</summary>
+    /// <param name="a">1 つ目のベクター。</param>
+    /// <param name="b">2 つ目のベクター。</param>
+    /// <returns>成分ごとの差。</returns>
+    public static EsVector Subtract(EsVector a, EsVector b) => new(a.X - b.X, a.Y - b.Y);
+
+    /// <summary>成分の符号を反転する（単項演算子 <c>-</c> の代替）。</summary>
+    /// <param name="vector">反転するベクター。</param>
+    /// <returns>成分の符号を反転したベクター。</returns>
+    public static EsVector Negate(EsVector vector) => new(-vector.X, -vector.Y);
+
+    /// <summary>成分ごとに乗算する（演算子 <c>*</c> の代替）。</summary>
+    /// <param name="vector">対象のベクター。</param>
+    /// <param name="k">係数。</param>
+    /// <returns>成分ごとに係数倍したベクター。</returns>
+    public static EsVector Multiply(EsVector vector, double k) => new(vector.X * k, vector.Y * k);
+
+    /// <summary>成分ごとに乗算する（演算子 <c>*</c> の代替。 係数を左に取る形）。</summary>
+    /// <param name="k">係数。</param>
+    /// <param name="vector">対象のベクター。</param>
+    /// <returns>成分ごとに係数倍したベクター。</returns>
+    public static EsVector Multiply(double k, EsVector vector) => new(vector.X * k, vector.Y * k);
+
+    /// <summary>成分ごとに除算する（演算子 <c>/</c> の代替）。</summary>
+    /// <param name="vector">対象のベクター。</param>
+    /// <param name="k">除数。</param>
+    /// <returns>成分ごとに除算したベクター。</returns>
+    public static EsVector Divide(EsVector vector, double k) => new(vector.X / k, vector.Y / k);
 }

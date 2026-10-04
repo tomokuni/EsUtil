@@ -149,4 +149,54 @@ public readonly record struct EsPoint(double X, double Y)
     /// <param name="k">除数。</param>
     /// <returns>成分ごとに除算した座標。</returns>
     public static EsPoint operator /(EsPoint point, double k) => new(point.X / k, point.Y / k);
+
+    // 演算子の代替メソッド（CA2225）。 演算子を持たない言語（F# 等）や、演算子を書けない文脈
+    // （式木・リフレクション経由の呼び出し）からも同じ計算を呼べるようにする。
+
+    /// <summary>2 つの座標を成分ごとに加算する（演算子 <c>+</c> の代替）。</summary>
+    /// <param name="a">1 つ目の座標。</param>
+    /// <param name="b">2 つ目の座標。</param>
+    /// <returns>成分ごとの和。</returns>
+    public static EsPoint Add(EsPoint a, EsPoint b) => new(a.X + b.X, a.Y + b.Y);
+
+    /// <summary>座標をベクター分だけ平行移動する（演算子 <c>+</c> の代替）。</summary>
+    /// <param name="point">移動する座標。</param>
+    /// <param name="vector">移動量。</param>
+    /// <returns>移動後の座標。</returns>
+    public static EsPoint Add(EsPoint point, EsVector vector) => new(point.X + vector.X, point.Y + vector.Y);
+
+    /// <summary>2 つの座標の差分をベクターとして求める（演算子 <c>-</c> の代替）。</summary>
+    /// <param name="a">1 つ目の座標。</param>
+    /// <param name="b">2 つ目の座標。</param>
+    /// <returns>a から b へのベクター。</returns>
+    public static EsVector Subtract(EsPoint a, EsPoint b) => new(a.X - b.X, a.Y - b.Y);
+
+    /// <summary>座標をベクター分だけ逆方向へ平行移動する（演算子 <c>-</c> の代替）。</summary>
+    /// <param name="point">移動する座標。</param>
+    /// <param name="vector">移動量。</param>
+    /// <returns>移動後の座標。</returns>
+    public static EsPoint Subtract(EsPoint point, EsVector vector) => new(point.X - vector.X, point.Y - vector.Y);
+
+    /// <summary>座標の符号を反転する（単項演算子 <c>-</c> の代替）。</summary>
+    /// <param name="point">反転する座標。</param>
+    /// <returns>X・Y の符号を反転した座標。</returns>
+    public static EsPoint Negate(EsPoint point) => new(-point.X, -point.Y);
+
+    /// <summary>座標を係数倍する（演算子 <c>*</c> の代替）。</summary>
+    /// <param name="point">対象の座標。</param>
+    /// <param name="k">係数。</param>
+    /// <returns>成分ごとに係数倍した座標。</returns>
+    public static EsPoint Multiply(EsPoint point, double k) => new(point.X * k, point.Y * k);
+
+    /// <summary>座標を係数倍する（演算子 <c>*</c> の代替。 係数を左に取る形）。</summary>
+    /// <param name="k">係数。</param>
+    /// <param name="point">対象の座標。</param>
+    /// <returns>成分ごとに係数倍した座標。</returns>
+    public static EsPoint Multiply(double k, EsPoint point) => new(point.X * k, point.Y * k);
+
+    /// <summary>座標を除算する（演算子 <c>/</c> の代替）。</summary>
+    /// <param name="point">対象の座標。</param>
+    /// <param name="k">除数。</param>
+    /// <returns>成分ごとに除算した座標。</returns>
+    public static EsPoint Divide(EsPoint point, double k) => new(point.X / k, point.Y / k);
 }

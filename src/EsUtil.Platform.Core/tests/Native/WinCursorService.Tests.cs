@@ -8,7 +8,7 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// <remarks>
 /// Win32 API は実環境で動作するため、例外なく呼び出せることと状態追跡（ShowCursor の重複呼び出し抑制）を確認する。<br/>
 /// <see cref="WinCursorService"/> は UI スレッド（Dispatcher）に依存せず <c>PixelPoint</c> のみを扱うため、<br/>
-/// Avalonia ヘッドレス（<c>[AvaloniaFact]</c>）ではなく実 OS 直列コレクション（<see cref="Win32Collection"/>）で検証する。<br/>
+/// Avalonia ヘッドレス（<c>[AvaloniaFact]</c>）ではなく実 OS 直列コレクション（<see cref="Win32Group"/>）で検証する。<br/>
 /// ヘッドレス環境でカーソル位置が OS と完全に同期しない場合があるため、位置の厳密一致は検証しない。
 /// </remarks>
 [Collection("Win32")]

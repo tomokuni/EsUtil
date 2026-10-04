@@ -27,7 +27,7 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
     private bool _disposed;
 
     /// <inheritdoc/>
-    public event Action<T>? HotKeyPressed;
+    public event EventHandler<HotKeyPressedEventArgs<T>>? HotKeyPressed;
 
     /// <inheritdoc/>
     public void Initialize(IntPtr hWnd)
@@ -101,7 +101,7 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
         {
             var id = checked((int)wParam);
             if (_registeredHotKeys.TryGetValue(id, out var action))
-                HotKeyPressed?.Invoke(action);
+                HotKeyPressed?.Invoke(this, new HotKeyPressedEventArgs<T>(action));
             return new IntPtr(1);
         }
         return WinNative.CallWindowProc(_originalWndProc, hWnd, msg, wParam, lParam);

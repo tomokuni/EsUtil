@@ -22,7 +22,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests;
 /// </summary>
 /// <remarks>
 /// Avalonia ヘッドレステストは並列実行非対応（Dispatcher.UIThread が共有）のため、
-/// 同じコレクション（<see cref="AvaloniaHeadlessCollection"/>）内で直列実行する。
+/// 同じコレクション（<see cref="AvaloniaHeadlessGroup"/>）内で直列実行する。
 /// </remarks>
 [Collection("AvaloniaHeadless")]
 public class LoupeControlTests

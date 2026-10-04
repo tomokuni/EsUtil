@@ -148,4 +148,43 @@ public readonly record struct EsSize(double Width, double Height)
     /// <remarks>縦横比の差（元画像と表示領域のスケール）を求めるために使う。</remarks>
     public static EsVector operator /(EsSize left, EsSize right)
         => new(left.Width / right.Width, left.Height / right.Height);
+
+    // 演算子の代替メソッド（CA2225）。 演算子を持たない言語や、演算子を書けない文脈からも呼べるようにする。
+
+    /// <summary>2 つのサイズを成分ごとに加算する（演算子 <c>+</c> の代替）。</summary>
+    /// <param name="a">1 つ目のサイズ。</param>
+    /// <param name="b">2 つ目のサイズ。</param>
+    /// <returns>成分ごとの和。</returns>
+    public static EsSize Add(EsSize a, EsSize b) => new(a.Width + b.Width, a.Height + b.Height);
+
+    /// <summary>2 つのサイズを成分ごとに減算する（演算子 <c>-</c> の代替）。</summary>
+    /// <param name="a">1 つ目のサイズ。</param>
+    /// <param name="b">2 つ目のサイズ。</param>
+    /// <returns>成分ごとの差。</returns>
+    public static EsSize Subtract(EsSize a, EsSize b) => new(a.Width - b.Width, a.Height - b.Height);
+
+    /// <summary>サイズを係数倍する（演算子 <c>*</c> の代替）。</summary>
+    /// <param name="size">対象のサイズ。</param>
+    /// <param name="k">係数。</param>
+    /// <returns>成分ごとに係数倍したサイズ。</returns>
+    public static EsSize Multiply(EsSize size, double k) => new(size.Width * k, size.Height * k);
+
+    /// <summary>サイズを除算する（演算子 <c>/</c> の代替）。</summary>
+    /// <param name="size">対象のサイズ。</param>
+    /// <param name="k">除数。</param>
+    /// <returns>成分ごとに除算したサイズ。</returns>
+    public static EsSize Divide(EsSize size, double k) => new(size.Width / k, size.Height / k);
+
+    /// <summary>サイズをベクターの成分ごとに乗算する（演算子 <c>*</c> の代替）。</summary>
+    /// <param name="size">対象のサイズ。</param>
+    /// <param name="scale">成分ごとの係数。</param>
+    /// <returns>成分ごとに乗算したサイズ。</returns>
+    public static EsSize Multiply(EsSize size, EsVector scale) => new(size.Width * scale.X, size.Height * scale.Y);
+
+    /// <summary>2 つのサイズの比をベクターとして求める（演算子 <c>/</c> の代替）。</summary>
+    /// <param name="left">比較するサイズ。</param>
+    /// <param name="right">基準となるサイズ。</param>
+    /// <returns>成分ごとの比（左 ÷ 右）を表すベクター。</returns>
+    public static EsVector Divide(EsSize left, EsSize right)
+        => new(left.Width / right.Width, left.Height / right.Height);
 }

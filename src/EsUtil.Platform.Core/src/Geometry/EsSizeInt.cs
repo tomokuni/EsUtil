@@ -73,4 +73,18 @@ public readonly record struct EsSizeInt(int Width, int Height)
     /// <param name="b">2 つ目のサイズ。</param>
     /// <returns>成分ごとの差。</returns>
     public static EsSizeInt operator -(EsSizeInt a, EsSizeInt b) => new(a.Width - b.Width, a.Height - b.Height);
+
+    // 演算子の代替メソッド（CA2225）。 演算子を持たない言語や、演算子を書けない文脈からも呼べるようにする。
+
+    /// <summary>2 つのサイズを成分ごとに加算する（演算子 <c>+</c> の代替）。</summary>
+    /// <param name="a">1 つ目のサイズ。</param>
+    /// <param name="b">2 つ目のサイズ。</param>
+    /// <returns>成分ごとの和。</returns>
+    public static EsSizeInt Add(EsSizeInt a, EsSizeInt b) => new(a.Width + b.Width, a.Height + b.Height);
+
+    /// <summary>2 つのサイズを成分ごとに減算する（演算子 <c>-</c> の代替）。</summary>
+    /// <param name="a">1 つ目のサイズ。</param>
+    /// <param name="b">2 つ目のサイズ。</param>
+    /// <returns>成分ごとの差。</returns>
+    public static EsSizeInt Subtract(EsSizeInt a, EsSizeInt b) => new(a.Width - b.Width, a.Height - b.Height);
 }

@@ -9,7 +9,7 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// Win32 API（EnumWindows / EnumDisplayMonitors / GetCursorPos）は実環境で動作するため、<br/>
 /// 例外なく呼び出せることと、実モニター/実ウィンドウを列挙できることを確認する。<br/>
 /// <see cref="WinElementFinder"/> は UI スレッド（Dispatcher）に依存せず <c>PixelRect</c> / <c>PlatformHandle</c> のみを扱うため、<br/>
-/// Avalonia ヘッドレス（<c>[AvaloniaFact]</c>）ではなく実 OS 直列コレクション（<see cref="Win32Collection"/>）で <c>[Fact]</c> 検証する。<br/>
+/// Avalonia ヘッドレス（<c>[AvaloniaFact]</c>）ではなく実 OS 直列コレクション（<see cref="Win32Group"/>）で <c>[Fact]</c> 検証する。<br/>
 /// ヘッドレス環境ではウィンドウ数・モニター構成が OS と完全には同期しない場合があるため、<br/>
 /// 件数は「0 件以上」の緩い検証とし、検出結果の契約（矩形・Title）のみを厳密に検証する。<br/>
 /// <see cref="WinElementFinder"/> は Win32 へ直接問い合わせるため、モックを介さず実実装を検証する。
