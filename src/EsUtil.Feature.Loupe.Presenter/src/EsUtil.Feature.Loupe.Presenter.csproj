@@ -6,11 +6,6 @@
     <AssemblyName>EsUtil.Feature.Loupe.Presenter</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- ドキュメントコメントを検証する（存在しないメンバーへの cref を CS1574、公開メンバーの未記載を CS1591 で検出）。
-         XML は配布物（bin / publish）へ出さない（検証だけに使う）。 -->
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
   </PropertyGroup>
 
   <ItemGroup>

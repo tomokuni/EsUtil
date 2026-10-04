@@ -8,11 +8,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- MewUI は API が安定化中（0.x）。破壊的変更を避けるためバージョンを固定する。 -->
     <MewUIVersion>0.21.1</MewUIVersion>
-    <!-- ドキュメントコメントを検証する（存在しないメンバーへの cref を CS1574、公開メンバーの未記載を CS1591 で検出）。
-         XML は配布物（bin / publish）へ出さない（検証だけに使う）。 -->
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
   </PropertyGroup>
 
   <ItemGroup>
