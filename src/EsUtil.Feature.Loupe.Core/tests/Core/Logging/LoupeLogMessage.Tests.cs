@@ -18,7 +18,7 @@ public class LoupeLogMessageTests
 {
     /// <summary>実ロガー設定時に全ログメソッドが実行されることを検証する。</summary>
     [Fact]
-    public void 実ロガー設定時に全ログメソッドが実行される()
+    internal void 実ロガー設定時に全ログメソッドが実行される()
     {
         var logger = new RecordingLogger();
         InvokeAll(logger);
@@ -29,7 +29,7 @@ public class LoupeLogMessageTests
 
     /// <summary>無効ロガーでも全ログメソッドが安全に実行されることを検証する。</summary>
     [Fact]
-    public void 無効ロガーでも全ログメソッドが安全に実行される()
+    internal void 無効ロガーでも全ログメソッドが安全に実行される()
     {
         // IsEnabled=false（NullLogger）でも生成コードの IsEnabled 分岐（false パス）が実行される
         InvokeAll(NullLogger.Instance);
@@ -37,7 +37,7 @@ public class LoupeLogMessageTests
 
     /// <summary>出力書式が両 UI で共通の書式と一致することを検証する。</summary>
     [Fact]
-    public void 出力書式が期待どおりである()
+    internal void 出力書式が期待どおりである()
     {
         var logger = new RecordingLogger();
         InvokeAll(logger);
@@ -53,7 +53,7 @@ public class LoupeLogMessageTests
     /// <summary>生成の記録が Information、ロガー設定の記録が Debug で出力されることを検証する。</summary>
     /// <remarks>生成はホストがログを設定した時点で 1 度だけ記録する（構築時は出力先が未設定のため）。</remarks>
     [Fact]
-    public void 生成とロガー設定の記録レベルが期待どおりである()
+    internal void 生成とロガー設定の記録レベルが期待どおりである()
     {
         var logger = new RecordingLogger();
 
@@ -66,7 +66,7 @@ public class LoupeLogMessageTests
     /// <summary>拡大中心の記録が最も低いレベル（Trace）で出力されることを検証する。</summary>
     /// <remarks>中心はマウス移動ごとに変わるため、既定の出力では溢れさせない。</remarks>
     [Fact]
-    public void 拡大中心の記録はTraceで出力する()
+    internal void 拡大中心の記録はTraceで出力する()
     {
         var logger = new RecordingLogger();
 
@@ -78,7 +78,7 @@ public class LoupeLogMessageTests
 
     /// <summary>座標変換ポートの変更が未設定と実装型名で記録されることを検証する。</summary>
     [Fact]
-    public void 座標変換ポートの変更は未設定と実装型名で記録する()
+    internal void 座標変換ポートの変更は未設定と実装型名で記録する()
     {
         var logger = new RecordingLogger();
         var port = new CoordTransform(p => p, p => p, () => null);
@@ -97,7 +97,7 @@ public class LoupeLogMessageTests
 
     /// <summary>拡大中心のログが両 UI 共通の書式（括弧付き座標）で出力されることを検証する。</summary>
     [Fact]
-    public void 拡大中心のログは括弧付き座標で出力する()
+    internal void 拡大中心のログは括弧付き座標で出力する()
     {
         var logger = new RecordingLogger();
 
@@ -114,7 +114,7 @@ public class LoupeLogMessageTests
     /// （<c>bool</c> は <see cref="IFormattable"/> を実装しないため本体の汎用版とは別の経路になる）。
     /// </remarks>
     [Fact]
-    public void 真偽設定値のログは変化したときだけ出力する()
+    internal void 真偽設定値のログは変化したときだけ出力する()
     {
         var logger = new RecordingLogger();
 
@@ -126,7 +126,7 @@ public class LoupeLogMessageTests
 
     /// <summary>数値設定値のログが変化したときだけ出力されることを検証する。</summary>
     [Fact]
-    public void 数値設定値のログは変化したときだけ出力する()
+    internal void 数値設定値のログは変化したときだけ出力する()
     {
         var logger = new RecordingLogger();
 
@@ -142,7 +142,7 @@ public class LoupeLogMessageTests
 
     /// <summary>数値のログがカルチャに依存しないことを検証する。</summary>
     [Fact]
-    public void 数値のログはカルチャに依存しない()
+    internal void 数値のログはカルチャに依存しない()
     {
         var original = CultureInfo.CurrentCulture;
         try
@@ -164,7 +164,7 @@ public class LoupeLogMessageTests
     /// <summary>拡大中心のログが同値の再設定では出力されないことを検証する。</summary>
     /// <remarks>中心はマウス移動のたびに設定されるため、同値判定はコアが単一所有する。</remarks>
     [Fact]
-    public void 拡大中心のログは同値なら出力しない()
+    internal void 拡大中心のログは同値なら出力しない()
     {
         var logger = new RecordingLogger();
 
@@ -177,7 +177,7 @@ public class LoupeLogMessageTests
     /// <summary>設定（LoupeOptions）の変更ログが変化した項目だけを出力することを検証する。</summary>
     /// <remarks>設定を 1 つの値へ統合したため、変更された項目の判定（差分検出）はコアが単一所有する。</remarks>
     [Fact]
-    public void 設定の変更ログは変化した項目だけを出力する()
+    internal void 設定の変更ログは変化した項目だけを出力する()
     {
         var logger = new RecordingLogger();
         var oldValue = new LoupeOptions();
@@ -198,7 +198,7 @@ public class LoupeLogMessageTests
     /// （対象外の項目を設けると、その項目の変更だけがログから漏れる）。
     /// </remarks>
     [Fact]
-    public void 設定の変更ログは全項目を対象にする()
+    internal void 設定の変更ログは全項目を対象にする()
     {
         var logger = new RecordingLogger();
         var oldValue = new LoupeOptions();

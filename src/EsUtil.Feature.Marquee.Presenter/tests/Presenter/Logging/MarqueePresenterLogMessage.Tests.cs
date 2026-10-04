@@ -1,6 +1,5 @@
 using Xunit;
 using DrawingColor = System.Drawing.Color;
-using EsUtil.Feature.Marquee.Core.Logging;
 using EsUtil.Feature.Marquee.Presenter.Logging;
 
 namespace EsUtil.Feature.Marquee.Tests.Presenter.Logging;
@@ -14,7 +13,7 @@ namespace EsUtil.Feature.Marquee.Tests.Presenter.Logging;
 public class MarqueePresenterLogMessageTests
 {
     [Fact]
-    public void LogAppearanceChanged_変化した項目だけを記録する()
+    internal void LogAppearanceChanged_変化した項目だけを記録する()
     {
         var logger = new RecordingLogger();
         var before = MarqueeAppearance.Default;
@@ -31,7 +30,7 @@ public class MarqueePresenterLogMessageTests
     }
 
     [Fact]
-    public void LogAppearanceChanged_同値なら記録しない()
+    internal void LogAppearanceChanged_同値なら記録しない()
     {
         var logger = new RecordingLogger();
         var before = MarqueeAppearance.Default;
@@ -42,7 +41,7 @@ public class MarqueePresenterLogMessageTests
     }
 
     [Fact]
-    public void LogAppearanceChanged_色はAARRGGBB形式で記録する()
+    internal void LogAppearanceChanged_色はAARRGGBB形式で記録する()
     {
         var logger = new RecordingLogger();
         var before = MarqueeAppearance.Default;
@@ -56,7 +55,7 @@ public class MarqueePresenterLogMessageTests
     }
 
     [Fact]
-    public void LogAppearanceChanged_外観の全項目を対象にする()
+    internal void LogAppearanceChanged_外観の全項目を対象にする()
     {
         var logger = new RecordingLogger();
 
@@ -97,7 +96,7 @@ public class MarqueePresenterLogMessageTests
     }
 
     [Fact]
-    public void LogSettingChanged_定義名と出力書式を固定する()
+    internal void LogSettingChanged_定義名と出力書式を固定する()
     {
         var logger = new RecordingLogger();
 

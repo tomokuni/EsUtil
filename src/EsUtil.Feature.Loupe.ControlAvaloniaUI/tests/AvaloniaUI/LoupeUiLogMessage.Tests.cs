@@ -17,7 +17,7 @@ public class LoupeUiLogMessageTests
 {
     /// <summary>実ロガー設定時に全ログメソッドが実行されることを検証する。</summary>
     [Fact]
-    public void 実ロガー設定時に全ログメソッドが実行される()
+    internal void 実ロガー設定時に全ログメソッドが実行される()
     {
         var logger = new RecordingLogger();
         InvokeAll(logger);
@@ -28,7 +28,7 @@ public class LoupeUiLogMessageTests
 
     /// <summary>無効ロガーでも全ログメソッドが安全に実行されることを検証する。</summary>
     [Fact]
-    public void 無効ロガーでも全ログメソッドが安全に実行される()
+    internal void 無効ロガーでも全ログメソッドが安全に実行される()
     {
         // IsEnabled=false（NullLogger）でも生成コードの IsEnabled 分岐（false パス）が実行される
         InvokeAll(NullLogger.Instance);
@@ -36,7 +36,7 @@ public class LoupeUiLogMessageTests
 
     /// <summary>出力書式が期待どおりであることを検証する。</summary>
     [Fact]
-    public void 出力書式が期待どおりである()
+    internal void 出力書式が期待どおりである()
     {
         var logger = new RecordingLogger();
         InvokeAll(logger);
@@ -47,7 +47,7 @@ public class LoupeUiLogMessageTests
 
     /// <summary>拡大元画像のログが同一インスタンスの再設定では出力されないことを検証する。</summary>
     [Fact]
-    public void 拡大元画像のログは同一インスタンスなら出力しない()
+    internal void 拡大元画像のログは同一インスタンスなら出力しない()
     {
         using var image = CreateImage(4, 4);
         var logger = new RecordingLogger();
@@ -60,7 +60,7 @@ public class LoupeUiLogMessageTests
 
     /// <summary>拡大元画像のログが寸法の等しい別インスタンスへの差し替えを出力することを検証する。</summary>
     [Fact]
-    public void 拡大元画像のログは別インスタンスなら出力する()
+    internal void 拡大元画像のログは別インスタンスなら出力する()
     {
         using var oldImage = CreateImage(8, 6);
         using var newImage = CreateImage(8, 6);
@@ -76,7 +76,7 @@ public class LoupeUiLogMessageTests
 
     /// <summary>破棄済みの画像を渡しても例外にならず、型名で代用されることを検証する。</summary>
     [Fact]
-    public void 破棄済みの画像は型名で代用する()
+    internal void 破棄済みの画像は型名で代用する()
     {
         var image = CreateImage(8, 6);
         image.Dispose();
@@ -92,7 +92,7 @@ public class LoupeUiLogMessageTests
 
     /// <summary>例外ログに例外が渡されることを検証する。</summary>
     [Fact]
-    public void 例外ログは例外を受け取る()
+    internal void 例外ログは例外を受け取る()
     {
         var logger = new RecordingLogger();
 

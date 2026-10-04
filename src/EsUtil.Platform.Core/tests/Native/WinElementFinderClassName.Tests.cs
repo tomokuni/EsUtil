@@ -12,7 +12,7 @@ namespace EsUtil.Platform.Core.Tests.Native;
 public class WinElementFinderClassNameTests
 {
     [Fact]
-    public void IsExcludedClassName_タスクバーとデスクトップのクラス名を除外する()
+    internal void IsExcludedClassName_タスクバーとデスクトップのクラス名を除外する()
     {
         // タスクバー（プライマリ / セカンダリ / Windows 8/10）とデスクトップ（Progman / WorkerW）
         Assert.True(WinElementFinder.IsExcludedClassName("Shell_TrayWnd"));
@@ -23,7 +23,7 @@ public class WinElementFinderClassNameTests
     }
 
     [Fact]
-    public void IsExcludedClassName_通常のウィンドウクラスは除外しない()
+    internal void IsExcludedClassName_通常のウィンドウクラスは除外しない()
     {
         Assert.False(WinElementFinder.IsExcludedClassName("CabinetWClass"));  // エクスプローラー
         Assert.False(WinElementFinder.IsExcludedClassName("Chrome_WidgetWin_1"));
@@ -32,7 +32,7 @@ public class WinElementFinderClassNameTests
     }
 
     [Fact]
-    public void IsExcludedClassName_部分一致や大文字小文字の違いは除外しない()
+    internal void IsExcludedClassName_部分一致や大文字小文字の違いは除外しない()
     {
         // 完全一致のみ除外（前方一致・大文字小文字の違いは対象外）
         Assert.False(WinElementFinder.IsExcludedClassName("WorkerW2"));
@@ -41,7 +41,7 @@ public class WinElementFinderClassNameTests
     }
 
     [Fact]
-    public void IsExcludedFrame_タイトル空のApplicationFrameWindowを除外する()
+    internal void IsExcludedFrame_タイトル空のApplicationFrameWindowを除外する()
     {
         // スタートメニュー / タスクビュー等の UWP オーバーレイ（タイトル空）は除外
         Assert.True(WinElementFinder.IsExcludedFrame("ApplicationFrameWindow", ""));
@@ -49,7 +49,7 @@ public class WinElementFinderClassNameTests
     }
 
     [Fact]
-    public void IsExcludedFrame_タイトル付きのUWPアプリは除外しない()
+    internal void IsExcludedFrame_タイトル付きのUWPアプリは除外しない()
     {
         // 実際の UWP アプリ（設定・電卓等）はタイトル付きで選択対象に残す
         Assert.False(WinElementFinder.IsExcludedFrame("ApplicationFrameWindow", "設定"));
@@ -57,7 +57,7 @@ public class WinElementFinderClassNameTests
     }
 
     [Fact]
-    public void IsExcludedFrame_他クラスのタイトル空ウィンドウは除外しない()
+    internal void IsExcludedFrame_他クラスのタイトル空ウィンドウは除外しない()
     {
         // タイトル空でも他クラス（Win32 アプリ等）は対象外（IsExcludedClassName が別途判定）
         Assert.False(WinElementFinder.IsExcludedFrame("CabinetWClass", ""));

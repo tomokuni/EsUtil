@@ -15,7 +15,7 @@ public class MarqueeCoreLimitsTests
 
     /// <summary>倍率の既定値が等倍であることを検証する。</summary>
     [Fact]
-    public void ClientToSourceScalingDefault_等倍である()
+    internal void ClientToSourceScalingDefault_等倍である()
     {
         Assert.Equal(1.0, MarqueeCore.Limits.ClientToSourceScalingDefault);
     }
@@ -26,14 +26,14 @@ public class MarqueeCoreLimitsTests
 
     /// <summary>枠線の太さの既定値が 2.0 であることを検証する。</summary>
     [Fact]
-    public void BorderThicknessDefault_2である()
+    internal void BorderThicknessDefault_2である()
     {
         Assert.Equal(2.0, MarqueeCore.Limits.BorderThicknessDefault);
     }
 
     /// <summary>枠線の太さの最小値が 0.5 であることを検証する。</summary>
     [Fact]
-    public void BorderThicknessMin_05である()
+    internal void BorderThicknessMin_05である()
     {
         Assert.Equal(0.5, MarqueeCore.Limits.BorderThicknessMin);
     }
@@ -50,7 +50,7 @@ public class MarqueeCoreLimitsTests
     [InlineData(10.0, 10.0)]
     [InlineData(100.0, 64.0)]
     [InlineData(double.NaN, 2.0)]
-    public void CoerceBorderThickness_安全域へ補正する(double value, double expected)
+    internal void CoerceBorderThickness_安全域へ補正する(double value, double expected)
     {
         Assert.Equal(expected, MarqueeCore.Limits.CoerceBorderThickness(value));
     }
@@ -67,7 +67,7 @@ public class MarqueeCoreLimitsTests
     [InlineData(10.0, 10.0)]
     [InlineData(300.0, 256.0)]
     [InlineData(double.NaN, 10.0)]
-    public void CoerceHandleSize_安全域へ補正する(double value, double expected)
+    internal void CoerceHandleSize_安全域へ補正する(double value, double expected)
     {
         Assert.Equal(expected, MarqueeCore.Limits.CoerceHandleSize(value));
     }
@@ -80,7 +80,7 @@ public class MarqueeCoreLimitsTests
     [InlineData(16.0, 16.0)]
     [InlineData(5000.0, 4096.0)]
     [InlineData(double.PositiveInfinity, 16.0)]
-    public void CoerceMarkerLength_安全域へ補正する(double value, double expected)
+    internal void CoerceMarkerLength_安全域へ補正する(double value, double expected)
     {
         Assert.Equal(expected, MarqueeCore.Limits.CoerceMarkerLength(value));
     }
@@ -94,7 +94,7 @@ public class MarqueeCoreLimitsTests
     [InlineData(12.0, 12.0)]
     [InlineData(300.0, 256.0)]
     [InlineData(double.NaN, 12.0)]
-    public void CoerceHandleHitRadius_安全域へ補正する(double value, double expected)
+    internal void CoerceHandleHitRadius_安全域へ補正する(double value, double expected)
     {
         Assert.Equal(expected, MarqueeCore.Limits.CoerceHandleHitRadius(value));
     }
@@ -110,7 +110,7 @@ public class MarqueeCoreLimitsTests
     [InlineData(6.0, 6.0)]
     [InlineData(5000.0, 4096.0)]
     [InlineData(double.NaN, 6.0)]
-    public void CoerceMinSelectionSize_安全域へ補正する(double value, double expected)
+    internal void CoerceMinSelectionSize_安全域へ補正する(double value, double expected)
     {
         Assert.Equal(expected, MarqueeCore.Limits.CoerceMinSelectionSize(value));
     }
@@ -124,7 +124,7 @@ public class MarqueeCoreLimitsTests
     [InlineData(1.25, 1.25)]
     [InlineData(10.0, 8.0)]
     [InlineData(double.NaN, 1.0)]
-    public void CoerceClientToSourceScaling_安全域へ補正する(double value, double expected)
+    internal void CoerceClientToSourceScaling_安全域へ補正する(double value, double expected)
     {
         Assert.Equal(expected, MarqueeCore.Limits.CoerceClientToSourceScaling(value));
     }
@@ -139,7 +139,7 @@ public class MarqueeCoreLimitsTests
     [InlineData(1.25)]
     [InlineData(2.0)]
     [InlineData(0.5)]
-    public void ResolveDisplayScale_正の指定はそのまま使う(double displayScaling)
+    internal void ResolveDisplayScale_正の指定はそのまま使う(double displayScaling)
     {
         Assert.Equal(displayScaling, MarqueeCore.Limits.ResolveDisplayScale(displayScaling, 1.0));
     }
@@ -149,7 +149,7 @@ public class MarqueeCoreLimitsTests
     [Theory]
     [InlineData(0.0)]
     [InlineData(-1.0)]
-    public void ResolveDisplayScale_0以下は倍率を使う(double displayScaling)
+    internal void ResolveDisplayScale_0以下は倍率を使う(double displayScaling)
     {
         Assert.Equal(1.25, MarqueeCore.Limits.ResolveDisplayScale(displayScaling, 1.25));
     }
@@ -161,7 +161,7 @@ public class MarqueeCoreLimitsTests
     [InlineData(-1.0)]
     [InlineData(double.NaN)]
     [InlineData(double.PositiveInfinity)]
-    public void ResolveDisplayScale_倍率も無効なら等倍になる(double dipToSourceScaling)
+    internal void ResolveDisplayScale_倍率も無効なら等倍になる(double dipToSourceScaling)
     {
         Assert.Equal(1.0, MarqueeCore.Limits.ResolveDisplayScale(displayScaling: 0.0, dipToSourceScaling));
     }

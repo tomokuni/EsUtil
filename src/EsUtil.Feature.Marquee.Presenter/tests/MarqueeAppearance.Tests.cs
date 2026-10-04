@@ -13,7 +13,7 @@ namespace EsUtil.Feature.Marquee.Tests;
 public class MarqueeAppearanceTests
 {
     [Fact]
-    public void 既定色が期待どおりである()
+    internal void 既定色が期待どおりである()
     {
         var paint = new MarqueeAppearance();
 
@@ -29,13 +29,13 @@ public class MarqueeAppearanceTests
     }
 
     [Fact]
-    public void 既定の暗転マスクは黒50パーセントである()
+    internal void 既定の暗転マスクは黒50パーセントである()
     {
         Assert.Equal(DrawingColor.FromArgb(128, 0, 0, 0), new MarqueeAppearance().OverlayColor);
     }
 
     [Fact]
-    public void 既定の外枠はハンドル枠と同じ色である()
+    internal void 既定の外枠はハンドル枠と同じ色である()
     {
         var paint = new MarqueeAppearance();
 
@@ -45,7 +45,7 @@ public class MarqueeAppearanceTests
     }
 
     [Fact]
-    public void 既定の内側の塗りと枠線は透明である()
+    internal void 既定の内側の塗りと枠線は透明である()
     {
         var paint = new MarqueeAppearance();
 
@@ -55,7 +55,7 @@ public class MarqueeAppearanceTests
     }
 
     [Fact]
-    public void 未指定のハンドル塗り色は白へ解決される()
+    internal void 未指定のハンドル塗り色は白へ解決される()
     {
         // 全成分 0（default）はハンドルが見えなくなるため白へ解決する
         Assert.Equal(DrawingColor.White, (new MarqueeAppearance { HandleColor = default }).HandleColor);
@@ -63,7 +63,7 @@ public class MarqueeAppearanceTests
     }
 
     [Fact]
-    public void 指定したハンドル塗り色はそのまま使われる()
+    internal void 指定したハンドル塗り色はそのまま使われる()
     {
         // アルファ 1 以上は指定値を尊重する（半透明の指定も許す）
         Assert.Equal(DrawingColor.Red, (new MarqueeAppearance { HandleColor = DrawingColor.Red }).HandleColor);
@@ -73,7 +73,7 @@ public class MarqueeAppearanceTests
     }
 
     [Fact]
-    public void with式で一部だけ変更できる()
+    internal void with式で一部だけ変更できる()
     {
         var paint = new MarqueeAppearance();
 
@@ -86,7 +86,7 @@ public class MarqueeAppearanceTests
     }
 
     [Fact]
-    public void 等価性は値で判定される()
+    internal void 等価性は値で判定される()
     {
         var a = new MarqueeAppearance { OverlayColor = DrawingColor.Red, InnerFillColor = DrawingColor.Blue };
         var b = new MarqueeAppearance { OverlayColor = DrawingColor.Red, InnerFillColor = DrawingColor.Blue };
@@ -96,7 +96,7 @@ public class MarqueeAppearanceTests
     }
 
     [Fact]
-    public void Defaultは既定値と同じ値を持つ()
+    internal void Defaultは既定値と同じ値を持つ()
     {
         Assert.Equal(new MarqueeAppearance(), MarqueeAppearance.Default);
     }
@@ -111,7 +111,7 @@ public class MarqueeAppearanceTests
     [InlineData(true, false, false)]
     [InlineData(false, true, false)]
     [InlineData(false, false, false)]
-    public void ShouldShowSizeLabel_設定値と矩形の有無で決まる(bool showSizeLabel, bool hasFocusRect, bool expected)
+    internal void ShouldShowSizeLabel_設定値と矩形の有無で決まる(bool showSizeLabel, bool hasFocusRect, bool expected)
     {
         var appearance = MarqueeAppearance.Default with { ShowSizeLabel = showSizeLabel };
 
@@ -125,7 +125,7 @@ public class MarqueeAppearanceTests
     [Theory]
     [InlineData(true, true)]
     [InlineData(false, false)]
-    public void ShouldShowCoordLabel_設定値で決まる(bool showCoordLabel, bool expected)
+    internal void ShouldShowCoordLabel_設定値で決まる(bool showCoordLabel, bool expected)
     {
         var appearance = MarqueeAppearance.Default with { ShowCoordLabel = showCoordLabel };
 
@@ -141,7 +141,7 @@ public class MarqueeAppearanceTests
     [InlineData(false, false, false)]
     [InlineData(true, true, true)]
     [InlineData(true, false, true)]
-    public void ShouldDrawOverlay_矩形の有無と全面暗転で決まる(bool showFullOverlay, bool hasFocusRect, bool expected)
+    internal void ShouldDrawOverlay_矩形の有無と全面暗転で決まる(bool showFullOverlay, bool hasFocusRect, bool expected)
     {
         var appearance = MarqueeAppearance.Default with { ShowFullOverlay = showFullOverlay };
 
@@ -150,7 +150,7 @@ public class MarqueeAppearanceTests
 
     /// <summary>既定の枠線の太さが両 UI の期待値と一致することを検証する。</summary>
     [Fact]
-    public void 既定の枠線の太さは2である()
+    internal void 既定の枠線の太さは2である()
     {
         var appearance = new MarqueeAppearance();
 
@@ -169,7 +169,7 @@ public class MarqueeAppearanceTests
     [InlineData(100.0, 64.0)]
     [InlineData(double.NaN, 2.0)]
     [InlineData(double.PositiveInfinity, 2.0)]
-    public void 枠線の太さは生成時に安全域へ補正される(double value, double expected)
+    internal void 枠線の太さは生成時に安全域へ補正される(double value, double expected)
     {
         var appearance = MarqueeAppearance.Default with
         {
@@ -183,7 +183,7 @@ public class MarqueeAppearanceTests
 
     /// <summary>既定では表示可否がすべて有効（内側の塗り・枠線だけ無効）であることを検証する。</summary>
     [Fact]
-    public void 既定の表示可否は意図どおりである()
+    internal void 既定の表示可否は意図どおりである()
     {
         var appearance = new MarqueeAppearance();
 

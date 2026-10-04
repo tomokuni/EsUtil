@@ -15,7 +15,7 @@ namespace EsUtil.Platform.Core.Tests.Native;
 public class WinCursorServiceTests
 {
     [Fact]
-    public void WinCursorService_GetCursorScreenPointが現在位置を返す()
+    internal void WinCursorService_GetCursorScreenPointが現在位置を返す()
     {
         var service = new WinCursorService();
 
@@ -26,7 +26,7 @@ public class WinCursorServiceTests
     }
 
     [Fact]
-    public void WinCursorService_SetCursorScreenPointがカーソルを移動する()
+    internal void WinCursorService_SetCursorScreenPointがカーソルを移動する()
     {
         var service = new WinCursorService();
         var before = service.GetCursorScreenPoint();
@@ -40,7 +40,7 @@ public class WinCursorServiceTests
     }
 
     [Fact]
-    public void WinCursorService_ShowCursorが状態を追跡する()
+    internal void WinCursorService_ShowCursorが状態を追跡する()
     {
         var service = new WinCursorService();
 
@@ -55,7 +55,7 @@ public class WinCursorServiceTests
     }
 
     [Fact]
-    public void POINT_コンストラクタとプロパティ()
+    internal void POINT_コンストラクタとプロパティ()
     {
         var pt = new WinNative.POINT(10, 20);
 

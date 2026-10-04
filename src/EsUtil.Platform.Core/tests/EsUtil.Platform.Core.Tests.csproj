@@ -6,11 +6,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- ドキュメントコメントを検証する（存在しない cref を CS1574、引数の対応違いを CS1572 / CS1573 で検出）。
-         ライブラリと違い XML は配布物へ出さない（検証だけに使う）。
-         記載のない公開メンバーの指摘（CS1591）は、アプリ・テスト・サンプルでは対象外にする。 -->
+         XML は配布物（bin / publish）へ出さない（検証だけに使う）。 -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsPackable>false</IsPackable>
     <!-- EsBitmap のピクセルバッファへ直接アクセスするテストのため unsafe を許可する -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

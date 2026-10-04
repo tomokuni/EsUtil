@@ -13,7 +13,7 @@ public class LoupeRenderedEventArgsTests
 {
     /// <summary>保持した値がそのまま取得できることを検証する。</summary>
     [Fact]
-    public void 保持した値を取得できる()
+    internal void 保持した値を取得できる()
     {
         using var bitmap = new SKBitmap(new SKImageInfo(32, 32));
         using var canvas = new SKCanvas(bitmap);
@@ -29,7 +29,7 @@ public class LoupeRenderedEventArgsTests
 
     /// <summary>中心が未設定の場合は切り出し左上が null になることを検証する。</summary>
     [Fact]
-    public void 中心が未設定の場合は切り出し左上がnullになる()
+    internal void 中心が未設定の場合は切り出し左上がnullになる()
     {
         using var bitmap = new SKBitmap(new SKImageInfo(32, 32));
         using var canvas = new SKCanvas(bitmap);

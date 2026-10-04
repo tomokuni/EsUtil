@@ -17,7 +17,7 @@ public class MarqueeLogMessageTests
 {
     /// <summary>実ロガー設定時に全ログメソッドが実行されることを検証する。</summary>
     [Fact]
-    public void 実ロガー設定時に全ログメソッドが実行される()
+    internal void 実ロガー設定時に全ログメソッドが実行される()
     {
         var logger = new RecordingLogger();
         InvokeAll(logger);
@@ -28,7 +28,7 @@ public class MarqueeLogMessageTests
 
     /// <summary>無効ロガーでも全ログメソッドが安全に実行されることを検証する。</summary>
     [Fact]
-    public void 無効ロガーでも全ログメソッドが安全に実行される()
+    internal void 無効ロガーでも全ログメソッドが安全に実行される()
     {
         // IsEnabled=false（NullLogger）でも生成コードの IsEnabled 分岐（false パス）が実行される
         InvokeAll(NullLogger.Instance);
@@ -36,7 +36,7 @@ public class MarqueeLogMessageTests
 
     /// <summary>出力書式が両 UI で共通の書式と一致することを検証する。</summary>
     [Fact]
-    public void 出力書式が期待どおりである()
+    internal void 出力書式が期待どおりである()
     {
         var logger = new RecordingLogger();
         InvokeAll(logger);
@@ -56,7 +56,7 @@ public class MarqueeLogMessageTests
     /// <summary>設定（MarqueeOptions）の変更ログが変化した項目だけを出力することを検証する。</summary>
     /// <remarks>設定を 1 つの値へ統合したため、変更された項目の判定（差分検出）はログ定義が単一所有する。</remarks>
     [Fact]
-    public void 設定の変更ログは変化した項目だけを出力する()
+    internal void 設定の変更ログは変化した項目だけを出力する()
     {
         var logger = new RecordingLogger();
 
@@ -76,7 +76,7 @@ public class MarqueeLogMessageTests
 
     /// <summary>数値の変更ログが同値なら出力せず、カルチャに依存しないことを検証する。</summary>
     [Fact]
-    public void 数値の変更ログは同値なら出力せずカルチャに依存しない()
+    internal void 数値の変更ログは同値なら出力せずカルチャに依存しない()
     {
         var original = CultureInfo.CurrentCulture;
         try

@@ -16,7 +16,7 @@ public class LoupePresenterTests
 {
     /// <summary>外観が既定で設定され、差し替えが保持されることを検証する。</summary>
     [Fact]
-    public void 外観_既定はDefaultで差し替えが保持される()
+    internal void 外観_既定はDefaultで差し替えが保持される()
     {
         var presenter = new LoupePresenter();
         Assert.Equal(LoupeAppearance.Default, presenter.Appearance);
@@ -33,7 +33,7 @@ public class LoupePresenterTests
     /// （ホストは前後の値を渡さず、同値判定・差分検出を持たない）。
     /// </remarks>
     [Fact]
-    public void 外観_変更した項目だけを記録する()
+    internal void 外観_変更した項目だけを記録する()
     {
         var presenter = new LoupePresenter();
         var logger = new RecordingLogger();
@@ -47,7 +47,7 @@ public class LoupePresenterTests
 
     /// <summary>同値の再設定では記録しないことを検証する。</summary>
     [Fact]
-    public void 外観_同値の再設定では記録しない()
+    internal void 外観_同値の再設定では記録しない()
     {
         var presenter = new LoupePresenter();
         var logger = new RecordingLogger();
@@ -62,7 +62,7 @@ public class LoupePresenterTests
     /// <summary>本層の生成がロガーの設定時に 1 度だけ記録されることを検証する（注入しない場合）。</summary>
     /// <remarks>生成時に出力先が未設定のため、ロガーが設定された時点で記録する。</remarks>
     [Fact]
-    public void Log_本層の生成はロガーの設定時に一度だけ記録する()
+    internal void Log_本層の生成はロガーの設定時に一度だけ記録する()
     {
         var presenter = new LoupePresenter();
         var logger = new RecordingLogger();
@@ -85,7 +85,7 @@ public class LoupePresenterTests
     /// <summary>コンストラクターでロガーを注入すると、その場で本層とコアの生成が記録されることを検証する。</summary>
     /// <remarks>注入時は出力先が確定しているため、コンストラクター呼び出しの記録をその場で出力する。</remarks>
     [Fact]
-    public void 生成_コンストラクターでロガーを注入すると生成を記録する()
+    internal void 生成_コンストラクターでロガーを注入すると生成を記録する()
     {
         var logger = new RecordingLogger();
 
@@ -108,7 +108,7 @@ public class LoupePresenterTests
 
     /// <summary>コンストラクターでロガーを注入した場合も、通過と変更が記録されることを検証する。</summary>
     [Fact]
-    public void 生成_コンストラクター注入後も通過と変更を記録する()
+    internal void 生成_コンストラクター注入後も通過と変更を記録する()
     {
         var logger = new RecordingLogger();
         var presenter = new LoupePresenter(logger);
@@ -133,7 +133,7 @@ public class LoupePresenterTests
     /// 本層の接頭辞を持つ Trace の出力だけを抽出して検証する。
     /// </remarks>
     [Fact]
-    public void コアへ伝搬する値は通過をTraceで記録する()
+    internal void コアへ伝搬する値は通過をTraceで記録する()
     {
         var presenter = new LoupePresenter();
         var logger = new RecordingLogger();
@@ -171,7 +171,7 @@ public class LoupePresenterTests
     /// ログの出力先は提示層の <c>Log</c> からコアへ伝搬する。
     /// </remarks>
     [Fact]
-    public void 設定_コアのログ定義で記録する()
+    internal void 設定_コアのログ定義で記録する()
     {
         var presenter = new LoupePresenter();
         var logger = new RecordingLogger();

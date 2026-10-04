@@ -49,7 +49,7 @@ public class MarqueePresenterLabelPlanTests
         };
 
     [Fact]
-    public void Resolve_ラベルが無ければ空を返す()
+    internal void Resolve_ラベルが無ければ空を返す()
     {
         var elements = MarqueePresenter.ResolveLabelPlacements(null, null, CreateAppearance(), Measure);
 
@@ -57,7 +57,7 @@ public class MarqueePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_サイズラベルのみなら1件を返す()
+    internal void Resolve_サイズラベルのみなら1件を返す()
     {
         var elements = MarqueePresenter.ResolveLabelPlacements(CreateSizeLabel("サイズ"), null, CreateAppearance(), Measure);
 
@@ -67,7 +67,7 @@ public class MarqueePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_カーソル座標ラベルのみなら1件を返す()
+    internal void Resolve_カーソル座標ラベルのみなら1件を返す()
     {
         var elements = MarqueePresenter.ResolveLabelPlacements(null, CreateCoordLabel("(1, 2)"), CreateAppearance(), Measure);
 
@@ -77,7 +77,7 @@ public class MarqueePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_両方ある場合はサイズラベルが先で座標ラベルが後になる()
+    internal void Resolve_両方ある場合はサイズラベルが先で座標ラベルが後になる()
     {
         // 順序は本クラスが単一所有する（座標ラベルが手前 = 最後）
         var elements = MarqueePresenter.ResolveLabelPlacements(
@@ -89,7 +89,7 @@ public class MarqueePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_基準点を背景の左上に置く()
+    internal void Resolve_基準点を背景の左上に置く()
     {
         var element = Assert.Single(
             MarqueePresenter.ResolveLabelPlacements(CreateSizeLabel(), null, CreateAppearance(), Measure));
@@ -101,7 +101,7 @@ public class MarqueePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_領域をはみ出す場合はクランプする()
+    internal void Resolve_領域をはみ出す場合はクランプする()
     {
         // クランプ領域 (200, 200) へ収まらない位置を指定する
         var label = new MarqueeTextPlacement("(50, 60)", new EsPoint(190, 195), new EsSize(200, 200));
@@ -113,7 +113,7 @@ public class MarqueePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_内側余白は体裁の値になる()
+    internal void Resolve_内側余白は体裁の値になる()
     {
         var element = Assert.Single(
             MarqueePresenter.ResolveLabelPlacements(CreateSizeLabel(), null, CreateAppearance(), Measure));
@@ -123,7 +123,7 @@ public class MarqueePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_内側余白の設定を配置へ反映する()
+    internal void Resolve_内側余白の設定を配置へ反映する()
     {
         var appearance = CreateAppearance() with { LabelPadding = 7.0 };
 
@@ -134,7 +134,7 @@ public class MarqueePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_文言とフォントサイズを測定関数へ渡す()
+    internal void Resolve_文言とフォントサイズを測定関数へ渡す()
     {
         var calls = new List<(string Text, double FontSize)>();
 
@@ -152,7 +152,7 @@ public class MarqueePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_色を要素へ写す()
+    internal void Resolve_色を要素へ写す()
     {
         var element = Assert.Single(
             MarqueePresenter.ResolveLabelPlacements(null, CreateCoordLabel(), CreateAppearance(), Measure));
@@ -163,14 +163,14 @@ public class MarqueePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_測定関数がnullなら例外()
+    internal void Resolve_測定関数がnullなら例外()
     {
         Assert.Throws<ArgumentNullException>(
             () => MarqueePresenter.ResolveLabelPlacements(CreateSizeLabel(), null, CreateAppearance(), null!));
     }
 
     [Fact]
-    public void Resolve_外観がnullなら例外()
+    internal void Resolve_外観がnullなら例外()
     {
         Assert.Throws<ArgumentNullException>(
             () => MarqueePresenter.ResolveLabelPlacements(CreateSizeLabel(), null, null!, Measure));

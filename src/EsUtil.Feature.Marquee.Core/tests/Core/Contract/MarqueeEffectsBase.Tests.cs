@@ -2,7 +2,6 @@ using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
 using EsUtil.Feature.Marquee.Core.Contract;
-using EsUtil.Feature.Marquee.Core.Interaction;
 
 namespace EsUtil.Feature.Marquee.Tests.Core.Contract;
 
@@ -16,7 +15,7 @@ namespace EsUtil.Feature.Marquee.Tests.Core.Contract;
 public class MarqueeEffectsBaseTests
 {
     [Fact]
-    public void 既定実装はすべて何もしない()
+    internal void 既定実装はすべて何もしない()
     {
         MarqueeEffectsBase effects = new RedrawOnly(() => { });
 
@@ -29,7 +28,7 @@ public class MarqueeEffectsBaseTests
     }
 
     [Fact]
-    public void 再描画だけをoverrideした実装でファサードを使える()
+    internal void 再描画だけをoverrideした実装でファサードを使える()
     {
         // 独自コントロールの最小構成（再描画だけを実装し、他の効果は基底の既定実装を使う）
         var redraws = 0;
@@ -45,7 +44,7 @@ public class MarqueeEffectsBaseTests
     }
 
     [Fact]
-    public void 効果を実装しない場合はカーソル操作も例外にならない()
+    internal void 効果を実装しない場合はカーソル操作も例外にならない()
     {
         // カーソルサービスを渡した場合でも、画面座標の変換は基底の既定値で完結する（例外を投げない）
         var marquee = new MarqueeCore(new RedrawOnly(() => { }), new CursorServiceSpy());

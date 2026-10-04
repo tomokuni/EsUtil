@@ -19,7 +19,7 @@ public class ScrollMathTests
     // ====================================================================
 
     [Fact]
-    public void MaxOffset_コンテンツがビューポートより大きい場合は差分を返す()
+    internal void MaxOffset_コンテンツがビューポートより大きい場合は差分を返す()
     {
         // コンテンツ 1000、ビューポート 400、scale 1 → 1000 - 400 = 600
         var result = ScrollMath.MaxOffset(1000, 400, 1.0);
@@ -27,7 +27,7 @@ public class ScrollMathTests
     }
 
     [Fact]
-    public void MaxOffset_ズーム時はビューポートをスケールで除する()
+    internal void MaxOffset_ズーム時はビューポートをスケールで除する()
     {
         // コンテンツ 1000、ビューポート 400、scale 2 → 1000 - 400/2 = 800
         var result = ScrollMath.MaxOffset(1000, 400, 2.0);
@@ -35,7 +35,7 @@ public class ScrollMathTests
     }
 
     [Fact]
-    public void MaxOffset_コンテンツがビューポート以下の場合は0を返す()
+    internal void MaxOffset_コンテンツがビューポート以下の場合は0を返す()
     {
         // コンテンツ 300、ビューポート 400 → 0（スクロール不要）
         var result = ScrollMath.MaxOffset(300, 400, 1.0);
@@ -43,7 +43,7 @@ public class ScrollMathTests
     }
 
     [Fact]
-    public void MaxOffset_スケールが0でもゼロ除算しない()
+    internal void MaxOffset_スケールが0でもゼロ除算しない()
     {
         // scale 0 → 1 として扱う
         var result = ScrollMath.MaxOffset(1000, 400, 0.0);
@@ -55,7 +55,7 @@ public class ScrollMathTests
     // ====================================================================
 
     [Fact]
-    public void ViewportSize_ビューポートをスケールで除する()
+    internal void ViewportSize_ビューポートをスケールで除する()
     {
         // ビューポート 400、scale 2 → 200
         var result = ScrollMath.ViewportSize(400, 2.0);
@@ -63,7 +63,7 @@ public class ScrollMathTests
     }
 
     [Fact]
-    public void ViewportSize_スケールが0でもゼロ除算しない()
+    internal void ViewportSize_スケールが0でもゼロ除算しない()
     {
         var result = ScrollMath.ViewportSize(400, 0.0);
         Assert.Equal(400.0, result);

@@ -12,7 +12,7 @@ namespace EsUtil.Feature.Loupe.Tests;
 public class LoupeAppearanceTests
 {
     [Fact]
-    public void 既定色が期待どおりである()
+    internal void 既定色が期待どおりである()
     {
         var paint = new LoupeAppearance();
 
@@ -27,7 +27,7 @@ public class LoupeAppearanceTests
 
     /// <summary>表示可否と枠線の太さの既定を検証する。</summary>
     [Fact]
-    public void 既定の表示可否と枠線の太さが期待どおりである()
+    internal void 既定の表示可否と枠線の太さが期待どおりである()
     {
         var paint = new LoupeAppearance();
 
@@ -39,7 +39,7 @@ public class LoupeAppearanceTests
 
     /// <summary>中心座標ラベルの体裁の既定を検証する。</summary>
     [Fact]
-    public void 既定のラベル体裁が期待どおりである()
+    internal void 既定のラベル体裁が期待どおりである()
     {
         var paint = new LoupeAppearance();
 
@@ -50,7 +50,7 @@ public class LoupeAppearanceTests
 
     /// <summary>枠線の太さが生成時に安全域へ補正されることを検証する。</summary>
     [Fact]
-    public void 枠線の太さが生成時に安全域へ補正される()    {
+    internal void 枠線の太さが生成時に安全域へ補正される()    {
         var paint = new LoupeAppearance { BorderThickness = 1000 };
 
         Assert.Equal(EsUtil.Feature.Loupe.LoupeCore.Limits.BorderThicknessMax, paint.BorderThickness);
@@ -65,7 +65,7 @@ public class LoupeAppearanceTests
     [InlineData(true, false, false)]
     [InlineData(false, true, false)]
     [InlineData(false, false, false)]
-    public void ShouldShowCoordLabel_設定と中心の有無で判定する(bool show, bool hasCenter, bool expected)
+    internal void ShouldShowCoordLabel_設定と中心の有無で判定する(bool show, bool hasCenter, bool expected)
     {
         var paint = new LoupeAppearance { ShowCoordLabel = show };
 
@@ -75,7 +75,7 @@ public class LoupeAppearanceTests
     /// <summary>ペーストボード（画像外）の既定が不透明の中性グレーであることを検証する。</summary>
     /// <remarks>画像外は無地として見える（透明を指定した場合は背後の要素がそのまま見える）。</remarks>
     [Fact]
-    public void 既定のペーストボードは不透明の中性グレーである()
+    internal void 既定のペーストボードは不透明の中性グレーである()
     {
         var paint = new LoupeAppearance();
 
@@ -83,7 +83,7 @@ public class LoupeAppearanceTests
     }
 
     [Fact]
-    public void with式で一部だけ変更できる()
+    internal void with式で一部だけ変更できる()
     {
         var paint = new LoupeAppearance();
 
@@ -95,7 +95,7 @@ public class LoupeAppearanceTests
     }
 
     [Fact]
-    public void 等価性は値で判定される()
+    internal void 等価性は値で判定される()
     {
         var a = new LoupeAppearance { CrossColor = DrawingColor.Red, PasteboardColor = DrawingColor.Blue };
         var b = new LoupeAppearance { CrossColor = DrawingColor.Red, PasteboardColor = DrawingColor.Blue };
@@ -105,7 +105,7 @@ public class LoupeAppearanceTests
     }
 
     [Fact]
-    public void Defaultは既定値と同じ値を持つ()
+    internal void Defaultは既定値と同じ値を持つ()
     {
         Assert.Equal(new LoupeAppearance(), LoupeAppearance.Default);
     }

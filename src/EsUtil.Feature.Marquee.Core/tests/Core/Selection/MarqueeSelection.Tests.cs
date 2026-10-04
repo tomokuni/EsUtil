@@ -1,4 +1,3 @@
-using EsUtil.Feature.Marquee.Core.Interaction;
 using EsUtil.Feature.Marquee.Core.Selection;
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
@@ -17,7 +16,7 @@ public class MarqueeSelectionTests
     // ====================================================================
 
     [Fact]
-    public void FromPoints_始点と終点から正規化された矩形を生成する()
+    internal void FromPoints_始点と終点から正規化された矩形を生成する()
     {
         // ドラッグ由来の選択は閉区間（始点・終点のピクセルを含む）
         var expected = new EsRect(10, 20, 30, 40, EsRectInterval.Closed);
@@ -37,7 +36,7 @@ public class MarqueeSelectionTests
     // ====================================================================
 
     [Fact]
-    public void Handle_8方向ハンドルとMoveの位置を返す()
+    internal void Handle_8方向ハンドルとMoveの位置を返す()
     {
         var selection = new MarqueeSelection(new EsRect(10, 20, 100, 80)); // Right=110 Bottom=100 Center=(60,60)
 
@@ -53,7 +52,7 @@ public class MarqueeSelectionTests
     }
 
     [Fact]
-    public void Handle_未知のハンドルは右下隅を返す()
+    internal void Handle_未知のハンドルは右下隅を返す()
     {
         var selection = new MarqueeSelection(new EsRect(10, 20, 100, 80));
 
@@ -65,7 +64,7 @@ public class MarqueeSelectionTests
     // ====================================================================
 
     [Fact]
-    public void OppositeCorner_始点と反対側の隅を返す()
+    internal void OppositeCorner_始点と反対側の隅を返す()
     {
         var selection = new MarqueeSelection(new EsRect(10, 20, 100, 80));
 
@@ -84,7 +83,7 @@ public class MarqueeSelectionTests
     // ====================================================================
 
     [Fact]
-    public void ClampToBounds_Moveは矩形全体を境界内へシフトする()
+    internal void ClampToBounds_Moveは矩形全体を境界内へシフトする()
     {
         var bounds = new EsRect(0, 0, 200, 100);
         // 左下方向へはみ出した矩形（Move 中）→ 境界内へシフト
@@ -96,7 +95,7 @@ public class MarqueeSelectionTests
     }
 
     [Fact]
-    public void ClampToBounds_ハンドル変形は固定角を維持して辺のみクランプする()
+    internal void ClampToBounds_ハンドル変形は固定角を維持して辺のみクランプする()
     {
         var bounds = new EsRect(0, 0, 200, 100);
         // TopLeft ハンドルが左端・上端を超える → 固定角（右下）を維持し、左・上のみクランプ
@@ -112,7 +111,7 @@ public class MarqueeSelectionTests
     // ====================================================================
 
     [Fact]
-    public void Drag_TopLeftハンドルで変形する()
+    internal void Drag_TopLeftハンドルで変形する()
     {
         // 元矩形 (10,20,100,80)、TopLeft を (dx=30, dy=10) 移動 → l=40, t=30, r=110, b=100 → (40,30,70,70)
         var result = new MarqueeSelection(new EsRect(10, 20, 100, 80)).Drag(30, 10, MarqueeHitTarget.TopLeft, 10);
@@ -120,7 +119,7 @@ public class MarqueeSelectionTests
     }
 
     [Fact]
-    public void Drag_各辺ハンドルは1軸のみ変形する()
+    internal void Drag_各辺ハンドルは1軸のみ変形する()
     {
         var selection = new MarqueeSelection(new EsRect(10, 20, 100, 80));
 
@@ -132,14 +131,14 @@ public class MarqueeSelectionTests
     }
 
     [Fact]
-    public void Drag_Moveで全体を平行移動する()
+    internal void Drag_Moveで全体を平行移動する()
     {
         var result = new MarqueeSelection(new EsRect(10, 20, 100, 80)).Drag(5, -10, MarqueeHitTarget.Move, 10);
         Assert.Equal(new EsRect(15, 10, 100, 80), result.Rect);
     }
 
     [Fact]
-    public void Drag_反対側までドラッグすると矩形が反転される()
+    internal void Drag_反対側までドラッグすると矩形が反転される()
     {
         // TopLeft を右へ移動し l > r になる → 反転（正規化）
         var result = new MarqueeSelection(new EsRect(10, 20, 100, 80)).Drag(200, 0, MarqueeHitTarget.TopLeft, 10);
@@ -148,7 +147,7 @@ public class MarqueeSelectionTests
     }
 
     [Fact]
-    public void Drag_最小サイズ未満は拡張される()
+    internal void Drag_最小サイズ未満は拡張される()
     {
         // BottomRight を (dx=-95, dy=-95): r=15, b=5, l=10, t=20 → x1=10,x2=15(幅5)→最小10へ、y1=5,y2=20(高さ15)維持
         var result = new MarqueeSelection(new EsRect(10, 20, 100, 80)).Drag(-95, -95, MarqueeHitTarget.BottomRight, 10);
@@ -156,7 +155,7 @@ public class MarqueeSelectionTests
     }
 
     [Fact]
-    public void Drag_渡された最小サイズをそのまま使う()
+    internal void Drag_渡された最小サイズをそのまま使う()
     {
         // 最小サイズの補正（下限 1.0）は設定値の生成時に済ませる（規則は MarqueeCore.Limits が単一所有する）
         var result = new MarqueeSelection(new EsRect(10, 20, 0.2, 0.2)).Drag(0, 0, MarqueeHitTarget.Move, 10);

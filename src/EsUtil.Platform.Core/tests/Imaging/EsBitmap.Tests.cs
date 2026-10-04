@@ -22,7 +22,7 @@ public class EsBitmapTests
     // ====================================================================
 
     [Fact]
-    public void Create_指定サイズで生成する()
+    internal void Create_指定サイズで生成する()
     {
         using var bmp = Create(6, 8);
         Assert.Equal(6, bmp.Size.Width);
@@ -33,7 +33,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Create_色付きで指定サイズを生成し全ピクセルが塗りつぶされる()
+    internal void Create_色付きで指定サイズを生成し全ピクセルが塗りつぶされる()
     {
         // 赤・不透明（BGRA=0,0,255,255）で生成し、全ピクセルが指定色になることを検証する。
         var color = System.Drawing.Color.FromArgb(255, 255, 0, 0); // A=255, R=255, G=0, B=0
@@ -52,7 +52,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Create_破棄後はIsDisposedが真になる()
+    internal void Create_破棄後はIsDisposedが真になる()
     {
         var bmp = Create();
         bmp.Dispose();
@@ -60,7 +60,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Create_サイズ指定のオーバーロードは寸法をそのまま使う()
+    internal void Create_サイズ指定のオーバーロードは寸法をそのまま使う()
     {
         using var bmp = EsBitmap.Create(new EsSizeInt(6, 8));
 
@@ -71,7 +71,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Create_サイズと色のオーバーロードは全ピクセルを塗りつぶす()
+    internal void Create_サイズと色のオーバーロードは全ピクセルを塗りつぶす()
     {
         var color = System.Drawing.Color.FromArgb(255, 0, 0, 255); // 青・不透明
         using var bmp = EsBitmap.Create(new EsSizeInt(4, 4), color);
@@ -83,7 +83,7 @@ public class EsBitmapTests
 
     /// <summary>未初期化確保はサイズとバッファを用意する（ピクセルの値は保証しない）ことを検証する。</summary>
     [Fact]
-    public void CreateUninitialized_サイズとバッファを用意する()
+    internal void CreateUninitialized_サイズとバッファを用意する()
     {
         using var bmp = EsBitmap.CreateUninitialized(6, 8);
 
@@ -95,7 +95,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void CreateUninitialized_サイズ指定のオーバーロードは寸法をそのまま使う()
+    internal void CreateUninitialized_サイズ指定のオーバーロードは寸法をそのまま使う()
     {
         using var bmp = EsBitmap.CreateUninitialized(new EsSizeInt(3, 5));
 
@@ -103,7 +103,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void CreateUninitialized_空のサイズなら例外にならない()
+    internal void CreateUninitialized_空のサイズなら例外にならない()
     {
         using var bmp = EsBitmap.CreateUninitialized(0, 0);
 
@@ -113,7 +113,7 @@ public class EsBitmapTests
 
     /// <summary>0 サイズ（空）で生成しても例外にならず、ピクセルを持たないことを検証する。</summary>
     [Fact]
-    public void Create_空のサイズなら例外にならない()
+    internal void Create_空のサイズなら例外にならない()
     {
         using var bmp = EsBitmap.Create(new EsSizeInt(0, 0));
 
@@ -124,7 +124,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Dispose_二重破棄しても例外にならない()
+    internal void Dispose_二重破棄しても例外にならない()
     {
         var bmp = Create();
         bmp.Dispose();
@@ -137,7 +137,7 @@ public class EsBitmapTests
     // ====================================================================
 
     [Fact]
-    public void ToSizeText_幅x高さ形式で返す()
+    internal void ToSizeText_幅x高さ形式で返す()
     {
         using var bmp = Create(1920, 1080);
 
@@ -145,7 +145,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void ToSizeText_0サイズでも形式は保つ()
+    internal void ToSizeText_0サイズでも形式は保つ()
     {
         using var bmp = Create(0, 0);
 
@@ -153,13 +153,13 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void ToSizeText_未設定はnullを表す文字列を返す()
+    internal void ToSizeText_未設定はnullを表す文字列を返す()
     {
         Assert.Equal("null", EsBitmap.ToSizeText(null));
     }
 
     [Fact]
-    public void ToSizeText_設定済みは寸法を返す()
+    internal void ToSizeText_設定済みは寸法を返す()
     {
         using var bmp = Create(640, 480);
 
@@ -171,7 +171,7 @@ public class EsBitmapTests
     // ====================================================================
 
     [Fact]
-    public void SetPixel_設定したピクセルを取得できる()
+    internal void SetPixel_設定したピクセルを取得できる()
     {
         using var bmp = Create();
         bmp.SetPixel(1, 2, b: 10, g: 20, r: 30, a: 255);
@@ -183,7 +183,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void GetPixel_未初期化領域のピクセルを取得できる()
+    internal void GetPixel_未初期化領域のピクセルを取得できる()
     {
         using var bmp = Create();
         var px = bmp.GetPixel(0, 0);
@@ -195,7 +195,7 @@ public class EsBitmapTests
 
     /// <summary>座標型（<see cref="EsPointInt" />）のオーバーロードが成分オーバーロードと一致することを検証する。</summary>
     [Fact]
-    public void GetSetPixel_座標型のオーバーロードは成分と一致する()
+    internal void GetSetPixel_座標型のオーバーロードは成分と一致する()
     {
         using var bmp = Create();
         bmp.SetPixel(new EsPointInt(1, 2), System.Drawing.Color.FromArgb(255, 30, 20, 10));
@@ -215,7 +215,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Clear_全ピクセルが指定色になる()
+    internal void Clear_全ピクセルが指定色になる()
     {
         using var bmp = Create();
         bmp.Clear(b: 0, g: 0, r: 255, a: 255); // 赤・不透明
@@ -227,7 +227,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Clear_アルファ乗算済みの色で塗りつぶす()
+    internal void Clear_アルファ乗算済みの色で塗りつぶす()
     {
         using var bmp = Create();
         // 50% アルファの赤（R=255, A=128）
@@ -237,7 +237,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Clone_独立した複製を生成する()
+    internal void Clone_独立した複製を生成する()
     {
         using var bmp = Create();
         bmp.SetPixel(0, 0, b: 1, g: 2, r: 3, a: 255);
@@ -252,7 +252,7 @@ public class EsBitmapTests
     // ====================================================================
 
     [Fact]
-    public void SetPixel_部分透明アルファを保持する()
+    internal void SetPixel_部分透明アルファを保持する()
     {
         using var bmp = Create();
         // 50% アルファの青（BGRA: B=255, G=0, R=0, A=128）
@@ -265,7 +265,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void SetPixel_完全透明アルファも保持する()
+    internal void SetPixel_完全透明アルファも保持する()
     {
         using var bmp = Create();
         bmp.SetPixel(0, 0, b: 10, g: 20, r: 30, a: 0);
@@ -277,7 +277,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Clone_アルファを保持したまま複製する()
+    internal void Clone_アルファを保持したまま複製する()
     {
         using var bmp = Create();
         bmp.SetPixel(0, 0, b: 1, g: 2, r: 3, a: 128);
@@ -292,7 +292,7 @@ public class EsBitmapTests
     // ====================================================================
 
     [Fact]
-    public void Crop_範囲内の矩形を切り出す()
+    internal void Crop_範囲内の矩形を切り出す()
     {
         using var src = Create(10, 10);
         src.Clear(b: 0, g: 0, r: 255, a: 255); // 赤
@@ -306,7 +306,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Crop_幅0の矩形は例外を投げる()
+    internal void Crop_幅0の矩形は例外を投げる()
     {
         using var src = Create(10, 10);
 
@@ -314,7 +314,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Crop_高さ0の矩形は例外を投げる()
+    internal void Crop_高さ0の矩形は例外を投げる()
     {
         using var src = Create(10, 10);
 
@@ -322,7 +322,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Crop_範囲外は透明パディングで要求サイズを返す()
+    internal void Crop_範囲外は透明パディングで要求サイズを返す()
     {
         using var src = Create(10, 10);
         src.Clear(b: 0, g: 0, r: 255, a: 255); // 赤
@@ -339,7 +339,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Crop_完全に範囲外でも要求サイズを透明パディングで返す()
+    internal void Crop_完全に範囲外でも要求サイズを透明パディングで返す()
     {
         using var src = Create(10, 10);
         src.Clear(b: 0, g: 0, r: 255, a: 255); // 赤
@@ -355,7 +355,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Crop_左上がソース範囲外の場合は透明パディングで位置関係を保つ()
+    internal void Crop_左上がソース範囲外の場合は透明パディングで位置関係を保つ()
     {
         using var src = Create(10, 10);
         src.Clear(b: 0, g: 0, r: 255, a: 255); // 赤
@@ -374,7 +374,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Crop_左上が大きく外れた場合は全ピクセル透明を返す()
+    internal void Crop_左上が大きく外れた場合は全ピクセル透明を返す()
     {
         using var src = Create(10, 10);
         src.Clear(b: 0, g: 0, r: 255, a: 255); // 赤
@@ -389,7 +389,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Crop_破棄後は例外を投げる()
+    internal void Crop_破棄後は例外を投げる()
     {
         var src = Create(10, 10);
         src.Dispose();
@@ -398,7 +398,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Crop_全面を切り出す場合はパディングを持たない()
+    internal void Crop_全面を切り出す場合はパディングを持たない()
     {
         // パディングが無い場合は透明化を行わないため、全ピクセルがコピー元の色で埋まることを固定する
         using var src = Create(4, 4);
@@ -412,7 +412,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Crop_パディングは上端と下端と中間行の左右をすべて透明にする()
+    internal void Crop_パディングは上端と下端と中間行の左右をすべて透明にする()
     {
         using var src = Create(4, 4);
         src.Clear(b: 0, g: 0, r: 255, a: 255); // 赤
@@ -434,7 +434,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Crop_切り出し元が空なら透明を返す()
+    internal void Crop_切り出し元が空なら透明を返す()
     {
         using var src = Create(0, 0);
 
@@ -445,7 +445,7 @@ public class EsBitmapTests
     }
 
     [Fact]
-    public void Clone_空のサイズでも例外にならない()
+    internal void Clone_空のサイズでも例外にならない()
     {
         using var bmp = Create(0, 0);
         using var clone = bmp.Clone();

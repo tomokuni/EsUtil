@@ -13,7 +13,7 @@ public class CoordTransformExtensionsTests
 {
     /// <summary>ポートが指定されている場合はそのポートを返すことを検証する。</summary>
     [Fact]
-    public void OrIdentity_ポート指定時はそのポートを返す()
+    internal void OrIdentity_ポート指定時はそのポートを返す()
     {
         var port = CoordTransform.ClientToSource(() => 2.0);
 
@@ -22,7 +22,7 @@ public class CoordTransformExtensionsTests
 
     /// <summary>ポート未設定（null）の場合は等価変換を返すことを検証する。</summary>
     [Fact]
-    public void OrIdentity_ポート未設定なら等価変換を返す()
+    internal void OrIdentity_ポート未設定なら等価変換を返す()
     {
         ICoordTransform? port = null;
 
@@ -31,7 +31,7 @@ public class CoordTransformExtensionsTests
 
     /// <summary>返された等価変換が座標をそのまま通すことを検証する。</summary>
     [Fact]
-    public void OrIdentity_等価変換は座標をそのまま通す()
+    internal void OrIdentity_等価変換は座標をそのまま通す()
     {
         ICoordTransform? port = null;
 

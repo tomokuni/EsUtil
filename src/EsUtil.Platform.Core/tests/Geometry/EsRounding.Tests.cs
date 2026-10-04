@@ -18,7 +18,7 @@ public class EsRoundingTests
     [InlineData(-1.4, -1)]
     [InlineData(-1.5, -1)]
     [InlineData(-1.9, -1)]
-    public void Truncate_0の方向へ切り捨てる(double value, int expected)
+    internal void Truncate_0の方向へ切り捨てる(double value, int expected)
     {
         Assert.Equal(expected, EsMath.RoundToInt(value, EsRounding.Truncate));
     }
@@ -30,7 +30,7 @@ public class EsRoundingTests
     [InlineData(-1.4, -1)]
     [InlineData(-1.5, -2)]
     [InlineData(-2.5, -3)]
-    public void Round_最も近い整数へ丸める_0_5は0から遠い方へ(double value, int expected)
+    internal void Round_最も近い整数へ丸める_0_5は0から遠い方へ(double value, int expected)
     {
         Assert.Equal(expected, EsMath.RoundToInt(value, EsRounding.Round));
     }
@@ -40,13 +40,13 @@ public class EsRoundingTests
     [InlineData(1.4, 2)]
     [InlineData(-1.0, -1)]
     [InlineData(-1.4, -1)]
-    public void Ceiling_正の無限大の方向へ切り上げる(double value, int expected)
+    internal void Ceiling_正の無限大の方向へ切り上げる(double value, int expected)
     {
         Assert.Equal(expected, EsMath.RoundToInt(value, EsRounding.Ceiling));
     }
 
     [Fact]
-    public void RoundToInt_未定義の丸め方法は例外を投げる()
+    internal void RoundToInt_未定義の丸め方法は例外を投げる()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => EsMath.RoundToInt(1.0, (EsRounding)999));
     }
@@ -56,20 +56,20 @@ public class EsRoundingTests
     [InlineData(1e-12, 0, true)]
     [InlineData(1e-3, 0, false)]
     [InlineData(3.0, 3.0, true)]
-    public void AreClose_許容誤差内なら真(double a, double b, bool expected)
+    internal void AreClose_許容誤差内なら真(double a, double b, bool expected)
     {
         Assert.Equal(expected, EsMath.AreClose(a, b));
     }
 
     [Fact]
-    public void AreClose_非数は偽()
+    internal void AreClose_非数は偽()
     {
         Assert.False(EsMath.AreClose(double.NaN, double.NaN));
         Assert.False(EsMath.AreClose(1.0, double.NaN));
     }
 
     [Fact]
-    public void AreClose_同じ無限大は真()
+    internal void AreClose_同じ無限大は真()
     {
         Assert.True(EsMath.AreClose(double.PositiveInfinity, double.PositiveInfinity));
         Assert.True(EsMath.AreClose(double.NegativeInfinity, double.NegativeInfinity));
@@ -77,26 +77,26 @@ public class EsRoundingTests
     }
 
     [Fact]
-    public void AreClose_無限大と有限値は偽()
+    internal void AreClose_無限大と有限値は偽()
     {
         Assert.False(EsMath.AreClose(double.PositiveInfinity, 1.0));
     }
 
     [Fact]
-    public void AreClose_巨大な座標でも相対誤差で判定する()
+    internal void AreClose_巨大な座標でも相対誤差で判定する()
     {
         // 絶対誤差 1e-9 では一致しない大きさでも、相対誤差の範囲内なら等しいと判定する
         Assert.True(EsMath.AreClose(1e12, 1e12 + 1));
     }
 
     [Fact]
-    public void AreClose_相対誤差を超える差は偽()
+    internal void AreClose_相対誤差を超える差は偽()
     {
         Assert.False(EsMath.AreClose(1e12, 1e12 + 1e6));
     }
 
     [Fact]
-    public void AreClose_許容誤差を明示できる()
+    internal void AreClose_許容誤差を明示できる()
     {
         Assert.True(EsMath.AreClose(1.0, 1.05, tolerance: 0.1));
         Assert.False(EsMath.AreClose(1.0, 1.05, tolerance: 0.01));

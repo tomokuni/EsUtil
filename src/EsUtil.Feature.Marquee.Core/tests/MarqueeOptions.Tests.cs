@@ -11,7 +11,7 @@ namespace EsUtil.Feature.Marquee.Tests;
 public class MarqueeOptionsTests
 {
     [Fact]
-    public void 既定値が両UIの期待値と一致する()
+    internal void 既定値が両UIの期待値と一致する()
     {
         var options = MarqueeOptions.Default;
 
@@ -25,7 +25,7 @@ public class MarqueeOptionsTests
     }
 
     [Fact]
-    public void newとDefaultは等価である()
+    internal void newとDefaultは等価である()
     {
         // プロパティ初期化子で既定値が入るため、暗黙の new() でも Default と等しくなる
         Assert.Equal(MarqueeOptions.Default, new MarqueeOptions());
@@ -33,7 +33,7 @@ public class MarqueeOptionsTests
     }
 
     [Fact]
-    public void 一部の項目だけを変更しても他の項目は既定値を保つ()
+    internal void 一部の項目だけを変更しても他の項目は既定値を保つ()
     {
         var options = MarqueeOptions.Default with { MinSelectionSize = 20.0 };
 
@@ -43,7 +43,7 @@ public class MarqueeOptionsTests
     }
 
     [Fact]
-    public void ハンドルのサイズを変更しても他の項目は既定値を保つ()
+    internal void ハンドルのサイズを変更しても他の項目は既定値を保つ()
     {
         var options = MarqueeOptions.Default with { HandleSize = 20 };
 
@@ -52,7 +52,7 @@ public class MarqueeOptionsTests
     }
 
     [Fact]
-    public void 同名で同値の設定は等価である()
+    internal void 同名で同値の設定は等価である()
     {
         var a = MarqueeOptions.Default with { HandleSize = 12.0, MarkerLength = 20.0 };
         var b = MarqueeOptions.Default with { HandleSize = 12.0, MarkerLength = 20.0 };
@@ -62,7 +62,7 @@ public class MarqueeOptionsTests
     }
 
     [Fact]
-    public void 設定は不変である()
+    internal void 設定は不変である()
     {
         var options = MarqueeOptions.Default;
         var changed = options with { MinSelectionSize = 20.0 };
@@ -74,7 +74,7 @@ public class MarqueeOptionsTests
     }
 
     [Fact]
-    public void HandleSize_指定された値をそのまま保持する()
+    internal void HandleSize_指定された値をそのまま保持する()
     {
         var options = MarqueeOptions.Default with { HandleSize = 12.5 };
 
@@ -101,7 +101,7 @@ public class MarqueeOptionsTests
     [InlineData("MinSelectionSize", 0.0, 1.0)]
     [InlineData("MinSelectionSize", 5000.0, 4096.0)]
     [InlineData("MinSelectionSize", double.NaN, 6.0)]
-    public void 数値項目は生成時に安全域へ補正される(string name, double value, double expected)
+    internal void 数値項目は生成時に安全域へ補正される(string name, double value, double expected)
     {
         var options = name switch
         {

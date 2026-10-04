@@ -12,18 +12,18 @@ public class DrawingColorExtensionsTests
     [InlineData(255, 255, 255, 255)]
     [InlineData(128, 0, 0, 0)]
     [InlineData(1, 0, 0, 0)]
-    public void IsVisible_アルファが正の場合は可視とする(byte alpha, byte r, byte g, byte b)
+    internal void IsVisible_アルファが正の場合は可視とする(byte alpha, byte r, byte g, byte b)
         => Assert.True(DrawingColor.FromArgb(alpha, r, g, b).IsVisible());
 
     [Fact]
-    public void IsVisible_アルファ0の場合は不可視とする()
+    internal void IsVisible_アルファ0の場合は不可視とする()
     {
         Assert.False(DrawingColor.Transparent.IsVisible());
         Assert.False(DrawingColor.FromArgb(0, 255, 0, 0).IsVisible());
     }
 
     [Fact]
-    public void IsVisible_既定値の色は不可視とする()
+    internal void IsVisible_既定値の色は不可視とする()
         => Assert.False(default(DrawingColor).IsVisible());
 
     // ====================================================================
@@ -31,14 +31,14 @@ public class DrawingColorExtensionsTests
     // ====================================================================
 
     [Fact]
-    public void ToHexText_アルファを先頭に置く()
+    internal void ToHexText_アルファを先頭に置く()
         => Assert.Equal("#80FF0000", DrawingColor.FromArgb(128, 255, 0, 0).ToHexText());
 
     [Fact]
-    public void ToHexText_各成分を2桁で埋める()
+    internal void ToHexText_各成分を2桁で埋める()
         => Assert.Equal("#00010203", DrawingColor.FromArgb(0, 1, 2, 3).ToHexText());
 
     [Fact]
-    public void ToHexText_不透明の白を表す()
+    internal void ToHexText_不透明の白を表す()
         => Assert.Equal("#FFFFFFFF", DrawingColor.FromArgb(255, 255, 255, 255).ToHexText());
 }

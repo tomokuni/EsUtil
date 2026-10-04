@@ -15,7 +15,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests;
 public class LoupeSourceResolverTests
 {
     [Fact]
-    public void Resolve_nullは市松模様のみにフォールバックする()
+    internal void Resolve_nullは市松模様のみにフォールバックする()
     {
         var resolved = LoupeSourceResolver.Resolve(source: null, out var bitmap);
 
@@ -24,7 +24,7 @@ public class LoupeSourceResolverTests
     }
 
     [Fact]
-    public void Resolve_EsBitmapAvaloniaImageは共有参照を返す()
+    internal void Resolve_EsBitmapAvaloniaImageは共有参照を返す()
     {
         using var bmp = EsBitmap.Create(10, 10);
         using var image = new EsBitmapAvaloniaImage(bmp);
@@ -41,14 +41,14 @@ public class LoupeSourceResolverTests
     // ====================================================================
 
     [Fact]
-    public void IsSourceSupported_nullは対応可能である()
+    internal void IsSourceSupported_nullは対応可能である()
     {
         // null は「画像なし」を表すため対応可能（市松模様のみで描画する）
         Assert.True(LoupeSourceResolver.IsSourceSupported(source: null));
     }
 
     [Fact]
-    public void IsSourceSupported_EsBitmapAvaloniaImageは対応可能である()
+    internal void IsSourceSupported_EsBitmapAvaloniaImageは対応可能である()
     {
         using var bmp = EsBitmap.Create(10, 10);
         using var image = new EsBitmapAvaloniaImage(bmp);

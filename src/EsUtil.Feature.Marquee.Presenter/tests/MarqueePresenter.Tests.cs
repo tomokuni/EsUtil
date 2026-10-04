@@ -47,7 +47,7 @@ public class MarqueePresenterTests
     [Theory]
     [InlineData(0.0)]
     [InlineData(-1.0)]
-    public void DisplayScaleScaling_0以下は倍率と同値になる(double displayScale)
+    internal void DisplayScaleScaling_0以下は倍率と同値になる(double displayScale)
     {
         var presenter = CreatePresenter(out _);
         presenter.ClientToSourceScaling = 1.25;
@@ -59,7 +59,7 @@ public class MarqueePresenterTests
 
     /// <summary>正の表示スケーリングがそのまま保持されることを検証する。</summary>
     [Fact]
-    public void DisplayScaleScaling_正の値はそのまま保持する()
+    internal void DisplayScaleScaling_正の値はそのまま保持する()
     {
         var presenter = CreatePresenter(out _);
         presenter.ClientToSourceScaling = 1.25;
@@ -71,7 +71,7 @@ public class MarqueePresenterTests
 
     /// <summary>外観が既定で設定され、差し替えが保持されることを検証する。</summary>
     [Fact]
-    public void 外観_既定はDefaultで差し替えが保持される()
+    internal void 外観_既定はDefaultで差し替えが保持される()
     {
         var presenter = CreatePresenter(out _);
         Assert.Equal(MarqueeAppearance.Default, presenter.Appearance);
@@ -96,7 +96,7 @@ public class MarqueePresenterTests
 
     /// <summary>本層の生成がロガーの設定時に一度だけ記録されることを検証する。</summary>
     [Fact]
-    public void Log_生成の記録はロガーの設定時に一度だけ出力する()
+    internal void Log_生成の記録はロガーの設定時に一度だけ出力する()
     {
         var effects = new EffectsSpy();
         var presenter = new MarqueePresenter(effects);
@@ -119,7 +119,7 @@ public class MarqueePresenterTests
 
     /// <summary>コンストラクターでロガーを注入すると、その場で本層とコアの生成が記録されることを検証する。</summary>
     [Fact]
-    public void 生成_コンストラクターでロガーを注入すると生成を記録する()
+    internal void 生成_コンストラクターでロガーを注入すると生成を記録する()
     {
         var effects = new EffectsSpy();
         var logger = new RecordingLogger();
@@ -144,7 +144,7 @@ public class MarqueePresenterTests
     /// <summary>コアへ伝搬した値が本層の通過として記録されることを検証する。</summary>
     /// <remarks>値の所有者（コア）が Debug で記録し、本層を通過したことを Trace で記録する（どの層まで伝搬したかを追える）。</remarks>
     [Fact]
-    public void Log_コアへ伝搬した値を記録する()
+    internal void Log_コアへ伝搬した値を記録する()
     {
         var presenter = CreatePresenter(out _);
         var logger = AttachLogger(presenter);
@@ -166,7 +166,7 @@ public class MarqueePresenterTests
     /// （ホストは前後の値を渡さず、同値判定・差分検出を持たない）。
     /// </remarks>
     [Fact]
-    public void 外観_変更した項目だけを記録する()
+    internal void 外観_変更した項目だけを記録する()
     {
         var presenter = CreatePresenter(out _);
         var logger = new RecordingLogger();
@@ -181,7 +181,7 @@ public class MarqueePresenterTests
 
     /// <summary>表示スケーリングの変更が記録されることを検証する。</summary>
     [Fact]
-    public void DisplayScaleScaling_変更を記録する()
+    internal void DisplayScaleScaling_変更を記録する()
     {
         var presenter = CreatePresenter(out _);
         var logger = new RecordingLogger();
@@ -195,7 +195,7 @@ public class MarqueePresenterTests
 
     /// <summary>ハイライト矩形がコアへ委譲され、注目矩形として優先されることを検証する。</summary>
     [Fact]
-    public void HighlightRect_コアへ委譲しハイライトを優先する()
+    internal void HighlightRect_コアへ委譲しハイライトを優先する()
     {
         var presenter = CreatePresenter(out _);
         presenter.SetSelection(new EsRect(10, 20, 30, 40));
@@ -213,7 +213,7 @@ public class MarqueePresenterTests
 
     /// <summary>選択もハイライトも無ければハンドルもラベルも返さないことを検証する。</summary>
     [Fact]
-    public void ResolveDrawPlan_選択なしではハンドルとラベルを返さない()
+    internal void ResolveDrawPlan_選択なしではハンドルとラベルを返さない()
     {
         // 座標ラベルとサイズラベルは既定で表示されるため、明示的に無効化して「選択なしの結果」を見る
         var presenter = CreatePresenter(
@@ -230,7 +230,7 @@ public class MarqueePresenterTests
 
     /// <summary>選択がある場合はハンドルの幾何を返すことを検証する。</summary>
     [Fact]
-    public void ResolveDrawPlan_選択ありではハンドルを返す()
+    internal void ResolveDrawPlan_選択ありではハンドルを返す()
     {
         var presenter = CreatePresenter(out _);
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
@@ -245,7 +245,7 @@ public class MarqueePresenterTests
 
     /// <summary>ハンドルを隠す外観ではハンドルが null になることを検証する。</summary>
     [Fact]
-    public void ResolveDrawPlan_ハンドルを隠す外観ではnullになる()
+    internal void ResolveDrawPlan_ハンドルを隠す外観ではnullになる()
     {
         var presenter = CreatePresenter(out _, appearance: MarqueeAppearance.Default with { ShowHandles = false });
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
@@ -257,7 +257,7 @@ public class MarqueePresenterTests
 
     /// <summary>カーソル座標ラベルの文言がマウス位置から解決されることを検証する。</summary>
     [Fact]
-    public void ResolveDrawPlan_座標ラベルはマウス位置から解決する()
+    internal void ResolveDrawPlan_座標ラベルはマウス位置から解決する()
     {
         var presenter = CreatePresenter(out _);
         presenter.Move(new EsPoint(30, 40));
@@ -272,7 +272,7 @@ public class MarqueePresenterTests
 
     /// <summary>座標変換ポートがハンドルの幾何へ適用されることを検証する。</summary>
     [Fact]
-    public void ResolveDrawPlan_座標変換ポートを幾何へ適用する()
+    internal void ResolveDrawPlan_座標変換ポートを幾何へ適用する()
     {
         var presenter = CreatePresenter(out _);
         // ToDip（対象 → DIP）は 2 倍
@@ -289,7 +289,7 @@ public class MarqueePresenterTests
 
     /// <summary>描画領域のサイズが座標ラベルのクランプへ渡されることを検証する。</summary>
     [Fact]
-    public void ResolveDrawPlan_選択矩形の大きさを座標ラベルのクランプへ渡す()
+    internal void ResolveDrawPlan_選択矩形の大きさを座標ラベルのクランプへ渡す()
     {
         var presenter = CreatePresenter(out _);
         presenter.Move(new EsPoint(190, 95));
@@ -304,7 +304,7 @@ public class MarqueePresenterTests
 
     /// <summary>サイズラベルと座標ラベルが両方ある場合はサイズラベルが先になることを検証する。</summary>
     [Fact]
-    public void ResolveDrawPlan_ラベルはサイズラベルが先になる()
+    internal void ResolveDrawPlan_ラベルはサイズラベルが先になる()
     {
         var presenter = CreatePresenter(out _);
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
@@ -325,7 +325,7 @@ public class MarqueePresenterTests
     /// （サイズラベルと付加情報ラベルで寄せ幅が異なると縦積みがずれる）。
     /// </remarks>
     [Fact]
-    public void ResolveDrawPlan_ラベルの基準点は枠線の幅だけ内側へ寄る()
+    internal void ResolveDrawPlan_ラベルの基準点は枠線の幅だけ内側へ寄る()
     {
         const double thickness = 5.0;
         var presenter = CreatePresenter(
@@ -344,7 +344,7 @@ public class MarqueePresenterTests
     /// <summary>枠線を描かない設定では余白（1 DIP）だけが残ることを検証する。</summary>
     /// <remarks>線が無いのに線幅ぶんを足すと、ラベルが理由なく矩形の内側へずれる。</remarks>
     [Fact]
-    public void ResolveDrawPlan_枠線を描かない設定では余白だけ内側へ寄る()
+    internal void ResolveDrawPlan_枠線を描かない設定では余白だけ内側へ寄る()
     {
         var presenter = CreatePresenter(
             out _,
@@ -359,7 +359,7 @@ public class MarqueePresenterTests
 
     /// <summary>装飾（暗転・外枠）が外観の表示可否に従って解決されることを検証する。</summary>
     [Fact]
-    public void ResolveDrawPlan_装飾は外観の表示可否に従う()
+    internal void ResolveDrawPlan_装飾は外観の表示可否に従う()
     {
         var presenter = CreatePresenter(out _, appearance: MarqueeAppearance.Default with { ShowOverlay = false });
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
@@ -374,7 +374,7 @@ public class MarqueePresenterTests
 
     /// <summary>サイズラベルの文言プロバイダが優先されることを検証する。</summary>
     [Fact]
-    public void ResolveDrawPlan_サイズラベルの文言プロバイダを優先する()
+    internal void ResolveDrawPlan_サイズラベルの文言プロバイダを優先する()
     {
         var presenter = CreatePresenter(out _);
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
@@ -387,7 +387,7 @@ public class MarqueePresenterTests
 
     /// <summary>測定関数が null の場合は例外になることを検証する。</summary>
     [Fact]
-    public void ResolveDrawPlan_測定関数がnullなら例外()
+    internal void ResolveDrawPlan_測定関数がnullなら例外()
         => Assert.Throws<ArgumentNullException>(
             () => CreatePresenter(out _).ResolveDrawPlan(new EsSize(200, 100), null!));
 
@@ -397,7 +397,7 @@ public class MarqueePresenterTests
 
     /// <summary>入力の転送がコアの状態を変えることを検証する。</summary>
     [Fact]
-    public void 入力_操作がコアの状態を変える()
+    internal void 入力_操作がコアの状態を変える()
     {
         var presenter = CreatePresenter(out var effects);
 

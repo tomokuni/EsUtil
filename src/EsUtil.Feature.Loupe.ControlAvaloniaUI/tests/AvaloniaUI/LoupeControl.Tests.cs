@@ -65,7 +65,7 @@ public class LoupeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public async Task SourceとCenterPointを設定するとLoupeBitmapが生成される()
+    internal async Task SourceとCenterPointを設定するとLoupeBitmapが生成される()
     {
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -77,7 +77,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task EsBitmapAvaloniaImageをSourceに設定するとLoupeBitmapが生成される()
+    internal async Task EsBitmapAvaloniaImageをSourceに設定するとLoupeBitmapが生成される()
     {
         // EsBitmapAvaloniaImage（EsBitmap を内包する IImage）を Source に設定した場合、
         // ルーペ画像が生成される（Bitmap を生成しない Skia 直アクセス経路の検証）。
@@ -93,7 +93,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task 複数プロパティの連続変更はポスト後に1回の再描画に結合される()
+    internal async Task 複数プロパティの連続変更はポスト後に1回の再描画に結合される()
     {
         var control = CreateControl();
 
@@ -107,7 +107,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task Source未設定でも市松模様のLoupeBitmapが生成される()
+    internal async Task Source未設定でも市松模様のLoupeBitmapが生成される()
     {
         var control = CreateControl();
 
@@ -120,7 +120,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task Source設定_CenterPoint未設定でも市松模様のLoupeBitmapが生成される()
+    internal async Task Source設定_CenterPoint未設定でも市松模様のLoupeBitmapが生成される()
     {
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -134,7 +134,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task CenterPoint変更でLoupeBitmapが再生成される()
+    internal async Task CenterPoint変更でLoupeBitmapが再生成される()
     {
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -150,7 +150,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task RequestRenderでLoupeBitmapが再生成される()
+    internal async Task RequestRenderでLoupeBitmapが再生成される()
     {
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -167,7 +167,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task 設定の変更でLoupeBitmapが再生成される()
+    internal async Task 設定の変更でLoupeBitmapが再生成される()
     {
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -187,7 +187,7 @@ public class LoupeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public async Task ClearでLoupeBitmapが解放される()
+    internal async Task ClearでLoupeBitmapが解放される()
     {
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -201,7 +201,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task IsVisible_falseでLoupeBitmapが解放される()
+    internal async Task IsVisible_falseでLoupeBitmapが解放される()
     {
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -218,7 +218,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task 非表示中の再描画は画像を生成しない()
+    internal async Task 非表示中の再描画は画像を生成しない()
     {
         var control = CreateControl();
         control.IsVisible = false;
@@ -236,7 +236,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task IsVisible_trueで非同期生成して表示する()
+    internal async Task IsVisible_trueで非同期生成して表示する()
     {
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -256,7 +256,7 @@ public class LoupeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public void RequestedSize_範囲外は補正される()
+    internal void RequestedSize_範囲外は補正される()
     {
         var control = CreateControl();
 
@@ -268,7 +268,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void ZoomLevel_範囲外は補正される()
+    internal void ZoomLevel_範囲外は補正される()
     {
         var control = CreateControl();
 
@@ -280,7 +280,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void BorderThickness_範囲外は補正される()
+    internal void BorderThickness_範囲外は補正される()
     {
         var control = CreateControl();
 
@@ -294,7 +294,7 @@ public class LoupeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public async Task 未対応の画像型はログへ記録され描画を継続する()
+    internal async Task 未対応の画像型はログへ記録され描画を継続する()
     {
         var control = CreateControl();
         var sink = new TestHelper.ListLogger();
@@ -310,7 +310,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task RequestRender_生成失敗時は例外が観測されログへ記録される()
+    internal async Task RequestRender_生成失敗時は例外が観測されログへ記録される()
     {
         var control = CreateControl();
         var sink = new TestHelper.ListLogger();
@@ -331,7 +331,7 @@ public class LoupeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public async Task 生成中に非表示になると生成画像は破棄される()
+    internal async Task 生成中に非表示になると生成画像は破棄される()
     {
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -347,7 +347,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void RequestRender_非表示時はビットマップを解放する()
+    internal void RequestRender_非表示時はビットマップを解放する()
     {
         var control = CreateControl();
         control.IsVisible = false;
@@ -365,7 +365,7 @@ public class LoupeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public void ClientToPixelScaling_範囲外は補正される()
+    internal void ClientToPixelScaling_範囲外は補正される()
     {
         var control = CreateControl();
 
@@ -383,7 +383,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void 設定の補正は値の生成時に適用される()
+    internal void 設定の補正は値の生成時に適用される()
     {
         var control = CreateControl();
 
@@ -407,7 +407,7 @@ public class LoupeControlTests
 
     /// <summary>寸法の設定値が保持されることを検証する（色は描画の設定が単一所有する）。</summary>
     [AvaloniaFact]
-    public void 外観の設定値が保持される()
+    internal void 外観の設定値が保持される()
     {
         var control = CreateControl();
 
@@ -426,7 +426,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void 依存プロパティのデフォルト値が正しい()
+    internal void 依存プロパティのデフォルト値が正しい()
     {
         var control = new LoupeControl();
 
@@ -448,7 +448,7 @@ public class LoupeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public void 座標ラベルのデフォルト値が正しい()
+    internal void 座標ラベルのデフォルト値が正しい()
     {
         var control = new LoupeControl();
 
@@ -460,7 +460,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void 座標ラベルを有効化してCenterPointを設定するとラベル要素が表示される()
+    internal void 座標ラベルを有効化してCenterPointを設定するとラベル要素が表示される()
     {
         var control = CreateControl();
         control.Appearance = control.Appearance with { ShowCoordLabel = true };
@@ -473,7 +473,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void 座標ラベル無効時はCenterPointがあっても要素を表示しない()
+    internal void 座標ラベル無効時はCenterPointがあっても要素を表示しない()
     {
         var control = CreateControl();
         control.Appearance = control.Appearance with { ShowCoordLabel = false };
@@ -485,7 +485,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void 座標ラベルはルーペ左上の内側に実測幅で配置される()
+    internal void 座標ラベルはルーペ左上の内側に実測幅で配置される()
     {
         var control = CreateControl();
         control.CenterPoint = new Point(12, 34);
@@ -506,7 +506,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void 座標ラベルの外観が要素へ反映される()
+    internal void 座標ラベルの外観が要素へ反映される()
     {
         var control = CreateControl();
         var background = DrawingColor.FromArgb(179, 0, 0, 139); // 暗青 70%
@@ -534,7 +534,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task CenterPointを変更するとラベル要素の文言が追従する()
+    internal async Task CenterPointを変更するとラベル要素の文言が追従する()
     {
         // 配置の無効化（InvalidateArrange）が実際のレイアウト パスで反映されることを検証する
         // （コントロールを載せた状態でレイアウト パスを走らせる）。
@@ -560,7 +560,7 @@ public class LoupeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public void PositionOffsetを設定すると表示位置が更新される()
+    internal void PositionOffsetを設定すると表示位置が更新される()
     {
         var control = CreateControl();
         var panel = new Panel { Width = 300, Height = 300 };
@@ -582,7 +582,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void SetCoordTransformを設定すると表示位置が更新される()
+    internal void SetCoordTransformを設定すると表示位置が更新される()
     {
         var control = CreateControl();
         var panel = new Panel { Width = 300, Height = 300 };
@@ -602,7 +602,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void SetCoordTransform_nullで等価変換にフォールバックする()
+    internal void SetCoordTransform_nullで等価変換にフォールバックする()
     {
         var control = CreateControl();
         var panel = new Panel { Width = 300, Height = 300 };
@@ -619,7 +619,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void 親パネルサイズ0でも表示位置計算が動作する()
+    internal void 親パネルサイズ0でも表示位置計算が動作する()
     {
         var control = CreateControl();
         var panel = new Panel { Width = 0, Height = 0 }; // サイズ 0 → クランプをスキップ
@@ -635,7 +635,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void 親パネルより大きいRequestedSizeは縮小しない()
+    internal void 親パネルより大きいRequestedSizeは縮小しない()
     {
         var control = CreateControl();
         control.Options = control.Options with { RequestedSize = 400 }; // パネル (300,300) より大きい
@@ -660,7 +660,7 @@ public class LoupeControlTests
     /// 複数箇所で書き込むと、要求サイズの変更直後に古い値で描画される（表示サイズと描画ビットマップが食い違う）。
     /// </remarks>
     [AvaloniaFact]
-    public async Task 親パネル接続後のRequestedSize変更でも表示サイズと描画サイズが一致する()
+    internal async Task 親パネル接続後のRequestedSize変更でも表示サイズと描画サイズが一致する()
     {
         var control = new LoupeControl { Options = LoupeOptions.Default with { RequestedSize = 400, ZoomLevel = 2 }, IsVisible = true }; // パネル (300,300) より大きい
         var panel = new Panel { Width = 300, Height = 300 };
@@ -681,7 +681,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void RefreshPosition_最新のポートで表示位置が再計算される()
+    internal void RefreshPosition_最新のポートで表示位置が再計算される()
     {
         var control = CreateControl();
         var panel = new Panel { Width = 300, Height = 300 };
@@ -712,7 +712,7 @@ public class LoupeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public async Task 破棄済みSourceは市松模様のみで描画される()
+    internal async Task 破棄済みSourceは市松模様のみで描画される()
     {
         var control = CreateControl();
         var bitmap = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -727,7 +727,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task 抽出中にSourceが破棄されると市松模様のみで描画される()
+    internal async Task 抽出中にSourceが破棄されると市松模様のみで描画される()
     {
         var control = CreateControl();
         var bitmap = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -744,7 +744,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task 生成後に表示用画像のソースが破棄されず有効に保持される()
+    internal async Task 生成後に表示用画像のソースが破棄されず有効に保持される()
     {
         // 回帰テスト: SetLoupeBitmap が using で即座に破棄した WriteableBitmap を Image.Source に
         // 設定すると、レイアウトパス（Image.MeasureOverride → Bitmap.get_Size）で ObjectDisposedException が
@@ -763,7 +763,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task Clear後に表示用画像のソースが解放される()
+    internal async Task Clear後に表示用画像のソースが解放される()
     {
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -778,7 +778,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void Sourceを再設定すると変更通知される()
+    internal void Sourceを再設定すると変更通知される()
     {
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -794,7 +794,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task 実ロガー設定時に全ログメソッドが実行される()
+    internal async Task 実ロガー設定時に全ログメソッドが実行される()
     {
         var control = CreateControl();
         control.Log = new TestHelper.ListLogger();
@@ -815,7 +815,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void CoordLabelFontSize_NaNは12に補正される()
+    internal void CoordLabelFontSize_NaNは12に補正される()
     {
         var control = new LoupeControl();
 
@@ -825,7 +825,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task 描画完了でRenderedイベントが発火し描画済みBitmapと表示情報を通知する()
+    internal async Task 描画完了でRenderedイベントが発火し描画済みBitmapと表示情報を通知する()
     {
         var control = CreateControl();
         LoupeRenderedEventArgs? args = null;
@@ -847,7 +847,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task 描画完了通知のスケールはDisplayScalingに依存しない()
+    internal async Task 描画完了通知のスケールはDisplayScalingに依存しない()
     {
         // 破線オーバーレイの位置が DPI でずれないことの回帰テスト。
         // 描画は切り出し領域を ZoomLevel 倍で描くため、Scale は常に ZoomLevel と同値になる
@@ -868,7 +868,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task 中心未設定でもRenderedイベントが発火し市松模様のBitmapとnullのCaptureTopLeftを通知する()
+    internal async Task 中心未設定でもRenderedイベントが発火し市松模様のBitmapとnullのCaptureTopLeftを通知する()
     {
         var control = CreateControl();
         LoupeRenderedEventArgs? args = null;
@@ -883,7 +883,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public async Task 再描画のたびにRenderedイベントが発火する()
+    internal async Task 再描画のたびにRenderedイベントが発火する()
     {
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -904,7 +904,7 @@ public class LoupeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public void IsSourceSupported_Bitmapは対応可能である()
+    internal void IsSourceSupported_Bitmapは対応可能である()
     {
         // WriteableBitmap（Avalonia.Media.Imaging.Bitmap のサブクラス）は対応可能。
         // WriteableBitmap 生成はヘッドレス（IPlatformRenderInterface）を必要とするため、[AvaloniaFact] で検証する。
@@ -914,7 +914,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    public void IsSourceSupported_未対応型は非対応である()
+    internal void IsSourceSupported_未対応型は非対応である()
     {
         // CroppedBitmap は Bitmap を継承しないため、未対応型（非対応）として判定される。
         using var bitmap = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(10, 10, Colors.White);

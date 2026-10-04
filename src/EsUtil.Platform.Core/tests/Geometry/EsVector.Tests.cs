@@ -15,7 +15,7 @@ public class EsVectorTests
     // ====================================================================
 
     [Fact]
-    public void Zero_One_UnitX_UnitY_は既定のベクター()
+    internal void Zero_One_UnitX_UnitY_は既定のベクター()
     {
         Assert.Equal(new EsVector(0, 0), EsVector.Zero);
         Assert.Equal(new EsVector(1, 1), EsVector.One);
@@ -28,19 +28,19 @@ public class EsVectorTests
     // ====================================================================
 
     [Fact]
-    public void Length_3と4のベクターは5になる()
+    internal void Length_3と4のベクターは5になる()
     {
         Assert.Equal(5, new EsVector(3, 4).Length);
     }
 
     [Fact]
-    public void LengthSquared_平方根を取らない値を返す()
+    internal void LengthSquared_平方根を取らない値を返す()
     {
         Assert.Equal(25, new EsVector(3, 4).LengthSquared);
     }
 
     [Fact]
-    public void LengthSquared_巨大な成分は無限大になるが非数にはならない()
+    internal void LengthSquared_巨大な成分は無限大になるが非数にはならない()
     {
         // 600 乗を超える積は double の範囲を外れるため無限大になるが、非数（比較不能）にはしない
         Assert.True(double.IsPositiveInfinity(new EsVector(1e200, 1e200).Length));
@@ -51,7 +51,7 @@ public class EsVectorTests
     // ====================================================================
 
     [Fact]
-    public void Normalize_長さ1の同じ向きのベクターを返す()
+    internal void Normalize_長さ1の同じ向きのベクターを返す()
     {
         var normalized = new EsVector(3, 4).Normalize();
 
@@ -61,13 +61,13 @@ public class EsVectorTests
     }
 
     [Fact]
-    public void Normalize_ゼロベクターはゼロベクターを返す()
+    internal void Normalize_ゼロベクターはゼロベクターを返す()
     {
         Assert.Equal(EsVector.Zero, EsVector.Zero.Normalize());
     }
 
     [Fact]
-    public void Normalize_負のベクターも非数にならない()
+    internal void Normalize_負のベクターも非数にならない()
     {
         var normalized = new EsVector(-3, 0).Normalize();
 
@@ -83,7 +83,7 @@ public class EsVectorTests
     [InlineData(1, 2, 3, 4, 11)]
     [InlineData(0, 0, 5, 5, 0)]
     [InlineData(-1, -2, 3, 4, -11)]
-    public void Dot_内積を返す(double ax, double ay, double bx, double by, double expected)
+    internal void Dot_内積を返す(double ax, double ay, double bx, double by, double expected)
     {
         Assert.Equal(expected, EsVector.Dot(new EsVector(ax, ay), new EsVector(bx, by)));
     }
@@ -92,7 +92,7 @@ public class EsVectorTests
     [InlineData(1, 0, 0, 1, 1)]
     [InlineData(1, 0, 0, -1, -1)]
     [InlineData(0, 0, 5, 5, 0)]
-    public void Cross_外積を返す(double ax, double ay, double bx, double by, double expected)
+    internal void Cross_外積を返す(double ax, double ay, double bx, double by, double expected)
     {
         Assert.Equal(expected, EsVector.Cross(new EsVector(ax, ay), new EsVector(bx, by)));
     }
@@ -102,14 +102,14 @@ public class EsVectorTests
     // ====================================================================
 
     [Fact]
-    public void Min_Max_成分ごとの最小最大を返す()
+    internal void Min_Max_成分ごとの最小最大を返す()
     {
         Assert.Equal(new EsVector(1, 2), EsVector.Min(new EsVector(1, 5), new EsVector(3, 2)));
         Assert.Equal(new EsVector(3, 5), EsVector.Max(new EsVector(1, 5), new EsVector(3, 2)));
     }
 
     [Fact]
-    public void Abs_成分の絶対値を返す()
+    internal void Abs_成分の絶対値を返す()
     {
         Assert.Equal(new EsVector(3, 4), new EsVector(-3, -4).Abs());
     }
@@ -119,7 +119,7 @@ public class EsVectorTests
     // ====================================================================
 
     [Fact]
-    public void WithX_WithY_指定した成分だけを差し替える()
+    internal void WithX_WithY_指定した成分だけを差し替える()
     {
         var vector = new EsVector(1, 2);
 
@@ -132,32 +132,32 @@ public class EsVectorTests
     // ====================================================================
 
     [Fact]
-    public void Add_成分ごとに加算する()
+    internal void Add_成分ごとに加算する()
     {
         Assert.Equal(new EsVector(4, 6), new EsVector(1, 2) + new EsVector(3, 4));
     }
 
     [Fact]
-    public void Subtract_成分ごとに減算する()
+    internal void Subtract_成分ごとに減算する()
     {
         Assert.Equal(new EsVector(-2, -2), new EsVector(1, 2) - new EsVector(3, 4));
     }
 
     [Fact]
-    public void UnaryNegate_成分の符号を反転する()
+    internal void UnaryNegate_成分の符号を反転する()
     {
         Assert.Equal(new EsVector(-1, -2), -new EsVector(1, 2));
     }
 
     [Fact]
-    public void Multiply_係数倍を両側で許容する()
+    internal void Multiply_係数倍を両側で許容する()
     {
         Assert.Equal(new EsVector(2, 4), new EsVector(1, 2) * 2);
         Assert.Equal(new EsVector(2, 4), 2 * new EsVector(1, 2));
     }
 
     [Fact]
-    public void Divide_成分ごとに除算する()
+    internal void Divide_成分ごとに除算する()
     {
         Assert.Equal(new EsVector(1, 2), new EsVector(4, 8) / 4);
     }
@@ -167,26 +167,26 @@ public class EsVectorTests
     // ====================================================================
 
     [Fact]
-    public void ToEsPoint_座標へ変換する()
+    internal void ToEsPoint_座標へ変換する()
     {
         Assert.Equal(new EsPoint(3, 4), new EsVector(3, 4).ToEsPoint());
     }
 
     [Fact]
-    public void FromEsPoint_座標から生成する()
+    internal void FromEsPoint_座標から生成する()
     {
         Assert.Equal(new EsVector(3, 4), EsVector.FromEsPoint(new EsPoint(3, 4)));
     }
 
     [Fact]
-    public void FromTuple_ToTuple_タプルと往復する()
+    internal void FromTuple_ToTuple_タプルと往復する()
     {
         Assert.Equal(new EsVector(3, 4), EsVector.FromTuple((3, 4)));
         Assert.Equal((3, 4), new EsVector(3, 4).ToTuple());
     }
 
     [Fact]
-    public void Deconstruct_タプルへ分解できる()
+    internal void Deconstruct_タプルへ分解できる()
     {
         var (x, y) = new EsVector(3, 4);
 
@@ -195,7 +195,7 @@ public class EsVectorTests
     }
 
     [Fact]
-    public void 等価性は値で判定される()
+    internal void 等価性は値で判定される()
     {
         Assert.Equal(new EsVector(3, 4), new EsVector(3, 4));
         Assert.NotEqual(new EsVector(3, 4), new EsVector(4, 3));

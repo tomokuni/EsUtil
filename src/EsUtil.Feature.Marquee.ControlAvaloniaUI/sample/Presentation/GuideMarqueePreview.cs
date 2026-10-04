@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Media;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Feature.Marquee.AvaloniaUI;
 
 namespace EsUtil.Feature.Marquee.AvaloniaUI.Sample.Presentation;
 

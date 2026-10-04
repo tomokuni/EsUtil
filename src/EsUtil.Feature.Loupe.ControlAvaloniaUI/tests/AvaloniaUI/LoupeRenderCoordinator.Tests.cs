@@ -49,7 +49,7 @@ public class LoupeRenderCoordinatorTests
     }
 
     [Fact]
-    public void 生成_必須のコールバックがnullなら例外を投げる()
+    internal void 生成_必須のコールバックがnullなら例外を投げる()
     {
         // 実行キュー（post）は UI 層が指定するため必須である（未指定は配線の誤り）
         Assert.Throws<ArgumentNullException>(() => new LoupeRenderCoordinator(() => true, () => { }, _ => { }, _ => { }, null!));
@@ -57,7 +57,7 @@ public class LoupeRenderCoordinatorTests
     }
 
     [Fact]
-    public void ShouldApply_表示中かつ最新世代ならtrueを返す()
+    internal void ShouldApply_表示中かつ最新世代ならtrueを返す()
     {
         var (coordinator, lastGeneration) = CreateWithGeneration(isVisible: true);
         var generation = BeginRender(coordinator, lastGeneration);
@@ -67,7 +67,7 @@ public class LoupeRenderCoordinatorTests
     }
 
     [Fact]
-    public void ShouldApply_古い世代ならfalseを返す()
+    internal void ShouldApply_古い世代ならfalseを返す()
     {
         var (coordinator, lastGeneration) = CreateWithGeneration(isVisible: true);
         var old = BeginRender(coordinator, lastGeneration);
@@ -77,7 +77,7 @@ public class LoupeRenderCoordinatorTests
     }
 
     [Fact]
-    public void ShouldApply_非表示ならfalseを返す()
+    internal void ShouldApply_非表示ならfalseを返す()
     {
         var (coordinator, lastGeneration) = CreateWithGeneration(isVisible: false);
         var generation = BeginRender(coordinator, lastGeneration);
@@ -86,7 +86,7 @@ public class LoupeRenderCoordinatorTests
     }
 
     [Fact]
-    public void RequestRender_表示中は再描画を開始し世代が進む()
+    internal void RequestRender_表示中は再描画を開始し世代が進む()
     {
         long? startGeneration = null;
         var coordinator = new LoupeRenderCoordinator(
@@ -103,7 +103,7 @@ public class LoupeRenderCoordinatorTests
     }
 
     [Fact]
-    public void RequestRender_複数要求は1回の再描画に結合される()
+    internal void RequestRender_複数要求は1回の再描画に結合される()
     {
         var startCount = 0;
         Action? pending = null;
@@ -124,7 +124,7 @@ public class LoupeRenderCoordinatorTests
     }
 
     [Fact]
-    public void RequestRender_非表示時はビットマップを解放し再描画しない()
+    internal void RequestRender_非表示時はビットマップを解放し再描画しない()
     {
         var releaseCount = 0;
         var startCount = 0;
@@ -142,7 +142,7 @@ public class LoupeRenderCoordinatorTests
     }
 
     [Fact]
-    public void CancelPending_未実行の再描画要求を破棄する()
+    internal void CancelPending_未実行の再描画要求を破棄する()
     {
         var startCount = 0;
         Action? pending = null;
@@ -162,7 +162,7 @@ public class LoupeRenderCoordinatorTests
     }
 
     [Fact]
-    public void CancelAndRelease_要求の破棄と解放を一度に行う()
+    internal void CancelAndRelease_要求の破棄と解放を一度に行う()
     {
         var releaseCount = 0;
         var startCount = 0;
@@ -184,7 +184,7 @@ public class LoupeRenderCoordinatorTests
     }
 
     [Fact]
-    public void CancelAndRelease_冪等に繰り返し呼べる()
+    internal void CancelAndRelease_冪等に繰り返し呼べる()
     {
         var releaseCount = 0;
         var coordinator = new LoupeRenderCoordinator(
@@ -202,7 +202,7 @@ public class LoupeRenderCoordinatorTests
     }
 
     [Fact]
-    public void RenderCore_キャンセル済みなら描画を開始しない()
+    internal void RenderCore_キャンセル済みなら描画を開始しない()
     {
         var startCount = 0;
         var coordinator = new LoupeRenderCoordinator(
@@ -219,7 +219,7 @@ public class LoupeRenderCoordinatorTests
     }
 
     [Fact]
-    public void RenderCore_世代番号の記録コールバックを呼ぶ()
+    internal void RenderCore_世代番号の記録コールバックを呼ぶ()
     {
         long? logged = null;
         var coordinator = new LoupeRenderCoordinator(

@@ -1,6 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
-using EsUtil.Feature.Loupe.Presenter.Drawing;
 
 namespace EsUtil.Feature.Loupe.Tests;
 
@@ -15,7 +14,7 @@ public class LoupeDrawPlanTests
     private const int LoupeSize = 32;
 
     [Fact]
-    public void ResolveDrawPlan_外観をそのまま保持する()
+    internal void ResolveDrawPlan_外観をそのまま保持する()
     {
         var appearance = LoupeAppearance.Default with { ShowBorder = false, BorderThickness = 3 };
 
@@ -25,7 +24,7 @@ public class LoupeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_描画面と切り出し領域を解決する()
+    internal void ResolveDrawPlan_描画面と切り出し領域を解決する()
     {
         var plan = ResolvePlan(LoupeAppearance.Default, new EsPoint(16, 16));
 
@@ -38,7 +37,7 @@ public class LoupeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_拡大中心が未設定なら拡大画像と座標ラベルを持たない()
+    internal void ResolveDrawPlan_拡大中心が未設定なら拡大画像と座標ラベルを持たない()
     {
         var plan = ResolvePlan(LoupeAppearance.Default, center: null);
 
@@ -49,7 +48,7 @@ public class LoupeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_中心があれば座標ラベルを配置する()
+    internal void ResolveDrawPlan_中心があれば座標ラベルを配置する()
     {
         var plan = ResolvePlan(LoupeAppearance.Default with { ShowCoordLabel = true }, new EsPoint(123, 456));
 
@@ -59,7 +58,7 @@ public class LoupeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_座標ラベルを非表示にできる()
+    internal void ResolveDrawPlan_座標ラベルを非表示にできる()
     {
         var plan = ResolvePlan(LoupeAppearance.Default with { ShowCoordLabel = false }, new EsPoint(123, 456));
 
@@ -67,7 +66,7 @@ public class LoupeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_ペーストボードは常に先頭に含む()
+    internal void ResolveDrawPlan_ペーストボードは常に先頭に含む()
     {
         var plan = ResolvePlan(LoupeAppearance.Default with { ShowCrosshair = false, ShowBorder = false }, center: null);
 
@@ -75,7 +74,7 @@ public class LoupeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_層の順序は下地からテキストの順になる()
+    internal void ResolveDrawPlan_層の順序は下地からテキストの順になる()
     {
         var plan = ResolvePlan(LoupeAppearance.Default, new EsPoint(16, 16));
 
@@ -91,7 +90,7 @@ public class LoupeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_十字線が非表示なら十字線の層と矩形を含めない()
+    internal void ResolveDrawPlan_十字線が非表示なら十字線の層と矩形を含めない()
     {
         var plan = ResolvePlan(LoupeAppearance.Default with { ShowCrosshair = false }, new EsPoint(16, 16));
 
@@ -100,7 +99,7 @@ public class LoupeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_枠線が非表示なら枠線の層と矩形を含めない()
+    internal void ResolveDrawPlan_枠線が非表示なら枠線の層と矩形を含めない()
     {
         var plan = ResolvePlan(LoupeAppearance.Default with { ShowBorder = false }, new EsPoint(16, 16));
 
@@ -109,7 +108,7 @@ public class LoupeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_表示中の十字線と枠線の矩形を解決する()
+    internal void ResolveDrawPlan_表示中の十字線と枠線の矩形を解決する()
     {
         var plan = ResolvePlan(LoupeAppearance.Default with { BorderThickness = 2 }, new EsPoint(16, 16));
 

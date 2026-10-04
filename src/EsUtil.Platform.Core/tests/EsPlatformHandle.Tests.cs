@@ -9,7 +9,7 @@ namespace EsUtil.Platform.Core.Tests;
 public class EsPlatformHandleTests
 {
     [Fact]
-    public void IsValid_ハンドル値が0以外なら真()
+    internal void IsValid_ハンドル値が0以外なら真()
     {
         var handle = new EsPlatformHandle(0x1234, "HWND");
 
@@ -17,7 +17,7 @@ public class EsPlatformHandleTests
     }
 
     [Fact]
-    public void IsValid_ハンドル値が0なら偽()
+    internal void IsValid_ハンドル値が0なら偽()
     {
         var handle = new EsPlatformHandle(0, "HWND");
 
@@ -25,7 +25,7 @@ public class EsPlatformHandleTests
     }
 
     [Fact]
-    public void 既定値はハンドル値0と記述子null()
+    internal void 既定値はハンドル値0と記述子null()
     {
         var handle = default(EsPlatformHandle);
 
@@ -35,7 +35,7 @@ public class EsPlatformHandleTests
     }
 
     [Fact]
-    public void レコード等価性で同一の値は一致する()
+    internal void レコード等価性で同一の値は一致する()
     {
         var a = new EsPlatformHandle(0x1234, "HWND");
         var b = new EsPlatformHandle(0x1234, "HWND");
@@ -45,7 +45,7 @@ public class EsPlatformHandleTests
     }
 
     [Fact]
-    public void 記述子の違いは等価でない()
+    internal void 記述子の違いは等価でない()
     {
         var a = new EsPlatformHandle(0x1234, "HWND");
         var b = new EsPlatformHandle(0x1234, "XID");

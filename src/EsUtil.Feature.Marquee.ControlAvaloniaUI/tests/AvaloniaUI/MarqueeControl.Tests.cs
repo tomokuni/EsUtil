@@ -91,7 +91,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void CurrentSnapshot_ドラッグ中はIsDraggingがtrueになる()
+    internal void CurrentSnapshot_ドラッグ中はIsDraggingがtrueになる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -114,7 +114,7 @@ public class MarqueeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public void ドラッグ中のスナップショットにドラッグ中の矩形とアクティブハンドルが含まれる()
+    internal void ドラッグ中のスナップショットにドラッグ中の矩形とアクティブハンドルが含まれる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -142,7 +142,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void リサイズドラッグ中のスナップショットにアクティブハンドルが含まれる()
+    internal void リサイズドラッグ中のスナップショットにアクティブハンドルが含まれる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -173,7 +173,7 @@ public class MarqueeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public void ドラッグで新規選択が作成されSelectionChangedで通知される()
+    internal void ドラッグで新規選択が作成されSelectionChangedで通知される()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -193,7 +193,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 新規選択で画像外の始点が境界内にクリップされる()
+    internal void 新規選択で画像外の始点が境界内にクリップされる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -216,7 +216,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 新規選択で画像外の終点が境界内にクリップされる()
+    internal void 新規選択で画像外の終点が境界内にクリップされる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -239,7 +239,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void ドラッグ完了でSelectionCompletedが発火する()
+    internal void ドラッグ完了でSelectionCompletedが発火する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -256,7 +256,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void ドラッグ開始でSelectionStartedが発火する()
+    internal void ドラッグ開始でSelectionStartedが発火する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -271,7 +271,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void ホイールは処理しない_ホストが扱う()
+    internal void ホイールは処理しない_ホストが扱う()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -296,7 +296,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 透明ハンドル色の描画が白にフォールバックされる()
+    internal void 透明ハンドル色の描画が白にフォールバックされる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -311,7 +311,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 矢印以外のキーではnudgeされない()
+    internal void 矢印以外のキーではnudgeされない()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -332,7 +332,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 最小サイズ未満のドラッグはキャンセルされる()
+    internal void 最小サイズ未満のドラッグはキャンセルされる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -350,7 +350,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void ダブルクリックで確定要求が発火する()
+    internal void ダブルクリックで確定要求が発火する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -367,7 +367,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void ダブルクリック_矩形外はキャンセル要求が発火する()
+    internal void ダブルクリック_矩形外はキャンセル要求が発火する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -388,7 +388,7 @@ public class MarqueeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public void SetCoordTransform_カスタム変換で対象座標が変わる()
+    internal void SetCoordTransform_カスタム変換で対象座標が変わる()
     {
         var control = CreateControl();
         // 対象 = DIP × 2（拡大）
@@ -412,7 +412,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void SetCoordTransform_nullで等価変換にフォールバックする()
+    internal void SetCoordTransform_nullで等価変換にフォールバックする()
     {
         var control = CreateControl();
 
@@ -433,7 +433,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void スケールが0の変換でもヒットテストが動作する()
+    internal void スケールが0の変換でもヒットテストが動作する()
     {
         var control = CreateControl();
         // ToSource が常に (0,0) を返す変換（スケール 0）→ ToSourceRadius は HandleHitRadius にフォールバック
@@ -455,7 +455,7 @@ public class MarqueeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public void ハンドルドラッグでリサイズされる()
+    internal void ハンドルドラッグでリサイズされる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -475,7 +475,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 枠内ドラッグで選択矩形が移動する()
+    internal void 枠内ドラッグで選択矩形が移動する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -495,7 +495,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void ハンドルを反対側までドラッグすると矩形が反転される()
+    internal void ハンドルを反対側までドラッグすると矩形が反転される()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -516,7 +516,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 枠内ホバーで移動カーソルが表示される()
+    internal void 枠内ホバーで移動カーソルが表示される()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -533,7 +533,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 各ハンドル位置のホバーでカーソル形状が更新される()
+    internal void 各ハンドル位置のホバーでカーソル形状が更新される()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -564,7 +564,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void TopCenterハンドルで上下にリサイズされる()
+    internal void TopCenterハンドルで上下にリサイズされる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -584,7 +584,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void MiddleLeftハンドルで左右にリサイズされる()
+    internal void MiddleLeftハンドルで左右にリサイズされる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -604,7 +604,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void MiddleRightハンドルで左右にリサイズされる()
+    internal void MiddleRightハンドルで左右にリサイズされる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -624,7 +624,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void TopRightハンドルでリサイズされる()
+    internal void TopRightハンドルでリサイズされる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -644,7 +644,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void BottomLeftハンドルでリサイズされる()
+    internal void BottomLeftハンドルでリサイズされる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -664,7 +664,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void BottomCenterハンドルで上下にリサイズされる()
+    internal void BottomCenterハンドルで上下にリサイズされる()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -684,7 +684,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 移動ドラッグで選択矩形が境界内にシフトされる()
+    internal void 移動ドラッグで選択矩形が境界内にシフトされる()
     {
         var control = CreateControl();
         control.Options = control.Options with { ClampToSourceBounds = true };
@@ -710,7 +710,7 @@ public class MarqueeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public void 矢印キーで選択矩形が対象1Pixel移動する()
+    internal void 矢印キーで選択矩形が対象1Pixel移動する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -727,7 +727,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 全方向の矢印キーでnudgeが動作する()
+    internal void 全方向の矢印キーでnudgeが動作する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -750,7 +750,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void TopLevel経由の矢印キーでフォーカス非依存のnudgeが動作する()
+    internal void TopLevel経由の矢印キーでフォーカス非依存のnudgeが動作する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -770,7 +770,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void Escapeキーでキャンセル要求が発火する()
+    internal void Escapeキーでキャンセル要求が発火する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -784,7 +784,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 矢印キー1回のnudgeは1回だけ適用される()
+    internal void 矢印キー1回のnudgeは1回だけ適用される()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -806,7 +806,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void Enterキーで確定要求が発火する()
+    internal void Enterキーで確定要求が発火する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -822,7 +822,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void nudge中の押下で基点がnudge位置に置き換えられカーソルが再表示される()
+    internal void nudge中の押下で基点がnudge位置に置き換えられカーソルが再表示される()
     {
         var mock = new MockCursorService(default);
         var control = CreateControl(mock);
@@ -841,7 +841,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void フォーカス経由の矢印キーでも選択確定後はnudgeされない()
+    internal void フォーカス経由の矢印キーでも選択確定後はnudgeされない()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -858,7 +858,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 選択確定後の矢印キーはnudgeされない()
+    internal void 選択確定後の矢印キーはnudgeされない()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -874,7 +874,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void nudge中にSetSelectionするとカーソルが再表示される()
+    internal void nudge中にSetSelectionするとカーソルが再表示される()
     {
         var mock = new MockCursorService(default);
         var control = CreateControl(mock);
@@ -893,7 +893,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void フォーカス喪失でnudgeが終了しカーソルが再表示される()
+    internal void フォーカス喪失でnudgeが終了しカーソルが再表示される()
     {
         var mock = new MockCursorService(default);
         var control = CreateControl(mock);
@@ -917,7 +917,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void nudge中にウィンドウを閉じるとカーソルが再表示される()
+    internal void nudge中にウィンドウを閉じるとカーソルが再表示される()
     {
         var mock = new MockCursorService(default);
         var control = CreateControl(mock);
@@ -939,7 +939,7 @@ public class MarqueeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public void リサイズ中のnudgeで十字マーカーがアクティブハンドル位置を追従する()
+    internal void リサイズ中のnudgeで十字マーカーがアクティブハンドル位置を追従する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -961,7 +961,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 新規選択中のnudgeで十字マーカーが終点を追従する()
+    internal void 新規選択中のnudgeで十字マーカーが終点を追従する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -983,7 +983,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 矩形未作成のnudgeで十字マーカーがカーソル位置基準になり原点に飛ばない()
+    internal void 矩形未作成のnudgeで十字マーカーがカーソル位置基準になり原点に飛ばない()
     {
         // モックを注入したコントロールを最初からウィンドウに表示する（レイアウト確定後にカーソル位置を設定）
         var mock = new MockCursorService(default);
@@ -1009,7 +1009,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void nudge終了後の次のセッションの最初のキー押下で基点がカーソル位置に同期される()
+    internal void nudge終了後の次のセッションの最初のキー押下で基点がカーソル位置に同期される()
     {
         var mock = new MockCursorService(default);
         var control = CreateControl(mock);
@@ -1039,7 +1039,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void nudge中の2回目以降のキー押下で基点が再同期されずnudge位置から進む()
+    internal void nudge中の2回目以降のキー押下で基点が再同期されずnudge位置から進む()
     {
         // モックの SetCursorScreenPoint は位置を更新しない（GetCursorScreenPoint は常に初期位置を返す）。
         // これは Crop の ScrollOffset 座標変換で「再評価したカーソル位置が nudge 位置と一致しない」状況を模擬する
@@ -1068,7 +1068,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void nudge中にマウスを動かしても解放時のルーペ位置がnudge位置を維持する()
+    internal void nudge中にマウスを動かしても解放時のルーペ位置がnudge位置を維持する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -1095,7 +1095,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void nudge中にキャンセルするとカーソルが再表示される()
+    internal void nudge中にキャンセルするとカーソルが再表示される()
     {
         var mock = new MockCursorService(default);
         var control = CreateControl(mock);
@@ -1116,7 +1116,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void nudge後のハンドルホバーでカーソル形状がハンドルに応じて更新される()
+    internal void nudge後のハンドルホバーでカーソル形状がハンドルに応じて更新される()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -1148,7 +1148,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void nudge中にマウスを動かしてから解放するとカーソルがnudge位置へ戻って表示される()
+    internal void nudge中にマウスを動かしてから解放するとカーソルがnudge位置へ戻って表示される()
     {
         var mock = new MockCursorService(default);
         var control = CreateControl(mock);
@@ -1182,7 +1182,7 @@ public class MarqueeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public void リサイズハンドルのDownでポインタがハンドル点へスナップされる()
+    internal void リサイズハンドルのDownでポインタがハンドル点へスナップされる()
     {
         var mock = new MockCursorService(default);
         var control = CreateControl(mock);
@@ -1202,7 +1202,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 移動ドラッグのDownではポインタがスナップされない()
+    internal void 移動ドラッグのDownではポインタがスナップされない()
     {
         var mock = new MockCursorService(default);
         var control = CreateControl(mock);
@@ -1218,7 +1218,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void リサイズハンドルドラッグ中にルーペ位置がハンドル点を追従する()
+    internal void リサイズハンドルドラッグ中にルーペ位置がハンドル点を追従する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -1242,7 +1242,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 移動ドラッグ中にルーペ位置がマウス位置を追従する()
+    internal void 移動ドラッグ中にルーペ位置がマウス位置を追従する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -1263,7 +1263,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 新規選択ドラッグ中にルーペ位置が終点を追従する()
+    internal void 新規選択ドラッグ中にルーペ位置が終点を追従する()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -1285,7 +1285,7 @@ public class MarqueeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    public void カーソル座標ラベル有効時の描画が例外なく実行される()
+    internal void カーソル座標ラベル有効時の描画が例外なく実行される()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -1309,7 +1309,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void カーソル座標ラベル無効時も描画が例外なく実行される()
+    internal void カーソル座標ラベル無効時も描画が例外なく実行される()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -1322,7 +1322,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 選択あり状態の描画が枠線と8方向ハンドルを含めて実行される()
+    internal void 選択あり状態の描画が枠線と8方向ハンドルを含めて実行される()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -1336,7 +1336,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void nudge中の描画が十字マーカーを含めて実行される()
+    internal void nudge中の描画が十字マーカーを含めて実行される()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -1353,7 +1353,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void サイズ0のコントロールでも座標ラベル描画が実行される()
+    internal void サイズ0のコントロールでも座標ラベル描画が実行される()
     {
         // クライアントサイズ 0 の描画（DrawCoordLabel のクランプ分岐: サイズ 0 はクランプしない）
         var control = new MarqueeControl
@@ -1371,7 +1371,7 @@ public class MarqueeControlTests
     }
 
     [AvaloniaFact]
-    public void 描画_ブラシペンキャッシュ容量超過後も正しく描画される()
+    internal void 描画_ブラシペンキャッシュ容量超過後も正しく描画される()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -1432,7 +1432,7 @@ public class MarqueeControlTests
     /// 配置は配置フェーズで書き換えるため、再描画要求と併せて配置も無効化される（要素が追従する）。
     /// </remarks>
     [AvaloniaFact]
-    public async Task 座標ラベル要素は選択操作に追従する()
+    internal async Task 座標ラベル要素は選択操作に追従する()
     {
         var control = new MarqueeControl
         {
@@ -1467,7 +1467,7 @@ public class MarqueeControlTests
     /// その呼び出し回数が 1 フレームの解決回数になる（選択がありサイズラベルを表示する場合のみ評価される）。
     /// </remarks>
     [AvaloniaFact]
-    public async Task 描画内容は1フレームにつき1回だけ解決される()
+    internal async Task 描画内容は1フレームにつき1回だけ解決される()
     {
         var control = CreateControl();
         var window = Show(control);
@@ -1495,7 +1495,7 @@ public class MarqueeControlTests
     /// 本テストは実入力の経路（ウィンドウ → ヒットテスト → コントロール）でドラッグする。
     /// </remarks>
     [AvaloniaFact]
-    public void ウィンドウ経由のドラッグで選択矩形が作成される()
+    internal void ウィンドウ経由のドラッグで選択矩形が作成される()
     {
         var control = CreateControl();
         var window = new Window { Width = 400, Height = 400, Content = control };
@@ -1521,7 +1521,7 @@ public class MarqueeControlTests
     /// 枠線は矩形の内側へ描かれるため、線幅ぶんを寄せないとラベルが線の下に潜る。
     /// </remarks>
     [AvaloniaFact]
-    public async Task サイズラベルの要素は枠線の幅だけ内側へ置かれる()
+    internal async Task サイズラベルの要素は枠線の幅だけ内側へ置かれる()
     {
         const double thickness = 6.0;
         var control = new MarqueeControl

@@ -38,7 +38,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>組み立てがすべての値をそのまま保持することを検証する。</summary>
     [Fact]
-    public void Create_すべての値をそのまま保持する()
+    internal void Create_すべての値をそのまま保持する()
     {
         var options = MarqueeOptions.Default with { HandleSize = 14.0 };
         var highlight = new EsRect(1, 2, 3, 4);
@@ -68,7 +68,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>省略したハイライト矩形が null になることを検証する。</summary>
     [Fact]
-    public void Create_省略したハイライト矩形はnullになる()
+    internal void Create_省略したハイライト矩形はnullになる()
     {
         var request = MarqueeRenderRequest.Create(
             MarqueeOptions.Default,
@@ -86,7 +86,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>閉区間の矩形は終点に +1 してから DIP 変換されることを検証する。</summary>
     [Fact]
-    public void ToDipRect_閉区間の矩形は終点に1を加算する()
+    internal void ToDipRect_閉区間の矩形は終点に1を加算する()
     {
         var logical = new EsRect(10, 20, 30, 40, EsRectInterval.Closed);
 
@@ -97,7 +97,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>対象が DIP の 2 倍のポートでは、対象が DIP へ半分に換算されることを検証する。</summary>
     [Fact]
-    public void ToDipRect_対象がDIPの2倍のポートでDIPへ換算される()
+    internal void ToDipRect_対象がDIPの2倍のポートでDIPへ換算される()
     {
         var logical = new EsRect(20, 40, 40, 80);
 
@@ -109,7 +109,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>半開区間の矩形は終点を加算しないことを検証する（ハイライト矩形・検出結果）。</summary>
     [Fact]
-    public void ToDipRect_半開区間の矩形は終点を加算しない()
+    internal void ToDipRect_半開区間の矩形は終点を加算しない()
     {
         var logical = new EsRect(10, 20, 30, 40);
 
@@ -120,7 +120,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>注目矩形が設定と状態から導出されることを検証する（選ばれた矩形をそのまま返す）。</summary>
     [Fact]
-    public void Focus_選択矩形をそのまま返す()
+    internal void Focus_選択矩形をそのまま返す()
     {
         var selection = new EsRect(10, 20, 30, 40, EsRectInterval.Closed);
 
@@ -132,14 +132,14 @@ public class MarqueeRenderRequestTests
 
     /// <summary>どちらも無ければ注目矩形が null になることを検証する。</summary>
     [Fact]
-    public void Focus_選択もハイライトも無ければnullになる()
+    internal void Focus_選択もハイライトも無ければnullになる()
     {
         Assert.Null(CreateRequest().Focus);
     }
 
     /// <summary>DIP 矩形が対象座標の矩形へ逆換算されることを検証する。</summary>
     [Fact]
-    public void ToSourceRect_等価変換では同じ矩形になる()
+    internal void ToSourceRect_等価変換では同じ矩形になる()
     {
         var dip = new EsRect(10, 20, 30, 40);
 
@@ -150,7 +150,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>対象が DIP の 2 倍のポートでは、DIP が対象へ 2 倍に換算されることを検証する。</summary>
     [Fact]
-    public void ToSourceRect_対象がDIPの2倍のポートで対象へ換算される()
+    internal void ToSourceRect_対象がDIPの2倍のポートで対象へ換算される()
     {
         var dip = new EsRect(10, 20, 30, 40);
 
@@ -162,7 +162,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>ハイライト矩形があればハイライト矩形を優先することを検証する。</summary>
     [Fact]
-    public void ResolveFocusRect_ハイライトがあればハイライト矩形を優先する()
+    internal void ResolveFocusRect_ハイライトがあればハイライト矩形を優先する()
     {
         var highlight = new EsRect(1, 2, 3, 4);
         var selection = new EsRect(10, 20, 30, 40, EsRectInterval.Closed);
@@ -176,7 +176,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>ハイライトが無く選択だけがある場合は選択矩形を返すことを検証する。</summary>
     [Fact]
-    public void ResolveFocusRect_ハイライトが無ければ選択矩形を返す()
+    internal void ResolveFocusRect_ハイライトが無ければ選択矩形を返す()
     {
         var selection = new EsRect(10, 20, 30, 40, EsRectInterval.Closed);
 
@@ -189,7 +189,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>どちらも null なら null を返すことを検証する。</summary>
     [Fact]
-    public void ResolveFocusRect_両方nullならnullを返す()
+    internal void ResolveFocusRect_両方nullならnullを返す()
     {
         var result = MarqueeRenderRequest.ResolveFocusRect(null, null);
 
@@ -198,7 +198,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>ハイライト矩形が選ばれた場合は終点を加算せずに DIP 変換されることを検証する。</summary>
     [Fact]
-    public void ResolveFocusDipRect_ハイライト矩形は終点を加算せずDIP変換する()
+    internal void ResolveFocusDipRect_ハイライト矩形は終点を加算せずDIP変換する()
     {
         var highlight = new EsRect(1, 2, 3, 4);
         var request = CreateRequest(highlight: highlight, selection: new EsRect(10, 20, 30, 40, EsRectInterval.Closed));
@@ -210,7 +210,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>選択矩形が選ばれた場合は終点を加算して DIP 変換されることを検証する。</summary>
     [Fact]
-    public void ResolveFocusDipRect_選択矩形は終点を加算してDIP変換する()
+    internal void ResolveFocusDipRect_選択矩形は終点を加算してDIP変換する()
     {
         var request = CreateRequest(selection: new EsRect(10, 20, 30, 40, EsRectInterval.Closed));
 
@@ -221,7 +221,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>どちらも null なら null を返すことを検証する。</summary>
     [Fact]
-    public void ResolveFocusDipRect_両方nullならnullを返す()
+    internal void ResolveFocusDipRect_両方nullならnullを返す()
     {
         var result = CreateRequest().ResolveFocusDipRect(CoordTransform.Identity);
 
@@ -230,7 +230,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>ポートが指定されている場合はそれが優先されることを検証する。</summary>
     [Fact]
-    public void ResolvePort_ポート指定時はポートを返す()
+    internal void ResolvePort_ポート指定時はポートを返す()
     {
         var port = CoordTransform.ClientToSource(() => 2.0);
 
@@ -241,7 +241,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>ポート未指定の場合は倍率からポートを生成することを検証する。</summary>
     [Fact]
-    public void ResolvePort_ポート未指定なら倍率を適用する()
+    internal void ResolvePort_ポート未指定なら倍率を適用する()
     {
         var result = MarqueeRenderRequest.ResolvePort(null, dipToSourceScaling: 2.0);
 
@@ -256,7 +256,7 @@ public class MarqueeRenderRequestTests
     [InlineData(-1.0)]
     [InlineData(1.0)]
     [InlineData(double.NaN)]
-    public void ResolvePort_倍率が無効なら等価変換になる(double dipToSourceScaling)
+    internal void ResolvePort_倍率が無効なら等価変換になる(double dipToSourceScaling)
     {
         var result = MarqueeRenderRequest.ResolvePort(null, dipToSourceScaling);
 
@@ -265,7 +265,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>解決済みの座標変換ポートがポート優先で公開されることを検証する。</summary>
     [Fact]
-    public void ResolvedPort_ポート指定時はそのポートを返す()
+    internal void ResolvedPort_ポート指定時はそのポートを返す()
     {
         var port = CoordTransform.ClientToSource(() => 3.0);
 
@@ -276,7 +276,7 @@ public class MarqueeRenderRequestTests
 
     /// <summary>ポート未指定の場合は倍率から解決したポートを返すことを検証する。</summary>
     [Fact]
-    public void ResolvedPort_ポート未指定なら倍率から解決する()
+    internal void ResolvedPort_ポート未指定なら倍率から解決する()
     {
         var request = CreateRequest(scaling: 2.0);
 

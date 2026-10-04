@@ -10,7 +10,7 @@ namespace EsUtil.Platform.Core.Tests;
 public class HotKeySettingTests
 {
     [Fact]
-    public void ToString_修飾キーとキーの組合せを表示する()
+    internal void ToString_修飾キーとキーの組合せを表示する()
     {
         var setting = new HotKeySetting(HotKeyModifiers.Control | HotKeyModifiers.Shift, EsKey.Q);
 
@@ -18,7 +18,7 @@ public class HotKeySettingTests
     }
 
     [Fact]
-    public void ToString_修飾キーなしはキーのみ表示する()
+    internal void ToString_修飾キーなしはキーのみ表示する()
     {
         var setting = new HotKeySetting(HotKeyModifiers.None, EsKey.A);
 
@@ -26,7 +26,7 @@ public class HotKeySettingTests
     }
 
     [Fact]
-    public void ToString_数字キーは数字で表示する()
+    internal void ToString_数字キーは数字で表示する()
     {
         var setting = new HotKeySetting(HotKeyModifiers.Alt, EsKey.D1);
 
@@ -53,7 +53,7 @@ public class HotKeySettingTests
     [InlineData(EsKey.OemPeriod, ".")]
     [InlineData(EsKey.OemQuestion, "/")]
     [InlineData(EsKey.Q, "Q")]
-    public void 変換_記号キーは記号で表示する(EsKey key, string symbol)
+    internal void 変換_記号キーは記号で表示する(EsKey key, string symbol)
     {
         var setting = new HotKeySetting(HotKeyModifiers.None, key);
 
@@ -61,7 +61,7 @@ public class HotKeySettingTests
     }
 
     [Fact]
-    public void ToString_記号キーは記号で表示する()
+    internal void ToString_記号キーは記号で表示する()
     {
         var setting = new HotKeySetting(HotKeyModifiers.Windows, EsKey.OemTilde);
 
@@ -69,7 +69,7 @@ public class HotKeySettingTests
     }
 
     [Fact]
-    public void レコード等価性で同一の組合せは一致する()
+    internal void レコード等価性で同一の組合せは一致する()
     {
         var a = new HotKeySetting(HotKeyModifiers.Control, EsKey.S);
         var b = new HotKeySetting(HotKeyModifiers.Control, EsKey.S);

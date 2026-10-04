@@ -51,7 +51,7 @@ public class MarqueeRenderTests
     /// （再描画されないと選択矩形・暗転マスクが表示されたまま更新されない）。
     /// </remarks>
     [AvaloniaFact]
-    public void 選択の変更で図形が再描画される()
+    internal void 選択の変更で図形が再描画される()
     {
         var control = new MarqueeControl { Width = 200, Height = 200 };
         // 描画パスを確実に走らせるためのプローブ（同じ階層に置く）
@@ -88,7 +88,7 @@ public class MarqueeRenderTests
     /// 実寸を測らない（0 を返す）と、配置矩形が内側余白（4 DIP）だけの 8x8 になり、内側の文字が切り落とされる。
     /// </remarks>
     [AvaloniaFact]
-    public void ラベル要素の寸法が文字の実寸を反映する()
+    internal void ラベル要素の寸法が文字の実寸を反映する()
     {
         var control = new MarqueeControl
         {

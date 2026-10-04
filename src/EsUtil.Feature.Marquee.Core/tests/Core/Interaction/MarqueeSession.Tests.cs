@@ -54,7 +54,7 @@ public class MarqueeSessionTests
     // ====================================================================
 
     [Fact]
-    public void Press_新規選択を開始しSelectionStartedを通知する()
+    internal void Press_新規選択を開始しSelectionStartedを通知する()
     {
         var session = CreateSession(out var notices);
 
@@ -70,7 +70,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void Press_ハンドルヒットでポインターをハンドル点へスナップする()
+    internal void Press_ハンドルヒットでポインターをハンドル点へスナップする()
     {
         var session = CreateSession(out var notices);
         session.SetSelection(new EsRect(50, 50, 100, 80));
@@ -91,7 +91,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void Press_移動ハンドルではポインターをスナップしない()
+    internal void Press_移動ハンドルではポインターをスナップしない()
     {
         var session = CreateSession(out _);
         session.SetSelection(new EsRect(50, 50, 100, 80));
@@ -107,7 +107,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void Press_ダブルクリック_矩形内は確定を通知し選択を破棄する()
+    internal void Press_ダブルクリック_矩形内は確定を通知し選択を破棄する()
     {
         var session = CreateSession(out var notices);
         session.SetSelection(new EsRect(50, 50, 100, 80));
@@ -124,7 +124,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void Press_ダブルクリック_矩形外はキャンセルを通知し選択を維持する()
+    internal void Press_ダブルクリック_矩形外はキャンセルを通知し選択を維持する()
     {
         var session = CreateSession(out var notices);
         session.SetSelection(new EsRect(50, 50, 100, 80));
@@ -140,7 +140,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void Press_nudge中はnudge位置を押下位置としカーソルを再表示する()
+    internal void Press_nudge中はnudge位置を押下位置としカーソルを再表示する()
     {
         var session = CreateSession(out var notices);
 
@@ -160,7 +160,7 @@ public class MarqueeSessionTests
     // ====================================================================
 
     [Fact]
-    public void Move_ドラッグ中は選択矩形を更新しSelectionChangedを通知する()
+    internal void Move_ドラッグ中は選択矩形を更新しSelectionChangedを通知する()
     {
         var session = CreateSession(out var notices);
         session.Press(new EsPoint(10, 10), clickCount: 1);
@@ -178,7 +178,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void Move_新規選択中は追従位置が終点を追従する()
+    internal void Move_新規選択中は追従位置が終点を追従する()
     {
         var session = CreateSession(out var notices);
         session.Press(new EsPoint(10, 10), clickCount: 1);
@@ -191,7 +191,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void Move_nudge中はマウス位置を上書きしない()
+    internal void Move_nudge中はマウス位置を上書きしない()
     {
         var session = CreateSession(out _);
         session.Press(new EsPoint(10, 10), clickCount: 1);
@@ -206,7 +206,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void Move_エコー移動は1回だけ抑制する()
+    internal void Move_エコー移動は1回だけ抑制する()
     {
         var session = CreateSession(out var notices);
         session.Press(new EsPoint(10, 10), clickCount: 1);
@@ -231,7 +231,7 @@ public class MarqueeSessionTests
     // ====================================================================
 
     [Fact]
-    public void Release_最小サイズ未満の矩形はキャンセルする()
+    internal void Release_最小サイズ未満の矩形はキャンセルする()
     {
         var session = CreateSession(out var notices);
         session.ApplyOptions(session.Options with { MinSelectionSize = 10.0 });
@@ -248,7 +248,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void Release_ドラッグ完了でSelectionCompletedを通知する()
+    internal void Release_ドラッグ完了でSelectionCompletedを通知する()
     {
         var session = CreateSession(out var notices);
         session.Press(new EsPoint(10, 10), clickCount: 1);
@@ -265,7 +265,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void Release_nudge中はカーソルをnudge位置へ戻して再表示する()
+    internal void Release_nudge中はカーソルをnudge位置へ戻して再表示する()
     {
         var session = CreateSession(out var notices);
         session.SetSelection(new EsRect(50, 50, 100, 80));
@@ -294,7 +294,7 @@ public class MarqueeSessionTests
     // ====================================================================
 
     [Fact]
-    public void KeyDown_Escapeでキャンセル要求を通知し選択を破棄する()
+    internal void KeyDown_Escapeでキャンセル要求を通知し選択を破棄する()
     {
         var session = CreateSession(out var notices);
         session.SetSelection(new EsRect(50, 50, 100, 80));
@@ -311,7 +311,7 @@ public class MarqueeSessionTests
     [Theory]
     [InlineData(EsKey.Enter)]
     [InlineData(EsKey.Return)]
-    public void KeyDown_EnterとReturnで確定要求を通知する(EsKey key)
+    internal void KeyDown_EnterとReturnで確定要求を通知する(EsKey key)
     {
         var session = CreateSession(out var notices);
         session.SetSelection(new EsRect(50, 50, 100, 80));
@@ -325,7 +325,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void KeyDown_選択なしのEnterでも処理済みとして扱う()
+    internal void KeyDown_選択なしのEnterでも処理済みとして扱う()
     {
         var session = CreateSession(out var notices);
 
@@ -338,7 +338,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void KeyDown_矢印キーでnudgeしカーソルを非表示にする()
+    internal void KeyDown_矢印キーでnudgeしカーソルを非表示にする()
     {
         var session = CreateSession(out var notices);
 
@@ -354,7 +354,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void KeyDown_選択確定後はnudgeしない()
+    internal void KeyDown_選択確定後はnudgeしない()
     {
         var session = CreateSession(out var notices);
         session.SetSelection(new EsRect(50, 50, 100, 80));
@@ -368,7 +368,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void KeyDown_矢印キー以外は処理しない()
+    internal void KeyDown_矢印キー以外は処理しない()
     {
         var session = CreateSession(out _);
 
@@ -379,7 +379,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void NudgeByKey_未選択は基点をカーソル位置へ同期する()
+    internal void NudgeByKey_未選択は基点をカーソル位置へ同期する()
     {
         var session = CreateSession(out _);
 
@@ -390,7 +390,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void NudgeByKey_nudge中の2回目以降は基点を再同期しない()
+    internal void NudgeByKey_nudge中の2回目以降は基点を再同期しない()
     {
         var session = CreateSession(out _);
         session.NudgeByKey(EsKey.Right, new EsPoint(100, 100));
@@ -402,7 +402,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void NudgeByKey_nudge中はカーソル位置を記録する()
+    internal void NudgeByKey_nudge中はカーソル位置を記録する()
     {
         var session = CreateSession(out _);
 
@@ -412,7 +412,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void NudgeByKey_カーソル位置が取得できない場合は基点を同期しない()
+    internal void NudgeByKey_カーソル位置が取得できない場合は基点を同期しない()
     {
         var session = CreateSession(out _);
 
@@ -427,7 +427,7 @@ public class MarqueeSessionTests
     // ====================================================================
 
     [Fact]
-    public void EndNudge_nudge中はカーソルを再表示し再描画する()
+    internal void EndNudge_nudge中はカーソルを再表示し再描画する()
     {
         var session = CreateSession(out _);
         session.NudgeByKey(EsKey.Right, new EsPoint(10, 10));
@@ -440,7 +440,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void EndNudge_nudge中でなければ何もしない()
+    internal void EndNudge_nudge中でなければ何もしない()
     {
         var session = CreateSession(out _);
 
@@ -455,7 +455,7 @@ public class MarqueeSessionTests
     // ====================================================================
 
     [Fact]
-    public void SetSelection_選択矩形を復元しSelectionChangedを通知する()
+    internal void SetSelection_選択矩形を復元しSelectionChangedを通知する()
     {
         var session = CreateSession(out var notices);
 
@@ -468,7 +468,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void SetSelection_境界内にクリップしてから設定する()
+    internal void SetSelection_境界内にクリップしてから設定する()
     {
         var session = CreateBoundedSession(out _);
         session.ApplyOptions(session.Options with { ClampToSourceBounds = true });
@@ -480,7 +480,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void SetSelection_クリップ無効時は境界外の矩形もそのまま設定する()
+    internal void SetSelection_クリップ無効時は境界外の矩形もそのまま設定する()
     {
         var session = CreateBoundedSession(out _);
         session.ApplyOptions(session.Options with { ClampToSourceBounds = false });
@@ -491,7 +491,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void Reset_全状態を初期化する()
+    internal void Reset_全状態を初期化する()
     {
         var session = CreateSession(out _);
         session.Press(new EsPoint(10, 10), clickCount: 1);
@@ -506,7 +506,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void Reset_nudge中はカーソルの再表示を要求する()
+    internal void Reset_nudge中はカーソルの再表示を要求する()
     {
         var session = CreateSession(out _);
         session.SetSelection(new EsRect(50, 50, 100, 80));
@@ -524,7 +524,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void SetSelection_nudge中はカーソルの再表示を要求する()
+    internal void SetSelection_nudge中はカーソルの再表示を要求する()
     {
         var session = CreateSession(out _);
         session.SetSelection(new EsRect(50, 50, 100, 80));
@@ -539,7 +539,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void RequestConfirm_nudge中はカーソルの再表示を要求する()
+    internal void RequestConfirm_nudge中はカーソルの再表示を要求する()
     {
         var session = CreateSession(out _);
         session.SetSelection(new EsRect(50, 50, 100, 80));
@@ -556,7 +556,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void RequestCancel_nudge中はカーソルの再表示を要求する()
+    internal void RequestCancel_nudge中はカーソルの再表示を要求する()
     {
         var session = CreateSession(out _);
         session.NudgeByKey(EsKey.Right, new EsPoint(100, 100));
@@ -569,7 +569,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void RequestConfirm_選択確定後は矩形付きで通知し選択をクリアする()
+    internal void RequestConfirm_選択確定後は矩形付きで通知し選択をクリアする()
     {
         var session = CreateSession(out var notices);
         session.SetSelection(new EsRect(50, 50, 100, 80));
@@ -585,7 +585,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void RequestConfirm_選択なしでは何も通知しない()
+    internal void RequestConfirm_選択なしでは何も通知しない()
     {
         var session = CreateSession(out var notices);
 
@@ -596,7 +596,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void RequestConfirm_ドラッグ中は何も通知しない()
+    internal void RequestConfirm_ドラッグ中は何も通知しない()
     {
         var session = CreateSession(out var notices);
         session.Press(new EsPoint(10, 10), clickCount: 1);
@@ -608,7 +608,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void RequestCancel_選択ありなら破棄して通知する()
+    internal void RequestCancel_選択ありなら破棄して通知する()
     {
         var session = CreateSession(out var notices);
         session.SetSelection(new EsRect(50, 50, 100, 80));
@@ -622,7 +622,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void RequestCancel_選択なしでも通知する()
+    internal void RequestCancel_選択なしでも通知する()
     {
         var session = CreateSession(out var notices);
 
@@ -633,7 +633,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void ApplyClampToBounds_境界を超える選択矩形をクリップし通知する()
+    internal void ApplyClampToBounds_境界を超える選択矩形をクリップし通知する()
     {
         var session = CreateBoundedSession(out var notices);
         // 境界外の選択を作るため、いったんクリップを無効にする（既定は有効のため SetSelection でクリップされる）
@@ -649,7 +649,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void ApplyClampToBounds_境界内の矩形は通知しない()
+    internal void ApplyClampToBounds_境界内の矩形は通知しない()
     {
         var session = CreateBoundedSession(out var notices);
         session.SetSelection(new EsRect(10, 10, 50, 50));
@@ -665,7 +665,7 @@ public class MarqueeSessionTests
     // ====================================================================
 
     [Fact]
-    public void ApplyOptions_対話パラメータを反映する()
+    internal void ApplyOptions_対話パラメータを反映する()
     {
         var session = CreateSession(out _);
 
@@ -682,7 +682,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void ApplyOptions_同値の再適用では効果を返さない()
+    internal void ApplyOptions_同値の再適用では効果を返さない()
     {
         var session = CreateSession(out var notices);
         var logger = new RecordingLogger();
@@ -697,7 +697,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void ApplyOptions_外観のみの変更でも変更した項目を記録する()
+    internal void ApplyOptions_外観のみの変更でも変更した項目を記録する()
     {
         var session = CreateSession(out _);
         var logger = new RecordingLogger();
@@ -720,7 +720,7 @@ public class MarqueeSessionTests
 
     /// <summary>設定の変更ログが変化した項目だけを出力することを検証する。</summary>
     [Fact]
-    public void ApplyOptions_設定の変更ログは変化した項目だけを出力する()
+    internal void ApplyOptions_設定の変更ログは変化した項目だけを出力する()
     {
         var session = CreateSession(out _);
         var logger = new RecordingLogger();
@@ -738,7 +738,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void ApplyOptions_境界外選択の禁止の切替でログと即時クリップを行う()
+    internal void ApplyOptions_境界外選択の禁止の切替でログと即時クリップを行う()
     {
         var session = CreateBoundedSession(out var notices);
         var logger = new RecordingLogger();
@@ -758,7 +758,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void ApplyOptions_初期設定をコンストラクタで受け取る()
+    internal void ApplyOptions_初期設定をコンストラクタで受け取る()
     {
         var session = new MarqueeSession(
             new MarqueeOptions { MinSelectionSize = 25.0, HandleHitRadius = 40.0, ClampToSourceBounds = false })
@@ -772,7 +772,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void ApplyOptions_設定を省略すると既定値を使用する()
+    internal void ApplyOptions_設定を省略すると既定値を使用する()
     {
         var session = new MarqueeSession(null) { Log = NullLogger.Instance };
 
@@ -787,7 +787,7 @@ public class MarqueeSessionTests
     // ====================================================================
 
     [Fact]
-    public void ToSourceとToDip_ポートの変換を適用する()
+    internal void ToSourceとToDip_ポートの変換を適用する()
     {
         var session = CreateSession(out _);
         // 表示スケール 2.0（1 DIP = 0.5 対象）のポート
@@ -798,7 +798,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void ToSource_ポート未設定時は等価変換になる()
+    internal void ToSource_ポート未設定時は等価変換になる()
     {
         var session = CreateSession(out _);
 
@@ -806,7 +806,7 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    public void Press_スケール変換ではヒットテスト半径も対象単位へ換算する()
+    internal void Press_スケール変換ではヒットテスト半径も対象単位へ換算する()
     {
         var session = CreateSession(out _);
         // 表示スケール 2.0（1 DIP = 0.5 対象）にヒット半径 12 DIP を設定する（対象半径 6）
@@ -830,7 +830,7 @@ public class MarqueeSessionTests
 
     /// <summary>ハンドル種別がカーソル形状の種別へ解決することを検証する。</summary>
     [Fact]
-    public void ToCursorKind_対角と辺のハンドルが同じ種別へ解決する()
+    internal void ToCursorKind_対角と辺のハンドルが同じ種別へ解決する()
     {
         // 対角のハンドルは同じ向きのカーソル（左上 = 右下 / 右上 = 左下）
         Assert.Equal(MarqueeCursorKind.DiagonalNWSE, MarqueeSession.ToCursorKind(MarqueeHitTarget.TopLeft));
@@ -850,12 +850,12 @@ public class MarqueeSessionTests
 
     /// <summary>ハンドル外は既定の種別になることを検証する。</summary>
     [Fact]
-    public void ToCursorKind_ハンドル外は既定の種別を返す()
+    internal void ToCursorKind_ハンドル外は既定の種別を返す()
         => Assert.Equal(MarqueeCursorKind.Default, MarqueeSession.ToCursorKind(MarqueeHitTarget.None));
 
     /// <summary>すべての有効なハンドルが既定以外の種別へ解決することを検証する。</summary>
     [Fact]
-    public void ToCursorKind_全ハンドルが既定以外の種別へ解決する()
+    internal void ToCursorKind_全ハンドルが既定以外の種別へ解決する()
     {
         foreach (var handle in Enum.GetValues<MarqueeHitTarget>())
         {

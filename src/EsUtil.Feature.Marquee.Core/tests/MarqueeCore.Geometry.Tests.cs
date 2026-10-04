@@ -22,7 +22,7 @@ public class MarqueeCoreGeometryTests
 
     /// <summary>選択なしの幾何を解決する。</summary>
     [Fact]
-    public void ResolveGeometry_選択なしではハンドルもマーカーも返さない()
+    internal void ResolveGeometry_選択なしではハンドルもマーカーも返さない()
     {
         var marquee = CreateMarquee();
 
@@ -36,7 +36,7 @@ public class MarqueeCoreGeometryTests
 
     /// <summary>選択がある場合は注目矩形と 8 方向のハンドルを返す。</summary>
     [Fact]
-    public void ResolveGeometry_選択ありでは注目矩形とハンドルを返す()
+    internal void ResolveGeometry_選択ありでは注目矩形とハンドルを返す()
     {
         var marquee = CreateMarquee();
         // ドラッグの選択矩形は閉区間（始点・終点のピクセルを含む）である
@@ -55,7 +55,7 @@ public class MarqueeCoreGeometryTests
 
     /// <summary>ハイライト矩形が選択矩形より優先され、終点を加算しないことを検証する。</summary>
     [Fact]
-    public void ResolveGeometry_ハイライト矩形を優先し終点を加算しない()
+    internal void ResolveGeometry_ハイライト矩形を優先し終点を加算しない()
     {
         var marquee = CreateMarquee();
         marquee.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
@@ -72,7 +72,7 @@ public class MarqueeCoreGeometryTests
     /// <summary>ハンドルを隠す設定でもコアは幾何を返すことを検証する。</summary>
     /// <remarks>表示可否の判断は描画にだけ必要な設定であり、描画層の外観が単一所有する。</remarks>
     [Fact]
-    public void ResolveGeometry_ハンドルの幾何は表示可否に依存しない()
+    internal void ResolveGeometry_ハンドルの幾何は表示可否に依存しない()
     {
         var marquee = CreateMarquee();
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
@@ -85,7 +85,7 @@ public class MarqueeCoreGeometryTests
     /// <summary>nudge 中は始点マーカーの幾何を返すことを検証する。</summary>
     /// <remarks>領域作成後の nudge はマウス押下中のみ許可される（規則は状態機械が単一所有する）。</remarks>
     [Fact]
-    public void ResolveGeometry_nudge中はマーカーを返す()
+    internal void ResolveGeometry_nudge中はマーカーを返す()
     {
         var marquee = CreateMarquee();
         marquee.Press(new EsPoint(10, 10), clickCount: 1);
@@ -103,7 +103,7 @@ public class MarqueeCoreGeometryTests
 
     /// <summary>座標変換ポートが注目矩形とハンドルの両方へ同じ規則で適用されることを検証する。</summary>
     [Fact]
-    public void ResolveGeometry_座標変換ポートを注目矩形とハンドルへ適用する()
+    internal void ResolveGeometry_座標変換ポートを注目矩形とハンドルへ適用する()
     {
         var marquee = CreateMarquee();
         // ToDip（対象 → DIP）は 2 倍
@@ -120,7 +120,7 @@ public class MarqueeCoreGeometryTests
 
     /// <summary>描画面の全体が描画領域のサイズから導出されることを検証する。</summary>
     [Fact]
-    public void ResolveGeometry_描画面の全体は原点と描画領域から導出する()
+    internal void ResolveGeometry_描画面の全体は原点と描画領域から導出する()
     {
         var marquee = CreateMarquee();
 
@@ -136,7 +136,7 @@ public class MarqueeCoreGeometryTests
     /// （描画層が座標変換ポートを持たないようにする）。
     /// </remarks>
     [Fact]
-    public void ResolveGeometry_マウス位置を対象座標とDIPで返す()
+    internal void ResolveGeometry_マウス位置を対象座標とDIPで返す()
     {
         var marquee = CreateMarquee();
         marquee.Move(new EsPoint(30, 40));

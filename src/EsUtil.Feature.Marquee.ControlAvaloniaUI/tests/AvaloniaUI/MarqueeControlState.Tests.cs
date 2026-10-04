@@ -3,7 +3,6 @@ using EsUtil.Platform.Core.Geometry;
 using Rect = Avalonia.Rect;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
-using EsUtil.Feature.Marquee.Core.Interaction;
 
 namespace EsUtil.Feature.Marquee.AvaloniaUI.Tests;
 
@@ -30,7 +29,7 @@ public class MarqueeControlStateTests
     // ====================================================================
 
     [Fact]
-    public void 設定の既定値が正しい()
+    internal void 設定の既定値が正しい()
     {
         var control = CreateControl();
         var options = control.Options;
@@ -52,7 +51,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void 設定を変更すると反映される()
+    internal void 設定を変更すると反映される()
     {
         var control = CreateControl();
 
@@ -91,7 +90,7 @@ public class MarqueeControlStateTests
     // ====================================================================
 
     [Fact]
-    public void CurrentSnapshot_選択状態の全項目を返す()
+    internal void CurrentSnapshot_選択状態の全項目を返す()
     {
         var control = CreateControl();
 
@@ -114,7 +113,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void MarqueeSnapshot_HasSelection_幅か高さが0ならfalseを返す()
+    internal void MarqueeSnapshot_HasSelection_幅か高さが0ならfalseを返す()
     {
         // Width>0 かつ Height=0（幅のみの矩形は選択として無効）
         var snap1 = new MarqueeSnapshot(MarqueeInteractionState.Selected, new EsRect(0, 0, 100, 0), MarqueeHitTarget.None, default, false, false);
@@ -126,7 +125,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void MarqueeSnapshot_MousePositionが取得できる()
+    internal void MarqueeSnapshot_MousePositionが取得できる()
     {
         var snap = new MarqueeSnapshot(MarqueeInteractionState.Selected, default, MarqueeHitTarget.None, new EsPoint(5, 7), false, false);
 
@@ -138,7 +137,7 @@ public class MarqueeControlStateTests
     // ====================================================================
 
     [Fact]
-    public void Log_設定したロガーを返す()
+    internal void Log_設定したロガーを返す()
     {
         var control = CreateControl();
         var logger = NullLogger.Instance;
@@ -149,7 +148,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void Log_nullを設定するとNullLoggerにフォールバックする()
+    internal void Log_nullを設定するとNullLoggerにフォールバックする()
     {
         var control = CreateControl();
 
@@ -164,7 +163,7 @@ public class MarqueeControlStateTests
     // ====================================================================
 
     [Fact]
-    public void CoordLabelFontSize_NaNや範囲外は安全値に補正される()
+    internal void CoordLabelFontSize_NaNや範囲外は安全値に補正される()
     {
         var control = CreateControl();
 
@@ -186,7 +185,7 @@ public class MarqueeControlStateTests
     // ====================================================================
 
     [Fact]
-    public void SetSelection_選択矩形を復元しSelectionChangedを発火する()
+    internal void SetSelection_選択矩形を復元しSelectionChangedを発火する()
     {
         var control = CreateControl();
         SelectionRectEventArgs? raised = null;
@@ -199,7 +198,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void SetSelection_ClampToSourceBounds有効時は画像外の矩形をクリップする()
+    internal void SetSelection_ClampToSourceBounds有効時は画像外の矩形をクリップする()
     {
         var control = CreateControl();
         control.Options = control.Options with { ClampToSourceBounds = true };
@@ -215,7 +214,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void ClampToSourceBounds_ON切替時に既存の選択矩形がクリップされる()
+    internal void ClampToSourceBounds_ON切替時に既存の選択矩形がクリップされる()
     {
         var control = CreateControl();
         control.SetCoordTransform(new CoordTransform(p => p, p => p, () => new EsSize(200, 200)));
@@ -236,7 +235,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void ClampToSourceBounds_ON切替時に境界内の矩形は変更されない()
+    internal void ClampToSourceBounds_ON切替時に境界内の矩形は変更されない()
     {
         var control = CreateControl();
         control.SetCoordTransform(new CoordTransform(p => p, p => p, () => new EsSize(200, 200)));
@@ -254,7 +253,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void SetSelection_スナップショットに選択矩形とアクティブハンドルが含まれる()
+    internal void SetSelection_スナップショットに選択矩形とアクティブハンドルが含まれる()
     {
         var control = CreateControl();
         SelectionRectEventArgs? raised = null;
@@ -274,7 +273,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void ResetSelection_選択状態を初期化する()
+    internal void ResetSelection_選択状態を初期化する()
     {
         var control = CreateControl();
         control.SetSelection(new Rect(10, 10, 50, 40));
@@ -286,7 +285,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void RequestConfirm_選択確定後にConfirmRequestedを発火する()
+    internal void RequestConfirm_選択確定後にConfirmRequestedを発火する()
     {
         var control = CreateControl();
         SelectionRectEventArgs? raised = null;
@@ -300,7 +299,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void RequestConfirm_確定後は選択状態がクリアされる()
+    internal void RequestConfirm_確定後は選択状態がクリアされる()
     {
         var control = CreateControl();
 
@@ -315,7 +314,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void RequestConfirm_ドラッグ中は発火しない()
+    internal void RequestConfirm_ドラッグ中は発火しない()
     {
         var control = CreateControl();
         var raised = false;
@@ -327,7 +326,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void RequestCancel_選択ありならCancelRequestedを発火する()
+    internal void RequestCancel_選択ありならCancelRequestedを発火する()
     {
         var control = CreateControl();
         var raised = false;
@@ -340,7 +339,7 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    public void RequestCancel_選択なしでもCancelRequestedを発火する()
+    internal void RequestCancel_選択なしでもCancelRequestedを発火する()
     {
         var control = CreateControl();
         var raised = false;

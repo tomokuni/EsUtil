@@ -16,7 +16,7 @@ public class CoordTransformTests
     // ====================================================================
 
     [Fact]
-    public void ClientToSource_倍率2はDIPを2倍して対象にする()
+    internal void ClientToSource_倍率2はDIPを2倍して対象にする()
     {
         var port = CoordTransform.ClientToSource(() => 2.0);
 
@@ -25,7 +25,7 @@ public class CoordTransformTests
     }
 
     [Fact]
-    public void ClientToSource_対象を倍率で除算してDIPにする()
+    internal void ClientToSource_対象を倍率で除算してDIPにする()
     {
         var port = CoordTransform.ClientToSource(() => 2.0);
 
@@ -33,7 +33,7 @@ public class CoordTransformTests
     }
 
     [Fact]
-    public void ClientToSource_往復で元の座標に戻る()
+    internal void ClientToSource_往復で元の座標に戻る()
     {
         var port = CoordTransform.ClientToSource(() => 1.5);
         var p = new EsPoint(123.4, 456.7);
@@ -45,7 +45,7 @@ public class CoordTransformTests
     }
 
     [Fact]
-    public void ClientToSource_プロバイダは呼び出し毎に評価される()
+    internal void ClientToSource_プロバイダは呼び出し毎に評価される()
     {
         var factor = 1.0;
         var port = CoordTransform.ClientToSource(() => factor);
@@ -59,7 +59,7 @@ public class CoordTransformTests
     [InlineData(0.0)]
     [InlineData(-1.0)]
     [InlineData(double.NaN)]
-    public void ClientToSource_倍率が0以下なら等倍として扱う(double sourcePerDip)
+    internal void ClientToSource_倍率が0以下なら等倍として扱う(double sourcePerDip)
     {
         var port = CoordTransform.ClientToSource(() => sourcePerDip);
 
@@ -68,7 +68,7 @@ public class CoordTransformTests
     }
 
     [Fact]
-    public void ClientToSource_境界を省略すると無制限になる()
+    internal void ClientToSource_境界を省略すると無制限になる()
     {
         var port = CoordTransform.ClientToSource(() => 2.0);
 
@@ -76,7 +76,7 @@ public class CoordTransformTests
     }
 
     [Fact]
-    public void ClientToSource_境界を指定すると対象の境界を返す()
+    internal void ClientToSource_境界を指定すると対象の境界を返す()
     {
         var port = CoordTransform.ClientToSource(() => 2.0, () => new EsSize(1920, 1080));
 
@@ -84,7 +84,7 @@ public class CoordTransformTests
     }
 
     [Fact]
-    public void ClientToSource_境界は呼び出し毎に評価される()
+    internal void ClientToSource_境界は呼び出し毎に評価される()
     {
         var bounds = new EsSize(100, 100);
         var port = CoordTransform.ClientToSource(() => 1.0, () => bounds);
@@ -100,7 +100,7 @@ public class CoordTransformTests
     // ====================================================================
 
     [Fact]
-    public void MultiplyPoint_倍率を乗算する()
+    internal void MultiplyPoint_倍率を乗算する()
     {
         var (x, y) = CoordTransform.MultiplyPoint(100, 150, 2.0);
 
@@ -109,7 +109,7 @@ public class CoordTransformTests
     }
 
     [Fact]
-    public void DividePoint_倍率で除算する()
+    internal void DividePoint_倍率で除算する()
     {
         var (x, y) = CoordTransform.DividePoint(200, 300, 2.0);
 

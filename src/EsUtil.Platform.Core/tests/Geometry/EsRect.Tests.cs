@@ -14,7 +14,7 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void Right_左上Xと幅の和を返す()
+    internal void Right_左上Xと幅の和を返す()
     {
         var rect = new EsRect(10.5, 20.25, 100.5, 50.25);
 
@@ -22,7 +22,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void Bottom_左上Yと高さの和を返す()
+    internal void Bottom_左上Yと高さの和を返す()
     {
         var rect = new EsRect(10.5, 20.25, 100.5, 50.25);
 
@@ -30,7 +30,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void Right_幅が0なら左上Xを返す()
+    internal void Right_幅が0なら左上Xを返す()
     {
         var rect = new EsRect(7.5, 3.5, 0, 0);
 
@@ -39,7 +39,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void Right_負の幅は左上Xより小さい値を返す()
+    internal void Right_負の幅は左上Xより小さい値を返す()
     {
         // 負の幅は空の矩形を表す（境界も左上より小さくなる）
         var rect = new EsRect(100, 100, -20, -30);
@@ -53,7 +53,7 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void ComputeInnerEdges_四辺の矩形を上_下_左_右の順に返す()
+    internal void ComputeInnerEdges_四辺の矩形を上_下_左_右の順に返す()
     {
         var edges = new EsRect(10, 20, 100, 80).ComputeInnerEdges(thickness: 2);
 
@@ -65,7 +65,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void ComputeInnerEdges_左右の辺は上下の辺の内側へ収まる()
+    internal void ComputeInnerEdges_左右の辺は上下の辺の内側へ収まる()
     {
         var edges = new EsRect(0, 0, 100, 80).ComputeInnerEdges(thickness: 2);
 
@@ -77,7 +77,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void ComputeInnerEdges_太さが半分を超える場合は辺の高さを0にクランプする()
+    internal void ComputeInnerEdges_太さが半分を超える場合は辺の高さを0にクランプする()
     {
         var edges = new EsRect(0, 0, 10, 6).ComputeInnerEdges(thickness: 4);
 
@@ -86,7 +86,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void ComputeInnerEdges_太さ0は各辺を厚み0で返す()
+    internal void ComputeInnerEdges_太さ0は各辺を厚み0で返す()
     {
         var edges = new EsRect(5, 6, 10, 20).ComputeInnerEdges(thickness: 0);
 
@@ -99,7 +99,7 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void ClampToArea_領域内の矩形は変更しない()
+    internal void ClampToArea_領域内の矩形は変更しない()
     {
         var rect = new EsRect(10, 20, 30, 40);
 
@@ -109,7 +109,7 @@ public class EsRectTests
     [Theory]
     [InlineData(-5, -5, 25, 35)]
     [InlineData(250, 120, 200, 100)]
-    public void ClampToArea_領域外の矩形は四隅の包絡矩形へ縮める(double x, double y, double expectedRight, double expectedBottom)
+    internal void ClampToArea_領域外の矩形は四隅の包絡矩形へ縮める(double x, double y, double expectedRight, double expectedBottom)
     {
         var clamped = new EsRect(x, y, 30, 40).ClampToArea(new EsSize(200, 100));
 
@@ -120,7 +120,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void ClampToArea_領域全体を覆う矩形は領域全体になる()
+    internal void ClampToArea_領域全体を覆う矩形は領域全体になる()
     {
         var clamped = new EsRect(-100, -100, 500, 500).ClampToArea(new EsSize(200, 100));
 
@@ -128,7 +128,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void ClampToArea_領域の外にある矩形は辺0になる()
+    internal void ClampToArea_領域の外にある矩形は辺0になる()
     {
         var clamped = new EsRect(300, 200, 30, 40).ClampToArea(new EsSize(200, 100));
 
@@ -143,7 +143,7 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void Intersect_重なる部分を返す()
+    internal void Intersect_重なる部分を返す()
     {
         var intersection = new EsRect(0, 0, 100, 100).Intersect(new EsRect(50, 60, 100, 100));
 
@@ -151,7 +151,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void Intersect_包含関係では小さい方を返す()
+    internal void Intersect_包含関係では小さい方を返す()
     {
         var outer = new EsRect(0, 0, 100, 100);
         var inner = new EsRect(10, 20, 30, 40);
@@ -164,7 +164,7 @@ public class EsRectTests
     [InlineData(200, 0)]
     [InlineData(0, 200)]
     [InlineData(-100, -100)]
-    public void Intersect_重なりが無ければ空になる(double x, double y)
+    internal void Intersect_重なりが無ければ空になる(double x, double y)
     {
         var intersection = new EsRect(0, 0, 100, 100).Intersect(new EsRect(x, y, 50, 50));
 
@@ -172,7 +172,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void Intersect_接するだけの矩形は空になる()
+    internal void Intersect_接するだけの矩形は空になる()
     {
         // 辺が重なる（幅 0 の重なり）場合も空として扱う（描画できる面積が無いため）
         var intersection = new EsRect(0, 0, 100, 100).Intersect(new EsRect(100, 0, 50, 50));
@@ -181,7 +181,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void Intersect_自分自身とは同じ矩形になる()
+    internal void Intersect_自分自身とは同じ矩形になる()
     {
         var rect = new EsRect(10, 20, 30, 40);
 
@@ -193,25 +193,25 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void Empty_は全て0()
+    internal void Empty_は全て0()
     {
         Assert.Equal(new EsRect(0, 0, 0, 0), EsRect.Empty);
     }
 
     [Fact]
-    public void Size_幅と高さを返す()
+    internal void Size_幅と高さを返す()
     {
         Assert.Equal(new EsSize(30, 40), new EsRect(10, 20, 30, 40).Size);
     }
 
     [Fact]
-    public void FromLTRB_四辺から幅と高さを求める()
+    internal void FromLTRB_四辺から幅と高さを求める()
     {
         Assert.Equal(new EsRect(10, 20, 30, 40), EsRect.FromLTRB(10, 20, 40, 60));
     }
 
     [Fact]
-    public void FromLTRB_右が左より小さければ負の幅になる()
+    internal void FromLTRB_右が左より小さければ負の幅になる()
     {
         var rect = EsRect.FromLTRB(50, 60, 10, 20);
 
@@ -220,13 +220,13 @@ public class EsRectTests
     }
 
     [Fact]
-    public void FromPoints_二点を対角とする矩形を返す()
+    internal void FromPoints_二点を対角とする矩形を返す()
     {
         Assert.Equal(new EsRect(10, 20, 30, 40), EsRect.FromPoints(new EsPoint(10, 20), new EsPoint(40, 60)));
     }
 
     [Fact]
-    public void FromRectInt_成分をそのまま引き継ぐ()
+    internal void FromRectInt_成分をそのまま引き継ぐ()
     {
         Assert.Equal(new EsRect(10, 20, 30, 40), EsRect.FromRectInt(new EsRectInt(10, 20, 30, 40)));
     }
@@ -236,7 +236,7 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void With系_指定した成分だけを差し替える()
+    internal void With系_指定した成分だけを差し替える()
     {
         var rect = new EsRect(1, 2, 3, 4);
 
@@ -253,31 +253,31 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void Offset_位置だけを平行移動する()
+    internal void Offset_位置だけを平行移動する()
     {
         Assert.Equal(new EsRect(11, 22, 3, 4), new EsRect(1, 2, 3, 4).Offset(10, 20));
     }
 
     [Fact]
-    public void Inflate_四辺を広げる()
+    internal void Inflate_四辺を広げる()
     {
         Assert.Equal(new EsRect(-2, -3, 9, 14), new EsRect(1, 2, 3, 4).Inflate(3, 5));
     }
 
     [Fact]
-    public void Inflate_厚さで四辺を広げる()
+    internal void Inflate_厚さで四辺を広げる()
     {
         Assert.Equal(new EsRect(-3, -5, 16, 30), new EsRect(0, 0, 10, 20).Inflate(new EsThickness(3, 5, 3, 5)));
     }
 
     [Fact]
-    public void Deflate_厚さで四辺を狭める()
+    internal void Deflate_厚さで四辺を狭める()
     {
         Assert.Equal(new EsRect(3, 5, 7, 14), new EsRect(0, 0, 10, 20).Deflate(new EsThickness(3, 5, 0, 1)));
     }
 
     [Fact]
-    public void Deflate_負のサイズはそのまま返す()
+    internal void Deflate_負のサイズはそのまま返す()
     {
         // クランプしない（必要な箇所は Normalize を使う）
         Assert.Equal(-5, new EsRect(0, 0, 10, 20).Deflate(new EsThickness(10, 0, 5, 0)).Width);
@@ -288,13 +288,13 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void Normalize_負の幅と高さを正にする()
+    internal void Normalize_負の幅と高さを正にする()
     {
         Assert.Equal(new EsRect(10, 20, 30, 40), new EsRect(40, 60, -30, -40).Normalize());
     }
 
     [Fact]
-    public void Normalize_既に正なら同じ値()
+    internal void Normalize_既に正なら同じ値()
     {
         var rect = new EsRect(1, 2, 3, 4);
 
@@ -305,7 +305,7 @@ public class EsRectTests
     [InlineData(double.NaN, 0, 10, 10)]
     [InlineData(0, double.NaN, 10, 10)]
     [InlineData(0, 0, double.NaN, 10)]
-    public void Normalize_非数を含むなら空になる(double x, double y, double width, double height)
+    internal void Normalize_非数を含むなら空になる(double x, double y, double width, double height)
     {
         Assert.Equal(EsRect.Empty, new EsRect(x, y, width, height).Normalize());
     }
@@ -315,7 +315,7 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void ContainsExclusive_右端と下端を含まない()
+    internal void ContainsExclusive_右端と下端を含まない()
     {
         var rect = new EsRect(0, 0, 100, 100);
 
@@ -325,7 +325,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void Contains_矩形を完全に含むかを判定する()
+    internal void Contains_矩形を完全に含むかを判定する()
     {
         var rect = new EsRect(0, 0, 100, 100);
 
@@ -337,7 +337,7 @@ public class EsRectTests
     [InlineData(50, 50, 100, 100, true)]
     [InlineData(100, 0, 50, 50, false)]
     [InlineData(200, 0, 50, 50, false)]
-    public void Intersects_接触のみは偽(double x, double y, double w, double h, bool expected)
+    internal void Intersects_接触のみは偽(double x, double y, double w, double h, bool expected)
     {
         Assert.Equal(expected, new EsRect(0, 0, 100, 100).Intersects(new EsRect(x, y, w, h)));
     }
@@ -347,13 +347,13 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void Union_両者を包含する最小の矩形を返す()
+    internal void Union_両者を包含する最小の矩形を返す()
     {
         Assert.Equal(new EsRect(0, 0, 300, 150), new EsRect(0, 0, 100, 100).Union(new EsRect(200, 50, 100, 100)));
     }
 
     [Fact]
-    public void Union_空の矩形なら相手を返す()
+    internal void Union_空の矩形なら相手を返す()
     {
         var empty = new EsRect(10, 10, 0, 0);
         var other = new EsRect(0, 0, 100, 100);
@@ -363,13 +363,13 @@ public class EsRectTests
     }
 
     [Fact]
-    public void Union_点を含む矩形を返す()
+    internal void Union_点を含む矩形を返す()
     {
         Assert.Equal(new EsRect(0, 0, 150, 150), new EsRect(0, 0, 100, 100).Union(new EsPoint(150, 150)));
     }
 
     [Fact]
-    public void Union_空の矩形と点は面積0の矩形を返す()
+    internal void Union_空の矩形と点は面積0の矩形を返す()
     {
         Assert.Equal(new EsRect(5, 6, 0, 0), EsRect.Empty.Union(new EsPoint(5, 6)));
     }
@@ -379,7 +379,7 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void CenterRect_指定した矩形を中央へ配置する()
+    internal void CenterRect_指定した矩形を中央へ配置する()
     {
         Assert.Equal(new EsRect(45, 40, 10, 20), new EsRect(0, 0, 100, 100).CenterRect(new EsRect(0, 0, 10, 20)));
     }
@@ -389,7 +389,7 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void ResolveInnerEdges_四辺を上_下_左_右の順に返す()
+    internal void ResolveInnerEdges_四辺を上_下_左_右の順に返す()
     {
         var edges = new EsRect(10, 20, 100, 80).ResolveInnerEdges(thickness: 2);
 
@@ -400,7 +400,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void ResolveInnerEdges_ComputeInnerEdgesと一致する()
+    internal void ResolveInnerEdges_ComputeInnerEdgesと一致する()
     {
         var rect = new EsRect(10, 20, 100, 80);
 
@@ -408,7 +408,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void ResolveInnerEdges_範囲外のインデクサは例外()
+    internal void ResolveInnerEdges_範囲外のインデクサは例外()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new EsRect(0, 0, 10, 10).ResolveInnerEdges(1)[4]);
     }
@@ -418,33 +418,33 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void NearlyEquals_許容誤差内なら真()
+    internal void NearlyEquals_許容誤差内なら真()
     {
         Assert.True(new EsRect(1, 2, 3, 4).NearlyEquals(new EsRect(1 + 1e-12, 2, 3, 4)));
         Assert.False(new EsRect(1, 2, 3, 4).NearlyEquals(new EsRect(1.001, 2, 3, 4)));
     }
 
     [Fact]
-    public void ToEsRectInt_既定は四捨五入で成分ごとに丸める()
+    internal void ToEsRectInt_既定は四捨五入で成分ごとに丸める()
     {
         Assert.Equal(new EsRectInt(2, 3, 4, 5), new EsRect(1.5, 2.5, 3.5, 4.5).ToEsRectInt());
     }
 
     [Fact]
-    public void ToEsRectInt_丸め方法を指定できる()
+    internal void ToEsRectInt_丸め方法を指定できる()
     {
         Assert.Equal(new EsRectInt(1, 1, 1, 1), new EsRect(1.9, 1.9, 1.9, 1.9).ToEsRectInt(EsRounding.Truncate));
     }
 
     [Fact]
-    public void FromTuple_ToTuple_タプルと往復する()
+    internal void FromTuple_ToTuple_タプルと往復する()
     {
         Assert.Equal(new EsRect(1, 2, 3, 4), EsRect.FromTuple((1, 2, 3, 4)));
         Assert.Equal((1, 2, 3, 4), new EsRect(1, 2, 3, 4).ToTuple());
     }
 
     [Fact]
-    public void Deconstruct_タプルへ分解できる()
+    internal void Deconstruct_タプルへ分解できる()
     {
         var (x, y, width, height) = new EsRect(1, 2, 3, 4);
 
@@ -459,7 +459,7 @@ public class EsRectTests
     // ====================================================================
 
     [Fact]
-    public void Interval_既定は半開区間である()
+    internal void Interval_既定は半開区間である()
     {
         Assert.Equal(EsRectInterval.HalfOpen, new EsRect(1, 2, 3, 4).Interval);
         Assert.Equal(EsRectInterval.HalfOpen, default(EsRect).Interval);
@@ -467,14 +467,14 @@ public class EsRectTests
     }
 
     [Fact]
-    public void IsClosedInterval_閉区間の指定を判定する()
+    internal void IsClosedInterval_閉区間の指定を判定する()
     {
         Assert.False(new EsRect(1, 2, 3, 4).IsClosedInterval);
         Assert.True(new EsRect(1, 2, 3, 4, EsRectInterval.Closed).IsClosedInterval);
     }
 
     [Fact]
-    public void WithInterval_幾何を保ったまま流儀だけを差し替える()
+    internal void WithInterval_幾何を保ったまま流儀だけを差し替える()
     {
         var rect = new EsRect(1, 2, 3, 4).WithInterval(EsRectInterval.Closed);
 
@@ -485,7 +485,7 @@ public class EsRectTests
     [Theory]
     [InlineData(EsRectInterval.Closed)]
     [InlineData(EsRectInterval.HalfOpen)]
-    public void 幾何を差し替えるメソッド_流儀を引き継ぐ(EsRectInterval interval)
+    internal void 幾何を差し替えるメソッド_流儀を引き継ぐ(EsRectInterval interval)
     {
         var rect = new EsRect(10, 20, 100, 80, interval);
         var other = rect.WithInterval(EsRectInterval.HalfOpen);
@@ -509,7 +509,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void CenterRect_流儀は配置する矩形から引き継ぐ()
+    internal void CenterRect_流儀は配置する矩形から引き継ぐ()
     {
         var area = new EsRect(0, 0, 100, 100, EsRectInterval.HalfOpen);
         var content = new EsRect(0, 0, 40, 20, EsRectInterval.Closed);
@@ -518,7 +518,7 @@ public class EsRectTests
     }
 
     [Fact]
-    public void NearlyEquals_流儀は比較しない()
+    internal void NearlyEquals_流儀は比較しない()
     {
         Assert.True(new EsRect(1, 2, 3, 4).NearlyEquals(new EsRect(1, 2, 3, 4, EsRectInterval.Closed)));
     }

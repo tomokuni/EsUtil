@@ -12,7 +12,7 @@ namespace EsUtil.Feature.Loupe.Tests;
 public class LoupeOptionsTests
 {
     [Fact]
-    public void 既定値がコアの既定値と一致する()
+    internal void 既定値がコアの既定値と一致する()
     {
         var options = new LoupeOptions();
 
@@ -21,13 +21,13 @@ public class LoupeOptionsTests
     }
 
     [Fact]
-    public void Defaultは既定値と同じ値を持つ()
+    internal void Defaultは既定値と同じ値を持つ()
     {
         Assert.Equal(new LoupeOptions(), LoupeOptions.Default);
     }
 
     [Fact]
-    public void with式で一部だけ変更できる()
+    internal void with式で一部だけ変更できる()
     {
         var options = LoupeOptions.Default;
 
@@ -44,7 +44,7 @@ public class LoupeOptionsTests
     /// どの設定経路でも範囲内の値だけが保持される（UI 側に補正の登録を要求しない）。
     /// </remarks>
     [Fact]
-    public void 生成時に数値項目が安全域へ補正される()
+    internal void 生成時に数値項目が安全域へ補正される()
     {
         var options = new LoupeOptions
         {
@@ -58,7 +58,7 @@ public class LoupeOptionsTests
 
     /// <summary><c>with</c> 式による変更も生成時と同じ補正を受けることを検証する。</summary>
     [Fact]
-    public void with式の変更も安全域へ補正される()
+    internal void with式の変更も安全域へ補正される()
     {
         var changed = LoupeOptions.Default with { RequestedSize = 0, ZoomLevel = 1000 };
 
@@ -67,7 +67,7 @@ public class LoupeOptionsTests
     }
 
     [Fact]
-    public void 安全域内の値は変更されない()
+    internal void 安全域内の値は変更されない()
     {
         var options = new LoupeOptions { ZoomLevel = 8 };
 
@@ -75,7 +75,7 @@ public class LoupeOptionsTests
     }
 
     [Fact]
-    public void 等価性は値で判定される()
+    internal void 等価性は値で判定される()
     {
         var a = LoupeOptions.Default with { ZoomLevel = 4 };
         var b = LoupeOptions.Default with { ZoomLevel = 4 };
@@ -90,7 +90,7 @@ public class LoupeOptionsTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void 等価性が数値の変更を反映する(bool same)
+    internal void 等価性が数値の変更を反映する(bool same)
     {
         var options = new LoupeOptions();
         var other = same ? options : options with { ZoomLevel = 8 };
@@ -102,7 +102,7 @@ public class LoupeOptionsTests
     /// <summary>中心座標ラベルの文言はコアの値型が文字列化することを検証する。</summary>
     /// <remarks>設定は文言を持たない（文言は描画層が生成する）。</remarks>
     [Fact]
-    public void ラベルに使う座標は文字列化される()
+    internal void ラベルに使う座標は文字列化される()
     {
         var text = new EsPoint(123, 456).Format();
 

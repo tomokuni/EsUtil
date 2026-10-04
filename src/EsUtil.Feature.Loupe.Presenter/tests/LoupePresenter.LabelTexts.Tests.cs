@@ -1,6 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
-using EsUtil.Feature.Loupe.Presenter.Drawing;
 
 namespace EsUtil.Feature.Loupe.Tests;
 
@@ -20,7 +19,7 @@ public class LoupePresenterLabelTextsTests
 
     /// <summary>拡大中心が未設定なら配置しないことを検証する。</summary>
     [Fact]
-    public void 中心未設定なら配置しない()
+    internal void 中心未設定なら配置しない()
     {
         var placement = LoupePresenter.ResolveCoordLabelText(CreateGeometry(null), LoupeAppearance.Default);
 
@@ -29,7 +28,7 @@ public class LoupePresenterLabelTextsTests
 
     /// <summary>表示の設定が無効なら配置しないことを検証する。</summary>
     [Fact]
-    public void 表示の設定が無効なら配置しない()
+    internal void 表示の設定が無効なら配置しない()
     {
         var appearance = LoupeAppearance.Default with { ShowCoordLabel = false };
 
@@ -40,7 +39,7 @@ public class LoupePresenterLabelTextsTests
 
     /// <summary>文言が拡大中心の座標を整形した文字列になることを検証する。</summary>
     [Fact]
-    public void 文言は拡大中心の座標を整形する()
+    internal void 文言は拡大中心の座標を整形する()
     {
         var placement = LoupePresenter.ResolveCoordLabelText(CreateGeometry(new EsPoint(10, 20)), LoupeAppearance.Default);
 
@@ -54,7 +53,7 @@ public class LoupePresenterLabelTextsTests
     [InlineData(0.0)]
     [InlineData(2.0)]
     [InlineData(6.5)]
-    public void 基準点は外観のオフセットだけ内側になる(double offset)
+    internal void 基準点は外観のオフセットだけ内側になる(double offset)
     {
         var appearance = LoupeAppearance.Default with { CoordLabelOffset = offset };
 
@@ -66,7 +65,7 @@ public class LoupePresenterLabelTextsTests
 
     /// <summary>外観の既定のオフセットを使うことを検証する。</summary>
     [Fact]
-    public void 基準点は既定では外観の既定オフセットを使う()
+    internal void 基準点は既定では外観の既定オフセットを使う()
     {
         var placement = LoupePresenter.ResolveCoordLabelText(CreateGeometry(new EsPoint(10, 20)), LoupeAppearance.Default);
 

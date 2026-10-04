@@ -19,7 +19,7 @@ public class LoupeControlTests
 {
     /// <summary>既定値がコアの既定値と一致することを検証する。</summary>
     [Fact]
-    public void 既定値がコアの既定値と一致する()
+    internal void 既定値がコアの既定値と一致する()
     {
         var control = new LoupeControl();
 
@@ -42,7 +42,7 @@ public class LoupeControlTests
     [Theory]
     [InlineData(int.MinValue, int.MaxValue)]
     [InlineData(0, 100_000)]
-    public void 表示サイズが安全域へ補正される(int min, int max)
+    internal void 表示サイズが安全域へ補正される(int min, int max)
     {
         var control = new LoupeControl { Options = LoupeOptions.Default with { RequestedSize = min } };
         Assert.Equal(RequestedSizeMin, control.Options.RequestedSize);
@@ -53,7 +53,7 @@ public class LoupeControlTests
 
     /// <summary>拡大率が安全域へ補正されることを検証する。</summary>
     [Fact]
-    public void 拡大率が安全域へ補正される()
+    internal void 拡大率が安全域へ補正される()
     {
         var control = new LoupeControl { Options = LoupeOptions.Default with { ZoomLevel = 0 } };
         Assert.Equal(ZoomLevelMin, control.Options.ZoomLevel);
@@ -70,7 +70,7 @@ public class LoupeControlTests
     [InlineData(double.PositiveInfinity, ClientToPixelScalingDefault)]
     [InlineData(0.0, ClientToPixelScalingMin)]
     [InlineData(100.0, ClientToPixelScalingMax)]
-    public void スケーリング係数が安全域へ補正される(double value, double expected)
+    internal void スケーリング係数が安全域へ補正される(double value, double expected)
     {
         var control = new LoupeControl { ClientToPixelScaling = value };
 
@@ -79,7 +79,7 @@ public class LoupeControlTests
 
     /// <summary>座標ラベルのフォントサイズが安全域へ補正されることを検証する。</summary>
     [Fact]
-    public void 座標ラベルのフォントサイズが安全域へ補正される()
+    internal void 座標ラベルのフォントサイズが安全域へ補正される()
     {
         var control = new LoupeControl { Appearance = LoupeAppearance.Default with { CoordLabelFontSize = 0 } };
         Assert.Equal(6.0, control.Appearance.CoordLabelFontSize);
@@ -90,7 +90,7 @@ public class LoupeControlTests
 
     /// <summary>枠線の太さが安全域へ補正されることを検証する。</summary>
     [Fact]
-    public void 枠線の太さが安全域へ補正される()
+    internal void 枠線の太さが安全域へ補正される()
     {
         var control = new LoupeControl
         {
@@ -106,7 +106,7 @@ public class LoupeControlTests
 
     /// <summary>要求サイズが <see cref="LoupeOptions.RequestedSize"/> の正方形になることを検証する。</summary>
     [Fact]
-    public void 要求サイズが一辺RequestedSizeの正方形になる()
+    internal void 要求サイズが一辺RequestedSizeの正方形になる()
     {
         var control = new LoupeControl { Options = LoupeOptions.Default with { RequestedSize = 120 } };
 
@@ -118,7 +118,7 @@ public class LoupeControlTests
 
     /// <summary>要求サイズを変更すると測定結果へ反映されることを検証する。</summary>
     [Fact]
-    public void 要求サイズの変更が測定結果へ反映される()
+    internal void 要求サイズの変更が測定結果へ反映される()
     {
         var control = new LoupeControl { Options = LoupeOptions.Default with { RequestedSize = 80 } };
         control.Measure(new Size(1000, 1000));
@@ -167,7 +167,7 @@ public class LoupeControlTests
     /// 描画面（物理ピクセル）と割り当て領域（DIP）の比を唯一の算出元にする。
     /// </remarks>
     [Fact]
-    public void ApplySurfaceScaling_描画面の比を実効倍率として保持する()
+    internal void ApplySurfaceScaling_描画面の比を実効倍率として保持する()
     {
         // 125% の環境: 240 DIP の要素の描画面は 300 物理ピクセルになる
         var control = new LoupeControl { Options = LoupeOptions.Default with { RequestedSize = 240 } };
@@ -182,7 +182,7 @@ public class LoupeControlTests
 
     /// <summary>描画面の比が保持値と一致する場合はそのまま返すことを検証する。</summary>
     [Fact]
-    public void ApplySurfaceScaling_一致する場合は保持値をそのまま返す()
+    internal void ApplySurfaceScaling_一致する場合は保持値をそのまま返す()
     {
         // 等倍（96 DPI）の環境: 240 DIP の要素の描画面は 240 物理ピクセルになる
         var control = new LoupeControl { Options = LoupeOptions.Default with { RequestedSize = 240 } };
@@ -200,7 +200,7 @@ public class LoupeControlTests
     /// 物理ピクセルサイズを決めるため、ルーペ領域（描画面）と拡大画像の大きさが一致する。
     /// </remarks>
     [Fact]
-    public void ApplySurfaceScaling_倍率とDIPの積が描画面と一致する()
+    internal void ApplySurfaceScaling_倍率とDIPの積が描画面と一致する()
     {
         var control = new LoupeControl { Options = LoupeOptions.Default with { RequestedSize = 180 } };
         Layout(control, 180);
@@ -214,7 +214,7 @@ public class LoupeControlTests
 
     /// <summary>中心座標を設定するとラベル要素が表示されることを検証する（中心未設定では表示しない）。</summary>
     [Fact]
-    public void 中心座標を設定するとラベル要素が表示される()
+    internal void 中心座標を設定するとラベル要素が表示される()
     {
         var control = new LoupeControl { Options = LoupeOptions.Default with { RequestedSize = 100 } };
         Layout(control);
@@ -235,7 +235,7 @@ public class LoupeControlTests
 
     /// <summary>ラベル非表示の設定では要素を追加しないことを検証する。</summary>
     [Fact]
-    public void ラベル非表示の設定では要素を表示しない()
+    internal void ラベル非表示の設定では要素を表示しない()
     {
         var control = new LoupeControl
         {
@@ -253,7 +253,7 @@ public class LoupeControlTests
 
     /// <summary>中心座標を変更するとラベル要素の文言が追従することを検証する。</summary>
     [Fact]
-    public void 中心座標を変更するとラベル要素の文言が追従する()
+    internal void 中心座標を変更するとラベル要素の文言が追従する()
     {
         var control = new LoupeControl
         {
@@ -271,7 +271,7 @@ public class LoupeControlTests
 
     /// <summary>寸法と色を設定できることを検証する（描画は <c>EsUtil.Feature.Loupe.Presenter</c> のテストが検証する）。</summary>
     [Fact]
-    public void 外観を設定できる()
+    internal void 外観を設定できる()
     {
         var control = new LoupeControl
         {
@@ -298,7 +298,7 @@ public class LoupeControlTests
 
     /// <summary>ソース画像を設定できることを検証する。</summary>
     [Fact]
-    public void ソース画像を設定できる()
+    internal void ソース画像を設定できる()
     {
         using var source = TestHelper.CreateBitmap(8, SKColors.Red);
         var control = new LoupeControl { Source = source };
@@ -315,7 +315,7 @@ public class LoupeControlTests
     /// setter を経由しない設定は <c>MewObject.SetValue</c>（protected）しかないため、リフレクションで呼ぶ。
     /// </remarks>
     [Fact]
-    public void 補正はプロパティの全設定経路へ適用される()
+    internal void 補正はプロパティの全設定経路へ適用される()
     {
         var control = new LoupeControl();
 
@@ -344,7 +344,7 @@ public class LoupeControlTests
     [InlineData(nameof(LoupeOptions.RequestedSize))]
     [InlineData(nameof(LoupeControl.ClientToPixelScaling))]
     [InlineData(nameof(LoupeOptions.ZoomLevel))]
-    public void プロパティ変更がログへ記録される(string propertyName)
+    internal void プロパティ変更がログへ記録される(string propertyName)
     {
         var logger = new RecordingLogger();
         var control = new LoupeControl { Log = logger };
@@ -374,7 +374,7 @@ public class LoupeControlTests
 
     /// <summary>変更ログに記録される値が補正後の値であることを検証する。</summary>
     [Fact]
-    public void 変更ログは補正後の値を記録する()
+    internal void 変更ログは補正後の値を記録する()
     {
         var logger = new RecordingLogger();
         var control = new LoupeControl { Log = logger };

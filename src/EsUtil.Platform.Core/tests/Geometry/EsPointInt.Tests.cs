@@ -11,7 +11,7 @@ public class EsPointIntTests
 {
     /// <summary>整数の成分がそのまま小数の座標型へ引き継がれることを検証する。</summary>
     [Fact]
-    public void ToEsPoint_成分をそのまま引き継ぐ()
+    internal void ToEsPoint_成分をそのまま引き継ぐ()
     {
         var result = new EsPointInt(120, 340).ToEsPoint();
 
@@ -21,7 +21,7 @@ public class EsPointIntTests
 
     /// <summary>負の座標（セカンダリモニタの原点）も引き継ぐことを検証する。</summary>
     [Fact]
-    public void ToEsPoint_負の座標も引き継ぐ()
+    internal void ToEsPoint_負の座標も引き継ぐ()
     {
         var result = new EsPointInt(-1920, -200).ToEsPoint();
 
@@ -31,7 +31,7 @@ public class EsPointIntTests
 
     /// <summary>原点は原点のまま変換されることを検証する。</summary>
     [Fact]
-    public void ToEsPoint_原点は原点のまま()
+    internal void ToEsPoint_原点は原点のまま()
     {
         Assert.Equal(default(EsPoint), new EsPointInt(0, 0).ToEsPoint());
     }
@@ -41,7 +41,7 @@ public class EsPointIntTests
     // ====================================================================
 
     [Fact]
-    public void Zero_は原点()
+    internal void Zero_は原点()
     {
         Assert.Equal(new EsPointInt(0, 0), EsPointInt.Zero);
     }
@@ -50,7 +50,7 @@ public class EsPointIntTests
     [InlineData(0, 0, true)]
     [InlineData(0, 1, false)]
     [InlineData(1, 0, false)]
-    public void IsEmpty_XとYがともに0の場合のみ真(int x, int y, bool expected)
+    internal void IsEmpty_XとYがともに0の場合のみ真(int x, int y, bool expected)
     {
         Assert.Equal(expected, new EsPointInt(x, y).IsEmpty);
     }
@@ -60,7 +60,7 @@ public class EsPointIntTests
     // ====================================================================
 
     [Fact]
-    public void WithX_WithY_指定した成分だけを差し替える()
+    internal void WithX_WithY_指定した成分だけを差し替える()
     {
         var point = new EsPointInt(1, 2);
 
@@ -69,13 +69,13 @@ public class EsPointIntTests
     }
 
     [Fact]
-    public void Offset_指定量だけ平行移動する()
+    internal void Offset_指定量だけ平行移動する()
     {
         Assert.Equal(new EsPointInt(11, 22), new EsPointInt(1, 2).Offset(10, 20));
     }
 
     [Fact]
-    public void 演算子は成分ごとに加減算する()
+    internal void 演算子は成分ごとに加減算する()
     {
         Assert.Equal(new EsPointInt(4, 6), new EsPointInt(1, 2) + new EsPointInt(3, 4));
         Assert.Equal(new EsPointInt(-2, -2), new EsPointInt(1, 2) - new EsPointInt(3, 4));
@@ -89,7 +89,7 @@ public class EsPointIntTests
     [InlineData(1.4, 1)]
     [InlineData(1.5, 2)]
     [InlineData(-1.5, -2)]
-    public void FromEsPoint_既定は四捨五入(double value, int expected)
+    internal void FromEsPoint_既定は四捨五入(double value, int expected)
     {
         Assert.Equal(expected, EsPointInt.FromEsPoint(new EsPoint(value, value)).X);
     }
@@ -97,7 +97,7 @@ public class EsPointIntTests
     [Theory]
     [InlineData(1.9, 1)]
     [InlineData(-1.9, -1)]
-    public void FromEsPoint_Truncateは0の方向へ切り捨てる(double value, int expected)
+    internal void FromEsPoint_Truncateは0の方向へ切り捨てる(double value, int expected)
     {
         Assert.Equal(expected, EsPointInt.FromEsPoint(new EsPoint(value, value), EsRounding.Truncate).X);
     }
@@ -105,13 +105,13 @@ public class EsPointIntTests
     [Theory]
     [InlineData(1.1, 2)]
     [InlineData(-1.1, -1)]
-    public void FromEsPoint_Ceilingは正の方向へ切り上げる(double value, int expected)
+    internal void FromEsPoint_Ceilingは正の方向へ切り上げる(double value, int expected)
     {
         Assert.Equal(expected, EsPointInt.FromEsPoint(new EsPoint(value, value), EsRounding.Ceiling).X);
     }
 
     [Fact]
-    public void FromEsPoint_XとYを個別に丸める()
+    internal void FromEsPoint_XとYを個別に丸める()
     {
         Assert.Equal(new EsPointInt(2, 3), EsPointInt.FromEsPoint(new EsPoint(1.5, 2.5)));
     }
@@ -121,14 +121,14 @@ public class EsPointIntTests
     // ====================================================================
 
     [Fact]
-    public void FromTuple_ToTuple_タプルと往復する()
+    internal void FromTuple_ToTuple_タプルと往復する()
     {
         Assert.Equal(new EsPointInt(3, 4), EsPointInt.FromTuple((3, 4)));
         Assert.Equal((3, 4), new EsPointInt(3, 4).ToTuple());
     }
 
     [Fact]
-    public void Deconstruct_タプルへ分解できる()
+    internal void Deconstruct_タプルへ分解できる()
     {
         var (x, y) = new EsPointInt(3, 4);
 

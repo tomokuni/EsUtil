@@ -12,13 +12,13 @@ public class EsRectEdgesTests
         => new(new EsRect(1, 2, 3, 4), new EsRect(5, 6, 7, 8), new EsRect(9, 10, 11, 12), new EsRect(13, 14, 15, 16));
 
     [Fact]
-    public void Count_は4()
+    internal void Count_は4()
     {
         Assert.Equal(4, EsRectEdges.Count);
     }
 
     [Fact]
-    public void プロパティは指定した4辺をそのまま返す()
+    internal void プロパティは指定した4辺をそのまま返す()
     {
         var edges = CreateEdges();
 
@@ -33,7 +33,7 @@ public class EsRectEdgesTests
     [InlineData(1, 5, 6, 7, 8)]
     [InlineData(2, 9, 10, 11, 12)]
     [InlineData(3, 13, 14, 15, 16)]
-    public void インデクサは上_下_左_右の順で返す(int index, double x, double y, double width, double height)
+    internal void インデクサは上_下_左_右の順で返す(int index, double x, double y, double width, double height)
     {
         Assert.Equal(new EsRect(x, y, width, height), CreateEdges()[index]);
     }
@@ -41,13 +41,13 @@ public class EsRectEdgesTests
     [Theory]
     [InlineData(-1)]
     [InlineData(4)]
-    public void インデクサは範囲外で例外を投げる(int index)
+    internal void インデクサは範囲外で例外を投げる(int index)
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => CreateEdges()[index]);
     }
 
     [Fact]
-    public void ToArray_上_下_左_右の順の配列を返す()
+    internal void ToArray_上_下_左_右の順の配列を返す()
     {
         var array = CreateEdges().ToArray();
 
@@ -59,7 +59,7 @@ public class EsRectEdgesTests
     }
 
     [Fact]
-    public void ToArray_呼び出しごとに新しい配列を返す()
+    internal void ToArray_呼び出しごとに新しい配列を返す()
     {
         var edges = CreateEdges();
 

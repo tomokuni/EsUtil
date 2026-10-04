@@ -47,7 +47,7 @@ public class EsBitmapSystemDrawingTests
     }
 
     [Fact]
-    public void ToEsBitmap_ピクセルをコピーする()
+    internal void ToEsBitmap_ピクセルをコピーする()
     {
         using var sd = CreateSolidDrawingBitmap(4, 4, 0, 0, 255, 255); // 赤・不透明
         using var bmp = sd.ToEsBitmap();
@@ -60,7 +60,7 @@ public class EsBitmapSystemDrawingTests
     }
 
     [Fact]
-    public void ToEsBitmap_部分透明アルファを保持する()
+    internal void ToEsBitmap_部分透明アルファを保持する()
     {
         // 50% アルファの青（BGRA: B=255, G=0, R=0, A=128）
         using var sd = CreateSolidDrawingBitmap(4, 4, 255, 0, 0, 128);
@@ -73,7 +73,7 @@ public class EsBitmapSystemDrawingTests
     }
 
     [Fact]
-    public void ToDrawingBitmap_部分透明アルファを保持する()
+    internal void ToDrawingBitmap_部分透明アルファを保持する()
     {
         using var bmp = EsBitmap.Create(4, 4);
         bmp.SetPixel(0, 0, b: 255, g: 0, r: 0, a: 128);
@@ -97,7 +97,7 @@ public class EsBitmapSystemDrawingTests
     }
 
     [Fact]
-    public void ToDrawingBitmap_複製を生成する()
+    internal void ToDrawingBitmap_複製を生成する()
     {
         using var bmp = EsBitmap.Create(4, 4);
         bmp.SetPixel(0, 0, b: 1, g: 2, r: 3, a: 255);
@@ -123,7 +123,7 @@ public class EsBitmapSystemDrawingTests
     }
 
     [Fact]
-    public void SystemDrawing_往復変換でサイズが一致する()
+    internal void SystemDrawing_往復変換でサイズが一致する()
     {
         using var sd = CreateSolidDrawingBitmap(4, 4, 0, 0, 255, 255);
         using var bmp = sd.ToEsBitmap();

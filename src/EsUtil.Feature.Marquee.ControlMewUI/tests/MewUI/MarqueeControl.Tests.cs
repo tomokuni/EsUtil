@@ -6,8 +6,6 @@ using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
-using EsUtil.Feature.Marquee.Core.Interaction;
-using EsUtil.Feature.Marquee;
 
 namespace EsUtil.Feature.Marquee.MewUI.Tests;
 
@@ -71,7 +69,7 @@ public class MarqueeControlTests
     // ====================================================================
 
     [Fact]
-    public void 設定の既定値がAvalonia版と一致する()
+    internal void 設定の既定値がAvalonia版と一致する()
     {
         var control = CreateControl(new CursorServiceSpy());
         var options = control.Options;
@@ -93,7 +91,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void 設定を変更すると反映される()
+    internal void 設定を変更すると反映される()
     {
         var control = CreateControl(new CursorServiceSpy());
 
@@ -120,7 +118,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void CoordLabelFontSize_NaNや範囲外は安全値に補正される()
+    internal void CoordLabelFontSize_NaNや範囲外は安全値に補正される()
     {
         var control = CreateControl(new CursorServiceSpy());
 
@@ -142,7 +140,7 @@ public class MarqueeControlTests
     // ====================================================================
 
     [Fact]
-    public void CurrentSnapshot_未選択時の全項目が初期値になる()
+    internal void CurrentSnapshot_未選択時の全項目が初期値になる()
     {
         var control = CreateControl(new CursorServiceSpy());
 
@@ -157,7 +155,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void CurrentSnapshot_選択時は選択状態を返す()
+    internal void CurrentSnapshot_選択時は選択状態を返す()
     {
         var control = CreateControl(new CursorServiceSpy());
 
@@ -174,7 +172,7 @@ public class MarqueeControlTests
     // ====================================================================
 
     [Fact]
-    public void SetSelection_選択矩形を復元しSelectionChangedを発火する()
+    internal void SetSelection_選択矩形を復元しSelectionChangedを発火する()
     {
         var control = CreateControl(new CursorServiceSpy());
         SelectionRectEventArgs? raised = null;
@@ -190,7 +188,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void SetSelection_境界外の矩形は境界内へクリップされる()
+    internal void SetSelection_境界外の矩形は境界内へクリップされる()
     {
         var control = CreateBounded(new CursorServiceSpy());
         SelectionRectEventArgs? raised = null;
@@ -204,7 +202,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void ClampToSourceBounds_ON切替時に既存の選択矩形がクリップされる()
+    internal void ClampToSourceBounds_ON切替時に既存の選択矩形がクリップされる()
     {
         var control = CreateBounded(new CursorServiceSpy());
         var rects = new List<EsRect>();
@@ -223,7 +221,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void ClampToSourceBounds_ON切替時に境界内の矩形は変更されない()
+    internal void ClampToSourceBounds_ON切替時に境界内の矩形は変更されない()
     {
         var control = CreateBounded(new CursorServiceSpy());
         var rects = new List<EsRect>();
@@ -240,7 +238,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void ResetSelection_選択状態を初期化する()
+    internal void ResetSelection_選択状態を初期化する()
     {
         var control = CreateControl(new CursorServiceSpy());
         control.SetSelection(new EsRect(10, 10, 50, 40));
@@ -256,7 +254,7 @@ public class MarqueeControlTests
     // ====================================================================
 
     [Fact]
-    public void RequestConfirm_選択確定後にConfirmRequestedを発火し選択をクリアする()
+    internal void RequestConfirm_選択確定後にConfirmRequestedを発火し選択をクリアする()
     {
         var control = CreateControl(new CursorServiceSpy());
         SelectionRectEventArgs? raised = null;
@@ -272,7 +270,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void RequestConfirm_選択なしでは発火しない()
+    internal void RequestConfirm_選択なしでは発火しない()
     {
         var control = CreateControl(new CursorServiceSpy());
         var raised = false;
@@ -284,7 +282,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void RequestCancel_選択ありなら選択を破棄してCancelRequestedを発火する()
+    internal void RequestCancel_選択ありなら選択を破棄してCancelRequestedを発火する()
     {
         var control = CreateControl(new CursorServiceSpy());
         var raised = false;
@@ -298,7 +296,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void RequestCancel_選択なしでもCancelRequestedを発火する()
+    internal void RequestCancel_選択なしでもCancelRequestedを発火する()
     {
         var control = CreateControl(new CursorServiceSpy());
         var raised = false;
@@ -314,7 +312,7 @@ public class MarqueeControlTests
     // ====================================================================
 
     [Fact]
-    public void Log_既定はNullLoggerで例外にならない()
+    internal void Log_既定はNullLoggerで例外にならない()
     {
         var control = CreateControl(new CursorServiceSpy());
 
@@ -325,7 +323,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void Log_null設定はNullLoggerへフォールバックする()
+    internal void Log_null設定はNullLoggerへフォールバックする()
     {
         var control = CreateControl(new CursorServiceSpy());
 
@@ -334,7 +332,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void Log_設定変更を出力する()
+    internal void Log_設定変更を出力する()
     {
         var control = CreateControl(new CursorServiceSpy());
         var logger = new RecordingLogger();
@@ -357,7 +355,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void Log_同じ値の再設定では出力しない()
+    internal void Log_同じ値の再設定では出力しない()
     {
         var control = CreateControl(new CursorServiceSpy());
         var logger = new RecordingLogger();
@@ -371,7 +369,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void Log_外観の変更は変化した項目だけを出力する()
+    internal void Log_外観の変更は変化した項目だけを出力する()
     {
         var control = CreateControl(new CursorServiceSpy());
         var logger = new RecordingLogger();
@@ -388,7 +386,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void Log_外観の同値再設定では出力しない()
+    internal void Log_外観の同値再設定では出力しない()
     {
         var control = CreateControl(new CursorServiceSpy());
         var logger = new RecordingLogger();
@@ -401,7 +399,7 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    public void Log_確定要求を出力する()
+    internal void Log_確定要求を出力する()
     {
         var control = CreateControl(new CursorServiceSpy());
         var logger = new RecordingLogger();
@@ -426,7 +424,7 @@ public class MarqueeControlTests
     /// 配送の規則だけを検証用の最小コントロールで実測する。
     /// </remarks>
     [Fact]
-    public void 基底のMouseDownはHandledでも通知される()
+    internal void 基底のMouseDownはHandledでも通知される()
     {
         var probe = new MouseEventProbe();
         var raised = 0;
@@ -442,7 +440,7 @@ public class MarqueeControlTests
 
     /// <summary>基底 <c>MouseUp</c> も処理済み（<c>Handled</c>）でも通知されることを検証する。</summary>
     [Fact]
-    public void 基底のMouseUpはHandledでも通知される()
+    internal void 基底のMouseUpはHandledでも通知される()
     {
         var probe = new MouseEventProbe();
         var raised = 0;
@@ -485,7 +483,7 @@ public class MarqueeControlTests
     /// 同じ基準サイズで配置を繰り返しても再解決しない（状態が変わった場合だけ再解決する）。
     /// </remarks>
     [Fact]
-    public void 描画内容は1フレームにつき1回だけ解決される()
+    internal void 描画内容は1フレームにつき1回だけ解決される()
     {
         var cursor = new CursorServiceSpy();
         var control = CreateControl(cursor);

@@ -1,6 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
-using EsUtil.Feature.Marquee.Presenter.Drawing;
 
 namespace EsUtil.Feature.Marquee.Tests;
 
@@ -21,7 +20,7 @@ public class MarqueePresenterLabelTextsTests
 
     /// <summary>表示しない設定では座標ラベルを返さないことを検証する。</summary>
     [Fact]
-    public void ResolveCoordLabelText_表示しない設定ではnullになる()
+    internal void ResolveCoordLabelText_表示しない設定ではnullになる()
     {
         var appearance = MarqueeAppearance.Default with { ShowCoordLabel = false };
 
@@ -33,7 +32,7 @@ public class MarqueePresenterLabelTextsTests
 
     /// <summary>文言が対象座標から作られることを検証する（DIP ではない）。</summary>
     [Fact]
-    public void ResolveCoordLabelText_文言は対象座標から作る()
+    internal void ResolveCoordLabelText_文言は対象座標から作る()
     {
         // 表示スケール 2 のポートを模した幾何（対象 (30,40) は DIP (15,20)）
         var geometry = CreateGeometry(new EsPoint(30, 40), new EsPoint(15, 20));
@@ -45,7 +44,7 @@ public class MarqueePresenterLabelTextsTests
 
     /// <summary>基準点が DIP 座標とオフセットから求められることを検証する。</summary>
     [Fact]
-    public void ResolveCoordLabelText_基準点はDIPとオフセットから求める()
+    internal void ResolveCoordLabelText_基準点はDIPとオフセットから求める()
     {
         var appearance = MarqueeAppearance.Default with { CoordLabelOffset = 8.0 };
         var geometry = CreateGeometry(new EsPoint(30, 40), new EsPoint(15, 20));
@@ -57,7 +56,7 @@ public class MarqueePresenterLabelTextsTests
 
     /// <summary>クランプ領域が描画領域のサイズになることを検証する。</summary>
     [Fact]
-    public void ResolveCoordLabelText_クランプ領域は描画領域のサイズになる()
+    internal void ResolveCoordLabelText_クランプ領域は描画領域のサイズになる()
     {
         var geometry = CreateGeometry(new EsPoint(30, 40), new EsPoint(30, 40));
 

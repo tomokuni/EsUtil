@@ -8,7 +8,6 @@ using Point = Avalonia.Point;
 using Rect = Avalonia.Rect;
 using EsUtil.Feature.Marquee.AvaloniaUI.Sample.Logging;
 using EsUtil.Feature.Marquee.AvaloniaUI.Sample.ViewModels;
-using EsUtil.Feature.Marquee.AvaloniaUI;
 using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;

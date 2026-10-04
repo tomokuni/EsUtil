@@ -41,7 +41,7 @@ public class LoupePresenterLabelPlanTests
     private static EsSize Measure(string text, double fontSize) => MeasuredSize;
 
     [Fact]
-    public void Resolve_ラベルが無ければ空を返す()
+    internal void Resolve_ラベルが無ければ空を返す()
     {
         var elements = LoupePresenter.ResolveLabelPlacements(null, CreatePaint(), Measure);
 
@@ -49,7 +49,7 @@ public class LoupePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_ラベルがあれば1件を返す()
+    internal void Resolve_ラベルがあれば1件を返す()
     {
         var element = Assert.Single(LoupePresenter.ResolveLabelPlacements(CreateCoordLabel(), CreatePaint(), Measure));
 
@@ -60,7 +60,7 @@ public class LoupePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_基準点が背景の左上になる()
+    internal void Resolve_基準点が背景の左上になる()
     {
         var element = Assert.Single(LoupePresenter.ResolveLabelPlacements(CreateCoordLabel(), CreatePaint(), Measure));
 
@@ -71,7 +71,7 @@ public class LoupePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_上下の内側余白は左右より狭い()
+    internal void Resolve_上下の内側余白は左右より狭い()
     {
         var element = Assert.Single(LoupePresenter.ResolveLabelPlacements(CreateCoordLabel(), CreatePaint(), Measure));
 
@@ -81,7 +81,7 @@ public class LoupePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_文言とフォントサイズを測定関数へ渡す()
+    internal void Resolve_文言とフォントサイズを測定関数へ渡す()
     {
         var calls = new List<(string Text, double FontSize)>();
 
@@ -98,13 +98,13 @@ public class LoupePresenterLabelPlanTests
     }
 
     [Fact]
-    public void Resolve_測定関数がnullなら例外()
+    internal void Resolve_測定関数がnullなら例外()
     {
         Assert.Throws<ArgumentNullException>(() => LoupePresenter.ResolveLabelPlacements(CreateCoordLabel(), CreatePaint(), null!));
     }
 
     [Fact]
-    public void Resolve_色がnullなら例外()
+    internal void Resolve_色がnullなら例外()
     {
         Assert.Throws<ArgumentNullException>(() => LoupePresenter.ResolveLabelPlacements(CreateCoordLabel(), null!, Measure));
     }

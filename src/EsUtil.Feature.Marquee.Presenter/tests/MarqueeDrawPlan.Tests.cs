@@ -3,7 +3,6 @@ using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
-using EsUtil.Feature.Marquee.Presenter.Drawing;
 
 namespace EsUtil.Feature.Marquee.Tests;
 
@@ -44,7 +43,7 @@ public class MarqueeDrawPlanTests
         => CreatePresenter(appearance, options).ResolveDrawPlan(new EsSize(200, 100), MeasureText);
 
     [Fact]
-    public void ResolveDrawPlan_外観をそのまま保持する()
+    internal void ResolveDrawPlan_外観をそのまま保持する()
     {
         var appearance = MarqueeAppearance.Default with { ShowOuterBorder = false, OuterBorderThickness = 3.0 };
 
@@ -54,7 +53,7 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_描画面を解決する()
+    internal void ResolveDrawPlan_描画面を解決する()
     {
         var plan = ResolvePlan();
 
@@ -62,7 +61,7 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_注目矩形が無い場合は装飾もハンドルも持たない()
+    internal void ResolveDrawPlan_注目矩形が無い場合は装飾もハンドルも持たない()
     {
         // 座標ラベルはカーソル位置を基準にするため、注目矩形が無くても表示できる（外観で無効化して素の状態を見る）
         var plan = ResolvePlan(MarqueeAppearance.Default with { ShowCoordLabel = false });
@@ -79,7 +78,7 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_選択がある場合は装飾とハンドルを解決する()
+    internal void ResolveDrawPlan_選択がある場合は装飾とハンドルを解決する()
     {
         var presenter = CreatePresenter(MarqueeAppearance.Default with { ShowCoordLabel = false });
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
@@ -96,7 +95,7 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_内側の塗りと枠線は表示可否に従う()
+    internal void ResolveDrawPlan_内側の塗りと枠線は表示可否に従う()
     {
         var appearance = MarqueeAppearance.Default with
         {
@@ -115,7 +114,7 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_全面暗転は注目矩形が無くても暗転領域を持つ()
+    internal void ResolveDrawPlan_全面暗転は注目矩形が無くても暗転領域を持つ()
     {
         var appearance = MarqueeAppearance.Default with { ShowCoordLabel = false, ShowFullOverlay = true };
 
@@ -128,7 +127,7 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_層の順序は装飾ハンドルマーカーテキストの順になる()
+    internal void ResolveDrawPlan_層の順序は装飾ハンドルマーカーテキストの順になる()
     {
         var presenter = CreatePresenter();
         presenter.Press(new EsPoint(10, 10), clickCount: 1);
@@ -143,7 +142,7 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_描く値の無い層は含めない()
+    internal void ResolveDrawPlan_描く値の無い層は含めない()
     {
         var appearance = MarqueeAppearance.Default with { ShowCoordLabel = false };
 
@@ -158,7 +157,7 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_テキストがある場合は層の最後に置く()
+    internal void ResolveDrawPlan_テキストがある場合は層の最後に置く()
     {
         var presenter = CreatePresenter();
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
@@ -171,7 +170,7 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_ハンドルを隠す外観ではハンドルの層を含めない()
+    internal void ResolveDrawPlan_ハンドルを隠す外観ではハンドルの層を含めない()
     {
         var appearance = MarqueeAppearance.Default with { ShowHandles = false, ShowCoordLabel = false };
         var presenter = CreatePresenter(appearance);
@@ -184,7 +183,7 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_座標変換ポートを装飾矩形へ適用する()
+    internal void ResolveDrawPlan_座標変換ポートを装飾矩形へ適用する()
     {
         var presenter = CreatePresenter(MarqueeAppearance.Default with { ShowCoordLabel = false });
         // ToDip（対象 → DIP）は 2 倍
@@ -200,7 +199,7 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    public void ResolveDrawPlan_ラベル配置はラベルが無ければ空になる()
+    internal void ResolveDrawPlan_ラベル配置はラベルが無ければ空になる()
     {
         var appearance = MarqueeAppearance.Default with { ShowSizeLabel = false, ShowCoordLabel = false };
 

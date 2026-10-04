@@ -23,13 +23,13 @@ public class LoupeGeometryTests
     [InlineData(160, 1.25, 200)]
     [InlineData(160, 2.0, 320)]
     [InlineData(0.4, 1.0, 1)]
-    public void ResolveGeometry_表示サイズを物理ピクセルへ換算する(
+    internal void ResolveGeometry_表示サイズを物理ピクセルへ換算する(
         double displaySize, double dipToDeviceScaling, int expectedPixelSize)
         => Assert.Equal(expectedPixelSize, Resolve(displaySize, dipToDeviceScaling).ClientPixelSize);
 
     /// <summary>描画先の大きさに関わらず表示サイズを縮小しないことを検証する。</summary>
     [Fact]
-    public void ResolveGeometry_描画先の大きさで縮小しない()
+    internal void ResolveGeometry_描画先の大きさで縮小しない()
         => Assert.Equal(640, Resolve(640, 1.0).ClientPixelSize);
 
     /// <summary>換算結果の下限が 1 になることを検証する。</summary>
@@ -37,7 +37,7 @@ public class LoupeGeometryTests
     [Theory]
     [InlineData(0)]
     [InlineData(-10)]
-    public void ResolveGeometry_最低1になる(double size)
+    internal void ResolveGeometry_最低1になる(double size)
         => Assert.Equal(1, Resolve(size, 1.0).ClientPixelSize);
 
     /// <summary>表示サイズとスケーリングから物理ピクセルを求めることを検証する。</summary>
@@ -49,12 +49,12 @@ public class LoupeGeometryTests
     [InlineData(100, 1.5, 150)]
     [InlineData(33, 1.1, 37)]
     [InlineData(160.4, 1.0, 161)]
-    public void ResolveGeometry_表示サイズとスケーリングから物理ピクセルを求める(double size, double scaling, int expected)
+    internal void ResolveGeometry_表示サイズとスケーリングから物理ピクセルを求める(double size, double scaling, int expected)
         => Assert.Equal(expected, Resolve(size, scaling).ClientPixelSize);
 
     /// <summary>描画先の全領域が原点 0 の正方形になることを検証する。</summary>
     [Fact]
-    public void ClientPixelRect_物理ピクセルサイズの正方形を原点0で返す()
+    internal void ClientPixelRect_物理ピクセルサイズの正方形を原点0で返す()
     {
         var geometry = Resolve(100, 1.25);
 
@@ -65,7 +65,7 @@ public class LoupeGeometryTests
 
     /// <summary>中心・拡大率・スケーリングがそのまま保持されることを検証する。</summary>
     [Fact]
-    public void ResolveGeometry_入力値をそのまま保持する()
+    internal void ResolveGeometry_入力値をそのまま保持する()
     {
         var loupe = new LoupeCore(LoupeOptions.Default with { ZoomLevel = 8 })
         {
@@ -82,7 +82,7 @@ public class LoupeGeometryTests
 
     /// <summary>中心が未設定（null）でも解決できることを検証する。</summary>
     [Fact]
-    public void ResolveGeometry_中心未設定でも解決できる()
+    internal void ResolveGeometry_中心未設定でも解決できる()
         => Assert.Null(Resolve(100, 1.0).Center);
 
     // ====================================================================
@@ -101,7 +101,7 @@ public class LoupeGeometryTests
     [InlineData(16, 4, 4)]
     [InlineData(25, 4, 7)]
     [InlineData(1, 1, 1)]
-    public void CaptureSize_切り上げて対象ピクセルを返す(int clientPixelSize, int zoomLevel, int expected)
+    internal void CaptureSize_切り上げて対象ピクセルを返す(int clientPixelSize, int zoomLevel, int expected)
         => Assert.Equal(expected, Geometry(s_center, clientPixelSize, zoomLevel).CaptureSize);
 
     /// <summary>拡大中心から切り出し領域の左上（対象座標）が求まることを検証する。</summary>
@@ -115,7 +115,7 @@ public class LoupeGeometryTests
     [InlineData(50, 50, 4, 4, 48, 48)]
     [InlineData(0, 0, 4, 4, -2, -2)]
     [InlineData(101, 99, 25, 25, 89, 87)]
-    public void CaptureTopLeft_中心を左上として指定サイズ領域を計算する(
+    internal void CaptureTopLeft_中心を左上として指定サイズ領域を計算する(
         int centerX, int centerY, int size, int zoomLevel, int expectedLeft, int expectedTop)
     {
         // 切り出し領域の一辺が size になるよう、物理ピクセルサイズを size × 拡大率で与える
@@ -128,7 +128,7 @@ public class LoupeGeometryTests
 
     /// <summary>拡大中心が未設定の場合は切り出し領域の左上が null（描画しない）になることを検証する。</summary>
     [Fact]
-    public void CaptureTopLeft_中心未設定ならnullになる()
+    internal void CaptureTopLeft_中心未設定ならnullになる()
     {
         Assert.Null(Geometry(center: null, 32, 4).CaptureTopLeft);
         Assert.Null(Geometry(center: null, 32, 4).MagnifiedImage);
@@ -137,7 +137,7 @@ public class LoupeGeometryTests
     /// <summary>拡大画像の切り出し・描画元・描画先の矩形が求まることを検証する。</summary>
     /// <remarks>中心 (10, 10)・clientPixelSize=16・zoom=4 → 切り出し 4 px、左上 (8, 8)、描画元 4 px、描画先 16 px。</remarks>
     [Fact]
-    public void MagnifiedImage_切り出し領域と描画元と描画先を解決する()
+    internal void MagnifiedImage_切り出し領域と描画元と描画先を解決する()
     {
         var image = Assert.NotNull(Geometry(new EsPoint(10, 10), 16, 4).MagnifiedImage);
 
@@ -148,7 +148,7 @@ public class LoupeGeometryTests
 
     /// <summary>画像端では切り出し領域が負の左上になることを検証する（透明パディングは切り出し側が担う）。</summary>
     [Fact]
-    public void MagnifiedImage_画像端では切り出し左上が負になる()
+    internal void MagnifiedImage_画像端では切り出し左上が負になる()
     {
         var image = Assert.NotNull(Geometry(new EsPoint(0, 0), 16, 4).MagnifiedImage);
 
@@ -163,7 +163,7 @@ public class LoupeGeometryTests
     [InlineData(16, 4, 16)]
     [InlineData(25, 4, 28)]
     [InlineData(1, 1, 1)]
-    public void MagnifiedImage_描画先は切り出しサイズの拡大率倍になる(
+    internal void MagnifiedImage_描画先は切り出しサイズの拡大率倍になる(
         int clientPixelSize, int zoomLevel, int expectedDestination)
     {
         var image = Assert.NotNull(Geometry(new EsPoint(100, 100), clientPixelSize, zoomLevel).MagnifiedImage);

@@ -8,7 +8,7 @@ namespace EsUtil.Platform.Core.Tests.Geometry;
 public class EsThicknessTests
 {
     [Fact]
-    public void 成分をそのまま保持する()
+    internal void 成分をそのまま保持する()
     {
         var thickness = new EsThickness(1, 2, 3, 4);
 
@@ -19,7 +19,7 @@ public class EsThicknessTests
     }
 
     [Fact]
-    public void 単一値のコンストラクタは4辺へ同じ値を設定する()
+    internal void 単一値のコンストラクタは4辺へ同じ値を設定する()
     {
         var thickness = new EsThickness(5);
 
@@ -27,25 +27,25 @@ public class EsThicknessTests
     }
 
     [Fact]
-    public void Zero_は全辺0()
+    internal void Zero_は全辺0()
     {
         Assert.Equal(new EsThickness(0, 0, 0, 0), EsThickness.Zero);
     }
 
     [Fact]
-    public void Horizontal_左右の合計を返す()
+    internal void Horizontal_左右の合計を返す()
     {
         Assert.Equal(7, new EsThickness(3, 10, 4, 20).Horizontal);
     }
 
     [Fact]
-    public void Vertical_上下の合計を返す()
+    internal void Vertical_上下の合計を返す()
     {
         Assert.Equal(30, new EsThickness(3, 10, 4, 20).Vertical);
     }
 
     [Fact]
-    public void 負の厚さもそのまま保持する()
+    internal void 負の厚さもそのまま保持する()
     {
         var thickness = new EsThickness(-1, -2, -3, -4);
 
@@ -54,14 +54,14 @@ public class EsThicknessTests
     }
 
     [Fact]
-    public void FromTuple_ToTuple_タプルと往復する()
+    internal void FromTuple_ToTuple_タプルと往復する()
     {
         Assert.Equal(new EsThickness(1, 2, 3, 4), EsThickness.FromTuple((1, 2, 3, 4)));
         Assert.Equal((1, 2, 3, 4), new EsThickness(1, 2, 3, 4).ToTuple());
     }
 
     [Fact]
-    public void Deconstruct_タプルへ分解できる()
+    internal void Deconstruct_タプルへ分解できる()
     {
         var (left, top, right, bottom) = new EsThickness(1, 2, 3, 4);
 
@@ -72,7 +72,7 @@ public class EsThicknessTests
     }
 
     [Fact]
-    public void 等価性は値で判定される()
+    internal void 等価性は値で判定される()
     {
         Assert.Equal(new EsThickness(1, 2, 3, 4), new EsThickness(1, 2, 3, 4));
         Assert.NotEqual(new EsThickness(1, 2, 3, 4), new EsThickness(4, 3, 2, 1));

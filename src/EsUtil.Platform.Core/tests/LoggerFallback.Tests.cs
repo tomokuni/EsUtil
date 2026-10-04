@@ -12,7 +12,7 @@ namespace EsUtil.Platform.Core.Tests;
 public class LoggerFallbackTests
 {
     [Fact]
-    public void OrNullLogger_nullならNullLoggerを返す()
+    internal void OrNullLogger_nullならNullLoggerを返す()
     {
         ILogger? logger = null;
 
@@ -22,7 +22,7 @@ public class LoggerFallbackTests
     }
 
     [Fact]
-    public void OrNullLogger_非nullなら同じインスタンスを返す()
+    internal void OrNullLogger_非nullなら同じインスタンスを返す()
     {
         // 実装差し替えではない（null 以外はそのまま渡す）ことを、別インスタンスの同一性で検証する
         var logger = NullLogger<LoggerFallbackTests>.Instance;
@@ -33,7 +33,7 @@ public class LoggerFallbackTests
     }
 
     [Fact]
-    public void OrNullLogger_NullLoggerを渡しても同じインスタンスを返す()
+    internal void OrNullLogger_NullLoggerを渡しても同じインスタンスを返す()
     {
         var result = NullLogger.Instance.OrNullLogger();
 
@@ -41,7 +41,7 @@ public class LoggerFallbackTests
     }
 
     [Fact]
-    public void OrNullLogger_フォールバック後のログ出力は何も起きない()
+    internal void OrNullLogger_フォールバック後のログ出力は何も起きない()
     {
         ILogger? logger = null;
 

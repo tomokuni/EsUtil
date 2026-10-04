@@ -21,7 +21,7 @@ public class WinElementFinderTests
     private static WinElementFinder CreateFinder() => new();
 
     [Fact]
-    public void WinElementFinder_ListScreensが実モニターを列挙する()
+    internal void WinElementFinder_ListScreensが実モニターを列挙する()
     {
         var finder = CreateFinder();
 
@@ -40,7 +40,7 @@ public class WinElementFinderTests
     }
 
     [Fact]
-    public void WinElementFinder_ListWindowsが実ウィンドウを列挙する()
+    internal void WinElementFinder_ListWindowsが実ウィンドウを列挙する()
     {
         var finder = CreateFinder();
 
@@ -58,7 +58,7 @@ public class WinElementFinderTests
     }
 
     [Fact]
-    public void WinElementFinder_ListWindowsがクラス名を設定する()
+    internal void WinElementFinder_ListWindowsがクラス名を設定する()
     {
         var finder = CreateFinder();
 
@@ -74,7 +74,7 @@ public class WinElementFinderTests
     }
 
     [Fact]
-    public void WinElementFinder_FindScreenUnderCursorが実モニター内の位置を検出する()
+    internal void WinElementFinder_FindScreenUnderCursorが実モニター内の位置を検出する()
     {
         var finder = CreateFinder();
         var screens = finder.ListScreens();
@@ -91,7 +91,7 @@ public class WinElementFinderTests
     }
 
     [Fact]
-    public void WinElementFinder_FindScreenUnderCursorが実モニター外の位置を未検出にする()
+    internal void WinElementFinder_FindScreenUnderCursorが実モニター外の位置を未検出にする()
     {
         var finder = CreateFinder();
         var screens = finder.ListScreens();
@@ -108,7 +108,7 @@ public class WinElementFinderTests
     }
 
     [Fact]
-    public void WinElementFinder_FindWindowUnderCursorが例外なく呼び出せる()
+    internal void WinElementFinder_FindWindowUnderCursorが例外なく呼び出せる()
     {
         var finder = CreateFinder();
         var screens = finder.ListScreens();
@@ -121,7 +121,7 @@ public class WinElementFinderTests
     }
 
     [Fact]
-    public void WinElementFinder_TryGetWindowVisibleRectが実ウィンドウで例外なく動作する()
+    internal void WinElementFinder_TryGetWindowVisibleRectが実ウィンドウで例外なく動作する()
     {
         var finder = CreateFinder();
         var windows = finder.ListWindows();

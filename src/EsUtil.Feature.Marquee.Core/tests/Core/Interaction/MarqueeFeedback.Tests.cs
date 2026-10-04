@@ -1,6 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
-using EsUtil.Feature.Marquee.Core.Contract;
 using EsUtil.Feature.Marquee.Core.Interaction;
 
 namespace EsUtil.Feature.Marquee.Tests.Core.Interaction;
@@ -13,7 +12,7 @@ namespace EsUtil.Feature.Marquee.Tests.Core.Interaction;
 public class MarqueeFeedbackTests
 {
     [Fact]
-    public void ApplyCursor_移動してから表示を切り替える()
+    internal void ApplyCursor_移動してから表示を切り替える()
     {
         var cursor = new CursorServiceSpy();
         // 3 つの操作をまとめて要求する（nudge の終了と同じ組み合わせ）
@@ -30,7 +29,7 @@ public class MarqueeFeedbackTests
     }
 
     [Fact]
-    public void ApplyCursor_操作が無ければ何もしない()
+    internal void ApplyCursor_操作が無ければ何もしない()
     {
         var cursor = new CursorServiceSpy();
         var feedback = new MarqueeFeedback();
@@ -41,7 +40,7 @@ public class MarqueeFeedbackTests
     }
 
     [Fact]
-    public void ApplyVisual_フォーカスしてからカーソル形状と再描画を適用する()
+    internal void ApplyVisual_フォーカスしてからカーソル形状と再描画を適用する()
     {
         var feedback = new MarqueeFeedback
         {
@@ -58,7 +57,7 @@ public class MarqueeFeedbackTests
     }
 
     [Fact]
-    public void ApplyVisual_要求されていない効果は適用しない()
+    internal void ApplyVisual_要求されていない効果は適用しない()
     {
         var feedback = new MarqueeFeedback { Redraw = true };
         var effects = new EffectsSpy();
@@ -69,7 +68,7 @@ public class MarqueeFeedbackTests
     }
 
     [Fact]
-    public void ApplyVisual_効果が無ければ何も適用しない()
+    internal void ApplyVisual_効果が無ければ何も適用しない()
     {
         var feedback = new MarqueeFeedback();
         var effects = new EffectsSpy();
@@ -80,7 +79,7 @@ public class MarqueeFeedbackTests
     }
 
     [Fact]
-    public void ApplyVisual_カーソル形状の種別を渡す()
+    internal void ApplyVisual_カーソル形状の種別を渡す()
     {
         var effects = new EffectsSpy();
         // 各ハンドル種別がそのまま渡ることを確認する（写像は UI 層の責務）

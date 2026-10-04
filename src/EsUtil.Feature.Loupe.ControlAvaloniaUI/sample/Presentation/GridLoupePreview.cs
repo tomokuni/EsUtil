@@ -3,7 +3,6 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.Feature.Loupe.AvaloniaUI;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Presentation;
 

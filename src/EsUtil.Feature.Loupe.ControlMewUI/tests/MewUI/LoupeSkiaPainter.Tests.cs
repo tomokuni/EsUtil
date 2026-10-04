@@ -1,8 +1,6 @@
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.SaveEvidence.Platform.Skia;
-using EsUtil.Feature.Loupe;
-using EsUtil.Feature.Loupe.Presenter.Drawing;
 using SkiaSharp;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
@@ -48,7 +46,7 @@ public class LoupeSkiaPainterTests
     // ====================================================================
 
     [Fact]
-    public void Paint_ペーストボードで描画面を置き換える()
+    internal void Paint_ペーストボードで描画面を置き換える()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
         // 前フレームの残像を模して別の色で塗っておく
@@ -61,7 +59,7 @@ public class LoupeSkiaPainterTests
     }
 
     [Fact]
-    public void Paint_拡大中心が未設定でもペーストボードを描く()
+    internal void Paint_拡大中心が未設定でもペーストボードを描く()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
 
@@ -80,7 +78,7 @@ public class LoupeSkiaPainterTests
     /// （市松模様ではなく無地）。 中心を画像の左外へ寄せ、切り出し領域の左端が画像の外へ出る状態を作る。
     /// </remarks>
     [Fact]
-    public void Paint_画像の外はペーストボードの色になる()
+    internal void Paint_画像の外はペーストボードの色になる()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
         using var source = EsBitmap.Create(LoupeSize, LoupeSize, s_image);
@@ -94,7 +92,7 @@ public class LoupeSkiaPainterTests
     }
 
     [Fact]
-    public void Paint_拡大中心の周囲を切り出して拡大描画する()
+    internal void Paint_拡大中心の周囲を切り出して拡大描画する()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
         using var source = EsBitmap.Create(LoupeSize, LoupeSize, s_image);
@@ -108,7 +106,7 @@ public class LoupeSkiaPainterTests
     }
 
     [Fact]
-    public void Paint_ソースが無ければ拡大画像を描かない()
+    internal void Paint_ソースが無ければ拡大画像を描かない()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
 
@@ -119,7 +117,7 @@ public class LoupeSkiaPainterTests
     }
 
     [Fact]
-    public void Paint_拡大中心が未設定なら拡大画像を描かない()
+    internal void Paint_拡大中心が未設定なら拡大画像を描かない()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
         using var source = EsBitmap.Create(LoupeSize, LoupeSize, s_image);
@@ -134,7 +132,7 @@ public class LoupeSkiaPainterTests
     // ====================================================================
 
     [Fact]
-    public void Paint_十字線を切り出し領域の中央へ描く()
+    internal void Paint_十字線を切り出し領域の中央へ描く()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
 
@@ -148,7 +146,7 @@ public class LoupeSkiaPainterTests
     }
 
     [Fact]
-    public void Paint_十字線が非表示なら描かない()
+    internal void Paint_十字線が非表示なら描かない()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
 
@@ -158,7 +156,7 @@ public class LoupeSkiaPainterTests
     }
 
     [Fact]
-    public void Paint_枠線を四辺へ太さ分だけ描く()
+    internal void Paint_枠線を四辺へ太さ分だけ描く()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
 
@@ -173,7 +171,7 @@ public class LoupeSkiaPainterTests
     }
 
     [Fact]
-    public void Paint_枠線が非表示なら描かない()
+    internal void Paint_枠線が非表示なら描かない()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
 
@@ -187,7 +185,7 @@ public class LoupeSkiaPainterTests
     // ====================================================================
 
     [Fact]
-    public void Paint_はテキストを描かない()
+    internal void Paint_はテキストを描かない()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
 
@@ -203,7 +201,7 @@ public class LoupeSkiaPainterTests
     // ====================================================================
 
     [Fact]
-    public void Paint_描画先がnullなら例外()
+    internal void Paint_描画先がnullなら例外()
     {
         using var target = new RenderTarget(4, 4);
         var plan = CreatePlan(CreateAppearance(), s_center);

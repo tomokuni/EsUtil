@@ -26,7 +26,7 @@ public class LoupeCoreTests
     // ====================================================================
 
     [Fact]
-    public void 生成_既定の設定を保持する()
+    internal void 生成_既定の設定を保持する()
     {
         var loupe = new LoupeCore();
 
@@ -37,7 +37,7 @@ public class LoupeCoreTests
     }
 
     [Fact]
-    public void 生成_指定した設定を保持する()
+    internal void 生成_指定した設定を保持する()
     {
         var options = new LoupeOptions { RequestedSize = 200, ZoomLevel = 8 };
 
@@ -53,7 +53,7 @@ public class LoupeCoreTests
     [InlineData(100.0, 8.0)]
     [InlineData(double.NaN, 1.0)]
     [InlineData(double.PositiveInfinity, 1.0)]
-    public void ClientToPixelScaling_安全域外の指定は補正して保持する(double input, double expected)
+    internal void ClientToPixelScaling_安全域外の指定は補正して保持する(double input, double expected)
     {
         // 補正の規則は LoupeCore.Limits が単一所有する（UI の依存関係プロパティを経由しない代入でも範囲内になる）
         var loupe = new LoupeCore() { ClientToPixelScaling = input };
@@ -66,7 +66,7 @@ public class LoupeCoreTests
     // ====================================================================
 
     [Fact]
-    public void ResolveLayout_要求サイズをそのまま表示サイズにする()
+    internal void ResolveLayout_要求サイズをそのまま表示サイズにする()
     {
         var loupe = new LoupeCore(new LoupeOptions { RequestedSize = 200 });
 
@@ -77,7 +77,7 @@ public class LoupeCoreTests
     }
 
     [Fact]
-    public void ResolveLayout_親領域が未確定なら要求サイズと中心の位置を返す()
+    internal void ResolveLayout_親領域が未確定なら要求サイズと中心の位置を返す()
     {
         var loupe = new LoupeCore(new LoupeOptions { RequestedSize = 200 }) { CenterPoint = new EsPoint(500, 600) };
 
@@ -88,7 +88,7 @@ public class LoupeCoreTests
     }
 
     [Fact]
-    public void ResolveLayout_設定変更で表示サイズを再導出する()
+    internal void ResolveLayout_設定変更で表示サイズを再導出する()
     {
         var loupe = new LoupeCore(new LoupeOptions { RequestedSize = 200 });
 
@@ -102,7 +102,7 @@ public class LoupeCoreTests
     // ====================================================================
 
     [Fact]
-    public void ResolveLayout_中心未設定なら配置しない()
+    internal void ResolveLayout_中心未設定なら配置しない()
     {
         var loupe = new LoupeCore();
 
@@ -113,7 +113,7 @@ public class LoupeCoreTests
     }
 
     [Fact]
-    public void ResolveLayout_中心とオフセットから位置を求める()
+    internal void ResolveLayout_中心とオフセットから位置を求める()
     {
         var loupe = new LoupeCore() { CenterPoint = new EsPoint(50, 60), PositionOffset = 20 };
 
@@ -123,7 +123,7 @@ public class LoupeCoreTests
     }
 
     [Fact]
-    public void ResolveLayout_親領域の外へは配置しない()
+    internal void ResolveLayout_親領域の外へは配置しない()
     {
         var loupe = new LoupeCore() { CenterPoint = new EsPoint(390, 290) };
 
@@ -134,7 +134,7 @@ public class LoupeCoreTests
     }
 
     [Fact]
-    public void ResolveLayout_親領域が未確定ならクランプしない()
+    internal void ResolveLayout_親領域が未確定ならクランプしない()
     {
         var loupe = new LoupeCore() { CenterPoint = new EsPoint(500, 600) };
 
@@ -144,7 +144,7 @@ public class LoupeCoreTests
     }
 
     [Fact]
-    public void ResolveLayout_座標変換ポートを適用する()
+    internal void ResolveLayout_座標変換ポートを適用する()
     {
         var loupe = new LoupeCore() { CenterPoint = new EsPoint(10, 20) };
         loupe.SetCoordTransform(CreateDoublingPort());
@@ -155,7 +155,7 @@ public class LoupeCoreTests
     }
 
     [Fact]
-    public void ResolveLayout_ポート未設定は等価変換になる()
+    internal void ResolveLayout_ポート未設定は等価変換になる()
     {
         var loupe = new LoupeCore() { CenterPoint = new EsPoint(10, 20) };
 
@@ -168,7 +168,7 @@ public class LoupeCoreTests
 
     /// <summary>中心 + オフセットが負の位置になる場合は 0 へクランプされることを検証する。</summary>
     [Fact]
-    public void ResolveLayout_負の位置は0にクランプする()
+    internal void ResolveLayout_負の位置は0にクランプする()
     {
         var loupe = new LoupeCore() { CenterPoint = new EsPoint(0, 0), PositionOffset = -50 };
 
@@ -179,7 +179,7 @@ public class LoupeCoreTests
 
     /// <summary>親領域が表示サイズを収められない場合は配置しないことを検証する。</summary>
     [Fact]
-    public void ResolveLayout_親領域が収められない場合は配置しない()
+    internal void ResolveLayout_親領域が収められない場合は配置しない()
     {
         // 要求サイズ 300 は親領域 100x100 に収まらない（縮小もしない）
         var loupe = new LoupeCore(LoupeOptions.Default with { RequestedSize = 300 })
@@ -199,7 +199,7 @@ public class LoupeCoreTests
     // ====================================================================
 
     [Fact]
-    public void ResolveGeometry_表示サイズと設定から幾何を組み立てる()
+    internal void ResolveGeometry_表示サイズと設定から幾何を組み立てる()
     {
         var options = LoupeOptions.Default with { RequestedSize = 160, ZoomLevel = 4 };
         var loupe = new LoupeCore(options)
@@ -217,7 +217,7 @@ public class LoupeCoreTests
     }
 
     [Fact]
-    public void ResolveGeometry_描画先の大きさで縮小しない()
+    internal void ResolveGeometry_描画先の大きさで縮小しない()
     {
         var loupe = new LoupeCore(new LoupeOptions { RequestedSize = 300 });
 
@@ -227,7 +227,7 @@ public class LoupeCoreTests
     }
 
     [Fact]
-    public void ResolveGeometry_表示サイズを物理ピクセルへ換算する()
+    internal void ResolveGeometry_表示サイズを物理ピクセルへ換算する()
     {
         var loupe = new LoupeCore(new LoupeOptions { RequestedSize = 300 });
 
@@ -239,7 +239,7 @@ public class LoupeCoreTests
     }
 
     [Fact]
-    public void ResolveGeometry_中心未設定でも組み立てられる()
+    internal void ResolveGeometry_中心未設定でも組み立てられる()
     {
         var loupe = new LoupeCore();
 
@@ -253,7 +253,7 @@ public class LoupeCoreTests
     // ====================================================================
 
     [Fact]
-    public void ResolveGeometry_切り出しの左上と拡大率を解決する()
+    internal void ResolveGeometry_切り出しの左上と拡大率を解決する()
     {
         var loupe = new LoupeCore(new LoupeOptions { RequestedSize = 160, ZoomLevel = 4 })
         {
@@ -267,7 +267,7 @@ public class LoupeCoreTests
     }
 
     [Fact]
-    public void ResolveGeometry_中心未設定なら切り出し領域を返さない()
+    internal void ResolveGeometry_中心未設定なら切り出し領域を返さない()
     {
         var loupe = new LoupeCore();
         var geometry = loupe.ResolveGeometry(160);
@@ -286,7 +286,7 @@ public class LoupeCoreTests
     [InlineData(160)]
     [InlineData(150)]
     [InlineData(200)]
-    public void ResolveGeometry_拡大率は切り出しサイズの切り上げに影響されない(int clientPixelSize)
+    internal void ResolveGeometry_拡大率は切り出しサイズの切り上げに影響されない(int clientPixelSize)
     {
         var loupe = new LoupeCore(new LoupeOptions { ZoomLevel = 4 }) { CenterPoint = new EsPoint(50, 60) };
 
@@ -303,7 +303,7 @@ public class LoupeCoreTests
     [InlineData(1.0)]
     [InlineData(1.25)]
     [InlineData(2.0)]
-    public void ResolveGeometry_拡大率はDPIスケーリングに依存しない(double dipToDeviceScaling)
+    internal void ResolveGeometry_拡大率はDPIスケーリングに依存しない(double dipToDeviceScaling)
     {
         var loupe = new LoupeCore(new LoupeOptions { ZoomLevel = 4 }) { CenterPoint = new EsPoint(50, 60) };
         var clientPixelSize = DpiScaler.ScaleToPixel(160, dipToDeviceScaling);
@@ -317,7 +317,7 @@ public class LoupeCoreTests
     /// 計測は <see cref="GC.GetAllocatedBytesForCurrentThread"/> で行う。
     /// </remarks>
     [Fact]
-    public void レイアウトと描画の幾何の解決はヒープを確保しない()
+    internal void レイアウトと描画の幾何の解決はヒープを確保しない()
     {
         var loupe = new LoupeCore() { CenterPoint = new EsPoint(50, 60) };
         loupe.SetCoordTransform(CreateDoublingPort());
@@ -346,7 +346,7 @@ public class LoupeCoreTests
 
     /// <summary>ロガーの設定が保持され、null は出力なしへ吸収されることを検証する。</summary>
     [Fact]
-    public void Log_設定したロガーを保持しnullは出力なしへ吸収する()
+    internal void Log_設定したロガーを保持しnullは出力なしへ吸収する()
     {
         var loupe = new LoupeCore();
         var logger = new RecordingLogger();
@@ -361,7 +361,7 @@ public class LoupeCoreTests
     /// <summary>生成の記録がロガーの設定時に 1 度だけ出力されることを検証する（注入しない場合）。</summary>
     /// <remarks>構築時に出力先が未設定のため、ロガーが設定された時点で生成時の設定を記録する。</remarks>
     [Fact]
-    public void Log_生成の記録はロガーの設定時に一度だけ出力する()
+    internal void Log_生成の記録はロガーの設定時に一度だけ出力する()
     {
         var loupe = new LoupeCore(new LoupeOptions { RequestedSize = 200, ZoomLevel = 8 });
         var logger = new RecordingLogger();
@@ -384,7 +384,7 @@ public class LoupeCoreTests
     /// コンストラクター由来の注入は 1 度だけであり、後からの再設定と同様に生成の記録は繰り返さない。
     /// </remarks>
     [Fact]
-    public void 生成_コンストラクターでロガーを注入すると生成を記録する()
+    internal void 生成_コンストラクターでロガーを注入すると生成を記録する()
     {
         var logger = new RecordingLogger();
 
@@ -411,7 +411,7 @@ public class LoupeCoreTests
 
     /// <summary>コンストラクターでロガーを注入した場合も、設定の変更が記録されることを検証する。</summary>
     [Fact]
-    public void 生成_コンストラクター注入後も設定変更を記録する()
+    internal void 生成_コンストラクター注入後も設定変更を記録する()
     {
         var logger = new RecordingLogger();
         var loupe = new LoupeCore(new LoupeOptions(), logger);
@@ -424,7 +424,7 @@ public class LoupeCoreTests
 
     /// <summary>座標変換ポートの設定が変化したときだけ記録されることを検証する。</summary>
     [Fact]
-    public void SetCoordTransform_変更したときだけ記録する()
+    internal void SetCoordTransform_変更したときだけ記録する()
     {
         var loupe = new LoupeCore { Log = new RecordingLogger() };
         var logger = (RecordingLogger)loupe.Log;
@@ -446,7 +446,7 @@ public class LoupeCoreTests
     /// <summary>拡大中心の変更が最も低いレベル（Trace）で記録されることを検証する。</summary>
     /// <remarks>中心はマウス移動ごとに設定されるため、既定の出力では溢れさせない。</remarks>
     [Fact]
-    public void CenterPoint_変更はTraceで記録する()
+    internal void CenterPoint_変更はTraceで記録する()
     {
         var loupe = new LoupeCore { Log = new RecordingLogger() };
         var logger = (RecordingLogger)loupe.Log;
@@ -461,7 +461,7 @@ public class LoupeCoreTests
 
     /// <summary>表示位置オフセットの変更が変化したときだけ記録されることを検証する。</summary>
     [Fact]
-    public void PositionOffset_変更したときだけ記録する()
+    internal void PositionOffset_変更したときだけ記録する()
     {
         var loupe = new LoupeCore { Log = new RecordingLogger() };
         var logger = (RecordingLogger)loupe.Log;
