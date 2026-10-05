@@ -58,11 +58,15 @@ public class LoupeDrawPlanTests
     }
 
     [Fact]
-    internal void ResolveDrawPlan_座標ラベルを非表示にできる()
+    internal void ResolveDrawPlan_座標ラベルを非表示にしても配置指示は残る()
     {
         var plan = ResolvePlan(LoupeAppearance.Default with { ShowCoordLabel = false }, new EsPoint(123, 456));
 
-        Assert.Empty(plan.Labels);
+        // 計画は表示可否で指示を消さない（文言・位置は残り、表示可否は指示が持つ）
+        var label = Assert.Single(plan.Labels);
+        Assert.Equal("(123, 456)", label.Text);
+        Assert.False(label.IsVisible);
+        Assert.False(plan.HasText);
     }
 
     [Fact]
@@ -70,7 +74,8 @@ public class LoupeDrawPlanTests
     {
         var plan = ResolvePlan(LoupeAppearance.Default with { ShowCrosshair = false, ShowBorder = false }, center: null);
 
-        Assert.Equal(LoupeDrawLayer.Pasteboard, Assert.Single(plan.Layers));
+        // 中心が無くても層の先頭は必ずペーストボード（表示可否では層を消さない）
+        Assert.Equal(LoupeDrawLayer.Pasteboard, plan.Layers[0]);
     }
 
     [Fact]
@@ -90,21 +95,22 @@ public class LoupeDrawPlanTests
     }
 
     [Fact]
-    internal void ResolveDrawPlan_十字線が非表示なら十字線の層と矩形を含めない()
+    internal void ResolveDrawPlan_十字線が非表示でも矩形と層は残る()
     {
         var plan = ResolvePlan(LoupeAppearance.Default with { ShowCrosshair = false }, new EsPoint(16, 16));
 
-        Assert.Empty(plan.CrosshairPixelRects);
-        Assert.DoesNotContain(LoupeDrawLayer.Crosshair, plan.Layers);
+        // 値は幾何だけで決まるため、表示を止めても計画は矩形と層を保つ（描くかどうかは描画側が決める）
+        Assert.Equal(2, plan.CrosshairPixelRects.Count);
+        Assert.Contains(LoupeDrawLayer.Crosshair, plan.Layers);
     }
 
     [Fact]
-    internal void ResolveDrawPlan_枠線が非表示なら枠線の層と矩形を含めない()
+    internal void ResolveDrawPlan_枠線が非表示でも矩形と層は残る()
     {
         var plan = ResolvePlan(LoupeAppearance.Default with { ShowBorder = false }, new EsPoint(16, 16));
 
-        Assert.Empty(plan.BorderPixelRects);
-        Assert.DoesNotContain(LoupeDrawLayer.Border, plan.Layers);
+        Assert.Equal(4, plan.BorderPixelRects.Count);
+        Assert.Contains(LoupeDrawLayer.Border, plan.Layers);
     }
 
     [Fact]

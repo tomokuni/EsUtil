@@ -26,7 +26,7 @@ public class LoupePlanCustomizationTests
             CenterPoint = new Avalonia.Point(10, 10),
             DrawPlanResolver = static plan => plan with
             {
-                Labels = [new LoupeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black, 2)],
+                Labels = [new LoupeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black, 2, IsVisible: true)],
             },
         };
         var panel = new Panel { Width = 200, Height = 200 };
@@ -67,12 +67,12 @@ public class LoupePlanCustomizationTests
         await control.WaitForRenderedAsync();
 
         Assert.NotNull(captured);
-        // 層は計画が単一所有する（止めた十字線・枠線は層から消え、ペーストボードと拡大画像は残る）
+        // 層も矩形も表示可否では消えない（描くかどうかは描画側が外観を見て決める）
         Assert.Contains(LoupeDrawLayer.Image, captured!.Value.Layers);
-        Assert.DoesNotContain(LoupeDrawLayer.Crosshair, captured.Value.Layers);
-        Assert.DoesNotContain(LoupeDrawLayer.Border, captured.Value.Layers);
-        Assert.Empty(captured.Value.CrosshairPixelRects);
-        Assert.Empty(captured.Value.BorderPixelRects);
+        Assert.Contains(LoupeDrawLayer.Crosshair, captured.Value.Layers);
+        Assert.Contains(LoupeDrawLayer.Border, captured.Value.Layers);
+        Assert.Equal(2, captured.Value.CrosshairPixelRects.Count);
+        Assert.Equal(4, captured.Value.BorderPixelRects.Count);
     }
 
     // ====================================================================

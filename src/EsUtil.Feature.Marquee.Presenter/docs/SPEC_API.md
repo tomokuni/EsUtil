@@ -79,7 +79,7 @@
 | `Handles` | `MarqueeHandles?` | ドラッグハンドル（null は描かない） |
 | `Marker` | `MarqueeMarker?` | 始点マーカー（null は描かない） |
 | `Layers` | `IReadOnlyList<MarqueeDrawLayer>` | 描く層とその順序。 先頭から順に処理する。 テキストの層（`Label`）はラベルがある場合のみ末尾（常に最上位） |
-| `Labels` | `IReadOnlyList<MarqueeLabelPlacement>` | ラベル要素の配置指示（実寸を反映済み）。 表示しない場合は空 |
+| `Labels` | `IReadOnlyList<MarqueeLabelPlacement>` | ラベル要素の配置指示（実寸を反映済み）。 位置を持たない場合は空（表示可否は各指示の `IsVisible` が持つ） |
 | `HasText` | `bool` | ラベルを持つ場合は true（`Labels.Count > 0` と同値） |
 | `HasDecoration` | `bool` | 装飾（暗転領域・外枠・内側の塗り・内枠）のいずれかを持つ場合は true |
 

@@ -26,15 +26,20 @@ public class LoupePresenterLabelTextsTests
         Assert.Null(placement);
     }
 
-    /// <summary>表示の設定が無効なら配置しないことを検証する。</summary>
+    /// <summary>表示の設定が無効でも文言（値）を解決することを検証する。</summary>
+    /// <remarks>
+    /// 計画は表示可否で値を消さない（表示可否は配置指示が持ち、描くかどうかは描画側が決める）。<br/>
+    /// したがって本メソッドの門は「拡大中心の有無（幾何）」だけである。
+    /// </remarks>
     [Fact]
-    internal void 表示の設定が無効なら配置しない()
+    internal void 表示の設定が無効でも文言を解決する()
     {
         var appearance = LoupeAppearance.Default with { ShowCoordLabel = false };
 
         var placement = LoupePresenter.ResolveCoordLabelText(CreateGeometry(new EsPoint(10, 20)), appearance);
 
-        Assert.Null(placement);
+        Assert.NotNull(placement);
+        Assert.Equal("(10, 20)", placement.Value.Text);
     }
 
     /// <summary>文言が拡大中心の座標を整形した文字列になることを検証する。</summary>

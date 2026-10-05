@@ -15,14 +15,15 @@ public partial class LoupePresenter
     /// <summary>中心座標ラベルの文言と基準点を解決する。</summary>
     /// <param name="geometry">描画の幾何（拡大中心・表示サイズを持つ）。</param>
     /// <param name="appearance">外観（表示可否とオフセットを持つ）。</param>
-    /// <returns>中心座標ラベルのテキスト配置。 非表示の設定または中心未設定の場合は null。</returns>
+    /// <returns>中心座標ラベルのテキスト配置。 中心未設定の場合は null。</returns>
     /// <remarks>
     /// 文言は <see cref="EsPoint.Format(int)"/> が文字列化する（座標の書式はコアの値型が単一所有する）。<br/>
-    /// 表示可否の判断（設定値と中心の有無の組合せ）は <see cref="LoupeAppearance.ShouldShowCoordLabel"/> が単一所有する。
+    /// <b>表示可否（<paramref name="appearance"/> の <c>ShowCoordLabel</c>）では本値を消さない</b><br/>
+    /// （文言は値として残し、描くかどうかは描画側が判断する。 配置指示の <c>IsVisible</c> が表示可否を持つ）。
     /// </remarks>
     internal static LoupeTextPlacement? ResolveCoordLabelText(in LoupeGeometry geometry, LoupeAppearance appearance)
     {
-        if (!appearance.ShouldShowCoordLabel(geometry.Center is not null) || geometry.Center is not { } center)
+        if (geometry.Center is not { } center)
         {
             return null;
         }

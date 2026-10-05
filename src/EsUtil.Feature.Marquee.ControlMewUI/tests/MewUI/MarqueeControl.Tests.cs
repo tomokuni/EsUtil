@@ -520,7 +520,7 @@ public class MarqueeControlTests
         control.SetSelection(new EsRect(20, 20, 60, 60));
         control.DrawPlanResolver = static plan => plan with
         {
-            Labels = [new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black)],
+            Labels = [new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black, IsVisible: true)],
         };
 
         control.Arrange(new Rect(0, 0, 200, 200));
@@ -544,7 +544,7 @@ public class MarqueeControlTests
 
         control.DrawPlanResolver = static plan => plan with
         {
-            Labels = [new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "後から", 12, DrawingColor.White, DrawingColor.Black)],
+            Labels = [new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "後から", 12, DrawingColor.White, DrawingColor.Black, IsVisible: true)],
         };
         control.Arrange(new Rect(0, 0, 200, 200));
 
@@ -572,7 +572,7 @@ public class MarqueeControlTests
         MarqueeSkiaPainter.Paint(canvas, in plan);
         Assert.Contains(plan.OuterBorderDipRects, rect => bitmap.GetPixel((int)rect.X, (int)rect.Y).Alpha > 0);
 
-        // 外観で止める: 包囲の層が計画から消えている（何も描かれない）
+        // 外観で止める: 層と値は残るが、描画実装はフラグを見て描かない（何も描かれない）
         presenter.Appearance = MarqueeAppearance.Default with
         {
             ShowOverlay = false,
@@ -584,9 +584,8 @@ public class MarqueeControlTests
 
         canvas.Clear(SKColors.Transparent);
         MarqueeSkiaPainter.Paint(canvas, in stopped);
-        Assert.DoesNotContain(MarqueeDrawLayer.Decoration, stopped.Layers);
-        Assert.DoesNotContain(MarqueeDrawLayer.Handles, stopped.Layers);
-        Assert.DoesNotContain(MarqueeDrawLayer.Marker, stopped.Layers);
+        Assert.Contains(MarqueeDrawLayer.Decoration, stopped.Layers);
+        Assert.Contains(MarqueeDrawLayer.Handles, stopped.Layers);
         Assert.Equal(0, bitmap.GetPixel(10, 10).Alpha);
         Assert.Equal(0, bitmap.GetPixel(32, 32).Alpha);
     }

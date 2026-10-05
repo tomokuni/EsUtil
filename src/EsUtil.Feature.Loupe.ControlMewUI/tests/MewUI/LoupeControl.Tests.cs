@@ -234,7 +234,8 @@ public class LoupeControlTests
         Assert.True(LabelElement(control).Bounds.Width > measured.Width);
     }
 
-    /// <summary>ラベル非表示の設定では要素を追加しないことを検証する。</summary>
+    /// <summary>ラベル非表示の設定では要素を非表示にすることを検証する。</summary>
+    /// <remarks>計画は表示可否でも指示を消さないため、要素は置かれるが非表示になる（文言は保たれる）。</remarks>
     [Fact]
     internal void ラベル非表示の設定では要素を表示しない()
     {
@@ -249,7 +250,9 @@ public class LoupeControlTests
 
         Layout(control);
 
-        Assert.Empty(control.Children.OfType<Border>());
+        var border = Assert.Single(control.Children.OfType<Border>());
+        Assert.False(border.IsVisible);
+        Assert.Equal("(12, 34)", LabelText(control));
     }
 
     /// <summary>中心座標を変更するとラベル要素の文言が追従することを検証する。</summary>
@@ -406,7 +409,7 @@ public class LoupeControlTests
             CenterPoint = new EsPoint(10, 10),
             DrawPlanResolver = static plan => plan with
             {
-                Labels = [new LoupeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black, 2)],
+                Labels = [new LoupeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black, 2, IsVisible: true)],
             },
         };
 
@@ -420,7 +423,7 @@ public class LoupeControlTests
 
     /// <summary>外観で装飾を止めると装飾の矩形が描かれないことを検証する。</summary>
     /// <remarks>
-    /// 外観の <c>Show*</c> が false の項目は計画の値と層の両方から消えるため、描画実装へ別のスイッチを渡さない。<br/>
+    /// 外観の <c>Show*</c> が false の項目も計画は矩形と層を保ち、描画実装（描画側）がフラグを見て描かない。<br/>
     /// ペーストボード（描画面の消去）と拡大画像は装飾ではなく、外観にフラグも無いため常に描かれる。
     /// </remarks>
     [Fact]
@@ -446,15 +449,15 @@ public class LoupeControlTests
         LoupeSkiaPainter.Paint(canvas, null, in plan);
         var borderPixel = bitmap.GetPixel(32, 1);
 
-        // 外観で止める: 枠線と十字線が層から消え、ペーストボードの色になる
+        // 外観で止める: 矩形と層は残るが、描画実装は旗を見て描かない（ペーストボードの色になる）
         presenter.Appearance = presenter.Appearance with { ShowCrosshair = false, ShowBorder = false };
         var stopped = presenter.ResolveDrawPlan(64, static (_, _) => default);
 
         LoupeSkiaPainter.Paint(canvas, null, in stopped);
         var withoutBorderPixel = bitmap.GetPixel(32, 1);
 
-        Assert.DoesNotContain(LoupeDrawLayer.Crosshair, stopped.Layers);
-        Assert.DoesNotContain(LoupeDrawLayer.Border, stopped.Layers);
+        Assert.Contains(LoupeDrawLayer.Crosshair, stopped.Layers);
+        Assert.Contains(LoupeDrawLayer.Border, stopped.Layers);
         Assert.NotEqual(borderPixel, withoutBorderPixel);
         // ペーストボード（画像外の色）は描かれる
         Assert.Equal(LoupeAppearance.Default.PasteboardColor.ToSKColor(), withoutBorderPixel);

@@ -26,9 +26,9 @@ internal static class LoupeSkiaPainter
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・色を持つ）。</param>
     /// <exception cref="ArgumentNullException"><paramref name="canvas"/> が null の場合。</exception>
     /// <remarks>
-    /// <b>描く値がある層だけを描く</b>（可否は提示層が計画の解決時に適用済みであり、本クラスは層の有無を判断しない）。<br/>
-    /// 外観（<see cref="LoupeAppearance"/>）の <c>ShowCrosshair</c> / <c>ShowBorder</c> が false の項目は、<br/>
-    /// 計画の値と層の両方から消えている。 ペーストボード（描画面の消去）と拡大画像は常に層に含まれる。
+    /// <b>層ごとに外観の表示可否（<c>Show*</c>）を見て描く</b>: 計画は表示可否で値を消さないため、<br/>
+    /// 描くかどうかの判断は本クラス（描画側）が行う（色のアルファを「描かない」の代用にしない）。<br/>
+    /// ペーストボード（描画面の消去）と拡大画像は表示可否を持たず、常に描く。
     /// </remarks>
     public static void Paint(SKCanvas canvas, EsBitmap? source, in LoupeDrawPlan plan)
     {
@@ -49,11 +49,11 @@ internal static class LoupeSkiaPainter
                     DrawMagnifiedImage(canvas, source, in plan);
                     break;
 
-                case LoupeDrawLayer.Crosshair:
+                case LoupeDrawLayer.Crosshair when appearance.ShowCrosshair:
                     SkiaFill.Rects(canvas, plan.CrosshairPixelRects, appearance.CrossColor);
                     break;
 
-                case LoupeDrawLayer.Border:
+                case LoupeDrawLayer.Border when appearance.ShowBorder:
                     SkiaFill.Rects(canvas, plan.BorderPixelRects, appearance.BorderColor);
                     break;
 

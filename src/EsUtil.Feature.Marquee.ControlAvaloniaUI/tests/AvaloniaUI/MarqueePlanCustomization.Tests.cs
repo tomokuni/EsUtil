@@ -26,7 +26,7 @@ public class MarqueePlanCustomizationTests
             Height = 200,
             DrawPlanResolver = static plan => plan with
             {
-                Labels = [new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, System.Drawing.Color.White, System.Drawing.Color.Black)],
+                Labels = [new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, System.Drawing.Color.White, System.Drawing.Color.Black, IsVisible: true)],
             },
         };
         var window = new Window { Width = 200, Height = 200, Content = control };
@@ -77,13 +77,12 @@ public class MarqueePlanCustomizationTests
         window.CaptureRenderedFrame();
         Dispatcher.UIThread.RunJobs();
 
-        // 計画は解決され、止めた装飾は層にも値にも現れない（ラベルは要素が表示するため層に残る）
+        // 計画は層も値も保つ（描くかどうかは描画側が外観のフラグを見て決める）
         Assert.NotNull(captured);
-        Assert.DoesNotContain(MarqueeDrawLayer.Decoration, captured!.Value.Layers);
-        Assert.DoesNotContain(MarqueeDrawLayer.Handles, captured.Value.Layers);
-        Assert.DoesNotContain(MarqueeDrawLayer.Marker, captured.Value.Layers);
-        Assert.Empty(captured.Value.OverlayDipRects);
-        Assert.Null(captured.Value.Handles);
+        Assert.Contains(MarqueeDrawLayer.Decoration, captured!.Value.Layers);
+        Assert.Contains(MarqueeDrawLayer.Handles, captured.Value.Layers);
+        Assert.NotEmpty(captured.Value.OverlayDipRects);
+        Assert.NotNull(captured.Value.Handles);
         window.Close();
     }
 

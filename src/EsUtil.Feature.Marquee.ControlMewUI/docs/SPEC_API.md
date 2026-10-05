@@ -56,7 +56,7 @@ Avalonia 版と同一の挙動になります。
 | `SizeLabelOverrideProvider` | `Func<string?>?` | `null` | サイズラベル（1 行目）の文言を描画時に評価するプロバイダ。 **文言はホストが与える**（コアは特定の文言を持たない。 文言の生成はホストの `CaptureLabelTexts` 等が担う）。 操作・情報ラベルの文言も同様にホストが与える。 設定すると保持している描画内容を破棄して再描画を要求する |
 | `ClientToPixelScaling` | `double` | `1.0` | DIP → 物理ピクセルのスケーリング係数（DPI 変更時に自動更新）。 **描画では描画面と表示領域の比（`ClientPixelScale`）を使う**ため、追加直後でこの値が未更新でも図形は画像と同じ倍率で描かれる |
 
-**見た目のカスタマイズ**: 色・枠線の太さ・表示可否は外観（`Appearance`。 `MarqueeAppearance`）で指定します（**表示可否が描画の停止の唯一の入口**です。 表示を止めた項目は計画の値と層の両方から消え、描画実装は可否を判断しません）。 矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で描画計画（`MarqueeDrawPlan`）を差し替えられます（差し替えは値の置き換えだけで完結し、描画実装（本 UI の `MarqueeSkiaPainter`）は変更不要です。 例は Avalonia 版サンプルの `sample/Presentation/GuideMarqueePlan`）。 矩形で表せない描画（円・斜線等）は `Rendered` のキャンバスへ自前で描き、必要なら `DrawPlan` で既定の描画を行います。
+**見た目のカスタマイズ**: 色・枠線の太さ・表示可否は外観（`Appearance`。 `MarqueeAppearance`）で指定します（**表示可否が描画の停止の唯一の入口**です。 表示を止めても計画は矩形と層を保ち、描画側（コントロールの描画実装）がフラグを見て描かないため、ホストは止めた項目も計算値を使って自前で描けます）。 矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で描画計画（`MarqueeDrawPlan`）を差し替えられます（差し替えは値の置き換えだけで完結し、描画実装（本 UI の `MarqueeSkiaPainter`）は変更不要です。 例は Avalonia 版サンプルの `sample/Presentation/GuideMarqueePlan`）。 矩形で表せない描画（円・斜線等）は `Rendered` のキャンバスへ自前で描き、必要なら `DrawPlan` で既定の描画を行います。
 
 `MarqueeOptions` の項目（既定値はコアが単一所有。 Avalonia 版と一致）:
 
@@ -100,7 +100,7 @@ Avalonia 版と同一の挙動になります。
 | `RefreshOverlay()` | - | 表示（パン・ズーム・表示サイズ）の変化へ追従する（再描画と配置の再評価。 選択の状態は変更しない） |
 | `InvalidateRender()` | - | 描画内容の再解決と、図形・ラベルの再描画を要求する（**描画に関わる変更の唯一の入口**。 図形は子の Skia キャンバスが描くため、親の無効化だけでは更新されない） |
 | `DrawPlanResolver` | `Func<MarqueeDrawPlan, MarqueeDrawPlan>?` | **描画計画の差し替え点**（矩形の並び・文言・位置）。 設定すると再描画を要求する（同じ入力では 1 フレーム 1 回だけ解決されるため、呼び出しの時点に依存しない純粋関数にすること） |
-| `DrawPlan(SKCanvas, in MarqueeDrawPlan)` | `static` | 描画計画を描画面へ描く（計画どおりに描く。 表示を止めた項目は計画の値から消えているため描かれない） |
+| `DrawPlan(SKCanvas, in MarqueeDrawPlan)` | `static` | 描画計画を描画面へ描く（計画どおりに描く。 表示を止めた項目はフラグを見て描かないため描かれない） |
 
 ## 6. プロパティ（取得のみ）
 

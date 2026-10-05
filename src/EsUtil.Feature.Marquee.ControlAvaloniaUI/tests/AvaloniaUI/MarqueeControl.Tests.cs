@@ -1412,8 +1412,9 @@ public class MarqueeControlTests
     /// <summary>ラベル要素の文言（サイズラベル・カーソル座標ラベル）を列挙する。</summary>
     /// <param name="control">対象のコントロール。</param>
     /// <returns>表示されている文言の一覧。</returns>
+    /// <remarks>計画は表示可否でも指示を消さないため、要素は置かれていても非表示のことがある（可視の要素だけを返す）。</remarks>
     private static List<string> LabelTexts(MarqueeControl control)
-        => [.. control.Children.OfType<Border>().Select(border => ((TextBlock)border.Child!).Text!)];
+        => [.. control.Children.OfType<Border>().Where(border => border.IsVisible).Select(border => ((TextBlock)border.Child!).Text!)];
 
     /// <summary>レイアウト パスを進める（ラベル要素は配置フェーズで更新される）。</summary>
     private static async Task PumpLayoutAsync()
@@ -1538,7 +1539,8 @@ public class MarqueeControlTests
         control.SetSelection(new Rect(40, 60, 100, 80));
         await PumpLayoutAsync();
 
-        var border = Assert.Single(control.Children.OfType<Border>());
+        // 表示されている（要素が可視の）ラベルはサイズラベルだけである
+        var border = Assert.Single(control.Children.OfType<Border>(), child => child.IsVisible);
 
         // 注目矩形の左上（40, 60）から「線幅 6 + 余白 1」内側へ置かれる
         Assert.Equal(40 + thickness + 1, border.Margin.Left);

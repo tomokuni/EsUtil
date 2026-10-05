@@ -25,8 +25,8 @@ internal static class MarqueeContextPainter
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・色を持つ）。</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> が null の場合。</exception>
     /// <remarks>
-    /// <b>描く値がある層だけを描く</b>（可否は提示層が計画の解決時に適用済みであり、本クラスは層の有無を判断しない）。<br/>
-    /// 外観（<see cref="MarqueeAppearance"/>）の <c>Show*</c> が false の項目は、計画の値と層の両方から消えている。
+    /// <b>層ごとに外観の表示可否（<c>Show*</c>）を見て描く</b>: 計画は表示可否で値を消さないため、<br/>
+    /// 描くかどうかの判断は本クラス（描画側）が行う（色のアルファを「描かない」の代用にしない）。
     /// </remarks>
     public static void Paint(DrawingContext context, in MarqueeDrawPlan plan)
     {
@@ -43,11 +43,11 @@ internal static class MarqueeContextPainter
                     DrawDecoration(context, in plan, appearance);
                     break;
 
-                case MarqueeDrawLayer.Handles when plan.Handles is { } handles:
+                case MarqueeDrawLayer.Handles when appearance.ShowHandles && plan.Handles is { } handles:
                     DrawHandles(context, in handles, appearance);
                     break;
 
-                case MarqueeDrawLayer.Marker when plan.Marker is { } marker:
+                case MarqueeDrawLayer.Marker when appearance.ShowMarker && plan.Marker is { } marker:
                     DrawStartMarker(context, in marker, appearance);
                     break;
 
@@ -58,21 +58,32 @@ internal static class MarqueeContextPainter
         }
     }
 
-    /// <summary>装飾（暗転マスク・外枠・内側の塗り・内枠）を描く。</summary>
+    /// <summary>装飾（暗転マスク・外枠・内側の塗り・内枠）を描く（表示が有効な項目だけ）。</summary>
     /// <param name="context">描画先の描画コンテキスト。</param>
     /// <param name="plan">描画計画。</param>
-    /// <param name="appearance">外観。</param>
+    /// <param name="appearance">外観（表示可否の所有者）。</param>
+    /// <remarks>暗転は「表示可否」と「注目矩形の有無（全面暗転の可否）」の両方で決まる（判断は外観が単一所有する）。</remarks>
     private static void DrawDecoration(DrawingContext context, in MarqueeDrawPlan plan, MarqueeAppearance appearance)
     {
-        FillRects(context, plan.OverlayDipRects, appearance.OverlayColor);
-        FillRects(context, plan.OuterBorderDipRects, appearance.OuterBorderColor);
+        if (appearance.ShowOverlay && appearance.ShouldDrawOverlay(plan.FocusDipRect is not null))
+        {
+            FillRects(context, plan.OverlayDipRects, appearance.OverlayColor);
+        }
 
-        if (plan.InnerFillDipRect is { } fill)
+        if (appearance.ShowOuterBorder)
+        {
+            FillRects(context, plan.OuterBorderDipRects, appearance.OuterBorderColor);
+        }
+
+        if (appearance.ShowInnerFill && plan.InnerFillDipRect is { } fill)
         {
             context.DrawRectangle(SolidColorBrushCache.GetOrCreate(appearance.InnerFillColor), null, fill.ToAvaloniaRect());
         }
 
-        FillRects(context, plan.InnerBorderDipRects, appearance.InnerBorderColor);
+        if (appearance.ShowInnerBorder)
+        {
+            FillRects(context, plan.InnerBorderDipRects, appearance.InnerBorderColor);
+        }
     }
 
     /// <summary>ドラッグハンドル（塗り + 枠線）を描く。</summary>

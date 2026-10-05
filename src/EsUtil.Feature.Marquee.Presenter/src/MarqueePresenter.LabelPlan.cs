@@ -23,9 +23,13 @@ public partial class MarqueePresenter
     /// <param name="coordLabel">カーソル座標ラベルのテキスト配置。 表示しない場合は null。</param>
     /// <param name="appearance">外観（色・フォントサイズ・内側余白。 本層が単一所有する）。 null 不可。</param>
     /// <param name="measureText">テキストの実寸を測る関数（描画 API 依存のため UI 層が与える）。 null 不可。</param>
-    /// <returns>配置するラベル要素の一覧（サイズラベル → カーソル座標ラベルの順）。 どちらも無い場合は空。</returns>
+    /// <returns>配置するラベル要素の一覧（サイズラベル → カーソル座標ラベルの順。 どちらも無い場合は空）。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="appearance"/> または <paramref name="measureText"/> が null の場合。</exception>
-    /// <remarks>文言・位置は描画層が、色・フォントサイズ・内側余白は外観が単一所有する（本クラスは実寸の反映のみ）。</remarks>
+    /// <remarks>
+    /// 文言・位置は描画層が、色・フォントサイズ・内側余白は外観が単一所有する（本クラスは実寸の反映のみ）。<br/>
+    /// <b>表示可否でも配置指示を消さない</b>: 表示可否は各指示の <c>IsVisible</c> が持ち、<br/>
+    /// UI は要素として置くかどうかを本値で判断する（止めた項目の文言・位置も値として残る）。
+    /// </remarks>
     internal static IReadOnlyList<MarqueeLabelPlacement> ResolveLabelPlacements(
         MarqueeTextPlacement? sizeLabel,
         MarqueeTextPlacement? coordLabel,
@@ -47,14 +51,14 @@ public partial class MarqueePresenter
         {
             elements.Add(ResolveElement(
                 size, appearance.SizeLabelFontSize, appearance.SizeLabelColor, appearance.SizeLabelBackgroundColor,
-                appearance, measureText));
+                appearance, isVisible: appearance.ShowSizeLabel, measureText));
         }
 
         if (coordLabel is { } coord)
         {
             elements.Add(ResolveElement(
                 coord, appearance.CoordLabelFontSize, appearance.CoordLabelColor, appearance.CoordLabelBackgroundColor,
-                appearance, measureText));
+                appearance, isVisible: appearance.ShowCoordLabel, measureText));
         }
 
         return elements;
@@ -66,6 +70,7 @@ public partial class MarqueePresenter
     /// <param name="textColor">文字色（外観が所有する）。</param>
     /// <param name="backgroundColor">背景色（外観が所有する）。</param>
     /// <param name="appearance">外観（内側余白の所有者）。</param>
+    /// <param name="isVisible">外観が指定する表示可否（UI が要素として置くかどうかの判断に使う）。</param>
     /// <param name="measureText">テキストの実寸を測る関数。</param>
     /// <returns>要素の配置指示。</returns>
     /// <remarks>
@@ -79,6 +84,7 @@ public partial class MarqueePresenter
         DrawingColor textColor,
         DrawingColor backgroundColor,
         MarqueeAppearance appearance,
+        bool isVisible,
         Func<string, double, EsSize> measureText)
     {
         var padding = appearance.LabelPadding;
@@ -94,6 +100,6 @@ public partial class MarqueePresenter
             height);
 
         return new MarqueeLabelPlacement(
-            dipRect, padding, padding, placement.Text, fontSize, textColor, backgroundColor);
+            dipRect, padding, padding, placement.Text, fontSize, textColor, backgroundColor, isVisible);
     }
 }

@@ -61,7 +61,7 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    internal void ResolveDrawPlan_注目矩形が無い場合は装飾もハンドルも持たない()
+    internal void ResolveDrawPlan_注目矩形が無い場合は装飾の矩形とハンドルを持たない()
     {
         // 座標ラベルはカーソル位置を基準にするため、注目矩形が無くても表示できる（外観で無効化して素の状態を見る）
         var plan = ResolvePlan(MarqueeAppearance.Default with { ShowCoordLabel = false });
@@ -70,9 +70,11 @@ public class MarqueeDrawPlanTests
         Assert.Null(plan.Handles);
         Assert.Null(plan.Marker);
         Assert.Null(plan.InnerFillDipRect);
-        Assert.Empty(plan.OverlayDipRects);
+        // 注目矩形が無い暗転は描画面の全体（1 領域）になる（値は幾何だけで決まる）
+        Assert.Single(plan.OverlayDipRects);
         Assert.Empty(plan.OuterBorderDipRects);
         Assert.Empty(plan.InnerBorderDipRects);
+        // 全面暗転は無効（既定）のため、描く装飾は無い（表示可否を適用した述語）
         Assert.False(plan.HasDecoration);
         Assert.False(plan.HasText);
     }
@@ -146,14 +148,18 @@ public class MarqueeDrawPlanTests
     {
         var appearance = MarqueeAppearance.Default with { ShowCoordLabel = false };
 
+        // 既定（暗転と枠線を描く）でも注目矩形が無いため、枠線の層は含まれない（描く値が無い）
         var plan = ResolvePlan(appearance);
+        Assert.Empty(plan.OuterBorderDipRects);
+        Assert.Empty(plan.InnerBorderDipRects);
 
-        // 暗転も枠線も描かない設定では、描く値が無いため層も空になる
-        var none = ResolvePlan(appearance with { ShowOverlay = false, ShowOuterBorder = false });
-        Assert.Empty(none.Layers);
+        // 選択がある場合は表示を止めても層と値を保つ（描くかどうかは描画側が決める）
+        var presenter = CreatePresenter(appearance with { ShowOverlay = false, ShowOuterBorder = false });
+        presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
+        var stopped = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
 
-        // 既定（暗転と枠線を描く）でも注目矩形が無いため装飾の層は含まれない
-        Assert.DoesNotContain(MarqueeDrawLayer.Decoration, plan.Layers);
+        Assert.Contains(MarqueeDrawLayer.Decoration, stopped.Layers);
+        Assert.Equal(4, stopped.OverlayDipRects.Count);
     }
 
     [Fact]
@@ -170,7 +176,7 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    internal void ResolveDrawPlan_ハンドルを隠す外観ではハンドルの層を含めない()
+    internal void ResolveDrawPlan_ハンドルを隠す外観でもハンドルの層は残る()
     {
         var appearance = MarqueeAppearance.Default with { ShowHandles = false, ShowCoordLabel = false };
         var presenter = CreatePresenter(appearance);
@@ -178,8 +184,9 @@ public class MarqueeDrawPlanTests
 
         var plan = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
 
-        Assert.Null(plan.Handles);
-        Assert.DoesNotContain(MarqueeDrawLayer.Handles, plan.Layers);
+        // 表示可否は値も層も消さない（描く判断は描画側が行う）
+        Assert.NotNull(plan.Handles);
+        Assert.Contains(MarqueeDrawLayer.Handles, plan.Layers);
     }
 
     [Fact]
@@ -199,13 +206,17 @@ public class MarqueeDrawPlanTests
     }
 
     [Fact]
-    internal void ResolveDrawPlan_ラベル配置はラベルが無ければ空になる()
+    internal void ResolveDrawPlan_ラベルを非表示にしても配置指示は残る()
     {
         var appearance = MarqueeAppearance.Default with { ShowSizeLabel = false, ShowCoordLabel = false };
+        var presenter = CreatePresenter(appearance);
+        presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
 
-        var plan = ResolvePlan(appearance);
+        var plan = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
 
-        Assert.Empty(plan.Labels);
+        // 文言・位置は値として残り、表示可否は指示が持つ
+        Assert.NotEmpty(plan.Labels);
+        Assert.All(plan.Labels, label => Assert.False(label.IsVisible));
         Assert.False(plan.HasText);
     }
 }

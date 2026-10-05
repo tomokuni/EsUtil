@@ -481,7 +481,10 @@ public class LoupeControlTests
 
         Layout(control);
 
-        Assert.Empty(control.Children.OfType<Border>());
+        // 計画は表示可否でも指示を消さないため、要素は置かれるが非表示になる（文言は保たれる）
+        var border = Assert.Single(control.Children.OfType<Border>());
+        Assert.False(border.IsVisible);
+        Assert.Equal("(123, 456)", LabelText(control));
     }
 
     [AvaloniaFact]

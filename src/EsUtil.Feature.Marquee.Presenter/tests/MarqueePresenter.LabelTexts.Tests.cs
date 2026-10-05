@@ -18,16 +18,20 @@ public class MarqueePresenterLabelTextsTests
     private static MarqueeGeometry CreateGeometry(EsPoint mouseSource, EsPoint mouseDip)
         => new(new EsSize(200, 100), null, null, null, null, mouseSource, mouseDip);
 
-    /// <summary>表示しない設定では座標ラベルを返さないことを検証する。</summary>
+    /// <summary>表示しない設定でも文言（値）を解決することを検証する。</summary>
+    /// <remarks>
+    /// 計画は表示可否で値を消さない（表示可否は配置指示が持ち、描くかどうかは描画側が決める）。<br/>
+    /// したがって本メソッドは表示可否の門を持たない。
+    /// </remarks>
     [Fact]
-    internal void ResolveCoordLabelText_表示しない設定ではnullになる()
+    internal void ResolveCoordLabelText_表示しない設定でも文言を解決する()
     {
         var appearance = MarqueeAppearance.Default with { ShowCoordLabel = false };
 
         var result = MarqueePresenter.ResolveCoordLabelText(
             CreateGeometry(new EsPoint(10, 20), new EsPoint(10, 20)), appearance);
 
-        Assert.Null(result);
+        Assert.Equal(new EsPoint(10, 20).Format(), result!.Value.Text);
     }
 
     /// <summary>文言が対象座標から作られることを検証する（DIP ではない）。</summary>

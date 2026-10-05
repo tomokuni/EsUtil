@@ -36,14 +36,16 @@ public class MarqueeRenderTests
     /// <summary>ラベル要素の文言（サイズラベル・カーソル座標ラベル）を列挙する。</summary>
     /// <param name="control">対象のコントロール。</param>
     /// <returns>表示されている文言の一覧。</returns>
+    /// <remarks>計画は表示可否でも指示を消さないため、要素は置かれていても非表示のことがある（可視の要素だけを返す）。</remarks>
     private static List<string> LabelTexts(MarqueeControl control)
-        => [.. control.Children.OfType<Border>().Select(border => ((TextBlock)border.Child!).Text!)];
+        => [.. control.Children.OfType<Border>().Where(border => border.IsVisible).Select(border => ((TextBlock)border.Child!).Text!)];
 
     /// <summary>ラベル要素の背景（配置矩形）を列挙する。</summary>
     /// <param name="control">対象のコントロール。</param>
     /// <returns>要素が占める矩形の一覧。</returns>
+    /// <remarks>計画は表示可否でも指示を消さないため、可視の要素だけを返す。</remarks>
     private static List<Rect> LabelBounds(MarqueeControl control)
-        => [.. control.Children.OfType<Border>().Select(border => border.Bounds)];
+        => [.. control.Children.OfType<Border>().Where(border => border.IsVisible).Select(border => border.Bounds)];
 
     /// <summary>状態の変更で図形の描画が要求されることを検証する（描画パスで Rendered が発火する）。</summary>
     /// <remarks>
@@ -104,6 +106,7 @@ public class MarqueeRenderTests
         var texts = LabelTexts(control);
         var bounds = LabelBounds(control);
 
+        // 表示されている（要素が可視の）ラベルはサイズラベルだけである
         Assert.Single(texts);
         Assert.Single(bounds);
 

@@ -197,9 +197,14 @@ public partial class LoupePresenter
     /// <remarks>
     /// 処理フロー:<br/>
     /// 1. コアから幾何（描画面・拡大画像・切り出し領域）を解決する。<br/>
-    /// 2. 十字線と枠線の矩形を、外観（表示可否・枠線の太さ）と幾何から導出する（太さは物理ピクセルへ換算する）。<br/>
+    /// 2. 十字線と枠線の矩形を、外観（枠線の太さ）と幾何から導出する（太さは物理ピクセルへ換算する）。<br/>
     /// 3. ラベルの文言と基準点を解決し、実寸から配置指示へ写す。<br/>
-    /// 4. 描く層だけを順序どおりに並べる（テキストは最後 = 最上位）。<br/>
+    /// 4. 描く値のある層を順序どおりに並べる（テキストは最後 = 最上位）。<br/>
+    /// <br/>
+    /// <b>表示可否（外観の <c>Show*</c>）で値を消さない</b>: 描く値は幾何だけで決まるため、<br/>
+    /// 表示を止めても計画の値（矩形）と層はそのまま残り、<br/>
+    /// 描くかどうかは<b>描画側（painter / ホスト）が外観のフラグを見て決める</b><br/>
+    /// （ホストは止めた項目も計算値を使って自前で描ける。 ラベルの表示可否は配置指示が値として持つ）。<br/>
     /// <br/>
     /// 実寸の測定は描画 API に依存するため、UI 層が関数として渡す<br/>
     /// （配置の計算（補正）は <see cref="ResolveLabelPlacements"/> が単一所有する）。<br/>
@@ -214,13 +219,11 @@ public partial class LoupePresenter
         var geometry = _core.ResolveGeometry(clientSize);
         var surface = geometry.ClientPixelRect;
 
-        IReadOnlyList<EsRect> crosshair = appearance.ShowCrosshair
-            ? ComputeCrosshairPixelRects(surface, geometry.ZoomLevel, geometry.CaptureSize)
-            : [];
-        IReadOnlyList<EsRect> border = appearance.ShowBorder
-            ? ComputeBorderPixelRects(
-                surface, DpiScaler.ScaleToPixel(appearance.BorderThickness, geometry.ClientToPixelScaling))
-            : [];
+        // 描く値は表示可否（Appearance の Show*）に依存せず解決する（ホストが計算値を自前の描画へ使えるようにするため）。
+        // 描くかどうかの判断は描画側（painter / ホスト）が行う（値の有無は幾何だけで決まる）。
+        var crosshair = ComputeCrosshairPixelRects(surface, geometry.ZoomLevel, geometry.CaptureSize);
+        var border = ComputeBorderPixelRects(
+            surface, DpiScaler.ScaleToPixel(appearance.BorderThickness, geometry.ClientToPixelScaling));
 
         var labelText = ResolveCoordLabelText(in geometry, appearance);
 
@@ -262,7 +265,8 @@ public partial class LoupePresenter
     /// <remarks>
     /// ペーストボード（画像外の色）は常に含める（描画面を置き換えて前フレームの残像を残さないため。 透明色を指定した場合も描画面の消去が必要）。<br/>
     /// テキストは末尾へ置き、常に最上位にする（UI 要素として置く UI は本層を無視してよい）。<br/>
-    /// 層の有無は<b>描く値の有無</b>から決まる（層にある ⇔ 描く値がある。 外観の明示フラグは値の解決時に適用済み）。<br/>
+    /// 層の有無は<b>描く値の有無</b>から決まる（層にある ⇔ 描く値がある）。<br/>
+    /// <b>表示可否（外観の <c>Show*</c>）は層へ反映しない</b>（描く値があれば層を含める。 描くかどうかは描画側が判断する）。<br/>
     /// 一覧はビットの組合せで事前生成したものを返す（描画のたびの確保を避ける）。
     /// </remarks>
     private static IReadOnlyList<LoupeDrawLayer> ResolveLayers(

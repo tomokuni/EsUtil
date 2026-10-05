@@ -28,21 +28,28 @@ public partial class LoupePresenter
     /// <param name="coordLabel">描画層が解決したテキスト配置。 表示しない場合は null。</param>
     /// <param name="appearance">外観（色・フォントサイズ・角丸。 本層が単一所有する）。 null 不可。</param>
     /// <param name="measureText">テキストの実寸を測る関数（描画 API 依存のため UI 層が与える）。 null 不可。</param>
-    /// <returns>配置するラベル要素（1 要素）。 表示しない場合は空。</returns>
+    /// <returns>配置するラベル要素（1 要素）。 中心未設定の場合は空。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="appearance"/> または <paramref name="measureText"/> が null の場合。</exception>
-    /// <remarks>文言・位置は描画層が、色・フォントサイズ・角丸は外観が単一所有する（本クラスは実寸の反映のみ）。</remarks>
+    /// <remarks>
+    /// 文言・位置は描画層が、色・フォントサイズ・角丸は外観が単一所有する（本クラスは実寸の反映のみ）。<br/>
+    /// <b>表示可否でも配置指示を消さない</b>: 表示可否は指示の <c>IsVisible</c> が持ち、<br/>
+    /// UI は要素として置くかどうかを本値で判断する（止めた項目の文言・位置も値として残る）。
+    /// </remarks>
     internal static IReadOnlyList<LoupeLabelPlacement> ResolveLabelPlacements(
         LoupeTextPlacement? coordLabel, LoupeAppearance appearance, Func<string, double, EsSize> measureText)
     {
         ArgumentNullException.ThrowIfNull(appearance);
         ArgumentNullException.ThrowIfNull(measureText);
 
-        return coordLabel is { } label ? [ResolveElement(label, appearance, measureText)] : [];
+        return coordLabel is { } label
+            ? [ResolveElement(label, appearance, isVisible: appearance.ShowCoordLabel, measureText)]
+            : [];
     }
 
     /// <summary>テキスト配置と体裁から、要素の配置指示を組み立てる。</summary>
     /// <param name="placement">描画層が決めた文言と基準点。</param>
     /// <param name="appearance">外観（色・フォントサイズ・角丸）。</param>
+    /// <param name="isVisible">外観が指定する表示可否（UI が要素として置くかどうかの判断に使う）。</param>
     /// <param name="measureText">テキストの実寸を測る関数。</param>
     /// <returns>要素の配置指示。</returns>
     /// <remarks>
@@ -51,7 +58,7 @@ public partial class LoupePresenter
     /// 上下の余白はルーペ固有の値であり本クラスが単一所有する。
     /// </remarks>
     private static LoupeLabelPlacement ResolveElement(
-        in LoupeTextPlacement placement, LoupeAppearance appearance, Func<string, double, EsSize> measureText)
+        in LoupeTextPlacement placement, LoupeAppearance appearance, bool isVisible, Func<string, double, EsSize> measureText)
     {
         var fontSize = appearance.CoordLabelFontSize;
         var textSize = measureText(placement.Text, fontSize);
@@ -67,6 +74,6 @@ public partial class LoupePresenter
 
         return new LoupeLabelPlacement(
             bounds, PaddingX, PaddingY, placement.Text, fontSize,
-            appearance.CoordLabelColor, appearance.CoordLabelBackgroundColor, appearance.CoordLabelCornerRadius);
+            appearance.CoordLabelColor, appearance.CoordLabelBackgroundColor, appearance.CoordLabelCornerRadius, isVisible);
     }
 }

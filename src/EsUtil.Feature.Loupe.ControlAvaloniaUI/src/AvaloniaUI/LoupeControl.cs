@@ -350,8 +350,13 @@ public sealed class LoupeControl : Panel
     /// <summary>1 つのラベル要素の内容と配置を配置指示に合わせる。</summary>
     /// <param name="border">更新する要素（背景）。</param>
     /// <param name="placement">配置指示（寸法は実寸を反映済み）。</param>
+    /// <remarks>
+    /// <b>表示可否は本層が反映する</b>: 計画は表示可否（外観の <c>ShowCoordLabel</c>）でも指示を消さないため、<br/>
+    /// 要素として置くかどうかを要素の <see cref="Visual.IsVisible"/> で表す。
+    /// </remarks>
     private static void Apply(Border border, in LoupeLabelPlacement placement)
     {
+        border.IsVisible = placement.IsVisible;
         border.Background = SolidColorBrushCache.GetOrCreate(placement.BackgroundColor);
         border.CornerRadius = new CornerRadius(placement.CornerRadius);
         border.Padding = new Thickness(placement.PaddingX, placement.PaddingY);

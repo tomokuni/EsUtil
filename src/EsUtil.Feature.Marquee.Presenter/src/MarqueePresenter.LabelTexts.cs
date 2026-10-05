@@ -57,11 +57,13 @@ public partial class MarqueePresenter
     /// <param name="displayScaleScaling">座標・サイズを物理ピクセルへ換算する係数（0 以下は倍率として扱う）。</param>
     /// <param name="overrideProvider">文言プロバイダ。 null または空文字を返す場合は自動生成する。</param>
     /// <param name="displayScalingProvider">表示スケールを矩形ごとに解決するプロバイダ。 null の場合は <paramref name="displayScaleScaling"/> を使う。</param>
-    /// <returns>サイズラベルのテキスト配置。 表示しない場合は null。</returns>
+    /// <returns>サイズラベルのテキスト配置。 注目矩形が無い場合は null。</returns>
     /// <remarks>
     /// 基準点は注目矩形の左上から枠線の幅（+ 余白）だけ内側へ寄せた点である（ラベルは左上起点で置く）。<br/>
     /// 座標の換算は <paramref name="displayScaleScaling"/> を使い、DisplayScale の百分率だけを<br/>
-    /// <paramref name="displayScalingProvider"/> で矩形ごとに差し替えられる。
+    /// <paramref name="displayScalingProvider"/> で矩形ごとに差し替えられる。<br/>
+    /// <b>表示可否（<paramref name="appearance"/> の <c>ShowSizeLabel</c>）では本値を消さない</b><br/>
+    /// （文言は値として残し、描くかどうかは描画側が判断する。 配置指示の <c>IsVisible</c> が表示可否を持つ）。
     /// </remarks>
     internal static MarqueeTextPlacement? ResolveSizeLabelText(
         in MarqueeGeometry geometry,
@@ -70,7 +72,7 @@ public partial class MarqueePresenter
         Func<string?>? overrideProvider,
         Func<EsRect, double>? displayScalingProvider)
     {
-        if (!appearance.ShouldShowSizeLabel(geometry.FocusDipRect is not null) || geometry.FocusDipRect is not { } focusDipRect)
+        if (geometry.FocusDipRect is not { } focusDipRect)
         {
             return null;
         }
@@ -90,20 +92,17 @@ public partial class MarqueePresenter
     /// <summary>カーソル座標ラベルの文言と基準点を解決する。</summary>
     /// <param name="geometry">描画の幾何（マウス位置（対象座標と DIP）とクライアントサイズを持つ）。</param>
     /// <param name="appearance">外観（表示可否を持つ）。</param>
-    /// <returns>座標ラベルのテキスト配置。 表示しない場合は null。</returns>
+    /// <returns>座標ラベルのテキスト配置。 マウス位置が未確定の場合は null。</returns>
     /// <remarks>
     /// 文言は対象座標（<see cref="MarqueeGeometry.MouseSourcePosition"/>）を <see cref="EsPoint.Format(int)"/> が文字列化する。<br/>
     /// 基準点は DIP 座標（<see cref="MarqueeGeometry.MouseDipPosition"/>）+ <see cref="MarqueeAppearance.CoordLabelOffset"/> である<br/>
-    /// （ラベルは左上起点で置く）。 座標変換はコアが済ませているため、本層は座標変換ポートを持たない。
+    /// （ラベルは左上起点で置く）。 座標変換はコアが済ませているため、本層は座標変換ポートを持たない。<br/>
+    /// <b>表示可否（<paramref name="appearance"/> の <c>ShowCoordLabel</c>）では本値を消さない</b><br/>
+    /// （文言は値として残し、描くかどうかは描画側が判断する。 配置指示の <c>IsVisible</c> が表示可否を持つ）。
     /// </remarks>
     internal static MarqueeTextPlacement? ResolveCoordLabelText(
         in MarqueeGeometry geometry, MarqueeAppearance appearance)
     {
-        if (!appearance.ShouldShowCoordLabel())
-        {
-            return null;
-        }
-
         var cursor = geometry.MouseDipPosition;
         var offset = appearance.CoordLabelOffset;
 

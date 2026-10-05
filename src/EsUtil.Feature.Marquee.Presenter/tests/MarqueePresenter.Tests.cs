@@ -211,21 +211,16 @@ public class MarqueePresenterTests
     // 描画計画（1 フレーム分）
     // ====================================================================
 
-    /// <summary>選択もハイライトも無ければハンドルもラベルも返さないことを検証する。</summary>
+    /// <summary>選択もハイライトも無ければハンドルもマーカーも無いことを検証する。</summary>
     [Fact]
-    internal void ResolveDrawPlan_選択なしではハンドルとラベルを返さない()
+    internal void ResolveDrawPlan_選択なしではハンドルとマーカーを返さない()
     {
-        // 座標ラベルとサイズラベルは既定で表示されるため、明示的に無効化して「選択なしの結果」を見る
-        var presenter = CreatePresenter(
-            out _,
-            appearance: MarqueeAppearance.Default with { ShowCoordLabel = false });
+        var presenter = CreatePresenter(out _);
 
         var plan = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
 
         Assert.Null(plan.Handles);
         Assert.Null(plan.Marker);
-        Assert.Empty(plan.Labels);
-        Assert.False(plan.HasText);
     }
 
     /// <summary>選択がある場合はハンドルの幾何を返すことを検証する。</summary>
@@ -243,16 +238,18 @@ public class MarqueePresenterTests
         Assert.Equal(new EsRect(5, 15, 10, 10), plan.Handles!.Value.HandleDipRects[0]);
     }
 
-    /// <summary>ハンドルを隠す外観ではハンドルが null になることを検証する。</summary>
+    /// <summary>ハンドルを隠す外観でもハンドルの幾何は残ることを検証する。</summary>
+    /// <remarks>計画は表示可否で値を消さない（描くかどうかは描画側が外観を見て決める）。</remarks>
     [Fact]
-    internal void ResolveDrawPlan_ハンドルを隠す外観ではnullになる()
+    internal void ResolveDrawPlan_ハンドルを隠す外観でも幾何は残る()
     {
         var presenter = CreatePresenter(out _, appearance: MarqueeAppearance.Default with { ShowHandles = false });
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
 
         var plan = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
 
-        Assert.Null(plan.Handles);
+        Assert.NotNull(plan.Handles);
+        Assert.Equal(8, plan.Handles!.Value.HandleDipRects.Count);
     }
 
     /// <summary>カーソル座標ラベルの文言がマウス位置から解決されることを検証する。</summary>
@@ -357,18 +354,19 @@ public class MarqueePresenterTests
         Assert.Equal(new EsPoint(11, 21), plan.LabelAnchor);
     }
 
-    /// <summary>装飾（暗転・外枠）が外観の表示可否に従って解決されることを検証する。</summary>
+    /// <summary>装飾（暗転・外枠）は外観の表示可否では消えないことを検証する。</summary>
     [Fact]
-    internal void ResolveDrawPlan_装飾は外観の表示可否に従う()
+    internal void ResolveDrawPlan_装飾は外観の表示可否でも残る()
     {
         var presenter = CreatePresenter(out _, appearance: MarqueeAppearance.Default with { ShowOverlay = false });
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
 
         var plan = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
 
-        // 暗転を描かない設定では暗転領域が空になる（他は既定どおり描く）
-        Assert.Empty(plan.OverlayDipRects);
+        // 値は幾何だけで決まる（暗転を止めても領域は残り、描くかどうかは描画側が決める）
+        Assert.NotEmpty(plan.OverlayDipRects);
         Assert.NotEmpty(plan.OuterBorderDipRects);
+        // 描く必要があるかの述語は表示可否を適用する（暗転を止めているが外枠は描く）
         Assert.True(plan.HasDecoration);
     }
 

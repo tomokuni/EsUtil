@@ -450,9 +450,14 @@ public sealed class LoupeControl : Panel
     /// <summary>1 つのラベル要素の内容と体裁を配置指示に合わせる。</summary>
     /// <param name="border">更新する要素（背景）。</param>
     /// <param name="placement">配置指示（寸法は実寸を反映済み）。</param>
-    /// <remarks>本体は配置でサイズを確定するため、要素には内側余白と角丸だけを与える。</remarks>
+    /// <remarks>
+    /// 本体は配置でサイズを確定するため、要素には内側余白と角丸だけを与える。<br/>
+    /// <b>表示可否は本層が反映する</b>: 計画は表示可否（外観の <c>ShowCoordLabel</c>）でも指示を消さないため、<br/>
+    /// 要素として置くかどうかを要素の <c>IsVisible</c> で表す。
+    /// </remarks>
     private static void Apply(Border border, in LoupeLabelPlacement placement)
     {
+        border.IsVisible = placement.IsVisible;
         border.Padding(placement.PaddingX, placement.PaddingY);
         border.CornerRadius(placement.CornerRadius);
         border.Background = placement.BackgroundColor.ToMewUIColor();

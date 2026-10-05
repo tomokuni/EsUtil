@@ -301,9 +301,14 @@ public partial class MarqueePresenter
     /// <remarks>
     /// 処理フロー:<br/>
     /// 1. コアから幾何（注目矩形・ハンドル・マーカー）を解決する。<br/>
-    /// 2. 装飾（暗転領域・外枠・内側の塗り・内枠）の矩形を、外観（表示可否・太さ）と幾何から導出する。<br/>
+    /// 2. 装飾（暗転領域・外枠・内側の塗り・内枠）の矩形を、外観（太さ）と幾何から導出する。<br/>
     /// 3. ラベルの文言と基準点を解決し、実寸から配置指示へ写す。<br/>
-    /// 4. 描く層だけを順序どおりに並べる（テキストは最後 = 最上位）。<br/>
+    /// 4. 描く値のある層を順序どおりに並べる（テキストは最後 = 最上位）。<br/>
+    /// <br/>
+    /// <b>表示可否（外観の <c>Show*</c>）で値を消さない</b>: 描く値は幾何だけで決まるため、<br/>
+    /// 表示を止めても計画の値（矩形・ハンドル・マーカー）と層はそのまま残り、<br/>
+    /// 描くかどうかは<b>描画側（painter / ホスト）が外観のフラグを見て決める</b><br/>
+    /// （ホストは止めた項目も計算値を使って自前で描ける。 ラベルの表示可否は配置指示が値として持つ）。<br/>
     /// <br/>
     /// 実寸の測定は描画 API に依存するため、UI 層が関数として渡す<br/>
     /// （配置の計算（クランプ）は <see cref="ResolveLabelPlacements"/> が単一所有する）。
@@ -318,22 +323,22 @@ public partial class MarqueePresenter
         var surface = geometry.ClientRect;
         var focus = geometry.FocusDipRect;
 
-        var overlayRegions = appearance.ShowOverlay && appearance.ShouldDrawOverlay(focus is not null)
-            ? ComputeOverlayDipRects(surface, focus)
-            : [];
-        var outerBorders = focus is { } outerFocus && appearance.ShowOuterBorder
+        // 描く値は表示可否（Appearance の Show*）に依存せず解決する（ホストが計算値を自前の描画へ使えるようにするため）。
+        // 描くかどうかの判断は描画側（painter / ホスト）が行う（値の有無は幾何だけで決まる）。
+        var overlayRegions = ComputeOverlayDipRects(surface, focus);
+        var outerBorders = focus is { } outerFocus
             ? ComputeBorderDipRects(outerFocus, appearance.OuterBorderThickness)
             : [];
-        var innerFill = focus is { } fillFocus && appearance.ShowInnerFill ? fillFocus : (EsRect?)null;
-        var innerBorders = focus is { } innerFocus && appearance.ShowInnerBorder
+        var innerFill = focus;
+        var innerBorders = focus is { } innerFocus
             ? ComputeBorderDipRects(innerFocus, appearance.InnerBorderThickness)
             : [];
 
         var sizeLabel = ResolveSizeLabelText(
             in geometry, appearance, DisplayScaleScaling, SizeLabelOverrideProvider, SizeLabelDisplayScalingProvider);
         var coordLabel = ResolveCoordLabelText(in geometry, appearance);
-        var handles = appearance.ShowHandles ? geometry.Handles : null;
-        var marker = appearance.ShowMarker ? geometry.Marker : null;
+        var handles = geometry.Handles;
+        var marker = geometry.Marker;
 
         return new MarqueeDrawPlan(
             appearance,
@@ -362,6 +367,7 @@ public partial class MarqueePresenter
     /// <returns>描く層の一覧（先頭から順に処理する）。</returns>
     /// <remarks>
     /// <b>層にある ⇔ 描く値がある</b>（ルーペの層と同じ規則。 描く値の無い層は含めない）。<br/>
+    /// <b>表示可否（外観の <c>Show*</c>）は層へ反映しない</b>（描く値があれば層を含める。 描くかどうかは描画側が判断する）。<br/>
     /// テキストはどちらかの文言がある場合だけ末尾へ置き、常に最上位にする。
     /// </remarks>
     private static IReadOnlyList<MarqueeDrawLayer> ResolveLayers(

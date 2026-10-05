@@ -40,7 +40,7 @@
 | `ClientToPixelScaling` | `double` | 1.0 | 0.1〜8.0（非有限は既定値） | DIP → 物理ピクセルの係数（環境値。 設定には含めない）。 **描画のたびに描画面と割り当て領域の比へ合わせる**（DPI の変更通知が届かない状況でも拡大画像がルーペ領域と一致する） |
 | `DrawPlanResolver` | `Func<LoupeDrawPlan, LoupeDrawPlan>?` | `null` | — | **描画計画の差し替え点**（装飾の矩形・ラベルの文言と配置）。 設定すると再描画を要求する（配置と描画の両方に適用され、同じ入力では 1 フレーム 1 回だけ解決されるため、呼び出しの時点に依存しない純粋関数にすること） |
 
-**見た目のカスタマイズ**: 色・枠線の太さ・表示可否は外観（`Appearance`。 `LoupeAppearance`）で指定します（**表示可否が描画の停止の唯一の入口**です。 止めた項目は計画の値と層の両方から消え、描画実装は可否を判断しません）。 矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）で描画計画（`LoupeDrawPlan`）を差し替えられます（例は Avalonia 版サンプルの `sample/Presentation/GridLoupePlan`）。 矩形で表せない描画（円・斜線等）は `Appearance` の `Show*` を false にして `Rendered` のキャンバスへ自前で描き、必要なら `DrawPlan` で計画どおりの描画を行います。
+**見た目のカスタマイズ**: 色・枠線の太さ・表示可否は外観（`Appearance`。 `LoupeAppearance`）で指定します（**表示可否が描画の停止の唯一の入口**です。 表示を止めても計画は矩形と層を保ち、描画側（コントロールの描画実装）がフラグを見て描かないため、ホストは止めた項目も計算値を使って自前で描けます）。 矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）で描画計画（`LoupeDrawPlan`）を差し替えられます（例は Avalonia 版サンプルの `sample/Presentation/GridLoupePlan`）。 矩形で表せない描画（円・斜線等）は `Appearance` の `Show*` を false にして `Rendered` のキャンバスへ自前で描き、必要なら `DrawPlan` で計画どおりの描画を行います。
 
 `Options`（コアの `LoupeOptions`。 UI 非依存の値）の項目:
 
@@ -114,7 +114,7 @@
 | `Source` が `null` | 画像外の色のみを描画する（例外にしない） |
 | `CenterPoint` が `null` | 画像外の色のみを描画する（例外にしない） |
 | `Source` が破棄済み | 画像外の色のみを描画する（例外にしない） |
-| 色のアルファが 0 | 描画の可否には使わない（表示可否は外観（`LoupeAppearance`）の明示フラグが単一所有し、非表示の項目は空の描画計画として渡る）。 アルファ 0 の色は描画結果として見えなくなるだけである |
+| 色のアルファが 0 | 描画の可否には使わない（表示可否は外観（`LoupeAppearance`）の明示フラグが単一所有し、描画実装がフラグを見て描くかどうかを決める。 計画は表示可否で矩形も層も消さない）。 アルファ 0 の色は描画結果として見えなくなるだけである |
 | 安全域外の数値 | 安全域へ補正する（例外にしない） |
 
 ## 7. 描画完了イベント
@@ -132,7 +132,7 @@
 
 オーバーレイの描画位置は `e.Content.CaptureTopLeft` と `e.Content.ZoomLevel` から `(対象座標 − CaptureTopLeft) × ZoomLevel` で求めます （切り出し領域と倍率の計算は Avalonia 版と同じコアの計算を共有します）。
 
-外観で装飾を止めている場合でも、`LoupeControl.DrawPlan(SKCanvas, EsBitmap?, in LoupeDrawPlan)`（static）で計画どおりの描画を行えます（描画計画（`e.Content`）をそのまま渡す。 止めた項目は計画の値から消えているため描かれません。 キャンバスは `Rendered` のハンドラ内でのみ有効です）。
+外観で装飾を止めている場合でも、`LoupeControl.DrawPlan(SKCanvas, EsBitmap?, in LoupeDrawPlan)`（static）で計画どおりの描画を行えます（描画計画（`e.Content`）をそのまま渡す。 止めた項目はフラグを見て描かないため描かれません。 キャンバスは `Rendered` のハンドラ内でのみ有効です）。
 
 ## 8. ログ
 
