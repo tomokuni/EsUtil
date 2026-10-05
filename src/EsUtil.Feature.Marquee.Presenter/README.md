@@ -50,7 +50,7 @@ protected override void Render(DrawingContext context)
 
 | グループ | 型 |
 | --- | --- |
-| 提示 | `MarqueePresenter`（描画計画の解決。 `sealed` ではない） / `MarqueeDrawPlan` / `MarqueeDrawLayer` / `Drawing.MarqueeTextPlacement` |
+| 提示 | `MarqueePresenter`（描画計画の解決。 `sealed` ではない） / `MarqueeDrawPlan` / `MarqueeDrawLayer` / `Drawing.MarqueeTextPlacement`（`internal`） |
 | 外観 | `MarqueeAppearance`（色・ラベルの体裁・枠線の太さ・表示可否） |
 | ラベル | `MarqueeLabelPlacement`（配置指示） |
 | ログ | `Logging.MarqueePresenterLogMessage`（internal） |

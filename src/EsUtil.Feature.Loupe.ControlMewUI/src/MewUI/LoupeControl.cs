@@ -1,7 +1,6 @@
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using Aprillz.MewUI.Skia.Controls;
-using EsUtil.Feature.Loupe.Presenter.Drawing;
 using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
@@ -37,8 +36,8 @@ namespace EsUtil.Feature.Loupe.MewUI;
 /// <b>ホスト側の操作</b>: <see cref="Source"/> を設定して <see cref="CenterPoint"/> を現在位置へ更新すると、<br/>
 /// ルーペがその位置を拡大表示する（描画はプロパティ変更で自動的に無効化される）。<br/>
 /// <b>座標ラベル</b>: 表示可否は <see cref="LoupeAppearance.ShouldShowCoordLabel"/>（描画層）が判断し、<br/>
-/// 文言・基準点は <see cref="LoupeTextPlacement"/>（描画層）が、配置は <c>LoupePresenter</c>（描画層）が<br/>
-/// 実寸（<see cref="MewUITextMeasure"/>）から単一所有する（本コントロールは要素を置くだけである）。
+/// 文言・基準点・配置は描画層（<see cref="LoupePresenter"/>）が実寸（<see cref="MewUITextMeasure"/>）から<br/>
+/// 単一所有する（本コントロールは要素を置くだけである）。
 /// </remarks>
 public sealed class LoupeControl : Panel
 {

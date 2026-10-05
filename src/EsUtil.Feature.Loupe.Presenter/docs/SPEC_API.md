@@ -42,7 +42,7 @@
 | `LoupeDrawPlan` | record struct | 1 フレーム分の描画計画（描画面・矩形・層の順序・ラベル配置・通知用の値） |
 | `LoupeDrawLayer` | enum | 描画層（`Pasteboard` / `Image` / `Crosshair` / `Border` / `Label`） |
 | `LoupeLabelPlacement` | record struct | ラベル要素の配置指示（背景矩形・内側余白・文言・フォントサイズ・色・角丸） |
-| `EsUtil.Feature.Loupe.Presenter.Drawing.LoupeTextPlacement` | record struct | 描画層が UI 層へ渡すテキスト（文言・基準点・描画領域）。 **`internal` の写像だけが使うため公開面ではない**（層フォルダの名前空間に残る） |
+| `EsUtil.Feature.Loupe.Presenter.Drawing.LoupeTextPlacement` | `internal` record struct | 描画層が UI 層へ渡すテキスト（文言・基準点・描画領域）。 **本層の `internal` の写像だけが使うため公開面ではない**（層フォルダの名前空間に残る） |
 | `EsUtil.Feature.Loupe.Presenter.Logging.LoupePresenterLogMessage` | static partial class | 本層が出力するログ定義（生成・通過の記録・外観の変更。 内部手順でありホストは参照しない） |
 
 **`LoupePresenter` は複数のファイルに分かれた `public partial class` です**（`LoupePresenter.cs` = ファサード本体、`DrawPlan` = 十字線・枠線の矩形の計算、`LabelPlan` = 実寸 → 配置指示の写像、`LabelTexts` = 文言と基準点の生成）。 **`static class` ではありません**（ファサードの状態と外観を保持するため）。
@@ -106,7 +106,7 @@
 
 ### 2.6 ラベル配置の解決（`internal`。 本リファレンスには載せない）
 
-実寸 → ラベル要素の配置指示の写像は本層の内部手順です（入出力の型（`LoupeTextPlacement` / `LoupeLabelPlacement`）は公開しています）。
+実寸 → ラベル要素の配置指示の写像は本層の内部手順です（入力の `LoupeTextPlacement` は `internal`、出力の `LoupeLabelPlacement` は公開しています）。
 
 ### 2.7 `LoupePresenterLogMessage`（`internal`。 本リファレンスには載せない）
 

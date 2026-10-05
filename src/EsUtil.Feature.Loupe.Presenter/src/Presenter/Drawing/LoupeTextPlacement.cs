@@ -14,9 +14,12 @@ namespace EsUtil.Feature.Loupe.Presenter.Drawing;
 /// 背景矩形と文字の原点はテキストの実寸に依存するため、UI 層が実寸を測って解決する<br/>
 /// （体裁の計算は描画層（<see cref="LoupeAppearance"/> / <see cref="LoupePresenter.ResolveLabelPlacements"/>）が単一所有する）。<br/>
 /// <br/>
-/// <b>単位は DIP</b>である（描画領域・ルーペの表示サイズと同じ座標系。 物理ピクセルへの換算は描画時に行う）。
+/// <b>単位は DIP</b>である（描画領域・ルーペの表示サイズと同じ座標系。 物理ピクセルへの換算は描画時に行う）。<br/>
+/// <br/>
+/// <b>本型は公開面ではない</b>: 本層の <c>internal</c> の写像（<c>LabelPlan</c> / <c>LabelTexts</c>）だけが使い、<br/>
+/// UI 層とホストは文言・基準点を <see cref="LoupeLabelPlacement"/>（<c>LoupeDrawPlan</c> 経由）で受け取る。
 /// </remarks>
-public readonly record struct LoupeTextPlacement(
+internal readonly record struct LoupeTextPlacement(
     string Text,
     EsPoint Point,
     EsSize ClampArea);

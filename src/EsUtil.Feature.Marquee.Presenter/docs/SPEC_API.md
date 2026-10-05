@@ -41,7 +41,7 @@
 | `MarqueeDrawLayer` | enum | 描画層（`Decoration` / `Handles` / `Marker` / `Label`）。 **層にある ⇔ 描く値がある** |
 | `MarqueeAppearance` | sealed record | **外観の単一所有者**（色・ラベルの体裁・十字マーカーの線の太さ・カーソル座標ラベルのオフセット・枠線の太さ・表示可否）。 `Default` を基点に `with` 式で部分変更する |
 | `MarqueeLabelPlacement` | readonly record struct | ラベル要素の配置指示（背景矩形・内側余白・文言・フォントサイズ・色） |
-| `EsUtil.Feature.Marquee.Presenter.Drawing.MarqueeTextPlacement` | readonly record struct | 描画層が UI 層へ渡すテキスト（文言・基準点・クランプ領域）。 **`internal` の写像だけが使うため公開面ではない**（層フォルダの名前空間に残る） |
+| `EsUtil.Feature.Marquee.Presenter.Drawing.MarqueeTextPlacement` | `internal` readonly record struct | 描画層が UI 層へ渡すテキスト（文言・基準点・クランプ領域）。 **本層の `internal` の写像だけが使うため公開面ではない**（層フォルダの名前空間に残る） |
 
 **`MarqueePresenter` は複数のファイルに分かれた `public partial class` です**（`MarqueePresenter.cs` = ファサード本体、`DrawPlan` = 装飾矩形の計算、`LabelPlan` = 実寸 → 配置指示の写像、`LabelTexts` = 文言と基準点の生成）。 **`static class` ではありません**（ファサードの状態と外観を保持するため）。 partial のメンバー（`ResolveLabelPlacements` など）と `EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage` は `internal`（本層とテストのみが使う）であり、本リファレンスには載せません（内部手順は [`SPEC_System.md`](SPEC_System.md) の可視性ポリシーを参照してください）。
 
@@ -119,7 +119,7 @@
 
 ### 2.5 ラベル配置の解決（`internal`。 本リファレンスには載せない）
 
-実寸 → ラベル要素の配置指示の写像（`ResolveLabelPlacements`）は本層の内部手順です（入出力の型（`MarqueeTextPlacement` / `MarqueeLabelPlacement`）は公開しています）。
+実寸 → ラベル要素の配置指示の写像（`ResolveLabelPlacements`）は本層の内部手順です（入力の `MarqueeTextPlacement` は `internal`、出力の `MarqueeLabelPlacement` は公開しています）。
 
 ### 2.6 `MarqueePresenterLogMessage`（`internal`。 本リファレンスには載せない）
 

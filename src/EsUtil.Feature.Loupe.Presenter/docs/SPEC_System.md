@@ -79,7 +79,7 @@ sequenceDiagram
 | `src/EsUtil.Feature.Loupe.Presenter/src/LoupeAppearance.cs` | `LoupeAppearance` | public | 外観（色・フォント・角丸・枠線の太さ・ラベルのオフセット・表示可否）の単一所有と補正 |
 | `src/EsUtil.Feature.Loupe.Presenter/src/LoupeDrawPlan.cs` | `LoupeDrawPlan` | public | 描画計画の値（UI が見る唯一の描画値） |
 | `src/EsUtil.Feature.Loupe.Presenter/src/LoupeDrawLayer.cs` | `LoupeDrawLayer` | public | 描画層と順序の単一所有 |
-| `src/EsUtil.Feature.Loupe.Presenter/src/Presenter/Drawing/LoupeTextPlacement.cs` | `LoupeTextPlacement` | public | 文言・基準点・描画領域 |
+| `src/EsUtil.Feature.Loupe.Presenter/src/Presenter/Drawing/LoupeTextPlacement.cs` | `LoupeTextPlacement` | internal | 文言・基準点・描画領域（本層の `internal` の写像だけが使う） |
 | `src/EsUtil.Feature.Loupe.Presenter/src/LoupePresenter.DrawPlan.cs` | `LoupePresenter`（`DrawPlan` partial） | internal | 十字線（縦横 2 本）と枠線（4 辺）の矩形の計算 |
 | `src/EsUtil.Feature.Loupe.Presenter/src/LoupeLabelPlacement.cs` | `LoupeLabelPlacement` | public | ラベル要素の配置指示 |
 | `src/EsUtil.Feature.Loupe.Presenter/src/LoupePresenter.LabelPlan.cs` | `LoupePresenter`（`LabelPlan` partial） | internal | 実寸 → 配置指示の写像（クランプの単一所有） |
@@ -92,7 +92,8 @@ sequenceDiagram
 
 ## 6. 可視性ポリシー
 
-- UI が参照する型（`LoupePresenter` / `LoupeAppearance` / `LoupeDrawPlan` / `LoupeDrawLayer` / `LoupeTextPlacement` / `LoupeLabelPlacement`）は `public` とします。
+- UI が参照する型（`LoupePresenter` / `LoupeAppearance` / `LoupeDrawPlan` / `LoupeDrawLayer` / `LoupeLabelPlacement`）は `public`  とします。
+- **本層の内部手順だけが使う型は `internal`** とします（`LoupeTextPlacement`。 ファサードから推移的に到達できない型は公開面ではない）。
 - 本層とテストだけが使う内部手順（`LoupePresenter` の `DrawPlan` / `LabelPlan` / `LabelTexts` partial のメンバーと `LoupePresenterLogMessage`）は `internal` とし、単体テストにのみ `InternalsVisibleTo`（`EsUtil.Feature.Loupe.Presenter.Tests`）で公開します。 **`partial` はファイル分割であって可視性ではなく**、`LabelPlan` の実寸 → 配置の写像（`ResolveLabelPlacements`）も内部手順です。
 
 ## 7. テスト方針

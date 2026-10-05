@@ -120,7 +120,7 @@ flowchart TD
 | `src/EsUtil.Feature.Marquee.Presenter/src/MarqueeDrawPlan.cs` | `MarqueeDrawPlan` | public readonly record struct | 描画計画（UI が見る唯一の描画値） |
 | `src/EsUtil.Feature.Marquee.Presenter/src/MarqueeDrawLayer.cs` | `MarqueeDrawLayer` | public enum | 描画層の順序 |
 | `src/EsUtil.Feature.Marquee.Presenter/src/MarqueePresenter.DrawPlan.cs` | `MarqueePresenter`（`DrawPlan` partial） | internal | 枠線 4 辺・暗転領域の矩形の計算 |
-| `src/EsUtil.Feature.Marquee.Presenter/src/Presenter/Drawing/MarqueeTextPlacement.cs` | `MarqueeTextPlacement` | public readonly record struct | 描画層が UI 層へ渡すテキスト（文言・基準点・クランプ領域） |
+| `src/EsUtil.Feature.Marquee.Presenter/src/Presenter/Drawing/MarqueeTextPlacement.cs` | `MarqueeTextPlacement` | internal readonly record struct | 描画層が UI 層へ渡すテキスト（文言・ 基準点・クランプ領域。 本層の `internal` の写像だけが使う） |
 | `src/EsUtil.Feature.Marquee.Presenter/src/MarqueePresenter.LabelTexts.cs` | `MarqueePresenter`（`LabelTexts` partial） | internal | サイズラベル・カーソル座標ラベルの文言と基準点 |
 | `src/EsUtil.Feature.Marquee.Presenter/src/MarqueePresenter.LabelPlan.cs` | `MarqueePresenter`（`LabelPlan` partial） | internal | 実寸 → ラベル要素の配置指示の写像 |
 | `src/EsUtil.Feature.Marquee.Presenter/src/MarqueeLabelPlacement.cs` | `MarqueeLabelPlacement` | public readonly record struct | ラベル要素の配置指示 |
@@ -137,7 +137,7 @@ flowchart TD
 
 ## 6. 可視性ポリシー
 
-- UI 層とホストが使う面（`MarqueePresenter` / `MarqueeAppearance` / `MarqueeDrawPlan` / `MarqueeDrawLayer` / `MarqueeLabelPlacement` / `MarqueeTextPlacement`）は `public` とします。
+- UI 層とホストが使う面（`MarqueePresenter` / `MarqueeAppearance` / `MarqueeDrawPlan` / `MarqueeDrawLayer` / `MarqueeLabelPlacement`）は `public` とします。 **本層の内部手順だけが使う型は `internal`** とします（`MarqueeTextPlacement`。 ファサードから推移的に到達できない型は公開面ではない）。
 - **本層の内部手順は `internal`** とします（`MarqueePresenter` の `DrawPlan` / `LabelPlan` / `LabelTexts` partial のメンバーと `MarqueePresenterLogMessage`）。 UI 層は解決済みの値（`MarqueeDrawPlan` の矩形・`Labels`）を受け取るため、これらを参照する必要がありません。 **`partial` はファイル分割であって可視性ではなく**、実寸 → 配置の写像（`ResolveLabelPlacements`）も内部手順です。 単体テストにのみ `InternalsVisibleTo`（`EsUtil.Feature.Marquee.Presenter.Tests`）で公開します。
 - **クラスが `internal` の場合、そのメンバーも `internal` とします**（`public` と書いても外部から見えないため、可視性の宣言を実態と一致させる）。
 - `[EditorBrowsable]` による「見えにくくする」対処は行いません（公開面も契約も変わらず、見つけにくくなるだけのため）。

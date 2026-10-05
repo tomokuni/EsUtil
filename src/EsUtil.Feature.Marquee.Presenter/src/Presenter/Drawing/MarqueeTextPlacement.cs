@@ -16,9 +16,12 @@ namespace EsUtil.Feature.Marquee.Presenter.Drawing;
 /// <br/>
 /// <b>サイズラベルとカーソル座標ラベルは同じ型を使う</b>: 差は「基準点・領域」だけであり、<br/>
 /// 位置の算出（注目矩形の左上 / カーソル + オフセット）は描画層が単一所有する。<br/>
-/// <b>単位は DIP</b>である（描画領域・選択矩形の座標系と同じ）。
+/// <b>単位は DIP</b>である（描画領域・選択矩形の座標系と同じ）。<br/>
+/// <br/>
+/// <b>本型は公開面ではない</b>: 本層の <c>internal</c> の写像（<c>LabelPlan</c> / <c>LabelTexts</c>）だけが使い、<br/>
+/// UI 層とホストは文言・基準点を <see cref="MarqueeLabelPlacement"/>（<c>MarqueeDrawPlan</c> 経由）で受け取る。
 /// </remarks>
-public readonly record struct MarqueeTextPlacement(
+internal readonly record struct MarqueeTextPlacement(
     string Text,
     EsPoint Point,
     EsSize ClampArea);
