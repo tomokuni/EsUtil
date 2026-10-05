@@ -41,10 +41,12 @@ namespace EsUtil.Feature.Marquee.MewUI;
 /// - ドラッグ中はマウスキャプチャを行う（コントロール外への移動でもイベントを受け取る）。<br/>
 /// - ログ出力は <see cref="Log"/> プロパティで注入する（デフォルトは <see cref="NullLogger"/>。 Avalonia 版と同一の書式）。<br/>
 /// <br/>
-/// <b>見た目の差し替え</b>: <see cref="CreatePresenter"/> を上書きすると、既定の提示層の代わりに派生提示層を使える<br/>
-/// （破線枠・ガイド線など、外観（<see cref="MarqueeAppearance"/>）の項目だけでは表せない装飾を差し替えられる）。
+/// <b>見た目のカスタマイズ</b>: 色・太さ・表示可否は <see cref="Appearance"/> で、<br/>
+/// 矩形の並びで表せる装飾とラベルの文言・位置は <see cref="DrawPlanResolver"/> で差し替えられる。<br/>
+/// 矩形で表せない描画（円・斜線等）は <see cref="ShowDefaultDecorations"/> を false にして自前で描く<br/>
+/// （描画の直後に呼ばれる <see cref="Rendered"/> で描画先へ描き、必要なら <see cref="DrawPlan"/> で既定の描画を行う）。
 /// </remarks>
-public class MarqueeControl : Panel
+public sealed class MarqueeControl : Panel
 {
     /// <summary><see cref="Options"/> プロパティ（寸法・対話パラメータをまとめた設定）。</summary>
     /// <remarks>
@@ -57,7 +59,7 @@ public class MarqueeControl : Panel
             nameof(Options), MarqueeOptions.Default, MewPropertyOptions.AffectsRender,
             changed: static (owner, _, newValue) =>
             {
-                owner.Marquee.Options = newValue;
+                owner._marquee.Options = newValue;
                 owner.InvalidateRender();
             });
 
@@ -71,7 +73,7 @@ public class MarqueeControl : Panel
             nameof(Appearance), MarqueeAppearance.Default, MewPropertyOptions.AffectsRender,
             changed: static (owner, _, newValue) =>
             {
-                owner.Marquee.Appearance = newValue;
+                owner._marquee.Appearance = newValue;
                 owner.InvalidateRender();
             });
 
@@ -84,7 +86,7 @@ public class MarqueeControl : Panel
             nameof(HighlightSourceRect), null, MewPropertyOptions.AffectsRender,
             changed: static (owner, _, newValue) =>
             {
-                owner.Marquee.HighlightSourceRect = newValue;
+                owner._marquee.HighlightSourceRect = newValue;
                 owner.InvalidateRender();
             });
 
@@ -102,22 +104,16 @@ public class MarqueeControl : Panel
             nameof(ClientToSourceScaling), ClientToSourceScalingDefault, MewPropertyOptions.AffectsRender,
             changed: static (owner, _, newValue) =>
             {
-                owner.Marquee.ClientToSourceScaling = newValue;
+                owner._marquee.ClientToSourceScaling = newValue;
                 owner.InvalidateRender();
             });
 
     /// <summary>コントロール化の提示層（設定・入力の解釈・描画計画の窓口）。</summary>
     /// <remarks>
     /// 入力の解釈・状態遷移の判断はコア（<c>EsUtil.Feature.Marquee.Core</c>）が、描画計画（幾何 + 外観 + 層の順序 + ラベル配置）は<br/>
-    /// 本層が単一所有する（本コントロールは自 UI の公開プロパティを転送し、返された描画計画を描くだけである）。<br/>
-    /// <b>初回参照時に生成する</b>（生成と初期化は <see cref="Marquee"/> が単一所有する）。
+    /// 本層が単一所有する（本コントロールは自 UI の公開プロパティを転送し、返された描画計画を描くだけである）。
     /// </remarks>
-    private MarqueePresenter? _marquee;
-
-    /// <summary>提示層（初回参照時に生成する）。</summary>
-    /// <value>本コントロールが使う提示層（生成済みの場合は同じインスタンス）。</value>
-    /// <remarks>生成後に <see cref="CreateAndInitializePresenter"/> が通知の購読と入力の引き継ぎを行う（遅延の理由もそこで述べる）。</remarks>
-    private MarqueePresenter Marquee => _marquee ??= CreateAndInitializePresenter();
+    private readonly MarqueePresenter _marquee;
 
     /// <summary>図形（装飾・ハンドル・始点マーカー）を描画する内部キャンバス。</summary>
     /// <remarks>
@@ -156,6 +152,12 @@ public class MarqueeControl : Panel
         Focusable = true;
         _cursor = cursorService ?? new WinCursorService();
         _effects = new Effects(this);
+        _marquee = new MarqueePresenter(_effects, _cursor, Options);
+        _marquee.Subscribe(OnNotified);
+        // 環境値とホストが与える実行時状態は入力であるため、本コントロールの現在値を提示層へ引き継ぐ
+        // （外観は提示層が単一所有するため引き継がない: 外観は公開プロパティの設定で伝搬する）
+        _marquee.ClientToSourceScaling = GetValue(ClientToSourceScalingProperty);
+        _marquee.HighlightSourceRect = GetValue(HighlightSourceRectProperty);
 
         // 図形は専用の子キャンバスが描く（ラベル要素より先に子として加えるため、常にラベルの下になる）
         _shapes = new ShapeCanvas(this) { IsHitTestVisible = false };
@@ -164,39 +166,6 @@ public class MarqueeControl : Panel
         // フォーカスを失ったら nudge を終了する（カーソル非表示の残留防止）
         // `this.` は必須である（外すと MewUI の引数なしの OnLostFocus へ解決されて CS1501 になる）
         this.OnLostFocus(EndNudge);
-    }
-
-    /// <summary>提示層（設定・入力の解釈・描画計画の窓口）を生成する。</summary>
-    /// <param name="effects">コアが要求する効果の適用先（本コントロールが実装する）。</param>
-    /// <param name="cursor">カーソルサービス。</param>
-    /// <param name="options">初期設定（本コントロールの現在値）。</param>
-    /// <returns>本コントロールが使う提示層。</returns>
-    /// <remarks>
-    /// <b>見た目の差し替え点</b>: 本メソッドを上書きして派生提示層（<see cref="MarqueePresenter"/> の派生）を返すと、<br/>
-    /// 外観（<see cref="MarqueeAppearance"/>）だけでは表せない装飾（破線・ガイド線等）を提示層の描画計画として差し替えられる。<br/>
-    /// <b>呼び出しは遅延生成時に 1 度だけ</b>である（生成後に <see cref="Appearance"/> 等を設定すると提示層へ伝搬される）。<br/>
-    /// 上書きは<b>引数だけで完結させる</b>（生成時点の派生クラスの状態に依存しない）。
-    /// </remarks>
-    protected virtual MarqueePresenter CreatePresenter(
-        IMarqueeEffects effects, ICursorService cursor, MarqueeOptions options)
-        => new(effects, cursor, options);
-
-    /// <summary>提示層を生成し、通知の購読と入力の引き継ぎを行う。</summary>
-    /// <returns>初期化済みの提示層。</returns>
-    /// <remarks>
-    /// <b>なぜ生成を遅延するか</b>: コンストラクターから上書き可能なメンバー（<see cref="CreatePresenter"/>）を呼ぶと、<br/>
-    /// 派生クラスの初期化前に派生の実装が走る（アナライザー <c>MA0056</c> が禁じる）。 初回参照時まで遅らせると、<br/>
-    /// 派生クラスの初期化が終わってから生成されるため、上書きが安全に機能する。<br/>
-    /// 環境値とホストが与える実行時状態は入力であるため、本コントロールの現在値を引き継ぐ<br/>
-    /// （外観は提示層が単一所有するため引き継がない: 派生提示層が自前の外観を設定できるようにする）。
-    /// </remarks>
-    private MarqueePresenter CreateAndInitializePresenter()
-    {
-        var presenter = CreatePresenter(_effects, _cursor, Options);
-        presenter.Subscribe(OnNotified);
-        presenter.ClientToSourceScaling = GetValue(ClientToSourceScalingProperty);
-        presenter.HighlightSourceRect = GetValue(HighlightSourceRectProperty);
-        return presenter;
     }
 
     /// <summary>図形（装飾・ハンドル・始点マーカー）だけを描画する内部 Skia キャンバス。</summary>
@@ -308,10 +277,10 @@ public class MarqueeControl : Panel
     /// <remarks>0 以下を <see cref="ClientToSourceScaling"/> と同値として扱う規則はコア（<see cref="MarqueePresenter.DisplayScaleScaling"/>）が単一所有する。</remarks>
     public double DisplayScaleScaling
     {
-        get => Marquee.DisplayScaleScaling;
+        get => _marquee.DisplayScaleScaling;
         set
         {
-            Marquee.DisplayScaleScaling = value;
+            _marquee.DisplayScaleScaling = value;
             InvalidateRender();
         }
     }
@@ -325,10 +294,10 @@ public class MarqueeControl : Panel
     /// </remarks>
     public Func<string?>? SizeLabelOverrideProvider
     {
-        get => Marquee.SizeLabelOverrideProvider;
+        get => _marquee.SizeLabelOverrideProvider;
         set
         {
-            Marquee.SizeLabelOverrideProvider = value;
+            _marquee.SizeLabelOverrideProvider = value;
             InvalidateRender();
         }
     }
@@ -342,10 +311,10 @@ public class MarqueeControl : Panel
     /// </remarks>
     public Func<EsRect, double>? SizeLabelDisplayScalingProvider
     {
-        get => Marquee.SizeLabelDisplayScalingProvider;
+        get => _marquee.SizeLabelDisplayScalingProvider;
         set
         {
-            Marquee.SizeLabelDisplayScalingProvider = value;
+            _marquee.SizeLabelDisplayScalingProvider = value;
             InvalidateRender();
         }
     }
@@ -360,17 +329,17 @@ public class MarqueeControl : Panel
 
     /// <summary>現在の選択状態のスナップショットを取得する（ポーリング不要の完全状態）。</summary>
     /// <value>State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / IsDragging / NudgeActive / HasSelection を含むスナップショット。</value>
-    public MarqueeSnapshot CurrentSnapshot => Marquee.CreateSnapshot();
+    public MarqueeSnapshot CurrentSnapshot => _marquee.CreateSnapshot();
 
     /// <summary>選択矩形があるかどうかを取得する。</summary>
     /// <value>選択中の場合は true。</value>
     /// <remarks>描画のたびに参照されるため、スナップショットの生成を伴わない軽量なプロパティとする。</remarks>
-    public bool HasSelection => Marquee.HasSelection;
+    public bool HasSelection => _marquee.HasSelection;
 
     /// <summary>現在の選択矩形（対象座標）を取得する。</summary>
     /// <value>選択矩形（対象座標）。 未選択時は 0x0 の空矩形。</value>
     /// <remarks>描画のたびに参照されるため、スナップショットの生成を伴わない軽量なプロパティとする。</remarks>
-    public EsRect SelectionSourceRect => Marquee.SelectionSourceRect;
+    public EsRect SelectionSourceRect => _marquee.SelectionSourceRect;
 
     /// <summary>操作ログの出力先を取得または設定する。</summary>
     /// <value>ロガー。 null を設定した場合は <see cref="NullLogger"/> へフォールバックする（出力なし）。</value>
@@ -380,8 +349,8 @@ public class MarqueeControl : Panel
     /// </remarks>
     public ILogger Log
     {
-        get => Marquee.Log;
-        set => Marquee.Log = value;
+        get => _marquee.Log;
+        set => _marquee.Log = value;
     }
 
     /// <summary>対象 ↔ ローカル DIP の座標変換ポートを設定する。</summary>
@@ -391,7 +360,7 @@ public class MarqueeControl : Panel
     /// 変換関数は呼び出し毎に評価されるため、ズーム・スクロール等の動的変化を反映できる。<br/>
     /// 保持と、ポート未指定時に倍率（<see cref="ClientToSourceScaling"/>）を使う規則はコアが単一所有する（本層は委譲するだけ）。
     /// </remarks>
-    public void SetCoordTransform(ICoordTransform? port) => Marquee.SetCoordTransform(port);
+    public void SetCoordTransform(ICoordTransform? port) => _marquee.SetCoordTransform(port);
 
     /// <summary>選択矩形を外部状態から復元する。</summary>
     /// <param name="rect">選択矩形（対象座標）。</param>
@@ -399,25 +368,25 @@ public class MarqueeControl : Panel
     /// 状態の更新と通知はコア（ファサード）が担う（<see cref="MarqueeOptions.ClampToSourceBounds"/> が有効な場合は境界内へクリップしてから設定する）。<br/>
     /// 設定後は <see cref="SelectionChanged"/> が発火し、再描画される。
     /// </remarks>
-    public void SetSelection(EsRect rect) => Marquee.SetSelection(rect);
+    public void SetSelection(EsRect rect) => _marquee.SetSelection(rect);
 
     /// <summary>選択状態と nudge 状態を初期化する。</summary>
     /// <remarks>nudge 中だった場合はカーソルを再表示する（非表示残留の防止。 状態の初期化はコアが担う）。</remarks>
-    public void ResetSelection() => Marquee.ResetSelection();
+    public void ResetSelection() => _marquee.ResetSelection();
 
     /// <summary>キャンセル要求を処理する（Escape キーと同じ条件）。</summary>
     /// <remarks>
     /// ドラッグ中 / 選択ありの場合は選択を破棄した後に <see cref="CancelRequested"/> を発火する。<br/>
     /// モード差分（キャンセル後の後始末）は上位が本イベントを購読して行う。
     /// </remarks>
-    public void RequestCancel() => Marquee.RequestCancel();
+    public void RequestCancel() => _marquee.RequestCancel();
 
     /// <summary>確定要求を処理する（Enter キーと同じ条件）。</summary>
     /// <remarks>
     /// ドラッグ中は無視し、選択確定後のみ <see cref="ConfirmRequested"/> を発火する。<br/>
     /// 確定後に選択状態をクリアする（確定後の再ドラッグ・再確定を防ぐ）。
     /// </remarks>
-    public void RequestConfirm() => Marquee.RequestConfirm();
+    public void RequestConfirm() => _marquee.RequestConfirm();
 
     /// <summary>要求サイズを返す（親の残余を埋める）。</summary>
     /// <param name="availableSize">親から提示された利用可能サイズ。</param>
@@ -461,7 +430,8 @@ public class MarqueeControl : Panel
     {
         if (_frame is not { } cached || _frameSize != clientSize)
         {
-            cached = Marquee.ResolveDrawPlan(clientSize, MewUITextMeasure.Measure);
+            cached = _marquee.ResolveDrawPlan(clientSize, MewUITextMeasure.Measure);
+            cached = DrawPlanResolver?.Invoke(cached) ?? cached;
             _frame = cached;
             _frameSize = clientSize;
         }
@@ -480,6 +450,60 @@ public class MarqueeControl : Panel
 
     /// <summary>保持している描画計画を破棄する（次の解決で最新の状態を反映する）。</summary>
     private void InvalidateFrame() => _frame = null;
+
+    // ====================================================================
+    // 見た目のカスタマイズ（描画計画の差し替えと既定描画の可否）
+    // ====================================================================
+
+    /// <summary>描画計画を差し替える関数を取得または設定する。</summary>
+    /// <value>計画（幾何・外観・層の順序・ラベル配置）を受け取り、差し替えた計画を返す関数。 null の場合は既定の計画をそのまま使う。</value>
+    /// <remarks>
+    /// <b>矩形の並びで表せる装飾と、ラベルの文言・位置を差し替える入口</b>である（色・太さ・表示可否は <see cref="Appearance"/>）。<br/>
+    /// 受け取る計画は提示層が解決済みであるため、本関数は値の置き換えだけで完結する<br/>
+    /// （<c>plan with { OuterBorderDipRects = …, Labels = … }</c>）。<br/>
+    /// <b>配置と描画の両方に適用される</b>ため、<see cref="MarqueeDrawPlan.Labels"/> を差し替えるとラベル要素も追随する。<br/>
+    /// 1 フレームに 2 回以上呼ばれるため、<b>純粋関数（同じ入力に同じ出力）にすること</b>。 設定すると保持中の計画を破棄して再解決する。
+    /// </remarks>
+    public Func<MarqueeDrawPlan, MarqueeDrawPlan>? DrawPlanResolver
+    {
+        get;
+        set
+        {
+            field = value;
+            InvalidateRender();
+        }
+    }
+
+    /// <summary>既定の装飾（暗転・枠線・ハンドル・マーカー）を描くかどうかを取得または設定する。</summary>
+    /// <value>true（既定）の場合は既定の装飾を描く。 false の場合は装飾の層だけを描かない（<b>ラベル要素は表示される</b>）。</value>
+    /// <remarks>
+    /// <b>矩形で表せない描画（円・斜線・グラデーション等）を「置換」する入口</b>である<br/>
+    /// （描画の直後に呼ばれる <see cref="Rendered"/> の描画先へ自前で描く）。<br/>
+    /// false の場合も図形キャンバス自体の消去（<c>Clear</c>）とラベル要素の配置は行われるため、状態の変更で下地が崩れない。<br/>
+    /// 設定すると保持中の計画を破棄して再描画する。
+    /// </remarks>
+    public bool ShowDefaultDecorations
+    {
+        get;
+        set
+        {
+            field = value;
+            InvalidateRender();
+        }
+    } = true;
+
+    /// <summary>描画計画を自 UI の描画面へ描く（既定の装飾も含む）。</summary>
+    /// <param name="canvas">描画先のキャンバス（DIP 座標で描画できる状態であること）。 null 不可。</param>
+    /// <param name="plan">描く描画計画。 null 不可。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="canvas"/> が null の場合。</exception>
+    /// <remarks>
+    /// <b>既定の描画をホストへ提供する入口</b>である（<see cref="ShowDefaultDecorations"/> を false にした場合でも、<br/>
+    /// ホストが任意のタイミングと順序で既定の描画を行える。 例: 自前の下地 → 本メソッド → 自前の上描き）。<br/>
+    /// 描画実装（<c>MarqueeSkiaPainter</c>）は本プロジェクトの内部であるため、外部へは本メソッドが窓口になる。<br/>
+    /// 計画を必要とする場合は <see cref="Rendered"/> の <c>Content</c> を使う。
+    /// </remarks>
+    public static void DrawPlan(SKCanvas canvas, in MarqueeDrawPlan plan)
+        => MarqueeSkiaPainter.Paint(canvas, in plan);
 
     /// <summary>描画内容の再解決と、図形・ラベルの再描画を要求する（描画に関わる変更の唯一の入口）。</summary>
     /// <remarks>
@@ -596,7 +620,7 @@ public class MarqueeControl : Panel
         }
 
         e.Handled = true;
-        Marquee.Press(ToSource(e.GetPosition(this)), e.ClickCount);
+        _marquee.Press(ToSource(e.GetPosition(this)), e.ClickCount);
     }
 
     /// <summary>ドラッグ中のマウス移動を処理する。</summary>
@@ -608,7 +632,7 @@ public class MarqueeControl : Panel
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
-        Marquee.Move(ToSource(e.GetPosition(this)));
+        _marquee.Move(ToSource(e.GetPosition(this)));
     }
 
     /// <summary>左ボタン解放時にドラッグを終了する。</summary>
@@ -622,7 +646,7 @@ public class MarqueeControl : Panel
         base.OnMouseUp(e);
 
         e.Handled = true;
-        Marquee.Release(ToSource(e.GetPosition(this)));
+        _marquee.Release(ToSource(e.GetPosition(this)));
     }
 
     /// <summary>キーダウン処理（矢印キーの nudge・Escape のキャンセル・Enter の確定）。</summary>
@@ -637,7 +661,7 @@ public class MarqueeControl : Panel
     {
         base.OnKeyDown(e);
 
-        e.Handled = Marquee.KeyDown(e.Key.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
+        e.Handled = _marquee.KeyDown(e.Key.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
     }
 
     /// <summary>現在のカーソル位置（対象座標）を取得する。</summary>
@@ -655,17 +679,17 @@ public class MarqueeControl : Panel
 
         var screen = _cursor.GetCursorScreenPoint();
         var local = window.ScreenToClient(screen.ToMewUIPoint());
-        return Marquee.ToSource(local.ToEsPoint());
+        return _marquee.ToSource(local.ToEsPoint());
     }
 
     /// <summary>nudge を終了し、マウスポインターを再表示する。</summary>
     /// <remarks>フォーカス喪失時に呼び出し、nudge 中の非表示ポインターを復元する。</remarks>
-    private void EndNudge() => Marquee.EndNudge();
+    private void EndNudge() => _marquee.EndNudge();
 
     /// <summary>ローカル DIP 座標を対象座標へ変換する。</summary>
     /// <param name="localDip">ローカル DIP 座標。</param>
     /// <returns>対象座標。</returns>
-    private EsPoint ToSource(Point localDip) => Marquee.ToSource(localDip.ToEsPoint());
+    private EsPoint ToSource(Point localDip) => _marquee.ToSource(localDip.ToEsPoint());
 
     /// <summary>コア（ファサード）が要求する効果を本コントロールへ適用する実装。</summary>
     /// <remarks>
@@ -712,7 +736,7 @@ public class MarqueeControl : Panel
             return default;
         }
 
-        var localDip = Marquee.ToDip(sourcePos);
+        var localDip = _marquee.ToDip(sourcePos);
         var screen = window.ClientToScreen(localDip.ToMewUIPoint());
         return screen.ToEsPointInt();
     }
@@ -820,7 +844,7 @@ public class MarqueeControl : Panel
             // 描画計画は配置フェーズ（ArrangeContent）が解決した値を共有する（未解決の場合のみ本メソッドが解決する）
             var plan = CurrentFrame(DpiScaler.ToDip(info.Size.ToEsSize(), scaling));
 
-            MarqueeSkiaPainter.Paint(canvas, in plan);
+            MarqueeSkiaPainter.Paint(canvas, in plan, ShowDefaultDecorations);
 
             // 描画完了をホストへ通知する（操作・情報ラベルなどホスト固有の付加情報を描くための入口）。
             Rendered?.Invoke(this, new MarqueeRenderedEventArgs(canvas, plan));

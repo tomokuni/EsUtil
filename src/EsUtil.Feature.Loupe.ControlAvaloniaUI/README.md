@@ -53,7 +53,7 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 - 中心座標ラベルはコントロールが **`Border` + `TextBlock` の子要素として配置**します（文言・表示可否はコア、実寸 → 配置矩形の写像は描画層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter`（`LabelPlan` partial））、実寸測定は `FormattedText`、描画順はコアの `LoupeDrawLayer` が単一所有）
 - **座標変換ポート（`SetCoordTransform(ICoordTransform?)` + `PositionOffset`）**: MarqueeControl と同方式。 表示位置（`RenderTransform`）と表示サイズ（要求サイズ）をレイアウト時に自己計算（ウィンドウサイズ変更・ズーム・スクロールに追従）
 - **`RefreshPosition()`**: パン・ズーム等のレイアウト非変更なビューポート変化時に、表示位置・サイズを再計算（座標変換ポートは呼び出し毎に最新の表示状態を評価）
-- **見た目の差し替え（派生）**: `CreatePresenter`（`protected virtual`）を上書きすると、既定の提示層の代わりに派生提示層を使えます（格子線・四隅の鉤など、外観 `LoupeAppearance` の項目だけでは表せない装飾を提示層の描画計画として差し替えられる）。 生成は初回参照時に 1 度だけ行われ、派生クラスの初期化が終わってから呼ばれます（例はサンプルの `sample/Presentation/GridLoupePreview`）
+- **見た目のカスタマイズ（3 つの入口）**: 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）で差し替えます。 矩形で表せない描画（円・斜線等）は `ShowDefaultDecorations` を false にして `Rendered` のビットマップへ自前で描き、必要なら `DrawPlan` で既定の描画を行います（派生は不要。 例はサンプルの `sample/Presentation/GridLoupePlan`）
 
 ## 3. システム要件
 

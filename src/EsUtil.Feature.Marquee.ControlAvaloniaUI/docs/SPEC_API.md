@@ -275,12 +275,14 @@ control.ResetSelection();           // 状態と nudge の初期化
 | プロパティ | 型 | 説明 |
 | --- | --- | --- |
 | `Appearance` | `MarqueeAppearance` | 外観の単一値（既定は `MarqueeAppearance.Default`）。 外観を差し替えると次の描画から反映される |
+| `DrawPlanResolver` | `Func<MarqueeDrawPlan, MarqueeDrawPlan>?` | **描画計画の差し替え点**（矩形の並び・文言・位置）。 設定すると保持中の計画を破棄して再解決する（1 フレームに 2 回以上呼ばれるため純粋関数にすること） |
+| `ShowDefaultDecorations` | `bool` | 既定の装飾（暗転・枠線・ハンドル・マーカー）を描くかどうか（既定 true。 false は矩形で表せない自前描画のための入口） |
 
 ```csharp
 marquee.Appearance = MarqueeAppearance.Default with { OuterBorderColor = Colors.White.ToDrawingColor() };   // 外観の差し替え
 ```
 
-**見た目の拡張**: 外観（色・枠線の太さ・表示可否）で足りない場合は、`MarqueeControl.CreatePresenter` を上書きして提示層（`EsUtil.Feature.Marquee.MarqueePresenter`。 `sealed` ではなく `ResolveDrawPlan` が `virtual`）の派生を返すと、描画計画（`MarqueeDrawPlan`）を差し替えられます。 差し替えは値の置き換えだけで完結するため、描画実装（本 UI の `MarqueeContextPainter`）は変更不要です（例は `sample/Presentation/` の `GuideMarqueePresenter` / `GuideMarqueePreview`）。
+**見た目のカスタマイズ**: 色・枠線の太さ・表示可否は外観（`Appearance`。 `MarqueeAppearance`）で指定します。 矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で描画計画（`MarqueeDrawPlan`）を差し替えられます（差し替えは値の置き換えだけで完結し、描画実装（本 UI の `MarqueeContextPainter`）は変更不要です。 例は `sample/Presentation/` の `GuideMarqueePlan`）。 矩形で表せない描画（円・斜線等）は `ShowDefaultDecorations` を false にして `Rendered` の描画先へ自前で描き、必要なら `DrawPlan` で既定の描画を行います。
 
 ### 5.2 メソッド
 
@@ -293,7 +295,7 @@ marquee.Appearance = MarqueeAppearance.Default with { OuterBorderColor = Colors.
 | `InvalidateRender()` | 描画内容の再解決と、図形・ラベルの再描画を要求する（**描画に関わる変更の唯一の入口**。 図形は子の描画層が描くため、親の無効化だけでは更新されない） |
 | `RequestCancel()` | キャンセル要求を処理する（Escape キーと同じ条件。 選択破棄後に `CancelRequested` を発火） |
 | `RequestConfirm()` | 確定要求を処理する（Enter キーと同じ条件。 ドラッグ中は無視し `ConfirmRequested` を発火。 確定後に選択状態をクリアして再選択・再確定を防ぐ） |
-| `CreatePresenter(IMarqueeEffects, ICursorService, MarqueeOptions)` | 提示層（描画計画の窓口）を生成する（`protected virtual`。 **本コントロールが使う提示層の差し替え点**。 初回参照時に 1 度だけ呼ばれる） |
+| `DrawPlan(DrawingContext, in MarqueeDrawPlan)`（static） | 描画計画を自 UI の描画面へ描く（既定の装飾も含む。 自前で描く場合でも既定の描画を使える） |
 
 クリップ（画像境界内への制限）は座標ポートの `Bounds` + `Options.ClampToSourceBounds` が担います。
 

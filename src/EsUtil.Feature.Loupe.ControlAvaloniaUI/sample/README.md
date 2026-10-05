@@ -9,7 +9,7 @@
 - [4. 検証項目（動作確認チェックリスト）](#4-検証項目動作確認チェックリスト)
 - [5. 構成](#5-構成)
 - [6. 使い方（初めての方向け）](#6-使い方初めての方向け)
-- [7. 拡張例（派生 Presenter）](#7-拡張例派生-presenter)
+- [7. 拡張例（計画の差し替え）](#7-拡張例計画の差し替え)
 
 ---
 
@@ -93,9 +93,8 @@ EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/
 │   └── DebugLogger.cs           # LoupeControl.Log の設定例（デバッグ出力へ転送）
 ├── Imaging/
 │   └── TestImageFactory.cs      # テスト画像生成（グラデーション＋グリッド＋マーカー）
-├── Presentation/                # 拡張例（提示層の派生）
-│   ├── GridLoupePresenter.cs    # LoupePresenter を派生し、格子線と四隅の鉤へ装飾を差し替える
-│   └── GridLoupePreview.cs      # LoupeControl を派生し、差し替えた提示層で描く見本
+├── Presentation/                # 拡張例（計画の差し替え）
+│   ├── GridLoupePlan.cs        # 外観と描画計画（格子線・四隅の鉤）と見本の元画像を与える見本
 ├── ViewModels/
 │   ├── BrushOption.cs           # 色選択肢
 │   └── MainWindowViewModel.cs   # ルーペ設定・中心座標
@@ -112,21 +111,20 @@ EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/
 5. **基本サイズ（Options.RequestedSize）**: スライダーで基本サイズを変更すると、その値がそのまま表示サイズになります。
 6. **選択矩形オーバーレイ**: 「選択矩形を表示」を ON にすると、選択矩形（対象座標 = 元画像ピクセル）の枠線がルーペ画像上に 2 色破線（色A/色B）で表示されます（ズーム 2 倍以上）。 X / Y / W / H・色A / 色B を変更できます（不透明度は色のアルファに統合）。
 7. **API 呼び出し**: `Clear()` / `RequestRender()` ボタンで各公開 API の動作を確認できます。
-8. **拡張例**: 設定パネル上部の見本は、提示層を派生して見た目を差し替えた例です（次節）。
+8. **拡張例**: 設定パネル上部の見本は、外観（`Appearance`）と描画計画（`DrawPlanResolver`）で見た目を差し替えた例です（次節）。
 
-## 7. 拡張例（派生 Presenter）
+## 7. 拡張例（計画の差し替え）
 
-`Presentation/` に、既定の提示層（`LoupePresenter`）を派生して見た目を差し替える見本があります（設定パネル上部の見本）。
+`Presentation/` に、外観（`Appearance`）と描画計画（`DrawPlanResolver`）で見た目を差し替える見本があります（設定パネル上部の見本）。
 
-- `GridLoupePresenter` — 外観（色・枠線の太さ・表示可否）を生成時に自前で設定し、`ResolveDrawPlan` を上書きして装飾の矩形（中心の格子線・四隅の鉤）を差し替えます。
-- `GridLoupePreview` — `LoupeControl` を派生し、`CreatePresenter` を上書きして差し替えた提示層を返すだけのコントロールです（表示位置・ラベルの配置・描画はコントロールがそのまま担います）。
+- `GridLoupePlan` — 外観（色・枠線の太さ・表示可否）と、装飾の矩形（中心の格子線・四隅の鉤）を与えます。 計画を差し替える純粋関数（`Resolve(in plan)`）として提供します。 見本の元画像（`EsBitmap`）も本クラスが用意します。
 
-差し替えの入口は **`LoupeControl.CreatePresenter` の上書き**です（生成は初回参照時に 1 度だけ行われ、派生クラスの初期化が終わってから呼ばれます）。 描画実装（`LoupeContextPainter`）は本プロジェクトの内部であり、差し替えのたびに書き換える必要はありません。
+差し替えの入口は次の 3 つです（**派生は不要**。 XAML のコントロールへコードビハインドから設定します）。
 
 | 差し替える対象 | 差し替え方 |
 | --- | --- |
-| 外観（色・枠線の太さ・表示可否） | `Appearance`（`LoupeAppearance`）を設定する（提示層の生成時に設定してもよい） |
-| 装飾（十字線・枠線）の矩形 | 提示層の `ResolveDrawPlan` を上書きし、計画（`LoupeDrawPlan`）の矩形を差し替える |
-| ラベルの文言・配置 | 同上（`LoupeDrawPlan.Labels` を差し替える） |
+| 外観（色・枠線の太さ・表示可否） | `Appearance`（`LoupeAppearance`）を設定する |
+| 装飾（十字線・枠線）の矩形 / ラベルの文言・位置 | `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）を設定する（計画の値の置き換え） |
+| 矩形で表せない描画（円・斜線等） | `ShowDefaultDecorations` を false にして `Rendered` のビットマップへ自前で描く（必要なら `DrawPlan` で既定の描画も呼べる） |
 
 差し替えは値の置き換えだけで完結するため、UI ごとの描画実装（Avalonia は `LoupeContextPainter`、MewUI は `LoupeSkiaPainter`。 いずれも内部）は変更不要です。

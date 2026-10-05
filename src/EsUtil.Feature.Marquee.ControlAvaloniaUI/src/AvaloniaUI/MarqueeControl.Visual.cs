@@ -76,7 +76,7 @@ public partial class MarqueeControl
         }
         // ビジュアルツリーからの切断は UI のライフサイクルであるため、コアへは「対話状態の初期化」だけを要求する
         // （選択の破棄と、nudge 中だった場合のカーソル再表示はセッションが単一所有する）。
-        Marquee.ResetSelection();
+        _marquee.ResetSelection();
     }
 
     /// <summary>ウィンドウが非アクティブ化されたときに nudge を終了する。</summary>
@@ -86,7 +86,7 @@ public partial class MarqueeControl
     /// nudge 中はカーソルを非表示にするため、ウィンドウを離れた時点で終了して再表示する（非表示残留の防止）。<br/>
     /// 本コントロールはキーを TopLevel から購読するため、非アクティブ化＝キー入力の継続条件を失った時点である。
     /// </remarks>
-    private void OnWindowDeactivated(object? sender, EventArgs e) => Marquee.EndNudge();
+    private void OnWindowDeactivated(object? sender, EventArgs e) => _marquee.EndNudge();
 
     // ====================================================================
     // 描画（描画内容の解決と描画先の用意だけを行い、手順は描画層へ委譲する）
@@ -107,7 +107,7 @@ public partial class MarqueeControl
         // 描画計画は配置フェーズが解決した値を共有する（未解決の場合のみ本メソッドが解決する）。
         var plan = CurrentFrame(Bounds.Size.ToEsSize());
 
-        MarqueeContextPainter.Paint(context, in plan);
+        MarqueeContextPainter.Paint(context, in plan, ShowDefaultDecorations);
 
         // 描画完了をホストへ通知する（操作・情報ラベルなどホスト固有の付加情報を描くための入口）。
         Rendered?.Invoke(this, new MarqueeRenderedEventArgs(context, plan));

@@ -22,14 +22,14 @@
 
                     <Separator/>
 
-                    <!-- 拡張例: 既定の提示層（LoupePresenter）を派生して外観と装飾を差し替える。
-                         LoupeControl を派生して CreatePresenter を上書きするだけで、ルーペの見た目を差し替えられる -->
-                    <TextBlock Text="拡張例（派生 Presenter）" FontWeight="Bold"/>
+                    <!-- 拡張例: 外観（Appearance）と描画計画（DrawPlanResolver）を差し替える。
+                         派生は不要で、コードビハインドから 2 つのプロパティを設定するだけ --> 
+                    <TextBlock Text="拡張例（計画の差し替え）" FontWeight="Bold"/>
                     <TextBlock FontSize="11" Foreground="Gray" TextWrapping="Wrap"
-                               Text="GridLoupePresenter が解決した描画計画（中心の格子線 + 四隅の鉤）で描いた見本です。LoupeControl を派生して提示層を差し替えています。"/>
+                               Text="GridLoupePlan が与えた外観と描画計画（中心の格子線 + 四隅の鉤）で描いた見本です。Appearance と DrawPlanResolver へ設定するだけで差し替えられます。"/>
                     <Border BorderBrush="#CCCCCC" BorderThickness="1" Background="#202020"
                             Height="150" HorizontalAlignment="Left">
-                        <sample:GridLoupePreview/>
+                        <loupe:LoupeControl x:Name="GridPreview"/>
                     </Border>
 
                     <Separator/>

@@ -16,7 +16,7 @@
 - **文字は UI 層が要素として配置する**: サイズラベルとカーソル座標ラベルの**文言と基準点は提示層の `MarqueePresenter`（`LabelTexts` partial） が、色とフォントサイズは外観（`MarqueeAppearance`）が、実寸から配置矩形を求める写像は提示層の `MarqueePresenter`（`LabelPlan` partial） が単一所有**し、UI 層が `Border` + `TextBlock` を子要素として置く（子要素は親の描画より後に描かれるため常に最上位）。 サイズラベルの基準点は注目矩形の左上から**枠線の幅 + 1 DIP 内側**（枠線と背景の重なりを無くす）。 実寸測定は自 UI の API（`SkiaText.Measure`）で行う。 操作・情報ラベルはアプリ固有の付加情報のため、ホスト（`FadeMaskDragRectControl`）が `Rendered` のハンドラで自前で描く（外観は `FadeMaskDragRectOptions.Labels` が単一所有する）
 - **DPI 追従**: `OnDpiChanged` でスケーリング係数を更新し、DIP 座標で描画します（枠線・ハンドルの画面上の大きさを保ちます）。
 - **コア型のイベント引数**: イベントの座標は UI 非依存のコア型（`EsPoint` / `EsRect`）で公開します（境界変換が不要）。
-- **見た目の差し替え（派生）**: `CreatePresenter`（`protected virtual`）を上書きすると、 既定の提示層の代わりに派生提示層を使えます（破線枠・ガイド線など、外観 `MarqueeAppearance` の項目だけでは表せない装飾を提示層の描画計画として差し替えられる）。 生成は初回参照時に 1 度だけ行われ、派生クラスの初期化が終わってから呼ばれます（例は Avalonia 版サンプルの `sample/Presentation/GuideMarqueePreview`）
+- **見た目のカスタマイズ（3 つの入口）**: 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で差し替えます。 矩形で表せない描画（円・斜線等）は `ShowDefaultDecorations` を false にして `Rendered` のキャンバスへ自前で描き、必要なら `DrawPlan` で既定の描画を行います（派生は不要）
 
 ## 3. インストール
 

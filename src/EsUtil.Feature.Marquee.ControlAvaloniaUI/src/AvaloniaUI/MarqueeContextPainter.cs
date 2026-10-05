@@ -23,8 +23,13 @@ internal static class MarqueeContextPainter
     /// <summary>描画計画を描画順に描く。</summary>
     /// <param name="context">描画先の描画コンテキスト（<c>Render</c> の実行中のみ有効）。 null 不可。</param>
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・色を持つ）。</param>
+    /// <param name="drawDecorations">装飾（暗転・枠線・ハンドル・マーカー）を描くかどうか。 false の場合は層を飛ばす。</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> が null の場合。</exception>
-    public static void Paint(DrawingContext context, in MarqueeDrawPlan plan)
+    /// <remarks>
+    /// 装飾を描かない場合も<b>層の順序は計画（<see cref="MarqueeDrawPlan.Layers"/>）が単一所有する</b><br/>
+    /// （本クラスは順に写すだけで、順序も可否も判断しない）。
+    /// </remarks>
+    public static void Paint(DrawingContext context, in MarqueeDrawPlan plan, bool drawDecorations = true)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -35,15 +40,15 @@ internal static class MarqueeContextPainter
         {
             switch (layer)
             {
-                case MarqueeDrawLayer.Decoration:
+                case MarqueeDrawLayer.Decoration when drawDecorations:
                     DrawDecoration(context, in plan, appearance);
                     break;
 
-                case MarqueeDrawLayer.Handles when plan.Handles is { } handles:
+                case MarqueeDrawLayer.Handles when drawDecorations && plan.Handles is { } handles:
                     DrawHandles(context, in handles, appearance);
                     break;
 
-                case MarqueeDrawLayer.Marker when plan.Marker is { } marker:
+                case MarqueeDrawLayer.Marker when drawDecorations && plan.Marker is { } marker:
                     DrawStartMarker(context, in marker, appearance);
                     break;
 

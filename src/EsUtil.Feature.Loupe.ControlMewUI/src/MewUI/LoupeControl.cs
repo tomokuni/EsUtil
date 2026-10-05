@@ -39,10 +39,12 @@ namespace EsUtil.Feature.Loupe.MewUI;
 /// 文言・基準点・配置は描画層（<see cref="LoupePresenter"/>）が実寸（<see cref="MewUITextMeasure"/>）から<br/>
 /// 単一所有する（本コントロールは要素を置くだけである）。<br/>
 /// <br/>
-/// <b>見た目の差し替え</b>: <see cref="CreatePresenter"/> を上書きすると、既定の提示層の代わりに派生提示層を使える<br/>
-/// （格子線・四隅の鉤など、外観（<see cref="LoupeAppearance"/>）の項目だけでは表せない装飾を差し替えられる）。
+/// <b>見た目のカスタマイズ</b>: 色・太さ・表示可否は <see cref="Appearance"/> で、<br/>
+/// 矩形の並びで表せる装飾とラベルの文言・位置は <see cref="DrawPlanResolver"/> で差し替えられる。<br/>
+/// 矩形で表せない描画（円・斜線等）は <see cref="ShowDefaultDecorations"/> を false にして自前で描く<br/>
+/// （描画の直後に呼ばれる <see cref="Rendered"/> のキャンバスへ描き、必要なら <see cref="DrawPlan"/> で既定の描画を行う）。
 /// </remarks>
-public class LoupeControl : Panel
+public sealed class LoupeControl : Panel
 {
     /// <summary><see cref="Source"/> プロパティ（拡大元の 100% 画像）。</summary>
     /// <remarks>変更ログはコアのログ定義が単一所有する（本コントロールは変更通知で呼ぶだけ）。</remarks>
@@ -59,7 +61,7 @@ public class LoupeControl : Panel
             changed: static (o, oldValue, newValue) =>
             {
                 // 拡大中心はコア（ファサード）が単一所有する（表示位置・描画入力の計算元）
-                o.Presenter.CenterPoint = newValue;
+                o._presenter.CenterPoint = newValue;
                 // 中心座標ラベルの文言は中心に依存するため、ラベル要素を配置し直す
                 o.InvalidateArrange();
             });
@@ -79,7 +81,7 @@ public class LoupeControl : Panel
             changed: static (o, oldValue, newValue) =>
             {
                 // 表示サイズ（要求サイズ）と拡大率・外観はコア（ファサード）が単一所有する（表示レイアウトと描画入力の計算元）
-                o.Presenter.Options = newValue;
+                o._presenter.Options = newValue;
                 // ラベルの大きさ・外観・表示可否が変わるため、ラベル要素を配置し直す（表示サイズが同じでも必要）
                 o.InvalidateArrange();
             });
@@ -95,7 +97,7 @@ public class LoupeControl : Panel
             changed: static (o, oldValue, newValue) =>
             {
                 // 描画入力（物理ピクセル）の計算元はコア（ファサード）が単一所有する
-                o.Presenter.ClientToPixelScaling = newValue;
+                o._presenter.ClientToPixelScaling = newValue;
                 // ラベルの配置の基準（表示サイズ）が物理ピクセル換算で変わるため、配置し直す
                 o.InvalidateArrange();
             },
@@ -112,7 +114,7 @@ public class LoupeControl : Panel
             MewPropertyOptions.AffectsRender | MewPropertyOptions.AffectsLayout,
             changed: static (o, oldValue, newValue) =>
             {
-                o.Presenter.Appearance = newValue;
+                o._presenter.Appearance = newValue;
                 // 中心座標ラベルの色・体裁も外観が与えるため、ラベル要素を配置し直す
                 o.InvalidateArrange();
             });
@@ -120,14 +122,65 @@ public class LoupeControl : Panel
     /// <summary>提示層のファサード（設定・表示レイアウト・描画計画の窓口）。</summary>
     /// <remarks>
     /// 表示サイズ・伸長入力・座標ラベル・表示位置の計算はすべて <see cref="LoupePresenter"/> が単一所有する<br/>
-    /// （本コントロールは公開プロパティで受け取った値を転送し、返された描画計画を描画・配置へ使うだけ）。<br/>
-    /// 生成は <see cref="CreateAndInitializePresenter"/> が初回参照時に行う（派生が差し替えられるようにするため）。
+    /// （本コントロールは公開プロパティで受け取った値を転送し、返された描画計画を描画・配置へ使うだけ）。
     /// </remarks>
-    private LoupePresenter? _presenter;
+    private readonly LoupePresenter _presenter;
 
-    /// <summary>提示層（初回参照時に生成する）。</summary>
-    /// <value>本コントロールが使う提示層（生成済みの場合は同じインスタンス）。</value>
-    private LoupePresenter Presenter => _presenter ??= CreateAndInitializePresenter();
+    // ====================================================================
+    // 見た目のカスタマイズ（描画計画の差し替えと既定描画の可否）
+    // ====================================================================
+
+    /// <summary>描画計画を差し替える関数を取得または設定する。</summary>
+    /// <value>計画（幾何・外観・層の順序・ラベル配置）を受け取り、差し替えた計画を返す関数。 null の場合は既定の計画をそのまま使う。</value>
+    /// <remarks>
+    /// <b>矩形の並びで表せる装飾と、ラベルの文言・位置を差し替える入口</b>である（色・太さ・表示可否は <see cref="Appearance"/>）。<br/>
+    /// 受け取る計画は提示層が解決済みであるため、本関数は値の置き換えだけで完結する<br/>
+    /// （<c>plan with { CrosshairPixelRects = …, Labels = … }</c>）。<br/>
+    /// <b>配置と描画の両方に適用される</b>ため、<see cref="LoupeDrawPlan.Labels"/> を差し替えるとラベル要素も追随する。<br/>
+    /// 1 フレームに 2 回以上呼ばれるため、<b>純粋関数（同じ入力に同じ出力）にすること</b>。 設定すると配置と描画をやり直す。
+    /// </remarks>
+    public Func<LoupeDrawPlan, LoupeDrawPlan>? DrawPlanResolver
+    {
+        get;
+        set
+        {
+            field = value;
+            InvalidateArrange();
+            InvalidateVisual();
+        }
+    }
+
+    /// <summary>既定の装飾（十字線・枠線）を描くかどうかを取得または設定する。</summary>
+    /// <value>true（既定）の場合は既定の装飾を描く。 false の場合は装飾の層だけを描かない（<b>ペーストボードと拡大画像は描く</b>）。</value>
+    /// <remarks>
+    /// <b>矩形で表せない描画（円・斜線・グラデーション等）を「置換」する入口</b>である<br/>
+    /// （描画の直後に呼ばれる <see cref="Rendered"/> のキャンバスへ自前で描く）。<br/>
+    /// false でもペーストボード（描画面の消去）と拡大画像は描かれるため、前フレームが残ったり画像が欠けたりしない。<br/>
+    /// 設定すると再描画を要求する。
+    /// </remarks>
+    public bool ShowDefaultDecorations
+    {
+        get;
+        set
+        {
+            field = value;
+            InvalidateVisual();
+        }
+    } = true;
+
+    /// <summary>描画計画を指定の描画面へ描く（既定の装飾も含む）。</summary>
+    /// <param name="canvas">描画先のキャンバス（物理ピクセル・拡大画像と同じ座標系）。 null 不可。</param>
+    /// <param name="source">拡大元の 100% 画像。 null の場合は拡大画像を描かない。</param>
+    /// <param name="plan">描く描画計画。 null 不可。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="canvas"/> が null の場合。</exception>
+    /// <remarks>
+    /// <b>既定の描画をホストへ提供する入口</b>である（<see cref="ShowDefaultDecorations"/> を false にした場合でも、<br/>
+    /// ホストが任意のタイミングと順序で既定の描画を行える）。<br/>
+    /// 描画実装（<c>LoupeSkiaPainter</c>）は本プロジェクトの内部であるため、外部へは本メソッドが窓口になる。<br/>
+    /// 計画を必要とする場合は <see cref="Rendered"/> の <c>Content</c> を使う。
+    /// </remarks>
+    public static void DrawPlan(SKCanvas canvas, EsBitmap? source, in LoupeDrawPlan plan)
+        => LoupeSkiaPainter.Paint(canvas, source, in plan);
 
     /// <summary>図形（背景・市松模様・拡大画像・十字線・枠線）を描画する内部キャンバス。</summary>
     /// <remarks>
@@ -197,10 +250,10 @@ public class LoupeControl : Panel
     /// </remarks>
     public double PositionOffset
     {
-        get => Presenter.PositionOffset;
+        get => _presenter.PositionOffset;
         set
         {
-            Presenter.PositionOffset = value;
+            _presenter.PositionOffset = value;
             InvalidateArrange();
         }
     }
@@ -213,7 +266,7 @@ public class LoupeControl : Panel
     /// </remarks>
     public void SetCoordTransform(ICoordTransform? port)
     {
-        Presenter.SetCoordTransform(port);
+        _presenter.SetCoordTransform(port);
         InvalidateArrange();
     }
 
@@ -224,7 +277,7 @@ public class LoupeControl : Panel
     /// 本コントロールは位置を持たないため、ホストが本メソッドの結果で配置する（オフセット・位置の補正の規則はコアが単一所有する）。<br/>
     /// 描画サイズも同じ値から決まる（描画ビットマップと配置サイズを一致させる）。
     /// </remarks>
-    public LoupeLayout ResolveLayout(EsSize parentSize) => Presenter.ResolveLayout(parentSize);
+    public LoupeLayout ResolveLayout(EsSize parentSize) => _presenter.ResolveLayout(parentSize);
 
     /// <summary>ルーペコントロールを初期化する。</summary>
     /// <remarks>
@@ -233,34 +286,13 @@ public class LoupeControl : Panel
     /// </remarks>
     public LoupeControl()
     {
+        // 提示層（描画計画の窓口）を先に生成する（以降のプロパティ設定で参照されるため）
+        // ロガーは Log プロパティの setter が提示層へ伝搬する（生成時点では未設定のため引き継がない）
+        _presenter = new LoupePresenter();
+
         // 図形は専用の子キャンバスが描く（ラベル要素より先に子として加えるため、常にラベルの下になる）
         _shapes = new ShapeCanvas(this) { IsHitTestVisible = false };
         Add(_shapes);
-    }
-
-    /// <summary>提示層（設定・表示レイアウト・描画計画の窓口）を生成する。</summary>
-    /// <returns>本コントロールが使う提示層。</returns>
-    /// <remarks>
-    /// <b>見た目の差し替え点</b>: 本メソッドを上書きして派生提示層（<see cref="LoupePresenter"/> の派生）を返すと、<br/>
-    /// 外観（<see cref="LoupeAppearance"/>）だけでは表せない装飾（格子線・四隅の鉤等）を提示層の描画計画として差し替えられる。<br/>
-    /// <b>呼び出しは遅延生成時に 1 度だけ</b>である。
-    /// </remarks>
-    protected virtual LoupePresenter CreatePresenter() => new();
-
-    /// <summary>提示層を生成し、設定済みのロガーを引き継ぐ。</summary>
-    /// <returns>初期化済みの提示層。</returns>
-    /// <remarks>
-    /// <b>なぜ生成を遅延するか</b>: コンストラクターから上書き可能なメンバー（<see cref="CreatePresenter"/>）を呼ぶと、<br/>
-    /// 派生クラスの初期化前に派生の実装が走る（アナライザー <c>MA0056</c> が禁じる）。 初回参照時まで遅らせると、<br/>
-    /// 派生クラスの初期化が終わってから生成されるため、上書きが安全に機能する。<br/>
-    /// ロガーは生成前に設定されていることがある（<see cref="Log"/> の setter が本メソッドより先に走りうる）ため、<br/>
-    /// 生成時に現在値を渡して引き継ぐ。
-    /// </remarks>
-    private LoupePresenter CreateAndInitializePresenter()
-    {
-        var presenter = CreatePresenter();
-        presenter.Log = Log;
-        return presenter;
     }
 
     /// <summary>図形（背景・市松模様・拡大画像・十字線・枠線）だけを描画する内部 Skia キャンバス。</summary>
@@ -306,7 +338,7 @@ public class LoupeControl : Panel
         set
         {
             field = value.OrNullLogger();
-            Presenter.Log = value;
+            _presenter.Log = value;
         }
     }
 
@@ -347,8 +379,21 @@ public class LoupeControl : Panel
         // テキストは描画層が文言と基準点を渡し、要素として置くか画像として描くかは本層が決める
         // （表示サイズは要素の大きさ（ホストが描画層のレイアウト結果で配置したサイズ）である）
         // 実寸は配置（本ルート）と描画（OnPaintSurface）の両方で同じ値を使う必要があるため、同じ測定関数を渡す
-        var plan = Presenter.ResolveDrawPlan(bounds.Size.Width, MewUITextMeasure.Measure);
+        var plan = ResolvePlan(bounds.Size.Width);
         SyncLabels(plan.Labels, bounds);
+    }
+
+    /// <summary>描画計画を解決し、<see cref="DrawPlanResolver"/> を適用する。</summary>
+    /// <param name="displaySize">ルーペの一辺の表示サイズ（DIP）。</param>
+    /// <returns>差し替え後の描画計画。</returns>
+    /// <remarks>
+    /// <b>配置と描画の両経路が本メソッドを通る</b>（配置は <see cref="ArrangeContent"/>、描画は <see cref="OnPaintSurface"/>）。<br/>
+    /// したがって <see cref="DrawPlanResolver"/> は 1 フレームに 2 回呼ばれる（純粋関数であること）。
+    /// </remarks>
+    private LoupeDrawPlan ResolvePlan(double displaySize)
+    {
+        var plan = _presenter.ResolveDrawPlan(displaySize, MewUITextMeasure.Measure);
+        return DrawPlanResolver?.Invoke(plan) ?? plan;
     }
 
     /// <summary>ラベル要素（背景 + テキスト）を配置指示へ同期し、親の絶対座標を基準に配置する。</summary>
@@ -464,13 +509,12 @@ public class LoupeControl : Panel
         // 倍率は描画面と割り当て領域（DIP）の比から求め、保持値とファサードへも反映する
         // （反映しないと、拡大画像がルーペ領域より小さい倍率で描かれる）。
         var scaling = ApplyClientPixelScaling(info);
-        var plan = Presenter.ResolveDrawPlan(
-            DpiScaler.ToDip(info.Size.ToEsSize(), scaling).Width, MewUITextMeasure.Measure);
+        var plan = ResolvePlan(DpiScaler.ToDip(info.Size.ToEsSize(), scaling).Width);
 
         try
         {
             // 描画の手順（層の順序と描画 API への写し）は LoupeSkiaPainter が単一所有する
-            LoupeSkiaPainter.Paint(canvas, Source, in plan);
+            LoupeSkiaPainter.Paint(canvas, Source, in plan, ShowDefaultDecorations);
         }
         catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
         {

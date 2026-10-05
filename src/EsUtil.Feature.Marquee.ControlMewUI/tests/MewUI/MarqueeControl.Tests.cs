@@ -4,6 +4,7 @@ using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
+using SkiaSharp;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
 
@@ -503,83 +504,97 @@ public class MarqueeControlTests
     }
 
     // ====================================================================
-    // 派生提示層の差し替え（CreatePresenter の上書き）
+    // 見た目のカスタマイズ（描画計画の差し替えと既定描画の可否）
     // ====================================================================
 
-    /// <summary>上書きが呼ばれた時点の派生クラスの初期化状況（プロパティ初期化子で設定する）。</summary>
-    private static string? s_derivedStateAtCreation;
-
-    /// <summary>派生クラスの初期化で設定するマーカー（上書きが初期化後に呼ばれたことの検証に使う）。</summary>
-    private static string? s_derivedState;
-
-    /// <summary>差し替えられたことを記録する提示層。</summary>
-    private sealed class RecordingPresenter : MarqueePresenter
-    {
-        /// <summary>提示層を初期化する。</summary>
-        /// <param name="effects">効果の適用先。</param>
-        /// <param name="cursor">カーソルサービス。</param>
-        /// <param name="options">初期設定。</param>
-        public RecordingPresenter(IMarqueeEffects effects, ICursorService? cursor, MarqueeOptions? options)
-            : base(effects, cursor, options)
-        {
-            s_derivedStateAtCreation = s_derivedState;
-            Count++;
-        }
-
-        /// <summary>生成された回数を取得する。</summary>
-        public static int Count { get; private set; }
-
-        /// <summary>生成回数を 0 に戻す。</summary>
-        public static void ResetCount() => Count = 0;
-    }
-
-    /// <summary>派生提示層を使う派生コントロール。</summary>
+    /// <summary>描画計画の差し替えが配置（ラベル要素）と描画の両方へ効くことを検証する。</summary>
     /// <remarks>
-    /// マーカーは<b>プロパティ初期化子</b>で設定する（基本コンストラクターより後に走るため、<br/>
-    /// 生成が基本コンストラクターで行われていれば上書きは未設定のマーカーを見ることになる）。
-    /// </remarks>
-    private sealed class DerivedControl : MarqueeControl
-    {
-        /// <summary>派生クラスの初期化が完了したかどうかを取得する（マーカーを設定する）。</summary>
-        /// <value>派生クラスの初期化子が実行された場合は true。</value>
-        public bool IsDerivedInitialized { get; } = SetMarker();
-
-        /// <summary>派生クラスの初期化（プロパティ初期化子）でマーカーを設定する。</summary>
-        /// <returns>true（初期化済みであることを表す）。</returns>
-        private static bool SetMarker()
-        {
-            s_derivedState = "initialized";
-            return true;
-        }
-
-        /// <inheritdoc />
-        protected override MarqueePresenter CreatePresenter(
-            IMarqueeEffects effects, ICursorService cursor, MarqueeOptions options)
-            => new RecordingPresenter(effects, cursor, options);
-    }
-
-    /// <summary>上書きは初回参照時に、派生クラスの初期化が終わってから呼ばれることを検証する。</summary>
-    /// <remarks>
-    /// 生成をコンストラクターで行うと派生の初期化前に上書きが走るため（アナライザー MA0056 が禁じる）、<br/>
-    /// 初回参照時まで遅延している。 本テストはその契約を固定する。
+    /// 差し替えた <see cref="MarqueeDrawPlan.Labels"/> は配置フェーズでラベル要素になるため、<br/>
+    /// 子要素の文言で差し替えが効いたことを確認できる（キャンバスを必要としない）。
     /// </remarks>
     [Fact]
-    internal void 派生提示層の生成は派生クラスの初期化後に行われる()
+    internal void 描画計画の差し替えがラベル要素へ反映される()
     {
-        s_derivedState = null;
-        s_derivedStateAtCreation = null;
-        RecordingPresenter.ResetCount();
+        var cursor = new CursorServiceSpy();
+        var control = CreateControl(cursor);
+        control.SetSelection(new EsRect(20, 20, 60, 60));
+        control.DrawPlanResolver = static plan => plan with
+        {
+            Labels = [new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black)],
+        };
 
-        var control = new DerivedControl();
-        Assert.True(control.IsDerivedInitialized, "派生クラスの初期化が完了していない（テストの前提が成立していない）");
+        control.Arrange(new Rect(0, 0, 200, 200));
 
-        // 生成前は何も作られていない（遅延）
-        Assert.Equal(0, RecordingPresenter.Count);
+        // 差し替えた 1 件だけがラベル要素になる
+        var labels = control.Children.OfType<Border>().ToList();
+        Assert.Single(labels);
+        Assert.Equal("差し替え", ((TextBlock)labels[0].Child!).Text);
+    }
 
-        // 提示層に触れる（HasSelection は提示層へ委譲する）
-        _ = control.HasSelection;
+    /// <summary>差し替えを設定すると保持中の計画が破棄され、次の解決で反映されることを検証する。</summary>
+    [Fact]
+    internal void 描画計画の差し替えは次の解決で反映される()
+    {
+        var cursor = new CursorServiceSpy();
+        var control = CreateControl(cursor);
+        control.SetSelection(new EsRect(20, 20, 60, 60));
+        control.Arrange(new Rect(0, 0, 200, 200));
 
-        Assert.Equal(1, RecordingPresenter.Count);
-        Assert.Equal("initialized", s_derivedStateAtCreation);
+        var before = control.Children.OfType<Border>().Select(b => ((TextBlock)b.Child!).Text).ToList();
+
+        control.DrawPlanResolver = static plan => plan with
+        {
+            Labels = [new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "後から", 12, DrawingColor.White, DrawingColor.Black)],
+        };
+        control.Arrange(new Rect(0, 0, 200, 200));
+
+        var after = control.Children.OfType<Border>().Select(b => ((TextBlock)b.Child!).Text).ToList();
+
+        Assert.NotEqual(before, after);
+        Assert.Contains("後から", after);
+    }
+
+    /// <summary>既定の装飾を描かない設定で装飾の矩形が描かれないことを検証する。</summary>
+    /// <remarks>
+    /// 描画実装（内部）へ直接、装飾の可否を渡して画素で確かめる（コントロールはキャンバスを必要としない）。
+    /// </remarks>
+    [Fact]
+    internal void 既定の装飾を描かない場合は装飾が描かれない()
+    {
+        using var bitmap = new SKBitmap(new SKImageInfo(64, 64));
+        using var canvas = new SKCanvas(bitmap);
+
+        var presenter = new MarqueePresenter(new StubEffects(), cursor: null, MarqueeOptions.Default);
+        presenter.SetSelection(new EsRect(10, 10, 40, 40));
+        var plan = presenter.ResolveDrawPlan(new EsSize(64, 64), static (_, _) => default);
+
+        // 既定（装飾を描く）: 外枠の色の画素が現れる
+        MarqueeSkiaPainter.Paint(canvas, in plan, drawDecorations: true);
+        Assert.Contains(plan.OuterBorderDipRects, rect => bitmap.GetPixel((int)rect.X, (int)rect.Y).Alpha > 0);
+
+        // 装飾を描かない: 何も描かれない（透明のまま）
+        canvas.Clear(SKColors.Transparent);
+        MarqueeSkiaPainter.Paint(canvas, in plan, drawDecorations: false);
+        Assert.Equal(0, bitmap.GetPixel(10, 10).Alpha);
+        Assert.Equal(0, bitmap.GetPixel(32, 32).Alpha);
+    }
+
+    /// <summary>テスト用の効果の最小実装（描画計画の解決だけに使う）。</summary>
+    private sealed class StubEffects : IMarqueeEffects
+    {
+        /// <inheritdoc/>
+        public void RequestFocus() { }
+
+        /// <inheritdoc/>
+        public void RequestRedraw() { }
+
+        /// <inheritdoc/>
+        public void SetCursorShape(MarqueeCursorKind kind) { }
+
+        /// <inheritdoc/>
+        public void SetPointerCapture(bool capture) { }
+
+        /// <inheritdoc/>
+        public EsPointInt ToScreenPoint(EsPoint sourcePoint) => default;
     }
 }

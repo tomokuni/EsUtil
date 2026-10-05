@@ -217,10 +217,11 @@ loupe.Options = LoupeOptions.Default with { RequestedSize = 240, ZoomLevel = 4 }
 **設定と状態（データ）の区別**: マウス移動ごとに変わる `Source` / `CenterPoint` は個別プロパティのままです（設定に含めません）。 DPI スケーリング係数（`ClientToPixelScaling`）と表示位置のオフセット（`PositionOffset`）もフレームワーク・ホスト固有のため設定に含めません。
 
 **描画の差し替え**: 描画は本コントロールの `LoupeContextPainter.Paint`（描画計画を描画 API へ写すだけの実装。 本プロジェクトの内部）が担います。  
-見た目を変える場合は 2 つの入口を使います。  
+見た目を変える場合は 3 つの入口を使います（**派生は不要**）。  
 
 - 色・枠線の太さ・表示可否: `Appearance`（`LoupeAppearance`）を差し替える（`LoupeAppearance.Default with { ... }`）
-- 描画計画（装飾の矩形・ラベルの文言と配置）: `LoupeControl.CreatePresenter` を上書きして `LoupePresenter` を派生したものを提示層として使う（提示層は `sealed` ではなく `ResolveDrawPlan` が `virtual`。 上書きは初回参照時に 1 度だけ呼ばれる）
+- 描画計画（装飾の矩形・ラベルの文言と配置）: `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）で差し替える（配置と描画の両方に適用される）
+- 矩形で表せない描画（円・斜線等）: `ShowDefaultDecorations` を `false` にして `Rendered` のビットマップへ自前で描く（必要なら `DrawPlan` で既定の描画も呼べる。 `ShowDefaultDecorations` は**描画の停止**であり、描画計画の解決（配置）は従来どおり行われます）
 
 #### 5.1.4 ClientToPixelScaling
 
@@ -247,6 +248,8 @@ BitmapSize = ceil(表示サイズ × ClientToPixelScaling)
 | --- | --- | --- | --- |
 | `Options` | `LoupeOptions` | コアの既定値 | ルーペの基本サイズと拡大率。 `with` 式で部分変更する。 数値項目はコアの `LoupeOptions` が生成時に安全域へ補正する |
 | `Appearance` | `LoupeAppearance`（`EsUtil.Feature.Loupe`） | `LoupeAppearance.Default` | 枠線の太さ・表示可否（十字線・枠線・ラベル）と描画に使う色（ペーストボード（画像外）・枠線・十字線・中心座標ラベルの 6 色）・ラベルのフォントサイズ・角丸。 `LoupeAppearance.Default with { ... }` で部分変更する |
+| `DrawPlanResolver` | `Func<LoupeDrawPlan, LoupeDrawPlan>?` | `null` | **描画計画の差し替え点**（装飾の矩形・ラベルの文言と配置）。 設定すると保持中の計画を破棄して再解決する（配置と描画の両方に適用され、1 表示に 1 回以上呼ばれるため純粋関数にすること） |
+| `ShowDefaultDecorations` | `bool` | `true` | 既定の装飾（十字線・枠線）を描くかどうか（`false` は矩形で表せない自前描画のための入口。 画像（拡大）と画像外の色は描き続ける） |
 
 `Options`（コアの `LoupeOptions`）の項目（詳細は `EsUtil.Feature.Loupe.Core` の `docs/SPEC_API.md` を参照）:
 
@@ -390,6 +393,8 @@ event EventHandler<LoupeRenderedEventArgs>? Rendered
 
 オーバーレイの描画位置は `e.Content.CaptureTopLeft` と `e.Content.ZoomLevel` から `(対象座標 − CaptureTopLeft) × ZoomLevel` で求められます。
 
+既定の装飾の描画を停止している場合（`ShowDefaultDecorations` = `false`）でも、`LoupeControl.DrawPlan(DrawingContext, IImage?, in LoupeDrawPlan)`（static）で既定の描画を行えます（描画計画（`e.Content`）をそのまま渡す。 `DrawingContext` は描画中のみ有効）。
+
 通知するのはホストがオーバーレイを描くために必要な最小限（描画済み画像・描画計画）です。 座標変換に必要な値は描画計画が単一所有するため複製しません。 表示位置・表示サイズは、描画に必要な値をホストが既に保持しているため通知しません（必要な場合はコントロールの公開プロパティから取得します）。
 
 ```csharp
@@ -527,6 +532,6 @@ dotnet run --project src/EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/EsUtil.Fe
 - 画像端から外れた部分の画像外の色（無地）
 - `Options`（`ZoomLevel` / `RequestedSize`）と `Appearance`（色・枠線の太さ・表示可否）・`ClientToPixelScaling`
 - 十字線・枠線の色変更（`Appearance`）
-- 派生提示層による見た目の差し替え（`sample/Presentation/`。 破線枠と三分割ガイドの例）
+- 外観（`Appearance`）と描画計画（`DrawPlanResolver`）による見た目の差し替え（`sample/Presentation/`。 格子線と四隅の鉤の例）
 - `IsVisible`、`Clear()`、`RequestRender()`
 - `Log`（描画エラーの通知先 ILogger 設定例）

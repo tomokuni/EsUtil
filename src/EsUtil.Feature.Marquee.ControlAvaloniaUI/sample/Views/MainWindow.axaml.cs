@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using Point = Avalonia.Point;
 using Rect = Avalonia.Rect;
 using EsUtil.Feature.Marquee.AvaloniaUI.Sample.Logging;
+using EsUtil.Feature.Marquee.AvaloniaUI.Sample.Presentation;
 using EsUtil.Feature.Marquee.AvaloniaUI.Sample.ViewModels;
 using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 using EsUtil.Platform.Core.Coord;
@@ -82,6 +83,12 @@ public partial class MainWindow : Window
         // ViewModel のコントロール設定を MarqueeControl へ反映する
         _vm.PropertyChanged += OnViewModelPropertyChanged;
         ApplyControlSettings();
+
+        // 拡張例（計画の差し替え）: 外観と描画計画を差し替える（派生は不要）
+        GuidePreview.Appearance = GuideMarqueePlan.Appearance;
+        GuidePreview.DrawPlanResolver = static plan => GuideMarqueePlan.Resolve(in plan);
+        GuidePreview.ClientToSourceScaling = 1.0;
+        GuidePreview.SetSelection(new Rect(26, 22, 176, 112));
 
         // ログ追加時に最下部（最新行）へ自動スクロールする
         _vm.LogLines.CollectionChanged += OnLogLinesChanged;

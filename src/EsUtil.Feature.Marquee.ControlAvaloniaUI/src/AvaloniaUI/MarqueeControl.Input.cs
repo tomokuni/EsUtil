@@ -33,7 +33,7 @@ public partial class MarqueeControl
     /// </remarks>
     private void OnTopLevelKeyDown(object? sender, KeyEventArgs e)
     {
-        e.Handled = Marquee.KeyDown(e.Key.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
+        e.Handled = _marquee.KeyDown(e.Key.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
     }
 
     /// <summary>フォーカスを失ったときに nudge を終了する。</summary>
@@ -48,7 +48,7 @@ public partial class MarqueeControl
     protected override void OnLostFocus(FocusChangedEventArgs e)
     {
         base.OnLostFocus(e);
-        Marquee.EndNudge();
+        _marquee.EndNudge();
     }
 
     /// <summary>現在のカーソル位置（対象座標）を取得する。</summary>
@@ -66,6 +66,6 @@ public partial class MarqueeControl
 
         var screenPoint = _cursor.GetCursorScreenPoint();
         var localDip = ScreenConverter.ScreenToLocalDip(this, screenPoint.ToAvaloniaPixelPoint()).ToEsPoint();
-        return Marquee.ToSource(localDip);
+        return _marquee.ToSource(localDip);
     }
 }

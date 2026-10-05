@@ -389,77 +389,69 @@ public class LoupeControlTests
     }
 
     // ====================================================================
-    // 派生提示層の差し替え（CreatePresenter の上書き）
+    // 見た目のカスタマイズ（描画計画の差し替えと既定描画の可否）
     // ====================================================================
 
-    /// <summary>上書きが呼ばれた時点の派生クラスの初期化状況（プロパティ初期化子で設定する）。</summary>
-    private static string? s_derivedStateAtCreation;
-
-    /// <summary>派生クラスの初期化で設定するマーカー（上書きが初期化後に呼ばれたことの検証に使う）。</summary>
-    private static string? s_derivedState;
-
-    /// <summary>差し替えられたことを記録する提示層。</summary>
-    private sealed class RecordingPresenter : LoupePresenter
-    {
-        /// <summary>提示層を初期化する。</summary>
-        public RecordingPresenter()
-        {
-            s_derivedStateAtCreation = s_derivedState;
-            Count++;
-        }
-
-        /// <summary>生成された回数を取得する。</summary>
-        public static int Count { get; private set; }
-
-        /// <summary>生成回数を 0 に戻す。</summary>
-        public static void ResetCount() => Count = 0;
-    }
-
-    /// <summary>派生提示層を使う派生コントロール。</summary>
+    /// <summary>描画計画の差し替えが配置（ラベル要素）と描画の両方へ効くことを検証する。</summary>
     /// <remarks>
-    /// マーカーは<b>プロパティ初期化子</b>で設定する（基本コンストラクターより後に走るため、<br/>
-    /// 生成が基本コンストラクターで行われていれば上書きは未設定のマーカーを見ることになる）。
-    /// </remarks>
-    private sealed class DerivedControl : LoupeControl
-    {
-        /// <summary>派生クラスの初期化が完了したかどうかを取得する（マーカーを設定する）。</summary>
-        /// <value>派生クラスの初期化子が実行された場合は true。</value>
-        public bool IsDerivedInitialized { get; } = SetMarker();
-
-        /// <summary>派生クラスの初期化（プロパティ初期化子）でマーカーを設定する。</summary>
-        /// <returns>true（初期化済みであることを表す）。</returns>
-        private static bool SetMarker()
-        {
-            s_derivedState = "initialized";
-            return true;
-        }
-
-        /// <inheritdoc />
-        protected override LoupePresenter CreatePresenter() => new RecordingPresenter();
-    }
-
-    /// <summary>上書きは初回参照時に、派生クラスの初期化が終わってから呼ばれることを検証する。</summary>
-    /// <remarks>
-    /// 生成をコンストラクターで行うと派生の初期化前に上書きが走るため（アナライザー MA0056 が禁じる）、<br/>
-    /// 初回参照時まで遅延している。 本テストはその契約を固定する。
+    /// 差し替えた <see cref="LoupeDrawPlan.Labels"/> は配置フェーズでラベル要素になるため、<br/>
+    /// 子要素の文言で差し替えが効いたことを確認できる（キャンバスを必要としない）。
     /// </remarks>
     [Fact]
-    internal void 派生提示層の生成は派生クラスの初期化後に行われる()
+    internal void 描画計画の差し替えがラベル要素へ反映される()
     {
-        s_derivedState = null;
-        s_derivedStateAtCreation = null;
-        RecordingPresenter.ResetCount();
+        var control = new LoupeControl
+        {
+            Options = LoupeOptions.Default with { RequestedSize = 100 },
+            CenterPoint = new EsPoint(10, 10),
+            DrawPlanResolver = static plan => plan with
+            {
+                Labels = [new LoupeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black, 2)],
+            },
+        };
 
-        var control = new DerivedControl();
-        Assert.True(control.IsDerivedInitialized, "派生クラスの初期化が完了していない（テストの前提が成立していない）");
+        Layout(control);
 
-        // 生成前は何も作られていない（遅延）
-        Assert.Equal(0, RecordingPresenter.Count);
+        // 差し替えた 1 件だけがラベル要素になる
+        var labels = control.Children.OfType<Border>().ToList();
+        Assert.Single(labels);
+        Assert.Equal("差し替え", ((TextBlock)labels[0].Child!).Text);
+    }
 
-        // 提示層に触れる（レイアウトの解決は提示層へ委譲する）
-        _ = control.ResolveLayout(new EsSize(200, 200));
+    /// <summary>既定の装飾を描かない設定で装飾が描かれないことを検証する。</summary>
+    /// <remarks>
+    /// 描画実装（内部）へ直接、装飾の可否を渡して画素で確かめる（コントロールはキャンバスを必要としない）。<br/>
+    /// ペーストボード（描画面の消去）と拡大画像は装飾ではないため、false でも描かれる。
+    /// </remarks>
+    [Fact]
+    internal void 既定の装飾を描かない場合は装飾だけが描かれない()
+    {
+        using var bitmap = new SKBitmap(new SKImageInfo(64, 64));
+        using var canvas = new SKCanvas(bitmap);
 
-        Assert.Equal(1, RecordingPresenter.Count);
-        Assert.Equal("initialized", s_derivedStateAtCreation);
+        var presenter = new LoupePresenter
+        {
+            Options = LoupeOptions.Default with { RequestedSize = 64, ZoomLevel = 1 },
+            Appearance = LoupeAppearance.Default with
+            {
+                BorderThickness = 2,
+                ShowCrosshair = true,
+                ShowBorder = true,
+            },
+            CenterPoint = new EsPoint(32, 32),
+        };
+        var plan = presenter.ResolveDrawPlan(64, static (_, _) => default);
+
+        // 既定（装飾を描く）: 枠線の色の画素が現れる
+        LoupeSkiaPainter.Paint(canvas, null, in plan, drawDecorations: true);
+        var borderPixel = bitmap.GetPixel(32, 1);
+
+        // 装飾を描かない: ペーストボードの色になる（枠線は描かれない）
+        LoupeSkiaPainter.Paint(canvas, null, in plan, drawDecorations: false);
+        var withoutBorderPixel = bitmap.GetPixel(32, 1);
+
+        Assert.NotEqual(borderPixel, withoutBorderPixel);
+        // ペーストボード（画像外の色）は描かれる
+        Assert.Equal(LoupeAppearance.Default.PasteboardColor.ToSKColor(), withoutBorderPixel);
     }
 }

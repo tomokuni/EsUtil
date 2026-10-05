@@ -3,7 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using EsUtil.Feature.Loupe.AvaloniaUI.Sample.Logging;
+using EsUtil.Feature.Loupe.AvaloniaUI.Sample.Presentation;
 using EsUtil.Feature.Loupe.AvaloniaUI.Sample.ViewModels;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Views;
 
@@ -39,6 +41,17 @@ public partial class MainWindow : Window
 
         // 初期状態でも拡大表示が見えるように中心を設定
         _vm.CenterPoint = new Point(120, 120);
+
+        // 拡張例（計画の差し替え）: 外観と描画計画を差し替える（派生は不要）
+        // 倍率は 1.0 に固定する（計画の装飾は物理ピクセルで解釈されるため、倍率を上げる場合はホストが換算する）
+        GridPreview.Appearance = GridLoupePlan.Appearance;
+        GridPreview.DrawPlanResolver = static plan => GridLoupePlan.Resolve(in plan);
+        GridPreview.ClientToPixelScaling = 1.0;
+        GridPreview.Options = LoupeOptions.Default with { RequestedSize = 150, ZoomLevel = 6 };
+        GridPreview.Source = GridLoupePlan.CreateSource().ToAvaloniaImage();
+        GridPreview.CenterPoint = new Point(120, 80);
+        // 本見本は常に表示する（既定は非表示。 表示可否はホストが指示する）
+        GridPreview.IsVisible = true;
     }
 
     /// <summary>テスト画像上のマウス移動で中心座標を更新する。</summary>

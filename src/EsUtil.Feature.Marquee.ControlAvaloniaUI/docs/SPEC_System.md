@@ -116,7 +116,7 @@ flowchart TB
     end
     subgraph DRC2["MarqueeControl プロジェクト (MarqueeControl)"]
         direction TB
-        Ctl["MarqueeControl<br/>public（派生可）<br/>: Panel<br/>MarqueeControl.cs（公開 API ＋ 入力 ＋ 描画 ＋ ラベル要素の配置）"]
+        Ctl["MarqueeControl<br/>public sealed<br/>: Panel<br/>MarqueeControl.cs（公開 API ＋ 入力 ＋ 描画 ＋ ラベル要素の配置）"]
         Painter["MarqueeContextPainter<br/>internal static<br/>（描画計画を DrawingContext へ写す）"]
         Lbl["ラベル要素の配置<br/>UI 層<br/>ArrangeOverride<br/>（MarqueeDrawPlan.Labels へ Border + TextBlock を置く）"]
         Evt["SelectionRectEventArgs<br/>MarqueePointEventArgs<br/>MarqueeRenderedEventArgs"]
@@ -156,7 +156,7 @@ flowchart TB
 
 ### 6.1 MarqueeControl
 
-- **分類**: 公開コントロール（`public class : Panel`。 XAML を持たずコードのみで子要素を構成する。 `CreatePresenter` を上書きすると提示層を差し替えられる）
+- **分類**: 公開コントロール（`public sealed class : Panel`。 XAML を持たずコードのみで子要素を構成する）
 - **責務**:
   - ポインターイベント（Pressed / Moved / Released）をコア型へ変換してコア（ファサード）へ通知する
   - キーイベント（矢印キー・Escape / Enter）を `EsKey` へ変換してコアへ通知する。 購読は **TopLevel の 1 経路のみ**（フォーカス非依存）
@@ -244,7 +244,7 @@ flowchart TB
 
 - **分類**: 内部静的クラス（`internal static class`。 本プロジェクトが所有する）
 - **責務**: 描画計画（`MarqueeDrawPlan`）を Avalonia の `DrawingContext` へ写す（層の順に描く）
-- **可視性**: internal（描画の実装詳細。 見た目の差し替えは `MarqueeControl.CreatePresenter` の上書きで行う）
+- **可視性**: internal（描画の実装詳細。 見た目の差し替えは `MarqueeControl.DrawPlanResolver` / `ShowDefaultDecorations` / `DrawPlan` で行う）
 - **特徴**: 描画計画の項目はすべて解決済みであるため、本クラスは図形の描画 API を呼ぶだけであり、判断も計算も持たない。 色 → ブラシ・ペンは容量制限付きのキャッシュ（`Platform.AvaloniaUI.Imaging`）が単一所有する
 - **依存**: Avalonia（`DrawingContext`）/ EsUtil.Feature.Marquee.Presenter（`MarqueeDrawPlan`）/ Platform.AvaloniaUI（色変換・キャッシュ）
 

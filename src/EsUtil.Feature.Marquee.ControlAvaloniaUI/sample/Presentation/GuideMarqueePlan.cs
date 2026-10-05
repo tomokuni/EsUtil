@@ -1,23 +1,20 @@
-using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core.Geometry;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Feature.Marquee.AvaloniaUI.Sample.Presentation;
 
-/// <summary>ガイド線付きの見た目を提供する派生提示層（<see cref="MarqueePresenter"/> の拡張の見本）。</summary>
+/// <summary>ガイド線付きの見た目を与える見本の定義（外観と描画計画の差し替え）。</summary>
 /// <remarks>
-/// <b>示すこと</b>: 既定の提示層は <c>sealed</c> ではなく <see cref="MarqueePresenter.ResolveDrawPlan"/> が <c>virtual</c> であるため、<br/>
-/// 外観（<see cref="MarqueePresenter.Appearance"/>）と描画計画（<see cref="MarqueeDrawPlan"/>）を派生クラスで差し替えられる。<br/>
+/// <b>示すこと</b>: 提示層を派生しなくても、外観（<see cref="MarqueeAppearance"/>）と描画計画（<see cref="MarqueeDrawPlan"/>）で<br/>
+/// 見た目を差し替えられる（<see cref="MarqueeControl.Appearance"/> と <see cref="MarqueeControl.DrawPlanResolver"/> へ設定する）。<br/>
 /// 差し替えは公開 API だけで行う（コアの internal 型も描画 API も参照しない）。<br/>
 /// <br/>
 /// <b>見た目</b>: 外枠を破線風に分割し、内側に三分割のガイド線を引く。<br/>
-/// 破線もガイド線も「塗る矩形の列」として計画へ載せるため、描画実装（<c>MarqueeContextPainter</c> / <c>MarqueeSkiaPainter</c>）は<br/>
-/// 変更なしにそのまま描ける（層の順序は既定の計画から引き継ぐ）。<br/>
+/// 破線もガイド線も「塗る矩形の列」として計画へ載せるため、描画実装は計画のとおり描く（層の順序は既定の計画から引き継ぐ）。<br/>
 /// <br/>
-/// <b>外観の所有</b>: 生成時に自前の外観を設定する（枠線の太さ・表示可否も含む）。<br/>
-/// 計画の解決は外観から導出されるため、表示可否と実際に描く値が食い違わない。
+/// <b>外観の所有</b>: 外観（色・枠線の太さ・表示可否）も本クラスが与える（計画の解決は外観から導出されるため、表示可否と実際に描く値が食い違わない）。
 /// </remarks>
-internal sealed class GuideMarqueePresenter : MarqueePresenter
+internal static class GuideMarqueePlan
 {
     /// <summary>破線 1 本の長さ（DIP）。</summary>
     private const double DashLength = 9.0;
@@ -40,45 +37,35 @@ internal sealed class GuideMarqueePresenter : MarqueePresenter
     /// <summary>内側の塗りの色（選択領域をわずかに明るくする）。</summary>
     private static readonly DrawingColor InnerFillColor = DrawingColor.FromArgb(28, 255, 255, 255);
 
-    /// <summary>見本の提示層を初期化する。</summary>
-    /// <param name="effects">効果の適用先。 null 不可。</param>
-    /// <param name="cursor">カーソルサービス。 null 可。</param>
-    /// <param name="options">初期設定。 null 可。</param>
-    /// <remarks>外観は生成時に自前の値へ差し替える（利用側から変更されても本クラスの見た目の規則は崩れない）。</remarks>
-    public GuideMarqueePresenter(IMarqueeEffects effects, ICursorService? cursor = null, MarqueeOptions? options = null)
-        : base(effects, cursor, options)
-        => Appearance = MarqueeAppearance.Default with
-        {
-            OuterBorderColor = AccentColor,
-            InnerBorderColor = GuideColor,
-            HandleColor = AccentColor,
-            MarkerColor = AccentColor,
-            ShowInnerBorder = true,
-            ShowInnerFill = true,
-            InnerFillColor = InnerFillColor,
-        };
-
-    /// <summary>注目矩形へ破線の枠と三分割のガイド線を載せた描画計画を解決する。</summary>
-    /// <param name="clientSize">描画領域のサイズ（DIP）。</param>
-    /// <param name="measureText">テキストの実寸を測る関数。 null 不可。</param>
-    /// <returns>装飾だけを差し替えた描画計画。 注目矩形が無い場合は既定の計画をそのまま返す。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="measureText"/> が null の場合。</exception>
-    /// <remarks>
-    /// 注目矩形が無い場合（未選択かつハイライトも無い）は差し替える対象が無いため、既定の計画を返す<br/>
-    /// （装飾の層は計画が持つ値から決まるため、値の無い層を計画へ足さない）。
-    /// </remarks>
-    public override MarqueeDrawPlan ResolveDrawPlan(EsSize clientSize, Func<string, double, EsSize> measureText)
+    /// <summary>見本の外観を取得する。</summary>
+    /// <value>破線とガイド線の色・表示可否を設定した外観。</value>
+    public static MarqueeAppearance Appearance { get; } = MarqueeAppearance.Default with
     {
-        var plan = base.ResolveDrawPlan(clientSize, measureText);
+        OuterBorderColor = AccentColor,
+        InnerBorderColor = GuideColor,
+        HandleColor = AccentColor,
+        MarkerColor = AccentColor,
+        ShowInnerBorder = true,
+        ShowInnerFill = true,
+        InnerFillColor = InnerFillColor,
+    };
 
-        return plan.FocusDipRect is { } focus
+    /// <summary>注目矩形へ破線の枠と三分割のガイド線を載せた描画計画を返す。</summary>
+    /// <param name="plan">既定の解決結果（幾何・外観・層の順序・ラベル配置を持つ）。</param>
+    /// <returns>装飾だけを差し替えた描画計画。 注目矩形が無い場合は受け取った計画をそのまま返す。</returns>
+    /// <remarks>
+    /// 注目矩形が無い場合（未選択かつハイライトも無い）は差し替える対象が無いため、受け取った計画を返す<br/>
+    /// （装飾の層は計画が持つ値から決まるため、値の無い層を計画へ足さない）。<br/>
+    /// 本メソッドは 1 フレームに 2 回以上呼ばれるため、状態を持たない（純粋関数）。
+    /// </remarks>
+    public static MarqueeDrawPlan Resolve(in MarqueeDrawPlan plan)
+        => plan.FocusDipRect is { } focus
             ? plan with
             {
                 OuterBorderDipRects = CreateDashedFrame(focus),
                 InnerBorderDipRects = CreateThirdsGuides(focus),
             }
             : plan;
-    }
 
     /// <summary>矩形の 4 辺を破線へ分割する。</summary>
     /// <param name="focus">注目矩形（DIP）。</param>

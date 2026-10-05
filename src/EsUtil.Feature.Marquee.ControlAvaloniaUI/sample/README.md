@@ -12,7 +12,7 @@
 - [7. 検証項目（動作確認チェックリスト）](#7-検証項目動作確認チェックリスト)
 - [8. 座標ポートについて](#8-座標ポートについて)
 - [9. 構成](#9-構成)
-- [10. 拡張例（派生 Presenter）](#10-拡張例派生-presenter)
+- [10. 拡張例（計画の差し替え）](#10-拡張例計画の差し替え)
 
 ---
 
@@ -163,9 +163,8 @@ MarqueeControl/sample/
 ├── App.axaml / App.axaml.cs       # アプリケーション定義（FluentTheme）
 ├── AvaloniaUI/Logging/
 │   └── InMemoryLogger.cs          # MarqueeControl.Log の設定例（メモリ内ログ）
-├── Presentation/                  # 拡張例（提示層の派生）
-│   ├── GuideMarqueePresenter.cs   # MarqueePresenter を派生し、破線枠と三分割ガイドへ装飾を差し替える
-│   └── GuideMarqueePreview.cs     # MarqueeControl を派生し、差し替えた提示層で描く見本
+├── Presentation/                  # 拡張例（計画の差し替え）
+│   ├── GuideMarqueePlan.cs       # 外観と描画計画（破線枠・三分割ガイド）を与える見本
 ├── ViewModels/
 │   ├── ColorOption.cs             # 色選択肢
 │   └── MainWindowViewModel.cs     # 選択状態・ステータス表示（CommunityToolkit.Mvvm の ObservableObject）
@@ -173,19 +172,18 @@ MarqueeControl/sample/
     └── MainWindow.axaml(.cs)      # 選択面 + 操作ガイド + ボタン
 ```
 
-## 10. 拡張例（派生 Presenter）
+## 10. 拡張例（計画の差し替え）
 
-`Presentation/` に、既定の提示層（`MarqueePresenter`）を派生して見た目を差し替える見本があります（設定パネル上部の見本）。
+`Presentation/` に、外観（`Appearance`）と描画計画（`DrawPlanResolver`）で見た目を差し替える見本があります（設定パネル上部の見本）。
 
-- `GuideMarqueePresenter` — 外観（色・枠線の太さ・表示可否）を生成時に自前で設定し、`ResolveDrawPlan` を上書きして装飾の矩形（破線枠・三分割ガイド・内側の塗り）を差し替えます。
-- `GuideMarqueePreview` — `MarqueeControl` を派生し、`CreatePresenter` を上書きして差し替えた提示層を返すだけのコントロールです（入力の受付・効果の適用・ラベルの配置・描画はコントロールがそのまま担います）。
+- `GuideMarqueePlan` — 外観（色・枠線の太さ・表示可否）と、注目矩形の装飾の矩形（破線枠・三分割ガイド・内側の塗り）を与えます。 計画を差し替える純粋関数（`Resolve(in plan)`）として提供します。
 
-差し替えの入口は **`MarqueeControl.CreatePresenter` の上書き**です（生成は初回参照時に 1 度だけ行われ、派生クラスの初期化が終わってから呼ばれます）。 描画実装（`MarqueeContextPainter`）は本プロジェクトの内部であり、差し替えのたびに書き換える必要はありません。
+差し替えの入口は次の 3 つです（**派生は不要**。 XAML のコントロールへコードビハインドから設定します）。
 
 | 差し替える対象 | 差し替え方 |
 | --- | --- |
-| 外観（色・枠線の太さ・表示可否） | `Appearance`（`MarqueeAppearance`）を設定する（提示層の生成時に設定してもよい） |
-| 装飾（暗転・外枠・内側の塗り）の矩形 | 提示層の `ResolveDrawPlan` を上書きし、計画（`MarqueeDrawPlan`）の矩形を差し替える |
-| ラベルの文言・配置 | 同上（`MarqueeDrawPlan.Labels` を差し替える） |
+| 外観（色・枠線の太さ・表示可否） | `Appearance`（`MarqueeAppearance`）を設定する |
+| 装飾（暗転・外枠・内側の塗り）の矩形 / ラベルの文言・位置 | `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）を設定する（計画の値の置き換え） |
+| 矩形で表せない描画（円・斜線等） | `ShowDefaultDecorations` を false にして `Rendered` の描画先へ自前で描く（必要なら `DrawPlan` で既定の描画も呼べる） |
 
 差し替えは値の置き換えだけで完結するため、UI ごとの描画実装（Avalonia は `MarqueeContextPainter`、MewUI は `MarqueeSkiaPainter`。 いずれも内部）は変更不要です。
