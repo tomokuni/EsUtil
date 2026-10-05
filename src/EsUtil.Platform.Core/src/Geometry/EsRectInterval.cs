@@ -12,9 +12,9 @@ namespace EsUtil.Platform.Core.Geometry;
 /// </remarks>
 public enum EsRectInterval
 {
-    /// <summary>始点を含み終点を含まない（幅 = ピクセル数）。</summary>
+    /// <summary>半開区間：始点を含み終点を含まない（幅 = ピクセル数）。</summary>
     HalfOpen,
 
-    /// <summary>始点と終点の両方を含む（幅 = ピクセル数 − 1）。</summary>
+    /// <summary>閉区間：始点と終点の両方を含む（幅 = ピクセル数 − 1）。</summary>
     Closed,
 }
