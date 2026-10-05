@@ -123,6 +123,31 @@ public class LoupeDrawPlanTests
         Assert.Equal(4, plan.BorderPixelRects.Count);
     }
 
+    /// <summary>計画がスケーリング係数を持ち、DIP の長さを物理ピクセルへ換算できることを検証する。</summary>
+    /// <remarks>
+    /// ホストが矩形を差し替えるとき、計画が倍率を持たないと（計画に無い入力を外から参照することになり）<br/>
+    /// resolver の契約（同じ入力に同じ出力）が成立しない。 換算の規則は提示層と同じ（切り上げ・最低 1）。
+    /// </remarks>
+    [Theory]
+    [InlineData(1.0, 3.0, 3)]
+    [InlineData(1.25, 3.0, 4)]
+    [InlineData(2.0, 18.0, 36)]
+    internal void ResolveDrawPlan_倍率を持ちDIPを物理ピクセルへ換算できる(double scaling, double dip, int expected)
+    {
+        var presenter = new LoupePresenter
+        {
+            Options = LoupeOptions.Default with { RequestedSize = LoupeSize, ZoomLevel = 4 },
+            Appearance = LoupeAppearance.Default,
+            ClientToPixelScaling = scaling,
+            CenterPoint = new EsPoint(16, 16),
+        };
+
+        var plan = presenter.ResolveDrawPlan(LoupeSize, static (_, _) => default);
+
+        Assert.Equal(scaling, plan.ClientToPixelScaling, 3);
+        Assert.Equal(expected, plan.ScaleDipToPixel(dip));
+    }
+
     /// <summary>テスト用の描画計画を解決する。</summary>
     /// <param name="appearance">外観。</param>
     /// <param name="center">拡大中心。</param>

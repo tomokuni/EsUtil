@@ -29,25 +29,25 @@ internal static class GuideMarqueePlan
     private const int ThirdsDenominator = 3;
 
     /// <summary>破線とガイド線の色（アンバー）。</summary>
-    private static readonly DrawingColor AccentColor = DrawingColor.FromArgb(255, 255, 196, 0);
+    private static readonly DrawingColor s_accentColor = DrawingColor.FromArgb(255, 255, 196, 0);
 
     /// <summary>ガイド線の色（半透明の白）。</summary>
-    private static readonly DrawingColor GuideColor = DrawingColor.FromArgb(160, 255, 255, 255);
+    private static readonly DrawingColor s_guideColor = DrawingColor.FromArgb(160, 255, 255, 255);
 
     /// <summary>内側の塗りの色（選択領域をわずかに明るくする）。</summary>
-    private static readonly DrawingColor InnerFillColor = DrawingColor.FromArgb(28, 255, 255, 255);
+    private static readonly DrawingColor s_innerFillColor = DrawingColor.FromArgb(28, 255, 255, 255);
 
     /// <summary>見本の外観を取得する。</summary>
     /// <value>破線とガイド線の色・表示可否を設定した外観。</value>
     public static MarqueeAppearance Appearance { get; } = MarqueeAppearance.Default with
     {
-        OuterBorderColor = AccentColor,
-        InnerBorderColor = GuideColor,
-        HandleColor = AccentColor,
-        MarkerColor = AccentColor,
+        OuterBorderColor = s_accentColor,
+        InnerBorderColor = s_guideColor,
+        HandleColor = s_accentColor,
+        MarkerColor = s_accentColor,
         ShowInnerBorder = true,
         ShowInnerFill = true,
-        InnerFillColor = InnerFillColor,
+        InnerFillColor = s_innerFillColor,
     };
 
     /// <summary>注目矩形へ破線の枠と三分割のガイド線を載せた描画計画を返す。</summary>

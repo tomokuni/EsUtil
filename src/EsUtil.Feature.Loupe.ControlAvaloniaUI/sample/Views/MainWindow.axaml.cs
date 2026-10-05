@@ -43,10 +43,9 @@ public partial class MainWindow : Window
         _vm.CenterPoint = new Point(120, 120);
 
         // 拡張例（計画の差し替え）: 外観と描画計画を差し替える（派生は不要）
-        // 倍率は 1.0 に固定する（計画の装飾は物理ピクセルで解釈されるため、倍率を上げる場合はホストが換算する）
+        // 見本は DIP で書いた寸法を計画の倍率で換算するため、表示スケーリング（DPI）に関係なく同じ見た目になる
         GridPreview.Appearance = GridLoupePlan.Appearance;
         GridPreview.DrawPlanResolver = static plan => GridLoupePlan.Resolve(in plan);
-        GridPreview.ClientToPixelScaling = 1.0;
         GridPreview.Options = LoupeOptions.Default with { RequestedSize = 150, ZoomLevel = 6 };
         GridPreview.Source = GridLoupePlan.CreateSource().ToAvaloniaImage();
         GridPreview.CenterPoint = new Point(120, 80);

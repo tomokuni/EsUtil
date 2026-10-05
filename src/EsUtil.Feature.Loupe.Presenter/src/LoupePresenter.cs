@@ -237,7 +237,8 @@ public partial class LoupePresenter
             ResolveLabelPlacements(labelText, appearance, measureText),
             geometry.CaptureTopLeft,
             geometry.ZoomLevel,
-            geometry.ClientPixelSize);
+            geometry.ClientPixelSize,
+            geometry.ClientToPixelScaling);
     }
 
     /// <summary>本層の生成を 1 度だけ記録する（既に記録済みの場合は何もしない）。</summary>

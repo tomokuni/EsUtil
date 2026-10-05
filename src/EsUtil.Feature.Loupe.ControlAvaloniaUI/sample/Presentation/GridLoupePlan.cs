@@ -13,16 +13,15 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Presentation;
 /// <b>見た目</b>: 十字線の代わりに中心の格子線、枠線の代わりに四隅の鉤（コーナーブラケット）を描く。<br/>
 /// どちらも「塗る矩形の列」として計画へ載せるため、描画実装は計画のとおり描く（層の順序は既定の計画から引き継ぐ）。<br/>
 /// <br/>
-/// <b>寸法の換算</b>: 描画面の矩形は物理ピクセルであるため、DIP の太さは倍率（<see cref="LoupeControl.ClientToPixelScaling"/>）で<br/>
-/// 換算する必要がある。 本見本は倍率を 1.0 に固定しているため、DIP の値をそのまま使う<br/>
-/// （倍率を変える場合はホストが倍率を閉じ込めた関数を設定する）。
+/// <b>寸法の換算</b>: 描画面の矩形は物理ピクセルであるため、DIP の太さは計画が持つ倍率で換算する<br/>
+/// （<see cref="LoupeDrawPlan.ScaleDipToPixel(double)"/>＝提示層が枠線の太さへ適用するのと同じ規則）。
 /// </remarks>
 internal static class GridLoupePlan
 {
-    /// <summary>格子線の太さ（物理ピクセル。 本見本は倍率 1.0 のため DIP と同値）。</summary>
+    /// <summary>格子線の太さ（DIP）。</summary>
     private const double GridThickness = 1.0;
 
-    /// <summary>四隅の鉤の腕の長さ（物理ピクセル）。</summary>
+    /// <summary>四隅の鉤の腕の長さ（DIP）。</summary>
     private const double BracketArm = 18.0;
 
     /// <summary>枠線の太さ（DIP）。</summary>
@@ -51,6 +50,8 @@ internal static class GridLoupePlan
     /// <remarks>
     /// 元の拡大画像・切り出し領域・ラベル配置は既定の解決をそのまま引き継ぐ<br/>
     /// （差し替えるのは装飾の値だけであり、差し替えても他の値の整合は崩れない）。<br/>
+    /// DIP で書いた寸法は計画が持つ倍率（<see cref="LoupeDrawPlan.ScaleDipToPixel(double)"/>）で物理ピクセルへ換算するため、<br/>
+    /// 表示スケーリング（DPI）が変わっても見た目は DIP 基準のままになる。<br/>
     /// 本メソッドは同じ入力では 1 フレーム 1 回だけ呼ばれるが、状態を持たない（純粋関数）。
     /// </remarks>
     public static LoupeDrawPlan Resolve(in LoupeDrawPlan plan)
@@ -59,8 +60,9 @@ internal static class GridLoupePlan
 
         return plan with
         {
-            CrosshairPixelRects = CreateCenterGrid(surface, GridThickness),
-            BorderPixelRects = CreateCornerBrackets(surface, BracketArm, BracketThickness),
+            CrosshairPixelRects = CreateCenterGrid(surface, plan.ScaleDipToPixel(GridThickness)),
+            BorderPixelRects = CreateCornerBrackets(
+                surface, plan.ScaleDipToPixel(BracketArm), plan.ScaleDipToPixel(BracketThickness)),
         };
     }
 

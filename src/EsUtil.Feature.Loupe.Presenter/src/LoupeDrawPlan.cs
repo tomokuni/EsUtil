@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Feature.Loupe;
@@ -13,9 +14,12 @@ namespace EsUtil.Feature.Loupe;
 /// <param name="CaptureTopLeft">切り出し領域の左上（対象座標）。 中心未設定時は null（描画完了通知の組み立てに使う）。</param>
 /// <param name="ZoomLevel">拡大率（描画完了通知の組み立てに使う）。</param>
 /// <param name="ClientPixelSize">描画に使う一辺の物理ピクセルサイズ（描画完了通知の組み立てに使う）。</param>
+/// <param name="ClientToPixelScaling">表示 DIP → 物理ピクセルのスケーリング係数（描画面の矩形の単位換算に使う）。</param>
 /// <remarks>
 /// <b>描く値はすべて本値に解決済み</b>である（描画実装は計算を持たず、<paramref name="Layers"/> の順に写すだけ）。<br/>
 /// したがって描画実装が幾何計算（矩形の導出・寸法の換算・切り出し領域の算出）を行うことはない。<br/>
+/// <b>描画面の矩形は物理ピクセルである</b>: 本値は描画面（ビットマップ）へ 1:1 で描く前提のため、<br/>
+/// 矩形は物理ピクセルで解決される（DIP の長さを渡す場合は <see cref="ScaleDipToPixel(double)"/> で換算する）。<br/>
 /// <b>表示可否（<see cref="LoupeAppearance"/> の <c>Show*</c>）は値も層も消さない</b>:<br/>
 /// 値の有無は幾何だけで決まるため、表示を止めても計算値はそのまま残る（描画側がフラグを見て描くかどうかを決める）。<br/>
 /// したがって「描く必要があるか」は <see cref="HasText"/> のように表示可否を適用した述語で判定する<br/>
@@ -36,7 +40,8 @@ public readonly record struct LoupeDrawPlan(
     IReadOnlyList<LoupeLabelPlacement> Labels,
     EsPoint? CaptureTopLeft,
     int ZoomLevel,
-    int ClientPixelSize)
+    int ClientPixelSize,
+    double ClientToPixelScaling)
 {
     /// <summary>テキスト（中心座標ラベル）を描く必要があるかどうかを取得する。</summary>
     /// <value>表示が有効なラベルを持つ場合は true。</value>
@@ -57,4 +62,14 @@ public readonly record struct LoupeDrawPlan(
             return false;
         }
     }
+
+    /// <summary>DIP の長さを描画面の物理ピクセルへ換算する。</summary>
+    /// <param name="dipValue">換算する長さ（DIP）。</param>
+    /// <returns>物理ピクセル（切り上げ・最低 1）。</returns>
+    /// <remarks>
+    /// <b>矩形を差し替えるホストの唯一の換算入口</b>である: 描画面の矩形は物理ピクセルであるため、<br/>
+    /// DIP で見た目の寸法を決めたい場合は本メソッドを通す（換算の規則（切り上げ・最低 1・浮動小数誤差の吸収）は<br/>
+    /// <see cref="DpiScaler" /> が単一所有し、提示層が枠線の太さへ適用している規則と同じになる）。
+    /// </remarks>
+    public int ScaleDipToPixel(double dipValue) => DpiScaler.ScaleToPixel(dipValue, ClientToPixelScaling);
 }

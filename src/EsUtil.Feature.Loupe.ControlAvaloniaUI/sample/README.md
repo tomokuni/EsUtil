@@ -128,3 +128,5 @@ EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/
 | 矩形で表せない描画（円・斜線等） | `Appearance` の `Show*` を false にして `Rendered` のビットマップへ自前で描く（必要なら `DrawPlan` で計画どおりの描画も呼べる） |
 
 差し替えは値の置き換えだけで完結するため、UI ごとの描画実装（Avalonia は `LoupeContextPainter`、MewUI は `LoupeSkiaPainter`。 いずれも内部）は変更不要です。
+
+**矩形の単位**: ルーペの描画面の矩形は**物理ピクセル**です（描画面のビットマップへ 1:1 で描くため）。 DIP で寸法を決めたい場合は計画の `ScaleDipToPixel` で換算します（見本はこの方法を使っているため、表示スケーリング（DPI）が変わっても見た目は DIP 基準のままです）。
