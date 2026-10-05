@@ -252,12 +252,12 @@ public sealed class LoupeControl : Panel
         }
     }
 
-    /// <summary>ルーペの描画完了を通知するイベント（描画先キャンバスと表示情報を渡す）。</summary>
+    /// <summary>ルーペの描画完了を通知するイベント（描画先キャンバスと描画計画を渡す）。</summary>
     /// <remarks>
-    /// 拡大画像の描画結果（<see cref="LoupeRenderedEventArgs.Canvas"/>）と表示状態を通知する。<br/>
+    /// 拡大画像の描画結果（<see cref="LoupeRenderedEventArgs.Canvas"/>）と描画計画を通知する。<br/>
     /// イベントは本コントロールの描画直後（同一フレーム内）に発火するため、ホスト側は<br/>
     /// イベントハンドラ内でキャンバスへオーバーレイ（選択矩形の破線等）を追加描画できる。<br/>
-    /// 描画位置の計算は <see cref="LoupeRenderedEventArgs.CaptureTopLeft"/> と <see cref="LoupeRenderedEventArgs.Scale"/> から求める。
+    /// 描画位置の計算は <see cref="LoupeDrawPlan.CaptureTopLeft"/> と <see cref="LoupeDrawPlan.ZoomLevel"/> から求める。
     /// </remarks>
     public event EventHandler<LoupeRenderedEventArgs>? Rendered;
 
@@ -447,7 +447,6 @@ public sealed class LoupeControl : Panel
             return;
         }
 
-        Rendered?.Invoke(this, new LoupeRenderedEventArgs(
-            canvas, plan.ClientPixelSize, plan.CaptureTopLeft, plan.ZoomLevel));
+        Rendered?.Invoke(this, new LoupeRenderedEventArgs(canvas, plan));
     }
 }

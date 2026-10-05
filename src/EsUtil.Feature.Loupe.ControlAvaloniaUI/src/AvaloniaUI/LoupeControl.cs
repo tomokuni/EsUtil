@@ -504,7 +504,7 @@ public sealed class LoupeControl : Panel
     // イベント
     // ====================================================================
 
-    /// <summary>ルーペの描画完了を通知するイベント（描画済み Bitmap と切り出し領域を渡す）。</summary>
+    /// <summary>ルーペの描画完了を通知するイベント（描画済み Bitmap と描画計画を渡す）。</summary>
     /// <remarks>
     /// 拡大画像の描画結果（<see cref="LoupeRenderedEventArgs.Bitmap"/>）と、描画に必要な値（切り出し領域・スケール）を通知する。<br/>
     /// イベントは表示へ反映する前に同期的に発火するため、ホスト側はイベントハンドラ内で<br/>
@@ -514,20 +514,17 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     public event EventHandler<LoupeRenderedEventArgs>? Rendered;
 
-    /// <summary><see cref="Rendered"/> イベントを発火する（描画済み EsBitmap と表示情報を構築して通知）。</summary>
+    /// <summary><see cref="Rendered"/> イベントを発火する（描画済み EsBitmap と描画計画を構築して通知）。</summary>
     /// <param name="bitmap">描画済みのルーペ画像（EsBitmap）。 ホストがピクセルにオーバーレイを描画できる。</param>
     /// <param name="plan">実際に描画した描画計画（切り出し領域の左上と拡大率を持つ）。</param>
     /// <remarks>
     /// 切り出し領域の左上・拡大率は描画計画（<see cref="LoupeDrawPlan.CaptureTopLeft"/> / <see cref="LoupeDrawPlan.ZoomLevel"/>）が単一所有する。<br/>
-    /// 中心未設定時は <see cref="LoupeRenderedEventArgs.CaptureTopLeft"/> が null になる（オーバーレイ描画不可）。<br/>
+    /// 中心未設定時は <see cref="LoupeDrawPlan.CaptureTopLeft"/> が null になる（オーバーレイ描画不可）。<br/>
     /// <b>中心座標ラベルは本コントロールがテキスト要素として表示する</b>ため、通知に含めない。
     /// </remarks>
     private void RaiseRendered(EsBitmap bitmap, in LoupeDrawPlan plan)
     {
-        Rendered?.Invoke(this, new LoupeRenderedEventArgs(
-            bitmap,
-            plan.CaptureTopLeft?.ToAvaloniaPoint(),
-            plan.ZoomLevel));
+        Rendered?.Invoke(this, new LoupeRenderedEventArgs(bitmap, plan));
     }
 
     // ====================================================================

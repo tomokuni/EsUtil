@@ -262,7 +262,8 @@ BitmapSize = ceil(表示サイズ × ClientToPixelScaling)
 | `BorderThickness` | `int` | `2` | 枠線の太さ（DIP。 1〜64 に補正） |
 | `ShowCrosshair` / `ShowBorder` | `bool` | `true` | 十字線・枠線の表示有無（透明色を「描かない」の代用にしない） |
 | `ShowCoordLabel` | `bool` | `true` | 中心座標ラベルの表示有無（中心が未設定のときは描画しない） |
-| `PasteboardColor` | `System.Drawing.Color` | 中性グレー（`#FF535353`） | 画像外（ペーストボード）の色。 拡大画像より先に全面へ塗るため、画像の無い部分が本色の無地になる |
+| `ShowPasteboard` | `bool` | `true` | 画像外（ペーストボード）の表示有無（非表示でも描画面を透明で塗る） |
+| `PasteboardColor` | `System.Drawing.Color` | 中性グレー（`#FF535353`） | 画像外（ペーストボード）の色。 描画面を置き換えて前フレームの残像を残さない（非表示時は透明で塗る） |
 | `BorderColor` | `System.Drawing.Color` | LightGray（`#FFD3D3D3`） | 枠線の色 |
 | `CrossColor` | `System.Drawing.Color` | 赤 40%（`#66FF0000`） | 十字線の色 |
 | `CoordLabelColor` | `System.Drawing.Color` | 白 | 座標ラベルの文字色 |
@@ -385,18 +386,17 @@ event EventHandler<LoupeRenderedEventArgs>? Rendered
 | プロパティ | 型 | 説明 |
 | --- | --- | --- |
 | `Bitmap` | `EsBitmap` | 描画済みのルーペ画像。 イベントハンドラ内でピクセルへオーバーレイを直接描画できる（所有権は `LoupeControl` 側） |
-| `CaptureTopLeft` | `Point?` | 切り出し領域の左上（対象座標）。 中心未設定時は null |
-| `Scale` | `double` | 対象座標 → ルーペ画像ピクセル座標の変換係数（拡大率と同値。 DPI スケーリングの影響を受けない） |
+| `Content` | `LoupeDrawPlan` | 実際に描画した描画計画（切り出し領域の左上 `CaptureTopLeft`・拡大率 `ZoomLevel`・描画面のサイズを持つ） |
 
-オーバーレイの描画位置は `(対象座標 − CaptureTopLeft) × Scale` で求められます。
+オーバーレイの描画位置は `e.Content.CaptureTopLeft` と `e.Content.ZoomLevel` から `(対象座標 − CaptureTopLeft) × ZoomLevel` で求められます。
 
-通知するのはホストがオーバーレイを描くために必要な最小限（描画済み画像・切り出し領域の左上・スケール）です。 表示位置・表示サイズ・拡大率・拡大中心は、描画に必要な値をホストが既に保持しているため通知しません（必要な場合はコントロールの公開プロパティから取得します）。
+通知するのはホストがオーバーレイを描くために必要な最小限（描画済み画像・描画計画）です。 座標変換に必要な値は描画計画が単一所有するため複製しません。 表示位置・表示サイズは、描画に必要な値をホストが既に保持しているため通知しません（必要な場合はコントロールの公開プロパティから取得します）。
 
 ```csharp
 loupe.Rendered += (_, e) =>
 {
-    if (e.CaptureTopLeft is not { } topLeft) return;
-    var local = (対象座標 - topLeft) * e.Scale;
+    if (e.Content.CaptureTopLeft is not { } topLeft) return;
+    var local = (対象座標 - topLeft) * e.Content.ZoomLevel;
     // local の位置へ線分等を e.Bitmap へ描画する（表示はコントロールが反映する）
 };
 ```

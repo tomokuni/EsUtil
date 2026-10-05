@@ -37,7 +37,7 @@ public static class LoupeSkiaPainter
             switch (layer)
             {
                 case LoupeDrawLayer.Pasteboard:
-                    canvas.Clear(appearance.PasteboardColor.ToSKColor());
+                    canvas.Clear(appearance.ResolvePasteboardColor().ToSKColor());
                     break;
 
                 case LoupeDrawLayer.Image:

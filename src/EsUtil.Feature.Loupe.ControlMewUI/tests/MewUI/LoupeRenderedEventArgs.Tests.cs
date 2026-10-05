@@ -17,14 +17,15 @@ public class LoupeRenderedEventArgsTests
     {
         using var bitmap = new SKBitmap(new SKImageInfo(32, 32));
         using var canvas = new SKCanvas(bitmap);
-        var topLeft = new EsPoint(4, 6);
+        var plan = CreatePlan(new EsPoint(16, 16));
 
-        var args = new LoupeRenderedEventArgs(canvas, 32, topLeft, 2.5);
+        var args = new LoupeRenderedEventArgs(canvas, plan);
 
         Assert.Same(canvas, args.Canvas);
-        Assert.Equal(32, args.ClientPixelSize);
-        Assert.Equal(topLeft, args.CaptureTopLeft);
-        Assert.Equal(2.5, args.Scale);
+        // 描画計画は値で比較できる（切り出し左上・拡大率・描画面のサイズを単一所有する）
+        Assert.Equal(plan, args.Content);
+        // 中心 (16,16)・拡大率 2 → 切り出し一辺 16、左上 = (16−8, 16−8) = (8, 8)
+        Assert.Equal(new EsPoint(8, 8), args.Content.CaptureTopLeft);
     }
 
     /// <summary>中心が未設定の場合は切り出し左上が null になることを検証する。</summary>
@@ -34,8 +35,23 @@ public class LoupeRenderedEventArgsTests
         using var bitmap = new SKBitmap(new SKImageInfo(32, 32));
         using var canvas = new SKCanvas(bitmap);
 
-        var args = new LoupeRenderedEventArgs(canvas, 32, null, 1.0);
+        var args = new LoupeRenderedEventArgs(canvas, CreatePlan(center: null));
 
-        Assert.Null(args.CaptureTopLeft);
+        Assert.Null(args.Content.CaptureTopLeft);
+    }
+
+    /// <summary>テスト用の描画計画を提示層（実際の解決経路）で解決する。</summary>
+    /// <param name="center">拡大中心。 null の場合は中心未設定の計画になる。</param>
+    /// <returns>描画計画。</returns>
+    /// <remarks>実寸測定はダミーを渡す（本テストは計画の保持のみを検証する）。</remarks>
+    private static LoupeDrawPlan CreatePlan(EsPoint? center)
+    {
+        var presenter = new LoupePresenter
+        {
+            Options = LoupeOptions.Default with { RequestedSize = 32, ZoomLevel = 2 },
+            CenterPoint = center,
+        };
+
+        return presenter.ResolveDrawPlan(32, static (_, _) => default);
     }
 }

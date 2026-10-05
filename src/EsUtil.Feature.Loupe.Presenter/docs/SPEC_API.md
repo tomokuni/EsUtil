@@ -77,6 +77,9 @@
 | `CoordLabelOffset` | `double` | `2.0` | 中心座標ラベルをルーペの縁から離すオフセット（DIP。 左右・上下に同じ値を使う） |
 | `BorderThickness` | `int` | `2` | 枠線の太さ（DIP。 1〜64 へ補正。 安全域は `LoupeCore.Limits` が単一所有する） |
 | `ShowCrosshair` / `ShowBorder` / `ShowCoordLabel` | `bool` | `true` | 表示可否（描画にだけ必要。 透明色を代用にしない） |
+| `ShowPasteboard` | `bool` | `true` | 画像外（ペーストボード）の表示可否。 非表示でも描画面を透明で塗るため、描画面を保持する UI でも前フレームの残像が残らない |
+
+描画層が描画面を塗る色は `ResolvePasteboardColor()`（表示時は `PasteboardColor`、非表示時は透明）が単一所有します。 描画実装は返された色で描画面を塗るだけであり、分岐を持ちません（`Pasteboard` の層は常に含まれます）。
 
 | メンバー | 説明 |
 | --- | --- |

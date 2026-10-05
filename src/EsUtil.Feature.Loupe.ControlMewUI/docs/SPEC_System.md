@@ -130,7 +130,7 @@ classDiagram
     class LoupeAppearance {
         <<EsUtil.Feature.Loupe.Presenter>>
         +int BorderThickness
-        +bool ShowCrosshair / ShowBorder / ShowCoordLabel
+        +bool ShowCrosshair / ShowBorder / ShowCoordLabel / ShowPasteboard
         +ShouldShowCoordLabel(hasCenter) bool
         +Color PasteboardColor
         +Color CrossColor
@@ -160,6 +160,11 @@ classDiagram
         +EsRect ClientPixelRect
                 +CrosshairPixelRects / BorderPixelRects
         +Layers
+    }
+    class LoupeRenderedEventArgs {
+        <<EsUtil.Feature.Loupe.MewUI>>
+        +SKCanvas Canvas
+        +LoupeDrawPlan Content
     }
     class LoupeGeometry {
         <<EsUtil.Feature.Loupe.Core>>
@@ -220,7 +225,7 @@ sequenceDiagram
     LC->>C: ResolveLayout / ResolveGeometry（表示サイズ・幾何）
     LC->>P: ResolveDrawPlan(displaySize, SkiaText.Measure)（提示層が幾何・外観・層の順序・ラベル配置を解決する）
     LC->>R: LoupeSkiaPainter.Paint(SKCanvas, Source, plan)（層の順に写す）
-    R->>SK: 画像外の色（plan.Appearance.PasteboardColor）を表面全体へ塗る
+    R->>SK: 画像外の色（plan.Appearance.ResolvePasteboardColor()。 非表示時は透明）を表面全体へ塗る
     alt Source と切り出し領域が揃っている
         R->>R: EsBitmap.Crop(plan.MagnifiedImage.CropSourceRect)（描画実装が実行する）
         R->>SK: DrawImage(cropped, Source, Destination)（最近傍で拡大）

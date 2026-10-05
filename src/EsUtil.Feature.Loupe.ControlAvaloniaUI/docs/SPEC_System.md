@@ -63,7 +63,7 @@ SaveEvidence は、Windows デスクトップ上の画面をキャプチャし�
 - LoupeControl は上位 AP に依存しない（再利用可能）。
 - 色の境界変換（設定文字列 → コアの色型）は上位AP 側で行い、LoupeControl 内に文字列解析を持ち込まない（外観は `Appearance`（`LoupeAppearance`）として `System.Drawing.Color` で受け取る）。
 - 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観は提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance`）が単一所有し、本コントロールは描画（`LoupeContextPainter` を `DrawingContext` へ写す）とラベル要素の配置、状態（DP）とライフサイクル（Bitmap 生成 / 解放）を担う。
-- 表示可否（十字線・枠線・ラベル）と枠線の太さは提示層の外観（`LoupeAppearance`）が、切り出しの可否・表示サイズの決定はコアが判定・所有し、本プロジェクトはその結果で描画する。
+- 表示可否（十字線・枠線・ラベル・ペーストボード）と枠線の太さは提示層の外観（`LoupeAppearance`）が、切り出しの可否・表示サイズの決定はコアが判定・所有し、本プロジェクトはその結果で描画する。
 - `LoupeSourceResolver`（`IImage` の型判定）と中間ビットマップを生成するパイプラインは **Avalonia 固有の機構** であり、コアへ移さない（MewUI 版は同期描画のため不要）。
 - 再描画のバッチ化（`LoupeRenderCoordinator`）は中間ビットマップを持つ UI にだけ必要なため **本プロジェクトが所有する**（コアにも共有層にも置かない）。
 - 描画可否の判断（非表示なら描画しない・解放する、古い世代は反映しない）と、未実行要求の破棄と解放の手順は **`LoupeRenderCoordinator` が単一所有** する（コントロールは `RequestRender` / `CancelAndRelease` / `ShouldApply` を呼ぶだけ）。
@@ -129,7 +129,7 @@ flowchart TB
     Ctl -->|"Coerce（ClientToPixelScaling）"| Coerce
     Ctl -->|"LogUpdateError（描画の例外）"| ULog
     Ctl -->|"LogRenderCore（本 UI 固有）"| RLog
-    Ctl -->|"Rendered（描画済み Bitmap / 切り出し左上 / スケール）"| Evt
+    Ctl -->|"Rendered（描画済み Bitmap / 描画計画）"| Evt
     Pip -->|"IsSourceSupported / Resolve"| Src
     Pip -->|"Paint(context, source, plan)"| Rdr
     Pnt --> Plan
@@ -160,7 +160,7 @@ flowchart TB
     - 表示サイズ・位置: `UpdatePosition` がコアのファサード `LoupeCore.ResolveLayout` を呼び、返された `LoupeLayout`（表示サイズと表示位置）を要素（`Width` / `Height`）と `RenderTransform` へ写すだけである（表示サイズの決定・オフセット加算・親領域内への位置の補正はコアが単一所有し、`UpdatePosition` は表示サイズの唯一の反映元になる）
     - 座標単位: `Options.RequestedSize` は DIP、描画計画へ渡す表示サイズと枠線の太さも DIP（物理ピクセルへの換算は提示層が `DpiScaler.ScaleToPixel` へ委譲する）
   - 値の補正: コアの設定値（`LoupeOptions`）は型の生成時に補正される（UI は関与しない）。 環境値の `ClientToPixelScaling` のみ `coerce` コールバックで矯正する
-- **公開API**: 入力（`Source: IImage?` / `CenterPoint`）/ 設定（`Options`（コアの `LoupeOptions` が単一所有する基本サイズ・拡大率。 UI は設定値を保持しない）/ 外観（`Appearance`（`LoupeAppearance`。 `System.Drawing.Color` で受け取り描画時にブラシへ変換する）））/ 環境（`ClientToPixelScaling`）/ ログ（`Log`）/ イベント（`Rendered`・`LoupeRenderedEventArgs` で描画済み Bitmap・切り出し左上・スケールを通知。 ホストが Bitmap へオーバーレイ（線分・選択枠等）を直接描画できる）/ 操作（`Clear` / `RequestRender` / `SetCoordTransform` / `PositionOffset` / `RefreshPosition`）
+- **公開API**: 入力（`Source: IImage?` / `CenterPoint`）/ 設定（`Options`（コアの `LoupeOptions` が単一所有する基本サイズ・拡大率。 UI は設定値を保持しない）/ 外観（`Appearance`（`LoupeAppearance`。 `System.Drawing.Color` で受け取り描画時にブラシへ変換する）））/ 環境（`ClientToPixelScaling`）/ ログ（`Log`）/ イベント（`Rendered`・`LoupeRenderedEventArgs` で描画済み Bitmap と描画計画（切り出し左上・拡大率）を通知。 ホストが Bitmap へオーバーレイ（線分・選択枠等）を直接描画できる）/ 操作（`Clear` / `RequestRender` / `SetCoordTransform` / `PositionOffset` / `RefreshPosition`）
 - **依存**: LoupePresenter（描画計画と配置の写像）/ LoupeAppearance（`EsUtil.Feature.Loupe.Presenter`） / LoupeUiLogMessage（本プロジェクト） / LoupeContextPainter / LoupeRenderCoordinator / LoupeRenderPipeline / LoupeSourceResolver（本プロジェクト） / LoupeOptions / Loupe（`EsUtil.Feature.Loupe.Core`） / DrawingContext（Platform.AvaloniaUI） / Avalonia / ILogger
 
 ### 6.2 LoupeContextPainter（描画実装）
@@ -181,7 +181,7 @@ flowchart TB
 > 十字線・枠線の矩形計算、枠線の太さの換算、拡大描画の矩形計算は提示層（`EsUtil.Feature.Loupe.Presenter`）が単一所有します（MewUI 版と共用）。
 > 本プロジェクトは `DrawingContext` への写しと要素の配置を担います。
 
-> **通知契約**: `LoupeRenderedEventArgs` はホストがオーバーレイを描くのに必要な値（描画済み Bitmap・切り出し左上・スケール）を通知します。 中心座標ラベルはコントロールがテキスト要素として表示するため含みません。 表示位置・表示サイズ・拡大率・拡大中心は、消費側が存在しないため削除しました（必要になればコントロールの公開プロパティから取得できます）。
+> **通知契約**: `LoupeRenderedEventArgs` はホストがオーバーレイを描くのに必要な値（描画済み Bitmap ・描画計画）を通知します。 描画計画は切り出し領域の左上（`CaptureTopLeft`）・拡大率（`ZoomLevel`）・描画面のサイズを単一所有し、本引数は複製しません。 中心座標ラベルはコントロールがテキスト要素として表示するため含みません。 表示位置・表示サイズは、消費側が存在しないため削除しました（必要になればコントロールの公開プロパティから取得できます）。
 
 ### 6.4 画像入力とピクセル抽出
 

@@ -837,20 +837,20 @@ public class LoupeControlTests
 
         // RequestedSize=100 / ZoomLevel=2 / ClientToPixelScaling=1.0 の場合:
         // pixelSize = ceil(100×1.0) = 100, captureSize = ceil(100/2) = 50
-        // CaptureTopLeft = (100−25, 100−25) = (75, 75), Scale = ZoomLevel = 2.0
+        // CaptureTopLeft = (100−25, 100−25) = (75, 75), ZoomLevel = 2
         Assert.NotNull(args);
         Assert.NotNull(args!.Bitmap);
         Assert.Equal(100, args.Bitmap.Size.Width);
         Assert.Equal(100, args.Bitmap.Size.Height);
-        Assert.Equal(new Point(75, 75), args.CaptureTopLeft);
-        Assert.Equal(2.0, args.Scale);
+        Assert.Equal(new EsPoint(75, 75), args.Content.CaptureTopLeft);
+        Assert.Equal(2, args.Content.ZoomLevel);
     }
 
     [AvaloniaFact]
     internal async Task 描画完了通知のスケールはDisplayScalingに依存しない()
     {
         // 破線オーバーレイの位置が DPI でずれないことの回帰テスト。
-        // 描画は切り出し領域を ZoomLevel 倍で描くため、Scale は常に ZoomLevel と同値になる
+        // 描画は切り出し領域を ZoomLevel 倍で描くため、拡大率は常に ZoomLevel と同値になる
         // （DIP 表示サイズを物理ピクセルで割った値ではない）。
         var control = CreateControl();
         control.ClientToPixelScaling = 1.5;
@@ -864,7 +864,7 @@ public class LoupeControlTests
         Assert.NotNull(args);
         // RequestedSize=100 / ZoomLevel=2 / ClientToPixelScaling=1.5 → pixelSize=150, captureSize=75
         Assert.Equal(150, args!.Bitmap!.Size.Width);
-        Assert.Equal(2.0, args.Scale);
+        Assert.Equal(2, args.Content.ZoomLevel);
     }
 
     [AvaloniaFact]
@@ -879,7 +879,7 @@ public class LoupeControlTests
 
         Assert.NotNull(args!);
         Assert.NotNull(args.Bitmap);
-        Assert.Null(args.CaptureTopLeft);
+        Assert.Null(args.Content.CaptureTopLeft);
     }
 
     [AvaloniaFact]

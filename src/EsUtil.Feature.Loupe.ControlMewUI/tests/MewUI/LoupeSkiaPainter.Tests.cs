@@ -65,6 +65,25 @@ public class LoupeSkiaPainterTests
         Assert.Equal(s_backgroundPixel, target.GetPixel(1, 1));
     }
 
+    /// <summary>ペーストボードが非表示なら前フレームを消して透明にすることを 検証する。</summary>
+    /// <remarks>
+    /// 描画面を保持する UI（MewUI のキャンバス）では層を省くと前フレームが残るため、<br/>
+    /// 非表示は「描画面を透明で塗る」として実装する（<see cref="LoupeAppearance.ResolvePasteboardColor"/>）。
+    /// </remarks>
+    [Fact]
+    internal void Paint_ペーストボードが非表示なら透明で塗る()
+    {
+        using var target = new RenderTarget(LoupeSize, LoupeSize);
+        // 前フレームの残像を模して別の色で塗っておく
+        target.Canvas.Clear(s_image.ToSKColor());
+
+        Paint(target, CreateAppearance(pasteboard: s_background, showPasteboard: false), s_center);
+
+        // 透明（アルファ 0）になり、前フレームの色も残らない
+        Assert.Equal(0, target.GetPixel(16, 16).Alpha);
+        Assert.Equal(0, target.GetPixel(0, 0).Alpha);
+    }
+
     // ====================================================================
     // 拡大画像
     // ====================================================================
@@ -242,13 +261,15 @@ public class LoupeSkiaPainterTests
     /// <param name="crosshair">十字線の色。</param>
     /// <param name="showCrosshair">十字線を表示するかどうか。</param>
     /// <param name="showBorder">枠線を表示するかどうか。</param>
+    /// <param name="showPasteboard">ペーストボードを表示するかどうか。</param>
     /// <returns>描画に使う外観。</returns>
     private static LoupeAppearance CreateAppearance(
         DrawingColor? pasteboard = null,
         DrawingColor? border = null,
         DrawingColor? crosshair = null,
         bool showCrosshair = true,
-        bool showBorder = true)
+        bool showBorder = true,
+        bool showPasteboard = true)
         => LoupeAppearance.Default with
         {
             PasteboardColor = pasteboard ?? DrawingColor.Transparent,
@@ -257,6 +278,7 @@ public class LoupeSkiaPainterTests
             BorderThickness = 2,
             ShowCrosshair = showCrosshair,
             ShowBorder = showBorder,
+            ShowPasteboard = showPasteboard,
             ShowCoordLabel = false,
         };
 

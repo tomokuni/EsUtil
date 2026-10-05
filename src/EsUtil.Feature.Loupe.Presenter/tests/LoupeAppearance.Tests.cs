@@ -82,7 +82,22 @@ public class LoupeAppearanceTests
 
         Assert.Equal(DrawingColor.FromArgb(255, 0x53, 0x53, 0x53), paint.PasteboardColor);
     }
+    /// <summary>ペーストボードの表示可否が描画面を塗る色を決めることを検証 する。</summary>
+    /// <param name="show">表示の設定。</param>
+    /// <remarks>
+    /// 非表示でも「透明で塗る」（描画層は層を省かない）: 描画面を保持する UI では前フレームの内容が残るため、<br/>
+    /// 層を省くとゴーストになる。 したがって非表示の期待値は「透明色」であって「塗らない」ではない。
+    /// </remarks>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    internal void ResolvePasteboardColor_表示可否で塗る色が決まる(bool show)
+    {
+        var color = DrawingColor.FromArgb(255, 1, 2, 3);
+        var paint = new LoupeAppearance { PasteboardColor = color, ShowPasteboard = show };
 
+        Assert.Equal(show ? color : DrawingColor.Transparent, paint.ResolvePasteboardColor());
+    }
     [Fact]
     internal void with式で一部だけ変更できる()
     {

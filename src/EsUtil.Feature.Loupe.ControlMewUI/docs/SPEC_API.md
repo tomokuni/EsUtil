@@ -53,7 +53,8 @@
 | `BorderThickness` | `int` | 2 | 1〜64 | 枠線の太さ（DIP） |
 | `ShowCrosshair` / `ShowBorder` | `bool` | `true` | — | 十字線・枠線の表示可否（透明色を「描かない」の代用にしない） |
 | `ShowCoordLabel` | `bool` | `true` | — | 左上の座標ラベルの表示可否（中心未設定時は描画しない） |
-| `PasteboardColor` | `DrawingColor` | 中性グレー（`#FF535353`） | — | 画像外（ペーストボード）の色。 拡大画像より先に表面全体へ塗るため、画像の無い部分が本色の無地になる |
+| `ShowPasteboard` | `bool` | `true` | — | 画像外（ペーストボード）の表示可否（非表示でも描画面を透明で塗る） |
+| `PasteboardColor` | `DrawingColor` | 中性グレー（`#FF535353`） | — | 画 像外（ペーストボード）の色。 描画面を置き換えて前フレームの残像を残さない（非表示時は透明で塗る） |
 | `CrossColor` | `DrawingColor` | 赤 40%（`#66FF0000`） | — | 十字線の色（不透明度はアルファ） |
 | `BorderColor` | `DrawingColor` | LightGray | — | 枠線の色 |
 | `CoordLabelColor` | `DrawingColor` | 白 | — | 座標ラベルの文字色 |
@@ -122,13 +123,11 @@
 | メンバー | 型 | 説明 |
 | --- | --- | --- |
 | `Canvas` | `SKCanvas` | ルーペを描画したキャンバス（座標系はルーペ画像のピクセル） |
-| `ClientPixelSize` | `int` | 実際に描画したルーペの一辺のサイズ（物理ピクセル。 `Options.RequestedSize` × `ClientToPixelScaling` を切り上げ・最低 1） |
-| `CaptureTopLeft` | `EsPoint?` | 切り出し領域の左上（対象座標）。 中心未設定時は null（オーバーレイを描画できない） |
-| `Scale` | `double` | 対象座標 → ルーペ画像ピクセル座標の変換係数（拡大率と同値。 DPI スケーリングの影響を受けない） |
+| `Content` | `LoupeDrawPlan` | 実際に描画した描画計画（切り出し領域の左上 `CaptureTopLeft`・拡大率 `ZoomLevel`・描画面のサイズ `ClientPixelSize` を持つ） |
 
 描画入力（`LoupeGeometry`）の組み立てはコアのファサード（`LoupeCore.ResolveGeometry`）が単一所有し、コントロールは現在の状態を渡すだけです。
 
-オーバーレイの描画位置は `(対象座標 − CaptureTopLeft) × Scale` で求めます（切り出し領域と倍率の計算は Avalonia 版と同じコアの計算を共有します）。
+オーバーレイの描画位置は `e.Content.CaptureTopLeft` と `e.Content.ZoomLevel` から `(対象座標 − CaptureTopLeft) × ZoomLevel` で求めます （切り出し領域と倍率の計算は Avalonia 版と同じコアの計算を共有します）。
 
 ## 8. ログ
 

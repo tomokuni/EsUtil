@@ -49,7 +49,7 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 - 古い描画結果の自動破棄
 - 非表示時の生成Bitmap解放
 - `ILogger` によるエラー通知
-- 描画完了通知イベント（`Rendered`・`LoupeRenderedEventArgs` で描画済み Bitmap・切り出し左上・スケールを通知。 ホスト側のオーバーレイ描画用。 線分・選択矩形等の破線はホストが描画済み Bitmap へ直接描く）
+- 描画完了通知イベント（`Rendered`・`LoupeRenderedEventArgs` で描画済み Bitmap と描画計画（切り出し左上・拡大率）を通知。 ホスト側のオーバーレイ描画用。 線分・選択矩形等の破線はホストが描画済み Bitmap へ直接描く）
 - 中心座標ラベルはコントロールが **`Border` + `TextBlock` の子要素として配置**します（文言・表示可否はコア、実寸 → 配置矩形の写像は描画層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter`（`LabelPlan` partial））、実寸測定は `FormattedText`、描画順はコアの `LoupeDrawLayer` が単一所有）
 - **座標変換ポート（`SetCoordTransform(ICoordTransform?)` + `PositionOffset`）**: MarqueeControl と同方式。 表示位置（`RenderTransform`）と表示サイズ（要求サイズ）をレイアウト時に自己計算（ウィンドウサイズ変更・ズーム・スクロールに追従）
 - **`RefreshPosition()`**: パン・ズーム等のレイアウト非変更なビューポート変化時に、表示位置・サイズを再計算（座標変換ポートは呼び出し毎に最新の表示状態を評価）

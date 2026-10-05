@@ -42,6 +42,23 @@ public sealed record LoupeAppearance
     /// <remarks>描画層は本色で描画面全体を塗ってから拡大画像を重ねる（画像の無い部分が本色の無地になる）。</remarks>
     public DrawingColor PasteboardColor { get; init; } = DrawingColor.FromArgb(255, 0x53, 0x53, 0x53);
 
+    /// <summary>画像外（ペーストボード）を表示するかどうかを取得する。</summary>
+    /// <value>true（既定）の場合は <see cref="PasteboardColor"/> で描画面全体を塗る。 false の場合は塗らない（透明）。</value>
+    /// <remarks>
+    /// 描画の可否を本値が単一所有する（色のアルファを「描くかどうか」の代用にしない）。<br/>
+    /// <b>非表示でも描画層は描画面を塗る</b>（色を透明にする）: 描画面を保持する UI では前フレームの内容が残るため、<br/>
+    /// 層を省くとゴーストになる（<see cref="ResolvePasteboardColor"/> が透明を返し、その色で塗る）。
+    /// </remarks>
+    public bool ShowPasteboard { get; init; } = true;
+
+    /// <summary>描画層が描画面を塗る色（ペーストボード）を解決する。</summary>
+    /// <returns>表示する場合は <see cref="PasteboardColor"/>。 非表示の場合は透明。</returns>
+    /// <remarks>
+    /// 判断と色を本型が単一所有する（描画実装は返された色で描画面を塗るだけであり、分岐を持たない）。<br/>
+    /// 非表示でも透明で塗る（<see cref="LoupeDrawLayer.Pasteboard"/> の層は常に含まれる）。
+    /// </remarks>
+    public DrawingColor ResolvePasteboardColor() => ShowPasteboard ? PasteboardColor : DrawingColor.Transparent;
+
     /// <summary>枠線の色を取得する。</summary>
     /// <value>アルファを含む色。 既定は LightGray（#FFD3D3D3）。</value>
     public DrawingColor BorderColor { get; init; } = DrawingColor.FromArgb(255, 0xD3, 0xD3, 0xD3);
