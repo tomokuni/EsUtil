@@ -1,9 +1,9 @@
+using EsUtil.Feature.Loupe.Core.Logging;
 using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
-using EsUtil.Feature.Loupe.Core.Logging;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
 
 
@@ -91,6 +91,22 @@ public sealed partial class LoupeCore
             field = value.OrNullLogger();
             LogCreatedOnce();
             Log.LogLoggerAttached();
+        }
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[Loupe]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    /// <remarks>
+    /// 本コアのログ定義（<see cref="LoupeLogMessage"/>）の接頭辞を設定する（本層は最下層のため伝搬先は無い）。<br/>
+    /// 設定した接頭辞は以降のログの先頭に付く（未設定時は <see cref="LoupeLogMessage.DefaultPrefix"/>）。
+    /// </remarks>
+    public string? LogPrefix
+    {
+        get => field;
+        set
+        {
+            field = value;
+            LoupeLogMessage.Prefix = string.IsNullOrWhiteSpace(value) ? LoupeLogMessage.DefaultPrefix : value;
         }
     }
 
@@ -185,9 +201,18 @@ public sealed partial class LoupeCore
     /// </remarks>
     public void SetCoordTransform(ICoordTransform? port)
     {
-        var previous = _coordPort;
-        _coordPort = port;
-        Log.LogCoordTransformChanged(previous, port);
+        try
+        {
+            var previous = _coordPort;
+            _coordPort = port;
+            Log.LogCoordTransformChanged(previous, port);
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
+            Log.LogOperationError(ex, nameof(SetCoordTransform));
+            throw;
+        }
     }
 
     // ====================================================================

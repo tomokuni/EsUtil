@@ -1,5 +1,5 @@
-using DrawingColor = System.Drawing.Color;
 using static EsUtil.Feature.Marquee.MarqueeCore.Limits;
+using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Feature.Marquee;
 
@@ -33,12 +33,12 @@ public sealed record MarqueeAppearance
     /// ラベルは文字 + 背景の小さなチップであり、その見た目はラベルの種類を跨いで共通である<br/>
     /// （サイズ・カーソル座標・ホストの付加情報が同じ画面に並ぶため、片方だけ色が違うと体裁が崩れる）。
     /// </remarks>
-    private static readonly DrawingColor LabelTextColorDefault = DrawingColor.White;
+    private static readonly DrawingColor s_labelTextColorDefault = DrawingColor.White;
 
     /// <summary>ラベルの背景色の既定値（黒 60%）。</summary>
     /// <value>アルファを含む色。 既定は黒 60%（<c>#99000000</c>）。</value>
     /// <remarks>背景はチップとして文字を読ませるための帯であり、下の画像を完全には隠さない濃度にする。</remarks>
-    private static readonly DrawingColor LabelBackgroundColorDefault = DrawingColor.FromArgb(153, 0, 0, 0);
+    private static readonly DrawingColor s_labelBackgroundColorDefault = DrawingColor.FromArgb(153, 0, 0, 0);
 
     /// <summary>すべての項目を既定値にした外観。</summary>
     /// <value>既定の外観（部分変更の基点として使用する）。</value>
@@ -67,19 +67,19 @@ public sealed record MarqueeAppearance
 
     /// <summary>サイズラベルの文字色を取得する。</summary>
     /// <value>ラベルの文字色。 既定は白。</value>
-    public DrawingColor SizeLabelColor { get; init; } = LabelTextColorDefault;
+    public DrawingColor SizeLabelColor { get; init; } = s_labelTextColorDefault;
 
     /// <summary>サイズラベルの背景色を取得する。</summary>
     /// <value>ラベルの背景色。 既定は黒 60%（<c>#99000000</c>）。</value>
-    public DrawingColor SizeLabelBackgroundColor { get; init; } = LabelBackgroundColorDefault;
+    public DrawingColor SizeLabelBackgroundColor { get; init; } = s_labelBackgroundColorDefault;
 
     /// <summary>カーソル座標ラベルの文字色を取得する。</summary>
     /// <value>ラベルの文字色。 既定は白。</value>
-    public DrawingColor CoordLabelColor { get; init; } = LabelTextColorDefault;
+    public DrawingColor CoordLabelColor { get; init; } = s_labelTextColorDefault;
 
     /// <summary>カーソル座標ラベルの背景色を取得する。</summary>
     /// <value>ラベルの背景色。 既定は黒 60%（<c>#99000000</c>）。</value>
-    public DrawingColor CoordLabelBackgroundColor { get; init; } = LabelBackgroundColorDefault;
+    public DrawingColor CoordLabelBackgroundColor { get; init; } = s_labelBackgroundColorDefault;
 
     /// <summary>暗転マスク（オーバーレイ）の色を取得する。</summary>
     /// <value>アルファを含む色。 既定は黒 50%（<c>#80000000</c>）。</value>

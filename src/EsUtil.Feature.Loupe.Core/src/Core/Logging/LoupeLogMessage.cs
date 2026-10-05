@@ -28,6 +28,29 @@ internal static partial class LoupeLogMessage
     /// <summary>座標変換ポートの設定名（ログの項目名）。</summary>
     private const string CoordTransformName = "CoordTransform";
 
+    /// <summary>接頭辞の既定値（ホストが設定しない場合に使う）。</summary>
+    internal const string DefaultPrefix = "[Loupe]";
+
+    /// <summary>適用する接頭辞（ホストが <c>LogPrefix</c> で設定する）。</summary>
+    internal static string Prefix { get; set; } = DefaultPrefix;
+
+    /// <summary>公開ファサードの操作で例外が発生したことを記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Error<br/>出力書式: <c>[Loupe] {Operation} で例外が発生</c>（例外スタックトレース付き）</remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="exception">発生した例外。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
+    [LoggerMessage(LogLevel.Error, "{Prefix} {Operation} で例外が発生")]
+    private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
+
+    /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="exception">発生した例外。</param>
+    /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
+    /// <remarks>公開ファサードが例外を集約して記録し、上位へ伝搬するために使う（[`例外処理規約.md`] §4）。</remarks>
+    internal static void LogOperationError(this ILogger logger, Exception exception, string operation)
+        => logger.LogOperationErrorCore(exception, Prefix, operation);
+
     /// <summary>ファサードの生成（生成時の設定）を記録する。</summary>
     /// <remarks>
     /// LogLevel: Information<br/>
@@ -37,10 +60,18 @@ internal static partial class LoupeLogMessage
     /// どちらの経路でも生成時の設定を 1 度だけ記録し、どの設定で生成されたファサードからのログかを追えるようにする）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="requestedSize">生成時の要求サイズ（DIP）。</param>
     /// <param name="zoomLevel">生成時の拡大率。</param>
-    [LoggerMessage(LogLevel.Information, "[Loupe] Facade created: RequestedSize={RequestedSize}, ZoomLevel={ZoomLevel}")]
-    internal static partial void LogFacadeCreated(this ILogger logger, int requestedSize, int zoomLevel);
+    [LoggerMessage(LogLevel.Information, "{Prefix} Facade created: RequestedSize={RequestedSize}, ZoomLevel={ZoomLevel}")]
+    private static partial void LogFacadeCreatedCore(this ILogger logger, string prefix, int requestedSize, int zoomLevel);
+
+    /// <summary>ファサードの生成（生成時の設定）を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="requestedSize">生成時の要求サイズ（DIP）。</param>
+    /// <param name="zoomLevel">生成時の拡大率。</param>
+    internal static void LogFacadeCreated(this ILogger logger, int requestedSize, int zoomLevel)
+        => logger.LogFacadeCreatedCore(Prefix, requestedSize, zoomLevel);
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
     /// <remarks>
@@ -48,17 +79,31 @@ internal static partial class LoupeLogMessage
     /// ログの出力を開始した契機を残す（以降の設定変更のログがどの時点から有効かを追えるようにする）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    [LoggerMessage(LogLevel.Debug, "[Loupe] Logger attached")]
-    internal static partial void LogLoggerAttached(this ILogger logger);
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix} Logger attached")]
+    private static partial void LogLoggerAttachedCore(this ILogger logger, string prefix);
+
+    /// <summary>出力先（ロガー）の設定を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    internal static void LogLoggerAttached(this ILogger logger) => logger.LogLoggerAttachedCore(Prefix);
 
     /// <summary>設定値変更のログ（変更前後）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Loupe] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "[Loupe] Setting: {Name} {OldValue} → {NewValue}")]
-    internal static partial void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue);
+    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
+
+    /// <summary>設定値変更のログ（変更前後。 整形済みの値を渡す）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="name">設定名。</param>
+    /// <param name="oldValue">変更前の値（整形済み）。</param>
+    /// <param name="newValue">変更後の値（整形済み）。</param>
+    internal static void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue)
+        => logger.LogSettingChangedCore(Prefix, name, oldValue, newValue);
 
     /// <summary>頻度の高い設定値変更のログ（変更前後。 最も低いレベルで出力する）。</summary>
     /// <remarks>
@@ -68,11 +113,20 @@ internal static partial class LoupeLogMessage
     /// 出力書式: <c>[Loupe] Setting: {Name} {OldValue} → {NewValue}</c>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Trace, "[Loupe] Setting: {Name} {OldValue} → {NewValue}")]
-    internal static partial void LogSettingChangedTrace(this ILogger logger, string name, string oldValue, string newValue);
+    [LoggerMessage(LogLevel.Trace, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    private static partial void LogSettingChangedTraceCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
+
+    /// <summary>頻度の高い設定値変更のログ（変更前後。 最も低いレベルで出力する）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="name">設定名。</param>
+    /// <param name="oldValue">変更前の値（整形済み）。</param>
+    /// <param name="newValue">変更後の値（整形済み）。</param>
+    internal static void LogSettingChangedTrace(this ILogger logger, string name, string oldValue, string newValue)
+        => logger.LogSettingChangedTraceCore(Prefix, name, oldValue, newValue);
 
     /// <summary>整数設定値の変更ログ（同値の再設定では出力しない）。</summary>
     /// <remarks>

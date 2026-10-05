@@ -124,7 +124,7 @@ flowchart TD
 | `src/EsUtil.Feature.Marquee.Presenter/src/MarqueePresenter.LabelTexts.cs` | `MarqueePresenter`（`LabelTexts` partial） | internal | サイズラベル・カーソル座標ラベルの文言と基準点 |
 | `src/EsUtil.Feature.Marquee.Presenter/src/MarqueePresenter.LabelPlan.cs` | `MarqueePresenter`（`LabelPlan` partial） | internal | 実寸 → ラベル要素の配置指示の写像 |
 | `src/EsUtil.Feature.Marquee.Presenter/src/MarqueeLabelPlacement.cs` | `MarqueeLabelPlacement` | public readonly record struct | ラベル要素の配置指示 |
-| `src/EsUtil.Feature.Marquee.Presenter/src/Presenter/Logging/MarqueePresenterLogMessage.cs` | `MarqueePresenterLogMessage` | internal static partial | 本層のログ定義（生成・ロガー設定・本層が単一所有する設定の変更・コアへの転送） |
+| `src/EsUtil.Feature.Marquee.Presenter/src/Presenter/Logging/MarqueeLogMessage.cs` | `MarqueeLogMessage` | internal static partial | 本層のログ定義（生成・ロガー設定・本層が単一所有する設定の変更・コアへの転送） |
 
 ## 5. 例外処理ポリシー
 
@@ -138,7 +138,7 @@ flowchart TD
 ## 6. 可視性ポリシー
 
 - UI 層とホストが使う面（`MarqueePresenter` / `MarqueeAppearance` / `MarqueeDrawPlan` / `MarqueeDrawLayer` / `MarqueeLabelPlacement`）は `public` とします。 **本層の内部手順だけが使う型は `internal`** とします（`MarqueeTextPlacement`。 ファサードから推移的に到達できない型は公開面ではない）。
-- **本層の内部手順は `internal`** とします（`MarqueePresenter` の `DrawPlan` / `LabelPlan` / `LabelTexts` partial のメンバーと `MarqueePresenterLogMessage`）。 UI 層は解決済みの値（`MarqueeDrawPlan` の矩形・`Labels`）を受け取るため、これらを参照する必要がありません。 **`partial` はファイル分割であって可視性ではなく**、実寸 → 配置の写像（`ResolveLabelPlacements`）も内部手順です。 単体テストにのみ `InternalsVisibleTo`（`EsUtil.Feature.Marquee.Presenter.Tests`）で公開します。
+- **本層の内部手順は `internal`** とします（`MarqueePresenter` の `DrawPlan` / `LabelPlan` / `LabelTexts` partial のメンバーと `MarqueeLogMessage`）。 UI 層は解決済みの値（`MarqueeDrawPlan` の矩形・`Labels`）を受け取るため、これらを参照する必要がありません。 **`partial` はファイル分割であって可視性ではなく**、実寸 → 配置の写像（`ResolveLabelPlacements`）も内部手順です。 単体テストにのみ `InternalsVisibleTo`（`EsUtil.Feature.Marquee.Presenter.Tests`）で公開します。
 - **クラスが `internal` の場合、そのメンバーも `internal` とします**（`public` と書いても外部から見えないため、可視性の宣言を実態と一致させる）。
 - `[EditorBrowsable]` による「見えにくくする」対処は行いません（公開面も契約も変わらず、見つけにくくなるだけのため）。
 
@@ -173,7 +173,7 @@ dotnet test src/EsUtil.Feature.Marquee.Presenter/tests/EsUtil.Feature.Marquee.Pr
 
 ## 9. ログ
 
-- 本層が単一所有する設定（外観・表示スケーリング係数）の変更は、本層が記録します（`MarqueePresenterLogMessage`）。
+- 本層が単一所有する設定（外観・表示スケーリング係数）の変更は、本層が記録します（`MarqueeLogMessage`）。
 - 出力先は `MarqueePresenter.Log`（コアのファサードが保持するロガー）です（ホストは 1 回設定するだけで、コアと本層のログが同じ基盤へ出ます）。 **コンストラクターからの注入も可能**です。
 - **出力の方針**（頻度でレベルを分ける）:
 

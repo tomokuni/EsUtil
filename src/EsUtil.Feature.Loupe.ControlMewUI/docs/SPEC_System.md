@@ -294,7 +294,7 @@ sequenceDiagram
 
 | レベル | 出力元 |
 | --- | --- |
-| Debug | `Source` / `CenterPoint` / `RequestedSize` / `ClientToPixelScaling` / `ZoomLevel` の変更（補正後の値を渡す。 変化判定（同一値・同一インスタンスなら出力しない）は出力する主体のログ定義（Source は本プロジェクトの `LoupeUiLogMessage`、外観は提示層の `LoupePresenterLogMessage`、他はコアの `LoupeLogMessage`）が単一所有し、UI 層は設定の前後を渡すだけ。 設定の変更は変化した項目だけを出力する） |
+| Debug | `Source` / `CenterPoint` / `RequestedSize` / `ClientToPixelScaling` / `ZoomLevel` の変更（補正後の値を渡す。 変化判定（同一値・同一インスタンスなら出力しない）は出力する主体のログ定義（Source は本プロジェクトの `LoupeLogMessage`、外観は提示層の `LoupePresenterLogMessage`、他はコアの `LoupeLogMessage`）が単一所有し、UI 層は設定の前後を渡すだけ。 設定の変更は変化した項目だけを出力する） |
 | Error | 描画処理の例外（アプリを落とさずログへ記録して描画を中止する） |
 
 Avalonia 版の Trace ログ（再描画パイプライン）は持ちません（MewUI 版は中間ビットマップを作らず同期描画するため）。  

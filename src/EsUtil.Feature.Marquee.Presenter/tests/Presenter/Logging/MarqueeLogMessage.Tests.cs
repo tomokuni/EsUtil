@@ -1,16 +1,16 @@
+using EsUtil.Feature.Marquee.Presenter.Logging;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
-using EsUtil.Feature.Marquee.Presenter.Logging;
 
 namespace EsUtil.Feature.Marquee.Tests.Presenter.Logging;
 
-/// <summary><see cref="MarqueePresenterLogMessage"/> の単体テスト（外観の変更ログ）。</summary>
+/// <summary><see cref="MarqueeLogMessage"/> の単体テスト（外観の変更ログ）。</summary>
 /// <remarks>
 /// 「値を所有する主体が記録する」規則により、提示層が単一所有する外観（<see cref="MarqueeAppearance"/>）の変更を<br/>
 /// 本層が記録する。<b>変化した項目だけ</b>を出力する（外観の再適用でログが溢れないため）。<br/>
 /// ログは UI 初期化なしで検証できる（LoggerMessage の定義は UI フレームワークに依存しない）。
 /// </remarks>
-public class MarqueePresenterLogMessageTests
+public class MarqueeLogMessageTests
 {
     [Fact]
     internal void LogAppearanceChanged_変化した項目だけを記録する()

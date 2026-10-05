@@ -2,17 +2,17 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using EsUtil.Feature.Marquee.Core.Contract;
 using EsUtil.Platform.Core;
-using EsUtil.Platform.Core.Native;
-using EsUtil.Platform.Core.Native.Win;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native;
+using EsUtil.Platform.Core.Native.Win;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Coord;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using static EsUtil.Feature.Marquee.MarqueeCore.Limits;
-using EsUtil.Feature.Marquee.Core.Contract;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Coord;
 
 
 namespace EsUtil.Feature.Marquee.AvaloniaUI;
@@ -334,6 +334,26 @@ public sealed partial class MarqueeControl : Panel
         set => _marquee.Log = value;
     }
 
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[Marquee]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    /// <remarks>
+    /// 本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、提示層・コアへ伝搬する<br/>
+    /// （集約した接頭辞で全層のログを揃える）。
+    /// </remarks>
+    public string? LogPrefix
+    {
+        get => _logPrefix;
+        set
+        {
+            _logPrefix = value;
+            MarqueeLogMessage.Prefix = string.IsNullOrWhiteSpace(value) ? MarqueeLogMessage.DefaultPrefix : value;
+            _marquee.LogPrefix = value;
+        }
+    }
+
+    /// <summary>ログの接頭辞（未設定は null。 既定値は定義クラスが持つ）。</summary>
+    private string? _logPrefix;
+
     // ====================================================================
     // イベント
     // ====================================================================
@@ -561,7 +581,19 @@ public sealed partial class MarqueeControl : Panel
     /// 変換関数は呼び出し毎に評価されるため、ズーム・スクロール等の動的変化を反映できる。<br/>
     /// 座標変換の変更は描画（選択矩形・ハンドル・十字線）へ即時反映されるため、再描画を要求する。
     /// </remarks>
-    public void SetCoordTransform(ICoordTransform? port) => _marquee.SetCoordTransform(port);
+    public void SetCoordTransform(ICoordTransform? port)
+    {
+        try
+        {
+            _marquee.SetCoordTransform(port);
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
+            Log.LogOperationError(ex, nameof(SetCoordTransform));
+            throw;
+        }
+    }
 
     /// <summary>選択矩形を外部状態から復元する。</summary>
     /// <param name="rect">選択矩形（対象座標）。</param>
@@ -569,18 +601,52 @@ public sealed partial class MarqueeControl : Panel
     /// 状態の更新と通知はコア（ファサード）が担う（<see cref="MarqueeOptions.ClampToSourceBounds"/> が有効な場合は境界内へクリップしてから設定する）。<br/>
     /// 設定後は <see cref="SelectionChanged"/> が発火し、再描画される。
     /// </remarks>
-    public void SetSelection(Rect rect) => _marquee.SetSelection(rect.ToEsRect());
+    public void SetSelection(Rect rect)
+    {
+        try
+        {
+            _marquee.SetSelection(rect.ToEsRect());
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
+            Log.LogOperationError(ex, nameof(SetSelection));
+            throw;
+        }
+    }
 
     /// <summary>選択状態と nudge 状態を初期化する。</summary>
     /// <remarks>状態の初期化はコア（ファサード）が担う（再描画される）。</remarks>
-    public void ResetSelection() => _marquee.ResetSelection();
+    public void ResetSelection()
+    {
+        try
+        {
+            _marquee.ResetSelection();
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            Log.LogOperationError(ex, nameof(ResetSelection));
+            throw;
+        }
+    }
 
     /// <summary>キャンセル要求を処理する（Escape キーと同じ条件）。</summary>
     /// <remarks>
     /// 外部（ホスト）が選択操作をキャンセルする際に呼ぶ。<br/>
     /// ドラッグ中 / 選択ありの場合は選択破棄を実施した後に <see cref="CancelRequested"/> を発火する。
     /// </remarks>
-    public void RequestCancel() => _marquee.RequestCancel();
+    public void RequestCancel()
+    {
+        try
+        {
+            _marquee.RequestCancel();
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            Log.LogOperationError(ex, nameof(RequestCancel));
+            throw;
+        }
+    }
 
     /// <summary>外部（ホスト）からの確定要求を処理する（Enter キーと同じ条件）。</summary>
     /// <remarks>
@@ -588,7 +654,18 @@ public sealed partial class MarqueeControl : Panel
     /// ドラッグ中は無視し、選択確定後のみ <see cref="ConfirmRequested"/>（選択矩形 + Snapshot 付き）を発行する。<br/>
     /// 確定後に選択状態をクリアする（確定後の再ドラッグ・再確定を防ぐ）。
     /// </remarks>
-    public void RequestConfirm() => _marquee.RequestConfirm();
+    public void RequestConfirm()
+    {
+        try
+        {
+            _marquee.RequestConfirm();
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            Log.LogOperationError(ex, nameof(RequestConfirm));
+            throw;
+        }
+    }
 
     // ====================================================================
     // コアとの連携（効果の適用先・通知の転送）

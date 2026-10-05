@@ -1,5 +1,5 @@
-using DrawingColor = System.Drawing.Color;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
+using DrawingColor = System.Drawing.Color;
 
 
 namespace EsUtil.Feature.Loupe;
@@ -26,12 +26,12 @@ public sealed record LoupeAppearance
 {
     /// <summary>中心座標ラベルの文字色の既定値（白）。</summary>
     /// <value>アルファを含む色。 既定は白（不透明）。</value>
-    private static readonly DrawingColor LabelTextColorDefault = DrawingColor.White;
+    private static readonly DrawingColor s_labelTextColorDefault = DrawingColor.White;
 
     /// <summary>中心座標ラベルの背景色の既定値（黒 60%）。</summary>
     /// <value>アルファを含む色。 既定は黒 60%（<c>#99000000</c>）。</value>
     /// <remarks>背景はチップとして文字を読ませるための帯であり、下の画像を完全には隠さない濃度にする。</remarks>
-    private static readonly DrawingColor LabelBackgroundColorDefault = DrawingColor.FromArgb(153, 0, 0, 0);
+    private static readonly DrawingColor s_labelBackgroundColorDefault = DrawingColor.FromArgb(153, 0, 0, 0);
 
     /// <summary>すべての色を既定値にした設定。</summary>
     /// <value>既定の色（部分変更の基点として使用する）。</value>
@@ -69,11 +69,11 @@ public sealed record LoupeAppearance
 
     /// <summary>中心座標ラベルの文字色を取得する。</summary>
     /// <value>アルファを含む色。 既定は白。</value>
-    public DrawingColor CoordLabelColor { get; init; } = LabelTextColorDefault;
+    public DrawingColor CoordLabelColor { get; init; } = s_labelTextColorDefault;
 
     /// <summary>中心座標ラベルの背景色を取得する。</summary>
     /// <value>アルファを含む色。 既定は黒 60%（#99000000）。</value>
-    public DrawingColor CoordLabelBackgroundColor { get; init; } = LabelBackgroundColorDefault;
+    public DrawingColor CoordLabelBackgroundColor { get; init; } = s_labelBackgroundColorDefault;
 
     /// <summary>中心座標ラベルのフォントサイズ（DIP）を取得する。</summary>
     /// <value>フォントサイズ（DIP）。 6〜48 へ補正済み。 既定は 12.0。</value>

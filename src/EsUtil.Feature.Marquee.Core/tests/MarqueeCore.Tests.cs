@@ -1,12 +1,12 @@
+using EsUtil.Feature.Marquee.Core.Contract;
+using EsUtil.Feature.Marquee.Core.Interaction;
 using EsUtil.Platform.Core;
-using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
-using EsUtil.Feature.Marquee.Core.Contract;
-using EsUtil.Feature.Marquee.Core.Interaction;
 
 namespace EsUtil.Feature.Marquee.Tests;
 

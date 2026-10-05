@@ -18,10 +18,33 @@ namespace EsUtil.Feature.Loupe.Presenter.Logging;
 /// ログ基盤（ファイル出力・レベル制御）はホストアプリケーションが所有する（本クラスは定義のみ）。<br/>
 /// 各メソッドは <see cref="ILogger"/> の拡張メソッド（<c>this ILogger</c> 第一引数）として定義し、呼び出し側では logger 引数を省略する。
 /// </remarks>
-internal static partial class LoupePresenterLogMessage
+internal static partial class LoupeLogMessage
 {
     /// <summary>未設定を表す文字列。</summary>
     private const string Null = "null";
+
+    /// <summary>接頭辞の既定値（ホストが設定しない場合に使う）。</summary>
+    internal const string DefaultPrefix = "[Loupe]";
+
+    /// <summary>適用する接頭辞（ホストが <c>LogPrefix</c> で設定する）。</summary>
+    internal static string Prefix { get; set; } = DefaultPrefix;
+
+    /// <summary>公開ファサードの操作で例外が発生したことを記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Error<br/>出力書式: <c>[Loupe] {Operation} で例外が発生</c>（例外スタックトレース付き）</remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="exception">発生した例外。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
+    [LoggerMessage(LogLevel.Error, "{Prefix} {Operation} で例外が発生")]
+    private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
+
+    /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="exception">発生した例外。</param>
+    /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
+    /// <remarks>公開ファサードが例外を集約して記録し、上位へ伝搬するために使う（[`例外処理規約.md`] §4）。</remarks>
+    internal static void LogOperationError(this ILogger logger, Exception exception, string operation)
+        => logger.LogOperationErrorCore(exception, Prefix, operation);
 
     /// <summary>提示層の生成を記録する。</summary>
     /// <remarks>
@@ -29,8 +52,12 @@ internal static partial class LoupePresenterLogMessage
     /// 生成時点では出力先が未設定のため、<b>ロガーが設定された時点で 1 度だけ</b>記録する。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    [LoggerMessage(LogLevel.Information, "[Loupe] Presenter created")]
-    internal static partial void LogPresenterCreated(this ILogger logger);
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    [LoggerMessage(LogLevel.Information, "{Prefix} Presenter created")]
+    private static partial void LogPresenterCreatedCore(this ILogger logger, string prefix);
+
+    internal static void LogPresenterCreated(this ILogger logger)
+        => logger.LogPresenterCreatedCore(Prefix);
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
     /// <remarks>
@@ -38,8 +65,12 @@ internal static partial class LoupePresenterLogMessage
     /// 本層はロガーをコアへ伝搬するだけであり、値の変換を行わない（通過の確認を Trace で残す）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    [LoggerMessage(LogLevel.Trace, "[Loupe] Logger attached")]
-    internal static partial void LogLoggerAttached(this ILogger logger);
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    [LoggerMessage(LogLevel.Trace, "{Prefix} Logger attached")]
+    private static partial void LogLoggerAttachedCore(this ILogger logger, string prefix);
+
+    internal static void LogLoggerAttached(this ILogger logger)
+        => logger.LogLoggerAttachedCore(Prefix);
 
     /// <summary>コアへ伝搬した値を記録する（本層を通過した確認用）。</summary>
     /// <remarks>
@@ -48,10 +79,14 @@ internal static partial class LoupePresenterLogMessage
     /// 設定（値が変化したときにのみ意味を持つもの）は <see cref="LogAppearanceChanged"/> が Debug で記録する。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">値の名前（項目名）。</param>
     /// <param name="value">整形済みの値。</param>
-    [LoggerMessage(LogLevel.Trace, "[Loupe] Forwarded: {Name} {Value}")]
-    internal static partial void LogForwarded(this ILogger logger, string name, string value);
+    [LoggerMessage(LogLevel.Trace, "{Prefix} Forwarded: {Name} {Value}")]
+    private static partial void LogForwardedCore(this ILogger logger, string prefix, string name, string value);
+
+    internal static void LogForwarded(this ILogger logger, string name, string value)
+        => logger.LogForwardedCore(Prefix, name, value);
 
     /// <summary>設定（<see cref="LoupeOptions"/>）をコアへ伝搬したことを記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
@@ -88,11 +123,15 @@ internal static partial class LoupePresenterLogMessage
     /// <summary>設定値変更のログ（変更前後）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Loupe] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "[Loupe] Setting: {Name} {OldValue} → {NewValue}")]
-    internal static partial void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue);
+    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
+
+    internal static void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue)
+        => logger.LogSettingChangedCore(Prefix, name, oldValue, newValue);
 
     /// <summary>整数設定値の変更ログ（同値の再設定では出力しない）。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>

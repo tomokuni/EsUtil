@@ -1,12 +1,12 @@
+using System.Globalization;
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
-using static EsUtil.Feature.Loupe.LoupeCore.Limits;
 using EsUtil.Platform.Core.Geometry;
-using System.Globalization;
+using EsUtil.SaveEvidence.Platform.Skia;
 using SkiaSharp;
 using Xunit;
+using static EsUtil.Feature.Loupe.LoupeCore.Limits;
 using DrawingColor = System.Drawing.Color;
-using EsUtil.SaveEvidence.Platform.Skia;
 
 
 namespace EsUtil.Feature.Loupe.MewUI.Tests;

@@ -84,7 +84,7 @@ sequenceDiagram
 | `src/EsUtil.Feature.Loupe.Presenter/src/LoupeLabelPlacement.cs` | `LoupeLabelPlacement` | public | ラベル要素の配置指示 |
 | `src/EsUtil.Feature.Loupe.Presenter/src/LoupePresenter.LabelPlan.cs` | `LoupePresenter`（`LabelPlan` partial） | internal | 実寸 → 配置指示の写像（クランプの単一所有） |
 | `src/EsUtil.Feature.Loupe.Presenter/src/LoupePresenter.LabelTexts.cs` | `LoupePresenter`（`LabelTexts` partial） | internal | 文言（`EsPoint.Format`）と基準点（左上の内側）の生成 |
-| `src/EsUtil.Feature.Loupe.Presenter/src/Presenter/Logging/LoupePresenterLogMessage.cs` | `LoupePresenterLogMessage` | internal | 本層のログ定義（生成・ロガー設定・本層が単一所有する外観の変更・コアへの転送） |
+| `src/EsUtil.Feature.Loupe.Presenter/src/Presenter/Logging/LoupeLogMessage.cs` | `LoupeLogMessage` | internal | 本層のログ定義（生成・ロガー設定・本層が単一所有する外観の変更・コアへの転送） |
 
 ## 5. 例外処理ポリシー
 
@@ -94,7 +94,7 @@ sequenceDiagram
 
 - UI が参照する型（`LoupePresenter` / `LoupeAppearance` / `LoupeDrawPlan` / `LoupeDrawLayer` / `LoupeLabelPlacement`）は `public`  とします。
 - **本層の内部手順だけが使う型は `internal`** とします（`LoupeTextPlacement`。 ファサードから推移的に到達できない型は公開面ではない）。
-- 本層とテストだけが使う内部手順（`LoupePresenter` の `DrawPlan` / `LabelPlan` / `LabelTexts` partial のメンバーと `LoupePresenterLogMessage`）は `internal` とし、単体テストにのみ `InternalsVisibleTo`（`EsUtil.Feature.Loupe.Presenter.Tests`）で公開します。 **`partial` はファイル分割であって可視性ではなく**、`LabelPlan` の実寸 → 配置の写像（`ResolveLabelPlacements`）も内部手順です。
+- 本層とテストだけが使う内部手順（`LoupePresenter` の `DrawPlan` / `LabelPlan` / `LabelTexts` partial のメンバーと `LoupeLogMessage`）は `internal` とし、単体テストにのみ `InternalsVisibleTo`（`EsUtil.Feature.Loupe.Presenter.Tests`）で公開します。 **`partial` はファイル分割であって可視性ではなく**、`LabelPlan` の実寸 → 配置の写像（`ResolveLabelPlacements`）も内部手順です。
 
 ## 7. テスト方針
 

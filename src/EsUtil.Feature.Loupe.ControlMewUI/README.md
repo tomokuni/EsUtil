@@ -105,7 +105,7 @@ if (layout.Position is { } position)
 
 `Options.RequestedSize` はレイアウトにも影響します（`MeasureContent` が一辺 `RequestedSize` の正方形を返します）。
 
-数値の安全域への補正と変更ログはプロパティの登録（`MewProperty.Register` の `coerce` / `changed`）へ渡します。 したがってバインディングなど setter を経由しない設定でも安全域が保たれ、変更が記録されます（補正の規則はコアの `LoupeCore.Limits`、設定値の変更ログはコアの `LoupeLogMessage` が、外観の変更ログは提示層の `LoupePresenterLogMessage` が、拡大元画像の変更と描画の例外のログは**本プロジェクトの `LoupeUiLogMessage`** が単一所有します）。 設定（`Options`）と外観（`Appearance`）の数値項目はそれぞれの型が生成時に補正するため、本コントロールは補正を登録しません（環境値の `ClientToPixelScaling` のみ `coerce` を登録します）。
+数値の安全域への補正と変更ログはプロパティの登録（`MewProperty.Register` の `coerce` / `changed`）へ渡します。 したがってバインディングなど setter を経由しない設定でも安全域が保たれ、変更が記録されます（補正の規則はコアの `LoupeCore.Limits`、設定値の変更ログはコアの `LoupeLogMessage` が、外観の変更ログは提示層の `LoupePresenterLogMessage` が、拡大元画像の変更と描画の例外のログは**本プロジェクトの `LoupeLogMessage`** が単一所有します）。 設定（`Options`）と外観（`Appearance`）の数値項目はそれぞれの型が生成時に補正するため、本コントロールは補正を登録しません（環境値の `ClientToPixelScaling` のみ `coerce` を登録します）。
 
 ## 6. イベント
 
@@ -121,7 +121,7 @@ if (layout.Position is { } position)
 
 | レベル | 出力例 |
 | --- | --- |
-| Debug | `[Loupe] Setting: ZoomLevel 4 → 8`（コアの設定。 Source は `[Loupe] Setting: Source ...`、外観は `[Loupe] Setting: ...`）/ `CenterPoint` / `RequestedSize` / `ClientToPixelScaling` / `ZoomLevel`。 変化判定（同一値・同一インスタンスなら出力しない）は出力する主体のログ定義（Source は本プロジェクトの `LoupeUiLogMessage`、外観は提示層の `LoupePresenterLogMessage`、他はコアの `LoupeLogMessage`）が単一所有し、UI 層は同値判定を持たない。 設定の変更は変化した項目だけを出力する） |
+| Debug | `[Loupe] Setting: ZoomLevel 4 → 8`（コアの設定。 Source は `[Loupe] Setting: Source ...`、外観は `[Loupe] Setting: ...`）/ `CenterPoint` / `RequestedSize` / `ClientToPixelScaling` / `ZoomLevel`。 変化判定（同一値・同一インスタンスなら出力しない）は出力する主体のログ定義（Source は本プロジェクトの `LoupeLogMessage`、外観は提示層の `LoupePresenterLogMessage`、他はコアの `LoupeLogMessage`）が単一所有し、UI 層は同値判定を持たない。 設定の変更は変化した項目だけを出力する） |
 | Error | `[Loupe] Update exception`（描画の例外。 アプリは継続する） |
 
 Avalonia 版の Trace ログ（再描画パイプライン）は持ちません（MewUI 版は中間ビットマップを作らず同期描画するため）。

@@ -1,17 +1,20 @@
-using EsUtil.Platform.Core.Imaging;
+using Avalonia.Media;
+using EsUtil.Feature.Loupe.AvaloniaUI.Logging;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace EsUtil.Feature.Loupe.MewUI.Tests;
+namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests.Logging;
 
-/// <summary><see cref="LoupeUiLogMessage"/> の LoggerMessage 生成コード（IsEnabled 両パス）を検証するテスト。</summary>
+/// <summary><see cref="LoupeLogMessage"/> の LoggerMessage 生成コード（IsEnabled 両パス）を検証するテスト。</summary>
 /// <remarks>
 /// 拡大元画像（<see cref="LoupeControl.Source"/>）はコントロール固有の概念であり、その変更と描画の例外は<br/>
 /// 画像を所有する本 UI が記録する（<see cref="RecordingLogger"/>（IsEnabled=true）と<br/>
-/// <see cref="NullLogger"/>（IsEnabled=false）の両方で全メソッドを呼び、生成コードの両パスを網羅する）。
+/// <see cref="NullLogger"/>（IsEnabled=false）の両方で全メソッドを呼び、生成コードの両パスを網羅する）。<br/>
+/// <see cref="IImage"/> の寸法取得は破棄済みで例外になるため、その防御経路（型名での代用）も検証する。
 /// </remarks>
-public class LoupeUiLogMessageTests
+public class LoupeLogMessageTests
 {
     /// <summary>実ロガー設定時に全ログメソッドが実行されることを検証する。</summary>
     [Fact]
@@ -47,10 +50,10 @@ public class LoupeUiLogMessageTests
     [Fact]
     internal void 拡大元画像のログは同一インスタンスなら出力しない()
     {
-        using var bitmap = EsBitmap.Create(4, 4);
+        using var image = CreateImage(4, 4);
         var logger = new RecordingLogger();
 
-        logger.LogSourceChanged(bitmap, bitmap);
+        logger.LogSourceChanged(image, image);
         logger.LogSourceChanged(null, null);
 
         Assert.Empty(logger.Messages);
@@ -60,16 +63,32 @@ public class LoupeUiLogMessageTests
     [Fact]
     internal void 拡大元画像のログは別インスタンスなら出力する()
     {
-        using var oldBitmap = EsBitmap.Create(8, 6);
-        using var newBitmap = EsBitmap.Create(8, 6);
+        using var oldImage = CreateImage(8, 6);
+        using var newImage = CreateImage(8, 6);
         var logger = new RecordingLogger();
 
-        logger.LogSourceChanged(oldBitmap, newBitmap);
-        logger.LogSourceChanged(oldBitmap, null);
+        logger.LogSourceChanged(oldImage, newImage);
+        logger.LogSourceChanged(oldImage, null);
 
         Assert.Equal(2, logger.Messages.Count);
         Assert.Equal("[Loupe] Setting: Source 8x6 → 8x6", logger.Messages[0]);
         Assert.Equal("[Loupe] Setting: Source 8x6 → null", logger.Messages[1]);
+    }
+
+    /// <summary>破棄済みの画像を渡しても例外にならず、型名で代用されることを検証する。</summary>
+    [Fact]
+    internal void 破棄済みの画像は型名で代用する()
+    {
+        var image = CreateImage(8, 6);
+        image.Dispose();
+        var logger = new RecordingLogger();
+
+        logger.LogSourceChanged(image, null);
+
+        // ログ出力で例外を発生させない（寸法が取れない場合は型名を出す）
+        Assert.Equal(
+            "[Loupe] Setting: Source EsBitmapAvaloniaImage → null",
+            Assert.Single(logger.Messages));
     }
 
     /// <summary>例外ログに例外が渡されることを検証する。</summary>
@@ -84,13 +103,20 @@ public class LoupeUiLogMessageTests
         Assert.Equal("[Loupe] Update exception", Assert.Single(logger.Messages));
     }
 
+    /// <summary>テスト用の画像を生成する。</summary>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <returns>生成した画像。</returns>
+    private static EsBitmapAvaloniaImage CreateImage(int width, int height)
+        => EsBitmapAvaloniaExtensions.CreateAvaloniaImage(width, height, Colors.Blue);
+
     /// <summary>全ログメソッドを指定ロガーで呼び出す。</summary>
     /// <param name="logger">ロガー。</param>
     private static void InvokeAll(ILogger logger)
     {
-        using var bitmap = EsBitmap.Create(8, 6);
+        using var image = CreateImage(8, 6);
 
-        logger.LogSourceChanged(bitmap, null);
+        logger.LogSourceChanged(image, null);
         logger.LogUpdateError(new InvalidOperationException("test"));
     }
 }

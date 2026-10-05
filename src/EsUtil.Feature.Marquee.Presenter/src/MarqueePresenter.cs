@@ -1,9 +1,9 @@
-using EsUtil.Platform.Core;
-using EsUtil.Platform.Core.Native;
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
 using EsUtil.Feature.Marquee.Presenter.Drawing;
 using EsUtil.Feature.Marquee.Presenter.Logging;
+using EsUtil.Platform.Core;
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Feature.Marquee;
@@ -64,7 +64,7 @@ public partial class MarqueePresenter
     /// <remarks>0 以下を倍率と同値として扱う解決は <c>MarqueeCore.Limits.ResolveDisplayScale</c> が単一所有する。</remarks>
     private double _displayScaleScaling;
 
-    /// <summary>本層の生成の記録（<c>MarqueePresenterLogMessage.LogPresenterCreated</c>）を済ませたかどうか。</summary>
+    /// <summary>本層の生成の記録（<c>MarqueeLogMessage.LogPresenterCreated</c>）を済ませたかどうか。</summary>
     /// <remarks>出力先の設定は複数回起こりうるため、生成の記録は 1 度だけにする。</remarks>
     private bool _createdLogged;
 
@@ -99,7 +99,7 @@ public partial class MarqueePresenter
     /// <remarks>
     /// 外観はコアの計算・判断に入らないため本クラスが保持する。<br/>
     /// 一部の項目だけを変える場合は <c>MarqueeAppearance.Default with { ... }</c> の形で指定する。<br/>
-    /// 変更の検出（変化した項目だけの出力）は <c>MarqueePresenterLogMessage.LogAppearanceChanged</c> が単一所有する<br/>
+    /// 変更の検出（変化した項目だけの出力）は <c>MarqueeLogMessage.LogAppearanceChanged</c> が単一所有する<br/>
     /// （ホストは値を設定するだけで、同値判定・差分検出を持たない）。
     /// </remarks>
     public MarqueeAppearance Appearance
@@ -157,6 +157,23 @@ public partial class MarqueePresenter
             _core.Log = value;
             LogPresenterCreatedOnce();
             _core.Log.LogLoggerAttached();
+        }
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[Marquee]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    /// <remarks>
+    /// 本層のログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、コア（<see cref="MarqueeCore.LogPrefix"/>）へ伝搬する。<br/>
+    /// 集約した接頭辞で全層のログを揃えられる（未設定時は <see cref="MarqueeLogMessage.DefaultPrefix"/>）。
+    /// </remarks>
+    public string? LogPrefix
+    {
+        get => field;
+        set
+        {
+            field = value;
+            MarqueeLogMessage.Prefix = string.IsNullOrWhiteSpace(value) ? MarqueeLogMessage.DefaultPrefix : value;
+            _core.LogPrefix = value;
         }
     }
 
@@ -240,8 +257,17 @@ public partial class MarqueePresenter
     /// <remarks>保持とログはコアが単一所有する（本層は委譲し、低頻度のメソッド呼び出しとして通過を Trace で記録する）。</remarks>
     public void SetCoordTransform(ICoordTransform? port)
     {
-        _core.SetCoordTransform(port);
-        Log.LogForwarded(nameof(SetCoordTransform), port);
+        try
+        {
+            _core.SetCoordTransform(port);
+            Log.LogForwarded(nameof(SetCoordTransform), port);
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
+            Log.LogOperationError(ex, nameof(SetCoordTransform));
+            throw;
+        }
     }
 
     /// <summary>ローカル DIP 座標を対象座標へ変換する。</summary>

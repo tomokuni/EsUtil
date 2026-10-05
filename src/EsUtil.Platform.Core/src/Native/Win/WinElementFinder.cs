@@ -1,7 +1,7 @@
-using EsUtil.Platform.Core.Geometry;
-using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using EsUtil.Platform.Core.Geometry;
+using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Platform.Core.Native.Win;
 

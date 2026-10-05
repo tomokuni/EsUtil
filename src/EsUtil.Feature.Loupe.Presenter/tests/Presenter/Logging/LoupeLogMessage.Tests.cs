@@ -1,16 +1,16 @@
+using EsUtil.Feature.Loupe.Presenter.Logging;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
-using EsUtil.Feature.Loupe.Presenter.Logging;
 
 namespace EsUtil.Feature.Loupe.Tests.Presenter.Logging;
 
-/// <summary><see cref="LoupePresenterLogMessage"/> の単体テスト（外観の変更ログ）。</summary>
+/// <summary><see cref="LoupeLogMessage"/> の単体テスト（外観の変更ログ）。</summary>
 /// <remarks>
 /// 「値を所有する主体が記録する」規則により、提示層が単一所有する外観（<see cref="LoupeAppearance"/>）の変更を<br/>
 /// 本層が記録する。<b>変化した項目だけ</b>を出力する（外観の再適用でログが溢れないため）。<br/>
 /// ログは UI 初期化なしで検証できる（LoggerMessage の定義は UI フレームワークに依存しない）。
 /// </remarks>
-public class LoupePresenterLogMessageTests
+public class LoupeLogMessageTests
 {
     [Fact]
     internal void LogAppearanceChanged_変化した項目だけを記録する()

@@ -11,7 +11,7 @@
   - [2.3 `MarqueeDrawPlan` のメンバー](#23-marqueedrawplan-のメンバー)
   - [2.4 `MarqueeAppearance` のメンバー（外観の単一値）](#24-marqueeappearance-のメンバー外観の単一値)
   - [2.5 ラベル配置の解決（`internal`。 本リファレンスには載せない）](#25-ラベル配置の解決internal-本リファレンスには載せない)
-  - [2.6 `MarqueePresenterLogMessage`（`internal`。 本リファレンスには載せない）](#26-marqueepresenterlogmessageinternal-本リファレンスには載せない)
+  - [2.6 `MarqueeLogMessage`（`internal`。 本リファレンスには載せない）](#26-marqueelogmessageinternal-本リファレンスには載せない)
 - [3. 契約（利用者が守る・受け取る値）](#3-契約利用者が守る受け取る値)
   - [3.1 描画の呼び分け](#31-描画の呼び分け)
   - [3.2 ラベル要素（`MarqueeLabelPlacement`）](#32-ラベル要素marqueelabelplacement)
@@ -26,7 +26,7 @@
 - 描画計画の座標は**ローカル DIP**です（原点 (0, 0)・サイズは描画領域）。 対象 → DIP の変換はコアが済ませています。
 - 実寸測定（`measureText`）は描画 API 依存のため UI 層が関数として渡します。
 - 本層は外観（`MarqueeAppearance`）を単一所有します（描画にだけ必要な設定のため）。 寸法・対話パラメータはコア（`MarqueeOptions`）が単一所有します。
-- **本層が単一所有する設定（外観・表示スケーリング係数）の変更は本層が記録します**（`MarqueePresenterLogMessage`。 値を所有する主体が記録する）。 **コアへ伝搬するだけの値も、本層を通過したことを Trace で記録します**。
+- **本層が単一所有する設定（外観・表示スケーリング係数）の変更は本層が記録します**（`MarqueeLogMessage`。 値を所有する主体が記録する）。 **コアへ伝搬するだけの値も、本層を通過したことを Trace で記録します**。
 
 ## 2. 公開 API
 
@@ -43,7 +43,7 @@
 | `MarqueeLabelPlacement` | readonly record struct | ラベル要素の配置指示（背景矩形・内側余白・文言・フォントサイズ・色） |
 | `EsUtil.Feature.Marquee.Presenter.Drawing.MarqueeTextPlacement` | `internal` readonly record struct | 描画層が UI 層へ渡すテキスト（文言・基準点・クランプ領域）。 **本層の `internal` の写像だけが使うため公開面ではない**（層フォルダの名前空間に残る） |
 
-**`MarqueePresenter` は複数のファイルに分かれた `public partial class` です**（`MarqueePresenter.cs` = ファサード本体、`DrawPlan` = 装飾矩形の計算、`LabelPlan` = 実寸 → 配置指示の写像、`LabelTexts` = 文言と基準点の生成）。 **`static class` ではありません**（ファサードの状態と外観を保持するため）。 partial のメンバー（`ResolveLabelPlacements` など）と `EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage` は `internal`（本層とテストのみが使う）であり、本リファレンスには載せません（内部手順は [`SPEC_System.md`](SPEC_System.md) の可視性ポリシーを参照してください）。
+**`MarqueePresenter` は複数のファイルに分かれた `public partial class` です**（`MarqueePresenter.cs` = ファサード本体、`DrawPlan` = 装飾矩形の計算、`LabelPlan` = 実寸 → 配置指示の写像、`LabelTexts` = 文言と基準点の生成）。 **`static class` ではありません**（ファサードの状態と外観を保持するため）。 partial のメンバー（`ResolveLabelPlacements` など）と `EsUtil.Feature.Marquee.Presenter.Logging.MarqueeLogMessage` は `internal`（本層とテストのみが使う）であり、本リファレンスには載せません（内部手順は [`SPEC_System.md`](SPEC_System.md) の可視性ポリシーを参照してください）。
 
 ### 2.2 `MarqueePresenter` のメンバー
 
@@ -121,7 +121,7 @@
 
 実寸 → ラベル要素の配置指示の写像（`ResolveLabelPlacements`）は本層の内部手順です（入力の `MarqueeTextPlacement` は `internal`、出力の `MarqueeLabelPlacement` は公開しています）。
 
-### 2.6 `MarqueePresenterLogMessage`（`internal`。 本リファレンスには載せない）
+### 2.6 `MarqueeLogMessage`（`internal`。 本リファレンスには載せない）
 
 本層が出力するログの定義（生成・ロガー設定・本層が単一所有する設定の変更・コアへの転送）です。 **外部公開しない**（呼び出すのは値を所有する本層だけで、ホストはロガーを設定するだけです）。 出力の方針は [`SPEC_System.md`](SPEC_System.md) の「ログ」を参照してください。
 

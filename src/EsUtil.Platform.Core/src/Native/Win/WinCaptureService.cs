@@ -6,8 +6,8 @@ using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core.Native.Imaging;
 using Microsoft.Extensions.Logging;
 using DrawingBitmap = System.Drawing.Bitmap;
-using PixelFormat = System.Drawing.Imaging.PixelFormat;
 using DrawingRect = System.Drawing.Rectangle;
+using PixelFormat = System.Drawing.Imaging.PixelFormat;
 
 namespace EsUtil.Platform.Core.Native.Win;
 

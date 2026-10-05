@@ -7,11 +7,11 @@ using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.SaveEvidence.Platform.MewUI;
 using EsUtil.SaveEvidence.Platform.MewUI.Imaging;
+using EsUtil.SaveEvidence.Platform.Skia;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using SkiaSharp;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
-using EsUtil.SaveEvidence.Platform.Skia;
 
 
 
@@ -252,8 +252,17 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     public void SetCoordTransform(ICoordTransform? port)
     {
-        _presenter.SetCoordTransform(port);
-        InvalidateArrange();
+        try
+        {
+            _presenter.SetCoordTransform(port);
+            InvalidateArrange();
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
+            Log.LogOperationError(ex, nameof(SetCoordTransform));
+            throw;
+        }
     }
 
     /// <summary>親領域のサイズから表示レイアウト（表示サイズ・表示位置）を解決する。</summary>
@@ -325,6 +334,23 @@ public sealed class LoupeControl : Panel
         {
             field = value.OrNullLogger();
             _presenter.Log = value;
+        }
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[Loupe]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    /// <remarks>
+    /// 本コントロールのログ定義（<see cref="LoupeLogMessage"/>）の接頭辞を設定し、<br/>
+    /// 提示層・コアへ伝搬する（集約した接頭辞で全層のログを揃える）。
+    /// </remarks>
+    public string? LogPrefix
+    {
+        get => field;
+        set
+        {
+            field = value;
+            LoupeLogMessage.Prefix = string.IsNullOrWhiteSpace(value) ? LoupeLogMessage.DefaultPrefix : value;
+            _presenter.LogPrefix = value;
         }
     }
 

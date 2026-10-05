@@ -1,10 +1,10 @@
-using EsUtil.Platform.Core;
-using EsUtil.Platform.Core.Native;
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
-using Microsoft.Extensions.Logging;
 using EsUtil.Feature.Marquee.Core.Interaction;
 using EsUtil.Feature.Marquee.Core.Logging;
+using EsUtil.Platform.Core;
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native;
+using Microsoft.Extensions.Logging;
 using static EsUtil.Feature.Marquee.MarqueeCore.Limits;
 
 
@@ -122,6 +122,19 @@ public sealed partial class MarqueeCore
         }
     }
 
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[Marquee]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    /// <remarks>本コアのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定する（本層は最下層のため伝搬先は無い）。</remarks>
+    public string? LogPrefix
+    {
+        get => field;
+        set
+        {
+            field = value;
+            MarqueeLogMessage.Prefix = string.IsNullOrWhiteSpace(value) ? MarqueeLogMessage.DefaultPrefix : value;
+        }
+    }
+
     // ====================================================================
     // 設定・環境値（設定・倍率・プロバイダ・座標変換）
     // ====================================================================
@@ -210,11 +223,20 @@ public sealed partial class MarqueeCore
     /// </remarks>
     public void SetCoordTransform(ICoordTransform? port)
     {
-        var previous = _coordPort;
-        _coordPort = port;
-        _session.SetPort(port);
-        _effects.RequestRedraw();
-        Log.LogCoordTransformChanged(previous, port);
+        try
+        {
+            var previous = _coordPort;
+            _coordPort = port;
+            _session.SetPort(port);
+            _effects.RequestRedraw();
+            Log.LogCoordTransformChanged(previous, port);
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
+            Log.LogOperationError(ex, nameof(SetCoordTransform));
+            throw;
+        }
     }
 
     /// <summary>ローカル DIP 座標を対象座標へ変換する。</summary>

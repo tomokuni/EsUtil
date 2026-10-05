@@ -1,19 +1,19 @@
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using Aprillz.MewUI.Skia.Controls;
+using EsUtil.Feature.Marquee.Core.Contract;
 using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.SaveEvidence.Platform.MewUI;
-using EsUtil.SaveEvidence.Platform.MewUI.Imaging;
 using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core.Native.Win;
+using EsUtil.SaveEvidence.Platform.MewUI;
+using EsUtil.SaveEvidence.Platform.MewUI.Imaging;
+using EsUtil.SaveEvidence.Platform.Skia;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using SkiaSharp;
 using static EsUtil.Feature.Marquee.MarqueeCore.Limits;
-using EsUtil.SaveEvidence.Platform.Skia;
-using EsUtil.Feature.Marquee.Core.Contract;
 
 
 
@@ -353,6 +353,23 @@ public sealed class MarqueeControl : Panel
         set => _marquee.Log = value;
     }
 
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[Marquee]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    /// <remarks>本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、提示層・コアへ伝搬する。</remarks>
+    public string? LogPrefix
+    {
+        get => _logPrefix;
+        set
+        {
+            _logPrefix = value;
+            MarqueeLogMessage.Prefix = string.IsNullOrWhiteSpace(value) ? MarqueeLogMessage.DefaultPrefix : value;
+            _marquee.LogPrefix = value;
+        }
+    }
+
+    /// <summary>ログの接頭辞（未設定は null。 既定値は定義クラスが持つ）。</summary>
+    private string? _logPrefix;
+
     /// <summary>対象 ↔ ローカル DIP の座標変換ポートを設定する。</summary>
     /// <param name="port">座標変換ポート。 null の場合は等価変換（1 対象ピクセル = 1 DIP・無制限）。</param>
     /// <remarks>
@@ -360,7 +377,19 @@ public sealed class MarqueeControl : Panel
     /// 変換関数は呼び出し毎に評価されるため、ズーム・スクロール等の動的変化を反映できる。<br/>
     /// 保持と、ポート未指定時に倍率（<see cref="ClientToSourceScaling"/>）を使う規則はコアが単一所有する（本層は委譲するだけ）。
     /// </remarks>
-    public void SetCoordTransform(ICoordTransform? port) => _marquee.SetCoordTransform(port);
+    public void SetCoordTransform(ICoordTransform? port)
+    {
+        try
+        {
+            _marquee.SetCoordTransform(port);
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
+            Log.LogOperationError(ex, nameof(SetCoordTransform));
+            throw;
+        }
+    }
 
     /// <summary>選択矩形を外部状態から復元する。</summary>
     /// <param name="rect">選択矩形（対象座標）。</param>
@@ -368,25 +397,69 @@ public sealed class MarqueeControl : Panel
     /// 状態の更新と通知はコア（ファサード）が担う（<see cref="MarqueeOptions.ClampToSourceBounds"/> が有効な場合は境界内へクリップしてから設定する）。<br/>
     /// 設定後は <see cref="SelectionChanged"/> が発火し、再描画される。
     /// </remarks>
-    public void SetSelection(EsRect rect) => _marquee.SetSelection(rect);
+    public void SetSelection(EsRect rect)
+    {
+        try
+        {
+            _marquee.SetSelection(rect);
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            Log.LogOperationError(ex, nameof(SetSelection));
+            throw;
+        }
+    }
 
     /// <summary>選択状態と nudge 状態を初期化する。</summary>
     /// <remarks>nudge 中だった場合はカーソルを再表示する（非表示残留の防止。 状態の初期化はコアが担う）。</remarks>
-    public void ResetSelection() => _marquee.ResetSelection();
+    public void ResetSelection()
+    {
+        try
+        {
+            _marquee.ResetSelection();
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            Log.LogOperationError(ex, nameof(ResetSelection));
+            throw;
+        }
+    }
 
     /// <summary>キャンセル要求を処理する（Escape キーと同じ条件）。</summary>
     /// <remarks>
     /// ドラッグ中 / 選択ありの場合は選択を破棄した後に <see cref="CancelRequested"/> を発火する。<br/>
     /// モード差分（キャンセル後の後始末）は上位が本イベントを購読して行う。
     /// </remarks>
-    public void RequestCancel() => _marquee.RequestCancel();
+    public void RequestCancel()
+    {
+        try
+        {
+            _marquee.RequestCancel();
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            Log.LogOperationError(ex, nameof(RequestCancel));
+            throw;
+        }
+    }
 
     /// <summary>確定要求を処理する（Enter キーと同じ条件）。</summary>
     /// <remarks>
     /// ドラッグ中は無視し、選択確定後のみ <see cref="ConfirmRequested"/> を発火する。<br/>
     /// 確定後に選択状態をクリアする（確定後の再ドラッグ・再確定を防ぐ）。
     /// </remarks>
-    public void RequestConfirm() => _marquee.RequestConfirm();
+    public void RequestConfirm()
+    {
+        try
+        {
+            _marquee.RequestConfirm();
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            Log.LogOperationError(ex, nameof(RequestConfirm));
+            throw;
+        }
+    }
 
     /// <summary>要求サイズを返す（親の残余を埋める）。</summary>
     /// <param name="availableSize">親から提示された利用可能サイズ。</param>

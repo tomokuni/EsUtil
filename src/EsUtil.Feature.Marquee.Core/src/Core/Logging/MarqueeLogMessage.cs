@@ -25,6 +25,29 @@ internal static partial class MarqueeLogMessage
     /// <summary>座標変換ポートの設定名（ログの項目名）。</summary>
     private const string CoordTransformName = "CoordTransform";
 
+    /// <summary>接頭辞の既定値（ホストが設定しない場合に使う）。</summary>
+    internal const string DefaultPrefix = "[Marquee]";
+
+    /// <summary>適用する接頭辞（ホストが <c>LogPrefix</c> で設定する）。</summary>
+    internal static string Prefix { get; set; } = DefaultPrefix;
+
+    /// <summary>公開ファサードの操作で例外が発生したことを記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Error<br/>出力書式: <c>[Marquee] {Operation} で例外が発生</c>（例外スタックトレース付き）</remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="exception">発生した例外。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
+    [LoggerMessage(LogLevel.Error, "{Prefix} {Operation} で例外が発生")]
+    private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
+
+    /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="exception">発生した例外。</param>
+    /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
+    /// <remarks>公開ファサードが例外を集約して記録し、上位へ伝搬するために使う（[`例外処理規約.md`] §4）。</remarks>
+    internal static void LogOperationError(this ILogger logger, Exception exception, string operation)
+        => logger.LogOperationErrorCore(exception, Prefix, operation);
+
     /// <summary>ファサードの生成（生成時の設定）を記録する。</summary>
     /// <remarks>
     /// LogLevel: Information<br/>
@@ -34,10 +57,14 @@ internal static partial class MarqueeLogMessage
     /// 生成時の設定を 1 度だけ記録し、どの設定で生成されたファサードからのログかを追えるようにする）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="handleSize">生成時のハンドルの一辺サイズ（DIP）。</param>
     /// <param name="minSelectionSize">生成時の選択矩形の最小サイズ（対象座標）。</param>
-    [LoggerMessage(LogLevel.Information, "[Marquee] Facade created: HandleSize={HandleSize}, MinSelectionSize={MinSelectionSize}")]
-    internal static partial void LogFacadeCreated(this ILogger logger, double handleSize, double minSelectionSize);
+    [LoggerMessage(LogLevel.Information, "{Prefix} Facade created: HandleSize={HandleSize}, MinSelectionSize={MinSelectionSize}")]
+    private static partial void LogFacadeCreatedCore(this ILogger logger, string prefix, double handleSize, double minSelectionSize);
+
+    internal static void LogFacadeCreated(this ILogger logger, double handleSize, double minSelectionSize)
+        => logger.LogFacadeCreatedCore(Prefix, handleSize, minSelectionSize);
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
     /// <remarks>
@@ -45,92 +72,136 @@ internal static partial class MarqueeLogMessage
     /// ログの出力を開始した契機を残す（以降の設定変更のログがどの時点から有効かを追えるようにする）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee] Logger attached")]
-    internal static partial void LogLoggerAttached(this ILogger logger);
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix} Logger attached")]
+    private static partial void LogLoggerAttachedCore(this ILogger logger, string prefix);
+
+    internal static void LogLoggerAttached(this ILogger logger)
+        => logger.LogLoggerAttachedCore(Prefix);
 
     /// <summary>ポインター押下（マウス Down）のログ。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] MouseDown: pos=({X}, {Y}) clickCount={ClickCount} hasSelection={HasSelection}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
     /// <param name="clickCount">クリック数（2 = ダブルクリック）。</param>
     /// <param name="hasSelection">選択矩形の有無。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee] MouseDown: pos=({X}, {Y}) clickCount={ClickCount} hasSelection={HasSelection}")]
-    internal static partial void LogMouseDown(this ILogger logger, double x, double y, int clickCount, bool hasSelection);
+    [LoggerMessage(LogLevel.Debug, "{Prefix} MouseDown: pos=({X}, {Y}) clickCount={ClickCount} hasSelection={HasSelection}")]
+    private static partial void LogMouseDownCore(this ILogger logger, string prefix, double x, double y, int clickCount, bool hasSelection);
+
+    internal static void LogMouseDown(this ILogger logger, double x, double y, int clickCount, bool hasSelection)
+        => logger.LogMouseDownCore(Prefix, x, y, clickCount, hasSelection);
 
     /// <summary>ポインター解放（マウス Up）のログ。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] MouseUp: pos=({X}, {Y}) wasDragging={WasDragging} hasSelection={HasSelection}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
     /// <param name="wasDragging">ドラッグ中だったかどうか。</param>
     /// <param name="hasSelection">選択矩形の有無。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee] MouseUp: pos=({X}, {Y}) wasDragging={WasDragging} hasSelection={HasSelection}")]
-    internal static partial void LogMouseUp(this ILogger logger, double x, double y, bool wasDragging, bool hasSelection);
+    [LoggerMessage(LogLevel.Debug, "{Prefix} MouseUp: pos=({X}, {Y}) wasDragging={WasDragging} hasSelection={HasSelection}")]
+    private static partial void LogMouseUpCore(this ILogger logger, string prefix, double x, double y, bool wasDragging, bool hasSelection);
+
+    internal static void LogMouseUp(this ILogger logger, double x, double y, bool wasDragging, bool hasSelection)
+        => logger.LogMouseUpCore(Prefix, x, y, wasDragging, hasSelection);
 
     /// <summary>ダブルクリックのログ。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] DoubleClick: pos=({X}, {Y}) inside={Inside}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
     /// <param name="inside">選択矩形の内側かどうか。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee] DoubleClick: pos=({X}, {Y}) inside={Inside}")]
-    internal static partial void LogDoubleClick(this ILogger logger, double x, double y, bool inside);
+    [LoggerMessage(LogLevel.Debug, "{Prefix} DoubleClick: pos=({X}, {Y}) inside={Inside}")]
+    private static partial void LogDoubleClickCore(this ILogger logger, string prefix, double x, double y, bool inside);
+
+    internal static void LogDoubleClick(this ILogger logger, double x, double y, bool inside)
+        => logger.LogDoubleClickCore(Prefix, x, y, inside);
 
     /// <summary>マウス押下直前の位置のログ（移動の高頻度ログは行わない）。</summary>
     /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Marquee] Position before MouseDown: pos=({X}, {Y})</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
-    [LoggerMessage(LogLevel.Trace, "[Marquee] Position before MouseDown: pos=({X}, {Y})")]
-    internal static partial void LogPositionBeforeDown(this ILogger logger, double x, double y);
+    [LoggerMessage(LogLevel.Trace, "{Prefix} Position before MouseDown: pos=({X}, {Y})")]
+    private static partial void LogPositionBeforeDownCore(this ILogger logger, string prefix, double x, double y);
+
+    internal static void LogPositionBeforeDown(this ILogger logger, double x, double y)
+        => logger.LogPositionBeforeDownCore(Prefix, x, y);
 
     /// <summary>マウス解放直後の位置のログ（移動の高頻度ログは行わない）。</summary>
     /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Marquee] Position after MouseUp: pos=({X}, {Y})</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
-    [LoggerMessage(LogLevel.Trace, "[Marquee] Position after MouseUp: pos=({X}, {Y})")]
-    internal static partial void LogPositionAfterUp(this ILogger logger, double x, double y);
+    [LoggerMessage(LogLevel.Trace, "{Prefix} Position after MouseUp: pos=({X}, {Y})")]
+    private static partial void LogPositionAfterUpCore(this ILogger logger, string prefix, double x, double y);
+
+    internal static void LogPositionAfterUp(this ILogger logger, double x, double y)
+        => logger.LogPositionAfterUpCore(Prefix, x, y);
 
     /// <summary>マウスドラッグ開始（新規選択・ハンドル操作）のログ。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] DragStart: handle={Handle} pos=({X}, {Y})</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="handle">操作対象のハンドル（None = 新規選択）。</param>
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee] DragStart: handle={Handle} pos=({X}, {Y})")]
-    internal static partial void LogDragStart(this ILogger logger, string handle, double x, double y);
+    [LoggerMessage(LogLevel.Debug, "{Prefix} DragStart: handle={Handle} pos=({X}, {Y})")]
+    private static partial void LogDragStartCore(this ILogger logger, string prefix, string handle, double x, double y);
+
+    internal static void LogDragStart(this ILogger logger, string handle, double x, double y)
+        => logger.LogDragStartCore(Prefix, handle, x, y);
 
     /// <summary>キー入力（矢印キー nudge・Enter 確定・Escape キャンセル）のログ。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] KeyDown: key={Key} handled={Handled}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="key">押下されたキー。</param>
     /// <param name="handled">処理されたかどうか。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee] KeyDown: key={Key} handled={Handled}")]
-    internal static partial void LogKeyDown(this ILogger logger, string key, bool handled);
+    [LoggerMessage(LogLevel.Debug, "{Prefix} KeyDown: key={Key} handled={Handled}")]
+    private static partial void LogKeyDownCore(this ILogger logger, string prefix, string key, bool handled);
+
+    internal static void LogKeyDown(this ILogger logger, string key, bool handled)
+        => logger.LogKeyDownCore(Prefix, key, handled);
 
     /// <summary>確定要求（Enter・ダブルクリック・API 呼び出し）のログ。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] ConfirmRequested: rect={Rect}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="rect">確定する選択矩形（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee] ConfirmRequested: rect={Rect}")]
-    internal static partial void LogConfirmRequested(this ILogger logger, string rect);
+    [LoggerMessage(LogLevel.Debug, "{Prefix} ConfirmRequested: rect={Rect}")]
+    private static partial void LogConfirmRequestedCore(this ILogger logger, string prefix, string rect);
+
+    internal static void LogConfirmRequested(this ILogger logger, string rect)
+        => logger.LogConfirmRequestedCore(Prefix, rect);
 
     /// <summary>キャンセル要求（Escape・枠外ダブルクリック・API 呼び出し）のログ。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] CancelRequested</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee] CancelRequested")]
-    internal static partial void LogCancelRequested(this ILogger logger);
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix} CancelRequested")]
+    private static partial void LogCancelRequestedCore(this ILogger logger, string prefix);
+
+    internal static void LogCancelRequested(this ILogger logger)
+        => logger.LogCancelRequestedCore(Prefix);
 
     /// <summary>設定値変更のログ（変更前後）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値。</param>
     /// <param name="newValue">変更後の値。</param>
-    [LoggerMessage(LogLevel.Debug, "[Marquee] Setting: {Name} {OldValue} → {NewValue}")]
-    internal static partial void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue);
+    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
+
+    internal static void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue)
+        => logger.LogSettingChangedCore(Prefix, name, oldValue, newValue);
 
     /// <summary>頻度の高い設定値変更のログ（変更前後。 最も低いレベルで出力する）。</summary>
     /// <remarks>
@@ -140,11 +211,15 @@ internal static partial class MarqueeLogMessage
     /// 出力書式: <c>[Marquee] Setting: {Name} {OldValue} → {NewValue}</c>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Trace, "[Marquee] Setting: {Name} {OldValue} → {NewValue}")]
-    internal static partial void LogSettingChangedTrace(this ILogger logger, string name, string oldValue, string newValue);
+    [LoggerMessage(LogLevel.Trace, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    private static partial void LogSettingChangedTraceCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
+
+    internal static void LogSettingChangedTrace(this ILogger logger, string name, string oldValue, string newValue)
+        => logger.LogSettingChangedTraceCore(Prefix, name, oldValue, newValue);
 
     /// <summary>ハイライト矩形（頻度の高い設定値）の変更ログ（同値の再設定では出力しない）。</summary>
     /// <remarks>

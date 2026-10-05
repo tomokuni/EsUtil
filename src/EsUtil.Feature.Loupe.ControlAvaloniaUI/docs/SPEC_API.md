@@ -412,7 +412,7 @@ loupe.Rendered += (_, e) =>
 
 公開型は `LoupeControl` と `LoupeRenderedEventArgs` です。
 描画・画像処理の実装は internal（非公開）です。 UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と描画層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance` / `LoupePresenter`（`LabelPlan` partial））の型は public です（外部が UI アダプタを実装できるようにするため）。 描画の手順と色は描画層が単一所有し、本プロジェクトは描画（`DrawingContext`）とラベル要素の配置を担います。
-UI 固有のログ（`LoupeRenderLog`）は本プロジェクトの internal です。
+UI 固有のログ（`LoupeLogMessage`）は本プロジェクトの internal です。
 
 #### 5.5.1 LoupeControl
 

@@ -1,11 +1,11 @@
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
-using EsUtil.Platform.Core.Geometry;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using EsUtil.Platform.Core.Geometry;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
 
 namespace EsUtil.Feature.Marquee.AvaloniaUI;
 

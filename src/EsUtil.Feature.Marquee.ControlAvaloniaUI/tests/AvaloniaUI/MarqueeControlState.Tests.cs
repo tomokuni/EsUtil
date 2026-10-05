@@ -1,8 +1,8 @@
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
-using Rect = Avalonia.Rect;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using Rect = Avalonia.Rect;
 
 namespace EsUtil.Feature.Marquee.AvaloniaUI.Tests;
 

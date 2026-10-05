@@ -1,20 +1,20 @@
+using System.Collections.Specialized;
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
-using Point = Avalonia.Point;
-using Rect = Avalonia.Rect;
 using EsUtil.Feature.Marquee.AvaloniaUI.Sample.Logging;
 using EsUtil.Feature.Marquee.AvaloniaUI.Sample.Presentation;
 using EsUtil.Feature.Marquee.AvaloniaUI.Sample.ViewModels;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
-using System.Collections.Specialized;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
+using Point = Avalonia.Point;
+using Rect = Avalonia.Rect;
 
 namespace EsUtil.Feature.Marquee.AvaloniaUI.Sample.Views;
 

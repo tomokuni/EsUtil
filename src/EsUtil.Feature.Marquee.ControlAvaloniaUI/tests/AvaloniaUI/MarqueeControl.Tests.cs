@@ -1,7 +1,3 @@
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
-using EsUtil.Platform.Core.Native;
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -9,12 +5,16 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using EsUtil.Feature.Marquee.Core.Interaction;
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Coord;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
+using Xunit;
 using Point = Avalonia.Point;
 using Rect = Avalonia.Rect;
-using Xunit;
-using EsUtil.Feature.Marquee.Core.Interaction;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Coord;
 
 namespace EsUtil.Feature.Marquee.AvaloniaUI.Tests;
 

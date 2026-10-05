@@ -54,7 +54,7 @@ protected override void Render(DrawingContext context)
 | 提示 | `LoupePresenter`（描画計画の解決。 `sealed` ではない） / `LoupeDrawPlan` / `LoupeDrawLayer` / `Drawing.LoupeTextPlacement`（`internal`） |
 | 外観 | `LoupeAppearance`（色・フォント・角丸・枠線の太さ・ラベルのオフセット・表示可否） |
 | ラベル | `LoupeLabelPlacement`（配置指示） |
-| ログ | `Logging.LoupePresenterLogMessage`（internal） |
+| ログ | `Logging.LoupeLogMessage`（internal） |
 
 ## 4. 依存
 

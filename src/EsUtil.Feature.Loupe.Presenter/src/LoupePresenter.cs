@@ -1,7 +1,8 @@
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
 using EsUtil.Feature.Loupe.Presenter.Drawing;
 using EsUtil.Feature.Loupe.Presenter.Logging;
+using EsUtil.Platform.Core;
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Feature.Loupe;
@@ -151,12 +152,29 @@ public partial class LoupePresenter
         }
     }
 
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[Loupe]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    /// <remarks>
+    /// 本層のログ定義（<see cref="LoupeLogMessage"/>）の接頭辞を設定し、コア（<see cref="LoupeCore.LogPrefix"/>）へ伝搬する。<br/>
+    /// 集約した接頭辞で全層のログを揃えられる（未設定時は <see cref="LoupeLogMessage.DefaultPrefix"/>）。
+    /// </remarks>
+    public string? LogPrefix
+    {
+        get => field;
+        set
+        {
+            field = value;
+            LoupeLogMessage.Prefix = string.IsNullOrWhiteSpace(value) ? LoupeLogMessage.DefaultPrefix : value;
+            _core.LogPrefix = value;
+        }
+    }
+
     /// <summary>外観（色・フォント・角丸・枠線の太さ・表示可否）を取得または設定する。</summary>
     /// <value>外観の単一値。 既定は <see cref="LoupeAppearance.Default"/>。</value>
     /// <remarks>
     /// 外観はコアの計算・判断に入らないため本クラスが保持する。<br/>
     /// 一部の項目だけを変える場合は <c>LoupeAppearance.Default with { ... }</c> の形で指定する。<br/>
-    /// 変更の検出（変化した項目だけの出力）は <c>LoupePresenterLogMessage.LogAppearanceChanged</c> が単一所有する<br/>
+    /// 変更の検出（変化した項目だけの出力）は <c>LoupeLogMessage.LogAppearanceChanged</c> が単一所有する<br/>
     /// （ホストは値を設定するだけで、同値判定・差分検出を持たない）。
     /// </remarks>
     public LoupeAppearance Appearance
@@ -179,8 +197,17 @@ public partial class LoupePresenter
     /// </remarks>
     public void SetCoordTransform(ICoordTransform? port)
     {
-        _core.SetCoordTransform(port);
-        Log.LogForwarded(nameof(SetCoordTransform), port);
+        try
+        {
+            _core.SetCoordTransform(port);
+            Log.LogForwarded(nameof(SetCoordTransform), port);
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
+            Log.LogOperationError(ex, nameof(SetCoordTransform));
+            throw;
+        }
     }
 
     /// <summary>親領域のサイズを通知して表示レイアウト（表示サイズ・表示位置）を解決する。</summary>

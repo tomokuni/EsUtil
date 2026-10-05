@@ -1,19 +1,19 @@
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
-using Point = Avalonia.Point;
-using static EsUtil.Feature.Loupe.LoupeCore.Limits;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
-using System.Globalization;
-using Xunit;
-using DrawingColor = System.Drawing.Color;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
+using Xunit;
+using static EsUtil.Feature.Loupe.LoupeCore.Limits;
+using DrawingColor = System.Drawing.Color;
+using Point = Avalonia.Point;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests;
 
@@ -811,7 +811,7 @@ public class LoupeControlTests
         control.Source = null;
         control.CenterPoint = null;
 
-        // 描画を実行して描画パイプラインのログ（LoupeRenderLog）を出力する
+        // 描画を実行して描画パイプラインのログ（LoupeLogMessage）を出力する
         await control.WaitForRenderedAsync();
         Dispatcher.UIThread.RunJobs();
         control.Clear();

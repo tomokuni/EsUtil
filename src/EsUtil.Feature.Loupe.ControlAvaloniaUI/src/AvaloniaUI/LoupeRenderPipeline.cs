@@ -2,9 +2,9 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI;
 

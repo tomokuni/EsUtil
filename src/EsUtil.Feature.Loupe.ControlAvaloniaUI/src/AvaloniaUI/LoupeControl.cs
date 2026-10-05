@@ -3,15 +3,15 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using EsUtil.Feature.Loupe.AvaloniaUI.Logging;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
 
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI;
@@ -205,8 +205,17 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     public void SetCoordTransform(ICoordTransform? port)
     {
-        _presenter.SetCoordTransform(port);
-        UpdatePosition();
+        try
+        {
+            _presenter.SetCoordTransform(port);
+            UpdatePosition();
+        }
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        {
+            // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
+            Log.LogOperationError(ex, nameof(SetCoordTransform));
+            throw;
+        }
     }
 
     /// <summary>表示位置と表示サイズを最新のレイアウトから再計算する（外部からの更新要求）。</summary>
@@ -604,6 +613,26 @@ public sealed class LoupeControl : Panel
         }
     }
 
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[Loupe]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    /// <remarks>
+    /// 本コントロールのログ定義（<see cref="LoupeLogMessage"/>）の接頭辞を設定し、<br/>
+    /// 提示層・コアへ伝搬する（集約した接頭辞で全層のログを揃える）。
+    /// </remarks>
+    public string? LogPrefix
+    {
+        get => _logPrefix;
+        set
+        {
+            _logPrefix = value;
+            LoupeLogMessage.Prefix = string.IsNullOrWhiteSpace(value) ? LoupeLogMessage.DefaultPrefix : value;
+            _presenter.LogPrefix = value;
+        }
+    }
+
+    /// <summary>ログの接頭辞（未設定は null。 既定値は定義クラスが持つ）。</summary>
+    private string? _logPrefix;
+
     /// <summary>内部ロガー（未設定は null。 読み取り時に <see cref="LoggerFallback"/> が吸収する）。</summary>
     private ILogger? _log;
 
@@ -688,7 +717,7 @@ public sealed class LoupeControl : Panel
     /// 生成は <see cref="LoupeRenderPipeline.RenderAsync"/> に一元化する（ソース解決・抽出・描画合成）。<br/>
     /// <see cref="Source"/> / <see cref="CenterPoint"/> のいずれかが未設定、または切り出せない場合は市松模様のみを表示する<br/>
     /// （判定は描画層が単一所有する）。<br/>
-    /// 例外は <see cref="LoupeUiLogMessage.LogUpdateError"/> で記録し、前回のビットマップを維持する。<br/>
+    /// 例外は <see cref="LoupeLogMessage.LogUpdateError"/> で記録し、前回のビットマップを維持する。<br/>
     /// </remarks>
     private async Task GenerateAsync(long generation)
     {
