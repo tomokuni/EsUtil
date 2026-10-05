@@ -47,7 +47,7 @@ namespace EsUtil.Feature.Marquee.AvaloniaUI;
 /// <b>見た目のカスタマイズ</b>: 色・太さ・表示可否は <see cref="Appearance"/> で、<br/>
 /// 矩形の並びで表せる装飾とラベルの文言・位置は <see cref="DrawPlanResolver"/> で差し替えられる。<br/>
 /// 矩形で表せない描画（円・斜線等）は <see cref="ShowDefaultDecorations"/> を false にして自前で描く<br/>
-/// （描画の直前に呼ばれる <see cref="Rendered"/> で描画先へ描き、必要なら <see cref="DrawPlan"/> で既定の描画を行う）。
+/// （描画の直後に呼ばれる <see cref="Rendered"/> で描画先へ描き、必要なら <see cref="DrawPlan"/> で既定の描画を行う）。
 /// </remarks>
 public sealed partial class MarqueeControl : Panel
 {
@@ -308,9 +308,11 @@ public sealed partial class MarqueeControl : Panel
     /// <value>true（既定）の場合は既定の装飾を描く。 false の場合は装飾の層だけを描かない（<b>ラベル要素は表示される</b>）。</value>
     /// <remarks>
     /// <b>矩形で表せない描画（円・斜線・グラデーション等）を「置換」する入口</b>である<br/>
-    /// （描画の直前に呼ばれる <see cref="Rendered"/> の描画先へ自前で描く）。<br/>
-    /// false の場合も装飾以外の層（コントロールの子が描く図形の下地）は描かれるため、状態の変更で下地が崩れない。<br/>
-    /// 画素へ直接描く必要がある場合は本フラグを false にせず <see cref="DrawPlanResolver"/> で層を絞ること（ホストの下地を保てる）。
+    /// （描画の直後に呼ばれる <see cref="Rendered"/> の描画先へ自前で描く）。<br/>
+    /// false の場合は本 UI の描画実装が描く層が無くなる（描く層は装飾とラベルだけで、ラベルは要素が表示する）。<br/>
+    /// 既定の描画を任意のタイミングと順序で使いたい場合は、本フラグを false にして <see cref="DrawPlan"/> を呼ぶ<br/>
+    /// （本フラグは自動描画の停止であり、計画の値は保持されるため既定の描画を再利用できる）。<br/>
+    /// 設定すると保持中の計画を破棄して再描画する。
     /// </remarks>
     public bool ShowDefaultDecorations
     {

@@ -28,7 +28,7 @@ public partial class MainWindow : Window
     private readonly MainWindowViewModel _vm = new();
 
     /// <summary>背景に敷くダミー画像（対象面のサイズ感を示す）。 Skia 直描画（EsBitmapAvaloniaImage）で表示する。</summary>
-    private static readonly EsBitmapAvaloniaImage Backdrop = CreateBackdrop();
+    private static readonly EsBitmapAvaloniaImage s_backdrop = CreateBackdrop();
 
     /// <summary>画像の論理幅（対象ピクセル）。</summary>
     private const double ImageWidth = 1200;
@@ -56,7 +56,7 @@ public partial class MainWindow : Window
         DataContext = _vm;
 
         // 背景のダミー画像（対象面のサイズ感）
-        BackdropImage.Source = Backdrop;
+        BackdropImage.Source = s_backdrop;
 
         // コントロール内部の操作ログを画面のログ表示領域へ出力する
         Marquee.Log = new InMemoryLogger(line => Dispatcher.UIThread.Post(() => _vm.AddLog(line)));
