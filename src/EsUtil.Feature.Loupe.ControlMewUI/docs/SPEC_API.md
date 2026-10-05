@@ -126,11 +126,11 @@
 | メンバー | 型 | 説明 |
 | --- | --- | --- |
 | `Canvas` | `SKCanvas` | ルーペを描画したキャンバス（座標系はルーペ画像のピクセル） |
-| `Content` | `LoupeDrawPlan` | 実際に描画した描画計画（切り出し領域の左上 `CaptureTopLeft`・拡大率 `ZoomLevel`・描画面のサイズ `ClientPixelSize` を持つ） |
+| `Content` | `LoupeDrawPlan` | 実際に描画した描画計画（可視域の左上 `CaptureTopLeft`（実数を含む実効原点）・拡大率 `ZoomLevel`・描画面のサイズ `ClientPixelSize` を持つ） |
 
 描画入力（`LoupeGeometry`）の組み立てはコアのファサード（`LoupeCore.ResolveGeometry`）が単一所有し、コントロールは現在の状態を渡すだけです。
 
-オーバーレイの描画位置は `e.Content.CaptureTopLeft` と `e.Content.ZoomLevel` から `(対象座標 − CaptureTopLeft) × ZoomLevel` で求めます （切り出し領域と倍率の計算は Avalonia 版と同じコアの計算を共有します）。
+オーバーレイの描画位置は `e.Content.CaptureTopLeft` と `e.Content.ZoomLevel` から `(対象座標 − CaptureTopLeft) × ZoomLevel` で求めます （`CaptureTopLeft` は**可視域の左上（実効原点。 小数を含む）**であり、切り出し領域と倍率の計算は Avalonia 版と同じコアの計算を共有します）。
 
 外観で装飾を止めている場合でも、`LoupeControl.DrawPlan(SKCanvas, EsBitmap?, in LoupeDrawPlan)`（static）で計画どおりの描画を行えます（描画計画（`e.Content`）をそのまま渡す。 止めた項目はフラグを見て描かないため描かれません。 キャンバスは `Rendered` のハンドラ内でのみ有効です）。
 

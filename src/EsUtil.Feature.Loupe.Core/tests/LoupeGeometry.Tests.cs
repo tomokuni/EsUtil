@@ -93,101 +93,125 @@ public class LoupeGeometryTests
     /// <param name="clientPixelSize">ルーペの一辺のサイズ（物理ピクセル）。</param>
     /// <param name="zoomLevel">拡大率。</param>
     /// <param name="expected">期待する切り出し領域の一辺（対象ピクセル）。</param>
+    /// <remarks>
+    /// 切り出しの左上是効原点を切り捨てた整数であるため、可視域の右端・下端まで覆うには切り上げに加えて 1 画素必要になる<br/>
+    /// （可視域に 1 画素足りないと端に下地の色が見える）。
+    /// </remarks>
     [Theory]
-    [InlineData(100, 4, 25)]
-    [InlineData(100, 3, 34)]
-    [InlineData(64, 4, 16)]
-    [InlineData(10, 64, 1)]
-    [InlineData(16, 4, 4)]
-    [InlineData(25, 4, 7)]
-    [InlineData(1, 1, 1)]
-    internal void CaptureSize_切り上げて対象ピクセルを返す(int clientPixelSize, int zoomLevel, int expected)
+    [InlineData(100, 4, 26)]
+    [InlineData(100, 3, 35)]
+    [InlineData(64, 4, 17)]
+    [InlineData(10, 64, 2)]
+    [InlineData(16, 4, 5)]
+    [InlineData(25, 4, 8)]
+    [InlineData(1, 1, 2)]
+    internal void CaptureSize_可視域を覆う一辺を返す(int clientPixelSize, int zoomLevel, int expected)
         => Assert.Equal(expected, Geometry(s_center, clientPixelSize, zoomLevel).CaptureSize);
 
-    /// <summary>拡大中心から切り出し領域の左上（対象座標）が求まることを検証する。</summary>
-    /// <param name="centerX">拡大中心のX座標。</param>
-    /// <param name="centerY">拡大中心のY座標。</param>
-    /// <param name="size">切り出し領域の一辺（対象ピクセル）。 物理ピクセルサイズは <c>size × zoomLevel</c> で与える。</param>
+    /// <summary>可視域の左上（実効原点）が「中心 − 可視域の半径」になることを検証する。</summary>
+    /// <param name="center">拡大中心。</param>
+    /// <param name="clientPixelSize">ルーペの一辺（物理ピクセル）。</param>
     /// <param name="zoomLevel">拡大率。</param>
-    /// <param name="expectedLeft">期待する左上のX座標。</param>
-    /// <param name="expectedTop">期待する左上のY座標。</param>
+    /// <param name="expectedLeft">期待する左上の X 座標。</param>
+    /// <remarks>
+    /// 可視域の半径は「物理ピクセルサイズ ÷ 拡大率 ÷ 2」であり、小数を含む<br/>
+    /// （拡大中心が描画面の中心へ写るように決めるため。 切り出しの原点は <c>CaptureCropTopLeft</c> が別途切り捨てる）。
+    /// </remarks>
     [Theory]
-    [InlineData(50, 50, 4, 4, 48, 48)]
-    [InlineData(0, 0, 4, 4, -2, -2)]
-    [InlineData(101, 99, 25, 25, 89, 87)]
-    internal void CaptureTopLeft_中心を左上として指定サイズ領域を計算する(
-        int centerX, int centerY, int size, int zoomLevel, int expectedLeft, int expectedTop)
+    [InlineData(50.5, 16, 4, 48.5)]     // 半径 2 → 48.5
+    [InlineData(50, 16, 4, 48)]         // 半径 2（整数）
+    [InlineData(-0.5, 16, 4, -2.5)]     // 負の座標でも同じ式
+    [InlineData(101, 625, 25, 88.5)]    // 半径 12.5
+    internal void CaptureTopLeft_中心から可視域の半径だけ左上へずらす(
+        double center, int clientPixelSize, int zoomLevel, double expectedLeft)
     {
-        // 切り出し領域の一辺が size になるよう、物理ピクセルサイズを size × 拡大率で与える
-        var topLeft = Geometry(new EsPoint(centerX, centerY), size * zoomLevel, zoomLevel).CaptureTopLeft;
+        var geometry = Geometry(new EsPoint(center, center), clientPixelSize, zoomLevel);
 
-        Assert.NotNull(topLeft);
-        Assert.Equal(expectedLeft, (int)topLeft.Value.X);
-        Assert.Equal(expectedTop, (int)topLeft.Value.Y);
+        Assert.Equal(expectedLeft, geometry.CaptureTopLeft!.Value.X, 6);
     }
 
-    /// <summary>切り出し領域の中心が要求された中心を丸めた値になることを検証する。</summary>
-    /// <param name="center">要求された拡大中心。</param>
-    /// <param name="expected">期待する切り出し領域の中心。</param>
-    /// <remarks>丸めは 0.5 を 0 から遠い方へ寄せる（既定の <c>Math.Round</c> の銀行丸めでは 50.5 → 50 になる）。</remarks>
+    /// <summary>切り出しの原点が実効原点の切り捨てになることを検証する。</summary>
+    /// <param name="center">拡大中心。</param>
+    /// <param name="expectedLeft">期待する切り出しの左上。</param>
+    /// <remarks>切り上げると可視域の左端・上端が 1 画素欠ける（差は <c>CaptureDrawOffset</c> が埋める）。</remarks>
     [Theory]
-    [InlineData(50.4, 50)]
-    [InlineData(50.5, 51)]
-    [InlineData(-0.5, -1)]
-    internal void CaptureCenter_中心を四捨五入して切り出しの中心にする(double center, int expected)
+    [InlineData(50.5, 48)]      // 実効原点 48.5 → 48
+    [InlineData(50, 48)]        // 実効原点 48（整数）
+    [InlineData(-0.5, -3)]      // 実効原点 −2.5 → −3
+    internal void CaptureCropTopLeft_実効原点を切り捨てる(double center, int expectedLeft)
     {
         var geometry = Geometry(new EsPoint(center, center), 16, 4);
 
-        Assert.Equal(expected, geometry.CaptureCenter!.Value.X);
+        Assert.Equal(expectedLeft, geometry.CaptureCropTopLeft!.Value.X);
     }
 
-    /// <summary>中心が小数の場合に切り出し領域の左上が四捨五入で決まることを検証する。</summary>
-    /// <param name="center">要求された拡大中心。</param>
-    /// <param name="expectedLeft">期待する左上の座標。</param>
-    /// <remarks>切り捨てでは負の座標でずれの向きが反転するため、丸めの向きを固定する。</remarks>
+    /// <summary>切り出しの配置位置が実効原点との差を物理ピクセルで埋めることを検証する。</summary>
+    /// <param name="center">拡大中心。</param>
+    /// <param name="expectedOffset">期待する配置位置（物理ピクセル）。</param>
+    /// <remarks>描画の位置は整数のまま保たれる（小数へ置くと拡大した画素がぼやける）。 丸めの残りは最大 0.5 px。</remarks>
     [Theory]
-    [InlineData(50.5, 49)]      // round(50.5)=51 − 2 = 49
-    [InlineData(50.4, 48)]      // round(50.4)=50 − 2 = 48
-    [InlineData(-0.5, -3)]      // round(-0.5)=−1 − 2 = −3（切り捨てなら −2）
-    internal void CaptureTopLeft_中心が小数の場合は四捨五入して左上を決める(double center, int expectedLeft)
+    [InlineData(50.5, -2)]      // (48 − 48.5) × 4 = −2
+    [InlineData(50.4, -2)]      // (48 − 48.4) × 4 = −1.6 → 0 から遠い方へ丸めて −2
+    [InlineData(50, 0)]         // 差なし
+    internal void CaptureDrawOffset_実効原点との差を物理ピクセルで持つ(double center, int expectedOffset)
     {
         var geometry = Geometry(new EsPoint(center, center), 16, 4);
 
-        Assert.Equal(expectedLeft, (int)geometry.CaptureTopLeft!.Value.X);
+        Assert.Equal(expectedOffset, geometry.CaptureDrawOffset!.Value.X);
     }
 
-    /// <summary>切り出し領域内での中心位置が小数のまま残ることを検証する。</summary>
-    /// <remarks>切り出しの原点だけが整数へ丸められるため、中心の小数部はオフセットに残る（十字線の位置の根拠）。</remarks>
-    [Fact]
-    internal void CaptureCenterOffset_中心の小数部を切り出し内のオフセットとして持つ()
+    /// <summary>可視域内の中心位置が可視域の半径そのものになることを検証する。</summary>
+    /// <remarks>十字線の位置の根拠であり、拡大中心が小数でも値が変わらない（十字線が描画面の中心から動かない）。</remarks>
+    [Theory]
+    [InlineData(50.5, 2.0)]
+    [InlineData(50, 2.0)]
+    [InlineData(-0.5, 2.0)]
+    internal void CaptureCenterOffset_可視域の半径を返す(double center, double expected)
     {
-        // 中心 50.5・切り出し一辺 4（clientPixelSize=16, zoom=4） → 切り出しの中心 51、左上 49、オフセット 1.5
-        var geometry = Geometry(new EsPoint(50.5, 50.5), 16, 4);
+        var geometry = Geometry(new EsPoint(center, center), 16, 4);
 
-        Assert.Equal(new EsPoint(49, 49), geometry.CaptureTopLeft);
-        Assert.Equal(1.5, geometry.CaptureCenterOffset!.Value.X, 6);
+        Assert.Equal(expected, geometry.CaptureCenterOffset.X, 6);
     }
 
-    /// <summary>拡大中心が未設定の場合は切り出し領域の左上が null（描画しない）になることを検証する。</summary>
+    /// <summary>拡大中心が未設定の場合は切り出し領域の導出値が null（描画しない）になることを検証する。</summary>
     [Fact]
     internal void CaptureTopLeft_中心未設定ならnullになる()
     {
-        Assert.Null(Geometry(center: null, 32, 4).CaptureTopLeft);
-        Assert.Null(Geometry(center: null, 32, 4).CaptureCenter);
-        Assert.Null(Geometry(center: null, 32, 4).CaptureCenterOffset);
-        Assert.Null(Geometry(center: null, 32, 4).MagnifiedImage);
+        var geometry = Geometry(center: null, 32, 4);
+
+        Assert.Null(geometry.CaptureTopLeft);
+        Assert.Null(geometry.CaptureCropTopLeft);
+        Assert.Null(geometry.CaptureDrawOffset);
+        Assert.Null(geometry.MagnifiedImage);
+        // 可視域内の中心位置は中心に依存しない（幾何だけから決まる）
+        Assert.Equal(4.0, geometry.CaptureCenterOffset.X, 6);
     }
 
     /// <summary>拡大画像の切り出し・描画元・描画先の矩形が求まることを検証する。</summary>
-    /// <remarks>中心 (10, 10)・clientPixelSize=16・zoom=4 → 切り出し 4 px、左上 (8, 8)、描画元 4 px、描画先 16 px。</remarks>
+    /// <remarks>
+    /// 中心 (10, 10)・clientPixelSize=16・zoom=4 → 可視域の半径 2、実効原点 (8, 8)（整数）、切り出し一辺 5（= ceil(4) + 1）、
+    /// 切り出し原点 (8, 8)、配置位置 0、描画先 20 px（表面 16 px を越えた分はクリップされる）。
+    /// </remarks>
     [Fact]
     internal void MagnifiedImage_切り出し領域と描画元と描画先を解決する()
     {
         var image = Assert.NotNull(Geometry(new EsPoint(10, 10), 16, 4).MagnifiedImage);
 
-        Assert.Equal(new EsRectInt(8, 8, 4, 4), image.CropSourceRect);
-        Assert.Equal(new EsRect(0, 0, 4, 4), image.CroppedRect);
-        Assert.Equal(new EsRect(0, 0, 16, 16), image.DrawClientPixelRect);
+        Assert.Equal(new EsRectInt(8, 8, 5, 5), image.CropSourceRect);
+        Assert.Equal(new EsRect(0, 0, 5, 5), image.CroppedRect);
+        Assert.Equal(new EsRect(0, 0, 20, 20), image.DrawClientPixelRect);
+    }
+
+    /// <summary>中心が小数の場合は切り出しと描画の位置で実効原点の差を埋めることを検証する。</summary>
+    /// <remarks>切り出しは切り捨てた整数から始め、描画の位置を負へずらして見た目を連続にする（画素はぼやけない）。</remarks>
+    [Fact]
+    internal void MagnifiedImage_中心が小数の場合は切り出しと描画で差を埋める()
+    {
+        // 中心 10.5・半径 2 → 実効原点 8.5、切り出し原点 8、配置位置 (8 − 8.5) × 4 = −2
+        var image = Assert.NotNull(Geometry(new EsPoint(10.5, 10.5), 16, 4).MagnifiedImage);
+
+        Assert.Equal(new EsRectInt(8, 8, 5, 5), image.CropSourceRect);
+        Assert.Equal(new EsRect(-2, -2, 20, 20), image.DrawClientPixelRect);
     }
 
     /// <summary>画像端では切り出し領域が負の左上になることを検証する（透明パディングは切り出し側が担う）。</summary>
@@ -196,23 +220,25 @@ public class LoupeGeometryTests
     {
         var image = Assert.NotNull(Geometry(new EsPoint(0, 0), 16, 4).MagnifiedImage);
 
-        Assert.Equal(new EsRectInt(-2, -2, 4, 4), image.CropSourceRect);
+        // 実効原点 (2 ÷ 2 = 2) → 切り出し原点 −2、切り出し一辺 5（= ceil(4) + 1）
+        Assert.Equal(new EsRectInt(-2, -2, 5, 5), image.CropSourceRect);
     }
 
-    /// <summary>描画先が切り出しサイズ × 拡大率になることを検証する（切り上げ分だけ表面より大きくなりうる）。</summary>
+    /// <summary>描画先が切り出しサイズ × 拡大率になることを検証する（可視域より大きくなった分はクリップされる）。</summary>
     /// <param name="clientPixelSize">ルーペの一辺のサイズ（物理ピクセル）。</param>
     /// <param name="zoomLevel">拡大率。</param>
     /// <param name="expectedDestination">期待する描画先の一辺。</param>
+    /// <remarks>切り出しの一辺は <c>ceil(物理ピクセル ÷ 拡大率) + 1</c> のため、描画先もその拡大率倍になる。</remarks>
     [Theory]
-    [InlineData(16, 4, 16)]
-    [InlineData(25, 4, 28)]
-    [InlineData(1, 1, 1)]
+    [InlineData(16, 4, 20)]
+    [InlineData(25, 4, 32)]
+    [InlineData(1, 1, 2)]
     internal void MagnifiedImage_描画先は切り出しサイズの拡大率倍になる(
         int clientPixelSize, int zoomLevel, int expectedDestination)
     {
         var image = Assert.NotNull(Geometry(new EsPoint(100, 100), clientPixelSize, zoomLevel).MagnifiedImage);
 
-        Assert.Equal(new EsRect(0, 0, expectedDestination, expectedDestination), image.DrawClientPixelRect);
+        Assert.Equal(expectedDestination, image.DrawClientPixelRect.Width);
     }
 
     // ====================================================================

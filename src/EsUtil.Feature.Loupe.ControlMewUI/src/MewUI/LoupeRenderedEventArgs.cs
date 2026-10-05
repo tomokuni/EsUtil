@@ -10,7 +10,7 @@ namespace EsUtil.Feature.Loupe.MewUI;
 /// <b>中心座標ラベルは <see cref="LoupeControl"/> がテキスト要素として表示する</b>ため、本引数には含めない。<br/>
 /// 座標系は次のとおり:<br/>
 /// - <see cref="Canvas"/>: ルーペの描画先（1 ピクセル = ルーペ画像の 1 ピクセル）<br/>
-/// - <see cref="LoupeDrawPlan.CaptureTopLeft"/>: 対象座標（元画像ピクセル座標）<br/>
+/// - <see cref="LoupeDrawPlan.CaptureTopLeft"/>: 対象座標（元画像ピクセル座標）の可視域の左上（**小数を含む実効原点**）<br/>
 /// - <see cref="LoupeDrawPlan.ZoomLevel"/>: 対象座標 → ルーペ画像ピクセル座標の変換係数（拡大率と同値）<br/>
 /// オーバーレイの描画位置は <c>(対象座標 − CaptureTopLeft) × ZoomLevel</c> で求められる<br/>
 /// （導出値は描画計画が単一所有するため、本引数は複製しない）。<br/>

@@ -171,6 +171,9 @@ classDiagram
         +EsRect ClientPixelRect
         +int CaptureSize
         +EsPoint? CaptureTopLeft
+        +EsPointInt? CaptureCropTopLeft
+        +EsPointInt? CaptureDrawOffset
+        +EsPoint CaptureCenterOffset
         +LoupeMagnifiedImage? MagnifiedImage
         +int ClientPixelSize
     }

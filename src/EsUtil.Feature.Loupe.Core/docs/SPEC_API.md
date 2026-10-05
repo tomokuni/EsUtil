@@ -133,7 +133,7 @@ var layout = loupe.ResolveLayout(parentSize);          // 表示サイズ（要�
 var geometry = loupe.ResolveGeometry(layout.ClientSize); // 幾何（物理ピクセル・切り出し領域を解決済み）
 
 // 描画完了通知（ホストが描画済み画像へオーバーレイを描くための情報）は幾何から読む
-var captureTopLeft = geometry.CaptureTopLeft;   // 切り出し領域の左上（対象座標。中心未設定は null）
+var captureTopLeft = geometry.CaptureTopLeft;   // 可視域の左上（対象座標。 小数を含む実効原点。 中心未設定は null）
 var scale = geometry.ZoomLevel;                 // 対象座標 → ルーペ画像ピクセルの変換係数
 ```
 
@@ -152,11 +152,12 @@ var scale = geometry.ZoomLevel;                 // 対象座標 → ルーペ画
 | `ClientPixelSize` | `int` | ルーペの一辺のサイズ（物理ピクセル。 表示サイズ × `ClientToPixelScaling` を切り上げ・最低 1）。 描画先の表面は本値と同じ大きさで用意する |
 | `ClientToPixelScaling` | `double` | 表示 DIP → 物理ピクセルのスケーリング係数（描画計画の解決（枠線の太さの換算）にも使う） |
 | `ZoomLevel` | `int` | 拡大率（1〜64。 設定 `Options.ZoomLevel` の値。 描画完了通知のスケールにも使う） |
-| `CaptureSize` | `int`（導出） | 切り出し領域の一辺（対象ピクセル）。 物理ピクセルサイズを拡大率で割った切り上げ。 位置パラメータではなく `ClientPixelSize` / `ZoomLevel` からの導出であり、切り上げの規則も本値が単一所有する |
+| `CaptureSize` | `int`（導出） | 可視域を覆う切り出しの一辺（対象ピクセル）。 物理ピクセルサイズを拡大率で割った切り上げ + 1（実効原点が小数のときの端数分）。 位置パラメータではなく `ClientPixelSize` / `ZoomLevel` からの導出であり、規則も本値が単一所有する |
 | `ClientPixelRect` | `EsRect` | 描画先の全領域（左上を原点とする一辺 `ClientPixelSize` の正方形・物理ピクセル）。 描画層がこの矩形へ下地を塗る（UI 層は矩形を組み立てない） |
-| `CaptureCenter` | `EsPoint?` | 拡大中心を対象ピクセルへ丸めた値（切り出し領域の中心）。 丸めは `EsPointInt.FromEsPoint`（0.5 は 0 から遠い方）。 中心未設定の場合は null |
-| `CaptureTopLeft` | `EsPoint?` | 拡大中心から切り出し領域の左上（対象座標）。 中心を四捨五入してから領域を組む。 中心未設定の場合は null（描画しない） |
-| `CaptureCenterOffset` | `EsPoint?` | 切り出し領域内での拡大中心の位置（対象ピクセル）。 **十字線の位置の根拠**（切り出しの原点だけが整数へ丸められるため、中心の小数部がここに残る）。 中心未設定の場合は null |
+| `CaptureTopLeft` | `EsPoint?` | 可視域の左上（対象座標。 **小数を含む実効原点**）。 **座標変換（対象座標 → 描画面のピクセル）は本値を原点にする**（拡大中心は描画面の中心へ写る）。 中心未設定の場合は null（描画しない） |
+| `CaptureCropTopLeft` | `EsPointInt?` | 切り出し（`EsBitmap.Crop`）の原点（対象ピクセル）。 可視域の左上を切り捨てた値。 中心未設定の場合は null |
+| `CaptureDrawOffset` | `EsPointInt?` | 切り出した画像を描画面へ置く位置（物理ピクセル、整数）。 切り出し原点と実効原点の差を埋める。 中心未設定の場合は null |
+| `CaptureCenterOffset` | `EsPoint` | 可視域内での拡大中心の位置（対象ピクセル。 中心に依存しない）。 **十字線の位置の根拠**（× 拡大率 = 描画面の中心。 中心が小数でも動かない） |
 | `MagnifiedImage` | `LoupeMagnifiedImage?` | 拡大画像の切り出し・描画元・描画先の矩形。 中心未設定の場合は null |
 
 | メソッド | 説明 |
@@ -171,10 +172,11 @@ var scale = geometry.ZoomLevel;                 // 対象座標 → ルーペ画
 
 | メンバー | 説明 |
 | --- | --- |
-| `CaptureSize` | 切り出し領域の一辺（対象ピクセル）。 物理ピクセルサイズを拡大率で割った切り上げ |
-| `CaptureCenter` | 切り出し領域の中心（拡大中心を対象ピクセルへ丸めた値。 丸めは 0.5 を 0 から遠い方へ） |
-| `CaptureTopLeft` | 切り出し領域の左上（対象座標）。 中心を四捨五入してから領域を組む（切り捨てでは負の座標でずれの向きが反転する）。 中心未設定の場合は null（描画しない）。 **ホストが描画済み画像へオーバーレイを描くために public** |
-| `CaptureCenterOffset` | 切り出し領域内での拡大中心の位置。 **十字線の交点は本値 × 拡大率で決まる**（切り出し領域の中央のブロックへ合わせると、中心の小数部 × 拡大率だけ他の装飾とずれる） |
+| `CaptureSize` | 可視域を覆う切り出しの一辺（対象ピクセル）。 物理ピクセルサイズを拡大率で割った切り上げ + 1 |
+| `CaptureTopLeft` | 可視域の左上（対象座標。 小数を含む実効原点）。 拡大中心が描画面の中心へ写るように決める。 中心未設定の場合は null（描画しない）。 **ホストが描画済み画像へオーバーレイを描くために public** |
+| `CaptureCropTopLeft` | 切り出しの原点（可視域の左上の切り捨て）。 可視域が小数を含むため、切り出しは整数の本値から行う |
+| `CaptureDrawOffset` | 切り出した画像を描画面へ置く位置（整数）。 切り出し原点と実効原点の差を物理ピクセルで埋める（丸めの残りは最大 0.5 px） |
+| `CaptureCenterOffset` | 可視域内での拡大中心の位置（＝可視域の半径）。 **十字線は本値 × 拡大率 = 描画面の中心になる**（拡大中心が小数でも十字線は動かない） |
 | `MagnifiedImage` | 拡大画像の切り出し・描画元・描画先の矩形（`LoupeMagnifiedImage`）。 **拡大倍率と描画先の大きさの関係を単一所有**し、両 UI が同じ拡大結果になるようにする。 中心未設定の場合は null |
 
 **切り出しの実行はありません**: 切り出しは描画実装（各 UI の painter）が `EsBitmap.Crop` を呼んで行います。 本メンバーは「どこを切り出すか」を解決する値だけを持ちます。

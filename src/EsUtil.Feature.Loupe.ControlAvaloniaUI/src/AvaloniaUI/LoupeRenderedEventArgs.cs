@@ -11,9 +11,10 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI;
 /// <b>中心座標ラベルは <see cref="LoupeControl"/> がテキスト要素として表示する</b>ため、本引数には含めない。<br/>
 /// 座標系は次のとおり:<br/>
 /// - <see cref="Bitmap"/>: ルーペ画像のピクセル座標<br/>
-/// - <see cref="LoupeDrawPlan.CaptureTopLeft"/>: 対象座標（元画像ピクセル座標）<br/>
+/// - <see cref="LoupeDrawPlan.CaptureTopLeft"/>: 対象座標（元画像ピクセル座標）の可視域の左上（**小数を含む実効原点**）<br/>
 /// - <see cref="LoupeDrawPlan.ZoomLevel"/>: 対象座標 → ルーペ画像ピクセル座標の変換係数（拡大率と同値）<br/>
 /// オーバーレイの描画位置は <c>(対象座標 − CaptureTopLeft) × ZoomLevel</c> で求められる<br/>
+/// （拡大中心は描画面の中心へ写るため、十字線と本式の結果は一致する）。
 /// （導出値は描画計画が単一所有するため、本引数は複製しない）。<br/>
 /// 表示位置・表示サイズは、描画に必要な値をホストが既に保持しているため通知しない<br/>
 /// （必要な場合は <see cref="LoupeControl"/> の公開プロパティから取得する）。

@@ -28,13 +28,15 @@ public readonly record struct LoupeGeometry(
     int ZoomLevel)
 {
     /// <summary>切り出し領域の一辺（対象ピクセル）を取得する。</summary>
-    /// <value>物理ピクセルサイズを拡大率で割った切り上げ（余りを 1 区画として数える）。<see cref="ClientPixelSize"/> は 1 以上のため 1 以上になる。</value>
+    /// <value>物理ピクセルサイズを拡大率で割った切り上げ + 1（実効原点の端数を覆うための 1 画素）。<see cref="ClientPixelSize"/> は 1 以上のため 2 以上になる。</value>
     /// <remarks>
-    /// 切り出しの実行（<c>EsBitmap.Crop</c>）と、切り出し領域の導出（<see cref="CaptureTopLeft"/> / <see cref="MagnifiedImage"/>）が同じ値を共有する。<br/>
+    /// 切り出しの実行（<c>EsBitmap.Crop</c>）と、切り出し領域の導出（<see cref="CaptureCropTopLeft"/> / <see cref="MagnifiedImage"/>）が同じ値を共有する。<br/>
     /// 切り捨てると端の区画が失われ、切り出し領域の右端・下端が埋まらない。<br/>
+    /// <b>+1 する理由</b>: 可視域の左上（<see cref="CaptureTopLeft"/>）は小数を含むため、その切り捨て（<see cref="CaptureCropTopLeft"/>）から<br/>
+    /// 可視域の右端・下端までを覆うには <c>切り上げ + 1</c> が必要になる（可視域に 1 画素足りないと端に下地の色が見える）。<br/>
     /// 導出元（物理ピクセルサイズと拡大率）を位置パラメータにも持つと 2 つの値が食い違いうるため、本値が導出する。
     /// </remarks>
-    public int CaptureSize => CeilDiv(ClientPixelSize, ZoomLevel);
+    public int CaptureSize => CeilDiv(ClientPixelSize, ZoomLevel) + 1;
 
     /// <summary>描画先の全領域（ルーペの一辺が作る正方形）を取得する。</summary>
     /// <value>左上を原点（0, 0）とし、幅・高さが <see cref="ClientPixelSize"/> の矩形（物理ピクセル）。</value>
@@ -43,55 +45,77 @@ public readonly record struct LoupeGeometry(
     /// </remarks>
     public EsRect ClientPixelRect => new(0, 0, ClientPixelSize, ClientPixelSize);
 
-    /// <summary>拡大中心（対象座標）を対象ピクセルへ丸めた値（切り出し領域の中心）を取得する。</summary>
-    /// <value>切り出し領域の中心（対象ピクセル）。<see cref="Center"/> が未設定の場合は null。</value>
+    /// <summary>可視域の対象座標での半径（切り出し領域の半分）を取得する。</summary>
+    /// <value>可視域の半径（対象ピクセル。 中心が整数でない場合は小数を含む）。</value>
     /// <remarks>
-    /// 切り出しの原点は整数である必要があるため、中心を整数へ丸めてから領域を組む（<see cref="CaptureTopLeft"/>）。<br/>
-    /// 丸め規則は <see cref="EsPointInt.FromEsPoint(EsPoint, EsRounding)"/> が単一所有する<br/>
-    /// （0.5 は 0 から遠い方へ丸めるため、負の座標でも中心から同じ距離になる）。<br/>
-    /// 本値は「実際に切り出した領域の中心」であり、要求された <see cref="Center"/> とは最大 0.5 px ずれる<br/>
-    /// （ずれは <see cref="CaptureCenterOffset"/> が小数として持ち、十字線の位置へ反映される）。
+    /// 可視域（描画面に写る範囲）は物理ピクセルサイズ ÷ 拡大率であり、その半分が本値である。<br/>
+    /// <b>十字線は本値が位置を決める</b>: 拡大中心は常に描画面の中心（<c>ClientPixelSize / 2</c>）へ写るため、<br/>
+    /// 拡大中心が小数でも十字線はルーペの中心から動かない（<see cref="CaptureCenterOffset"/>）。
     /// </remarks>
-    public EsPoint? CaptureCenter => Center is { } center
-        ? EsPointInt.FromEsPoint(center, EsRounding.Round).ToEsPoint()
+    private double CaptureRadius => ClientPixelSize / (2.0 * ZoomLevel);
+
+    /// <summary>可視域の左上（対象座標）を取得する。</summary>
+    /// <value>可視域の左上（対象座標。 小数を含む実効原点）。<see cref="Center"/> が未設定の場合は null（切り出し領域を持たない）。</value>
+    /// <remarks>
+    /// <b>座標変換（対象座標 → 描画面のピクセル）は本値を原点にする</b>: ホストが描画完了通知（<c>Rendered</c>）で<br/>
+    /// オーバーレイを描くときの <c>(対象座標 − 本値) × ZoomLevel</c> も本値を使う。<br/>
+    /// 本値は拡大中心が描画面の中心へ写るように決める（<c>中心 − 可視域の半径</c>）ため、<b>小数を含む</b>。<br/>
+    /// 切り出し（<c>EsBitmap.Crop</c>）の原点は整数である必要があるため、実際の切り出しは <see cref="CaptureCropTopLeft"/>（本値の切り捨て）から行い、<br/>
+    /// 描画面への配置は <see cref="CaptureDrawOffset"/> で差を埋める。
+    /// </remarks>
+    public EsPoint? CaptureTopLeft => Center is { } center
+        ? new EsPoint(center.X - CaptureRadius, center.Y - CaptureRadius)
         : null;
 
-    /// <summary>拡大中心から切り出し領域の左上（対象座標）を取得する。</summary>
-    /// <value>切り出し領域の左上（対象座標）。<see cref="Center"/> が未設定の場合は null（切り出し領域を持たない）。</value>
+    /// <summary>切り出し（<c>EsBitmap.Crop</c>）の原点（対象ピクセル）を取得する。</summary>
+    /// <value>切り出しの原点（対象ピクセル。 可視域の左上を切り捨てた値）。<see cref="Center"/> が未設定の場合は null。</value>
     /// <remarks>
-    /// 中心の整数化は切り出し（<c>EsBitmap.Crop</c>）の原点と同じ値を使う。<br/>
-    /// 原点を四捨五入することで、中心が切り出し領域の中央から 0.5 px 以内に収まる<br/>
-    /// （切り捨てでは負の座標でずれの向きが反転し、中心が最大 1 px ずれる）。
+    /// 可視域（<see cref="CaptureTopLeft"/>）が小数を含むため、切り出しはその切り捨てから始める<br/>
+    /// （切り上げると可視域の左端・上端が 1 画素欠ける）。 差は <see cref="CaptureDrawOffset"/> が埋める。
     /// </remarks>
-    public EsPoint? CaptureTopLeft => CaptureCenter is { } center
-        ? new EsPoint(center.X - CaptureSize / 2, center.Y - CaptureSize / 2)
+    public EsPointInt? CaptureCropTopLeft => CaptureTopLeft is { } origin
+        ? new EsPointInt((int)Math.Floor(origin.X), (int)Math.Floor(origin.Y))
         : null;
 
-    /// <summary>切り出し領域内での拡大中心の位置（対象ピクセル）を取得する。</summary>
-    /// <value>切り出し領域の左上から見た中心の位置。<see cref="Center"/> が未設定の場合は null。</value>
+    /// <summary>切り出した画像を描画面へ置く位置（物理ピクセル）を取得する。</summary>
+    /// <value>描画面の左上を原点とした配置位置（整数）。<see cref="Center"/> が未設定の場合は null。</value>
     /// <remarks>
-    /// <b>十字線の位置は本値が決める</b>: 描画面での中心の位置は「切り出し領域内のオフセット × 拡大率」であるため、<br/>
-    /// 中心が整数でない場合の小数部（最大 0.5 px）がそのまま十字線の位置へ反映される<br/>
-    /// （切り出し領域の中央のブロックへ合わせると、小数部 × 拡大率だけ他の装飾とずれる）。
+    /// <see cref="CaptureCropTopLeft"/>（切り捨て）と <see cref="CaptureTopLeft"/>（実効原点）の差を拡大率で換算して埋める。<br/>
+    /// 丸めの残りは最大 0.5 物理ピクセルであり、<b>描画の位置は整数のまま保たれる</b>（小数へ置くと拡大した画素がぼやける）。<br/>
+    /// 十字線とホストのオーバーレイは本値の丸めを使わない（実効原点から直接位置を求めるため、中心からずれない）。
     /// </remarks>
-    public EsPoint? CaptureCenterOffset => CaptureTopLeft is { } topLeft && Center is { } center
-        ? new EsPoint(center.X - topLeft.X, center.Y - topLeft.Y)
+    public EsPointInt? CaptureDrawOffset => CaptureTopLeft is { } origin && CaptureCropTopLeft is { } crop
+        ? new EsPointInt(
+            (int)Math.Round((crop.X - origin.X) * ZoomLevel, MidpointRounding.AwayFromZero),
+            (int)Math.Round((crop.Y - origin.Y) * ZoomLevel, MidpointRounding.AwayFromZero))
         : null;
+
+    /// <summary>可視域内での拡大中心の位置（対象ピクセル）を取得する。</summary>
+    /// <value>可視域の左上から見た中心の位置（拡大中心が未設定でも値を持つ）。</value>
+    /// <remarks>
+    /// <b>十字線の位置は本値が決める</b>: 描画面での中心の位置は「可視域内の中心位置 × 拡大率」であり、<br/>
+    /// 本値は可視域の半径そのものであるため、<b>十字線は常に描画面の中心（<c>ClientPixelSize / 2</c>）になる</b><br/>
+    /// （拡大中心が小数でも十字線は動かない。 ホストのオーバーレイは <see cref="CaptureTopLeft"/> を原点にするため、<br/>
+    /// 拡大中心と一致する対象座標（ドラッグ中のハンドル等）は十字線と同じ位置へ写る）。
+    /// </remarks>
+    public EsPoint CaptureCenterOffset => new(CaptureRadius, CaptureRadius);
 
     /// <summary>拡大画像の切り出しと描画の矩形を取得する。</summary>
     /// <value>切り出しと描画の矩形。<see cref="Center"/> が未設定の場合は null（切り出し領域を持たない）。</value>
     /// <remarks>
-    /// 「切り出した領域を左上原点から <see cref="ZoomLevel"/> 倍の大きさで描く」規則を単一所有する。<br/>
+    /// 「切り出した領域を <see cref="ZoomLevel"/> 倍の大きさで描く」規則を単一所有する。<br/>
     /// 切り出し元の画像は含めない（切り出しの実行は描画層が <c>EsBitmap.Crop</c> で行う）。<br/>
-    /// <b>描画先は切り上げ分だけ表面より大きくなりうる</b>（最大 <c>ZoomLevel - 1</c> 物理ピクセル）。<br/>
+    /// <b>切り出しは整数の原点から行い、描画の位置で実効原点との差を埋める</b><br/>
+    /// （<see cref="CaptureCropTopLeft"/> / <see cref="CaptureDrawOffset"/>。 描画の位置は整数のまま保たれる）。<br/>
+    /// <b>描画先は可視域より大きくなりうる</b>（切り上げの余りと +1 の分。 最大 <c>ZoomLevel</c> 物理ピクセル程度）。<br/>
     /// はみ出した部分は描画先のクリップに任せる（切り捨てると拡大の倍率が整数でなくなり画素がぼやける）。
     /// </remarks>
-    public LoupeMagnifiedImage? MagnifiedImage => CaptureTopLeft is not { } topLeft
+    public LoupeMagnifiedImage? MagnifiedImage => CaptureCropTopLeft is not { } crop || CaptureDrawOffset is not { } offset
         ? null
         : new LoupeMagnifiedImage(
-            new EsRectInt((int)topLeft.X, (int)topLeft.Y, CaptureSize, CaptureSize),
+            new EsRectInt(crop.X, crop.Y, CaptureSize, CaptureSize),
             new EsRect(0, 0, CaptureSize, CaptureSize),
-            new EsRect(0, 0, CaptureSize * ZoomLevel, CaptureSize * ZoomLevel));
+            new EsRect(offset.X, offset.Y, CaptureSize * ZoomLevel, CaptureSize * ZoomLevel));
 
     /// <summary>整数の切り上げ除算を行う（余りを 1 区画として数える）。</summary>
     /// <param name="value">割られる値（物理ピクセルサイズ）。 1 以上。</param>

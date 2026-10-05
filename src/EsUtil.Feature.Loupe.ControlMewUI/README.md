@@ -113,7 +113,7 @@ if (layout.Position is { } position)
 | --- | --- | --- |
 | `Rendered` | `LoupeRenderedEventArgs` | 描画完了の通知（描画先キャンバスと描画計画（切り出し左上・拡大率・一辺の物理ピクセル））。 ホストはハンドラ内でキャンバスへオーバーレイを追加描画できる |
 
-オーバーレイの描画位置は `(対象座標 − e.Content.CaptureTopLeft) × e.Content.ZoomLevel` で求めます （破線の例は上位のホストにある）。
+オーバーレイの描画位置は `( 対象座標 − e.Content.CaptureTopLeft) × e.Content.ZoomLevel` で求めます （`CaptureTopLeft` は可視域の左上（実効原点。 小数を含む）です）。
 
 ## 7. ログ
 

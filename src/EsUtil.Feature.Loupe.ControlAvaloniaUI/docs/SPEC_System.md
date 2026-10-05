@@ -195,7 +195,7 @@ flowchart TB
 
 ### 6.5 切り出し領域の幾何（`EsUtil.Feature.Loupe.Core`）
 
-- **提供元**: `LoupeGeometry` の公開メンバー（`CaptureSize` / `CaptureTopLeft` / `MagnifiedImage`）
+- **提供元**: `LoupeGeometry` の公開メンバー（`CaptureSize` / `CaptureTopLeft` / `CaptureCropTopLeft` / `CaptureDrawOffset` / `CaptureCenterOffset` / `MagnifiedImage`）
 - **分類**: 幾何（`public readonly record struct`）の導出プロパティ
 - **責務**: 切り出し領域の幾何（どこを切り出すか）を幾何の値から導出する
 - **公開API**: 描画計画（`LoupeDrawPlan.MagnifiedImage`）として外部へ渡る

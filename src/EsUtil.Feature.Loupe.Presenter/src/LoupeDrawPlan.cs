@@ -11,7 +11,7 @@ namespace EsUtil.Feature.Loupe;
 /// <param name="BorderPixelRects">枠線の矩形（上・下・左・右の 4 辺。 表示可否では消さない）。</param>
 /// <param name="Layers">描く値のある層とその順序（<b>描画順は描画層が単一所有する</b>）。 先頭から順に処理する。</param>
 /// <param name="Labels">テキスト（中心座標ラベル）の配置指示。 拡大中心が未設定の場合は空。</param>
-/// <param name="CaptureTopLeft">切り出し領域の左上（対象座標）。 中心未設定時は null（描画完了通知の組み立てに使う）。</param>
+/// <param name="CaptureTopLeft">可視域の左上（対象座標。 小数を含む実効原点。 座標変換の原点になる）。 中心未設定時は null（描画完了通知の組み立てに使う）。</param>
 /// <param name="ZoomLevel">拡大率（描画完了通知の組み立てに使う）。</param>
 /// <param name="ClientPixelSize">描画に使う一辺の物理ピクセルサイズ（描画完了通知の組み立てに使う）。</param>
 /// <param name="ClientToPixelScaling">表示 DIP → 物理ピクセルのスケーリング係数（描画面の矩形の単位換算に使う）。</param>

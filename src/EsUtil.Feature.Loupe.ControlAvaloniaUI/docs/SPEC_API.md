@@ -389,9 +389,9 @@ event EventHandler<LoupeRenderedEventArgs>? Rendered
 | プロパティ | 型 | 説明 |
 | --- | --- | --- |
 | `Bitmap` | `EsBitmap` | 描画済みのルーペ画像。 イベントハンドラ内でピクセルへオーバーレイを直接描画できる（所有権は `LoupeControl` 側） |
-| `Content` | `LoupeDrawPlan` | 実際に描画した描画計画（切り出し領域の左上 `CaptureTopLeft`・拡大率 `ZoomLevel`・描画面のサイズを持つ） |
+| `Content` | `LoupeDrawPlan` | 実際に描画した描画計画（可視域の左上 `CaptureTopLeft`（実数を含む実効原点）・拡大率 `ZoomLevel`・描画面のサイズを持つ） |
 
-オーバーレイの描画位置は `e.Content.CaptureTopLeft` と `e.Content.ZoomLevel` から `(対象座標 − CaptureTopLeft) × ZoomLevel` で求められます。
+オーバーレイの描画位置は `e.Content.CaptureTopLeft` と `e.Content.ZoomLevel` から `(対象座標 − CaptureTopLeft) × ZoomLevel` で求められます（`CaptureTopLeft` は**可視域の左上（実効原点。 小数を含む）**であり、拡大中心は描画面の中心へ写るため、十字線と本式の結果は一致します）。
 
 外観で装飾を止めている場合でも、`LoupeControl.DrawPlan(DrawingContext, IImage?, in LoupeDrawPlan)`（static）で計画どおりの描画を行えます（描画計画（`e.Content`）をそのまま渡す。 止めた項目はフラグを見て描かないため描かれません。 `DrawingContext` は描画中のみ有効）。
 
