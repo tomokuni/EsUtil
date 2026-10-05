@@ -463,6 +463,41 @@ public class LoupeControlTests
         Assert.Equal(LoupeAppearance.Default.PasteboardColor.ToSKColor(), withoutBorderPixel);
     }
 
+    /// <summary>レイヤーを差し替えると装飾だけを止められることを検証する。</summary>
+    /// <remarks>
+    /// ペーストボード（描画面の消去）と拡大画像は層から外すと前フレームが残る・画像が欠けるため残す<br/>
+    /// （外観を変えずに止められるので、止めた後も矩形の計算値を自前の描画へ使える）。
+    /// </remarks>
+    [Fact]
+    internal void レイヤーを差し替えると装飾だけを止められる()
+    {
+        using var bitmap = new SKBitmap(new SKImageInfo(64, 64));
+        using var canvas = new SKCanvas(bitmap);
+
+        var presenter = new LoupePresenter
+        {
+            Options = LoupeOptions.Default with { RequestedSize = 64, ZoomLevel = 1 },
+            Appearance = LoupeAppearance.Default with { BorderThickness = 2 },
+            CenterPoint = new EsPoint(32, 32),
+        };
+        var plan = presenter.ResolveDrawPlan(64, static (_, _) => default);
+
+        // 既定（装飾を描く）: 枠線の色の画素が現れる
+        LoupeSkiaPainter.Paint(canvas, null, in plan);
+        var borderPixel = bitmap.GetPixel(32, 1);
+
+        // ホストが層を差し替える（ペーストボードと拡大画像だけを残す）
+        var host = plan with { Layers = [LoupeDrawLayer.Pasteboard, LoupeDrawLayer.Image] };
+        LoupeSkiaPainter.Paint(canvas, null, in host);
+        var withoutBorderPixel = bitmap.GetPixel(32, 1);
+
+        Assert.NotEqual(borderPixel, withoutBorderPixel);
+        Assert.Equal(LoupeAppearance.Default.PasteboardColor.ToSKColor(), withoutBorderPixel);
+        // 値は残る（ホストは矩形を使って自前で描ける）
+        Assert.Equal(2, host.CrosshairPixelRects.Count);
+        Assert.Equal(4, host.BorderPixelRects.Count);
+    }
+
     // ====================================================================
     // 描画計画の解決の回数（1 フレーム = 1 回）
     // ====================================================================

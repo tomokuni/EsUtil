@@ -590,6 +590,33 @@ public class MarqueeControlTests
         Assert.Equal(0, bitmap.GetPixel(32, 32).Alpha);
     }
 
+    /// <summary>レイヤーを差し替えると既定の描画を止められることを検証する。</summary>
+    /// <remarks>
+    /// ホストが描画を全面的に自前で行う場合の入口である（計画の値を保ったまま層だけを空にする）。<br/>
+    /// 外観（<c>Show*</c>）を変えずに止められるため、止めた後も計算値を使って自前の描画ができる。
+    /// </remarks>
+    [Fact]
+    internal void レイヤーを差し替えると既定の描画を止められる()
+    {
+        using var bitmap = new SKBitmap(new SKImageInfo(64, 64));
+        using var canvas = new SKCanvas(bitmap);
+
+        var presenter = new MarqueePresenter(new StubEffects(), cursor: null, MarqueeOptions.Default);
+        presenter.SetSelection(new EsRect(10, 10, 40, 40));
+        var plan = presenter.ResolveDrawPlan(new EsSize(64, 64), static (_, _) => default);
+
+        // ホストが層を空に差し替える（既定の描画は何も描かない）
+        var host = plan with { Layers = [] };
+        MarqueeSkiaPainter.Paint(canvas, in host);
+
+        Assert.Empty(host.Layers);
+        // 値は残る（ホストは計算値を使って自前で描ける）
+        Assert.NotEmpty(host.OverlayDipRects);
+        Assert.NotNull(host.Handles);
+        Assert.Equal(0, bitmap.GetPixel(10, 10).Alpha);
+        Assert.Equal(0, bitmap.GetPixel(32, 32).Alpha);
+    }
+
     /// <summary>テスト用の効果の最小実装（描画計画の解決だけに使う）。</summary>
     private sealed class StubEffects : IMarqueeEffects
     {

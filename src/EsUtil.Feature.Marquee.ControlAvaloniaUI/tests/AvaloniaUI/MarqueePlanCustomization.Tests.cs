@@ -86,6 +86,40 @@ public class MarqueePlanCustomizationTests
         window.Close();
     }
 
+    /// <summary>レイヤーを差し替えると既定の描画を止められることを検証する。</summary>
+    /// <remarks>
+    /// ホストが描画を全面的に自前で行う場合の入口である（既定の描画を止めるのは <c>Layers</c> を空にすること）。<br/>
+    /// 差し替えた計画は描画完了通知（<c>Content</c>）にもそのまま現れる（同じ計画が描画と配置に使われる）。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void レイヤーを差し替えると既定の描画を止められる()
+    {
+        var control = new MarqueeControl
+        {
+            Width = 200,
+            Height = 200,
+            // ホストが既定の描画を止める（Layers を空にする）
+            DrawPlanResolver = static plan => plan with { Layers = [] },
+        };
+        var window = new Window { Width = 200, Height = 200, Content = control };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        MarqueeDrawPlan? captured = null;
+        control.Rendered += (_, e) => captured = e.Content;
+
+        control.SetSelection(new AvaloniaRect(20, 20, 60, 60));
+        Dispatcher.UIThread.RunJobs();
+        window.CaptureRenderedFrame();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.NotNull(captured);
+        Assert.Empty(captured!.Value.Layers);
+        // 値は残る（ホストは止めた後も計算値を使って自前で描ける）
+        Assert.NotEmpty(captured.Value.OverlayDipRects);
+        window.Close();
+    }
+
     /// <summary>差し替えと外観による停止が描画パスで併用できることを検証する。</summary>
     [AvaloniaFact]
     internal void 差し替えと外観の停止を併用できる()
