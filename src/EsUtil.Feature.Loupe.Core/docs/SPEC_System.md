@@ -99,7 +99,7 @@ sequenceDiagram
 | `src/EsUtil.Feature.Loupe.Core/src/LoupeCore.cs` | `LoupeCore` | public | **公開ファサード（操作の唯一の窓口）**。 設定・環境値・拡大中心・位置オフセットの保持、設定変更の検出とログ出力（`Log`）、座標変換ポートの設定（`SetCoordTransform`） |
 | `src/EsUtil.Feature.Loupe.Core/src/LoupeCore.Limits.cs` | `LoupeCore.Limits`（`LoupeCore` の入れ子） | public | 数値パラメータの既定値・安全域（最小 / 最大）の単一所有と、範囲外の値の補正。 **UI がプロパティ登録に使う**（枠線の太さの安全域は描画層の外観が参照する） |
 | `src/EsUtil.Feature.Loupe.Core/src/LoupeOptions.cs` | `LoupeOptions` | public | 計算に必要な設定の値オブジェクト（表示サイズ・拡大率）。 既定値・生成時の補正（`init` アクセサ。 設定経路によらず範囲内の値だけを保持する）・`Default`。 **色・フォント・枠線の太さ・表示可否は持たない**（描画層の外観が単一所有する） |
-| `src/EsUtil.Feature.Loupe.Core/src/LoupeGeometry.cs` | `LoupeGeometry` | public | 1 フレーム分の描画の幾何（コア⇔UI の契約）。 値の組は `LoupeCore.ResolveGeometry` が 1 箇所に閉じる（UI 層は自分で組み立てない）。 切り出し領域の幾何を導出する（`CaptureSize` / `CaptureTopLeft` / `MagnifiedImage` / `ClientPixelRect`） |
+| `src/EsUtil.Feature.Loupe.Core/src/LoupeGeometry.cs` | `LoupeGeometry` | public | 1 フレーム分の描画の幾何（コア⇔UI の契約）。 値の組は `LoupeCore.ResolveGeometry` が 1 箇所に閉じる（UI 層は自分で組み立てない）。 切り出し領域の幾何を導出する（`CaptureSize` / `CaptureCenter` / `CaptureTopLeft` / `CaptureCenterOffset` / `MagnifiedImage` / `ClientPixelRect`） |
 | `src/EsUtil.Feature.Loupe.Core/src/LoupeMagnifiedImage.cs` | `LoupeMagnifiedImage` | public | 拡大画像の切り出しと描画の矩形（切り出し領域・描画元・描画先） |
 | `src/EsUtil.Feature.Loupe.Core/src/LoupeLayout.cs` | `LoupeLayout` | public | 表示レイアウトの値（表示サイズ + 表示位置。 配置しない場合は位置が null） |
 | （本プロジェクトには置かない） | 描画計画と外観 | — | 提示（描画計画の解決）と外観は **描画層（本コアを参照する上位の層）が所有します**（本コアは描画 API も描画の抽象も持たない） |

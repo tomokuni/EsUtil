@@ -15,20 +15,19 @@ public class LoupePresenterDrawPlanTests
     [Fact]
     internal void ComputeCrosshairPixelRects_十字線の縦横2本の矩形を返す()
     {
-        // 一辺 100, zoomLevel=4, 切り出し一辺 25 → start = 25/2*4 = 48
-        var rects = LoupePresenter.ComputeCrosshairPixelRects(new EsRect(0, 0, 100, 100), 4, 25);
+        // 一辺 100, zoomLevel=4, 切り出しの中心が中央（切り出し一辺 25 の 12.5） → start = 12.5×4 = 50
+        var rects = LoupePresenter.ComputeCrosshairPixelRects(new EsRect(0, 0, 100, 100), 4, new EsPoint(12.5, 12.5));
 
         Assert.Equal(2, rects.Count);
-        Assert.Equal(new EsRect(48, 0, 4, 100), rects[0]); // 縦
-        Assert.Equal(new EsRect(0, 48, 100, 4), rects[1]); // 横
+        Assert.Equal(new EsRect(50, 0, 4, 100), rects[0]); // 縦
+        Assert.Equal(new EsRect(0, 50, 100, 4), rects[1]); // 横
     }
 
-    /// <summary>拡大率 1 の場合は中央を 1 ピクセルで描画することを検証する。</summary>
+    /// <summary>拡大率 1 の場合は中心を 1 ピクセルで描画することを検証する。</summary>
     [Fact]
-    internal void ComputeCrosshairPixelRects_zoomLevel1では中央を1ピクセルで描画する()
+    internal void ComputeCrosshairPixelRects_zoomLevel1では中心を1ピクセルで描画する()
     {
-        // 一辺 100, zoomLevel=1, 切り出し一辺 100 → start = 100/2*1 = 50
-        var rects = LoupePresenter.ComputeCrosshairPixelRects(new EsRect(0, 0, 100, 100), 1, 100);
+        var rects = LoupePresenter.ComputeCrosshairPixelRects(new EsRect(0, 0, 100, 100), 1, new EsPoint(50, 50));
 
         Assert.Equal(new EsRect(50, 0, 1, 100), rects[0]);
         Assert.Equal(new EsRect(0, 50, 100, 1), rects[1]);
@@ -38,10 +37,33 @@ public class LoupePresenterDrawPlanTests
     [Fact]
     internal void ComputeCrosshairPixelRects_描画面の原点を基準に計算する()
     {
-        var rects = LoupePresenter.ComputeCrosshairPixelRects(new EsRect(10, 20, 100, 100), 1, 100);
+        var rects = LoupePresenter.ComputeCrosshairPixelRects(new EsRect(10, 20, 100, 100), 1, new EsPoint(50, 50));
 
         Assert.Equal(new EsRect(60, 20, 1, 100), rects[0]);
         Assert.Equal(new EsRect(10, 70, 100, 1), rects[1]);
+    }
+
+    /// <summary>切り出し内の中心位置の小数部が十字線の位置へ反映されることを検証する。</summary>
+    /// <remarks>
+    /// 切り出しの原点だけが整数へ丸められるため、中心の小数部は切り出し内のオフセットに残る。<br/>
+    /// 切り出し領域の中央のブロックへ合わせると、小数部 × 拡大率だけ他の装飾とずれる（本テストはその退行を防ぐ）。
+    /// </remarks>
+    [Theory]
+    [InlineData(12.0, 48)]
+    [InlineData(12.5, 50)]
+    [InlineData(11.5, 46)]
+    internal void ComputeCrosshairPixelRects_中心の小数部を位置へ反映する(double offset, int expected)
+        => Assert.Equal(expected, (int)LoupePresenter.ComputeCrosshairPixelRects(
+            new EsRect(0, 0, 100, 100), 4, new EsPoint(offset, offset))[0].X);
+
+    /// <summary>X と Y の中心位置が異なる場合は軸ごとに位置が決まることを検証する。</summary>
+    [Fact]
+    internal void ComputeCrosshairPixelRects_軸ごとに中心位置を解決する()
+    {
+        var rects = LoupePresenter.ComputeCrosshairPixelRects(new EsRect(0, 0, 100, 100), 4, new EsPoint(12.0, 13.0));
+
+        Assert.Equal(48, (int)rects[0].X);  // 縦線（X）
+        Assert.Equal(52, (int)rects[1].Y);  // 横線（Y）
     }
 
     /// <summary>枠線が 4 辺（上下左右）の矩形で返ることを検証する。</summary>

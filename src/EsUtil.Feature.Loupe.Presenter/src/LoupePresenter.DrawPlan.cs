@@ -18,21 +18,25 @@ public partial class LoupePresenter
     /// <summary>十字線の 2 本の矩形を計算する。</summary>
     /// <param name="surface">描画面の全体（左上を原点とする正方形）。</param>
     /// <param name="zoomLevel">拡大率（1〜64）。</param>
-    /// <param name="captureSize">切り出し領域の一辺（対象ピクセル。 コアが解決済みの値を渡す）。</param>
+    /// <param name="captureCenterOffset">切り出し領域内での拡大中心の位置（対象ピクセル。 コアが解決済みの値を渡す）。</param>
     /// <returns>十字線の縦・横 2 本の矩形。</returns>
     /// <remarks>
-    /// 交点は「切り出した領域を等倍で並べたときの中央のブロック」の左上へ合わせる（<c>captureSize / 2</c> の切り捨て）。<br/>
-    /// 切り出し領域の一辺は切り上げのため、<b>拡大率が偶数でない場合は交点が表面の中央から最大 1 ブロックずれる</b><br/>
-    /// （切り捨てをやめると、奇数倍率で交点が画素境界から外れて十字線がぼやける）。
+    /// 交点は<b>要求された中心そのもの</b>に合わせる（切り出し領域の原点だけが整数へ丸められるため、<br/>
+    /// 中心の小数部は切り出し領域内のオフセットに残る。 これに拡大率を掛けて描画面の整数へ丸める）。<br/>
+    /// 切り出し領域の中央のブロックへ合わせると、中心の小数部 × 拡大率（最大 <c>拡大率 - 1</c> px）だけ<br/>
+    /// 他の装飾（同じ座標系で描く選択矩形の破線等）とずれる。<br/>
+    /// 線の太さは拡大率と同じ（1 対象ピクセル = 拡大率 px を強調する）。<br/>
+    /// 丸めは <see cref="EsRounding.Round"/>（0.5 は 0 から遠い方）を使う（負の座標でも中心から同じ距離になる）。
     /// </remarks>
-    internal static IReadOnlyList<EsRect> ComputeCrosshairPixelRects(EsRect surface, int zoomLevel, int captureSize)
+    internal static IReadOnlyList<EsRect> ComputeCrosshairPixelRects(EsRect surface, int zoomLevel, EsPoint captureCenterOffset)
     {
         var pixelSize = (int)surface.Width;
-        var start = captureSize / 2 * zoomLevel;
+        var start = EsPointInt.FromEsPoint(
+            new EsPoint(captureCenterOffset.X * zoomLevel, captureCenterOffset.Y * zoomLevel), EsRounding.Round);
         return
         [
-            new EsRect(surface.X + start, surface.Y, zoomLevel, pixelSize),
-            new EsRect(surface.X, surface.Y + start, pixelSize, zoomLevel),
+            new EsRect(surface.X + start.X, surface.Y, zoomLevel, pixelSize),
+            new EsRect(surface.X, surface.Y + start.Y, pixelSize, zoomLevel),
         ];
     }
 

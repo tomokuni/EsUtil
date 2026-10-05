@@ -123,6 +123,62 @@ public class LoupeDrawPlanTests
         Assert.Equal(4, plan.BorderPixelRects.Count);
     }
 
+    /// <summary>十字線の交点が中心の描画面位置と一致する（丸めの範囲内）ことを検証する。</summary>
+    /// <remarks>
+    /// 切り出しの原点は整数へ丸められるが、十字線は要求された中心を指す<br/>
+    /// （以前は切り出し領域の中央ブロックへ合わせていたため、中心の小数部 × 拡大率だけずれていた）。<br/>
+    /// <b>ホストが描く装飾と同じ座標になることを固定する</b>: 選択矩形の破線は <c>(対象座標 − CaptureTopLeft) × ZoomLevel</c> へ描かれるため、<br/>
+    /// 十字線の交点はその位置と一致しなければならない（ずれていると「十字線と破線が離れて見える」不具合になる）。<br/>
+    /// 十字線の開始位置は整数（線をぼやけさせないため）なので、差は丸めの 0.5 物理ピクセル以内に収まる<br/>
+    /// （旧実装のずれは最大 <c>拡大率 - 1</c> 物理ピクセルだった）。
+    /// </remarks>
+    [Theory]
+    [InlineData(50.5)]   // 小数部 0.5
+    [InlineData(50.4)]   // 小数部 0.4
+    [InlineData(49.6)]   // 小数部 -0.4
+    [InlineData(50.0)]   // 整数（旧実装と同じ）
+    internal void ResolveDrawPlan_十字線の交点が中心の描画面位置と一致する(double center)
+    {
+        var presenter = new LoupePresenter
+        {
+            Options = LoupeOptions.Default with { RequestedSize = 100, ZoomLevel = 4 },
+            Appearance = LoupeAppearance.Default,
+            CenterPoint = new EsPoint(center, center),
+        };
+
+        var plan = presenter.ResolveDrawPlan(100, static (_, _) => default);
+        var topLeft = plan.CaptureTopLeft!.Value;
+
+        // ホスト（描画完了通知の利用者）と同じ式で中心の描画面位置を求める
+        var expected = (center - topLeft.X) * plan.ZoomLevel;
+
+        Assert.True(
+            Math.Abs(plan.CrosshairPixelRects[0].X - expected) <= 0.5,
+            $"X のずれが丸めの範囲を超えた: crosshair={plan.CrosshairPixelRects[0].X} / 期待={expected}");
+        Assert.True(
+            Math.Abs(plan.CrosshairPixelRects[1].Y - expected) <= 0.5,
+            $"Y のずれが丸めの範囲を超えた: crosshair={plan.CrosshairPixelRects[1].Y} / 期待={expected}");
+    }
+
+    /// <summary>中心が整数の場合は十字線が切り出し領域の中央ブロックと一致することを検証する。</summary>
+    [Fact]
+    internal void ResolveDrawPlan_中心が整数なら十字線は切り出しの中央になる()
+    {
+        // 中心 50・切り出し一辺 25・拡大率 4 → 左上 38、オフセット 12、十字線 start = 48（切り出しの中央ブロック）
+        var presenter = new LoupePresenter
+        {
+            Options = LoupeOptions.Default with { RequestedSize = 100, ZoomLevel = 4 },
+            Appearance = LoupeAppearance.Default,
+            CenterPoint = new EsPoint(50, 50),
+        };
+
+        var plan = presenter.ResolveDrawPlan(100, static (_, _) => default);
+
+        Assert.Equal(new EsPoint(38, 38), plan.CaptureTopLeft);
+        Assert.Equal(48, (int)plan.CrosshairPixelRects[0].X);
+        Assert.Equal(48, (int)plan.CrosshairPixelRects[1].Y);
+    }
+
     /// <summary>計画がスケーリング係数を持ち、DIP の長さを物理ピクセルへ換算できることを検証する。</summary>
     /// <remarks>
     /// ホストが矩形を差し替えるとき、計画が倍率を持たないと（計画に無い入力を外から参照することになり）<br/>

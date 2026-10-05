@@ -126,11 +126,55 @@ public class LoupeGeometryTests
         Assert.Equal(expectedTop, (int)topLeft.Value.Y);
     }
 
+    /// <summary>切り出し領域の中心が要求された中心を丸めた値になることを検証する。</summary>
+    /// <param name="center">要求された拡大中心。</param>
+    /// <param name="expected">期待する切り出し領域の中心。</param>
+    /// <remarks>丸めは 0.5 を 0 から遠い方へ寄せる（既定の <c>Math.Round</c> の銀行丸めでは 50.5 → 50 になる）。</remarks>
+    [Theory]
+    [InlineData(50.4, 50)]
+    [InlineData(50.5, 51)]
+    [InlineData(-0.5, -1)]
+    internal void CaptureCenter_中心を四捨五入して切り出しの中心にする(double center, int expected)
+    {
+        var geometry = Geometry(new EsPoint(center, center), 16, 4);
+
+        Assert.Equal(expected, geometry.CaptureCenter!.Value.X);
+    }
+
+    /// <summary>中心が小数の場合に切り出し領域の左上が四捨五入で決まることを検証する。</summary>
+    /// <param name="center">要求された拡大中心。</param>
+    /// <param name="expectedLeft">期待する左上の座標。</param>
+    /// <remarks>切り捨てでは負の座標でずれの向きが反転するため、丸めの向きを固定する。</remarks>
+    [Theory]
+    [InlineData(50.5, 49)]      // round(50.5)=51 − 2 = 49
+    [InlineData(50.4, 48)]      // round(50.4)=50 − 2 = 48
+    [InlineData(-0.5, -3)]      // round(-0.5)=−1 − 2 = −3（切り捨てなら −2）
+    internal void CaptureTopLeft_中心が小数の場合は四捨五入して左上を決める(double center, int expectedLeft)
+    {
+        var geometry = Geometry(new EsPoint(center, center), 16, 4);
+
+        Assert.Equal(expectedLeft, (int)geometry.CaptureTopLeft!.Value.X);
+    }
+
+    /// <summary>切り出し領域内での中心位置が小数のまま残ることを検証する。</summary>
+    /// <remarks>切り出しの原点だけが整数へ丸められるため、中心の小数部はオフセットに残る（十字線の位置の根拠）。</remarks>
+    [Fact]
+    internal void CaptureCenterOffset_中心の小数部を切り出し内のオフセットとして持つ()
+    {
+        // 中心 50.5・切り出し一辺 4（clientPixelSize=16, zoom=4） → 切り出しの中心 51、左上 49、オフセット 1.5
+        var geometry = Geometry(new EsPoint(50.5, 50.5), 16, 4);
+
+        Assert.Equal(new EsPoint(49, 49), geometry.CaptureTopLeft);
+        Assert.Equal(1.5, geometry.CaptureCenterOffset!.Value.X, 6);
+    }
+
     /// <summary>拡大中心が未設定の場合は切り出し領域の左上が null（描画しない）になることを検証する。</summary>
     [Fact]
     internal void CaptureTopLeft_中心未設定ならnullになる()
     {
         Assert.Null(Geometry(center: null, 32, 4).CaptureTopLeft);
+        Assert.Null(Geometry(center: null, 32, 4).CaptureCenter);
+        Assert.Null(Geometry(center: null, 32, 4).CaptureCenterOffset);
         Assert.Null(Geometry(center: null, 32, 4).MagnifiedImage);
     }
 

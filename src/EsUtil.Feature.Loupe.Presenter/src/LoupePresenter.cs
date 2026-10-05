@@ -221,7 +221,10 @@ public partial class LoupePresenter
 
         // 描く値は表示可否（Appearance の Show*）に依存せず解決する（ホストが計算値を自前の描画へ使えるようにするため）。
         // 描くかどうかの判断は描画側（painter / ホスト）が行う（値の有無は幾何だけで決まる）。
-        var crosshair = ComputeCrosshairPixelRects(surface, geometry.ZoomLevel, geometry.CaptureSize);
+        // 十字線は「要求された中心」を指す（拡大中心が未設定のときは画像も十字線も描かれないため、中央を渡しておく）
+        var crosshairOffset = geometry.CaptureCenterOffset
+            ?? new EsPoint(geometry.CaptureSize / 2, geometry.CaptureSize / 2);
+        var crosshair = ComputeCrosshairPixelRects(surface, geometry.ZoomLevel, crosshairOffset);
         var border = ComputeBorderPixelRects(
             surface, DpiScaler.ScaleToPixel(appearance.BorderThickness, geometry.ClientToPixelScaling));
 
