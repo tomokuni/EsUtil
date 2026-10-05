@@ -41,7 +41,7 @@ namespace EsUtil.Feature.Loupe.MewUI;
 /// <br/>
 /// <b>見た目のカスタマイズ</b>: 色・太さ・表示可否は <see cref="Appearance"/> で、<br/>
 /// 矩形の並びで表せる装飾とラベルの文言・位置は <see cref="DrawPlanResolver"/> で差し替えられる。<br/>
-/// 矩形で表せない描画（円・斜線等）は <see cref="ShowDefaultDecorations"/> を false にして自前で描く<br/>
+/// 矩形で表せない描画（円・斜線等）は <see cref="DrawPlan"/> を呼んで自前で描く（装飾は外観の <c>Show*</c> で止める）<br/>
 /// （描画の直後に呼ばれる <see cref="Rendered"/> のキャンバスへ描き、必要なら <see cref="DrawPlan"/> で既定の描画を行う）。
 /// </remarks>
 public sealed class LoupeControl : Panel
@@ -155,35 +155,13 @@ public sealed class LoupeControl : Panel
         }
     }
 
-    /// <summary>既定の装飾（十字線・枠線）を既定の描画で描くかどうかを取得または設定する。</summary>
-    /// <value>true（既定）の場合は既定の装飾を描く。 false の場合は装飾の層だけを描かない（<b>ペーストボードと拡大画像は描く</b>）。</value>
-    /// <remarks>
-    /// <b>矩形で表せない描画（円・斜線・グラデーション等）を「置換」する入口</b>である<br/>
-    /// （描画の直後に呼ばれる <see cref="Rendered"/> のキャンバスへ自前で描く）。<br/>
-    /// false でもペーストボード（描画面の消去）と拡大画像は描かれるため、前フレームが残ったり画像が欠けたりしない。<br/>
-    /// <b>外観の表示可否（<see cref="LoupeAppearance.ShowCrosshair"/> / <see cref="LoupeAppearance.ShowBorder"/>）との違い</b>:<br/>
-    /// 外観は「その項目を描かない」として計画の値から消す（<see cref="DrawPlan"/> で再現できない）が、<br/>
-    /// 本フラグは計画の値を保ったまま描画だけを止める（<see cref="DrawPlan"/> で既定の描画を行える）。<br/>
-    /// 設定すると再描画を要求する。
-    /// </remarks>
-    public bool ShowDefaultDecorations
-    {
-        get;
-        set
-        {
-            field = value;
-            InvalidateVisual();
-        }
-    } = true;
-
-    /// <summary>描画計画を指定の描画面へ描く（既定の装飾も含む）。</summary>
+    /// <summary>描画計画を指定の描画面へ描く（計画どおりに描く）。</summary>
     /// <param name="canvas">描画先のキャンバス（物理ピクセル・拡大画像と同じ座標系）。 null 不可。</param>
     /// <param name="source">拡大元の 100% 画像。 null の場合は拡大画像を描かない。</param>
     /// <param name="plan">描く描画計画。 null 不可。</param>
     /// <exception cref="ArgumentNullException"><paramref name="canvas"/> が null の場合。</exception>
     /// <remarks>
-    /// <b>既定の描画をホストへ提供する入口</b>である（<see cref="ShowDefaultDecorations"/> を false にした場合でも、<br/>
-    /// ホストが任意のタイミングと順序で既定の描画を行える）。<br/>
+    /// <b>既定の描画をホストへ提供する入口</b>である（ホストが任意のタイミングと順序で既定の描画を行える）。<br/>
     /// 描画実装（<c>LoupeSkiaPainter</c>）は本プロジェクトの内部であるため、外部へは本メソッドが窓口になる。<br/>
     /// 計画を必要とする場合は <see cref="Rendered"/> の <c>Content</c> を使う。
     /// </remarks>
@@ -552,7 +530,7 @@ public sealed class LoupeControl : Panel
         try
         {
             // 描画の手順（層の順序と描画 API への写し）は LoupeSkiaPainter が単一所有する
-            LoupeSkiaPainter.Paint(canvas, Source, in plan, ShowDefaultDecorations);
+            LoupeSkiaPainter.Paint(canvas, Source, in plan);
         }
         catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
         {

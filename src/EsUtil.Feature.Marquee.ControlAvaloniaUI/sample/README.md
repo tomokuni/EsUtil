@@ -184,6 +184,6 @@ MarqueeControl/sample/
 | --- | --- |
 | 外観（色・枠線の太さ・表示可否） | `Appearance`（`MarqueeAppearance`）を設定する |
 | 装飾（暗転・外枠・内側の塗り）の矩形 / ラベルの文言・位置 | `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）を設定する（計画の値の置き換え） |
-| 矩形で表せない描画（円・斜線等） | `ShowDefaultDecorations` を false にして `Rendered` の描画先へ自前で描く（必要なら `DrawPlan` で既定の描画も呼べる） |
+| 矩形で表せない描画（円・斜線等） | `Appearance` の `Show*` を false にして `Rendered` の描画先へ自前で描く（必要なら `DrawPlan` で計画どおりの描画も呼べる） |
 
 差し替えは値の置き換えだけで完結するため、UI ごとの描画実装（Avalonia は `MarqueeContextPainter`、MewUI は `MarqueeSkiaPainter`。 いずれも内部）は変更不要です。

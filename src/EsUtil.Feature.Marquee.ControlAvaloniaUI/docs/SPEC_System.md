@@ -244,7 +244,7 @@ flowchart TB
 
 - **分類**: 内部静的クラス（`internal static class`。 本プロジェクトが所有する）
 - **責務**: 描画計画（`MarqueeDrawPlan`）を Avalonia の `DrawingContext` へ写す（層の順に描く）
-- **可視性**: internal（描画の実装詳細。 見た目の差し替えは `MarqueeControl.DrawPlanResolver` / `ShowDefaultDecorations` / `DrawPlan` で行う）
+- **可視性**: internal（描画の実装詳細。 見た目の差し替えは `MarqueeControl.Appearance` / `DrawPlanResolver` / `DrawPlan` で行う）
 - **特徴**: 描画計画の項目はすべて解決済みであるため、本クラスは図形の描画 API を呼ぶだけであり、判断も計算も持たない。 色 → ブラシ・ペンは容量制限付きのキャッシュ（`Platform.AvaloniaUI.Imaging`）が単一所有する
 - **依存**: Avalonia（`DrawingContext`）/ EsUtil.Feature.Marquee.Presenter（`MarqueeDrawPlan`）/ Platform.AvaloniaUI（色変換・キャッシュ）
 

@@ -102,7 +102,7 @@
 | 体裁 | `LabelPadding` / `LabelPaddingDefault` | `double` | 4.0（ラベル共通の内側余白。 行送りも本値から導く） |
 | 体裁 | `CoordLabelOffset` / `CoordLabelOffsetDefault` | `double` | 8.0（カーソル座標ラベルをカーソルから離すオフセット（DIP）。 0 はカーソルに重なる） |
 | 体裁 | `MarkerThickness` / `MarkerThicknessDefault` | `double` | 2.0（十字マーカーの線の太さ（DIP）。 0.5〜64 へ補正済み） |
-| 表示可否 | `ShowHandles` / `ShowSizeLabel` / `ShowCoordLabel` | `bool` | `true` |
+| 表示可否 | `ShowHandles` / `ShowMarker` / `ShowSizeLabel` / `ShowCoordLabel` | `bool` | `true` |
 | 表示可否 | `ShowOverlay` / `ShowOuterBorder` | `bool` | `true` |
 | 表示可否 | `ShowFullOverlay` | `bool` | `false`（注目矩形が無くても全面を暗転する） |
 | 表示可否 | `ShowInnerFill` / `ShowInnerBorder` | `bool` | `false` |

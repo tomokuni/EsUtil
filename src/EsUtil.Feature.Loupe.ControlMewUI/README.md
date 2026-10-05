@@ -19,7 +19,7 @@
 | DPI 追従 | `OnDpiChanged` で表示スケーリング係数を DPI から換算した値へ自動更新する（換算規則は `DpiScaler.ToScaling` が単一所有。 ホストの設定は不要） |
 | 連続再描画 | **無効**。 プロパティ変更時にのみ再描画する（静止画のため） |
 | 位置決め | **本コントロールは位置を持たない**。 ホストが `ResolveLayout`（コアのファサード）の結果で配置する |
-| 見た目のカスタマイズ | 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`、矩形で表せない描画は `ShowDefaultDecorations` を false にして `Rendered` のキャンバスへ自前で描く（`DrawPlan` で既定の描画も呼べる。 派生は不要） |
+| 見た目のカスタマイズ | 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`、矩形で表せない描画は `Appearance` の `Show*` を false にして `Rendered` のキャンバスへ自前で描く（`DrawPlan` で計画どおりの描画もできる。 派生は不要 ） |
 
 ## 3. インストール（プロジェクト参照）
 

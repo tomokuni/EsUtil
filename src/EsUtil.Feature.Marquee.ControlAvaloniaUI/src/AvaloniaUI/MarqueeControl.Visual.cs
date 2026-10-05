@@ -107,7 +107,7 @@ public partial class MarqueeControl
         // 描画計画は配置フェーズが解決した値を共有する（未解決の場合のみ本メソッドが解決する）。
         var plan = CurrentFrame(Bounds.Size.ToEsSize());
 
-        MarqueeContextPainter.Paint(context, in plan, ShowDefaultDecorations);
+        MarqueeContextPainter.Paint(context, in plan);
 
         // 描画完了をホストへ通知する（操作・情報ラベルなどホスト固有の付加情報を描くための入口）。
         Rendered?.Invoke(this, new MarqueeRenderedEventArgs(context, plan));

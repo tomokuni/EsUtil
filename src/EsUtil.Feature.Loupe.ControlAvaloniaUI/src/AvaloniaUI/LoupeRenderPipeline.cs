@@ -24,7 +24,6 @@ internal static class LoupeRenderPipeline
     /// <summary>画像抽出を非同期に実行し、Avaloniaの描画オブジェクトをUIスレッドで合成する。</summary>
     /// <param name="source">ルーペのソース画像。</param>
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・拡大画像の幾何を持つ）。</param>
-    /// <param name="drawDecorations">装飾（十字線・枠線）を描くかどうか。</param>
     /// <returns>生成したルーペ画像（<see cref="EsBitmap"/>）。</returns>
     /// <exception cref="NotSupportedException">
     /// <paramref name="source"/> が <see cref="Bitmap"/> / <see cref="EsBitmapAvaloniaImage"/> 以外の場合。
@@ -35,7 +34,7 @@ internal static class LoupeRenderPipeline
     /// 3. 描画（切り出し・拡大・十字線・枠線）は <see cref="LoupeContextPainter"/> へ委譲し、UI スレッドで行う<br/>
     /// （切り出しの可否と破棄済みソースの扱いは描画層が単一所有する）。
     /// </remarks>
-    public static async Task<EsBitmap> RenderAsync(IImage? source, LoupeDrawPlan plan, bool drawDecorations = true)
+    public static async Task<EsBitmap> RenderAsync(IImage? source, LoupeDrawPlan plan)
     {
         // 未対応型の判定は LoupeSourceResolver（単一所有）へ委譲する。
         if (!LoupeSourceResolver.IsSourceSupported(source))
@@ -53,7 +52,7 @@ internal static class LoupeRenderPipeline
             // Task.Run によるバックグラウンド抽出は、マウス移動中の連続再描画でスレッドプールが競合し、
             // 抽出結果が UI スレッドへ戻る前に次の再描画が要求されてルーペ画像が移動停止まで更新されない問題を生む。
             return await Dispatcher.UIThread.InvokeAsync(
-                () => Rasterize(sourceBitmap, in plan, drawDecorations),
+                () => Rasterize(sourceBitmap, in plan),
                 DispatcherPriority.Render);
         }
         finally
@@ -69,19 +68,18 @@ internal static class LoupeRenderPipeline
     /// <summary>描画計画を描画実装へ渡し、結果を <see cref="EsBitmap"/> として返す。</summary>
     /// <param name="source">拡大元の画像。</param>
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・拡大画像の幾何を持つ）。</param>
-    /// <param name="drawDecorations">装飾（十字線・枠線）を描くかどうか。</param>
     /// <returns>描画結果（ホストがピクセルへオーバーレイを描画できる）。</returns>
     /// <remarks>
     /// オフスクリーン ビットマップは UI 固有の機構（Avalonia の <see cref="RenderTargetBitmap"/>）であるため本層が生成し、<br/>
     /// 描画の手順（層の順序・写し方）は <see cref="LoupeContextPainter"/> へ委譲する。
     /// </remarks>
-    private static EsBitmap Rasterize(EsBitmap? source, in LoupeDrawPlan plan, bool drawDecorations)
+    private static EsBitmap Rasterize(EsBitmap? source, in LoupeDrawPlan plan)
     {
         var bitmap = new RenderTargetBitmap(new PixelSize(plan.ClientPixelSize, plan.ClientPixelSize), s_dpi);
 
         using (var context = bitmap.CreateDrawingContext())
         {
-            LoupeContextPainter.Paint(context, source, in plan, drawDecorations);
+            LoupeContextPainter.Paint(context, source, in plan);
         }
 
         return bitmap.ToEsBitmap();

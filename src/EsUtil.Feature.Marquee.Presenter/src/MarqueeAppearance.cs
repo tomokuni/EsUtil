@@ -153,6 +153,14 @@ public sealed record MarqueeAppearance
     /// <value>true（既定）の場合は選択中にハンドルを描く。 false の場合は枠線と十字マーカーのみを描く。</value>
     public bool ShowHandles { get; init; } = true;
 
+    /// <summary>始点マーカー（nudge 中の十字）を表示するかどうかを取得する。</summary>
+    /// <value>true（既定）の場合は矢印キーによる微調整中に十字マーカーを描く。 false の場合は描かない。</value>
+    /// <remarks>
+    /// <b>装飾の停止は本値（と他の <c>Show*</c>）が単一所有する</b>（描画を止める別のスイッチを持たない）。<br/>
+    /// 本値が false の場合は計画の値（<c>MarqueeDrawPlan.Marker</c>）と層の両方から消える（描画実装は可否を判断しない）。
+    /// </remarks>
+    public bool ShowMarker { get; init; } = true;
+
     /// <summary>サイズラベルを表示するかどうかを取得する。</summary>
     /// <value>true（既定）の場合は注目矩形の左上に位置と寸法を表示する。 false の場合は描かない。</value>
     /// <remarks>他のラベル（操作・情報）はホストが自前で描くため、本設定には含まれない。</remarks>

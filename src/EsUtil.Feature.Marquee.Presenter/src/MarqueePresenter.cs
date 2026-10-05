@@ -333,6 +333,7 @@ public partial class MarqueePresenter
             in geometry, appearance, DisplayScaleScaling, SizeLabelOverrideProvider, SizeLabelDisplayScalingProvider);
         var coordLabel = ResolveCoordLabelText(in geometry, appearance);
         var handles = appearance.ShowHandles ? geometry.Handles : null;
+        var marker = appearance.ShowMarker ? geometry.Marker : null;
 
         return new MarqueeDrawPlan(
             appearance,
@@ -344,8 +345,8 @@ public partial class MarqueePresenter
             innerFill,
             innerBorders,
             handles,
-            geometry.Marker,
-            ResolveLayers(overlayRegions, outerBorders, innerFill, innerBorders, handles, geometry.Marker, sizeLabel, coordLabel),
+            marker,
+            ResolveLayers(overlayRegions, outerBorders, innerFill, innerBorders, handles, marker, sizeLabel, coordLabel),
             ResolveLabelPlacements(sizeLabel, coordLabel, appearance, measureText));
     }
 

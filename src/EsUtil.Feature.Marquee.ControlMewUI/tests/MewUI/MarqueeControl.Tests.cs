@@ -554,12 +554,12 @@ public class MarqueeControlTests
         Assert.Contains("後から", after);
     }
 
-    /// <summary>既定の装飾を描かない設定で装飾の矩形が描かれないことを検証する。</summary>
+    /// <summary>外観で装飾を止めると装飾の矩形が描かれないことを検証する。</summary>
     /// <remarks>
-    /// 描画実装（内部）へ直接、装飾の可否を渡して画素で確かめる（コントロールはキャンバスを必要としない）。
+    /// 外観の <c>Show*</c> が false の項目は計画の値と層の両方から消えるため、描画実装へ別のスイッチを渡さない。
     /// </remarks>
     [Fact]
-    internal void 既定の装飾を描かない場合は装飾が描かれない()
+    internal void 外観で装飾を止めると装飾が描かれない()
     {
         using var bitmap = new SKBitmap(new SKImageInfo(64, 64));
         using var canvas = new SKCanvas(bitmap);
@@ -569,12 +569,24 @@ public class MarqueeControlTests
         var plan = presenter.ResolveDrawPlan(new EsSize(64, 64), static (_, _) => default);
 
         // 既定（装飾を描く）: 外枠の色の画素が現れる
-        MarqueeSkiaPainter.Paint(canvas, in plan, drawDecorations: true);
+        MarqueeSkiaPainter.Paint(canvas, in plan);
         Assert.Contains(plan.OuterBorderDipRects, rect => bitmap.GetPixel((int)rect.X, (int)rect.Y).Alpha > 0);
 
-        // 装飾を描かない: 何も描かれない（透明のまま）
+        // 外観で止める: 包囲の層が計画から消えている（何も描かれない）
+        presenter.Appearance = MarqueeAppearance.Default with
+        {
+            ShowOverlay = false,
+            ShowOuterBorder = false,
+            ShowHandles = false,
+            ShowMarker = false,
+        };
+        var stopped = presenter.ResolveDrawPlan(new EsSize(64, 64), static (_, _) => default);
+
         canvas.Clear(SKColors.Transparent);
-        MarqueeSkiaPainter.Paint(canvas, in plan, drawDecorations: false);
+        MarqueeSkiaPainter.Paint(canvas, in stopped);
+        Assert.DoesNotContain(MarqueeDrawLayer.Decoration, stopped.Layers);
+        Assert.DoesNotContain(MarqueeDrawLayer.Handles, stopped.Layers);
+        Assert.DoesNotContain(MarqueeDrawLayer.Marker, stopped.Layers);
         Assert.Equal(0, bitmap.GetPixel(10, 10).Alpha);
         Assert.Equal(0, bitmap.GetPixel(32, 32).Alpha);
     }

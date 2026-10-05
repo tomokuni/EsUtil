@@ -167,7 +167,7 @@ flowchart TB
 
 - **分類**: 内部静的クラス（`internal static class LoupeContextPainter`。 Avalonia 版の描画実装）
 - **責務**: 描画計画（`LoupeDrawPlan`）を Avalonia の描画 API（`DrawingContext`）へ写す（**層の順序も描く値も計画が単一所有する**ため、本クラスは順に描く だけである）
-- **可視性**: internal（描画の実装詳細。 見た目の差し替えは `LoupeControl.DrawPlanResolver` / `ShowDefaultDecorations` / `DrawPlan` で行う）
+- **可視性**: internal（描画の実装詳細。 見た目の差し替えは `LoupeControl.Appearance` / `DrawPlanResolver` / `DrawPlan` で行う）
   **描画の入口**: `LoupeContextPainter.Paint(DrawingContext context, EsBitmap? source, in LoupeDrawPlan plan)`（図形のみ。 **テキストは描かない**。 中心座標ラベルはコントロールが UI 要素として配置する）
 - **特徴**: 描画の可否は計画が解決済み（非表示の項目は空の矩形列として渡る）であり、本クラスは分岐を持たない。 枠線の太さの物理ピクセルへの換算と装飾の矩形の導出も**提示層が解決済み**である（本クラスは計算を持たない）。 色 → ブラシの共有は `SolidColorBrushCache` が単一所有する
 - **依存**: EsUtil.Feature.Loupe.Presenter（`LoupeDrawPlan` / `LoupeAppearance` / `LoupeDrawLayer`）/ Platform.AvaloniaUI（`DrawingContext`（相互変換）/ `SolidColorBrushCache`）/ EsUtil.Platform.Core（`EsBitmap` / `System.Drawing.Color`）

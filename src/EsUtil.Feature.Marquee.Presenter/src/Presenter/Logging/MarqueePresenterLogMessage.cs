@@ -177,6 +177,7 @@ internal static partial class MarqueePresenterLogMessage
         logger.LogSettingChanged(nameof(MarqueeAppearance.CoordLabelFontSize), oldValue.CoordLabelFontSize, newValue.CoordLabelFontSize);
         logger.LogSettingChanged(nameof(MarqueeAppearance.LabelPadding), oldValue.LabelPadding, newValue.LabelPadding);
         logger.LogSettingChanged(nameof(MarqueeAppearance.ShowHandles), oldValue.ShowHandles, newValue.ShowHandles);
+        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowMarker), oldValue.ShowMarker, newValue.ShowMarker);
         logger.LogSettingChanged(nameof(MarqueeAppearance.ShowSizeLabel), oldValue.ShowSizeLabel, newValue.ShowSizeLabel);
         logger.LogSettingChanged(nameof(MarqueeAppearance.ShowCoordLabel), oldValue.ShowCoordLabel, newValue.ShowCoordLabel);
         logger.LogSettingChanged(nameof(MarqueeAppearance.ShowOverlay), oldValue.ShowOverlay, newValue.ShowOverlay);

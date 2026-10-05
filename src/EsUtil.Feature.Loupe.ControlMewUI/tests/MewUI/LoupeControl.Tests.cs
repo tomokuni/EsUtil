@@ -418,13 +418,13 @@ public class LoupeControlTests
         Assert.Equal("差し替え", ((TextBlock)labels[0].Child!).Text);
     }
 
-    /// <summary>既定の装飾を描かない設定で装飾が描かれないことを検証する。</summary>
+    /// <summary>外観で装飾を止めると装飾の矩形が描かれないことを検証する。</summary>
     /// <remarks>
-    /// 描画実装（内部）へ直接、装飾の可否を渡して画素で確かめる（コントロールはキャンバスを必要としない）。<br/>
-    /// ペーストボード（描画面の消去）と拡大画像は装飾ではないため、false でも描かれる。
+    /// 外観の <c>Show*</c> が false の項目は計画の値と層の両方から消えるため、描画実装へ別のスイッチを渡さない。<br/>
+    /// ペーストボード（描画面の消去）と拡大画像は装飾ではなく、外観にフラグも無いため常に描かれる。
     /// </remarks>
     [Fact]
-    internal void 既定の装飾を描かない場合は装飾だけが描かれない()
+    internal void 外観で装飾を止めると装飾だけが描かれない()
     {
         using var bitmap = new SKBitmap(new SKImageInfo(64, 64));
         using var canvas = new SKCanvas(bitmap);
@@ -443,13 +443,18 @@ public class LoupeControlTests
         var plan = presenter.ResolveDrawPlan(64, static (_, _) => default);
 
         // 既定（装飾を描く）: 枠線の色の画素が現れる
-        LoupeSkiaPainter.Paint(canvas, null, in plan, drawDecorations: true);
+        LoupeSkiaPainter.Paint(canvas, null, in plan);
         var borderPixel = bitmap.GetPixel(32, 1);
 
-        // 装飾を描かない: ペーストボードの色になる（枠線は描かれない）
-        LoupeSkiaPainter.Paint(canvas, null, in plan, drawDecorations: false);
+        // 外観で止める: 枠線と十字線が層から消え、ペーストボードの色になる
+        presenter.Appearance = presenter.Appearance with { ShowCrosshair = false, ShowBorder = false };
+        var stopped = presenter.ResolveDrawPlan(64, static (_, _) => default);
+
+        LoupeSkiaPainter.Paint(canvas, null, in stopped);
         var withoutBorderPixel = bitmap.GetPixel(32, 1);
 
+        Assert.DoesNotContain(LoupeDrawLayer.Crosshair, stopped.Layers);
+        Assert.DoesNotContain(LoupeDrawLayer.Border, stopped.Layers);
         Assert.NotEqual(borderPixel, withoutBorderPixel);
         // ペーストボード（画像外の色）は描かれる
         Assert.Equal(LoupeAppearance.Default.PasteboardColor.ToSKColor(), withoutBorderPixel);

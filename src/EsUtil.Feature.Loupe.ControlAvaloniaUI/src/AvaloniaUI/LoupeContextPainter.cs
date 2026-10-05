@@ -28,13 +28,13 @@ internal static class LoupeContextPainter
     /// <param name="context">描画先の描画コンテキスト（<c>Render</c> の実行中のみ有効）。 null 不可。</param>
     /// <param name="source">拡大元の 100% 画像。 null の場合は拡大画像を描かない（画像外の色のみ）。</param>
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・色を持つ）。</param>
-    /// <param name="drawDecorations">装飾（十字線・枠線）を描くかどうか。 false の場合は層を飛ばす。</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> が null の場合。</exception>
     /// <remarks>
-    /// 装飾を描かない場合も<b>層の順序は計画（<see cref="LoupeDrawPlan.Layers"/>）が単一所有する</b>。<br/>
-    /// ペーストボード（描画面の消去）と拡大画像は装飾ではないため、<b>常に描く</b>（止めるとゴースト・画像欠けになる）。
+    /// <b>描く値がある層だけを描く</b>（可否は提示層が計画の解決時に適用済みであり、本クラスは層の有無を判断しない）。<br/>
+    /// 外観（<see cref="LoupeAppearance"/>）の <c>ShowCrosshair</c> / <c>ShowBorder</c> が false の項目は、<br/>
+    /// 計画の値と層の両方から消えている。 ペーストボード（描画面の消去）と拡大画像は常に層に含まれる。
     /// </remarks>
-    public static void Paint(DrawingContext context, EsBitmap? source, in LoupeDrawPlan plan, bool drawDecorations = true)
+    public static void Paint(DrawingContext context, EsBitmap? source, in LoupeDrawPlan plan)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -54,11 +54,11 @@ internal static class LoupeContextPainter
                     DrawMagnifiedImage(context, source, in plan);
                     break;
 
-                case LoupeDrawLayer.Crosshair when drawDecorations:
+                case LoupeDrawLayer.Crosshair:
                     FillRects(context, plan.CrosshairPixelRects, appearance.CrossColor);
                     break;
 
-                case LoupeDrawLayer.Border when drawDecorations:
+                case LoupeDrawLayer.Border:
                     FillRects(context, plan.BorderPixelRects, appearance.BorderColor);
                     break;
 

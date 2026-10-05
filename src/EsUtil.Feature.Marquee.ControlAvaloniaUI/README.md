@@ -45,7 +45,7 @@ Avalonia UI 用のリサイズ可能な領域選択コントロールです。 �
 - **閉区間描画（始点・終点を含む）**: ハンドルと外側の装飾（外枠）は終点（Right/Bottom）に +1 して DIP 変換（キャプチャの閉区間 +1 と一致。 規則はコアの描画入力（`MarqueeRenderRequest.ToDipRect`）が単一所有）
 - **ホイール操作は本コントロールが扱わない（ホストの責務）**: ホイール（ズーム・パン）はコントロール化を前提とした処理であり、**ホストが本コントロールの `PointerWheelChanged` を購読してビューポート（`ZoomViewControl` 等）へ転送**します（本コントロールは素通しし、`e.Handled` を立てません）。 表示の変化への追従もホストが `RefreshOverlay()` を呼びます
 - **薄い UI 層**: 入力の解釈（nudge セッション・確定/キャンセル・スナップ・クリック検出・最小サイズ判定）はコアの公開ファサード（`MarqueeCore`）が担います。 本コントロールは「入力の受付」「効果の適用」「通知の転送」「描画計画の写し」のみを行います
-- **見た目のカスタマイズ（3 つの入口）**: 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で差し替えます。 矩形で表せない描画（円・斜線等）は `ShowDefaultDecorations` を false にして `Rendered` の描画先へ自前で描き、必要なら `DrawPlan` で既定の描画を行います（派生は不要。 例はサンプルの `sample/Presentation/GuideMarqueePlan`）
+- **見た目のカスタマイズ（2 つの入口）**: 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で差し替えます。 矩形で表せない描画（円・斜線等）は `Appearance` の `Show*` を false にして `Rendered` の描画先へ自前で描き、必要なら `DrawPlan` で計画どおりの描画を行います（派生は不要。 例はサンプルの `sample/Presentation/GuideMarqueePlan`）
 
 ## 3. システム要件
 

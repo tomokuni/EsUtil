@@ -7,9 +7,9 @@ using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests;
 
-/// <summary>見た目のカスタマイズ（描画計画の差し替えと既定描画の可否）のテスト。</summary>
+/// <summary>見た目のカスタマイズ（描画計画の差し替えと外観による表示可否）のテスト。</summary>
 /// <remarks>
-/// 差し替えは <see cref="LoupeControl.DrawPlanResolver"/> と <see cref="LoupeControl.ShowDefaultDecorations"/> で行う<br/>
+/// 差し替えは <see cref="LoupeControl.DrawPlanResolver"/>、装飾の停止は外観（<see cref="LoupeAppearance"/> の <c>Show*</c>）で行う<br/>
 /// （提示層の派生は不要）。 Avalonia ヘッドレステストは並列実行非対応のため、同じコレクション内で直列実行する。
 /// </remarks>
 [Collection("AvaloniaHeadless")]
@@ -40,19 +40,19 @@ public class LoupePlanCustomizationTests
         Assert.Equal("差し替え", ((TextBlock)labels[0].Child!).Text);
     }
 
-    /// <summary>既定の装飾の停止と差し替えが併用でき、画像が欠けないことを検証する。</summary>
+    /// <summary>外観で装飾を止めても描画が成立し、止めた項目が計画から消えることを検証する。</summary>
     /// <remarks>
     /// 装飾を止めてもペーストボードと拡大画像は描かれるため、描画結果は成立する（画像欠け・ゴーストが起きない）。<br/>
     /// 画素の検証は MewUI（Skia）が担う。
     /// </remarks>
     [AvaloniaFact]
-    internal async Task 既定の装飾を停止しても描画が成立する()
+    internal async Task 外観で装飾を止めても描画が成立する()
     {
         var control = new LoupeControl
         {
             Options = LoupeOptions.Default with { RequestedSize = 100, ZoomLevel = 2 },
             IsVisible = true,
-            ShowDefaultDecorations = false,
+            Appearance = LoupeAppearance.Default with { ShowCrosshair = false, ShowBorder = false },
         };
         var panel = new Panel { Width = 200, Height = 200 };
         panel.Children.Add(control);
@@ -67,9 +67,12 @@ public class LoupePlanCustomizationTests
         await control.WaitForRenderedAsync();
 
         Assert.NotNull(captured);
-        Assert.False(control.ShowDefaultDecorations);
-        // 層は装飾の可否とは独立に解決される（装飾を描かないのは描画実装のフラグによる）
+        // 層は計画が単一所有する（止めた十字線・枠線は層から消え、ペーストボードと拡大画像は残る）
         Assert.Contains(LoupeDrawLayer.Image, captured!.Value.Layers);
+        Assert.DoesNotContain(LoupeDrawLayer.Crosshair, captured.Value.Layers);
+        Assert.DoesNotContain(LoupeDrawLayer.Border, captured.Value.Layers);
+        Assert.Empty(captured.Value.CrosshairPixelRects);
+        Assert.Empty(captured.Value.BorderPixelRects);
     }
 
     // ====================================================================

@@ -19,13 +19,12 @@ internal static class MarqueeSkiaPainter
     /// <summary>描画計画を描画順に描く。</summary>
     /// <param name="canvas">描画先のキャンバス（DIP 座標で描画できる状態であること）。 null 不可。</param>
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・色を持つ）。</param>
-    /// <param name="drawDecorations">装飾（暗転・枠線・ハンドル・マーカー）を描くかどうか。 false の場合は層を飛ばす。</param>
     /// <exception cref="ArgumentNullException"><paramref name="canvas"/> が null の場合。</exception>
     /// <remarks>
-    /// 装飾を描かない場合も<b>層の順序は計画（<see cref="MarqueeDrawPlan.Layers"/>）が単一所有する</b><br/>
-    /// （本クラスは順に写すだけで、順序も可否も判断しない）。
+    /// <b>描く値がある層だけを描く</b>（可否は提示層が計画の解決時に適用済みであり、本クラスは層の有無を判断しない）。<br/>
+    /// 外観（<see cref="MarqueeAppearance"/>）の <c>Show*</c> が false の項目は、計画の値と層の両方から消えている。
     /// </remarks>
-    public static void Paint(SKCanvas canvas, in MarqueeDrawPlan plan, bool drawDecorations = true)
+    public static void Paint(SKCanvas canvas, in MarqueeDrawPlan plan)
     {
         ArgumentNullException.ThrowIfNull(canvas);
 
@@ -36,15 +35,15 @@ internal static class MarqueeSkiaPainter
         {
             switch (layer)
             {
-                case MarqueeDrawLayer.Decoration when drawDecorations:
+                case MarqueeDrawLayer.Decoration:
                     DrawDecoration(canvas, in plan, appearance);
                     break;
 
-                case MarqueeDrawLayer.Handles when drawDecorations && plan.Handles is { } handles:
+                case MarqueeDrawLayer.Handles when plan.Handles is { } handles:
                     DrawHandles(canvas, in handles, appearance);
                     break;
 
-                case MarqueeDrawLayer.Marker when drawDecorations && plan.Marker is { } marker:
+                case MarqueeDrawLayer.Marker when plan.Marker is { } marker:
                     DrawStartMarker(canvas, in marker, appearance);
                     break;
 

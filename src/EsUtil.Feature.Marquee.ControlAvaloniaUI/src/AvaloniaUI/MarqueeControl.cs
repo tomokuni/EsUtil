@@ -46,7 +46,7 @@ namespace EsUtil.Feature.Marquee.AvaloniaUI;
 /// <br/>
 /// <b>見た目のカスタマイズ</b>: 色・太さ・表示可否は <see cref="Appearance"/> で、<br/>
 /// 矩形の並びで表せる装飾とラベルの文言・位置は <see cref="DrawPlanResolver"/> で差し替えられる。<br/>
-/// 矩形で表せない描画（円・斜線等）は <see cref="ShowDefaultDecorations"/> を false にして自前で描く<br/>
+/// 矩形で表せない描画（円・斜線等）は外観（<see cref="MarqueeAppearance"/>）の <c>Show*</c> を false にして自前で描く<br/>
 /// （描画の直後に呼ばれる <see cref="Rendered"/> で描画先へ描き、必要なら <see cref="DrawPlan"/> で既定の描画を行う）。
 /// </remarks>
 public sealed partial class MarqueeControl : Panel
@@ -305,37 +305,13 @@ public sealed partial class MarqueeControl : Panel
         }
     }
 
-    /// <summary>既定の装飾（暗転・枠線・ハンドル・マーカー）を既定の描画で描くかどうかを取得または設定する。</summary>
-    /// <value>true（既定）の場合は既定の装飾を描く。 false の場合は装飾の層だけを描かない（<b>ラベル要素は表示される</b>）。</value>
-    /// <remarks>
-    /// <b>矩形で表せない描画（円・斜線・グラデーション等）を「置換」する入口</b>である<br/>
-    /// （描画の直後に呼ばれる <see cref="Rendered"/> の描画先へ自前で描く）。<br/>
-    /// false の場合は本 UI の描画実装が描く層が無くなる（描く層は装飾とラベルだけで、ラベルは要素が表示する）。<br/>
-    /// <b>外観の表示可否（<see cref="MarqueeAppearance.ShowOverlay"/> / <see cref="MarqueeAppearance.ShowHandles"/> 等）との違い</b>:<br/>
-    /// 外観は「その項目を描かない」として計画の値から消す（<see cref="DrawPlan"/> で再現できない）が、<br/>
-    /// 本フラグは計画の値を保ったまま描画だけを止める。<br/>
-    /// 既定の描画を任意のタイミングと順序で使いたい場合は、本フラグを false にして <see cref="DrawPlan"/> を呼ぶ<br/>
-    /// （本フラグは自動描画の停止であり、計画の値は保持されるため既定の描画を再利用できる）。<br/>
-    /// 始点マーカーは外観に表示可否のフラグを持たないため、停止できるのは本フラグだけである。<br/>
-    /// 設定すると保持中の計画を破棄して再描画する。
-    /// </remarks>
-    public bool ShowDefaultDecorations
-    {
-        get;
-        set
-        {
-            field = value;
-            InvalidateRender();
-        }
-    } = true;
-
-    /// <summary>描画計画を自 UI の描画面へ描く（既定の装飾も含む）。</summary>
+    /// <summary>描画計画を自 UI の描画面へ描く（計画どおりに描く）。</summary>
     /// <param name="context">描画先の描画コンテキスト（<c>Render</c> の実行中のみ有効）。 null 不可。</param>
     /// <param name="plan">描く描画計画。 null 不可。</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> が null の場合。</exception>
     /// <remarks>
-    /// <b>既定の描画をホストへ提供する入口</b>である（<see cref="ShowDefaultDecorations"/> を false にした場合でも、<br/>
-    /// ホストが任意のタイミングと順序で既定の描画を行える。 例: 自前の下地 → 本メソッド → 自前の上描き）。<br/>
+    /// <b>既定の描画をホストへ提供する入口</b>である（ホストが自前の描画と組み合わせて使う。 例: 自前の下地 → 本メソッド → 自前の上描き）。<br/>
+    /// <b>計画どおり（外観の <c>Show*</c> を適用済みの層）に描く</b>ため、装飾を止めている場合は描かれない。<br/>
     /// 描画実装（<c>MarqueeContextPainter</c>）は本プロジェクトの内部であるため、外部へは本メソッドが窓口になる。<br/>
     /// 計画を必要とする場合は <see cref="Rendered"/> の <c>Content</c> を使う。
     /// </remarks>
