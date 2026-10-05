@@ -275,7 +275,7 @@ control.ResetSelection();           // 状態と nudge の初期化
 | プロパティ | 型 | 説明 |
 | --- | --- | --- |
 | `Appearance` | `MarqueeAppearance` | 外観の単一値（既定は `MarqueeAppearance.Default`）。 外観を差し替えると次の描画から反映される |
-| `DrawPlanResolver` | `Func<MarqueeDrawPlan, MarqueeDrawPlan>?` | **描画計画の差し替え点**（矩形の並び・文言・位置）。 設定すると保持中の計画を破棄して再解決する（1 フレームに 2 回以上呼ばれるため純粋関数にすること） |
+| `DrawPlanResolver` | `Func<MarqueeDrawPlan, MarqueeDrawPlan>?` | **描画計画の差し替え点**（矩形の並び・文言・位置）。 設定すると保持中の計画を破棄して再解決する（同じ入力では 1 フレーム 1 回だけ解決されるため、呼び出しの時点に依存しない純粋関数にすること） |
 | `ShowDefaultDecorations` | `bool` | 既定の装飾（暗転・枠線・ハンドル・マーカー）を描くかどうか（既定 true。 false は矩形で表せない自前描画のための入口） |
 
 ```csharp

@@ -262,6 +262,8 @@ sequenceDiagram
     Ctl->>Ctl: ReleaseBitmap（Dispose / null / 子の Image.Source=null）
 ```
 
+**描画計画は 1 フレーム 1 回だけ解決します。** 配置（`ArrangeOverride`。 ラベル要素の配置に使う）と描画（本図）は同じ表示サイズを渡すため、2 回目の解決はキャッシュを返します（十字線・枠線の矩形の導出とラベルの実寸測定をやり直しません）。 キャッシュのキーは表示サイズとスケーリング係数で、それ以外の入力（拡大中心・設定・外観・`DrawPlanResolver`）の変更は `RequestRender` が破棄します。
+
 ## 9. 補正（coerce）一覧
 
 | プロパティ | 範囲 | 補正の場所 |

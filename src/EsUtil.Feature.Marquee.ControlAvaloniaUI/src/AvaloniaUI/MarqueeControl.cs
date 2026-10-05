@@ -291,7 +291,8 @@ public sealed partial class MarqueeControl : Panel
     /// 受け取る計画は提示層が解決済みであるため、本関数は値の置き換えだけで完結する<br/>
     /// （<c>plan with { OuterBorderDipRects = …, Labels = … }</c>）。<br/>
     /// <b>配置と描画の両方に適用される</b>ため、<see cref="MarqueeDrawPlan.Labels"/> を差し替えるとラベル要素も追随する。<br/>
-    /// 1 フレームに 2 回以上呼ばれるため、<b>純粋関数（同じ入力に同じ出力）にすること</b>。 設定すると保持中の計画を破棄して再解決する。
+    /// <b>純粋関数（同じ入力に同じ出力）にすること</b>（同じ入力では 1 フレーム 1 回だけ解決されるため、<br/>
+    /// 呼び出しの時点に依存する関数を渡すと差し替えが反映されない）。 設定すると保持中の計画を破棄して再解決する。
     /// </remarks>
     public Func<MarqueeDrawPlan, MarqueeDrawPlan>? DrawPlanResolver
     {
@@ -304,14 +305,18 @@ public sealed partial class MarqueeControl : Panel
         }
     }
 
-    /// <summary>既定の装飾（暗転・枠線・ハンドル・マーカー）を描くかどうかを取得または設定する。</summary>
+    /// <summary>既定の装飾（暗転・枠線・ハンドル・マーカー）を既定の描画で描くかどうかを取得または設定する。</summary>
     /// <value>true（既定）の場合は既定の装飾を描く。 false の場合は装飾の層だけを描かない（<b>ラベル要素は表示される</b>）。</value>
     /// <remarks>
     /// <b>矩形で表せない描画（円・斜線・グラデーション等）を「置換」する入口</b>である<br/>
     /// （描画の直後に呼ばれる <see cref="Rendered"/> の描画先へ自前で描く）。<br/>
     /// false の場合は本 UI の描画実装が描く層が無くなる（描く層は装飾とラベルだけで、ラベルは要素が表示する）。<br/>
+    /// <b>外観の表示可否（<see cref="MarqueeAppearance.ShowOverlay"/> / <see cref="MarqueeAppearance.ShowHandles"/> 等）との違い</b>:<br/>
+    /// 外観は「その項目を描かない」として計画の値から消す（<see cref="DrawPlan"/> で再現できない）が、<br/>
+    /// 本フラグは計画の値を保ったまま描画だけを止める。<br/>
     /// 既定の描画を任意のタイミングと順序で使いたい場合は、本フラグを false にして <see cref="DrawPlan"/> を呼ぶ<br/>
     /// （本フラグは自動描画の停止であり、計画の値は保持されるため既定の描画を再利用できる）。<br/>
+    /// 始点マーカーは外観に表示可否のフラグを持たないため、停止できるのは本フラグだけである。<br/>
     /// 設定すると保持中の計画を破棄して再描画する。
     /// </remarks>
     public bool ShowDefaultDecorations

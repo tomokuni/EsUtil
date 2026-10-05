@@ -454,4 +454,74 @@ public class LoupeControlTests
         // ペーストボード（画像外の色）は描かれる
         Assert.Equal(LoupeAppearance.Default.PasteboardColor.ToSKColor(), withoutBorderPixel);
     }
+
+    // ====================================================================
+    // 描画計画の解決の回数（1 フレーム = 1 回）
+    // ====================================================================
+
+    /// <summary>同じ入力では描画計画を再解決せず、入力が変わると再解決することを検証する。</summary>
+    /// <remarks>
+    /// 配置と描画はどちらも同じ表示サイズを渡すが、描画経路はキャンバスを必要とするため、本テストは再配置（配置経路）で検証する。<br/>
+    /// キャッシュのキーは「表示サイズ」と「スケーリング係数」である（後者は描画の直前に書き戻されるため、<br/>
+    /// 書き戻し後の解決を取りこぼさないようキーに含める）。
+    /// </remarks>
+    [Fact]
+    internal void 同じ入力では描画計画を再解決せず入力が変わると再解決する()
+    {
+        var calls = 0;
+        var control = new LoupeControl
+        {
+            Options = LoupeOptions.Default with { RequestedSize = 100 },
+            CenterPoint = new EsPoint(10, 10),
+            DrawPlanResolver = plan => { calls++; return plan; },
+        };
+
+        Layout(control);
+        Assert.Equal(1, calls);
+
+        // 同じ入力での再配置は再解決しない
+        control.InvalidateArrange();
+        Layout(control);
+        Assert.Equal(1, calls);
+
+        // スケーリング係数が変われば再解決する（描画の直前の書き戻しをキーで捉える）
+        control.ApplyClientPixelScaling(new SKImageInfo(125, 125));
+        control.InvalidateArrange();
+        Layout(control);
+        Assert.Equal(2, calls);
+
+        // 基準サイズが変われば再解決する
+        control.InvalidateArrange();
+        Layout(control, 120);
+        Assert.Equal(3, calls);
+    }
+
+    /// <summary>状態の変更で描画計画が再解決されることを検証する。</summary>
+    /// <remarks>計画に効く入力（拡大中心・設定・外観）の変更は保持中の計画を破棄する。</remarks>
+    [Fact]
+    internal void 状態の変更で描画計画が再解決される()
+    {
+        var calls = 0;
+        var control = new LoupeControl
+        {
+            Options = LoupeOptions.Default with { RequestedSize = 100 },
+            CenterPoint = new EsPoint(10, 10),
+            DrawPlanResolver = plan => { calls++; return plan; },
+        };
+
+        Layout(control);
+        Assert.Equal(1, calls);
+
+        control.CenterPoint = new EsPoint(20, 20);
+        Layout(control);
+        Assert.Equal(2, calls);
+
+        control.Appearance = control.Appearance with { ShowCrosshair = false };
+        Layout(control);
+        Assert.Equal(3, calls);
+
+        control.Options = control.Options with { ZoomLevel = 2 };
+        Layout(control);
+        Assert.Equal(4, calls);
+    }
 }

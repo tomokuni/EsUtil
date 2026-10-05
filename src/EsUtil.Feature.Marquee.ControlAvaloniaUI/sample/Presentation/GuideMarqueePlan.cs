@@ -56,7 +56,7 @@ internal static class GuideMarqueePlan
     /// <remarks>
     /// 注目矩形が無い場合（未選択かつハイライトも無い）は差し替える対象が無いため、受け取った計画を返す<br/>
     /// （装飾の層は計画が持つ値から決まるため、値の無い層を計画へ足さない）。<br/>
-    /// 本メソッドは 1 フレームに 2 回以上呼ばれるため、状態を持たない（純粋関数）。
+    /// 本メソッドは同じ入力では 1 フレーム 1 回だけ呼ばれるが、状態を持たない（純粋関数）。
     /// </remarks>
     public static MarqueeDrawPlan Resolve(in MarqueeDrawPlan plan)
         => plan.FocusDipRect is { } focus

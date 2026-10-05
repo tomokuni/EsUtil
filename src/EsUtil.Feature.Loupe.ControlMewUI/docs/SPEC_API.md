@@ -38,7 +38,7 @@
 | `Options` | `LoupeOptions` | `LoupeOptions.Default` | 下表のとおり | 設定（基本サイズ・拡大率）。 `with` 式で部分変更する |
 | `Appearance` | `LoupeAppearance` | `LoupeAppearance.Default` | 下表のとおり | 外観（枠線の太さ・表示可否）と描画に使う色（ペーストボード（画像外）・枠線・十字線・中心座標ラベルの 6 色）・ラベルの体裁。 `with` 式で部分変更する。 外観はコアの計算に入らない |
 | `ClientToPixelScaling` | `double` | 1.0 | 0.1〜8.0（非有限は既定値） | DIP → 物理ピクセルの係数（環境値。 設定には含めない）。 **描画のたびに描画面と割り当て領域の比へ合わせる**（DPI の変更通知が届かない状況でも拡大画像がルーペ領域と一致する） |
-| `DrawPlanResolver` | `Func<LoupeDrawPlan, LoupeDrawPlan>?` | `null` | — | **描画計画の差し替え点**（装飾の矩形・ラベルの文言と配置）。 設定すると再描画を要求する（配置と描画の両方に適用され、1 表示に 1 回以上呼ばれるため純粋関数にすること） |
+| `DrawPlanResolver` | `Func<LoupeDrawPlan, LoupeDrawPlan>?` | `null` | — | **描画計画の差し替え点**（装飾の矩形・ラベルの文言と配置）。 設定すると再描画を要求する（配置と描画の両方に適用され、同じ入力では 1 フレーム 1 回だけ解決されるため、呼び出しの時点に依存しない純粋関数にすること） |
 | `ShowDefaultDecorations` | `bool` | `true` | — | 既定の装飾（十字線・枠線）を描くかどうか（`false` は矩形で表せない自前描画のための入口。 画像（拡大）と画像外の色は描き続ける） |
 
 **見た目のカスタマイズ**: 色・枠線の太さ・表示可否は外観（`Appearance`。 `LoupeAppearance`）で指定します。 項目ごとの停止は外観の `ShowCrosshair` / `ShowBorder` でもできます（表示可否は計画の値の解決時に適用されるため、層も消えます）。 `ShowDefaultDecorations` は外観を変えずに既定の描画だけを止める入口で、計画の値を保持するため `DrawPlan` で既定の描画を再利用できます。 矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）で描画計画（`LoupeDrawPlan`）を差し替えられます（例は Avalonia 版サンプルの `sample/Presentation/GridLoupePlan`）。 矩形で表せない描画（円・斜線等）は `ShowDefaultDecorations` を false にして `Rendered` のキャンバスへ自前で描き、必要なら `DrawPlan` で既定の描画を行います。

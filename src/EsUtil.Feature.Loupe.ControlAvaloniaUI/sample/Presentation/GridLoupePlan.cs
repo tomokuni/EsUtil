@@ -51,7 +51,7 @@ internal static class GridLoupePlan
     /// <remarks>
     /// 元の拡大画像・切り出し領域・ラベル配置は既定の解決をそのまま引き継ぐ<br/>
     /// （差し替えるのは装飾の値だけであり、差し替えても他の値の整合は崩れない）。<br/>
-    /// 本メソッドは 1 フレームに 2 回以上呼ばれるため、状態を持たない（純粋関数）。
+    /// 本メソッドは同じ入力では 1 フレーム 1 回だけ呼ばれるが、状態を持たない（純粋関数）。
     /// </remarks>
     public static LoupeDrawPlan Resolve(in LoupeDrawPlan plan)
     {

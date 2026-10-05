@@ -134,7 +134,8 @@ public sealed class LoupeControl : Panel
     /// 受け取る計画は提示層が解決済みであるため、本関数は値の置き換えだけで完結する<br/>
     /// （<c>plan with { CrosshairPixelRects = …, Labels = … }</c>）。<br/>
     /// <b>配置と描画の両方に適用される</b>ため、<see cref="LoupeDrawPlan.Labels"/> を差し替えるとラベル要素も追随する。<br/>
-    /// 1 フレームに 2 回以上呼ばれるため、<b>純粋関数（同じ入力に同じ出力）にすること</b>。 設定すると再生成を要求する。
+    /// <b>純粋関数（同じ入力に同じ出力）にすること</b>（同じ入力では 1 フレーム 1 回だけ解決されるため、<br/>
+    /// 呼び出しの時点に依存する関数を渡すと差し替えが反映されない）。 設定すると保持中の計画を破棄して再生成を要求する。
     /// </remarks>
     public Func<LoupeDrawPlan, LoupeDrawPlan>? DrawPlanResolver
     {
@@ -146,12 +147,15 @@ public sealed class LoupeControl : Panel
         }
     }
 
-    /// <summary>既定の装飾（十字線・枠線）を描くかどうかを取得または設定する。</summary>
+    /// <summary>既定の装飾（十字線・枠線）を既定の描画で描くかどうかを取得または設定する。</summary>
     /// <value>true（既定）の場合は既定の装飾を描く。 false の場合は装飾の層だけを描かない（<b>ペーストボードと拡大画像は描く</b>）。</value>
     /// <remarks>
     /// <b>矩形で表せない描画（円・斜線・グラデーション等）を「置換」する入口</b>である<br/>
     /// （<see cref="Rendered"/> の描画先（生成ビットマップ）へ自前で描く）。<br/>
     /// false でもペーストボード（描画面の消去）と拡大画像は描かれるため、画像が欠けたり前フレームが残ったりしない。<br/>
+    /// <b>外観の表示可否（<see cref="LoupeAppearance.ShowCrosshair"/> / <see cref="LoupeAppearance.ShowBorder"/>）との違い</b>:<br/>
+    /// 外観は「その項目を描かない」として計画の値から消す（<see cref="DrawPlan"/> で再現できない）が、<br/>
+    /// 本フラグは計画の値を保ったまま描画だけを止める（<see cref="DrawPlan"/> で既定の描画を行える）。<br/>
     /// 設定すると再生成を要求する。
     /// </remarks>
     public bool ShowDefaultDecorations
@@ -295,18 +299,47 @@ public sealed class LoupeControl : Panel
         return base.ArrangeOverride(finalSize);
     }
 
-    /// <summary>描画計画を解決し、<see cref="DrawPlanResolver"/> を適用する。</summary>
+    // ====================================================================
+    // 1 フレーム分の描画計画（1 フレーム = 1 回だけ解決する）
+    // ====================================================================
+
+    /// <summary>直近に解決した描画計画（null = 未解決）。</summary>
+    private LoupeDrawPlan? _plan;
+
+    /// <summary>直近に解決した描画計画の基準（表示サイズ（DIP））。</summary>
+    private double _planSize;
+
+    /// <summary>直近に解決した描画計画の基準（スケーリング係数）。</summary>
+    private double _planScaling;
+
+    /// <summary>描画計画を解決し、<see cref="DrawPlanResolver"/> を適用する（同じ入力では再解決しない）。</summary>
     /// <param name="displaySize">ルーペの一辺の表示サイズ（DIP）。</param>
     /// <returns>差し替え後の描画計画。</returns>
     /// <remarks>
     /// <b>配置と描画の両経路が本メソッドを通る</b>（配置は <see cref="ArrangeOverride"/>、描画は <see cref="GenerateAsync"/>）。<br/>
-    /// したがって <see cref="DrawPlanResolver"/> は 1 フレームに 2 回呼ばれる（純粋関数であること）。
+    /// どちらの経路も同じ表示サイズを渡すため（配置は割り当てサイズ、描画は <see cref="PositionOffset"/> と同じくコアのレイアウトが返す値）、<br/>
+    /// <b>同じ入力ではキャッシュを返して 1 フレーム 1 回の解決に留める</b>（解決のたびに十字線・枠線の矩形とラベルの実寸測定をやり直さない）。<br/>
+    /// キャッシュのキーは「表示サイズ」と「スケーリング係数」である（後者は計画の物理ピクセルへ効く入力のため）。<br/>
+    /// それ以外の入力（拡大中心・設定・外観・<see cref="DrawPlanResolver"/>）の変更は <see cref="RequestRender"/> が<br/>
+    /// <see cref="InvalidatePlan"/> で破棄する（同じ計画を保持し続けない）。
     /// </remarks>
     private LoupeDrawPlan ResolvePlan(double displaySize)
     {
-        var plan = _presenter.ResolveDrawPlan(displaySize, MeasureText);
-        return DrawPlanResolver?.Invoke(plan) ?? plan;
+        var scaling = _presenter.ClientToPixelScaling;
+        if (_plan is not { } cached || _planSize != displaySize || _planScaling != scaling)
+        {
+            cached = _presenter.ResolveDrawPlan(displaySize, MeasureText);
+            cached = DrawPlanResolver?.Invoke(cached) ?? cached;
+            _plan = cached;
+            _planSize = displaySize;
+            _planScaling = scaling;
+        }
+
+        return cached;
     }
+
+    /// <summary>保持している描画計画を破棄する（次の解決で最新の状態を反映する）。</summary>
+    private void InvalidatePlan() => _plan = null;
 
     /// <summary>ラベル要素（背景 + テキスト）を配置指示へ同期する。</summary>
     /// <param name="placements">配置するラベル（描画順に並ぶ）。</param>
@@ -545,10 +578,14 @@ public sealed class LoupeControl : Panel
     /// 複数の要求は1フレームに1回の生成へ結合される（呼び出し頻度を気にせず呼べる）。<br/>
     /// 非表示中に呼び出した場合はビットマップを解放して終了する（生成しない）。<br/>
     /// 破線の色・表示可否など、ルーペのプロパティに現れないオーバーレイの元データを変更した場合は、<br/>
-    /// ルーペのプロパティ変更では再生成されないため、本メソッドの呼び出しが必要になる。
+    /// ルーペのプロパティ変更では再生成されないため、本メソッドの呼び出しが必要になる。<br/>
+    /// <b>保持している描画計画も破棄する</b>（本メソッドは「計画に効く入力が変わった」ことを表す唯一の入口である。 <see cref="ResolvePlan"/>）。
     /// </remarks>
     public void RequestRender()
     {
+        // 非表示中でも計画を破棄する（コーディネーターは非表示では早期に戻るため、ここで破棄しないと
+        // 非表示中に変えた状態が次の表示で反映されない）
+        InvalidatePlan();
         _renderCoordinator.RequestRender();
     }
 

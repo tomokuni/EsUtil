@@ -248,7 +248,7 @@ BitmapSize = ceil(表示サイズ × ClientToPixelScaling)
 | --- | --- | --- | --- |
 | `Options` | `LoupeOptions` | コアの既定値 | ルーペの基本サイズと拡大率。 `with` 式で部分変更する。 数値項目はコアの `LoupeOptions` が生成時に安全域へ補正する |
 | `Appearance` | `LoupeAppearance`（`EsUtil.Feature.Loupe`） | `LoupeAppearance.Default` | 枠線の太さ・表示可否（十字線・枠線・ラベル）と描画に使う色（ペーストボード（画像外）・枠線・十字線・中心座標ラベルの 6 色）・ラベルのフォントサイズ・角丸。 `LoupeAppearance.Default with { ... }` で部分変更する |
-| `DrawPlanResolver` | `Func<LoupeDrawPlan, LoupeDrawPlan>?` | `null` | **描画計画の差し替え点**（装飾の矩形・ラベルの文言と配置）。 設定すると保持中の計画を破棄して再解決する（配置と描画の両方に適用され、1 表示に 1 回以上呼ばれるため純粋関数にすること） |
+| `DrawPlanResolver` | `Func<LoupeDrawPlan, LoupeDrawPlan>?` | `null` | **描画計画の差し替え点**（装飾の矩形・ラベルの文言と配置）。 設定すると保持中の計画を破棄して再解決する（配置と描画の両方に適用され、同じ入力では 1 フレーム 1 回だけ解決されるため、呼び出しの時点に依存しない純粋関数にすること） |
 | `ShowDefaultDecorations` | `bool` | `true` | 既定の装飾（十字線・枠線）を描くかどうか（`false` は矩形で表せない自前描画のための入口。 画像（拡大）と画像外の色は描き続ける） |
 
 `Options`（コアの `LoupeOptions`）の項目（詳細は `EsUtil.Feature.Loupe.Core` の `docs/SPEC_API.md` を参照）:

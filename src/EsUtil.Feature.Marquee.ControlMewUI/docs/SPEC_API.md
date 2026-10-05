@@ -99,7 +99,7 @@ Avalonia 版と同一の挙動になります。
 | `RequestCancel()` | - | キャンセル要求を処理する（Escape と同じ条件）。 選択を破棄した後にイベントを発火する |
 | `RefreshOverlay()` | - | 表示（パン・ズーム・表示サイズ）の変化へ追従する（再描画と配置の再評価。 選択の状態は変更しない） |
 | `InvalidateRender()` | - | 描画内容の再解決と、図形・ラベルの再描画を要求する（**描画に関わる変更の唯一の入口**。 図形は子の Skia キャンバスが描くため、親の無効化だけでは更新されない） |
-| `DrawPlanResolver` | `Func<MarqueeDrawPlan, MarqueeDrawPlan>?` | **描画計画の差し替え点**（矩形の並び・文言・位置）。 設定すると再描画を要求する（1 フレームに 2 回以上呼ばれるため純粋関数にすること） |
+| `DrawPlanResolver` | `Func<MarqueeDrawPlan, MarqueeDrawPlan>?` | **描画計画の差し替え点**（矩形の並び・文言・位置）。 設定すると再描画を要求する（同じ入力では 1 フレーム 1 回だけ解決されるため、呼び出しの時点に依存しない純粋関数にすること） |
 | `ShowDefaultDecorations` | `bool` | 既定の装飾（暗転・枠線・ハンドル・マーカー）を描くかどうか（既定 true。 false は矩形で表せない自前描画のための入口） |
 | `DrawPlan(SKCanvas, in MarqueeDrawPlan)` | `static` | 描画計画を描画面へ描く（既定の装飾も含む。 自前で描く場合でも既定の描画を使える） |
 

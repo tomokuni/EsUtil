@@ -63,6 +63,7 @@ public sealed class LoupeControl : Panel
                 // 拡大中心はコア（ファサード）が単一所有する（表示位置・描画入力の計算元）
                 o._presenter.CenterPoint = newValue;
                 // 中心座標ラベルの文言は中心に依存するため、ラベル要素を配置し直す
+                o.InvalidatePlan();
                 o.InvalidateArrange();
             });
 
@@ -83,6 +84,7 @@ public sealed class LoupeControl : Panel
                 // 表示サイズ（要求サイズ）と拡大率・外観はコア（ファサード）が単一所有する（表示レイアウトと描画入力の計算元）
                 o._presenter.Options = newValue;
                 // ラベルの大きさ・外観・表示可否が変わるため、ラベル要素を配置し直す（表示サイズが同じでも必要）
+                o.InvalidatePlan();
                 o.InvalidateArrange();
             });
 
@@ -116,6 +118,7 @@ public sealed class LoupeControl : Panel
             {
                 o._presenter.Appearance = newValue;
                 // 中心座標ラベルの色・体裁も外観が与えるため、ラベル要素を配置し直す
+                o.InvalidatePlan();
                 o.InvalidateArrange();
             });
 
@@ -137,7 +140,8 @@ public sealed class LoupeControl : Panel
     /// 受け取る計画は提示層が解決済みであるため、本関数は値の置き換えだけで完結する<br/>
     /// （<c>plan with { CrosshairPixelRects = …, Labels = … }</c>）。<br/>
     /// <b>配置と描画の両方に適用される</b>ため、<see cref="LoupeDrawPlan.Labels"/> を差し替えるとラベル要素も追随する。<br/>
-    /// 1 フレームに 2 回以上呼ばれるため、<b>純粋関数（同じ入力に同じ出力）にすること</b>。 設定すると配置と描画をやり直す。
+    /// <b>純粋関数（同じ入力に同じ出力）にすること</b>（同じ入力では 1 フレーム 1 回だけ解決されるため、<br/>
+    /// 呼び出しの時点に依存する関数を渡すと差し替えが反映されない）。 設定すると保持中の計画を破棄して配置と描画をやり直す。
     /// </remarks>
     public Func<LoupeDrawPlan, LoupeDrawPlan>? DrawPlanResolver
     {
@@ -145,17 +149,21 @@ public sealed class LoupeControl : Panel
         set
         {
             field = value;
+            InvalidatePlan();
             InvalidateArrange();
             InvalidateVisual();
         }
     }
 
-    /// <summary>既定の装飾（十字線・枠線）を描くかどうかを取得または設定する。</summary>
+    /// <summary>既定の装飾（十字線・枠線）を既定の描画で描くかどうかを取得または設定する。</summary>
     /// <value>true（既定）の場合は既定の装飾を描く。 false の場合は装飾の層だけを描かない（<b>ペーストボードと拡大画像は描く</b>）。</value>
     /// <remarks>
     /// <b>矩形で表せない描画（円・斜線・グラデーション等）を「置換」する入口</b>である<br/>
     /// （描画の直後に呼ばれる <see cref="Rendered"/> のキャンバスへ自前で描く）。<br/>
     /// false でもペーストボード（描画面の消去）と拡大画像は描かれるため、前フレームが残ったり画像が欠けたりしない。<br/>
+    /// <b>外観の表示可否（<see cref="LoupeAppearance.ShowCrosshair"/> / <see cref="LoupeAppearance.ShowBorder"/>）との違い</b>:<br/>
+    /// 外観は「その項目を描かない」として計画の値から消す（<see cref="DrawPlan"/> で再現できない）が、<br/>
+    /// 本フラグは計画の値を保ったまま描画だけを止める（<see cref="DrawPlan"/> で既定の描画を行える）。<br/>
     /// 設定すると再描画を要求する。
     /// </remarks>
     public bool ShowDefaultDecorations
@@ -383,18 +391,48 @@ public sealed class LoupeControl : Panel
         SyncLabels(plan.Labels, bounds);
     }
 
-    /// <summary>描画計画を解決し、<see cref="DrawPlanResolver"/> を適用する。</summary>
+    // ====================================================================
+    // 1 フレーム分の描画計画（1 フレーム = 1 回だけ解決する）
+    // ====================================================================
+
+    /// <summary>直近に解決した描画計画（null = 未解決）。</summary>
+    private LoupeDrawPlan? _plan;
+
+    /// <summary>直近に解決した描画計画の基準（表示サイズ（DIP））。</summary>
+    private double _planSize;
+
+    /// <summary>直近に解決した描画計画の基準（スケーリング係数）。</summary>
+    private double _planScaling;
+
+    /// <summary>描画計画を解決し、<see cref="DrawPlanResolver"/> を適用する（同じ入力では再解決しない）。</summary>
     /// <param name="displaySize">ルーペの一辺の表示サイズ（DIP）。</param>
     /// <returns>差し替え後の描画計画。</returns>
     /// <remarks>
     /// <b>配置と描画の両経路が本メソッドを通る</b>（配置は <see cref="ArrangeContent"/>、描画は <see cref="OnPaintSurface"/>）。<br/>
-    /// したがって <see cref="DrawPlanResolver"/> は 1 フレームに 2 回呼ばれる（純粋関数であること）。
+    /// どちらの経路も同じ表示サイズを渡すため（描画は <see cref="ApplyClientPixelScaling"/> が描画面から求めた倍率で<br/>
+    /// 割り当て領域（DIP）へ戻した値）、<b>同じ入力ではキャッシュを返して 1 フレーム 1 回の解決に留める</b><br/>
+    /// （解決のたびに十字線・枠線の矩形とラベルの実寸測定をやり直さない）。<br/>
+    /// キャッシュのキーは「表示サイズ」と「スケーリング係数」である（後者は描画の直前に書き戻されるため、<br/>
+    /// 書き戻し後の解決を取りこぼさないようキーに含める）。<br/>
+    /// それ以外の入力（拡大中心・設定・外観・<see cref="DrawPlanResolver"/>）の変更は <see cref="InvalidatePlan"/> で破棄する。
     /// </remarks>
     private LoupeDrawPlan ResolvePlan(double displaySize)
     {
-        var plan = _presenter.ResolveDrawPlan(displaySize, MewUITextMeasure.Measure);
-        return DrawPlanResolver?.Invoke(plan) ?? plan;
+        var scaling = ClientToPixelScaling;
+        if (_plan is not { } cached || _planSize != displaySize || _planScaling != scaling)
+        {
+            cached = _presenter.ResolveDrawPlan(displaySize, MewUITextMeasure.Measure);
+            cached = DrawPlanResolver?.Invoke(cached) ?? cached;
+            _plan = cached;
+            _planSize = displaySize;
+            _planScaling = scaling;
+        }
+
+        return cached;
     }
+
+    /// <summary>保持している描画計画を破棄する（次の解決で最新の状態を反映する）。</summary>
+    private void InvalidatePlan() => _plan = null;
 
     /// <summary>ラベル要素（背景 + テキスト）を配置指示へ同期し、親の絶対座標を基準に配置する。</summary>
     /// <param name="placements">配置するラベル（描画順に並ぶ）。</param>
