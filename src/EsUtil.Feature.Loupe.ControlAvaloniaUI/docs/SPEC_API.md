@@ -219,7 +219,7 @@ loupe.Options = LoupeOptions.Default with { RequestedSize = 240, ZoomLevel = 4 }
 **描画の差し替え**: 描画は本コントロールの `LoupeContextPainter.Paint`（描画計画を描画 API へ写すだけの実装。 本プロジェクトの内部）が担います。  
 見た目を変える場合は 3 つの入口を使います（**派生は不要**）。  
 
-- 色・枠線の太さ・表示可否: `Appearance`（`LoupeAppearance`）を差し替える（`LoupeAppearance.Default with { ... }`）
+- 色・枠線の太さ・表示可否: `Appearance`（`LoupeAppearance`）を差し替える（`LoupeAppearance.Default with { ... }`。 項目ごとの停止は `ShowCrosshair` / `ShowBorder` が担い、層も消える）
 - 描画計画（装飾の矩形・ラベルの文言と配置）: `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）で差し替える（配置と描画の両方に適用される）
 - 矩形で表せない描画（円・斜線等）: `ShowDefaultDecorations` を `false` にして `Rendered` のビットマップへ自前で描く（必要なら `DrawPlan` で既定の描画も呼べる。 `ShowDefaultDecorations` は**描画の停止**であり、描画計画の解決（配置）は従来どおり行われます）
 

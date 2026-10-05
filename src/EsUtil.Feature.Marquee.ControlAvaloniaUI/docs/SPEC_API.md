@@ -282,7 +282,7 @@ control.ResetSelection();           // 状態と nudge の初期化
 marquee.Appearance = MarqueeAppearance.Default with { OuterBorderColor = Colors.White.ToDrawingColor() };   // 外観の差し替え
 ```
 
-**見た目のカスタマイズ**: 色・枠線の太さ・表示可否は外観（`Appearance`。 `MarqueeAppearance`）で指定します。 矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で描画計画（`MarqueeDrawPlan`）を差し替えられます（差し替えは値の置き換えだけで完結し、描画実装（本 UI の `MarqueeContextPainter`）は変更不要です。 例は `sample/Presentation/` の `GuideMarqueePlan`）。 矩形で表せない描画（円・斜線等）は `ShowDefaultDecorations` を false にして `Rendered` の描画先へ自前で描き、必要なら `DrawPlan` で既定の描画を行います。
+**見た目のカスタマイズ**: 色・枠線の太さ・表示可否は外観（`Appearance`。 `MarqueeAppearance`）で指定します。 項目ごとの停止は外観（`ShowOverlay` / `ShowOuterBorder` / `ShowInnerFill` / `ShowInnerBorder` / `ShowHandles`）でもできますが、**始点マーカーは外観のフラグを持たない**ため `ShowDefaultDecorations` が停止の入口です（このフラグは計画の値を保持するため `DrawPlan` で既定の描画を再利用できます）。 矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で描画計画（`MarqueeDrawPlan`）を差し替えられます（差し替えは値の置き換えだけで完結し、描画実装（本 UI の `MarqueeContextPainter`）は変更不要です。 例は `sample/Presentation/` の `GuideMarqueePlan`）。 矩形で表せない描画（円・斜線等）は `ShowDefaultDecorations` を false にして `Rendered` の描画先へ自前で描き、必要なら `DrawPlan` で既定の描画を行います。
 
 ### 5.2 メソッド
 
