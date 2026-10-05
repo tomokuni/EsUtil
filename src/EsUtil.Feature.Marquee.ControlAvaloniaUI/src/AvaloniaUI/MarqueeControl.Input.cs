@@ -15,7 +15,7 @@ namespace EsUtil.Feature.Marquee.AvaloniaUI;
 /// 矢印キー nudge・Escape のキャンセル・Enter の確定の判断（許可条件を含む）はコアが行う。<br/>
 /// キーボード（矢印キー nudge）はフォーカス非依存（TopLevel のキー購読）のため、コントロールにフォーカスがなくても動作する。
 /// </remarks>
-public sealed partial class MarqueeControl
+public partial class MarqueeControl
 {
     // ====================================================================
     // キーボード（矢印キー nudge・Escape/Enter の確定/キャンセル）
@@ -33,7 +33,7 @@ public sealed partial class MarqueeControl
     /// </remarks>
     private void OnTopLevelKeyDown(object? sender, KeyEventArgs e)
     {
-        e.Handled = _marquee.KeyDown(e.Key.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
+        e.Handled = Marquee.KeyDown(e.Key.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
     }
 
     /// <summary>フォーカスを失ったときに nudge を終了する。</summary>
@@ -48,7 +48,7 @@ public sealed partial class MarqueeControl
     protected override void OnLostFocus(FocusChangedEventArgs e)
     {
         base.OnLostFocus(e);
-        _marquee.EndNudge();
+        Marquee.EndNudge();
     }
 
     /// <summary>現在のカーソル位置（対象座標）を取得する。</summary>
@@ -66,6 +66,6 @@ public sealed partial class MarqueeControl
 
         var screenPoint = _cursor.GetCursorScreenPoint();
         var localDip = ScreenConverter.ScreenToLocalDip(this, screenPoint.ToAvaloniaPixelPoint()).ToEsPoint();
-        return _marquee.ToSource(localDip);
+        return Marquee.ToSource(localDip);
     }
 }

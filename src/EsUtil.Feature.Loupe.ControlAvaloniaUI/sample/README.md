@@ -95,7 +95,7 @@ EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/
 │   └── TestImageFactory.cs      # テスト画像生成（グラデーション＋グリッド＋マーカー）
 ├── Presentation/                # 拡張例（提示層の派生）
 │   ├── GridLoupePresenter.cs    # LoupePresenter を派生し、格子線と四隅の鉤へ装飾を差し替える
-│   └── GridLoupePreview.cs      # 派生提示層の描画計画を LoupeContextPainter で描く見本
+│   └── GridLoupePreview.cs      # LoupeControl を派生し、差し替えた提示層で描く見本
 ├── ViewModels/
 │   ├── BrushOption.cs           # 色選択肢
 │   └── MainWindowViewModel.cs   # ルーペ設定・中心座標
@@ -119,14 +119,14 @@ EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/
 `Presentation/` に、既定の提示層（`LoupePresenter`）を派生して見た目を差し替える見本があります（設定パネル上部の見本）。
 
 - `GridLoupePresenter` — 外観（色・枠線の太さ・表示可否）を生成時に自前で設定し、`ResolveDrawPlan` を上書きして装飾の矩形（中心の格子線・四隅の鉤）を差し替えます。
-- `GridLoupePreview` — 派生提示層が解決した描画計画を `LoupeContextPainter` で描くだけのコントロールです。
+- `GridLoupePreview` — `LoupeControl` を派生し、`CreatePresenter` を上書きして差し替えた提示層を返すだけのコントロールです（表示位置・ラベルの配置・描画はコントロールがそのまま担います）。
 
-提示層（`EsUtil.Feature.Loupe.Presenter`）と描画実装（`EsUtil.Feature.Loupe.ControlAvaloniaUI` の `LoupeContextPainter`）はともに公開型であるため、コントロールを通さずに公開 API だけで組み合わせられます（拡大元の画像は見本が自前で用意します）。
+差し替えの入口は **`LoupeControl.CreatePresenter` の上書き**です（生成は初回参照時に 1 度だけ行われ、派生クラスの初期化が終わってから呼ばれます）。 描画実装（`LoupeContextPainter`）は本プロジェクトの内部であり、差し替えのたびに書き換える必要はありません。
 
 | 差し替える対象 | 差し替え方 |
 | --- | --- |
-| 外観（色・枠線の太さ・表示可否） | 生成時に `Appearance`（`LoupeAppearance`）を設定する |
-| 装飾（十字線・枠線）の矩形 | `ResolveDrawPlan` を上書きし、計画（`LoupeDrawPlan`）の矩形を差し替える |
+| 外観（色・枠線の太さ・表示可否） | `Appearance`（`LoupeAppearance`）を設定する（提示層の生成時に設定してもよい） |
+| 装飾（十字線・枠線）の矩形 | 提示層の `ResolveDrawPlan` を上書きし、計画（`LoupeDrawPlan`）の矩形を差し替える |
 | ラベルの文言・配置 | 同上（`LoupeDrawPlan.Labels` を差し替える） |
 
-差し替えは値の置き換えだけで完結するため、UI ごとの描画実装（Avalonia は `LoupeContextPainter`、MewUI は `LoupeSkiaPainter`）は変更不要です。
+差し替えは値の置き換えだけで完結するため、UI ごとの描画実装（Avalonia は `LoupeContextPainter`、MewUI は `LoupeSkiaPainter`。 いずれも内部）は変更不要です。

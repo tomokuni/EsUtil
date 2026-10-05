@@ -94,11 +94,11 @@ flowchart TB
     end
     subgraph LC["EsUtil.Feature.Loupe.ControlAvaloniaUI プロジェクト"]
         direction TB
-        Ctl["LoupeControl<br/>public sealed<br/>: Panel<br/>LoupeControl.cs（コードのみ）"]
+        Ctl["LoupeControl<br/>public（派生可）<br/>: Panel<br/>LoupeControl.cs（コードのみ）"]
         Coh["LoupeRenderCoordinator<br/>public sealed class<br/>（再描画のバッチ化。本プロジェクトが所有し、実行キューは post で注入する）"]
         Pip["LoupeRenderPipeline<br/>internal static class<br/>（ソース解決と描画の起動）"]
         Src["LoupeSourceResolver<br/>internal static class<br/>（IImage の型判定・破棄済み検出）"]
-        Rdr["LoupeContextPainter<br/>public static class<br/>（描画計画を DrawingContext へ写す描画実装）"]
+        Rdr["LoupeContextPainter<br/>internal static class<br/>（描画計画を DrawingContext へ写す描画実装）"]
         Brs["SolidColorBrushCache<br/>public static class<br/>Platform.AvaloniaUI.Imaging<br/>（色 → ブラシの共有キャッシュ）"]
         Evt["LoupeRenderedEventArgs<br/>public sealed class<br/>LoupeRenderedEventArgs.cs"]
         RLog["LoupeRenderLog<br/>internal static partial class<br/>（本プロジェクト固有のログ）"]
@@ -148,7 +148,7 @@ flowchart TB
 
 ### 6.1 LoupeControl
 
-- **分類**: 公開コントロール（`public sealed class LoupeControl : Panel`。 AXAML を持たずコードのみで子要素を構成する）
+- **分類**: 公開コントロール（`public class LoupeControl : Panel`。 AXAML を持たずコードのみで子要素を構成する。 `CreatePresenter` を上書きすると提示層を差し替えられる）
 - **責務**:
   - 状態管理: 5 個の StyledProperty（`Source: IImage?` / `CenterPoint` / 設定 `Options` / 外観 `Appearance` / 環境値 `ClientToPixelScaling`）
   - 座標ラベル: **コントロールがテキスト要素（`Border` + `TextBlock`）として表示する**。 文言・基準点は提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter`（`LabelTexts` partial））が、表示可否と体裁（フォントサイズ・色・角丸）は外観（`LoupeAppearance`）が、実寸 → 配置矩形の写像は同層の `LoupePresenter`（`LabelPlan` partial） が単一所有する。 コントロールは配置フェーズ（`ArrangeOverride`）で要素を追加・更新する（ラベル要素は子の末尾に置かれ、子は親より後に描かれるため常に最上位）
@@ -165,9 +165,10 @@ flowchart TB
 
 ### 6.2 LoupeContextPainter（描画実装）
 
-- **分類**: 公開静的クラス（`public static class LoupeContextPainter`。 Avalonia 版の描画実装）
-- **責務**: 描画計画（`LoupeDrawPlan`）を Avalonia の描画 API（`DrawingContext`）へ写す（**層の順序も描く値も計画が単一所有する**ため、本クラスは順に描くだけである）
-  **公開API**: `LoupeContextPainter.Paint(DrawingContext context, EsBitmap? source, in LoupeDrawPlan plan)`（図形のみ。 **テキストは描かない**。 中心座標ラベルはコントロールが UI 要素として配置する）
+- **分類**: 内部静的クラス（`internal static class LoupeContextPainter`。 Avalonia 版の描画実装）
+- **責務**: 描画計画（`LoupeDrawPlan`）を Avalonia の描画 API（`DrawingContext`）へ写す（**層の順序も描く値も計画が単一所有する**ため、本クラスは順に描く だけである）
+- **可視性**: internal（描画の実装詳細。 見た目の差し替えは `LoupeControl.CreatePresenter` の上書きで行う）
+  **描画の入口**: `LoupeContextPainter.Paint(DrawingContext context, EsBitmap? source, in LoupeDrawPlan plan)`（図形のみ。 **テキストは描かない**。 中心座標ラベルはコントロールが UI 要素として配置する）
 - **特徴**: 描画の可否は計画が解決済み（非表示の項目は空の矩形列として渡る）であり、本クラスは分岐を持たない。 枠線の太さの物理ピクセルへの換算と装飾の矩形の導出も**提示層が解決済み**である（本クラスは計算を持たない）。 色 → ブラシの共有は `SolidColorBrushCache` が単一所有する
 - **依存**: EsUtil.Feature.Loupe.Presenter（`LoupeDrawPlan` / `LoupeAppearance` / `LoupeDrawLayer`）/ Platform.AvaloniaUI（`DrawingContext`（相互変換）/ `SolidColorBrushCache`）/ EsUtil.Platform.Core（`EsBitmap` / `System.Drawing.Color`）
 

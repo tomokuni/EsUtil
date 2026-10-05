@@ -22,7 +22,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI;
 /// <b>UI 非依存のテスト</b>: 画素の検証は同じ計画を MewUI の <c>LoupeSkiaPainter</c> で行う<br/>
 /// （Avalonia ヘッドレスでは <c>RenderTargetBitmap</c> の画素を読めないため）。
 /// </remarks>
-public static class LoupeContextPainter
+internal static class LoupeContextPainter
 {
     /// <summary>描画計画を描画順に描く。</summary>
     /// <param name="context">描画先の描画コンテキスト（<c>Render</c> の実行中のみ有効）。 null 不可。</param>

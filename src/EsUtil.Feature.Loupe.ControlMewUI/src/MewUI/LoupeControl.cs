@@ -37,9 +37,12 @@ namespace EsUtil.Feature.Loupe.MewUI;
 /// ルーペがその位置を拡大表示する（描画はプロパティ変更で自動的に無効化される）。<br/>
 /// <b>座標ラベル</b>: 表示可否は <see cref="LoupeAppearance.ShouldShowCoordLabel"/>（描画層）が判断し、<br/>
 /// 文言・基準点・配置は描画層（<see cref="LoupePresenter"/>）が実寸（<see cref="MewUITextMeasure"/>）から<br/>
-/// 単一所有する（本コントロールは要素を置くだけである）。
+/// 単一所有する（本コントロールは要素を置くだけである）。<br/>
+/// <br/>
+/// <b>見た目の差し替え</b>: <see cref="CreatePresenter"/> を上書きすると、既定の提示層の代わりに派生提示層を使える<br/>
+/// （格子線・四隅の鉤など、外観（<see cref="LoupeAppearance"/>）の項目だけでは表せない装飾を差し替えられる）。
 /// </remarks>
-public sealed class LoupeControl : Panel
+public class LoupeControl : Panel
 {
     /// <summary><see cref="Source"/> プロパティ（拡大元の 100% 画像）。</summary>
     /// <remarks>変更ログはコアのログ定義が単一所有する（本コントロールは変更通知で呼ぶだけ）。</remarks>
@@ -56,7 +59,7 @@ public sealed class LoupeControl : Panel
             changed: static (o, oldValue, newValue) =>
             {
                 // 拡大中心はコア（ファサード）が単一所有する（表示位置・描画入力の計算元）
-                o._presenter.CenterPoint = newValue;
+                o.Presenter.CenterPoint = newValue;
                 // 中心座標ラベルの文言は中心に依存するため、ラベル要素を配置し直す
                 o.InvalidateArrange();
             });
@@ -76,7 +79,7 @@ public sealed class LoupeControl : Panel
             changed: static (o, oldValue, newValue) =>
             {
                 // 表示サイズ（要求サイズ）と拡大率・外観はコア（ファサード）が単一所有する（表示レイアウトと描画入力の計算元）
-                o._presenter.Options = newValue;
+                o.Presenter.Options = newValue;
                 // ラベルの大きさ・外観・表示可否が変わるため、ラベル要素を配置し直す（表示サイズが同じでも必要）
                 o.InvalidateArrange();
             });
@@ -92,7 +95,7 @@ public sealed class LoupeControl : Panel
             changed: static (o, oldValue, newValue) =>
             {
                 // 描画入力（物理ピクセル）の計算元はコア（ファサード）が単一所有する
-                o._presenter.ClientToPixelScaling = newValue;
+                o.Presenter.ClientToPixelScaling = newValue;
                 // ラベルの配置の基準（表示サイズ）が物理ピクセル換算で変わるため、配置し直す
                 o.InvalidateArrange();
             },
@@ -109,7 +112,7 @@ public sealed class LoupeControl : Panel
             MewPropertyOptions.AffectsRender | MewPropertyOptions.AffectsLayout,
             changed: static (o, oldValue, newValue) =>
             {
-                o._presenter.Appearance = newValue;
+                o.Presenter.Appearance = newValue;
                 // 中心座標ラベルの色・体裁も外観が与えるため、ラベル要素を配置し直す
                 o.InvalidateArrange();
             });
@@ -118,9 +121,13 @@ public sealed class LoupeControl : Panel
     /// <remarks>
     /// 表示サイズ・伸長入力・座標ラベル・表示位置の計算はすべて <see cref="LoupePresenter"/> が単一所有する<br/>
     /// （本コントロールは公開プロパティで受け取った値を転送し、返された描画計画を描画・配置へ使うだけ）。<br/>
-    /// フィールド初期化子で生成する（プロパティ変更のコールバックから参照できるようにするため）。
+    /// 生成は <see cref="CreateAndInitializePresenter"/> が初回参照時に行う（派生が差し替えられるようにするため）。
     /// </remarks>
-    private readonly LoupePresenter _presenter = new();
+    private LoupePresenter? _presenter;
+
+    /// <summary>提示層（初回参照時に生成する）。</summary>
+    /// <value>本コントロールが使う提示層（生成済みの場合は同じインスタンス）。</value>
+    private LoupePresenter Presenter => _presenter ??= CreateAndInitializePresenter();
 
     /// <summary>図形（背景・市松模様・拡大画像・十字線・枠線）を描画する内部キャンバス。</summary>
     /// <remarks>
@@ -190,10 +197,10 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     public double PositionOffset
     {
-        get => _presenter.PositionOffset;
+        get => Presenter.PositionOffset;
         set
         {
-            _presenter.PositionOffset = value;
+            Presenter.PositionOffset = value;
             InvalidateArrange();
         }
     }
@@ -206,7 +213,7 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     public void SetCoordTransform(ICoordTransform? port)
     {
-        _presenter.SetCoordTransform(port);
+        Presenter.SetCoordTransform(port);
         InvalidateArrange();
     }
 
@@ -217,7 +224,7 @@ public sealed class LoupeControl : Panel
     /// 本コントロールは位置を持たないため、ホストが本メソッドの結果で配置する（オフセット・位置の補正の規則はコアが単一所有する）。<br/>
     /// 描画サイズも同じ値から決まる（描画ビットマップと配置サイズを一致させる）。
     /// </remarks>
-    public LoupeLayout ResolveLayout(EsSize parentSize) => _presenter.ResolveLayout(parentSize);
+    public LoupeLayout ResolveLayout(EsSize parentSize) => Presenter.ResolveLayout(parentSize);
 
     /// <summary>ルーペコントロールを初期化する。</summary>
     /// <remarks>
@@ -229,6 +236,31 @@ public sealed class LoupeControl : Panel
         // 図形は専用の子キャンバスが描く（ラベル要素より先に子として加えるため、常にラベルの下になる）
         _shapes = new ShapeCanvas(this) { IsHitTestVisible = false };
         Add(_shapes);
+    }
+
+    /// <summary>提示層（設定・表示レイアウト・描画計画の窓口）を生成する。</summary>
+    /// <returns>本コントロールが使う提示層。</returns>
+    /// <remarks>
+    /// <b>見た目の差し替え点</b>: 本メソッドを上書きして派生提示層（<see cref="LoupePresenter"/> の派生）を返すと、<br/>
+    /// 外観（<see cref="LoupeAppearance"/>）だけでは表せない装飾（格子線・四隅の鉤等）を提示層の描画計画として差し替えられる。<br/>
+    /// <b>呼び出しは遅延生成時に 1 度だけ</b>である。
+    /// </remarks>
+    protected virtual LoupePresenter CreatePresenter() => new();
+
+    /// <summary>提示層を生成し、設定済みのロガーを引き継ぐ。</summary>
+    /// <returns>初期化済みの提示層。</returns>
+    /// <remarks>
+    /// <b>なぜ生成を遅延するか</b>: コンストラクターから上書き可能なメンバー（<see cref="CreatePresenter"/>）を呼ぶと、<br/>
+    /// 派生クラスの初期化前に派生の実装が走る（アナライザー <c>MA0056</c> が禁じる）。 初回参照時まで遅らせると、<br/>
+    /// 派生クラスの初期化が終わってから生成されるため、上書きが安全に機能する。<br/>
+    /// ロガーは生成前に設定されていることがある（<see cref="Log"/> の setter が本メソッドより先に走りうる）ため、<br/>
+    /// 生成時に現在値を渡して引き継ぐ。
+    /// </remarks>
+    private LoupePresenter CreateAndInitializePresenter()
+    {
+        var presenter = CreatePresenter();
+        presenter.Log = Log;
+        return presenter;
     }
 
     /// <summary>図形（背景・市松模様・拡大画像・十字線・枠線）だけを描画する内部 Skia キャンバス。</summary>
@@ -274,7 +306,7 @@ public sealed class LoupeControl : Panel
         set
         {
             field = value.OrNullLogger();
-            _presenter.Log = value;
+            Presenter.Log = value;
         }
     }
 
@@ -315,7 +347,7 @@ public sealed class LoupeControl : Panel
         // テキストは描画層が文言と基準点を渡し、要素として置くか画像として描くかは本層が決める
         // （表示サイズは要素の大きさ（ホストが描画層のレイアウト結果で配置したサイズ）である）
         // 実寸は配置（本ルート）と描画（OnPaintSurface）の両方で同じ値を使う必要があるため、同じ測定関数を渡す
-        var plan = _presenter.ResolveDrawPlan(bounds.Size.Width, MewUITextMeasure.Measure);
+        var plan = Presenter.ResolveDrawPlan(bounds.Size.Width, MewUITextMeasure.Measure);
         SyncLabels(plan.Labels, bounds);
     }
 
@@ -432,7 +464,7 @@ public sealed class LoupeControl : Panel
         // 倍率は描画面と割り当て領域（DIP）の比から求め、保持値とファサードへも反映する
         // （反映しないと、拡大画像がルーペ領域より小さい倍率で描かれる）。
         var scaling = ApplyClientPixelScaling(info);
-        var plan = _presenter.ResolveDrawPlan(
+        var plan = Presenter.ResolveDrawPlan(
             DpiScaler.ToDip(info.Size.ToEsSize(), scaling).Width, MewUITextMeasure.Measure);
 
         try

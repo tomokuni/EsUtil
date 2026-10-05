@@ -56,7 +56,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI;
 /// - イベント: <see cref="Rendered"/>（描画完了時に描画済み Bitmap と表示情報を通知。 ホストが Bitmap に直接オーバーレイを描画できる）<br/>
 /// - 操作: <see cref="Clear()"/>（非表示にしてビットマップを解放） / <see cref="RequestRender()"/>（プロパティ変更を伴わない再生成要求）<br/>
 /// </remarks>
-public sealed class LoupeControl : Panel
+public class LoupeControl : Panel
 {
     // ====================================================================
     // 数値プロパティの安全域・既定値（LoupeCore.Limits から委譲）
@@ -78,6 +78,31 @@ public sealed class LoupeControl : Panel
 
         // 初期状態は非表示（表示指示は IsVisible=true で行う）
         IsVisible = false;
+    }
+
+    /// <summary>提示層（設定・表示レイアウト・描画計画の窓口）を生成する。</summary>
+    /// <returns>本コントロールが使う提示層。</returns>
+    /// <remarks>
+    /// <b>見た目の差し替え点</b>: 本メソッドを上書きして派生提示層（<see cref="LoupePresenter"/> の派生）を返すと、<br/>
+    /// 外観（<see cref="LoupeAppearance"/>）だけでは表せない装飾（格子線・四隅の鉤等）を提示層の描画計画として差し替えられる。<br/>
+    /// <b>呼び出しは遅延生成時に 1 度だけ</b>である。
+    /// </remarks>
+    protected virtual LoupePresenter CreatePresenter() => new();
+
+    /// <summary>提示層を生成し、設定済みのロガーを引き継ぐ。</summary>
+    /// <returns>初期化済みの提示層。</returns>
+    /// <remarks>
+    /// <b>なぜ生成を遅延するか</b>: コンストラクターから上書き可能なメンバー（<see cref="CreatePresenter"/>）を呼ぶと、<br/>
+    /// 派生クラスの初期化前に派生の実装が走る（アナライザー <c>MA0056</c> が禁じる）。 初回参照時まで遅らせると、<br/>
+    /// 派生クラスの初期化が終わってから生成されるため、上書きが安全に機能する。<br/>
+    /// ロガーは生成前に設定されていることがある（<see cref="Log"/> の setter が本メソッドより先に走りうる）ため、<br/>
+    /// 生成時に現在値を渡して引き継ぐ。
+    /// </remarks>
+    private LoupePresenter CreateAndInitializePresenter()
+    {
+        var presenter = CreatePresenter();
+        presenter.Log = Log;
+        return presenter;
     }
 
     /// <summary>再描画コーディネーターを、現在の表示状態・ロガー・解放処理を注入して生成する。</summary>
@@ -105,9 +130,13 @@ public sealed class LoupeControl : Panel
     /// <remarks>
     /// 表示サイズ・位置・幾何・文言・層の順序はすべて <see cref="LoupePresenter"/> が単一所有する<br/>
     /// （本コントロールは自 UI の公開プロパティで受け取った値を転送し、返された描画計画を反映するだけ）。<br/>
-    /// フィールド初期化子で生成する（AXAML の初期化でプロパティ変更が発火しても参照できるようにするため）。
+    /// 生成は <see cref="CreateAndInitializePresenter"/> が初回参照時に行う（派生が差し替えられるようにするため）。
     /// </remarks>
-    private readonly LoupePresenter _presenter = new();
+    private LoupePresenter? _presenter;
+
+    /// <summary>提示層（初回参照時に生成する）。</summary>
+    /// <value>本コントロールが使う提示層（生成済みの場合は同じインスタンス）。</value>
+    private LoupePresenter Presenter => _presenter ??= CreateAndInitializePresenter();
 
     /// <summary>表示位置（RenderTransform）のインスタンス（座標更新時は値を書き換えて再利用する）。</summary>
     private readonly TranslateTransform _positionTransform = new();
@@ -133,7 +162,7 @@ public sealed class LoupeControl : Panel
         set
         {
             field = value;
-            _presenter.PositionOffset = value;
+            Presenter.PositionOffset = value;
             UpdatePosition();
         }
     }
@@ -149,7 +178,7 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     public void SetCoordTransform(ICoordTransform? port)
     {
-        _presenter.SetCoordTransform(port);
+        Presenter.SetCoordTransform(port);
         UpdatePosition();
     }
 
@@ -172,7 +201,7 @@ public sealed class LoupeControl : Panel
         var parent = Parent as Panel;
 
         // 親領域未接続（配置前・テスト等）は位置の補正基準が無いため補正されない（規則はコアが単一所有する）
-        var layout = _presenter.ResolveLayout(ParentAreaSize);
+        var layout = Presenter.ResolveLayout(ParentAreaSize);
 
         // 表示サイズは要素サイズ・描画サイズ（物理ピクセルへの換算元）で同じ値を使う
         // （別々に求めると丸めの違いで要素と描画ビットマップの大きさが食い違う）
@@ -215,7 +244,7 @@ public sealed class LoupeControl : Panel
     {
         // テキストは描画層が文言と基準点を渡し、要素として置くか画像として描くかは本層が決める
         // （実寸は要素の大きさ（親から割り当てられたサイズ）を基準に測る）
-        var plan = _presenter.ResolveDrawPlan(finalSize.Width, MeasureText);
+        var plan = Presenter.ResolveDrawPlan(finalSize.Width, MeasureText);
         SyncLabels(plan.Labels);
 
         return base.ArrangeOverride(finalSize);
@@ -295,7 +324,7 @@ public sealed class LoupeControl : Panel
         // CenterPoint 変更時は再描画に加えて表示位置（RenderTransform）も更新する（コアが座標変換ポートと親パネルサイズから算出する）
         CenterPointProperty.Changed.AddClassHandler<LoupeControl>(static (o, e) =>
         {
-            o._presenter.CenterPoint = ToEsPoint(e.NewValue as Point?);
+            o.Presenter.CenterPoint = ToEsPoint(e.NewValue as Point?);
             o.RequestRender();
             o.UpdatePosition();
             // 中心座標ラベルの文言は中心に依存するため、ラベル要素を配置し直す
@@ -304,7 +333,7 @@ public sealed class LoupeControl : Panel
         // 設定（LoupeOptions）は表示サイズ・拡大率をまとめて持つため、要素サイズと描画へ波及する
         OptionsProperty.Changed.AddClassHandler<LoupeControl>(static (o, e) =>
         {
-            o._presenter.Options = e.GetNewValue<LoupeOptions>();
+            o.Presenter.Options = e.GetNewValue<LoupeOptions>();
             o.RequestRender();
             o.UpdatePosition();
             // 表示サイズとラベルの外観が変わるため、ラベル要素を配置し直す（サイズが同じでも必要）
@@ -313,7 +342,7 @@ public sealed class LoupeControl : Panel
         ClientToPixelScalingProperty.Changed.AddClassHandler<LoupeControl>(static (o, e) =>
         {
             // OldValue / NewValue は StyledProperty&lt;double&gt; により常に非 null（boxed double）
-            o._presenter.ClientToPixelScaling = e.GetNewValue<double>();
+            o.Presenter.ClientToPixelScaling = e.GetNewValue<double>();
             o.RequestRender();
             // ラベルの配置の基準（表示サイズ）が物理ピクセル換算で変わるため、配置し直す
             o.InvalidateArrange();
@@ -323,7 +352,7 @@ public sealed class LoupeControl : Panel
         // 外観（色・フォント・角丸・枠線の太さ・表示可否）の変更は描画内容とラベル体裁へ波及する
         AppearanceProperty.Changed.AddClassHandler<LoupeControl>(static (o, e) =>
         {
-            o._presenter.Appearance = e.GetNewValue<LoupeAppearance>();
+            o.Presenter.Appearance = e.GetNewValue<LoupeAppearance>();
             o.RequestRender();
             // 中心座標ラベルの色・体裁も外観が与えるため、ラベル要素を配置し直す
             o.InvalidateArrange();
@@ -493,7 +522,7 @@ public sealed class LoupeControl : Panel
         set
         {
             _log = value;
-            _presenter.Log = value;
+            Presenter.Log = value;
         }
     }
 
@@ -589,8 +618,8 @@ public sealed class LoupeControl : Panel
         {
             // 描画計画（描画層が解決した幾何・外観・層の順序）は現在のレイアウト（要求サイズ）から組み立てる
             // （値・単位・換算は描画層が単一所有する。 開始時に固定しない）
-            var plan = _presenter.ResolveDrawPlan(
-                _presenter.ResolveLayout(ParentAreaSize).ClientSize, MeasureText);
+            var plan = Presenter.ResolveDrawPlan(
+                Presenter.ResolveLayout(ParentAreaSize).ClientSize, MeasureText);
 
             var bitmap = await LoupeRenderPipeline.RenderAsync(Source, plan);
 

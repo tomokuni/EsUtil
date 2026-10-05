@@ -14,7 +14,7 @@ namespace EsUtil.Feature.Marquee.MewUI;
 /// <b>テキストは描かない</b>: ラベルは UI 要素（<c>Border</c> + <c>TextBlock</c>）として配置するため、<br/>
 /// <see cref="MarqueeDrawLayer.Label"/> の層では何もしない。
 /// </remarks>
-public static class MarqueeSkiaPainter
+internal static class MarqueeSkiaPainter
 {
     /// <summary>描画計画を描画順に描く。</summary>
     /// <param name="canvas">描画先のキャンバス（DIP 座標で描画できる状態であること）。 null 不可。</param>

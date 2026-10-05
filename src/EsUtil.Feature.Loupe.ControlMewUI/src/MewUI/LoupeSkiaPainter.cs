@@ -18,7 +18,7 @@ namespace EsUtil.Feature.Loupe.MewUI;
 /// <br/>
 /// <b>UI 非依存のテスト</b>: 画素の検証は本クラスで行う（<c>SKCanvas</c> はウィンドウなしで描画できる）。
 /// </remarks>
-public static class LoupeSkiaPainter
+internal static class LoupeSkiaPainter
 {
     /// <summary>描画計画を描画順に描く。</summary>
     /// <param name="canvas">描画先のキャンバス（物理ピクセル）。 null 不可。</param>

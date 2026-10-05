@@ -33,10 +33,10 @@
                 <StackPanel Spacing="8">
 
                     <!-- 拡張例: 既定の提示層（MarqueePresenter）を派生して外観と装飾を差し替える。
-                         コントロールを通さず、公開 API だけで提示層と描画実装を組み合わせられることを示す -->
+                         MarqueeControl を派生して CreatePresenter を上書きするだけで、コントロールの見た目を差し替えられる -->
                     <TextBlock Text="拡張例（派生 Presenter）" FontSize="13" FontWeight="Bold"/>
                     <TextBlock FontSize="10" Foreground="Gray" TextWrapping="Wrap"
-                               Text="GuideMarqueePresenter が解決した描画計画（破線枠 + 三分割ガイド）を MarqueeContextPainter で描いた見本です。Core の公開 API だけで作れます。"/>
+                               Text="GuideMarqueePresenter が解決した描画計画（破線枠 + 三分割ガイド）で描いた見本です。MarqueeControl を派生して提示層を差し替えています。"/>
                     <Border BorderBrush="#CCCCCC" BorderThickness="1" Background="#202020" Height="170">
                         <sample:GuideMarqueePreview/>
                     </Border>

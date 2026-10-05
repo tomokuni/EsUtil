@@ -146,7 +146,7 @@ classDiagram
         +ResolveDrawPlan(displaySize, measureText) LoupeDrawPlan
     }
     class LoupeSkiaPainter {
-        <<EsUtil.Feature.Loupe.ControlMewUI / 描画実装>>
+        <<EsUtil.Feature.Loupe.ControlMewUI / internal 描画実装>>
         +Paint(canvas, source, plan) void$
     }
     class LoupeCore.Limits {

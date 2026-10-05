@@ -53,6 +53,7 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 - 中心座標ラベルはコントロールが **`Border` + `TextBlock` の子要素として配置**します（文言・表示可否はコア、実寸 → 配置矩形の写像は描画層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter`（`LabelPlan` partial））、実寸測定は `FormattedText`、描画順はコアの `LoupeDrawLayer` が単一所有）
 - **座標変換ポート（`SetCoordTransform(ICoordTransform?)` + `PositionOffset`）**: MarqueeControl と同方式。 表示位置（`RenderTransform`）と表示サイズ（要求サイズ）をレイアウト時に自己計算（ウィンドウサイズ変更・ズーム・スクロールに追従）
 - **`RefreshPosition()`**: パン・ズーム等のレイアウト非変更なビューポート変化時に、表示位置・サイズを再計算（座標変換ポートは呼び出し毎に最新の表示状態を評価）
+- **見た目の差し替え（派生）**: `CreatePresenter`（`protected virtual`）を上書きすると、既定の提示層の代わりに派生提示層を使えます（格子線・四隅の鉤など、外観 `LoupeAppearance` の項目だけでは表せない装飾を提示層の描画計画として差し替えられる）。 生成は初回参照時に 1 度だけ行われ、派生クラスの初期化が終わってから呼ばれます（例はサンプルの `sample/Presentation/GridLoupePreview`）
 
 ## 3. システム要件
 

@@ -280,7 +280,7 @@ control.ResetSelection();           // 状態と nudge の初期化
 marquee.Appearance = MarqueeAppearance.Default with { OuterBorderColor = Colors.White.ToDrawingColor() };   // 外観の差し替え
 ```
 
-**見た目の拡張**: 外観（色・枠線の太さ・表示可否）で足りない場合は、提示層（`EsUtil.Feature.Marquee.MarqueePresenter`。 `sealed` ではなく `ResolveDrawPlan` が `virtual`）を派生して描画計画（`MarqueeDrawPlan`）を差し替えられます。 差し替えは値の置き換えだけで完結するため、描画実装（本 UI の `MarqueeContextPainter`）は変更不要です（例は `sample/Presentation/` の `GuideMarqueePresenter`）。
+**見た目の拡張**: 外観（色・枠線の太さ・表示可否）で足りない場合は、`MarqueeControl.CreatePresenter` を上書きして提示層（`EsUtil.Feature.Marquee.MarqueePresenter`。 `sealed` ではなく `ResolveDrawPlan` が `virtual`）の派生を返すと、描画計画（`MarqueeDrawPlan`）を差し替えられます。 差し替えは値の置き換えだけで完結するため、描画実装（本 UI の `MarqueeContextPainter`）は変更不要です（例は `sample/Presentation/` の `GuideMarqueePresenter` / `GuideMarqueePreview`）。
 
 ### 5.2 メソッド
 
@@ -293,6 +293,7 @@ marquee.Appearance = MarqueeAppearance.Default with { OuterBorderColor = Colors.
 | `InvalidateRender()` | 描画内容の再解決と、図形・ラベルの再描画を要求する（**描画に関わる変更の唯一の入口**。 図形は子の描画層が描くため、親の無効化だけでは更新されない） |
 | `RequestCancel()` | キャンセル要求を処理する（Escape キーと同じ条件。 選択破棄後に `CancelRequested` を発火） |
 | `RequestConfirm()` | 確定要求を処理する（Enter キーと同じ条件。 ドラッグ中は無視し `ConfirmRequested` を発火。 確定後に選択状態をクリアして再選択・再確定を防ぐ） |
+| `CreatePresenter(IMarqueeEffects, ICursorService, MarqueeOptions)` | 提示層（描画計画の窓口）を生成する（`protected virtual`。 **本コントロールが使う提示層の差し替え点**。 初回参照時に 1 度だけ呼ばれる） |
 
 クリップ（画像境界内への制限）は座標ポートの `Bounds` + `Options.ClampToSourceBounds` が担います。
 

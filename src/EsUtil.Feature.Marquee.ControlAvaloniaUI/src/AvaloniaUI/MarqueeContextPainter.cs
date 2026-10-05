@@ -18,7 +18,7 @@ namespace EsUtil.Feature.Marquee.AvaloniaUI;
 /// <b>テキストは描かない</b>: ラベルは UI 要素（<c>Border</c> + <c>TextBlock</c>）として配置するため、<br/>
 /// <see cref="MarqueeDrawLayer.Label"/> の層では何もしない（要素は親より後に描かれるため常に最上位になる）。
 /// </remarks>
-public static class MarqueeContextPainter
+internal static class MarqueeContextPainter
 {
     /// <summary>描画計画を描画順に描く。</summary>
     /// <param name="context">描画先の描画コンテキスト（<c>Render</c> の実行中のみ有効）。 null 不可。</param>

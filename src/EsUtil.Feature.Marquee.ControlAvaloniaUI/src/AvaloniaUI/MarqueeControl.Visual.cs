@@ -17,7 +17,7 @@ namespace EsUtil.Feature.Marquee.AvaloniaUI;
 /// 描画は提示層が解決した描画計画（<see cref="MarqueeDrawPlan"/>）を自 UI の描画面へ写し、座標変換（対象 → DIP）は座標変換ポートに問い合わせる
 /// （描画は提示層が解決した計画を読むだけで、判断を持たない）。
 /// </remarks>
-public sealed partial class MarqueeControl
+public partial class MarqueeControl
 {
     // ====================================================================
     // ビジュアルツリー接続・切断
@@ -76,7 +76,7 @@ public sealed partial class MarqueeControl
         }
         // ビジュアルツリーからの切断は UI のライフサイクルであるため、コアへは「対話状態の初期化」だけを要求する
         // （選択の破棄と、nudge 中だった場合のカーソル再表示はセッションが単一所有する）。
-        _marquee.ResetSelection();
+        Marquee.ResetSelection();
     }
 
     /// <summary>ウィンドウが非アクティブ化されたときに nudge を終了する。</summary>
@@ -86,7 +86,7 @@ public sealed partial class MarqueeControl
     /// nudge 中はカーソルを非表示にするため、ウィンドウを離れた時点で終了して再表示する（非表示残留の防止）。<br/>
     /// 本コントロールはキーを TopLevel から購読するため、非アクティブ化＝キー入力の継続条件を失った時点である。
     /// </remarks>
-    private void OnWindowDeactivated(object? sender, EventArgs e) => _marquee.EndNudge();
+    private void OnWindowDeactivated(object? sender, EventArgs e) => Marquee.EndNudge();
 
     // ====================================================================
     // 描画（描画内容の解決と描画先の用意だけを行い、手順は描画層へ委譲する）

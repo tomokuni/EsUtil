@@ -201,7 +201,7 @@ classDiagram
         +bool ShowInnerFill / ShowInnerBorder
     }
       class MarqueeSkiaPainter {
-        <<本プロジェクト（UI 層）>>
+        <<本プロジェクト（UI 層 / internal）>>
         +Paint(canvas, plan)$ void
       }
       class ラベル要素の配置 {

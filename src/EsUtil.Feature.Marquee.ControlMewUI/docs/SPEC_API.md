@@ -56,7 +56,7 @@ Avalonia 版と同一の挙動になります。
 | `SizeLabelOverrideProvider` | `Func<string?>?` | `null` | サイズラベル（1 行目）の文言を描画時に評価するプロバイダ。 **文言はホストが与える**（コアは特定の文言を持たない。 文言の生成はホストの `CaptureLabelTexts` 等が担う）。 操作・情報ラベルの文言も同様にホストが与える。 設定すると保持している描画内容を破棄して再描画を要求する |
 | `ClientToPixelScaling` | `double` | `1.0` | DIP → 物理ピクセルのスケーリング係数（DPI 変更時に自動更新）。 **描画では描画面と表示領域の比（`ClientPixelScale`）を使う**ため、追加直後でこの値が未更新でも図形は画像と同じ倍率で描かれる |
 
-**見た目の拡張**: 外観（色・枠線の太さ・表示可否）で足りない場合は、提示層（`EsUtil.Feature.Marquee.MarqueePresenter`。 `sealed` ではなく `ResolveDrawPlan` が `virtual`）を派生して描画計画（`MarqueeDrawPlan`）を差し替えられます。 差し替えは値の置き換えだけで完結するため、描画実装（本 UI の `MarqueeSkiaPainter`）は変更不要です（例は Avalonia 版サンプルの `sample/Presentation/GuideMarqueePresenter`）。
+**見た目の拡張**: 外観（色・枠線の太さ・表示可否）で足りない場合は、`MarqueeControl.CreatePresenter` を上書きして提示層（`EsUtil.Feature.Marquee.MarqueePresenter`。 `sealed` ではなく `ResolveDrawPlan` が `virtual`）の派生を返すと、描画計画（`MarqueeDrawPlan`）を差し替えられます。 差し替えは値の置き換えだけで完結するため、描画実装（本 UI の `MarqueeSkiaPainter`）は変更不要です（例は Avalonia 版サンプルの `sample/Presentation/GuideMarqueePresenter`）。
 
 `MarqueeOptions` の項目（既定値はコアが単一所有。 Avalonia 版と一致）:
 
@@ -99,6 +99,7 @@ Avalonia 版と同一の挙動になります。
 | `RequestCancel()` | - | キャンセル要求を処理する（Escape と同じ条件）。 選択を破棄した後にイベントを発火する |
 | `RefreshOverlay()` | - | 表示（パン・ズーム・表示サイズ）の変化へ追従する（再描画と配置の再評価。 選択の状態は変更しない） |
 | `InvalidateRender()` | - | 描画内容の再解決と、図形・ラベルの再描画を要求する（**描画に関わる変更の唯一の入口**。 図形は子の Skia キャンバスが描くため、親の無効化だけでは更新されない） |
+| `CreatePresenter(IMarqueeEffects, ICursorService, MarqueeOptions)` | `MarqueePresenter` | 提示層（描画計画の窓口）を生成する（`protected virtual`。 **本コントロールが使う提示層の差し替え点**。 初回参照時に 1 度だけ呼ばれる） |
 
 ## 6. プロパティ（取得のみ）
 

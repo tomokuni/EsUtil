@@ -27,7 +27,7 @@
 
 ## 2. 公開 API
 
-名前空間 `EsUtil.Feature.Loupe.MewUI` / クラス `LoupeControl`（`public sealed`、`Panel` 派生。 図形は子の `SkiaCanvasView` が描画する）。
+名前空間 `EsUtil.Feature.Loupe.MewUI` / クラス `LoupeControl`（`public`、`Panel` 派生。 図形は子の `SkiaCanvasView` が描画する。 `CreatePresenter` で提示層を差し替えられる）。
 
 ### 2.1 プロパティ
 
@@ -38,6 +38,8 @@
 | `Options` | `LoupeOptions` | `LoupeOptions.Default` | 下表のとおり | 設定（基本サイズ・拡大率）。 `with` 式で部分変更する |
 | `Appearance` | `LoupeAppearance` | `LoupeAppearance.Default` | 下表のとおり | 外観（枠線の太さ・表示可否）と描画に使う色（ペーストボード（画像外）・枠線・十字線・中心座標ラベルの 6 色）・ラベルの体裁。 `with` 式で部分変更する。 外観はコアの計算に入らない |
 | `ClientToPixelScaling` | `double` | 1.0 | 0.1〜8.0（非有限は既定値） | DIP → 物理ピクセルの係数（環境値。 設定には含めない）。 **描画のたびに描画面と割り当て領域の比へ合わせる**（DPI の変更通知が届かない状況でも拡大画像がルーペ領域と一致する） |
+
+**見た目の拡張**: 外観（色・枠線の太さ・表示可否）で足りない場合は、`LoupeControl.CreatePresenter` を上書きして提示層（`EsUtil.Feature.Loupe.LoupePresenter`。 `sealed` ではなく `ResolveDrawPlan` が `virtual`）の派生を返すと、描画計画（`LoupeDrawPlan`）を差し替えられます（例は Avalonia 版サンプルの `sample/Presentation/GridLoupePresenter`）。
 
 `Options`（コアの `LoupeOptions`。 UI 非依存の値）の項目:
 

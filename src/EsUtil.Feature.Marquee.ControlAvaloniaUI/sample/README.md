@@ -165,8 +165,7 @@ MarqueeControl/sample/
 │   └── InMemoryLogger.cs          # MarqueeControl.Log の設定例（メモリ内ログ）
 ├── Presentation/                  # 拡張例（提示層の派生）
 │   ├── GuideMarqueePresenter.cs   # MarqueePresenter を派生し、破線枠と三分割ガイドへ装飾を差し替える
-│   ├── GuideMarqueePreview.cs     # 派生提示層の描画計画を MarqueeContextPainter で描く見本
-│   └── HeadlessMarqueeEffects.cs  # 画面を持たない提示層に必要な効果の適用先（すべて空実装）
+│   └── GuideMarqueePreview.cs     # MarqueeControl を派生し、差し替えた提示層で描く見本
 ├── ViewModels/
 │   ├── ColorOption.cs             # 色選択肢
 │   └── MainWindowViewModel.cs     # 選択状態・ステータス表示（CommunityToolkit.Mvvm の ObservableObject）
@@ -179,15 +178,14 @@ MarqueeControl/sample/
 `Presentation/` に、既定の提示層（`MarqueePresenter`）を派生して見た目を差し替える見本があります（設定パネル上部の見本）。
 
 - `GuideMarqueePresenter` — 外観（色・枠線の太さ・表示可否）を生成時に自前で設定し、`ResolveDrawPlan` を上書きして装飾の矩形（破線枠・三分割ガイド・内側の塗り）を差し替えます。
-- `GuideMarqueePreview` — 派生提示層が解決した描画計画を `MarqueeContextPainter` で描くだけのコントロールです。
-- `HeadlessMarqueeEffects` — 画面を持たない提示層に必要な効果（フォーカス・再描画・カーソル・キャプチャ・座標変換）の適用先をすべて空実装で提供します。
+- `GuideMarqueePreview` — `MarqueeControl` を派生し、`CreatePresenter` を上書きして差し替えた提示層を返すだけのコントロールです（入力の受付・効果の適用・ラベルの配置・描画はコントロールがそのまま担います）。
 
-提示層（`EsUtil.Feature.Marquee.Presenter`）と描画実装（`EsUtil.Feature.Marquee.ControlAvaloniaUI` の `MarqueeContextPainter`）はともに公開型であるため、コントロールを通さずに公開 API だけで組み合わせられます。
+差し替えの入口は **`MarqueeControl.CreatePresenter` の上書き**です（生成は初回参照時に 1 度だけ行われ、派生クラスの初期化が終わってから呼ばれます）。 描画実装（`MarqueeContextPainter`）は本プロジェクトの内部であり、差し替えのたびに書き換える必要はありません。
 
 | 差し替える対象 | 差し替え方 |
 | --- | --- |
-| 外観（色・枠線の太さ・表示可否） | 生成時に `Appearance`（`MarqueeAppearance`）を設定する |
-| 装飾（暗転・外枠・内側の塗り）の矩形 | `ResolveDrawPlan` を上書きし、計画（`MarqueeDrawPlan`）の矩形を差し替える |
+| 外観（色・枠線の太さ・表示可否） | `Appearance`（`MarqueeAppearance`）を設定する（提示層の生成時に設定してもよい） |
+| 装飾（暗転・外枠・内側の塗り）の矩形 | 提示層の `ResolveDrawPlan` を上書きし、計画（`MarqueeDrawPlan`）の矩形を差し替える |
 | ラベルの文言・配置 | 同上（`MarqueeDrawPlan.Labels` を差し替える） |
 
-差し替えは値の置き換えだけで完結するため、UI ごとの描画実装（Avalonia は `MarqueeContextPainter`、MewUI は `MarqueeSkiaPainter`）は変更不要です。
+差し替えは値の置き換えだけで完結するため、UI ごとの描画実装（Avalonia は `MarqueeContextPainter`、MewUI は `MarqueeSkiaPainter`。 いずれも内部）は変更不要です。

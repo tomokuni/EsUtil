@@ -387,4 +387,79 @@ public class LoupeControlTests
             logger.Messages,
             message => message.Contains(RequestedSizeMax.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal));
     }
+
+    // ====================================================================
+    // 派生提示層の差し替え（CreatePresenter の上書き）
+    // ====================================================================
+
+    /// <summary>上書きが呼ばれた時点の派生クラスの初期化状況（プロパティ初期化子で設定する）。</summary>
+    private static string? s_derivedStateAtCreation;
+
+    /// <summary>派生クラスの初期化で設定するマーカー（上書きが初期化後に呼ばれたことの検証に使う）。</summary>
+    private static string? s_derivedState;
+
+    /// <summary>差し替えられたことを記録する提示層。</summary>
+    private sealed class RecordingPresenter : LoupePresenter
+    {
+        /// <summary>提示層を初期化する。</summary>
+        public RecordingPresenter()
+        {
+            s_derivedStateAtCreation = s_derivedState;
+            Count++;
+        }
+
+        /// <summary>生成された回数を取得する。</summary>
+        public static int Count { get; private set; }
+
+        /// <summary>生成回数を 0 に戻す。</summary>
+        public static void ResetCount() => Count = 0;
+    }
+
+    /// <summary>派生提示層を使う派生コントロール。</summary>
+    /// <remarks>
+    /// マーカーは<b>プロパティ初期化子</b>で設定する（基本コンストラクターより後に走るため、<br/>
+    /// 生成が基本コンストラクターで行われていれば上書きは未設定のマーカーを見ることになる）。
+    /// </remarks>
+    private sealed class DerivedControl : LoupeControl
+    {
+        /// <summary>派生クラスの初期化が完了したかどうかを取得する（マーカーを設定する）。</summary>
+        /// <value>派生クラスの初期化子が実行された場合は true。</value>
+        public bool IsDerivedInitialized { get; } = SetMarker();
+
+        /// <summary>派生クラスの初期化（プロパティ初期化子）でマーカーを設定する。</summary>
+        /// <returns>true（初期化済みであることを表す）。</returns>
+        private static bool SetMarker()
+        {
+            s_derivedState = "initialized";
+            return true;
+        }
+
+        /// <inheritdoc />
+        protected override LoupePresenter CreatePresenter() => new RecordingPresenter();
+    }
+
+    /// <summary>上書きは初回参照時に、派生クラスの初期化が終わってから呼ばれることを検証する。</summary>
+    /// <remarks>
+    /// 生成をコンストラクターで行うと派生の初期化前に上書きが走るため（アナライザー MA0056 が禁じる）、<br/>
+    /// 初回参照時まで遅延している。 本テストはその契約を固定する。
+    /// </remarks>
+    [Fact]
+    internal void 派生提示層の生成は派生クラスの初期化後に行われる()
+    {
+        s_derivedState = null;
+        s_derivedStateAtCreation = null;
+        RecordingPresenter.ResetCount();
+
+        var control = new DerivedControl();
+        Assert.True(control.IsDerivedInitialized, "派生クラスの初期化が完了していない（テストの前提が成立していない）");
+
+        // 生成前は何も作られていない（遅延）
+        Assert.Equal(0, RecordingPresenter.Count);
+
+        // 提示層に触れる（レイアウトの解決は提示層へ委譲する）
+        _ = control.ResolveLayout(new EsSize(200, 200));
+
+        Assert.Equal(1, RecordingPresenter.Count);
+        Assert.Equal("initialized", s_derivedStateAtCreation);
+    }
 }

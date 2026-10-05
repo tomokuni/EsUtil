@@ -216,11 +216,11 @@ loupe.Options = LoupeOptions.Default with { RequestedSize = 240, ZoomLevel = 4 }
 
 **設定と状態（データ）の区別**: マウス移動ごとに変わる `Source` / `CenterPoint` は個別プロパティのままです（設定に含めません）。 DPI スケーリング係数（`ClientToPixelScaling`）と表示位置のオフセット（`PositionOffset`）もフレームワーク・ホスト固有のため設定に含めません。
 
-**描画の差し替え**: 描画は本コントロールの `LoupeContextPainter.Paint`（描画計画を描画 API へ写すだけの実装）が担います。  
+**描画の差し替え**: 描画は本コントロールの `LoupeContextPainter.Paint`（描画計画を描画 API へ写すだけの実装。 本プロジェクトの内部）が担います。  
 見た目を変える場合は 2 つの入口を使います。  
 
 - 色・枠線の太さ・表示可否: `Appearance`（`LoupeAppearance`）を差し替える（`LoupeAppearance.Default with { ... }`）
-- 描画計画（装飾の矩形・ラベルの文言と配置）: `LoupePresenter` を派生して `ResolveDrawPlan` を上書きしたものを提示層として使う（提示層は `sealed` ではなく `ResolveDrawPlan` が `virtual`）
+- 描画計画（装飾の矩形・ラベルの文言と配置）: `LoupeControl.CreatePresenter` を上書きして `LoupePresenter` を派生したものを提示層として使う（提示層は `sealed` ではなく `ResolveDrawPlan` が `virtual`。 上書きは初回参照時に 1 度だけ呼ばれる）
 
 #### 5.1.4 ClientToPixelScaling
 
