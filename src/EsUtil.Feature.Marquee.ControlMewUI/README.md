@@ -168,21 +168,22 @@ dotnet test src/EsUtil.Feature.Marquee.ControlMewUI/tests/MewUI/EsUtil.Feature.M
 - 描画（ハンドル・十字マーカー・外側/内側の装飾）の画素検証は UI 非依存の描画層（`EsUtil.Feature.Marquee.Presenter`）のテストが担うため、本プロジェクトは描画のテストを持たない。
 - ラベル要素の配置（実寸 → 配置矩形）の検証は描画層の `MarqueePresenter.LabelPlan.Tests.cs` が担う。 UI 層の要素配置は `MarqueeControl.Tests.cs` が検証する。
 - `MarqueeControl.Tests.cs`: 依存プロパティの既定値・補正、`CurrentSnapshot`、選択の復元・境界クリップ、確定・キャンセル、`Log` のフォールバックと設定変更ログ。
-- ログの定義（操作ログ・設定変更）はコアの `MarqueeLogMessage` にあり、その検証はコアのテストが行います（設定（外観・表示スケーリング係数）の変更ログは提示層の `MarqueePresenterLogMessage` が所有し、`EsUtil.Feature.Marquee.Presenter.Tests` が検証します）。
+- ログの定義（操作ログ・設定変更）はコアの `MarqueeLogMessage` にあり、その検証はコアのテストが行います（設定（外観・表示スケーリング係数）の変更ログは提示層の `MarqueeLogMessage` が所有し、`EsUtil.Feature.Marquee.Presenter.Tests` が検証します）。 本プロジェクトの `MarqueeLogMessage` は公開操作の例外だけを定義します（記録は `MarqueeControl` の委譲の catch が行います）。
 
 入力の解釈（nudge セッション・確定/キャンセル・スナップ・クリック検出・最小サイズ判定）はコアが担うため、その検証は `EsUtil.Feature.Marquee.Core.Tests` が行います。
 
 ## 11. 操作ログ
 
 `Log` プロパティへ `ILogger` を設定すると、操作ログを出力します（既定は出力なし）。 書式・レベルは Avalonia 版と同一です。  
-ログはコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）と提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）が定義し、ロガーはファサード（`MarqueeCore.Log`）が保持します。 本プロジェクトはログ定義を持ちません。
+ログはコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）と提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueeLogMessage`）が定義し、ロガーはファサード（`MarqueeCore.Log`）が保持します。 本プロジェクトは、公開操作を委譲した際の例外（`EsUtil.Feature.Marquee.MewUI.MarqueeLogMessage.LogOperationError`。 Error）のみを定義します。
 
 | レベル | 出力内容 |
 | --- | --- |
 | Debug | MouseDown / MouseUp / DoubleClick / DragStart / KeyDown / ConfirmRequested / CancelRequested / 設定変更（コア）/ 外観・表示スケーリングの変更（提示層） |
 | Trace | MouseDown 直前の位置 / MouseUp 直後の位置 |
+| Error | 公開操作（`SetCoordTransform` / `SetSelection` / `ResetSelection` / `RequestCancel` / `RequestConfirm`）を委譲した際の例外（本プロジェクト） |
 
-定義はコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）と提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）が持ち、本プロジェクトは定義を持ちません。
+定義はコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）と提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueeLogMessage`）、本プロジェクト（`EsUtil.Feature.Marquee.MewUI.MarqueeLogMessage`。 公開操作の例外のみ）が持ちます。
 
 ## 12. 未対応
 

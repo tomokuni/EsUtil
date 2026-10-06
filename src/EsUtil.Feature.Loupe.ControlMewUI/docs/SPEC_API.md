@@ -136,7 +136,7 @@
 
 ## 8. ログ
 
-`Log` プロパティへ `ILogger` を設定すると、描画の例外と `Source` の変更を出力します（未設定・null の場合は `NullLogger` になり出力しません）。 設定（`Options`）・環境値（`ClientToPixelScaling`）・拡大中心（`CenterPoint`）の変更ログはコアが出力するため、本コントロールは同じロガーをコアへも渡します。
+`Log` プロパティへ `ILogger` を設定すると、描画の例外と `Source` の変更を出力します（未設定・null の場合は `NullLogger` になり出力しません）。 設定（`Options`）・環境値（`ClientToPixelScaling`）・拡大中心（`CenterPoint`）の変更ログはコアが出力するため、本コントロールは同じロガーをコアへも渡します。 `LogPrefix` プロパティでログの接頭辞を設定できます（既定 `[Loupe]`。 提示層・コアへ伝搬する）。
 
 | レベル | 出力内容 |
 | --- | --- |

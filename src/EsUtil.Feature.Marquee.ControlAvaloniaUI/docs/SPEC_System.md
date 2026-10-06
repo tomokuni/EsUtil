@@ -30,7 +30,8 @@
 - [9. ログ](#9-ログ)
   - [9.1 ログ定義一覧](#91-ログ定義一覧)
     - [9.1.1 コア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）](#911-コアesutilfeaturemarqueecoreloggingmarqueelogmessage)
-    - [9.1.2 提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）](#912-提示層esutilfeaturemarqueepresenterloggingmarqueepresenterlogmessage)
+    - [9.1.2 提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueeLogMessage`）](#912-提示層esutilfeaturemarqueepresenterloggingmarqueelogmessage)
+    - [9.1.3 本 UI 層（`EsUtil.Feature.Marquee.AvaloniaUI.MarqueeLogMessage`）](#913-本-ui-層esutilfeaturemarqueeavaloniauimarqueelogmessage)
 
 ---
 
@@ -86,7 +87,7 @@ SaveEvidence は、Windows デスクトップ上の画面をキャプチャし�
 
 - ライブラリは例外を原則伝播し、上位 AP（app）で処理する。
 - UI レイヤー（app）ではユーザー操作起因の例外を各ハンドラで catch し、UI の応答性を維持する。
-- ログは LoggerMessage ソース生成で出力する。 操作イベントは Debug、Down 直前 / Up 直後の位置は Trace で記録する。 入力判断のログ定義はコア（名前空間 `EsUtil.Feature.Marquee` の `MarqueeLogMessage`）が、提示層が単一所有する設定（外観・表示スケーリング係数）の変更ログは提示層（`EsUtil.Feature.Marquee.Presenter` の `MarqueePresenterLogMessage`）が単一所有し、本プロジェクトはログ定義を持たない
+- ログは LoggerMessage ソース生成で出力する。 操作イベントは Debug、Down 直前 / Up 直後の位置は Trace で記録する。 入力判断のログ定義はコア（名前空間 `EsUtil.Feature.Marquee` の `MarqueeLogMessage`）が、提示層が単一所有する設定（外観・表示スケーリング係数）の変更ログは提示層（`EsUtil.Feature.Marquee.Presenter` の `MarqueeLogMessage`）が単一所有する。 本 UI 層は公開操作の例外（`LogOperationError`）だけを定義する（名前空間 `EsUtil.Feature.Marquee.AvaloniaUI` の `MarqueeLogMessage`）
 
 ### 4.2 本プロジェクト固有の例外処理
 
@@ -332,8 +333,8 @@ sequenceDiagram
 
 ## 9. ログ
 
-ログ定義はコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`、`src/EsUtil.Feature.Marquee.Core/src/Core/Logging/MarqueeLogMessage.cs`）と、提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）が単一所有する
-（入力の判断に伴うログは UI から出せず、後から出すと行の順序が変わるため）。 UI 層に固有のログ定義は持たない
+ログ定義はコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`、`src/EsUtil.Feature.Marquee.Core/src/Core/Logging/MarqueeLogMessage.cs`）と、提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueeLogMessage`）、本 UI 層（`EsUtil.Feature.Marquee.AvaloniaUI.MarqueeLogMessage`）が単一所有する
+（入力の判断に伴うログは UI から出せず、後から出すと行の順序が変わるため）。 本 UI 層の定義は**本コントロールの公開操作を委譲した際の例外の記録（`LogOperationError`）だけ**である
 （通常ホイールのスクロールログは、スクロールの実行をホスト（連携 `ScrollViewer` 等）へ委ねる形になり、
 本コントロール内に記録すべき判断が無くなったため削除した）。
 各メソッドは `this ILogger` 第一引数で定義し、呼び出し側では logger 引数を省略する。 未設定（null）の場合は `NullLogger` で無出力。
@@ -356,9 +357,15 @@ sequenceDiagram
 | `Trace` | `MarqueeLogMessage.LogPositionAfterUp` | Up 直後のマウス位置 |
 | `Debug` | `MarqueeLogMessage.LogSettingChanged` | 設定値変更（変更前後） |
 
-#### 9.1.2 提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）
+#### 9.1.2 提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueeLogMessage`）
 
 | レベル | メソッド | 出力内容 |
 | --- | --- | --- |
-| `Debug` | `MarqueePresenterLogMessage.LogSettingChanged` | 本層が所有する設定（表示スケーリング係数）の変更（変更前後） |
-| `Debug` | `MarqueePresenterLogMessage.LogAppearanceChanged` | 外観（色・フォントサイズ・枠線の太さ・表示可否）の変更（変化した項目だけ） |
+| `Debug` | `MarqueeLogMessage.LogSettingChanged` | 本層が所有する設定（表示スケーリング係数）の変更（変更前後） |
+| `Debug` | `MarqueeLogMessage.LogAppearanceChanged` | 外観（色・フォントサイズ・枠線の太さ・表示可否）の変更（変化した項目だけ） |
+
+#### 9.1.3 本 UI 層（`EsUtil.Feature.Marquee.AvaloniaUI.MarqueeLogMessage`）
+
+| レベル | メソッド | 出力内容 |
+| --- | --- | --- |
+| `Error` | `MarqueeLogMessage.LogOperationError` | 公開操作（`SetCoordTransform` / `SetSelection` / `ResetSelection` / `RequestCancel` / `RequestConfirm`）を委譲した際の例外（スタックトレース付きで再スローする） |

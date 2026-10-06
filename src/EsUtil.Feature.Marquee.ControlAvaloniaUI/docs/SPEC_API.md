@@ -267,8 +267,9 @@ control.ResetSelection();           // 状態と nudge の初期化
 | プロパティ | 型 | 説明 |
 | --- | --- | --- |
 | `Log` | `ILogger` | 操作ログ用ロガー（既定は `NullLogger`。 出力先・レベル制御はホストアプリケーションが所有） |
+| `LogPrefix` | `string?` | ログの接頭辞（ロガーと一緒に設定する。 null・空白で既定値 `[Marquee]` へ戻す。 提示層・コアへ伝搬する） |
 
-操作ログの書式・レベルは MewUI 版と同一です。 ログはコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）と提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueePresenterLogMessage`）が定義し、ロガーはファサード（`MarqueeCore.Log`）が保持します。 Debug で操作（MouseDown / MouseUp / DoubleClick / DragStart / KeyDown / ConfirmRequested / CancelRequested）と**設定の変更**（`[Marquee] Setting: {名前} {前} → {後}`。 変化した項目だけ）を、Trace で位置の記録を出力します。
+操作ログの書式・レベルは MewUI 版と同一です。 ログはコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）と提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueeLogMessage`）が定義し、ロガーはファサード（`MarqueeCore.Log`）が保持します。 Debug で操作（MouseDown / MouseUp / DoubleClick / DragStart / KeyDown / ConfirmRequested / CancelRequested）と**設定の変更**（`[Marquee] Setting: {名前} {前} → {後}`。 変化した項目だけ）を、Trace で位置の記録を出力します。 本プロジェクト自身は、公開操作を提示層へ委譲した際の例外（`MarqueeLogMessage.LogOperationError`。 Error）だけを定義します。
 
 #### 5.1.4 描画
 

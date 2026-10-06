@@ -21,6 +21,7 @@
     - [5.1.5 寸法と外観（Appearance）](#515-寸法と外観appearance)
     - [5.1.6 IsVisible](#516-isvisible)
     - [5.1.7 Log](#517-log)
+    - [5.1.8 LogPrefix](#518-logprefix)
   - [5.2 メソッド](#52-メソッド)
     - [5.2.1 RequestRender](#521-requestrender)
     - [5.2.2 Clear](#522-clear)
@@ -294,6 +295,14 @@ Avalonia標準の `Visual.IsVisible` を使用します。 初期値は `false`�
 | 型 | `ILogger` |
 | 既定値 | `NullLogger.Instance` |
 | 用途 | 描画エラー・診断の通知先ロガー（出力先は利用側のロギング構成に依存） |
+
+#### 5.1.8 LogPrefix
+
+| 項目 | 内容 |
+| --- | --- |
+| 型 | `string?` |
+| 既定値 | `null`（定義クラスの既定は `[Loupe]`） |
+| 用途 | ログの接頭辞（ロガーと一緒に設定する。 null・空白で既定値へ戻す）。 提示層・コアへ伝搬する |
 
 ### 5.2 メソッド
 

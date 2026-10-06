@@ -180,11 +180,12 @@ marquee.Rendered += (_, e) =>
 
 ### 9.1 ログ
 
-`Log` プロパティへ `ILogger` を設定すると操作ログを出力します（未設定・null の場合は `NullLogger` になり出力しません）。
+`Log` プロパティへ `ILogger` を設定すると操作ログを出力します（未設定・null の場合は `NullLogger` になり出力しません）。 `LogPrefix` プロパティでログの接頭辞を設定できます（既定 `[Marquee]`。 提示層・コアへ伝搬する）。
 
 | レベル | 出力内容 |
 | --- | --- |
-| Debug | `MouseDown`（位置・クリック数・選択有無）/ `MouseUp`（位置・ドラッグ有無・選択有無）/ `DoubleClick`（矩形内か）/ `DragStart`（ハンドル・位置）/ `KeyDown`（キー・処理有無）/ `ConfirmRequested`（矩形）/ `CancelRequested` / `Setting`（`Options.ClampToSourceBounds` の変更前後）/ 外観・表示スケーリングの変更（提示層の `MarqueePresenterLogMessage`） |
+| Debug | `MouseDown`（位置・クリック数・選択有無）/ `MouseUp`（位置・ドラッグ有無・選択有無）/ `DoubleClick`（矩形内か）/ `DragStart`（ハンドル・位置）/ `KeyDown`（キー・処理有無）/ `ConfirmRequested`（矩形）/ `CancelRequested` / `Setting`（`Options.ClampToSourceBounds` の変更前後）/ 外観・表示スケーリングの変更（提示層の `MarqueeLogMessage`） |
+| Error | 公開操作を提示層へ委譲した際の例外（本プロジェクトの `MarqueeLogMessage.LogOperationError`） |
 | Trace | `MouseDown 直前の位置` / `MouseUp 直後の位置` |
 
 マウス移動の高頻度ログは出力しません（押下直前・解放直後の位置のみ記録します）。
