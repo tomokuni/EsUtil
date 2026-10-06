@@ -1,8 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loupe="clr-namespace:EsUtil.Feature.Loupe.AvaloniaUI;assembly=EsUtil.Feature.Loupe.ControlAvaloniaUI"
-        xmlns:sample="clr-namespace:EsUtil.Feature.Loupe.AvaloniaUI.Sample.Presentation"
-        xmlns:vm="clr-namespace:EsUtil.Feature.Loupe.AvaloniaUI.Sample.ViewModels"
         x:Class="EsUtil.Feature.Loupe.AvaloniaUI.Sample.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="LoupeControl 動作確認サンプル"

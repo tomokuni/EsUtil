@@ -1,7 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:marquee="clr-namespace:EsUtil.Feature.Marquee.AvaloniaUI;assembly=EsUtil.Feature.Marquee.ControlAvaloniaUI"
-        xmlns:sample="clr-namespace:EsUtil.Feature.Marquee.AvaloniaUI.Sample.Presentation"
         xmlns:vm="clr-namespace:EsUtil.Feature.Marquee.AvaloniaUI.Sample.ViewModels"
         x:Class="EsUtil.Feature.Marquee.AvaloniaUI.Sample.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
