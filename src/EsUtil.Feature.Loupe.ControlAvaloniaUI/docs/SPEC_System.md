@@ -30,7 +30,7 @@
 
 SaveEvidence は、Windows デスクトップ上の画面をキャプチャし、プレビュー・編集・保存するための Avalonia UI アプリケーションです（.NET 10.0 / C# 14 / MVVM）。
 
-本プロジェクト（EsUtil.Feature.Loupe.ControlAvaloniaUI）は、このシステムのうち**ルーペ（拡大鏡）表示**を担う再利用可能なコントロールです。 元画像の指定座標を拡大表示し、十字線・枠線を合成描画します（画像外は無地）。 上位 AP（`CaptureSessionControl` / `FadeMaskDragRectControl`）のルーペ表示に使用されます。
+本プロジェクト（EsUtil.Feature.Loupe.ControlAvaloniaUI）は、このシステムのうち**ルーペ（拡大鏡）表示**を担う再利用可能なコントロールです。 元画像の指定座標を拡大表示し、十字線・枠線を合成描画します（画像外は無地）。 上位 AP（`CaptureSessionControl` / `SelectionOverlayControl`）のルーペ表示に使用されます。
 
 ## 2. 技術スタック
 
