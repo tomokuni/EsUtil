@@ -93,6 +93,34 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
+    internal async Task WriteableBitmapをSourceに設定するとLoupeBitmapが生成される()
+    {
+        // WriteableBitmap は Bitmap の派生であるため、Bitmap と同じ経路（CopyPixels による複製）で対応する。
+        using var source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        var control = CreateControl();
+        control.Source = source;
+        control.CenterPoint = new Point(100, 100);
+
+        await control.WaitForRenderedAsync();
+
+        Assert.NotNull(control.LoupeBitmap);
+    }
+
+    [AvaloniaFact]
+    internal void 対応可能なソース型の判定はWriteableBitmapとRenderTargetBitmapを含む()
+    {
+        // 判定は「Bitmap の派生かどうか」で決まる（実測: WriteableBitmap / RenderTargetBitmap は Bitmap の派生）。
+        using var writeable = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(10, 10, Colors.Blue);
+        using var target = new RenderTargetBitmap(new PixelSize(10, 10), new Vector(96, 96));
+
+        Assert.True(LoupeSourceResolver.IsSourceSupported(writeable));
+        Assert.True(LoupeSourceResolver.IsSourceSupported(target));
+
+        // Bitmap の派生ではない IImage（CroppedBitmap は AvaloniaObject の派生）は非対応
+        Assert.False(LoupeSourceResolver.IsSourceSupported(new CroppedBitmap(writeable, new PixelRect(0, 0, 5, 5))));
+    }
+
+    [AvaloniaFact]
     internal async Task 複数プロパティの連続変更はポスト後に1回の再描画に結合される()
     {
         var control = CreateControl();

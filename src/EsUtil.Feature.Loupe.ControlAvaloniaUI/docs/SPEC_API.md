@@ -158,7 +158,7 @@ public Point? CenterPoint { get; set; } = new(400, 300);
 public bool IsLoupeVisible { get; set; } = true;
 ```
 
-`Source` は `Image.Source` と同じAvaloniaの `IImage?` 型です。 ピクセル抽出処理は `Bitmap` と `EsBitmapAvaloniaImage`（`EsBitmap` を内包する `IImage` アダプタ）をサポートします。
+`Source` は `Image.Source` と同じAvaloniaの `IImage?` 型です。 ピクセル抽出処理は `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む）と `EsBitmapAvaloniaImage`（`EsBitmap` を内包する `IImage` アダプタ）をサポートします。
 
 ## 5. 公開API
 
@@ -175,11 +175,11 @@ public bool IsLoupeVisible { get; set; } = true;
 | 既定値 | `null` |
 | 用途 | 拡大元画像 |
 | Binding | 対応 |
-| 実装上の対応型 | `Bitmap` / `EsBitmapAvaloniaImage` |
+| 実装上の対応型 | `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む） / `EsBitmapAvaloniaImage` |
 
 `Source` が `null` の場合、画像なし（画像外の色のみ）を描画します。
 
-`Source` に `Bitmap` 以外の `IImage`（`EsBitmapAvaloniaImage` を除く）を設定した場合、`NotSupportedException` が発生します。 例外は `LoupeControl.Log` に記録されます。
+`Source` に `Bitmap`（派生を含む）以外の `IImage`（`EsBitmapAvaloniaImage` を除く）を設定した場合、`NotSupportedException` が発生します。 例外は `LoupeControl.Log` に記録されます。
 
 #### 5.1.2 CenterPoint
 

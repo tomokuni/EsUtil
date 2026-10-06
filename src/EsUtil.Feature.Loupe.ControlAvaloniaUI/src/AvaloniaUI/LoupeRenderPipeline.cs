@@ -26,7 +26,8 @@ internal static class LoupeRenderPipeline
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・拡大画像の幾何を持つ）。</param>
     /// <returns>生成したルーペ画像（<see cref="EsBitmap"/>）。</returns>
     /// <exception cref="NotSupportedException">
-    /// <paramref name="source"/> が <see cref="Bitmap"/> / <see cref="EsBitmapAvaloniaImage"/> 以外の場合。
+    /// <paramref name="source"/> が <see cref="Bitmap"/>（派生の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> を含む）
+    /// / <see cref="EsBitmapAvaloniaImage"/> 以外の場合。
     /// </exception>
     /// <remarks>
     /// 1. 未対応型の判定（<see cref="LoupeSourceResolver.IsSourceSupported"/>）を行い、未対応型は例外にする。<br/>
@@ -40,7 +41,7 @@ internal static class LoupeRenderPipeline
         if (!LoupeSourceResolver.IsSourceSupported(source))
         {
             throw new NotSupportedException(
-                $"LoupeControl は {source!.GetType().FullName} をサポートしていません。Bitmap または EsBitmapAvaloniaImage を指定してください。");
+                $"LoupeControl は {source!.GetType().FullName} をサポートしていません。Bitmap（WriteableBitmap を含む）または EsBitmapAvaloniaImage を指定してください。");
         }
 
         // 抽出元の EsBitmap を解決する（Bitmap は複製、EsBitmapAvaloniaImage は共有参照。 破棄済みは null）

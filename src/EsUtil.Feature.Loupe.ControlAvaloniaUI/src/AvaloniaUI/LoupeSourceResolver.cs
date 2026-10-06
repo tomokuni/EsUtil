@@ -19,12 +19,17 @@ internal static class LoupeSourceResolver
     /// <param name="IsSourceBitmap">ソースが <see cref="Bitmap"/> 由来か（複製破棄が必要か）。 false の場合は共有参照（破棄しない）。</param>
     public readonly record struct Result(EsBitmap? Bitmap, bool IsSourceBitmap);
 
-    /// <summary>ソース画像がルーペで対応可能な型（<see cref="Bitmap"/> / <see cref="EsBitmapAvaloniaImage"/>）かどうかを判定する。</summary>
+    /// <summary>ソース画像がルーペで対応可能な型かどうかを判定する。</summary>
     /// <param name="source">判定するソース画像。</param>
     /// <returns>対応可能なら true。 null は「画像なし」として対応可能、未対応型は false。</returns>
     /// <remarks>
+    /// 対応する型は <see cref="Bitmap"/>（<b>派生の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> を含む</b>）と<br/>
+    /// <see cref="EsBitmapAvaloniaImage"/> である（ピクセル抽出が可能な型だけを受け入れる）。<br/>
     /// <see cref="LoupeRenderPipeline"/> の未対応型判定（<see cref="NotSupportedException"/>）を単一所有する（DRY）。<br/>
-    /// null は「画像なし」を表すため対応可能（市松模様のみで描画する）として扱う。
+    /// null は「画像なし」を表すため対応可能（市松模様のみで描画する）として扱う。<br/>
+    /// <b>継承による包含に依存する</b>ため、新しい対応型を足すときは <see cref="Bitmap"/> の派生かどうかを実測する。<br/>
+    /// （実測: Avalonia 12 の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> は <see cref="Bitmap"/> の派生、<br/>
+    /// <c>CroppedBitmap</c> は <c>AvaloniaObject</c> の派生で非対応）
     /// </remarks>
     public static bool IsSourceSupported(IImage? source)
         => source is null or Bitmap or EsBitmapAvaloniaImage;
@@ -34,7 +39,8 @@ internal static class LoupeSourceResolver
     /// <param name="sourceBitmap">解決した切り出し元。 未対応・破棄済み・null の場合は null。</param>
     /// <returns>破棄済み・未対応型の場合は false（市松模様のみで描画する）。 それ以外は true。</returns>
     /// <remarks>
-    /// <see cref="Bitmap"/> は複製（<c>ToEsBitmap()</c>）を返し、破棄は呼び出し側が行う（<see cref="Result.IsSourceBitmap"/> = true）。<br/>
+    /// <see cref="Bitmap"/>（派生の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> を含む）は
+    /// 複製（<c>ToEsBitmap()</c>）を返し、破棄は呼び出し側が行う（<see cref="Result.IsSourceBitmap"/> = true）。<br/>
     /// <see cref="EsBitmapAvaloniaImage"/> は共有参照を返し、破棄しない（<see cref="Result.IsSourceBitmap"/> = false）。<br/>
     /// 破棄済み <see cref="Bitmap"/> は <c>PixelSize</c> 参照で検出する（<see cref="ObjectDisposedException"/> 防止）。<br/>
     /// 対応可能型（null / <see cref="Bitmap"/> / <see cref="EsBitmapAvaloniaImage"/>）以外は null を返す（市松模様のみで描画する）。

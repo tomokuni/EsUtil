@@ -82,6 +82,8 @@ if (layout.Position is { } position)
 | `ClientToPixelScaling` | `double` | 1.0 | DIP → 物理ピクセルの係数。 0.1〜8.0 に補正（非有限は既定値）。 **描画のたびに描画面（物理ピクセル）と割り当て領域（DIP）の比へ合わせる**（DPI の変更通知は追加直後のコントロールへ届かないため、保持値だけに頼るとルーペ領域より小さい画像を描く） |
 | `Log` | `ILogger` | `NullLogger` | 設定変更ログと描画例外の出力先（null は `NullLogger`。 Avalonia 版と同一の書式） |
 
+`Source` が受け取る画像型はコアの `EsBitmap` **だけ**です（Avalonia 版のようなフレームワークのビットマップ型や Skia の `SKBitmap` は受け付けません）。 MewUI は表示用のビットマップ型を持たず、`EsBitmap` のピクセルを Skia 描画面へ直接描くためです（画像の変換は不要）。
+
 `Options`（コアの `LoupeOptions`）の項目:
 
 | 項目 | 型 | 既定値 | 説明 |
