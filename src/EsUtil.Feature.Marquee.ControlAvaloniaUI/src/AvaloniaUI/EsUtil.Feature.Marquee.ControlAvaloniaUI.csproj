@@ -21,9 +21,7 @@
   <ItemGroup>
     <!-- 共有プラットフォーム抽象（カーソル操作: ICursorService / WinCursorService） -->
     <ProjectReference Include="..\..\..\Platform.AvaloniaUI\src\Platform.AvaloniaUI.csproj" />
-    <!-- UI 非依存のコア（選択幾何・状態機械） -->
-    <ProjectReference Include="..\..\..\EsUtil.Feature.Marquee.Core\src\EsUtil.Feature.Marquee.Core.csproj" />
-    <!-- コントロール化の転送規則と描画手順（層の順序と描画ポートへの写し）を単一所有する UI 非依存層 -->
+    <!-- コア（選択幾何・状態機械）とコントロール化の転送規則・描画手順。 コアは提示層の公開面に現れるため推移参照で解決する -->
     <ProjectReference Include="..\..\..\EsUtil.Feature.Marquee.Presenter\src\EsUtil.Feature.Marquee.Presenter.csproj" />
   </ItemGroup>
 

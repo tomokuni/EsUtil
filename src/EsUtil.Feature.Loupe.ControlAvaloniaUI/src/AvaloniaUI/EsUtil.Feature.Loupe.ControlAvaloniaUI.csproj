@@ -14,9 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- UI 非依存の純粋ロジック（Core）と座標変換ポートを参照する -->
-    <ProjectReference Include="..\..\..\EsUtil.Feature.Loupe.Core\src\EsUtil.Feature.Loupe.Core.csproj" />
-    <!-- コントロール化の再描画スケジューリングと描画手順（層の順序と描画ポートへの写し）を単一所有する UI 非依存層 -->
+    <!-- コア（LoupeOptions / 幾何）と描画手順。 コアは提示層の公開面に現れるため推移参照で解決する -->
     <ProjectReference Include="..\..\..\EsUtil.Feature.Loupe.Presenter\src\EsUtil.Feature.Loupe.Presenter.csproj" />
     <ProjectReference Include="..\..\..\Platform.AvaloniaUI\src\Platform.AvaloniaUI.csproj" />
   </ItemGroup>

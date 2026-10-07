@@ -17,9 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- UI 非依存の純粋ロジック（Core） -->
-    <ProjectReference Include="..\..\..\EsUtil.Feature.Loupe.Core\src\EsUtil.Feature.Loupe.Core.csproj" />
-    <!-- 描画手順（層の順序と描画ポートへの写し）とコントロール化の規則を単一所有する UI 非依存層 -->
+    <!-- コア（LoupeOptions / 幾何）と描画手順。 コアは提示層の公開面に現れるため推移参照で解決する -->
     <ProjectReference Include="..\..\..\EsUtil.Feature.Loupe.Presenter\src\EsUtil.Feature.Loupe.Presenter.csproj" />
     <ProjectReference Include="..\..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
     <!-- コアの色型 → MewUI の色型へ変換する Interop（色変換の単一所有者） -->

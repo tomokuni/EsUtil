@@ -17,9 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- UI 非依存の選択幾何・状態機械（Core）とコア幾何型を参照する -->
-    <ProjectReference Include="..\..\..\EsUtil.Feature.Marquee.Core\src\EsUtil.Feature.Marquee.Core.csproj" />
-    <!-- コントロール化の転送規則と描画手順（層の順序と描画ポートへの写し）を単一所有する UI 非依存層 -->
+    <!-- 選択幾何・状態機械（Core）とコントロール化の転送規則・描画手順。 コアは提示層の公開面に現れるため推移参照で解決する -->
     <ProjectReference Include="..\..\..\EsUtil.Feature.Marquee.Presenter\src\EsUtil.Feature.Marquee.Presenter.csproj" />
     <ProjectReference Include="..\..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
   </ItemGroup>
