@@ -16,7 +16,7 @@ public static class TestImageFactory
     /// 10px グリッド（拡大ピクセル検証用）・50px グリッド（倍率計測用）・色付き円マーカー（ズーム確認用）を描画する。<br/>
     /// 画像外の色や十字線・枠線は LoupeControl 側が描画する。<br/>
     /// <b>EsBitmap 採用理由</b>: <c>WriteableBitmap</c>（<c>Lock()</c> 書き込み）を避け、<br/>
-    /// ピクセル操作が安定し、かつ <see cref="EsBitmapAvaloniaImage"/>（Skia 直描画・ゼロコピー）として表示できる。
+    /// ピクセル操作が安定し、かつ <see cref="EsBitmapAvaloniaImage"/>（表示用の変換は初回のみ）として表示できる。
     /// </remarks>
     public static IImage Create(int width = 800, int height = 600)
     {

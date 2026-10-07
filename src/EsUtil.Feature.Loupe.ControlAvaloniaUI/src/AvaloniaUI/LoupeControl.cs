@@ -588,7 +588,7 @@ public sealed class LoupeControl : Panel
     /// <summary>表示用の画像アダプタ（EsBitmapAvaloniaImage）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
     /// <remarks>
     /// <see cref="Image.Source"/> へ設定する <see cref="EsBitmapAvaloniaImage"/> を保持する。<br/>
-    /// <c>WriteableBitmap</c> を生成せず Skia 直描画するため、破棄は <see cref="ReleaseBitmap"/> で行う。
+    /// <c>WriteableBitmap</c> を生成しない（表示用の変換は初回のみ）ため、破棄は <see cref="ReleaseBitmap"/> で行う。
     /// </remarks>
     private EsBitmapAvaloniaImage? _loupeImage;
 
@@ -774,7 +774,7 @@ public sealed class LoupeControl : Panel
         RaiseRendered(bmp, plan);
 
         // イベント後の EsBitmap（ホストのオーバーレイ描画を含む）を表示境界で Avalonia 画像として反映する。
-        // EsBitmapAvaloniaImage（Skia 直描画・ゼロコピー）を Source に設定する。
+        // EsBitmapAvaloniaImage（表示用の変換は初回のみ）を Source に設定する。
         // 旧アダプタを破棄する前に、新しいアダプタを先に Source へ設定する（破棄済み Bitmap の参照防止・チラつき防止）。
         var previousImage = _loupeImage;
         _loupeImage = new EsBitmapAvaloniaImage(bmp);
