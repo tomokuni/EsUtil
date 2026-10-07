@@ -38,7 +38,8 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.30 `Native.Imaging.EsBitmapDrawingExtensions`（static class）](#230-nativeimagingesbitmapdrawingextensionsstatic-class)
   - [2.31 `Coord.ICoordTransform`（interface）](#231-coordicoordtransforminterface)
   - [2.32 `Coord.CoordTransform`（sealed class : ICoordTransform）](#232-coordcoordtransformsealed-class--icoordtransform)
-  - [2.33 `Imaging.EsBitmap`（sealed class : IDisposable）](#233-imagingesbitmapsealed-class--idisposable)
+  - [2.33 `Imaging.EsBitmap`（sealed class : IEsImageSource, IDisposable）](#233-imagingesbitmapsealed-class--iesimagesource-idisposable)
+  - [2.34 `Imaging.IEsImageSource`（interface） / `Imaging.EsImageSourceText`（static class）](#234-imagingiesimagesourceinterface--imagingesimagesourcetextstatic-class)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -53,7 +54,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `EsUtil.Platform.Core` | `EsKey` / `EsKeyExtensions` / `EnumCanonical` / `EsWindowState` / `HotKeyModifiers` / `HotKeySetting` / `CaptureType` / `EsPlatformHandle` / `LoggerFallback` | キーと入力（正規化含む）・ウィンドウ状態・ホットキー・ロガーの補助 |
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` | DIP 相当の幾何値型と領域の規則 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI の純粋計算 |
-| `.Imaging` | `EsBitmap` / `DrawingColorExtensions` | ピクセルコンテナと描画色の判定 |
+| `.Imaging` | `EsBitmap` / `IEsImageSource` / `EsImageSourceText` / `DrawingColorExtensions` | ピクセルコンテナと画像源の抽象・描画色の判定 |
 | `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` | OS サービスの抽象（UI 非依存） |
 | `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` | 上記抽象の Windows 実装（ホストが生成して注入する） |
 | `.Native.Imaging` | `EsBitmapDrawingExtensions` | `System.Drawing.Bitmap` との相互変換（Windows 専用） |
@@ -499,7 +500,7 @@ public readonly record struct ElementFinderResults(
 | `ClientToSource` | `static ICoordTransform ClientToSource(Func<double> sourcePerDip, Func<EsSize?>? sourceArea = null)` | 対象 = ローカル DIP × `sourcePerDip`（呼び出し毎評価。 倍率は 対象座標 / ローカル DIP。 0 以下は 1.0 扱い。 境界を省略すると無制限） |
 | コンストラクタ | `CoordTransform(Func<EsPoint, EsPoint> toSource, Func<EsPoint, EsPoint> toDip, Func<EsSize?> sourceArea)` | 変換関数を直接注入（軸は利用側が定義） |
 
-### 2.33 `Imaging.EsBitmap`（sealed class : IDisposable）
+### 2.33 `Imaging.EsBitmap`（sealed class : IEsImageSource, IDisposable）
 
 **自前のピクセルバッファ**（BGRA8888・アルファ乗算済み）を所有するピクセルコンテナ。 `NativeMemory.AlignedAlloc` で 64 バイト整列して確保し、**確保直後に全領域を 0（透明）で初期化します**（透明 = 全成分 0 が「描かれていない」の表現であるため）。 **外部パッケージへ依存しない**。
 
@@ -537,6 +538,29 @@ public readonly record struct ElementFinderResults(
 | その他 | `Clone` | `EsBitmap Clone()` | 独立した複製を生成（所有権は呼び出し側） |
 | その他 | `Crop` | `EsBitmap Crop(EsRectInt rect)` / `EsBitmap Crop(int x, int y, int width, int height)` | 指定矩形領域を切り出す（ソース範囲外は透明パディング。 位置関係は保たれる。 0 初期化は行わず、コピーされないパディングだけを透明にする） |
 | その他 | `Dispose` | `void Dispose()` | ピクセルバッファを解放（二重呼び出しは無害） |
+| 画像源 | `GetEsBitmap` | `EsBitmap IEsImageSource.GetEsBitmap()`（**明示的実装**） | 画像源として自分自身を**借用**で返す（恒等。 破棄しない） |
+
+### 2.34 `Imaging.IEsImageSource`（interface） / `Imaging.EsImageSourceText`（static class）
+
+表示境界の画像（Avalonia の `<c>IImage</c>` 等）をコアの処理へ橋渡しする**画像源の抽象**です。 表示の境界が本抽象を公開することで、コアの処理（切り出しの対象・ルーペの拡大元）は UI の型を知らずに画像を取り出せます。
+
+| 種別 | メンバー | シグネチャ | 説明 |
+| --- | --- | --- | --- |
+| プロパティ | `Width` / `Height` | `int` | 幅 / 高さ（ピクセル） |
+| メソッド | `GetEsBitmap` | `EsBitmap GetEsBitmap()` | コアの画像を取得する。 **借用**（破棄・書き換えを行わない。 所有権は実装が保持する） |
+
+- **ピクセル操作は含めません**: 画素（`Address` / `Stride` / `GetPixel` / `SetPixel`）は `EsBitmap` が単一所有します。 本抽象に含めると、画素を持たない実装へ 1 ピクセルずつのコピーを強いることになり（ホットパスが遅くなる）、画素 API を持つ型へ委譲する余地がなくなります。
+- **内容の変更は提供しません**: 変える場合・切り出す場合は新しい画像を生成し、実装を作り直します（ピクセル操作は取得した `EsBitmap` の API を使います）。
+- **実装**: `EsBitmap`（恒等）と、それを包む各 UI の表示アダプタ（UI 層が提供する）。
+
+`EsImageSourceText` は**寸法の文字列化の唯一の入口**です。
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `ToSizeText` | `static string ToSizeText(IEsImageSource? source)` | 画像の寸法を `<c>幅x高さ</c>` 形式で返す。 **未設定（null）は `<c>null</c>`** |
+
+ログ等へ画像の寸法を出す書式を単一所有します（実装ごとに書式を持つと、同じ画像が経路によって違う文字列で記録されます）。
+
 | その他 | `ThrowIfDisposed` | `void ThrowIfDisposed()` | 破棄済みなら `ObjectDisposedException` を送出 |
 
 > `Stride` は常に `幅 × 4`（パディングなし）です。 `Clear(byte,byte,byte,byte)` は与えられた BGRA 成分をそのまま書き込みます（乗算済みへの変換はしません）。

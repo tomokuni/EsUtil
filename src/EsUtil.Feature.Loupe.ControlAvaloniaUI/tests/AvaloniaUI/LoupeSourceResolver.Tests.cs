@@ -36,6 +36,19 @@ public class LoupeSourceResolverTests
         Assert.False(resolved.IsSourceBitmap);
     }
 
+    [Fact]
+    internal void Resolve_EsImageSourceは借用を返す()
+    {
+        using var bmp = EsBitmap.Create(10, 10);
+        using var image = new EsImageSourceAdapter(bmp);
+
+        var resolved = LoupeSourceResolver.Resolve(image, out var bitmap);
+
+        // 借用（画像源が持つ EsBitmap と同一）で、破棄は呼び出し側で行わない
+        Assert.Same(bmp, bitmap);
+        Assert.False(resolved.IsSourceBitmap);
+    }
+
     // ====================================================================
     // IsSourceSupported（対応可能型の判定）
     // ====================================================================
@@ -52,6 +65,15 @@ public class LoupeSourceResolverTests
     {
         using var bmp = EsBitmap.Create(10, 10);
         using var image = new EsBitmapAvaloniaImage(bmp);
+
+        Assert.True(LoupeSourceResolver.IsSourceSupported(image));
+    }
+
+    [Fact]
+    internal void IsSourceSupported_EsImageSourceAdapterは対応可能である()
+    {
+        using var bmp = EsBitmap.Create(10, 10);
+        using var image = new EsImageSourceAdapter(bmp);
 
         Assert.True(LoupeSourceResolver.IsSourceSupported(image));
     }

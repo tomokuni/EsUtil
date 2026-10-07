@@ -22,7 +22,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <b>スレッド安全性</b>: 静的共有状態を持たないため各インスタンスは独立して並列利用できるが、
 /// 単一インスタンスへの同時ピクセル操作は直列化すること。
 /// </remarks>
-public sealed class EsBitmap : IDisposable
+public sealed class EsBitmap : IEsImageSource, IDisposable
 {
     /// <summary>1 ピクセルあたりのバイト数（BGRA8888）。</summary>
     /// <value>4。 ストライドは常に <c>幅 × 本値</c> である。</value>
@@ -171,19 +171,17 @@ public sealed class EsBitmap : IDisposable
     public bool IsDisposed => _disposed;
 
     // ====================================================================
-    // 寸法の文字列化
+    // 画像源（IEsImageSource）
     // ====================================================================
 
-    /// <summary>画像の寸法を「幅x高さ」形式の文字列で取得する。</summary>
-    /// <returns>寸法の文字列（例: <c>1920x1080</c>）。</returns>
-    /// <remarks>ログへ画像の寸法を出す用途に使う（UI ごとに同じ書式で整形するための唯一の入口）。</remarks>
-    public string ToSizeText() => $"{Width}x{Height}";
-
-    /// <summary>画像の寸法を「幅x高さ」形式の文字列へ整形する。</summary>
-    /// <param name="bitmap">対象のビットマップ。 null 可。</param>
-    /// <returns>寸法の文字列（例: <c>1920x1080</c>）。<paramref name="bitmap"/> が null の場合は <c>null</c>。</returns>
-    /// <remarks>未設定を表す文字列を 1 か所に集約する（呼び出し側が <c>"null"</c> を書かないため）。</remarks>
-    public static string ToSizeText(EsBitmap? bitmap) => bitmap is null ? "null" : bitmap.ToSizeText();
+    /// <summary>コアの画像を取得する（自分自身を返す。 借用）。</summary>
+    /// <returns>自分自身。<b>借用</b>（破棄しない。 所有者は呼び出し側のまま）。</returns>
+    /// <remarks>
+    /// <see cref="EsBitmap"/> 自身が画像源であるため、恒等（コピーなし）で返す。<br/>
+    /// <b>明示的実装</b>にして公開面を増やさない（本型を直接使う呼び出し側は変換を必要としない）。<br/>
+    /// 寸法の文字列化は <see cref="EsImageSourceText.ToSizeText"/> が単一所有する。
+    /// </remarks>
+    EsBitmap IEsImageSource.GetEsBitmap() => this;
 
     // ====================================================================
     // ピクセル操作

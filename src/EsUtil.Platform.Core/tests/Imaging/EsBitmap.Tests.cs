@@ -133,37 +133,26 @@ public class EsBitmapTests
     }
 
     // ====================================================================
-    // 寸法の文字列化
+    // 画像源（IEsImageSource）
     // ====================================================================
 
     [Fact]
-    internal void ToSizeText_幅x高さ形式で返す()
+    internal void GetEsBitmap_自分自身を借用で返す()
+    {
+        using var bmp = Create(8, 6);
+
+        // 恒等（コピーなし）。 借用のため別インスタンスを作らない
+        Assert.Same(bmp, ((IEsImageSource)bmp).GetEsBitmap());
+    }
+
+    [Fact]
+    internal void WidthとHeightが実装の面に現れる()
     {
         using var bmp = Create(1920, 1080);
+        IEsImageSource source = bmp;
 
-        Assert.Equal("1920x1080", bmp.ToSizeText());
-    }
-
-    [Fact]
-    internal void ToSizeText_0サイズでも形式は保つ()
-    {
-        using var bmp = Create(0, 0);
-
-        Assert.Equal("0x0", bmp.ToSizeText());
-    }
-
-    [Fact]
-    internal void ToSizeText_未設定はnullを表す文字列を返す()
-    {
-        Assert.Equal("null", EsBitmap.ToSizeText(null));
-    }
-
-    [Fact]
-    internal void ToSizeText_設定済みは寸法を返す()
-    {
-        using var bmp = Create(640, 480);
-
-        Assert.Equal("640x480", EsBitmap.ToSizeText(bmp));
+        Assert.Equal(1920, source.Width);
+        Assert.Equal(1080, source.Height);
     }
 
     // ====================================================================
