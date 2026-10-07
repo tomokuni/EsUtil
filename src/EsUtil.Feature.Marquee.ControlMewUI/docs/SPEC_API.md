@@ -2,7 +2,7 @@
 
 `EsUtil.Feature.Marquee.ControlMewUI` の外部仕様（公開 API・イベント・動作）を記載します。 内部実装の詳細は記載しません。
 
-## 目次
+## 目次 <!-- omit from toc -->
 
 - [1. 概要](#1-概要)
 - [2. 依存関係](#2-依存関係)

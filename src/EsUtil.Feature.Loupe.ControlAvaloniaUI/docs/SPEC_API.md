@@ -1,6 +1,6 @@
 # EsUtil.Feature.Loupe.ControlAvaloniaUI API リファレンス
 
-## 目次
+## 目次 <!-- omit from toc -->
 
 - [1. 文書概要](#1-文書概要)
 - [2. 目的](#2-目的)

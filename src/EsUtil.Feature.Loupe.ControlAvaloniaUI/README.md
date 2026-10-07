@@ -2,7 +2,7 @@
 
 > プロジェクト名: `EsUtil.Feature.Loupe.ControlAvaloniaUI`（Avalonia UI 版）。 UI 非依存のロジックは `EsUtil.Feature.Loupe.Core`、MewUI 版は対になるコントロール（別プロジェクト）にあります。
 
-## 目次
+## 目次 <!-- omit from toc -->
 
 - [1. 概要](#1-概要)
 - [2. 機能一覧](#2-機能一覧)
