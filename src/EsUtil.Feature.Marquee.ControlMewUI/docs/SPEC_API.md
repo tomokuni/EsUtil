@@ -126,7 +126,7 @@ Avalonia 版と同一の挙動になります。
 
 ### 7.1 ラベル（文字）の表示
 
-サイズラベルとカーソル座標ラベルの**文言と基準点は提示層の `MarqueePresenter`（`LabelTexts` partial） が、色とフォントサイズは外観（`MarqueeAppearance`）が、実寸から配置矩形を求める写像は提示層の `MarqueePresenter`（`LabelPlan` partial） が単一所有**します。 コントロールは `Border` + `TextBlock` を子要素として置き（`SkiaText.Measure` で実寸を測って渡す）、**ラベルは常に最上位**に表示されます。 操作・情報ラベルはアプリ固有の付加情報のため、ホストが `Rendered` のハンドラで `Options.Labels` の外観に従って描きます（配置指示は `SelectionOverlayControl.UIBase` の `SelectionOverlayLabelRenderer` が単一所有する）。
+サイズラベルとカーソル座標ラベルの**文言と基準点は提示層の `MarqueePresenter`（`LabelTexts` partial） が、色とフォントサイズは外観（`MarqueeAppearance`）が、実寸から配置矩形を求める写像は提示層の `MarqueePresenter`（`LabelPlan` partial） が単一所有**します。 コントロールは `Border` + `TextBlock` を子要素として置き（`SkiaText.Measure` で実寸を測って渡す）、**ラベルは常に最上位**に表示されます。 操作・情報ラベルはアプリ固有の付加情報のため、ホストが `Rendered` のハンドラで `Options.Labels` の外観に従って描きます（配置指示は組み込み先の共有層が単一所有する）。
 描画のたびに `Rendered` が発火するため、ホストはそのハンドラで追加描画できます。
 
 ```csharp
