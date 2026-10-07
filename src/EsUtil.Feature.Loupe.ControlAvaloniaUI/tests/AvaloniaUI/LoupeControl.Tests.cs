@@ -77,12 +77,12 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    internal async Task EsBitmapAvaloniaImageをSourceに設定するとLoupeBitmapが生成される()
+    internal async Task EsImageSourceAdapterをSourceに設定するとLoupeBitmapが生成される()
     {
-        // EsBitmapAvaloniaImage（EsBitmap を内包する IImage）を Source に設定した場合、
-        // ルーペ画像が生成される（Bitmap を生成しない Skia 直アクセス経路の検証）。
+        // EsImageSourceAdapter（コアの画像を IImage として公開するアダプタ）を Source に設定した場合、
+        // ルーペ画像が生成される（WriteableBitmap を生成しない経路の検証）。
         using var bmp = EsBitmap.Create(200, 200);
-        using var image = new EsBitmapAvaloniaImage(bmp);
+        using var image = new EsImageSourceAdapter(bmp);
         var control = CreateControl();
         control.Source = image;
         control.CenterPoint = new Point(100, 100);
@@ -779,7 +779,7 @@ public class LoupeControlTests
     {
         // 回帰テスト: SetLoupeBitmap が using で即座に破棄した WriteableBitmap を Image.Source に
         // 設定すると、レイアウトパス（Image.MeasureOverride → Bitmap.get_Size）で ObjectDisposedException が
-        // 発生し、領域選択開始時にアプリがハングする。 表示用画像（EsBitmapAvaloniaImage）はコントロールが所有し、
+        // 発生し、領域選択開始時にアプリがハングする。 表示用画像（EsImageSourceAdapter）はコントロールが所有し、
         // 内包する EsBitmap が有効なまま保持されることを検証する。
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -789,8 +789,8 @@ public class LoupeControlTests
         // Source が破棄済みでないこと（Size 参照で ObjectDisposedException が発生しない）
         var image = ImageElement(control);
         Assert.NotNull(image.Source);
-        Assert.True(image.Source is EsBitmapAvaloniaImage img
-            && img.Bitmap is { } bmp && bmp.Size.Width > 0);
+        Assert.True(image.Source is EsImageSourceAdapter img
+            && img.GetEsBitmap() is { } bmp && bmp.Size.Width > 0);
     }
 
     [AvaloniaFact]

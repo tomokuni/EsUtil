@@ -1,6 +1,4 @@
-using Avalonia.Media;
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Imaging;
 
@@ -10,15 +8,14 @@ public static class TestImageFactory
     /// <summary>グラデーション＋グリッド＋マーカー付きのテスト画像を生成する。</summary>
     /// <param name="width">画像の幅（ピクセル）。</param>
     /// <param name="height">画像の高さ（ピクセル）。</param>
-    /// <returns>生成した <see cref="EsBitmapAvaloniaImage"/>（<see cref="IImage"/> として表示できる）。</returns>
+    /// <returns>生成した画像（<see cref="EsBitmap"/>。 呼び出し側が保持し、表示には非所有アダプタで包む）。</returns>
     /// <remarks>
     /// 左上から右下へのグラデーションを背景とし、<br/>
     /// 10px グリッド（拡大ピクセル検証用）・50px グリッド（倍率計測用）・色付き円マーカー（ズーム確認用）を描画する。<br/>
     /// 画像外の色や十字線・枠線は LoupeControl 側が描画する。<br/>
-    /// <b>EsBitmap 採用理由</b>: <c>WriteableBitmap</c>（<c>Lock()</c> 書き込み）を避け、<br/>
-    /// ピクセル操作が安定し、かつ <see cref="EsBitmapAvaloniaImage"/>（表示用の変換は初回のみ）として表示できる。
+    /// <b>EsBitmap 採用理由</b>: <c>WriteableBitmap</c>（<c>Lock()</c> 書き込み）を避け、ピクセル操作が安定する。
     /// </remarks>
-    public static IImage Create(int width = 800, int height = 600)
+    public static EsBitmap Create(int width = 800, int height = 600)
     {
         var bitmap = EsBitmap.Create(width, height);
 
@@ -70,8 +67,8 @@ public static class TestImageFactory
             }
         }
 
-        // EsBitmap を内包した IImage（EsBitmapAvaloniaImage）を返す（所有権は EsBitmapAvaloniaImage へ移動）。
-        return bitmap.ToAvaloniaImage();
+        // 画像は呼び出し側が保持し、表示には非所有アダプタ（EsImageSourceAdapter）を介する
+        return bitmap;
     }
 
     /// <summary>指定円の内側かどうかを判定する。</summary>

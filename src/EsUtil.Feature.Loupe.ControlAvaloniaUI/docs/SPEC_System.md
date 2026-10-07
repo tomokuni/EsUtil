@@ -80,7 +80,7 @@ SaveEvidence は、Windows デスクトップ上の画面をキャプチャし�
 
 ### 4.2 本プロジェクト固有の例外処理
 
-- `Source` に `Bitmap` / `EsBitmapAvaloniaImage` 以外の `IImage` が設定された場合、`NotSupportedException` を生成し `LoupeLogMessage.LogUpdateError` で記録する。
+- `Source` に `Bitmap` / `EsImageSourceAdapter` 以外の `IImage` が設定された場合、`NotSupportedException` を生成し `LoupeLogMessage.LogUpdateError` で記録する。
 - 描画の例外（未対応の画像型等）は `Log` へ記録され、呼び出し元へは伝播しない（開始側が例外を観測する）。
 - 自動再描画の場合は例外を観測済みとして処理し、UI スレッドを未処理例外で終了させない。
 - 非同期生成は世代番号で古い結果を破棄し、解放後の破棄を防止する。
@@ -189,8 +189,8 @@ flowchart TB
 - 公開画像入力はAvalonia標準の `IImage?` とし、`Image.Source` と同じBindingモデルで利用できる。
 - ピクセル抽出が必要な切り出しの内部境界だけ `EsBitmap` を要求する（切り出し領域はコアの `LoupeGeometry.MagnifiedImage` が決める）。
 - `Source` が `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む派生型）の場合は `CopyPixels` による複製（`EsBitmap` 化）で抽出する。
-- `Source` が `EsBitmapAvaloniaImage` の場合は内包する `EsBitmap` を直接抽出する（複製なし）。
-- `Bitmap`（派生を含む） / `EsBitmapAvaloniaImage` 以外の `IImage`（`CroppedBitmap` 等）は `NotSupportedException` が発生する。
+- `Source` が `EsImageSourceAdapter` の場合は内包する `EsBitmap` を直接抽出する（複製なし）。
+- `Bitmap`（派生を含む） / `EsImageSourceAdapter` 以外の `IImage`（`CroppedBitmap` 等）は `NotSupportedException` が発生する。
 - 切り出し（`EsBitmap.Crop`）と合成（`RenderTargetBitmap` / `DrawingContext`）は UI スレッドで行う（バックグラウンド抽出は連続再描画時にスレッドプールが競合し、移動中の追従が止まるため行わない）。 一時 `RenderTargetBitmap` は描画直後に破棄する。
 
 ### 6.5 切り出し領域の幾何（`EsUtil.Feature.Loupe.Core`）
@@ -206,7 +206,7 @@ flowchart TB
 
 - **分類**: ログ定義（`LoggerMessage` source generator。 `public static partial class`）
 - **責務**: ログの書式・レベルを UI 間で揃え、定義の所有者を出力の主体ごとに分ける
-- **本 UI が呼ぶ定義**: **本プロジェクトの `LoupeLogMessage`** が単一所有する（`LogSourceChanged`（Debug。 設定名は本 UI が付与）/ `LogUpdateError`（Error））。 拡大元画像はコントロール固有の値であり（コアのファサードは画像を保持しない）、画像の寸法の文字列化は画像型（`EsBitmap.ToSizeText`）または本 UI が行う
+- **本 UI が呼ぶ定義**: **本プロジェクトの `LoupeLogMessage`** が単一所有する（`LogSourceChanged`（Debug。 設定名は本 UI が付与）/ `LogUpdateError`（Error））。 拡大元画像はコントロール固有の値であり（コアのファサードは画像を保持しない）、画像の寸法の文字列化は本 UI が `IImage.Size` から行う（`IImage` はコアの `IEsImageSource` へ依存しないため共通化しない。 破棄済みは型名で代用する）
 - **コアが出力する定義**: `EsUtil.Feature.Loupe.Core` の `LoupeLogMessage`（internal）が持つ（設定値・拡大中心の変更。 **設定名はコアが付与**し、UI 層は値だけを渡す）
 - **本 UI 固有のログ**: 中間ビットマップを生成する描画パイプライン固有の `LogRenderCore` / `LogGenerateAsyncDone` は **本プロジェクトの `LoupeLogMessage`**（`src/EsUtil.Feature.Loupe.ControlAvaloniaUI/src/AvaloniaUI/Logging/LoupeLogMessage.cs`・`internal static partial class`）が所有する
 - **依存**: Microsoft.Extensions.Logging
@@ -220,7 +220,7 @@ flowchart TB
 
 - `LoupeRenderCoordinator`: 再描画要求のバッチ化（実行キューへのポストで 1 フレーム 1 回に結合）、表示中の判定と世代番号による古い結果の破棄、未実行要求の破棄と解放の手順を単一所有する。 中間ビットマップを持つ UI にだけ必要なため本プロジェクトが所有し、実行キューと優先度は `post: action => Dispatcher.UIThread.Post(action, DispatcherPriority.Render)` として注入する。
 - `LoupeRenderPipeline`: Avalonia の `IImage` を切り出し元（`EsBitmap`）へ解決し、描画（`LoupeContextPainter.Paint`。 `DrawingContext` 経由）を UI スレッドで実行する（`RenderAsync(source, plan)`）。 `IImage` の型判定と `Bitmap` → `EsBitmap` の複製が UI 固有。
-- `LoupeSourceResolver`: `IImage` の対応型判定（`Bitmap` / `EsBitmapAvaloniaImage`）・破棄済みの検出・ソース寸法のログ用表現を単一所有する（UI スレッドに依存しない純粋関数）。
+- `LoupeSourceResolver`: `IImage` の対応型判定（`Bitmap` / `EsImageSourceAdapter`）・破棄済みの検出・ソース寸法のログ用表現を単一所有する（UI スレッドに依存しない純粋関数）。
 
 ## 7. 依存ルール
 

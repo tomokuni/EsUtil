@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using EsUtil.Feature.Loupe.AvaloniaUI.Sample.Imaging;
+using EsUtil.Platform.Core.Imaging;
+using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.ViewModels;
@@ -13,8 +15,18 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.ViewModels;
 /// </remarks>
 public sealed class MainWindowViewModel : ObservableObject
 {
-    /// <summary>テスト画像（ルーペの <c>Source</c> にバインドする）。</summary>
-    public IImage SourceImage { get; } = TestImageFactory.Create();
+    /// <summary>テスト画像の元（本 VM が生存する間保持する。 <see cref="SourceImage"/> のアダプタは本値を借用する）。</summary>
+    private readonly EsBitmap _sourceBitmap = TestImageFactory.Create();
+
+    /// <summary>テスト画像（ルーペの <c>Source</c> にバインドする。 元画像を借りて包む非所有アダプタ）。</summary>
+    /// <remarks><see cref="IImage"/> は非所有の契約のため、元画像の破棄は本 VM（<see cref="_sourceBitmap"/>）が行う。</remarks>
+    public IImage SourceImage => _sourceImage;
+
+    /// <summary>表示用のアダプタ（コンストラクタで組み立てる。 フィールド初期化では <see cref="_sourceBitmap"/> を参照できない）。</summary>
+    private readonly EsImageSourceAdapter _sourceImage;
+
+    /// <summary>メインウィンドウのビューモデルを生成する。</summary>
+    public MainWindowViewModel() => _sourceImage = new EsImageSourceAdapter(_sourceBitmap);
 
     /// <summary>十字線の色選択肢。</summary>
     public IReadOnlyList<BrushOption> CrossColorOptions { get; } = BrushOptions.All;

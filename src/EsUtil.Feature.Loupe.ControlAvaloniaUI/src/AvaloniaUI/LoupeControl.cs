@@ -169,7 +169,7 @@ public sealed class LoupeControl : Panel
         }
         finally
         {
-            // Bitmap 由来の場合のみ複製を破棄する（EsBitmapAvaloniaImage の共有参照は破棄しない）
+            // Bitmap 由来の場合のみ複製を破棄する（画像源（IEsImageSource）からの借用は破棄しない）
             if (resolved.IsSourceBitmap)
             {
                 sourceBitmap?.Dispose();
@@ -585,16 +585,25 @@ public sealed class LoupeControl : Panel
     // 出力（internal）
     // ====================================================================
 
-    /// <summary>表示用の画像アダプタ（EsBitmapAvaloniaImage）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
+    /// <summary>表示用の画像アダプタ。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
     /// <remarks>
-    /// <see cref="Image.Source"/> へ設定する <see cref="EsBitmapAvaloniaImage"/> を保持する。<br/>
-    /// <c>WriteableBitmap</c> を生成しない（表示用の変換は初回のみ）ため、破棄は <see cref="ReleaseBitmap"/> で行う。
+    /// <see cref="Image.Source"/> へ設定する <see cref="EsImageSourceAdapter"/> を保持する（<see cref="IImage"/> は非所有の契約のため、
+    /// 差し替え時に本コントロールが <see cref="EsImageSourceAdapter.Dispose"/> を呼ぶ）。<br/>
+    /// 破棄は <see cref="ReleaseBitmap"/> / <see cref="SetLoupeBitmap"/> で行う。
     /// </remarks>
-    private EsBitmapAvaloniaImage? _loupeImage;
+    private EsImageSourceAdapter? _loupeImage;
 
-    /// <summary>内部描画結果（EsBitmap）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
-    /// <remarks><see cref="_loupeImage"/> が内包する EsBitmap を返す（共有参照。 破棄はしないこと）。</remarks>
-    internal EsBitmap? LoupeBitmap => _loupeImage?.Bitmap;
+    /// <summary>内部描画結果（<see cref="EsBitmap"/>）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
+    /// <remarks>
+    /// 本コントロールが生成したルーペ画像であるため、<b>本コントロールが破棄する</b>
+    /// （アダプタは真実を所有しない。 <see cref="ReleaseBitmap"/> / <see cref="SetLoupeBitmap"/> で破棄する）。<br/>
+    /// <see cref="LoupeBitmap"/> は本値を返す（共有参照。 破棄はしないこと）。
+    /// </remarks>
+    private EsBitmap? _loupeEs;
+
+    /// <summary>内部描画結果（<see cref="EsBitmap"/>）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
+    /// <remarks><see cref="LoupeBitmap"/> が返す。 破棄はしないこと（本コントロールが破棄する）。</remarks>
+    internal EsBitmap? LoupeBitmap => _loupeEs;
 
     // ====================================================================
     // ログ
@@ -696,6 +705,8 @@ public sealed class LoupeControl : Panel
         _image.Source = null;
         _loupeImage?.Dispose();
         _loupeImage = null;
+        _loupeEs?.Dispose();
+        _loupeEs = null;
     }
 
     /// <summary>自動再描画を開始し、失敗を観測済みタスクとして処理する。</summary>
@@ -774,12 +785,16 @@ public sealed class LoupeControl : Panel
         RaiseRendered(bmp, plan);
 
         // イベント後の EsBitmap（ホストのオーバーレイ描画を含む）を表示境界で Avalonia 画像として反映する。
-        // EsBitmapAvaloniaImage（表示用の変換は初回のみ）を Source に設定する。
+        // EsImageSourceAdapter（表示用の変換は初回のみ）を Source に設定する。
         // 旧アダプタを破棄する前に、新しいアダプタを先に Source へ設定する（破棄済み Bitmap の参照防止・チラつき防止）。
         var previousImage = _loupeImage;
-        _loupeImage = new EsBitmapAvaloniaImage(bmp);
+        var previousEs = _loupeEs;
+        // 画像（EsBitmap）は本コントロールが所有し、アダプタは非所有で包むだけ（アダプタは射影だけを所有する）
+        _loupeEs = bmp;
+        _loupeImage = new EsImageSourceAdapter(bmp);
         _image.Source = _loupeImage;
-        // 旧アダプタは新しい Source 設定後に破棄する（Image.Source が旧アダプタを参照しなくなった後）。
+        // 新旧の Source 設定後、旧の画像とアダプタを破棄する（Image.Source が旧アダプタを参照しなくなった後）。
         previousImage?.Dispose();
+        previousEs?.Dispose();
     }
 }

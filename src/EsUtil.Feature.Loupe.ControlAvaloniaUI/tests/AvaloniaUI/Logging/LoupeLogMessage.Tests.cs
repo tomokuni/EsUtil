@@ -87,7 +87,7 @@ public class LoupeLogMessageTests
 
         // ログ出力で例外を発生させない（寸法が取れない場合は型名を出す）
         Assert.Equal(
-            "[Loupe] Setting: Source EsBitmapAvaloniaImage → null",
+            "[Loupe] Setting: Source EsImageSourceAdapter → null",
             Assert.Single(logger.Messages));
     }
 
@@ -107,7 +107,7 @@ public class LoupeLogMessageTests
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
     /// <returns>生成した画像。</returns>
-    private static EsBitmapAvaloniaImage CreateImage(int width, int height)
+    private static EsImageSourceAdapter CreateImage(int width, int height)
         => EsBitmapAvaloniaExtensions.CreateAvaloniaImage(width, height, Colors.Blue);
 
     /// <summary>全ログメソッドを指定ロガーで呼び出す。</summary>

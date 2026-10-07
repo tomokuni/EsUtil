@@ -27,11 +27,11 @@ internal static class LoupeRenderPipeline
     /// <returns>生成したルーペ画像（<see cref="EsBitmap"/>）。</returns>
     /// <exception cref="NotSupportedException">
     /// <paramref name="source"/> が <see cref="Bitmap"/>（派生の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> を含む）
-    /// / <see cref="EsBitmapAvaloniaImage"/> 以外の場合。
+    /// / <see cref="IEsImageSource"/>（表示アダプタ）以外の場合。
     /// </exception>
     /// <remarks>
     /// 1. 未対応型の判定（<see cref="LoupeSourceResolver.IsSourceSupported"/>）を行い、未対応型は例外にする。<br/>
-    /// 2. 切り出し元の <see cref="EsBitmap"/> を解決する（<see cref="Bitmap"/> は複製、<see cref="EsBitmapAvaloniaImage"/> は共有参照）。<br/>
+    /// 2. 切り出し元の <see cref="EsBitmap"/> を解決する（<see cref="Bitmap"/> は複製、<see cref="IEsImageSource"/> は借用）。<br/>
     /// 3. 描画（切り出し・拡大・十字線・枠線）は <see cref="LoupeContextPainter"/> へ委譲し、UI スレッドで行う<br/>
     /// （切り出しの可否と破棄済みソースの扱いは描画層が単一所有する）。
     /// </remarks>
@@ -41,10 +41,10 @@ internal static class LoupeRenderPipeline
         if (!LoupeSourceResolver.IsSourceSupported(source))
         {
             throw new NotSupportedException(
-                $"LoupeControl は {source!.GetType().FullName} をサポートしていません。Bitmap（WriteableBitmap を含む）または EsBitmapAvaloniaImage を指定してください。");
+                $"LoupeControl は {source!.GetType().FullName} をサポートしていません。Bitmap（WriteableBitmap を含む）または IEsImageSource（表示アダプタ）を指定してください。");
         }
 
-        // 抽出元の EsBitmap を解決する（Bitmap は複製、EsBitmapAvaloniaImage は共有参照。 破棄済みは null）
+        // 抽出元の EsBitmap を解決する（Bitmap は複製、画像源（IEsImageSource）は借用。 破棄済みは null）
         var resolved = LoupeSourceResolver.Resolve(source, out var sourceBitmap);
 
         try
@@ -58,7 +58,7 @@ internal static class LoupeRenderPipeline
         }
         finally
         {
-            // Bitmap 由来の場合のみ複製を破棄する（EsBitmapAvaloniaImage の共有参照は破棄しない）。
+            // Bitmap 由来の場合のみ複製を破棄する（EsImageSourceAdapter の共有参照は破棄しない）。
             if (resolved.IsSourceBitmap)
             {
                 sourceBitmap!.Dispose();

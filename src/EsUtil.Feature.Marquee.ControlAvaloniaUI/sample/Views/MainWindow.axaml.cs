@@ -27,8 +27,11 @@ public partial class MainWindow : Window
 {
     private readonly MainWindowViewModel _vm = new();
 
-    /// <summary>背景に敷くダミー画像（対象面のサイズ感を示す）。 Skia 直描画（EsBitmapAvaloniaImage）で表示する。</summary>
-    private static readonly EsBitmapAvaloniaImage s_backdrop = CreateBackdrop();
+    /// <summary>背景に敷くダミー画像の元（対象面のサイズ感を示す）。 静的フィールドのためアプリ終了まで生存する。</summary>
+    private static readonly EsBitmap s_backdropBitmap = CreateBackdrop();
+
+    /// <summary>背景に敷くダミー画像（表示境界のアダプタ。 元画像は <see cref="s_backdropBitmap"/> が保持する）。</summary>
+    private static readonly EsImageSourceAdapter s_backdrop = new(s_backdropBitmap);
 
     /// <summary>画像の論理幅（対象ピクセル）。</summary>
     private const double ImageWidth = 1200;
@@ -362,12 +365,12 @@ public partial class MainWindow : Window
         => _vm.ClearLog();
 
     /// <summary>背景用のダミー画像を生成する（グリッド付き、サイズ感の確認用）。</summary>
-    /// <returns>生成した WriteableBitmap。</returns>
+    /// <returns>生成した画像（静的フィールドがアプリ終了まで保持する）。</returns>
     /// <remarks>
     /// ビットマップサイズは <see cref="ImageWidth"/> / <see cref="ImageHeight"/> に合わせる
     /// （const のためリテラルで指定。 グリッド間隔は 100px で視認性を確保する）。
     /// </remarks>
-    private static EsBitmapAvaloniaImage CreateBackdrop()
+    private static EsBitmap CreateBackdrop()
     {
         const int width = 1200;
         const int height = 800;
@@ -384,6 +387,6 @@ public partial class MainWindow : Window
             }
         }
 
-        return new EsBitmapAvaloniaImage(bitmap);
+        return bitmap;
     }
 }

@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using EsUtil.Feature.Loupe.AvaloniaUI.Sample.Logging;
 using EsUtil.Feature.Loupe.AvaloniaUI.Sample.Presentation;
 using EsUtil.Feature.Loupe.AvaloniaUI.Sample.ViewModels;
+using EsUtil.Platform.Core.Imaging;
 using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Views;
@@ -18,14 +19,22 @@ public partial class MainWindow : Window
 {
     private readonly MainWindowViewModel _vm = new();
 
-    /// <summary><see cref="MainWindow"/> の新しいインスタンスを初期化する。</summary>
-    /// <remarks>
+    /// <summary>見本（<c>GridPreview</c>）の元画像。 本ウィンドウが生存する間保持する。</summary>
+    private readonly EsBitmap _gridPreviewBitmap = GridLoupePlan.CreateSource();
+
+    /// <summary>見本（<c>GridPreview</c>）の表示用画像（<see cref="_gridPreviewBitmap"/> を借りて包む非所有アダプタ）。</summary>
+    private readonly EsImageSourceAdapter _gridPreviewImage;
+
+    /// <summary><see cref="MainWindow"/> の新しいインスタンスを初期化する。</summary>    /// <remarks>
     /// ルーペの初期化と初期中心座標を設定する。<br/>
     /// </remarks>
     public MainWindow()
     {
         InitializeComponent();
         DataContext = _vm;
+
+        // 見本の表示用画像を組み立てる（元画像は _gridPreviewBitmap が保持する）
+        _gridPreviewImage = new EsImageSourceAdapter(_gridPreviewBitmap);
 
         // ルーペの表示状態を明示的に反映（AXAML の初期値は非表示のため）
         Loupe.IsVisible = _vm.IsLoupeVisible;
@@ -47,7 +56,7 @@ public partial class MainWindow : Window
         GridPreview.Appearance = GridLoupePlan.Appearance;
         GridPreview.DrawPlanResolver = static plan => GridLoupePlan.Resolve(in plan);
         GridPreview.Options = LoupeOptions.Default with { RequestedSize = 150, ZoomLevel = 6 };
-        GridPreview.Source = GridLoupePlan.CreateSource().ToAvaloniaImage();
+        GridPreview.Source = _gridPreviewImage;
         GridPreview.CenterPoint = new Point(120, 80);
         // 本見本は常に表示する（既定は非表示。 表示可否はホストが指示する）
         GridPreview.IsVisible = true;
