@@ -84,7 +84,9 @@ internal static class LoupeSkiaPainter
         try
         {
             using var region = source.Crop(image.CropSourceRect);
-            canvas.DrawBitmap(region.ToSKBitmap(), image.CroppedRect.ToSKRect(), image.DrawClientPixelRect.ToSKRect());
+            // ビューは非所有（ピクセルは複製しない）だがファイナライザを持つため、描画の直後に破棄する
+            using var view = region.ToSKBitmap();
+            canvas.DrawBitmap(view, image.CroppedRect.ToSKRect(), image.DrawClientPixelRect.ToSKRect());
         }
         catch (ObjectDisposedException)
         {
