@@ -69,4 +69,10 @@ public interface IEsBitmap
     /// <exception cref="IndexOutOfRangeException">座標が画像の範囲外の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     Color GetPixel(EsPointInt point);
+
+    /// <summary>画像の寸法を「幅x高さ」形式の文字列で返す（ログ等への記録用）。</summary>
+    /// <returns>寸法の文字列（例: <c>1920x1080</c>）。 ピクセルを持たない場合は <c>0x0</c>。</returns>
+    /// <remarks>書式を本面が単一所有する（実装ごとに書式を持つと、同じ画像が経路によって違う文字列で記録される）。
+    /// 未設定（null）の扱いは書式ではないため面は持ちず、<b>記録する側が決める</b>（例: <c>image?.ToSizeText() ?? "null"</c>）。</remarks>
+    string ToSizeText();
 }

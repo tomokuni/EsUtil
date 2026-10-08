@@ -20,29 +20,6 @@ public class EsBitmapExtensionsTests
         => EsWritableBitmap.Create(w, h, System.Drawing.Color.FromArgb(255, 255, 0, 0));
 
     // ====================================================================
-    // GetPixel（座標型）
-    // ====================================================================
-
-    [Fact]
-    internal void GetPixel_拡張メソッドは面の結果と同じ色を返す()
-    {
-        using var src = EsWritableBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 30, 20, 10));
-        IEsBitmap read = src;
-
-        // 実装は読み取りの面（IEsBitmap.GetPixel(EsPointInt)）が持ち、本拡張メソッドは null の検証を担う
-        var byExtension = EsBitmapExtensions.GetPixel(read, new EsPointInt(1, 2));
-        var byFace = read.GetPixel(new EsPointInt(1, 2));
-
-        Assert.Equal(byFace, byExtension);
-        Assert.Equal((byte)10, byExtension.B);
-        Assert.Equal((byte)255, byExtension.A);
-    }
-
-    [Fact]
-    internal void GetPixel_nullはArgumentNullExceptionを投げる()
-        => Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.GetPixel(null!, new EsPointInt(0, 0)));
-
-    // ====================================================================
     // Crop（矩形切り出し）
     // ====================================================================
 

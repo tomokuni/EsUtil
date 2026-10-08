@@ -47,10 +47,10 @@ public class EsBitmapSystemDrawingTests
     }
 
     [Fact]
-    internal void ToEsBitmap_ピクセルをコピーする()
+    internal void ToEsWritableBitmap_ピクセルをコピーする()
     {
         using var sd = CreateSolidDrawingBitmap(4, 4, 0, 0, 255, 255); // 赤・不透明
-        using var bmp = sd.ToEsBitmap();
+        using var bmp = sd.ToEsWritableBitmap();
         Assert.Equal(4, bmp.Size.Width);
         Assert.Equal(4, bmp.Size.Height);
         var px = bmp.GetPixel(1, 1);
@@ -60,16 +60,29 @@ public class EsBitmapSystemDrawingTests
     }
 
     [Fact]
-    internal void ToEsBitmap_部分透明アルファを保持する()
+    internal void ToEsWritableBitmap_部分透明アルファを保持する()
     {
         // 50% アルファの青（BGRA: B=255, G=0, R=0, A=128）
         using var sd = CreateSolidDrawingBitmap(4, 4, 255, 0, 0, 128);
-        using var bmp = sd.ToEsBitmap();
+        using var bmp = sd.ToEsWritableBitmap();
         var px = bmp.GetPixel(1, 1);
         Assert.Equal((byte)255, px.B);
         Assert.Equal((byte)0, px.G);
         Assert.Equal((byte)0, px.R);
         Assert.Equal((byte)128, px.A); // アルファが 255 に強制されない
+    }
+
+    [Fact]
+    internal void ToEsBitmap_読み取り専用の複製を返す()
+    {
+        using var sd = CreateSolidDrawingBitmap(4, 4, 0, 0, 255, 255); // 赤・不透明
+        using var bmp = sd.ToEsBitmap();
+
+        Assert.Equal(4, bmp.Size.Width);
+        Assert.Equal(4, bmp.Size.Height);
+        Assert.Equal((byte)255, bmp.GetPixel(1, 1).R);
+        // 書き換え可能な画像ではない（読み取り専用で返す）
+        Assert.IsNotType<EsWritableBitmap>(bmp);
     }
 
     [Fact]
@@ -126,7 +139,7 @@ public class EsBitmapSystemDrawingTests
     internal void SystemDrawing_往復変換でサイズが一致する()
     {
         using var sd = CreateSolidDrawingBitmap(4, 4, 0, 0, 255, 255);
-        using var bmp = sd.ToEsBitmap();
+        using var bmp = sd.ToEsWritableBitmap();
         using var back = bmp.ToDrawingBitmap();
         Assert.Equal(sd.Width, back.Width);
         Assert.Equal(sd.Height, back.Height);

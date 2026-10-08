@@ -39,8 +39,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.31 `Coord.ICoordTransform`（interface）](#231-coordicoordtransforminterface)
   - [2.32 `Coord.CoordTransform`（sealed class : ICoordTransform）](#232-coordcoordtransformsealed-class--icoordtransform)
   - [2.33 `Imaging.EsBitmapBase`（abstract class : IEsBitmap） / `Imaging.EsBitmap`（sealed class） / `Imaging.EsWritableBitmap`（sealed class）](#233-imagingesbitmapbaseabstract-class--iesbitmap--imagingesbitmapsealed-class--imagingeswritablebitmapsealed-class)
-  - [2.34 `Imaging.EsImageSourceText`（static class）](#234-imagingesimagesourcetextstatic-class)
-  - [2.35 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）](#235-imagingiesbitmapinterface--imagingieswritablebitmapinterface)
+  - [2.34 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）](#234-imagingiesbitmapinterface--imagingieswritablebitmapinterface)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -55,7 +54,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `EsUtil.Platform.Core` | `EsKey` / `EsKeyExtensions` / `EnumCanonical` / `EsWindowState` / `HotKeyModifiers` / `HotKeySetting` / `CaptureType` / `EsPlatformHandle` / `LoggerFallback` | キーと入力（正規化含む）・ウィンドウ状態・ホットキー・ロガーの補助 |
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` | DIP 相当の幾何値型と領域の規則 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI の純粋計算 |
-| `.Imaging` | `EsBitmapBase` / `EsBitmap` / `EsWritableBitmap` / `IEsBitmap` / `IEsWritableBitmap` / `EsBitmapExtensions` / `EsImageSourceText` / `DrawingColorExtensions` | ピクセルコンテナとその読み取り・書き換えの抽象・変更しない操作・描画色の判定 |
+| `.Imaging` | `EsBitmapBase` / `EsBitmap` / `EsWritableBitmap` / `IEsBitmap` / `IEsWritableBitmap` / `EsBitmapExtensions` / `DrawingColorExtensions` | ピクセルコンテナとその読み取り・書き換えの抽象・変更しない操作・描画色の判定 |
 | `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` | OS サービスの抽象（UI 非依存） |
 | `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` | 上記抽象の Windows 実装（ホストが生成して注入する） |
 | `.Native.Imaging` | `EsBitmapDrawingExtensions` | `System.Drawing.Bitmap` との相互変換（Windows 専用） |
@@ -478,7 +477,8 @@ public readonly record struct ElementFinderResults(
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
-| `ToEsBitmap` | `static EsWritableBitmap ToEsBitmap(this DrawingBitmap bitmap)` | `System.Drawing.Bitmap` から**書き換え可能な**画像を作る（複製。 元の Bitmap は変更しない） |
+| `ToEsBitmap` | `static EsBitmap ToEsBitmap(this DrawingBitmap bitmap)` | `System.Drawing.Bitmap` から**読み取り専用の**画像を作る（複製。 元の Bitmap は変更しない） |
+| `ToEsWritableBitmap` | `static EsWritableBitmap ToEsWritableBitmap(this DrawingBitmap bitmap)` | `System.Drawing.Bitmap` から**書き換え可能な**画像を作る（複製。 元の Bitmap は変更しない） |
 | `ToDrawingBitmap` | `static DrawingBitmap ToDrawingBitmap(this IEsBitmap bitmap)` | コアの画像から `System.Drawing.Bitmap`（`Format32bppPArgb`）を作る（複製） |
 
 ### 2.31 `Coord.ICoordTransform`（interface）
@@ -553,6 +553,7 @@ public readonly record struct ElementFinderResults(
 | 生成 | `Create` | `static EsBitmap Create(int width, int height)` / `static EsBitmap Create(EsSizeInt size)` | 指定サイズの空の画像（全ピクセル透明）を生成 |
 | 生成 | `Create` | `static EsBitmap Create(int width, int height, Color color)` / `static EsBitmap Create(EsSizeInt size, Color color)` | 全ピクセルを指定色で生成 |
 | 複製 | `Clone` | `EsBitmap Clone()` | 読み取り専用の複製を作る（同型。 書き換え可能な複製が要る場合は `EsWritableBitmap.Create`） |
+| 複製 | `Create` | `static EsBitmap Create(IEsBitmap source)` | 借用した画像を複製して**読み取り専用の**画像を作る（表示アダプタなどの外部実装からも使える入口） |
 | その他 | `Dispose` | `void Dispose()` | バッファを解放（二重呼び出しは無害） |
 
 **共通のメンバー（`EsBitmapBase`。 `IEsBitmap` の実装）**:
@@ -566,6 +567,7 @@ public readonly record struct ElementFinderResults(
 | プロパティ | `Pixels` | `ReadOnlySpan<byte>` | ピクセル データの**読み取り専用ビュー**（コピーしない。 長さは `Stride × Height`。 破棄後は `ObjectDisposedException`） |
 | プロパティ | `IsDisposed` | `bool` | 破棄済みか（**公開面は `IEsBitmap`**。 利用者は面の型で判定できる） |
 | ピクセル | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` / `Color GetPixel(EsPointInt point)` | 指定座標の BGRA（アルファ乗算済み）を取得（座標型の版は `System.Drawing.Color` で返す）。 範囲外は `IndexOutOfRangeException` |
+| その他 | `ToSizeText` | `string ToSizeText()` | 寸法を `<c>幅x高さ</c>` 形式の文字列で返す（ログ等への記録用。 **書式は本面が単一所有**する） |
 | その他 | `ThrowIfDisposed` | `void ThrowIfDisposed()` | 破棄済みなら `ObjectDisposedException` を送出 |
 
 **`EsWritableBitmap` が追加で公開するメンバー（`IEsWritableBitmap` の実装）**:
@@ -584,28 +586,15 @@ public readonly record struct ElementFinderResults(
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
-| `GetPixel` | `static Color GetPixel(this IEsBitmap source, EsPointInt point)` | 指定座標の BGRA を `System.Drawing.Color` で取得（**実装は読み取りの面（`IEsBitmap.GetPixel(EsPointInt)`）が持ち、本メソッドは null の検証を担う**） |
 | `Crop` | `static EsWritableBitmap Crop(this IEsBitmap source, int x, int y, int width, int height)` / `static EsWritableBitmap Crop(this IEsBitmap source, EsRectInt rect)` | 指定矩形領域を切り出す（ソース範囲外は透明パディング。 位置関係は保たれる。 0 初期化は行わず、コピーされないパディングだけを透明にする） |
 
 - **拡張メソッドにする理由**: 切り出しは「自分を変更せず新しい画像を作る」操作であり、**借用した読み取り専用の画像からも呼べる**必要があるためです（実測: ルーペが表示アダプタの画像を切り出す）。 戻り値は書き換え可能（生成した側が所有し破棄する）。
-- **`GetPixel` を残す理由**: 同内容のメンバーが読み取りの面にありますが（実体と表示アダプタの両方で使える）、本ライブラリはこのソリューション以外でも使うため、**公開面を減らす削除はしません**（[`.github/コーディング規約.md`](../../../.github/コーディング規約.md) §5。 インスタンス呼び出しでは面のメンバーが優先されます）。
+- **色の取得をここに置かない理由**: 「座標のピクセルを色として読む」は画像の読み取りそのものであり、**読み取りの面（`IEsBitmap.GetPixel(EsPointInt)`）が実装を持つ**ためです（追加の画像を作らないため、拡張メソッドにする理由がありません）。
 - **戻り値の権利**: 新しく作った画像は `EsWritableBitmap`（書き換え可能）です。 読み取り専用で足りる場合は `EsBitmap.Clone()` を使います。
 
 **Skia との相互変換**（`ToSKBitmap` / `ToEsBitmap`）は SkiaSharp へ依存するため、Skia を使用する層の拡張メソッドが提供します（`ToSKBitmap` は非所有ビュー、`ToEsBitmap` は複製。 所有権はコア側に残ります）。
 
-### 2.34 `Imaging.EsImageSourceText`（static class）
-
-寸法の文字列化の唯一の入口です。
-
-| メンバー | シグネチャ | 説明 |
-| --- | --- | --- |
-| `ToSizeText` | `static string ToSizeText(IEsBitmap? source)` | 画像の寸法を `<c>幅x高さ</c>` 形式で返す。 **未設定（null）は `<c>null</c>`** |
-
-ログ等へ画像の寸法を出す書式を単一所有します（実装ごとに書式を持つと、同じ画像が経路によって違う文字列で記録されます）。
-
-`System.Drawing.Color`（`System.Drawing.Primitives`）のみに依存するため、**外部パッケージなしで Windows 以外でも動作します**。 Skia との変換は Skia を使用する層、System.Drawing.Bitmap との変換を含む Windows 専用の拡張は `Native.Imaging.EsBitmapDrawingExtensions` が提供します。
-
-### 2.35 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）
+### 2.34 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）
 
 画像の**権利を型で分ける**抽象です。 受け取った側が「書き換えてよいか」「破棄してよいか」を型から判断できます（借用と所有の取り違えを無くすための境界です）。
 
@@ -626,6 +615,7 @@ public readonly record struct ElementFinderResults(
 | プロパティ | `Pixels` | `ReadOnlySpan<byte>` | ピクセル データの**読み取り専用ビュー**（コピーしない。 長さは `Stride × Height`） |
 | メソッド | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` | 指定座標の BGRA（アルファ乗算済み）。 範囲外は `IndexOutOfRangeException` |
 | メソッド | `GetPixel` | `Color GetPixel(EsPointInt point)` | 指定座標の色（`System.Drawing.Color`。 座標型を受け取る版） |
+| メソッド | `ToSizeText` | `string ToSizeText()` | 寸法を `<c>幅x高さ</c>` 形式の文字列で返す（ログ等への記録用。 **未設定（null）の表記は記録する側が決める**ため、面は null を受け取らない） |
 
 **`IEsWritableBitmap` のメンバー**（`IEsBitmap` の全メンバーを含む）:
 
@@ -676,9 +666,10 @@ private readonly ILogger _log = logger.OrNullLogger();   // logger が null で�
 ### 3.4 ピクセルコンテナ
 
 ```csharp
-using var bitmap = EsBitmap.Create(1920, 1080);          // 全ピクセル透明
+using var bitmap = EsWritableBitmap.Create(1920, 1080);   // 全ピクセル透明（書き換え可能）
 bitmap.Clear(b: 0, g: 0, r: 255, a: 255);                 // 赤で塗りつぶし
 using var region = bitmap.Crop(new EsRectInt(10, 20, 800, 600));
+using var readOnly = EsBitmap.Create(bitmap);             // 読み取り専用の複製
 ```
 
 ## 4. 制限事項

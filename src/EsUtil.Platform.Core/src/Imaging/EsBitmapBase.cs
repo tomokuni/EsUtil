@@ -142,6 +142,9 @@ public abstract class EsBitmapBase : IEsBitmap
         return Color.FromArgb(a, r, g, b);
     }
 
+    /// <inheritdoc/>
+    public string ToSizeText() => $"{Width}x{Height}";
+
     /// <summary>破棄済みなら例外を投げる。</summary>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     public void ThrowIfDisposed()

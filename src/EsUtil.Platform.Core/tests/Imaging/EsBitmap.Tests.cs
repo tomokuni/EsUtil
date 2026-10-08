@@ -149,6 +149,68 @@ public class EsBitmapTests
     }
 
     [Fact]
+    internal void ToSizeText_幅x高さ形式で返す()
+    {
+        using var bmp = EsBitmap.Create(1920, 1080);
+        IEsBitmap read = bmp;
+
+        Assert.Equal("1920x1080", read.ToSizeText());
+    }
+
+    [Fact]
+    internal void ToSizeText_0サイズでも形式は保つ()
+    {
+        using var bmp = EsBitmap.Create(0, 0);
+        IEsBitmap read = bmp;
+
+        Assert.Equal("0x0", read.ToSizeText());
+    }
+
+    [Fact]
+    internal void ToSizeText_書き換え可能な画像でも同じ書式を返す()
+    {
+        using var bmp = EsWritableBitmap.Create(640, 480);
+        IEsBitmap read = bmp;
+
+        Assert.Equal("640x480", read.ToSizeText());
+    }
+
+    // ====================================================================
+    // 借用した画像からの複製（Create(IEsBitmap)）
+    // ====================================================================
+
+    [Fact]
+    internal void Create_借用画像から読み取り専用の複製を作る()
+    {
+        using var source = EsWritableBitmap.Create(3, 2, System.Drawing.Color.FromArgb(255, 10, 20, 30));
+        IEsBitmap read = source;
+
+        using var copy = EsBitmap.Create(read);
+
+        Assert.Equal(3, copy.Size.Width);
+        Assert.Equal(2, copy.Size.Height);
+        // FromArgb(255, 10, 20, 30) は A=255 / R=10 / G=20 / B=30
+        Assert.Equal((byte)30, copy.GetPixel(1, 1).B);
+        Assert.Equal((byte)10, copy.GetPixel(1, 1).R);
+        // 読み取り専用の型で返す（元のバッファは共有しない）
+        Assert.IsType<EsBitmap>(copy);
+    }
+
+    [Fact]
+    internal void Create_借用画像がnullならArgumentNullExceptionを投げる()
+        => Assert.Throws<ArgumentNullException>(() => EsBitmap.Create(null!));
+
+    [Fact]
+    internal void Create_借用画像が破棄済みならObjectDisposedExceptionを投げる()
+    {
+        var source = EsBitmap.Create(2, 2);
+        IEsBitmap read = source;
+        source.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(() => EsBitmap.Create(read));
+    }
+
+    [Fact]
     internal void GetPixel_未初期化領域は透明になる()
     {
         using var bmp = Create();

@@ -52,6 +52,28 @@ public sealed class EsBitmap : EsBitmapBase, IDisposable
     public static EsBitmap Create(EsSizeInt size, Color color)
         => Create(size.Width, size.Height, color);
 
+    /// <summary>借用した画像を複製し、読み取り専用の画像を生成する。</summary>
+    /// <param name="source">複製元の画像。 借用であり破棄しない。</param>
+    /// <returns>独立した複製（読み取り専用）。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>書き換え可能な複製が要る場合</b>は <see cref="EsWritableBitmap.Create(EsBitmap)"/>（権利を変える複製）を使う。<br/>
+    /// <b>本メソッドが要る理由</b>: 本型は書き換えの入口を公開しないため、外部（相互変換の拡張メソッド等）が
+    /// 生のピクセルから読み取り専用の画像を組み立てられない。 複製の手順を本型が単一所有する
+    /// （ピクセルをコピーするため、生成元が書き換え中でないことを呼び出し側が保証すること）。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
+    public static EsBitmap Create(IEsBitmap source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ObjectDisposedException.ThrowIf(source.IsDisposed, source);
+
+        // 全領域を 1 回のコピーで覆うため、生成時の 0 埋めは行わない
+        var result = new EsBitmap(source.Width, source.Height, clear: false);
+        source.Pixels.CopyTo(result.WritableBuffer);
+        return result;
+    }
+
     /// <summary>指定サイズのピクセル バッファを確保する。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>
     /// <param name="height">高さ（ピクセル）。 0 以上。</param>

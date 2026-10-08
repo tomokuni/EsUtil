@@ -45,7 +45,7 @@ public sealed partial class WinCaptureService(ILogger? logger = null) : ICapture
     {
         var drawingRect = new DrawingRect(bounds.X, bounds.Y, bounds.Width, bounds.Height);
         using var bitmap = CaptureBitmap(drawingRect);
-        return bitmap.ToEsBitmap();
+        return bitmap.ToEsWritableBitmap();
     }
 
     /// <summary>仮想スクリーン（全モニタを包含する領域）全体を 1 回のキャプチャで取得する。</summary>
@@ -79,7 +79,7 @@ public sealed partial class WinCaptureService(ILogger? logger = null) : ICapture
     /// <remarks>
     /// CopyFromScreen は GDI の同期コールであり、DWM 応答不能時にはブロックする可能性がある。<br/>
     /// 呼び出し側（SelectionSession）はバックグラウンド実行とタイムアウトで保護する。<br/>
-    /// <c>Format32bppPArgb</c>（アルファ乗算済み・不透明）で生成し、<see cref="EsBitmapDrawingExtensions.ToEsBitmap(System.Drawing.Bitmap)"/>
+    /// <c>Format32bppPArgb</c>（アルファ乗算済み・不透明）で生成し、<see cref="EsBitmapDrawingExtensions.ToEsWritableBitmap(System.Drawing.Bitmap)"/>
     /// が PArgb を直接読み取れるようにする（アルファ強制不要）。<br/>
     /// <b>GDI+ の失敗は記録して呼び出し側へ伝搬する</b>（Windows の操作が失敗した原因を残す）。
     /// </remarks>
