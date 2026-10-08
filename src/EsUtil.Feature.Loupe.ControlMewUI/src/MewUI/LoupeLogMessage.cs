@@ -46,7 +46,7 @@ internal static partial class LoupeLogMessage
     /// （寸法が同じ別画像への差し替えは変更として記録する）。<br/>
     /// 寸法の文字列化は <see cref="EsImageSourceText.ToSizeText"/> が単一所有する。
     /// </remarks>
-    public static void LogSourceChanged(this ILogger logger, EsBitmap? oldValue, EsBitmap? newValue)
+    public static void LogSourceChanged(this ILogger logger, IEsBitmap? oldValue, IEsBitmap? newValue)
     {
         if (ReferenceEquals(oldValue, newValue))
         {

@@ -168,7 +168,7 @@ flowchart TB
 - **分類**: 内部静的クラス（`internal static class LoupeContextPainter`。 Avalonia 版の描画実装）
 - **責務**: 描画計画（`LoupeDrawPlan`）を Avalonia の描画 API（`DrawingContext`）へ写す（**層の順序も描く値も計画が単一所有する**ため、本クラスは順に描く だけである）
 - **可視性**: internal（描画の実装詳細。 見た目の差し替えは `LoupeControl.Appearance` / `DrawPlanResolver` / `DrawPlan` で行う）
-  **描画の入口**: `LoupeContextPainter.Paint(DrawingContext context, EsBitmap? source, in LoupeDrawPlan plan)`（図形のみ。 **テキストは描かない**。 中心座標ラベルはコントロールが UI 要素として配置する）
+  **描画の入口**: `LoupeContextPainter.Paint(DrawingContext context, IEsBitmap? source, in LoupeDrawPlan plan)`（図形のみ。 **テキストは描かない**。 中心座標ラベルはコントロールが UI 要素として配置する）
 - **特徴**:  描画の可否は外観（`Appearance` の `Show*`）を見て本クラスが判断する（計画は表示可否で矩形も層も消さない）。 枠線の太さの物理ピクセルへの換算と装飾の矩形の導出は**提示層が解決済み**である（本クラスは計算を持たない）。 色 → ブラシの共有は `SolidColorBrushCache` が
 - **依存**: EsUtil.Feature.Loupe.Presenter（`LoupeDrawPlan` / `LoupeAppearance` / `LoupeDrawLayer`）/ Platform.AvaloniaUI（`DrawingContext`（相互変換）/ `SolidColorBrushCache`）/ EsUtil.Platform.Core（`EsBitmap` / `System.Drawing.Color`）
 
@@ -187,11 +187,11 @@ flowchart TB
 ### 6.4 画像入力とピクセル抽出
 
 - 公開画像入力はAvalonia標準の `IImage?` とし、`Image.Source` と同じBindingモデルで利用できる。
-- ピクセル抽出が必要な切り出しの内部境界だけ `EsBitmap` を要求する（切り出し領域はコアの `LoupeGeometry.MagnifiedImage` が決める）。
-- `Source` が `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む派生型）の場合は `CopyPixels` による複製（`EsBitmap` 化）で抽出する。
-- `Source` が `EsImageSourceAdapter` の場合は内包する `EsBitmap` を直接抽出する（複製なし）。
+- ピクセル抽出が必要な切り出しの内部境界だけ `IEsBitmap` を要求する（切り出し領域はコアの `LoupeGeometry.MagnifiedImage` が決める）。
+- `Source` が `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む派生型）の場合は `CopyPixels` による複製（`EsWritableBitmap` 化）で抽出する。
+- `Source` が `IEsBitmap`（表示アダプタ）の場合はそのピクセルを直接抽出する（複製なし）。
 - `Bitmap`（派生を含む） / `EsImageSourceAdapter` 以外の `IImage`（`CroppedBitmap` 等）は `NotSupportedException` が発生する。
-- 切り出し（`EsBitmap.Crop`）と合成（`RenderTargetBitmap` / `DrawingContext`）は UI スレッドで行う（バックグラウンド抽出は連続再描画時にスレッドプールが競合し、移動中の追従が止まるため行わない）。 一時 `RenderTargetBitmap` は描画直後に破棄する。
+- 切り出し（`IEsBitmap` の拡張 `Crop`）と合成（`RenderTargetBitmap` / `DrawingContext`）は UI スレッドで行う（バックグラウンド抽出は連続再描画時にスレッドプールが競合し、移動中の追従が止まるため行わない）。 一時 `RenderTargetBitmap` は描画直後に破棄する。
 
 ### 6.5 切り出し領域の幾何（`EsUtil.Feature.Loupe.Core`）
 
@@ -199,14 +199,14 @@ flowchart TB
 - **分類**: 幾何（`public readonly record struct`）の導出プロパティ
 - **責務**: 切り出し領域の幾何（どこを切り出すか）を幾何の値から導出する
 - **公開API**: 描画計画（`LoupeDrawPlan.MagnifiedImage`）として外部へ渡る
-- **切り出しの実行は本メンバーにない**: `EsBitmap.Crop` を描画実装（Avalonia は `LoupeContextPainter`）が呼ぶ
+- **切り出しの実行は本メンバーにない**: `IEsBitmap` の拡張 `Crop` を描画実装（Avalonia は `LoupeContextPainter`）が呼ぶ
 - **依存**: `EsUtil.Platform.Core`（`EsPoint` / `EsRect` / `EsRectInt`）。 Avalonia には依存しない
 
 ### 6.6 LoupeLogMessage
 
 - **分類**: ログ定義（`LoggerMessage` source generator。 `public static partial class`）
 - **責務**: ログの書式・レベルを UI 間で揃え、定義の所有者を出力の主体ごとに分ける
-- **本 UI が呼ぶ定義**: **本プロジェクトの `LoupeLogMessage`** が単一所有する（`LogSourceChanged`（Debug。 設定名は本 UI が付与）/ `LogUpdateError`（Error））。 拡大元画像はコントロール固有の値であり（コアのファサードは画像を保持しない）、画像の寸法の文字列化は本 UI が `IImage.Size` から行う（`IImage` はコアの `IEsImageSource` へ依存しないため共通化しない。 破棄済みは型名で代用する）
+- **本 UI が呼ぶ定義**: **本プロジェクトの `LoupeLogMessage`** が単一所有する（`LogSourceChanged`（Debug。 設定名は本 UI が付与）/ `LogUpdateError`（Error））。 拡大元画像はコントロール固有の値であり（コアのファサードは画像を保持しない）、画像の寸法の文字列化は本 UI が `IImage.Size` から行う（`IImage` はコアの `IEsBitmap` へ依存しないため共通化しない。 破棄済みは型名で代用する）
 - **コアが出力する定義**: `EsUtil.Feature.Loupe.Core` の `LoupeLogMessage`（internal）が持つ（設定値・拡大中心の変更。 **設定名はコアが付与**し、UI 層は値だけを渡す）
 - **本 UI 固有のログ**: 中間ビットマップを生成する描画パイプライン固有の `LogRenderCore` / `LogGenerateAsyncDone` は **本プロジェクトの `LoupeLogMessage`**（`src/EsUtil.Feature.Loupe.ControlAvaloniaUI/src/AvaloniaUI/Logging/LoupeLogMessage.cs`・`internal static partial class`）が所有する
 - **依存**: Microsoft.Extensions.Logging
@@ -219,7 +219,7 @@ flowchart TB
 ### 6.8 UI 固有の機構（コアへ移さない）
 
 - `LoupeRenderCoordinator`: 再描画要求のバッチ化（実行キューへのポストで 1 フレーム 1 回に結合）、表示中の判定と世代番号による古い結果の破棄、未実行要求の破棄と解放の手順を単一所有する。 中間ビットマップを持つ UI にだけ必要なため本プロジェクトが所有し、実行キューと優先度は `post: action => Dispatcher.UIThread.Post(action, DispatcherPriority.Render)` として注入する。
-- `LoupeRenderPipeline`: Avalonia の `IImage` を切り出し元（`EsBitmap`）へ解決し、描画（`LoupeContextPainter.Paint`。 `DrawingContext` 経由）を UI スレッドで実行する（`RenderAsync(source, plan)`）。 `IImage` の型判定と `Bitmap` → `EsBitmap` の複製が UI 固有。
+- `LoupeRenderPipeline`: Avalonia の `IImage` を切り出し元（`IEsBitmap`）へ解決し、描画（`LoupeContextPainter.Paint`。 `DrawingContext` 経由）を UI スレッドで実行する（`RenderAsync(source, plan)`）。 `IImage` の型判定と `Bitmap` → `EsWritableBitmap` の複製が UI 固有。
 - `LoupeSourceResolver`: `IImage` の対応型判定（`Bitmap` / `EsImageSourceAdapter`）・破棄済みの検出・ソース寸法のログ用表現を単一所有する（UI スレッドに依存しない純粋関数）。
 
 ## 7. 依存ルール
@@ -250,9 +250,9 @@ sequenceDiagram
     Ctl->>Ctl: ResolveDrawPlan（提示層が幾何・外観・層の順序・ラベル配置を解決する）
     Ctl->>Pl: RenderAsync(source, plan)
     Pl->>Sr: IsSourceSupported(source)（未対応型は例外）/ Resolve(source)
-    Sr-->>Pl: 切り出し元 EsBitmap（Bitmap は複製・共有参照はそのまま）
+    Sr-->>Pl: 切り出し元 IEsBitmap（Bitmap は複製・借用はそのまま）
     Pl->>Rdr: LoupeContextPainter.Paint(DrawingContext, source, plan)（UI スレッド。描画の順序は計画が単一所有）
-    Rdr->>Ext: EsBitmap.Crop(content.MagnifiedImage.CropSourceRect)（描画実装が実行する）
+    Rdr->>Ext: IEsBitmap の拡張 Crop(content.MagnifiedImage.CropSourceRect)（描画実装が実行する）
     Ext-->>Rdr: 切り出し画像（範囲外は透明パディング）
     Rdr-->>Pl: 合成 Bitmap
     Pl-->>Ctl: 生成 Bitmap

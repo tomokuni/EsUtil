@@ -158,7 +158,7 @@ public Point? CenterPoint { get; set; } = new(400, 300);
 public bool IsLoupeVisible { get; set; } = true;
 ```
 
-`Source` は `Image.Source` と同じAvaloniaの `IImage?` 型です。 ピクセル抽出処理は `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む）と `EsImageSourceAdapter`（コアの `EsBitmap` を内包する `IImage` アダプタ）をサポートします。
+`Source` は `Image.Source` と同じAvaloniaの `IImage?` 型です。 ピクセル抽出処理は `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む）と `EsImageSourceAdapter`（コアの `IEsBitmap` を実装する `IImage` アダプタ）をサポートします。
 
 ## 5. 公開API
 
@@ -397,7 +397,7 @@ event EventHandler<LoupeRenderedEventArgs>? Rendered
 
 | プロパティ | 型 | 説明 |
 | --- | --- | --- |
-| `Bitmap` | `EsBitmap` | 描画済みのルーペ画像。 イベントハンドラ内でピクセルへオーバーレイを直接描画できる（所有権は `LoupeControl` 側） |
+| `Bitmap` | `IEsWritableBitmap` | 描画済みのルーペ画像。 イベントハンドラ内でピクセルへオーバーレイを直接描画できる（所有権は `LoupeControl` 側） |
 | `Content` | `LoupeDrawPlan` | 実際に描画した描画計画（可視域の左上 `CaptureTopLeft`（実数を含む実効原点）・拡大率 `ZoomLevel`・描画面のサイズを持つ） |
 
 オーバーレイの描画位置は `e.Content.CaptureTopLeft` と `e.Content.ZoomLevel` から `(対象座標 − CaptureTopLeft) × ZoomLevel` で求められます（`CaptureTopLeft` は**可視域の左上（実効原点。 小数を含む）**であり、拡大中心は描画面の中心へ写るため、十字線と本式の結果は一致します）。
@@ -450,7 +450,7 @@ StyledProperty は同ファイルに定義されます（Avalonia のバイン�
 
 `Source` に設定した元画像（`Bitmap` / `EsImageSourceAdapter`）の所有権は利用側にあります。
 
-`LoupeControl` は元画像を破棄しません（`EsImageSourceAdapter` を設定した場合も、内包する `EsBitmap` の破棄は利用側に委ねる。 `EsImageSourceAdapter` は `IImage` の非所有契約のため `Source` の設定では破棄されないので、**差し替える側が旧アダプタを破棄して射影を解放する**）。
+`LoupeControl` は元画像を破棄しません（`EsImageSourceAdapter` を設定した場合も、真実の画像の破棄は利用側に委ねる。 `EsImageSourceAdapter` は `IImage` の非所有契約のため `Source` の設定では破棄されないので、**差し替える側が旧アダプタを破棄して射影を解放する**）。
 
 本コントロール自身が生成したアダプタ（`SetLoupeBitmap`）は本コントロールが破棄します。
 

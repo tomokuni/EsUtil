@@ -16,7 +16,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.ViewModels;
 public sealed class MainWindowViewModel : ObservableObject
 {
     /// <summary>テスト画像の元（本 VM が生存する間保持する。 <see cref="SourceImage"/> のアダプタは本値を借用する）。</summary>
-    private readonly EsBitmap _sourceBitmap = TestImageFactory.Create();
+    private readonly EsWritableBitmap _sourceBitmap = TestImageFactory.Create();
 
     /// <summary>テスト画像（ルーペの <c>Source</c> にバインドする。 元画像を借りて包む非所有アダプタ）。</summary>
     /// <remarks><see cref="IImage"/> は非所有の契約のため、元画像の破棄は本 VM（<see cref="_sourceBitmap"/>）が行う。</remarks>

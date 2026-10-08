@@ -1,0 +1,223 @@
+using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
+using Xunit;
+
+namespace EsUtil.Platform.Core.Tests.Imaging;
+
+/// <summary>
+/// <see cref="EsBitmapExtensions"/>（画像を変更しない操作）の単体テスト。
+/// </summary>
+/// <remarks>
+/// 切り出し（<see cref="EsBitmapExtensions.Crop(IEsBitmap, EsRectInt)"/>）は<b>借用した読み取り専用の画像からも</b>
+/// 呼べる必要がある（実測: ルーペが表示アダプタの画像を切り出す）。 そのため本テストは
+/// <see cref="IEsBitmap"/> を受ける形を固定し、<see cref="EsWritableBitmap"/> からも呼べることを併せて検証する。<br/>
+/// 静的共有状態を持たないため、UI フレームワークの初期化に依存しない（<c>[Fact]</c> で並列実行される）。
+/// </remarks>
+public class EsBitmapExtensionsTests
+{
+    /// <summary>赤で塗りつぶした書き換え可能な画像を生成する（切り出し元）。</summary>
+    private static EsWritableBitmap CreateRed(int w = 10, int h = 10)
+        => EsWritableBitmap.Create(w, h, System.Drawing.Color.FromArgb(255, 255, 0, 0));
+
+    // ====================================================================
+    // GetPixel（座標型）
+    // ====================================================================
+
+    [Fact]
+    internal void GetPixel_座標型のオーバーロードは成分と一致する()
+    {
+        using var src = EsWritableBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 30, 20, 10));
+        IEsBitmap read = src;
+
+        var (b, g, r, a) = read.GetPixel(1, 2);
+        var color = read.GetPixel(new EsPointInt(1, 2));
+
+        Assert.Equal((byte)10, color.B);
+        Assert.Equal(b, color.B);
+        Assert.Equal(g, color.G);
+        Assert.Equal(r, color.R);
+        Assert.Equal(a, color.A);
+    }
+
+    [Fact]
+    internal void GetPixel_nullはArgumentNullExceptionを投げる()
+        => Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.GetPixel(null!, new EsPointInt(0, 0)));
+
+    // ====================================================================
+    // Crop（矩形切り出し）
+    // ====================================================================
+
+    [Fact]
+    internal void Crop_範囲内の矩形を切り出す()
+    {
+        using var src = CreateRed();
+
+        using var result = src.Crop(new EsRectInt(2, 2, 4, 4));
+
+        Assert.Equal(4, result.Size.Width);
+        Assert.Equal(4, result.Size.Height);
+        // 切り出しピクセルが保持されている
+        Assert.Equal((byte)255, result.GetPixel(0, 0).R);
+    }
+
+    [Fact]
+    internal void Crop_読み取り専用の画像からも切り出せる()
+    {
+        using var src = EsBitmap.Create(10, 10, System.Drawing.Color.FromArgb(255, 255, 0, 0));
+
+        using var result = src.Crop(new EsRectInt(1, 1, 3, 3));
+
+        // 借用した読み取り専用の画像から、書き換え可能な切り出し結果が得られる
+        Assert.Equal(3, result.Size.Width);
+        Assert.Equal((byte)255, result.GetPixel(0, 0).R);
+    }
+
+    [Fact]
+    internal void Crop_成分指定のオーバーロードは矩形と同じ結果になる()
+    {
+        using var src = CreateRed();
+
+        using var byRect = src.Crop(new EsRectInt(2, 2, 4, 4));
+        using var byComponents = src.Crop(2, 2, 4, 4);
+
+        Assert.Equal(byRect.Size, byComponents.Size);
+        Assert.Equal(byRect.GetPixel(1, 1), byComponents.GetPixel(1, 1));
+    }
+
+    [Fact]
+    internal void Crop_幅0の矩形は例外を投げる()
+    {
+        using var src = CreateRed();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Crop(new EsRectInt(0, 0, 0, 4)));
+    }
+
+    [Fact]
+    internal void Crop_高さ0の矩形は例外を投げる()
+    {
+        using var src = CreateRed();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Crop(new EsRectInt(0, 0, 4, 0)));
+    }
+
+    [Fact]
+    internal void Crop_範囲外は透明パディングで要求サイズを返す()
+    {
+        using var src = CreateRed();
+
+        // 矩形が右端を超える場合、コピーできる部分のみコピーし、範囲外は透明（0）のまま
+        using var result = src.Crop(new EsRectInt(8, 0, 10, 10));
+
+        Assert.Equal(10, result.Size.Width);
+        Assert.Equal(10, result.Size.Height);
+        // コピー可能な左側 2px 分は赤（R=255）が保持される
+        Assert.Equal((byte)255, result.GetPixel(0, 0).R);
+        // 範囲外（右側 8px 分）は透明（R=0）
+        Assert.Equal((byte)0, result.GetPixel(9, 0).R);
+    }
+
+    [Fact]
+    internal void Crop_完全に範囲外でも要求サイズを透明パディングで返す()
+    {
+        using var src = CreateRed();
+
+        // 矩形がソースと交差しない場合でも、要求サイズの全透明画像を返す
+        using var result = src.Crop(new EsRectInt(20, 20, 5, 5));
+
+        Assert.Equal(5, result.Size.Width);
+        Assert.Equal(5, result.Size.Height);
+        // 全ピクセル透明
+        Assert.Equal((byte)0, result.GetPixel(0, 0).R);
+        Assert.Equal((byte)0, result.GetPixel(4, 4).A);
+    }
+
+    [Fact]
+    internal void Crop_左上がソース範囲外の場合は透明パディングで位置関係を保つ()
+    {
+        using var src = CreateRed();
+
+        // 矩形の左上がソースの外（負）の場合、外側は透明のまま、重なる部分は位置関係を保ってコピーする
+        using var result = src.Crop(new EsRectInt(-3, -3, 10, 10));
+
+        Assert.Equal(10, result.Size.Width);
+        Assert.Equal(10, result.Size.Height);
+        // ソース外（左上の 3x3）は透明
+        Assert.Equal((byte)0, result.GetPixel(0, 0).A);
+        Assert.Equal((byte)0, result.GetPixel(2, 2).A);
+        // ソース (0,0) はデスティネーションの (3,3) へ写る（内容が左上へずれない）
+        Assert.Equal((byte)255, result.GetPixel(3, 3).R);
+        Assert.Equal((byte)255, result.GetPixel(9, 9).R);
+    }
+
+    [Fact]
+    internal void Crop_左上が大きく外れた場合は全ピクセル透明を返す()
+    {
+        using var src = CreateRed();
+
+        // 要求矩形がソースと全く重ならない（左上が負で大きく外れる）場合も、要求サイズの全透明を返す
+        using var result = src.Crop(new EsRectInt(-20, -20, 5, 5));
+
+        Assert.Equal(5, result.Size.Width);
+        Assert.Equal(5, result.Size.Height);
+        Assert.Equal((byte)0, result.GetPixel(0, 0).A);
+        Assert.Equal((byte)0, result.GetPixel(4, 4).A);
+    }
+
+    [Fact]
+    internal void Crop_全面を切り出す場合はパディングを持たない()
+    {
+        // パディングが無い場合は透明化を行わないため、全ピクセルがコピー元の色で埋まることを固定する
+        using var src = EsWritableBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 255, 0, 0));
+
+        using var result = src.Crop(new EsRectInt(0, 0, 4, 4));
+
+        Assert.Equal((byte)255, result.GetPixel(0, 0).R);
+        Assert.Equal((byte)255, result.GetPixel(3, 3).R);
+        Assert.Equal((byte)255, result.GetPixel(3, 3).A);
+    }
+
+    [Fact]
+    internal void Crop_パディングは上端と下端と中間行の左右をすべて透明にする()
+    {
+        using var src = EsWritableBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 255, 0, 0));
+
+        // 上下左右すべてにパディングが出る矩形（左上負・サイズ超過）
+        using var result = src.Crop(new EsRectInt(-1, -2, 10, 10));
+
+        // 上端のパディング行（2 行）
+        Assert.Equal((byte)0, result.GetPixel(5, 0).A);
+        Assert.Equal((byte)0, result.GetPixel(5, 1).A);
+        // 中間行の左パディング（1 列）と右パディング（5 列）
+        Assert.Equal((byte)0, result.GetPixel(0, 2).A);
+        Assert.Equal((byte)0, result.GetPixel(5, 2).A);
+        // 下端のパディング行（4 行。 高さ 10 のうち上端 2 + コピー 4）
+        Assert.Equal((byte)0, result.GetPixel(5, 9).A);
+        // コピーされた領域は赤のまま
+        Assert.Equal((byte)255, result.GetPixel(1, 2).R);
+        Assert.Equal((byte)255, result.GetPixel(4, 5).R);
+    }
+
+    [Fact]
+    internal void Crop_切り出し元が空なら透明を返す()
+    {
+        using var src = EsBitmap.Create(0, 0);
+
+        using var result = src.Crop(new EsRectInt(0, 0, 4, 4));
+
+        Assert.Equal(4, result.Size.Width);
+        Assert.Equal(0, result.GetPixel(0, 0).A);
+    }
+
+    [Fact]
+    internal void Crop_破棄後は例外を投げる()
+    {
+        var src = CreateRed();
+        src.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(() => src.Crop(new EsRectInt(0, 0, 4, 4)));
+    }
+
+    [Fact]
+    internal void Crop_nullはArgumentNullExceptionを投げる()
+        => Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.Crop(null!, new EsRectInt(0, 0, 4, 4)));
+}

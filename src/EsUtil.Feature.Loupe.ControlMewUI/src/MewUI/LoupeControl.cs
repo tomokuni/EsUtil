@@ -48,8 +48,8 @@ public sealed class LoupeControl : Panel
 {
     /// <summary><see cref="Source"/> プロパティ（拡大元の 100% 画像）。</summary>
     /// <remarks>変更ログはコアのログ定義が単一所有する（本コントロールは変更通知で呼ぶだけ）。</remarks>
-    public static readonly MewProperty<EsBitmap?> SourceProperty =
-        MewProperty<EsBitmap?>.Register<LoupeControl>(
+    public static readonly MewProperty<IEsBitmap?> SourceProperty =
+        MewProperty<IEsBitmap?>.Register<LoupeControl>(
             nameof(Source), null, MewPropertyOptions.AffectsRender,
             changed: static (o, oldValue, newValue) => o.Log.LogSourceChanged(oldValue, newValue));
 
@@ -165,7 +165,7 @@ public sealed class LoupeControl : Panel
     /// 描画実装（<c>LoupeSkiaPainter</c>）は本プロジェクトの内部であるため、外部へは本メソッドが窓口になる。<br/>
     /// 計画を必要とする場合は <see cref="Rendered"/> の <c>Content</c> を使う。
     /// </remarks>
-    public static void DrawPlan(SKCanvas canvas, EsBitmap? source, in LoupeDrawPlan plan)
+    public static void DrawPlan(SKCanvas canvas, IEsBitmap? source, in LoupeDrawPlan plan)
         => LoupeSkiaPainter.Paint(canvas, source, in plan);
 
     /// <summary>図形（背景・市松模様・拡大画像・十字線・枠線）を描画する内部キャンバス。</summary>
@@ -181,7 +181,7 @@ public sealed class LoupeControl : Panel
 
     /// <summary>拡大元の 100% 画像を取得または設定する。</summary>
     /// <value>拡大元の画像。 null の場合は市松模様のみを表示する。</value>
-    public EsBitmap? Source
+    public IEsBitmap? Source
     {
         get => GetValue(SourceProperty);
         set => SetValue(SourceProperty, value);

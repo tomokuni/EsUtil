@@ -8,16 +8,16 @@ public static class TestImageFactory
     /// <summary>グラデーション＋グリッド＋マーカー付きのテスト画像を生成する。</summary>
     /// <param name="width">画像の幅（ピクセル）。</param>
     /// <param name="height">画像の高さ（ピクセル）。</param>
-    /// <returns>生成した画像（<see cref="EsBitmap"/>。 呼び出し側が保持し、表示には非所有アダプタで包む）。</returns>
+    /// <returns>生成した画像（<see cref="EsWritableBitmap"/>。 呼び出し側が保持し、表示には非所有アダプタで包む）。</returns>
     /// <remarks>
     /// 左上から右下へのグラデーションを背景とし、<br/>
     /// 10px グリッド（拡大ピクセル検証用）・50px グリッド（倍率計測用）・色付き円マーカー（ズーム確認用）を描画する。<br/>
     /// 画像外の色や十字線・枠線は LoupeControl 側が描画する。<br/>
-    /// <b>EsBitmap 採用理由</b>: <c>WriteableBitmap</c>（<c>Lock()</c> 書き込み）を避け、ピクセル操作が安定する。
+    /// <b>EsWritableBitmap 採用理由</b>: <c>WriteableBitmap</c>（<c>Lock()</c> 書き込み）を避け、ピクセル操作が安定する。
     /// </remarks>
-    public static EsBitmap Create(int width = 800, int height = 600)
+    public static EsWritableBitmap Create(int width = 800, int height = 600)
     {
-        var bitmap = EsBitmap.Create(width, height);
+        var bitmap = EsWritableBitmap.Create(width, height);
 
         for (var y = 0; y < height; y++)
         {

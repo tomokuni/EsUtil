@@ -169,10 +169,10 @@ public sealed class LoupeControl : Panel
         }
         finally
         {
-            // Bitmap 由来の場合のみ複製を破棄する（画像源（IEsImageSource）からの借用は破棄しない）
+            // Bitmap 由来の場合のみ複製を破棄する（表示アダプタからの借用は破棄しない）
             if (resolved.IsSourceBitmap)
             {
-                sourceBitmap?.Dispose();
+                (sourceBitmap as IDisposable)?.Dispose();
             }
         }
     }
@@ -593,17 +593,17 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     private EsImageSourceAdapter? _loupeImage;
 
-    /// <summary>内部描画結果（<see cref="EsBitmap"/>）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
+    /// <summary>内部描画結果（<see cref="EsWritableBitmap"/>）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
     /// <remarks>
     /// 本コントロールが生成したルーペ画像であるため、<b>本コントロールが破棄する</b>
-    /// （アダプタは真実を所有しない。 <see cref="ReleaseBitmap"/> / <see cref="SetLoupeBitmap"/> で破棄する）。<br/>
+    /// （<see cref="ReleaseBitmap"/> / <see cref="SetLoupeBitmap"/> で破棄する）。<br/>
     /// <see cref="LoupeBitmap"/> は本値を返す（共有参照。 破棄はしないこと）。
     /// </remarks>
-    private EsBitmap? _loupeEs;
+    private EsWritableBitmap? _loupeEs;
 
-    /// <summary>内部描画結果（<see cref="EsBitmap"/>）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
+    /// <summary>内部描画結果（<see cref="EsWritableBitmap"/>）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
     /// <remarks><see cref="LoupeBitmap"/> が返す。 破棄はしないこと（本コントロールが破棄する）。</remarks>
-    internal EsBitmap? LoupeBitmap => _loupeEs;
+    internal EsWritableBitmap? LoupeBitmap => _loupeEs;
 
     // ====================================================================
     // ログ
@@ -659,15 +659,15 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     public event EventHandler<LoupeRenderedEventArgs>? Rendered;
 
-    /// <summary><see cref="Rendered"/> イベントを発火する（描画済み EsBitmap と描画計画を構築して通知）。</summary>
-    /// <param name="bitmap">描画済みのルーペ画像（EsBitmap）。 ホストがピクセルにオーバーレイを描画できる。</param>
+    /// <summary><see cref="Rendered"/> イベントを発火する（描画済み画像と描画計画を構築して通知）。</summary>
+    /// <param name="bitmap">描画済みのルーペ画像（書き換え可能な面）。 ホストがピクセルにオーバーレイを描画できる。</param>
     /// <param name="plan">実際に描画した描画計画（切り出し領域の左上と拡大率を持つ）。</param>
     /// <remarks>
     /// 切り出し領域の左上・拡大率は描画計画（<see cref="LoupeDrawPlan.CaptureTopLeft"/> / <see cref="LoupeDrawPlan.ZoomLevel"/>）が単一所有する。<br/>
     /// 中心未設定時は <see cref="LoupeDrawPlan.CaptureTopLeft"/> が null になる（オーバーレイ描画不可）。<br/>
     /// <b>中心座標ラベルは本コントロールがテキスト要素として表示する</b>ため、通知に含めない。
     /// </remarks>
-    private void RaiseRendered(EsBitmap bitmap, in LoupeDrawPlan plan)
+    private void RaiseRendered(IEsWritableBitmap bitmap, in LoupeDrawPlan plan)
     {
         Rendered?.Invoke(this, new LoupeRenderedEventArgs(bitmap, plan));
     }
@@ -701,7 +701,7 @@ public sealed class LoupeControl : Panel
     /// <summary>ビットマップを解放して画像表示をクリアする（冪等）。</summary>
     private void ReleaseBitmap()
     {
-        // 破棄済み EsBitmap を Image.Source が参照し続けないよう、先に Source を解除してから解放する。
+        // 破棄済みの画像を Image.Source が参照し続けないよう、先に Source を解除してから解放する。
         _image.Source = null;
         _loupeImage?.Dispose();
         _loupeImage = null;
@@ -767,29 +767,29 @@ public sealed class LoupeControl : Panel
     }
 
     /// <summary>生成したルーペビットマップをコントロールへ反映する。</summary>
-    /// <param name="bmp">生成したルーペビットマップ（EsBitmap）。</param>
+    /// <param name="bmp">生成したルーペビットマップ（書き換え可能な画像）。</param>
     /// <param name="plan">実際に描画した描画計画（切り出し領域の左上と拡大率を持つ）。</param>
     /// <remarks>
     /// 前回のビットマップを破棄し、<see cref="LoupeBitmap"/> と表示内容（画像）を更新する。<br/>
     /// 表示状態（IsVisible）と要素サイズ（Width / Height）は変更しない（サイズは <see cref="UpdatePosition"/> が単一所有する）。<br/>
-    /// 表示への反映前に <see cref="Rendered"/> イベントを発火し、ホスト側が EsBitmap のピクセルに<br/>
+    /// 表示への反映前に <see cref="Rendered"/> イベントを発火し、ホスト側が画像のピクセルに<br/>
     /// オーバーレイ（線分の破線等）を描画できるようにする（イベント後に表示へ反映）。<br/>
     /// <b>チラつき防止</b>: <c>Image.Source</c> が前回のアダプタを参照し続ける間に、<br/>
-    /// その内包 <see cref="EsBitmap"/> を破棄すると、描画時に破棄済みピクセルへアクセスして例外・チラつきが生じる。<br/>
+    /// その画像を破棄すると、描画時に破棄済みピクセルへアクセスして例外・チラつきが生じる。<br/>
     /// そのため、新しいアダプタを先に <c>Image.Source</c> へ設定し、旧アダプタは後から破棄する<br/>
-    /// （描画が参照するアダプタを連続的に保ち、破棄済み Bitmap の参照を防ぐ）。
+    /// （描画が参照するアダプタを連続的に保ち、破棄済みバッファの参照を防ぐ）。
     /// </remarks>
-    private void SetLoupeBitmap(EsBitmap bmp, in LoupeDrawPlan plan)
+    private void SetLoupeBitmap(EsWritableBitmap bmp, in LoupeDrawPlan plan)
     {
-        // ホストが EsBitmap のピクセルへオーバーレイ（破線等）を描画するフック。 イベント内でピクセルが更新される
+        // ホストがピクセルへオーバーレイ（破線等）を描画するフック。 イベント内でピクセルが更新される
         RaiseRendered(bmp, plan);
 
-        // イベント後の EsBitmap（ホストのオーバーレイ描画を含む）を表示境界で Avalonia 画像として反映する。
+        // イベント後の画像（ホストのオーバーレイ描画を含む）を表示境界で Avalonia 画像として反映する。
         // EsImageSourceAdapter（表示用の変換は初回のみ）を Source に設定する。
-        // 旧アダプタを破棄する前に、新しいアダプタを先に Source へ設定する（破棄済み Bitmap の参照防止・チラつき防止）。
+        // 旧アダプタを破棄する前に、新しいアダプタを先に Source へ設定する（破棄済みバッファの参照防止・チラつき防止）。
         var previousImage = _loupeImage;
         var previousEs = _loupeEs;
-        // 画像（EsBitmap）は本コントロールが所有し、アダプタは非所有で包むだけ（アダプタは射影だけを所有する）
+        // 画像は本コントロールが所有し、アダプタは非所有で包むだけ（アダプタは射影だけを所有する）
         _loupeEs = bmp;
         _loupeImage = new EsImageSourceAdapter(bmp);
         _image.Source = _loupeImage;

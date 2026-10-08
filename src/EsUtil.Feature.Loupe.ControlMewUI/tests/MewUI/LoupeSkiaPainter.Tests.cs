@@ -97,7 +97,7 @@ public class LoupeSkiaPainterTests
     internal void Paint_画像の外はペーストボードの色になる()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
-        using var source = EsBitmap.Create(LoupeSize, LoupeSize, s_image);
+        using var source = EsWritableBitmap.Create(LoupeSize, LoupeSize, s_image);
 
         // 中心 x=1・一辺 32・拡大率 4 → 切り出し 8 px の左上 x=-3（画像の外）→ 描画先の左側が画像外になる
         Paint(target, CreateAppearance(pasteboard: s_background), new EsPoint(1, LoupeSize / 2), source);
@@ -111,7 +111,7 @@ public class LoupeSkiaPainterTests
     internal void Paint_拡大中心の周囲を切り出して拡大描画する()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
-        using var source = EsBitmap.Create(LoupeSize, LoupeSize, s_image);
+        using var source = EsWritableBitmap.Create(LoupeSize, LoupeSize, s_image);
 
         Paint(target, CreateAppearance(pasteboard: s_background), s_center, source);
 
@@ -136,7 +136,7 @@ public class LoupeSkiaPainterTests
     internal void Paint_拡大中心が未設定なら拡大画像を描かない()
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
-        using var source = EsBitmap.Create(LoupeSize, LoupeSize, s_image);
+        using var source = EsWritableBitmap.Create(LoupeSize, LoupeSize, s_image);
 
         Paint(target, CreateAppearance(pasteboard: s_background), center: null, source);
 
@@ -235,7 +235,7 @@ public class LoupeSkiaPainterTests
     /// <param name="appearance">外観。</param>
     /// <param name="center">拡大中心。</param>
     /// <param name="source">拡大元の画像。</param>
-    private static void Paint(RenderTarget target, LoupeAppearance appearance, EsPoint? center, EsBitmap? source = null)
+    private static void Paint(RenderTarget target, LoupeAppearance appearance, EsPoint? center, EsWritableBitmap? source = null)
         => LoupeSkiaPainter.Paint(target.Canvas, source, CreatePlan(appearance, center));
 
     /// <summary>テスト用の描画計画を提示層（実際の解決経路）で解決する。</summary>
