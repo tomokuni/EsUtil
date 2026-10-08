@@ -160,7 +160,7 @@ public partial class LoupePresenter
     /// </remarks>
     public string? LogPrefix
     {
-        get => field;
+        get;
         set
         {
             field = value;

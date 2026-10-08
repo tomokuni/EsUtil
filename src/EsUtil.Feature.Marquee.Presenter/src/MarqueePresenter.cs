@@ -168,7 +168,7 @@ public partial class MarqueePresenter
     /// </remarks>
     public string? LogPrefix
     {
-        get => field;
+        get;
         set
         {
             field = value;

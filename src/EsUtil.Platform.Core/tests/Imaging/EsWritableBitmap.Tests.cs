@@ -36,11 +36,11 @@ public class EsWritableBitmapTests
     {
         using var bmp = EsWritableBitmap.Create(6, 8, System.Drawing.Color.FromArgb(255, 255, 0, 0));
 
-        var px = bmp.GetPixel(3, 4);
-        Assert.Equal((byte)0, px.B);
-        Assert.Equal((byte)0, px.G);
-        Assert.Equal((byte)255, px.R);
-        Assert.Equal((byte)255, px.A);
+        var (B, G, R, A) = bmp.GetPixel(3, 4);
+        Assert.Equal((byte)0, B);
+        Assert.Equal((byte)0, G);
+        Assert.Equal((byte)255, R);
+        Assert.Equal((byte)255, A);
     }
 
     /// <summary>未初期化確保はサイズとバッファを用意する（ピクセルの値は保証しない）ことを検証する。</summary>
@@ -91,11 +91,11 @@ public class EsWritableBitmapTests
     {
         using var bmp = Create();
         bmp.SetPixel(1, 2, b: 10, g: 20, r: 30, a: 255);
-        var px = bmp.GetPixel(1, 2);
-        Assert.Equal((byte)10, px.B);
-        Assert.Equal((byte)20, px.G);
-        Assert.Equal((byte)30, px.R);
-        Assert.Equal((byte)255, px.A);
+        var (B, G, R, A) = bmp.GetPixel(1, 2);
+        Assert.Equal((byte)10, B);
+        Assert.Equal((byte)20, G);
+        Assert.Equal((byte)30, R);
+        Assert.Equal((byte)255, A);
     }
 
     /// <summary>座標型（<see cref="EsPointInt" />）のオーバーロードが成分オーバーロードと一致することを検証する。</summary>
@@ -131,11 +131,11 @@ public class EsWritableBitmapTests
         using var bmp = Create();
         bmp.Clear(b: 0, g: 0, r: 255, a: 255); // 赤・不透明
 
-        var px = bmp.GetPixel(3, 3);
-        Assert.Equal((byte)0, px.B);
-        Assert.Equal((byte)0, px.G);
-        Assert.Equal((byte)255, px.R);
-        Assert.Equal((byte)255, px.A);
+        var (B, G, R, A) = bmp.GetPixel(3, 3);
+        Assert.Equal((byte)0, B);
+        Assert.Equal((byte)0, G);
+        Assert.Equal((byte)255, R);
+        Assert.Equal((byte)255, A);
     }
 
     [Fact]
@@ -144,8 +144,8 @@ public class EsWritableBitmapTests
         using var bmp = Create();
         // 50% アルファの赤（R=255, A=128）
         bmp.Clear(b: 0, g: 0, r: 255, a: 128);
-        var px = bmp.GetPixel(0, 0);
-        Assert.Equal((byte)128, px.A);
+        var (B, G, R, A) = bmp.GetPixel(0, 0);
+        Assert.Equal((byte)128, A);
     }
 
     [Fact]
@@ -154,11 +154,11 @@ public class EsWritableBitmapTests
         using var bmp = Create();
         bmp.Clear(System.Drawing.Color.FromArgb(255, 3, 2, 1));
 
-        var px = bmp.GetPixel(0, 0);
-        Assert.Equal((byte)1, px.B);
-        Assert.Equal((byte)2, px.G);
-        Assert.Equal((byte)3, px.R);
-        Assert.Equal((byte)255, px.A);
+        var (B, G, R, A) = bmp.GetPixel(0, 0);
+        Assert.Equal((byte)1, B);
+        Assert.Equal((byte)2, G);
+        Assert.Equal((byte)3, R);
+        Assert.Equal((byte)255, A);
     }
 
     [Fact]
@@ -193,11 +193,11 @@ public class EsWritableBitmapTests
         using var bmp = Create();
         // 50% アルファの青（BGRA: B=255, G=0, R=0, A=128）
         bmp.SetPixel(2, 3, b: 255, g: 0, r: 0, a: 128);
-        var px = bmp.GetPixel(2, 3);
-        Assert.Equal((byte)255, px.B);
-        Assert.Equal((byte)0, px.G);
-        Assert.Equal((byte)0, px.R);
-        Assert.Equal((byte)128, px.A); // アルファが喪失（0 に強制）されない
+        var (B, G, R, A) = bmp.GetPixel(2, 3);
+        Assert.Equal((byte)255, B);
+        Assert.Equal((byte)0, G);
+        Assert.Equal((byte)0, R);
+        Assert.Equal((byte)128, A); // アルファが喪失（0 に強制）されない
     }
 
     [Fact]
@@ -205,11 +205,11 @@ public class EsWritableBitmapTests
     {
         using var bmp = Create();
         bmp.SetPixel(0, 0, b: 10, g: 20, r: 30, a: 0);
-        var px = bmp.GetPixel(0, 0);
-        Assert.Equal((byte)0, px.A);
-        Assert.Equal((byte)10, px.B);
-        Assert.Equal((byte)20, px.G);
-        Assert.Equal((byte)30, px.R);
+        var (B, G, R, A) = bmp.GetPixel(0, 0);
+        Assert.Equal((byte)0, A);
+        Assert.Equal((byte)10, B);
+        Assert.Equal((byte)20, G);
+        Assert.Equal((byte)30, R);
     }
 
     // ====================================================================

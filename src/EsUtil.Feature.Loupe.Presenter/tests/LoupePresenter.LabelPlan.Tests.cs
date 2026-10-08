@@ -15,7 +15,7 @@ namespace EsUtil.Feature.Loupe.Tests;
 public class LoupePresenterLabelPlanTests
 {
     /// <summary>測定に使う固定の実寸（テキストの実測値を模した値）。</summary>
-    private static readonly EsSize MeasuredSize = new(36.0, 14.0);
+    private static readonly EsSize s_measuredSize = new(36.0, 14.0);
 
     /// <summary>テスト用の中心座標ラベルのテキスト配置を生成する（基準点はルーペ左上の内側）。</summary>
     /// <param name="text">文言。</param>
@@ -38,7 +38,7 @@ public class LoupePresenterLabelPlanTests
     /// <param name="text">測定する文言。</param>
     /// <param name="fontSize">フォントサイズ。</param>
     /// <returns>固定の実寸。</returns>
-    private static EsSize Measure(string text, double fontSize) => MeasuredSize;
+    private static EsSize Measure(string text, double fontSize) => s_measuredSize;
 
     [Fact]
     internal void Resolve_ラベルが無ければ空を返す()
@@ -67,7 +67,7 @@ public class LoupePresenterLabelPlanTests
         // 基準点 (2, 2) がそのまま背景の左上になり、幅は実寸 + 内側余白で決まる
         Assert.Equal(2, element.DipRect.X);
         Assert.Equal(2, element.DipRect.Y);
-        Assert.Equal(MeasuredSize.Width + element.PaddingX * 2, element.DipRect.Width);
+        Assert.Equal(s_measuredSize.Width + element.PaddingX * 2, element.DipRect.Width);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class LoupePresenterLabelPlanTests
 
         // ルーペ上端の帯へ収めるため、上下の余白は左右（共通の体裁値）より狭い
         Assert.True(element.PaddingY < element.PaddingX);
-        Assert.Equal(MeasuredSize.Height + element.PaddingY * 2, element.DipRect.Height);
+        Assert.Equal(s_measuredSize.Height + element.PaddingY * 2, element.DipRect.Height);
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class LoupePresenterLabelPlanTests
             (text, fontSize) =>
             {
                 calls.Add((text, fontSize));
-                return MeasuredSize;
+                return s_measuredSize;
             });
 
         Assert.Equal([("(7, 8)", 12.0)], calls);

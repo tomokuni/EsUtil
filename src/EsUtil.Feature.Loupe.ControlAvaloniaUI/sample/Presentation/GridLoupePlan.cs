@@ -28,18 +28,18 @@ internal static class GridLoupePlan
     private const int BracketThickness = 3;
 
     /// <summary>格子と鉤の色（アンバー）。</summary>
-    private static readonly DrawingColor AccentColor = DrawingColor.FromArgb(255, 255, 196, 0);
+    private static readonly DrawingColor s_accentColor = DrawingColor.FromArgb(255, 255, 196, 0);
 
     /// <summary>格子線の色（半透明の白）。</summary>
-    private static readonly DrawingColor GridColor = DrawingColor.FromArgb(150, 255, 255, 255);
+    private static readonly DrawingColor s_gridColor = DrawingColor.FromArgb(150, 255, 255, 255);
 
     /// <summary>見本の外観を取得する。</summary>
     /// <value>格子と鉤の色・枠線の太さを設定した外観。</value>
     public static LoupeAppearance Appearance { get; } = LoupeAppearance.Default with
     {
-        BorderColor = AccentColor,
-        CrossColor = GridColor,
-        CoordLabelBackgroundColor = AccentColor,
+        BorderColor = s_accentColor,
+        CrossColor = s_gridColor,
+        CoordLabelBackgroundColor = s_accentColor,
         CoordLabelColor = DrawingColor.White,
         BorderThickness = BracketThickness,
     };

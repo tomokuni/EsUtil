@@ -345,7 +345,7 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     public string? LogPrefix
     {
-        get => field;
+        get;
         set
         {
             field = value;

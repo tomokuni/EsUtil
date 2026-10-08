@@ -15,7 +15,7 @@ namespace EsUtil.Feature.Marquee.Tests;
 public class MarqueePresenterLabelPlanTests
 {
     /// <summary>測定に使う固定の実寸（テキストの実測値を模した値）。</summary>
-    private static readonly EsSize MeasuredSize = new(42.0, 14.0);
+    private static readonly EsSize s_measuredSize = new(42.0, 14.0);
 
     /// <summary>テスト用のサイズラベルのテキスト配置を生成する（注目矩形の左上へ置く）。</summary>
     /// <param name="text">文言。</param>
@@ -33,7 +33,7 @@ public class MarqueePresenterLabelPlanTests
     /// <param name="text">測定する文言。</param>
     /// <param name="fontSize">フォントサイズ。</param>
     /// <returns>固定の実寸。</returns>
-    private static EsSize Measure(string text, double fontSize) => MeasuredSize;
+    private static EsSize Measure(string text, double fontSize) => s_measuredSize;
 
     /// <summary>テスト用の外観を生成する（本テストは色・フォントサイズ・内側余白の写像を検証する）。</summary>
     /// <returns>外観。</returns>
@@ -96,8 +96,8 @@ public class MarqueePresenterLabelPlanTests
 
         // 基準点 (10, 20) がそのまま背景の左上になる
         Assert.Equal(new EsPoint(10, 20), element.DipRect.TopLeft);
-        Assert.Equal(MeasuredSize.Width + MarqueeAppearance.LabelPaddingDefault * 2, element.DipRect.Width);
-        Assert.Equal(MeasuredSize.Height + MarqueeAppearance.LabelPaddingDefault * 2, element.DipRect.Height);
+        Assert.Equal(s_measuredSize.Width + MarqueeAppearance.LabelPaddingDefault * 2, element.DipRect.Width);
+        Assert.Equal(s_measuredSize.Height + MarqueeAppearance.LabelPaddingDefault * 2, element.DipRect.Height);
     }
 
     [Fact]
@@ -108,8 +108,8 @@ public class MarqueePresenterLabelPlanTests
 
         var element = Assert.Single(MarqueePresenter.ResolveLabelPlacements(null, label, CreateAppearance(), Measure));
 
-        Assert.Equal(200 - (MeasuredSize.Width + MarqueeAppearance.LabelPaddingDefault * 2), element.DipRect.X);
-        Assert.Equal(200 - (MeasuredSize.Height + MarqueeAppearance.LabelPaddingDefault * 2), element.DipRect.Y);
+        Assert.Equal(200 - (s_measuredSize.Width + MarqueeAppearance.LabelPaddingDefault * 2), element.DipRect.X);
+        Assert.Equal(200 - (s_measuredSize.Height + MarqueeAppearance.LabelPaddingDefault * 2), element.DipRect.Y);
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public class MarqueePresenterLabelPlanTests
         var element = Assert.Single(MarqueePresenter.ResolveLabelPlacements(CreateSizeLabel(), null, appearance, Measure));
 
         Assert.Equal(7.0, element.PaddingX);
-        Assert.Equal(MeasuredSize.Width + 14.0, element.DipRect.Width);
+        Assert.Equal(s_measuredSize.Width + 14.0, element.DipRect.Width);
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public class MarqueePresenterLabelPlanTests
             (text, fontSize) =>
             {
                 calls.Add((text, fontSize));
-                return MeasuredSize;
+                return s_measuredSize;
             });
 
         Assert.Equal([("サイズ", 14.0), ("(7, 8)", 12.0)], calls);

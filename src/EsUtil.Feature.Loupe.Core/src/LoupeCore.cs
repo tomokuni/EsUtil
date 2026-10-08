@@ -102,7 +102,7 @@ public sealed partial class LoupeCore
     /// </remarks>
     public string? LogPrefix
     {
-        get => field;
+        get;
         set
         {
             field = value;

@@ -127,7 +127,7 @@ public sealed partial class MarqueeCore
     /// <remarks>本コアのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定する（本層は最下層のため伝搬先は無い）。</remarks>
     public string? LogPrefix
     {
-        get => field;
+        get;
         set
         {
             field = value;

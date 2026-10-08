@@ -234,8 +234,6 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     private void UpdatePosition()
     {
-        var parent = Parent as Panel;
-
         // 親領域未接続（配置前・テスト等）は位置の補正基準が無いため補正されない（規則はコアが単一所有する）
         var layout = _presenter.ResolveLayout(ParentAreaSize);
 
@@ -245,7 +243,7 @@ public sealed class LoupeControl : Panel
         Height = layout.ClientSize;
 
         // 配置は親が接続され表示中の場合のみ行う（拡大中心が未設定か、親領域が表示サイズを収められない場合はコアが位置を返さない）
-        if (parent is null || !IsVisible || layout.Position is not { } position)
+        if (Parent is not Panel || !IsVisible || layout.Position is not { } position)
         {
             return;
         }

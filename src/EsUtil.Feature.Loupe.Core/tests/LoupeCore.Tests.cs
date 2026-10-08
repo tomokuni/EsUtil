@@ -14,7 +14,7 @@ namespace EsUtil.Feature.Loupe.Tests;
 public class LoupeCoreTests
 {
     /// <summary>親領域のサイズ（表示サイズのクランプ基準）。</summary>
-    private static readonly EsSize ParentSize = new(400, 300);
+    private static readonly EsSize s_parentSize = new(400, 300);
 
     /// <summary>対象 → 親領域 DIP を 2 倍で返す座標変換ポートを生成する。</summary>
     /// <returns>ToDip が 2 倍の座標変換ポート。</returns>
@@ -94,7 +94,7 @@ public class LoupeCoreTests
 
         loupe.Options = loupe.Options with { RequestedSize = 400 };
 
-        Assert.Equal(400, loupe.ResolveLayout(ParentSize).ClientSize);
+        Assert.Equal(400, loupe.ResolveLayout(s_parentSize).ClientSize);
     }
 
     // ====================================================================
@@ -106,7 +106,7 @@ public class LoupeCoreTests
     {
         var loupe = new LoupeCore();
 
-        var layout = loupe.ResolveLayout(ParentSize);
+        var layout = loupe.ResolveLayout(s_parentSize);
 
         Assert.Equal(160, layout.ClientSize);
         Assert.Null(layout.Position);
@@ -117,7 +117,7 @@ public class LoupeCoreTests
     {
         var loupe = new LoupeCore() { CenterPoint = new EsPoint(50, 60), PositionOffset = 20 };
 
-        var layout = loupe.ResolveLayout(ParentSize);
+        var layout = loupe.ResolveLayout(s_parentSize);
 
         Assert.Equal(new EsPoint(70, 80), layout.Position);
     }
@@ -127,7 +127,7 @@ public class LoupeCoreTests
     {
         var loupe = new LoupeCore() { CenterPoint = new EsPoint(390, 290) };
 
-        var layout = loupe.ResolveLayout(ParentSize);
+        var layout = loupe.ResolveLayout(s_parentSize);
 
         // 親領域 400x300・表示サイズ 160 では左上の上限が (240, 140) になる
         Assert.Equal(new EsPoint(240, 140), layout.Position);
@@ -149,7 +149,7 @@ public class LoupeCoreTests
         var loupe = new LoupeCore() { CenterPoint = new EsPoint(10, 20) };
         loupe.SetCoordTransform(CreateDoublingPort());
 
-        var layout = loupe.ResolveLayout(ParentSize);
+        var layout = loupe.ResolveLayout(s_parentSize);
 
         Assert.Equal(new EsPoint(20, 40), layout.Position);
     }
@@ -161,7 +161,7 @@ public class LoupeCoreTests
 
         loupe.SetCoordTransform(null);
 
-        var layout = loupe.ResolveLayout(ParentSize);
+        var layout = loupe.ResolveLayout(s_parentSize);
 
         Assert.Equal(new EsPoint(10, 20), layout.Position);
     }
@@ -172,7 +172,7 @@ public class LoupeCoreTests
     {
         var loupe = new LoupeCore() { CenterPoint = new EsPoint(0, 0), PositionOffset = -50 };
 
-        var layout = loupe.ResolveLayout(ParentSize);
+        var layout = loupe.ResolveLayout(s_parentSize);
 
         Assert.Equal(new EsPoint(0, 0), layout.Position);
     }
@@ -324,7 +324,7 @@ public class LoupeCoreTests
 
         for (var i = 0; i < 100; i++)
         {
-            loupe.ResolveLayout(ParentSize);
+            loupe.ResolveLayout(s_parentSize);
             loupe.ResolveGeometry(160);
         }
 
@@ -332,7 +332,7 @@ public class LoupeCoreTests
         var before = GC.GetAllocatedBytesForCurrentThread();
         for (var i = 0; i < 1000; i++)
         {
-            loupe.ResolveLayout(ParentSize);
+            loupe.ResolveLayout(s_parentSize);
             loupe.ResolveGeometry(160);
         }
 

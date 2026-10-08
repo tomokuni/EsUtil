@@ -43,11 +43,11 @@ public class EsBitmapTests
         Assert.Equal(6, bmp.Size.Width);
         Assert.Equal(8, bmp.Size.Height);
 
-        var px = bmp.GetPixel(3, 4);
-        Assert.Equal((byte)0, px.B);
-        Assert.Equal((byte)0, px.G);
-        Assert.Equal((byte)255, px.R);
-        Assert.Equal((byte)255, px.A);
+        var (B, G, R, A) = bmp.GetPixel(3, 4);
+        Assert.Equal((byte)0, B);
+        Assert.Equal((byte)0, G);
+        Assert.Equal((byte)255, R);
+        Assert.Equal((byte)255, A);
     }
 
     [Fact]
@@ -67,9 +67,9 @@ public class EsBitmapTests
         var color = System.Drawing.Color.FromArgb(255, 0, 0, 255); // 青・不透明
         using var bmp = EsBitmap.Create(new EsSizeInt(4, 4), color);
 
-        var px = bmp.GetPixel(2, 2);
-        Assert.Equal((byte)255, px.B);
-        Assert.Equal((byte)255, px.A);
+        var (B, G, R, A) = bmp.GetPixel(2, 2);
+        Assert.Equal((byte)255, B);
+        Assert.Equal((byte)255, A);
     }
 
     /// <summary>0 サイズ（空）で生成しても例外にならず、ピクセルを持たないことを検証する。</summary>
@@ -214,11 +214,11 @@ public class EsBitmapTests
     internal void GetPixel_未初期化領域は透明になる()
     {
         using var bmp = Create();
-        var px = bmp.GetPixel(0, 0);
-        Assert.Equal((byte)0, px.B);
-        Assert.Equal((byte)0, px.G);
-        Assert.Equal((byte)0, px.R);
-        Assert.Equal((byte)0, px.A);
+        var (B, G, R, A) = bmp.GetPixel(0, 0);
+        Assert.Equal((byte)0, B);
+        Assert.Equal((byte)0, G);
+        Assert.Equal((byte)0, R);
+        Assert.Equal((byte)0, A);
     }
 
     // ====================================================================
@@ -244,9 +244,9 @@ public class EsBitmapTests
         src.SetPixel(0, 0, b: 1, g: 2, r: 3, a: 128);
         using var clone = src.Clone();
 
-        var px = clone.GetPixel(0, 0);
-        Assert.Equal((byte)1, px.B);
-        Assert.Equal((byte)128, px.A);
+        var (B, G, R, A) = clone.GetPixel(0, 0);
+        Assert.Equal((byte)1, B);
+        Assert.Equal((byte)128, A);
     }
 
     [Fact]

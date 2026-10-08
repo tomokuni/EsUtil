@@ -53,10 +53,10 @@ public class EsBitmapSystemDrawingTests
         using var bmp = sd.ToEsWritableBitmap();
         Assert.Equal(4, bmp.Size.Width);
         Assert.Equal(4, bmp.Size.Height);
-        var px = bmp.GetPixel(1, 1);
-        Assert.Equal((byte)0, px.B);
-        Assert.Equal((byte)255, px.R);
-        Assert.Equal((byte)255, px.A);
+        var (B, G, R, A) = bmp.GetPixel(1, 1);
+        Assert.Equal((byte)0, B);
+        Assert.Equal((byte)255, R);
+        Assert.Equal((byte)255, A);
     }
 
     [Fact]
@@ -65,11 +65,11 @@ public class EsBitmapSystemDrawingTests
         // 50% アルファの青（BGRA: B=255, G=0, R=0, A=128）
         using var sd = CreateSolidDrawingBitmap(4, 4, 255, 0, 0, 128);
         using var bmp = sd.ToEsWritableBitmap();
-        var px = bmp.GetPixel(1, 1);
-        Assert.Equal((byte)255, px.B);
-        Assert.Equal((byte)0, px.G);
-        Assert.Equal((byte)0, px.R);
-        Assert.Equal((byte)128, px.A); // アルファが 255 に強制されない
+        var (B, G, R, A) = bmp.GetPixel(1, 1);
+        Assert.Equal((byte)255, B);
+        Assert.Equal((byte)0, G);
+        Assert.Equal((byte)0, R);
+        Assert.Equal((byte)128, A); // アルファが 255 に強制されない
     }
 
     [Fact]
