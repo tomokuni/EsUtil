@@ -38,8 +38,9 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.30 `Native.Imaging.EsBitmapDrawingExtensions`（static class）](#230-nativeimagingesbitmapdrawingextensionsstatic-class)
   - [2.31 `Coord.ICoordTransform`（interface）](#231-coordicoordtransforminterface)
   - [2.32 `Coord.CoordTransform`（sealed class : ICoordTransform）](#232-coordcoordtransformsealed-class--icoordtransform)
-  - [2.33 `Imaging.EsBitmap`（sealed class : IEsImageSource, IDisposable）](#233-imagingesbitmapsealed-class--iesimagesource-idisposable)
+  - [2.33 `Imaging.EsBitmap`（sealed class : IEsBitmap, IEsWritableBitmap, IEsImageSource, IDisposable）](#233-imagingesbitmapsealed-class--iesbitmap-ieswritablebitmap-iesimagesource-idisposable)
   - [2.34 `Imaging.IEsImageSource`（interface） / `Imaging.EsImageSourceText`（static class）](#234-imagingiesimagesourceinterface--imagingesimagesourcetextstatic-class)
+  - [2.35 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）](#235-imagingiesbitmapinterface--imagingieswritablebitmapinterface)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -54,7 +55,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `EsUtil.Platform.Core` | `EsKey` / `EsKeyExtensions` / `EnumCanonical` / `EsWindowState` / `HotKeyModifiers` / `HotKeySetting` / `CaptureType` / `EsPlatformHandle` / `LoggerFallback` | キーと入力（正規化含む）・ウィンドウ状態・ホットキー・ロガーの補助 |
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` | DIP 相当の幾何値型と領域の規則 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI の純粋計算 |
-| `.Imaging` | `EsBitmap` / `IEsImageSource` / `EsImageSourceText` / `DrawingColorExtensions` | ピクセルコンテナと画像源の抽象・描画色の判定 |
+| `.Imaging` | `EsBitmap` / `IEsBitmap` / `IEsWritableBitmap` / `IEsImageSource` / `EsImageSourceText` / `DrawingColorExtensions` | ピクセルコンテナとその読み取り・書き換えの抽象・画像源の抽象・描画色の判定 |
 | `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` | OS サービスの抽象（UI 非依存） |
 | `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` | 上記抽象の Windows 実装（ホストが生成して注入する） |
 | `.Native.Imaging` | `EsBitmapDrawingExtensions` | `System.Drawing.Bitmap` との相互変換（Windows 専用） |
@@ -500,9 +501,11 @@ public readonly record struct ElementFinderResults(
 | `ClientToSource` | `static ICoordTransform ClientToSource(Func<double> sourcePerDip, Func<EsSize?>? sourceArea = null)` | 対象 = ローカル DIP × `sourcePerDip`（呼び出し毎評価。 倍率は 対象座標 / ローカル DIP。 0 以下は 1.0 扱い。 境界を省略すると無制限） |
 | コンストラクタ | `CoordTransform(Func<EsPoint, EsPoint> toSource, Func<EsPoint, EsPoint> toDip, Func<EsSize?> sourceArea)` | 変換関数を直接注入（軸は利用側が定義） |
 
-### 2.33 `Imaging.EsBitmap`（sealed class : IEsImageSource, IDisposable）
+### 2.33 `Imaging.EsBitmap`（sealed class : IEsBitmap, IEsWritableBitmap, IEsImageSource, IDisposable）
 
 **自前のピクセルバッファ**（BGRA8888・アルファ乗算済み）を所有するピクセルコンテナ。 `NativeMemory.AlignedAlloc` で 64 バイト整列して確保し、**確保直後に全領域を 0（透明）で初期化します**（透明 = 全成分 0 が「描かれていない」の表現であるため）。 **外部パッケージへ依存しない**。
+
+**公開する面**: 本型は読み取りの抽象（`IEsBitmap`）と書き換えの抽象（`IEsWritableBitmap`）の両方を実装します。 受け取る側は**必要な権利の面だけ**を受け取ってください（読み取るだけの関数は `IEsBitmap`、書き換える関数は `IEsWritableBitmap`。 **破棄の権利は公開面に含めません**）。
 
 **書き込み量の最適化**: 直後に全領域を書く手順（`Create(w, h, color)` / `Clone` / `Crop` / 相互変換）は 0 初期化を省きます（画像サイズ分の書き込みを丸ごと削減する）。 `Crop` はコピーされないパディングだけを透明にし、`CreateUninitialized` は「全領域を書く」責任を呼び出し側が持つ前提で未初期化のまま確保します。
 
@@ -530,6 +533,8 @@ public readonly record struct ElementFinderResults(
 | プロパティ | `Stride` | `int` | 1 ラインあたりバイト数（**常に 幅 × 4**。 パディングなし） |
 | プロパティ | `BytesPerPixel` | `const int` | 1 ピクセルあたりのバイト数（4。 ストライドを計算する相互変換が共用する） |
 | プロパティ | `Address` | `nint` | ピクセルデータ先頭アドレス（BGRA8888）。 **解放後は 0**（解放済みのアドレスを返さない） |
+| プロパティ | `Pixels` | `ReadOnlySpan<byte>` | ピクセル データの**読み取り専用ビュー**（コピーしない。 長さは `Stride × Height`。 破棄後は `ObjectDisposedException`） |
+| プロパティ | `WritablePixels` | `Span<byte>` | ピクセル データの**書き込み可能なビュー**（`Pixels` と同じバッファ。 破棄後は `ObjectDisposedException`） |
 | プロパティ | `IsDisposed` | `bool` | 破棄済みか |
 | ピクセル | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` | 指定座標の BGRA（アルファ乗算済み）を取得。 範囲外は `IndexOutOfRangeException` |
 | ピクセル | `GetPixel` | `Color GetPixel(EsPointInt point)` | 指定座標の BGRA を `System.Drawing.Color` で取得 |
@@ -568,6 +573,40 @@ public readonly record struct ElementFinderResults(
 > `Stride` は常に `幅 × 4`（パディングなし）です。 `Clear(byte,byte,byte,byte)` は与えられた BGRA 成分をそのまま書き込みます（乗算済みへの変換はしません）。
 
 `System.Drawing.Color`（`System.Drawing.Primitives`）のみに依存するため、**外部パッケージなしで Windows 以外でも動作します**。 Skia との変換は Skia を使用する層、System.Drawing.Bitmap との変換を含む Windows 専用の拡張は `Native.Imaging.EsBitmapDrawingExtensions` が提供します。
+
+### 2.35 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）
+
+画像の**権利を型で分ける**抽象です。 受け取った側が「書き換えてよいか」「破棄してよいか」を型から判断できます（借用と所有の取り違えを無くすための境界です）。
+
+| 型 | 役割 | 与える権利 |
+| --- | --- | --- |
+| `IEsBitmap` | 借用して**読み取る** | 寸法・`Pixels`・`GetPixel` のみ（**書き換え不可・破棄不可**） |
+| `IEsWritableBitmap` | 借用して**書き換える** | `IEsBitmap` ＋ `WritablePixels`・`SetPixel`・`TrySetPixel`・`Clear`（**破棄は不可**） |
+
+**`IEsBitmap` のメンバー**:
+
+| 種別 | メンバー | シグネチャ | 説明 |
+| --- | --- | --- | --- |
+| 定数 | `BytesPerPixel` | `const int` | 1 ピクセルあたりのバイト数（4。 **定義はここが単一所有**し、`EsBitmap` は転送する） |
+| プロパティ | `Width` / `Height` | `int` | 幅 / 高さ（ピクセル） |
+| プロパティ | `Size` | `EsSizeInt` | 幅・高さ（ピクセル。 コアの整数サイズ型） |
+| プロパティ | `Stride` | `int` | 1 ラインあたりバイト数（**常に 幅 × 4**。 パディングなし） |
+| プロパティ | `Pixels` | `ReadOnlySpan<byte>` | ピクセル データの**読み取り専用ビュー**（コピーしない。 長さは `Stride × Height`） |
+| メソッド | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` | 指定座標の BGRA（アルファ乗算済み）。 範囲外は `IndexOutOfRangeException` |
+
+**`IEsWritableBitmap` のメンバー**（`IEsBitmap` の全メンバーを含む）:
+
+| 種別 | メンバー | シグネチャ | 説明 |
+| --- | --- | --- | --- |
+| プロパティ | `WritablePixels` | `Span<byte>` | ピクセル データの**書き込み可能なビュー**（`Pixels` と同じバッファを指す） |
+| メソッド | `SetPixel` | `void SetPixel(int x, int y, byte b, byte g, byte r, byte a)` | 指定座標へ BGRA を設定。 範囲外は `IndexOutOfRangeException` |
+| メソッド | `TrySetPixel` | `bool TrySetPixel(int x, int y, Color color)` | 指定座標へ色を設定（**範囲外は `false`**。 端をはみ出す矩形を描く用途） |
+| メソッド | `Clear` | `void Clear(byte b, byte g, byte r, byte a)` / `void Clear(Color color)` | 全ピクセルを指定色で塗りつぶし |
+
+- **`IDisposable` を含めません**: 借用に破棄の権利を与えないためです（破棄するのは生成した側であり、その側は書き込み可能な具象型として画像を持ちます）。 この分離により「**借用した画像を破棄する**」誤りがコンパイル エラーになります。
+- **生ポインタ（`Address`）を読取面へ含めません**: 渡すと読み取り専用の意図が消えるためです。 ポインタが要る場合（他フレームワークの非所有ビューへ渡す等）は `Pixels` を `fixed` で固定して取ります（バッファはアンマネージドのため、生存中はアドレスが動きません）。
+- **`WritablePixels` を別名にする理由**: 同名にすると `IEsBitmap` 経由か `IEsWritableBitmap` 経由かで返る型が変わり、**書き換えてよいかどうかが読み手に分からなくなります**。
+- **破棄済みの扱い**: 実装は破棄済みの場合に `ObjectDisposedException` を投げます（`Pixels` / `WritablePixels` の取得も含む。 無効な画像の値を正常値として返さないため）。
 
 ## 3. 使用例
 

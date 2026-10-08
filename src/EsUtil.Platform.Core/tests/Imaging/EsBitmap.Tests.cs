@@ -162,6 +162,62 @@ public class EsBitmapTests
     }
 
     // ====================================================================
+    // 読み取り・書き換えの面（IEsBitmap / IEsWritableBitmap）
+    // ====================================================================
+
+    [Fact]
+    internal void IEsBitmap_寸法とピクセルを具体型と同じ値で公開する()
+    {
+        using var bmp = EsBitmap.Create(4, 3, System.Drawing.Color.FromArgb(255, 10, 20, 30));
+        IEsBitmap read = bmp;
+
+        // 読み取りの面から寸法・ピクセルが取れる（具体型と一致する）
+        Assert.Equal(4, read.Width);
+        Assert.Equal(3, read.Height);
+        Assert.Equal(new EsSizeInt(4, 3), read.Size);
+        Assert.Equal(4 * IEsBitmap.BytesPerPixel, read.Stride);
+        Assert.Equal(bmp.GetPixel(1, 1), read.GetPixel(1, 1));
+    }
+
+    [Fact]
+    internal void Pixels_バッファ全体を指すコピーなしのビューを返す()
+    {
+        using var bmp = EsBitmap.Create(4, 3);
+        Assert.Equal(bmp.Stride * 3, bmp.Pixels.Length);
+
+        // 書き込みが Pixels に見える（同じバッファを指しており、コピーしていない）
+        bmp.SetPixel(2, 1, 1, 2, 3, 4);
+        var offset = bmp.Stride + 2 * IEsBitmap.BytesPerPixel;
+        Assert.Equal((byte)1, bmp.Pixels[offset]);
+        Assert.Equal((byte)2, bmp.Pixels[offset + 1]);
+        Assert.Equal((byte)3, bmp.Pixels[offset + 2]);
+        Assert.Equal((byte)4, bmp.Pixels[offset + 3]);
+    }
+
+    [Fact]
+    internal void WritablePixels_への書き込みがPixelsとGetPixelに見える()
+    {
+        using var bmp = EsBitmap.Create(4, 3);
+        var offset = bmp.Stride * 2 + 3 * IEsBitmap.BytesPerPixel;
+
+        bmp.WritablePixels[offset] = 7;
+
+        // 書き込みの面と読み取りの面が同じバッファを指す
+        Assert.Equal((byte)7, bmp.Pixels[offset]);
+        Assert.Equal((byte)7, bmp.GetPixel(3, 2).B);
+    }
+
+    [Fact]
+    internal void Pixels_破棄後は例外になる()
+    {
+        var bmp = EsBitmap.Create(4, 4);
+        bmp.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(() => { _ = bmp.Pixels.Length; });
+        Assert.Throws<ObjectDisposedException>(() => { _ = bmp.WritablePixels.Length; });
+    }
+
+    // ====================================================================
     // 画像源（IEsImageSource）
     // ====================================================================
 

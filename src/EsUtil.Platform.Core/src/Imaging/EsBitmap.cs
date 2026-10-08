@@ -25,12 +25,13 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <b>スレッド安全性</b>: 静的共有状態を持たないため各インスタンスは独立して並列利用できるが、
 /// 単一インスタンスへの同時ピクセル操作は直列化すること。
 /// </remarks>
-public sealed class EsBitmap : IEsImageSource, IDisposable
+public sealed class EsBitmap : IEsBitmap, IEsWritableBitmap, IEsImageSource, IDisposable
 {
     /// <summary>1 ピクセルあたりのバイト数（BGRA8888）。</summary>
     /// <value>4。 ストライドは常に <c>幅 × 本値</c> である。</value>
-    /// <remarks>相互変換（System.Drawing / Avalonia / Skia）がストライドを計算するために使う（同じ 4 を各所へ書かない）。</remarks>
-    public const int BytesPerPixel = 4;
+    /// <remarks>定義は <see cref="IEsBitmap.BytesPerPixel"/> が単一所有する（本定数はその転送）。
+    /// 相互変換（System.Drawing / Avalonia / Skia）がストライドを計算するために使う（同じ 4 を各所へ書かない）。</remarks>
+    public const int BytesPerPixel = IEsBitmap.BytesPerPixel;
 
     /// <summary>確保するバッファの整列バイト数（SIMD・GPU 転送の要件を満たす）。</summary>
     private const int AlignmentBytes = 64;
@@ -168,6 +169,44 @@ public sealed class EsBitmap : IEsImageSource, IDisposable
 
     /// <summary>破棄済みかどうか。</summary>
     public bool IsDisposed => _disposed;
+
+    // ====================================================================
+    // 読み取り・書き換えのビュー（IEsBitmap / IEsWritableBitmap）
+    // ====================================================================
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <see cref="Address"/> から <c><see cref="Stride"/> × <see cref="Height"/></c> バイトを指すビューを返す
+    /// （コピーしない）。 ピクセルを持たない場合（サイズ 0）は空のビューを返す。<br/>
+    /// 生ポインタが要る場合（他フレームワークの非所有ビューへ渡す等）は <c>fixed</c> で取る
+    /// （バッファはアンマネージドのため、生存中はアドレスが動かない）。
+    /// </remarks>
+    public unsafe ReadOnlySpan<byte> Pixels
+    {
+        get
+        {
+            ThrowIfDisposed();
+            var address = Address;
+            return address == 0 ? default : new ReadOnlySpan<byte>((void*)address, Stride * Height);
+        }
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <see cref="Pixels"/> と同じバッファを指す書き込み可能なビューを返す（コピーしない）。<br/>
+    /// 本型は読み取り専用の面（<see cref="IEsBitmap"/>）でも見せるが、<b>書き換えてよいのは
+    /// 自分が生成した（または引き取った）画像だけ</b>である（借用した画像を書き換えると、その画像を
+    /// 共有する他の表示が壊れる）。
+    /// </remarks>
+    public unsafe Span<byte> WritablePixels
+    {
+        get
+        {
+            ThrowIfDisposed();
+            var address = Address;
+            return address == 0 ? default : new Span<byte>((void*)address, Stride * Height);
+        }
+    }
 
     // ====================================================================
     // 画像源（IEsImageSource）
