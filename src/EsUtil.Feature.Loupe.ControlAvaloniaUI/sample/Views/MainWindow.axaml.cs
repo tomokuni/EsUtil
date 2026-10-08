@@ -23,7 +23,7 @@ public partial class MainWindow : Window
     private readonly EsWritableBitmap _gridPreviewBitmap = GridLoupePlan.CreateSource();
 
     /// <summary>見本（<c>GridPreview</c>）の表示用画像（<see cref="_gridPreviewBitmap"/> を借りて包む非所有アダプタ）。</summary>
-    private readonly EsImageSourceAdapter _gridPreviewImage;
+    private readonly EsBitmapAdapter _gridPreviewImage;
 
     /// <summary><see cref="MainWindow"/> の新しいインスタンスを初期化する。</summary>    /// <remarks>
     /// ルーペの初期化と初期中心座標を設定する。<br/>
@@ -34,7 +34,7 @@ public partial class MainWindow : Window
         DataContext = _vm;
 
         // 見本の表示用画像を組み立てる（元画像は _gridPreviewBitmap が保持する）
-        _gridPreviewImage = new EsImageSourceAdapter(_gridPreviewBitmap);
+        _gridPreviewImage = new EsBitmapAdapter(_gridPreviewBitmap);
 
         // ルーペの表示状態を明示的に反映（AXAML の初期値は非表示のため）
         Loupe.IsVisible = _vm.IsLoupeVisible;

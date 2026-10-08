@@ -31,7 +31,7 @@ public partial class MainWindow : Window
     private static readonly EsWritableBitmap s_backdropBitmap = CreateBackdrop();
 
     /// <summary>背景に敷くダミー画像（表示境界のアダプタ。 元画像は <see cref="s_backdropBitmap"/> が保持する）。</summary>
-    private static readonly EsImageSourceAdapter s_backdrop = new(s_backdropBitmap);
+    private static readonly EsBitmapAdapter s_backdrop = new(s_backdropBitmap);
 
     /// <summary>画像の論理幅（対象ピクセル）。</summary>
     private const double ImageWidth = 1200;

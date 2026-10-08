@@ -36,7 +36,7 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 
 - Avalonia Binding 対応の `LoupeControl`
 - `IImage` を受け取る画像入力API
-- 現在対応する画像実装は `Bitmap` / `EsImageSourceAdapter`（コアの画像を内包する `IImage` アダプタ）
+- 現在対応する画像実装は `Bitmap` / `EsBitmapAdapter`（コアの画像を内包する `IImage` アダプタ）
 - 1〜64倍の拡大表示
 - 画像範囲外の透明パディング
 - 画像外（ペーストボード）の色（`Appearance`）設定
@@ -163,11 +163,11 @@ Canvas.SetTop(loupe, 220);
 
 ## 7. サポート外の画像
 
-公開プロパティの型はAvalonia標準の `IImage?` ですが、ピクセル抽出を必要とするため、対応する実体は `Bitmap` と `EsImageSourceAdapter`（コアの画像を内包する `IImage` アダプタ）です。
+公開プロパティの型はAvalonia標準の `IImage?` ですが、ピクセル抽出を必要とするため、対応する実体は `Bitmap` と `EsBitmapAdapter`（コアの画像を内包する `IImage` アダプタ）です。
 
 **`WriteableBitmap` と `RenderTargetBitmap` は `Bitmap` の派生であるため、そのまま設定できます**（`Bitmap` と同じ経路でピクセルを複製します）。
 
-`Bitmap`（派生を含む） / `EsImageSourceAdapter` 以外の `IImage`（`CroppedBitmap` 等）を設定した場合は、`NotSupportedException` を発生させ、設定された `ILogger` へ記録します。
+`Bitmap`（派生を含む） / `EsBitmapAdapter` 以外の `IImage`（`CroppedBitmap` 等）を設定した場合は、`NotSupportedException` を発生させ、設定された `ILogger` へ記録します。
 
 ```csharp
 loupe.Log = logger;
@@ -177,7 +177,7 @@ loupe.Log = logger;
 
 ## 8. 所有権とライフサイクル
 
-- `Source` に設定した元画像（`Bitmap`（`WriteableBitmap` を含む） / `EsImageSourceAdapter`）は利用側が所有します。 `LoupeControl` は元画像を破棄しません（アダプタ自体は設定側が差し替え時に破棄します。 `EsImageSourceAdapter` は `IImage` の非所有契約のため、`Source` の設定では破棄されません）。
+- `Source` に設定した元画像（`Bitmap`（`WriteableBitmap` を含む） / `EsBitmapAdapter`）は利用側が所有します。 `LoupeControl` は元画像を破棄しません（アダプタ自体は設定側が差し替え時に破棄します。 `EsBitmapAdapter` は `IImage` の非所有契約のため、`Source` の設定では破棄されません）。
 - ルーペ表示用に内部生成したBitmapは `LoupeControl` が所有します。
 - 非表示化、`Clear()`、新しい描画結果の採用時に、古い生成Bitmapを破棄します。
 - 非同期処理で古くなった生成結果も採用せず破棄します。

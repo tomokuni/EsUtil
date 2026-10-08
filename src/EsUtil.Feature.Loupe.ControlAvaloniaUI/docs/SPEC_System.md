@@ -80,7 +80,7 @@ SaveEvidence は、Windows デスクトップ上の画面をキャプチャし�
 
 ### 4.2 本プロジェクト固有の例外処理
 
-- `Source` に `Bitmap` / `EsImageSourceAdapter` 以外の `IImage` が設定された場合、`NotSupportedException` を生成し `LoupeLogMessage.LogUpdateError` で記録する。
+- `Source` に `Bitmap` / `EsBitmapAdapter` 以外の `IImage` が設定された場合、`NotSupportedException` を生成し `LoupeLogMessage.LogUpdateError` で記録する。
 - 描画の例外（未対応の画像型等）は `Log` へ記録され、呼び出し元へは伝播しない（開始側が例外を観測する）。
 - 自動再描画の場合は例外を観測済みとして処理し、UI スレッドを未処理例外で終了させない。
 - 非同期生成は世代番号で古い結果を破棄し、解放後の破棄を防止する。
@@ -190,7 +190,7 @@ flowchart TB
 - ピクセル抽出が必要な切り出しの内部境界だけ `IEsBitmap` を要求する（切り出し領域はコアの `LoupeGeometry.MagnifiedImage` が決める）。
 - `Source` が `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む派生型）の場合は `CopyPixels` による複製（`EsWritableBitmap` 化）で抽出する。
 - `Source` が `IEsBitmap`（表示アダプタ）の場合はそのピクセルを直接抽出する（複製なし）。
-- `Bitmap`（派生を含む） / `EsImageSourceAdapter` 以外の `IImage`（`CroppedBitmap` 等）は `NotSupportedException` が発生する。
+- `Bitmap`（派生を含む） / `EsBitmapAdapter` 以外の `IImage`（`CroppedBitmap` 等）は `NotSupportedException` が発生する。
 - 切り出し（`IEsBitmap` の拡張 `Crop`）と合成（`RenderTargetBitmap` / `DrawingContext`）は UI スレッドで行う（バックグラウンド抽出は連続再描画時にスレッドプールが競合し、移動中の追従が止まるため行わない）。 一時 `RenderTargetBitmap` は描画直後に破棄する。
 
 ### 6.5 切り出し領域の幾何（`EsUtil.Feature.Loupe.Core`）
@@ -220,7 +220,7 @@ flowchart TB
 
 - `LoupeRenderCoordinator`: 再描画要求のバッチ化（実行キューへのポストで 1 フレーム 1 回に結合）、表示中の判定と世代番号による古い結果の破棄、未実行要求の破棄と解放の手順を単一所有する。 中間ビットマップを持つ UI にだけ必要なため本プロジェクトが所有し、実行キューと優先度は `post: action => Dispatcher.UIThread.Post(action, DispatcherPriority.Render)` として注入する。
 - `LoupeRenderPipeline`: Avalonia の `IImage` を切り出し元（`IEsBitmap`）へ解決し、描画（`LoupeContextPainter.Paint`。 `DrawingContext` 経由）を UI スレッドで実行する（`RenderAsync(source, plan)`）。 `IImage` の型判定と `Bitmap` → `EsWritableBitmap` の複製が UI 固有。
-- `LoupeSourceResolver`: `IImage` の対応型判定（`Bitmap` / `EsImageSourceAdapter`）・破棄済みの検出・ソース寸法のログ用表現を単一所有する（UI スレッドに依存しない純粋関数）。
+- `LoupeSourceResolver`: `IImage` の対応型判定（`Bitmap` / `EsBitmapAdapter`）・破棄済みの検出・ソース寸法のログ用表現を単一所有する（UI スレッドに依存しない純粋関数）。
 
 ## 7. 依存ルール
 

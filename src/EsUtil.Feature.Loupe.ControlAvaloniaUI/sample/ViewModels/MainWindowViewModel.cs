@@ -23,10 +23,10 @@ public sealed class MainWindowViewModel : ObservableObject
     public IImage SourceImage => _sourceImage;
 
     /// <summary>表示用のアダプタ（コンストラクタで組み立てる。 フィールド初期化では <see cref="_sourceBitmap"/> を参照できない）。</summary>
-    private readonly EsImageSourceAdapter _sourceImage;
+    private readonly EsBitmapAdapter _sourceImage;
 
     /// <summary>メインウィンドウのビューモデルを生成する。</summary>
-    public MainWindowViewModel() => _sourceImage = new EsImageSourceAdapter(_sourceBitmap);
+    public MainWindowViewModel() => _sourceImage = new EsBitmapAdapter(_sourceBitmap);
 
     /// <summary>十字線の色選択肢。</summary>
     public IReadOnlyList<BrushOption> CrossColorOptions { get; } = BrushOptions.All;

@@ -24,10 +24,10 @@ public class LoupeSourceResolverTests
     }
 
     [Fact]
-    internal void Resolve_EsImageSourceAdapterは借用を返す()
+    internal void Resolve_EsBitmapAdapterは借用を返す()
     {
         using var bmp = EsWritableBitmap.Create(10, 10);
-        using var image = new EsImageSourceAdapter(bmp);
+        using var image = new EsBitmapAdapter(bmp);
 
         var resolved = LoupeSourceResolver.Resolve(image, out var bitmap);
 
@@ -48,10 +48,10 @@ public class LoupeSourceResolverTests
     }
 
     [Fact]
-    internal void IsSourceSupported_EsImageSourceAdapterは対応可能である()
+    internal void IsSourceSupported_EsBitmapAdapterは対応可能である()
     {
         using var bmp = EsWritableBitmap.Create(10, 10);
-        using var image = new EsImageSourceAdapter(bmp);
+        using var image = new EsBitmapAdapter(bmp);
 
         Assert.True(LoupeSourceResolver.IsSourceSupported(image));
     }
