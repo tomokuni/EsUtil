@@ -170,7 +170,7 @@ flowchart TB
 - **可視性**: internal（描画の実装詳細。 見た目の差し替えは `LoupeControl.Appearance` / `DrawPlanResolver` / `DrawPlan` で行う）
   **描画の入口**: `LoupeContextPainter.Paint(DrawingContext context, IEsBitmap? source, in LoupeDrawPlan plan)`（図形のみ。 **テキストは描かない**。 中心座標ラベルはコントロールが UI 要素として配置する）
 - **特徴**:  描画の可否は外観（`Appearance` の `Show*`）を見て本クラスが判断する（計画は表示可否で矩形も層も消さない）。 枠線の太さの物理ピクセルへの換算と装飾の矩形の導出は**提示層が解決済み**である（本クラスは計算を持たない）。 色 → ブラシの共有は `SolidColorBrushCache` が
-- **依存**: EsUtil.Feature.Loupe.Presenter（`LoupeDrawPlan` / `LoupeAppearance` / `LoupeDrawLayer`）/ Platform.AvaloniaUI（`DrawingContext`（相互変換）/ `SolidColorBrushCache`）/ EsUtil.Platform.Core（`EsBitmap` / `System.Drawing.Color`）
+- **依存**: EsUtil.Feature.Loupe.Presenter（`LoupeDrawPlan` / `LoupeAppearance` / `LoupeDrawLayer`）/ Platform.AvaloniaUI（`DrawingContext`（相互変換）/ `SolidColorBrushCache`）/ EsUtil.Platform.Core（画像型 / `System.Drawing.Color`）
 
 ### 6.3 描画責務分割
 

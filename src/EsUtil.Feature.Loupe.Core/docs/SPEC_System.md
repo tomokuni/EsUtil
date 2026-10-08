@@ -108,7 +108,7 @@ sequenceDiagram
 
 ## 5. 例外処理ポリシー
 
-本プロジェクトは純粋計算で構成されます。 例外を送出するのは `EsBitmap` の引数検証（`ArgumentOutOfRangeException`）と破棄後アクセス（`ObjectDisposedException`）のみです。 破棄済みソースの例外の捕捉は描画実装（各 UI の painter）の責務とします。
+本プロジェクトは純粋計算で構成されます。 例外を送出するのはコアの画像の引数検証（`ArgumentOutOfRangeException`。 例: 切り出しの幅・高さが 0 以下）と破棄後アクセス（`ObjectDisposedException`）のみです。 破棄済みソースの例外の捕捉は描画実装（各 UI の painter）の責務とします。
 
 **領域が表示サイズを収められない場合も例外にしません**（配置しないとして位置を null で返す。 ルーペを縮小してまで描画しないため）。
 
@@ -140,7 +140,7 @@ dotnet test src/EsUtil.Feature.Loupe.Core/tests/EsUtil.Feature.Loupe.Core.Tests.
 | 判断 | 内容 |
 | --- | --- |
 | 座標・寸法の型 | コア（`EsUtil.Platform.Core.Geometry`）の `EsPoint` / `EsSize` / `EsRect` を使い、UI 型は境界で 1 行変換する |
-| 画像の型 | 拡大元画像は UI ごとに型が異なるため契約（`LoupeGeometry`）に含めず、描画実装が解決した `EsBitmap` を別引数で受け取る |
+| 画像の型 | 拡大元画像は UI ごとに型が異なるため契約（`LoupeGeometry`）に含めず、描画実装が解決した `IEsBitmap` を別引数で受け取る |
 | 文字の描画 | コアは文言・基準点・配置の基準も持たない（描画層（上位の層）が文言と基準点、ならびに実寸 → 配置矩形の写像を担い、UI 層が実寸測定と要素の配置を担う。 色は描画層の外観が与える） |
 | 再描画のバッチ化 | UI のディスパッチャーに依存するため上位のコントロール実装が単一所有する（コアは同期計算のみ） |
 | 色 | コアは色を持たない（色は描画にだけ必要な設定であり、描画層の外観が単一所有する）。 色の型は UI 非依存の `System.Drawing.Color` とし、UI の色型への変換は描画の境界で行う |

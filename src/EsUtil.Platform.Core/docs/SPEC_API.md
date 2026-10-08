@@ -388,8 +388,8 @@ public readonly record struct EsPlatformHandle(nint Handle, string? Descriptor =
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
-| `CaptureArea` | `EsBitmap? CaptureArea(EsRectInt bounds)` | 指定画面領域（画面物理座標）をキャプチャ。 失敗時は null |
-| `CaptureVirtualScreen` | `EsBitmap? CaptureVirtualScreen(out EsPointInt origin)` | 仮想スクリーン全体を 1 回でキャプチャ |
+| `CaptureArea` | `EsWritableBitmap? CaptureArea(EsRectInt bounds)` | 指定画面領域（画面物理座標）をキャプチャ。 失敗時は null（**生成した画像を所有するのは呼び出し側**） |
+| `CaptureVirtualScreen` | `EsWritableBitmap? CaptureVirtualScreen(out EsPointInt origin)` | 仮想スクリーン全体を 1 回でキャプチャ（**生成した画像を所有するのは呼び出し側**） |
 
 ### 2.23 `Native.ICursorService`（interface）
 
@@ -474,12 +474,12 @@ public readonly record struct ElementFinderResults(
 
 ### 2.30 `Native.Imaging.EsBitmapDrawingExtensions`（static class）
 
-`System.Drawing.Bitmap` と `EsBitmap` の相互変換です（`EsUtil.Platform.Core.Native.Imaging`。 `System.Drawing.Common` を使う Windows 専用）。
+`System.Drawing.Bitmap` とコアの画像の相互変換です（`EsUtil.Platform.Core.Native.Imaging`。 `System.Drawing.Common` を使う Windows 専用）。
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
-| `ToEsBitmap` | `static EsBitmap ToEsBitmap(this DrawingBitmap bitmap)` | `System.Drawing.Bitmap` から `EsBitmap` を作る（複製。 元の Bitmap は変更しない） |
-| `ToDrawingBitmap` | `static DrawingBitmap ToDrawingBitmap(this EsBitmap bitmap)` | `EsBitmap` から `System.Drawing.Bitmap`（`Format32bppPArgb`）を作る（複製） |
+| `ToEsBitmap` | `static EsWritableBitmap ToEsBitmap(this DrawingBitmap bitmap)` | `System.Drawing.Bitmap` から**書き換え可能な**画像を作る（複製。 元の Bitmap は変更しない） |
+| `ToDrawingBitmap` | `static DrawingBitmap ToDrawingBitmap(this IEsBitmap bitmap)` | コアの画像から `System.Drawing.Bitmap`（`Format32bppPArgb`）を作る（複製） |
 
 ### 2.31 `Coord.ICoordTransform`（interface）
 
@@ -507,7 +507,7 @@ public readonly record struct ElementFinderResults(
 
 | 型 | 役割 | 権利 |
 | --- | --- | --- |
-| `EsBitmapBase` | バッファの確保・公開・解放を 1 回だけ実装する抽象基底 | 読取のみ（書き込みの入口を公開しない） |
+| `EsBitmapBase` | バッファの確保・公開・解放を 1 回だけ実装する抽象基底（**派生は本アセンブリの 2 型だけ**。 コンストラクターが `private protected`） | 読取のみ（書き込みの入口を公開しない） |
 | `EsBitmap` | **読み取り専用**の画像（`IDisposable`。 派生不可） | 読取 ＋ 破棄（早く手放すため） |
 | `EsWritableBitmap` | **書き換え可能**な画像（`IEsWritableBitmap` ＋ `IDisposable`。 派生不可） | 読取 ＋ 書き換え ＋ 破棄 |
 
@@ -515,16 +515,24 @@ public readonly record struct ElementFinderResults(
 
 | 場面 | 使う型 |
 | --- | --- |
-| 受け取って**読むだけ** | `EsBitmapBase`（または `IEsBitmap`） |
+| 受け取って**読むだけ** | `IEsBitmap` |
 | 受け取って**書き換える**（破棄しない） | `IEsWritableBitmap` |
 | 自分が**作る・所有する**（`using` で解放） | `EsWritableBitmap` |
 | **読み取り専用**であることを型で示す | `EsBitmap` |
+| 破棄済みかを判定する（実体へダウンキャスト） | `EsBitmapBase` |
+
+**受け口は面（interface）に統一します**: 本ライブラリが画像を受け取る公開 API の型は `IEsBitmap`（読む）/ `IEsWritableBitmap`（書き換える）です。 `EsBitmapBase` は抽象クラスであり `new` で生成できませんが、**受け取る型としては使えます**（本ライブラリが受け口に使わないのは、受け取る側の権利を面で絞るためです）。 したがって「受け取って読むだけ」の型は `IEsBitmap` です。
+
+`EsBitmapBase` を使うのは次の 2 つの場面だけです。
+
+- **破棄済みかどうかの判定**: 破棄状態（`IsDisposed`）を公開するのは実体だけであり（読み取りの面は公開しない）、`source is EsBitmapBase { IsDisposed: true }` の形でダウンキャストして調べます。
+- **2 つの権利の実装の共有**: `EsBitmap`（読取 ＋ 破棄）と `EsWritableBitmap`（読取 ＋ 書き換え ＋ 破棄）が、バッファの確保・公開・解放の実装を 1 回だけ書くための基底です。 **派生できるのは本アセンブリの 2 型だけ**です（外部が独自の画像を作る場合は `IEsBitmap` / `IEsWritableBitmap` を実装します）。
 
 **兄弟である理由**: `EsBitmap` と `EsWritableBitmap` は互いに変換できません（`Is` 関係が無い）。 同じバッファを 2 つの型で見せると「書き換えてよいか」が静かに食い違うためです。 読み取り専用の画像から書き換え可能な画像を作る場合は `EsWritableBitmap.Create(EsBitmap)`（複製）を使い、逆方向は `EsBitmap.Clone()`（読み取り専用の複製）を使います。
 
 **書き込み量の最適化**: 直後に全領域を書く手順（`Create(w, h, color)` / `Clone` / `Crop` / 相互変換）は 0 初期化を省きます（画像サイズ分の書き込みを丸ごと削減する）。 `Crop` はコピーされないパディングだけを透明にし、`CreateUninitialized` は「全領域を書く」責任を呼び出し側が持つ前提で未初期化のまま確保します。
 
-**解放**: バッファの所有者は内部の `SafeAlignedBuffer`（`SafeHandle`）であり、**解放の実装を 1 つだけ持ちます**（自前のファイナライザは書きません。 MA0055 が禁止しており、`SafeHandle` が同じ役割を果たします）。 確保量は `GC.AddMemoryPressure` で GC へ伝え、解放時に `GC.RemoveMemoryPressure` で戻します。 したがって **`Dispose` を忘れても解放されます**。 ただし解放は GC の判断を待つため、**大きな画像は早く手放すために `Dispose` してください**（4K 1 枚で 33 MB）。
+**解放**: バッファの所有者は内部の `SafeAlignedBuffer`（`SafeHandle`）であり、**解放の実装を 1 つだけ持ちます**（手書きのファイナライザは書きません。 解放を `SafeHandle` へ委ねると同じ役割を果たしつつ、解放の経路が `ReleaseHandle` の 1 か所になります）。 確保量は `GC.AddMemoryPressure` で GC へ伝え、解放時に `GC.RemoveMemoryPressure` で戻します。 したがって **`Dispose` を忘れても解放されます**。 ただし解放は GC の判断を待つため、**大きな画像は早く手放すために `Dispose` してください**（4K 1 枚で 33 MB）。
 
 **`EsWritableBitmap` の生成・変換**:
 
@@ -673,4 +681,4 @@ using var region = bitmap.Crop(new EsRectInt(10, 20, 800, 600));
 - 本プロジェクトは UI フレームワークへ依存しません。 UI 型との相互変換は、各 UI 実装の Interop 層を用意して境界で行います。
 - 実行時のプラットフォーム分岐（ファクトリ）を持ちません。 OS サービスの既定実装はホストが生成して抽象型として注入します（テストはモックを注入できます）。
 - `Native/` 配下（Win32 P/Invoke・`System.Drawing.Common`）は Windows 専用です。
-- 描画は本プロジェクトの対象外です（`EsBitmap` と配置計算だけを提供し、描画 API は各 UI が呼びます）。
+- 描画は本プロジェクトの対象外です（画像の型と配置計算だけを提供し、描画 API は各 UI が呼びます）。

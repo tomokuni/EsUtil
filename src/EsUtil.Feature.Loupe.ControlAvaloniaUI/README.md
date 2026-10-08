@@ -36,7 +36,7 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 
 - Avalonia Binding 対応の `LoupeControl`
 - `IImage` を受け取る画像入力API
-- 現在対応する画像実装は `Bitmap` / `EsImageSourceAdapter`（コアの `EsBitmap` を内包する `IImage` アダプタ）
+- 現在対応する画像実装は `Bitmap` / `EsImageSourceAdapter`（コアの画像を内包する `IImage` アダプタ）
 - 1〜64倍の拡大表示
 - 画像範囲外の透明パディング
 - 画像外（ペーストボード）の色（`Appearance`）設定
@@ -163,7 +163,7 @@ Canvas.SetTop(loupe, 220);
 
 ## 7. サポート外の画像
 
-公開プロパティの型はAvalonia標準の `IImage?` ですが、ピクセル抽出を必要とするため、対応する実体は `Bitmap` と `EsImageSourceAdapter`（コアの `EsBitmap` を内包する `IImage` アダプタ）です。
+公開プロパティの型はAvalonia標準の `IImage?` ですが、ピクセル抽出を必要とするため、対応する実体は `Bitmap` と `EsImageSourceAdapter`（コアの画像を内包する `IImage` アダプタ）です。
 
 **`WriteableBitmap` と `RenderTargetBitmap` は `Bitmap` の派生であるため、そのまま設定できます**（`Bitmap` と同じ経路でピクセルを複製します）。
 

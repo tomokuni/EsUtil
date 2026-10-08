@@ -18,6 +18,10 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <b>派生の責務</b>: <c>Dispose</c>（<see cref="IDisposable"/> の実装）と <see cref="Clone"/>（共変戻り値）を宣言する。
 /// 基底に <c>Dispose</c> を置かないのは、**破棄の権利をどこに与えるかを派生ごとに決める**ためである
 /// （読み取り専用の実体でも早期解放はできるが、破棄の入口を読み取りの面には出さない）。<br/>
+/// <b>派生できる範囲</b>: コンストラクターが <c>private protected</c> のため、派生は本アセンブリの
+/// <see cref="EsBitmap"/> と <see cref="EsWritableBitmap"/> だけである（本型は「2 つの権利の実装を 1 回だけ書く」ための型である）。
+/// 外部が独自の画像を作る場合は本型ではなく <see cref="IEsBitmap"/> / <see cref="IEsWritableBitmap"/> を実装する
+/// （破棄済みかどうかの判定だけは、本型へダウンキャストして <see cref="IsDisposed"/> を読む）。<br/>
 /// <b>バッファの仕様</b>: BGRA8888（アルファ乗算済み）、ストライドは <c>幅 × <see cref="IEsBitmap.BytesPerPixel"/></c>
 /// （行パディングなし）、64 バイト整列で確保する。
 /// </remarks>
@@ -43,9 +47,12 @@ public abstract class EsBitmapBase : IEsBitmap
     /// <param name="height">高さ（ピクセル）。 0 以上。</param>
     /// <param name="clear">true の場合は全領域を 0（透明）で初期化する。 直後に全領域を書く場合は false にして 0 埋めを省く。</param>
     /// <remarks>
-    /// <b><paramref name="clear"/> = false は全領域を直後に書く場合だけ使う</b>（書かない領域は不定値のまま残る）。
+    /// <b><paramref name="clear"/> = false は全領域を直後に書く場合だけ使う</b>（書かない領域は不定値のまま残る）。<br/>
+    /// <b><c>private protected</c> にする理由</b>: 派生を本アセンブリの 2 型（<see cref="EsBitmap"/> / <see cref="EsWritableBitmap"/>）へ限り、
+    /// 「読取のみ」と「書き換え可」の 2 つの権利だけが存在する状態を型で保つ（外部が派生できると、
+    /// どちらの権利でもない第 3 の画像が作れてしまう）。
     /// </remarks>
-    protected unsafe EsBitmapBase(int width, int height, bool clear)
+    private protected unsafe EsBitmapBase(int width, int height, bool clear)
     {
         Width = width;
         Height = height;

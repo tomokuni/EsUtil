@@ -36,7 +36,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | キーと入力 | `EsKey` / `EsKeyExtensions` / `EnumCanonical` / `EsWindowState` / `HotKeyModifiers` / `HotKeySetting` / `CaptureType` |
 | 幾何 | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` |
 | 座標変換 | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` |
-| 画像 | `EsBitmap`（自前のピクセルバッファ） / `IEsBitmap`（読み取る権利） / `IEsWritableBitmap`（書き換える権利） / `IEsBitmap`（画像源の抽象） / `EsImageSourceText`（寸法の文字列化） |
+| 画像 | `EsBitmap`（読み取り専用の実体） / `EsWritableBitmap`（書き換え可能な実体） / `IEsBitmap`（読み取る権利） / `IEsWritableBitmap`（書き換える権利） / `EsImageSourceText`（寸法の文字列化） |
 | OS サービス抽象 | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` |
 | Windows 実装 | `Native.Win.*`（Win32 P/Invoke。 ホストが生成して注入する） |
 | 補助 | `EsPlatformHandle` / `LoggerFallback` / `DrawingColorExtensions` |
@@ -57,7 +57,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | --- | --- |
 | OS サービスの実装 | `Native.*` の抽象を実装し、ホストで注入する（Windows 以外・テスト用のモック） |
 | 各 UI の型との相互変換 | Interop 層を自作する（UI 型とコア型の変換は利用側が持ちます） |
-| 画像の描画 | 描画は各 UI が行う（本プロジェクトは `EsBitmap` と配置計算だけを提供する） |
+| 画像の描画 | 描画は各 UI が行う（本プロジェクトは画像の型と配置計算だけを提供する） |
 
 ## 6. ビルド
 

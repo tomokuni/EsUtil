@@ -23,7 +23,7 @@ UI 非依存のコア（選択範囲を拡大表示するルーペの計算）�
 ## 1. 前提条件
 
 - 本コアは UI フレームワークに依存しません（依存は `EsUtil.Platform.Core` と `Microsoft.Extensions.Logging.Abstractions`（ログ定義のソース生成）のみ）。 UI 固有の型は利用者（UI 実装）が境界で変換します。
-- 座標は `EsPoint` / `EsSize` / `EsRect`（`EsUtil.Platform.Core`）、拡大元画像は `EsBitmap` で扱います。
+- 座標は `EsPoint` / `EsSize` / `EsRect`（`EsUtil.Platform.Core`）、拡大元画像は `IEsBitmap`（読み取る権利の抽象）で扱います。
 - 描画の可否は**外観（描画にだけ必要な設定を所有する上位層）の明示フラグ**（`ShowCrosshair` / `ShowBorder` / `ShowCoordLabel`）が単一所有します（描画にだけ必要な設定のため、コアの設定には含めません）。
 - 描画の順序（下地の塗り → 拡大画像 → 十字線 → 枠線 → テキスト）と色は描画層（本コアを参照する上位の層）が単一所有します（本コアは塗りも順序も持たず、幾何だけを返します）。
 - コントロール化にだけ必要な処理（再描画要求のバッチ化・世代番号管理）は上位のコントロール実装が所有します。
@@ -155,7 +155,7 @@ var scale = geometry.ZoomLevel;                 // 対象座標 → ルーペ画
 | `CaptureSize` | `int`（導出） | 可視域を覆う切り出しの一辺（対象ピクセル）。 物理ピクセルサイズを拡大率で割った切り上げ + 1（実効原点が小数のときの端数分）。 位置パラメータではなく `ClientPixelSize` / `ZoomLevel` からの導出であり、規則も本値が単一所有する |
 | `ClientPixelRect` | `EsRect` | 描画先の全領域（左上を原点とする一辺 `ClientPixelSize` の正方形・物理ピクセル）。 描画層がこの矩形へ下地を塗る（UI 層は矩形を組み立てない） |
 | `CaptureTopLeft` | `EsPoint?` | 可視域の左上（対象座標。 **小数を含む実効原点**）。 **座標変換（対象座標 → 描画面のピクセル）は本値を原点にする**（拡大中心は描画面の中心へ写る）。 中心未設定の場合は null（描画しない） |
-| `CaptureCropTopLeft` | `EsPointInt?` | 切り出し（`EsBitmap.Crop`）の原点（対象ピクセル）。 可視域の左上を切り捨てた値。 中心未設定の場合は null |
+| `CaptureCropTopLeft` | `EsPointInt?` | 切り出し（`EsBitmapExtensions.Crop`）の原点（対象ピクセル）。 可視域の左上を切り捨てた値。 中心未設定の場合は null |
 | `CaptureDrawOffset` | `EsPointInt?` | 切り出した画像を描画面へ置く位置（物理ピクセル、整数）。 切り出し原点と実効原点の差を埋める。 中心未設定の場合は null |
 | `CaptureCenterOffset` | `EsPoint` | 可視域内での拡大中心の位置（対象ピクセル。 中心に依存しない）。 **十字線の位置の根拠**（× 拡大率 = 描画面の中心。 中心が小数でも動かない） |
 | `MagnifiedImage` | `LoupeMagnifiedImage?` | 拡大画像の切り出し・描画元・描画先の矩形。 中心未設定の場合は null |
@@ -164,7 +164,7 @@ var scale = geometry.ZoomLevel;                 // 対象座標 → ルーペ画
 | --- | --- |
 | （なし） | ファサードの `LoupeCore.ResolveGeometry` が唯一の生成元である（UI 層は本値を組み立てない） |
 
-拡大元画像は UI ごとに型が異なるため本値に含めず、描画実装が解決した `EsBitmap` を別引数として渡します（複数の UI が同じ手順で本値を受け取ります）。
+拡大元画像は UI ごとに型が異なるため本値に含めず、描画実装が解決した `IEsBitmap` を別引数として渡します（複数の UI が同じ手順で本値を受け取ります）。
 
 ### 3.2 切り出し領域の導出（`LoupeGeometry` のメンバー）
 
@@ -179,7 +179,7 @@ var scale = geometry.ZoomLevel;                 // 対象座標 → ルーペ画
 | `CaptureCenterOffset` | 可視域内での拡大中心の位置（＝可視域の半径）。 **十字線は本値 × 拡大率 = 描画面の中心になる**（拡大中心が小数でも十字線は動かない） |
 | `MagnifiedImage` | 拡大画像の切り出し・描画元・描画先の矩形（`LoupeMagnifiedImage`）。 **拡大倍率と描画先の大きさの関係を単一所有**し、両 UI が同じ拡大結果になるようにする。 中心未設定の場合は null |
 
-**切り出しの実行はありません**: 切り出しは描画実装（各 UI の painter）が `EsBitmap.Crop` を呼んで行います。 本メンバーは「どこを切り出すか」を解決する値だけを持ちます。
+**切り出しの実行はありません**: 切り出しは描画実装（各 UI の painter）が `EsBitmapExtensions.Crop` を呼んで行います。 本メンバーは「どこを切り出すか」を解決する値だけを持ちます。
 
 ### 3.3 表示可否・装飾・文言（描画層が単一所有）
 
