@@ -506,6 +506,8 @@ public readonly record struct ElementFinderResults(
 
 **書き込み量の最適化**: 直後に全領域を書く手順（`Create(w, h, color)` / `Clone` / `Crop` / 相互変換）は 0 初期化を省きます（画像サイズ分の書き込みを丸ごと削減する）。 `Crop` はコピーされないパディングだけを透明にし、`CreateUninitialized` は「全領域を書く」責任を呼び出し側が持つ前提で未初期化のまま確保します。
 
+**解放**: ピクセル バッファの所有者は内部の `SafeAlignedBuffer`（`SafeHandle`）であり、**解放の実装を 1 つだけ持ちます**（自前のファイナライザは書きません。 MA0055 が禁止しており、`SafeHandle` が同じ役割を果たします）。 確保量は `GC.AddMemoryPressure` で GC へ伝え、解放時に `GC.RemoveMemoryPressure` で戻します。 したがって **`Dispose` を忘れても解放されます**（`SafeHandle` のファイナライザが解放する）。 ただし解放は GC の判断を待つため、**大きな画像は早く手放すために `Dispose` してください**（4K 1 枚で 33 MB）。
+
 **生成・変換**:
 
 | 種別 | メンバー | シグネチャ | 説明 |
@@ -527,7 +529,7 @@ public readonly record struct ElementFinderResults(
 | プロパティ | `Size` | `EsSizeInt` | 幅・高さ（ピクセル。 コアの整数サイズ型） |
 | プロパティ | `Stride` | `int` | 1 ラインあたりバイト数（**常に 幅 × 4**。 パディングなし） |
 | プロパティ | `BytesPerPixel` | `const int` | 1 ピクセルあたりのバイト数（4。 ストライドを計算する相互変換が共用する） |
-| プロパティ | `Address` | `nint` | ピクセルデータ先頭アドレス（BGRA8888） |
+| プロパティ | `Address` | `nint` | ピクセルデータ先頭アドレス（BGRA8888）。 **解放後は 0**（解放済みのアドレスを返さない） |
 | プロパティ | `IsDisposed` | `bool` | 破棄済みか |
 | ピクセル | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` | 指定座標の BGRA（アルファ乗算済み）を取得。 範囲外は `IndexOutOfRangeException` |
 | ピクセル | `GetPixel` | `Color GetPixel(EsPointInt point)` | 指定座標の BGRA を `System.Drawing.Color` で取得 |
@@ -537,7 +539,7 @@ public readonly record struct ElementFinderResults(
 | ピクセル | `Clear` | `void Clear(byte b, byte g, byte r, byte a)` / `void Clear(Color color)` | 全ピクセルを指定色で塗りつぶし |
 | その他 | `Clone` | `EsBitmap Clone()` | 独立した複製を生成（所有権は呼び出し側） |
 | その他 | `Crop` | `EsBitmap Crop(EsRectInt rect)` / `EsBitmap Crop(int x, int y, int width, int height)` | 指定矩形領域を切り出す（ソース範囲外は透明パディング。 位置関係は保たれる。 0 初期化は行わず、コピーされないパディングだけを透明にする） |
-| その他 | `Dispose` | `void Dispose()` | ピクセルバッファを解放（二重呼び出しは無害） |
+| その他 | `Dispose` | `void Dispose()` | ピクセル バッファを解放（二重呼び出しは無害。 解放の実装は内部の `SafeAlignedBuffer` が単一所有する） |
 | 画像源 | `GetEsBitmap` | `EsBitmap IEsImageSource.GetEsBitmap()`（**明示的実装**） | 画像源として自分自身を**借用**で返す（恒等。 破棄しない） |
 
 ### 2.34 `Imaging.IEsImageSource`（interface） / `Imaging.EsImageSourceText`（static class）

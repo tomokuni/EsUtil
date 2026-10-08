@@ -18,7 +18,10 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <br/>
 /// <b>ピクセル形式</b>: BGRA8888（アルファ乗算済み、System.Drawing の Format32bppPArgb 相当）。<br/>
 /// <see cref="Clear(byte, byte, byte, byte)"/> は<b>与えられた成分をそのまま書き込む</b>（乗算済みへの変換は行わない）。<br/>
-/// <b>所有権</b>: ピクセルバッファの所有権は本型が保持し、<see cref="Dispose"/> で解放する。<br/>
+/// <b>所有権</b>: ピクセルバッファの所有権は本型が保持し、<see cref="Dispose"/> で解放する。
+/// <b>解放を忘れた場合はファイナライザが解放する</b>（<see cref="GC.AddMemoryPressure"/> で確保量を GC へ伝え、
+/// 解放時に <see cref="GC.RemoveMemoryPressure"/> で戻す。 忘れても永久に残らない代わりに、
+/// 解放は GC の判断を待つため<b>大きな画像は早期解放のために <see cref="Dispose"/> すること</b>）。<br/>
 /// <b>スレッド安全性</b>: 静的共有状態を持たないため各インスタンスは独立して並列利用できるが、
 /// 単一インスタンスへの同時ピクセル操作は直列化すること。
 /// </remarks>
@@ -32,8 +35,8 @@ public sealed class EsBitmap : IEsImageSource, IDisposable
     /// <summary>確保するバッファの整列バイト数（SIMD・GPU 転送の要件を満たす）。</summary>
     private const int AlignmentBytes = 64;
 
-    /// <summary>ピクセルバッファの先頭アドレス（0 は未確保）。</summary>
-    private nint _buffer;
+    /// <summary>ピクセル バッファの所有者（<see cref="SafeAlignedBuffer"/>。 解放の担い手はこのハンドル）。</summary>
+    private readonly SafeAlignedBuffer _buffer;
 
     private bool _disposed;
 
@@ -54,16 +57,11 @@ public sealed class EsBitmap : IEsImageSource, IDisposable
         Stride = width * BytesPerPixel;
 
         var byteCount = (long)Stride * height;
-        if (byteCount == 0)
-        {
-            return;
-        }
-
-        _buffer = (nint)NativeMemory.AlignedAlloc((nuint)byteCount, AlignmentBytes);
-        if (clear)
+        _buffer = SafeAlignedBuffer.Allocate(byteCount, AlignmentBytes);
+        if (clear && byteCount > 0)
         {
             // 透明（全成分 0）で初期化する（未描画領域を「描かれていない」として扱うため）
-            NativeMemory.Clear((void*)_buffer, (nuint)byteCount);
+            NativeMemory.Clear((void*)Address, (nuint)byteCount);
         }
     }
 
@@ -71,18 +69,18 @@ public sealed class EsBitmap : IEsImageSource, IDisposable
     // 解放
     // ====================================================================
 
-    /// <summary>ピクセルバッファを解放する。</summary>
-    public unsafe void Dispose()
+    /// <summary>ピクセル バッファを解放する（冪等）。</summary>
+    /// <remarks>
+    /// 解放の実装は <see cref="SafeAlignedBuffer.ReleaseHandle"/> が単一所有する<br/>
+    /// （本型は自前のファイナライザを持たず、解放を忘れた場合は <see cref="SafeAlignedBuffer"/> の
+    /// ファイナライザが解放する）。
+    /// </remarks>
+    public void Dispose()
     {
         if (_disposed) return;
-
-        if (_buffer != 0)
-        {
-            NativeMemory.AlignedFree((void*)_buffer);
-            _buffer = 0;
-        }
-
         _disposed = true;
+
+        _buffer.Dispose();
     }
 
     /// <summary>破棄済みなら例外を投げる（拡張クラス・外部アセンブリからも利用）。</summary>
@@ -161,8 +159,9 @@ public sealed class EsBitmap : IEsImageSource, IDisposable
     public EsSizeInt Size { get; init; }
 
     /// <summary>ピクセルデータ先頭アドレス（BGRA8888）。 ピクセルを持たない場合は 0。</summary>
-    /// <value>確保したバッファの先頭アドレス（バッファは <see cref="Dispose"/> で解放する）。</value>
-    public nint Address => _buffer;
+    /// <value>確保したバッファの先頭アドレス。 解放後（<see cref="Dispose"/> 済み・ファイナライザ済み）は 0。</value>
+    /// <remarks>解放済みのアドレスを返さない（返すと破棄済みバッファへのアクセスを許してしまう）。</remarks>
+    public nint Address => _buffer.IsClosed ? 0 : _buffer.DangerousGetHandle();
 
     /// <summary>1 ラインあたりのバイト数（パディングなし。 常に <c>幅 × 4</c>）。</summary>
     public int Stride { get; init; }
@@ -261,7 +260,7 @@ public sealed class EsBitmap : IEsImageSource, IDisposable
     {
         ThrowIfDisposed();
 
-        if (_buffer == 0)
+        if (Address == 0)
         {
             return;
         }
@@ -269,7 +268,7 @@ public sealed class EsBitmap : IEsImageSource, IDisposable
         // BGRA の並びをそのまま uint として書き込む（成分の入れ替えをしない）
         var pattern = (uint)(b | (g << 8) | (r << 16) | (a << 24));
         // 要素数は幅×高さ（ストライドは幅×4 のため、ストライド経由で数えると桁が大きくなるだけ）
-        new Span<uint>((void*)_buffer, Width * Height).Fill(pattern);
+        new Span<uint>((void*)Address, Width * Height).Fill(pattern);
     }
 
     /// <summary>全ピクセルを指定色で塗りつぶす。</summary>
@@ -288,7 +287,7 @@ public sealed class EsBitmap : IEsImageSource, IDisposable
         var byteCount = (long)Stride * Height;
         if (byteCount > 0)
         {
-            NativeMemory.Copy((void*)_buffer, (void*)result.Address, (nuint)byteCount);
+            NativeMemory.Copy((void*)Address, (void*)result.Address, (nuint)byteCount);
         }
 
         return result;

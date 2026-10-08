@@ -88,6 +88,7 @@ graph LR
 | `src/EsUtil.Platform.Core/src/Geometry/EsMath.cs` | 幾何値の近似比較（`AreClose`）と整数への丸め（`RoundToInt`）の単一所有者（internal） |
 | `EsPlatformHandle.cs` | UI フレームワーク非依存のネイティブウィンドウ識別子（座標・寸法ではないため `Geometry` に置かない） |
 | `src/EsUtil.Platform.Core/src/Imaging/EsBitmap.cs` | 自前のピクセルバッファを所有するピクセルコンテナ（BGRA8888・Premul。 外部パッケージに依存しない） |
+| `src/EsUtil.Platform.Core/src/Imaging/SafeAlignedBuffer.cs` | 整列したアンマネージド バッファの所有者（`SafeHandle`。 **解放の実装を単一所有する**。 `Dispose` 忘れはファイナライザが解放する） |
 | `src/EsUtil.Platform.Core/src/Imaging/DrawingColorExtensions.cs` | 描画色の可視判定（アルファが 0 より大きいか）の単一所有 |
 
 ## 5. 例外処理ポリシー

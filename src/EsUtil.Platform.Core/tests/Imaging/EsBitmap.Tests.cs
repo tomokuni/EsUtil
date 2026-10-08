@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Xunit;
@@ -130,6 +131,34 @@ public class EsBitmapTests
         bmp.Dispose();
         bmp.Dispose();
         Assert.True(bmp.IsDisposed);
+    }
+
+    [Fact]
+    internal void Dispose_解放後はAddressを公開しない()
+    {
+        var bmp = Create();
+        Assert.NotEqual(0, bmp.Address);
+
+        bmp.Dispose();
+
+        // 解放済みのバッファを指したアドレスを返さない（0 は「ピクセルなし」と同じ表現）
+        Assert.Equal(0, bmp.Address);
+    }
+
+    [Fact]
+    internal void Dispose_しなくても参照を切ればGCが回収する()
+    {
+        var weak = CreateUnreachable();
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        // Dispose を忘れてもアンマネージド バッファは解放される（所有者は SafeAlignedBuffer のファイナライザ）
+        Assert.False(weak.IsAlive);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static WeakReference CreateUnreachable() => new(EsBitmap.Create(16, 16));
     }
 
     // ====================================================================
