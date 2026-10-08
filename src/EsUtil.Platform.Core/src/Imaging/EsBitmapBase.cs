@@ -11,7 +11,8 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <br/>
 /// <b>解放</b>: バッファの所有者は <see cref="SafeAlignedBuffer"/>（<see cref="System.Runtime.InteropServices.SafeHandle"/>）であり、
 /// 解放の実装はその <c>ReleaseHandle</c> が単一所有する。 本型は自前のファイナライザを持たない
-/// （MA0055 が禁止しており、<see cref="SafeAlignedBuffer"/> が同じ役割を果たす）。 したがって
+/// （手書きのファイナライザを避け、解放を <see cref="SafeAlignedBuffer"/> へ委ねる。 <c>SafeHandle</c> 自身が
+/// ファイナライザを持つため、解放の経路は <c>ReleaseHandle</c> の 1 か所になる）。 したがって
 /// <b><c>Dispose</c> を忘れても参照を切れば GC が解放する</b>（大きな画像は早期解放のために <c>Dispose</c> すること）。<br/>
 /// <br/>
 /// <b>派生の責務</b>: <c>Dispose</c>（<see cref="IDisposable"/> の実装）と <see cref="Clone"/>（共変戻り値）を宣言する。
