@@ -135,6 +135,20 @@ public class EsBitmapTests
     }
 
     [Fact]
+    internal void IEsBitmap_破棄状態は面から判定できる()
+    {
+        var bmp = EsBitmap.Create(2, 2);
+        IEsBitmap read = bmp;
+
+        Assert.False(read.IsDisposed);
+
+        bmp.Dispose();
+
+        // 実体の型へダウンキャストせずに面から判定できる（表示アダプタなど直接実装する画像も同じ手段で調べられる）
+        Assert.True(read.IsDisposed);
+    }
+
+    [Fact]
     internal void GetPixel_未初期化領域は透明になる()
     {
         using var bmp = Create();

@@ -519,13 +519,14 @@ public readonly record struct ElementFinderResults(
 | 受け取って**書き換える**（破棄しない） | `IEsWritableBitmap` |
 | 自分が**作る・所有する**（`using` で解放） | `EsWritableBitmap` |
 | **読み取り専用**であることを型で示す | `EsBitmap` |
-| 破棄済みかを判定する（実体へダウンキャスト） | `EsBitmapBase` |
+| **破棄済みかを判定する** | `IEsBitmap`（`IsDisposed`） |
 
 **受け口は面（interface）に統一します**: 本ライブラリが画像を受け取る公開 API の型は `IEsBitmap`（読む）/ `IEsWritableBitmap`（書き換える）です。 `EsBitmapBase` は抽象クラスであり `new` で生成できませんが、**受け取る型としては使えます**（本ライブラリが受け口に使わないのは、受け取る側の権利を面で絞るためです）。 したがって「受け取って読むだけ」の型は `IEsBitmap` です。
 
-`EsBitmapBase` を使うのは次の 2 つの場面だけです。
+**破棄済みの判定も面で行います**: 破棄状態（`IsDisposed`）は `IEsBitmap` が公開します（実体の型へダウンキャストしません）。 `EsBitmapBase` の派生だけを見る判定は、本インターフェイスを直接実装する画像（Avalonia の表示アダプタ等）を取りこぼすためです。
 
-- **破棄済みかどうかの判定**: 破棄状態（`IsDisposed`）を公開するのは実体だけであり（読み取りの面は公開しない）、`source is EsBitmapBase { IsDisposed: true }` の形でダウンキャストして調べます。
+`EsBitmapBase` を直接使うのは次の 1 つの場面だけです。
+
 - **2 つの権利の実装の共有**: `EsBitmap`（読取 ＋ 破棄）と `EsWritableBitmap`（読取 ＋ 書き換え ＋ 破棄）が、バッファの確保・公開・解放の実装を 1 回だけ書くための基底です。 **派生できるのは本アセンブリの 2 型だけ**です（外部が独自の画像を作る場合は `IEsBitmap` / `IEsWritableBitmap` を実装します）。
 
 **兄弟である理由**: `EsBitmap` と `EsWritableBitmap` は互いに変換できません（`Is` 関係が無い）。 同じバッファを 2 つの型で見せると「書き換えてよいか」が静かに食い違うためです。 読み取り専用の画像から書き換え可能な画像を作る場合は `EsWritableBitmap.Create(EsBitmap)`（複製）を使い、逆方向は `EsBitmap.Clone()`（読み取り専用の複製）を使います。
@@ -563,8 +564,8 @@ public readonly record struct ElementFinderResults(
 | プロパティ | `Stride` | `int` | 1 ラインあたりバイト数（**常に 幅 × 4**。 パディングなし） |
 | プロパティ | `BytesPerPixel` | `const int` | 1 ピクセルあたりのバイト数（4。 **定義は `IEsBitmap` が単一所有**し、本型は転送する） |
 | プロパティ | `Pixels` | `ReadOnlySpan<byte>` | ピクセル データの**読み取り専用ビュー**（コピーしない。 長さは `Stride × Height`。 破棄後は `ObjectDisposedException`） |
-| プロパティ | `IsDisposed` | `bool` | 破棄済みか |
-| ピクセル | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` | 指定座標の BGRA（アルファ乗算済み）を取得。 範囲外は `IndexOutOfRangeException` |
+| プロパティ | `IsDisposed` | `bool` | 破棄済みか（**公開面は `IEsBitmap`**。 利用者は面の型で判定できる） |
+| ピクセル | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` / `Color GetPixel(EsPointInt point)` | 指定座標の BGRA（アルファ乗算済み）を取得（座標型の版は `System.Drawing.Color` で返す）。 範囲外は `IndexOutOfRangeException` |
 | その他 | `ThrowIfDisposed` | `void ThrowIfDisposed()` | 破棄済みなら `ObjectDisposedException` を送出 |
 
 **`EsWritableBitmap` が追加で公開するメンバー（`IEsWritableBitmap` の実装）**:
@@ -583,10 +584,11 @@ public readonly record struct ElementFinderResults(
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
-| `GetPixel` | `static Color GetPixel(this IEsBitmap source, EsPointInt point)` | 指定座標の BGRA を `System.Drawing.Color` で取得 |
+| `GetPixel` | `static Color GetPixel(this IEsBitmap source, EsPointInt point)` | 指定座標の BGRA を `System.Drawing.Color` で取得（**実装は読み取りの面（`IEsBitmap.GetPixel(EsPointInt)`）が持ち、本メソッドは null の検証を担う**） |
 | `Crop` | `static EsWritableBitmap Crop(this IEsBitmap source, int x, int y, int width, int height)` / `static EsWritableBitmap Crop(this IEsBitmap source, EsRectInt rect)` | 指定矩形領域を切り出す（ソース範囲外は透明パディング。 位置関係は保たれる。 0 初期化は行わず、コピーされないパディングだけを透明にする） |
 
 - **拡張メソッドにする理由**: 切り出しは「自分を変更せず新しい画像を作る」操作であり、**借用した読み取り専用の画像からも呼べる**必要があるためです（実測: ルーペが表示アダプタの画像を切り出す）。 戻り値は書き換え可能（生成した側が所有し破棄する）。
+- **`GetPixel` を残す理由**: 同内容のメンバーが読み取りの面にありますが（実体と表示アダプタの両方で使える）、本ライブラリはこのソリューション以外でも使うため、**公開面を減らす削除はしません**（[`.github/コーディング規約.md`](../../../.github/コーディング規約.md) §5。 インスタンス呼び出しでは面のメンバーが優先されます）。
 - **戻り値の権利**: 新しく作った画像は `EsWritableBitmap`（書き換え可能）です。 読み取り専用で足りる場合は `EsBitmap.Clone()` を使います。
 
 **Skia との相互変換**（`ToSKBitmap` / `ToEsBitmap`）は SkiaSharp へ依存するため、Skia を使用する層の拡張メソッドが提供します（`ToSKBitmap` は非所有ビュー、`ToEsBitmap` は複製。 所有権はコア側に残ります）。
@@ -609,7 +611,7 @@ public readonly record struct ElementFinderResults(
 
 | 型 | 役割 | 与える権利 |
 | --- | --- | --- |
-| `IEsBitmap` | 借用して**読み取る** | 寸法・`Pixels`・`GetPixel` のみ（**書き換え不可・破棄不可**） |
+| `IEsBitmap` | 借用して**読み取る** | 寸法・`Pixels`・`GetPixel` と、**破棄済みかの判定**（`IsDisposed`）（**書き換え不可・破棄不可**） |
 | `IEsWritableBitmap` | 借用して**書き換える** | `IEsBitmap` ＋ `WritablePixels`・`SetPixel`・`TrySetPixel`・`Clear`（**破棄は不可**） |
 
 **`IEsBitmap` のメンバー**:
@@ -617,11 +619,13 @@ public readonly record struct ElementFinderResults(
 | 種別 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- | --- |
 | 定数 | `BytesPerPixel` | `const int` | 1 ピクセルあたりのバイト数（4。 **定義はここが単一所有**し、`EsBitmap` は転送する） |
+| プロパティ | `IsDisposed` | `bool` | 破棄済みか（**破棄の権利ではなく「まだ使えるか」の情報**。 実装は真実の破棄状態を返す） |
 | プロパティ | `Width` / `Height` | `int` | 幅 / 高さ（ピクセル） |
 | プロパティ | `Size` | `EsSizeInt` | 幅・高さ（ピクセル。 コアの整数サイズ型） |
 | プロパティ | `Stride` | `int` | 1 ラインあたりバイト数（**常に 幅 × 4**。 パディングなし） |
 | プロパティ | `Pixels` | `ReadOnlySpan<byte>` | ピクセル データの**読み取り専用ビュー**（コピーしない。 長さは `Stride × Height`） |
 | メソッド | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` | 指定座標の BGRA（アルファ乗算済み）。 範囲外は `IndexOutOfRangeException` |
+| メソッド | `GetPixel` | `Color GetPixel(EsPointInt point)` | 指定座標の色（`System.Drawing.Color`。 座標型を受け取る版） |
 
 **`IEsWritableBitmap` のメンバー**（`IEsBitmap` の全メンバーを含む）:
 
@@ -632,7 +636,8 @@ public readonly record struct ElementFinderResults(
 | メソッド | `TrySetPixel` | `bool TrySetPixel(int x, int y, Color color)` | 指定座標へ色を設定（**範囲外は `false`**。 端をはみ出す矩形を描く用途） |
 | メソッド | `Clear` | `void Clear(byte b, byte g, byte r, byte a)` / `void Clear(Color color)` | 全ピクセルを指定色で塗りつぶし |
 
-- **`IDisposable` を含めません**: 借用に破棄の権利を与えないためです（破棄するのは生成した側であり、その側は書き込み可能な具象型として画像を持ちます）。 この分離により「**借用した画像を破棄する**」誤りがコンパイル エラーになります。
+- **`IDisposable` を含めません**: 借用に**破棄の権利**を与えないためです（破棄するのは生成した側であり、その側は書き込み可能な具象型として画像を持ちます）。 この分離により「**借用した画像を破棄する**」誤りがコンパイル エラーになります。
+- **破棄状態（`IsDisposed`）は含めます**: 破棄の権利とは別であり、受け取った側が「破棄済みを描画・計算へ渡さない」ための判定に使います。 **実体の型（`EsBitmapBase` の派生）へダウンキャストしない**のは、本インターフェイスを直接実装する画像（Avalonia の表示アダプタ等）を取りこぼすためです（実測: ダウンキャストしていた `SkiaImageRenderer` は表示アダプタを検出できていませんでした）。
 - **生ポインタ（`Address`）を読取面へ含めません**: 渡すと読み取り専用の意図が消えるためです。 ポインタが要る場合（他フレームワークの非所有ビューへ渡す等）は `Pixels` を `fixed` で固定して取ります（バッファはアンマネージドのため、生存中はアドレスが動きません）。
 - **`WritablePixels` を別名にする理由**: 同名にすると `IEsBitmap` 経由か `IEsWritableBitmap` 経由かで返る型が変わり、**書き換えてよいかどうかが読み手に分からなくなります**。
 - **破棄済みの扱い**: 実装は破棄済みの場合に `ObjectDisposedException` を投げます（`Pixels` / `WritablePixels` の取得も含む。 無効な画像の値を正常値として返さないため）。

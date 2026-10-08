@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using EsUtil.Platform.Core.Geometry;
+using Color = System.Drawing.Color;
 
 namespace EsUtil.Platform.Core.Imaging;
 
@@ -20,8 +21,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// （読み取り専用の実体でも早期解放はできるが、破棄の入口を読み取りの面には出さない）。<br/>
 /// <b>派生できる範囲</b>: コンストラクターが <c>private protected</c> のため、派生は本アセンブリの
 /// <see cref="EsBitmap"/> と <see cref="EsWritableBitmap"/> だけである（本型は「2 つの権利の実装を 1 回だけ書く」ための型である）。
-/// 外部が独自の画像を作る場合は本型ではなく <see cref="IEsBitmap"/> / <see cref="IEsWritableBitmap"/> を実装する
-/// （破棄済みかどうかの判定だけは、本型へダウンキャストして <see cref="IsDisposed"/> を読む）。<br/>
+/// 外部が独自の画像を作る場合は本型ではなく <see cref="IEsBitmap"/> / <see cref="IEsWritableBitmap"/> を実装する。<br/>
 /// <b>バッファの仕様</b>: BGRA8888（アルファ乗算済み）、ストライドは <c>幅 × <see cref="IEsBitmap.BytesPerPixel"/></c>
 /// （行パディングなし）、64 バイト整列で確保する。
 /// </remarks>
@@ -80,7 +80,8 @@ public abstract class EsBitmapBase : IEsBitmap
     /// <inheritdoc/>
     public int Stride { get; }
 
-    /// <summary>破棄済みかどうか。</summary>
+    /// <inheritdoc/>
+    /// <remarks>読み取りの面（<see cref="IEsBitmap.IsDisposed"/>）が公開面である。 利用者は面の型で判定できる（本型へのダウンキャストは不要）。</remarks>
     public bool IsDisposed => _disposed;
 
     /// <summary>ピクセル データ先頭アドレス（BGRA8888）。 ピクセルを持たない場合と破棄後は 0。</summary>
@@ -131,6 +132,14 @@ public abstract class EsBitmapBase : IEsBitmap
         ThrowIfDisposed();
         var p = (byte*)AddressCore + y * Stride + x * BytesPerPixel;
         return (p[0], p[1], p[2], p[3]);
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>成分の取得は <see cref="GetPixel(int, int)"/> へ委譲する（色の組み立て方を 1 か所に保つ）。</remarks>
+    public Color GetPixel(EsPointInt point)
+    {
+        var (b, g, r, a) = GetPixel(point.X, point.Y);
+        return Color.FromArgb(a, r, g, b);
     }
 
     /// <summary>破棄済みなら例外を投げる。</summary>

@@ -5,12 +5,15 @@ namespace EsUtil.Platform.Core.Imaging;
 
 /// <summary>画像を<b>変更しない</b>操作（切り出し・色の取得）の拡張メソッド。</summary>
 /// <remarks>
-/// <b>なぜ拡張メソッドなのか</b>: これらの操作は「自分を変更せず、新しい画像を作る」または「読むだけ」である。
-/// <see cref="IEsBitmap"/> を実装する任意の画像（借用した画像を含む）に対して使える必要があるため、
-/// 継承階層の型（<see cref="EsBitmapBase"/>）のメソッドにはしない
-/// （読み取り専用の画像からも書き換え可能な画像を作れる必要がある。 実測: ルーペと切り出しの両方が使う）。<br/>
+/// <b>なぜ拡張メソッドなのか</b>: <see cref="Crop(IEsBitmap, EsRectInt)"/> は「自分を変更せず、新しい画像を作る」操作であり、
+/// <see cref="IEsBitmap"/> を実装する任意の画像（借用した読み取り専用の画像を含む）に対して使える必要がある。
+/// 継承階層の型（<see cref="EsBitmapBase"/>）のメソッドにすると、本インターフェイスを直接実装する画像
+/// （表示アダプタ等）から呼べない（実測: ルーペと切り出しの両方が使う）。<br/>
 /// <b>戻り値の権利</b>: 新しく作った画像は<b>書き換え可能</b>（<see cref="EsWritableBitmap"/>）で返す
-/// （生成した側が所有し、破棄する責任を持つ。 読み取り専用で足りる場合は <see cref="EsBitmap.Clone"/> を使う）。
+/// （生成した側が所有し、破棄する責任を持つ。 読み取り専用で足りる場合は <see cref="EsBitmap.Clone"/> を使う）。<br/>
+/// <b><see cref="GetPixel(IEsBitmap, EsPointInt)"/> の位置付け</b>: 同じ操作は読み取りの面（<see cref="IEsBitmap.GetPixel(EsPointInt)"/>）が
+/// 実装を持つ（実体と表示アダプタの両方で使える）。 本メソッドは可搬なライブラリの公開面を減らさないために維持し、
+/// <b>null の検証だけを担う</b>（インスタンス呼び出しでは面のメンバーが優先される）。
 /// </remarks>
 public static class EsBitmapExtensions
 {
@@ -24,8 +27,7 @@ public static class EsBitmapExtensions
     public static Color GetPixel(this IEsBitmap source, EsPointInt point)
     {
         ArgumentNullException.ThrowIfNull(source);
-        var (b, g, r, a) = source.GetPixel(point.X, point.Y);
-        return Color.FromArgb(a, r, g, b);
+        return source.GetPixel(point);
     }
 
     /// <summary>画像から指定された矩形領域を切り出す。</summary>

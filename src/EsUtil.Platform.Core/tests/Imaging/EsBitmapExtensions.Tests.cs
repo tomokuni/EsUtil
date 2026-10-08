@@ -24,19 +24,18 @@ public class EsBitmapExtensionsTests
     // ====================================================================
 
     [Fact]
-    internal void GetPixel_座標型のオーバーロードは成分と一致する()
+    internal void GetPixel_拡張メソッドは面の結果と同じ色を返す()
     {
         using var src = EsWritableBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 30, 20, 10));
         IEsBitmap read = src;
 
-        var (b, g, r, a) = read.GetPixel(1, 2);
-        var color = read.GetPixel(new EsPointInt(1, 2));
+        // 実装は読み取りの面（IEsBitmap.GetPixel(EsPointInt)）が持ち、本拡張メソッドは null の検証を担う
+        var byExtension = EsBitmapExtensions.GetPixel(read, new EsPointInt(1, 2));
+        var byFace = read.GetPixel(new EsPointInt(1, 2));
 
-        Assert.Equal((byte)10, color.B);
-        Assert.Equal(b, color.B);
-        Assert.Equal(g, color.G);
-        Assert.Equal(r, color.R);
-        Assert.Equal(a, color.A);
+        Assert.Equal(byFace, byExtension);
+        Assert.Equal((byte)10, byExtension.B);
+        Assert.Equal((byte)255, byExtension.A);
     }
 
     [Fact]
