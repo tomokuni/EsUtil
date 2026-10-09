@@ -60,13 +60,16 @@ public static class EsBitmapDrawingExtensions
         var data = Lock(bitmap);
         try
         {
-            // コピー元のストライドがデスティネーション（幅×4）以上なら全行が覆われるため、0 埋めを省く
-            var buffer = data.Stride >= dstStride
-                ? EsWritableBitmap.CreateUninitialized(width, height)
-                : EsWritableBitmap.Create(width, height);
+            return EsWritableBitmap.CreateFilled(width, height, dst =>
+            {
+                // コピー元の行幅がコピー先より小さい場合は、覆われない右端を透明にする
+                if (data.Stride < dstStride)
+                {
+                    dst.Clear();
+                }
 
-            CopyLocked(data, buffer.WritablePixels, dstStride, height);
-            return buffer;
+                CopyLocked(data, dst, dstStride, height);
+            });
         }
         finally
         {

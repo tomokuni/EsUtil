@@ -83,7 +83,7 @@ public sealed class EsBitmap : EsBitmapBase, IDisposable
     {
     }
 
-    /// <summary>確保と充填を 1 回で行う（本アセンブリ内部専用。 相互変換が使う）。</summary>
+    /// <summary>確保と充填を 1 回で行う（書き換え可能な側と同じ入口の形にする）。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>
     /// <param name="height">高さ（ピクセル）。 0 以上。</param>
     /// <param name="fill">確保したバッファ（全領域）を充填する処理。 生成の直後に 1 回だけ呼ぶ。</param>
@@ -96,13 +96,12 @@ public sealed class EsBitmap : EsBitmapBase, IDisposable
     /// <b>書き込みのビューは外へ出ない</b>: <paramref name="fill"/> へ渡すスパンは本メソッドの外へ持ち出せない
     /// （<see cref="Span{T}"/> は <c>ref struct</c> のため、ラムダが捕獲できない）。
     /// したがって「読み取り専用の実体に書き込みの入口を作らない」という不変条件は保たれる。<br/>
-    /// <b><see cref="EsWritableBitmap"/> に同じ入口を置かない理由</b>: 書き換え可能な画像は
-    /// <c>WritablePixels</c> を公開済みであり、<c>CreateUninitialized</c> の直後に書けば<b>同じ 1 回のコピー</b>に
-    /// なるためです（本メソッドが要るのは、読み取り専用の実体が書き込みの入口を持たないからです）。
-    /// 本メソッドが <c>internal</c> なのも同じ理由です（同一アセンブリの相互変換だけが使う）。<br/>
+    /// <b><see cref="EsWritableBitmap.CreateFilled"/> と対にする理由</b>: 同じ手順（外部のピクセルをコアの画像へ写す）が
+    /// 権利の違いだけで 2 通りの読み方になるのを避けるためです。 相互変換（System.Drawing / Avalonia / Skia）は
+    /// どちらの権利の画像も作るため、<b>同じ名前・同じ引数の形の入口があると変換の実装が同じ形で読めます</b>。<br/>
     /// <b>書かない領域を残さないこと</b>: 生成時の 0 埋めは行わない（透明が必要な領域は <paramref name="fill"/> が消す）。
     /// </remarks>
-    internal static EsBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)
+    public static EsBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)
     {
         ArgumentNullException.ThrowIfNull(fill);
 

@@ -101,6 +101,31 @@ public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposa
     {
     }
 
+    /// <summary>確保と充填を 1 回で行う（読み取りの面と同じ入口の形にする）。</summary>
+    /// <param name="width">幅（ピクセル）。 0 以上。</param>
+    /// <param name="height">高さ（ピクセル）。 0 以上。</param>
+    /// <param name="fill">確保したバッファ（全領域）を充填する処理。 生成の直後に 1 回だけ呼ぶ。</param>
+    /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b><see cref="EsBitmap.CreateFilled"/> と対にする理由</b>: 同じ手順（外部のピクセルをコアの画像へ写す）が
+    /// 権利の違いだけで 2 通りの読み方になるのを避けるためです。 相互変換（System.Drawing / Avalonia / Skia）は
+    /// どちらの権利の画像も作るため、<b>同じ名前・同じ引数の形の入口があると変換の実装が同じ形で読めます</b>。<br/>
+    /// <b><see cref="CreateUninitialized(int, int)"/> との関係</b>: 本メソッドはそれを呼んで充填するだけであり、
+    /// 重なる部分があります（読み取り専用の実体には本メソッドしか無いのは、書き込みの入口を公開しないためです）。
+    /// 使い分けは書く形で決まります。 <b>1 回の充填で全体を書く</b>手順（相互変換）は本メソッド、
+    /// <b>複数の場所から少しずつ書く</b>手順（切り出し・縮小・複製）は <see cref="CreateUninitialized(int, int)"/> を使います。<br/>
+    /// <b>書かない領域を残さないこと</b>: 生成時の 0 埋めは行わない（透明が必要な領域は <paramref name="fill"/> が消す）。
+    /// </remarks>
+    public static EsWritableBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)
+    {
+        ArgumentNullException.ThrowIfNull(fill);
+
+        // 全領域を充填する前提で確保するため、生成時の 0 埋めは行わない
+        var result = new EsWritableBitmap(width, height, clear: false);
+        fill(result.WritablePixels);
+        return result;
+    }
+
     /// <inheritdoc/>
     /// <remarks>本型が公開するのは書き換えを認められた画像であるため、基底のビューをそのまま公開する。</remarks>
     public Span<byte> WritablePixels => WritableBuffer;

@@ -512,6 +512,10 @@ public readonly record struct ElementFinderResults(
   - **SkiaSharp**: WebP を含む多くの形式を扱えますが、**外部パッケージを参照しない**という本プロジェクトの依存規則に反します（Skia に依存する変換は Skia を使う上位層が単一所有する）。
 - **WebP の保存は Windows 標準のどちらでもできません（実測）**: GDI+ は**例外を出さずに PNG を書く**（危険）ので本クラスは `NotSupportedException` で拒否し、Windows ネイティブも `BitmapEncoder` に WebP の識別子を持ちません（`BitmapDecoder.WebpDecoderId` があり**デコードのみ**）。 保存が必要なら SkiaSharp などの外部ライブラリが要ります。
 - **現状維持の理由**: 用途（BMP / PNG / JPEG / GIF / TIFF）に対して Microsoft 公式の .NET パッケージで足り、相互運用の宣言が不要です（WIC を使うと増える形式は JPEG XR / DDS / HEIF / JPEG XL で、いずれも OS 拡張に依存します）。
+- **WIC / WinRT の正体と Native AOT（実測）**: `Windows.Graphics.Imaging` は **WinRT（COM ベース）の .NET 投影**であり、エンコード・デコードの実体は **OS 側（WIC）にあります**。 したがって:
+  - **COM の登録や DLL の同梱は不要です**（自分で `regsvr32` する COM ではなく、OS が提供するランタイム クラスを起動するだけ）。 実測でも配布物に追加ファイルは増えませんでした。
+  - **Native AOT で動作します**（実測: 本アプリの AOT 配布物で `BitmapEncoder.GetEncoderInformationEnumerator()` が 9 個のエンコーダーを列挙できた）。 CsWinRT（投影と `WinRT.Runtime.dll`）は**マネージド コードとして exe へリンクされる**ため、**単一 exe の構成を保てます**（実測: exe 1 個 + ネイティブ DLL 4 個の構成は変わらず、exe は 24.8 → 24.9 MB で **+0.1 MB**）。
+  - **制限**: Windows 専用であること、HEIF / JPEG XL / WebP（デコード）は **OS のコーデック拡張に依存**すること（拡張の無い環境では列挙から消えます）、そして**コア（`net10.0`）からは直接参照できない**こと（`net10.0-windows10.0.x` の TFM が Windows SDK の投影を自動参照する。 COM 相互運用を自前で宣言すれば `net10.0` のまま `Native/` に置けますが数百行）。
 - **制限**: JPEG / BMP はアルファ （透明度）を保存できません（形式の仕様。 透過を保つ場合は PNG を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする。 小さく使う場合は `Downscale*` で縮小する）。
 - **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（GDI+ がこの型を投げることを実測で確認）。
 
@@ -567,6 +571,8 @@ public readonly record struct ElementFinderResults(
 
 **書き込み量の最適化**: 直後に全領域を書く手順（`Create(w, h, color)` / `Clone` / `Crop` / 相互変換）は 0 初期化を省きます（画像サイズ分の書き込みを丸ごと削減する）。 `Crop` はコピーされないパディングだけを透明にし、`CreateUninitialized` は「全領域を書く」責任を呼び出し側が持つ前提で未初期化のまま確保します。
 
+**`CreateFilled` を両方の型に置く理由（対にする）**: 相互変換（System.Drawing / Avalonia / Skia）は**どちらの権利の画像も作ります**。 片方だけ別の書き方（`CreateUninitialized` + `WritablePixels`）になると、変換を読むたびに「なぜ違うのか」を調べることになるため、**同じ名前・同じ引数の形の入口を両方の型に置きます**（読み取り専用の側は書き込みの入口を公開しないため、充填の入口が無いと 2 回のコピーになる）。 `CreateUninitialized` との関係は「1 回の充填で全体を書く手順 → `CreateFilled` / 複数の場所から少しずつ書く手順（切り出し・縮小・複製）→ `CreateUninitialized`」で使い分けます。
+
 **実測（4K 3840x2160 = 33 MB のバッファ）**: 確保と 0 初期化が 7.3 ms、1 回の全域コピーが 6.5 ms です。 つまり **`Create(w, h)`（0 初期化あり）と 1 回のコピーの合計が支配的**です。
 
 - **0 初期化は「直後に全領域を書く」場合に省く**（`CreateUninitialized` は 10 µs。 0 初期化を省くだけで 7.3 ms 減ります）、
@@ -584,6 +590,7 @@ public readonly record struct ElementFinderResults(
 | 生成 | `Create` | `static EsWritableBitmap Create(int width, int height)` / `static EsWritableBitmap Create(EsSizeInt size)` | 指定サイズの空の画像（全ピクセル透明）を生成 |
 | 生成 | `Create` | `static EsWritableBitmap Create(int width, int height, Color color)` / `static EsWritableBitmap Create(EsSizeInt size, Color color)` | 全ピクセルを指定色で生成（0 初期化を省く） |
 | 生成 | `CreateUninitialized` | `static EsWritableBitmap CreateUninitialized(int width, int height)` / `static EsWritableBitmap CreateUninitialized(EsSizeInt size)` | 直後に全領域を書く前提で確保（ピクセルは不定値。 **書かなければ不定値が見える**） |
+| 生成 | `CreateFilled` | `static EsWritableBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)` | 確保と**充填**を 1 回で行う（相互変換が使う） |
 | 複製 | `Create` | `static EsWritableBitmap Create(EsBitmap source)` | 読み取り専用の画像から書き換え可能な複製を作る（バッファは共有しない。 実測: 4K で約 6 ms） |
 | 複製 | `Clone` | `EsWritableBitmap Clone()` | 書き換え可能な複製を作る（同型） |
 | その他 | `Dispose` | `void Dispose()` | バッファを解放（二重呼び出しは無害） |
@@ -594,6 +601,7 @@ public readonly record struct ElementFinderResults(
 | --- | --- | --- | --- |
 | 生成 | `Create` | `static EsBitmap Create(int width, int height)` / `static EsBitmap Create(EsSizeInt size)` | 指定サイズの空の画像（全ピクセル透明）を生成 |
 | 生成 | `Create` | `static EsBitmap Create(int width, int height, Color color)` / `static EsBitmap Create(EsSizeInt size, Color color)` | 全ピクセルを指定色で生成 |
+| 生成 | `CreateFilled` | `static EsBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)` | 確保と**充填**を 1 回で行う（相互変換が使う） |
 | 複製 | `Clone` | `EsBitmap Clone()` | 読み取り専用の複製を作る（同型。 書き換え可能な複製が要る場合は `EsWritableBitmap.Create`） |
 | 複製 | `Create` | `static EsBitmap Create(IEsBitmap source)` | 借用した画像を複製して**読み取り専用の**画像を作る（表示アダプタなどの外部実装からも使える入口） |
 | その他 | `Dispose` | `void Dispose()` | バッファを解放（二重呼び出しは無害） |
