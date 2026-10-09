@@ -83,6 +83,6 @@ internal static class LoupeRenderPipeline
             LoupeContextPainter.Paint(context, source, in plan);
         }
 
-        return bitmap.ToEsBitmap();
+        return bitmap.ToEsWritableBitmap();
     }
 }

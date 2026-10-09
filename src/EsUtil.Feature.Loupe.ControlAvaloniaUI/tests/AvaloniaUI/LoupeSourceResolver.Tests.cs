@@ -8,7 +8,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests;
 /// <summary><see cref="LoupeSourceResolver"/> の純粋計算テスト（UI 非依存・並列実行）。</summary>
 /// <remarks>
 /// ルーペのソース画像（表示アダプタ / null）から切り出し元の解決ロジックを検証する。<br/>
-/// <see cref="Bitmap"/> 由来の変換（<c>ToEsBitmap()</c>）は <c>WriteableBitmap</c> 生成を伴うため<br/>
+/// <see cref="Bitmap"/> 由来の変換（<c>ToEsWritableBitmap()</c>）は <c>WriteableBitmap</c> 生成を伴うため<br/>
 /// <see cref="LoupeControlTests"/>（ヘッドレス直列）が担う。<br/>
 /// UI スレッドに依存せず <c>[Fact]</c> で並列実行する。
 /// </remarks>

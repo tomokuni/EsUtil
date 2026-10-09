@@ -36,7 +36,7 @@ internal static class TestHelper
         using var bitmap = new SKBitmap(size, size);
         bitmap.Erase(color);
 
-        return bitmap.ToEsBitmap();
+        return bitmap.ToEsWritableBitmap();
     }
 
     /// <summary>元画像の中央を区別できるテスト画像を生成する（中心 1 画素のみ別色）。</summary>
@@ -51,7 +51,7 @@ internal static class TestHelper
         bitmap.Erase(background);
         bitmap.SetPixel(size / 2, size / 2, center);
 
-        return bitmap.ToEsBitmap();
+        return bitmap.ToEsWritableBitmap();
     }
 }
 

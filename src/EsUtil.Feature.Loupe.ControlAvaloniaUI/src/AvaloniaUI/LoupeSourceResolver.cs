@@ -40,7 +40,7 @@ internal static class LoupeSourceResolver
     /// <returns>破棄済み・未対応型の場合は false（市松模様のみで描画する）。 それ以外は true。</returns>
     /// <remarks>
     /// <see cref="Bitmap"/>（派生の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> を含む）は
-    /// 複製（<c>ToEsBitmap()</c>）を返し、破棄は呼び出し側が行う（<see cref="Result.IsSourceBitmap"/> = true）。<br/>
+    /// 複製（<c>ToEsWritableBitmap()</c>）を返し、破棄は呼び出し側が行う（<see cref="Result.IsSourceBitmap"/> = true）。<br/>
     /// <see cref="IEsBitmap"/>（表示アダプタ）は
     /// 借用を返し、破棄しない（<see cref="Result.IsSourceBitmap"/> = false）。<br/>
     /// 破棄済み <see cref="Bitmap"/> は <c>PixelSize</c> 参照で検出する（<see cref="ObjectDisposedException"/> 防止）。<br/>
@@ -74,7 +74,7 @@ internal static class LoupeSourceResolver
                 return new Result(null, IsSourceBitmap: false);
             }
 
-            sourceBitmap = sourceBitmapImage.ToEsBitmap();
+            sourceBitmap = sourceBitmapImage.ToEsWritableBitmap();
             return new Result(sourceBitmap, IsSourceBitmap: true);
         }
 

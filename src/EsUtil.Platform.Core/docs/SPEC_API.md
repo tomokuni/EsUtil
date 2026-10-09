@@ -506,11 +506,12 @@ public readonly record struct ElementFinderResults(
 - **WebP / HEIF を対応形式へ入れない理由（実測）**: .NET 10 の `System.Drawing.Common` は `ImageFormat.Webp` / `ImageFormat.Heif` を公開していますが、GDI+ にこれらのエンコーダーが無いため（`ImageCodecInfo.GetImageEncoders()` が返すのは BMP / JPEG / GIF / TIFF / PNG のみ）、`Bitmap.Save` は**例外を出さずに PNG を書き出します**（実測: 書き出したファイルの先頭バイトが PNG のシグネチャ）。 拡張子と中身が食い違うファイルを作らないため、対応形式へ追加しません。
 - **エンコード・デコードの実体は `System.Drawing.Common`**（.NET 標準）です。 コア本体は `System.Drawing.Common` へ依存せず、本名前空間（`Native/`）だけが依存します。
 - **`System.Drawing.Common` は Windows 専用です**（パッケージの説明: 「Since .NET 7, non-Windows platforms are not supported, even with the runtime configuration switch」。 非 Windows では `PlatformNotSupportedException`）。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、本名前空間だけが Windows に依存します）。
-- **代替（採用していない）**: 画像のエンコード・デコードは .NET に他に標準手段が無く、他は次のいずれかです。
-  - **WIC（Windows Imaging Component）を COM 相互運用で呼ぶ**: Windows 標準のコーデック（`Microsoft.Windows.CsWin32` などの Microsoft 公式パッケージで宣言を生成できる）。 `System.Drawing.Common` を外せ、コーデックが入っていれば WebP / HEIF も扱えます。 代償は COM 相互運用の実装量（数百行）と、拡張機能の有無で扱える形式が変わることです。
+- **代替（採用していない）**: **マネージド .NET には他に標準の画像コーデックがありません**。 Windows ネイティブにはあります（下記）。 いずれも実装量または依存の代償があります。
+  - **WIC / WinRT（Windows ネイティブ。 実測で存在を確認）**: `Windows.Graphics.Imaging`（`BitmapEncoder` / `BitmapDecoder`。 WIC の .NET 投影）が**追加の NuGet なしで使えます**（Windows TFM `net10.0-windows10.0.x` が Windows SDK の投影を自動参照する。 実測: このマシンに 17763〜26100 の投影が存在）。 実測したエンコーダーは BMP / GIF / JPEG / PNG / TIFF / WMPhoto（JPEG XR）/ DDS / **HEIF（AVIF を含む）/ JPEG XL** で、**7 種すべてで保存に成功**しました。 デコーダーはさらに ICO / CUR / DNG / RAW（約 40 形式）/ **WebP（デコードのみ）** を含みます。 ただし (1) 本コアは `net10.0`（可搬）のため WinRT を直接参照できず、**TFM を Windows 固有にするか常駐アセンブリを分ける**必要があります（COM 相互運用を自前で宣言すれば `net10.0` のまま `Native/` に置けますが、`IWICImagingFactory` 等の宣言に数百行を要します）、(2) HEIF / JPEG XL / WebP は**OS のコーデック拡張（Store アプリ）で提供**されるため、拡張の無い環境では使えません（このマシンには入っています）。
   - **WPF の `System.Windows.Media.Imaging`（`BitmapEncoder` / `BitmapDecoder`）**: Microsoft 公式ですが `UseWPF` が必要で、UI 非依存のコアへ WPF を持ち込みます。
   - **SkiaSharp**: WebP を含む多くの形式を扱えますが、**外部パッケージを参照しない**という本プロジェクトの依存規則に反します（Skia に依存する変換は Skia を使う上位層が単一所有する）。
-  現在は「Microsoft 公式の .NET パッケージで、対応形式（BMP / PNG / JPEG / GIF / TIFF）が用途に足りる」ため `System.Drawing.Common` を維持します。
+- **WebP の保存は Windows 標準のどちらでもできません（実測）**: GDI+ は**例外を出さずに PNG を書く**（危険）ので本クラスは `NotSupportedException` で拒否し、Windows ネイティブも `BitmapEncoder` に WebP の識別子を持ちません（`BitmapDecoder.WebpDecoderId` があり**デコードのみ**）。 保存が必要なら SkiaSharp などの外部ライブラリが要ります。
+- **現状維持の理由**: 用途（BMP / PNG / JPEG / GIF / TIFF）に対して Microsoft 公式の .NET パッケージで足り、相互運用の宣言が不要です（WIC を使うと増える形式は JPEG XR / DDS / HEIF / JPEG XL で、いずれも OS 拡張に依存します）。
 - **制限**: JPEG / BMP はアルファ （透明度）を保存できません（形式の仕様。 透過を保つ場合は PNG を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする。 小さく使う場合は `Downscale*` で縮小する）。
 - **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（GDI+ がこの型を投げることを実測で確認）。
 
@@ -668,7 +669,7 @@ public readonly record struct ElementFinderResults(
 - **色の取得をここに置かない理由**: 「座標のピクセルを色として読む」は画像の読み取りそのものであり、**読み取りの面（`IEsBitmap.GetPixel(EsPointInt)`）が実装を持つ**ためです（追加の画像を作らないため、拡張メソッドにする理由がありません）。
 - **戻り値の権利**: 新しく作った画像は `EsWritableBitmap`（書き換え可能）です。 読み取り専用で足りる場合は `EsBitmap.Clone()` を使います。
 
-**Skia との相互変換**（`ToSKBitmap` / `ToEsBitmap`）は SkiaSharp へ依存するため、Skia を使用する層の拡張メソッドが提供します（`ToSKBitmap` は非所有ビュー、`ToEsBitmap` は複製。 所有権はコア側に残ります）。
+**Skia との相互変換**（`ToSKBitmap` / `ToEsWritableBitmap`）は SkiaSharp へ依存するため、Skia を使用する層の拡張メソッドが提供します（`ToSKBitmap` は非所有ビュー、`ToEsWritableBitmap` は複製。 所有権はコア側に残ります）。
 
 ### 2.35 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）
 

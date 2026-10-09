@@ -96,6 +96,10 @@ public sealed class EsBitmap : EsBitmapBase, IDisposable
     /// <b>書き込みのビューは外へ出ない</b>: <paramref name="fill"/> へ渡すスパンは本メソッドの外へ持ち出せない
     /// （<see cref="Span{T}"/> は <c>ref struct</c> のため、ラムダが捕獲できない）。
     /// したがって「読み取り専用の実体に書き込みの入口を作らない」という不変条件は保たれる。<br/>
+    /// <b><see cref="EsWritableBitmap"/> に同じ入口を置かない理由</b>: 書き換え可能な画像は
+    /// <c>WritablePixels</c> を公開済みであり、<c>CreateUninitialized</c> の直後に書けば<b>同じ 1 回のコピー</b>に
+    /// なるためです（本メソッドが要るのは、読み取り専用の実体が書き込みの入口を持たないからです）。
+    /// 本メソッドが <c>internal</c> なのも同じ理由です（同一アセンブリの相互変換だけが使う）。<br/>
     /// <b>書かない領域を残さないこと</b>: 生成時の 0 埋めは行わない（透明が必要な領域は <paramref name="fill"/> が消す）。
     /// </remarks>
     internal static EsBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)
