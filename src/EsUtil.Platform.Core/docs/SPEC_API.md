@@ -516,6 +516,16 @@ public readonly record struct ElementFinderResults(
   - **COM の登録や DLL の同梱は不要です**（自分で `regsvr32` する COM ではなく、OS が提供するランタイム クラスを起動するだけ）。 実測でも配布物に追加ファイルは増えませんでした。
   - **Native AOT で動作します**（実測: 本アプリの AOT 配布物で `BitmapEncoder.GetEncoderInformationEnumerator()` が 9 個のエンコーダーを列挙できた）。 CsWinRT（投影と `WinRT.Runtime.dll`）は**マネージド コードとして exe へリンクされる**ため、**単一 exe の構成を保てます**（実測: exe 1 個 + ネイティブ DLL 4 個の構成は変わらず、exe は 24.8 → 24.9 MB で **+0.1 MB**）。
   - **制限**: Windows 専用であること、HEIF / JPEG XL / WebP（デコード）は **OS のコーデック拡張に依存**すること（拡張の無い環境では列挙から消えます）、そして**コア（`net10.0`）からは直接参照できない**こと（`net10.0-windows10.0.x` の TFM が Windows SDK の投影を自動参照する。 COM 相互運用を自前で宣言すれば `net10.0` のまま `Native/` に置けますが数百行）。
+- **速度は `System.Drawing`（GDI+）の方が速い（実測・4K 3840x2160・変換を除いたコーデックのみ・各 API の既定設定）**:
+
+  | 形式 | 保存 GDI+ | 保存 WIC / WinRT | 読込 GDI+ | 読込 WIC / WinRT |
+  | --- | --- | --- | --- | --- |
+  | PNG | 67 ms | 77 ms | 9.6 ms | 10.6 ms |
+  | JPEG | 16 ms | 27 ms | 22 ms | 44 ms |
+  | BMP | 18 ms | **132 ms** | 20 ms | **93 ms** |
+
+  すべての形式で GDI+ が速く、差は PNG で 10〜15%、JPEG で 1.6〜2 倍、**BMP で 4〜7 倍**でした。 WIC は WinRT の境界越しにサーフェスを渡すため中間コピーが入り、**BMP のような「memcpy で済む」形式ほど差が開きます**。 コアの画像との相互変換も GDI+ が速い（コア → `Drawing.Bitmap` 10.5 ms / コア → `SoftwareBitmap` 12.3 ms、`Drawing.Bitmap` → コア 6.8 ms / `SoftwareBitmap` → コア 11.9 ms。 WinRT はバイト配列を 1 回経由するため）。
+- 圧縮の既定値が両者で異なり（PNG の出力が 130 KB 対 36 KB）、**同じ画質での比較ではありません**（各 API の既定設定での比較。 計測用の画像は繰り返しパターンで、実際のスクリーンショットとは圧縮の傾向が異なります）。
 - **制限**: JPEG / BMP はアルファ （透明度）を保存できません（形式の仕様。 透過を保つ場合は PNG を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする。 小さく使う場合は `Downscale*` で縮小する）。
 - **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（GDI+ がこの型を投げることを実測で確認）。
 
