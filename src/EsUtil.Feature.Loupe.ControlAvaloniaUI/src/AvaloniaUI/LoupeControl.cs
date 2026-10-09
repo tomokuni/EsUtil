@@ -585,11 +585,11 @@ public sealed class LoupeControl : Panel
 
     /// <summary>表示用の画像アダプタ。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
     /// <remarks>
-    /// <see cref="Image.Source"/> へ設定する <see cref="EsBitmapAdapter"/> を保持する（<see cref="IImage"/> は非所有の契約のため、
-    /// 差し替え時に本コントロールが <see cref="EsBitmapAdapter.Dispose"/> を呼ぶ）。<br/>
+    /// <see cref="Image.Source"/> へ設定する <see cref="EsBitmapAvaloniaAdapter"/> を保持する（<see cref="IImage"/> は非所有の契約のため、
+    /// 差し替え時に本コントロールが <see cref="EsBitmapAvaloniaAdapter.Dispose"/> を呼ぶ）。<br/>
     /// 破棄は <see cref="ReleaseBitmap"/> / <see cref="SetLoupeBitmap"/> で行う。
     /// </remarks>
-    private EsBitmapAdapter? _loupeImage;
+    private EsBitmapAvaloniaAdapter? _loupeImage;
 
     /// <summary>内部描画結果（<see cref="EsWritableBitmap"/>）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
     /// <remarks>
@@ -783,13 +783,13 @@ public sealed class LoupeControl : Panel
         RaiseRendered(bmp, plan);
 
         // イベント後の画像（ホストのオーバーレイ描画を含む）を表示境界で Avalonia 画像として反映する。
-        // EsBitmapAdapter（表示用の変換は初回のみ）を Source に設定する。
+        // EsBitmapAvaloniaAdapter（表示用の変換は初回のみ）を Source に設定する。
         // 旧アダプタを破棄する前に、新しいアダプタを先に Source へ設定する（破棄済みバッファの参照防止・チラつき防止）。
         var previousImage = _loupeImage;
         var previousEs = _loupeEs;
         // 画像は本コントロールが所有し、アダプタは非所有で包むだけ（アダプタは射影だけを所有する）
         _loupeEs = bmp;
-        _loupeImage = new EsBitmapAdapter(bmp);
+        _loupeImage = new EsBitmapAvaloniaAdapter(bmp);
         _image.Source = _loupeImage;
         // 新旧の Source 設定後、旧の画像とアダプタを破棄する（Image.Source が旧アダプタを参照しなくなった後）。
         previousImage?.Dispose();

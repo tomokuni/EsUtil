@@ -67,7 +67,7 @@ public static class TestImageFactory
             }
         }
 
-        // 画像は呼び出し側が保持し、表示には非所有アダプタ（EsBitmapAdapter）を介する
+        // 画像は呼び出し側が保持し、表示には非所有アダプタ（EsBitmapAvaloniaAdapter）を介する
         return bitmap;
     }
 

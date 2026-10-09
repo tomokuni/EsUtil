@@ -158,7 +158,7 @@ public Point? CenterPoint { get; set; } = new(400, 300);
 public bool IsLoupeVisible { get; set; } = true;
 ```
 
-`Source` は `Image.Source` と同じAvaloniaの `IImage?` 型です。 ピクセル抽出処理は `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む）と `EsBitmapAdapter`（コアの `IEsBitmap` を実装する `IImage` アダプタ）をサポートします。
+`Source` は `Image.Source` と同じAvaloniaの `IImage?` 型です。 ピクセル抽出処理は `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む）と `EsBitmapAvaloniaAdapter`（コアの `IEsBitmap` を実装する `IImage` アダプタ）をサポートします。
 
 ## 5. 公開API
 
@@ -175,11 +175,11 @@ public bool IsLoupeVisible { get; set; } = true;
 | 既定値 | `null` |
 | 用途 | 拡大元画像 |
 | Binding | 対応 |
-| 実装上の対応型 | `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む） / `EsBitmapAdapter` |
+| 実装上の対応型 | `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む） / `EsBitmapAvaloniaAdapter` |
 
 `Source` が `null` の場合、画像なし（画像外の色のみ）を描画します。
 
-`Source` に `Bitmap`（派生を含む）以外の `IImage`（`EsBitmapAdapter` を除く）を設定した場合、`NotSupportedException` が発生します。 例外は `LoupeControl.Log` に記録されます。
+`Source` に `Bitmap`（派生を含む）以外の `IImage`（`EsBitmapAvaloniaAdapter` を除く）を設定した場合、`NotSupportedException` が発生します。 例外は `LoupeControl.Log` に記録されます。
 
 #### 5.1.2 CenterPoint
 
@@ -448,9 +448,9 @@ StyledProperty は同ファイルに定義されます（Avalonia のバイン�
 
 ### 7.1 Source の所有権
 
-`Source` に設定した元画像（`Bitmap` / `EsBitmapAdapter`）の所有権は利用側にあります。
+`Source` に設定した元画像（`Bitmap` / `EsBitmapAvaloniaAdapter`）の所有権は利用側にあります。
 
-`LoupeControl` は元画像を破棄しません（`EsBitmapAdapter` を設定した場合も、真実の画像の破棄は利用側に委ねる。 `EsBitmapAdapter` は `IImage` の非所有契約のため `Source` の設定では破棄されないので、**差し替える側が旧アダプタを破棄して射影を解放する**）。
+`LoupeControl` は元画像を破棄しません（`EsBitmapAvaloniaAdapter` を設定した場合も、真実の画像の破棄は利用側に委ねる。 `EsBitmapAvaloniaAdapter` は `IImage` の非所有契約のため `Source` の設定では破棄されないので、**差し替える側が旧アダプタを破棄して射影を解放する**）。
 
 本コントロール自身が生成したアダプタ（`SetLoupeBitmap`）は本コントロールが破棄します。
 

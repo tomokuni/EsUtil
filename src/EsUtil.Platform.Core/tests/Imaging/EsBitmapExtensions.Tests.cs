@@ -196,4 +196,86 @@ public class EsBitmapExtensionsTests
     [Fact]
     internal void Crop_nullはArgumentNullExceptionを投げる()
         => Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.Crop(null!, new EsRectInt(0, 0, 4, 4)));
+
+    // ====================================================================
+    // Resize（長辺を上限へ収める）
+    // ====================================================================
+
+    [Fact]
+    internal void Resize_上限を超える画像は長辺が上限へ収まる()
+    {
+        using var src = CreateRed(200, 100);
+
+        using var result = src.Resize(50);
+
+        // 長辺（幅）が上限へ収まり、縦横比が保たれる（200:100 = 2:1）
+        Assert.Equal(50, result.Size.Width);
+        Assert.Equal(25, result.Size.Height);
+        Assert.Equal(50 * 4, result.Stride);
+    }
+
+    [Fact]
+    internal void Resize_縦長の画像では高さが上限へ収まる()
+    {
+        using var src = CreateRed(100, 400);
+
+        using var result = src.Resize(50);
+
+        Assert.Equal(50, result.Size.Height);
+        Assert.Equal(12, result.Size.Width);
+    }
+
+    [Fact]
+    internal void Resize_上限以内の画像は等倍の複製を返す()
+    {
+        using var src = CreateRed(40, 20);
+
+        using var result = src.Resize(50);
+
+        Assert.Equal(40, result.Size.Width);
+        Assert.Equal(20, result.Size.Height);
+        // 元の画像をそのまま返さない（戻り値の所有権を呼び出し側へ統一する）
+        Assert.NotSame(src, result);
+    }
+
+    [Fact]
+    internal void Resize_画素を保つ()
+    {
+        using var src = EsWritableBitmap.Create(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
+
+        using var result = src.Resize(4);
+
+        Assert.Equal(4, result.Size.Width);
+        Assert.Equal(4, result.Size.Height);
+        var (b, g, r, a) = result.GetPixel(2, 2);
+        Assert.Equal((byte)30, b);
+        Assert.Equal((byte)20, g);
+        Assert.Equal((byte)10, r);
+        Assert.Equal((byte)255, a);
+    }
+
+    [Fact]
+    internal void Resize_1ピクセル未満には縮小しない()
+    {
+        using var src = CreateRed(10, 1000);
+
+        using var result = src.Resize(2);
+
+        // 高さは上限、幅は最低 1 ピクセル
+        Assert.Equal(2, result.Size.Height);
+        Assert.Equal(1, result.Size.Width);
+    }
+
+    [Fact]
+    internal void Resize_上限が0以下ならArgumentOutOfRangeExceptionを投げる()
+    {
+        using var src = CreateRed(4, 4);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(-1));
+    }
+
+    [Fact]
+    internal void Resize_nullはArgumentNullExceptionを投げる()
+        => Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.Resize(null!, 10));
 }

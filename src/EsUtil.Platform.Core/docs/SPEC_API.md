@@ -36,10 +36,11 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.28 `Native.ElementFinderResults`（readonly record struct）](#228-nativeelementfinderresultsreadonly-record-struct)
   - [2.29 `Native.Win.*`（Windows 実装）](#229-nativewinwindows-実装)
   - [2.30 `Native.Imaging.EsBitmapDrawingExtensions`（static class）](#230-nativeimagingesbitmapdrawingextensionsstatic-class)
-  - [2.31 `Coord.ICoordTransform`（interface）](#231-coordicoordtransforminterface)
-  - [2.32 `Coord.CoordTransform`（sealed class : ICoordTransform）](#232-coordcoordtransformsealed-class--icoordtransform)
-  - [2.33 `Imaging.EsBitmapBase`（abstract class : IEsBitmap） / `Imaging.EsBitmap`（sealed class） / `Imaging.EsWritableBitmap`（sealed class）](#233-imagingesbitmapbaseabstract-class--iesbitmap--imagingesbitmapsealed-class--imagingeswritablebitmapsealed-class)
-  - [2.34 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）](#234-imagingiesbitmapinterface--imagingieswritablebitmapinterface)
+  - [2.31 `Native.Imaging.EsBitmapFileExtensions`（static class）](#231-nativeimagingesbitmapfileextensionsstatic-class)
+  - [2.32 `Coord.ICoordTransform`（interface）](#232-coordicoordtransforminterface)
+  - [2.33 `Coord.CoordTransform`（sealed class : ICoordTransform）](#233-coordcoordtransformsealed-class--icoordtransform)
+  - [2.34 `Imaging.EsBitmapBase`（abstract class : IEsBitmap） / `Imaging.EsBitmap`（sealed class） / `Imaging.EsWritableBitmap`（sealed class）](#234-imagingesbitmapbaseabstract-class--iesbitmap--imagingesbitmapsealed-class--imagingeswritablebitmapsealed-class)
+  - [2.35 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）](#235-imagingiesbitmapinterface--imagingieswritablebitmapinterface)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -57,7 +58,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `.Imaging` | `EsBitmapBase` / `EsBitmap` / `EsWritableBitmap` / `IEsBitmap` / `IEsWritableBitmap` / `EsBitmapExtensions` / `DrawingColorExtensions` | ピクセルコンテナとその読み取り・書き換えの抽象・変更しない操作・描画色の判定 |
 | `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` | OS サービスの抽象（UI 非依存） |
 | `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` | 上記抽象の Windows 実装（ホストが生成して注入する） |
-| `.Native.Imaging` | `EsBitmapDrawingExtensions` | `System.Drawing.Bitmap` との相互変換（Windows 専用） |
+| `.Native.Imaging` | `EsBitmapDrawingExtensions` / `EsBitmapFileExtensions` | `System.Drawing.Bitmap` との相互変換（Windows 専用） |
 
 可視性は public のみを記載します（`internal` は [`SPEC_System.md`](SPEC_System.md) の可視性ポリシーを参照）。
 
@@ -481,7 +482,23 @@ public readonly record struct ElementFinderResults(
 | `ToEsWritableBitmap` | `static EsWritableBitmap ToEsWritableBitmap(this DrawingBitmap bitmap)` | `System.Drawing.Bitmap` から**書き換え可能な**画像を作る（複製。 元の Bitmap は変更しない） |
 | `ToDrawingBitmap` | `static DrawingBitmap ToDrawingBitmap(this IEsBitmap bitmap)` | コアの画像から `System.Drawing.Bitmap`（`Format32bppPArgb`）を作る（複製） |
 
-### 2.31 `Coord.ICoordTransform`（interface）
+### 2.31 `Native.Imaging.EsBitmapFileExtensions`（static class）
+
+コアの画像のファイル保存・読み込みです（`EsUtil.Platform.Core.Native.Imaging`。 `System.Drawing.Common` を使う Windows 専用）。
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `Save` | `static void Save(this IEsBitmap bitmap, string filePath)` | 画像をファイルへ保存する（**形式は拡張子が決める**） |
+| `Load` | `static EsBitmap Load(string filePath)` | ファイルから**読み取り専用の**画像を読み込む（形式は内容から判別する。 所有権は呼び出し側へ移る） |
+| `SupportedExtensions` | `static IReadOnlyList<string> SupportedExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`） |
+
+- **形式は拡張子が決めます**: `Save` は拡張子から形式を選びます（`.bmp` = Windows Bitmap / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`）。 大文字・小文字は区別しません。
+- **未対応の拡張子は例外にします**: PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かないためです（`NotSupportedException`。 対応形式の単一所有は `SupportedExtensions`）。
+- **エンコード・デコードの実体は `System.Drawing.Common`**（.NET 標準）です。 コア本体は `System.Drawing.Common` へ依存せず、本名前空間（`Native/`）だけが依存します。
+- **制限**: JPEG / BMP はアルファ（透明度）を保存できません（形式の仕様。 透過を保つ場合は PNG を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする。 小さく使う場合は `Resize` で縮小する）。
+- **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（GDI+ がこの型を投げることを実測で確認）。
+
+### 2.32 `Coord.ICoordTransform`（interface）
 
 ローカル DIP と対象座標の双方向変換ポート。 座標はコア幾何型で扱います。 軸はこの 1 つだけであり、DIP とデバイスピクセルの換算は `DpiScaler` が単一所有します。
 
@@ -491,7 +508,7 @@ public readonly record struct ElementFinderResults(
 | `ToDip` | `EsPoint ToDip(EsPoint source)` | 対象座標 → ローカル DIP 座標 |
 | `SourceArea` | `EsSize? SourceArea { get; }` | 対象座標の境界（null = 無制限） |
 
-### 2.32 `Coord.CoordTransform`（sealed class : ICoordTransform）
+### 2.33 `Coord.CoordTransform`（sealed class : ICoordTransform）
 
 `Func` 委譲による変換ポートを提供します。 倍率の向きは 1 通り（対象座標 / ローカル DIP）だけです。
 
@@ -501,7 +518,7 @@ public readonly record struct ElementFinderResults(
 | `ClientToSource` | `static ICoordTransform ClientToSource(Func<double> sourcePerDip, Func<EsSize?>? sourceArea = null)` | 対象 = ローカル DIP × `sourcePerDip`（呼び出し毎評価。 倍率は 対象座標 / ローカル DIP。 0 以下は 1.0 扱い。 境界を省略すると無制限） |
 | コンストラクタ | `CoordTransform(Func<EsPoint, EsPoint> toSource, Func<EsPoint, EsPoint> toDip, Func<EsSize?> sourceArea)` | 変換関数を直接注入（軸は利用側が定義） |
 
-### 2.33 `Imaging.EsBitmapBase`（abstract class : IEsBitmap） / `Imaging.EsBitmap`（sealed class） / `Imaging.EsWritableBitmap`（sealed class）
+### 2.34 `Imaging.EsBitmapBase`（abstract class : IEsBitmap） / `Imaging.EsBitmap`（sealed class） / `Imaging.EsWritableBitmap`（sealed class）
 
 **自前のピクセルバッファ**（BGRA8888・アルファ乗算済み）を所有するピクセルコンテナの 3 型です。 確保は 64 バイト整列で行い、**確保直後に全領域を 0（透明）で初期化します**（透明 = 全成分 0 が「描かれていない」の表現であるため）。 **外部パッケージへ依存しない**。
 
@@ -587,6 +604,11 @@ public readonly record struct ElementFinderResults(
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
 | `Crop` | `static EsWritableBitmap Crop(this IEsBitmap source, int x, int y, int width, int height)` / `static EsWritableBitmap Crop(this IEsBitmap source, EsRectInt rect)` | 指定矩形領域を切り出す（ソース範囲外は透明パディング。 位置関係は保たれる。 0 初期化は行わず、コピーされないパディングだけを透明にする） |
+| `Resize` | `static EsWritableBitmap Resize(this IEsBitmap source, int maxSize)` | 長辺を `maxSize` へ収めるように縮小する（**最近傍**。 既に収まっていれば等倍の複製。 縦横比は保たれる） |
+
+- **`Resize` をここに置く理由**: 表示用の縮小は**どの UI でも同じ**であり、各 UI の画像変換へ個別に実装すると縮小アルゴリズムがばらつきます（実測: 4K の画像を 96×54 へ縮小すると 17 µs / 約 20 KB。 実寸のまま作る `ToAvaloniaBitmap()` は 7.8 ms / 約 32 MB でした）。
+- **最近傍で標本化する理由**: 表示の縮小は画素の代表値を選ぶだけで足り、補間は塗りの境界をぼかします（**保存・座標対応付けには使わない**前提の縮小です）。
+- **`maxSize` が 1 未満のとき**: 縦横それぞれ 1 px を下限にします（0 除算・空の画像を作らない）。
 
 - **拡張メソッドにする理由**: 切り出しは「自分を変更せず新しい画像を作る」操作であり、**借用した読み取り専用の画像からも呼べる**必要があるためです（実測: ルーペが表示アダプタの画像を切り出す）。 戻り値は書き換え可能（生成した側が所有し破棄する）。
 - **色の取得をここに置かない理由**: 「座標のピクセルを色として読む」は画像の読み取りそのものであり、**読み取りの面（`IEsBitmap.GetPixel(EsPointInt)`）が実装を持つ**ためです（追加の画像を作らないため、拡張メソッドにする理由がありません）。
@@ -594,7 +616,7 @@ public readonly record struct ElementFinderResults(
 
 **Skia との相互変換**（`ToSKBitmap` / `ToEsBitmap`）は SkiaSharp へ依存するため、Skia を使用する層の拡張メソッドが提供します（`ToSKBitmap` は非所有ビュー、`ToEsBitmap` は複製。 所有権はコア側に残ります）。
 
-### 2.34 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）
+### 2.35 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）
 
 画像の**権利を型で分ける**抽象です。 受け取った側が「書き換えてよいか」「破棄してよいか」を型から判断できます（借用と所有の取り違えを無くすための境界です）。
 
