@@ -15,6 +15,14 @@ namespace EsUtil.Platform.Core.Imaging;
 /// </remarks>
 public static class EsBitmapExtensions
 {
+    /// <summary>面積平均の縮小を並列化するかどうかの境目（元画像の画素数）。</summary>
+    /// <remarks>
+    /// <b>実測で決めた値</b>: 6 千画素（100x60）でも並列が速い（逐次 57 µs / 並列 9 µs）が、絶対時間が小さい場面で
+    /// スレッドプールを触らないようにするため、目安として 512x512（262,144 画素）程度を境にする。
+    /// スクリーンショット（1080p で 200 万画素、4K で 830 万画素）は常に並列になる。
+    /// </remarks>
+    private const long ParallelThresholdPixels = 262_144;
+
     /// <summary>画像から指定された矩形領域を切り出す。</summary>
     /// <param name="source">切り出し元の画像。 借用であり破棄しない。</param>
     /// <param name="x">切り出し領域の左上X座標（画像ローカルピクセル）。 負値の場合はソース左端より外側が透明パディングとなる。</param>
@@ -128,105 +136,31 @@ public static class EsBitmapExtensions
         return Crop(source, rect.X, rect.Y, rect.Width, rect.Height);
     }
 
-    /// <summary>長辺を上限へ収めた画像を生成する（既定のアルゴリズム = 双線形補間）。</summary>
+    /// <summary>長辺を上限へ収めた画像を生成する（アルゴリズムは引数で選ぶ）。</summary>
     /// <param name="source">対象の画像。 借用であり破棄しない。</param>
     /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
+    /// <param name="algorithm">縮小のアルゴリズム。 既定は <see cref="DownscaleAlgorithm.Bilinear"/>。</param>
     /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または
+    /// <paramref name="algorithm"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
     /// <remarks>
     /// <b>用途</b>: 大きな画像を小さく扱う場面（一覧のサムネイル・プレビュー等）。 元の寸法の複製を保持すると
     /// 4K 1 枚で 32 MB になるため、表示や転送の前に本メソッドで縮小する。<br/>
-    /// <b>アルゴリズム</b>: 既定は<b>双線形補間</b>（<see cref="DownscaleBilinear"/> と同じ）。 速度を優先する場合は
-    /// <see cref="DownscaleNearest"/>、細線（文字・罫線）を残す場合は <see cref="DownscaleBox"/> を使う。<br/>
     /// <b>名前が <c>Resize</c> である理由</b>: 将来の拡大対応を見込んで双方向の名前を残している（現在の実装は縮小だけを
     /// 行う）。 拡大が必要な要求は黙って等倍を返さず <see cref="NotSupportedException"/> にする（「拡大された」と
-    /// 誤解されるため）。
+    /// 誤解されるため）。<br/>
+    /// <b>アルゴリズムの選び方</b>: 速度と画質の目安は <see cref="DownscaleAlgorithm"/> を参照（既定の双線形は
+    /// 「速い・細線は薄れる」、<see cref="DownscaleAlgorithm.Box"/> は「遅い・細線が残る」）。<br/>
+    /// <b>返す寸法の丸め</b>: 切り捨てで丸めるため<b>1 px 未満の誤差が出うる</b>（座標の対応付けが必要な場面では使わない）。
+    /// 長辺と上限が一致する場合は縮小不要のため<b>等倍の複製</b>を返す。
     /// </remarks>
-    public static EsWritableBitmap Resize(this IEsBitmap source, int maxSize)
-        => DownscaleBilinear(source, maxSize);
-
-    /// <summary>長辺を上限へ収めた画像を生成する（最近傍補間）。</summary>
-    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
-    /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
-    /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合。</exception>
-    /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
-    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
-    /// <remarks>
-    /// <b>最速のアルゴリズム</b>（実測: 4K 3840x2160 → 96x54 で 23 µs。 双線形は 110 µs、面積平均は 9.2 ms）。<br/>
-    /// <b>縮小率が大きいと内容が落ちる</b>: 縮小先の 1 画素につき元の 1 画素（比例位置の画素）だけを読むため、
-    /// 幅 1 px の細線は<b>残らない</b>（実測: 40 倍の縮小で縮小後の最大輝度 0。 面積平均は 6 で残る）。
-    /// 文字・罫線を含む画像を大きく縮小する場合は <see cref="DownscaleBox"/> を使う。<br/>
-    /// <b>向く用途</b>: 単色・写真のサムネイル、または縮小率が小さい（2 倍程度）場面。
-    /// </remarks>
-    public static EsWritableBitmap DownscaleNearest(this IEsBitmap source, int maxSize)
+    public static EsWritableBitmap Resize(
+        this IEsBitmap source, int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)
     {
         ArgumentNullException.ThrowIfNull(source);
-        return Downscale(source, maxSize, ScaleNearest);
-    }
-
-    /// <summary>長辺を上限へ収めた画像を生成する（双線形補間）。</summary>
-    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
-    /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
-    /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合。</exception>
-    /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
-    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
-    /// <remarks>
-    /// <b>速さと品質の釣り合い</b>（実測: 4K → 96x54 で 110 µs）: 縮小先の 1 画素につき<b>元の 2x2 画素</b>を
-    /// 重み付き平均する。 面積平均（9.2 ms）より 80 倍以上速く、最近傍（23 µs）より滑らかになる。<br/>
-    /// <b>大きな縮小率では細線が落ちる</b>: 参照するのが 2x2 だけのため、40 倍の縮小では幅 1 px の線は残らない
-    /// （実測: 縮小後の最大輝度 0。 面積平均は 6）。 細線を残す必要がある場合は <see cref="DownscaleBox"/> を使う。<br/>
-    /// <b>向く用途</b>: 表示用のサムネイル（縮小率が 2〜10 倍程度）・速度を優先したい一覧。
-    /// </remarks>
-    public static EsWritableBitmap DownscaleBilinear(this IEsBitmap source, int maxSize)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        return Downscale(source, maxSize, ScaleBilinear);
-    }
-
-    /// <summary>長辺を上限へ収めた画像を生成する（面積平均 = box フィルター）。</summary>
-    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
-    /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
-    /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合。</exception>
-    /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
-    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
-    /// <remarks>
-    /// <b>最も品質が高いアルゴリズム</b>: 縮小先の 1 画素を、対応する元画像の<b>矩形領域（全画素）の平均</b>で作る。
-    /// 縮小率が大きい場合でも<b>細線（文字・罫線）が落ちない</b>（実測: 4K → 96x54 で幅 1 px の細線の最大輝度は
-    /// 面積平均 6 / 最近傍 0 / 双線形 0。 GDI+ の <c>HighQualityBicubic</c> は 4）。<br/>
-    /// <b>代償は速度</b>: 元画像の全画素を 1 度は読むため、縮小先の寸法に関係なく約 8〜9 ms かかる
-    /// （実測: 4K → 96x54 で 9.2 ms・4K → 960x540 で 28 ms。 最近傍は 23 µs）。 画面の 1 フレーム内で
-    /// 多数の大きな画像を縮小するとコマ落ちするため、作る枚数が多い場面では <see cref="DownscaleBilinear"/> を使う。<br/>
-    /// <b>向く用途</b>: 文字・罫線を判読したいサムネイル、保存用の縮小、枚数が少ない場面。
-    /// </remarks>
-    public static EsWritableBitmap DownscaleBox(this IEsBitmap source, int maxSize)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        return Downscale(source, maxSize, ScaleBox);
-    }
-
-    /// <summary>共通の前処理（目標寸法の決定と、縮小が不要な場合の等倍の複製）を行う。</summary>
-    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
-    /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
-    /// <param name="scale">縮小の実装（縮小が必要な場合にだけ呼ぶ）。</param>
-    /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
-    /// <remarks>
-    /// <b>縮小は 1 か所で判定する</b>: 拡大の拒否・目標寸法の計算・縮小不要時の等倍の複製を本メソッドが単一所有し、
-    /// 各アルゴリズムは「目標寸法へ縮小する」計算だけを持つ（共通の判断がアルゴリズム間で食い違わないようにする）。<br/>
-    /// <b>縮小が不要な場合</b>（長辺が上限と一致）は等倍の複製を返す。 元の画像をそのまま返さないのは、
-    /// 戻り値の所有権を呼び出し側へ統一するため。
-    /// </remarks>
-    private static EsWritableBitmap Downscale(
-        IEsBitmap source, int maxSize, Func<IEsBitmap, EsSizeInt, EsWritableBitmap> scale)
-    {
         if (maxSize <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(maxSize), maxSize, "長辺の上限は正の値である必要があります。");
@@ -244,15 +178,24 @@ public static class EsBitmapExtensions
 
         if (maxSize == longSide)
         {
+            // 縮小が不要（列挙されていない値でも寸法が変わらないため先に返す）
             return Crop(source, 0, 0, width, height);
         }
 
         // 長辺を上限へ収める倍率（縦横比を保つ。 短辺は最低 1 px）
         var ratio = (double)maxSize / longSide;
-        return scale(source, new EsSizeInt(Math.Max(1, (int)(width * ratio)), Math.Max(1, (int)(height * ratio))));
+        var target = new EsSizeInt(Math.Max(1, (int)(width * ratio)), Math.Max(1, (int)(height * ratio)));
+
+        return algorithm switch
+        {
+            DownscaleAlgorithm.Nearest => ScaleNearest(source, target),
+            DownscaleAlgorithm.Bilinear => ScaleBilinear(source, target),
+            DownscaleAlgorithm.Box => ScaleBox(source, target),
+            _ => throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, "定義されていない縮小のアルゴリズムです。"),
+        };
     }
 
-    /// <summary>最近傍補間で縮小する（<see cref="DownscaleNearest"/> の実装）。</summary>
+    /// <summary>最近傍補間で縮小する（<see cref="DownscaleAlgorithm.Nearest"/> の実装）。</summary>
     /// <param name="source">対象の画像。 借用であり破棄しない。</param>
     /// <param name="target">縮小後の寸法（元より小さい）。</param>
     /// <returns>縮小した画像。</returns>
@@ -288,7 +231,7 @@ public static class EsBitmapExtensions
         return result;
     }
 
-    /// <summary>双線形補間で縮小する（<see cref="DownscaleBilinear"/> の実装）。</summary>
+    /// <summary>双線形補間で縮小する（<see cref="DownscaleAlgorithm.Bilinear"/> の実装）。</summary>
     /// <param name="source">対象の画像。 借用であり破棄しない。</param>
     /// <param name="target">縮小後の寸法（元より小さい）。</param>
     /// <returns>縮小した画像。</returns>
@@ -336,79 +279,94 @@ public static class EsBitmapExtensions
         return result;
     }
 
-    /// <summary>面積平均（box）で縮小する（<see cref="DownscaleBox"/> の実装）。</summary>
+    /// <summary>面積平均（box）で縮小する（<see cref="DownscaleAlgorithm.Box"/> の実装）。</summary>
     /// <param name="source">対象の画像。 借用であり破棄しない。</param>
     /// <param name="target">縮小後の寸法（元より小さい）。</param>
     /// <returns>縮小した画像。</returns>
     /// <remarks>
-    /// <b>横 → 縦 の 2 パスに分ける</b>: 面積平均の重みは縦横の積に分離できるため、パスを分けても結果は同じで、
-    /// 走査する画素の総数は少なくなる（実測: 4K → 96x54 で 11.6 ms → 9.2 ms）。
+    /// <b>1 パスで面積平均を求める</b>: 縮小先の 1 画素ごとに、対応する元画像の矩形（全画素）を合計して割る。
+    /// <b>中間画像を作らない</b>ため、横 → 縦 の 2 パスで生じる丸めの重なりが無く、速度も速い（実測: 4K → 96x54 で
+    /// 2 パスの 18 ms に対し 1 パスで 1.6 ms）。<br/>
+    /// <b>行ごとに独立しているため並列化する</b>（実測: 逐次 18 ms → 並列 1.6 ms。 4K → 320x180 で 27 ms → 1.8 ms）。
+    /// 並列化するのは元画像が <see cref="ParallelThresholdPixels"/> 以上のときだけである（小さい画像では
+    /// スレッドの起動が相対的に重くなるため。 実測: 100x60 で逐次 57 µs / 並列 9 µs、6 千画素でも並列が速いが、
+    /// 絶対時間が小さい場面でスレッドを触らないようにする）。<br/>
+    /// <b>SIMD は使わない</b>: バイトを加算するには桁上がりを避けるため 16/32 ビットへ拡張する必要があり、
+    /// メモリ帯域に対して命令数が減らない（実測: SIMD 版 5.3 ms 対 並列 1.6 ms）。 律速は元画像の読み出しである。
     /// </remarks>
     private static EsWritableBitmap ScaleBox(IEsBitmap source, EsSizeInt target)
     {
-        using var intermediate = AverageBlocks(source, target.Width, source.Height);
-        return AverageBlocks(intermediate, target.Width, target.Height);
-    }
-
-    /// <summary>縮小先の 1 画素を、元画像の対応する矩形領域の平均で作る（面積平均の 1 パス分）。</summary>
-    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
-    /// <param name="dstWidth">縮小後の幅（元の幅以下）。</param>
-    /// <param name="dstHeight">縮小後の高さ（元の高さ以下）。</param>
-    /// <returns>縮小した画像。</returns>
-    /// <remarks>
-    /// 縮小しない軸（<paramref name="dstWidth"/> = 元の幅など）では、矩形が 1 画素幅になるため平均は恒等になる
-    /// （横だけ・縦だけの縮小に同じ実装を使える）。
-    /// </remarks>
-    private static EsWritableBitmap AverageBlocks(IEsBitmap source, int dstWidth, int dstHeight)
-    {
+        var result = EsWritableBitmap.CreateUninitialized(target.Width, target.Height);
         var srcWidth = source.Width;
         var srcHeight = source.Height;
-        var result = EsWritableBitmap.CreateUninitialized(dstWidth, dstHeight);
+        var targetWidth = target.Width;
+        var targetHeight = target.Height;
+
+        if ((long)srcWidth * srcHeight >= ParallelThresholdPixels)
+        {
+            Parallel.For(0, targetHeight, y => AverageBlockRow(source, result, y, srcWidth, srcHeight, targetWidth, targetHeight));
+        }
+        else
+        {
+            for (var y = 0; y < targetHeight; y++)
+            {
+                AverageBlockRow(source, result, y, srcWidth, srcHeight, targetWidth, targetHeight);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>縮小先の 1 行分を面積平均で求める（行ごとに独立しているため並列実行できる）。</summary>
+    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
+    /// <param name="result">書き込み先（<paramref name="y"/> の行だけを書く）。</param>
+    /// <param name="y">縮小先の行。</param>
+    /// <param name="srcWidth">元の幅。</param>
+    /// <param name="srcHeight">元の高さ。</param>
+    /// <param name="targetWidth">縮小後の幅。</param>
+    /// <param name="targetHeight">縮小後の高さ。</param>
+    private static void AverageBlockRow(
+        IEsBitmap source, EsWritableBitmap result, int y, int srcWidth, int srcHeight, int targetWidth, int targetHeight)
+    {
         var src = source.Pixels;
         var srcStride = source.Stride;
         var dst = result.WritablePixels;
         var dstStride = result.Stride;
         var bytesPerPixel = IEsBitmap.BytesPerPixel;
 
+        // 縮小先の 1 画素が受け持つ元の範囲（最低 1 画素）
+        var y0 = (int)((long)y * srcHeight / targetHeight);
+        var y1 = Math.Max(y0 + 1, (int)((long)(y + 1) * srcHeight / targetHeight));
+        var dstRow = dst[(y * dstStride)..];
+
         // 合計は画素数の最大（4K 全体で 830 万）に 255 を掛けても int に収まらないため long で持つ
-        // （確保はループの外で 1 回だけ行い、画素ごとに 0 へ戻す）
         Span<long> sums = stackalloc long[bytesPerPixel];
 
-        for (var y = 0; y < dstHeight; y++)
+        for (var x = 0; x < targetWidth; x++)
         {
-            // 縮小先の 1 画素が受け持つ元の範囲（最低 1 画素）
-            var y0 = (int)((long)y * srcHeight / dstHeight);
-            var y1 = Math.Max(y0 + 1, (int)((long)(y + 1) * srcHeight / dstHeight));
-            var dstRow = dst[(y * dstStride)..];
+            var x0 = (int)((long)x * srcWidth / targetWidth);
+            var x1 = Math.Max(x0 + 1, (int)((long)(x + 1) * srcWidth / targetWidth));
 
-            for (var x = 0; x < dstWidth; x++)
+            sums.Clear();
+            for (var sy = y0; sy < y1; sy++)
             {
-                var x0 = (int)((long)x * srcWidth / dstWidth);
-                var x1 = Math.Max(x0 + 1, (int)((long)(x + 1) * srcWidth / dstWidth));
-
-                sums.Clear();
-                for (var sy = y0; sy < y1; sy++)
+                var row = sy * srcStride;
+                for (var sx = x0; sx < x1; sx++)
                 {
-                    var row = sy * srcStride;
-                    for (var sx = x0; sx < x1; sx++)
+                    var index = row + (sx * bytesPerPixel);
+                    for (var c = 0; c < bytesPerPixel; c++)
                     {
-                        var index = row + (sx * bytesPerPixel);
-                        for (var c = 0; c < bytesPerPixel; c++)
-                        {
-                            sums[c] += src[index + c];
-                        }
+                        sums[c] += src[index + c];
                     }
                 }
+            }
 
-                var count = (y1 - y0) * (x1 - x0);
-                var offset = x * bytesPerPixel;
-                for (var c = 0; c < bytesPerPixel; c++)
-                {
-                    dstRow[offset + c] = (byte)(sums[c] / count);
-                }
+            var count = (y1 - y0) * (x1 - x0);
+            var offset = x * bytesPerPixel;
+            for (var c = 0; c < bytesPerPixel; c++)
+            {
+                dstRow[offset + c] = (byte)(sums[c] / count);
             }
         }
-
-        return result;
     }
 }

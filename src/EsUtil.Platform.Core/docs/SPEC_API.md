@@ -604,31 +604,29 @@ public readonly record struct ElementFinderResults(
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
-| `Crop` | `static EsWritableBitmap Crop(this IEsBitmap source, int x, int y, int width, int height)` / `static EsWritableBitmap Crop(this IEsBitmap source, EsRectInt rect)` | 指定矩形領域を切り出す（ソース範囲外は透明パディング。 位置関係は保たれる。 0 初期化は行わず、コピーされないパディングだけを透明にする） |
-| `Resize` | `static EsWritableBitmap Resize(this IEsBitmap source, int maxSize)` | 長辺を `maxSize` へ収める（**既定のアルゴリズム = 双線形**。 拡大は未サポートで `NotSupportedException`） |
-| `DownscaleNearest` | `static EsWritableBitmap DownscaleNearest(this IEsBitmap source, int maxSize)` | 長辺を `maxSize` へ収める（**最近傍補間**。 最速・細線が落ちる） |
-| `DownscaleBilinear` | `static EsWritableBitmap DownscaleBilinear(this IEsBitmap source, int maxSize)` | 長辺を `maxSize` へ収める（**双線形補間**。 元の 2x2 を重み付き平均する） |
-| `DownscaleBox` | `static EsWritableBitmap DownscaleBox(this IEsBitmap source, int maxSize)` | 長辺を `maxSize` へ収める（**面積平均 = box フィルター**。 最も品質が高く、最も遅い） |
+| `Resize` | `static EsWritableBitmap Resize(this IEsBitmap source, int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)` | 長辺を `maxSize` へ収める（アルゴリズムは `DownscaleAlgorithm` で選ぶ。 拡大は未サポートで `NotSupportedException`） |
 
-- **縮小の共通の契約は 1 か所が所有します**: 拡大の拒否・目標寸法の計算・縮小不要時の等倍の複製はプライベートの `Downscale` が単一所有し、各アルゴリズムは「目標寸法へ縮小する」計算だけを持ちます（アルゴリズム間で判断が食い違わない）。
+**`DownscaleAlgorithm`（enum。 アルゴリズム別の実測と性質）**:
+
+| アルゴリズム | 4K → 96x54 | 4K → 320x180 | 幅 1 px の細線（40 倍縮小後の輝度） | 性質 |
+| --- | --- | --- | --- | --- |
+| `Nearest` | **23 µs** | 141 µs | **0（落ちる）** | 縮小先の 1 画素につき元の 1 画素（比例位置）だけを読む。 位置が合えば残るため結果が位置に依存する |
+| `Bilinear`（既定） | 110 µs | 1.3 ms | 0（位置により 127） | 元の 2x2 を重み付き平均する |
+| `Box` | 1.6 ms | 1.8 ms | 6（薄く残る = 正しい平均） | 対応する矩形の全画素を平均する。 **元画像の画素数に比例**し、内部で並列化する |
+| 参考: GDI+ `HighQualityBicubic` | 23 ms | — | 4 | 平均に近い（速度は桁違いに遅い） |
+| 参考: Skia `Resize(Linear + ミップ)` | — | — | 22（ほぼ平均） | ミップマップ生成を伴う |
+| 参考: Skia `Resize(Linear)` | — | — | 255（平均にならない） | 大きな縮小率では細線を実際より濃く残す |
+| 参考: Skia 描画の既定（`DrawBitmap`） | — | — | 255（最近傍と同じ） | サンプリングを指定しないと最近傍になる |
+
+- **速度はどのアルゴリズムも「元画像を読む画素数」で決まります**（縮小先の寸法にはほぼ依存しません）。 4K → 96x54 と 320x180 であまり変わらないのはこのためです。
+- **`Box` は 1 パスで面積平均を求め、行ごとに並列化します**。 中間画像を作らないため横 → 縦 の 2 パスより速く、丸めの重なりもありません（実測: 4K → 96x54 で 2 パス 18 ms → 1 パス 並列 1.6 ms。 逐次では 18 ms のままなので、速さはほぼ並列化によるものです）。
+- **SIMD は採用していません**: バイトの加算は桁上がりを避けるため 16/32 ビットへ拡張が必要で、メモリ帯域に対して命令数が減りません（実測: SIMD 版 5.3 ms 対 並列 1.6 ms。 律速は元画像の読み出しと合計の加算です）。
 - **拡大は未サポートです**: `maxSize` が長辺より大きい場合は `NotSupportedException` を投げます（黙って等倍を返すと「拡大された」と誤解されるため）。 名前が `Resize` であるのは将来の拡大対応を見込んだもので、現在の実装は縮小だけを行います。 長辺と上限が一致する場合は縮小不要のため**等倍の複製**を返します。
-- **アルゴリズム別の実測**（Release・Debug 計測・一時テストで実測し削除。 4K 3840x2160 → 96x54 の 1 回あたり）:
+- **アルゴリズムを列挙体で選ぶ理由**: 同じ機能の入口を複数持たないためです（アルゴリズムを選ぶ入口は `Resize` の 1 つだけ。 既定は `Bilinear`）。
+- **`Box` を並列化する境目**: 元画像が 262,144 画素（512x512 相当）以上のときに `Parallel.For` を使います（実測: 6 千画素でも並列が速いが、絶対時間が小さい場面でスレッドプールを触らないようにするため）。
 
-  | アルゴリズム | 速度 | 幅 1 px の細線（40 倍縮小後の最大輝度） | 性質 |
-  | --- | --- | --- | --- |
-  | `DownscaleNearest` | **23 µs** | **0（落ちる）** | 比例位置の画素だけを読む |
-  | `DownscaleBilinear` | 110 µs | 0（位置により 127） | 元の 2x2 だけを見る |
-  | `DownscaleBox` | 9〜30 ms | 6（薄く残る） | 全画素を 1 度は読む |
-  | 参考: GDI+ `HighQualityBicubic` | 23 ms | 4 | 平均に近い |
-
-- **`DownscaleBox` の速度は縮小先の寸法ではなく元画像の画素数で決まります**（4K で 9〜30 ms。 実測の幅は実行環境の負荷による）。 一覧のように枚数が多い場面では `DownscaleBilinear` を使います。
-- **`DownscaleBox` は横 → 縦 の 2 パスです**: 面積平均の重みは縦横の積に分離できるため結果は同じで、走査する画素の総数が減ります（実測: 4K → 96x54 で 11.6 ms → 9.2 ms）。
-- **`Resize` とアルゴリズム別メソッドの関係**: `Resize` は「アルゴリズムを選ばない入口」で、既定（双線形）へ委譲します（将来の拡大対応の名前を残すため）。 アルゴリズムを固定したい場合は `Downscale*` を直接使います。
-
-- **縮小をここに置く理由**: 縮小は**どの UI でも必要になり、結果を揃えたい**処理です（各 UI の画像変換へ個別に実装するとアルゴリズムがばらつく）。 実測では、等倍の射影（Avalonia の `Bitmap`）は 4K 1 枚で 7.8 ms / 32 MB に対し、表示用の縮小版は 320x180 で 1.2 ms / 230 KB でした。
+- **縮小をここに置く理由**: 縮小は**どの UI でも必要になり、結果を揃えたい**処理です（各 UI の画像変換へ個別に実装するとアルゴリズムがばらつく）。 実測では、等倍の射影（Avalonia の `Bitmap`）は 4K 1 枚で 7.8 ms / 32 MB に対し、`Box` の縮小版は 320x180 で 1.8 ms / 230 KB でした。
 - **ファイルの入出力をここに置かない理由**: エンコード・デコードには OS / ライブラリのコーデックが必要で、コア本体は外部依存を持たないためです（Windows 専用の `System.Drawing.Common` を使う実装は `Native.Imaging` に分離しています）。
-- **最近傍で標本化する理由**: 表示の縮小は画素の代表値を選ぶだけで足り、補間は塗りの境界をぼかします（**保存・座標対応付けには使わない**前提の縮小です）。
-- **`maxSize` が 1 未満のとき**: 縦横それぞれ 1 px を下限にします（0 除算・空の画像を作らない）。
 
 - **拡張メソッドにする理由**: 切り出し・縮小は「自分を変更せず新しい画像を作る」操作であり、**借用した読み取り専用の画像からも呼べる**必要があるためです（実測: ルーペが表示アダプタの画像を切り出す）。 戻り値は書き換え可能（生成した側が所有し破棄する）。
 - **色の取得をここに置かない理由**: 「座標のピクセルを色として読む」は画像の読み取りそのものであり、**読み取りの面（`IEsBitmap.GetPixel(EsPointInt)`）が実装を持つ**ためです（追加の画像を作らないため、拡張メソッドにする理由がありません）。

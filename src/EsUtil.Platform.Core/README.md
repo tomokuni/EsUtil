@@ -37,7 +37,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | 幾何 | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` |
 | 座標変換 | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` |
 | 画像 | `EsBitmap`（読み取り専用の実体） / `EsWritableBitmap`（書き換え可能な実体） / `IEsBitmap`（読み取る権利。 寸法の文字列化 `ToSizeText` を含む） / `IEsWritableBitmap`（書き換える権利） |
-| 画像の操作 | `EsBitmapExtensions`（切り出し `Crop`・縮小 `Resize` / `DownscaleNearest` / `DownscaleBilinear` / `DownscaleBox`。 `IEsBitmap` を受ける拡張メソッド） |
+| 画像の操作 | `EsBitmapExtensions`（切り出し `Crop`・縮小 `Resize`。 アルゴリズムは `DownscaleAlgorithm`（`Nearest` / `Bilinear` / `Box`）で選ぶ） |
 | 画像のファイル入出力 | `Native.Imaging.EsBitmapFileExtensions`（`Save` / `Load`。 **形式は拡張子が決める**。 BMP / PNG / JPEG / GIF / TIFF。 `System.Drawing.Common` を使う Windows 専用） |
 | OS サービス抽象 | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` |
 | Windows 実装 | `Native.Win.*`（Win32 P/Invoke。 ホストが生成して注入する） |

@@ -198,17 +198,17 @@ public class EsBitmapExtensionsTests
         => Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.Crop(null!, new EsRectInt(0, 0, 4, 4)));
 
     // ====================================================================
-    // 縮小（DownscaleNearest / DownscaleBilinear / DownscaleBox / Resize）
+    // 縮小（Resize のアルゴリズム: Nearest / Bilinear / Box）
     // ====================================================================
 
-    /// <summary>公開している縮小の実装（アルゴリズム別の共通の契約を 1 本のテストで回す）。</summary>
-    /// <remarks>契約（寸法・縦横比・所有権・例外）はアルゴリズムに依らず同じなので、実装を差し替えて検証する。</remarks>
-    public static TheoryData<string, Func<IEsBitmap, int, EsWritableBitmap>> Downscalers => new()
-    {
-        { nameof(EsBitmapExtensions.DownscaleNearest), EsBitmapExtensions.DownscaleNearest },
-        { nameof(EsBitmapExtensions.DownscaleBilinear), EsBitmapExtensions.DownscaleBilinear },
-        { nameof(EsBitmapExtensions.DownscaleBox), EsBitmapExtensions.DownscaleBox },
-    };
+    /// <summary>公開している縮小の契約（寸法・縦横比・所有権・例外）をアルゴリズム別に回す。</summary>
+    /// <remarks>契約はアルゴリズムに依らず同じなので、引数だけを差し替えて検証する。</remarks>
+    public static TheoryData<DownscaleAlgorithm> Algorithms =>
+    [
+        DownscaleAlgorithm.Nearest,
+        DownscaleAlgorithm.Bilinear,
+        DownscaleAlgorithm.Box,
+    ];
 
     /// <summary>黒地に 1 画素幅の白線を持つ画像を生成する（縮小で線が残るかの検証用）。</summary>
     /// <param name="width">幅。</param>
@@ -238,13 +238,12 @@ public class EsBitmapExtensionsTests
     }
 
     [Theory]
-    [MemberData(nameof(Downscalers))]
-    internal void 縮小_上限を超える画像は長辺が上限へ収まる(string name, Func<IEsBitmap, int, EsWritableBitmap> downscale)
+    [MemberData(nameof(Algorithms))]
+    internal void 縮小_上限を超える画像は長辺が上限へ収まる(DownscaleAlgorithm algorithm)
     {
-        Assert.NotNull(name);
         using var src = CreateRed(200, 100);
 
-        using var result = downscale(src, 50);
+        using var result = src.Resize(50, algorithm);
 
         // 長辺（幅）が上限へ収まり、縦横比が保たれる（200:100 = 2:1）
         Assert.Equal(50, result.Size.Width);
@@ -253,26 +252,24 @@ public class EsBitmapExtensionsTests
     }
 
     [Theory]
-    [MemberData(nameof(Downscalers))]
-    internal void 縮小_縦長の画像では高さが上限へ収まる(string name, Func<IEsBitmap, int, EsWritableBitmap> downscale)
+    [MemberData(nameof(Algorithms))]
+    internal void 縮小_縦長の画像では高さが上限へ収まる(DownscaleAlgorithm algorithm)
     {
-        Assert.NotNull(name);
         using var src = CreateRed(100, 400);
 
-        using var result = downscale(src, 50);
+        using var result = src.Resize(50, algorithm);
 
         Assert.Equal(50, result.Size.Height);
         Assert.Equal(12, result.Size.Width);
     }
 
     [Theory]
-    [MemberData(nameof(Downscalers))]
-    internal void 縮小_長辺が上限と同じなら等倍の複製を返す(string name, Func<IEsBitmap, int, EsWritableBitmap> downscale)
+    [MemberData(nameof(Algorithms))]
+    internal void 縮小_長辺が上限と同じなら等倍の複製を返す(DownscaleAlgorithm algorithm)
     {
-        Assert.NotNull(name);
         using var src = CreateRed(40, 20);
 
-        using var result = downscale(src, 40);
+        using var result = src.Resize(40, algorithm);
 
         Assert.Equal(40, result.Size.Width);
         Assert.Equal(20, result.Size.Height);
@@ -281,13 +278,12 @@ public class EsBitmapExtensionsTests
     }
 
     [Theory]
-    [MemberData(nameof(Downscalers))]
-    internal void 縮小_画素を保つ(string name, Func<IEsBitmap, int, EsWritableBitmap> downscale)
+    [MemberData(nameof(Algorithms))]
+    internal void 縮小_画素を保つ(DownscaleAlgorithm algorithm)
     {
-        Assert.NotNull(name);
         using var src = EsWritableBitmap.Create(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
 
-        using var result = downscale(src, 4);
+        using var result = src.Resize(4, algorithm);
 
         Assert.Equal(4, result.Size.Width);
         Assert.Equal(4, result.Size.Height);
@@ -299,13 +295,12 @@ public class EsBitmapExtensionsTests
     }
 
     [Theory]
-    [MemberData(nameof(Downscalers))]
-    internal void 縮小_1ピクセル未満には縮小しない(string name, Func<IEsBitmap, int, EsWritableBitmap> downscale)
+    [MemberData(nameof(Algorithms))]
+    internal void 縮小_1ピクセル未満には縮小しない(DownscaleAlgorithm algorithm)
     {
-        Assert.NotNull(name);
         using var src = CreateRed(10, 1000);
 
-        using var result = downscale(src, 2);
+        using var result = src.Resize(2, algorithm);
 
         // 高さは上限、幅は最低 1 ピクセル
         Assert.Equal(2, result.Size.Height);
@@ -313,54 +308,48 @@ public class EsBitmapExtensionsTests
     }
 
     [Theory]
-    [MemberData(nameof(Downscalers))]
-    internal void 縮小_拡大が必要な上限はNotSupportedExceptionを投げる(string name, Func<IEsBitmap, int, EsWritableBitmap> downscale)
+    [MemberData(nameof(Algorithms))]
+    internal void 縮小_拡大が必要な上限はNotSupportedExceptionを投げる(DownscaleAlgorithm algorithm)
     {
-        Assert.NotNull(name);
         using var src = CreateRed(40, 20);
 
         // 長辺（40）より大きい上限は拡大を要求することになる（黙って等倍を返さない）
-        var ex = Assert.Throws<NotSupportedException>(() => downscale(src, 50));
+        var ex = Assert.Throws<NotSupportedException>(() => src.Resize(50, algorithm));
         Assert.Contains("拡大", ex.Message, StringComparison.Ordinal);
     }
 
     [Theory]
-    [MemberData(nameof(Downscalers))]
-    internal void 縮小_上限が0以下ならArgumentOutOfRangeExceptionを投げる(string name, Func<IEsBitmap, int, EsWritableBitmap> downscale)
+    [MemberData(nameof(Algorithms))]
+    internal void 縮小_上限が0以下ならArgumentOutOfRangeExceptionを投げる(DownscaleAlgorithm algorithm)
     {
-        Assert.NotNull(name);
         using var src = CreateRed(4, 4);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => downscale(src, 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => downscale(src, -1));
-    }
-
-    [Theory]
-    [MemberData(nameof(Downscalers))]
-    internal void 縮小_nullはArgumentNullExceptionを投げる(string name, Func<IEsBitmap, int, EsWritableBitmap> downscale)
-    {
-        Assert.NotNull(name);
-        Assert.Throws<ArgumentNullException>(() => downscale(null!, 10));
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(0, algorithm));
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(-1, algorithm));
     }
 
     [Fact]
-    internal void 縮小_Resizeは既定のアルゴリズムと同じ結果になる()
+    internal void 縮小_nullはArgumentNullExceptionを投げる()
+        => Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.Resize(null!, 10));
+
+    [Fact]
+    internal void 縮小_既定のアルゴリズムは双線形()
     {
         using var src = CreateRed(200, 100);
 
-        using var byResize = src.Resize(50);
-        using var byBilinear = src.DownscaleBilinear(50);
+        using var byDefault = src.Resize(50);
+        using var byBilinear = src.Resize(50, DownscaleAlgorithm.Bilinear);
 
-        Assert.Equal(byBilinear.Size, byResize.Size);
-        Assert.Equal(byBilinear.GetPixel(10, 10), byResize.GetPixel(10, 10));
+        Assert.Equal(byBilinear.Size, byDefault.Size);
+        Assert.Equal(byBilinear.GetPixel(10, 10), byDefault.GetPixel(10, 10));
     }
 
     [Fact]
-    internal void 縮小_Resizeも拡大は未サポート()
+    internal void 縮小_定義されていないアルゴリズムはArgumentOutOfRangeExceptionを投げる()
     {
-        using var src = CreateRed(40, 20);
+        using var src = CreateRed(200, 100);
 
-        Assert.Throws<NotSupportedException>(() => src.Resize(50));
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(50, (DownscaleAlgorithm)99));
     }
 
     [Fact]
@@ -369,9 +358,9 @@ public class EsBitmapExtensionsTests
         // 40x4 の黒地に、最近傍の対応表（0,4,8,…,36 列）が読まない位置（21 列）へ 1 画素幅の白線を置く
         using var src = CreateThinLine(40, 4, lineX: 21);
 
-        using var nearest = src.DownscaleNearest(10);
-        using var bilinear = src.DownscaleBilinear(10);
-        using var box = src.DownscaleBox(10);
+        using var nearest = src.Resize(10, DownscaleAlgorithm.Nearest);
+        using var bilinear = src.Resize(10, DownscaleAlgorithm.Bilinear);
+        using var box = src.Resize(10, DownscaleAlgorithm.Box);
 
         Assert.Equal(10, nearest.Size.Width);
         Assert.Equal(1, nearest.Size.Height);
@@ -382,5 +371,34 @@ public class EsBitmapExtensionsTests
         Assert.Equal(127, Brightness(bilinear, 5, 0));
         // 面積平均は線を含む矩形の平均（4 画素に 1 本 = 255 / 4）
         Assert.Equal(63, Brightness(box, 5, 0));
+    }
+
+    [Fact]
+    internal void 縮小_面積平均は中間の丸めを持たない()
+    {
+        // 40x40 の一様な画像（値 3）を 8x8 へ縮小する: 面積平均は 3 のまま（2 パスでも同じだが、
+        // 中間で割る実装だと丸めが入る。 1 パスであることを値で固定する）
+        using var src = EsWritableBitmap.Create(40, 40, System.Drawing.Color.FromArgb(255, 3, 5, 7));
+
+        using var result = src.Resize(8, DownscaleAlgorithm.Box);
+
+        var (b, g, r, _) = result.GetPixel(4, 4);
+        Assert.Equal((byte)7, b);
+        Assert.Equal((byte)5, g);
+        Assert.Equal((byte)3, r);
+    }
+
+    [Fact]
+    internal void 縮小_面積平均は大きい画像でも結果が同じ_並列化の確認()
+    {
+        // 並列化のしきい値（262,144 画素）を跨ぐ寸法で、逐次と並列の結果が一致することを確認する
+        using var src = CreateThinLine(600, 480, lineX: 301);
+
+        using var result = src.Resize(150, DownscaleAlgorithm.Box);
+
+        Assert.Equal(150, result.Size.Width);
+        Assert.Equal(120, result.Size.Height);
+        // 線（1 画素幅 × 480 行）は 4 画素幅のブロックへ平均される（輝度 = 255 × 480 / 4 / 480 = 63）
+        Assert.Equal(63, Brightness(result, 75, 60));
     }
 }
