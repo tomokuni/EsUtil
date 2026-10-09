@@ -97,7 +97,7 @@ Avalonia 版と同一の挙動になります。
 | `ResetSelection()` | - | 選択状態と nudge 状態を初期化する（nudge 中だった場合はカーソルを再表示する） |
 | `RequestConfirm()` | - | 確定要求を処理する（Enter と同じ条件）。 ドラッグ中・未選択では何もしない |
 | `RequestCancel()` | - | キャンセル要求を処理する（Escape と同じ条件）。 選択を破棄した後にイベントを発火する |
-| `RefreshOverlay()` | - | 表示（パン・ズーム・表示サイズ）の変化へ追従する（再描画と配置の再評価。 選択の状態は変更しない） |
+| `InvalidateRender()` | - | 表示（パン・ズーム・表示サイズ）の変化へ追従する（再描画と配置の再評価。 選択の状態は変更しない） |
 | `InvalidateRender()` | - | 描画内容の再解決と、図形・ラベルの再描画を要求する（**描画に関わる変更の唯一の入口**。 図形は子の Skia キャンバスが描くため、親の無効化だけでは更新されない） |
 | `DrawPlanResolver` | `Func<MarqueeDrawPlan, MarqueeDrawPlan>?` | **描画計画の差し替え点**（矩形の並び・文言・位置）。 設定すると再描画を要求する（同じ入力では 1 フレーム 1 回だけ解決されるため、呼び出しの時点に依存しない純粋関数にすること） |
 | `DrawPlan(SKCanvas, in MarqueeDrawPlan)` | `static` | 描画計画を描画面へ描く（計画どおりに描く。 表示を止めた項目はフラグを見て描かないため描かれない） |
@@ -173,7 +173,7 @@ marquee.Rendered += (_, e) =>
 | --- | --- |
 | イベント引数の座標 | コア型（`EsPoint` / `EsRect`）で公開する（Avalonia 版は Avalonia の `Point` / `Rect`） |
 | マウスダウン・アップのイベント | 持たない（基底 `UIElement` の同名メンバーが同じ情報を提供するため、本コントロールでは公開しない） |
-| 表示の変化への追従 | ホストが `RefreshOverlay()` を呼ぶ（自己完結する UI 層の処理） |
+| 表示の変化への追従 | ホストが `InvalidateRender()` を呼ぶ（自己完結する UI 層の処理） |
 | nudge のキー入力 | フォーカス依存（Avalonia 版は `TopLevel` を購読してフォーカス非依存） |
 | ログ | `Log` プロパティで `ILogger` を注入して出力する（書式・レベルは Avalonia 版と同一） |
 | 文字（サイズラベル・座標ラベル）の表示 | **コントロールがテキスト要素（`Border` + `TextBlock`）として配置する**（文言と基準点は提示層の `MarqueePresenter`（`LabelTexts` partial）、色とフォントサイズは `MarqueeAppearance`、実寸測定は **MewUI のテキスト エンジン**（`MewUITextMeasure.Measure`）、配置は提示層の `MarqueePresenter`（`LabelPlan` partial）） |

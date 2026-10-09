@@ -94,7 +94,7 @@ grid.Add(marquee);     // 選択オーバーレイ（上。入力を受け取る
 | イベント引数の座標 | Avalonia の `Point` / `Rect` | **コア型の `EsPoint` / `EsRect`** |
 | マウスダウン・アップのイベント | `MouseDown` / `MouseUp` | **持たない**（生のポインター入力はホストが自 UI のイベントで観測するため） |
 | ホイール操作 | **扱わない**（ホストが `PointerWheelChanged` を購読） | **扱わない**（ホストが `MouseWheel` を購読） |
-| 表示の変化への追従 | ホストが `RefreshOverlay()` を呼ぶ（`ZoomViewControl.ViewportChanged` 等を購読） | 同左（ホストが変化を検知して呼ぶ） |
+| 表示の変化への追従 | ホストが `InvalidateRender()` を呼ぶ（`ZoomViewControl.ViewportChanged` 等を購読） | 同左（ホストが変化を検知して呼ぶ） |
 | nudge のキー入力 | フォーカス非依存（`TopLevel` を購読） | フォーカス依存（本コントロールにフォーカスがある場合のみ） |
 | ログ | `ILogger` を注入して出力 | `Log` プロパティで同様に出力する（書式・レベルは同一） |
 | 描画 | 中間ビットマップ経由（自 UI の描画 API） | キャンバスへ直接描画（自 UI の描画 API） |
@@ -145,7 +145,7 @@ grid.Add(marquee);     // 選択オーバーレイ（上。入力を受け取る
 | `SetSelection(EsRect)` | 選択矩形を復元する（`Options.ClampToSourceBounds` 有効時は境界内へクリップ） |
 | `ResetSelection()` | 選択状態と nudge 状態を初期化する |
 | `RequestConfirm()` / `RequestCancel()` | Enter / Escape と同じ条件で確定・キャンセルを要求する |
-| `RefreshOverlay()` | 表示（パン・ズーム・表示サイズ）の変化へ追従する（再描画と配置の再評価を要求。 選択の状態は変更しない） |
+| `InvalidateRender()` | 表示（パン・ズーム・表示サイズ）の変化へ追従する（再描画と配置の再評価を要求。 選択の状態は変更しない） |
 | `InvalidateRender()` | 描画に関わる変更の唯一の入口（図形の Skia キャンバス・ラベル・配置をまとめて無効化する） |
 | `CurrentSnapshot` | 現在の状態のスナップショット（`MarqueeSnapshot`） |
 
@@ -187,7 +187,7 @@ dotnet test src/EsUtil.Feature.Marquee.ControlMewUI/tests/MewUI/EsUtil.Feature.M
 
 ## 12. 未対応
 
-- `ScrollViewer` の自動連携を行わない（ホストが変化を検知して `RefreshOverlay()` を呼ぶ）。
+- `ScrollViewer` の自動購読を行わない（MewUI の入力はポインター下の要素が受け取るため、祖先の `ScrollViewer` を探索しない）。 表示の変化はホストが検知して `InvalidateRender()` を呼ぶ。
 - フォーカス非依存の矢印キー nudge。
   - 文字（ラベル・座標ラベル）の要素配置（UI 層の責務。 配置矩形は描画層 `EsUtil.Feature.Marquee.Presenter` の `MarqueePresenter`（`LabelPlan` partial） が求める）。
 

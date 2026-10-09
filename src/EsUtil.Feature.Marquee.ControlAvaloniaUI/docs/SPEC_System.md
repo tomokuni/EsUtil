@@ -166,14 +166,14 @@ flowchart TB
   - 描画（`Render`）を起動し、提示層（`EsUtil.Feature.Marquee.Presenter` の `MarqueePresenter.ResolveDrawPlan`）が返した描画計画（`MarqueeDrawPlan`）を**自 UI の描画 API（`DrawingContext`）で写す**（`MarqueeContextPainter`）。 **サイズ・座標ラベルはテキスト要素として配置する**（子の末尾に置かれ常に最上位）。 描画のたびに `Rendered`（描画計画全体）を発火してホストへ渡す（ホストは付加情報を描ける）
   - ホイール操作は**扱わない**（コントロール化を前提とした処理のためホストが行う。 本コントロールはイベントを素通しし、`e.Handled` を立てない）
   - **全面を当たり判定の対象にする**（透明の背景（`Background`）を設定する。 図形は子の `ShapeLayer` が描き、当たるのは `ShapeLayer` 自身になるため、背景が無いと本コントロールは押下を受け取れない。 透明は描画結果を変えない）
-  - 表示の変化（パン・ズーム）への追従（`RefreshOverlay()`：再描画とルーペ位置の再計算）
+  - 表示の変化（パン・ズーム）への追従（`InvalidateRender()`：再描画とルーペ位置の再計算）
   - **図形の再描画は子の描画層（`ShapeLayer`）へも要求する**（`InvalidateRender()` が単一所有する）。 子は自分の描画リストを持つため、親の `InvalidateVisual` だけでは図形が更新されない（実際に選択矩形が表示されない不具合として発生した）
   - 設定（寸法・表示可否・対話パラメータ・色）・環境値（倍率）・文言プロバイダの保持とファサード（色は描画実装）への伝搬
 - **公開API**:
 - イベント 8 種: `SelectionStarted` / `SelectionChanged` / `SelectionCompleted` / `SelectionCancelled` / `LoupePositionMoved` / `ConfirmRequested` / `CancelRequested` / `Rendered`（描画完了。 描画コンテキストと描画内容を渡し、ホストは付加情報（操作・情報ラベル）を描ける。 サイズ・座標ラベルはコントロールがテキスト要素として表示する）。 **生のポインター入力（Mouse 系）は公開しない**（ホストは自 UI の入力イベントを使う。 押下状態は `CurrentSnapshot.IsMouseDown`）
   - StyledProperty 4 種: `Options`（不変の設定値 `MarqueeOptions`。 寸法・対話パラメータを内包） / `Appearance`（外観の単一値 `MarqueeAppearance`） / `ClientToSourceScaling` / `DisplayScaleScaling`（環境値。 XAML のバインディング・スタイルで設定できるよう依存関係プロパティとして公開する）。 設定はコア（ファサード）または提示層（外観）へ委譲する（MewUI 版と同じ形）
   - プロパティ: `Log`（保持・`NullLogger` へのフォールバックはコアが単一所有） / `SizeLabelOverrideProvider`（外側の装飾のラベル文言。 デリゲートのため設定値に含めない） / `HasSelection` / `SelectionSourceRect`
-  - メソッド: `SetCoordTransform(ICoordTransform?)` / `SetSelection` / `ResetSelection` / `RequestCancel` / `RequestConfirm` / `RefreshOverlay` / **`InvalidateRender()`**（描画に関わる変更の唯一の入口。 図形の層・ラベル・配置をまとめて無効化する）
+  - メソッド: `SetCoordTransform(ICoordTransform?)` / `SetSelection` / `ResetSelection` / `RequestCancel` / `RequestConfirm` / **`InvalidateRender()`**（描画に関わる変更の唯一の入口。 図形の層・ラベル・配置をまとめて無効化する）
 - **構成（薄い層）**: 公開 API・入力の受付・効果の適用・通知の転送・描画の起動のみを集約し、判断（状態遷移・確定/キャンセル・スナップ・クリック検出・装飾の描画内容）と描画の手順はコアと描画層へ委譲する
 - **依存**: MarqueeCore（公開ファサード）/ IMarqueeEffects / MarqueeSession（間接） / MarqueeOptions / MarqueeNotice / MarqueeGeometry（EsUtil.Feature.Marquee.Core）/ MarqueePresenter（描画計画と配置の写像）/ MarqueeAppearance / MarqueeDrawPlan（EsUtil.Feature.Marquee.Presenter）/ ICoordTransform（EsUtil.Platform.Core）/ ICursorService（EsUtil.Platform.Core の `Native`）/ ScreenConverter（`Internal/`）
 

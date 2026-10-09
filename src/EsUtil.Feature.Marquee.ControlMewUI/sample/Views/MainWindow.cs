@@ -49,6 +49,9 @@ internal static class MainWindow
     /// <summary>ホイール 1 回あたりのズームの変化量。</summary>
     private const double ZoomStep = 0.1;
 
+    /// <summary>通常ホイール 1 行あたりのパン量（DIP）。</summary>
+    private const double WheelScrollSensitivity = 48.0;
+
     /// <summary>色の選択肢（「なし」は描画しないことを表す）。</summary>
     private static readonly (string Name, DrawingColor? Color)[] s_colorChoices =
     [
@@ -100,6 +103,13 @@ internal static class MainWindow
         };
         // 画像とコントロールを同じ領域へ重ねる（コントロールが選択矩形と装飾を描く）
         var surface = new Grid().Columns("*").Rows("*").Children(image, marquee);
+
+        // 表示領域より大きくなったとき（ズーム時）にパンできるようスクロールビューへ入れる（Avalonia 版と同じ操作）
+        var scroll = new ScrollViewer().Content(surface);
+        // 縦横とも必要になったらスクロール バーを表示する（Avalonia 版サンプルの ScrollBarVisibility="Auto" と同じ）
+        scroll.HorizontalScroll = ScrollMode.Auto;
+        scroll.VerticalScroll = ScrollMode.Auto;
+        scroll.OnScrollChanged(() => WriteLog($"スクロール: X={scroll.HorizontalOffset:0}, Y={scroll.VerticalOffset:0}"));
         // ズームの現在値（ホイールとスライダーの両方から更新する）
         var zoomText = new TextBlock().Width(52).VerticalAlignment(VerticalAlignment.Center).Text(FormatZoom(zoom));
 
@@ -146,12 +156,43 @@ internal static class MainWindow
         // 矢印キーの nudge はフォーカスを必要とするため、クリックでフォーカスを与える
         marquee.OnMouseDown(_ => marquee.Focus());
 
-        // ホイールでズームする（Avalonia 版サンプルと同じ範囲・刻み。 表示倍率だけを変え、選択矩形は対象座標のまま）
-        surface.OnMouseWheel(e =>
-            zoomSlider.Value = Math.Clamp(zoom + (e.Delta.Y > 0 ? ZoomStep : -ZoomStep), MinZoom, MaxZoom));
+        // Ctrl+ホイールでズーム（カーソル位置を固定）、通常ホイールで表示領域のパン（Avalonia 版サンプルと同じ操作）。
+        // 表示倍率だけを変え、選択矩形は対象座標のまま。 ハンドラーは最前面の要素（マーキー）へ付ける
+        // （MewUI の入力はポインター下の要素が受け取るため。 親パネルへ付けても配送されない）。
+        marquee.OnMouseWheel(e =>
+        {
+            if (!e.ControlKey)
+            {
+                // 通常ホイールは表示領域をスクロールする（拡大した画像のパン）
+                scroll.ScrollBy(-e.Delta.Y * WheelScrollSensitivity);
+                e.Handled = true;
+                return;
+            }
+
+            // カーソル下の点が同じ表示位置に残るよう、スクロール オフセットを同じ処理で調整する
+            var anchor = e.GetPosition(surface);
+            var oldZoom = zoom;
+            zoomSlider.Value = Math.Clamp(zoom + (e.Delta.Y > 0 ? ZoomStep : -ZoomStep), MinZoom, MaxZoom);
+
+            if (!zoom.Equals(oldZoom))
+            {
+                var ratio = zoom / oldZoom;
+                scroll.SetScrollOffsets(
+                    (anchor.X * ratio) - anchor.X + scroll.HorizontalOffset,
+                    (anchor.Y * ratio) - anchor.Y + scroll.VerticalOffset);
+            }
+
+            e.Handled = true;
+        });
 
         // ── 設定パネル ──
         var settings = new StackPanel().Vertical().Spacing(12).Children(
+            new TextBlock
+            {
+                Text = "ドラッグ: 選択 / 矢印キー: nudge（ドラッグ中の微調整） / Ctrl+ホイール: ズーム / ホイール: パン / Enter・Escape: 確定・キャンセル",
+                FontSize = 11,
+                TextWrapping = TextWrapping.Wrap,
+            },
             Section(
                 "表示",
                 Row("ズーム", new StackPanel().Horizontal().Spacing(8).Children(zoomSlider, zoomText)),
@@ -231,7 +272,7 @@ internal static class MainWindow
 
         var root = new Grid().Columns($"{SettingsWidth},*").Rows("*");
         root.Add(settingsHost.Column(0));
-        root.Add(new Border { Child = new ScrollViewer().Content(surface), Padding = new Thickness(12) }.Column(1));
+        root.Add(new Border { Child = scroll, Padding = new Thickness(12) }.Column(1));
 
         var window = new Window()
             .Title("MarqueeControl サンプル（MewUI）")

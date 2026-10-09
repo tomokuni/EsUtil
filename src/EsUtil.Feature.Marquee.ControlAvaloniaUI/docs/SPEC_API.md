@@ -291,7 +291,7 @@ marquee.Appearance = MarqueeAppearance.Default with { OuterBorderColor = Colors.
 | `SetSelection(Rect)` | 選択矩形を対象座標で復元する（`SelectionChanged` で通知。 `Options.ClampToSourceBounds` 有効時は境界内へクリップ） |
 | `ResetSelection()` | 選択状態と nudge 状態を初期化する |
 | `SetCoordTransform(ICoordTransform?)` | 対象↔DIP 座標変換ポートを設定する（null = 等価変換） |
-| `RefreshOverlay()` | 表示（パン・ズーム・表示サイズ）の変化へ追従する（再描画とルーペ位置の再計算を要求。 選択の状態は変更しない） |
+| `InvalidateRender()` | 表示（パン・ズーム・表示サイズ）の変化へ追従する（再描画とルーペ位置の再計算を要求。 選択の状態は変更しない） |
 | `InvalidateRender()` | 描画内容の再解決と、図形・ラベルの再描画を要求する（**描画に関わる変更の唯一の入口**。 図形は子の描画層が描くため、親の無効化だけでは更新されない） |
 | `RequestCancel()` | キャンセル要求を処理する（Escape キーと同じ条件。 選択破棄後に `CancelRequested` を発火） |
 | `RequestConfirm()` | 確定要求を処理する（Enter キーと同じ条件。 ドラッグ中は無視し `ConfirmRequested` を発火。 確定後に選択状態をクリアして再選択・再確定を防ぐ） |
