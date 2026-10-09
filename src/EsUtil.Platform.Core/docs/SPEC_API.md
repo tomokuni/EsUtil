@@ -496,7 +496,7 @@ public readonly record struct ElementFinderResults(
 - **未対応の拡張子は例外にします**: PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かないためです（`NotSupportedException`。 対応形式の単一所有は `SupportedExtensions`）。
 - **WebP / HEIF を対応形式へ入れない理由（実測）**: .NET 10 の `System.Drawing.Common` は `ImageFormat.Webp` / `ImageFormat.Heif` を公開していますが、GDI+ にこれらのエンコーダーが無いため（`ImageCodecInfo.GetImageEncoders()` が返すのは BMP / JPEG / GIF / TIFF / PNG のみ）、`Bitmap.Save` は**例外を出さずに PNG を書き出します**（実測: 書き出したファイルの先頭バイトが PNG のシグネチャ）。 拡張子と中身が食い違うファイルを作らないため、対応形式へ追加しません。
 - **エンコード・デコードの実体は `System.Drawing.Common`**（.NET 標準）です。 コア本体は `System.Drawing.Common` へ依存せず、本名前空間（`Native/`）だけが依存します。
-- **制限**: JPEG / BMP はアルファ（透明度）を保存できません（形式の仕様。 透過を保つ場合は PNG を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする。 小さく使う場合は `Resize` で縮小する）。
+- **制限**: JPEG / BMP はアルファ （透明度）を保存できません（形式の仕様。 透過を保つ場合は PNG を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする。 小さく使う場合は `Downscale*` で縮小する）。
 - **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（GDI+ がこの型を投げることを実測で確認）。
 
 ### 2.32 `Coord.ICoordTransform`（interface）
@@ -605,13 +605,32 @@ public readonly record struct ElementFinderResults(
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
 | `Crop` | `static EsWritableBitmap Crop(this IEsBitmap source, int x, int y, int width, int height)` / `static EsWritableBitmap Crop(this IEsBitmap source, EsRectInt rect)` | 指定矩形領域を切り出す（ソース範囲外は透明パディング。 位置関係は保たれる。 0 初期化は行わず、コピーされないパディングだけを透明にする） |
-| `Resize` | `static EsWritableBitmap Resize(this IEsBitmap source, int maxSize)` | 長辺を `maxSize` へ収めるように縮小する（**最近傍**。 既に収まっていれば等倍の複製。 縦横比は保たれる） |
+| `Resize` | `static EsWritableBitmap Resize(this IEsBitmap source, int maxSize)` | 長辺を `maxSize` へ収める（**既定のアルゴリズム = 双線形**。 拡大は未サポートで `NotSupportedException`） |
+| `DownscaleNearest` | `static EsWritableBitmap DownscaleNearest(this IEsBitmap source, int maxSize)` | 長辺を `maxSize` へ収める（**最近傍補間**。 最速・細線が落ちる） |
+| `DownscaleBilinear` | `static EsWritableBitmap DownscaleBilinear(this IEsBitmap source, int maxSize)` | 長辺を `maxSize` へ収める（**双線形補間**。 元の 2x2 を重み付き平均する） |
+| `DownscaleBox` | `static EsWritableBitmap DownscaleBox(this IEsBitmap source, int maxSize)` | 長辺を `maxSize` へ収める（**面積平均 = box フィルター**。 最も品質が高く、最も遅い） |
 
-- **`Resize` をここに置く理由**: 表示用の縮小は**どの UI でも同じ**であり、各 UI の画像変換へ個別に実装すると縮小アルゴリズムがばらつきます（実測: 4K の画像を 96×54 へ縮小すると 17 µs / 約 20 KB。 実寸のまま作る `ToAvaloniaBitmap()` は 7.8 ms / 約 32 MB でした）。
+- **縮小の共通の契約は 1 か所が所有します**: 拡大の拒否・目標寸法の計算・縮小不要時の等倍の複製はプライベートの `Downscale` が単一所有し、各アルゴリズムは「目標寸法へ縮小する」計算だけを持ちます（アルゴリズム間で判断が食い違わない）。
+- **拡大は未サポートです**: `maxSize` が長辺より大きい場合は `NotSupportedException` を投げます（黙って等倍を返すと「拡大された」と誤解されるため）。 名前が `Resize` であるのは将来の拡大対応を見込んだもので、現在の実装は縮小だけを行います。 長辺と上限が一致する場合は縮小不要のため**等倍の複製**を返します。
+- **アルゴリズム別の実測**（Release・Debug 計測・一時テストで実測し削除。 4K 3840x2160 → 96x54 の 1 回あたり）:
+
+  | アルゴリズム | 速度 | 幅 1 px の細線（40 倍縮小後の最大輝度） | 性質 |
+  | --- | --- | --- | --- |
+  | `DownscaleNearest` | **23 µs** | **0（落ちる）** | 比例位置の画素だけを読む |
+  | `DownscaleBilinear` | 110 µs | 0（位置により 127） | 元の 2x2 だけを見る |
+  | `DownscaleBox` | 9〜30 ms | 6（薄く残る） | 全画素を 1 度は読む |
+  | 参考: GDI+ `HighQualityBicubic` | 23 ms | 4 | 平均に近い |
+
+- **`DownscaleBox` の速度は縮小先の寸法ではなく元画像の画素数で決まります**（4K で 9〜30 ms。 実測の幅は実行環境の負荷による）。 一覧のように枚数が多い場面では `DownscaleBilinear` を使います。
+- **`DownscaleBox` は横 → 縦 の 2 パスです**: 面積平均の重みは縦横の積に分離できるため結果は同じで、走査する画素の総数が減ります（実測: 4K → 96x54 で 11.6 ms → 9.2 ms）。
+- **`Resize` とアルゴリズム別メソッドの関係**: `Resize` は「アルゴリズムを選ばない入口」で、既定（双線形）へ委譲します（将来の拡大対応の名前を残すため）。 アルゴリズムを固定したい場合は `Downscale*` を直接使います。
+
+- **縮小をここに置く理由**: 縮小は**どの UI でも必要になり、結果を揃えたい**処理です（各 UI の画像変換へ個別に実装するとアルゴリズムがばらつく）。 実測では、等倍の射影（Avalonia の `Bitmap`）は 4K 1 枚で 7.8 ms / 32 MB に対し、表示用の縮小版は 320x180 で 1.2 ms / 230 KB でした。
+- **ファイルの入出力をここに置かない理由**: エンコード・デコードには OS / ライブラリのコーデックが必要で、コア本体は外部依存を持たないためです（Windows 専用の `System.Drawing.Common` を使う実装は `Native.Imaging` に分離しています）。
 - **最近傍で標本化する理由**: 表示の縮小は画素の代表値を選ぶだけで足り、補間は塗りの境界をぼかします（**保存・座標対応付けには使わない**前提の縮小です）。
 - **`maxSize` が 1 未満のとき**: 縦横それぞれ 1 px を下限にします（0 除算・空の画像を作らない）。
 
-- **拡張メソッドにする理由**: 切り出しは「自分を変更せず新しい画像を作る」操作であり、**借用した読み取り専用の画像からも呼べる**必要があるためです（実測: ルーペが表示アダプタの画像を切り出す）。 戻り値は書き換え可能（生成した側が所有し破棄する）。
+- **拡張メソッドにする理由**: 切り出し・縮小は「自分を変更せず新しい画像を作る」操作であり、**借用した読み取り専用の画像からも呼べる**必要があるためです（実測: ルーペが表示アダプタの画像を切り出す）。 戻り値は書き換え可能（生成した側が所有し破棄する）。
 - **色の取得をここに置かない理由**: 「座標のピクセルを色として読む」は画像の読み取りそのものであり、**読み取りの面（`IEsBitmap.GetPixel(EsPointInt)`）が実装を持つ**ためです（追加の画像を作らないため、拡張メソッドにする理由がありません）。
 - **戻り値の権利**: 新しく作った画像は `EsWritableBitmap`（書き換え可能）です。 読み取り専用で足りる場合は `EsBitmap.Clone()` を使います。
 
