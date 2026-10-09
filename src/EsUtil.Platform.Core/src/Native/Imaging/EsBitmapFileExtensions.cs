@@ -12,8 +12,11 @@ namespace EsUtil.Platform.Core.Native.Imaging;
 /// <b>形式は拡張子が決める</b>: <see cref="Save(IEsBitmap, string)"/> は保存先の拡張子から形式を選ぶ。
 /// <b>未対応の拡張子は例外にする</b>（PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルが
 /// できて気付かない。 対応形式は <see cref="SupportedExtensions"/> が単一所有する）。<br/>
-/// <b>Windows 専用</b>: <c>System.Drawing.Common</c> は Windows でのみ動作する（<see cref="SupportedOSPlatformAttribute"/> で限定）。<br/>
-/// <b>制限</b>: JPEG / BMP はアルファ（透明度）を保存できない（形式の仕様）。 透過を保つ場合は PNG を選ぶこと。
+/// <b>Windows 専用</b>: <c>System.Drawing.Common</c> は Windows でのみ動作する（<see cref="SupportedOSPlatformAttribute"/> で限定）。<br/>/// <b>WebP / HEIF を対応形式へ入れない理由（実測）</b>: .NET 10 の <c>System.Drawing.Common</c> は
+/// <c>ImageFormat.Webp</c> / <c>ImageFormat.Heif</c> を公開しているが、GDI+ はこれらのエンコーダーを持たない
+/// （<c>ImageCodecInfo.GetImageEncoders()</c> が返すのは BMP / JPEG / GIF / TIFF / PNG のみ）。
+/// 実際に <c>ImageFormat.Webp</c> を渡した <c>Bitmap.Save</c> は<b>例外を出さずに PNG を書き出す</b>ため、
+/// 拡張子だけ <c>.webp</c> の PNG ファイルができる（実測: 書き出したファイルの先頭バイトが PNG のシグネチャ）。<br/>/// <b>制限</b>: JPEG / BMP はアルファ（透明度）を保存できない（形式の仕様）。 透過を保つ場合は PNG を選ぶこと。
 /// </remarks>
 public static class EsBitmapFileExtensions
 {
