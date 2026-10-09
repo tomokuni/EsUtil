@@ -53,7 +53,7 @@ SaveEvidence は、Windows デスクトップ上の画面をキャプチャし�
 | **ビルドツール** | MSBuild / .NET SDK 10.0 |
 | **ログ** | Microsoft.Extensions.Logging.Abstractions（LoggerMessage ソース生成） |
 | **テスト** | xUnit v3 / Avalonia.Headless.XUnit |
-| **依存プロジェクト** | EsUtil.Feature.Marquee.Core（公開ファサード・幾何）/ EsUtil.Feature.Marquee.Presenter（描画計画・外観・ラベル計画・組み込み規則）/ Platform.AvaloniaUI（ScreenConverter）/ EsUtil.Platform.Core（`Native.ICursorService` / ICoordTransform / CoordTransform） |
+| **依存プロジェクト** | EsUtil.Feature.Marquee.Core（公開ファサード・幾何）/ EsUtil.Feature.Marquee.Presenter（描画計画・外観・ラベル計画・組み込み規則）/ `Internal/`（複製した変換・測定ヘルパー）/ EsUtil.Platform.Core（`Native.ICursorService` / ICoordTransform / CoordTransform） |
 
 ## 3. アーキテクチャ
 
@@ -63,7 +63,7 @@ SaveEvidence は、Windows デスクトップ上の画面をキャプチャし�
 公開コントロール（MarqueeControl）… 入力の受付 / 効果の適用 / 通知の転送 / 描画（自 UI の API）
   → 状態管理クラス（MarqueeSession）… 入力の解釈と状態遷移の判断
     → 状態（MarqueeState）… 状態保持と更新ロジック
-      → コア内部の純粋幾何（MarqueeSelection）+ Platform.AvaloniaUI
+      → コア内部の純粋幾何（MarqueeSelection）+ `Internal/`（複製した画面座標変換）
   → 幾何の解決（コアの MarqueeCore.CreateRequest → MarqueeCore.ResolveGeometry）… 選択の状態 + 設定 → 幾何 1 値（MarqueeGeometry）
   → 描画計画の解決（EsUtil.Feature.Marquee.Presenter の MarqueePresenter.ResolveDrawPlan）… 幾何 + 外観 → 描画計画（MarqueeDrawPlan）
   → 描画（本コントロール）… 描画計画の Layers の順に自 UI の描画 API（DrawingContext）で描く
@@ -72,7 +72,7 @@ SaveEvidence は、Windows デスクトップ上の画面をキャプチャし�
 
 ### 3.2 依存方向
 
-- 依存は**一方向の階層構造**（MarqueeControl → MarqueeSession → MarqueeState → MarqueeSelection（これらの幾何計算はコア内部の値の振る舞い）/ Platform.AvaloniaUI / EsUtil.Platform.Core（`Native` を含む）。 描画計画は MarqueeControl → MarqueePresenter（EsUtil.Feature.Marquee.Presenter）→ 幾何（EsUtil.Feature.Marquee.Core））。
+- 依存は**一方向の階層構造**（MarqueeControl → MarqueeSession → MarqueeState → MarqueeSelection（これらの幾何計算はコア内部の値の振る舞い）/ `Internal/`（複製した変換ヘルパー）/ EsUtil.Platform.Core（`Native` を含む）。 描画計画は MarqueeControl → MarqueePresenter（EsUtil.Feature.Marquee.Presenter）→ 幾何（EsUtil.Feature.Marquee.Core））。
 - MarqueeControl は上位 AP に依存しない（再利用可能）。
 - **判断はコア（`MarqueeCore`）・反映は UI**: nudge セッション・ダブルクリックの確定/キャンセル・ハンドルのスナップ・クリック検出・最小サイズによるキャンセルはコアが決め、コントロールは `IMarqueeEffects` を実装して要求された効果を適用するだけにする。
 - **描画計画と外観は提示層（`EsUtil.Feature.Marquee.Presenter` の `MarqueePresenter` / `MarqueeAppearance` / `MarqueeDrawPlan` / `MarqueePresenter`（`LabelPlan` partial））が単一所有**し、本コントロールは `Appearance` プロパティで外観を与え、`ResolveDrawPlan` が返す描画計画を自 UI の描画 API（`DrawingContext`）で写すだけです（**描画 API の抽象は持ちません**）。 装飾の**判断**も持ちません（状態（選択矩形・nudge）はコア（`MarqueeState`）に集約する）。
@@ -175,7 +175,7 @@ flowchart TB
   - プロパティ: `Log`（保持・`NullLogger` へのフォールバックはコアが単一所有） / `SizeLabelOverrideProvider`（外側の装飾のラベル文言。 デリゲートのため設定値に含めない） / `HasSelection` / `SelectionSourceRect`
   - メソッド: `SetCoordTransform(ICoordTransform?)` / `SetSelection` / `ResetSelection` / `RequestCancel` / `RequestConfirm` / `RefreshOverlay` / **`InvalidateRender()`**（描画に関わる変更の唯一の入口。 図形の層・ラベル・配置をまとめて無効化する）
 - **構成（薄い層）**: 公開 API・入力の受付・効果の適用・通知の転送・描画の起動のみを集約し、判断（状態遷移・確定/キャンセル・スナップ・クリック検出・装飾の描画内容）と描画の手順はコアと描画層へ委譲する
-- **依存**: MarqueeCore（公開ファサード）/ IMarqueeEffects / MarqueeSession（間接） / MarqueeOptions / MarqueeNotice / MarqueeGeometry（EsUtil.Feature.Marquee.Core）/ MarqueePresenter（描画計画と配置の写像）/ MarqueeAppearance / MarqueeDrawPlan（EsUtil.Feature.Marquee.Presenter）/ ICoordTransform（EsUtil.Platform.Core）/ ICursorService（EsUtil.Platform.Core の `Native`）/ ScreenConverter（Platform.AvaloniaUI）
+- **依存**: MarqueeCore（公開ファサード）/ IMarqueeEffects / MarqueeSession（間接） / MarqueeOptions / MarqueeNotice / MarqueeGeometry（EsUtil.Feature.Marquee.Core）/ MarqueePresenter（描画計画と配置の写像）/ MarqueeAppearance / MarqueeDrawPlan（EsUtil.Feature.Marquee.Presenter）/ ICoordTransform（EsUtil.Platform.Core）/ ICursorService（EsUtil.Platform.Core の `Native`）/ ScreenConverter（`Internal/`）
 
 ### 6.2 MarqueeCore（公開ファサード・コア）
 
@@ -238,16 +238,16 @@ flowchart TB
 - **分類**: `MarqueeControl` の内部実装（`ArrangeOverride` と `SyncLabels` / `Apply` / `MeasureText`。 独立し た型ではない）
 - **責務**: 描画計画のラベル（サイズ・カーソル座標）をテキスト要素（`Border` + `TextBlock`）として配置する
 - **可視性**: 非公開（ホストは `Rendered` の `Content`（描画計画）を参照できる）
-- **特徴**: 文言と基準点は提示層の `MarqueePresenter`（`LabelTexts` partial） が、体裁は `MarqueeAppearance` が単一所有し、実寸からの配置矩形は `MarqueePresenter`（`LabelPlan` partial） が単一所有する。 本実装は実寸測定（**`Platform.AvaloniaUI.Imaging` の `AvaloniaTextMeasure` へ委譲する**。 実寸を返さないと背景が内側余白だけの大きさになり文字が切り落とされる）と要素への反映（`Border` の余白・大きさ・位置、`TextBlock` の文言・文字サイズ ・色）を持つ。 色 → ブラシは `SolidColorBrushCache`（`Platform.AvaloniaUI.Imaging`）が単一所有する
-- **依存**: Avalonia（`FormattedText` / テキスト要素）/ EsUtil.Feature.Marquee.Presenter（`MarqueePresenter`（`LabelPlan` partial） / `MarqueeLabelPlacement` / `MarqueeAppearance`）/ Platform.AvaloniaUI（色変換・ブラシキャッシュ）
+- **特徴**: 文言と基準点は提示層の `MarqueePresenter`（`LabelTexts` partial） が、体裁は `MarqueeAppearance` が単一所有し、実寸からの配置矩形は `MarqueePresenter`（`LabelPlan` partial） が単一所有する。 本実装は実寸測定（**`Internal/` の `AvaloniaTextMeasure` へ委譲する**。 実寸を返さないと背景が内側余白だけの大きさになり文字が切り落とされる）と要素への反映（`Border` の余白・大きさ・位置、`TextBlock` の文言・文字サイズ ・色）を持つ。 色 → ブラシは `SolidColorBrushCache`（`Internal/`）が単一所有する
+- **依存**: Avalonia（`FormattedText` / テキスト要素）/ EsUtil.Feature.Marquee.Presenter（`MarqueePresenter`（`LabelPlan` partial） / `MarqueeLabelPlacement` / `MarqueeAppearance`）/ `Internal/`（色変換・ブラシキャッシュ）
 
 ### 6.9 MarqueeContextPainter（本プロジェクト）
 
 - **分類**: 内部静的クラス（`internal static class`。 本プロジェクトが所有する）
 - **責務**: 描画計画（`MarqueeDrawPlan`）を Avalonia の `DrawingContext` へ写す（層の順に描く）
 - **可視性**: internal（描画の実装詳細。 見た目の差し替えは `MarqueeControl.Appearance` / `DrawPlanResolver` / `DrawPlan` で行う）
-- **特徴**: 描画計画の項目はすべて解決済みであるため、本クラスは図形の描画 API を呼ぶだけであり、判断も計算も持たない。 色 → ブラシ・ペンは容量制限付きのキャッシュ（`Platform.AvaloniaUI.Imaging`）が単一所有する
-- **依存**: Avalonia（`DrawingContext`）/ EsUtil.Feature.Marquee.Presenter（`MarqueeDrawPlan`）/ Platform.AvaloniaUI（色変換・キャッシュ）
+- **特徴**: 描画計画の項目はすべて解決済みであるため、本クラスは図形の描画 API を呼ぶだけであり、判断も計算も持たない。 色 → ブラシ・ペンは容量制限付きのキャッシュ（`Internal/`）が単一所有する
+- **依存**: Avalonia（`DrawingContext`）/ EsUtil.Feature.Marquee.Presenter（`MarqueeDrawPlan`）/ `Internal/`（色変換・キャッシュ）
 
 ### 6.10 MarqueeCore（コアの幾何解決）
 

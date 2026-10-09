@@ -231,7 +231,7 @@ control.ResetSelection();           // 状態と nudge の初期化
 安全域への補正は**コアの設定型の生成時**に適用されます（設定の経路によらず範囲内の値だけが保持され、UI 側に補正の登録は不要です）。
 
 `Options` は変更時に即時反映されます（`AffectsRender` による再描画 + コア（ファサード）への伝搬）。
-色は外観（`Appearance` の `MarqueeAppearance`）が単一所有し、UI 非依存の `System.Drawing.Color` で保持します（Avalonia 型からの変換は `EsUtil.SaveEvidence.Platform.AvaloniaUI` の `ToDrawingColor()`。 描画時に Avalonia の色型へ変換します）。 **描くかどうかは色のアルファではなく外観の明示フラグ（`ShowOverlay` / `ShowOuterBorder` / `ShowInnerFill` / `ShowInnerBorder` / `ShowFullOverlay`）が決めます**。
+色は外観（`Appearance` の `MarqueeAppearance`）が単一所有し、UI 非依存の `System.Drawing.Color` で保持します（Avalonia 型からの変換は `Internal/` の `ToDrawingColor()`。 描画時に Avalonia の色型へ変換します）。 **描くかどうかは色のアルファではなく外観の明示フラグ（`ShowOverlay` / `ShowOuterBorder` / `ShowInnerFill` / `ShowInnerBorder` / `ShowFullOverlay`）が決めます**。
 一部の項目だけを変える場合は `MarqueeOptions.Default with { ... }` / `MarqueeAppearance.Default with { ... }` で指定します（指定しない項目は既定値を保つ）。 フォントサイズは外観の生成時に 6〜48 へ補正されます。
 
 `MarqueeAppearance` の項目（既定値は本型が単一所有する。 すべて `init` のみで不変）:

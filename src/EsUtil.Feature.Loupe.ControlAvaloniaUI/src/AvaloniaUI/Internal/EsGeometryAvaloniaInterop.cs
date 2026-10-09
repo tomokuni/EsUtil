@@ -7,7 +7,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 /// <summary>コア幾何型と Avalonia の座標型を相互変換する。</summary>
 /// <remarks>
 /// コアロジック（<see cref="EsPoint"/> 等）は UI フレームワークに依存せず、UI 境界でのみ本クラスで変換する。<br/>
-/// 変換は拡張メソッドとして提供し、呼び出し側は <c>using EsUtil.SaveEvidence.Platform.AvaloniaUI;</c> のみで利用できる。<br/>
+/// 変換は拡張メソッドとして提供し、呼び出し側は <c>using EsUtil.Feature.Loupe.AvaloniaUI.Internal;</c> のみで利用できる。<br/>
 /// </remarks>
 internal static class EsGeometryAvaloniaInterop
 {

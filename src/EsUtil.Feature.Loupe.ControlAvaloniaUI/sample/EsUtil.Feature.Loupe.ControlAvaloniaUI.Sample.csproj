@@ -23,7 +23,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\AvaloniaUI\EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj" />
-    <ProjectReference Include="..\..\Platform.AvaloniaUI\src\Platform.AvaloniaUI.csproj" />
   </ItemGroup>
 
 </Project>

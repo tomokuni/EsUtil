@@ -5,14 +5,13 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using EsUtil.Feature.Marquee.AvaloniaUI.Sample.Internal;
 using EsUtil.Feature.Marquee.AvaloniaUI.Sample.Logging;
 using EsUtil.Feature.Marquee.AvaloniaUI.Sample.Presentation;
 using EsUtil.Feature.Marquee.AvaloniaUI.Sample.ViewModels;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
 using Point = Avalonia.Point;
 using Rect = Avalonia.Rect;
 

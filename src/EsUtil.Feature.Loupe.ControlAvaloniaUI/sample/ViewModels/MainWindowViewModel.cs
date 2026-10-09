@@ -1,10 +1,10 @@
 using Avalonia;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
-using EsUtil.Feature.Loupe.AvaloniaUI.Sample.Imaging;
-using EsUtil.Platform.Core.Imaging;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 using DrawingColor = System.Drawing.Color;
+using EsUtil.Feature.Loupe.AvaloniaUI.Sample.Imaging;
+using EsUtil.Feature.Loupe.AvaloniaUI.Sample.Internal;
+using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.ViewModels;
 

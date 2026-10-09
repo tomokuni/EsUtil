@@ -2,11 +2,11 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using EsUtil.Feature.Loupe.AvaloniaUI.Sample.Internal;
 using EsUtil.Feature.Loupe.AvaloniaUI.Sample.Logging;
 using EsUtil.Feature.Loupe.AvaloniaUI.Sample.Presentation;
 using EsUtil.Feature.Loupe.AvaloniaUI.Sample.ViewModels;
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Views;
 
