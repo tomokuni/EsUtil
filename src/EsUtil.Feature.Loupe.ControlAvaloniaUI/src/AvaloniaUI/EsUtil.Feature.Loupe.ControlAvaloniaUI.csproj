@@ -16,7 +16,7 @@
   <ItemGroup>
     <!-- コア（LoupeOptions / 幾何）と描画手順。 コアは提示層の公開面に現れるため推移参照で解決する -->
     <ProjectReference Include="..\..\..\EsUtil.Feature.Loupe.Presenter\src\EsUtil.Feature.Loupe.Presenter.csproj" />
-    <ProjectReference Include="..\..\..\Platform.AvaloniaUI\src\Platform.AvaloniaUI.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
   </ItemGroup>
 
 

@@ -1,6 +1,6 @@
 using Avalonia.Media;
 using EsUtil.Feature.Loupe.AvaloniaUI.Logging;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
+using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;

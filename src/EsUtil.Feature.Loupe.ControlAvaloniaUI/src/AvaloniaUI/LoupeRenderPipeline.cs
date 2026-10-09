@@ -1,10 +1,10 @@
 using Avalonia;
+using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI;
 

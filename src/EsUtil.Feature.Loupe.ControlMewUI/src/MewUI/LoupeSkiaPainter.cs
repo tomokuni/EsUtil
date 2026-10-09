@@ -1,5 +1,5 @@
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.SaveEvidence.Platform.Skia;
+using EsUtil.Feature.Loupe.MewUI.Internal;
 using SkiaSharp;
 
 namespace EsUtil.Feature.Loupe.MewUI;
@@ -11,7 +11,7 @@ namespace EsUtil.Feature.Loupe.MewUI;
 /// <br/>
 /// <b>キャンバスの抽象化を持たない</b>: 描画 API は本クラスが直接呼ぶ（UI フレームワークをまたぐ描画の抽象は、<br/>
 /// フレームワークごとの描画モデルの差を吸収しきれないため導入しない）。 共有できるプリミティブは<br/>
-/// <see cref="SkiaFill"/> / <see cref="SkiaText"/> / <see cref="SkiaLabel"/> が単一所有する。<br/>
+/// <see cref="SkiaFill"/> / <see cref="SkiaText"/> が本プロジェクトの Internal で所有する。<br/>
 /// <br/>
 /// <b>テキストは描かない</b>: 中心座標ラベルは UI 要素（<c>Border</c> + <c>TextBlock</c>）として配置するため、<br/>
 /// <see cref="LoupeDrawLayer.Label"/> の層では何もしない（要素は親より後に描かれるため常に最上位になる）。<br/>

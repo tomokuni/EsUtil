@@ -1,7 +1,6 @@
 using Avalonia.Media;
+using EsUtil.Feature.Marquee.AvaloniaUI.Internal;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Feature.Marquee.AvaloniaUI;

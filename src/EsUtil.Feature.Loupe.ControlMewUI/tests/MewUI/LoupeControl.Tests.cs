@@ -2,7 +2,7 @@ using System.Globalization;
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.SaveEvidence.Platform.Skia;
+using EsUtil.Feature.Loupe.MewUI.Internal;
 using SkiaSharp;
 using Xunit;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;

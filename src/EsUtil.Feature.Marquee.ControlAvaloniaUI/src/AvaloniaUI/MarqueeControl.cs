@@ -1,4 +1,5 @@
 using Avalonia;
+using EsUtil.Feature.Marquee.AvaloniaUI.Internal;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -8,8 +9,6 @@ using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core.Native.Win;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Coord;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using static EsUtil.Feature.Marquee.MarqueeCore.Limits;

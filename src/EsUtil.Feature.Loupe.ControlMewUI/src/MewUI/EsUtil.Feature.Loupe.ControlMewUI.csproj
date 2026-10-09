@@ -5,6 +5,7 @@
     <RootNamespace>EsUtil.Feature.Loupe.MewUI</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- MewUI は API が安定化中（0.x）。破壊的変更を避けるためバージョンを固定する。 -->
     <MewUIVersion>0.21.1</MewUIVersion>
   </PropertyGroup>
@@ -20,18 +21,12 @@
     <!-- コア（LoupeOptions / 幾何）と描画手順。 コアは提示層の公開面に現れるため推移参照で解決する -->
     <ProjectReference Include="..\..\..\EsUtil.Feature.Loupe.Presenter\src\EsUtil.Feature.Loupe.Presenter.csproj" />
     <ProjectReference Include="..\..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
-    <!-- コアの色型 → MewUI の色型へ変換する Interop（色変換の単一所有者） -->
-    <ProjectReference Include="..\..\..\Platform.MewUI\src\Platform.MewUI.csproj" />
   </ItemGroup>
 
 
   <ItemGroup>
     <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
     <InternalsVisibleTo Include="EsUtil.Feature.Loupe.ControlMewUI.Tests" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\Platform.Skia\src\Platform.Skia.csproj" />
   </ItemGroup>
 
 </Project>

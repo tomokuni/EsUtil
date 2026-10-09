@@ -1,8 +1,8 @@
 using Avalonia.Media;
+using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using Avalonia.Media.Imaging;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core.Native.Imaging;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI;
 

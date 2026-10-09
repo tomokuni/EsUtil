@@ -5,6 +5,7 @@
     <RootNamespace>EsUtil.Feature.Loupe.MewUI.Tests</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -23,7 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Platform.Skia\src\Platform.Skia.csproj" />
   </ItemGroup>
 
 </Project>

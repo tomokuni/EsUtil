@@ -1,5 +1,5 @@
-using EsUtil.SaveEvidence.Platform.Skia;
 using SkiaSharp;
+using EsUtil.Feature.Marquee.MewUI.Internal;
 
 namespace EsUtil.Feature.Marquee.MewUI;
 
@@ -9,7 +9,7 @@ namespace EsUtil.Feature.Marquee.MewUI;
 /// 本クラスは順序を判断せず、層ごとに Skia の描画 API を呼ぶだけである（座標・色・寸法はすべて計画に解決済み）。<br/>
 /// <br/>
 /// <b>キャンバスの抽象化を持たない</b>: 描画 API は本クラスが直接呼ぶ。 共有できるプリミティブは<br/>
-/// <see cref="SkiaFill"/> / <see cref="SkiaText"/> / <see cref="SkiaLabel"/> が単一所有する。<br/>
+/// <see cref="SkiaFill"/> / <see cref="SkiaText"/> が本プロジェクトの Internal で所有する。<br/>
 /// <br/>
 /// <b>テキストは描かない</b>: ラベルは UI 要素（<c>Border</c> + <c>TextBlock</c>）として配置するため、<br/>
 /// <see cref="MarqueeDrawLayer.Label"/> の層では何もしない。

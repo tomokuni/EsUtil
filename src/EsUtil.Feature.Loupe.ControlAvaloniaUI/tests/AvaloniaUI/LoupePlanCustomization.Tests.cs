@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
+using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
 

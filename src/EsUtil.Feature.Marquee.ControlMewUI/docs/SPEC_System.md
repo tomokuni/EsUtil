@@ -36,7 +36,7 @@ nudge セッション・ダブルクリックの確定/キャンセル・ハン�
 | 対象フレームワーク | .NET 10（`net10.0`） |
 | 言語 | C# 14 |
 | UI フレームワーク | MewUI（`Aprillz.MewUI.Skia` **0.21.1 固定**） |
-| 描画 | SkiaSharp（本プロジェクトが自 UI の描画 API で描画計画を写す。 描画の部品は `Platform.Skia`） |
+| 描画 | SkiaSharp（本プロジェクトが自 UI の描画 API で描画計画を写す。 描画の部品は `Internal/` の複製） |
 | 基底コントロール | `Aprillz.MewUI.Skia.Controls.SkiaCanvasView` |
 | プロパティシステム | `MewProperty<T>`（`MewPropertyOptions.AffectsRender`） |
 | カーソル操作 | `ICursorService`（`EsUtil.Platform.Core` の `Native`。 既定実装は `Native.Win`） |
@@ -54,7 +54,7 @@ UI 層（Avalonia / MewUI の実装）
     └──> EsUtil.Feature.Marquee.Core   何を計算するか + 判断（状態・値・純粋計算・コア⇔UI の契約）
            └──> EsUtil.Platform.Core（Es* 値型・ICoordTransform・ICursorService）
 ※ Core は提示層を参照しない（提示層がコアの幾何を使う向きだけ）。
-※ 本コントロール（UI 層）は EsUtil.Platform.Core（Win32 実装は `Native.Win`）・Platform.MewUI・Platform.Skia も参照する。
+※ 本コントロール（UI 層）は EsUtil.Platform.Core（Win32 実装は `Native.Win`）も参照する。MewUI / Skia の変換ヘルパーは `Internal/` に複製して持つ（`Platform.*` は参照しない）。
 ```
 
 ### 3.2 責務の分担

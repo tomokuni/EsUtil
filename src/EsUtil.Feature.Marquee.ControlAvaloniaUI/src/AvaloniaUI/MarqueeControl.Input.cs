@@ -1,9 +1,8 @@
 using Avalonia.Controls;
+using EsUtil.Feature.Marquee.AvaloniaUI.Internal;
 using Avalonia.Input;
 using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Coord;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
 
 namespace EsUtil.Feature.Marquee.AvaloniaUI;
 

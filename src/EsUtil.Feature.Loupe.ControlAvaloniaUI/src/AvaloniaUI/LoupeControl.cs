@@ -1,4 +1,5 @@
 using Avalonia;
+using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -7,8 +8,6 @@ using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging;
-using EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
