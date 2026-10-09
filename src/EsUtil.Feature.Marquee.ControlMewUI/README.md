@@ -191,11 +191,32 @@ dotnet test src/EsUtil.Feature.Marquee.ControlMewUI/tests/MewUI/EsUtil.Feature.M
 - フォーカス非依存の矢印キー nudge。
   - 文字（ラベル・座標ラベル）の要素配置（UI 層の責務。 配置矩形は描画層 `EsUtil.Feature.Marquee.Presenter` の `MarqueePresenter`（`LabelPlan` partial） が求める）。
 
-## 13. ドキュメント
+## 13. サンプルアプリケーション
+
+動作確認用の独立サンプルアプリケーションを同梱しています（MewUI は XAML を持たないため、UI は C# のコードで組み立てます）。
+
+```powershell
+dotnet run --project src/EsUtil.Feature.Marquee.ControlMewUI/sample/EsUtil.Feature.Marquee.ControlMewUI.Sample.csproj
+```
+
+サンプルで確認できる内容:
+
+- ドラッグによる選択矩形の作成・移動・リサイズと、矢印キーによる nudge（微調整）
+- ズーム（1〜4 倍）と座標変換ポート（`SetCoordTransform`）
+- 画像内へのクリップ（`Options.ClampToSourceBounds`）
+- 外観（枠線・ハンドル・マーカー・暗転マスク）と寸法・対話パラメータの変更
+- `SetSelection` / `ResetSelection` / `RequestConfirm` / `RequestCancel`
+- 選択・確定・キャンセルのイベントと `Log`（操作ログの出力先 ILogger 設定例）
+- 外観と描画計画の差し替え（見本。 `Appearance` と `DrawPlanResolver`）
+
+詳細は [sample/README.md](sample/README.md) を参照してください。
+
+## 14. ドキュメント
 
 - [docs/SPEC_API.md](docs/SPEC_API.md) — 公開 API のリファレンス
 - [docs/SPEC_System.md](docs/SPEC_System.md) — アーキテクチャ・依存・設計判断
+- [sample/README.md](sample/README.md) — サンプルアプリケーション
 
-## 14. ライセンス
+## 15. ライセンス
 
 MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。

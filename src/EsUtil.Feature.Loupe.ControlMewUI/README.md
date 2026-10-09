@@ -133,7 +133,9 @@ Avalonia 版の Trace ログ（再描画パイプライン）は持ちません�
 ```text
 src/EsUtil.Feature.Loupe.ControlMewUI/
 ├── README.md                # 本ファイル
-├── docs/                    # SPEC_API.md（API リファレンス）/ SPEC_System.md（システム仕様書）`r`n├── src/
+├── docs/                    # SPEC_API.md（API リファレンス）/ SPEC_System.md（システム仕様書）
+├── sample/                  # 独立サンプルアプリ（sample/README.md 参照）
+├── src/
 │   ├── EsUtil.Feature.Loupe.ControlMewUI.csproj   # net10.0 / MewUI 0.21.1 固定
 │   ├── LoupeControl.cs             # Panel 派生のコントロール（描画は LoupeSkiaPainter へ委譲する）
 │   ├── LoupeRenderedEventArgs.cs   # 描画完了の通知（キャンバスと表示情報）
@@ -146,7 +148,27 @@ src/EsUtil.Feature.Loupe.ControlMewUI/
     └── LoupeRenderedEventArgs.Tests.cs # 描画完了通知の引数
 ```
 
-## 9. ビルドとテスト
+## 9. サンプルアプリケーション
+
+動作確認用の独立サンプルアプリケーションを同梱しています（MewUI は XAML を持たないため、UI は C# のコードで組み立てます）。
+
+```powershell
+dotnet run --project src/EsUtil.Feature.Loupe.ControlMewUI/sample/EsUtil.Feature.Loupe.ControlMewUI.Sample.csproj
+```
+
+サンプルで確認できる内容:
+
+- マウス追従による拡大表示（`Source` / `CenterPoint`）
+- 画像端から外れた部分の画像外の色（無地）
+- 拡大率・サイズ・描画スケール（DPI）の変更
+- 十字線・枠線・座標ラベルの変更（「なし」で非表示）
+- `Source` の解除（未設定時の市松模様）と再設定
+- `Log`（設定変更ログの出力先 ILogger 設定例）
+- 外観と描画計画の差し替え（見本。 `Appearance` と `DrawPlanResolver`）
+
+詳細は [sample/README.md](sample/README.md) を参照してください。
+
+## 10. ビルドとテスト
 
 ```powershell
 dotnet build src/EsUtil.Feature.Loupe.ControlMewUI/src/MewUI/EsUtil.Feature.Loupe.ControlMewUI.csproj
@@ -155,13 +177,14 @@ dotnet test src/EsUtil.Feature.Loupe.ControlMewUI/tests/MewUI/EsUtil.Feature.Lou
 
 本プロジェクトは `GenerateDocumentationFile` を有効にし、**存在しないメンバーへの `<see cref>` をビルド警告（CS1574）で検出**します（XML は検証にのみ使い、配布物へは出しません）。
 
-## 10. 関連ドキュメント
+## 11. 関連ドキュメント
 
 - [共有する UI 非依存ロジック](../EsUtil.Feature.Loupe.Core/README.md)
 - [共有する UI 非依存の描画層](../EsUtil.Feature.Loupe.Presenter/README.md)
 - [対になる Avalonia 版ルーペ](../EsUtil.Feature.Loupe.ControlAvaloniaUI/README.md)
 - [組み込み先のアプリ](../App.MewUI/README.md)
+- [サンプルアプリケーション](sample/README.md)
 
-## 11. ライセンス
+## 12. ライセンス
 
 MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。
