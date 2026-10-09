@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Platform.Core.Native.Win;
@@ -274,3 +275,5 @@ public sealed class WinElementFinder(ILogger? logger = null) : IElementFinder
         return new string(titleChars, 0, len);
     }
 }
+
+

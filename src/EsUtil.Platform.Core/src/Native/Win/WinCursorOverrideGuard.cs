@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
+using EsUtil.Platform.Core.Native.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Platform.Core.Native.Win;
@@ -95,3 +96,6 @@ public sealed class WinCursorOverrideGuard(ILogger? logger = null) : ICursorOver
         return WinNative.CallWindowProc(_originalWndProc, hWnd, msg, wParam, lParam);
     }
 }
+
+
+

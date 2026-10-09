@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace EsUtil.Platform.Core.Native;
+namespace EsUtil.Platform.Core.Native.Logging;
 
 /// <summary>プラットフォーム層（<c>Native/</c>）が出力する LoggerMessage 定義（ソース生成ログ）。</summary>
 /// <remarks>

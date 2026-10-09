@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
+using EsUtil.Platform.Core.Native.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Platform.Core.Native.Win;
@@ -129,3 +130,6 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
         _log.LogHotKeyRegisterFailed(id, modifiers, (int)key);
     }
 }
+
+
+

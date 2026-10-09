@@ -1,5 +1,6 @@
 using System.Globalization;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Platform.Core.Native.Win;
@@ -123,3 +124,5 @@ public sealed class WinWindowService(ILogger? logger = null) : IWindowService
         _log.LogWindowEvacuated(nativeHwnd.ToString("X", CultureInfo.InvariantCulture), unsetTopmost, wasVisible, posted);
     }
 }
+
+

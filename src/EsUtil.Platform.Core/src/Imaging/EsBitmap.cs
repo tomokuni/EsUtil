@@ -83,6 +83,31 @@ public sealed class EsBitmap : EsBitmapBase, IDisposable
     {
     }
 
+    /// <summary>確保と充填を 1 回で行う（本アセンブリ内部専用。 相互変換が使う）。</summary>
+    /// <param name="width">幅（ピクセル）。 0 以上。</param>
+    /// <param name="height">高さ（ピクセル）。 0 以上。</param>
+    /// <param name="fill">確保したバッファ（全領域）を充填する処理。 生成の直後に 1 回だけ呼ぶ。</param>
+    /// <returns>生成された画像（読み取り専用）。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>2 回のコピーを 1 回にするための入口</b>: 外部（相互変換）が「書き換え可能な画像を作ってから
+    /// <see cref="Create(IEsBitmap)"/> で読み取り専用へ複製する」と、同じ寸法のバッファを 2 つ作って
+    /// <b>全領域を 2 回コピーする</b>（実測: 4K で 13.6 ms 対 6.7 ms。 1 回のコピーで約半分になる）。
+    /// 本メソッドは確保したバッファをそのまま埋めさせるため、中間の画像を作らない。<br/>
+    /// <b>書き込みのビューは外へ出ない</b>: <paramref name="fill"/> へ渡すスパンは本メソッドの外へ持ち出せない
+    /// （<see cref="Span{T}"/> は <c>ref struct</c> のため、ラムダが捕獲できない）。
+    /// したがって「読み取り専用の実体に書き込みの入口を作らない」という不変条件は保たれる。<br/>
+    /// <b>書かない領域を残さないこと</b>: 生成時の 0 埋めは行わない（透明が必要な領域は <paramref name="fill"/> が消す）。
+    /// </remarks>
+    internal static EsBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)
+    {
+        ArgumentNullException.ThrowIfNull(fill);
+
+        // 全領域を充填する前提で確保するため、生成時の 0 埋めは行わない
+        var result = new EsBitmap(width, height, clear: false);
+        fill(result.WritableBuffer);
+        return result;
+    }
+
     /// <summary>本画像の複製を生成する（読み取り専用の複製）。</summary>
     /// <returns>独立した複製。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>書き換え可能な複製が要る場合は <see cref="EsWritableBitmap.Create(EsBitmap)"/> を使う。</remarks>

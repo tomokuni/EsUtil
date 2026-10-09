@@ -1,9 +1,9 @@
-using EsUtil.Platform.Core.Native;
+using EsUtil.Platform.Core.Native.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace EsUtil.Platform.Core.Tests.Native;
+namespace EsUtil.Platform.Core.Tests.Native.Logging;
 
 /// <summary><see cref="NativeLogMessage"/> の LoggerMessage 生成コード（IsEnabled 両パス）を検証するテスト。</summary>
 /// <remarks>

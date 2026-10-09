@@ -4,6 +4,7 @@ using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core.Native.Imaging;
+using EsUtil.Platform.Core.Native.Logging;
 using Microsoft.Extensions.Logging;
 using DrawingBitmap = System.Drawing.Bitmap;
 using DrawingRect = System.Drawing.Rectangle;
@@ -106,3 +107,5 @@ public sealed partial class WinCaptureService(ILogger? logger = null) : ICapture
         return bitmap;
     }
 }
+
+

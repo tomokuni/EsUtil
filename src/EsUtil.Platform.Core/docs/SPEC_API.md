@@ -470,7 +470,7 @@ public readonly record struct ElementFinderResults(
 | `WinCursorOverrideGuard` | `ICursorOverrideGuard` |
 | `WinGlobalHotKeyService<T>` | `IGlobalHotKeyService<T>`（`T : notnull`） |
 
-`Native.Win.WinNative`（internal）が Win32 P/Invoke の宣言を集約し、`Native.NativeLogMessage`（internal）が本層のログ定義を担います。
+`Native.Win.WinNative`（internal）が Win32 P/Invoke の宣言を集約し、`Native.Logging.NativeLogMessage`（internal）が本層のログ定義を担います。
 
 ### 2.30 `Native.Imaging.EsBitmapDrawingExtensions`（static class）
 
@@ -481,6 +481,15 @@ public readonly record struct ElementFinderResults(
 | `ToEsBitmap` | `static EsBitmap ToEsBitmap(this DrawingBitmap bitmap)` | `System.Drawing.Bitmap` から**読み取り専用の**画像を作る（複製。 元の Bitmap は変更しない） |
 | `ToEsWritableBitmap` | `static EsWritableBitmap ToEsWritableBitmap(this DrawingBitmap bitmap)` | `System.Drawing.Bitmap` から**書き換え可能な**画像を作る（複製。 元の Bitmap は変更しない） |
 | `ToDrawingBitmap` | `static DrawingBitmap ToDrawingBitmap(this IEsBitmap bitmap)` | コアの画像から `System.Drawing.Bitmap`（`Format32bppPArgb`）を作る（複製） |
+
+- **転送は「1 枚につき 1 回のコピー」を守ります**（実測: 4K で 1 回のコピーは約 6.5 ms）。 `ToEsBitmap` が書き換え可能な画像を
+  経由すると**バッファを 2 つ作って全領域を 2 回コピー**するため（実測 13.6 ms）、読み取り専用の画像へ直接 1 回だけ書き込みます
+  （`EsBitmap` の内部ファクトリ `CreateFilled` が確保と充填を 1 回で行う）。
+- **行幅が一致する場合は連続領域として 1 回でコピーします**（`LockBits` のストライドが `幅 × 4` のとき）。
+  一致しない場合は行単位でコピーし、覆われない右端は 0 にします（元の Bitmap の仕様上ありえます）。
+- **`System.Drawing.Common` は Windows 専用です**（パッケージの説明: 「Since .NET 7, non-Windows platforms are not supported, even with the runtime configuration switch」）。
+  同名の型（`System.Drawing.Bitmap` / `System.Drawing.Imaging.ImageFormat`）も同パッケージに属するため Windows 専用です
+  （非 Windows では `PlatformNotSupportedException`）。 本名前空間（`Native/`）だけが依存し、コア本体は依存しません。
 
 ### 2.31 `Native.Imaging.EsBitmapFileExtensions`（static class）
 
@@ -496,6 +505,12 @@ public readonly record struct ElementFinderResults(
 - **未対応の拡張子は例外にします**: PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かないためです（`NotSupportedException`。 対応形式の単一所有は `SupportedExtensions`）。
 - **WebP / HEIF を対応形式へ入れない理由（実測）**: .NET 10 の `System.Drawing.Common` は `ImageFormat.Webp` / `ImageFormat.Heif` を公開していますが、GDI+ にこれらのエンコーダーが無いため（`ImageCodecInfo.GetImageEncoders()` が返すのは BMP / JPEG / GIF / TIFF / PNG のみ）、`Bitmap.Save` は**例外を出さずに PNG を書き出します**（実測: 書き出したファイルの先頭バイトが PNG のシグネチャ）。 拡張子と中身が食い違うファイルを作らないため、対応形式へ追加しません。
 - **エンコード・デコードの実体は `System.Drawing.Common`**（.NET 標準）です。 コア本体は `System.Drawing.Common` へ依存せず、本名前空間（`Native/`）だけが依存します。
+- **`System.Drawing.Common` は Windows 専用です**（パッケージの説明: 「Since .NET 7, non-Windows platforms are not supported, even with the runtime configuration switch」。 非 Windows では `PlatformNotSupportedException`）。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、本名前空間だけが Windows に依存します）。
+- **代替（採用していない）**: 画像のエンコード・デコードは .NET に他に標準手段が無く、他は次のいずれかです。
+  - **WIC（Windows Imaging Component）を COM 相互運用で呼ぶ**: Windows 標準のコーデック（`Microsoft.Windows.CsWin32` などの Microsoft 公式パッケージで宣言を生成できる）。 `System.Drawing.Common` を外せ、コーデックが入っていれば WebP / HEIF も扱えます。 代償は COM 相互運用の実装量（数百行）と、拡張機能の有無で扱える形式が変わることです。
+  - **WPF の `System.Windows.Media.Imaging`（`BitmapEncoder` / `BitmapDecoder`）**: Microsoft 公式ですが `UseWPF` が必要で、UI 非依存のコアへ WPF を持ち込みます。
+  - **SkiaSharp**: WebP を含む多くの形式を扱えますが、**外部パッケージを参照しない**という本プロジェクトの依存規則に反します（Skia に依存する変換は Skia を使う上位層が単一所有する）。
+  現在は「Microsoft 公式の .NET パッケージで、対応形式（BMP / PNG / JPEG / GIF / TIFF）が用途に足りる」ため `System.Drawing.Common` を維持します。
 - **制限**: JPEG / BMP はアルファ （透明度）を保存できません（形式の仕様。 透過を保つ場合は PNG を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする。 小さく使う場合は `Downscale*` で縮小する）。
 - **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（GDI+ がこの型を投げることを実測で確認）。
 
@@ -551,6 +566,14 @@ public readonly record struct ElementFinderResults(
 
 **書き込み量の最適化**: 直後に全領域を書く手順（`Create(w, h, color)` / `Clone` / `Crop` / 相互変換）は 0 初期化を省きます（画像サイズ分の書き込みを丸ごと削減する）。 `Crop` はコピーされないパディングだけを透明にし、`CreateUninitialized` は「全領域を書く」責任を呼び出し側が持つ前提で未初期化のまま確保します。
 
+**実測（4K 3840x2160 = 33 MB のバッファ）**: 確保と 0 初期化が 7.3 ms、1 回の全域コピーが 6.5 ms です。 つまり **`Create(w, h)`（0 初期化あり）と 1 回のコピーの合計が支配的**です。
+
+- **0 初期化は「直後に全領域を書く」場合に省く**（`CreateUninitialized` は 10 µs。 0 初期化を省くだけで 7.3 ms 減ります）、
+- **同じ寸法のバッファを作る手順は 1 枚につき 1 回のコピーに抑える**（2 回コピーすると 13.6 ms）、
+- **ピクセル単体の書き込みは 4 バイトを 1 回で書く**（`SetPixel`。 実測: 100 万回で 2.0 ms → 1.6 ms）、
+ことが効きます。 一方 **`Clone` / `Clear` / 1 回のコピーはメモリ帯域（約 5 GB/s）で決まるため、これ以上は縮まりません**。
+ピクセルの走査は `GetPixel(x, y)` の反復（実測 1.1 ns/画素）より **`Pixels` を `uint` へ読み替えて走査する方が速い**（実測 0.39 ns/画素。 成分ごとに見る必要がない場合）。
+
 **解放**: バッファの所有者は内部の `SafeAlignedBuffer`（`SafeHandle`）であり、**解放の実装を 1 つだけ持ちます**（手書きのファイナライザは書きません。 解放を `SafeHandle` へ委ねると同じ役割を果たしつつ、解放の経路が `ReleaseHandle` の 1 か所になります）。 確保量は `GC.AddMemoryPressure` で GC へ伝え、解放時に `GC.RemoveMemoryPressure` で戻します。 したがって **`Dispose` を忘れても解放されます**。 ただし解放は GC の判断を待つため、**大きな画像は早く手放すために `Dispose` してください**（4K 1 枚で 33 MB）。
 
 **`EsWritableBitmap` の生成・変換**:
@@ -604,7 +627,10 @@ public readonly record struct ElementFinderResults(
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
+| `Crop` | `static EsWritableBitmap Crop(this IEsBitmap source, int x, int y, int width, int height)` / `static EsWritableBitmap Crop(this IEsBitmap source, EsRectInt rect)` | 指定矩形領域を切り出す（ソース範囲外は透明パディング。 位置関係は保たれる。 0 初期化は行わず、コピーされないパディングだけを透明にする） |
 | `Resize` | `static EsWritableBitmap Resize(this IEsBitmap source, int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)` | 長辺を `maxSize` へ収める（アルゴリズムは `DownscaleAlgorithm` で選ぶ。 拡大は未サポートで `NotSupportedException`） |
+
+- **`Crop` のコピーは 1 回で済む場合を分けます**: 左右のパディングが無く、ソースとデスティネーションの行幅が等しいときは **連続領域として全領域を 1 回でコピー**します（実測: 4K 全域の切り出しで 8.3 ms → 6.6 ms）。 それ以外は行単位でコピーし、左右のパディングは行ごとに消します。
 
 **`DownscaleAlgorithm`（enum。 アルゴリズム別の実測と性質）**:
 

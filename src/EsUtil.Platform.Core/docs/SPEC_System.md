@@ -58,7 +58,7 @@ graph LR
 | `src/EsUtil.Platform.Core/src/Native/ICursorOverrideGuard.cs` | カーソル上書き抑止の抽象 |
 | `src/EsUtil.Platform.Core/src/Native/IGlobalHotKeyService.cs` | グローバルホットキー管理の抽象 |
 | `src/EsUtil.Platform.Core/src/Native/ElementFinderResults.cs` | 要素検出の結果（`readonly record struct`） |
-| `src/EsUtil.Platform.Core/src/Native/NativeLogMessage.cs` | Win 実装が出力するログ定義（internal。 本ファイルに集約する） |
+| `src/EsUtil.Platform.Core/src/Native/Logging/NativeLogMessage.cs` | Win 実装が出力するログ定義（internal。 本ファイルに集約する） |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinNative.cs` | Win32 P/Invoke の宣言集約（internal） |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinCaptureService.cs` | `ICaptureService` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinCursorService.cs` | `ICursorService` の Windows 実装 |
@@ -101,7 +101,7 @@ graph LR
 
 **値型・列挙型・純粋計算（`Geometry/` / `Imaging/` / `Coord/` / `LoggerFallback`）はログを出力しません**（ログ定義も持ちません）。 同じ入力からは同じ結果が得られ、失敗は例外として呼び出し側へ返るため、記録すべき状態がありません。
 
-ログを出力するのは `Native/` 配下の Windows 実装だけです（`WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinGlobalHotKeyService` / `WinCursorOverrideGuard` と、その定義 `NativeLogMessage`）。 出力元の層は接頭辞 `[Platform.Core]` で、出力元の対象はメッセージ本文（`Cursor` / `WindowService` / `CaptureService` / `ElementFinder` / `GlobalHotKey` / `CursorGuard`）で読み分けられます。
+ログを出力するのは `Native/` 配下の Windows 実装だけです（`WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinGlobalHotKeyService` / `WinCursorOverrideGuard` と、その定義 `Native.Logging.NativeLogMessage`）。 出力元の層は接頭辞 `[Platform.Core]` で 、出力元の対象はメッセージ本文（`Cursor` / `WindowService` / `CaptureService` / `ElementFinder` / `GlobalHotKey` / `CursorGuard`）で読み分けられます。
 
 **OS 操作の失敗はすべて記録します**（成否を返す API は結果を含めて出力し、失敗した場合に別の結果を返す API は失敗専用の定義を出力する）。 ただし列挙の内部で 1 件ごとに発生しうる失敗（矩形を取得できないウィンドウの除外）は Debug とし、既定の出力では溢れさせません。
 

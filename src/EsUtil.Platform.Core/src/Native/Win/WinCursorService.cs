@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Platform.Core.Native.Win;
@@ -109,3 +110,5 @@ public sealed class WinCursorService : ICursorService
     /// <remarks>コンストラクタで <c>GetCursorInfo</c> の実状態から初期化する。</remarks>
     private bool _cursorVisible = true;
 }
+
+
