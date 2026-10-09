@@ -17,11 +17,28 @@ public static class EsBitmapExtensions
 {
     /// <summary>面積平均の縮小を並列化するかどうかの境目（元画像の画素数）。</summary>
     /// <remarks>
-    /// <b>実測で決めた値</b>: 6 千画素（100x60）でも並列が速い（逐次 57 µs / 並列 9 µs）が、絶対時間が小さい場面で
-    /// スレッドプールを触らないようにするため、目安として 512x512（262,144 画素）程度を境にする。
+    /// <b>実測で決めた値</b>: 6 千画素（100x60）でも並列が速い（逐次 57 µs / 並列 8.6 µs、120 千画素で 948 → 56 µs）が、
+    /// 絶対時間が小さい場面でスレッドプールを触らないようにするため 32,768 画素（181x181 相当）を境にする。
     /// スクリーンショット（1080p で 200 万画素、4K で 830 万画素）は常に並列になる。
     /// </remarks>
-    private const long ParallelThresholdPixels = 262_144;
+    private const long ParallelSourceThresholdPixels = 32_768;
+
+    /// <summary>双線形の縮小を並列化するかどうかの境目（<b>縮小後</b>の画素数）。</summary>
+    /// <remarks>
+    /// <b>実測で決めた値</b>: 1 行あたりの仕事が面積平均より小さいため、元画像ではなく縮小後の画素数で判定する。
+    /// 32,768 画素（240x135）で 逐次 700 µs → 並列 247 µs、57,600 画素（320x180）で 1,236 → 349 µs。
+    /// 14,400 画素（160x90）では両者が同程度（304 / 248 µs）になり、5,184 画素（96x54）で元画像が 4K の場合は
+    /// 並列が遅い（122 → 146 µs。 行がキャッシュに乗らない大きさのため）。
+    /// </remarks>
+    private const long ParallelTargetThresholdPixels = 32_768;
+
+    /// <summary>最近傍の縮小を並列化するかどうかの境目（<b>縮小後</b>の画素数）。</summary>
+    /// <remarks>
+    /// <b>実測で決めた値</b>: 1 画素あたりの仕事が最も小さい（4 バイトのコピー 1 回）ため、並列化の損益分岐が双線形より
+    /// 大きい。 57,600 画素（320x180）では逐次 134 µs に対し並列 194 µs と遅く、129,600 画素（480x270）で逐次 286 µs に対し
+    /// 並列 253 µs、230,400 画素（640x360）で逐次 488 µs に対し並列 258 µs と逆転する。 その間の 65,536 画素を境にする。
+    /// </remarks>
+    private const long ParallelNearestThresholdPixels = 65_536;
 
     /// <summary>画像から指定された矩形領域を切り出す。</summary>
     /// <param name="source">切り出し元の画像。 借用であり破棄しない。</param>
@@ -154,6 +171,8 @@ public static class EsBitmapExtensions
     /// 誤解されるため）。<br/>
     /// <b>アルゴリズムの選び方</b>: 速度と画質の目安は <see cref="DownscaleAlgorithm"/> を参照（既定の双線形は
     /// 「速い・細線は薄れる」、<see cref="DownscaleAlgorithm.Box"/> は「遅い・細線が残る」）。<br/>
+    /// <b>並列化</b>: どのアルゴリズムも<b>縮小先の行を範囲へ分けて並列実行する</b>（基準は
+    /// <see cref="RunRowRanges"/> を参照。 小さい画像では逐次のままにする）。<br/>
     /// <b>返す寸法の丸め</b>: 切り捨てで丸めるため<b>1 px 未満の誤差が出うる</b>（座標の対応付けが必要な場面では使わない）。
     /// 長辺と上限が一致する場合は縮小不要のため<b>等倍の複製</b>を返す。
     /// </remarks>
@@ -201,14 +220,8 @@ public static class EsBitmapExtensions
     /// <returns>縮小した画像。</returns>
     private static EsWritableBitmap ScaleNearest(IEsBitmap source, EsSizeInt target)
     {
-        var srcWidth = source.Width;
-        var srcHeight = source.Height;
         var result = EsWritableBitmap.CreateUninitialized(target.Width, target.Height);
-        var src = source.Pixels;
-        var srcStride = source.Stride;
-        var dst = result.WritablePixels;
-        var dstStride = result.Stride;
-        var bytesPerPixel = IEsBitmap.BytesPerPixel;
+        var srcWidth = source.Width;
 
         // 列の対応（最近傍）を先に求め、内側のループでは割り算をしない
         var colMap = new int[target.Width];
@@ -217,36 +230,91 @@ public static class EsBitmapExtensions
             colMap[x] = Math.Min(srcWidth - 1, (int)((long)x * srcWidth / target.Width));
         }
 
-        for (var y = 0; y < target.Height; y++)
+        // 1 行あたりの仕事が小さいため、縮小後の画素数で並列化を判定する（最近傍は最も大きいしきい値を使う）
+        if ((long)target.Width * target.Height >= ParallelNearestThresholdPixels)
         {
-            var srcRowStart = Math.Min(srcHeight - 1, (int)((long)y * srcHeight / target.Height)) * srcStride;
-            var srcRow = src[srcRowStart..];
-            var dstRow = dst[(y * dstStride)..];
-            for (var x = 0; x < target.Width; x++)
-            {
-                srcRow.Slice(colMap[x] * bytesPerPixel, bytesPerPixel).CopyTo(dstRow.Slice(x * bytesPerPixel, bytesPerPixel));
-            }
+            RunRowRanges(target.Height, (from, to) => NearestRows(source, result, colMap, from, to));
+        }
+        else
+        {
+            NearestRows(source, result, colMap, 0, target.Height);
         }
 
         return result;
     }
 
+    /// <summary>縮小先の行範囲を最近傍で求め、書き込む。</summary>
+    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
+    /// <param name="result">書き込み先（<paramref name="yStart"/>〜<paramref name="yEnd"/> の行を書く）。</param>
+    /// <param name="colMap">縮小先の列に対応する元の列（事前に求めた対応表）。</param>
+    /// <param name="yStart">開始行（含む）。</param>
+    /// <param name="yEnd">終了行（含まない）。</param>
+    private static void NearestRows(
+        IEsBitmap source, EsWritableBitmap result, int[] colMap, int yStart, int yEnd)
+    {
+        var srcHeight = source.Height;
+        var src = source.Pixels;
+        var srcStride = source.Stride;
+        var dst = result.WritablePixels;
+        var dstStride = result.Stride;
+        var bytesPerPixel = IEsBitmap.BytesPerPixel;
+        var targetHeight = result.Height;
+        var targetWidth = result.Width;
+
+        for (var y = yStart; y < yEnd; y++)
+        {
+            var srcRowStart = Math.Min(srcHeight - 1, (int)((long)y * srcHeight / targetHeight)) * srcStride;
+            var srcRow = src[srcRowStart..];
+            var dstRow = dst[(y * dstStride)..];
+            for (var x = 0; x < targetWidth; x++)
+            {
+                srcRow.Slice(colMap[x] * bytesPerPixel, bytesPerPixel).CopyTo(dstRow.Slice(x * bytesPerPixel, bytesPerPixel));
+            }
+        }
+    }
     /// <summary>双線形補間で縮小する（<see cref="DownscaleAlgorithm.Bilinear"/> の実装）。</summary>
     /// <param name="source">対象の画像。 借用であり破棄しない。</param>
     /// <param name="target">縮小後の寸法（元より小さい）。</param>
     /// <returns>縮小した画像。</returns>
     private static EsWritableBitmap ScaleBilinear(IEsBitmap source, EsSizeInt target)
     {
+        var result = EsWritableBitmap.CreateUninitialized(target.Width, target.Height);
+
+        // 1 行あたりの仕事が小さいため、縮小後の画素数で並列化を判定する
+        if ((long)target.Width * target.Height >= ParallelTargetThresholdPixels)
+        {
+            RunRowRanges(target.Height, (from, to) => BilinearRows(source, result, from, to, target));
+        }
+        else
+        {
+            BilinearRows(source, result, 0, target.Height, target);
+        }
+
+        return result;
+    }
+
+    /// <summary>縮小先の行範囲を双線形補間で求め、書き込む。</summary>
+    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
+    /// <param name="result">書き込み先（<paramref name="yStart"/>〜<paramref name="yEnd"/> の行を書く）。</param>
+    /// <param name="yStart">開始行（含む）。</param>
+    /// <param name="yEnd">終了行（含まない）。</param>
+    /// <param name="target">縮小後の寸法。</param>
+    /// <remarks>
+    /// <b>行を範囲で受ける理由</b>: 1 行ずつメソッドを呼ぶと、行ごとに <see cref="IEsBitmap.Pixels"/> を取り直すうえ、
+    /// メソッド境界を越えることで<b>境界チェックの除去とベクター化の最適化が失われる</b>（実測: 4K → 96x54 で 116 → 229 µs）。
+    /// 範囲を受け取れば、逐次（1 回で全行）と並列（範囲ごと）が<b>同じ実装</b>を使いながら最適化を保てます。
+    /// </remarks>
+    private static void BilinearRows(IEsBitmap source, EsWritableBitmap result, int yStart, int yEnd, EsSizeInt target)
+    {
         var srcWidth = source.Width;
         var srcHeight = source.Height;
-        var result = EsWritableBitmap.CreateUninitialized(target.Width, target.Height);
         var src = source.Pixels;
         var srcStride = source.Stride;
         var dst = result.WritablePixels;
         var dstStride = result.Stride;
         var bytesPerPixel = IEsBitmap.BytesPerPixel;
 
-        for (var y = 0; y < target.Height; y++)
+        for (var y = yStart; y < yEnd; y++)
         {
             // 画素の中心が対応するように元の座標を求める（端は同じ画素でクランプする）
             var sourceY = (((y + 0.5) * srcHeight) / target.Height) - 0.5;
@@ -275,8 +343,29 @@ public static class EsBitmapExtensions
                 }
             }
         }
+    }
 
-        return result;
+    /// <summary>縮小先の行を範囲へ分け、並列実行する。</summary>
+    /// <param name="height">縮小後の高さ。</param>
+    /// <param name="runRange">1 つの範囲（開始行・終了行）を処理する処理。</param>
+    /// <remarks>
+    /// <b>行を範囲でまとめる理由</b>: 1 行ずつ処理を呼ぶと、行ごとに画素のビューを取り直すうえ、
+    /// メソッド境界を越えることで<b>境界チェックの除去などの最適化が失われる</b>
+    /// （実測: 4K → 96x54 の双線形で 116 µs → 229 µs）。 範囲を受け取れば、逐次（1 回で全行）と
+    /// 並列（範囲ごと）が<b>同じ実装</b>を使いながら最適化を保てる。<br/>
+    /// <b>分割数</b>: CPU 数 × 4 を目安にし、1 範囲あたり最低 1 行を確保する（行ごとの仕事が小さいアルゴリズムでも
+    /// 範囲の中でループが連続するため、範囲が細かすぎるより速い）。
+    /// </remarks>
+    private static void RunRowRanges(int height, Action<int, int> runRange)
+    {
+        var chunk = Math.Max(1, height / (Environment.ProcessorCount * 4));
+        var ranges = new List<(int From, int To)>();
+        for (var y = 0; y < height; y += chunk)
+        {
+            ranges.Add((y, Math.Min(y + chunk, height)));
+        }
+
+        Parallel.ForEach(ranges, range => runRange(range.From, range.To));
     }
 
     /// <summary>面積平均（box）で縮小する（<see cref="DownscaleAlgorithm.Box"/> の実装）。</summary>
@@ -287,12 +376,14 @@ public static class EsBitmapExtensions
     /// <b>1 パスで面積平均を求める</b>: 縮小先の 1 画素ごとに、対応する元画像の矩形（全画素）を合計して割る。
     /// <b>中間画像を作らない</b>ため、横 → 縦 の 2 パスで生じる丸めの重なりが無く、速度も速い（実測: 4K → 96x54 で
     /// 2 パスの 18 ms に対し 1 パスで 1.6 ms）。<br/>
-    /// <b>行ごとに独立しているため並列化する</b>（実測: 逐次 18 ms → 並列 1.6 ms。 4K → 320x180 で 27 ms → 1.8 ms）。
-    /// 並列化するのは元画像が <see cref="ParallelThresholdPixels"/> 以上のときだけである（小さい画像では
-    /// スレッドの起動が相対的に重くなるため。 実測: 100x60 で逐次 57 µs / 並列 9 µs、6 千画素でも並列が速いが、
-    /// 絶対時間が小さい場面でスレッドを触らないようにする）。<br/>
-    /// <b>SIMD は使わない</b>: バイトを加算するには桁上がりを避けるため 16/32 ビットへ拡張する必要があり、
-    /// メモリ帯域に対して命令数が減らない（実測: SIMD 版 5.3 ms 対 並列 1.6 ms）。 律速は元画像の読み出しである。
+    /// <b>行ごとに独立しているため並列化する</b>（実測: 4K → 96x54 で 逐次 18 ms → 並列 1.6 ms。 4K → 320x180 で 27 ms → 1.8 ms）。
+    /// 並列化するのは元画像が <see cref="ParallelSourceThresholdPixels"/> 以上のときだけである（小さい画像では
+    /// スレッドの起動が相対的に重くなるため。 実測: 100x60 で逐次 57 µs / 並列 8.6 µs、400x300 で 948 → 56 µs と
+    /// 小さい画像でも並列が速いが、絶対時間が小さい場面でスレッドプールを触らないようにする）。<br/>
+    /// <b>SIMD は使わない</b>: 面積平均をベクター化すると<b>縦の合計を保持する作業行が必要になり、
+    /// 縮小先の行ごとに全体（4K で 15 KB）を消すコストが加わる</b>。 実測でも遅くなる
+    /// （4K → 96x54 で 逐次 2.8 ms 対 現行 2.1 ms、4K → 960x540 で 14 ms 対 2.4 ms）。
+    /// 現行は元画像の各画素を 1 回だけ読んで合計するため、読み出しの回数は既に最小である。
     /// </remarks>
     private static EsWritableBitmap ScaleBox(IEsBitmap source, EsSizeInt target)
     {
@@ -302,31 +393,31 @@ public static class EsBitmapExtensions
         var targetWidth = target.Width;
         var targetHeight = target.Height;
 
-        if ((long)srcWidth * srcHeight >= ParallelThresholdPixels)
+        if ((long)srcWidth * srcHeight >= ParallelSourceThresholdPixels)
         {
-            Parallel.For(0, targetHeight, y => AverageBlockRow(source, result, y, srcWidth, srcHeight, targetWidth, targetHeight));
+            RunRowRanges(targetHeight, (from, to) => AverageBlockRows(
+                source, result, from, to, srcWidth, srcHeight, targetWidth, targetHeight));
         }
         else
         {
-            for (var y = 0; y < targetHeight; y++)
-            {
-                AverageBlockRow(source, result, y, srcWidth, srcHeight, targetWidth, targetHeight);
-            }
+            AverageBlockRows(source, result, 0, targetHeight, srcWidth, srcHeight, targetWidth, targetHeight);
         }
 
         return result;
     }
 
-    /// <summary>縮小先の 1 行分を面積平均で求める（行ごとに独立しているため並列実行できる）。</summary>
+    /// <summary>縮小先の行範囲を面積平均で求める（行ごとに独立しているため並列実行できる）。</summary>
     /// <param name="source">対象の画像。 借用であり破棄しない。</param>
-    /// <param name="result">書き込み先（<paramref name="y"/> の行だけを書く）。</param>
-    /// <param name="y">縮小先の行。</param>
+    /// <param name="result">書き込み先（<paramref name="yStart"/>〜<paramref name="yEnd"/> の行を書く）。</param>
+    /// <param name="yStart">開始行（含む）。</param>
+    /// <param name="yEnd">終了行（含まない）。</param>
     /// <param name="srcWidth">元の幅。</param>
     /// <param name="srcHeight">元の高さ。</param>
     /// <param name="targetWidth">縮小後の幅。</param>
     /// <param name="targetHeight">縮小後の高さ。</param>
-    private static void AverageBlockRow(
-        IEsBitmap source, EsWritableBitmap result, int y, int srcWidth, int srcHeight, int targetWidth, int targetHeight)
+    private static void AverageBlockRows(
+        IEsBitmap source, EsWritableBitmap result, int yStart, int yEnd,
+        int srcWidth, int srcHeight, int targetWidth, int targetHeight)
     {
         var src = source.Pixels;
         var srcStride = source.Stride;
@@ -334,38 +425,41 @@ public static class EsBitmapExtensions
         var dstStride = result.Stride;
         var bytesPerPixel = IEsBitmap.BytesPerPixel;
 
-        // 縮小先の 1 画素が受け持つ元の範囲（最低 1 画素）
-        var y0 = (int)((long)y * srcHeight / targetHeight);
-        var y1 = Math.Max(y0 + 1, (int)((long)(y + 1) * srcHeight / targetHeight));
-        var dstRow = dst[(y * dstStride)..];
-
         // 合計は画素数の最大（4K 全体で 830 万）に 255 を掛けても int に収まらないため long で持つ
         Span<long> sums = stackalloc long[bytesPerPixel];
 
-        for (var x = 0; x < targetWidth; x++)
+        for (var y = yStart; y < yEnd; y++)
         {
-            var x0 = (int)((long)x * srcWidth / targetWidth);
-            var x1 = Math.Max(x0 + 1, (int)((long)(x + 1) * srcWidth / targetWidth));
+            // 縮小先の 1 画素が受け持つ元の範囲（最低 1 画素）
+            var y0 = (int)((long)y * srcHeight / targetHeight);
+            var y1 = Math.Max(y0 + 1, (int)((long)(y + 1) * srcHeight / targetHeight));
+            var dstRow = dst[(y * dstStride)..];
 
-            sums.Clear();
-            for (var sy = y0; sy < y1; sy++)
+            for (var x = 0; x < targetWidth; x++)
             {
-                var row = sy * srcStride;
-                for (var sx = x0; sx < x1; sx++)
+                var x0 = (int)((long)x * srcWidth / targetWidth);
+                var x1 = Math.Max(x0 + 1, (int)((long)(x + 1) * srcWidth / targetWidth));
+
+                sums.Clear();
+                for (var sy = y0; sy < y1; sy++)
                 {
-                    var index = row + (sx * bytesPerPixel);
-                    for (var c = 0; c < bytesPerPixel; c++)
+                    var row = sy * srcStride;
+                    for (var sx = x0; sx < x1; sx++)
                     {
-                        sums[c] += src[index + c];
+                        var index = row + (sx * bytesPerPixel);
+                        for (var c = 0; c < bytesPerPixel; c++)
+                        {
+                            sums[c] += src[index + c];
+                        }
                     }
                 }
-            }
 
-            var count = (y1 - y0) * (x1 - x0);
-            var offset = x * bytesPerPixel;
-            for (var c = 0; c < bytesPerPixel; c++)
-            {
-                dstRow[offset + c] = (byte)(sums[c] / count);
+                var count = (y1 - y0) * (x1 - x0);
+                var offset = x * bytesPerPixel;
+                for (var c = 0; c < bytesPerPixel; c++)
+                {
+                    dstRow[offset + c] = (byte)(sums[c] / count);
+                }
             }
         }
     }
