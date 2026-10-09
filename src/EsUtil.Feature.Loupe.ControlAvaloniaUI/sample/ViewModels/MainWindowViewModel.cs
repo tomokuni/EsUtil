@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Feature.Loupe.AvaloniaUI.Sample.Imaging;
 using EsUtil.Feature.Loupe.AvaloniaUI.Sample.Internal;
+using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.ViewModels;
@@ -113,7 +114,7 @@ public sealed class MainWindowViewModel : ObservableObject
     // 選択矩形の破線オーバーレイ（SelectionRectX / Y / Width / Height）
     // ====================================================================
 
-    private bool _selectionRectVisible;
+    private bool _selectionRectVisible = true;
 
     /// <summary>選択矩形の破線オーバーレイを表示するかどうか（SelectionRectVisible）。</summary>
     /// <remarks>
@@ -195,6 +196,10 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>選択矩形の座標ラベル（テスト画像上のオーバーレイ枠に表示）。</summary>
     public string SelectionRectLabel =>
         $"({SelectionRectX:F0}, {SelectionRectY:F0}) {SelectionRectWidth:F0}x{SelectionRectHeight:F0}";
+
+    /// <summary>選択矩形（対象座標 = 元画像ピクセル座標）。</summary>
+    /// <remarks>ルーペ画像上の破線（<c>LoupeControl.Rendered</c> で描く）の元データになる。</remarks>
+    public EsRect SelectionRect => new(SelectionRectX, SelectionRectY, SelectionRectWidth, SelectionRectHeight);
 
     private int _borderThickness = 2;
 

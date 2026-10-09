@@ -22,6 +22,7 @@
 - テスト画像（グラデーション＋グリッド＋マーカー。 800×600）を生成し、マウス追従で拡大表示します。
 - 外観（拡大率・サイズ・十字線・画像外の色・枠線・描画スケール・座標ラベル）をスライダー/コンボボックスで変更できます。
 - 見本として、外観と描画計画を差し替えたルーペ（格子線＋四隅の鉤）を同時に表示します。
+- 選択矩形の破線を、テスト画像の上とルーペ画像の中の両方に表示します（ルーペ内は `Rendered` のキャンバスへ描きます）。
 - `LoupeControl.Log` に `ILogger` を設定し、コントロール内部の設定変更ログを画面で確認できます。
 
 ## 2. 実行方法
@@ -60,8 +61,11 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 | 色コンボボックス | `Appearance`（十字線 / 画像外 / 枠線。 「なし」で描画なし） |
 | 枠線の太さのスライダー | `Appearance.BorderThickness`（0〜8 DIP） |
 | 「座標ラベルを表示」チェック | `Appearance.ShowCoordLabel`（ルーペ左上の中心座標ラベル） |
-| 「再描画」ボタン | `InvalidateVisual()`（プロパティ変更を伴わない再描画要求） |
-| 「ソースを解除」/「ソースを再設定」ボタン | `Source` に null / テスト画像を設定（未設定時の市松模様の確認） |
+| 「再描画を要求」ボタン | `InvalidateVisual()`（プロパティ変更を伴わない再描画要求） |
+| 「非表示にして解放」ボタン | Avalonia 版の `Clear()` と同じ結果（`IsVisible` を false にして `Source` を null にする） |
+| 「ソースを再設定」ボタン | `Source` へテスト画像を設定（未設定時の市松模様の確認） |
+| 「選択矩形を表示」チェック | 選択矩形の破線オーバーレイの表示切り替え（画像側とルーペ内の両方） |
+| 選択矩形の X / Y / W / H 入力 | 破線の位置・サイズ（対象座標 = 元画像ピクセル座標）。 変更は `InvalidateVisual()` でルーペへ反映する |
 | 「見本を表示」チェック | 差し替えた外観と描画計画のルーペ（見本）の表示切り替え |
 
 ## 4. 検証項目（動作確認チェックリスト）
@@ -73,9 +77,11 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 - [ ] 「なし」を選ぶと該当要素が描画されなくなる
 - [ ] 描画スケールを 0.5〜2.0 に変更するとルーペの描画が粗く/細かくなる（物理ピクセル数の変化）
 - [ ] 「ルーペを表示」を OFF にすると描画されず、ON で再表示される
-- [ ] 「ソースを解除」で市松模様になり、「ソースを再設定」で元に戻る
-- [ ] 「再描画」で描画が更新される
+- [ ] 「非表示にして解放」で描画が消え、「ソースを再設定」で元に戻る
+- [ ] 「再描画を要求」で描画が更新される
 - [ ] ルーペの左上に中心座標ラベル（`(x, y)`）が表示され、マウス移動で文言が追従する
+- [ ] 「選択矩形を表示」を ON にすると、テスト画像上に選択矩形の破線枠＋座標ラベルが表示される
+- [ ] 選択矩形の X / Y / W / H を変更すると、画像上の枠とルーペ内の破線の位置・サイズが変化する
 - [ ] 見本は十字線の代わりに中心の格子線、枠線の代わりに四隅の鉤を描く（アンバー）
 - [ ] ログ欄に設定・環境値・拡大中心の変更ログが表示される（接頭辞 `[Loupe]` / `[Preview]`）
 
@@ -93,9 +99,12 @@ EsUtil.Feature.Loupe.ControlMewUI/sample/
 ├── Presentation/
 │   └── GridLoupePlan.cs         # 外観と描画計画の差し替え（見本）
 └── Views/
-    ├── LoupeHostPanel.cs        # 画像とルーペを重ねるホスト（配置とマウス位置の通知）
-    ├── PointerMovedEventArgs.cs # マウス位置の通知
-    └── MainWindow.cs            # メイン ウィンドウ（設定パネル＋テスト画像＋ルーペ）
+    ├── LoupeHostPanel.cs           # 画像・選択矩形・ルーペを重ねるホスト（配置とマウス位置の通知）
+    ├── PointerMovedEventArgs.cs    # マウス位置の通知
+    ├── SelectionState.cs           # 選択矩形の状態（表示可否と対象座標の矩形）
+    ├── SelectionRectOverlay.cs     # 画像上へ重ねる選択矩形の破線枠
+    ├── LoupeSelectionPainter.cs    # ルーペ画像上の破線（Rendered の使用例）
+    └── MainWindow.cs               # メイン ウィンドウ（設定パネル＋テスト画像＋ルーペ）
 ```
 
 ## 6. 使い方（初めての方向け）
@@ -123,5 +132,11 @@ DIP で書いた寸法は計画が持つ倍率（`LoupeDrawPlan.ScaleDipToPixel`
 | --- | --- | --- |
 | UI の記述 | C# のコードのみ（MewUI は XAML を持たない） | XAML + コードビハインド |
 | 画像の受け渡し | `Source` へ `IEsBitmap` を直接設定する | 非所有アダプタ（`IImage` ↔ `IEsBitmap`）を経由する |
-| 選択矩形オーバーレイ | 未実装（対象外） | `SelectionRectVisible` と X/Y/W/H の編集で破線を描く |
+| ルーペの配置 | ホストが `ResolveLayout` の結果で配置する（`Arrange`）。 コントロールは位置を持たない | コントロール自身が `RenderTransform` と `PositionOffset` で配置する |
+| 選択矩形の破線（画像側） | 破線を描く専用のキャンバス（`SelectionRectOverlay`）を重ねる | `Rectangle`（`StrokeDashArray`）とラベル要素を重ねる |
+| 選択矩形の破線（ルーペ内） | `Rendered` の Skia キャンバスへ描く | `Rendered` の書き込み可能な画像のピクセルへ描く |
+| 再描画の要求 | `InvalidateVisual()`（プロパティ変更を伴わない再描画要求） | `RequestRender()`（同左。 計画の破棄を含む） |
+| 文字の描画 | 実寸測定（`MewUITextMeasure`）した結果を要素として置く | `Border` + `TextBlock`（`FormattedText`）を置く |
 | 実行ファイルの対象 | `net10.0-windows`（Win32 のウィンドウ連携を使う） | `net10.0-windows10.0.17763.0`（`Avalonia.Desktop` を使う） |
+
+`Clear()` / `RequestRender()` は Avalonia 版の `LoupeControl` の公開 API です（MewUI 版は中間ビットマップを持たず同期描画するため、同 API を持ちません）。 本サンプルは同じ結果になる操作（`IsVisible` + `Source` の解除、`InvalidateVisual()`）をボタンへ割り当てています。

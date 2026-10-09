@@ -35,6 +35,9 @@ internal static class MainWindow
     /// <summary>スライダーの幅（DIP）。</summary>
     private const double SliderWidth = 150;
 
+    /// <summary>数値入力の幅（DIP）。</summary>
+    private const double NumberWidth = 110;
+
     /// <summary>ログの保持件数。</summary>
     private const int LogCapacity = 200;
 
@@ -110,6 +113,26 @@ internal static class MainWindow
         host.AddLoupe(preview);
         host.PointerMoved += (_, e) => loupe.CenterPoint = e.Position;
 
+        // ── 選択矩形（ルーペのソースが元画像のどこにあるかを示す。 対象座標 = 元画像ピクセル） ──
+        var selection = new SelectionState();
+
+        void ApplySelection()
+        {
+            host.SetSelectionRect(selection.Rect, selection.IsVisible, selection.Label);
+            // ルーペ内の破線も描き直す（プロパティに現れない入力のため InvalidateVisual で再描画を要求する）
+            loupe.InvalidateVisual();
+        }
+
+        selection.Changed += (_, _) => ApplySelection();
+        ApplySelection();
+
+        // ルーペ画像上の破線は、描画完了直後に同一のキャンバスへ描く（Rendered の用途）
+        loupe.Rendered += (_, e) =>
+        {
+            var content = e.Content;
+            LoupeSelectionPainter.Paint(e.Canvas, in content, selection);
+        };
+
         // ── 設定パネル ──
         var settings = new StackPanel().Vertical().Spacing(12).Children(
             Section(
@@ -160,9 +183,21 @@ internal static class MainWindow
             Section(
                 "操作",
                 new StackPanel().Horizontal().Spacing(8).Children(
-                    Button("再描画", () => loupe.InvalidateVisual()),
-                    Button("ソースを解除", () => loupe.Source = null),
+                    Button("再描画を要求", () => loupe.InvalidateVisual()),
+                    Button("非表示にして解放", () =>
+                    {
+                        // Avalonia 版の Clear() と同じ結果（非表示にして描画リソースを解放する）
+                        loupe.IsVisible = false;
+                        loupe.Source = null;
+                    }),
                     Button("ソースを再設定", () => loupe.Source = source))),
+            Section(
+                "選択矩形（破線オーバーレイ）",
+                CheckRow(true, value => selection.IsVisible = value, "選択矩形を表示"),
+                NumberRow("X", selection.X, 0, ImageWidth, 10, true, value => selection.X = value),
+                NumberRow("Y", selection.Y, 0, ImageHeight, 10, true, value => selection.Y = value),
+                NumberRow("W", selection.Width, 0, ImageWidth, 10, true, value => selection.Width = value),
+                NumberRow("H", selection.Height, 0, ImageHeight, 10, true, value => selection.Height = value)),
             Section(
                 "拡張例（見本）",
                 CheckRow(true, value => preview.IsVisible = value, "格子線と四隅の鉤を描く見本を表示")),
@@ -275,6 +310,28 @@ internal static class MainWindow
         };
 
         return Row(label, new StackPanel().Horizontal().Spacing(8).Children(slider, value));
+    }
+
+    /// <summary>数値入力の行を構築する（Avalonia 版サンプルの <c>NumericUpDown</c> に相当する）。</summary>
+    /// <param name="label">項目名。</param>
+    /// <param name="initial">初期値。</param>
+    /// <param name="minimum">最小値。</param>
+    /// <param name="maximum">最大値。</param>
+    /// <param name="step">増減の単位。</param>
+    /// <param name="isInteger">整数のみを受け付けるかどうか。</param>
+    /// <param name="apply">変更の反映先。</param>
+    /// <returns>項目名と数値入力を横に並べた要素。</returns>
+    private static Element NumberRow(string label, double initial, double minimum, double maximum, double step, bool isInteger, Action<double> apply)
+    {
+        var input = new NumericUpDown()
+            .Minimum(minimum)
+            .Maximum(maximum)
+            .Step(step)
+            .IsInteger(isInteger)
+            .Width(NumberWidth);
+        input.Value = initial;
+        input.OnValueChanged(apply);
+        return Row(label, input);
     }
 
     /// <summary>色などの選択肢の行を構築する。</summary>

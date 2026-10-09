@@ -40,7 +40,14 @@ internal static class MainWindow
     private const double LogHeight = 150;
 
     /// <summary>ズームの選択肢（倍率）。</summary>
-    private static readonly double[] s_zoomChoices = [1.0, 2.0, 3.0, 4.0];
+    /// <summary>ズームの最小倍率（Avalonia 版サンプルと同じ）。</summary>
+    private const double MinZoom = 0.1;
+
+    /// <summary>ズームの最大倍率（Avalonia 版サンプルと同じ）。</summary>
+    private const double MaxZoom = 5.0;
+
+    /// <summary>ホイール 1 回あたりのズームの変化量。</summary>
+    private const double ZoomStep = 0.1;
 
     /// <summary>色の選択肢（「なし」は描画しないことを表す）。</summary>
     private static readonly (string Name, DrawingColor? Color)[] s_colorChoices =
@@ -82,7 +89,7 @@ internal static class MainWindow
         var selectionText = new TextBlock().FontSize(11).Text("選択なし");
 
         // ── ドラッグ選択コントロール ──
-        var zoom = s_zoomChoices[0];
+        var zoom = 1.0;
         var appearance = MarqueeAppearance.Default;
         var marquee = new MarqueeControl
         {
@@ -93,6 +100,24 @@ internal static class MainWindow
         };
         // 画像とコントロールを同じ領域へ重ねる（コントロールが選択矩形と装飾を描く）
         var surface = new Grid().Columns("*").Rows("*").Children(image, marquee);
+        // ズームの現在値（ホイールとスライダーの両方から更新する）
+        var zoomText = new TextBlock().Width(52).VerticalAlignment(VerticalAlignment.Center).Text(FormatZoom(zoom));
+
+        // ズームのスライダー（ホイールと同じ範囲・刻み。 変更は ApplyZoom が倍率を確定する）
+        var zoomSlider = new Slider
+        {
+            Minimum = MinZoom,
+            Maximum = MaxZoom,
+            Value = zoom,
+            Width = SliderWidth,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        zoomSlider.SmallChange(ZoomStep);
+        zoomSlider.ValueChanged += value =>
+        {
+            ApplyZoom(value);
+            zoomText.Text = FormatZoom(zoom);
+        };
         ApplyZoom(zoom);
         marquee.SetCoordTransform(CoordTransform.ClientToSource(() => zoom, () => new EsSize(ImageWidth, ImageHeight)));
 
@@ -114,22 +139,22 @@ internal static class MainWindow
             UpdateSelection(e.Snapshot);
         };
         marquee.SelectionCancelled += (_, _) => WriteLog("キャンセル（選択が解除された）");
+        marquee.LoupePositionMoved += (_, e) => WriteLog($"ルーペ位置: ({e.Point.X:0.#}, {e.Point.Y:0.#})");
         marquee.ConfirmRequested += (_, e) => WriteLog($"確定要求: {FormatRect(e.Rect)}");
         marquee.CancelRequested += (_, _) => WriteLog("キャンセル要求");
 
         // 矢印キーの nudge はフォーカスを必要とするため、クリックでフォーカスを与える
         marquee.OnMouseDown(_ => marquee.Focus());
 
+        // ホイールでズームする（Avalonia 版サンプルと同じ範囲・刻み。 表示倍率だけを変え、選択矩形は対象座標のまま）
+        surface.OnMouseWheel(e =>
+            zoomSlider.Value = Math.Clamp(zoom + (e.Delta.Y > 0 ? ZoomStep : -ZoomStep), MinZoom, MaxZoom));
+
         // ── 設定パネル ──
         var settings = new StackPanel().Vertical().Spacing(12).Children(
             Section(
                 "表示",
-                ChoiceRow([.. s_zoomChoices.Select(static value => $"{value:0}x")], 0, index =>
-                {
-                    zoom = s_zoomChoices[index];
-                    ApplyZoom(zoom);
-                    marquee.SetCoordTransform(CoordTransform.ClientToSource(() => zoom, () => new EsSize(ImageWidth, ImageHeight)));
-                }),
+                Row("ズーム", new StackPanel().Horizontal().Spacing(8).Children(zoomSlider, zoomText)),
                 CheckRow(true, value => marquee.Options = marquee.Options with { ClampToSourceBounds = value }, "画像内にクリップ"),
                 new StackPanel().Horizontal().Spacing(8).Children(
                     Button("選択をリセット", () => marquee.ResetSelection()),
@@ -178,11 +203,11 @@ internal static class MainWindow
                 }, "暗転マスクを表示")),
             Section(
                 "寸法・対話パラメータ",
-                SliderRow("ハンドル サイズ", 10, 4, 40, 1, true, value => marquee.Options = marquee.Options with { HandleSize = value }),
+                SliderRow("ハンドル サイズ", 10, 2, 30, 1, true, value => marquee.Options = marquee.Options with { HandleSize = value }),
                 SliderRow("ハンドル枠の太さ", 1.5, 0.5, 8, 0.5, false, value => marquee.Options = marquee.Options with { HandleBorderThickness = value }),
-                SliderRow("マーカーの長さ", 16, 4, 64, 2, true, value => marquee.Options = marquee.Options with { MarkerLength = value }),
-                SliderRow("ヒット半径", 12, 0, 48, 2, true, value => marquee.Options = marquee.Options with { HandleHitRadius = value }),
-                SliderRow("最小選択サイズ", 6, 1, 64, 1, true, value => marquee.Options = marquee.Options with { MinSelectionSize = value })),
+                SliderRow("マーカーの長さ", 16, 8, 40, 2, true, value => marquee.Options = marquee.Options with { MarkerLength = value }),
+                SliderRow("ヒット半径", 12, 2, 40, 1, true, value => marquee.Options = marquee.Options with { HandleHitRadius = value }),
+                SliderRow("最小選択サイズ", 6, 1, 40, 1, true, value => marquee.Options = marquee.Options with { MinSelectionSize = value })),
             Section(
                 "拡張例（見本）",
                 CheckRow(false, value =>
@@ -220,6 +245,7 @@ internal static class MainWindow
         // ズームに合わせて表示領域（画像と選択の重なり）の大きさを変える
         void ApplyZoom(double value)
         {
+            zoom = value;
             surface.Width = ImageWidth * value;
             surface.Height = ImageHeight * value;
         }
@@ -336,6 +362,11 @@ internal static class MainWindow
         combo.OnSelectionChanged(_ => apply(combo.SelectedIndex));
         return combo;
     }
+
+    /// <summary>ズームの倍率を書式化する。</summary>
+    /// <param name="value">ズームの倍率。</param>
+    /// <returns>表示用の文字列。</returns>
+    private static string FormatZoom(double value) => value.ToString("0.0", CultureInfo.InvariantCulture) + "x";
 
     /// <summary>スライダーの現在値を書式化する。</summary>
     /// <param name="value">現在値。</param>

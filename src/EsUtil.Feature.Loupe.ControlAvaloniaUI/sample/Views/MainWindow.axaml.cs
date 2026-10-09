@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -60,6 +61,51 @@ public partial class MainWindow : Window
         GridPreview.CenterPoint = new Point(120, 80);
         // 本見本は常に表示する（既定は非表示。 表示可否はホストが指示する）
         GridPreview.IsVisible = true;
+
+        // ルーペ画像上の選択矩形の破線は、描画完了直後に書き込み可能な画像へ描く（Rendered の用途）
+        Loupe.Rendered += OnLoupeRendered;
+
+        // 選択矩形はルーペのプロパティに現れない入力のため、変更時は RequestRender() で再生成を要求する
+        _vm.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    /// <summary>ルーペの描画完了時に選択矩形の破線を描く。</summary>
+    /// <param name="sender">イベント送信元。</param>
+    /// <param name="e">描画完了の通知引数（書き込み可能な画像と描画計画）。</param>
+    /// <remarks>
+    /// 破線の元データ（選択矩形）はルーペのプロパティに現れないため、描画完了のたびに描き直す。<br/>
+    /// 変更の反映は <see cref="OnViewModelPropertyChanged"/> が <c>RequestRender()</c> で要求する。
+    /// </remarks>
+    private void OnLoupeRendered(object? sender, LoupeRenderedEventArgs e)
+    {
+        if (!_vm.SelectionRectVisible)
+        {
+            return;
+        }
+
+        var content = e.Content;
+        SelectionRectPainter.Paint(e.Bitmap, in content, _vm.SelectionRect);
+    }
+
+    /// <summary>選択矩形の変更でルーペ画像の再生成を要求する。</summary>
+    /// <param name="sender">イベント送信元。</param>
+    /// <param name="e">プロパティ変更の通知引数。</param>
+    /// <remarks>
+    /// 選択矩形はルーペのプロパティに現れない（ホスト側のオーバーレイの元データ）ため、<br/>
+    /// ルーペは自身のプロパティ変更では再生成されない。 <c>RequestRender()</c> が再生成の唯一の入口である。
+    /// </remarks>
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is not (nameof(MainWindowViewModel.SelectionRectVisible)
+            or nameof(MainWindowViewModel.SelectionRectX)
+            or nameof(MainWindowViewModel.SelectionRectY)
+            or nameof(MainWindowViewModel.SelectionRectWidth)
+            or nameof(MainWindowViewModel.SelectionRectHeight)))
+        {
+            return;
+        }
+
+        Loupe.RequestRender();
     }
 
     /// <summary>テスト画像上のマウス移動で中心座標を更新する。</summary>
