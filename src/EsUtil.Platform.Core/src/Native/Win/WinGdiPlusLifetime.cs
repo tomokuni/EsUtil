@@ -1,8 +1,8 @@
 using System.Runtime.Versioning;
 
-namespace EsUtil.Platform.Core.Native.Imaging;
+namespace EsUtil.Platform.Core.Native.Win;
 
-/// <summary>GDI+ の初期化（プロセス単位）を単一所有するクラス。</summary>
+/// <summary>GDI+ の初期化（プロセス単位）を単一所有するクラス（Windows 固有の実装）。</summary>
 /// <remarks>
 /// <b>なぜ必要か</b>: GDI+ のフラット API（<c>Gdiplus*</c> / <c>Gdip*</c>）は、呼び出す前に
 /// <c>GdiplusStartup</c> でプロセス単位の初期化を済ませておく必要がある
@@ -20,7 +20,7 @@ namespace EsUtil.Platform.Core.Native.Imaging;
 /// <b>Windows 専用</b>: <c>gdiplus.dll</c> は Windows にのみ存在する（<see cref="SupportedOSPlatformAttribute"/> で限定）。
 /// </remarks>
 [SupportedOSPlatform("windows")]
-internal static class GdiPlusLifetime
+internal static class WinGdiPlusLifetime
 {
     /// <summary>初期化の結果（成功した場合のみ true）。 初回アクセス時に 1 回だけ実行される。</summary>
     private static readonly Lazy<bool> s_initialized = new(Start, LazyThreadSafetyMode.ExecutionAndPublication);
@@ -40,7 +40,7 @@ internal static class GdiPlusLifetime
     /// <returns>初期化に成功した場合は <see langword="true"/>。</returns>
     private static bool Start()
     {
-        var input = new GdiPlusNative.GdiplusStartupInput { GdiplusVersion = 1 };
-        return GdiPlusNative.GdiplusStartup(out _, ref input, IntPtr.Zero) == GdiPlusNative.Ok;
+        var input = new WinNative.GdiplusStartupInput { GdiplusVersion = 1 };
+        return WinNative.GdiplusStartup(out _, ref input, IntPtr.Zero) == WinNative.GpOk;
     }
 }

@@ -2,16 +2,17 @@ using System.ComponentModel;
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
 
-namespace EsUtil.Platform.Core.Native.Imaging;
+namespace EsUtil.Platform.Core.Native.Win;
 
 /// <summary>画像のファイル保存・読み込みの実装（GDI+ のフラット API を使う Windows 専用）。</summary>
 /// <remarks>
 /// <b>唯一の実装</b>: 公開面は画像型のメンバー（<see cref="EsUtil.Platform.Core.Imaging.EsBitmapBase.Save(string)"/> /
 /// <see cref="EsUtil.Platform.Core.Imaging.EsBitmap.Load(string)"/> / <see cref="EsUtil.Platform.Core.Imaging.EsWritableBitmap.Load(string)"/>) であり、
 /// 本クラスはその実装を 1 箇所へ集約する（本層は internal）。<br/>
-/// <b>入出力はピクセル バイト列</b>: 本クラスは画像の型（<see cref="EsUtil.Platform.Core.Imaging.EsBitmap"/> 等）を
-/// 生成・要求しない（<see cref="EncodeToFile(ReadOnlySpan{byte}, int, int, string)"/> は受け取ったバイト列を書き、
-/// <see cref="DecodeFromFile(string, out int, out int)"/> はデコードしたバイト列を返す）。<br/>
+/// <b>画像型を知らない</b>: 符号化は受け取ったピクセル バイト列を書き
+/// （<see cref="EncodeToFile(ReadOnlySpan{byte}, int, int, string)"/>）、復号は生成処理を受け取って
+/// デコード結果をその領域へ直接書く（<see cref="DecodeFromFile{T}(string, Func{int, int, Action{Span{byte}}, T})"/>）。
+/// 画像型（<c>EsBitmap</c> 等）を名指ししないため、画像型が要るのは公開面だけになる。<br/>
 /// <b>依存分離</b>: ファイル形式（BMP / PNG / JPEG / GIF / TIFF）のエンコード・デコードは OS の
 /// <c>gdiplus.dll</c> が担い、<b>外部パッケージ（<c>System.Drawing.Common</c> 等）を参照しない</b>。<br/>
 /// <b>形式は拡張子が決める</b>: <see cref="EncodeToFile(ReadOnlySpan{byte}, int, int, string)"/> は保存先の拡張子から形式を選ぶ。
@@ -29,7 +30,7 @@ namespace EsUtil.Platform.Core.Native.Imaging;
 /// 拡張子と実体が食い違うファイルができる（実測: PNG の CLSID と <c>.webp</c> のパスで 2831 バイトの PNG が書かれた）。<br/>
 /// <b>制限</b>: JPEG / BMP はアルファ（透明度）を保存できない（形式の仕様）。 透過を保つ場合は PNG を選ぶこと。
 /// </remarks>
-internal static class GdiPlusImageCodec
+internal static class WinGdiPlusImageCodec
 {
     /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
     internal static readonly IReadOnlyList<string> SupportedExtensions = [".bmp", ".png", ".jpg", ".jpeg", ".gif", ".tif", ".tiff"];
@@ -65,15 +66,15 @@ internal static class GdiPlusImageCodec
         }
 
         var encoderClsid = ResolveEncoderClsid(filePath);
-        GdiPlusLifetime.EnsureInitialized();
+        WinGdiPlusLifetime.EnsureInitialized();
 
         unsafe
         {
             fixed (byte* p = pixels)
             {
-                var status = GdiPlusNative.GdipCreateBitmapFromScan0(
-                    width, height, stride, GdiPlusNative.PixelFormat32bppPArgb, (nint)p, out var image);
-                if (status != GdiPlusNative.Ok)
+                var status = WinNative.GdipCreateBitmapFromScan0(
+                    width, height, stride, WinNative.GpPixelFormat32bppPArgb, (nint)p, out var image);
+                if (status != WinNative.GpOk)
                 {
                     throw new Win32Exception(status, $"保存用のビットマップを作成できませんでした（GDI+ の状態: {status}）。");
                 }
@@ -81,64 +82,64 @@ internal static class GdiPlusImageCodec
                 try
                 {
                     var clsid = encoderClsid;
-                    status = GdiPlusNative.GdipSaveImageToFile(image, filePath, ref clsid, IntPtr.Zero);
-                    if (status != GdiPlusNative.Ok)
+                    status = WinNative.GdipSaveImageToFile(image, filePath, ref clsid, IntPtr.Zero);
+                    if (status != WinNative.GpOk)
                     {
                         throw new Win32Exception(status, $"'{filePath}' へ保存できませんでした（GDI+ の状態: {status}）。");
                     }
                 }
                 finally
                 {
-                    GdiPlusNative.GdipDisposeImage(image);
+                    WinNative.GdipDisposeImage(image);
                 }
             }
         }
     }
 
-    /// <summary>ファイルをデコードしてピクセル データを返す（形式は内容から判別される）。</summary>
+    /// <summary>ファイルをデコードし、生成された画像として返す（形式は内容から判別される）。</summary>
+    /// <typeparam name="T">生成する画像の型（<see cref="EsUtil.Platform.Core.Imaging.EsBitmap"/> または
+    /// <see cref="EsUtil.Platform.Core.Imaging.EsWritableBitmap"/>）。</typeparam>
     /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。</param>
-    /// <param name="width">デコードした画像の幅（ピクセル）。</param>
-    /// <param name="height">デコードした画像の高さ（ピクセル）。</param>
-    /// <returns>デコードしたピクセル データ（BGRA8888・アルファ乗算済み。 長さは <c><paramref name="width"/> × 4 × <paramref name="height"/> バイト</c>）。
-    /// <b>新たに確保した配列のビュー</b>であり、所有権は呼び出し側へ移る。</returns>
+    /// <param name="create">寸法と充填処理を受け取って画像を生成する処理（デコード結果をこの充填処理で
+    /// 受け取った領域へ直接書くため、中間バッファも追加のコピーも要らない）。</param>
+    /// <returns>生成された画像。 所有権は呼び出し側へ移る。</returns>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
     /// または画像として解釈できない場合（GDI+ はどちらも同じ状態値を返すため区別しない）。</exception>
     /// <remarks>
+    /// <b>画像型を知らない</b>: 本メソッドは生成処理を受け取るだけで、画像型（<c>EsBitmap</c> 等）を名指ししない
+    /// （型引数と充填処理は呼び出し側が決める）。 画像型が要るのは読み込みと保存の公開面
+    /// （<see cref="EsUtil.Platform.Core.Imaging.EsBitmapBase"/>）だけになる。<br/>
+    /// <b><paramref name="create"/> は充填処理を 1 回だけ呼ぶ責任を持つ</b>（呼ばなければピクセルが不定のまま、
+    /// 2 回呼べば同じ領域を二度書く）。<br/>
+    /// <b>ピクセルは 1 回だけ書かれる</b>: 中間バッファを作らず、GDI+ のロックしたデータから画像のバッファへ
+    /// 直接コピーする（画像型のバッファは 64 バイト整列されているため、一時バッファを挟むと 4K で +31 MiB と
+    /// 実測 +3.0 ms のコピーが増える）。<br/>
     /// <b>縮小読み込みはしない</b>（元の寸法でデコードする。 大きな画像を小さく使う場合は
     /// <c>Resize</c> で縮小すること。 サムネイルのようにデコード自体を小さくしたい場合は、各 UI の
     /// コーデック（縮小デコード対応）を使う方が速い）。<br/>
     /// <b>形式は内容から判別する</b>（拡張子と内容が一致しない場合は内容に従う）。<br/>
-    /// <b>ピクセルはアルファ乗算済みの BGRA8888 へ変換して取り込む</b>（元の形式が異なっても GDI+ が変換する）。<br/>
-    /// <b>返すバイト列は全領域が書かれた状態である</b>（0 埋めを省いて確保する。 読み出しは
-    /// <see cref="CopyPixelsFrom"/> が全行を書く）。<br/>
-    /// <b>受け取った側は画像のバッファへコピーする</b>: 画像型は 64 バイト整列したバッファを所有するため、
-    /// 本メソッドの結果をそのまま使わず <see cref="EsUtil.Platform.Core.Imaging.EsBitmapBase"/> の読み込み手順が
-    /// 1 回だけコピーする（<b>実測: 4K PNG の読み込みで +3.0 ms ＝ +10%</b>。 デコード自体が約 30 ms）。
+    /// <b>ピクセルはアルファ乗算済みの BGRA8888 へ変換して取り込む</b>（元の形式が異なっても GDI+ が変換する）。
     /// </remarks>
     [SupportedOSPlatform("windows")]
-    internal static ReadOnlySpan<byte> DecodeFromFile(string filePath, out int width, out int height)
+    internal static T DecodeFromFile<T>(string filePath, Func<int, int, Action<Span<byte>>, T> create)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        GdiPlusLifetime.EnsureInitialized();
+        WinGdiPlusLifetime.EnsureInitialized();
 
-        var status = GdiPlusNative.GdipCreateBitmapFromFile(filePath, out var image);
-        if (status != GdiPlusNative.Ok)
+        var status = WinNative.GdipCreateBitmapFromFile(filePath, out var image);
+        if (status != WinNative.GpOk)
         {
             throw new ArgumentException($"'{filePath}' を画像として読み込めませんでした。", nameof(filePath));
         }
 
         try
         {
-            (width, height) = ReadSize(image);
-
-            // 直後に全領域を書くため 0 埋めしない（4K で 33 MB の 0 埋めを省く）
-            var buffer = GC.AllocateUninitializedArray<byte>(width * IEsBitmap.BytesPerPixel * height);
-            CopyPixelsFrom(image, width, height, buffer);
-            return buffer;
+            var (width, height) = ReadSize(image);
+            return create(width, height, destination => CopyPixelsFrom(image, width, height, destination));
         }
         finally
         {
-            GdiPlusNative.GdipDisposeImage(image);
+            WinNative.GdipDisposeImage(image);
         }
     }
 
@@ -149,8 +150,8 @@ internal static class GdiPlusImageCodec
     [SupportedOSPlatform("windows")]
     private static (int Width, int Height) ReadSize(IntPtr image)
     {
-        var width = GetDimension(GdiPlusNative.GdipGetImageWidth(image, out var w), w, "幅");
-        var height = GetDimension(GdiPlusNative.GdipGetImageHeight(image, out var h), h, "高さ");
+        var width = GetDimension(WinNative.GdipGetImageWidth(image, out var w), w, "幅");
+        var height = GetDimension(WinNative.GdipGetImageHeight(image, out var h), h, "高さ");
         return (width, height);
     }
 
@@ -162,11 +163,11 @@ internal static class GdiPlusImageCodec
     private static Guid ResolveEncoderClsid(string filePath)
         => Path.GetExtension(filePath).ToUpperInvariant() switch
         {
-            ".BMP" => GdiPlusNative.BmpEncoderClsid,
-            ".PNG" => GdiPlusNative.PngEncoderClsid,
-            ".JPG" or ".JPEG" => GdiPlusNative.JpegEncoderClsid,
-            ".GIF" => GdiPlusNative.GifEncoderClsid,
-            ".TIF" or ".TIFF" => GdiPlusNative.TiffEncoderClsid,
+            ".BMP" => WinNative.GpBmpEncoderClsid,
+            ".PNG" => WinNative.GpPngEncoderClsid,
+            ".JPG" or ".JPEG" => WinNative.GpJpegEncoderClsid,
+            ".GIF" => WinNative.GpGifEncoderClsid,
+            ".TIF" or ".TIFF" => WinNative.GpTiffEncoderClsid,
             var other => throw new NotSupportedException(
                 $"拡張子 '{other}' へは保存できません。 対応形式: {string.Join(" / ", SupportedExtensions)}"),
         };
@@ -179,7 +180,7 @@ internal static class GdiPlusImageCodec
     /// <exception cref="Win32Exception">寸法を取得できなかった場合。</exception>
     [SupportedOSPlatform("windows")]
     private static int GetDimension(int status, uint value, string name)
-        => status == GdiPlusNative.Ok && value <= int.MaxValue
+        => status == WinNative.GpOk && value <= int.MaxValue
             ? (int)value
             : throw new Win32Exception(status, $"画像の{name}を取得できませんでした（GDI+ の状態: {status}）。");
 
@@ -198,12 +199,12 @@ internal static class GdiPlusImageCodec
     private static void CopyPixelsFrom(IntPtr image, int width, int height, Span<byte> destination)
     {
         var stride = width * IEsBitmap.BytesPerPixel;
-        var rect = new GdiPlusNative.GpRect { X = 0, Y = 0, Width = width, Height = height };
-        var data = default(GdiPlusNative.GpBitmapData);
+        var rect = new WinNative.GpRect { X = 0, Y = 0, Width = width, Height = height };
+        var data = default(WinNative.GpBitmapData);
 
-        var status = GdiPlusNative.GdipBitmapLockBits(
-            image, ref rect, GdiPlusNative.ImageLockModeRead, GdiPlusNative.PixelFormat32bppPArgb, ref data);
-        if (status != GdiPlusNative.Ok)
+        var status = WinNative.GdipBitmapLockBits(
+            image, ref rect, WinNative.GpImageLockModeRead, WinNative.GpPixelFormat32bppPArgb, ref data);
+        if (status != WinNative.GpOk)
         {
             throw new Win32Exception(status, $"画像のピクセルを取得できませんでした（GDI+ の状態: {status}）。");
         }
@@ -231,7 +232,7 @@ internal static class GdiPlusImageCodec
         }
         finally
         {
-            GdiPlusNative.GdipBitmapUnlockBits(image, ref data);
+            WinNative.GdipBitmapUnlockBits(image, ref data);
         }
     }
 }

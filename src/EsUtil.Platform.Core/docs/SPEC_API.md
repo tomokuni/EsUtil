@@ -459,7 +459,7 @@ public readonly record struct ElementFinderResults(
 | `WinCursorOverrideGuard` | `ICursorOverrideGuard`（ロガーを持たない） |
 | `WinGlobalHotKeyService<T>` | `IGlobalHotKeyService<T>`（`T : notnull`。 ロガーを持たない） |
 
-`Native.Win.WinNative`（internal）が Win32（`user32` / `gdi32` / `dwmapi` / `kernel32`）の P/Invoke の宣言を集約し、`Native.Imaging.GdiPlusNative`（internal）が GDI+ の宣言を集約します。 **本プロジェクトはログを出力しません**（`ILogger` を扱わないため。 失敗は例外または戻り値で返し、記録は呼び出し側が行います）。
+`Native.Win.WinNative`（internal）が OS の API（`user32` / `gdi32` / `dwmapi` / `kernel32` / `gdiplus`）の P/Invoke の宣言を集約します。 **本プロジェクトはログを出力しません**（`ILogger` を扱わないため。 失敗は例外または戻り値で返し、記録は呼び出し側が行います）。
 
 ### 2.29 `Coord.ICoordTransform`（interface）
 
@@ -617,7 +617,7 @@ public readonly record struct ElementFinderResults(
 - **アルゴリズムを列挙体で選ぶ理由**: 同じ機能の入口を複数持たないためです（アルゴリズムを選ぶ入口は `Resize` の 1 つだけ。 既定は `Bilinear`）。
 
 - **縮小をここに置く理由**: 縮小は**どの UI でも必要になり、結果を揃えたい**処理です（各 UI の画像変換へ個別に実装するとアルゴリズムがばらつく）。 実測では、等倍の射影（Avalonia の `Bitmap`）は 4K 1 枚で 7.8 ms / 32 MB に対し、`Box` の縮小版は 320x180 で 1.8 ms / 230 KB でした。
-- **ファイルの入出力をここに置かない理由**: エンコード・デコードには OS のコーデックが必要で、画像の操作（切り出し・縮小）とは責務が異なるためです（Windows 専用の GDI+ を使う実装は `Native.Imaging` に分離しています）。
+- **ファイルの入出力をここに置かない理由**: エンコード・デコードには OS のコーデックが必要で、画像の操作（切り出し・縮小）とは責務が異なるためです（Windows 専用の GDI+ を使う実装は `Native.Win` の `WinGdiPlusImageCodec` へ分離しています）。
 
 - **拡張メソッドにする理由**: 切り出し・縮小は「自分を変更せず新しい画像を作る」操作であり、**借用した読み取り専用の画像からも呼べる**必要があるためです（実測: ルーペが表示アダプタの画像を切り出す）。 戻り値は書き換え可能（生成した側が所有し破棄する）。
 - **色の取得をここに置かない理由**: 「座標のピクセルを色として読む」は画像の読み取りそのものであり、**読み取りの面（`IEsBitmap.GetPixel(EsPointInt)`）が実装を持つ**ためです（追加の画像を作らないため、拡張メソッドにする理由がありません）。
@@ -627,7 +627,7 @@ public readonly record struct ElementFinderResults(
 
 ### 2.32 画像のファイル入出力（`Save` / `Load`）
 
-コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー**であり、GDI+（`gdiplus.dll`）を呼ぶ実装は `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusImageCodec.cs` の `internal` クラスが単一所有します。 **Windows 専用**です。
+コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー**であり、GDI+（`gdiplus.dll`）を呼ぶ実装は `src/EsUtil.Platform.Core/src/Native/Win/WinGdiPlusImageCodec.cs` の `internal` クラスが単一所有します。 **Windows 専用**です。
 
 | 型 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- | --- |
@@ -638,14 +638,14 @@ public readonly record struct ElementFinderResults(
 
 - **`Load` は戻したい型の側に置きます**: 静的メソッドは戻り値の型を共変にできないため、`EsBitmap.Load`（読み取り専用）と `EsWritableBitmap.Load`（書き換え可能）を別々に持ちます。 書き換えが要る場合は `EsWritableBitmap.Load` を使ってください（`EsBitmap.Load` の結果を `EsWritableBitmap.Create` で複製すると、2 回目の全域コピー（実測: 4K で 5.7 ms / 31 MiB）が無駄になります）。
 - **`Save` は `EsBitmapBase` に置きます**: ファイルへの書き出しはピクセルを**書き換える権利を要さない**ため、2 つの権利（読み取り専用 / 書き換え可能）に共通の入口が要ります。 一方、読み取りの面（`IEsBitmap`）に置くと、外部が実装する画像（UI の表示アダプタ等）にも保存能力を要求することになるため、**継承関係の無い 2 型の共通基底**である本型が持ちます（実装を持てる最小の位置）。
-- **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・GDI+ の呼び出し・状態値の例外化は 1 か所（「`GdiPlusImageCodec`」）が単一所有し、公開面（`Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
-- **実装の入出力はピクセル バイト列です**: `EncodeToFile`（ピクセル → ファイル）と `DecodeFromFile`（ファイル → ピクセル）だけを持ち、**画像型を生成・要求しません**（コーデックが画像型を知る必要が無くなるため、実装を画像型から独立させられます）。 保存は受け取ったバイト列を指す GDI+ のビットマップを作ってそのままエンコードするため**複製しません**。 読み込みはデコード結果を一時バッファへ受けてから画像のバッファ（64 バイト整列）へ 1 回コピーします（**実測: 4K PNG で +3.0 ms**。 デコード自体が約 30 ms のため **+10%**。 保存は +1% ＝ 実質変わらない。 コピーのみの実測は 2.2 ms）。
+- **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・GDI+ の呼び出し・状態値の例外化は 1 か所（「`WinGdiPlusImageCodec`」）が単一所有し、公開面（`Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
+- **実装の入出力は画像型を知りません**: 符号化は受け取ったピクセル バイト列を書き（`EncodeToFile`）、復号は**画像の生成処理を受け取ってデコード結果をその領域へ直接書きます**（`DecodeFromFile<T>`）。 コーデックが画像型（`EsBitmap` 等）を名指ししないため、画像型が要るのは公開面だけになります。 **中間バッファも追加のコピーも作りません**（実測: 4K PNG の読み込みで 29.9 ms。 中間バッファを挟む方式は 32.6 ms ＝ **+2.7 ms / +8%** と +31 MiB。 保存は両方式とも 66.5 ms で差なし）。
 - **形式は拡張子が決めます**: `Save` は拡張子から形式を選びます（`.bmp` = Windows Bitmap / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`）。 大文字・小文字は区別しません。
 - **未対応の拡張子は例外にします**: PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かないためです（`NotSupportedException`。 対応形式の単一所有は `EsBitmapBase.SupportedFileExtensions`）。
 - **WebP / HEIF を対応形式へ入れない理由（実測）**: GDI+ のエンコーダーは 5 件だけです（`GdipGetImageEncoders` が返すのは BMP / JPEG / GIF / TIFF / PNG。 デコーダーはこれに EMF / WMF / ICO を加えた 8 件）。 WebP / HEIF のエンコーダーは無く、**存在しない形式の CLSID を渡すと例外を出さずに PNG を書き出します**（実測: PNG の CLSID と `.webp` のパスで 2831 バイトの PNG が書かれ、先頭バイトは PNG のシグネチャ）。 拡張子と中身が食い違うファイルを作らないため、対応形式へ追加しません。
-- **エンコード・デコードは `gdiplus.dll` のフラット API を直接呼びます**（`src/EsUtil.Platform.Core/src/Native/Imaging` の `GdiPlusNative` が宣言を集約）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
+- **エンコード・デコードは `gdiplus.dll` のフラット API を直接呼びます**（`src/EsUtil.Platform.Core/src/Native/Win/WinNative.cs` が宣言を集約）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
 - **本機能は Windows 専用です**: `gdiplus.dll` は Windows にのみ存在します（非 Windows では `DllNotFoundException`）。 公開メンバー（`Save` / `Load` / `SupportedFileExtensions`）は `SupportedOSPlatform("windows")` で限定します。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、`src/EsUtil.Platform.Core/src/Native` だけが Windows に依存します）。
-- **GDI+ の初期化は `GdiPlusLifetime` が単一所有します**（プロセス単位で 1 回だけ `GdiplusStartup` を呼びます）。 終了処理（`GdiplusShutdown`）は**呼びません**（プロセス全体の GDI+ を終了させるため、ホストが別の目的で GDI+ を使っている場合に影響します。 GDI+ はプロセスの終了時に OS が解放します）。
+- **GDI+ の初期化は `WinGdiPlusLifetime` が単一所有します**（プロセス単位で 1 回だけ `GdiplusStartup` を呼びます）。 終了処理（`GdiplusShutdown`）は**呼びません**（プロセス全体の GDI+ を終了させるため、ホストが別の目的で GDI+ を使っている場合に影響します。 GDI+ はプロセスの終了時に OS が解放します）。
 - **本機能はプロセス全体に及ぶ副作用を引き受けます（実測）**: 初回の `Save` / `Load` で次が起きます。
   - **GDI+ が有効になる**（初期化しないと状態 18 = `GdiplusNotInitialized` で全 API が失敗する）。
   - **バックグラウンド スレッドが 1 本増える**（起動直後 8 → 9。 GDI+ が表示設定の通知を受け取るためで、抑止すると初期化自体が `InvalidParameter` になる）。
@@ -658,7 +658,7 @@ public readonly record struct ElementFinderResults(
   - **WPF の `System.Windows.Media.Imaging`（`BitmapEncoder` / `BitmapDecoder`）**: Microsoft 公式ですが `UseWPF` が必要で、UI 非依存のコアへ WPF を持ち込みます。
   - **SkiaSharp**: WebP を含む多くの形式を扱えますが、**外部パッケージを参照しない**という本プロジェクトの依存規則に反します（Skia に依存する変換は Skia を使う上位層が単一所有する）。
 - **WebP の保存は Windows 標準のどちらでもできません（実測）**: GDI+ は**例外を出さずに PNG を書く**（危険）ので本機能は `NotSupportedException` で拒否し、Windows ネイティブも `BitmapEncoder` に WebP の識別子を持ちません（`BitmapDecoder.WebpDecoderId` があり**デコードのみ**）。 保存が必要なら SkiaSharp などの外部ライブラリが要ります。
-- **`gdiplus.dll` のフラット API を選ぶ理由**: 用途（BMP / PNG / JPEG / GIF / TIFF）に対して OS 標準のコーデックで足り、**外部パッケージも相互運用の宣言も要りません**（宣言は `Native/Imaging/GdiPlusNative` の約 10 関数）。 下記の実測のとおり **GDI+ が最も速く、可逆形式の圧縮効率も同等以上**です。
+- **`gdiplus.dll` のフラット API を選ぶ理由**: 用途（BMP / PNG / JPEG / GIF / TIFF）に対して OS 標準のコーデックで足り、**外部パッケージも相互運用の宣言も要りません**（宣言は `WinNative` の 8 関数）。 下記の実測のとおり **GDI+ が最も速く、可逆形式の圧縮効率も同等以上**です。
 - **Native AOT（実測）**: 本機能は `LibraryImport`（ソース生成の相互運用）だけを使うため、**Native AOT でも動作します**（実行時マーシャリングを使いません）。 参考として、代案の `Windows.Graphics.Imaging` は **WinRT（COM ベース）の .NET 投影**であり、エンコード・デコードの実体は **OS 側（WIC）にあります**:
   - **COM の登録や DLL の同梱は不要です**（自分で `regsvr32` する COM ではなく、OS が提供するランタイム クラスを起動するだけ）。 実測でも配布物に追加ファイルは増えませんでした。
   - **Native AOT で動作します**（実測: 本アプリの AOT 配布物で `BitmapEncoder.GetEncoderInformationEnumerator()` が 9 個のエンコーダーを列挙できた）。 CsWinRT（投影と `WinRT.Runtime.dll`）は**マネージド コードとして exe へリンクされる**ため、**単一 exe の構成を保てます**（実測: exe 1 個 + ネイティブ DLL 4 個の構成は変わらず、exe は 24.8 → 24.9 MB で **+0.1 MB**）。

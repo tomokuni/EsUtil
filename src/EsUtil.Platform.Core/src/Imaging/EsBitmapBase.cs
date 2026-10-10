@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Native.Imaging;
+using EsUtil.Platform.Core.Native.Win;
 using Color = System.Drawing.Color;
 
 namespace EsUtil.Platform.Core.Imaging;
@@ -184,7 +184,7 @@ public abstract class EsBitmapBase : IEsBitmap
     /// <b>Windows 専用の値</b>（実装は GDI+ のエンコーダーであり、<see cref="Save"/> と同じ制約）。
     /// 形式の判定（拡張子 → エンコーダー）の単一所有は本一覧である（<c>Save</c> は本一覧に無い拡張子を拒否する）。
     /// </remarks>
-    public static IReadOnlyList<string> SupportedFileExtensions => GdiPlusImageCodec.SupportedExtensions;
+    public static IReadOnlyList<string> SupportedFileExtensions => WinGdiPlusImageCodec.SupportedExtensions;
 
     /// <summary>本画像をファイルへ保存する（形式は拡張子が決める）。</summary>
     /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める）。</param>
@@ -201,13 +201,13 @@ public abstract class EsBitmapBase : IEsBitmap
     /// <b>ピクセルは複製しない</b>: <see cref="Pixels"/> のビューをそのままエンコードへ渡す
     /// （一時バッファを確保しない）。<br/>
     /// <b>Windows 専用</b>: OS の GDI+ を呼ぶため <see cref="SupportedOSPlatformAttribute"/> で限定する
-    /// （副作用は <see cref="EsUtil.Platform.Core.Native.Imaging.GdiPlusLifetime"/> を参照）。
+    /// （副作用は <see cref="EsUtil.Platform.Core.Native.Win.WinGdiPlusLifetime"/> を参照）。
     /// </remarks>
     [SupportedOSPlatform("windows")]
     public void Save(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        GdiPlusImageCodec.EncodeToFile(Pixels, Width, Height, filePath);
+        WinGdiPlusImageCodec.EncodeToFile(Pixels, Width, Height, filePath);
     }
 
     /// <summary>ファイルを読み込んで新しい画像を生成する（派生が公開する <c>Load</c> の共通手順）。</summary>
@@ -219,25 +219,26 @@ public abstract class EsBitmapBase : IEsBitmap
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
     /// または画像として解釈できない場合。</exception>
     /// <remarks>
-    /// <b>本型に置く理由</b>: デコードしたピクセルを整列したバッファへ書き込む手順（<see cref="WritableBuffer"/> の
-    /// 確保とコピー）は 2 つの派生で同一であり、<b>書き込みの入口を公開しない派生（<see cref="EsBitmap"/>）でも
+    /// <b>本型に置く理由</b>: デコードしたピクセルを整列したバッファへ書き込む手順（<see cref="WritableBuffer"/> への
+    /// コピー）は 2 つの派生で同一であり、<b>書き込みの入口を公開しない派生（<see cref="EsBitmap"/>）でも
     /// ここでだけは書ける</b>必要がある。 派生の公開面（<c>EsBitmap.Load</c> / <c>EsWritableBitmap.Load</c>）は
     /// 戻り型だけが違うため、読み込みの規則は本メソッドが単一所有する。<br/>
     /// <b>0 埋めを省く</b>: 生成の直後にデコード結果で全領域を書くため、未初期化で確保する
     /// （<paramref name="create"/> が全領域を書く責任を持つ）。<br/>
-    /// <b>形式と縮小の規則</b>は <see cref="EsUtil.Platform.Core.Native.Imaging.GdiPlusImageCodec.DecodeFromFile(string, out int, out int)"/> を参照。
+    /// <b>中間バッファを作らない</b>: デコードは <see cref="WinGdiPlusImageCodec.DecodeFromFile{T}(string, Func{int, int, Action{Span{byte}}, T})"/>
+    /// が本メソッドの生成した画像のバッファへ直接書く（実測: 4K PNG の読み込みで 29.9 ms。 中間バッファを挟むと
+    /// +31 MiB と +2.7 ms ＝ +8%）。<br/>
+    /// <b>形式と縮小の規則</b>は <see cref="WinGdiPlusImageCodec.DecodeFromFile{T}(string, Func{int, int, Action{Span{byte}}, T})"/> を参照。
     /// </remarks>
     [SupportedOSPlatform("windows")]
     private protected static T LoadCore<T>(string filePath, Func<int, int, T> create)
         where T : EsBitmapBase
-    {
-        ArgumentNullException.ThrowIfNull(filePath);
-
-        var pixels = GdiPlusImageCodec.DecodeFromFile(filePath, out var width, out var height);
-        var result = create(width, height);
-        pixels.CopyTo(result.WritableBuffer);
-        return result;
-    }
+        => WinGdiPlusImageCodec.DecodeFromFile(filePath, (width, height, fill) =>
+        {
+            var image = create(width, height);
+            fill(image.WritableBuffer);
+            return image;
+        });
 
     /// <summary>全ピクセルを指定色（BGRA）で塗りつぶす（派生と本アセンブリ内部だけが使う）。</summary>
     /// <param name="b">青成分（0〜255）。</param>

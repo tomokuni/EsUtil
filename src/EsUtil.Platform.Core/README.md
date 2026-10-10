@@ -40,7 +40,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | 画像の操作 | `EsBitmapExtensions`（切り出し `Crop`・縮小 `Resize`。 アルゴリズムは `DownscaleAlgorithm`（`Nearest` / `Bilinear` / `Box`）で選ぶ） |
 | 画像のファイル入出力 | 画像型の `Save` / `Load`（`EsBitmapBase.Save` / `EsBitmap.Load` / `EsWritableBitmap.Load`。 **形式は拡張子が決める**。 BMP / PNG / JPEG / GIF / TIFF。 OS の GDI+ を使う Windows 専用で、外部パッケージは参照しない） |
 | OS サービス抽象 | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` |
-| Windows 実装 | `Native.Win.*`（Win32 P/Invoke。 ホストが生成して注入する） |
+| Windows 実装 | `Native.Win.*`（Win32 / GDI+ の P/Invoke。 ホストが生成して注入する） |
 | 補助 | `EsPlatformHandle` / `DrawingColorExtensions` |
 
 各 UI 実装は、自身の型とコア型を相互変換する Interop 層を個別に提供します（本プロジェクトは UI 型を参照しないため、変換は利用側が持ちます）。

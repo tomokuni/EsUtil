@@ -2,7 +2,7 @@ using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
 using Xunit;
 
-namespace EsUtil.Platform.Core.Tests.Native.Imaging;
+namespace EsUtil.Platform.Core.Tests.Imaging;
 
 /// <summary>
 /// 画像のファイル保存・読み込み（<see cref="EsBitmapBase.Save(string)"/> / <see cref="EsBitmap.Load(string)"/> / <see cref="EsWritableBitmap.Load(string)"/>）のテスト（Windows 専用・並列実行）。
@@ -86,6 +86,10 @@ public class EsBitmapFileSaveLoadTests
 
         Assert.Throws<ArgumentNullException>(() => source.Save(null!));
     }
+
+    [Fact]
+    internal void Load_nullのパスはArgumentNullExceptionを投げる()
+        => Assert.Throws<ArgumentNullException>(() => EsBitmap.Load(null!));
 
     [Fact]
     internal void Load_存在しないファイルはArgumentExceptionを投げる()

@@ -28,7 +28,7 @@ UI フレームワーク非依存の共通基盤の型を提供するライブ�
 
 - .NET 10 / C# 14
 - 外部パッケージを参照しない（ログは呼び出し側が所有し、OS 操作は OS の API を直接呼ぶ）
-- OS 標準のコーデック（`gdiplus.dll` のフラット API。 `src/EsUtil.Platform.Core/src/Native/Imaging` の画像ファイル入出力のみ。 Windows 専用。 **外部パッケージは参照しない**）
+- OS 標準のコーデック（`gdiplus.dll` のフラット API。 `src/EsUtil.Platform.Core/src/Native/Win` の画像ファイル入出力のみ。 Windows 専用。 **外部パッケージは参照しない**）
 - UI フレームワークは一切参照しない
 
 ## 3. アーキテクチャ
@@ -59,16 +59,15 @@ graph LR
 | `src/EsUtil.Platform.Core/src/Native/ICursorOverrideGuard.cs` | カーソル上書き抑止の抽象 |
 | `src/EsUtil.Platform.Core/src/Native/IGlobalHotKeyService.cs` | グローバルホットキー管理の抽象 |
 | `src/EsUtil.Platform.Core/src/Native/ElementFinderResults.cs` | 要素検出の結果（`readonly record struct`） |
-| `src/EsUtil.Platform.Core/src/Native/Win/WinNative.cs` | Win32 P/Invoke の宣言集約（internal） |
+| `src/EsUtil.Platform.Core/src/Native/Win/WinNative.cs` | OS API（Win32 / GDI+）の P/Invoke の宣言集約（internal） |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinCaptureService.cs` | `ICaptureService` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinCursorService.cs` | `ICursorService` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinWindowService.cs` | `IWindowService` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinElementFinder.cs` | `IElementFinder` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinCursorOverrideGuard.cs` | `ICursorOverrideGuard` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinGlobalHotKeyService.cs` | `IGlobalHotKeyService<T>` の Windows 実装 |
-| `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusImageCodec.cs` | 画像のファイル保存・読み込みの実装（GDI+。 Windows 専用。 扱うのはピクセル バイト列だけで、公開面は画像型の `Save` / `Load`） |
-| `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusNative.cs` | GDI+ のフラット API の宣言集約（internal） |
-| `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusLifetime.cs` | GDI+ のプロセス単位の初期化（internal・1 回だけ実行） |
+| `src/EsUtil.Platform.Core/src/Native/Win/WinGdiPlusImageCodec.cs` | 画像のファイル保存・読み込みの実装（GDI+。 Windows 専用。 画像型を名指しせず、公開面は画像型の `Save` / `Load`） |
+| `src/EsUtil.Platform.Core/src/Native/Win/WinGdiPlusLifetime.cs` | GDI+ のプロセス単位の初期化（internal・1 回だけ実行） |
 | `src/EsUtil.Platform.Core/src/Coord/ScrollMath.cs` | スクロール範囲・ビューポートサイズの純粋計算とホイール 1 段のスクロール量（`WheelScrollUnit`） |
 | `src/EsUtil.Platform.Core/src/Coord/DpiScaler.cs` | DIP 値を物理ピクセルへ変換する純粋計算（DPI 基準値と DPI → スケーリング換算を含む） |
 | `src/EsUtil.Platform.Core/src/Coord/CoordTransformExtensions.cs` | 座標変換ポート未設定（null）を等価変換として解決する |
@@ -156,6 +155,6 @@ graph LR
 
 **`Native/` 配下は上記の「可搬性」の基準から除外します**（Windows 限定の実装を、抽象と同じ場所で保守するための例外です）。 **Win32 の P/Invoke（`user32` / `gdi32` / `dwmapi` / `kernel32`）と OS 標準のコーデック（`gdiplus`）は `Native/` 配下だけが持ちます**（外部パッケージは参照しません）。
 
-**画像型のファイル入出力（`EsBitmapBase.Save` / `EsBitmap.Load` / `EsWritableBitmap.Load`）は Windows 専用のメンバーです**（`Imaging/` の型に置きますが、実体は `src/EsUtil.Platform.Core/src/Native/Imaging` の `GdiPlusImageCodec` が担います）。 型そのものは可搬であり、これらのメンバーだけが `SupportedOSPlatform("windows")` で限定されます（非 Windows では `DllNotFoundException`。 判断の詳細は §7.1）。
+**画像型のファイル入出力（`EsBitmapBase.Save` / `EsBitmap.Load` / `EsWritableBitmap.Load`）は Windows 専用のメンバーです**（`Imaging/` の型に置きますが、実体は `src/EsUtil.Platform.Core/src/Native/Win` の `WinGdiPlusImageCodec` が担います）。 型そのものは可搬であり、これらのメンバーだけが `SupportedOSPlatform("windows")` で限定されます（非 Windows では `DllNotFoundException`。 判断の詳細は §7.1）。
 
 **Skia は「外部パッケージ」に該当するため、本プロジェクトは SkiaSharp に依存しません**（Skia への依存は Skia を使用する上位層が単一所有します）。
