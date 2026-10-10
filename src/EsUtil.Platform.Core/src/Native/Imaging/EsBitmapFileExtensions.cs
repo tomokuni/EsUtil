@@ -12,6 +12,11 @@ namespace EsUtil.Platform.Core.Native.Imaging;
 /// <b>未対応の拡張子は例外にする</b>（PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルが
 /// できて気付かない。 対応形式は <see cref="SupportedExtensions"/> が単一所有する）。<br/>
 /// <b>Windows 専用</b>: <c>gdiplus.dll</c> は Windows でのみ利用可能（<see cref="SupportedOSPlatformAttribute"/> で限定）。<br/>
+/// <b>副作用（実測）</b>: 初回の呼び出しで GDI+ をプロセス単位に初期化するため、
+/// <b>バックグラウンド スレッドが 1 本増え</b>（GDI+ が表示設定の通知を受け取るため）、
+/// <b>解放されない参照カウントを 1 つ取り</b>（<c>GdiplusShutdown</c> は呼ばない。 呼ぶとホストの GDI+ を止めうる）、
+/// <b>初回だけ約 5 ms の遅延が乗る</b>。 GDI+ を他に使っていないプロセスだけが影響を受けます
+/// （<c>System.Drawing.Common</c> を使うホストには同じ初期化とスレッドが既にあります）。<br/>
 /// <b>WebP / HEIF を対応形式へ入れない理由（実測）</b>: GDI+ のエンコーダーは 5 件だけである
 /// （<c>GdipGetImageEncoders</c> が返すのは BMP / JPEG / GIF / TIFF / PNG）。 WebP / HEIF のエンコーダーは無く、
 /// 存在しない形式の CLSID を渡した <c>GdipSaveImageToFile</c> は失敗するか<b>別形式（PNG）を書く</b>ため、

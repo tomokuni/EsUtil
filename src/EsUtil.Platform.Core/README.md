@@ -53,6 +53,21 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 
 判定基準と設計判断は [`docs/SPEC_System.md`](docs/SPEC_System.md) を参照してください。
 
+### 4.1 画像のファイル入出力が引き受ける副作用
+
+`Native.Imaging.EsBitmapFileExtensions`（`Save` / `Load`）は **Windows の `gdiplus.dll` を直接呼びます**。 これは依存を増やさない代わりに、**プロセス全体に及ぶ副作用**を伴います（実測）。
+
+| 副作用 | 内容 | 実測 |
+| --- | --- | --- |
+| GDI+ の初期化 | 初回の `Save` / `Load` で `GdiplusStartup` を 1 回だけ呼ぶ。 **呼ばないと GDI+ の API は 1 つも動かない** | 未初期化の `GdipCreateBitmapFromScan0` は状態 18（`GdiplusNotInitialized`）で失敗する |
+| **バックグラウンド スレッド +1** | GDI+ が表示設定の通知を受け取るために作る。 プロセス終了まで生存する | 起動直後 8 → 初期化後 **9** |
+| **解放されない参照カウント** | `GdiplusShutdown` を呼ばない（**呼ぶと利用者の GDI+ を止める可能性がある**）。 プロセス終了時に OS が解放する | `Startup` 2 回 → `Shutdown` 1 回でも API は動作する（参照カウント式） |
+| **初回の遅延** | 最初の `Save` / `Load` に初期化のコストが乗る | 初回 4.89 ms / 2 回目 0.53 ms |
+
+**影響を受けるのは「GDI+ を他に使っていないプロセス」だけです**。 `System.Drawing.Common` を使うアプリでは同じ初期化とスレッドが既に存在するため、追加の影響はありません（実測: `System.Drawing.Bitmap` だけでも同じスレッドが 1 本増える）。
+
+**副作用を避けたい場合**は、GDI+ ではなく **WIC**（`windowscodecs.dll` の COM）へ移す必要があります（プロセス全体の初期化もスレッドも不要）。 代償は実装量と速度です（実測: BMP で 6.8 倍遅い）。 判断の記録は [`docs/SPEC_System.md`](docs/SPEC_System.md) の「ファイル入出力の実装方式」を参照してください。
+
 ## 5. カスタマイズ
 
 | 差し替えたいもの | 方法 |
