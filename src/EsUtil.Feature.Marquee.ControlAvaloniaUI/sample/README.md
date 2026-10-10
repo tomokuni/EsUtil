@@ -156,17 +156,22 @@ nudge は対象座標の整数加算のみで計算されるため、ズーム�
 ## 9. 構成
 
 ```text
-MarqueeControl/sample/
+EsUtil.Feature.Marquee.ControlAvaloniaUI/sample/
 ├── EsUtil.Feature.Marquee.ControlAvaloniaUI.Sample.csproj # サンプルアプリのプロジェクト（net10.0 / Avalonia 12.1）
 ├── app.manifest                   # Windows DPI 設定（PerMonitorV2）
 ├── Program.cs                     # エントリポイント
 ├── App.axaml / App.axaml.cs       # アプリケーション定義（FluentTheme）
-├── AvaloniaUI/Logging/
+├── Logging/
 │   └── InMemoryLogger.cs          # MarqueeControl.Log の設定例（メモリ内ログ）
-├── Presentation/                  # 拡張例（計画の差し替え）
-│   ├── GuideMarqueePlan.cs       # 外観と描画計画（破線枠・三分割ガイド）を与える見本
+├── Internal/                      # Platform.* を使わないための複製（internal。 依存関係.md §4.1）
+│   ├── ColorAvaloniaInterop.cs    # Avalonia の色 ⇔ System.Drawing.Color
+│   ├── EsBitmapAvaloniaAdapter.cs # コアの画像を表示面（IImage）と読み取り面（IEsBitmap）の両面で公開するアダプタ
+│   └── EsBitmapAvaloniaExtensions.cs # コアの画像 ⇔ Avalonia の画像の変換
+├── Presentation/
+│   └── GuideMarqueePlan.cs        # 外観と描画計画（破線枠・三分割ガイド）を与える見本
 ├── ViewModels/
 │   ├── ColorOption.cs             # 色選択肢
+│   ├── ColorOptions.cs            # 色選択肢の一覧
 │   └── MainWindowViewModel.cs     # 選択状態・ステータス表示（CommunityToolkit.Mvvm の ObservableObject）
 └── Views/
     └── MainWindow.axaml(.cs)      # 選択面 + 操作ガイド + ボタン

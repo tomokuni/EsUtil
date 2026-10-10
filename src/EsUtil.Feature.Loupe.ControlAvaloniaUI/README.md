@@ -66,7 +66,7 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 現在はNuGetパッケージではなく、プロジェクト参照で利用します。
 
 ```xml
-<ProjectReference Include="..\EsUtil.Feature.Loupe.ControlAvaloniaUI\src\EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj" />
+<ProjectReference Include="..\EsUtil.Feature.Loupe.ControlAvaloniaUI\src\AvaloniaUI\EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj" />
 ```
 
 必要な名前空間:
@@ -237,9 +237,9 @@ src/EsUtil.Feature.Loupe.Presenter/     # 描画計画と外観の単一所有�
 
 `src/EsUtil.Feature.Loupe.ControlAvaloniaUI/tests` が本プロジェクトのテストを持ちます（xUnit v3）。 実行手順と合否基準は [検証手順.md](../../.github/検証手順.md) が定めます。
 
-`powershell
+```powershell
 dotnet test src/EsUtil.Feature.Loupe.ControlAvaloniaUI/tests/AvaloniaUI/EsUtil.Feature.Loupe.ControlAvaloniaUI.Tests.csproj
-`
+```
 
 ## 14. ライセンス
 

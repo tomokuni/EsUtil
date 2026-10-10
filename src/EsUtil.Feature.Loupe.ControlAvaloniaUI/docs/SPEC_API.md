@@ -83,7 +83,7 @@
 利用側プロジェクトから `EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj` を参照します（`EsUtil.Feature.Loupe.Core` は本プロジェクトが参照するため、追加の参照は不要です）。
 
 ```xml
-<ProjectReference Include="..\EsUtil.Feature.Loupe.ControlAvaloniaUI\src\EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj" />
+<ProjectReference Include="..\EsUtil.Feature.Loupe.ControlAvaloniaUI\src\AvaloniaUI\EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj" />
 ```
 
 ### 3.2 必要な名前空間
@@ -110,7 +110,7 @@ var loupe = new LoupeControl
 panel.Children.Add(loupe);
 ```
 
-`DrawCurrent` による外部 `DrawingContext` 描画APIは提供しません。 ルーペは常に内部の `Image` 要素で表示します。
+外部の `DrawingContext` へ描画する API は提供しません。 ルーペは常に内部の `Image` 要素で表示します。
 
 ## 4. 基本的な使用方法
 

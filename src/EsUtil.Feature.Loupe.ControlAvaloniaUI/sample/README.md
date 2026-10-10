@@ -89,12 +89,16 @@ EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/
 ├── app.manifest                 # Windows DPI 設定（PerMonitorV2）
 ├── Program.cs                   # エントリポイント
 ├── App.axaml / App.axaml.cs     # アプリケーション定義（FluentTheme）
-├── AvaloniaUI/Logging/
+├── Logging/
 │   └── DebugLogger.cs           # LoupeControl.Log の設定例（デバッグ出力へ転送）
 ├── Imaging/
 │   └── TestImageFactory.cs      # テスト画像生成（グラデーション＋グリッド＋マーカー）
-├── Presentation/                # 拡張例（計画の差し替え）
-│   ├── GridLoupePlan.cs        # 外観と描画計画（格子線・四隅の鉤）と見本の元画像を与える見本
+├── Internal/                    # Platform.* を使わないための複製（internal。 依存関係.md §4.1）
+│   ├── EsBitmapAvaloniaAdapter.cs   # コアの画像を表示面（IImage）と読み取り面（IEsBitmap）の両面で公開するアダプタ
+│   └── EsBitmapAvaloniaExtensions.cs # コアの画像 ⇔ Avalonia の画像の変換
+├── Presentation/
+│   ├── GridLoupePlan.cs         # 外観と描画計画（格子線・四隅の鉤）と見本の元画像を与える見本
+│   └── SelectionRectPainter.cs  # ルーペ画像上の選択矩形の破線（Rendered の使用例）
 ├── ViewModels/
 │   ├── BrushOption.cs           # 色選択肢
 │   └── MainWindowViewModel.cs   # ルーペ設定・中心座標

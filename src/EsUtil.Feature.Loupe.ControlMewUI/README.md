@@ -24,7 +24,7 @@
 ## 3. インストール（プロジェクト参照）
 
 ```xml
-<ProjectReference Include="..\..\EsUtil.Feature.Loupe.ControlMewUI\src\EsUtil.Feature.Loupe.ControlMewUI.csproj" />
+<ProjectReference Include="..\..\EsUtil.Feature.Loupe.ControlMewUI\src\MewUI\EsUtil.Feature.Loupe.ControlMewUI.csproj" />
 ```
 
 パッケージは `Aprillz.MewUI.Skia` を参照します（バージョンは `MewUIVersion` プロパティで 0.21.1 に固定）。
