@@ -12,8 +12,6 @@
   <ItemGroup>
     <!-- ロガーの null を NullLogger へ吸収する共通ヘルパー（LoggerFallback）。全 UI 実装・アプリが参照する本プロジェクトが単一所有する -->
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
-    <!-- Native/Win のキャプチャ実装（WinCaptureService）が System.Drawing.Bitmap（Windows 専用）を使用する -->
-    <PackageReference Include="System.Drawing.Common" Version="[10.*,)" />
   </ItemGroup>
 
   <ItemGroup>

@@ -35,12 +35,11 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.27 `Native.IGlobalHotKeyService<T>`（interface : IDisposable）](#227-nativeiglobalhotkeyservicetinterface--idisposable)
   - [2.28 `Native.ElementFinderResults`（readonly record struct）](#228-nativeelementfinderresultsreadonly-record-struct)
   - [2.29 `Native.Win.*`（Windows 実装）](#229-nativewinwindows-実装)
-  - [2.30 `Native.Imaging.EsBitmapDrawingExtensions`（static class）](#230-nativeimagingesbitmapdrawingextensionsstatic-class)
-  - [2.31 `Native.Imaging.EsBitmapFileExtensions`（static class）](#231-nativeimagingesbitmapfileextensionsstatic-class)
-  - [2.32 `Coord.ICoordTransform`（interface）](#232-coordicoordtransforminterface)
-  - [2.33 `Coord.CoordTransform`（sealed class : ICoordTransform）](#233-coordcoordtransformsealed-class--icoordtransform)
-  - [2.34 `Imaging.EsBitmapBase`（abstract class : IEsBitmap） / `Imaging.EsBitmap`（sealed class） / `Imaging.EsWritableBitmap`（sealed class）](#234-imagingesbitmapbaseabstract-class--iesbitmap--imagingesbitmapsealed-class--imagingeswritablebitmapsealed-class)
-  - [2.35 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）](#235-imagingiesbitmapinterface--imagingieswritablebitmapinterface)
+  - [2.30 `Native.Imaging.EsBitmapFileExtensions`（static class）](#230-nativeimagingesbitmapfileextensionsstatic-class)
+  - [2.31 `Coord.ICoordTransform`（interface）](#231-coordicoordtransforminterface)
+  - [2.32 `Coord.CoordTransform`（sealed class : ICoordTransform）](#232-coordcoordtransformsealed-class--icoordtransform)
+  - [2.33 `Imaging.EsBitmapBase`（abstract class : IEsBitmap） / `Imaging.EsBitmap`（sealed class） / `Imaging.EsWritableBitmap`（sealed class）](#233-imagingesbitmapbaseabstract-class--iesbitmap--imagingesbitmapsealed-class--imagingeswritablebitmapsealed-class)
+  - [2.34 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）](#234-imagingiesbitmapinterface--imagingieswritablebitmapinterface)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -58,7 +57,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `.Imaging` | `EsBitmapBase` / `EsBitmap` / `EsWritableBitmap` / `IEsBitmap` / `IEsWritableBitmap` / `EsBitmapExtensions` / `DrawingColorExtensions` | ピクセルコンテナとその読み取り・書き換えの抽象・変更しない操作・描画色の判定 |
 | `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` | OS サービスの抽象（UI 非依存） |
 | `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` | 上記抽象の Windows 実装（ホストが生成して注入する） |
-| `.Native.Imaging` | `EsBitmapDrawingExtensions` / `EsBitmapFileExtensions` | `System.Drawing.Bitmap` との相互変換（Windows 専用） |
+| `.Native.Imaging` | `EsBitmapFileExtensions` | 画像のファイル保存・読み込み（GDI+ を使う Windows 専用） |
 
 可視性は public のみを記載します（`internal` は [`SPEC_System.md`](SPEC_System.md) の可視性ポリシーを参照）。
 
@@ -472,26 +471,7 @@ public readonly record struct ElementFinderResults(
 
 `Native.Win.WinNative`（internal）が Win32 P/Invoke の宣言を集約し、`Native.Logging.NativeLogMessage`（internal）が本層のログ定義を担います。
 
-### 2.30 `Native.Imaging.EsBitmapDrawingExtensions`（static class）
-
-`System.Drawing.Bitmap` とコアの画像の相互変換です（`EsUtil.Platform.Core.Native.Imaging`。 `System.Drawing.Common` を使う Windows 専用）。
-
-| メンバー | シグネチャ | 説明 |
-| --- | --- | --- |
-| `ToEsBitmap` | `static EsBitmap ToEsBitmap(this DrawingBitmap bitmap)` | `System.Drawing.Bitmap` から**読み取り専用の**画像を作る（複製。 元の Bitmap は変更しない） |
-| `ToEsWritableBitmap` | `static EsWritableBitmap ToEsWritableBitmap(this DrawingBitmap bitmap)` | `System.Drawing.Bitmap` から**書き換え可能な**画像を作る（複製。 元の Bitmap は変更しない） |
-| `ToDrawingBitmap` | `static DrawingBitmap ToDrawingBitmap(this IEsBitmap bitmap)` | コアの画像から `System.Drawing.Bitmap`（`Format32bppPArgb`）を作る（複製） |
-
-- **転送は「1 枚につき 1 回のコピー」を守ります**（実測: 4K で 1 回のコピーは約 6.5 ms）。 `ToEsBitmap` が書き換え可能な画像を
-  経由すると**バッファを 2 つ作って全領域を 2 回コピー**するため（実測 13.6 ms）、読み取り専用の画像へ直接 1 回だけ書き込みます
-  （`EsBitmap` の内部ファクトリ `CreateFilled` が確保と充填を 1 回で行う）。
-- **行幅が一致する場合は連続領域として 1 回でコピーします**（`LockBits` のストライドが `幅 × 4` のとき）。
-  一致しない場合は行単位でコピーし、覆われない右端は 0 にします（元の Bitmap の仕様上ありえます）。
-- **`System.Drawing.Common` は Windows 専用です**（パッケージの説明: 「Since .NET 7, non-Windows platforms are not supported, even with the runtime configuration switch」）。
-  同名の型（`System.Drawing.Bitmap` / `System.Drawing.Imaging.ImageFormat`）も同パッケージに属するため Windows 専用です
-  （非 Windows では `PlatformNotSupportedException`）。 本名前空間（`Native/`）だけが依存し、コア本体は依存しません。
-
-### 2.31 `Native.Imaging.EsBitmapFileExtensions`（static class）
+### 2.30 `Native.Imaging.EsBitmapFileExtensions`（static class）
 
 コアの画像のファイル保存・読み込みです（`EsUtil.Platform.Core.Native.Imaging`。 `System.Drawing.Common` を使う Windows 専用）。
 
@@ -503,21 +483,23 @@ public readonly record struct ElementFinderResults(
 
 - **形式は拡張子が決めます**: `Save` は拡張子から形式を選びます（`.bmp` = Windows Bitmap / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`）。 大文字・小文字は区別しません。
 - **未対応の拡張子は例外にします**: PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かないためです（`NotSupportedException`。 対応形式の単一所有は `SupportedExtensions`）。
-- **WebP / HEIF を対応形式へ入れない理由（実測）**: .NET 10 の `System.Drawing.Common` は `ImageFormat.Webp` / `ImageFormat.Heif` を公開していますが、GDI+ にこれらのエンコーダーが無いため（`ImageCodecInfo.GetImageEncoders()` が返すのは BMP / JPEG / GIF / TIFF / PNG のみ）、`Bitmap.Save` は**例外を出さずに PNG を書き出します**（実測: 書き出したファイルの先頭バイトが PNG のシグネチャ）。 拡張子と中身が食い違うファイルを作らないため、対応形式へ追加しません。
-- **エンコード・デコードの実体は `System.Drawing.Common`**（.NET 標準）です。 コア本体は `System.Drawing.Common` へ依存せず、本名前空間（`Native/`）だけが依存します。
-- **`System.Drawing.Common` は Windows 専用です**（パッケージの説明: 「Since .NET 7, non-Windows platforms are not supported, even with the runtime configuration switch」。 非 Windows では `PlatformNotSupportedException`）。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、本名前空間だけが Windows に依存します）。
+- **WebP / HEIF を対応形式へ入れない理由（実測）**: GDI+ のエンコーダーは 5 件だけです（`GdipGetImageEncoders` が返すのは BMP / JPEG / GIF / TIFF / PNG。 デコーダーはこれに EMF / WMF / ICO を加えた 8 件）。 WebP / HEIF のエンコーダーは無く、**存在しない形式の CLSID を渡すと例外を出さずに PNG を書き出します**（実測: PNG の CLSID と `.webp` のパスで 2831 バイトの PNG が書かれ、先頭バイトは PNG のシグネチャ）。 拡張子と中身が食い違うファイルを作らないため、対応形式へ追加しません。
+- **エンコード・デコードは `gdiplus.dll` のフラット API を直接呼びます**（`src/EsUtil.Platform.Core/src/Native/Imaging` の `GdiPlusNative` が宣言を集約）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
+- **ピクセルは複製しません**: コアの画像のバッファを指す GDI+ のビットマップを作って（`GdipCreateBitmapFromScan0`）そのままエンコードし、読み込みは GDI+ がアルファ乗算済み BGRA8888 へ変換した結果をコピーします。
+- **本名前空間は Windows 専用です**: `gdiplus.dll` は Windows にのみ存在します（非 Windows では `DllNotFoundException`）。 本クラスの公開メンバーは `SupportedOSPlatform("windows")` で限定します。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、`src/EsUtil.Platform.Core/src/Native` だけが Windows に依存します）。
+- **GDI+ の初期化は `GdiPlusLifetime` が単一所有します**（プロセス単位で 1 回だけ `GdiplusStartup` を呼びます）。 終了処理（`GdiplusShutdown`）は**呼びません**（プロセス全体の GDI+ を終了させるため、ホストが別の目的で GDI+ を使っている場合に影響します。 GDI+ はプロセスの終了時に OS が解放します）。
 - **代替（採用していない）**: **マネージド .NET には他に標準の画像コーデックがありません**。 Windows ネイティブにはあります（下記）。 いずれも実装量または依存の代償があります。
   - **WIC / WinRT（Windows ネイティブ。 実測で存在を確認）**: `Windows.Graphics.Imaging`（`BitmapEncoder` / `BitmapDecoder`。 WIC の .NET 投影）が**追加の NuGet なしで使えます**（Windows TFM `net10.0-windows10.0.x` が Windows SDK の投影を自動参照する。 実測: このマシンに 17763〜26100 の投影が存在）。 実測したエンコーダーは BMP / GIF / JPEG / PNG / TIFF / WMPhoto（JPEG XR）/ DDS / **HEIF（AVIF を含む）/ JPEG XL** で、**7 種すべてで保存に成功**しました。 デコーダーはさらに ICO / CUR / DNG / RAW（約 40 形式）/ **WebP（デコードのみ）** を含みます。 ただし (1) 本コアは `net10.0`（可搬）のため WinRT を直接参照できず、**TFM を Windows 固有にするか常駐アセンブリを分ける**必要があります（COM 相互運用を自前で宣言すれば `net10.0` のまま `Native/` に置けますが、`IWICImagingFactory` 等の宣言に数百行を要します）、(2) HEIF / JPEG XL / WebP は**OS のコーデック拡張（Store アプリ）で提供**されるため、拡張の無い環境では使えません（このマシンには入っています）。
   - **WPF の `System.Windows.Media.Imaging`（`BitmapEncoder` / `BitmapDecoder`）**: Microsoft 公式ですが `UseWPF` が必要で、UI 非依存のコアへ WPF を持ち込みます。
   - **SkiaSharp**: WebP を含む多くの形式を扱えますが、**外部パッケージを参照しない**という本プロジェクトの依存規則に反します（Skia に依存する変換は Skia を使う上位層が単一所有する）。
 - **WebP の保存は Windows 標準のどちらでもできません（実測）**: GDI+ は**例外を出さずに PNG を書く**（危険）ので本クラスは `NotSupportedException` で拒否し、Windows ネイティブも `BitmapEncoder` に WebP の識別子を持ちません（`BitmapDecoder.WebpDecoderId` があり**デコードのみ**）。 保存が必要なら SkiaSharp などの外部ライブラリが要ります。
-- **現状維持の理由**: 用途（BMP / PNG / JPEG / GIF / TIFF）に対して Microsoft 公式の .NET パッケージで足り、相互運用の宣言が不要です（WIC を使うと増える形式は JPEG XR / DDS / HEIF / JPEG XL で、いずれも OS 拡張に依存します）。
-- **WIC / WinRT の正体と Native AOT（実測）**: `Windows.Graphics.Imaging` は **WinRT（COM ベース）の .NET 投影**であり、エンコード・デコードの実体は **OS 側（WIC）にあります**。 したがって:
+- **`gdiplus.dll` のフラット API を選ぶ理由**: 用途（BMP / PNG / JPEG / GIF / TIFF）に対して OS 標準のコーデックで足り、**外部パッケージも相互運用の宣言も要りません**（宣言は `Native/Imaging/GdiPlusNative` の約 10 関数）。 下記の実測のとおり **GDI+ が最も速く、可逆形式の圧縮効率も同等以上**です。
+- **Native AOT（実測）**: 本クラスは `LibraryImport`（ソース生成の相互運用）だけを使うため、**Native AOT でも動作します**（実行時マーシャリングを使いません）。 参考として、代案の `Windows.Graphics.Imaging` は **WinRT（COM ベース）の .NET 投影**であり、エンコード・デコードの実体は **OS 側（WIC）にあります**:
   - **COM の登録や DLL の同梱は不要です**（自分で `regsvr32` する COM ではなく、OS が提供するランタイム クラスを起動するだけ）。 実測でも配布物に追加ファイルは増えませんでした。
   - **Native AOT で動作します**（実測: 本アプリの AOT 配布物で `BitmapEncoder.GetEncoderInformationEnumerator()` が 9 個のエンコーダーを列挙できた）。 CsWinRT（投影と `WinRT.Runtime.dll`）は**マネージド コードとして exe へリンクされる**ため、**単一 exe の構成を保てます**（実測: exe 1 個 + ネイティブ DLL 4 個の構成は変わらず、exe は 24.8 → 24.9 MB で **+0.1 MB**）。
   - **制限**: Windows 専用であること、HEIF / JPEG XL / WebP（デコード）は **OS のコーデック拡張に依存**すること（拡張の無い環境では列挙から消えます）、そして**コア（`net10.0`）からは直接参照できない**こと（`net10.0-windows10.0.x` の TFM が Windows SDK の投影を自動参照する。 COM 相互運用を自前で宣言すれば `net10.0` のまま `Native/` に置けますが数百行）。
 
-- **速度は `System.Drawing`（GDI+）の方が速い（実測・4K 3840x2160・変換込み・5 形式すべて）**:
+- **速度は GDI+ の方が速い（実測・4K 3840x2160・変換込み・5 形式すべて）**:
 
   | 形式 | 保存 GDI+ | 保存 WIC | 読込 GDI+ | 読込 WIC |
   | --- | --- | --- | --- | --- |
@@ -544,13 +526,13 @@ public readonly record struct ElementFinderResults(
   - **可逆形式（BMP / PNG / TIFF）は往復の誤差が 0** です（画素は完全に一致。 「品質」の差は無く、差は圧縮効率だけです）。 PNG は **GDI+ の圧縮が 14% 優れ**、TIFF はほぼ同じでした。
   - **JPEG は品質を揃えると同程度**でした（100 と 75 は同サイズ、90 は GDI+ が 8% 小さいが、往復誤差は WIC がわずかに小さい）。
   - **GIF だけは WIC が明確に優位**です（17% 小さく、往復誤差も **平均 5.09 対 14.40** と 3 分の 1）。 GDI+ の GIF エンコーダーはパレット量子化の誤差が大きいためです（速度は WIC が 3.5 倍遅いので、**GIF だけは速度と品質の交換**になります）。
-  - まとめると **通常の用途（BMP / PNG / JPEG / TIFF）は `System.Drawing` が速くサイズも同等以上**であり、**GIF を配布物として小さく・きれいに作りたい場合だけ WIC に分がある**という結果です。
+  - まとめると **通常の用途（BMP / PNG / JPEG / TIFF）は GDI+ が速くサイズも同等以上**であり、**GIF を配布物として小さく・きれいに作りたい場合だけ WIC に分がある**という結果です。
   - ※ 計測用の画像は「グラデーション + ノイズ + 細線」（スクリーンショットに近い傾向）です。 形式ごとの既定の圧縮設定・パレット生成は API 側の実装に依存するため、**実画像での数値は画像の内容で変わります**。
 
 - **制限**: JPEG / BMP はアルファ （透明度）を保存できません（形式の仕様。 透過を保つ場合は PNG を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする。 小さく使う場合は `Downscale*` で縮小する）。
-- **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（GDI+ がこの型を投げることを実測で確認）。
+- **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（GDI+ はどちらも同じ状態値を返すため区別しません）。 エンコード・デコードの失敗は `Win32Exception`（`ExternalException` の派生。 GDI+ の状態値を保持）で通知します。
 
-### 2.32 `Coord.ICoordTransform`（interface）
+### 2.31 `Coord.ICoordTransform`（interface）
 
 ローカル DIP と対象座標の双方向変換ポート。 座標はコア幾何型で扱います。 軸はこの 1 つだけであり、DIP とデバイスピクセルの換算は `DpiScaler` が単一所有します。
 
@@ -560,7 +542,7 @@ public readonly record struct ElementFinderResults(
 | `ToDip` | `EsPoint ToDip(EsPoint source)` | 対象座標 → ローカル DIP 座標 |
 | `SourceArea` | `EsSize? SourceArea { get; }` | 対象座標の境界（null = 無制限） |
 
-### 2.33 `Coord.CoordTransform`（sealed class : ICoordTransform）
+### 2.32 `Coord.CoordTransform`（sealed class : ICoordTransform）
 
 `Func` 委譲による変換ポートを提供します。 倍率の向きは 1 通り（対象座標 / ローカル DIP）だけです。
 
@@ -570,7 +552,7 @@ public readonly record struct ElementFinderResults(
 | `ClientToSource` | `static ICoordTransform ClientToSource(Func<double> sourcePerDip, Func<EsSize?>? sourceArea = null)` | 対象 = ローカル DIP × `sourcePerDip`（呼び出し毎評価。 倍率は 対象座標 / ローカル DIP。 0 以下は 1.0 扱い。 境界を省略すると無制限） |
 | コンストラクタ | `CoordTransform(Func<EsPoint, EsPoint> toSource, Func<EsPoint, EsPoint> toDip, Func<EsSize?> sourceArea)` | 変換関数を直接注入（軸は利用側が定義） |
 
-### 2.34 `Imaging.EsBitmapBase`（abstract class : IEsBitmap） / `Imaging.EsBitmap`（sealed class） / `Imaging.EsWritableBitmap`（sealed class）
+### 2.33 `Imaging.EsBitmapBase`（abstract class : IEsBitmap） / `Imaging.EsBitmap`（sealed class） / `Imaging.EsWritableBitmap`（sealed class）
 
 **自前のピクセルバッファ**（BGRA8888・アルファ乗算済み）を所有するピクセルコンテナの 3 型です。 確保は 64 バイト整列で行い、**確保直後に全領域を 0（透明）で初期化します**（透明 = 全成分 0 が「描かれていない」の表現であるため）。 **外部パッケージへ依存しない**。
 
@@ -702,7 +684,7 @@ public readonly record struct ElementFinderResults(
 - **アルゴリズムを列挙体で選ぶ理由**: 同じ機能の入口を複数持たないためです（アルゴリズムを選ぶ入口は `Resize` の 1 つだけ。 既定は `Bilinear`）。
 
 - **縮小をここに置く理由**: 縮小は**どの UI でも必要になり、結果を揃えたい**処理です（各 UI の画像変換へ個別に実装するとアルゴリズムがばらつく）。 実測では、等倍の射影（Avalonia の `Bitmap`）は 4K 1 枚で 7.8 ms / 32 MB に対し、`Box` の縮小版は 320x180 で 1.8 ms / 230 KB でした。
-- **ファイルの入出力をここに置かない理由**: エンコード・デコードには OS / ライブラリのコーデックが必要で、コア本体は外部依存を持たないためです（Windows 専用の `System.Drawing.Common` を使う実装は `Native.Imaging` に分離しています）。
+- **ファイルの入出力をここに置かない理由**: エンコード・デコードには OS のコーデックが必要で、画像の操作（切り出し・縮小）とは責務が異なるためです（Windows 専用の GDI+ を使う実装は `Native.Imaging` に分離しています）。
 
 - **拡張メソッドにする理由**: 切り出し・縮小は「自分を変更せず新しい画像を作る」操作であり、**借用した読み取り専用の画像からも呼べる**必要があるためです（実測: ルーペが表示アダプタの画像を切り出す）。 戻り値は書き換え可能（生成した側が所有し破棄する）。
 - **色の取得をここに置かない理由**: 「座標のピクセルを色として読む」は画像の読み取りそのものであり、**読み取りの面（`IEsBitmap.GetPixel(EsPointInt)`）が実装を持つ**ためです（追加の画像を作らないため、拡張メソッドにする理由がありません）。
@@ -710,7 +692,7 @@ public readonly record struct ElementFinderResults(
 
 **Skia との相互変換**（`ToSKBitmap` / `ToEsWritableBitmap`）は SkiaSharp へ依存するため、Skia を使用する層の拡張メソッドが提供します（`ToSKBitmap` は非所有ビュー、`ToEsWritableBitmap` は複製。 所有権はコア側に残ります）。
 
-### 2.35 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）
+### 2.34 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）
 
 画像の**権利を型で分ける**抽象です。 受け取った側が「書き換えてよいか」「破棄してよいか」を型から判断できます（借用と所有の取り違えを無くすための境界です）。
 
@@ -792,5 +774,5 @@ using var readOnly = EsBitmap.Create(bitmap);             // 読み取り専用�
 
 - 本プロジェクトは UI フレームワークへ依存しません。 UI 型との相互変換は、各 UI 実装の Interop 層を用意して境界で行います。
 - 実行時のプラットフォーム分岐（ファクトリ）を持ちません。 OS サービスの既定実装はホストが生成して抽象型として注入します（テストはモックを注入できます）。
-- `Native/` 配下（Win32 P/Invoke・`System.Drawing.Common`）は Windows 専用です。
+- `Native/` 配下（Win32 P/Invoke・OS 標準のコーデック）は Windows 専用です。
 - 描画は本プロジェクトの対象外です（画像の型と配置計算だけを提供し、描画 API は各 UI が呼びます）。

@@ -6,7 +6,7 @@ using DrawingImageLockMode = System.Drawing.Imaging.ImageLockMode;
 using DrawingPixelFormat = System.Drawing.Imaging.PixelFormat;
 using DrawingRect = System.Drawing.Rectangle;
 
-namespace EsUtil.Platform.Core.Native.Imaging;
+namespace EsUtil.Platform.Core.Windows.Imaging;
 
 /// <summary>
 /// <see cref="EsBitmap"/> / <see cref="EsWritableBitmap"/> の System.Drawing 向け生成・変換拡張（Windows 専用）。

@@ -87,6 +87,60 @@ internal static partial class WinNative
         public POINT ptScreenPos;
     }
 
+    /// <summary>Win32 BITMAPINFOHEADER 構造体（DIB の形式と寸法）。</summary>
+    /// <remarks>
+    /// P/Invoke のマーシャリング用にレイアウトを定義する。<br/>
+    /// <c>biHeight</c> を負値にするとトップダウン DIB になり、行の並びが上から下（画像の並びと一致）になる。
+    /// </remarks>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct BITMAPINFOHEADER
+    {
+        /// <summary>構造体のサイズ（biSize）。 呼び出し前に設定する。</summary>
+        public uint biSize;
+
+        /// <summary>幅（ピクセル）。</summary>
+        public int biWidth;
+
+        /// <summary>高さ（ピクセル）。 負値はトップダウン（上から下の並び）。</summary>
+        public int biHeight;
+
+        /// <summary>プレーンの数（常に 1）。</summary>
+        public ushort biPlanes;
+
+        /// <summary>1 ピクセルあたりのビット数（32 を指定する）。</summary>
+        public ushort biBitCount;
+
+        /// <summary>圧縮方式（<see cref="BI_RGB"/> = 無圧縮）。</summary>
+        public uint biCompression;
+
+        /// <summary>画像データのサイズ（<see cref="BI_RGB"/> では 0 でよい）。</summary>
+        public uint biSizeImage;
+
+        /// <summary>水平方向の解像度（メートルあたりのピクセル）。</summary>
+        public int biXPelsPerMeter;
+
+        /// <summary>垂直方向の解像度（メートルあたりのピクセル）。</summary>
+        public int biYPelsPerMeter;
+
+        /// <summary>パレットの色数（<see cref="BI_RGB"/> では 0）。</summary>
+        public uint biClrUsed;
+
+        /// <summary>重要な色数（<see cref="BI_RGB"/> では 0）。</summary>
+        public uint biClrImportant;
+    }
+
+    /// <summary>Win32 BITMAPINFO 構造体（<see cref="BITMAPINFOHEADER"/> と色テーブル）。</summary>
+    /// <remarks>
+    /// P/Invoke のマーシャリング用にレイアウトを定義する。 32bpp では色テーブルを使わないため宣言しない。<br/>
+    /// 色テーブルを持つ形式（8bpp 等）で使う場合は、可変長部分を続けて確保する必要がある。
+    /// </remarks>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct BITMAPINFO
+    {
+        /// <summary>画像の形式と寸法。</summary>
+        public BITMAPINFOHEADER bmiHeader;
+    }
+
     // ============================================================
     // デリゲート
     // ============================================================
@@ -179,6 +233,19 @@ internal static partial class WinNative
 
     /// <summary>ウィンドウを全キャプチャAPI（GDI / DXGI）から除外する（Windows 10 2004+）。</summary>
     internal const int WDA_EXCLUDEFROMCAPTURE = 0x00000011;
+
+    // --- 画面キャプチャ（DIB / BitBlt） ---
+    /// <summary>無圧縮（BI_RGB）。 DIB の既定の圧縮方式。</summary>
+    internal const uint BI_RGB = 0;
+
+    /// <summary>パレットを RGB の 3 成分で指定する（DIB_RGB_COLORS）。</summary>
+    internal const uint DIB_RGB_COLORS = 0;
+
+    /// <summary>コピー元をそのままコピーするラスタ オペレーション（SRCCOPY）。</summary>
+    internal const uint SRCCOPY = 0x00CC0020;
+
+    /// <summary>重ね合わせウィンドウ（レイヤード ウィンドウ）も含めてコピーする BitBlt の追加フラグ。</summary>
+    internal const uint CAPTUREBLT = 0x40000000;
 
     // ============================================================
     // user32.dll
@@ -369,6 +436,90 @@ internal static partial class WinNative
     /// <summary>現在のプロセス ID を取得する（kernel32.GetCurrentProcessId）。</summary>
     [LibraryImport("kernel32.dll")]
     internal static partial uint GetCurrentProcessId();
+
+    // ============================================================
+    // user32.dll / gdi32.dll（画面キャプチャ）
+    // ============================================================
+
+    /// <summary>デスクトップ全体のデバイス コンテキストを取得する（user32.GetDC）。</summary>
+    /// <param name="hWnd">対象ウィンドウ。 <see cref="IntPtr.Zero"/> は画面全体。</param>
+    /// <returns>デバイス コンテキスト。 失敗した場合は <see cref="IntPtr.Zero"/>。</returns>
+    /// <remarks>取得したコンテキストは <see cref="ReleaseDC"/> で解放する。</remarks>
+    [LibraryImport("user32.dll", SetLastError = true)]
+    internal static partial IntPtr GetDC(IntPtr hWnd);
+
+    /// <summary>デバイス コンテキストを解放する（user32.ReleaseDC）。</summary>
+    /// <param name="hWnd">対象ウィンドウ（<see cref="GetDC"/> に渡した値）。</param>
+    /// <param name="hDC">解放するデバイス コンテキスト。</param>
+    /// <returns>解放した場合は 1。</returns>
+    [LibraryImport("user32.dll", SetLastError = true)]
+    internal static partial int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+    /// <summary>指定されたデバイス コンテキストと互換のメモリ デバイス コンテキストを作成する（gdi32.CreateCompatibleDC）。</summary>
+    /// <param name="hdc">互換の基準にするデバイス コンテキスト。</param>
+    /// <returns>作成されたメモリ デバイス コンテキスト。 失敗した場合は <see cref="IntPtr.Zero"/>。</returns>
+    /// <remarks>不要になった時点で <see cref="DeleteDC"/> で削除する。</remarks>
+    [LibraryImport("gdi32.dll", SetLastError = true)]
+    internal static partial IntPtr CreateCompatibleDC(IntPtr hdc);
+
+    /// <summary>メモリ デバイス コンテキストを削除する（gdi32.DeleteDC）。</summary>
+    /// <param name="hdc">削除するデバイス コンテキスト。</param>
+    /// <returns>成功した場合は <see langword="true"/>。</returns>
+    [LibraryImport("gdi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool DeleteDC(IntPtr hdc);
+
+    /// <summary>DIB セクションを作成し、ピクセルを書き込めるメモリを確保する（gdi32.CreateDIBSection）。</summary>
+    /// <param name="hdc">互換の基準にするデバイス コンテキスト。</param>
+    /// <param name="pbmi">作成する DIB の形式。</param>
+    /// <param name="usage">パレットの指定（<see cref="DIB_RGB_COLORS"/>）。</param>
+    /// <param name="ppvBits">ピクセル データへのポインターの出力先。</param>
+    /// <param name="hSection">ファイル マッピング オブジェクト（0 でよい）。</param>
+    /// <param name="offset">セクション内のオフセット（0 でよい）。</param>
+    /// <returns>作成されたビットマップ。 失敗した場合は <see cref="IntPtr.Zero"/>。</returns>
+    /// <remarks>
+    /// ピクセルは 0 で初期化される。 32bpp（<see cref="BI_RGB"/>）では 1 行のバイト数が <c>幅 × 4</c> になり、
+    /// コアの画像と同じ並び（BGRA・上から下・パディングなし）になる。<br/>
+    /// <c>biHeight</c> を負値にするとトップダウン DIB になる。
+    /// </remarks>
+    [LibraryImport("gdi32.dll", SetLastError = true)]
+    internal static partial IntPtr CreateDIBSection(
+        IntPtr hdc, ref BITMAPINFO pbmi, uint usage, out IntPtr ppvBits, IntPtr hSection, uint offset);
+
+    /// <summary>デバイス コンテキストへオブジェクトを選択する（gdi32.SelectObject）。</summary>
+    /// <param name="hdc">対象のデバイス コンテキスト。</param>
+    /// <param name="h">選択するオブジェクト（ビットマップ等）。</param>
+    /// <returns>置き換えられた以前のオブジェクト。 失敗した場合は <see cref="IntPtr.Zero"/>。</returns>
+    [LibraryImport("gdi32.dll", SetLastError = true)]
+    internal static partial IntPtr SelectObject(IntPtr hdc, IntPtr h);
+
+    /// <summary>GDI オブジェクトを削除する（gdi32.DeleteObject）。</summary>
+    /// <param name="ho">削除するオブジェクト。</param>
+    /// <returns>成功した場合は <see langword="true"/>。</returns>
+    [LibraryImport("gdi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool DeleteObject(IntPtr ho);
+
+    /// <summary>ビット ブロック転送でピクセルをコピーする（gdi32.BitBlt）。</summary>
+    /// <param name="hdcDest">コピー先のデバイス コンテキスト。</param>
+    /// <param name="xDest">コピー先の X 座標。</param>
+    /// <param name="yDest">コピー先の Y 座標。</param>
+    /// <param name="width">コピーする幅。</param>
+    /// <param name="height">コピーする高さ。</param>
+    /// <param name="hdcSrc">コピー元のデバイス コンテキスト。</param>
+    /// <param name="xSrc">コピー元の X 座標（画面物理座標。 負値は仮想スクリーンの左端）。</param>
+    /// <param name="ySrc">コピー元の Y 座標（画面物理座標。 負値は仮想スクリーンの上端）。</param>
+    /// <param name="rop">ラスタ オペレーション（<see cref="SRCCOPY"/> 等）。</param>
+    /// <returns>成功した場合は <see langword="true"/>。</returns>
+    /// <remarks>
+    /// 同期コールであり、DWM の応答が止まるとブロックする可能性がある（呼び出し側がタイムアウトで保護する）。<br/>
+    /// 画面のピクセルは GDI の仕様でアルファ値を持たない（書き込まれない）ため、呼び出し側が不透明へ揃える。<br/>
+    /// <b>注意</b>: GDI+ の <c>CopyFromScreen</c> と違い、<c>CAPTUREBLT</c> を付けない限りレイヤード ウィンドウは写らない。
+    /// </remarks>
+    [LibraryImport("gdi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool BitBlt(
+        IntPtr hdcDest, int xDest, int yDest, int width, int height, IntPtr hdcSrc, int xSrc, int ySrc, uint rop);
 
     // ============================================================
     // dwmapi.dll

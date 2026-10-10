@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Platform.Core.Windows</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- System.Drawing.Bitmap のピクセルへ直接アクセスするため unsafe を許可する -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Windows 専用の画像型（System.Drawing.Bitmap）との相互変換を行う。 Windows でのみ動作する -->
+    <PackageReference Include="System.Drawing.Common" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Platform.Core.Windows.Tests" />
+  </ItemGroup>
+
+</Project>

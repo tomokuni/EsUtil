@@ -5,7 +5,6 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.Platform.Core.Native.Imaging;
 using Xunit;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests.Internal;

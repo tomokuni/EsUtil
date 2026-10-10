@@ -27,7 +27,7 @@ UI フレームワーク非依存の共通基盤の型を提供するライブ�
 
 - .NET 10 / C# 14
 - Microsoft.Extensions.Logging.Abstractions（`LoggerFallback` のロガー抽象のみ。 Microsoft 公式パッケージ）
-- System.Drawing.Common（`src/EsUtil.Platform.Core/src/Native/Imaging` の `System.Drawing.Bitmap` 変換のみ。 Microsoft 公式パッケージ。 Windows 専用）
+- OS 標準のコーデック（`gdiplus.dll` のフラット API。 `src/EsUtil.Platform.Core/src/Native/Imaging` の画像ファイル入出力のみ。 Windows 専用。 **外部パッケージは参照しない**）
 - UI フレームワークは一切参照しない
 
 ## 3. アーキテクチャ
@@ -66,7 +66,9 @@ graph LR
 | `src/EsUtil.Platform.Core/src/Native/Win/WinElementFinder.cs` | `IElementFinder` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinCursorOverrideGuard.cs` | `ICursorOverrideGuard` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinGlobalHotKeyService.cs` | `IGlobalHotKeyService<T>` の Windows 実装 |
-| `src/EsUtil.Platform.Core/src/Native/Imaging/EsBitmapDrawingExtensions.cs` | `System.Drawing.Bitmap` ⇔ コアの画像の相互変換（Windows 専用） |
+| `src/EsUtil.Platform.Core/src/Native/Imaging/EsBitmapFileExtensions.cs` | 画像のファイル保存・読み込み（GDI+。 Windows 専用） |
+| `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusNative.cs` | GDI+ のフラット API の宣言集約（internal） |
+| `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusLifetime.cs` | GDI+ のプロセス単位の初期化（internal・1 回だけ実行） |
 | `LoggerFallback.cs` | ロガーの null を `NullLogger.Instance` へ吸収する共通ヘルパー（拡張メソッド `OrNullLogger`） |
 | `src/EsUtil.Platform.Core/src/Coord/ScrollMath.cs` | スクロール範囲・ビューポートサイズの純粋計算とホイール 1 段のスクロール量（`WheelScrollUnit`） |
 | `src/EsUtil.Platform.Core/src/Coord/DpiScaler.cs` | DIP 値を物理ピクセルへ変換する純粋計算（DPI 基準値と DPI → スケーリング換算を含む） |
@@ -143,6 +145,6 @@ graph LR
 | **ソリューション固有の概念を持たない** | 特定のアプリ・コントロールに固有の型は置かない（そのような型は各コントロールの層へ置く） |
 | **OS 依存なし** | Win32 P/Invoke を含まない（`Native/` 配下の責務） |
 
-**`Native/` 配下は上記の「可搬性」の基準から除外します**（Windows 限定の実装を、抽象と同じ場所で保守するための例外です）。 Win32 P/Invoke と `System.Drawing.Common`（`System.Drawing.Bitmap` を扱う `Native.Imaging`）は `Native/` 配下だけが持ちます。
+**`Native/` 配下は上記の「可搬性」の基準から除外します**（Windows 限定の実装を、抽象と同じ場所で保守するための例外です）。 **Win32 の P/Invoke（`user32` / `gdi32` / `dwmapi` / `kernel32`）と OS 標準のコーデック（`gdiplus`）は `Native/` 配下だけが持ちます**（外部パッケージは参照しません）。
 
 **Skia は「外部パッケージ」に該当するため、本プロジェクトは SkiaSharp に依存しません**（Skia への依存は Skia を使用する上位層が単一所有します）。

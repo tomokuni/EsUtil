@@ -14,7 +14,6 @@ namespace EsUtil.Feature.Marquee.AvaloniaUI.Sample.Internal;
 /// </summary>
 /// <remarks>
 /// <b>依存分離</b>: 本クラスは Avalonia との変換を担い、<see cref="EsBitmap"/> 本体（コア）の依存を閉じる。<br/>
-/// System.Drawing 向けの生成・変換は <see cref="EsUtil.Platform.Core.Native.Imaging.EsBitmapDrawingExtensions"/> が担う。<br/>
 /// <br/>
 /// <b>権利の向き</b>: 生成（<c>ToEsWritableBitmap</c> / <c>CreateAvaloniaWriteableBitmap</c>）は書き換え可能な画像を作る。
 /// 変換（<c>ToAvaloniaBitmap</c> / <c>ToAvaloniaWriteableBitmap</c>）は読み取り専用の面（<see cref="IEsBitmap"/>）を受け取る
