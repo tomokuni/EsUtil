@@ -1,4 +1,6 @@
+using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native.Imaging;
 using Color = System.Drawing.Color;
 
 namespace EsUtil.Platform.Core.Imaging;
@@ -78,7 +80,9 @@ public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposa
     /// 波及して「書き換えない」という約束が崩れるため（1 回の全域コピーが発生する。 実測: 4K で約 6 ms）。<br/>
     /// <b><see cref="EsBitmap"/> から呼ぶ理由</b>: <see cref="EsWritableBitmap"/> は <see cref="EsBitmap"/> の兄弟であるため、
     /// <see cref="EsWritableBitmap"/> を渡すことはできない（同型の複製は <see cref="Clone"/> を使う）。
-    /// この制約により「同型の複製（Clone）」と「権利を変える複製（本メソッド）」が重複しない。
+    /// この制約により「同型の複製（Clone）」と「権利を変える複製（本メソッド）」が重複しない。<br/>
+    /// <b>ファイルから書き換え可能な画像が要る場合は本メソッドを使わない</b>
+    /// （<see cref="Load(string)"/> がデコードと同時に書き換え可能な型を作るため、全域コピーが 1 回で済む）。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
@@ -90,6 +94,27 @@ public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposa
         var result = CreateUninitialized(source.Width, source.Height);
         CopyPixels(source, result);
         return result;
+    }
+
+    /// <summary>ファイルから書き換え可能な画像を読み込む（形式は内容から判別される）。</summary>
+    /// <param name="filePath">読み込むファイルのパス。 null 不可。</param>
+    /// <returns>読み込んだ画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
+    /// または画像として解釈できない場合。</exception>
+    /// <remarks>
+    /// <b>書き換えが要らない場合は <see cref="EsBitmap.Load(string)"/> を使う</b>
+    /// （本型は <see cref="IEsBitmap"/> も実装するため読み取り専用としても渡せるが、
+    /// 読み取るだけなら書き換えの入口を公開しない型で持つ方が意図が明確になる）。<br/>
+    /// <b>読み込みの規則は <see cref="EsBitmap.Load(string)"/> と同じ</b>: 縮小しない・内容から形式を判別する・
+    /// アルファ乗算済みの BGRA8888 へ変換する。<br/>
+    /// <b>Windows 専用</b>: OS の GDI+ を呼ぶため <see cref="SupportedOSPlatformAttribute"/> で限定する。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    public static EsWritableBitmap Load(string filePath)
+    {
+        ArgumentNullException.ThrowIfNull(filePath);
+        return GdiPlusImageCodec.LoadWritable(filePath);
     }
 
     /// <summary>指定サイズのピクセル バッファを確保する。</summary>

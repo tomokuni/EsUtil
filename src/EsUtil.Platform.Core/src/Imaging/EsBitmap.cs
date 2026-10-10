@@ -1,4 +1,6 @@
+using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native.Imaging;
 using Color = System.Drawing.Color;
 
 namespace EsUtil.Platform.Core.Imaging;
@@ -72,6 +74,28 @@ public sealed class EsBitmap : EsBitmapBase, IDisposable
         var result = new EsBitmap(source.Width, source.Height, clear: false);
         source.Pixels.CopyTo(result.WritableBuffer);
         return result;
+    }
+
+    /// <summary>ファイルから読み取り専用の画像を読み込む（形式は内容から判別される）。</summary>
+    /// <param name="filePath">読み込むファイルのパス。 null 不可。</param>
+    /// <returns>読み込んだ画像（読み取り専用）。 所有権は呼び出し側へ移る。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
+    /// または画像として解釈できない場合。</exception>
+    /// <remarks>
+    /// <b>書き換えが要る場合は <see cref="EsWritableBitmap.Load(string)"/> を使う</b>
+    /// （本メソッドで読み込んでから <see cref="EsWritableBitmap.Create(EsBitmap)"/> で複製すると、
+    /// 2 回目の全域コピー（実測: 4K で 5.7 ms / 31 MiB）が無駄になる）。<br/>
+    /// <b>縮小読み込みはしない</b>（元の寸法でデコードする。 小さく使う場合は <see cref="EsBitmapExtensions.Resize"/> で縮小する）。<br/>
+    /// <b>形式は内容から判別する</b>（拡張子と内容が一致しない場合は内容に従う）。<br/>
+    /// <b>ピクセルはアルファ乗算済みの BGRA8888 へ変換して取り込む</b>（元の形式が異なっても GDI+ が変換する）。<br/>
+    /// <b>Windows 専用</b>: OS の GDI+ を呼ぶため <see cref="SupportedOSPlatformAttribute"/> で限定する。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    public static EsBitmap Load(string filePath)
+    {
+        ArgumentNullException.ThrowIfNull(filePath);
+        return GdiPlusImageCodec.LoadReadOnly(filePath);
     }
 
     /// <summary>指定サイズのピクセル バッファを確保する。</summary>

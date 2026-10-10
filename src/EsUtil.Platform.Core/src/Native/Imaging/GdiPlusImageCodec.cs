@@ -4,8 +4,11 @@ using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Platform.Core.Native.Imaging;
 
-/// <summary>コアの画像のファイル保存・読み込み（GDI+ のフラット API を使う Windows 専用）。</summary>
+/// <summary>コアの画像のファイル保存・読み込みの実装（GDI+ のフラット API を使う Windows 専用）。</summary>
 /// <remarks>
+/// <b>唯一の実装</b>: 公開面は画像型のメンバー（<see cref="EsUtil.Platform.Core.Imaging.EsBitmapBase.Save(string)"/> /
+/// <see cref="EsUtil.Platform.Core.Imaging.EsBitmap.Load(string)"/> / <see cref="EsUtil.Platform.Core.Imaging.EsWritableBitmap.Load(string)"/>) であり、
+/// 本クラスはその実装を 1 箇所へ集約する（本層は internal）。<br/>
 /// <b>依存分離</b>: ファイル形式（BMP / PNG / JPEG / GIF / TIFF）のエンコード・デコードは OS の
 /// <c>gdiplus.dll</c> が担い、<b>外部パッケージ（<c>System.Drawing.Common</c> 等）を参照しない</b>。<br/>
 /// <b>形式は拡張子が決める</b>: <see cref="Save(IEsBitmap, string)"/> は保存先の拡張子から形式を選ぶ。
@@ -23,10 +26,10 @@ namespace EsUtil.Platform.Core.Native.Imaging;
 /// 拡張子と実体が食い違うファイルができる（実測: PNG の CLSID と <c>.webp</c> のパスで 2831 バイトの PNG が書かれた）。<br/>
 /// <b>制限</b>: JPEG / BMP はアルファ（透明度）を保存できない（形式の仕様）。 透過を保つ場合は PNG を選ぶこと。
 /// </remarks>
-public static class EsBitmapFileExtensions
+internal static class GdiPlusImageCodec
 {
     /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
-    public static readonly IReadOnlyList<string> SupportedExtensions = [".bmp", ".png", ".jpg", ".jpeg", ".gif", ".tif", ".tiff"];
+    internal static readonly IReadOnlyList<string> SupportedExtensions = [".bmp", ".png", ".jpg", ".jpeg", ".gif", ".tif", ".tiff"];
 
     /// <summary>画像をファイルへ保存する（形式は拡張子が決める）。</summary>
     /// <param name="bitmap">保存する画像。 借用であり破棄しない。</param>
@@ -43,7 +46,7 @@ public static class EsBitmapFileExtensions
     /// <b>JPEG / BMP はアルファを保存できない</b>（透過を保つ場合は PNG を選ぶ）。
     /// </remarks>
     [SupportedOSPlatform("windows")]
-    public static void Save(this IEsBitmap bitmap, string filePath)
+    internal static void Save(IEsBitmap bitmap, string filePath)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -81,7 +84,7 @@ public static class EsBitmapFileExtensions
         }
     }
 
-    /// <summary>ファイルから画像を読み込む。</summary>
+    /// <summary>ファイルから読み取り専用の画像を読み込む。</summary>
     /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。</param>
     /// <returns>読み込んだ画像（読み取り専用）。 所有権は呼び出し側へ移る。</returns>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
@@ -94,7 +97,34 @@ public static class EsBitmapFileExtensions
     /// <b>ピクセルはアルファ乗算済みの BGRA8888 へ変換して取り込む</b>（元の形式が異なっても GDI+ が変換する）。
     /// </remarks>
     [SupportedOSPlatform("windows")]
-    public static EsBitmap Load(string filePath)
+    internal static EsBitmap LoadReadOnly(string filePath)
+        => Decode(filePath, static (width, height, fill) => EsBitmap.CreateFilled(width, height, fill));
+
+    /// <summary>ファイルから書き換え可能な画像を読み込む。</summary>
+    /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。</param>
+    /// <returns>読み込んだ画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
+    /// または画像として解釈できない場合（GDI+ はどちらも同じ状態値を返すため区別しない）。</exception>
+    /// <remarks>
+    /// <b>書き換え可能な型で返す理由</b>: デコードは新しいバッファへ 1 回だけ書くため、読み取り専用で返しても
+    /// 守るものが無く、書き換えたい利用者へ 2 回目のコピー（実測: 4K で 5.7 ms / 31 MiB）を強いるだけになる
+    /// （書き換えが要らない場合は <see cref="LoadReadOnly"/> を使う）。<br/>
+    /// 読み込みの他の規則（縮小しない・内容から形式を判別する・アルファ乗算済み BGRA8888 へ変換する）は
+    /// <see cref="LoadReadOnly"/> と同じ。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    internal static EsWritableBitmap LoadWritable(string filePath)
+        => Decode(filePath, static (width, height, fill) => EsWritableBitmap.CreateFilled(width, height, fill));
+
+    /// <summary>ファイルを読み込んで、指定された型の画像としてデコードする（読み込みの手順を 1 箇所へ集約する）。</summary>
+    /// <typeparam name="T">生成する画像の型（<see cref="EsBitmap"/> または <see cref="EsWritableBitmap"/>）。</typeparam>
+    /// <param name="filePath">読み込むファイルのパス。</param>
+    /// <param name="create">寸法と充填処理を受け取って画像を生成する処理（デコード結果を直接書くため、コピーは 1 回で済む）。</param>
+    /// <returns>読み込んだ画像。 所有権は呼び出し側へ移る。</returns>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
+    /// または画像として解釈できない場合（GDI+ はどちらも同じ状態値を返すため区別しない）。</exception>
+    [SupportedOSPlatform("windows")]
+    private static T Decode<T>(string filePath, Func<int, int, Action<Span<byte>>, T> create)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         GdiPlusLifetime.EnsureInitialized();
@@ -107,14 +137,25 @@ public static class EsBitmapFileExtensions
 
         try
         {
-            var width = GetDimension(GdiPlusNative.GdipGetImageWidth(image, out var w), w, "幅");
-            var height = GetDimension(GdiPlusNative.GdipGetImageHeight(image, out var h), h, "高さ");
-            return EsBitmap.CreateFilled(width, height, dst => CopyPixelsFrom(image, width, height, dst));
+            var (width, height) = ReadSize(image);
+            return create(width, height, dst => CopyPixelsFrom(image, width, height, dst));
         }
         finally
         {
             GdiPlusNative.GdipDisposeImage(image);
         }
+    }
+
+    /// <summary>GDI+ の画像の寸法を読み取る。</summary>
+    /// <param name="image">対象の GDI+ の画像。</param>
+    /// <returns>幅と高さ（ピクセル）。</returns>
+    /// <exception cref="Win32Exception">寸法を取得できなかった場合。</exception>
+    [SupportedOSPlatform("windows")]
+    private static (int Width, int Height) ReadSize(IntPtr image)
+    {
+        var width = GetDimension(GdiPlusNative.GdipGetImageWidth(image, out var w), w, "幅");
+        var height = GetDimension(GdiPlusNative.GdipGetImageHeight(image, out var h), h, "高さ");
+        return (width, height);
     }
 
     /// <summary>保存先の拡張子から使用するエンコーダーの CLSID を決める。</summary>

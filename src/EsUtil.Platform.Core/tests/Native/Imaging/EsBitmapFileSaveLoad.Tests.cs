@@ -1,12 +1,11 @@
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.Platform.Core.Native.Imaging;
 using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Native.Imaging;
 
 /// <summary>
-/// 画像のファイル保存・読み込みのテスト（Windows 専用・並列実行）。
+/// 画像のファイル保存・読み込み（<see cref="EsBitmapBase.Save(string)"/> / <see cref="EsBitmap.Load(string)"/> / <see cref="EsWritableBitmap.Load(string)"/>）のテスト（Windows 専用・並列実行）。
 /// </summary>
 /// <remarks>
 /// GDI+ は Windows 専用のため、本クラスは <see cref="SupportedOSPlatformAttribute"/> で Windows に限定する。<br/>
@@ -14,7 +13,7 @@ namespace EsUtil.Platform.Core.Tests.Native.Imaging;
 /// <c>[Fact]</c> で並列実行できる。
 /// </remarks>
 [SupportedOSPlatform("windows")]
-public class EsBitmapFileExtensionsTests
+public class EsBitmapFileSaveLoadTests
 {
     /// <summary>一時ファイルのパスを作る（拡張子は呼び出し側が指定する）。</summary>
     /// <param name="extension">拡張子（先頭のドットを含む）。</param>
@@ -37,7 +36,7 @@ public class EsBitmapFileExtensionsTests
             source.Save(path);
 
             Assert.True(File.Exists(path));
-            using var loaded = EsBitmapFileExtensions.Load(path);
+            using var loaded = EsBitmap.Load(path);
             Assert.Equal(6, loaded.Size.Width);
             Assert.Equal(4, loaded.Size.Height);
         }
@@ -81,14 +80,47 @@ public class EsBitmapFileExtensionsTests
     }
 
     [Fact]
-    internal void Save_nullはArgumentNullExceptionを投げる()
-        => Assert.Throws<ArgumentNullException>(() => EsBitmapFileExtensions.Save(null!, TempPath(".png")));
+    internal void Save_nullのパスはArgumentNullExceptionを投げる()
+    {
+        using var source = EsWritableBitmap.Create(4, 4);
+
+        Assert.Throws<ArgumentNullException>(() => source.Save(null!));
+    }
 
     [Fact]
     internal void Load_存在しないファイルはArgumentExceptionを投げる()
-        => Assert.Throws<ArgumentException>(() => EsBitmapFileExtensions.Load(TempPath(".png")));
+        => Assert.Throws<ArgumentException>(() => EsBitmap.Load(TempPath(".png")));
 
     [Fact]
     internal void Load_空白のパスはArgumentExceptionを投げる()
-        => Assert.Throws<ArgumentException>(() => EsBitmapFileExtensions.Load(""));
+        => Assert.Throws<ArgumentException>(() => EsBitmap.Load(""));
+
+    [Fact]
+    internal void Load_書き込み可能な画像として読み込み書き換えられる()
+    {
+        var path = TempPath(".png");
+        try
+        {
+            using (var source = EsWritableBitmap.Create(6, 4, System.Drawing.Color.FromArgb(255, 10, 20, 30)))
+            {
+                source.Save(path);
+            }
+
+            using var loaded = EsWritableBitmap.Load(path);
+
+            Assert.Equal(6, loaded.Size.Width);
+            Assert.Equal(4, loaded.Size.Height);
+
+            // 読み込んだ内容をそのまま書き換えられる（複製を作り直さない）
+            loaded.SetPixel(new EsUtil.Platform.Core.Geometry.EsPointInt(0, 0), System.Drawing.Color.FromArgb(255, 40, 50, 60));
+            var pixel = loaded.GetPixel(0, 0);
+            Assert.Equal((byte)40, pixel.R);
+            Assert.Equal((byte)50, pixel.G);
+            Assert.Equal((byte)60, pixel.B);
+        }
+        finally
+        {
+            if (File.Exists(path)) { File.Delete(path); }
+        }
+    }
 }

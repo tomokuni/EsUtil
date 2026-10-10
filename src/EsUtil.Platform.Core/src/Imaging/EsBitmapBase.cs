@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native.Imaging;
 using Color = System.Drawing.Color;
 
 namespace EsUtil.Platform.Core.Imaging;
@@ -175,6 +177,36 @@ public abstract class EsBitmapBase : IEsBitmap
     /// <summary>本画像の複製を生成する（派生が戻り型を共変にして公開する）。</summary>
     /// <returns>独立した複製。 所有権は呼び出し側へ移る。</returns>
     public abstract EsBitmapBase Clone();
+
+    /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
+    /// <value>`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`。 形式はこの一覧で決まる。</value>
+    /// <remarks>
+    /// <b>Windows 専用の値</b>（実装は GDI+ のエンコーダーであり、<see cref="Save"/> と同じ制約）。
+    /// 形式の判定（拡張子 → エンコーダー）の単一所有は本一覧である（<c>Save</c> は本一覧に無い拡張子を拒否する）。
+    /// </remarks>
+    public static IReadOnlyList<string> SupportedFileExtensions => GdiPlusImageCodec.SupportedExtensions;
+
+    /// <summary>本画像をファイルへ保存する（形式は拡張子が決める）。</summary>
+    /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める）。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合。</exception>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）。</exception>
+    /// <exception cref="ObjectDisposedException">本画像が破棄済みの場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    /// <remarks>
+    /// <b>インターフェイスのではなく本型のメンバーである理由</b>: ファイル入出力は<b>ピクセルを書く権利を要さない</b>ため、
+    /// 読み取り専用の面（<see cref="IEsBitmap"/>）の利用者にも必要だが、<see cref="IEsBitmap"/> に置くと
+    /// 外部が実装する画像（UI のアダプタ等）にも保存能力を要求することになる。 本型は 2 つの権利の共通基底であるため、
+    /// <b>実装を持てる最小の位置</b>がここである（同じ理由で <see cref="SupportedFileExtensions"/> も本型が持つ）。<br/>
+    /// <b>Windows 専用</b>: OS の GDI+ を呼ぶため <see cref="SupportedOSPlatformAttribute"/> で限定する
+    /// （副作用は <see cref="EsUtil.Platform.Core.Native.Imaging.GdiPlusLifetime"/> を参照）。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    public void Save(string filePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        GdiPlusImageCodec.Save(this, filePath);
+    }
 
     /// <summary>全ピクセルを指定色（BGRA）で塗りつぶす（派生と本アセンブリ内部だけが使う）。</summary>
     /// <param name="b">青成分（0〜255）。</param>

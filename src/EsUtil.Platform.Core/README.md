@@ -38,7 +38,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | 座標変換 | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` |
 | 画像 | `EsBitmap`（読み取り専用の実体） / `EsWritableBitmap`（書き換え可能な実体） / `IEsBitmap`（読み取る権利。 寸法の文字列化 `ToSizeText` を含む） / `IEsWritableBitmap`（書き換える権利） |
 | 画像の操作 | `EsBitmapExtensions`（切り出し `Crop`・縮小 `Resize`。 アルゴリズムは `DownscaleAlgorithm`（`Nearest` / `Bilinear` / `Box`）で選ぶ） |
-| 画像のファイル入出力 | `Native.Imaging.EsBitmapFileExtensions`（`Save` / `Load`。 **形式は拡張子が決める**。 BMP / PNG / JPEG / GIF / TIFF。 OS の GDI+ を使う Windows 専用で、外部パッケージは参照しない） |
+| 画像のファイル入出力 | 画像型の `Save` / `Load`（`EsBitmapBase.Save` / `EsBitmap.Load` / `EsWritableBitmap.Load`。 **形式は拡張子が決める**。 BMP / PNG / JPEG / GIF / TIFF。 OS の GDI+ を使う Windows 専用で、外部パッケージは参照しない） |
 | OS サービス抽象 | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` |
 | Windows 実装 | `Native.Win.*`（Win32 P/Invoke。 ホストが生成して注入する） |
 | 補助 | `EsPlatformHandle` / `DrawingColorExtensions` |
@@ -55,7 +55,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 
 ### 4.1 画像のファイル入出力が引き受ける副作用
 
-`Native.Imaging.EsBitmapFileExtensions`（`Save` / `Load`）は **Windows の `gdiplus.dll` を直接呼びます**。 これは依存を増やさない代わりに、**プロセス全体に及ぶ副作用**を伴います（実測）。
+画像型のファイル入出力（`EsBitmapBase.Save` / `EsBitmap.Load` / `EsWritableBitmap.Load`）は **Windows の `gdiplus.dll` を直接呼びます**。 これは依存を増やさない代わりに、**プロセス全体に及ぶ副作用**を伴います（実測）。
 
 | 副作用 | 内容 | 実測 |
 | --- | --- | --- |

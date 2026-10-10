@@ -66,7 +66,7 @@ graph LR
 | `src/EsUtil.Platform.Core/src/Native/Win/WinElementFinder.cs` | `IElementFinder` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinCursorOverrideGuard.cs` | `ICursorOverrideGuard` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinGlobalHotKeyService.cs` | `IGlobalHotKeyService<T>` の Windows 実装 |
-| `src/EsUtil.Platform.Core/src/Native/Imaging/EsBitmapFileExtensions.cs` | 画像のファイル保存・読み込み（GDI+。 Windows 専用） |
+| `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusImageCodec.cs` | 画像のファイル保存・読み込みの実装（GDI+。 Windows 専用。 公開面は画像型の `Save` / `Load`） |
 | `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusNative.cs` | GDI+ のフラット API の宣言集約（internal） |
 | `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusLifetime.cs` | GDI+ のプロセス単位の初期化（internal・1 回だけ実行） |
 | `src/EsUtil.Platform.Core/src/Coord/ScrollMath.cs` | スクロール範囲・ビューポートサイズの純粋計算とホイール 1 段のスクロール量（`WheelScrollUnit`） |
@@ -126,7 +126,7 @@ graph LR
 
 ### 7.1 ファイル入出力の実装方式
 
-画像のファイル入出力（`Native.Imaging.EsBitmapFileExtensions`）は **OS の `gdiplus.dll` を直接呼びます**。 この判断は「外部パッケージを参照しない」ことと引き換えに、**プロセス全体に及ぶ副作用**を引き受けます（実測）。
+画像のファイル入出力（画像型の `Save` / `Load`）は **OS の `gdiplus.dll` を直接呼びます**。 この判断は「外部パッケージを参照しない」ことと引き換えに、**プロセス全体に及ぶ副作用**を引き受けます（実測）。
 
 | 副作用 | 内容 |
 | --- | --- |
@@ -155,5 +155,7 @@ graph LR
 | **OS 依存なし** | Win32 P/Invoke を含まない（`Native/` 配下の責務） |
 
 **`Native/` 配下は上記の「可搬性」の基準から除外します**（Windows 限定の実装を、抽象と同じ場所で保守するための例外です）。 **Win32 の P/Invoke（`user32` / `gdi32` / `dwmapi` / `kernel32`）と OS 標準のコーデック（`gdiplus`）は `Native/` 配下だけが持ちます**（外部パッケージは参照しません）。
+
+**画像型のファイル入出力（`EsBitmapBase.Save` / `EsBitmap.Load` / `EsWritableBitmap.Load`）は Windows 専用のメンバーです**（`Imaging/` の型に置きますが、実体は `src/EsUtil.Platform.Core/src/Native/Imaging` の `GdiPlusImageCodec` が担います）。 型そのものは可搬であり、これらのメンバーだけが `SupportedOSPlatform("windows")` で限定されます（非 Windows では `DllNotFoundException`。 判断の詳細は §7.1）。
 
 **Skia は「外部パッケージ」に該当するため、本プロジェクトは SkiaSharp に依存しません**（Skia への依存は Skia を使用する上位層が単一所有します）。
