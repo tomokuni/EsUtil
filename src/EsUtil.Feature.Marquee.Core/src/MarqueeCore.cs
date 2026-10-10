@@ -105,7 +105,7 @@ public sealed partial class MarqueeCore
     public IDisposable Subscribe(Action<MarqueeNotice> notify) => _session.Subscribe(notify);
 
     /// <summary>設定の変更ログの出力先を取得または設定する。</summary>
-    /// <value>ロガー。 null を設定した場合は出力なし（<see cref="LoggerFallback"/> が吸収する）。</value>
+    /// <value>ロガー。 null を設定した場合は出力なし（<c>?? NullLogger.Instance</c> で吸収する）。</value>
     /// <remarks>
     /// 保持はセッション（コアの状態機械）が単一所有する（本クラスは委譲し、生成の記録だけを自前で行う）。<br/>
     /// <b>生成の記録</b>: コンストラクターでロガーが注入されていない場合、本プロパティの <b>初回の設定時</b>に
@@ -361,7 +361,11 @@ public sealed partial class MarqueeCore
     {
         if (_cursor is { } cursor)
         {
-            feedback.ApplyCursor(cursor, _effects);
+            // カーソル移動は表示上の追従であり、失敗しても選択操作は続行する（値で返された失敗をここで記録する）
+            if (!feedback.ApplyCursor(cursor, _effects))
+            {
+                Log.LogCursorMoveFailed(feedback.CursorSourcePosition);
+            }
         }
 
         feedback.ApplyVisual(_effects);

@@ -51,11 +51,19 @@ public class MarqueeControlTests
         /// <summary>SetCursorScreenPoint で最後に設定された画面物理座標。</summary>
         public EsPointInt? LastSetPoint { get; private set; }
 
-        /// <summary>現在のカーソル位置（画面物理座標）。</summary>
-        public EsPointInt GetCursorScreenPoint() => Position;
+        /// <summary>現在のカーソル位置（画面物理座標）を取得する。</summary>
+        public bool TryGetCursorScreenPoint(out EsPointInt point)
+        {
+            point = Position;
+            return true;
+        }
 
         /// <summary>カーソルを画面物理座標へ移動する。</summary>
-        public void SetCursorScreenPoint(EsPointInt point) => LastSetPoint = point;
+        public bool TrySetCursorScreenPoint(EsPointInt point)
+        {
+            LastSetPoint = point;
+            return true;
+        }
 
         /// <summary>マウスポインターの表示 / 非表示切替。</summary>
         public void ShowCursor(bool show) => IsVisible = show;

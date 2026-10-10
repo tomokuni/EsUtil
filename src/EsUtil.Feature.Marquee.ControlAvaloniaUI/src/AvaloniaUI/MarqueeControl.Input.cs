@@ -63,7 +63,12 @@ public partial class MarqueeControl
             return null;
         }
 
-        var screenPoint = _cursor.GetCursorScreenPoint();
+        // 位置を取得できない場合は基点を記録しない（失敗を原点で表さないため Try 系を使う）
+        if (!_cursor.TryGetCursorScreenPoint(out var screenPoint))
+        {
+            return null;
+        }
+
         var localDip = ScreenConverter.ScreenToLocalDip(this, screenPoint.ToAvaloniaPixelPoint()).ToEsPoint();
         return _marquee.ToSource(localDip);
     }

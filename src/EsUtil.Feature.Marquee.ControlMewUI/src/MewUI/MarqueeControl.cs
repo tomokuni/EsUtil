@@ -736,8 +736,13 @@ public sealed class MarqueeControl : Panel
             return null;
         }
 
-        var screen = _cursor.GetCursorScreenPoint();
-        var local = window.ScreenToClient(screen.ToMewUIPoint());
+        // 位置を取得できない場合は基点を記録しない（失敗を原点で表さないため Try 系を使う）
+        if (!_cursor.TryGetCursorScreenPoint(out var screenPoint))
+        {
+            return null;
+        }
+
+        var local = window.ScreenToClient(screenPoint.ToMewUIPoint());
         return _marquee.ToSource(local.ToEsPoint());
     }
 

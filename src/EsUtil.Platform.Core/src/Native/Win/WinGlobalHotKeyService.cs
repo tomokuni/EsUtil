@@ -1,7 +1,5 @@
-using System.Globalization;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
-using EsUtil.Platform.Core.Native.Logging;
-using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
@@ -9,15 +7,13 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <remarks>
 /// RegisterHotKey / UnregisterHotKey Win32 API でホットキーを登録管理し、<br/>
 /// WndProc サブクラス化で WM_HOTKEY メッセージを捕捉して <see cref="Subscribe"/> の購読者へ配信する。<br/>
-/// P/Invoke 呼び出しは <c>EsUtil.Platform.Core.Native.Win.WinNative</c> に委譲する。<br/>
+/// P/Invoke 呼び出しは <c>WinNative</c> に委譲する。<br/>
 /// デリゲートはフィールドに保持し、WndProc の呼び出し中に GC されないようにする。<br/>
-/// <b>OS 操作の失敗は記録する</b>（登録・解除・WndProc の差し替え）。 登録の失敗は他のアプリが同じ組み合わせを<br/>
-/// 使用している場合にも起こり、その場合はホットキーが機能しない（原因をログから特定できるようにする）。
+/// <b>ログを出力しない</b>: 失敗の種類に応じて例外または戻り値で呼び出し側へ渡し、記録は呼び出し側が行う。<br/>
+/// 継承不可。<br/>
 /// </remarks>
 /// <typeparam name="T">ホットキーに割り当てるアクションの識別子。</typeparam>
-/// <remarks><see cref="WinGlobalHotKeyService{T}"/> の新しいインスタンスを初期化します。</remarks>
-/// <param name="logger">ロガー。 null の場合は出力なし。</param>
-public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalHotKeyService<T> where T : notnull
+public sealed class WinGlobalHotKeyService<T> : IGlobalHotKeyService<T> where T : notnull
 {
     private IntPtr _hWnd;
     private IntPtr _originalWndProc;
@@ -25,7 +21,6 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
     private int _currentId;
     private readonly Dictionary<int, T> _registeredHotKeys = [];
     private readonly CallbackList<T> _pressed = new();
-    private readonly ILogger _log = logger.OrNullLogger();
     private bool _disposed;
 
     /// <inheritdoc/>
@@ -44,21 +39,36 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
 
         if (_originalWndProc == IntPtr.Zero)
         {
-            // 差し替えに失敗すると、ホットキーを登録できても押下を検出できない
-            _log.LogHotKeySubclassFailed(hWnd.ToString("X", CultureInfo.InvariantCulture));
+            // 差し替えに失敗すると、ホットキーを登録できても押下を検出できない（回復できないため例外にする）
+            _hWnd = IntPtr.Zero;
+            _wndProcDelegate = null;
+            throw new Win32Exception(
+                Marshal.GetLastWin32Error(), "ウィンドウ プロシージャを差し替えられませんでした（ホットキーを受信できません）。");
         }
     }
 
     /// <inheritdoc/>
-    public void RegisterAll(IReadOnlyList<(T Action, HotKeySetting Setting)> registrations)
+    /// <remarks>
+    /// 失敗した組を返す（他のアプリが同じ組み合わせを使用している場合にも起こり、
+    /// <b>そのホットキーが機能しないだけ</b>でアプリは継続できる）。
+    /// </remarks>
+    public IReadOnlyList<(T Action, HotKeySetting Setting)> RegisterAll(
+        IReadOnlyList<(T Action, HotKeySetting Setting)> registrations)
     {
         ArgumentNullException.ThrowIfNull(registrations);
         // 全解除は一度だけ行う（RegisterCore 内では解除しない。 空辞書の無駄なスキャンを回避）
         UnregisterAll();
+
+        var failed = new List<(T Action, HotKeySetting Setting)>();
         foreach (var (action, setting) in registrations)
         {
-            RegisterCore(action, setting);
+            if (!RegisterCore(action, setting))
+            {
+                failed.Add((action, setting));
+            }
         }
+
+        return failed;
     }
 
     /// <inheritdoc/>
@@ -66,10 +76,7 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
     {
         foreach (var id in _registeredHotKeys.Keys)
         {
-            if (!WinNative.UnregisterHotKey(_hWnd, id))
-            {
-                _log.LogHotKeyUnregisterFailed(id);
-            }
+            _ = WinNative.UnregisterHotKey(_hWnd, id);
         }
         _registeredHotKeys.Clear();
     }
@@ -111,25 +118,25 @@ public sealed class WinGlobalHotKeyService<T>(ILogger? logger = null) : IGlobalH
         return WinNative.CallWindowProc(_originalWndProc, hWnd, msg, wParam, lParam);
     }
 
-    /// <summary>1件のホットキーを登録する。</summary>
+    /// <summary>1 件のホットキーを登録する。</summary>
+    /// <param name="action">押下時に配信するアクション。</param>
+    /// <param name="setting">登録する組み合わせ。</param>
+    /// <returns>登録できた場合は <see langword="true"/>。</returns>
     /// <remarks>
     /// <see cref="RegisterAll"/> が事前に全解除しているため、個別解除は行わない。<br/>
-    /// 登録に失敗した場合は記録する（失敗したホットキーは <see cref="Subscribe"/> の購読者へ配信されない）。
+    /// 登録に失敗した場合は <see langword="false"/> を返す（失敗したホットキーは <see cref="Subscribe"/> の購読者へ配信されない）。
     /// </remarks>
-    private void RegisterCore(T action, HotKeySetting setting)
+    private bool RegisterCore(T action, HotKeySetting setting)
     {
         var id = ++_currentId;
         var modifiers = (int)setting.Modifiers;
         var key = WinNative.KeyToWin32VirtualKey(setting.Key);
-        if (WinNative.RegisterHotKey(_hWnd, id, modifiers, key))
+        if (!WinNative.RegisterHotKey(_hWnd, id, modifiers, key))
         {
-            _registeredHotKeys[id] = action;
-            return;
+            return false;
         }
 
-        _log.LogHotKeyRegisterFailed(id, modifiers, (int)key);
+        _registeredHotKeys[id] = action;
+        return true;
     }
 }
-
-
-

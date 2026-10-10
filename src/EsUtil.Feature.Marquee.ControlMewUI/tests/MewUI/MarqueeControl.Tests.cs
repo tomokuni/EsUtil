@@ -20,17 +20,22 @@ internal sealed class CursorServiceSpy : ICursorService
     /// <summary>カーソル位置の設定履歴（呼び出し順）。</summary>
     public List<EsPointInt> MovedCalls { get; } = [];
 
-    /// <summary><see cref="ICursorService.GetCursorScreenPoint"/> の戻り値。</summary>
+    /// <summary><see cref="ICursorService.TryGetCursorScreenPoint"/> の戻り値。</summary>
     public EsPointInt CursorPoint { get; set; }
 
     /// <inheritdoc/>
-    public EsPointInt GetCursorScreenPoint() => CursorPoint;
+    public bool TryGetCursorScreenPoint(out EsPointInt point)
+    {
+        point = CursorPoint;
+        return true;
+    }
 
     /// <inheritdoc/>
-    public void SetCursorScreenPoint(EsPointInt point)
+    public bool TrySetCursorScreenPoint(EsPointInt point)
     {
         CursorPoint = point;
         MovedCalls.Add(point);
+        return true;
     }
 
     /// <inheritdoc/>

@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- ロガーの null を NullLogger へ吸収する共通ヘルパー（LoggerFallback）。全 UI 実装・アプリが参照する本プロジェクトが単一所有する -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+    <!-- 外部パッケージを参照しない（MEL / System.Drawing を使わない）
+         ログは呼び出し側が所有し、OS 操作の失敗は例外または bool の戻り値で表す。 -->
   </ItemGroup>
 
   <ItemGroup>

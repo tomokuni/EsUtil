@@ -4,6 +4,7 @@ using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
 
 
@@ -76,7 +77,7 @@ public sealed partial class LoupeCore
     }
 
     /// <summary>設定の変更ログの出力先を取得または設定する。</summary>
-    /// <value>ロガー。 null を設定した場合は出力なし（<see cref="LoggerFallback"/> が吸収する）。</value>
+    /// <value>ロガー。 null を設定した場合は出力なし（<c>?? NullLogger.Instance</c> で吸収する）。</value>
     /// <remarks>
     /// ログ基盤（ファイル出力・レベル制御）はホストが所有し、本コアは定義（<see cref="LoupeLogMessage"/>）だけを持つ。<br/>
     /// 設定・環境値・拡大中心の変更は本コアが検出して出力する（UI 層に同値判定・差分検出・変換を持たせない）。<br/>
@@ -85,10 +86,10 @@ public sealed partial class LoupeCore
     /// </remarks>
     public ILogger Log
     {
-        get => field.OrNullLogger();
+        get => field ?? NullLogger.Instance;
         set
         {
-            field = value.OrNullLogger();
+            field = value ?? NullLogger.Instance;
             LogCreatedOnce();
             Log.LogLoggerAttached();
         }

@@ -143,7 +143,7 @@ public partial class MarqueePresenter
     public Func<EsRect, double>? SizeLabelDisplayScalingProvider { get; set; }
 
     /// <summary>設定の変更ログの出力先を取得または設定する。</summary>
-    /// <value>ロガー。 null を設定した場合は出力なし（コアが <c>LoggerFallback</c> で吸収する）。</value>
+    /// <value>ロガー。 null を設定した場合は出力なし（コアが <c>?? NullLogger.Instance</c> で吸収する）。</value>
     /// <remarks>
     /// 保持はコアが単一所有する（本層は委譲するだけである）。<br/>
     /// <b>生成の記録</b>: コンストラクターでロガーが注入されていない場合、本プロパティの <b>初回の設定時</b>に<br/>

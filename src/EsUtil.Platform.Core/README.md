@@ -41,13 +41,13 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | 画像のファイル入出力 | `Native.Imaging.EsBitmapFileExtensions`（`Save` / `Load`。 **形式は拡張子が決める**。 BMP / PNG / JPEG / GIF / TIFF。 OS の GDI+ を使う Windows 専用で、外部パッケージは参照しない） |
 | OS サービス抽象 | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` |
 | Windows 実装 | `Native.Win.*`（Win32 P/Invoke。 ホストが生成して注入する） |
-| 補助 | `EsPlatformHandle` / `LoggerFallback` / `DrawingColorExtensions` |
+| 補助 | `EsPlatformHandle` / `DrawingColorExtensions` |
 
 各 UI 実装は、自身の型とコア型を相互変換する Interop 層を個別に提供します（本プロジェクトは UI 型を参照しないため、変換は利用側が持ちます）。
 
 ## 4. 依存
 
-- 外部パッケージは `Microsoft.Extensions.Logging.Abstractions` のみです（画像のファイル入出力は OS の `gdiplus.dll` を直接呼び、外部パッケージを参照しません）。
+- 外部パッケージを参照しません（画像のファイル入出力は OS の `gdiplus.dll` を直接呼びます）。
 - UI フレームワーク（Avalonia / MewUI / WinUI / WinForms）と SkiaSharp を参照しません（Skia への依存は Skia を使用する層が単一所有する）。
 - 他のプロジェクトは本プロジェクトへ依存します（本プロジェクトは他のプロジェクトを参照しません）。
 

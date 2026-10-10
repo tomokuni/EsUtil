@@ -356,6 +356,27 @@ internal static partial class MarqueeLogMessage
         logger.LogSettingChanged(nameof(MarqueeOptions.ClampToSourceBounds), oldValue.ClampToSourceBounds, newValue.ClampToSourceBounds);
     }
 
+    /// <summary>カーソルの移動に失敗したログ（表示上の追従のみが失敗した状態）。</summary>
+    /// <remarks>
+    /// LogLevel: Warning <br/>
+    /// 出力書式: <c>{Prefix} Cursor move failed: source=({X}, {Y})</c><br/>
+    /// <b>値で返された失敗を記録する唯一の場所</b>: カーソル移動は表示上の追従であり、
+    /// 失敗しても選択操作は続行する（コアは失敗を記録せず、値として呼び出し側へ返す）。
+    /// </remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="sourcePosition">移動先（対象座標）。</param>
+    internal static void LogCursorMoveFailed(this ILogger logger, EsPoint sourcePosition)
+        => logger.LogCursorMoveFailedCore(Prefix, sourcePosition.X, sourcePosition.Y);
+
+    /// <summary>カーソルの移動に失敗したログ（接頭辞を引数で受ける）。</summary>
+    /// <remarks>LogLevel: Warning<br/>出力書式: <c>[Marquee] Cursor move failed: source=({X}, {Y})</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="x">移動先の X 座標（対象座標）。</param>
+    /// <param name="y">移動先の Y 座標（対象座標）。</param>
+    [LoggerMessage(LogLevel.Warning, "{Prefix} Cursor move failed: source=({X}, {Y})")]
+    private static partial void LogCursorMoveFailedCore(this ILogger logger, string prefix, double x, double y);
+
     /// <summary>矩形を <c>(X, Y, W, H)</c> 形式の文字列へ整形する。</summary>
     /// <param name="rect">整形する矩形。 未指定は null。</param>
     /// <returns><c>(X, Y, W, H)</c> 形式の文字列。 未指定は <c>null</c>。</returns>

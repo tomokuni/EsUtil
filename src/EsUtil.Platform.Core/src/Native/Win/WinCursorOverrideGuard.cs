@@ -1,7 +1,4 @@
-using System.Globalization;
 using System.Runtime.InteropServices;
-using EsUtil.Platform.Core.Native.Logging;
-using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
@@ -14,13 +11,12 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <br/>
 /// Windows 固有のメッセージ番号（WM_SETCURSOR）とヒットテスト値（HTCLIENT）の判定は本クラスに内蔵し、<br/>
 /// 利用側にはアタッチのみを公開する（プラットフォーム分離）。<br/>
-/// <b>OS 操作の失敗は記録する</b>（WndProc の差し替え）。<br/>
+/// <b>失敗は <see cref="IsAttached"/> で判別できる</b>: 差し替えに失敗した場合は false のままになり、
+/// 例外にしない（抑止できないだけで選択操作は成立するため）。 記録は呼び出し側が行う。<br/>
 /// ホスト（アプリ）が生成して注入する（テストではモックを注入できる）。<br/>
 /// 継承不可。<br/>
 /// </remarks>
-/// <remarks><see cref="WinCursorOverrideGuard"/> の新しいインスタンスを初期化します。</remarks>
-/// <param name="logger">ロガー。 null の場合は出力なし。</param>
-public sealed class WinCursorOverrideGuard(ILogger? logger = null) : ICursorOverrideGuard
+public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
 {
     /// <summary>lParam 下位ワード（ヒットテスト結果）を取得するための 16bit マスク。</summary>
     private const int LowWordMask = 0xFFFF;
@@ -34,10 +30,8 @@ public sealed class WinCursorOverrideGuard(ILogger? logger = null) : ICursorOver
     /// <summary>サブクラス化した WndProc デリゲート。 GC 防止のためフィールドに保持する。</summary>
     private WinNative.WndProcDelegate? _wndProcDelegate;
 
-    /// <summary>ロガー（null の場合は出力なし）。</summary>
-    private readonly ILogger _log = logger.OrNullLogger();
-
     /// <summary>サブクラス化が設定されているかどうか。</summary>
+    /// <remarks><see cref="Attach"/> が成功したかどうかを表す唯一の値である（差し替えに失敗した場合は false のまま）。</remarks>
     public bool IsAttached => _hwnd != IntPtr.Zero;
 
     /// <summary>指定したウィンドウの WndProc をサブクラス化する。</summary>
@@ -45,6 +39,8 @@ public sealed class WinCursorOverrideGuard(ILogger? logger = null) : ICursorOver
     /// <remarks>
     /// ネイティブハンドルを取得できない場合（デザインモード等）は何もしない（<see cref="IsAttached"/> は false のまま）。<br/>
     /// 既にアタッチ済みの場合は何もしない。<br/>
+    /// <b>例外にしない理由</b>: 差し替えに失敗しても<b>カーソル形状が上書きされるだけ</b>で、
+    /// 選択操作そのものは成立する（呼び出し側は <see cref="IsAttached"/> で成否を判断できる）。
     /// </remarks>
     public void Attach(EsPlatformHandle handle)
     {
@@ -58,8 +54,9 @@ public sealed class WinCursorOverrideGuard(ILogger? logger = null) : ICursorOver
 
         if (_originalWndProc == IntPtr.Zero)
         {
-            // 差し替えに失敗すると OS によるカーソル上書きを抑止できない（OS 操作の失敗）
-            _log.LogCursorGuardSubclassFailed(hwnd.ToString("X", CultureInfo.InvariantCulture));
+            // 差し替えに失敗した状態を残さない（IsAttached を false に戻し、呼び出し側が判別できるようにする）
+            _hwnd = IntPtr.Zero;
+            _wndProcDelegate = null;
         }
     }
 
@@ -96,6 +93,3 @@ public sealed class WinCursorOverrideGuard(ILogger? logger = null) : ICursorOver
         return WinNative.CallWindowProc(_originalWndProc, hWnd, msg, wParam, lParam);
     }
 }
-
-
-

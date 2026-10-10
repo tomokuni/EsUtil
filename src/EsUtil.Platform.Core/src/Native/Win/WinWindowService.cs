@@ -1,35 +1,24 @@
-using System.Globalization;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Native.Logging;
-using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
 /// <summary>Win32 API を用いたネイティブウィンドウ操作を提供する。</summary>
 /// <remarks>
-/// オーバーレイウィンドウに必要なネイティブウィンドウ操作（Alt+Tab 非表示・UI ハング時の退避）を提供する。<br/>
+/// オーバーレイウィンドウに必要なネイティブウィンドウ操作（Alt+Tab 非表示・キャプチャ除外・配置・退避）を提供する。<br/>
 /// P/Invoke 呼び出しは <c>WinNative</c> に委譲する。<br/>
 /// <see cref="IWindowService"/> の実装であり、テスト時のモックに備える。<br/>
 /// ウィンドウの特定は <see cref="EsPlatformHandle"/>（UI 非依存の識別子）で行い、<br/>
 /// 本クラスは Avalonia オブジェクト（TopLevel 等）に一切触れない（スレッド非依存・ハング時退避に適合）。<br/>
+/// <b>ログを出力しない</b>: OS 操作の失敗は <see cref="Win32Exception"/> で呼び出し側へ渡し、記録は呼び出し側が行う。<br/>
 /// ホスト（アプリ）が生成して注入する（テストではモックを注入できる）。<br/>
 /// 継承不可。<br/>
 /// </remarks>
-/// <remarks><see cref="WinWindowService"/> の新しいインスタンスを初期化します。</remarks>
-/// <param name="logger">ロガー。 null の場合は出力なし。</param>
-public sealed class WinWindowService(ILogger? logger = null) : IWindowService
+public sealed class WinWindowService : IWindowService
 {
-    /// <summary>ロガー（null の場合は出力なし）。</summary>
-    private readonly ILogger _log = logger.OrNullLogger();
-
     /// <summary>ウィンドウをタスクバー / Alt+Tab に表示しないよう設定する（選択オーバーレイ用、仕様 2.2）。</summary>
-    /// <param name="handle">対象ウィンドウの識別子。</param>
-    /// <remarks>
-    /// WS_EX_TOOLWINDOW を拡張スタイルに追加し、Alt+Tab の切り替え候補から除外する。<br/>
-    /// 無効なハンドルの場合は何もしない。<br/>
-    /// <b>現在のスタイルを取得できない場合は書き換えない</b>（取得できない状態で書き換えると、既存の<br/>
-    /// 拡張スタイルのビットを失いウィンドウの振る舞いを壊すため。 失敗は記録する）。
-    /// </remarks>
+    /// <inheritdoc/>
     public void HideFromTaskSwitcher(EsPlatformHandle handle)
     {
         var nativeHwnd = handle.Handle;
@@ -38,25 +27,21 @@ public sealed class WinWindowService(ILogger? logger = null) : IWindowService
         var exStyle = WinNative.GetWindowLongPtr(nativeHwnd, WinNative.GWL_EXSTYLE);
         if (exStyle == IntPtr.Zero)
         {
-            _log.LogWindowStyleQueryFailed(nativeHwnd.ToString("X", CultureInfo.InvariantCulture));
-            return;
+            // 取得できない状態で書き換えると既存の拡張スタイルのビットを失うため、書き換えずに失敗として通知する
+            throw new Win32Exception(
+                Marshal.GetLastWin32Error(), "ウィンドウの拡張スタイルを取得できませんでした（Alt+Tab の候補から除外できません）。");
         }
 
-        var success = WinNative.SetWindowLongPtr(nativeHwnd, WinNative.GWL_EXSTYLE,
-            new IntPtr(exStyle.ToInt64() | WinNative.WS_EX_TOOLWINDOW)) != IntPtr.Zero;
-        _log.LogWindowHiddenFromTaskSwitcher(nativeHwnd.ToString("X", CultureInfo.InvariantCulture), success);
+        if (WinNative.SetWindowLongPtr(
+                nativeHwnd, WinNative.GWL_EXSTYLE, new IntPtr(exStyle.ToInt64() | WinNative.WS_EX_TOOLWINDOW)) == IntPtr.Zero)
+        {
+            throw new Win32Exception(
+                Marshal.GetLastWin32Error(), "ウィンドウを Alt+Tab の候補から除外できませんでした（拡張スタイルを設定できません）。");
+        }
     }
 
     /// <summary>ウィンドウをキャプチャから除外する/除外を解除する（仕様 6.2.1）。</summary>
-    /// <param name="handle">対象ウィンドウの識別子。</param>
-    /// <param name="exclude">キャプチャ除外する場合は <see langword="true"/>。</param>
-    /// <returns>成功した場合は <see langword="true"/>。</returns>
-    /// <remarks>
-    /// WDA_EXCLUDEFROMCAPTURE により、そのウィンドウは画面キャプチャ（CopyFromScreen / DXGI 等）に
-    /// 一切写らなくなる（フレームタイミングに依存しない決定的な除外）。<br/>
-    /// 除外設定時のみ DWM の再合成待ち（<c>DwmFlush</c>）を行い、設定直後のキャプチャを防ぐ。<br/>
-    /// Windows 10 2004（build 19041）以降で利用可能。 それ以前では失敗（false）を返す。<br/>
-    /// </remarks>
+    /// <inheritdoc/>
     public bool SetCaptureExclusion(EsPlatformHandle handle, bool exclude)
     {
         var nativeHwnd = handle.Handle;
@@ -64,65 +49,51 @@ public sealed class WinWindowService(ILogger? logger = null) : IWindowService
 
         var affinity = exclude ? WinNative.WDA_EXCLUDEFROMCAPTURE : WinNative.WDA_NONE;
         var success = WinNative.SetWindowDisplayAffinity(nativeHwnd, affinity);
-        _log.LogCaptureExclusionChanged(nativeHwnd.ToString("X", CultureInfo.InvariantCulture), exclude, success);
         if (success && exclude)
         {
             // 除外設定が DWM に反映されるまで 1 フレーム待つ（設定直後のキャプチャを防ぐ）
             _ = WinNative.DwmFlush();
         }
+
         return success;
     }
 
     /// <summary>ウィンドウの位置とサイズを画面物理ピクセルで指定する（仕様 2.3）。</summary>
-    /// <param name="handle">対象ウィンドウの識別子。</param>
-    /// <param name="bounds">設定する矩形（画面物理ピクセル。 負の座標可）。</param>
-    /// <returns>成功した場合は <see langword="true"/>。</returns>
-    /// <remarks>
-    /// SetWindowPos により、OS の作業領域補正を受けずに物理ピクセルで配置する。<br/>
-    /// Z オーダーとアクティブ状態は変更しない（<c>SWP_NOZORDER</c> / <c>SWP_NOACTIVATE</c>）。<br/>
-    /// 無効なハンドルの場合は何もしない（false）。<br/>
-    /// </remarks>
-    public bool SetBounds(EsPlatformHandle handle, EsRectInt bounds)
+    /// <inheritdoc/>
+    public void SetBounds(EsPlatformHandle handle, EsRectInt bounds)
     {
         var nativeHwnd = handle.Handle;
-        if (nativeHwnd == IntPtr.Zero) return false;
+        if (nativeHwnd == IntPtr.Zero) return;
 
-        var success = WinNative.SetWindowPos(nativeHwnd, IntPtr.Zero,
-            bounds.X, bounds.Y, bounds.Width, bounds.Height,
-            WinNative.SWP_NOZORDER | WinNative.SWP_NOACTIVATE);
-        _log.LogWindowBoundsChanged(nativeHwnd.ToString("X", CultureInfo.InvariantCulture), bounds.X, bounds.Y, bounds.Width, bounds.Height, success);
-        return success;
+        if (!WinNative.SetWindowPos(
+                nativeHwnd, IntPtr.Zero, bounds.X, bounds.Y, bounds.Width, bounds.Height,
+                WinNative.SWP_NOZORDER | WinNative.SWP_NOACTIVATE))
+        {
+            throw new Win32Exception(
+                Marshal.GetLastWin32Error(),
+                $"ウィンドウの位置とサイズを設定できませんでした（({bounds.X}, {bounds.Y}, {bounds.Width}, {bounds.Height})）。");
+        }
     }
 
     /// <summary>ウィンドウを最前面解除し、非表示にして閉じる（UI ハング時の退避、仕様 3.6）。</summary>
-    /// <param name="handle">対象ウィンドウの識別子。</param>
+    /// <inheritdoc/>
     /// <remarks>
-    /// UI スレッドがハングした場合にバックグラウンドスレッドから呼び出され、<br/>
-    /// タスクマネージャー等でプロセスを終了できるようにする。<br/>
-    /// 1. Topmost を解除（タスクマネージャー等が前面に出せるようにする）<br/>
-    /// 2. ウィンドウを非表示にする（全画面オーバーレイが邪魔しないようにする）<br/>
-    /// 3. WM_CLOSE を送信（UI スレッドが復帰した場合に自動キャンセル処理が走る）<br/>
-    /// Win32 API はスレッド非依存のため、バックグラウンドスレッドから呼び出し可能。<br/>
-    /// 本メソッドは <see cref="EsPlatformHandle"/>（数値）のみを使用し、UI オブジェクトに触れない。<br/>
+    /// <b>ベストエフォート</b>: 各手順は独立に実行し、1 つが失敗しても残りを続行する
+    /// （呼び出し元はウォッチドッグであり、代替手段が無いため失敗を返しても回復できない）。
     /// </remarks>
     public void EvacuateWindow(EsPlatformHandle handle)
     {
         var nativeHwnd = handle.Handle;
         if (nativeHwnd == IntPtr.Zero) return;
 
-        // 1. Topmost を解除
-        var unsetTopmost = WinNative.SetWindowPos(nativeHwnd, WinNative.HWND_NOTOPMOST, 0, 0, 0, 0,
+        // 1. Topmost を解除（タスクマネージャー等が前面に出せるようにする）
+        _ = WinNative.SetWindowPos(nativeHwnd, WinNative.HWND_NOTOPMOST, 0, 0, 0, 0,
             WinNative.SWP_NOMOVE | WinNative.SWP_NOSIZE | WinNative.SWP_NOACTIVATE);
 
         // 2. ウィンドウを非表示にする（戻り値は非表示化の前の可視状態であり、失敗を意味しない）
-        var wasVisible = WinNative.ShowWindow(nativeHwnd, WinNative.SW_HIDE);
+        _ = WinNative.ShowWindow(nativeHwnd, WinNative.SW_HIDE);
 
-        // 3. WM_CLOSE を送信
-        var posted = WinNative.PostMessage(nativeHwnd, WinNative.WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
-
-        // OS 操作の結果を記録する（いずれかが失敗しても処理は続行する。 退避はベストエフォート）
-        _log.LogWindowEvacuated(nativeHwnd.ToString("X", CultureInfo.InvariantCulture), unsetTopmost, wasVisible, posted);
+        // 3. WM_CLOSE を送信（UI スレッドが復帰した場合に自動キャンセル処理が走る）
+        _ = WinNative.PostMessage(nativeHwnd, WinNative.WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
     }
 }
-
-

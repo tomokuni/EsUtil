@@ -13,17 +13,22 @@ internal sealed class CursorServiceSpy : ICursorService
     /// <summary>呼び出しの履歴（種類と値。 呼び出し順の検証に使用する）。</summary>
     public List<string> Calls { get; } = [];
 
-    /// <summary><see cref="ICursorService.GetCursorScreenPoint"/> の戻り値。</summary>
+    /// <summary><see cref="ICursorService.TryGetCursorScreenPoint"/> の戻り値。</summary>
     public EsPointInt CursorPoint { get; set; }
 
     /// <inheritdoc/>
-    public EsPointInt GetCursorScreenPoint() => CursorPoint;
+    public bool TryGetCursorScreenPoint(out EsPointInt point)
+    {
+        point = CursorPoint;
+        return true;
+    }
 
     /// <inheritdoc/>
-    public void SetCursorScreenPoint(EsPointInt point)
+    public bool TrySetCursorScreenPoint(EsPointInt point)
     {
         CursorPoint = point;
         Calls.Add($"move:{point.X},{point.Y}");
+        return true;
     }
 
     /// <inheritdoc/>

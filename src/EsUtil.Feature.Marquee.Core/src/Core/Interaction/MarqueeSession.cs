@@ -36,7 +36,7 @@ internal sealed class MarqueeSession
     /// <summary>選択・ドラッグ・nudge の状態と純粋計算。</summary>
     private readonly MarqueeState _state;
 
-    /// <summary>内部ロガー（未設定は null。 読み取り時に <see cref="LoggerFallback"/> が吸収する）。</summary>
+    /// <summary>内部ロガー（未設定は null。 読み取り時に <c>?? NullLogger.Instance</c> で吸収する）。</summary>
     private ILogger? _log;
 
     /// <summary>状態管理クラスを初期化する。</summary>
@@ -73,7 +73,7 @@ internal sealed class MarqueeSession
     /// <value>注入されたロガー。 null 可（null の場合は <see cref="NullLogger"/> へフォールバックする）。</value>
     internal ILogger Log
     {
-        get => _log.OrNullLogger();
+        get => _log ?? NullLogger.Instance;
         set => _log = value;
     }
 

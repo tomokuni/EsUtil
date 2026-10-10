@@ -327,11 +327,11 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     public ILogger Log
     {
-        get => field.OrNullLogger();
+        get => field ?? NullLogger.Instance;
         set
         {
-            field = value.OrNullLogger();
-            _presenter.Log = value;
+            field = value ?? NullLogger.Instance;
+            _presenter.Log = field;
         }
     }
 

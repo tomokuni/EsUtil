@@ -3,8 +3,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.Platform.Core.Native.Logging;
-using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
@@ -19,11 +17,8 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// 継承不可。<br/>
 /// </remarks>
 [SupportedOSPlatform("windows")]
-public sealed class WinCaptureService(ILogger? logger = null) : ICaptureService
+public sealed class WinCaptureService : ICaptureService
 {
-    /// <summary>内部ロガー（null の場合は出力なしに正規化）。</summary>
-    private readonly ILogger _log = logger.OrNullLogger();
-
     // ====================================================================
     // 公開メソッド（プラットフォーム非依存の型のみ）
     // ====================================================================
@@ -42,7 +37,7 @@ public sealed class WinCaptureService(ILogger? logger = null) : ICaptureService
     /// <b>同期コールである</b>: DWM の応答が止まるとブロックする可能性がある（呼び出し側がタイムアウトで保護する）。<br/>
     /// 公開 API は UI 非依存の型（<see cref="EsWritableBitmap"/> / <see cref="EsRectInt"/>）のみを使用する。<br/>
     /// </remarks>
-    public EsWritableBitmap? CaptureArea(EsRectInt bounds)
+    public EsWritableBitmap CaptureArea(EsRectInt bounds)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bounds.Width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bounds.Height);
@@ -65,12 +60,10 @@ public sealed class WinCaptureService(ILogger? logger = null) : ICaptureService
         origin = new EsPointInt(vx, vy);
         if (vw <= 0 || vh <= 0)
         {
-            // 境界が取得できない場合はキャプチャできない（OS 操作の失敗として記録する）
-            _log.LogVirtualScreenBoundsInvalid(vx, vy, vw, vh);
+            // 境界が取得できない場合はキャプチャできない（null はこの 1 つの意味だけを表す）
             return null;
         }
 
-        _log.LogVirtualScreenBounds(vx, vy, vw, vh);
         return CaptureArea(new EsRectInt(vx, vy, vw, vh));
     }
 
@@ -83,13 +76,12 @@ public sealed class WinCaptureService(ILogger? logger = null) : ICaptureService
     /// <returns>キャプチャした画像。 所有権は呼び出し側へ移る。</returns>
     /// <exception cref="Win32Exception">GDI の操作に失敗した場合。</exception>
     /// <remarks>
-    /// <b>失敗の扱い</b>: GDI の失敗は<b>記録して呼び出し側へ伝搬する</b>（Windows の操作が失敗した原因を残す）。<br/>
+    /// <b>失敗の扱い</b>: GDI の失敗は <see cref="Win32Exception"/> として呼び出し側へ伝搬する
+    /// （Windows の操作が失敗した原因と<b>対象領域</b>をメッセージへ残す）。<br/>
     /// 中途で失敗した場合は確保済みの画像を破棄してから伝搬する（資源の後始末は本クラスが所有する）。
     /// </remarks>
-    private EsWritableBitmap CaptureScreen(EsRectInt bounds)
+    private static EsWritableBitmap CaptureScreen(EsRectInt bounds)
     {
-        _log.LogCaptureArea(bounds.X, bounds.Y, bounds.Width, bounds.Height);
-
         var bitmap = EsWritableBitmap.CreateUninitialized(bounds.Width, bounds.Height);
         try
         {
@@ -97,12 +89,11 @@ public sealed class WinCaptureService(ILogger? logger = null) : ICaptureService
         }
         catch
         {
-            // 記録は CopyScreenInto が行う（ここでは確保済みの画像を破棄して伝搬する）
+            // 確保済みの画像を破棄して伝搬する
             bitmap.Dispose();
             throw;
         }
 
-        _log.LogCaptureAreaDone(bounds.Width, bounds.Height);
         return bitmap;
     }
 
@@ -115,7 +106,7 @@ public sealed class WinCaptureService(ILogger? logger = null) : ICaptureService
     /// <c>BitBlt</c> のコピー元座標は負値を許容する（クリップされる）が、コピー先は常に (0, 0) から始める。<br/>
     /// <c>biHeight</c> を負値にしてトップダウン DIB にする（行の並びを画像と一致させる）。
     /// </remarks>
-    private void CopyScreenInto(IEsWritableBitmap target, EsRectInt bounds)
+    private static void CopyScreenInto(IEsWritableBitmap target, EsRectInt bounds)
     {
         var screenDc = IntPtr.Zero;
         var memoryDc = IntPtr.Zero;
@@ -168,11 +159,6 @@ public sealed class WinCaptureService(ILogger? logger = null) : ICaptureService
             }
 
             CopyPixels(target, bits);
-        }
-        catch (Win32Exception ex)
-        {
-            _log.LogCaptureFailed(bounds.X, bounds.Y, bounds.Width, bounds.Height, ex);
-            throw;
         }
         finally
         {

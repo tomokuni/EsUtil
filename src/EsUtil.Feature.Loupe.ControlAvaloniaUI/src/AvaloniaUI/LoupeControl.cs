@@ -611,7 +611,7 @@ public sealed class LoupeControl : Panel
     /// <remarks>設定・環境値・拡大中心の変更ログはコアが出力するため、同じロガーをコアへも渡す。</remarks>
     public ILogger Log
     {
-        get => _log.OrNullLogger();
+        get => _log ?? NullLogger.Instance;
         set
         {
             _log = value;
@@ -639,7 +639,7 @@ public sealed class LoupeControl : Panel
     /// <summary>ログの接頭辞（未設定は null。 既定値は定義クラスが持つ）。</summary>
     private string? _logPrefix;
 
-    /// <summary>内部ロガー（未設定は null。 読み取り時に <see cref="LoggerFallback"/> が吸収する）。</summary>
+    /// <summary>内部ロガー（未設定は null。 読み取り時に <c>?? NullLogger.Instance</c> で吸収する）。</summary>
     private ILogger? _log;
 
     // ====================================================================

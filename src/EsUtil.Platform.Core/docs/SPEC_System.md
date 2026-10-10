@@ -26,7 +26,7 @@ UI フレームワーク非依存の共通基盤の型を提供するライブ�
 ## 2. 技術スタック
 
 - .NET 10 / C# 14
-- Microsoft.Extensions.Logging.Abstractions（`LoggerFallback` のロガー抽象のみ。 Microsoft 公式パッケージ）
+- 外部パッケージを参照しない（ログは呼び出し側が所有し、OS 操作は OS の API を直接呼ぶ）
 - OS 標準のコーデック（`gdiplus.dll` のフラット API。 `src/EsUtil.Platform.Core/src/Native/Imaging` の画像ファイル入出力のみ。 Windows 専用。 **外部パッケージは参照しない**）
 - UI フレームワークは一切参照しない
 
@@ -58,7 +58,6 @@ graph LR
 | `src/EsUtil.Platform.Core/src/Native/ICursorOverrideGuard.cs` | カーソル上書き抑止の抽象 |
 | `src/EsUtil.Platform.Core/src/Native/IGlobalHotKeyService.cs` | グローバルホットキー管理の抽象 |
 | `src/EsUtil.Platform.Core/src/Native/ElementFinderResults.cs` | 要素検出の結果（`readonly record struct`） |
-| `src/EsUtil.Platform.Core/src/Native/Logging/NativeLogMessage.cs` | Win 実装が出力するログ定義（internal。 本ファイルに集約する） |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinNative.cs` | Win32 P/Invoke の宣言集約（internal） |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinCaptureService.cs` | `ICaptureService` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinCursorService.cs` | `ICursorService` の Windows 実装 |
@@ -69,7 +68,6 @@ graph LR
 | `src/EsUtil.Platform.Core/src/Native/Imaging/EsBitmapFileExtensions.cs` | 画像のファイル保存・読み込み（GDI+。 Windows 専用） |
 | `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusNative.cs` | GDI+ のフラット API の宣言集約（internal） |
 | `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusLifetime.cs` | GDI+ のプロセス単位の初期化（internal・1 回だけ実行） |
-| `LoggerFallback.cs` | ロガーの null を `NullLogger.Instance` へ吸収する共通ヘルパー（拡張メソッド `OrNullLogger`） |
 | `src/EsUtil.Platform.Core/src/Coord/ScrollMath.cs` | スクロール範囲・ビューポートサイズの純粋計算とホイール 1 段のスクロール量（`WheelScrollUnit`） |
 | `src/EsUtil.Platform.Core/src/Coord/DpiScaler.cs` | DIP 値を物理ピクセルへ変換する純粋計算（DPI 基準値と DPI → スケーリング換算を含む） |
 | `src/EsUtil.Platform.Core/src/Coord/CoordTransformExtensions.cs` | 座標変換ポート未設定（null）を等価変換として解決する |
@@ -101,19 +99,16 @@ graph LR
 
 ## 6. ログ出力ポリシー
 
-**値型・列挙型・純粋計算（`Geometry/` / `Imaging/` / `Coord/` / `LoggerFallback`）はログを出力しません**（ログ定義も持ちません）。 同じ入力からは同じ結果が得られ、失敗は例外として呼び出し側へ返るため、記録すべき状態がありません。
+**本プロジェクトはログを出力しません**（`Microsoft.Extensions.Logging.Abstractions` を参照しないため `ILogger` を扱えず、ログ定義も持ちません。 規約は [`.github/ログ規約.md`](../../../.github/ログ規約.md) §3・§6 が所有します）。
 
-ログを出力するのは `Native/` 配下の Windows 実装だけです（`WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinGlobalHotKeyService` / `WinCursorOverrideGuard` と、その定義 `Native.Logging.NativeLogMessage`）。 出力元の層は接頭辞 `[Platform.Core]` で 、出力元の対象はメッセージ本文（`Cursor` / `WindowService` / `CaptureService` / `ElementFinder` / `GlobalHotKey` / `CursorGuard`）で読み分けられます。
+失敗は**例外または戻り値**で呼び出し側へ返し、記録は呼び出し側の層が行います（[`.github/例外処理規約.md`](../../../.github/例外処理規約.md) §2・§3）。
 
-**OS 操作の失敗はすべて記録します**（成否を返す API は結果を含めて出力し、失敗した場合に別の結果を返す API は失敗専用の定義を出力する）。 ただし列挙の内部で 1 件ごとに発生しうる失敗（矩形を取得できないウィンドウの除外）は Debug とし、既定の出力では溢れさせません。
-
-| 出力元 | 内容（LogLevel） | 出力する理由 |
+| 失敗の種類 | 表し方 | 例 |
 | --- | --- | --- |
-| `WinCaptureService` | 仮想スクリーンの範囲・キャプチャの完了（Debug） | OS の状態（モニタ構成・DPI）に依存し、失敗の原因が呼び出し側のコードに現れない |
-| `WinCursorService` | カーソル表示状態の変更（Information） | Win32 API の戻り値が真偽のみであり、実際に適用されたかを呼び出し側で確認できない |
-| `WinWindowService` | ウィンドウの非表示・キャプチャ除外・領域設定（Information）と、ハング時の退避（Warning） | 対象ウィンドウが外部プロセスに属するため、操作の成否を呼び出し側で再現できない |
-
-`Native/` 配下は「OS 操作が外部要因で失敗しうる」唯一の領域であり、原因を残せるのがログだけであるため例外とします。 **高頻度の呼び出し（カーソル位置の取得・マウス移動に伴う操作）はログ対象外**とし、記録するのは状態が変化したときだけです。
+| OS 操作の失敗（回復できない） | `Win32Exception` を投げる（日本語のメッセージに**操作と対象**を含める） | `WinCaptureService.CaptureArea` / `WinWindowService.SetBounds` / `WinGlobalHotKeyService.Initialize` |
+| 能力の有無・正常な入力の変種 | `bool` の戻り値 | `WinWindowService.SetCaptureExclusion`（Windows 10 2004 未満）/ `WinGlobalHotKeyService.RegisterAll`（他のアプリとの競合）/ `ICursorService.TryGetCursorScreenPoint` |
+| 該当なし | 空の結果 | `WinElementFinder`（見つからない） |
+| 取得できない（撮影の前提が欠ける） | `null` | `WinCaptureService.CaptureVirtualScreen`（仮想スクリーンの境界が測れない） |
 
 ## 7. 設計判断（UI 非依存の境界）
 
@@ -126,7 +121,7 @@ graph LR
 | 色 | `System.Drawing.Color`（共有フレームワーク同梱でクロスプラットフォーム。 `System.Drawing.Common` ではない）を使い、UI の色型への変換は境界で行う |
 | Skia の描画プリミティブ | SkiaSharp は外部パッケージであるため、Skia に依存する型（描画ポートの適合・ビットマップの相互変換・テキスト測定）は Skia を使用する上位層が単一所有する（本プロジェクトは SkiaSharp を参照しない） |
 | 描画の契約 | 描画計画を担う上位の層が単一所有する（本プロジェクトは参照される側であり、それらを参照しない） |
-| ロガー未設定 | `LoggerFallback.OrNullLogger()` が単一所有し、各所の `?? NullLogger.Instance` を排除する |
+| ロガー | 本プロジェクトはロガーを扱わない（外部パッケージを参照しない）。 ログの取得と記録は呼び出し側の層が所有する |
 
 ### 7.1 コア型の命名
 

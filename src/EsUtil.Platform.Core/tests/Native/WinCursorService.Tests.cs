@@ -15,28 +15,29 @@ namespace EsUtil.Platform.Core.Tests.Native;
 public class WinCursorServiceTests
 {
     [Fact]
-    internal void WinCursorService_GetCursorScreenPointが現在位置を返す()
+    internal void WinCursorService_TryGetCursorScreenPointが現在位置を返す()
     {
         var service = new WinCursorService();
 
-        var pos = service.GetCursorScreenPoint();
+        var succeeded = service.TryGetCursorScreenPoint(out var pos);
 
-        // 何らかの位置が返る（例外なく Win32 GetCursorPos が呼ばれる）
+        // 実環境では取得できる（例外なく Win32 GetCursorPos が呼ばれ、成否が値で返る）
+        Assert.True(succeeded);
         Assert.True(pos.X != int.MinValue || pos.Y != int.MinValue);
     }
 
     [Fact]
-    internal void WinCursorService_SetCursorScreenPointがカーソルを移動する()
+    internal void WinCursorService_TrySetCursorScreenPointがカーソルを移動する()
     {
         var service = new WinCursorService();
-        var before = service.GetCursorScreenPoint();
+        Assert.True(service.TryGetCursorScreenPoint(out var before));
 
-        service.SetCursorScreenPoint(new EsPointInt(before.X + 5, before.Y + 5));
+        var moved = service.TrySetCursorScreenPoint(new EsPointInt(before.X + 5, before.Y + 5));
 
-        var after = service.GetCursorScreenPoint();
         // ヘッドレス環境ではカーソル移動が OS に完全には同期されない場合があるため、
-        // 厳密一致ではなく「例外なく呼び出し・取得できる」ことを確認する（クラスコメント参照）。
-        Assert.True(after.X != int.MinValue || after.Y != int.MinValue);
+        // 厳密一致ではなく「成否が値で返る」ことを確認する（クラスコメント参照）。
+        Assert.True(moved);
+        Assert.True(service.TryGetCursorScreenPoint(out _));
     }
 
     [Fact]

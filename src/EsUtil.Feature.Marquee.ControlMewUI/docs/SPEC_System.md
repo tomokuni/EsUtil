@@ -257,8 +257,8 @@ classDiagram
     }
     class ICursorService {
         <<EsUtil.Platform.Core>>
-        +GetCursorScreenPoint() EsPointInt
-        +SetCursorScreenPoint(point) void
+        +TryGetCursorScreenPoint(out point) bool
+        +TrySetCursorScreenPoint(point) bool
         +ShowCursor(show) void
     }
 
@@ -301,7 +301,7 @@ sequenceDiagram
         Ctl->>Host: SelectionStarted
     else ハンドルあり
         Fac-->>Ctl: 効果（MoveTo: ハンドル点）を IMarqueeEffects 経由で適用
-        Ctl->>Cur: SetCursorScreenPoint(ToScreenPoint(handlePos))
+        Ctl->>Cur: TrySetCursorScreenPoint(ToScreenPoint(handlePos))
     end
     Fac-->>Ctl: 効果（Capture = MarqueeCaptureAction.Capture）→ SetPointerCapture(true)
     loop ドラッグ中
@@ -334,7 +334,7 @@ sequenceDiagram
     participant St as MarqueeState
 
     Note over Ctl: 矢印キー押下（フォーカス保持時）
-    Ctl->>Cur: GetCursorScreenPoint()
+    Ctl->>Cur: TryGetCursorScreenPoint(out point)
     Ctl->>Ctl: ScreenToClient → 対象座標（基点の記録）
     Ctl->>Fac: KeyDown(EsKey, cursorPosition)
     Fac->>Ses: KeyDown
@@ -346,7 +346,7 @@ sequenceDiagram
     Ses->>St: Nudge(dx, dy, Options.MinSelectionSize, Options.ClampToSourceBounds)
     Fac-->>Ctl: 効果（MoveTo: マーカー位置）
     Ctl->>Host: SelectionChanged / LoupePositionMoved
-    Ctl->>Cur: SetCursorScreenPoint(ToScreenPoint(marker))
+    Ctl->>Cur: TrySetCursorScreenPoint(ToScreenPoint(marker))
     Note over Ctl: マウス操作またはフォーカス喪失
     Ctl->>Fac: EndNudge()
     Fac->>Ses: EndNudge
