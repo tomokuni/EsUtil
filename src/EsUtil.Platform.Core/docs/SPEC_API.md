@@ -639,11 +639,11 @@ public readonly record struct ElementFinderResults(
 - **`Load` は戻したい型の側に置きます**: 静的メソッドは戻り値の型を共変にできないため、`EsBitmap.Load`（読み取り専用）と `EsWritableBitmap.Load`（書き換え可能）を別々に持ちます。 書き換えが要る場合は `EsWritableBitmap.Load` を使ってください（`EsBitmap.Load` の結果を `EsWritableBitmap.Create` で複製すると、2 回目の全域コピー（実測: 4K で 5.7 ms / 31 MiB）が無駄になります）。
 - **`Save` は `EsBitmapBase` に置きます**: ファイルへの書き出しはピクセルを**書き換える権利を要さない**ため、2 つの権利（読み取り専用 / 書き換え可能）に共通の入口が要ります。 一方、読み取りの面（`IEsBitmap`）に置くと、外部が実装する画像（UI の表示アダプタ等）にも保存能力を要求することになるため、**継承関係の無い 2 型の共通基底**である本型が持ちます（実装を持てる最小の位置）。
 - **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・GDI+ の呼び出し・状態値の例外化は 1 か所（「`GdiPlusImageCodec`」）が単一所有し、公開面（`Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
+- **実装の入出力はピクセル バイト列です**: `EncodeToFile`（ピクセル → ファイル）と `DecodeFromFile`（ファイル → ピクセル）だけを持ち、**画像型を生成・要求しません**（コーデックが画像型を知る必要が無くなるため、実装を画像型から独立させられます）。 保存は受け取ったバイト列を指す GDI+ のビットマップを作ってそのままエンコードするため**複製しません**。 読み込みはデコード結果を一時バッファへ受けてから画像のバッファ（64 バイト整列）へ 1 回コピーします（**実測: 4K PNG で +3.0 ms**。 デコード自体が約 30 ms のため **+10%**。 保存は +1% ＝ 実質変わらない。 コピーのみの実測は 2.2 ms）。
 - **形式は拡張子が決めます**: `Save` は拡張子から形式を選びます（`.bmp` = Windows Bitmap / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`）。 大文字・小文字は区別しません。
 - **未対応の拡張子は例外にします**: PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かないためです（`NotSupportedException`。 対応形式の単一所有は `EsBitmapBase.SupportedFileExtensions`）。
 - **WebP / HEIF を対応形式へ入れない理由（実測）**: GDI+ のエンコーダーは 5 件だけです（`GdipGetImageEncoders` が返すのは BMP / JPEG / GIF / TIFF / PNG。 デコーダーはこれに EMF / WMF / ICO を加えた 8 件）。 WebP / HEIF のエンコーダーは無く、**存在しない形式の CLSID を渡すと例外を出さずに PNG を書き出します**（実測: PNG の CLSID と `.webp` のパスで 2831 バイトの PNG が書かれ、先頭バイトは PNG のシグネチャ）。 拡張子と中身が食い違うファイルを作らないため、対応形式へ追加しません。
 - **エンコード・デコードは `gdiplus.dll` のフラット API を直接呼びます**（`src/EsUtil.Platform.Core/src/Native/Imaging` の `GdiPlusNative` が宣言を集約）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
-- **ピクセルは複製しません**: コアの画像のバッファを指す GDI+ のビットマップを作って（`GdipCreateBitmapFromScan0`）そのままエンコードし、読み込みは GDI+ がアルファ乗算済み BGRA8888 へ変換した結果をコピーします。
 - **本機能は Windows 専用です**: `gdiplus.dll` は Windows にのみ存在します（非 Windows では `DllNotFoundException`）。 公開メンバー（`Save` / `Load` / `SupportedFileExtensions`）は `SupportedOSPlatform("windows")` で限定します。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、`src/EsUtil.Platform.Core/src/Native` だけが Windows に依存します）。
 - **GDI+ の初期化は `GdiPlusLifetime` が単一所有します**（プロセス単位で 1 回だけ `GdiplusStartup` を呼びます）。 終了処理（`GdiplusShutdown`）は**呼びません**（プロセス全体の GDI+ を終了させるため、ホストが別の目的で GDI+ を使っている場合に影響します。 GDI+ はプロセスの終了時に OS が解放します）。
 - **本機能はプロセス全体に及ぶ副作用を引き受けます（実測）**: 初回の `Save` / `Load` で次が起きます。

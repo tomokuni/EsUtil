@@ -1,6 +1,5 @@
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Native.Imaging;
 using Color = System.Drawing.Color;
 
 namespace EsUtil.Platform.Core.Imaging;
@@ -93,10 +92,7 @@ public sealed class EsBitmap : EsBitmapBase, IDisposable
     /// </remarks>
     [SupportedOSPlatform("windows")]
     public static EsBitmap Load(string filePath)
-    {
-        ArgumentNullException.ThrowIfNull(filePath);
-        return GdiPlusImageCodec.LoadReadOnly(filePath);
-    }
+        => LoadCore(filePath, static (width, height) => new EsBitmap(width, height, clear: false));
 
     /// <summary>指定サイズのピクセル バッファを確保する。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>

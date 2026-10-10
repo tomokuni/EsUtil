@@ -66,7 +66,7 @@ graph LR
 | `src/EsUtil.Platform.Core/src/Native/Win/WinElementFinder.cs` | `IElementFinder` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinCursorOverrideGuard.cs` | `ICursorOverrideGuard` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinGlobalHotKeyService.cs` | `IGlobalHotKeyService<T>` の Windows 実装 |
-| `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusImageCodec.cs` | 画像のファイル保存・読み込みの実装（GDI+。 Windows 専用。 公開面は画像型の `Save` / `Load`） |
+| `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusImageCodec.cs` | 画像のファイル保存・読み込みの実装（GDI+。 Windows 専用。 扱うのはピクセル バイト列だけで、公開面は画像型の `Save` / `Load`） |
 | `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusNative.cs` | GDI+ のフラット API の宣言集約（internal） |
 | `src/EsUtil.Platform.Core/src/Native/Imaging/GdiPlusLifetime.cs` | GDI+ のプロセス単位の初期化（internal・1 回だけ実行） |
 | `src/EsUtil.Platform.Core/src/Coord/ScrollMath.cs` | スクロール範囲・ビューポートサイズの純粋計算とホイール 1 段のスクロール量（`WheelScrollUnit`） |

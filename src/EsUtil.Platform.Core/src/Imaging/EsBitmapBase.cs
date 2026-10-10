@@ -198,6 +198,8 @@ public abstract class EsBitmapBase : IEsBitmap
     /// 読み取り専用の面（<see cref="IEsBitmap"/>）の利用者にも必要だが、<see cref="IEsBitmap"/> に置くと
     /// 外部が実装する画像（UI のアダプタ等）にも保存能力を要求することになる。 本型は 2 つの権利の共通基底であるため、
     /// <b>実装を持てる最小の位置</b>がここである（同じ理由で <see cref="SupportedFileExtensions"/> も本型が持つ）。<br/>
+    /// <b>ピクセルは複製しない</b>: <see cref="Pixels"/> のビューをそのままエンコードへ渡す
+    /// （一時バッファを確保しない）。<br/>
     /// <b>Windows 専用</b>: OS の GDI+ を呼ぶため <see cref="SupportedOSPlatformAttribute"/> で限定する
     /// （副作用は <see cref="EsUtil.Platform.Core.Native.Imaging.GdiPlusLifetime"/> を参照）。
     /// </remarks>
@@ -205,7 +207,36 @@ public abstract class EsBitmapBase : IEsBitmap
     public void Save(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        GdiPlusImageCodec.Save(this, filePath);
+        GdiPlusImageCodec.EncodeToFile(Pixels, Width, Height, filePath);
+    }
+
+    /// <summary>ファイルを読み込んで新しい画像を生成する（派生が公開する <c>Load</c> の共通手順）。</summary>
+    /// <typeparam name="T">生成する画像の型（<see cref="EsBitmap"/> または <see cref="EsWritableBitmap"/>）。</typeparam>
+    /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。 null 不可。</param>
+    /// <param name="create">寸法を受け取って、まだピクセルを書いていない画像を生成する処理。</param>
+    /// <returns>読み込んだ画像。 所有権は呼び出し側へ移る。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
+    /// または画像として解釈できない場合。</exception>
+    /// <remarks>
+    /// <b>本型に置く理由</b>: デコードしたピクセルを整列したバッファへ書き込む手順（<see cref="WritableBuffer"/> の
+    /// 確保とコピー）は 2 つの派生で同一であり、<b>書き込みの入口を公開しない派生（<see cref="EsBitmap"/>）でも
+    /// ここでだけは書ける</b>必要がある。 派生の公開面（<c>EsBitmap.Load</c> / <c>EsWritableBitmap.Load</c>）は
+    /// 戻り型だけが違うため、読み込みの規則は本メソッドが単一所有する。<br/>
+    /// <b>0 埋めを省く</b>: 生成の直後にデコード結果で全領域を書くため、未初期化で確保する
+    /// （<paramref name="create"/> が全領域を書く責任を持つ）。<br/>
+    /// <b>形式と縮小の規則</b>は <see cref="EsUtil.Platform.Core.Native.Imaging.GdiPlusImageCodec.DecodeFromFile(string, out int, out int)"/> を参照。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    private protected static T LoadCore<T>(string filePath, Func<int, int, T> create)
+        where T : EsBitmapBase
+    {
+        ArgumentNullException.ThrowIfNull(filePath);
+
+        var pixels = GdiPlusImageCodec.DecodeFromFile(filePath, out var width, out var height);
+        var result = create(width, height);
+        pixels.CopyTo(result.WritableBuffer);
+        return result;
     }
 
     /// <summary>全ピクセルを指定色（BGRA）で塗りつぶす（派生と本アセンブリ内部だけが使う）。</summary>

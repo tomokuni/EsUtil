@@ -4,14 +4,17 @@ using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Platform.Core.Native.Imaging;
 
-/// <summary>コアの画像のファイル保存・読み込みの実装（GDI+ のフラット API を使う Windows 専用）。</summary>
+/// <summary>画像のファイル保存・読み込みの実装（GDI+ のフラット API を使う Windows 専用）。</summary>
 /// <remarks>
 /// <b>唯一の実装</b>: 公開面は画像型のメンバー（<see cref="EsUtil.Platform.Core.Imaging.EsBitmapBase.Save(string)"/> /
 /// <see cref="EsUtil.Platform.Core.Imaging.EsBitmap.Load(string)"/> / <see cref="EsUtil.Platform.Core.Imaging.EsWritableBitmap.Load(string)"/>) であり、
 /// 本クラスはその実装を 1 箇所へ集約する（本層は internal）。<br/>
+/// <b>入出力はピクセル バイト列</b>: 本クラスは画像の型（<see cref="EsUtil.Platform.Core.Imaging.EsBitmap"/> 等）を
+/// 生成・要求しない（<see cref="EncodeToFile(ReadOnlySpan{byte}, int, int, string)"/> は受け取ったバイト列を書き、
+/// <see cref="DecodeFromFile(string, out int, out int)"/> はデコードしたバイト列を返す）。<br/>
 /// <b>依存分離</b>: ファイル形式（BMP / PNG / JPEG / GIF / TIFF）のエンコード・デコードは OS の
 /// <c>gdiplus.dll</c> が担い、<b>外部パッケージ（<c>System.Drawing.Common</c> 等）を参照しない</b>。<br/>
-/// <b>形式は拡張子が決める</b>: <see cref="Save(IEsBitmap, string)"/> は保存先の拡張子から形式を選ぶ。
+/// <b>形式は拡張子が決める</b>: <see cref="EncodeToFile(ReadOnlySpan{byte}, int, int, string)"/> は保存先の拡張子から形式を選ぶ。
 /// <b>未対応の拡張子は例外にする</b>（PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルが
 /// できて気付かない。 対応形式は <see cref="SupportedExtensions"/> が単一所有する）。<br/>
 /// <b>Windows 専用</b>: <c>gdiplus.dll</c> は Windows でのみ利用可能（<see cref="SupportedOSPlatformAttribute"/> で限定）。<br/>
@@ -31,37 +34,45 @@ internal static class GdiPlusImageCodec
     /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
     internal static readonly IReadOnlyList<string> SupportedExtensions = [".bmp", ".png", ".jpg", ".jpeg", ".gif", ".tif", ".tiff"];
 
-    /// <summary>画像をファイルへ保存する（形式は拡張子が決める）。</summary>
-    /// <param name="bitmap">保存する画像。 借用であり破棄しない。</param>
+    /// <summary>ピクセル データをファイルへエンコードする（形式は拡張子が決める）。</summary>
+    /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
     /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める）。</param>
-    /// <exception cref="ArgumentNullException"><paramref name="bitmap"/> または <paramref name="filePath"/> が null の場合。</exception>
-    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または
+    /// <paramref name="pixels"/> の長さが <c>幅 × 4 × 高さ</c> と一致しない場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedExtensions"/>）。</exception>
-    /// <exception cref="ObjectDisposedException"><paramref name="bitmap"/> が破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合（<see cref="Win32Exception"/> で状態値を持つ）。</exception>
     /// <remarks>
     /// 保存形式は拡張子から決める（<c>.bmp</c> = Windows Bitmap / <c>.png</c> / <c>.jpg</c> / <c>.jpeg</c> /
     /// <c>.gif</c> / <c>.tif</c> / <c>.tiff</c>）。<br/>
-    /// <b>ピクセルは複製しない</b>: コアの画像のバッファを指すビットマップを作り、そのままエンコードする。<br/>
+    /// <b>ピクセルは複製しない</b>: 受け取ったバイト列を指す GDI+ のビットマップを作り、そのままエンコードする<br/>
+    /// （ストライドは <c>幅 × 4</c> 固定。 行パディングを持つ画像を受け取らない）。<br/>
     /// <b>JPEG / BMP はアルファを保存できない</b>（透過を保つ場合は PNG を選ぶ）。
     /// </remarks>
     [SupportedOSPlatform("windows")]
-    internal static void Save(IEsBitmap bitmap, string filePath)
+    internal static void EncodeToFile(ReadOnlySpan<byte> pixels, int width, int height, string filePath)
     {
-        ArgumentNullException.ThrowIfNull(bitmap);
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+        var stride = width * IEsBitmap.BytesPerPixel;
+        var expected = (long)stride * height;
+        if (pixels.Length != expected)
+        {
+            throw new ArgumentException(
+                $"ピクセル データの長さが寸法と一致しません（{width}x{height} は {expected} バイト。 実際は {pixels.Length} バイト）。",
+                nameof(pixels));
+        }
 
         var encoderClsid = ResolveEncoderClsid(filePath);
         GdiPlusLifetime.EnsureInitialized();
 
-        // 破棄済みの場合は Pixels が ObjectDisposedException を投げる（公開面の例外は IEsBitmap が定める）
-        var pixels = bitmap.Pixels;
         unsafe
         {
             fixed (byte* p = pixels)
             {
                 var status = GdiPlusNative.GdipCreateBitmapFromScan0(
-                    bitmap.Width, bitmap.Height, bitmap.Stride, GdiPlusNative.PixelFormat32bppPArgb, (nint)p, out var image);
+                    width, height, stride, GdiPlusNative.PixelFormat32bppPArgb, (nint)p, out var image);
                 if (status != GdiPlusNative.Ok)
                 {
                     throw new Win32Exception(status, $"保存用のビットマップを作成できませんでした（GDI+ の状態: {status}）。");
@@ -84,9 +95,12 @@ internal static class GdiPlusImageCodec
         }
     }
 
-    /// <summary>ファイルから読み取り専用の画像を読み込む。</summary>
+    /// <summary>ファイルをデコードしてピクセル データを返す（形式は内容から判別される）。</summary>
     /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。</param>
-    /// <returns>読み込んだ画像（読み取り専用）。 所有権は呼び出し側へ移る。</returns>
+    /// <param name="width">デコードした画像の幅（ピクセル）。</param>
+    /// <param name="height">デコードした画像の高さ（ピクセル）。</param>
+    /// <returns>デコードしたピクセル データ（BGRA8888・アルファ乗算済み。 長さは <c><paramref name="width"/> × 4 × <paramref name="height"/> バイト</c>）。
+    /// <b>新たに確保した配列のビュー</b>であり、所有権は呼び出し側へ移る。</returns>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
     /// または画像として解釈できない場合（GDI+ はどちらも同じ状態値を返すため区別しない）。</exception>
     /// <remarks>
@@ -94,37 +108,15 @@ internal static class GdiPlusImageCodec
     /// <c>Resize</c> で縮小すること。 サムネイルのようにデコード自体を小さくしたい場合は、各 UI の
     /// コーデック（縮小デコード対応）を使う方が速い）。<br/>
     /// <b>形式は内容から判別する</b>（拡張子と内容が一致しない場合は内容に従う）。<br/>
-    /// <b>ピクセルはアルファ乗算済みの BGRA8888 へ変換して取り込む</b>（元の形式が異なっても GDI+ が変換する）。
+    /// <b>ピクセルはアルファ乗算済みの BGRA8888 へ変換して取り込む</b>（元の形式が異なっても GDI+ が変換する）。<br/>
+    /// <b>返すバイト列は全領域が書かれた状態である</b>（0 埋めを省いて確保する。 読み出しは
+    /// <see cref="CopyPixelsFrom"/> が全行を書く）。<br/>
+    /// <b>受け取った側は画像のバッファへコピーする</b>: 画像型は 64 バイト整列したバッファを所有するため、
+    /// 本メソッドの結果をそのまま使わず <see cref="EsUtil.Platform.Core.Imaging.EsBitmapBase"/> の読み込み手順が
+    /// 1 回だけコピーする（<b>実測: 4K PNG の読み込みで +3.0 ms ＝ +10%</b>。 デコード自体が約 30 ms）。
     /// </remarks>
     [SupportedOSPlatform("windows")]
-    internal static EsBitmap LoadReadOnly(string filePath)
-        => Decode(filePath, static (width, height, fill) => EsBitmap.CreateFilled(width, height, fill));
-
-    /// <summary>ファイルから書き換え可能な画像を読み込む。</summary>
-    /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。</param>
-    /// <returns>読み込んだ画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
-    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
-    /// または画像として解釈できない場合（GDI+ はどちらも同じ状態値を返すため区別しない）。</exception>
-    /// <remarks>
-    /// <b>書き換え可能な型で返す理由</b>: デコードは新しいバッファへ 1 回だけ書くため、読み取り専用で返しても
-    /// 守るものが無く、書き換えたい利用者へ 2 回目のコピー（実測: 4K で 5.7 ms / 31 MiB）を強いるだけになる
-    /// （書き換えが要らない場合は <see cref="LoadReadOnly"/> を使う）。<br/>
-    /// 読み込みの他の規則（縮小しない・内容から形式を判別する・アルファ乗算済み BGRA8888 へ変換する）は
-    /// <see cref="LoadReadOnly"/> と同じ。
-    /// </remarks>
-    [SupportedOSPlatform("windows")]
-    internal static EsWritableBitmap LoadWritable(string filePath)
-        => Decode(filePath, static (width, height, fill) => EsWritableBitmap.CreateFilled(width, height, fill));
-
-    /// <summary>ファイルを読み込んで、指定された型の画像としてデコードする（読み込みの手順を 1 箇所へ集約する）。</summary>
-    /// <typeparam name="T">生成する画像の型（<see cref="EsBitmap"/> または <see cref="EsWritableBitmap"/>）。</typeparam>
-    /// <param name="filePath">読み込むファイルのパス。</param>
-    /// <param name="create">寸法と充填処理を受け取って画像を生成する処理（デコード結果を直接書くため、コピーは 1 回で済む）。</param>
-    /// <returns>読み込んだ画像。 所有権は呼び出し側へ移る。</returns>
-    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
-    /// または画像として解釈できない場合（GDI+ はどちらも同じ状態値を返すため区別しない）。</exception>
-    [SupportedOSPlatform("windows")]
-    private static T Decode<T>(string filePath, Func<int, int, Action<Span<byte>>, T> create)
+    internal static ReadOnlySpan<byte> DecodeFromFile(string filePath, out int width, out int height)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         GdiPlusLifetime.EnsureInitialized();
@@ -137,8 +129,12 @@ internal static class GdiPlusImageCodec
 
         try
         {
-            var (width, height) = ReadSize(image);
-            return create(width, height, dst => CopyPixelsFrom(image, width, height, dst));
+            (width, height) = ReadSize(image);
+
+            // 直後に全領域を書くため 0 埋めしない（4K で 33 MB の 0 埋めを省く）
+            var buffer = GC.AllocateUninitializedArray<byte>(width * IEsBitmap.BytesPerPixel * height);
+            CopyPixelsFrom(image, width, height, buffer);
+            return buffer;
         }
         finally
         {
