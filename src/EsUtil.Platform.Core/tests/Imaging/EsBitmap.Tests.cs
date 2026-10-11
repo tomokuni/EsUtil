@@ -380,6 +380,71 @@ public class EsBitmapTests
     }
 
     [Fact]
+    internal void 凍結後は更新系の入口がすべて例外になる()
+    {
+        using var bmp = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 1, 2, 3));
+        bmp.SetReadOnly();
+
+        // 参照（取得）・点の書き込み・塗りつぶしのすべてが例外になる
+        Assert.Throws<InvalidOperationException>(() => { _ = bmp.Pixels.Length; });
+        Assert.Throws<InvalidOperationException>(() => bmp.SetPixel(0, 0, 1, 2, 3, 4));
+        Assert.Throws<InvalidOperationException>(() => bmp.SetPixel(new EsPointInt(0, 0), System.Drawing.Color.Red));
+        Assert.Throws<InvalidOperationException>(() => bmp.TrySetPixel(0, 0, System.Drawing.Color.Red));
+        Assert.Throws<InvalidOperationException>(() => bmp.TrySetPixel(new EsPointInt(0, 0), System.Drawing.Color.Red));
+        Assert.Throws<InvalidOperationException>(() => bmp.Clear(1, 2, 3, 4));
+        Assert.Throws<InvalidOperationException>(() => bmp.Clear(System.Drawing.Color.Red));
+
+        // 読み取りは続けられる
+        Assert.Equal((byte)3, bmp.GetPixel(0, 0).B);
+    }
+
+    [Fact]
+    internal void 凍結後も生成の入口は使える_新しい実体を作るため()
+    {
+        using var frozen = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 1, 2, 3));
+        frozen.SetReadOnly();
+
+        // 生成の入口（InstallPixels / CreateFilled / Clone / Create）は新しい実体を作るため、
+        // 凍結の対象ではない（凍結した実体の画素は変わらない）
+        using var clone = frozen.Clone();
+        using var copy = EsBitmap.Create(frozen);
+        using var filled = EsBitmap.CreateFilled(2, 2, span => span.Fill(9));
+
+        Assert.False(clone.IsReadOnly);
+        Assert.False(copy.IsReadOnly);
+        Assert.False(filled.IsReadOnly);
+
+        clone.SetPixel(0, 0, 7, 7, 7, 7);
+        Assert.Equal((byte)3, frozen.GetPixel(0, 0).B);
+    }
+
+    [Fact]
+    internal void 凍結は実体ごとではなく画素領域ごと_同じメモリを借用すると凍結を迂回できる()
+    {
+        using var bmp = EsBitmap.Create(2, 2, System.Drawing.Color.FromArgb(255, 1, 2, 3));
+        bmp.SetReadOnly();
+
+        // 同じメモリを別の実体として借用する（アドレスを取るには fixed が要る）
+        nint address;
+        unsafe
+        {
+            fixed (byte* p = bmp.ReadOnlyPixels)
+            {
+                address = (nint)p;
+            }
+        }
+
+        using var alias = EsBitmap.InstallPixels(2, 2, address);
+
+        // 借用した実体は凍結されていない（別の画素領域として扱われる）
+        Assert.False(alias.IsReadOnly);
+        alias.SetPixel(0, 0, 9, 9, 9, 9);
+
+        // 凍結した実体の画素が変わる（凍結は「画素領域」ではなく「同じ領域を指す別の実体」を守れない）
+        Assert.Equal((byte)9, bmp.GetPixel(0, 0).B);
+    }
+
+    [Fact]
     internal void 継承_読み取り専用として見ても実体が書き換え可能ならCloneは独立した複製を返す()
     {
         using var bmp = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 1, 2, 3));
