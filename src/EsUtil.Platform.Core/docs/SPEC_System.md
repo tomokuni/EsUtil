@@ -59,7 +59,13 @@ graph LR
 | `src/EsUtil.Platform.Core/src/Native/ICursorOverrideGuard.cs` | カーソル上書き抑止の抽象 |
 | `src/EsUtil.Platform.Core/src/Native/IGlobalHotKeyService.cs` | グローバルホットキー管理の抽象 |
 | `src/EsUtil.Platform.Core/src/Native/ElementFinderResults.cs` | 要素検出の結果（`readonly record struct`） |
-| `src/EsUtil.Platform.Core/src/Native/Win/WinNative.cs` | OS API（Win32 / GDI+）の P/Invoke の宣言集約（internal） |
+| `src/EsUtil.Platform.Core/src/Native/Win/WinNative.cs` | OS API（Win32 / GDI+）の P/Invoke の宣言集約（internal）。 **本ファイルは複数の DLL で共有する構造体とヘルパーを持ち、宣言は DLL ごとの `partial` ファイルが持つ** |
+| `src/EsUtil.Platform.Core/src/Native/Win/WinNative.User32.cs` | user32 の宣言（カーソル・ウィンドウ・要素検出・画面キャプチャのデバイス コンテキスト） |
+| `src/EsUtil.Platform.Core/src/Native/Win/WinNative.Gdi32.cs` | gdi32 の宣言（画面キャプチャの DIB と `BitBlt`） |
+| `src/EsUtil.Platform.Core/src/Native/Win/WinNative.DwmApi.cs` | dwmapi の宣言（影を除いた可視矩形・合成の完了待ち） |
+| `src/EsUtil.Platform.Core/src/Native/Win/WinNative.Kernel32.cs` | kernel32 の宣言（プロセス ID） |
+| `src/EsUtil.Platform.Core/src/Native/Win/WinNative.HotKey.cs` | グローバル ホットキーの宣言（user32）とキー変換 |
+| `src/EsUtil.Platform.Core/src/Native/Win/WinNative.GdiPlus.cs` | gdiplus の宣言（画像のエンコード・デコード） |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinCaptureService.cs` | `ICaptureService` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinCursorService.cs` | `ICursorService` の Windows 実装 |
 | `src/EsUtil.Platform.Core/src/Native/Win/WinWindowService.cs` | `IWindowService` の Windows 実装 |
