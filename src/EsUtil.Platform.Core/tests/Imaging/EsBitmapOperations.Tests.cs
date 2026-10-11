@@ -454,6 +454,37 @@ public class EsBitmapOperationsTests
     }
 
     [Fact]
+    internal void 減色_箱が多い画像でも同じ入力色は同じ出力色になる()
+    {
+        // 5 ビットの箱を最大限使う画像を作る（箱の分割が最も多くなる経路。 箱を 1 本の配列の区間で
+        // 持つ実装では、箱が多い画像で配列の範囲を外す誤りが起きやすい）
+        using var src = CreateNoisy(384, 384);
+        var sources = EnumerateColors(src);
+        Assert.True(
+            new HashSet<uint>(sources).Count > 4096,
+            $"{sources.Length} 画素で {new HashSet<uint>(sources).Count} 色しかありません。");
+
+        using var result = src.ReduceColors(EsBitmapOperations.MaximumColorCount);
+        var destinations = EnumerateColors(result);
+
+        Assert.True(CountDistinctColors(result) <= EsBitmapOperations.MaximumColorCount);
+
+        // 同じ入力色は必ず同じ出力色へ置き換わる（参照表が色ごとに 1 つであること）
+        var mapped = new Dictionary<uint, uint>();
+        for (var i = 0; i < sources.Length; i++)
+        {
+            if (mapped.TryGetValue(sources[i], out var first))
+            {
+                Assert.Equal(first, destinations[i]);
+            }
+            else
+            {
+                mapped[sources[i]] = destinations[i];
+            }
+        }
+    }
+
+    [Fact]
     internal void 減色_使われている色より多い色数を指定しても色は増えない()
     {
         using var src = CreateFilled(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
@@ -646,6 +677,36 @@ public class EsBitmapOperationsTests
         return EsReadOnlyBitmap.FromBitmap(bitmap);
     }
 
+    /// <summary>画素ごとに色が不規則に変わる画像を作る（減色の箱を最も多く使う画像）。</summary>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>決定的な擬似乱数を使う理由</b>: 同じ画像を毎回作る（テストの再現性のため）。
+    /// 色が全範囲に散るため、5 ビットの箱（32³ = 32,768 個）がほぼ埋まる。
+    /// </remarks>
+    private static EsReadOnlyBitmap CreateNoisy(int width, int height)
+    {
+        using var bitmap = EsBitmap.Create(width, height);
+        var seed = 987_654_321u;
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                seed = (seed * 1664525u) + 1013904223u;
+                var red = (byte)(seed >> 24);
+                seed = (seed * 1664525u) + 1013904223u;
+                var green = (byte)(seed >> 24);
+                seed = (seed * 1664525u) + 1013904223u;
+                var blue = (byte)(seed >> 24);
+                bitmap.SetPixel(x, y, red, green, blue, 255);
+            }
+        }
+
+        bitmap.SetReadOnly();
+        return EsReadOnlyBitmap.FromBitmap(bitmap);
+    }
+
     // ====================================================================
     // 行の余白（Stride > 幅 × 4）
     // ====================================================================
@@ -790,5 +851,35 @@ public class EsBitmapOperationsTests
     {
         using var read = EsReadOnlyBitmap.FromBitmap(bitmap);
         return CountDistinctColors(read);
+    }
+
+    /// <summary>画素を左上から右下の順に列挙する（色は ARGB の 32 ビット）。</summary>
+    /// <param name="bitmap">対象の画像。 書き換えない。</param>
+    /// <returns>色の並び（左上から右下。 長さは画素数）。</returns>
+    private static uint[] EnumerateColors(EsReadOnlyBitmap bitmap)
+    {
+        var pixels = bitmap.ReadOnlyPixels;
+        var stride = bitmap.Stride;
+        var colors = new uint[bitmap.Width * bitmap.Height];
+        for (var y = 0; y < bitmap.Height; y++)
+        {
+            for (var x = 0; x < bitmap.Width; x++)
+            {
+                var i = (y * stride) + (x * EsReadOnlyBitmap.BytesPerPixel);
+                colors[(y * bitmap.Width) + x] =
+                    ((uint)pixels[i + 3] << 24) | ((uint)pixels[i + 2] << 16) | ((uint)pixels[i + 1] << 8) | pixels[i];
+            }
+        }
+
+        return colors;
+    }
+
+    /// <summary>書き換え可能な画像の画素を左上から右下の順に列挙する。</summary>
+    /// <param name="bitmap">対象の画像。 書き換えない。</param>
+    /// <returns>色の並び（左上から右下。 長さは画素数）。</returns>
+    private static uint[] EnumerateColors(EsBitmap bitmap)
+    {
+        using var read = EsReadOnlyBitmap.FromBitmap(bitmap);
+        return EnumerateColors(read);
     }
 }

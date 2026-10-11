@@ -789,6 +789,8 @@ public readonly record struct ElementFinderResults(
 
     - **本実装が最速です**（61 ms。 次が ImageSharp の 283 ms）。 サイズは OptiPNG が最小（自前より 2.5% 小さい）で、
       減色の品質は pngquant が最も良い（色差 2.61 対 3.95）ものの 1 枚 700 ms と**実行ファイルの同梱**を要します。
+    - **本実装の行の所要は減色のパレット作成を改善する前の実測です**（同じ画像では現在これより短くなります。 減色だけの所要は
+      `EsReadOnlyBitmap.ReduceColors` の備考が所有します。 外部ツールの値は同じ画像で測った当時のままです）。
     - **外部ライブラリの候補と制約（実測と公式情報）**: **SixLabors.ImageSharp** は減色・ディザ・PNG 圧縮レベル・
       **BMP 8bpp パレット出力**まで備えますが、**v4 はライセンス キーが無いとビルドが失敗し**（実測:
       `error : No Six Labors license found`）、ビルドが通る v3 系は**既知の脆弱性（高 4 件・中 2 件）**を持ちます。

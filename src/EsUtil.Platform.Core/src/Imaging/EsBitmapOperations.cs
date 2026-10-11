@@ -308,18 +308,10 @@ internal static class EsBitmapOperations
     /// 保存した PNG には <c>tRNS</c>（インデックス透過）、GIF には透明の色番号が書かれる。<br/>
     /// <b>アルゴリズム（実測で選んだ）</b>: 5 ビットのヒストグラム（32³ = 32,768 箱）を作り、
     /// <b>中央値分割</b>で箱を色数まで分け、箱ごとの平均色をパレットにする。 画素の割り当ては
-    /// <b>箱ごとに 1 度だけ最近傍を求めた参照表</b>を引く（画素ごとに 256 色と比較しない）。
-    /// 実測（1920x1080・256 色）: <b>30 ms</b>（16 色で 8 ms）。<br/>
+    /// <b>箱ごとに 1 度だけ最近傍を求めた参照表</b>を引く（画素ごとに 256 色と比較しない）。<br/>
     /// <b>色数はアルファの段階も数える</b>: アルファは 4 段階（0〜63 / 64〜127 / 128〜191 / 192〜255）に
     /// 量子化されるため、同じ RGB でもアルファが違えば別の色としてパレットを消費する
-    /// （不透明な画像ではアルファが 1 段階のため、従来と同じ結果になる）。<br/>
-    /// <b>ディザを行わない理由（実測）</b>: ディザは見た目を滑らかにするが、パレットの色を交互に置くため
-    /// <b>保存のファイルが大きくなる</b>（実測: Magick.NET の 256 色 PNG で 645,647 B → FloydSteinberg で 803,118 B
-    /// ＝ <b>+24%</b>）。 本ライブラリはファイル サイズを下げる目的で減色するため、行わない。<br/>
-    /// <b>外部ライブラリとの比較（実測）</b>: 同じ 1920x1080・256 色で、本処理は 30 ms、
-    /// SixLabors.ImageSharp の Wu 量子化は 219 ms、Magick.NET は 553 ms である
-    /// （サイズも本処理の 173,684 B に対し 111,764 B / 117,156 B と、写真では外部の方が小さい。
-    /// 減色の品質は pngquant が最も高いが、実行ファイルの同梱と 1 枚 700 ms を要する）。
+    /// （不透明な画像ではアルファが 1 段階のため、従来と同じ結果になる）。
     /// </remarks>
     internal static EsBitmap ReduceColors(
         ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride, int colorCount)
@@ -414,16 +406,21 @@ internal static class EsBitmapOperations
     /// <b>2 つの入口で共有する理由</b>: 画像を返す経路（<see cref="ReduceColors"/>）と色番号を返す経路
     /// （<see cref="ReduceToIndexed"/>）は<b>同じ計算でなければならない</b>（同じ色数を指定すれば同じ絵になる）。
     /// 数え上げと中央値分割（結果を決める部分）をここへ 1 回だけ書き、走査の仕方だけを各経路が持ちます。<br/>
-    /// <b>一時配列はプールから借りる（実測）</b>: 数え上げの配列は合わせて 4.5 MB あり（<c>int</c> 131,072 要素と
-    /// <c>long</c> 524,288 要素）、毎回確保すると LOH に入って Gen2 の GC を誘発します。 借りて返すと
-    /// <b>確保は 0 バイト</b>になり、時間もわずかに短くなります（実測: 1920x1080・256 色で、確保は
-    /// 6.93 MB → 0.14 MB、時間は 13.6 ms → 13.2 ms）。
+    /// <b>一時配列はプールから借りる（実測）</b>: 数え上げと作業場所の配列は合わせて 5.0 MB あり（<c>int</c>
+    /// 131,072 要素 ×2 と <c>long</c> 524,288 要素）、毎回確保すると LOH に入って Gen2 の GC を誘発します。
+    /// 借りて返すため、毎回の確保は参照表（131,072 バイト）だけになります
+    /// （実測: 1920x1080 のノイズ画像・256 色で、確保は 2.40 MB → 0.27 MB）。<br/>
+    /// <b>参照表は使われている箱だけ埋める（実測）</b>: 画素が 1 つも無い箱は走査で読まれないため、最近傍を
+    /// 求める必要がありません。 全部の箱（131,072）を埋めると費用が<b>箱の数 × 色数</b>に比例して増えます
+    /// （実測: 1920x1080・256 色で、箱が 64 個の画像は 29.8 ms → 13.0 ms、箱が 32,768 個のノイズ画像は
+    /// 88.1 ms → 42.2 ms。 いずれも分割の改善を含まない形で測った値です）。
     /// </remarks>
     private static uint[] BuildPalette(
         ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount, out byte[] lookup)
     {
         var counts = ArrayPool<int>.Shared.Rent(HistogramSize);
         var sums = ArrayPool<long>.Shared.Rent(HistogramSize * 4);
+        var bins = ArrayPool<int>.Shared.Rent(HistogramSize);
         try
         {
             // 借りた配列の内容は不定である（ゼロから数え上げるため必ず消す）
@@ -431,17 +428,14 @@ internal static class EsBitmapOperations
             Array.Clear(sums, 0, HistogramSize * 4);
             CountColors(pixels, width, height, stride, counts, sums);
 
-            var boxes = SplitBoxes(counts, colorCount);
-            var palette = new uint[boxes.Count];
-            for (var i = 0; i < boxes.Count; i++)
-            {
-                palette[i] = AverageColor(boxes[i], counts, sums);
-            }
+            var usedCount = CollectUsedBins(counts, bins);
+            var palette = SplitBoxes(bins, usedCount, counts, sums, colorCount);
 
-            // 箱 → 色番号の参照表（画素ごとに最近傍を求めない）
+            // 箱 → 色番号の参照表（画素ごとに最近傍を求めない）。 埋めない箱は 0 のままである
             lookup = new byte[HistogramSize];
-            for (var key = 0; key < HistogramSize; key++)
+            for (var i = 0; i < usedCount; i++)
             {
+                var key = bins[i];
                 lookup[key] = (byte)NearestColor(
                     palette, HistogramRed(key), HistogramGreen(key), HistogramBlue(key), HistogramAlpha(key));
             }
@@ -451,6 +445,7 @@ internal static class EsBitmapOperations
         finally
         {
             // 内容は次の借り手が消す（返すときに消すと、その費用を毎回払う）
+            ArrayPool<int>.Shared.Return(bins);
             ArrayPool<int>.Shared.Return(counts);
             ArrayPool<long>.Shared.Return(sums);
         }
@@ -483,46 +478,80 @@ internal static class EsBitmapOperations
         }
     }
 
-    /// <summary>使われている箱を中央値分割で指定の個数まで分ける。</summary>
+    /// <summary>使われている箱（画素が 1 つ以上ある箱）の番号を小さい順に配列へ集める。</summary>
     /// <param name="counts">箱ごとの画素数。</param>
-    /// <param name="colorCount">分ける個数（色数）。</param>
-    /// <returns>箱の集合（各要素は使われている箱の番号の並び）。</returns>
+    /// <param name="bins">箱の番号の書き先（<see cref="HistogramSize"/> 要素以上）。</param>
+    /// <returns>書き込んだ箱の数。</returns>
     /// <remarks>
-    /// <b>分割する箱の選び方</b>: 「成分の範囲の長さ × 画素数」が最も大きい箱を選ぶ（範囲が広く画素が多い箱ほど、
-    /// 分けたときの誤差が減る）。<b>切る位置</b>は画素数が半分になる位置である（中央値分割。 色の分布が偏っていても
-    /// 各箱の画素数が揃う）。
+    /// <b>小さい順に集める理由</b>: 減色の結果はこの順序に依存する（同じ画像・同じ色数なら同じ絵にするため、
+    /// 走査の順序を固定する）。 集めた配列は以降<b>分割の作業場所</b>として並べ替えられる。
     /// </remarks>
-    private static List<List<int>> SplitBoxes(int[] counts, int colorCount)
+    private static int CollectUsedBins(int[] counts, int[] bins)
     {
-        var used = new List<int>(1024);
+        var used = 0;
         for (var key = 0; key < HistogramSize; key++)
         {
             if (counts[key] != 0)
             {
-                used.Add(key);
+                bins[used++] = key;
             }
         }
 
-        var boxes = new List<List<int>> { used };
-        while (boxes.Count < colorCount)
+        return used;
+    }
+
+    /// <summary>使われている箱を中央値分割で指定の個数まで分け、箱ごとの平均色（パレット）を返す。</summary>
+    /// <param name="bins">箱の番号の並び（<b>この配列を並べ替えながら分割する</b>）。</param>
+    /// <param name="binCount"><paramref name="bins"/> に有効な箱の数。</param>
+    /// <param name="counts">箱ごとの画素数。</param>
+    /// <param name="sums">箱ごとの成分の合計（箱 × 4。 最後の 1 つがアルファ）。</param>
+    /// <param name="colorCount">分ける個数（色数）。</param>
+    /// <returns>パレット（ARGB。 箱の数だけ。 使われている色が指定より少ない場合は短い）。</returns>
+    /// <remarks>
+    /// <b>分割する箱の選び方</b>: 「成分の範囲の長さ × 画素数」が最も大きい箱を選ぶ（範囲が広く画素が多い箱ほど、
+    /// 分けたときの誤差が減る）。<b>切る位置</b>は画素数が半分になる位置である（中央値分割。 色の分布が偏っていても
+    /// 各箱の画素数が揃う）。<br/>
+    /// <b>箱を「区間」で表す理由</b>: 以前は箱ごとに <c>List&lt;int&gt;</c> を持ち、分割のたびに 2 つの
+    /// <c>List</c> を作って全要素を写していた（<c>GetRange</c>。 256 色で最大 510 個の <c>List</c> ができる）。
+    /// 今は 1 本の配列の区間で表す。 並べ替えた範囲の前半と後半は<b>そのまま隣り合う</b>ため、
+    /// <b>要素を写さずに 2 つの箱へ分けられる</b>。<br/>
+    /// <b>指標を持ち回る理由（実測）</b>: 以前は分ける箱を選ぶたびに<b>すべての箱</b>の「成分の範囲」と画素数を
+    /// 数え直していた（1 回あたりの費用が<b>使われている箱の数</b>に比例する）。 今は分割した箱の 2 つ分だけを
+    /// 数え直す（実測: 1920x1080 のノイズ画像（箱 32,768 個）で 256 色が 105.2 ms → 88.1 ms。 参照表の改善を
+    /// 合わせると 42.2 ms）。
+    /// </remarks>
+    private static uint[] SplitBoxes(int[] bins, int binCount, int[] counts, long[] sums, int colorCount)
+    {
+        // 箱は「bins の開始位置 + 長さ」で表す（最大 colorCount 個。 colorCount は 256 以下なので小さい）
+        var starts = new int[colorCount];
+        var lengths = new int[colorCount];
+        var pixels = new long[colorCount];
+        var axisLengths = new int[colorCount];
+
+        var boxCount = 1;
+        lengths[0] = binCount;
+        pixels[0] = CountPixels(bins, 0, binCount, counts);
+        axisLengths[0] = LongestAxisLength(bins, 0, binCount);
+
+        while (boxCount < colorCount)
         {
-            var target = FindWidestBox(boxes, counts);
+            var target = FindWidestBox(pixels, axisLengths, lengths, boxCount);
             if (target < 0)
             {
                 // どの箱も分けられない（使われている色が指定より少ない）
                 break;
             }
 
-            var box = boxes[target];
-            var axis = LongestAxis(box);
-            box.Sort((left, right) => HistogramComponent(left, axis).CompareTo(HistogramComponent(right, axis)));
+            var start = starts[target];
+            var length = lengths[target];
+            SortByAxis(bins, start, length, LongestAxis(bins, start, length));
 
-            var half = CountPixels(box, counts) / 2;
-            var running = 0;
+            var half = pixels[target] / 2;
+            var running = 0L;
             var cut = 1;
-            for (var i = 0; i < box.Count - 1; i++)
+            for (var i = 0; i < length - 1; i++)
             {
-                running += counts[box[i]];
+                running += counts[bins[start + i]];
                 if (running >= half)
                 {
                     cut = i + 1;
@@ -530,29 +559,69 @@ internal static class EsBitmapOperations
                 }
             }
 
-            boxes[target] = box.GetRange(0, cut);
-            boxes.Add(box.GetRange(cut, box.Count - cut));
+            // 前半と後半は並べ替えた範囲の中で隣り合っている（要素を写す必要が無い）
+            var tail = start + cut;
+            var tailLength = length - cut;
+
+            starts[target] = start;
+            lengths[target] = cut;
+            pixels[target] = CountPixels(bins, start, cut, counts);
+            axisLengths[target] = LongestAxisLength(bins, start, cut);
+
+            starts[boxCount] = tail;
+            lengths[boxCount] = tailLength;
+            pixels[boxCount] = CountPixels(bins, tail, tailLength, counts);
+            axisLengths[boxCount] = LongestAxisLength(bins, tail, tailLength);
+            boxCount++;
         }
 
-        return boxes;
+        var palette = new uint[boxCount];
+        for (var i = 0; i < boxCount; i++)
+        {
+            palette[i] = AverageColor(bins, starts[i], lengths[i], counts, sums);
+        }
+
+        return palette;
     }
 
+    /// <summary>箱の要素を指定の軸の成分の順に<b>その場で</b>並べ替える。</summary>
+    /// <param name="bins">箱の番号の並び。</param>
+    /// <param name="start">箱の開始位置。</param>
+    /// <param name="length">箱の長さ。</param>
+    /// <param name="axis">軸（0 = 赤 / 1 = 緑 / 2 = 青 / 3 = アルファ）。</param>
+    /// <remarks>
+    /// <b>範囲を渡して並べる理由（実測）</b>: 以前は箱の複製を並べ替えてから書き戻していた（複製と書き戻しで
+    /// 箱の全要素を 3 回写す）。 範囲をその場で並べ替えると写しは 1 回になる。<br/>
+    /// <b>比較関数を作る理由</b>: 並べ替えの鍵は<b>軸の成分</b>であり、箱ごとに違う。 <c>Span&lt;int&gt;</c> の
+    /// 並べ替えは比較関数を取るため、軸を捉えた小さな関数が 1 回の分割につき 1 つできる（箱の複製より小さい）。
+    /// </remarks>
+    private static void SortByAxis(int[] bins, int start, int length, int axis)
+        => bins.AsSpan(start, length).Sort(
+            (left, right) => HistogramComponent(left, axis).CompareTo(HistogramComponent(right, axis)));
+
     /// <summary>分ける価値が最も高い箱を探す。</summary>
-    /// <param name="boxes">箱の集合。</param>
-    /// <param name="counts">箱ごとの画素数。</param>
+    /// <param name="pixels">箱ごとの画素数。</param>
+    /// <param name="axisLengths">箱ごとの最も長い軸の長さ。</param>
+    /// <param name="lengths">箱ごとの長さ。</param>
+    /// <param name="boxCount">箱の数。</param>
     /// <returns>箱の位置（分けられる箱が無い場合は -1）。</returns>
-    private static int FindWidestBox(List<List<int>> boxes, int[] counts)
+    /// <remarks>
+    /// <b>数え直さない理由</b>: 分ける価値（最も長い軸の長さ × 画素数）が変わるのは<b>分割した箱の 2 つだけ</b>で
+    /// ある（呼び出し側が指標を持ち回る）。 そのためここは箱の数（最大 256）だけを見ればよい。 価値の比較は
+    /// <c>long</c> で行う（画素数 × 31 が <c>int</c> の範囲を超える大きさの画像でも順序が壊れない）。
+    /// </remarks>
+    private static int FindWidestBox(long[] pixels, int[] axisLengths, int[] lengths, int boxCount)
     {
         var best = -1;
-        var widest = 0;
-        for (var i = 0; i < boxes.Count; i++)
+        var widest = 0L;
+        for (var i = 0; i < boxCount; i++)
         {
-            if (boxes[i].Count < 2)
+            if (lengths[i] < 2)
             {
                 continue;
             }
 
-            var volume = LongestAxisLength(boxes[i]) * CountPixels(boxes[i], counts);
+            var volume = axisLengths[i] * pixels[i];
             if (volume > widest)
             {
                 widest = volume;
@@ -564,11 +633,13 @@ internal static class EsBitmapOperations
     }
 
     /// <summary>箱の成分の範囲が最も長い軸を求める。</summary>
-    /// <param name="box">箱。</param>
+    /// <param name="bins">箱の番号の並び。</param>
+    /// <param name="start">箱の開始位置。</param>
+    /// <param name="length">箱の長さ。</param>
     /// <returns>軸（0 = 赤 / 1 = 緑 / 2 = 青 / 3 = アルファ）。</returns>
-    private static int LongestAxis(List<int> box)
+    private static int LongestAxis(int[] bins, int start, int length)
     {
-        var ranges = ColorRanges(box);
+        var ranges = ColorRanges(bins, start, length);
         var alpha = ranges.Alpha * HistogramAlphaScale;
         if (alpha >= ranges.Red && alpha >= ranges.Green && alpha >= ranges.Blue)
         {
@@ -581,20 +652,24 @@ internal static class EsBitmapOperations
     }
 
     /// <summary>箱の成分の範囲が最も長い長さを求める（アルファは RGB と同じ尺度へ揃える）。</summary>
-    /// <param name="box">箱。</param>
+    /// <param name="bins">箱の番号の並び。</param>
+    /// <param name="start">箱の開始位置。</param>
+    /// <param name="length">箱の長さ。</param>
     /// <returns>長さ。</returns>
-    private static int LongestAxisLength(List<int> box)
+    private static int LongestAxisLength(int[] bins, int start, int length)
     {
-        var ranges = ColorRanges(box);
+        var ranges = ColorRanges(bins, start, length);
         return Math.Max(
             ranges.Alpha * HistogramAlphaScale,
             Math.Max(ranges.Red, Math.Max(ranges.Green, ranges.Blue)));
     }
 
     /// <summary>箱の成分ごとの範囲（最大 − 最小）を求める。</summary>
-    /// <param name="box">箱。</param>
+    /// <param name="bins">箱の番号の並び。</param>
+    /// <param name="start">箱の開始位置。</param>
+    /// <param name="length">箱の長さ。</param>
     /// <returns>成分ごとの範囲（RGB は 0〜31、アルファは 0〜3）。</returns>
-    private static (int Red, int Green, int Blue, int Alpha) ColorRanges(List<int> box)
+    private static (int Red, int Green, int Blue, int Alpha) ColorRanges(int[] bins, int start, int length)
     {
         var minRed = HistogramSize;
         var maxRed = 0;
@@ -605,8 +680,10 @@ internal static class EsBitmapOperations
         var minAlpha = HistogramSize;
         var maxAlpha = 0;
 
-        foreach (var key in box)
+        var end = start + length;
+        for (var i = start; i < end; i++)
         {
+            var key = bins[i];
             var red = HistogramRed(key);
             var green = HistogramGreen(key);
             var blue = HistogramBlue(key);
@@ -625,34 +702,41 @@ internal static class EsBitmapOperations
     }
 
     /// <summary>箱に入っている画素の数を求める。</summary>
-    /// <param name="box">箱。</param>
+    /// <param name="bins">箱の番号の並び。</param>
+    /// <param name="start">箱の開始位置。</param>
+    /// <param name="length">箱の長さ。</param>
     /// <param name="counts">箱ごとの画素数。</param>
     /// <returns>画素数。</returns>
-    private static int CountPixels(List<int> box, int[] counts)
+    private static long CountPixels(int[] bins, int start, int length, int[] counts)
     {
-        var sum = 0;
-        foreach (var key in box)
+        var sum = 0L;
+        var end = start + length;
+        for (var i = start; i < end; i++)
         {
-            sum += counts[key];
+            sum += counts[bins[i]];
         }
 
         return sum;
     }
 
     /// <summary>箱の平均色を求める（ARGB。 アルファも平均する）。</summary>
-    /// <param name="box">箱。</param>
+    /// <param name="bins">箱の番号の並び。</param>
+    /// <param name="start">箱の開始位置。</param>
+    /// <param name="length">箱の長さ。</param>
     /// <param name="counts">箱ごとの画素数。</param>
     /// <param name="sums">箱ごとの成分の合計（箱 × 4）。</param>
     /// <returns>ARGB の色。</returns>
-    private static uint AverageColor(List<int> box, int[] counts, long[] sums)
+    private static uint AverageColor(int[] bins, int start, int length, int[] counts, long[] sums)
     {
         long red = 0;
         long green = 0;
         long blue = 0;
         long alpha = 0;
         long total = 0;
-        foreach (var key in box)
+        var end = start + length;
+        for (var i = start; i < end; i++)
         {
+            var key = bins[i];
             red += sums[(key * 4) + 0];
             green += sums[(key * 4) + 1];
             blue += sums[(key * 4) + 2];
