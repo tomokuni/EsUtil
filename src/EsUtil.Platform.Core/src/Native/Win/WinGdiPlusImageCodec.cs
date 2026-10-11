@@ -164,7 +164,9 @@ internal static class WinGdiPlusImageCodec
     private static void EncodeIndexedToFile(
         ReadOnlySpan<byte> pixels, int width, int height, string filePath, ImageFileFormat format, int colorCount)
     {
-        var (indices, palette) = EsBitmapOperations.ReduceToIndexed(pixels, width, height, colorCount);
+        // エンコードへ渡る画素は常に密（行幅 = 幅 × 4）である
+        var (indices, palette) = EsBitmapOperations.ReduceToIndexed(
+            pixels, width, height, width * EsReadOnlyBitmap.BytesPerPixel, colorCount);
 
         // GDI+ の行幅は 4 バイト境界へ揃えられる（8bpp では 1 行 = 幅 バイト）
         var stride = (width + 3) & ~3;

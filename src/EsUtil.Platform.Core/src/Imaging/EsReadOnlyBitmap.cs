@@ -345,7 +345,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     public EsBitmap Crop(int x, int y, int width, int height)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.Crop(_buffer, x, y, width, height);
+        return EsBitmapOperations.Crop(ReadOnlyPixels, Width, Height, Stride, x, y, width, height);
     }
 
     /// <summary>本画像から指定された矩形領域を切り出す（矩形で指定する版）。</summary>
@@ -357,7 +357,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     public EsBitmap Crop(EsRectInt rect)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.Crop(_buffer, rect);
+        return EsBitmapOperations.Crop(ReadOnlyPixels, Width, Height, Stride, rect);
     }
 
     /// <summary>長辺を上限へ収めた画像を生成する（アルゴリズムは引数で選ぶ）。</summary>
@@ -382,7 +382,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     public EsBitmap Resize(int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.Resize(_buffer, maxSize, algorithm);
+        return EsBitmapOperations.Resize(ReadOnlyPixels, Width, Height, Stride, maxSize, algorithm);
     }
 
     /// <summary>本画像を指定の色数へ減色する（パレット化。 画素数と寸法は変えない）。</summary>
@@ -414,7 +414,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     public EsBitmap ReduceColors(int colorCount)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.ReduceColors(_buffer, colorCount);
+        return EsBitmapOperations.ReduceColors(ReadOnlyPixels, Width, Height, Stride, colorCount);
     }
 
     /// <summary>本画像の一部を指す<b>0 コピーの読み取りビュー</b>を生成する（切り出しの複製を避ける）。</summary>

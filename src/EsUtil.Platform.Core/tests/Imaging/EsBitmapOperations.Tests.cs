@@ -646,6 +646,126 @@ public class EsBitmapOperationsTests
         return EsReadOnlyBitmap.FromBitmap(bitmap);
     }
 
+    // ====================================================================
+    // 行の余白（Stride > 幅 × 4）
+    // ====================================================================
+
+    [Fact]
+    internal void 切り出し_行の余白を含むソースでも余白の画素を混ぜない()
+    {
+        var dense = CreateGradientPixels(6, 4);
+        var stride = (6 * EsReadOnlyBitmap.BytesPerPixel) + 12;
+        var padded = CreatePadded(dense, 6, 4, stride, padding: 0xAB);
+
+        using var expected = EsReadOnlyBitmap.FromPixelCopy(6, 4, dense);
+        using var fromDense = expected.Crop(new EsRectInt(0, 0, 6, 4));
+        using var fromPadded = EsBitmapOperations.Crop(padded, 6, 4, stride, 0, 0, 6, 4);
+
+        Assert.Equal(fromDense.ReadOnlyPixels.ToArray(), fromPadded.ReadOnlyPixels.ToArray());
+    }
+
+    [Fact]
+    internal void 切り出し_行の余白を含むソースでも外側の透明パディングと行の対応が変わらない()
+    {
+        var dense = CreateGradientPixels(6, 4);
+        var stride = (6 * EsReadOnlyBitmap.BytesPerPixel) + 12;
+        var padded = CreatePadded(dense, 6, 4, stride, padding: 0xAB);
+
+        using var expected = EsReadOnlyBitmap.FromPixelCopy(6, 4, dense);
+        using var fromDense = expected.Crop(new EsRectInt(-2, -1, 10, 6));
+        using var fromPadded = EsBitmapOperations.Crop(padded, 6, 4, stride, -2, -1, 10, 6);
+
+        Assert.Equal(fromDense.ReadOnlyPixels.ToArray(), fromPadded.ReadOnlyPixels.ToArray());
+    }
+
+    [Theory]
+    [InlineData(DownscaleAlgorithm.Nearest)]
+    [InlineData(DownscaleAlgorithm.Bilinear)]
+    [InlineData(DownscaleAlgorithm.Box)]
+    internal void 縮小_行の余白を含むソースでも余白の画素を混ぜない(DownscaleAlgorithm algorithm)
+    {
+        // 並列実行の経路（縮小先の画素数がしきい値以上）も通すため、400x300 → 長辺 320 を使う
+        var dense = CreateGradientPixels(400, 300);
+        var stride = (400 * EsReadOnlyBitmap.BytesPerPixel) + 64;
+        var padded = CreatePadded(dense, 400, 300, stride, padding: 0xAB);
+
+        using var expected = EsReadOnlyBitmap.FromPixelCopy(400, 300, dense);
+        using var fromDense = expected.Resize(320, algorithm);
+        using var fromPadded = EsBitmapOperations.Resize(padded, 400, 300, stride, 320, algorithm);
+
+        Assert.Equal(fromDense.ReadOnlyPixels.ToArray(), fromPadded.ReadOnlyPixels.ToArray());
+    }
+
+    [Fact]
+    internal void 減色_行の余白は色として数えない()
+    {
+        // 密な画素は 2 色だけ（余白は 3 色目にして、数えてしまうと結果が変わるようにする）
+        var dense = new byte[8 * 4 * EsReadOnlyBitmap.BytesPerPixel];
+        for (var y = 0; y < 4; y++)
+        {
+            for (var x = 0; x < 8; x++)
+            {
+                var i = ((y * 8) + x) * EsReadOnlyBitmap.BytesPerPixel;
+                var value = (byte)((x < 4) ? 10 : 200);
+                dense[i] = value;
+                dense[i + 1] = value;
+                dense[i + 2] = value;
+                dense[i + 3] = 255;
+            }
+        }
+
+        var stride = (8 * EsReadOnlyBitmap.BytesPerPixel) + 8;
+        var padded = CreatePadded(dense, 8, 4, stride, padding: 0xAB);
+
+        using var expected = EsReadOnlyBitmap.FromPixelCopy(8, 4, dense);
+        using var fromDense = expected.ReduceColors(2);
+        using var fromPadded = EsBitmapOperations.ReduceColors(padded, 8, 4, stride, 2);
+
+        Assert.Equal(fromDense.ReadOnlyPixels.ToArray(), fromPadded.ReadOnlyPixels.ToArray());
+    }
+
+    /// <summary>勾配のある密な画素を生成する（位置ごとに値が異なるため、行や列のずれを検出できる）。</summary>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <returns>画素（BGRA8888。 幅 × 4 × 高さ バイト）。</returns>
+    private static byte[] CreateGradientPixels(int width, int height)
+    {
+        var pixels = new byte[width * height * EsReadOnlyBitmap.BytesPerPixel];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var i = ((y * width) + x) * EsReadOnlyBitmap.BytesPerPixel;
+                pixels[i] = (byte)(x * 7);
+                pixels[i + 1] = (byte)(y * 11);
+                pixels[i + 2] = (byte)((x + y) * 5);
+                pixels[i + 3] = 255;
+            }
+        }
+
+        return pixels;
+    }
+
+    /// <summary>密な画素へ行の余白を足した画素を生成する（余白は指定した値で埋める）。</summary>
+    /// <param name="dense">密な画素（幅 × 4 × 高さ バイト）。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="stride">生成する画素の 1 ラインあたりのバイト数（幅 × 4 より大きいこと）。</param>
+    /// <param name="padding">余白を埋める値（画素として数えられていないことを検出するための目印）。</param>
+    /// <returns>余白付きの画素（<c>stride × 高さ</c> バイト）。</returns>
+    private static byte[] CreatePadded(byte[] dense, int width, int height, int stride, byte padding)
+    {
+        var rowBytes = width * EsReadOnlyBitmap.BytesPerPixel;
+        var pixels = new byte[stride * height];
+        pixels.AsSpan().Fill(padding);
+        for (var y = 0; y < height; y++)
+        {
+            dense.AsSpan(y * rowBytes, rowBytes).CopyTo(pixels.AsSpan(y * stride, rowBytes));
+        }
+
+        return pixels;
+    }
+
     /// <summary>画像で使われている色の数を数える。</summary>
     /// <param name="bitmap">対象の画像。</param>
     /// <returns>異なる色の数。</returns>

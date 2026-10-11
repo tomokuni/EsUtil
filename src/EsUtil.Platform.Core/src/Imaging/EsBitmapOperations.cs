@@ -85,15 +85,20 @@ internal static class EsBitmapOperations
     /// </remarks>
     private const int HistogramAlphaScale = 8;
 
-    /// <summary>画像から指定された矩形領域を切り出す（公開面のメンバーの実装）。</summary>
-    /// <param name="source">切り出し元の画素バッファ。 借用であり破棄しない。</param>
+    /// <summary>画素から指定された矩形領域を切り出す（公開面のメンバーの実装）。</summary>
+    /// <param name="pixels">切り出し元の画素（BGRA8888。 <b>行の余白を含んでよい</b>）。 借用であり破棄しない。</param>
+    /// <param name="sourceWidth">切り出し元の幅（ピクセル）。</param>
+    /// <param name="sourceHeight">切り出し元の高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数（<c>sourceWidth × 4</c> 以上）。</param>
     /// <param name="x">切り出し領域の左上X座標（画像ローカルピクセル）。 負値の場合はソース左端より外側が透明パディングとなる。</param>
     /// <param name="y">切り出し領域の左上Y座標（画像ローカルピクセル）。 負値の場合はソース上端より外側が透明パディングとなる。</param>
-    /// <param name="width">切り出し領域の幅（ピクセル）。 正の値。</param>
-    /// <param name="height">切り出し領域の高さ（ピクセル）。 正の値。</param>
+    /// <param name="cropWidth">切り出し領域の幅（ピクセル）。 正の値。</param>
+    /// <param name="cropHeight">切り出し領域の高さ（ピクセル）。 正の値。</param>
     /// <returns>切り出された新しい画像（要求サイズ。 ソース範囲外は透明パディング）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// 規則と実測値は公開面が単一所有する（<see cref="EsReadOnlyBitmap.Crop(int, int, int, int)"/> の備考）。<br/>
+    /// <b>行の余白を混ぜません</b>: 読み書きとも<b>行単位</b>であり（連続コピーへ寄せる条件にも行幅の一致を含む）、
+    /// 余白付きのソース（<see cref="EsPixmap.ReadOnlyPixels"/>）を渡しても余白の画素は結果へ入りません。<br/>
     /// デスティネーションのコピーで覆われない領域は透明にするため、ソース範囲外は透明パディングとなる。<br/>
     /// 左上がソースの外（負）の場合も、要求矩形とソースの位置関係を保ってコピーする
     /// （内容を左上へ詰めない。 画像外の領域が透明のまま残る）。<br/>
@@ -102,23 +107,23 @@ internal static class EsBitmapOperations
     /// <b>コピーは 1 回で済む場合を分ける</b>: 左右のパディングが無く、ソースとデスティネーションの行幅が等しいときは
     /// 連続領域として全領域を 1 回でコピーする（実測: 4K 全域の切り出しで 8.3 ms → 6.6 ms）。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="width"/> / <paramref name="height"/> が 0 以下の場合。</exception>
-    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
-    internal static EsBitmap Crop(EsBitmapBuffer source, int x, int y, int width, int height)
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="cropWidth"/> / <paramref name="cropHeight"/> が 0 以下の場合。</exception>
+    internal static EsBitmap Crop(
+        ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride,
+        int x, int y, int cropWidth, int cropHeight)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        if (width <= 0)
+        if (cropWidth <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(width), width, "切り出し領域の幅は正の値である必要があります。");
+            throw new ArgumentOutOfRangeException(nameof(cropWidth), cropWidth, "切り出し領域の幅は正の値である必要があります。");
         }
 
-        if (height <= 0)
+        if (cropHeight <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(height), height, "切り出し領域の高さは正の値である必要があります。");
+            throw new ArgumentOutOfRangeException(nameof(cropHeight), cropHeight, "切り出し領域の高さは正の値である必要があります。");
         }
 
-        var srcW = source.Width;
-        var srcH = source.Height;
+        var srcW = sourceWidth;
+        var srcH = sourceHeight;
 
         // ソース左端・上端より外側はデスティネーション側でも透明のまま残す（コピー開始位置をずらす）
         var dstOffsetX = Math.Max(0, -x);
@@ -127,26 +132,26 @@ internal static class EsBitmapOperations
         // ソース範囲内にクランプ（交差しない場合はコピー列数・行数が 0 以下となる）
         var cropX = Math.Max(0, x);
         var cropY = Math.Max(0, y);
-        var cropW = Math.Min(width - dstOffsetX, srcW - cropX);
-        var cropH = Math.Min(height - dstOffsetY, srcH - cropY);
+        var copyW = Math.Min(cropWidth - dstOffsetX, srcW - cropX);
+        var copyH = Math.Min(cropHeight - dstOffsetY, srcH - cropY);
 
         // ソースと交差しない場合は全ピクセル透明を返す（生成時の 0 埋めをそのまま使う）
-        if (cropW <= 0 || cropH <= 0)
+        if (copyW <= 0 || copyH <= 0)
         {
-            return EsBitmap.Create(width, height);
+            return EsBitmap.Create(cropWidth, cropHeight);
         }
 
-        var result = EsBitmap.CreateUninitialized(width, height);
-        var src = source.ReadOnlyPixels;
+        var result = EsBitmap.CreateUninitialized(cropWidth, cropHeight);
+        var src = pixels;
         var dst = result.Pixels;
-        var srcStride = source.Stride;
+        var srcStride = stride;
         var dstStride = result.Stride;
 
-        // コピーする 1 行のバイト数（cropW は「デスティネーションの幅 − 左パディング」以下にクランプ済み）
-        var copyBytes = cropW * EsReadOnlyBitmap.BytesPerPixel;
+        // コピーする 1 行のバイト数（copyW は「デスティネーションの幅 − 左パディング」以下にクランプ済み）
+        var copyBytes = copyW * EsReadOnlyBitmap.BytesPerPixel;
 
         // 上端・下端のパディング行は連続しているため、行ごとではなく 1 回で消す
-        var bottomRows = height - dstOffsetY - cropH;
+        var bottomRows = cropHeight - dstOffsetY - copyH;
         if (dstOffsetY > 0)
         {
             dst[..(dstStride * dstOffsetY)].Clear();
@@ -154,15 +159,15 @@ internal static class EsBitmapOperations
 
         if (bottomRows > 0)
         {
-            dst.Slice(dstStride * (dstOffsetY + cropH), dstStride * bottomRows).Clear();
+            dst.Slice(dstStride * (dstOffsetY + copyH), dstStride * bottomRows).Clear();
         }
 
         // 中間行の左右のパディングを消す（左右の幅は行ごとに同じ）
         var leftBytes = dstOffsetX * EsReadOnlyBitmap.BytesPerPixel;
-        var rightBytes = (width - dstOffsetX - cropW) * EsReadOnlyBitmap.BytesPerPixel;
+        var rightBytes = (cropWidth - dstOffsetX - copyW) * EsReadOnlyBitmap.BytesPerPixel;
         if (leftBytes > 0 || rightBytes > 0)
         {
-            for (var row = 0; row < cropH; row++)
+            for (var row = 0; row < copyH; row++)
             {
                 var pRow = dstStride * (dstOffsetY + row);
                 if (leftBytes > 0)
@@ -182,12 +187,12 @@ internal static class EsBitmapOperations
         {
             // 左右のパディングが無く、コピー元とコピー先の行幅も同じ場合は連続領域になる（1 回でコピーする）
             // （全域の切り出しと全幅の切り出しがここに当たる。 実測: 4K 全域で 8.3 ms → 6.6 ms）
-            src.Slice(srcStride * cropY, dstStride * cropH)
-                .CopyTo(dst.Slice(dstStride * dstOffsetY, dstStride * cropH));
+            src.Slice(srcStride * cropY, dstStride * copyH)
+                .CopyTo(dst.Slice(dstStride * dstOffsetY, dstStride * copyH));
         }
         else
         {
-            for (var row = 0; row < cropH; row++)
+            for (var row = 0; row < copyH; row++)
             {
                 src.Slice(srcStride * (cropY + row) + (cropX * EsReadOnlyBitmap.BytesPerPixel), copyBytes)
                     .CopyTo(dst.Slice(dstStride * (dstOffsetY + row) + leftBytes, copyBytes));
@@ -197,26 +202,32 @@ internal static class EsBitmapOperations
         return result;
     }
 
-    /// <summary>画像から指定された矩形領域を切り出す（公開面のメンバーの実装）。</summary>
-    /// <param name="source">切り出し元の画素バッファ。 借用であり破棄しない。</param>
+    /// <summary>画素から指定された矩形領域を切り出す（公開面のメンバーの実装）。</summary>
+    /// <param name="pixels">切り出し元の画素（BGRA8888。 行の余白を含んでよい）。 借用であり破棄しない。</param>
+    /// <param name="sourceWidth">切り出し元の幅（ピクセル）。</param>
+    /// <param name="sourceHeight">切り出し元の高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="rect">切り出し領域（画像ローカルピクセル）。</param>
     /// <returns>切り出された新しい画像。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>規則は公開面が単一所有する（<see cref="EsReadOnlyBitmap.Crop(EsRectInt)"/>）。</remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="rect"/> の幅・高さが 0 以下の場合。</exception>
-    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
-    internal static EsBitmap Crop(EsBitmapBuffer source, EsRectInt rect)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        return Crop(source, rect.X, rect.Y, rect.Width, rect.Height);
-    }
+    internal static EsBitmap Crop(
+        ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride, in EsRectInt rect)
+        => Crop(pixels, sourceWidth, sourceHeight, stride, rect.X, rect.Y, rect.Width, rect.Height);
 
     /// <summary>長辺を上限へ収めた画像を生成する（公開面のメンバーの実装）。</summary>
-    /// <param name="source">対象の画素バッファ。 借用であり破棄しない。</param>
+    /// <param name="pixels">対象の画素（BGRA8888。 <b>行の余白を含んでよい</b>）。 借用であり破棄しない。</param>
+    /// <param name="sourceWidth">元の幅（ピクセル）。</param>
+    /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数（<c>sourceWidth × 4</c> 以上）。</param>
     /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
     /// <param name="algorithm">縮小のアルゴリズム。 既定は <see cref="DownscaleAlgorithm.Bilinear"/>。</param>
     /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// 規則と実測値は公開面が単一所有する（<see cref="EsReadOnlyBitmap.Resize(int, DownscaleAlgorithm)"/> の備考）。<br/>
+    /// <b>ポインターへ切り替えるのは縮小の内側だけです</b>: 行の範囲を並列実行する処理へ渡すラムダは
+    /// <c>ReadOnlySpan</c> を取り込めない（<c>ref struct</c> は保持できない）ため、<c>fixed</c> で固定した位置から
+    /// 各アルゴリズムへ渡します（余白を含む全領域を 1 つの領域として扱います）。<br/>
     /// <b>用途</b>: 大きな画像を小さく扱う場面（一覧のサムネイル・プレビュー等）。 元の寸法の複製を保持すると
     /// 4K 1 枚で 32 MB になるため、表示や転送の前に本メソッドで縮小する。<br/>
     /// <b>名前が <c>Resize</c> である理由</b>: 将来の拡大対応を見込んで双方向の名前を残している（現在の実装は縮小だけを
@@ -232,18 +243,17 @@ internal static class EsBitmapOperations
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または
     /// <paramref name="algorithm"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
-    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
-    internal static EsBitmap Resize(
-        EsBitmapBuffer source, int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)
+    internal static unsafe EsBitmap Resize(
+        ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride,
+        int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)
     {
-        ArgumentNullException.ThrowIfNull(source);
         if (maxSize <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(maxSize), maxSize, "長辺の上限は正の値である必要があります。");
         }
 
-        var width = source.Width;
-        var height = source.Height;
+        var width = sourceWidth;
+        var height = sourceHeight;
         var longSide = Math.Max(width, height);
         if (maxSize > longSide)
         {
@@ -255,30 +265,38 @@ internal static class EsBitmapOperations
         if (maxSize == longSide)
         {
             // 縮小が不要（列挙されていない値でも寸法が変わらないため先に返す）
-            return Crop(source, 0, 0, width, height);
+            return Crop(pixels, sourceWidth, sourceHeight, stride, 0, 0, width, height);
         }
 
         // 長辺を上限へ収める倍率（縦横比を保つ。 短辺は最低 1 px）
         var ratio = (double)maxSize / longSide;
         var target = new EsSizeInt(Math.Max(1, (int)(width * ratio)), Math.Max(1, (int)(height * ratio)));
 
-        return algorithm switch
+        // 縮小は行の範囲を並列実行するため、内側はポインターで扱う（ラムダは span を取り込めない）
+        fixed (byte* p = pixels)
         {
-            DownscaleAlgorithm.Nearest => ScaleNearest(source, target),
-            DownscaleAlgorithm.Bilinear => ScaleBilinear(source, target),
-            DownscaleAlgorithm.Box => ScaleBox(source, target),
-            _ => throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, "定義されていない縮小のアルゴリズムです。"),
-        };
+            return algorithm switch
+            {
+                DownscaleAlgorithm.Nearest => ScaleNearest(p, sourceWidth, sourceHeight, stride, target),
+                DownscaleAlgorithm.Bilinear => ScaleBilinear(p, sourceWidth, sourceHeight, stride, target),
+                DownscaleAlgorithm.Box => ScaleBox(p, sourceWidth, sourceHeight, stride, target),
+                _ => throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, "定義されていない縮小のアルゴリズムです。"),
+            };
+        }
     }
 
-    /// <summary>画像を指定の色数へ減色する（公開面のメンバーの実装）。</summary>
-    /// <param name="source">対象の画素バッファ。 借用であり破棄しない。</param>
+    /// <summary>画素を指定の色数へ減色する（公開面のメンバーの実装）。</summary>
+    /// <param name="pixels">対象の画素（BGRA8888。 <b>行の余白を含んでよい</b>）。 借用であり破棄しない。</param>
+    /// <param name="sourceWidth">元の幅（ピクセル）。</param>
+    /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数（<c>sourceWidth × 4</c> 以上）。</param>
     /// <param name="colorCount">残す色数（2〜256）。</param>
     /// <returns>減色した新しい画像（使われる色は <paramref name="colorCount"/> 種類以下）。 所有権は呼び出し側へ移る。</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合。</exception>
-    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
     /// <remarks>
     /// 規則と実測値は公開面が単一所有する（<see cref="EsReadOnlyBitmap.ReduceColors(int)"/> の備考）。<br/>
+    /// <b>行の余白を色として数えません</b>: ヒストグラム（<see cref="CountColors"/>）は<b>行単位</b>に数えるため、
+    /// 余白付きのソース（<see cref="EsPixmap.ReadOnlyPixels"/>）を渡しても結果は変わりません。<br/>
     /// <b>不可逆である</b>: 元の画素は戻らない（減色後の色数は <paramref name="colorCount"/> 以下になる）。<br/>
     /// <b>透過は保たれる（実測）</b>: アルファも減色の対象であり、透明な画素は透明なパレットの色へ寄る。
     /// 保存した PNG には <c>tRNS</c>（インデックス透過）、GIF には透明の色番号が書かれる。<br/>
@@ -297,18 +315,18 @@ internal static class EsBitmapOperations
     /// （サイズも本処理の 173,684 B に対し 111,764 B / 117,156 B と、写真では外部の方が小さい。
     /// 減色の品質は pngquant が最も高いが、実行ファイルの同梱と 1 枚 700 ms を要する）。
     /// </remarks>
-    internal static EsBitmap ReduceColors(EsBitmapBuffer source, int colorCount)
+    internal static EsBitmap ReduceColors(
+        ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride, int colorCount)
     {
-        ArgumentNullException.ThrowIfNull(source);
         if (colorCount < MinimumColorCount || colorCount > MaximumColorCount)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(colorCount), colorCount, $"残す色数は {MinimumColorCount}〜{MaximumColorCount} の範囲で指定します。");
         }
 
-        var width = source.Width;
-        var height = source.Height;
-        var (indices, palette) = ReduceToIndexed(source.ReadOnlyPixels, width, height, colorCount);
+        var width = sourceWidth;
+        var height = sourceHeight;
+        var (indices, palette) = ReduceToIndexed(pixels, width, height, stride, colorCount);
 
         var result = EsBitmap.CreateUninitialized(width, height);
         var destination = result.Pixels;
@@ -327,14 +345,17 @@ internal static class EsBitmapOperations
     }
 
     /// <summary>画素を指定の色数へ減色し、色番号とパレットで返す（保存の実装と共有する）。</summary>
-    /// <param name="pixels">元の画素（BGRA8888・アルファ乗算済み）。</param>
+    /// <param name="pixels">元の画素（BGRA8888・アルファ乗算済み。 行の余白を含んでよい）。</param>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="colorCount">残す色数（2〜256。 呼び出し側が検証済みであること）。</param>
     /// <returns>色番号（1 画素 1 バイト）とパレット（ARGB）。</returns>
     /// <remarks>
     /// <b>色番号で返す理由</b>: 8bpp のインデックス カラーとしてファイルへ書く経路（<c>GdipSetImagePalette</c>）が
     /// 必要とする形であり、画素（BGRA）へ戻すのは <see cref="ReduceColors"/> が行う。<br/>
+    /// <b>行の余白は数えない・読まない</b>: 数える側（<see cref="CountColors"/>）も割り当てる側も<b>行単位</b>です
+    /// （余白付きのソースを渡しても結果が変わりません）。<br/>
     /// <b>アルファも減色の対象である（実測）</b>: アルファを 4 段階に量子化して色と一緒に分けるため、
     /// パレットの色はアルファを持ち、<b>GDI+ が PNG へ <c>tRNS</c>（インデックス透過）を書き、GIF へ透明の
     /// 色番号を書く</b>（実測: 完全透明の 1,408 画素がどちらも保たれた）。 アルファを無視すると
@@ -344,11 +365,11 @@ internal static class EsBitmapOperations
     /// 透明（アルファ 0）と不透明（アルファ 255）は完全に一致する）。
     /// </remarks>
     internal static (byte[] Indices, uint[] Palette) ReduceToIndexed(
-        ReadOnlySpan<byte> pixels, int width, int height, int colorCount)
+        ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount)
     {
         var counts = new int[HistogramSize];
         var sums = new long[HistogramSize * 4];
-        CountColors(pixels, counts, sums);
+        CountColors(pixels, width, height, stride, counts, sums);
 
         var boxes = SplitBoxes(counts, colorCount);
         var palette = new uint[boxes.Count];
@@ -366,30 +387,46 @@ internal static class EsBitmapOperations
         }
 
         var indices = new byte[width * height];
-        for (var i = 0; i < indices.Length; i++)
+        for (var y = 0; y < height; y++)
         {
-            var offset = i * EsReadOnlyBitmap.BytesPerPixel;
-            indices[i] = lookup[HistogramKey(
-                pixels[offset + 2], pixels[offset + 1], pixels[offset], pixels[offset + 3])];
+            // 行単位で読む（余白の画素を読まない）
+            var row = pixels.Slice(y * stride, width * EsReadOnlyBitmap.BytesPerPixel);
+            var rowStart = y * width;
+            for (var x = 0; x < width; x++)
+            {
+                var offset = x * EsReadOnlyBitmap.BytesPerPixel;
+                indices[rowStart + x] = lookup[HistogramKey(
+                    row[offset + 2], row[offset + 1], row[offset], row[offset + 3])];
+            }
         }
 
         return (indices, palette);
     }
 
     /// <summary>画素をヒストグラムへ数える（箱ごとの画素数と成分の合計）。</summary>
-    /// <param name="pixels">元の画素（BGRA8888）。</param>
+    /// <param name="pixels">元の画素（BGRA8888。 行の余白を含んでよい）。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="counts">箱ごとの画素数の書き先。</param>
     /// <param name="sums">箱ごとの成分の合計の書き先（箱 × 4。 最後の 1 つがアルファ）。</param>
-    private static void CountColors(ReadOnlySpan<byte> pixels, int[] counts, long[] sums)
+    /// <remarks><b>行単位で数える</b>: 余白の画素を数えないため（平坦に走査すると余白が色として混ざる）。</remarks>
+    private static void CountColors(
+        ReadOnlySpan<byte> pixels, int width, int height, int stride, int[] counts, long[] sums)
     {
-        for (var i = 0; i < pixels.Length; i += EsReadOnlyBitmap.BytesPerPixel)
+        for (var y = 0; y < height; y++)
         {
-            var key = HistogramKey(pixels[i + 2], pixels[i + 1], pixels[i], pixels[i + 3]);
-            counts[key]++;
-            sums[(key * 4) + 0] += pixels[i + 2];
-            sums[(key * 4) + 1] += pixels[i + 1];
-            sums[(key * 4) + 2] += pixels[i];
-            sums[(key * 4) + 3] += pixels[i + 3];
+            var row = pixels.Slice(y * stride, width * EsReadOnlyBitmap.BytesPerPixel);
+            for (var x = 0; x < width; x++)
+            {
+                var i = x * EsReadOnlyBitmap.BytesPerPixel;
+                var key = HistogramKey(row[i + 2], row[i + 1], row[i], row[i + 3]);
+                counts[key]++;
+                sums[(key * 4) + 0] += row[i + 2];
+                sums[(key * 4) + 1] += row[i + 1];
+                sums[(key * 4) + 2] += row[i];
+                sums[(key * 4) + 3] += row[i + 3];
+            }
         }
     }
 
@@ -662,13 +699,22 @@ internal static class EsBitmapOperations
     private static int HistogramBlue(int key) => key & ((1 << HistogramBits) - 1);
 
     /// <summary>最近傍補間で縮小する（<see cref="DownscaleAlgorithm.Nearest"/> の実装）。</summary>
-    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
+    /// <param name="pixels">対象の画素（BGRA8888。 行の余白を含んでよい）。</param>
+    /// <param name="sourceWidth">元の幅（ピクセル）。</param>
+    /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="target">縮小後の寸法（元より小さい）。</param>
     /// <returns>縮小した画像。</returns>
-    private static EsBitmap ScaleNearest(EsBitmapBuffer source, EsSizeInt target)
+    /// <remarks>
+    /// <b>ポインターで受ける理由</b>: 行の範囲を並列実行する処理（<see cref="RunRowRanges"/>）へ渡すラムダは
+    /// <c>ReadOnlySpan</c> を<b>取り込めない</b>（<c>ref struct</c> はラムダが保持できない）ためです
+    /// （ポインターは取り込めます）。
+    /// </remarks>
+    private static unsafe EsBitmap ScaleNearest(
+        byte* pixels, int sourceWidth, int sourceHeight, int stride, EsSizeInt target)
     {
         var result = EsBitmap.CreateUninitialized(target.Width, target.Height);
-        var srcWidth = source.Width;
+        var srcWidth = sourceWidth;
 
         // 列の対応（最近傍）を先に求め、内側のループでは割り算をしない
         var colMap = new int[target.Width];
@@ -680,30 +726,35 @@ internal static class EsBitmapOperations
         // 1 行あたりの仕事が小さいため、縮小後の画素数で並列化を判定する（最近傍は最も大きいしきい値を使う）
         if ((long)target.Width * target.Height >= ParallelNearestThresholdPixels)
         {
-            RunRowRanges(target.Height, (from, to) => NearestRows(source, result, colMap, from, to));
+            RunRowRanges(target.Height, (from, to) => NearestRows(pixels, sourceWidth, sourceHeight, stride, result, colMap, from, to));
         }
         else
         {
-            NearestRows(source, result, colMap, 0, target.Height);
+            NearestRows(pixels, sourceWidth, sourceHeight, stride, result, colMap, 0, target.Height);
         }
 
         return result;
     }
 
     /// <summary>縮小先の行範囲を最近傍で求め、書き込む。</summary>
-    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
+    /// <param name="pixels">対象の画素（BGRA8888。 行の余白を含んでよい）。</param>
+    /// <param name="sourceWidth">元の幅（ピクセル）。</param>
+    /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="result">書き込み先（<paramref name="yStart"/>〜<paramref name="yEnd"/> の行を書く）。</param>
     /// <param name="colMap">縮小先の列に対応する元の列（事前に求めた対応表）。</param>
     /// <param name="yStart">開始行（含む）。</param>
     /// <param name="yEnd">終了行（含まない）。</param>
-    private static void NearestRows(
-        EsBitmapBuffer source, EsBitmap result, int[] colMap, int yStart, int yEnd)
+    private static unsafe void NearestRows(
+        byte* pixels, int sourceWidth, int sourceHeight, int stride,
+        EsBitmap result, int[] colMap, int yStart, int yEnd)
     {
-        var srcHeight = source.Height;
-        var srcWidth = source.Width;
-        var srcStrideUInt = source.Stride / sizeof(uint);
+        var srcWidth = sourceWidth;
+        var srcHeight = sourceHeight;
+        var srcStrideUInt = stride / sizeof(uint);
         var dstStrideUInt = result.Stride / sizeof(uint);
-        var src = MemoryMarshal.Cast<byte, uint>(source.ReadOnlyPixels);
+        // 余白を含む全領域（= 行幅 × 高さ）を uint として見る
+        var src = new ReadOnlySpan<uint>(pixels, checked(srcStrideUInt * srcHeight));
         var dst = MemoryMarshal.Cast<byte, uint>(result.Pixels);
         var targetHeight = result.Height;
         var targetWidth = result.Width;
@@ -719,10 +770,14 @@ internal static class EsBitmapOperations
         }
     }
     /// <summary>双線形補間で縮小する（<see cref="DownscaleAlgorithm.Bilinear"/> の実装）。</summary>
-    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
+    /// <param name="pixels">対象の画素（BGRA8888。 行の余白を含んでよい）。</param>
+    /// <param name="sourceWidth">元の幅（ピクセル）。</param>
+    /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="target">縮小後の寸法（元より小さい）。</param>
     /// <returns>縮小した画像。</returns>
-    private static EsBitmap ScaleBilinear(EsBitmapBuffer source, EsSizeInt target)
+    private static unsafe EsBitmap ScaleBilinear(
+        byte* pixels, int sourceWidth, int sourceHeight, int stride, EsSizeInt target)
     {
         var result = EsBitmap.CreateUninitialized(target.Width, target.Height);
 
@@ -733,28 +788,31 @@ internal static class EsBitmapOperations
         var fx = new double[target.Width];
         for (var x = 0; x < target.Width; x++)
         {
-            var sourceX = (((x + 0.5) * source.Width) / target.Width) - 0.5;
-            var x0 = Math.Clamp((int)Math.Floor(sourceX), 0, source.Width - 1);
+            var sourceX = (((x + 0.5) * sourceWidth) / target.Width) - 0.5;
+            var x0 = Math.Clamp((int)Math.Floor(sourceX), 0, sourceWidth - 1);
             leftX[x] = x0 * EsReadOnlyBitmap.BytesPerPixel;
-            rightX[x] = Math.Min(x0 + 1, source.Width - 1) * EsReadOnlyBitmap.BytesPerPixel;
+            rightX[x] = Math.Min(x0 + 1, sourceWidth - 1) * EsReadOnlyBitmap.BytesPerPixel;
             fx[x] = Math.Clamp(sourceX - x0, 0.0, 1.0);
         }
 
         // 1 行あたりの仕事が小さいため、縮小後の画素数で並列化を判定する
         if ((long)target.Width * target.Height >= ParallelTargetThresholdPixels)
         {
-            RunRowRanges(target.Height, (from, to) => BilinearRows(source, result, from, to, target, leftX, rightX, fx));
+            RunRowRanges(target.Height, (from, to) => BilinearRows(
+                pixels, sourceHeight, stride, result, from, to, target, leftX, rightX, fx));
         }
         else
         {
-            BilinearRows(source, result, 0, target.Height, target, leftX, rightX, fx);
+            BilinearRows(pixels, sourceHeight, stride, result, 0, target.Height, target, leftX, rightX, fx);
         }
 
         return result;
     }
 
     /// <summary>縮小先の行範囲を双線形補間で求め、書き込む。</summary>
-    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
+    /// <param name="pixels">対象の画素（BGRA8888。 行の余白を含んでよい）。</param>
+    /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="result">書き込み先（<paramref name="yStart"/>〜<paramref name="yEnd"/> の行を書く）。</param>
     /// <param name="yStart">開始行（含む）。</param>
     /// <param name="yEnd">終了行（含まない）。</param>
@@ -763,19 +821,21 @@ internal static class EsBitmapOperations
     /// <param name="rightX">縮小先の列が参照する元の右の列のバイト オフセット（事前計算）。</param>
     /// <param name="fx">左の列と右の列の重み（0〜1。 事前計算）。</param>
     /// <remarks>
-    /// <b>行を範囲で受ける理由</b>: 1 行ずつメソッドを呼ぶと、行ごとに <see cref="EsReadOnlyBitmap.ReadOnlyPixels"/> を取り直すうえ、
+    /// <b>行を範囲で受ける理由</b>: 1 行ずつメソッドを呼ぶと、行ごとに画素のビューを取り直すうえ、
     /// メソッド境界を越えることで<b>境界チェックの除去とベクター化の最適化が失われる</b>（実測: 4K → 96x54 で 116 → 229 µs）。
     /// 範囲を受け取れば、逐次（1 回で全行）と並列（範囲ごと）が<b>同じ実装</b>を使いながら最適化を保てます。<br/>
     /// <b>列の対応を引数で受ける理由</b>: 列の対応（元の 2 列と重み）は行に依存しないため、行ごとに
-    /// 除算・床・クランプをやり直さない（<see cref="ScaleBilinear"/> が 1 度だけ求める）。
+    /// 除算・床・クランプをやり直さない（<see cref="ScaleBilinear"/> が 1 度だけ求める）。<br/>
+    /// <b>行の余白を含む全領域を 1 つのビューにします</b>（行の先頭は <paramref name="stride"/> で求める）。
     /// </remarks>
-    private static void BilinearRows(
-        EsBitmapBuffer source, EsBitmap result, int yStart, int yEnd, EsSizeInt target,
+    private static unsafe void BilinearRows(
+        byte* pixels, int sourceHeight, int stride,
+        EsBitmap result, int yStart, int yEnd, EsSizeInt target,
         int[] leftX, int[] rightX, double[] fx)
     {
-        var srcHeight = source.Height;
-        var src = source.ReadOnlyPixels;
-        var srcStride = source.Stride;
+        var srcHeight = sourceHeight;
+        var srcStride = stride;
+        var src = new ReadOnlySpan<byte>(pixels, checked(srcStride * sourceHeight));
         var dst = result.Pixels;
         var dstStride = result.Stride;
         var bytesPerPixel = EsReadOnlyBitmap.BytesPerPixel;
@@ -832,7 +892,10 @@ internal static class EsBitmapOperations
     }
 
     /// <summary>面積平均（box）で縮小する（<see cref="DownscaleAlgorithm.Box"/> の実装）。</summary>
-    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
+    /// <param name="pixels">対象の画素（BGRA8888。 行の余白を含んでよい）。</param>
+    /// <param name="sourceWidth">元の幅（ピクセル）。</param>
+    /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="target">縮小後の寸法（元より小さい）。</param>
     /// <returns>縮小した画像。</returns>
     /// <remarks>
@@ -850,11 +913,12 @@ internal static class EsBitmapOperations
     /// （4K → 96x54 で 逐次 2.8 ms 対 現行 1.5 ms、4K → 960x540 で 14 ms 対 2.4 ms）。
     /// 現行は元画像の各画素を 1 回だけ読んで合計するため、読み出しの回数は既に最小である。
     /// </remarks>
-    private static EsBitmap ScaleBox(EsBitmapBuffer source, EsSizeInt target)
+    private static unsafe EsBitmap ScaleBox(
+        byte* pixels, int sourceWidth, int sourceHeight, int stride, EsSizeInt target)
     {
         var result = EsBitmap.CreateUninitialized(target.Width, target.Height);
-        var srcWidth = source.Width;
-        var srcHeight = source.Height;
+        var srcWidth = sourceWidth;
+        var srcHeight = sourceHeight;
         var targetWidth = target.Width;
 
         // 列の範囲は行に依存しないため、1 度だけ求めて表にする
@@ -870,22 +934,24 @@ internal static class EsBitmapOperations
         if ((long)srcWidth * srcHeight >= ParallelSourceThresholdPixels)
         {
             RunRowRanges(target.Height, (from, to) => AverageBlockRows(
-                source, result, from, to, srcHeight, target.Height, targetWidth, x0s, x1s));
+                pixels, sourceHeight, stride, result, from, to, target.Height, targetWidth, x0s, x1s));
         }
         else
         {
-            AverageBlockRows(source, result, 0, target.Height, srcHeight, target.Height, targetWidth, x0s, x1s);
+            AverageBlockRows(
+                pixels, sourceHeight, stride, result, 0, target.Height, target.Height, targetWidth, x0s, x1s);
         }
 
         return result;
     }
 
     /// <summary>縮小先の行範囲を面積平均で求める（行ごとに独立しているため並列実行できる）。</summary>
-    /// <param name="source">対象の画像。 借用であり破棄しない。</param>
+    /// <param name="pixels">対象の画素（BGRA8888。 行の余白を含んでよい）。</param>
+    /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="result">書き込み先（<paramref name="yStart"/>〜<paramref name="yEnd"/> の行を書く）。</param>
     /// <param name="yStart">開始行（含む）。</param>
     /// <param name="yEnd">終了行（含まない）。</param>
-    /// <param name="srcHeight">元の高さ。</param>
     /// <param name="targetHeight">縮小後の高さ。</param>
     /// <param name="targetWidth">縮小後の幅。</param>
     /// <param name="x0s">縮小先の列が受け持つ元の範囲の開始列（事前計算）。</param>
@@ -894,14 +960,17 @@ internal static class EsBitmapOperations
     /// <b>合計をローカル変数で持つ理由</b>: 成分ごとの合計を <c>stackalloc</c> の領域で持つと、
     /// 縮小先の画素ごとに領域を消す書き込みが加わる（実測: 4K → 1920x1080 で 5.4 ms → 3.7 ms）。<br/>
     /// <b>列の範囲を引数で受ける理由</b>: 列の範囲は行に依存しないため、画素ごとに 64 ビット除算を行わない
-    /// （<see cref="ScaleBox"/> が 1 度だけ求める）。
+    /// （<see cref="ScaleBox"/> が 1 度だけ求める）。<br/>
+    /// <b>行の余白を含む全領域を 1 つのビューにします</b>（行の先頭は <paramref name="stride"/> で求める）。
     /// </remarks>
-    private static void AverageBlockRows(
-        EsBitmapBuffer source, EsBitmap result, int yStart, int yEnd,
-        int srcHeight, int targetHeight, int targetWidth, int[] x0s, int[] x1s)
+    private static unsafe void AverageBlockRows(
+        byte* pixels, int sourceHeight, int stride,
+        EsBitmap result, int yStart, int yEnd,
+        int targetHeight, int targetWidth, int[] x0s, int[] x1s)
     {
-        var src = source.ReadOnlyPixels;
-        var srcStride = source.Stride;
+        var srcHeight = sourceHeight;
+        var srcStride = stride;
+        var src = new ReadOnlySpan<byte>(pixels, checked(srcStride * sourceHeight));
         var dst = result.Pixels;
         var dstStride = result.Stride;
         var bytesPerPixel = EsReadOnlyBitmap.BytesPerPixel;
