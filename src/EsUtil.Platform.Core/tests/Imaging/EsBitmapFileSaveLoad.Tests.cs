@@ -380,10 +380,13 @@ public class EsBitmapFileSaveLoadTests
             Assert.Equal(64, loaded.Height);
             Assert.True(CountDistinctColors(loaded) <= 16, $"{CountDistinctColors(loaded)} 色になりました。");
 
-            // 減色した方が小さい（BMP は無圧縮だが、1 画素 1 バイトになるため大きく減る）
-            Assert.True(
-                new FileInfo(reduced).Length < new FileInfo(plain).Length,
-                $"減色後 {new FileInfo(reduced).Length} バイトが減色前 {new FileInfo(plain).Length} バイト以上です。");
+            // 減色した方が小さい（GIF は元から常に量子化されるため、色数を減らしてもサイズが同じことがある）
+            if (extension != ".gif")
+            {
+                Assert.True(
+                    new FileInfo(reduced).Length < new FileInfo(plain).Length,
+                    $"減色後 {new FileInfo(reduced).Length} バイトが減色前 {new FileInfo(plain).Length} バイト以上です。");
+            }
         }
         finally
         {
@@ -455,6 +458,28 @@ public class EsBitmapFileSaveLoadTests
             Assert.Equal((byte)255, loaded.GetPixel(0, 0).A);
             Assert.Equal((byte)128, loaded.GetPixel(source.Width / 2, 0).A);
             Assert.Equal((byte)0, loaded.GetPixel(source.Width - 1, 0).A);
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    [Fact]
+    internal void Save_減色を指定しなくてもGIFは透過を保つ()
+    {
+        // GDI+ の GIF エンコーダーは透明色の番号をどの画素にも使わせないため、32bpp のまま渡すと透過が失われる。
+        // 本ライブラリは GIF を常に自前の量子化で書く（GIF はパレットが必須の形式である）。
+        using var source = CreateWithAlpha();
+        var path = TempPath(".gif");
+        try
+        {
+            source.Save(path);
+
+            using var loaded = EsBitmap.Load(path);
+
+            Assert.Equal((byte)0, loaded.GetPixel(source.Width - 1, 0).A);
+            Assert.Equal((byte)255, loaded.GetPixel(0, 0).A);
         }
         finally
         {

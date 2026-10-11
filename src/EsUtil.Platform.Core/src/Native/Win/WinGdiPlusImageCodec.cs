@@ -109,8 +109,8 @@ internal static class WinGdiPlusImageCodec
 
         var (format, targetPath) = ResolveTarget(filePath, options);
 
-        // 減色する場合は 8bpp のインデックス カラーとして書く（32bpp で減色しても GDI+ はパレット PNG を書かない）
-        if (options.ColorCount is int colorCount)
+        // 減色する場合、および GIF（パレットが必須の形式）は 8bpp のインデックス カラーとして書く
+        if (ResolveColorCount(format, options) is int colorCount)
         {
             EncodeIndexedToFile(pixels, width, height, targetPath, format, colorCount);
             return;
@@ -153,7 +153,9 @@ internal static class WinGdiPlusImageCodec
     /// <b>なぜ 8bpp で書くのか（実測）</b>: 32bpp のまま減色しても、GDI+ の PNG エンコーダーはパレット PNG を書かない
     /// （減色の効果は圧縮率の向上だけであり、BMP では 1 バイトも減らない）。
     /// <b>8bpp のインデックス カラー（パレット付き）を渡すとパレット画像になる</b>
-    /// （実測: BMP 8,294,454 → 2,074,678 B / PNG 4,305,898 → 595,082 B。 いずれも <c>Load</c> で読み戻せる）。<br/>
+    /// （実測: BMP 8,294,454 → 2,074,678 B / PNG 4,305,898 → 595,082 B。 いずれも <c>Load</c> で読み戻せる）。
+    /// <b>GIF もここを通る</b>（<see cref="ResolveColorCount"/> を参照。 GDI+ の GIF エンコーダーは
+    /// 透明色の番号をどの画素にも使わせないため、32bpp のまま渡すと透過が失われる）。<br/>
     /// <b>GDI+ 側の前提</b>: ピクセルはコピーされないため<b>行幅を 4 バイト境界へ揃えた作業バッファ</b>を用意し、
     /// 破棄するまで生存させる。 パレットは <c>GdipSetImagePalette</c> が複製するため、設定の後に解放してよい。
     /// </remarks>
@@ -385,6 +387,24 @@ internal static class WinGdiPlusImageCodec
     [SupportedOSPlatform("windows")]
     private static bool SupportsPalette(ImageFileFormat format)
         => format is ImageFileFormat.Bmp or ImageFileFormat.Png or ImageFileFormat.Gif;
+
+    /// <summary>量子化して 8bpp のインデックス カラーとして書く場合の色数を求める。</summary>
+    /// <param name="format">保存する形式。</param>
+    /// <param name="options">保存のオプション（検証済み）。</param>
+    /// <returns>残す色数。 量子化しない場合は null。</returns>
+    /// <remarks>
+    /// <b>GIF は指定が無くても常に量子化する（実測に基づく）</b>: GIF はパレットが必須の形式であり、
+    /// <b>GDI+ の GIF エンコーダーは透明色の番号を書くがその番号をどの画素にも使わせない</b>ため、
+    /// 32bpp のまま渡すと<b>透過が失われる</b>（実測: 透明色の指定は番号 252 を指すが、GDI+ / System.Drawing /
+    /// SkiaSharp のいずれで読み戻しても全画素が不透明になった）。 自前の量子化は透明な画素を透明な
+    /// パレットの色へ割り当てるため、透過が保たれる。 副次的に<b>ファイルも小さく画質も良くなる</b>
+    /// （実測: 640x360 の写真で 91,294 B / 色差 平均 16.40 に対し 34,130 B / 2.89）。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    private static int? ResolveColorCount(ImageFileFormat format, in EsImageSaveOptions options)
+        => options.ColorCount is int colorCount
+            ? colorCount
+            : format == ImageFileFormat.Gif ? EsBitmapExtensions.MaximumColorCount : null;
 
     /// <summary>形式を表す enum を内部の形式へ変換する。</summary>
     /// <param name="format">公開の形式。</param>
