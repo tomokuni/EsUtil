@@ -649,6 +649,24 @@ public readonly record struct ElementFinderResults(
 
 **Skia との相互変換**（`ToSKBitmap` / `ToEsWritableBitmap`）は SkiaSharp へ依存するため、Skia を使用する層の拡張メソッドが提供します（`ToSKBitmap` は非所有ビュー、`ToEsWritableBitmap` は複製。 所有権はコア側に残ります）。
 
+**他フレームワークの画像型との比較（一次資料と実測。 速度の比較は [2.34](#234-画像操作の他ライブラリとの比較実測) が単一所有します）**:
+
+| 観点 | 本ライブラリ | Skia（`SKImage` / `SKBitmap`） | Avalonia | WinUI 3（WinAppSDK） | Win2D（`CanvasBitmap`） | System.Drawing |
+| --- | --- | --- | --- | --- | --- | --- |
+| 読み取り専用の表し方 | **兄弟型** | **兄弟型**（共通の親は `SKObject` のみ） | **継承**（`WriteableBitmap : Bitmap`） | **継承**（`WriteableBitmap : BitmapSource`）＋**単一型**（`SoftwareBitmap` はロックモードで切替） | 単一型（読み書き両方） | **継承**（`Bitmap : Image`） |
+| 不変の表明 | 型（`EsBitmap`） | `SetImmutable()` / `IsImmutable` | 無し（`Bitmap` に書き込みの入口は無いが「不変」の表明ではない） | 型（`BitmapSource`） | 無し | 無し |
+| ピクセルへの書き込み | `WritablePixels`（`Span<byte>`） | `SKBitmap.GetPixelSpan()` | `Lock()` → `ILockedFramebuffer`（**借用のオブジェクト**） | `WriteableBitmap.PixelBuffer`（`IBuffer`。 直接は書けない） | `SetPixelBytes`（**常に複製**） | `LockBits` |
+| 外部メモリの借用の入口 | 公開しない（`Pixels` は `ReadOnlySpan`、`AddressCore` は `protected`） | `InstallPixels` / `FromPixels`（複製の `FromPixelCopy` と**名前で区別**。 実測: `PeekPixels` が元アドレスを指す） | `WriteableBitmap(PixelFormat, AlphaFormat, IntPtr, …)` | `SoftwareBitmap.LockBuffer()` → `BitmapBuffer` → `CreateReference()`（`IDisposable` の連鎖） | 無し | `Bitmap(IntPtr, …)` |
+| 読み取り専用 → 書き換え可能 | **遅延コピー**（共有し、最初の書き込みで複製） | 複製（`SKBitmap.FromImage` は実測で別アドレス。 共有する入口は無い） | 複製（静的変換も無く、`WriteableBitmap` を作って `CopyPixels`） | **即時の複製**（`CreateCopyFromBuffer` / `Convert`。 メソッド名が複製を明示） | 複製 | 複製（`Clone`） |
+| 生ポインタの公開 | 無し | 有り（`GetPixels()`） | 有り（`ILockedFramebuffer.Address`） | 無し | 無し（`byte[]` のみ） | 有り（`Scan0`） |
+| 破棄 | `IDisposable`（`EsBitmapBase`） | `SKObject : IDisposable` | `IDisposable`（`Bitmap` が宣言） | `SoftwareBitmap : IClosable`（表示型は GC） | `IDisposable` | `Image : IDisposable` |
+
+- **出典**: SkiaSharp / Avalonia / System.Drawing は各アセンブリで実測（リフレクション＋アドレス比較）。 WinUI 3 / Win2D は Microsoft Learn のクラスリファレンス（`WriteableBitmap` / `SoftwareBitmap` / `CanvasBitmap` / `CanvasRenderTarget`）と Windows App SDK のイメージング解説です。
+- **本ライブラリの思想は Skia と同じです（優劣ではなく一致）**: 「読み取り専用と書き換え可能を兄弟型に分ける」設計は Skia に一致します。 本アプリの描画は MewUI（`Aprillz.MewUI.Skia`）＝ Skia であり、MewUI 用の表示ビューは `IEsBitmap` を `ToSKBitmap()`（**非所有ビュー。 複製なし**）で `SKCanvas.DrawBitmap` へ渡します。 描画するエンジンと同じ思想に揃っているため、相互変換が複製なしで書けます。
+- **遅延コピーは調査したどのフレームワークにもありません**（本ライブラリだけが持ちます）。 WinUI 3 は「複製である」ことをメソッド名（`CreateCopyFromBuffer` / `Convert`）で明示する設計であり、遅延コピーの概念を持ちません。
+- **借用の入口を意図的に公開していません**（Skia / Avalonia / System.Drawing は公開し、WinUI 3 と Win2D は公開しません）。 借用は**借用先の寿命に依存する契約を 2 つ併存させる**ことになるためです（実測: Avalonia の表示用のビューは元の破棄で無効化されます）。 本ライブラリは「自分が所有し、自分が破棄する」の 1 契約だけを持ちます。 借用が要る場面（他フレームワークの描画へ渡す）は、**渡す側**で `Pixels` を `fixed` して非所有ビューを作ります（Skia を使用する層が実装済み）。
+- **書き込みの期間は型で表しません**: Avalonia の `Lock()` は借用オブジェクトの寿命で「借用している間」を表しますが、本ライブラリは `WritablePixels`（`Span`）を返します。 `Span` は `ref struct` のため**フィールドに保持できません**が、ローカルに置いたまま破棄すれば不正な書き込みになる点は Avalonia と同じです（借用中の破棄を型で防ぐ手段は、調査したどのフレームワークにもありません）。
+
 ### 2.32 画像のファイル入出力（`Save` / `Load`）
 
 コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー（`Load`）と面の拡張メソッド（`Save`）**であり、GDI+（`gdiplus.dll`）を呼ぶ実装は `src/EsUtil.Platform.Core/src/Native/Win/WinGdiPlusImageCodec.cs` の `internal` クラスが単一所有します。 **Windows 専用**です。
