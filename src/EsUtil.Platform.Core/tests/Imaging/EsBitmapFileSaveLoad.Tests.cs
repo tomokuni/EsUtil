@@ -30,10 +30,14 @@ public class EsBitmapFileSaveLoadTests
     internal void Save_拡張子に応じた形式で保存しLoadで読み戻せる(string extension)
     {
         using var source = EsBitmap.Create(6, 4, System.Drawing.Color.FromArgb(255, 10, 20, 30));
+
+        // 書き換え可能な画像は保存の入口（読み取り専用の画像を受ける）へそのまま渡せないため、FromBitmap を通す
+        // （未凍結なので複製になる）
+        using var read = EsReadOnlyBitmap.FromBitmap(source);
         var path = TempPath(extension);
         try
         {
-            source.Save(path);
+            read.Save(path);
 
             Assert.True(File.Exists(path));
             using var loaded = EsReadOnlyBitmap.Load(path);
@@ -49,7 +53,7 @@ public class EsBitmapFileSaveLoadTests
     [Fact]
     internal void Save_大文字の拡張子も受け付ける()
     {
-        using var source = EsBitmap.Create(4, 4, System.Drawing.Color.Red);
+        using var source = CreateReadOnly(4, 4, System.Drawing.Color.Red);
         var path = TempPath(".PNG");
         try
         {
@@ -66,7 +70,7 @@ public class EsBitmapFileSaveLoadTests
     [Fact]
     internal void Save_未対応の拡張子はNotSupportedExceptionを投げる()
     {
-        using var source = EsBitmap.Create(4, 4);
+        using var source = CreateReadOnly(4, 4);
 
         Assert.Throws<NotSupportedException>(() => source.Save(TempPath(".webp")));
     }
@@ -74,7 +78,7 @@ public class EsBitmapFileSaveLoadTests
     [Fact]
     internal void Save_空白のパスはArgumentExceptionを投げる()
     {
-        using var source = EsBitmap.Create(4, 4);
+        using var source = CreateReadOnly(4, 4);
 
         Assert.Throws<ArgumentException>(() => source.Save("   "));
     }
@@ -82,7 +86,7 @@ public class EsBitmapFileSaveLoadTests
     [Fact]
     internal void Save_nullのパスはArgumentNullExceptionを投げる()
     {
-        using var source = EsBitmap.Create(4, 4);
+        using var source = CreateReadOnly(4, 4);
 
         Assert.Throws<ArgumentNullException>(() => source.Save(null!));
     }
@@ -105,7 +109,7 @@ public class EsBitmapFileSaveLoadTests
         var path = TempPath(".png");
         try
         {
-            using (var source = EsBitmap.Create(6, 4, System.Drawing.Color.FromArgb(255, 10, 20, 30)))
+            using (var source = CreateReadOnly(6, 4, System.Drawing.Color.FromArgb(255, 10, 20, 30)))
             {
                 source.Save(path);
             }
@@ -156,7 +160,7 @@ public class EsBitmapFileSaveLoadTests
     [InlineData(101)]
     internal void Save_JPEGの品質が範囲外ならArgumentOutOfRangeExceptionを投げる(int quality)
     {
-        using var source = EsBitmap.Create(4, 4);
+        using var source = CreateReadOnly(4, 4);
         var path = TempPath(".jpg");
 
         Assert.Throws<ArgumentOutOfRangeException>(
@@ -171,7 +175,7 @@ public class EsBitmapFileSaveLoadTests
     [InlineData(".tiff")]
     internal void Save_JPEG以外へ品質を指定するとNotSupportedExceptionを投げる(string extension)
     {
-        using var source = EsBitmap.Create(4, 4);
+        using var source = CreateReadOnly(4, 4);
         var path = TempPath(extension);
 
         Assert.Throws<NotSupportedException>(
@@ -182,7 +186,7 @@ public class EsBitmapFileSaveLoadTests
     [Fact]
     internal void Save_オプションを指定しても未対応の拡張子はNotSupportedExceptionを投げる()
     {
-        using var source = EsBitmap.Create(4, 4);
+        using var source = CreateReadOnly(4, 4);
 
         Assert.Throws<NotSupportedException>(
             () => source.Save(TempPath(".webp"), new EsImageSaveOptions { JpegQuality = 80 }));
@@ -216,7 +220,7 @@ public class EsBitmapFileSaveLoadTests
     [InlineData(EsImageFileFormat.Tiff, ".tif")]
     internal void Save_拡張子が無いパスへ形式を指定すると拡張子を補完して保存する(EsImageFileFormat format, string expectedExtension)
     {
-        using var source = EsBitmap.Create(4, 4, System.Drawing.Color.Red);
+        using var source = CreateReadOnly(4, 4, System.Drawing.Color.Red);
         var path = Path.Combine(Path.GetTempPath(), $"se_bitmap_{Guid.NewGuid():N}");
         var completed = path + expectedExtension;
         try
@@ -237,7 +241,7 @@ public class EsBitmapFileSaveLoadTests
     [Fact]
     internal void Save_形式と一致する拡張子なら形式を指定しても保存できる()
     {
-        using var source = EsBitmap.Create(4, 4, System.Drawing.Color.Red);
+        using var source = CreateReadOnly(4, 4, System.Drawing.Color.Red);
         var path = TempPath(".jpg");
         try
         {
@@ -254,7 +258,7 @@ public class EsBitmapFileSaveLoadTests
     [Fact]
     internal void Save_形式と拡張子が食い違い無視しないならArgumentExceptionを投げる()
     {
-        using var source = EsBitmap.Create(4, 4);
+        using var source = CreateReadOnly(4, 4);
         var path = TempPath(".png");
 
         Assert.Throws<ArgumentException>(
@@ -265,7 +269,7 @@ public class EsBitmapFileSaveLoadTests
     [Fact]
     internal void Save_形式と拡張子が食い違い無視するなら指定形式で与えられた名前へ保存する()
     {
-        using var source = EsBitmap.Create(4, 4, System.Drawing.Color.Red);
+        using var source = CreateReadOnly(4, 4, System.Drawing.Color.Red);
         var path = TempPath(".png");
         try
         {
@@ -288,7 +292,7 @@ public class EsBitmapFileSaveLoadTests
     [Fact]
     internal void Save_形式を指定しても未対応の拡張子は無視しないならNotSupportedExceptionを投げる()
     {
-        using var source = EsBitmap.Create(4, 4);
+        using var source = CreateReadOnly(4, 4);
 
         Assert.Throws<NotSupportedException>(
             () => source.Save(TempPath(".webp"), new EsImageSaveOptions { Format = EsImageFileFormat.Png }));
@@ -297,7 +301,7 @@ public class EsBitmapFileSaveLoadTests
     [Fact]
     internal void Save_未対応の拡張子へ形式を指定して無視するなら指定形式で保存する()
     {
-        using var source = EsBitmap.Create(4, 4, System.Drawing.Color.Red);
+        using var source = CreateReadOnly(4, 4, System.Drawing.Color.Red);
         var path = TempPath(".webp");
         try
         {
@@ -318,7 +322,7 @@ public class EsBitmapFileSaveLoadTests
     [Fact]
     internal void Save_拡張子も形式も無い場合はNotSupportedExceptionを投げる()
     {
-        using var source = EsBitmap.Create(4, 4);
+        using var source = CreateReadOnly(4, 4);
 
         Assert.Throws<NotSupportedException>(
             () => source.Save(Path.Combine(Path.GetTempPath(), $"se_bitmap_{Guid.NewGuid():N}")));
@@ -435,7 +439,7 @@ public class EsBitmapFileSaveLoadTests
     [InlineData(257)]
     internal void Save_減色の色数が範囲外ならArgumentOutOfRangeExceptionを投げる(int colorCount)
     {
-        using var source = EsBitmap.Create(4, 4);
+        using var source = CreateReadOnly(4, 4);
         var path = TempPath(".png");
 
         Assert.Throws<ArgumentOutOfRangeException>(
@@ -508,13 +512,34 @@ public class EsBitmapFileSaveLoadTests
         }
     }
 
+    /// <summary>単色で塗りつぶした読み取り専用の画像を生成する（保存の入力）。</summary>
+    /// <param name="width">幅。</param>
+    /// <param name="height">高さ。</param>
+    /// <param name="color">塗りつぶす色。</param>
+    /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>書き終えてから凍結し、<see cref="EsReadOnlyBitmap.FromBitmap"/> で読み取り専用の面を作る
+    /// （凍結済みは複製されないため、画素を 0 コピーで共有する）。</remarks>
+    private static EsReadOnlyBitmap CreateReadOnly(int width, int height, System.Drawing.Color color)
+    {
+        using var bitmap = EsBitmap.Create(width, height, color);
+        bitmap.SetReadOnly();
+        return EsReadOnlyBitmap.FromBitmap(bitmap);
+    }
+
+    /// <summary>透明な読み取り専用の画像を生成する（保存の入力）。</summary>
+    /// <param name="width">幅。</param>
+    /// <param name="height">高さ。</param>
+    /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
+    private static EsReadOnlyBitmap CreateReadOnly(int width, int height)
+        => CreateReadOnly(width, height, System.Drawing.Color.Transparent);
+
     /// <summary>透明・半透明・不透明の 3 段階を持つ画像を作る（RGB は同じ）。</summary>
     /// <param name="width">幅（ピクセル。 3 等分する）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
     /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
-    private static EsBitmap CreateWithAlpha(int width = 48, int height = 8)
+    private static EsReadOnlyBitmap CreateWithAlpha(int width = 48, int height = 8)
     {
-        var bitmap = EsBitmap.Create(width, height);
+        using var bitmap = EsBitmap.Create(width, height);
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
@@ -524,7 +549,8 @@ public class EsBitmapFileSaveLoadTests
             }
         }
 
-        return bitmap;
+        bitmap.SetReadOnly();
+        return EsReadOnlyBitmap.FromBitmap(bitmap);
     }
 
     /// <summary>画像で使われている色の数を数える。</summary>
@@ -554,9 +580,9 @@ public class EsBitmapFileSaveLoadTests
     /// <param name="height">高さ（ピクセル）。</param>
     /// <param name="levels">1 チャネルあたりの段階数（既定 256 = 最大）。 段階を減らすと色数が減る。</param>
     /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
-    private static EsBitmap CreateNoisy(int width, int height, int levels = 256)
+    private static EsReadOnlyBitmap CreateNoisy(int width, int height, int levels = 256)
     {
-        var bitmap = EsBitmap.Create(width, height);
+        using var bitmap = EsBitmap.Create(width, height);
         var state = 12345u;
         var step = 256 / Math.Clamp(levels, 2, 256);
         for (var y = 0; y < height; y++)
@@ -574,6 +600,7 @@ public class EsBitmapFileSaveLoadTests
             }
         }
 
-        return bitmap;
+        bitmap.SetReadOnly();
+        return EsReadOnlyBitmap.FromBitmap(bitmap);
     }
 }

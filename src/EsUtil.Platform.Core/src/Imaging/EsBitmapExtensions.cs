@@ -12,7 +12,8 @@ namespace EsUtil.Platform.Core.Imaging;
 /// 継承階層の型（<see cref="EsReadOnlyBitmap"/>）のメソッドにすると、本インターフェイスを直接実装する画像
 /// （表示アダプタ等）から呼べない（実測: ルーペと切り出しの両方が使う）。<br/>
 /// <b>戻り値の権利</b>: 新しく作った画像は<b>書き換え可能</b>（<see cref="EsBitmap"/>）で返す
-/// （生成した側が所有し、破棄する責任を持つ。 読み取り専用で足りる場合は <see cref="EsReadOnlyBitmap.Clone"/> を使う）。<br/>
+/// （生成した側が所有し、破棄する責任を持つ。 複製が要る場合は <see cref="EsReadOnlyBitmap.Copy"/>、0 コピーの
+/// 読み取りビューが要る場合は <see cref="EsReadOnlyBitmap.ToPixmap"/> を使う）。<br/>
 /// <b>色の取得はここに置かない</b>: 「座標のピクセルを色として読む」は画像の読み取りそのものであり、
 /// 読み取りの面（<see cref="EsReadOnlyBitmap.GetPixel(EsPointInt)"/>）が実装を持つ（追加の画像を作らないため、拡張メソッドである理由が無い）。<br/>
 /// <b>減色の計算もここに置く</b>: 減色は「新しい画像を作る」操作として公開し（<see cref="ReduceColors"/>）、

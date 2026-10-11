@@ -10,57 +10,88 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <b>目的</b>: 「この画像は書き換えてよく、破棄する責任が自分にある」ことを<b>型で示す</b>。
 /// 生成（<see cref="Create(int, int)"/>）と相互変換の結果が本型になり、<c>using</c> で決定的に解放できる。<br/>
 /// <br/>
-/// <b>読み取り専用の画像との関係</b>: 本型は <see cref="EsReadOnlyBitmap"/> の<b>派生</b>であり、
-/// 読み取りの面（<see cref="EsReadOnlyBitmap.ReadOnlyPixels"/> / <see cref="EsReadOnlyBitmap.GetPixel(int, int)"/> 等）を
-/// 受け継いだうえで書き込みの入口を足す。 したがって<b>本型は読み取り専用の画像としてそのまま渡せる</b>
-/// （キャストも変換も要らない）。 逆に読み取り専用の画像から書き換え可能な画像を作るには
-/// <see cref="Create(EsReadOnlyBitmap)"/>（<b>複製</b>）を使う。<br/>
-/// <b>凍結</b>: <see cref="EsReadOnlyBitmap.SetReadOnly"/> の後は、本型の書き込みの入口が
-/// <see cref="InvalidOperationException"/> を投げる（共有した読み取り専用の画像の内容を後から変えないため）。<br/>
-/// <b>借用</b>: <see cref="InstallPixels"/> は呼び出し側が確保した画素を複製せずに扱う（4K の複製は 31 MiB と 5.7 ms）。<br/>
+/// <b>読み取り専用の画像（<see cref="EsReadOnlyBitmap"/>）とは兄弟です</b>: 互いの派生ではなく、<b>互いに変換できません</b>。
+/// 読み取り専用として渡すには <see cref="EsReadOnlyBitmap.FromBitmap"/>（<b>凍結済みなら 0 コピー・未凍結なら複製</b>）、
+/// 読み取り専用の画像から書き換え可能な画像を作るには <see cref="FromReadOnlyBitmap"/>（<b>複製</b>）を使います。
+/// <b>暗黙の変換はありません</b>（未凍結の画素が「変わらない」ものとして渡ることを型で防ぐため）。<br/>
+/// <b>凍結（<see cref="SetReadOnly"/>）</b>: 呼ぶと以降の書き込みの入口（<see cref="Pixels"/> / <see cref="SetPixel(int, int, byte, byte, byte, byte)"/> /
+/// <see cref="TrySetPixel(int, int, Color)"/> / <see cref="Clear(byte, byte, byte, byte)"/>）が <see cref="InvalidOperationException"/> を投げます。
+/// 凍結は<b>画素領域</b>に効くため、<see cref="EsReadOnlyBitmap.FromBitmap"/> が 0 コピーで共有できるようになります
+/// （書き終えた時点で凍結するのが規則です）。<br/>
+/// <b>借用</b>: <see cref="InstallPixels"/> は呼び出し側が確保した画素を複製せずに扱います（4K の複製は 31 MiB と 5.7 ms）。
+/// <b>本ライブラリの画像のアドレスを渡し直す用途には使わないこと</b>（凍結を迂回できてしまいます）。<br/>
 /// <b>解放</b>: 解放の実装は <see cref="SafeAlignedBuffer"/>（確保した場合）と <see cref="SafeBorrowedBuffer"/>（借用した場合）が
 /// 単一所有するため、破棄を忘れても GC が解放する（大きな画像は <c>using</c> で早く解放すること）。<br/>
-/// <b>画素形式</b>: BGRA8888（アルファ乗算済み）。 ストライドは <c>幅 × <see cref="EsReadOnlyBitmap.BytesPerPixel"/></c>（行パディングなし）。
+/// <b>画素形式</b>: BGRA8888（アルファ乗算済み）。 ストライドは <c>幅 × <see cref="BytesPerPixel"/></c>（行パディングなし）。
 /// </remarks>
-public sealed class EsBitmap : EsReadOnlyBitmap
+public sealed class EsBitmap : IDisposable
 {
+    /// <summary>1 ピクセルあたりのバイト数（BGRA8888）。</summary>
+    /// <value>4。 ストライドは常に <c>幅 × 本値</c> である。</value>
+    /// <remarks>リテラルの定義は内部のバッファ型（<see cref="EsBitmapBuffer"/>）が単一所有し、本定数はその転送である。</remarks>
+    public const int BytesPerPixel = EsBitmapBuffer.BytesPerPixel;
+
+    /// <summary>画素バッファ（確保・借用・共有・解放を単一所有する内部型）。</summary>
+    /// <remarks>
+    /// <b>継承ではなく保有にする理由</b>: 公開型は内部の型から派生できません（<c>CS0060</c>）。 読み取り専用と書き換え可能は
+    /// <b>兄弟</b>であり、実装の共有は<b>内部のバッファ型</b>が担います。
+    /// </remarks>
+    private readonly EsBitmapBuffer _buffer;
+
     /// <summary>サイズを指定して画素バッファを確保する。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>
     /// <param name="height">高さ（ピクセル）。 0 以上。</param>
     /// <param name="clear">true の場合は全領域を 0（透明）で初期化する。 直後に全領域を書く場合は false。</param>
-    private EsBitmap(int width, int height, bool clear)
-        : base(EsBitmapBuffer.Allocate(width, height, clear))
-    {
-    }
+    private EsBitmap(int width, int height, bool clear) => _buffer = EsBitmapBuffer.Allocate(width, height, clear);
 
-    /// <summary>画素バッファを受け取る（生成は本クラスの静的メソッドが行う）。</summary>
+    /// <summary>画素バッファを受け取る（生成は本クラスの静的メソッドと <see cref="EsBitmapLoader"/> が行う）。</summary>
     /// <param name="buffer">画素バッファ。 破棄の責任は本インスタンスが持つ。</param>
-    private EsBitmap(EsBitmapBuffer buffer)
-        : base(buffer)
-    {
-    }
+    internal EsBitmap(EsBitmapBuffer buffer) => _buffer = buffer;
 
-    /// <summary>ピクセル データの<b>書き込み可能なビュー</b>（<see cref="EsReadOnlyBitmap.ReadOnlyPixels"/> と同じ領域を指す。 コピーしない）。</summary>
-    /// <value>先頭から <c><see cref="EsReadOnlyBitmap.Stride"/> × <see cref="EsReadOnlyBitmap.Height"/></c> バイト。 ピクセルを持たない場合は空。</value>
+    /// <summary>画素バッファ（同じアセンブリの <see cref="EsReadOnlyBitmap.FromBitmap"/> が 0 コピー共有に使う）。</summary>
+    /// <remarks>公開しない（生のバッファを外部へ渡すと、読み取り専用の約束を作り直せてしまうため）。</remarks>
+    internal EsBitmapBuffer Buffer => _buffer;
+
+    /// <summary>破棄済みかどうか。</summary>
+    public bool IsDisposed => _buffer.IsDisposed;
+
+    /// <summary>凍結済みかどうか（<see cref="SetReadOnly"/> の後は true。 書き込みの入口が例外を投げる）。</summary>
+    public bool IsReadOnly => _buffer.IsReadOnly;
+
+    /// <summary>幅（ピクセル）。</summary>
+    public int Width => _buffer.Width;
+
+    /// <summary>高さ（ピクセル）。</summary>
+    public int Height => _buffer.Height;
+
+    /// <summary>幅・高さ（ピクセル）。</summary>
+    public EsSizeInt Size => _buffer.Size;
+
+    /// <summary>1 ラインあたりのバイト数（パディングなし。 常に <c>幅 × <see cref="BytesPerPixel"/></c>）。</summary>
+    public int Stride => _buffer.Stride;
+
+    /// <summary>ピクセル データの読み取り専用ビュー（意味は <see cref="EsReadOnlyBitmap.ReadOnlyPixels"/> と同じ）。</summary>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public ReadOnlySpan<byte> ReadOnlyPixels => _buffer.ReadOnlyPixels;
+
+    /// <summary>ピクセル データの<b>書き込み可能なビュー</b>（<see cref="ReadOnlyPixels"/> と同じ領域を指す。 コピーしない）。</summary>
+    /// <value>先頭から <c><see cref="Stride"/> × <see cref="Height"/></c> バイト。 ピクセルを持たない場合は空。</value>
     /// <remarks>
     /// <b>無印の <c>Pixels</c> を書き込み可能なビューにする理由</b>: 書き換え可能な型では書き込みが本題であるため
     /// （<c>Memory&lt;T&gt;</c> の書き込み可能なビューが <c>Span</c> であるのと同じ関係）。 読み取り専用のビューは
-    /// 基底の <c>ReadOnlyPixels</c> であり、<b>どちらの型でも名前が返る型と一致する</b>。<br/>
+    /// <see cref="ReadOnlyPixels"/> であり、<b>どちらの型でも名前が返る型と一致する</b>。<br/>
+    /// <b>取得した後に凍結しても、取得済みのビューは書けます</b>（<c>Span</c> は raw なビューであり、取得後に
+    /// 無効化できない。 Skia の <c>GetPixelSpan</c> も同じ）。 ビューを保持したまま凍結しないこと。<br/>
     /// <b>生ポインタが要る場合</b>は <c>fixed</c> で取る（領域はアンマネージドのため、生存中はアドレスが動かない）。
     /// </remarks>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="InvalidOperationException">凍結済み（読み取り専用）の場合。</exception>
-    public Span<byte> Pixels => Buffer.Pixels;
-
-    /// <summary>凍結済みかどうか（<see cref="EsReadOnlyBitmap.SetReadOnly"/> の後は true。 書き込みの入口が例外を投げる）。</summary>
-    /// <remarks>本型は書き込みの入口を持つため、基底（常に true）と違い凍結の状態を返す。</remarks>
-    public override bool IsReadOnly => Buffer.IsReadOnly;
+    public Span<byte> Pixels => _buffer.Pixels;
 
     /// <summary>保存に使える拡張子（値は <see cref="EsReadOnlyBitmap.SupportedFileExtensions"/> と同一）。</summary>
-    /// <remarks>読み取り専用の画像からも保存できるため、基底と同じ値を本型でも公開する
-    /// （<c>new</c> は「基底と同じ名前で、より具体的な型の側からも見えるようにする」の印である。 値は同一）。</remarks>
+    /// <remarks>読み取り専用の画像からも保存できるため、基底と同じ値を本型でも公開する（どちらの権利の画像でも同じ一覧を使う）。</remarks>
     [SupportedOSPlatform("windows")]
-    public static new IReadOnlyList<string> SupportedFileExtensions => WinGdiPlusImageCodec.SupportedExtensions;
+    public static IReadOnlyList<string> SupportedFileExtensions => WinGdiPlusImageCodec.SupportedExtensions;
 
     /// <summary>指定サイズの空の画像（BGRA8888・全ピクセル透明）を生成する。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>
@@ -109,11 +140,11 @@ public sealed class EsBitmap : EsReadOnlyBitmap
     /// <param name="fill">確保した画素（<c>幅 × 4 × 高さ</c> バイト）へ書く処理。 <b>全領域を書く責任を持つ</b>。</param>
     /// <returns>生成された画像。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// <b>基底と同名で戻り値だけが違う</b>（<c>new</c> はその印である。 読み取り専用の画像を作る場合は基底の
-    /// <see cref="EsReadOnlyBitmap.CreateFilled"/> を使う）。 0 埋めを省き、<paramref name="fill"/> が例外を投げた場合は確保した領域を解放する。
+    /// <b><see cref="EsReadOnlyBitmap"/> にも同じ入口がある</b>（相互変換はどちらの権利の画像も作るため。 対にして覚える負担を減らす）。
+    /// 0 埋めを省き、<paramref name="fill"/> が例外を投げた場合は確保した領域を解放する。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="fill"/> が null の場合。</exception>
-    public static new EsBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)
+    public static EsBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)
     {
         ArgumentNullException.ThrowIfNull(fill);
 
@@ -131,18 +162,18 @@ public sealed class EsBitmap : EsReadOnlyBitmap
         }
     }
 
-    /// <summary>読み取り専用の画像を<b>複製して</b>書き換え可能な画像を生成する（別のオブジェクトからの生成）。</summary>
+    /// <summary>読み取り専用の画像から書き換え可能な画像を生成する（<b>常に複製</b>）。</summary>
     /// <param name="source">複製元の画像。 借用であり破棄しない。</param>
     /// <returns>複製した画像。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// <b>複製する理由</b>: 元の画像は読み取り専用であり、共有したまま書き換えると元の画素が変わってしまうため
-    /// （読み取り専用 → 書き換え可能 の唯一の入口である）。 4K の複製は 31 MiB と 5.7 ms を要する。<br/>
-    /// <b><see cref="Clone"/> との違い</b>: <see cref="Create(EsReadOnlyBitmap)"/> は<b>別のオブジェクトからの生成</b>、
-    /// <see cref="Clone"/> は<b>自身の複製</b>である。 実装が同じでも意味が異なるため、片方へ寄せない。
+    /// <b>複製する理由</b>: 兄弟であり画素を共有できないため（読み取り専用の画像の画素を書き換えると、その画像を
+    /// 読んでいる相手の画素が変わる）。 4K の複製は 31 MiB と 5.7 ms を要する。<br/>
+    /// <b><see cref="Copy"/> との違い</b>: <see cref="FromReadOnlyBitmap"/> は<b>別のオブジェクトからの生成</b>、
+    /// <see cref="Copy"/> は<b>自身の複製</b>である。 実装が同じでも意味が異なるため、片方へ寄せない。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
-    public static EsBitmap Create(EsReadOnlyBitmap source)
+    public static EsBitmap FromReadOnlyBitmap(EsReadOnlyBitmap source)
     {
         ArgumentNullException.ThrowIfNull(source);
         source.ThrowIfDisposed();
@@ -168,8 +199,11 @@ public sealed class EsBitmap : EsReadOnlyBitmap
     /// <param name="release">解放時に 1 回だけ呼ぶ処理（アドレスを受け取る）。 解放が不要な場合は null。</param>
     /// <returns>借用した画像。 領域の解放は呼び出し側が行う（<paramref name="release"/> を渡した場合は本画像の破棄時に呼ばれる）。</returns>
     /// <remarks>
+    /// <b>外部が確保したメモリのための入口です</b>（他フレームワークのビットマップ・アンマネージドの領域）。
+    /// <b>本ライブラリの画像のアドレスを渡し直さないこと</b>: 凍結を迂回して書ける別の実体ができてしまいます
+    /// （凍結は実体の画素領域ごとに効くため）。<br/>
     /// <b>行パディングがある領域は借用できない</b>: 画素は連続した 1 本の領域として公開するため、ストライドは
-    /// <c>幅 × <see cref="EsReadOnlyBitmap.BytesPerPixel"/></c> に限る（それ以外は <see cref="ArgumentException"/>）。<br/>
+    /// <c>幅 × <see cref="BytesPerPixel"/></c> に限る（それ以外は <see cref="ArgumentException"/>）。<br/>
     /// <b>借用中も本画像は書き換えられる</b>（領域の所有者が別にいる場合は、そちらの書き込みと競合しないように使う）。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="width"/> または <paramref name="height"/> が負の場合。</exception>
@@ -181,14 +215,14 @@ public sealed class EsBitmap : EsReadOnlyBitmap
     /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。 null 不可。</param>
     /// <returns>読み込んだ画像。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// <b>基底と同名で戻り値だけが違う</b>（<c>new</c> はその印である。 書き換えが要らない場合は基底の
-    /// <see cref="EsReadOnlyBitmap.Load"/> を使う）。 中間バッファを作らず、0 埋めも省く。
+    /// 中間バッファを作らず、0 埋めも省く（<see cref="EsReadOnlyBitmap.Load"/> と同じ手順）。
+    /// <b>書き換えが要らない場合</b>は <see cref="EsReadOnlyBitmap.Load"/> を使う。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
     /// または画像として解釈できない場合。</exception>
     [SupportedOSPlatform("windows")]
-    public static new EsBitmap Load(string filePath)
+    public static EsBitmap Load(string filePath)
         => EsBitmapLoader.Load(filePath, static buffer => new EsBitmap(buffer));
 
     /// <summary>0 埋めを行わずに画素を確保する（全領域を書く責任を呼び出し側が持つ）。</summary>
@@ -206,14 +240,99 @@ public sealed class EsBitmap : EsReadOnlyBitmap
     /// <returns>確保した画像。 所有権は呼び出し側へ移る。</returns>
     internal static EsBitmap CreateUninitialized(EsSizeInt size) => CreateUninitialized(size.Width, size.Height);
 
-    /// <summary>本画像の複製を生成する（<b>独立した画素</b>を持ち、書き換えても元へ影響しない）。</summary>
-    /// <returns>独立した複製。 所有権は呼び出し側へ移る。</returns>
+    /// <summary>本画像の一部を指す<b>0 コピーの読み取りビュー</b>を生成する（切り出しの複製を避ける）。</summary>
+    /// <param name="rect">ビューの範囲（元画像の座標。 <b>画像の内側であること</b>）。</param>
+    /// <returns>ビュー。 所有権は呼び出し側へ移る（破棄すると元画像への参照を返す。 画素は破棄しない）。</returns>
     /// <remarks>
-    /// <b>基底（共有）を上書きする理由</b>: 書き換え可能な画像同士が画素を共有すると、片方の書き込みが
-    /// もう片方の画素を変えてしまうため（基底の <see cref="EsReadOnlyBitmap.Clone"/> は読み取り専用同士であるため共有する）。
+    /// <b>読み取り専用の画像と同じ入口です</b>（本画像が書き換え可能でも、ビューは<b>読み取り専用</b>です。 書き換える
+    /// 場合は本画像を使うか <see cref="Copy"/> で複製します）。 詳細（行幅・寿命・範囲）は
+    /// <see cref="EsReadOnlyBitmap.ToPixmap"/> と同じです。
     /// </remarks>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    public override EsBitmap Clone()
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="rect"/> が空、または画像の範囲外に出る場合。</exception>
+    public EsPixmap ToPixmap(EsRectInt rect)
+    {
+        ThrowIfDisposed();
+        return _buffer.ToPixmap(rect);
+    }
+
+    /// <summary>呼び出し側の画素を<b>複製して</b>書き換え可能な画像を生成する。</summary>
+    /// <param name="width">幅（ピクセル）。 0 以上。</param>
+    /// <param name="height">高さ（ピクセル）。 0 以上。</param>
+    /// <param name="pixels">複製元の画素（BGRA8888。 <c>幅 × 4 × 高さ</c> バイト）。</param>
+    /// <returns>複製した画像。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>読み取り専用の画像と同じ入口です</b>（<see cref="EsReadOnlyBitmap.FromPixelCopy"/>）。 複製した後に元の
+    /// 画素が変わっても本画像は変わりません（借用の <see cref="InstallPixels"/> との違い）。
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="width"/> または <paramref name="height"/> が負の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="pixels"/> の長さが <c>幅 × 4 × 高さ</c> と一致しない場合。</exception>
+    public static EsBitmap FromPixelCopy(int width, int height, ReadOnlySpan<byte> pixels)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(width);
+        ArgumentOutOfRangeException.ThrowIfNegative(height);
+
+        var byteCount = (long)width * BytesPerPixel * height;
+        if (pixels.Length != byteCount)
+        {
+            throw new ArgumentException($"画素の長さが寸法と一致しません（期待 {byteCount} バイト / 実際 {pixels.Length} バイト）。", nameof(pixels));
+        }
+
+        var buffer = EsBitmapBuffer.Allocate(width, height, clear: false);
+        try
+        {
+            pixels.CopyTo(buffer.Pixels);
+            return new EsBitmap(buffer);
+        }
+        catch
+        {
+            // 確保した領域を解放してから例外を伝える（呼び出し側に解放の機会が無い）
+            buffer.Dispose();
+            throw;
+        }
+    }
+    /// <summary>0 コピーの読み取りビューから画像を生成する（<b>常に複製</b>。 行幅を考慮する）。</summary>
+    /// <param name="source">複製元のビュー。 借用であり破棄しない。</param>
+    /// <returns>複製した画像。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>ビューの行幅（<see cref="EsPixmap.Stride"/>）を考慮して行ごとに写します</b>: ビューは元画像のストライドを
+    /// 保つため（<c>幅 × 4</c> より大きい場合があります）、領域全体を一度に写すと行がずれます（
+    /// <see cref="FromPixelCopy"/> にビューの <c>ReadOnlyPixels</c> をそのまま渡すと長さが合わず
+    /// <see cref="ArgumentException"/> になります）。<br/>
+    /// <b>0 コピーで共有する方法はありません</b>: ビューの行幅は元画像のそれであり、本ライブラリの画像は
+    /// 行幅が <c>幅 × 4</c> に固定されているためです（連続した 1 本の領域として扱う前提を保つため）。
+    /// ビューのまま読む（<see cref="EsPixmap.GetPixel(int, int)"/>）か、複製して画像にします。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
+    public static EsBitmap FromPixmap(EsPixmap source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        source.ThrowIfDisposed();
+
+        var buffer = EsBitmapBuffer.Allocate(source.Width, source.Height, clear: false);
+        try
+        {
+            source.CopyTo(buffer);
+            return new EsBitmap(buffer);
+        }
+        catch
+        {
+            // 確保した領域を解放してから例外を伝える（呼び出し側に解放の機会が無い）
+            buffer.Dispose();
+            throw;
+        }
+    }
+    /// <summary>本画像の複製（<b>独立した画素</b>）を生成する。 書き換えても元へ影響しない。</summary>
+    /// <returns>独立した複製。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>読み取り専用の画像の <see cref="EsReadOnlyBitmap.Copy"/> と同じ「複製」</b>です（どちらの型でも
+    /// <c>Copy</c> は独立した画素を作ります。 費用は実測: 4K で 31 MiB / 5.7 ms）。 書き換え可能な画像では
+    /// 画素を共有できないため（片方の書き込みがもう片方を変える）、複製だけを提供します。<br/>
+    /// <b>名前を <c>Clone</c> にしない理由</b>は <see cref="EsReadOnlyBitmap.Copy"/> と同じです。
+    /// </remarks>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public EsBitmap Copy()
     {
         ThrowIfDisposed();
         var copy = EsBitmapBuffer.Allocate(Width, Height, clear: false);
@@ -230,6 +349,24 @@ public sealed class EsBitmap : EsReadOnlyBitmap
         }
     }
 
+    /// <summary>本画像を凍結し、以降の書き込みを拒否する。</summary>
+    /// <remarks>
+    /// <b>凍結する理由</b>: <see cref="EsReadOnlyBitmap.FromBitmap"/> が 0 コピーで共有できるようにするためです
+    /// （未凍結のまま渡すと複製になる）。 また、同じ画素を指す実体が複数ある場合に、後からの書き込みで
+    /// 読み手の画素が黙って変わることを防ぎます（<b>沈黙ではなく例外</b>にする）。<br/>
+    /// <b>呼ぶ時点</b>: 書き終えた時点で呼びます（呼んだ後は <see cref="Pixels"/> / <see cref="SetPixel(int, int, byte, byte, byte, byte)"/> /
+    /// <see cref="TrySetPixel(int, int, Color)"/> / <see cref="Clear(byte, byte, byte, byte)"/> が <see cref="InvalidOperationException"/> を投げます）。
+    /// <b>凍結の前に取得したビューは書けます</b>（<c>Span</c> は取得後に無効化できない）。<br/>
+    /// <b>画素そのものは不変にならない</b>: 同じメモリを借用した別の実体（<see cref="InstallPixels"/>）からは書けます
+    /// （凍結は<b>この実体の画素領域</b>に効きます）。
+    /// </remarks>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public void SetReadOnly()
+    {
+        ThrowIfDisposed();
+        _buffer.SetReadOnly();
+    }
+
     /// <summary>指定座標のピクセルを BGRA で設定する。</summary>
     /// <param name="x">X 座標（ピクセル）。</param>
     /// <param name="y">Y 座標（ピクセル）。</param>
@@ -240,17 +377,17 @@ public sealed class EsBitmap : EsReadOnlyBitmap
     /// <exception cref="ArgumentOutOfRangeException">座標が画像の範囲外の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="InvalidOperationException">凍結済み（読み取り専用）の場合。</exception>
-    public void SetPixel(int x, int y, byte b, byte g, byte r, byte a) => Buffer.SetPixel(x, y, b, g, r, a);
+    public void SetPixel(int x, int y, byte b, byte g, byte r, byte a) => _buffer.SetPixel(x, y, b, g, r, a);
 
     /// <summary>指定座標のピクセルを色として設定する（座標型を受け取る版）。</summary>
     /// <param name="point">座標（ピクセル）。</param>
     /// <param name="color">設定する色。</param>
-    /// <remarks>座標を <see cref="EsPointInt"/> で持つ呼び出し側のための入口（読み取りの <see cref="EsReadOnlyBitmap.GetPixel(EsPointInt)"/> と対になる形）。
+    /// <remarks>座標を <see cref="EsPointInt"/> で持つ呼び出し側のための入口（<see cref="GetPixel(EsPointInt)"/> と対になる形）。
     /// 色の成分はそのまま書き込む（乗算済みへの変換は行わない）。</remarks>
     /// <exception cref="ArgumentOutOfRangeException">座標が画像の範囲外の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="InvalidOperationException">凍結済み（読み取り専用）の場合。</exception>
-    public void SetPixel(EsPointInt point, Color color) => SetPixel(point.X, point.Y, color.B, color.G, color.R, color.A);
+    public void SetPixel(EsPointInt point, Color color) => _buffer.SetPixel(point.X, point.Y, color.B, color.G, color.R, color.A);
 
     /// <summary>指定座標へ色を設定する（<b>範囲外は無視する</b>）。</summary>
     /// <param name="x">X 座標（ピクセル）。</param>
@@ -267,11 +404,12 @@ public sealed class EsBitmap : EsReadOnlyBitmap
     {
         if (x < 0 || y < 0 || x >= Width || y >= Height)
         {
-            ThrowIfDisposed();
+            _buffer.ThrowIfDisposed();
+            _buffer.ThrowIfReadOnly();
             return false;
         }
 
-        SetPixel(x, y, color.B, color.G, color.R, color.A);
+        _buffer.SetPixel(x, y, color.B, color.G, color.R, color.A);
         return true;
     }
 
@@ -292,11 +430,46 @@ public sealed class EsBitmap : EsReadOnlyBitmap
     /// <remarks>与えられた成分をそのまま書き込む（乗算済みへの変換は行わない）。</remarks>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="InvalidOperationException">凍結済み（読み取り専用）の場合。</exception>
-    public void Clear(byte b, byte g, byte r, byte a) => Buffer.Clear(b, g, r, a);
+    public void Clear(byte b, byte g, byte r, byte a) => _buffer.Clear(b, g, r, a);
 
     /// <summary>全ピクセルを指定色で塗りつぶす。</summary>
     /// <param name="color">塗りつぶし色。</param>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="InvalidOperationException">凍結済み（読み取り専用）の場合。</exception>
     public void Clear(Color color) => Clear(color.B, color.G, color.R, color.A);
+
+    /// <summary>指定座標のピクセルを BGRA で取得する（意味は <see cref="EsReadOnlyBitmap.GetPixel(int, int)"/> と同じ）。</summary>
+    /// <param name="x">X 座標（ピクセル）。</param>
+    /// <param name="y">Y 座標（ピクセル）。</param>
+    /// <returns>(B, G, R, A) のタプル（アルファ乗算済み）。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">座標が画像の範囲外の場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public (byte B, byte G, byte R, byte A) GetPixel(int x, int y) => _buffer.GetPixel(x, y);
+
+    /// <summary>指定座標のピクセルを色として取得する（座標型を受け取る版）。</summary>
+    /// <param name="point">座標（ピクセル）。</param>
+    /// <returns>取得した色（<see cref="Color"/>。 成分はアルファ乗算済み）。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">座標が画像の範囲外の場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public Color GetPixel(EsPointInt point)
+    {
+        var (b, g, r, a) = _buffer.GetPixel(point.X, point.Y);
+        return Color.FromArgb(a, r, g, b);
+    }
+
+    /// <summary>画像の寸法を「幅x高さ」形式の文字列で返す（意味は <see cref="EsReadOnlyBitmap.ToSizeText"/> と同じ）。</summary>
+    /// <returns>寸法の文字列（例: <c>1920x1080</c>）。</returns>
+    public string ToSizeText() => $"{Width}x{Height}";
+
+    /// <summary>破棄済みなら <see cref="ObjectDisposedException"/> を送出する。</summary>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public void ThrowIfDisposed() => _buffer.ThrowIfDisposed();
+
+    /// <summary>画素領域を解放する（冪等）。</summary>
+    /// <remarks>0 コピーで共有した読み取り専用の画像がある場合、実体の解放は最後の 1 つが行う。</remarks>
+    public void Dispose()
+    {
+        _buffer.Dispose();
+        GC.SuppressFinalize(this);
+    }
 }

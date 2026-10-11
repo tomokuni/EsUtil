@@ -10,14 +10,32 @@ namespace EsUtil.Platform.Core.Tests.Imaging;
 /// <remarks>
 /// 切り出し（<see cref="EsBitmapExtensions.Crop(EsReadOnlyBitmap, EsRectInt)"/>）は<b>借用した読み取り専用の画像からも</b>
 /// 呼べる必要がある（実測: ルーペが表示アダプタの画像を切り出す）。 そのため本テストは
-/// <see cref="EsReadOnlyBitmap"/> を受ける形を固定し、<see cref="EsBitmap"/> からも呼べることを併せて検証する。<br/>
+/// <see cref="EsReadOnlyBitmap"/> を受ける形を固定する。 拡張メソッドは <see cref="EsBitmap"/> をそのまま受けられないため、
+/// 書き換え可能な画像は <see cref="EsReadOnlyBitmap.FromBitmap"/> を通して渡す（凍結済みなら 0 コピーで共有・未凍結なら複製）。<br/>
 /// 静的共有状態を持たないため、UI フレームワークの初期化に依存しない（<c>[Fact]</c> で並列実行される）。
 /// </remarks>
 public class EsBitmapExtensionsTests
 {
-    /// <summary>赤で塗りつぶした書き換え可能な画像を生成する（切り出し元）。</summary>
-    private static EsBitmap CreateRed(int w = 10, int h = 10)
-        => EsBitmap.Create(w, h, System.Drawing.Color.FromArgb(255, 255, 0, 0));
+    /// <summary>赤で塗りつぶした読み取り専用の画像を生成する（切り出し元）。</summary>
+    /// <param name="w">幅。</param>
+    /// <param name="h">高さ。</param>
+    /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
+    private static EsReadOnlyBitmap CreateRed(int w = 10, int h = 10)
+        => CreateFilled(w, h, System.Drawing.Color.FromArgb(255, 255, 0, 0));
+
+    /// <summary>単色で塗りつぶした読み取り専用の画像を生成する。</summary>
+    /// <param name="w">幅。</param>
+    /// <param name="h">高さ。</param>
+    /// <param name="color">塗りつぶす色。</param>
+    /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>書き終えてから凍結し、<see cref="EsReadOnlyBitmap.FromBitmap"/> で読み取り専用の面を作る
+    /// （凍結済みは複製されないため、画素を 0 コピーで共有する）。</remarks>
+    private static EsReadOnlyBitmap CreateFilled(int w, int h, System.Drawing.Color color)
+    {
+        using var bitmap = EsBitmap.Create(w, h, color);
+        bitmap.SetReadOnly();
+        return EsReadOnlyBitmap.FromBitmap(bitmap);
+    }
 
     // ====================================================================
     // Crop（矩形切り出し）
@@ -37,13 +55,17 @@ public class EsBitmapExtensionsTests
     }
 
     [Fact]
-    internal void Crop_読み取り専用の画像からも切り出せる()
+    internal void Crop_書き換え可能な画像は読み取り専用として渡してから切り出せる()
     {
-        using var src = EsBitmap.Create(10, 10, System.Drawing.Color.FromArgb(255, 255, 0, 0));
+        using var writable = EsBitmap.Create(10, 10, System.Drawing.Color.FromArgb(255, 255, 0, 0));
 
-        using var result = src.Crop(new EsRectInt(1, 1, 3, 3));
+        // 書き換え可能な画像は拡張メソッドへそのまま渡せないため、FromBitmap で読み取り専用の面を作る
+        // （未凍結なので複製になる）
+        using var read = EsReadOnlyBitmap.FromBitmap(writable);
 
-        // 借用した読み取り専用の画像から、書き換え可能な切り出し結果が得られる
+        using var result = read.Crop(new EsRectInt(1, 1, 3, 3));
+
+        // 読み取り専用の画像から、書き換え可能な切り出し結果が得られる
         Assert.Equal(3, result.Size.Width);
         Assert.Equal((byte)255, result.GetPixel(0, 0).R);
     }
@@ -143,7 +165,7 @@ public class EsBitmapExtensionsTests
     internal void Crop_全面を切り出す場合はパディングを持たない()
     {
         // パディングが無い場合は透明化を行わないため、全ピクセルがコピー元の色で埋まることを固定する
-        using var src = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 255, 0, 0));
+        using var src = CreateFilled(4, 4, System.Drawing.Color.FromArgb(255, 255, 0, 0));
 
         using var result = src.Crop(new EsRectInt(0, 0, 4, 4));
 
@@ -155,7 +177,7 @@ public class EsBitmapExtensionsTests
     [Fact]
     internal void Crop_パディングは上端と下端と中間行の左右をすべて透明にする()
     {
-        using var src = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 255, 0, 0));
+        using var src = CreateFilled(4, 4, System.Drawing.Color.FromArgb(255, 255, 0, 0));
 
         // 上下左右すべてにパディングが出る矩形（左上負・サイズ超過）
         using var result = src.Crop(new EsRectInt(-1, -2, 10, 10));
@@ -176,7 +198,7 @@ public class EsBitmapExtensionsTests
     [Fact]
     internal void Crop_切り出し元が空なら透明を返す()
     {
-        using var src = EsBitmap.Create(0, 0);
+        using var src = EsReadOnlyBitmap.FromPixelCopy(0, 0, []);
 
         using var result = src.Crop(new EsRectInt(0, 0, 4, 4));
 
@@ -215,15 +237,16 @@ public class EsBitmapExtensionsTests
     /// <param name="height">高さ。</param>
     /// <param name="lineX">白線の列（0 起点）。</param>
     /// <returns>生成した画像。 所有権は呼び出し側。</returns>
-    private static EsBitmap CreateThinLine(int width, int height, int lineX)
+    private static EsReadOnlyBitmap CreateThinLine(int width, int height, int lineX)
     {
-        var bitmap = EsBitmap.Create(width, height);
+        using var bitmap = EsBitmap.Create(width, height);
         for (var y = 0; y < height; y++)
         {
             bitmap.SetPixel(lineX, y, 255, 255, 255, 255);
         }
 
-        return bitmap;
+        bitmap.SetReadOnly();
+        return EsReadOnlyBitmap.FromBitmap(bitmap);
     }
 
     /// <summary>指定座標の輝度（BGR の最大値）を返す。</summary>
@@ -235,6 +258,18 @@ public class EsBitmapExtensionsTests
     {
         var (b, g, r, _) = bitmap.GetPixel(x, y);
         return Math.Max(b, Math.Max(g, r));
+    }
+
+    /// <summary>書き換え可能な画像の指定座標の輝度（BGR の最大値）を返す。</summary>
+    /// <param name="bitmap">対象の画像。 書き換えない。</param>
+    /// <param name="x">X 座標。</param>
+    /// <param name="y">Y 座標。</param>
+    /// <returns>輝度（0〜255）。</returns>
+    /// <remarks>凍結しない（複製して読み取る）。 縮小の結果のような一時的な画像を計測するために使う。</remarks>
+    private static byte Brightness(EsBitmap bitmap, int x, int y)
+    {
+        using var read = EsReadOnlyBitmap.FromBitmap(bitmap);
+        return Brightness(read, x, y);
     }
 
     [Theory]
@@ -281,7 +316,7 @@ public class EsBitmapExtensionsTests
     [MemberData(nameof(Algorithms))]
     internal void 縮小_画素を保つ(DownscaleAlgorithm algorithm)
     {
-        using var src = EsBitmap.Create(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
+        using var src = CreateFilled(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
 
         using var result = src.Resize(4, algorithm);
 
@@ -378,7 +413,7 @@ public class EsBitmapExtensionsTests
     {
         // 40x40 の一様な画像（値 3）を 8x8 へ縮小する: 面積平均は 3 のまま（2 パスでも同じだが、
         // 中間で割る実装だと丸めが入る。 1 パスであることを値で固定する）
-        using var src = EsBitmap.Create(40, 40, System.Drawing.Color.FromArgb(255, 3, 5, 7));
+        using var src = CreateFilled(40, 40, System.Drawing.Color.FromArgb(255, 3, 5, 7));
 
         using var result = src.Resize(8, DownscaleAlgorithm.Box);
 
@@ -431,7 +466,7 @@ public class EsBitmapExtensionsTests
     [Fact]
     internal void 減色_使われている色より多い色数を指定しても色は増えない()
     {
-        using var src = EsBitmap.Create(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
+        using var src = CreateFilled(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
 
         using var result = src.ReduceColors(256);
 
@@ -451,12 +486,13 @@ public class EsBitmapExtensionsTests
     }
 
     [Fact]
-    internal void 減色_読み取り専用の画像からも減色できる()
+    internal void 減色_書き換え可能な画像は読み取り専用として渡してから減色できる()
     {
-        using var writable = CreateColorful(16, 16);
+        using var writable = EsBitmap.Create(16, 16, System.Drawing.Color.FromArgb(255, 12, 34, 56));
 
-        // 書き換え可能な画像を読み取り専用として受け取る（変換もコピーも要らない）
-        EsReadOnlyBitmap source = writable;
+        // 書き換え可能な画像は拡張メソッドへそのまま渡せないため、FromBitmap で読み取り専用の面を作る
+        // （未凍結なので複製になる）
+        using var source = EsReadOnlyBitmap.FromBitmap(writable);
 
         using var result = source.ReduceColors(4);
 
@@ -535,9 +571,9 @@ public class EsBitmapExtensionsTests
     /// <param name="width">幅（ピクセル。 3 等分する）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
     /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
-    private static EsBitmap CreateWithAlpha(int width = 48, int height = 8)
+    private static EsReadOnlyBitmap CreateWithAlpha(int width = 48, int height = 8)
     {
-        var bitmap = EsBitmap.Create(width, height);
+        using var bitmap = EsBitmap.Create(width, height);
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
@@ -547,16 +583,17 @@ public class EsBitmapExtensionsTests
             }
         }
 
-        return bitmap;
+        bitmap.SetReadOnly();
+        return EsReadOnlyBitmap.FromBitmap(bitmap);
     }
 
     /// <summary>色数の多い画像を作る（減色の効果を観測するため）。</summary>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
     /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
-    private static EsBitmap CreateColorful(int width, int height)
+    private static EsReadOnlyBitmap CreateColorful(int width, int height)
     {
-        var bitmap = EsBitmap.Create(width, height);
+        using var bitmap = EsBitmap.Create(width, height);
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
@@ -565,7 +602,8 @@ public class EsBitmapExtensionsTests
             }
         }
 
-        return bitmap;
+        bitmap.SetReadOnly();
+        return EsReadOnlyBitmap.FromBitmap(bitmap);
     }
 
     /// <summary>画像で使われている色の数を数える。</summary>
@@ -582,5 +620,15 @@ public class EsBitmapExtensionsTests
         }
 
         return colors.Count;
+    }
+
+    /// <summary>書き換え可能な画像で使われている色の数を数える。</summary>
+    /// <param name="bitmap">対象の画像。 書き換えない。</param>
+    /// <returns>異なる色の数。</returns>
+    /// <remarks>凍結しない（複製して数える）。 減色の結果のような一時的な画像を計測するために使う。</remarks>
+    private static int CountDistinctColors(EsBitmap bitmap)
+    {
+        using var read = EsReadOnlyBitmap.FromBitmap(bitmap);
+        return CountDistinctColors(read);
     }
 }

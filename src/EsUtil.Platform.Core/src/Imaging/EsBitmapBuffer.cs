@@ -305,6 +305,29 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     internal void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, typeof(EsBitmapBuffer));
 
+    /// <summary>本バッファの一部を指す 0 コピーの読み取りビューを生成する（生成の実装を 1 回だけ書く）。</summary>
+    /// <param name="rect">ビューの範囲（本バッファの座標。 <b>内側であること</b>）。</param>
+    /// <returns>ビュー。 所有権は呼び出し側へ移る。</returns>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="rect"/> が空、または範囲外に出る場合。</exception>
+    internal EsPixmap ToPixmap(EsRectInt rect)
+    {
+        ThrowIfDisposed();
+
+        if (rect.Width <= 0 || rect.Height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(rect), rect, "ビューの幅と高さは 1 以上である必要があります。");
+        }
+
+        if (rect.X < 0 || rect.Y < 0 || rect.Right > Width || rect.Bottom > Height)
+        {
+            throw new ArgumentOutOfRangeException(nameof(rect), rect, $"ビューの範囲が画像の外に出ています（画像 {Width}x{Height}）。");
+        }
+
+        // 元の画素の参照を 1 つ取り、ビューはその先頭からのオフセットを持つ
+        var offsetBytes = (rect.Y * Stride) + (rect.X * BytesPerPixel);
+        return new EsPixmap(Share(), offsetBytes, rect.Width, rect.Height, Stride);
+    }
     /// <summary>読み取り専用なら <see cref="InvalidOperationException"/> を送出する。</summary>
     /// <exception cref="InvalidOperationException">読み取り専用の場合。</exception>
     internal void ThrowIfReadOnly()
@@ -340,5 +363,5 @@ internal sealed class EsBitmapBuffer : IDisposable
 
     /// <summary>画素の先頭アドレス（画素を持たない場合と破棄後は 0）。</summary>
     /// <remarks>本アセンブリの中だけで使う（公開しない。 生ポインタを渡すと読み取り専用の意図が消えるため）。</remarks>
-    private nint Address => _handle.IsClosed ? 0 : _handle.DangerousGetHandle();
+    internal nint Address => _handle.IsClosed ? 0 : _handle.DangerousGetHandle();
 }

@@ -16,7 +16,6 @@ namespace EsUtil.Platform.Core.Imaging;
 internal static class EsBitmapLoader
 {
     /// <summary>ファイルを読み込んで画像を生成する（公開面の <c>Load</c> の共通手順）。</summary>
-    /// <typeparam name="T">生成する画像の型（<see cref="EsReadOnlyBitmap"/> または <see cref="EsBitmap"/>）。</typeparam>
     /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。 null 不可。</param>
     /// <param name="create">確保した画素バッファを受け取って画像を生成する処理。</param>
     /// <returns>読み込んだ画像。 所有権は呼び出し側へ移る。</returns>
@@ -26,7 +25,7 @@ internal static class EsBitmapLoader
     /// または画像として解釈できない場合。</exception>
     [SupportedOSPlatform("windows")]
     internal static T Load<T>(string filePath, Func<EsBitmapBuffer, T> create)
-        where T : EsReadOnlyBitmap
+        where T : IDisposable
         => WinGdiPlusImageCodec.DecodeFromFile(filePath, (width, height, fill) =>
         {
             var buffer = EsBitmapBuffer.Allocate(width, height, clear: false);

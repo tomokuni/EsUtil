@@ -13,6 +13,8 @@ namespace EsUtil.Platform.Core.Tests.Imaging;
 /// <see cref="EsBitmap"/> は静的共有状態を持たないため、本テストは UI フレームワークの初期化に依存しない
 /// （コレクションに属さない <c>[Fact]</c> として並列実行される）。<br/>
 /// 読み取りだけの検証は <see cref="EsReadOnlyBitmapTests"/> が担う（本テストは書き換えの面を検証する）。
+/// 書き換え可能な画像から読み取り専用の画像を作る規則（<see cref="EsReadOnlyBitmap.FromBitmap"/> が共有するか
+/// 複製するか）も本テストが担う（元が凍結済みなら 0 コピーで共有・未凍結なら複製）。
 /// 2 つの実体が同じ画素を指すかどうかの判定は <see cref="SameStorage"/> が単一所有する。
 /// </remarks>
 public class EsBitmapTests
@@ -135,6 +137,44 @@ public class EsBitmapTests
     }
 
     // ====================================================================
+    // 複製からの生成（FromPixelCopy。 読み取り専用側の同名メソッドと対）
+    // ====================================================================
+
+    [Fact]
+    internal void FromPixelCopy_画素を複製して生成する()
+    {
+        var source = new byte[3 * 2 * 4];
+        source[0] = 11;
+        source[1] = 22;
+        source[2] = 33;
+        source[3] = 44;
+
+        using var bmp = EsBitmap.FromPixelCopy(3, 2, source);
+
+        Assert.Equal((3, 2), (bmp.Width, bmp.Height));
+        Assert.Equal(3 * 4, bmp.Stride);
+        Assert.Equal(((byte)11, (byte)22, (byte)33, (byte)44), bmp.GetPixel(0, 0));
+        Assert.False(bmp.IsReadOnly);
+
+        // 複製である（元の配列を書き換えても画像は変わらない）
+        source[0] = 99;
+        Assert.Equal((byte)11, bmp.GetPixel(0, 0).B);
+
+        // 書き換え可能な画像として生成される（読み取り専用側の FromPixelCopy との違いは書き込みの有無）
+        bmp.SetPixel(0, 0, 9, 9, 9, 9);
+        Assert.Equal((byte)9, bmp.GetPixel(0, 0).B);
+        Assert.Equal((byte)99, source[0]);
+    }
+
+    [Fact]
+    internal void FromPixelCopy_長さが寸法と一致しない場合はArgumentExceptionを投げる()
+        => Assert.Throws<ArgumentException>(() => EsBitmap.FromPixelCopy(3, 2, new byte[(3 * 2 * 4) - 1]));
+
+    [Fact]
+    internal void FromPixelCopy_負のサイズはArgumentOutOfRangeExceptionを投げる()
+        => Assert.Throws<ArgumentOutOfRangeException>(() => EsBitmap.FromPixelCopy(-1, 2, default));
+
+    // ====================================================================
     // 書き換えの面（EsBitmap）
     // ====================================================================
 
@@ -252,10 +292,69 @@ public class EsBitmapTests
     internal void ReadOnlyPixels_書き込みのビューと同じ領域を指す()
     {
         using var bmp = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 1, 2, 3));
-        EsReadOnlyBitmap read = bmp;
 
-        Assert.True(SameStorage(read, bmp), "読み取り専用の面と書き込みのビューが別の領域を指しています。");
-        Assert.Equal(bmp.ReadOnlyPixels[0], bmp.Pixels[0]);
+        // 書き込みのビューへ書くと読み取り専用のビューにも現れる（同じ領域を指す）
+        bmp.Pixels[0] = 42;
+
+        Assert.Equal((byte)42, bmp.ReadOnlyPixels[0]);
+        Assert.Equal(bmp.Pixels.Length, bmp.ReadOnlyPixels.Length);
+    }
+
+    // ====================================================================
+    // 読み取りビュー（ToPixmap。 読み取り専用側の同名メソッドと対）
+    // ====================================================================
+
+    [Fact]
+    internal void ToPixmap_書き込みがビューへ現れる0コピーのビューを返す()
+    {
+        using var bmp = EsBitmap.Create(8, 6, System.Drawing.Color.FromArgb(255, 1, 2, 3));
+
+        using var view = bmp.ToPixmap(new EsRectInt(2, 1, 3, 2));
+
+        // 返るのは読み取りビュー（書き込みの入口を持たない型）
+        Assert.IsType<EsPixmap>(view);
+
+        Assert.Equal(3, view.Width);
+        Assert.Equal(2, view.Height);
+        Assert.Equal(bmp.Stride, view.Stride);
+        Assert.Equal(bmp.GetPixel(2, 1), view.GetPixel(0, 0));
+
+        // 0 コピー（書き換え可能な側の書き込みがビューに現れる。 ビューは同じ画素を指す）
+        bmp.SetPixel(2, 1, b: 9, g: 8, r: 7, a: 255);
+        Assert.Equal(((byte)9, (byte)8, (byte)7, (byte)255), view.GetPixel(0, 0));
+
+        // ビューは元画像の寿命に依存しない（先に元を破棄しても読める）
+        bmp.Dispose();
+        Assert.Equal((byte)9, view.GetPixel(0, 0).B);
+    }
+
+    [Fact]
+    internal void ToPixmap_範囲が外に出る矩形と空の矩形はArgumentOutOfRangeExceptionを投げる()
+    {
+        using var bmp = EsBitmap.Create(4, 4);
+
+        // 内側の限界（全面）は許される
+        using var full = bmp.ToPixmap(new EsRectInt(0, 0, 4, 4));
+        Assert.Equal(4, full.Width);
+
+        // 右・下・左・上へ 1 ピクセルでも出ると拒否する（ビューは透明で埋められない）
+        Assert.Throws<ArgumentOutOfRangeException>(() => bmp.ToPixmap(new EsRectInt(3, 0, 2, 2)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => bmp.ToPixmap(new EsRectInt(0, 3, 2, 2)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => bmp.ToPixmap(new EsRectInt(-1, 0, 2, 2)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => bmp.ToPixmap(new EsRectInt(0, -1, 2, 2)));
+
+        // 幅・高さは 1 以上
+        Assert.Throws<ArgumentOutOfRangeException>(() => bmp.ToPixmap(new EsRectInt(0, 0, 0, 2)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => bmp.ToPixmap(new EsRectInt(0, 0, 2, 0)));
+    }
+
+    [Fact]
+    internal void ToPixmap_破棄済みならObjectDisposedExceptionを投げる()
+    {
+        var bmp = Create(4, 4);
+        bmp.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(() => bmp.ToPixmap(new EsRectInt(0, 0, 2, 2)));
     }
 
     // ====================================================================
@@ -286,33 +385,29 @@ public class EsBitmapTests
     }
 
     [Fact]
+    internal void SetReadOnly_二重に呼んでも例外にならない()
+    {
+        using var bmp = Create(2, 2);
+
+        bmp.SetReadOnly();
+        bmp.SetReadOnly();
+
+        Assert.True(bmp.IsReadOnly);
+        Assert.Equal(2, bmp.Width);
+    }
+
+    [Fact]
     internal void SetReadOnly_凍結後の複製は書き込みできる()
     {
         using var frozen = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 1, 2, 3));
         frozen.SetReadOnly();
 
-        using var writable = EsBitmap.Create(frozen);
+        using var read = EsReadOnlyBitmap.FromBitmap(frozen);
+        using var writable = EsBitmap.FromReadOnlyBitmap(read);
 
         Assert.False(writable.IsReadOnly);
         writable.SetPixel(0, 0, 9, 9, 9, 9);
         Assert.Equal((byte)3, frozen.GetPixel(0, 0).B);
-    }
-
-    [Fact]
-    internal void SetReadOnly_読み取り専用として渡した先で凍結すると書き換え可能な側も書けなくなる()
-    {
-        using var bmp = Create(4, 4);
-
-        // 読み取り専用として渡す（継承なので変換もコピーも起きない）
-        EsReadOnlyBitmap read = bmp;
-        Assert.False(read.IsReadOnly);
-
-        // 渡した側（受け取った側）で凍結する
-        read.SetReadOnly();
-
-        // 書き換え可能な側の実体も書けなくなる（凍結は画素領域の性質であるため）
-        Assert.True(bmp.IsReadOnly);
-        Assert.Throws<InvalidOperationException>(() => bmp.SetPixel(0, 0, 1, 2, 3, 4));
     }
 
     [Fact]
@@ -322,9 +417,10 @@ public class EsBitmapTests
         bmp.SetReadOnly();
 
         using var read = EsReadOnlyBitmap.FromBitmap(bmp);
+        using var readAgain = EsReadOnlyBitmap.FromBitmap(bmp);
 
-        // 凍結済みなら 0 コピー（同じ画素領域を指す）
-        Assert.True(SameStorage(bmp, read), "凍結済みなのに複製されています。");
+        // 凍結済みなら 0 コピー（元と同じ画素領域を指す）
+        Assert.True(SameStorage(read, readAgain), "凍結済みなのに複製されています。");
 
         // 破棄の順序に依存しない（参照を数える）
         bmp.Dispose();
@@ -340,10 +436,14 @@ public class EsBitmapTests
         Assert.False(bmp.IsReadOnly);
 
         // 未凍結なら複製（元の書き込みが読み取り専用の画像へ届かず、元も凍結されない）
-        Assert.False(SameStorage(bmp, read), "未凍結なのに共有されています。");
         bmp.SetPixel(0, 0, 9, 9, 9, 9);
         Assert.Equal((byte)3, read.GetPixel(0, 0).B);
         Assert.Equal((byte)9, bmp.GetPixel(0, 0).B);
+
+        // 画素の領域も共有しない（凍結すると FromBitmap は元と同じ領域を共有するため、指す領域を比べられる）
+        bmp.SetReadOnly();
+        using var view = EsReadOnlyBitmap.FromBitmap(bmp);
+        Assert.False(SameStorage(view, read), "未凍結なのに共有されています。");
     }
 
     [Fact]
@@ -404,17 +504,18 @@ public class EsBitmapTests
         using var frozen = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 1, 2, 3));
         frozen.SetReadOnly();
 
-        // 生成の入口（InstallPixels / CreateFilled / Clone / Create）は新しい実体を作るため、
+        // 生成の入口（InstallPixels / CreateFilled / Copy / FromReadOnlyBitmap）は新しい実体を作るため、
         // 凍結の対象ではない（凍結した実体の画素は変わらない）
-        using var clone = frozen.Clone();
-        using var copy = EsBitmap.Create(frozen);
+        using var copy = frozen.Copy();
+        using var read = EsReadOnlyBitmap.FromBitmap(frozen);
+        using var fromReadOnly = EsBitmap.FromReadOnlyBitmap(read);
         using var filled = EsBitmap.CreateFilled(2, 2, span => span.Fill(9));
 
-        Assert.False(clone.IsReadOnly);
         Assert.False(copy.IsReadOnly);
+        Assert.False(fromReadOnly.IsReadOnly);
         Assert.False(filled.IsReadOnly);
 
-        clone.SetPixel(0, 0, 7, 7, 7, 7);
+        copy.SetPixel(0, 0, 7, 7, 7, 7);
         Assert.Equal((byte)3, frozen.GetPixel(0, 0).B);
     }
 
@@ -445,40 +546,6 @@ public class EsBitmapTests
     }
 
     [Fact]
-    internal void 継承_読み取り専用として見ても実体が書き換え可能ならCloneは独立した複製を返す()
-    {
-        using var bmp = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 1, 2, 3));
-        EsReadOnlyBitmap read = bmp;
-
-        // Clone は仮想メソッドのため、実体（EsBitmap）の実装が呼ばれる（独立した画素の複製）
-        using var copy = Assert.IsType<EsBitmap>(read.Clone());
-
-        copy.SetPixel(0, 0, 9, 9, 9, 9);
-        Assert.Equal((byte)3, bmp.GetPixel(0, 0).B);
-        Assert.False(SameStorage(bmp, copy), "書き換え可能な実体の Clone が画素を共有しています。");
-    }
-
-    [Fact]
-    internal void 継承_書き換え可能な側の書き込みは読み取り専用として見た画素にも現れる()
-    {
-        using var bmp = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 1, 2, 3));
-        EsReadOnlyBitmap read = bmp;
-
-        var before = read.GetPixel(0, 0).B;
-
-        // 書き換え可能な側（同じ実体を保持している）の書き込み
-        bmp.SetPixel(0, 0, 9, 8, 7, 255);
-
-        // 読み取り専用として見た画素も変わる（同じ画素領域を指すため。 凍結していない場合の副作用）
-        Assert.NotEqual(before, read.GetPixel(0, 0).B);
-        Assert.Equal((byte)9, read.GetPixel(0, 0).B);
-
-        // 凍結すると、この経路の書き込みが止まる
-        read.SetReadOnly();
-        Assert.Throws<InvalidOperationException>(() => bmp.SetPixel(0, 0, 0, 0, 0, 0));
-    }
-
-    [Fact]
     internal void SetReadOnly_破棄済みならObjectDisposedExceptionを投げる()
     {
         var bmp = Create(2, 2);
@@ -488,73 +555,118 @@ public class EsBitmapTests
     }
 
     // ====================================================================
-    // 複製（Clone）と生成（Create）
+    // 複製（Copy）と生成（Create）
     // ====================================================================
 
     [Fact]
-    internal void Clone_独立した画素を持つ複製を生成する()
+    internal void Copy_独立した画素を持つ複製を生成する()
     {
         using var src = Create();
         src.SetPixel(0, 0, b: 1, g: 2, r: 3, a: 255);
-        using var clone = src.Clone();
+        using var copy = src.Copy();
 
-        clone.SetPixel(0, 0, b: 9, g: 8, r: 7, a: 255);
+        copy.SetPixel(0, 0, b: 9, g: 8, r: 7, a: 255);
 
         // 複製先の書き換えが複製元へ波及しない（書き換え可能な画像同士は共有しない）
         Assert.Equal((byte)1, src.GetPixel(0, 0).B);
-        Assert.Equal((byte)9, clone.GetPixel(0, 0).B);
-        Assert.False(SameStorage(src, clone), "書き換え可能な画像の複製が画素を共有しています。");
+        Assert.Equal((byte)9, copy.GetPixel(0, 0).B);
+
+        // 画素の領域も共有しない（凍結すると FromBitmap が 0 コピーで共有するため、指す領域を比べられる）
+        src.SetReadOnly();
+        copy.SetReadOnly();
+        using var srcView = EsReadOnlyBitmap.FromBitmap(src);
+        using var copyView = EsReadOnlyBitmap.FromBitmap(copy);
+        Assert.False(SameStorage(srcView, copyView), "書き換え可能な画像の複製が画素を共有しています。");
     }
 
     [Fact]
-    internal void Clone_アルファを保持したまま複製する()
+    internal void Copy_アルファを保持したまま複製する()
     {
         using var src = Create();
         src.SetPixel(0, 0, b: 1, g: 2, r: 3, a: 128);
-        using var clone = src.Clone();
+        using var copy = src.Copy();
 
-        var (B, _, _, A) = clone.GetPixel(0, 0);
+        var (B, _, _, A) = copy.GetPixel(0, 0);
         Assert.Equal((byte)1, B);
         Assert.Equal((byte)128, A);
     }
 
     [Fact]
-    internal void Clone_空のサイズでも例外にならない()
+    internal void Copy_空のサイズでも例外にならない()
     {
         using var bmp = Create(0, 0);
-        using var clone = bmp.Clone();
+        using var copy = bmp.Copy();
 
-        Assert.True(clone.Size.IsEmpty);
+        Assert.True(copy.Size.IsEmpty);
     }
 
     [Fact]
-    internal void Create_読み取り専用の画像から書き換え可能な複製を作る()
+    internal void FromReadOnlyBitmap_読み取り専用の画像から書き換え可能な複製を作る()
     {
         using var source = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 3, 2, 1));
-        using var copy = EsBitmap.Create(source);
+        using var read = EsReadOnlyBitmap.FromBitmap(source);
+        using var copy = EsBitmap.FromReadOnlyBitmap(read);
 
         Assert.Equal(4, copy.Width);
         Assert.Equal(4, copy.Height);
         Assert.Equal((byte)1, copy.GetPixel(0, 0).B);
-        Assert.False(SameStorage(source, copy), "読み取り専用の画像からの複製が画素を共有しています。");
+
+        // 生成した側は書き換えられる（凍結は元の画素領域の性質であり、複製へは及ばない）
+        Assert.False(copy.IsReadOnly);
 
         // 複製先を書き換えても複製元は変わらない
         copy.SetPixel(0, 0, 9, 9, 9, 9);
-        Assert.Equal((byte)1, source.GetPixel(0, 0).B);
+        Assert.Equal((byte)1, read.GetPixel(0, 0).B);
     }
 
     [Fact]
-    internal void Create_借用画像がnullならArgumentNullExceptionを投げる()
-        => Assert.Throws<ArgumentNullException>(() => EsBitmap.Create(null!));
+    internal void FromReadOnlyBitmap_nullならArgumentNullExceptionを投げる()
+        => Assert.Throws<ArgumentNullException>(() => EsBitmap.FromReadOnlyBitmap(null!));
 
     [Fact]
-    internal void Create_借用画像が破棄済みならObjectDisposedExceptionを投げる()
+    internal void FromReadOnlyBitmap_破棄済みならObjectDisposedExceptionを投げる()
     {
-        using var source = EsBitmap.Create(2, 2);
-        var read = (EsReadOnlyBitmap)source;
-        source.Dispose();
+        var source = EsBitmap.Create(2, 2);
+        source.SetReadOnly();
 
-        Assert.Throws<ObjectDisposedException>(() => EsBitmap.Create(read));
+        var read = EsReadOnlyBitmap.FromBitmap(source);
+        read.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(() => EsBitmap.FromReadOnlyBitmap(read));
+
+        source.Dispose();
+    }
+
+    /// <summary>変換の往復で、2 つの入口（<see cref="EsReadOnlyBitmap.FromBitmap"/> と
+    /// <see cref="EsBitmap.FromReadOnlyBitmap"/>）が対になっていることを検証する。</summary>
+    [Fact]
+    internal void 変換の往復_凍結済みの書き換え可能側は0コピーで共有し戻す側は複製する()
+    {
+        using var source = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 3, 2, 1));
+        source.SetReadOnly();
+
+        // 往路: 凍結済みの書き換え可能な画像 → 読み取り専用（0 コピーで共有）
+        using var read = EsReadOnlyBitmap.FromBitmap(source);
+        using var readAgain = EsReadOnlyBitmap.FromBitmap(source);
+        Assert.True(SameStorage(read, readAgain), "凍結済みの往路が複製になっています。");
+
+        // 復路: 読み取り専用 → 書き換え可能（書き込む側は共有できないため複製）
+        using var back = EsBitmap.FromReadOnlyBitmap(read);
+        Assert.False(back.IsReadOnly);
+
+        // 内容は往復で変わらない
+        for (var y = 0; y < back.Height; y++)
+        {
+            for (var x = 0; x < back.Width; x++)
+            {
+                Assert.Equal(read.GetPixel(x, y), back.GetPixel(x, y));
+            }
+        }
+
+        // 復路の書き込みは読み取り専用の画像へ届かない（複製である）
+        back.SetPixel(0, 0, 9, 9, 9, 9);
+        Assert.Equal((byte)1, read.GetPixel(0, 0).B);
+        Assert.Equal((byte)1, source.GetPixel(0, 0).B);
     }
 
     // ====================================================================
@@ -656,22 +768,5 @@ public class EsBitmapTests
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         static WeakReference CreateUnreachable() => new(EsBitmap.Create(16, 16));
-    }
-
-    // ====================================================================
-    // 読み取り専用としての利用（upcast。 変換もコピーも起きない）
-    // ====================================================================
-
-    [Fact]
-    internal void EsReadOnlyBitmap_書き換え可能な画像をそのまま渡せる()
-    {
-        using var bmp = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 10, 20, 30));
-
-        // 暗黙に読み取り専用の型として渡せる（キャストも変換も不要）
-        EsReadOnlyBitmap read = bmp;
-
-        Assert.True(SameStorage(read, bmp), "読み取り専用の面への変換でコピーが起きています。");
-        Assert.Equal((byte)30, read.GetPixel(1, 1).B);
-        Assert.Equal(bmp.ReadOnlyPixels.Length, read.ReadOnlyPixels.Length);
     }
 }
