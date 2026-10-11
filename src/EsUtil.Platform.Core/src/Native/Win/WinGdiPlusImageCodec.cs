@@ -60,19 +60,31 @@ internal static class WinGdiPlusImageCodec
     /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
-    /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める）。</param>
+    /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める。 <see cref="EsImageSaveOptions.Format"/> を指定した場合に拡張子が無ければ補完する）。</param>
     /// <param name="options">保存のオプション（既定の場合は <c>default</c>）。</param>
-    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または
-    /// <paramref name="pixels"/> の長さが <c>幅 × 4 × 高さ</c> と一致しない場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、
+    /// <paramref name="pixels"/> の長さが <c>幅 × 4 × 高さ</c> と一致しない場合、または
+    /// <paramref name="filePath"/> の拡張子と <paramref name="options"/> の形式が食い違い
+    /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedExtensions"/>）、または
     /// <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合（<see cref="Win32Exception"/> で状態値を持つ）。</exception>
     /// <remarks>
-    /// 保存形式は拡張子から決める（<c>.bmp</c> = Windows Bitmap / <c>.png</c> / <c>.jpg</c> / <c>.jpeg</c> /
-    /// <c>.gif</c> / <c>.tif</c> / <c>.tiff</c>）。<br/>
-    /// <b>形式を引数にしない理由</b>: 形式を表す引数（enum 等）を足すと、拡張子との整合を呼び出し側が保つ必要が生じ、
-    /// 食い違った場合は拡張子と実体がずれたファイルができる（形式の単一所有は <see cref="SupportedExtensions"/> である）。<br/>
+    /// 保存形式は<b>拡張子</b>から決める（<c>.bmp</c> = Windows Bitmap / <c>.png</c> / <c>.jpg</c> / <c>.jpeg</c> /
+    /// <c>.gif</c> / <c>.tif</c> / <c>.tiff</c>）。 <see cref="EsImageSaveOptions.Format"/> を指定した場合は
+    /// <b>形式の方が優先</b>され、次のように扱う:
+    ///
+    /// <list type="table">
+    /// <item><term>拡張子が無い</term><description>指定形式の拡張子を補完して保存する（<c>shot</c> + PNG → <c>shot.png</c>）。</description></item>
+    /// <item><term>拡張子が同じ形式</term><description>そのまま保存する。</description></item>
+    /// <item><term>拡張子が違う形式</term><description><see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が true なら<b>指定形式で</b>与えられたファイル名へ保存する。 false なら <see cref="ArgumentException"/>。</description></item>
+    /// <item><term>拡張子が未対応（<c>.webp</c> 等）</term><description>フラグが true なら指定形式で保存し、false なら <see cref="NotSupportedException"/>（拡張子が対応形式でない場合と同じ）。</description></item>
+    /// </list>
+    ///
+    /// <b>形式を引数にしない理由</b>: 形式を表す引数（enum 等）を必須にすると、拡張子との整合を呼び出し側が保つ必要が生じ、
+    /// 食い違った場合は拡張子と実体がずれたファイルができる（形式の単一所有は <see cref="SupportedExtensions"/> である）。
+    /// <b>本オプションはその食い違いを明示的に選んだ場合だけ許す</b>。<br/>
     /// <b>オプションは形式ごとに検証する</b>: その形式で反映されない項目を設定した場合は例外にする
     /// （黙って無視すると「設定したのに効かない」ことに気付かない）。<br/>
     /// <b>GDI+ の初期化より前に判定する</b>: 拡張子とオプションの検証は GDI+ の初期化（副作用を持つ）より先に行うため、
@@ -95,7 +107,7 @@ internal static class WinGdiPlusImageCodec
                 nameof(pixels));
         }
 
-        var format = ResolveFormat(filePath, options);
+        var (format, targetPath) = ResolveTarget(filePath, options);
         WinGdiPlusLifetime.EnsureInitialized();
 
         unsafe
@@ -111,7 +123,7 @@ internal static class WinGdiPlusImageCodec
 
                 try
                 {
-                    SaveImage(image, filePath, format, options);
+                    SaveImage(image, targetPath, format, options);
                 }
                 finally
                 {
@@ -120,6 +132,179 @@ internal static class WinGdiPlusImageCodec
             }
         }
     }
+
+    /// <summary>保存する形式と実際の保存先を決める（拡張子の補完と食い違いの判定を含む）。</summary>
+    /// <param name="filePath">保存先のファイルパス。</param>
+    /// <param name="options">保存のオプション。</param>
+    /// <returns>保存する形式と実際の保存先。</returns>
+    /// <exception cref="ArgumentException">拡張子と指定形式が食い違い、無視する設定でない場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException">JPEG の品質が許容範囲外の場合。</exception>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合、または設定されたオプションがその形式で使えない場合。</exception>
+    /// <remarks>
+    /// <b>形式を指定しない場合は拡張子が形式を決める</b>（従来の挙動を変えない）。
+    /// <b>形式を指定した場合は形式が優先</b>され、拡張子が無ければ補完し、食い違いは
+    /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> で判定する。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    private static (ImageFileFormat Format, string FilePath) ResolveTarget(string filePath, in EsImageSaveOptions options)
+    {
+        var extension = Path.GetExtension(filePath);
+        if (options.Format is not EsImageFileFormat requested)
+        {
+            // 形式の指定が無い場合は拡張子が形式を決める（未対応の拡張子は従来どおり拒否する）
+            return (ResolveExtension(extension, options), filePath);
+        }
+
+        var format = ToFormat(requested);
+        if (extension.Length == 0)
+        {
+            // 拡張子が無い場合は指定形式の拡張子を補完する（保存先は補完後のパスになる）
+            ValidateOptions(format, options);
+            return (format, string.Concat(filePath, CanonicalExtension(format)));
+        }
+
+        var fromExtension = TryResolveExtension(extension);
+        if (fromExtension == format)
+        {
+            ValidateOptions(format, options);
+            return (format, filePath);
+        }
+
+        if (!options.IgnoreFormatMismatch)
+        {
+            // 未対応の拡張子は「拡張子が対応形式でない」として扱う（指定形式で黙って上書きしない）
+            if (fromExtension is null)
+            {
+                throw CreateUnsupportedExtension(extension);
+            }
+
+            throw new ArgumentException(
+                $"拡張子 '{extension}' は指定された形式（{requested}）と一致しません。 "
+                + $"一致させるか {nameof(EsImageSaveOptions)}.{nameof(EsImageSaveOptions.IgnoreFormatMismatch)} を true にしてください。",
+                nameof(filePath));
+        }
+
+        // 食い違いを無視する場合は指定形式で与えられたファイル名へ保存する
+        ValidateOptions(format, options);
+        return (format, filePath);
+    }
+
+    /// <summary>拡張子から形式を決め、その形式で使えるオプションだけが設定されていることを確かめる。</summary>
+    /// <param name="extension">拡張子（先頭のドットを含む。 空の場合もある）。</param>
+    /// <param name="options">保存のオプション。</param>
+    /// <returns>保存する形式。</returns>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合、または設定されたオプションがその形式で使えない場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException">JPEG の品質が許容範囲外の場合。</exception>
+    [SupportedOSPlatform("windows")]
+    private static ImageFileFormat ResolveExtension(string extension, in EsImageSaveOptions options)
+    {
+        var format = TryResolveExtension(extension) ?? throw CreateUnsupportedExtension(extension);
+        ValidateOptions(format, options);
+        return format;
+    }
+
+    /// <summary>拡張子から形式を求める（未対応の場合は null）。</summary>
+    /// <param name="extension">拡張子（先頭のドットを含む。 空の場合もある）。</param>
+    /// <returns>形式。 未対応の場合は null。</returns>
+    [SupportedOSPlatform("windows")]
+    private static ImageFileFormat? TryResolveExtension(string extension)
+        => extension.ToUpperInvariant() switch
+        {
+            ".BMP" => ImageFileFormat.Bmp,
+            ".PNG" => ImageFileFormat.Png,
+            ".JPG" or ".JPEG" => ImageFileFormat.Jpeg,
+            ".GIF" => ImageFileFormat.Gif,
+            ".TIF" or ".TIFF" => ImageFileFormat.Tiff,
+            _ => null,
+        };
+
+    /// <summary>その形式のオプションの組み合わせを検証する。</summary>
+    /// <param name="format">保存する形式。</param>
+    /// <param name="options">保存のオプション。</param>
+    /// <exception cref="NotSupportedException">その形式で使えない項目が設定されている場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException">JPEG の品質が許容範囲外の場合。</exception>
+    /// <remarks>
+    /// <b>品質を使えるのは JPEG だけである</b>（他の形式は品質を受け取っても出力が変わらない。 実測）。
+    /// 黙って無視すると「設定したのに効かない」ことに気付かないため、例外にする。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    private static void ValidateOptions(ImageFileFormat format, in EsImageSaveOptions options)
+    {
+        if (options.JpegQuality is not int quality)
+        {
+            return;
+        }
+
+        if (format != ImageFileFormat.Jpeg)
+        {
+            throw CreateUnsupportedOption(format, nameof(EsImageSaveOptions.JpegQuality));
+        }
+
+        if (quality < JpegQualityMinimum || quality > JpegQualityMaximum)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(options), quality, $"JPEG の品質は {JpegQualityMinimum}〜{JpegQualityMaximum} の範囲で指定します。");
+        }
+    }
+
+    /// <summary>形式を表す enum を内部の形式へ変換する。</summary>
+    /// <param name="format">公開の形式。</param>
+    /// <returns>内部の形式。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">定義されていない値の場合。</exception>
+    [SupportedOSPlatform("windows")]
+    private static ImageFileFormat ToFormat(EsImageFileFormat format)
+        => format switch
+        {
+            EsImageFileFormat.Bmp => ImageFileFormat.Bmp,
+            EsImageFileFormat.Png => ImageFileFormat.Png,
+            EsImageFileFormat.Jpeg => ImageFileFormat.Jpeg,
+            EsImageFileFormat.Gif => ImageFileFormat.Gif,
+            EsImageFileFormat.Tiff => ImageFileFormat.Tiff,
+            var other => throw new ArgumentOutOfRangeException(nameof(format), other, "定義されていない画像形式です。"),
+        };
+
+    /// <summary>形式を表す enum の名前を得る（例外メッセージ用）。</summary>
+    /// <param name="format">内部の形式。</param>
+    /// <returns><see cref="EsImageFileFormat"/> の対応する値の名前。</returns>
+    /// <remarks>公開の enum と内部の enum は<b>同じ名前の値を持つ</b>（対応を名前で読み取れるようにするため）。
+    /// 内部の名前をそのまま使うと、対応が崩れたときに気付きにくくなるため対応表を持つ。</remarks>
+    [SupportedOSPlatform("windows")]
+    private static string ToPublicName(ImageFileFormat format)
+        => format switch
+        {
+            ImageFileFormat.Bmp => nameof(EsImageFileFormat.Bmp),
+            ImageFileFormat.Png => nameof(EsImageFileFormat.Png),
+            ImageFileFormat.Jpeg => nameof(EsImageFileFormat.Jpeg),
+            ImageFileFormat.Gif => nameof(EsImageFileFormat.Gif),
+            ImageFileFormat.Tiff => nameof(EsImageFileFormat.Tiff),
+            var other => other.ToString(),
+        };
+
+    /// <summary>拡張子が対応形式でないことを表す例外を作る。</summary>
+    /// <param name="extension">対象の拡張子（空の場合もある）。</param>
+    /// <returns>例外。</returns>
+    [SupportedOSPlatform("windows")]
+    private static NotSupportedException CreateUnsupportedExtension(string extension)
+        => new(extension.Length == 0
+            ? $"拡張子が無いため保存形式を決められません。 拡張子を付けるか {nameof(EsImageSaveOptions)}.{nameof(EsImageSaveOptions.Format)} を指定してください。"
+                + $" 対応形式: {string.Join(" / ", SupportedExtensions)}"
+            : $"拡張子 '{extension}' へは保存できません。 対応形式: {string.Join(" / ", SupportedExtensions)}");
+
+    /// <summary>形式ごとの標準の拡張子（拡張子が無い場合の補完に使う）。</summary>
+    /// <param name="format">保存する形式。</param>
+    /// <returns>先頭のドットを含む拡張子。</returns>
+    /// <remarks>別名（<c>.jpeg</c> / <c>.tiff</c>）ではなく、対応形式の一覧の先頭にある値を返す。</remarks>
+    [SupportedOSPlatform("windows")]
+    private static string CanonicalExtension(ImageFileFormat format)
+        => format switch
+        {
+            ImageFileFormat.Bmp => ".bmp",
+            ImageFileFormat.Png => ".png",
+            ImageFileFormat.Jpeg => ".jpg",
+            ImageFileFormat.Gif => ".gif",
+            ImageFileFormat.Tiff => ".tif",
+            var other => throw new ArgumentOutOfRangeException(nameof(format), other, "未知の画像形式です。"),
+        };
 
     /// <summary>GDI+ の画像をファイルへ書き出す（形式ごとのエンコーダーとオプションを使う）。</summary>
     /// <param name="image">書き出す GDI+ の画像。</param>
@@ -198,53 +383,6 @@ internal static class WinGdiPlusImageCodec
             Type = WinNative.GpEncoderParameterValueTypeLong,
         };
 
-    /// <summary>保存先の拡張子から形式を決め、その形式で使えるオプションだけが設定されていることを確かめる。</summary>
-    /// <param name="filePath">保存先のファイルパス。</param>
-    /// <param name="options">保存のオプション。</param>
-    /// <returns>保存する形式。</returns>
-    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合、または設定されたオプションがその形式で使えない場合。</exception>
-    /// <exception cref="ArgumentOutOfRangeException">JPEG の品質が許容範囲外の場合。</exception>
-    [SupportedOSPlatform("windows")]
-    private static ImageFileFormat ResolveFormat(string filePath, in EsImageSaveOptions options)
-        => Path.GetExtension(filePath).ToUpperInvariant() switch
-        {
-            // 品質を使えるのは JPEG だけであり、他の形式は品質を受け取っても出力が変わらない（実測）
-            ".JPG" or ".JPEG" => AcceptQuality(options),
-            ".BMP" => RejectQuality(ImageFileFormat.Bmp, options),
-            ".PNG" => RejectQuality(ImageFileFormat.Png, options),
-            ".GIF" => RejectQuality(ImageFileFormat.Gif, options),
-            ".TIF" or ".TIFF" => RejectQuality(ImageFileFormat.Tiff, options),
-            var other => throw new NotSupportedException(
-                $"拡張子 '{other}' へは保存できません。 対応形式: {string.Join(" / ", SupportedExtensions)}"),
-        };
-
-    /// <summary>JPEG の品質が範囲内であることを確かめ、JPEG を選ぶ。</summary>
-    /// <param name="options">保存のオプション。</param>
-    /// <returns>JPEG を表す形式。</returns>
-    /// <exception cref="ArgumentOutOfRangeException">品質が <see cref="JpegQualityMinimum"/>〜<see cref="JpegQualityMaximum"/> の範囲外の場合。</exception>
-    [SupportedOSPlatform("windows")]
-    private static ImageFileFormat AcceptQuality(in EsImageSaveOptions options)
-    {
-        if (options.JpegQuality is int quality && (quality < JpegQualityMinimum || quality > JpegQualityMaximum))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(options), quality, $"JPEG の品質は {JpegQualityMinimum}〜{JpegQualityMaximum} の範囲で指定します。");
-        }
-
-        return ImageFileFormat.Jpeg;
-    }
-
-    /// <summary>品質が指定されていないことを確かめ、その形式を選ぶ。</summary>
-    /// <param name="format">保存する形式。</param>
-    /// <param name="options">保存のオプション。</param>
-    /// <returns><paramref name="format"/> をそのまま返す（<see cref="ResolveFormat"/> の分岐を 1 行で書くため）。</returns>
-    /// <exception cref="NotSupportedException">品質が指定されている場合。</exception>
-    [SupportedOSPlatform("windows")]
-    private static ImageFileFormat RejectQuality(ImageFileFormat format, in EsImageSaveOptions options)
-        => options.JpegQuality is null
-            ? format
-            : throw CreateUnsupportedOption(format, nameof(EsImageSaveOptions.JpegQuality));
-
     /// <summary>使用するエンコーダーの CLSID を形式から決める。</summary>
     /// <param name="format">保存する形式。</param>
     /// <returns>エンコーダーの CLSID。</returns>
@@ -266,7 +404,7 @@ internal static class WinGdiPlusImageCodec
     /// <returns>例外。</returns>
     [SupportedOSPlatform("windows")]
     private static NotSupportedException CreateUnsupportedOption(ImageFileFormat format, string optionName)
-        => new($"オプション '{optionName}' は {format} 形式では使えません"
+        => new($"オプション '{optionName}' は {ToPublicName(format)} 形式では使えません"
             + $"（現在オプションを持つのは JPEG の {nameof(EsImageSaveOptions.JpegQuality)} だけです）。");
 
     /// <summary>保存する形式。</summary>

@@ -208,6 +208,157 @@ public class EsBitmapFileSaveLoadTests
         }
     }
 
+    [Theory]
+    [InlineData(EsImageFileFormat.Bmp, ".bmp")]
+    [InlineData(EsImageFileFormat.Png, ".png")]
+    [InlineData(EsImageFileFormat.Jpeg, ".jpg")]
+    [InlineData(EsImageFileFormat.Gif, ".gif")]
+    [InlineData(EsImageFileFormat.Tiff, ".tif")]
+    internal void Save_拡張子が無いパスへ形式を指定すると拡張子を補完して保存する(EsImageFileFormat format, string expectedExtension)
+    {
+        using var source = EsWritableBitmap.Create(4, 4, System.Drawing.Color.Red);
+        var path = Path.Combine(Path.GetTempPath(), $"se_bitmap_{Guid.NewGuid():N}");
+        var completed = path + expectedExtension;
+        try
+        {
+            source.Save(path, new EsImageSaveOptions { Format = format });
+
+            Assert.False(File.Exists(path));
+            Assert.True(File.Exists(completed));
+            Assert.Equal(FormatOf(completed), format);
+        }
+        finally
+        {
+            DeleteFile(path);
+            DeleteFile(completed);
+        }
+    }
+
+    [Fact]
+    internal void Save_形式と一致する拡張子なら形式を指定しても保存できる()
+    {
+        using var source = EsWritableBitmap.Create(4, 4, System.Drawing.Color.Red);
+        var path = TempPath(".jpg");
+        try
+        {
+            source.Save(path, new EsImageSaveOptions { Format = EsImageFileFormat.Jpeg, JpegQuality = 80 });
+
+            Assert.Equal(EsImageFileFormat.Jpeg, FormatOf(path));
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    [Fact]
+    internal void Save_形式と拡張子が食い違い無視しないならArgumentExceptionを投げる()
+    {
+        using var source = EsWritableBitmap.Create(4, 4);
+        var path = TempPath(".png");
+
+        Assert.Throws<ArgumentException>(
+            () => source.Save(path, new EsImageSaveOptions { Format = EsImageFileFormat.Jpeg }));
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    internal void Save_形式と拡張子が食い違い無視するなら指定形式で与えられた名前へ保存する()
+    {
+        using var source = EsWritableBitmap.Create(4, 4, System.Drawing.Color.Red);
+        var path = TempPath(".png");
+        try
+        {
+            source.Save(path, new EsImageSaveOptions
+            {
+                Format = EsImageFileFormat.Jpeg,
+                IgnoreFormatMismatch = true,
+            });
+
+            // ファイル名は与えられたまま（.png）で、中身は指定した形式（JPEG）
+            Assert.True(File.Exists(path));
+            Assert.Equal(EsImageFileFormat.Jpeg, FormatOf(path));
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    [Fact]
+    internal void Save_形式を指定しても未対応の拡張子は無視しないならNotSupportedExceptionを投げる()
+    {
+        using var source = EsWritableBitmap.Create(4, 4);
+
+        Assert.Throws<NotSupportedException>(
+            () => source.Save(TempPath(".webp"), new EsImageSaveOptions { Format = EsImageFileFormat.Png }));
+    }
+
+    [Fact]
+    internal void Save_未対応の拡張子へ形式を指定して無視するなら指定形式で保存する()
+    {
+        using var source = EsWritableBitmap.Create(4, 4, System.Drawing.Color.Red);
+        var path = TempPath(".webp");
+        try
+        {
+            source.Save(path, new EsImageSaveOptions
+            {
+                Format = EsImageFileFormat.Png,
+                IgnoreFormatMismatch = true,
+            });
+
+            Assert.Equal(EsImageFileFormat.Png, FormatOf(path));
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    [Fact]
+    internal void Save_拡張子も形式も無い場合はNotSupportedExceptionを投げる()
+    {
+        using var source = EsWritableBitmap.Create(4, 4);
+
+        Assert.Throws<NotSupportedException>(
+            () => source.Save(Path.Combine(Path.GetTempPath(), $"se_bitmap_{Guid.NewGuid():N}")));
+    }
+
+    /// <summary>ファイルの先頭バイトから形式を判別する。</summary>
+    /// <param name="path">対象のファイル。</param>
+    /// <returns>判別した形式。</returns>
+    /// <exception cref="InvalidOperationException">既知の形式でない場合。</exception>
+    private static EsImageFileFormat FormatOf(string path)
+    {
+        var header = File.ReadAllBytes(path).AsSpan(0, 4);
+        if (header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47)
+        {
+            return EsImageFileFormat.Png;
+        }
+
+        if (header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF)
+        {
+            return EsImageFileFormat.Jpeg;
+        }
+
+        if (header[0] == 0x47 && header[1] == 0x49 && header[2] == 0x46)
+        {
+            return EsImageFileFormat.Gif;
+        }
+
+        if (header[0] == 0x42 && header[1] == 0x4D)
+        {
+            return EsImageFileFormat.Bmp;
+        }
+
+        if ((header[0] == 0x49 && header[1] == 0x49) || (header[0] == 0x4D && header[1] == 0x4D))
+        {
+            return EsImageFileFormat.Tiff;
+        }
+
+        throw new InvalidOperationException($"既知の画像形式ではありません（先頭バイト: {Convert.ToHexString(header)}）。");
+    }
+
     /// <summary>一時ファイルを消す（存在しない場合は何もしない）。</summary>
     /// <param name="path">消すファイルのパス。</param>
     private static void DeleteFile(string path)

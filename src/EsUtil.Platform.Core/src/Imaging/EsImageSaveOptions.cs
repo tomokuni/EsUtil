@@ -2,24 +2,28 @@ namespace EsUtil.Platform.Core.Imaging;
 
 /// <summary>画像をファイルへ保存するときのオプション（開発者が渡す調整値）。</summary>
 /// <remarks>
-/// <b>形式は拡張子が決める</b>: どの形式で保存するかは保存先の拡張子が決める（本型は形式を持たない）。
-/// 本型は<b>その形式の中で調整できる値</b>だけを持ち、設定した項目が選ばれた形式で使えない場合は
+/// <b>形式は既定では拡張子が決める</b>: どの形式で保存するかは保存先の拡張子が決める（<see cref="Format"/> を指定すると
+/// 拡張子より優先される）。 本型は<b>その形式の中で調整できる値</b>だけを持ち、設定した項目が選ばれた形式で使えない場合は
 /// <see cref="EsBitmapBase.Save(string, EsImageSaveOptions)"/> が例外にする（黙って無視しない）。<br/>
 /// <b>項目が 1 つしかない理由（実測）</b>: GDI+ のエンコーダーが実際に出力を変える値は限られる。
-/// 1280x720 の画像を各値で保存し、ファイル サイズと復号した画素を比較した結果:
+/// 640x360 の画像を<b>全パラメーター × 全形式で総当たり</b>して確かめた結果:
 ///
 /// <list type="table">
 /// <item>
-///   <term>反映される</term>
-///   <description>JPEG の品質（<see cref="JpegQuality"/>）。 不規則な画像で<b>42 KB〜1781 KB</b> と桁で変わる。</description>
+///   <term>品質・サイズが変わる</term>
+///   <description>JPEG の品質（<see cref="JpegQuality"/>。 208 KB → 11 KB〜459 KB）。
+///   JPEG の量子化テーブル（輝度・色差。 品質と同じつまみであり、品質を指定すると無視される）と、
+///   TIFF の圧縮方式・色深度・CMYK 保存も値は変わるが、いずれも既定より大きくなるか画素を失う（下記）。</description>
 /// </item>
 /// <item>
-///   <term>反映されない</term>
-///   <description>PNG の圧縮レベル・BMP の色深度と圧縮・GIF の走査方式（インターレース）と版。
-///   値を変えても<b>出力のバイト列が完全に同一</b>になった（実測）。 TIFF の圧縮方式も指定できるが、
-///   <b>既定（LZW + 水平差分予測）より小さい値が選べない</b>（実測: なだらかな画像で既定 174 KB に対し
-///   選べる LZW は 2159 KB、無圧縮 3687 KB。 既定とタグは同じ LZW でも予測子が異なる）。
-///   載せると「設定したのに効かない・設定すると悪くなる」ことになるため、本型は持たない。</description>
+///   <term>値を変えても出力が完全に同一</term>
+///   <description>BMP の色深度（8 / 16 / 24 / 32）と圧縮、PNG の圧縮レベル、GIF の走査方式（インターレース）と版。
+///   GDI+ は値を受け取って<b>無視する</b>。 載せると「設定したのに効かない」ことになる。</description>
+/// </item>
+/// <item>
+///   <term>一部の形式だけ失敗する</term>
+///   <description>TIFF の圧縮は 125 通り中 5 通り（LZW / RLE / 無圧縮 / CCITT3 / CCITT4）だけが成功し、
+///   他は状態 2（<c>InvalidParameter</c>）で失敗する。 GIF の多重フレーム用のフラグは<b>保存後にファイルを開いたまま返す</b>。</description>
 /// </item>
 /// </list>
 ///
@@ -29,6 +33,27 @@ namespace EsUtil.Platform.Core.Imaging;
 /// </remarks>
 public readonly record struct EsImageSaveOptions
 {
+    /// <summary>保存する形式（<c>null</c> の場合は保存先の拡張子が決める）。</summary>
+    /// <value>指定した場合、拡張子より優先される。 保存先に拡張子が無ければ<b>この形式の拡張子を補完</b>する。</value>
+    /// <remarks>
+    /// <b>拡張子と食い違う場合</b>: 既定では<b>例外</b>にする（どちらが意図か読めないため）。
+    /// <see cref="IgnoreFormatMismatch"/> を true にすると本値が優先され、与えられたファイル名のまま保存する
+    /// （拡張子と中身が食い違うファイルができる）。<br/>
+    /// <b>指定しても拡張子が有効な場合</b>: 拡張子が本値と同じ形式を指していれば、そのまま保存する。
+    /// </remarks>
+    public EsImageFileFormat? Format { get; init; }
+
+    /// <summary>拡張子と <see cref="Format"/> の食い違いを無視するか。</summary>
+    /// <value>true の場合は <see cref="Format"/> を優先して与えられたファイル名へ保存する。 既定は false（例外にする）。</value>
+    /// <remarks>
+    /// <b>使用例</b>: 利用者が拡張子を変えずに形式だけ切り替えた場合や、拡張子を持たない受け渡し（一時ファイル等）で
+    /// 意図した形式を保証したい場合。 <b><see cref="Format"/> が未指定の場合は意味を持たない</b>
+    /// （拡張子が形式を決めるため食い違いが起こらない）。<br/>
+    /// <b>本フラグを立てると、拡張子と中身が食い違うファイルを作れる</b>（<c>photo.png</c> に JPEG の中身を書く等）。
+    /// 他のツールが拡張子で判別する場合は表示できないことがある。
+    /// </remarks>
+    public bool IgnoreFormatMismatch { get; init; }
+
     /// <summary>JPEG の品質（0〜100。 大きいほど高画質・大サイズ）。</summary>
     /// <value>null（既定）の場合は GDI+ の既定の品質を使う。 0〜100 の範囲外は例外になる（上限へ丸めない）。</value>
     /// <remarks>

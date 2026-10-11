@@ -213,17 +213,23 @@ public abstract class EsBitmapBase : IEsBitmap
         WinGdiPlusImageCodec.EncodeToFile(Pixels, Width, Height, filePath);
     }
 
-    /// <summary>本画像をファイルへ保存する（形式は拡張子が決める。保存のオプションを指定できる）。</summary>
-    /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める）。</param>
+    /// <summary>本画像をファイルへ保存する（形式は拡張子が決める。保存の形式とオプションを指定できる）。</summary>
+    /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める。 <paramref name="options"/> で形式を指定した場合に拡張子が無ければ補完する）。</param>
     /// <param name="options">保存のオプション（形式ごとに使える項目が異なる）。</param>
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
-    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または
+    /// <paramref name="filePath"/> の拡張子と <see cref="EsImageSaveOptions.Format"/> が食い違い
+    /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）、または
     /// <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
     /// <exception cref="ObjectDisposedException">本画像が破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
     /// <remarks>
+    /// <b>形式の決め方</b>: <see cref="EsImageSaveOptions.Format"/> を指定しない場合は<b>拡張子が形式を決める</b>。
+    /// 指定した場合は<b>形式が優先</b>され、拡張子が無ければ補完し（<c>shot</c> + <see cref="EsImageFileFormat.Png"/> →
+    /// <c>shot.png</c>）、拡張子と食い違う場合は <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が true なら
+    /// 与えられたファイル名のまま保存し、false なら例外にする。<br/>
     /// <b>どのオプションが効くかは形式が決める</b>: 実測で効果が確認できたのは JPEG の品質
     /// （<see cref="EsImageSaveOptions.JpegQuality"/>）だけであり、他の形式へ設定すると例外になる
     /// （BMP / PNG / GIF は品質を受け取っても出力が変わらず、TIFF は既定より小さい値が選べない。

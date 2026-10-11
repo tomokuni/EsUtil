@@ -567,7 +567,7 @@ public readonly record struct ElementFinderResults(
 | プロパティ | `IsDisposed` | `bool` | 破棄済みか（**公開面は `IEsBitmap`**。 利用者は面の型で判定できる） |
 | ピクセル | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` / `Color GetPixel(EsPointInt point)` | 指定座標の BGRA（アルファ乗算済み）を取得（座標型の版は `System.Drawing.Color` で返す）。 範囲外は `IndexOutOfRangeException` |
 | その他 | `ToSizeText` | `string ToSizeText()` | 寸法を `<c>幅x高さ</c>` 形式の文字列で返す（ログ等への記録用。 **書式は本面が単一所有**する） |
-| ファイル | `Save` | `void Save(string filePath)` / `void Save(string filePath, EsImageSaveOptions options)` | 本画像をファイルへ保存する（**拡張子が形式を決める**。 オプションを指定できるのは JPEG の品質だけ。 Windows 専用。 詳細は [2.32](#232-画像のファイル入出力save--load)） |
+| ファイル | `Save` | `void Save(string filePath)` / `void Save(string filePath, EsImageSaveOptions options)` | 本画像をファイルへ保存する（**形式は既定で拡張子が決める**。 オプションで形式・JPEG の品質を指定できる。 Windows 専用。 詳細は [2.32](#232-画像のファイル入出力save--load)） |
 | ファイル | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`。 Windows 専用） |
 | その他 | `ThrowIfDisposed` | `void ThrowIfDisposed()` | 破棄済みなら `ObjectDisposedException` を送出 |
 
@@ -637,19 +637,38 @@ public readonly record struct ElementFinderResults(
 | 型 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- | --- |
 | `EsBitmapBase` | `Save` | `void Save(string filePath)` | 画像をファイルへ保存する（**形式は拡張子が決める**） |
-| `EsBitmapBase` | `Save` | `void Save(string filePath, EsImageSaveOptions options)` | 保存のオプションを指定して保存する（**現在オプションを持つのは JPEG の品質だけ**。 下記） |
+| `EsBitmapBase` | `Save` | `void Save(string filePath, EsImageSaveOptions options)` | 保存の形式とオプションを指定して保存する（**形式の指定は拡張子より優先され、拡張子が無ければ補完する**。 下記） |
 | `EsBitmapBase` | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`） |
 | `EsBitmap` | `Load` | `static EsBitmap Load(string filePath)` | ファイルから**読み取り専用の**画像を読み込む（形式は内容から判別する。 所有権は呼び出し側へ移る） |
 | `EsWritableBitmap` | `Load` | `static EsWritableBitmap Load(string filePath)` | ファイルから**書き換え可能な**画像として読み込む（所有権は呼び出し側へ移る） |
-| `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG の品質（0〜100。 `null` は GDI+ の既定）。 不変の `readonly record struct` であり、部分更新は `with` 式で行う |
+| `EsImageFileFormat` | （enum） | `Bmp` / `Png` / `Jpeg` / `Gif` / `Tiff` | 保存する形式（GDI+ のエンコーダーと 1 対 1。 通常は拡張子で足りるため、拡張子が無い場合と拡張子と違う形式で書きたい場合だけ使う） |
+| `EsImageSaveOptions` | `Format` | `EsImageFileFormat? Format { get; init; }` | 保存する形式（`null` は拡張子が決める。 指定した場合は**拡張子より優先**し、拡張子が無ければ補完する） |
+| `EsImageSaveOptions` | `IgnoreFormatMismatch` | `bool IgnoreFormatMismatch { get; init; }` | 拡張子と `Format` の食い違いを無視するか（既定 false = 例外）。 不変の `readonly record struct` であり、部分更新は `with` 式で行う |
+| `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG の品質（0〜100。 `null` は GDI+ の既定） |
 
 - **`Load` は戻したい型の側に置きます**: 静的メソッドは戻り値の型を共変にできないため、`EsBitmap.Load`（読み取り専用）と `EsWritableBitmap.Load`（書き換え可能）を別々に持ちます。 書き換えが要る場合は `EsWritableBitmap.Load` を使ってください（`EsBitmap.Load` の結果を `EsWritableBitmap.Create` で複製すると、2 回目の全域コピー（実測: 4K で 5.7 ms / 31 MiB）が無駄になります）。
 - **`Save` は `EsBitmapBase` に置きます**: ファイルへの書き出しはピクセルを**書き換える権利を要さない**ため、2 つの権利（読み取り専用 / 書き換え可能）に共通の入口が要ります。 一方、読み取りの面（`IEsBitmap`）に置くと、外部が実装する画像（UI の表示アダプタ等）にも保存能力を要求することになるため、**継承関係の無い 2 型の共通基底**である本型が持ちます（実装を持てる最小の位置）。
 - **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・GDI+ の呼び出し・状態値の例外化は 1 か所（「`WinGdiPlusImageCodec`」）が単一所有し、公開面（`Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
 - **実装の入出力は画像型を知りません**: 符号化は受け取ったピクセル バイト列を書き（`EncodeToFile`）、復号は**画像の生成処理を受け取ってデコード結果をその領域へ直接書きます**（`DecodeFromFile<T>`）。 コーデックが画像型（`EsBitmap` 等）を名指ししないため、画像型が要るのは公開面だけになります。 **中間バッファも追加のコピーも作りません**（実測: 4K PNG の読み込みで 29.9 ms。 中間バッファを挟む方式は 32.6 ms ＝ **+2.7 ms / +8%** と +31 MiB。 保存は両方式とも 66.5 ms で差なし）。
-- **形式は拡張子が決めます**: `Save` は拡張子から形式を選びます（`.bmp` = Windows Bitmap / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`）。 大文字・小文字は区別しません。
+- **形式は既定では拡張子が決めます**: `Save` は拡張子から形式を選びます（`.bmp` = Windows Bitmap / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`）。 大文字・小文字は区別しません。
+- **形式を明示する入口を持ちます（拡張子の補完を含む）**: `EsImageSaveOptions.Format` を指定すると形式が優先されます。 指定しなかった場合は従来どおり拡張子が形式を決めます（**既存の呼び出しの挙動は変わりません**）。
+
+  | `Format` | 拡張子 | `IgnoreFormatMismatch` | 結果 |
+  | --- | --- | --- | --- |
+  | 未指定 | 対応形式 | — | 拡張子の形式で保存する（従来どおり） |
+  | 未指定 | 無い・未対応 | — | `NotSupportedException`（従来どおり） |
+  | 指定 | 無い | — | **形式の標準拡張子を補完して保存**する（`shot` + `Png` → `shot.png`） |
+  | 指定 | 一致 | — | そのまま保存する |
+  | 指定 | 不一致 | false | `ArgumentException`（**ファイルは作りません**） |
+  | 指定 | 不一致 | true | **指定形式で**与えられたファイル名へ保存する（拡張子と中身が食い違う） |
+  | 指定 | 未対応 | false | `NotSupportedException`（拡張子が対応形式でない場合と同じ） |
+  | 指定 | 未対応 | true | 指定形式で与えられたファイル名へ保存する |
+
+  - **補完に使う拡張子は 1 つに固定します**（`.bmp` / `.png` / `.jpg` / `.gif` / `.tif`）。 別名（`.jpeg` / `.tiff`）は受け付けますが補完には使いません（同じ形式に 2 つの候補があると、呼び出し側が保存先を予測できないため）。
+  - **食い違いを既定で例外にする理由**: どちらが呼び出し側の意図か読めないためです。 例外にしないと、拡張子を直し忘れたまま別形式で保存され、**拡張子と中身が食い違ったファイルが黙ってできます**。 `IgnoreFormatMismatch` は「承知の上で食い違わせる」ことを明示する入口です。
+  - **どちらの値も GDI+ の初期化より前に判定します**（拒否される呼び出しはプロセス全体の副作用を起こしません）。
 - **未対応の拡張子は例外にします**: PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かないためです（`NotSupportedException`。 対応形式の単一所有は `EsBitmapBase.SupportedFileExtensions`）。
-- **保存のオプションを指定できます（現在オプションを持つのは JPEG の品質だけ。 実測）**: `Save(string, EsImageSaveOptions)` は指定した値だけを GDI+ のエンコーダー パラメーターとして渡します。 1280x720 の画像（一様 / なだらか / 不規則）を各値で保存し、ファイル サイズと復号した画素を比較した結果です。
+- **保存のオプションを指定できます（実測）**: `Save(string, EsImageSaveOptions)` は指定した値だけを GDI+ のエンコーダー パラメーターとして渡します。 1280x720 の画像（一様 / なだらか / 不規則）を各値で保存し、ファイル サイズと復号した画素を比較した結果です。
 
   | オプション | 内容 | 一様（単色） | なだらか | 不規則（疑似乱数） |
   | --- | --- | --- | --- | --- |
@@ -662,12 +681,27 @@ public readonly record struct ElementFinderResults(
 
   - **既定は明示した品質と一致しません**: 既定は不規則な画像で 826,483 B（品質 90 の 791,497 B と 100 の 1,821,653 B の間）であり、**品質 75 とは 1.5 倍違います**。 したがって「既定のまま」と「品質 75 を明示」は別物です。 調整しない場合は `Save(string)` を使ってください。
   - **単色の画像では効きません**: 変化の乏しい画像はどの品質でも同じように圧縮されます（15,026 B 〜 15,031 B）。
-  - **PNG / BMP / GIF に渡せる値はありません**: PNG の圧縮レベル・BMP の色深度（8 / 16 / 24 / 32）と圧縮・GIF の走査方式（インターレース）と版は、値を変えても**出力のバイト列が完全に同一**になりました（GDI+ が値を受け取っても無視します）。 使えない値を公開すると「設定したのに効かない」ことになるため持ちません。
-  - **TIFF の圧縮方式も公開しません**: 指定はできますが（無圧縮 / LZW / RLE）、**既定より小さい値が選べません**（実測: なだらかな画像で既定 173,766 B に対し LZW 2,158,648 B / 無圧縮 3,686,618 B / RLE 3,715,416 B。 一様な画像では既定 5,958 B 対 LZW 11,238 B）。 生成したファイルの TIFF タグを読むと、**既定も LZW 指定も圧縮タグ（259）は 5 = LZW で同じ**であり、違うのは予測子タグ（317）だけでした（既定 = 2 = 水平差分 / 指定 = 1 = なし）。 GDI+ は予測子を指定する手段を持たないため、**指定すると既定より悪くなる**ことになります。
-  - **複数のオプションを同時に設定できません**: 品質と圧縮方式は形式が排他（JPEG / TIFF）であるため、エンコーダー パラメーターは常に高々 1 件です。 `GdipSaveImageToFile` へは 0 件の場合 `IntPtr.Zero`（GDI+ の既定）を渡します。
-- **形式ごとの名前付きメソッドを作らない理由**: `EncodeToJpgFile` / `EncodeToPngFile` のような形式を名前に持つ入口を足すと、**形式を表す引数（enum 等）と拡張子が二重管理になり**、食い違えば拡張子と実体がずれたファイルができます。 実測のとおりオプションを持つ形式は JPEG だけであり、その 1 つも「オプション付きの `EncodeToFile` 1 つ + 呼び出し側が拡張子で形式を選ぶ」で表せるため、公開面は `Save(string)` / `Save(string, EsImageSaveOptions)` の 2 つに留めます。
+- **GDI+ のエンコーダー パラメーターを全通り試した結果（実測。 640x360 の不規則な画像）**: 「JPEG 以外にも品質・圧縮率のオプションがあるのでは」という疑問に答えるため、**`Encoder` の全 13 パラメーター × 全形式**を総当たりし（`EncoderParameters` を自前で組み立てて `GdipSaveImageToFile` へ直接渡す。 型 `Long` / `Short[64]` を明示）、出力のバイト列のハッシュで判定しました。
+
+  | パラメーター（試した値） | BMP | PNG | GIF | JPEG | TIFF |
+  | --- | --- | --- | --- | --- | --- |
+  | `Quality`（0〜200） | 無効 | 無効 | 無効 | **有効**（0 = 11,436 B 〜 100 = 458,991 B。 101 以上は 100 と同じ） | 無効 |
+  | `LuminanceTable` / `ChrominanceTable`（short[64]） | 無効 | 無効 | 無効 | **有効**（208,287 → 148,295 / 192,531 B） | 無効 |
+  | `Compression`（0〜10 / 32773） | 無効 | 無効 | 無効 | 全部**失敗**（状態 2） | **一部有効**（2 = LZW / 3 = CCITT3 / 4 = CCITT4 / 5 = RLE / 6 = 無圧縮。 他は状態 2 で失敗） |
+  | `ColorDepth`（1〜64） | 無効 | 無効 | 無効 | 無効 | **一部有効**（1 / 4 / 8 / 24 のみ。 12 / 16 / 48 / 64 は失敗） |
+  | `ScanMethod`（0 / 7 / 8） | 無効 | 無効 | **無効** | 無効 | 無効 |
+  | `Version`（0 / 9 / 10） | 無効 | 無効 | **無効** | 無効 | 無効 |
+  | `Transformation`（0〜17） | 無効 | 無効 | 無効 | 一部失敗・残りは**無効** | 無効 |
+  | `SaveFlag`（0 / 18 / 19 / 20） | 無効 | 無効 | **18 で保存後にファイルが開いたまま** | 無効 | **18 で保存後にファイルが開いたまま** |
+  | `ColorSpace`（0〜5） | 無効 | 無効 | 無効 | 0 のみ**有効**（CMYK 化で 364,484 B）。 他は失敗 | 無効 |
+  | `SaveAsCmyk`（0 / 1） | 無効 | 無効 | 無効 | 無効 | 1 で**有効**（1,195,850 B） |
+  | `RenderMethod` / `ImageItems` | 無効 | 無効 | 無効 | 無効（`ImageItems` は失敗） | 無効 |
+
+  - **公開するのは JPEG の品質だけにします**: 効果のある残りは、(1) 品質と**同じつまみ**（`LuminanceTable` / `ChrominanceTable`。 品質を併せて指定すると**テーブルは黙って無視される**ことを実測で確認したため、2 つ公開すると片方が効かない）、(2) **情報を失う**（TIFF の CCITT3 / CCITT4 は 1 ビットへ落として画素を壊す。 `ColorDepth` の 1 / 4 / 8 は減色）、(3) **既定より必ず大きくなる**（TIFF の圧縮方式。 下記）、(4) **ファイルを開いたまま返す**（`SaveFlag` = 18。 保存後にファイル ハンドルが残り、続けて読むと `IOException` になることを実測で確認）、のいずれかです。 使うと分かっている値だけを公開する方針（[`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI）に従います。
+  - **TIFF の圧縮方式を公開しない理由（実測）**: 指定はできますが（無圧縮 / LZW / RLE）、**既定より小さい値が選べません**（実測: なだらかな画像で既定 173,766 B に対し LZW 2,158,648 B / 無圧縮 3,686,618 B / RLE 3,715,416 B。 一様な画像では既定 5,958 B 対 LZW 11,238 B）。 生成したファイルの TIFF タグを読むと、**既定も LZW 指定も圧縮タグ（259）は 5 = LZW で同じ**であり、違うのは予測子タグ（317）だけでした（既定 = 2 = 水平差分 / 指定 = 1 = なし）。 GDI+ は予測子を指定する手段を持たないため、**指定すると既定より悪くなる**ことになります。
+- **形式ごとの名前付きメソッドを作らない理由**: `EncodeToJpgFile` / `EncodeToPngFile` のような形式を名前に持つ入口を足すと、**形式を表す引数と拡張子が二重管理になり**、食い違えば拡張子と実体がずれたファイルができます。 実測のとおり調整できる値を持つ形式は JPEG だけであり、その 1 つも「オプション付きの `EncodeToFile` 1 つ（形式は `Format` が決める）」で表せるため、公開面は `Save(string)` / `Save(string, EsImageSaveOptions)` の 2 つに留めます。
 - **オプションの値は形式ごとに検証します**: 使えない形式へ設定すると `NotSupportedException`、JPEG の品質が 0〜100 の範囲外なら `ArgumentOutOfRangeException` です（黙って無視すると「設定したのに効かない」ことに気付かないため。 また上限へ丸めると、呼び出し側が指定した値と実際の出力が食い違います）。 検証は **GDI+ の初期化より前**に行うため、拒否された呼び出しはプロセス全体の副作用（バックグラウンド スレッド +1 等）を起こしません。
-- **WebP / HEIF を対応形式へ入れない理由（実測）**: GDI+ のエンコーダーは 5 件だけです（`GdipGetImageEncoders` が返すのは BMP / JPEG / GIF / TIFF / PNG。 デコーダーはこれに EMF / WMF / ICO を加えた 8 件）。 WebP / HEIF のエンコーダーは無く、**存在しない形式の CLSID を渡すと例外を出さずに PNG を書き出します**（実測: PNG の CLSID と `.webp` のパスで 2831 バイトの PNG が書かれ、先頭バイトは PNG のシグネチャ）。 拡張子と中身が食い違うファイルを作らないため、対応形式へ追加しません。
+- **WebP / HEIF を対応形式へ入れない理由（実測）**: GDI+ のエンコーダーは 5 件だけです（`GdipGetImageEncoders` が返すのは BMP / JPEG / GIF / TIFF / PNG。 デコーダーはこれに EMF / WMF / ICO を加えた 8 件）。 WebP / HEIF のエンコーダーは無く、**存在しない形式の CLSID を渡すと例外を出さずに PNG を書き出します**（実測: PNG の CLSID と `.webp` のパスで 2831 バイトの PNG が書かれ、先頭バイトは PNG のシグネチャ）。 拡張子と中身が食い違うファイルが**黙って**できるため、対応形式へ追加しません（食い違いを承知で作る場合は `Format` + `IgnoreFormatMismatch` を使います）。
 - **エンコード・デコードは `gdiplus.dll` のフラット API を直接呼びます**（宣言は `src/EsUtil.Platform.Core/src/Native/Win/WinNative.GdiPlus.cs` が集約。 `WinNative` は DLL ごとの `partial` ファイルに分かれます）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
 - **本機能は Windows 専用です**: `gdiplus.dll` は Windows にのみ存在します（非 Windows では `DllNotFoundException`）。 公開メンバー（`Save` / `Load` / `SupportedFileExtensions`）は `SupportedOSPlatform("windows")` で限定します。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、`src/EsUtil.Platform.Core/src/Native` だけが Windows に依存します）。
 - **GDI+ の初期化は `WinGdiPlusLifetime` が単一所有します**（プロセス単位で 1 回だけ `GdiplusStartup` を呼びます）。 終了処理（`GdiplusShutdown`）は**呼びません**（プロセス全体の GDI+ を終了させるため、ホストが別の目的で GDI+ を使っている場合に影響します。 GDI+ はプロセスの終了時に OS が解放します）。
