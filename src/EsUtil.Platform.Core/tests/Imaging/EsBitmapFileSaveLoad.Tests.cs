@@ -5,7 +5,7 @@ using Xunit;
 namespace EsUtil.Platform.Core.Tests.Imaging;
 
 /// <summary>
-/// 画像のファイル保存・読み込み（<see cref="EsBitmapBase.Save(string)"/> / <see cref="EsBitmap.Load(string)"/> / <see cref="EsWritableBitmap.Load(string)"/>）のテスト（Windows 専用・並列実行）。
+/// 画像のファイル保存・読み込み（<see cref="EsBitmapBase.Save(string)"/> / <see cref="EsBitmapBase.Save(string, EsImageSaveOptions)"/> / <see cref="EsBitmap.Load(string)"/> / <see cref="EsWritableBitmap.Load(string)"/>）のテスト（Windows 専用・並列実行）。
 /// </summary>
 /// <remarks>
 /// GDI+ は Windows 専用のため、本クラスは <see cref="SupportedOSPlatformAttribute"/> で Windows に限定する。<br/>
@@ -126,5 +126,112 @@ public class EsBitmapFileSaveLoadTests
         {
             if (File.Exists(path)) { File.Delete(path); }
         }
+    }
+
+    [Fact]
+    internal void Save_JPEGの品質を指定すると出力の大きさが変わる()
+    {
+        using var source = CreateNoisy(96, 96);
+        var low = TempPath(".jpg");
+        var high = TempPath(".jpg");
+        try
+        {
+            source.Save(low, new EsImageSaveOptions { JpegQuality = 10 });
+            source.Save(high, new EsImageSaveOptions { JpegQuality = 95 });
+
+            var lowLength = File.ReadAllBytes(low).Length;
+            var highLength = File.ReadAllBytes(high).Length;
+
+            Assert.True(highLength > lowLength, $"品質 95 の {highLength} バイトが品質 10 の {lowLength} バイト以下です。");
+        }
+        finally
+        {
+            DeleteFile(low);
+            DeleteFile(high);
+        }
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(101)]
+    internal void Save_JPEGの品質が範囲外ならArgumentOutOfRangeExceptionを投げる(int quality)
+    {
+        using var source = EsWritableBitmap.Create(4, 4);
+        var path = TempPath(".jpg");
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => source.Save(path, new EsImageSaveOptions { JpegQuality = quality }));
+        Assert.False(File.Exists(path));
+    }
+
+    [Theory]
+    [InlineData(".bmp")]
+    [InlineData(".png")]
+    [InlineData(".gif")]
+    [InlineData(".tiff")]
+    internal void Save_JPEG以外へ品質を指定するとNotSupportedExceptionを投げる(string extension)
+    {
+        using var source = EsWritableBitmap.Create(4, 4);
+        var path = TempPath(extension);
+
+        Assert.Throws<NotSupportedException>(
+            () => source.Save(path, new EsImageSaveOptions { JpegQuality = 80 }));
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    internal void Save_オプションを指定しても未対応の拡張子はNotSupportedExceptionを投げる()
+    {
+        using var source = EsWritableBitmap.Create(4, 4);
+
+        Assert.Throws<NotSupportedException>(
+            () => source.Save(TempPath(".webp"), new EsImageSaveOptions { JpegQuality = 80 }));
+    }
+
+    [Fact]
+    internal void Save_既定のオプションは品質を省略した場合と同じ結果になる()
+    {
+        using var source = CreateNoisy(64, 64);
+        var implicitPath = TempPath(".jpg");
+        var explicitPath = TempPath(".jpg");
+        try
+        {
+            source.Save(implicitPath);
+            source.Save(explicitPath, default);
+
+            Assert.Equal(File.ReadAllBytes(implicitPath), File.ReadAllBytes(explicitPath));
+        }
+        finally
+        {
+            DeleteFile(implicitPath);
+            DeleteFile(explicitPath);
+        }
+    }
+
+    /// <summary>一時ファイルを消す（存在しない場合は何もしない）。</summary>
+    /// <param name="path">消すファイルのパス。</param>
+    private static void DeleteFile(string path)
+    {
+        if (File.Exists(path)) { File.Delete(path); }
+    }
+
+    /// <summary>圧縮の効果を観測できる画像を作る（画素ごとに色が不規則に変わる）。</summary>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
+    private static EsWritableBitmap CreateNoisy(int width, int height)
+    {
+        var bitmap = EsWritableBitmap.Create(width, height);
+        var state = 12345u;
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                state = (state * 1664525u) + 1013904223u;
+                bitmap.SetPixel(x, y, (byte)(state >> 24), (byte)(state >> 16), (byte)(state >> 8), 255);
+            }
+        }
+
+        return bitmap;
     }
 }

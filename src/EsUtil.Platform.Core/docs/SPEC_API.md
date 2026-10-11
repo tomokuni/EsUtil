@@ -567,7 +567,7 @@ public readonly record struct ElementFinderResults(
 | プロパティ | `IsDisposed` | `bool` | 破棄済みか（**公開面は `IEsBitmap`**。 利用者は面の型で判定できる） |
 | ピクセル | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` / `Color GetPixel(EsPointInt point)` | 指定座標の BGRA（アルファ乗算済み）を取得（座標型の版は `System.Drawing.Color` で返す）。 範囲外は `IndexOutOfRangeException` |
 | その他 | `ToSizeText` | `string ToSizeText()` | 寸法を `<c>幅x高さ</c>` 形式の文字列で返す（ログ等への記録用。 **書式は本面が単一所有**する） |
-| ファイル | `Save` | `void Save(string filePath)` | 本画像をファイルへ保存する（**拡張子が形式を決める**。 Windows 専用。 詳細は [2.32](#232-画像のファイル入出力save--load)） |
+| ファイル | `Save` | `void Save(string filePath)` / `void Save(string filePath, EsImageSaveOptions options)` | 本画像をファイルへ保存する（**拡張子が形式を決める**。 オプションを指定できるのは JPEG の品質だけ。 Windows 専用。 詳細は [2.32](#232-画像のファイル入出力save--load)） |
 | ファイル | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`。 Windows 専用） |
 | その他 | `ThrowIfDisposed` | `void ThrowIfDisposed()` | 破棄済みなら `ObjectDisposedException` を送出 |
 
@@ -636,9 +636,11 @@ public readonly record struct ElementFinderResults(
 | 型 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- | --- |
 | `EsBitmapBase` | `Save` | `void Save(string filePath)` | 画像をファイルへ保存する（**形式は拡張子が決める**） |
+| `EsBitmapBase` | `Save` | `void Save(string filePath, EsImageSaveOptions options)` | 保存のオプションを指定して保存する（**現在オプションを持つのは JPEG の品質だけ**。 下記） |
 | `EsBitmapBase` | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`） |
 | `EsBitmap` | `Load` | `static EsBitmap Load(string filePath)` | ファイルから**読み取り専用の**画像を読み込む（形式は内容から判別する。 所有権は呼び出し側へ移る） |
 | `EsWritableBitmap` | `Load` | `static EsWritableBitmap Load(string filePath)` | ファイルから**書き換え可能な**画像として読み込む（所有権は呼び出し側へ移る） |
+| `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG の品質（0〜100。 `null` は GDI+ の既定）。 不変の `readonly record struct` であり、部分更新は `with` 式で行う |
 
 - **`Load` は戻したい型の側に置きます**: 静的メソッドは戻り値の型を共変にできないため、`EsBitmap.Load`（読み取り専用）と `EsWritableBitmap.Load`（書き換え可能）を別々に持ちます。 書き換えが要る場合は `EsWritableBitmap.Load` を使ってください（`EsBitmap.Load` の結果を `EsWritableBitmap.Create` で複製すると、2 回目の全域コピー（実測: 4K で 5.7 ms / 31 MiB）が無駄になります）。
 - **`Save` は `EsBitmapBase` に置きます**: ファイルへの書き出しはピクセルを**書き換える権利を要さない**ため、2 つの権利（読み取り専用 / 書き換え可能）に共通の入口が要ります。 一方、読み取りの面（`IEsBitmap`）に置くと、外部が実装する画像（UI の表示アダプタ等）にも保存能力を要求することになるため、**継承関係の無い 2 型の共通基底**である本型が持ちます（実装を持てる最小の位置）。
@@ -646,6 +648,24 @@ public readonly record struct ElementFinderResults(
 - **実装の入出力は画像型を知りません**: 符号化は受け取ったピクセル バイト列を書き（`EncodeToFile`）、復号は**画像の生成処理を受け取ってデコード結果をその領域へ直接書きます**（`DecodeFromFile<T>`）。 コーデックが画像型（`EsBitmap` 等）を名指ししないため、画像型が要るのは公開面だけになります。 **中間バッファも追加のコピーも作りません**（実測: 4K PNG の読み込みで 29.9 ms。 中間バッファを挟む方式は 32.6 ms ＝ **+2.7 ms / +8%** と +31 MiB。 保存は両方式とも 66.5 ms で差なし）。
 - **形式は拡張子が決めます**: `Save` は拡張子から形式を選びます（`.bmp` = Windows Bitmap / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`）。 大文字・小文字は区別しません。
 - **未対応の拡張子は例外にします**: PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かないためです（`NotSupportedException`。 対応形式の単一所有は `EsBitmapBase.SupportedFileExtensions`）。
+- **保存のオプションを指定できます（現在オプションを持つのは JPEG の品質だけ。 実測）**: `Save(string, EsImageSaveOptions)` は指定した値だけを GDI+ のエンコーダー パラメーターとして渡します。 1280x720 の画像（一様 / なだらか / 不規則）を各値で保存し、ファイル サイズと復号した画素を比較した結果です。
+
+  | オプション | 内容 | 一様（単色） | なだらか | 不規則（疑似乱数） |
+  | --- | --- | --- | --- | --- |
+  | `JpegQuality` = 0 | 最低品質 | 15,026 B | 15,259 B | 42,597 B |
+  | `JpegQuality` = 50 | | 15,028 B | 17,867 B | 378,312 B |
+  | `JpegQuality` = 75 | | 15,028 B | 30,947 B | 554,267 B |
+  | `JpegQuality` = 90 | | 15,029 B | 39,433 B | 791,497 B |
+  | `JpegQuality` = 100 | 最高品質 | 15,031 B | 195,783 B | **1,821,653 B** |
+  | （オプションなし） | GDI+ の既定 | 15,029 B | 44,273 B | 826,483 B |
+
+  - **既定は明示した品質と一致しません**: 既定は不規則な画像で 826,483 B（品質 90 の 791,497 B と 100 の 1,821,653 B の間）であり、**品質 75 とは 1.5 倍違います**。 したがって「既定のまま」と「品質 75 を明示」は別物です。 調整しない場合は `Save(string)` を使ってください。
+  - **単色の画像では効きません**: 変化の乏しい画像はどの品質でも同じように圧縮されます（15,026 B 〜 15,031 B）。
+  - **PNG / BMP / GIF に渡せる値はありません**: PNG の圧縮レベル・BMP の色深度（8 / 16 / 24 / 32）と圧縮・GIF の走査方式（インターレース）と版は、値を変えても**出力のバイト列が完全に同一**になりました（GDI+ が値を受け取っても無視します）。 使えない値を公開すると「設定したのに効かない」ことになるため持ちません。
+  - **TIFF の圧縮方式も公開しません**: 指定はできますが（無圧縮 / LZW / RLE）、**既定より小さい値が選べません**（実測: なだらかな画像で既定 173,766 B に対し LZW 2,158,648 B / 無圧縮 3,686,618 B / RLE 3,715,416 B。 一様な画像では既定 5,958 B 対 LZW 11,238 B）。 生成したファイルの TIFF タグを読むと、**既定も LZW 指定も圧縮タグ（259）は 5 = LZW で同じ**であり、違うのは予測子タグ（317）だけでした（既定 = 2 = 水平差分 / 指定 = 1 = なし）。 GDI+ は予測子を指定する手段を持たないため、**指定すると既定より悪くなる**ことになります。
+  - **複数のオプションを同時に設定できません**: 品質と圧縮方式は形式が排他（JPEG / TIFF）であるため、エンコーダー パラメーターは常に高々 1 件です。 `GdipSaveImageToFile` へは 0 件の場合 `IntPtr.Zero`（GDI+ の既定）を渡します。
+- **形式ごとの名前付きメソッドを作らない理由**: `EncodeToJpgFile` / `EncodeToPngFile` のような形式を名前に持つ入口を足すと、**形式を表す引数（enum 等）と拡張子が二重管理になり**、食い違えば拡張子と実体がずれたファイルができます。 実測のとおりオプションを持つ形式は JPEG だけであり、その 1 つも「オプション付きの `EncodeToFile` 1 つ + 呼び出し側が拡張子で形式を選ぶ」で表せるため、公開面は `Save(string)` / `Save(string, EsImageSaveOptions)` の 2 つに留めます。
+- **オプションの値は形式ごとに検証します**: 使えない形式へ設定すると `NotSupportedException`、JPEG の品質が 0〜100 の範囲外なら `ArgumentOutOfRangeException` です（黙って無視すると「設定したのに効かない」ことに気付かないため。 また上限へ丸めると、呼び出し側が指定した値と実際の出力が食い違います）。 検証は **GDI+ の初期化より前**に行うため、拒否された呼び出しはプロセス全体の副作用（バックグラウンド スレッド +1 等）を起こしません。
 - **WebP / HEIF を対応形式へ入れない理由（実測）**: GDI+ のエンコーダーは 5 件だけです（`GdipGetImageEncoders` が返すのは BMP / JPEG / GIF / TIFF / PNG。 デコーダーはこれに EMF / WMF / ICO を加えた 8 件）。 WebP / HEIF のエンコーダーは無く、**存在しない形式の CLSID を渡すと例外を出さずに PNG を書き出します**（実測: PNG の CLSID と `.webp` のパスで 2831 バイトの PNG が書かれ、先頭バイトは PNG のシグネチャ）。 拡張子と中身が食い違うファイルを作らないため、対応形式へ追加しません。
 - **エンコード・デコードは `gdiplus.dll` のフラット API を直接呼びます**（宣言は `src/EsUtil.Platform.Core/src/Native/Win/WinNative.GdiPlus.cs` が集約。 `WinNative` は DLL ごとの `partial` ファイルに分かれます）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
 - **本機能は Windows 専用です**: `gdiplus.dll` は Windows にのみ存在します（非 Windows では `DllNotFoundException`）。 公開メンバー（`Save` / `Load` / `SupportedFileExtensions`）は `SupportedOSPlatform("windows")` で限定します。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、`src/EsUtil.Platform.Core/src/Native` だけが Windows に依存します）。

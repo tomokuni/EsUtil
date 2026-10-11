@@ -13,7 +13,6 @@ internal static partial class WinNative
 
     /// <summary>GDI+ の呼び出しが成功したことを表す状態値。</summary>
     internal const int GpOk = 0;
-
     /// <summary>アルファ乗算済みの 32bpp BGRA 形式（PixelFormat32bppPArgb）。 コアの画像と同じ並び。</summary>
     internal const int GpPixelFormat32bppPArgb = 0x000E200B;
 
@@ -34,6 +33,51 @@ internal static partial class WinNative
 
     /// <summary>TIFF エンコーダーの CLSID。</summary>
     internal static readonly Guid GpTiffEncoderClsid = new("557CF405-1A04-11D3-9A73-0000F81EF32E");
+
+    /// <summary>品質（JPEG）のエンコーダー パラメーター GUID（Encoder.Quality）。</summary>
+    internal static readonly Guid GpEncoderQuality = new("1D5BE4B5-FA4A-452D-9CDD-5DB35105E7EB");
+
+    /// <summary>エンコーダー パラメーターの値が 32 ビット整数であることを表す種別。</summary>
+    /// <remarks>GDI+ の <c>EncoderParameterValueTypeLong</c>。 品質はこの種別で渡す。</remarks>
+    internal const uint GpEncoderParameterValueTypeLong = 4;
+
+    /// <summary>GDI+ のエンコーダー パラメーター 1 件（EncoderParameter）。</summary>
+    /// <remarks>
+    /// <see cref="Value"/> は<b>呼び出しが終わるまで有効な</b>領域を指す必要がある（GDI+ は複製しない）。
+    /// アンマネージ メモリを確保して渡し、呼び出しの後に解放する。
+    /// </remarks>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct GpEncoderParameter
+    {
+        /// <summary>パラメーターの種類を表す GUID。</summary>
+        internal Guid Guid;
+
+        /// <summary><see cref="Value"/> が指す値の個数。</summary>
+        internal uint NumberOfValues;
+
+        /// <summary>値の種別（<see cref="GpEncoderParameterValueTypeLong"/> 等）。</summary>
+        internal uint Type;
+
+        /// <summary>値へのポインター。</summary>
+        internal IntPtr Value;
+    }
+
+    /// <summary>GDI+ のエンコーダー パラメーターの並び（EncoderParameters）。</summary>
+    /// <remarks>
+    /// <b>可変長の並びであり、1 件だけを宣言する</b>: 実際の長さは <see cref="Count"/> が示し、残りは
+    /// 構造体の直後のメモリに続く。 したがって <c>Marshal.SizeOf</c> は使えず、1 件分の大きさの配列
+    /// （<c>new GpEncoderParameters[1]</c>）を確保してその先頭を渡す。<br/>
+    /// <b>0 件を表す場合</b>は、この構造体ではなく <see cref="IntPtr.Zero"/> を <c>GdipSaveImageToFile</c> へ渡す。
+    /// </remarks>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct GpEncoderParameters
+    {
+        /// <summary>有効なパラメーターの件数。</summary>
+        internal uint Count;
+
+        /// <summary>最初のパラメーター（残りはこの直後に連続する）。</summary>
+        internal GpEncoderParameter Parameter;
+    }
 
     /// <summary>GDI+ の初期化へ渡す入力（GdiplusStartupInput）。</summary>
     /// <remarks>

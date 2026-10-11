@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
 
@@ -35,7 +36,13 @@ internal static class WinGdiPlusImageCodec
     /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
     internal static readonly IReadOnlyList<string> SupportedExtensions = [".bmp", ".png", ".jpg", ".jpeg", ".gif", ".tif", ".tiff"];
 
-    /// <summary>ピクセル データをファイルへエンコードする（形式は拡張子が決める）。</summary>
+    /// <summary>JPEG の品質として許容する最小値。</summary>
+    internal const int JpegQualityMinimum = 0;
+
+    /// <summary>JPEG の品質として許容する最大値。</summary>
+    internal const int JpegQualityMaximum = 100;
+
+    /// <summary>ピクセル データをファイルへエンコードする（形式は拡張子が決める。オプションは既定）。</summary>
     /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
@@ -44,15 +51,38 @@ internal static class WinGdiPlusImageCodec
     /// <paramref name="pixels"/> の長さが <c>幅 × 4 × 高さ</c> と一致しない場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedExtensions"/>）。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合（<see cref="Win32Exception"/> で状態値を持つ）。</exception>
+    /// <remarks>形式ごとの調整値は <see cref="EncodeToFile(ReadOnlySpan{byte}, int, int, string, EsImageSaveOptions)"/> を使う。</remarks>
+    [SupportedOSPlatform("windows")]
+    internal static void EncodeToFile(ReadOnlySpan<byte> pixels, int width, int height, string filePath)
+        => EncodeToFile(pixels, width, height, filePath, default);
+
+    /// <summary>ピクセル データをファイルへエンコードする（形式は拡張子が決める。オプションを指定できる）。</summary>
+    /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める）。</param>
+    /// <param name="options">保存のオプション（既定の場合は <c>default</c>）。</param>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または
+    /// <paramref name="pixels"/> の長さが <c>幅 × 4 × 高さ</c> と一致しない場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedExtensions"/>）、または
+    /// <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合（<see cref="Win32Exception"/> で状態値を持つ）。</exception>
     /// <remarks>
     /// 保存形式は拡張子から決める（<c>.bmp</c> = Windows Bitmap / <c>.png</c> / <c>.jpg</c> / <c>.jpeg</c> /
     /// <c>.gif</c> / <c>.tif</c> / <c>.tiff</c>）。<br/>
+    /// <b>形式を引数にしない理由</b>: 形式を表す引数（enum 等）を足すと、拡張子との整合を呼び出し側が保つ必要が生じ、
+    /// 食い違った場合は拡張子と実体がずれたファイルができる（形式の単一所有は <see cref="SupportedExtensions"/> である）。<br/>
+    /// <b>オプションは形式ごとに検証する</b>: その形式で反映されない項目を設定した場合は例外にする
+    /// （黙って無視すると「設定したのに効かない」ことに気付かない）。<br/>
+    /// <b>GDI+ の初期化より前に判定する</b>: 拡張子とオプションの検証は GDI+ の初期化（副作用を持つ）より先に行うため、
+    /// 拒否される呼び出しは GDI+ を初期化しない。<br/>
     /// <b>ピクセルは複製しない</b>: 受け取ったバイト列を指す GDI+ のビットマップを作り、そのままエンコードする<br/>
     /// （ストライドは <c>幅 × 4</c> 固定。 行パディングを持つ画像を受け取らない）。<br/>
     /// <b>JPEG / BMP はアルファを保存できない</b>（透過を保つ場合は PNG を選ぶ）。
     /// </remarks>
     [SupportedOSPlatform("windows")]
-    internal static void EncodeToFile(ReadOnlySpan<byte> pixels, int width, int height, string filePath)
+    internal static void EncodeToFile(ReadOnlySpan<byte> pixels, int width, int height, string filePath, EsImageSaveOptions options)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
@@ -65,7 +95,7 @@ internal static class WinGdiPlusImageCodec
                 nameof(pixels));
         }
 
-        var encoderClsid = ResolveEncoderClsid(filePath);
+        var format = ResolveFormat(filePath, options);
         WinGdiPlusLifetime.EnsureInitialized();
 
         unsafe
@@ -81,12 +111,7 @@ internal static class WinGdiPlusImageCodec
 
                 try
                 {
-                    var clsid = encoderClsid;
-                    status = WinNative.GdipSaveImageToFile(image, filePath, ref clsid, IntPtr.Zero);
-                    if (status != WinNative.GpOk)
-                    {
-                        throw new Win32Exception(status, $"'{filePath}' へ保存できませんでした（GDI+ の状態: {status}）。");
-                    }
+                    SaveImage(image, filePath, format, options);
                 }
                 finally
                 {
@@ -94,6 +119,174 @@ internal static class WinGdiPlusImageCodec
                 }
             }
         }
+    }
+
+    /// <summary>GDI+ の画像をファイルへ書き出す（形式ごとのエンコーダーとオプションを使う）。</summary>
+    /// <param name="image">書き出す GDI+ の画像。</param>
+    /// <param name="filePath">保存先のファイルパス。</param>
+    /// <param name="format">保存する形式（拡張子から決定済み）。</param>
+    /// <param name="options">保存のオプション（<paramref name="format"/> との整合は検証済み）。</param>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    [SupportedOSPlatform("windows")]
+    private static void SaveImage(IntPtr image, string filePath, ImageFileFormat format, in EsImageSaveOptions options)
+    {
+        var clsid = GetEncoderClsid(format);
+        var parameters = CreateEncoderParameters(format, options);
+        try
+        {
+            var status = WinNative.GdipSaveImageToFile(image, filePath, ref clsid, parameters);
+            if (status != WinNative.GpOk)
+            {
+                throw new Win32Exception(status, $"'{filePath}' へ保存できませんでした（GDI+ の状態: {status}）。");
+            }
+        }
+        finally
+        {
+            if (parameters != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(parameters);
+            }
+        }
+    }
+
+    /// <summary>GDI+ へ渡すエンコーダー パラメーターの領域を 1 つの塊として確保して組み立てる。</summary>
+    /// <param name="format">保存する形式（オプションの整合は検証済み）。</param>
+    /// <param name="options">保存のオプション。</param>
+    /// <returns>確保した領域。 解放が必要（既定値を渡す場合は <see cref="IntPtr.Zero"/> であり、解放も不要）。</returns>
+    /// <remarks>
+    /// <b>値も同じ塊に置く</b>: GDI+ は値へのポインターを保持し、<c>GdipSaveImageToFile</c> が返るまで解放してはならない。
+    /// 1 回の確保にまとめれば解放も 1 回で済む。<br/>
+    /// <b>位置は型の定義から求める</b>: 並びの先頭から <c>Marshal.OffsetOf</c> で求めた位置へエントリーを書き、
+    /// その直後（<c>Marshal.SizeOf</c> で求めた大きさの倍数）へ値を書く。 64 ビットでのパディングを手計算した定数で表さない。<br/>
+    /// <b>渡す値は 1 件だけ</b>: オプションを持つのは JPEG の品質だけである（理由は <see cref="EsImageSaveOptions"/> を参照）。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    private static IntPtr CreateEncoderParameters(ImageFileFormat format, in EsImageSaveOptions options)
+    {
+        if (format != ImageFileFormat.Jpeg || options.JpegQuality is not int quality)
+        {
+            // 既定値の場合はパラメーターを渡さない（IntPtr.Zero が GDI+ の既定を表す）
+            return IntPtr.Zero;
+        }
+
+        var entryOffset = Marshal.OffsetOf<WinNative.GpEncoderParameters>(nameof(WinNative.GpEncoderParameters.Parameter)).ToInt32();
+        var entrySize = Marshal.SizeOf<WinNative.GpEncoderParameter>();
+        var memory = Marshal.AllocHGlobal(entryOffset + entrySize + sizeof(int));
+
+        Marshal.WriteInt32(memory, 0, 1);
+
+        // 値のアドレスは並びの直後（エントリーは 4 バイト境界に並ぶため、値も 4 バイト境界に載る）
+        var address = IntPtr.Add(memory, entryOffset + entrySize);
+        Marshal.WriteInt32(address, quality);
+
+        var entry = CreateLongEntry(WinNative.GpEncoderQuality);
+        entry.Value = address;
+        Marshal.StructureToPtr(entry, IntPtr.Add(memory, entryOffset), false);
+
+        return memory;
+    }
+
+    /// <summary>32 ビット整数 1 件を渡すエンコーダー パラメーターを作る。</summary>
+    /// <param name="parameterGuid">パラメーターの種類を表す GUID。</param>
+    /// <returns>値のアドレスだけを書き入れていないエントリー。</returns>
+    [SupportedOSPlatform("windows")]
+    private static WinNative.GpEncoderParameter CreateLongEntry(Guid parameterGuid)
+        => new()
+        {
+            Guid = parameterGuid,
+            NumberOfValues = 1,
+            Type = WinNative.GpEncoderParameterValueTypeLong,
+        };
+
+    /// <summary>保存先の拡張子から形式を決め、その形式で使えるオプションだけが設定されていることを確かめる。</summary>
+    /// <param name="filePath">保存先のファイルパス。</param>
+    /// <param name="options">保存のオプション。</param>
+    /// <returns>保存する形式。</returns>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合、または設定されたオプションがその形式で使えない場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException">JPEG の品質が許容範囲外の場合。</exception>
+    [SupportedOSPlatform("windows")]
+    private static ImageFileFormat ResolveFormat(string filePath, in EsImageSaveOptions options)
+        => Path.GetExtension(filePath).ToUpperInvariant() switch
+        {
+            // 品質を使えるのは JPEG だけであり、他の形式は品質を受け取っても出力が変わらない（実測）
+            ".JPG" or ".JPEG" => AcceptQuality(options),
+            ".BMP" => RejectQuality(ImageFileFormat.Bmp, options),
+            ".PNG" => RejectQuality(ImageFileFormat.Png, options),
+            ".GIF" => RejectQuality(ImageFileFormat.Gif, options),
+            ".TIF" or ".TIFF" => RejectQuality(ImageFileFormat.Tiff, options),
+            var other => throw new NotSupportedException(
+                $"拡張子 '{other}' へは保存できません。 対応形式: {string.Join(" / ", SupportedExtensions)}"),
+        };
+
+    /// <summary>JPEG の品質が範囲内であることを確かめ、JPEG を選ぶ。</summary>
+    /// <param name="options">保存のオプション。</param>
+    /// <returns>JPEG を表す形式。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">品質が <see cref="JpegQualityMinimum"/>〜<see cref="JpegQualityMaximum"/> の範囲外の場合。</exception>
+    [SupportedOSPlatform("windows")]
+    private static ImageFileFormat AcceptQuality(in EsImageSaveOptions options)
+    {
+        if (options.JpegQuality is int quality && (quality < JpegQualityMinimum || quality > JpegQualityMaximum))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(options), quality, $"JPEG の品質は {JpegQualityMinimum}〜{JpegQualityMaximum} の範囲で指定します。");
+        }
+
+        return ImageFileFormat.Jpeg;
+    }
+
+    /// <summary>品質が指定されていないことを確かめ、その形式を選ぶ。</summary>
+    /// <param name="format">保存する形式。</param>
+    /// <param name="options">保存のオプション。</param>
+    /// <returns><paramref name="format"/> をそのまま返す（<see cref="ResolveFormat"/> の分岐を 1 行で書くため）。</returns>
+    /// <exception cref="NotSupportedException">品質が指定されている場合。</exception>
+    [SupportedOSPlatform("windows")]
+    private static ImageFileFormat RejectQuality(ImageFileFormat format, in EsImageSaveOptions options)
+        => options.JpegQuality is null
+            ? format
+            : throw CreateUnsupportedOption(format, nameof(EsImageSaveOptions.JpegQuality));
+
+    /// <summary>使用するエンコーダーの CLSID を形式から決める。</summary>
+    /// <param name="format">保存する形式。</param>
+    /// <returns>エンコーダーの CLSID。</returns>
+    [SupportedOSPlatform("windows")]
+    private static Guid GetEncoderClsid(ImageFileFormat format)
+        => format switch
+        {
+            ImageFileFormat.Bmp => WinNative.GpBmpEncoderClsid,
+            ImageFileFormat.Png => WinNative.GpPngEncoderClsid,
+            ImageFileFormat.Jpeg => WinNative.GpJpegEncoderClsid,
+            ImageFileFormat.Gif => WinNative.GpGifEncoderClsid,
+            ImageFileFormat.Tiff => WinNative.GpTiffEncoderClsid,
+            var other => throw new ArgumentOutOfRangeException(nameof(format), other, "未知の画像形式です。"),
+        };
+
+    /// <summary>その形式で使えないオプションが設定されたことを表す例外を作る。</summary>
+    /// <param name="format">保存する形式。</param>
+    /// <param name="optionName">使えないオプションの名前。</param>
+    /// <returns>例外。</returns>
+    [SupportedOSPlatform("windows")]
+    private static NotSupportedException CreateUnsupportedOption(ImageFileFormat format, string optionName)
+        => new($"オプション '{optionName}' は {format} 形式では使えません"
+            + $"（現在オプションを持つのは JPEG の {nameof(EsImageSaveOptions.JpegQuality)} だけです）。");
+
+    /// <summary>保存する形式。</summary>
+    /// <remarks>GDI+ のエンコーダーと 1 対 1 に対応する（拡張子の一覧は <see cref="SupportedExtensions"/> が単一所有する）。</remarks>
+    private enum ImageFileFormat
+    {
+        /// <summary>Windows Bitmap（<c>.bmp</c>）。</summary>
+        Bmp,
+
+        /// <summary>PNG（<c>.png</c>）。</summary>
+        Png,
+
+        /// <summary>JPEG（<c>.jpg</c> / <c>.jpeg</c>）。</summary>
+        Jpeg,
+
+        /// <summary>GIF（<c>.gif</c>）。</summary>
+        Gif,
+
+        /// <summary>TIFF（<c>.tif</c> / <c>.tiff</c>）。</summary>
+        Tiff,
     }
 
     /// <summary>ファイルをデコードし、生成された画像として返す（形式は内容から判別される）。</summary>
@@ -154,23 +347,6 @@ internal static class WinGdiPlusImageCodec
         var height = GetDimension(WinNative.GdipGetImageHeight(image, out var h), h, "高さ");
         return (width, height);
     }
-
-    /// <summary>保存先の拡張子から使用するエンコーダーの CLSID を決める。</summary>
-    /// <param name="filePath">保存先のファイルパス。</param>
-    /// <returns>エンコーダーの CLSID。</returns>
-    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合。</exception>
-    [SupportedOSPlatform("windows")]
-    private static Guid ResolveEncoderClsid(string filePath)
-        => Path.GetExtension(filePath).ToUpperInvariant() switch
-        {
-            ".BMP" => WinNative.GpBmpEncoderClsid,
-            ".PNG" => WinNative.GpPngEncoderClsid,
-            ".JPG" or ".JPEG" => WinNative.GpJpegEncoderClsid,
-            ".GIF" => WinNative.GpGifEncoderClsid,
-            ".TIF" or ".TIFF" => WinNative.GpTiffEncoderClsid,
-            var other => throw new NotSupportedException(
-                $"拡張子 '{other}' へは保存できません。 対応形式: {string.Join(" / ", SupportedExtensions)}"),
-        };
 
     /// <summary>GDI+ が返した寸法を検証して取り出す。</summary>
     /// <param name="status">GDI+ の状態値。</param>
