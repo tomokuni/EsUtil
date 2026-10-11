@@ -615,12 +615,16 @@ public readonly record struct ElementFinderResults(
 | プロパティ | `Stride` | `int` | **元画像のストライドのまま**（`幅 × 4` より大きい場合がある。 名前を画像と同じ `Stride` にするのは「1 ラインあたりのバイト数」が同じ概念であるため） |
 | プロパティ | `ReadOnlyPixels` | `ReadOnlySpan<byte>` | 先頭から `Stride × Height` バイトのビュー（**行の余白を含む**） |
 | ピクセル | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` / `Color GetPixel(EsPointInt point)` | 画素の取得（**行幅を考慮する**。 ビューの左上が 0, 0）。 範囲外は `ArgumentOutOfRangeException` |
+| 操作 | `Resize` | `EsBitmap Resize(int maxSize, DownscaleAlgorithm algorithm = Bilinear)` | ビューを縮小した画像を作る（**切り出しの実体化を挟まない**。 実測: 1000x800 の切り出し → 長辺 320 の面積平均で **3.3 倍**） |
+| 操作 | `ReduceColors` | `EsBitmap ReduceColors(int colorCount)` | ビューを減色した画像を作る（**切り出しの実体化を挟まない**。 実測: 切り出しの 0.85 ms / 4 MB が不要 ＝ 約 12%） |
 | ビュー | `ToPixmap` | `EsPixmap ToPixmap(EsRectInt rect)` | ビューの一部をさらに 0 コピーで切り出す |
 | その他 | `ToSizeText` | `string ToSizeText()` | 寸法を `幅x高さ` 形式で返す |
 | その他 | `IsDisposed` / `ThrowIfDisposed` / `Dispose` | `bool` / `void` / `void` | 破棄状態の判定と、元の画素への参照の返却（**画素は破棄しない**。 冪等） |
 
 - **生成しない（入口は `EsReadOnlyBitmap.ToPixmap` / `EsBitmap.ToPixmap`）**: ビューは画像の一部を指すため、画素を持つ型から作ります。
 - **書き込みの入口を持ちません**: 元の画素を書き換える場合は `EsBitmap.FromReadOnlyBitmap` で複製するか、元の書き換え可能な画像を使います。
+- **操作（縮小・減色）を持つ理由**: ビューは**画素の読み取りだけ**を要する操作の対象になれます。 先に画像から切り出すと**実体化の複製**（行コピーと透明パディング）を払いますが、ビューをそのまま渡せばその分が要りません（縮小は 3.3 倍、減色は約 12% の差）。 新しい画像を作る操作であり、ビュー自体は変更しません。
+- **保存は持ちません**: 保存は画素をエンコードへ渡すため、行の余白を扱える符号化が必要です（現在のエンコーダーは密な領域を前提とするため、`FromPixmap` で画像にしてから `Save` を呼びます）。
 - **寿命**: ビューは元の画素の参照を 1 つ持つため、**先に元を破棄しても読めます**（ただし元の内容の変化は見えます）。
 - **画像にする場合**: `EsBitmap.FromPixmap` / `EsReadOnlyBitmap.FromPixmap`（**常に複製**）を使います。 `FromPixelCopy` に `ReadOnlyPixels` をそのまま渡すと**長さが合わず** `ArgumentException` になります（行の余白を含むため）。
 - **ビューを渡せる相手**: コアの操作（`Crop` / `Resize` / `ReduceColors`）は**行幅を受け取る**ため、**行の余白を含むビューをそのまま渡せます**（実装は行単位に読み書きし、余白の画素を結果へ混ぜません。 実際に余白付きのソースで結果が変わらないことをテストで固定しています）。 外部の走査へ渡す場合は**行幅を一緒に渡してください**（密であることを前提にした走査は余白を画素として扱います）。
@@ -651,7 +655,7 @@ public readonly record struct ElementFinderResults(
 | 外部メモリの借用の入口 | `InstallPixels`（両方の型に同じ名前）。 複製は `FromPixelCopy` と**名前で区別** | `InstallPixels`（複製の `FromPixelCopy` と**名前で区別**。 実測: `PeekPixels` が元アドレスを指す） | `WriteableBitmap(PixelFormat, AlphaFormat, IntPtr, …)` | `SoftwareBitmap.LockBuffer()` → `BitmapBuffer` → `CreateReference()`（`IDisposable` の連鎖） | 無し | `Bitmap(IntPtr, …)` |
 | 読み取り専用 → 書き換え可能 | **複製**（実測: 4K で 31 MiB / 5.7 ms） | 複製（`SKBitmap.FromImage` は実測で別アドレス。 凍結済みなら逆向きの共有が 0 コピー） | 複製（静的変換も無く、`WriteableBitmap` を作って `CopyPixels`） | **即時の複製**（`CreateCopyFromBuffer` / `Convert`。 メソッド名が複製を明示） | 複製 | 複製（`Clone`） |
 | 生ポインタの公開 | 無し（`ReadOnlyPixels` / `Pixels` を `fixed` で取る） | 有り（`GetPixels()`） | 有り（`ILockedFramebuffer.Address`） | 無し | 無し（`byte[]` のみ） | 有り（`Scan0`） |
-| 0 コピーの切り出し | `ToPixmap`（**0 コピー**。 行幅は元のストライドのまま） | `SKBitmap.ExtractSubset`（実測 **0.000 ms** のビュー）/ `SKImage.Subset`（実測 0.755 ms の複製） | `CroppedBitmap`（実測 0.001 ms のビューだが**元の破棄で無効**） | 無し | 無し | `Clone(部分矩形)` は複製 / `Clone(全域)` はビュー（7.79 ms で実体化） |
+| 0 コピーの切り出し | `ToPixmap`（**0 コピー**。 行幅は元のストライドのまま。 縮小・減色の対象にもなる） | `SKBitmap.ExtractSubset`（実測 **0.000 ms** のビュー。 縮小の `SKBitmap.ScalePixels` / `SKPixmap.ScalePixels` も併存する）/ `SKImage.Subset`（実測 0.755 ms の複製） | `CroppedBitmap`（実測 0.001 ms のビューだが**元の破棄で無効**） | 無し | 無し | `Clone(部分矩形)` は複製 / `Clone(全域)` はビュー（7.79 ms で実体化） |
 | ピクセル形式の自由度 | **連続 BGRA8888・Premul に固定**（借用も連続のみ） | 任意の `RowBytes`・多数の `ColorType` / `AlphaType` | 数種 | 多数 | 多数 | 多数 |
 | 破棄 | `IDisposable`（両方の型） | `SKObject : IDisposable` | `IDisposable`（`Bitmap` が宣言） | `SoftwareBitmap : IClosable`（表示型は GC） | `IDisposable` | `Image : IDisposable` |
 

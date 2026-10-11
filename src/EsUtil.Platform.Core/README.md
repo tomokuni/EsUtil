@@ -36,7 +36,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | キーと入力 | `EsKey` / `EsKeyExtensions` / `EnumCanonical` / `EsWindowState` / `HotKeyModifiers` / `HotKeySetting` / `CaptureType` |
 | 幾何 | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` |
 | 座標変換 | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` |
-| 画像 | **2 型は対称です**（書き込みに関するものだけが `EsBitmap`）。 `EsReadOnlyBitmap`（**読み取り専用**。 受け取る・保持する側）/ `EsBitmap`（**書き換え可能**。 作る・書く側。 `Pixels`・`SetPixel`・`Clear`・`SetReadOnly` が追加）/ `EsPixmap`（一部を指す 0 コピーの読み取りビュー。 切り出しの複製を避ける）。 変換は向きごとに 1 つ（`FromBitmap`（凍結済みなら 0 コピー）/ `FromReadOnlyBitmap`（複製）） |
+| 画像 | **2 型は対称です**（書き込みに関するものだけが `EsBitmap`）。 `EsReadOnlyBitmap`（**読み取り専用**。 受け取る・保持する側）/ `EsBitmap`（**書き換え可能**。 作る・書く側。 `Pixels`・`SetPixel`・`Clear`・`SetReadOnly` が追加）/ `EsPixmap`（一部を指す 0 コピーの読み取りビュー。 切り出しの複製を避け、**縮小・減色の対象にもなる**）。 変換は向きごとに 1 つ（`FromBitmap`（凍結済みなら 0 コピー）/ `FromReadOnlyBitmap`（複製）） |
 | 画像の操作 | **両方の画像型が同じ名前のメンバーを持ちます**（切り出し `Crop`・縮小 `Resize`・減色 `ReduceColors`。 実装は内部の 1 か所）。 縮小のアルゴリズムは `DownscaleAlgorithm`（`Nearest` / `Bilinear` / `Box`）で選び、`Resize` は縮小のみ（拡大は `NotSupportedException`） |
 | 画像のファイル入出力 | `Save` / `Load`（**画像型のメンバー**。 `EsReadOnlyBitmap.Save` / `EsBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`。 **形式は既定で拡張子が決め**、`EsImageSaveOptions.Format` で明示もできる（拡張子が無ければ補完する）。 BMP / PNG / JPEG / GIF / TIFF。 保存のオプションは `EsImageSaveOptions`（**JPEG の品質と減色 `ColorCount`**。 実測で確認）。 OS の GDI+ を使う Windows 専用で、外部パッケージは参照しない） |
 | OS サービス抽象 | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` |

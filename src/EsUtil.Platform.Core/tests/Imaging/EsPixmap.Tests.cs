@@ -233,4 +233,88 @@ public class EsPixmapTests
         Assert.Equal((byte)1, source.GetPixel(1, 1).B);
         Assert.Equal((byte)1, source.GetPixel(1, 1).G);
     }
+
+    // ====================================================================
+    // ビューを対象にした操作（切り出しの実体化を挟まない）
+    // ====================================================================
+
+    [Theory]
+    [InlineData(DownscaleAlgorithm.Nearest)]
+    [InlineData(DownscaleAlgorithm.Bilinear)]
+    [InlineData(DownscaleAlgorithm.Box)]
+    internal void Resize_切り出しの画像を縮小した結果と一致する(DownscaleAlgorithm algorithm)
+    {
+        using var source = CreateGradient(64, 48);
+        var rect = new EsRectInt(9, 7, 32, 24);
+
+        // 画像型の経路: 切り出しの複製（実体化）を作ってから縮小する
+        using var cropped = source.Crop(rect);
+        using var expected = cropped.Resize(16, algorithm);
+
+        // ビューの経路: 実体化を挟まずにビューの範囲だけを縮小する
+        using var view = source.ToPixmap(rect);
+        using var actual = view.Resize(16, algorithm);
+
+        Assert.Equal(expected.Size, actual.Size);
+        Assert.Equal(expected.ReadOnlyPixels.ToArray(), actual.ReadOnlyPixels.ToArray());
+    }
+
+    [Fact]
+    internal void ReduceColors_切り出しの画像を減色した結果と一致する()
+    {
+        using var source = CreateGradient(64, 48);
+        var rect = new EsRectInt(9, 7, 32, 24);
+
+        using var cropped = source.Crop(rect);
+        using var expected = cropped.ReduceColors(4);
+
+        using var view = source.ToPixmap(rect);
+        using var actual = view.ReduceColors(4);
+
+        Assert.Equal(expected.Size, actual.Size);
+        Assert.Equal(expected.ReadOnlyPixels.ToArray(), actual.ReadOnlyPixels.ToArray());
+    }
+
+    [Fact]
+    internal void Resize_ビューの範囲外へ出る上限は拡大として拒否される()
+    {
+        using var source = CreateGradient(32, 24);
+        using var view = source.ToPixmap(new EsRectInt(4, 4, 16, 8));
+
+        // 長辺（16）を超える上限は拡大になるため拒否される（画像型と同じ規則）
+        Assert.Throws<NotSupportedException>(() => view.Resize(17));
+        using var result = view.Resize(16);
+        Assert.Equal(16, result.Width);
+        Assert.Equal(8, result.Height);
+    }
+
+    [Fact]
+    internal void Resize_破棄済みならObjectDisposedExceptionを投げる()
+    {
+        using var source = CreateGradient(16, 16);
+        var view = source.ToPixmap(new EsRectInt(0, 0, 8, 8));
+        view.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(() => view.Resize(4));
+    }
+
+    [Fact]
+    internal void ReduceColors_破棄済みならObjectDisposedExceptionを投げる()
+    {
+        using var source = CreateGradient(16, 16);
+        var view = source.ToPixmap(new EsRectInt(0, 0, 8, 8));
+        view.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(() => view.ReduceColors(4));
+    }
+
+    [Fact]
+    internal void ReduceColors_色数の範囲外はArgumentOutOfRangeExceptionを投げる()
+    {
+        using var source = CreateGradient(16, 16);
+        using var view = source.ToPixmap(new EsRectInt(0, 0, 8, 8));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => view.ReduceColors(1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => view.ReduceColors(257));
+    }
 }

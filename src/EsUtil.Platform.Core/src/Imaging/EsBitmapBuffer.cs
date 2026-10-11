@@ -43,10 +43,19 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <remarks>
     /// <b>共有する理由</b>: 凍結（<see cref="SetReadOnly"/>）は「<b>この画素領域を書かせない</b>」という
     /// <b>領域そのものの性質</b>であり、実体ごとの性質ではない。 実体ごとに持つと、共有した実体
-    /// （<see cref="Share"/> や読み取り専用の <c>Clone</c>）を通した凍結が他の実体へ届かず、
+    /// （<see cref="Share"/> や共有した読み取り専用の実体）を通した凍結が他の実体へ届かず、
     /// 「凍結したのに書ける」状態が残る。
     /// </remarks>
     private readonly StoreState _state;
+
+    /// <summary>画素の先頭アドレス（確保または借用の時点で 1 度だけ求める）。</summary>
+    /// <remarks>
+    /// <b>保持する理由（実測）</b>: <see cref="SafeHandle.DangerousGetHandle"/> は仮想呼び出しを含むため、
+    /// 画素へ触れるたびに呼ぶと<b>1 画素あたりの費用がその呼び出しで決まります</b>（実測: <c>GetPixel</c> を
+    /// 10 万回呼ぶと 0.61 ms で、大半がこの呼び出し）。 アドレスは領域の生存中に動かないため
+    /// （アンマネージドの確保であり、借用では所有者が動かさない契約）、1 度求めて保持できます。
+    /// </remarks>
+    private readonly nint _address;
 
     private bool _disposed;
 
@@ -55,6 +64,7 @@ internal sealed class EsBitmapBuffer : IDisposable
         _handle = handle;
         _holdsShare = holdsShare;
         _state = state;
+        _address = handle.DangerousGetHandle();
         Width = width;
         Height = height;
         Size = new EsSizeInt(width, height);
@@ -393,9 +403,13 @@ internal sealed class EsBitmapBuffer : IDisposable
         _handle.Dispose();
     }
 
-    /// <summary>画素の先頭アドレス（画素を持たない場合と破棄後は 0）。</summary>
-    /// <remarks>本アセンブリの中だけで使う（公開しない。 生ポインタを渡すと読み取り専用の意図が消えるため）。</remarks>
-    internal nint Address => _handle.IsClosed ? 0 : _handle.DangerousGetHandle();
+    /// <summary>画素の先頭アドレス（破棄後は 0）。</summary>
+    /// <remarks>
+    /// 本アセンブリの中だけで使う（公開しない。 生ポインタを渡すと読み取り専用の意図が消えるため）。<br/>
+    /// アドレスは <see cref="_address"/>（生成時に 1 度だけ求めた値）を返す（<see cref="SafeHandle.DangerousGetHandle"/>
+    /// を画素ごとに呼ばない）。
+    /// </remarks>
+    internal nint Address => _disposed ? 0 : _address;
 
     /// <summary>座標が画像の範囲内かを確かめる。</summary>
     /// <param name="x">X 座標（ピクセル）。</param>
