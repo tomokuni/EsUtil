@@ -93,9 +93,9 @@ graph LR
 | `src/EsUtil.Platform.Core/src/Geometry/EsRectEdges.cs` | 矩形の 4 辺の矩形を保持する固定長コンテナ（`readonly struct`。 `EsRect.ResolveInnerEdges` の戻り値） |
 | `src/EsUtil.Platform.Core/src/Geometry/EsMath.cs` | 幾何値の近似比較（`AreClose`）と整数への丸め（`RoundToInt`）の単一所有者（internal） |
 | `EsPlatformHandle.cs` | UI フレームワーク非依存のネイティブウィンドウ識別子（座標・寸法ではないため `Geometry` に置かない） |
-| `src/EsUtil.Platform.Core/src/Imaging/EsBitmap.cs` | 自前のピクセルバッファを所有するピクセルコンテナ（BGRA8888・Premul。 外部パッケージに依存しない） |
-| `src/EsUtil.Platform.Core/src/Imaging/IEsBitmap.cs` | 画像を**読み取る**権利だけを持つ抽象（書き換えと破棄の権利を含めない。 借用の既定）。 破棄状態の判定（`IsDisposed`）は面が公開する（実体の型へダウンキャストしない） |
-| `src/EsUtil.Platform.Core/src/Imaging/IEsWritableBitmap.cs` | 画像を**書き換える**権利を持つ抽象（`IEsBitmap` を継承。 破棄は含めない） |
+| `src/EsUtil.Platform.Core/src/Imaging/EsBitmap.cs` | **書き換え可能**な画像（`EsReadOnlyBitmap` を継承。 BGRA8888・Premul。 外部パッケージに依存しない。 借用 `InstallPixels`・凍結 `SetReadOnly`・複製 `Create` / `Clone` を含む） |
+| `src/EsUtil.Platform.Core/src/Imaging/EsReadOnlyBitmap.cs` | **読み取り専用**の画像（画素を書き換える入口を持たない。 破棄状態の判定 `IsDisposed` と寸法・画素の読み取りを公開し、`EsBitmap` の基底になる） |
+| `src/EsUtil.Platform.Core/src/Imaging/EsBitmapBuffer.cs` | 画素バッファの内部型（確保・借用・共有・解放を単一所有する。 公開しない） |
 | `src/EsUtil.Platform.Core/src/Imaging/SafeAlignedBuffer.cs` | 整列したアンマネージド バッファの所有者（`SafeHandle`。 **解放の実装を単一所有する**。 `Dispose` 忘れはファイナライザが解放する） |
 | `src/EsUtil.Platform.Core/src/Imaging/DrawingColorExtensions.cs` | 描画色の可視判定（アルファが 0 より大きいか）の単一所有 |
 
@@ -161,6 +161,6 @@ graph LR
 
 **`Native/` 配下は上記の「可搬性」の基準から除外します**（Windows 限定の実装を、抽象と同じ場所で保守するための例外です）。 **Win32 の P/Invoke（`user32` / `gdi32` / `dwmapi` / `kernel32`）と OS 標準のコーデック（`gdiplus`）は `Native/` 配下だけが持ちます**（外部パッケージは参照しません）。
 
-**画像のファイル入出力（`EsBitmapExtensions.Save` / `EsBitmap.Load` / `EsWritableBitmap.Load`）は Windows 専用のメンバーです**（`Imaging/` の型と拡張メソッドに置きますが、実体は `src/EsUtil.Platform.Core/src/Native/Win` の `WinGdiPlusImageCodec` が担います）。 型そのものは可搬であり、これらのメンバーだけが `SupportedOSPlatform("windows")` で限定されます（非 Windows では `DllNotFoundException`。 判断の詳細は §7.1）。
+**画像のファイル入出力（`EsBitmapExtensions.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`）は Windows 専用のメンバーです**（`Imaging/` の型と拡張メソッドに置きますが、実体は `src/EsUtil.Platform.Core/src/Native/Win` の `WinGdiPlusImageCodec` が担います）。 型そのものは可搬であり、これらのメンバーだけが `SupportedOSPlatform("windows")` で限定されます（非 Windows では `DllNotFoundException`。 判断の詳細は §7.1）。
 
 **Skia は「外部パッケージ」に該当するため、本プロジェクトは SkiaSharp に依存しません**（Skia への依存は Skia を使用する上位層が単一所有します）。

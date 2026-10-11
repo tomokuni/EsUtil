@@ -33,7 +33,7 @@
 
 | プロパティ | 型 | 既定値 | 安全域（範囲外は自動補正） | 説明 |
 | --- | --- | --- | --- | --- |
-| `Source` | `IEsBitmap?` | `null` | — | 拡大元の 100% 画像（**受け取る型はコアの画像（`IEsBitmap`）だけ**。 Avalonia 版のようなフレームワークのビットマップ型や Skia の `SKBitmap` は受け付けない。 借用であり破棄しない）。 null の場合は画像外の色のみ |
+| `Source` | `EsReadOnlyBitmap?` | `null` | — | 拡大元の 100% 画像（**受け取る型はコアの画像（`EsReadOnlyBitmap`）だけ**。 Avalonia 版のようなフレームワークのビットマップ型や Skia の `SKBitmap` は受け付けない。 借用であり破棄しない）。 null の場合は画像外の色のみ |
 | `CenterPoint` | `EsPoint?` | `null` | — | 拡大中心（元画像ピクセル座標）。 null の場合は画像外の色のみ |
 | `Options` | `LoupeOptions` | `LoupeOptions.Default` | 下表のとおり | 設定（基本サイズ・拡大率）。 `with` 式で部分変更する |
 | `Appearance` | `LoupeAppearance` | `LoupeAppearance.Default` | 下表のとおり | 外観（枠線の太さ・表示可否）と描画に使う色（ペーストボード（画像外）・枠線・十字線・中心座標ラベルの 6 色）・ラベルの体裁。 `with` 式で部分変更する。 外観はコアの計算に入らない |
@@ -132,7 +132,7 @@
 
 オーバーレイの描画位置は `e.Content.CaptureTopLeft` と `e.Content.ZoomLevel` から `(対象座標 − CaptureTopLeft) × ZoomLevel` で求めます （`CaptureTopLeft` は**可視域の左上（実効原点。 小数を含む）**であり、切り出し領域と倍率の計算は Avalonia 版と同じコアの計算を共有します）。
 
-外観で装飾を止めている場合でも、`LoupeControl.DrawPlan(SKCanvas, IEsBitmap?, in LoupeDrawPlan)`（static）で計画どおりの描画を行えます（描画計画（`e.Content`）をそのまま渡す。 止めた項目はフラグを見て描かないため描かれません。 キャンバスは `Rendered` のハンドラ内でのみ有効です）。
+外観で装飾を止めている場合でも、`LoupeControl.DrawPlan(SKCanvas, EsReadOnlyBitmap?, in LoupeDrawPlan)`（static）で計画どおりの描画を行えます（描画計画（`e.Content`）をそのまま渡す。 止めた項目はフラグを見て描かないため描かれません。 キャンバスは `Rendered` のハンドラ内でのみ有効です）。
 
 ## 8. ログ
 

@@ -125,7 +125,7 @@ EsUtil.Feature.Marquee.ControlMewUI/sample/
 | 項目 | 本サンプル（MewUI） | Avalonia 版サンプル |
 | --- | --- | --- |
 | UI の記述 | C# のコードのみ（MewUI は XAML を持たない） | XAML + コードビハインド |
-| 画像の受け渡し | 背景画像は `Image` コントロールへ `ImageSource` として渡す | 非所有アダプタ（`IImage` ↔ `IEsBitmap`）を経由する |
+| 画像の受け渡し | 背景画像は `Image` コントロールへ `ImageSource` として渡す | 非所有アダプタ（`IImage` ↔ `EsReadOnlyBitmap`）を経由する |
 | ズームの操作 | スライダーと Ctrl+マウス ホイール（0.1〜5.0 倍） | Ctrl+マウス ホイールのみ（0.1〜5.0 倍） |
 | 表示領域のパン | 通常ホイール（`ScrollViewer` へ自分で転送する）とスクロール バー | 通常ホイール（`ScrollViewer` が標準で処理）とスクロール バー |
 | nudge の前提 | クリックでコントロールへフォーカスを与える（フォーカスが必要） | TopLevel の購読によりフォーカス不要 |

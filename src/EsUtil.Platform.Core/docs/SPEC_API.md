@@ -36,9 +36,9 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.28 `Native.Win.*`（Windows 実装）](#228-nativewinwindows-実装)
   - [2.29 `Coord.ICoordTransform`（interface）](#229-coordicoordtransforminterface)
   - [2.30 `Coord.CoordTransform`（sealed class : ICoordTransform）](#230-coordcoordtransformsealed-class--icoordtransform)
-  - [2.31 `Imaging.EsBitmapBase`（abstract class : IEsBitmap） / `Imaging.EsBitmap`（sealed class） / `Imaging.EsWritableBitmap`（sealed class）](#231-imagingesbitmapbaseabstract-class--iesbitmap--imagingesbitmapsealed-class--imagingeswritablebitmapsealed-class)
+  - [2.31 `Imaging.EsReadOnlyBitmap`（class : IDisposable） / `Imaging.EsBitmap`（sealed class : EsReadOnlyBitmap）](#231-imagingesreadonlybitmapclass--idisposable--imagingesbitmapsealed-class--esreadonlybitmap)
   - [2.32 画像のファイル入出力（`Save` / `Load`）](#232-画像のファイル入出力save--load)
-  - [2.33 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）](#233-imagingiesbitmapinterface--imagingieswritablebitmapinterface)
+  - [2.33 画像型の設計上の判断（継承と借用を選んだ理由）](#233-画像型の設計上の判断継承と借用を選んだ理由)
   - [2.34 画像操作の他ライブラリとの比較（実測）](#234-画像操作の他ライブラリとの比較実測)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
@@ -54,7 +54,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `EsUtil.Platform.Core` | `EsKey` / `EsKeyExtensions` / `EnumCanonical` / `EsWindowState` / `HotKeyModifiers` / `HotKeySetting` / `CaptureType` / `EsPlatformHandle` / `BoundaryCatch` | キーと入力（正規化含む）・ウィンドウ状態・ホットキー・境界の判定 |
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` | DIP 相当の幾何値型と領域の規則 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI の純粋計算 |
-| `.Imaging` | `EsBitmapBase` / `EsBitmap` / `EsWritableBitmap` / `IEsBitmap` / `IEsWritableBitmap` / `EsBitmapExtensions` / `DrawingColorExtensions` | ピクセルコンテナとその読み取り・書き換えの抽象・変更しない操作・描画色の判定 |
+| `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsBitmapExtensions` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `DownscaleAlgorithm` | 読み取り専用・書き換え可能な画像、変更しない操作、保存の指定、描画色の判定 |
 | `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` | OS サービスの抽象（UI 非依存） |
 | `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` | 上記抽象の Windows 実装（ホストが生成して注入する） |
 
@@ -372,8 +372,8 @@ public readonly record struct EsPlatformHandle(nint Handle, string? Descriptor =
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
-| `CaptureArea` | `EsWritableBitmap CaptureArea(EsRectInt bounds)` | 指定画面領域（画面物理座標）をキャプチャ。 幅・高さが 0 以下なら `ArgumentOutOfRangeException`、取得に失敗したら `Win32Exception`（**生成した画像を所有するのは呼び出し側**） |
-| `CaptureVirtualScreen` | `EsWritableBitmap? CaptureVirtualScreen(out EsPointInt origin)` | 仮想スクリーン全体を 1 回でキャプチャ。 **`null` は「仮想スクリーンの境界が取得できない」の 1 つの意味だけを表す** |
+| `CaptureArea` | `EsBitmap CaptureArea(EsRectInt bounds)` | 指定画面領域（画面物理座標）をキャプチャ。 幅・高さが 0 以下なら `ArgumentOutOfRangeException`、取得に失敗したら `Win32Exception`（**生成した画像を所有するのは呼び出し側**） |
+| `CaptureVirtualScreen` | `EsBitmap? CaptureVirtualScreen(out EsPointInt origin)` | 仮想スクリーン全体を 1 回でキャプチャ。 **`null` は「仮想スクリーンの境界が取得できない」の 1 つの意味だけを表す** |
 
 **`CaptureArea` が null を返さない理由**: 取得できないと撮影を成立させられないためです。 失敗は例外にして**対象領域**と Win32 のエラー コードを残します（記録は呼び出し側が行います）。
 
@@ -482,190 +482,115 @@ public readonly record struct ElementFinderResults(
 | `ClientToSource` | `static ICoordTransform ClientToSource(Func<double> sourcePerDip, Func<EsSize?>? sourceArea = null)` | 対象 = ローカル DIP × `sourcePerDip`（呼び出し毎評価。 倍率は 対象座標 / ローカル DIP。 0 以下は 1.0 扱い。 境界を省略すると無制限） |
 | コンストラクタ | `CoordTransform(Func<EsPoint, EsPoint> toSource, Func<EsPoint, EsPoint> toDip, Func<EsSize?> sourceArea)` | 変換関数を直接注入（軸は利用側が定義） |
 
-### 2.31 `Imaging.EsBitmapBase`（abstract class : IEsBitmap） / `Imaging.EsBitmap`（sealed class） / `Imaging.EsWritableBitmap`（sealed class）
+### 2.31 `Imaging.EsReadOnlyBitmap`（class : IDisposable） / `Imaging.EsBitmap`（sealed class : EsReadOnlyBitmap）
 
-**自前のピクセルバッファ**（BGRA8888・アルファ乗算済み）を所有するピクセルコンテナの 3 型です。 確保は 64 バイト整列で行い、**確保直後に全領域を 0（透明）で初期化します**（透明 = 全成分 0 が「描かれていない」の表現であるため）。 **外部パッケージへ依存しない**。
+読み取り専用の画像と書き換え可能な画像の 2 型です。 **書き換え可能な型が読み取り専用の型を継承します**（`EsBitmap : EsReadOnlyBitmap`）。 読み取り専用の型は画素を書き換える入口を持たないため、**受け取った側が誤って書き換えることがコンパイル時に決まります**（実行時の判定に頼りません）。 **外部パッケージへ依存しません**。
 
-| 型 | 役割 | 権利 |
+| 型 | 役割 | 書き込みの入口 |
 | --- | --- | --- |
-| `EsBitmapBase` | バッファの確保・公開・解放を 1 回だけ実装する抽象基底（**派生は本アセンブリの 2 型だけ**。 コンストラクターが `private protected`） | 読取のみ（書き込みの入口を公開しない） |
-| `EsBitmap` | **読み取り専用**の画像（`IDisposable`。 派生不可） | 読取 ＋ 破棄（早く手放すため） |
-| `EsWritableBitmap` | **書き換え可能**な画像（`IEsWritableBitmap` ＋ `IDisposable`。 派生不可） | 読取 ＋ 書き換え ＋ 破棄 |
+| `EsReadOnlyBitmap` | **読み取り専用**の画像（画像を**受け取る・保持する**側） | **無し**（基底に置かない。 持たないことが型で決まる） |
+| `EsBitmap` | **書き換え可能**な画像（画像を**作る・書き込む**側。 基底を継承） | `Pixels` / `SetPixel` / `TrySetPixel` / `Clear` |
 
-**使い分け（規則は 2 つだけ）**:
+**継承にする理由（兄弟にしない）**: 兄弟（互いに派生しない）にすると、生成した画像へ切り出し・縮小・保存（読み取り専用の型を受ける操作）を呼ぶたびに読み取り専用の型へ寄せる操作が要り、**最も普通の使い方が型で止まります**。 継承ならその変換は**無料の upcast**（コピーもキャストも不要）になり、かつ「読み取り専用の型で受け取った相手は書けない」という保証はそのまま保てます（Avalonia の `Bitmap` ← `WriteableBitmap` と同じ形）。
 
-1. **破棄するのは「自分が作った（戻り値で受け取った）画像」だけ**です。 引数で受け取った画像は破棄しません（誰が作ったかは API の形で決まります。 引数は借用、戻り値は所有）。
-2. **書き換えてよいのは、名前に `Writable` が付く型で受け取った画像だけ**です（`IEsWritableBitmap` / `EsWritableBitmap`）。 書き換えたい場合はその型で受け取るか、`EsWritableBitmap.Create` で書き換え可能な画像を作ります。
+**画素ビューの名前（無印が書き込み可能・`ReadOnly` 付きが読み取り専用）**: `EsBitmap.Pixels` は `Span<byte>`（書き込み可能）、`EsReadOnlyBitmap.ReadOnlyPixels` は `ReadOnlySpan<byte>`（読み取り専用）です。 無印を書き込み可能なビューにするのは、**書き換え可能な型では書き込みが本題**であるためです（`Memory<T>` に対する `Span<T>` と同じ関係）。 読み取り専用のビューは基底が持つため、**どちらの型でも名前と返る型が一致します**（同じ名前で型だけが変わる取り違えが起きません）。
 
-型は上の 2 つを読み取るための目印です（`EsBitmap` = 読み取り専用であることを示す / `IEsBitmap` = 読み取るだけ / `IEsWritableBitmap` = 書き換える / `EsWritableBitmap` = 作る・所有する）。 **キャストはしません**（必要になる機能はすべて面から届きます。 保存は `EsBitmapExtensions.Save`（面の拡張）、複製は `Create`、書き換えは `IEsWritableBitmap`）。
+**読み取り専用であって不変ではない**: 本型が保証するのは「**この実体からは書けない**」ことであり、「内容が決して変わらない」ことではありません。 書き換え可能な画像を読み取り専用の型として受け取った場合、相手が同じ実体を書き換えれば画素は変わります（借用した画素も同じです）。 **内容を固定したい場合だけ** `SetReadOnly` で凍結します。
 
-| **破棄済みかを判定する** | `IEsBitmap`（`IsDisposed`） |
+**凍結（`SetReadOnly` / `IsReadOnly`）**: `SetReadOnly` を呼ぶと、以後の書き込みの入口（`Pixels` / `SetPixel` / `TrySetPixel` / `Clear`）が `InvalidOperationException` を投げます。 読み取り専用の画像（基底）の `IsReadOnly` は常に true、書き換え可能な画像（派生）は凍結の状態を返します。
 
-**受け口は面（interface）に統一します**: 本ライブラリが画像を受け取る公開 API の型は `IEsBitmap`（読む）/ `IEsWritableBitmap`（書き換える）です。 `EsBitmapBase` は抽象クラスであり `new` で生成できませんが、**受け取る型としては使えます**（本ライブラリが受け口に使わないのは、受け取る側の権利を面で絞るためです）。 したがって「受け取って読むだけ」の型は `IEsBitmap` です。
+- **凍結後の書き込みを例外にする理由（実測に基づく）**: Skia は凍結（`SetImmutable`）した `SKBitmap` からだけ 0 コピーで `SKImage` を共有し、凍結していない場合は**複製**します。 しかし凍結後も `SetPixel` は**例外を投げずに書けてしまい**（実測: 共有中の不変側の画素が変わりました）、規約で守られています。 本ライブラリは型（書き込みの入口が無い）と実行時（凍結後の書き込みを拒否）の二重で守ります。
+- **「読み取り専用として渡す」と「凍結する」を分ける理由**: 渡すだけで凍結すると、生成した画像へ切り出し・保存を呼んだ後に書き続けられなくなります。 凍結は**書き終えた時点**で明示的に行います。
 
-**破棄済みの判定も面で行います**: 破棄状態（`IsDisposed`）は `IEsBitmap` が公開します（実体の型へダウンキャストしません）。 `EsBitmapBase` の派生だけを見る判定は、本インターフェイスを直接実装する画像（Avalonia の表示アダプタ等）を取りこぼすためです。
+**共有と寿命（参照を数える）**: 同じ画素を指す複数の実体は、バッファの `SafeHandle` に参照を 1 つ取って解放します。 したがって**先に元を破棄しても画素は有効なまま**であり、最後の 1 つが解放します（二重 `Dispose` でも 2 回目は解放しません）。
 
-`EsBitmapBase` を直接使うのは次の 1 つの場面だけです。
+- **`EsReadOnlyBitmap.Clone` は複製せず共有します**: 読み取り専用同士は互いに書き換えないため、複製の費用（実測: 4K で 5.7 ms / 31 MiB）を払う理由がありません。
+- **`EsBitmap.Clone` は独立した画素を持ちます**: 書き換え可能な画像同士が共有すると、片方の書き込みがもう片方の画素を変えるためです。
 
-- **2 つの権利の実装の共有**: `EsBitmap`（読取 ＋ 破棄）と `EsWritableBitmap`（読取 ＋ 書き換え ＋ 破棄）が、バッファの確保・公開・解放の実装を 1 回だけ書くための基底です。 **派生できるのは本アセンブリの 2 型だけ**です（外部が独自の画像を作る場合は `IEsBitmap` / `IEsWritableBitmap` を実装します）。
+**借用と複製を名前で分けます**: 画素を既に持っている場合（他フレームワークのビットマップ・アンマネージドの領域・共有メモリ）は、複製の有無を名前で選べます。
 
-**兄弟である理由**: `EsBitmap` と `EsWritableBitmap` は互いに変換できません（`Is` 関係が無い）。 同じバッファを 2 つの型で見せると「書き換えてよいか」が静かに食い違うためです。 読み取り専用の画像から書き換え可能な画像を作る場合は `EsWritableBitmap.Create`（別のオブジェクトからの生成）を使い、逆方向は `EsBitmap.Create` を使います。
-
-**コピーなしで相互変換できます（遅延コピー。 実装済み）**:
-
-| 方向 | コピーなしで可能か | 手段 |
+| 入口 | 複製 | 用途 |
 | --- | --- | --- |
-| 書き換え可能 → 読み取り専用 | **可能（追加の API は不要）** | **面（`IEsBitmap`）へ渡すだけ**（`EsWritableBitmap` は `IEsBitmap` を実装する。 参照の変換のみでコピーしない） |
-| 読み取り専用 → 書き換え可能 | **可能（遅延コピー）** | `EsWritableBitmap.Create` が**バッファを共有し、最初の書き込みでだけ複製**する |
+| `EsReadOnlyBitmap.FromPixels(w, h, pixels, release = null)` | **しない**（借用） | 既にある画素を読むだけの場面 |
+| `EsReadOnlyBitmap.FromPixelCopy(w, h, pixels)` | **する** | 元の画素が後で変わってよい場面 |
+| `EsBitmap.InstallPixels(w, h, pixels, release = null)` | **しない**（借用） | 既にある画素を書き換える場面 |
 
-- **書き込まなければコピーしません（実測で確認）**: 共有中は同じバッファを指し（実測: 両者の `Pixels` が同じアドレスを指す）、**最初の書き込み**（`SetPixel` / `TrySetPixel` / `Clear` / `WritablePixels`）で自分のバッファへ複製します。 したがって**全域コピーの費用（実測: 4K で 5.7 ms / 31 MiB）を、書き込む場合だけ払います**。
-- **読み取り専用の約束は保たれます**: 書き込みの時点で複製するため、**元の画像の画素は変わりません**（実測: `SetPixel` の後に元の画素が元の値のままで、複製先の書き込んでいない画素も元の値を持つ）。 見え方は「即時に複製した場合」と完全に同じです。
-- **書き込みのビューは渡す前に複製します**: `WritablePixels` を取った時点で複製します（渡した後に複製すると、渡したビューが古い領域を指して書き込みが消えるため）。
-- **共有してよいのは「元が読み取り専用の画像（`EsBitmap`）である」場合だけ**です（元が書き換え可能な画像・外部実装の画像である場合は**即時に複製**します。 元がその後に変わりうるため）。 読み取り専用の複製（`EsBitmap.Clone`）も同じ理由でバッファを共有します（読み取り専用同士は互いに書き換えないため、複製は起きません）。
-- **参照を数えて解放します（実測で確認）**: バッファの `SafeHandle` に参照を 1 つ取るため、**先に元を破棄しても共有側の画素は有効なまま**であり、最後の 1 つが解放します（二重 `Dispose` でも 2 回目は解放しません）。
+- **`release` は解放のコールバック**です（借用した領域を破棄時に解放したい場合に渡します。 渡さない場合は呼び出し側が自分のタイミングで解放します）。 **解放の実装は `SafeBorrowedBuffer` が単一所有する**ため、`Dispose` でも GC でも 1 回だけ呼ばれます。
+- **行パディングがある領域は借用できません**: 画素は連続した 1 本の領域として公開するため、ストライドは `幅 × 4` に限ります（それ以外は `ArgumentException`）。
+- **借用中は内容の不変を保証しません**: 借用は「その時点の画素を読む（書く）」入口であり、所有者が書き換えれば内容は変わります（読み取り専用の約束は「この実体からは書けない」ことだけです）。
 
-**生成（`Create`）と複製（`Clone`）は意味が違います**: `Create` は**別のオブジェクトからの生成**（外部の画像から実体を組み立てる）であり、`Clone` は**自身の複製**（同じ型・同じ権利）です。 実装が同じでも意味が異なるため、片方へ寄せません（`Clone` を `Create` の別名にしない／`Clone` を廃して `Create` へ統合しない）。 どちらの `Create` も**面**（`IEsBitmap`）を受け取ります（外部が実装する画像（UI の表示アダプタ等）からも実体を組み立てられるようにするため。 同じ型を渡すこともできますが、自身の複製が目的なら `Clone` を使います）。
+**読み取り専用 → 書き換え可能 は複製です（`EsBitmap.Create`）**: 元の画像は読み取り専用であり、共有したまま書き換えると元の画素が変わってしまうためです（実測: 4K の複製は 31 MiB と 5.7 ms）。 **逆方向（書き換え可能 → 読み取り専用）は無料の upcast**（変換もコピーも要りません）。
 
-**書き込み量の最適化**: 直後に全領域を書く手順（`Create(w, h, color)` / `Clone` / `Crop` / 相互変換）は 0 初期化を省きます（画像サイズ分の書き込みを丸ごと削減する）。 `Crop` はコピーされないパディングだけを透明にし、`CreateUninitialized` は「全領域を書く」責任を呼び出し側が持つ前提で未初期化のまま確保します。
-
-**`CreateFilled` を両方の型に置く理由（対にする）**: 相互変換（System.Drawing / Avalonia / Skia）は**どちらの権利の画像も作ります**。 片方だけ別の書き方（`CreateUninitialized` + `WritablePixels`）になると、変換を読むたびに「なぜ違うのか」を調べることになるため、**同じ名前・同じ引数の形の入口を両方の型に置きます**（読み取り専用の側は書き込みの入口を公開しないため、充填の入口が無いと 2 回のコピーになる）。 `CreateUninitialized` との関係は「1 回の充填で全体を書く手順 → `CreateFilled` / それ以外で直後に全領域を書く手順（切り出し・縮小・複製・画面キャプチャ）→ `CreateUninitialized`」で使い分けます。
-
-**未初期化の入口は書き換え可能な側だけが公開します（この非対称は意図です）**: `CreateUninitialized` は `EsWritableBitmap` の公開 API ですが、`EsBitmap` は**同じ名前・同じ引数の入口を `private` に持ちます**（`Load` / `Clone` / `Create` / `CreateFilled` が委譲する唯一の確保手順であり、0 埋めを省く場所は各型で 1 か所だけになります）。 読み取り専用の実体は**書き込みの入口を公開しない**ため、未初期化のバッファを外へ出すと「書けないまま不定値のピクセルが描画へ回る」経路ができます（外へ出す入口は確保と充填を 1 回に閉じる `CreateFilled` だけです）。
-
-**実測（4K 3840x2160 = 33 MB のバッファ）**: 確保と 0 初期化が 7.3 ms、1 回の全域コピーが 6.5 ms です。 つまり **`Create(w, h)`（0 初期化あり）と 1 回のコピーの合計が支配的**です。
-
-- **0 初期化は「直後に全領域を書く」場合に省く**（`CreateUninitialized` は 10 µs。 0 初期化を省くだけで 7.3 ms 減ります）、
-- **同じ寸法のバッファを作る手順は 1 枚につき 1 回のコピーに抑える**（2 回コピーすると 13.6 ms）、
-- **ピクセル単体の書き込みは 4 バイトを 1 回で書く**（`SetPixel`。 実測: 100 万回で 2.0 ms → 1.6 ms）、
-ことが効きます。 一方 **`Clone` / `Clear` / 1 回のコピーは、確保直後のバッファではメモリ帯域ではなく初回タッチ（OS のページ確定）で決まります**（実測: 4K 33 MB のコピーは、既にタッチ済みのバッファ同士で 1.8 ms、確保直後のバッファでは 6.4 ms）。 未初期化確保は 10 µs のため、コストの実体は「新しいページへ初めて書くとき」です。 **[0 初期化を省くのはこのためです]**（`Create(w, h)` の 0 埋めは 7.3 ms かかる）。 確保直後のバッファでも、コピーと 0 埋めを**行の範囲へ分けて並列実行すると 1.5〜2.3 倍速くなります**（実測: 4K のコピーが 6.4 → 4.4 ms、0 埋めが 7.1 → 3.1 ms。 ページ確定が複数のコアへ分かれるため）。 現行の `Clone` / `Crop` / `Clear` は逐次のままです（8 MB 未満では並列化の起動コストが勝つため、しきい値を設ける必要があります）。
-ピクセルの走査は `GetPixel(x, y)` の反復（実測 1.1 ns/画素）より **`Pixels` を `uint` へ読み替えて走査する方が速い**（実測 0.39 ns/画素。 成分ごとに見る必要がない場合）。
-
-**解放**: バッファの所有者は内部の `SafeAlignedBuffer`（`SafeHandle`）であり、**解放の実装を 1 つだけ持ちます**（手書きのファイナライザは書きません。 解放を `SafeHandle` へ委ねると同じ役割を果たしつつ、解放の経路が `ReleaseHandle` の 1 か所になります）。 確保量は `GC.AddMemoryPressure` で GC へ伝え、解放時に `GC.RemoveMemoryPressure` で戻します。 したがって **`Dispose` を忘れても解放されます**。 ただし解放は GC の判断を待つため、**大きな画像は早く手放すために `Dispose` してください**（4K 1 枚で 33 MB）。
-
-**`EsWritableBitmap` の生成・変換**:
+**読み取り専用の型のメンバー（`EsReadOnlyBitmap`）**:
 
 | 種別 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- | --- |
-| 生成 | `Create` | `static EsWritableBitmap Create(int width, int height)` / `static EsWritableBitmap Create(EsSizeInt size)` | 指定サイズの空の画像（全ピクセル透明）を生成 |
-| 生成 | `Create` | `static EsWritableBitmap Create(int width, int height, Color color)` / `static EsWritableBitmap Create(EsSizeInt size, Color color)` | 全ピクセルを指定色で生成（0 初期化を省く） |
-| 生成 | `CreateUninitialized` | `static EsWritableBitmap CreateUninitialized(int width, int height)` / `static EsWritableBitmap CreateUninitialized(EsSizeInt size)` | 直後に全領域を書く前提で確保（ピクセルは不定値。 **書かなければ不定値が見える**） |
-| 生成 | `CreateFilled` | `static EsWritableBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)` | 確保と**充填**を 1 回で行う（相互変換が使う） |
-| 生成 | `Create` | `static EsWritableBitmap Create(IEsBitmap source)` | **別のオブジェクト（画像）から**書き換え可能な実体を生成（バッファは共有しない。 実測: 4K で約 6 ms。 **自身の複製は `Clone`**） |
-| 複製 | `Clone` | `EsWritableBitmap Clone()` | **自身の複製**（同型）を作る |
-| 読込 | `Load` | `static EsWritableBitmap Load(string filePath)` | ファイルから**書き換え可能な**画像として読み込む（形式は内容から判別する。 読み取り専用でよい場合は `EsBitmap.Load`。 詳細は [2.32](#232-画像のファイル入出力save--load)） |
-| その他 | `Dispose` | `void Dispose()` | バッファを解放（二重呼び出しは無害） |
-
-**`EsBitmap` の生成・複製**:
-
-| 種別 | メンバー | シグネチャ | 説明 |
-| --- | --- | --- | --- |
-| 生成 | `Create` | `static EsBitmap Create(int width, int height)` / `static EsBitmap Create(EsSizeInt size)` | 指定サイズの空の画像（全ピクセル透明）を生成 |
-| 生成 | `Create` | `static EsBitmap Create(int width, int height, Color color)` / `static EsBitmap Create(EsSizeInt size, Color color)` | 全ピクセルを指定色で生成 |
-| 生成 | `CreateFilled` | `static EsBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)` | 確保と**充填**を 1 回で行う（相互変換が使う） |
-| 生成 | `Create` | `static EsBitmap Create(IEsBitmap source)` | **別のオブジェクト（借用した画像）から**読み取り専用の実体を生成（表示アダプタなどの外部実装からも使える入口。 **自身の複製は `Clone`**） |
-| 複製 | `Clone` | `EsBitmap Clone()` | **自身の複製**（同型。 書き換え可能な複製が要る場合は `EsWritableBitmap.Create`） |
-| 読込 | `Load` | `static EsBitmap Load(string filePath)` | ファイルから**読み取り専用の**画像を読み込む（形式は内容から判別する。 書き換えが要る場合は `EsWritableBitmap.Load`） |
-| その他 | `Dispose` | `void Dispose()` | バッファを解放（二重呼び出しは無害） |
-
-**共通のメンバー（`EsBitmapBase`。 `IEsBitmap` の実装）**:
-
-| 種別 | メンバー | シグネチャ | 説明 |
-| --- | --- | --- | --- |
+| 定数 | `BytesPerPixel` | `const int` | 1 ピクセルあたりのバイト数（4。 **定義は内部のバッファ型が単一所有**し、本型は転送する） |
 | プロパティ | `Width` / `Height` | `int` | 幅 / 高さ（ピクセル） |
 | プロパティ | `Size` | `EsSizeInt` | 幅・高さ（ピクセル。 コアの整数サイズ型） |
 | プロパティ | `Stride` | `int` | 1 ラインあたりバイト数（**常に 幅 × 4**。 パディングなし） |
-| プロパティ | `BytesPerPixel` | `const int` | 1 ピクセルあたりのバイト数（4。 **定義は `IEsBitmap` が単一所有**し、本型は転送する） |
-| プロパティ | `Pixels` | `ReadOnlySpan<byte>` | ピクセル データの**読み取り専用ビュー**（コピーしない。 長さは `Stride × Height`。 破棄後は `ObjectDisposedException`） |
-| プロパティ | `IsDisposed` | `bool` | 破棄済みか（**公開面は `IEsBitmap`**。 利用者は面の型で判定できる） |
-| ピクセル | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` / `Color GetPixel(EsPointInt point)` | 指定座標の BGRA（アルファ乗算済み）を取得（座標型の版は `System.Drawing.Color` で返す）。 範囲外は `IndexOutOfRangeException` |
+| プロパティ | `ReadOnlyPixels` | `ReadOnlySpan<byte>` | ピクセル データの**読み取り専用ビュー**（コピーしない。 長さは `Stride × Height`。 破棄後は `ObjectDisposedException`） |
+| プロパティ | `IsDisposed` | `bool` | 破棄済みか |
+| プロパティ | `IsReadOnly` | `bool` | この実体から書けないか（**本型では常に true**。 派生は凍結の状態を返す） |
+| ピクセル | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` / `Color GetPixel(EsPointInt point)` | 指定座標の BGRA（アルファ乗算済み。 座標型の版は `System.Drawing.Color` で返す）。 範囲外は `ArgumentOutOfRangeException` |
 | その他 | `ToSizeText` | `string ToSizeText()` | 寸法を `<c>幅x高さ</c>` 形式の文字列で返す（ログ等への記録用。 **書式は本面が単一所有**する） |
-| ファイル | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`。 Windows 専用） |
+| その他 | `SetReadOnly` | `void SetReadOnly()` | 凍結する（以後の書き込みの入口が `InvalidOperationException`） |
 | その他 | `ThrowIfDisposed` | `void ThrowIfDisposed()` | 破棄済みなら `ObjectDisposedException` を送出 |
+| 複製 | `Clone` | `EsReadOnlyBitmap Clone()` | **自身の複製**（同型。 **画素は共有する**。 派生は独立した画素を返すよう上書きする） |
+| その他 | `Dispose` | `void Dispose()` | 画素領域を解放（二重呼び出しは無害） |
 
-**保存は面（`IEsBitmap`）の拡張メソッド（`EsBitmapExtensions.Save`）**: 保存は**画素を読むだけ**であり、書き換えの権利も実体の型も要しないため、受け取った画像をそのまま保存できます（外部実装の画像でも**キャストが要りません**）。 詳細は [2.32](#232-画像のファイル入出力save--load)。
-
-**`EsWritableBitmap` が追加で公開するメンバー（`IEsWritableBitmap` の実装）**:
+**書き換え可能な型が追加で公開するメンバー（`EsBitmap`）**:
 
 | 種別 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- | --- |
-| プロパティ | `WritablePixels` | `Span<byte>` | ピクセル データの**書き込み可能なビュー**（`Pixels` と同じバッファ。 破棄後は `ObjectDisposedException`） |
-| ピクセル | `SetPixel` | `void SetPixel(int x, int y, byte b, byte g, byte r, byte a)` / `void SetPixel(EsPointInt point, Color color)` | 指定座標の BGRA を設定。 範囲外は `IndexOutOfRangeException` |
-| ピクセル | `TrySetPixel` | `bool TrySetPixel(int x, int y, Color color)` / `bool TrySetPixel(EsPointInt point, Color color)` | 指定座標へ色を設定（**範囲外は `false`**。 画像の端をはみ出す矩形を描く用途） |
+| プロパティ | `Pixels` | `Span<byte>` | ピクセル データの**書き込み可能なビュー**（`ReadOnlyPixels` と同じバッファ。 凍結後は `InvalidOperationException`） |
+| ピクセル | `SetPixel` | `void SetPixel(int x, int y, byte b, byte g, byte r, byte a)` / `void SetPixel(EsPointInt point, Color color)` | 指定座標の BGRA を設定。 範囲外は `ArgumentOutOfRangeException` |
+| ピクセル | `TrySetPixel` | `bool TrySetPixel(int x, int y, Color color)` / `bool TrySetPixel(EsPointInt point, Color color)` | 指定座標へ色を設定（**範囲外は `false`**。 端をはみ出す矩形を描く用途） |
 | ピクセル | `Clear` | `void Clear(byte b, byte g, byte r, byte a)` / `void Clear(Color color)` | 全ピクセルを指定色で塗りつぶし |
 
-- **`Address`（生ポインタ）は公開しません**: 渡すと「読み取り専用」の意図が消えるためです。 ポインタが要る場合（他フレームワークの非所有ビューへ渡す等）は `Pixels` を `fixed` で固定して取ります（バッファはアンマネージドのため、生存中はアドレスが動きません）。
-- **`WritablePixels` を `Pixels` と別名にする理由**: 同名にすると `IEsBitmap` 経由か `IEsWritableBitmap` 経由かで返る型が変わり、書き換えてよいかどうかが読み手に分からなくなります。
+**生成の入口（static）**:
 
-**`EsBitmapExtensions`（画像を変更しない操作。 `IEsBitmap` を受ける拡張メソッド）**:
+| 型 | メンバー | シグネチャ | 説明 |
+| --- | --- | --- | --- |
+| `EsBitmap` | `Create` | `Create(int width, int height)` / `Create(EsSizeInt size)` | 指定サイズの空の画像（全ピクセル透明。 0 埋めする） |
+| `EsBitmap` | `Create` | `Create(int width, int height, Color color)` / `Create(EsSizeInt size, Color color)` | 全ピクセルを指定色で生成 |
+| `EsBitmap` | `Create` | `Create(EsReadOnlyBitmap source)` | **別のオブジェクトからの生成**（読み取り専用 → 書き換え可能。 **複製**。 **自身の複製は `Clone`**） |
+| `EsBitmap` | `CreateFilled` | `CreateFilled(int width, int height, Action<Span<byte>> fill)` | 確保と**充填**を 1 回で行う（相互変換が使う） |
+| `EsBitmap` | `InstallPixels` | `InstallPixels(int width, int height, nint pixels, Action<nint>? release = null)` | 既存の画素を**借用**して書き換え可能な画像を作る |
+| `EsBitmap` | `Load` | `Load(string filePath)` | ファイルから**書き換え可能な**画像を読み込む |
+| `EsReadOnlyBitmap` | `CreateFilled` | `CreateFilled(int width, int height, Action<Span<byte>> fill)` | 同上（**読み取り専用**の画像を作る） |
+| `EsReadOnlyBitmap` | `FromPixels` | `FromPixels(int width, int height, nint pixels, Action<nint>? release = null)` | 既存の画素を**借用**して読み取り専用の画像を作る |
+| `EsReadOnlyBitmap` | `FromPixelCopy` | `FromPixelCopy(int width, int height, ReadOnlySpan<byte> pixels)` | 画素を**複製して**読み取り専用の画像を作る |
+| `EsReadOnlyBitmap` | `Load` | `Load(string filePath)` | ファイルから**読み取り専用の**画像を読み込む |
 
-| メンバー | シグネチャ | 説明 |
-| --- | --- | --- |
-| `Crop` | `static EsWritableBitmap Crop(this IEsBitmap source, int x, int y, int width, int height)` / `static EsWritableBitmap Crop(this IEsBitmap source, EsRectInt rect)` | 指定矩形領域を切り出す（ソース範囲外は透明パディング。 位置関係は保たれる。 0 初期化は行わず、コピーされないパディングだけを透明にする） |
-| `Resize` | `static EsWritableBitmap Resize(this IEsBitmap source, int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)` | 長辺を `maxSize` へ収める（アルゴリズムは `DownscaleAlgorithm` で選ぶ。 拡大は未サポートで `NotSupportedException`） |
-| `ReduceColors` | `static EsWritableBitmap ReduceColors(this IEsBitmap source, int colorCount)` | 指定の色数へ減色する（パレット化。 画素数と寸法は変えない。 **不可逆**） |
-
-- **`ReduceColors` は中央値分割 + 参照表で行います（実測）**: 5 ビットのヒストグラム（32³ = 32,768 箱）を作り、中央値分割で箱を色数まで分け、箱ごとの平均色をパレットにします。 画素の割り当ては**箱ごとに 1 度だけ最近傍を求めた参照表**を引きます（画素ごとに 256 色と比較すると 200 万画素 × 256 の距離計算になる）。 実測（1920x1080）: **256 色で 30 ms / 16 色で 8 ms**。
-- **ディザを行いません（実測による判断）**: ディザは見た目を滑らかにしますが、パレットの色を交互に置くため**保存のファイルが大きくなります**（実測: Magick.NET の 256 色 PNG で 645,647 B → FloydSteinberg で 803,118 B ＝ **+24%**）。 本ライブラリはファイル サイズを下げる目的で減色するため、行いません。
-- **減色の計算は保存の実装と共有します**: 公開面は `ReduceColors`（新しい画像を返す）であり、色番号とパレットを返す内部の計算を保存（8bpp のインデックス カラー）が使います（2 箇所に書くと、同じ色数でも保存経路によって結果が変わります）。 保存の指定は [`EsImageSaveOptions.ColorCount`](#232-画像のファイル入出力save--load) です。
-- **外部ライブラリとの比較（実測。 1920x1080・256 色）**: 本処理は **30 ms**（減色そのもの）であり、**SixLabors.ImageSharp の Wu 量子化は 219 ms / Magick.NET は 553 ms** です。 サイズは本処理の 173,684 B（写真風）に対し 111,764 B / 117,156 B と**外部の方が小さく**、減色の品質は **pngquant が最も高い**（色差 2.61 対 3.95）ものの、実行ファイルの同梱と 1 枚 700 ms を要します。
-- **`Crop` のコピーは 1 回で済む場合を分けます**: 左右のパディングが無く、ソースとデスティネーションの行幅が等しいときは **連続領域として全領域を 1 回でコピー**します（実測: 4K 全域の切り出しで 8.3 ms → 6.6 ms）。 それ以外は行単位でコピーし、左右のパディングは行ごとに消します。 **他ライブラリの切り出しとの比較は [2.34](#234-画像操作の他ライブラリとの比較実測)**（Skia の `ExtractSubset` と Avalonia の `CroppedBitmap` は画素を複製しないため最速である点を含む）。
-- **複製しない切り出しビューを公開しません（実測に基づく）**: 他ライブラリの最速な切り出しは**画素を複製しないビュー**です（Skia `ExtractSubset` 0.011 ms / Avalonia `CroppedBitmap` 0.001 ms 対 コア `Crop` 0.72 ms）。 しかし本ライブラリの画像は **1 本の連続したバッファに詰まっており（`Stride` は常に `幅 × 4`）、`Pixels` は連続した `ReadOnlySpan<byte>`** です。 切り出しの行幅（例: 4000 バイト）は元画像の行幅（例: 15360 バイト）と一致しないため、**ビューは「行ごとに別の領域を指す」形になり `Pixels` では表せません**（Skia のビューも元の行幅 15360 バイトを保ったまま行ごとに別の領域を指すことを実測で確認）。 加えて、ビューは**親の寿命に依存**します（実測: Avalonia の `CroppedBitmap` は `Dispose` で元画像まで解放し、元を使い続けると `ObjectDisposedException`。 Skia は元を破棄・書き換えると壊れる）。 本ライブラリの画像は**自前のバッファを所有して破棄する**契約であるため、ビューを公開すると「破棄後も読める」という別の契約を併存させることになります。 **ビューが要る場面（表示だけ）は各 UI の描画面が既に持っています**（`ExtractSubset` / `CroppedBitmap` は表示用の射影であり、画素を書き換える・保持する場合は複製が要ります）。
-**`DownscaleAlgorithm`（enum。 アルゴリズム別の実測と性質）**:
-
-| アルゴリズム | 4K → 96x54 | 4K → 320x180 | 4K → 960x540 | 幅 1 px の細線（40 倍縮小後の輝度） | 性質 |
-| --- | --- | --- | --- | --- | --- |
-| `Nearest` | **11 µs** | 63 µs | 530 µs | **0（落ちる）** | 縮小先の 1 画素につき元の 1 画素（比例位置）だけを読む。 位置が合えば残るため結果が位置に依存する |
-| `Bilinear`（既定） | 68 µs | 237 µs | 1.0 ms | 0（位置により 127） | 元の 2x2 を重み付き平均する |
-| `Box` | 1.6 ms | 1.5 ms | 2.0 ms | 6（薄く残る = 正しい平均） | 対応する矩形の全画素を平均する。 **元画像の画素数に比例**する |
-
-- **他ライブラリ（GDI+ / Skia / Avalonia）の各アルゴリズムとの速度・メモリ・画質の比較は [2.34](#234-画像操作の他ライブラリとの比較実測) が単一所有します**（本表はコアのアルゴリズムだけを持ちます）。
-
-**並列化（縮小先の行を範囲へ分ける）**:
-
-- **すべてのアルゴリズムで縮小先の行を並列実行します**（実測の効果: 4K → 320x180 の双線形で 0.606 → 0.214 ms、4K → 960x540 で 5.8 → 1.2 ms、4K → 96x54 の `Box` で 9.2 → 1.5 ms）。
-- **1 行ずつメソッドへ分けてはいけません**: メソッド境界を越えると境界チェックの除去などの最適化が失われ、**逐次が 2 倍遅くなります**（実測: 4K → 96x54 の双線形で 116 → 229 µs。 最適化はメソッドの中で閉じているときにだけ効くためです）。 そのため行を**範囲（開始行・終了行）でまとめて渡し**、逐次（全行を 1 回）と並列（範囲ごと）が同じ実装を使います。
-- **並列化する境目はアルゴリズムで変えます**（1 画素あたりの仕事の量が違うため）。 `Box` は**元画像**の 98,304 画素（313x313 相当）、`Bilinear` は**縮小後**の 20,480 画素、`Nearest` は**縮小後**の 65,536 画素です（実測: `Bilinear` は 14,400 画素で逐次 0.148 ms に対し並列 0.167 ms、20,736 画素で逐次 0.223 → 並列 0.146 ms と逆転するため）。
-- **分割数は CPU 数 × 4** とし、1 範囲あたり最低 1 行を確保します（`Environment.ProcessorCount`）。
-
-**採用した高速化（すべて実測で判断）**:
-
-- **最近傍は画素を 32 ビット単位で写します**: 4 バイトを `Slice().CopyTo()` で写すと、画素ごとに範囲検査とメソッド呼び出しが残ります。 行を `MemoryMarshal.Cast` で `uint` の並びにしてから添字で写すと、4K → 320x180 で 0.153 ms → 0.067 ms、4K → 1920x1080 で 1.85 → 1.52 ms になります（画素値は完全に一致）。
-- **双線形の列の対応（元の 2 列と重み）は 1 度だけ求めます**: 行に依存しないため、画素ごとにあった除算・床・クランプを表の参照に置き換えます（4K → 1920x1080 で 6.2 → 4.2 ms。 画素値は完全に一致）。
-- **面積平均の列の範囲も 1 度だけ求めます**: 画素ごとの 64 ビット除算を無くし、成分ごとの合計は `stackalloc` の領域ではなくローカル変数で持ちます（画素ごとに領域を消す書き込みを無くす。 4K → 1920x1080 で 5.4 → 3.6 ms）。
-- **SIMD（面積平均の縦の合計をベクター化）**: 遅くなります（実測: 4K → 96x54 で 2.9 ms 対 現行 1.6 ms、4K → 960x540 で 14 ms 対 2.0 ms）。 ベクターで合計すると**縦の合計を保持する作業行が必要になり、縮小先の行ごとに全体（4K で 15 KB）を消すコスト**が加わるためです。 現行は元画像の各画素を 1 回だけ読んで合計するため、**読み出しの回数は既に最小**です。
-- **固定小数点（双線形の重みを 0〜256 の整数に）**: 効果はありますが（実測: 4K → 1920x1080 で 3.98 → 2.99 ms）採用しません。 **丸めが変わって値が ±2 ずれます**（現行の浮動小数点は変更前と完全一致。 画素値を保つことを優先します）。
-- **2 パス（横 → 縦）や移動和（スライディング ウィンドウ）**: 縮小では不利です。 現行の 1 パスは各画素を 1 回だけ読みますが、2 パスは中間画像の書き込みと読み出しが増え、移動和は「入る行 + 出る行」の 2 倍を読むためです（実測: 4K → 96x54 の面積平均で 2 パス 18 ms 対 1 パス 1.6 ms）。
-- **立方畳み込み（Bicubic 相当）をアルゴリズムへ加えません（実測に基づく）**: 試作して `Box` と GDI+ の `HighQualityBicubic` と比較した結果、**縮小では `Box` が最も速く最も正しい**ためです（縮小率に応じて支持幅を広げた実装で 12 倍縮小が 12.9 ms・厳密な面積平均との差 1.30 対 `Box` の 1.6 ms・0.37。 2 倍縮小は 21.7 ms・4.23 対 3.6 ms・0.28）。 **鮮鋭さでも勝ちません**（2 倍縮小の隣接差は `Box` 21.3 対 立方畳み込み 13.1 で `Box` の方が輪郭が立つ。 固定 4 タップ版は 27.9 と大きくなりますが、それは**間引きによる折り返し**であり面積平均との差 10.6 と最も不正確です）。 **拡大**では固定 4 タップの立方畳み込みが正しい選択ですが、本メソッドは拡大を行いません（上記）。 実測の全体は [2.34](#234-画像操作の他ライブラリとの比較実測) を参照。
-
-- **拡大は未サポートです**: `maxSize` が長辺より大きい場合は `NotSupportedException` を投げます（黙って等倍を返すと「拡大された」と誤解されるため）。 名前が `Resize` であるのは将来の拡大対応を見込んだもので、現在の実装は縮小だけを行います。 長辺と上限が一致する場合は縮小不要のため**等倍の複製**を返します。
-- **アルゴリズムを列挙体で選ぶ理由**: 同じ機能の入口を複数持たないためです（アルゴリズムを選ぶ入口は `Resize` の 1 つだけ。 既定は `Bilinear`）。
-
-- **縮小をここに置く理由**: 縮小は**どの UI でも必要になり、結果を揃えたい**処理です（各 UI の画像変換へ個別に実装するとアルゴリズムがばらつく）。 実測では、等倍の射影（Avalonia の `Bitmap`）は 4K 1 枚で 7.8 ms / 32 MB に対し、`Box` の縮小版は 320x180 で 1.8 ms / 230 KB でした。
-- **ファイルの入出力をここに置かない理由**: エンコード・デコードには OS のコーデックが必要で、画像の操作（切り出し・縮小）とは責務が異なるためです（Windows 専用の GDI+ を使う実装は `Native.Win` の `WinGdiPlusImageCodec` へ分離しています）。
-
-- **拡張メソッドにする理由**: 切り出し・縮小は「自分を変更せず新しい画像を作る」操作であり、**借用した読み取り専用の画像からも呼べる**必要があるためです（実測: ルーペが表示アダプタの画像を切り出す）。 戻り値は書き換え可能（生成した側が所有し破棄する）。
-- **色の取得をここに置かない理由**: 「座標のピクセルを色として読む」は画像の読み取りそのものであり、**読み取りの面（`IEsBitmap.GetPixel(EsPointInt)`）が実装を持つ**ためです（追加の画像を作らないため、拡張メソッドにする理由がありません）。
-- **戻り値の権利**: 新しく作った画像は `EsWritableBitmap`（書き換え可能）です。 読み取り専用で足りる場合は `EsBitmap.Clone()` を使います。
-
-**Skia との相互変換**（`ToSKBitmap` / `ToEsWritableBitmap`）は SkiaSharp へ依存するため、Skia を使用する層の拡張メソッドが提供します（`ToSKBitmap` は非所有ビュー、`ToEsWritableBitmap` は複製。 所有権はコア側に残ります）。
+- **`CreateFilled` は両方の型に置きます（対にする）**: 相互変換（System.Drawing / Avalonia / Skia）は**どちらの権利の画像も作ります**。 片方だけ別の書き方（未初期化確保 + `Pixels`）になると、変換を読むたびに「なぜ違うのか」を調べることになるためです。 同じ名前・同じ引数の形で戻り値の型だけが違うため、`new` で隠していることを明示します。
+- **未初期化の確保は公開しません**: 書き込んでいない領域が不定値のまま残るため、型で「全領域を書く」約束を表せないからです（生成の直後に全領域を書く手順が内部でだけ使います）。
+- **`Create` と `Clone` は意味が違います**: `Create` は**別のオブジェクトからの生成**（外部の画像から実体を組み立てる）であり、`Clone` は**自身の複製**（同じ型・同じ権利）です。 実装が同じでも意味が異なるため、片方へ寄せません。
+- **座標が範囲外の場合は `ArgumentOutOfRangeException`** です（`System.Drawing.Bitmap.GetPixel` と同じ型）。 `IndexOutOfRangeException` はランタイムが予約した例外であり、送出を禁じるアナライザー（`CA2201` / `MA0012`）があるため使いません。 **範囲外を例外にする理由**: 境界を跨いだ座標はバッファの内側に落ちるため、判定しないと**隣の行の画素が静かに変わる**からです。
+- **生ポインタ（`Address`）は公開しません**: 渡すと「読み取り専用」の意図が消えるためです。 ポインタが要る場合（他フレームワークの非所有ビューへ渡す等）は `ReadOnlyPixels` を `fixed` で固定して取ります（バッファはアンマネージドのため、生存中はアドレスが動きません）。
+- **派生できるのは本アセンブリだけです**: 基底のコンストラクターが `private protected` のため、外部は派生できません（外部が独自の画像を作る場合は、本型を継承せず独自の型を作ります）。
+- **`SupportedFileExtensions` は両方の型に置きます**: 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`）は**形式を決める規則**であり、権利に依存しないためです（どちらの型からでも同じ一覧を使えるようにします）。 **Windows 専用**です。
 
 **他フレームワークの画像型との比較（一次資料と実測。 速度の比較は [2.34](#234-画像操作の他ライブラリとの比較実測) が単一所有します）**:
 
 | 観点 | 本ライブラリ | Skia（`SKImage` / `SKBitmap`） | Avalonia | WinUI 3（WinAppSDK） | Win2D（`CanvasBitmap`） | System.Drawing |
 | --- | --- | --- | --- | --- | --- | --- |
-| 読み取り専用の表し方 | **兄弟型** | **兄弟型**（共通の親は `SKObject` のみ） | **継承**（`WriteableBitmap : Bitmap`） | **継承**（`WriteableBitmap : BitmapSource`）＋**単一型**（`SoftwareBitmap` はロックモードで切替） | 単一型（読み書き両方） | **継承**（`Bitmap : Image`） |
-| 不変の表明 | 型（`EsBitmap`） | `SetImmutable()` / `IsImmutable` | 無し（`Bitmap` に書き込みの入口は無いが「不変」の表明ではない） | 型（`BitmapSource`） | 無し | 無し |
-| ピクセルへの書き込み | `WritablePixels`（`Span<byte>`） | `SKBitmap.GetPixelSpan()` | `Lock()` → `ILockedFramebuffer`（**借用のオブジェクト**） | `WriteableBitmap.PixelBuffer`（`IBuffer`。 直接は書けない） | `SetPixelBytes`（**常に複製**） | `LockBits` |
-| 外部メモリの借用の入口 | 公開しない（`Pixels` は `ReadOnlySpan`、`AddressCore` は `protected`） | `InstallPixels` / `FromPixels`（複製の `FromPixelCopy` と**名前で区別**。 実測: `PeekPixels` が元アドレスを指す） | `WriteableBitmap(PixelFormat, AlphaFormat, IntPtr, …)` | `SoftwareBitmap.LockBuffer()` → `BitmapBuffer` → `CreateReference()`（`IDisposable` の連鎖） | 無し | `Bitmap(IntPtr, …)` |
-| 読み取り専用 → 書き換え可能 | **遅延コピー**（共有し、最初の書き込みで複製） | 複製（`SKBitmap.FromImage` は実測で別アドレス。 共有する入口は無い） | 複製（静的変換も無く、`WriteableBitmap` を作って `CopyPixels`） | **即時の複製**（`CreateCopyFromBuffer` / `Convert`。 メソッド名が複製を明示） | 複製 | 複製（`Clone`） |
-| 生ポインタの公開 | 無し | 有り（`GetPixels()`） | 有り（`ILockedFramebuffer.Address`） | 無し | 無し（`byte[]` のみ） | 有り（`Scan0`） |
-| 破棄 | `IDisposable`（`EsBitmapBase`） | `SKObject : IDisposable` | `IDisposable`（`Bitmap` が宣言） | `SoftwareBitmap : IClosable`（表示型は GC） | `IDisposable` | `Image : IDisposable` |
+| 読み取り専用の表し方 | **継承**（`EsBitmap : EsReadOnlyBitmap`） | **兄弟型**（共通の親は `SKObject` のみ） | **継承**（`WriteableBitmap : Bitmap`） | **継承**（`WriteableBitmap : BitmapSource`）＋**単一型**（`SoftwareBitmap` はロックモードで切替） | 単一型（読み書き両方） | **継承**（`Bitmap : Image`） |
+| 不変の表明 | `SetReadOnly()` / `IsReadOnly`（凍結後の書き込みは例外） | `SetImmutable()` / `IsImmutable`（凍結後も書けてしまう） | 無し（`Bitmap` に書き込みの入口は無いが「不変」の表明ではない） | 型（`BitmapSource`） | 無し | 無し |
+| ピクセルへの書き込み | `Pixels`（`Span<byte>`） | `SKBitmap.GetPixelSpan()` | `Lock()` → `ILockedFramebuffer`（**借用のオブジェクト**） | `WriteableBitmap.PixelBuffer`（`IBuffer`。 直接は書けない） | `SetPixelBytes`（**常に複製**） | `LockBits` |
+| 外部メモリの借用の入口 | `FromPixels`（読み取り）/ `InstallPixels`（書き換え）。 複製は `FromPixelCopy` と**名前で区別** | `InstallPixels` / `FromPixels`（複製の `FromPixelCopy` と**名前で区別**。 実測: `PeekPixels` が元アドレスを指す） | `WriteableBitmap(PixelFormat, AlphaFormat, IntPtr, …)` | `SoftwareBitmap.LockBuffer()` → `BitmapBuffer` → `CreateReference()`（`IDisposable` の連鎖） | 無し | `Bitmap(IntPtr, …)` |
+| 読み取り専用 → 書き換え可能 | **複製**（実測: 4K で 31 MiB / 5.7 ms） | 複製（`SKBitmap.FromImage` は実測で別アドレス。 凍結済みなら逆向きの共有が 0 コピー） | 複製（静的変換も無く、`WriteableBitmap` を作って `CopyPixels`） | **即時の複製**（`CreateCopyFromBuffer` / `Convert`。 メソッド名が複製を明示） | 複製 | 複製（`Clone`） |
+| 生ポインタの公開 | 無し（`ReadOnlyPixels` / `Pixels` を `fixed` で取る） | 有り（`GetPixels()`） | 有り（`ILockedFramebuffer.Address`） | 無し | 無し（`byte[]` のみ） | 有り（`Scan0`） |
+| 破棄 | `IDisposable`（両方の型） | `SKObject : IDisposable` | `IDisposable`（`Bitmap` が宣言） | `SoftwareBitmap : IClosable`（表示型は GC） | `IDisposable` | `Image : IDisposable` |
 
 - **出典**: SkiaSharp / Avalonia / System.Drawing は各アセンブリで実測（リフレクション＋アドレス比較）。 WinUI 3 / Win2D は Microsoft Learn のクラスリファレンス（`WriteableBitmap` / `SoftwareBitmap` / `CanvasBitmap` / `CanvasRenderTarget`）と Windows App SDK のイメージング解説です。
-- **本ライブラリの思想は Skia と同じです（優劣ではなく一致）**: 「読み取り専用と書き換え可能を兄弟型に分ける」設計は Skia に一致します。 本アプリの描画は MewUI（`Aprillz.MewUI.Skia`）＝ Skia であり、MewUI 用の表示ビューは `IEsBitmap` を `ToSKBitmap()`（**非所有ビュー。 複製なし**）で `SKCanvas.DrawBitmap` へ渡します。 描画するエンジンと同じ思想に揃っているため、相互変換が複製なしで書けます。
-- **遅延コピーは調査したどのフレームワークにもありません**（本ライブラリだけが持ちます）。 WinUI 3 は「複製である」ことをメソッド名（`CreateCopyFromBuffer` / `Convert`）で明示する設計であり、遅延コピーの概念を持ちません。
-- **借用の入口を意図的に公開していません**（Skia / Avalonia / System.Drawing は公開し、WinUI 3 と Win2D は公開しません）。 借用は**借用先の寿命に依存する契約を 2 つ併存させる**ことになるためです（実測: Avalonia の表示用のビューは元の破棄で無効化されます）。 本ライブラリは「自分が所有し、自分が破棄する」の 1 契約だけを持ちます。 借用が要る場面（他フレームワークの描画へ渡す）は、**渡す側**で `Pixels` を `fixed` して非所有ビューを作ります（Skia を使用する層が実装済み）。
-- **書き込みの期間は型で表しません**: Avalonia の `Lock()` は借用オブジェクトの寿命で「借用している間」を表しますが、本ライブラリは `WritablePixels`（`Span`）を返します。 `Span` は `ref struct` のため**フィールドに保持できません**が、ローカルに置いたまま破棄すれば不正な書き込みになる点は Avalonia と同じです（借用中の破棄を型で防ぐ手段は、調査したどのフレームワークにもありません）。
+- **借用と複製を名前で分ける点は Skia と同じです（優劣ではなく一致）**: `FromPixels`（借用）/ `FromPixelCopy`（複製）/ `InstallPixels` という名前の付け方は Skia に合わせました。 本アプリの描画は MewUI（Skia）であり、MewUI 用の表示ビューは読み取り専用の画像を `ToSKBitmap()`（**非所有ビュー。 複製なし**）で `SKCanvas.DrawBitmap` へ渡します。
+- **読み取り専用の表し方だけは Skia と違い、継承を選びました**: Skia は兄弟型（`SKImage` と `SKBitmap`）ですが、本ライブラリは「生成した画像へ切り出し・縮小・保存をそのまま呼べる」ことを優先しました（上記「継承にする理由」）。 **保証は変わりません**（読み取り専用の型で受け取った相手には書き込みの入口が無い）。
+- **遅延コピー（読み取り専用の画像と画素を共有し、最初の書き込みで複製する仕組み）は持ちません**: 調査したどのフレームワークも持たず、本ライブラリでも**本番の呼び出しがありませんでした**（`EsBitmap.Create(画像)` を渡すのはテストだけであり、本番は寸法と色で生成していました）。 0 コピーの共有は凍結（`SetReadOnly` と読み取り専用の型）で得られるため、書き込み可能なビューを渡す入口（`Pixels`）と組み合わせると**いつ複製されたか分からない隠れた確保**になるだけでした（[2.33](#233-画像型の設計上の判断継承と借用を選んだ理由)）。
+- **凍結は Skia の `SetImmutable` と同じ役割ですが、実行時の強制を足しています**: Skia は凍結後も `SetPixel` が書けてしまいます（実測）。 本ライブラリは凍結後の書き込みを例外にします。
+- **借用の入口を公開する点は WinUI 3 / Win2D と違います**: 借用は**借用先の寿命に依存する契約**を増やします（実測: Avalonia の表示用のビューは元の破棄で無効化されます）が、複製の費用（実測: 4K で 31 MiB / 5.7 ms）を避ける手段として有効なため、**名前で複製と区別したうえで公開します**。
+- **書き込みの期間は型で表しません**: Avalonia の `Lock()` は借用オブジェクトの寿命で「借用している間」を表しますが、本ライブラリは `Pixels`（`Span<byte>`）を返します。 `Span` は `ref struct` のため**フィールドに保持できません**が、ローカルに置いたまま破棄すれば不正な書き込みになる点は Avalonia と同じです（借用中の破棄を型で防ぐ手段は、調査したどのフレームワークにもありません）。
+- **Skia の `SKImage` が持つ能力（遅延デコード・GPU テクスチャ・ゼロコピーの部分ビュー）は持ちません**: 実測では `SKImage.FromEncodedData` は寸法だけなら**画素を 1 バイトも持たず**（`PeekPixels` が null、ワーキングセットの増分 0 B）、`SKBitmap.Decode` は 48 MB を要します（4000x3000）。 本ライブラリの画像は**常に CPU 上のフル バッファ**であり、2 型の違いは権利の表明だけです（メモリと速度は同一）。 遅延デコードが要る場面は、読み込みを遅らせる側（呼び出し側）で行います。
 
 ### 2.32 画像のファイル入出力（`Save` / `Load`）
 
@@ -673,23 +598,23 @@ public readonly record struct ElementFinderResults(
 
 | 型 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- | --- |
-| `EsBitmapExtensions` | `Save` | `static void Save(this IEsBitmap source, string filePath)` | 画像をファイルへ保存する（**形式は拡張子が決める**。 **面の拡張メソッド**なので、受け取った画像をキャストせずに保存できる） |
-| `EsBitmapExtensions` | `Save` | `static void Save(this IEsBitmap source, string filePath, EsImageSaveOptions options)` | 保存の形式とオプションを指定して保存する（**形式の指定は拡張子より優先され、拡張子が無ければ補完する**。 下記） |
-| `EsBitmapBase` | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`） |
+| `EsBitmapExtensions` | `Save` | `static void Save(this EsReadOnlyBitmap source, string filePath)` | 画像をファイルへ保存する（**形式は拡張子が決める**。 **面の拡張メソッド**なので、受け取った画像をキャストせずに保存できる） |
+| `EsBitmapExtensions` | `Save` | `static void Save(this EsReadOnlyBitmap source, string filePath, EsImageSaveOptions options)` | 保存の形式とオプションを指定して保存する（**形式の指定は拡張子より優先され、拡張子が無ければ補完する**。 下記） |
+| `EsReadOnlyBitmap` / `EsBitmap` | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`） |
 | `EsBitmap` | `Load` | `static EsBitmap Load(string filePath)` | ファイルから**読み取り専用の**画像を読み込む（形式は内容から判別する。 所有権は呼び出し側へ移る） |
-| `EsWritableBitmap` | `Load` | `static EsWritableBitmap Load(string filePath)` | ファイルから**書き換え可能な**画像として読み込む（所有権は呼び出し側へ移る） |
+| `EsBitmap` | `Load` | `static EsBitmap Load(string filePath)` | ファイルから**書き換え可能な**画像として読み込む（所有権は呼び出し側へ移る） |
 | `EsImageFileFormat` | （enum） | `Bmp` / `Png` / `Jpeg` / `Gif` / `Tiff` | 保存する形式（GDI+ のエンコーダーと 1 対 1。 通常は拡張子で足りるため、拡張子が無い場合と拡張子と違う形式で書きたい場合だけ使う） |
 | `EsImageSaveOptions` | `Format` | `EsImageFileFormat? Format { get; init; }` | 保存する形式（`null` は拡張子が決める。 指定した場合は**拡張子より優先**し、拡張子が無ければ補完する） |
 | `EsImageSaveOptions` | `IgnoreFormatMismatch` | `bool IgnoreFormatMismatch { get; init; }` | 拡張子と `Format` の食い違いを無視するか（既定 false = 例外）。 不変の `readonly record struct` であり、部分更新は `with` 式で行う |
 | `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG の品質（0〜100。 `null` は GDI+ の既定） |
 | `EsImageSaveOptions` | `ColorCount` | `int? ColorCount { get; init; }` | 減色（パレット化）して残す色数（2〜256。 `null` は減色しない。 **BMP / PNG / GIF だけ**） |
 
-- **`Save` は面（`IEsBitmap`）の拡張メソッドに置きます**: 保存は**ピクセルを読むだけ**であり、書き換えの権利も**実体の型も要さない**ためです。 型のメンバーにすると、`IEsBitmap` として受け取った画像（表示アダプタ等の外部実装の画像）を保存するときに**キャストが要ります**（キャストは外部実装で失敗し、前提が崩れます）。 面の拡張にすると**受け取った画像をそのまま保存できます**（受け取った側はキャストを知らなくて済みます）。
-- **保存に使える形式の一覧だけは `EsBitmapBase` に残します**: 形式を決める規則の単一所有は `EsBitmapBase.SupportedFileExtensions` であり、保存の実装（`Save` の拡張）がそこを参照します（一覧は型の能力であり、特定の実体を要さないため）。
+- **`Save` は面（`EsReadOnlyBitmap`）の拡張メソッドに置きます**: 保存は**ピクセルを読むだけ**であり、書き換えの権利も**実体の型も要さない**ためです。 型のメンバーにすると、`EsReadOnlyBitmap` として受け取った画像（表示アダプタ等の外部実装の画像）を保存するときに**キャストが要ります**（キャストは外部実装で失敗し、前提が崩れます）。 面の拡張にすると**受け取った画像をそのまま保存できます**（受け取った側はキャストを知らなくて済みます）。
+- **保存に使える形式の一覧だけは画像型に残します**: 形式を決める規則の単一所有は `EsReadOnlyBitmap.SupportedFileExtensions`（`EsBitmap` も同じ値を公開）であり、保存の実装（`Save` の拡張）がそこを参照します（一覧は型の能力であり、特定の実体を要さないため）。
 
-- **`Load` は具体型の静的メソッドに置きます**: 戻したい型（読み取り専用 / 書き換え可能）を**呼び出し側が名指す**必要があるためです（静的メソッドは戻り値の型を共変にできないため、`EsBitmap.Load` と `EsWritableBitmap.Load` の 2 つが要ります）。 書き換えが要る場合は `EsWritableBitmap.Load` を使ってください（`EsBitmap.Load` の結果を `EsWritableBitmap.Create` で複製すると、2 回目のコピーが無駄になります）。 つまりファイル入出力の見え方は「**読むときは型を名指す（`Load`）／書くときは面へ渡す（`Save`）**」です。
-- **`Save` を型のメンバーから面の拡張メソッドへ移した理由（検討の結果）**: 以前は `EsBitmapBase` のメンバーでした（ファイル入出力の入口を `Load` と同じ型にまとめるため）。 しかし `IEsBitmap` として受け取った画像を保存するには**キャストが要る**という問題があります（キャストは本ライブラリの実体でのみ成功し、**外部実装の画像（UI の表示アダプタ等）では失敗する**ため「受け取る側は面だけを知る」という前提が崩れます）。 保存は画素を読むだけであり面から実装できるため、**面の拡張メソッドへ移してキャストを不要にしました**（呼び出し側のコード `image.Save(path)` はどちらの形でも同じように書けます）。
-- **`EsBitmapExtensions` の役割（面を拡張する操作）**: 以前は「画像から画像を作る操作」に限っていましたが、**面（`IEsBitmap` / `IEsWritableBitmap`）から実装できる操作**（`Crop` / `Resize` / `ReduceColors` / `Save`）を置く場所へ広げます。 共通する性質は「**実体の型を要さない**」ことです（`Load` だけは戻す型を名指す必要があるため具体型の静的メソッドに残ります）。
+- **`Load` は具体型の静的メソッドに置きます**: 戻したい型（読み取り専用 / 書き換え可能）を**呼び出し側が名指す**必要があるためです（静的メソッドは戻り値の型を共変にできないため、`EsBitmap.Load` と `EsBitmap.Load` の 2 つが要ります）。 書き換えが要る場合は `EsBitmap.Load` を使ってください（`EsBitmap.Load` の結果を `EsBitmap.Create` で複製すると、2 回目のコピーが無駄になります）。 つまりファイル入出力の見え方は「**読むときは型を名指す（`Load`）／書くときは面へ渡す（`Save`）**」です。
+- **`Save` を型のメンバーから拡張メソッドへ移した理由（検討の結果）**: 以前は画像型のメンバーでした（ファイル入出力の入口を `Load` と同じ型にまとめるため）。 しかし `Save` は**画素を読むだけ**であり、書き換え可能な画像からも読み取り専用の画像からも同じ手順で行えるため、`EsReadOnlyBitmap` の拡張メソッドに置いています（`EsBitmap` からも upcast でそのまま呼べます。 呼び出し側のコード `image.Save(path)` はどちらの型でも同じように書けます）。
+- **`EsBitmapExtensions` の役割（面を拡張する操作）**: 以前は「画像から画像を作る操作」に限っていましたが、**面（`EsReadOnlyBitmap` / `EsBitmap`）から実装できる操作**（`Crop` / `Resize` / `ReduceColors` / `Save`）を置く場所へ広げます。 共通する性質は「**実体の型を要さない**」ことです（`Load` だけは戻す型を名指す必要があるため具体型の静的メソッドに残ります）。
 - **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・GDI+ の呼び出し・状態値の例外化は 1 か所（「`WinGdiPlusImageCodec`」）が単一所有し、公開面（`Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
 - **実装の入出力は画像型を知りません**: 符号化は受け取ったピクセル バイト列を書き（`EncodeToFile`）、復号は**画像の生成処理を受け取ってデコード結果をその領域へ直接書きます**（`DecodeFromFile<T>`）。 コーデックが画像型（`EsBitmap` 等）を名指ししないため、画像型が要るのは公開面だけになります。 **中間バッファも追加のコピーも作りません**（実測: 4K PNG の読み込みで 29.9 ms。 中間バッファを挟む方式は 32.6 ms ＝ **+2.7 ms / +8%** と +31 MiB。 保存は両方式とも 66.5 ms で差なし）。
 - **形式は既定では拡張子が決めます**: `Save` は拡張子から形式を選びます（`.bmp` = Windows Bitmap / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`）。 大文字・小文字は区別しません。
@@ -709,7 +634,7 @@ public readonly record struct ElementFinderResults(
   - **補完に使う拡張子は 1 つに固定します**（`.bmp` / `.png` / `.jpg` / `.gif` / `.tif`）。 別名（`.jpeg` / `.tiff`）は受け付けますが補完には使いません（同じ形式に 2 つの候補があると、呼び出し側が保存先を予測できないため）。
   - **食い違いを既定で例外にする理由**: どちらが呼び出し側の意図か読めないためです。 例外にしないと、拡張子を直し忘れたまま別形式で保存され、**拡張子と中身が食い違ったファイルが黙ってできます**。 `IgnoreFormatMismatch` は「承知の上で食い違わせる」ことを明示する入口です。
   - **どちらの値も GDI+ の初期化より前に判定します**（拒否される呼び出しはプロセス全体の副作用を起こしません）。
-- **未対応の拡張子は例外にします**: PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かないためです（`NotSupportedException`。 対応形式の単一所有は `EsBitmapBase.SupportedFileExtensions`）。
+- **未対応の拡張子は例外にします**: PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かないためです（`NotSupportedException`。 対応形式の単一所有は `EsReadOnlyBitmap.SupportedFileExtensions`）。
 - **保存のオプションを指定できます（実測）**: `Save(string, EsImageSaveOptions)` は指定した値だけを GDI+ のエンコーダー パラメーターとして渡します。 1280x720 の画像（一様 / なだらか / 不規則）を各値で保存し、ファイル サイズと復号した画素を比較した結果です。
 
   | オプション | 内容 | 一様（単色） | なだらか | 不規則（疑似乱数） |
@@ -852,43 +777,41 @@ public readonly record struct ElementFinderResults(
 - **制限**: JPEG / BMP はアルファ （透明度）を保存できません（形式の仕様。 透過を保つ場合は PNG を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする。 小さく使う場合は `Downscale*` で縮小する）。
 - **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（GDI+ はどちらも同じ状態値を返すため区別しません）。 エンコード・デコードの失敗は `Win32Exception`（`ExternalException` の派生。 GDI+ の状態値を保持）で通知します。
 
-### 2.33 `Imaging.IEsBitmap`（interface） / `Imaging.IEsWritableBitmap`（interface）
+### 2.33 画像型の設計上の判断（継承と借用を選んだ理由）
 
-画像の**権利を型で分ける**抽象です。 受け取った側が「書き換えてよいか」「破棄してよいか」を型から判断できます（借用と所有の取り違えを無くすための境界です）。
+現在の画像型（[2.31](#231-imagingesreadonlybitmapclass--idisposable--imagingesbitmapsealed-class--esreadonlybitmap)）に至る判断と、その理由です。 **実装を変えるときに同じ検討を繰り返さないため**に残します。
 
-| 型 | 役割 | 与える権利 |
-| --- | --- | --- |
-| `IEsBitmap` | 借用して**読み取る** | 寸法・`Pixels`・`GetPixel` と、**破棄済みかの判定**（`IsDisposed`）（**書き換え不可・破棄不可**） |
-| `IEsWritableBitmap` | 借用して**書き換える** | `IEsBitmap` ＋ `WritablePixels`・`SetPixel`・`TrySetPixel`・`Clear`（**破棄は不可**） |
+**1. 面（interface）を廃止しました**: 以前は `EsReadOnlyBitmap` / `EsBitmap` の 2 つのインターフェイスと抽象基底（`EsBitmapBase`）で権利を表していましたが、**一般的なインターフェイスの意味と役割が違う**（権利の表明であり、実装の差し替え点ではない）ためです。
 
-**`IEsBitmap` のメンバー**:
+- 実装していた外部の型は表示アダプタ 1 種類だけで、その中身は**コアの画像への転送**でした（画素を自前で持つ実装は存在しませんでした）。 したがってインターフェイスは「境界の受け口を 1 つに見せる」ためだけに使われており、**型の数を増やす利益より、使い分けを覚える費用の方が大きい**状態でした。
+- 受け取る型を具象型にしても「受け取った側は書けない」は保たれます（読み取り専用の型で受けるため）。 キャストが要る場面（保存）は `EsReadOnlyBitmap` の拡張メソッドにしてあります。
+- 廃止の副産物として、破棄状態（`IsDisposed`）の判定が**型で揃いました**（以前は「面から判定する」ためにインターフェイスが要る、という理由付けがありましたが、表示アダプタはコアの画像を内包して転送するだけになったため、コアの実体そのものを見れば足ります）。
 
-| 種別 | メンバー | シグネチャ | 説明 |
-| --- | --- | --- | --- |
-| 定数 | `BytesPerPixel` | `const int` | 1 ピクセルあたりのバイト数（4。 **定義はここが単一所有**し、`EsBitmap` は転送する） |
-| プロパティ | `IsDisposed` | `bool` | 破棄済みか（**破棄の権利ではなく「まだ使えるか」の情報**。 実装は真実の破棄状態を返す） |
-| プロパティ | `Width` / `Height` | `int` | 幅 / 高さ（ピクセル） |
-| プロパティ | `Size` | `EsSizeInt` | 幅・高さ（ピクセル。 コアの整数サイズ型） |
-| プロパティ | `Stride` | `int` | 1 ラインあたりバイト数（**常に 幅 × 4**。 パディングなし） |
-| プロパティ | `Pixels` | `ReadOnlySpan<byte>` | ピクセル データの**読み取り専用ビュー**（コピーしない。 長さは `Stride × Height`） |
-| メソッド | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` | 指定座標の BGRA（アルファ乗算済み）。 範囲外は `IndexOutOfRangeException` |
-| メソッド | `GetPixel` | `Color GetPixel(EsPointInt point)` | 指定座標の色（`System.Drawing.Color`。 座標型を受け取る版） |
-| メソッド | `ToSizeText` | `string ToSizeText()` | 寸法を `<c>幅x高さ</c>` 形式の文字列で返す（ログ等への記録用。 **未設定（null）の表記は記録する側が決める**ため、面は null を受け取らない） |
+**2. 兄弟型から継承に変えました（`EsBitmap : EsReadOnlyBitmap`）**: 読み取り専用と書き換え可能を**兄弟**（互いに派生しない）にすると、「生成した画像へ切り出し・縮小・保存を呼ぶ」という**最も普通の使い方が型で止まります**（実測: テストの型不一致だけで多数発生しました）。 継承ならその変換は無料の upcast になり、保証（読み取り専用の型で受けた相手には書き込みの入口が無い）は変わりません。
 
-**`IEsWritableBitmap` のメンバー**（`IEsBitmap` の全メンバーを含む）:
+- **兄弟型の利点（同じ実体を 2 つの型で見せない）は失われません**: 派生した書き換え可能な画像を読み取り専用として渡すと、相手は書き込みの入口を持ちません。 同じ実体を書き換え可能な側が変える可能性は残りますが、それは**凍結**（`SetReadOnly`）で明示的に止められます（兄弟型では「書き換え可能な側の書き込みが読み取り専用側の画素を変える」ことすら型では防げず、実体の共有を避けるしかありませんでした）。
 
-| 種別 | メンバー | シグネチャ | 説明 |
-| --- | --- | --- | --- |
-| プロパティ | `WritablePixels` | `Span<byte>` | ピクセル データの**書き込み可能なビュー**（`Pixels` と同じバッファを指す） |
-| メソッド | `SetPixel` | `void SetPixel(int x, int y, byte b, byte g, byte r, byte a)` | 指定座標へ BGRA を設定。 範囲外は `IndexOutOfRangeException` |
-| メソッド | `TrySetPixel` | `bool TrySetPixel(int x, int y, Color color)` / `bool TrySetPixel(EsPointInt point, Color color)` | 指定座標へ色を設定（**範囲外は `false`**。 端をはみ出す矩形を描く用途。 座標型の版は読み取りの面の `GetPixel(EsPointInt)` と対になる） |
-| メソッド | `Clear` | `void Clear(byte b, byte g, byte r, byte a)` / `void Clear(Color color)` | 全ピクセルを指定色で塗りつぶし |
+**3. 遅延コピーを廃止しました**: 以前は読み取り専用の画像から書き換え可能な画像を作るときに**バッファを共有し、最初の書き込みでだけ複製する**仕組み（copy on write）を持っていました。
 
-- **`IDisposable` を含めません**: 借用に**破棄の権利**を与えないためです（破棄するのは生成した側であり、その側は書き込み可能な具象型として画像を持ちます）。 この分離により「**借用した画像を破棄する**」誤りがコンパイル エラーになります。
-- **破棄状態（`IsDisposed`）は含めます**: 破棄の権利とは別であり、受け取った側が「破棄済みを描画・計算へ渡さない」ための判定に使います。 **実体の型（`EsBitmapBase` の派生）へダウンキャストしない**のは、本インターフェイスを直接実装する画像（Avalonia の表示アダプタ等）を取りこぼすためです（実測: ダウンキャストしていた `SkiaImageRenderer` は表示アダプタを検出できていませんでした）。
-- **生ポインタ（`Address`）を読取面へ含めません**: 渡すと読み取り専用の意図が消えるためです。 ポインタが要る場合（他フレームワークの非所有ビューへ渡す等）は `Pixels` を `fixed` で固定して取ります（バッファはアンマネージドのため、生存中はアドレスが動きません）。
-- **`WritablePixels` を別名にする理由**: 同名にすると `IEsBitmap` 経由か `IEsWritableBitmap` 経由かで返る型が変わり、**書き換えてよいかどうかが読み手に分からなくなります**。
-- **破棄済みの扱い**: 実装は破棄済みの場合に `ObjectDisposedException` を投げます（`Pixels` / `WritablePixels` の取得も含む。 無効な画像の値を正常値として返さないため）。
+- **本番の呼び出しがありませんでした**: `EsBitmap.Create(画像)` を渡していたのはテストだけであり、本番はすべて寸法と色で生成していました。
+- **調査したどのフレームワークも遅延コピーを持ちません**（Skia / Avalonia / System.Drawing / WinUI 3）。 遅延複製が実務で成功しているのは「値のように頻繁にコピーされ、生のバッファを外へ渡さない型」であり、書き込み可能なビューを渡す API と組み合わせると、**いつ複製されたか分からない隠れた確保**になります（`Pixels` を取った瞬間に全領域コピーが走りうる）。
+- **0 コピーの共有は凍結で得られます**: 読み取り専用の型（書き込みの入口が無い）＋ `SetReadOnly` で、共有しても内容が変わらないことを保証できます。
+
+**4. 借用（`FromPixels` / `InstallPixels`）を公開しました**: 他フレームワークのビットマップ・アンマネージドの領域・共有メモリを複製せずに扱う入口です。
+
+- **複製（`FromPixelCopy`）と名前で区別します**（Skia と同じ付け方）。 複製の費用は実測で 4K 1 枚あたり 31 MiB と 5.7 ms であり、既に画素がある場合に払う理由がない場面があります。
+- **借用先の寿命に依存する契約が増える**という代償は受け入れています（実測: Avalonia の表示用のビューは元の破棄で無効化されます）。 代償を減らすため、解放のコールバック（`release`）を任意で受け取り、**解放の経路は `SafeBorrowedBuffer` の 1 か所**に保っています。 WinUI 3 / Win2D は借用の入口を公開しませんが、本ライブラリは汎用のライブラリであり、**複製を避ける手段が要る場面が想定される**ため公開します。
+
+**5. 凍結（`SetReadOnly`）で書き込みを止めます**: Skia の `SetImmutable` と同じ役割ですが、**凍結後の書き込みを例外にします**（Skia は凍結後も `SetPixel` が書けてしまい、規約で守られています。 実測）。
+
+- **「読み取り専用として渡す」と「凍結する」を分けています**: 渡すだけで凍結すると、生成した画像へ切り出し・保存を呼んだ後に書き続けられません。 凍結は書き終えた時点で明示的に行います。
+
+**6. 画素ビューの名前を `Memory<T>` に合わせました**: 書き換え可能な型の無印（`Pixels`）を `Span<byte>`（書き込み可能）、読み取り専用のビューを `ReadOnlyPixels` にしました。
+
+- 以前は書き込み可能なビューを `WritablePixels`、読み取り専用を `Pixels` としていましたが、**書き換え可能な型では書き込みが本題**であり、無印が書き込み可能である方が名前と役割が一致します（`Memory<T>` に対する `Span<T>` と同じ関係）。
+- 読み取り専用のビューは基底が持つため、**どちらの型でも名前と返る型が一致します**（同じ名前で型だけが変わる取り違えが起きません）。
+
+**7. 座標が範囲外の場合は `ArgumentOutOfRangeException`** にしました（旧 `IndexOutOfRangeException`）。 `IndexOutOfRangeException` はランタイムが予約した例外であり、送出を禁じるアナライザー（`CA2201` / `MA0012`）があるためです（`System.Drawing.Bitmap.GetPixel` も同じ型を投げます）。 **判定を入れた理由**: 境界を跨いだ座標はバッファの内側に落ちるため、判定しないと隣の行の画素が静かに変わります。
 
 ### 2.34 画像操作の他ライブラリとの比較（実測）
 
@@ -1065,7 +988,7 @@ catch (Win32Exception ex) when (BoundaryCatch.IsRecoverable(ex))
 ### 3.4 ピクセルコンテナ
 
 ```csharp
-using var bitmap = EsWritableBitmap.Create(1920, 1080);   // 全ピクセル透明（書き換え可能）
+using var bitmap = EsBitmap.Create(1920, 1080);   // 全ピクセル透明（書き換え可能）
 bitmap.Clear(b: 0, g: 0, r: 255, a: 255);                 // 赤で塗りつぶし
 using var region = bitmap.Crop(new EsRectInt(10, 20, 800, 600));
 using var readOnly = EsBitmap.Create(bitmap);             // 読み取り専用の複製

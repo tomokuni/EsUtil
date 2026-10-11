@@ -105,7 +105,7 @@ classDiagram
         +MeasureContent(size) Size
     }
     class LoupeControl {
-        +IEsBitmap? Source
+        +EsReadOnlyBitmap? Source
         +EsPoint? CenterPoint
         +LoupeOptions Options
         +LoupeAppearance Appearance
@@ -248,7 +248,7 @@ sequenceDiagram
 
 ## 8. 設計判断
 
-1. **中間ビットマップを持たない**。 Avalonia 版は `RenderTargetBitmap` に描いて `EsWritableBitmap` へコピーするが、
+1. **中間ビットマップを持たない**。 Avalonia 版は `RenderTargetBitmap` に描いて `EsBitmap` へコピーするが、
    MewUI 版は `SkiaCanvasView` のキャンバスへ直接描画する（コピーとメモリ確保を排除）。
 2. **拡大は最近傍で行う**。 ルーペは画素をそのまま拡大する用途であり、補間すると画素が判別できなくなる。
 3. **装飾矩形の導出は提示層が単一所有する**。 両 UI で同じ見た目を保証するため、

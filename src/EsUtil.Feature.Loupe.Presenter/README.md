@@ -23,7 +23,7 @@
 // 1. 提示層（既定実装）を生成する。外観は LoupeAppearance（既定は LoupeAppearance.Default）、設定は LoupeOptions
 // ロガーはコンストラクターでも後から（Log プロパティ）でも注入できる
 private readonly LoupePresenter _presenter = new(logger);
-private IEsBitmap? _source;   // 拡大元の画像（本 UI が解決して渡す。 借用であり破棄しない）
+private EsReadOnlyBitmap? _source;   // 拡大元の画像（本 UI が解決して渡す。 借用であり破棄しない）
 
 // 2. 状態の更新（マウス移動などで拡大中心を設定する）
 public void SetCenter(EsPoint sourcePoint)
@@ -44,7 +44,7 @@ protected override void Render(DrawingContext context)
 
 - 表示位置（左上）が必要なら `LoupePresenter.ResolveLayout(parentSize)` を使う（オフセット加算と領域内への位置の補正はコアが単一所有する）。
 - **ロガーはコンストラクター（`new LoupePresenter(logger)`）と `Log` プロパティのどちらでも注入できます**。 ロガーが確定した時点（コンストラクター注入時、または `Log` の初回設定時）で**生成の記録を 1 度だけ**出力します。
-- 拡大元画像は UI ごとに型が異なるため `LoupeDrawPlan` に含めません。 UI が `IEsBitmap` を解決して描画へ渡します。
+- 拡大元画像は UI ごとに型が異なるため `LoupeDrawPlan` に含めません。 UI が `EsReadOnlyBitmap` を解決して描画へ渡します。
 - 実寸測定（`MeasureText`）は描画 API 依存のため UI 層が与えます。
 
 ## 3. 含まれるもの

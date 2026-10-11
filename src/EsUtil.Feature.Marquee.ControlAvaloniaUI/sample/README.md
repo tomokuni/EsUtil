@@ -165,7 +165,7 @@ EsUtil.Feature.Marquee.ControlAvaloniaUI/sample/
 │   └── InMemoryLogger.cs          # MarqueeControl.Log の設定例（メモリ内ログ）
 ├── Internal/                      # Platform.* を使わないための複製（internal。 依存関係.md §4.1）
 │   ├── ColorAvaloniaInterop.cs    # Avalonia の色 ⇔ System.Drawing.Color
-│   ├── EsBitmapAvaloniaAdapter.cs # コアの画像を表示面（IImage）と読み取り面（IEsBitmap）の両面で公開するアダプタ
+│   ├── EsBitmapAvaloniaAdapter.cs # コアの画像を表示面（IImage）として公開し、コアの画像は GetEsBitmap() で取り出すアダプタ
 │   └── EsBitmapAvaloniaExtensions.cs # コアの画像 ⇔ Avalonia の画像の変換
 ├── Presentation/
 │   └── GuideMarqueePlan.cs        # 外観と描画計画（破線枠・三分割ガイド）を与える見本

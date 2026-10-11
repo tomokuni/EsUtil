@@ -23,7 +23,7 @@ UI 非依存のコア（選択範囲を拡大表示するルーペの計算）�
 ## 1. 前提条件
 
 - 本コアは UI フレームワークに依存しません（依存は `EsUtil.Platform.Core` と `Microsoft.Extensions.Logging.Abstractions`（ログ定義のソース生成）のみ）。 UI 固有の型は利用者（UI 実装）が境界で変換します。
-- 座標は `EsPoint` / `EsSize` / `EsRect`（`EsUtil.Platform.Core`）、拡大元画像は `IEsBitmap`（読み取る権利の抽象）で扱います。
+- 座標は `EsPoint` / `EsSize` / `EsRect`（`EsUtil.Platform.Core`）、拡大元画像は `EsReadOnlyBitmap`（読み取る権利の抽象）で扱います。
 - 描画の可否は**外観（描画にだけ必要な設定を所有する上位層）の明示フラグ**（`ShowCrosshair` / `ShowBorder` / `ShowCoordLabel`）が単一所有します（描画にだけ必要な設定のため、コアの設定には含めません）。
 - 描画の順序（下地の塗り → 拡大画像 → 十字線 → 枠線 → テキスト）と色は描画層（本コアを参照する上位の層）が単一所有します（本コアは塗りも順序も持たず、幾何だけを返します）。
 - コントロール化にだけ必要な処理（再描画要求のバッチ化・世代番号管理）は上位のコントロール実装が所有します。
@@ -164,7 +164,7 @@ var scale = geometry.ZoomLevel;                 // 対象座標 → ルーペ画
 | --- | --- |
 | （なし） | ファサードの `LoupeCore.ResolveGeometry` が唯一の生成元である（UI 層は本値を組み立てない） |
 
-拡大元画像は UI ごとに型が異なるため本値に含めず、描画実装が解決した `IEsBitmap` を別引数として渡します（複数の UI が同じ手順で本値を受け取ります）。
+拡大元画像は UI ごとに型が異なるため本値に含めず、描画実装が解決した `EsReadOnlyBitmap` を別引数として渡します（複数の UI が同じ手順で本値を受け取ります）。
 
 ### 3.2 切り出し領域の導出（`LoupeGeometry` のメンバー）
 

@@ -140,7 +140,7 @@ dotnet test src/EsUtil.Feature.Loupe.Core/tests/EsUtil.Feature.Loupe.Core.Tests.
 | 判断 | 内容 |
 | --- | --- |
 | 座標・寸法の型 | コア（`EsUtil.Platform.Core.Geometry`）の `EsPoint` / `EsSize` / `EsRect` を使い、UI 型は境界で 1 行変換する |
-| 画像の型 | 拡大元画像は UI ごとに型が異なるため契約（`LoupeGeometry`）に含めず、描画実装が解決した `IEsBitmap` を別引数で受け取る |
+| 画像の型 | 拡大元画像は UI ごとに型が異なるため契約（`LoupeGeometry`）に含めず、描画実装が解決した `EsReadOnlyBitmap` を別引数で受け取る |
 | 文字の描画 | コアは文言・基準点・配置の基準も持たない（描画層（上位の層）が文言と基準点、ならびに実寸 → 配置矩形の写像を担い、UI 層が実寸測定と要素の配置を担う。 色は描画層の外観が与える） |
 | 再描画のバッチ化 | UI のディスパッチャーに依存するため上位のコントロール実装が単一所有する（コアは同期計算のみ） |
 | 色 | コアは色を持たない（色は描画にだけ必要な設定であり、描画層の外観が単一所有する）。 色の型は UI 非依存の `System.Drawing.Color` とし、UI の色型への変換は描画の境界で行う |

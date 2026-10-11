@@ -1,6 +1,6 @@
 # EsUtil.Platform.Core.Windows
 
-`EsUtil.Platform.Core` の画像型（`EsBitmap` / `EsWritableBitmap`）と **`System.Drawing.Bitmap` を相互変換する Windows 専用の拡張メソッド**を提供するライブラリです。
+`EsUtil.Platform.Core` の画像型（`EsBitmap` / `EsBitmap`）と **`System.Drawing.Bitmap` を相互変換する Windows 専用の拡張メソッド**を提供するライブラリです。
 
 ## 1. 目的
 
@@ -12,7 +12,7 @@
 
 | 型 | 内容 |
 | --- | --- |
-| `EsBitmapDrawingExtensions` | `System.Drawing.Bitmap` ⇔ コアの画像の相互変換（`ToEsBitmap` / `ToEsWritableBitmap` / `ToDrawingBitmap`） |
+| `EsBitmapDrawingExtensions` | `System.Drawing.Bitmap` ⇔ コアの画像の相互変換（`ToEsBitmap` / `ToEsBitmap` / `ToDrawingBitmap`） |
 
 ## 3. 依存関係
 
@@ -37,7 +37,7 @@ using var drawing = new Bitmap("capture.png");
 using EsBitmap readOnlyImage = drawing.ToEsBitmap();
 
 // System.Drawing.Bitmap → コアの画像（複製。 書き換え可能）
-using EsWritableBitmap editableImage = drawing.ToEsWritableBitmap();
+using EsBitmap editableImage = drawing.ToEsBitmap();
 
 // コアの画像 → System.Drawing.Bitmap（複製）
 using Bitmap back = editableImage.ToDrawingBitmap();
@@ -45,9 +45,9 @@ using Bitmap back = editableImage.ToDrawingBitmap();
 
 | メソッド | 説明 |
 | --- | --- |
-| `ToEsBitmap(this Bitmap)` | 読み取り専用の画像を作る（複製。 **書き換えが要る場合は `ToEsWritableBitmap`**） |
-| `ToEsWritableBitmap(this Bitmap)` | 書き換え可能な画像を作る（複製） |
-| `ToDrawingBitmap(this IEsBitmap)` | `System.Drawing.Bitmap`（`Format32bppPArgb`）を作る（複製） |
+| `ToEsBitmap(this Bitmap)` | 読み取り専用の画像を作る（複製。 **書き換えが要る場合は `ToEsBitmap`**） |
+| `ToEsBitmap(this Bitmap)` | 書き換え可能な画像を作る（複製） |
+| `ToDrawingBitmap(this EsReadOnlyBitmap)` | `System.Drawing.Bitmap`（`Format32bppPArgb`）を作る（複製） |
 
 - **アルファは乗算済みの BGRA8888 で扱います**（コアの画像と同じ並び）。 部分的なアルファ（半透明）も保持します。
 - **`System.Drawing.Common` は Windows 専用です**（非 Windows では動作しません）。 公開メンバーは `SupportedOSPlatform("windows")` で限定します。

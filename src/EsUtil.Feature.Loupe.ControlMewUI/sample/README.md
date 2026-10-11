@@ -131,7 +131,7 @@ DIP で書いた寸法は計画が持つ倍率（`LoupeDrawPlan.ScaleDipToPixel`
 | 項目 | 本サンプル（MewUI） | Avalonia 版サンプル |
 | --- | --- | --- |
 | UI の記述 | C# のコードのみ（MewUI は XAML を持たない） | XAML + コードビハインド |
-| 画像の受け渡し | `Source` へ `IEsBitmap` を直接設定する | 非所有アダプタ（`IImage` ↔ `IEsBitmap`）を経由する |
+| 画像の受け渡し | `Source` へ `EsReadOnlyBitmap` を直接設定する | 非所有アダプタ（`IImage` ↔ `EsReadOnlyBitmap`）を経由する |
 | ルーペの配置 | ホストが `ResolveLayout` の結果で配置する（`Arrange`）。 コントロールは位置を持たない | コントロール自身が `RenderTransform` と `PositionOffset` で配置する |
 | 選択矩形の破線（画像側） | 破線を描く専用のキャンバス（`SelectionRectOverlay`）を重ねる | `Rectangle`（`StrokeDashArray`）とラベル要素を重ねる |
 | 選択矩形の破線（ルーペ内） | `Rendered` の Skia キャンバスへ描く | `Rendered` の書き込み可能な画像のピクセルへ描く |

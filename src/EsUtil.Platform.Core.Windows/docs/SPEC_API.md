@@ -17,7 +17,7 @@
 | --- | --- | --- |
 | `EsUtil.Platform.Core.Windows.Imaging` | `EsBitmapDrawingExtensions` | コアの画像と `System.Drawing.Bitmap` の相互変換（Windows 専用） |
 
-`EsBitmap` / `EsWritableBitmap` / `IEsBitmap` / `IEsWritableBitmap` は `EsUtil.Platform.Core` が提供します（[`EsUtil.Platform.Core` の API リファレンス](../../EsUtil.Platform.Core/docs/SPEC_API.md)）。
+`EsBitmap` / `EsBitmap` / `EsReadOnlyBitmap` / `EsBitmap` は `EsUtil.Platform.Core` が提供します（[`EsUtil.Platform.Core` の API リファレンス](../../EsUtil.Platform.Core/docs/SPEC_API.md)）。
 
 ## 2. 公開 API
 
@@ -28,8 +28,8 @@
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
 | `ToEsBitmap` | `static EsBitmap ToEsBitmap(this Bitmap bitmap)` | `System.Drawing.Bitmap` から**読み取り専用の**画像を作る（複製。 元の Bitmap は変更しない） |
-| `ToEsWritableBitmap` | `static EsWritableBitmap ToEsWritableBitmap(this Bitmap bitmap)` | `System.Drawing.Bitmap` から**書き換え可能な**画像を作る（複製。 元の Bitmap は変更しない） |
-| `ToDrawingBitmap` | `static Bitmap ToDrawingBitmap(this IEsBitmap bitmap)` | コアの画像から `System.Drawing.Bitmap`（`Format32bppPArgb`）を作る（複製） |
+| `ToEsBitmap` | `static EsBitmap ToEsBitmap(this Bitmap bitmap)` | `System.Drawing.Bitmap` から**書き換え可能な**画像を作る（複製。 元の Bitmap は変更しない） |
+| `ToDrawingBitmap` | `static Bitmap ToDrawingBitmap(this EsReadOnlyBitmap bitmap)` | コアの画像から `System.Drawing.Bitmap`（`Format32bppPArgb`）を作る（複製） |
 
 - **転送は「1 枚につき 1 回のコピー」を守ります**（実測: 4K で 1 回のコピーは約 6.5 ms）。 `ToEsBitmap` が書き換え可能な画像を
   経由すると**バッファを 2 つ作って全領域を 2 回コピー**するため（実測 13.6 ms）、読み取り専用の画像へ直接 1 回だけ書き込みます
@@ -55,7 +55,7 @@ using EsBitmap image = source.ToEsBitmap();
 using Bitmap back = image.ToDrawingBitmap();
 ```
 
-**書き換えが要る場合は `ToEsWritableBitmap` を使います**（読み取り専用の画像は書き込みの入口を公開しません）。
+**書き換えが要る場合は `ToEsBitmap` を使います**（読み取り専用の画像は書き込みの入口を公開しません）。
 
 ## 4. 制限事項
 
@@ -65,5 +65,5 @@ using Bitmap back = image.ToDrawingBitmap();
 
 ## 5. 関連ドキュメント
 
-- 変換元の画像型（`EsBitmap` / `EsWritableBitmap`） … [`EsUtil.Platform.Core` の API リファレンス](../../EsUtil.Platform.Core/docs/SPEC_API.md)
+- 変換元の画像型（`EsBitmap` / `EsBitmap`） … [`EsUtil.Platform.Core` の API リファレンス](../../EsUtil.Platform.Core/docs/SPEC_API.md)
 - 参照の許可範囲 … [`.github/依存関係.md`](../../../.github/依存関係.md)
