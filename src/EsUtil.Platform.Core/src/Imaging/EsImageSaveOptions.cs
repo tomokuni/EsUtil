@@ -69,7 +69,7 @@ public readonly record struct EsImageSaveOptions
     /// <value>null（既定）の場合は減色しない（元の画素のまま保存する）。</value>
     /// <remarks>
     /// <b>不可逆である</b>: 元の画素は戻らない（ファイル サイズを下げる代わりに色を失う）。
-    /// 減色の結果は <see cref="EsBitmapExtensions.ReduceColors"/> と同じ計算である（同じ色数を指定すれば同じ絵になる）。<br/><br/>
+    /// 減色の結果は <see cref="EsBitmapExtensions.ReduceColors(EsReadOnlyBitmap, int)"/> と同じ計算である（同じ色数を指定すれば同じ絵になる）。<br/><br/>
     /// <b>指定しなくても GIF は常に量子化される</b>（GIF はパレットが必須であり、GDI+ のエンコーダーは
     /// 透明色の番号をどの画素にも使わせないため、32bpp のまま渡すと透過が失われる。 実測で確認）。<br/>
     /// <b>使えるのは BMP / PNG / GIF だけである</b>（実測で確認した 3 形式。 これらの形式はパレットを持てるため、

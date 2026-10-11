@@ -217,7 +217,8 @@ public class EsBitmapExtensionsTests
 
     [Fact]
     internal void Crop_nullはArgumentNullExceptionを投げる()
-        => Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.Crop(null!, new EsRectInt(0, 0, 4, 4)));
+        => Assert.Throws<ArgumentNullException>(
+            () => EsBitmapExtensions.Crop((EsReadOnlyBitmap)null!, new EsRectInt(0, 0, 4, 4)));
 
     // ====================================================================
     // 縮小（Resize のアルゴリズム: Nearest / Bilinear / Box）
@@ -365,7 +366,7 @@ public class EsBitmapExtensionsTests
 
     [Fact]
     internal void 縮小_nullはArgumentNullExceptionを投げる()
-        => Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.Resize(null!, 10));
+        => Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.Resize((EsReadOnlyBitmap)null!, 10));
 
     [Fact]
     internal void 縮小_既定のアルゴリズムは双線形()
@@ -565,6 +566,73 @@ public class EsBitmapExtensionsTests
         Assert.Contains((byte)255, alphas);
         Assert.Contains((byte)128, alphas);
         Assert.Contains((byte)0, alphas);
+    }
+
+    // ====================================================================
+    // 書き換え可能な画像から呼ぶオーバーロード（凍結せずに読む）
+    // ====================================================================
+
+    [Fact]
+    internal void Crop_書き換え可能な画像から呼べて元は凍結されない()
+    {
+        using var bitmap = EsBitmap.Create(10, 10, System.Drawing.Color.FromArgb(255, 1, 2, 3));
+
+        using var result = bitmap.Crop(new EsRectInt(2, 2, 4, 4));
+
+        // 元は凍結されない（オーバーロードは読み取り専用の見方を内部的に借りるだけ）
+        Assert.False(bitmap.IsReadOnly);
+        bitmap.SetPixel(0, 0, 9, 9, 9, 9);
+        Assert.Equal((byte)9, bitmap.GetPixel(0, 0).B);
+
+        // 切り出しの結果は独立している（元の書き込みに影響されない）
+        Assert.Equal((byte)3, result.GetPixel(0, 0).B);
+        Assert.Equal(4, result.Width);
+
+        // 成分指定の版も同じ結果になる
+        using var byComponents = bitmap.Crop(2, 2, 4, 4);
+        Assert.Equal(result.ReadOnlyPixels.ToArray(), byComponents.ReadOnlyPixels.ToArray());
+    }
+
+    [Fact]
+    internal void Resize_書き換え可能な画像から呼べて元は凍結されない()
+    {
+        using var bitmap = EsBitmap.Create(20, 10, System.Drawing.Color.FromArgb(255, 1, 2, 3));
+
+        using var result = bitmap.Resize(5, DownscaleAlgorithm.Box);
+
+        Assert.False(bitmap.IsReadOnly);
+        Assert.Equal(5, result.Width);
+        Assert.Equal((byte)3, result.GetPixel(0, 0).B);
+    }
+
+    [Fact]
+    internal void ReduceColors_書き換え可能な画像から呼べて元は凍結されない()
+    {
+        using var bitmap = EsBitmap.CreateFilled(8, 8, span => span.Fill(200));
+
+        using var result = bitmap.ReduceColors(16);
+
+        Assert.False(bitmap.IsReadOnly);
+        Assert.Equal((byte)200, result.GetPixel(0, 0).B);
+    }
+
+    [Fact]
+    internal void 書き換え可能な画像のオーバーロードは破棄済みなら例外になる()
+    {
+        var bitmap = EsBitmap.Create(4, 4);
+        bitmap.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(() => bitmap.Crop(new EsRectInt(0, 0, 2, 2)));
+        Assert.Throws<ObjectDisposedException>(() => bitmap.Resize(2));
+        Assert.Throws<ObjectDisposedException>(() => bitmap.ReduceColors(16));
+    }
+
+    [Fact]
+    internal void 書き換え可能な画像のオーバーロードはnullならArgumentNullExceptionを投げる()
+    {
+        Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.Crop((EsBitmap)null!, new EsRectInt(0, 0, 2, 2)));
+        Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.Resize((EsBitmap)null!, 2));
+        Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.ReduceColors((EsBitmap)null!, 16));
     }
 
     /// <summary>透明・半透明・不透明の 3 段階を持つ画像を作る（RGB は同じ）。</summary>

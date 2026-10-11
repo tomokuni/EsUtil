@@ -1,6 +1,6 @@
 namespace EsUtil.Platform.Core.Imaging;
 
-/// <summary>コアの画像を縮小するときのアルゴリズム（<see cref="EsBitmapExtensions.Resize"/> の引数）。</summary>
+/// <summary>コアの画像を縮小するときのアルゴリズム（<see cref="EsBitmapExtensions.Resize(EsReadOnlyBitmap, int, DownscaleAlgorithm)"/> の引数）。</summary>
 /// <remarks>
 /// <b>どれを選ぶか</b>（実測は Release・4K 3840x2160 の画像。 環境によりぶれるため桁で見ること。
 /// 表中の値はすべて<b>縮小先の行を並列実行する実装</b>のもので、逐次より 3〜13 倍速い）:
@@ -39,7 +39,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// 固定 4 タップ版は 0.72 ms と安いが、それは<b>間引くだけ</b>であり面積平均との差は 13.4（<see cref="Bilinear"/> の 10.6 と同程度）。
 /// 立方畳み込みが正しい選択になるのは<b>拡大</b>であり、本メソッドは拡大を行わない。
 ///
-/// <b>同じ機能の別名を作らない</b>ためにアルゴリズムは本列挙体で選び、入口は <see cref="EsBitmapExtensions.Resize"/> の 1 つに統一する。
+/// <b>同じ機能の別名を作らない</b>ためにアルゴリズムは本列挙体で選び、入口は <see cref="EsBitmapExtensions.Resize(EsReadOnlyBitmap, int, DownscaleAlgorithm)"/> の 1 つに統一する。
 /// </remarks>
 public enum DownscaleAlgorithm
 {
