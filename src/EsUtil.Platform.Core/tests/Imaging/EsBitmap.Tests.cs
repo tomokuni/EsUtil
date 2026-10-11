@@ -316,6 +316,33 @@ public class EsBitmapTests
     }
 
     [Fact]
+    internal void AsReadOnly_凍結して読み取り専用の見方を返す()
+    {
+        using var bmp = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 1, 2, 3));
+
+        // 引き渡し: 凍結して読み取り専用の見方として返す
+        EsReadOnlyBitmap read = bmp.AsReadOnly();
+
+        // 同じ画素を指す（コピーしない）
+        Assert.Same(bmp, read);
+        Assert.True(read.IsReadOnly);
+        Assert.True(bmp.IsReadOnly);
+
+        // 渡した相手は画素が変わらないことを前提にできる（書き換え可能な側も書けない）
+        Assert.Throws<InvalidOperationException>(() => bmp.SetPixel(0, 0, 9, 9, 9, 9));
+        Assert.Equal((byte)3, read.GetPixel(0, 0).B);
+    }
+
+    [Fact]
+    internal void AsReadOnly_破棄済みならObjectDisposedExceptionを投げる()
+    {
+        var bmp = Create(2, 2);
+        bmp.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(bmp.AsReadOnly);
+    }
+
+    [Fact]
     internal void 継承_読み取り専用として見ても実体が書き換え可能ならCloneは独立した複製を返す()
     {
         using var bmp = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 1, 2, 3));
