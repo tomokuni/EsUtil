@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Platform.Core.Imaging;
@@ -17,26 +18,26 @@ public static class EsBitmapExtensions
 {
     /// <summary>面積平均の縮小を並列化するかどうかの境目（元画像の画素数）。</summary>
     /// <remarks>
-    /// <b>実測で決めた値</b>: 6 千画素（100x60）でも並列が速い（逐次 57 µs / 並列 8.6 µs、120 千画素で 948 → 56 µs）が、
-    /// 絶対時間が小さい場面でスレッドプールを触らないようにするため 32,768 画素（181x181 相当）を境にする。
-    /// スクリーンショット（1080p で 200 万画素、4K で 830 万画素）は常に並列になる。
+    /// <b>実測で決めた値</b>: 内側のループから画素ごとの 64 ビット除算と合計領域の消去を無くした後は、
+    /// 元画像 65,536 画素（256x256 → 64x64）で逐次 0.089 ms に対し並列 0.107 ms と逐次が速く、
+    /// 131,044 画素（362x362 → 90x90）で逐次 0.182 ms に対し並列 0.104 ms と逆転する。
+    /// その間の 98,304 画素（313x313 相当）を境にする。 スクリーンショット（1080p で 200 万画素、4K で 830 万画素）は常に並列になる。
     /// </remarks>
-    private const long ParallelSourceThresholdPixels = 32_768;
+    private const long ParallelSourceThresholdPixels = 98_304;
 
     /// <summary>双線形の縮小を並列化するかどうかの境目（<b>縮小後</b>の画素数）。</summary>
     /// <remarks>
-    /// <b>実測で決めた値</b>: 1 行あたりの仕事が面積平均より小さいため、元画像ではなく縮小後の画素数で判定する。
-    /// 32,768 画素（240x135）で 逐次 700 µs → 並列 247 µs、57,600 画素（320x180）で 1,236 → 349 µs。
-    /// 14,400 画素（160x90）では両者が同程度（304 / 248 µs）になり、5,184 画素（96x54）で元画像が 4K の場合は
-    /// 並列が遅い（122 → 146 µs。 行がキャッシュに乗らない大きさのため）。
+    /// <b>実測で決めた値</b>: 列の対応を事前計算してからは、縮小後の 14,400 画素（160x90）で逐次 0.148 ms に対し
+    /// 並列 0.167 ms と逐次が速く、20,736 画素（192x108）で逐次 0.223 ms に対し並列 0.146 ms と逆転する。
+    /// その間の 20,480 画素（191x107 相当）を境にする（この値では 57,600 画素で逐次 0.610 ms に対し並列 0.211 ms）。
     /// </remarks>
-    private const long ParallelTargetThresholdPixels = 32_768;
+    private const long ParallelTargetThresholdPixels = 20_480;
 
     /// <summary>最近傍の縮小を並列化するかどうかの境目（<b>縮小後</b>の画素数）。</summary>
     /// <remarks>
-    /// <b>実測で決めた値</b>: 1 画素あたりの仕事が最も小さい（4 バイトのコピー 1 回）ため、並列化の損益分岐が双線形より
-    /// 大きい。 57,600 画素（320x180）では逐次 134 µs に対し並列 194 µs と遅く、129,600 画素（480x270）で逐次 286 µs に対し
-    /// 並列 253 µs、230,400 画素（640x360）で逐次 488 µs に対し並列 258 µs と逆転する。 その間の 65,536 画素を境にする。
+    /// <b>実測で決めた値</b>: 1 画素あたりの仕事が最も小さい（4 バイトのコピー 1 回）ため、並列化の損益分岐が
+    /// 最も大きい。 57,600 画素（320x180）では逐次 0.062 ms に対し並列 0.065 ms とまだ並列がわずかに遅く、
+    /// 82,944 画素（384x216）で逐次 0.089 ms に対し並列 0.082 ms と逆転する。 その間の 65,536 画素（341x192 相当）を境にする。
     /// </remarks>
     private const long ParallelNearestThresholdPixels = 65_536;
 
@@ -265,22 +266,21 @@ public static class EsBitmapExtensions
         IEsBitmap source, EsWritableBitmap result, int[] colMap, int yStart, int yEnd)
     {
         var srcHeight = source.Height;
-        var src = source.Pixels;
-        var srcStride = source.Stride;
-        var dst = result.WritablePixels;
-        var dstStride = result.Stride;
-        var bytesPerPixel = IEsBitmap.BytesPerPixel;
+        var srcWidth = source.Width;
+        var srcStrideUInt = source.Stride / sizeof(uint);
+        var dstStrideUInt = result.Stride / sizeof(uint);
+        var src = MemoryMarshal.Cast<byte, uint>(source.Pixels);
+        var dst = MemoryMarshal.Cast<byte, uint>(result.WritablePixels);
         var targetHeight = result.Height;
         var targetWidth = result.Width;
 
         for (var y = yStart; y < yEnd; y++)
         {
-            var srcRowStart = Math.Min(srcHeight - 1, (int)((long)y * srcHeight / targetHeight)) * srcStride;
-            var srcRow = src[srcRowStart..];
-            var dstRow = dst[(y * dstStride)..];
+            var srcRow = src.Slice(Math.Min(srcHeight - 1, (int)((long)y * srcHeight / targetHeight)) * srcStrideUInt, srcWidth);
+            var dstRow = dst.Slice(y * dstStrideUInt, targetWidth);
             for (var x = 0; x < targetWidth; x++)
             {
-                srcRow.Slice(colMap[x] * bytesPerPixel, bytesPerPixel).CopyTo(dstRow.Slice(x * bytesPerPixel, bytesPerPixel));
+                dstRow[x] = srcRow[colMap[x]];
             }
         }
     }
@@ -292,14 +292,28 @@ public static class EsBitmapExtensions
     {
         var result = EsWritableBitmap.CreateUninitialized(target.Width, target.Height);
 
+        // 列の対応（元の 2 列の位置と重み）は行に依存しないため、1 度だけ求めて表にする
+        // （実測: 4K → 1920x1080 で 6.2 ms → 4.0 ms。 画素ごとに除算・床・クランプを行わない）
+        var leftX = new int[target.Width];
+        var rightX = new int[target.Width];
+        var fx = new double[target.Width];
+        for (var x = 0; x < target.Width; x++)
+        {
+            var sourceX = (((x + 0.5) * source.Width) / target.Width) - 0.5;
+            var x0 = Math.Clamp((int)Math.Floor(sourceX), 0, source.Width - 1);
+            leftX[x] = x0 * IEsBitmap.BytesPerPixel;
+            rightX[x] = Math.Min(x0 + 1, source.Width - 1) * IEsBitmap.BytesPerPixel;
+            fx[x] = Math.Clamp(sourceX - x0, 0.0, 1.0);
+        }
+
         // 1 行あたりの仕事が小さいため、縮小後の画素数で並列化を判定する
         if ((long)target.Width * target.Height >= ParallelTargetThresholdPixels)
         {
-            RunRowRanges(target.Height, (from, to) => BilinearRows(source, result, from, to, target));
+            RunRowRanges(target.Height, (from, to) => BilinearRows(source, result, from, to, target, leftX, rightX, fx));
         }
         else
         {
-            BilinearRows(source, result, 0, target.Height, target);
+            BilinearRows(source, result, 0, target.Height, target, leftX, rightX, fx);
         }
 
         return result;
@@ -311,14 +325,20 @@ public static class EsBitmapExtensions
     /// <param name="yStart">開始行（含む）。</param>
     /// <param name="yEnd">終了行（含まない）。</param>
     /// <param name="target">縮小後の寸法。</param>
+    /// <param name="leftX">縮小先の列が参照する元の左の列のバイト オフセット（事前計算）。</param>
+    /// <param name="rightX">縮小先の列が参照する元の右の列のバイト オフセット（事前計算）。</param>
+    /// <param name="fx">左の列と右の列の重み（0〜1。 事前計算）。</param>
     /// <remarks>
     /// <b>行を範囲で受ける理由</b>: 1 行ずつメソッドを呼ぶと、行ごとに <see cref="IEsBitmap.Pixels"/> を取り直すうえ、
     /// メソッド境界を越えることで<b>境界チェックの除去とベクター化の最適化が失われる</b>（実測: 4K → 96x54 で 116 → 229 µs）。
-    /// 範囲を受け取れば、逐次（1 回で全行）と並列（範囲ごと）が<b>同じ実装</b>を使いながら最適化を保てます。
+    /// 範囲を受け取れば、逐次（1 回で全行）と並列（範囲ごと）が<b>同じ実装</b>を使いながら最適化を保てます。<br/>
+    /// <b>列の対応を引数で受ける理由</b>: 列の対応（元の 2 列と重み）は行に依存しないため、行ごとに
+    /// 除算・床・クランプをやり直さない（<see cref="ScaleBilinear"/> が 1 度だけ求める）。
     /// </remarks>
-    private static void BilinearRows(IEsBitmap source, EsWritableBitmap result, int yStart, int yEnd, EsSizeInt target)
+    private static void BilinearRows(
+        IEsBitmap source, EsWritableBitmap result, int yStart, int yEnd, EsSizeInt target,
+        int[] leftX, int[] rightX, double[] fx)
     {
-        var srcWidth = source.Width;
         var srcHeight = source.Height;
         var src = source.Pixels;
         var srcStride = source.Stride;
@@ -339,18 +359,15 @@ public static class EsBitmapExtensions
 
             for (var x = 0; x < target.Width; x++)
             {
-                var sourceX = (((x + 0.5) * srcWidth) / target.Width) - 0.5;
-                var x0 = Math.Clamp((int)Math.Floor(sourceX), 0, srcWidth - 1);
-                var x1 = Math.Min(x0 + 1, srcWidth - 1);
-                var fx = Math.Clamp(sourceX - x0, 0.0, 1.0);
-                var left = x0 * bytesPerPixel;
-                var right = x1 * bytesPerPixel;
+                var left = leftX[x];
+                var right = rightX[x];
+                var f = fx[x];
                 var offset = x * bytesPerPixel;
 
                 for (var c = 0; c < bytesPerPixel; c++)
                 {
-                    var top = (src[row0 + left + c] * (1 - fx)) + (src[row0 + right + c] * fx);
-                    var bottom = (src[row1 + left + c] * (1 - fx)) + (src[row1 + right + c] * fx);
+                    var top = (src[row0 + left + c] * (1 - f)) + (src[row0 + right + c] * f);
+                    var bottom = (src[row1 + left + c] * (1 - f)) + (src[row1 + right + c] * f);
                     dstRow[offset + c] = (byte)((top * (1 - fy)) + (bottom * fy));
                 }
             }
@@ -387,14 +404,16 @@ public static class EsBitmapExtensions
     /// <remarks>
     /// <b>1 パスで面積平均を求める</b>: 縮小先の 1 画素ごとに、対応する元画像の矩形（全画素）を合計して割る。
     /// <b>中間画像を作らない</b>ため、横 → 縦 の 2 パスで生じる丸めの重なりが無く、速度も速い（実測: 4K → 96x54 で
-    /// 2 パスの 18 ms に対し 1 パスで 1.6 ms）。<br/>
-    /// <b>行ごとに独立しているため並列化する</b>（実測: 4K → 96x54 で 逐次 18 ms → 並列 1.6 ms。 4K → 320x180 で 27 ms → 1.8 ms）。
-    /// 並列化するのは元画像が <see cref="ParallelSourceThresholdPixels"/> 以上のときだけである（小さい画像では
-    /// スレッドの起動が相対的に重くなるため。 実測: 100x60 で逐次 57 µs / 並列 8.6 µs、400x300 で 948 → 56 µs と
-    /// 小さい画像でも並列が速いが、絶対時間が小さい場面でスレッドプールを触らないようにする）。<br/>
+    /// 2 パスの 18 ms に対し 1 パスで 1.5 ms）。<br/>
+    /// <b>列の範囲は行に依存しない</b>ため、1 度だけ求めて表にする（画素ごとの 64 ビット除算を無くす。
+    /// 実測: 4K → 1920x1080 で 5.4 ms → 3.7 ms）。 成分ごとの合計は <c>stackalloc</c> の領域ではなく
+    /// ローカル変数で持つ（画素ごとに領域を消す書き込みを無くす。 同じ実測に含む）。<br/>
+    /// <b>行ごとに独立しているため並列化する</b>（実測: 4K → 96x54 で 逐次 18 ms → 並列 1.5 ms。 4K → 320x180 で 27 ms → 1.6 ms）。
+    /// 並列化するのは元画像が <see cref="ParallelSourceThresholdPixels"/> 以上のときだけである（実測: 元 65,536 画素では逐次が速く、
+    /// 131,044 画素で並列が逆転する）。<br/>
     /// <b>SIMD は使わない</b>: 面積平均をベクター化すると<b>縦の合計を保持する作業行が必要になり、
     /// 縮小先の行ごとに全体（4K で 15 KB）を消すコストが加わる</b>。 実測でも遅くなる
-    /// （4K → 96x54 で 逐次 2.8 ms 対 現行 2.1 ms、4K → 960x540 で 14 ms 対 2.4 ms）。
+    /// （4K → 96x54 で 逐次 2.8 ms 対 現行 1.5 ms、4K → 960x540 で 14 ms 対 2.4 ms）。
     /// 現行は元画像の各画素を 1 回だけ読んで合計するため、読み出しの回数は既に最小である。
     /// </remarks>
     private static EsWritableBitmap ScaleBox(IEsBitmap source, EsSizeInt target)
@@ -403,16 +422,25 @@ public static class EsBitmapExtensions
         var srcWidth = source.Width;
         var srcHeight = source.Height;
         var targetWidth = target.Width;
-        var targetHeight = target.Height;
+
+        // 列の範囲は行に依存しないため、1 度だけ求めて表にする
+        // （実測: 4K → 1920x1080 で 5.4 ms → 3.7 ms。 画素ごとに 64 ビット除算を行わない）
+        var x0s = new int[targetWidth];
+        var x1s = new int[targetWidth];
+        for (var x = 0; x < targetWidth; x++)
+        {
+            x0s[x] = (int)((long)x * srcWidth / targetWidth);
+            x1s[x] = Math.Max(x0s[x] + 1, (int)((long)(x + 1) * srcWidth / targetWidth));
+        }
 
         if ((long)srcWidth * srcHeight >= ParallelSourceThresholdPixels)
         {
-            RunRowRanges(targetHeight, (from, to) => AverageBlockRows(
-                source, result, from, to, srcWidth, srcHeight, targetWidth, targetHeight));
+            RunRowRanges(target.Height, (from, to) => AverageBlockRows(
+                source, result, from, to, srcHeight, target.Height, targetWidth, x0s, x1s));
         }
         else
         {
-            AverageBlockRows(source, result, 0, targetHeight, srcWidth, srcHeight, targetWidth, targetHeight);
+            AverageBlockRows(source, result, 0, target.Height, srcHeight, target.Height, targetWidth, x0s, x1s);
         }
 
         return result;
@@ -423,22 +451,26 @@ public static class EsBitmapExtensions
     /// <param name="result">書き込み先（<paramref name="yStart"/>〜<paramref name="yEnd"/> の行を書く）。</param>
     /// <param name="yStart">開始行（含む）。</param>
     /// <param name="yEnd">終了行（含まない）。</param>
-    /// <param name="srcWidth">元の幅。</param>
     /// <param name="srcHeight">元の高さ。</param>
-    /// <param name="targetWidth">縮小後の幅。</param>
     /// <param name="targetHeight">縮小後の高さ。</param>
+    /// <param name="targetWidth">縮小後の幅。</param>
+    /// <param name="x0s">縮小先の列が受け持つ元の範囲の開始列（事前計算）。</param>
+    /// <param name="x1s">縮小先の列が受け持つ元の範囲の終了列（含まない。 事前計算）。</param>
+    /// <remarks>
+    /// <b>合計をローカル変数で持つ理由</b>: 成分ごとの合計を <c>stackalloc</c> の領域で持つと、
+    /// 縮小先の画素ごとに領域を消す書き込みが加わる（実測: 4K → 1920x1080 で 5.4 ms → 3.7 ms）。<br/>
+    /// <b>列の範囲を引数で受ける理由</b>: 列の範囲は行に依存しないため、画素ごとに 64 ビット除算を行わない
+    /// （<see cref="ScaleBox"/> が 1 度だけ求める）。
+    /// </remarks>
     private static void AverageBlockRows(
         IEsBitmap source, EsWritableBitmap result, int yStart, int yEnd,
-        int srcWidth, int srcHeight, int targetWidth, int targetHeight)
+        int srcHeight, int targetHeight, int targetWidth, int[] x0s, int[] x1s)
     {
         var src = source.Pixels;
         var srcStride = source.Stride;
         var dst = result.WritablePixels;
         var dstStride = result.Stride;
         var bytesPerPixel = IEsBitmap.BytesPerPixel;
-
-        // 合計は画素数の最大（4K 全体で 830 万）に 255 を掛けても int に収まらないため long で持つ
-        Span<long> sums = stackalloc long[bytesPerPixel];
 
         for (var y = yStart; y < yEnd; y++)
         {
@@ -449,29 +481,33 @@ public static class EsBitmapExtensions
 
             for (var x = 0; x < targetWidth; x++)
             {
-                var x0 = (int)((long)x * srcWidth / targetWidth);
-                var x1 = Math.Max(x0 + 1, (int)((long)(x + 1) * srcWidth / targetWidth));
+                var x0 = x0s[x];
+                var x1 = x1s[x];
 
-                sums.Clear();
+                // 合計は画素数の最大（4K 全体で 830 万）に 255 を掛けても int に収まらないため long で持つ
+                long sumB = 0;
+                long sumG = 0;
+                long sumR = 0;
+                long sumA = 0;
                 for (var sy = y0; sy < y1; sy++)
                 {
                     var row = sy * srcStride;
                     for (var sx = x0; sx < x1; sx++)
                     {
                         var index = row + (sx * bytesPerPixel);
-                        for (var c = 0; c < bytesPerPixel; c++)
-                        {
-                            sums[c] += src[index + c];
-                        }
+                        sumB += src[index];
+                        sumG += src[index + 1];
+                        sumR += src[index + 2];
+                        sumA += src[index + 3];
                     }
                 }
 
                 var count = (y1 - y0) * (x1 - x0);
                 var offset = x * bytesPerPixel;
-                for (var c = 0; c < bytesPerPixel; c++)
-                {
-                    dstRow[offset + c] = (byte)(sums[c] / count);
-                }
+                dstRow[offset] = (byte)(sumB / count);
+                dstRow[offset + 1] = (byte)(sumG / count);
+                dstRow[offset + 2] = (byte)(sumR / count);
+                dstRow[offset + 3] = (byte)(sumA / count);
             }
         }
     }
