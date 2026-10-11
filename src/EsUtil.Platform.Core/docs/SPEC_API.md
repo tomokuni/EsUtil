@@ -589,7 +589,12 @@ public readonly record struct ElementFinderResults(
 | --- | --- | --- |
 | `Crop` | `static EsWritableBitmap Crop(this IEsBitmap source, int x, int y, int width, int height)` / `static EsWritableBitmap Crop(this IEsBitmap source, EsRectInt rect)` | 指定矩形領域を切り出す（ソース範囲外は透明パディング。 位置関係は保たれる。 0 初期化は行わず、コピーされないパディングだけを透明にする） |
 | `Resize` | `static EsWritableBitmap Resize(this IEsBitmap source, int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)` | 長辺を `maxSize` へ収める（アルゴリズムは `DownscaleAlgorithm` で選ぶ。 拡大は未サポートで `NotSupportedException`） |
+| `ReduceColors` | `static EsWritableBitmap ReduceColors(this IEsBitmap source, int colorCount)` | 指定の色数へ減色する（パレット化。 画素数と寸法は変えない。 **不可逆**） |
 
+- **`ReduceColors` は中央値分割 + 参照表で行います（実測）**: 5 ビットのヒストグラム（32³ = 32,768 箱）を作り、中央値分割で箱を色数まで分け、箱ごとの平均色をパレットにします。 画素の割り当ては**箱ごとに 1 度だけ最近傍を求めた参照表**を引きます（画素ごとに 256 色と比較すると 200 万画素 × 256 の距離計算になる）。 実測（1920x1080）: **256 色で 30 ms / 16 色で 8 ms**。
+- **ディザを行いません（実測による判断）**: ディザは見た目を滑らかにしますが、パレットの色を交互に置くため**保存のファイルが大きくなります**（実測: Magick.NET の 256 色 PNG で 645,647 B → FloydSteinberg で 803,118 B ＝ **+24%**）。 本ライブラリはファイル サイズを下げる目的で減色するため、行いません。
+- **減色の計算は保存の実装と共有します**: 公開面は `ReduceColors`（新しい画像を返す）であり、色番号とパレットを返す内部の計算を保存（8bpp のインデックス カラー）が使います（2 箇所に書くと、同じ色数でも保存経路によって結果が変わります）。 保存の指定は [`EsImageSaveOptions.ColorCount`](#232-画像のファイル入出力save--load) です。
+- **外部ライブラリとの比較（実測。 1920x1080・256 色）**: 本処理は **30 ms**（減色そのもの）であり、**SixLabors.ImageSharp の Wu 量子化は 219 ms / Magick.NET は 553 ms** です。 サイズは本処理の 173,684 B（写真風）に対し 111,764 B / 117,156 B と**外部の方が小さく**、減色の品質は **pngquant が最も高い**（色差 2.61 対 3.95）ものの、実行ファイルの同梱と 1 枚 700 ms を要します。
 - **`Crop` のコピーは 1 回で済む場合を分けます**: 左右のパディングが無く、ソースとデスティネーションの行幅が等しいときは **連続領域として全領域を 1 回でコピー**します（実測: 4K 全域の切り出しで 8.3 ms → 6.6 ms）。 それ以外は行単位でコピーし、左右のパディングは行ごとに消します。 **他ライブラリの切り出しとの比較は [2.34](#234-画像操作の他ライブラリとの比較実測)**（Skia の `ExtractSubset` と Avalonia の `CroppedBitmap` は画素を複製しないため最速である点を含む）。
 - **複製しない切り出しビューを公開しません（実測に基づく）**: 他ライブラリの最速な切り出しは**画素を複製しないビュー**です（Skia `ExtractSubset` 0.011 ms / Avalonia `CroppedBitmap` 0.001 ms 対 コア `Crop` 0.72 ms）。 しかし本ライブラリの画像は **1 本の連続したバッファに詰まっており（`Stride` は常に `幅 × 4`）、`Pixels` は連続した `ReadOnlySpan<byte>`** です。 切り出しの行幅（例: 4000 バイト）は元画像の行幅（例: 15360 バイト）と一致しないため、**ビューは「行ごとに別の領域を指す」形になり `Pixels` では表せません**（Skia のビューも元の行幅 15360 バイトを保ったまま行ごとに別の領域を指すことを実測で確認）。 加えて、ビューは**親の寿命に依存**します（実測: Avalonia の `CroppedBitmap` は `Dispose` で元画像まで解放し、元を使い続けると `ObjectDisposedException`。 Skia は元を破棄・書き換えると壊れる）。 本ライブラリの画像は**自前のバッファを所有して破棄する**契約であるため、ビューを公開すると「破棄後も読める」という別の契約を併存させることになります。 **ビューが要る場面（表示だけ）は各 UI の描画面が既に持っています**（`ExtractSubset` / `CroppedBitmap` は表示用の射影であり、画素を書き換える・保持する場合は複製が要ります）。
 **`DownscaleAlgorithm`（enum。 アルゴリズム別の実測と性質）**:
@@ -646,6 +651,7 @@ public readonly record struct ElementFinderResults(
 | `EsImageSaveOptions` | `Format` | `EsImageFileFormat? Format { get; init; }` | 保存する形式（`null` は拡張子が決める。 指定した場合は**拡張子より優先**し、拡張子が無ければ補完する） |
 | `EsImageSaveOptions` | `IgnoreFormatMismatch` | `bool IgnoreFormatMismatch { get; init; }` | 拡張子と `Format` の食い違いを無視するか（既定 false = 例外）。 不変の `readonly record struct` であり、部分更新は `with` 式で行う |
 | `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG の品質（0〜100。 `null` は GDI+ の既定） |
+| `EsImageSaveOptions` | `ColorCount` | `int? ColorCount { get; init; }` | 減色（パレット化）して残す色数（2〜256。 `null` は減色しない。 **BMP / PNG / GIF だけ**） |
 
 - **`Load` は戻したい型の側に置きます**: 静的メソッドは戻り値の型を共変にできないため、`EsBitmap.Load`（読み取り専用）と `EsWritableBitmap.Load`（書き換え可能）を別々に持ちます。 書き換えが要る場合は `EsWritableBitmap.Load` を使ってください（`EsBitmap.Load` の結果を `EsWritableBitmap.Create` で複製すると、2 回目の全域コピー（実測: 4K で 5.7 ms / 31 MiB）が無駄になります）。
 - **`Save` は `EsBitmapBase` に置きます**: ファイルへの書き出しはピクセルを**書き換える権利を要さない**ため、2 つの権利（読み取り専用 / 書き換え可能）に共通の入口が要ります。 一方、読み取りの面（`IEsBitmap`）に置くと、外部が実装する画像（UI の表示アダプタ等）にも保存能力を要求することになるため、**継承関係の無い 2 型の共通基底**である本型が持ちます（実装を持てる最小の位置）。
@@ -698,43 +704,51 @@ public readonly record struct ElementFinderResults(
   | `SaveAsCmyk`（0 / 1） | 無効 | 無効 | 無効 | 無効 | 1 で**有効**（1,195,850 B） |
   | `RenderMethod` / `ImageItems` | 無効 | 無効 | 無効 | 無効（`ImageItems` は失敗） | 無効 |
 
-  - **公開するのは JPEG の品質だけにします**: 効果のある残りは、(1) 品質と**同じつまみ**（`LuminanceTable` / `ChrominanceTable`。 品質を併せて指定すると**テーブルは黙って無視される**ことを実測で確認したため、2 つ公開すると片方が効かない）、(2) **情報を失う**（TIFF の CCITT3 / CCITT4 は 1 ビットへ落として画素を壊す。 `ColorDepth` の 1 / 4 / 8 は減色）、(3) **既定より必ず大きくなる**（TIFF の圧縮方式。 下記）、(4) **ファイルを開いたまま返す**（`SaveFlag` = 18。 保存後にファイル ハンドルが残り、続けて読むと `IOException` になることを実測で確認）、のいずれかです。 使うと分かっている値だけを公開する方針（[`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI）に従います。
+  - **公開するのは JPEG の品質だけにします**: 効果のある残りは、(1) 品質と**同じつまみ**（`LuminanceTable` / `ChrominanceTable`。 品質を併せて指定すると**テーブルは黙って無視される**ことを実測で確認したため、2 つ公開すると片方が効かない）、(2) **情報を失う**（TIFF の CCITT3 / CCITT4 は 1 ビットへ落として画素を壊す。 `ColorDepth` の 1 / 4 / 8 は減色）、(3) **既定より必ず大きくなる**（TIFF の圧縮方式。 下記）、(4) **ファイルを開いたまま返す**（`SaveFlag` = 18。 保存後にファイル ハンドルが残り、続けて読むと `IOException` になることを実測で確認）、のいずれかです。 使うと分かっている値だけを公開する方針（[`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI）に従います（**減色は GDI+ のパラメーターではなく自前の実装であり、この表の対象外**です）。
   - **TIFF の圧縮方式を公開しない理由（実測）**: 指定はできますが（無圧縮 / LZW / RLE）、**既定より小さい値が選べません**（実測: なだらかな画像で既定 173,766 B に対し LZW 2,158,648 B / 無圧縮 3,686,618 B / RLE 3,715,416 B。 一様な画像では既定 5,958 B 対 LZW 11,238 B）。 生成したファイルの TIFF タグを読むと、**既定も LZW 指定も圧縮タグ（259）は 5 = LZW で同じ**であり、違うのは予測子タグ（317）だけでした（既定 = 2 = 水平差分 / 指定 = 1 = なし）。 GDI+ は予測子を指定する手段を持たないため、**指定すると既定より悪くなる**ことになります。
 - **形式ごとの名前付きメソッドを作らない理由**: `EncodeToJpgFile` / `EncodeToPngFile` のような形式を名前に持つ入口を足すと、**形式を表す引数と拡張子が二重管理になり**、食い違えば拡張子と実体がずれたファイルができます。 実測のとおり調整できる値を持つ形式は JPEG だけであり、その 1 つも「オプション付きの `EncodeToFile` 1 つ（形式は `Format` が決める）」で表せるため、公開面は `Save(string)` / `Save(string, EsImageSaveOptions)` の 2 つに留めます。
 - **オプションの値は形式ごとに検証します**: 使えない形式へ設定すると `NotSupportedException`、JPEG の品質が 0〜100 の範囲外なら `ArgumentOutOfRangeException` です（黙って無視すると「設定したのに効かない」ことに気付かないため。 また上限へ丸めると、呼び出し側が指定した値と実際の出力が食い違います）。 検証は **GDI+ の初期化より前**に行うため、拒否された呼び出しはプロセス全体の副作用（バックグラウンド スレッド +1 等）を起こしません。
 - **WebP / HEIF を対応形式へ入れない理由（実測）**: GDI+ のエンコーダーは 5 件だけです（`GdipGetImageEncoders` が返すのは BMP / JPEG / GIF / TIFF / PNG。 デコーダーはこれに EMF / WMF / ICO を加えた 8 件）。 WebP / HEIF のエンコーダーは無く、**存在しない形式の CLSID を渡すと例外を出さずに PNG を書き出します**（実測: PNG の CLSID と `.webp` のパスで 2831 バイトの PNG が書かれ、先頭バイトは PNG のシグネチャ）。 拡張子と中身が食い違うファイルが**黙って**できるため、対応形式へ追加しません（食い違いを承知で作る場合は `Format` + `IgnoreFormatMismatch` を使います）。
-- **減色（パレット化）は指定できませんが、減色済みのソースは保存・読込できます（実測）**: GDI+ のエンコーダー パラメーターに減色の指定はありません（上表のとおり BMP の `ColorDepth` 8 も**無視**されます）。 一方、**自前で 8bpp のインデックス カラー（パレット付き）を作って `GdipSaveImageToFile` へ渡すと、その形式のパレット画像として保存されます**。 1920x1080 の画像を 256 色へ落として測った結果です。
+- **減色（パレット化）を指定できます（実測）**: `EsImageSaveOptions.ColorCount` を指定すると、保存の前に
+  `EsBitmapExtensions.ReduceColors` と同じ計算で減色し、**8bpp のインデックス カラー（パレット付き）として**書きます。
 
-  | 保存した形式 | 32bpp のまま（GDI+ の既定） | 8bpp パレット（自前の減色） | 削減 | 読込 |
+  | 形式 | 32bpp のまま | 256 色へ減色 | 削減 | `Load` |
   | --- | --- | --- | --- | --- |
-  | BMP | 8,294,454 B | **2,074,678 B** | 25% | `Load` 可（画素は**完全一致**） |
-  | PNG（スクリーンショット風） | 4,305,898 B | **595,082 B** | 14% | `Load` 可 |
-  | PNG（写真風） | 2,301,470 B | **173,684 B** | 8% | `Load` 可 |
-  | GIF（スクリーンショット風） | 922,095 B | 691,564 B | 75% | `Load` 可 |
+  | BMP | 8,294,454 B | **2,074,678 B** | 25% | 可（画素は**完全一致**） |
+  | PNG（スクリーンショット風） | 4,305,898 B | **595,082 B** | 14% | 可 |
+  | PNG（写真風） | 2,301,470 B | **173,684 B** | 8% | 可 |
+  | GIF（スクリーンショット風） | 922,095 B | 691,564 B | 75% | 可 |
 
-  - **減色そのものは自前で行う必要があります**（試作: 中央値分割 + 32,768 箱の参照表で 1920x1080 が 30 ms。 色差は平均 5.3 / 最大 100）。 実装は `GdipCreateBitmapFromScan0`（`PixelFormat8bppIndexed`）+ `GdipSetImagePalette` の 2 つを足すだけです（いずれも既存の `WinNative.GdiPlus` の並びに追加できます）。
-  - **BMP の RLE 圧縮は使えません**（上表のとおり `Compression` は無効）。 減色した BMP は無圧縮の 2,074,678 B のままです。 圧縮も欲しい場合は PNG を選ぶことになります。
-  - **外部ツール・外部ライブラリとの比較（実測。 1920x1080。 所要は 1 枚あたり、列は削減後のサイズ順）**: 減色を「自前」で行うか「外部へ出す」かの判断材料です。
+  - **32bpp のまま減色しても意味がありません（実測）**: GDI+ の PNG エンコーダーは 32bpp の入力をパレット PNG にしません
+    （減色の効果は圧縮率の向上だけであり、BMP では 1 バイトも減りません）。 **8bpp のインデックス カラーとして渡すと
+    パレット画像になります**（実測で確認した 3 形式。 BMP / PNG / GIF）。
+  - **BMP の RLE 圧縮は併用できません**（GDI+ の BMP エンコーダーは圧縮の指定を無視します）。 減色しても無圧縮の 2,074,678 B のままです。
+  - **JPEG と TIFF へ指定すると例外になります**（`NotSupportedException`）。 JPEG はパレットを持てず、TIFF は**未検証**であるため受け付けません（未検証の組み合わせを黙って通さない方針。 [`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI と対になる）。
+  - **透過は保てません**（パレットは 1 チャネル 8 ビットの色であり、アルファは 255 になります）。
+  - **ディザを行いません（実測）**: ディザはパレットの色を交互に置くため保存のファイルが**大きくなります**（実測: Magick.NET の 256 色 PNG で 645,647 B → FloydSteinberg で 803,118 B ＝ **+24%**）。 本ライブラリはファイル サイズを下げる目的で減色するため、行いません。
+  - **外部ライブラリ・外部ツールとの比較（実測。 1920x1080・256 色。 所要は 1 枚あたり）**:
 
-    | 手段 | スクリーンショット風 | 写真風 | 色差（平均。 スクリーンショット / 写真） | 前提 |
+    | 手段 | スクリーンショット風 | 写真風 | 色差（平均） | 前提 |
     | --- | --- | --- | --- | --- |
     | OptiPNG -o1（自前の 256 色 PNG を再圧縮） | **580,508 B** / 514 ms | 122,973 B / 107 ms | 3.95 / 3.83 | 外部実行ファイル |
-    | コア + 自前の減色（中央値分割）→ パレット PNG | 595,082 B / **61 ms** | 173,684 B / **47 ms** | 3.95 / 3.83 | **無し（OS のみ）** |
+    | **自前の減色 + 8bpp で保存（本実装）** | 595,082 B / **61 ms** | 173,684 B / **47 ms** | 3.95 / 3.83 | **無し（OS のみ）** |
     | pngquant 256 色 | 643,635 B / 763 ms | **105,307 B** / 700 ms | **2.61 / 3.09** | 外部実行ファイル |
     | Magick.NET 256 色 PNG | 645,647 B / 520 ms | 117,156 B / 553 ms | 3.61 / 3.54 | NuGet（ネイティブ同梱） |
     | ImageSharp 256 色 PNG（Wu） | 661,381 B / 283 ms | 111,764 B / 219 ms | 2.74 / 3.49 | NuGet（下記の制約） |
     | OptiPNG -o1（コアの PNG を減色せず再圧縮） | 2,062,074 B / 816 ms | 724,196 B / 7,338 ms | 0.00 / 0.00 | 外部実行ファイル |
     | コア（GDI+ の既定。 減色なし） | 4,305,898 B / 106 ms | 2,301,470 B / 79 ms | 0.00 / 0.00 | 無し |
 
-    いずれの出力も**コアの `Load` で読み戻せます**（寸法も一致）。
-  - **外部ライブラリの候補（NuGet で取得できるもの。 実測と公式情報）**: 減色を持ちながら採用しにくい事情があります。
-    - **SixLabors.ImageSharp**: 減色（`Hexadecatree` / `Wu` / 固定パレット）・ディザ・PNG 圧縮レベル・JPEG 品質・**BMP 8bpp パレット出力**まで持つ最も充実した API ですが、**v4 はライセンス キーが無いとビルドが失敗します**（実測: NuGet パッケージの `.targets` が `SixLaborsLicenseKey` / `sixlabors.lic` を要求し `error : No Six Labors license found`）。 キーが取得できる場合も**ビルド環境ごとにキーが必要**です。 v3 系はビルドが通りますが、**既知の脆弱性（高 4 件・中 2 件）**を持ち、本リポジトリの検証（`verify.ps1` の「NuGet の健全性 脆弱性 0 件」）を通りません。
-    - **Magick.NET-Q8**: Apache 2.0 系・脆弱性 0 件でライセンスの障害が無く、減色・ディザ（FloydSteinberg / Riemersma）・色数指定を備えます。 ただし**ネイティブ（ImageMagick 本体）を同梱**し、速度は自前（61 ms）の**8 倍**、サイズも自前より大きい結果でした（645,647 対 595,082 B）。
-    - **SkiaSharp（既に導入済み・MIT）**: 減色の API を持ちません（実測: 公開されているのは `SKPngEncoderOptions`（`FilterFlags` / `ZLibLevel`）・`SKJpegEncoderOptions`（`Quality` / `Downsample` / `AlphaOption`）・`SKWebpEncoderOptions`（`Compression` / `Quality`）だけで、パレット・インデックス カラーの型がありません）。 **PNG の圧縮レベルの指定はできます**が減色はできません。
-    - **NetVips**（MIT + LGPL のネイティブ）: 減色のエンジンが **libimagequant（pngquant と同じもの）**であり、品質とサイズが最も pngquant に近くなります。 ただしネイティブの LGPL とビルド同梱が前提です。
-    - **FreeImage-dotnet-core**（GPL / FIPL のデュアル）、**StbImageWriteSharp**（減色なし）、**PhotoSauce.MagicScaler**（減色の公開 API なし）は本用途に不向きです。
-  - **外部ツールを後段に挟む案（保存後に pngquant / OptiPNG で再圧縮）との比較**: 減色の品質は **pngquant が最も良い**（色差 2.61 対 自前 3.95。 写真ではサイズも 105,307 対 173,684 B と 40% 小さい）一方、**1 枚あたり 700 ms** かかり、**実行ファイルの同梱と配布**（本リポジトリは自己完結の配布物を作る）が必要です。 OptiPNG は減色せず**可逆の再圧縮**であり（色差 0.00）、コアの PNG を 2,062,074 B（48%）へ縮めますが 816 ms、写真では 7.3 秒かかります。 自前の減色と組み合わせても**追加の削減は 2.5%（スクリーンショット）/ 29%（写真）**にとどまります。
-  - **現時点で減色のオプションを公開しない理由**: 減色は**不可逆**であり（元の画素が戻らない）、利用者が品質の劣化を承知で選ぶ操作です。 本ライブラリの保存は「見た目を変えずに書き出す」ことが既定の期待であり、既定の `Save` に混ぜるべき値ではありません。 加えて、**導入の効果が用途に強く依存**します（スクリーンショット風では 14%、写真風では 8%。 単色では 99% 小さくなりますが、それは内容の性質によるもので減色の効果ではありません）。 実装する場合は「減色は自前（`ColorCount` を `EsImageSaveOptions` へ追加）→ 既存の保存路へ渡す」が**最も速く（61 ms 対 283〜763 ms）最も小さい（OptiPNG を除く）**ため、外部パッケージも外部ツールも要りません。
+    - **本実装が最速です**（61 ms。 次が ImageSharp の 283 ms）。 サイズは OptiPNG が最小（自前より 2.5% 小さい）で、
+      減色の品質は pngquant が最も良い（色差 2.61 対 3.95）ものの 1 枚 700 ms と**実行ファイルの同梱**を要します。
+    - **外部ライブラリの候補と制約（実測と公式情報）**: **SixLabors.ImageSharp** は減色・ディザ・PNG 圧縮レベル・
+      **BMP 8bpp パレット出力**まで備えますが、**v4 はライセンス キーが無いとビルドが失敗し**（実測:
+      `error : No Six Labors license found`）、ビルドが通る v3 系は**既知の脆弱性（高 4 件・中 2 件）**を持ちます。
+      **Magick.NET-Q8** は Apache 2.0 系でライセンスと脆弱性に問題がありませんが**ネイティブを同梱**し、本実装より遅く大きい。
+      **SkiaSharp（導入済み）は減色の API を持ちません**（実測: `SKPngEncoderOptions`（`FilterFlags` / `ZLibLevel`）・
+      `SKJpegEncoderOptions`（`Quality` / `Downsample` / `AlphaOption`）・`SKWebpEncoderOptions`（`Compression` / `Quality`）だけ）。
+      **NetVips** は pngquant と同じ libimagequant を積みますが**ネイティブが LGPL** です。
+  - **減色を既定にしない理由**: 減色は**不可逆**であり、既定の `Save` の「見た目を変えずに書き出す」期待と衝突します。
+    また効果は内容に強く依存します（実測: スクリーンショット風で 14%、写真風で 8%）。 明示した場合だけ行います。
 - **エンコード・デコードは `gdiplus.dll` のフラット API を直接呼びます**（宣言は `src/EsUtil.Platform.Core/src/Native/Win/WinNative.GdiPlus.cs` が集約。 `WinNative` は DLL ごとの `partial` ファイルに分かれます）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
 - **本機能は Windows 専用です**: `gdiplus.dll` は Windows にのみ存在します（非 Windows では `DllNotFoundException`）。 公開メンバー（`Save` / `Load` / `SupportedFileExtensions`）は `SupportedOSPlatform("windows")` で限定します。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、`src/EsUtil.Platform.Core/src/Native` だけが Windows に依存します）。
 - **GDI+ の初期化は `WinGdiPlusLifetime` が単一所有します**（プロセス単位で 1 回だけ `GdiplusStartup` を呼びます）。 終了処理（`GdiplusShutdown`）は**呼びません**（プロセス全体の GDI+ を終了させるため、ホストが別の目的で GDI+ を使っている場合に影響します。 GDI+ はプロセスの終了時に OS が解放します）。

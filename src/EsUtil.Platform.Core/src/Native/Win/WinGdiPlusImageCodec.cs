@@ -108,6 +108,14 @@ internal static class WinGdiPlusImageCodec
         }
 
         var (format, targetPath) = ResolveTarget(filePath, options);
+
+        // 減色する場合は 8bpp のインデックス カラーとして書く（32bpp で減色しても GDI+ はパレット PNG を書かない）
+        if (options.ColorCount is int colorCount)
+        {
+            EncodeIndexedToFile(pixels, width, height, targetPath, format, colorCount);
+            return;
+        }
+
         WinGdiPlusLifetime.EnsureInitialized();
 
         unsafe
@@ -130,6 +138,108 @@ internal static class WinGdiPlusImageCodec
                     WinNative.GdipDisposeImage(image);
                 }
             }
+        }
+    }
+
+    /// <summary>減色したピクセルを 8bpp のインデックス カラーとしてファイルへ書き出す。</summary>
+    /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="filePath">保存先のファイルパス（形式は決定済み）。</param>
+    /// <param name="format">保存する形式（パレットを持てる形式であることは検証済み）。</param>
+    /// <param name="colorCount">減色して残す色数。</param>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    /// <remarks>
+    /// <b>なぜ 8bpp で書くのか（実測）</b>: 32bpp のまま減色しても、GDI+ の PNG エンコーダーはパレット PNG を書かない
+    /// （減色の効果は圧縮率の向上だけであり、BMP では 1 バイトも減らない）。
+    /// <b>8bpp のインデックス カラー（パレット付き）を渡すとパレット画像になる</b>
+    /// （実測: BMP 8,294,454 → 2,074,678 B / PNG 4,305,898 → 595,082 B。 いずれも <c>Load</c> で読み戻せる）。<br/>
+    /// <b>GDI+ 側の前提</b>: ピクセルはコピーされないため<b>行幅を 4 バイト境界へ揃えた作業バッファ</b>を用意し、
+    /// 破棄するまで生存させる。 パレットは <c>GdipSetImagePalette</c> が複製するため、設定の後に解放してよい。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    private static void EncodeIndexedToFile(
+        ReadOnlySpan<byte> pixels, int width, int height, string filePath, ImageFileFormat format, int colorCount)
+    {
+        var (indices, palette) = EsBitmapExtensions.ReduceToIndexed(pixels, width, height, colorCount);
+
+        // GDI+ の行幅は 4 バイト境界へ揃えられる（8bpp では 1 行 = 幅 バイト）
+        var stride = (width + 3) & ~3;
+        var rows = new byte[stride * height];
+        for (var y = 0; y < height; y++)
+        {
+            indices.AsSpan(y * width, width).CopyTo(rows.AsSpan(y * stride, width));
+        }
+
+        WinGdiPlusLifetime.EnsureInitialized();
+        var clsid = GetEncoderClsid(format);
+
+        unsafe
+        {
+            fixed (byte* p = rows)
+            {
+                var status = WinNative.GdipCreateBitmapFromScan0(
+                    width, height, stride, WinNative.GpPixelFormat8bppIndexed, (nint)p, out var image);
+                if (status != WinNative.GpOk)
+                {
+                    throw new Win32Exception(status, $"減色した画像を作成できませんでした（GDI+ の状態: {status}）。");
+                }
+
+                try
+                {
+                    SetPalette(image, palette);
+                    SaveImage(image, filePath, clsid);
+                }
+                finally
+                {
+                    WinNative.GdipDisposeImage(image);
+                }
+            }
+        }
+    }
+
+    /// <summary>8bpp のインデックス カラーの画像へパレットを設定する。</summary>
+    /// <param name="image">対象の GDI+ の画像。</param>
+    /// <param name="palette">パレット（ARGB）。</param>
+    /// <exception cref="Win32Exception">パレットを設定できなかった場合。</exception>
+    [SupportedOSPlatform("windows")]
+    private static void SetPalette(IntPtr image, uint[] palette)
+    {
+        var count = Math.Min(EsBitmapExtensions.MaximumColorCount, palette.Length);
+        var memory = Marshal.AllocHGlobal(8 + (count * 4));
+        try
+        {
+            Marshal.WriteInt32(memory, 0, 0);          // Flags（0 = ARGB）
+            Marshal.WriteInt32(memory, 4, count);      // Count
+            for (var i = 0; i < count; i++)
+            {
+                Marshal.WriteInt32(memory, 8 + (i * 4), unchecked((int)palette[i]));
+            }
+
+            var status = WinNative.GdipSetImagePalette(image, memory);
+            if (status != WinNative.GpOk)
+            {
+                throw new Win32Exception(status, $"パレットを設定できませんでした（GDI+ の状態: {status}）。");
+            }
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(memory);
+        }
+    }
+
+    /// <summary>GDI+ の画像をファイルへ書き出す（エンコーダー パラメーターなし）。</summary>
+    /// <param name="image">書き出す GDI+ の画像。</param>
+    /// <param name="filePath">保存先のファイルパス。</param>
+    /// <param name="clsid">使用するエンコーダーの CLSID。</param>
+    /// <exception cref="Win32Exception">保存できなかった場合。</exception>
+    [SupportedOSPlatform("windows")]
+    private static void SaveImage(IntPtr image, string filePath, Guid clsid)
+    {
+        var status = WinNative.GdipSaveImageToFile(image, filePath, ref clsid, IntPtr.Zero);
+        if (status != WinNative.GpOk)
+        {
+            throw new Win32Exception(status, $"'{filePath}' へ保存できませんでした（GDI+ の状態: {status}）。");
         }
     }
 
@@ -222,14 +332,31 @@ internal static class WinGdiPlusImageCodec
     /// <param name="format">保存する形式。</param>
     /// <param name="options">保存のオプション。</param>
     /// <exception cref="NotSupportedException">その形式で使えない項目が設定されている場合。</exception>
-    /// <exception cref="ArgumentOutOfRangeException">JPEG の品質が許容範囲外の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException">値が許容範囲外の場合。</exception>
     /// <remarks>
     /// <b>品質を使えるのは JPEG だけである</b>（他の形式は品質を受け取っても出力が変わらない。 実測）。
+    /// <b>減色を使えるのは BMP / PNG / GIF だけである</b>（パレットを持てる形式。 実測で確認した 3 形式）。
     /// 黙って無視すると「設定したのに効かない」ことに気付かないため、例外にする。
     /// </remarks>
     [SupportedOSPlatform("windows")]
     private static void ValidateOptions(ImageFileFormat format, in EsImageSaveOptions options)
     {
+        if (options.ColorCount is int colorCount)
+        {
+            if (!SupportsPalette(format))
+            {
+                throw CreateUnsupportedOption(format, nameof(EsImageSaveOptions.ColorCount));
+            }
+
+            if (colorCount < EsBitmapExtensions.MinimumColorCount || colorCount > EsBitmapExtensions.MaximumColorCount)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(options),
+                    colorCount,
+                    $"減色して残す色数は {EsBitmapExtensions.MinimumColorCount}〜{EsBitmapExtensions.MaximumColorCount} の範囲で指定します。");
+            }
+        }
+
         if (options.JpegQuality is not int quality)
         {
             return;
@@ -246,6 +373,18 @@ internal static class WinGdiPlusImageCodec
                 nameof(options), quality, $"JPEG の品質は {JpegQualityMinimum}〜{JpegQualityMaximum} の範囲で指定します。");
         }
     }
+
+    /// <summary>その形式がパレット（インデックス カラー）を持てるかを求める。</summary>
+    /// <param name="format">保存する形式。</param>
+    /// <returns>持てる場合 true。</returns>
+    /// <remarks>
+    /// <b>実測で確認した 3 形式だけを返す</b>: 8bpp のインデックス カラーを渡して意図どおりのパレット画像になることを
+    /// 確かめたのは BMP / PNG / GIF である。 JPEG はパレットを持てない（必ず減色結果が壊れる）。
+    /// TIFF はパレットを持てる形式だが<b>未検証</b>のため受け付けない（未検証の組み合わせを黙って通さない）。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    private static bool SupportsPalette(ImageFileFormat format)
+        => format is ImageFileFormat.Bmp or ImageFileFormat.Png or ImageFileFormat.Gif;
 
     /// <summary>形式を表す enum を内部の形式へ変換する。</summary>
     /// <param name="format">公開の形式。</param>

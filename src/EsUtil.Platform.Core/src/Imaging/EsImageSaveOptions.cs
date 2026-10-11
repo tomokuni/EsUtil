@@ -5,25 +5,23 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <b>形式は既定では拡張子が決める</b>: どの形式で保存するかは保存先の拡張子が決める（<see cref="Format"/> を指定すると
 /// 拡張子より優先される）。 本型は<b>その形式の中で調整できる値</b>だけを持ち、設定した項目が選ばれた形式で使えない場合は
 /// <see cref="EsBitmapBase.Save(string, EsImageSaveOptions)"/> が例外にする（黙って無視しない）。<br/>
-/// <b>項目が 1 つしかない理由（実測）</b>: GDI+ のエンコーダーが実際に出力を変える値は限られる。
+/// <b>項目が 2 つしかない理由（実測）</b>: GDI+ のエンコーダーが実際に出力を変える値は限られる。
 /// 640x360 の画像を<b>全パラメーター × 全形式で総当たり</b>して確かめた結果:
 ///
 /// <list type="table">
 /// <item>
-///   <term>品質・サイズが変わる</term>
-///   <description>JPEG の品質（<see cref="JpegQuality"/>。 208 KB → 11 KB〜459 KB）。
-///   JPEG の量子化テーブル（輝度・色差。 品質と同じつまみであり、品質を指定すると無視される）と、
-///   TIFF の圧縮方式・色深度・CMYK 保存も値は変わるが、いずれも既定より大きくなるか画素を失う（下記）。</description>
+///   <term>品質が変わる</term>
+///   <description>JPEG の品質（<see cref="JpegQuality"/>。 208 KB → 11 KB〜459 KB）。</description>
+/// </item>
+/// <item>
+///   <term>色数が変わる</term>
+///   <description>減色（<see cref="ColorCount"/>。 実装は自前であり GDI+ のパラメーターではない。
+///   8bpp のインデックス カラーとして書くため BMP / PNG / GIF で効く）。</description>
 /// </item>
 /// <item>
 ///   <term>値を変えても出力が完全に同一</term>
 ///   <description>BMP の色深度（8 / 16 / 24 / 32）と圧縮、PNG の圧縮レベル、GIF の走査方式（インターレース）と版。
 ///   GDI+ は値を受け取って<b>無視する</b>。 載せると「設定したのに効かない」ことになる。</description>
-/// </item>
-/// <item>
-///   <term>一部の形式だけ失敗する</term>
-///   <description>TIFF の圧縮は 125 通り中 5 通り（LZW / RLE / 無圧縮 / CCITT3 / CCITT4）だけが成功し、
-///   他は状態 2（<c>InvalidParameter</c>）で失敗する。 GIF の多重フレーム用のフラグは<b>保存後にファイルを開いたまま返す</b>。</description>
 /// </item>
 /// </list>
 ///
@@ -66,4 +64,30 @@ public readonly record struct EsImageSaveOptions
     /// どの品質でも同じように圧縮される。
     /// </remarks>
     public int? JpegQuality { get; init; }
+
+    /// <summary>減色（パレット化）して残す色数（2〜256）。</summary>
+    /// <value>null（既定）の場合は減色しない（元の画素のまま保存する）。</value>
+    /// <remarks>
+    /// <b>不可逆である</b>: 元の画素は戻らない（ファイル サイズを下げる代わりに色を失う）。
+    /// 減色の結果は <see cref="EsBitmapExtensions.ReduceColors"/> と同じ計算である（同じ色数を指定すれば同じ絵になる）。<br/>
+    /// <b>使えるのは BMP / PNG / GIF だけである</b>（実測で確認した 3 形式。 これらの形式はパレットを持てるため、
+    /// 8bpp のインデックス カラーとして書く）。 <b>JPEG と TIFF へ設定すると例外になる</b>
+    /// （JPEG はパレットを持てない。 TIFF は未検証のため受け付けない）。<br/>
+    /// <b>実測（1920x1080・256 色）</b>: 減色そのものが 30 ms（16 色で 8 ms）。
+    /// ファイル サイズは次のとおり減る（32bpp のままの既定と比較。 減色したファイルは
+    /// <see cref="EsBitmap.Load(string)"/> で読み戻せ、BMP は画素が完全に一致する）。
+    ///
+    /// <list type="table">
+    /// <item><term>BMP</term><description>8,294,454 B → <b>2,074,678 B</b>（25%）。</description></item>
+    /// <item><term>PNG（スクリーンショット風）</term><description>4,305,898 B → <b>595,082 B</b>（14%）。</description></item>
+    /// <item><term>PNG（写真風）</term><description>2,301,470 B → <b>173,684 B</b>（8%）。</description></item>
+    /// <item><term>GIF（スクリーンショット風）</term><description>922,095 B → 691,564 B（75%）。</description></item>
+    /// </list>
+    ///
+    /// <b>BMP の RLE 圧縮は併用できない</b>（GDI+ の BMP エンコーダーは圧縮の指定を無視するため、
+    /// 減色しても無圧縮のままである。 圧縮も欲しい場合は PNG を選ぶこと）。<br/>
+    /// <b>透過は保てない</b>: パレットは 1 チャネル 8 ビットの色であり、半透明を表現できない（アルファは 255 になる）。
+    /// 透過を保つ必要がある場合は指定しないこと。
+    /// </remarks>
+    public int? ColorCount { get; init; }
 }

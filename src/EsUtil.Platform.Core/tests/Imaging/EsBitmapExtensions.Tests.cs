@@ -401,4 +401,145 @@ public class EsBitmapExtensionsTests
         // 線（1 画素幅 × 480 行）は 4 画素幅のブロックへ平均される（輝度 = 255 × 480 / 4 / 480 = 63）
         Assert.Equal(63, Brightness(result, 75, 60));
     }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(16)]
+    [InlineData(256)]
+    internal void 減色_指定した色数以下になる(int colorCount)
+    {
+        using var src = CreateColorful(64, 64);
+
+        using var result = src.ReduceColors(colorCount);
+
+        Assert.True(
+            CountDistinctColors(result) <= colorCount,
+            $"{colorCount} 色を指定しましたが {CountDistinctColors(result)} 色になりました。");
+    }
+
+    [Fact]
+    internal void 減色_寸法を変えない()
+    {
+        using var src = CreateColorful(40, 24);
+
+        using var result = src.ReduceColors(8);
+
+        Assert.Equal(40, result.Size.Width);
+        Assert.Equal(24, result.Size.Height);
+    }
+
+    [Fact]
+    internal void 減色_使われている色より多い色数を指定しても色は増えない()
+    {
+        using var src = EsWritableBitmap.Create(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
+
+        using var result = src.ReduceColors(256);
+
+        Assert.Equal(1, CountDistinctColors(result));
+        Assert.Equal(System.Drawing.Color.FromArgb(255, 10, 20, 30), result.GetPixel(new EsPointInt(0, 0)));
+    }
+
+    [Fact]
+    internal void 減色_元の画像を変更しない()
+    {
+        using var src = CreateColorful(32, 32);
+        var before = src.Pixels.ToArray();
+
+        using var result = src.ReduceColors(4);
+
+        Assert.Equal(before, src.Pixels.ToArray());
+    }
+
+    [Fact]
+    internal void 減色_読み取り専用の画像からも減色できる()
+    {
+        using var writable = CreateColorful(16, 16);
+        using var source = EsBitmap.Create(writable);
+
+        using var result = source.ReduceColors(4);
+
+        Assert.Equal(16, result.Size.Width);
+        Assert.True(CountDistinctColors(result) <= 4);
+    }
+
+    [Fact]
+    internal void 減色_画素が元の色のいずれかへ寄る()
+    {
+        using var src = CreateColorful(32, 32);
+        var before = src.Pixels.ToArray();
+
+        using var result = src.ReduceColors(16);
+
+        // 減色は平均色を作るため一致はしないが、色差は 5 ビットの箱の幅（8）を大きく超えない
+        var pixels = result.Pixels;
+        var maxDifference = 0;
+        for (var i = 0; i < pixels.Length; i++)
+        {
+            maxDifference = Math.Max(maxDifference, Math.Abs(pixels[i] - before[i]));
+        }
+
+        Assert.True(maxDifference <= 96, $"最大色差 {maxDifference} が大きすぎます。");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(257)]
+    internal void 減色_色数が範囲外ならArgumentOutOfRangeExceptionを投げる(int colorCount)
+    {
+        using var src = CreateColorful(8, 8);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.ReduceColors(colorCount));
+    }
+
+    [Fact]
+    internal void 減色_nullはArgumentNullExceptionを投げる()
+    {
+        IEsBitmap? source = null;
+
+        Assert.Throws<ArgumentNullException>(() => source!.ReduceColors(16));
+    }
+
+    [Fact]
+    internal void 減色_破棄後は例外を投げる()
+    {
+        var src = CreateColorful(8, 8);
+        src.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(() => src.ReduceColors(16));
+    }
+
+    /// <summary>色数の多い画像を作る（減色の効果を観測するため）。</summary>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
+    private static EsWritableBitmap CreateColorful(int width, int height)
+    {
+        var bitmap = EsWritableBitmap.Create(width, height);
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                bitmap.SetPixel(x, y, (byte)((x * 7) & 0xFF), (byte)((y * 11) & 0xFF), (byte)(((x + y) * 13) & 0xFF), 255);
+            }
+        }
+
+        return bitmap;
+    }
+
+    /// <summary>画像で使われている色の数を数える。</summary>
+    /// <param name="bitmap">対象の画像。</param>
+    /// <returns>異なる色の数。</returns>
+    private static int CountDistinctColors(IEsBitmap bitmap)
+    {
+        var colors = new HashSet<uint>();
+        var pixels = bitmap.Pixels;
+        for (var i = 0; i < pixels.Length; i += IEsBitmap.BytesPerPixel)
+        {
+            colors.Add(
+                (uint)((pixels[i] << 24) | (pixels[i + 1] << 16) | (pixels[i + 2] << 8) | pixels[i + 3]));
+        }
+
+        return colors.Count;
+    }
 }

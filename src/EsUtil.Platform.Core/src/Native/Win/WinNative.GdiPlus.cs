@@ -16,6 +16,25 @@ internal static partial class WinNative
     /// <summary>アルファ乗算済みの 32bpp BGRA 形式（PixelFormat32bppPArgb）。 コアの画像と同じ並び。</summary>
     internal const int GpPixelFormat32bppPArgb = 0x000E200B;
 
+    /// <summary>8bpp のインデックス カラー（PixelFormat8bppIndexed）。 減色した画像を書くときに使う。</summary>
+    /// <remarks>色は <see cref="GpImagePalette"/> で与える（1 画素 1 バイトがパレットの色番号になる）。</remarks>
+    internal const int GpPixelFormat8bppIndexed = 0x00030803;
+
+    /// <summary>GDI+ のパレットの先頭（ColorPalette。 Flags と Count の後に ARGB の並びが続く）。</summary>
+    /// <remarks>
+    /// <b>可変長である</b>: <c>Count</c> が有効な色数を示し、続く <c>Entries</c> はその個数だけある。
+    /// したがって <c>Marshal.SizeOf</c> は使えず、<c>8 + 色数 × 4</c> バイトを確保して先頭を渡す。
+    /// </remarks>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct GpImagePalette
+    {
+        /// <summary>パレットの色の形式を表すフラグ（0 = ARGB）。</summary>
+        internal int Flags;
+
+        /// <summary>有効な色の数。</summary>
+        internal int Count;
+    }
+
     /// <summary>ピクセルの読み取りを目的としてロックする（ImageLockMode.Read）。</summary>
     internal const uint GpImageLockModeRead = 1;
 
@@ -186,6 +205,19 @@ internal static partial class WinNative
     /// </remarks>
     [LibraryImport("gdiplus.dll", EntryPoint = "GdipSaveImageToFile", StringMarshalling = StringMarshalling.Utf16)]
     internal static partial int GdipSaveImageToFile(IntPtr image, string filename, ref Guid clsidEncoder, IntPtr encoderParams);
+
+    /// <summary>インデックス カラーの画像へパレットを設定する（gdiplus.GdipSetImagePalette）。</summary>
+    /// <param name="image">対象の画像（<see cref="GpPixelFormat8bppIndexed"/> で作ったもの）。</param>
+    /// <param name="palette">パレット（<see cref="GpImagePalette"/> の先頭アドレス）。</param>
+    /// <returns>成功した場合は <see cref="GpOk"/>。</returns>
+    /// <remarks>
+    /// <b>GDI+ はパレットを複製する</b>ため、呼び出しの後にパレットの領域を解放してよい
+    /// （<c>GdipCreateBitmapFromScan0</c> のピクセルとは扱いが異なる）。
+    /// <b>パレットを設定しないと色番号が既定のパレット（グレースケール等）で解釈される</b>ため、
+    /// 減色した画像を書く場合は必ず本関数を呼ぶ。
+    /// </remarks>
+    [LibraryImport("gdiplus.dll", EntryPoint = "GdipSetImagePalette")]
+    internal static partial int GdipSetImagePalette(IntPtr image, IntPtr palette);
 
     /// <summary>画像の幅を取得する（gdiplus.GdipGetImageWidth）。</summary>
     /// <param name="image">対象の画像。</param>

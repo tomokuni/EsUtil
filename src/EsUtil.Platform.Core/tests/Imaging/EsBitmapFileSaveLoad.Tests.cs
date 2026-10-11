@@ -359,6 +359,102 @@ public class EsBitmapFileSaveLoadTests
         throw new InvalidOperationException($"既知の画像形式ではありません（先頭バイト: {Convert.ToHexString(header)}）。");
     }
 
+    [Theory]
+    [InlineData(".bmp")]
+    [InlineData(".png")]
+    [InlineData(".gif")]
+    internal void Save_減色を指定すると色数が減り読み戻せる(string extension)
+    {
+        using var source = CreateNoisy(64, 64);
+        var plain = TempPath(extension);
+        var reduced = TempPath(extension);
+        try
+        {
+            source.Save(plain);
+            source.Save(reduced, new EsImageSaveOptions { ColorCount = 16 });
+
+            Assert.True(File.Exists(reduced));
+
+            using var loaded = EsBitmap.Load(reduced);
+            Assert.Equal(64, loaded.Width);
+            Assert.Equal(64, loaded.Height);
+            Assert.True(CountDistinctColors(loaded) <= 16, $"{CountDistinctColors(loaded)} 色になりました。");
+
+            // 減色した方が小さい（BMP は無圧縮だが、1 画素 1 バイトになるため大きく減る）
+            Assert.True(
+                new FileInfo(reduced).Length < new FileInfo(plain).Length,
+                $"減色後 {new FileInfo(reduced).Length} バイトが減色前 {new FileInfo(plain).Length} バイト以上です。");
+        }
+        finally
+        {
+            DeleteFile(plain);
+            DeleteFile(reduced);
+        }
+    }
+
+    [Fact]
+    internal void Save_減色したBMPは画素が完全に一致する()
+    {
+        using var source = CreateNoisy(32, 32);
+        using var expected = source.ReduceColors(8);
+        var path = TempPath(".bmp");
+        try
+        {
+            source.Save(path, new EsImageSaveOptions { ColorCount = 8 });
+
+            using var loaded = EsBitmap.Load(path);
+
+            // BMP はパレットを完全に保つため、ReduceColors の結果と一致する
+            Assert.Equal(expected.Pixels.ToArray(), loaded.Pixels.ToArray());
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(".jpg")]
+    [InlineData(".tiff")]
+    internal void Save_パレットを持てない形式へ減色を指定するとNotSupportedExceptionを投げる(string extension)
+    {
+        using var source = CreateNoisy(32, 32, levels: 32);
+        var path = TempPath(extension);
+
+        Assert.Throws<NotSupportedException>(
+            () => source.Save(path, new EsImageSaveOptions { ColorCount = 16 }));
+        Assert.False(File.Exists(path));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(257)]
+    internal void Save_減色の色数が範囲外ならArgumentOutOfRangeExceptionを投げる(int colorCount)
+    {
+        using var source = EsWritableBitmap.Create(4, 4);
+        var path = TempPath(".png");
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => source.Save(path, new EsImageSaveOptions { ColorCount = colorCount }));
+        Assert.False(File.Exists(path));
+    }
+
+    /// <summary>画像で使われている色の数を数える。</summary>
+    /// <param name="bitmap">対象の画像。</param>
+    /// <returns>異なる色の数。</returns>
+    private static int CountDistinctColors(IEsBitmap bitmap)
+    {
+        var colors = new HashSet<uint>();
+        var pixels = bitmap.Pixels;
+        for (var i = 0; i < pixels.Length; i += IEsBitmap.BytesPerPixel)
+        {
+            colors.Add((uint)((pixels[i] << 24) | (pixels[i + 1] << 16) | (pixels[i + 2] << 8) | pixels[i + 3]));
+        }
+
+        return colors.Count;
+    }
+
     /// <summary>一時ファイルを消す（存在しない場合は何もしない）。</summary>
     /// <param name="path">消すファイルのパス。</param>
     private static void DeleteFile(string path)
@@ -366,20 +462,28 @@ public class EsBitmapFileSaveLoadTests
         if (File.Exists(path)) { File.Delete(path); }
     }
 
-    /// <summary>圧縮の効果を観測できる画像を作る（画素ごとに色が不規則に変わる）。</summary>
+    /// <summary>圧縮・減色の効果を観測できる画像を作る（画素ごとに色が不規則に変わる）。</summary>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="levels">1 チャネルあたりの段階数（既定 256 = 最大）。 段階を減らすと色数が減る。</param>
     /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
-    private static EsWritableBitmap CreateNoisy(int width, int height)
+    private static EsWritableBitmap CreateNoisy(int width, int height, int levels = 256)
     {
         var bitmap = EsWritableBitmap.Create(width, height);
         var state = 12345u;
+        var step = 256 / Math.Clamp(levels, 2, 256);
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
             {
                 state = (state * 1664525u) + 1013904223u;
-                bitmap.SetPixel(x, y, (byte)(state >> 24), (byte)(state >> 16), (byte)(state >> 8), 255);
+                bitmap.SetPixel(
+                    x,
+                    y,
+                    (byte)((state >> 24) % step * (256 / step)),
+                    (byte)((state >> 16) % step * (256 / step)),
+                    (byte)((state >> 8) % step * (256 / step)),
+                    255);
             }
         }
 
