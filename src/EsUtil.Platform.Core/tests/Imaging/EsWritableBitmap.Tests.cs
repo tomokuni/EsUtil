@@ -125,6 +125,26 @@ public class EsWritableBitmapTests
         Assert.False(bmp.TrySetPixel(0, -1, color));
     }
 
+    /// <summary>座標型（<see cref="EsPointInt" />）のオーバーロードが成分オーバーロードと同じ結果になることを検証する。</summary>
+    [Fact]
+    internal void TrySetPixel_座標型のオーバーロードは成分と一致する()
+    {
+        using var bmp = Create(4, 4);
+        var color = System.Drawing.Color.FromArgb(255, 30, 20, 10);
+
+        Assert.True(bmp.TrySetPixel(new EsPointInt(1, 2), color));
+
+        var (b, g, r, a) = bmp.GetPixel(1, 2);
+        Assert.Equal((byte)10, b);
+        Assert.Equal((byte)20, g);
+        Assert.Equal((byte)30, r);
+        Assert.Equal((byte)255, a);
+
+        // 範囲外は成分版と同じく false（例外にしない）
+        Assert.False(bmp.TrySetPixel(new EsPointInt(4, 3), color));
+        Assert.False(bmp.TrySetPixel(new EsPointInt(-1, 0), color));
+    }
+
     [Fact]
     internal void Clear_全ピクセルが指定色になる()
     {

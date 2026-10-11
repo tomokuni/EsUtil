@@ -13,7 +13,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Presentation;
 /// 対象座標の矩形をこの倍率で換算すれば拡大画像と正確に一致する（切り出しの位置ずれ（切り上げ）も自動的に吸収される）。<br/>
 /// <br/>
 /// <b>破線と太さの単位</b>: 描画面は物理ピクセルのため、DIP で見せたい寸法は <see cref="LoupeDrawPlan.ScaleDipToPixel"/> で換算する。<br/>
-/// <b>ピクセル操作の安全域</b>: 描画面の外は <see cref="IEsWritableBitmap.TrySetPixel"/> が false を返すため、端の判定を書かなくてよい。
+/// <b>ピクセル操作の安全域</b>: 描画面の外は <see cref="IEsWritableBitmap.TrySetPixel(int, int, DrawingColor)"/> が false を返すため、端の判定を書かなくてよい。
 /// </remarks>
 internal static class SelectionRectPainter
 {

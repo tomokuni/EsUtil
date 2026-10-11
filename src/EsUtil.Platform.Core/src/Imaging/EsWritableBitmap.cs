@@ -13,12 +13,25 @@ namespace EsUtil.Platform.Core.Imaging;
 /// 読み取りだけの関数（<see cref="IEsBitmap"/> を受ける）へもそのまま渡せる。<br/>
 /// <b>兄弟との関係</b>: <see cref="EsBitmap"/>（読み取り専用）とは<b>兄弟</b>であり、互いに変換できない
 /// （同じバッファを 2 つの型で見せると、書き換えの可否が静かに食い違うため）。
-/// 読み取り専用の画像から書き換え可能な画像を作る場合は <see cref="Create(EsBitmap)"/>（複製）を使う。<br/>
+/// 読み取り専用の画像から書き換え可能な画像を作る場合は <see cref="Create(IEsBitmap)"/> を使う。<br/>
 /// <b>解放</b>: <see cref="IDisposable"/> を実装する。 解放の実装は <see cref="SafeAlignedBuffer"/> が単一所有するため、
 /// 破棄を忘れても GC が解放する（大きな画像は <c>using</c> で早く解放すること）。
 /// </remarks>
 public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposable
 {
+    /// <summary>指定サイズのピクセル バッファを確保する。</summary>
+    /// <param name="width">幅（ピクセル）。 0 以上。</param>
+    /// <param name="height">高さ（ピクセル）。 0 以上。</param>
+    /// <param name="clear">true の場合は全領域を 0（透明）で初期化する。 直後に全領域を書く場合は false。</param>
+    private EsWritableBitmap(int width, int height, bool clear = true)
+        : base(width, height, clear)
+    {
+    }
+
+    /// <summary>ピクセル バッファを解放する（冪等）。</summary>
+    /// <remarks>解放の実装は <see cref="SafeAlignedBuffer.ReleaseHandle"/> が単一所有する。</remarks>
+    public void Dispose() => ReleaseBuffer();
+
     /// <summary>指定サイズの空の画像（BGRA8888・全ピクセル透明）を生成する。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>
     /// <param name="height">高さ（ピクセル）。 0 以上。</param>
@@ -40,7 +53,7 @@ public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposa
     public static EsWritableBitmap Create(int width, int height, Color color)
     {
         // 直後に全領域を塗るため、生成時の 0 埋めは行わない
-        var bitmap = new EsWritableBitmap(width, height, clear: false);
+        var bitmap = CreateUninitialized(width, height);
         bitmap.ClearCore(color.B, color.G, color.R, color.A);
         return bitmap;
     }
@@ -52,13 +65,42 @@ public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposa
     public static EsWritableBitmap Create(EsSizeInt size, Color color)
         => Create(size.Width, size.Height, color);
 
+    /// <summary>別のオブジェクト（画像）から書き換え可能な画像を生成する（バッファは共有しない）。</summary>
+    /// <param name="source">生成元の画像。 借用であり破棄しない。</param>
+    /// <returns>独立した画像。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>複製を作る理由</b>: 生成元とバッファを共有すると、書き換えが生成元の側へ
+    /// 波及して「書き換えない」という約束が崩れるため（1 回の全域コピーが発生する。 実測: 4K で約 6 ms）。<br/>
+    /// <b>本メソッドは「別のオブジェクトからの生成」である</b>: 受け取った画像から書き換え可能な実体を組み立てる。
+    /// <b>自身（書き換え可能な画像）の複製は <see cref="Clone"/></b> であり意味が異なる
+    /// （実装が同じでも片方へ寄せない）。<br/>
+    /// <b>引数が面（<see cref="IEsBitmap"/>）である理由</b>: <see cref="EsBitmap.Create(IEsBitmap)"/> と同じであり、
+    /// <b>受け取る実体を本型の派生に限らない</b>ためである（外部が実装する画像（UI の表示アダプタ等）からも
+    /// 書き換え可能な実体を組み立てられる。 同じ型（<see cref="EsWritableBitmap"/>）を渡すこともできるが、
+    /// 自身の複製が目的なら <see cref="Clone"/> を使う）。<br/>
+    /// <b>ファイルから書き換え可能な画像が要る場合は本メソッドを使わない</b>
+    /// （<see cref="Load(string)"/> がデコードと同時に書き換え可能な型を作るため、全域コピーが 1 回で済む）。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
+    public static EsWritableBitmap Create(IEsBitmap source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ObjectDisposedException.ThrowIf(source.IsDisposed, source);
+
+        var result = CreateUninitialized(source.Width, source.Height);
+        source.Pixels.CopyTo(result.WritableBuffer);
+        return result;
+    }
+
     /// <summary>直後に全領域を書く前提でピクセル バッファを確保する（初期化しない）。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>
     /// <param name="height">高さ（ピクセル）。 0 以上。</param>
     /// <returns>生成された画像（ピクセルは不定値）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// 全領域を必ず書く手順（全行のコピー・全ピクセルの塗りつぶし）から使う（大きな画像の 0 埋めを丸ごと省ける）。
-    /// 相互変換（System.Drawing / Avalonia / Skia）は全行を書くため本メソッドを使う。<br/>
+    /// 直後に全領域を書く手順（切り出し・縮小・複製・画面キャプチャ）から使う（大きな画像の 0 埋めを丸ごと省ける）。<br/>
+    /// <b>1 回の充填で全体を書く相互変換（System.Drawing / Avalonia / Skia）は <see cref="CreateFilled"/> を使う</b>
+    /// （呼び出し側へ書き込みのビューを渡さないため）。<br/>
     /// <b>書かない領域が残る場合は <see cref="Create(int, int)"/> を使うこと</b>（不定値が描画へ回り、
     /// 透明ではないピクセルが見える）。 <b>書く責任は呼び出し側が持つ</b>。
     /// </remarks>
@@ -71,27 +113,31 @@ public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposa
     public static EsWritableBitmap CreateUninitialized(EsSizeInt size)
         => CreateUninitialized(size.Width, size.Height);
 
-    /// <summary>読み取り専用の画像から書き換え可能な画像を生成する（複製。 バッファは共有しない）。</summary>
-    /// <param name="source">複製元の画像。 借用であり破棄しない。</param>
-    /// <returns>独立した複製。 所有権は呼び出し側へ移る。</returns>
+    /// <summary>確保と充填を 1 回で行う（読み取りの面と同じ入口の形にする）。</summary>
+    /// <param name="width">幅（ピクセル）。 0 以上。</param>
+    /// <param name="height">高さ（ピクセル）。 0 以上。</param>
+    /// <param name="fill">確保したバッファ（全領域）を充填する処理。 生成の直後に 1 回だけ呼ぶ。</param>
+    /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// <b>複製を作る理由</b>: 読み取り専用の画像とバッファを共有すると、書き換えが読み取り専用の側へ
-    /// 波及して「書き換えない」という約束が崩れるため（1 回の全域コピーが発生する。 実測: 4K で約 6 ms）。<br/>
-    /// <b><see cref="EsBitmap"/> から呼ぶ理由</b>: <see cref="EsWritableBitmap"/> は <see cref="EsBitmap"/> の兄弟であるため、
-    /// <see cref="EsWritableBitmap"/> を渡すことはできない（同型の複製は <see cref="Clone"/> を使う）。
-    /// この制約により「同型の複製（Clone）」と「権利を変える複製（本メソッド）」が重複しない。<br/>
-    /// <b>ファイルから書き換え可能な画像が要る場合は本メソッドを使わない</b>
-    /// （<see cref="Load(string)"/> がデコードと同時に書き換え可能な型を作るため、全域コピーが 1 回で済む）。
+    /// <b><see cref="EsBitmap.CreateFilled"/> と対にする理由</b>: 同じ手順（外部のピクセルをコアの画像へ写す）が
+    /// 権利の違いだけで 2 通りの読み方になるのを避けるためです。 相互変換（System.Drawing / Avalonia / Skia）は
+    /// どちらの権利の画像も作るため、<b>同じ名前・同じ引数の形の入口があると変換の実装が同じ形で読めます</b>。<br/>
+    /// <b><see cref="CreateUninitialized(int, int)"/> との関係</b>: 本メソッドはそれを呼んで充填するだけです
+    /// （同じ確保手順を 2 度書かず、0 埋めを省く場所も 1 か所に保ちます）。
+    /// <b>読み取り専用の実体（<see cref="EsBitmap"/>）に本メソッドしか無い理由</b>: 書き込みの入口を公開しないためです
+    /// （同名の確保入口は <c>private</c> に持ち、外へ出す入口を確保と充填の 1 回へ閉じます）。
+    /// 使い分けは書く形で決まります。 <b>1 回の充填で全体を書く</b>手順（相互変換）は本メソッド、
+    /// それ以外で<b>直後に全領域を書く</b>手順（切り出し・縮小・複製・画面キャプチャ）は
+    /// <see cref="CreateUninitialized(int, int)"/> を使います。<br/>
+    /// <b>書かない領域を残さないこと</b>: 生成時の 0 埋めは行わない（透明が必要な領域は <paramref name="fill"/> が消す）。
     /// </remarks>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
-    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
-    public static EsWritableBitmap Create(EsBitmap source)
+    public static EsWritableBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        source.ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(fill);
 
-        var result = CreateUninitialized(source.Width, source.Height);
-        CopyPixels(source, result);
+        // 全領域を充填する前提で確保するため、生成時の 0 埋めは行わない
+        var result = CreateUninitialized(width, height);
+        fill(result.WritableBuffer);
         return result;
     }
 
@@ -112,40 +158,6 @@ public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposa
     [SupportedOSPlatform("windows")]
     public static EsWritableBitmap Load(string filePath)
         => LoadCore(filePath, static (width, height) => CreateUninitialized(width, height));
-
-    /// <summary>指定サイズのピクセル バッファを確保する。</summary>
-    /// <param name="width">幅（ピクセル）。 0 以上。</param>
-    /// <param name="height">高さ（ピクセル）。 0 以上。</param>
-    /// <param name="clear">true の場合は全領域を 0（透明）で初期化する。 直後に全領域を書く場合は false。</param>
-    private EsWritableBitmap(int width, int height, bool clear = true)
-        : base(width, height, clear)
-    {
-    }
-
-    /// <summary>確保と充填を 1 回で行う（読み取りの面と同じ入口の形にする）。</summary>
-    /// <param name="width">幅（ピクセル）。 0 以上。</param>
-    /// <param name="height">高さ（ピクセル）。 0 以上。</param>
-    /// <param name="fill">確保したバッファ（全領域）を充填する処理。 生成の直後に 1 回だけ呼ぶ。</param>
-    /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
-    /// <remarks>
-    /// <b><see cref="EsBitmap.CreateFilled"/> と対にする理由</b>: 同じ手順（外部のピクセルをコアの画像へ写す）が
-    /// 権利の違いだけで 2 通りの読み方になるのを避けるためです。 相互変換（System.Drawing / Avalonia / Skia）は
-    /// どちらの権利の画像も作るため、<b>同じ名前・同じ引数の形の入口があると変換の実装が同じ形で読めます</b>。<br/>
-    /// <b><see cref="CreateUninitialized(int, int)"/> との関係</b>: 本メソッドはそれを呼んで充填するだけであり、
-    /// 重なる部分があります（読み取り専用の実体には本メソッドしか無いのは、書き込みの入口を公開しないためです）。
-    /// 使い分けは書く形で決まります。 <b>1 回の充填で全体を書く</b>手順（相互変換）は本メソッド、
-    /// <b>複数の場所から少しずつ書く</b>手順（切り出し・縮小・複製）は <see cref="CreateUninitialized(int, int)"/> を使います。<br/>
-    /// <b>書かない領域を残さないこと</b>: 生成時の 0 埋めは行わない（透明が必要な領域は <paramref name="fill"/> が消す）。
-    /// </remarks>
-    public static EsWritableBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)
-    {
-        ArgumentNullException.ThrowIfNull(fill);
-
-        // 全領域を充填する前提で確保するため、生成時の 0 埋めは行わない
-        var result = new EsWritableBitmap(width, height, clear: false);
-        fill(result.WritablePixels);
-        return result;
-    }
 
     /// <inheritdoc/>
     /// <remarks>本型が公開するのは書き換えを認められた画像であるため、基底のビューをそのまま公開する。</remarks>
@@ -187,24 +199,26 @@ public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposa
     }
 
     /// <inheritdoc/>
+    /// <remarks>範囲の判定と破棄済みの検証は <see cref="TrySetPixel(int, int, Color)"/> が単一所有する（本メソッドは成分へ分解するだけ）。</remarks>
+    public bool TrySetPixel(EsPointInt point, Color color) => TrySetPixel(point.X, point.Y, color);
+
+    /// <inheritdoc/>
     public void Clear(byte b, byte g, byte r, byte a) => ClearCore(b, g, r, a);
 
     /// <inheritdoc/>
     public void Clear(Color color) => ClearCore(color.B, color.G, color.R, color.A);
 
-    /// <summary>本画像の複製を生成する（書き換え可能な複製）。</summary>
+    /// <summary>本画像（自身）の複製を生成する（書き換え可能な複製）。</summary>
     /// <returns>独立した複製。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>別のオブジェクトから書き換え可能な実体を生成するのは <see cref="Create(IEsBitmap)"/> であり、
+    /// 意味が異なる（実装が同じでも片方へ寄せない）。</remarks>
     public override EsWritableBitmap Clone()
     {
         ThrowIfDisposed();
 
         // 全領域を 1 回のコピーで覆うため、生成時の 0 埋めは行わない
-        var result = new EsWritableBitmap(Width, Height, clear: false);
+        var result = CreateUninitialized(Width, Height);
         CopyPixels(this, result);
         return result;
     }
-
-    /// <summary>ピクセル バッファを解放する（冪等）。</summary>
-    /// <remarks>解放の実装は <see cref="SafeAlignedBuffer.ReleaseHandle"/> が単一所有する。</remarks>
-    public void Dispose() => ReleaseBuffer();
 }

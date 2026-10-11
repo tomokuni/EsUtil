@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Geometry;
 using Color = System.Drawing.Color;
 
 namespace EsUtil.Platform.Core.Imaging;
@@ -47,6 +48,17 @@ public interface IEsWritableBitmap : IEsBitmap
     /// </remarks>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     bool TrySetPixel(int x, int y, Color color);
+
+    /// <summary>指定座標へ色を設定する（座標型を受け取る版。 範囲外は無視する）。</summary>
+    /// <param name="point">座標（ピクセル）。</param>
+    /// <param name="color">設定する色。</param>
+    /// <returns>書き込めたかどうか。 範囲外の場合は false（例外にしない）。</returns>
+    /// <remarks>
+    /// 座標を <see cref="EsPointInt"/> で持つ呼び出し側（読み取りの面の <see cref="IEsBitmap.GetPixel(EsPointInt)"/> と対になる形）のための入口。<br/>
+    /// 範囲の判定と破棄済みの検証は <see cref="TrySetPixel(int, int, Color)"/> が単一所有する（本メソッドは成分へ分解して委譲するだけ）。
+    /// </remarks>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    bool TrySetPixel(EsPointInt point, Color color);
 
     /// <summary>全ピクセルを指定色（BGRA）で塗りつぶす。</summary>
     /// <param name="b">青成分（0〜255）。</param>

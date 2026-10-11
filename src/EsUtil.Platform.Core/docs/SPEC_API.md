@@ -509,11 +509,15 @@ public readonly record struct ElementFinderResults(
 
 - **2 つの権利の実装の共有**: `EsBitmap`（読取 ＋ 破棄）と `EsWritableBitmap`（読取 ＋ 書き換え ＋ 破棄）が、バッファの確保・公開・解放の実装を 1 回だけ書くための基底です。 **派生できるのは本アセンブリの 2 型だけ**です（外部が独自の画像を作る場合は `IEsBitmap` / `IEsWritableBitmap` を実装します）。
 
-**兄弟である理由**: `EsBitmap` と `EsWritableBitmap` は互いに変換できません（`Is` 関係が無い）。 同じバッファを 2 つの型で見せると「書き換えてよいか」が静かに食い違うためです。 読み取り専用の画像から書き換え可能な画像を作る場合は `EsWritableBitmap.Create(EsBitmap)`（複製）を使い、逆方向は `EsBitmap.Clone()`（読み取り専用の複製）を使います。
+**兄弟である理由**: `EsBitmap` と `EsWritableBitmap` は互いに変換できません（`Is` 関係が無い）。 同じバッファを 2 つの型で見せると「書き換えてよいか」が静かに食い違うためです。 読み取り専用の画像から書き換え可能な画像を作る場合は `EsWritableBitmap.Create`（別のオブジェクトからの生成）を使い、逆方向は `EsBitmap.Create` を使います。
+
+**生成（`Create`）と複製（`Clone`）は意味が違います**: `Create` は**別のオブジェクトからの生成**（外部の画像から実体を組み立てる）であり、`Clone` は**自身の複製**（同じ型・同じ権利）です。 実装が同じでも意味が異なるため、片方へ寄せません（`Clone` を `Create` の別名にしない／`Clone` を廃して `Create` へ統合しない）。 どちらの `Create` も**面**（`IEsBitmap`）を受け取ります（外部が実装する画像（UI の表示アダプタ等）からも実体を組み立てられるようにするため。 同じ型を渡すこともできますが、自身の複製が目的なら `Clone` を使います）。
 
 **書き込み量の最適化**: 直後に全領域を書く手順（`Create(w, h, color)` / `Clone` / `Crop` / 相互変換）は 0 初期化を省きます（画像サイズ分の書き込みを丸ごと削減する）。 `Crop` はコピーされないパディングだけを透明にし、`CreateUninitialized` は「全領域を書く」責任を呼び出し側が持つ前提で未初期化のまま確保します。
 
-**`CreateFilled` を両方の型に置く理由（対にする）**: 相互変換（System.Drawing / Avalonia / Skia）は**どちらの権利の画像も作ります**。 片方だけ別の書き方（`CreateUninitialized` + `WritablePixels`）になると、変換を読むたびに「なぜ違うのか」を調べることになるため、**同じ名前・同じ引数の形の入口を両方の型に置きます**（読み取り専用の側は書き込みの入口を公開しないため、充填の入口が無いと 2 回のコピーになる）。 `CreateUninitialized` との関係は「1 回の充填で全体を書く手順 → `CreateFilled` / 複数の場所から少しずつ書く手順（切り出し・縮小・複製）→ `CreateUninitialized`」で使い分けます。
+**`CreateFilled` を両方の型に置く理由（対にする）**: 相互変換（System.Drawing / Avalonia / Skia）は**どちらの権利の画像も作ります**。 片方だけ別の書き方（`CreateUninitialized` + `WritablePixels`）になると、変換を読むたびに「なぜ違うのか」を調べることになるため、**同じ名前・同じ引数の形の入口を両方の型に置きます**（読み取り専用の側は書き込みの入口を公開しないため、充填の入口が無いと 2 回のコピーになる）。 `CreateUninitialized` との関係は「1 回の充填で全体を書く手順 → `CreateFilled` / それ以外で直後に全領域を書く手順（切り出し・縮小・複製・画面キャプチャ）→ `CreateUninitialized`」で使い分けます。
+
+**未初期化の入口は書き換え可能な側だけが公開します（この非対称は意図です）**: `CreateUninitialized` は `EsWritableBitmap` の公開 API ですが、`EsBitmap` は**同じ名前・同じ引数の入口を `private` に持ちます**（`Load` / `Clone` / `Create` / `CreateFilled` が委譲する唯一の確保手順であり、0 埋めを省く場所は各型で 1 か所だけになります）。 読み取り専用の実体は**書き込みの入口を公開しない**ため、未初期化のバッファを外へ出すと「書けないまま不定値のピクセルが描画へ回る」経路ができます（外へ出す入口は確保と充填を 1 回に閉じる `CreateFilled` だけです）。
 
 **実測（4K 3840x2160 = 33 MB のバッファ）**: 確保と 0 初期化が 7.3 ms、1 回の全域コピーが 6.5 ms です。 つまり **`Create(w, h)`（0 初期化あり）と 1 回のコピーの合計が支配的**です。
 
@@ -533,8 +537,8 @@ public readonly record struct ElementFinderResults(
 | 生成 | `Create` | `static EsWritableBitmap Create(int width, int height, Color color)` / `static EsWritableBitmap Create(EsSizeInt size, Color color)` | 全ピクセルを指定色で生成（0 初期化を省く） |
 | 生成 | `CreateUninitialized` | `static EsWritableBitmap CreateUninitialized(int width, int height)` / `static EsWritableBitmap CreateUninitialized(EsSizeInt size)` | 直後に全領域を書く前提で確保（ピクセルは不定値。 **書かなければ不定値が見える**） |
 | 生成 | `CreateFilled` | `static EsWritableBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)` | 確保と**充填**を 1 回で行う（相互変換が使う） |
-| 複製 | `Create` | `static EsWritableBitmap Create(EsBitmap source)` | 読み取り専用の画像から書き換え可能な複製を作る（バッファは共有しない。 実測: 4K で約 6 ms） |
-| 複製 | `Clone` | `EsWritableBitmap Clone()` | 書き換え可能な複製を作る（同型） |
+| 生成 | `Create` | `static EsWritableBitmap Create(IEsBitmap source)` | **別のオブジェクト（画像）から**書き換え可能な実体を生成（バッファは共有しない。 実測: 4K で約 6 ms。 **自身の複製は `Clone`**） |
+| 複製 | `Clone` | `EsWritableBitmap Clone()` | **自身の複製**（同型）を作る |
 | 読込 | `Load` | `static EsWritableBitmap Load(string filePath)` | ファイルから**書き換え可能な**画像として読み込む（形式は内容から判別する。 読み取り専用でよい場合は `EsBitmap.Load`。 詳細は [2.32](#232-画像のファイル入出力save--load)） |
 | その他 | `Dispose` | `void Dispose()` | バッファを解放（二重呼び出しは無害） |
 
@@ -545,8 +549,8 @@ public readonly record struct ElementFinderResults(
 | 生成 | `Create` | `static EsBitmap Create(int width, int height)` / `static EsBitmap Create(EsSizeInt size)` | 指定サイズの空の画像（全ピクセル透明）を生成 |
 | 生成 | `Create` | `static EsBitmap Create(int width, int height, Color color)` / `static EsBitmap Create(EsSizeInt size, Color color)` | 全ピクセルを指定色で生成 |
 | 生成 | `CreateFilled` | `static EsBitmap CreateFilled(int width, int height, Action<Span<byte>> fill)` | 確保と**充填**を 1 回で行う（相互変換が使う） |
-| 複製 | `Clone` | `EsBitmap Clone()` | 読み取り専用の複製を作る（同型。 書き換え可能な複製が要る場合は `EsWritableBitmap.Create`） |
-| 複製 | `Create` | `static EsBitmap Create(IEsBitmap source)` | 借用した画像を複製して**読み取り専用の**画像を作る（表示アダプタなどの外部実装からも使える入口） |
+| 生成 | `Create` | `static EsBitmap Create(IEsBitmap source)` | **別のオブジェクト（借用した画像）から**読み取り専用の実体を生成（表示アダプタなどの外部実装からも使える入口。 **自身の複製は `Clone`**） |
+| 複製 | `Clone` | `EsBitmap Clone()` | **自身の複製**（同型。 書き換え可能な複製が要る場合は `EsWritableBitmap.Create`） |
 | 読込 | `Load` | `static EsBitmap Load(string filePath)` | ファイルから**読み取り専用の**画像を読み込む（形式は内容から判別する。 書き換えが要る場合は `EsWritableBitmap.Load`） |
 | その他 | `Dispose` | `void Dispose()` | バッファを解放（二重呼び出しは無害） |
 
@@ -572,7 +576,7 @@ public readonly record struct ElementFinderResults(
 | --- | --- | --- | --- |
 | プロパティ | `WritablePixels` | `Span<byte>` | ピクセル データの**書き込み可能なビュー**（`Pixels` と同じバッファ。 破棄後は `ObjectDisposedException`） |
 | ピクセル | `SetPixel` | `void SetPixel(int x, int y, byte b, byte g, byte r, byte a)` / `void SetPixel(EsPointInt point, Color color)` | 指定座標の BGRA を設定。 範囲外は `IndexOutOfRangeException` |
-| ピクセル | `TrySetPixel` | `bool TrySetPixel(int x, int y, Color color)` | 指定座標へ色を設定（**範囲外は `false`**。 画像の端をはみ出す矩形を描く用途） |
+| ピクセル | `TrySetPixel` | `bool TrySetPixel(int x, int y, Color color)` / `bool TrySetPixel(EsPointInt point, Color color)` | 指定座標へ色を設定（**範囲外は `false`**。 画像の端をはみ出す矩形を描く用途） |
 | ピクセル | `Clear` | `void Clear(byte b, byte g, byte r, byte a)` / `void Clear(Color color)` | 全ピクセルを指定色で塗りつぶし |
 
 - **`Address`（生ポインタ）は公開しません**: 渡すと「読み取り専用」の意図が消えるためです。 ポインタが要る場合（他フレームワークの非所有ビューへ渡す等）は `Pixels` を `fixed` で固定して取ります（バッファはアンマネージドのため、生存中はアドレスが動きません）。
@@ -646,13 +650,14 @@ public readonly record struct ElementFinderResults(
 - **エンコード・デコードは `gdiplus.dll` のフラット API を直接呼びます**（宣言は `src/EsUtil.Platform.Core/src/Native/Win/WinNative.GdiPlus.cs` が集約。 `WinNative` は DLL ごとの `partial` ファイルに分かれます）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
 - **本機能は Windows 専用です**: `gdiplus.dll` は Windows にのみ存在します（非 Windows では `DllNotFoundException`）。 公開メンバー（`Save` / `Load` / `SupportedFileExtensions`）は `SupportedOSPlatform("windows")` で限定します。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、`src/EsUtil.Platform.Core/src/Native` だけが Windows に依存します）。
 - **GDI+ の初期化は `WinGdiPlusLifetime` が単一所有します**（プロセス単位で 1 回だけ `GdiplusStartup` を呼びます）。 終了処理（`GdiplusShutdown`）は**呼びません**（プロセス全体の GDI+ を終了させるため、ホストが別の目的で GDI+ を使っている場合に影響します。 GDI+ はプロセスの終了時に OS が解放します）。
+- **初期化を前倒しする公開 API は持ちません**: 初期化は `WinGdiPlusLifetime`（`internal`）が単一所有するため、ホストからは呼べません。 初期化のコストは最初の `Save` / `Load` が負担します。 公開しない理由は**利得が小さいこと**です（実測: 初期化は初回 4.89 ms であり、4K PNG の保存 66.5 ms の 7% に満たない。 しかも 1 プロセスで 1 回だけ）。 加えて、公開すると**利用者が起動時に呼び、実際に必要になる前にプロセス全体の副作用（バックグラウンド スレッド +1・解放されない参照カウント）を起こす**誘導になります。
 - **本機能はプロセス全体に及ぶ副作用を引き受けます（実測）**: 初回の `Save` / `Load` で次が起きます。
   - **GDI+ が有効になる**（初期化しないと状態 18 = `GdiplusNotInitialized` で全 API が失敗する）。
   - **バックグラウンド スレッドが 1 本増える**（起動直後 8 → 9。 GDI+ が表示設定の通知を受け取るためで、抑止すると初期化自体が `InvalidParameter` になる）。
   - **解放されない参照カウントを 1 つ取る**（`GdiplusShutdown` を呼ばない。 プロセス終了時に OS が解放する）。
   - **初回だけ遅延が乗る**（初回 4.89 ms / 2 回目 0.53 ms）。
 
-  **影響を受けるのは GDI+ を他に使っていないプロセスだけです**（`System.Drawing.Common` を使うアプリには同じ初期化とスレッドが既にあります。 実測: `System.Drawing.Bitmap` だけでも同じスレッドが 1 本増えます）。 副作用を避けるには WIC へ移す必要があります（下記）。
+  **この副作用は本ライブラリ固有ではなく、`System.Drawing.Common.Bitmap` を使っても同じです**（実測: スレッド 8 → 9、初回 4.87 ms / 2 回目 0.06 ms。 `System.Drawing.Common` の実装（`System.Private.Windows.Core`）も `GdiplusStartup` だけを宣言し、`GdiplusShutdown` を宣言していません）。 したがって **影響を受けるのは GDI+ を他に使っていないプロセスだけです**。 副作用を避けるには WIC へ移す必要があります（下記）。
 - **代替（採用していない）**: **マネージド .NET には他に標準の画像コーデックがありません**。 Windows ネイティブにはあります（下記）。 いずれも実装量または依存の代償があります。
   - **WIC / WinRT（Windows ネイティブ。 実測で存在を確認）**: `Windows.Graphics.Imaging`（`BitmapEncoder` / `BitmapDecoder`。 WIC の .NET 投影）が**追加の NuGet なしで使えます**（Windows TFM `net10.0-windows10.0.x` が Windows SDK の投影を自動参照する。 実測: このマシンに 17763〜26100 の投影が存在）。 実測したエンコーダーは BMP / GIF / JPEG / PNG / TIFF / WMPhoto（JPEG XR）/ DDS / **HEIF（AVIF を含む）/ JPEG XL** で、**7 種すべてで保存に成功**しました。 デコーダーはさらに ICO / CUR / DNG / RAW（約 40 形式）/ **WebP（デコードのみ）** を含みます。 ただし (1) 本コアは `net10.0`（可搬）のため WinRT を直接参照できず、**TFM を Windows 固有にするか常駐アセンブリを分ける**必要があります（COM 相互運用を自前で宣言すれば `net10.0` のまま `Native/` に置けますが、`IWICImagingFactory` 等の宣言に数百行を要します）、(2) HEIF / JPEG XL / WebP は**OS のコーデック拡張（Store アプリ）で提供**されるため、拡張の無い環境では使えません（このマシンには入っています）。
   - **WPF の `System.Windows.Media.Imaging`（`BitmapEncoder` / `BitmapDecoder`）**: Microsoft 公式ですが `UseWPF` が必要で、UI 非依存のコアへ WPF を持ち込みます。
@@ -726,7 +731,7 @@ public readonly record struct ElementFinderResults(
 | --- | --- | --- | --- |
 | プロパティ | `WritablePixels` | `Span<byte>` | ピクセル データの**書き込み可能なビュー**（`Pixels` と同じバッファを指す） |
 | メソッド | `SetPixel` | `void SetPixel(int x, int y, byte b, byte g, byte r, byte a)` | 指定座標へ BGRA を設定。 範囲外は `IndexOutOfRangeException` |
-| メソッド | `TrySetPixel` | `bool TrySetPixel(int x, int y, Color color)` | 指定座標へ色を設定（**範囲外は `false`**。 端をはみ出す矩形を描く用途） |
+| メソッド | `TrySetPixel` | `bool TrySetPixel(int x, int y, Color color)` / `bool TrySetPixel(EsPointInt point, Color color)` | 指定座標へ色を設定（**範囲外は `false`**。 端をはみ出す矩形を描く用途。 座標型の版は読み取りの面の `GetPixel(EsPointInt)` と対になる） |
 | メソッド | `Clear` | `void Clear(byte b, byte g, byte r, byte a)` / `void Clear(Color color)` | 全ピクセルを指定色で塗りつぶし |
 
 - **`IDisposable` を含めません**: 借用に**破棄の権利**を与えないためです（破棄するのは生成した側であり、その側は書き込み可能な具象型として画像を持ちます）。 この分離により「**借用した画像を破棄する**」誤りがコンパイル エラーになります。

@@ -64,7 +64,9 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | **解放されない参照カウント** | `GdiplusShutdown` を呼ばない（**呼ぶと利用者の GDI+ を止める可能性がある**）。 プロセス終了時に OS が解放する | `Startup` 2 回 → `Shutdown` 1 回でも API は動作する（参照カウント式） |
 | **初回の遅延** | 最初の `Save` / `Load` に初期化のコストが乗る | 初回 4.89 ms / 2 回目 0.53 ms |
 
-**影響を受けるのは「GDI+ を他に使っていないプロセス」だけです**。 `System.Drawing.Common` を使うアプリでは同じ初期化とスレッドが既に存在するため、追加の影響はありません（実測: `System.Drawing.Bitmap` だけでも同じスレッドが 1 本増える）。
+**この副作用は本ライブラリ固有ではありません**。 `System.Drawing.Common.Bitmap` を使っても同じ初期化（`GdiplusStartup`）が走り、**同じ副作用**（GDI+ の有効化・バックグラウンド スレッド +1・解放されない参照カウント・初回の遅延）が起きます（実測: スレッド 8 → 9、初回 4.87 ms / 2 回目 0.06 ms）。 したがって **影響を受けるのは「GDI+ を他に使っていないプロセス」だけです**（既に GDI+ を使うアプリでは同じ初期化とスレッドが既に存在するため、追加の影響はありません）。
+
+**初期化を前倒しする公開 API はありません**（初期化は `WinGdiPlusLifetime` が単一所有しますが `internal` のため本アセンブリ専用です）。 コストを払うのは最初の `Save` / `Load` です。
 
 **副作用を避けたい場合**は、GDI+ ではなく **WIC**（`windowscodecs.dll` の COM）へ移す必要があります（プロセス全体の初期化もスレッドも不要）。 代償は実装量と速度です（実測: BMP で 6.8 倍遅い）。 判断の記録は [`docs/SPEC_System.md`](docs/SPEC_System.md) の「ファイル入出力の実装方式」を参照してください。
 

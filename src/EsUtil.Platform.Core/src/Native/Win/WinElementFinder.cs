@@ -69,7 +69,8 @@ public sealed class WinElementFinder : IElementFinder
             return true;
         }, IntPtr.Zero);
 
-        return result;    }
+        return result;
+    }
 
     /// <summary>ウィンドウを選択対象とするか判定し、対象なら検出結果を返す（<see cref="ListWindows"/> と共用）。</summary>
     /// <param name="hWnd">ウィンドウハンドル。</param>

@@ -70,6 +70,15 @@ public abstract class EsBitmapBase : IEsBitmap
         }
     }
 
+    /// <summary>破棄済みなら例外を投げる。</summary>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public void ThrowIfDisposed()
+        => ObjectDisposedException.ThrowIf(_disposed, this);
+
+    /// <inheritdoc/>
+    /// <remarks>読み取りの面（<see cref="IEsBitmap.IsDisposed"/>）が公開面である。 利用者は面の型で判定できる（本型へのダウンキャストは不要）。</remarks>
+    public bool IsDisposed => _disposed;
+
     /// <inheritdoc/>
     public int Width { get; }
 
@@ -81,10 +90,6 @@ public abstract class EsBitmapBase : IEsBitmap
 
     /// <inheritdoc/>
     public int Stride { get; }
-
-    /// <inheritdoc/>
-    /// <remarks>読み取りの面（<see cref="IEsBitmap.IsDisposed"/>）が公開面である。 利用者は面の型で判定できる（本型へのダウンキャストは不要）。</remarks>
-    public bool IsDisposed => _disposed;
 
     /// <summary>ピクセル データ先頭アドレス（BGRA8888）。 ピクセルを持たない場合と破棄後は 0。</summary>
     /// <remarks>
@@ -137,7 +142,7 @@ public abstract class EsBitmapBase : IEsBitmap
     }
 
     /// <inheritdoc/>
-    /// <remarks>成分の取得は <see cref="GetPixel(int, int)"/> へ委譲する（色の組み立て方を 1 か所に保つ）。</remarks>
+    /// <remarks>座標の範囲判定は行わない（範囲外は <see cref="IndexOutOfRangeException"/>）。</remarks>
     public Color GetPixel(EsPointInt point)
     {
         var (b, g, r, a) = GetPixel(point.X, point.Y);
@@ -146,11 +151,6 @@ public abstract class EsBitmapBase : IEsBitmap
 
     /// <inheritdoc/>
     public string ToSizeText() => $"{Width}x{Height}";
-
-    /// <summary>破棄済みなら例外を投げる。</summary>
-    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    public void ThrowIfDisposed()
-        => ObjectDisposedException.ThrowIf(_disposed, this);
 
     /// <summary>
     /// ある画像のピクセルを別の画像へ複製する（複製の実体はここ 1 か所）。
@@ -174,8 +174,11 @@ public abstract class EsBitmapBase : IEsBitmap
         _buffer.Dispose();
     }
 
-    /// <summary>本画像の複製を生成する（派生が戻り型を共変にして公開する）。</summary>
+    /// <summary>本画像（自身）の複製を生成する（派生が戻り型を共変にして公開する）。</summary>
     /// <returns>独立した複製。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>別のオブジェクトから実体を生成するのは <c>Create</c> である（<see cref="EsBitmap.Create(IEsBitmap)"/> /
+    /// <see cref="EsWritableBitmap.Create(IEsBitmap)"/>）。 本メソッドは<b>自身の複製</b>（同じ型・同じ権利）であり意味が異なる
+    /// （実装が同じでも片方へ寄せない）。</remarks>
     public abstract EsBitmapBase Clone();
 
     /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
@@ -246,7 +249,7 @@ public abstract class EsBitmapBase : IEsBitmap
     /// <param name="r">赤成分（0〜255）。</param>
     /// <param name="a">アルファ成分（0〜255）。</param>
     /// <remarks>与えられた成分をそのまま書き込む（乗算済みへの変換は行わない）。 色付き生成（<c>Create(w, h, color)</c>）が使う。</remarks>
-    protected unsafe void ClearCore(byte b, byte g, byte r, byte a)
+    protected void ClearCore(byte b, byte g, byte r, byte a)
     {
         var buffer = WritableBuffer;
         if (buffer.IsEmpty)
@@ -257,6 +260,6 @@ public abstract class EsBitmapBase : IEsBitmap
         // BGRA の並びをそのまま uint として書き込む（成分の入れ替えをしない）
         var pattern = (uint)(b | (g << 8) | (r << 16) | (a << 24));
         // 要素数は幅×高さ（ストライドは幅×4 のため、ストライド経由で数えると桁が大きくなるだけ）
-        System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(buffer).Fill(pattern);
+        MemoryMarshal.Cast<byte, uint>(buffer).Fill(pattern);
     }
 }
