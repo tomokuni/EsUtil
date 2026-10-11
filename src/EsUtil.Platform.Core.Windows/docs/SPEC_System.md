@@ -16,12 +16,12 @@
 
 ## 1. 概要
 
-`System.Drawing.Bitmap`（Windows 専用の画像型）と `EsUtil.Platform.Core` の画像型（`EsBitmap` / `EsBitmap`）を相互変換します。
+`System.Drawing.Bitmap`（Windows 専用の画像型）と `EsUtil.Platform.Core` の画像型（`EsReadOnlyBitmap` / `EsBitmap`）を相互変換します。
 
 **存在する理由**は 2 つです。
 
 1. **コアから外部パッケージを切り離す**: コア（`EsUtil.Platform.Core`）は外部パッケージを参照しません。 `System.Drawing.Common` に依存する変換は本プロジェクトが単一所有します。
-2. **借用と所有を型で表す**: `System.Drawing.Bitmap` は可変かつ `IDisposable` であるため、コアの「読み取り専用（`EsBitmap`）／書き換え可能（`EsBitmap`）」の区別をそのまま表せません。 変換の入口を 2 つに分けることで、利用者が権利を選んでから画像を作ります。
+2. **借用と所有を型で表す**: `System.Drawing.Bitmap` は可変かつ `IDisposable` であるため、コアの「読み取り専用（`EsReadOnlyBitmap`）／書き換え可能（`EsBitmap`）」の区別をそのまま表せません。 変換の入口を 2 つに分けることで、利用者が権利を選んでから画像を作ります。
 
 ## 2. 技術スタック
 
@@ -36,7 +36,7 @@
 graph TD
     A["利用者（System.Drawing.Bitmap を持つ層）"] --> B["EsBitmapDrawingExtensions"]
     B --> C["System.Drawing.Common<br/>（LockBits によるピクセル コピー）"]
-    B --> D["EsUtil.Platform.Core<br/>EsBitmap / EsBitmap"]
+    B --> D["EsUtil.Platform.Core<br/>EsReadOnlyBitmap / EsBitmap"]
 ```
 
 - **本プロジェクトは変換だけを持ちます**（画像の確保・描画・ファイル入出力は持ちません）。
@@ -64,17 +64,16 @@ graph TD
 classDiagram
     class EsBitmapDrawingExtensions {
         <<static>>
-        +ToEsBitmap(Bitmap) EsBitmap
+        +ToEsReadOnlyBitmap(Bitmap) EsReadOnlyBitmap
         +ToEsBitmap(Bitmap) EsBitmap
         +ToDrawingBitmap(EsReadOnlyBitmap) Bitmap
     }
     class Bitmap
     class EsReadOnlyBitmap
     class EsBitmap
-    class EsBitmap
     Bitmap ..> EsBitmapDrawingExtensions : 拡張元
     EsReadOnlyBitmap ..> EsBitmapDrawingExtensions : 拡張元
-    EsBitmapDrawingExtensions ..> EsBitmap : 生成
+    EsBitmapDrawingExtensions ..> EsReadOnlyBitmap : 生成
     EsBitmapDrawingExtensions ..> EsBitmap : 生成
     EsBitmapDrawingExtensions ..> Bitmap : 生成
 ```

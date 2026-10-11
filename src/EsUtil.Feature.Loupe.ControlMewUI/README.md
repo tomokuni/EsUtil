@@ -39,7 +39,7 @@ using DrawingColor = System.Drawing.Color;
 
 var loupe = new LoupeControl
 {
-    Source = esBitmap,                       // 拡大元の 100% 画像（コアの EsBitmap）
+    Source = readOnlyImage,                  // 拡大元の 100% 画像（コアの EsReadOnlyBitmap）
     CenterPoint = new EsPoint(320, 240),     // 拡大中心（元画像ピクセル座標）
     // 寸法（基本サイズ・拡大率）はコアの Options（with 式で部分変更する）
     Options = LoupeOptions.Default with

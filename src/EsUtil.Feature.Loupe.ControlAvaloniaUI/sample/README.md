@@ -121,7 +121,7 @@ EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/
 
 `Presentation/` に、外観（`Appearance`）と描画計画（`DrawPlanResolver`）で見た目を差し替える見本があります（設定パネル上部の見本）。
 
-- `GridLoupePlan` — 外観（色・枠線の太さ・表示可否）と、装飾の矩形（中心の格子線・四隅の鉤）を与えます。 計画を差し替える純粋関数（`Resolve(in plan)`）として提供します。 見本の元画像（`EsBitmap`）も本クラスが用意します。
+- `GridLoupePlan` — 外観（色・枠線の太さ・表示可否）と、装飾の矩形（中心の格子線・四隅の鉤）を与えます。 計画を差し替える純粋関数（`Resolve(in plan)`）として提供します。 見本の元画像（`EsReadOnlyBitmap`）も本クラスが用意します。
 
 差し替えの入口は次の 3 つです（**派生は不要**。 XAML のコントロールへコードビハインドから設定します）。
 
