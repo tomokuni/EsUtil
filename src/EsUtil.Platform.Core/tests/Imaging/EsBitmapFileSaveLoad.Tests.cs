@@ -440,6 +440,68 @@ public class EsBitmapFileSaveLoadTests
         Assert.False(File.Exists(path));
     }
 
+    [Fact]
+    internal void Save_減色しても透過が保たれる()
+    {
+        using var source = CreateWithAlpha();
+        var path = TempPath(".png");
+        try
+        {
+            source.Save(path, new EsImageSaveOptions { ColorCount = 8 });
+
+            using var loaded = EsBitmap.Load(path);
+
+            // PNG はパレットへアルファを書ける（tRNS）ため、3 段階のアルファがそのまま残る
+            Assert.Equal((byte)255, loaded.GetPixel(0, 0).A);
+            Assert.Equal((byte)128, loaded.GetPixel(source.Width / 2, 0).A);
+            Assert.Equal((byte)0, loaded.GetPixel(source.Width - 1, 0).A);
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    [Fact]
+    internal void Save_減色したGIFは完全透明を保つ()
+    {
+        using var source = CreateWithAlpha();
+        var path = TempPath(".gif");
+        try
+        {
+            source.Save(path, new EsImageSaveOptions { ColorCount = 8 });
+
+            using var loaded = EsBitmap.Load(path);
+
+            // GIF は 2 値の透過しか持てない（完全透明は残り、半透明は不透明になる）
+            Assert.Equal((byte)0, loaded.GetPixel(source.Width - 1, 0).A);
+            Assert.Equal((byte)255, loaded.GetPixel(0, 0).A);
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    /// <summary>透明・半透明・不透明の 3 段階を持つ画像を作る（RGB は同じ）。</summary>
+    /// <param name="width">幅（ピクセル。 3 等分する）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
+    private static EsWritableBitmap CreateWithAlpha(int width = 48, int height = 8)
+    {
+        var bitmap = EsWritableBitmap.Create(width, height);
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var alpha = x < width / 3 ? (byte)255 : x < (width * 2 / 3) ? (byte)128 : (byte)0;
+                bitmap.SetPixel(x, y, 40, 80, 120, alpha);
+            }
+        }
+
+        return bitmap;
+    }
+
     /// <summary>画像で使われている色の数を数える。</summary>
     /// <param name="bitmap">対象の画像。</param>
     /// <returns>異なる色の数。</returns>

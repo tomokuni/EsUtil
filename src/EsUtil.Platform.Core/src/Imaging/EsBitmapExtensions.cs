@@ -54,13 +54,26 @@ public static class EsBitmapExtensions
     /// <remarks>
     /// <b>5 ビットにする理由（実測）</b>: 減色の重い部分は「色を箱へ数えること」ではなく「箱ごとにパレットの
     /// 最近傍を求めること」である。 画素ごとに最近傍を求めると 200 万画素 × 256 色の距離計算になるため、
-    /// <b>箱ごとに 1 度だけ求めて参照表にする</b>（32,768 箱 × パレット長）。 箱を増やすほど色の分解能は上がるが、
+    /// <b>箱ごとに 1 度だけ求めて参照表にする</b>（箱の数 × パレット長）。 箱を増やすほど色の分解能は上がるが、
     /// 8 ビット（16,777,216 箱）では表が 16 MB になり参照表の利点が消える。
     /// </remarks>
     private const int HistogramBits = 5;
 
-    /// <summary>ヒストグラムの箱の数。</summary>
-    private const int HistogramSize = 1 << (HistogramBits * 3);
+    /// <summary>ヒストグラムのアルファのビット数（2 = 4 段階。 0〜63 / 64〜127 / 128〜191 / 192〜255）。</summary>
+    /// <remarks>
+    /// <b>アルファを箱に含める理由（実測）</b>: アルファを無視して減色すると<b>透明な領域が不透明になる</b>
+    /// （実測: 完全透明 1,408 画素がすべて不透明になり、パレットのアルファは 255 になった）。
+    /// アルファを箱の一部にすると、パレットの色がアルファを持ち、<b>GDI+ が PNG へ <c>tRNS</c>（インデックス透過）を
+    /// 書き、GIF へ透明の色番号を書く</b>（実測: いずれも完全透明の 1,408 画素が保たれた）。<br/>
+    /// <b>2 ビットにする理由</b>: 用途はスクリーンショットであり、アルファはほぼ「透明（切り出しのパディング）か
+    /// 不透明か」の 2 値である。 段階を増やすと<b>同じ RGB の色がアルファ別にパレットを消費する</b>
+    /// （4 段階で 256 色なら RGB に使えるのは実質 64 色）。 不透明な画像（アルファが 1 段階）では
+    /// 箱の分け方が従来と同一になるため、結果は変わらない。
+    /// </remarks>
+    private const int HistogramAlphaBits = 2;
+
+    /// <summary>ヒストグラムの箱の数（色 32³ × アルファ 4 段階）。</summary>
+    private const int HistogramSize = 1 << ((HistogramBits * 3) + HistogramAlphaBits);
 
     /// <summary>画像から指定された矩形領域を切り出す。</summary>
     /// <param name="source">切り出し元の画像。 借用であり破棄しない。</param>
@@ -257,12 +270,17 @@ public static class EsBitmapExtensions
     /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
     /// <remarks>
     /// <b>不可逆である</b>: 元の画素は戻らない（減色後の色数は <paramref name="colorCount"/> 以下になる）。<br/>
+    /// <b>透過は保たれる（実測）</b>: アルファも減色の対象であり、透明な画素は透明なパレットの色へ寄る。
+    /// 保存した PNG には <c>tRNS</c>（インデックス透過）、GIF には透明の色番号が書かれる。<br/>
     /// <b>用途</b>: 保存のファイル サイズを小さくする（<see cref="EsImageSaveOptions.ColorCount"/> を指定した保存は
     /// 本処理を行う）。 切り出し・縮小と同じく<b>新しい画像を作る</b>ため、元の画像は変更しない。<br/>
     /// <b>アルゴリズム（実測で選んだ）</b>: 5 ビットのヒストグラム（32³ = 32,768 箱）を作り、
     /// <b>中央値分割</b>で箱を色数まで分け、箱ごとの平均色をパレットにする。 画素の割り当ては
     /// <b>箱ごとに 1 度だけ最近傍を求めた参照表</b>を引く（画素ごとに 256 色と比較しない）。
     /// 実測（1920x1080・256 色）: <b>30 ms</b>（16 色で 8 ms）。<br/>
+    /// <b>色数はアルファの段階も数える</b>: アルファは 4 段階（0〜63 / 64〜127 / 128〜191 / 192〜255）に
+    /// 量子化されるため、同じ RGB でもアルファが違えば別の色としてパレットを消費する
+    /// （不透明な画像ではアルファが 1 段階のため、従来と同じ結果になる）。<br/>
     /// <b>ディザを行わない理由（実測）</b>: ディザは見た目を滑らかにするが、パレットの色を交互に置くため
     /// <b>保存のファイルが大きくなる</b>（実測: Magick.NET の 256 色 PNG で 645,647 B → FloydSteinberg で 803,118 B
     /// ＝ <b>+24%</b>）。 本ライブラリはファイル サイズを下げる目的で減色するため、行わない。<br/>
@@ -308,15 +326,20 @@ public static class EsBitmapExtensions
     /// <returns>色番号（1 画素 1 バイト）とパレット（ARGB）。</returns>
     /// <remarks>
     /// <b>色番号で返す理由</b>: 8bpp のインデックス カラーとしてファイルへ書く経路（<c>GdipSetImagePalette</c>）が
-    /// 必要とする形であり、画素（BGRA）へ戻すのは <see cref="ReduceColors"/> が行う。
-    /// <b>アルファは 255 に固定する</b>（パレットは 1 チャネル 8 ビットの色であり、半透明を表現できない。
-    /// 減色はファイル サイズを下げる用途であり、透過を保つ必要がある場合は指定しないこと）。
+    /// 必要とする形であり、画素（BGRA）へ戻すのは <see cref="ReduceColors"/> が行う。<br/>
+    /// <b>アルファも減色の対象である（実測）</b>: アルファを 4 段階に量子化して色と一緒に分けるため、
+    /// パレットの色はアルファを持ち、<b>GDI+ が PNG へ <c>tRNS</c>（インデックス透過）を書き、GIF へ透明の
+    /// 色番号を書く</b>（実測: 完全透明の 1,408 画素がどちらも保たれた）。 アルファを無視すると
+    /// <b>透明な領域が不透明になる</b>（実測: パレットのアルファが 255 になった）。<br/>
+    /// <b>RGB は保持している値（アルファ乗算済み）を平均する</b>: 半透明の画素は乗算済みの値がそのまま
+    /// パレットへ入る（PNG の <c>tRNS</c> は乗算前の色として解釈されるため、半透明の色はやや暗くなる。
+    /// 透明（アルファ 0）と不透明（アルファ 255）は完全に一致する）。
     /// </remarks>
     internal static (byte[] Indices, uint[] Palette) ReduceToIndexed(
         ReadOnlySpan<byte> pixels, int width, int height, int colorCount)
     {
         var counts = new int[HistogramSize];
-        var sums = new long[HistogramSize * 3];
+        var sums = new long[HistogramSize * 4];
         CountColors(pixels, counts, sums);
 
         var boxes = SplitBoxes(counts, colorCount);
@@ -330,14 +353,16 @@ public static class EsBitmapExtensions
         var lookup = new byte[HistogramSize];
         for (var key = 0; key < HistogramSize; key++)
         {
-            lookup[key] = (byte)NearestColor(palette, HistogramRed(key), HistogramGreen(key), HistogramBlue(key));
+            lookup[key] = (byte)NearestColor(
+                palette, HistogramRed(key), HistogramGreen(key), HistogramBlue(key), HistogramAlpha(key));
         }
 
         var indices = new byte[width * height];
         for (var i = 0; i < indices.Length; i++)
         {
             var offset = i * IEsBitmap.BytesPerPixel;
-            indices[i] = lookup[HistogramKey(pixels[offset + 2], pixels[offset + 1], pixels[offset])];
+            indices[i] = lookup[HistogramKey(
+                pixels[offset + 2], pixels[offset + 1], pixels[offset], pixels[offset + 3])];
         }
 
         return (indices, palette);
@@ -346,16 +371,17 @@ public static class EsBitmapExtensions
     /// <summary>画素をヒストグラムへ数える（箱ごとの画素数と成分の合計）。</summary>
     /// <param name="pixels">元の画素（BGRA8888）。</param>
     /// <param name="counts">箱ごとの画素数の書き先。</param>
-    /// <param name="sums">箱ごとの成分の合計の書き先（箱 × 3）。</param>
+    /// <param name="sums">箱ごとの成分の合計の書き先（箱 × 4。 最後の 1 つがアルファ）。</param>
     private static void CountColors(ReadOnlySpan<byte> pixels, int[] counts, long[] sums)
     {
         for (var i = 0; i < pixels.Length; i += IEsBitmap.BytesPerPixel)
         {
-            var key = HistogramKey(pixels[i + 2], pixels[i + 1], pixels[i]);
+            var key = HistogramKey(pixels[i + 2], pixels[i + 1], pixels[i], pixels[i + 3]);
             counts[key]++;
-            sums[(key * 3) + 0] += pixels[i + 2];
-            sums[(key * 3) + 1] += pixels[i + 1];
-            sums[(key * 3) + 2] += pixels[i];
+            sums[(key * 4) + 0] += pixels[i + 2];
+            sums[(key * 4) + 1] += pixels[i + 1];
+            sums[(key * 4) + 2] += pixels[i];
+            sums[(key * 4) + 3] += pixels[i + 3];
         }
     }
 
@@ -413,6 +439,15 @@ public static class EsBitmapExtensions
         return boxes;
     }
 
+    /// <summary>アルファの広がりを RGB の広がりと比較するための倍率。</summary>
+    /// <remarks>
+    /// アルファは 4 段階（0〜3）であり、RGB は 32 段階（0〜31）である。 そのまま比較するとアルファの
+    /// 広がりが最大 3 にしかならず、<b>RGB が同じでアルファだけが違う画像では分割が止まる</b>
+    /// （実測: 同じ RGB で 3 段階のアルファを持つ画像が 1 色にまとまり、すべてアルファ 127 になった）。
+    /// 4 段階 × 8 = 24 として RGB の最大 31 と同程度に扱う。
+    /// </remarks>
+    private const int HistogramAlphaScale = 8;
+
     /// <summary>分ける価値が最も高い箱を探す。</summary>
     /// <param name="boxes">箱の集合。</param>
     /// <param name="counts">箱ごとの画素数。</param>
@@ -441,28 +476,36 @@ public static class EsBitmapExtensions
 
     /// <summary>箱の成分の範囲が最も長い軸を求める。</summary>
     /// <param name="box">箱。</param>
-    /// <returns>軸（0 = 赤 / 1 = 緑 / 2 = 青）。</returns>
+    /// <returns>軸（0 = 赤 / 1 = 緑 / 2 = 青 / 3 = アルファ）。</returns>
     private static int LongestAxis(List<int> box)
     {
         var ranges = ColorRanges(box);
+        var alpha = ranges.Alpha * HistogramAlphaScale;
+        if (alpha >= ranges.Red && alpha >= ranges.Green && alpha >= ranges.Blue)
+        {
+            return 3;
+        }
+
         return ranges.Red >= ranges.Green && ranges.Red >= ranges.Blue
             ? 0
             : ranges.Green >= ranges.Blue ? 1 : 2;
     }
 
-    /// <summary>箱の成分の範囲が最も長い長さを求める。</summary>
+    /// <summary>箱の成分の範囲が最も長い長さを求める（アルファは RGB と同じ尺度へ揃える）。</summary>
     /// <param name="box">箱。</param>
-    /// <returns>長さ（0〜31）。</returns>
+    /// <returns>長さ。</returns>
     private static int LongestAxisLength(List<int> box)
     {
         var ranges = ColorRanges(box);
-        return Math.Max(ranges.Red, Math.Max(ranges.Green, ranges.Blue));
+        return Math.Max(
+            ranges.Alpha * HistogramAlphaScale,
+            Math.Max(ranges.Red, Math.Max(ranges.Green, ranges.Blue)));
     }
 
     /// <summary>箱の成分ごとの範囲（最大 − 最小）を求める。</summary>
     /// <param name="box">箱。</param>
-    /// <returns>成分ごとの範囲（0〜31）。</returns>
-    private static (int Red, int Green, int Blue) ColorRanges(List<int> box)
+    /// <returns>成分ごとの範囲（RGB は 0〜31、アルファは 0〜3）。</returns>
+    private static (int Red, int Green, int Blue, int Alpha) ColorRanges(List<int> box)
     {
         var minRed = HistogramSize;
         var maxRed = 0;
@@ -470,21 +513,26 @@ public static class EsBitmapExtensions
         var maxGreen = 0;
         var minBlue = HistogramSize;
         var maxBlue = 0;
+        var minAlpha = HistogramSize;
+        var maxAlpha = 0;
 
         foreach (var key in box)
         {
             var red = HistogramRed(key);
             var green = HistogramGreen(key);
             var blue = HistogramBlue(key);
+            var alpha = HistogramAlpha(key);
             if (red < minRed) { minRed = red; }
             if (red > maxRed) { maxRed = red; }
             if (green < minGreen) { minGreen = green; }
             if (green > maxGreen) { maxGreen = green; }
             if (blue < minBlue) { minBlue = blue; }
             if (blue > maxBlue) { maxBlue = blue; }
+            if (alpha < minAlpha) { minAlpha = alpha; }
+            if (alpha > maxAlpha) { maxAlpha = alpha; }
         }
 
-        return (maxRed - minRed, maxGreen - minGreen, maxBlue - minBlue);
+        return (maxRed - minRed, maxGreen - minGreen, maxBlue - minBlue, maxAlpha - minAlpha);
     }
 
     /// <summary>箱に入っている画素の数を求める。</summary>
@@ -502,37 +550,51 @@ public static class EsBitmapExtensions
         return sum;
     }
 
-    /// <summary>箱の平均色を求める（ARGB。 アルファは 255）。</summary>
+    /// <summary>箱の平均色を求める（ARGB。 アルファも平均する）。</summary>
     /// <param name="box">箱。</param>
     /// <param name="counts">箱ごとの画素数。</param>
-    /// <param name="sums">箱ごとの成分の合計。</param>
+    /// <param name="sums">箱ごとの成分の合計（箱 × 4）。</param>
     /// <returns>ARGB の色。</returns>
     private static uint AverageColor(List<int> box, int[] counts, long[] sums)
     {
         long red = 0;
         long green = 0;
         long blue = 0;
+        long alpha = 0;
         long total = 0;
         foreach (var key in box)
         {
-            red += sums[(key * 3) + 0];
-            green += sums[(key * 3) + 1];
-            blue += sums[(key * 3) + 2];
+            red += sums[(key * 4) + 0];
+            green += sums[(key * 4) + 1];
+            blue += sums[(key * 4) + 2];
+            alpha += sums[(key * 4) + 3];
             total += counts[key];
         }
 
-        return total == 0
-            ? 0xFF000000u
-            : 0xFF000000u | ((uint)(red / total) << 16) | ((uint)(green / total) << 8) | (uint)(blue / total);
+        if (total == 0)
+        {
+            return 0;
+        }
+
+        return ((uint)(alpha / total) << 24)
+            | ((uint)(red / total) << 16)
+            | ((uint)(green / total) << 8)
+            | (uint)(blue / total);
     }
 
-    /// <summary>最も近いパレットの色番号を求める（成分ごとの二乗距離）。</summary>
+    /// <summary>最も近いパレットの色番号を求める（成分とアルファの二乗距離）。</summary>
     /// <param name="palette">パレット（ARGB）。</param>
     /// <param name="red">赤（0〜31）。</param>
     /// <param name="green">緑（0〜31）。</param>
     /// <param name="blue">青（0〜31）。</param>
-    /// <returns>色番号。 パレットが空の場合は 0。</returns>
-    private static int NearestColor(uint[] palette, int red, int green, int blue)
+    /// <param name="alpha">アルファ（0〜3）。</param>
+    /// <returns>色番号。</returns>
+    /// <remarks>
+    /// <b>アルファを重く見る理由</b>: アルファは最も粗く量子化される（4 段階）ため、同じ重みにすると
+    /// 透明な画素が不透明な色へ寄って<b>透過が失われる</b>。 アルファの差を 16 倍して距離に加えることで、
+    /// アルファの段階が違う色は RGB が近くても選ばれない（同じ段階の色が必ず近くなる）。
+    /// </remarks>
+    private static int NearestColor(uint[] palette, int red, int green, int blue, int alpha)
     {
         var best = 0;
         var bestDistance = long.MaxValue;
@@ -542,7 +604,9 @@ public static class EsBitmapExtensions
             var deltaRed = ((int)((color >> 16) & 0xFF) >> (8 - HistogramBits)) - red;
             var deltaGreen = ((int)((color >> 8) & 0xFF) >> (8 - HistogramBits)) - green;
             var deltaBlue = ((int)(color & 0xFF) >> (8 - HistogramBits)) - blue;
-            var distance = (long)(deltaRed * deltaRed) + (deltaGreen * deltaGreen) + (deltaBlue * deltaBlue);
+            var deltaAlpha = ((int)((color >> 24) & 0xFF) >> (8 - HistogramAlphaBits)) - alpha;
+            var distance = (long)(deltaRed * deltaRed) + (deltaGreen * deltaGreen) + (deltaBlue * deltaBlue)
+                + (16L * deltaAlpha * deltaAlpha);
             if (distance < bestDistance)
             {
                 bestDistance = distance;
@@ -555,25 +619,33 @@ public static class EsBitmapExtensions
 
     /// <summary>箱を指定の軸で並べ替えるための成分を取り出す。</summary>
     /// <param name="key">箱。</param>
-    /// <param name="axis">軸（0 = 赤 / 1 = 緑 / 2 = 青）。</param>
-    /// <returns>成分（0〜31）。</returns>
+    /// <param name="axis">軸（0 = 赤 / 1 = 緑 / 2 = 青 / 3 = アルファ）。</param>
+    /// <returns>成分（RGB は 0〜31、アルファは 0〜3）。</returns>
     private static int HistogramComponent(int key, int axis)
         => axis switch
         {
             0 => HistogramRed(key),
             1 => HistogramGreen(key),
-            _ => HistogramBlue(key),
+            2 => HistogramBlue(key),
+            _ => HistogramAlpha(key),
         };
 
     /// <summary>色からヒストグラムの箱の番号を求める。</summary>
     /// <param name="red">赤（0〜255）。</param>
     /// <param name="green">緑（0〜255）。</param>
     /// <param name="blue">青（0〜255）。</param>
-    /// <returns>箱の番号（0〜32,767）。</returns>
-    private static int HistogramKey(int red, int green, int blue)
-        => ((red >> (8 - HistogramBits)) << (HistogramBits * 2))
+    /// <param name="alpha">アルファ（0〜255）。</param>
+    /// <returns>箱の番号。</returns>
+    private static int HistogramKey(int red, int green, int blue, int alpha)
+        => ((alpha >> (8 - HistogramAlphaBits)) << (HistogramBits * 3))
+            | ((red >> (8 - HistogramBits)) << (HistogramBits * 2))
             | ((green >> (8 - HistogramBits)) << HistogramBits)
             | (blue >> (8 - HistogramBits));
+
+    /// <summary>箱のアルファの段階を取り出す。</summary>
+    /// <param name="key">箱。</param>
+    /// <returns>アルファの段階（0〜3）。</returns>
+    private static int HistogramAlpha(int key) => key >> (HistogramBits * 3);
 
     /// <summary>箱の赤の成分を取り出す。</summary>
     /// <param name="key">箱。</param>

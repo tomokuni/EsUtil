@@ -509,6 +509,45 @@ public class EsBitmapExtensionsTests
         Assert.Throws<ObjectDisposedException>(() => src.ReduceColors(16));
     }
 
+    [Fact]
+    internal void 減色_透明な画素は透明のまま残る()
+    {
+        using var src = CreateWithAlpha();
+
+        using var result = src.ReduceColors(8);
+
+        // 3 段階のアルファ（不透明 / 半透明 / 完全透明）がそのまま残る
+        var alphas = new HashSet<byte>();
+        var pixels = result.Pixels;
+        for (var i = 3; i < pixels.Length; i += IEsBitmap.BytesPerPixel)
+        {
+            alphas.Add(pixels[i]);
+        }
+
+        Assert.Contains((byte)255, alphas);
+        Assert.Contains((byte)128, alphas);
+        Assert.Contains((byte)0, alphas);
+    }
+
+    /// <summary>透明・半透明・不透明の 3 段階を持つ画像を作る（RGB は同じ）。</summary>
+    /// <param name="width">幅（ピクセル。 3 等分する）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
+    private static EsWritableBitmap CreateWithAlpha(int width = 48, int height = 8)
+    {
+        var bitmap = EsWritableBitmap.Create(width, height);
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var alpha = x < width / 3 ? (byte)255 : x < (width * 2 / 3) ? (byte)128 : (byte)0;
+                bitmap.SetPixel(x, y, 40, 80, 120, alpha);
+            }
+        }
+
+        return bitmap;
+    }
+
     /// <summary>色数の多い画像を作る（減色の効果を観測するため）。</summary>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
