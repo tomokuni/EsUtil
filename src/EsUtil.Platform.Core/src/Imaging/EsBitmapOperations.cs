@@ -91,6 +91,24 @@ internal static class EsBitmapOperations
     /// </remarks>
     private const int HistogramAlphaScale = 8;
 
+    /// <summary>中央値分割の結果を詰め直す反復の上限（<see cref="RefinePalette"/>）。</summary>
+    /// <remarks>
+    /// <b>実測で決めた値</b>: 1024x768 のグラデーション・写真風・スクリーンショット風で、
+    /// 色数 16 / 64 / 256 のいずれも色の変化は数回で止まる（終了は目的関数が改善しなくなった時点で行うため、
+    /// この値は上限としてのみ働く）。
+    /// </remarks>
+    private const int MaximumRefinementIterations = 8;
+
+    /// <summary>詰め直しの反復に使ってよい距離計算の回数（1 回の減色あたり）。</summary>
+    /// <remarks>
+    /// <b>上限を設ける理由（実測）</b>: 1 回の反復の費用は「使われている箱の数 × 色数」に比例する。
+    /// 箱が 32,768 個あるノイズの画像（1024x768）・256 色では 1 回の反復が約 16 ms であり、8 回では
+    /// 減色全体が 180 ms になる（画質の改善は 5%）。 一方、写真風（箱 2,873 個）は 8 回でも +6 ms である。
+    /// そこで<b>効果の小さい画像だけ回数を減らす</b>（この値では写真風は 8 回、ノイズは 1 回になる）。
+    /// 実測: ノイズ 1024x768・256 色で、8 回 180 ms / 色差 7.66 に対し、1 回 53 ms / 色差 7.85。
+    /// </remarks>
+    private const long RefinementWorkBudget = 8_000_000;
+
     /// <summary>画素から指定された矩形領域を切り出す（公開面のメンバーの実装）。</summary>
     /// <param name="pixels">切り出し元の画素（BGRA8888。 <b>行の余白を含んでよい</b>）。 借用であり破棄しない。</param>
     /// <param name="sourceWidth">切り出し元の幅（ピクセル）。</param>
@@ -227,10 +245,10 @@ internal static class EsBitmapOperations
     /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
     /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数（<c>sourceWidth × 4</c> 以上）。</param>
     /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
-    /// <param name="algorithm">縮小のアルゴリズム。 既定は <see cref="DownscaleAlgorithm.Bilinear"/>。</param>
+    /// <param name="quality">縮小の品質。 既定は <see cref="ImageQuality.Mid"/>（双線形）。</param>
     /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// 規則と実測値は公開面が単一所有する（<see cref="EsReadOnlyBitmap.Resize(int, DownscaleAlgorithm)"/> の備考）。<br/>
+    /// 規則と実測値は公開面が単一所有する（<see cref="EsReadOnlyBitmap.Resize(int, ImageQuality)"/> の備考）。<br/>
     /// <b>ポインターへ切り替えるのは縮小の内側だけです</b>: 行の範囲を並列実行する処理へ渡すラムダは
     /// <c>ReadOnlySpan</c> を取り込めない（<c>ref struct</c> は保持できない）ため、<c>fixed</c> で固定した位置から
     /// 各アルゴリズムへ渡します（余白を含む全領域を 1 つの領域として扱います）。<br/>
@@ -239,23 +257,32 @@ internal static class EsBitmapOperations
     /// <b>名前が <c>Resize</c> である理由</b>: 将来の拡大対応を見込んで双方向の名前を残している（現在の実装は縮小だけを
     /// 行う）。 拡大が必要な要求は黙って等倍を返さず <see cref="NotSupportedException"/> にする（「拡大された」と
     /// 誤解されるため）。<br/>
-    /// <b>アルゴリズムの選び方</b>: 速度と画質の目安は <see cref="DownscaleAlgorithm"/> を参照（既定の双線形は
-    /// 「速い・細線は薄れる」、<see cref="DownscaleAlgorithm.Box"/> は「遅い・細線が残る」）。<br/>
-    /// <b>並列化</b>: どのアルゴリズムも<b>縮小先の行を範囲へ分けて並列実行する</b>（基準は
+    /// <b>品質とアルゴリズムの対応</b>: <see cref="ImageQuality.Low"/> → 最近傍（<see cref="ScaleNearest"/>）、
+    /// <see cref="ImageQuality.Mid"/> → 双線形（<see cref="ScaleBilinear"/>）、<see cref="ImageQuality.High"/> →
+    /// 面積平均（<see cref="ScaleBox"/>）。 <b>アルゴリズムの名前を公開面へ出さない理由</b>: 利用者が選ぶのは
+    /// 「速度と画質のどちらを取るか」であり、フィルターの実装名は差し替えの自由を奪う（本実装は以前
+    /// <c>Nearest</c> / <c>Bilinear</c> / <c>Box</c> の列挙体を公開していた）。<br/>
+    /// <b>並列化</b>: どの段階も<b>縮小先の行を範囲へ分けて並列実行する</b>（基準は
     /// <see cref="RunRowRanges"/> を参照。 小さい画像では逐次のままにする）。<br/>
     /// <b>返す寸法の丸め</b>: 切り捨てで丸めるため<b>1 px 未満の誤差が出うる</b>（座標の対応付けが必要な場面では使わない）。
     /// 長辺と上限が一致する場合は縮小不要のため<b>等倍の複製</b>を返す。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または
-    /// <paramref name="algorithm"/> が定義されていない値の場合。</exception>
+    /// <paramref name="quality"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     internal static unsafe EsBitmap Resize(
         ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride,
-        int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)
+        int maxSize, ImageQuality quality = ImageQuality.Mid)
     {
         if (maxSize <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(maxSize), maxSize, "長辺の上限は正の値である必要があります。");
+        }
+
+        if (quality is not (ImageQuality.Low or ImageQuality.Mid or ImageQuality.High))
+        {
+            // 寸法の判定より先に見る（縮小が不要な場合でも値の誤りは黙って通さない）
+            throw new ArgumentOutOfRangeException(nameof(quality), quality, "定義されていない縮小の品質です。");
         }
 
         var width = sourceWidth;
@@ -270,7 +297,7 @@ internal static class EsBitmapOperations
 
         if (maxSize == longSide)
         {
-            // 縮小が不要（列挙されていない値でも寸法が変わらないため先に返す）
+            // 縮小が不要
             return Crop(pixels, sourceWidth, sourceHeight, stride, 0, 0, width, height);
         }
 
@@ -281,12 +308,11 @@ internal static class EsBitmapOperations
         // 縮小は行の範囲を並列実行するため、内側はポインターで扱う（ラムダは span を取り込めない）
         fixed (byte* p = pixels)
         {
-            return algorithm switch
+            return quality switch
             {
-                DownscaleAlgorithm.Nearest => ScaleNearest(p, sourceWidth, sourceHeight, stride, target),
-                DownscaleAlgorithm.Bilinear => ScaleBilinear(p, sourceWidth, sourceHeight, stride, target),
-                DownscaleAlgorithm.Box => ScaleBox(p, sourceWidth, sourceHeight, stride, target),
-                _ => throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, "定義されていない縮小のアルゴリズムです。"),
+                ImageQuality.Low => ScaleNearest(p, sourceWidth, sourceHeight, stride, target),
+                ImageQuality.High => ScaleBox(p, sourceWidth, sourceHeight, stride, target),
+                _ => ScaleBilinear(p, sourceWidth, sourceHeight, stride, target),
             };
         }
     }
@@ -297,10 +323,13 @@ internal static class EsBitmapOperations
     /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
     /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数（<c>sourceWidth × 4</c> 以上）。</param>
     /// <param name="colorCount">残す色数（2〜256）。</param>
+    /// <param name="quality">減色の品質。 既定は <see cref="ImageQuality.Mid"/>。</param>
+    /// <param name="dither">ディザの指定。 既定は <see cref="DitherMode.None"/>。</param>
     /// <returns>減色した新しい画像（使われる色は <paramref name="colorCount"/> 種類以下）。 所有権は呼び出し側へ移る。</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、
+    /// または <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <remarks>
-    /// 規則と実測値は公開面が単一所有する（<see cref="EsReadOnlyBitmap.ReduceColors(int)"/> の備考）。<br/>
+    /// 規則と実測値は公開面が単一所有する（<see cref="EsReadOnlyBitmap.ReduceColors(int, ImageQuality, DitherMode)"/> の備考）。<br/>
     /// <b>行の余白を色として数えません</b>: ヒストグラム（<see cref="CountColors"/>）は<b>行単位</b>に数えるため、
     /// 余白付きのソース（<see cref="EsPixmap.ReadOnlyPixels"/>）を渡しても結果は変わりません。<br/>
     /// <b>不可逆である</b>: 元の画素は戻らない（減色後の色数は <paramref name="colorCount"/> 以下になる）。<br/>
@@ -308,13 +337,16 @@ internal static class EsBitmapOperations
     /// 保存した PNG には <c>tRNS</c>（インデックス透過）、GIF には透明の色番号が書かれる。<br/>
     /// <b>アルゴリズム（実測で選んだ）</b>: 5 ビットのヒストグラム（32³ = 32,768 箱）を作り、
     /// <b>中央値分割</b>で箱を色数まで分け、箱ごとの平均色をパレットにする。 画素の割り当ては
-    /// <b>箱ごとに 1 度だけ最近傍を求めた参照表</b>を引く（画素ごとに 256 色と比較しない）。<br/>
+    /// <b>箱ごとに 1 度だけ最近傍を求めた参照表</b>を引く（画素ごとに 256 色と比較しない）。
+    /// 品質は<b>この段階の詰め直し（<see cref="RefinePalette"/>）の有無と回数</b>で変える
+    /// （ディザを指定した場合は参照表を遅延で埋める。 誤差を加えた色は使用済みの箱へ落ちないため）。<br/>
     /// <b>色数はアルファの段階も数える</b>: アルファは 4 段階（0〜63 / 64〜127 / 128〜191 / 192〜255）に
     /// 量子化されるため、同じ RGB でもアルファが違えば別の色としてパレットを消費する
     /// （不透明な画像ではアルファが 1 段階のため、従来と同じ結果になる）。
     /// </remarks>
     internal static EsBitmap ReduceColors(
-        ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride, int colorCount)
+        ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride,
+        int colorCount, ImageQuality quality = ImageQuality.Mid, DitherMode dither = DitherMode.None)
     {
         if (colorCount < MinimumColorCount || colorCount > MaximumColorCount)
         {
@@ -322,15 +354,45 @@ internal static class EsBitmapOperations
                 nameof(colorCount), colorCount, $"残す色数は {MinimumColorCount}〜{MaximumColorCount} の範囲で指定します。");
         }
 
+        if (quality is not (ImageQuality.Low or ImageQuality.Mid or ImageQuality.High))
+        {
+            throw new ArgumentOutOfRangeException(nameof(quality), quality, "定義されていない減色の品質です。");
+        }
+
+        if (dither is not (DitherMode.None or DitherMode.FloydSteinberg))
+        {
+            throw new ArgumentOutOfRangeException(nameof(dither), dither, "定義されていないディザの指定です。");
+        }
+
         var width = sourceWidth;
         var height = sourceHeight;
 
-        // 色番号の並び（1 画素 1 バイト）を作らず、変換先へ直接書く（実測: 1920x1080 で中間の 2 MB の確保と
-        // もう 1 回の全画素走査が消える。 確保は 4.9 MB → 0.14 MB）
-        var palette = BuildPalette(pixels, width, height, stride, colorCount, out var lookup);
+        // 参照表（箱 → 色番号）は常に作る（ディザの場合も、誤差を加えない素の色の割り当てには使わないが、
+        // 費用は「使われている箱の数 × 色数」であり小さい。 ディザは遅延で埋める別の表を使う）
+        var palette = BuildPalette(pixels, width, height, stride, colorCount, quality, out var lookup);
 
         var result = EsBitmap.CreateUninitialized(width, height);
         var destination = result.Pixels;
+
+        if (dither != DitherMode.None)
+        {
+            var indices = new byte[width * height];
+            AssignDither(pixels, width, height, stride, palette, indices);
+            for (var y = 0; y < height; y++)
+            {
+                var destinationRow = destination.Slice(y * result.Stride, width * EsReadOnlyBitmap.BytesPerPixel);
+                var rowStart = y * width;
+                for (var x = 0; x < width; x++)
+                {
+                    WriteColor(destinationRow, x * EsReadOnlyBitmap.BytesPerPixel, palette[indices[rowStart + x]]);
+                }
+            }
+
+            return result;
+        }
+
+        // 色番号の並び（1 画素 1 バイト）を作らず、変換先へ直接書く（実測: 1920x1080 で中間の 2 MB の確保と
+        // もう 1 回の全画素走査が消える。 確保は 4.9 MB → 0.14 MB）
         for (var y = 0; y < height; y++)
         {
             // 行単位で読む（余白の画素を読まない）
@@ -339,17 +401,26 @@ internal static class EsBitmapOperations
             for (var x = 0; x < width; x++)
             {
                 var offset = x * EsReadOnlyBitmap.BytesPerPixel;
-                // パレットは ARGB、画素は BGRA の並びである
-                var color = palette[lookup[HistogramKey(
-                    row[offset + 2], row[offset + 1], row[offset], row[offset + 3])]];
-                destinationRow[offset] = (byte)color;
-                destinationRow[offset + 1] = (byte)(color >> 8);
-                destinationRow[offset + 2] = (byte)(color >> 16);
-                destinationRow[offset + 3] = (byte)(color >> 24);
+                WriteColor(
+                    destinationRow,
+                    offset,
+                    palette[lookup[HistogramKey(row[offset + 2], row[offset + 1], row[offset], row[offset + 3])]]);
             }
         }
 
         return result;
+    }
+
+    /// <summary>1 画素ぶんの色（ARGB）を行の書き込み先へ書く（並びは BGRA）。</summary>
+    /// <param name="row">書き込み先の行。</param>
+    /// <param name="offset">行の先頭からのバイト位置。</param>
+    /// <param name="color">書く色（ARGB）。</param>
+    private static void WriteColor(Span<byte> row, int offset, uint color)
+    {
+        row[offset] = (byte)color;
+        row[offset + 1] = (byte)(color >> 8);
+        row[offset + 2] = (byte)(color >> 16);
+        row[offset + 3] = (byte)(color >> 24);
     }
 
     /// <summary>画素を指定の色数へ減色し、色番号とパレットで返す（保存の実装と共有する）。</summary>
@@ -358,6 +429,8 @@ internal static class EsBitmapOperations
     /// <param name="height">高さ（ピクセル）。</param>
     /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="colorCount">残す色数（2〜256。 呼び出し側が検証済みであること）。</param>
+    /// <param name="quality">減色の品質。 呼び出し側が検証済みであること。</param>
+    /// <param name="dither">ディザの指定。 呼び出し側が検証済みであること。</param>
     /// <returns>色番号（1 画素 1 バイト）とパレット（ARGB）。</returns>
     /// <remarks>
     /// <b>色番号で返す理由</b>: 8bpp のインデックス カラーとしてファイルへ書く経路（<c>GdipSetImagePalette</c>）が
@@ -373,11 +446,18 @@ internal static class EsBitmapOperations
     /// 透明（アルファ 0）と不透明（アルファ 255）は完全に一致する）。
     /// </remarks>
     internal static (byte[] Indices, uint[] Palette) ReduceToIndexed(
-        ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount)
+        ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount,
+        ImageQuality quality = ImageQuality.Mid, DitherMode dither = DitherMode.None)
     {
-        var palette = BuildPalette(pixels, width, height, stride, colorCount, out var lookup);
+        var palette = BuildPalette(pixels, width, height, stride, colorCount, quality, out var lookup);
 
         var indices = new byte[width * height];
+        if (dither != DitherMode.None)
+        {
+            AssignDither(pixels, width, height, stride, palette, indices);
+            return (indices, palette);
+        }
+
         for (var y = 0; y < height; y++)
         {
             // 行単位で読む（余白の画素を読まない）
@@ -394,29 +474,137 @@ internal static class EsBitmapOperations
         return (indices, palette);
     }
 
+    /// <summary>画素をパレットの色番号へ割り当てる（Floyd–Steinberg の誤差拡散を行う）。</summary>
+    /// <param name="pixels">元の画素（BGRA8888。 行の余白を含んでよい）。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
+    /// <param name="palette">パレット（ARGB）。</param>
+    /// <param name="indices">割り当てた色番号の書き先（<c>幅 × 高さ</c> 要素）。</param>
+    /// <remarks>
+    /// <b>誤差の配り方</b>: 画素を置き換えた差（赤・緑・青）を、右（7/16）・左下（3/16）・下（5/16）・
+    /// 右下（1/16）の 4 画素へ配ります（Floyd–Steinberg 法）。 誤差は<b>行ごとの 2 本のバッファ</b>で持ちます
+    /// （現在の行と次の行。 画像全体の分は持ちません）。<br/>
+    /// <b>アルファへ誤差を配らない理由</b>: アルファは減色で 4 段階に量子化されており、にじませると
+    /// 透明と不透明の境目が崩れます（<see cref="DitherMode"/> の備考）。<br/>
+    /// <b>近傍の探索に参照表を使えない理由</b>: 誤差を加えた色は<b>画素が無かった色</b>になりうるため、
+    /// 使われている箱だけを埋めた表（<see cref="BuildPalette"/>）では引けません。 そこで<b>全域の表を要求された
+    /// 箱から遅延で埋めます</b>（箱は 131,072 個あり、埋める費用は「実際に現れた色の数 × 色数」。
+    /// 平坦なスクリーンショットでは数十個しか現れません）。<br/>
+    /// <b>並列化しない理由</b>: 誤差がとなりへ伝わるため、画素の走査に順序が必要です。
+    /// </remarks>
+    private static void AssignDither(
+        ReadOnlySpan<byte> pixels, int width, int height, int stride, uint[] palette, byte[] indices)
+    {
+        // 0xFF は「まだ求めていない」を表す（パレットの色番号は 255 以下）
+        var table = new byte[HistogramSize];
+        table.AsSpan().Fill(byte.MaxValue);
+
+        // 誤差は行ごとに持ち回る（現在の行と次の行。 成分ごとに 1 つ）
+        var current = new int[width * 3];
+        var next = new int[width * 3];
+
+        for (var y = 0; y < height; y++)
+        {
+            var row = pixels.Slice(y * stride, width * EsReadOnlyBitmap.BytesPerPixel);
+            var rowStart = y * width;
+            Array.Clear(next);
+
+            for (var x = 0; x < width; x++)
+            {
+                var offset = x * EsReadOnlyBitmap.BytesPerPixel;
+                var blue = Clamp(row[offset] + current[(x * 3) + 2]);
+                var green = Clamp(row[offset + 1] + current[(x * 3) + 1]);
+                var red = Clamp(row[offset + 2] + current[(x * 3) + 0]);
+                var alpha = row[offset + 3];
+
+                var key = HistogramKey(red, green, blue, alpha);
+                var index = table[key];
+                if (index == byte.MaxValue)
+                {
+                    index = table[key] = (byte)NearestColor(palette, red, green, blue, alpha);
+                }
+
+                indices[rowStart + x] = index;
+
+                // 置き換えた差をとなりへ配る（重みは Floyd–Steinberg 法。 右 7/16・左下 3/16・下 5/16・右下 1/16）
+                var color = palette[index];
+                var errorBlue = blue - (int)(color & 0xFF);
+                var errorGreen = green - (int)((color >> 8) & 0xFF);
+                var errorRed = red - (int)((color >> 16) & 0xFF);
+
+                if (x + 1 < width)
+                {
+                    // 右（同じ行）
+                    SpreadError(current, x + 1, errorRed, errorGreen, errorBlue, 7);
+
+                    // 右下（次の行）
+                    SpreadError(next, x + 1, errorRed, errorGreen, errorBlue, 1);
+                }
+
+                // 下（次の行）
+                SpreadError(next, x, errorRed, errorGreen, errorBlue, 5);
+
+                if (x > 0)
+                {
+                    // 左下（次の行）
+                    SpreadError(next, x - 1, errorRed, errorGreen, errorBlue, 3);
+                }
+            }
+
+            (current, next) = (next, current);
+        }
+    }
+
+    /// <summary>誤差を次の行の画素へ配る（Floyd–Steinberg 法の重み）。</summary>
+    /// <param name="row">次の行の誤差。</param>
+    /// <param name="x">配る先の列。</param>
+    /// <param name="red">赤の誤差。</param>
+    /// <param name="green">緑の誤差。</param>
+    /// <param name="blue">青の誤差。</param>
+    /// <param name="weight">重み（7 / 3 / 1 のいずれか。 16 で割る）。</param>
+    private static void SpreadError(int[] row, int x, int red, int green, int blue, int weight)
+    {
+        row[(x * 3) + 0] += (red * weight) >> 4;
+        row[(x * 3) + 1] += (green * weight) >> 4;
+        row[(x * 3) + 2] += (blue * weight) >> 4;
+    }
+
+    /// <summary>0〜255 へ丸める（誤差を加えた色）。</summary>
+    /// <param name="value">丸める値。</param>
+    /// <returns>0〜255 の値。</returns>
+    private static byte Clamp(int value) => (byte)(value < 0 ? 0 : value > 255 ? 255 : value);
+
     /// <summary>画素を数えてパレットと「箱 → 色番号」の参照表を作る（減色の共通部分）。</summary>
     /// <param name="pixels">元の画素（BGRA8888・アルファ乗算済み。 行の余白を含んでよい）。</param>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
     /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="colorCount">残す色数（2〜256。 呼び出し側が検証済みであること）。</param>
+    /// <param name="quality">減色の品質（詰め直しの回数を決める。 呼び出し側が検証済みであること）。</param>
     /// <param name="lookup">箱（ヒストグラムのキー）→ 色番号の参照表の書き先。</param>
     /// <returns>パレット（ARGB。 使われる色数以下）。</returns>
     /// <remarks>
     /// <b>2 つの入口で共有する理由</b>: 画像を返す経路（<see cref="ReduceColors"/>）と色番号を返す経路
     /// （<see cref="ReduceToIndexed"/>）は<b>同じ計算でなければならない</b>（同じ色数を指定すれば同じ絵になる）。
-    /// 数え上げと中央値分割（結果を決める部分）をここへ 1 回だけ書き、走査の仕方だけを各経路が持ちます。<br/>
+    /// 数え上げ・中央値分割・詰め直し（結果を決める部分）をここへ 1 回だけ書き、走査の仕方だけを各経路が持ちます。<br/>
+    /// <b>順序</b>: 数え上げ（<see cref="CountColors"/>）→ 中央値分割（<see cref="SplitBoxes"/>）→
+    /// 詰め直し（<see cref="RefinePalette"/>。 品質で回数が変わる）→ 箱 → 色番号の参照表（<see cref="NearestColor"/>）。<br/>
     /// <b>一時配列はプールから借りる（実測）</b>: 数え上げと作業場所の配列は合わせて 5.0 MB あり（<c>int</c>
     /// 131,072 要素 ×2 と <c>long</c> 524,288 要素）、毎回確保すると LOH に入って Gen2 の GC を誘発します。
-    /// 借りて返すため、毎回の確保は参照表（131,072 バイト）だけになります
-    /// （実測: 1920x1080 のノイズ画像・256 色で、確保は 2.40 MB → 0.27 MB）。<br/>
+    /// 借りて返すため、毎回の確保は参照表（131,072 バイト）と詰め直しの作業場所（色数ぶんと箱の数ぶんの
+    /// 小さな配列）だけになります
+    /// （実測: 1920x1080 のノイズ画像・256 色で、確保は 2.40 MB → 0.31 MB）。<br/>
     /// <b>参照表は使われている箱だけ埋める（実測）</b>: 画素が 1 つも無い箱は走査で読まれないため、最近傍を
     /// 求める必要がありません。 全部の箱（131,072）を埋めると費用が<b>箱の数 × 色数</b>に比例して増えます
     /// （実測: 1920x1080・256 色で、箱が 64 個の画像は 29.8 ms → 13.0 ms、箱が 32,768 個のノイズ画像は
-    /// 88.1 ms → 42.2 ms。 いずれも分割の改善を含まない形で測った値です）。
+    /// 88.1 ms → 42.2 ms。 いずれも分割の改善を含まない形で測った値です）。<br/>
+    /// <b>割り当ては箱の代表色（平均色）で測る</b>: 箱の中心（量子化した座標）で測るより、その箱に入っている
+    /// 画素の平均色で測る方が実際の誤差に近い（<see cref="Distance"/> を参照。 費用は同じ）。
     /// </remarks>
     private static uint[] BuildPalette(
-        ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount, out byte[] lookup)
+        ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount,
+        ImageQuality quality, out byte[] lookup)
     {
         var counts = ArrayPool<int>.Shared.Rent(HistogramSize);
         var sums = ArrayPool<long>.Shared.Rent(HistogramSize * 4);
@@ -430,14 +618,16 @@ internal static class EsBitmapOperations
 
             var usedCount = CollectUsedBins(counts, bins);
             var palette = SplitBoxes(bins, usedCount, counts, sums, colorCount);
+            RefinePalette(bins, usedCount, counts, sums, palette, quality);
 
             // 箱 → 色番号の参照表（画素ごとに最近傍を求めない）。 埋めない箱は 0 のままである
             lookup = new byte[HistogramSize];
             for (var i = 0; i < usedCount; i++)
             {
                 var key = bins[i];
+                var centroid = BinCentroid(key, counts, sums);
                 lookup[key] = (byte)NearestColor(
-                    palette, HistogramRed(key), HistogramGreen(key), HistogramBlue(key), HistogramAlpha(key));
+                    palette, centroid.Red, centroid.Green, centroid.Blue, centroid.Alpha);
             }
 
             return palette;
@@ -449,6 +639,26 @@ internal static class EsBitmapOperations
             ArrayPool<int>.Shared.Return(counts);
             ArrayPool<long>.Shared.Return(sums);
         }
+    }
+
+    /// <summary>箱に入っている画素の平均色（代表色）を求める。</summary>
+    /// <param name="key">箱。</param>
+    /// <param name="counts">箱ごとの画素数。</param>
+    /// <param name="sums">箱ごとの成分の合計（箱 × 4。 最後の 1 つがアルファ）。</param>
+    /// <returns>平均色（赤・緑・青・アルファ。 いずれも 0〜255）。</returns>
+    /// <remarks>
+    /// <b>箱の中心ではなく平均を使う理由</b>: 箱は 32 段階に量子化した立方体であり、その中心は実際の画素の
+    /// 位置を表しません（画素が箱の片隅に偏れば最大 8 のずれになる）。 平均は画素の実際の位置を表すため、
+    /// <b>どのパレットの色を選ぶかが正確になる</b>（費用は同じ。 画素数で 4 回割るだけ）。
+    /// </remarks>
+    private static (int Red, int Green, int Blue, int Alpha) BinCentroid(int key, int[] counts, long[] sums)
+    {
+        var total = counts[key];
+        return (
+            (int)(sums[(key * 4) + 0] / total),
+            (int)(sums[(key * 4) + 1] / total),
+            (int)(sums[(key * 4) + 2] / total),
+            (int)(sums[(key * 4) + 3] / total));
     }
 
     /// <summary>画素をヒストグラムへ数える（箱ごとの画素数と成分の合計）。</summary>
@@ -582,6 +792,128 @@ internal static class EsBitmapOperations
         }
 
         return palette;
+    }
+
+    /// <summary>中央値分割で作ったパレットを k-means（Lloyd）の反復で詰め直す。</summary>
+    /// <param name="bins">使われている箱の番号の並び。</param>
+    /// <param name="binCount">使われている箱の数。</param>
+    /// <param name="counts">箱ごとの画素数。</param>
+    /// <param name="sums">箱ごとの成分の合計（箱 × 4）。</param>
+    /// <param name="palette"><b>その場で</b>詰め直すパレット（改善しなければ変更しない）。</param>
+    /// <param name="quality">減色の品質（反復の上限を決める）。</param>
+    /// <remarks>
+    /// <b>詰め直す理由（実測）</b>: 中央値分割は「その場で最も広い箱を切る」だけであり、切った後の色を
+    /// 動かしません（反復が無いため、分けた境界に対して色が最適になりません）。 「箱を最も近い色へ割り当て直し、
+    /// 割り当てられた箱の画素の平均を新しい色にする」操作を繰り返すと、色差（1 チャネル平均絶対誤差）が
+    /// 実測で 6〜11% 減ります（1024x768 の写真風で 16 色 14.35 → 12.73、256 色 3.41 → 3.19）。<br/>
+    /// <b>品質ごとの反復の上限</b>: <see cref="ImageQuality.Low"/> は詰め直しを行いません（最速を優先）。
+    /// <see cref="ImageQuality.Mid"/> は「使われている箱の数 × 色数」で決まる<b>作業量の上限</b>で回数を絞り、
+    /// <see cref="ImageQuality.High"/> は上限を外して収束まで回します（<see cref="MaximumRefinementIterations"/> が上限）。<br/>
+    /// <b>悪化させない</b>: 反復のたびに目的関数（画素数の重み付き二乗距離の合計）を求め、改善しなければ
+    /// 直前のパレットを残して止めます（同じ値で振動している場合も止まります）。 このため結果が詰め直す前より
+    /// 悪くなることはありません。<br/>
+    /// <b>使われている箱だけを回す理由</b>: 画素が 1 つも無い箱は割り当てにも平均にも寄与しません。
+    /// <b>箱が色数以下なら何もしない</b>: 使われている箱をすべて別の色にできるためです
+    /// （スクリーンショットの平坦な面がこれに当たる）。
+    /// </remarks>
+    private static void RefinePalette(
+        int[] bins, int binCount, int[] counts, long[] sums, uint[] palette, ImageQuality quality)
+    {
+        if (quality == ImageQuality.Low || binCount <= palette.Length)
+        {
+            return;
+        }
+
+        var assignment = new byte[binCount];
+        var objective = AssignBins(bins, binCount, counts, sums, palette, assignment);
+        var clusterCounts = new long[palette.Length];
+        var clusterSums = new long[palette.Length * 4];
+
+        // 1 回の反復の費用は「箱の数 × 色数」に比例するため、既定の品質では効果の小さい画像の回数を減らす
+        var iterations = quality == ImageQuality.High
+            ? MaximumRefinementIterations
+            : Math.Clamp(
+                RefinementWorkBudget / Math.Max(1, (long)binCount * palette.Length),
+                1,
+                MaximumRefinementIterations);
+
+        for (var iteration = 0; iteration < iterations; iteration++)
+        {
+            Array.Clear(clusterCounts);
+            Array.Clear(clusterSums);
+            for (var i = 0; i < binCount; i++)
+            {
+                var key = bins[i];
+                var index = assignment[i];
+                clusterCounts[index] += counts[key];
+                clusterSums[(index * 4) + 0] += sums[(key * 4) + 0];
+                clusterSums[(index * 4) + 1] += sums[(key * 4) + 1];
+                clusterSums[(index * 4) + 2] += sums[(key * 4) + 2];
+                clusterSums[(index * 4) + 3] += sums[(key * 4) + 3];
+            }
+
+            var candidate = new uint[palette.Length];
+            for (var i = 0; i < candidate.Length; i++)
+            {
+                candidate[i] = clusterCounts[i] == 0
+                    ? palette[i]
+                    : PackColor(
+                        clusterSums[(i * 4) + 0],
+                        clusterSums[(i * 4) + 1],
+                        clusterSums[(i * 4) + 2],
+                        clusterSums[(i * 4) + 3],
+                        clusterCounts[i]);
+            }
+
+            var candidateObjective = AssignBins(bins, binCount, counts, sums, candidate, assignment);
+            if (candidateObjective >= objective)
+            {
+                return;
+            }
+
+            objective = candidateObjective;
+            Array.Copy(candidate, palette, palette.Length);
+        }
+    }
+
+    /// <summary>箱を最も近いパレットの色へ割り当て、その割り当ての目的関数（画素数の重み付き二乗距離の合計）を返す。</summary>
+    /// <param name="bins">使われている箱の番号の並び。</param>
+    /// <param name="binCount">使われている箱の数。</param>
+    /// <param name="counts">箱ごとの画素数。</param>
+    /// <param name="sums">箱ごとの成分の合計（箱 × 4）。</param>
+    /// <param name="palette">パレット（ARGB）。</param>
+    /// <param name="assignment">割り当てた色番号の書き先（<paramref name="binCount"/> 要素以上）。</param>
+    /// <returns>目的関数の値。</returns>
+    /// <remarks>
+    /// <b>箱の代表色（平均色）で測る</b>: 尺度は <see cref="Distance"/> が単一所有します（参照表を作るときと同じです）。
+    /// 箱の中心ではなく平均を使う理由は <see cref="BinCentroid"/> を参照。
+    /// </remarks>
+    private static long AssignBins(
+        int[] bins, int binCount, int[] counts, long[] sums, uint[] palette, byte[] assignment)
+    {
+        var objective = 0L;
+        for (var i = 0; i < binCount; i++)
+        {
+            var key = bins[i];
+            var centroid = BinCentroid(key, counts, sums);
+
+            var best = 0;
+            var bestDistance = long.MaxValue;
+            for (var c = 0; c < palette.Length; c++)
+            {
+                var distance = Distance(palette[c], centroid.Red, centroid.Green, centroid.Blue, centroid.Alpha);
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    best = c;
+                }
+            }
+
+            assignment[i] = (byte)best;
+            objective += counts[key] * bestDistance;
+        }
+
+        return objective;
     }
 
     /// <summary>箱の要素を指定の軸の成分の順に<b>その場で</b>並べ替える。</summary>
@@ -749,37 +1081,37 @@ internal static class EsBitmapOperations
             return 0;
         }
 
-        return ((uint)(alpha / total) << 24)
+        return PackColor(red, green, blue, alpha, total);
+    }
+
+    /// <summary>成分の合計と画素数から ARGB の色を求める。</summary>
+    /// <param name="red">赤の合計。</param>
+    /// <param name="green">緑の合計。</param>
+    /// <param name="blue">青の合計。</param>
+    /// <param name="alpha">アルファの合計。</param>
+    /// <param name="total">画素数（正の値）。</param>
+    /// <returns>ARGB の色。</returns>
+    private static uint PackColor(long red, long green, long blue, long alpha, long total)
+        => ((uint)(alpha / total) << 24)
             | ((uint)(red / total) << 16)
             | ((uint)(green / total) << 8)
             | (uint)(blue / total);
-    }
 
     /// <summary>最も近いパレットの色番号を求める（成分とアルファの二乗距離）。</summary>
     /// <param name="palette">パレット（ARGB）。</param>
-    /// <param name="red">赤（0〜31）。</param>
-    /// <param name="green">緑（0〜31）。</param>
-    /// <param name="blue">青（0〜31）。</param>
-    /// <param name="alpha">アルファ（0〜3）。</param>
+    /// <param name="red">赤（0〜255）。</param>
+    /// <param name="green">緑（0〜255）。</param>
+    /// <param name="blue">青（0〜255）。</param>
+    /// <param name="alpha">アルファ（0〜255）。</param>
     /// <returns>色番号。</returns>
-    /// <remarks>
-    /// <b>アルファを重く見る理由</b>: アルファは最も粗く量子化される（4 段階）ため、同じ重みにすると
-    /// 透明な画素が不透明な色へ寄って<b>透過が失われる</b>。 アルファの差を 16 倍して距離に加えることで、
-    /// アルファの段階が違う色は RGB が近くても選ばれない（同じ段階の色が必ず近くなる）。
-    /// </remarks>
+    /// <remarks>尺度は <see cref="Distance"/> が単一所有します（詰め直しと同じ尺度です）。</remarks>
     private static int NearestColor(uint[] palette, int red, int green, int blue, int alpha)
     {
         var best = 0;
         var bestDistance = long.MaxValue;
         for (var i = 0; i < palette.Length; i++)
         {
-            var color = palette[i];
-            var deltaRed = ((int)((color >> 16) & 0xFF) >> (8 - HistogramBits)) - red;
-            var deltaGreen = ((int)((color >> 8) & 0xFF) >> (8 - HistogramBits)) - green;
-            var deltaBlue = ((int)(color & 0xFF) >> (8 - HistogramBits)) - blue;
-            var deltaAlpha = ((int)((color >> 24) & 0xFF) >> (8 - HistogramAlphaBits)) - alpha;
-            var distance = (long)(deltaRed * deltaRed) + (deltaGreen * deltaGreen) + (deltaBlue * deltaBlue)
-                + (16L * deltaAlpha * deltaAlpha);
+            var distance = Distance(palette[i], red, green, blue, alpha);
             if (distance < bestDistance)
             {
                 bestDistance = distance;
@@ -788,6 +1120,32 @@ internal static class EsBitmapOperations
         }
 
         return best;
+    }
+
+    /// <summary>色と画素の二乗距離を求める（パレットの色を選ぶときの尺度）。</summary>
+    /// <param name="color">パレットの色（ARGB）。</param>
+    /// <param name="red">赤（0〜255）。</param>
+    /// <param name="green">緑（0〜255）。</param>
+    /// <param name="blue">青（0〜255）。</param>
+    /// <param name="alpha">アルファ（0〜255）。</param>
+    /// <returns>二乗距離。</returns>
+    /// <remarks>
+    /// <b>アルファを重く見る理由</b>: アルファは最も粗く量子化される（4 段階）ため、同じ重みにすると
+    /// 透明な画素が不透明な色へ寄って<b>透過が失われる</b>。 4 段階の差 1 は 8 ビットで 64 に相当するため、
+    /// 8 ビットの二乗を 256 で割って同じ重み（16 倍）にする（4 段階の差 <c>d</c> では <c>16d²</c> であり、
+    /// 8 ビットでは <c>(64d)² / 256 = 16d²</c> と一致する）。<br/>
+    /// <b>RGB を対等に扱う理由</b>: 本実装の用途はスクリーンショット（平坦な色が主）であり、知覚の重み（輝度）を
+    /// 入れると平坦な色の一致が崩れる場合があるため、素の二乗距離にしています。<br/>
+    /// <b>箱の中心ではなく代表色（平均色）で測る</b>: 呼び出し側（<see cref="BinCentroid"/>）が平均色を渡します。
+    /// </remarks>
+    private static long Distance(uint color, int red, int green, int blue, int alpha)
+    {
+        var deltaRed = (int)((color >> 16) & 0xFF) - red;
+        var deltaGreen = (int)((color >> 8) & 0xFF) - green;
+        var deltaBlue = (int)(color & 0xFF) - blue;
+        var deltaAlpha = (int)((color >> 24) & 0xFF) - alpha;
+        return (long)(deltaRed * deltaRed) + (deltaGreen * deltaGreen) + (deltaBlue * deltaBlue)
+            + (((long)deltaAlpha * deltaAlpha) >> 8);
     }
 
     /// <summary>箱を指定の軸で並べ替えるための成分を取り出す。</summary>
@@ -835,7 +1193,7 @@ internal static class EsBitmapOperations
     /// <returns>青（0〜31）。</returns>
     private static int HistogramBlue(int key) => key & ((1 << HistogramBits) - 1);
 
-    /// <summary>最近傍補間で縮小する（<see cref="DownscaleAlgorithm.Nearest"/> の実装）。</summary>
+    /// <summary>最近傍補間で縮小する（<see cref="ImageQuality.Low"/> の実装）。</summary>
     /// <param name="pixels">対象の画素（BGRA8888。 行の余白を含んでよい）。</param>
     /// <param name="sourceWidth">元の幅（ピクセル）。</param>
     /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
@@ -906,7 +1264,7 @@ internal static class EsBitmapOperations
             }
         }
     }
-    /// <summary>双線形補間で縮小する（<see cref="DownscaleAlgorithm.Bilinear"/> の実装）。</summary>
+    /// <summary>双線形補間で縮小する（<see cref="ImageQuality.Mid"/> の実装）。</summary>
     /// <param name="pixels">対象の画素（BGRA8888。 行の余白を含んでよい）。</param>
     /// <param name="sourceWidth">元の幅（ピクセル）。</param>
     /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
@@ -1028,7 +1386,7 @@ internal static class EsBitmapOperations
         Parallel.ForEach(ranges, range => runRange(range.From, range.To));
     }
 
-    /// <summary>面積平均（box）で縮小する（<see cref="DownscaleAlgorithm.Box"/> の実装）。</summary>
+    /// <summary>面積平均（box）で縮小する（<see cref="ImageQuality.High"/> の実装）。</summary>
     /// <param name="pixels">対象の画素（BGRA8888。 行の余白を含んでよい）。</param>
     /// <param name="sourceWidth">元の幅（ピクセル）。</param>
     /// <param name="sourceHeight">元の高さ（ピクセル）。</param>

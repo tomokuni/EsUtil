@@ -113,7 +113,10 @@ internal static class WinGdiPlusImageCodec
         // 減色する場合、および GIF（パレットが必須の形式）は 8bpp のインデックス カラーとして書く
         if (ResolveColorCount(format, options) is int colorCount)
         {
-            EncodeIndexedToFile(pixels, width, height, targetPath, format, colorCount);
+            EncodeIndexedToFile(
+                pixels, width, height, targetPath, format, colorCount,
+                options.ColorQuality ?? ImageQuality.Mid,
+                options.Dither ?? DitherMode.None);
             return;
         }
 
@@ -149,6 +152,8 @@ internal static class WinGdiPlusImageCodec
     /// <param name="filePath">保存先のファイルパス（形式は決定済み）。</param>
     /// <param name="format">保存する形式（パレットを持てる形式であることは検証済み）。</param>
     /// <param name="colorCount">減色して残す色数。</param>
+    /// <param name="quality">減色の品質。</param>
+    /// <param name="dither">減色のディザ。</param>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
     /// <remarks>
     /// <b>なぜ 8bpp で書くのか（実測）</b>: 32bpp のまま減色しても、GDI+ の PNG エンコーダーはパレット PNG を書かない
@@ -162,11 +167,12 @@ internal static class WinGdiPlusImageCodec
     /// </remarks>
     [SupportedOSPlatform("windows")]
     private static void EncodeIndexedToFile(
-        ReadOnlySpan<byte> pixels, int width, int height, string filePath, ImageFileFormat format, int colorCount)
+        ReadOnlySpan<byte> pixels, int width, int height, string filePath, ImageFileFormat format, int colorCount,
+        ImageQuality quality, DitherMode dither)
     {
         // エンコードへ渡る画素は常に密（行幅 = 幅 × 4）である
         var (indices, palette) = EsBitmapOperations.ReduceToIndexed(
-            pixels, width, height, width * EsReadOnlyBitmap.BytesPerPixel, colorCount);
+            pixels, width, height, width * EsReadOnlyBitmap.BytesPerPixel, colorCount, quality, dither);
 
         // GDI+ の行幅は 4 バイト境界へ揃えられる（8bpp では 1 行 = 幅 バイト）
         var stride = (width + 3) & ~3;
@@ -337,11 +343,14 @@ internal static class WinGdiPlusImageCodec
     /// <param name="format">保存する形式。</param>
     /// <param name="options">保存のオプション。</param>
     /// <exception cref="NotSupportedException">その形式で使えない項目が設定されている場合。</exception>
+    /// <exception cref="InvalidOperationException">減色しない保存へ減色の指定（品質・ディザ）が設定されている場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException">値が許容範囲外の場合。</exception>
     /// <remarks>
     /// <b>品質を使えるのは JPEG だけである</b>（他の形式は品質を受け取っても出力が変わらない。 実測）。
     /// <b>減色を使えるのは BMP / PNG / GIF だけである</b>（パレットを持てる形式。 実測で確認した 3 形式）。
-    /// 黙って無視すると「設定したのに効かない」ことに気付かないため、例外にする。
+    /// <b>減色の品質とディザは減色が行われる場合だけ意味を持つ</b>（<see cref="EsImageSaveOptions.ColorCount"/> を
+    /// 指定した場合、または GIF へ保存する場合）。 黙って無視すると「設定したのに効かない」ことに気付かないため、
+    /// 例外にする。
     /// </remarks>
     [SupportedOSPlatform("windows")]
     private static void ValidateOptions(ImageFileFormat format, in EsImageSaveOptions options)
@@ -362,7 +371,35 @@ internal static class WinGdiPlusImageCodec
             }
         }
 
-        if (options.JpegQuality is not int quality)
+        if (options.ColorQuality is ImageQuality quality
+            && quality is not (ImageQuality.Low or ImageQuality.Mid or ImageQuality.High))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(options), quality, "定義されていない減色の品質です。");
+        }
+
+        if (options.Dither is DitherMode dither
+            && dither is not (DitherMode.None or DitherMode.FloydSteinberg))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(options), dither, "定義されていないディザの指定です。");
+        }
+
+        // 減色の指定（品質・ディザ）は減色が行われる場合だけ意味を持つ（GIF は指定が無くても量子化される）
+        if (options.ColorCount is null && format != ImageFileFormat.Gif)
+        {
+            if (options.ColorQuality is not null)
+            {
+                throw CreateReductionRequired(nameof(EsImageSaveOptions.ColorQuality));
+            }
+
+            if (options.Dither is not null)
+            {
+                throw CreateReductionRequired(nameof(EsImageSaveOptions.Dither));
+            }
+        }
+
+        if (options.JpegQuality is not int jpegQuality)
         {
             return;
         }
@@ -372,12 +409,24 @@ internal static class WinGdiPlusImageCodec
             throw CreateUnsupportedOption(format, nameof(EsImageSaveOptions.JpegQuality));
         }
 
-        if (quality < JpegQualityMinimum || quality > JpegQualityMaximum)
+        if (jpegQuality < JpegQualityMinimum || jpegQuality > JpegQualityMaximum)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(options), quality, $"JPEG の品質は {JpegQualityMinimum}〜{JpegQualityMaximum} の範囲で指定します。");
+                nameof(options), jpegQuality, $"JPEG の品質は {JpegQualityMinimum}〜{JpegQualityMaximum} の範囲で指定します。");
         }
     }
+
+    /// <summary>減色しない保存へ減色の指定（品質・ディザ）を渡された場合の例外を作る。</summary>
+    /// <param name="optionName">指定されたオプションの名前。</param>
+    /// <returns>送出する例外。</returns>
+    /// <remarks>
+    /// <b>黙って無視しない理由</b>: 本型の他の項目と同じ規則です（設定したのに効かないことに気付かないため）。
+    /// 例外の種類は「その組み合わせでは使えない」を表す <see cref="InvalidOperationException"/> にする
+    /// （形式そのものが使えない場合は <see cref="NotSupportedException"/> である）。
+    /// </remarks>
+    private static InvalidOperationException CreateReductionRequired(string optionName)
+        => new($"オプション '{optionName}' は減色する場合だけ使えます"
+            + $"（{nameof(EsImageSaveOptions.ColorCount)} を指定するか、GIF へ保存してください）。");
 
     /// <summary>その形式がパレット（インデックス カラー）を持てるかを求める。</summary>
     /// <param name="format">保存する形式。</param>

@@ -448,6 +448,115 @@ public class EsBitmapFileSaveLoadTests
     }
 
     [Fact]
+    internal void Save_減色しない保存へ減色の品質を指定するとInvalidOperationExceptionを投げる()
+    {
+        // 黙って無視すると「設定したのに効かない」ことに気付かないため、組み合わせを例外にする
+        using var source = CreateReadOnly(4, 4);
+        var path = TempPath(".png");
+
+        Assert.Throws<InvalidOperationException>(
+            () => source.Save(path, new EsImageSaveOptions { ColorQuality = ImageQuality.High }));
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    internal void Save_減色しない保存へディザを指定するとInvalidOperationExceptionを投げる()
+    {
+        using var source = CreateReadOnly(4, 4);
+        var path = TempPath(".png");
+
+        Assert.Throws<InvalidOperationException>(
+            () => source.Save(path, new EsImageSaveOptions { Dither = DitherMode.FloydSteinberg }));
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    internal void Save_GIFは減色しない指定でもディザを受け付ける()
+    {
+        // GIF は常に量子化されるため、ColorCount を指定しなくても減色の指定が効く
+        using var source = CreateNoisy(32, 32);
+        var path = TempPath(".gif");
+        try
+        {
+            source.Save(path, new EsImageSaveOptions { Dither = DitherMode.FloydSteinberg });
+
+            using var loaded = EsReadOnlyBitmap.Load(path);
+            Assert.Equal(32, loaded.Width);
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(99)]
+    [InlineData(-1)]
+    internal void Save_定義されていない減色の品質はArgumentOutOfRangeExceptionを投げる(int quality)
+    {
+        using var source = CreateNoisy(4, 4);
+        var path = TempPath(".png");
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => source.Save(path, new EsImageSaveOptions { ColorCount = 4, ColorQuality = (ImageQuality)quality }));
+        Assert.False(File.Exists(path));
+    }
+
+    [Theory]
+    [InlineData(99)]
+    [InlineData(-1)]
+    internal void Save_定義されていないディザはArgumentOutOfRangeExceptionを投げる(int dither)
+    {
+        using var source = CreateNoisy(4, 4);
+        var path = TempPath(".png");
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => source.Save(path, new EsImageSaveOptions { ColorCount = 4, Dither = (DitherMode)dither }));
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    internal void Save_減色の品質を指定しても色数は指定以下になる()
+    {
+        using var source = CreateNoisy(32, 32);
+        var path = TempPath(".png");
+        try
+        {
+            source.Save(path, new EsImageSaveOptions { ColorCount = 16, ColorQuality = ImageQuality.Low });
+
+            using var loaded = EsReadOnlyBitmap.Load(path);
+            Assert.True(CountDistinctColors(loaded) <= 16, $"{CountDistinctColors(loaded)} 色になりました。");
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    [Fact]
+    internal void Save_ディザを指定した減色は平坦な色の画像を変えない()
+    {
+        // 誤差が 0 の画素には何も配られないため、単色の画像はディザの有無で結果が同じになる
+        using var source = CreateReadOnly(32, 32, System.Drawing.Color.FromArgb(255, 12, 34, 56));
+        var plain = TempPath(".png");
+        var dithered = TempPath(".png");
+        try
+        {
+            source.Save(plain, new EsImageSaveOptions { ColorCount = 8 });
+            source.Save(dithered, new EsImageSaveOptions { ColorCount = 8, Dither = DitherMode.FloydSteinberg });
+
+            using var plainImage = EsReadOnlyBitmap.Load(plain);
+            using var ditheredImage = EsReadOnlyBitmap.Load(dithered);
+            Assert.Equal(plainImage.ReadOnlyPixels.ToArray(), ditheredImage.ReadOnlyPixels.ToArray());
+        }
+        finally
+        {
+            DeleteFile(plain);
+            DeleteFile(dithered);
+        }
+    }
+
+    [Fact]
     internal void Save_減色しても透過が保たれる()
     {
         using var source = CreateWithAlpha();

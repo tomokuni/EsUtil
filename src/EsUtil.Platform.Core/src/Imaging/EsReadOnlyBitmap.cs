@@ -360,9 +360,9 @@ public sealed class EsReadOnlyBitmap : IDisposable
         return EsBitmapOperations.Crop(ReadOnlyPixels, Width, Height, Stride, rect);
     }
 
-    /// <summary>長辺を上限へ収めた画像を生成する（アルゴリズムは引数で選ぶ）。</summary>
+    /// <summary>長辺を上限へ収めた画像を生成する（速度と画質の釣り合いは引数で選ぶ）。</summary>
     /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
-    /// <param name="algorithm">縮小のアルゴリズム。 既定は <see cref="DownscaleAlgorithm.Bilinear"/>。</param>
+    /// <param name="quality">縮小の品質。 既定は <see cref="ImageQuality.Mid"/>。</param>
     /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>用途</b>: 大きな画像を小さく扱う場面（一覧のサムネイル・プレビュー等）。 元の寸法の複製を保持すると
@@ -370,26 +370,34 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <b>名前が <c>Resize</c> である理由</b>: 将来の拡大対応を見込んで双方向の名前を残しています（現在の実装は縮小だけを
     /// 行います）。 拡大が必要な要求は黙って等倍を返さず <see cref="NotSupportedException"/> にします（「拡大された」と
     /// 誤解されるため）。 長辺と上限が一致する場合は縮小不要のため<b>等倍の複製</b>を返します。<br/>
-    /// <b>アルゴリズムの選び方</b>: 速度と画質の目安は <see cref="DownscaleAlgorithm"/> を参照（既定の双線形は
-    /// 「速い・細線は薄れる」、<see cref="DownscaleAlgorithm.Box"/> は「遅い・細線が残る」）。<br/>
-    /// <b>並列化</b>: どのアルゴリズムも<b>縮小先の行を範囲へ分けて並列実行します</b>（小さい画像では逐次のままにします）。<br/>
+    /// <b>品質の選び方</b>: どの段階も<b>縮小先の行を範囲へ分けて並列実行します</b>（小さい画像では逐次のままにします）。
+    /// 段階ごとの速度と画質の実測は <see cref="ImageQuality"/> を参照してください。<b><see cref="ImageQuality.High"/> の
+    /// 費用は元画像の画素数で決まる</b>ため、縮小先が大きい場合は <see cref="ImageQuality.Mid"/> より速くなることがあります
+    /// （実測: 4K → 長辺 1920 で <see cref="ImageQuality.Mid"/> 4.1 ms / <see cref="ImageQuality.High"/> 3.4 ms）。<br/>
     /// <b>一部だけを縮小する場合</b>: 本画像から切り出してから縮小すると、<b>切り出しの複製</b>（実測: 4K から 1000x800 で
     /// 0.85 ms / 4 MB）を払います。 <see cref="ToPixmap"/> でビューを作り <see cref="EsPixmap.Resize"/> を呼ぶと
-    /// その分が要りません（実測: 1000x800 → 長辺 320 の面積平均で <b>3.3 倍</b>）。<br/>
+    /// その分が要りません（実測: 1000x800 → 長辺 320 の <see cref="ImageQuality.High"/> で <b>3.3 倍</b>）。<br/>
+    /// <b>立方畳み込み（bicubic）を段階へ加えない理由（実測）</b>: 試作して確かめたところ、縮小では
+    /// <see cref="ImageQuality.High"/>（面積平均）が最も速く最も正しい（12 倍縮小で 1.6 ms・厳密な面積平均との差 0.37 に対し、
+    /// 縮小率に応じて支持幅を広げた立方畳み込みは 12.9 ms・1.30）。 2 倍縮小では鮮鋭さでも負けます
+    /// （隣接差は 21.3 対 13.1。 立方畳み込みの方が柔らかくなる）。 立方畳み込みが正しい選択になるのは
+    /// <b>拡大</b>であり、本メソッドは拡大を行いません。<br/>
     /// <b>返す寸法の丸め</b>: 切り捨てで丸めるため<b>1 px 未満の誤差が出えます</b>（座標の対応付けが必要な場面では使わないこと）。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または
-    /// <paramref name="algorithm"/> が定義されていない値の場合。</exception>
+    /// <paramref name="quality"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    public EsBitmap Resize(int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)
+    public EsBitmap Resize(int maxSize, ImageQuality quality = ImageQuality.Mid)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.Resize(ReadOnlyPixels, Width, Height, Stride, maxSize, algorithm);
+        return EsBitmapOperations.Resize(ReadOnlyPixels, Width, Height, Stride, maxSize, quality);
     }
 
     /// <summary>本画像を指定の色数へ減色する（パレット化。 画素数と寸法は変えない）。</summary>
     /// <param name="colorCount">残す色数（2〜256）。</param>
+    /// <param name="quality">減色の品質。 既定は <see cref="ImageQuality.Mid"/>。</param>
+    /// <param name="dither">ディザの指定。 既定は <see cref="DitherMode.None"/>（ファイルが最も小さくなる）。</param>
     /// <returns>減色した新しい画像（使われる色は <paramref name="colorCount"/> 種類以下）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>不可逆です</b>: 元の画素は戻りません（減色後の色数は <paramref name="colorCount"/> 以下になります）。<br/>
@@ -397,31 +405,37 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// 保存した PNG には <c>tRNS</c>（インデックス透過）、GIF には透明の色番号が書かれます。<br/>
     /// <b>用途</b>: 保存のファイル サイズを小さくする（<see cref="EsImageSaveOptions.ColorCount"/> を指定した保存は
     /// 本処理を行います）。 切り出し・縮小と同じく<b>新しい画像を作る</b>ため、元の画像は変更しません。<br/>
+    /// <b>品質とディザの選び方（実測）</b>: <see cref="ImageQuality"/> は<b>色の詰め直し（反復）の回数</b>を変えるため、
+    /// <see cref="ImageQuality.Low"/> に対する差は 1〜12% です（16 色の写真風で 14.34 → 12.64）。 <b>見た目の差が
+    /// 最も大きいのはディザ</b>であり、<see cref="DitherMode.FloydSteinberg"/> を指定すると階調の縞が消えます
+    /// （実測: 16 色のグラデーションで 8x8 のブロック平均の差が 10.2 → 4.0）が、<b>保存のファイルは大きくなります</b>
+    /// （実測: 1920x1080 の 256 色 PNG で 17,830 B → 319,481 B。 平坦な色の画像は変化しない）。
+    /// どちらを選ぶかの判断は <see cref="DitherMode"/> の備考が単一所有します。<br/>
     /// <b>一部だけを減色する場合</b>: 本画像から切り出してから減色すると、<b>切り出しの複製</b>（実測: 4K から
     /// 1000x800 で 0.85 ms / 4 MB）を払います。 <see cref="ToPixmap"/> でビューを作り
     /// <see cref="EsPixmap.ReduceColors"/> を呼ぶとその分が要りません（実測: 1000x800・256 色で約 12%）。<br/>
     /// <b>アルゴリズム（実測で選んだ）</b>: 5 ビットのヒストグラム（32³ = 32,768 箱）を作り、
     /// <b>中央値分割</b>で箱を色数まで分け、箱ごとの平均色をパレットにします。 画素の割り当ては
-    /// <b>箱ごとに 1 度だけ最近傍を求めた参照表</b>を引きます（画素ごとに 256 色と比較しません）。
-    /// 実測（1920x1080・256 色）: 使われる箱が 2,873 個の写真風の画像で <b>15 ms</b>、32,768 個のノイズの画像で
-    /// <b>42 ms</b>（16 色では 15 ms / 21 ms）。<br/>
+    /// <b>箱ごとに 1 度だけ最近傍を求めた参照表</b>を引きます（画素ごとに 256 色と比較しません）。<br/>
     /// <b>色数はアルファの段階も数えます</b>: アルファは 4 段階（0〜63 / 64〜127 / 128〜191 / 192〜255）に
     /// 量子化されるため、同じ RGB でもアルファが違えば別の色としてパレットを消費します
     /// （不透明な画像ではアルファが 1 段階のため、従来と同じ結果になります）。<br/>
-    /// <b>ディザを行わない理由（実測）</b>: ディザは見た目を滑らかにしますが、パレットの色を交互に置くため
-    /// <b>保存のファイルが大きくなります</b>（実測: Magick.NET の 256 色 PNG で 645,647 B → FloydSteinberg で
-    /// 803,118 B ＝ <b>+24%</b>）。 本ライブラリはファイル サイズを下げる目的で減色するため、行いません。<br/>
+    /// <b>ディザを既定にしない理由（実測）</b>: ディザはパレットの色を交互に置くため<b>保存のファイルが大きくなります</b>
+    /// （実測: Magick.NET の 256 色 PNG で 645,647 B → FloydSteinberg で 803,118 B ＝ <b>+24%</b>）。 本ライブラリは
+    /// ファイル サイズを下げる目的で減色するため、明示された場合だけ行います。<br/>
     /// <b>外部ライブラリとの比較（実測）</b>: 256 色 PNG の保存では本実装が最も速く（次が ImageSharp の
     /// Wu 量子化の 219 ms、Magick.NET の 553 ms）、ファイルは写真では外部の方が小さくなります
     /// （本処理の 173,684 B に対し 111,764 B / 117,156 B。 減色の品質は pngquant が最も高いが、
     /// 実行ファイルの同梱と 1 枚 700 ms を要します）。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または
+    /// <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    public EsBitmap ReduceColors(int colorCount)
+    public EsBitmap ReduceColors(
+        int colorCount, ImageQuality quality = ImageQuality.Mid, DitherMode dither = DitherMode.None)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.ReduceColors(ReadOnlyPixels, Width, Height, Stride, colorCount);
+        return EsBitmapOperations.ReduceColors(ReadOnlyPixels, Width, Height, Stride, colorCount, quality, dither);
     }
 
     /// <summary>本画像の一部を指す<b>0 コピーの読み取りビュー</b>を生成する（切り出しの複製を避ける）。</summary>

@@ -214,16 +214,16 @@ public class EsBitmapOperationsTests
     }
 
     // ====================================================================
-    // 縮小（Resize のアルゴリズム: Nearest / Bilinear / Box）
+    // 縮小（Resize の品質: Low / Mid / High）
     // ====================================================================
 
-    /// <summary>公開している縮小の契約（寸法・縦横比・所有権・例外）をアルゴリズム別に回す。</summary>
-    /// <remarks>契約はアルゴリズムに依らず同じなので、引数だけを差し替えて検証する。</remarks>
-    public static TheoryData<DownscaleAlgorithm> Algorithms =>
+    /// <summary>公開している縮小の契約（寸法・縦横比・所有権・例外）を品質別に回す。</summary>
+    /// <remarks>契約は品質に依らず同じなので、引数だけを差し替えて検証する。</remarks>
+    public static TheoryData<ImageQuality> Qualities =>
     [
-        DownscaleAlgorithm.Nearest,
-        DownscaleAlgorithm.Bilinear,
-        DownscaleAlgorithm.Box,
+        ImageQuality.Low,
+        ImageQuality.Mid,
+        ImageQuality.High,
     ];
 
     /// <summary>黒地に 1 画素幅の白線を持つ画像を生成する（縮小で線が残るかの検証用）。</summary>
@@ -267,12 +267,12 @@ public class EsBitmapOperationsTests
     }
 
     [Theory]
-    [MemberData(nameof(Algorithms))]
-    internal void 縮小_上限を超える画像は長辺が上限へ収まる(DownscaleAlgorithm algorithm)
+    [MemberData(nameof(Qualities))]
+    internal void 縮小_上限を超える画像は長辺が上限へ収まる(ImageQuality quality)
     {
         using var src = CreateRed(200, 100);
 
-        using var result = src.Resize(50, algorithm);
+        using var result = src.Resize(50, quality);
 
         // 長辺（幅）が上限へ収まり、縦横比が保たれる（200:100 = 2:1）
         Assert.Equal(50, result.Size.Width);
@@ -281,24 +281,24 @@ public class EsBitmapOperationsTests
     }
 
     [Theory]
-    [MemberData(nameof(Algorithms))]
-    internal void 縮小_縦長の画像では高さが上限へ収まる(DownscaleAlgorithm algorithm)
+    [MemberData(nameof(Qualities))]
+    internal void 縮小_縦長の画像では高さが上限へ収まる(ImageQuality quality)
     {
         using var src = CreateRed(100, 400);
 
-        using var result = src.Resize(50, algorithm);
+        using var result = src.Resize(50, quality);
 
         Assert.Equal(50, result.Size.Height);
         Assert.Equal(12, result.Size.Width);
     }
 
     [Theory]
-    [MemberData(nameof(Algorithms))]
-    internal void 縮小_長辺が上限と同じなら等倍の複製を返す(DownscaleAlgorithm algorithm)
+    [MemberData(nameof(Qualities))]
+    internal void 縮小_長辺が上限と同じなら等倍の複製を返す(ImageQuality quality)
     {
         using var src = CreateRed(40, 20);
 
-        using var result = src.Resize(40, algorithm);
+        using var result = src.Resize(40, quality);
 
         Assert.Equal(40, result.Size.Width);
         Assert.Equal(20, result.Size.Height);
@@ -307,12 +307,12 @@ public class EsBitmapOperationsTests
     }
 
     [Theory]
-    [MemberData(nameof(Algorithms))]
-    internal void 縮小_画素を保つ(DownscaleAlgorithm algorithm)
+    [MemberData(nameof(Qualities))]
+    internal void 縮小_画素を保つ(ImageQuality quality)
     {
         using var src = CreateFilled(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
 
-        using var result = src.Resize(4, algorithm);
+        using var result = src.Resize(4, quality);
 
         Assert.Equal(4, result.Size.Width);
         Assert.Equal(4, result.Size.Height);
@@ -324,12 +324,12 @@ public class EsBitmapOperationsTests
     }
 
     [Theory]
-    [MemberData(nameof(Algorithms))]
-    internal void 縮小_1ピクセル未満には縮小しない(DownscaleAlgorithm algorithm)
+    [MemberData(nameof(Qualities))]
+    internal void 縮小_1ピクセル未満には縮小しない(ImageQuality quality)
     {
         using var src = CreateRed(10, 1000);
 
-        using var result = src.Resize(2, algorithm);
+        using var result = src.Resize(2, quality);
 
         // 高さは上限、幅は最低 1 ピクセル
         Assert.Equal(2, result.Size.Height);
@@ -337,64 +337,64 @@ public class EsBitmapOperationsTests
     }
 
     [Theory]
-    [MemberData(nameof(Algorithms))]
-    internal void 縮小_拡大が必要な上限はNotSupportedExceptionを投げる(DownscaleAlgorithm algorithm)
+    [MemberData(nameof(Qualities))]
+    internal void 縮小_拡大が必要な上限はNotSupportedExceptionを投げる(ImageQuality quality)
     {
         using var src = CreateRed(40, 20);
 
         // 長辺（40）より大きい上限は拡大を要求することになる（黙って等倍を返さない）
-        var ex = Assert.Throws<NotSupportedException>(() => src.Resize(50, algorithm));
+        var ex = Assert.Throws<NotSupportedException>(() => src.Resize(50, quality));
         Assert.Contains("拡大", ex.Message, StringComparison.Ordinal);
     }
 
     [Theory]
-    [MemberData(nameof(Algorithms))]
-    internal void 縮小_上限が0以下ならArgumentOutOfRangeExceptionを投げる(DownscaleAlgorithm algorithm)
+    [MemberData(nameof(Qualities))]
+    internal void 縮小_上限が0以下ならArgumentOutOfRangeExceptionを投げる(ImageQuality quality)
     {
         using var src = CreateRed(4, 4);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(0, algorithm));
-        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(-1, algorithm));
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(0, quality));
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(-1, quality));
     }
 
     [Fact]
-    internal void 縮小_既定のアルゴリズムは双線形()
+    internal void 縮小_既定の品質はMid()
     {
         using var src = CreateRed(200, 100);
 
         using var byDefault = src.Resize(50);
-        using var byBilinear = src.Resize(50, DownscaleAlgorithm.Bilinear);
+        using var byBilinear = src.Resize(50, ImageQuality.Mid);
 
         Assert.Equal(byBilinear.Size, byDefault.Size);
         Assert.Equal(byBilinear.GetPixel(10, 10), byDefault.GetPixel(10, 10));
     }
 
     [Fact]
-    internal void 縮小_定義されていないアルゴリズムはArgumentOutOfRangeExceptionを投げる()
+    internal void 縮小_定義されていない品質はArgumentOutOfRangeExceptionを投げる()
     {
         using var src = CreateRed(200, 100);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(50, (DownscaleAlgorithm)99));
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(50, (ImageQuality)99));
     }
 
     [Fact]
-    internal void 縮小_細線の残り方はアルゴリズムで異なる()
+    internal void 縮小_細線の残り方は品質で異なる()
     {
-        // 40x4 の黒地に、最近傍の対応表（0,4,8,…,36 列）が読まない位置（21 列）へ 1 画素幅の白線を置く
+        // 40x4 の黒地に、最近傍（Low）の対応表（0,4,8,…,36 列）が読まない位置（21 列）へ 1 画素幅の白線を置く
         using var src = CreateThinLine(40, 4, lineX: 21);
 
-        using var nearest = src.Resize(10, DownscaleAlgorithm.Nearest);
-        using var bilinear = src.Resize(10, DownscaleAlgorithm.Bilinear);
-        using var box = src.Resize(10, DownscaleAlgorithm.Box);
+        using var nearest = src.Resize(10, ImageQuality.Low);
+        using var bilinear = src.Resize(10, ImageQuality.Mid);
+        using var box = src.Resize(10, ImageQuality.High);
 
         Assert.Equal(10, nearest.Size.Width);
         Assert.Equal(1, nearest.Size.Height);
 
-        // 最近傍は比例位置の画素だけを読むため、間に落ちた細線は残らない
+        // Low（最近傍）は比例位置の画素だけを読むため、間に落ちた細線は残らない
         Assert.Equal(0, Brightness(nearest, 5, 0));
-        // 双線形は線と隣の画素を等分する（255 の半分）
+        // Mid（双線形）は線と隣の画素を等分する（255 の半分）
         Assert.Equal(127, Brightness(bilinear, 5, 0));
-        // 面積平均は線を含む矩形の平均（4 画素に 1 本 = 255 / 4）
+        // High（面積平均）は線を含む矩形の平均（4 画素に 1 本 = 255 / 4）
         Assert.Equal(63, Brightness(box, 5, 0));
     }
 
@@ -405,7 +405,7 @@ public class EsBitmapOperationsTests
         // 中間で割る実装だと丸めが入る。 1 パスであることを値で固定する）
         using var src = CreateFilled(40, 40, System.Drawing.Color.FromArgb(255, 3, 5, 7));
 
-        using var result = src.Resize(8, DownscaleAlgorithm.Box);
+        using var result = src.Resize(8, ImageQuality.High);
 
         var (b, g, r, _) = result.GetPixel(4, 4);
         Assert.Equal((byte)7, b);
@@ -419,7 +419,7 @@ public class EsBitmapOperationsTests
         // 並列化のしきい値（262,144 画素）を跨ぐ寸法で、逐次と並列の結果が一致することを確認する
         using var src = CreateThinLine(600, 480, lineX: 301);
 
-        using var result = src.Resize(150, DownscaleAlgorithm.Box);
+        using var result = src.Resize(150, ImageQuality.High);
 
         Assert.Equal(150, result.Size.Width);
         Assert.Equal(120, result.Size.Height);
@@ -550,6 +550,162 @@ public class EsBitmapOperationsTests
         Assert.Throws<ArgumentOutOfRangeException>(() => src.ReduceColors(colorCount));
     }
 
+    [Theory]
+    [InlineData(99)]
+    [InlineData(-1)]
+    internal void 減色_定義されていない品質はArgumentOutOfRangeExceptionを投げる(int quality)
+    {
+        using var src = CreateColorful(8, 8);
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => src.ReduceColors(8, (ImageQuality)quality));
+    }
+
+    [Theory]
+    [InlineData(99)]
+    [InlineData(-1)]
+    internal void 減色_定義されていないディザはArgumentOutOfRangeExceptionを投げる(int dither)
+    {
+        using var src = CreateColorful(8, 8);
+
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => src.ReduceColors(8, ImageQuality.Mid, (DitherMode)dither));
+    }
+
+    [Theory]
+    [MemberData(nameof(Qualities))]
+    internal void 減色_品質を変えても色数は指定以下になる(ImageQuality quality)
+    {
+        using var src = CreateColorful(64, 64);
+
+        using var result = src.ReduceColors(16, quality);
+
+        Assert.True(
+            CountDistinctColors(result) <= 16,
+            $"{quality} で {CountDistinctColors(result)} 色になりました。");
+    }
+
+    [Fact]
+    internal void 減色_品質HighはLowより色差が小さい()
+    {
+        // 色数の少ない減色では中央値分割の結果を詰め直す効果が最も大きい（実測: 写真風 16 色で 14.34 → 12.64）
+        using var src = CreateNoisy(64, 64);
+
+        using var low = src.ReduceColors(16, ImageQuality.Low);
+        using var high = src.ReduceColors(16, ImageQuality.High);
+
+        Assert.True(
+            MeanChannelDifference(src, high) <= MeanChannelDifference(src, low),
+            $"High の色差 {MeanChannelDifference(src, high):F2} が Low の {MeanChannelDifference(src, low):F2} を超えました。");
+    }
+
+    [Theory]
+    [MemberData(nameof(Qualities))]
+    internal void 減色_ディザを指定しても色数は指定以下になる(ImageQuality quality)
+    {
+        using var src = CreateNoisy(64, 64);
+
+        using var result = src.ReduceColors(16, quality, DitherMode.FloydSteinberg);
+
+        Assert.True(
+            CountDistinctColors(result) <= 16,
+            $"{quality} で {CountDistinctColors(result)} 色になりました。");
+    }
+
+    [Fact]
+    internal void 減色_ディザは平坦な色の画像を変えない()
+    {
+        // 誤差が 0 の画素には何も配られないため、単色の画像はディザの有無で結果が同じになる
+        using var src = CreateFilled(32, 32, System.Drawing.Color.FromArgb(255, 12, 34, 56));
+
+        using var plain = src.ReduceColors(8);
+        using var dithered = src.ReduceColors(8, ImageQuality.Mid, DitherMode.FloydSteinberg);
+
+        Assert.Equal(plain.ReadOnlyPixels.ToArray(), dithered.ReadOnlyPixels.ToArray());
+    }
+
+    [Fact]
+    internal void 減色_ディザはグラデーションの局所平均を元の色へ近づける()
+    {
+        // ディザは画素ごとの誤差を増やすため、目的（離れて見たときに元の色へ戻る）をブロック平均で測る
+        using var src = CreateHorizontalGradient(256, 16);
+
+        using var plain = src.ReduceColors(4);
+        using var dithered = src.ReduceColors(4, ImageQuality.Mid, DitherMode.FloydSteinberg);
+
+        var plainError = BlockMeanDifference(src, plain, block: 8);
+        var ditheredError = BlockMeanDifference(src, dithered, block: 8);
+
+        Assert.True(
+            ditheredError < plainError,
+            $"ディザの局所平均の差 {ditheredError:F2} が、なしの {plainError:F2} を下回りませんでした。");
+    }
+
+    /// <summary>1 チャネルあたりの平均絶対誤差を求める（画素ごと）。</summary>
+    /// <param name="source">元の画像。</param>
+    /// <param name="result">比べる画像（同じ寸法であること）。</param>
+    /// <returns>平均絶対誤差。</returns>
+    private static double MeanChannelDifference(EsReadOnlyBitmap source, EsBitmap result)
+    {
+        var before = source.ReadOnlyPixels;
+        var after = result.ReadOnlyPixels;
+        long total = 0;
+        for (var y = 0; y < result.Height; y++)
+        {
+            for (var x = 0; x < result.Width; x++)
+            {
+                var i = (y * source.Stride) + (x * EsReadOnlyBitmap.BytesPerPixel);
+                var j = (y * result.Stride) + (x * EsReadOnlyBitmap.BytesPerPixel);
+                for (var channel = 0; channel < EsReadOnlyBitmap.BytesPerPixel; channel++)
+                {
+                    total += Math.Abs(before[i + channel] - after[j + channel]);
+                }
+            }
+        }
+
+        return (double)total / (result.Width * result.Height * EsReadOnlyBitmap.BytesPerPixel);
+    }
+
+    /// <summary>ブロック平均の差（1 チャネルあたりの平均絶対誤差）を求める。</summary>
+    /// <param name="source">元の画像。</param>
+    /// <param name="result">比べる画像（同じ寸法であること）。</param>
+    /// <param name="block">ブロックの辺（ピクセル）。</param>
+    /// <returns>ブロック平均の差。</returns>
+    /// <remarks>ディザの目的（離れて見たときに元の色へ戻る）を測るために使う（<see cref="DitherMode"/> の備考）。</remarks>
+    private static double BlockMeanDifference(EsReadOnlyBitmap source, EsBitmap result, int block)
+    {
+        var before = source.ReadOnlyPixels;
+        var after = result.ReadOnlyPixels;
+        long total = 0;
+        var blocks = 0;
+        for (var by = 0; by < result.Height; by += block)
+        {
+            for (var bx = 0; bx < result.Width; bx += block)
+            {
+                for (var channel = 0; channel < EsReadOnlyBitmap.BytesPerPixel; channel++)
+                {
+                    long beforeSum = 0;
+                    long afterSum = 0;
+                    var count = 0;
+                    for (var y = by; y < Math.Min(by + block, result.Height); y++)
+                    {
+                        for (var x = bx; x < Math.Min(bx + block, result.Width); x++)
+                        {
+                            beforeSum += before[(y * source.Stride) + (x * EsReadOnlyBitmap.BytesPerPixel) + channel];
+                            afterSum += after[(y * result.Stride) + (x * EsReadOnlyBitmap.BytesPerPixel) + channel];
+                            count++;
+                        }
+                    }
+
+                    total += Math.Abs((beforeSum / count) - (afterSum / count));
+                    blocks++;
+                }
+            }
+        }
+
+        return (double)total / blocks;
+    }
+
     [Fact]
     internal void 減色_破棄後は例外を投げる()
     {
@@ -609,7 +765,7 @@ public class EsBitmapOperationsTests
     {
         using var bitmap = EsBitmap.Create(20, 10, System.Drawing.Color.FromArgb(255, 1, 2, 3));
 
-        using var result = bitmap.Resize(5, DownscaleAlgorithm.Box);
+        using var result = bitmap.Resize(5, ImageQuality.High);
 
         Assert.False(bitmap.IsReadOnly);
         Assert.Equal(5, result.Width);
@@ -670,6 +826,26 @@ public class EsBitmapOperationsTests
             for (var x = 0; x < width; x++)
             {
                 bitmap.SetPixel(x, y, (byte)((x * 7) & 0xFF), (byte)((y * 11) & 0xFF), (byte)(((x + y) * 13) & 0xFF), 255);
+            }
+        }
+
+        bitmap.SetReadOnly();
+        return EsReadOnlyBitmap.FromBitmap(bitmap);
+    }
+
+    /// <summary>横方向の滑らかなグラデーションを作る（ディザの検証用）。</summary>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
+    private static EsReadOnlyBitmap CreateHorizontalGradient(int width, int height)
+    {
+        using var bitmap = EsBitmap.Create(width, height);
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var value = (byte)(x * 255 / width);
+                bitmap.SetPixel(x, y, value, value, value, 255);
             }
         }
 
@@ -740,10 +916,10 @@ public class EsBitmapOperationsTests
     }
 
     [Theory]
-    [InlineData(DownscaleAlgorithm.Nearest)]
-    [InlineData(DownscaleAlgorithm.Bilinear)]
-    [InlineData(DownscaleAlgorithm.Box)]
-    internal void 縮小_行の余白を含むソースでも余白の画素を混ぜない(DownscaleAlgorithm algorithm)
+    [InlineData(ImageQuality.Low)]
+    [InlineData(ImageQuality.Mid)]
+    [InlineData(ImageQuality.High)]
+    internal void 縮小_行の余白を含むソースでも余白の画素を混ぜない(ImageQuality quality)
     {
         // 並列実行の経路（縮小先の画素数がしきい値以上）も通すため、400x300 → 長辺 320 を使う
         var dense = CreateGradientPixels(400, 300);
@@ -751,8 +927,8 @@ public class EsBitmapOperationsTests
         var padded = CreatePadded(dense, 400, 300, stride, padding: 0xAB);
 
         using var expected = EsReadOnlyBitmap.FromPixelCopy(400, 300, dense);
-        using var fromDense = expected.Resize(320, algorithm);
-        using var fromPadded = EsBitmapOperations.Resize(padded, 400, 300, stride, 320, algorithm);
+        using var fromDense = expected.Resize(320, quality);
+        using var fromPadded = EsBitmapOperations.Resize(padded, 400, 300, stride, 320, quality);
 
         Assert.Equal(fromDense.ReadOnlyPixels.ToArray(), fromPadded.ReadOnlyPixels.ToArray());
     }

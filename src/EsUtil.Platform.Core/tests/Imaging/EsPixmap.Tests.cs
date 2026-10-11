@@ -239,21 +239,21 @@ public class EsPixmapTests
     // ====================================================================
 
     [Theory]
-    [InlineData(DownscaleAlgorithm.Nearest)]
-    [InlineData(DownscaleAlgorithm.Bilinear)]
-    [InlineData(DownscaleAlgorithm.Box)]
-    internal void Resize_切り出しの画像を縮小した結果と一致する(DownscaleAlgorithm algorithm)
+    [InlineData(ImageQuality.Low)]
+    [InlineData(ImageQuality.Mid)]
+    [InlineData(ImageQuality.High)]
+    internal void Resize_切り出しの画像を縮小した結果と一致する(ImageQuality quality)
     {
         using var source = CreateGradient(64, 48);
         var rect = new EsRectInt(9, 7, 32, 24);
 
         // 画像型の経路: 切り出しの複製（実体化）を作ってから縮小する
         using var cropped = source.Crop(rect);
-        using var expected = cropped.Resize(16, algorithm);
+        using var expected = cropped.Resize(16, quality);
 
         // ビューの経路: 実体化を挟まずにビューの範囲だけを縮小する
         using var view = source.ToPixmap(rect);
-        using var actual = view.Resize(16, algorithm);
+        using var actual = view.Resize(16, quality);
 
         Assert.Equal(expected.Size, actual.Size);
         Assert.Equal(expected.ReadOnlyPixels.ToArray(), actual.ReadOnlyPixels.ToArray());

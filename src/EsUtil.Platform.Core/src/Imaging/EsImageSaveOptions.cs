@@ -69,7 +69,7 @@ public readonly record struct EsImageSaveOptions
     /// <value>null（既定）の場合は減色しない（元の画素のまま保存する）。</value>
     /// <remarks>
     /// <b>不可逆である</b>: 元の画素は戻らない（ファイル サイズを下げる代わりに色を失う）。
-    /// 減色の結果は <see cref="EsReadOnlyBitmap.ReduceColors(int)"/> と同じ計算である（同じ色数を指定すれば同じ絵になる）。<br/><br/>
+    /// 減色の結果は <see cref="EsReadOnlyBitmap.ReduceColors(int, ImageQuality, DitherMode)"/> と同じ計算である（同じ色数・品質・ディザを指定すれば同じ絵になる）。<br/><br/>
     /// <b>指定しなくても GIF は常に量子化される</b>（GIF はパレットが必須であり、GDI+ のエンコーダーは
     /// 透明色の番号をどの画素にも使わせないため、32bpp のまま渡すと透過が失われる。 実測で確認）。<br/>
     /// <b>使えるのは BMP / PNG / GIF だけである</b>（実測で確認した 3 形式。 これらの形式はパレットを持てるため、
@@ -98,4 +98,28 @@ public readonly record struct EsImageSaveOptions
     /// 自前の量子化にすると透過が保たれ、ファイルも小さく画質も良くなる）。
     /// </remarks>
     public int? ColorCount { get; init; }
+
+    /// <summary>減色の品質（速度と画質の釣り合い）。</summary>
+    /// <value>null（既定）の場合は <see cref="ImageQuality.Mid"/> を使う。 指定できるのは
+    /// <see cref="ColorCount"/> を指定した場合、または形式が GIF（常に量子化される）の場合だけである。</value>
+    /// <remarks>
+    /// <b>段階の意味と実測</b>は <see cref="ImageQuality"/> と
+    /// <see cref="EsReadOnlyBitmap.ReduceColors(int, ImageQuality, DitherMode)"/> が単一所有します
+    /// （本値は保存の入口から同じ計算へ渡すだけです）。<br/>
+    /// <b>減色しない保存へ設定すると例外になる</b>（<see cref="ColorCount"/> が null で GIF 以外の場合。
+    /// 黙って無視すると「設定したのに効かない」ことに気付かないため）。
+    /// </remarks>
+    public ImageQuality? ColorQuality { get; init; }
+
+    /// <summary>減色のディザ（誤差拡散）の指定。</summary>
+    /// <value>null（既定）の場合は <see cref="DitherMode.None"/> を使う（ファイルが最も小さくなる）。
+    /// 指定できるのは <see cref="ColorCount"/> を指定した場合、または形式が GIF（常に量子化される）の場合だけである。</value>
+    /// <remarks>
+    /// <b>何が変わるか（実測）</b>: <see cref="DitherMode.FloydSteinberg"/> は<b>色数が内容に対して足りないとき</b>に
+    /// グラデーションの縞（バンディング）を消す代わりに<b>ファイルが大きくなります</b>（実測: 1920x1080 の 16 色
+    /// グラデーションの PNG で 17,830 B → 319,481 B。 写真風 16 色で 495,932 B → 603,078 B。 <b>平坦な色の画像は
+    /// 変化しません</b>）。 256 色のように足りている場合の判断を含む詳細は <see cref="DitherMode"/> を参照してください。<br/>
+    /// <b>減色しない保存へ設定すると例外になる</b>（<see cref="ColorQuality"/> と同じ規則）。
+    /// </remarks>
+    public DitherMode? Dither { get; init; }
 }

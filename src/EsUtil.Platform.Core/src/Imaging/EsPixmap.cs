@@ -133,45 +133,50 @@ public sealed class EsPixmap : IDisposable
 
     /// <summary>本ビューを長辺が上限に収まるよう縮小した画像を生成する（<b>切り出しの実体化を挟まない</b>）。</summary>
     /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
-    /// <param name="algorithm">縮小のアルゴリズム。 既定は <see cref="DownscaleAlgorithm.Bilinear"/>。</param>
+    /// <param name="quality">縮小の品質。 既定は <see cref="ImageQuality.Mid"/>。</param>
     /// <returns>縮小した画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>用途</b>: 大きな画像の一部だけを縮小したい場面（一覧のサムネイル・プレビューの一部）。 画像型の
-    /// <see cref="EsReadOnlyBitmap.Resize(int, DownscaleAlgorithm)"/> を先に呼ぶと、<b>切り出しの複製
+    /// <see cref="EsReadOnlyBitmap.Resize(int, ImageQuality)"/> を先に呼ぶと、<b>切り出しの複製
     /// （実測: 4K から 1000x800 で 0.85 ms / 4 MB）を払ってから縮小する</b>ことになります。 本メソッドは
     /// ビュー（0 コピー）をそのまま読むため、<b>その 0.85 ms / 4 MB が要りません</b>
     /// （実測: 1000x800 の切り出し → 長辺 320 の面積平均で 1.195 ms に対し、本メソッド相当で 0.363 ms ＝ <b>3.3 倍</b>）。<br/>
     /// <b>代金</b>: ビューの行幅（<see cref="Stride"/>。 元画像のストライド）のまま読むため、<b>行ごとに余白を飛ばす</b>
     /// 分だけ余計にアドレスを計算します（密な画像から切り出した画像を縮小する場合との差）。
-    /// アルゴリズムの選び方と規則は画像型と同じです（<see cref="EsReadOnlyBitmap.Resize(int, DownscaleAlgorithm)"/>）。
+    /// 品質の選び方と規則は画像型と同じです（<see cref="EsReadOnlyBitmap.Resize(int, ImageQuality)"/>）。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または
-    /// <paramref name="algorithm"/> が定義されていない値の場合。</exception>
+    /// <paramref name="quality"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    public EsBitmap Resize(int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)
+    public EsBitmap Resize(int maxSize, ImageQuality quality = ImageQuality.Mid)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.Resize(ReadOnlyPixels, Width, Height, Stride, maxSize, algorithm);
+        return EsBitmapOperations.Resize(ReadOnlyPixels, Width, Height, Stride, maxSize, quality);
     }
 
     /// <summary>本ビューを指定の色数へ減色した画像を生成する（<b>切り出しの実体化を挟まない</b>）。</summary>
     /// <param name="colorCount">残す色数（2〜256）。</param>
+    /// <param name="quality">減色の品質。 既定は <see cref="ImageQuality.Mid"/>。</param>
+    /// <param name="dither">ディザの指定。 既定は <see cref="DitherMode.None"/>。</param>
     /// <returns>減色した新しい画像（使われる色は <paramref name="colorCount"/> 種類以下）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// <b>用途</b>: 大きな画像の一部だけを減色したい場面。 画像型の <see cref="EsReadOnlyBitmap.ReduceColors(int)"/> を
+    /// <b>用途</b>: 大きな画像の一部だけを減色したい場面。 画像型の
+    /// <see cref="EsReadOnlyBitmap.ReduceColors(int, ImageQuality, DitherMode)"/> を
     /// 先に呼ぶと切り出しの複製を払うことになります（実測: 4K から 1000x800 で 0.85 ms / 4 MB）。
     /// 本メソッドはビューをそのまま読むため、その分が要りません（実測: 1000x800 の減色 256 色で 6.0 ms のうち
     /// 切り出しの 0.85 ms ＝ <b>約 12%</b>）。<br/>
-    /// 減色の内容（アルファの扱い・ディザを行わない理由・パレットの作り方）は画像型と同じです
-    /// （<see cref="EsReadOnlyBitmap.ReduceColors(int)"/> の備考）。
+    /// 減色の内容（アルファの扱い・品質とディザの選び方・パレットの作り方）は画像型と同じです
+    /// （<see cref="EsReadOnlyBitmap.ReduceColors(int, ImageQuality, DitherMode)"/> の備考）。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または
+    /// <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    public EsBitmap ReduceColors(int colorCount)
+    public EsBitmap ReduceColors(
+        int colorCount, ImageQuality quality = ImageQuality.Mid, DitherMode dither = DitherMode.None)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.ReduceColors(ReadOnlyPixels, Width, Height, Stride, colorCount);
+        return EsBitmapOperations.ReduceColors(ReadOnlyPixels, Width, Height, Stride, colorCount, quality, dither);
     }
 
     /// <summary>本ビューの一部を指す別のビューを生成する（さらに 0 コピーで切り出す）。</summary>
