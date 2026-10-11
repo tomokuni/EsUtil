@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Media;
 using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using EsUtil.Platform.Core.Geometry;
@@ -27,13 +28,17 @@ internal static class LoupeContextPainter
     /// <param name="context">描画先の描画コンテキスト（<c>Render</c> の実行中のみ有効）。 null 不可。</param>
     /// <param name="source">拡大元の 100% 画像。 null の場合は拡大画像を描かない（画像外の色のみ）。</param>
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・色を持つ）。</param>
+    /// <param name="display">拡大元の全体を写した Avalonia の画像（省略可）。 渡すと<b>切り出しの複製を作らず</b>、元矩形つきの描画で済む。</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> が null の場合。</exception>
     /// <remarks>
     /// <b>層ごとに外観の表示可否（<c>Show*</c>）を見て描く</b>: 計画は表示可否で値を消さないため、<br/>
     /// 描くかどうかの判断は本クラス（描画側）が行う（色のアルファを「描かない」の代用にしない）。<br/>
-    /// ペーストボード（描画面の消去）と拡大画像は表示可否を持たず、常に描く。
+    /// ペーストボード（描画面の消去）と拡大画像は表示可否を持たず、常に描く。<br/>
+    /// <b><paramref name="display"/> を渡せるのは、その寸法が <paramref name="source"/> と一致する場合だけです</b>
+    /// （縮小された射影を渡すと元矩形の座標系が変わるため、一致しない場合は切り出しの複製を作る経路へ戻ります）。
     /// </remarks>
-    public static void Paint(DrawingContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)
+    public static void Paint(
+        DrawingContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan, IImage? display = null)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -50,7 +55,7 @@ internal static class LoupeContextPainter
                     break;
 
                 case LoupeDrawLayer.Image:
-                    DrawMagnifiedImage(context, source, in plan);
+                    DrawMagnifiedImage(context, source, display, in plan);
                     break;
 
                 case LoupeDrawLayer.Crosshair when appearance.ShowCrosshair:
@@ -87,31 +92,53 @@ internal static class LoupeContextPainter
         }
     }
 
-    /// <summary>ソース画像を切り出して拡大描画する（ソースまたは切り出し領域が無い場合は何もしない）。</summary>
+    /// <summary>ソース画像の切り出し領域を拡大描画する（ソースまたは切り出し領域が無い場合は何もしない）。</summary>
     /// <param name="context">描画先の描画コンテキスト。</param>
     /// <param name="source">拡大元の 100% 画像。</param>
+    /// <param name="display">拡大元の全体を写した Avalonia の画像（寸法が一致する場合だけ使う）。</param>
     /// <param name="plan">描画計画（切り出し領域と描画の矩形を持つ）。</param>
     /// <remarks>
-    /// 切り出しの実行（<c>Crop</c>）と描画の矩形は計画が単一所有する<br/>
-    /// （切り出し領域の算出（切り上げ・中心 → 左上の変換）はコアが済ませている）。<br/>
+    /// <b>表示用の射影をそのまま使える場合は切り出しの複製を作りません</b>: <paramref name="display"/> があり寸法が
+    /// <paramref name="source"/> と一致する場合は、<b>元矩形つきの描画</b>（<c>DrawImage(image, 元矩形, 描画矩形)</c>）で
+    /// 済ませます。 切り出しが画像の外へ出る場合も<b>交差する部分だけ</b>を対応する描画先の部分矩形へ写し、外側は描きません
+    /// （ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）。<br/>
+    /// <b>切り出しの複製が要るのは次の場合だけです</b>: (1) 表示用の射影が無い（オフスクリーン描画の経路）、
+    /// (2) 射影の寸法が拡大元と違う（表示用の縮小が指定されている）。 この場合は従来どおり <c>Crop</c> で
+    /// 透明パディングを含む画像を作り、表示用へ変換して描きます。<br/>
     /// 描画中にソースが破棄された場合（<see cref="ObjectDisposedException"/>）は何も描かずに戻る<br/>
     /// （ホストの状態と競合しても描画を継続できる。 画像外のみが残る）。
     /// </remarks>
-    private static void DrawMagnifiedImage(DrawingContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)
+    private static void DrawMagnifiedImage(
+        DrawingContext context, EsReadOnlyBitmap? source, IImage? display, in LoupeDrawPlan plan)
     {
         if (source is null || plan.MagnifiedImage is not { } image)
         {
             return;
         }
 
+        var rect = image.CropSourceRect;
+        var (crop, draw) = ClipToImage(source, rect, image.DrawClientPixelRect);
+
         try
         {
-            // 切り出しは複製になる（切り出しが画像の外へ出る場合は透明で埋める必要があるため Crop を使う）。
-            // 0 コピーのビュー（EsPixmap）で切り出しの複製は避けられるが、Avalonia の描画は
-            // 書き換え可能な WriteableBitmap/Bitmap を要求するため、表示用の変換で複製が発生する
-            // （ビューから直接描く入口が無い）。 したがって本層では切り出しの複製だけを避けても
-            // 効果が無く、規則を 1 つに保つ（Crop）方を選ぶ。
-            using var region = source.Crop(image.CropSourceRect);
+            if (crop.Width <= 0 || crop.Height <= 0)
+            {
+                return;
+            }
+
+            // 表示用の射影をそのまま使う（切り出しの複製も表示用の変換も作らない）
+            if (display is not null
+                && display.Size.Width == source.Width && display.Size.Height == source.Height)
+            {
+                context.DrawImage(
+                    display,
+                    new Rect(crop.X, crop.Y, crop.Width, crop.Height),
+                    draw.ToAvaloniaRect());
+                return;
+            }
+
+            // 射影が無い（または寸法が違う）場合は切り出しを作る（透明パディングの規則はコアの Crop が単一所有する）
+            using var region = source.Crop(crop);
             // その場で読むだけ（表示用の変換は複製を返す）: 凍結して 0 コピーで読み取り専用の面へ渡す
             region.SetReadOnly();
             using var read = EsReadOnlyBitmap.FromBitmap(region);
@@ -122,5 +149,41 @@ internal static class LoupeContextPainter
         {
             // 描画中にソースが破棄された: 画像の層を描かずに戻る（ペーストボードのみが残る）
         }
+    }
+
+    /// <summary>切り出し矩形を画像の内側へ切り詰め、対応する描画先の矩形を求める。</summary>
+    /// <param name="source">拡大元の画像（寸法の取得に使う。 読み取りのみ）。</param>
+    /// <param name="cropRect">切り出す矩形（対象座標。 画像の外へ出てよい。 切り出し画像の自座標はこの左上を原点とする）。</param>
+    /// <param name="drawRect">描画の全体矩形（クライアント座標。 切り出し画像の全体を描く場合の矩形）。</param>
+    /// <returns>画像の内側の切り出し矩形と、それに対応する描画先の矩形（交差しない場合は幅 0）。</returns>
+    /// <remarks>
+    /// <b>外側を切り落とすだけです</b>: 切り出し画像の全体（<paramref name="cropRect"/> の寸法）から
+    /// <paramref name="drawRect"/> への写像は一様な拡大であり、<b>画像の内側の部分は同じ倍率で同じ位置へ写ります</b>
+    /// （切り出し画像を貼る代わりに元画像を「元矩形つき」で描いても、見た目が一致します）。<br/>
+    /// 描画先の矩形は<b>同じ倍率で切り詰めます</b>（切り出し矩形の外側の幅・高さの比を保つため、比例で求めます）。
+    /// </remarks>
+    private static (EsRectInt Crop, EsRect Draw) ClipToImage(
+        EsReadOnlyBitmap source, EsRectInt cropRect, EsRect drawRect)
+    {
+        // 画像の内側と交差する部分（交差しない場合は幅 0 を返し、呼び出し側が描かない）
+        var left = Math.Max(0, cropRect.X);
+        var top = Math.Max(0, cropRect.Y);
+        var right = Math.Min(source.Width, cropRect.Right);
+        var bottom = Math.Min(source.Height, cropRect.Bottom);
+        if (right <= left || bottom <= top)
+        {
+            return (new EsRectInt(0, 0, 0, 0), default);
+        }
+
+        // 切り出し画像（左上が原点）から描画先への倍率
+        var scaleX = drawRect.Width / cropRect.Width;
+        var scaleY = drawRect.Height / cropRect.Height;
+        var crop = new EsRectInt(left, top, right - left, bottom - top);
+        var draw = new EsRect(
+            drawRect.X + ((left - cropRect.X) * scaleX),
+            drawRect.Y + ((top - cropRect.Y) * scaleY),
+            crop.Width * scaleX,
+            crop.Height * scaleY);
+        return (crop, draw);
     }
 }

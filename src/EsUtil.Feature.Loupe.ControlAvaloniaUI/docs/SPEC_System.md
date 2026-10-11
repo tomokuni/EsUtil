@@ -191,7 +191,8 @@ flowchart TB
 - `Source` が `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む派生型）の場合は `CopyPixels` による複製（`EsBitmap` 化）で抽出する。
 - `Source` が `EsBitmapAvaloniaAdapter` の場合は `GetEsBitmap()` でコアの画像（`EsReadOnlyBitmap`）を取り出し、そのピクセルを直接抽出する（複製なし）。
 - `Bitmap`（派生を含む） / `EsBitmapAvaloniaAdapter` 以外の `IImage`（`CroppedBitmap` 等）は `NotSupportedException` が発生する。
-- 切り出し（`EsReadOnlyBitmap` のメンバー `Crop`）と合成（`RenderTargetBitmap` / `DrawingContext`）は UI スレッドで行う（バックグラウンド抽出は連続再描画時にスレッドプールが競合し、移動中の追従が止まるため行わない）。 一時 `RenderTargetBitmap` は描画直後に破棄する。
+- **切り出しの複製を作らない**（表示用の射影を元矩形つきで描く）: `LoupeContextPainter` は `Source` の射影（`IImage`）を受け取り、**画像と交差する部分だけ**を `DrawImage(image, 元矩形, 描画矩形)` で描く。 外側は描かない（ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）ため、**毎フレームの切り出しの複製と表示用の変換が不要**になる。 射影が無い経路（オフスクリーン描画）と射影の寸法が拡大元と違う場合だけ、従来どおり `Crop`（コア）で透明パディングを含む画像を作る。
+- 合成（`RenderTargetBitmap` / `DrawingContext`）は UI スレッドで行う（バックグラウンド抽出は連続再描画時にスレッドプールが競合し、移動中の追従が止まるため行わない）。 一時 `RenderTargetBitmap` は描画直後に破棄する。
 
 ### 6.5 切り出し領域の幾何（`EsUtil.Feature.Loupe.Core`）
 
@@ -251,9 +252,10 @@ sequenceDiagram
     Ctl->>Pl: RenderAsync(source, plan)
     Pl->>Sr: IsSourceSupported(source)（未対応型は例外）/ Resolve(source)
     Sr-->>Pl: 切り出し元 EsReadOnlyBitmap（Bitmap は複製・アダプタは GetEsBitmap で取り出す）
-    Pl->>Rdr: LoupeContextPainter.Paint(DrawingContext, source, plan)（UI スレッド。描画の順序は計画が単一所有）
-    Rdr->>Ext: EsReadOnlyBitmap のメンバー Crop(content.MagnifiedImage.CropSourceRect)（描画実装が実行する）
-    Ext-->>Rdr: 切り出し画像（範囲外は透明パディング）
+    Pl->>Rdr: LoupeContextPainter.Paint(DrawingContext, source, plan, display)（UI スレッド。描画の順序は計画が単一所有）
+    Rdr->>Rdr: 切り出し矩形を画像の内側へ切り詰め、描画先の部分矩形を求める
+    Rdr->>Ext: 表示用の射影がある場合は DrawImage(display, 元矩形, 描画矩形)（切り出しの複製も変換も作らない）
+    Rdr->>Ext: 射影が無い/寸法が違う場合は Crop（透明パディングを含む画像を作って変換する）
     Rdr-->>Pl: 合成 Bitmap
     Pl-->>Ctl: 生成 Bitmap
     Ctl->>Ctl: SetLoupeBitmap（子の Image.Source / LoupeBitmap・Rendered 通知）

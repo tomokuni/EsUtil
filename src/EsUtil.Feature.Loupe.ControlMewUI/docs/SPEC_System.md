@@ -91,7 +91,7 @@ src/EsUtil.Feature.Loupe.ControlMewUI/
 | コンポーネント | 責務 |
 | --- | --- |
 | `LoupeControl` | 入力プロパティ（`MewProperty`）の定義（補正と変更ログもここへ登録する）、DPI 変更の追従、子（図形キャンバス・ラベル要素）の計測と配置、ラベル要素（`Border` + `TextBlock`）の追加・更新。 描画は提示層（`LoupePresenter.ResolveDrawPlan`）が解決した計画を `LoupeSkiaPainter` で `SKCanvas` へ写す（層の順序も描く値も計画が単一所有する）。 **描画のたびに描画面（物理ピクセル）と割り当て領域（DIP）の比を実効倍率として `ClientToPixelScaling` へ反映する**（DPI の変更通知は追加直後のコントロールへ届かないため、保持値だけに頼るとルーペ領域より小さい拡大画像を描く） |
-| `LoupeSkiaPainter`（描画実装） | 描画計画（`LoupeDrawPlan`。 層の順序・矩形・拡大画像の切り出しと描画の矩形）を Skia の描画 API へ写す。 **描く層とその順序は計画が単一所有する**（`LoupeDrawLayer` を先頭から処理し、中心座標ラベルは処理しない）。 色は計画の外観（`LoupeAppearance`）を使う。 拡大画像の切り出しは、切り出し矩形が画像の内側に収まる場合は 0 コピーの読み取りビュー（`ToPixmap` → `ToSKBitmap`）で行い、外へ出て透明で埋める場合は複製の `Crop` を使う（透明パディングの規則はコアが単一所有する） |
+| `LoupeSkiaPainter`（描画実装） | 描画計画（`LoupeDrawPlan`。 層の順序・矩形・拡大画像の切り出しと描画の矩形）を Skia の描画 API へ写す。 **描く層とその順序は計画が単一所有する**（`LoupeDrawLayer` を先頭から処理し、中心座標ラベルは処理しない）。 色は計画の外観（`LoupeAppearance`）を使う。 拡大画像は**画像と交差する部分だけ**を `DrawBitmap(全体の非所有ビュー, 元矩形, 描画矩形)` で描き、外側は描かない（ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）。 したがって**毎フレームの切り出しの複製を作らない**（透明パディングの規則はコアが単一所有する） |
 | `RenderTarget`（テスト） | ウィンドウ不要の描画先。 `SKBitmap` と `SKCanvas` を保持し、画素を読み取る |
 
 ## 6. クラス図
@@ -230,9 +230,8 @@ sequenceDiagram
     LC->>R: LoupeSkiaPainter.Paint(SKCanvas, Source, plan)（層の順に写す）
     R->>SK: 画像外の色（plan.Appearance.ResolvePasteboardColor()。 非表示時は透明）を表面全体へ塗る
     alt Source と切り出し領域が揃っている
-        R->>R: 切り出し矩形が画像の内側なら ToPixmap → ToSKBitmap(view)（0 コピーのビュー。 描画実装が実行する）
-        R->>R: 外へ出る場合は EsReadOnlyBitmap.Crop → ToSKBitmap()（複製。 透明パディングのため）
-        R->>SK: DrawBitmap(bitmap, Source, Destination)（最近傍で拡大）
+        R->>R: 切り出し矩形を画像の内側へ切り詰め、描画先の部分矩形を求める（交差しなければ描かない）
+        R->>SK: DrawBitmap(source.ToSKBitmap(), 元矩形, 描画矩形)（切り出しの複製を作らない。 画像の外側は描かない）
     else 未設定または破棄済み
         R-->>R: 画像外の色のみを残す
     end

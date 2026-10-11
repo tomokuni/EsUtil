@@ -164,7 +164,9 @@ public sealed class LoupeControl : Panel
         var resolved = LoupeSourceResolver.Resolve(source, out var sourceBitmap);
         try
         {
-            LoupeContextPainter.Paint(context, sourceBitmap, in plan);
+            // 元の IImage は拡大元の全体を写しているため、そのまま元矩形つきの描画に使える
+            // （切り出しの複製も表示用の変換も作らない。 寸法が一致しない場合は描画側が切り出しの経路へ戻る）
+            LoupeContextPainter.Paint(context, sourceBitmap, in plan, display: source);
         }
         finally
         {

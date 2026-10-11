@@ -49,11 +49,12 @@ internal static class LoupeRenderPipeline
 
         try
         {
-            // 切り出し（Crop = 行コピーとパディングの透明化のみで軽量）と合成（RenderTargetBitmap / DrawingContext）は UI スレッドで行う。
+            // 切り出し（複製）と合成（RenderTargetBitmap / DrawingContext）は UI スレッドで行う。
             // Task.Run によるバックグラウンド抽出は、マウス移動中の連続再描画でスレッドプールが競合し、
             // 抽出結果が UI スレッドへ戻る前に次の再描画が要求されてルーペ画像が移動停止まで更新されない問題を生む。
+            // 元の IImage はそのまま元矩形つきの描画に使える（切り出しの複製と表示用の変換を作らない）
             return await Dispatcher.UIThread.InvokeAsync(
-                () => Rasterize(sourceBitmap, in plan),
+                () => Rasterize(sourceBitmap, source, in plan),
                 DispatcherPriority.Render);
         }
         finally
@@ -68,19 +69,20 @@ internal static class LoupeRenderPipeline
 
     /// <summary>描画計画を描画実装へ渡し、結果を書き換え可能な画像として返す。</summary>
     /// <param name="source">拡大元の画像（読み取りの面）。</param>
+    /// <param name="display">拡大元の全体を写した Avalonia の画像（省略可）。 渡すと切り出しの複製を作らずに描く。</param>
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・拡大画像の幾何を持つ）。</param>
     /// <returns>描画結果（ホストがピクセルへオーバーレイを描画できる）。</returns>
     /// <remarks>
     /// オフスクリーン ビットマップは UI 固有の機構（Avalonia の <see cref="RenderTargetBitmap"/>）であるため本層が生成し、<br/>
     /// 描画の手順（層の順序・写し方）は <see cref="LoupeContextPainter"/> へ委譲する。
     /// </remarks>
-    private static EsBitmap Rasterize(EsReadOnlyBitmap? source, in LoupeDrawPlan plan)
+    private static EsBitmap Rasterize(EsReadOnlyBitmap? source, IImage? display, in LoupeDrawPlan plan)
     {
         var bitmap = new RenderTargetBitmap(new PixelSize(plan.ClientPixelSize, plan.ClientPixelSize), s_dpi);
 
         using (var context = bitmap.CreateDrawingContext())
         {
-            LoupeContextPainter.Paint(context, source, in plan);
+            LoupeContextPainter.Paint(context, source, in plan, display);
         }
 
         return bitmap.ToEsBitmap();
