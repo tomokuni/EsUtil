@@ -6,17 +6,22 @@ namespace EsUtil.Platform.Core.Imaging;
 
 /// <summary>画像を<b>変更せずに</b>新しい画像を作る操作（切り出し・縮小・減色）の内部実装。</summary>
 /// <remarks>
-/// <b>公開しない理由</b>: どの操作も必要なのは画素バッファ（<see cref="EsBitmapBuffer"/>）だけであり、
-/// 公開する 2 型（<see cref="EsReadOnlyBitmap"/> / <see cref="EsBitmap"/>）が<b>同じ名前のメンバー</b>として
-/// 同じ手順を公開します（<see cref="EsReadOnlyBitmap.Crop(EsRectInt)"/> 等）。 1 回書けば足りる手順を公開面へ
-/// 2 組並べないためです（拡張メソッドにすると、同じ操作が型の外へ 2 組並びます）。<br/>
-/// <b>受け取る型が画素バッファである理由</b>: どの操作も<b>画素の読み取りだけ</b>を行い、書き込みの権利を要しません
-/// （読み取り専用の画像も書き換え可能な画像も、渡すのは同じバッファです）。<br/>
+/// <b>公開しない理由</b>: どの操作も必要なのは<b>画素とその形（幅・高さ・行幅）</b>だけであり、
+/// 公開する 2 型（<see cref="EsReadOnlyBitmap"/> / <see cref="EsBitmap"/>）とビュー（<see cref="EsPixmap"/>）が
+/// <b>同じ名前のメンバー</b>として同じ手順を公開します（<see cref="EsReadOnlyBitmap.Crop(EsRectInt)"/> 等）。
+/// 1 回書けば足りる手順を公開面へ 3 組並べないためです（拡張メソッドにすると、同じ操作が型の外へ並びます）。<br/>
+/// <b>受け取るのが「画素 + 幅 + 高さ + 行幅」である理由</b>: どの操作も<b>画素の読み取りだけ</b>を行い、
+/// 書き込みの権利を要しません（読み取り専用の画像・書き換え可能な画像・ビューのいずれも、渡すのは同じ形です）。
+/// <b>行幅を引数にする理由</b>: ビューの画素は元画像の行幅を保つため（<see cref="EsPixmap.Stride"/>）、
+/// <b>行の余白を含みます</b>。 全メソッドが<b>行単位</b>に読み書きするため、余白の画素は結果へ混ざりません。<br/>
+/// <b>ポインターで受ける箇所がある理由</b>: 縮小は行の範囲を並列実行するため、そのラムダは <c>ref struct</c>
+/// （<see cref="ReadOnlySpan{T}"/>）を取り込めません（呼び出し側の <see cref="Resize"/> が <c>fixed</c> で固定します）。<br/>
 /// <b>戻り値の権利</b>: 新しく作った画像は<b>書き換え可能</b>（<see cref="EsBitmap"/>）で返します
 /// （生成した側が所有し、破棄する責任を持つ）。 複製が要る場合は <see cref="EsReadOnlyBitmap.Copy"/>、0 コピーの
 /// 読み取りビューが要る場合は <see cref="EsReadOnlyBitmap.ToPixmap"/> を使います。<br/>
 /// <b>減色の計算もここに置く</b>: 減色は「新しい画像を作る」操作として公開し（<see cref="ReduceColors"/>）、
-/// 色番号とパレットを返す計算（<see cref="ReduceToIndexed"/>）は保存の実装（8bpp のインデックス カラー）と共有します
+/// 色番号とパレットを返す計算（<see cref="ReduceToIndexed"/>）は保存の実装（8bpp のインデックス カラー）と
+/// <b>同じ共通部分</b>（<see cref="BuildPalette"/>）を使います
 /// （2 箇所に書くと、同じ色数でも保存経路によって結果が変わります）。
 /// </remarks>
 internal static class EsBitmapOperations

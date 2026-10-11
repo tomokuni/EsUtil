@@ -373,6 +373,9 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <b>アルゴリズムの選び方</b>: 速度と画質の目安は <see cref="DownscaleAlgorithm"/> を参照（既定の双線形は
     /// 「速い・細線は薄れる」、<see cref="DownscaleAlgorithm.Box"/> は「遅い・細線が残る」）。<br/>
     /// <b>並列化</b>: どのアルゴリズムも<b>縮小先の行を範囲へ分けて並列実行します</b>（小さい画像では逐次のままにします）。<br/>
+    /// <b>一部だけを縮小する場合</b>: 本画像から切り出してから縮小すると、<b>切り出しの複製</b>（実測: 4K から 1000x800 で
+    /// 0.85 ms / 4 MB）を払います。 <see cref="ToPixmap"/> でビューを作り <see cref="EsPixmap.Resize"/> を呼ぶと
+    /// その分が要りません（実測: 1000x800 → 長辺 320 の面積平均で <b>3.3 倍</b>）。<br/>
     /// <b>返す寸法の丸め</b>: 切り捨てで丸めるため<b>1 px 未満の誤差が出えます</b>（座標の対応付けが必要な場面では使わないこと）。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または
@@ -394,6 +397,9 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// 保存した PNG には <c>tRNS</c>（インデックス透過）、GIF には透明の色番号が書かれます。<br/>
     /// <b>用途</b>: 保存のファイル サイズを小さくする（<see cref="EsImageSaveOptions.ColorCount"/> を指定した保存は
     /// 本処理を行います）。 切り出し・縮小と同じく<b>新しい画像を作る</b>ため、元の画像は変更しません。<br/>
+    /// <b>一部だけを減色する場合</b>: 本画像から切り出してから減色すると、<b>切り出しの複製</b>（実測: 4K から
+    /// 1000x800 で 0.85 ms / 4 MB）を払います。 <see cref="ToPixmap"/> でビューを作り
+    /// <see cref="EsPixmap.ReduceColors"/> を呼ぶとその分が要りません（実測: 1000x800・256 色で約 12%）。<br/>
     /// <b>アルゴリズム（実測で選んだ）</b>: 5 ビットのヒストグラム（32³ = 32,768 箱）を作り、
     /// <b>中央値分割</b>で箱を色数まで分け、箱ごとの平均色をパレットにします。 画素の割り当ては
     /// <b>箱ごとに 1 度だけ最近傍を求めた参照表</b>を引きます（画素ごとに 256 色と比較しません）。
