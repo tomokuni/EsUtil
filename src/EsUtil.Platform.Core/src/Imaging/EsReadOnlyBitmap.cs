@@ -148,6 +148,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <param name="color">塗りつぶし色。</param>
     /// <returns>生成された画像。 所有権は呼び出し側へ移る。</returns>
     public static EsReadOnlyBitmap Create(EsSizeInt size, Color color) => Create(size.Width, size.Height, color);
+
     /// <summary>指定サイズの画素を確保し、充填する処理を 1 回で行う（相互変換が使う入口）。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>
     /// <param name="height">高さ（ピクセル）。 0 以上。</param>
@@ -230,35 +231,6 @@ public sealed class EsReadOnlyBitmap : IDisposable
         }
     }
 
-    /// <summary>書き換え可能な画像から読み取り専用の画像を生成する（<b>凍結済みなら 0 コピー、未凍結なら複製</b>）。</summary>
-    /// <param name="source">元の画像。 借用であり破棄しない。</param>
-    /// <returns>読み取り専用の画像。 所有権は呼び出し側へ移る。</returns>
-    /// <remarks>
-    /// <b>書き換え可能な画像から本型を得る唯一の入口</b>です（実測: Skia の <c>SKImage.FromBitmap</c> と同じ規則。
-    /// 凍結していない <c>SKBitmap</c> からは複製し、凍結済みなら共有します）。<br/>
-    /// <b>一覧</b>:
-    /// <list type="bullet">
-    /// <item><description><paramref name="source"/> が凍結済み（<see cref="EsBitmap.IsReadOnly"/> が true）: <b>0 コピーで共有</b>
-    /// （誰も書けないため、内容は変わらない）。</description></item>
-    /// <item><description>未凍結: <b>複製</b>した読み取り専用の画像を返す（元は書き換え可能なまま影響を受けず、返した画像も
-    /// 元の書き込みで変わらない）。</description></item>
-    /// </list>
-    /// <b>複製の費用</b>: 実測で 4K 1 枚あたり 31 MiB と 5.7 ms です。 払いたくない場合は、書き終えた時点で
-    /// 書き換え可能な型の <c>SetReadOnly</c> を呼んでから本メソッドを呼びます。
-    /// </remarks>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
-    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
-    public static EsReadOnlyBitmap FromBitmap(EsBitmap source)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        source.ThrowIfDisposed();
-
-        // 凍結済みなら共有（0 コピー）、未凍結なら複製する（読み手の画素が後から変わらないようにする）
-        return source.IsReadOnly
-            ? new EsReadOnlyBitmap(source.Buffer.Share())
-            : FromPixelCopy(source.Width, source.Height, source.ReadOnlyPixels);
-    }
-
     /// <summary>0 コピーの読み取りビューから画像を生成する（<b>常に複製</b>。 行幅を考慮する）。</summary>
     /// <param name="source">複製元のビュー。 借用であり破棄しない。</param>
     /// <returns>複製した画像。 所有権は呼び出し側へ移る。</returns>
@@ -291,6 +263,55 @@ public sealed class EsReadOnlyBitmap : IDisposable
             throw;
         }
     }
+
+    /// <summary>書き換え可能な画像から読み取り専用の画像を生成する（<b>凍結済みなら 0 コピー、未凍結なら複製</b>）。</summary>
+    /// <param name="source">元の画像。 借用であり破棄しない。</param>
+    /// <returns>読み取り専用の画像。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>書き換え可能な画像から本型を得る唯一の入口</b>です（実測: Skia の <c>SKImage.FromBitmap</c> と同じ規則。
+    /// 凍結していない <c>SKBitmap</c> からは複製し、凍結済みなら共有します）。<br/>
+    /// <b>一覧</b>:
+    /// <list type="bullet">
+    /// <item><description><paramref name="source"/> が凍結済み（<see cref="EsBitmap.IsReadOnly"/> が true）: <b>0 コピーで共有</b>
+    /// （誰も書けないため、内容は変わらない）。</description></item>
+    /// <item><description>未凍結: <b>複製</b>した読み取り専用の画像を返す（元は書き換え可能なまま影響を受けず、返した画像も
+    /// 元の書き込みで変わらない）。</description></item>
+    /// </list>
+    /// <b>複製の費用</b>: 実測で 4K 1 枚あたり 31 MiB と 5.7 ms です。 払いたくない場合は、書き終えた時点で
+    /// 書き換え可能な型の <c>SetReadOnly</c> を呼んでから本メソッドを呼びます。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
+    public static EsReadOnlyBitmap FromBitmap(EsBitmap source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        source.ThrowIfDisposed();
+
+        // 凍結済みなら共有（0 コピー）、未凍結なら複製する（読み手の画素が後から変わらないようにする）
+        return source.IsReadOnly
+            ? new EsReadOnlyBitmap(source.Buffer.Share())
+            : FromPixelCopy(source.Width, source.Height, source.ReadOnlyPixels);
+    }
+
+    /// <summary>指定座標のピクセルを BGRA で取得する。</summary>
+    /// <param name="x">X 座標（ピクセル）。</param>
+    /// <param name="y">Y 座標（ピクセル）。</param>
+    /// <returns>(B, G, R, A) のタプル（アルファ乗算済み）。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">座標が画像の範囲外の場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public (byte B, byte G, byte R, byte A) GetPixel(int x, int y) => _buffer.GetPixel(x, y);
+
+    /// <summary>指定座標のピクセルを色として取得する（座標型を受け取る版）。</summary>
+    /// <param name="point">座標（ピクセル）。</param>
+    /// <returns>取得した色（<see cref="Color"/>。 成分はアルファ乗算済み）。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">座標が画像の範囲外の場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public Color GetPixel(EsPointInt point)
+    {
+        var (b, g, r, a) = _buffer.GetPixel(point.X, point.Y);
+        return Color.FromArgb(a, r, g, b);
+    }
+
     /// <summary>本画像の複製（<b>独立した画素</b>）を生成する。</summary>
     /// <returns>独立した複製。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
@@ -325,25 +346,6 @@ public sealed class EsReadOnlyBitmap : IDisposable
     {
         ThrowIfDisposed();
         return _buffer.ToPixmap(rect);
-    }
-
-    /// <summary>指定座標のピクセルを BGRA で取得する。</summary>
-    /// <param name="x">X 座標（ピクセル）。</param>
-    /// <param name="y">Y 座標（ピクセル）。</param>
-    /// <returns>(B, G, R, A) のタプル（アルファ乗算済み）。</returns>
-    /// <exception cref="ArgumentOutOfRangeException">座標が画像の範囲外の場合。</exception>
-    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    public (byte B, byte G, byte R, byte A) GetPixel(int x, int y) => _buffer.GetPixel(x, y);
-
-    /// <summary>指定座標のピクセルを色として取得する（座標型を受け取る版）。</summary>
-    /// <param name="point">座標（ピクセル）。</param>
-    /// <returns>取得した色（<see cref="Color"/>。 成分はアルファ乗算済み）。</returns>
-    /// <exception cref="ArgumentOutOfRangeException">座標が画像の範囲外の場合。</exception>
-    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    public Color GetPixel(EsPointInt point)
-    {
-        var (b, g, r, a) = _buffer.GetPixel(point.X, point.Y);
-        return Color.FromArgb(a, r, g, b);
     }
 
     /// <summary>画像の寸法を「幅x高さ」形式の文字列で返す（ログ等への記録用）。</summary>

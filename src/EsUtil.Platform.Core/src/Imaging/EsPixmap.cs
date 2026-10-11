@@ -49,6 +49,9 @@ public sealed class EsPixmap : IDisposable
         Stride = rowBytes;
     }
 
+    /// <summary>破棄済みかどうか。</summary>
+    public bool IsDisposed => _disposed;
+
     /// <summary>幅（ピクセル）。</summary>
     public int Width { get; }
 
@@ -61,9 +64,6 @@ public sealed class EsPixmap : IDisposable
     /// <summary>1 ラインあたりのバイト数（<b>元画像のストライドのまま</b>。 <c>幅 × 4</c> より大きい場合があります）。</summary>
     /// <remarks><b>名前を画像と同じ <c>Stride</c> にする理由</b>: 「1 ラインあたりのバイト数」は同じ概念であり、語彙を 2 つに増やさないためです（実測: Skia は画像とビューの両方で同じ名前 <c>RowBytes</c> を使っています）。 ビューは元の行幅を保つため、行ごとに余白を持ちます。</remarks>
     public int Stride { get; }
-
-    /// <summary>破棄済みかどうか。</summary>
-    public bool IsDisposed => _disposed;
 
     /// <summary>ピクセル データの読み取り専用ビュー（<b>行の余白を含む</b>）。</summary>
     /// <value>先頭から <c><see cref="Stride"/> × <see cref="Height"/></c> バイト。</value>
@@ -141,6 +141,30 @@ public sealed class EsPixmap : IDisposable
         return new EsPixmap(_buffer.Share(), offset, rect.Width, rect.Height, Stride);
     }
 
+    /// <summary>ビューの寸法を「幅x高さ」形式の文字列で返す（ログ等への記録用）。</summary>
+    /// <returns>寸法の文字列（例: <c>1000x800</c>）。</returns>
+    public string ToSizeText() => $"{Width}x{Height}";
+
+    /// <summary>破棄済みなら <see cref="ObjectDisposedException"/> を送出する。</summary>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, typeof(EsPixmap));
+
+    /// <summary>元の画素への参照を返す（<b>画素は破棄しません</b>。 最後の 1 つが解放します）。</summary>
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _buffer.Dispose();
+    }
+
+    /// <summary>ビューの先頭アドレス（破棄後は 0）。</summary>
+    /// <remarks>本アセンブリの中だけで使う（公開しない。 生ポインタを渡すと読み取り専用の意図が消えるため）。</remarks>
+    internal nint Address => _disposed ? 0 : _buffer.Address + (nint)_offsetBytes;
+
     /// <summary>本ビューの画素を、同じ寸法の別のバッファへ複製する（<b>行幅を考慮する</b>）。</summary>
     /// <param name="destination">複製先のバッファ（同じ寸法であること）。</param>
     /// <remarks>
@@ -171,28 +195,4 @@ public sealed class EsPixmap : IDisposable
             ReadOnlyPixels.Slice(y * Stride, rowBytes).CopyTo(pixels.Slice(y * destination.Stride, rowBytes));
         }
     }
-
-    /// <summary>ビューの寸法を「幅x高さ」形式の文字列で返す（ログ等への記録用）。</summary>
-    /// <returns>寸法の文字列（例: <c>1000x800</c>）。</returns>
-    public string ToSizeText() => $"{Width}x{Height}";
-
-    /// <summary>破棄済みなら <see cref="ObjectDisposedException"/> を送出する。</summary>
-    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    public void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, typeof(EsPixmap));
-
-    /// <summary>元の画素への参照を返す（<b>画素は破棄しません</b>。 最後の 1 つが解放します）。</summary>
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _disposed = true;
-        _buffer.Dispose();
-    }
-
-    /// <summary>ビューの先頭アドレス（破棄後は 0）。</summary>
-    /// <remarks>本アセンブリの中だけで使う（公開しない。 生ポインタを渡すと読み取り専用の意図が消えるため）。</remarks>
-    internal nint Address => _disposed ? 0 : _buffer.Address + (nint)_offsetBytes;
 }

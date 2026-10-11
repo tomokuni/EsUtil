@@ -18,10 +18,20 @@ namespace EsUtil.Platform.Core.Imaging;
 /// 読み取りの面（<see cref="EsReadOnlyBitmap.GetPixel(EsPointInt)"/>）が実装を持つ（追加の画像を作らないため、拡張メソッドである理由が無い）。<br/>
 /// <b>減色の計算もここに置く</b>: 減色は「新しい画像を作る」操作として公開し（<see cref="ReduceColors(EsReadOnlyBitmap, int)"/>）、
 /// 色番号とパレットを返す内部の計算（<see cref="ReduceToIndexed"/>）は保存の実装（8bpp のインデックス カラー）と共有する
-/// （2 箇所に書くと、同じ色数でも保存経路によって結果が変わる）。
+/// （2 箇所に書くと、同じ色数でも保存経路によって結果が変わる）。<br/>
+/// <b>両方の型から呼べるようにする</b>: <see cref="EsReadOnlyBitmap"/> と <see cref="EsBitmap"/> は共通の面（interface）を
+/// 持たないため、<b>操作ごとに両型のオーバーロードを隣接して置く</b>（C# は受け手の型で解決するため、同じ名前でも
+/// 曖昧にならない）。 実装は 1 つであり、書き換え可能な側は凍結しない読み取り専用の見方を共有して委譲する
+/// （呼び出しの副作用で元が書けなくならないようにする）。
 /// </remarks>
 public static class EsBitmapExtensions
 {
+    /// <summary>減色（パレット化）で残せる最小の色数。</summary>
+    internal const int MinimumColorCount = 2;
+
+    /// <summary>減色（パレット化）で残せる最大の色数（1 画素 1 バイトで表せる上限）。</summary>
+    internal const int MaximumColorCount = 256;
+
     /// <summary>面積平均の縮小を並列化するかどうかの境目（元画像の画素数）。</summary>
     /// <remarks>
     /// <b>実測で決めた値</b>: 内側のループから画素ごとの 64 ビット除算と合計領域の消去を無くした後は、
@@ -47,12 +57,6 @@ public static class EsBitmapExtensions
     /// </remarks>
     private const long ParallelNearestThresholdPixels = 65_536;
 
-    /// <summary>減色（パレット化）で残せる最小の色数。</summary>
-    internal const int MinimumColorCount = 2;
-
-    /// <summary>減色（パレット化）で残せる最大の色数（1 画素 1 バイトで表せる上限）。</summary>
-    internal const int MaximumColorCount = 256;
-
     /// <summary>ヒストグラムの 1 チャネルあたりのビット数（5 = 32 段階。 32³ = 32,768 の箱）。</summary>
     /// <remarks>
     /// <b>5 ビットにする理由（実測）</b>: 減色の重い部分は「色を箱へ数えること」ではなく「箱ごとにパレットの
@@ -77,6 +81,15 @@ public static class EsBitmapExtensions
 
     /// <summary>ヒストグラムの箱の数（色 32³ × アルファ 4 段階）。</summary>
     private const int HistogramSize = 1 << ((HistogramBits * 3) + HistogramAlphaBits);
+
+    /// <summary>アルファの広がりを RGB の広がりと比較するための倍率。</summary>
+    /// <remarks>
+    /// アルファは 4 段階（0〜3）であり、RGB は 32 段階（0〜31）である。 そのまま比較するとアルファの
+    /// 広がりが最大 3 にしかならず、<b>RGB が同じでアルファだけが違う画像では分割が止まる</b>
+    /// （実測: 同じ RGB で 3 段階のアルファを持つ画像が 1 色にまとまり、すべてアルファ 127 になった）。
+    /// 4 段階 × 8 = 24 として RGB の最大 31 と同程度に扱う。
+    /// </remarks>
+    private const int HistogramAlphaScale = 8;
 
     /// <summary>本画像をファイルへ保存する（形式は拡張子が決める）。</summary>
     /// <param name="source">保存する画像。 借用であり破棄しない。</param>
@@ -137,6 +150,33 @@ public static class EsBitmapExtensions
 
         ObjectDisposedException.ThrowIf(source.IsDisposed, source);
         WinGdiPlusImageCodec.EncodeToFile(source.ReadOnlyPixels, source.Width, source.Height, filePath, options);
+    }
+
+    /// <summary>書き換え可能な画像をファイルへ保存する（読み取り専用の画像と同じ手順）。</summary>
+    /// <param name="source">保存する画像。 借用であり破棄しない（<b>凍結もしない</b>）。</param>
+    /// <param name="filePath">保存先のファイル パス。 形式は拡張子が決める（無ければ補完する）。 null 不可。</param>
+    /// <remarks>実装は <see cref="Save(EsReadOnlyBitmap, string)"/> と同一です（読み取り専用の見方を共有して委譲するだけ）。</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> または <paramref name="filePath"/> が null の場合。</exception>
+    [SupportedOSPlatform("windows")]
+    public static void Save(this EsBitmap source, string filePath)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        using var view = BorrowReadOnly(source.Buffer);
+        Save(view, filePath);
+    }
+
+    /// <summary>書き換え可能な画像を保存のオプションを指定してファイルへ保存する（読み取り専用の画像と同じ手順）。</summary>
+    /// <param name="source">保存する画像。 借用であり破棄しない（<b>凍結もしない</b>）。</param>
+    /// <param name="filePath">保存先のファイル パス。 形式は拡張子が決める（無ければ補完する）。 null 不可。</param>
+    /// <param name="options">保存のオプション（形式・形式の不一致の扱い・品質・色数）。</param>
+    /// <remarks>実装は <see cref="Save(EsReadOnlyBitmap, string, EsImageSaveOptions)"/> と同一です。</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> または <paramref name="filePath"/> が null の場合。</exception>
+    [SupportedOSPlatform("windows")]
+    public static void Save(this EsBitmap source, string filePath, EsImageSaveOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        using var view = BorrowReadOnly(source.Buffer);
+        Save(view, filePath, options);
     }
 
     /// <summary>画像から指定された矩形領域を切り出す。</summary>
@@ -264,6 +304,33 @@ public static class EsBitmapExtensions
         return Crop(source, rect.X, rect.Y, rect.Width, rect.Height);
     }
 
+    /// <summary>書き換え可能な画像から指定矩形の領域を切り出す（読み取り専用の画像と同じ手順）。</summary>
+    /// <param name="source">切り出す元の画像。 借用であり破棄しない（<b>凍結もしない</b>）。</param>
+    /// <param name="x">切り出しの左上 X 座標（ピクセル）。</param>
+    /// <param name="y">切り出しの左上 Y 座標（ピクセル）。</param>
+    /// <param name="width">切り出しの幅（ピクセル）。 1 以上。</param>
+    /// <param name="height">切り出しの高さ（ピクセル）。 1 以上。</param>
+    /// <returns>切り出した画像（書き換え可能。 所有権は呼び出し側へ移る）。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
+    public static EsBitmap Crop(this EsBitmap source, int x, int y, int width, int height)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        using var view = BorrowReadOnly(source.Buffer);
+        return Crop(view, x, y, width, height);
+    }
+
+    /// <summary>書き換え可能な画像から指定矩形の領域を切り出す（読み取り専用の画像と同じ手順）。</summary>
+    /// <param name="source">切り出す元の画像。 借用であり破棄しない（<b>凍結もしない</b>）。</param>
+    /// <param name="rect">切り出す範囲（ピクセル）。</param>
+    /// <returns>切り出した画像（書き換え可能。 所有権は呼び出し側へ移る）。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
+    public static EsBitmap Crop(this EsBitmap source, EsRectInt rect)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        using var view = BorrowReadOnly(source.Buffer);
+        return Crop(view, rect);
+    }
+
     /// <summary>長辺を上限へ収めた画像を生成する（アルゴリズムは引数で選ぶ）。</summary>
     /// <param name="source">対象の画像。 借用であり破棄しない。</param>
     /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
@@ -325,6 +392,20 @@ public static class EsBitmapExtensions
         };
     }
 
+    /// <summary>書き換え可能な画像を長辺が上限に収まるよう縮小する（読み取り専用の画像と同じ手順）。</summary>
+    /// <param name="source">縮小する元の画像。 借用であり破棄しない（<b>凍結もしない</b>）。</param>
+    /// <param name="maxSize">長辺の上限（ピクセル）。 1 以上。</param>
+    /// <param name="algorithm">縮小のアルゴリズム。</param>
+    /// <returns>縮小した画像（書き換え可能。 所有権は呼び出し側へ移る）。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
+    public static EsBitmap Resize(
+        this EsBitmap source, int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        using var view = BorrowReadOnly(source.Buffer);
+        return Resize(view, maxSize, algorithm);
+    }
+
     /// <summary>画像を指定の色数へ減色する（パレット化。 画素数と寸法は変えない）。</summary>
     /// <param name="source">対象の画像。 借用であり破棄しない。</param>
     /// <param name="colorCount">残す色数（2〜256）。</param>
@@ -380,6 +461,18 @@ public static class EsBitmapExtensions
         }
 
         return result;
+    }
+
+    /// <summary>書き換え可能な画像を指定の色数へ減色する（読み取り専用の画像と同じ手順）。</summary>
+    /// <param name="source">減色する元の画像。 借用であり破棄しない（<b>凍結もしない</b>）。</param>
+    /// <param name="colorCount">減色後の色数。</param>
+    /// <returns>減色した画像（書き換え可能。 所有権は呼び出し側へ移る）。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
+    public static EsBitmap ReduceColors(this EsBitmap source, int colorCount)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        using var view = BorrowReadOnly(source.Buffer);
+        return ReduceColors(view, colorCount);
     }
 
     /// <summary>画素を指定の色数へ減色し、色番号とパレットで返す（保存の実装と共有する）。</summary>
@@ -502,15 +595,6 @@ public static class EsBitmapExtensions
 
         return boxes;
     }
-
-    /// <summary>アルファの広がりを RGB の広がりと比較するための倍率。</summary>
-    /// <remarks>
-    /// アルファは 4 段階（0〜3）であり、RGB は 32 段階（0〜31）である。 そのまま比較するとアルファの
-    /// 広がりが最大 3 にしかならず、<b>RGB が同じでアルファだけが違う画像では分割が止まる</b>
-    /// （実測: 同じ RGB で 3 段階のアルファを持つ画像が 1 色にまとまり、すべてアルファ 127 になった）。
-    /// 4 段階 × 8 = 24 として RGB の最大 31 と同程度に扱う。
-    /// </remarks>
-    private const int HistogramAlphaScale = 8;
 
     /// <summary>分ける価値が最も高い箱を探す。</summary>
     /// <param name="boxes">箱の集合。</param>
@@ -1011,15 +1095,6 @@ public static class EsBitmapExtensions
         }
     }
 
-    // ====================================================================
-    // 書き換え可能な画像からも同じ名前で呼べるようにするオーバーロード
-    // ====================================================================
-    //
-    // コアは 2 型（EsBitmap / EsReadOnlyBitmap）が共通の面（interface）を持たないため、
-    // 同じ操作を両方の型から呼べるようにするには受け手ごとのオーバーロードが要る
-    // （C# は受け手の型で解決するため、同じ名前でも曖昧にならない）。
-    // 実装は 1 つであり、ここは読み取り専用の見方を共有して委譲するだけである。
-
     /// <summary>書き換え可能な画像の読み取り専用の見方を、<b>凍結せずに</b>作る（本クラスの内部だけで使う一時的な借用）。</summary>
     /// <param name="buffer">共有する画素バッファ。</param>
     /// <returns>同じ画素を指す読み取り専用の画像（参照を 1 つ取るだけ。 破棄しても画素は解放しない）。</returns>
@@ -1031,84 +1106,4 @@ public static class EsBitmapExtensions
     /// <b>凍結したい場合は呼び出し側が明示的に <c>SetReadOnly</c> を呼びます</b>（暗黙に凍結しません）。
     /// </remarks>
     private static EsReadOnlyBitmap BorrowReadOnly(EsBitmapBuffer buffer) => new(buffer.Share());
-
-    /// <summary>書き換え可能な画像をファイルへ保存する（読み取り専用の画像と同じ手順）。</summary>
-    /// <param name="source">保存する画像。 借用であり破棄しない（<b>凍結もしない</b>）。</param>
-    /// <param name="filePath">保存先のファイル パス。 形式は拡張子が決める（無ければ補完する）。 null 不可。</param>
-    /// <remarks>実装は <see cref="Save(EsReadOnlyBitmap, string)"/> と同一です（読み取り専用の見方を共有して委譲するだけ）。</remarks>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> または <paramref name="filePath"/> が null の場合。</exception>
-    [SupportedOSPlatform("windows")]
-    public static void Save(this EsBitmap source, string filePath)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        using var view = BorrowReadOnly(source.Buffer);
-        Save(view, filePath);
-    }
-
-    /// <summary>書き換え可能な画像を保存のオプションを指定してファイルへ保存する（読み取り専用の画像と同じ手順）。</summary>
-    /// <param name="source">保存する画像。 借用であり破棄しない（<b>凍結もしない</b>）。</param>
-    /// <param name="filePath">保存先のファイル パス。 形式は拡張子が決める（無ければ補完する）。 null 不可。</param>
-    /// <param name="options">保存のオプション（形式・形式の不一致の扱い・品質・色数）。</param>
-    /// <remarks>実装は <see cref="Save(EsReadOnlyBitmap, string, EsImageSaveOptions)"/> と同一です。</remarks>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> または <paramref name="filePath"/> が null の場合。</exception>
-    [SupportedOSPlatform("windows")]
-    public static void Save(this EsBitmap source, string filePath, EsImageSaveOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        using var view = BorrowReadOnly(source.Buffer);
-        Save(view, filePath, options);
-    }
-
-    /// <summary>書き換え可能な画像から指定矩形の領域を切り出す（読み取り専用の画像と同じ手順）。</summary>
-    /// <param name="source">切り出す元の画像。 借用であり破棄しない（<b>凍結もしない</b>）。</param>
-    /// <param name="x">切り出しの左上 X 座標（ピクセル）。</param>
-    /// <param name="y">切り出しの左上 Y 座標（ピクセル）。</param>
-    /// <param name="width">切り出しの幅（ピクセル）。 1 以上。</param>
-    /// <param name="height">切り出しの高さ（ピクセル）。 1 以上。</param>
-    /// <returns>切り出した画像（書き換え可能。 所有権は呼び出し側へ移る）。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
-    public static EsBitmap Crop(this EsBitmap source, int x, int y, int width, int height)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        using var view = BorrowReadOnly(source.Buffer);
-        return Crop(view, x, y, width, height);
-    }
-
-    /// <summary>書き換え可能な画像から指定矩形の領域を切り出す（読み取り専用の画像と同じ手順）。</summary>
-    /// <param name="source">切り出す元の画像。 借用であり破棄しない（<b>凍結もしない</b>）。</param>
-    /// <param name="rect">切り出す範囲（ピクセル）。</param>
-    /// <returns>切り出した画像（書き換え可能。 所有権は呼び出し側へ移る）。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
-    public static EsBitmap Crop(this EsBitmap source, EsRectInt rect)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        using var view = BorrowReadOnly(source.Buffer);
-        return Crop(view, rect);
-    }
-
-    /// <summary>書き換え可能な画像を長辺が上限に収まるよう縮小する（読み取り専用の画像と同じ手順）。</summary>
-    /// <param name="source">縮小する元の画像。 借用であり破棄しない（<b>凍結もしない</b>）。</param>
-    /// <param name="maxSize">長辺の上限（ピクセル）。 1 以上。</param>
-    /// <param name="algorithm">縮小のアルゴリズム。</param>
-    /// <returns>縮小した画像（書き換え可能。 所有権は呼び出し側へ移る）。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
-    public static EsBitmap Resize(
-        this EsBitmap source, int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        using var view = BorrowReadOnly(source.Buffer);
-        return Resize(view, maxSize, algorithm);
-    }
-
-    /// <summary>書き換え可能な画像を指定の色数へ減色する（読み取り専用の画像と同じ手順）。</summary>
-    /// <param name="source">減色する元の画像。 借用であり破棄しない（<b>凍結もしない</b>）。</param>
-    /// <param name="colorCount">減色後の色数。</param>
-    /// <returns>減色した画像（書き換え可能。 所有権は呼び出し側へ移る）。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
-    public static EsBitmap ReduceColors(this EsBitmap source, int colorCount)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        using var view = BorrowReadOnly(source.Buffer);
-        return ReduceColors(view, colorCount);
-    }
 }

@@ -57,22 +57,15 @@ internal sealed class EsBitmapBuffer : IDisposable
         ByteCount = (long)Stride * height;
     }
 
-    /// <summary>画素領域の共有状態（同じ領域を指す実体の間で共有する）。</summary>
-    /// <remarks>
-    /// <b>参照を持つだけで解放しない</b>（領域の解放は <see cref="SafeHandle"/> が担う）。 したがって
-    /// 本状態の寿命は領域の寿命より短いか同じであり、最後の実体が解放した後に本状態へ触れることはない。
-    /// </remarks>
-    internal sealed class StoreState
-    {
-        /// <summary>凍結済みかどうか（0 = 未凍結 / 1 = 凍結）。 複数のスレッドから読める。</summary>
-        private int _isReadOnly;
+    /// <summary>破棄済みかどうか。</summary>
+    internal bool IsDisposed => _disposed;
 
-        /// <summary>凍結済みかどうか。</summary>
-        internal bool IsReadOnly => Volatile.Read(ref _isReadOnly) != 0;
+    /// <summary>この画素領域が凍結されているかどうか（<see cref="SetReadOnly"/> の後は true）。</summary>
+    /// <remarks><b>領域の性質</b>であるため、同じ領域を指すすべての実体で同じ値を返す。</remarks>
+    internal bool IsReadOnly => _state.IsReadOnly;
 
-        /// <summary>凍結する（<b>同じ領域を指すすべての実体</b>に効く）。</summary>
-        internal void SetReadOnly() => Volatile.Write(ref _isReadOnly, 1);
-    }
+    /// <summary>画素を持たないかどうか（サイズ 0 の場合）。</summary>
+    internal bool IsEmpty => ByteCount <= 0;
 
     /// <summary>幅（ピクセル）。</summary>
     internal int Width { get; }
@@ -89,15 +82,33 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <summary>画素領域のバイト数（<c><see cref="Stride"/> × <see cref="Height"/></c>）。</summary>
     internal long ByteCount { get; }
 
-    /// <summary>破棄済みかどうか。</summary>
-    internal bool IsDisposed => _disposed;
+    /// <summary>画素データの読み取り専用ビューを返す（コピーしない）。</summary>
+    /// <returns>先頭から <see cref="ByteCount"/> バイトのビュー。 画素を持たない場合は空。</returns>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    internal unsafe ReadOnlySpan<byte> ReadOnlyPixels
+    {
+        get
+        {
+            ThrowIfDisposed();
+            var address = Address;
+            return address == 0 ? default : new ReadOnlySpan<byte>((void*)address, Stride * Height);
+        }
+    }
 
-    /// <summary>この画素領域が凍結されているかどうか（<see cref="SetReadOnly"/> の後は true）。</summary>
-    /// <remarks><b>領域の性質</b>であるため、同じ領域を指すすべての実体で同じ値を返す。</remarks>
-    internal bool IsReadOnly => _state.IsReadOnly;
-
-    /// <summary>画素を持たないかどうか（サイズ 0 の場合）。</summary>
-    internal bool IsEmpty => ByteCount <= 0;
+    /// <summary>画素データの書き込み可能なビューを返す（コピーしない）。</summary>
+    /// <returns>先頭から <see cref="ByteCount"/> バイトのビュー。 画素を持たない場合は空。</returns>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    /// <exception cref="InvalidOperationException">読み取り専用の場合。</exception>
+    internal unsafe Span<byte> Pixels
+    {
+        get
+        {
+            ThrowIfDisposed();
+            ThrowIfReadOnly();
+            var address = Address;
+            return address == 0 ? default : new Span<byte>((void*)address, Stride * Height);
+        }
+    }
 
     /// <summary>指定サイズの画素バッファを 64 バイト整列で確保する。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>
@@ -175,34 +186,6 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// </remarks>
     internal void SetReadOnly() => _state.SetReadOnly();
 
-    /// <summary>画素データの読み取り専用ビューを返す（コピーしない）。</summary>
-    /// <returns>先頭から <see cref="ByteCount"/> バイトのビュー。 画素を持たない場合は空。</returns>
-    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    internal unsafe ReadOnlySpan<byte> ReadOnlyPixels
-    {
-        get
-        {
-            ThrowIfDisposed();
-            var address = Address;
-            return address == 0 ? default : new ReadOnlySpan<byte>((void*)address, Stride * Height);
-        }
-    }
-
-    /// <summary>画素データの書き込み可能なビューを返す（コピーしない）。</summary>
-    /// <returns>先頭から <see cref="ByteCount"/> バイトのビュー。 画素を持たない場合は空。</returns>
-    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    /// <exception cref="InvalidOperationException">読み取り専用の場合。</exception>
-    internal unsafe Span<byte> Pixels
-    {
-        get
-        {
-            ThrowIfDisposed();
-            ThrowIfReadOnly();
-            var address = Address;
-            return address == 0 ? default : new Span<byte>((void*)address, Stride * Height);
-        }
-    }
-
     /// <summary>指定座標のピクセルを BGRA で取得する。</summary>
     /// <param name="x">X 座標（ピクセル）。</param>
     /// <param name="y">Y 座標（ピクセル）。</param>
@@ -238,30 +221,6 @@ internal sealed class EsBitmapBuffer : IDisposable
         p[1] = g;
         p[2] = r;
         p[3] = a;
-    }
-
-    /// <summary>座標が画像の範囲内かを確かめる。</summary>
-    /// <param name="x">X 座標（ピクセル）。</param>
-    /// <param name="y">Y 座標（ピクセル）。</param>
-    /// <remarks>
-    /// <b>範囲を確かめる理由</b>: 範囲外の書き込みは<b>隣の行の画素を壊す</b>（境界を跨いだ位置はバッファの内側に
-    /// 落ちるため、判定しないと静かに別の画素が変わる）。<br/>
-    /// <b><see cref="ArgumentOutOfRangeException"/> を投げる理由</b>: <see cref="IndexOutOfRangeException"/> は
-    /// ランタイムが予約した例外であり、送出を禁止するアナライザー（CA2201 / MA0012）がある。 同じ用途を持つ
-    /// 標準の型（<c>System.Drawing.Bitmap.GetPixel</c>）も <see cref="ArgumentOutOfRangeException"/> を投げる。
-    /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="x"/> または <paramref name="y"/> が画像の範囲外の場合。</exception>
-    private void CheckCoordinates(int x, int y)
-    {
-        if ((uint)x >= (uint)Width)
-        {
-            throw new ArgumentOutOfRangeException(nameof(x), x, $"X 座標が画像の範囲外です（幅 {Width}）。");
-        }
-
-        if ((uint)y >= (uint)Height)
-        {
-            throw new ArgumentOutOfRangeException(nameof(y), y, $"Y 座標が画像の範囲外です（高さ {Height}）。");
-        }
     }
 
     /// <summary>全ピクセルを指定色（BGRA）で塗りつぶす。</summary>
@@ -301,10 +260,6 @@ internal sealed class EsBitmapBuffer : IDisposable
         ReadOnlyPixels.CopyTo(destination.Pixels);
     }
 
-    /// <summary>破棄済みなら <see cref="ObjectDisposedException"/> を送出する。</summary>
-    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    internal void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, typeof(EsBitmapBuffer));
-
     /// <summary>本バッファの一部を指す 0 コピーの読み取りビューを生成する（生成の実装を 1 回だけ書く）。</summary>
     /// <param name="rect">ビューの範囲（本バッファの座標。 <b>内側であること</b>）。</param>
     /// <returns>ビュー。 所有権は呼び出し側へ移る。</returns>
@@ -328,6 +283,11 @@ internal sealed class EsBitmapBuffer : IDisposable
         var offsetBytes = (rect.Y * Stride) + (rect.X * BytesPerPixel);
         return new EsPixmap(Share(), offsetBytes, rect.Width, rect.Height, Stride);
     }
+
+    /// <summary>破棄済みなら <see cref="ObjectDisposedException"/> を送出する。</summary>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    internal void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, typeof(EsBitmapBuffer));
+
     /// <summary>読み取り専用なら <see cref="InvalidOperationException"/> を送出する。</summary>
     /// <exception cref="InvalidOperationException">読み取り専用の場合。</exception>
     internal void ThrowIfReadOnly()
@@ -364,4 +324,45 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <summary>画素の先頭アドレス（画素を持たない場合と破棄後は 0）。</summary>
     /// <remarks>本アセンブリの中だけで使う（公開しない。 生ポインタを渡すと読み取り専用の意図が消えるため）。</remarks>
     internal nint Address => _handle.IsClosed ? 0 : _handle.DangerousGetHandle();
+
+    /// <summary>座標が画像の範囲内かを確かめる。</summary>
+    /// <param name="x">X 座標（ピクセル）。</param>
+    /// <param name="y">Y 座標（ピクセル）。</param>
+    /// <remarks>
+    /// <b>範囲を確かめる理由</b>: 範囲外の書き込みは<b>隣の行の画素を壊す</b>（境界を跨いだ位置はバッファの内側に
+    /// 落ちるため、判定しないと静かに別の画素が変わる）。<br/>
+    /// <b><see cref="ArgumentOutOfRangeException"/> を投げる理由</b>: <see cref="IndexOutOfRangeException"/> は
+    /// ランタイムが予約した例外であり、送出を禁止するアナライザー（CA2201 / MA0012）がある。 同じ用途を持つ
+    /// 標準の型（<c>System.Drawing.Bitmap.GetPixel</c>）も <see cref="ArgumentOutOfRangeException"/> を投げる。
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="x"/> または <paramref name="y"/> が画像の範囲外の場合。</exception>
+    private void CheckCoordinates(int x, int y)
+    {
+        if ((uint)x >= (uint)Width)
+        {
+            throw new ArgumentOutOfRangeException(nameof(x), x, $"X 座標が画像の範囲外です（幅 {Width}）。");
+        }
+
+        if ((uint)y >= (uint)Height)
+        {
+            throw new ArgumentOutOfRangeException(nameof(y), y, $"Y 座標が画像の範囲外です（高さ {Height}）。");
+        }
+    }
+
+    /// <summary>画素領域の共有状態（同じ領域を指す実体の間で共有する）。</summary>
+    /// <remarks>
+    /// <b>参照を持つだけで解放しない</b>（領域の解放は <see cref="SafeHandle"/> が担う）。 したがって
+    /// 本状態の寿命は領域の寿命より短いか同じであり、最後の実体が解放した後に本状態へ触れることはない。
+    /// </remarks>
+    internal sealed class StoreState
+    {
+        /// <summary>凍結済みかどうか（0 = 未凍結 / 1 = 凍結）。 複数のスレッドから読める。</summary>
+        private int _isReadOnly;
+
+        /// <summary>凍結済みかどうか。</summary>
+        internal bool IsReadOnly => Volatile.Read(ref _isReadOnly) != 0;
+
+        /// <summary>凍結する（<b>同じ領域を指すすべての実体</b>に効く）。</summary>
+        internal void SetReadOnly() => Volatile.Write(ref _isReadOnly, 1);
+    }
 }
