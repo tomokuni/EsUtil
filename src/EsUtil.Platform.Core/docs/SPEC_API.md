@@ -591,6 +591,7 @@ public readonly record struct ElementFinderResults(
 | `Resize` | `static EsWritableBitmap Resize(this IEsBitmap source, int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)` | 長辺を `maxSize` へ収める（アルゴリズムは `DownscaleAlgorithm` で選ぶ。 拡大は未サポートで `NotSupportedException`） |
 
 - **`Crop` のコピーは 1 回で済む場合を分けます**: 左右のパディングが無く、ソースとデスティネーションの行幅が等しいときは **連続領域として全領域を 1 回でコピー**します（実測: 4K 全域の切り出しで 8.3 ms → 6.6 ms）。 それ以外は行単位でコピーし、左右のパディングは行ごとに消します。 **他ライブラリの切り出しとの比較は [2.34](#234-画像操作の他ライブラリとの比較実測)**（Skia の `ExtractSubset` と Avalonia の `CroppedBitmap` は画素を複製しないため最速である点を含む）。
+- **複製しない切り出しビューを公開しません（実測に基づく）**: 他ライブラリの最速な切り出しは**画素を複製しないビュー**です（Skia `ExtractSubset` 0.011 ms / Avalonia `CroppedBitmap` 0.001 ms 対 コア `Crop` 0.72 ms）。 しかし本ライブラリの画像は **1 本の連続したバッファに詰まっており（`Stride` は常に `幅 × 4`）、`Pixels` は連続した `ReadOnlySpan<byte>`** です。 切り出しの行幅（例: 4000 バイト）は元画像の行幅（例: 15360 バイト）と一致しないため、**ビューは「行ごとに別の領域を指す」形になり `Pixels` では表せません**（Skia のビューも元の行幅 15360 バイトを保ったまま行ごとに別の領域を指すことを実測で確認）。 加えて、ビューは**親の寿命に依存**します（実測: Avalonia の `CroppedBitmap` は `Dispose` で元画像まで解放し、元を使い続けると `ObjectDisposedException`。 Skia は元を破棄・書き換えると壊れる）。 本ライブラリの画像は**自前のバッファを所有して破棄する**契約であるため、ビューを公開すると「破棄後も読める」という別の契約を併存させることになります。 **ビューが要る場面（表示だけ）は各 UI の描画面が既に持っています**（`ExtractSubset` / `CroppedBitmap` は表示用の射影であり、画素を書き換える・保持する場合は複製が要ります）。
 **`DownscaleAlgorithm`（enum。 アルゴリズム別の実測と性質）**:
 
 | アルゴリズム | 4K → 96x54 | 4K → 320x180 | 4K → 960x540 | 幅 1 px の細線（40 倍縮小後の輝度） | 性質 |
@@ -769,7 +770,10 @@ public readonly record struct ElementFinderResults(
 | 方法 | 時間 | 1 枚のメモリ | 画素 | 実体 |
 | --- | --- | --- | --- | --- |
 | コア `Crop` | **0.72 ms** | 4.1 MB | 複製（独立） | 0 初期化を省き、行を直接コピーする |
-| GDI+ `Bitmap.Clone(rect, format)` | **0.57 ms** | 4.1 MB（遅延） | 複製（独立。 実測で確認） | 実体化は書き込み／読み出し時（全域では 0.00 ms → 実体化で 7.1 ms） |
+| コア `Crop`（出力の確保だけ） | 0.01 ms | 4.1 MB | — | 確保のみ（初回タッチは 0.66 ms） |
+| コア（行コピーだけ。 確保済みの領域へ） | 0.70 ms | — | 複製 | 切り出しのコピー部分だけを取り出した値 |
+| GDI+ `Bitmap.Clone(rect, format)` | 0.67 ms | 4.1 MB | 複製（独立） | **部分矩形は実際に複製する**（行幅は切り出しの幅に詰められる ＝ 4000 バイト） |
+| GDI+ `Clone` + 画素を配列へ | 1.48 ms | 4.1 MB + 4.1 MB | 複製 | **同じ成果物（バイト列）にするまでの比較**（コアは 1.44 ms） |
 | GDI+ `Graphics.DrawImage(rect)` | 0.79 ms | 4.1 MB | 複製 | 描画経路（`Graphics` の生成を含む） |
 | Skia `ExtractSubset` | 0.011 ms | 0.0 MB | **共有（複製しない）** | **非所有ビュー**。 元を破棄・書き換えると壊れる（実測で確認） |
 | Skia `ScalePixels(Nearest, 同寸)` | 0.59 ms | 4.1 MB | 複製 | 複製する切り出しの実装 |
@@ -777,12 +781,16 @@ public readonly record struct ElementFinderResults(
 | Avalonia `CroppedBitmap` | 0.001 ms | 0.0 MB | **共有（遅延）** | 表示用の射影。 **`Dispose` が元画像まで解放する**（実測で確認） |
 | Avalonia `RenderTargetBitmap` + `DrawImage` | 1.44 ms | 4.1 MB | 複製 | 描画経路（描画面のクリアを含む） |
 
+- **コアと GDI+ は同じ仕事をほぼ同じ時間で行います**（コア 0.72 ms / GDI+ 0.67 ms。 差は 8%）。 差の理由は**行ごとのコピーの回し方**だけです（GDI+ はネイティブの `memcpy` を行数分、コアはマネージドの `Span.CopyTo` を行数分呼びます）。 **同じ成果物（バイト列）まで含めると 1.44 ms 対 1.48 ms で並びます**（GDI+ はネイティブ メモリをマネージド配列へ写す追加のコピーが要るため）。
+- **GDI+ の `Clone` は部分矩形では複製し、全域では複製しません**（実測: 1000x800 で 0.67 ms / 2000x1600 で 2.77 ms ＝ 面積に比例、3840x2160 では **0.00 ms** で `LockBits` まで触らず 7.79 ms）。 全域の `Clone` は**元の行幅（15360 バイト）のままのビュー**です。 切り出しの結果を書き換える・元を破棄する場合は部分矩形と同じく複製が要ります。
+- **Skia の `ExtractSubset` と Avalonia の `CroppedBitmap` は画素を複製しません**（最速なのは複製しないからです）。 Skia のビューは**元の行幅（15360 バイト）を保ったまま**、行ごとに別の領域を指します（実測で確認）。 切り出しの結果を書き換える・元を破棄する場合は複製が要ります（Skia は `ScalePixels` 0.59 ms、Avalonia は `RenderTargetBitmap` 1.44 ms）。
+
 **切り出し（Crop。 4K 全域 = 33 MB の複製）**:
 
 | 方法 | 時間 | 1 枚のメモリ |
 | --- | --- | --- |
 | コア `Crop(0, 0, 3840, 2160)` | **5.4 ms** | 33.3 MB（出力そのもの） |
-| GDI+ `Bitmap.Clone(全域)` | 0.00 ms（遅延）→ **7.1 ms**（`LockBits` で実体化） | 0.0 MB（遅延） → 33.2 MB（実体化） |
+| GDI+ `Bitmap.Clone(全域)` | 0.00 ms（**複製しない**）→ **7.79 ms**（`LockBits` で実体化） | 0.0 MB（ビュー） → 33.2 MB（実体化） |
 | Skia `ExtractSubset(全域)` | 0.010 ms | 0.0 MB（**共有**） |
 | Skia `ScalePixels(Nearest, 全域)` | 5.3 ms | 33.3 MB |
 | Skia `CopyTo` | 24.7 ms | **66.5 MB（出力の 2 倍。 中間バッファを確保する）** |
@@ -790,47 +798,59 @@ public readonly record struct ElementFinderResults(
 
 **縮小（Resize。 4K → 320x180 = 12 倍縮小）**:
 
-| 方法 | 時間 | 1 枚のメモリ | 40 倍縮小後の細線の輝度 |
-| --- | --- | --- | --- |
-| コア `Nearest` | **0.073 ms** | 0.25 MB | 255（位置により残る） |
-| コア `Bilinear`（既定） | **0.27 ms** | 0.25 MB | 0 |
-| コア `Box`（面積平均） | 1.8 ms | 0.27 MB | 6 |
-| GDI+ `NearestNeighbor` | 0.13 ms | 0.27 MB | 0 |
-| GDI+ `Bilinear` | 4.4 ms | 0.27 MB | 6 |
-| GDI+ `HighQualityBilinear` | 13.8 ms | 0.27 MB | 4 |
-| GDI+ `HighQualityBicubic` | 25.8 ms | 0.27 MB | 5 |
-| Skia `Resize(Nearest + None)` | 0.14 ms | 0.25 MB | 0 |
-| Skia `Resize(Linear + None)` | 0.45 ms | 0.25 MB | 0 |
-| Skia `Resize(Linear + ミップ)` | 5.7 ms | **1.9 MB（ミップマップを保持）** | 6 |
-| Skia `Resize(Cubic Mitchell)` | 1.3 ms | 0.25 MB | 0 |
-| Skia `Canvas.DrawImage(Linear + ミップ)` | 1.1 ms | 0.25 MB | — |
-| Avalonia `CreateScaledBitmap(None)` | 0.15 ms | 0.25 MB | 0 |
-| Avalonia `CreateScaledBitmap(LowQuality)` | 0.47 ms | 0.25 MB | 0 |
-| Avalonia `CreateScaledBitmap(HighQuality)` | 5.2 ms | 0.25 MB | 6 |
-| Avalonia `RenderTargetBitmap` + `DrawImage(High)` | 1.1 ms | 0.25 MB | 6 |
+| 方法 | 時間 | 1 枚のメモリ | 40 倍縮小後の細線の輝度 | 面積平均の厳密値との差（平均 / 最大） |
+| --- | --- | --- | --- | --- |
+| コア `Nearest` | **0.073 ms** | 0.25 MB | 255（位置により残る） | 25.4 / 225 |
+| コア `Bilinear`（既定） | **0.27 ms** | 0.25 MB | 0 | 10.6 / 189 |
+| コア `Box`（面積平均） | 1.7 ms | 0.27 MB | 6 | **0.37 / 1** |
+| GDI+ `NearestNeighbor` | 0.13 ms | 0.27 MB | 0 | — |
+| GDI+ `Bilinear` | 4.1 ms | 0.27 MB | 6 | **0.20 / 0.9** |
+| GDI+ `HighQualityBilinear` | 13.1 ms | 0.27 MB | 4 | 1.8 / 62 |
+| GDI+ `HighQualityBicubic` | 24.6 ms | 0.27 MB | 5 | 1.6 / 33 |
+| Skia `Resize(Nearest + None)` | 0.14 ms | 0.25 MB | 0 | — |
+| Skia `Resize(Linear + None)` | 6.5 ms | 0.25 MB | 0 | 10.5 / 189 |
+| Skia `Resize(Linear + ミップ)` | 12.5 ms | **1.9 MB（ミップマップを保持）** | 6 | 1.6 / 24 |
+| Skia `Resize(Cubic Mitchell)` | 7.7 ms | 0.25 MB | 0 | 12.1 / 191 |
+| Skia `Canvas.DrawImage(Linear + ミップ)` | 1.1 ms | 0.25 MB | — | — |
+| Avalonia `CreateScaledBitmap(None)` | 0.15 ms | 0.25 MB | 0 | — |
+| Avalonia `CreateScaledBitmap(LowQuality)` | 0.47 ms | 0.25 MB | 0 | — |
+| Avalonia `CreateScaledBitmap(HighQuality)` | 5.2 ms | 0.25 MB | 6 | — |
+| Avalonia `RenderTargetBitmap` + `DrawImage(High)` | 1.1 ms | 0.25 MB | 6 | — |
 
 **縮小（Resize。 4K → 1920x1080 = 2 倍縮小。 出力 8 MB）**:
 
-| 方法 | 時間 |
-| --- | --- |
-| コア `Nearest` | **1.1 ms** |
-| コア `Bilinear` | 3.4 ms |
-| コア `Box` | 3.1 ms |
-| GDI+ `NearestNeighbor` | 4.6 ms |
-| GDI+ `Bilinear` | 31.9 ms |
-| GDI+ `HighQualityBicubic` | 43.8 ms |
-| Skia `Resize(Nearest + None)` | 5.5 ms |
-| Skia `Resize(Linear + None)` | 15.7 ms |
-| Skia `Resize(Linear + ミップ)` | 45.4 ms |
-| Avalonia `CreateScaledBitmap(None)` | 5.5 ms |
-| Avalonia `CreateScaledBitmap(HighQuality)` | 45.9 ms |
+| 方法 | 時間 | 面積平均の厳密値との差（平均 / 最大） |
+| --- | --- | --- |
+| コア `Nearest` | **1.1 ms** | 18.3 / 191 |
+| コア `Bilinear` | 3.4 ms | 0.28 / 0.8 |
+| コア `Box` | 3.1 ms | **0.28 / 0.8** |
+| GDI+ `NearestNeighbor` | 4.6 ms | — |
+| GDI+ `Bilinear` | 16.7 ms | 0.38 / 1.0 |
+| GDI+ `HighQualityBicubic` | 44.3 ms | 5.3 / 113 |
+| Skia `Resize(Nearest + None)` | 5.5 ms | — |
+| Skia `Resize(Linear + None)` | 21.4 ms | 0.19 / 0.5 |
+| Skia `Resize(Linear + ミップ)` | 46.5 ms | 0.28 / 0.8 |
+| Avalonia `CreateScaledBitmap(None)` | 5.5 ms | — |
+| Avalonia `CreateScaledBitmap(HighQuality)` | 45.9 ms | — |
 
 **この実測から言えること**:
 
-- **コアが最速か、最速に並びます**（12 倍縮小の `Bilinear` は 0.27 ms で GDI+ の 16 倍速、Skia の `Linear + ミップ` の 21 倍速。 2 倍縮小の `Bilinear` は 3.4 ms で Skia の `Linear + None` の 4.6 倍速）。
-- **面積平均（`Box`）に相当する画質を出す方法は、他ライブラリにもありますが遅い**（GDI+ `HighQualityBicubic` 25.8 ms ＝ コア `Box` の 14 倍。 Skia はミップマップ（5.7 ms）を伴い、メモリも 1.9 MB を余分に保持します）。
-- **Skia の `ExtractSubset` と Avalonia の `CroppedBitmap` は画素を複製しません**（最速なのは複製しないからです）。 切り出しの結果を書き換える・元を破棄する場合は複製が要ります（Skia は `ScalePixels` 0.59 ms、Avalonia は `RenderTargetBitmap` 1.44 ms）。
-- **GDI+ の `Clone` は遅延**します（0.00 ms はまだ複製していない状態。 実体化すると 7.1 ms ＝ コアの 1.3 倍）。
+- **コアが最速か、最速に並びます**（12 倍縮小の `Bilinear` は 0.27 ms で GDI+ の 15 倍速、Skia の `Linear + ミップ` の 47 倍速。 2 倍縮小の `Bilinear` は 4.0 ms で Skia の `Linear + None` の 5.4 倍速）。
+- **面積平均と同じ画質を出せる他の実装は、コアより遅い**（12 倍縮小で面積平均に最も近いのは **GDI+ `Bilinear`**（厳密値との差 0.20）であり 4.1 ms ＝ コア `Box` の 2.4 倍。 Skia は **ミップマップ**（12.5 ms、差 1.6）を伴い、メモリも 1.9 MB を余分に保持します。 Avalonia の `HighQuality`（5.2 ms）は Skia のミップマップ経路と同じです）。
+- **コアが速い理由（同一のサンプリング定義で測って分離した。 4K → 320x180 = 12 倍縮小）**:
+
+  | 段階 | 時間 | 何が効いているか |
+  | --- | --- | --- |
+  | 素朴な双線形（逐次・列の表なし・`double`） | 1.90 ms | 画素ごとに除算・床・クランプを行い、1 スレッドで回す |
+  | ＋列の対応表（除算を内側のループから除く）と `int` 化 | 1.90 → 0.41 ms | **除算の事前計算で 4.6 倍**（並列化と合算） |
+  | ＋行の範囲ごとに並列化（20 コア） | **0.27 ms** | **並列化で 4.6 倍** |
+  | コア `Bilinear`（上記すべて + 範囲で受けるループ） | **0.27 ms** | 素朴な逐次実装の **7 倍速** |
+
+  - したがって速度の主因は **並列化（4.6 倍）と、除算・床・クランプの事前計算（1.5 倍）**であり、次に**中間画像を作らないこと**（Skia のミップマップは +1.9 倍と +1.9 MB、`Canvas.DrawImage` は不変イメージを経由）、**色形式を変換しないこと**（Skia を同じアルゴリズムのまま色形式だけ Rgba8888 にすると 12.5 → 18.5 ms ＝ +48%）が続きます。
+- **面積平均（`Box`）と GDI+ の `HighQualityBicubic` は別のアルゴリズムです**: 厳密な面積平均との差は 12 倍縮小で `Box` が **0.37**（最大 1）、`HighQualityBicubic` が **1.6**（最大 33）であり、両者の画素の最大差は **33**（2 倍縮小では 113）です。 `Box` は元の矩形の**等重み平均**（負の重みを持たない）、`HighQualityBicubic` は**4x4 の立方畳み込み**（負の重みを持つ復元フィルタ）であり、縮小では**名前を揃えられません**。 縮小で `Box` に相当するのは GDI+ では `Bilinear`（差 0.20）、Skia では `Linear + ミップ`（差 1.6）です。
+- **リンギング（元の画素の範囲を外れる値）**: 12 倍縮小で `Box` 0 / コア `Bilinear` 0 / GDI+ `HighQualityBicubic` 0 / GDI+ `HighQualityBilinear` 1 / **Skia `Cubic Mitchell` 193 成分**です。 `Box` が負の重みを持たないことの現れです。
+- **Skia の `ExtractSubset` と Avalonia の `CroppedBitmap` は画素を複製しません**（最速なのは複製しないからです）。 Skia のビューは**元の行幅を保ったまま**行ごとに別の領域を指します。 切り出しの結果を書き換える・元を破棄する場合は複製が要ります（Skia は `ScalePixels` 0.59 ms、Avalonia は `RenderTargetBitmap` 1.44 ms）。
+- **GDI+ の `Clone` は部分矩形では複製し、全域では複製しません**（1000x800 で 0.67 ms、2000x1600 で 2.77 ms ＝ 面積に比例。 全域は 0.00 ms で `LockBits` まで触らず 7.79 ms）。 全域の結果も書き換えるなら実体化が要ります。
 - **Avalonia の `CroppedBitmap` は `Dispose` で元画像まで解放します**（元の画像を使い続けると `ObjectDisposedException`。 射影を使い終えたら元より先に破棄する必要があります）。
 - **画素の一致**: GDI+ の切り出しはコアと完全一致しますが、**Skia の縮小は一致しません**（サンプリング位置と重みの定義が違うため。 細線の輝度もコア `Nearest` 255 に対し Skia `Nearest` 0 で、位置の選び方が異なります）。 経路を混ぜると同じ画像でも結果が変わるため、**本ライブラリは変換をコアへ集約します**。
 
