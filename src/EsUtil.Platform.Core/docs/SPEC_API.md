@@ -520,8 +520,9 @@ public readonly record struct ElementFinderResults(
 
 **凍結（`SetReadOnly` / `IsReadOnly`）**: `SetReadOnly` を呼ぶと、以後の書き込みの入口（`Pixels` / `SetPixel` / `TrySetPixel` / `Clear`）が `InvalidOperationException` を投げます。 読み取り専用の画像（基底）の `IsReadOnly` は常に true、書き換え可能な画像（派生）は凍結の状態を返します。
 
-- **凍結後の書き込みを例外にする理由（実測に基づく）**: Skia は凍結（`SetImmutable`）した `SKBitmap` からだけ 0 コピーで `SKImage` を共有し、凍結していない場合は**複製**します。 しかし凍結後も `SetPixel` は**例外を投げずに書けてしまい**（実測: 共有中の不変側の画素が変わりました）、規約で守られています。 本ライブラリは型（書き込みの入口が無い）と実行時（凍結後の書き込みを拒否）の二重で守ります。
+- **凍結後の書き込みを例外にする理由（実測に基づく）**: Skia の `SetImmutable` は**宣言のみで強制しません**。 実測では、凍結した `SKBitmap` から 0 コピーで共有した `SKImage` があるのに `SetPixel` が例外なく書けて**共有先の画素が変わり**、`GetPixelSpan` 経由の書き込みも届き、`InstallPixels` は**フラグ自体を false に戻しました**（不変の約束が守られなければ、不変を前提にした画像が静かに壊れます）。 本ライブラリは型（書き込みの入口が無い）と実行時（凍結後の**取得**を拒否）の二重で守ります。
 - **「読み取り専用として渡す」と「凍結する」を分ける理由**: 渡すだけで凍結すると、生成した画像へ切り出し・保存を呼んだ後に書き続けられなくなります。 凍結は**書き終えた時点**で明示的に行います。
+- **凍結の限界（実測。 原理的に閉じられない穴）**: 判定できるのは**取得の時点**だけです。 凍結の**前に取得した書き込み可能なビュー**（`Pixels` / `WritablePixels` 相当）は凍結後も書けます（`Span` は raw なビューであり、取得後に無効化できません）。 Skia も同じです（`GetPixels` / `GetPixelSpan` の書き込みを凍結で止められません）。 したがって**書き終えてから凍結する**（ビューを保持したまま凍結しない）のが規則です。 この穴は**凍結の前にビューを取った場合に限られ**、以後の取得はすべて拒否されます。
 
 **共有と寿命（参照を数える）**: 同じ画素を指す複数の実体は、バッファの `SafeHandle` に参照を 1 つ取って解放します。 したがって**先に元を破棄しても画素は有効なまま**であり、最後の 1 つが解放します（二重 `Dispose` でも 2 回目は解放しません）。
 
@@ -598,7 +599,7 @@ public readonly record struct ElementFinderResults(
 | 観点 | 本ライブラリ | Skia（`SKImage` / `SKBitmap`） | Avalonia | WinUI 3（WinAppSDK） | Win2D（`CanvasBitmap`） | System.Drawing |
 | --- | --- | --- | --- | --- | --- | --- |
 | 読み取り専用の表し方 | **継承**（`EsBitmap : EsReadOnlyBitmap`） | **兄弟型**（共通の親は `SKObject` のみ） | **継承**（`WriteableBitmap : Bitmap`） | **継承**（`WriteableBitmap : BitmapSource`）＋**単一型**（`SoftwareBitmap` はロックモードで切替） | 単一型（読み書き両方） | **継承**（`Bitmap : Image`） |
-| 不変の表明 | `SetReadOnly()` / `IsReadOnly`（凍結後の書き込みは例外） | `SetImmutable()` / `IsImmutable`（凍結後も書けてしまう） | 無し（`Bitmap` に書き込みの入口は無いが「不変」の表明ではない） | 型（`BitmapSource`） | 無し | 無し |
+| 不変の表明 | `SetReadOnly()` / `IsReadOnly`（**凍結後の「取得」は例外**） | `SetImmutable()` / `IsImmutable`（**宣言のみで強制しない**。 実測: 凍結後も `SetPixel` が書けて共有先の画素が変わり、`GetPixelSpan` の書き込みも届き、`InstallPixels` はフラグを false に戻す） | 無し（`Bitmap` に書き込みの入口は無いが「不変」の表明ではない） | 型（`BitmapSource`） | 無し | 無し |
 | ピクセルへの書き込み | `Pixels`（`Span<byte>`） | `SKBitmap.GetPixelSpan()` | `Lock()` → `ILockedFramebuffer`（**借用のオブジェクト**） | `WriteableBitmap.PixelBuffer`（`IBuffer`。 直接は書けない） | `SetPixelBytes`（**常に複製**） | `LockBits` |
 | 外部メモリの借用の入口 | `FromPixels`（読み取り）/ `InstallPixels`（書き換え）。 複製は `FromPixelCopy` と**名前で区別** | `InstallPixels` / `FromPixels`（複製の `FromPixelCopy` と**名前で区別**。 実測: `PeekPixels` が元アドレスを指す） | `WriteableBitmap(PixelFormat, AlphaFormat, IntPtr, …)` | `SoftwareBitmap.LockBuffer()` → `BitmapBuffer` → `CreateReference()`（`IDisposable` の連鎖） | 無し | `Bitmap(IntPtr, …)` |
 | 読み取り専用 → 書き換え可能 | **複製**（実測: 4K で 31 MiB / 5.7 ms） | 複製（`SKBitmap.FromImage` は実測で別アドレス。 凍結済みなら逆向きの共有が 0 コピー） | 複製（静的変換も無く、`WriteableBitmap` を作って `CopyPixels`） | **即時の複製**（`CreateCopyFromBuffer` / `Convert`。 メソッド名が複製を明示） | 複製 | 複製（`Clone`） |
@@ -609,7 +610,7 @@ public readonly record struct ElementFinderResults(
 - **借用と複製を名前で分ける点は Skia と同じです（優劣ではなく一致）**: `FromPixels`（借用）/ `FromPixelCopy`（複製）/ `InstallPixels` という名前の付け方は Skia に合わせました。 本アプリの描画は MewUI（Skia）であり、MewUI 用の表示ビューは読み取り専用の画像を `ToSKBitmap()`（**非所有ビュー。 複製なし**）で `SKCanvas.DrawBitmap` へ渡します。
 - **読み取り専用の表し方だけは Skia と違い、継承を選びました**: Skia は兄弟型（`SKImage` と `SKBitmap`）ですが、本ライブラリは「生成した画像へ切り出し・縮小・保存をそのまま呼べる」ことを優先しました（上記「継承にする理由」）。 **保証は変わりません**（読み取り専用の型で受け取った相手には書き込みの入口が無い）。
 - **遅延コピー（読み取り専用の画像と画素を共有し、最初の書き込みで複製する仕組み）は持ちません**: 調査したどのフレームワークも持たず、本ライブラリでも**本番の呼び出しがありませんでした**（`EsBitmap.Create(画像)` を渡すのはテストだけであり、本番は寸法と色で生成していました）。 0 コピーの共有は凍結（`SetReadOnly` と読み取り専用の型）で得られるため、書き込み可能なビューを渡す入口（`Pixels`）と組み合わせると**いつ複製されたか分からない隠れた確保**になるだけでした（[2.33](#233-画像型の設計上の判断継承と借用を選んだ理由)）。
-- **凍結は Skia の `SetImmutable` と同じ役割ですが、実行時の強制を足しています**: Skia は凍結後も `SetPixel` が書けてしまいます（実測）。 本ライブラリは凍結後の書き込みを例外にします。
+- **凍結は Skia の `SetImmutable` と同じ役割ですが、実行時に強制します**: Skia の凍結は呼び出し側の**宣言**であり（実測: 凍結後も `SetPixel` が例外なく書けて共有先の画素が変わり、`GetPixelSpan` の書き込みも届き、`InstallPixels` はフラグを false に戻す）、守られなければ不変を前提にした画像が静かに壊れます。 本ライブラリは凍結後の**取得**を拒否します（凍結の前に取得したビューは残ります。 これは Skia と同じ原理的な限界です）。
 - **借用の入口を公開する点は WinUI 3 / Win2D と違います**: 借用は**借用先の寿命に依存する契約**を増やします（実測: Avalonia の表示用のビューは元の破棄で無効化されます）が、複製の費用（実測: 4K で 31 MiB / 5.7 ms）を避ける手段として有効なため、**名前で複製と区別したうえで公開します**。
 - **書き込みの期間は型で表しません**: Avalonia の `Lock()` は借用オブジェクトの寿命で「借用している間」を表しますが、本ライブラリは `Pixels`（`Span<byte>`）を返します。 `Span` は `ref struct` のため**フィールドに保持できません**が、ローカルに置いたまま破棄すれば不正な書き込みになる点は Avalonia と同じです（借用中の破棄を型で防ぐ手段は、調査したどのフレームワークにもありません）。
 - **Skia の `SKImage` が持つ能力（遅延デコード・GPU テクスチャ・ゼロコピーの部分ビュー）は持ちません**: 実測では `SKImage.FromEncodedData` は寸法だけなら**画素を 1 バイトも持たず**（`PeekPixels` が null、ワーキングセットの増分 0 B）、`SKBitmap.Decode` は 48 MB を要します（4000x3000）。 本ライブラリの画像は**常に CPU 上のフル バッファ**であり、2 型の違いは権利の表明だけです（メモリと速度は同一）。 遅延デコードが要る場面は、読み込みを遅らせる側（呼び出し側）で行います。
@@ -824,7 +825,7 @@ public readonly record struct ElementFinderResults(
 - **複製（`FromPixelCopy`）と名前で区別します**（Skia と同じ付け方）。 複製の費用は実測で 4K 1 枚あたり 31 MiB と 5.7 ms であり、既に画素がある場合に払う理由がない場面があります。
 - **借用先の寿命に依存する契約が増える**という代償は受け入れています（実測: Avalonia の表示用のビューは元の破棄で無効化されます）。 代償を減らすため、解放のコールバック（`release`）を任意で受け取り、**解放の経路は `SafeBorrowedBuffer` の 1 か所**に保っています。 WinUI 3 / Win2D は借用の入口を公開しませんが、本ライブラリは汎用のライブラリであり、**複製を避ける手段が要る場面が想定される**ため公開します。
 
-**5. 凍結（`SetReadOnly`）で書き込みを止めます**: Skia の `SetImmutable` と同じ役割ですが、**凍結後の書き込みを例外にします**（Skia は凍結後も `SetPixel` が書けてしまい、規約で守られています。 実測）。 **凍結は画素領域の共有状態に効かせます**（実体ごとに持つと、共有した実体を通した凍結が他の実体へ届かず「凍結したのに書ける」状態が残るため）。 型で保証できるのは「この型では書けない」ことだけであり、「内容が変わらない」ことは凍結状態に応じた入口（`EsReadOnlyBitmap.FromBitmap`）で得る形にしました（実測: Skia も凍結していない `SKBitmap` からは複製し、凍結済みなら共有する）。
+**5. 凍結（`SetReadOnly`）で書き込みを止めます**: Skia の `SetImmutable` と同じ役割ですが、**凍結後の取得を例外にします**（Skia の凍結は宣言のみであり、実測では凍結後も `SetPixel` / `GetPixelSpan` / `Erase` で書けて、`InstallPixels` はフラグを false に戻しました）。 **限界は 1 つだけ**です: 凍結の前に取得したビュー（`Span`）は残ります（取得時にしか判定できません。 Skia も同じ）。 **凍結は画素領域の共有状態に効かせます**（実体ごとに持つと、共有した実体を通した凍結が他の実体へ届かず「凍結したのに書ける」状態が残るため）。 型で保証できるのは「この型では書けない」ことだけであり、「内容が変わらない」ことは凍結状態に応じた入口（`EsReadOnlyBitmap.FromBitmap`）で得る形にしました（実測: Skia も凍結していない `SKBitmap` からは複製し、凍結済みなら共有する）。
 
 - **「読み取り専用として渡す」と「凍結する」を分けています**: 渡すだけで凍結すると、生成した画像へ切り出し・保存を呼んだ後に書き続けられません。 凍結は書き終えた時点で明示的に行います。
 

@@ -360,6 +360,26 @@ public class EsBitmapTests
         => Assert.Throws<ArgumentNullException>(() => EsReadOnlyBitmap.FromBitmap(null!));
 
     [Fact]
+    internal void 凍結前に取得したビューは凍結後も書ける_取得時にしか判定できない()
+    {
+        using var bmp = Create(4, 4);
+
+        // 凍結の前に取得した書き込み可能なビュー
+        var span = bmp.Pixels;
+
+        bmp.SetReadOnly();
+
+        // 取得済みの Span は残る（Span は raw なビューであり、取得した後に無効化できない）
+        // これは Skia も同じ（GetPixels / GetPixelSpan の書き込みを凍結で止められない）
+        span[0] = 9;
+
+        Assert.Equal((byte)9, bmp.GetPixel(0, 0).B);
+
+        // 以後の「取得」は拒否される（穴は「凍結前に取ったビュー」に限定される）
+        Assert.Throws<InvalidOperationException>(() => { _ = bmp.Pixels.Length; });
+    }
+
+    [Fact]
     internal void 継承_読み取り専用として見ても実体が書き換え可能ならCloneは独立した複製を返す()
     {
         using var bmp = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 1, 2, 3));
