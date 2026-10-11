@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Xunit;
@@ -260,9 +262,106 @@ public class EsWritableBitmapTests
         Assert.Equal(4, copy.Height);
         Assert.Equal((byte)1, copy.GetPixel(0, 0).B);
 
-        // 複製先を書き換えても複製元は変わらない（バッファを共有しない）
+        // 複製先を書き換えても複製元は変わらない（書き込みの時点で複製する）
         copy.SetPixel(0, 0, b: 9, g: 9, r: 9, a: 9);
         Assert.Equal((byte)1, source.GetPixel(0, 0).B);
+    }
+
+    // ====================================================================
+    // 遅延コピー（読み取り専用の画像から作る場合は書き込むまで複製しない）
+    // ====================================================================
+
+    [Fact]
+    internal void 遅延コピー_読み取り専用から作るとバッファを共有する()
+    {
+        using var source = EsBitmap.Create(4, 4, System.Drawing.Color.Red);
+
+        using var copy = EsWritableBitmap.Create(source);
+
+        Assert.True(SameStorage(source, copy), "複製されています（バッファが共有されていません）。");
+    }
+
+    [Fact]
+    internal void 遅延コピー_書き込むと複製され元の画素は変わらない()
+    {
+        using var source = EsBitmap.Create(4, 4, System.Drawing.Color.Red);
+        using var copy = EsWritableBitmap.Create(source);
+
+        copy.SetPixel(0, 0, b: 9, g: 9, r: 9, a: 9);
+
+        Assert.False(SameStorage(source, copy), "書き込んでも複製されていません。");
+        Assert.Equal(System.Drawing.Color.Red.B, source.GetPixel(0, 0).B);
+        Assert.Equal(9, copy.GetPixel(0, 0).B);
+
+        // 複製は全領域に及ぶ（書き込んでいない画素も元の値を持つ）
+        Assert.Equal(System.Drawing.Color.Red.B, copy.GetPixel(3, 3).B);
+    }
+
+    [Fact]
+    internal void 遅延コピー_書き込みのビューを取ると複製される()
+    {
+        // ビューを渡した後に複製すると渡したビューが古い領域を指すため、取った時点で複製する
+        using var source = EsBitmap.Create(4, 4, System.Drawing.Color.Red);
+        using var copy = EsWritableBitmap.Create(source);
+
+        copy.WritablePixels.Clear();
+
+        Assert.False(SameStorage(source, copy), "ビューを取っても複製されていません。");
+        Assert.Equal(System.Drawing.Color.Red.B, source.GetPixel(0, 0).B);
+        Assert.Equal(0, copy.GetPixel(0, 0).B);
+    }
+
+    [Fact]
+    internal void 遅延コピー_消去でも複製される()
+    {
+        using var source = EsBitmap.Create(4, 4, System.Drawing.Color.Red);
+        using var copy = EsWritableBitmap.Create(source);
+
+        copy.Clear(System.Drawing.Color.Blue);
+
+        Assert.Equal(System.Drawing.Color.Red.B, source.GetPixel(0, 0).B);
+        Assert.Equal(System.Drawing.Color.Blue.B, copy.GetPixel(0, 0).B);
+    }
+
+    [Fact]
+    internal void 遅延コピー_元を先に破棄しても書き換え可能な画像は使える()
+    {
+        var source = EsBitmap.Create(4, 4, System.Drawing.Color.Red);
+        using var copy = EsWritableBitmap.Create(source);
+
+        // 共有は参照を数えるため、元を破棄しても実体は解放されない
+        source.Dispose();
+
+        copy.SetPixel(0, 0, b: 9, g: 9, r: 9, a: 9);
+
+        Assert.Equal(9, copy.GetPixel(0, 0).B);
+        Assert.Equal(System.Drawing.Color.Red.B, copy.GetPixel(3, 3).B);
+    }
+
+    [Fact]
+    internal void 遅延コピー_書き換え可能な画像から作る場合は複製する()
+    {
+        using var source = EsWritableBitmap.Create(4, 4, System.Drawing.Color.Red);
+
+        using var copy = EsWritableBitmap.Create(source);
+
+        // 元がその後に変わりうるため、複製して独立させる
+        Assert.False(SameStorage(source, copy), "書き換え可能な画像から作ったのに共有されています。");
+    }
+
+    /// <summary>2 つの画像が同じバッファを指しているかを調べる（遅延コピーの確認に使う）。</summary>
+    /// <param name="left">比較する画像。</param>
+    /// <param name="right">比較する画像。</param>
+    /// <returns>同じバッファを指している場合 true。 ピクセルを持たない場合は false。</returns>
+    private static bool SameStorage(IEsBitmap left, IEsBitmap right)
+    {
+        var leftPixels = left.Pixels;
+        var rightPixels = right.Pixels;
+        return leftPixels.Length > 0
+            && rightPixels.Length > 0
+            && Unsafe.AreSame(
+                ref MemoryMarshal.GetReference(leftPixels),
+                ref MemoryMarshal.GetReference(rightPixels));
     }
 
     [Fact]

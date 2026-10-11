@@ -7,7 +7,7 @@ namespace EsUtil.Platform.Core.Native.Win;
 
 /// <summary>画像のファイル保存・読み込みの実装（GDI+ のフラット API を使う Windows 専用）。</summary>
 /// <remarks>
-/// <b>唯一の実装</b>: 公開面は画像型のメンバー（<see cref="EsUtil.Platform.Core.Imaging.EsBitmapBase.Save(string)"/> /
+/// <b>唯一の実装</b>: 公開面は画像型のメンバー（<see cref="EsUtil.Platform.Core.Imaging.EsBitmapExtensions.Save(IEsBitmap, string)"/> /
 /// <see cref="EsUtil.Platform.Core.Imaging.EsBitmap.Load(string)"/> / <see cref="EsUtil.Platform.Core.Imaging.EsWritableBitmap.Load(string)"/>) であり、
 /// 本クラスはその実装を 1 箇所へ集約する（本層は internal）。<br/>
 /// <b>画像型を知らない</b>: 符号化は受け取ったピクセル バイト列を書き

@@ -10,8 +10,9 @@ namespace EsUtil.Platform.Core.Imaging;
 /// 生成した側は本型で保持し、利用者へは本型（または <see cref="IEsBitmap"/>）で渡す。<br/>
 /// <br/>
 /// <b>書き換えの入口を持たない</b>: <c>SetPixel</c> / <c>Clear</c> / <c>WritablePixels</c> を公開しない
-/// （書き換えが要る場合は <see cref="EsWritableBitmap"/> を使う）。 取り違えは <c>as EsWritableBitmap</c> で検出できる
-/// （本型の実体は <see cref="EsWritableBitmap"/> へ変換できない。 兄弟であり互いの継承関係が無いため）。<br/>
+/// （書き換えが要る場合は <see cref="EsWritableBitmap"/> を使う）。 本型の実体を <see cref="EsWritableBitmap"/> へ
+/// <b>キャストすることはできない</b>（兄弟であり互いの継承関係が無い。 <b>キャストで型を見分ける必要は無い</b>。
+/// 書き換えたい場合は <see cref="EsWritableBitmap.Create(IEsBitmap)"/> で書き換え可能な画像を作る）。<br/>
 /// <b>未初期化のバッファも公開しない</b>: 直後に全領域を書く確保（<see cref="EsWritableBitmap.CreateUninitialized(int, int)"/> と
 /// 同じ名前・同じ引数）は <c>private</c> に持ち、外へ出す入口は確保と充填を 1 回で行う <see cref="CreateFilled"/> だけにする
 /// （書き込みの入口が無い本型へ不定値のままのバッファを渡す経路を作らない）。<br/>
@@ -29,6 +30,13 @@ public sealed class EsBitmap : EsBitmapBase, IDisposable
     /// <param name="clear">true の場合は全領域を 0（透明）で初期化する。 直後に全領域を書く場合は false。</param>
     private EsBitmap(int width, int height, bool clear = true)
         : base(width, height, clear)
+    {
+    }
+
+    /// <summary>読み取り専用の画像のバッファを共有する（読み取り専用同士は互いに書き換えないため複製は起きない）。</summary>
+    /// <param name="source">共有する元の画像（読み取り専用であること）。</param>
+    private EsBitmap(EsBitmap source)
+        : base(source)
     {
     }
 
@@ -91,6 +99,17 @@ public sealed class EsBitmap : EsBitmapBase, IDisposable
         ArgumentNullException.ThrowIfNull(source);
         ObjectDisposedException.ThrowIf(source.IsDisposed, source);
 
+        // 元が読み取り専用（EsBitmap）なら、その後変わらないためバッファを共有する（複製しない）。
+        // 読み取り専用同士は互いに書き換えないため、複製は起きない。
+        // それ以外（書き換え可能な画像・外部実装の画像）からは複製する（元がその後に変わりうるため）。
+        return source is EsBitmap readOnly ? new EsBitmap(readOnly) : CopyFrom(source);
+    }
+
+    /// <summary>ピクセルを複製して読み取り専用の画像を生成する（書き換え可能な画像・外部実装の画像から作る場合）。</summary>
+    /// <param name="source">生成元の画像。 借用であり破棄しない。</param>
+    /// <returns>独立した画像。 所有権は呼び出し側へ移る。</returns>
+    private static EsBitmap CopyFrom(IEsBitmap source)
+    {
         // 全領域を 1 回のコピーで覆うため、生成時の 0 埋めは行わない
         var result = CreateUninitialized(source.Width, source.Height);
         source.Pixels.CopyTo(result.WritableBuffer);
@@ -167,16 +186,16 @@ public sealed class EsBitmap : EsBitmapBase, IDisposable
     /// <returns>独立した複製。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// 書き換え可能な複製が要る場合は <see cref="EsWritableBitmap.Create(IEsBitmap)"/> を使う。<br/>
+    /// <b>バッファを共有する（遅延コピー）</b>: 読み取り専用の画像は書き換えられないため、複製しても<b>画素は変わらない</b>
+    /// （共有しても観測できる差が無い）。 したがって複製の費用（実測: 4K で 5.7 ms / 31 MiB）を払う必要が無い
+    /// （読み取り専用同士は互いに書き換えないため、複製は永遠に起きない）。<br/>
     /// <b><see cref="Create(IEsBitmap)"/> との違い</b>: 本メソッドは<b>自身の複製</b>（読み取り専用のまま）であるのに対し、
-    /// <c>Create</c> は<b>別のオブジェクトから実体を生成する</b>操作である。 意味が異なるため、実装が同じでも片方へ寄せない。
+    /// <c>Create</c> は<b>別のオブジェクトから実体を生成する</b>操作である。 意味が異なるため、片方へ寄せない。
     /// </remarks>
     public override EsBitmap Clone()
     {
         ThrowIfDisposed();
 
-        // 全領域を 1 回のコピーで覆うため、生成時の 0 埋めは行わない
-        var result = CreateUninitialized(Width, Height);
-        CopyPixels(this, result);
-        return result;
+        return new EsBitmap(this);
     }
 }

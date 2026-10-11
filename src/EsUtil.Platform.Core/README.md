@@ -38,7 +38,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | 座標変換 | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` |
 | 画像 | `EsBitmap`（読み取り専用の実体） / `EsWritableBitmap`（書き換え可能な実体） / `IEsBitmap`（読み取る権利。 寸法の文字列化 `ToSizeText` を含む） / `IEsWritableBitmap`（書き換える権利） |
 | 画像の操作 | `EsBitmapExtensions`（切り出し `Crop`・縮小 `Resize`・減色 `ReduceColors`。 縮小のアルゴリズムは `DownscaleAlgorithm`（`Nearest` / `Bilinear` / `Box`）で選ぶ） |
-| 画像のファイル入出力 | 画像型の `Save` / `Load`（`EsBitmapBase.Save` / `EsBitmap.Load` / `EsWritableBitmap.Load`。 **形式は既定で拡張子が決め**、`EsImageSaveOptions.Format` で明示もできる（拡張子が無ければ補完する）。 BMP / PNG / JPEG / GIF / TIFF。 保存のオプションは `EsImageSaveOptions`（**JPEG の品質と減色 `ColorCount`**。 実測で確認）。 OS の GDI+ を使う Windows 専用で、外部パッケージは参照しない） |
+| 画像のファイル入出力 | `Save` / `Load`（`EsBitmapExtensions.Save`（面 `IEsBitmap` の拡張）/ `EsBitmap.Load` / `EsWritableBitmap.Load`。 **形式は既定で拡張子が決め**、`EsImageSaveOptions.Format` で明示もできる（拡張子が無ければ補完する）。 BMP / PNG / JPEG / GIF / TIFF。 保存のオプションは `EsImageSaveOptions`（**JPEG の品質と減色 `ColorCount`**。 実測で確認）。 OS の GDI+ を使う Windows 専用で、外部パッケージは参照しない） |
 | OS サービス抽象 | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` |
 | Windows 実装 | `Native.Win.*`（Win32 / GDI+ の P/Invoke。 ホストが生成して注入する） |
 | 補助 | `EsPlatformHandle` / `DrawingColorExtensions` |
@@ -55,7 +55,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 
 ### 4.1 画像のファイル入出力が引き受ける副作用
 
-画像型のファイル入出力（`EsBitmapBase.Save` / `EsBitmap.Load` / `EsWritableBitmap.Load`）は **Windows の `gdiplus.dll` を直接呼びます**。 これは依存を増やさない代わりに、**プロセス全体に及ぶ副作用**を伴います（実測）。
+画像のファイル入出力（`EsBitmapExtensions.Save` / `EsBitmap.Load` / `EsWritableBitmap.Load`）は **Windows の `gdiplus.dll` を直接呼びます**。 これは依存を増やさない代わりに、**プロセス全体に及ぶ副作用**を伴います（実測）。
 
 | 副作用 | 内容 | 実測 |
 | --- | --- | --- |

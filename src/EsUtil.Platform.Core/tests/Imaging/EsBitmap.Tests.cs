@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Xunit;
@@ -235,6 +236,25 @@ public class EsBitmapTests
         Assert.Equal((byte)1, clone.GetPixel(0, 0).B);
         Assert.False(clone.IsDisposed);
         Assert.NotSame(src, clone);
+    }
+
+    [Fact]
+    internal void Clone_バッファを共有する_読み取り専用同士は書き換わらないため()
+    {
+        using var src = EsBitmap.Create(4, 4, System.Drawing.Color.Red);
+
+        using var clone = src.Clone();
+
+        // 複製の費用（実測: 4K で 5.7 ms / 31 MiB）を払わない
+        Assert.True(
+            Unsafe.AreSame(
+                ref MemoryMarshal.GetReference(src.Pixels),
+                ref MemoryMarshal.GetReference(clone.Pixels)),
+            "読み取り専用の複製が共有されていません。");
+
+        // 別の画像として扱える（片方を破棄しても他方は使える）
+        clone.Dispose();
+        Assert.Equal(System.Drawing.Color.Red.B, src.GetPixel(0, 0).B);
     }
 
     [Fact]

@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native.Win;
 
 namespace EsUtil.Platform.Core.Imaging;
 
@@ -74,6 +76,67 @@ public static class EsBitmapExtensions
 
     /// <summary>ヒストグラムの箱の数（色 32³ × アルファ 4 段階）。</summary>
     private const int HistogramSize = 1 << ((HistogramBits * 3) + HistogramAlphaBits);
+
+    /// <summary>本画像をファイルへ保存する（形式は拡張子が決める）。</summary>
+    /// <param name="source">保存する画像。 借用であり破棄しない。</param>
+    /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める）。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> または <paramref name="filePath"/> が null の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合。</exception>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="EsBitmapBase.SupportedFileExtensions"/>）。</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    /// <remarks>
+    /// <b>面（<see cref="IEsBitmap"/>）の拡張メソッドである理由</b>: 保存は<b>画素を読むだけ</b>であり、
+    /// 書き換えの権利も実体の型も要らない。 面の拡張にすると<b>受け取った画像をそのまま保存できる</b>
+    /// （表示アダプタ等の外部実装の画像でもキャストが要らない）。<br/>
+    /// <b>ピクセルは複製しない</b>: <see cref="IEsBitmap.Pixels"/> のビューをそのままエンコードへ渡す
+    /// （一時バッファを確保しない）。<br/>
+    /// <b>Windows 専用</b>: OS の GDI+ を呼ぶため <see cref="SupportedOSPlatformAttribute"/> で限定する。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    public static void Save(this IEsBitmap source, string filePath)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+        ObjectDisposedException.ThrowIf(source.IsDisposed, source);
+        WinGdiPlusImageCodec.EncodeToFile(source.Pixels, source.Width, source.Height, filePath);
+    }
+
+    /// <summary>本画像をファイルへ保存する（形式は拡張子が決める。保存の形式とオプションを指定できる）。</summary>
+    /// <param name="source">保存する画像。 借用であり破棄しない。</param>
+    /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める。 <paramref name="options"/> で形式を指定した場合に拡張子が無ければ補完する）。</param>
+    /// <param name="options">保存のオプション（形式ごとに使える項目が異なる）。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> または <paramref name="filePath"/> が null の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または
+    /// <paramref name="filePath"/> の拡張子と <see cref="EsImageSaveOptions.Format"/> が食い違い
+    /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="EsBitmapBase.SupportedFileExtensions"/>）、または
+    /// <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    /// <remarks>
+    /// <b>形式の決め方</b>: <see cref="EsImageSaveOptions.Format"/> を指定しない場合は<b>拡張子が形式を決める</b>。
+    /// 指定した場合は<b>形式が優先</b>され、拡張子が無ければ補完し（<c>shot</c> + <see cref="EsImageFileFormat.Png"/> →
+    /// <c>shot.png</c>）、拡張子と食い違う場合は <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が true なら
+    /// 与えられたファイル名のまま保存し、false なら例外にする。<br/>
+    /// <b>どのオプションが効くかは形式が決める</b>: 実測で効果が確認できたのは JPEG の品質
+    /// （<see cref="EsImageSaveOptions.JpegQuality"/>）と減色（<see cref="EsImageSaveOptions.ColorCount"/>）だけであり、
+    /// 他の形式へ設定すると例外になる（実測値と理由は <see cref="EsImageSaveOptions"/> を参照）。<br/>
+    /// <b>オプションを省略した場合との違い</b>: 本オーバーロードは明示された値だけをエンコーダーへ渡すため、
+    /// 既定値は GDI+ の既定と一致しない（実測: 1280x720 の不規則な画像で既定 826 KB に対し品質 75 は 554 KB）。
+    /// 調整しない場合は <see cref="Save(IEsBitmap, string)"/> を使う。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    public static void Save(this IEsBitmap source, string filePath, EsImageSaveOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+        ObjectDisposedException.ThrowIf(source.IsDisposed, source);
+        WinGdiPlusImageCodec.EncodeToFile(source.Pixels, source.Width, source.Height, filePath, options);
+    }
 
     /// <summary>画像から指定された矩形領域を切り出す。</summary>
     /// <param name="source">切り出し元の画像。 借用であり破棄しない。</param>

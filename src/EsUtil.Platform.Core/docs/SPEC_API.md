@@ -492,14 +492,13 @@ public readonly record struct ElementFinderResults(
 | `EsBitmap` | **読み取り専用**の画像（`IDisposable`。 派生不可） | 読取 ＋ 破棄（早く手放すため） |
 | `EsWritableBitmap` | **書き換え可能**な画像（`IEsWritableBitmap` ＋ `IDisposable`。 派生不可） | 読取 ＋ 書き換え ＋ 破棄 |
 
-**使い分け**（型で権利が決まるため、借用と所有を取り違えない）:
+**使い分け（規則は 2 つだけ）**:
 
-| 場面 | 使う型 |
-| --- | --- |
-| 受け取って**読むだけ** | `IEsBitmap` |
-| 受け取って**書き換える**（破棄しない） | `IEsWritableBitmap` |
-| 自分が**作る・所有する**（`using` で解放） | `EsWritableBitmap` |
-| **読み取り専用**であることを型で示す | `EsBitmap` |
+1. **破棄するのは「自分が作った（戻り値で受け取った）画像」だけ**です。 引数で受け取った画像は破棄しません（誰が作ったかは API の形で決まります。 引数は借用、戻り値は所有）。
+2. **書き換えてよいのは、名前に `Writable` が付く型で受け取った画像だけ**です（`IEsWritableBitmap` / `EsWritableBitmap`）。 書き換えたい場合はその型で受け取るか、`EsWritableBitmap.Create` で書き換え可能な画像を作ります。
+
+型は上の 2 つを読み取るための目印です（`EsBitmap` = 読み取り専用であることを示す / `IEsBitmap` = 読み取るだけ / `IEsWritableBitmap` = 書き換える / `EsWritableBitmap` = 作る・所有する）。 **キャストはしません**（必要になる機能はすべて面から届きます。 保存は `EsBitmapExtensions.Save`（面の拡張）、複製は `Create`、書き換えは `IEsWritableBitmap`）。
+
 | **破棄済みかを判定する** | `IEsBitmap`（`IsDisposed`） |
 
 **受け口は面（interface）に統一します**: 本ライブラリが画像を受け取る公開 API の型は `IEsBitmap`（読む）/ `IEsWritableBitmap`（書き換える）です。 `EsBitmapBase` は抽象クラスであり `new` で生成できませんが、**受け取る型としては使えます**（本ライブラリが受け口に使わないのは、受け取る側の権利を面で絞るためです）。 したがって「受け取って読むだけ」の型は `IEsBitmap` です。
@@ -512,16 +511,18 @@ public readonly record struct ElementFinderResults(
 
 **兄弟である理由**: `EsBitmap` と `EsWritableBitmap` は互いに変換できません（`Is` 関係が無い）。 同じバッファを 2 つの型で見せると「書き換えてよいか」が静かに食い違うためです。 読み取り専用の画像から書き換え可能な画像を作る場合は `EsWritableBitmap.Create`（別のオブジェクトからの生成）を使い、逆方向は `EsBitmap.Create` を使います。
 
-**コピーなしで相互変換できるか（検討した結果）**:
+**コピーなしで相互変換できます（遅延コピー。 実装済み）**:
 
 | 方向 | コピーなしで可能か | 手段 |
 | --- | --- | --- |
-| 書き換え可能 → 読み取り専用 | **可能（追加の API は不要）** | **面（`IEsBitmap`）へ代入するだけ**（`EsWritableBitmap` は `IEsBitmap` を実装する。 参照の変換のみでコピーしない） |
-| 読み取り専用 → 書き換え可能 | **不可能（コピーが要る）** | `EsWritableBitmap.Create`（実測: 4K で 5.7 ms / 31 MiB） |
+| 書き換え可能 → 読み取り専用 | **可能（追加の API は不要）** | **面（`IEsBitmap`）へ渡すだけ**（`EsWritableBitmap` は `IEsBitmap` を実装する。 参照の変換のみでコピーしない） |
+| 読み取り専用 → 書き換え可能 | **可能（遅延コピー）** | `EsWritableBitmap.Create` が**バッファを共有し、最初の書き込みでだけ複製**する |
 
-- **読み取り専用 → 書き換え可能にコピーが要る理由**: `EsBitmap` の型自体が「**この画素は書き手が居ない**」という約束です。 同じバッファを書き換え可能な型でも見せると、その `EsBitmap` を別の場所で保持している利用者（引数で渡した先・フィールド）の画素が**黙って変わり**、約束が破れます。 値が変わるだけなので**検出できない**ため、型で防ぐ以外に手がありません。
-- **「移動」なら可能です（未実装）**: 本ライブラリの公開 API は**生ポインタも別名も渡しません**（`Pixels` は `ReadOnlySpan` であり、フィールドへ保持できず、寿命も画像に閉じます）。 そのため**1 つの画像の画素を保持できるのはその画像自身だけ**であり、「変換元を破棄済みにして（`IsDisposed == true`。 以後の全メンバーが `ObjectDisposedException`）バッファを新しい型へ渡す」形が成立します。 解放は `SafeHandle` の参照カウントで 1 回だけになります（実測で確認）。
-- **実装しない判断（YAGNI）**: コピーを払う呼び出しは**リポジトリ全体で 1 箇所だけ**であり、そこも**入口を選ぶだけで避けられます**（`EsBitmap.Load` の結果を `EsWritableBitmap.Create` で複製せず `EsWritableBitmap.Load` で直接読み込む。 実際に修正し、4K で 31 MiB の複製を削除しました）。 必要性が現れたら `Move` として足します（`Create` は消費しない入口であり `Clone` は自身の複製であるため、**消費は別の名前で示す**必要があります）。
+- **書き込まなければコピーしません（実測で確認）**: 共有中は同じバッファを指し（実測: 両者の `Pixels` が同じアドレスを指す）、**最初の書き込み**（`SetPixel` / `TrySetPixel` / `Clear` / `WritablePixels`）で自分のバッファへ複製します。 したがって**全域コピーの費用（実測: 4K で 5.7 ms / 31 MiB）を、書き込む場合だけ払います**。
+- **読み取り専用の約束は保たれます**: 書き込みの時点で複製するため、**元の画像の画素は変わりません**（実測: `SetPixel` の後に元の画素が元の値のままで、複製先の書き込んでいない画素も元の値を持つ）。 見え方は「即時に複製した場合」と完全に同じです。
+- **書き込みのビューは渡す前に複製します**: `WritablePixels` を取った時点で複製します（渡した後に複製すると、渡したビューが古い領域を指して書き込みが消えるため）。
+- **共有してよいのは「元が読み取り専用の画像（`EsBitmap`）である」場合だけ**です（元が書き換え可能な画像・外部実装の画像である場合は**即時に複製**します。 元がその後に変わりうるため）。 読み取り専用の複製（`EsBitmap.Clone`）も同じ理由でバッファを共有します（読み取り専用同士は互いに書き換えないため、複製は起きません）。
+- **参照を数えて解放します（実測で確認）**: バッファの `SafeHandle` に参照を 1 つ取るため、**先に元を破棄しても共有側の画素は有効なまま**であり、最後の 1 つが解放します（二重 `Dispose` でも 2 回目は解放しません）。
 
 **生成（`Create`）と複製（`Clone`）は意味が違います**: `Create` は**別のオブジェクトからの生成**（外部の画像から実体を組み立てる）であり、`Clone` は**自身の複製**（同じ型・同じ権利）です。 実装が同じでも意味が異なるため、片方へ寄せません（`Clone` を `Create` の別名にしない／`Clone` を廃して `Create` へ統合しない）。 どちらの `Create` も**面**（`IEsBitmap`）を受け取ります（外部が実装する画像（UI の表示アダプタ等）からも実体を組み立てられるようにするため。 同じ型を渡すこともできますが、自身の複製が目的なら `Clone` を使います）。
 
@@ -578,9 +579,10 @@ public readonly record struct ElementFinderResults(
 | プロパティ | `IsDisposed` | `bool` | 破棄済みか（**公開面は `IEsBitmap`**。 利用者は面の型で判定できる） |
 | ピクセル | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` / `Color GetPixel(EsPointInt point)` | 指定座標の BGRA（アルファ乗算済み）を取得（座標型の版は `System.Drawing.Color` で返す）。 範囲外は `IndexOutOfRangeException` |
 | その他 | `ToSizeText` | `string ToSizeText()` | 寸法を `<c>幅x高さ</c>` 形式の文字列で返す（ログ等への記録用。 **書式は本面が単一所有**する） |
-| ファイル | `Save` | `void Save(string filePath)` / `void Save(string filePath, EsImageSaveOptions options)` | 本画像をファイルへ保存する（**形式は既定で拡張子が決める**。 オプションで形式・JPEG の品質を指定できる。 Windows 専用。 詳細は [2.32](#232-画像のファイル入出力save--load)） |
 | ファイル | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`。 Windows 専用） |
 | その他 | `ThrowIfDisposed` | `void ThrowIfDisposed()` | 破棄済みなら `ObjectDisposedException` を送出 |
+
+**保存は面（`IEsBitmap`）の拡張メソッド（`EsBitmapExtensions.Save`）**: 保存は**画素を読むだけ**であり、書き換えの権利も実体の型も要しないため、受け取った画像をそのまま保存できます（外部実装の画像でも**キャストが要りません**）。 詳細は [2.32](#232-画像のファイル入出力save--load)。
 
 **`EsWritableBitmap` が追加で公開するメンバー（`IEsWritableBitmap` の実装）**:
 
@@ -649,12 +651,12 @@ public readonly record struct ElementFinderResults(
 
 ### 2.32 画像のファイル入出力（`Save` / `Load`）
 
-コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー**であり、GDI+（`gdiplus.dll`）を呼ぶ実装は `src/EsUtil.Platform.Core/src/Native/Win/WinGdiPlusImageCodec.cs` の `internal` クラスが単一所有します。 **Windows 専用**です。
+コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー（`Load`）と面の拡張メソッド（`Save`）**であり、GDI+（`gdiplus.dll`）を呼ぶ実装は `src/EsUtil.Platform.Core/src/Native/Win/WinGdiPlusImageCodec.cs` の `internal` クラスが単一所有します。 **Windows 専用**です。
 
 | 型 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- | --- |
-| `EsBitmapBase` | `Save` | `void Save(string filePath)` | 画像をファイルへ保存する（**形式は拡張子が決める**） |
-| `EsBitmapBase` | `Save` | `void Save(string filePath, EsImageSaveOptions options)` | 保存の形式とオプションを指定して保存する（**形式の指定は拡張子より優先され、拡張子が無ければ補完する**。 下記） |
+| `EsBitmapExtensions` | `Save` | `static void Save(this IEsBitmap source, string filePath)` | 画像をファイルへ保存する（**形式は拡張子が決める**。 **面の拡張メソッド**なので、受け取った画像をキャストせずに保存できる） |
+| `EsBitmapExtensions` | `Save` | `static void Save(this IEsBitmap source, string filePath, EsImageSaveOptions options)` | 保存の形式とオプションを指定して保存する（**形式の指定は拡張子より優先され、拡張子が無ければ補完する**。 下記） |
 | `EsBitmapBase` | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`） |
 | `EsBitmap` | `Load` | `static EsBitmap Load(string filePath)` | ファイルから**読み取り専用の**画像を読み込む（形式は内容から判別する。 所有権は呼び出し側へ移る） |
 | `EsWritableBitmap` | `Load` | `static EsWritableBitmap Load(string filePath)` | ファイルから**書き換え可能な**画像として読み込む（所有権は呼び出し側へ移る） |
@@ -664,19 +666,12 @@ public readonly record struct ElementFinderResults(
 | `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG の品質（0〜100。 `null` は GDI+ の既定） |
 | `EsImageSaveOptions` | `ColorCount` | `int? ColorCount { get; init; }` | 減色（パレット化）して残す色数（2〜256。 `null` は減色しない。 **BMP / PNG / GIF だけ**） |
 
-- **`Load` は戻したい型の側に置きます**: 静的メソッドは戻り値の型を共変にできないため、`EsBitmap.Load`（読み取り専用）と `EsWritableBitmap.Load`（書き換え可能）を別々に持ちます。 書き換えが要る場合は `EsWritableBitmap.Load` を使ってください（`EsBitmap.Load` の結果を `EsWritableBitmap.Create` で複製すると、2 回目の全域コピー（実測: 4K で 5.7 ms / 31 MiB）が無駄になります）。
-- **`Save` は `EsBitmapBase` に置きます**: ファイルへの書き出しはピクセルを**書き換える権利を要さない**ため、2 つの権利（読み取り専用 / 書き換え可能）に共通の入口が要ります。 一方、読み取りの面（`IEsBitmap`）に置くと、外部が実装する画像（UI の表示アダプタ等）にも保存能力を要求することになるため、**継承関係の無い 2 型の共通基底**である本型が持ちます（実装を持てる最小の位置）。
-- **なぜ `Save` / `Load` を `EsBitmapExtensions` の拡張メソッドにしないのか（検討した結果）**: 拡張メソッドにすれば「インターフェイスを実装する任意の画像」から呼べるようになり、切り出し・縮小・減色と同じ扱いにできます（`Save` は `IEsBitmap.Pixels` を読むだけなので実装可能です）。 それでも型のメンバーにするのは、次の 3 点によります。
+- **`Save` は面（`IEsBitmap`）の拡張メソッドに置きます**: 保存は**ピクセルを読むだけ**であり、書き換えの権利も**実体の型も要さない**ためです。 型のメンバーにすると、`IEsBitmap` として受け取った画像（表示アダプタ等の外部実装の画像）を保存するときに**キャストが要ります**（キャストは外部実装で失敗し、前提が崩れます）。 面の拡張にすると**受け取った画像をそのまま保存できます**（受け取った側はキャストを知らなくて済みます）。
+- **保存に使える形式の一覧だけは `EsBitmapBase` に残します**: 形式を決める規則の単一所有は `EsBitmapBase.SupportedFileExtensions` であり、保存の実装（`Save` の拡張）がそこを参照します（一覧は型の能力であり、特定の実体を要さないため）。
 
-  | 観点 | 拡張メソッド（`EsBitmapExtensions`） | 型のメンバー（現状） |
-  | --- | --- | --- |
-  | `Load` を同じ場所に置けるか | **置けない**（戻り値の型を共変にできないため、`EsBitmap.Load` / `EsWritableBitmap.Load` の 2 つが要る） | 置ける（`EsBitmapBase.Save` と派生の `Load`。 対応形式の一覧も同じ型が持つ） |
-  | 何をする操作か | 画像から**新しい画像を作る**（外部資源に触れない） | **ファイルという外部資源へ読み書きする**（副作用があり、Windows 限定で、プロセス全体の GDI+ を初期化する） |
-  | 利用者が見る場所 | `using EsUtil.Platform.Core.Imaging;` が要る（拡張メソッドは名前空間の取り込みで解決される） | 型のメンバーとして補完とドキュメントに出る |
-
-  - **`Load` が決め手です**: ファイル入出力という 1 つの機能の入口が「静的クラスの `Save`」と「型の `Load`」に分かれると、対応形式（`SupportedFileExtensions`）・拡張子と形式の規則・GDI+ の副作用の説明を両方に置くことになります。 現状は**画像型のメンバーが単一所有**します（`Save` は `EsBitmapBase`、`Load` は各派生、一覧は `EsBitmapBase`）。
-  - **分類の規則としても筋が通ります**: `EsBitmapExtensions` は「**画像から画像を作る**」操作（`Crop` / `Resize` / `ReduceColors`。 外部資源に触れず、戻り値は新しい画像）であり、ファイル入出力はこれに当たりません（戻り値は無く、ファイルとプロセスへ副作用があります）。 減色を拡張メソッドへ置いたのはこの規則のとおりです。
-  - **拡張メソッドの利点が効くのは「借用した画像を保存したい」場合だけです**: 切り出し・縮小・減色は UI の表示アダプタが持つ画像（`IEsBitmap` を直接実装し、`EsBitmapBase` を継承しない）からも呼ぶ必要があります（実測: ルーペが表示アダプタの画像を切り出す）。 **保存は現在そのような画像に対して行っていません**（保存するのは本ライブラリが作った画像だけです）。 将来「借用した画像をそのまま保存したい」要求が出た場合は、`Save` を `IEsBitmap` の拡張メソッドとして**追加**する形が妥当です（`Load` は型のメンバーのままでよく、`SupportedFileExtensions` は転送します）。
+- **`Load` は具体型の静的メソッドに置きます**: 戻したい型（読み取り専用 / 書き換え可能）を**呼び出し側が名指す**必要があるためです（静的メソッドは戻り値の型を共変にできないため、`EsBitmap.Load` と `EsWritableBitmap.Load` の 2 つが要ります）。 書き換えが要る場合は `EsWritableBitmap.Load` を使ってください（`EsBitmap.Load` の結果を `EsWritableBitmap.Create` で複製すると、2 回目のコピーが無駄になります）。 つまりファイル入出力の見え方は「**読むときは型を名指す（`Load`）／書くときは面へ渡す（`Save`）**」です。
+- **`Save` を型のメンバーから面の拡張メソッドへ移した理由（検討の結果）**: 以前は `EsBitmapBase` のメンバーでした（ファイル入出力の入口を `Load` と同じ型にまとめるため）。 しかし `IEsBitmap` として受け取った画像を保存するには**キャストが要る**という問題があります（キャストは本ライブラリの実体でのみ成功し、**外部実装の画像（UI の表示アダプタ等）では失敗する**ため「受け取る側は面だけを知る」という前提が崩れます）。 保存は画素を読むだけであり面から実装できるため、**面の拡張メソッドへ移してキャストを不要にしました**（呼び出し側のコード `image.Save(path)` はどちらの形でも同じように書けます）。
+- **`EsBitmapExtensions` の役割（面を拡張する操作）**: 以前は「画像から画像を作る操作」に限っていましたが、**面（`IEsBitmap` / `IEsWritableBitmap`）から実装できる操作**（`Crop` / `Resize` / `ReduceColors` / `Save`）を置く場所へ広げます。 共通する性質は「**実体の型を要さない**」ことです（`Load` だけは戻す型を名指す必要があるため具体型の静的メソッドに残ります）。
 - **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・GDI+ の呼び出し・状態値の例外化は 1 か所（「`WinGdiPlusImageCodec`」）が単一所有し、公開面（`Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
 - **実装の入出力は画像型を知りません**: 符号化は受け取ったピクセル バイト列を書き（`EncodeToFile`）、復号は**画像の生成処理を受け取ってデコード結果をその領域へ直接書きます**（`DecodeFromFile<T>`）。 コーデックが画像型（`EsBitmap` 等）を名指ししないため、画像型が要るのは公開面だけになります。 **中間バッファも追加のコピーも作りません**（実測: 4K PNG の読み込みで 29.9 ms。 中間バッファを挟む方式は 32.6 ms ＝ **+2.7 ms / +8%** と +31 MiB。 保存は両方式とも 66.5 ms で差なし）。
 - **形式は既定では拡張子が決めます**: `Save` は拡張子から形式を選びます（`.bmp` = Windows Bitmap / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`）。 大文字・小文字は区別しません。

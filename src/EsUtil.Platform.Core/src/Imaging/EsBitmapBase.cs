@@ -40,9 +40,26 @@ public abstract class EsBitmapBase : IEsBitmap
     protected const int AlignmentBytes = 64;
 
     /// <summary>ピクセル バッファの所有者（<see cref="SafeAlignedBuffer"/>。 解放の担い手はこのハンドル）。</summary>
-    private readonly SafeAlignedBuffer _buffer;
+    /// <remarks>遅延コピーで自分のバッファへ差し替えるため、読み取り専用にはしない。</remarks>
+    private SafeAlignedBuffer _buffer;
 
     private bool _disposed;
+
+    /// <summary>共有しているバッファの参照を 1 つ保持しているか（破棄のときに解放する）。</summary>
+    /// <remarks>
+    /// <b>バッファを共有した側だけが true</b>である（元の所有者は false のままで、破棄のときに
+    /// <c>SafeAlignedBuffer.Dispose</c> する）。 共有は <see cref="SafeHandle.DangerousAddRef"/> で
+    /// 参照を数えるため、<b>先に破棄しても実体は解放されない</b>（実測で確認。 最後の 1 つが解放する）。
+    /// </remarks>
+    private bool _holdsShare;
+
+    /// <summary>同じバッファを他の画像も見ているか（書き込みの前に自分のバッファへ複製する）。</summary>
+    /// <remarks>
+    /// <b>遅延コピー（copy on write）の目印</b>: 共有されている間は複製せず、<b>最初の書き込みでだけ</b>複製する。
+    /// これにより「読み取り専用の画像から書き換え可能な画像を作る」ときにコピーを避けられ、
+    /// かつ<b>読み取り専用の画像の画素は変わらない</b>という約束を保てる（見え方は即時コピーと同じ）。
+    /// </remarks>
+    private bool _shared;
 
     /// <summary>指定サイズのピクセル バッファを確保する。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>
@@ -67,6 +84,36 @@ public abstract class EsBitmapBase : IEsBitmap
         {
             // 透明（全成分 0）で初期化する（未描画領域を「描かれていない」として扱うため）
             NativeMemory.Clear((void*)AddressCore, (nuint)byteCount);
+        }
+    }
+
+    /// <summary>元の画像のバッファを共有する（コピーせず、最初の書き込みで複製する = 遅延コピー）。</summary>
+    /// <param name="source">共有する元の画像。 借用であり破棄しない。</param>
+    /// <remarks>
+    /// <b>共有してよいのは「元が読み取り専用である」場合だけ</b>である（元が書き換わると、共有している側の画素も
+    /// 変わってしまうため）。 呼び出し側（<c>Create</c> / <c>Clone</c>）がその条件を確かめる。<br/>
+    /// <b>参照を数える</b>: 元の <see cref="SafeAlignedBuffer"/> へ <c>DangerousAddRef</c> を 1 つ取り、
+    /// 破棄または複製のときに返す。 したがって<b>先に元を破棄しても画素は有効なまま</b>である（実測で確認）。<br/>
+    /// <b>元にも印を付ける</b>: 元が書き込む場合に備えて <see cref="_shared"/> を立てる（元が読み取り専用の場合は
+    /// 書き込みの入口が無いため、印は実質的に使われない）。
+    /// </remarks>
+    private protected EsBitmapBase(EsBitmapBase source)
+    {
+        Width = source.Width;
+        Height = source.Height;
+        Size = source.Size;
+        Stride = source.Stride;
+
+        _buffer = source._buffer;
+        _shared = true;
+        source._shared = true;
+
+        // ピクセルを持たない画像（サイズ 0）はハンドルが無効であり、参照を数える対象が無い
+        if (!_buffer.IsInvalid)
+        {
+            var acquired = false;
+            _buffer.DangerousAddRef(ref acquired);
+            _holdsShare = acquired;
         }
     }
 
@@ -119,7 +166,10 @@ public abstract class EsBitmapBase : IEsBitmap
     /// <value>先頭から <c><see cref="Stride"/> × <see cref="Height"/></c> バイト。 ピクセルを持たない場合は空。</value>
     /// <remarks>
     /// <see cref="Pixels"/> と同じバッファを指す（コピーしない）。 公開するのは書き換えを認める派生だけであり、
-    /// 読み取り専用の派生（<see cref="EsBitmap"/>）は公開しない（書き込みの入口を作らない）。
+    /// 読み取り専用の派生（<see cref="EsBitmap"/>）は公開しない（書き込みの入口を作らない）。<br/>
+    /// <b>返す前に共有を解く</b>: ビューを渡した後にバッファを差し替えると、渡したビューが
+    /// 別の領域を指してしまうため、<b>最初に書き込みのビューを取った時点で複製する</b>
+    /// （<see cref="EnsureOwnBuffer"/> を参照）。
     /// </remarks>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     protected unsafe Span<byte> WritableBuffer
@@ -127,9 +177,55 @@ public abstract class EsBitmapBase : IEsBitmap
         get
         {
             ThrowIfDisposed();
+            EnsureOwnBuffer();
             var address = AddressCore;
             return address == 0 ? default : new Span<byte>((void*)address, Stride * Height);
         }
+    }
+
+    /// <summary>書き込みの前に、共有しているバッファを自分のものへ差し替える（遅延コピー）。</summary>
+    /// <remarks>
+    /// <b>最初の書き込みで 1 回だけ複製する</b>: <see cref="_shared"/> が立っている間は他の画像と同じバッファを
+    /// 指しているため、そのまま書くと<b>他の画像の画素が変わる</b>（実測で確認した動作）。 複製してから書けば、
+    /// 見え方は「即時に複製した場合」と完全に同じになり、かつ<b>書き込まない場合は複製の費用を払わない</b>。<br/>
+    /// <b>呼ぶ場所</b>: 書き込みの入口すべて（<c>SetPixel</c> / <c>TrySetPixel</c> / <c>Clear</c> /
+    /// <see cref="WritableBuffer"/>）。 書き込みのビューを渡す入口は<b>渡す前に</b>呼ぶ
+    /// （渡した後に差し替えると、渡したビューが古い領域を指す）。<br/>
+    /// <b>破棄済みの場合は何もしない</b>（呼び出し側の入口が既に例外を投げる）。
+    /// </remarks>
+    private protected unsafe void EnsureOwnBuffer()
+    {
+        if (!_shared || _disposed)
+        {
+            return;
+        }
+
+        _shared = false;
+
+        var byteCount = (long)Stride * Height;
+        if (byteCount <= 0)
+        {
+            ReleaseShare();
+            return;
+        }
+
+        // 複製してから参照を返す（返す前に実体が解放されることはない）
+        var owned = SafeAlignedBuffer.Allocate(byteCount, AlignmentBytes);
+        NativeMemory.Copy((void*)AddressCore, (void*)owned.DangerousGetHandle(), (nuint)byteCount);
+        ReleaseShare();
+        _buffer = owned;
+    }
+
+    /// <summary>共有しているバッファの参照を返す（自分の参照だけを返し、実体は元の所有者が解放する）。</summary>
+    private void ReleaseShare()
+    {
+        if (!_holdsShare)
+        {
+            return;
+        }
+
+        _holdsShare = false;
+        _buffer.DangerousRelease();
     }
 
     /// <inheritdoc/>
@@ -166,10 +262,20 @@ public abstract class EsBitmapBase : IEsBitmap
         => source.Pixels.CopyTo(destination.WritableBuffer);
 
     /// <summary>ピクセル バッファを解放する（解放の入口は <c>Dispose</c> だけに集約する。 冪等）。</summary>
+    /// <remarks>
+    /// <b>共有している場合は自分の参照だけを返す</b>: 実体の解放は元の所有者が行う（参照を数えているため、
+    /// 先に破棄した側が実体を解放してしまうことはない。 実測で確認）。
+    /// </remarks>
     protected void ReleaseBuffer()
     {
         if (_disposed) return;
         _disposed = true;
+
+        if (_holdsShare)
+        {
+            ReleaseShare();
+            return;
+        }
 
         _buffer.Dispose();
     }
@@ -184,66 +290,15 @@ public abstract class EsBitmapBase : IEsBitmap
     /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
     /// <value>`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`。 形式はこの一覧で決まる。</value>
     /// <remarks>
-    /// <b>Windows 専用の値</b>（実装は GDI+ のエンコーダーであり、<see cref="Save(string)"/> と同じ制約）。
-    /// 形式の判定（拡張子 → エンコーダー）の単一所有は本一覧である（<c>Save</c> は本一覧に無い拡張子を拒否する）。
+    /// <b>Windows 専用の値</b>（実装は GDI+ のエンコーダーであり、<see cref="EsBitmapExtensions.Save(IEsBitmap, string)"/> と同じ制約）。
+    /// 形式の判定（拡張子 → エンコーダー）の単一所有は本一覧である（保存は本一覧に無い拡張子を拒否する）。<br/>
+    /// <b>保存する側（<c>Save</c>）は面（<see cref="IEsBitmap"/>）の拡張メソッドに置く</b>: 保存は画素を読むだけであり
+    /// 実体の型を要さないため、受け取った画像（外部実装の画像を含む）をそのまま保存できるようにする
+    /// （キャストを要さない）。 本型には<b>形式を決める規則（本一覧）だけ</b>を残す。
     /// </remarks>
     public static IReadOnlyList<string> SupportedFileExtensions => WinGdiPlusImageCodec.SupportedExtensions;
 
-    /// <summary>本画像をファイルへ保存する（形式は拡張子が決める）。</summary>
-    /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める）。</param>
-    /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
-    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合。</exception>
-    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）。</exception>
-    /// <exception cref="ObjectDisposedException">本画像が破棄済みの場合。</exception>
-    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
-    /// <remarks>
-    /// <b>インターフェイスのではなく本型のメンバーである理由</b>: ファイル入出力は<b>ピクセルを書く権利を要さない</b>ため、
-    /// 読み取り専用の面（<see cref="IEsBitmap"/>）の利用者にも必要だが、<see cref="IEsBitmap"/> に置くと
-    /// 外部が実装する画像（UI のアダプタ等）にも保存能力を要求することになる。 本型は 2 つの権利の共通基底であるため、
-    /// <b>実装を持てる最小の位置</b>がここである（同じ理由で <see cref="SupportedFileExtensions"/> も本型が持つ）。<br/>
-    /// <b>ピクセルは複製しない</b>: <see cref="Pixels"/> のビューをそのままエンコードへ渡す
-    /// （一時バッファを確保しない）。<br/>
-    /// <b>Windows 専用</b>: OS の GDI+ を呼ぶため <see cref="SupportedOSPlatformAttribute"/> で限定する
-    /// （副作用は <see cref="EsUtil.Platform.Core.Native.Win.WinGdiPlusLifetime"/> を参照）。
-    /// </remarks>
-    [SupportedOSPlatform("windows")]
-    public void Save(string filePath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        WinGdiPlusImageCodec.EncodeToFile(Pixels, Width, Height, filePath);
-    }
-
-    /// <summary>本画像をファイルへ保存する（形式は拡張子が決める。保存の形式とオプションを指定できる）。</summary>
-    /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める。 <paramref name="options"/> で形式を指定した場合に拡張子が無ければ補完する）。</param>
-    /// <param name="options">保存のオプション（形式ごとに使える項目が異なる）。</param>
-    /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
-    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または
-    /// <paramref name="filePath"/> の拡張子と <see cref="EsImageSaveOptions.Format"/> が食い違い
-    /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
-    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）、または
-    /// <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
-    /// <exception cref="ObjectDisposedException">本画像が破棄済みの場合。</exception>
-    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
-    /// <remarks>
-    /// <b>形式の決め方</b>: <see cref="EsImageSaveOptions.Format"/> を指定しない場合は<b>拡張子が形式を決める</b>。
-    /// 指定した場合は<b>形式が優先</b>され、拡張子が無ければ補完し（<c>shot</c> + <see cref="EsImageFileFormat.Png"/> →
-    /// <c>shot.png</c>）、拡張子と食い違う場合は <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が true なら
-    /// 与えられたファイル名のまま保存し、false なら例外にする。<br/>
-    /// <b>どのオプションが効くかは形式が決める</b>: 実測で効果が確認できたのは JPEG の品質
-    /// （<see cref="EsImageSaveOptions.JpegQuality"/>）だけであり、他の形式へ設定すると例外になる
-    /// （BMP / PNG / GIF は品質を受け取っても出力が変わらず、TIFF は既定より小さい値が選べない。
-    /// 実測値と理由は <see cref="EsImageSaveOptions"/> を参照）。<br/>
-    /// <b>オプションを省略した場合との違い</b>: 本オーバーロードは明示された値だけをエンコーダーへ渡すため、
-    /// 既定値は GDI+ の既定と一致しない（実測: 1280x720 の不規則な画像で既定 826 KB に対し品質 75 は 554 KB）。
-    /// 調整しない場合は <see cref="Save(string)"/> を使う。
-    /// </remarks>
-    [SupportedOSPlatform("windows")]
-    public void Save(string filePath, EsImageSaveOptions options)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        WinGdiPlusImageCodec.EncodeToFile(Pixels, Width, Height, filePath, options);
-    }
+    /// <summary>ファイルを読み込んで新しい画像を生成する（派生が公開する <c>Load</c> の共通手順）。</summary>
 
     /// <summary>ファイルを読み込んで新しい画像を生成する（派生が公開する <c>Load</c> の共通手順）。</summary>
     /// <typeparam name="T">生成する画像の型（<see cref="EsBitmap"/> または <see cref="EsWritableBitmap"/>）。</typeparam>

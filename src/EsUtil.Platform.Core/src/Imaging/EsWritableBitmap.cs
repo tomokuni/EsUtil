@@ -28,6 +28,13 @@ public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposa
     {
     }
 
+    /// <summary>読み取り専用の画像のバッファを共有する（最初の書き込みで複製する = 遅延コピー）。</summary>
+    /// <param name="source">共有する元の画像（読み取り専用であること）。</param>
+    private EsWritableBitmap(EsBitmap source)
+        : base(source)
+    {
+    }
+
     /// <summary>ピクセル バッファを解放する（冪等）。</summary>
     /// <remarks>解放の実装は <see cref="SafeAlignedBuffer.ReleaseHandle"/> が単一所有する。</remarks>
     public void Dispose() => ReleaseBuffer();
@@ -65,21 +72,25 @@ public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposa
     public static EsWritableBitmap Create(EsSizeInt size, Color color)
         => Create(size.Width, size.Height, color);
 
-    /// <summary>別のオブジェクト（画像）から書き換え可能な画像を生成する（バッファは共有しない）。</summary>
+    /// <summary>別のオブジェクト（画像）から書き換え可能な画像を生成する。</summary>
     /// <param name="source">生成元の画像。 借用であり破棄しない。</param>
-    /// <returns>独立した画像。 所有権は呼び出し側へ移る。</returns>
+    /// <returns>書き換え可能な画像。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// <b>複製を作る理由</b>: 生成元とバッファを共有すると、書き換えが生成元の側へ
-    /// 波及して「書き換えない」という約束が崩れるため（1 回の全域コピーが発生する。 実測: 4K で約 6 ms）。<br/>
+    /// <b>元が読み取り専用の画像（<see cref="EsBitmap"/>）なら共有し、最初の書き込みで複製する（遅延コピー）</b>:
+    /// 読み取り専用の画像は以後変わらないため、書き込むまで複製を遅らせても<b>見え方は同じ</b>である
+    /// （書き込みの瞬間に複製するので、元の画素は変わらない。 実測で確認）。
+    /// したがって<b>書き込まない場合は全域コピー（実測: 4K で 5.7 ms / 31 MiB）を払わない</b>。<br/>
+    /// <b>それ以外（書き換え可能な画像・外部実装の画像）からは複製する</b>: 生成元がその後に変わりうるため
+    /// （書き換え可能な画像は持ち主が書き込める。 外部実装の画像はバッファを共有できる手段が無い）。<br/>
     /// <b>本メソッドは「別のオブジェクトからの生成」である</b>: 受け取った画像から書き換え可能な実体を組み立てる。
     /// <b>自身（書き換え可能な画像）の複製は <see cref="Clone"/></b> であり意味が異なる
-    /// （実装が同じでも片方へ寄せない）。<br/>
+    /// （実装が同じでも片方へ寄せない。 <c>Clone</c> は即時に複製する）。<br/>
     /// <b>引数が面（<see cref="IEsBitmap"/>）である理由</b>: <see cref="EsBitmap.Create(IEsBitmap)"/> と同じであり、
     /// <b>受け取る実体を本型の派生に限らない</b>ためである（外部が実装する画像（UI の表示アダプタ等）からも
     /// 書き換え可能な実体を組み立てられる。 同じ型（<see cref="EsWritableBitmap"/>）を渡すこともできるが、
     /// 自身の複製が目的なら <see cref="Clone"/> を使う）。<br/>
     /// <b>ファイルから書き換え可能な画像が要る場合は本メソッドを使わない</b>
-    /// （<see cref="Load(string)"/> がデコードと同時に書き換え可能な型を作るため、全域コピーが 1 回で済む）。
+    /// （<see cref="Load(string)"/> がデコードと同時に書き換え可能な型を作るため、複製が 1 回で済む）。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
@@ -88,9 +99,8 @@ public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposa
         ArgumentNullException.ThrowIfNull(source);
         ObjectDisposedException.ThrowIf(source.IsDisposed, source);
 
-        var result = CreateUninitialized(source.Width, source.Height);
-        source.Pixels.CopyTo(result.WritableBuffer);
-        return result;
+        // 読み取り専用の画像は以後変わらないため、バッファを共有して書き込み時に複製する
+        return source is EsBitmap readOnly ? new EsWritableBitmap(readOnly) : CopyFrom(source);
     }
 
     /// <summary>直後に全領域を書く前提でピクセル バッファを確保する（初期化しない）。</summary>
@@ -106,6 +116,21 @@ public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposa
     /// </remarks>
     public static EsWritableBitmap CreateUninitialized(int width, int height)
         => new(width, height, clear: false);
+
+    /// <summary>ピクセルを複製して書き換え可能な画像を生成する（外部実装の画像・書き換え可能な画像から作る場合）。</summary>
+    /// <param name="source">生成元の画像。 借用であり破棄しない。</param>
+    /// <returns>独立した画像。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>複製が要る理由</b>: 生成元が<b>その後に変わりうる</b>ため（外部実装の画像は本ライブラリが関与できない。
+    /// 書き換え可能な画像は持ち主が書き込める）。 読み取り専用の画像（<see cref="EsBitmap"/>）から作る場合は
+    /// <see cref="Create(IEsBitmap)"/> が共有するため、本メソッドは通らない。
+    /// </remarks>
+    private static EsWritableBitmap CopyFrom(IEsBitmap source)
+    {
+        var result = CreateUninitialized(source.Width, source.Height);
+        source.Pixels.CopyTo(result.WritableBuffer);
+        return result;
+    }
 
     /// <summary>直後に全領域を書く前提でピクセル バッファを確保する（初期化しない）。</summary>
     /// <param name="size">サイズ（幅・高さを使用）。</param>
@@ -174,6 +199,7 @@ public sealed class EsWritableBitmap : EsBitmapBase, IEsWritableBitmap, IDisposa
     public unsafe void SetPixel(int x, int y, byte b, byte g, byte r, byte a)
     {
         ThrowIfDisposed();
+        EnsureOwnBuffer();
         var p = AddressCore + (y * Stride) + (x * BytesPerPixel);
         *(uint*)p = (uint)(b | (g << 8) | (r << 16) | (a << 24));
     }
