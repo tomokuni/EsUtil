@@ -316,31 +316,48 @@ public class EsBitmapTests
     }
 
     [Fact]
-    internal void AsReadOnly_凍結して読み取り専用の見方を返す()
+    internal void 元が凍結済みなら複製しない()
     {
         using var bmp = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 1, 2, 3));
+        bmp.SetReadOnly();
 
-        // 引き渡し: 凍結して読み取り専用の見方として返す
-        EsReadOnlyBitmap read = bmp.AsReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
 
-        // 同じ画素を指す（コピーしない）
-        Assert.Same(bmp, read);
-        Assert.True(read.IsReadOnly);
-        Assert.True(bmp.IsReadOnly);
+        // 凍結済みなら 0 コピー（同じ画素領域を指す）
+        Assert.True(SameStorage(bmp, read), "凍結済みなのに複製されています。");
 
-        // 渡した相手は画素が変わらないことを前提にできる（書き換え可能な側も書けない）
-        Assert.Throws<InvalidOperationException>(() => bmp.SetPixel(0, 0, 9, 9, 9, 9));
+        // 破棄の順序に依存しない（参照を数える）
+        bmp.Dispose();
         Assert.Equal((byte)3, read.GetPixel(0, 0).B);
     }
 
     [Fact]
-    internal void AsReadOnly_破棄済みならObjectDisposedExceptionを投げる()
+    internal void 元が未凍結なら複製する()
+    {
+        using var bmp = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 1, 2, 3));
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
+
+        Assert.False(bmp.IsReadOnly);
+
+        // 未凍結なら複製（元の書き込みが読み取り専用の画像へ届かず、元も凍結されない）
+        Assert.False(SameStorage(bmp, read), "未凍結なのに共有されています。");
+        bmp.SetPixel(0, 0, 9, 9, 9, 9);
+        Assert.Equal((byte)3, read.GetPixel(0, 0).B);
+        Assert.Equal((byte)9, bmp.GetPixel(0, 0).B);
+    }
+
+    [Fact]
+    internal void 破棄済みならObjectDisposedExceptionを投げる()
     {
         var bmp = Create(2, 2);
         bmp.Dispose();
 
-        Assert.Throws<ObjectDisposedException>(bmp.AsReadOnly);
+        Assert.Throws<ObjectDisposedException>(() => EsReadOnlyBitmap.FromBitmap(bmp));
     }
+
+    [Fact]
+    internal void nullならArgumentNullExceptionを投げる()
+        => Assert.Throws<ArgumentNullException>(() => EsReadOnlyBitmap.FromBitmap(null!));
 
     [Fact]
     internal void 継承_読み取り専用として見ても実体が書き換え可能ならCloneは独立した複製を返す()
@@ -565,7 +582,7 @@ public class EsBitmapTests
     {
         using var bmp = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 10, 20, 30));
 
-        // 暗黙に読み取り専用の型として渡せる（キャストも AsReadOnly も不要）
+        // 暗黙に読み取り専用の型として渡せる（キャストも変換も不要）
         EsReadOnlyBitmap read = bmp;
 
         Assert.True(SameStorage(read, bmp), "読み取り専用の面への変換でコピーが起きています。");

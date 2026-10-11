@@ -230,26 +230,6 @@ public sealed class EsBitmap : EsReadOnlyBitmap
         }
     }
 
-    /// <summary>本画像を凍結し、読み取り専用の見方として返す（相手へ渡すときの<b>引き渡し</b>）。</summary>
-    /// <returns>同じ画素を指す読み取り専用の見方（<b>コピーしない</b>。 同じ実体を返す）。</returns>
-    /// <remarks>
-    /// <b>型を分けた意味を「注意」に頼らせないための入口</b>です。 <see cref="EsReadOnlyBitmap"/> は
-    /// 「この型では書けない」しか保証しないため、書き換え可能な実体をそのまま渡すと、渡した相手の画素が
-    /// 後から変わります（渡した側が書き続ければ）。 本メソッドは<b>凍結</b>（<see cref="EsReadOnlyBitmap.SetReadOnly"/>）
-    /// してから返すため、<b>渡した相手は画素が変わらないことを前提にできます</b>（凍結は画素領域の共有状態に
-    /// 効くので、書き換え可能な側の実体も書けなくなります）。<br/>
-    /// <b>呼んだ後に書き続けられません</b>（書く必要がある場合は、渡す前に <see cref="Clone"/> で複製を
-    /// 作って渡すか、書き終えてから本メソッドを呼びます）。<br/>
-    /// <b>コピーしない理由</b>: 4K の複製は 31 MiB と 5.7 ms を要するため、公開（表示・履歴への登録）の
-    /// たびに複製しないようにします。
-    /// </remarks>
-    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    public EsReadOnlyBitmap AsReadOnly()
-    {
-        SetReadOnly();
-        return this;
-    }
-
     /// <summary>指定座標のピクセルを BGRA で設定する。</summary>
     /// <param name="x">X 座標（ピクセル）。</param>
     /// <param name="y">Y 座標（ピクセル）。</param>
