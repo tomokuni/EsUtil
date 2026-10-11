@@ -191,7 +191,7 @@ flowchart TB
 - `Source` が `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む派生型）の場合は `CopyPixels` による複製（`EsBitmap` 化）で抽出する。
 - `Source` が `EsBitmapAvaloniaAdapter` の場合は `GetEsBitmap()` でコアの画像（`EsReadOnlyBitmap`）を取り出し、そのピクセルを直接抽出する（複製なし）。
 - `Bitmap`（派生を含む） / `EsBitmapAvaloniaAdapter` 以外の `IImage`（`CroppedBitmap` 等）は `NotSupportedException` が発生する。
-- 切り出し（`EsReadOnlyBitmap` の拡張 `Crop`）と合成（`RenderTargetBitmap` / `DrawingContext`）は UI スレッドで行う（バックグラウンド抽出は連続再描画時にスレッドプールが競合し、移動中の追従が止まるため行わない）。 一時 `RenderTargetBitmap` は描画直後に破棄する。
+- 切り出し（`EsReadOnlyBitmap` のメンバー `Crop`）と合成（`RenderTargetBitmap` / `DrawingContext`）は UI スレッドで行う（バックグラウンド抽出は連続再描画時にスレッドプールが競合し、移動中の追従が止まるため行わない）。 一時 `RenderTargetBitmap` は描画直後に破棄する。
 
 ### 6.5 切り出し領域の幾何（`EsUtil.Feature.Loupe.Core`）
 
@@ -199,7 +199,7 @@ flowchart TB
 - **分類**: 幾何（`public readonly record struct`）の導出プロパティ
 - **責務**: 切り出し領域の幾何（どこを切り出すか）を幾何の値から導出する
 - **公開API**: 描画計画（`LoupeDrawPlan.MagnifiedImage`）として外部へ渡る
-- **切り出しの実行は本メンバーにない**: `EsReadOnlyBitmap` の拡張 `Crop` を描画実装（Avalonia は `LoupeContextPainter`）が呼ぶ
+- **切り出しの実行は本メンバーにない**: `EsReadOnlyBitmap` のメンバー `Crop` を描画実装（Avalonia は `LoupeContextPainter`）が呼ぶ
 - **依存**: `EsUtil.Platform.Core`（`EsPoint` / `EsRect` / `EsRectInt`）。 Avalonia には依存しない
 
 ### 6.6 LoupeLogMessage
@@ -252,7 +252,7 @@ sequenceDiagram
     Pl->>Sr: IsSourceSupported(source)（未対応型は例外）/ Resolve(source)
     Sr-->>Pl: 切り出し元 EsReadOnlyBitmap（Bitmap は複製・アダプタは GetEsBitmap で取り出す）
     Pl->>Rdr: LoupeContextPainter.Paint(DrawingContext, source, plan)（UI スレッド。描画の順序は計画が単一所有）
-    Rdr->>Ext: EsReadOnlyBitmap の拡張 Crop(content.MagnifiedImage.CropSourceRect)（描画実装が実行する）
+    Rdr->>Ext: EsReadOnlyBitmap のメンバー Crop(content.MagnifiedImage.CropSourceRect)（描画実装が実行する）
     Ext-->>Rdr: 切り出し画像（範囲外は透明パディング）
     Rdr-->>Pl: 合成 Bitmap
     Pl-->>Ctl: 生成 Bitmap

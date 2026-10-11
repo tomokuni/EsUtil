@@ -77,7 +77,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
     /// <value><c>.bmp</c> / <c>.png</c> / <c>.jpg</c> / <c>.jpeg</c> / <c>.gif</c> / <c>.tif</c> / <c>.tiff</c>。</value>
     /// <remarks>
-    /// <b>Windows 専用の値</b>（実装は GDI+ のエンコーダーであり、<see cref="EsBitmapExtensions.Save(EsReadOnlyBitmap, string)"/> と同じ制約）。
+    /// <b>Windows 専用の値</b>（実装は GDI+ のエンコーダーであり、<see cref="Save(string)"/> と同じ制約）。
     /// 形式の判定（拡張子 → エンコーダー）の単一所有は本一覧である。 <see cref="EsBitmap"/> も同じ値を公開する。
     /// </remarks>
     [SupportedOSPlatform("windows")]
@@ -96,7 +96,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// または画像として解釈できない場合。</exception>
     [SupportedOSPlatform("windows")]
     public static EsReadOnlyBitmap Load(string filePath)
-        => EsBitmapLoader.Load(filePath, static buffer => new EsReadOnlyBitmap(buffer));
+        => new(EsBitmapBuffer.LoadFromFile(filePath));
 
     /// <summary>指定サイズの空の画像（BGRA8888・全ピクセル透明）を生成する。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>
@@ -325,6 +325,98 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     public EsReadOnlyBitmap Copy() => FromPixelCopy(Width, Height, ReadOnlyPixels);
 
+    /// <summary>本画像から指定された矩形領域を切り出す。</summary>
+    /// <param name="x">切り出し領域の左上 X 座標（画像ローカル ピクセル）。 負値の場合はソース左端より外側が透明パディングとなる。</param>
+    /// <param name="y">切り出し領域の左上 Y 座標（画像ローカル ピクセル）。 負値の場合はソース上端より外側が透明パディングとなる。</param>
+    /// <param name="width">切り出し領域の幅（ピクセル）。 正の値。</param>
+    /// <param name="height">切り出し領域の高さ（ピクセル）。 正の値。</param>
+    /// <returns>切り出された新しい画像（要求サイズ。 ソース範囲外は透明パディング）。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>元の画像は変更しません</b>（新しい画像を作る操作です。 画像の内側だけを複製せずに読みたい場合は
+    /// <see cref="ToPixmap"/> を使います）。 書き換え可能な画像（<see cref="EsBitmap"/>）も同じ名前のメンバーを持ちます。<br/>
+    /// <b>ソース範囲外は透明で埋めます</b>: コピーで覆われない領域を透明にするため、位置関係は保たれます
+    /// （左上がソースの外でも内容を左上へ詰めません。 矩形が交差しない場合は全ピクセル透明の画像を返します）。
+    /// コピーされないパディングだけを透明にするため、<b>0 埋めは行いません</b>。<br/>
+    /// <b>コピーは 1 回で済む場合を分けます</b>: 左右のパディングが無く、ソースとデスティネーションの行幅が等しいときは
+    /// 連続領域として全領域を 1 回でコピーします（実測: 4K 全域の切り出しで 8.3 ms → 6.6 ms）。
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="width"/> / <paramref name="height"/> が 0 以下の場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public EsBitmap Crop(int x, int y, int width, int height)
+    {
+        ThrowIfDisposed();
+        return EsBitmapOperations.Crop(_buffer, x, y, width, height);
+    }
+
+    /// <summary>本画像から指定された矩形領域を切り出す（矩形で指定する版）。</summary>
+    /// <param name="rect">切り出し領域（画像ローカル ピクセル）。</param>
+    /// <returns>切り出された新しい画像。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>規則（透明パディング・コピーの最適化）は <see cref="Crop(int, int, int, int)"/> と同じです。</remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="rect"/> の幅・高さが 0 以下の場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public EsBitmap Crop(EsRectInt rect)
+    {
+        ThrowIfDisposed();
+        return EsBitmapOperations.Crop(_buffer, rect);
+    }
+
+    /// <summary>長辺を上限へ収めた画像を生成する（アルゴリズムは引数で選ぶ）。</summary>
+    /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
+    /// <param name="algorithm">縮小のアルゴリズム。 既定は <see cref="DownscaleAlgorithm.Bilinear"/>。</param>
+    /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>用途</b>: 大きな画像を小さく扱う場面（一覧のサムネイル・プレビュー等）。 元の寸法の複製を保持すると
+    /// 4K 1 枚で 32 MB になるため、表示や転送の前に本メソッドで縮小します。<br/>
+    /// <b>名前が <c>Resize</c> である理由</b>: 将来の拡大対応を見込んで双方向の名前を残しています（現在の実装は縮小だけを
+    /// 行います）。 拡大が必要な要求は黙って等倍を返さず <see cref="NotSupportedException"/> にします（「拡大された」と
+    /// 誤解されるため）。 長辺と上限が一致する場合は縮小不要のため<b>等倍の複製</b>を返します。<br/>
+    /// <b>アルゴリズムの選び方</b>: 速度と画質の目安は <see cref="DownscaleAlgorithm"/> を参照（既定の双線形は
+    /// 「速い・細線は薄れる」、<see cref="DownscaleAlgorithm.Box"/> は「遅い・細線が残る」）。<br/>
+    /// <b>並列化</b>: どのアルゴリズムも<b>縮小先の行を範囲へ分けて並列実行します</b>（小さい画像では逐次のままにします）。<br/>
+    /// <b>返す寸法の丸め</b>: 切り捨てで丸めるため<b>1 px 未満の誤差が出えます</b>（座標の対応付けが必要な場面では使わないこと）。
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または
+    /// <paramref name="algorithm"/> が定義されていない値の場合。</exception>
+    /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public EsBitmap Resize(int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)
+    {
+        ThrowIfDisposed();
+        return EsBitmapOperations.Resize(_buffer, maxSize, algorithm);
+    }
+
+    /// <summary>本画像を指定の色数へ減色する（パレット化。 画素数と寸法は変えない）。</summary>
+    /// <param name="colorCount">残す色数（2〜256）。</param>
+    /// <returns>減色した新しい画像（使われる色は <paramref name="colorCount"/> 種類以下）。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>不可逆です</b>: 元の画素は戻りません（減色後の色数は <paramref name="colorCount"/> 以下になります）。<br/>
+    /// <b>透過は保たれます（実測）</b>: アルファも減色の対象であり、透明な画素は透明なパレットの色へ寄ります。
+    /// 保存した PNG には <c>tRNS</c>（インデックス透過）、GIF には透明の色番号が書かれます。<br/>
+    /// <b>用途</b>: 保存のファイル サイズを小さくする（<see cref="EsImageSaveOptions.ColorCount"/> を指定した保存は
+    /// 本処理を行います）。 切り出し・縮小と同じく<b>新しい画像を作る</b>ため、元の画像は変更しません。<br/>
+    /// <b>アルゴリズム（実測で選んだ）</b>: 5 ビットのヒストグラム（32³ = 32,768 箱）を作り、
+    /// <b>中央値分割</b>で箱を色数まで分け、箱ごとの平均色をパレットにします。 画素の割り当ては
+    /// <b>箱ごとに 1 度だけ最近傍を求めた参照表</b>を引きます（画素ごとに 256 色と比較しません）。
+    /// 実測（1920x1080・256 色）: <b>30 ms</b>（16 色で 8 ms）。<br/>
+    /// <b>色数はアルファの段階も数えます</b>: アルファは 4 段階（0〜63 / 64〜127 / 128〜191 / 192〜255）に
+    /// 量子化されるため、同じ RGB でもアルファが違えば別の色としてパレットを消費します
+    /// （不透明な画像ではアルファが 1 段階のため、従来と同じ結果になります）。<br/>
+    /// <b>ディザを行わない理由（実測）</b>: ディザは見た目を滑らかにしますが、パレットの色を交互に置くため
+    /// <b>保存のファイルが大きくなります</b>（実測: Magick.NET の 256 色 PNG で 645,647 B → FloydSteinberg で
+    /// 803,118 B ＝ <b>+24%</b>）。 本ライブラリはファイル サイズを下げる目的で減色するため、行いません。<br/>
+    /// <b>外部ライブラリとの比較（実測）</b>: 同じ 1920x1080・256 色で、本処理は 30 ms、
+    /// SixLabors.ImageSharp の Wu 量子化は 219 ms、Magick.NET は 553 ms です
+    /// （サイズも本処理の 173,684 B に対し 111,764 B / 117,156 B と、写真では外部の方が小さい。
+    /// 減色の品質は pngquant が最も高いが、実行ファイルの同梱と 1 枚 700 ms を要する）。
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public EsBitmap ReduceColors(int colorCount)
+    {
+        ThrowIfDisposed();
+        return EsBitmapOperations.ReduceColors(_buffer, colorCount);
+    }
+
     /// <summary>本画像の一部を指す<b>0 コピーの読み取りビュー</b>を生成する（切り出しの複製を避ける）。</summary>
     /// <param name="rect">ビューの範囲（元画像の座標。 <b>画像の内側であること</b>）。</param>
     /// <returns>ビュー。 所有権は呼び出し側へ移る（破棄すると元画像への参照を返す。 画素は破棄しない）。</returns>
@@ -336,7 +428,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// 元の行幅を保つため、行ごとに余白を持ちます）。 したがって <see cref="EsPixmap.ReadOnlyPixels"/> は
     /// <b>行の余白を含む</b>連続したビューであり、画素を読む場合は <see cref="EsPixmap.GetPixel(int, int)"/> を使います。<br/>
     /// <b>範囲は画像の内側に限ります</b>: ビューは透明で埋めることができないためです（画像の外側を含む切り出しが
-    /// 必要な場合は、透明で埋める <see cref="EsBitmapExtensions.Crop(EsReadOnlyBitmap, EsRectInt)"/> を使います）。<br/>
+    /// 必要な場合は、透明で埋める <see cref="Crop(EsRectInt)"/> を使います）。<br/>
     /// <b>元画像の寿命に依存しません</b>: ビューは元の画素の参照を 1 つ持つため、<b>先に元を破棄してもビューは読めます</b>
     /// （画素の解放は最後の 1 つが行います）。 ただし<b>元の内容の変化は見えます</b>（ビューは同じ画素を指すため）。
     /// </remarks>
@@ -347,6 +439,47 @@ public sealed class EsReadOnlyBitmap : IDisposable
         ThrowIfDisposed();
         return _buffer.ToPixmap(rect);
     }
+
+    /// <summary>本画像をファイルへ保存する（形式は拡張子が決める）。</summary>
+    /// <param name="filePath">保存先のファイル パス（拡張子が形式を決める）。 null 不可。</param>
+    /// <remarks>
+    /// <b>画素を読むだけの操作です</b>: 書き換えの権利も実体の指定も要らないため、書き換え可能な画像（<see cref="EsBitmap"/>）も
+    /// 同じ名前のメンバーを持ちます。 実装は内部の画素バッファ（<see cref="EsBitmapBuffer"/>）が単一所有します
+    /// （<b>ピクセルは複製しません</b>。 一時バッファを確保しません）。<br/>
+    /// <b>Windows 専用</b>: OS の GDI+ を呼ぶため <see cref="SupportedOSPlatformAttribute"/> で限定します。
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合。</exception>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    [SupportedOSPlatform("windows")]
+    public void Save(string filePath) => _buffer.SaveToFile(filePath);
+
+    /// <summary>本画像をファイルへ保存する（形式とオプションを指定できる）。</summary>
+    /// <param name="filePath">保存先のファイル パス（<paramref name="options"/> で形式を指定した場合に拡張子が無ければ補完する）。</param>
+    /// <param name="options">保存のオプション（形式ごとに使える項目が異なる）。</param>
+    /// <remarks>
+    /// <b>形式の決め方</b>: <see cref="EsImageSaveOptions.Format"/> を指定しない場合は<b>拡張子が形式を決めます</b>。
+    /// 指定した場合は<b>形式が優先</b>され、拡張子が無ければ補完し（<c>shot</c> + <see cref="EsImageFileFormat.Png"/> →
+    /// <c>shot.png</c>）、拡張子と食い違う場合は <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が true なら
+    /// 与えられたファイル名のまま保存し、false なら例外にします。<br/>
+    /// <b>どのオプションが効くかは形式が決めます</b>: 実測で効果が確認できたのは JPEG の品質
+    /// （<see cref="EsImageSaveOptions.JpegQuality"/>）と減色（<see cref="EsImageSaveOptions.ColorCount"/>）だけであり、
+    /// 他の形式へ設定すると例外になります（実測値と理由は <see cref="EsImageSaveOptions"/> を参照）。<br/>
+    /// <b>オプションを省略した場合との違い</b>: 本オーバーロードは明示された値だけをエンコーダーへ渡すため、
+    /// 既定値は GDI+ の既定と一致しません（実測: 1280x720 の不規則な画像で既定 826 KB に対し品質 75 は 554 KB）。
+    /// 調整しない場合は <see cref="Save(string)"/> を使います。
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または
+    /// <paramref name="filePath"/> の拡張子と <see cref="EsImageSaveOptions.Format"/> が食い違い
+    /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）、または
+    /// <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    [SupportedOSPlatform("windows")]
+    public void Save(string filePath, EsImageSaveOptions options) => _buffer.SaveToFile(filePath, options);
 
     /// <summary>画像の寸法を「幅x高さ」形式の文字列で返す（ログ等への記録用）。</summary>
     /// <returns>寸法の文字列（例: <c>1920x1080</c>）。 ピクセルを持たない場合は <c>0x0</c>。</returns>

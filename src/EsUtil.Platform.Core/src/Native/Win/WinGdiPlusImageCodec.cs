@@ -7,7 +7,8 @@ namespace EsUtil.Platform.Core.Native.Win;
 
 /// <summary>画像のファイル保存・読み込みの実装（GDI+ のフラット API を使う Windows 専用）。</summary>
 /// <remarks>
-/// <b>唯一の実装</b>: 公開面は画像型のメンバー（<see cref="EsUtil.Platform.Core.Imaging.EsBitmapExtensions.Save(EsReadOnlyBitmap, string)"/> /
+/// <b>唯一の実装</b>: 公開面は画像型のメンバー（<see cref="EsUtil.Platform.Core.Imaging.EsReadOnlyBitmap.Save(string)"/> /
+/// <see cref="EsUtil.Platform.Core.Imaging.EsBitmap.Save(string)"/> /
 /// <see cref="EsUtil.Platform.Core.Imaging.EsReadOnlyBitmap.Load(string)"/> / <see cref="EsUtil.Platform.Core.Imaging.EsBitmap.Load(string)"/>) であり、
 /// 本クラスはその実装を 1 箇所へ集約する（本層は internal）。<br/>
 /// <b>画像型を知らない</b>: 符号化は受け取ったピクセル バイト列を書き
@@ -163,7 +164,7 @@ internal static class WinGdiPlusImageCodec
     private static void EncodeIndexedToFile(
         ReadOnlySpan<byte> pixels, int width, int height, string filePath, ImageFileFormat format, int colorCount)
     {
-        var (indices, palette) = EsBitmapExtensions.ReduceToIndexed(pixels, width, height, colorCount);
+        var (indices, palette) = EsBitmapOperations.ReduceToIndexed(pixels, width, height, colorCount);
 
         // GDI+ の行幅は 4 バイト境界へ揃えられる（8bpp では 1 行 = 幅 バイト）
         var stride = (width + 3) & ~3;
@@ -207,7 +208,7 @@ internal static class WinGdiPlusImageCodec
     [SupportedOSPlatform("windows")]
     private static void SetPalette(IntPtr image, uint[] palette)
     {
-        var count = Math.Min(EsBitmapExtensions.MaximumColorCount, palette.Length);
+        var count = Math.Min(EsBitmapOperations.MaximumColorCount, palette.Length);
         var memory = Marshal.AllocHGlobal(8 + (count * 4));
         try
         {
@@ -350,12 +351,12 @@ internal static class WinGdiPlusImageCodec
                 throw CreateUnsupportedOption(format, nameof(EsImageSaveOptions.ColorCount));
             }
 
-            if (colorCount < EsBitmapExtensions.MinimumColorCount || colorCount > EsBitmapExtensions.MaximumColorCount)
+            if (colorCount < EsBitmapOperations.MinimumColorCount || colorCount > EsBitmapOperations.MaximumColorCount)
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(options),
                     colorCount,
-                    $"減色して残す色数は {EsBitmapExtensions.MinimumColorCount}〜{EsBitmapExtensions.MaximumColorCount} の範囲で指定します。");
+                    $"減色して残す色数は {EsBitmapOperations.MinimumColorCount}〜{EsBitmapOperations.MaximumColorCount} の範囲で指定します。");
             }
         }
 
@@ -404,7 +405,7 @@ internal static class WinGdiPlusImageCodec
     private static int? ResolveColorCount(ImageFileFormat format, in EsImageSaveOptions options)
         => options.ColorCount is int colorCount
             ? colorCount
-            : format == ImageFileFormat.Gif ? EsBitmapExtensions.MaximumColorCount : null;
+            : format == ImageFileFormat.Gif ? EsBitmapOperations.MaximumColorCount : null;
 
     /// <summary>形式を表す enum を内部の形式へ変換する。</summary>
     /// <param name="format">公開の形式。</param>

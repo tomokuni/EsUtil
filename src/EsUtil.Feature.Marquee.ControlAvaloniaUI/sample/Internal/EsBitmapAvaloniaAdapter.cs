@@ -22,7 +22,7 @@ namespace EsUtil.Feature.Marquee.AvaloniaUI.Sample.Internal;
 /// <b>射影は初回に一度だけ</b>: 表示用の射影（Avalonia の <see cref="Bitmap"/>）は初回の描画（または寸法取得）で
 /// 1 回だけ作り、以降は作り直さない（ピクセルを複製するため。 実測: 4K で 7.8 ms / 32 MB）。<br/>
 /// <b>表示用の射影だけを縮小できる</b>: <see cref="DisplayMaxSize"/> を指定すると、表示用の射影は
-/// コアの面積平均（<see cref="EsBitmapExtensions.Resize(EsReadOnlyBitmap, int, DownscaleAlgorithm)"/> の <see cref="DownscaleAlgorithm.Box"/>）で縮小される
+/// コアの面積平均（<see cref="EsReadOnlyBitmap.Resize(int, DownscaleAlgorithm)"/> の <see cref="DownscaleAlgorithm.Box"/>）で縮小される
 /// （実測: 4K から 320x180 で 1.8 ms / 230 KB。 等倍の射影は 7.8 ms / 32 MB）。
 /// 一覧のサムネイルのように小さく表示する場面で、元の寸法の複製を保持しないための入口である。
 /// <b>画像が上限に収まっている場合は縮小しない</b>（等倍の射影を共用する）。<br/>
@@ -57,7 +57,7 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IDisposable
     /// <b>大きな画像を小さく表示する場面（一覧のサムネイル等）で、表示用の射影を縮小する</b>。
     /// 等倍の射影は画像 1 枚につき元の寸法の複製を保持するため（実測: 4K で 32 MB / 7.8 ms）、
     /// 96px のサムネイルを 5 枚並べると 160 MB を超える。<br/>
-    /// <b>アルゴリズムは面積平均</b>（コアの <see cref="EsBitmapExtensions.Resize(EsReadOnlyBitmap, int, DownscaleAlgorithm)"/> へ <see cref="DownscaleAlgorithm.Box"/> を渡す）。
+    /// <b>アルゴリズムは面積平均</b>（コアの <see cref="EsReadOnlyBitmap.Resize(int, DownscaleAlgorithm)"/> へ <see cref="DownscaleAlgorithm.Box"/> を渡す）。
     /// <b>画質を優先する理由</b>: 同じ寸法のサムネイルを出すフォルダビュー（ファイル → <c>Bitmap.DecodeToWidth</c>）は
     /// <b>面積平均相当</b>の画質であり、双線形だと<b>同じサイズなのに一覧ごとに見え方が変わる</b>（実測: 4K → 320x180 で
     /// 幅 1 px の細線の輝度は面積平均 21 / 双線形 127 で、どちらが残るかが逆になる）。

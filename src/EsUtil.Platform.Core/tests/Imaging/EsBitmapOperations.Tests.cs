@@ -5,16 +5,15 @@ using Xunit;
 namespace EsUtil.Platform.Core.Tests.Imaging;
 
 /// <summary>
-/// <see cref="EsBitmapExtensions"/>（画像を変更しない操作）の単体テスト。
+/// <see cref="EsBitmapOperations"/>（画像を変更せずに新しい画像を作る操作）の単体テスト。
 /// </summary>
 /// <remarks>
-/// 切り出し（<see cref="EsBitmapExtensions.Crop(EsReadOnlyBitmap, EsRectInt)"/>）は<b>借用した読み取り専用の画像からも</b>
-/// 呼べる必要がある（実測: ルーペが表示アダプタの画像を切り出す）。 そのため本テストは
-/// <see cref="EsReadOnlyBitmap"/> を受ける形を固定する。 拡張メソッドは <see cref="EsBitmap"/> をそのまま受けられないため、
-/// 書き換え可能な画像は <see cref="EsReadOnlyBitmap.FromBitmap"/> を通して渡す（凍結済みなら 0 コピーで共有・未凍結なら複製）。<br/>
+/// 操作（切り出し・縮小・減色）は<b>両方の画像型が同じ名前のメンバー</b>として公開し（実装は <see cref="EsBitmapOperations"/> が
+/// 単一所有する）、本テストは<b>読み取り専用の画像として受け取った場合</b>の手順を固定する（借用した読み取り専用の画像を含む）。
+/// <b>元の画像が変更されないこと・凍結されないこと</b>も確かめる。<br/>
 /// 静的共有状態を持たないため、UI フレームワークの初期化に依存しない（<c>[Fact]</c> で並列実行される）。
 /// </remarks>
-public class EsBitmapExtensionsTests
+public class EsBitmapOperationsTests
 {
     /// <summary>赤で塗りつぶした読み取り専用の画像を生成する（切り出し元）。</summary>
     /// <param name="w">幅。</param>
@@ -59,8 +58,7 @@ public class EsBitmapExtensionsTests
     {
         using var writable = EsBitmap.Create(10, 10, System.Drawing.Color.FromArgb(255, 255, 0, 0));
 
-        // 書き換え可能な画像は拡張メソッドへそのまま渡せないため、FromBitmap で読み取り専用の面を作る
-        // （未凍結なので複製になる）
+        // 読み取り専用として受け取った場合の入口を固定する（FromBitmap は未凍結なので複製になる）
         using var read = EsReadOnlyBitmap.FromBitmap(writable);
 
         using var result = read.Crop(new EsRectInt(1, 1, 3, 3));
@@ -215,11 +213,6 @@ public class EsBitmapExtensionsTests
         Assert.Throws<ObjectDisposedException>(() => src.Crop(new EsRectInt(0, 0, 4, 4)));
     }
 
-    [Fact]
-    internal void Crop_nullはArgumentNullExceptionを投げる()
-        => Assert.Throws<ArgumentNullException>(
-            () => EsBitmapExtensions.Crop((EsReadOnlyBitmap)null!, new EsRectInt(0, 0, 4, 4)));
-
     // ====================================================================
     // 縮小（Resize のアルゴリズム: Nearest / Bilinear / Box）
     // ====================================================================
@@ -365,10 +358,6 @@ public class EsBitmapExtensionsTests
     }
 
     [Fact]
-    internal void 縮小_nullはArgumentNullExceptionを投げる()
-        => Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.Resize((EsReadOnlyBitmap)null!, 10));
-
-    [Fact]
     internal void 縮小_既定のアルゴリズムは双線形()
     {
         using var src = CreateRed(200, 100);
@@ -491,8 +480,7 @@ public class EsBitmapExtensionsTests
     {
         using var writable = EsBitmap.Create(16, 16, System.Drawing.Color.FromArgb(255, 12, 34, 56));
 
-        // 書き換え可能な画像は拡張メソッドへそのまま渡せないため、FromBitmap で読み取り専用の面を作る
-        // （未凍結なので複製になる）
+        // 読み取り専用として受け取った場合の入口を固定する（FromBitmap は未凍結なので複製になる）
         using var source = EsReadOnlyBitmap.FromBitmap(writable);
 
         using var result = source.ReduceColors(4);
@@ -532,14 +520,6 @@ public class EsBitmapExtensionsTests
     }
 
     [Fact]
-    internal void 減色_nullはArgumentNullExceptionを投げる()
-    {
-        EsReadOnlyBitmap? source = null;
-
-        Assert.Throws<ArgumentNullException>(() => source!.ReduceColors(16));
-    }
-
-    [Fact]
     internal void 減色_破棄後は例外を投げる()
     {
         var src = CreateColorful(8, 8);
@@ -569,7 +549,7 @@ public class EsBitmapExtensionsTests
     }
 
     // ====================================================================
-    // 書き換え可能な画像から呼ぶオーバーロード（凍結せずに読む）
+    // 書き換え可能な画像のメンバー（凍結せずに読む）
     // ====================================================================
 
     [Fact]
@@ -579,7 +559,7 @@ public class EsBitmapExtensionsTests
 
         using var result = bitmap.Crop(new EsRectInt(2, 2, 4, 4));
 
-        // 元は凍結されない（オーバーロードは読み取り専用の見方を内部的に借りるだけ）
+        // 元は凍結されない（画素を読むだけの操作であり、書き込みの入口を閉じない）
         Assert.False(bitmap.IsReadOnly);
         bitmap.SetPixel(0, 0, 9, 9, 9, 9);
         Assert.Equal((byte)9, bitmap.GetPixel(0, 0).B);
@@ -617,7 +597,7 @@ public class EsBitmapExtensionsTests
     }
 
     [Fact]
-    internal void 書き換え可能な画像のオーバーロードは破棄済みなら例外になる()
+    internal void 書き換え可能な画像のメンバーは破棄済みなら例外になる()
     {
         var bitmap = EsBitmap.Create(4, 4);
         bitmap.Dispose();
@@ -625,14 +605,6 @@ public class EsBitmapExtensionsTests
         Assert.Throws<ObjectDisposedException>(() => bitmap.Crop(new EsRectInt(0, 0, 2, 2)));
         Assert.Throws<ObjectDisposedException>(() => bitmap.Resize(2));
         Assert.Throws<ObjectDisposedException>(() => bitmap.ReduceColors(16));
-    }
-
-    [Fact]
-    internal void 書き換え可能な画像のオーバーロードはnullならArgumentNullExceptionを投げる()
-    {
-        Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.Crop((EsBitmap)null!, new EsRectInt(0, 0, 2, 2)));
-        Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.Resize((EsBitmap)null!, 2));
-        Assert.Throws<ArgumentNullException>(() => EsBitmapExtensions.ReduceColors((EsBitmap)null!, 16));
     }
 
     /// <summary>透明・半透明・不透明の 3 段階を持つ画像を作る（RGB は同じ）。</summary>

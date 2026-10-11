@@ -231,7 +231,7 @@ sequenceDiagram
     R->>SK: 画像外の色（plan.Appearance.ResolvePasteboardColor()。 非表示時は透明）を表面全体へ塗る
     alt Source と切り出し領域が揃っている
         R->>R: 切り出し矩形が画像の内側なら ToPixmap → ToSKBitmap(view)（0 コピーのビュー。 描画実装が実行する）
-        R->>R: 外へ出る場合は EsBitmapExtensions.Crop → ToSKBitmap()（複製。 透明パディングのため）
+        R->>R: 外へ出る場合は EsReadOnlyBitmap.Crop → ToSKBitmap()（複製。 透明パディングのため）
         R->>SK: DrawBitmap(bitmap, Source, Destination)（最近傍で拡大）
     else 未設定または破棄済み
         R-->>R: 画像外の色のみを残す

@@ -95,7 +95,8 @@ graph LR
 | `EsPlatformHandle.cs` | UI フレームワーク非依存のネイティブウィンドウ識別子（座標・寸法ではないため `Geometry` に置かない） |
 | `src/EsUtil.Platform.Core/src/Imaging/EsBitmap.cs` | **書き換え可能**な画像（`EsReadOnlyBitmap` とは**兄弟**。 BGRA8888・Premul。 外部パッケージに依存しない。 書き込みの入口（`Pixels`・`SetPixel`・`TrySetPixel`・`Clear`・`SetReadOnly`）だけが読み取り専用の型と異なる） |
 | `src/EsUtil.Platform.Core/src/Imaging/EsReadOnlyBitmap.cs` | **読み取り専用**の画像（画素を書き換える入口を持たない。 `EsBitmap` と対称な入口を持ち、変換の向き（`FromBitmap`）だけが異なる） |
-| `src/EsUtil.Platform.Core/src/Imaging/EsBitmapBuffer.cs` | 画素バッファの内部型（確保・借用・共有・凍結・解放を単一所有する。 公開しない。 2 型の実装の共有もこの型が担う） |
+| `src/EsUtil.Platform.Core/src/Imaging/EsBitmapBuffer.cs` | 画素バッファの内部型（確保・借用・共有・凍結・解放と**ファイル入出力**（`LoadFromFile` / `SaveToFile`）を単一所有する。 公開しない。 2 型の実装の共有もこの型が担う） |
+| `src/EsUtil.Platform.Core/src/Imaging/EsBitmapOperations.cs` | 画像を変更せずに新しい画像を作る操作（切り出し・縮小・減色）の内部実装（公開面は 2 型の同じ名前のメンバーであり、本型が手順を単一所有する。 減色の計算は保存の実装とも共有する） |
 | `src/EsUtil.Platform.Core/src/Imaging/EsPixmap.cs` | 画像の一部を指す **0 コピーの読み取りビュー**（行幅を持つ。 切り出しの複製を避ける。 元の寿命に依存しない） |
 | `src/EsUtil.Platform.Core/src/Imaging/SafeAlignedBuffer.cs` | 整列したアンマネージド バッファの所有者（`SafeHandle`。 **解放の実装を単一所有する**。 `Dispose` 忘れはファイナライザが解放する） |
 | `src/EsUtil.Platform.Core/src/Imaging/DrawingColorExtensions.cs` | 描画色の可視判定（アルファが 0 より大きいか）の単一所有 |
@@ -162,6 +163,6 @@ graph LR
 
 **`Native/` 配下は上記の「可搬性」の基準から除外します**（Windows 限定の実装を、抽象と同じ場所で保守するための例外です）。 **Win32 の P/Invoke（`user32` / `gdi32` / `dwmapi` / `kernel32`）と OS 標準のコーデック（`gdiplus`）は `Native/` 配下だけが持ちます**（外部パッケージは参照しません）。
 
-**画像のファイル入出力（`EsBitmapExtensions.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`）は Windows 専用のメンバーです**（`Imaging/` の型と拡張メソッドに置きますが、実体は `src/EsUtil.Platform.Core/src/Native/Win` の `WinGdiPlusImageCodec` が担います）。 型そのものは可搬であり、これらのメンバーだけが `SupportedOSPlatform("windows")` で限定されます（非 Windows では `DllNotFoundException`。 判断の詳細は §7.1）。
+**画像のファイル入出力（`EsBitmap.Save` / `EsReadOnlyBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`）は Windows 専用のメンバーです**（画像型のメンバーであり、実体は `src/EsUtil.Platform.Core/src/Native/Win` の `WinGdiPlusImageCodec` が担います）。 型そのものは可搬であり、これらのメンバーだけが `SupportedOSPlatform("windows")` で限定されます（非 Windows では `DllNotFoundException`。 判断の詳細は §7.1）。
 
 **Skia は「外部パッケージ」に該当するため、本プロジェクトは SkiaSharp に依存しません**（Skia への依存は Skia を使用する上位層が単一所有します）。

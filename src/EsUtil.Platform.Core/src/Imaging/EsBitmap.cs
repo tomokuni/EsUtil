@@ -44,7 +44,7 @@ public sealed class EsBitmap : IDisposable
     /// <param name="clear">true の場合は全領域を 0（透明）で初期化する。 直後に全領域を書く場合は false。</param>
     private EsBitmap(int width, int height, bool clear) => _buffer = EsBitmapBuffer.Allocate(width, height, clear);
 
-    /// <summary>画素バッファを受け取る（生成は本クラスの静的メソッドと <see cref="EsBitmapLoader"/> が行う）。</summary>
+    /// <summary>画素バッファを受け取る（生成は本クラスの静的メソッドが行う）。</summary>
     /// <param name="buffer">画素バッファ。 破棄の責任は本インスタンスが持つ。</param>
     internal EsBitmap(EsBitmapBuffer buffer) => _buffer = buffer;
 
@@ -101,7 +101,7 @@ public sealed class EsBitmap : IDisposable
     /// または画像として解釈できない場合。</exception>
     [SupportedOSPlatform("windows")]
     public static EsBitmap Load(string filePath)
-        => EsBitmapLoader.Load(filePath, static buffer => new EsBitmap(buffer));
+        => new(EsBitmapBuffer.LoadFromFile(filePath));
 
     /// <summary>指定サイズの空の画像（BGRA8888・全ピクセル透明）を生成する。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>
@@ -422,6 +422,70 @@ public sealed class EsBitmap : IDisposable
         }
     }
 
+    /// <summary>本画像から指定された矩形領域を切り出す（読み取り専用の画像と同じ手順）。</summary>
+    /// <param name="x">切り出し領域の左上 X 座標（画像ローカル ピクセル）。 負値の場合はソース左端より外側が透明パディングとなる。</param>
+    /// <param name="y">切り出し領域の左上 Y 座標（画像ローカル ピクセル）。 負値の場合はソース上端より外側が透明パディングとなる。</param>
+    /// <param name="width">切り出し領域の幅（ピクセル）。 正の値。</param>
+    /// <param name="height">切り出し領域の高さ（ピクセル）。 正の値。</param>
+    /// <returns>切り出された新しい画像（要求サイズ。 ソース範囲外は透明パディング）。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>本画像は変更しません</b>（新しい画像を作る操作です）。 規則（透明パディング・コピーの最適化）は
+    /// <see cref="EsReadOnlyBitmap.Crop(int, int, int, int)"/> が単一所有し、実装も同じ手順です。<br/>
+    /// <b>書き換え可能な画像を渡しても凍結しません</b>（呼び出しの副作用で元が書けなくならないようにします）。
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="width"/> / <paramref name="height"/> が 0 以下の場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public EsBitmap Crop(int x, int y, int width, int height)
+    {
+        ThrowIfDisposed();
+        return EsBitmapOperations.Crop(_buffer, x, y, width, height);
+    }
+
+    /// <summary>本画像から指定された矩形領域を切り出す（矩形で指定する版）。</summary>
+    /// <param name="rect">切り出し領域（画像ローカル ピクセル）。</param>
+    /// <returns>切り出された新しい画像。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>規則は <see cref="Crop(int, int, int, int)"/> と同じです。</remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="rect"/> の幅・高さが 0 以下の場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public EsBitmap Crop(EsRectInt rect)
+    {
+        ThrowIfDisposed();
+        return EsBitmapOperations.Crop(_buffer, rect);
+    }
+
+    /// <summary>長辺を上限へ収めた画像を生成する（読み取り専用の画像と同じ手順）。</summary>
+    /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
+    /// <param name="algorithm">縮小のアルゴリズム。 既定は <see cref="DownscaleAlgorithm.Bilinear"/>。</param>
+    /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// 規則（拡大は未サポート・丸め・アルゴリズムの選び方）は <see cref="EsReadOnlyBitmap.Resize(int, DownscaleAlgorithm)"/> が
+    /// 単一所有し、実装も同じ手順です。 <b>本画像は変更せず、凍結もしません</b>。
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または
+    /// <paramref name="algorithm"/> が定義されていない値の場合。</exception>
+    /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public EsBitmap Resize(int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)
+    {
+        ThrowIfDisposed();
+        return EsBitmapOperations.Resize(_buffer, maxSize, algorithm);
+    }
+
+    /// <summary>本画像を指定の色数へ減色する（読み取り専用の画像と同じ手順）。</summary>
+    /// <param name="colorCount">残す色数（2〜256）。</param>
+    /// <returns>減色した新しい画像（使われる色は <paramref name="colorCount"/> 種類以下）。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>不可逆です</b>（元の画素は戻りません）。 規則（アルゴリズム・アルファの扱い・ディザを行わない理由）は
+    /// <see cref="EsReadOnlyBitmap.ReduceColors(int)"/> が単一所有し、実装も同じ手順です。<b>本画像は変更せず、凍結もしません</b>。
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    public EsBitmap ReduceColors(int colorCount)
+    {
+        ThrowIfDisposed();
+        return EsBitmapOperations.ReduceColors(_buffer, colorCount);
+    }
+
     /// <summary>本画像の一部を指す<b>0 コピーの読み取りビュー</b>を生成する（切り出しの複製を避ける）。</summary>
     /// <param name="rect">ビューの範囲（元画像の座標。 <b>画像の内側であること</b>）。</param>
     /// <returns>ビュー。 所有権は呼び出し側へ移る（破棄すると元画像への参照を返す。 画素は破棄しない）。</returns>
@@ -437,6 +501,37 @@ public sealed class EsBitmap : IDisposable
         ThrowIfDisposed();
         return _buffer.ToPixmap(rect);
     }
+
+    /// <summary>本画像をファイルへ保存する（形式は拡張子が決める。読み取り専用の画像と同じ手順）。</summary>
+    /// <param name="filePath">保存先のファイル パス（拡張子が形式を決める）。 null 不可。</param>
+    /// <remarks>
+    /// 規則と例外は <see cref="EsReadOnlyBitmap.Save(string)"/> が単一所有し、実装も同じ手順です
+    /// （<b>本画像は凍結しません</b>。 保存した後も書き続けられます）。
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合。</exception>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    [SupportedOSPlatform("windows")]
+    public void Save(string filePath) => _buffer.SaveToFile(filePath);
+
+    /// <summary>本画像をファイルへ保存する（形式とオプションを指定できる。読み取り専用の画像と同じ手順）。</summary>
+    /// <param name="filePath">保存先のファイル パス（<paramref name="options"/> で形式を指定した場合に拡張子が無ければ補完する）。</param>
+    /// <param name="options">保存のオプション（形式ごとに使える項目が異なる）。</param>
+    /// <remarks>
+    /// 規則（形式の決め方・どのオプションが効くか）と例外は <see cref="EsReadOnlyBitmap.Save(string, EsImageSaveOptions)"/> が
+    /// 単一所有し、実装も同じ手順です（<b>本画像は凍結しません</b>）。
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または
+    /// <paramref name="filePath"/> の拡張子と <see cref="EsImageSaveOptions.Format"/> が食い違い
+    /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）、または
+    /// <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
+    /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    [SupportedOSPlatform("windows")]
+    public void Save(string filePath, EsImageSaveOptions options) => _buffer.SaveToFile(filePath, options);
 
     /// <summary>画像の寸法を「幅x高さ」形式の文字列で返す（意味は <see cref="EsReadOnlyBitmap.ToSizeText"/> と同じ）。</summary>
     /// <returns>寸法の文字列（例: <c>1920x1080</c>）。</returns>

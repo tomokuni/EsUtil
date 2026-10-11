@@ -5,7 +5,7 @@ using Xunit;
 namespace EsUtil.Platform.Core.Tests.Imaging;
 
 /// <summary>
-/// 画像のファイル保存・読み込み（<see cref="EsBitmapExtensions.Save(EsReadOnlyBitmap, string)"/> / <see cref="EsBitmapExtensions.Save(EsReadOnlyBitmap, string, EsImageSaveOptions)"/> / <see cref="EsReadOnlyBitmap.Load(string)"/> / <see cref="EsBitmap.Load(string)"/>）のテスト（Windows 専用・並列実行）。
+/// 画像のファイル保存・読み込み（<see cref="EsReadOnlyBitmap.Save(string)"/> / <see cref="EsReadOnlyBitmap.Save(string, EsImageSaveOptions)"/> / <see cref="EsBitmap.Save(string)"/> / <see cref="EsReadOnlyBitmap.Load(string)"/> / <see cref="EsBitmap.Load(string)"/>）のテスト（Windows 専用・並列実行）。
 /// </summary>
 /// <remarks>
 /// GDI+ は Windows 専用のため、本クラスは <see cref="SupportedOSPlatformAttribute"/> で Windows に限定する。<br/>

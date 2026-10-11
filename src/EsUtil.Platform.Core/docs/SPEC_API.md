@@ -54,7 +54,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `EsUtil.Platform.Core` | `EsKey` / `EsKeyExtensions` / `EnumCanonical` / `EsWindowState` / `HotKeyModifiers` / `HotKeySetting` / `CaptureType` / `EsPlatformHandle` / `BoundaryCatch` | キーと入力（正規化含む）・ウィンドウ状態・ホットキー・境界の判定 |
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` | DIP 相当の幾何値型と領域の規則 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI の純粋計算 |
-| `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsBitmapExtensions` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `DownscaleAlgorithm` | 読み取り専用・書き換え可能な画像、変更しない操作、保存の指定、描画色の判定 |
+| `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `DownscaleAlgorithm` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、描画色の判定 |
 | `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` | OS サービスの抽象（UI 非依存） |
 | `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` | 上記抽象の Windows 実装（ホストが生成して注入する） |
 
@@ -577,7 +577,11 @@ public readonly record struct ElementFinderResults(
 | その他 | `ThrowIfDisposed` | あり | あり | 破棄済みなら `ObjectDisposedException` を送出 |
 | その他 | `Dispose` | あり | あり | 画素領域の解放（冪等） |
 | 複製 | `Copy` | あり（`EsReadOnlyBitmap`） | あり（`EsBitmap`） | **独立した画素**の複製（実測: 4K で 31 MiB / 5.7 ms） |
+| 操作 | `Crop`（2 版） | あり（`EsBitmap`） | あり（`EsBitmap`） | 指定矩形を切り出す（**ソース範囲外は透明で埋める**。 実装は内部の 1 か所） |
+| 操作 | `Resize` | あり（`EsBitmap`） | あり（`EsBitmap`） | 長辺を上限へ収める（**拡大は未サポート**） |
+| 操作 | `ReduceColors` | あり（`EsBitmap`） | あり（`EsBitmap`） | 指定の色数へ減色する（パレット化。 **不可逆**） |
 | ビュー | `ToPixmap` | あり（`EsPixmap`） | あり（`EsPixmap`） | **0 コピーの読み取りビュー**（行幅は元のストライドのまま。 矩形は画像の内側であること） |
+| ファイル | `Save`（2 版） | あり | あり | ファイルへ保存する（**形式は拡張子が決める**。 2 型とも同じ手順。 Windows 専用） |
 | static | `SupportedFileExtensions` | あり | あり | 保存に使える拡張子（Windows 専用） |
 | static | `Load` | あり（`EsReadOnlyBitmap`） | あり（`EsBitmap`） | ファイルから読み込む（中間バッファを作らない） |
 | static | `Create`（4 版） | あり（`EsReadOnlyBitmap`） | あり（`EsBitmap`） | 指定サイズの画像（全ピクセル透明 / 指定色。 0 埋めする） |
@@ -619,18 +623,20 @@ public readonly record struct ElementFinderResults(
 - **書き込みの入口を持ちません**: 元の画素を書き換える場合は `EsBitmap.FromReadOnlyBitmap` で複製するか、元の書き換え可能な画像を使います。
 - **寿命**: ビューは元の画素の参照を 1 つ持つため、**先に元を破棄しても読めます**（ただし元の内容の変化は見えます）。
 - **画像にする場合**: `EsBitmap.FromPixmap` / `EsReadOnlyBitmap.FromPixmap`（**常に複製**）を使います。 `FromPixelCopy` に `ReadOnlyPixels` をそのまま渡すと**長さが合わず** `ArgumentException` になります（行の余白を含むため）。
-**拡張メソッド（`EsBitmapExtensions`。 画素を読むだけの操作。 **両方の型から呼べます**）**:
+**画像を変更せずに新しい画像を作る操作（`Crop` / `Resize` / `ReduceColors`）と保存（`Save`）**:
 
-| メンバー | シグネチャ | 説明 |
+**2 型が同じ名前のメンバー**として持ちます（実装は内部の 1 か所であり、型の違いは書き込みの入口だけです）。
+
+| メンバー | シグネチャ（`EsReadOnlyBitmap` と `EsBitmap` の同じ形） | 説明 |
 | --- | --- | --- |
-| `Crop` | `Crop(this EsReadOnlyBitmap source, int x, int y, int width, int height)` / `Crop(this EsReadOnlyBitmap source, EsRectInt rect)` / `Crop(this EsBitmap source, …)` | 指定矩形を切り出す（**ソース範囲外は透明で埋める**。 位置関係は保たれる。 0 初期化は行わない） |
-| `Resize` | `Resize(this EsReadOnlyBitmap source, int maxSize, DownscaleAlgorithm algorithm = Bilinear)` / `Resize(this EsBitmap source, …)` | 長辺を `maxSize` へ収める（**拡大は未サポート**。 アルゴリズムは `DownscaleAlgorithm` で選ぶ） |
-| `ReduceColors` | `ReduceColors(this EsReadOnlyBitmap source, int colorCount)` / `ReduceColors(this EsBitmap source, int colorCount)` | 指定の色数へ減色する（パレット化。 **不可逆**） |
-| `Save` | `Save(this EsReadOnlyBitmap source, string filePath[, EsImageSaveOptions options])` / `Save(this EsBitmap source, …)` | ファイルへ保存する（[2.32](#232-画像のファイル入出力save--load)） |
+| `Crop` | `EsBitmap Crop(int x, int y, int width, int height)` / `EsBitmap Crop(EsRectInt rect)` | 指定矩形を切り出す（**ソース範囲外は透明で埋める**。 位置関係は保たれる。 0 初期化は行わない） |
+| `Resize` | `EsBitmap Resize(int maxSize, DownscaleAlgorithm algorithm = Bilinear)` | 長辺を `maxSize` へ収める（**拡大は未サポート**。 アルゴリズムは `DownscaleAlgorithm` で選ぶ） |
+| `ReduceColors` | `EsBitmap ReduceColors(int colorCount)` | 指定の色数へ減色する（パレット化。 **不可逆**） |
+| `Save` | `void Save(string filePath)` / `void Save(string filePath, EsImageSaveOptions options)` | ファイルへ保存する（[2.32](#232-画像のファイル入出力save--load)） |
 
-- **両方の型のオーバーロードを 1 つのクラスに置きます**: コアは 2 型が共通の面（interface）を持たないため、**受け手ごとのオーバーロード**で両型から同じ名前で呼べるようにします（C# は受け手の型で解決するため曖昧になりません）。 **実装は 1 つ**であり、`EsBitmap` の版は**凍結しない**読み取り専用の見方を共有して委譲します（**保存や切り出しの後も書き続けられます**）。 共通の面を作らない理由は §2.32 を参照。
-  - **代償**: 宣言が型ごとに必要であり、XML ドキュメントの `cref` は**引数の型まで書かないと曖昧**になります（例: `Resize(EsReadOnlyBitmap, int, DownscaleAlgorithm)`）。
-- **拡張メソッドの並び順は操作ごとです**: 同じ名前のオーバーロードは、**読み取り専用版の隣へ書き換え可能版を置きます**（`Save` の 4 版 → `Crop` の 4 版 → `Resize` の 2 版 → `ReduceColors` の 2 版）。 型ごとにまとめません（2 つの型を同じ操作で読み比べるため）。
+- **同じ実装を 2 型のメンバーとして公開します（拡張メソッドにしません）**: 実装は内部の 1 か所（`EsBitmapBuffer` / `EsBitmapOperations`）に置き、公開の入口は**両方の型のメンバー**にします。 拡張メソッドにすると、**同じ操作が型の外へ 2 組並び**、型自身の能力（`Copy` / `GetPixel` / `Load` 等）と置き場所が分かれます（IntelliSense でも 1 か所にまとまりません）。 **共通の面（interface）は作りません**（復活させると、書き換え可能な画像を読み取り専用の面として**保持・後読みできる経路**ができ、兄弟にした理由（[2.33](#233-画像型の設計上の判断兄弟と借用を選んだ理由)）が崩れます）。
+  - **代償**: 宣言が型ごとに必要です（**実装は 1 つのまま**）。 それぞれの型の `Crop` / `Resize` / `ReduceColors` / `Save` は内部の実装へ転送するだけであり、規則の記述（備考）は読み取り専用側（`EsReadOnlyBitmap`）が単一所有します。
+- **書き換え可能な画像を渡しても凍結しません**: 画素を読むだけの操作であるためです（`Save` / `Crop` / `Resize` / `ReduceColors` の後も書き続けられます）。 0 コピーで安定した内容を渡したい場合は、書き終えた時点で `SetReadOnly` を呼びます。
 - **戻り値は書き換え可能な画像**です（生成した側が所有し、破棄します）。 読み取り専用で足りる場合は `Copy`（複製）または `ToPixmap`（0 コピーのビュー）を使います。
 - **切り出しは 2 通りあります**: 画像の外側を含み**透明で埋めたい**場合は `Crop`（複製）、**内側だけ**を複製せずに読みたい場合は `ToPixmap`（0 コピーのビュー）です。
 
@@ -659,12 +665,12 @@ public readonly record struct ElementFinderResults(
 
 ### 2.32 画像のファイル入出力（`Save` / `Load`）
 
-コアの画像のファイル保存・読み込みです。 **公開面は画像型の静的メソッド（`Load`）と拡張メソッド（`Save`。 両方の型から呼べます）**であり、GDI+（`gdiplus.dll`）を呼ぶ実装は `src/EsUtil.Platform.Core/src/Native/Win/WinGdiPlusImageCodec.cs` の `internal` クラスが単一所有します。 **Windows 専用**です。
+コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー（`Load` は静的・`Save` はインスタンス。 2 型が同じ名前を持ちます）**であり、GDI+（`gdiplus.dll`）を呼ぶ実装は `src/EsUtil.Platform.Core/src/Native/Win/WinGdiPlusImageCodec.cs` の `internal` クラスが単一所有します（入口は内部の `EsBitmapBuffer.LoadFromFile` / `SaveToFile`）。 **Windows 専用**です。
 
 | 型 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- | --- |
-| `EsBitmapExtensions` | `Save` | `static void Save(this EsReadOnlyBitmap source, string filePath)` / `static void Save(this EsBitmap source, string filePath)` | 画像をファイルへ保存する（**形式は拡張子が決める**。 **両方の型から呼べます**） |
-| `EsBitmapExtensions` | `Save` | `static void Save(this EsReadOnlyBitmap source, string filePath, EsImageSaveOptions options)` / `static void Save(this EsBitmap source, string filePath, EsImageSaveOptions options)` | 保存の形式とオプションを指定して保存する（**形式の指定は拡張子より優先され、拡張子が無ければ補完する**。 下記） |
+| `EsReadOnlyBitmap` / `EsBitmap` | `Save` | `void Save(string filePath)` | 画像をファイルへ保存する（**形式は拡張子が決める**。 2 型が同じ手順で保存する） |
+| `EsReadOnlyBitmap` / `EsBitmap` | `Save` | `void Save(string filePath, EsImageSaveOptions options)` | 保存の形式とオプションを指定して保存する（**形式の指定は拡張子より優先され、拡張子が無ければ補完する**。 下記） |
 | `EsReadOnlyBitmap` / `EsBitmap` | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`） |
 | `EsReadOnlyBitmap` | `Load` | `static EsReadOnlyBitmap Load(string filePath)` | ファイルから**読み取り専用の**画像を読み込む（形式は内容から判別する。 所有権は呼び出し側へ移る） |
 | `EsBitmap` | `Load` | `static EsBitmap Load(string filePath)` | ファイルから**書き換え可能な**画像として読み込む（所有権は呼び出し側へ移る） |
@@ -674,12 +680,12 @@ public readonly record struct ElementFinderResults(
 | `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG の品質（0〜100。 `null` は GDI+ の既定） |
 | `EsImageSaveOptions` | `ColorCount` | `int? ColorCount { get; init; }` | 減色（パレット化）して残す色数（2〜256。 `null` は減色しない。 **BMP / PNG / GIF だけ**） |
 
-- **`Save` は拡張メソッドに置きます**: 保存は**ピクセルを読むだけ**であり、書き換えの権利も衝突する実体も要さないためです。 型のメンバーにすると、受け取った側が**別の型として持っている画像**（表示アダプタ等が読み取り専用として渡した画像）を保存するときに**キャストが要ります**。 拡張メソッドにすると**受け取った画像をそのまま保存できます**（受け取った側はキャストを知らなくて済みます）。 両方の型のオーバーロードを置く理由は §2.31 を参照。
-- **保存に使える形式の一覧だけは画像型に残します**: 形式を決める規則の単一所有は `EsReadOnlyBitmap.SupportedFileExtensions`（`EsBitmap` も同じ値を公開）であり、保存の実装（`Save` の拡張）がそこを参照します（一覧は型の能力であり、特定の実体を要さないため）。
+- **`Save` は 2 型のメンバーです（拡張メソッドにしません）**: 保存は**ピクセルを読むだけ**であり、書き換えの権利も要らないため実装は内部の 1 か所に置きますが、公開の入口は**両方の型のメンバー**にします（`Load` と同じ型にファイル入出力が並び、型自身の能力として IntelliSense に現れます。 置き場所の規則は §2.31）。 **保存は凍結しません**（書き換え可能な画像を保存した後も書き続けられます）。
+- **保存に使える形式の一覧は画像型が公開します**: 形式を決める規則の単一所有は `EsReadOnlyBitmap.SupportedFileExtensions`（`EsBitmap` も同じ値を公開）であり、保存の実装がそこを参照します（一覧は型の能力であり、特定の実体を要さないため）。
 
-- **`Load` は具体型の静的メソッドに置きます**: 戻したい型（読み取り専用 / 書き換え可能）を**呼び出し側が名指す**必要があるためです（静的メソッドは戻り値の型を共変にできないため、`EsReadOnlyBitmap.Load` と `EsBitmap.Load` の 2 つが要ります）。 書き換えが要る場合は `EsBitmap.Load` を使ってください（`EsReadOnlyBitmap.Load` の結果を `EsBitmap.FromReadOnlyBitmap` で複製すると、2 回目の複製が無駄になります）。 つまりファイル入出力の見え方は「**読むときは型を名指す（`Load`）／書くときは型を問わない（`Save`）**」です。 `Load` と `Save` で置き場所が違う理由（面の有無）は §2.31 が単一所有します。
-- **`Save` は以前は画像型のメンバーでした**: ファイル入出力の入口を `Load` と同じ型にまとめるためでしたが、`Save` は**画素を読むだけ**であり書き換えの権利も実体の型も要さないため、拡張メソッド（`EsBitmapExtensions`）へ移しました。 置き場所とオーバーロードの規則は §2.31 が単一所有します（`EsBitmap` の版は読み取り専用の見方を共有して委譲し、**凍結しません**）。
-- **`EsBitmapExtensions` の役割（画素を読むだけの操作）**: 画素を読んで新しい画像かファイルを作る操作（`Crop` / `Resize` / `ReduceColors` / `Save`）を置く場所です（`Load` だけは戻す型を名指す必要があるため画像型の静的メソッドに残ります）。 一覧と共通の面を作らない理由は §2.31 を参照。
+- **`Load` は具体型の静的メソッドに置きます**: 戻したい型（読み取り専用 / 書き換え可能）を**呼び出し側が名指す**必要があるためです（静的メソッドは戻り値の型を共変にできないため、`EsReadOnlyBitmap.Load` と `EsBitmap.Load` の 2 つが要ります）。 書き換えが要る場合は `EsBitmap.Load` を使ってください（`EsReadOnlyBitmap.Load` の結果を `EsBitmap.FromReadOnlyBitmap` で複製すると、2 回目の複製が無駄になります）。 つまりファイル入出力の見え方は「**読むときは型を名指す（`Load`）／書くときはどちらの型でも同じ（`Save`）**」です。
+- **`Save` は再び画像型のメンバーになりました**: いったん拡張メソッドへ移しましたが、その理由（読み取り専用の面を実装する外部の画像からもキャストせずに呼べること）は**面（interface）の廃止で消えました**。 いまは実装を内部の 1 か所（`EsBitmapBuffer.SaveToFile`）に置き、公開の入口を両方の型のメンバーにしています（`Load` と同じ型にファイル入出力が並びます）。
+- **`Crop` / `Resize` / `ReduceColors` も同じ形にしました**: 実装は内部の 1 か所（`EsBitmapOperations`）に置き、公開の入口は両方の型のメンバーです（規則と理由は §2.31）。 これにより型の外に並ぶ操作は無くなり、`Copy` / `ToPixmap` と同じ「型自身の能力」として読めます。
 - **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・GDI+ の呼び出し・状態値の例外化は 1 か所（「`WinGdiPlusImageCodec`」）が単一所有し、公開面（`Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
 - **実装の入出力は画像型を知りません**: 符号化は受け取ったピクセル バイト列を書き（`EncodeToFile`）、復号は**画像の生成処理を受け取ってデコード結果をその領域へ直接書きます**（`DecodeFromFile<T>`）。 コーデックが画像型（`EsBitmap` 等）を名指ししないため、画像型が要るのは公開面だけになります。 **中間バッファも追加のコピーも作りません**（実測: 4K PNG の読み込みで 29.9 ms。 中間バッファを挟む方式は 32.6 ms ＝ **+2.7 ms / +8%** と +31 MiB。 保存は両方式とも 66.5 ms で差なし）。
 - **形式は既定では拡張子が決めます**: `Save` は拡張子から形式を選びます（`.bmp` = Windows Bitmap / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`）。 大文字・小文字は区別しません。
@@ -735,7 +741,7 @@ public readonly record struct ElementFinderResults(
 - **オプションの値は形式ごとに検証します**: 使えない形式へ設定すると `NotSupportedException`、JPEG の品質が 0〜100 の範囲外なら `ArgumentOutOfRangeException` です（黙って無視すると「設定したのに効かない」ことに気付かないため。 また上限へ丸めると、呼び出し側が指定した値と実際の出力が食い違います）。 検証は **GDI+ の初期化より前**に行うため、拒否された呼び出しはプロセス全体の副作用（バックグラウンド スレッド +1 等）を起こしません。
 - **WebP / HEIF を対応形式へ入れない理由（実測）**: GDI+ のエンコーダーは 5 件だけです（`GdipGetImageEncoders` が返すのは BMP / JPEG / GIF / TIFF / PNG。 デコーダーはこれに EMF / WMF / ICO を加えた 8 件）。 WebP / HEIF のエンコーダーは無く、**存在しない形式の CLSID を渡すと例外を出さずに PNG を書き出します**（実測: PNG の CLSID と `.webp` のパスで 2831 バイトの PNG が書かれ、先頭バイトは PNG のシグネチャ）。 拡張子と中身が食い違うファイルが**黙って**できるため、対応形式へ追加しません（食い違いを承知で作る場合は `Format` + `IgnoreFormatMismatch` を使います）。
 - **減色（パレット化）を指定できます（実測）**: `EsImageSaveOptions.ColorCount` を指定すると、保存の前に
-  `EsBitmapExtensions.ReduceColors`（`ReduceColors(EsReadOnlyBitmap, int)` と `ReduceColors(EsBitmap, int)`）と同じ計算で減色し、**8bpp のインデックス カラー（パレット付き）として**書きます。
+  `EsReadOnlyBitmap.ReduceColors`（`ReduceColors(int)`。 両方の型が同じ名前のメンバーを持ちます）と同じ計算で減色し、**8bpp のインデックス カラー（パレット付き）として**書きます。
 
   | 形式 | 32bpp のまま | 256 色へ減色 | 削減 | `Load` |
   | --- | --- | --- | --- | --- |
@@ -849,7 +855,7 @@ public readonly record struct ElementFinderResults(
 **1. 面（interface）を廃止しました**: 以前は `EsReadOnlyBitmap` / `EsBitmap` の 2 つのインターフェイスと抽象基底（`EsBitmapBase`）で権利を表していましたが、**一般的なインターフェイスの意味と役割が違う**（権利の表明であり、実装の差し替え点ではない）ためです。
 
 - 実装していた外部の型は表示アダプタ 1 種類だけで、その中身は**コアの画像への転送**でした（画素を自前で持つ実装は存在しませんでした）。 したがってインターフェイスは「境界の受け口を 1 つに見せる」ためだけに使われており、**型の数を増やす利益より、使い分けを覚える費用の方が大きい**状態でした。
-- 受け取る型を具象型にしても「受け取った側は書けない」は保たれます（読み取り専用の型で受けるため）。 キャストを避ける必要がある場面（保存・切り出し・縮小・減色）は、`EsBitmapExtensions` が**両方の型のオーバーロード**を提供して解決しています（§2.31）。
+- 受け取る型を具象型にしても「受け取った側は書けない」は保たれます（読み取り専用の型で受けるため）。 キャストを避ける必要がある場面（保存・切り出し・縮小・減色）は、**両方の型が同じ名前のメンバーを持つ**形で解決しています（実装は内部の 1 か所。 §2.31）。
 - 廃止の副産物として、破棄状態（`IsDisposed`）の判定が**型で揃いました**（以前は「面から判定する」ためにインターフェイスが要る、という理由付けがありましたが、表示アダプタはコアの画像を内包して転送するだけになったため、コアの実体そのものを見れば足ります）。
 
 **2. 継承から兄弟に変えました（`EsBitmap` と `EsReadOnlyBitmap` は互いに派生しない）**: 継承にすると**未凍結の画素を読み取り専用として暗黙に渡せます**（upcast が無料のため）。 受け取った側は「内容が変わらない」ことを前提にしますが、渡した側が書き続ければ画素は変わり、**約束が静かに破れます**。 兄弟ならその経路が型で消え、渡すには `FromBitmap`（凍結状態で 0 コピー / 複製を選ぶ）を通すしかありません。 **継承を選んだ当初の理由（切り出し・縮小・保存へ渡すたびに型が合わない）は、この安全性に劣ります**（Skia 自身が兄弟型で成立しているため。 実測: `SKImage` と `SKBitmap` は兄弟で、共有は `SKImage.FromBitmap` が凍結状態で判断します）。 代償は無料の upcast が無いことです（`FromBitmap` を 1 回呼ぶ）。

@@ -6,7 +6,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <summary>画像の一部を指す<b>0 コピーの読み取りビュー</b>（行幅を持つ）。</summary>
 /// <remarks>
 /// <b>目的</b>: 切り出しの<b>複製を避ける</b>ためです。 実測では 4K から 1000x800 の切り出しが、複製の
-/// <see cref="EsBitmapExtensions.Crop(EsReadOnlyBitmap, EsRectInt)"/> で 0.72 ms / 4 MB に対し、ビューではアドレス計算だけです
+/// <see cref="EsReadOnlyBitmap.Crop(EsRectInt)"/> で 0.72 ms / 4 MB に対し、ビューではアドレス計算だけです
 /// （実測: Skia の <c>SKBitmap.ExtractSubset</c> は 0.000 ms で、元と双方向に書き込みが伝わるビューでした）。<br/>
 /// <b>生成</b>: <see cref="EsReadOnlyBitmap.ToPixmap"/> が唯一の入口です（ビューは画像の一部を指すため、
 /// 画素を所有する型から作ります）。<br/>
@@ -18,7 +18,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <b>寿命</b>: ビューは元の画素の参照を 1 つ持つため、<b>先に元を破棄しても読めます</b>（画素の解放は最後の 1 つ）。
 /// ただし<b>元の内容の変化は見えます</b>（同じ画素を指すため）。<br/>
 /// <b>範囲は元画像の内側に限ります</b>: ビューは透明で埋められないためです（外側を含む切り出しは
-/// <see cref="EsBitmapExtensions.Crop(EsReadOnlyBitmap, EsRectInt)"/> を使います）。
+/// <see cref="EsReadOnlyBitmap.Crop(EsRectInt)"/> を使います）。
 /// </remarks>
 public sealed class EsPixmap : IDisposable
 {

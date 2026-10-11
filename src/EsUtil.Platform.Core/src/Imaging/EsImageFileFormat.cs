@@ -2,14 +2,14 @@ namespace EsUtil.Platform.Core.Imaging;
 
 /// <summary>画像のファイル形式（保存する形式を明示したい場合に使う）。</summary>
 /// <remarks>
-/// <b>通常は不要</b>: 保存する形式は<b>保存先の拡張子が決める</b>（<see cref="EsBitmapExtensions.Save(EsReadOnlyBitmap, string)"/>）。
+/// <b>通常は不要</b>: 保存する形式は<b>保存先の拡張子が決める</b>（<see cref="EsReadOnlyBitmap.Save(string)"/>）。
 /// 本 enum は<b>拡張子からは決まらない場合</b>にだけ使う（拡張子の無いパスへ保存する場合や、
 /// 拡張子と異なる形式で書く必要がある場合）。<br/>
 /// <b>拡張子との対応</b>: 各値は 1 つの拡張子を持つ（<c>.bmp</c> / <c>.png</c> / <c>.jpg</c> / <c>.gif</c> / <c>.tif</c>）。
 /// 別名（<c>.jpeg</c> / <c>.tiff</c>）も受け付けるが、<b>補完に使うのは別名ではない方</b>である
 /// （保存先の一覧は <see cref="EsReadOnlyBitmap.SupportedFileExtensions"/>）。<br/>
 /// <b>GDI+ のエンコーダーと 1 対 1 に対応する</b>（5 形式。 WebP / HEIF を持たない理由は
-/// <see cref="EsBitmapExtensions.Save(EsReadOnlyBitmap, string)"/> の備考を参照）。
+/// <see cref="EsReadOnlyBitmap.Save(string)"/> の備考を参照）。
 /// </remarks>
 public enum EsImageFileFormat
 {
