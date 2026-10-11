@@ -7,13 +7,13 @@ namespace EsUtil.Platform.Core.Native.Win;
 
 /// <summary>画像のファイル保存・読み込みの実装（GDI+ のフラット API を使う Windows 専用）。</summary>
 /// <remarks>
-/// <b>唯一の実装</b>: 公開面は画像型のメンバー（<see cref="EsUtil.Platform.Core.Imaging.EsBitmapExtensions.Save(IEsBitmap, string)"/> /
-/// <see cref="EsUtil.Platform.Core.Imaging.EsBitmap.Load(string)"/> / <see cref="EsUtil.Platform.Core.Imaging.EsWritableBitmap.Load(string)"/>) であり、
+/// <b>唯一の実装</b>: 公開面は画像型のメンバー（<see cref="EsUtil.Platform.Core.Imaging.EsBitmapExtensions.Save(EsReadOnlyBitmap, string)"/> /
+/// <see cref="EsUtil.Platform.Core.Imaging.EsReadOnlyBitmap.Load(string)"/> / <see cref="EsUtil.Platform.Core.Imaging.EsBitmap.Load(string)"/>) であり、
 /// 本クラスはその実装を 1 箇所へ集約する（本層は internal）。<br/>
 /// <b>画像型を知らない</b>: 符号化は受け取ったピクセル バイト列を書き
 /// （<see cref="EncodeToFile(ReadOnlySpan{byte}, int, int, string)"/>）、復号は生成処理を受け取って
 /// デコード結果をその領域へ直接書く（<see cref="DecodeFromFile{T}(string, Func{int, int, Action{Span{byte}}, T})"/>）。
-/// 画像型（<c>EsBitmap</c> 等）を名指ししないため、画像型が要るのは公開面だけになる。<br/>
+/// 画像型（<c>EsReadOnlyBitmap</c> 等）を名指ししないため、画像型が要るのは公開面だけになる。<br/>
 /// <b>依存分離</b>: ファイル形式（BMP / PNG / JPEG / GIF / TIFF）のエンコード・デコードは OS の
 /// <c>gdiplus.dll</c> が担い、<b>外部パッケージ（<c>System.Drawing.Common</c> 等）を参照しない</b>。<br/>
 /// <b>形式は拡張子が決める</b>: <see cref="EncodeToFile(ReadOnlySpan{byte}, int, int, string)"/> は保存先の拡張子から形式を選ぶ。
@@ -98,7 +98,7 @@ internal static class WinGdiPlusImageCodec
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
-        var stride = width * IEsBitmap.BytesPerPixel;
+        var stride = width * EsReadOnlyBitmap.BytesPerPixel;
         var expected = (long)stride * height;
         if (pixels.Length != expected)
         {
@@ -587,8 +587,8 @@ internal static class WinGdiPlusImageCodec
     }
 
     /// <summary>ファイルをデコードし、生成された画像として返す（形式は内容から判別される）。</summary>
-    /// <typeparam name="T">生成する画像の型（<see cref="EsUtil.Platform.Core.Imaging.EsBitmap"/> または
-    /// <see cref="EsUtil.Platform.Core.Imaging.EsWritableBitmap"/>）。</typeparam>
+    /// <typeparam name="T">生成する画像の型（<see cref="EsUtil.Platform.Core.Imaging.EsReadOnlyBitmap"/> または
+    /// <see cref="EsUtil.Platform.Core.Imaging.EsBitmap"/>）。</typeparam>
     /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。</param>
     /// <param name="create">寸法と充填処理を受け取って画像を生成する処理（デコード結果をこの充填処理で
     /// 受け取った領域へ直接書くため、中間バッファも追加のコピーも要らない）。</param>
@@ -596,9 +596,9 @@ internal static class WinGdiPlusImageCodec
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
     /// または画像として解釈できない場合（GDI+ はどちらも同じ状態値を返すため区別しない）。</exception>
     /// <remarks>
-    /// <b>画像型を知らない</b>: 本メソッドは生成処理を受け取るだけで、画像型（<c>EsBitmap</c> 等）を名指ししない
+    /// <b>画像型を知らない</b>: 本メソッドは生成処理を受け取るだけで、画像型（<c>EsReadOnlyBitmap</c> 等）を名指ししない
     /// （型引数と充填処理は呼び出し側が決める）。 画像型が要るのは読み込みと保存の公開面
-    /// （<see cref="EsUtil.Platform.Core.Imaging.EsBitmapBase"/>）だけになる。<br/>
+    /// （<see cref="EsUtil.Platform.Core.Imaging.EsReadOnlyBitmap"/>）だけになる。<br/>
     /// <b><paramref name="create"/> は充填処理を 1 回だけ呼ぶ責任を持つ</b>（呼ばなければピクセルが不定のまま、
     /// 2 回呼べば同じ領域を二度書く）。<br/>
     /// <b>ピクセルは 1 回だけ書かれる</b>: 中間バッファを作らず、GDI+ のロックしたデータから画像のバッファへ
@@ -671,7 +671,7 @@ internal static class WinGdiPlusImageCodec
     [SupportedOSPlatform("windows")]
     private static void CopyPixelsFrom(IntPtr image, int width, int height, Span<byte> destination)
     {
-        var stride = width * IEsBitmap.BytesPerPixel;
+        var stride = width * EsReadOnlyBitmap.BytesPerPixel;
         var rect = new WinNative.GpRect { X = 0, Y = 0, Width = width, Height = height };
         var data = default(WinNative.GpBitmapData);
 

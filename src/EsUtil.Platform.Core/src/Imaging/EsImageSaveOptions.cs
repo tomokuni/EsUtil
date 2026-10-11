@@ -4,7 +4,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <remarks>
 /// <b>形式は既定では拡張子が決める</b>: どの形式で保存するかは保存先の拡張子が決める（<see cref="Format"/> を指定すると
 /// 拡張子より優先される）。 本型は<b>その形式の中で調整できる値</b>だけを持ち、設定した項目が選ばれた形式で使えない場合は
-/// <see cref="EsBitmapExtensions.Save(IEsBitmap, string, EsImageSaveOptions)"/> が例外にする（黙って無視しない）。<br/>
+/// <see cref="EsBitmapExtensions.Save(EsReadOnlyBitmap, string, EsImageSaveOptions)"/> が例外にする（黙って無視しない）。<br/>
 /// <b>項目が 2 つしかない理由（実測）</b>: GDI+ のエンコーダーが実際に出力を変える値は限られる。
 /// 640x360 の画像を<b>全パラメーター × 全形式で総当たり</b>して確かめた結果:
 ///
@@ -27,7 +27,7 @@ namespace EsUtil.Platform.Core.Imaging;
 ///
 /// <b>既定（<c>default</c>）は GDI+ の既定と一致させない</b>: 明示した値だけをエンコーダーへ渡すため、
 /// 省略した場合と結果が変わる（実測: 不規則な画像で既定 826 KB に対し品質 75 は 554 KB）。
-/// 調整しない場合は <see cref="EsBitmapExtensions.Save(IEsBitmap, string)"/>（オプションを渡さない版）を使う。
+/// 調整しない場合は <see cref="EsBitmapExtensions.Save(EsReadOnlyBitmap, string)"/>（オプションを渡さない版）を使う。
 /// </remarks>
 public readonly record struct EsImageSaveOptions
 {
@@ -77,7 +77,7 @@ public readonly record struct EsImageSaveOptions
     /// （JPEG はパレットを持てない。 TIFF は未検証のため受け付けない）。<br/>
     /// <b>実測（1920x1080・256 色）</b>: 減色そのものが 30 ms（16 色で 8 ms）。
     /// ファイル サイズは次のとおり減る（32bpp のままの既定と比較。 減色したファイルは
-    /// <see cref="EsBitmap.Load(string)"/> で読み戻せ、BMP は画素が完全に一致する）。
+    /// <see cref="EsReadOnlyBitmap.Load(string)"/> で読み戻せ、BMP は画素が完全に一致する）。
     ///
     /// <list type="table">
     /// <item><term>BMP</term><description>8,294,454 B → <b>2,074,678 B</b>（25%）。</description></item>

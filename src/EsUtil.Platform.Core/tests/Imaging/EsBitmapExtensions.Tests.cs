@@ -8,16 +8,16 @@ namespace EsUtil.Platform.Core.Tests.Imaging;
 /// <see cref="EsBitmapExtensions"/>（画像を変更しない操作）の単体テスト。
 /// </summary>
 /// <remarks>
-/// 切り出し（<see cref="EsBitmapExtensions.Crop(IEsBitmap, EsRectInt)"/>）は<b>借用した読み取り専用の画像からも</b>
+/// 切り出し（<see cref="EsBitmapExtensions.Crop(EsReadOnlyBitmap, EsRectInt)"/>）は<b>借用した読み取り専用の画像からも</b>
 /// 呼べる必要がある（実測: ルーペが表示アダプタの画像を切り出す）。 そのため本テストは
-/// <see cref="IEsBitmap"/> を受ける形を固定し、<see cref="EsWritableBitmap"/> からも呼べることを併せて検証する。<br/>
+/// <see cref="EsReadOnlyBitmap"/> を受ける形を固定し、<see cref="EsBitmap"/> からも呼べることを併せて検証する。<br/>
 /// 静的共有状態を持たないため、UI フレームワークの初期化に依存しない（<c>[Fact]</c> で並列実行される）。
 /// </remarks>
 public class EsBitmapExtensionsTests
 {
     /// <summary>赤で塗りつぶした書き換え可能な画像を生成する（切り出し元）。</summary>
-    private static EsWritableBitmap CreateRed(int w = 10, int h = 10)
-        => EsWritableBitmap.Create(w, h, System.Drawing.Color.FromArgb(255, 255, 0, 0));
+    private static EsBitmap CreateRed(int w = 10, int h = 10)
+        => EsBitmap.Create(w, h, System.Drawing.Color.FromArgb(255, 255, 0, 0));
 
     // ====================================================================
     // Crop（矩形切り出し）
@@ -143,7 +143,7 @@ public class EsBitmapExtensionsTests
     internal void Crop_全面を切り出す場合はパディングを持たない()
     {
         // パディングが無い場合は透明化を行わないため、全ピクセルがコピー元の色で埋まることを固定する
-        using var src = EsWritableBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 255, 0, 0));
+        using var src = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 255, 0, 0));
 
         using var result = src.Crop(new EsRectInt(0, 0, 4, 4));
 
@@ -155,7 +155,7 @@ public class EsBitmapExtensionsTests
     [Fact]
     internal void Crop_パディングは上端と下端と中間行の左右をすべて透明にする()
     {
-        using var src = EsWritableBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 255, 0, 0));
+        using var src = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 255, 0, 0));
 
         // 上下左右すべてにパディングが出る矩形（左上負・サイズ超過）
         using var result = src.Crop(new EsRectInt(-1, -2, 10, 10));
@@ -215,9 +215,9 @@ public class EsBitmapExtensionsTests
     /// <param name="height">高さ。</param>
     /// <param name="lineX">白線の列（0 起点）。</param>
     /// <returns>生成した画像。 所有権は呼び出し側。</returns>
-    private static EsWritableBitmap CreateThinLine(int width, int height, int lineX)
+    private static EsBitmap CreateThinLine(int width, int height, int lineX)
     {
-        var bitmap = EsWritableBitmap.Create(width, height);
+        var bitmap = EsBitmap.Create(width, height);
         for (var y = 0; y < height; y++)
         {
             bitmap.SetPixel(lineX, y, 255, 255, 255, 255);
@@ -231,7 +231,7 @@ public class EsBitmapExtensionsTests
     /// <param name="x">X 座標。</param>
     /// <param name="y">Y 座標。</param>
     /// <returns>輝度（0〜255）。</returns>
-    private static byte Brightness(IEsBitmap bitmap, int x, int y)
+    private static byte Brightness(EsReadOnlyBitmap bitmap, int x, int y)
     {
         var (b, g, r, _) = bitmap.GetPixel(x, y);
         return Math.Max(b, Math.Max(g, r));
@@ -281,7 +281,7 @@ public class EsBitmapExtensionsTests
     [MemberData(nameof(Algorithms))]
     internal void 縮小_画素を保つ(DownscaleAlgorithm algorithm)
     {
-        using var src = EsWritableBitmap.Create(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
+        using var src = EsBitmap.Create(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
 
         using var result = src.Resize(4, algorithm);
 
@@ -378,7 +378,7 @@ public class EsBitmapExtensionsTests
     {
         // 40x40 の一様な画像（値 3）を 8x8 へ縮小する: 面積平均は 3 のまま（2 パスでも同じだが、
         // 中間で割る実装だと丸めが入る。 1 パスであることを値で固定する）
-        using var src = EsWritableBitmap.Create(40, 40, System.Drawing.Color.FromArgb(255, 3, 5, 7));
+        using var src = EsBitmap.Create(40, 40, System.Drawing.Color.FromArgb(255, 3, 5, 7));
 
         using var result = src.Resize(8, DownscaleAlgorithm.Box);
 
@@ -431,7 +431,7 @@ public class EsBitmapExtensionsTests
     [Fact]
     internal void 減色_使われている色より多い色数を指定しても色は増えない()
     {
-        using var src = EsWritableBitmap.Create(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
+        using var src = EsBitmap.Create(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
 
         using var result = src.ReduceColors(256);
 
@@ -443,18 +443,20 @@ public class EsBitmapExtensionsTests
     internal void 減色_元の画像を変更しない()
     {
         using var src = CreateColorful(32, 32);
-        var before = src.Pixels.ToArray();
+        var before = src.ReadOnlyPixels.ToArray();
 
         using var result = src.ReduceColors(4);
 
-        Assert.Equal(before, src.Pixels.ToArray());
+        Assert.Equal(before, src.ReadOnlyPixels.ToArray());
     }
 
     [Fact]
     internal void 減色_読み取り専用の画像からも減色できる()
     {
         using var writable = CreateColorful(16, 16);
-        using var source = EsBitmap.Create(writable);
+
+        // 書き換え可能な画像を読み取り専用として受け取る（変換もコピーも要らない）
+        EsReadOnlyBitmap source = writable;
 
         using var result = source.ReduceColors(4);
 
@@ -466,12 +468,12 @@ public class EsBitmapExtensionsTests
     internal void 減色_画素が元の色のいずれかへ寄る()
     {
         using var src = CreateColorful(32, 32);
-        var before = src.Pixels.ToArray();
+        var before = src.ReadOnlyPixels.ToArray();
 
         using var result = src.ReduceColors(16);
 
         // 減色は平均色を作るため一致はしないが、色差は 5 ビットの箱の幅（8）を大きく超えない
-        var pixels = result.Pixels;
+        var pixels = result.ReadOnlyPixels;
         var maxDifference = 0;
         for (var i = 0; i < pixels.Length; i++)
         {
@@ -495,7 +497,7 @@ public class EsBitmapExtensionsTests
     [Fact]
     internal void 減色_nullはArgumentNullExceptionを投げる()
     {
-        IEsBitmap? source = null;
+        EsReadOnlyBitmap? source = null;
 
         Assert.Throws<ArgumentNullException>(() => source!.ReduceColors(16));
     }
@@ -518,8 +520,8 @@ public class EsBitmapExtensionsTests
 
         // 3 段階のアルファ（不透明 / 半透明 / 完全透明）がそのまま残る
         var alphas = new HashSet<byte>();
-        var pixels = result.Pixels;
-        for (var i = 3; i < pixels.Length; i += IEsBitmap.BytesPerPixel)
+        var pixels = result.ReadOnlyPixels;
+        for (var i = 3; i < pixels.Length; i += EsReadOnlyBitmap.BytesPerPixel)
         {
             alphas.Add(pixels[i]);
         }
@@ -533,9 +535,9 @@ public class EsBitmapExtensionsTests
     /// <param name="width">幅（ピクセル。 3 等分する）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
     /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
-    private static EsWritableBitmap CreateWithAlpha(int width = 48, int height = 8)
+    private static EsBitmap CreateWithAlpha(int width = 48, int height = 8)
     {
-        var bitmap = EsWritableBitmap.Create(width, height);
+        var bitmap = EsBitmap.Create(width, height);
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
@@ -552,9 +554,9 @@ public class EsBitmapExtensionsTests
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
     /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
-    private static EsWritableBitmap CreateColorful(int width, int height)
+    private static EsBitmap CreateColorful(int width, int height)
     {
-        var bitmap = EsWritableBitmap.Create(width, height);
+        var bitmap = EsBitmap.Create(width, height);
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
@@ -569,11 +571,11 @@ public class EsBitmapExtensionsTests
     /// <summary>画像で使われている色の数を数える。</summary>
     /// <param name="bitmap">対象の画像。</param>
     /// <returns>異なる色の数。</returns>
-    private static int CountDistinctColors(IEsBitmap bitmap)
+    private static int CountDistinctColors(EsReadOnlyBitmap bitmap)
     {
         var colors = new HashSet<uint>();
-        var pixels = bitmap.Pixels;
-        for (var i = 0; i < pixels.Length; i += IEsBitmap.BytesPerPixel)
+        var pixels = bitmap.ReadOnlyPixels;
+        for (var i = 0; i < pixels.Length; i += EsReadOnlyBitmap.BytesPerPixel)
         {
             colors.Add(
                 (uint)((pixels[i] << 24) | (pixels[i + 1] << 16) | (pixels[i + 2] << 8) | pixels[i + 3]));

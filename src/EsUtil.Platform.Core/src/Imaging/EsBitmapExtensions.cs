@@ -7,14 +7,14 @@ namespace EsUtil.Platform.Core.Imaging;
 
 /// <summary>画像を<b>変更しない</b>操作（切り出し・縮小・減色）の拡張メソッド。</summary>
 /// <remarks>
-/// <b>なぜ拡張メソッドなのか</b>: <see cref="Crop(IEsBitmap, EsRectInt)"/> は「自分を変更せず、新しい画像を作る」操作であり、
-/// <see cref="IEsBitmap"/> を実装する任意の画像（借用した読み取り専用の画像を含む）に対して使える必要がある。
-/// 継承階層の型（<see cref="EsBitmapBase"/>）のメソッドにすると、本インターフェイスを直接実装する画像
+/// <b>なぜ拡張メソッドなのか</b>: <see cref="Crop(EsReadOnlyBitmap, EsRectInt)"/> は「自分を変更せず、新しい画像を作る」操作であり、
+/// <see cref="EsReadOnlyBitmap"/> を実装する任意の画像（借用した読み取り専用の画像を含む）に対して使える必要がある。
+/// 継承階層の型（<see cref="EsReadOnlyBitmap"/>）のメソッドにすると、本インターフェイスを直接実装する画像
 /// （表示アダプタ等）から呼べない（実測: ルーペと切り出しの両方が使う）。<br/>
-/// <b>戻り値の権利</b>: 新しく作った画像は<b>書き換え可能</b>（<see cref="EsWritableBitmap"/>）で返す
-/// （生成した側が所有し、破棄する責任を持つ。 読み取り専用で足りる場合は <see cref="EsBitmap.Clone"/> を使う）。<br/>
+/// <b>戻り値の権利</b>: 新しく作った画像は<b>書き換え可能</b>（<see cref="EsBitmap"/>）で返す
+/// （生成した側が所有し、破棄する責任を持つ。 読み取り専用で足りる場合は <see cref="EsReadOnlyBitmap.Clone"/> を使う）。<br/>
 /// <b>色の取得はここに置かない</b>: 「座標のピクセルを色として読む」は画像の読み取りそのものであり、
-/// 読み取りの面（<see cref="IEsBitmap.GetPixel(EsPointInt)"/>）が実装を持つ（追加の画像を作らないため、拡張メソッドである理由が無い）。<br/>
+/// 読み取りの面（<see cref="EsReadOnlyBitmap.GetPixel(EsPointInt)"/>）が実装を持つ（追加の画像を作らないため、拡張メソッドである理由が無い）。<br/>
 /// <b>減色の計算もここに置く</b>: 減色は「新しい画像を作る」操作として公開し（<see cref="ReduceColors"/>）、
 /// 色番号とパレットを返す内部の計算（<see cref="ReduceToIndexed"/>）は保存の実装（8bpp のインデックス カラー）と共有する
 /// （2 箇所に書くと、同じ色数でも保存経路によって結果が変わる）。
@@ -82,25 +82,25 @@ public static class EsBitmapExtensions
     /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める）。</param>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> または <paramref name="filePath"/> が null の場合。</exception>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合。</exception>
-    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="EsBitmapBase.SupportedFileExtensions"/>）。</exception>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="EsReadOnlyBitmap.SupportedFileExtensions"/>）。</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
     /// <remarks>
-    /// <b>面（<see cref="IEsBitmap"/>）の拡張メソッドである理由</b>: 保存は<b>画素を読むだけ</b>であり、
+    /// <b>面（<see cref="EsReadOnlyBitmap"/>）の拡張メソッドである理由</b>: 保存は<b>画素を読むだけ</b>であり、
     /// 書き換えの権利も実体の型も要らない。 面の拡張にすると<b>受け取った画像をそのまま保存できる</b>
     /// （表示アダプタ等の外部実装の画像でもキャストが要らない）。<br/>
-    /// <b>ピクセルは複製しない</b>: <see cref="IEsBitmap.Pixels"/> のビューをそのままエンコードへ渡す
+    /// <b>ピクセルは複製しない</b>: <see cref="EsReadOnlyBitmap.ReadOnlyPixels"/> のビューをそのままエンコードへ渡す
     /// （一時バッファを確保しない）。<br/>
     /// <b>Windows 専用</b>: OS の GDI+ を呼ぶため <see cref="SupportedOSPlatformAttribute"/> で限定する。
     /// </remarks>
     [SupportedOSPlatform("windows")]
-    public static void Save(this IEsBitmap source, string filePath)
+    public static void Save(this EsReadOnlyBitmap source, string filePath)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
         ObjectDisposedException.ThrowIf(source.IsDisposed, source);
-        WinGdiPlusImageCodec.EncodeToFile(source.Pixels, source.Width, source.Height, filePath);
+        WinGdiPlusImageCodec.EncodeToFile(source.ReadOnlyPixels, source.Width, source.Height, filePath);
     }
 
     /// <summary>本画像をファイルへ保存する（形式は拡張子が決める。保存の形式とオプションを指定できる）。</summary>
@@ -112,7 +112,7 @@ public static class EsBitmapExtensions
     /// <paramref name="filePath"/> の拡張子と <see cref="EsImageSaveOptions.Format"/> が食い違い
     /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
-    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="EsBitmapBase.SupportedFileExtensions"/>）、または
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="EsReadOnlyBitmap.SupportedFileExtensions"/>）、または
     /// <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
@@ -126,16 +126,16 @@ public static class EsBitmapExtensions
     /// 他の形式へ設定すると例外になる（実測値と理由は <see cref="EsImageSaveOptions"/> を参照）。<br/>
     /// <b>オプションを省略した場合との違い</b>: 本オーバーロードは明示された値だけをエンコーダーへ渡すため、
     /// 既定値は GDI+ の既定と一致しない（実測: 1280x720 の不規則な画像で既定 826 KB に対し品質 75 は 554 KB）。
-    /// 調整しない場合は <see cref="Save(IEsBitmap, string)"/> を使う。
+    /// 調整しない場合は <see cref="Save(EsReadOnlyBitmap, string)"/> を使う。
     /// </remarks>
     [SupportedOSPlatform("windows")]
-    public static void Save(this IEsBitmap source, string filePath, EsImageSaveOptions options)
+    public static void Save(this EsReadOnlyBitmap source, string filePath, EsImageSaveOptions options)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
         ObjectDisposedException.ThrowIf(source.IsDisposed, source);
-        WinGdiPlusImageCodec.EncodeToFile(source.Pixels, source.Width, source.Height, filePath, options);
+        WinGdiPlusImageCodec.EncodeToFile(source.ReadOnlyPixels, source.Width, source.Height, filePath, options);
     }
 
     /// <summary>画像から指定された矩形領域を切り出す。</summary>
@@ -157,7 +157,7 @@ public static class EsBitmapExtensions
     /// <b>コピーは 1 回で済む場合を分ける</b>: 左右のパディングが無く、ソースとデスティネーションの行幅が等しいときは
     /// 連続領域として全領域を 1 回でコピーする（実測: 4K 全域の切り出しで 8.3 ms → 6.6 ms）。
     /// </remarks>
-    public static EsWritableBitmap Crop(this IEsBitmap source, int x, int y, int width, int height)
+    public static EsBitmap Crop(this EsReadOnlyBitmap source, int x, int y, int width, int height)
     {
         ArgumentNullException.ThrowIfNull(source);
         if (width <= 0)
@@ -186,17 +186,17 @@ public static class EsBitmapExtensions
         // ソースと交差しない場合は全ピクセル透明を返す（生成時の 0 埋めをそのまま使う）
         if (cropW <= 0 || cropH <= 0)
         {
-            return EsWritableBitmap.Create(width, height);
+            return EsBitmap.Create(width, height);
         }
 
-        var result = EsWritableBitmap.CreateUninitialized(width, height);
-        var src = source.Pixels;
-        var dst = result.WritablePixels;
+        var result = EsBitmap.CreateUninitialized(width, height);
+        var src = source.ReadOnlyPixels;
+        var dst = result.Pixels;
         var srcStride = source.Stride;
         var dstStride = result.Stride;
 
         // コピーする 1 行のバイト数（cropW は「デスティネーションの幅 − 左パディング」以下にクランプ済み）
-        var copyBytes = cropW * IEsBitmap.BytesPerPixel;
+        var copyBytes = cropW * EsReadOnlyBitmap.BytesPerPixel;
 
         // 上端・下端のパディング行は連続しているため、行ごとではなく 1 回で消す
         var bottomRows = height - dstOffsetY - cropH;
@@ -211,8 +211,8 @@ public static class EsBitmapExtensions
         }
 
         // 中間行の左右のパディングを消す（左右の幅は行ごとに同じ）
-        var leftBytes = dstOffsetX * IEsBitmap.BytesPerPixel;
-        var rightBytes = (width - dstOffsetX - cropW) * IEsBitmap.BytesPerPixel;
+        var leftBytes = dstOffsetX * EsReadOnlyBitmap.BytesPerPixel;
+        var rightBytes = (width - dstOffsetX - cropW) * EsReadOnlyBitmap.BytesPerPixel;
         if (leftBytes > 0 || rightBytes > 0)
         {
             for (var row = 0; row < cropH; row++)
@@ -242,7 +242,7 @@ public static class EsBitmapExtensions
         {
             for (var row = 0; row < cropH; row++)
             {
-                src.Slice(srcStride * (cropY + row) + (cropX * IEsBitmap.BytesPerPixel), copyBytes)
+                src.Slice(srcStride * (cropY + row) + (cropX * EsReadOnlyBitmap.BytesPerPixel), copyBytes)
                     .CopyTo(dst.Slice(dstStride * (dstOffsetY + row) + leftBytes, copyBytes));
             }
         }
@@ -257,7 +257,7 @@ public static class EsBitmapExtensions
     /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="rect"/> の幅・高さが 0 以下の場合。</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
-    public static EsWritableBitmap Crop(this IEsBitmap source, EsRectInt rect)
+    public static EsBitmap Crop(this EsReadOnlyBitmap source, EsRectInt rect)
     {
         ArgumentNullException.ThrowIfNull(source);
         return Crop(source, rect.X, rect.Y, rect.Width, rect.Height);
@@ -286,8 +286,8 @@ public static class EsBitmapExtensions
     /// <b>返す寸法の丸め</b>: 切り捨てで丸めるため<b>1 px 未満の誤差が出うる</b>（座標の対応付けが必要な場面では使わない）。
     /// 長辺と上限が一致する場合は縮小不要のため<b>等倍の複製</b>を返す。
     /// </remarks>
-    public static EsWritableBitmap Resize(
-        this IEsBitmap source, int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)
+    public static EsBitmap Resize(
+        this EsReadOnlyBitmap source, int maxSize, DownscaleAlgorithm algorithm = DownscaleAlgorithm.Bilinear)
     {
         ArgumentNullException.ThrowIfNull(source);
         if (maxSize <= 0)
@@ -352,7 +352,7 @@ public static class EsBitmapExtensions
     /// （サイズも本処理の 173,684 B に対し 111,764 B / 117,156 B と、写真では外部の方が小さい。
     /// 減色の品質は pngquant が最も高いが、実行ファイルの同梱と 1 枚 700 ms を要する）。
     /// </remarks>
-    public static EsWritableBitmap ReduceColors(this IEsBitmap source, int colorCount)
+    public static EsBitmap ReduceColors(this EsReadOnlyBitmap source, int colorCount)
     {
         ArgumentNullException.ThrowIfNull(source);
         if (colorCount < MinimumColorCount || colorCount > MaximumColorCount)
@@ -363,15 +363,15 @@ public static class EsBitmapExtensions
 
         var width = source.Width;
         var height = source.Height;
-        var (indices, palette) = ReduceToIndexed(source.Pixels, width, height, colorCount);
+        var (indices, palette) = ReduceToIndexed(source.ReadOnlyPixels, width, height, colorCount);
 
-        var result = EsWritableBitmap.CreateUninitialized(width, height);
-        var destination = result.WritablePixels;
+        var result = EsBitmap.CreateUninitialized(width, height);
+        var destination = result.Pixels;
         for (var i = 0; i < indices.Length; i++)
         {
             // パレットは ARGB、画素は BGRA の並びである
             var color = palette[indices[i]];
-            var offset = i * IEsBitmap.BytesPerPixel;
+            var offset = i * EsReadOnlyBitmap.BytesPerPixel;
             destination[offset] = (byte)color;
             destination[offset + 1] = (byte)(color >> 8);
             destination[offset + 2] = (byte)(color >> 16);
@@ -423,7 +423,7 @@ public static class EsBitmapExtensions
         var indices = new byte[width * height];
         for (var i = 0; i < indices.Length; i++)
         {
-            var offset = i * IEsBitmap.BytesPerPixel;
+            var offset = i * EsReadOnlyBitmap.BytesPerPixel;
             indices[i] = lookup[HistogramKey(
                 pixels[offset + 2], pixels[offset + 1], pixels[offset], pixels[offset + 3])];
         }
@@ -437,7 +437,7 @@ public static class EsBitmapExtensions
     /// <param name="sums">箱ごとの成分の合計の書き先（箱 × 4。 最後の 1 つがアルファ）。</param>
     private static void CountColors(ReadOnlySpan<byte> pixels, int[] counts, long[] sums)
     {
-        for (var i = 0; i < pixels.Length; i += IEsBitmap.BytesPerPixel)
+        for (var i = 0; i < pixels.Length; i += EsReadOnlyBitmap.BytesPerPixel)
         {
             var key = HistogramKey(pixels[i + 2], pixels[i + 1], pixels[i], pixels[i + 3]);
             counts[key]++;
@@ -729,9 +729,9 @@ public static class EsBitmapExtensions
     /// <param name="source">対象の画像。 借用であり破棄しない。</param>
     /// <param name="target">縮小後の寸法（元より小さい）。</param>
     /// <returns>縮小した画像。</returns>
-    private static EsWritableBitmap ScaleNearest(IEsBitmap source, EsSizeInt target)
+    private static EsBitmap ScaleNearest(EsReadOnlyBitmap source, EsSizeInt target)
     {
-        var result = EsWritableBitmap.CreateUninitialized(target.Width, target.Height);
+        var result = EsBitmap.CreateUninitialized(target.Width, target.Height);
         var srcWidth = source.Width;
 
         // 列の対応（最近傍）を先に求め、内側のループでは割り算をしない
@@ -761,14 +761,14 @@ public static class EsBitmapExtensions
     /// <param name="yStart">開始行（含む）。</param>
     /// <param name="yEnd">終了行（含まない）。</param>
     private static void NearestRows(
-        IEsBitmap source, EsWritableBitmap result, int[] colMap, int yStart, int yEnd)
+        EsReadOnlyBitmap source, EsBitmap result, int[] colMap, int yStart, int yEnd)
     {
         var srcHeight = source.Height;
         var srcWidth = source.Width;
         var srcStrideUInt = source.Stride / sizeof(uint);
         var dstStrideUInt = result.Stride / sizeof(uint);
-        var src = MemoryMarshal.Cast<byte, uint>(source.Pixels);
-        var dst = MemoryMarshal.Cast<byte, uint>(result.WritablePixels);
+        var src = MemoryMarshal.Cast<byte, uint>(source.ReadOnlyPixels);
+        var dst = MemoryMarshal.Cast<byte, uint>(result.Pixels);
         var targetHeight = result.Height;
         var targetWidth = result.Width;
 
@@ -786,9 +786,9 @@ public static class EsBitmapExtensions
     /// <param name="source">対象の画像。 借用であり破棄しない。</param>
     /// <param name="target">縮小後の寸法（元より小さい）。</param>
     /// <returns>縮小した画像。</returns>
-    private static EsWritableBitmap ScaleBilinear(IEsBitmap source, EsSizeInt target)
+    private static EsBitmap ScaleBilinear(EsReadOnlyBitmap source, EsSizeInt target)
     {
-        var result = EsWritableBitmap.CreateUninitialized(target.Width, target.Height);
+        var result = EsBitmap.CreateUninitialized(target.Width, target.Height);
 
         // 列の対応（元の 2 列の位置と重み）は行に依存しないため、1 度だけ求めて表にする
         // （実測: 4K → 1920x1080 で 6.2 ms → 4.0 ms。 画素ごとに除算・床・クランプを行わない）
@@ -799,8 +799,8 @@ public static class EsBitmapExtensions
         {
             var sourceX = (((x + 0.5) * source.Width) / target.Width) - 0.5;
             var x0 = Math.Clamp((int)Math.Floor(sourceX), 0, source.Width - 1);
-            leftX[x] = x0 * IEsBitmap.BytesPerPixel;
-            rightX[x] = Math.Min(x0 + 1, source.Width - 1) * IEsBitmap.BytesPerPixel;
+            leftX[x] = x0 * EsReadOnlyBitmap.BytesPerPixel;
+            rightX[x] = Math.Min(x0 + 1, source.Width - 1) * EsReadOnlyBitmap.BytesPerPixel;
             fx[x] = Math.Clamp(sourceX - x0, 0.0, 1.0);
         }
 
@@ -827,22 +827,22 @@ public static class EsBitmapExtensions
     /// <param name="rightX">縮小先の列が参照する元の右の列のバイト オフセット（事前計算）。</param>
     /// <param name="fx">左の列と右の列の重み（0〜1。 事前計算）。</param>
     /// <remarks>
-    /// <b>行を範囲で受ける理由</b>: 1 行ずつメソッドを呼ぶと、行ごとに <see cref="IEsBitmap.Pixels"/> を取り直すうえ、
+    /// <b>行を範囲で受ける理由</b>: 1 行ずつメソッドを呼ぶと、行ごとに <see cref="EsReadOnlyBitmap.ReadOnlyPixels"/> を取り直すうえ、
     /// メソッド境界を越えることで<b>境界チェックの除去とベクター化の最適化が失われる</b>（実測: 4K → 96x54 で 116 → 229 µs）。
     /// 範囲を受け取れば、逐次（1 回で全行）と並列（範囲ごと）が<b>同じ実装</b>を使いながら最適化を保てます。<br/>
     /// <b>列の対応を引数で受ける理由</b>: 列の対応（元の 2 列と重み）は行に依存しないため、行ごとに
     /// 除算・床・クランプをやり直さない（<see cref="ScaleBilinear"/> が 1 度だけ求める）。
     /// </remarks>
     private static void BilinearRows(
-        IEsBitmap source, EsWritableBitmap result, int yStart, int yEnd, EsSizeInt target,
+        EsReadOnlyBitmap source, EsBitmap result, int yStart, int yEnd, EsSizeInt target,
         int[] leftX, int[] rightX, double[] fx)
     {
         var srcHeight = source.Height;
-        var src = source.Pixels;
+        var src = source.ReadOnlyPixels;
         var srcStride = source.Stride;
-        var dst = result.WritablePixels;
+        var dst = result.Pixels;
         var dstStride = result.Stride;
-        var bytesPerPixel = IEsBitmap.BytesPerPixel;
+        var bytesPerPixel = EsReadOnlyBitmap.BytesPerPixel;
 
         for (var y = yStart; y < yEnd; y++)
         {
@@ -914,9 +914,9 @@ public static class EsBitmapExtensions
     /// （4K → 96x54 で 逐次 2.8 ms 対 現行 1.5 ms、4K → 960x540 で 14 ms 対 2.4 ms）。
     /// 現行は元画像の各画素を 1 回だけ読んで合計するため、読み出しの回数は既に最小である。
     /// </remarks>
-    private static EsWritableBitmap ScaleBox(IEsBitmap source, EsSizeInt target)
+    private static EsBitmap ScaleBox(EsReadOnlyBitmap source, EsSizeInt target)
     {
-        var result = EsWritableBitmap.CreateUninitialized(target.Width, target.Height);
+        var result = EsBitmap.CreateUninitialized(target.Width, target.Height);
         var srcWidth = source.Width;
         var srcHeight = source.Height;
         var targetWidth = target.Width;
@@ -961,14 +961,14 @@ public static class EsBitmapExtensions
     /// （<see cref="ScaleBox"/> が 1 度だけ求める）。
     /// </remarks>
     private static void AverageBlockRows(
-        IEsBitmap source, EsWritableBitmap result, int yStart, int yEnd,
+        EsReadOnlyBitmap source, EsBitmap result, int yStart, int yEnd,
         int srcHeight, int targetHeight, int targetWidth, int[] x0s, int[] x1s)
     {
-        var src = source.Pixels;
+        var src = source.ReadOnlyPixels;
         var srcStride = source.Stride;
-        var dst = result.WritablePixels;
+        var dst = result.Pixels;
         var dstStride = result.Stride;
-        var bytesPerPixel = IEsBitmap.BytesPerPixel;
+        var bytesPerPixel = EsReadOnlyBitmap.BytesPerPixel;
 
         for (var y = yStart; y < yEnd; y++)
         {

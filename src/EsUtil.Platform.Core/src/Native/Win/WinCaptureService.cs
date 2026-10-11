@@ -11,7 +11,7 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// GDI の <c>BitBlt</c>（Win32 API）で画面のピクセルをメモリへコピーする。<br/>
 /// P/Invoke 呼び出しは <c>WinNative</c> に委譲する。<br/>
 /// <see cref="ICaptureService"/> の実装であり、テスト時のモックに備える。<br/>
-/// 公開 API（<see cref="ICaptureService"/>）は UI 非依存の型（<see cref="EsWritableBitmap"/> / <see cref="EsRectInt"/>）のみを使用する。<br/>
+/// 公開 API（<see cref="ICaptureService"/>）は UI 非依存の型（<see cref="EsBitmap"/> / <see cref="EsRectInt"/>）のみを使用する。<br/>
 /// ホスト（アプリ）が生成して注入する（Windows のみ。 テストではモックを注入できる）。<br/>
 /// GDI は Windows 専用のため、本クラスは <see cref="SupportedOSPlatformAttribute"/> で Windows に限定する。<br/>
 /// 継承不可。<br/>
@@ -23,21 +23,21 @@ public sealed class WinCaptureService : ICaptureService
     // 公開メソッド（プラットフォーム非依存の型のみ）
     // ====================================================================
 
-    /// <summary>指定された画面領域をキャプチャし、<see cref="EsWritableBitmap"/> として返す。</summary>
+    /// <summary>指定された画面領域をキャプチャし、<see cref="EsBitmap"/> として返す。</summary>
     /// <param name="bounds">キャプチャする画面領域（画面物理座標）。</param>
     /// <returns>キャプチャした画像。 破棄は呼び出し側。</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="bounds"/> の幅または高さが 0 以下の場合。</exception>
     /// <exception cref="Win32Exception">画面の取得（デバイス コンテキスト・DIB・<see cref="WinNative.BitBlt"/>）に失敗した場合。</exception>
     /// <remarks>
-    /// 内部で GDI の <c>BitBlt</c> を使用し、<see cref="EsWritableBitmap"/> のバッファへ直接コピーする
+    /// 内部で GDI の <c>BitBlt</c> を使用し、<see cref="EsBitmap"/> のバッファへ直接コピーする
     /// （中間の画像を経由しない）。<br/>
     /// 32bpp のトップダウン DIB はコアの画像と同じ並び（BGRA・上から下・パディングなし）になるため、
     /// 行単位ではなく全領域を 1 回でコピーできる。<br/>
     /// 画面のピクセルは GDI の仕様でアルファ値を持たない（書き込まれない）ため、<b>コピー後に不透明（255）へ揃える</b>。<br/>
     /// <b>同期コールである</b>: DWM の応答が止まるとブロックする可能性がある（呼び出し側がタイムアウトで保護する）。<br/>
-    /// 公開 API は UI 非依存の型（<see cref="EsWritableBitmap"/> / <see cref="EsRectInt"/>）のみを使用する。<br/>
+    /// 公開 API は UI 非依存の型（<see cref="EsBitmap"/> / <see cref="EsRectInt"/>）のみを使用する。<br/>
     /// </remarks>
-    public EsWritableBitmap CaptureArea(EsRectInt bounds)
+    public EsBitmap CaptureArea(EsRectInt bounds)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bounds.Width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bounds.Height);
@@ -53,7 +53,7 @@ public sealed class WinCaptureService : ICaptureService
     /// 全モニタを包含する矩形を 1 回の <c>BitBlt</c> でキャプチャする。<br/>
     /// 境界取得とキャプチャはスレッド非依存のため、バックグラウンドスレッドから安全に実行できる。<br/>
     /// </remarks>
-    public EsWritableBitmap? CaptureVirtualScreen(out EsPointInt origin)
+    public EsBitmap? CaptureVirtualScreen(out EsPointInt origin)
     {
         // Win32 の仮想スクリーン境界（全モニタのバウンディングボックス）を取得
         var (vx, vy, vw, vh) = WinNative.GetVirtualScreenBounds();
@@ -80,9 +80,9 @@ public sealed class WinCaptureService : ICaptureService
     /// （Windows の操作が失敗した原因と<b>対象領域</b>をメッセージへ残す）。<br/>
     /// 中途で失敗した場合は確保済みの画像を破棄してから伝搬する（資源の後始末は本クラスが所有する）。
     /// </remarks>
-    private static EsWritableBitmap CaptureScreen(EsRectInt bounds)
+    private static EsBitmap CaptureScreen(EsRectInt bounds)
     {
-        var bitmap = EsWritableBitmap.CreateUninitialized(bounds.Width, bounds.Height);
+        var bitmap = EsBitmap.CreateUninitialized(bounds.Width, bounds.Height);
         try
         {
             CopyScreenInto(bitmap, bounds);
@@ -106,7 +106,7 @@ public sealed class WinCaptureService : ICaptureService
     /// <c>BitBlt</c> のコピー元座標は負値を許容する（クリップされる）が、コピー先は常に (0, 0) から始める。<br/>
     /// <c>biHeight</c> を負値にしてトップダウン DIB にする（行の並びを画像と一致させる）。
     /// </remarks>
-    private static void CopyScreenInto(IEsWritableBitmap target, EsRectInt bounds)
+    private static void CopyScreenInto(EsBitmap target, EsRectInt bounds)
     {
         var screenDc = IntPtr.Zero;
         var memoryDc = IntPtr.Zero;
@@ -193,12 +193,12 @@ public sealed class WinCaptureService : ICaptureService
     /// 行ごとではなく全領域を 1 回でコピーする。<br/>
     /// 画面のピクセルにはアルファが無い（GDI は書き込まないため 0 のまま）ので、不透明へ揃える。
     /// </remarks>
-    private static unsafe void CopyPixels(IEsWritableBitmap target, IntPtr source)
+    private static unsafe void CopyPixels(EsBitmap target, IntPtr source)
     {
-        var destination = target.WritablePixels;
+        var destination = target.Pixels;
         new ReadOnlySpan<byte>((byte*)source, destination.Length).CopyTo(destination);
 
-        for (var i = IEsBitmap.BytesPerPixel - 1; i < destination.Length; i += IEsBitmap.BytesPerPixel)
+        for (var i = EsReadOnlyBitmap.BytesPerPixel - 1; i < destination.Length; i += EsReadOnlyBitmap.BytesPerPixel)
         {
             destination[i] = byte.MaxValue;
         }

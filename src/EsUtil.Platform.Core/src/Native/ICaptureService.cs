@@ -10,7 +10,7 @@ namespace EsUtil.Platform.Core.Native;
 /// 実装は各プラットフォーム（Windows: GDI の <c>BitBlt</c>）が提供する。<br/>
 /// <br/>
 /// 公開 API は UI フレームワーク非依存である:<br/>
-/// - 画像は <see cref="EsWritableBitmap"/>（ピクセルコンテナ）で受け渡しする（Win32 / GDI の型は公開しない）。<br/>
+/// - 画像は <see cref="EsBitmap"/>（ピクセルコンテナ）で受け渡しする（Win32 / GDI の型は公開しない）。<br/>
 ///   <b>生成した画像は書き換え可能な型で返す</b>（この画像を所有し、破棄するのは呼び出し側であるため）。<br/>
 /// - 座標は画面物理ピクセルのコア型（<see cref="EsRectInt"/> / <see cref="EsPointInt"/>）で受け渡しする。<br/>
 /// <br/>
@@ -35,7 +35,7 @@ public interface ICaptureService
     /// 失敗は例外にして<b>対象領域</b>と原因（Win32 のエラー コード）を残す。<br/>
     /// 画像の生成はスレッド非依存のため、画面キャプチャ（GDI の同期コール等）と同一のバックグラウンド スレッドで実行できる。
     /// </remarks>
-    EsWritableBitmap CaptureArea(EsRectInt bounds);
+    EsBitmap CaptureArea(EsRectInt bounds);
 
     /// <summary>仮想スクリーン（全モニタを包含する領域）全体を 1 回のキャプチャで取得する。</summary>
     /// <param name="origin">仮想スクリーンの原点（全モニタのバウンディングボックス左上、画面物理座標）。</param>
@@ -47,5 +47,5 @@ public interface ICaptureService
     /// <b><see langword="null"/> の意味は 1 つだけである</b>: 仮想スクリーンの境界が取得できない
     /// （幅・高さが 0 以下。 セッション切断等）。 画面の取得自体の失敗は <see cref="Win32Exception"/> になる。
     /// </remarks>
-    EsWritableBitmap? CaptureVirtualScreen(out EsPointInt origin);
+    EsBitmap? CaptureVirtualScreen(out EsPointInt origin);
 }
