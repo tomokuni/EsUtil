@@ -5,18 +5,19 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <b>形式は既定では拡張子が決める</b>: どの形式で保存するかは保存先の拡張子が決める（<see cref="Format"/> を指定すると
 /// 拡張子より優先される）。 本型は<b>その形式の中で調整できる値</b>だけを持ち、設定した項目が選ばれた形式で使えない場合は
 /// <see cref="EsReadOnlyBitmap.Save(string, EsImageSaveOptions)"/> が例外にする（黙って無視しない）。<br/>
-/// <b>項目が 2 つしかない理由（実測）</b>: GDI+ のエンコーダーが実際に出力を変える値は限られる。
+/// <b>出力を変える項目と変えない項目（実測）</b>: GDI+ のエンコーダーが実際に出力を変える値は限られる。
 /// 640x360 の画像を<b>全パラメーター × 全形式で総当たり</b>して確かめた結果:
 ///
 /// <list type="table">
 /// <item>
-///   <term>品質が変わる</term>
-///   <description>JPEG の品質（<see cref="JpegQuality"/>。 208 KB → 11 KB〜459 KB）。</description>
+///   <term>JPEG の品質が変わる</term>
+///   <description><see cref="JpegQuality"/>（208 KB → 11 KB〜459 KB）。</description>
 /// </item>
 /// <item>
-///   <term>色数が変わる</term>
-///   <description>減色（<see cref="ColorCount"/>。 実装は自前であり GDI+ のパラメーターではない。
-///   8bpp のインデックス カラーとして書くため BMP / PNG / GIF で効く）。</description>
+///   <term>減色で色数・画質・見た目が変わる</term>
+///   <description><see cref="ColorCount"/>（実装は自前であり GDI+ のパラメーターではない。
+///   8bpp のインデックス カラーとして書くため BMP / PNG / GIF で効く）、および<b>減色が行われる場合だけ</b>効く
+///   <see cref="ColorQuality"/> と <see cref="Dither"/>。</description>
 /// </item>
 /// <item>
 ///   <term>値を変えても出力が完全に同一</term>
