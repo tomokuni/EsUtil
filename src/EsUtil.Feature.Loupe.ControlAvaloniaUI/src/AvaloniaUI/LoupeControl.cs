@@ -171,7 +171,7 @@ public sealed class LoupeControl : Panel
             // Bitmap 由来の場合のみ複製を破棄する（表示アダプタからの借用は破棄しない）
             if (resolved.IsSourceBitmap)
             {
-                (sourceBitmap as IDisposable)?.Dispose();
+                sourceBitmap?.Dispose();
             }
         }
     }
@@ -590,17 +590,18 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     private EsBitmapAvaloniaAdapter? _loupeImage;
 
-    /// <summary>内部描画結果（<see cref="EsBitmap"/>）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
+    /// <summary>内部描画結果（読み取りの面）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
     /// <remarks>
-    /// 本コントロールが生成したルーペ画像であるため、<b>本コントロールが破棄する</b>
-    /// （<see cref="ReleaseBitmap"/> / <see cref="SetLoupeBitmap"/> で破棄する）。<br/>
+    /// 描画（<see cref="LoupeRenderPipeline"/>）が返した書き換え可能な画像を、オーバーレイの描画が済んだ後に
+    /// 凍結して 0 コピーで共有した面である（以降は読むだけのため、書き換えの入口を持つ必要が無い）。<br/>
+    /// <b>本コントロールが破棄する</b>（<see cref="ReleaseBitmap"/> / <see cref="SetLoupeBitmap"/> で破棄する）。<br/>
     /// <see cref="LoupeBitmap"/> は本値を返す（共有参照。 破棄はしないこと）。
     /// </remarks>
-    private EsBitmap? _loupeEs;
+    private EsReadOnlyBitmap? _loupeEs;
 
-    /// <summary>内部描画結果（<see cref="EsBitmap"/>）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
+    /// <summary>内部描画結果（読み取りの面）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
     /// <remarks><see cref="LoupeBitmap"/> が返す。 破棄はしないこと（本コントロールが破棄する）。</remarks>
-    internal EsBitmap? LoupeBitmap => _loupeEs;
+    internal EsReadOnlyBitmap? LoupeBitmap => _loupeEs;
 
     // ====================================================================
     // ログ
@@ -784,14 +785,19 @@ public sealed class LoupeControl : Panel
         // イベント後の画像（ホストのオーバーレイ描画を含む）を表示境界で Avalonia 画像として反映する。
         // EsBitmapAvaloniaAdapter（表示用の変換は初回のみ）を Source に設定する。
         // 旧アダプタを破棄する前に、新しいアダプタを先に Source へ設定する（破棄済みバッファの参照防止・チラつき防止）。
+        // オーバーレイの描画が済んだ後は書き込みが無いため、ここで凍結して読み取り専用の面へ 0 コピーで引き渡す
+        bmp.SetReadOnly();
+        var read = EsReadOnlyBitmap.FromBitmap(bmp);
         var previousImage = _loupeImage;
         var previousEs = _loupeEs;
         // 画像は本コントロールが所有し、アダプタは非所有で包むだけ（アダプタは射影だけを所有する）
-        _loupeEs = bmp;
-        _loupeImage = new EsBitmapAvaloniaAdapter(bmp);
+        _loupeEs = read;
+        _loupeImage = new EsBitmapAvaloniaAdapter(read);
         _image.Source = _loupeImage;
         // 新旧の Source 設定後、旧の画像とアダプタを破棄する（Image.Source が旧アダプタを参照しなくなった後）。
         previousImage?.Dispose();
         previousEs?.Dispose();
+        // 画素は読み取り専用の面が共有して引き継ぐため、書き換え可能の実体はここで解放する
+        bmp.Dispose();
     }
 }

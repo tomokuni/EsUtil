@@ -106,8 +106,16 @@ internal static class LoupeContextPainter
 
         try
         {
+            // 切り出しは複製になる（切り出しが画像の外へ出る場合は透明で埋める必要があるため Crop を使う）。
+            // 0 コピーのビュー（EsPixmap）で切り出しの複製は避けられるが、Avalonia の描画は
+            // 書き換え可能な WriteableBitmap/Bitmap を要求するため、表示用の変換で複製が発生する
+            // （ビューから直接描く入口が無い）。 したがって本層では切り出しの複製だけを避けても
+            // 効果が無く、規則を 1 つに保つ（Crop）方を選ぶ。
             using var region = source.Crop(image.CropSourceRect);
-            using var avalonia = region.ToAvaloniaBitmap();
+            // その場で読むだけ（表示用の変換は複製を返す）: 凍結して 0 コピーで読み取り専用の面へ渡す
+            region.SetReadOnly();
+            using var read = EsReadOnlyBitmap.FromBitmap(region);
+            using var avalonia = read.ToAvaloniaBitmap();
             context.DrawImage(avalonia, image.CroppedRect.ToAvaloniaRect(), image.DrawClientPixelRect.ToAvaloniaRect());
         }
         catch (ObjectDisposedException)

@@ -48,9 +48,11 @@ public class LoupeLogMessageTests
     internal void 拡大元画像のログは同一インスタンスなら出力しない()
     {
         using var bitmap = EsBitmap.Create(4, 4);
+        bitmap.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bitmap);
         var logger = new RecordingLogger();
 
-        logger.LogSourceChanged(bitmap, bitmap);
+        logger.LogSourceChanged(read, read);
         logger.LogSourceChanged(null, null);
 
         Assert.Empty(logger.Messages);
@@ -61,11 +63,15 @@ public class LoupeLogMessageTests
     internal void 拡大元画像のログは別インスタンスなら出力する()
     {
         using var oldBitmap = EsBitmap.Create(8, 6);
+        oldBitmap.SetReadOnly();
+        using var oldRead = EsReadOnlyBitmap.FromBitmap(oldBitmap);
         using var newBitmap = EsBitmap.Create(8, 6);
+        newBitmap.SetReadOnly();
+        using var newRead = EsReadOnlyBitmap.FromBitmap(newBitmap);
         var logger = new RecordingLogger();
 
-        logger.LogSourceChanged(oldBitmap, newBitmap);
-        logger.LogSourceChanged(oldBitmap, null);
+        logger.LogSourceChanged(oldRead, newRead);
+        logger.LogSourceChanged(oldRead, null);
 
         Assert.Equal(2, logger.Messages.Count);
         Assert.Equal("[Loupe] Setting: Source 8x6 → 8x6", logger.Messages[0]);
@@ -89,8 +95,10 @@ public class LoupeLogMessageTests
     private static void InvokeAll(ILogger logger)
     {
         using var bitmap = EsBitmap.Create(8, 6);
+        bitmap.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bitmap);
 
-        logger.LogSourceChanged(bitmap, null);
+        logger.LogSourceChanged(read, null);
         logger.LogUpdateError(new InvalidOperationException("test"));
     }
 }

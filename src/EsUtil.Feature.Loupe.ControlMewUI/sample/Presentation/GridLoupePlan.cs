@@ -68,9 +68,9 @@ internal static class GridLoupePlan
     }
 
     /// <summary>見本の元画像（グラデーション）を生成する。</summary>
-    /// <returns>幅 240 × 高さ 160 の画素バッファ。</returns>
-    /// <remarks>ルーペのソースは UI 非依存の画素バッファ（<see cref="EsBitmap"/>）として本見本が自前で用意する。</remarks>
-    public static EsBitmap CreateSource()
+    /// <returns>幅 240 × 高さ 160 の画素バッファ（読み取りの面）。</returns>
+    /// <remarks>ルーペのソースは UI 非依存の画素バッファ（<see cref="EsReadOnlyBitmap"/>）として本見本が自前で用意する。</remarks>
+    public static EsReadOnlyBitmap CreateSource()
     {
         var bitmap = EsBitmap.Create(240, 160);
 
@@ -82,7 +82,11 @@ internal static class GridLoupePlan
             }
         }
 
-        return bitmap;
+        // 以降は読むだけ（ルーペのソースへ渡す）であるため、凍結して 0 コピーで読み取り専用の面へ渡す
+        bitmap.SetReadOnly();
+        var read = EsReadOnlyBitmap.FromBitmap(bitmap);
+        bitmap.Dispose();
+        return read;
     }
 
     /// <summary>描画面の中心へ十字の格子線を作る。</summary>

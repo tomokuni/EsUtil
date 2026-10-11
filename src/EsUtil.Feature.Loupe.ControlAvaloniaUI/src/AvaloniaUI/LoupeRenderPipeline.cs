@@ -61,7 +61,7 @@ internal static class LoupeRenderPipeline
             // Bitmap 由来の場合のみ複製を破棄する（表示アダプタの共有参照は破棄しない）。
             if (resolved.IsSourceBitmap)
             {
-                (sourceBitmap as IDisposable)?.Dispose();
+                sourceBitmap?.Dispose();
             }
         }
     }

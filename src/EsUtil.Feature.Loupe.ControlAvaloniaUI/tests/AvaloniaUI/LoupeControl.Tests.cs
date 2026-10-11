@@ -81,7 +81,9 @@ public class LoupeControlTests
         // EsBitmapAvaloniaAdapter（コアの画像を IImage として公開するアダプタ）を Source に設定した場合、
         // ルーペ画像が生成される（WriteableBitmap を生成しない経路の検証）。
         using var bmp = EsBitmap.Create(200, 200);
-        using var image = new EsBitmapAvaloniaAdapter(bmp);
+        bmp.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
+        using var image = new EsBitmapAvaloniaAdapter(read);
         var control = CreateControl();
         control.Source = image;
         control.CenterPoint = new Point(100, 100);

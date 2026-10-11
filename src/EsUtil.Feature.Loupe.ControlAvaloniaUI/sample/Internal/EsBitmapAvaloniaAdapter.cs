@@ -83,15 +83,26 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IDisposable
     }
 
     /// <summary>画像を引き取って所有するアダプタを生成する（<see cref="Dispose"/> で画像も解放する）。</summary>
-    /// <param name="source">所有するコアの画像。</param>
+    /// <param name="source">所有するコアの画像（書き換え可能）。</param>
     /// <returns>画像を所有するアダプタ。</returns>
     /// <remarks>
     /// <b>生成した画像を解放する人がいない場合に限る</b>（借用して包む場合はコンストラクタを使う）。<br/>
     /// 所有の有無を生成の入口で分けることで、コンストラクタ（非所有）の意味を変えない
     /// （アダプタは「表示の適合」と「自分の射影の解放」だけを担い、元画像は生成した側が解放するのが原則）。<br/>
-    /// <paramref name="source"/> は <see cref="EsBitmap"/> に限る（解放できる型だけを引き取れるようにする）。
+    /// <b>引き取った画像は凍結してから読み取り専用の面へ渡す</b>（凍結済みは <see cref="EsReadOnlyBitmap.FromBitmap"/> が
+    /// 0 コピーで共有する）。 画素は共有されて生存し続けるため、引き取った書き換え可能の実体はその場で解放してよい
+    /// （最後の実体が解放するのは読み取り専用の側）。
     /// </remarks>
-    public static EsBitmapAvaloniaAdapter Adopt(EsBitmap source) => new(source, ownsSource: true);
+    public static EsBitmapAvaloniaAdapter Adopt(EsBitmap source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        // 凍結して 0 コピーで共有し、引き取った書き換え可能の実体（参照）はその場で解放する
+        source.SetReadOnly();
+        var adopted = EsReadOnlyBitmap.FromBitmap(source);
+        source.Dispose();
+        return new(adopted, ownsSource: true);
+    }
 
     /// <summary>画像を所有するかどうかを指定して生成する（所有の入口は <see cref="Adopt"/> だけに集約する）。</summary>
     /// <param name="source">真実となるコアの画像。</param>
@@ -196,7 +207,10 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IDisposable
         }
 
         using var scaled = source.Resize(DisplayMaxSize, DownscaleAlgorithm.Box);
-        return _displayProjection = scaled.ToAvaloniaBitmap();
+        // その場で読むだけ（読み取り専用の面へ引き渡す）: 凍結して 0 コピーで共有する
+        scaled.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(scaled);
+        return _displayProjection = read.ToAvaloniaBitmap();
     }
 
     /// <summary>射影（等倍・縮小）を解放する。</summary>

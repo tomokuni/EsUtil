@@ -11,14 +11,15 @@ namespace EsUtil.Feature.Loupe.MewUI.Internal;
 /// Skia への依存は本層へ閉じ込め、コアは自前のピクセルバッファだけを所有する。<br/>
 /// <br/>
 /// <b>所有権</b>: 双方向とも<b>コアのバッファの所有権は移動しない</b>。<br/>
-/// - <see cref="ToSKBitmap"/> は<b>非所有ビュー</b>を返す（コアのバッファを指すだけ。 破棄してもコアのバッファは解放されない）。<br/>
+/// - <see cref="ToSKBitmap(EsReadOnlyBitmap)"/> は<b>非所有ビュー</b>を返す（コアのバッファを指すだけ。 破棄してもコアのバッファは解放されない）。<br/>
+/// - <see cref="ToSKBitmap(EsPixmap)"/> も<b>非所有ビュー</b>を返す（<see cref="EsPixmap"/> が指す一部の領域を指す。 同様に破棄しても解放されない）。<br/>
 /// - <see cref="ToEsBitmap(SKBitmap)"/> は<b>複製</b>を作る（引数の <see cref="SKBitmap"/> の所有権は呼び出し側に残る）。<br/>
 /// <br/>
-/// <b>ビューの寿命</b>: <see cref="ToSKBitmap"/> が返す <see cref="SKBitmap"/> は、対応する画像が<br/>
+/// <b>ビューの寿命</b>: <see cref="ToSKBitmap(EsReadOnlyBitmap)"/> が返す <see cref="SKBitmap"/> は、対応する画像が<br/>
 /// 生存している間だけ有効である（コアのバッファを指すため）。 画像を破棄した後にビューを使うと<br/>
 /// 解放済みメモリを読む。
 /// </remarks>
-internal static class EsBitmapSkiaExtensions
+public static class EsBitmapSkiaExtensions
 {
     /// <summary>コアの画像を指す非所有ビューを返す。</summary>
     /// <param name="bitmap">対象の画像（読み取るだけのため <see cref="EsReadOnlyBitmap"/> を受ける）。 null 不可。</param>
@@ -55,6 +56,46 @@ internal static class EsBitmapSkiaExtensions
         }
 
         return view;
+    }
+
+    /// <summary>コアの画像の一部を指す非所有ビューを返す（切り出しの複製を作らない）。</summary>
+    /// <param name="view">対象のビュー（読み取るだけのため <see cref="EsPixmap"/> を受ける）。 null 不可。</param>
+    /// <returns>同じピクセル領域を指す <see cref="SKBitmap"/>（非所有）。 <b>呼び出し側が破棄する</b>（破棄してもコアのバッファは解放されない）。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="view"/> が null の場合。</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="view"/> が破棄済みの場合。</exception>
+    /// <exception cref="InvalidOperationException">ビューの作成に失敗した場合。</exception>
+    /// <remarks>
+    /// <b>行幅（<see cref="SKBitmap.RowBytes"/>）はコアの <see cref="EsPixmap.Stride"/>（元画像のストライド）をそのまま渡す</b>。<br/>
+    /// これは <see cref="EsPixmap.ReadOnlyPixels"/> が<b>行の余白を含む</b>連続ビューだからであり、<br/>
+    /// 「幅 × 4」を渡すと行がずれる（元画像の幅で切り出した場合だけ一致する）。<br/>
+    /// <br/>
+    /// ビューの寿命は <see cref="ToSKBitmap(EsReadOnlyBitmap)"/> と同じである（元画像の生存中のみ有効）。<br/>
+    /// <b>破棄は呼び出し側が行う</b>（本メソッドは呼び出しごとに新しい <see cref="SKBitmap"/> を作る）。
+    /// コピーが必要な場合は結果へ <c>Copy()</c> を適用する。
+    /// </remarks>
+    public static SKBitmap ToSKBitmap(this EsPixmap view)
+    {
+        ArgumentNullException.ThrowIfNull(view);
+
+        var info = new SKImageInfo(view.Width, view.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+        var bitmap = new SKBitmap();
+
+        // コアのバッファをそのまま指す（ピクセルをコピーしない非所有ビュー）。
+        // 行幅は元画像のストライドを渡す（ReadOnlyPixels は行の余白を含む連続ビューのため）。
+        // バッファはアンマネージドのため、fixed で得たアドレスは生存中動かない（InstallPixels が保持しても有効）
+        unsafe
+        {
+            fixed (byte* p = view.ReadOnlyPixels)
+            {
+                if (!bitmap.InstallPixels(info, (nint)p, view.Stride))
+                {
+                    bitmap.Dispose();
+                    throw new InvalidOperationException("SKBitmap のビューを作成できませんでした（ピクセル形式または寸法が不正です）。");
+                }
+            }
+        }
+
+        return bitmap;
     }
 
     /// <summary>Skia のビットマップを複製してコアの画像を生成する。</summary>

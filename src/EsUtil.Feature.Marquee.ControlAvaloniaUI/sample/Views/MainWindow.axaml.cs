@@ -27,7 +27,8 @@ public partial class MainWindow : Window
     private readonly MainWindowViewModel _vm = new();
 
     /// <summary>背景に敷くダミー画像の元（対象面のサイズ感を示す）。 静的フィールドのためアプリ終了まで生存する。</summary>
-    private static readonly EsBitmap s_backdropBitmap = CreateBackdrop();
+    /// <remarks>生成後は書き換えないため、凍結して読み取り専用の面（<see cref="s_backdropBitmap"/>）で保持する。</remarks>
+    private static readonly EsReadOnlyBitmap s_backdropBitmap = CreateBackdropReadOnly();
 
     /// <summary>背景に敷くダミー画像（表示境界のアダプタ。 元画像は <see cref="s_backdropBitmap"/> が保持する）。</summary>
     private static readonly EsBitmapAvaloniaAdapter s_backdrop = new(s_backdropBitmap);
@@ -363,12 +364,21 @@ public partial class MainWindow : Window
     private void OnClearLogClicked(object? sender, RoutedEventArgs e)
         => _vm.ClearLog();
 
-    /// <summary>背景用のダミー画像を生成する（グリッド付き、サイズ感の確認用）。</summary>
+    /// <summary>背景用のダミー画像を生成する（グリッド付き、サイズ感の確認用。 読み取りの面で返す）。</summary>
     /// <returns>生成した画像（静的フィールドがアプリ終了まで保持する）。</returns>
     /// <remarks>
     /// ビットマップサイズは <see cref="ImageWidth"/> / <see cref="ImageHeight"/> に合わせる
-    /// （const のためリテラルで指定。 グリッド間隔は 100px で視認性を確保する）。
+    /// （const のためリテラルで指定。 グリッド間隔は 100px で視認性を確保する）。<br/>
+    /// 生成後は書き換えないため、凍結して読み取り専用の面へ 0 コピーで渡す（書き換え可能の実体は解放する）。
     /// </remarks>
+    private static EsReadOnlyBitmap CreateBackdropReadOnly()
+    {
+        using var bitmap = CreateBackdrop();
+        bitmap.SetReadOnly();
+        return EsReadOnlyBitmap.FromBitmap(bitmap);
+    }
+
+    /// <summary>背景用のダミー画像を生成する（グリッド付き、サイズ感の確認用）。</summary>
     private static EsBitmap CreateBackdrop()
     {
         const int width = 1200;

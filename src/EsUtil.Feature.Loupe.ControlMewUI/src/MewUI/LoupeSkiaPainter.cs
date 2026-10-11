@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Feature.Loupe.MewUI.Internal;
 using SkiaSharp;
@@ -81,16 +82,46 @@ internal static class LoupeSkiaPainter
             return;
         }
 
+        var rect = image.CropSourceRect;
+
         try
         {
-            using var region = source.Crop(image.CropSourceRect);
+            // 切り出しが画像の内側に収まっている場合は 0 コピーのビュー（EsPixmap）で描く
+            // （毎フレームの切り出しの複製を避ける。 実測: 1000x800 の Crop は 0.72 ms / 4 MB ＝ 60 fps で 240 MB/s）。
+            if (IsInside(source, rect))
+            {
+                using var view = source.ToPixmap(rect);
+                // ビューは非所有（ピクセルは複製しない）だがファイナライザを持つため、描画の直後に破棄する
+                using var skia = view.ToSKBitmap();
+                canvas.DrawBitmap(skia, image.CroppedRect.ToSKRect(), image.DrawClientPixelRect.ToSKRect());
+                return;
+            }
+
+            // 切り出しが画像の外へ出る場合は透明で埋める必要があるため、複製する Crop を使う
+            // （ToPixmap は元画像の内側しか指せない。 透明パディングの規則はコアの Crop が単一所有する）
+            using var region = source.Crop(rect);
+            // その場で読むだけ（描画は書き換えない）: 凍結して 0 コピーで読み取り専用の面へ渡す
+            region.SetReadOnly();
+            using var readOnly = EsReadOnlyBitmap.FromBitmap(region);
             // ビューは非所有（ピクセルは複製しない）だがファイナライザを持つため、描画の直後に破棄する
-            using var view = region.ToSKBitmap();
-            canvas.DrawBitmap(view, image.CroppedRect.ToSKRect(), image.DrawClientPixelRect.ToSKRect());
+            using var bitmap = readOnly.ToSKBitmap();
+            canvas.DrawBitmap(bitmap, image.CroppedRect.ToSKRect(), image.DrawClientPixelRect.ToSKRect());
         }
         catch (ObjectDisposedException)
         {
             // 描画中にソースが破棄された: 画像の層を描かずに戻る（ペーストボードのみが残る）
         }
     }
+
+    /// <summary>切り出し矩形が画像の内側に収まっているかどうかを返す。</summary>
+    /// <param name="source">切り出し元の画像。</param>
+    /// <param name="rect">切り出す矩形（対象座標）。</param>
+    /// <returns>内側に収まっている場合は true。</returns>
+    /// <remarks>
+    /// 外側に出る場合は透明で埋める必要があるため、0 コピーのビュー（<c>EsPixmap</c>）を使えない。<br/>
+    /// 幅・高さが 0 以下（ビューを作れない）場合も false にする（<c>Crop</c> は空の切り出しを返す）。
+    /// </remarks>
+    private static bool IsInside(EsReadOnlyBitmap source, EsRectInt rect)
+        => rect.Width > 0 && rect.Height > 0
+            && rect.X >= 0 && rect.Y >= 0 && rect.Right <= source.Width && rect.Bottom <= source.Height;
 }

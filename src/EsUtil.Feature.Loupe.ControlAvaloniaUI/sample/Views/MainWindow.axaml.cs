@@ -21,7 +21,7 @@ public partial class MainWindow : Window
     private readonly MainWindowViewModel _vm = new();
 
     /// <summary>見本（<c>GridPreview</c>）の元画像。 本ウィンドウが生存する間保持する。</summary>
-    private readonly EsBitmap _gridPreviewBitmap = GridLoupePlan.CreateSource();
+    private readonly EsReadOnlyBitmap _gridPreviewBitmap = GridLoupePlan.CreateSource();
 
     /// <summary>見本（<c>GridPreview</c>）の表示用画像（<see cref="_gridPreviewBitmap"/> を借りて包む非所有アダプタ）。</summary>
     private readonly EsBitmapAvaloniaAdapter _gridPreviewImage;

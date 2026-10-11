@@ -3,8 +3,8 @@ using Avalonia;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using Xunit;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests.Internal;
@@ -35,8 +35,10 @@ public class EsBitmapAvaloniaTests(ITestOutputHelper output)
     internal void ToAvaloniaWriteableBitmap_サイズが一致する()
     {
         using var bmp = EsBitmap.Create(8, 8);
+        bmp.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
 
-        var result = bmp.ToAvaloniaWriteableBitmap();
+        var result = read.ToAvaloniaWriteableBitmap();
 
         Assert.Equal(new PixelSize(8, 8), result.PixelSize);
     }
@@ -59,7 +61,9 @@ public class EsBitmapAvaloniaTests(ITestOutputHelper output)
         var src = CreateBitmap(12, 10);
 
         using var bmp = src.ToEsBitmap();
-        var back = bmp.ToAvaloniaWriteableBitmap();
+        bmp.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
+        var back = read.ToAvaloniaWriteableBitmap();
 
         Assert.Equal(src.PixelSize, back.PixelSize);
     }
@@ -119,14 +123,16 @@ public class EsBitmapAvaloniaTests(ITestOutputHelper output)
         foreach (var (label, w, h) in new[] { ("ルーペ 240x240", 240, 240), ("ルーペ 800x600", 800, 600) })
         {
             using var bmp = EsBitmap.Create(w, h);
+            bmp.SetReadOnly();
+            using var read = EsReadOnlyBitmap.FromBitmap(bmp);
             const int n = 50;
 
             // ウォームアップ（JIT・Avalonia 初期化を乗せる）
-            RunMeasurement(bmp, 3);
+            RunMeasurement(read, 3);
 
             // 計測（WriteableBitmap / Bitmap を個別に計測）
-            var wbTime = RunWriteableMeasurement(bmp, n);
-            var bmpTime = RunBitmapMeasurement(bmp, n);
+            var wbTime = RunWriteableMeasurement(read, n);
+            var bmpTime = RunBitmapMeasurement(read, n);
 
             LogBenchmark(label, w, h, wbTime, bmpTime, n);
         }
@@ -137,14 +143,16 @@ public class EsBitmapAvaloniaTests(ITestOutputHelper output)
     {
         // 4K（3840x2160）。 メモリ使用が大きいため繰り返し回数を減らす。
         using var bmp = EsBitmap.Create(3840, 2160);
+        bmp.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
         const int n = 5;
 
         // ウォームアップ（JIT・Avalonia 初期化を乗せる）
-        RunMeasurement(bmp, 1);
+        RunMeasurement(read, 1);
 
         // 計測（WriteableBitmap / Bitmap を個別に計測）
-        var wbTime = RunWriteableMeasurement(bmp, n);
-        var bmpTime = RunBitmapMeasurement(bmp, n);
+        var wbTime = RunWriteableMeasurement(read, n);
+        var bmpTime = RunBitmapMeasurement(read, n);
 
         LogBenchmark("4K 3840x2160", 3840, 2160, wbTime, bmpTime, n);
     }

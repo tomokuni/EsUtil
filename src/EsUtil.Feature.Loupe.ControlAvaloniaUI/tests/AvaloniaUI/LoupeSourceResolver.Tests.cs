@@ -29,12 +29,14 @@ public class LoupeSourceResolverTests
     internal void Resolve_EsBitmapAvaloniaAdapterは借用を返す()
     {
         using var bmp = EsBitmap.Create(10, 10);
-        using var image = new EsBitmapAvaloniaAdapter(bmp);
+        bmp.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
+        using var image = new EsBitmapAvaloniaAdapter(read);
 
         var resolved = LoupeSourceResolver.Resolve(image, out var bitmap);
 
         // 借用（アダプタが内包するコアの画像を取り出す）で、破棄は呼び出し側で行わない
-        Assert.Same(bmp, bitmap);
+        Assert.Same(read, bitmap);
         Assert.False(resolved.IsSourceBitmap);
     }
 
@@ -43,11 +45,13 @@ public class LoupeSourceResolverTests
     {
         // Platform 層のアダプタのようにルーペが型を参照できないアダプタでも、公開契約（GetEsBitmap）で解決する
         using var bmp = EsBitmap.Create(10, 10);
-        var image = new ForeignAdapter(bmp);
+        bmp.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
+        var image = new ForeignAdapter(read);
 
         var resolved = LoupeSourceResolver.Resolve(image, out var bitmap);
 
-        Assert.Same(bmp, bitmap);
+        Assert.Same(read, bitmap);
         Assert.False(resolved.IsSourceBitmap);
     }
 
@@ -55,8 +59,10 @@ public class LoupeSourceResolverTests
     internal void Resolve_破棄済みの真実を内包する表示アダプタは市松模様のみにフォールバックする()
     {
         var bmp = EsBitmap.Create(10, 10);
-        using var image = new EsBitmapAvaloniaAdapter(bmp);
-        bmp.Dispose();
+        bmp.SetReadOnly();
+        var read = EsReadOnlyBitmap.FromBitmap(bmp);
+        using var image = new EsBitmapAvaloniaAdapter(read);
+        read.Dispose();
 
         var resolved = LoupeSourceResolver.Resolve(image, out var bitmap);
 
@@ -80,7 +86,9 @@ public class LoupeSourceResolverTests
     internal void IsSourceSupported_EsBitmapAvaloniaAdapterは対応可能である()
     {
         using var bmp = EsBitmap.Create(10, 10);
-        using var image = new EsBitmapAvaloniaAdapter(bmp);
+        bmp.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
+        using var image = new EsBitmapAvaloniaAdapter(read);
 
         Assert.True(LoupeSourceResolver.IsSourceSupported(image));
     }
@@ -89,8 +97,10 @@ public class LoupeSourceResolverTests
     internal void IsSourceSupported_他のアセンブリの表示アダプタも対応可能である()
     {
         using var bmp = EsBitmap.Create(10, 10);
+        bmp.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
 
-        Assert.True(LoupeSourceResolver.IsSourceSupported(new ForeignAdapter(bmp)));
+        Assert.True(LoupeSourceResolver.IsSourceSupported(new ForeignAdapter(read)));
     }
 
     /// <summary>ルーペが型を参照できないアセンブリの表示アダプタを模した画像（公開契約だけを持つ）。</summary>

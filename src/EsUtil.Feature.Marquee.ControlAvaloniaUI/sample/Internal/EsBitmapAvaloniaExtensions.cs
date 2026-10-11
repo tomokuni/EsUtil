@@ -43,7 +43,10 @@ internal static class EsBitmapAvaloniaExtensions
         // Avalonia Color を System.Drawing.Color へ変換してコアの生成へ委譲する
         var colorArgb = Color.FromArgb(color.A, color.R, color.G, color.B);
         using var bitmap = EsBitmap.Create(width, height, colorArgb);
-        return bitmap.ToAvaloniaWriteableBitmap();
+        // その場で読むだけ（読み取り専用の面へ引き渡す）: 凍結して 0 コピーで共有する
+        bitmap.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bitmap);
+        return read.ToAvaloniaWriteableBitmap();
     }
 
     /// <summary>単色の Avalonia 画像（表示境界の <see cref="IImage"/>）を生成する。</summary>

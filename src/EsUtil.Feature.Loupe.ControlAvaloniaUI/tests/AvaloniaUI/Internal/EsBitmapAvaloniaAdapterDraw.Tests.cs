@@ -1,8 +1,8 @@
 using Avalonia;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media.Imaging;
-using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using Xunit;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests.Internal;
@@ -28,10 +28,12 @@ public class EsBitmapAvaloniaAdapterDrawTests
     internal void Draw_真実が破棄されたらnoOpになり例外にならない()
     {
         using var bmp = EsBitmap.Create(8, 6, System.Drawing.Color.Red);
-        var adapter = new EsBitmapAvaloniaAdapter(bmp);
+        bmp.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
+        var adapter = new EsBitmapAvaloniaAdapter(read);
 
         // 真実を先に破棄する（アダプタは非所有のため、所有者が先に破棄する経路がある）
-        bmp.Dispose();
+        read.Dispose();
 
         // 破棄済みの真実では描画しない（例外にもしない。 射影の生成も行わない）
         using var target = new RenderTargetBitmap(new PixelSize(8, 6), new Vector(96, 96));
@@ -54,7 +56,9 @@ public class EsBitmapAvaloniaAdapterDrawTests
     internal void Draw_繰り返し描画しても例外にならない()
     {
         using var bmp = EsBitmap.Create(8, 6, System.Drawing.Color.Blue);
-        using var adapter = new EsBitmapAvaloniaAdapter(bmp);
+        bmp.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
+        using var adapter = new EsBitmapAvaloniaAdapter(read);
 
         using var target = new RenderTargetBitmap(new PixelSize(8, 6), new Vector(96, 96));
         for (var i = 0; i < 3; i++)

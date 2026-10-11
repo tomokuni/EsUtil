@@ -91,7 +91,9 @@ public class EsBitmapDrawingExtensionsTests
     {
         using var bmp = EsBitmap.Create(4, 4);
         bmp.SetPixel(0, 0, b: 255, g: 0, r: 0, a: 128);
-        using var sd = bmp.ToDrawingBitmap();
+        bmp.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
+        using var sd = read.ToDrawingBitmap();
         var data = sd.LockBits(new DrawingRect(0, 0, 1, 1), DrawingImageLockMode.ReadOnly, DrawingPixelFormat.Format32bppPArgb);
         try
         {
@@ -115,7 +117,9 @@ public class EsBitmapDrawingExtensionsTests
     {
         using var bmp = EsBitmap.Create(4, 4);
         bmp.SetPixel(0, 0, b: 1, g: 2, r: 3, a: 255);
-        using var sd = bmp.ToDrawingBitmap();
+        bmp.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
+        using var sd = read.ToDrawingBitmap();
         Assert.Equal(bmp.Size.Width, sd.Width);
         Assert.Equal(bmp.Size.Height, sd.Height);
         var data = sd.LockBits(new DrawingRect(0, 0, 1, 1), DrawingImageLockMode.ReadOnly, DrawingPixelFormat.Format32bppPArgb);
@@ -141,7 +145,9 @@ public class EsBitmapDrawingExtensionsTests
     {
         using var sd = CreateSolidDrawingBitmap(4, 4, 0, 0, 255, 255);
         using var bmp = sd.ToEsBitmap();
-        using var back = bmp.ToDrawingBitmap();
+        bmp.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
+        using var back = read.ToDrawingBitmap();
         Assert.Equal(sd.Width, back.Width);
         Assert.Equal(sd.Height, back.Height);
     }

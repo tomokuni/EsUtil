@@ -98,9 +98,11 @@ public class LoupeSkiaPainterTests
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
         using var source = EsBitmap.Create(LoupeSize, LoupeSize, s_image);
+        source.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(source);
 
         // 中心 x=1・一辺 32・拡大率 4 → 切り出し 8 px の左上 x=-3（画像の外）→ 描画先の左側が画像外になる
-        Paint(target, CreateAppearance(pasteboard: s_background), new EsPoint(1, LoupeSize / 2), source);
+        Paint(target, CreateAppearance(pasteboard: s_background), new EsPoint(1, LoupeSize / 2), read);
 
         // 画像の外（左端）はペーストボードの色、画像の中（右端）は拡大画像の色
         Assert.Equal(s_backgroundPixel, target.GetPixel(0, LoupeSize / 2));
@@ -112,13 +114,48 @@ public class LoupeSkiaPainterTests
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
         using var source = EsBitmap.Create(LoupeSize, LoupeSize, s_image);
+        source.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(source);
 
-        Paint(target, CreateAppearance(pasteboard: s_background), s_center, source);
+        Paint(target, CreateAppearance(pasteboard: s_background), s_center, read);
 
         // 切り出した領域（一様な色）がルーペ全体へ拡大される
         Assert.Equal(new SKColor(0, 0, 255), target.GetPixel(0, 0));
         Assert.Equal(new SKColor(0, 0, 255), target.GetPixel(16, 16));
         Assert.Equal(new SKColor(0, 0, 255), target.GetPixel(LoupeSize - 1, LoupeSize - 1));
+    }
+
+    /// <summary>切り出しが画像の内側に収まる場合、元画像の同じ位置の画素が描かれることを検証する。</summary>
+    /// <remarks>
+    /// 内側に収まる切り出しは 0 コピーのビュー（<c>EsPixmap</c>）で描くため、<b>行幅（元画像のストライド）が
+    /// 正しく渡っていないと 2 行目以降がずれる</b>（幅×4 を渡すと、切り出し幅が元画像の幅と異なる場合に行がずれる）。<br/>
+    /// そのため列と行で値が変わる画像を使い、1 行目と 2 行目の両方を検証する。
+    /// </remarks>
+    [Fact]
+    internal void Paint_画像の内側の切り出しは元の位置の画素を描く()
+    {
+        using var target = new RenderTarget(LoupeSize, LoupeSize);
+
+        // 列と行で値が変わる画像（位置と行のずれを検出する）
+        using var source = EsBitmap.Create(LoupeSize * 2, LoupeSize * 2);
+        for (var y = 0; y < LoupeSize * 2; y++)
+        {
+            for (var x = 0; x < LoupeSize * 2; x++)
+            {
+                source.SetPixel(x, y, b: (byte)x, g: (byte)y, r: 0, a: 255);
+            }
+        }
+
+        source.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(source);
+
+        // 中心 (32, 32)・一辺 32・拡大率 4 → 切り出し 8 px の左上 (28, 28)（画像の内側）
+        Paint(target, CreateAppearance(pasteboard: s_background), new EsPoint(32, 32), read);
+
+        // 描画先の (0, 0) は切り出し領域の左上（元画像の (28, 28)）
+        Assert.Equal(new SKColor(0, 28, 28, 255), target.GetPixel(0, 0));
+        // 描画先の (0, 4) は切り出し領域の 2 行目（元画像の (28, 29)）。 行幅が誤っているとここがずれる
+        Assert.Equal(new SKColor(0, 29, 28, 255), target.GetPixel(0, 4));
     }
 
     [Fact]
@@ -137,8 +174,10 @@ public class LoupeSkiaPainterTests
     {
         using var target = new RenderTarget(LoupeSize, LoupeSize);
         using var source = EsBitmap.Create(LoupeSize, LoupeSize, s_image);
+        source.SetReadOnly();
+        using var read = EsReadOnlyBitmap.FromBitmap(source);
 
-        Paint(target, CreateAppearance(pasteboard: s_background), center: null, source);
+        Paint(target, CreateAppearance(pasteboard: s_background), center: null, read);
 
         Assert.Equal(s_backgroundPixel, target.GetPixel(16, 16));
     }
@@ -235,7 +274,7 @@ public class LoupeSkiaPainterTests
     /// <param name="appearance">外観。</param>
     /// <param name="center">拡大中心。</param>
     /// <param name="source">拡大元の画像。</param>
-    private static void Paint(RenderTarget target, LoupeAppearance appearance, EsPoint? center, EsBitmap? source = null)
+    private static void Paint(RenderTarget target, LoupeAppearance appearance, EsPoint? center, EsReadOnlyBitmap? source = null)
         => LoupeSkiaPainter.Paint(target.Canvas, source, CreatePlan(appearance, center));
 
     /// <summary>テスト用の描画計画を提示層（実際の解決経路）で解決する。</summary>

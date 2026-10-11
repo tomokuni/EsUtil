@@ -8,13 +8,15 @@ internal static class TestImageFactory
     /// <summary>グラデーション＋グリッド＋マーカー付きのテスト画像を生成する。</summary>
     /// <param name="width">画像の幅（ピクセル）。</param>
     /// <param name="height">画像の高さ（ピクセル）。</param>
-    /// <returns>生成した画像（呼び出し側が保持して破棄する）。</returns>
+    /// <returns>生成した画像（読み取りの面。 呼び出し側が保持して破棄する）。</returns>
     /// <remarks>
     /// 左上から右下へのグラデーションを背景とし、<br/>
     /// 10px グリッド（拡大ピクセル検証用）・50px グリッド（倍率計測用）・色付き円マーカー（ズーム確認用）を描画する。<br/>
-    /// 画像外の色や十字線・枠線は <c>LoupeControl</c> 側が描画する。
+    /// 画像外の色や十字線・枠線は <c>LoupeControl</c> 側が描画する。<br/>
+    /// <b>読み取りの面で返す理由</b>: 生成（ピクセルの描画）が終わった後は書き換えないため、凍結して
+    /// 読み取り専用の面へ 0 コピーで渡す（書き換え可能の実体はその場で解放する）。
     /// </remarks>
-    public static EsBitmap Create(int width = 800, int height = 600)
+    public static EsReadOnlyBitmap Create(int width = 800, int height = 600)
     {
         var bitmap = EsBitmap.Create(width, height);
 
@@ -62,7 +64,11 @@ internal static class TestImageFactory
             }
         }
 
-        return bitmap;
+        // 生成（ピクセルの描画）はここで終わり、以降は読むだけであるため、凍結して読み取り専用の面へ渡す
+        bitmap.SetReadOnly();
+        var read = EsReadOnlyBitmap.FromBitmap(bitmap);
+        bitmap.Dispose();
+        return read;
     }
 
     /// <summary>指定円の内側かどうかを判定する。</summary>
