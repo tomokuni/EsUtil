@@ -34,7 +34,7 @@ public class LoupeAppearanceTests
         Assert.True(paint.ShowCrosshair);
         Assert.True(paint.ShowBorder);
         Assert.True(paint.ShowCoordLabel);
-        Assert.Equal(EsUtil.Feature.Loupe.LoupeCore.Limits.BorderThicknessDefault, paint.BorderThickness);
+        Assert.Equal(LoupeCore.Limits.BorderThicknessDefault, paint.BorderThickness);
     }
 
     /// <summary>中心座標ラベルの体裁の既定を検証する。</summary>
@@ -54,7 +54,7 @@ public class LoupeAppearanceTests
     {
         var paint = new LoupeAppearance { BorderThickness = 1000 };
 
-        Assert.Equal(EsUtil.Feature.Loupe.LoupeCore.Limits.BorderThicknessMax, paint.BorderThickness);
+        Assert.Equal(LoupeCore.Limits.BorderThicknessMax, paint.BorderThickness);
     }
 
     /// <summary>中心座標ラベルの表示可否が設定と中心の有無で決まることを検証する。</summary>

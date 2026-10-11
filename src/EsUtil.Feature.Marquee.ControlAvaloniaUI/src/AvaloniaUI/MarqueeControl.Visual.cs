@@ -1,7 +1,6 @@
 using Avalonia;
 using EsUtil.Feature.Marquee.AvaloniaUI.Internal;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using EsUtil.Platform.Core.Geometry;
@@ -41,7 +40,7 @@ public partial class MarqueeControl
             _attachedTopLevel = topLevel;
             // handledEventsToo: true で購読する。
             // 他のコントロール（ScrollViewer 等）が e.Handled=true にしたキーでも呼ばれるようにするため。
-            topLevel.AddHandler(InputElement.KeyDownEvent, OnTopLevelKeyDown, RoutingStrategies.Tunnel, true);
+            topLevel.AddHandler(KeyDownEvent, OnTopLevelKeyDown, RoutingStrategies.Tunnel, true);
 
             // ウィンドウの非アクティブ化（Alt+Tab 等）でも nudge を終了する。
             // Avalonia のフォーカスは TopLevel 単位で保持されるため、ウィンドウを離れてもコントロールはフォーカスを失わない
@@ -65,7 +64,7 @@ public partial class MarqueeControl
         base.OnDetachedFromVisualTree(e);
         if (_attachedTopLevel is { } topLevel)
         {
-            topLevel.RemoveHandler(InputElement.KeyDownEvent, OnTopLevelKeyDown);
+            topLevel.RemoveHandler(KeyDownEvent, OnTopLevelKeyDown);
             _attachedTopLevel = null;
         }
         if (_attachedWindow is { } window)
