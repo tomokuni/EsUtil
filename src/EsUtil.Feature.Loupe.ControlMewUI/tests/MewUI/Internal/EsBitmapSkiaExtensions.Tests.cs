@@ -15,7 +15,7 @@ public class EsBitmapSkiaExtensionsTests
     [Fact]
     internal void ToSKBitmap_同じピクセルを指す非所有ビューを返す()
     {
-        using var bmp = EsWritableBitmap.Create(6, 8);
+        using var bmp = EsBitmap.Create(6, 8);
 
         using var view = bmp.ToSKBitmap();
 
@@ -32,7 +32,7 @@ public class EsBitmapSkiaExtensionsTests
     [Fact]
     internal void ToSKBitmap_はコアのピクセルを共有する()
     {
-        using var bmp = EsWritableBitmap.Create(2, 2);
+        using var bmp = EsBitmap.Create(2, 2);
         using var view = bmp.ToSKBitmap();
 
         bmp.SetPixel(1, 1, b: 10, g: 20, r: 30, a: 255);
@@ -44,7 +44,7 @@ public class EsBitmapSkiaExtensionsTests
     [Fact]
     internal void ToSKBitmap_ビューを破棄してもコアは使用できる()
     {
-        using var bmp = EsWritableBitmap.Create(2, 2);
+        using var bmp = EsBitmap.Create(2, 2);
         bmp.SetPixel(0, 0, b: 1, g: 2, r: 3, a: 255);
 
         using (var view = bmp.ToSKBitmap())
@@ -67,7 +67,7 @@ public class EsBitmapSkiaExtensionsTests
     [Fact]
     internal void ToSKBitmap_呼び出しごとに新しいビューを返す()
     {
-        using var bmp = EsWritableBitmap.Create(2, 2);
+        using var bmp = EsBitmap.Create(2, 2);
 
         using var first = bmp.ToSKBitmap();
         using var second = bmp.ToSKBitmap();
@@ -78,18 +78,18 @@ public class EsBitmapSkiaExtensionsTests
     [Fact]
     internal void ToSKBitmap_破棄済みなら例外()
     {
-        var bmp = EsWritableBitmap.Create(2, 2);
+        var bmp = EsBitmap.Create(2, 2);
         bmp.Dispose();
 
         Assert.Throws<ObjectDisposedException>(() => bmp.ToSKBitmap());
     }
 
     [Fact]
-    internal void ToEsWritableBitmap_複製を生成し引数の所有権は残る()
+    internal void ToEsBitmap_複製を生成し引数の所有権は残る()
     {
         using var sk = new SKBitmap(new SKImageInfo(4, 4, SKColorType.Bgra8888, SKAlphaType.Premul));
 
-        using var bmp = sk.ToEsWritableBitmap();
+        using var bmp = sk.ToEsBitmap();
 
         Assert.Equal(4, bmp.Size.Width);
         Assert.Equal(4, bmp.Size.Height);
@@ -99,7 +99,7 @@ public class EsBitmapSkiaExtensionsTests
     }
 
     [Fact]
-    internal void ToEsWritableBitmap_部分透明アルファを保持する()
+    internal void ToEsBitmap_部分透明アルファを保持する()
     {
         using var sk = new SKBitmap(new SKImageInfo(4, 4, SKColorType.Bgra8888, SKAlphaType.Premul));
         unsafe
@@ -111,7 +111,7 @@ public class EsBitmapSkiaExtensionsTests
             ptr[3] = 128; // A
         }
 
-        using var bmp = sk.ToEsWritableBitmap();
+        using var bmp = sk.ToEsBitmap();
 
         var (B, G, R, A) = bmp.GetPixel(0, 0);
         Assert.Equal((byte)255, B);
@@ -122,14 +122,14 @@ public class EsBitmapSkiaExtensionsTests
 
     /// <summary>画素を持たない（未確保の）ビットマップを変換しても例外にならず、透明を返すことを検証する。</summary>
     [Fact]
-    internal void ToEsWritableBitmap_画素を持たないビットマップは透明を返す()
+    internal void ToEsBitmap_画素を持たないビットマップは透明を返す()
     {
         using var sk = new SKBitmap();
 
-        using var bmp = sk.ToEsWritableBitmap();
+        using var bmp = sk.ToEsBitmap();
 
         Assert.True(bmp.Size.IsEmpty);
-        Assert.True(bmp.Pixels.IsEmpty);
+        Assert.True(bmp.ReadOnlyPixels.IsEmpty);
     }
 
     /// <summary>コアと Skia の間で往復してもピクセルが保たれることを検証する。</summary>
@@ -137,11 +137,11 @@ public class EsBitmapSkiaExtensionsTests
     [Fact]
     internal void 往復でアルファ付きピクセルを保持する()
     {
-        using var bmp = EsWritableBitmap.Create(3, 3);
+        using var bmp = EsBitmap.Create(3, 3);
         bmp.SetPixel(2, 1, b: 10, g: 20, r: 30, a: 64);
 
         using var view = bmp.ToSKBitmap();
-        using var copied = view.Copy().ToEsWritableBitmap();
+        using var copied = view.Copy().ToEsBitmap();
 
         var (B, G, R, A) = copied.GetPixel(2, 1);
         Assert.Equal((byte)10, B);

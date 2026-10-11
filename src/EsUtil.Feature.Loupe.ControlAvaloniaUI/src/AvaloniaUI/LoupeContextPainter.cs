@@ -33,7 +33,7 @@ internal static class LoupeContextPainter
     /// 描くかどうかの判断は本クラス（描画側）が行う（色のアルファを「描かない」の代用にしない）。<br/>
     /// ペーストボード（描画面の消去）と拡大画像は表示可否を持たず、常に描く。
     /// </remarks>
-    public static void Paint(DrawingContext context, IEsBitmap? source, in LoupeDrawPlan plan)
+    public static void Paint(DrawingContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -97,7 +97,7 @@ internal static class LoupeContextPainter
     /// 描画中にソースが破棄された場合（<see cref="ObjectDisposedException"/>）は何も描かずに戻る<br/>
     /// （ホストの状態と競合しても描画を継続できる。 画像外のみが残る）。
     /// </remarks>
-    private static void DrawMagnifiedImage(DrawingContext context, IEsBitmap? source, in LoupeDrawPlan plan)
+    private static void DrawMagnifiedImage(DrawingContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)
     {
         if (source is null || plan.MagnifiedImage is not { } image)
         {

@@ -8,7 +8,7 @@ namespace EsUtil.Feature.Loupe.MewUI.Internal;
 /// <summary>コアの幾何型と Skia の幾何型の相互変換。</summary>
 /// <remarks>
 /// コアの矩形（<see cref="EsRect"/>）を Skia の描画 API へ渡すための変換を単一所有する。<br/>
-/// SkiaSharp は UI フレームワークではなくピクセル・描画の基盤であるため、<see cref="EsBitmap"/> と同じ層（本プロジェクト）が担う。<br/>
+/// SkiaSharp は UI フレームワークではなくピクセル・描画の基盤であるため、<see cref="EsReadOnlyBitmap"/> と同じ層（本プロジェクト）が担う。<br/>
 /// MewUI 版の描画層が共用し、同じ変換の複製を各コントロールへ置かない。<br/>
 /// UI スレッドに依存しないため <c>[Fact]</c> で並列検証できる。
 /// </remarks>

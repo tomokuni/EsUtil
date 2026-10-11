@@ -1,24 +1,23 @@
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
-using Color = System.Drawing.Color;
 
 // 複製元: EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging（サンプルが単独で動くための意図的な複製。 .github/依存関係.md §4.1）
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Internal;
 
-/// <summary>コアの画像（<see cref="IEsBitmap"/>）を、表示境界の <see cref="IImage"/> とコアの読み取り面 <see cref="IEsBitmap"/> の両面で公開するアダプタ。</summary>
+/// <summary>コアの画像（<see cref="EsReadOnlyBitmap"/>）を、表示境界の <see cref="IImage"/> として公開するアダプタ。</summary>
 /// <remarks>
 /// <b>目的</b>: 表示境界（<c>CropViewControl.Source</c> 等）が画像の型に依存しないようにする。 ホストはコアの画像を
-/// 本クラスで包み、コアの処理は <see cref="IEsBitmap"/> として画像を取り出す。<br/>
+/// 本クラスで包み、コアの処理は <see cref="EsReadOnlyBitmap"/> として画像を取り出す。<br/>
 /// <br/>
 /// <b>射影元はコアの画像に限る</b>: Avalonia の <see cref="Bitmap"/> を真実とする入口は持たない。 本クラスは
 /// 「コアの画像 → 表示（Avalonia）」の<b>一方向</b>の適合であり、その向きを名前に持つ
-/// （<c>IEsBitmap</c> → <c>IImage</c>）。 Avalonia の画像をコアで扱う場合は
-/// <c>ToEsWritableBitmap()</c> でコアの画像へ変換してから本クラスで包む（変換の責務が呼び出し側に現れる）。<br/>
-/// <b>読み取りの面しか公開しない</b>: 本クラスは <see cref="IEsBitmap"/> だけを実装する（<see cref="IEsWritableBitmap"/> を
-/// 実装しない）。 これは<b>表示境界の画像を書き換えられないようにする</b>ためであり、破棄の権利も公開しない
+/// （<c>EsReadOnlyBitmap</c> → <c>IImage</c>）。 Avalonia の画像をコアで扱う場合は
+/// <c>ToEsBitmap()</c> でコアの画像へ変換してから本クラスで包む（変換の責務が呼び出し側に現れる）。<br/>
+/// <b>コアの面は <see cref="GetEsBitmap"/> だけが公開する</b>: 本クラスはコアの型を実装しない（公開面は表示の
+/// <see cref="IImage"/> と <see cref="GetEsBitmap"/> が返す読み取り専用の画像に限る）。 これは<b>表示境界の画像を
+/// 書き換えられないようにする</b>ためであり、破棄の権利も公開しない
 /// （<see cref="IImage"/> は非所有の契約であり、真実の画像を破棄するのは保持するホストである）。<br/>
 /// <b>射影は初回に一度だけ</b>: 表示用の射影（Avalonia の <see cref="Bitmap"/>）は初回の描画（または寸法取得）で
 /// 1 回だけ作り、以降は作り直さない（ピクセルを複製するため。 実測: 4K で 7.8 ms / 32 MB）。<br/>
@@ -39,10 +38,10 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Internal;
 /// 旧アダプタは後から <see cref="Dispose"/> する</b>。 逆順にすると、表示が旧アダプタの射影を参照している間に
 /// 破棄され、描画が破棄済みバッファへ触れる（例外・チラつき）。
 /// </remarks>
-internal sealed class EsBitmapAvaloniaAdapter : IImage, IEsBitmap, IDisposable
+internal sealed class EsBitmapAvaloniaAdapter : IImage, IDisposable
 {
     /// <summary>真実のコア画像（非所有。 <see cref="Adopt"/> で生成した場合だけ本クラスが所有する）。</summary>
-    private readonly IEsBitmap _es;
+    private readonly EsReadOnlyBitmap _es;
 
     /// <summary>Avalonia 側の射影（初回だけ作る）。 所有権は本クラス。</summary>
     private Bitmap? _avaloniaProjection;
@@ -65,7 +64,7 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IEsBitmap, IDisposable
     /// 面積平均は内部で並列化されるため 4K 1 枚が 1.8 ms で済む（並列化前は 27 ms で、11 枚なら 0.3 秒の停止だった）。<br/>
     /// <b>画像が上限に収まっている場合は縮小しない</b>（等倍の射影を共用し、同じ寸法の複製を 2 つ作らない）。<br/>
     /// 上限を設定すると <see cref="IImage.Size"/> は縮小後の寸法を返す（Avalonia のレイアウトと描画がその寸法を基準にする）。
-    /// <b>コアの読み取り面（<see cref="IEsBitmap.Size"/> / <see cref="IEsBitmap.Width"/> 等）は真実の寸法のまま</b>である。
+    /// <b>コアの読み取り面（<see cref="EsReadOnlyBitmap.Size"/> / <see cref="EsReadOnlyBitmap.Width"/> 等）は真実の寸法のまま</b>である。
     /// </remarks>
     public int DisplayMaxSize { get; }
 
@@ -75,7 +74,7 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IEsBitmap, IDisposable
     /// <remarks><paramref name="displayMaxSize"/> は<b>表示用の射影だけ</b>を縮小する（<see cref="DisplayMaxSize"/>）。</remarks>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="displayMaxSize"/> が負の場合。</exception>
-    public EsBitmapAvaloniaAdapter(IEsBitmap source, int displayMaxSize = 0)
+    public EsBitmapAvaloniaAdapter(EsReadOnlyBitmap source, int displayMaxSize = 0)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentOutOfRangeException.ThrowIfNegative(displayMaxSize);
@@ -90,88 +89,18 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IEsBitmap, IDisposable
     /// <b>生成した画像を解放する人がいない場合に限る</b>（借用して包む場合はコンストラクタを使う）。<br/>
     /// 所有の有無を生成の入口で分けることで、コンストラクタ（非所有）の意味を変えない
     /// （アダプタは「表示の適合」と「自分の射影の解放」だけを担い、元画像は生成した側が解放するのが原則）。<br/>
-    /// <paramref name="source"/> は <see cref="EsWritableBitmap"/> に限る（解放できる型だけを引き取れるようにする）。
+    /// <paramref name="source"/> は <see cref="EsBitmap"/> に限る（解放できる型だけを引き取れるようにする）。
     /// </remarks>
-    public static EsBitmapAvaloniaAdapter Adopt(EsWritableBitmap source) => new(source, ownsSource: true);
+    public static EsBitmapAvaloniaAdapter Adopt(EsBitmap source) => new(source, ownsSource: true);
 
     /// <summary>画像を所有するかどうかを指定して生成する（所有の入口は <see cref="Adopt"/> だけに集約する）。</summary>
     /// <param name="source">真実となるコアの画像。</param>
     /// <param name="ownsSource">true の場合は本クラスが <paramref name="source"/> も解放する。</param>
-    private EsBitmapAvaloniaAdapter(IEsBitmap source, bool ownsSource)
+    private EsBitmapAvaloniaAdapter(EsReadOnlyBitmap source, bool ownsSource)
     {
         _es = source ?? throw new ArgumentNullException(nameof(source));
         _ownsSource = ownsSource;
     }
-
-    /// <inheritdoc/>
-    /// <exception cref="ObjectDisposedException">真実が破棄済みの場合。</exception>
-    public int Width
-    {
-        get
-        {
-            ThrowIfTruthDisposed(_es);
-            return _es.Width;
-        }
-    }
-
-    /// <inheritdoc/>
-    /// <exception cref="ObjectDisposedException">真実が破棄済みの場合。</exception>
-    public int Height
-    {
-        get
-        {
-            ThrowIfTruthDisposed(_es);
-            return _es.Height;
-        }
-    }
-
-    /// <inheritdoc/>
-    /// <remarks><see cref="Size"/> は表示用の Avalonia 型であり、本プロパティは明示的実装にする
-    /// （同名で戻り値の型が異なるため、公開面では表示用の <see cref="Size"/> を優先する）。</remarks>
-    /// <exception cref="ObjectDisposedException">真実が破棄済みの場合。</exception>
-    EsSizeInt IEsBitmap.Size
-    {
-        get
-        {
-            ThrowIfTruthDisposed(_es);
-            return _es.Size;
-        }
-    }
-
-    /// <inheritdoc/>
-    /// <exception cref="ObjectDisposedException">真実が破棄済みの場合。</exception>
-    public int Stride
-    {
-        get
-        {
-            ThrowIfTruthDisposed(_es);
-            return _es.Stride;
-        }
-    }
-
-    /// <inheritdoc/>
-    /// <remarks>真実のコア画像のビューをそのまま返す（コピーしない）。</remarks>
-    /// <exception cref="ObjectDisposedException">真実が破棄済みの場合。</exception>
-    public ReadOnlySpan<byte> Pixels => GetEsBitmap().Pixels;
-
-    /// <inheritdoc/>
-    /// <remarks>
-    /// <b>本クラス自身の <see cref="Dispose"/> では真にならない</b>（射影だけを解放し、本クラスは生存して再び射影を作れる）。
-    /// 真実の破棄状態を返す。
-    /// </remarks>
-    public bool IsDisposed => _es.IsDisposed;
-
-    /// <inheritdoc/>
-    /// <exception cref="ObjectDisposedException">真実が破棄済みの場合。</exception>
-    public (byte B, byte G, byte R, byte A) GetPixel(int x, int y) => GetEsBitmap().GetPixel(x, y);
-
-    /// <inheritdoc/>
-    /// <exception cref="ObjectDisposedException">真実が破棄済みの場合。</exception>
-    public Color GetPixel(EsPointInt point) => GetEsBitmap().GetPixel(point);
-
-    /// <inheritdoc/>
-    /// <exception cref="ObjectDisposedException">真実が破棄済みの場合。</exception>
-    public string ToSizeText() => GetEsBitmap().ToSizeText();
 
     /// <summary>表示サイズ（DIP）。</summary>
     /// <value>真実の画像から得られる <see cref="Size"/>（<see cref="DisplayMaxSize"/> で縮小した場合は縮小後の寸法）。</value>
@@ -196,7 +125,7 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IEsBitmap, IDisposable
     /// 呼び出し側へ判定を強いない）。
     /// </remarks>
     /// <exception cref="ObjectDisposedException">真実が破棄済みの場合。</exception>
-    public IEsBitmap GetEsBitmap()
+    public EsReadOnlyBitmap GetEsBitmap()
     {
         ThrowIfTruthDisposed(_es);
         return _es;
@@ -245,7 +174,7 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IEsBitmap, IDisposable
     /// 上限に収まっている画像は縮小しない（同じ寸法の複製を 2 つ作らない。 等倍の射影を共用する）。<br/>
     /// 上限と長辺が等しい場合も縮小しない（コアの縮小は「長辺が上限と一致するときは等倍の複製」を返す）。
     /// </remarks>
-    private bool NeedsScaledProjection(IEsBitmap source)
+    private bool NeedsScaledProjection(EsReadOnlyBitmap source)
         => DisplayMaxSize > 0 && Math.Max(source.Width, source.Height) > DisplayMaxSize;
 
     /// <summary>表示用の射影を取得する（初回だけ作る）。</summary>
@@ -253,7 +182,7 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IEsBitmap, IDisposable
     /// <returns>表示に使う Avalonia の画像（本クラスが所有する。 縮小が不要な場合は等倍の射影）。</returns>
     /// <remarks>縮小のアルゴリズムはコアの面積平均（<see cref="DownscaleAlgorithm.Box"/>）が単一所有する
     /// （縮小した中間画像は小さく、変換（表示用）のコピーは無視できる。 実測: 320x180 で 230 KB）。</remarks>
-    private Bitmap EnsureDisplayProjection(IEsBitmap source)
+    private Bitmap EnsureDisplayProjection(EsReadOnlyBitmap source)
     {
         if (_displayProjection is { } cached)
         {
@@ -291,13 +220,13 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IEsBitmap, IDisposable
 
         if (_ownsSource)
         {
-            (_es as IDisposable)?.Dispose();
+            _es.Dispose();
         }
     }
 
     /// <summary>真実が破棄済みなら例外を投げる。</summary>
     /// <param name="source">真実の画像。</param>
-    /// <remarks>破棄状態は読み取りの面（<see cref="IEsBitmap.IsDisposed"/>）が公開するため、真実の型に依らず判定できる。</remarks>
-    private static void ThrowIfTruthDisposed(IEsBitmap source)
+    /// <remarks>破棄状態は読み取りの面（<see cref="EsReadOnlyBitmap.IsDisposed"/>）が公開するため、真実の型に依らず判定できる。</remarks>
+    private static void ThrowIfTruthDisposed(EsReadOnlyBitmap source)
         => ObjectDisposedException.ThrowIf(source.IsDisposed, source);
 }

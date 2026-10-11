@@ -4,7 +4,7 @@ using SkiaSharp;
 // 複製元: EsUtil.SaveEvidence.Platform.Skia（独立パッケージ用の意図的な複製。 .github/依存関係.md §4.1）
 namespace EsUtil.Feature.Loupe.MewUI.Internal;
 
-/// <summary>コアの <see cref="EsBitmap"/> と Skia の <see cref="SKBitmap"/> を相互変換する拡張メソッド。</summary>
+/// <summary>コアの <see cref="EsReadOnlyBitmap"/> と Skia の <see cref="SKBitmap"/> を相互変換する拡張メソッド。</summary>
 /// <remarks>
 /// <b>なぜ本層が持つか</b>: Skia は UI フレームワークではないが<b>外部パッケージ</b>であるため、<br/>
 /// 「外部パッケージへ依存しない」を判定基準とする <c>EsUtil.Platform.Core</c> には置けない。<br/>
@@ -12,7 +12,7 @@ namespace EsUtil.Feature.Loupe.MewUI.Internal;
 /// <br/>
 /// <b>所有権</b>: 双方向とも<b>コアのバッファの所有権は移動しない</b>。<br/>
 /// - <see cref="ToSKBitmap"/> は<b>非所有ビュー</b>を返す（コアのバッファを指すだけ。 破棄してもコアのバッファは解放されない）。<br/>
-/// - <see cref="ToEsWritableBitmap(SKBitmap)"/> は<b>複製</b>を作る（引数の <see cref="SKBitmap"/> の所有権は呼び出し側に残る）。<br/>
+/// - <see cref="ToEsBitmap(SKBitmap)"/> は<b>複製</b>を作る（引数の <see cref="SKBitmap"/> の所有権は呼び出し側に残る）。<br/>
 /// <br/>
 /// <b>ビューの寿命</b>: <see cref="ToSKBitmap"/> が返す <see cref="SKBitmap"/> は、対応する画像が<br/>
 /// 生存している間だけ有効である（コアのバッファを指すため）。 画像を破棄した後にビューを使うと<br/>
@@ -21,7 +21,7 @@ namespace EsUtil.Feature.Loupe.MewUI.Internal;
 internal static class EsBitmapSkiaExtensions
 {
     /// <summary>コアの画像を指す非所有ビューを返す。</summary>
-    /// <param name="bitmap">対象の画像（読み取るだけのため <see cref="IEsBitmap"/> を受ける）。 null 不可。</param>
+    /// <param name="bitmap">対象の画像（読み取るだけのため <see cref="EsReadOnlyBitmap"/> を受ける）。 null 不可。</param>
     /// <returns>同じピクセル バッファを指す <see cref="SKBitmap"/>（非所有）。 <b>呼び出し側が破棄する</b>（破棄してもコアのバッファは解放されない）。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="bitmap"/> が null の場合。</exception>
     /// <exception cref="ObjectDisposedException"><paramref name="bitmap"/> が破棄済みの場合。</exception>
@@ -33,7 +33,7 @@ internal static class EsBitmapSkiaExtensions
     /// （実測: ビュー生成は 0.3〜2 µs だが、破棄しない場合は毎回 112 B のファイナライザ対象が残る）。<br/>
     /// ビューの破棄はコアのピクセルを解放しない（非所有のため）。 コピーが必要な場合は結果へ <c>Copy()</c> を適用する。
     /// </remarks>
-    public static SKBitmap ToSKBitmap(this IEsBitmap bitmap)
+    public static SKBitmap ToSKBitmap(this EsReadOnlyBitmap bitmap)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
 
@@ -44,7 +44,7 @@ internal static class EsBitmapSkiaExtensions
         // バッファはアンマネージドのため、fixed で得たアドレスは生存中動かない（InstallPixels が保持しても有効）
         unsafe
         {
-            fixed (byte* p = bitmap.Pixels)
+            fixed (byte* p = bitmap.ReadOnlyPixels)
             {
                 if (!view.InstallPixels(info, (nint)p, bitmap.Stride))
                 {
@@ -67,16 +67,16 @@ internal static class EsBitmapSkiaExtensions
     /// 成分順が一致しない（呼び出し側で形式を保証する）。<br/>
     /// 全行をコピーできる場合は 0 埋めを省く（大きな画像の書き込み量を減らす）。
     /// </remarks>
-    public static EsWritableBitmap ToEsWritableBitmap(this SKBitmap bitmap)
+    public static EsBitmap ToEsBitmap(this SKBitmap bitmap)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
 
         var srcStride = bitmap.RowBytes;
-        var dstStride = bitmap.Width * IEsBitmap.BytesPerPixel;
+        var dstStride = bitmap.Width * EsReadOnlyBitmap.BytesPerPixel;
         var rowBytes = Math.Min(srcStride, dstStride);
         var height = bitmap.Height;
 
-        return EsWritableBitmap.CreateFilled(bitmap.Width, height, dst =>
+        return EsBitmap.CreateFilled(bitmap.Width, height, dst =>
         {
             unsafe
             {

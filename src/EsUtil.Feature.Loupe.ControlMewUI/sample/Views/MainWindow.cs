@@ -63,7 +63,7 @@ internal static class MainWindow
     {
         // ── テスト画像 ──
         var source = TestImageFactory.Create(ImageWidth, ImageHeight);
-        var imageSource = ImageSource.FromBgraPixels(source.Width, source.Height, source.Pixels, true);
+        var imageSource = ImageSource.FromBgraPixels(source.Width, source.Height, source.ReadOnlyPixels, true);
         var image = new Image { Source = imageSource, Width = ImageWidth, Height = ImageHeight };
 
         // ── ログ表示（コントロールの Log へ設定する） ──

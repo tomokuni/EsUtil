@@ -27,7 +27,7 @@ public partial class MainWindow : Window
     private readonly MainWindowViewModel _vm = new();
 
     /// <summary>背景に敷くダミー画像の元（対象面のサイズ感を示す）。 静的フィールドのためアプリ終了まで生存する。</summary>
-    private static readonly EsWritableBitmap s_backdropBitmap = CreateBackdrop();
+    private static readonly EsBitmap s_backdropBitmap = CreateBackdrop();
 
     /// <summary>背景に敷くダミー画像（表示境界のアダプタ。 元画像は <see cref="s_backdropBitmap"/> が保持する）。</summary>
     private static readonly EsBitmapAvaloniaAdapter s_backdrop = new(s_backdropBitmap);
@@ -369,11 +369,11 @@ public partial class MainWindow : Window
     /// ビットマップサイズは <see cref="ImageWidth"/> / <see cref="ImageHeight"/> に合わせる
     /// （const のためリテラルで指定。 グリッド間隔は 100px で視認性を確保する）。
     /// </remarks>
-    private static EsWritableBitmap CreateBackdrop()
+    private static EsBitmap CreateBackdrop()
     {
         const int width = 1200;
         const int height = 800;
-        var bitmap = EsWritableBitmap.Create(width, height);
+        var bitmap = EsBitmap.Create(width, height);
 
         for (var y = 0; y < height; y++)
         {

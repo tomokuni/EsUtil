@@ -69,10 +69,10 @@ internal static class GridLoupePlan
 
     /// <summary>見本の元画像（グラデーション）を生成する。</summary>
     /// <returns>幅 240 × 高さ 160 の画素バッファ。</returns>
-    /// <remarks>ルーペのソースは UI 非依存の画素バッファ（<see cref="EsWritableBitmap"/>）として本見本が自前で用意する。</remarks>
-    public static EsWritableBitmap CreateSource()
+    /// <remarks>ルーペのソースは UI 非依存の画素バッファ（<see cref="EsBitmap"/>）として本見本が自前で用意する。</remarks>
+    public static EsBitmap CreateSource()
     {
-        var bitmap = EsWritableBitmap.Create(240, 160);
+        var bitmap = EsBitmap.Create(240, 160);
 
         for (var y = 0; y < bitmap.Height; y++)
         {

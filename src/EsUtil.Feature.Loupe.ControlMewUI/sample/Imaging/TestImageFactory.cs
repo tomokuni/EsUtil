@@ -14,9 +14,9 @@ internal static class TestImageFactory
     /// 10px グリッド（拡大ピクセル検証用）・50px グリッド（倍率計測用）・色付き円マーカー（ズーム確認用）を描画する。<br/>
     /// 画像外の色や十字線・枠線は <c>LoupeControl</c> 側が描画する。
     /// </remarks>
-    public static EsWritableBitmap Create(int width = 800, int height = 600)
+    public static EsBitmap Create(int width = 800, int height = 600)
     {
-        var bitmap = EsWritableBitmap.Create(width, height);
+        var bitmap = EsBitmap.Create(width, height);
 
         for (var y = 0; y < height; y++)
         {

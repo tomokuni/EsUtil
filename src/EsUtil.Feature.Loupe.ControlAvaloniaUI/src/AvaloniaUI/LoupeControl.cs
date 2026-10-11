@@ -590,17 +590,17 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     private EsBitmapAvaloniaAdapter? _loupeImage;
 
-    /// <summary>内部描画結果（<see cref="EsWritableBitmap"/>）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
+    /// <summary>内部描画結果（<see cref="EsBitmap"/>）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
     /// <remarks>
     /// 本コントロールが生成したルーペ画像であるため、<b>本コントロールが破棄する</b>
     /// （<see cref="ReleaseBitmap"/> / <see cref="SetLoupeBitmap"/> で破棄する）。<br/>
     /// <see cref="LoupeBitmap"/> は本値を返す（共有参照。 破棄はしないこと）。
     /// </remarks>
-    private EsWritableBitmap? _loupeEs;
+    private EsBitmap? _loupeEs;
 
-    /// <summary>内部描画結果（<see cref="EsWritableBitmap"/>）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
+    /// <summary>内部描画結果（<see cref="EsBitmap"/>）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
     /// <remarks><see cref="LoupeBitmap"/> が返す。 破棄はしないこと（本コントロールが破棄する）。</remarks>
-    internal EsWritableBitmap? LoupeBitmap => _loupeEs;
+    internal EsBitmap? LoupeBitmap => _loupeEs;
 
     // ====================================================================
     // ログ
@@ -664,7 +664,7 @@ public sealed class LoupeControl : Panel
     /// 中心未設定時は <see cref="LoupeDrawPlan.CaptureTopLeft"/> が null になる（オーバーレイ描画不可）。<br/>
     /// <b>中心座標ラベルは本コントロールがテキスト要素として表示する</b>ため、通知に含めない。
     /// </remarks>
-    private void RaiseRendered(IEsWritableBitmap bitmap, in LoupeDrawPlan plan)
+    private void RaiseRendered(EsBitmap bitmap, in LoupeDrawPlan plan)
     {
         Rendered?.Invoke(this, new LoupeRenderedEventArgs(bitmap, plan));
     }
@@ -776,7 +776,7 @@ public sealed class LoupeControl : Panel
     /// そのため、新しいアダプタを先に <c>Image.Source</c> へ設定し、旧アダプタは後から破棄する<br/>
     /// （描画が参照するアダプタを連続的に保ち、破棄済みバッファの参照を防ぐ）。
     /// </remarks>
-    private void SetLoupeBitmap(EsWritableBitmap bmp, in LoupeDrawPlan plan)
+    private void SetLoupeBitmap(EsBitmap bmp, in LoupeDrawPlan plan)
     {
         // ホストがピクセルへオーバーレイ（破線等）を描画するフック。 イベント内でピクセルが更新される
         RaiseRendered(bmp, plan);

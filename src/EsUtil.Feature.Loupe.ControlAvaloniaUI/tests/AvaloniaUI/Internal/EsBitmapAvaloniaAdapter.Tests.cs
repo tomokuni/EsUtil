@@ -9,7 +9,7 @@ using Xunit;
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests.Internal;
 
 /// <summary>
-/// <see cref="EsBitmapAvaloniaAdapter"/> のテスト（Avalonia の画像とコアの画像を両面で公開するアダプタ）。
+/// <see cref="EsBitmapAvaloniaAdapter"/> のテスト（コアの画像を Avalonia の表示境界の画像として公開するアダプタ）。
 /// </summary>
 /// <remarks>
 /// <see cref="Bitmap"/> への射影（<c>ToAvaloniaBitmap</c>）が Avalonia の描画バックエンドを必要とするため、
@@ -21,13 +21,13 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests.Internal;
 public class EsBitmapAvaloniaAdapterTests
 {
     // ====================================================================
-    // EsBitmap を真実とした場合
+    // EsReadOnlyBitmap を真実とした場合
     // ====================================================================
 
     [AvaloniaFact]
     internal void EsBitmapを真実とするとGetEsBitmapは恒等で返す()
     {
-        using var bmp = EsWritableBitmap.Create(8, 6);
+        using var bmp = EsBitmap.Create(8, 6);
         using var adapter = new EsBitmapAvaloniaAdapter(bmp);
 
         // 恒等（コピーなし。 借用）
@@ -37,7 +37,7 @@ public class EsBitmapAvaloniaAdapterTests
     [AvaloniaFact]
     internal void EsBitmapを真実とするとGetAvaloniaBitmapは初回のみ生成して以降は同じものを返す()
     {
-        using var bmp = EsWritableBitmap.Create(8, 6, System.Drawing.Color.Red);
+        using var bmp = EsBitmap.Create(8, 6, System.Drawing.Color.Red);
         using var adapter = new EsBitmapAvaloniaAdapter(bmp);
 
         var first = adapter.GetAvaloniaBitmap();
@@ -52,7 +52,7 @@ public class EsBitmapAvaloniaAdapterTests
     [AvaloniaFact]
     internal void EsBitmapを真実とした場合はDisposeで真実を破棄しない()
     {
-        var bmp = EsWritableBitmap.Create(8, 6, System.Drawing.Color.Red);
+        var bmp = EsBitmap.Create(8, 6, System.Drawing.Color.Red);
         var adapter = new EsBitmapAvaloniaAdapter(bmp);
         _ = adapter.GetAvaloniaBitmap();
 
@@ -70,15 +70,15 @@ public class EsBitmapAvaloniaAdapterTests
     [AvaloniaFact]
     internal void AvaloniaのBitmapはコアへ変換してから包む()
     {
-        using var bmp = EsWritableBitmap.Create(8, 6, System.Drawing.Color.Blue);
+        using var bmp = EsBitmap.Create(8, 6, System.Drawing.Color.Blue);
         using var avalonia = bmp.ToAvaloniaBitmap();
 
         // 射影元はコアの画像に限るため、Avalonia の画像はコアへ変換してから包む（変換の責務が呼び出し側に現れる）
-        using var es = avalonia.ToEsWritableBitmap();
+        using var es = avalonia.ToEsBitmap();
         using var adapter = new EsBitmapAvaloniaAdapter(es);
 
-        Assert.Equal(8, adapter.Width);
-        Assert.Equal(6, adapter.Height);
+        Assert.Equal(8, adapter.GetEsBitmap().Width);
+        Assert.Equal(6, adapter.GetEsBitmap().Height);
         // 表示用の射影は新しく作られる（元の Avalonia 画像とは別のインスタンス）
         Assert.NotSame(avalonia, adapter.GetAvaloniaBitmap());
         Assert.Equal(8, adapter.GetAvaloniaBitmap().PixelSize.Width);
@@ -91,17 +91,17 @@ public class EsBitmapAvaloniaAdapterTests
     [AvaloniaFact]
     internal void サイズが真実の画像と一致する()
     {
-        using var bmp = EsWritableBitmap.Create(12, 7);
+        using var bmp = EsBitmap.Create(12, 7);
         using var adapter = new EsBitmapAvaloniaAdapter(bmp);
         Assert.Equal(new Size(12, 7), adapter.Size);
-        Assert.Equal(12, adapter.Width);
-        Assert.Equal(7, adapter.Height);
+        Assert.Equal(12, adapter.GetEsBitmap().Width);
+        Assert.Equal(7, adapter.GetEsBitmap().Height);
     }
 
     [AvaloniaFact]
     internal void Disposeを複数回呼んでも安全である()
     {
-        using var bmp = EsWritableBitmap.Create(8, 6, System.Drawing.Color.Red);
+        using var bmp = EsBitmap.Create(8, 6, System.Drawing.Color.Red);
         var adapter = new EsBitmapAvaloniaAdapter(bmp);
 
         adapter.Dispose();
@@ -109,19 +109,19 @@ public class EsBitmapAvaloniaAdapterTests
     }
 
     [AvaloniaFact]
-    internal void 幅と高さが真実の画像と一致する()
+    internal void 幅と高さはGetEsBitmapから取得する()
     {
-        using var bmp = EsWritableBitmap.Create(12, 7);
+        using var bmp = EsBitmap.Create(12, 7);
         using var adapter = new EsBitmapAvaloniaAdapter(bmp);
 
-        Assert.Equal(12, adapter.Width);
-        Assert.Equal(7, adapter.Height);
+        Assert.Equal(12, adapter.GetEsBitmap().Width);
+        Assert.Equal(7, adapter.GetEsBitmap().Height);
     }
 
     [AvaloniaFact]
     internal void 真実が破棄済みの場合は取得で例外を投げる()
     {
-        var bmp = EsWritableBitmap.Create(8, 6, System.Drawing.Color.Red);
+        var bmp = EsBitmap.Create(8, 6, System.Drawing.Color.Red);
         using var adapter = new EsBitmapAvaloniaAdapter(bmp);
         bmp.Dispose();
 
@@ -133,22 +133,20 @@ public class EsBitmapAvaloniaAdapterTests
     [AvaloniaFact]
     internal void 真実が破棄済みの場合は寸法の取得でも例外を投げる()
     {
-        var bmp = EsWritableBitmap.Create(8, 6, System.Drawing.Color.Red);
+        var bmp = EsBitmap.Create(8, 6, System.Drawing.Color.Red);
         using var adapter = new EsBitmapAvaloniaAdapter(bmp);
         bmp.Dispose();
 
-        // 寸法も「無効な画像の値」を返さない（破棄済みを正常値として扱う誤りを防ぐ）
-        Assert.Throws<ObjectDisposedException>(() => adapter.Width);
-        Assert.Throws<ObjectDisposedException>(() => adapter.Height);
+        // 表示の寸法も「無効な画像の値」を返さない（破棄済みを正常値として扱う誤りを防ぐ）
         Assert.Throws<ObjectDisposedException>(() => adapter.Size);
     }
 
     [AvaloniaFact]
     internal void IsDisposedは真実の破棄状態を返す()
     {
-        var bmp = EsWritableBitmap.Create(8, 6, System.Drawing.Color.Red);
+        var bmp = EsBitmap.Create(8, 6, System.Drawing.Color.Red);
         var adapter = new EsBitmapAvaloniaAdapter(bmp);
-        IEsBitmap read = adapter;
+        var read = adapter.GetEsBitmap();
 
         Assert.False(read.IsDisposed);
 
@@ -162,9 +160,9 @@ public class EsBitmapAvaloniaAdapterTests
     [AvaloniaFact]
     internal void IsDisposedは本クラスのDisposeでは真にならない()
     {
-        using var bmp = EsWritableBitmap.Create(8, 6, System.Drawing.Color.Red);
+        using var bmp = EsBitmap.Create(8, 6, System.Drawing.Color.Red);
         var adapter = new EsBitmapAvaloniaAdapter(bmp);
-        IEsBitmap read = adapter;
+        var read = adapter.GetEsBitmap();
 
         adapter.Dispose();
 
@@ -174,11 +172,11 @@ public class EsBitmapAvaloniaAdapterTests
     }
 
     [AvaloniaFact]
-    internal void GetPixelは座標型のオーバーロードを面として公開する()
+    internal void GetEsBitmapはコアのGetPixelのオーバーロードを公開する()
     {
-        using var bmp = EsWritableBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 30, 20, 10));
+        using var bmp = EsBitmap.Create(4, 4, System.Drawing.Color.FromArgb(255, 30, 20, 10));
         using var adapter = new EsBitmapAvaloniaAdapter(bmp);
-        IEsBitmap read = adapter;
+        var read = adapter.GetEsBitmap();
 
         var (b, g, r, a) = read.GetPixel(1, 2);
         var color = read.GetPixel(new EsPointInt(1, 2));
@@ -196,7 +194,7 @@ public class EsBitmapAvaloniaAdapterTests
     [AvaloniaFact]
     internal void Adoptで生成するとDisposeで真実も破棄する()
     {
-        var bmp = EsWritableBitmap.Create(8, 6, System.Drawing.Color.Red);
+        var bmp = EsBitmap.Create(8, 6, System.Drawing.Color.Red);
         var adapter = EsBitmapAvaloniaAdapter.Adopt(bmp);
 
         adapter.Dispose();
@@ -220,21 +218,21 @@ public class EsBitmapAvaloniaAdapterTests
     [AvaloniaFact]
     internal void 表示上限を指定するとSizeは縮小後の寸法を返す()
     {
-        using var bmp = EsWritableBitmap.Create(200, 100);
+        using var bmp = EsBitmap.Create(200, 100);
         using var adapter = new EsBitmapAvaloniaAdapter(bmp, displayMaxSize: 50);
 
         // Avalonia のレイアウトと描画が使う Size は縮小後の寸法になる
         Assert.Equal(new Size(50, 25), adapter.Size);
         // コアの読み取り面は真実の寸法のまま（ピクセルと矛盾しない）
-        Assert.Equal(200, adapter.Width);
-        Assert.Equal(100, adapter.Height);
+        Assert.Equal(200, adapter.GetEsBitmap().Width);
+        Assert.Equal(100, adapter.GetEsBitmap().Height);
         Assert.Equal(new EsSizeInt(200, 100), adapter.GetEsBitmap().Size);
     }
 
     [AvaloniaFact]
     internal void 表示上限を指定すると描画も縮小した射影を使う()
     {
-        using var bmp = EsWritableBitmap.Create(200, 100, System.Drawing.Color.Red);
+        using var bmp = EsBitmap.Create(200, 100, System.Drawing.Color.Red);
         using var adapter = new EsBitmapAvaloniaAdapter(bmp, displayMaxSize: 50);
         using var target = new RenderTargetBitmap(new PixelSize(50, 25), new Vector(96, 96));
 
@@ -251,7 +249,7 @@ public class EsBitmapAvaloniaAdapterTests
     [AvaloniaFact]
     internal void 表示上限は保存用の射影に影響しない()
     {
-        using var bmp = EsWritableBitmap.Create(200, 100);
+        using var bmp = EsBitmap.Create(200, 100);
         using var adapter = new EsBitmapAvaloniaAdapter(bmp, displayMaxSize: 50);
 
         // 保存・クリップボード用は等倍（表示用の縮小と分ける）
@@ -263,7 +261,7 @@ public class EsBitmapAvaloniaAdapterTests
     [AvaloniaFact]
     internal void 表示上限が負ならArgumentOutOfRangeExceptionを投げる()
     {
-        using var bmp = EsWritableBitmap.Create(4, 4);
+        using var bmp = EsBitmap.Create(4, 4);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => new EsBitmapAvaloniaAdapter(bmp, displayMaxSize: -1));
     }
@@ -271,7 +269,7 @@ public class EsBitmapAvaloniaAdapterTests
     [AvaloniaFact]
     internal void 表示上限が上限以内なら等倍で扱う()
     {
-        using var bmp = EsWritableBitmap.Create(40, 20, System.Drawing.Color.Red);
+        using var bmp = EsBitmap.Create(40, 20, System.Drawing.Color.Red);
         using var adapter = new EsBitmapAvaloniaAdapter(bmp, displayMaxSize: 50);
         using var target = new RenderTargetBitmap(new PixelSize(40, 20), new Vector(96, 96));
 
@@ -289,7 +287,7 @@ public class EsBitmapAvaloniaAdapterTests
     [AvaloniaFact]
     internal void 表示上限と長辺が等しい場合は縮小しない()
     {
-        using var bmp = EsWritableBitmap.Create(40, 20);
+        using var bmp = EsBitmap.Create(40, 20);
         using var adapter = new EsBitmapAvaloniaAdapter(bmp, displayMaxSize: 40);
 
         // 長辺 = 上限（縮小の必要なし。 コアの縮小も等倍の複製を返す）

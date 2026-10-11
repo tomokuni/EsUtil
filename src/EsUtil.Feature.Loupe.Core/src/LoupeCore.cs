@@ -31,7 +31,7 @@ namespace EsUtil.Feature.Loupe;
 /// <b>UI 層の責務</b>: 拡大元画像の解決（UI ごとに型が異なる）、描画の実行（ビットマップ合成・キャンバス描画）、<br/>
 /// 再描画のバッチ化（UI のディスパッチャー）、公開プロパティ・公開イベントへの写像。<br/>
 /// <br/>
-/// <b>依存分離</b>: UI 非依存のコア型（<see cref="EsPoint"/> / <see cref="EsSize"/> / <see cref="EsBitmap"/>）と<br/>
+/// <b>依存分離</b>: UI 非依存のコア型（<see cref="EsPoint"/> / <see cref="EsSize"/> / <see cref="EsReadOnlyBitmap"/>）と<br/>
 /// 座標変換ポート（<see cref="ICoordTransform"/>）にのみ依存する。<br/>
 /// UI フレームワークに依存しないため、UI 初期化なしの <c>[Fact]</c> で検証できる。
 /// </remarks>

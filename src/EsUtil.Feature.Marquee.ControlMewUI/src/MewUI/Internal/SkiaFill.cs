@@ -10,7 +10,7 @@ namespace EsUtil.Feature.Marquee.MewUI.Internal;
 /// <remarks>
 /// <c>new SKPaint { IsAntialias = false, Style = SKPaintStyle.Fill, Color = ... }</c> という同一の塗りを<br/>
 /// 各描画層・ホストが繰り返し書かないよう、塗りの生成と描画を本クラスに集約する。<br/>
-/// SkiaSharp は UI フレームワークではなくピクセル・描画の基盤であるため、<see cref="EsBitmap"/> と同じ層（本プロジェクト）が担う。<br/>
+/// SkiaSharp は UI フレームワークではなくピクセル・描画の基盤であるため、<see cref="EsReadOnlyBitmap"/> と同じ層（本プロジェクト）が担う。<br/>
 /// <b>アンチエイリアス</b>は描画結果へ影響するため無効（矩形は画素境界に沿って塗る）。<br/>
 /// 線（ストローク）と文字は各所有者（描画層 / <see cref="SkiaText"/>）が持つ（本クラスは塗りのみ）。
 /// </remarks>

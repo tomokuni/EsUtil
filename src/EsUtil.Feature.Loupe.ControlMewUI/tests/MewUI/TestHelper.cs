@@ -30,13 +30,13 @@ internal static class TestHelper
     /// <param name="size">一辺のサイズ（ピクセル）。</param>
     /// <param name="color">塗りつぶす色。</param>
     /// <returns>生成した画像。 所有権は呼び出し側。</returns>
-    public static EsWritableBitmap CreateBitmap(int size, SKColor color)
+    public static EsBitmap CreateBitmap(int size, SKColor color)
     {
         // 変換は複製を返すため、元の SKBitmap は破棄する
         using var bitmap = new SKBitmap(size, size);
         bitmap.Erase(color);
 
-        return bitmap.ToEsWritableBitmap();
+        return bitmap.ToEsBitmap();
     }
 
     /// <summary>元画像の中央を区別できるテスト画像を生成する（中心 1 画素のみ別色）。</summary>
@@ -44,14 +44,14 @@ internal static class TestHelper
     /// <param name="background">背景色。</param>
     /// <param name="center">中心画素の色。</param>
     /// <returns>生成した画像。 所有権は呼び出し側。</returns>
-    public static EsWritableBitmap CreateBitmapWithCenter(int size, SKColor background, SKColor center)
+    public static EsBitmap CreateBitmapWithCenter(int size, SKColor background, SKColor center)
     {
         // 変換は複製を返すため、元の SKBitmap は破棄する
         using var bitmap = new SKBitmap(size, size);
         bitmap.Erase(background);
         bitmap.SetPixel(size / 2, size / 2, center);
 
-        return bitmap.ToEsWritableBitmap();
+        return bitmap.ToEsBitmap();
     }
 }
 

@@ -9,14 +9,14 @@ using DrawingRect = System.Drawing.Rectangle;
 namespace EsUtil.Platform.Core.Windows.Imaging;
 
 /// <summary>
-/// <see cref="EsBitmap"/> / <see cref="EsWritableBitmap"/> の System.Drawing 向け生成・変換拡張（Windows 専用）。
+/// <see cref="EsReadOnlyBitmap"/> / <see cref="EsBitmap"/> の System.Drawing 向け生成・変換拡張（Windows 専用）。
 /// </summary>
 /// <remarks>
-/// <b>依存分離</b>: 本クラスは System.Drawing との変換を担い、<see cref="EsBitmap"/> 本体（コア）の依存を閉じる。<br/>
+/// <b>依存分離</b>: 本クラスは System.Drawing との変換を担い、<see cref="EsReadOnlyBitmap"/> 本体（コア）の依存を閉じる。<br/>
 /// <br/>
-/// <b>権利の向き</b>: 生成（<see cref="ToEsBitmap"/> / <see cref="ToEsWritableBitmap"/>) はコピーを作り
+/// <b>権利の向き</b>: 生成（<see cref="ToEsReadOnlyBitmap"/> / <see cref="ToEsBitmap"/>) はコピーを作り
 /// （元の <see cref="DrawingBitmap"/> は変更しない。 書き換えが要るかでどちらを使うかが決まる）、
-/// 変換（<see cref="ToDrawingBitmap"/>) は読み取り専用の面（<see cref="IEsBitmap"/>）を受け取る（複製を返すため
+/// 変換（<see cref="ToDrawingBitmap"/>) は読み取り専用の面（<see cref="EsReadOnlyBitmap"/>）を受け取る（複製を返すため
 /// 入力の書き換え権限は要らない）。<br/>
 /// <b>所有権</b>: 返り値はすべて複製であり、呼び出し側が所有する（引数の所有権は呼び出し側に残る）。<br/>
 /// <b>Windows 専用</b>: System.Drawing は Windows でのみ利用可能（<see cref="SupportedOSPlatformAttribute"/> で限定）。
@@ -27,19 +27,19 @@ public static class EsBitmapDrawingExtensions
     /// <param name="bitmap">変換元の System.Drawing.Bitmap。</param>
     /// <returns>生成された画像（読み取り専用）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// <b>書き換えが要る場合は <see cref="ToEsWritableBitmap"/> を使う</b>。<br/>
+    /// <b>書き換えが要る場合は <see cref="ToEsBitmap"/> を使う</b>。<br/>
     /// <b>1 回のコピーで作る</b>: 書き換え可能な画像を経由するとバッファを 2 つ作って全領域を 2 回コピーするため、
     /// 読み取り専用の画像へ直接 1 回だけ書き込む（実測: 4K で 13.6 ms → 6.7 ms）。<br/>
     /// System.Drawing は Windows 専用のため、本メソッドは Windows でのみ利用可能。
     /// </remarks>
     [SupportedOSPlatform("windows")]
-    public static EsBitmap ToEsBitmap(this DrawingBitmap bitmap)
+    public static EsReadOnlyBitmap ToEsReadOnlyBitmap(this DrawingBitmap bitmap)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
 
         var width = bitmap.Width;
         var height = bitmap.Height;
-        return EsBitmap.CreateFilled(width, height, dst => CopyFromBitmap(bitmap, dst, width * IEsBitmap.BytesPerPixel));
+        return EsReadOnlyBitmap.CreateFilled(width, height, dst => CopyFromBitmap(bitmap, dst, width * EsReadOnlyBitmap.BytesPerPixel));
     }
 
     /// <summary>System.Drawing.Bitmap から書き換え可能な画像を生成する（複製するため元は変更されない）。</summary>
@@ -50,17 +50,17 @@ public static class EsBitmapDrawingExtensions
     /// 全行をコピーする場合は生成時の 0 埋めを省く（大きなキャプチャ画像の書き込み量を減らす）。
     /// </remarks>
     [SupportedOSPlatform("windows")]
-    public static EsWritableBitmap ToEsWritableBitmap(this DrawingBitmap bitmap)
+    public static EsBitmap ToEsBitmap(this DrawingBitmap bitmap)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
 
         var width = bitmap.Width;
         var height = bitmap.Height;
-        var dstStride = width * IEsBitmap.BytesPerPixel;
+        var dstStride = width * EsReadOnlyBitmap.BytesPerPixel;
         var data = Lock(bitmap);
         try
         {
-            return EsWritableBitmap.CreateFilled(width, height, dst =>
+            return EsBitmap.CreateFilled(width, height, dst =>
             {
                 // コピー元の行幅がコピー先より小さい場合は、覆われない右端を透明にする
                 if (data.Stride < dstStride)
@@ -82,7 +82,7 @@ public static class EsBitmapDrawingExtensions
     /// <returns>変換された System.Drawing.Bitmap。</returns>
     /// <remarks>System.Drawing は Windows 専用のため、本メソッドは Windows でのみ利用可能。</remarks>
     [SupportedOSPlatform("windows")]
-    public static DrawingBitmap ToDrawingBitmap(this IEsBitmap bitmap)
+    public static DrawingBitmap ToDrawingBitmap(this EsReadOnlyBitmap bitmap)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
 
@@ -92,7 +92,7 @@ public static class EsBitmapDrawingExtensions
         var data = sd.LockBits(new DrawingRect(0, 0, width, height), DrawingImageLockMode.WriteOnly, DrawingPixelFormat.Format32bppPArgb);
         try
         {
-            CopyToLocked(bitmap, data, width * IEsBitmap.BytesPerPixel, height);
+            CopyToLocked(bitmap, data, width * EsReadOnlyBitmap.BytesPerPixel, height);
             return sd;
         }
         finally
@@ -177,9 +177,9 @@ public static class EsBitmapDrawingExtensions
     /// <param name="srcStride">コピー元の行幅（<c>幅 × 4</c>）。</param>
     /// <param name="height">コピーする行数。</param>
     [SupportedOSPlatform("windows")]
-    private static void CopyToLocked(IEsBitmap bitmap, DrawingBitmapData data, int srcStride, int height)
+    private static void CopyToLocked(EsReadOnlyBitmap bitmap, DrawingBitmapData data, int srcStride, int height)
     {
-        var src = bitmap.Pixels;
+        var src = bitmap.ReadOnlyPixels;
         var dstStride = data.Stride;
         var rowBytes = Math.Min(srcStride, dstStride);
         unsafe

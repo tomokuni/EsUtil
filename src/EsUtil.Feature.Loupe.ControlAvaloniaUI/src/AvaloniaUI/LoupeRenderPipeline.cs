@@ -10,9 +10,9 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI;
 
 /// <summary>ルーペのビットマップ生成パイプライン（ソース解決・描画の合成）。</summary>
 /// <remarks>
-/// <see cref="LoupeControl"/> から、Avalonia のソース画像を解決してルーペ画像（<see cref="EsBitmap"/>）を生成する<br/>
+/// <see cref="LoupeControl"/> から、Avalonia のソース画像を解決してルーペ画像（<see cref="EsReadOnlyBitmap"/>）を生成する<br/>
 /// パイプラインを分離する（描画の手順と値の解釈は UI 非依存の描画層が単一所有する）。<br/>
-/// <b>UI 固有の責務</b>: Avalonia の <see cref="IImage"/> 型判定と、<see cref="Bitmap"/> → <see cref="EsBitmap"/> の複製、<br/>
+/// <b>UI 固有の責務</b>: Avalonia の <see cref="IImage"/> 型判定と、<see cref="Bitmap"/> → <see cref="EsReadOnlyBitmap"/> の複製、<br/>
 /// 描画の UI スレッドへのディスパッチ、<b>オフスクリーン ビットマップ（<see cref="RenderTargetBitmap"/>）の生成</b>。
 /// 切り出しの可否（ソースと中心）と破棄済みの扱いはコアが単一所有する。
 /// </remarks>
@@ -27,24 +27,24 @@ internal static class LoupeRenderPipeline
     /// <returns>生成したルーペ画像（書き換え可能。 ホストがピクセルへ書き込める）。</returns>
     /// <exception cref="NotSupportedException">
     /// <paramref name="source"/> が <see cref="Bitmap"/>（派生の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> を含む）
-    /// / <see cref="IEsBitmap"/>（表示アダプタ）以外の場合。
+    /// / <see cref="EsReadOnlyBitmap"/>（表示アダプタ）以外の場合。
     /// </exception>
     /// <remarks>
     /// 1. 未対応型の判定（<see cref="LoupeSourceResolver.IsSourceSupported"/>）を行い、未対応型は例外にする。<br/>
-    /// 2. 切り出し元の画像を解決する（<see cref="Bitmap"/> は複製、<see cref="IEsBitmap"/> は借用）。<br/>
+    /// 2. 切り出し元の画像を解決する（<see cref="Bitmap"/> は複製、<see cref="EsReadOnlyBitmap"/> は借用）。<br/>
     /// 3. 描画（切り出し・拡大・十字線・枠線）は <see cref="LoupeContextPainter"/> へ委譲し、UI スレッドで行う<br/>
     /// （切り出しの可否と破棄済みソースの扱いは描画層が単一所有する）。
     /// </remarks>
-    public static async Task<EsWritableBitmap> RenderAsync(IImage? source, LoupeDrawPlan plan)
+    public static async Task<EsBitmap> RenderAsync(IImage? source, LoupeDrawPlan plan)
     {
         // 未対応型の判定は LoupeSourceResolver（単一所有）へ委譲する。
         if (!LoupeSourceResolver.IsSourceSupported(source))
         {
             throw new NotSupportedException(
-                $"LoupeControl は {source!.GetType().FullName} をサポートしていません。Bitmap（WriteableBitmap を含む）または IEsBitmap（表示アダプタ）を指定してください。");
+                $"LoupeControl は {source!.GetType().FullName} をサポートしていません。Bitmap（WriteableBitmap を含む）または EsReadOnlyBitmap（表示アダプタ）を指定してください。");
         }
 
-        // 抽出元の画像を解決する（Bitmap は複製、画像源（IEsBitmap）は借用。 破棄済みは null）
+        // 抽出元の画像を解決する（Bitmap は複製、画像源（EsReadOnlyBitmap）は借用。 破棄済みは null）
         var resolved = LoupeSourceResolver.Resolve(source, out var sourceBitmap);
 
         try
@@ -74,7 +74,7 @@ internal static class LoupeRenderPipeline
     /// オフスクリーン ビットマップは UI 固有の機構（Avalonia の <see cref="RenderTargetBitmap"/>）であるため本層が生成し、<br/>
     /// 描画の手順（層の順序・写し方）は <see cref="LoupeContextPainter"/> へ委譲する。
     /// </remarks>
-    private static EsWritableBitmap Rasterize(IEsBitmap? source, in LoupeDrawPlan plan)
+    private static EsBitmap Rasterize(EsReadOnlyBitmap? source, in LoupeDrawPlan plan)
     {
         var bitmap = new RenderTargetBitmap(new PixelSize(plan.ClientPixelSize, plan.ClientPixelSize), s_dpi);
 
@@ -83,6 +83,6 @@ internal static class LoupeRenderPipeline
             LoupeContextPainter.Paint(context, source, in plan);
         }
 
-        return bitmap.ToEsWritableBitmap();
+        return bitmap.ToEsBitmap();
     }
 }

@@ -44,10 +44,10 @@ internal static partial class LoupeLogMessage
     /// LogLevel: Debug<br/>出力書式: <c>[Loupe] Setting: Source {OldValue} → {NewValue}</c><br/>
     /// 「別のインスタンスに差し替わったか」の判断（参照の同一性）を本メソッドが単一所有する<br/>
     /// （寸法が同じ別画像への差し替えは変更として記録する）。<br/>
-    /// 寸法の書式は読み取りの面（<see cref="IEsBitmap.ToSizeText"/>）が単一所有し、
+    /// 寸法の書式は読み取りの面（<see cref="EsReadOnlyBitmap.ToSizeText"/>）が単一所有し、
     /// <b>未設定（null）の表記は記録する側が決める</b>（面は null を受け取れない）。
     /// </remarks>
-    public static void LogSourceChanged(this ILogger logger, IEsBitmap? oldValue, IEsBitmap? newValue)
+    public static void LogSourceChanged(this ILogger logger, EsReadOnlyBitmap? oldValue, EsReadOnlyBitmap? newValue)
     {
         if (ReferenceEquals(oldValue, newValue))
         {

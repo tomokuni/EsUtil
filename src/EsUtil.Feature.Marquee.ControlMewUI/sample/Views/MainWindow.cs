@@ -69,7 +69,7 @@ internal static class MainWindow
     {
         // ── 背景画像（選択対象） ──
         var backdrop = TestImageFactory.Create(ImageWidth, ImageHeight);
-        var imageSource = ImageSource.FromBgraPixels(backdrop.Width, backdrop.Height, backdrop.Pixels, true);
+        var imageSource = ImageSource.FromBgraPixels(backdrop.Width, backdrop.Height, backdrop.ReadOnlyPixels, true);
         var image = new Image { Source = imageSource };
 
         // ── ログ表示（コントロールの Log と本サンプルの操作ログを同じ領域へ出す） ──

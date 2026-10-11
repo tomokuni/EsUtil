@@ -47,7 +47,7 @@ public class LoupeLogMessageTests
     [Fact]
     internal void 拡大元画像のログは同一インスタンスなら出力しない()
     {
-        using var bitmap = EsWritableBitmap.Create(4, 4);
+        using var bitmap = EsBitmap.Create(4, 4);
         var logger = new RecordingLogger();
 
         logger.LogSourceChanged(bitmap, bitmap);
@@ -60,8 +60,8 @@ public class LoupeLogMessageTests
     [Fact]
     internal void 拡大元画像のログは別インスタンスなら出力する()
     {
-        using var oldBitmap = EsWritableBitmap.Create(8, 6);
-        using var newBitmap = EsWritableBitmap.Create(8, 6);
+        using var oldBitmap = EsBitmap.Create(8, 6);
+        using var newBitmap = EsBitmap.Create(8, 6);
         var logger = new RecordingLogger();
 
         logger.LogSourceChanged(oldBitmap, newBitmap);
@@ -88,7 +88,7 @@ public class LoupeLogMessageTests
     /// <param name="logger">ロガー。</param>
     private static void InvokeAll(ILogger logger)
     {
-        using var bitmap = EsWritableBitmap.Create(8, 6);
+        using var bitmap = EsBitmap.Create(8, 6);
 
         logger.LogSourceChanged(bitmap, null);
         logger.LogUpdateError(new InvalidOperationException("test"));
