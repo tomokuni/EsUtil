@@ -52,6 +52,60 @@ if (-not (Test-Path -LiteralPath $coreProject)) {
     throw "対象のプロジェクトが見つかりません: $coreProject"
 }
 
+<#
+.SYNOPSIS
+本文の見出しから目次の行（`##` 以下。 `##` は 0 文字、`###` は 2 文字の字下げ）を作る。
+
+.DESCRIPTION
+アンカーは記号を除去して小文字化し、空白をハイフンへ変えたもの（.github/検証手順.md §11）。
+`verify.ps1` の体裁検査と同じ規則である（本ドキュメントは SPEC_*.md ではないため、その検査の対象外）。
+#>
+function Get-TocLines {
+    param([string] $Text)
+
+    $result = [System.Collections.Generic.List[string]]::new()
+    $inFence = $false
+    foreach ($line in ($Text -split "`n")) {
+        if ($line.StartsWith('```')) { $inFence = -not $inFence; continue }
+        if ($inFence) { continue }
+        if ($line -match '^(#{1,6}) (.+)$') {
+            $level = $Matches[1].Length
+            if ($level -lt 2 -or $level -gt 4) { continue }
+            $heading = $Matches[2]
+            if ($level -eq 2 -and $heading -match '^目次( <!-- omit from toc -->)?$') { continue }
+            $slug = [regex]::Replace($heading, '[^\p{L}\p{M}\p{Nd}\p{Pc}\- ]', '')
+            $slug = $slug.ToLowerInvariant() -replace '\s', '-'
+            $result.Add((' ' * (($level - 2) * 2)) + "- [$heading](#$slug)")
+        }
+    }
+
+    return , $result
+}
+
+<#
+.SYNOPSIS
+本文の「## 目次」に並んでいる行を取り出す（無い場合は空）。
+#>
+function Get-TocBlock {
+    param([string] $Text)
+
+    $result = [System.Collections.Generic.List[string]]::new()
+    $lines = $Text -split "`n"
+    $inToc = $false
+    foreach ($line in $lines) {
+        if (-not $inToc) {
+            if ($line -match '^## 目次( <!-- omit from toc -->)?$') { $inToc = $true }
+            continue
+        }
+
+        if ($line -match '^\s*- ') { $result.Add($line); continue }
+        if ($line.Trim() -eq '' -and $result.Count -eq 0) { continue }
+        break
+    }
+
+    return , $result
+}
+
 # 一時プロジェクトはリポジトリの外へ置く（リポジトリのビルド設定を適用させない。 計測の再現性を保つ）
 $workspace = Join-Path ([IO.Path]::GetTempPath()) 'SaveEvidence.Measurement'
 if (Test-Path -LiteralPath $workspace) {
@@ -145,6 +199,18 @@ internal static class Program
     /// （境目を実測の近くへ置くと、実行のたびに表の形が変わります）。
     /// </remarks>
     private const double QualityCollapseRatio = 1.10;
+
+    /// <summary>低い周波数（なだらかな変化）の一致度を測るときの平均の大きさ（画素）。</summary>
+    /// <remarks>
+    /// <b>1 画素ごとの差では見えないものを測る理由</b>: ディザは<b>わざと 1 画素ごとの差を増やして</b>、
+    /// なだらかな変化に出る縞（階調の飛び）を散らします。 そのため 1 画素ごとの差（PSNR）は下がりますが、
+    /// <b>見た目は良くなります</b>。 目のぼけを模して <c>n×n</c> の平均で比べると、差の平均が打ち消し合うため
+    /// <b>ディザありのほうが一致します</b>。 この 2 つを並べることで「ディザが何と引き換えに何を得るか」が読めます。
+    /// </remarks>
+    private const int LowFrequencyBlock = 4;
+
+    /// <summary>低い周波数の一致度を記録するときの節の名（同じ鍵で別の値を測るため節を分ける）。</summary>
+    private const string LowFrequencySuffix = "（低周波）";
 
     /// <summary>計測に使う画像を生成する。</summary>
     private static readonly SizeCase[] s_sizes =
@@ -627,8 +693,13 @@ internal static class Program
         Func<EsBitmap> produce)
     {
         using var produced = produce();
+        var referencePixels = reference();
         s_values[(section, method, className, size, variant)] =
-            Psnr(width, height, reference(), referenceStride, produced.ReadOnlyPixels, produced.Stride);
+            Psnr(width, height, referencePixels, referenceStride, produced.ReadOnlyPixels, produced.Stride);
+
+        // 1 画素ごとの差では、ディザの効果（縞の解消）が見えないため、低い周波数の一致度も測る
+        s_values[(section + LowFrequencySuffix, method, className, size, variant)] =
+            PsnrLowFrequency(width, height, referencePixels, referenceStride, produced.ReadOnlyPixels, produced.Stride);
     }
 
     /// <summary>2 つの画素の PSNR (dB) を求める（透明度は比べない）。</summary>
@@ -652,9 +723,53 @@ internal static class Program
             }
         }
 
-        var mse = sum / count;
-        return mse <= 0 ? double.PositiveInfinity : 10.0 * Math.Log10(255.0 * 255.0 / mse);
+        return ToDecibels(sum / count);
     }
+
+    /// <summary><see cref="LowFrequencyBlock"/> の平均で見た PSNR (dB) を求める（目のぼけを模した比べ方）。</summary>
+    /// <remarks>
+    /// 最小の 2 乗平均で測るため、1 画素ごとの差が大きくても<b>平均すると打ち消し合えば</b>値は高くなります
+    /// （ディザの狙いがこれです）。
+    /// </remarks>
+    private static double PsnrLowFrequency(int width, int height, ReadOnlySpan<byte> reference, int referenceStride, ReadOnlySpan<byte> target, int targetStride)
+    {
+        var sum = 0.0;
+        var count = 0;
+        for (var y = 0; y < height; y += LowFrequencyBlock)
+        {
+            var rows = Math.Min(LowFrequencyBlock, height - y);
+            var referenceRow = reference.Slice(y * referenceStride);
+            var targetRow = target.Slice(y * targetStride);
+            for (var x = 0; x < width; x += LowFrequencyBlock)
+            {
+                var columns = Math.Min(LowFrequencyBlock, width - x);
+                for (var channel = 0; channel < 3; channel++)
+                {
+                    var referenceSum = 0;
+                    var targetSum = 0;
+                    for (var row = 0; row < rows; row++)
+                    {
+                        var offset = (row * EsBitmap.BytesPerPixel) + (x * EsBitmap.BytesPerPixel) + channel;
+                        for (var column = 0; column < columns; column++)
+                        {
+                            referenceSum += referenceRow[offset + (column * EsBitmap.BytesPerPixel)];
+                            targetSum += targetRow[offset + (column * EsBitmap.BytesPerPixel)];
+                        }
+                    }
+
+                    var average = (referenceSum - targetSum) / (double)(rows * columns);
+                    sum += average * average;
+                    count++;
+                }
+            }
+        }
+
+        return ToDecibels(sum / count);
+    }
+
+    /// <summary>最小の 2 乗平均を PSNR (dB) へ変える（差が無い場合は無限大）。</summary>
+    private static double ToDecibels(double mse)
+        => mse <= 0 ? double.PositiveInfinity : 10.0 * Math.Log10(255.0 * 255.0 / mse);
 
     // ====================================================================
     // 表の組み立て
@@ -727,7 +842,7 @@ internal static class Program
 
         AddText($"計測に使う画像は**折り返す勾配**です（B = X % {PatternPeriod}・G = Y % {PatternPeriod}・R = (X + Y) % {PatternPeriod}・A = 255。 決定的で、実行のたびに同じ画像になります）。 折り返すのは、画像の一部を切り出したビューと元画像とで**色の範囲を揃える**ためです（減色の費用は色の範囲で決まるため、折り返さない勾配では内容の違うもの同士を比べることになります）。 減色だけは内容の影響が大きいため、内容を変えた表を別に示します。");
 
-        AddText("**品質の表**は、出力がどれだけ元の画素に近いかを **PSNR (dB)** で示します（大きいほど近い）。 縮小は**面積平均の結果を基準**とし（最も正確な縮小）、減色は**元画像を基準**とします。 減色のディザは**1 画素ごとの差を増やして縞を減らす**ため、PSNR は下がります（PSNR は縞の解消を表しません）。");
+        AddText("**品質の表**は、出力がどれだけ元の画素に近いかを **PSNR (dB)** で示します（大きいほど近い）。 縮小は**面積平均の結果を基準**とし（最も正確な縮小）、減色は**元画像を基準**とします。 1 画素ごとの差では**ディザの狙い（縞を散らすこと）が見えない**ため、減色は**縞の出にくさ**（" + LowFrequencyBlock + "×" + LowFrequencyBlock + " の平均で見た PSNR）も示します（§7.9・§7.11）。");
 
         AddText("画素の領域（`幅 × 4 × 高さ`）は**アンマネージド**であり、所要の表には現れません（ビューは `行間隔 × 高さ`）。");
         AddValueGrid("項目", s_sizeLabels, ["画素の領域 (B)"], [s_sizes.Select(PixelBytes).ToArray()]);
@@ -891,18 +1006,18 @@ internal static class Program
         // 品質は元画像との差で測る（ディザは縞を減らす代わりに 1 画素ごとの差を増やす）
         foreach (var colors in s_qualityColors)
         {
-            AppendReduceQuality(number, ++sub, colors);
+            AppendReduceQuality(number, ref sub, colors);
         }
     }
 
-    /// <summary>減色の出力の品質を「ディザ × 品質 × 寸法」の 2 軸表で出力する。</summary>
-    private static void AppendReduceQuality(int number, int sub, int colors)
+    /// <summary>減色の出力の品質を「ディザ × 品質 × 寸法」の 2 軸表で出力する（低周波の一致度も続けて示す）。</summary>
+    private static void AppendReduceQuality(int number, ref int sub, int colors)
     {
         // 品質の段階で速度が変わらないなら、選ぶ意味が無いため品質の行を畳む
         var collapsed = IsQualityCollapsed(SectionReduce, "ReduceColors", colors, EsDitherMode.None)
             && IsQualityCollapsed(SectionReduce, "ReduceColors", colors, EsDitherMode.FloydSteinberg);
 
-        AddHeading($"### {number}.{sub} 出力の品質（{colors} 色）");
+        AddHeading($"### {number}.{++sub} 出力の品質（{colors} 色）");
         var dithers = new[] { EsDitherMode.None, EsDitherMode.FloydSteinberg };
         var rows = new List<(string Label, EsImageQuality Quality, EsDitherMode Dither)>();
         foreach (var dither in dithers)
@@ -937,6 +1052,18 @@ internal static class Program
             rows.Select(static r => r.Label).ToArray(),
             [.. rows.Select(r => s_sizes.Select(s => Decibels(SectionReduce, "ReduceColors", ClassBit, s.Label, ReduceVariant(colors, r.Quality, r.Dither))).ToArray())],
             (row, column) => Time(SectionReduce, "ReduceColors", ClassBit, s_sizes[column].Label, ReduceVariant(colors, rows[row].Quality, rows[row].Dither)));
+
+        // 1 画素ごとの差では、ディザの狙い（縞を散らすこと）が見えないため、低い周波数の一致度も示す
+        sub++;
+        var pair = new[] { EsDitherMode.None, EsDitherMode.FloydSteinberg };
+        AddHeading($"### {number}.{sub} 縞の出にくさ（{colors} 色・{EsImageQuality.Mid}）");
+        AddText($"**元画像を基準**とし、{LowFrequencyBlock}×{LowFrequencyBlock} の平均で見た PSNR (dB) です（大きいほど元のなだらかな変化に一致し、**縞が出にくい**）。 行をディザ・列を元画像の寸法とした 2 軸表を示します。 1 画素ごとの差（上の表）ではディザが不利に出ますが、**目のぼけを模したこの比べ方ではディザが有利に出ます**（ディザは差をとなりへ散らすため、平均すると打ち消し合います）。");
+        AddValueGrid(
+            "指定",
+            s_sizeLabels,
+            pair.Select(DitherOnlyLabel).ToArray(),
+            [.. pair.Select(d => s_sizes.Select(s => Decibels(SectionReduce + LowFrequencySuffix, "ReduceColors", ClassBit, s.Label, ReduceVariant(colors, EsImageQuality.Mid, d))).ToArray())],
+            (row, column) => Time(SectionReduce, "ReduceColors", ClassBit, s_sizes[column].Label, ReduceVariant(colors, EsImageQuality.Mid, pair[row])));
     }
 
     /// <summary>品質の段階による所要の差が小さいかどうか（最も大きい寸法で比べる）。</summary>
@@ -1294,6 +1421,30 @@ else {
     $updated = $text.Substring(0, $begin) + $generated + $text.Substring($end + $endMarker.Length)
     [IO.File]::WriteAllText($docPath, ($updated -replace "`n", "`r`n"), [Text.UTF8Encoding]::new($false))
     Write-Output "更新: $docPath"
+
+    # 目次は本文の見出しと一致していること。
+    # 本ドキュメントは SPEC_*.md ではないため verify.ps1 の体裁検査の対象外であり、
+    # 節番号は本スクリプトが決めるため、ずれても markdownlint（MD051）では見つからない
+    # （MD051 は既存のリンクだけを見る）。
+    $tocExpected = Get-TocLines $updated
+    $tocActual = Get-TocBlock $updated
+    $difference = -1
+    if ($tocExpected.Count -ne $tocActual.Count) {
+        $difference = [Math]::Min($tocExpected.Count, $tocActual.Count)
+    }
+    else {
+        for ($i = 0; $i -lt $tocExpected.Count; $i++) {
+            if ($tocExpected[$i] -ne $tocActual[$i]) { $difference = $i; break }
+        }
+    }
+
+    if ($difference -ge 0) {
+        $expected = if ($difference -lt $tocExpected.Count) { $tocExpected[$difference] } else { '（無し）' }
+        $actual = if ($difference -lt $tocActual.Count) { $tocActual[$difference] } else { '（無し）' }
+        throw ("目次が本文の見出しと一致しません（{0} 件目。 期待 {1} / 実際 {2}）。 " +
+            "{3} の「## 目次」を直してください（本文は更新済みです）。 件数は 期待 {4} / 実際 {5}。") -f
+            ($difference + 1), $expected, $actual, $docPath, $tocExpected.Count, $tocActual.Count
+    }
 }
 
 if (-not $KeepWorkspace) {
