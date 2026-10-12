@@ -374,6 +374,11 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// 段階ごとの速度と画質の実測は <see cref="EsImageQuality"/> を参照してください。<b><see cref="EsImageQuality.High"/> の
     /// 費用は元画像の画素数で決まる</b>ため、縮小先が大きい場合は <see cref="EsImageQuality.Mid"/> より速くなることがあります
     /// （実測: 4K → 長辺 1920 で <see cref="EsImageQuality.Mid"/> 4.1 ms / <see cref="EsImageQuality.High"/> 3.4 ms）。<br/>
+    /// <b>時間の上限（タイムアウト）を設けない理由（実測）</b>: 縮小は<b>反復も収束も無い 1 回の走査</b>であり
+    /// （最近傍・双線形は縮小先の画素数、面積平均は元画像の画素数に<b>比例するだけ</b>で、止まる条件を待ちません）、
+    /// 途中で打ち切ると<b>画像の一部が書かれないまま返る</b>（壊れた画像になる）ため、時間による打ち切りは
+    /// 行いません。 費用は縮小の前に決まっている寸法から予測できます（実測: 4K 3840x2160 → 長辺 320 の
+    /// 面積平均で 1.5 ms ＝ 元画像 1 メガ画素あたり約 0.18 ms）。<br/>
     /// <b>一部だけを縮小する場合</b>: 本画像から切り出してから縮小すると、<b>切り出しの複製</b>（実測: 4K から 1000x800 で
     /// 0.85 ms / 4 MB）を払います。 <see cref="ToPixmap"/> でビューを作り <see cref="EsPixmap.Resize"/> を呼ぶと
     /// その分が要りません（実測: 1000x800 → 長辺 320 の <see cref="EsImageQuality.High"/> で <b>3.3 倍</b>）。<br/>
@@ -415,6 +420,12 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <b>所要（実測。 Release・1920x1080・256 色）</b>: 平坦な色の画像（箱 6 個）は品質に依らず 13 ms、
     /// 写真風（箱 2,873 個）は <see cref="EsImageQuality.Low"/> 15 ms / <see cref="EsImageQuality.Mid"/> 19 ms /
     /// <see cref="EsImageQuality.High"/> 24 ms、ノイズ（箱 32,768 個）は 43 / 64 / 137 ms です。<br/>
+    /// <b>所要には上限があります（正味 500 ms の安全網）</b>: <see cref="EsImageQuality.High"/> の詰め直しは
+    /// <b>減色の計算を始めてから 500 ms</b> を過ぎたら行いません（採用済みのパレットで止めるため、結果は常に
+    /// 有効で色数も指定どおりです。 実測: 3840x2160 のノイズ 256 色は
+    /// <see cref="EsImageQuality.Low"/> 95 ms / <see cref="EsImageQuality.Mid"/> 110 ms /
+    /// <see cref="EsImageQuality.High"/> 184 ms であり上限には達しません。 上限は 8K・遅い環境・
+    /// 収束しにくい画像のための安全網です）。<br/>
     /// <b>一部だけを減色する場合</b>: 本画像から切り出してから減色すると、<b>切り出しの複製</b>（実測: 4K から
     /// 1000x800 で 0.85 ms / 4 MB）を払います。 <see cref="ToPixmap"/> でビューを作り
     /// <see cref="EsPixmap.ReduceColors"/> を呼ぶとその分が要りません（実測: 1000x800・256 色で約 12%）。<br/>

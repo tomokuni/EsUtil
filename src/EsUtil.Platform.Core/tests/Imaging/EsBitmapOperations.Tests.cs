@@ -646,6 +646,33 @@ public class EsBitmapOperationsTests
             $"High の色差 {MeanChannelDifference(src, high):F2} が Low の {MeanChannelDifference(src, low):F2} を超えました。");
     }
 
+    [Fact]
+    internal void 減色_時間の上限を使い切ったら詰め直しを行わない()
+    {
+        // 詰め直しは「減色の計算を始めてから 500 ms」を上限とする。 上限 0 を渡すと 1 回も反復しないため、
+        // 中央値分割の結果をそのまま使う Low と同じ画像になる（上限が効いていることの確認）。
+        using var src = CreateNoisy(64, 64);
+
+        using var limited = EsBitmapOperations.ReduceColors(
+            src.ReadOnlyPixels, src.Width, src.Height, src.Stride, 16, EsImageQuality.High, EsDitherMode.None, 0);
+        using var low = src.ReduceColors(16, EsImageQuality.Low);
+
+        Assert.Equal(low.ReadOnlyPixels.ToArray(), limited.ReadOnlyPixels.ToArray());
+    }
+
+    [Fact]
+    internal void 減色_既定の時間の上限では詰め直しが働く()
+    {
+        // 既定の上限（500 ms）は小さな画像では発動しない（発動すると High が Low と同じ結果になってしまう）
+        using var src = CreateNoisy(64, 64);
+
+        using var refined = src.ReduceColors(16, EsImageQuality.High);
+        using var unrefined = EsBitmapOperations.ReduceColors(
+            src.ReadOnlyPixels, src.Width, src.Height, src.Stride, 16, EsImageQuality.High, EsDitherMode.None, 0);
+
+        Assert.NotEqual(unrefined.ReadOnlyPixels.ToArray(), refined.ReadOnlyPixels.ToArray());
+    }
+
     [Theory]
     [MemberData(nameof(Qualities))]
     internal void 減色_ディザを指定しても色数は指定以下になる(EsImageQuality quality)

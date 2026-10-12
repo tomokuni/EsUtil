@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using EsUtil.Platform.Core.Geometry;
@@ -138,6 +139,24 @@ internal static class EsBitmapOperations
     /// 画質は従来より良くなります。
     /// </remarks>
     private const long RefinementWorkBudget = 2_800_000;
+
+    /// <summary>詰め直しの反復に与える時間の上限（ミリ秒。 <see cref="RefinePalette"/>）。</summary>
+    /// <remarks>
+    /// <b>上限を設ける理由</b>: <see cref="EsImageQuality.High"/> は収束まで反復します。 反復の終了は
+    /// <b>目的関数の改善が止まった時点</b>であるため、わずかずつ改善し続ける画像では止まりません
+    /// （止まる保証は <see cref="MaximumRefinementIterations"/> だけであり、そこへ達するまでの時間は
+    /// 画像の大きさと環境で決まります）。 そこで<b>減色の計算を始めてから 500 ms を過ぎたら反復を行わない</b>ようにし、
+    /// <b>その時点で採用しているパレットをそのまま使います</b>（結果は常に「詰め直しの途中まで」の有効なパレットです）。<br/>
+    /// <b>超えるのは 1 回分だけ</b>: 反復の区切り（1 回ごとに全箱を走査）で時刻を見るため、上限を超える量は
+    /// 1 回の反復の費用までです（実測: 3840x2160 のノイズ 256 色で 1 回が約 11 ms）。<br/>
+    /// <b>数え上げから測る理由</b>: 詰め直しだけを測ると <b>減色全体が上限を超えます</b>
+    /// （数え上げ・中央値分割・参照表の作成は中断できません。 中断すると色数が指定どおりになりません）。<br/>
+    /// <b>500 ms の根拠（実測）</b>: 中断できない部分だけで 3840x2160 のノイズ 256 色に 95 ms を要します
+    /// （<see cref="EsImageQuality.Low"/> の所要）。 反復へ残せる時間を<b>画面キャプチャの保存で待てる上限</b>に
+    /// 収めるため 500 ms としました（実測: 4K のノイズ 256 色の <see cref="EsImageQuality.High"/> は 186 ms で
+    /// 上限に達しません。 上限は 8K・遅い環境・収束しにくい画像のための安全網です）。
+    /// </remarks>
+    private const int RefinementTimeLimitMilliseconds = 500;
 
     /// <summary>画素から指定された矩形領域を切り出す（公開面のメンバーの実装）。</summary>
     /// <param name="pixels">切り出し元の画素（BGRA8888。 <b>行の余白を含んでよい</b>）。 借用であり破棄しない。</param>
@@ -355,6 +374,8 @@ internal static class EsBitmapOperations
     /// <param name="colorCount">残す色数（2〜256）。</param>
     /// <param name="quality">減色の品質。 既定は <see cref="EsImageQuality.Mid"/>。</param>
     /// <param name="dither">ディザの指定。 既定は <see cref="EsDitherMode.None"/>。</param>
+    /// <param name="refinementTimeLimitMilliseconds">詰め直しの反復へ与える時間の上限（ミリ秒）。
+    /// 既定は <see cref="RefinementTimeLimitMilliseconds"/>。</param>
     /// <returns>減色した新しい画像（使われる色は <paramref name="colorCount"/> 種類以下）。 所有権は呼び出し側へ移る。</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、
     /// または <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
@@ -373,11 +394,15 @@ internal static class EsBitmapOperations
     /// <b>色数はアルファの段階も数える</b>: アルファは 4 段階（0〜63 / 64〜127 / 128〜191 / 192〜255）に
     /// 量子化されるため、同じ RGB でもアルファが違えば別の色としてパレットを消費する
     /// （不透明な画像ではアルファが 1 段階のため、従来と同じ結果になる）。 <b>アルファの段階より色数が
-    /// 少ないときは段階が統合される</b>（<see cref="EsReadOnlyBitmap.ReduceColors"/> の備考を参照）。
+    /// 少ないときは段階が統合される</b>（<see cref="EsReadOnlyBitmap.ReduceColors"/> の備考を参照）。<br/>
+    /// <b>所要には上限がある</b>: 詰め直しの反復は <see cref="RefinementTimeLimitMilliseconds"/> で打ち切る
+    /// （収束しにくい画像・大きな画像・遅い環境のための安全網。 <paramref name="refinementTimeLimitMilliseconds"/>
+    /// を 0 にすると詰め直しを行わないため、<see cref="EsImageQuality.Low"/> と同じ結果になる）。
     /// </remarks>
     internal static EsBitmap ReduceColors(
         ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride,
-        int colorCount, EsImageQuality quality = EsImageQuality.Mid, EsDitherMode dither = EsDitherMode.None)
+        int colorCount, EsImageQuality quality = EsImageQuality.Mid, EsDitherMode dither = EsDitherMode.None,
+        int refinementTimeLimitMilliseconds = RefinementTimeLimitMilliseconds)
     {
         if (colorCount < MinimumColorCount || colorCount > MaximumColorCount)
         {
@@ -400,7 +425,8 @@ internal static class EsBitmapOperations
 
         // 参照表（箱 → 色番号）は常に作る（ディザの場合も、誤差を加えない素の色の割り当てには使わないが、
         // 費用は「使われている箱の数 × 色数」であり小さい。 ディザは遅延で埋める別の表を使う）
-        var palette = BuildPalette(pixels, width, height, stride, colorCount, quality, out var lookup);
+        var palette = BuildPalette(
+            pixels, width, height, stride, colorCount, quality, refinementTimeLimitMilliseconds, out var lookup);
 
         var result = EsBitmap.CreateUninitialized(width, height);
         var destination = result.Pixels;
@@ -480,7 +506,8 @@ internal static class EsBitmapOperations
         ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount,
         EsImageQuality quality = EsImageQuality.Mid, EsDitherMode dither = EsDitherMode.None)
     {
-        var palette = BuildPalette(pixels, width, height, stride, colorCount, quality, out var lookup);
+        var palette = BuildPalette(
+            pixels, width, height, stride, colorCount, quality, RefinementTimeLimitMilliseconds, out var lookup);
 
         var indices = new byte[width * height];
         if (dither != EsDitherMode.None)
@@ -617,6 +644,7 @@ internal static class EsBitmapOperations
     /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="colorCount">残す色数（2〜256。 呼び出し側が検証済みであること）。</param>
     /// <param name="quality">減色の品質（詰め直しの回数を決める。 呼び出し側が検証済みであること）。</param>
+    /// <param name="refinementTimeLimitMilliseconds">詰め直しの反復へ与える時間の上限（ミリ秒）。</param>
     /// <param name="lookup">箱（ヒストグラムのキー）→ 色番号の参照表の書き先。</param>
     /// <returns>パレット（ARGB。 使われる色数以下）。</returns>
     /// <remarks>
@@ -640,12 +668,16 @@ internal static class EsBitmapOperations
     /// 知覚誤差は 8〜11% 減りますが、<b>費用が「画素の数 × 色数」で決まります</b>（実測: 距離の評価は 1 回
     /// あたり 1.5 ns。 1920x1080 の全画素・256 色で<b>約 775 ms</b>、16 色でも約 48 ms で、現在の
     /// <see cref="EsImageQuality.High"/> の 24 ms の 32 倍）。 詳細は
-    /// <see cref="EsImageQuality"/> の備考を参照してください。
+    /// <see cref="EsImageQuality"/> の備考を参照してください。<br/>
+    /// <b>時刻はここから測る（実測）</b>: 詰め直しの上限（<paramref name="refinementTimeLimitMilliseconds"/>）は
+    /// <b>この時点から</b>測ります。 数え上げ・中央値分割・参照表の作成は中断できないため、詰め直しだけを測ると
+    /// 減色全体は上限を超えます（実測: 3840x2160 のノイズ 256 色で中断できない部分だけで 95 ms）。
     /// </remarks>
     private static uint[] BuildPalette(
         ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount,
-        EsImageQuality quality, out byte[] lookup)
+        EsImageQuality quality, int refinementTimeLimitMilliseconds, out byte[] lookup)
     {
+        var startTimestamp = Stopwatch.GetTimestamp();
         var counts = ArrayPool<int>.Shared.Rent(HistogramSize);
         var sums = ArrayPool<long>.Shared.Rent(HistogramSize * 4);
         var bins = ArrayPool<int>.Shared.Rent(HistogramSize);
@@ -669,7 +701,9 @@ internal static class EsBitmapOperations
                 binAlphaTier[i] = (byte)AlphaTier(centroid.Alpha);
             }
 
-            RefinePalette(bins, usedCount, counts, sums, palette, quality, binLab, binAlphaTier);
+            RefinePalette(
+                bins, usedCount, counts, sums, palette, quality, binLab, binAlphaTier,
+                startTimestamp, refinementTimeLimitMilliseconds);
 
             // 箱 → 色番号の参照表（画素ごとに最近傍を求めない）。 埋めない箱は 0 のままである
             var (paletteLab, paletteAlphaTiers) = PreparePalette(palette);
@@ -862,6 +896,8 @@ internal static class EsBitmapOperations
     /// <param name="quality">減色の品質（反復の上限を決める）。</param>
     /// <param name="binLab">箱の代表色の Lab（<see cref="BuildPalette"/> が 1 度だけ求めた値）。</param>
     /// <param name="binAlphaTier">箱の代表色のアルファの段階（0〜3）。</param>
+    /// <param name="startTimestamp">減色の計算を始めた時刻（<see cref="Stopwatch.GetTimestamp"/>）。</param>
+    /// <param name="timeLimitMilliseconds">反復へ与える時間の上限（ミリ秒。 0 なら反復しない）。</param>
     /// <remarks>
     /// <b>詰め直す理由（実測）</b>: 中央値分割は「その場で最も広い箱を切る」だけであり、切った後の色を
     /// 動かしません（反復が無いため、分けた境界に対して色が最適になりません）。 「箱を最も近い色へ割り当て直し、
@@ -875,11 +911,16 @@ internal static class EsBitmapOperations
     /// 悪くなることはありません。<br/>
     /// <b>使われている箱だけを回す理由</b>: 画素が 1 つも無い箱は割り当てにも平均にも寄与しません。
     /// <b>箱が色数以下なら何もしない</b>: 使われている箱をすべて別の色にできるためです
-    /// （スクリーンショットの平坦な面がこれに当たる）。
+    /// （スクリーンショットの平坦な面がこれに当たる）。<br/>
+    /// <b>時間の上限で打ち切る理由</b>: <see cref="EsImageQuality.High"/> は「改善が止まるまで」回すため、
+    /// わずかずつ改善し続ける画像では <see cref="MaximumRefinementIterations"/> まで回ります。 その時間は
+    /// 画像の大きさと環境で決まるため、<b>減色の計算を始めてから <paramref name="timeLimitMilliseconds"/> を
+    /// 過ぎたら反復を行いません</b>（採用済みのパレットをそのまま使うため、結果は常に有効です。
+    /// 詳細と実測は <see cref="RefinementTimeLimitMilliseconds"/> を参照）。
     /// </remarks>
     private static void RefinePalette(
         int[] bins, int binCount, int[] counts, long[] sums, uint[] palette, EsImageQuality quality,
-        LabColor[] binLab, byte[] binAlphaTier)
+        LabColor[] binLab, byte[] binAlphaTier, long startTimestamp, int timeLimitMilliseconds)
     {
         if (quality == EsImageQuality.Low || binCount <= palette.Length)
         {
@@ -903,6 +944,12 @@ internal static class EsBitmapOperations
 
         for (var iteration = 0; iteration < iterations; iteration++)
         {
+            // 収束しにくい画像・大きな画像・遅い環境のための安全網（採用済みのパレットをそのまま使って止める）
+            if (Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds >= timeLimitMilliseconds)
+            {
+                return;
+            }
+
             Array.Clear(clusterCounts);
             Array.Clear(clusterSums);
             for (var i = 0; i < binCount; i++)
