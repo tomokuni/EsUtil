@@ -662,8 +662,9 @@ internal static class Program
 
     private static void Emit()
     {
-        // 所要と速度比は桁を揃えるため、コードスパンの中へ詰め物の空白を置く（.github/検証手順.md §11）
-        s_report.Add("<!-- markdownlint-disable MD038 -->");
+        // 桁を揃える詰め物の空白は MD060（表の桁揃え）が禁じるため、計測結果の範囲だけ無効化する
+        // （.github/検証手順.md §11）
+        s_report.Add("<!-- markdownlint-disable MD060 -->");
         s_report.Add("");
         AppendEnvironment();
         AppendTargets();
@@ -680,7 +681,7 @@ internal static class Program
             ["Save", .. s_formats.Select(static f => f.Method)]);
         AppendOutputSizeSection(9, s_formats.Length + 2);
         AppendMethodTables(9, SectionFile, ["Load"], subStart: s_formats.Length + 3);
-        s_report.Add("<!-- markdownlint-enable MD038 -->");
+        s_report.Add("<!-- markdownlint-enable MD060 -->");
     }
 
     private static void AppendEnvironment()
@@ -719,7 +720,7 @@ internal static class Program
         ]);
 
         AddText("**所要の表**は、行を型・品質・内容など、列を寸法として、行の 1 番目（表ごとに定めた基準）を 100% とした**速度比**を足します。");
-        AddText("所要はセルごとに単位 `ms` を付け、**列の中で桁を揃えて右揃え**にします（0.000001 ms（1 ナノ秒）まで表示し、それ未満は `<0.000001` と書きます）。 `-` はその型にメソッドが無い（対称でない）ことを表します。 1 マイクロ秒を下回る操作は、タイマーの分解能に埋もれるため **1 回の計測につき 100 回呼び、1 回あたりへ換算**します。 **桁を揃える詰め物はコードスパンの中へ置きます**（コードスパンの外の空白は描画で畳まれるため）。 そのため計測結果の範囲だけ `MD038` を無効化しています（[`.github/検証手順.md`](../../../.github/検証手順.md) §11）。");
+        AddText("所要はセルごとに単位 `ms` を付け、**列の中で桁を揃えて右揃え**にします（0.000001 ms（1 ナノ秒）まで表示し、それ未満は `<0.000001` と書きます）。 `-` はその型にメソッドが無い（対称でない）ことを表します。 1 マイクロ秒を下回る操作は、タイマーの分解能に埋もれるため **1 回の計測につき 100 回呼び、1 回あたりへ換算**します。 **値はコードスパンで囲まず**、桁を揃える詰め物の空白はそのまま書きます（`MD060` を計測結果の範囲だけ無効化しています。 [`.github/検証手順.md`](../../../.github/検証手順.md) §11）。");
         AddText($"**速度比**は同じ寸法の 1 行目との比です（`基準の所要 ÷ その行の所要`。 100% より大きいほど速い）。 速度比の列は、寸法の列と同じ順に並べます。 基準の所要が {RatioFloorMilliseconds} ms 未満の表では示しません（ばらつきが比率を支配するため）。");
 
         AddText("**寸法の軸**は元の画像（`EsPixmap` はビュー）の寸法です。 縮小だけは**縮小先を長辺 320 に固定**し（型と寸法の比較を揃えるため）、縮小先を変えた表を別に示します。 減色は 256 色を既定とし、色数とディザの表を別に示します。");
@@ -1059,14 +1060,12 @@ internal static class Program
     {
         foreach (var column in rightAligned)
         {
-            // 幅は値だけで決める（見出しは等幅ではないため、値の桁を揃えれば足りる）
             var width = rows.Skip(1).Max(row => row[column].Length);
             for (var i = 1; i < rows.Count; i++)
             {
-                // 計測が無いセル（-）は桁揃えの対象にしない
                 if (rows[i][column] != "-")
                 {
-                    rows[i][column] = string.Concat("`", rows[i][column].PadLeft(width), "`");
+                    rows[i][column] = rows[i][column].PadLeft(width);
                 }
             }
         }
