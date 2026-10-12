@@ -114,11 +114,55 @@ internal static class Program
     private const string ClassRead = "EsReadOnlyBitmap";
     private const string ClassView = "EsPixmap";
 
+    // 計測に使う画像の内容（減色の費用は画素が入った箱の数で決まるため、内容を変えて測る）
+    private const string ContentFlat = "平坦";
+    private const string ContentGradient = "グラデーション";
+    private const string ContentNoise = "ノイズ";
+
+    // 凍結の有無（FromBitmap は凍結済みなら共有・未凍結なら複製になる）
+    private const string FrozenNo = "未凍結（複製）";
+    private const string FrozenYes = "凍結済み（共有）";
+
+    /// <summary>グラデーションの折り返しの周期（画素）。</summary>
+    /// <remarks>
+    /// <b>折り返す理由</b>: 折り返さない勾配では、画像の一部を切り出したビュー（<c>EsPixmap</c>）の色の範囲が
+    /// 元画像より狭くなり、<b>内容が違うもの同士を比べる</b>ことになります（減色の費用は色の範囲で変わります）。
+    /// 素数の周期にすると、行の長さと揃わないため符号化の圧縮も効きすぎません。
+    /// </remarks>
+    private const int PatternPeriod = 251;
+
+    /// <summary>ノイズの初期値（実行のたびに同じ画像にする）。</summary>
+    private const uint NoiseSeed = 0x2545F491u;
+
     private static readonly SizeCase[] s_sizes =
     [
         new("3840x2160", 3840, 2160),
         new("1920x1080", 1920, 1080),
         new("640x360", 640, 360),
+    ];
+
+    /// <summary>減色を測る内容（見出し・計測の鍵・測るかどうか）。</summary>
+    /// <remarks>
+    /// グラデーションは品質の表（寸法 3840x2160）と同じ計測を使い回します（同じ処理を 2 度測って
+    /// 表ごとに違う数値を載せないため）。
+    /// </remarks>
+    private static readonly (string Label, string Key, bool NeedsMeasure)[] s_reduceContents =
+    [
+        (ContentFlat, ContentFlat, true),
+        (ContentGradient, "3840x2160", false),
+        (ContentNoise, ContentNoise, true),
+    ];
+
+    /// <summary>縮小先を変えて測るときの長辺（長辺 320 は品質の表の計測を使い回す）。</summary>
+    private static readonly int[] s_resizeTargets = [960, 1920];
+
+    /// <summary>保存の形式（見出し・表の行の見出し・拡張子・オプション。 拡張子は形式と食い違わせない）。</summary>
+    private static readonly (string Method, string Label, string Extension, EsImageSaveOptions Options)[] s_formats =
+    [
+        ("Save（BMP）", "BMP（形式を指定）", ".bmp", new EsImageSaveOptions { Format = EsImageFileFormat.Bmp }),
+        ("Save（PNG）", "PNG（形式を指定）", ".png", new EsImageSaveOptions { Format = EsImageFileFormat.Png }),
+        ("Save（JPEG）", "JPEG（品質 90）", ".jpg", new EsImageSaveOptions { Format = EsImageFileFormat.Jpeg, JpegQuality = 90 }),
+        ("Save（GIF）", "GIF（256 色へ減色）", ".gif", new EsImageSaveOptions { Format = EsImageFileFormat.Gif, ColorCount = 256 }),
     ];
 
     private static readonly string[] s_classNames = [ClassBit, ClassRead, ClassView];
@@ -203,7 +247,14 @@ internal static class Program
             Measure(SectionCreation, "Copy", ClassRead, label, "", () => new Item(read.Copy()));
 
             Measure(SectionCreation, "FromReadOnlyBitmap", ClassBit, label, "", () => new Item(EsBitmap.FromReadOnlyBitmap(read)));
-            Measure(SectionCreation, "FromBitmap", ClassRead, label, "", () => new Item(EsReadOnlyBitmap.FromBitmap(bit)));
+            Measure(SectionCreation, "FromBitmap", ClassRead, label, FrozenNo, () => new Item(EsReadOnlyBitmap.FromBitmap(bit)));
+
+            // 凍結済みの画像は 0 コピーで共有され、未凍結の画像は複製される（同じ名前で費用が桁で違う）
+            using (var frozen = Create(size))
+            {
+                frozen.SetReadOnly();
+                Measure(SectionCreation, "FromBitmap", ClassRead, label, FrozenYes, () => new Item(EsReadOnlyBitmap.FromBitmap(frozen)));
+            }
 
             using (var view = bit.ToPixmap(new EsRectInt(0, 0, size.Width, size.Height)))
             {
@@ -274,6 +325,24 @@ internal static class Program
                 Measure(SectionResize, "Resize", ClassView, label, variant, () => new Item(view.Resize(ResizeMaxSize, quality)));
             }
         }
+
+        // 縮小先の大小で品質ごとの費用の順序が変わるため、縮小先を変えて測る（元画像は最大の寸法に固定）
+        var largest = new SizeCase("3840x2160", 3840, 2160);
+        using var targetSource = Create(largest);
+        using var targetBit = Create(largest);
+        using var targetRead = ReadOnly(largest);
+        using var targetView = targetSource.ToPixmap(new EsRectInt(0, 0, largest.Width, largest.Height));
+        foreach (var maxSize in s_resizeTargets)
+        {
+            foreach (var quality in s_qualities)
+            {
+                var key = TargetKey(maxSize);
+                var variant = quality.ToString();
+                Measure(SectionResize, "Resize", ClassBit, key, variant, () => new Item(targetBit.Resize(maxSize, quality)));
+                Measure(SectionResize, "Resize", ClassRead, key, variant, () => new Item(targetRead.Resize(maxSize, quality)));
+                Measure(SectionResize, "Resize", ClassView, key, variant, () => new Item(targetView.Resize(maxSize, quality)));
+            }
+        }
     }
 
     /// <summary>減色を型・品質・色数・ディザ・寸法ごとに計測する。</summary>
@@ -306,6 +375,24 @@ internal static class Program
                     Measure(SectionReduce, "ReduceColors", ClassView, label, variant, () => new Item(view.ReduceColors(colors, EsImageQuality.Mid, dither)));
                 }
             }
+        }
+
+        // 減色の費用は「画素が入った箱の数」で決まるため、内容を変えて測る（平坦は下限・ノイズは上限の側）
+        var contentSize = new SizeCase("3840x2160", 3840, 2160);
+        foreach (var content in s_reduceContents)
+        {
+            if (!content.NeedsMeasure)
+            {
+                continue;
+            }
+
+            using var bit = CreateWith(contentSize, content.Key);
+            using var read = ReadOnlyWith(contentSize, content.Key);
+            using var view = bit.ToPixmap(new EsRectInt(0, 0, contentSize.Width, contentSize.Height));
+            var variant = ReduceVariant(256, EsImageQuality.Mid, EsDitherMode.None);
+            Measure(SectionReduce, "ReduceColors", ClassBit, content.Key, variant, () => new Item(bit.ReduceColors(256, EsImageQuality.Mid)));
+            Measure(SectionReduce, "ReduceColors", ClassRead, content.Key, variant, () => new Item(read.ReduceColors(256, EsImageQuality.Mid)));
+            Measure(SectionReduce, "ReduceColors", ClassView, content.Key, variant, () => new Item(view.ReduceColors(256, EsImageQuality.Mid)));
         }
     }
 
@@ -364,6 +451,8 @@ internal static class Program
     [SupportedOSPlatform("windows")]
     private static void MeasureFiles()
     {
+        Directory.CreateDirectory(FileDirectory());
+
         foreach (var size in s_sizes)
         {
             var label = size.Label;
@@ -382,6 +471,23 @@ internal static class Program
                 read.Save(path);
                 return new Item(null, new FileInfo(path).Length);
             }, s_fileIterations);
+
+            // 形式ごとの符号化（出力の大きさも同じ計測で採る）
+            foreach (var format in s_formats)
+            {
+                var formatPath = Path.Combine(FileDirectory(), $"{size.Width}x{size.Height}{format.Extension}");
+                Measure(SectionFile, format.Method, ClassBit, label, "", () =>
+                {
+                    bit.Save(formatPath, format.Options);
+                    return new Item(null, new FileInfo(formatPath).Length);
+                }, s_fileIterations);
+
+                Measure(SectionFile, format.Method, ClassRead, label, "", () =>
+                {
+                    read.Save(formatPath, format.Options);
+                    return new Item(null, new FileInfo(formatPath).Length);
+                }, s_fileIterations);
+            }
 
             Measure(SectionFile, "Load", ClassBit, label, "", () => new Item(EsBitmap.Load(path)), s_fileIterations);
             Measure(SectionFile, "Load", ClassRead, label, "", () => new Item(EsReadOnlyBitmap.Load(path)), s_fileIterations);
@@ -475,14 +581,18 @@ internal static class Program
         AppendEnvironment();
         AppendTargets();
         AppendMethodSection(4, "生成と複製", SectionCreation,
-            ["Create", "CreateFilled", "FromPixelCopy", "Copy", "FromReadOnlyBitmap", "FromBitmap", "FromPixmap", "InstallPixels"]);
+            ["Create", "CreateFilled", "FromPixelCopy", "Copy", "FromReadOnlyBitmap", "FromPixmap", "InstallPixels"]);
+        AppendFromBitmapSection(4, 8);
         AppendMethodSection(5, "切り出しと 0 コピーのビュー", SectionCrop, ["Crop", "ToPixmap", "ToPixmap（入れ子）"]);
         AppendResizeSection(6);
         AppendReduceSection(7);
         AppendMethodSection(8, "画素の取得・設定・走査", SectionPixel,
             ["GetPixel", "SetPixel", "Clear", "ReadOnlyPixels", "Pixels"],
             "メソッドごとに、行を型・列を寸法とした 2 軸表を示します。 `GetPixel` と `SetPixel` は **1 回あたり 1,000,000 画素**を扱う時間、`Clear` / `ReadOnlyPixels` / `Pixels` は **1 回あたり全画素**を扱う時間です。");
-        AppendMethodSection(9, "ファイル入出力（Windows 専用の符号化）", SectionFile, ["Save", "Load"]);
+        AppendMethodSection(9, "ファイル入出力（Windows 専用の符号化）", SectionFile,
+            ["Save", .. s_formats.Select(static f => f.Method)]);
+        AppendOutputSizeSection(9, s_formats.Length + 2);
+        AppendMethodTables(9, SectionFile, ["Load"], subStart: s_formats.Length + 3);
     }
 
     private static void AppendEnvironment()
@@ -512,9 +622,17 @@ internal static class Program
             [ClassView, "画像の一部を指す 0 コピーの読み取りビュー", "`ToPixmap`（生成の唯一の入口）・`Resize`・`ReduceColors`"],
         ]);
 
-        AddText("**セルの書式**は「所要 (ms) / マネージド確保 (B)」です（所要は 0.000001 ms（1 ナノ秒）まで表示します）。 `-` はその型にメソッドが無い（対称でない）ことを表します。 1 マイクロ秒を下回る操作は、タイマーの分解能に埋もれるため **1 回の計測につき 100 回呼び、1 回あたりへ換算**します。");
-        AddText("**寸法の軸**は元の画像（`EsPixmap` はビュー）の寸法です。 縮小だけは**縮小先を長辺 320 に固定**します（型と寸法の比較を揃えるため）。 減色は 256 色を既定とし、ディザの節は 16 色と 256 色を並べます。");
-        AddText("1 回だけ呼ぶ操作（`Dispose` / `ThrowIfDisposed`）と、実体ごとに 1 度しか呼べない操作（`SetReadOnly`）は、所要が他の処理に支配されるため計測しません。 `ToString` 系（`ToSizeText`）と、幅・高さ・行の間隔などのプロパティ（フィールドの読み取りだけ）も同様です。");
+        AddText("**セルの書式**は「所要 (ms) / マネージド確保 (B)」です（所要は 0.000001 ms（1 ナノ秒）まで表示し、それ未満は `<0.000001` と書きます）。 `-` はその型にメソッドが無い（対称でない）ことを表します。 1 マイクロ秒を下回る操作は、タイマーの分解能に埋もれるため **1 回の計測につき 100 回呼び、1 回あたりへ換算**します。");
+
+        AddText("**寸法の軸**は元の画像（`EsPixmap` はビュー）の寸法です。 縮小だけは**縮小先を長辺 320 に固定**し（型と寸法の比較を揃えるため）、縮小先を変えた表を別に示します。 減色は 256 色を既定とし、ディザの節は 16 色と 256 色を並べます。");
+
+        AddText($"計測に使う画像は**折り返す勾配**です（B = X % {PatternPeriod}・G = Y % {PatternPeriod}・R = (X + Y) % {PatternPeriod}・A = 255。 決定的で、実行のたびに同じ画像になります）。 折り返すのは、画像の一部を切り出したビューと元画像とで**色の範囲を揃える**ためです（減色の費用は色の範囲で決まるため、折り返さない勾配では内容の違うもの同士を比べることになります）。 減色だけは内容の影響が大きいため、内容を変えた表を別に示します。");
+
+        AddText("1 回だけ呼ぶ操作（`Dispose` / `ThrowIfDisposed`）と、実体ごとに 1 度しか呼べない操作（`SetReadOnly`）は、所要が他の処理に支配されるため計測しません。 `ToString` 系（`ToSizeText`）と、幅・高さ・行の間隔などのプロパティ（フィールドの読み取りだけ）も同様です。");        AddText($"画素の領域（`幅 × {EsBitmap.BytesPerPixel} × 高さ`）は**アンマネージド**であり、表の「マネージド確保」の列には現れません（ビューは `行間隔 × 高さ`）。");
+        AddTable(
+            Row("項目", s_sizes.Select(static s => s.Label)),
+            new[] { Row("画素の領域 (B)", s_sizes.Select(PixelBytes)) });
+
         AddText("**確保は計測したスレッドの分だけ**です（内部が並列の場合は他スレッドの確保を含みません）。");
     }
 
@@ -523,14 +641,51 @@ internal static class Program
     {
         AddHeading($"## {number}. {heading}");
         AddText(caption ?? "メソッドごとに、行を型・列を寸法とした 2 軸表を示します。");
+        AppendMethodTables(number, section, methods, subStart: 1);
+    }
 
+    /// <summary>節の見出しを伴わずに、メソッドごとの 2 軸表だけを出力する。</summary>
+    private static void AppendMethodTables(int number, string section, string[] methods, int subStart)
+    {
         for (var i = 0; i < methods.Length; i++)
         {
-            AddHeading($"### {number}.{i + 1} {methods[i]}");
+            AddHeading($"### {number}.{subStart + i} {methods[i]}");
             AddTable(
                 Row("型", s_sizes.Select(static s => s.Label)),
                 s_classNames.Select(cls => Row(cls, s_sizes.Select(s => Cell(section, methods[i], cls, s.Label, "")))));
         }
+    }
+
+    /// <summary>FromBitmap の凍結の有無を「状態 × 寸法」の 2 軸表で出力する。</summary>
+    private static void AppendFromBitmapSection(int number, int sub)
+    {
+        AddHeading($"### {number}.{sub} FromBitmap（凍結の有無）");
+        AddText($"書き換え可能な画像から読み取り専用の画像を作る唯一の入口です（`{ClassBit}` からは作れません）。 行を凍結の有無・列を寸法とした 2 軸表を示します。 凍結済みは 0 コピーで共有し、未凍結は複製します。");
+        AddTable(
+            Row("状態", s_sizes.Select(static s => s.Label)),
+            new[]
+            {
+                Row(FrozenNo, s_sizes.Select(s => Cell(SectionCreation, "FromBitmap", ClassRead, s.Label, FrozenNo))),
+                Row(FrozenYes, s_sizes.Select(s => Cell(SectionCreation, "FromBitmap", ClassRead, s.Label, FrozenYes))),
+            });
+    }
+
+    /// <summary>Save の出力の大きさを「形式 × 寸法」の 2 軸表で出力する。</summary>
+    private static void AppendOutputSizeSection(int number, int sub)
+    {
+        AddHeading($"### {number}.{sub} Save の出力の大きさ");
+        AddText($"保存したファイルの大きさ (B) です（行を形式・列を寸法とした 2 軸表）。 `{ClassBit}` で測った値です（`{ClassRead}` も同じ画素を書くため同じ大きさになります）。 画像の内容は折り返す勾配であり、内容で圧縮の効きが変わります。 拡張子から判定する版と形式を指定した版は同じ大きさになります（同じ処理であることの確認になります）。");
+
+        var rows = new List<string[]>
+        {
+            Row("PNG（`Save(path)` 既定）", s_sizes.Select(s => NoteOf(SectionFile, "Save", ClassBit, s.Label, ""))),
+        };
+        foreach (var format in s_formats)
+        {
+            rows.Add(Row(format.Label, s_sizes.Select(s => NoteOf(SectionFile, format.Method, ClassBit, s.Label, ""))));
+        }
+
+        AddTable(Row("形式", s_sizes.Select(static s => s.Label)), rows);
     }
 
     /// <summary>縮小を型ごとに「品質 × 寸法」の 2 軸表で出力する。</summary>
@@ -546,6 +701,27 @@ internal static class Program
             AddTable(
                 Row("品質", s_sizes.Select(static s => s.Label)),
                 s_qualities.Select(q => Row(q.ToString(), s_sizes.Select(s => Cell(SectionResize, "Resize", cls, s.Label, q.ToString())))));
+        }
+
+        // 縮小先の大小で品質ごとの費用の順序が変わるため、縮小先を変えた表も示す
+        for (var i = 0; i < s_classNames.Length; i++)
+        {
+            var cls = s_classNames[i];
+            AddHeading($"### {number}.{s_classNames.Length + i + 1} {cls}（縮小先を変えた場合）");
+            AddText($"元画像は {s_sizes[0].Label} に固定し、行を縮小先・列を品質とした 2 軸表を示します。 長辺 {ResizeMaxSize} は品質の表と同じ計測です。");
+            AddTable(
+                Row("縮小先", s_qualities.Select(static q => q.ToString())),
+                ResizeTargetRows(cls));
+        }
+    }
+
+    /// <summary>縮小先ごとの行を作る（長辺 320 は品質の表の計測を使い回す）。</summary>
+    private static IEnumerable<string[]> ResizeTargetRows(string cls)
+    {
+        yield return Row($"長辺 {ResizeMaxSize}", s_qualities.Select(q => Cell(SectionResize, "Resize", cls, s_sizes[0].Label, q.ToString())));
+        foreach (var maxSize in s_resizeTargets)
+        {
+            yield return Row($"長辺 {maxSize}", s_qualities.Select(q => Cell(SectionResize, "Resize", cls, TargetKey(maxSize), q.ToString())));
         }
     }
 
@@ -578,6 +754,14 @@ internal static class Program
 
             AddTable(Row("指定（Mid）", s_sizes.Select(static s => s.Label)), ditherRows);
         }
+
+        // 減色の費用は「画素が入った箱の数」で決まる（内容を変えた表も示す）
+        var ditherNone = ReduceVariant(256, EsImageQuality.Mid, EsDitherMode.None);
+        AddHeading($"### {number}.{++sub} 内容による違い（{s_sizes[0].Label}・Mid・256 色）");
+        AddText("減色の費用は**画素が入った箱の数**で決まるため、内容を変えた表を示します（行を型・列を内容とした 2 軸表）。 平坦は箱が 1 つで下限の側、ノイズは箱が最大で上限の側です。");
+        AddTable(
+            Row("型", s_reduceContents.Select(static c => c.Label)),
+            s_classNames.Select(cls => Row(cls, s_reduceContents.Select(c => Cell(SectionReduce, "ReduceColors", cls, c.Key, ditherNone)))));
     }
 
     /// <summary>先頭のセル 1 つと、寸法ごとのセルから 1 行を作る。</summary>
@@ -630,18 +814,81 @@ internal static class Program
         {
             >= 1.0 => milliseconds.ToString("F3", CultureInfo.InvariantCulture),
             >= 0.001 => milliseconds.ToString("F4", CultureInfo.InvariantCulture),
-            _ => milliseconds.ToString("F6", CultureInfo.InvariantCulture),
+            > 0.0 => milliseconds.ToString("F6", CultureInfo.InvariantCulture),
+            _ => "<0.000001",
         };
 
     // ====================================================================
     // ヘルパー
     // ====================================================================
 
+    /// <summary>計測に使う画像を生成する（内容はグラデーション。 平坦な画像では減色の箱が 1 つになり、品質の差が現れない）。</summary>
     private static EsBitmap Create(SizeCase size)
-        => EsBitmap.CreateFilled(size.Width, size.Height, static p => p.Clear());
+        => CreateWith(size, ContentGradient);
 
     private static EsReadOnlyBitmap ReadOnly(SizeCase size)
-        => EsReadOnlyBitmap.CreateFilled(size.Width, size.Height, static p => p.Clear());
+        => ReadOnlyWith(size, ContentGradient);
+
+    /// <summary>指定の内容で書き換え可能な画像を生成する。</summary>
+    private static EsBitmap CreateWith(SizeCase size, string content)
+        => EsBitmap.CreateFilled(size.Width, size.Height, pixels => FillPattern(pixels, size.Width, size.Height, content));
+
+    /// <summary>指定の内容で読み取り専用の画像を生成する。</summary>
+    private static EsReadOnlyBitmap ReadOnlyWith(SizeCase size, string content)
+        => EsReadOnlyBitmap.CreateFilled(size.Width, size.Height, pixels => FillPattern(pixels, size.Width, size.Height, content));
+
+    /// <summary>画像の内容を書き込む（平坦 / グラデーション / ノイズ。 いずれも決定的で、実行のたびに同じ画像になる）。</summary>
+    private static void FillPattern(Span<byte> pixels, int width, int height, string content)
+    {
+        var stride = width * EsBitmap.BytesPerPixel;
+        if (content == ContentNoise)
+        {
+            var state = NoiseSeed;
+            for (var i = 0; i < pixels.Length; i += EsBitmap.BytesPerPixel)
+            {
+                state = (state * 1664525u) + 1013904223u;
+                pixels[i] = (byte)(state >> 24);
+                pixels[i + 1] = (byte)(state >> 16);
+                pixels[i + 2] = (byte)(state >> 8);
+                pixels[i + 3] = 0xFF;
+            }
+
+            return;
+        }
+
+        if (content == ContentFlat)
+        {
+            pixels.Clear();
+            return;
+        }
+
+        for (var y = 0; y < height; y++)
+        {
+            var row = pixels.Slice(y * stride, stride);
+            for (var x = 0; x < width; x++)
+            {
+                var offset = x * EsBitmap.BytesPerPixel;
+                row[offset] = (byte)(x % PatternPeriod);
+                row[offset + 1] = (byte)(y % PatternPeriod);
+                row[offset + 2] = (byte)((x + y) % PatternPeriod);
+                row[offset + 3] = 0xFF;
+            }
+        }
+    }
+
+    /// <summary>縮小先を変えた計測の鍵（寸法の軸と同じ形の見出し）。</summary>
+    private static string TargetKey(int maxSize)
+        => string.Create(CultureInfo.InvariantCulture, $"長辺 {maxSize}");
+
+    /// <summary>計測に付けた補助の値（Save は出力の大きさ）を返す。 計測が無い場合は <c>-</c>。</summary>
+    private static string NoteOf(string section, string method, string className, string size, string variant)
+        => s_cases.TryGetValue((section, method, className, size, variant), out var measured)
+            ? measured.Note.ToString("N0", CultureInfo.InvariantCulture)
+            : "-";
+
+    /// <summary>寸法ごとの画素の領域のバイト数（幅 × 4 × 高さ。 アンマネージドであり、マネージド確保には現れない）。</summary>
+    private static string PixelBytes(SizeCase size)
+        => ((long)size.Width * EsBitmap.BytesPerPixel * size.Height).ToString("N0", CultureInfo.InvariantCulture);
 
     /// <summary>寸法の中央の 1/4 面積を切り出す矩形（切り出しの比較条件を揃える）。</summary>
     private static EsRectInt InnerRect(SizeCase size)
@@ -672,9 +919,6 @@ internal static class Program
     }
 }
 '@
-
-$program = $program.Replace('            var path = Path.Combine(FileDirectory(), $"{size.Width}x{size.Height}.png");',
-    '            Directory.CreateDirectory(FileDirectory());' + "`n" + '            var path = Path.Combine(FileDirectory(), $"{size.Width}x{size.Height}.png");')
 
 [IO.File]::WriteAllText((Join-Path $workspace 'Program.cs'), $program, [Text.UTF8Encoding]::new($false))
 
