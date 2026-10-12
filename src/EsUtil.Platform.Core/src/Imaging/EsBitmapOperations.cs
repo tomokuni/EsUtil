@@ -245,10 +245,10 @@ internal static class EsBitmapOperations
     /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
     /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数（<c>sourceWidth × 4</c> 以上）。</param>
     /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
-    /// <param name="quality">縮小の品質。 既定は <see cref="ImageQuality.Mid"/>（双線形）。</param>
+    /// <param name="quality">縮小の品質。 既定は <see cref="EsImageQuality.Mid"/>（双線形）。</param>
     /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// 規則と実測値は公開面が単一所有する（<see cref="EsReadOnlyBitmap.Resize(int, ImageQuality)"/> の備考）。<br/>
+    /// 規則と実測値は公開面が単一所有する（<see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> の備考）。<br/>
     /// <b>ポインターへ切り替えるのは縮小の内側だけです</b>: 行の範囲を並列実行する処理へ渡すラムダは
     /// <c>ReadOnlySpan</c> を取り込めない（<c>ref struct</c> は保持できない）ため、<c>fixed</c> で固定した位置から
     /// 各アルゴリズムへ渡します（余白を含む全領域を 1 つの領域として扱います）。<br/>
@@ -257,8 +257,8 @@ internal static class EsBitmapOperations
     /// <b>名前が <c>Resize</c> である理由</b>: 将来の拡大対応を見込んで双方向の名前を残している（現在の実装は縮小だけを
     /// 行う）。 拡大が必要な要求は黙って等倍を返さず <see cref="NotSupportedException"/> にする（「拡大された」と
     /// 誤解されるため）。<br/>
-    /// <b>品質とアルゴリズムの対応</b>: <see cref="ImageQuality.Low"/> → 最近傍（<see cref="ScaleNearest"/>）、
-    /// <see cref="ImageQuality.Mid"/> → 双線形（<see cref="ScaleBilinear"/>）、<see cref="ImageQuality.High"/> →
+    /// <b>品質とアルゴリズムの対応</b>: <see cref="EsImageQuality.Low"/> → 最近傍（<see cref="ScaleNearest"/>）、
+    /// <see cref="EsImageQuality.Mid"/> → 双線形（<see cref="ScaleBilinear"/>）、<see cref="EsImageQuality.High"/> →
     /// 面積平均（<see cref="ScaleBox"/>）。 <b>アルゴリズムの名前を公開面へ出さない理由</b>: 利用者が選ぶのは
     /// 「速度と画質のどちらを取るか」であり、フィルターの実装名は差し替えの自由を奪う（本実装は以前
     /// <c>Nearest</c> / <c>Bilinear</c> / <c>Box</c> の列挙体を公開していた）。<br/>
@@ -272,14 +272,14 @@ internal static class EsBitmapOperations
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     internal static unsafe EsBitmap Resize(
         ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride,
-        int maxSize, ImageQuality quality = ImageQuality.Mid)
+        int maxSize, EsImageQuality quality = EsImageQuality.Mid)
     {
         if (maxSize <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(maxSize), maxSize, "長辺の上限は正の値である必要があります。");
         }
 
-        if (quality is not (ImageQuality.Low or ImageQuality.Mid or ImageQuality.High))
+        if (quality is not (EsImageQuality.Low or EsImageQuality.Mid or EsImageQuality.High))
         {
             // 寸法の判定より先に見る（縮小が不要な場合でも値の誤りは黙って通さない）
             throw new ArgumentOutOfRangeException(nameof(quality), quality, "定義されていない縮小の品質です。");
@@ -310,8 +310,8 @@ internal static class EsBitmapOperations
         {
             return quality switch
             {
-                ImageQuality.Low => ScaleNearest(p, sourceWidth, sourceHeight, stride, target),
-                ImageQuality.High => ScaleBox(p, sourceWidth, sourceHeight, stride, target),
+                EsImageQuality.Low => ScaleNearest(p, sourceWidth, sourceHeight, stride, target),
+                EsImageQuality.High => ScaleBox(p, sourceWidth, sourceHeight, stride, target),
                 _ => ScaleBilinear(p, sourceWidth, sourceHeight, stride, target),
             };
         }
@@ -323,13 +323,13 @@ internal static class EsBitmapOperations
     /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
     /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数（<c>sourceWidth × 4</c> 以上）。</param>
     /// <param name="colorCount">残す色数（2〜256）。</param>
-    /// <param name="quality">減色の品質。 既定は <see cref="ImageQuality.Mid"/>。</param>
-    /// <param name="dither">ディザの指定。 既定は <see cref="DitherMode.None"/>。</param>
+    /// <param name="quality">減色の品質。 既定は <see cref="EsImageQuality.Mid"/>。</param>
+    /// <param name="dither">ディザの指定。 既定は <see cref="EsDitherMode.None"/>。</param>
     /// <returns>減色した新しい画像（使われる色は <paramref name="colorCount"/> 種類以下）。 所有権は呼び出し側へ移る。</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、
     /// または <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <remarks>
-    /// 規則と実測値は公開面が単一所有する（<see cref="EsReadOnlyBitmap.ReduceColors(int, ImageQuality, DitherMode)"/> の備考）。<br/>
+    /// 規則と実測値は公開面が単一所有する（<see cref="EsReadOnlyBitmap.ReduceColors(int, EsImageQuality, EsDitherMode)"/> の備考）。<br/>
     /// <b>行の余白を色として数えません</b>: ヒストグラム（<see cref="CountColors"/>）は<b>行単位</b>に数えるため、
     /// 余白付きのソース（<see cref="EsPixmap.ReadOnlyPixels"/>）を渡しても結果は変わりません。<br/>
     /// <b>不可逆である</b>: 元の画素は戻らない（減色後の色数は <paramref name="colorCount"/> 以下になる）。<br/>
@@ -346,7 +346,7 @@ internal static class EsBitmapOperations
     /// </remarks>
     internal static EsBitmap ReduceColors(
         ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride,
-        int colorCount, ImageQuality quality = ImageQuality.Mid, DitherMode dither = DitherMode.None)
+        int colorCount, EsImageQuality quality = EsImageQuality.Mid, EsDitherMode dither = EsDitherMode.None)
     {
         if (colorCount < MinimumColorCount || colorCount > MaximumColorCount)
         {
@@ -354,12 +354,12 @@ internal static class EsBitmapOperations
                 nameof(colorCount), colorCount, $"残す色数は {MinimumColorCount}〜{MaximumColorCount} の範囲で指定します。");
         }
 
-        if (quality is not (ImageQuality.Low or ImageQuality.Mid or ImageQuality.High))
+        if (quality is not (EsImageQuality.Low or EsImageQuality.Mid or EsImageQuality.High))
         {
             throw new ArgumentOutOfRangeException(nameof(quality), quality, "定義されていない減色の品質です。");
         }
 
-        if (dither is not (DitherMode.None or DitherMode.FloydSteinberg))
+        if (dither is not (EsDitherMode.None or EsDitherMode.FloydSteinberg))
         {
             throw new ArgumentOutOfRangeException(nameof(dither), dither, "定義されていないディザの指定です。");
         }
@@ -374,7 +374,7 @@ internal static class EsBitmapOperations
         var result = EsBitmap.CreateUninitialized(width, height);
         var destination = result.Pixels;
 
-        if (dither != DitherMode.None)
+        if (dither != EsDitherMode.None)
         {
             var indices = new byte[width * height];
             AssignDither(pixels, width, height, stride, palette, indices);
@@ -447,12 +447,12 @@ internal static class EsBitmapOperations
     /// </remarks>
     internal static (byte[] Indices, uint[] Palette) ReduceToIndexed(
         ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount,
-        ImageQuality quality = ImageQuality.Mid, DitherMode dither = DitherMode.None)
+        EsImageQuality quality = EsImageQuality.Mid, EsDitherMode dither = EsDitherMode.None)
     {
         var palette = BuildPalette(pixels, width, height, stride, colorCount, quality, out var lookup);
 
         var indices = new byte[width * height];
-        if (dither != DitherMode.None)
+        if (dither != EsDitherMode.None)
         {
             AssignDither(pixels, width, height, stride, palette, indices);
             return (indices, palette);
@@ -486,7 +486,7 @@ internal static class EsBitmapOperations
     /// 右下（1/16）の 4 画素へ配ります（Floyd–Steinberg 法）。 誤差は<b>行ごとの 2 本のバッファ</b>で持ちます
     /// （現在の行と次の行。 画像全体の分は持ちません）。<br/>
     /// <b>アルファへ誤差を配らない理由</b>: アルファは減色で 4 段階に量子化されており、にじませると
-    /// 透明と不透明の境目が崩れます（<see cref="DitherMode"/> の備考）。<br/>
+    /// 透明と不透明の境目が崩れます（<see cref="EsDitherMode"/> の備考）。<br/>
     /// <b>近傍の探索に参照表を使えない理由</b>: 誤差を加えた色は<b>画素が無かった色</b>になりうるため、
     /// 使われている箱だけを埋めた表（<see cref="BuildPalette"/>）では引けません。 そこで<b>全域の表を要求された
     /// 箱から遅延で埋めます</b>（箱は 131,072 個あり、埋める費用は「実際に現れた色の数 × 色数」。
@@ -604,7 +604,7 @@ internal static class EsBitmapOperations
     /// </remarks>
     private static uint[] BuildPalette(
         ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount,
-        ImageQuality quality, out byte[] lookup)
+        EsImageQuality quality, out byte[] lookup)
     {
         var counts = ArrayPool<int>.Shared.Rent(HistogramSize);
         var sums = ArrayPool<long>.Shared.Rent(HistogramSize * 4);
@@ -806,9 +806,9 @@ internal static class EsBitmapOperations
     /// 動かしません（反復が無いため、分けた境界に対して色が最適になりません）。 「箱を最も近い色へ割り当て直し、
     /// 割り当てられた箱の画素の平均を新しい色にする」操作を繰り返すと、色差（1 チャネル平均絶対誤差）が
     /// 実測で 6〜11% 減ります（1024x768 の写真風で 16 色 14.35 → 12.73、256 色 3.41 → 3.19）。<br/>
-    /// <b>品質ごとの反復の上限</b>: <see cref="ImageQuality.Low"/> は詰め直しを行いません（最速を優先）。
-    /// <see cref="ImageQuality.Mid"/> は「使われている箱の数 × 色数」で決まる<b>作業量の上限</b>で回数を絞り、
-    /// <see cref="ImageQuality.High"/> は上限を外して収束まで回します（<see cref="MaximumRefinementIterations"/> が上限）。<br/>
+    /// <b>品質ごとの反復の上限</b>: <see cref="EsImageQuality.Low"/> は詰め直しを行いません（最速を優先）。
+    /// <see cref="EsImageQuality.Mid"/> は「使われている箱の数 × 色数」で決まる<b>作業量の上限</b>で回数を絞り、
+    /// <see cref="EsImageQuality.High"/> は上限を外して収束まで回します（<see cref="MaximumRefinementIterations"/> が上限）。<br/>
     /// <b>悪化させない</b>: 反復のたびに目的関数（画素数の重み付き二乗距離の合計）を求め、改善しなければ
     /// 直前のパレットを残して止めます（同じ値で振動している場合も止まります）。 このため結果が詰め直す前より
     /// 悪くなることはありません。<br/>
@@ -817,9 +817,9 @@ internal static class EsBitmapOperations
     /// （スクリーンショットの平坦な面がこれに当たる）。
     /// </remarks>
     private static void RefinePalette(
-        int[] bins, int binCount, int[] counts, long[] sums, uint[] palette, ImageQuality quality)
+        int[] bins, int binCount, int[] counts, long[] sums, uint[] palette, EsImageQuality quality)
     {
-        if (quality == ImageQuality.Low || binCount <= palette.Length)
+        if (quality == EsImageQuality.Low || binCount <= palette.Length)
         {
             return;
         }
@@ -830,7 +830,7 @@ internal static class EsBitmapOperations
         var clusterSums = new long[palette.Length * 4];
 
         // 1 回の反復の費用は「箱の数 × 色数」に比例するため、既定の品質では効果の小さい画像の回数を減らす
-        var iterations = quality == ImageQuality.High
+        var iterations = quality == EsImageQuality.High
             ? MaximumRefinementIterations
             : Math.Clamp(
                 RefinementWorkBudget / Math.Max(1, (long)binCount * palette.Length),
@@ -1193,7 +1193,7 @@ internal static class EsBitmapOperations
     /// <returns>青（0〜31）。</returns>
     private static int HistogramBlue(int key) => key & ((1 << HistogramBits) - 1);
 
-    /// <summary>最近傍補間で縮小する（<see cref="ImageQuality.Low"/> の実装）。</summary>
+    /// <summary>最近傍補間で縮小する（<see cref="EsImageQuality.Low"/> の実装）。</summary>
     /// <param name="pixels">対象の画素（BGRA8888。 行の余白を含んでよい）。</param>
     /// <param name="sourceWidth">元の幅（ピクセル）。</param>
     /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
@@ -1264,7 +1264,7 @@ internal static class EsBitmapOperations
             }
         }
     }
-    /// <summary>双線形補間で縮小する（<see cref="ImageQuality.Mid"/> の実装）。</summary>
+    /// <summary>双線形補間で縮小する（<see cref="EsImageQuality.Mid"/> の実装）。</summary>
     /// <param name="pixels">対象の画素（BGRA8888。 行の余白を含んでよい）。</param>
     /// <param name="sourceWidth">元の幅（ピクセル）。</param>
     /// <param name="sourceHeight">元の高さ（ピクセル）。</param>
@@ -1386,7 +1386,7 @@ internal static class EsBitmapOperations
         Parallel.ForEach(ranges, range => runRange(range.From, range.To));
     }
 
-    /// <summary>面積平均（box）で縮小する（<see cref="ImageQuality.High"/> の実装）。</summary>
+    /// <summary>面積平均（box）で縮小する（<see cref="EsImageQuality.High"/> の実装）。</summary>
     /// <param name="pixels">対象の画素（BGRA8888。 行の余白を含んでよい）。</param>
     /// <param name="sourceWidth">元の幅（ピクセル）。</param>
     /// <param name="sourceHeight">元の高さ（ピクセル）。</param>

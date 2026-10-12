@@ -455,17 +455,17 @@ public sealed class EsBitmap : IDisposable
 
     /// <summary>長辺を上限へ収めた画像を生成する（読み取り専用の画像と同じ手順）。</summary>
     /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
-    /// <param name="quality">縮小の品質。 既定は <see cref="ImageQuality.Mid"/>。</param>
+    /// <param name="quality">縮小の品質。 既定は <see cref="EsImageQuality.Mid"/>。</param>
     /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// 規則（拡大は未サポート・丸め・品質の選び方）は <see cref="EsReadOnlyBitmap.Resize(int, ImageQuality)"/> が
+    /// 規則（拡大は未サポート・丸め・品質の選び方）は <see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> が
     /// 単一所有し、実装も同じ手順です。 <b>本画像は変更せず、凍結もしません</b>。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または
     /// <paramref name="quality"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    public EsBitmap Resize(int maxSize, ImageQuality quality = ImageQuality.Mid)
+    public EsBitmap Resize(int maxSize, EsImageQuality quality = EsImageQuality.Mid)
     {
         ThrowIfDisposed();
         return EsBitmapOperations.Resize(ReadOnlyPixels, Width, Height, Stride, maxSize, quality);
@@ -473,19 +473,19 @@ public sealed class EsBitmap : IDisposable
 
     /// <summary>本画像を指定の色数へ減色する（読み取り専用の画像と同じ手順）。</summary>
     /// <param name="colorCount">残す色数（2〜256）。</param>
-    /// <param name="quality">減色の品質。 既定は <see cref="ImageQuality.Mid"/>。</param>
-    /// <param name="dither">ディザの指定。 既定は <see cref="DitherMode.None"/>。</param>
+    /// <param name="quality">減色の品質。 既定は <see cref="EsImageQuality.Mid"/>。</param>
+    /// <param name="dither">ディザの指定。 既定は <see cref="EsDitherMode.None"/>。</param>
     /// <returns>減色した新しい画像（使われる色は <paramref name="colorCount"/> 種類以下）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>不可逆です</b>（元の画素は戻りません）。 規則（アルゴリズム・アルファの扱い・ディザの選び方）は
-    /// <see cref="EsReadOnlyBitmap.ReduceColors(int, ImageQuality, DitherMode)"/> が単一所有し、実装も同じ手順です。
+    /// <see cref="EsReadOnlyBitmap.ReduceColors(int, EsImageQuality, EsDitherMode)"/> が単一所有し、実装も同じ手順です。
     /// <b>本画像は変更せず、凍結もしません</b>。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または
     /// <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     public EsBitmap ReduceColors(
-        int colorCount, ImageQuality quality = ImageQuality.Mid, DitherMode dither = DitherMode.None)
+        int colorCount, EsImageQuality quality = EsImageQuality.Mid, EsDitherMode dither = EsDitherMode.None)
     {
         ThrowIfDisposed();
         return EsBitmapOperations.ReduceColors(ReadOnlyPixels, Width, Height, Stride, colorCount, quality, dither);

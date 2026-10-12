@@ -239,10 +239,10 @@ public class EsPixmapTests
     // ====================================================================
 
     [Theory]
-    [InlineData(ImageQuality.Low)]
-    [InlineData(ImageQuality.Mid)]
-    [InlineData(ImageQuality.High)]
-    internal void Resize_切り出しの画像を縮小した結果と一致する(ImageQuality quality)
+    [InlineData(EsImageQuality.Low)]
+    [InlineData(EsImageQuality.Mid)]
+    [InlineData(EsImageQuality.High)]
+    internal void Resize_切り出しの画像を縮小した結果と一致する(EsImageQuality quality)
     {
         using var source = CreateGradient(64, 48);
         var rect = new EsRectInt(9, 7, 32, 24);

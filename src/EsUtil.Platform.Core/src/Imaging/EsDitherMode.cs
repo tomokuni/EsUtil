@@ -20,7 +20,7 @@ namespace EsUtil.Platform.Core.Imaging;
 ///
 /// <b>測り方（実測）</b>: ディザは<b>1 画素ごとの誤差を増やします</b>（1 つの画素は元の色から遠いパレットの色になるため）。
 /// 目的は「離れて見たときに元の色に戻る」ことであるため、<b>8x8 のブロック平均の差</b>で測ります
-/// （1024x768 の画像・<see cref="ImageQuality.Mid"/>）:
+/// （1024x768 の画像・<see cref="EsImageQuality.Mid"/>）:
 ///
 /// <list type="table">
 /// <item><term>グラデーション 16 色</term><description>画素ごと 10.6 → <b>13.2</b>（悪化）、8x8 ブロック平均 10.2 → <b>4.0</b>（<b>縞が消える</b>）。</description></item>
@@ -43,7 +43,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <b>透過との関係</b>: 誤差を配るのは RGB だけで、アルファは画素ごとのパレットの色（減色で量子化された値）のままです
 /// （誤差をアルファへ配ると、透明と不透明の境目がにじみます）。
 /// </remarks>
-public enum DitherMode
+public enum EsDitherMode
 {
     /// <summary>ディザを行わない（既定。 ファイルが最も小さい）。</summary>
     None,

@@ -219,11 +219,11 @@ public class EsBitmapOperationsTests
 
     /// <summary>公開している縮小の契約（寸法・縦横比・所有権・例外）を品質別に回す。</summary>
     /// <remarks>契約は品質に依らず同じなので、引数だけを差し替えて検証する。</remarks>
-    public static TheoryData<ImageQuality> Qualities =>
+    public static TheoryData<EsImageQuality> Qualities =>
     [
-        ImageQuality.Low,
-        ImageQuality.Mid,
-        ImageQuality.High,
+        EsImageQuality.Low,
+        EsImageQuality.Mid,
+        EsImageQuality.High,
     ];
 
     /// <summary>黒地に 1 画素幅の白線を持つ画像を生成する（縮小で線が残るかの検証用）。</summary>
@@ -268,7 +268,7 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_上限を超える画像は長辺が上限へ収まる(ImageQuality quality)
+    internal void 縮小_上限を超える画像は長辺が上限へ収まる(EsImageQuality quality)
     {
         using var src = CreateRed(200, 100);
 
@@ -282,7 +282,7 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_縦長の画像では高さが上限へ収まる(ImageQuality quality)
+    internal void 縮小_縦長の画像では高さが上限へ収まる(EsImageQuality quality)
     {
         using var src = CreateRed(100, 400);
 
@@ -294,7 +294,7 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_長辺が上限と同じなら等倍の複製を返す(ImageQuality quality)
+    internal void 縮小_長辺が上限と同じなら等倍の複製を返す(EsImageQuality quality)
     {
         using var src = CreateRed(40, 20);
 
@@ -308,7 +308,7 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_画素を保つ(ImageQuality quality)
+    internal void 縮小_画素を保つ(EsImageQuality quality)
     {
         using var src = CreateFilled(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
 
@@ -325,7 +325,7 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_1ピクセル未満には縮小しない(ImageQuality quality)
+    internal void 縮小_1ピクセル未満には縮小しない(EsImageQuality quality)
     {
         using var src = CreateRed(10, 1000);
 
@@ -338,7 +338,7 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_拡大が必要な上限はNotSupportedExceptionを投げる(ImageQuality quality)
+    internal void 縮小_拡大が必要な上限はNotSupportedExceptionを投げる(EsImageQuality quality)
     {
         using var src = CreateRed(40, 20);
 
@@ -349,7 +349,7 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_上限が0以下ならArgumentOutOfRangeExceptionを投げる(ImageQuality quality)
+    internal void 縮小_上限が0以下ならArgumentOutOfRangeExceptionを投げる(EsImageQuality quality)
     {
         using var src = CreateRed(4, 4);
 
@@ -363,7 +363,7 @@ public class EsBitmapOperationsTests
         using var src = CreateRed(200, 100);
 
         using var byDefault = src.Resize(50);
-        using var byBilinear = src.Resize(50, ImageQuality.Mid);
+        using var byBilinear = src.Resize(50, EsImageQuality.Mid);
 
         Assert.Equal(byBilinear.Size, byDefault.Size);
         Assert.Equal(byBilinear.GetPixel(10, 10), byDefault.GetPixel(10, 10));
@@ -374,7 +374,7 @@ public class EsBitmapOperationsTests
     {
         using var src = CreateRed(200, 100);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(50, (ImageQuality)99));
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(50, (EsImageQuality)99));
     }
 
     [Fact]
@@ -383,9 +383,9 @@ public class EsBitmapOperationsTests
         // 40x4 の黒地に、最近傍（Low）の対応表（0,4,8,…,36 列）が読まない位置（21 列）へ 1 画素幅の白線を置く
         using var src = CreateThinLine(40, 4, lineX: 21);
 
-        using var nearest = src.Resize(10, ImageQuality.Low);
-        using var bilinear = src.Resize(10, ImageQuality.Mid);
-        using var box = src.Resize(10, ImageQuality.High);
+        using var nearest = src.Resize(10, EsImageQuality.Low);
+        using var bilinear = src.Resize(10, EsImageQuality.Mid);
+        using var box = src.Resize(10, EsImageQuality.High);
 
         Assert.Equal(10, nearest.Size.Width);
         Assert.Equal(1, nearest.Size.Height);
@@ -405,7 +405,7 @@ public class EsBitmapOperationsTests
         // 中間で割る実装だと丸めが入る。 1 パスであることを値で固定する）
         using var src = CreateFilled(40, 40, System.Drawing.Color.FromArgb(255, 3, 5, 7));
 
-        using var result = src.Resize(8, ImageQuality.High);
+        using var result = src.Resize(8, EsImageQuality.High);
 
         var (b, g, r, _) = result.GetPixel(4, 4);
         Assert.Equal((byte)7, b);
@@ -419,7 +419,7 @@ public class EsBitmapOperationsTests
         // 並列化のしきい値（262,144 画素）を跨ぐ寸法で、逐次と並列の結果が一致することを確認する
         using var src = CreateThinLine(600, 480, lineX: 301);
 
-        using var result = src.Resize(150, ImageQuality.High);
+        using var result = src.Resize(150, EsImageQuality.High);
 
         Assert.Equal(150, result.Size.Width);
         Assert.Equal(120, result.Size.Height);
@@ -558,7 +558,7 @@ public class EsBitmapOperationsTests
         using var src = CreateColorful(8, 8);
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => src.ReduceColors(8, (ImageQuality)quality));
+            () => src.ReduceColors(8, (EsImageQuality)quality));
     }
 
     [Theory]
@@ -569,12 +569,12 @@ public class EsBitmapOperationsTests
         using var src = CreateColorful(8, 8);
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => src.ReduceColors(8, ImageQuality.Mid, (DitherMode)dither));
+            () => src.ReduceColors(8, EsImageQuality.Mid, (EsDitherMode)dither));
     }
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 減色_品質を変えても色数は指定以下になる(ImageQuality quality)
+    internal void 減色_品質を変えても色数は指定以下になる(EsImageQuality quality)
     {
         using var src = CreateColorful(64, 64);
 
@@ -591,8 +591,8 @@ public class EsBitmapOperationsTests
         // 色数の少ない減色では中央値分割の結果を詰め直す効果が最も大きい（実測: 写真風 16 色で 14.34 → 12.64）
         using var src = CreateNoisy(64, 64);
 
-        using var low = src.ReduceColors(16, ImageQuality.Low);
-        using var high = src.ReduceColors(16, ImageQuality.High);
+        using var low = src.ReduceColors(16, EsImageQuality.Low);
+        using var high = src.ReduceColors(16, EsImageQuality.High);
 
         Assert.True(
             MeanChannelDifference(src, high) <= MeanChannelDifference(src, low),
@@ -601,11 +601,11 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 減色_ディザを指定しても色数は指定以下になる(ImageQuality quality)
+    internal void 減色_ディザを指定しても色数は指定以下になる(EsImageQuality quality)
     {
         using var src = CreateNoisy(64, 64);
 
-        using var result = src.ReduceColors(16, quality, DitherMode.FloydSteinberg);
+        using var result = src.ReduceColors(16, quality, EsDitherMode.FloydSteinberg);
 
         Assert.True(
             CountDistinctColors(result) <= 16,
@@ -619,7 +619,7 @@ public class EsBitmapOperationsTests
         using var src = CreateFilled(32, 32, System.Drawing.Color.FromArgb(255, 12, 34, 56));
 
         using var plain = src.ReduceColors(8);
-        using var dithered = src.ReduceColors(8, ImageQuality.Mid, DitherMode.FloydSteinberg);
+        using var dithered = src.ReduceColors(8, EsImageQuality.Mid, EsDitherMode.FloydSteinberg);
 
         Assert.Equal(plain.ReadOnlyPixels.ToArray(), dithered.ReadOnlyPixels.ToArray());
     }
@@ -631,7 +631,7 @@ public class EsBitmapOperationsTests
         using var src = CreateHorizontalGradient(256, 16);
 
         using var plain = src.ReduceColors(4);
-        using var dithered = src.ReduceColors(4, ImageQuality.Mid, DitherMode.FloydSteinberg);
+        using var dithered = src.ReduceColors(4, EsImageQuality.Mid, EsDitherMode.FloydSteinberg);
 
         var plainError = BlockMeanDifference(src, plain, block: 8);
         var ditheredError = BlockMeanDifference(src, dithered, block: 8);
@@ -671,7 +671,7 @@ public class EsBitmapOperationsTests
     /// <param name="result">比べる画像（同じ寸法であること）。</param>
     /// <param name="block">ブロックの辺（ピクセル）。</param>
     /// <returns>ブロック平均の差。</returns>
-    /// <remarks>ディザの目的（離れて見たときに元の色へ戻る）を測るために使う（<see cref="DitherMode"/> の備考）。</remarks>
+    /// <remarks>ディザの目的（離れて見たときに元の色へ戻る）を測るために使う（<see cref="EsDitherMode"/> の備考）。</remarks>
     private static double BlockMeanDifference(EsReadOnlyBitmap source, EsBitmap result, int block)
     {
         var before = source.ReadOnlyPixels;
@@ -765,7 +765,7 @@ public class EsBitmapOperationsTests
     {
         using var bitmap = EsBitmap.Create(20, 10, System.Drawing.Color.FromArgb(255, 1, 2, 3));
 
-        using var result = bitmap.Resize(5, ImageQuality.High);
+        using var result = bitmap.Resize(5, EsImageQuality.High);
 
         Assert.False(bitmap.IsReadOnly);
         Assert.Equal(5, result.Width);
@@ -916,10 +916,10 @@ public class EsBitmapOperationsTests
     }
 
     [Theory]
-    [InlineData(ImageQuality.Low)]
-    [InlineData(ImageQuality.Mid)]
-    [InlineData(ImageQuality.High)]
-    internal void 縮小_行の余白を含むソースでも余白の画素を混ぜない(ImageQuality quality)
+    [InlineData(EsImageQuality.Low)]
+    [InlineData(EsImageQuality.Mid)]
+    [InlineData(EsImageQuality.High)]
+    internal void 縮小_行の余白を含むソースでも余白の画素を混ぜない(EsImageQuality quality)
     {
         // 並列実行の経路（縮小先の画素数がしきい値以上）も通すため、400x300 → 長辺 320 を使う
         var dense = CreateGradientPixels(400, 300);

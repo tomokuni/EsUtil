@@ -29,7 +29,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <see cref="High"/> 3.4 ms。 <see cref="Mid"/> は縮小先の 1 画素につき元の 4 画素を読む）。
 /// 画質は 40 倍の縮小で幅 1 px の細線を残せるかで比べると、<see cref="Low"/> は輝度 0（位置が合えば残るが
 /// 落ちやすい）・<see cref="Mid"/> も 0・<see cref="High"/> は 6 です。 立方畳み込み（bicubic）を段階へ加えない理由と
-/// 実測は <see cref="EsReadOnlyBitmap.Resize(int, ImageQuality)"/> の備考を参照してください。
+/// 実測は <see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> の備考を参照してください。
 ///
 /// <b>減色では <see cref="Low"/> に対する差が 1〜12%（実測）</b>: 1024x768 の画像を 256 色へ減色した場合の色差
 /// （1 チャネルあたりの平均絶対誤差）は、グラデーション 2.91 → 2.79、写真風 3.28 → 3.15、ノイズ 7.85 → 7.75 です
@@ -38,10 +38,10 @@ namespace EsUtil.Platform.Core.Imaging;
 /// （実測: ノイズ 256 色で 7.75 → 7.55 ＝ 2.6%。 ノイズは 60 ms → 155 ms。 グラデーションと写真風は
 /// 既定の作業量の上限でも収束するため<b>同じ結果</b>になる）。
 ///
-/// <b>見た目の差が最も大きいのはディザ</b>であるため、減色では <see cref="DitherMode"/> も併せて指定してください
-/// （<b>色数が内容に対して足りないときだけ</b>。 <see cref="DitherMode"/> の備考に実測があります）。
+/// <b>見た目の差が最も大きいのはディザ</b>であるため、減色では <see cref="EsDitherMode"/> も併せて指定してください
+/// （<b>色数が内容に対して足りないときだけ</b>。 <see cref="EsDitherMode"/> の備考に実測があります）。
 /// </remarks>
-public enum ImageQuality
+public enum EsImageQuality
 {
     /// <summary>最速（画質は最も低い）。</summary>
     Low,

@@ -455,7 +455,7 @@ public class EsBitmapFileSaveLoadTests
         var path = TempPath(".png");
 
         Assert.Throws<InvalidOperationException>(
-            () => source.Save(path, new EsImageSaveOptions { ColorQuality = ImageQuality.High }));
+            () => source.Save(path, new EsImageSaveOptions { ColorQuality = EsImageQuality.High }));
         Assert.False(File.Exists(path));
     }
 
@@ -466,7 +466,7 @@ public class EsBitmapFileSaveLoadTests
         var path = TempPath(".png");
 
         Assert.Throws<InvalidOperationException>(
-            () => source.Save(path, new EsImageSaveOptions { Dither = DitherMode.FloydSteinberg }));
+            () => source.Save(path, new EsImageSaveOptions { Dither = EsDitherMode.FloydSteinberg }));
         Assert.False(File.Exists(path));
     }
 
@@ -478,7 +478,7 @@ public class EsBitmapFileSaveLoadTests
         var path = TempPath(".gif");
         try
         {
-            source.Save(path, new EsImageSaveOptions { Dither = DitherMode.FloydSteinberg });
+            source.Save(path, new EsImageSaveOptions { Dither = EsDitherMode.FloydSteinberg });
 
             using var loaded = EsReadOnlyBitmap.Load(path);
             Assert.Equal(32, loaded.Width);
@@ -498,7 +498,7 @@ public class EsBitmapFileSaveLoadTests
         var path = TempPath(".png");
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => source.Save(path, new EsImageSaveOptions { ColorCount = 4, ColorQuality = (ImageQuality)quality }));
+            () => source.Save(path, new EsImageSaveOptions { ColorCount = 4, ColorQuality = (EsImageQuality)quality }));
         Assert.False(File.Exists(path));
     }
 
@@ -511,7 +511,7 @@ public class EsBitmapFileSaveLoadTests
         var path = TempPath(".png");
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => source.Save(path, new EsImageSaveOptions { ColorCount = 4, Dither = (DitherMode)dither }));
+            () => source.Save(path, new EsImageSaveOptions { ColorCount = 4, Dither = (EsDitherMode)dither }));
         Assert.False(File.Exists(path));
     }
 
@@ -522,7 +522,7 @@ public class EsBitmapFileSaveLoadTests
         var path = TempPath(".png");
         try
         {
-            source.Save(path, new EsImageSaveOptions { ColorCount = 16, ColorQuality = ImageQuality.Low });
+            source.Save(path, new EsImageSaveOptions { ColorCount = 16, ColorQuality = EsImageQuality.Low });
 
             using var loaded = EsReadOnlyBitmap.Load(path);
             Assert.True(CountDistinctColors(loaded) <= 16, $"{CountDistinctColors(loaded)} 色になりました。");
@@ -543,7 +543,7 @@ public class EsBitmapFileSaveLoadTests
         try
         {
             source.Save(plain, new EsImageSaveOptions { ColorCount = 8 });
-            source.Save(dithered, new EsImageSaveOptions { ColorCount = 8, Dither = DitherMode.FloydSteinberg });
+            source.Save(dithered, new EsImageSaveOptions { ColorCount = 8, Dither = EsDitherMode.FloydSteinberg });
 
             using var plainImage = EsReadOnlyBitmap.Load(plain);
             using var ditheredImage = EsReadOnlyBitmap.Load(dithered);

@@ -115,8 +115,8 @@ internal static class WinGdiPlusImageCodec
         {
             EncodeIndexedToFile(
                 pixels, width, height, targetPath, format, colorCount,
-                options.ColorQuality ?? ImageQuality.Mid,
-                options.Dither ?? DitherMode.None);
+                options.ColorQuality ?? EsImageQuality.Mid,
+                options.Dither ?? EsDitherMode.None);
             return;
         }
 
@@ -168,7 +168,7 @@ internal static class WinGdiPlusImageCodec
     [SupportedOSPlatform("windows")]
     private static void EncodeIndexedToFile(
         ReadOnlySpan<byte> pixels, int width, int height, string filePath, ImageFileFormat format, int colorCount,
-        ImageQuality quality, DitherMode dither)
+        EsImageQuality quality, EsDitherMode dither)
     {
         // エンコードへ渡る画素は常に密（行幅 = 幅 × 4）である
         var (indices, palette) = EsBitmapOperations.ReduceToIndexed(
@@ -371,15 +371,15 @@ internal static class WinGdiPlusImageCodec
             }
         }
 
-        if (options.ColorQuality is ImageQuality quality
-            && quality is not (ImageQuality.Low or ImageQuality.Mid or ImageQuality.High))
+        if (options.ColorQuality is EsImageQuality quality
+            && quality is not (EsImageQuality.Low or EsImageQuality.Mid or EsImageQuality.High))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(options), quality, "定義されていない減色の品質です。");
         }
 
-        if (options.Dither is DitherMode dither
-            && dither is not (DitherMode.None or DitherMode.FloydSteinberg))
+        if (options.Dither is EsDitherMode dither
+            && dither is not (EsDitherMode.None or EsDitherMode.FloydSteinberg))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(options), dither, "定義されていないディザの指定です。");
