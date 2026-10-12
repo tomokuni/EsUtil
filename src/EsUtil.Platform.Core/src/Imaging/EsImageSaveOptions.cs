@@ -5,13 +5,12 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <b>形式は既定では拡張子が決める</b>: どの形式で保存するかは保存先の拡張子が決める（<see cref="Format"/> を指定すると
 /// 拡張子より優先される）。 本型は<b>その形式の中で調整できる値</b>だけを持ち、設定した項目が選ばれた形式で使えない場合は
 /// <see cref="EsReadOnlyBitmap.Save(string, EsImageSaveOptions)"/> が例外にする（黙って無視しない）。<br/>
-/// <b>出力を変える項目と変えない項目（実測）</b>: GDI+ のエンコーダーが実際に出力を変える値は限られる。
-/// 640x360 の画像を<b>全パラメーター × 全形式で総当たり</b>して確かめた結果:
+/// <b>出力を変える項目と変えない項目</b>: GDI+ のエンコーダーが実際に出力を変える値は限られる。
 ///
 /// <list type="table">
 /// <item>
 ///   <term>JPEG の品質が変わる</term>
-///   <description><see cref="JpegQuality"/>（208 KB → 11 KB〜459 KB）。</description>
+///   <description><see cref="JpegQuality"/>（値によってファイル サイズが大きく変わる）。</description>
 /// </item>
 /// <item>
 ///   <term>減色で色数・画質・見た目が変わる</term>
@@ -27,7 +26,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// </list>
 ///
 /// <b>既定（<c>default</c>）は GDI+ の既定と一致させない</b>: 明示した値だけをエンコーダーへ渡すため、
-/// 省略した場合と結果が変わる（実測: 不規則な画像で既定 826 KB に対し品質 75 は 554 KB）。
+/// 省略した場合と結果が変わる。
 /// 調整しない場合は <see cref="EsReadOnlyBitmap.Save(string)"/>（オプションを渡さない版）を使う。
 /// </remarks>
 public readonly record struct EsImageSaveOptions
@@ -57,12 +56,9 @@ public readonly record struct EsImageSaveOptions
     /// <value>null（既定）の場合は GDI+ の既定の品質を使う。 0〜100 の範囲外は例外になる（上限へ丸めない）。</value>
     /// <remarks>
     /// <b>JPEG（<c>.jpg</c> / <c>.jpeg</c>）だけが使える</b>（他の拡張子へ設定すると例外になる）。<br/>
-    /// <b>実測（1280x720・不規則な画像）</b>: 0 = 42,597 B / 50 = 378,312 B / 75 = 554,267 B / 90 = 791,497 B /
-    /// 100 = 1,821,653 B（既定は 826,483 B で品質 90〜100 の間に相当する）。<br/>
-    /// <b>実測（1280x720・なだらかな画像）</b>: 0 = 15,259 B / 75 = 30,947 B / 100 = 195,783 B
-    /// （既定は 44,273 B）。<br/>
-    /// <b>単色の画像では効果がない</b>（実測: 0 = 15,026 B / 100 = 15,031 B）。 画素の変化が乏しい画像は
-    /// どの品質でも同じように圧縮される。
+    /// <b>値はファイル サイズへ直に効く</b>: 同じ画像でも品質によってファイル サイズが大きく変わる
+    /// （低いほど小さい）。<br/>
+    /// <b>画素の変化が乏しい画像では効果がない</b>（どの品質でも同じように圧縮されるため）。
     /// </remarks>
     public int? JpegQuality { get; init; }
 
@@ -72,30 +68,22 @@ public readonly record struct EsImageSaveOptions
     /// <b>不可逆である</b>: 元の画素は戻らない（ファイル サイズを下げる代わりに色を失う）。
     /// 減色の結果は <see cref="EsReadOnlyBitmap.ReduceColors(int, EsImageQuality, EsDitherMode)"/> と同じ計算である（同じ色数・品質・ディザを指定すれば同じ絵になる）。<br/><br/>
     /// <b>指定しなくても GIF は常に量子化される</b>（GIF はパレットが必須であり、GDI+ のエンコーダーは
-    /// 透明色の番号をどの画素にも使わせないため、32bpp のまま渡すと透過が失われる。 実測で確認）。<br/>
-    /// <b>使えるのは BMP / PNG / GIF だけである</b>（実測で確認した 3 形式。 これらの形式はパレットを持てるため、
+    /// 透明色の番号をどの画素にも使わせないため、32bpp のまま渡すと透過が失われる）。<br/>
+    /// <b>使えるのは BMP / PNG / GIF だけである</b>（これらの形式はパレットを持てるため、
     /// 8bpp のインデックス カラーとして書く）。 <b>JPEG と TIFF へ設定すると例外になる</b>
     /// （JPEG はパレットを持てない。 TIFF は未検証のため受け付けない）。<br/>
-    /// <b>実測（1920x1080・256 色）</b>: 減色そのものが 30 ms（16 色で 8 ms）。
-    /// ファイル サイズは次のとおり減る（32bpp のままの既定と比較。 減色したファイルは
+    /// <b>ファイル サイズは小さくなる</b>（32bpp のままの既定と比較。 減色したファイルは
     /// <see cref="EsReadOnlyBitmap.Load(string)"/> で読み戻せ、BMP は画素が完全に一致する）。
-    ///
-    /// <list type="table">
-    /// <item><term>BMP</term><description>8,294,454 B → <b>2,074,678 B</b>（25%）。</description></item>
-    /// <item><term>PNG（スクリーンショット風）</term><description>4,305,898 B → <b>595,082 B</b>（14%）。</description></item>
-    /// <item><term>PNG（写真風）</term><description>2,301,470 B → <b>173,684 B</b>（8%）。</description></item>
-    /// <item><term>GIF（スクリーンショット風）</term><description>922,095 B → 691,564 B（75%）。</description></item>
-    /// </list>
-    ///
+    /// BMP は無圧縮であるため画素あたりのバイト数がそのまま効き（4 バイトから 1 バイトになる）、
+    /// PNG と GIF は同じ色の繰り返しが増えるため圧縮が効く。<br/>
     /// <b>BMP の RLE 圧縮は併用できない</b>（GDI+ の BMP エンコーダーは圧縮の指定を無視するため、
     /// 減色しても無圧縮のままである。 圧縮も欲しい場合は PNG を選ぶこと）。<br/>
-    /// <b>透過は形式ごとに扱いが違う（実測）</b>: 減色はアルファも色の一部として扱う（4 段階に量子化）。
-    /// <b>PNG はパレットのアルファ（<c>tRNS</c>）を書くため透過がそのまま残る</b>
-    /// （実測: 3 段階のアルファ 0 / 128 / 255 が一致）。 <b>GIF は完全透明だけが残る</b>
+    /// <b>透過は形式ごとに扱いが違う</b>: 減色はアルファも色の一部として扱う（4 段階に量子化する）。
+    /// <b>PNG はパレットのアルファ（<c>tRNS</c>）を書くため透過がそのまま残り</b>、 <b>GIF は完全透明だけが残る</b>
     /// （1 ビットの透過しか持てないため、半透明は不透明になる）。 <b>BMP はアルファを持てない</b>（パレットのアルファも無視される）。
     /// <b>半透明は 4 段階へ量子化され、RGBA を平均するため元の値とわずかに違う</b>（透明と不透明は完全に一致する）。<br/>
     /// <b>GIF は本値を指定しなくても常に量子化される</b>（GIF はパレットが必須であり、GDI+ の GIF エンコーダーは
-    /// 透明色の番号をどの画素にも使わせないため、32bpp のまま渡すと透過が失われる。 実測:
+    /// 透明色の番号をどの画素にも使わせないため、32bpp のまま渡すと透過が失われる。
     /// 自前の量子化にすると透過が保たれ、ファイルも小さく画質も良くなる）。
     /// </remarks>
     public int? ColorCount { get; init; }
@@ -104,9 +92,9 @@ public readonly record struct EsImageSaveOptions
     /// <value>null（既定）の場合は <see cref="EsImageQuality.Mid"/> を使う。 指定できるのは
     /// <see cref="ColorCount"/> を指定した場合、または形式が GIF（常に量子化される）の場合だけである。</value>
     /// <remarks>
-    /// <b>段階の意味と実測</b>は <see cref="EsImageQuality"/> と
-    /// <see cref="EsReadOnlyBitmap.ReduceColors(int, EsImageQuality, EsDitherMode)"/> が単一所有します
-    /// （本値は保存の入口から同じ計算へ渡すだけです）。<br/>
+    /// <b>段階の意味</b>は <see cref="EsImageQuality"/> と
+    /// <see cref="EsReadOnlyBitmap.ReduceColors(int, EsImageQuality, EsDitherMode)"/> が単一所有する
+    /// （本値は保存の入口から同じ計算へ渡すだけである）。<br/>
     /// <b>減色しない保存へ設定すると例外になる</b>（<see cref="ColorCount"/> が null で GIF 以外の場合。
     /// 黙って無視すると「設定したのに効かない」ことに気付かないため）。
     /// </remarks>
@@ -116,10 +104,9 @@ public readonly record struct EsImageSaveOptions
     /// <value>null（既定）の場合は <see cref="EsDitherMode.None"/> を使う（ファイルが最も小さくなる）。
     /// 指定できるのは <see cref="ColorCount"/> を指定した場合、または形式が GIF（常に量子化される）の場合だけである。</value>
     /// <remarks>
-    /// <b>何が変わるか（実測）</b>: <see cref="EsDitherMode.FloydSteinberg"/> は<b>色数が内容に対して足りないとき</b>に
-    /// グラデーションの縞（バンディング）を消す代わりに<b>ファイルが大きくなります</b>（実測: 1920x1080 の 16 色
-    /// グラデーションの PNG で 17,830 B → 319,481 B。 写真風 16 色で 495,932 B → 603,078 B。 <b>平坦な色の画像は
-    /// 変化しません</b>）。 256 色のように足りている場合の判断を含む詳細は <see cref="EsDitherMode"/> を参照してください。<br/>
+    /// <b>何が変わるか</b>: <see cref="EsDitherMode.FloydSteinberg"/> は<b>色数が内容に対して足りないとき</b>に
+    /// グラデーションの縞（バンディング）を消す代わりに<b>ファイルが大きくなる</b>（<b>平坦な色の画像は
+    /// 変化しない</b>）。 256 色のように足りている場合の判断を含む詳細は <see cref="EsDitherMode"/> を参照する。<br/>
     /// <b>減色しない保存へ設定すると例外になる</b>（<see cref="ColorQuality"/> と同じ規則）。
     /// </remarks>
     public EsDitherMode? Dither { get; init; }

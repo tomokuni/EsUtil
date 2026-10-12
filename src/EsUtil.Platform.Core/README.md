@@ -38,7 +38,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | 座標変換 | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` |
 | 画像 | **2 型は対称です**（書き込みに関するものだけが `EsBitmap`）。 `EsReadOnlyBitmap`（**読み取り専用**。 受け取る・保持する側）/ `EsBitmap`（**書き換え可能**。 作る・書く側。 `Pixels`・`SetPixel`・`Clear`・`SetReadOnly` が追加）/ `EsPixmap`（一部を指す 0 コピーの読み取りビュー。 切り出しの複製を避け、**縮小・減色の対象にもなる**）。 変換は向きごとに 1 つ（`FromBitmap`（凍結済みなら 0 コピー）/ `FromReadOnlyBitmap`（複製）） |
 | 画像の操作 | **両方の画像型が同じ名前のメンバーを持ちます**（切り出し `Crop`・縮小 `Resize`・減色 `ReduceColors`。 実装は内部の 1 か所）。 縮小と減色の速度と画質は `EsImageQuality`（`Low` / `Mid` / `High`）で選び、減色のディザは `EsDitherMode`（`None` / `FloydSteinberg`）で選びます。 `Resize` は縮小のみ（拡大は `NotSupportedException`） |
-| 画像のファイル入出力 | `Save` / `Load`（**画像型のメンバー**。 `EsReadOnlyBitmap.Save` / `EsBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`。 **形式は既定で拡張子が決め**、`EsImageSaveOptions.Format` で明示もできる（拡張子が無ければ補完する）。 BMP / PNG / JPEG / GIF / TIFF。 保存のオプションは `EsImageSaveOptions`（**JPEG の品質と減色 `ColorCount` / `ColorQuality` / `Dither`**。 実測で確認）。 OS の GDI+ を使う Windows 専用で、外部パッケージは参照しない） |
+| 画像のファイル入出力 | `Save` / `Load`（**画像型のメンバー**。 `EsReadOnlyBitmap.Save` / `EsBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`。 **形式は既定で拡張子が決め**、`EsImageSaveOptions.Format` で明示もできる（拡張子が無ければ補完する）。 BMP / PNG / JPEG / GIF / TIFF。 保存のオプションは `EsImageSaveOptions`（**JPEG の品質と減色 `ColorCount` / `ColorQuality` / `Dither`**）。 OS の GDI+ を使う Windows 専用で、外部パッケージは参照しない） |
 | OS サービス抽象 | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` |
 | Windows 実装 | `Native.Win.*`（Win32 / GDI+ の P/Invoke。 ホストが生成して注入する） |
 | 補助 | `EsPlatformHandle` / `DrawingColorExtensions` |
@@ -55,20 +55,20 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 
 ### 4.1 画像のファイル入出力が引き受ける副作用
 
-画像のファイル入出力（`EsBitmap.Save` / `EsReadOnlyBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`）は **Windows の `gdiplus.dll` を直接呼びます**。 これは依存を増やさない代わりに、**プロセス全体に及ぶ副作用**を伴います（実測）。
+画像のファイル入出力（`EsBitmap.Save` / `EsReadOnlyBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`）は **Windows の `gdiplus.dll` を直接呼びます**。 これは依存を増やさない代わりに、**プロセス全体に及ぶ副作用**を伴います（所要は [`docs/Result_Measurement.md`](docs/Result_Measurement.md) が単一所有します）。
 
-| 副作用 | 内容 | 実測 |
+| 副作用 | 内容 | 確認したこと |
 | --- | --- | --- |
 | GDI+ の初期化 | 初回の `Save` / `Load` で `GdiplusStartup` を 1 回だけ呼ぶ。 **呼ばないと GDI+ の API は 1 つも動かない** | 未初期化の `GdipCreateBitmapFromScan0` は状態 18（`GdiplusNotInitialized`）で失敗する |
-| **バックグラウンド スレッド +1** | GDI+ が表示設定の通知を受け取るために作る。 プロセス終了まで生存する | 起動直後 8 → 初期化後 **9** |
-| **解放されない参照カウント** | `GdiplusShutdown` を呼ばない（**呼ぶと利用者の GDI+ を止める可能性がある**）。 プロセス終了時に OS が解放する | `Startup` 2 回 → `Shutdown` 1 回でも API は動作する（参照カウント式） |
-| **初回の遅延** | 最初の `Save` / `Load` に初期化のコストが乗る | 初回 4.89 ms / 2 回目 0.53 ms |
+| **バックグラウンド スレッド +1** | GDI+ が表示設定の通知を受け取るために作る。 プロセス終了まで生存する | プロセスのスレッドが 1 本増える |
+| **解放されない参照カウント** | `GdiplusShutdown` を呼ばない（**呼ぶと利用者の GDI+ を止める可能性がある**）。 プロセス終了時に OS が解放する | `Startup` を複数回呼んでも API は動作する（参照カウント式） |
+| **初回の遅延** | 最初の `Save` / `Load` に初期化のコストが乗る | 2 回目以降の呼び出しは初期化のコストを含まない |
 
-**この副作用は本ライブラリ固有ではありません**。 `System.Drawing.Common.Bitmap` を使っても同じ初期化（`GdiplusStartup`）が走り、**同じ副作用**（GDI+ の有効化・バックグラウンド スレッド +1・解放されない参照カウント・初回の遅延）が起きます（実測: スレッド 8 → 9、初回 4.87 ms / 2 回目 0.06 ms）。 したがって **影響を受けるのは「GDI+ を他に使っていないプロセス」だけです**（既に GDI+ を使うアプリでは同じ初期化とスレッドが既に存在するため、追加の影響はありません）。
+**この副作用は本ライブラリ固有ではありません**。 `System.Drawing.Common.Bitmap` を使っても同じ初期化（`GdiplusStartup`）が走り、**同じ副作用**（GDI+ の有効化・バックグラウンド スレッド +1・解放されない参照カウント・初回の遅延）が起きます。 したがって **影響を受けるのは「GDI+ を他に使っていないプロセス」だけです**（既に GDI+ を使うアプリでは同じ初期化とスレッドが既に存在するため、追加の影響はありません）。
 
 **初期化を前倒しする公開 API はありません**（初期化は `WinGdiPlusLifetime` が単一所有しますが `internal` のため本アセンブリ専用です）。 コストを払うのは最初の `Save` / `Load` です。
 
-**副作用を避けたい場合**は、GDI+ ではなく **WIC**（`windowscodecs.dll` の COM）へ移す必要があります（プロセス全体の初期化もスレッドも不要）。 代償は実装量と速度です（実測: BMP で 6.8 倍遅い）。 判断の記録は [`docs/SPEC_System.md`](docs/SPEC_System.md) の「ファイル入出力の実装方式」を参照してください。
+**副作用を避けたい場合**は、GDI+ ではなく **WIC**（`windowscodecs.dll` の COM）へ移す必要があります（プロセス全体の初期化もスレッドも不要）。 代償は実装量と速度です（**単純な形式ほど差が開き**、BMP のような「memcpy で済む」形式が最も遅くなります。 実測値は [`docs/Result_Measurement.md`](docs/Result_Measurement.md) を参照してください）。 判断の記録は [`docs/SPEC_System.md`](docs/SPEC_System.md) の「ファイル入出力の実装方式」を参照してください。
 
 ## 5. カスタマイズ
 
@@ -93,8 +93,9 @@ dotnet test src/EsUtil.Platform.Core/tests/EsUtil.Platform.Core.Tests.csproj
 ## 8. ドキュメント
 
 - [`docs/SPEC_API.md`](docs/SPEC_API.md) — 公開 API のリファレンスと使用例
-- [`docs/SPEC_System.md`](docs/SPEC_System.md) — アーキテクチャ・依存の判定基準・設計判断
+- [docs/SPEC_System.md](docs/SPEC_System.md) — アーキテクチャ・依存の判定基準・設計判断
+- [docs/Result_Measurement.md](docs/Result_Measurement.md) — 所要とメモリの実測値（数値の単一所有者）
 
 ## 9. ライセンス
 
-MIT License（全文は [`LICENSE`](LICENSE) を参照）。
+MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。

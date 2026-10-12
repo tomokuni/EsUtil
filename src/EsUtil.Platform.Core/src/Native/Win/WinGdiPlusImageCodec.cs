@@ -29,7 +29,7 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <b>WebP / HEIF を対応形式へ入れない理由（実測）</b>: GDI+ のエンコーダーは 5 件だけである
 /// （<c>GdipGetImageEncoders</c> が返すのは BMP / JPEG / GIF / TIFF / PNG）。 WebP / HEIF のエンコーダーは無く、
 /// 存在しない形式の CLSID を渡した <c>GdipSaveImageToFile</c> は失敗するか<b>別形式（PNG）を書く</b>ため、
-/// 拡張子と実体が食い違うファイルができる（実測: PNG の CLSID と <c>.webp</c> のパスで 2831 バイトの PNG が書かれた）。<br/>
+/// 拡張子と実体が食い違うファイルができる（PNG の CLSID と <c>.webp</c> のパスでは PNG が書かれる）。<br/>
 /// <b>制限</b>: JPEG / BMP はアルファ（透明度）を保存できない（形式の仕様）。 透過を保つ場合は PNG を選ぶこと。
 /// </remarks>
 internal static class WinGdiPlusImageCodec
@@ -43,7 +43,7 @@ internal static class WinGdiPlusImageCodec
     /// <summary>JPEG の品質として許容する最大値。</summary>
     internal const int JpegQualityMaximum = 100;
 
-    /// <summary>ピクセル データをファイルへエンコードする（形式は拡張子が決める。オプションは既定）。</summary>
+    /// <summary>ピクセル データをファイルへエンコードする（形式は拡張子が決める。 オプションは既定）。</summary>
     /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
@@ -57,7 +57,7 @@ internal static class WinGdiPlusImageCodec
     internal static void EncodeToFile(ReadOnlySpan<byte> pixels, int width, int height, string filePath)
         => EncodeToFile(pixels, width, height, filePath, default);
 
-    /// <summary>ピクセル データをファイルへエンコードする（形式は拡張子が決める。オプションを指定できる）。</summary>
+    /// <summary>ピクセル データをファイルへエンコードする（形式は拡張子が決める。 オプションを指定できる）。</summary>
     /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
@@ -445,12 +445,12 @@ internal static class WinGdiPlusImageCodec
     /// <param name="options">保存のオプション（検証済み）。</param>
     /// <returns>残す色数。 量子化しない場合は null。</returns>
     /// <remarks>
-    /// <b>GIF は指定が無くても常に量子化する（実測に基づく）</b>: GIF はパレットが必須の形式であり、
+    /// <b>GIF は指定が無くても常に量子化する</b>: GIF はパレットが必須の形式であり、
     /// <b>GDI+ の GIF エンコーダーは透明色の番号を書くがその番号をどの画素にも使わせない</b>ため、
-    /// 32bpp のまま渡すと<b>透過が失われる</b>（実測: 透明色の指定は番号 252 を指すが、GDI+ / System.Drawing /
+    /// 32bpp のまま渡すと<b>透過が失われる</b>（透明色の指定は番号を指すが、GDI+ / System.Drawing /
     /// SkiaSharp のいずれで読み戻しても全画素が不透明になった）。 自前の量子化は透明な画素を透明な
     /// パレットの色へ割り当てるため、透過が保たれる。 副次的に<b>ファイルも小さく画質も良くなる</b>
-    /// （実測: 640x360 の写真で 91,294 B / 色差 平均 16.40 に対し 34,130 B / 2.89）。
+    /// （GDI+ の既定の量子化より誤差が小さい）。
     /// </remarks>
     [SupportedOSPlatform("windows")]
     private static int? ResolveColorCount(ImageFileFormat format, in EsImageSaveOptions options)
@@ -654,8 +654,8 @@ internal static class WinGdiPlusImageCodec
     /// <b><paramref name="create"/> は充填処理を 1 回だけ呼ぶ責任を持つ</b>（呼ばなければピクセルが不定のまま、
     /// 2 回呼べば同じ領域を二度書く）。<br/>
     /// <b>ピクセルは 1 回だけ書かれる</b>: 中間バッファを作らず、GDI+ のロックしたデータから画像のバッファへ
-    /// 直接コピーする（画像型のバッファは 64 バイト整列されているため、一時バッファを挟むと 4K で +31 MiB と
-    /// 実測 +3.0 ms のコピーが増える）。<br/>
+    /// 直接コピーする（画像型のバッファは 64 バイト整列されているため、一時バッファを挟むと
+    /// 画素数に比例した余分なコピーが増える）。<br/>
     /// <b>縮小読み込みはしない</b>（元の寸法でデコードする。 大きな画像を小さく使う場合は
     /// <c>Resize</c> で縮小すること。 サムネイルのようにデコード自体を小さくしたい場合は、各 UI の
     /// コーデック（縮小デコード対応）を使う方が速い）。<br/>

@@ -31,8 +31,8 @@
 | `ToEsBitmap` | `static EsBitmap ToEsBitmap(this Bitmap bitmap)` | `System.Drawing.Bitmap` から**書き換え可能な**画像を作る（複製。 元の Bitmap は変更しない） |
 | `ToDrawingBitmap` | `static Bitmap ToDrawingBitmap(this EsReadOnlyBitmap bitmap)` | コアの画像から `System.Drawing.Bitmap`（`Format32bppPArgb`）を作る（複製） |
 
-- **転送は「1 枚につき 1 回のコピー」を守ります**（実測: 4K で 1 回のコピーは約 6.5 ms）。 `ToEsReadOnlyBitmap` が書き換え可能な画像を
-  経由すると**バッファを 2 つ作って全領域を 2 回コピー**するため（実測 13.6 ms）、読み取り専用の画像へ直接 1 回だけ書き込みます
+- **転送は「1 枚につき 1 回のコピー」を守ります**。 `ToEsReadOnlyBitmap` が書き換え可能な画像を
+  経由すると**バッファを 2 つ作って全領域を 2 回コピー**する（確保量と所要がそこで倍になる）ため、読み取り専用の画像へ直接 1 回だけ書き込みます
   （`EsReadOnlyBitmap` の内部ファクトリ `CreateFilled` が確保と充填を 1 回で行います）。
 - **行幅が一致する場合は連続領域として 1 回でコピーします**（`LockBits` のストライドが `幅 × 4` のとき）。
   一致しない場合は行単位でコピーし、覆われない右端は 0 にします（元の Bitmap の仕様上ありえます）。

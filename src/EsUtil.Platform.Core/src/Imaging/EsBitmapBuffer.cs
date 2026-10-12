@@ -51,10 +51,10 @@ internal sealed class EsBitmapBuffer : IDisposable
 
     /// <summary>画素の先頭アドレス（確保または借用の時点で 1 度だけ求める）。</summary>
     /// <remarks>
-    /// <b>保持する理由（実測）</b>: <see cref="SafeHandle.DangerousGetHandle"/> は仮想呼び出しを含むため、
-    /// 画素へ触れるたびに呼ぶと<b>1 画素あたりの費用がその呼び出しで決まります</b>（実測: <c>GetPixel</c> を
-    /// 10 万回呼ぶと 0.61 ms で、大半がこの呼び出し）。 アドレスは領域の生存中に動かないため
-    /// （アンマネージドの確保であり、借用では所有者が動かさない契約）、1 度求めて保持できます。
+    /// <b>保持する理由</b>: <see cref="SafeHandle.DangerousGetHandle"/> は仮想呼び出しを含むため、画素へ触れるたびに呼ぶと
+    /// <b>1 画素あたりの費用がその呼び出しで決まる</b>。<br/>
+    /// アドレスは領域の生存中に動かない（アンマネージドの確保であり、借用では所有者が動かさない契約）ため、
+    /// 1 度求めて保持する。
     /// </remarks>
     private readonly nint _address;
 
@@ -131,8 +131,8 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <returns>読み込んだ画素を持つバッファ。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>0 埋めを省く</b>: 生成の直後にデコード結果で全領域を書くため、未初期化で確保する。<br/>
-    /// <b>中間バッファを作らない</b>: デコードは確保した画素領域へ直接書く（実測: 4K PNG の読み込みで 29.9 ms。
-    /// 中間バッファを挟むと +31 MiB と +2.7 ms ＝ +8%）。<br/>
+    /// <b>中間バッファを作らない</b>: デコードは確保した画素領域へ直接書く（中間バッファを挟むと、
+    /// その確保と複製の分だけ余分に費用がかかる）。<br/>
     /// <b>Windows 専用</b>（デコードの実装は GDI+ であり、<see cref="WinGdiPlusImageCodec"/> が単一所有する）。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
@@ -237,9 +237,8 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <param name="y">Y 座標（ピクセル）。</param>
     /// <returns>(B, G, R, A) のタプル（アルファ乗算済み）。</returns>
     /// <remarks>
-    /// <b>インライン化を明示する理由（実測）</b>: 画素ごとに呼ばれるため、呼び出しの費用が支配的になります。
-    /// 本メソッドと <see cref="CheckCoordinates"/> をインライン化すると、100 万回の取得が 4.9 ms → 2.1 ms、
-    /// 設定が 5.3 ms → 2.0 ms になりました（ビューは 14.3 ms → 1.9 ms）。
+    /// <b>インライン化を明示する理由</b>: 画素ごとに呼ばれるため、呼び出しの費用が支配的になる。
+    /// 本メソッドと <see cref="CheckCoordinates"/> をインライン化すると、呼び出しの分だけ費用が下がる。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">座標が画像の範囲外の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
@@ -430,7 +429,7 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <b><see cref="ArgumentOutOfRangeException"/> を投げる理由</b>: <see cref="IndexOutOfRangeException"/> は
     /// ランタイムが予約した例外であり、送出を禁止するアナライザー（CA2201 / MA0012）がある。 同じ用途を持つ
     /// 標準の型（<c>System.Drawing.Bitmap.GetPixel</c>）も <see cref="ArgumentOutOfRangeException"/> を投げる。<br/>
-    /// <b>インライン化を明示する理由（実測）</b>: 画素ごとに呼ばれるため、呼び出しの費用が支配的になる
+    /// <b>インライン化を明示する理由</b>: 画素ごとに呼ばれるため、呼び出しの費用が支配的になる
     /// （<see cref="GetPixel(int, int)"/> の備考）。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="x"/> または <paramref name="y"/> が画像の範囲外の場合。</exception>

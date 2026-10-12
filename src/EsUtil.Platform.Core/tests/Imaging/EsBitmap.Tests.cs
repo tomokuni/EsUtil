@@ -6,9 +6,7 @@ using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Imaging;
 
-/// <summary>
-/// <see cref="EsBitmap"/>（書き換え可能な画像）の単体テスト。
-/// </summary>
+/// <summary><see cref="EsBitmap"/>（書き換え可能な画像）の単体テスト。</summary>
 /// <remarks>
 /// <see cref="EsBitmap"/> は静的共有状態を持たないため、本テストは UI フレームワークの初期化に依存しない
 /// （コレクションに属さない <c>[Fact]</c> として並列実行される）。<br/>
@@ -637,8 +635,7 @@ public class EsBitmapTests
         source.Dispose();
     }
 
-    /// <summary>変換の往復で、2 つの入口（<see cref="EsReadOnlyBitmap.FromBitmap"/> と
-    /// <see cref="EsBitmap.FromReadOnlyBitmap"/>）が対になっていることを検証する。</summary>
+    /// <summary>変換の往復で、2 つの入口（<see cref="EsReadOnlyBitmap.FromBitmap"/> と<see cref="EsBitmap.FromReadOnlyBitmap"/>）が対になっていることを検証する。</summary>
     [Fact]
     internal void 変換の往復_凍結済みの書き換え可能側は0コピーで共有し戻す側は複製する()
     {

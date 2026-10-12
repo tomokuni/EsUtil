@@ -18,7 +18,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <see cref="TrySetPixel(int, int, Color)"/> / <see cref="Clear(byte, byte, byte, byte)"/>）が <see cref="InvalidOperationException"/> を投げます。
 /// 凍結は<b>画素領域</b>に効くため、<see cref="EsReadOnlyBitmap.FromBitmap"/> が 0 コピーで共有できるようになります
 /// （書き終えた時点で凍結するのが規則です）。<br/>
-/// <b>借用</b>: <see cref="InstallPixels"/> は呼び出し側が確保した画素を複製せずに扱います（4K の複製は 31 MiB と 5.7 ms）。
+/// <b>借用</b>: <see cref="InstallPixels"/> は呼び出し側が確保した画素を複製せずに扱います（複製の費用は画素数に比例する）。
 /// <b>本ライブラリの画像のアドレスを渡し直す用途には使わないこと</b>（凍結を迂回できてしまいます）。<br/>
 /// <b>解放</b>: 解放の実装は <see cref="SafeAlignedBuffer"/>（確保した場合）と <see cref="SafeBorrowedBuffer"/>（借用した場合）が
 /// 単一所有するため、破棄を忘れても GC が解放する（大きな画像は <c>using</c> で早く解放すること）。<br/>
@@ -97,8 +97,7 @@ public sealed class EsBitmap : IDisposable
     /// <b>書き換えが要らない場合</b>は <see cref="EsReadOnlyBitmap.Load"/> を使う。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
-    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
-    /// または画像として解釈できない場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、または画像として解釈できない場合。</exception>
     [SupportedOSPlatform("windows")]
     public static EsBitmap Load(string filePath)
         => new(EsBitmapBuffer.LoadFromFile(filePath));
@@ -264,7 +263,7 @@ public sealed class EsBitmap : IDisposable
     /// <returns>複製した画像。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>複製する理由</b>: 兄弟であり画素を共有できないため（読み取り専用の画像の画素を書き換えると、その画像を
-    /// 読んでいる相手の画素が変わる）。 4K の複製は 31 MiB と 5.7 ms を要する。<br/>
+    /// 読んでいる相手の画素が変わる）。 複製は画素数に比例した費用を要する。<br/>
     /// <b><see cref="Copy"/> との違い</b>: <see cref="FromReadOnlyBitmap"/> は<b>別のオブジェクトからの生成</b>、
     /// <see cref="Copy"/> は<b>自身の複製</b>である。 実装が同じでも意味が異なるため、片方へ寄せない。
     /// </remarks>
@@ -400,7 +399,7 @@ public sealed class EsBitmap : IDisposable
     /// <returns>独立した複製。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>読み取り専用の画像の <see cref="EsReadOnlyBitmap.Copy"/> と同じ「複製」</b>です（どちらの型でも
-    /// <c>Copy</c> は独立した画素を作ります。 費用は実測: 4K で 31 MiB / 5.7 ms）。 書き換え可能な画像では
+    /// <c>Copy</c> は独立した画素を作ります。 費用は画素数に比例します）。 書き換え可能な画像では
     /// 画素を共有できないため（片方の書き込みがもう片方を変える）、複製だけを提供します。<br/>
     /// <b>名前を <c>Clone</c> にしない理由</b>は <see cref="EsReadOnlyBitmap.Copy"/> と同じです。
     /// </remarks>
@@ -461,8 +460,7 @@ public sealed class EsBitmap : IDisposable
     /// 規則（拡大は未サポート・丸め・品質の選び方）は <see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> が
     /// 単一所有し、実装も同じ手順です。 <b>本画像は変更せず、凍結もしません</b>。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または
-    /// <paramref name="quality"/> が定義されていない値の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または <paramref name="quality"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     public EsBitmap Resize(int maxSize, EsImageQuality quality = EsImageQuality.Mid)
@@ -481,8 +479,7 @@ public sealed class EsBitmap : IDisposable
     /// <see cref="EsReadOnlyBitmap.ReduceColors(int, EsImageQuality, EsDitherMode)"/> が単一所有し、実装も同じ手順です。
     /// <b>本画像は変更せず、凍結もしません</b>。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または
-    /// <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     public EsBitmap ReduceColors(
         int colorCount, EsImageQuality quality = EsImageQuality.Mid, EsDitherMode dither = EsDitherMode.None)
@@ -507,7 +504,7 @@ public sealed class EsBitmap : IDisposable
         return _buffer.ToPixmap(rect);
     }
 
-    /// <summary>本画像をファイルへ保存する（形式は拡張子が決める。読み取り専用の画像と同じ手順）。</summary>
+    /// <summary>本画像をファイルへ保存する（形式は拡張子が決める。 読み取り専用の画像と同じ手順）。</summary>
     /// <param name="filePath">保存先のファイル パス（拡張子が形式を決める）。 null 不可。</param>
     /// <remarks>
     /// 規則と例外は <see cref="EsReadOnlyBitmap.Save(string)"/> が単一所有し、実装も同じ手順です
@@ -520,19 +517,16 @@ public sealed class EsBitmap : IDisposable
     [SupportedOSPlatform("windows")]
     public void Save(string filePath) => _buffer.SaveToFile(filePath);
 
-    /// <summary>本画像をファイルへ保存する（形式とオプションを指定できる。読み取り専用の画像と同じ手順）。</summary>
+    /// <summary>本画像をファイルへ保存する（形式とオプションを指定できる。 読み取り専用の画像と同じ手順）。</summary>
     /// <param name="filePath">保存先のファイル パス（<paramref name="options"/> で形式を指定した場合に拡張子が無ければ補完する）。</param>
     /// <param name="options">保存のオプション（形式ごとに使える項目が異なる）。</param>
     /// <remarks>
     /// 規則（形式の決め方・どのオプションが効くか）と例外は <see cref="EsReadOnlyBitmap.Save(string, EsImageSaveOptions)"/> が
     /// 単一所有し、実装も同じ手順です（<b>本画像は凍結しません</b>）。
     /// </remarks>
-    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または
-    /// <paramref name="filePath"/> の拡張子と <see cref="EsImageSaveOptions.Format"/> が食い違い
-    /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または <paramref name="filePath"/> の拡張子と <see cref="EsImageSaveOptions.Format"/> が食い違い <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
-    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）、または
-    /// <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）、または <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
     [SupportedOSPlatform("windows")]

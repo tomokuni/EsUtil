@@ -3,9 +3,7 @@ using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Coord;
 
-/// <summary>
-/// <see cref="ScrollMath"/>（スクロールバーの幾何計算・純粋関数）の回帰テスト。
-/// </summary>
+/// <summary><see cref="ScrollMath"/>（スクロールバーの幾何計算・純粋関数）の回帰テスト。</summary>
 /// <remarks>
 /// スクロールバーの範囲・ビューポートサイズの計算を検証する。<br/>
 /// <c>double</c> のみに依存し UI フレームワーク非依存のため <c>[Fact]</c> で並列実行する。<br/>

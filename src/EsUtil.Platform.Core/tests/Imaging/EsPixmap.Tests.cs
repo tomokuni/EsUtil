@@ -6,9 +6,7 @@ using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Imaging;
 
-/// <summary>
-/// <see cref="EsPixmap"/>（画像の一部を指す 0 コピーの読み取りビュー）の単体テスト。
-/// </summary>
+/// <summary><see cref="EsPixmap"/>（画像の一部を指す 0 コピーの読み取りビュー）の単体テスト。</summary>
 /// <remarks>
 /// ビューの生成は <see cref="EsReadOnlyBitmap.ToPixmap"/> が単一所有するため、本テストは画像側から作る。<br/>
 /// <see cref="EsPixmap"/> は静的共有状態を持たないため、本テストは UI フレームワークの初期化に依存しない

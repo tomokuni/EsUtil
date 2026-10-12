@@ -4,9 +4,7 @@ using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Imaging;
 
-/// <summary>
-/// <see cref="EsBitmapOperations"/>（画像を変更せずに新しい画像を作る操作）の単体テスト。
-/// </summary>
+/// <summary><see cref="EsBitmapOperations"/>（画像を変更せずに新しい画像を作る操作）の単体テスト。</summary>
 /// <remarks>
 /// 操作（切り出し・縮小・減色）は<b>両方の画像型が同じ名前のメンバー</b>として公開し（実装は <see cref="EsBitmapOperations"/> が
 /// 単一所有する）、本テストは<b>読み取り専用の画像として受け取った場合</b>の手順を固定する（借用した読み取り専用の画像を含む）。

@@ -8,9 +8,7 @@ using DrawingRect = System.Drawing.Rectangle;
 
 namespace EsUtil.Platform.Core.Windows.Imaging;
 
-/// <summary>
-/// <see cref="EsReadOnlyBitmap"/> / <see cref="EsBitmap"/> の System.Drawing 向け生成・変換拡張（Windows 専用）。
-/// </summary>
+/// <summary><see cref="EsReadOnlyBitmap"/> / <see cref="EsBitmap"/> の System.Drawing 向け生成・変換拡張（Windows 専用）。</summary>
 /// <remarks>
 /// <b>依存分離</b>: 本クラスは System.Drawing との変換を担い、<see cref="EsReadOnlyBitmap"/> 本体（コア）の依存を閉じる。<br/>
 /// <br/>
@@ -29,7 +27,7 @@ public static class EsBitmapDrawingExtensions
     /// <remarks>
     /// <b>書き換えが要る場合は <see cref="ToEsBitmap"/> を使う</b>。<br/>
     /// <b>1 回のコピーで作る</b>: 書き換え可能な画像を経由するとバッファを 2 つ作って全領域を 2 回コピーするため、
-    /// 読み取り専用の画像へ直接 1 回だけ書き込む（実測: 4K で 13.6 ms → 6.7 ms）。<br/>
+    /// 読み取り専用の画像へ直接 1 回だけ書き込む（コピーの回数がそのまま所要と確保量の差になる）。<br/>
     /// System.Drawing は Windows 専用のため、本メソッドは Windows でのみ利用可能。
     /// </remarks>
     [SupportedOSPlatform("windows")]

@@ -5,12 +5,12 @@ namespace EsUtil.Platform.Core.Imaging;
 
 /// <summary>画像の一部を指す<b>0 コピーの読み取りビュー</b>（行幅を持つ）。</summary>
 /// <remarks>
-/// <b>目的</b>: 切り出しの<b>複製を避ける</b>ためです。 実測では 4K から 1000x800 の切り出しが、複製の
-/// <see cref="EsReadOnlyBitmap.Crop(EsRectInt)"/> で 0.72 ms / 4 MB に対し、ビューではアドレス計算だけです
-/// （実測: Skia の <c>SKBitmap.ExtractSubset</c> は 0.000 ms で、元と双方向に書き込みが伝わるビューでした）。<br/>
+/// <b>目的</b>: 切り出しの<b>複製を避ける</b>ためです。 複製の
+/// <see cref="EsReadOnlyBitmap.Crop(EsRectInt)"/> は画素数に比例した費用を要するのに対し、ビューはアドレス計算だけです
+/// （Skia の <c>SKBitmap.ExtractSubset</c> と同じく、元と双方向に書き込みが伝わるビューです）。<br/>
 /// <b>生成</b>: <see cref="EsReadOnlyBitmap.ToPixmap"/> が唯一の入口です（ビューは画像の一部を指すため、
 /// 画素を所有する型から作ります）。<br/>
-/// <b>行幅（<see cref="Stride"/>）は元画像のストライドのまま</b>です（実測: Skia のビューも元の行幅を保ち、
+/// <b>行幅（<see cref="Stride"/>）は元画像のストライドのまま</b>です（Skia のビューも元の行幅を保ち、
 /// 行ごとに余白を持ちます）。 したがって <see cref="ReadOnlyPixels"/> は<b>行の余白を含む</b>連続した
 /// ビューであり、画素を読む場合は <see cref="GetPixel(int, int)"/> を使います。<br/>
 /// <b>読み取り専用です</b>: 書き込みの入口を持ちません（元の画像を書き換える場合は
@@ -34,9 +34,8 @@ public sealed class EsPixmap : IDisposable
 
     /// <summary>ビューの先頭アドレス（生成時に 1 度だけ求める）。</summary>
     /// <remarks>
-    /// <b>保持する理由（実測）</b>: <see cref="GetPixel(int, int)"/> は画素ごとに呼ばれるため、そのたびに
-    /// 元のバッファのアドレスを求めてオフセットを足すと費用がかさみます（実測: 10 万画素の読み取りで 1.40 ms
-    /// → 1.29 ms）。
+    /// <b>保持する理由</b>: <see cref="GetPixel(int, int)"/> は画素ごとに呼ばれるため、そのたびに
+    /// 元のバッファのアドレスを求めてオフセットを足すと費用がかさみます。
     /// </remarks>
     private readonly nint _address;
 
@@ -75,7 +74,7 @@ public sealed class EsPixmap : IDisposable
     public EsSizeInt Size => new(Width, Height);
 
     /// <summary>1 ラインあたりのバイト数（<b>元画像のストライドのまま</b>。 <c>幅 × 4</c> より大きい場合があります）。</summary>
-    /// <remarks><b>名前を画像と同じ <c>Stride</c> にする理由</b>: 「1 ラインあたりのバイト数」は同じ概念であり、語彙を 2 つに増やさないためです（実測: Skia は画像とビューの両方で同じ名前 <c>RowBytes</c> を使っています）。 ビューは元の行幅を保つため、行ごとに余白を持ちます。</remarks>
+    /// <remarks><b>名前を画像と同じ <c>Stride</c> にする理由</b>: 「1 ラインあたりのバイト数」は同じ概念であり、語彙を 2 つに増やさないためです（Skia は画像とビューの両方で同じ名前 <c>RowBytes</c> を使っています）。 ビューは元の行幅を保つため、行ごとに余白を持ちます。</remarks>
     public int Stride { get; }
 
     /// <summary>ピクセル データの読み取り専用ビュー（<b>行の余白を含む</b>）。</summary>
@@ -104,7 +103,7 @@ public sealed class EsPixmap : IDisposable
     /// <remarks>
     /// <b>破棄済みの判定はフィールドの直接の読み取りを含む形にする</b>: <see cref="ThrowIfDisposed"/> は
     /// <c>ObjectDisposedException.ThrowIf</c> を呼ぶため<b>インライン化されません</b>。 画素ごとに呼ばれる
-    /// 本メソッドではその呼び出しが支配的になります（実測: 100 万回の取得で 14.3 ms → 1.9 ms）。
+    /// 本メソッドではその呼び出しの費用が支配的になります。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">座標がビューの範囲外の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
@@ -146,16 +145,14 @@ public sealed class EsPixmap : IDisposable
     /// <returns>縮小した画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>用途</b>: 大きな画像の一部だけを縮小したい場面（一覧のサムネイル・プレビューの一部）。 画像型の
-    /// <see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> を先に呼ぶと、<b>切り出しの複製
-    /// （実測: 4K から 1000x800 で 0.85 ms / 4 MB）を払ってから縮小する</b>ことになります。 本メソッドは
-    /// ビュー（0 コピー）をそのまま読むため、<b>その 0.85 ms / 4 MB が要りません</b>
-    /// （実測: 1000x800 の切り出し → 長辺 320 の面積平均で 1.195 ms に対し、本メソッド相当で 0.363 ms ＝ <b>3.3 倍</b>）。<br/>
+    /// <see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> を先に呼ぶと、<b>切り出しの複製を
+    /// 払ってから縮小する</b>ことになります。 本メソッドはビュー（0 コピー）をそのまま読むため、
+    /// <b>その複製と確保が要りません</b>。<br/>
     /// <b>代金</b>: ビューの行幅（<see cref="Stride"/>。 元画像のストライド）のまま読むため、<b>行ごとに余白を飛ばす</b>
     /// 分だけ余計にアドレスを計算します（密な画像から切り出した画像を縮小する場合との差）。
     /// 品質の選び方と規則は画像型と同じです（<see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/>）。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または
-    /// <paramref name="quality"/> が定義されていない値の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または <paramref name="quality"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     public EsBitmap Resize(int maxSize, EsImageQuality quality = EsImageQuality.Mid)
@@ -172,14 +169,12 @@ public sealed class EsPixmap : IDisposable
     /// <remarks>
     /// <b>用途</b>: 大きな画像の一部だけを減色したい場面。 画像型の
     /// <see cref="EsReadOnlyBitmap.ReduceColors(int, EsImageQuality, EsDitherMode)"/> を
-    /// 先に呼ぶと切り出しの複製を払うことになります（実測: 4K から 1000x800 で 0.85 ms / 4 MB）。
-    /// 本メソッドはビューをそのまま読むため、その分が要りません（実測: 1000x800 の減色 256 色で 6.0 ms のうち
-    /// 切り出しの 0.85 ms ＝ <b>約 12%</b>）。<br/>
+    /// 先に呼ぶと切り出しの複製を払うことになります。
+    /// 本メソッドはビューをそのまま読むため、その分が要りません。<br/>
     /// 減色の内容（アルファの扱い・品質とディザの選び方・パレットの作り方）は画像型と同じです
     /// （<see cref="EsReadOnlyBitmap.ReduceColors(int, EsImageQuality, EsDitherMode)"/> の備考）。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または
-    /// <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     public EsBitmap ReduceColors(
         int colorCount, EsImageQuality quality = EsImageQuality.Mid, EsDitherMode dither = EsDitherMode.None)
@@ -242,7 +237,8 @@ public sealed class EsPixmap : IDisposable
     /// <param name="destination">複製先のバッファ（同じ寸法であること）。</param>
     /// <remarks>
     /// <b>行ごとに写す理由</b>: ビューの行幅は元画像のストライドのままであるため（<c>幅 × 4</c> より大きい場合が
-    /// あります）、領域全体を一度に写すと行がずれます（余白の画素が混ざります）。<br/>
+    /// あります）、領域全体を一度に写すと行がずれます（余白の画素が混ざります）。 <b>行幅が複製先と等しい場合
+    /// （全幅のビュー）は連続した 1 本の領域になるため 1 回で写します</b>。<br/>
     /// <b>用途</b>: ビューから画像を作る入口（<see cref="EsBitmap.FromPixmap"/> /
     /// <see cref="EsReadOnlyBitmap.FromPixmap"/>）が使います。
     /// </remarks>
@@ -261,6 +257,14 @@ public sealed class EsPixmap : IDisposable
         }
 
         var pixels = destination.Pixels;
+
+        // 行幅が等しい（全幅のビュー）場合は連続した 1 本の領域になるため、1 回で写す
+        if (Stride == destination.Stride)
+        {
+            ReadOnlyPixels.CopyTo(pixels);
+            return;
+        }
+
         var rowBytes = Width * BytesPerPixel;
         for (var y = 0; y < Height; y++)
         {

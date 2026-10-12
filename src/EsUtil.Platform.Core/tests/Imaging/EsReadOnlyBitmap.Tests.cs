@@ -6,9 +6,7 @@ using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Imaging;
 
-/// <summary>
-/// <see cref="EsReadOnlyBitmap"/>（読み取り専用の画像）の単体テスト。
-/// </summary>
+/// <summary><see cref="EsReadOnlyBitmap"/>（読み取り専用の画像）の単体テスト。</summary>
 /// <remarks>
 /// <see cref="EsReadOnlyBitmap"/> は静的共有状態を持たないため、本テストは UI フレームワークの初期化に依存しない
 /// （コレクションに属さない <c>[Fact]</c> として並列実行される）。<br/>
@@ -324,8 +322,7 @@ public class EsReadOnlyBitmapTests
         Assert.Equal(src.GetPixel(1, 1), copy.GetPixel(1, 1));
     }
 
-    /// <summary>凍結済みの共有（<see cref="EsReadOnlyBitmap.FromBitmap"/>）と 0 コピーのビュー
-    /// （<see cref="EsReadOnlyBitmap.ToPixmap"/>）が同じ画素を指すことを検証する。</summary>
+    /// <summary>凍結済みの共有（<see cref="EsReadOnlyBitmap.FromBitmap"/>）と 0 コピーのビュー（<see cref="EsReadOnlyBitmap.ToPixmap"/>）が同じ画素を指すことを検証する。</summary>
     [Fact]
     internal void 共有の入口はFromBitmapとToPixmap_どちらも同じ画素を指す()
     {

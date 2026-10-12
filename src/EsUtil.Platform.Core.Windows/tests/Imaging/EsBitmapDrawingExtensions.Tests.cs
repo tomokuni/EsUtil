@@ -9,9 +9,7 @@ using DrawingRect = System.Drawing.Rectangle;
 
 namespace EsUtil.Platform.Core.Windows.Tests.Imaging;
 
-/// <summary>
-/// <see cref="EsBitmapDrawingExtensions"/> の変換テスト（Windows 専用・並列実行）。
-/// </summary>
+/// <summary><see cref="EsBitmapDrawingExtensions"/> の変換テスト（Windows 専用・並列実行）。</summary>
 /// <remarks>
 /// System.Drawing は Windows 専用のため、本クラスは <see cref="SupportedOSPlatformAttribute"/> で Windows に限定する。<br/>
 /// 変換は LockBits（ネイティブコピー）ベースのため、UI フレームワークの初期化に依存せず<br/>

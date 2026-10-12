@@ -14,7 +14,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <b>書き換え可能な画像（<see cref="EsBitmap"/>）とは兄弟です</b>: 互いの派生ではなく、<b>互いに変換できません</b>。
 /// したがって<b>未凍結の画素を読み取り専用として渡すことはできません</b>（この型は「画素が変わらない」ことを前提に使える）。
 /// 書き換え可能な画像から本型を得る唯一の入口は <see cref="FromBitmap"/> であり、<b>凍結済みなら 0 コピーで共有・
-/// 未凍結なら複製</b>します（実測: Skia の <c>SKImage.FromBitmap</c> と同じ規則）。<br/>
+/// 未凍結なら複製</b>します（Skia の <c>SKImage.FromBitmap</c> と同じ規則）。<br/>
 /// <b>借用は「この実体から書けない」ことだけを約束します</b>: 呼び出し側が確保したメモリを <see cref="InstallPixels"/> で
 /// 借用した場合、所有者がそのメモリを書き換えれば内容は変わります（借用は「その時点の画素を読む入口」です）。<br/>
 /// <b>寿命と共有</b>: 同じ画素を指す複数の実体は<b>参照を数えて</b>解放します。 したがって
@@ -87,13 +87,12 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。 null 不可。</param>
     /// <returns>読み込んだ画像。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// <b>中間バッファを作らない</b>: デコードは確保した画素領域へ直接書く（実測: 4K PNG の読み込みで 29.9 ms。
-    /// 中間バッファを挟むと +31 MiB と +2.7 ms ＝ +8%）。 0 埋めも省く（直後に全領域を書くため）。<br/>
+    /// <b>中間バッファを作らない</b>: デコードは確保した画素領域へ直接書く（中間バッファを挟むと、その確保と
+    /// 複製の分だけ余計に要する）。 0 埋めも省く（直後に全領域を書くため）。<br/>
     /// <b>書き換えが要る場合</b>は <see cref="EsBitmap.Load"/> を使う。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
-    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
-    /// または画像として解釈できない場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、または画像として解釈できない場合。</exception>
     [SupportedOSPlatform("windows")]
     public static EsReadOnlyBitmap Load(string filePath)
         => new(EsBitmapBuffer.LoadFromFile(filePath));
@@ -186,7 +185,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <param name="release">解放時に 1 回だけ呼ぶ処理（アドレスを受け取る）。 解放が不要な場合は null。</param>
     /// <returns>借用した画像。 所有権は呼び出し側に残る（<paramref name="release"/> を渡した場合は本画像の破棄時に呼ばれる）。</returns>
     /// <remarks>
-    /// <b>複製しない</b>: 4K の画像を複製すると 31 MiB と 5.7 ms を要するため、既に確保済みの画素を読むだけの場面で使う。<br/>
+    /// <b>複製しない</b>: 複製は画素数に比例した費用を要するため、既に確保済みの画素を読むだけの場面で使う。<br/>
     /// <b>行パディングがある領域は借用できない</b>: 画素は連続した 1 本の領域として公開するため、ストライドは
     /// <c>幅 × <see cref="BytesPerPixel"/></c> に限る（それ以外は <see cref="ArgumentException"/>）。<br/>
     /// <b>内容の不変は保証しない</b>: 所有者がそのメモリを書き換えれば内容は変わります（借用は「その時点の画素を読む入口」です）。
@@ -268,7 +267,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <param name="source">元の画像。 借用であり破棄しない。</param>
     /// <returns>読み取り専用の画像。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// <b>書き換え可能な画像から本型を得る唯一の入口</b>です（実測: Skia の <c>SKImage.FromBitmap</c> と同じ規則。
+    /// <b>書き換え可能な画像から本型を得る唯一の入口</b>です（Skia の <c>SKImage.FromBitmap</c> と同じ規則。
     /// 凍結していない <c>SKBitmap</c> からは複製し、凍結済みなら共有します）。<br/>
     /// <b>一覧</b>:
     /// <list type="bullet">
@@ -277,7 +276,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <item><description>未凍結: <b>複製</b>した読み取り専用の画像を返す（元は書き換え可能なまま影響を受けず、返した画像も
     /// 元の書き込みで変わらない）。</description></item>
     /// </list>
-    /// <b>複製の費用</b>: 実測で 4K 1 枚あたり 31 MiB と 5.7 ms です。 払いたくない場合は、書き終えた時点で
+    /// <b>複製の費用</b>: 画素数に比例します。 払いたくない場合は、書き終えた時点で
     /// 書き換え可能な型の <c>SetReadOnly</c> を呼んでから本メソッドを呼びます。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
@@ -315,12 +314,12 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <summary>本画像の複製（<b>独立した画素</b>）を生成する。</summary>
     /// <returns>独立した複製。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// <b>常に複製します</b>（読み取り専用同士でも画素を共有しません）。 実測: 4K で 31 MiB と 5.7 ms。<br/>
+    /// <b>常に複製します</b>（読み取り専用同士でも画素を共有しません）。 費用は画素数に比例します。<br/>
     /// <b>0 コピーが要る場合</b>は複製ではなく <see cref="ToPixmap"/>（読み取りビュー。 元の寿命に依存）を、
     /// 書き換え可能な画像を凍結して共有したい場合は <see cref="FromBitmap"/> を使います。<br/>
     /// <b>名前を <c>Clone</c> にしない理由</b>: <c>Clone</c> は「安い複製」を期待させますが、本メソッドは全域コピーです。
     /// 複製は費用が名前から読める <c>Copy</c>、共有は別名（<see cref="ToPixmap"/> / <see cref="FromBitmap"/>）に分けます
-    /// （実測: Skia も <c>SKBitmap.Copy</c> が複製、共有は <c>SKImage.FromBitmap</c> と名前が別です）。
+    /// （Skia も <c>SKBitmap.Copy</c> が複製、共有は <c>SKImage.FromBitmap</c> と名前が別です）。
     /// </remarks>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     public EsReadOnlyBitmap Copy() => FromPixelCopy(Width, Height, ReadOnlyPixels);
@@ -338,7 +337,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// （左上がソースの外でも内容を左上へ詰めません。 矩形が交差しない場合は全ピクセル透明の画像を返します）。
     /// コピーされないパディングだけを透明にするため、<b>0 埋めは行いません</b>。<br/>
     /// <b>コピーは 1 回で済む場合を分けます</b>: 左右のパディングが無く、ソースとデスティネーションの行幅が等しいときは
-    /// 連続領域として全領域を 1 回でコピーします（実測: 4K 全域の切り出しで 8.3 ms → 6.6 ms）。
+    /// 連続領域として全領域を 1 回でコピーします（行ごとに写すより費用が小さい）。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="width"/> / <paramref name="height"/> が 0 以下の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
@@ -366,31 +365,26 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>用途</b>: 大きな画像を小さく扱う場面（一覧のサムネイル・プレビュー等）。 元の寸法の複製を保持すると
-    /// 4K 1 枚で 32 MB になるため、表示や転送の前に本メソッドで縮小します。<br/>
+    /// 4K 1 枚で数十 MB になるため、表示や転送の前に本メソッドで縮小します。<br/>
     /// <b>名前が <c>Resize</c> である理由</b>: 将来の拡大対応を見込んで双方向の名前を残しています（現在の実装は縮小だけを
     /// 行います）。 拡大が必要な要求は黙って等倍を返さず <see cref="NotSupportedException"/> にします（「拡大された」と
     /// 誤解されるため）。 長辺と上限が一致する場合は縮小不要のため<b>等倍の複製</b>を返します。<br/>
     /// <b>品質の選び方</b>: どの段階も<b>縮小先の行を範囲へ分けて並列実行します</b>（小さい画像では逐次のままにします）。
-    /// 段階ごとの速度と画質の実測は <see cref="EsImageQuality"/> を参照してください。<b><see cref="EsImageQuality.High"/> の
-    /// 費用は元画像の画素数で決まる</b>ため、縮小先が大きい場合は <see cref="EsImageQuality.Mid"/> より速くなることがあります
-    /// （実測: 4K → 長辺 1920 で <see cref="EsImageQuality.Mid"/> 4.1 ms / <see cref="EsImageQuality.High"/> 3.4 ms）。<br/>
-    /// <b>時間の上限（タイムアウト）を設けない理由（実測）</b>: 縮小は<b>反復も収束も無い 1 回の走査</b>であり
+    /// 段階ごとの速度と画質の選び方は <see cref="EsImageQuality"/> を参照してください。<b><see cref="EsImageQuality.High"/> の
+    /// 費用は元画像の画素数で決まる</b>ため、縮小先が大きい場合は <see cref="EsImageQuality.Mid"/> より速くなることがあります。<br/>
+    /// <b>時間の上限（タイムアウト）を設けない理由</b>: 縮小は<b>反復も収束も無い 1 回の走査</b>であり
     /// （最近傍・双線形は縮小先の画素数、面積平均は元画像の画素数に<b>比例するだけ</b>で、止まる条件を待ちません）、
     /// 途中で打ち切ると<b>画像の一部が書かれないまま返る</b>（壊れた画像になる）ため、時間による打ち切りは
-    /// 行いません。 費用は縮小の前に決まっている寸法から予測できます（実測: 4K 3840x2160 → 長辺 320 の
-    /// 面積平均で 1.5 ms ＝ 元画像 1 メガ画素あたり約 0.18 ms）。<br/>
-    /// <b>一部だけを縮小する場合</b>: 本画像から切り出してから縮小すると、<b>切り出しの複製</b>（実測: 4K から 1000x800 で
-    /// 0.85 ms / 4 MB）を払います。 <see cref="ToPixmap"/> でビューを作り <see cref="EsPixmap.Resize"/> を呼ぶと
-    /// その分が要りません（実測: 1000x800 → 長辺 320 の <see cref="EsImageQuality.High"/> で <b>3.3 倍</b>）。<br/>
-    /// <b>立方畳み込み（bicubic）を段階へ加えない理由（実測）</b>: 試作して確かめたところ、縮小では
-    /// <see cref="EsImageQuality.High"/>（面積平均）が最も速く最も正しい（12 倍縮小で 1.6 ms・厳密な面積平均との差 0.37 に対し、
-    /// 縮小率に応じて支持幅を広げた立方畳み込みは 12.9 ms・1.30）。 2 倍縮小では鮮鋭さでも負けます
-    /// （隣接差は 21.3 対 13.1。 立方畳み込みの方が柔らかくなる）。 立方畳み込みが正しい選択になるのは
-    /// <b>拡大</b>であり、本メソッドは拡大を行いません。<br/>
+    /// 行いません。 費用は元画像の画素数に比例するため、縮小の前に決まっている寸法から予測できます。<br/>
+    /// <b>一部だけを縮小する場合</b>: 本画像から切り出してから縮小すると、<b>切り出しの複製</b>を払います。
+    /// <see cref="ToPixmap"/> でビューを作り <see cref="EsPixmap.Resize"/> を呼ぶと、その分が要りません。<br/>
+    /// <b>立方畳み込み（bicubic）を段階へ加えない理由</b>: 縮小では
+    /// <see cref="EsImageQuality.High"/>（面積平均）が最も速く最も正しい（縮小率に応じて支持幅を広げた立方畳み込みは、
+    /// 支持幅が広がる分だけ遅く、2 倍縮小では鮮鋭さでも負けます。 立方畳み込みの方が柔らかくなる）。 立方畳み込みが
+    /// 正しい選択になるのは<b>拡大</b>であり、本メソッドは拡大を行いません。<br/>
     /// <b>返す寸法の丸め</b>: 切り捨てで丸めるため<b>1 px 未満の誤差が出えます</b>（座標の対応付けが必要な場面では使わないこと）。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または
-    /// <paramref name="quality"/> が定義されていない値の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または <paramref name="quality"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     public EsBitmap Resize(int maxSize, EsImageQuality quality = EsImageQuality.Mid)
@@ -406,54 +400,46 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <returns>減色した新しい画像（使われる色は <paramref name="colorCount"/> 種類以下）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>不可逆です</b>: 元の画素は戻りません（減色後の色数は <paramref name="colorCount"/> 以下になります）。<br/>
-    /// <b>透過は保たれます（実測）</b>: アルファも減色の対象であり、透明な画素は透明なパレットの色へ寄ります。
+    /// <b>透過は保たれます</b>: アルファも減色の対象であり、透明な画素は透明なパレットの色へ寄ります。
     /// 保存した PNG には <c>tRNS</c>（インデックス透過）、GIF には透明の色番号が書かれます。<br/>
     /// <b>用途</b>: 保存のファイル サイズを小さくする（<see cref="EsImageSaveOptions.ColorCount"/> を指定した保存は
     /// 本処理を行います）。 切り出し・縮小と同じく<b>新しい画像を作る</b>ため、元の画像は変更しません。<br/>
-    /// <b>品質とディザの選び方（実測）</b>: <see cref="EsImageQuality"/> は<b>色の詰め直し（反復）の回数</b>を変えるため、
-    /// <see cref="EsImageQuality.Low"/> に対する差は 5〜12% です（知覚誤差 CIEDE2000 の平均。 写真風 16 色で
-    /// 9.49 → 8.33）。 <see cref="EsImageQuality.High"/> は <see cref="EsImageQuality.Mid"/> と同じ結果になる場合が多い
+    /// <b>品質とディザの選び方</b>: <see cref="EsImageQuality"/> は<b>色の詰め直し（反復）の回数</b>を変えるため、
+    /// <see cref="EsImageQuality.Low"/> に対する差は知覚誤差（CIEDE2000 の平均）に出ます。
+    /// <see cref="EsImageQuality.High"/> は <see cref="EsImageQuality.Mid"/> と同じ結果になる場合が多い
     /// （箱が多い画像だけに効く）。 <b>見た目の差が最も大きいのはディザ</b>であり、
-    /// <see cref="EsDitherMode.FloydSteinberg"/> を指定すると階調の縞が消えます（実測: 16 色で 8x8 のブロック平均の差が
-    /// 8.9 → 4.2）が、<b>保存のファイルは大きくなります</b>（実測: 1920x1080 の PNG で 345,869 B → 529,910 B。
-    /// 平坦な色の画像は変化しない）。 どちらを選ぶかの判断は <see cref="EsDitherMode"/> の備考が単一所有します。<br/>
-    /// <b>所要（実測。 Release・1920x1080・256 色）</b>: 平坦な色の画像（箱 6 個）は品質に依らず 13 ms、
-    /// 写真風（箱 2,873 個）は <see cref="EsImageQuality.Low"/> 15 ms / <see cref="EsImageQuality.Mid"/> 19 ms /
-    /// <see cref="EsImageQuality.High"/> 24 ms、ノイズ（箱 32,768 個）は 43 / 64 / 137 ms です。<br/>
+    /// <see cref="EsDitherMode.FloydSteinberg"/> を指定すると階調の縞が消えますが、<b>保存のファイルは大きくなります</b>
+    /// （平坦な色の画像は変化しない）。 どちらを選ぶかの判断は <see cref="EsDitherMode"/> の備考が単一所有します。<br/>
+    /// <b>所要は使われている色の数で決まります</b>: ヒストグラムの箱が多い画像ほど詰め直しの費用が増し、
+    /// ノイズのような画像では <see cref="EsImageQuality.Low"/> / <see cref="EsImageQuality.Mid"/> /
+    /// <see cref="EsImageQuality.High"/> の差が大きくなります。 平坦な色の画像は品質に依りません。<br/>
     /// <b>所要には上限があります（正味 500 ms の安全網）</b>: <see cref="EsImageQuality.High"/> の詰め直しは
     /// <b>減色の計算を始めてから 500 ms</b> を過ぎたら行いません（採用済みのパレットで止めるため、結果は常に
-    /// 有効で色数も指定どおりです。 実測: 3840x2160 のノイズ 256 色は
-    /// <see cref="EsImageQuality.Low"/> 95 ms / <see cref="EsImageQuality.Mid"/> 110 ms /
-    /// <see cref="EsImageQuality.High"/> 184 ms であり上限には達しません。 上限は 8K・遅い環境・
+    /// 有効で色数も指定どおりです。 通常の寸法と色数ではこの上限には達しません。 上限は 8K・遅い環境・
     /// 収束しにくい画像のための安全網です）。<br/>
-    /// <b>一部だけを減色する場合</b>: 本画像から切り出してから減色すると、<b>切り出しの複製</b>（実測: 4K から
-    /// 1000x800 で 0.85 ms / 4 MB）を払います。 <see cref="ToPixmap"/> でビューを作り
-    /// <see cref="EsPixmap.ReduceColors"/> を呼ぶとその分が要りません（実測: 1000x800・256 色で約 12%）。<br/>
-    /// <b>アルゴリズム（実測で選んだ）</b>: 5 ビットのヒストグラム（32³ = 32,768 箱）を作り、
+    /// <b>一部だけを減色する場合</b>: 本画像から切り出してから減色すると、<b>切り出しの複製</b>を払います。
+    /// <see cref="ToPixmap"/> でビューを作り <see cref="EsPixmap.ReduceColors"/> を呼ぶと、その分が要りません。<br/>
+    /// <b>アルゴリズム</b>: 5 ビットのヒストグラム（32³ = 32,768 箱）を作り、
     /// <b>中央値分割</b>で箱を色数まで分け、箱ごとの平均色をパレットにします。 画素の割り当ては
     /// <b>箱ごとに 1 度だけ最近傍を求めた参照表</b>を引きます（画素ごとに 256 色と比較しません）。<br/>
-    /// <b>色の近さは知覚の尺度（CIELAB の二乗距離。 CIE76）で測ります（実測）</b>: 素の RGB の二乗距離は人の目の
+    /// <b>色の近さは知覚の尺度（CIELAB の二乗距離。 CIE76）で測ります</b>: 素の RGB の二乗距離は人の目の
     /// 感度と一致しないため（暗部の差を過小に、明部や彩度の差を過大に見積もる）、Lab へ替えると
-    /// <b>知覚誤差（CIEDE2000 の平均）が 7〜14% 減ります</b>（実測: 1024x768 の写真風 256 色で 2.30 → 2.07、
-    /// グラデーション 16 色で 7.88 → 6.81）。 <b>平坦な色の画像は 0.00 のまま変わりません</b>
+    /// <b>知覚誤差（CIEDE2000 の平均）が小さくなります</b>。 <b>平坦な色の画像は変わりません</b>
     /// （色数が足りているため）。 <b>費用は画素ごとに増えません</b>（Lab への変換は「使われている箱」と
     /// パレットの色について 1 度だけ行います）。 CIEDE2000 を使わない理由と輝度の重みを採らない理由は
     /// <c>EsBitmapOperations.Distance</c> の備考を参照してください。<br/>
     /// <b>色数はアルファの段階も数えます</b>: アルファは 4 段階（0〜63 / 64〜127 / 128〜191 / 192〜255）に
     /// 量子化されるため、同じ RGB でもアルファが違えば別の色としてパレットを消費します
-    /// （不透明な画像ではアルファが 1 段階のため、従来と同じ結果になります）。 <b>アルファの段階より色数が
-    /// 少ないときは段階が統合されます</b>（実測: 同じ RGB でアルファ 0 / 128 / 255 の 3 段階を持つ画像を
+    /// （不透明な画像ではアルファが 1 段階のため、色数の数え方は変わりません）。 <b>アルファの段階より色数が
+    /// 少ないときは段階が統合されます</b>（例: 同じ RGB でアルファ 0 / 128 / 255 の 3 段階を持つ画像を
     /// <b>2 色</b>へ減色すると 64 と 255 の 2 段階になり、<b>3 色</b>以上なら 0 / 128 / 255 がそのまま残ります）。<br/>
-    /// <b>ディザを既定にしない理由（実測）</b>: ディザはパレットの色を交互に置くため<b>保存のファイルが大きくなります</b>
-    /// （実測: Magick.NET の 256 色 PNG で 645,647 B → FloydSteinberg で 803,118 B ＝ <b>+24%</b>）。 本ライブラリは
-    /// ファイル サイズを下げる目的で減色するため、明示された場合だけ行います。<br/>
-    /// <b>外部ライブラリとの比較（実測）</b>: 256 色 PNG の保存では本実装が最も速く（次が ImageSharp の
-    /// Wu 量子化の 219 ms、Magick.NET の 553 ms）、ファイルは写真では外部の方が小さくなります
-    /// （本処理の 173,684 B に対し 111,764 B / 117,156 B。 減色の品質は pngquant が最も高いが、
-    /// 実行ファイルの同梱と 1 枚 700 ms を要します）。
+    /// <b>ディザを既定にしない理由</b>: ディザはパレットの色を交互に置くため<b>保存のファイルが大きくなります</b>。
+    /// 本ライブラリはファイル サイズを下げる目的で減色するため、明示された場合だけ行います。<br/>
+    /// <b>外部ライブラリを使わない理由</b>: 256 色 PNG の保存では本実装の方が速く、ファイルは写真では
+    /// 外部ライブラリの方が小さくなります（減色の品質は pngquant が最も高いが、実行ファイルの同梱と
+    /// 1 枚あたりの待ち時間を要します）。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または
-    /// <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     public EsBitmap ReduceColors(
         int colorCount, EsImageQuality quality = EsImageQuality.Mid, EsDitherMode dither = EsDitherMode.None)
@@ -466,10 +452,9 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <param name="rect">ビューの範囲（元画像の座標。 <b>画像の内側であること</b>）。</param>
     /// <returns>ビュー。 所有権は呼び出し側へ移る（破棄すると元画像への参照を返す。 画素は破棄しない）。</returns>
     /// <remarks>
-    /// <b>複製しません</b>: 実測では 4K から 1000x800 の切り出しが、複製の <c>Crop</c> で 0.72 ms / 4 MB に対し、
-    /// ビューではアドレス計算だけです（Skia の <c>SKBitmap.ExtractSubset</c> は 0.000 ms で、元と双方向に
-    /// 書き込みが伝わるビューであることを実測で確認）。<br/>
-    /// <b>行幅（<see cref="EsPixmap.Stride"/>）は元画像のストライドのまま</b>です（実測: Skia のビューも
+    /// <b>複製しません</b>: 複製の <c>Crop</c> は画素数に比例した費用を要するのに対し、ビューではアドレス計算だけです
+    /// （Skia の <c>SKBitmap.ExtractSubset</c> と同じく、元と双方向に書き込みが伝わるビューです）。<br/>
+    /// <b>行幅（<see cref="EsPixmap.Stride"/>）は元画像のストライドのまま</b>です（Skia のビューも
     /// 元の行幅を保つため、行ごとに余白を持ちます）。 したがって <see cref="EsPixmap.ReadOnlyPixels"/> は
     /// <b>行の余白を含む</b>連続したビューであり、画素を読む場合は <see cref="EsPixmap.GetPixel(int, int)"/> を使います。<br/>
     /// <b>範囲は画像の内側に限ります</b>: ビューは透明で埋めることができないためです（画像の外側を含む切り出しが
@@ -508,19 +493,16 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// 指定した場合は<b>形式が優先</b>され、拡張子が無ければ補完し（<c>shot</c> + <see cref="EsImageFileFormat.Png"/> →
     /// <c>shot.png</c>）、拡張子と食い違う場合は <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が true なら
     /// 与えられたファイル名のまま保存し、false なら例外にします。<br/>
-    /// <b>どのオプションが効くかは形式が決めます</b>: 実測で効果が確認できたのは JPEG の品質
+    /// <b>どのオプションが効くかは形式が決めます</b>: 効果があるのは JPEG の品質
     /// （<see cref="EsImageSaveOptions.JpegQuality"/>）と減色（<see cref="EsImageSaveOptions.ColorCount"/>）だけであり、
-    /// 他の形式へ設定すると例外になります（実測値と理由は <see cref="EsImageSaveOptions"/> を参照）。<br/>
+    /// 他の形式へ設定すると例外になります（理由は <see cref="EsImageSaveOptions"/> を参照）。<br/>
     /// <b>オプションを省略した場合との違い</b>: 本オーバーロードは明示された値だけをエンコーダーへ渡すため、
-    /// 既定値は GDI+ の既定と一致しません（実測: 1280x720 の不規則な画像で既定 826 KB に対し品質 75 は 554 KB）。
+    /// 既定値は GDI+ の既定と一致しません。
     /// 調整しない場合は <see cref="Save(string)"/> を使います。
     /// </remarks>
-    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または
-    /// <paramref name="filePath"/> の拡張子と <see cref="EsImageSaveOptions.Format"/> が食い違い
-    /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または <paramref name="filePath"/> の拡張子と <see cref="EsImageSaveOptions.Format"/> が食い違い <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
-    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）、または
-    /// <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
+    /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）、または <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
     [SupportedOSPlatform("windows")]

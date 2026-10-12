@@ -10,12 +10,7 @@ namespace EsUtil.Platform.Core.Tests;
 /// </remarks>
 public class EnumCanonicalTests
 {
-    /// <summary>
-    /// 同じ値を持つ別名を含む検証用の列挙型（変換元）。<br/>
-    /// <b><see cref="EsKey"/> 自身は別名を持たない</b>（値の指定が 1 つも無く 223 名 = 223 値。 実測）ため、<br/>
-    /// 別名の解決を検証するには実在の別名（<c>Avalonia.Input.Key</c> の <c>Return</c> / <c>Enter</c> 等）を<br/>
-    /// 模した検証用の列挙型を用意する必要がある。
-    /// </summary>
+    /// <summary>同じ値を持つ別名を含む検証用の列挙型（変換元）。<br/><b><see cref="EsKey"/> 自身は別名を持たない</b>（値の指定が 1 つも無く 223 名 = 223 値。 実測）ため、<br/>別名の解決を検証するには実在の別名（<c>Avalonia.Input.Key</c> の <c>Return</c> / <c>Enter</c> 等）を<br/>模した検証用の列挙型を用意する必要がある。</summary>
     private enum AliasedSource
     {
         /// <summary>値 13。</summary>
@@ -25,10 +20,7 @@ public class EnumCanonicalTests
         Enter = 13,
     }
 
-    /// <summary>
-    /// 検証用の列挙型（変換先）。 名前は変換元と一致させ、<b>値は変換元と変える</b>（名前で解決した証拠にするため）。<br/>
-    /// 宣言順は変換元と逆にしてある（<b>代表名は宣言順で決まらない</b>ことを検証が前提にしないため）。
-    /// </summary>
+    /// <summary>検証用の列挙型（変換先）。 名前は変換元と一致させ、<b>値は変換元と変える</b>（名前で解決した証拠にするため）。<br/>宣言順は変換元と逆にしてある（<b>代表名は宣言順で決まらない</b>ことを検証が前提にしないため）。</summary>
     private enum AliasedTarget
     {
         /// <summary>値 5。</summary>
