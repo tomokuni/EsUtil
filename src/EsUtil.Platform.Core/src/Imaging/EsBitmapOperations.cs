@@ -635,7 +635,12 @@ internal static class EsBitmapOperations
     /// （実測: 1920x1080・256 色で、箱が 64 個の画像は 29.8 ms → 13.0 ms、箱が 32,768 個のノイズ画像は
     /// 88.1 ms → 42.2 ms。 いずれも分割の改善を含まない形で測った値です）。<br/>
     /// <b>割り当ては箱の代表色（平均色）で測る</b>: 箱の中心（量子化した座標）で測るより、その箱に入っている
-    /// 画素の平均色で測る方が実際の誤差に近い（<see cref="Distance"/> を参照。 費用は同じ）。
+    /// 画素の平均色で測る方が実際の誤差に近い（<see cref="Distance"/> を参照。 費用は同じ）。<br/>
+    /// <b>画素そのものから最近傍を求めない理由（実測）</b>: 参照表を引く形にせず画素ごとに最近傍を求めると
+    /// 知覚誤差は 8〜11% 減りますが、<b>費用が「画素の数 × 色数」で決まります</b>（実測: 距離の評価は 1 回
+    /// あたり 1.5 ns。 1920x1080 の全画素・256 色で<b>約 775 ms</b>、16 色でも約 48 ms で、現在の
+    /// <see cref="EsImageQuality.High"/> の 24 ms の 32 倍）。 詳細は
+    /// <see cref="EsImageQuality"/> の備考を参照してください。
     /// </remarks>
     private static uint[] BuildPalette(
         ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount,
