@@ -931,6 +931,77 @@ public class EsBitmapOperationsTests
         return EsReadOnlyBitmap.FromBitmap(bitmap);
     }
 
+    [Fact]
+    internal void 減色_アルファの段階は色数が足りていれば保たれる()
+    {
+        // 距離はアルファの段階（4 段階）の違いを RGB の 12.5% と釣り合わせている。 同じ RGB で段階だけが
+        // 違う色は選ばれないため、<b>段階の数（3 段階）以上の色数</b>を与えれば完全透明は透明のまま残る。
+        using var src = CreateAlphaTiers();
+
+        using var result = src.ReduceColors(3);
+
+        // 左が不透明（255）、中央が半透明（128）、右が完全透明（0）
+        Assert.Equal((byte)255, result.GetPixel(0, 0).A);
+        Assert.Equal((byte)128, result.GetPixel(result.Width / 2, 0).A);
+        Assert.Equal((byte)0, result.GetPixel(result.Width - 1, 0).A);
+
+        Assert.Equal(3, CountColors(result));
+    }
+
+    [Fact]
+    internal void 減色_アルファの段階より色数が少ないときは段階が統合される()
+    {
+        // 段階の数より色数が少ないときは、どの段階を残すかを選べないため統合される（実測で固定する）。
+        // 2 色では 0 と 128 が統合されて 64 と 255 の 2 段階になる。
+        using var src = CreateAlphaTiers();
+
+        using var result = src.ReduceColors(2);
+
+        Assert.Equal((byte)255, result.GetPixel(0, 0).A);
+        Assert.Equal((byte)64, result.GetPixel(result.Width / 2, 0).A);
+        Assert.Equal((byte)64, result.GetPixel(result.Width - 1, 0).A);
+
+        Assert.Equal(2, CountColors(result));
+    }
+
+    /// <summary>画像で使われている色の数を数える。</summary>
+    /// <param name="image">対象の画像。</param>
+    /// <returns>異なる色（ARGB）の数。</returns>
+    private static int CountColors(EsBitmap image)
+    {
+        var colors = new HashSet<uint>();
+        for (var y = 0; y < image.Height; y++)
+        {
+            for (var x = 0; x < image.Width; x++)
+            {
+                var pixel = image.GetPixel(x, y);
+                colors.Add(((uint)pixel.A << 24) | ((uint)pixel.R << 16) | ((uint)pixel.G << 8) | pixel.B);
+            }
+        }
+
+        return colors.Count;
+    }
+
+    /// <summary>同じ RGB でアルファだけが 3 段階（不透明・半透明・完全透明）の画像を作る。</summary>
+    /// <param name="width">幅（ピクセル。 3 等分する）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
+    private static EsReadOnlyBitmap CreateAlphaTiers(int width = 48, int height = 8)
+    {
+        using var bitmap = EsBitmap.Create(width, height);
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var alpha = x < width / 3 ? (byte)255 : x < (width * 2 / 3) ? (byte)128 : (byte)0;
+                bitmap.SetPixel(x, y, 40, 80, 120, alpha);
+            }
+        }
+
+        bitmap.SetReadOnly();
+        return EsReadOnlyBitmap.FromBitmap(bitmap);
+    }
+
     /// <summary>横方向の滑らかなグラデーションを作る（ディザの検証用）。</summary>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>

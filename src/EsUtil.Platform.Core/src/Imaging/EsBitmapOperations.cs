@@ -372,7 +372,8 @@ internal static class EsBitmapOperations
     /// （ディザを指定した場合は参照表を遅延で埋める。 誤差を加えた色は使用済みの箱へ落ちないため）。<br/>
     /// <b>色数はアルファの段階も数える</b>: アルファは 4 段階（0〜63 / 64〜127 / 128〜191 / 192〜255）に
     /// 量子化されるため、同じ RGB でもアルファが違えば別の色としてパレットを消費する
-    /// （不透明な画像ではアルファが 1 段階のため、従来と同じ結果になる）。
+    /// （不透明な画像ではアルファが 1 段階のため、従来と同じ結果になる）。 <b>アルファの段階より色数が
+    /// 少ないときは段階が統合される</b>（<see cref="EsReadOnlyBitmap.ReduceColors"/> の備考を参照）。
     /// </remarks>
     internal static EsBitmap ReduceColors(
         ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride,
