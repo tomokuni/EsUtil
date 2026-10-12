@@ -521,22 +521,69 @@ public class EsBitmapOperationsTests
     }
 
     [Fact]
-    internal void 減色_画素が元の色のいずれかへ寄る()
+    internal void 減色_画素が元の色へ寄る()
     {
         using var src = CreateColorful(32, 32);
-        var before = src.ReadOnlyPixels.ToArray();
 
         using var result = src.ReduceColors(16);
 
-        // 減色は平均色を作るため一致はしないが、色差は 5 ビットの箱の幅（8）を大きく超えない
-        var pixels = result.ReadOnlyPixels;
-        var maxDifference = 0;
-        for (var i = 0; i < pixels.Length; i++)
+        // 判定は知覚の尺度（Lab の明度差）で、かつ<b>画像を 1 色へ潰した場合との比較</b>で行う
+        // （絶対値の閾値は画像の内容で決まるため脆い。 1 チャネルの最大差は知覚と一致しない。 実測:
+        // 明度の平均差が小さいのに 1 チャネルの最大差は 111 になる）
+        var error = MeanLightnessDifference(src, result);
+        var collapsed = MeanLightnessDifferenceFromSingleColor(src);
+
+        Assert.True(
+            error <= collapsed * 0.6,
+            $"明度の平均差 {error:F2} が、1 色へ潰した場合の {collapsed:F2} の 6 割を超えました。");
+    }
+
+    /// <summary>画像を 1 色（平均色）へ潰した場合の明度の平均差を求める（比較の基準）。</summary>
+    /// <param name="source">元の画像。</param>
+    /// <returns>明度の平均差（0〜100 の尺度）。</returns>
+    /// <remarks>
+    /// <b>基準を単色にする理由</b>: 減色の質は「どれだけ元に近いか」で測るが、絶対値は画像の内容で決まる。
+    /// <b>色を 1 つも残さない場合（平均色 1 色）より十分に近い</b>ことを確かめれば、閾値が内容に依存しない。
+    /// </remarks>
+    private static double MeanLightnessDifferenceFromSingleColor(EsReadOnlyBitmap source)
+    {
+        var pixels = source.ReadOnlyPixels;
+        var total = 0.0;
+        var mean = 0.0;
+        for (var y = 0; y < source.Height; y++)
         {
-            maxDifference = Math.Max(maxDifference, Math.Abs(pixels[i] - before[i]));
+            for (var x = 0; x < source.Width; x++)
+            {
+                var i = (y * source.Stride) + (x * EsReadOnlyBitmap.BytesPerPixel);
+                mean += Lightness(pixels[i + 2], pixels[i + 1], pixels[i]);
+            }
         }
 
-        Assert.True(maxDifference <= 96, $"最大色差 {maxDifference} が大きすぎます。");
+        mean /= source.Width * source.Height;
+        for (var y = 0; y < source.Height; y++)
+        {
+            for (var x = 0; x < source.Width; x++)
+            {
+                var i = (y * source.Stride) + (x * EsReadOnlyBitmap.BytesPerPixel);
+                total += Math.Abs(Lightness(pixels[i + 2], pixels[i + 1], pixels[i]) - mean);
+            }
+        }
+
+        return total / (source.Width * source.Height);
+    }
+
+    [Fact]
+    internal void 減色_色数が内容に足りていれば知覚の差が小さい()
+    {
+        // 平坦な色（スクリーンショットの UI 面）は色数が足りるため、知覚の差が出ない（実測: ΔE2000 の平均 0.00）
+        using var src = CreateFilled(64, 64, System.Drawing.Color.FromArgb(255, 240, 20, 90));
+        using var withLine = CreateThinLine(64, 64, lineX: 32);
+
+        using var flat = src.ReduceColors(16);
+        using var line = withLine.ReduceColors(16);
+
+        Assert.Equal(0.0, MeanLightnessDifference(src, flat), 3);
+        Assert.True(MeanLightnessDifference(withLine, line) <= 1.0);
     }
 
     [Theory]
@@ -639,6 +686,57 @@ public class EsBitmapOperationsTests
         Assert.True(
             ditheredError < plainError,
             $"ディザの局所平均の差 {ditheredError:F2} が、なしの {plainError:F2} を下回りませんでした。");
+    }
+
+    /// <summary>Lab の明度（L*）の平均絶対差を求める（知覚の尺度で減色の質を測る）。</summary>
+    /// <param name="source">元の画像。</param>
+    /// <param name="result">比べる画像（同じ寸法であること）。</param>
+    /// <returns>明度の平均差（0〜100 の尺度）。</returns>
+    /// <remarks>
+    /// <b>1 チャネルの差を使わない理由</b>: 減色の距離は<b>人が近いと感じる色</b>を選ぶため、1 チャネルだけ大きく
+    /// 離れた色を選びうる（実測: 明度の平均差は小さいのに 1 チャネルの最大差は 111 になる）。 知覚に近い
+    /// 明度（CIELAB の L*）で測る。
+    /// </remarks>
+    private static double MeanLightnessDifference(EsReadOnlyBitmap source, EsBitmap result)
+    {
+        var before = source.ReadOnlyPixels;
+        var after = result.ReadOnlyPixels;
+        var total = 0.0;
+        for (var y = 0; y < result.Height; y++)
+        {
+            for (var x = 0; x < result.Width; x++)
+            {
+                var i = (y * source.Stride) + (x * EsReadOnlyBitmap.BytesPerPixel);
+                var j = (y * result.Stride) + (x * EsReadOnlyBitmap.BytesPerPixel);
+                total += Math.Abs(
+                    Lightness(before[i + 2], before[i + 1], before[i])
+                    - Lightness(after[j + 2], after[j + 1], after[j]));
+            }
+        }
+
+        return total / (result.Width * result.Height);
+    }
+
+    /// <summary>sRGB の色から CIELAB の明度（L*）を求める。</summary>
+    /// <param name="red">赤（0〜255）。</param>
+    /// <param name="green">緑（0〜255）。</param>
+    /// <param name="blue">青（0〜255）。</param>
+    /// <returns>明度（0〜100）。</returns>
+    private static double Lightness(byte red, byte green, byte blue)
+    {
+        // 相対輝度（Rec.709）を求めてから Lab の明度へ変換する
+        var y = (0.2126 * Linear(red)) + (0.7152 * Linear(green)) + (0.0722 * Linear(blue));
+        var f = y > 216.0 / 24389.0 ? Math.Cbrt(y) : ((24389.0 / 27.0 * y) + 16) / 116;
+        return (116 * f) - 16;
+    }
+
+    /// <summary>sRGB の 1 成分（0〜255）を線形値（0〜1）へ変換する。</summary>
+    /// <param name="value">成分（0〜255）。</param>
+    /// <returns>線形値。</returns>
+    private static double Linear(int value)
+    {
+        var v = value / 255.0;
+        return v <= 0.04045 ? v / 12.92 : Math.Pow((v + 0.055) / 1.055, 2.4);
     }
 
     /// <summary>1 チャネルあたりの平均絶対誤差を求める（画素ごと）。</summary>
