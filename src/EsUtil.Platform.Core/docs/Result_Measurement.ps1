@@ -1,18 +1,16 @@
-#Requires -Version 7.0
 <#
 .SYNOPSIS
 画像（EsUtil.Platform.Core の Imaging）の所要とメモリを実測し、本スクリプトと同じフォルダの Result_Measurement.md の計測結果を差し替える。
 
 .DESCRIPTION
 一時プロジェクト（Release）を生成してこの場で実行し、公開 API だけを計測する。
-計測値の所有者は本スクリプトと同じフォルダの Result_Measurement.md であり（.github/ドキュメント規約.md §1・§10）、
+計測値の所有者は Result_Measurement.md であり（.github/ドキュメント規約.md §1・§10）、
 コードのコメント・仕様書・README へは数値を書かない。 再計測は本スクリプトの実行だけでよい。
 
-計測する値（1 ケースあたり）:
-    所要             … ウォームアップ後の中央値（ms）
-    マネージド確保   … GC.GetAllocatedBytesForCurrentThread の増分の平均（計測したスレッド分のみ）
-    非マネージド確保 … 生成した画像の画素のバイト数（現在の実装では画像ごとに 幅 x 4 x 高さ）
-    出力ファイル     … 保存したファイルのバイト数（ファイル入出力の節のみ）
+出力する表は 2 軸である。
+    - 縮小・減色は「品質（Low / Mid / High）× 元画像の寸法」を型ごとに並べる。
+    - 同名メソッドは「型（EsBitmap / EsReadOnlyBitmap / EsPixmap）× 元画像の寸法」をメソッドごとに並べる。
+    - セルは「所要 (ms) / マネージド確保 (B)」。 その型にメソッドが無いセルは「-」。
 
 .PARAMETER Configuration
 ビルド構成（既定 Release）。 Debug は最適化が無効なため比較用。
@@ -102,12 +100,43 @@ namespace Measurement;
 
 internal static class Program
 {
+    // 縮小先は比較のため長辺 320 に固定する
+    private const int ResizeMaxSize = 320;
+
+    private const string SectionCreation = "生成と複製";
+    private const string SectionCrop = "切り出しとビュー";
+    private const string SectionResize = "縮小";
+    private const string SectionReduce = "減色";
+    private const string SectionPixel = "画素の取得と設定と走査";
+    private const string SectionFile = "ファイル入出力";
+
+    private const string ClassBit = "EsBitmap";
+    private const string ClassRead = "EsReadOnlyBitmap";
+    private const string ClassView = "EsPixmap";
+
+    private static readonly SizeCase[] s_sizes =
+    [
+        new("3840x2160", 3840, 2160),
+        new("1920x1080", 1920, 1080),
+        new("640x360", 640, 360),
+    ];
+
+    private static readonly string[] s_classNames = [ClassBit, ClassRead, ClassView];
     private static readonly EsImageQuality[] s_qualities = [EsImageQuality.Low, EsImageQuality.Mid, EsImageQuality.High];
-    private static readonly List<Row> s_rows = [];
-    private static readonly StringBuilder s_report = new();
+    private static readonly Dictionary<(string, string, string, string, string), Measured> s_cases = [];
+    private static readonly List<string> s_report = [];
+
+    /// <summary>最適化されたコードへ到達するための、ウォームアップの下限（回）。</summary>
+    private const int WarmupFloor = 40;
+
+    /// <summary>1 回の計測で本体を呼ぶ回数（タイマーの分解能に埋もれる操作で使う）。</summary>
+    /// <remarks>1 マイクロ秒を下回る操作は、1 回の呼び出しではタイマーの刻みに埋もれます。 複数回呼んで 1 回あたりへ換算します。</remarks>
+    private const int Repeat = 100;
 
     private static int s_iterations = 20;
-    private static int s_warmup = 3;
+    private static int s_warmup = WarmupFloor;
+    private static int s_fileIterations = 5;
+    private static int s_pixelIterations = 5;
 
     private static int Main(string[] args)
     {
@@ -121,604 +150,531 @@ internal static class Program
             s_warmup = warmup;
         }
 
+        // 少ない回数では最適化されていないコードを測ってしまうため、ウォームアップには下限を置く
+        s_warmup = Math.Max(WarmupFloor, s_warmup);
+
+        // ファイル入出力は 1 回あたりの費用が大きいため、回数を減らして総時間を抑える
+        s_fileIterations = Math.Max(3, s_iterations / 4);
+
+        // 画素の取得と設定は 1 回で 100 万画素を扱うため、回数を減らして総時間を抑える
+        s_pixelIterations = Math.Max(1, s_iterations / 4);
         Console.OutputEncoding = Encoding.UTF8;
 
-        AppendEnvironment();
-        MeasureCreationAndCopy();
-        MeasureCropAndView();
+        MeasureCreation();
+        MeasureCrop();
         MeasureResize();
         MeasureReduceColors();
         MeasurePixelAccess();
-
         if (OperatingSystem.IsWindows())
         {
-            MeasureFileIo();
+            MeasureFiles();
             CleanUpFiles();
         }
 
-        Console.Write(s_report.ToString());
+        Emit();
+        Console.Write(string.Join('\n', s_report));
         return 0;
-    }    private static void AppendEnvironment()
-    {
-        s_report.AppendLine("## 2. 計測環境");
-        s_report.AppendLine();
-        s_report.AppendLine("| 項目 | 値 |");
-        s_report.AppendLine("| --- | --- |");
-        s_report.AppendLine("| 計測日時 | " + DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture) + " |");
-        s_report.AppendLine("| OS | " + RuntimeInformation.OSDescription.Trim() + " |");
-        s_report.AppendLine("| プロセッサ | " + Environment.ProcessorCount.ToString(CultureInfo.InvariantCulture) + " 論理コア / " + RuntimeInformation.ProcessArchitecture + " |");
-        s_report.AppendLine("| .NET | " + Environment.Version.ToString() + " |");
-        s_report.AppendLine("| サーバー GC | " + GCSettings.IsServerGC.ToString() + " |");
-        s_report.AppendLine("| 構成 | Release（最適化あり） |");
-        s_report.AppendLine("| ウォームアップ / 計測回数 | " + s_warmup.ToString(CultureInfo.InvariantCulture) + " 回 / " + s_iterations.ToString(CultureInfo.InvariantCulture) + " 回（中央値） |");
-        s_report.AppendLine();
     }
 
-    private static void MeasureCreationAndCopy()
+    // ====================================================================
+    // 計測
+    // ====================================================================
+
+    /// <summary>生成・複製・変換（対称な入口）を型と寸法ごとに計測する。</summary>
+    private static void MeasureCreation()
     {
-        var start = s_rows.Count;
-
-        Measure("Create", "3840x2160（0 埋め）", () =>
+        foreach (var size in s_sizes)
         {
-            var image = EsBitmap.Create(3840, 2160);
-            return new Item(image, BytesOf(image));
-        });
+            var label = size.Label;
+            Measure(SectionCreation, "Create", ClassBit, label, "", () => new Item(EsBitmap.Create(size.Width, size.Height)));
+            Measure(SectionCreation, "Create", ClassRead, label, "", () => new Item(EsReadOnlyBitmap.Create(size.Width, size.Height)));
 
-        Measure("CreateFilled", "3840x2160", () =>
-        {
-            var image = EsBitmap.CreateFilled(3840, 2160, static pixels => pixels.Clear());
-            return new Item(image, BytesOf(image));
-        });
+            Measure(SectionCreation, "CreateFilled", ClassBit, label, "", () => new Item(EsBitmap.CreateFilled(size.Width, size.Height, static p => p.Clear())));
+            Measure(SectionCreation, "CreateFilled", ClassRead, label, "", () => new Item(EsReadOnlyBitmap.CreateFilled(size.Width, size.Height, static p => p.Clear())));
 
-        var copySource = new byte[3840 * 2160 * EsBitmap.BytesPerPixel];
+            var buffer = new byte[size.Width * size.Height * EsBitmap.BytesPerPixel];
+            Measure(SectionCreation, "FromPixelCopy", ClassBit, label, "", () => new Item(EsBitmap.FromPixelCopy(size.Width, size.Height, buffer)));
+            Measure(SectionCreation, "FromPixelCopy", ClassRead, label, "", () => new Item(EsReadOnlyBitmap.FromPixelCopy(size.Width, size.Height, buffer)));
 
-        Measure("FromPixelCopy", "3840x2160", () =>
-        {
-            var image = EsBitmap.FromPixelCopy(3840, 2160, copySource);
-            return new Item(image, BytesOf(image));
-        });
+            using var bit = Create(size);
+            using var read = ReadOnly(size);
 
-        using var source = Create(3840, 2160, Pattern.Mixed);
+            Measure(SectionCreation, "Copy", ClassBit, label, "", () => new Item(bit.Copy()));
+            Measure(SectionCreation, "Copy", ClassRead, label, "", () => new Item(read.Copy()));
 
-        Measure("Copy", "EsBitmap 3840x2160", () =>
-        {
-            var image = source.Copy();
-            return new Item(image, BytesOf(image));
-        });
+            Measure(SectionCreation, "FromReadOnlyBitmap", ClassBit, label, "", () => new Item(EsBitmap.FromReadOnlyBitmap(read)));
+            Measure(SectionCreation, "FromBitmap", ClassRead, label, "", () => new Item(EsReadOnlyBitmap.FromBitmap(bit)));
 
-        using var read = EsReadOnlyBitmap.FromBitmap(source);
-        Measure("Copy", "EsReadOnlyBitmap 3840x2160", () =>
-        {
-            var image = read.Copy();
-            return new Item(image, BytesOf(image));
-        });
-
-        Measure("FromReadOnlyBitmap", "3840x2160（複製）", () =>
-        {
-            var image = EsBitmap.FromReadOnlyBitmap(read);
-            return new Item(image, BytesOf(image));
-        });
-
-        Measure("FromBitmap", "未凍結の EsBitmap（複製）", () =>
-        {
-            var image = EsReadOnlyBitmap.FromBitmap(source);
-            return new Item(image, BytesOf(image));
-        });
-
-        using (var frozen = source.Copy())
-        {
-            frozen.SetReadOnly();
-            Measure("FromBitmap", "凍結済みの EsBitmap（共有）", () =>
+            using (var view = bit.ToPixmap(new EsRectInt(0, 0, size.Width, size.Height)))
             {
-                var image = EsReadOnlyBitmap.FromBitmap(frozen);
-                return new Item(image, 0);
-            });
+                Measure(SectionCreation, "FromPixmap", ClassBit, label, "", () => new Item(EsBitmap.FromPixmap(view)));
+                Measure(SectionCreation, "FromPixmap", ClassRead, label, "", () => new Item(EsReadOnlyBitmap.FromPixmap(view)));
+            }
+
+            // 借用は呼び出し側が確保した領域を受ける（解放は本プログラムが行う）
+            var pixels = Marshal.AllocHGlobal(size.Width * size.Height * EsBitmap.BytesPerPixel);
+            try
+            {
+                Measure(SectionCreation, "InstallPixels", ClassBit, label, "", () => new Item(EsBitmap.InstallPixels(size.Width, size.Height, pixels)), repeat: Repeat);
+                Measure(SectionCreation, "InstallPixels", ClassRead, label, "", () => new Item(EsReadOnlyBitmap.InstallPixels(size.Width, size.Height, pixels)), repeat: Repeat);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(pixels);
+            }
         }
-
-        AddSection("3. 生成と複製", start, Columns.Dimensions);
     }
 
-    private static void MeasureCropAndView()
+    /// <summary>切り出し（複製）と 0 コピーのビューを型と寸法ごとに計測する。</summary>
+    private static void MeasureCrop()
     {
-        var start = s_rows.Count;
-
-        using var full = Create(3840, 2160, Pattern.Mixed);
-        using var half = Create(1920, 1080, Pattern.Gradient);
-
-        Measure("Crop", "3840x2160 → 1000x800（内側）", () =>
+        foreach (var size in s_sizes)
         {
-            var image = full.Crop(new EsRectInt(1200, 700, 1000, 800));
-            return new Item(image, BytesOf(image));
-        });
+            var label = size.Label;
+            var rect = InnerRect(size);
 
-        Measure("Crop", "3840x2160 → 3840x2160（全域）", () =>
-        {
-            var image = full.Crop(new EsRectInt(0, 0, 3840, 2160));
-            return new Item(image, BytesOf(image));
-        });
+            using var bit = Create(size);
+            using var read = ReadOnly(size);
 
-        Measure("Crop", "1920x1080 → 320x180", () =>
-        {
-            var image = half.Crop(new EsRectInt(800, 450, 320, 180));
-            return new Item(image, BytesOf(image));
-        });
+            Measure(SectionCrop, "Crop", ClassBit, label, "", () => new Item(bit.Crop(rect)));
+            Measure(SectionCrop, "Crop", ClassRead, label, "", () => new Item(read.Crop(rect)));
 
-        Measure("ToPixmap", "3840x2160 → 1000x800", () =>
-        {
-            var view = full.ToPixmap(new EsRectInt(1200, 700, 1000, 800));
-            return new Item(view, 0);
-        });
+            Measure(SectionCrop, "ToPixmap", ClassBit, label, "", () => new Item(bit.ToPixmap(rect)), repeat: Repeat);
+            Measure(SectionCrop, "ToPixmap", ClassRead, label, "", () => new Item(read.ToPixmap(rect)), repeat: Repeat);
 
-        Measure("ToPixmap", "1920x1080 → 320x180", () =>
-        {
-            var view = half.ToPixmap(new EsRectInt(800, 450, 320, 180));
-            return new Item(view, 0);
-        });
+            // 入れ子は「ビューの一部を指すビュー」であり、生成元がビューでも成り立つ
+            using var view = bit.ToPixmap(new EsRectInt(0, 0, size.Width, size.Height));
+            Measure(SectionCrop, "ToPixmap", ClassView, label, "", () => new Item(view.ToPixmap(rect)), repeat: Repeat);
 
-        Measure("ToPixmap", "ビュー 1000x800 → 320x180（入れ子）", () =>
-        {
-            using var parent = full.ToPixmap(new EsRectInt(1200, 700, 1000, 800));
-            var view = parent.ToPixmap(new EsRectInt(100, 100, 320, 180));
-            return new Item(view, 0);
-        });
-
-        using (var view = full.ToPixmap(new EsRectInt(1200, 700, 1000, 800)))
-        {
-            Measure("FromPixmap", "ビュー 1000x800（複製）", () =>
-            {
-                var image = EsBitmap.FromPixmap(view);
-                return new Item(image, BytesOf(image));
-            });
-
-            Measure("GetPixel", "ビュー 1000x800 から 100 万回", () =>
-            {
-                var total = 0;
-                for (var i = 0; i < 1_000_000; i++)
-                {
-                    var pixel = view.GetPixel(i % view.Width, (i / view.Width) % view.Height);
-                    total += pixel.B + pixel.G + pixel.R + pixel.A;
-                }
-
-                GC.KeepAlive(total);
-                return new Item(null, 0);
-            });
+            using var parentBit = bit.ToPixmap(new EsRectInt(0, 0, size.Width, size.Height));
+            using var parentRead = read.ToPixmap(new EsRectInt(0, 0, size.Width, size.Height));
+            Measure(SectionCrop, "ToPixmap（入れ子）", ClassBit, label, "", () => new Item(parentBit.ToPixmap(rect)), repeat: Repeat);
+            Measure(SectionCrop, "ToPixmap（入れ子）", ClassRead, label, "", () => new Item(parentRead.ToPixmap(rect)), repeat: Repeat);
+            Measure(SectionCrop, "ToPixmap（入れ子）", ClassView, label, "", () => new Item(view.ToPixmap(rect)), repeat: Repeat);
         }
-
-        AddSection("4. 切り出しと 0 コピーのビュー", start, Columns.Dimensions);
     }
 
+    /// <summary>縮小を型・品質・寸法ごとに計測する（縮小先は長辺 320 に固定）。</summary>
     private static void MeasureResize()
     {
-        var start = s_rows.Count;
+        using var source = Create(new SizeCase("source", 3840, 2160));
 
-        using var full = ReadOnly(3840, 2160, Pattern.Mixed);
-        using var half = ReadOnly(1920, 1080, Pattern.Gradient);
-
-        foreach (var quality in s_qualities)
+        foreach (var size in s_sizes)
         {
-            Measure("Resize", "3840x2160 → 長辺 320（" + quality + "）", () =>
-            {
-                var image = full.Resize(320, quality);
-                return new Item(image, BytesOf(image));
-            });
+            var label = size.Label;
+            using var bit = Create(size);
+            using var read = ReadOnly(size);
+            using var view = source.ToPixmap(new EsRectInt(0, 0, size.Width, size.Height));
 
-            Measure("Resize", "3840x2160 → 長辺 1920（" + quality + "）", () =>
-            {
-                var image = full.Resize(1920, quality);
-                return new Item(image, BytesOf(image));
-            });
-
-            Measure("Resize", "1920x1080 → 長辺 96（" + quality + "）", () =>
-            {
-                var image = half.Resize(96, quality);
-                return new Item(image, BytesOf(image));
-            });
-
-            Measure("Resize", "1920x1080 → 長辺 320（" + quality + "）", () =>
-            {
-                var image = half.Resize(320, quality);
-                return new Item(image, BytesOf(image));
-            });
-        }
-
-        using (var writable = Create(3840, 2160, Pattern.Mixed))
-        {
-            Measure("Resize", "EsBitmap 3840x2160 → 長辺 320（Mid）", () =>
-            {
-                var image = writable.Resize(320, EsImageQuality.Mid);
-                return new Item(image, BytesOf(image));
-            });
-        }
-
-        using (var view = full.ToPixmap(new EsRectInt(1200, 700, 1000, 800)))
-        {
             foreach (var quality in s_qualities)
             {
-                Measure("Resize", "ビュー 1000x800 → 長辺 320（" + quality + "）", () =>
-                {
-                    var image = view.Resize(320, quality);
-                    return new Item(image, BytesOf(image));
-                });
+                var variant = quality.ToString();
+                Measure(SectionResize, "Resize", ClassBit, label, variant, () => new Item(bit.Resize(ResizeMaxSize, quality)));
+                Measure(SectionResize, "Resize", ClassRead, label, variant, () => new Item(read.Resize(ResizeMaxSize, quality)));
+                Measure(SectionResize, "Resize", ClassView, label, variant, () => new Item(view.Resize(ResizeMaxSize, quality)));
             }
         }
-
-        AddSection("5. 縮小（長辺の上限へ収める）", start, Columns.Dimensions);
     }
 
+    /// <summary>減色を型・品質・色数・ディザ・寸法ごとに計測する。</summary>
     private static void MeasureReduceColors()
     {
-        var start = s_rows.Count;
+        using var source = Create(new SizeCase("source", 3840, 2160));
 
-        using var flat = ReadOnly(1920, 1080, Pattern.Flat);
-        using var gradient = ReadOnly(1920, 1080, Pattern.Gradient);
-        using var noise = ReadOnly(1920, 1080, Pattern.Noise);
-
-        foreach (var quality in s_qualities)
+        foreach (var size in s_sizes)
         {
-            MeasureReduce(flat, "平坦（箱が少ない）", 256, quality, EsDitherMode.None);
-            MeasureReduce(gradient, "グラデーション（箱が多い）", 256, quality, EsDitherMode.None);
-            MeasureReduce(gradient, "グラデーション（箱が多い）", 16, quality, EsDitherMode.None);
-            MeasureReduce(noise, "ノイズ（箱が最大）", 256, quality, EsDitherMode.None);
-        }
+            var label = size.Label;
+            using var bit = Create(size);
+            using var read = ReadOnly(size);
+            using var view = source.ToPixmap(new EsRectInt(0, 0, size.Width, size.Height));
 
-        MeasureReduce(noise, "ノイズ（箱が最大）", 16, EsImageQuality.Mid, EsDitherMode.None);
-        MeasureReduce(flat, "平坦（箱が少ない）", 16, EsImageQuality.Mid, EsDitherMode.FloydSteinberg);
-        MeasureReduce(gradient, "グラデーション（箱が多い）", 16, EsImageQuality.Mid, EsDitherMode.FloydSteinberg);
-        MeasureReduce(gradient, "グラデーション（箱が多い）", 256, EsImageQuality.Mid, EsDitherMode.FloydSteinberg);
-        MeasureReduce(noise, "ノイズ（箱が最大）", 256, EsImageQuality.Mid, EsDitherMode.FloydSteinberg);
-
-        using (var full = ReadOnly(3840, 2160, Pattern.Mixed))
-        using (var view = full.ToPixmap(new EsRectInt(1200, 700, 1000, 800)))
-        {
-            Measure("ReduceColors", "ビュー 1000x800 → 256 色（Mid）", () =>
+            foreach (var quality in s_qualities)
             {
-                var image = view.ReduceColors(256, EsImageQuality.Mid);
-                return new Item(image, BytesOf(image));
-            });
+                var variant = ReduceVariant(256, quality, EsDitherMode.None);
+                Measure(SectionReduce, "ReduceColors", ClassBit, label, variant, () => new Item(bit.ReduceColors(256, quality)));
+                Measure(SectionReduce, "ReduceColors", ClassRead, label, variant, () => new Item(read.ReduceColors(256, quality)));
+                Measure(SectionReduce, "ReduceColors", ClassView, label, variant, () => new Item(view.ReduceColors(256, quality)));
+            }
+
+            foreach (var dither in new[] { EsDitherMode.None, EsDitherMode.FloydSteinberg })
+            {
+                foreach (var colors in new[] { 16, 256 })
+                {
+                    var variant = ReduceVariant(colors, EsImageQuality.Mid, dither);
+                    Measure(SectionReduce, "ReduceColors", ClassBit, label, variant, () => new Item(bit.ReduceColors(colors, EsImageQuality.Mid, dither)));
+                    Measure(SectionReduce, "ReduceColors", ClassRead, label, variant, () => new Item(read.ReduceColors(colors, EsImageQuality.Mid, dither)));
+                    Measure(SectionReduce, "ReduceColors", ClassView, label, variant, () => new Item(view.ReduceColors(colors, EsImageQuality.Mid, dither)));
+                }
+            }
         }
-
-        AddSection("6. 減色（Low / Mid / High とディザ）", start, Columns.Dimensions);
     }
 
-    private static void MeasureReduce(
-        EsReadOnlyBitmap source, string target, int colors, EsImageQuality quality, EsDitherMode dither)
-    {
-        var label = dither == EsDitherMode.None
-            ? target + " → " + colors.ToString(CultureInfo.InvariantCulture) + " 色（" + quality + "）"
-            : target + " → " + colors.ToString(CultureInfo.InvariantCulture) + " 色（" + quality + " / ディザ " + dither + "）";
-
-        Measure("ReduceColors", label, () =>
-        {
-            var image = source.ReduceColors(colors, quality, dither);
-            return new Item(image, BytesOf(image));
-        });
-    }
-
+    /// <summary>画素の取得・設定・走査を型と寸法ごとに計測する。</summary>
     private static void MeasurePixelAccess()
     {
-        var start = s_rows.Count;
+        const int accesses = 1_000_000;
+        var pixelIterations = s_pixelIterations;
+        using var source = Create(new SizeCase("source", 3840, 2160));
 
-        using var full = Create(3840, 2160, Pattern.Mixed);
+        foreach (var size in s_sizes)
+        {
+            var label = size.Label;
+            using var bit = Create(size);
+            using var read = ReadOnly(size);
+            using var view = source.ToPixmap(new EsRectInt(0, 0, size.Width, size.Height));
 
-        Measure("GetPixel", "3840x2160 から 100 万回", () =>
+            Measure(SectionPixel, "GetPixel", ClassBit, label, "", () => SumPixels(bit.Width, bit.Height, i => bit.GetPixel(i % bit.Width, (i / bit.Width) % bit.Height)), pixelIterations);
+            Measure(SectionPixel, "GetPixel", ClassRead, label, "", () => SumPixels(read.Width, read.Height, i => read.GetPixel(i % read.Width, (i / read.Width) % read.Height)), pixelIterations);
+            Measure(SectionPixel, "GetPixel", ClassView, label, "", () => SumPixels(view.Width, view.Height, i => view.GetPixel(i % view.Width, (i / view.Width) % view.Height)), pixelIterations);
+
+            Measure(SectionPixel, "SetPixel", ClassBit, label, "", () =>
+            {
+                for (var i = 0; i < accesses; i++)
+                {
+                    bit.SetPixel(i % bit.Width, (i / bit.Width) % bit.Height, 0x11, 0x22, 0x33, 0xFF);
+                }
+
+                return new Item(null);
+            }, pixelIterations);
+
+            Measure(SectionPixel, "Clear", ClassBit, label, "", () =>
+            {
+                bit.Clear(0, 0, 0, 0);
+                return new Item(null);
+            });
+
+            MeasureScan(SectionPixel, "ReadOnlyPixels", ClassBit, label, () => bit.ReadOnlyPixels);
+            MeasureScan(SectionPixel, "ReadOnlyPixels", ClassRead, label, () => read.ReadOnlyPixels);
+            MeasureScan(SectionPixel, "ReadOnlyPixels", ClassView, label, () => view.ReadOnlyPixels);
+
+            Measure(SectionPixel, "Pixels", ClassBit, label, "", () =>
+            {
+                var pixels = bit.Pixels;
+                for (var i = 0; i < pixels.Length; i++)
+                {
+                    pixels[i] = (byte)i;
+                }
+
+                return new Item(null);
+            });
+        }
+    }
+
+    /// <summary>ファイル入出力を型と寸法ごとに計測する（Windows 専用の符号化）。</summary>
+    [SupportedOSPlatform("windows")]
+    private static void MeasureFiles()
+    {
+        foreach (var size in s_sizes)
+        {
+            var label = size.Label;
+            using var bit = Create(size);
+            using var read = ReadOnly(size);
+            var path = Path.Combine(FileDirectory(), $"{size.Width}x{size.Height}.png");
+
+            Measure(SectionFile, "Save", ClassBit, label, "", () =>
+            {
+                bit.Save(path);
+                return new Item(null, new FileInfo(path).Length);
+            }, s_fileIterations);
+
+            Measure(SectionFile, "Save", ClassRead, label, "", () =>
+            {
+                read.Save(path);
+                return new Item(null, new FileInfo(path).Length);
+            }, s_fileIterations);
+
+            Measure(SectionFile, "Load", ClassBit, label, "", () => new Item(EsBitmap.Load(path)), s_fileIterations);
+            Measure(SectionFile, "Load", ClassRead, label, "", () => new Item(EsReadOnlyBitmap.Load(path)), s_fileIterations);
+        }
+    }
+
+    private static Item SumPixels(int width, int height, Func<int, (byte B, byte G, byte R, byte A)> read)
+    {
+        var total = 0L;
+        for (var i = 0; i < width * height && i < 1_000_000; i++)
+        {
+            var pixel = read(i);
+            total += pixel.B + pixel.G + pixel.R + pixel.A;
+        }
+
+        GC.KeepAlive(total);
+        return new Item(null);
+    }
+
+    private static void MeasureScan(string section, string method, string className, string size, Func<ReadOnlySpan<byte>> pixels)
+    {
+        Measure(section, method, className, size, "", () =>
         {
             var total = 0L;
-            for (var i = 0; i < 1_000_000; i++)
-            {
-                var pixel = full.GetPixel(i % full.Width, (i / full.Width) % full.Height);
-                total += pixel.B + pixel.G + pixel.R + pixel.A;
-            }
-
-            GC.KeepAlive(total);
-            return new Item(null, 0);
-        });
-
-        Measure("SetPixel", "3840x2160 へ 100 万回", () =>
-        {
-            for (var i = 0; i < 1_000_000; i++)
-            {
-                full.SetPixel(i % full.Width, (i / full.Width) % full.Height, 0x11, 0x22, 0x33, 0xFF);
-            }
-
-            return new Item(null, 0);
-        });
-
-        Measure("ReadOnlyPixels", "3840x2160 の全域を走査", () =>
-        {
-            var total = 0L;
-            foreach (var value in full.ReadOnlyPixels)
+            foreach (var value in pixels())
             {
                 total += value;
             }
 
             GC.KeepAlive(total);
-            return new Item(null, 0);
+            return new Item(null);
         });
-
-        Measure("Clear", "3840x2160 を透明で塗る", () =>
-        {
-            full.Clear(0, 0, 0, 0);
-            return new Item(null, 0);
-        });
-
-        AddSection("7. 画素の取得・設定・走査", start, Columns.Plain);
     }
 
-    [SupportedOSPlatform("windows")]
-    private static void MeasureFileIo()
+    /// <summary>1 ケースを計測する（ウォームアップ後、中央値と 1 回あたりのマネージド確保を採る）。</summary>
+    /// <remarks>
+    /// <b>ウォームアップを厚くする理由</b>: 実行時は呼び出しの回数で最適化の段階を上げるため、
+    /// 回数が少ないと<b>最適化されていないコードの所要</b>を測ってしまい、同じ処理でも測定の順番で
+    /// 数倍の差が出ます。 <see cref="WarmupFloor"/> 回を下限とすることで、計測は最適化後の値になります。
+    /// </remarks>
+    private static void Measure(
+        string section, string method, string className, string size, string variant, Func<Item> body, int? iterations = null, int repeat = 1)
     {
-        var start = s_rows.Count;
+        var count = iterations ?? s_iterations;
 
-        using var full = Create(3840, 2160, Pattern.Mixed);
-        using var half = Create(1920, 1080, Pattern.Gradient);
-
-        Measure("Save", "3840x2160 → PNG", () =>
+        for (var i = 0; i < s_warmup; i++)
         {
-            full.Save(PathTo("4k.png"));
-            return new Item(null, 0);
-        });
+            RunRepeated(body, repeat);
+        }
 
-        Measure("Save", "3840x2160 → BMP", () =>
+        var times = new double[count];
+        var managed = 0L;
+        var note = 0L;
+
+        for (var i = 0; i < count; i++)
         {
-            full.Save(PathTo("4k.bmp"));
-            return new Item(null, 0);
-        });
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var started = Stopwatch.GetTimestamp();
+            for (var r = 0; r < repeat; r++)
+            {
+                var item = body();
+                note = item.Note;
+                item.Dispose();
+            }
 
-        Measure("Save", "1920x1080 → PNG（256 色へ減色）", () =>
-        {
-            half.Save(PathTo("1080.png"), new EsImageSaveOptions { ColorCount = 256 });
-            return new Item(null, 0);
-        });
+            var elapsed = Stopwatch.GetElapsedTime(started);
+            managed += GC.GetAllocatedBytesForCurrentThread() - before;
+            times[i] = elapsed.TotalMilliseconds / repeat;
+        }
 
-        Measure("Save", "1920x1080 → GIF（256 色へ減色）", () =>
-        {
-            half.Save(PathTo("1080.gif"), new EsImageSaveOptions { ColorCount = 256 });
-            return new Item(null, 0);
-        });
-
-        Measure("Save", "1920x1080 → JPEG（品質 90）", () =>
-        {
-            half.Save(PathTo("1080.jpg"), new EsImageSaveOptions { JpegQuality = 90 });
-            return new Item(null, 0);
-        });
-
-        Measure("Load", "PNG 3840x2160", () =>
-        {
-            var image = EsBitmap.Load(PathTo("4k.png"));
-            return new Item(image, BytesOf(image));
-        });
-
-        Measure("Load", "PNG 1920x1080（256 色）", () =>
-        {
-            var image = EsBitmap.Load(PathTo("1080.png"));
-            return new Item(image, BytesOf(image));
-        });
-
-        AddSection("8. ファイル入出力（Windows 専用の符号化）", start, Columns.FileSize);
+        Array.Sort(times);
+        s_cases[(section, method, className, size, variant)] =
+            new Measured(times[times.Length / 2], managed / (count * repeat), note);
     }
 
-    private static string PathTo(string name)
+    /// <summary>本体を指定の回数だけ呼び、結果を破棄する。</summary>
+    private static void RunRepeated(Func<Item> body, int repeat)
     {
-        var directory = Path.Combine(Path.GetTempPath(), "SaveEvidence.Measurement.Files");
-        Directory.CreateDirectory(directory);
-        return Path.Combine(directory, name);
+        for (var r = 0; r < repeat; r++)
+        {
+            body().Dispose();
+        }
     }
+
+    // ====================================================================
+    // 表の組み立て
+    // ====================================================================
+
+    private static void Emit()
+    {
+        AppendEnvironment();
+        AppendTargets();
+        AppendMethodSection(4, "生成と複製", SectionCreation,
+            ["Create", "CreateFilled", "FromPixelCopy", "Copy", "FromReadOnlyBitmap", "FromBitmap", "FromPixmap", "InstallPixels"]);
+        AppendMethodSection(5, "切り出しと 0 コピーのビュー", SectionCrop, ["Crop", "ToPixmap", "ToPixmap（入れ子）"]);
+        AppendResizeSection(6);
+        AppendReduceSection(7);
+        AppendMethodSection(8, "画素の取得・設定・走査", SectionPixel,
+            ["GetPixel", "SetPixel", "Clear", "ReadOnlyPixels", "Pixels"],
+            "メソッドごとに、行を型・列を寸法とした 2 軸表を示します。 `GetPixel` と `SetPixel` は **1 回あたり 1,000,000 画素**を扱う時間、`Clear` / `ReadOnlyPixels` / `Pixels` は **1 回あたり全画素**を扱う時間です。");
+        AppendMethodSection(9, "ファイル入出力（Windows 専用の符号化）", SectionFile, ["Save", "Load"]);
+    }
+
+    private static void AppendEnvironment()
+    {
+        AddHeading("## 2. 計測環境");
+        var environment = new (string Item, string Value)[]
+        {
+            ("計測日時", DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture)),
+            ("OS", RuntimeInformation.OSDescription.Trim()),
+            ("プロセッサ", string.Create(CultureInfo.InvariantCulture, $"{Environment.ProcessorCount} 論理コア / {RuntimeInformation.ProcessArchitecture}")),
+            (".NET", Environment.Version.ToString()),
+            ("サーバー GC", GCSettings.IsServerGC.ToString()),
+            ("構成", "Release（最適化あり）"),
+            ("ウォームアップ / 計測回数", string.Create(CultureInfo.InvariantCulture, $"{s_warmup} 回 / {s_iterations} 回（中央値。 ファイル入出力は {s_fileIterations} 回、画素の取得と設定は {s_pixelIterations} 回）")),
+        };
+
+        AddTable(["項目", "値"], environment.Select(e => new[] { e.Item, e.Value }));
+    }
+
+    private static void AppendTargets()
+    {
+        AddHeading("## 3. 計測の対象");
+        AddText("計測するのは **公開 API だけ**です（内部型の名前を計測コードへ埋め込まないため、実装を変えても計測が壊れません）。 対象は次の 3 型で、すべての表が**どの型を計測したか**を行または節の軸に持ちます。");
+        AddTable(["型", "何であるか", "計測に使う入口"], [
+            [ClassBit, "書き換え可能な画像", "`Create` 系・`SetPixel`・`Pixels`・`Clear`・`SetReadOnly`"],
+            [ClassRead, "読み取り専用の画像", "`Create` 系・`FromBitmap`・`Copy`・`Save`・`Load`"],
+            [ClassView, "画像の一部を指す 0 コピーの読み取りビュー", "`ToPixmap`（生成の唯一の入口）・`Resize`・`ReduceColors`"],
+        ]);
+
+        AddText("**セルの書式**は「所要 (ms) / マネージド確保 (B)」です（所要は 0.000001 ms（1 ナノ秒）まで表示します）。 `-` はその型にメソッドが無い（対称でない）ことを表します。 1 マイクロ秒を下回る操作は、タイマーの分解能に埋もれるため **1 回の計測につき 100 回呼び、1 回あたりへ換算**します。");
+        AddText("**寸法の軸**は元の画像（`EsPixmap` はビュー）の寸法です。 縮小だけは**縮小先を長辺 320 に固定**します（型と寸法の比較を揃えるため）。 減色は 256 色を既定とし、ディザの節は 16 色と 256 色を並べます。");
+        AddText("1 回だけ呼ぶ操作（`Dispose` / `ThrowIfDisposed`）と、実体ごとに 1 度しか呼べない操作（`SetReadOnly`）は、所要が他の処理に支配されるため計測しません。 `ToString` 系（`ToSizeText`）と、幅・高さ・行の間隔などのプロパティ（フィールドの読み取りだけ）も同様です。");
+        AddText("**確保は計測したスレッドの分だけ**です（内部が並列の場合は他スレッドの確保を含みません）。");
+    }
+
+    /// <summary>メソッドごとに「型 × 寸法」の 2 軸表を出力する。</summary>
+    private static void AppendMethodSection(int number, string heading, string section, string[] methods, string? caption = null)
+    {
+        AddHeading($"## {number}. {heading}");
+        AddText(caption ?? "メソッドごとに、行を型・列を寸法とした 2 軸表を示します。");
+
+        for (var i = 0; i < methods.Length; i++)
+        {
+            AddHeading($"### {number}.{i + 1} {methods[i]}");
+            AddTable(
+                Row("型", s_sizes.Select(static s => s.Label)),
+                s_classNames.Select(cls => Row(cls, s_sizes.Select(s => Cell(section, methods[i], cls, s.Label, "")))));
+        }
+    }
+
+    /// <summary>縮小を型ごとに「品質 × 寸法」の 2 軸表で出力する。</summary>
+    private static void AppendResizeSection(int number)
+    {
+        AddHeading($"## {number}. 縮小（長辺 {ResizeMaxSize} へ収める）");
+        AddText($"縮小先を**長辺 {ResizeMaxSize} に固定**し、型ごとに、行を品質・列を元画像の寸法とした 2 軸表を示します。");
+
+        for (var i = 0; i < s_classNames.Length; i++)
+        {
+            var cls = s_classNames[i];
+            AddHeading($"### {number}.{i + 1} {cls}");
+            AddTable(
+                Row("品質", s_sizes.Select(static s => s.Label)),
+                s_qualities.Select(q => Row(q.ToString(), s_sizes.Select(s => Cell(SectionResize, "Resize", cls, s.Label, q.ToString())))));
+        }
+    }
+
+    /// <summary>減色を型ごとに「品質 / ディザ × 寸法」の 2 軸表で出力する。</summary>
+    private static void AppendReduceSection(int number)
+    {
+        AddHeading($"## {number}. 減色");
+        AddText("型ごとに、行を品質またはディザ・列を元画像の寸法とした 2 軸表を示します。");
+
+        var sub = 0;
+        for (var i = 0; i < s_classNames.Length; i++)
+        {
+            var cls = s_classNames[i];
+            AddHeading($"### {number}.{++sub} {cls}（品質）");
+            AddTable(
+                Row("品質（256 色）", s_sizes.Select(static s => s.Label)),
+                s_qualities.Select(q => Row(q.ToString(), s_sizes.Select(s => Cell(SectionReduce, "ReduceColors", cls, s.Label, ReduceVariant(256, q, EsDitherMode.None))))));
+
+            AddHeading($"### {number}.{++sub} {cls}（ディザ）");
+            var ditherRows = new List<string[]>();
+            foreach (var dither in new[] { EsDitherMode.None, EsDitherMode.FloydSteinberg })
+            {
+                foreach (var colors in new[] { 16, 256 })
+                {
+                    ditherRows.Add(Row(
+                        DitherLabel(colors, dither),
+                        s_sizes.Select(s => Cell(SectionReduce, "ReduceColors", cls, s.Label, ReduceVariant(colors, EsImageQuality.Mid, dither)))));
+                }
+            }
+
+            AddTable(Row("指定（Mid）", s_sizes.Select(static s => s.Label)), ditherRows);
+        }
+    }
+
+    /// <summary>先頭のセル 1 つと、寸法ごとのセルから 1 行を作る。</summary>
+    private static string[] Row(string first, IEnumerable<string> rest) => [first, .. rest];
+
+    private static string DitherLabel(int colors, EsDitherMode dither)
+        => dither == EsDitherMode.None
+            ? $"{colors.ToString(CultureInfo.InvariantCulture)} 色（ディザなし）"
+            : $"{colors.ToString(CultureInfo.InvariantCulture)} 色（Floyd–Steinberg）";
+
+    private static string ReduceVariant(int colors, EsImageQuality quality, EsDitherMode dither)
+        => string.Create(CultureInfo.InvariantCulture, $"{colors}色 {quality} {DitherLabel(colors, dither)}");
+
+    private static string Cell(string section, string method, string className, string size, string variant)
+    {
+        if (!s_cases.TryGetValue((section, method, className, size, variant), out var measured))
+        {
+            return "-";
+        }
+
+        return Format(measured.Milliseconds) + " / " + measured.Managed.ToString("N0", CultureInfo.InvariantCulture);
+    }
+
+    private static void AddHeading(string text)
+    {
+        s_report.Add(text);
+        s_report.Add("");
+    }
+
+    private static void AddText(string text)
+    {
+        s_report.Add(text);
+        s_report.Add("");
+    }
+
+    private static void AddTable(string[] columns, IEnumerable<string[]> rows)
+    {
+        s_report.Add("| " + string.Join(" | ", columns) + " |");
+        s_report.Add("| " + string.Join(" | ", columns.Select(static _ => "---")) + " |");
+        foreach (var row in rows)
+        {
+            s_report.Add("| " + string.Join(" | ", row) + " |");
+        }
+
+        s_report.Add("");
+    }
+
+    private static string Format(double milliseconds)
+        => milliseconds switch
+        {
+            >= 1.0 => milliseconds.ToString("F3", CultureInfo.InvariantCulture),
+            >= 0.001 => milliseconds.ToString("F4", CultureInfo.InvariantCulture),
+            _ => milliseconds.ToString("F6", CultureInfo.InvariantCulture),
+        };
+
+    // ====================================================================
+    // ヘルパー
+    // ====================================================================
+
+    private static EsBitmap Create(SizeCase size)
+        => EsBitmap.CreateFilled(size.Width, size.Height, static p => p.Clear());
+
+    private static EsReadOnlyBitmap ReadOnly(SizeCase size)
+        => EsReadOnlyBitmap.CreateFilled(size.Width, size.Height, static p => p.Clear());
+
+    /// <summary>寸法の中央の 1/4 面積を切り出す矩形（切り出しの比較条件を揃える）。</summary>
+    private static EsRectInt InnerRect(SizeCase size)
+        => new(size.Width / 4, size.Height / 4, size.Width / 2, size.Height / 2);
+
+    private static string FileDirectory()
+        => Path.Combine(Path.GetTempPath(), "SaveEvidence.Measurement.Files");
 
     /// <summary>計測で書いたファイルを片付ける（次回の計測へ持ち越さない）。</summary>
     private static void CleanUpFiles()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "SaveEvidence.Measurement.Files");
+        var directory = FileDirectory();
         if (Directory.Exists(directory))
         {
             Directory.Delete(directory, recursive: true);
         }
     }
 
-    private static void Measure(string operation, string target, Func<Item> body)
+    private readonly record struct SizeCase(string Label, int Width, int Height);
+
+    private readonly record struct Measured(double Milliseconds, long Managed, long Note);
+
+    private readonly struct Item(IDisposable? value, long note = 0) : IDisposable
     {
-        for (var i = 0; i < s_warmup; i++)
-        {
-            body().Dispose();
-        }
+        public long Note { get; } = note;
 
-        var times = new double[s_iterations];
-        var managed = 0L;
-        var bytes = 0L;
-
-        for (var i = 0; i < s_iterations; i++)
-        {
-            var before = GC.GetAllocatedBytesForCurrentThread();
-            var started = Stopwatch.GetTimestamp();
-            var item = body();
-            var elapsed = Stopwatch.GetElapsedTime(started);
-            managed += GC.GetAllocatedBytesForCurrentThread() - before;
-            bytes = item.Bytes;
-            item.Dispose();
-            times[i] = elapsed.TotalMilliseconds;
-        }
-
-        Array.Sort(times);
-        s_rows.Add(new Row(operation, target, times[times.Length / 2], managed / s_iterations, bytes, OutputSize(target)));
-    }
-
-    private static long OutputSize(string target)
-    {
-        var name = target switch
-        {
-            "3840x2160 → PNG" => "4k.png",
-            "3840x2160 → BMP" => "4k.bmp",
-            "1920x1080 → PNG（256 色へ減色）" => "1080.png",
-            "1920x1080 → GIF（256 色へ減色）" => "1080.gif",
-            "1920x1080 → JPEG（品質 90）" => "1080.jpg",
-            _ => null,
-        };
-
-        if (name is null)
-        {
-            return 0;
-        }
-
-        var path = PathTo(name);
-        return File.Exists(path) ? new FileInfo(path).Length : 0;
-    }
-
-    private static void AddSection(string title, int start, Columns columns)
-    {
-        s_report.AppendLine("## " + title);
-        s_report.AppendLine();
-
-        switch (columns)
-        {
-            case Columns.Dimensions:
-                s_report.AppendLine("| 操作 | 対象 | 所要 (ms) | マネージド確保 (B) | 画素のバイト数 (B) |");
-                s_report.AppendLine("| --- | --- | --- | --- | --- |");
-                break;
-
-            case Columns.FileSize:
-                s_report.AppendLine("| 操作 | 対象 | 所要 (ms) | マネージド確保 (B) | 出力ファイル (B) |");
-                s_report.AppendLine("| --- | --- | --- | --- | --- |");
-                break;
-
-            default:
-                s_report.AppendLine("| 操作 | 対象 | 所要 (ms) | マネージド確保 (B) |");
-                s_report.AppendLine("| --- | --- | --- | --- |");
-                break;
-        }
-
-        foreach (var row in s_rows.Skip(start))
-        {
-            var line = "| " + row.Operation + " | " + row.Target + " | " + Format(row.Milliseconds)
-                + " | " + row.Managed.ToString("N0", CultureInfo.InvariantCulture);
-
-            line += columns switch
-            {
-                Columns.Dimensions => " | " + row.Bytes.ToString("N0", CultureInfo.InvariantCulture) + " |",
-                Columns.FileSize => " | " + row.Note.ToString("N0", CultureInfo.InvariantCulture) + " |",
-                _ => " |",
-            };
-
-            s_report.AppendLine(line);
-        }
-
-        s_report.AppendLine();
-    }
-
-    private static string Format(double milliseconds)
-        => milliseconds < 1.0
-            ? milliseconds.ToString("F4", CultureInfo.InvariantCulture)
-            : milliseconds.ToString("F3", CultureInfo.InvariantCulture);
-
-    private static long BytesOf(EsBitmap image) => (long)image.Width * EsBitmap.BytesPerPixel * image.Height;
-
-    private static long BytesOf(EsReadOnlyBitmap image) => (long)image.Width * EsReadOnlyBitmap.BytesPerPixel * image.Height;
-
-    private static EsBitmap Create(int width, int height, Pattern pattern)
-        => EsBitmap.CreateFilled(width, height, pixels => Fill(pixels, width, height, pattern));
-
-    private static EsReadOnlyBitmap ReadOnly(int width, int height, Pattern pattern)
-        => EsReadOnlyBitmap.CreateFilled(width, height, pixels => Fill(pixels, width, height, pattern));
-
-    private static void Fill(Span<byte> pixels, int width, int height, Pattern pattern)
-    {
-        for (var y = 0; y < height; y++)
-        {
-            for (var x = 0; x < width; x++)
-            {
-                byte b;
-                byte g;
-                byte r;
-
-                switch (pattern)
-                {
-                    case Pattern.Flat:
-                        {
-                            var block = (((x / 32) + (y / 32)) % 2) == 0;
-                            b = block ? (byte)0x30 : (byte)0x90;
-                            g = 0x60;
-                            r = block ? (byte)0x90 : (byte)0x30;
-                            break;
-                        }
-
-                    case Pattern.Gradient:
-                        {
-                            b = (byte)(((long)x * 255) / (width - 1));
-                            g = (byte)(((long)y * 255) / (height - 1));
-                            r = (byte)((((long)x + y) * 255) / (width + height - 2));
-                            break;
-                        }
-
-                    case Pattern.Noise:
-                        {
-                            var seed = Noise(x, y);
-                            b = (byte)seed;
-                            g = (byte)(seed >> 8);
-                            r = (byte)(seed >> 16);
-                            break;
-                        }
-
-                    default:
-                        {
-                            var seed = Noise(x, y);
-                            var block = (((x / 96) + (y / 96)) % 3) == 0;
-                            b = block ? (byte)0x28 : (byte)seed;
-                            g = block ? (byte)0x50 : (byte)(seed >> 8);
-                            r = block ? (byte)0x78 : (byte)(seed >> 16);
-                            break;
-                        }
-                }
-
-                var offset = ((y * width) + x) * EsBitmap.BytesPerPixel;
-                pixels[offset] = b;
-                pixels[offset + 1] = g;
-                pixels[offset + 2] = r;
-                pixels[offset + 3] = 0xFF;
-            }
-        }
-    }
-
-    private static uint Noise(int x, int y)
-    {
-        var seed = (uint)((y * 0x9E3779B1) ^ (x * 0x85EBCA6B));
-        seed ^= seed << 13;
-        seed ^= seed >> 17;
-        seed ^= seed << 5;
-        return seed;
-    }
-
-    private enum Pattern
-    {
-        Flat,
-        Gradient,
-        Noise,
-        Mixed,
-    }
-
-    private enum Columns
-    {
-        Plain,
-        Dimensions,
-        FileSize,
-    }
-
-    private readonly record struct Row(
-        string Operation, string Target, double Milliseconds, long Managed, long Bytes, long Note);
-
-    private readonly struct Item : IDisposable
-    {
-        private readonly IDisposable? _value;
-
-        public Item(IDisposable? value, long bytes)
-        {
-            _value = value;
-            Bytes = bytes;
-        }
-
-        public long Bytes { get; }
-
-        public void Dispose() => _value?.Dispose();
+        public void Dispose() => value?.Dispose();
     }
 }
 '@
+
+$program = $program.Replace('            var path = Path.Combine(FileDirectory(), $"{size.Width}x{size.Height}.png");',
+    '            Directory.CreateDirectory(FileDirectory());' + "`n" + '            var path = Path.Combine(FileDirectory(), $"{size.Width}x{size.Height}.png");')
 
 [IO.File]::WriteAllText((Join-Path $workspace 'Program.cs'), $program, [Text.UTF8Encoding]::new($false))
 
@@ -742,9 +698,8 @@ if ([string]::IsNullOrWhiteSpace($measuredText)) {
     throw '計測結果が空です。'
 }
 
-Write-Output $measuredText
-
 if ($NoWrite) {
+    Write-Output $measuredText
     Write-Output '（-NoWrite のため Result_Measurement.md は更新しない）'
 }
 else {
