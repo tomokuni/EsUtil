@@ -40,6 +40,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.32 画像のファイル入出力（`Save` / `Load`）](#232-画像のファイル入出力save--load)
   - [2.33 画像型の設計上の判断（兄弟と借用を選んだ理由）](#233-画像型の設計上の判断兄弟と借用を選んだ理由)
   - [2.34 画像操作の他ライブラリとの比較（実測）](#234-画像操作の他ライブラリとの比較実測)
+  - [2.35 3 つの画像型の操作の所要（実測）](#235-3-つの画像型の操作の所要実測)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -54,7 +55,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `EsUtil.Platform.Core` | `EsKey` / `EsKeyExtensions` / `EnumCanonical` / `EsWindowState` / `HotKeyModifiers` / `HotKeySetting` / `CaptureType` / `EsPlatformHandle` / `BoundaryCatch` | キーと入力（正規化含む）・ウィンドウ状態・ホットキー・境界の判定 |
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` | DIP 相当の幾何値型と領域の規則 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI の純粋計算 |
-| `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `ImageQuality` / `DitherMode` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、縮小と減色の品質、描画色の判定 |
+| `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `EsImageQuality` / `EsDitherMode` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、縮小と減色の品質、描画色の判定 |
 | `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` | OS サービスの抽象（UI 非依存） |
 | `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` | 上記抽象の Windows 実装（ホストが生成して注入する） |
 
@@ -578,8 +579,8 @@ public readonly record struct ElementFinderResults(
 | その他 | `Dispose` | あり | あり | 画素領域の解放（冪等） |
 | 複製 | `Copy` | あり（`EsReadOnlyBitmap`） | あり（`EsBitmap`） | **独立した画素**の複製（実測: 4K で 31 MiB / 5.7 ms） |
 | 操作 | `Crop`（2 版） | あり（`EsBitmap`） | あり（`EsBitmap`） | 指定矩形を切り出す（**ソース範囲外は透明で埋める**。 実装は内部の 1 か所） |
-| 操作 | `Resize` | あり（`EsBitmap`） | あり（`EsBitmap`） | 長辺を上限へ収める（**拡大は未サポート**。 品質 `ImageQuality` で速度と画質を選ぶ） |
-| 操作 | `ReduceColors` | あり（`EsBitmap`） | あり（`EsBitmap`） | 指定の色数へ減色する（パレット化。 **不可逆**。 品質 `ImageQuality` と `DitherMode` を選ぶ） |
+| 操作 | `Resize` | あり（`EsBitmap`） | あり（`EsBitmap`） | 長辺を上限へ収める（**拡大は未サポート**。 品質 `EsImageQuality` で速度と画質を選ぶ） |
+| 操作 | `ReduceColors` | あり（`EsBitmap`） | あり（`EsBitmap`） | 指定の色数へ減色する（パレット化。 **不可逆**。 品質 `EsImageQuality` と `EsDitherMode` を選ぶ） |
 | ビュー | `ToPixmap` | あり（`EsPixmap`） | あり（`EsPixmap`） | **0 コピーの読み取りビュー**（行幅は元のストライドのまま。 矩形は画像の内側であること） |
 | ファイル | `Save`（2 版） | あり | あり | ファイルへ保存する（**形式は拡張子が決める**。 2 型とも同じ手順。 Windows 専用） |
 | static | `SupportedFileExtensions` | あり | あり | 保存に使える拡張子（Windows 専用） |
@@ -615,8 +616,8 @@ public readonly record struct ElementFinderResults(
 | プロパティ | `Stride` | `int` | **元画像のストライドのまま**（`幅 × 4` より大きい場合がある。 名前を画像と同じ `Stride` にするのは「1 ラインあたりのバイト数」が同じ概念であるため） |
 | プロパティ | `ReadOnlyPixels` | `ReadOnlySpan<byte>` | 先頭から `Stride × Height` バイトのビュー（**行の余白を含む**） |
 | ピクセル | `GetPixel` | `(byte B, byte G, byte R, byte A) GetPixel(int x, int y)` / `Color GetPixel(EsPointInt point)` | 画素の取得（**行幅を考慮する**。 ビューの左上が 0, 0）。 範囲外は `ArgumentOutOfRangeException` |
-| 操作 | `Resize` | `EsBitmap Resize(int maxSize, ImageQuality quality = Mid)` | ビューを縮小した画像を作る（**切り出しの実体化を挟まない**。 実測: 1000x800 の切り出し → 長辺 320 の `ImageQuality.High` で **3.3 倍**） |
-| 操作 | `ReduceColors` | `EsBitmap ReduceColors(int colorCount, ImageQuality quality = Mid, DitherMode dither = None)` | ビューを減色した画像を作る（**切り出しの実体化を挟まない**。 実測: 切り出しの 0.85 ms / 4 MB が不要 ＝ 約 12%） |
+| 操作 | `Resize` | `EsBitmap Resize(int maxSize, EsImageQuality quality = Mid)` | ビューを縮小した画像を作る（**切り出しの実体化を挟まない**。 実測: 1000x800 の切り出し → 長辺 320 の `EsImageQuality.High` で **3.3 倍**） |
+| 操作 | `ReduceColors` | `EsBitmap ReduceColors(int colorCount, EsImageQuality quality = Mid, EsDitherMode dither = None)` | ビューを減色した画像を作る（**切り出しの実体化を挟まない**。 実測: 切り出しの 0.85 ms / 4 MB が不要 ＝ 約 12%） |
 | ビュー | `ToPixmap` | `EsPixmap ToPixmap(EsRectInt rect)` | ビューの一部をさらに 0 コピーで切り出す |
 | その他 | `ToSizeText` | `string ToSizeText()` | 寸法を `幅x高さ` 形式で返す |
 | その他 | `IsDisposed` / `ThrowIfDisposed` / `Dispose` | `bool` / `void` / `void` | 破棄状態の判定と、元の画素への参照の返却（**画素は破棄しない**。 冪等） |
@@ -635,8 +636,8 @@ public readonly record struct ElementFinderResults(
 | メンバー | シグネチャ（`EsReadOnlyBitmap` と `EsBitmap` の同じ形） | 説明 |
 | --- | --- | --- |
 | `Crop` | `EsBitmap Crop(int x, int y, int width, int height)` / `EsBitmap Crop(EsRectInt rect)` | 指定矩形を切り出す（**ソース範囲外は透明で埋める**。 位置関係は保たれる。 0 初期化は行わない） |
-| `Resize` | `EsBitmap Resize(int maxSize, ImageQuality quality = Mid)` | 長辺を `maxSize` へ収める（**拡大は未サポート**。 速度と画質は `ImageQuality`（`Low` / `Mid` / `High`）で選ぶ） |
-| `ReduceColors` | `EsBitmap ReduceColors(int colorCount, ImageQuality quality = Mid, DitherMode dither = None)` | 指定の色数へ減色する（パレット化。 **不可逆**。 品質とディザを選べる） |
+| `Resize` | `EsBitmap Resize(int maxSize, EsImageQuality quality = Mid)` | 長辺を `maxSize` へ収める（**拡大は未サポート**。 速度と画質は `EsImageQuality`（`Low` / `Mid` / `High`）で選ぶ） |
+| `ReduceColors` | `EsBitmap ReduceColors(int colorCount, EsImageQuality quality = Mid, EsDitherMode dither = None)` | 指定の色数へ減色する（パレット化。 **不可逆**。 品質とディザを選べる） |
 | `Save` | `void Save(string filePath)` / `void Save(string filePath, EsImageSaveOptions options)` | ファイルへ保存する（[2.32](#232-画像のファイル入出力save--load)） |
 
 - **同じ実装を 2 型のメンバーとして公開します（拡張メソッドにしません）**: 実装は内部の 1 か所（`EsBitmapBuffer` / `EsBitmapOperations`）に置き、公開の入口は**両方の型のメンバー**にします。 拡張メソッドにすると、**同じ操作が型の外へ 2 組並び**、型自身の能力（`Copy` / `GetPixel` / `Load` 等）と置き場所が分かれます（IntelliSense でも 1 か所にまとまりません）。 **共通の面（interface）は作りません**（復活させると、書き換え可能な画像を読み取り専用の面として**保持・後読みできる経路**ができ、兄弟にした理由（[2.33](#233-画像型の設計上の判断兄弟と借用を選んだ理由)）が崩れます）。
@@ -684,10 +685,10 @@ public readonly record struct ElementFinderResults(
 | `EsImageSaveOptions` | `IgnoreFormatMismatch` | `bool IgnoreFormatMismatch { get; init; }` | 拡張子と `Format` の食い違いを無視するか（既定 false = 例外）。 不変の `readonly record struct` であり、部分更新は `with` 式で行う |
 | `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG の品質（0〜100。 `null` は GDI+ の既定） |
 | `EsImageSaveOptions` | `ColorCount` | `int? ColorCount { get; init; }` | 減色（パレット化）して残す色数（2〜256。 `null` は減色しない。 **BMP / PNG / GIF だけ**） |
-| `EsImageSaveOptions` | `ColorQuality` | `ImageQuality? ColorQuality { get; init; }` | 減色の品質（`null` は `ImageQuality.Mid`。 **減色する場合だけ指定できる**） |
-| `EsImageSaveOptions` | `Dither` | `DitherMode? Dither { get; init; }` | 減色のディザ（`null` は `DitherMode.None`。 **減色する場合だけ指定できる**） |
-| `ImageQuality` | （enum） | `Low` / `Mid` / `High` | 縮小と減色の速度と画質の釣り合い（`Low` = 最速・最低画質、`Mid` = 既定、`High` = 最高画質。 段階の意味は操作ごとに決まる） |
-| `DitherMode` | （enum） | `None` / `FloydSteinberg` | 減色のディザ（誤差拡散。 既定は `None` = ファイルが最も小さい） |
+| `EsImageSaveOptions` | `ColorQuality` | `EsImageQuality? ColorQuality { get; init; }` | 減色の品質（`null` は `EsImageQuality.Mid`。 **減色する場合だけ指定できる**） |
+| `EsImageSaveOptions` | `Dither` | `EsDitherMode? Dither { get; init; }` | 減色のディザ（`null` は `EsDitherMode.None`。 **減色する場合だけ指定できる**） |
+| `EsImageQuality` | （enum） | `Low` / `Mid` / `High` | 縮小と減色の速度と画質の釣り合い（`Low` = 最速・最低画質、`Mid` = 既定、`High` = 最高画質。 段階の意味は操作ごとに決まる） |
+| `EsDitherMode` | （enum） | `None` / `FloydSteinberg` | 減色のディザ（誤差拡散。 既定は `None` = ファイルが最も小さい） |
 
 - **`Save` は 2 型のメンバーです（拡張メソッドにしません）**: 保存は**ピクセルを読むだけ**であり、書き換えの権利も要らないため実装は内部の 1 か所に置きますが、公開の入口は**両方の型のメンバー**にします（`Load` と同じ型にファイル入出力が並び、型自身の能力として IntelliSense に現れます。 置き場所の規則は §2.31）。 **保存は凍結しません**（書き換え可能な画像を保存した後も書き続けられます）。
 - **保存に使える形式の一覧は画像型が公開します**: 形式を決める規則の単一所有は `EsReadOnlyBitmap.SupportedFileExtensions`（`EsBitmap` も同じ値を公開）であり、保存の実装がそこを参照します（一覧は型の能力であり、特定の実体を要さないため）。
@@ -750,7 +751,7 @@ public readonly record struct ElementFinderResults(
 - **オプションの値は形式ごとに検証します**: 使えない形式へ設定すると `NotSupportedException`、JPEG の品質が 0〜100 の範囲外なら `ArgumentOutOfRangeException`、**減色しない保存（`ColorCount` が `null` かつ GIF 以外）へ `ColorQuality` / `Dither` を設定すると `InvalidOperationException`** です（黙って無視すると「設定したのに効かない」ことに気付かないため。 また上限へ丸めると、呼び出し側が指定した値と実際の出力が食い違います）。 検証は **GDI+ の初期化より前**に行うため、拒否された呼び出しはプロセス全体の副作用（バックグラウンド スレッド +1 等）を起こしません。
 - **WebP / HEIF を対応形式へ入れない理由（実測）**: GDI+ のエンコーダーは 5 件だけです（`GdipGetImageEncoders` が返すのは BMP / JPEG / GIF / TIFF / PNG。 デコーダーはこれに EMF / WMF / ICO を加えた 8 件）。 WebP / HEIF のエンコーダーは無く、**存在しない形式の CLSID を渡すと例外を出さずに PNG を書き出します**（実測: PNG の CLSID と `.webp` のパスで 2831 バイトの PNG が書かれ、先頭バイトは PNG のシグネチャ）。 拡張子と中身が食い違うファイルが**黙って**できるため、対応形式へ追加しません（食い違いを承知で作る場合は `Format` + `IgnoreFormatMismatch` を使います）。
 - **減色（パレット化）を指定できます（実測）**: `EsImageSaveOptions.ColorCount` を指定すると、保存の前に
-  `EsReadOnlyBitmap.ReduceColors`（`ReduceColors(int, ImageQuality, DitherMode)`。 両方の型が同じ名前のメンバーを持ちます）と同じ計算で減色し、**8bpp のインデックス カラー（パレット付き）として**書きます。 **`ColorQuality` と `Dither` はこの計算へそのまま渡します**（段階の意味と実測は `ImageQuality` / `DitherMode` の備考が単一所有します。 減色しない保存へ指定すると `InvalidOperationException` です）。
+  `EsReadOnlyBitmap.ReduceColors`（`ReduceColors(int, EsImageQuality, EsDitherMode)`。 両方の型が同じ名前のメンバーを持ちます）と同じ計算で減色し、**8bpp のインデックス カラー（パレット付き）として**書きます。 **`ColorQuality` と `Dither` はこの計算へそのまま渡します**（段階の意味と実測は `EsImageQuality` / `EsDitherMode` の備考が単一所有します。 減色しない保存へ指定すると `InvalidOperationException` です）。
 
   | 形式 | 32bpp のまま | 256 色へ減色 | 削減 | `Load` |
   | --- | --- | --- | --- | --- |
@@ -778,7 +779,7 @@ public readonly record struct ElementFinderResults(
     - **GIF は指定が無くても自前の量子化で書きます（実測に基づく）**: **GDI+ の GIF エンコーダーは透明色の番号を書きますが、その番号をどの画素にも使わせません**（実測: 透明色の指定は番号 252 を指すが、GDI+・`System.Drawing`・**SkiaSharp のいずれで読み戻しても全画素が不透明**になった）。 つまり 32bpp のまま渡すと**透過が失われます**（これは GDI+ のエンコーダーの不具合であり、GIF の仕様の制約ではありません。 GIF の透過は「パレットの 1 色を透明とする」仕組みであり、減色の有無とは関係ありません）。 自前の量子化は透明な画素を透明なパレットの色へ割り当てるため透過が保たれます（実測: SkiaSharp でも円の外のアルファが 0）。 **副次的にファイルが小さく画質も良くなります**（実測: 640x360 の写真で 91,294 B / 色差 平均 16.40 に対し **34,130 B / 2.89**。 スクリーンショット風で 106,170 B / 14.07 に対し **86,659 B / 5.15**）。
     - **半透明は減色で 4 段階へ量子化されます**（0〜63 / 64〜127 / 128〜191 / 192〜255。 実測: アルファ 128 は 128 のまま、中間の値は段階の平均になる）。 **RGBA を平均するため、半透明の色は元の値とわずかに違います**（透明と不透明は完全に一致します）。
     - **切り出しのパディング（透明）を持つ画像も減色できます**（実測: 32x32 の画像から 48x48 を切り出して 8 色へ減色し、PNG / GIF とも透明の 1,280 画素がそのまま残った）。
-  - **ディザは既定では行いません（実測）**: ディザはパレットの色を交互に置くため保存のファイルが**大きくなります**。 本ライブラリはファイル サイズを下げる目的で減色するため、`DitherMode.FloydSteinberg` を明示された場合だけ行います（実測: 1920x1080 の 16 色グラデーションの PNG で 17,830 B → **319,481 B**。 写真風 16 色で 495,932 B → 603,078 B。 **平坦な色の画像は変化しません**。 縞が消えるかどうかの判断は `DitherMode` の備考が単一所有します）。
+  - **ディザは既定では行いません（実測）**: ディザはパレットの色を交互に置くため保存のファイルが**大きくなります**。 本ライブラリはファイル サイズを下げる目的で減色するため、`EsDitherMode.FloydSteinberg` を明示された場合だけ行います（実測: 1920x1080 の 16 色グラデーションの PNG で 17,830 B → **319,481 B**。 写真風 16 色で 495,932 B → 603,078 B。 **平坦な色の画像は変化しません**。 縞が消えるかどうかの判断は `EsDitherMode` の備考が単一所有します）。
   - **外部ライブラリ・外部ツールとの比較（実測。 1920x1080・256 色。 所要は 1 枚あたり）**:
 
     | 手段 | スクリーンショット風 | 写真風 | 色差（平均） | 前提 |
@@ -1024,6 +1025,73 @@ public readonly record struct ElementFinderResults(
 - **GDI+ の `Clone` は部分矩形では複製し、全域では複製しません**（1000x800 で 0.67 ms、2000x1600 で 2.77 ms ＝ 面積に比例。 全域は 0.00 ms で `LockBits` まで触らず 7.79 ms）。 全域の結果も書き換えるなら実体化が要ります。
 - **Avalonia の `CroppedBitmap` は `Dispose` で元画像まで解放します**（元の画像を使い続けると `ObjectDisposedException`。 射影を使い終えたら元より先に破棄する必要があります）。
 - **画素の一致**: GDI+ の切り出しはコアと完全一致しますが、**Skia の縮小は一致しません**（サンプリング位置と重みの定義が違うため。 細線の輝度もコア `Nearest` 255 に対し Skia `Nearest` 0 で、位置の選び方が異なります）。 経路を混ぜると同じ画像でも結果が変わるため、**本ライブラリは変換をコアへ集約します**。
+
+### 2.35 3 つの画像型の操作の所要（実測）
+
+**3 つの型（`EsBitmap` / `EsReadOnlyBitmap` / `EsPixmap`）の操作を同じ環境で測った結果**です。 入力は同じ画素を持つ 4K（3840x2160・BGRA8888・33.2 MB）で、**Release・最小値（ばらつきのある環境で「その操作が本来要する時間」を見るため最小値を使う。 各値は 5〜100,000 回の測定の最小）**。 数値は環境で変わるため**桁と桁の関係**を見てください。
+
+**どこを測ったか**: 同じ内部実装へ転送する操作（`Create` 系・`FromPixelCopy`・`Copy`・`Crop`・`Resize`・`ReduceColors`・`Save`・`Load`）は**代表として 1 つの型で測り、他は「同左」**と書きます（内部実装が同じであるため値も同じです）。 型ごとに入口の有無が違う操作（`GetPixel` など）は**両方を測って**います。
+
+| 操作 | `EsBitmap`（書き換え可能） | `EsReadOnlyBitmap`（読み取り専用） | `EsPixmap`（0 コピーのビュー） |
+| --- | --- | --- | --- |
+| `Create(4K)`（全画素を透明にする） | 6.4 ms | 同左 | —（入口なし） |
+| `CreateFilled(4K)`（充填つき） | 6.3 ms | 同左 | —（入口なし） |
+| `FromPixelCopy(4K)`（複製） | 5.7 ms | 5.7 ms | —（入口なし） |
+| `FromBitmap`（**凍結済み**の画像から） | — | **0.0 µs**（0 コピーで共有） | —（入口なし） |
+| `FromBitmap`（未凍結の画像から） | — | 5.8 ms（複製） | —（入口なし） |
+| `FromReadOnlyBitmap`（複製） | 6.0 ms | —（入口なし） | —（入口なし） |
+| `Copy`（複製） | 5.9 ms | 同左 | —（入口なし） |
+| `FromPixmap`（**ビュー**の複製。 1000x800） | 0.63 ms | 0.65 ms | —（入口なし） |
+| `InstallPixels`（借用） | **0.0 µs**（複製しない） | 同左 | —（入口なし） |
+| `GetPixel`（100 万回） | **1.3 ms** | **1.3 ms** | **1.8 ms**（行幅を考慮する分だけ遅い） |
+| `SetPixel`（100 万回） | **1.3 ms** | —（入口なし） | —（入口なし） |
+| `TrySetPixel`（100 万回。 範囲外は false） | 1.6 ms | —（入口なし） | —（入口なし） |
+| `Clear`（4K の全画素を塗る） | 1.4 ms | —（入口なし） | —（入口なし） |
+| `Crop`（4K → 1000x800） | 0.64 ms | 0.64 ms | —（`ToPixmap` が同じ役） |
+| `Crop`（4K 全域 = 33 MB の複製） | 5.7 ms | 同左 | — |
+| `Crop`（外側を含む 1200x900 = 透明で埋める） | 1.2 ms | 1.2 ms | — |
+| `ToPixmap`（4K → 1000x800 のビュー） | **0.0 µs** | **0.0 µs** | — |
+| `ToPixmap`（ビューの一部をさらに切り出す） | — | — | **0.0 µs** |
+| `Resize`（4K → 長辺 320。 `Low`） | 61 µs | 64 µs | — |
+| `Resize`（4K → 長辺 320。 `Mid`） | 260 µs | 224 µs | — |
+| `Resize`（4K → 長辺 320。 `High`） | 1.51 ms | 1.46 ms | — |
+| `ReduceColors`（1920x1080・256 色。 `Low`） | 12.6 ms | 12.3 ms | 12.6 ms |
+| `ReduceColors`（1920x1080・256 色。 `Mid`） | 12.7 ms | 12.4 ms | 12.5 ms |
+| `ReduceColors`（1920x1080・256 色。 `High`） | 12.1 ms | 12.6 ms | 12.0 ms |
+| `ReduceColors`（1920x1080・256 色・`FloydSteinberg`） | —（未測定） | 25.7 ms（誤差の配布が加わる） | 25.6 ms |
+| `Save(PNG)`（4K。 減色なし） | 529 ms | 同左 | —（入口なし） |
+| `Save(PNG)`（4K・256 色へ減色） | 177 ms | 同左 | —（入口なし） |
+| `Load(PNG)`（4K） | 48.1 ms | 48.6 ms | —（入口なし） |
+
+**同じ操作は型で速さが変わりません**（`Crop` / `Resize` / `ReduceColors` / `Save` はどの型から呼んでも同じ内部実装へ転送するため、差は測定のばらつきの範囲です）。
+
+**型で差が出る操作と、その理由**:
+
+- **`FromBitmap`（凍結済み）/ `ToPixmap` / `FromPixmap` / `InstallPixels` は 0 コピー**です（`InstallPixels` は借用、`ToPixmap` はビュー、凍結済みの `FromBitmap` は共有）。 複製する入口（`FromPixelCopy` / `FromReadOnlyBitmap` / `Copy` / `FromPixmap`）は**4K で 5.7〜6.0 ms・33 MB** を要します（実測は 2.4 GB/s 前後。 メモリ帯域に近い）。
+- **`EsPixmap.GetPixel` は画像型より 4 割ほど遅い**（1.8 ms 対 1.3 ms）。 理由は**ビューの `Stride` が元画像の行幅のまま**であり、行の先頭までの距離が画像型（`幅 × 4`）より大きいためです（キャッシュの局所性）。 代わりに**切り出しの複製が要りません**。
+- **ピクセル 1 つあたり 1.3〜1.8 ns**です（境界判定とアドレス計算を含む）。 **画素ごとに呼ばれる入口はインライン化を明示しています**（明示しないと `ObjectDisposedException.ThrowIf` などの呼び出しが残り、実測で 4.9 ns / 14.3 ns でした。 詳細は `EsBitmapBuffer.GetPixel` / `EsPixmap.GetPixel` の備考）。
+- **`EsPixmap` は書き込みの入口を持ちません**（`Pixels` / `SetPixel` / `Clear` が無い）。 これは**設計上の差**であり、ビューの下の画素は画像型が所有するためです。
+
+**「一部だけを対象にする」場合の有利さ（実測。 対象は 4K の一部の 1000x800）**:
+
+| 手順 | `Crop` で実体化してから | `EsPixmap` をそのまま |
+| --- | --- | --- |
+| 縮小（長辺 320・`Low`） | 848 µs | **93 µs（9.1 倍）** |
+| 縮小（長辺 320・`Mid`） | 963 µs | **219 µs（4.4 倍）** |
+| 縮小（長辺 320・`High`） | 999 µs | **252 µs（4.0 倍）** |
+| 減色（256 色・`Low`） | 6.3 ms | **4.8 ms（1.3 倍）** |
+| 減色（256 色・`Mid`） | 6.7 ms | **5.9 ms（1.1 倍）** |
+
+- **縮小は実体化の費用が支配的**であるため、ビューの方が 4〜9 倍速い（`Crop` の 0.64 ms と 33 MB の上限のない確保が消える）。
+- **減色は計算そのものが支配的**であるため差は 1.1〜1.3 倍に留まる（`ReduceColors` は画素を数える計算が主で、実体化の 0.64 ms は全体の 1 割程度）。
+- **`High` の縮小は元画像の画素数に比例する**ため、4K 全域（1.5 ms）より一部（0.25 ms）の方が速いのは当然ですが、**実体化を挟むと 4 倍の差**になります。
+
+**この表から言える選び方**:
+
+- **画像全体を扱う**場合は画像型のメンバーをそのまま呼びます（ビューを作る意味はありません）。
+- **大きな画像の一部だけ**を読み取り専用の操作（縮小・減色・`GetPixel`）へ渡す場合は `ToPixmap` を使います（実体化の複製が消えます）。
+- **新しい画素を作る操作の戻り値は書き換え可能な画像**（`EsBitmap`）です（ビューで返すと、実体化が要る場面で必ずもう 1 回複製を払うことになります）。
+- **書き込みが要る**場合は画像型を使います（ビューは書き込みの入口を持ちません）。
 
 ## 3. 使用例
 
