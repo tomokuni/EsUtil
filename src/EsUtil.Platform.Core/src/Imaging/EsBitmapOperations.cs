@@ -688,12 +688,14 @@ internal static class EsBitmapOperations
     /// <summary>箱に入っている画素の平均色（代表色）を求める。</summary>
     /// <param name="key">箱。</param>
     /// <param name="counts">箱ごとの画素数。</param>
-    /// <param name="sums">箱ごとの成分の合計（箱 × 4。 最後の 1 つがアルファ）。</param>
+    /// <param name="sums">箱ごとの成分の合計（箱 × 4。 RGB は 8 ビットの値、最後の 1 つがアルファ）。</param>
     /// <returns>平均色（赤・緑・青・アルファ。 いずれも 0〜255）。</returns>
     /// <remarks>
     /// <b>箱の中心ではなく平均を使う理由</b>: 箱は 32 段階に量子化した立方体であり、その中心は実際の画素の
     /// 位置を表しません（画素が箱の片隅に偏れば最大 8 のずれになる）。 平均は画素の実際の位置を表すため、
-    /// <b>どのパレットの色を選ぶかが正確になる</b>（費用は同じ。 画素数で 4 回割るだけ）。
+    /// <b>どのパレットの色を選ぶかが正確になる</b>（費用は同じ。 画素数で割るだけ）。<br/>
+    /// <b>sRGB の値のまま平均する理由</b>: 線形（相対輝度の尺度）で平均する案は実測でわずかに悪化します
+    /// （<see cref="CountColors"/> の備考）。
     /// </remarks>
     private static (int Red, int Green, int Blue, int Alpha) BinCentroid(int key, int[] counts, long[] sums)
     {
@@ -712,7 +714,14 @@ internal static class EsBitmapOperations
     /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="counts">箱ごとの画素数の書き先。</param>
     /// <param name="sums">箱ごとの成分の合計の書き先（箱 × 4。 最後の 1 つがアルファ）。</param>
-    /// <remarks><b>行単位で数える</b>: 余白の画素を数えないため（平坦に走査すると余白が色として混ざる）。</remarks>
+    /// <remarks>
+    /// <b>行単位で数える</b>: 余白の画素を数えないため（平坦に走査すると余白が色として混ざる）。<br/>
+    /// <b>RGB は sRGB の値のまま足す（実測で決めた）</b>: 平均を線形（相対輝度の尺度）で取る案は、
+    /// <b>わずかに悪化します</b>（実測: 1024x768 のなだらかな画像 16 色で 6.81 → 6.99、写真風 16 色で 8.31 → 8.36。
+    /// 知覚誤差 = CIEDE2000 の平均）。 距離を Lab で測る場合、パレットの色は「その箱の画素を代表する色」で
+    /// あればよく、線形の平均は<b>かえって暗部へ寄る</b>ためです（距離の尺度は Lab が担います）。<br/>
+    /// <b>アルファは 8 ビットのまま足す</b>: アルファは 4 段階に量子化する対象であり、平均も 8 ビットの尺度で行います。
+    /// </remarks>
     private static void CountColors(
         ReadOnlySpan<byte> pixels, int width, int height, int stride, int[] counts, long[] sums)
     {
@@ -1149,12 +1158,13 @@ internal static class EsBitmapOperations
     }
 
     /// <summary>成分の合計と画素数から ARGB の色を求める。</summary>
-    /// <param name="red">赤の合計。</param>
-    /// <param name="green">緑の合計。</param>
-    /// <param name="blue">青の合計。</param>
-    /// <param name="alpha">アルファの合計。</param>
+    /// <param name="red">赤の合計（8 ビットの値）。</param>
+    /// <param name="green">緑の合計（8 ビットの値）。</param>
+    /// <param name="blue">青の合計（8 ビットの値）。</param>
+    /// <param name="alpha">アルファの合計（8 ビットの値）。</param>
     /// <param name="total">画素数（正の値）。</param>
     /// <returns>ARGB の色。</returns>
+    /// <remarks>sRGB の値のまま平均する理由と実測は <see cref="CountColors"/> を参照。</remarks>
     private static uint PackColor(long red, long green, long blue, long alpha, long total)
         => ((uint)(alpha / total) << 24)
             | ((uint)(red / total) << 16)
@@ -1269,6 +1279,7 @@ internal static class EsBitmapOperations
     /// <summary>sRGB の 1 成分（0〜255）を線形値（0〜1）へ変換する。</summary>
     /// <param name="value">成分（0〜255）。</param>
     /// <returns>線形値。</returns>
+    /// <remarks>Lab への変換（<see cref="ToLab"/>）だけが使います（画素ごとには呼びません）。</remarks>
     private static double ToLinear(int value)
     {
         var v = value / 255.0;
