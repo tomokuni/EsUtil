@@ -7,7 +7,7 @@ namespace EsUtil.Feature.Loupe.MewUI.Tests;
 /// <summary><see cref="LoupeRenderedEventArgs"/>（ルーペの描画完了通知）のテスト。</summary>
 /// <remarks>
 /// イベントの発火は実際の描画（ウィンドウ）を必要とするため、引数の契約（保持する値）のみを検証する。<br/>
-/// 描画完了時のオーバーレイ描画はホスト（<c>SelectionOverlayControl.MewUI</c>）のテストが担う。
+/// 描画完了時のオーバーレイ描画はホスト（上位のアプリの合成コントロール）のテストが担う。
 /// </remarks>
 public class LoupeRenderedEventArgsTests
 {

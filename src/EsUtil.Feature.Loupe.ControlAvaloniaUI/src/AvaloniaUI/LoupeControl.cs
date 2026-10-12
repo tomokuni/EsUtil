@@ -165,7 +165,7 @@ public sealed class LoupeControl : Panel
         try
         {
             // 元の IImage は拡大元の全体を写しているため、そのまま元矩形つきの描画に使える
-            // （切り出しの複製も表示用の変換も作らない。 寸法が一致しない場合は描画側が切り出しの経路へ戻る）
+            // （切り出しの複製も表示用の変換も作らない。 寸法が一致しない場合は描画側が 0 コピーのビューから描く）
             LoupeContextPainter.Paint(context, sourceBitmap, in plan, display: source);
         }
         finally
@@ -198,7 +198,7 @@ public sealed class LoupeControl : Panel
     /// <summary>論理座標（対象）↔ 親パネル DIP の座標変換ポートを設定する。</summary>
     /// <param name="port">座標変換ポート（ToDip = 論理→親パネルDIP）。 null の場合は等価変換。</param>
     /// <remarks>
-    /// MarqueeControl と同様に、外部から与えたポートで表示位置（<see cref="Visual.RenderTransform"/>）と<br/>
+    /// 対になるコントロールと同様に、外部から与えたポートで表示位置（<see cref="Visual.RenderTransform"/>）と<br/>
     /// 表示サイズ（要求サイズ）と表示位置（オフセット・領域内への補正）を計算する。<br/>
     /// 変換関数は呼び出し毎に評価されるため、ウィンドウサイズ変更・ズーム・スクロール等の<br/>
     /// レイアウト変化に追従できる（イベント時の DIP キャッシュは使わない）。<br/>

@@ -7,9 +7,7 @@ using Xunit;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests.Internal;
 
-/// <summary>
-/// <see cref="EsBitmapAvaloniaAdapter"/> の描画（<see cref="EsBitmapAvaloniaAdapter.Draw"/>）のテスト。
-/// </summary>
+/// <summary><see cref="EsBitmapAvaloniaAdapter"/> の描画（<see cref="EsBitmapAvaloniaAdapter.Draw"/>）のテスト。</summary>
 /// <remarks>
 /// <see cref="EsBitmapAvaloniaAdapter.Draw"/> は <see cref="Avalonia.Media.Imaging.Bitmap"/> への射影（変換）を行い、
 /// その生成には Avalonia の描画バックエンド（<c>DrawingContext</c>）が必要なため、<c>[AvaloniaFact]</c> で検証する。<br/>

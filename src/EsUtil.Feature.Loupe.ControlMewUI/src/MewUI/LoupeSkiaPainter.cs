@@ -72,8 +72,7 @@ internal static class LoupeSkiaPainter
     /// <remarks>
     /// <b>切り出しの領域は「描画の元矩形」で渡します</b>（複製した画像を作りません）: 切り出しが画像の外へ出る場合も、
     /// <b>画像と交差する部分だけ</b>を対応する描画先の部分矩形へ写し、外側は描きません（ペーストボードが出る）。
-    /// これは透明で埋めた画像を貼るのと同じ見た目であり、<b>毎フレームの切り出しの複製（実測: 1000x800 で 0.85 ms / 4 MB）</b>が
-    /// 不要になります（実測: 交差部分のビューの生成は 0.089 µs / 112 B。 60 fps で 51 ms / 秒 と 4 MB × 60 の確保が消える）。<br/>
+    /// これは透明で埋めた画像を貼るのと同じ見た目であり、<b>毎フレームの切り出しの複製</b>が不要になります。<br/>
     /// 描画中にソースが破棄された場合（<see cref="ObjectDisposedException"/>）は何も描かずに戻る<br/>
     /// （ホストの状態と競合しても描画を継続できる。 画像外のみが残る）。
     /// </remarks>
@@ -95,9 +94,10 @@ internal static class LoupeSkiaPainter
                 return;
             }
 
-            // 全体の非所有ビュー（ピクセルは複製しない）を作り、切り出しは描画 API の元矩形で指定する
-            using var bitmap = source.ToSKBitmap();
-            canvas.DrawBitmap(bitmap, new SKRect(cropRect.X, cropRect.Y, cropRect.Right, cropRect.Bottom), drawRect.ToSKRect());
+            // 切り出しの 0 コピーのビューを作って描く（ピクセルは複製しない。 ビューの座標は切り出しの左上が原点）
+            using var view = source.ToPixmap(cropRect);
+            using var bitmap = view.ToSKBitmap();
+            canvas.DrawBitmap(bitmap, new SKRect(0, 0, view.Width, view.Height), drawRect.ToSKRect());
         }
         catch (ObjectDisposedException)
         {

@@ -215,7 +215,7 @@ control.ResetSelection();           // 状態と nudge の初期化
 | `Options` | `MarqueeOptions` | `MarqueeOptions.Default` | 選択矩形の寸法・表示可否・対話パラメータをまとめた設定。 変更すると再描画され、対話パラメータはコア（ファサード）へ伝搬する（**色は含まない**） |
 | `Options` | `MarqueeOptions` | `MarqueeOptions.Default` | 選択矩形の**計算に必要な設定**（寸法・対話パラメータ）。 変更すると再描画され、対話パラメータはコア（ファサード）へ伝搬する（**色・表示可否は含まない**） |
 | `Appearance` | `MarqueeAppearance` | `MarqueeAppearance.Default` | **外観（色・フォントサイズ・枠線の太さ・表示可否）の設定**。 変更すると次の描画で提示層が新しい外観で描画計画を解決する |
-| `SizeLabelOverrideProvider` | `Func<string?>?` | `null` | サイズラベル（1 行目）の文言を描画時に評価するプロバイダ。 **文言はホストが与える**（コアは特定の文言を持たない。 文言の生成はホストの `CaptureLabelTexts` 等が担う）。 null または空文字を返す場合は自動生成の文言を使う。 変更すると保持している描画内容を破棄して再描画を要求する |
+| `SizeLabelOverrideProvider` | `Func<string?>?` | `null` | サイズラベル（1 行目）の文言を描画時に評価するプロバイダ。 **文言はホストが与える**（コアは特定の文言を持たない。 文言の生成は上位のアプリが担う）。 null または空文字を返す場合は自動生成の文言を使う。 変更すると保持している描画内容を破棄して再描画を要求する |
 
 `MarqueeOptions` の項目（既定値は本型が単一所有する。 すべて `init` のみで不変）:
 
@@ -471,7 +471,7 @@ nudge 中は OS カーソルを非表示にし、十字マーカーを追従位�
 - 左ボタン移動: ドラッグ中の選択矩形更新
 - 左ボタン解放: 選択確定（最小サイズ未満はキャンセル）
 - ダブルクリック（矩形内）: `ConfirmRequested` を発火し、確定後に選択状態をクリア（`ResetSelection`。 確定後も選択矩形が残るのを防ぐ）
-- マウスホイール: **本コントロールは扱いません**（`e.Handled` を立てずに素通しし、上位の Canvas や祖先 `ScrollViewer` へ届きます）。 ズーム・パンの解釈と実処理は**ホスト**が行います（例: ホストが `PointerWheelChanged` を購読し、Ctrl 併用は `ZoomViewControl.ZoomByWheel`、それ以外は `PanByWheel` を呼ぶ）
+- マウスホイール: **本コントロールは扱いません**（`e.Handled` を立てずに素通しし、上位の Canvas や祖先 `ScrollViewer` へ届きます）。 ズーム・パンの解釈と実処理は**ホスト**が行います（例: ホストが `PointerWheelChanged` を購読し、Ctrl 併用はズーム、それ以外はパンの API を呼ぶ）
 
 ## 9. 制約事項
 

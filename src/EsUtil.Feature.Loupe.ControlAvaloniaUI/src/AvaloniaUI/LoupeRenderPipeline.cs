@@ -25,10 +25,7 @@ internal static class LoupeRenderPipeline
     /// <param name="source">ルーペのソース画像。</param>
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・拡大画像の幾何を持つ）。</param>
     /// <returns>生成したルーペ画像（書き換え可能。 ホストがピクセルへ書き込める）。</returns>
-    /// <exception cref="NotSupportedException">
-    /// <paramref name="source"/> が <see cref="Bitmap"/>（派生の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> を含む）
-    /// / <see cref="EsReadOnlyBitmap"/>（表示アダプタ）以外の場合。
-    /// </exception>
+    /// <exception cref="NotSupportedException"><paramref name="source"/> が <see cref="Bitmap"/>（派生の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> を含む）/ <see cref="EsReadOnlyBitmap"/>（表示アダプタ）以外の場合。</exception>
     /// <remarks>
     /// 1. 未対応型の判定（<see cref="LoupeSourceResolver.IsSourceSupported"/>）を行い、未対応型は例外にする。<br/>
     /// 2. 切り出し元の画像を解決する（<see cref="Bitmap"/> は複製、<see cref="EsReadOnlyBitmap"/> は借用）。<br/>
@@ -49,7 +46,7 @@ internal static class LoupeRenderPipeline
 
         try
         {
-            // 切り出し（複製）と合成（RenderTargetBitmap / DrawingContext）は UI スレッドで行う。
+            // 描画（画像の切り出し・拡大・十字線・枠線）と RenderTargetBitmap への合成は UI スレッドで行う。
             // Task.Run によるバックグラウンド抽出は、マウス移動中の連続再描画でスレッドプールが競合し、
             // 抽出結果が UI スレッドへ戻る前に次の再描画が要求されてルーペ画像が移動停止まで更新されない問題を生む。
             // 元の IImage はそのまま元矩形つきの描画に使える（切り出しの複製と表示用の変換を作らない）
@@ -74,11 +71,13 @@ internal static class LoupeRenderPipeline
     /// <returns>描画結果（ホストがピクセルへオーバーレイを描画できる）。</returns>
     /// <remarks>
     /// オフスクリーン ビットマップは UI 固有の機構（Avalonia の <see cref="RenderTargetBitmap"/>）であるため本層が生成し、<br/>
-    /// 描画の手順（層の順序・写し方）は <see cref="LoupeContextPainter"/> へ委譲する。
+    /// 描画の手順（層の順序・写し方）は <see cref="LoupeContextPainter"/> へ委譲する。<br/>
+    /// 描画面は<b>ピクセルを取り出した後に破棄する</b>（描画ごとに 1 枚作るため、破棄しないとネイティブの描画面が
+    /// GC まで残る）。
     /// </remarks>
     private static EsBitmap Rasterize(EsReadOnlyBitmap? source, IImage? display, in LoupeDrawPlan plan)
     {
-        var bitmap = new RenderTargetBitmap(new PixelSize(plan.ClientPixelSize, plan.ClientPixelSize), s_dpi);
+        using var bitmap = new RenderTargetBitmap(new PixelSize(plan.ClientPixelSize, plan.ClientPixelSize), s_dpi);
 
         using (var context = bitmap.CreateDrawingContext())
         {

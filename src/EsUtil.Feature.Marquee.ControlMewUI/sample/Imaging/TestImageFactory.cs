@@ -2,7 +2,7 @@ using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Feature.Marquee.MewUI.Sample.Imaging;
 
-/// <summary>ルーペの動作確認用テスト画像を生成する。</summary>
+/// <summary>選択対象（背景）の動作確認用テスト画像を生成する。</summary>
 internal static class TestImageFactory
 {
     /// <summary>グラデーション＋グリッド＋マーカー付きのテスト画像を生成する。</summary>
@@ -12,7 +12,7 @@ internal static class TestImageFactory
     /// <remarks>
     /// 左上から右下へのグラデーションを背景とし、<br/>
     /// 10px グリッド（拡大ピクセル検証用）・50px グリッド（倍率計測用）・色付き円マーカー（ズーム確認用）を描画する。<br/>
-    /// 画像外の色や十字線・枠線は <c>LoupeControl</c> 側が描画する。
+    /// 選択枠・暗転・ラベルはコントロール側が描画する。
     /// </remarks>
     public static EsBitmap Create(int width = 800, int height = 600)
     {

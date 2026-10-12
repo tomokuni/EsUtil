@@ -38,7 +38,7 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 - `IImage` を受け取る画像入力API
 - 現在対応する画像実装は `Bitmap` / `EsBitmapAvaloniaAdapter`（コアの画像を内包する `IImage` アダプタ）
 - 1〜64倍の拡大表示
-- 画像範囲外の透明パディング
+- 画像範囲外は描かない（画像外の色が見える）
 - 画像外（ペーストボード）の色（`Appearance`）設定
 - 十字線の色設定（不透明度は色のアルファに統合）
 - 中心座標ラベル表示（`(x, y)` 形式・表示/色/背景/フォントサイズ/角丸設定可能）
@@ -51,7 +51,7 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 - `ILogger` によるエラー通知
 - 描画完了通知イベント（`Rendered`・`LoupeRenderedEventArgs` で描画済み Bitmap と描画計画（切り出し左上・拡大率）を通知。 ホスト側のオーバーレイ描画用。 線分・選択矩形等の破線はホストが描画済み Bitmap へ直接描く）
 - 中心座標ラベルはコントロールが **`Border` + `TextBlock` の子要素として配置**します（文言・表示可否はコア、実寸 → 配置矩形の写像は描画層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter`（`LabelPlan` partial））、実寸測定は `FormattedText`、描画順はコアの `LoupeDrawLayer` が単一所有）
-- **座標変換ポート（`SetCoordTransform(ICoordTransform?)` + `PositionOffset`）**: MarqueeControl と同方式。 表示位置（`RenderTransform`）と表示サイズ（要求サイズ）をレイアウト時に自己計算（ウィンドウサイズ変更・ズーム・スクロールに追従）
+- **座標変換ポート（`SetCoordTransform(ICoordTransform?)` + `PositionOffset`）**: 対になるコントロールと同方式。 表示位置（`RenderTransform`）と表示サイズ（要求サイズ）をレイアウト時に自己計算（ウィンドウサイズ変更・ズーム・スクロールに追従）
 - **`RefreshPosition()`**: パン・ズーム等のレイアウト非変更なビューポート変化時に、表示位置・サイズを再計算（座標変換ポートは呼び出し毎に最新の表示状態を評価）
 - **見た目のカスタマイズ（2 つの入口）**: 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）で差し替えます。 矩形で表せない描画（円・斜線等）は `Appearance` の `Show*` を false にして `Rendered` のビットマップへ自前で描き、必要なら `DrawPlan` で計画どおりの描画を行います（派生は不要。 例はサンプルの `sample/Presentation/GridLoupePlan`）
 
@@ -154,7 +154,7 @@ Canvas.SetTop(loupe, 220);
 `CenterPoint` は画像範囲外の座標も指定できます。
 
 - 画像と重なる領域: 拡大画像を表示
-- 画像範囲外の領域: 透明パディングと画像外の色（無地）を表示
+- 画像範囲外の領域: 画像を描かず、画像外の色（無地）を表示
 - 視野全体が画像範囲外: 全面が画像外の色
 
 ### 6.2 非同期描画

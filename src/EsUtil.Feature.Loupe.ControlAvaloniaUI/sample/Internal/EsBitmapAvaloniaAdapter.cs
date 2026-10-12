@@ -8,7 +8,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Internal;
 
 /// <summary>コアの画像（<see cref="EsReadOnlyBitmap"/>）を、表示境界の <see cref="IImage"/> として公開するアダプタ。</summary>
 /// <remarks>
-/// <b>目的</b>: 表示境界（<c>CropViewControl.Source</c> 等）が画像の型に依存しないようにする。 ホストはコアの画像を
+/// <b>目的</b>: 表示境界（上位のコントロールが公開する画像プロパティ等）が画像の型に依存しないようにする。 ホストはコアの画像を
 /// 本クラスで包み、コアの処理は <see cref="EsReadOnlyBitmap"/> として画像を取り出す。<br/>
 /// <br/>
 /// <b>射影元はコアの画像に限る</b>: Avalonia の <see cref="Bitmap"/> を真実とする入口は持たない。 本クラスは
@@ -20,10 +20,10 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Internal;
 /// 書き換えられないようにする</b>ためであり、破棄の権利も公開しない
 /// （<see cref="IImage"/> は非所有の契約であり、真実の画像を破棄するのは保持するホストである）。<br/>
 /// <b>射影は初回に一度だけ</b>: 表示用の射影（Avalonia の <see cref="Bitmap"/>）は初回の描画（または寸法取得）で
-/// 1 回だけ作り、以降は作り直さない（ピクセルを複製するため。 実測: 4K で 7.8 ms / 32 MB）。<br/>
+/// 1 回だけ作り、以降は作り直さない（ピクセルを複製するため、作り直すたびに所要時間とメモリを払う）。<br/>
 /// <b>表示用の射影だけを縮小できる</b>: <see cref="DisplayMaxSize"/> を指定すると、表示用の射影は
 /// コアの面積平均（<see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> の <see cref="EsImageQuality.High"/>）で縮小される
-/// （実測: 4K から 320x180 で 1.8 ms / 230 KB。 等倍の射影は 7.8 ms / 32 MB）。
+/// （縮小した射影は元の寸法の複製より小さく、所要時間もメモリも抑えられる）。
 /// 一覧のサムネイルのように小さく表示する場面で、元の寸法の複製を保持しないための入口である。
 /// <b>画像が上限に収まっている場合は縮小しない</b>（等倍の射影を共用する）。<br/>
 /// <b>保存・クリップボード用の <see cref="GetAvaloniaBitmap"/> は等倍のまま</b>である（表示と保存で射影を分ける）。<br/>
@@ -33,7 +33,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Sample.Internal;
 /// （無効な画像の値を正常値として渡さない。 <see cref="Draw"/> だけは no-op）。<br/>
 /// <b>本クラス自体の破棄</b>: <see cref="IImage"/> は非所有の契約（<see cref="IImage"/> は <see cref="IDisposable"/> を継承せず、
 /// <c>Image.Source</c> の設定では破棄されない）のため、<b>本クラスを保持するホストが差し替え時に <see cref="Dispose"/> する</b>。
-/// 破棄しないと射影（Avalonia の <see cref="Bitmap"/>）が残る（4K で 32 MB/枚）。<br/>
+/// 破棄しないと射影（Avalonia の <see cref="Bitmap"/>）が残る（4K は幅 × 4 × 高さで約 32 MB / 枚）。<br/>
 /// <b>差し替えの順序</b>: 差し替えるときは<b>新しいアダプタを先に表示（<c>Image.Source</c> 等）へ設定し、
 /// 旧アダプタは後から <see cref="Dispose"/> する</b>。 逆順にすると、表示が旧アダプタの射影を参照している間に
 /// 破棄され、描画が破棄済みバッファへ触れる（例外・チラつき）。
@@ -55,13 +55,13 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IDisposable
     /// <summary>表示に使う長辺の上限（ピクセル。 0 は上限なし = 等倍で表示する）。</summary>
     /// <remarks>
     /// <b>大きな画像を小さく表示する場面（一覧のサムネイル等）で、表示用の射影を縮小する</b>。
-    /// 等倍の射影は画像 1 枚につき元の寸法の複製を保持するため（実測: 4K で 32 MB / 7.8 ms）、
+    /// 等倍の射影は画像 1 枚につき元の寸法の複製を保持するため（4K は幅 × 4 × 高さで約 32 MB）、
     /// 96px のサムネイルを 5 枚並べると 160 MB を超える。<br/>
     /// <b>縮小は面積平均</b>（コアの <see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> へ <see cref="EsImageQuality.High"/> を渡す）。
     /// <b>画質を優先する理由</b>: 同じ寸法のサムネイルを出すフォルダビュー（ファイル → <c>Bitmap.DecodeToWidth</c>）は
-    /// <b>面積平均相当</b>の画質であり、双線形だと<b>同じサイズなのに一覧ごとに見え方が変わる</b>（実測: 4K → 320x180 で
-    /// 幅 1 px の細線の輝度は面積平均 21 / 双線形 127 で、どちらが残るかが逆になる）。
-    /// 面積平均は内部で並列化されるため 4K 1 枚が 1.8 ms で済む（並列化前は 27 ms で、11 枚なら 0.3 秒の停止だった）。<br/>
+    /// <b>面積平均相当</b>の画質であり、双線形だと<b>同じサイズなのに一覧ごとに見え方が変わる</b>（幅 1 px の細線は
+    /// 面積平均なら残り、双線形だと背景へ混ざって薄れる。 どちらが残るかが逆になる）。
+    /// 面積平均は内部で並列化されるため、一覧のように何枚も縮小する場面でも待たされない。<br/>
     /// <b>画像が上限に収まっている場合は縮小しない</b>（等倍の射影を共用し、同じ寸法の複製を 2 つ作らない）。<br/>
     /// 上限を設定すると <see cref="IImage.Size"/> は縮小後の寸法を返す（Avalonia のレイアウトと描画がその寸法を基準にする）。
     /// <b>コアの読み取り面（<see cref="EsReadOnlyBitmap.Size"/> / <see cref="EsReadOnlyBitmap.Width"/> 等）は真実の寸法のまま</b>である。
@@ -192,7 +192,7 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IDisposable
     /// <param name="source">真実のコア画像。</param>
     /// <returns>表示に使う Avalonia の画像（本クラスが所有する。 縮小が不要な場合は等倍の射影）。</returns>
     /// <remarks>縮小はコアの <see cref="EsImageQuality.High"/>（面積平均）が単一所有する
-    /// （縮小した中間画像は小さく、変換（表示用）のコピーは無視できる。 実測: 320x180 で 230 KB）。</remarks>
+    /// （縮小した中間画像は小さく、変換（表示用）のコピーは無視できる）。</remarks>
     private Bitmap EnsureDisplayProjection(EsReadOnlyBitmap source)
     {
         if (_displayProjection is { } cached)

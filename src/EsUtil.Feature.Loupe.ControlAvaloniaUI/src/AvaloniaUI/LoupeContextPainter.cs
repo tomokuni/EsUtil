@@ -35,7 +35,7 @@ internal static class LoupeContextPainter
     /// 描くかどうかの判断は本クラス（描画側）が行う（色のアルファを「描かない」の代用にしない）。<br/>
     /// ペーストボード（描画面の消去）と拡大画像は表示可否を持たず、常に描く。<br/>
     /// <b><paramref name="display"/> を渡せるのは、その寸法が <paramref name="source"/> と一致する場合だけです</b>
-    /// （縮小された射影を渡すと元矩形の座標系が変わるため、一致しない場合は切り出しの複製を作る経路へ戻ります）。
+    /// （縮小された射影を渡すと元矩形の座標系が変わるため、一致しない場合は 0 コピーのビューを表示用へ変換して描きます）。
     /// </remarks>
     public static void Paint(
         DrawingContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan, IImage? display = null)
@@ -102,9 +102,10 @@ internal static class LoupeContextPainter
     /// <paramref name="source"/> と一致する場合は、<b>元矩形つきの描画</b>（<c>DrawImage(image, 元矩形, 描画矩形)</c>）で
     /// 済ませます。 切り出しが画像の外へ出る場合も<b>交差する部分だけ</b>を対応する描画先の部分矩形へ写し、外側は描きません
     /// （ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）。<br/>
-    /// <b>切り出しの複製が要るのは次の場合だけです</b>: (1) 表示用の射影が無い（オフスクリーン描画の経路）、
-    /// (2) 射影の寸法が拡大元と違う（表示用の縮小が指定されている）。 この場合は従来どおり <c>Crop</c> で
-    /// 透明パディングを含む画像を作り、表示用へ変換して描きます。<br/>
+    /// <b>射影を使えない場合も切り出しの複製を作りません</b>: (1) 表示用の射影が無い（オフスクリーン描画の経路）、
+    /// (2) 射影の寸法が拡大元と違う（表示用の縮小が指定されている）のいずれでも、切り出しは
+    /// <b>0 コピーのビュー</b>（<see cref="EsReadOnlyBitmap.ToPixmap"/>）で読み、表示用へ変換して描きます
+    /// （切り出しの複製を作ると、表示用の変換がピクセルを複製する前に余分な複製を払うことになります）。<br/>
     /// 描画中にソースが破棄された場合（<see cref="ObjectDisposedException"/>）は何も描かずに戻る<br/>
     /// （ホストの状態と競合しても描画を継続できる。 画像外のみが残る）。
     /// </remarks>
@@ -137,13 +138,14 @@ internal static class LoupeContextPainter
                 return;
             }
 
-            // 射影が無い（または寸法が違う）場合は切り出しを作る（透明パディングの規則はコアの Crop が単一所有する）
-            using var region = source.Crop(crop);
-            // その場で読むだけ（表示用の変換は複製を返す）: 凍結して 0 コピーで読み取り専用の面へ渡す
-            region.SetReadOnly();
-            using var read = EsReadOnlyBitmap.FromBitmap(region);
-            using var avalonia = read.ToAvaloniaBitmap();
-            context.DrawImage(avalonia, image.CroppedRect.ToAvaloniaRect(), image.DrawClientPixelRect.ToAvaloniaRect());
+            // 射影が無い（または寸法が違う）場合は切り出しのビューを表示用へ変換して描く
+            // （ビューの座標は切り出しの左上が原点であり、描画先は切り詰めた矩形へ写す）
+            using var view = source.ToPixmap(crop);
+            using var avalonia = view.ToAvaloniaBitmap();
+            context.DrawImage(
+                avalonia,
+                new Rect(0, 0, crop.Width, crop.Height),
+                draw.ToAvaloniaRect());
         }
         catch (ObjectDisposedException)
         {

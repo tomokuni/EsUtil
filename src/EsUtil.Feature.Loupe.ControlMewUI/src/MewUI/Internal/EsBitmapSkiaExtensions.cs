@@ -31,7 +31,7 @@ public static class EsBitmapSkiaExtensions
     /// ビューは元の画像の生存中のみ有効である（ピクセルをコピーしないため）。<br/>
     /// <b>破棄は呼び出し側が行う</b>（本メソッドは呼び出しごとに新しい <see cref="SKBitmap"/> を作る）。
     /// 破棄しないと <see cref="SKBitmap"/> のファイナライザ キューへ積まれ、描画のたびに不要な GC 負荷になる
-    /// （実測: ビュー生成は 0.3〜2 µs だが、破棄しない場合は毎回 112 B のファイナライザ対象が残る）。<br/>
+    /// （ビューの生成自体はわずかな時間で済むが、破棄しない場合は描画のたびにファイナライザ対象が残る）。<br/>
     /// ビューの破棄はコアのピクセルを解放しない（非所有のため）。 コピーが必要な場合は結果へ <c>Copy()</c> を適用する。
     /// </remarks>
     public static SKBitmap ToSKBitmap(this EsReadOnlyBitmap bitmap)

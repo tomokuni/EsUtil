@@ -33,7 +33,7 @@ var layout = loupe.ResolveLayout(parentSize: new EsSize(800, 600));
 // 描画の幾何（1 フレーム分。UI 層は本値を組み立てず、描画層へ渡す）
 // clientSize は ResolveLayout が返した値（= 要求サイズ。 領域に合わせた縮小はしない）
 var geometry = loupe.ResolveGeometry(layout.ClientSize);
-var capture = geometry.MagnifiedImage;   // 切り出し領域・描画元・描画先
+var capture = geometry.MagnifiedImage;   // 切り出し領域・描画先
 ```
 
 ### 2.1 ログの注入
@@ -106,4 +106,4 @@ UI 初期化が不要なため `[Fact]` / `[Theory]` で並列実行され、**�
 
 ## 10. ライセンス
 
-MIT License（全文は [`LICENSE`](LICENSE) を参照）。
+MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。

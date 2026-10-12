@@ -53,7 +53,7 @@ Avalonia 版と同一の挙動になります。
 | --- | --- | --- | --- |
 | `Options` | `MarqueeOptions` | `MarqueeOptions.Default` | 選択矩形の**計算に必要な設定**（寸法・対話パラメータ。 コアの `EsUtil.Feature.Marquee`。 **色・表示可否は含まない**） |
 | `Appearance` | `MarqueeAppearance` | `MarqueeAppearance.Default` | **外観（色・フォントサイズ・枠線の太さ・表示可否）の設定**（提示層の `EsUtil.Feature.Marquee`）。 設定すると次の描画で提示層が新しい外観で描画計画を解決する |
-| `SizeLabelOverrideProvider` | `Func<string?>?` | `null` | サイズラベル（1 行目）の文言を描画時に評価するプロバイダ。 **文言はホストが与える**（コアは特定の文言を持たない。 文言の生成はホストの `CaptureLabelTexts` 等が担う）。 操作・情報ラベルの文言も同様にホストが与える。 設定すると保持している描画内容を破棄して再描画を要求する |
+| `SizeLabelOverrideProvider` | `Func<string?>?` | `null` | サイズラベル（1 行目）の文言を描画時に評価するプロバイダ。 **文言はホストが与える**（コアは特定の文言を持たない。 文言の生成は上位のアプリが担う）。 操作・情報ラベルの文言も同様にホストが与える。 設定すると保持している描画内容を破棄して再描画を要求する |
 | `ClientToPixelScaling` | `double` | `1.0` | DIP → 物理ピクセルのスケーリング係数（DPI 変更時に自動更新）。 **描画では描画面と表示領域の比（`ClientPixelScale`）を使う**ため、追加直後でこの値が未更新でも図形は画像と同じ倍率で描かれる |
 
 **見た目のカスタマイズ**: 色・枠線の太さ・表示可否は外観（`Appearance`。 `MarqueeAppearance`）で指定します（**表示可否が描画の停止の唯一の入口**です。 表示を止めても計画は矩形と層を保ち、描画側（コントロールの描画実装）がフラグを見て描かないため、ホストは止めた項目も計算値を使って自前で描けます）。 矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で描画計画（`MarqueeDrawPlan`）を差し替えられます（差し替えは値の置き換えだけで完結し、描画実装（本 UI の `MarqueeSkiaPainter`）は変更不要です。 例は Avalonia 版サンプルの `sample/Presentation/GuideMarqueePlan`）。 矩形で表せない描画（円・斜線等）は `Rendered` のキャンバスへ自前で描き、必要なら `DrawPlan` で既定の描画を行います。

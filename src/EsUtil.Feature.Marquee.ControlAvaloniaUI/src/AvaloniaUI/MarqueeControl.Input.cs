@@ -6,9 +6,7 @@ using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Feature.Marquee.AvaloniaUI;
 
-/// <summary>
-/// MarqueeControl のキーボード入力処理（partial 分割）。
-/// </summary>
+/// <summary>MarqueeControl のキーボード入力処理（partial 分割）。</summary>
 /// <remarks>
 /// キー入力をコア型（<see cref="EsKey"/>）へ変換してコア（ファサード）へ通知し、返された効果を適用するだけである。<br/>
 /// 矢印キー nudge・Escape のキャンセル・Enter の確定の判断（許可条件を含む）はコアが行う。<br/>

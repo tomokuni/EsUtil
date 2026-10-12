@@ -38,6 +38,19 @@ marquee.Subscribe(notice => Raise(notice));
 
 **ホイール操作とビューポートの変化の追従は本コアにありません**（組み込み先が存在して初めて意味を持つ処理のため、ホストがビューポートへ転送します）。
 
+### 2.1 ログの注入
+
+ロガーは**コンストラクター（`new MarqueeCore(effects, cursorService, options, logger)`）と `Log` プロパティのどちらでも注入**できます。 ロガーが確定した時点（コンストラクター注入時、または `Log` の初回設定時）で**生成の記録を 1 度だけ**出力します（それ以降は設定の変更だけが出力されます）。
+
+### 2.2 2 つの解決メソッドの使い分け
+
+| メソッド | 決めること | 入力 | 出力 |
+| --- | --- | --- | --- |
+| `CreateRequest` | 入力の解釈と対象の境界 | 描画領域のサイズ（DIP） | 幾何を求める要求（対象座標へ換算済みの値） |
+| `ResolveGeometry` | 1 フレーム分の幾何（何をどこへ描くか） | 要求（`CreateRequest` が返した値） | 幾何（注目矩形・ハンドル・始点マーカー） |
+
+**入力の解釈（DIP → 対象座標の換算・境界のクランプ）は `CreateRequest` が担い、幾何の導出（どのハンドルを表示するか・マーカーの位置）は `ResolveGeometry` が担います**。 色・フォント・枠線の太さ・表示可否・文言は本コアが持たず、描画層（本コアを参照する上位の層）が単一所有します。
+
 ## 3. 含まれるもの
 
 | グループ | 型 |
@@ -92,4 +105,4 @@ dotnet test src/EsUtil.Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Te
 
 ## 10. ライセンス
 
-MIT License（全文は [`LICENSE`](LICENSE) を参照）。
+MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。

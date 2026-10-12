@@ -187,18 +187,17 @@ public class LoupeGeometryTests
         Assert.Equal(4.0, geometry.CaptureCenterOffset.X, 6);
     }
 
-    /// <summary>拡大画像の切り出し・描画元・描画先の矩形が求まることを検証する。</summary>
+    /// <summary>拡大画像の切り出し領域と描画先の矩形が求まることを検証する。</summary>
     /// <remarks>
     /// 中心 (10, 10)・clientPixelSize=16・zoom=4 → 可視域の半径 2、実効原点 (8, 8)（整数）、切り出し一辺 5（= ceil(4) + 1）、
     /// 切り出し原点 (8, 8)、配置位置 0、描画先 20 px（表面 16 px を越えた分はクリップされる）。
     /// </remarks>
     [Fact]
-    internal void MagnifiedImage_切り出し領域と描画元と描画先を解決する()
+    internal void MagnifiedImage_切り出し領域と描画先を解決する()
     {
         var image = Assert.NotNull(Geometry(new EsPoint(10, 10), 16, 4).MagnifiedImage);
 
         Assert.Equal(new EsRectInt(8, 8, 5, 5), image.CropSourceRect);
-        Assert.Equal(new EsRect(0, 0, 5, 5), image.CroppedRect);
         Assert.Equal(new EsRect(0, 0, 20, 20), image.DrawClientPixelRect);
     }
 
@@ -214,7 +213,7 @@ public class LoupeGeometryTests
         Assert.Equal(new EsRect(-2, -2, 20, 20), image.DrawClientPixelRect);
     }
 
-    /// <summary>画像端では切り出し領域が負の左上になることを検証する（透明パディングは切り出し側が担う）。</summary>
+    /// <summary>画像端では切り出し領域が負の左上になることを検証する（画像の外側を描かないのは描画側が担う）。</summary>
     [Fact]
     internal void MagnifiedImage_画像端では切り出し左上が負になる()
     {

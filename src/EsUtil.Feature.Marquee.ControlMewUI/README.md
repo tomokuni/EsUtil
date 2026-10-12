@@ -13,7 +13,7 @@
   Avalonia 版と MewUI 版の挙動は同じ計算に基づきます。
 - **直接描画**: 中間ビットマップを経由せず、`SkiaCanvasView` のキャンバスへ直接描画します。 描画計画（層の順序・装飾矩形・文言・配置）は提示層（`EsUtil.Feature.Marquee.Presenter`）が単一所有し、描画は自 UI の描画 API（Skia）で行います。
 - **外観の設定（`Appearance`）**: 色・フォントサイズ・枠線の太さ・表示可否は**描画にだけ必要な設定**のためコアには含めず、外観（`EsUtil.Feature.Marquee.Presenter` の `MarqueeAppearance`）が単一所有します。 `Appearance` プロパティで指定し（既定は `MarqueeAppearance.Default`）、部分変更は `MarqueeAppearance.Default with { ... }` で行います。 **描くかどうかは色のアルファではなく外観の明示フラグ（`ShowOverlay` / `ShowOuterBorder` / `ShowInnerFill` / `ShowInnerBorder` / `ShowFullOverlay`）が決めます**。
-- **文字は UI 層が要素として配置する**: サイズラベルとカーソル座標ラベルの**文言と基準点は提示層の `MarqueePresenter`（`LabelTexts` partial） が、色とフォントサイズは外観（`MarqueeAppearance`）が、実寸から配置矩形を求める写像は提示層の `MarqueePresenter`（`LabelPlan` partial） が単一所有**し、UI 層が `Border` + `TextBlock` を子要素として置く（子要素は親の描画より後に描かれるため常に最上位）。 サイズラベルの基準点は注目矩形の左上から**枠線の幅 + 1 DIP 内側**（枠線と背景の重なりを無くす）。 実寸測定は自 UI の API（`SkiaText.Measure`）で行う。 操作・情報ラベルはアプリ固有の付加情報のため、ホスト（`SelectionOverlayControl`）が `Rendered` のハンドラで自前で描く（外観は `SelectionOverlayOptions.Labels` が単一所有する）
+- **文字は UI 層が要素として配置する**: サイズラベルとカーソル座標ラベルの**文言と基準点は提示層の `MarqueePresenter`（`LabelTexts` partial） が、色とフォントサイズは外観（`MarqueeAppearance`）が、実寸から配置矩形を求める写像は提示層の `MarqueePresenter`（`LabelPlan` partial） が単一所有**し、UI 層が `Border` + `TextBlock` を子要素として置く（子要素は親の描画より後に描かれるため常に最上位）。 サイズラベルの基準点は注目矩形の左上から**枠線の幅 + 1 DIP 内側**（枠線と背景の重なりを無くす）。 実寸測定は自 UI の API（`SkiaText.Measure`）で行う。 操作・情報ラベルはアプリ固有の付加情報のため、ホスト（上位のアプリの合成コントロール）が `Rendered` のハンドラで自前で描く（外観はホストのラベル設定が単一所有する）
 - **DPI 追従**: `OnDpiChanged` でスケーリング係数を更新し、DIP 座標で描画します（枠線・ハンドルの画面上の大きさを保ちます）。
 - **コア型のイベント引数**: イベントの座標は UI 非依存のコア型（`EsPoint` / `EsRect`）で公開します（境界変換が不要）。
 - **見た目のカスタマイズ（2 つの入口）**: 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で差し替えます。 矩形で表せない描画（円・斜線等）は `Appearance` の `Show*` を false にして `Rendered` のキャンバスへ自前で描き、必要なら `DrawPlan` で計画どおりの描画を行います（派生は不要）
@@ -94,7 +94,7 @@ grid.Add(marquee);     // 選択オーバーレイ（上。入力を受け取る
 | イベント引数の座標 | Avalonia の `Point` / `Rect` | **コア型の `EsPoint` / `EsRect`** |
 | マウスダウン・アップのイベント | `MouseDown` / `MouseUp` | **持たない**（生のポインター入力はホストが自 UI のイベントで観測するため） |
 | ホイール操作 | **扱わない**（ホストが `PointerWheelChanged` を購読） | **扱わない**（ホストが `MouseWheel` を購読） |
-| 表示の変化への追従 | ホストが `InvalidateRender()` を呼ぶ（`ZoomViewControl.ViewportChanged` 等を購読） | 同左（ホストが変化を検知して呼ぶ） |
+| 表示の変化への追従 | ホストが `InvalidateRender()` を呼ぶ（上位のズーム コントロールの変化通知等を購読） | 同左（ホストが変化を検知して呼ぶ） |
 | nudge のキー入力 | フォーカス非依存（`TopLevel` を購読） | フォーカス依存（本コントロールにフォーカスがある場合のみ） |
 | ログ | `ILogger` を注入して出力 | `Log` プロパティで同様に出力する（書式・レベルは同一） |
 | 描画 | 中間ビットマップ経由（自 UI の描画 API） | キャンバスへ直接描画（自 UI の描画 API） |

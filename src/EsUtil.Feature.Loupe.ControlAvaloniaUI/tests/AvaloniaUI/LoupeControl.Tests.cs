@@ -16,9 +16,7 @@ using Point = Avalonia.Point;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests;
 
-/// <summary>
-/// <see cref="LoupeControl"/> の単体テスト（Source / CenterPoint の Binding 方式・バッチ化・表示分離・範囲補正）。
-/// </summary>
+/// <summary><see cref="LoupeControl"/> の単体テスト（Source / CenterPoint の Binding 方式・バッチ化・表示分離・範囲補正）。</summary>
 /// <remarks>
 /// Avalonia ヘッドレステストは並列実行非対応（Dispatcher.UIThread が共有）のため、
 /// 同じコレクション（<see cref="AvaloniaHeadlessGroup"/>）内で直列実行する。

@@ -94,4 +94,4 @@ dotnet test src/EsUtil.Feature.Loupe.Presenter/tests/EsUtil.Feature.Loupe.Presen
 
 ## 9. ライセンス
 
-MIT License（全文は [`LICENSE`](LICENSE) を参照）。
+MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。

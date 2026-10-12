@@ -30,7 +30,7 @@
 
 SaveEvidence は、Windows デスクトップ上の画面をキャプチャし、プレビュー・編集・保存するための Avalonia UI アプリケーションです（.NET 10.0 / C# 14 / MVVM）。
 
-本プロジェクト（EsUtil.Feature.Loupe.ControlAvaloniaUI）は、このシステムのうち**ルーペ（拡大鏡）表示**を担う再利用可能なコントロールです。 元画像の指定座標を拡大表示し、十字線・枠線を合成描画します（画像外は無地）。 上位 AP（`CaptureSessionControl` / `SelectionOverlayControl`）のルーペ表示に使用されます。
+本プロジェクト（EsUtil.Feature.Loupe.ControlAvaloniaUI）は、このシステムのうち**ルーペ（拡大鏡）表示**を担う再利用可能なコントロールです。 元画像の指定座標を拡大表示し、十字線・枠線を合成描画します（画像外は無地）。 上位のアプリの合成コントロールのルーペ表示に使用されます。
 
 ## 2. 技術スタック
 
@@ -182,7 +182,7 @@ flowchart TB
 > 十字線・枠線の矩形計算、枠線の太さの換算、拡大描画の矩形計算は提示層（`EsUtil.Feature.Loupe.Presenter`）が単一所有します（MewUI 版と共用）。
 > 本プロジェクトは `DrawingContext` への写しと要素の配置を担います。
 
-> **通知契約**: `LoupeRenderedEventArgs` はホストがオーバーレイを描くのに必要な値（描画済み Bitmap ・描画計画）を通知します。 描画計画は切り出し領域の左上（`CaptureTopLeft`）・拡大率（`ZoomLevel`）・描画面のサイズを単一所有し、本引数は複製しません。 中心座標ラベルはコントロールがテキスト要素として表示するため含みません。 表示位置・表示サイズは、消費側が存在しないため削除しました（必要になればコントロールの公開プロパティから取得できます）。
+> **通知契約**: `LoupeRenderedEventArgs` はホストがオーバーレイを描くのに必要な値（描画済み Bitmap ・描画計画）を通知します。 描画計画は切り出し領域の左上（`CaptureTopLeft`）・拡大率（`ZoomLevel`）・描画面のサイズを単一所有し、本引数は複製しません。 中心座標ラベルはコントロールがテキスト要素として表示するため含みません。 表示位置・表示サイズは消費側が無いため含みません（必要になればコントロールの公開プロパティから取得できます）。
 
 ### 6.4 画像入力とピクセル抽出
 
@@ -191,7 +191,7 @@ flowchart TB
 - `Source` が `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む派生型）の場合は `CopyPixels` による複製（`EsBitmap` 化）で抽出する。
 - `Source` が `EsBitmapAvaloniaAdapter` の場合は `GetEsBitmap()` でコアの画像（`EsReadOnlyBitmap`）を取り出し、そのピクセルを直接抽出する（複製なし）。
 - `Bitmap`（派生を含む） / `EsBitmapAvaloniaAdapter` 以外の `IImage`（`CroppedBitmap` 等）は `NotSupportedException` が発生する。
-- **切り出しの複製を作らない**（表示用の射影を元矩形つきで描く）: `LoupeContextPainter` は `Source` の射影（`IImage`）を受け取り、**画像と交差する部分だけ**を `DrawImage(image, 元矩形, 描画矩形)` で描く。 外側は描かない（ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）ため、**毎フレームの切り出しの複製と表示用の変換が不要**になる。 射影が無い経路（オフスクリーン描画）と射影の寸法が拡大元と違う場合だけ、従来どおり `Crop`（コア）で透明パディングを含む画像を作る。
+- **切り出しの複製を作らない**（表示用の射影を元矩形つきで描く）: `LoupeContextPainter` は `Source` の射影（`IImage`）を受け取り、**画像と交差する部分だけ**を `DrawImage(image, 元矩形, 描画矩形)` で描く。 外側は描かない（ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）ため、**毎フレームの切り出しの複製と表示用の変換が不要**になる。 射影が無い経路（オフスクリーン描画）と射影の寸法が拡大元と違う場合は、**0 コピーの読み取りビュー**（`ToPixmap`）を読み、表示用の画像へ変換して描く（切り出しの複製は作らない）。
 - 合成（`RenderTargetBitmap` / `DrawingContext`）は UI スレッドで行う（バックグラウンド抽出は連続再描画時にスレッドプールが競合し、移動中の追従が止まるため行わない）。 一時 `RenderTargetBitmap` は描画直後に破棄する。
 
 ### 6.5 切り出し領域の幾何（`EsUtil.Feature.Loupe.Core`）
@@ -200,7 +200,7 @@ flowchart TB
 - **分類**: 幾何（`public readonly record struct`）の導出プロパティ
 - **責務**: 切り出し領域の幾何（どこを切り出すか）を幾何の値から導出する
 - **公開API**: 描画計画（`LoupeDrawPlan.MagnifiedImage`）として外部へ渡る
-- **切り出しの実行は本メンバーにない**: `EsReadOnlyBitmap` のメンバー `Crop` を描画実装（Avalonia は `LoupeContextPainter`）が呼ぶ
+- **切り出しの実行は本メンバーにない**: 読み取りの範囲（`CropSourceRect`）を渡すだけで、描画実装（Avalonia は `LoupeContextPainter`）が 0 コピーのビュー（`ToPixmap`）を読んで描く（切り出しの複製を作らない）
 - **依存**: `EsUtil.Platform.Core`（`EsPoint` / `EsRect` / `EsRectInt`）。 Avalonia には依存しない
 
 ### 6.6 LoupeLogMessage
@@ -255,7 +255,7 @@ sequenceDiagram
     Pl->>Rdr: LoupeContextPainter.Paint(DrawingContext, source, plan, display)（UI スレッド。描画の順序は計画が単一所有）
     Rdr->>Rdr: 切り出し矩形を画像の内側へ切り詰め、描画先の部分矩形を求める
     Rdr->>Ext: 表示用の射影がある場合は DrawImage(display, 元矩形, 描画矩形)（切り出しの複製も変換も作らない）
-    Rdr->>Ext: 射影が無い/寸法が違う場合は Crop（透明パディングを含む画像を作って変換する）
+    Rdr->>Ext: 射影が無い/寸法が違う場合は ToPixmap（0 コピーのビュー）を表示用の画像へ変換して描く
     Rdr-->>Pl: 合成 Bitmap
     Pl-->>Ctl: 生成 Bitmap
     Ctl->>Ctl: SetLoupeBitmap（子の Image.Source / LoupeBitmap・Rendered 通知）

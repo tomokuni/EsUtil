@@ -27,10 +27,7 @@ public sealed class LoupeRenderedEventArgs(SKCanvas canvas, LoupeDrawPlan conten
     public SKCanvas Canvas { get; } = canvas;
 
     /// <summary>実際に描画した描画計画を取得する。</summary>
-    /// <value>
-    /// 切り出し領域の左上（<see cref="LoupeDrawPlan.CaptureTopLeft"/>）・拡大率（<see cref="LoupeDrawPlan.ZoomLevel"/>）・
-    /// 描画面のサイズ（<see cref="LoupeDrawPlan.ClientPixelSize"/>）を持つ計画。
-    /// </value>
+    /// <value>切り出し領域の左上（<see cref="LoupeDrawPlan.CaptureTopLeft"/>）・拡大率（<see cref="LoupeDrawPlan.ZoomLevel"/>）・描画面のサイズ（<see cref="LoupeDrawPlan.ClientPixelSize"/>）を持つ計画。</value>
     /// <remarks>
     /// オーバーレイの座標変換に必要な値は本値から取得する（値を複製しない）。<br/>
     /// 中心未設定時は <see cref="LoupeDrawPlan.CaptureTopLeft"/> が null（オーバーレイ描画不可）。

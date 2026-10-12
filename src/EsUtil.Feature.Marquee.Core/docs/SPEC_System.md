@@ -151,7 +151,7 @@ stateDiagram-v2
 - 外部が使わない型・メンバーは `internal` とし、単体テストにのみ `InternalsVisibleTo`（`EsUtil.Feature.Marquee.Core.Tests`）で公開します。
 - **クラスが `internal` の場合、そのメンバーも `internal` とします**（`public` と書いても外部から見えないため、可視性の宣言を実態と一致させる）。
 - `[EditorBrowsable]` による「見えにくくする」対処は行いません（公開面も契約も変わらず、見つけにくくなるだけのため）。
-- **層 3（内部ヘルパー）は外部参照 0 件を実測して絞り込んだ結果**です。 UI 実装が参照するのは `MarqueeCore`・幾何の契約・列挙型・`MarqueeOptions` のみです（幾何計算は `internal` であり UI 実装からは参照できません）。
+- **層 3（内部ヘルパー）は UI 実装から参照されない型だけ**です。 UI 実装が参照するのは `MarqueeCore`・幾何の契約・列挙型・`MarqueeOptions` のみです（幾何計算は `internal` であり UI 実装からは参照できません）。
 
 ## 7. テスト方針
 

@@ -94,4 +94,4 @@ dotnet test src/EsUtil.Feature.Marquee.Presenter/tests/EsUtil.Feature.Marquee.Pr
 
 ## 9. ライセンス
 
-MIT License（全文は [`LICENSE`](LICENSE) を参照）。
+MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。

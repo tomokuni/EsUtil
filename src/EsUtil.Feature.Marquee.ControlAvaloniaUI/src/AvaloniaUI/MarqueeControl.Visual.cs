@@ -7,9 +7,7 @@ using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Feature.Marquee.AvaloniaUI;
 
-/// <summary>
-/// MarqueeControl のビジュアルツリー接続と描画処理（partial 分割）。
-/// </summary>
+/// <summary>MarqueeControl のビジュアルツリー接続と描画処理（partial 分割）。</summary>
 /// <remarks>
 /// ビジュアルツリー接続時に TopLevel のキーイベントを購読し、切断時に解除する。<br/>
 /// 描画は提示層が解決した描画計画（<see cref="MarqueeDrawPlan"/>）を自 UI の描画面へ写し、座標変換（対象 → DIP）は座標変換ポートに問い合わせる

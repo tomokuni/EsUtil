@@ -91,7 +91,7 @@ src/EsUtil.Feature.Loupe.ControlMewUI/
 | コンポーネント | 責務 |
 | --- | --- |
 | `LoupeControl` | 入力プロパティ（`MewProperty`）の定義（補正と変更ログもここへ登録する）、DPI 変更の追従、子（図形キャンバス・ラベル要素）の計測と配置、ラベル要素（`Border` + `TextBlock`）の追加・更新。 描画は提示層（`LoupePresenter.ResolveDrawPlan`）が解決した計画を `LoupeSkiaPainter` で `SKCanvas` へ写す（層の順序も描く値も計画が単一所有する）。 **描画のたびに描画面（物理ピクセル）と割り当て領域（DIP）の比を実効倍率として `ClientToPixelScaling` へ反映する**（DPI の変更通知は追加直後のコントロールへ届かないため、保持値だけに頼るとルーペ領域より小さい拡大画像を描く） |
-| `LoupeSkiaPainter`（描画実装） | 描画計画（`LoupeDrawPlan`。 層の順序・矩形・拡大画像の切り出しと描画の矩形）を Skia の描画 API へ写す。 **描く層とその順序は計画が単一所有する**（`LoupeDrawLayer` を先頭から処理し、中心座標ラベルは処理しない）。 色は計画の外観（`LoupeAppearance`）を使う。 拡大画像は**画像と交差する部分だけ**を `DrawBitmap(全体の非所有ビュー, 元矩形, 描画矩形)` で描き、外側は描かない（ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）。 したがって**毎フレームの切り出しの複製を作らない**（透明パディングの規則はコアが単一所有する） |
+| `LoupeSkiaPainter`（描画実装） | 描画計画（`LoupeDrawPlan`。 層の順序・矩形・拡大画像の切り出しと描画の矩形）を Skia の描画 API へ写す。 **描く層とその順序は計画が単一所有する**（`LoupeDrawLayer` を先頭から処理し、中心座標ラベルは処理しない）。 色は計画の外観（`LoupeAppearance`）を使う。 拡大画像は**画像と交差する部分だけ**を `DrawBitmap(切り出しの非所有ビュー, 描画矩形)` で描き、外側は描かない（ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）。 したがって**毎フレームの切り出しの複製を作らない** |
 | `RenderTarget`（テスト） | ウィンドウ不要の描画先。 `SKBitmap` と `SKCanvas` を保持し、画素を読み取る |
 
 ## 6. クラス図
@@ -231,7 +231,7 @@ sequenceDiagram
     R->>SK: 画像外の色（plan.Appearance.ResolvePasteboardColor()。 非表示時は透明）を表面全体へ塗る
     alt Source と切り出し領域が揃っている
         R->>R: 切り出し矩形を画像の内側へ切り詰め、描画先の部分矩形を求める（交差しなければ描かない）
-        R->>SK: DrawBitmap(source.ToSKBitmap(), 元矩形, 描画矩形)（切り出しの複製を作らない。 画像の外側は描かない）
+        R->>SK: DrawBitmap(source.ToPixmap(crop).ToSKBitmap(), 描画矩形)（切り出しの複製を作らない。 画像の外側は描かない）
     else 未設定または破棄済み
         R-->>R: 画像外の色のみを残す
     end
@@ -255,7 +255,7 @@ sequenceDiagram
    Avalonia 版と MewUI 版は同じ描画計画を使う（描画実装は計画を写すだけである）。
 4. **設定（基本サイズ・拡大率）はコアの `LoupeOptions` が、外観（枠線の太さ・表示可否・色）は提示層の `LoupeAppearance` が単一所有する**。 UI 層は `Options` と `Appearance` を公開して描画時に読むだけであり、既定値・数値項目の補正もそれぞれの型が持つ。
    表示可否と枠線の太さが外観に集約されているため、両 UI の見た目が一致する
-   （従来は Avalonia が既定で十字線を描き MewUI は描かないという既定値のドリフトがあった）。
+   （UI ごとの既定値を持たないため、既定値が食い違わない）。
 5. **位置を持たない**。 表示位置は「親領域サイズ」「中心座標」「オフセット」に依存するホスト側の関心事であり、
    計算はコアの公開ファサード（`LoupeCore.ResolveLayout`）が単一所有する。 コントロールは入力と描画のみを担う。
 6. **DPI を自動追従させる**。 `OnDpiChanged` で `ClientToPixelScaling` を更新し、ホストが DPI を扱わずに済むようにした。

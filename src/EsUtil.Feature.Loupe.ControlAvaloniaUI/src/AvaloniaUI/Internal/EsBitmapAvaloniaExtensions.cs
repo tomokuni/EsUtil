@@ -9,9 +9,7 @@ using Color = System.Drawing.Color;
 // 複製元: EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging（独立パッケージ用の意図的な複製。 .github/依存関係.md §4.1）
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 
-/// <summary>
-/// <see cref="EsReadOnlyBitmap"/> / <see cref="EsBitmap"/> の Avalonia 向け生成・変換拡張。
-/// </summary>
+/// <summary><see cref="EsReadOnlyBitmap"/> / <see cref="EsBitmap"/> の Avalonia 向け生成・変換拡張。</summary>
 /// <remarks>
 /// <b>依存分離</b>: 本クラスは Avalonia との変換を担い、<see cref="EsReadOnlyBitmap"/> 本体（コア）の依存を閉じる。<br/>
 /// <br/>
@@ -150,16 +148,43 @@ internal static class EsBitmapAvaloniaExtensions
     {
         ArgumentNullException.ThrowIfNull(bitmap);
 
-        var size = bitmap.Size;
         fixed (byte* src = bitmap.ReadOnlyPixels)
         {
             return new Bitmap(
                 PixelFormat.Bgra8888,
                 AlphaFormat.Premul,
                 (nint)src,
-                new PixelSize(size.Width, size.Height),
+                new PixelSize(bitmap.Width, bitmap.Height),
                 new Vector(96, 96),
                 bitmap.Stride);
+        }
+    }
+
+    /// <summary>0 コピーのビューから Avalonia の標準 <see cref="Bitmap"/> を生成する（<b>切り出しの複製を作らない</b>）。</summary>
+    /// <param name="view">対象のビュー（切り出す領域を指す）。 借用であり破棄しない。</param>
+    /// <returns>標準描画経路（<c>IImage</c>）で確実に描画される <see cref="Bitmap"/>。 所有権は呼び出し側。</returns>
+    /// <remarks>
+    /// <b>行幅（<see cref="EsPixmap.Stride"/>）をそのまま渡します</b>: <see cref="EsPixmap.ReadOnlyPixels"/> は
+    /// <b>行の余白を含む</b>連続ビューであるため、<c>幅 × 4</c> を渡すと行がずれます（元画像の幅で切り出した場合だけ一致します）。<br/>
+    /// <b>用途</b>: 一部だけを表示用へ変換する場面。 先に <see cref="EsReadOnlyBitmap.Crop(EsUtil.Platform.Core.Geometry.EsRectInt)"/> で切り出すと、
+    /// 表示用の変換がピクセルを複製する前に<b>切り出しの複製</b>を払うことになります。<br/>
+    /// 生成した <see cref="Bitmap"/> の座標はビューの左上を原点とします（元画像の座標ではありません）。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="view"/> が null の場合。</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="view"/> が破棄済みの場合。</exception>
+    public static unsafe Bitmap ToAvaloniaBitmap(this EsPixmap view)
+    {
+        ArgumentNullException.ThrowIfNull(view);
+
+        fixed (byte* src = view.ReadOnlyPixels)
+        {
+            return new Bitmap(
+                PixelFormat.Bgra8888,
+                AlphaFormat.Premul,
+                (nint)src,
+                new PixelSize(view.Width, view.Height),
+                new Vector(96, 96),
+                view.Stride);
         }
     }
 
@@ -169,5 +194,4 @@ internal static class EsBitmapAvaloniaExtensions
     /// <param name="color">設定する Avalonia Color。 アルファ乗算して書き込む。</param>
     public static void SetPixel(this EsBitmap bitmap, PixelPoint point, AvaloniaColor color)
         => bitmap.SetPixel(point.X, point.Y, color.B, color.G, color.R, color.A);
-
 }

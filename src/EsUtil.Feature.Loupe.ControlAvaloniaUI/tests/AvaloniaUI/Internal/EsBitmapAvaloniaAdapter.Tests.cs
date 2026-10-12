@@ -8,9 +8,7 @@ using Xunit;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests.Internal;
 
-/// <summary>
-/// <see cref="EsBitmapAvaloniaAdapter"/> のテスト（コアの画像を Avalonia の表示境界の画像として公開するアダプタ）。
-/// </summary>
+/// <summary><see cref="EsBitmapAvaloniaAdapter"/> のテスト（コアの画像を Avalonia の表示境界の画像として公開するアダプタ）。</summary>
 /// <remarks>
 /// <see cref="Bitmap"/> への射影（<c>ToAvaloniaBitmap</c>）が Avalonia の描画バックエンドを必要とするため、
 /// 本クラスは <c>[AvaloniaFact]</c> で検証する（<c>[Fact]</c> と混在させると並列実行で競合する）。<br/>
