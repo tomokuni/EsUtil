@@ -106,6 +106,53 @@ function Get-TocBlock {
     return , $result
 }
 
+<#
+.SYNOPSIS
+本文の「## 目次」を、本文の見出しから作った目次へ直す（合っていれば何もしない）。
+
+.DESCRIPTION
+見出しが無い場合は、目次を作れないため例外にする（本文が壊れているため）。
+#>
+function Update-Toc {
+    param([string] $Text)
+
+    $expected = Get-TocLines $Text
+    $actual = Get-TocBlock $Text
+    if ($expected.Count -eq $actual.Count) {
+        $same = $true
+        for ($i = 0; $i -lt $expected.Count; $i++) {
+            if ($expected[$i] -ne $actual[$i]) { $same = $false; break }
+        }
+
+        if ($same) { return $Text }
+    }
+
+    $lines = $Text -split "`n"
+    $heading = -1
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match '^## 目次( <!-- omit from toc -->)?$') { $heading = $i; break }
+    }
+
+    if ($heading -lt 0) {
+        throw '「## 目次」の見出しが無いため、目次を直せません。'
+    }
+
+    # 目次の行の範囲（見出しの直後の空行と `- ` の行）
+    $from = $heading + 1
+    while ($from -lt $lines.Count -and $lines[$from].Trim() -eq '') { $from++ }
+    $to = $from
+    while ($to -lt $lines.Count -and $lines[$to] -match '^\s*- ') { $to++ }
+    while ($to -lt $lines.Count -and $lines[$to].Trim() -eq '') { $to++ }
+
+    $rebuilt = @()
+    $rebuilt += $lines[0..$heading]
+    $rebuilt += ''
+    $rebuilt += $expected
+    $rebuilt += ''
+    $rebuilt += $lines[$to..($lines.Count - 1)]
+    return ($rebuilt -join "`n")
+}
+
 # 一時プロジェクトはリポジトリの外へ置く（リポジトリのビルド設定を適用させない。 計測の再現性を保つ）
 $workspace = Join-Path ([IO.Path]::GetTempPath()) 'SaveEvidence.Measurement'
 if (Test-Path -LiteralPath $workspace) {
@@ -154,7 +201,7 @@ namespace Measurement;
 
 internal static class Program
 {
-    // 縮小先は比較のため長辺 320 に固定する
+    // 縮小先は比較のため長辺 320 に固定する（サンプルも同じ値を使う）
     private const int ResizeMaxSize = 320;
 
     private const string SectionCreation = "生成と複製";
@@ -247,6 +294,25 @@ internal static class Program
     /// <summary>減色の出力の品質を測る色数。</summary>
     private static readonly int[] s_qualityColors = [256, 16];
 
+    /// <summary>サンプル画像に使う寸法（実施前を等倍で表示できる大きさ。 計測の寸法は大きすぎて表示できない）。</summary>
+    /// <remarks>
+    /// <b>この寸法にする理由</b>: 縮小先は計測と同じ長辺 <see cref="ResizeMaxSize"/> にしたいが、
+    /// 640x360 から縮めると**ちょうど 2 倍**になり、双線形（Mid）と面積平均（High）が同じ画素になります
+    /// （実測で最大差 0）。 割り切れない比（2.5 倍）にするため 800x450 にしています。
+    /// </remarks>
+    private static readonly SizeCase s_sampleSize = new("800x450", 800, 450);
+    /// <summary>サンプル画像で拡大する領域（実施前の左上からの位置と大きさ。 勾配の折り返しをまたぐ）。</summary>
+    private static readonly EsRectInt s_sampleRegion = new(230, 120, 80, 45);
+
+    /// <summary>縮小の結果を拡大する領域（結果の左上からの位置と大きさ。 縮小で差が出る細かい模様の側）。</summary>
+    private static readonly EsRectInt s_resizeZoomRegion = new(68, 39, 80, 45);
+
+    /// <summary>サンプル画像の拡大の倍率（1 画素を n×n で写す。 ディザの粒が見える大きさにする）。</summary>
+    private const int SampleMagnification = 4;
+
+    /// <summary>サンプル画像を置くフォルダを指す環境変数（未設定なら画像を作らない）。</summary>
+    private const string SampleDirectoryVariable = "SAVEEVIDENCE_SAMPLE_DIR";
+
     private static readonly string[] s_classNames = [ClassBit, ClassRead, ClassView];
     private static readonly string[] s_sizeLabels = [.. s_sizes.Select(static s => s.Label)];
     private static readonly EsImageQuality[] s_qualities = [EsImageQuality.Low, EsImageQuality.Mid, EsImageQuality.High];
@@ -298,6 +364,13 @@ internal static class Program
         {
             MeasureFiles();
             CleanUpFiles();
+
+            // サンプル画像は文書を差し替えるときだけ作る（-NoWrite でリポジトリを書き換えない）
+            var directory = SampleDirectory();
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                SaveSamples(directory);
+            }
         }
 
         Emit();
@@ -601,6 +674,87 @@ internal static class Program
         return new FileInfo(path).Length;
     }
 
+    /// <summary>サンプル画像（実施前と実施後）を保存する（Windows 専用の符号化）。</summary>
+    /// <remarks>
+    /// <b>画像を作る理由</b>: 縮小と減色の見え方は数値（所要・PSNR）では分かりません。
+    /// <b>計測と同じ生成関数・同じ縮小先</b>を使い、実施前と実施後を並べて見られるようにします。
+    /// 手で作った画像を置かないのは、計測条件と食い違うためです（.github/ドキュメント規約.md §1）。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    private static void SaveSamples(string directory)
+    {
+        Directory.CreateDirectory(directory);
+
+        using var source = CreateWith(s_sampleSize, ContentGradient);
+        Save(source, directory, "before.png");
+
+        var zoomDirectory = Path.Combine(directory, "zoom");
+        Directory.CreateDirectory(zoomDirectory);
+        using (var before = Magnify(source, s_sampleRegion, SampleMagnification))
+        {
+            Save(before, zoomDirectory, "before.png");
+        }
+
+        foreach (var quality in s_qualities)
+        {
+            using var resized = source.Resize(ResizeMaxSize, quality);
+            Save(resized, directory, $"resize-{quality.ToString().ToLowerInvariant()}.png");
+
+            // 縮小の差は細かい模様に出るため、同じ領域を拡大して並べる
+            using var magnifiedResize = Magnify(resized, s_resizeZoomRegion, SampleMagnification);
+            Save(magnifiedResize, zoomDirectory, $"resize-{quality.ToString().ToLowerInvariant()}.png");
+        }
+
+        foreach (var colors in s_qualityColors)
+        {
+            foreach (var dither in new[] { EsDitherMode.None, EsDitherMode.FloydSteinberg })
+            {
+                var name = $"reduce-{colors}-{DitherKey(dither)}";
+                using var reduced = source.ReduceColors(colors, EsImageQuality.Mid, dither);
+                Save(reduced, directory, $"{name}.png");
+
+                using var magnified = Magnify(reduced, s_sampleRegion, SampleMagnification);
+                Save(magnified, zoomDirectory, $"{name}.png");
+            }
+        }
+    }
+
+    /// <summary>画像を PNG で保存する。</summary>
+    [SupportedOSPlatform("windows")]
+    private static void Save(EsBitmap image, string directory, string name)
+        => image.Save(Path.Combine(directory, name));
+
+    /// <summary>領域を最近傍で拡大した画像を作る（1 画素を n×n で写す）。</summary>
+    /// <remarks>拡大は<b>0 コピーのビュー</b>から読み、書き先は 1 画素ずつ埋めます（サンプルは小さいため十分速い）。</remarks>
+    private static EsBitmap Magnify(EsBitmap source, EsRectInt region, int scale)
+    {
+        using var view = source.ToPixmap(region);
+        var width = region.Width * scale;
+        var height = region.Height * scale;
+        return EsBitmap.CreateFilled(width, height, pixels =>
+        {
+            var sourcePixels = view.ReadOnlyPixels;
+            var destinationStride = width * EsBitmap.BytesPerPixel;
+            for (var y = 0; y < height; y++)
+            {
+                var sourceRow = (y / scale) * view.Stride;
+                for (var x = 0; x < width; x++)
+                {
+                    var from = sourceRow + ((x / scale) * EsBitmap.BytesPerPixel);
+                    var to = (y * destinationStride) + (x * EsBitmap.BytesPerPixel);
+                    pixels[to] = sourcePixels[from];
+                    pixels[to + 1] = sourcePixels[from + 1];
+                    pixels[to + 2] = sourcePixels[from + 2];
+                    pixels[to + 3] = sourcePixels[from + 3];
+                }
+            }
+        });
+    }
+
+    /// <summary>ディザをファイル名へ使える短い語にする。</summary>
+    private static string DitherKey(EsDitherMode dither)
+        => dither == EsDitherMode.None ? "none" : "dither";
+
     private static Item SumPixels(int width, int height, Func<int, (byte B, byte G, byte R, byte A)> read)
     {
         var total = 0L;
@@ -796,7 +950,68 @@ internal static class Program
             ["Save", .. s_formats.Select(static f => f.Method)]);
         AppendOutputSizeSection(9, s_formats.Length + 2);
         AppendMethodTables(9, SectionFile, ["Load"], subStart: s_formats.Length + 3);
+        AppendSamples(10);
         s_report.Add("<!-- markdownlint-enable MD060 -->");
+    }
+
+    /// <summary>縮小と減色のサンプル（実施前と実施後）を出力する。</summary>
+    /// <remarks>計測スクリプトが同じフォルダの `sample/` へ置いた画像を参照します（.github/ドキュメント規約.md §1）。</remarks>
+    private static void AppendSamples(int number)
+    {
+        AddHeading($"## {number}. 縮小と減色のサンプル");
+        AddText($"計測に使った画像（折り返す勾配）で、**実施前と実施後**を並べます（所要や PSNR では分からない見え方を確かめるためです）。 サンプルの元画像は **{s_sampleSize.Label}** です（計測の {s_sizes[0].Label} のままでは実施前を等倍で表示できないため）。 **縮小先は計測と同じ長辺 {ResizeMaxSize}**、**減色は同じ寸法のまま**です。 画像は計測スクリプトが生成します（手で作った画像は置きません）。");
+        AddText($"**縮小の粗さは縮小の比率で変わります**。 サンプルの比（{s_sampleSize.Width / (double)ResizeMaxSize:F1} 倍）は計測（{s_sizes[0].Width / (double)ResizeMaxSize:F0} 倍）より小さいため、{EsImageQuality.Low}（最近傍）の粗さは**計測より小さく出ます**。");
+
+        AddHeading($"### {number}.1 縮小（実施前 → 実施後）");
+        var target = ResizeTarget(s_sampleSize, ResizeMaxSize);
+        AddText($"実施前は {s_sampleSize.Label} です。 **実施前だけを等倍で示し**、その下へ**実施後 3 つを同じ大きさ**（長辺 {ResizeMaxSize} → {target.Width}x{target.Height}）で並べます（**縮小の見え方は同じ大きさ同士で比べる**ためです）。");
+        AddImages([("実施前", "sample/before.png")]);
+        AddImages(
+            [
+                .. s_qualities.Select(q => ($"実施後 {q}", $"sample/resize-{q.ToString().ToLowerInvariant()}.png")),
+            ]);
+        AddText($"縮小先の長辺は**計測と同じ {ResizeMaxSize}** です。 元画像を **{s_sampleSize.Label}**（計測は {s_sizes[0].Label}）にしているため、比は **{s_sampleSize.Width / (double)ResizeMaxSize:F1} 倍**です。 元画像を 640x360 にすると**ちょうど 2 倍**になり、**{EsImageQuality.Mid}（双線形）と {EsImageQuality.High}（面積平均）が同じ画素**になります（2 倍の縮小では双線形が 2x2 の平均をそのまま求めるためです。 実測で最大差 0）。 3 つの違いを見るため、**割り切れない比**にしています。");
+
+        AddHeading($"### {number}.2 縮小の拡大（{EsImageQuality.Low} / {EsImageQuality.Mid} / {EsImageQuality.High}）");
+        AddText($"実施後の**1 画素を {SampleMagnification}×{SampleMagnification} で写した**ものです（実施後の ({s_resizeZoomRegion.X}, {s_resizeZoomRegion.Y}) から {s_resizeZoomRegion.Width}x{s_resizeZoomRegion.Height} の領域。 **実施前は上の表**を参照）。 縮小の違いは細かい模様に出るため、拡大すると**{EsImageQuality.Low}（最近傍）の階段**（元の模様を飛ばして拾うため）と、**{EsImageQuality.Mid}・{EsImageQuality.High} のなだらかさ**が見えます。");
+        AddImages(
+            [
+                .. s_qualities.Select(q => ($"実施後 {q}（拡大）", $"sample/zoom/resize-{q.ToString().ToLowerInvariant()}.png")),
+            ]);
+
+        for (var i = 0; i < s_qualityColors.Length; i++)
+        {
+            var colors = s_qualityColors[i];
+            var qualitySection = 8 + (2 * i);
+            var zoomSection = qualitySection + 1;
+
+            AddHeading($"### {number}.{3 + (2 * i)} 減色（{colors} 色・実施前 → 実施後）");
+            AddText($"実施前は {s_sampleSize.Label}（全色）です。 実施後は同じ寸法のまま {colors} 色へ減色した結果です。 縮小していないため、**減色だけの違い**が分かります。 所要は §7.2、1 画素ごとの差は §7.{qualitySection} です。");
+            AddImages(
+                [
+                    ("実施前", "sample/before.png"),
+                    ("実施後（ディザなし）", $"sample/reduce-{colors}-none.png"),
+                    ("実施後（ディザあり）", $"sample/reduce-{colors}-dither.png"),
+                ]);
+
+            AddHeading($"### {number}.{4 + (2 * i)} 減色の拡大（{colors} 色・{EsImageQuality.Mid}）");
+            AddText($"上の表の**1 画素を {SampleMagnification}×{SampleMagnification} で写した**ものです（実施前の ({s_sampleRegion.X}, {s_sampleRegion.Y}) から {s_sampleRegion.Width}x{s_sampleRegion.Height} の領域）。 **ディザの粒**（色を混ぜて中間色に見せる点）が見えます。 縞の出にくさは §7.{zoomSection} です。");
+            AddImages(
+                [
+                    ("実施前（拡大）", "sample/zoom/before.png"),
+                    ("実施後（ディザなし・拡大）", $"sample/zoom/reduce-{colors}-none.png"),
+                    ("実施後（ディザあり・拡大）", $"sample/zoom/reduce-{colors}-dither.png"),
+                ]);
+        }
+    }
+
+    /// <summary>画像を横に並べる（見出しと画像の表。 代替テキストは説明を使う）。</summary>
+    private static void AddImages((string Caption, string Path)[] images)
+    {
+        s_report.Add("| " + string.Join(" | ", images.Select(static i => i.Caption)) + " |");
+        s_report.Add("| " + string.Join(" | ", images.Select(static _ => "---")) + " |");
+        s_report.Add("| " + string.Join(" | ", images.Select(static i => $"![{i.Caption}]({i.Path})")) + " |");
+        s_report.Add("");
     }
 
     private static void AppendEnvironment()
@@ -816,6 +1031,18 @@ internal static class Program
 
         AddPlainTable(["項目", "値"], environment.Select(static e => new[] { e.Item, e.Value }));
     }
+
+    /// <summary>縮小したときの寸法を返す（長辺が上限に収まるように比例で縮める。 切り捨て）。</summary>
+    private static (int Width, int Height) ResizeTarget(SizeCase size, int maxSize)
+    {
+        var longSide = Math.Max(size.Width, size.Height);
+        var scale = (double)maxSize / longSide;
+        return ((int)(size.Width * scale), (int)(size.Height * scale));
+    }
+
+    /// <summary>サンプル画像を置くフォルダを返す（環境変数が未設定なら空。 計測の対象ではない）。</summary>
+    private static string SampleDirectory()
+        => Environment.GetEnvironmentVariable(SampleDirectoryVariable) ?? string.Empty;
 
     /// <summary>プロセッサの名前を返す（計測スクリプトが Win32_Processor から渡す）。</summary>
     private static string ProcessorName()
@@ -1384,6 +1611,20 @@ catch {
 
 $previousCpuName = $env:SAVEEVIDENCE_CPU_NAME
 $env:SAVEEVIDENCE_CPU_NAME = $cpuName
+
+# サンプル画像は文書を差し替えるときだけ作る（-NoWrite でリポジトリを書き換えない。
+# 計測は 1 回で済ませるため、計測の前へ置く。 .github/ドキュメント規約.md §1）
+$sampleDir = Join-Path $PSScriptRoot 'sample'
+$previousSampleDir = $env:SAVEEVIDENCE_SAMPLE_DIR
+if ($NoWrite) {
+    $env:SAVEEVIDENCE_SAMPLE_DIR = ''
+}
+else {
+    Remove-Item -LiteralPath $sampleDir -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Path $sampleDir -Force | Out-Null
+    $env:SAVEEVIDENCE_SAMPLE_DIR = $sampleDir
+}
+
 try {
     $measured = & dotnet $assembly $Iterations $Warmup
     if ($LASTEXITCODE -ne 0) {
@@ -1392,6 +1633,7 @@ try {
 }
 finally {
     $env:SAVEEVIDENCE_CPU_NAME = $previousCpuName
+    $env:SAVEEVIDENCE_SAMPLE_DIR = $previousSampleDir
 }
 
 $measuredText = (($measured -join "`n") -replace "`r`n", "`n").TrimEnd()
@@ -1419,32 +1661,19 @@ else {
     }
 
     $updated = $text.Substring(0, $begin) + $generated + $text.Substring($end + $endMarker.Length)
+
+    # 目次は本文の見出しと一致していること。 節番号は本スクリプトが決めるため、ずれても
+    # markdownlint（MD051）では見つからず（既存のリンクだけを見る）、本ドキュメントは
+    # SPEC_*.md ではないため検証手順 §13 の体裁検査の対象外でもある。
+    # 目次は見出しから一意に決まるため、ずれていたら本スクリプトが直す。
+    $beforeToc = $updated
+    $updated = Update-Toc $updated
+    if ($updated -ne $beforeToc) {
+        Write-Output '目次: 本文の見出しに合わせて直した'
+    }
+
     [IO.File]::WriteAllText($docPath, ($updated -replace "`n", "`r`n"), [Text.UTF8Encoding]::new($false))
     Write-Output "更新: $docPath"
-
-    # 目次は本文の見出しと一致していること。
-    # 本ドキュメントは SPEC_*.md ではないため verify.ps1 の体裁検査の対象外であり、
-    # 節番号は本スクリプトが決めるため、ずれても markdownlint（MD051）では見つからない
-    # （MD051 は既存のリンクだけを見る）。
-    $tocExpected = Get-TocLines $updated
-    $tocActual = Get-TocBlock $updated
-    $difference = -1
-    if ($tocExpected.Count -ne $tocActual.Count) {
-        $difference = [Math]::Min($tocExpected.Count, $tocActual.Count)
-    }
-    else {
-        for ($i = 0; $i -lt $tocExpected.Count; $i++) {
-            if ($tocExpected[$i] -ne $tocActual[$i]) { $difference = $i; break }
-        }
-    }
-
-    if ($difference -ge 0) {
-        $expected = if ($difference -lt $tocExpected.Count) { $tocExpected[$difference] } else { '（無し）' }
-        $actual = if ($difference -lt $tocActual.Count) { $tocActual[$difference] } else { '（無し）' }
-        throw ("目次が本文の見出しと一致しません（{0} 件目。 期待 {1} / 実際 {2}）。 " +
-            "{3} の「## 目次」を直してください（本文は更新済みです）。 件数は 期待 {4} / 実際 {5}。") -f
-            ($difference + 1), $expected, $actual, $docPath, $tocExpected.Count, $tocActual.Count
-    }
 }
 
 if (-not $KeepWorkspace) {
