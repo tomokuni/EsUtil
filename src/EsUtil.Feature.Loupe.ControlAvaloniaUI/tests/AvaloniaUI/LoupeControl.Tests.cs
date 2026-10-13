@@ -317,6 +317,91 @@ public class LoupeControlTests
     }
 
     // ====================================================================
+    // ソース解決（表示用の射影をそのまま使えるかの判定）
+    // ====================================================================
+
+    [AvaloniaFact]
+    internal void Resolve_寸法が一致するBitmapは複製を作らず表示用の射影として扱う()
+    {
+        // 表示用の射影（Avalonia の Bitmap）が切り出し元と同じ座標系（1 DIP = 1 ピクセル）で使える場合は、
+        // コアの画像へ複製しない（再描画のたびに画面全体の複製を払わない。 描画は元画像を元矩形つきで行う）
+        using var source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(20, 10, Colors.Blue);
+
+        var resolved = LoupeSourceResolver.Resolve(source);
+
+        Assert.Equal(new EsSizeInt(20, 10), resolved.Size);
+        Assert.Null(resolved.Bitmap);
+        Assert.False(resolved.IsSourceBitmap);
+    }
+
+    [AvaloniaFact]
+    internal void Resolve_寸法が一致しないBitmapは複製を返す()
+    {
+        // DPI が 96 以外の Bitmap は DIP（Size）とピクセルが一致せず、射影を切り出し元の座標系として使えない
+        // （描画 API は元矩形を画像の座標系で解釈する）ため、コアの画像へ複製して切り出し元にする
+        using var source = new RenderTargetBitmap(new PixelSize(20, 10), new Vector(144, 144));
+
+        var resolved = LoupeSourceResolver.Resolve(source);
+
+        using var copy = resolved.Bitmap;
+        Assert.Equal(new EsSizeInt(20, 10), resolved.Size);
+        Assert.NotNull(copy);
+        Assert.True(resolved.IsSourceBitmap);
+    }
+
+    [AvaloniaFact]
+    internal void Resolve_破棄済みのBitmapは寸法を返さない()
+    {
+        var source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(20, 10, Colors.Blue);
+        source.Dispose();
+
+        var resolved = LoupeSourceResolver.Resolve(source);
+
+        Assert.Null(resolved.Size);
+        Assert.Null(resolved.Bitmap);
+        Assert.False(resolved.IsSourceBitmap);
+    }
+
+    // ====================================================================
+    // 拡大中心の取り直し（描画の直前）
+    // ====================================================================
+
+    [AvaloniaFact]
+    internal async Task CenterPointProvider_描画の直前に中心を取り直す()
+    {
+        var control = CreateControl();
+        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.CenterPoint = new Point(100, 100);
+
+        // ポインター移動イベントの座標より新しい位置（実カーソル）を返す
+        control.CenterPointProvider = () => new Point(120, 130);
+
+        LoupeRenderedEventArgs? rendered = null;
+        control.Rendered += (_, e) => rendered = e;
+
+        await control.WaitForRenderedAsync();
+
+        // 取り直した中心がプロパティと拡大画像（切り出し領域）の両方へ反映される
+        // （要求サイズ 100・拡大率 2 の可視域は 50x50 のため、切り出し領域の左上は中心 - 25）
+        Assert.Equal(new Point(120, 130), control.CenterPoint);
+        Assert.NotNull(rendered);
+        Assert.Equal(new EsPoint(95, 105), rendered.Content.CaptureTopLeft);
+    }
+
+    [AvaloniaFact]
+    internal async Task CenterPointProvider_nullを返す場合は中心を変えない()
+    {
+        var control = CreateControl();
+        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.CenterPoint = new Point(100, 100);
+        control.CenterPointProvider = () => null;
+
+        await control.WaitForRenderedAsync();
+
+        Assert.Equal(new Point(100, 100), control.CenterPoint);
+    }
+
+    // ====================================================================
     // エラーハンドリング
     // ====================================================================
 

@@ -326,7 +326,7 @@ public sealed class MarqueeControl : Panel
     }
 
     /// <summary>現在の選択状態のスナップショットを取得する（ポーリング不要の完全状態）。</summary>
-    /// <value>State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / IsDragging / NudgeActive / HasSelection を含むスナップショット。</value>
+    /// <value>State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / IsNudgeActive / HasSelection を含むスナップショット。</value>
     public MarqueeSnapshot CurrentSnapshot => _marquee.CreateSnapshot();
 
     /// <summary>選択矩形があるかどうかを取得する。</summary>
@@ -338,6 +338,37 @@ public sealed class MarqueeControl : Panel
     /// <value>選択矩形（対象座標）。 未選択時は 0x0 の空矩形。</value>
     /// <remarks>描画のたびに参照されるため、スナップショットの生成を伴わない軽量なプロパティとする。</remarks>
     public EsRect SelectionSourceRect => _marquee.SelectionSourceRect;
+
+    /// <summary>追従位置（ルーペ中心。 対象座標）を実カーソルから取り直す。</summary>
+    /// <param name="position">取り直した追従位置（対象座標）。 取り直さなかった場合は既定値。</param>
+    /// <returns>取り直した場合は true。 追従していない場合（ドラッグ中・nudge 中・ポインターが本コントロールの外）と<br/>
+    /// カーソル位置を取得できない場合（ウィンドウ未接続・OS の取得失敗）は false。</returns>
+    /// <remarks>
+    /// <b>ポインター移動イベントの座標は入力へ積まれた分だけ古い</b>（最新の移動がまだ届いていない）ため、<br/>
+    /// イベント処理の直後に呼ぶと、追従位置を実カーソルへ合わせられる（カーソルからの遅れを減らす）。<br/>
+    /// 追従位置が実カーソルを表すかどうかは <see cref="MarqueeSnapshot.IsMarkerFollowingPointer"/> が単一所有する。<br/>
+    /// ポインターが本コントロールの上にあるかどうかは <c>UIElement.IsMouseOver</c>（ヒットテストの結果）に従う<br/>
+    /// （コントロールの外では追従位置を進めない）。<br/>
+    /// 追従位置の採用は呼び出し側が決める（本メソッドは状態を変えない）。
+    /// </remarks>
+    public bool TryGetCurrentLoupePosition(out EsPoint position)
+    {
+        position = default;
+
+        // 追従位置が実カーソルを表さない間（ドラッグ中・nudge 中）と、ポインターがコントロールの外にある間は取り直さない
+        if (!CurrentSnapshot.IsMarkerFollowingPointer || !IsMouseOver)
+        {
+            return false;
+        }
+
+        if (CurrentCursorSourcePosition() is not { } sourcePosition)
+        {
+            return false;
+        }
+
+        position = sourcePosition;
+        return true;
+    }
 
     /// <summary>操作ログの出力先を取得または設定する。</summary>
     /// <value>ロガー。 null を設定した場合は <see cref="NullLogger"/> へフォールバックする（出力なし）。</value>
@@ -726,7 +757,8 @@ public sealed class MarqueeControl : Panel
     /// <summary>現在のカーソル位置（対象座標）を取得する。</summary>
     /// <returns>カーソル位置（対象座標）。 ウィンドウを特定できない場合は null。</returns>
     /// <remarks>
-    /// nudge の基点精度を上げるために記録する（マウス移動が未発生でも現在位置から微調整を開始でき、原点へ飛ばない）。<br/>
+    /// <b>nudge の基点</b>（マウス移動が未発生でも現在位置から微調整を開始でき、原点へ飛ばない）と、<br/>
+    /// <b>追従位置の取り直し</b>（<see cref="TryGetCurrentLoupePosition"/>。 入力へ積まれた分だけ古いイベント座標を実カーソルで置き換える）に使う。<br/>
     /// 画面物理座標 → ウィンドウのクライアント座標 → 対象座標の順に変換する（境界の 1 行変換）。
     /// </remarks>
     private EsPoint? CurrentCursorSourcePosition()
@@ -742,8 +774,8 @@ public sealed class MarqueeControl : Panel
             return null;
         }
 
-        var local = window.ScreenToClient(screenPoint.ToMewUIPoint());
-        return _marquee.ToSource(local.ToEsPoint());
+        var local = window.ScreenToClient(screenPoint.ToMewUIPoint()).ToEsPoint();
+        return _marquee.ToSource(local);
     }
 
     /// <summary>nudge を終了し、マウスポインターを再表示する。</summary>

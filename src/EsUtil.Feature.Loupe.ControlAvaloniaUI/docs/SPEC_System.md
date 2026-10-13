@@ -189,10 +189,10 @@ flowchart TB
 
 - 公開画像入力はAvalonia標準の `IImage?` とし、`Image.Source` と同じBindingモデルで利用できる。
 - ピクセル抽出が必要な切り出しの内部境界だけ `EsReadOnlyBitmap` を要求する（切り出し領域はコアの `LoupeGeometry.MagnifiedImage` が決める）。
-- `Source` が `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む派生型）の場合は `CopyPixels` による複製（`EsBitmap` 化）で抽出する。
+- `Source` が `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む派生型）の場合は `CopyPixels` による複製（`EsBitmap` 化）で抽出する。 **この複製は表示用の射影を切り出し元の座標系として使えない場合だけ行う**（DPI が 96 以外の `Bitmap` は `Size`（DIP）と `PixelSize` が一致しないため元矩形の解釈が変わる。 一致する場合は射影をそのまま使えるため複製せず、寸法だけを解決する）。
 - `Source` が `EsBitmapAvaloniaAdapter` の場合は `GetEsBitmap()` でコアの画像（`EsReadOnlyBitmap`）を取り出し、そのピクセルを直接抽出する（複製なし）。
 - `Bitmap`（派生を含む） / `EsBitmapAvaloniaAdapter` 以外の `IImage`（`CroppedBitmap` 等）は `NotSupportedException` が発生する。
-- **切り出しの複製を作らない**（表示用の射影を元矩形つきで描く）: `LoupeContextPainter` は `Source` の射影（`IImage`）を受け取り、**画像と交差する部分だけ**を `DrawImage(image, 元矩形, 描画矩形)` で描く。 外側は描かない（ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）ため、**毎フレームの切り出しの複製と表示用の変換が不要**になる。 射影が無い経路（オフスクリーン描画）と射影の寸法が拡大元と違う場合は、**0 コピーの読み取りビュー**（`ToPixmap`）を読み、表示用の画像へ変換して描く（切り出しの複製は作らない）。
+- **切り出しの複製を作らない**（表示用の射影を元矩形つきで描く）: `LoupeContextPainter` は `Source` の射影（`IImage`）と切り出し元の寸法を受け取り、**画像と交差する部分だけ**を `DrawImage(image, 元矩形, 描画矩形)` で描く。 外側は描かない（ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）ため、**毎フレームの切り出しの複製と表示用の変換が不要**になる。 射影が無い経路（オフスクリーン描画）と射影の寸法が切り出し元と違う場合は、**0 コピーの読み取りビュー**（`ToPixmap`）を読み、表示用の画像へ変換して描く（切り出しの複製は作らない。 射影だけのソース（コアの画像を持たない `Bitmap`）は射影をそのまま使うため、寸法が一致しない場合は渡さない）。
 - 合成（`RenderTargetBitmap` / `DrawingContext`）は UI スレッドで行う（バックグラウンド抽出は連続再描画時にスレッドプールが競合し、移動中の追従が止まるため行わない）。 一時 `RenderTargetBitmap` は描画直後に破棄する。
 
 ### 6.5 切り出し領域の幾何（`EsUtil.Feature.Loupe.Core`）
@@ -220,9 +220,9 @@ flowchart TB
 
 ### 6.8 UI 固有の機構（コアへ移さない）
 
-- `LoupeRenderCoordinator`: 再描画要求のバッチ化（実行キューへのポストで 1 フレーム 1 回に結合）、表示中の判定と世代番号による古い結果の破棄、未実行要求の破棄と解放の手順を単一所有する。 中間ビットマップを持つ UI にだけ必要なため本プロジェクトが所有し、実行キューと優先度は `post: action => Dispatcher.UIThread.Post(action, DispatcherPriority.Render)` として注入する。
-- `LoupeRenderPipeline`: Avalonia の `IImage` を切り出し元（`EsReadOnlyBitmap`）へ解決し、描画（`LoupeContextPainter.Paint`。 `DrawingContext` 経由）を UI スレッドで実行する（`RenderAsync(source, plan)`）。 UI スレッド上ではその場で描き、UI スレッド外からは描画フェーズ（`DispatcherPriority.Render`）へポストする（通常の経路は UI スレッド上のため往復しない）。 `IImage` の型判定と `Bitmap` → `EsBitmap` の複製が UI 固有。
-- `LoupeSourceResolver`: `IImage` の対応型判定（`Bitmap` / `EsBitmapAvaloniaAdapter`）・破棄済みの検出・ソース寸法のログ用表現を単一所有する（UI スレッドに依存しない純粋関数）。
+- `LoupeRenderCoordinator`: 再描画要求のバッチ化（実行キューへのポストで 1 フレーム 1 回に結合）、表示中の判定と世代番号による古い結果の破棄、未実行要求の破棄と解放の手順を単一所有する。 中間ビットマップを持つ UI にだけ必要なため本プロジェクトが所有し、実行キューと優先度は `post: action => Dispatcher.UIThread.Post(…)`（描画のジョブの先頭で拡大中心を取り直してから本体を走らせる）として注入する。
+- `LoupeRenderPipeline`: Avalonia の `IImage` を切り出し元（寸法と、必要なら `EsReadOnlyBitmap`）へ解決し、描画（`LoupeContextPainter.Paint`。 `DrawingContext` 経由）を UI スレッドで実行する（`RenderAsync(source, plan)`）。 UI スレッド上ではその場で描き、UI スレッド外からは描画フェーズ（`DispatcherPriority.Render`）へポストする（通常の経路は UI スレッド上のため往復しない）。 `IImage` の型判定と `Bitmap` → `EsBitmap` の複製が UI 固有。
+- `LoupeSourceResolver`: `IImage` の対応型判定（`Bitmap` / `EsBitmapAvaloniaAdapter`）・破棄済みの検出・切り出し元の寸法の解決（`Bitmap` の複製の要否の判断を含む）を単一所有する（UI スレッドに依存しない純粋関数）。
 
 ## 7. 依存ルール
 
@@ -248,12 +248,13 @@ sequenceDiagram
 
     AP->>Ctl: IsVisible = true / Source / CenterPoint 変更
     Ctl->>Ctl: RequestRender（Dispatcher ポストで 1 回に結合）
+    Ctl->>Ctl: RefreshCenterPoint（描画のジョブの先頭。 CenterPointProvider から拡大中心を取り直す）
     Ctl->>Ctl: ResolveLayout（コアのファサードが表示サイズ・位置を解決する）
     Ctl->>Ctl: ResolveDrawPlan（提示層が幾何・外観・層の順序・ラベル配置を解決する）
     Ctl->>Pl: RenderAsync(source, plan)
     Pl->>Sr: IsSourceSupported(source)（未対応型は例外）/ Resolve(source)
-    Sr-->>Pl: 切り出し元 EsReadOnlyBitmap（Bitmap は複製・アダプタは GetEsBitmap で取り出す）
-    Pl->>Rdr: LoupeContextPainter.Paint(DrawingContext, source, plan, display)（UI スレッド。描画の順序は計画が単一所有）
+    Sr-->>Pl: 切り出し元の寸法と、表示用の射影だけでは足りない場合のコアの画像（アダプタは GetEsBitmap で取り出す。 射影が切り出し元と同じ座標系なら複製しない）
+    Pl->>Rdr: LoupeContextPainter.Paint(DrawingContext, plan, 切り出し元の寸法, display, source)（UI スレッド。描画の順序は計画が単一所有）
     Rdr->>Rdr: 切り出し矩形を画像の内側へ切り詰め、描画先の部分矩形を求める
     Rdr->>Ext: 表示用の射影がある場合は DrawImage(display, 元矩形, 描画矩形)（切り出しの複製も変換も作らない）
     Rdr->>Ext: 射影が無い/寸法が違う場合は ToPixmap（0 コピーのビュー）を表示用の画像へ変換して描く

@@ -30,4 +30,15 @@ public readonly record struct MarqueeSnapshot(
     /// <summary>選択矩形が有効かどうか（幅・高さが 0 より大きい選択状態）。</summary>
     /// <remarks><see cref="SelectionSourceRect"/> から導出する（利便プロパティ。 コンストラクタ引数には含めない）。</remarks>
     public bool HasSelection => SelectionSourceRect.Width > 0 && SelectionSourceRect.Height > 0;
+
+    /// <summary>追従位置（<see cref="MarqueeNoticeKind.MarkerPositionMoved"/> が通知する位置）が実カーソルを表すかどうか。</summary>
+    /// <remarks>
+    /// ドラッグ中は「動いている側のハンドル」、nudge 中は「nudge 位置」が追従位置であるため、実カーソルを表さない。<br/>
+    /// ホストが実カーソルから追従位置を取り直してよいか（ルーペ中心を実カーソルへ合わせてよいか）の判断に使う<br/>
+    /// （ポインター移動イベントの座標は入力に積まれた分だけ古い。 取り直しの是非はコアが単一所有する）。<br/>
+    /// <see cref="State"/> と <see cref="IsNudgeActive"/> から導出する（利便プロパティ。 コンストラクタ引数には含めない）。
+    /// </remarks>
+    public bool IsMarkerFollowingPointer
+        => State is not (MarqueeInteractionState.Dragging or MarqueeInteractionState.DraggingNudging)
+        && !IsNudgeActive;
 }

@@ -89,9 +89,9 @@ public sealed class LoupeControl : Panel
     /// 実行キューへのポストは本 UI が指定する（描画フェーズ（Render 優先度）で実行させる）。<br/>
     /// <b>Render 優先度を使う理由</b>: マウス移動中の連続再描画では、既定の Normal 優先度のポストが<br/>
     /// 入力イベント（Input 優先度）に後回しにされ、描画反映が移動停止まで実行されない問題を防ぐ。<br/>
-    /// <b>ポストは 1 回だけ</b>である（このジョブの中で生成（<see cref="LoupeRenderPipeline.RenderAsync"/>）と表示への反映<br/>
-    /// （<see cref="Apply"/>）まで行う。 追加のディスパッチャー往復は、その往復を次の描画フェーズまで待つ分だけ<br/>
-    /// 表示位置に対してルーペ画像の反映を遅らせる）。<br/>
+    /// <b>ポストは 1 回だけ</b>である（このジョブの中で中心の取り直し（<see cref="RefreshCenterPoint"/>）・生成<br/>
+    /// （<see cref="LoupeRenderPipeline.RenderAsync"/>）・表示への反映（<see cref="ApplyBitmap"/>）まで行う。<br/>
+    /// 追加のディスパッチャー往復は、その往復を次の描画フェーズまで待つ分だけ画像の反映を遅らせる）。<br/>
     /// ポストの注入により、コーディネーター自体は UI フレームワークに依存しない。
     /// </remarks>
     private LoupeRenderCoordinator CreateRenderCoordinator()
@@ -100,7 +100,14 @@ public sealed class LoupeControl : Panel
             releaseBitmap: ReleaseBitmap,
             startRender: StartRender,
             logRenderCore: generation => Log.LogRenderCore(generation),
-            post: action => Dispatcher.UIThread.Post(action, DispatcherPriority.Render));
+            post: action => Dispatcher.UIThread.Post(
+                () =>
+                {
+                    // 中心を取り直してから再描画の本体を走らせる（取り直しの理由は CenterPointProvider を参照）
+                    RefreshCenterPoint();
+                    action();
+                },
+                DispatcherPriority.Render));
 
     // ====================================================================
     // コア（ファサード）と表示位置
@@ -148,7 +155,6 @@ public sealed class LoupeControl : Panel
             RequestRender();
         }
     }
-
     /// <summary>描画計画を指定の描画面へ描く（計画どおりに描く）。</summary>
     /// <param name="context">描画先の描画コンテキスト（<c>Render</c> の実行中のみ有効）。 null 不可。</param>
     /// <param name="source">拡大元の画像（<see cref="Source"/> と同じ型）。 null の場合は拡大画像を描かない。</param>
@@ -164,21 +170,53 @@ public sealed class LoupeControl : Panel
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var resolved = LoupeSourceResolver.Resolve(source, out var sourceBitmap);
+        var resolved = LoupeSourceResolver.Resolve(source);
         try
         {
             // 元の IImage は拡大元の全体を写しているため、そのまま元矩形つきの描画に使える
-            // （切り出しの複製も表示用の変換も作らない。 寸法が一致しない場合は描画側が 0 コピーのビューから描く）
-            LoupeContextPainter.Paint(context, sourceBitmap, in plan, display: source);
+            // （切り出しの複製も表示用の変換も作らない。 寸法が一致しない場合は 0 コピーのビューから描く）
+            LoupeContextPainter.Paint(context, in plan, resolved.Size, display: source, source: resolved.Bitmap);
         }
         finally
         {
-            // Bitmap 由来の場合のみ複製を破棄する（表示アダプタからの借用は破棄しない）
+            // 複製を返した場合のみ破棄する（表示アダプタからの借用は破棄しない）
             if (resolved.IsSourceBitmap)
             {
-                sourceBitmap?.Dispose();
+                resolved.Bitmap?.Dispose();
             }
         }
+    }
+
+    // ====================================================================
+    // 拡大中心の取り直し（描画の直前）
+    // ====================================================================
+
+    /// <summary>描画の直前に拡大中心を取り直す関数を取得または設定する。</summary>
+    /// <value>拡大中心（<see cref="CenterPoint"/> と同じ対象座標）を返す関数。 null を返すと現在の中心を使う。 null（既定）の場合は取り直さない。</value>
+    /// <remarks>
+    /// <b>ポインター移動イベントの座標は入力へ積まれた分だけ古い</b>（最新の移動がまだ届いていない）ため、<br/>
+    /// ホストは本関数で実カーソルから中心を取り直せる（本コントロールは再描画のジョブの先頭で本関数を呼ぶ）。<br/>
+    /// <b>返された中心は <see cref="CenterPoint"/> へ反映する</b>（中心座標ラベル・表示位置・拡大画像を同じ中心で揃えるため）。<br/>
+    /// 中心を反映しても再描画の要求は増えない（未実行の要求は 1 回へ結合されている）。<br/>
+    /// 取り直しの可否（ポインターを追従している最中かどうか）はホストが判断する（本コントロールは理由を知らない）。<br/>
+    /// 実カーソルの取得と対象座標への変換もホストの責務である。
+    /// </remarks>
+    public Func<Point?>? CenterPointProvider { get; set; }
+
+    /// <summary>描画の直前に拡大中心を <see cref="CenterPointProvider"/> から取り直す。</summary>
+    /// <remarks>
+    /// 返された中心は <see cref="CenterPoint"/> へ反映する（同じ値の場合は何も起きない）。<br/>
+    /// <b>再描画の本体より前に呼ぶ</b>（本体は世代番号を採番して生成を始めるため、中心の取り直しと生成が同じ世代になる）。<br/>
+    /// 本メソッドは要求の結合フラグが下りる前に走るため、中心の変更で再描画が二重に要求されることはない。
+    /// </remarks>
+    private void RefreshCenterPoint()
+    {
+        if (CenterPointProvider?.Invoke() is not { } center)
+        {
+            return;
+        }
+
+        CenterPoint = center;
     }
 
     /// <summary>ルーペ中心（<see cref="CenterPoint"/>）からの右下オフセット（DIP）を取得または設定する。</summary>

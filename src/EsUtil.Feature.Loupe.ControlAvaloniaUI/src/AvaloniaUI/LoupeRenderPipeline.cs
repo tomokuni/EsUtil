@@ -4,6 +4,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI;
@@ -28,7 +29,7 @@ internal static class LoupeRenderPipeline
     /// <exception cref="NotSupportedException"><paramref name="source"/> が <see cref="Bitmap"/>（派生の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> を含む）/ <see cref="EsReadOnlyBitmap"/>（表示アダプタ）以外の場合。</exception>
     /// <remarks>
     /// 1. 未対応型の判定（<see cref="LoupeSourceResolver.IsSourceSupported"/>）を行い、未対応型は例外にする。<br/>
-    /// 2. 切り出し元の画像を解決する（<see cref="Bitmap"/> は複製、<see cref="EsReadOnlyBitmap"/> は借用）。<br/>
+    /// 2. 切り出し元を解決する（切り出し元の寸法と、表示用の射影だけでは足りない場合のコアの画像。 表示アダプタは借用）。<br/>
     /// 3. 描画（切り出し・拡大・十字線・枠線）は <see cref="LoupeContextPainter"/> へ委譲し、UI スレッドで行う<br/>
     /// （切り出しの可否と破棄済みソースの扱いは描画層が単一所有する）。<br/>
     /// <b>UI スレッドの使い方</b>: UI スレッド上ではその場で描き、UI スレッド外からは描画フェーズ<br/>
@@ -43,8 +44,9 @@ internal static class LoupeRenderPipeline
                 $"LoupeControl は {source!.GetType().FullName} をサポートしていません。Bitmap（WriteableBitmap を含む）または EsReadOnlyBitmap（表示アダプタ）を指定してください。");
         }
 
-        // 抽出元の画像を解決する（Bitmap は複製、画像源（EsReadOnlyBitmap）は借用。 破棄済みは null）
-        var resolved = LoupeSourceResolver.Resolve(source, out var sourceBitmap);
+        // 切り出し元を解決する（寸法と、表示用の射影だけでは足りない場合のコアの画像。 破棄済みは寸法 null）
+        var resolved = LoupeSourceResolver.Resolve(source);
+        var sourceBitmap = resolved.Bitmap;
 
         try
         {
@@ -54,16 +56,16 @@ internal static class LoupeRenderPipeline
             // （往復を 1 回増やすごとに、その往復が次の描画フェーズまで待たされ、ルーペ画像の反映が遅れる）
             if (Dispatcher.UIThread.CheckAccess())
             {
-                return Rasterize(sourceBitmap, source, in plan);
+                return Rasterize(sourceBitmap, resolved.Size, source, in plan);
             }
 
             return await Dispatcher.UIThread.InvokeAsync(
-                () => Rasterize(sourceBitmap, source, in plan),
+                () => Rasterize(sourceBitmap, resolved.Size, source, in plan),
                 DispatcherPriority.Render);
         }
         finally
         {
-            // Bitmap 由来の場合のみ複製を破棄する（表示アダプタの共有参照は破棄しない）。
+            // 複製を返した場合のみ破棄する（表示アダプタの共有参照は破棄しない）。
             if (resolved.IsSourceBitmap)
             {
                 sourceBitmap?.Dispose();
@@ -72,8 +74,9 @@ internal static class LoupeRenderPipeline
     }
 
     /// <summary>描画計画を描画実装へ渡し、結果を書き換え可能な画像として返す。</summary>
-    /// <param name="source">拡大元の画像（読み取りの面）。</param>
-    /// <param name="display">拡大元の全体を写した Avalonia の画像（省略可）。 渡すと切り出しの複製を作らずに描く。</param>
+    /// <param name="source">拡大元のコアの画像（読み取りの面。 表示用の射影をそのまま使えない場合の切り出し元）。</param>
+    /// <param name="sourceSize">拡大元の寸法（ピクセル。 切り出し元の座標系。 描けない場合は null）。</param>
+    /// <param name="display">拡大元の全体を写した Avalonia の画像（渡すと切り出しの複製を作らずに描く）。</param>
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・拡大画像の幾何を持つ）。</param>
     /// <returns>描画結果（ホストがピクセルへオーバーレイを描画できる）。</returns>
     /// <remarks>
@@ -82,13 +85,13 @@ internal static class LoupeRenderPipeline
     /// 描画面は<b>ピクセルを取り出した後に破棄する</b>（描画ごとに 1 枚作るため、破棄しないとネイティブの描画面が
     /// GC まで残る）。
     /// </remarks>
-    private static EsBitmap Rasterize(EsReadOnlyBitmap? source, IImage? display, in LoupeDrawPlan plan)
+    private static EsBitmap Rasterize(EsReadOnlyBitmap? source, EsSizeInt? sourceSize, IImage? display, in LoupeDrawPlan plan)
     {
         using var bitmap = new RenderTargetBitmap(new PixelSize(plan.ClientPixelSize, plan.ClientPixelSize), s_dpi);
 
         using (var context = bitmap.CreateDrawingContext())
         {
-            LoupeContextPainter.Paint(context, source, in plan, display);
+            LoupeContextPainter.Paint(context, in plan, sourceSize, display, source);
         }
 
         return bitmap.ToEsBitmap();

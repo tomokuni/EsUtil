@@ -258,9 +258,10 @@ control.ResetSelection();           // 状態と nudge の初期化
 
 | プロパティ | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
-| `CurrentSnapshot` | `MarqueeSnapshot` | - | 現在の選択状態のスナップショット（**ポーリング不要の完全状態**。 `readonly record struct`）。 `State` / `SelectionSourceRect` / `ActiveTarget` / `MousePosition` / `IsMouseDown` / `IsNudgeActive` / `HasSelection` を公開。 イベント引数の Snapshot と同一形式。 選択状態の判定（確定・キャンセル等の操作分岐）は `CurrentSnapshot.HasSelection` を使用 |
+| `CurrentSnapshot` | `MarqueeSnapshot` | - | 現在の選択状態のスナップショット（**ポーリング不要の完全状態**。 `readonly record struct`）。 `State` / `SelectionSourceRect` / `ActiveTarget` / `MousePosition` / `IsMouseDown` / `IsNudgeActive` / `HasSelection` / `IsMarkerFollowingPointer` を公開。 イベント引数の Snapshot と同一形式。 選択状態の判定（確定・キャンセル等の操作分岐）は `CurrentSnapshot.HasSelection` を使用 |
 | `HasSelection` | `bool` | `false` | 選択矩形があるかどうか（スナップショットの生成を伴わない軽量な読み取り。 描画のたびに参照する） |
 | `SelectionSourceRect` | `EsRect` | `0x0` | 現在の選択矩形（対象座標。 未選択時は 0x0） |
+| `TryGetCurrentLoupePosition(out Point)` | `bool` | - | 追従位置（ルーペ中心。 対象座標）を**実カーソルから取り直す**。 取り直した場合は `true` と位置を返す。 追従していない場合（ドラッグ中・nudge 中。 判断はコアの `MarqueeSnapshot.IsMarkerFollowingPointer`）とポインターがコントロールの外にある場合（`InputElement.IsPointerOver`）とカーソル位置を取得できない場合は `false`（状態は変えない。 採用は呼び出し側が決める） |
 
 #### 5.1.3 ログ
 

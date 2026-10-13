@@ -555,7 +555,7 @@ public sealed partial class MarqueeControl : Panel
     /// <summary>現在の選択状態のスナップショット（ポーリング不要の完全状態）。</summary>
     /// <remarks>
     /// <see cref="MarqueeSnapshot"/> の全項目（State / SelectionSourceRect / ActiveTarget / MousePosition /<br/>
-    /// IsMouseDown / IsDragging / NudgeActive / HasSelection）を公開する。 ホスト（上位 AP）はイベント引数の<br/>
+    /// IsMouseDown / IsNudgeActive / HasSelection）を公開する。 ホスト（上位 AP）はイベント引数の<br/>
     /// Snapshot と同一形式で現在の状態を取得できる（状態のポーリングは本プロパティで完結）。<br/>
     /// 選択状態の判定（確定・キャンセル等の操作分岐）は <see cref="MarqueeSnapshot.HasSelection"/> を使用する。
     /// </remarks>
@@ -570,6 +570,37 @@ public sealed partial class MarqueeControl : Panel
     /// <value>選択矩形（対象座標）。 未選択時は 0x0 の空矩形。</value>
     /// <remarks>描画のたびに参照されるため、スナップショットの生成を伴わない軽量なプロパティとする。</remarks>
     public EsRect SelectionSourceRect => _marquee.SelectionSourceRect;
+
+    /// <summary>追従位置（ルーペ中心。 対象座標）を実カーソルから取り直す。</summary>
+    /// <param name="position">取り直した追従位置（対象座標）。 取り直さなかった場合は既定値。</param>
+    /// <returns>取り直した場合は true。 追従していない場合（ドラッグ中・nudge 中・ポインターが本コントロールの外）と<br/>
+    /// カーソル位置を取得できない場合（ウィンドウ未接続・OS の取得失敗）は false。</returns>
+    /// <remarks>
+    /// <b>ポインター移動イベントの座標は入力へ積まれた分だけ古い</b>（最新の移動がまだ届いていない）ため、<br/>
+    /// イベント処理の直後や描画の直前に呼ぶと、追従位置を実カーソルへ合わせられる（カーソルからの遅れを減らす）。<br/>
+    /// 追従位置が実カーソルを表すかどうかは <see cref="MarqueeSnapshot.IsMarkerFollowingPointer"/> が単一所有する。<br/>
+    /// ポインターが本コントロールの上にあるかどうかは <see cref="InputElement.IsPointerOver"/> に従う<br/>
+    /// （ヒットテストの結果であり、ポインターを捕まえている間は枠の状態も含めてフレームワークが決める。 コントロールの外では追従位置を進めない）。<br/>
+    /// 追従位置の採用は呼び出し側が決める（本メソッドは状態を変えない）。
+    /// </remarks>
+    public bool TryGetCurrentLoupePosition(out Point position)
+    {
+        position = default;
+
+        // 追従位置が実カーソルを表さない間（ドラッグ中・nudge 中）と、ポインターがコントロールの外にある間は取り直さない
+        if (!CurrentSnapshot.IsMarkerFollowingPointer || !IsPointerOver)
+        {
+            return false;
+        }
+
+        if (CurrentCursorSourcePosition() is not { } sourcePosition)
+        {
+            return false;
+        }
+
+        position = sourcePosition.ToAvaloniaPoint();
+        return true;
+    }
 
     /// <summary>対象 ↔ コントロールローカル DIP の座標変換ポートを設定する。</summary>
     /// <param name="port">座標変換ポート（ToSource = DIP→対象 / ToDip = 対象→DIP / SourceArea = 対象の境界）。 null の場合は等価変換。</param>

@@ -1553,4 +1553,99 @@ public class MarqueeControlTests
         Assert.Equal(60 + thickness + 1, border.Margin.Top);
         window.Close();
     }
+
+    // ====================================================================
+    // 追従位置の取り直し（実カーソル）
+    // ====================================================================
+
+    /// <summary>テスト用のウィンドウ（400x400。 コントロールは中央寄せで 200x200）を表示する。</summary>
+    /// <param name="control">配置するコントロール。</param>
+    /// <returns>表示したウィンドウ。</returns>
+    /// <remarks>
+    /// 実入力（<c>MouseMove</c> 等）の経路でポインターの位置を更新するため、明示的なサイズのウィンドウを使う<br/>
+    /// （コントロールは中央寄せになるため、ウィンドウ座標 = コントロールローカル座標 + 100 である）。
+    /// </remarks>
+    private static Window ShowSized(Control control)
+    {
+        var window = new Window { Width = 400, Height = 400, Content = control };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        return window;
+    }
+
+    /// <summary>ポインター移動イベントより新しい実カーソルの位置が返ることを検証する。</summary>
+    /// <remarks>
+    /// ポインター移動イベントの座標は入力へ積まれた分だけ古いため、取り直しは実カーソル（<see cref="ICursorService"/>）から行う。<br/>
+    /// イベントを発生させずに実カーソルだけを動かし、取り直しがイベントの座標に依存しないことを確かめる。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 実カーソルから取り直した追従位置を返す()
+    {
+        var mock = new MockCursorService(default);
+        var control = CreateControl(mock);
+        var window = ShowSized(control);
+
+        // ポインターをコントロールの上へ置く（追従位置が実カーソルを表す状態にする）
+        window.MouseMove(new Point(220, 230));
+
+        // イベントを発生させずに実カーソルだけを動かす（イベント座標の遅れを模擬する）
+        mock.Position = ScreenConverter.LocalDipToScreen(control, new Point(120, 130)).ToEsPointInt();
+
+        Assert.True(control.TryGetCurrentLoupePosition(out var position), "実カーソルからの取り直しが行われていない");
+        Assert.Equal(new Point(120, 130), position);
+        window.Close();
+    }
+
+    /// <summary>ポインターがコントロールの外にある場合は取り直さないことを検証する。</summary>
+    /// <remarks>コントロールの外では追従位置を進めない（ルーペがポインターの外へ動き続けない）。</remarks>
+    [AvaloniaFact]
+    internal void ポインターがコントロールの外にある場合は取り直さない()
+    {
+        var mock = new MockCursorService(default);
+        var control = CreateControl(mock);
+        var window = ShowSized(control);
+
+        // コントロールの外（ウィンドウ内の余白）へポインターを移す
+        window.MouseMove(new Point(50, 50));
+        mock.Position = ScreenConverter.LocalDipToScreen(control, new Point(120, 130)).ToEsPointInt();
+
+        Assert.False(control.IsPointerOver);
+        Assert.False(control.TryGetCurrentLoupePosition(out _));
+        window.Close();
+    }
+
+    /// <summary>ドラッグ中は取り直さないことを検証する。</summary>
+    /// <remarks>ドラッグ中の追従位置は「動いている側のハンドル」であり実カーソルを表さない（判断はコアが単一所有する）。</remarks>
+    [AvaloniaFact]
+    internal void ドラッグ中は取り直さない()
+    {
+        var mock = new MockCursorService(default);
+        var control = CreateControl(mock);
+        var window = ShowSized(control);
+
+        // ウィンドウ経由の入力でドラッグ中にする（実カーソルはコントロールの内側に置く）
+        window.MouseMove(new Point(120, 120));
+        window.MouseDown(new Point(120, 120), MouseButton.Left);
+        window.MouseMove(new Point(280, 280));
+        Dispatcher.UIThread.RunJobs();
+        mock.Position = ScreenConverter.LocalDipToScreen(control, new Point(150, 150)).ToEsPointInt();
+
+        Assert.True(control.CurrentSnapshot.State is MarqueeInteractionState.Dragging);
+        Assert.False(control.TryGetCurrentLoupePosition(out _));
+
+        window.MouseUp(new Point(280, 280), MouseButton.Left);
+        window.Close();
+    }
+
+    /// <summary>ポインターがコントロールの上に無い（ウィンドウ未接続）場合は取り直さないことを検証する。</summary>
+    /// <remarks>カーソル位置の基点（TopLevel）が無い場合は取り直さない（失敗を原点で表さない）。</remarks>
+    [AvaloniaFact]
+    internal void ウィンドウ未接続では取り直さない()
+    {
+        var mock = new MockCursorService(default);
+        var control = CreateControl(mock);
+        mock.Position = new EsPointInt(100, 100);
+
+        Assert.False(control.TryGetCurrentLoupePosition(out _));
+    }
 }

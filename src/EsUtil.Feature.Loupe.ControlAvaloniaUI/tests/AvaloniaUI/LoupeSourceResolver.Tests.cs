@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using Xunit;
@@ -10,8 +11,8 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests;
 /// <summary><see cref="LoupeSourceResolver"/> の純粋計算テスト（UI 非依存・並列実行）。</summary>
 /// <remarks>
 /// ルーペのソース画像（表示アダプタ / 他のアセンブリの表示アダプタ / null）から切り出し元の解決ロジックを検証する。<br/>
-/// <see cref="Bitmap"/> 由来の変換（<c>ToEsBitmap()</c>）は <c>WriteableBitmap</c> 生成を伴うため<br/>
-/// <see cref="LoupeControlTests"/>（ヘッドレス直列）が担う。<br/>
+/// <see cref="Bitmap"/> 由来の解決（表示用の射影をそのまま使えるかの判定と、射影が使えない場合の複製）は<br/>
+/// Avalonia の描画バックエンドを要するため <see cref="LoupeControlTests"/>（ヘッドレス直列）が担う。<br/>
 /// UI スレッドに依存せず <c>[Fact]</c> で並列実行する。
 /// </remarks>
 public class LoupeSourceResolverTests
@@ -19,24 +20,26 @@ public class LoupeSourceResolverTests
     [Fact]
     internal void Resolve_nullは下地のみにフォールバックする()
     {
-        var resolved = LoupeSourceResolver.Resolve(source: null, out var bitmap);
+        var resolved = LoupeSourceResolver.Resolve(source: null);
 
-        Assert.Null(bitmap);
+        Assert.Null(resolved.Size);
+        Assert.Null(resolved.Bitmap);
         Assert.False(resolved.IsSourceBitmap);
     }
 
     [Fact]
     internal void Resolve_EsBitmapAvaloniaAdapterは借用を返す()
     {
-        using var bmp = EsBitmap.Create(10, 10);
+        using var bmp = EsBitmap.Create(10, 20);
         bmp.SetReadOnly();
         using var read = EsReadOnlyBitmap.FromBitmap(bmp);
         using var image = new EsBitmapAvaloniaAdapter(read);
 
-        var resolved = LoupeSourceResolver.Resolve(image, out var bitmap);
+        var resolved = LoupeSourceResolver.Resolve(image);
 
         // 借用（アダプタが内包するコアの画像を取り出す）で、破棄は呼び出し側で行わない
-        Assert.Same(read, bitmap);
+        Assert.Same(read, resolved.Bitmap);
+        Assert.Equal(new EsSizeInt(10, 20), resolved.Size);
         Assert.False(resolved.IsSourceBitmap);
     }
 
@@ -49,9 +52,10 @@ public class LoupeSourceResolverTests
         using var read = EsReadOnlyBitmap.FromBitmap(bmp);
         var image = new ForeignAdapter(read);
 
-        var resolved = LoupeSourceResolver.Resolve(image, out var bitmap);
+        var resolved = LoupeSourceResolver.Resolve(image);
 
-        Assert.Same(read, bitmap);
+        Assert.Same(read, resolved.Bitmap);
+        Assert.Equal(new EsSizeInt(10, 10), resolved.Size);
         Assert.False(resolved.IsSourceBitmap);
     }
 
@@ -64,10 +68,11 @@ public class LoupeSourceResolverTests
         using var image = new EsBitmapAvaloniaAdapter(read);
         read.Dispose();
 
-        var resolved = LoupeSourceResolver.Resolve(image, out var bitmap);
+        var resolved = LoupeSourceResolver.Resolve(image);
 
         // 破棄済みの真実は渡さない（無効な画像を切り出し元にしない）
-        Assert.Null(bitmap);
+        Assert.Null(resolved.Size);
+        Assert.Null(resolved.Bitmap);
         Assert.False(resolved.IsSourceBitmap);
     }
 

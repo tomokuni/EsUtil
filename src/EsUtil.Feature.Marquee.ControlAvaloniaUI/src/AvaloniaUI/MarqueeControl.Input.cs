@@ -51,7 +51,8 @@ public partial class MarqueeControl
     /// <summary>現在のカーソル位置（対象座標）を取得する。</summary>
     /// <returns>カーソル位置（対象座標）。 TopLevel を特定できない場合は null。</returns>
     /// <remarks>
-    /// nudge の基点精度を上げるために記録する（マウス移動が未発生でも現在位置から微調整を開始でき、原点へ飛ばない）。<br/>
+    /// <b>nudge の基点</b>（マウス移動が未発生でも現在位置から微調整を開始でき、原点へ飛ばない）と、<br/>
+    /// <b>追従位置の取り直し</b>（<see cref="TryGetCurrentLoupePosition"/>。 入力へ積まれた分だけ古いイベント座標を実カーソルで置き換える）に使う。<br/>
     /// 画面物理座標 → ビジュアルの DIP → 対象座標の順に変換する（境界の 1 行変換）。
     /// </remarks>
     private EsPoint? CurrentCursorSourcePosition()

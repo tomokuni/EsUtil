@@ -22,6 +22,7 @@
     - [5.1.6 IsVisible](#516-isvisible)
     - [5.1.7 Log](#517-log)
     - [5.1.8 LogPrefix](#518-logprefix)
+    - [5.1.9 CenterPointProvider（描画の直前の拡大中心の取り直し）](#519-centerpointprovider描画の直前の拡大中心の取り直し)
   - [5.2 メソッド](#52-メソッド)
     - [5.2.1 RequestRender](#521-requestrender)
     - [5.2.2 Clear](#522-clear)
@@ -251,6 +252,7 @@ BitmapSize = ceil(表示サイズ × ClientToPixelScaling)
 | `Options` | `LoupeOptions` | コアの既定値 | ルーペの基本サイズと拡大率。 `with` 式で部分変更する。 数値項目はコアの `LoupeOptions` が生成時に安全域へ補正する |
 | `Appearance` | `LoupeAppearance`（`EsUtil.Feature.Loupe`） | `LoupeAppearance.Default` | 枠線の太さ・表示可否（十字線・枠線・ラベル）と描画に使う色（ペーストボード（画像外）・枠線・十字線・中心座標ラベルの 6 色）・ラベルのフォントサイズ・角丸。 `LoupeAppearance.Default with { ... }` で部分変更する |
 | `DrawPlanResolver` | `Func<LoupeDrawPlan, LoupeDrawPlan>?` | `null` | **描画計画の差し替え点**（装飾の矩形・ラベルの文言と配置）。 設定すると保持中の計画を破棄して再解決する（配置と描画の両方に適用され、同じ入力では 1 フレーム 1 回だけ解決されるため、呼び出しの時点に依存しない純粋関数にすること） |
+| `CenterPointProvider` | `Func<Point?>?` | `null` | **描画の直前に拡大中心を取り直す関数**（[5.1.9](#519-centerpointprovider描画の直前の拡大中心の取り直し)）。 null または null の戻り値は取り直さない |
 
 `Options`（コアの `LoupeOptions`）の項目（詳細は `EsUtil.Feature.Loupe.Core` の `docs/SPEC_API.md` を参照）:
 
@@ -303,6 +305,24 @@ Avalonia標準の `Visual.IsVisible` を使用します。 初期値は `false`�
 | 型 | `string?` |
 | 既定値 | `null`（定義クラスの既定は `[Loupe]`） |
 | 用途 | ログの接頭辞（ロガーと一緒に設定する。 null・空白で既定値へ戻す）。 提示層・コアへ伝搬する |
+
+#### 5.1.9 CenterPointProvider（描画の直前の拡大中心の取り直し）
+
+| 項目 | 内容 |
+| --- | --- |
+| 型 | `Func<Point?>?` |
+| 既定値 | `null`（取り直さない） |
+| 用途 | 描画の直前に拡大中心を取り直す関数。 **返した中心は `CenterPoint` へ反映する**（中心座標ラベル・表示位置・拡大画像を同じ中心で揃える） |
+
+**ポインター移動イベントの座標は入力へ積まれた分だけ古い**（最新の移動がまだ届いていない）ため、ホストは本関数で実カーソルから中心を取り直せます。
+本コントロールは再描画のジョブ（1 フレーム 1 回へ結合されたもの）の先頭で本関数を呼びます。
+中心を反映しても再描画の要求は増えません（未実行の要求は 1 回へ結合済みです）。
+取り直しの可否（ポインターを追従している最中かどうか）と実カーソルから対象座標への変換はホストの責務です。
+null を返した場合は現在の中心を使います。
+
+```csharp
+loupe.CenterPointProvider = () => marquee.TryGetCurrentLoupePosition(out var position) ? position : null;
+```
 
 ### 5.2 メソッド
 

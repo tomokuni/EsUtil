@@ -126,6 +126,7 @@ classDiagram
         +MarqueeAppearance Appearance
         +double ClientToPixelScaling
         +MarqueeSnapshot CurrentSnapshot
+        +bool TryGetCurrentLoupePosition(out EsPoint position)
         +SetCoordTransform(port) void
         +SetSelection(rect) void
         +ResetSelection() void

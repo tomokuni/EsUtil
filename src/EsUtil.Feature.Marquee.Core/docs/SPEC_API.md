@@ -42,7 +42,7 @@
 | `MarqueeGeometry` | record struct | 1 フレーム分の幾何（`ClientSize` / `FocusDipRect` / `FocusSourceRect` / `Handles` / `Marker` / `MouseSourcePosition` / `MouseDipPosition` ＋ `ClientRect`）。 **コアが責任を持つ値の全量** |
 | `MarqueeRenderRequest` | record struct | 1 フレーム分の幾何を解決する入力（設定・状態と、描画時に決まる値）。 `MarqueeCore.CreateRequest` が生成し、`MarqueeCore.ResolveGeometry` へ渡す。 値の組は `MarqueeRenderRequest.Create` が 1 箇所に閉じる。 **`Create` を public にする理由**: ファサード（`MarqueeCore.CreateRequest`）と独自 UI が入力を組み立てる唯一の入口である（描画先の領域を知るのは呼び出し側だけである） |
 | `MarqueeHandles` / `MarqueeMarker` | record struct | ハンドル・始点マーカーの幾何（位置と寸法はコアが解決済み。 **色と線の太さは描画層の外観が持つ**） |
-| `MarqueeSnapshot` | readonly record struct | 通知時点の状態（状態・選択矩形・アクティブターゲット・マウス位置・操作フラグ）。 値型のため通知のたびにヒープを確保しない |
+| `MarqueeSnapshot` | readonly record struct | 通知時点の状態（状態・選択矩形・アクティブターゲット・マウス位置・操作フラグ）。 値型のため通知のたびにヒープを確保しない。 導出プロパティは `HasSelection` / `IsMarkerFollowingPointer`（追従位置が実カーソルを表すか） |
 | `MarqueeNotice` / `MarqueeNoticeKind` | record / enum | 通知（種別・通知座標・スナップショット） |
 | `MarqueeHitTarget` | enum | ヒット対象（8 方向のハンドル + `Move` + `None`） |
 | `MarqueeCursorKind` | enum | カーソル形状の種別（`Default` / `DiagonalNWSE` / `DiagonalNESW` / `Vertical` / `Horizontal` / `Move`） |

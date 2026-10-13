@@ -1,9 +1,11 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
+using Avalonia;
 using Avalonia.Media;
 using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using Avalonia.Media.Imaging;
+using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI;
@@ -30,9 +32,10 @@ internal static class LoupeSourceResolver
     private static readonly ConcurrentDictionary<Type, Func<IImage, EsReadOnlyBitmap>?> s_borrowers = new();
 
     /// <summary>ソース解決の結果。</summary>
-    /// <param name="Bitmap">切り出し元の画像（読み取りの面）。 未対応・破棄済み・null の場合は null。</param>
-    /// <param name="IsSourceBitmap">ソースが <see cref="Bitmap"/> 由来か（複製破棄が必要か）。 false の場合は借用（破棄しない）。</param>
-    public readonly record struct Result(EsReadOnlyBitmap? Bitmap, bool IsSourceBitmap);
+    /// <param name="Size">切り出し元の寸法（ピクセル）。 描けない場合（画像なし・未対応型・破棄済み）は null。</param>
+    /// <param name="Bitmap">切り出し元のコアの画像（借用。 表示用の射影だけを持つソースでは null）。</param>
+    /// <param name="IsSourceBitmap">返したコアの画像が複製かどうか（true の場合、破棄は呼び出し側が行う）。</param>
+    public readonly record struct Result(EsSizeInt? Size, EsReadOnlyBitmap? Bitmap, bool IsSourceBitmap);
 
     /// <summary>ソース画像がルーペで対応可能な型かどうかを判定する。</summary>
     /// <param name="source">判定するソース画像。</param>
@@ -50,68 +53,89 @@ internal static class LoupeSourceResolver
     public static bool IsSourceSupported(IImage? source)
         => source is null or Bitmap || TryGetBorrower(source) is not null;
 
-    /// <summary>ソース画像の切り出し元（読み取りの面）を解決する。</summary>
+    /// <summary>ソース画像の切り出し元（寸法と、必要ならコアの画像）を解決する。</summary>
     /// <param name="source">ルーペのソース画像（<see cref="Bitmap"/> / コアの画像を内包する表示アダプタ）。</param>
-    /// <param name="sourceBitmap">解決した切り出し元（読み取りの面）。 未対応・破棄済み・null の場合は null。</param>
-    /// <returns>破棄済み・未対応型の場合は false（下地のみで描画する）。 それ以外は true。</returns>
+    /// <returns>切り出し元の寸法と（表示用の射影だけでは足りない場合の）コアの画像。 画像なし・未対応型・破棄済みは寸法 null。</returns>
     /// <remarks>
-    /// <see cref="Bitmap"/>（派生の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> を含む）は
-    /// 複製を読み取り専用の面へ移して返し、破棄は呼び出し側が行う（<see cref="Result.IsSourceBitmap"/> = true）。<br/>
-    /// 表示アダプタ（コアの画像を内包する <see cref="IImage"/>）は
-    /// 借用（<see cref="BorrowMethodName"/>）を返し、破棄しない（<see cref="Result.IsSourceBitmap"/> = false）。<br/>
-    /// 破棄済み <see cref="Bitmap"/> は <c>PixelSize</c> 参照で検出する（<see cref="ObjectDisposedException"/> 防止）。<br/>
-    /// 対応可能型（null / 表示アダプタ / <see cref="Bitmap"/>）以外は null を返す（下地のみで描画する）。
+    /// <see cref="Bitmap"/>（派生の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> を含む）は、
+    /// <b>表示用の射影（<see cref="IImage"/>）が切り出し元と同じ座標系で使える場合（寸法が 1 DIP = 1 ピクセル）は複製を作らない</b>
+    /// （<see cref="Result.Size"/> だけを返す。 表示は元画像を元矩形つきで描けるため、切り出し元の画素は要らない）。<br/>
+    /// 射影をそのまま使えない場合（DPI が 96 以外の Bitmap 等）だけ複製を読み取り専用の面へ移して返す<br/>
+    /// （破棄は呼び出し側が行う。 <see cref="Result.IsSourceBitmap"/> = true）。<br/>
+    /// 表示アダプタ（コアの画像を内包する <see cref="IImage"/>）は借用（<see cref="BorrowMethodName"/>）を返し、破棄しない<br/>
+    /// （<see cref="Result.IsSourceBitmap"/> = false）。<br/>
+    /// 破棄済み（または破棄済みの真実を内包する）ソースは <c>PixelSize</c> 参照で検出する（<see cref="ObjectDisposedException"/> 防止）。<br/>
+    /// 対応可能型（null / 表示アダプタ / <see cref="Bitmap"/>）以外は寸法 null を返す（下地のみで描画する）。
     /// </remarks>
-    public static Result Resolve(IImage? source, out EsReadOnlyBitmap? sourceBitmap)
+    public static Result Resolve(IImage? source)
     {
-        sourceBitmap = null;
-
         if (source is null)
         {
-            return new Result(null, IsSourceBitmap: false);
+            return new Result(null, null, IsSourceBitmap: false);
         }
 
         if (source is Bitmap sourceBitmapImage)
         {
+            PixelSize pixelSize;
             try
             {
-                _ = sourceBitmapImage.PixelSize;
+                pixelSize = sourceBitmapImage.PixelSize;
             }
             catch (ObjectDisposedException)
             {
                 // 破棄済み Source: 下地のみで描画する（前回のビットマップは維持）
-                return new Result(null, IsSourceBitmap: false);
+                return new Result(null, null, IsSourceBitmap: false);
+            }
+
+            var size = new EsSizeInt(pixelSize.Width, pixelSize.Height);
+            if (IsSameCoordinateSpace(sourceBitmapImage, pixelSize))
+            {
+                // 表示用の射影をそのまま使える: コアの画像へ複製しない
+                // （複製は全画素のコピーであり、再描画のたびに画面全体のコピーを払うことになる）
+                return new Result(size, null, IsSourceBitmap: false);
             }
 
             using (var created = sourceBitmapImage.ToEsBitmap())
             {
                 // その場で読むだけ（読み取り専用の面へ渡す）: 凍結して 0 コピーで共有し、書き換え可能の実体は解放する
                 created.SetReadOnly();
-                sourceBitmap = EsReadOnlyBitmap.FromBitmap(created);
+                return new Result(size, EsReadOnlyBitmap.FromBitmap(created), IsSourceBitmap: true);
             }
-
-            return new Result(sourceBitmap, IsSourceBitmap: true);
         }
 
         // 画像源（借用）を判定する（Bitmap はコアの画像を取り出す契約を持たないため両者は排他）
         if (TryGetBorrower(source) is { } borrow)
         {
+            EsReadOnlyBitmap borrowed;
             try
             {
-                sourceBitmap = borrow(source);
+                borrowed = borrow(source);
             }
             catch (ObjectDisposedException)
             {
                 // 破棄済みの真実を内包する Source: 下地のみで描画する（前回のビットマップは維持）
-                return new Result(null, IsSourceBitmap: false);
+                return new Result(null, null, IsSourceBitmap: false);
             }
 
-            return new Result(sourceBitmap, IsSourceBitmap: false);
+            var size = borrowed.Size;
+            return new Result(size, borrowed, IsSourceBitmap: false);
         }
 
-        // 対応可能型は上で全て処理済み。 未対応型（IImage の他の実装）は切り出し元を解決せず null を返す。
-        return new Result(null, IsSourceBitmap: false);
+        // 対応可能型は上で全て処理済み。 未対応型（IImage の他の実装）は切り出し元を解決せず寸法 null を返す。
+        return new Result(null, null, IsSourceBitmap: false);
     }
+
+    /// <summary>表示用の射影（<see cref="IImage"/>）が切り出し元と同じ座標系（1 DIP = 1 ピクセル）で使えるかどうかを判定する。</summary>
+    /// <param name="bitmap">判定する画像。</param>
+    /// <param name="pixelSize">画像の寸法（ピクセル）。</param>
+    /// <returns>そのまま切り出し元の座標系として使える場合は true。</returns>
+    /// <remarks>
+    /// 描画 API へ渡す元矩形（切り出し領域）は画像の座標系（DIP）で解釈されるため、<br/>
+    /// 座標系とピクセルが一致する場合だけ元矩形をそのまま使える（解釈が一致しない場合はコアの画像から描く）。<br/>
+    /// DPI が 96 以外の <see cref="Bitmap"/> は一致しない（<c>Size</c> は DIP、<c>PixelSize</c> はピクセル）。
+    /// </remarks>
+    private static bool IsSameCoordinateSpace(Bitmap bitmap, PixelSize pixelSize)
+        => (int)bitmap.Size.Width == pixelSize.Width && (int)bitmap.Size.Height == pixelSize.Height;
 
     /// <summary>表示アダプタからコアの画像を取り出す手段を取得する（型ごとに 1 回だけ解決する）。</summary>
     /// <param name="source">判定するソース画像。</param>

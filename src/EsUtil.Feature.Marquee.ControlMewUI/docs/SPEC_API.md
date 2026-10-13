@@ -98,6 +98,7 @@ Avalonia 版と同一の挙動になります。
 | `RequestConfirm()` | - | 確定要求を処理する（Enter と同じ条件）。 ドラッグ中・未選択では何もしない |
 | `RequestCancel()` | - | キャンセル要求を処理する（Escape と同じ条件）。 選択を破棄した後にイベントを発火する |
 | `InvalidateRender()` | - | 表示（パン・ズーム・表示サイズ）の変化へ追従する（再描画と配置の再評価。 選択の状態は変更しない） |
+| `TryGetCurrentLoupePosition(out EsPoint)` | `bool` | 追従位置（ルーペ中心。 対象座標）を**実カーソルから取り直す**。 取り直した場合は `true` と位置を返す。 追従していない場合（ドラッグ中・nudge 中。 判断はコアの `MarqueeSnapshot.IsMarkerFollowingPointer`）とポインターがコントロールの外にある場合（`UIElement.IsMouseOver`）とカーソル位置を取得できない場合は `false`（状態は変えない。 採用は呼び出し側が決める。 **ポインター移動イベントの座標は入力へ積まれた分だけ古い**ため、イベント処理の直後に取り直すとルーペ中心がカーソルへ一致する） |
 | `InvalidateRender()` | - | 描画内容の再解決と、図形・ラベルの再描画を要求する（**描画に関わる変更の唯一の入口**。 図形は子の Skia キャンバスが描くため、親の無効化だけでは更新されない） |
 | `DrawPlanResolver` | `Func<MarqueeDrawPlan, MarqueeDrawPlan>?` | **描画計画の差し替え点**（矩形の並び・文言・位置）。 設定すると再描画を要求する（同じ入力では 1 フレーム 1 回だけ解決されるため、呼び出しの時点に依存しない純粋関数にすること） |
 | `DrawPlan(SKCanvas, in MarqueeDrawPlan)` | `static` | 描画計画を描画面へ描く（計画どおりに描く。 表示を止めた項目はフラグを見て描かないため描かれない） |
@@ -106,7 +107,7 @@ Avalonia 版と同一の挙動になります。
 
 | プロパティ | 型 | 説明 |
 | --- | --- | --- |
-| `CurrentSnapshot` | `MarqueeSnapshot` | 現在の状態（State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / IsNudgeActive / HasSelection。 `readonly record struct`） |
+| `CurrentSnapshot` | `MarqueeSnapshot` | 現在の状態（State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / IsNudgeActive / HasSelection / `IsMarkerFollowingPointer`。 `readonly record struct`） |
 
 ## 7. イベント
 
