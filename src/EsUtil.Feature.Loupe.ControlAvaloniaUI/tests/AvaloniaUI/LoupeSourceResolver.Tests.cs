@@ -17,7 +17,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests;
 public class LoupeSourceResolverTests
 {
     [Fact]
-    internal void Resolve_nullは市松模様のみにフォールバックする()
+    internal void Resolve_nullは下地のみにフォールバックする()
     {
         var resolved = LoupeSourceResolver.Resolve(source: null, out var bitmap);
 
@@ -56,7 +56,7 @@ public class LoupeSourceResolverTests
     }
 
     [Fact]
-    internal void Resolve_破棄済みの真実を内包する表示アダプタは市松模様のみにフォールバックする()
+    internal void Resolve_破棄済みの真実を内包する表示アダプタは下地のみにフォールバックする()
     {
         var bmp = EsBitmap.Create(10, 10);
         bmp.SetReadOnly();
@@ -78,7 +78,7 @@ public class LoupeSourceResolverTests
     [Fact]
     internal void IsSourceSupported_nullは対応可能である()
     {
-        // null は「画像なし」を表すため対応可能（市松模様のみで描画する）
+        // null は「画像なし」を表すため対応可能（下地のみで描画する）
         Assert.True(LoupeSourceResolver.IsSourceSupported(source: null));
     }
 

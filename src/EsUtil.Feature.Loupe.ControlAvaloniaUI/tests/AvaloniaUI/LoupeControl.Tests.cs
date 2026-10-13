@@ -134,7 +134,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    internal async Task Source未設定でも市松模様のLoupeBitmapが生成される()
+    internal async Task Source未設定でも下地のみのLoupeBitmapが生成される()
     {
         var control = CreateControl();
 
@@ -147,14 +147,14 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    internal async Task Source設定_CenterPoint未設定でも市松模様のLoupeBitmapが生成される()
+    internal async Task Source設定_CenterPoint未設定でも下地のみのLoupeBitmapが生成される()
     {
         var control = CreateControl();
         control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
 
         await control.WaitForRenderedAsync();
 
-        // center が未設定のため、画像抽出は行わず市松模様のみ描画する
+        // center が未設定のため、画像抽出は行わず下地のみ描画する
         Assert.NotNull(control.LoupeBitmap);
         Assert.Equal(100, control.LoupeBitmap!.Size.Width);
         Assert.Equal(100, control.LoupeBitmap.Size.Height);
@@ -742,7 +742,7 @@ public class LoupeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    internal async Task 破棄済みSourceは市松模様のみで描画される()
+    internal async Task 破棄済みSourceは下地のみで描画される()
     {
         var control = CreateControl();
         var bitmap = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -752,12 +752,12 @@ public class LoupeControlTests
 
         await control.WaitForRenderedAsync();
 
-        // 例外なく完了し、市松模様のみの Bitmap が生成される
+        // 例外なく完了し、下地のみの Bitmap が生成される
         Assert.NotNull(control.LoupeBitmap);
     }
 
     [AvaloniaFact]
-    internal async Task 抽出中にSourceが破棄されると市松模様のみで描画される()
+    internal async Task 抽出中にSourceが破棄されると下地のみで描画される()
     {
         var control = CreateControl();
         var bitmap = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
@@ -765,11 +765,11 @@ public class LoupeControlTests
         control.CenterPoint = new Point(100, 100);
 
         // 描画要求の反映前にソースを破棄すると、ソース解決が破棄済みを検知して切り出しを行わない
-        // （市松模様のみで描画され、例外は描画層へ伝播しない）
+        // （下地のみで描画され、例外は描画層へ伝播しない）
         bitmap.Dispose();
         await control.WaitForRenderedAsync();
 
-        // 例外なく完了し、市松模様のみの Bitmap が生成される
+        // 例外なく完了し、下地のみの Bitmap が生成される
         Assert.NotNull(control.LoupeBitmap);
     }
 
@@ -898,13 +898,13 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    internal async Task 中心未設定でもRenderedイベントが発火し市松模様のBitmapとnullのCaptureTopLeftを通知する()
+    internal async Task 中心未設定でもRenderedイベントが発火し下地のみのBitmapとnullのCaptureTopLeftを通知する()
     {
         var control = CreateControl();
         LoupeRenderedEventArgs? args = null;
         control.Rendered += (_, e) => args = e;
 
-        // CenterPoint 未設定（市松模様のみの描画）でもイベントは発火する
+        // CenterPoint 未設定（下地のみの描画）でもイベントは発火する
         await control.WaitForRenderedAsync();
 
         Assert.NotNull(args!);

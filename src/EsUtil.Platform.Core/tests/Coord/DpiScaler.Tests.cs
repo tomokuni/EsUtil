@@ -8,7 +8,7 @@ namespace EsUtil.Platform.Core.Tests.Coord;
 /// <remarks>
 /// DIP 値 → 物理ピクセル変換のみを検証するため、<br/>
 /// Avalonia ヘッドレス（<c>[AvaloniaFact]</c>）に依存せず <c>[Fact]</c> で並列実行する。<br/>
-/// <c>表示サイズ・市松模様のサイズ・外枠の太さ</c>の物理ピクセル換算と、ウィンドウの位置・サイズの換算で共用する。
+/// <c>表示サイズ・外枠の太さ</c>の物理ピクセル換算と、ウィンドウの位置・サイズの換算で共用する。
 /// </remarks>
 public class DpiScalerTests
 {

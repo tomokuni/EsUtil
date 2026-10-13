@@ -42,7 +42,7 @@ internal static class LoupeSourceResolver
     /// <b>コアの画像を内包する表示アダプタ</b>（<see cref="BorrowMethodName"/> を公開する <see cref="IImage"/>）である
     /// （ピクセル抽出が可能な型だけを受け入れる）。<br/>
     /// <see cref="LoupeRenderPipeline"/> の未対応型判定（<see cref="NotSupportedException"/>）を単一所有する（DRY）。<br/>
-    /// null は「画像なし」を表すため対応可能（市松模様のみで描画する）として扱う。<br/>
+    /// null は「画像なし」を表すため対応可能（下地のみで描画する）として扱う。<br/>
     /// <b>継承による包含に依存する</b>ため、新しい対応型を足すときは <see cref="Bitmap"/> の派生かどうかを実測する。<br/>
     /// （実測: Avalonia 12 の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> は <see cref="Bitmap"/> の派生、<br/>
     /// <c>CroppedBitmap</c> は <c>AvaloniaObject</c> の派生で非対応）
@@ -53,14 +53,14 @@ internal static class LoupeSourceResolver
     /// <summary>ソース画像の切り出し元（読み取りの面）を解決する。</summary>
     /// <param name="source">ルーペのソース画像（<see cref="Bitmap"/> / コアの画像を内包する表示アダプタ）。</param>
     /// <param name="sourceBitmap">解決した切り出し元（読み取りの面）。 未対応・破棄済み・null の場合は null。</param>
-    /// <returns>破棄済み・未対応型の場合は false（市松模様のみで描画する）。 それ以外は true。</returns>
+    /// <returns>破棄済み・未対応型の場合は false（下地のみで描画する）。 それ以外は true。</returns>
     /// <remarks>
     /// <see cref="Bitmap"/>（派生の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> を含む）は
     /// 複製を読み取り専用の面へ移して返し、破棄は呼び出し側が行う（<see cref="Result.IsSourceBitmap"/> = true）。<br/>
     /// 表示アダプタ（コアの画像を内包する <see cref="IImage"/>）は
     /// 借用（<see cref="BorrowMethodName"/>）を返し、破棄しない（<see cref="Result.IsSourceBitmap"/> = false）。<br/>
     /// 破棄済み <see cref="Bitmap"/> は <c>PixelSize</c> 参照で検出する（<see cref="ObjectDisposedException"/> 防止）。<br/>
-    /// 対応可能型（null / 表示アダプタ / <see cref="Bitmap"/>）以外は null を返す（市松模様のみで描画する）。
+    /// 対応可能型（null / 表示アダプタ / <see cref="Bitmap"/>）以外は null を返す（下地のみで描画する）。
     /// </remarks>
     public static Result Resolve(IImage? source, out EsReadOnlyBitmap? sourceBitmap)
     {
@@ -79,7 +79,7 @@ internal static class LoupeSourceResolver
             }
             catch (ObjectDisposedException)
             {
-                // 破棄済み Source: 市松模様のみで描画する（前回のビットマップは維持）
+                // 破棄済み Source: 下地のみで描画する（前回のビットマップは維持）
                 return new Result(null, IsSourceBitmap: false);
             }
 
@@ -102,7 +102,7 @@ internal static class LoupeSourceResolver
             }
             catch (ObjectDisposedException)
             {
-                // 破棄済みの真実を内包する Source: 市松模様のみで描画する（前回のビットマップは維持）
+                // 破棄済みの真実を内包する Source: 下地のみで描画する（前回のビットマップは維持）
                 return new Result(null, IsSourceBitmap: false);
             }
 

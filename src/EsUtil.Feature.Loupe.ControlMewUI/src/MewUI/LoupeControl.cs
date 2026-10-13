@@ -166,7 +166,7 @@ public sealed class LoupeControl : Panel
     public static void DrawPlan(SKCanvas canvas, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)
         => LoupeSkiaPainter.Paint(canvas, source, in plan);
 
-    /// <summary>図形（背景・市松模様・拡大画像・十字線・枠線）を描画する内部キャンバス。</summary>
+    /// <summary>図形（背景・拡大画像・十字線・枠線）を描画する内部キャンバス。</summary>
     /// <remarks>
     /// <b>描画順を構造で保証する</b>: 本パネルが図形のキャンバスを先に、ラベル要素を後に子として持つため、<br/>
     /// ラベルは常に図形より後に描かれる（コアの「ラベルは最上位」契約が構造で成立する）。<br/>
@@ -178,7 +178,7 @@ public sealed class LoupeControl : Panel
     private readonly List<Border> _labels = [];
 
     /// <summary>拡大元の 100% 画像を取得または設定する。</summary>
-    /// <value>拡大元の画像。 null の場合は市松模様のみを表示する。</value>
+    /// <value>拡大元の画像。 null の場合は下地のみを表示する。</value>
     public EsReadOnlyBitmap? Source
     {
         get => GetValue(SourceProperty);
@@ -186,7 +186,7 @@ public sealed class LoupeControl : Panel
     }
 
     /// <summary>拡大表示する中心座標（元画像ピクセル座標）を取得または設定する。</summary>
-    /// <value>拡大中心。 null の場合は市松模様のみを表示する。</value>
+    /// <value>拡大中心。 null の場合は下地のみを表示する。</value>
     public EsPoint? CenterPoint
     {
         get => GetValue(CenterPointProperty);
@@ -288,7 +288,7 @@ public sealed class LoupeControl : Panel
         Add(_shapes);
     }
 
-    /// <summary>図形（背景・市松模様・拡大画像・十字線・枠線）だけを描画する内部 Skia キャンバス。</summary>
+    /// <summary>図形（背景・拡大画像・十字線・枠線）だけを描画する内部 Skia キャンバス。</summary>
     /// <remarks>
     /// 親（<see cref="LoupeControl"/>）の描画入力を組み立てて描画層へ渡すだけであり、判断を持たない。<br/>
     /// 中心座標ラベルの文字は本キャンバスが描かない（親パネルのラベル要素が描く）。

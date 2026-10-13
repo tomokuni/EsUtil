@@ -55,7 +55,7 @@ public static class BrushOptions
     /// <summary>オレンジ。</summary>
     public static BrushOption Orange { get; } = new("オレンジ", Brushes.Orange);
 
-    /// <summary>画像外（ペーストボード）の既定色（#CCCCCC。 市松模様の暗色と同じ濃さ）。</summary>
+    /// <summary>画像外（ペーストボード）の既定色（#CCCCCC）。</summary>
     public static BrushOption Pasteboard { get; } = new("#CCCCCC", new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC)));
 
     /// <summary>全選択肢。</summary>

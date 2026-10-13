@@ -162,7 +162,7 @@ dotnet run --project src/EsUtil.Feature.Loupe.ControlMewUI/sample/EsUtil.Feature
 - 画像端から外れた部分の画像外の色（無地）
 - 拡大率・サイズ・描画スケール（DPI）の変更
 - 十字線・枠線・座標ラベルの変更（「なし」で非表示）
-- `Source` の解除（未設定時の市松模様）と再設定
+- `Source` の解除（未設定時の下地）と再設定
 - `Log`（設定変更ログの出力先 ILogger 設定例）
 - 外観と描画計画の差し替え（見本。 `Appearance` と `DrawPlanResolver`）
 
