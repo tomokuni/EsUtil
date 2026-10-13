@@ -112,11 +112,11 @@ public sealed class WinElementFinder : IElementFinder
     /// <param name="screenPoint">判定する位置（画面物理座標）。</param>
     /// <returns>スクリーンの検出結果（矩形・「Screen {インデックス}」）。 未検出時は <see cref="ElementFinderResults.IsDetected"/> = false。</returns>
     /// <remarks>
-    /// <see cref="ListScreens"/>（全スクリーン一覧）を列挙し、<paramref name="screenPoint"/> を含む最初の<br/>
+    /// <see cref="ListScreens"/>（全スクリーン一覧）と同じ境界を使い、<paramref name="screenPoint"/> を含む最初の<br/>
     /// スクリーンを採用する。 スクリーン境界は Win32 の <c>EnumDisplayMonitors</c> から自己解決する。
     /// </remarks>
     public ElementFinderResults FindScreenUnderCursor(EsPointInt screenPoint)
-        => ListScreens().FirstOrDefault(r => r.Bounds.Contains(screenPoint));
+        => FindScreen(screenPoint);
 
     /// <summary>全スクリーンの一覧を返す（仮想スクリーンの1枚画像に対するスナップショット管理用）。</summary>
     /// <returns>全スクリーンの検出結果一覧（矩形・「Screen {インデックス}」）。 列挙できない場合は空リスト。</returns>
@@ -134,6 +134,23 @@ public sealed class WinElementFinder : IElementFinder
             results.Add(new ElementFinderResults(bounds[i], true, Title: $"Screen {i}"));
         }
         return results;
+    }
+
+    /// <summary>指定位置を含むスクリーンだけを探す（一覧を作らない）。</summary>
+    /// <param name="screenPoint">判定する位置（画面物理座標）。</param>
+    /// <returns>見つかったスクリーンの検出結果。 無い場合は <see cref="ElementFinderResults.IsDetected"/> = false。</returns>
+    private ElementFinderResults FindScreen(EsPointInt screenPoint)
+    {
+        var bounds = EnumerateMonitorBounds();
+        for (var i = 0; i < bounds.Count; i++)
+        {
+            if (bounds[i].Contains(screenPoint))
+            {
+                return new ElementFinderResults(bounds[i], true, Title: $"Screen {i}");
+            }
+        }
+
+        return default;
     }
 
     /// <summary>全ウィンドウの一覧を返す（仮想スクリーンの1枚画像に対するスナップショット管理用）。</summary>

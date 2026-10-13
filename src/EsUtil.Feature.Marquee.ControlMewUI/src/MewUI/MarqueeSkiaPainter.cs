@@ -1,5 +1,6 @@
 using SkiaSharp;
 using EsUtil.Feature.Marquee.MewUI.Internal;
+using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Feature.Marquee.MewUI;
 
@@ -16,6 +17,36 @@ namespace EsUtil.Feature.Marquee.MewUI;
 /// </remarks>
 internal static class MarqueeSkiaPainter
 {
+    /// <summary>ハンドルの塗りに使うペイント（スレッドごとに 1 つを使い回す）。</summary>
+    [ThreadStatic]
+    private static SKPaint? s_handleFill;
+
+    /// <summary>枠線・十字線に使うペイント（スレッドごとに 1 つを使い回す）。</summary>
+    [ThreadStatic]
+    private static SKPaint? s_stroke;
+
+    /// <summary>塗りのペイントを取得する（色だけを書き換える）。</summary>
+    /// <param name="color">塗り色。</param>
+    /// <returns>書き換え済みのペイント（スレッドごとに共有する 1 つ）。</returns>
+    private static SKPaint ResolveFill(DrawingColor color)
+    {
+        var paint = s_handleFill ??= new SKPaint { IsAntialias = false, Style = SKPaintStyle.Fill };
+        paint.Color = color.ToSKColor();
+        return paint;
+    }
+
+    /// <summary>枠線のペイントを取得する（太さと色だけを書き換える）。</summary>
+    /// <param name="thickness">線の太さ（物理ピクセル）。</param>
+    /// <param name="color">線の色。</param>
+    /// <returns>書き換え済みのペイント（スレッドごとに共有する 1 つ）。</returns>
+    private static SKPaint ResolveStroke(float thickness, DrawingColor color)
+    {
+        var paint = s_stroke ??= new SKPaint { IsAntialias = false, Style = SKPaintStyle.Stroke };
+        paint.StrokeWidth = thickness;
+        paint.Color = color.ToSKColor();
+        return paint;
+    }
+
     /// <summary>描画計画を描画順に描く。</summary>
     /// <param name="canvas">描画先のキャンバス（DIP 座標で描画できる状態であること）。 null 不可。</param>
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・色を持つ）。</param>
@@ -89,19 +120,9 @@ internal static class MarqueeSkiaPainter
     /// <remarks>塗りと枠線の 2 ペイントを N 個の矩形で共有するため、本メソッドが描画 API を直接呼ぶ。</remarks>
     private static void DrawHandles(SKCanvas canvas, in MarqueeHandles handles, MarqueeAppearance appearance)
     {
-        using var fill = new SKPaint
-        {
-            IsAntialias = false,
-            Style = SKPaintStyle.Fill,
-            Color = appearance.HandleColor.ToSKColor(),
-        };
-        using var stroke = new SKPaint
-        {
-            IsAntialias = false,
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = (float)handles.BorderThickness,
-            Color = appearance.HandleBorderColor.ToSKColor(),
-        };
+        // 塗りと枠線のペイントは 1 つずつを使い回す（枠線の太さ・色だけを書き換える）
+        var fill = ResolveFill(appearance.HandleColor);
+        var stroke = ResolveStroke((float)handles.BorderThickness, appearance.HandleBorderColor);
 
         foreach (var bounds in handles.HandleDipRects)
         {
@@ -117,13 +138,7 @@ internal static class MarqueeSkiaPainter
     /// <param name="appearance">外観。</param>
     private static void DrawStartMarker(SKCanvas canvas, in MarqueeMarker marker, MarqueeAppearance appearance)
     {
-        using var paint = new SKPaint
-        {
-            IsAntialias = false,
-            Style = SKPaintStyle.Stroke,
-            StrokeWidth = (float)appearance.MarkerThickness,
-            Color = appearance.MarkerColor.ToSKColor(),
-        };
+        var paint = ResolveStroke((float)appearance.MarkerThickness, appearance.MarkerColor);
 
         var center = marker.Center;
         var half = marker.Size;

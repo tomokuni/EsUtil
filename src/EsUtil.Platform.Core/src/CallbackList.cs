@@ -20,6 +20,9 @@ public sealed class CallbackList<T>
     /// <summary>登録済みの購読（登録順に通知する）。</summary>
     private readonly List<Action<T>> _callbacks = [];
 
+    /// <summary>通知に使う登録のスナップショット（購読が変わったときだけ作り直す。 0 件のときは <c>null</c>）。</summary>
+    private Action<T>[]? _snapshot;
+
     /// <summary>購読を追加する。</summary>
     /// <param name="callback">通知を受け取る処理。 null 不可。</param>
     /// <returns>購読を解除する <see cref="IDisposable"/>（破棄すると <paramref name="callback"/> を一覧から外す）。</returns>
@@ -28,6 +31,7 @@ public sealed class CallbackList<T>
     {
         ArgumentNullException.ThrowIfNull(callback);
         _callbacks.Add(callback);
+        _snapshot = null;
         return new Subscription(this, callback);
     }
 
@@ -41,14 +45,27 @@ public sealed class CallbackList<T>
             return;
         }
 
-        foreach (var callback in _callbacks.ToArray())
+        var snapshot = _snapshot ??= [.. _callbacks];
+        foreach (var callback in snapshot)
         {
             callback(value);
         }
     }
 
     /// <summary>全購読を解除する（破棄時に購読者への参照を残さないために使う）。</summary>
-    public void Clear() => _callbacks.Clear();
+    public void Clear()
+    {
+        _callbacks.Clear();
+        _snapshot = null;
+    }
+
+    /// <summary>1 件の購読を取り除く（解除でも一覧が変わるため、スナップショットを作り直す）。</summary>
+    /// <param name="callback">取り除く処理。</param>
+    private void Remove(Action<T> callback)
+    {
+        _callbacks.Remove(callback);
+        _snapshot = null;
+    }
 
     /// <summary>1 件の購読を表す（破棄で解除する）。</summary>
     private sealed class Subscription : IDisposable
@@ -80,7 +97,7 @@ public sealed class CallbackList<T>
             }
 
             _disposed = true;
-            _owner._callbacks.Remove(_callback);
+            _owner.Remove(_callback);
         }
     }
 }

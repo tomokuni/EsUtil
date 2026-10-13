@@ -17,6 +17,44 @@ namespace EsUtil.Feature.Marquee.MewUI.Internal;
 /// </remarks>
 internal static class SkiaText
 {
+    /// <summary>測定に使うペイント（スレッドごとに 1 つを使い回す）。</summary>
+    [ThreadStatic]
+    private static SKPaint? s_measurePaint;
+
+    /// <summary>描画に使うペイント（スレッドごとに 1 つを使い回す）。</summary>
+    [ThreadStatic]
+    private static SKPaint? s_drawPaint;
+
+    /// <summary>測定・描画に使うフォント（スレッドごとに 1 つを、フォントと大きさだけ書き換えて使い回す）。</summary>
+    [ThreadStatic]
+    private static SKFont? s_font;
+
+    /// <summary>測定向けのフォントを取得する（フォントと大きさだけを書き換える）。</summary>
+    /// <param name="typeface">字形を持つフォント。</param>
+    /// <param name="fontSize">フォントサイズ（物理ピクセル）。</param>
+    /// <returns>書き換え済みのフォント（スレッドごとに共有する 1 つ）。</returns>
+    private static SKFont ResolveFont(SKTypeface typeface, float fontSize)
+    {
+        var font = s_font ??= new SKFont(typeface, fontSize);
+        font.Typeface = typeface;
+        font.Size = fontSize;
+        return font;
+    }
+
+    /// <summary>測定に使うペイントを取得する。</summary>
+    /// <returns>測定用のペイント（スレッドごとに共有する 1 つ）。</returns>
+    private static SKPaint ResolveMeasurePaint() => s_measurePaint ??= new SKPaint { IsAntialias = true };
+
+    /// <summary>描画に使うペイントを取得する（色だけを書き換える）。</summary>
+    /// <param name="color">文字色。</param>
+    /// <returns>書き換え済みのペイント（スレッドごとに共有する 1 つ）。</returns>
+    private static SKPaint ResolveDrawPaint(DrawingColor color)
+    {
+        var paint = s_drawPaint ??= new SKPaint { IsAntialias = true };
+        paint.Color = color.ToSKColor();
+        return paint;
+    }
+
     /// <summary>非 ASCII（日本語等）を含むテキスト用の予備フォント（初回のみ解決する）。</summary>
     private static SKTypeface? s_fallbackTypeface;
 
@@ -46,8 +84,8 @@ internal static class SkiaText
     /// <returns>テキストの実寸（幅・行高）。 行高はフォントの <c>Descent - Ascent</c>。</returns>
     public static EsSize Measure(string text, double fontSize)
     {
-        using var font = new SKFont(ResolveTypeface(text), (float)fontSize);
-        using var paint = new SKPaint { IsAntialias = true };
+        var font = ResolveFont(ResolveTypeface(text), (float)fontSize);
+        var paint = ResolveMeasurePaint();
         return new EsSize(font.MeasureText(text, paint), font.Metrics.Descent - font.Metrics.Ascent);
     }
 
@@ -63,8 +101,8 @@ internal static class SkiaText
     {
         ArgumentNullException.ThrowIfNull(canvas);
 
-        using var font = new SKFont(ResolveTypeface(text), (float)fontSize);
-        using var paint = new SKPaint { IsAntialias = true, Color = color.ToSKColor() };
+        var font = ResolveFont(ResolveTypeface(text), (float)fontSize);
+        var paint = ResolveDrawPaint(color);
         canvas.DrawText(text, (float)left, (float)(top - font.Metrics.Ascent), font, paint);
     }
 

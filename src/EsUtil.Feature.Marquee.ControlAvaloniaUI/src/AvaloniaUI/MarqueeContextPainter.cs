@@ -19,6 +19,17 @@ namespace EsUtil.Feature.Marquee.AvaloniaUI;
 /// </remarks>
 internal static class MarqueeContextPainter
 {
+    /// <summary>枠線に使うペン（太さと色の組ごとに共有する）。</summary>
+    private static readonly CapacityLimitedCache<(Color Brush, double Thickness), Pen> s_pens =
+        new(static key => new Pen(new SolidColorBrush(key.Brush), key.Thickness));
+
+    /// <summary>ペンを取得する（同じ太さと色は共有する）。</summary>
+    /// <param name="color">線の色。</param>
+    /// <param name="thickness">線の太さ（DIP）。</param>
+    /// <returns>太さと色に対応するペン。</returns>
+    private static Pen ResolvePen(DrawingColor color, double thickness)
+        => s_pens.GetOrCreate((color.ToAvaloniaColor(), thickness));
+
     /// <summary>描画計画を描画順に描く。</summary>
     /// <param name="context">描画先の描画コンテキスト（<c>Render</c> の実行中のみ有効）。 null 不可。</param>
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・色を持つ）。</param>
@@ -92,7 +103,7 @@ internal static class MarqueeContextPainter
     private static void DrawHandles(DrawingContext context, in MarqueeHandles handles, MarqueeAppearance appearance)
     {
         var fill = SolidColorBrushCache.GetOrCreate(appearance.HandleColor);
-        var pen = new Pen(SolidColorBrushCache.GetOrCreate(appearance.HandleBorderColor), handles.BorderThickness);
+        var pen = ResolvePen(appearance.HandleBorderColor, handles.BorderThickness);
 
         foreach (var bounds in handles.HandleDipRects)
         {
@@ -108,7 +119,7 @@ internal static class MarqueeContextPainter
     {
         var center = marker.Center;
         var half = marker.Size;
-        var pen = new Pen(SolidColorBrushCache.GetOrCreate(appearance.MarkerColor), appearance.MarkerThickness);
+        var pen = ResolvePen(appearance.MarkerColor, appearance.MarkerThickness);
 
         context.DrawLine(
             pen, new EsPoint(center.X - half, center.Y).ToAvaloniaPoint(), new EsPoint(center.X + half, center.Y).ToAvaloniaPoint());
