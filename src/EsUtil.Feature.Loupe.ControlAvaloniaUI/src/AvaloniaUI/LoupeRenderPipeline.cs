@@ -13,7 +13,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI;
 /// <see cref="LoupeControl"/> から、Avalonia のソース画像を解決してルーペ画像（<see cref="EsReadOnlyBitmap"/>）を生成する<br/>
 /// パイプラインを分離する（描画の手順と値の解釈は UI 非依存の描画層が単一所有する）。<br/>
 /// <b>UI 固有の責務</b>: Avalonia の <see cref="IImage"/> 型判定と、<see cref="Bitmap"/> → <see cref="EsReadOnlyBitmap"/> の複製、<br/>
-/// 描画の UI スレッドへのディスパッチ、<b>オフスクリーン ビットマップ（<see cref="RenderTargetBitmap"/>）の生成</b>。
+/// UI スレッド外からの呼び出しの描画フェーズへのディスパッチ、<b>オフスクリーン ビットマップ（<see cref="RenderTargetBitmap"/>）の生成</b>。
 /// 切り出しの可否（ソースと中心）と破棄済みの扱いはコアが単一所有する。
 /// </remarks>
 internal static class LoupeRenderPipeline
@@ -21,7 +21,7 @@ internal static class LoupeRenderPipeline
     /// <summary>オフスクリーン ビットマップの DPI（1 ピクセル = 1 DIP として描く）。</summary>
     private static readonly Vector s_dpi = new(DpiScaler.StandardDpi, DpiScaler.StandardDpi);
 
-    /// <summary>画像抽出を非同期に実行し、Avaloniaの描画オブジェクトをUIスレッドで合成する。</summary>
+    /// <summary>ルーペ画像を生成する（切り出し元の解決・描画の合成）。</summary>
     /// <param name="source">ルーペのソース画像。</param>
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・拡大画像の幾何を持つ）。</param>
     /// <returns>生成したルーペ画像（書き換え可能。 ホストがピクセルへ書き込める）。</returns>
@@ -30,7 +30,9 @@ internal static class LoupeRenderPipeline
     /// 1. 未対応型の判定（<see cref="LoupeSourceResolver.IsSourceSupported"/>）を行い、未対応型は例外にする。<br/>
     /// 2. 切り出し元の画像を解決する（<see cref="Bitmap"/> は複製、<see cref="EsReadOnlyBitmap"/> は借用）。<br/>
     /// 3. 描画（切り出し・拡大・十字線・枠線）は <see cref="LoupeContextPainter"/> へ委譲し、UI スレッドで行う<br/>
-    /// （切り出しの可否と破棄済みソースの扱いは描画層が単一所有する）。
+    /// （切り出しの可否と破棄済みソースの扱いは描画層が単一所有する）。<br/>
+    /// <b>UI スレッドの使い方</b>: UI スレッド上ではその場で描き、UI スレッド外からは描画フェーズ<br/>
+    /// （<see cref="DispatcherPriority.Render"/>）へポストする。 再描画の通常の経路は UI スレッド上のため往復しない。
     /// </remarks>
     public static async Task<EsBitmap> RenderAsync(IImage? source, LoupeDrawPlan plan)
     {
@@ -47,9 +49,14 @@ internal static class LoupeRenderPipeline
         try
         {
             // 描画（画像の切り出し・拡大・十字線・枠線）と RenderTargetBitmap への合成は UI スレッドで行う。
-            // Task.Run によるバックグラウンド抽出は、マウス移動中の連続再描画でスレッドプールが競合し、
-            // 抽出結果が UI スレッドへ戻る前に次の再描画が要求されてルーペ画像が移動停止まで更新されない問題を生む。
             // 元の IImage はそのまま元矩形つきの描画に使える（切り出しの複製と表示用の変換を作らない）
+            // 再描画の通常の経路（描画フェーズのジョブ）は既に UI スレッド上のため、往復を挟まずその場で描く
+            // （往復を 1 回増やすごとに、その往復が次の描画フェーズまで待たされ、ルーペ画像の反映が遅れる）
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                return Rasterize(sourceBitmap, source, in plan);
+            }
+
             return await Dispatcher.UIThread.InvokeAsync(
                 () => Rasterize(sourceBitmap, source, in plan),
                 DispatcherPriority.Render);

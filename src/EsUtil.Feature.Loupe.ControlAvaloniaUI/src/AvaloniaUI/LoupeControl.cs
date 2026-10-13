@@ -89,6 +89,9 @@ public sealed class LoupeControl : Panel
     /// 実行キューへのポストは本 UI が指定する（描画フェーズ（Render 優先度）で実行させる）。<br/>
     /// <b>Render 優先度を使う理由</b>: マウス移動中の連続再描画では、既定の Normal 優先度のポストが<br/>
     /// 入力イベント（Input 優先度）に後回しにされ、描画反映が移動停止まで実行されない問題を防ぐ。<br/>
+    /// <b>ポストは 1 回だけ</b>である（このジョブの中で生成（<see cref="LoupeRenderPipeline.RenderAsync"/>）と表示への反映<br/>
+    /// （<see cref="Apply"/>）まで行う。 追加のディスパッチャー往復は、その往復を次の描画フェーズまで待つ分だけ<br/>
+    /// 表示位置に対してルーペ画像の反映を遅らせる）。<br/>
     /// ポストの注入により、コーディネーター自体は UI フレームワークに依存しない。
     /// </remarks>
     private LoupeRenderCoordinator CreateRenderCoordinator()
@@ -729,6 +732,8 @@ public sealed class LoupeControl : Panel
     /// <see cref="Source"/> / <see cref="CenterPoint"/> のいずれかが未設定、または切り出せない場合は下地（ペーストボード）のみを表示する<br/>
     /// （判定は描画層が単一所有する）。<br/>
     /// 例外は <see cref="LoupeLogMessage.LogUpdateError"/> で記録し、前回のビットマップを維持する。<br/>
+    /// <b>反映のタイミング</b>: 再描画の通常の経路は UI スレッド上のため、生成した画像はその場で表示へ反映し、<br/>
+    /// UI スレッド外から呼ばれた場合のみ描画フェーズ（Render 優先度）へポストする。
     /// </remarks>
     private async Task GenerateAsync(long generation)
     {
@@ -740,30 +745,45 @@ public sealed class LoupeControl : Panel
 
             var bitmap = await LoupeRenderPipeline.RenderAsync(Source, plan);
 
-            // 描画反映（SetLoupeBitmap）は描画フェーズ（Render 優先度）で実行する。
-            // マウス移動中の連続再描画では、既定の Normal 優先度の継続が入力イベント（Input 優先度）に
-            // 後回しにされ、描画反映が移動停止まで実行されない（ルーペが移動中に更新されない）問題が生じる。
-            // Render 優先度は描画フェーズで毎フレーム実行されるため、連続入力中でも描画が追従する。
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            // 表示への反映（ApplyBitmap）は、再描画の通常の経路が UI スレッド上のためその場で行い、
+            // UI スレッド外から呼ばれた場合のみ描画フェーズ（Render 優先度）へポストする。
+            // 表示位置は入力ハンドラー（CenterPoint の変更）で同期に確定するため、反映を別のディスパッチャー往復にすると
+            // ルーペ画像だけがその分あと（次の描画フェーズ）に現れ、画像と表示位置がずれて見える。
+            if (Dispatcher.UIThread.CheckAccess())
             {
-                var current = _renderCoordinator.Generation;
-                var visible = IsVisible;
-                if (!_renderCoordinator.ShouldApply(generation))
-                {
-                    bitmap.Dispose();
-                    Log.LogGenerateAsyncDone(false, true, visible, generation, current);
-                    return;
-                }
+                ApplyBitmap(generation, bitmap, plan);
+                return;
+            }
 
-                SetLoupeBitmap(bitmap, plan);
-                Log.LogGenerateAsyncDone(true, false, visible, generation, current);
-            }, DispatcherPriority.Render);
+            await Dispatcher.UIThread.InvokeAsync(
+                () => ApplyBitmap(generation, bitmap, plan),
+                DispatcherPriority.Render);
         }
         catch (Exception ex)
         {
             Log.LogUpdateError(ex);
             throw;
         }
+    }
+
+    /// <summary>生成したルーペ画像を表示へ反映する（古い世代・非表示の結果は破棄する）。</summary>
+    /// <param name="generation">生成したビットマップの世代番号。</param>
+    /// <param name="bitmap">生成したルーペ画像（反映しない場合は本メソッドが破棄する）。</param>
+    /// <param name="plan">実際に描画した描画計画。</param>
+    /// <remarks>採用の可否（表示中かつ最新世代か）の判定は <see cref="LoupeRenderCoordinator.ShouldApply"/> が単一所有する。</remarks>
+    private void ApplyBitmap(long generation, EsBitmap bitmap, in LoupeDrawPlan plan)
+    {
+        var current = _renderCoordinator.Generation;
+        var visible = IsVisible;
+        if (!_renderCoordinator.ShouldApply(generation))
+        {
+            bitmap.Dispose();
+            Log.LogGenerateAsyncDone(false, true, visible, generation, current);
+            return;
+        }
+
+        SetLoupeBitmap(bitmap, plan);
+        Log.LogGenerateAsyncDone(true, false, visible, generation, current);
     }
 
     /// <summary>生成したルーペビットマップをコントロールへ反映する。</summary>

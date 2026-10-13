@@ -155,7 +155,8 @@ flowchart TB
     - **実寸測定は UI が行う理由**: テキストの実寸は描画 API（`FormattedText`）でしか測れないため、UI が測って `LoupePresenter`（`LabelPlan` partial）（描画層 `EsUtil.Feature.Loupe.Presenter`）へ渡し、返された配置を要素へ反映する
     - ライフサイクル: 世代管理付き非同期ビットマップ生成と解放（`ReleaseBitmap`）
   - 表示制御: 標準プロパティ `IsVisible` で表示・非表示を指示（表示時=再生成要求（非同期・1 フレームに 1 回の生成へ結合）、非表示時=未実行要求の破棄と解放）
-    - 再描画のバッチ化: `Dispatcher.UIThread.Post` で複数プロパティ変更を1フレーム1回の再描画に結合
+    - 再描画のバッチ化: `Dispatcher.UIThread.Post` で複数プロパティ変更を1フレーム1回の再描画に結合。 ポストは 1 回だけで、そのジョブの中で生成（`LoupeRenderPipeline.RenderAsync`）と表示への反映（`ApplyBitmap`）まで行う（追加のディスパッチャー往復は、往復を次の描画フェーズまで待つ分だけ画像の反映を遅らせる）
+    - 表示位置と画像の同期: 表示位置（`RenderTransform`）は `CenterPoint` の変更（入力ハンドラー）で同期に確定し、画像も再描画のポストした同じジョブで確定する。 アプリが描く内容であるため提示は OS が合成するカーソルより 1 フレーム遅れるが、表示位置と画像は同じフレームに載る（位置だけが遅れる状態・画像だけが遅れる状態を作らない）
     - 非同期生成: 切り出しと合成（`RenderTargetBitmap` / `DrawingContext`）は UI スレッドで行い（バックグラウンド抽出（`Task.Run`）は使わない。 連続再描画時にスレッドプールが競合し、移動中の追従が止まるため）、古い世代の結果は採用せず破棄する
     - 表示サイズ・位置: `UpdatePosition` がコアのファサード `LoupeCore.ResolveLayout` を呼び、返された `LoupeLayout`（表示サイズと表示位置）を要素（`Width` / `Height`）と `RenderTransform` へ写すだけである（表示サイズの決定・オフセット加算・親領域内への位置の補正はコアが単一所有し、`UpdatePosition` は表示サイズの唯一の反映元になる）
     - 座標単位: `Options.RequestedSize` は DIP、描画計画へ渡す表示サイズと枠線の太さも DIP（物理ピクセルへの換算は提示層が `DpiScaler.ScaleToPixel` へ委譲する）
@@ -220,7 +221,7 @@ flowchart TB
 ### 6.8 UI 固有の機構（コアへ移さない）
 
 - `LoupeRenderCoordinator`: 再描画要求のバッチ化（実行キューへのポストで 1 フレーム 1 回に結合）、表示中の判定と世代番号による古い結果の破棄、未実行要求の破棄と解放の手順を単一所有する。 中間ビットマップを持つ UI にだけ必要なため本プロジェクトが所有し、実行キューと優先度は `post: action => Dispatcher.UIThread.Post(action, DispatcherPriority.Render)` として注入する。
-- `LoupeRenderPipeline`: Avalonia の `IImage` を切り出し元（`EsReadOnlyBitmap`）へ解決し、描画（`LoupeContextPainter.Paint`。 `DrawingContext` 経由）を UI スレッドで実行する（`RenderAsync(source, plan)`）。 `IImage` の型判定と `Bitmap` → `EsBitmap` の複製が UI 固有。
+- `LoupeRenderPipeline`: Avalonia の `IImage` を切り出し元（`EsReadOnlyBitmap`）へ解決し、描画（`LoupeContextPainter.Paint`。 `DrawingContext` 経由）を UI スレッドで実行する（`RenderAsync(source, plan)`）。 UI スレッド上ではその場で描き、UI スレッド外からは描画フェーズ（`DispatcherPriority.Render`）へポストする（通常の経路は UI スレッド上のため往復しない）。 `IImage` の型判定と `Bitmap` → `EsBitmap` の複製が UI 固有。
 - `LoupeSourceResolver`: `IImage` の対応型判定（`Bitmap` / `EsBitmapAvaloniaAdapter`）・破棄済みの検出・ソース寸法のログ用表現を単一所有する（UI スレッドに依存しない純粋関数）。
 
 ## 7. 依存ルール
