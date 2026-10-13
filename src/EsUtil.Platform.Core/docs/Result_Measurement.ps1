@@ -16,7 +16,7 @@
 ビルド構成（既定 Release）。 Debug は最適化が無効なため比較用。
 
 .PARAMETER Iterations
-計測回数（既定 20。 中央値を採る）。
+計測回数（既定 20。 1 巡あたりへ分け、妨害の無い最小値を採る）。
 
 .PARAMETER Warmup
 ウォームアップ回数（既定 3。 JIT とキャッシュを温める）。
@@ -211,6 +211,16 @@ internal static class Program
     private const string SectionPixel = "画素の取得と設定と走査";
     private const string SectionFile = "ファイル入出力";
 
+    // 表に出さない節（ばらつきの目安を取るためだけに測る。 見出しを作らないため番号を持たない）
+    private const string SectionStability = "安定性";
+
+    // 備考の文言（1 行目を基準とし、行ごとに総括して述べる）
+    private const string RemarkBaseline = "基準";
+    private const string RemarkNoDifference = "差は誤差の範囲";
+    private const string RemarkFaster = "速い";
+    private const string RemarkSlower = "遅い";
+    private const string RemarkMixed = "列により速い・遅い";
+
     private const string ClassBit = "EsBitmap";
     private const string ClassRead = "EsReadOnlyBitmap";
     private const string ClassView = "EsPixmap";
@@ -236,8 +246,15 @@ internal static class Program
     private const uint NoiseSeed = 0x2545F491u;
 
     /// <summary>速度比を示す下限（基準の所要 (ms) がこれ未満の表では速度比を示さない）。</summary>
-    /// <remarks>ばらつきが比率を支配するためです（計測のばらつきは所要の 5〜10 % 程度あります）。</remarks>
+    /// <remarks>ばらつきが比率を支配するためです（計測のばらつきは §2 の実測値を見てください）。</remarks>
     private const double RatioFloorMilliseconds = 0.001;
+
+    /// <summary>1 行目との差を計測のばらつきと見なす範囲の下限（速度比がこの倍率の内側なら差と見なさない）。</summary>
+    /// <remarks>
+    /// <b>下限を置く理由</b>: 境目を実測のばらつきのすぐ近くへ置くと、実行のたびに備考が変わります。
+    /// 実測したばらつき（§2）がこれより小さければ、この値が境目になります。
+    /// </remarks>
+    private const double NoiseRatioFloor = 1.10;
 
     /// <summary>減色の品質の段階を畳むかどうかの境目（最大と最小の所要の比）。</summary>
     /// <remarks>
@@ -294,6 +311,9 @@ internal static class Program
     /// <summary>減色の出力の品質を測る色数。</summary>
     private static readonly int[] s_qualityColors = [256, 16];
 
+    /// <summary>ばらつきの目安を取る仕事の寸法（生成と縮小を続けて 2 度、計測の先頭と末尾で測る）。</summary>
+    private static readonly SizeCase s_stabilitySize = new("1920x1080", 1920, 1080);
+
     /// <summary>サンプル画像に使う寸法（実施前を等倍で表示できる大きさ。 計測の寸法は大きすぎて表示できない）。</summary>
     /// <remarks>
     /// <b>この寸法にする理由</b>: 縮小先は計測と同じ長辺 <see cref="ResizeMaxSize"/> にしたいが、
@@ -319,6 +339,19 @@ internal static class Program
     private static readonly string[] s_qualityLabels = [.. s_qualities.Select(static q => q.ToString())];
     private static readonly Dictionary<(string, string, string, string, string), Measured> s_cases = [];
     private static readonly Dictionary<(string, string, string, string, string), double> s_values = [];
+
+    /// <summary>巡ごとに溜めた同じケースの所要 (ms)（まとめて最小値を採る）。</summary>
+    private static readonly Dictionary<(string, string, string, string, string), List<double[]>> s_samples = [];
+
+    /// <summary>ウォームアップ済みのケース（巡をまたいで 1 度だけ温める）。</summary>
+    private static readonly HashSet<(string, string, string, string, string)> s_warmed = [];
+
+    /// <summary>行を比べるときのばらつきの目安（速度比がこの倍率の外側なら差と見なす）。 計測の前後で測った値から決める。</summary>
+    private static double s_noiseRatio = NoiseRatioFloor;
+
+    /// <summary>表をまたいで値を比べるときのばらつきの目安（計測の先頭と末尾で測った同じ仕事のずれ）。 見出しと比の組。</summary>
+    private static readonly List<(string Label, double Ratio)> s_driftRatios = [];
+    private static double s_driftRatio = 1.0;
     private static readonly List<string> s_report = [];
 
     /// <summary>最適化されたコードへ到達するための、ウォームアップの下限（回）。</summary>
@@ -355,16 +388,30 @@ internal static class Program
         s_pixelIterations = Math.Max(1, s_iterations / 4);
         Console.OutputEncoding = Encoding.UTF8;
 
-        MeasureCreation();
-        MeasureCrop();
-        MeasureResize();
-        MeasureReduceColors();
-        MeasurePixelAccess();
+        // 同じケースを巡をまたいで測る（1 巡の中では続けて測るため、機械の遅い状態が値へ入り込む）
+        var stability = new List<(string Label, double First, double Second)[]>();
+        for (var pass = 0; pass < Passes; pass++)
+        {
+            // 巡の境目で同じ仕事を続けて 2 度測る（巡をまたいだ差が計測のばらつきの目安になる）
+            stability.Add(MeasureStability());
+
+            MeasureCreation();
+            MeasureCrop();
+            MeasureResize();
+            MeasureReduceColors();
+            MeasurePixelAccess();
+            if (OperatingSystem.IsWindows())
+            {
+                MeasureFiles();
+                CleanUpFiles();
+            }
+        }
+
+        ResolveSamples();
+        ApplyStability([.. stability]);
+
         if (OperatingSystem.IsWindows())
         {
-            MeasureFiles();
-            CleanUpFiles();
-
             // サンプル画像は文書を差し替えるときだけ作る（-NoWrite でリポジトリを書き換えない）
             var directory = SampleDirectory();
             if (!string.IsNullOrWhiteSpace(directory))
@@ -377,6 +424,66 @@ internal static class Program
         Console.Write(string.Join('\n', s_report));
         return 0;
     }
+
+    /// <summary>ばらつきの目安を取るための代表的な仕事（生成と縮小）を、続けて 2 度ずつ測る。</summary>
+    /// <remarks>
+    /// <b>続けて 2 度測る理由</b>: 表の中の行は続けて測ります。 同じ仕事を続けて測った差が、その
+    /// <b>行を比べるときのばらつきの下限</b>になります（仕事の違いを含まないため）。
+    /// </remarks>
+    private static (string Label, double First, double Second)[] MeasureStability()
+    {
+        using var source = Create(s_stabilitySize);
+        var create = () => new Item(EsBitmap.Create(s_stabilitySize.Width, s_stabilitySize.Height));
+        var resize = () => new Item(source.Resize(ResizeMaxSize, EsImageQuality.Mid));
+
+        return
+        [
+            ("生成", MeasureOnce(create), MeasureOnce(create)),
+            ("縮小", MeasureOnce(resize), MeasureOnce(resize)),
+        ];
+    }
+
+    /// <summary>計測の巡の境目で測った同じ仕事から、ばらつきの目安（備考の境目）を決める。</summary>
+    /// <remarks>
+    /// <b>最初の巡を判定から外す理由</b>: プロセスの起動直後は割り当てとページの状態が変わるため、
+    /// 同じ仕事でも 2 度の値が大きく離れます（実測で 50 %）。 定常状態の巡だけを使います。<br/>
+    /// <b>目安を 2 つに分ける理由</b>: 表の中の行は続けて測るため、行を比べるときのばらつきは
+    /// <b>隣り合う 2 度のずれ</b>（<see cref="s_noiseRatio"/>）です。 一方、<b>表をまたいで</b>値を比べるときは
+    /// 巡をまたいだずれ（<see cref="s_driftRatios"/>）が効きます。
+    /// </remarks>
+    /// <param name="points">巡ごとに測った同じ仕事（見出し・続けて 2 度の所要）。</param>
+    private static void ApplyStability((string Label, double First, double Second)[][] points)
+    {
+        var near = NoiseRatioFloor;
+        var far = 1.0;
+        for (var i = 0; i < points[0].Length; i++)
+        {
+            var means = new double[points.Length];
+            for (var p = 0; p < points.Length; p++)
+            {
+                if (p > 0)
+                {
+                    near = Math.Max(near, Deviation(points[p][i].First, points[p][i].Second));
+                }
+
+                means[p] = (points[p][i].First + points[p][i].Second) / 2;
+            }
+
+            for (var p = 1; p < means.Length; p++)
+            {
+                far = Math.Max(far, Deviation(means[0], means[p]));
+            }
+
+            s_driftRatios.Add((points[0][i].Label, means[^1] / means[0]));
+        }
+
+        s_noiseRatio = near;
+        s_driftRatio = far;
+    }
+
+    /// <summary>2 つの所要 (ms) のずれを倍率で返す（1.0 以上。 どちらが大きいかは問わない）。</summary>
+    private static double Deviation(double left, double right)
+        => Math.Max(left / right, right / left);
 
     // ====================================================================
     // 計測
@@ -783,7 +890,19 @@ internal static class Program
         });
     }
 
-    /// <summary>1 ケースを計測する（ウォームアップ後、中央値を採る）。</summary>
+    /// <summary>計測の巡の数（同じケースを巡をまたいで測り、機械の状態の一時的な変化を均す）。</summary>
+    /// <remarks>
+    /// <b>巡に分ける理由</b>: 1 つのケースの標本は続けて測るため、その数十ミリ秒の間に機械が遅い状態へ
+    /// 入ると<b>その巡の値ごと遅い側へ寄ります</b>（実測で同じ仕事が 2.4 倍遅い値として出ました）。
+    /// 巡をまたいで測ると標本が<b>別々の時点</b>へ散るため、妨害の無い最小値が残ります
+    /// （計測の全行程は分単位であるため、巡の間隔は機械の状態の変化より長くなります）。
+    /// </remarks>
+    private const int Passes = 3;
+
+    /// <summary>1 巡あたりの計測回数の下限（巡へ分けても妨害の無い標本が残る回数）。</summary>
+    private const int MinPassIterations = 5;
+
+    /// <summary>1 ケースを 1 巡分だけ計測し、巡ごとの標本として溜める。</summary>
     /// <remarks>
     /// <b>ウォームアップを厚くする理由</b>: 実行時は呼び出しの回数で最適化の段階を上げるため、
     /// 回数が少ないと<b>最適化されていないコードの所要</b>を測ってしまい、同じ処理でも測定の順番で
@@ -792,13 +911,18 @@ internal static class Program
     private static void Measure(
         string section, string method, string className, string size, string variant, Func<Item> body, int? iterations = null, int repeat = 1)
     {
-        var count = iterations ?? s_iterations;
+        var key = (section, method, className, size, variant);
 
-        for (var i = 0; i < s_warmup; i++)
+        // ウォームアップは最初の巡だけでよい（巡をまたいで測るため、2 巡目以降は既に温まっている）
+        if (s_warmed.Add(key))
         {
-            RunRepeated(body, repeat);
+            for (var i = 0; i < s_warmup; i++)
+            {
+                RunRepeated(body, repeat);
+            }
         }
 
+        var count = PassIterations(iterations ?? s_iterations);
         var times = new double[count];
         var note = 0L;
 
@@ -815,13 +939,68 @@ internal static class Program
             times[i] = Stopwatch.GetElapsedTime(started).TotalMilliseconds / repeat;
         }
 
-        Array.Sort(times);
-        s_cases[(section, method, className, size, variant)] = new Measured(times[times.Length / 2]);
+        if (!s_samples.TryGetValue(key, out var passes))
+        {
+            passes = [];
+            s_samples[key] = passes;
+        }
+
+        passes.Add(times);
 
         // 表に付ける値（Save は出力の大きさ (B)）は最後の 1 回の値を採る
         if (note > 0)
         {
             s_values[(section, method, "", size, variant)] = note;
+        }
+    }
+
+    /// <summary>1 ケースを 1 度だけ計測し、最小値を返す（巡へ分けず、続けて測る）。</summary>
+    /// <remarks>
+    /// <b>巡へ分けない理由</b>: 計測のばらつきの目安を取る用途では、<b>続けて測った差</b>が欲しいためです
+    /// （巡へ分けると <see cref="Passes"/> の効果そのものを測ることになります）。
+    /// </remarks>
+    private static double MeasureOnce(Func<Item> body)
+    {
+        for (var i = 0; i < s_warmup; i++)
+        {
+            RunRepeated(body, 1);
+        }
+
+        var minimum = double.PositiveInfinity;
+        for (var i = 0; i < s_iterations; i++)
+        {
+            var started = Stopwatch.GetTimestamp();
+            body().Dispose();
+            minimum = Math.Min(minimum, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+        }
+
+        return minimum;
+    }
+
+    /// <summary>1 巡あたりの計測回数を返す（全体の回数を巡の数で分ける。 切り上げ）。</summary>
+    private static int PassIterations(int iterations) => Math.Max(MinPassIterations, ((iterations + Passes) - 1) / Passes);
+
+    /// <summary>巡ごとに溜めた標本をまとめ、表に使う値を求める。</summary>
+    /// <remarks>
+    /// <b>最小値を採る理由</b>: 中央値や平均は<b>機械の一時的な遅い状態をそのまま含みます</b>
+    /// （実測では同じ仕事が 2.4 倍の値として出ました）。 妨害の無い最短の所要（最小値）は再現しやすく、
+    /// <b>すべてのセルが同じ基準</b>（その機械で出せる最短）で並びます。 妨害を含む値は「この機械では
+    /// そう見えた」だけであり、<b>実装の違いを比べる</b>目的には使えません（§12）。
+    /// </remarks>
+    private static void ResolveSamples()
+    {
+        foreach (var (key, passes) in s_samples)
+        {
+            var minimum = double.PositiveInfinity;
+            foreach (var pass in passes)
+            {
+                foreach (var time in pass)
+                {
+                    minimum = Math.Min(minimum, time);
+                }
+            }
+
+            s_cases[key] = new Measured(minimum);
         }
     }
 
@@ -1026,10 +1205,23 @@ internal static class Program
             (".NET", Environment.Version.ToString()),
             ("サーバー GC", GCSettings.IsServerGC.ToString()),
             ("構成", "Release（最適化あり）"),
-            ("ウォームアップ / 計測回数", string.Create(CultureInfo.InvariantCulture, $"{s_warmup} 回 / {s_iterations} 回（中央値。 ファイル入出力は {s_fileIterations} 回、画素の取得と設定は {s_pixelIterations} 回）")),
+            ("ウォームアップ / 計測回数", string.Create(
+                CultureInfo.InvariantCulture,
+                $"{s_warmup} 回の後に {Passes} 巡へ分けて 1 巡 {PassIterations(s_iterations)} 回（合計 {Passes * PassIterations(s_iterations)} 回。 妨害の無い最小値）。 ファイル入出力は 1 巡 {PassIterations(s_fileIterations)} 回、画素の取得と設定は 1 巡 {PassIterations(s_pixelIterations)} 回")),
         };
 
         AddPlainTable(["項目", "値"], environment.Select(static e => new[] { e.Item, e.Value }));
+
+        // 備考の「差は誤差の範囲」の根拠（巡の境目で同じ仕事を続けて 2 度測ったずれと、巡をまたいだずれ）
+        if (s_driftRatios.Count > 0)
+        {
+            var details = string.Join(
+                "、",
+                s_driftRatios.Select(static r => string.Create(CultureInfo.InvariantCulture, $"{r.Label} {r.Ratio * 100:N0}%")));
+            AddText(string.Create(
+                CultureInfo.InvariantCulture,
+                $"**計測のばらつき**は、同じ仕事（1920x1080 の生成と長辺 {ResizeMaxSize} への縮小）を**続けて 2 度**測ったずれ（{(s_noiseRatio - 1.0) * 100:N0}%。 プロセスの起動直後の巡は外して数える）と、**計測の巡をまたいだ**ずれ（最後 ÷ 最初。 {details}。 最大 {s_driftRatio:F1} 倍）です。 表の中の行を比べるときは前者（隣り合う 2 度のずれ）を境目にし（§3 の備考）、**表をまたいで値を比べるときは後者を足して読みます**。"));
+        }
     }
 
     /// <summary>縮小したときの寸法を返す（長辺が上限に収まるように比例で縮める。 切り捨て）。</summary>
@@ -1064,6 +1256,8 @@ internal static class Program
         AddText("**所要の表**は、行を型・品質・内容など、列を寸法として、行の 1 番目（表ごとに定めた基準）を 100% とした**速度比**を足します。");
         AddText("所要はセルごとに単位 `ms` を付け、**列の中で桁を揃えて右揃え**にします（0.000001 ms（1 ナノ秒）まで表示し、それ未満は `<0.000001` と書きます）。 `-` はその型にメソッドが無い（対称でない）ことを表します。 1 マイクロ秒を下回る操作は、タイマーの分解能に埋もれるため **1 回の計測につき 100 回呼び、1 回あたりへ換算**します。 **値はコードスパンで囲まず**、桁を揃える詰め物の空白はそのまま書きます（`MD060` を計測結果の範囲だけ無効化しています。 [`.github/検証手順.md`](../../../.github/検証手順.md) §11）。");
         AddText($"**速度比**は同じ寸法の 1 行目との比です（`基準の所要 ÷ その行の所要`。 100% より大きいほど速い）。 速度比の列は、寸法の列と同じ順に並べます。 基準の所要が {RatioFloorMilliseconds} ms 未満の表では示しません（ばらつきが比率を支配するため）。");
+        AddText($"**所要は妨害の無い最短値（最小値）**です（{Passes} 巡へ分けて測り、まとめた標本の最小値を採ります）。 機械の妨害を含む値（中央値・平均）は**実装の違いを比べる**目的に使えないためです（§2 のばらつきの目安を参照）。");
+        AddText($"**備考**は、速度比の列が示す**列ごとの差を行ごとに総括したもの**です（列ごとの比較結果は述べません）。 行のすべての列の比が 100% ± {(s_noiseRatio - 1.0) * 100:N0}% の内側なら `{RemarkNoDifference}`（差が計測のばらつきに埋もれています）、外側へ出た場合は**比の範囲と向き**（`{RemarkFaster}` / `{RemarkSlower}` / `{RemarkMixed}`）を述べます。 境目の {(s_noiseRatio - 1.0) * 100:N0}% は、続けて 2 度測った同じ仕事のずれ（§2）と {(NoiseRatioFloor - 1.0) * 100:N0}% の大きいほうです。 **比が意味を持たない行**（速度比を示さない表のすべての行、その型にメソッドが無い行、所要が分解能 {RatioFloorMilliseconds} ms に埋もれる列しか無い行）は `-` とし、1 行目は `{RemarkBaseline}` と書きます。");
 
         AddText("**寸法の軸**は元の画像（`EsPixmap` はビュー）の寸法です。 縮小だけは**縮小先を長辺 320 に固定**し（型と寸法の比較を揃えるため）、縮小先を変えた表を別に示します。 減色は 256 色を既定とし、色数とディザの表を別に示します。");
 
@@ -1356,7 +1550,7 @@ internal static class Program
 
         if (timeOf is not null)
         {
-            table[0] = [.. table[0], "速度比"];
+            table[0] = [.. table[0], "速度比", "備考"];
             right.Add(columnLabels.Length + 1);
         }
 
@@ -1367,6 +1561,7 @@ internal static class Program
             if (timeOf is not null)
             {
                 line.Add(SpeedCell(timeOf, row, columnLabels.Length));
+                line.Add(RemarkCell(timeOf, row, columnLabels.Length));
             }
 
             table.Add([.. line]);
@@ -1389,6 +1584,58 @@ internal static class Program
         }
 
         return string.Join(" / ", parts);
+    }
+
+    /// <summary>1 行目との差を、行ごとに総括して述べる（列ごとの比較は速度比の列が持つ）。</summary>
+    /// <remarks>
+    /// 行のすべての列の比が <see cref="s_noiseRatio"/> の内側ならば差が無いと述べ、外側へ出た場合は
+    /// <b>比の範囲と向きだけ</b>を述べます（どの列がどう違うかは述べません）。
+    /// </remarks>
+    private static string RemarkCell(Func<int, int, double?> timeOf, int row, int columns)
+    {
+        var low = double.PositiveInfinity;
+        var high = 0.0;
+        for (var column = 0; column < columns; column++)
+        {
+            var baseline = timeOf(0, column);
+            var value = timeOf(row, column);
+
+            // 分解能に埋もれる所要（0.001 ms 未満）は比が意味を持たないため、判定から外す
+            if (baseline is null || value is null || baseline < RatioFloorMilliseconds || value < RatioFloorMilliseconds)
+            {
+                continue;
+            }
+
+            var ratio = baseline.Value / value.Value;
+            low = Math.Min(low, ratio);
+            high = Math.Max(high, ratio);
+        }
+
+        // 比を 1 つも求められない行は、速度比の列も「-」であるため、基準とも述べない
+        if (high <= 0.0)
+        {
+            return "-";
+        }
+
+        if (row == 0)
+        {
+            return RemarkBaseline;
+        }
+
+        if (low >= 1.0 / s_noiseRatio && high <= s_noiseRatio)
+        {
+            return RemarkNoDifference;
+        }
+
+        var direction = high < 1.0 ? RemarkSlower : low > 1.0 ? RemarkFaster : RemarkMixed;
+        return string.Create(CultureInfo.InvariantCulture, $"差は誤差を超える（1 行目の {Percent(low)}〜{Percent(high)}%・{direction}）");
+    }
+
+    /// <summary>比を百分率の整数として書式化する（1% 未満は丸めで 0 にしない）。</summary>
+    private static string Percent(double ratio)
+    {
+        var percent = ratio * 100;
+        return percent < 1.0 ? "<1" : percent.ToString("N0", CultureInfo.InvariantCulture);
     }
 
     private static void AddHeading(string text)
