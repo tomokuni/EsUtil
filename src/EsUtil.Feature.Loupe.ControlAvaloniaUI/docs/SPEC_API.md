@@ -34,10 +34,10 @@
     - [5.4.1 Rendered](#541-rendered)
   - [5.5 型](#55-型)
     - [5.5.1 LoupeControl](#551-loupecontrol)
-- [6. 非同期描画](#6-非同期描画)
+- [6. 描画のタイミング](#6-描画のタイミング)
 - [7. ライフサイクルと所有権](#7-ライフサイクルと所有権)
   - [7.1 Source の所有権](#71-source-の所有権)
-  - [7.2 生成 Bitmap の所有権](#72-生成-bitmap-の所有権)
+  - [7.2 中間 Bitmap を持たない](#72-中間-bitmap-を持たない)
 - [8. 表示位置・サイズの責務](#8-表示位置サイズの責務)
 - [9. 推奨使用パターン](#9-推奨使用パターン)
 - [10. 制約事項](#10-制約事項)
@@ -55,7 +55,7 @@
 | 対象フレームワーク | `net10.0` |
 | UIフレームワーク | Avalonia 12.1 |
 | 主要基底クラス | `Avalonia.Controls.Panel`（コードのみ。 AXAML を持たない） |
-| 表示方式 | 子の `Image` 要素へのBitmap設定と、中心座標ラベルのテキスト要素（`Border` + `TextBlock`） |
+| 表示方式 | 子の描画層（`RenderLayer`）が窓の描画面へ直接描く方式（中間 Bitmap を持たない）と、中心座標ラベルのテキスト要素（`Border` + `TextBlock`） |
 | 主な用途 | 画像中心周辺の拡大表示、画像端の外側（画像外）の無地の表示 |
 
 ## 2. 目的
@@ -70,12 +70,10 @@
 - 画像範囲外への画像外の色（無地）の表示
 - 十字線の表示
 - 枠線の表示
-- DPIスケーリングに対応したBitmap生成
-- 非同期のルーペ画像生成（切り出し・合成は UI スレッドで実行）
-- 古い非同期描画結果を破棄する世代管理
-- 非表示時のBitmap解放
+- DPIスケーリングに対応した描画（描画計画は物理ピクセル、描画面は DIP）
+- 窓の描画面への直接描画（フレームの描画フェーズで 1 回。 中間 Bitmap の生成も画素の複製もしない）
 - 描画エラーの注入ロガーへの記録
-- 描画完了通知イベント（`Rendered`・表示情報付きオーバーレイ描画用。 中心座標ラベルの契約も含む）
+- 描画完了通知イベント（`Rendered`・描画先の `DrawingContext` と描画計画を渡す。 中心座標ラベルの契約も含む）
 
 ## 3. 外部利用条件
 
@@ -111,7 +109,7 @@ var loupe = new LoupeControl
 panel.Children.Add(loupe);
 ```
 
-外部の `DrawingContext` へ描画する API は提供しません。 ルーペは常に内部の `Image` 要素で表示します。
+ルーペの描画は子の描画層（`RenderLayer`）が窓の描画面へ直接行います（利用側が描画 API を呼ぶ入口は `Rendered` イベントだけです）。
 
 ## 4. 基本的な使用方法
 
@@ -180,7 +178,7 @@ public bool IsLoupeVisible { get; set; } = true;
 
 `Source` が `null` の場合、画像なし（画像外の色のみ）を描画します。
 
-`Source` に `Bitmap`（派生を含む）以外の `IImage`（`EsBitmapAvaloniaAdapter` を除く）を設定した場合、`NotSupportedException` が発生します。 例外は `LoupeControl.Log` に記録されます。
+`Source` に `Bitmap`（派生を含む）以外の `IImage`（`EsBitmapAvaloniaAdapter` を除く）を設定した場合、`NotSupportedException` が発生します。 描画の経路では例外を `LoupeControl.Log` へ記録し、そのフレームは下地までで終えます（アプリを落としません）。
 
 #### 5.1.2 CenterPoint
 
@@ -233,12 +231,12 @@ loupe.Options = LoupeOptions.Default with { RequestedSize = 240, ZoomLevel = 4 }
 | 型 | `double` |
 | 既定値 | `1.0` |
 | 補正範囲 | `0.1`〜`8.0` |
-| 用途 | DIPからBitmap物理ピクセルへの変換 |
+| 用途 | DIP から描画の物理ピクセルへの変換 |
 
-Bitmapの一辺は概ね次の式で決定されます。
+描画の物理ピクセルの一辺は概ね次の式で決定されます。
 
 ```text
-BitmapSize = ceil(表示サイズ × ClientToPixelScaling)
+PixelSize = ceil(表示サイズ × ClientToPixelScaling)
 ```
 
 環境値（DPI）のためコアの `LoupeOptions` には含めず、補正（`coerce`）はプロパティが担います（安全域の定義はコアの `LoupeCore.Limits` が単一所有します）。
@@ -285,10 +283,10 @@ BitmapSize = ceil(表示サイズ × ClientToPixelScaling)
 
 Avalonia標準の `Visual.IsVisible` を使用します。 初期値は `false`（コンストラクタで設定。 表示指示は `IsVisible = true` で行う）。
 
-- `true`: ルーペ画像を生成して内部 `Image` に表示
-- `false`: 未実行の再描画を無効化し、現在のBitmapを解放
+- `true`: ルーペ画像を表示する（次のフレームで描画する）
+- `false`: 未実行の再描画を無効化する（解放する中間 Bitmap は無い）
 
-非表示中に画像・座標・設定を変更しても、Bitmapは生成されません。
+非表示中に画像・座標・設定を変更しても描画されません（状態は保持され、表示時に反映されます）。
 
 #### 5.1.7 Log
 
@@ -338,7 +336,7 @@ void RequestRender()
 
 ルーペのプロパティは値が変わらない設定（同一値の再設定）では変更通知を発行しないため、オーバーレイの元データがルーペのプロパティに現れない場合は本メソッドが唯一の再生成手段です。 上位の合成コントロールは、破線の色（外観設定）・破線の表示可否（モード）・選択矩形の変更時に本メソッドを呼び出します。
 
-生成処理自体は非同期です。 完了は `Rendered` イベントで通知されます（戻り値を待つ必要はありません）。 プロパティ変更と同じ経路を通るため、複数の要求は 1 フレームに 1 回の生成へ結合されます（呼び出し頻度を気にせず呼べます）。 非表示中に呼び出した場合は Bitmap を解放して終了します。
+描画は次のフレームで行われ、完了は `Rendered` イベントで通知されます（戻り値を待つ必要はありません）。 プロパティ変更と同じ経路を通るため、複数の要求は 1 フレームに 1 回の描画へ結合されます（呼び出し頻度を気にせず呼べます）。 非表示中は描画しません。
 
 ```csharp
 // 一覧の選択が変わったとき（ルーペの中心は変わらないが、破線を描き直したい）
@@ -351,7 +349,7 @@ loupe.RequestRender();
 void Clear()
 ```
 
-ルーペを非表示にし、現在のBitmapを解放します。
+ルーペを非表示にします（解放する中間 Bitmap は無いため、`IsVisible = false` と等価です）。
 
 ```csharp
 loupe.Clear();
@@ -410,28 +408,28 @@ event EventHandler<LoupeRenderedEventArgs>? Rendered
 | 項目 | 内容 |
 | --- | --- |
 | 引数型 | `LoupeRenderedEventArgs` |
-| 発火タイミング | 描画結果が内部 `Image` へ反映された直後（非同期描画・バッチ化のため、プロパティ変更より 1 フレーム遅れる） |
+| 発火タイミング | ルーペの内容を描いた直後（同じ描画コンテキスト。 フレームの描画フェーズで 1 回） |
 | 用途 | ホストがルーペに重ねるオーバーレイ（線分・選択枠等）の描画位置を計算する |
 
 **`LoupeRenderedEventArgs` のプロパティ**
 
 | プロパティ | 型 | 説明 |
 | --- | --- | --- |
-| `Bitmap` | `EsBitmap` | 描画済みのルーペ画像。 イベントハンドラ内でピクセルへオーバーレイを直接描画できる（所有権は `LoupeControl` 側） |
+| `Context` | `DrawingContext` | ルーペの内容を描いた描画コンテキスト（描画中のみ有効）。 イベントハンドラ内で付加情報を描画 API で描ける |
 | `Content` | `LoupeDrawPlan` | 実際に描画した描画計画（可視域の左上 `CaptureTopLeft`（実数を含む実効原点）・拡大率 `ZoomLevel`・描画面のサイズを持つ） |
 
 オーバーレイの描画位置は `e.Content.CaptureTopLeft` と `e.Content.ZoomLevel` から `(対象座標 − CaptureTopLeft) × ZoomLevel` で求められます（`CaptureTopLeft` は**可視域の左上（実効原点。 小数を含む）**であり、拡大中心は描画面の中心へ写るため、十字線と本式の結果は一致します）。
 
 外観で装飾を止めている場合でも、`LoupeControl.DrawPlan(DrawingContext, IImage?, in LoupeDrawPlan)`（static）で計画どおりの描画を行えます（描画計画（`e.Content`）をそのまま渡す。 止めた項目はフラグを見て描かないため描かれません。 `DrawingContext` は描画中のみ有効）。
 
-通知するのはホストがオーバーレイを描くために必要な最小限（描画済み画像・描画計画）です。 座標変換に必要な値は描画計画が単一所有するため複製しません。 表示位置・表示サイズは、描画に必要な値をホストが既に保持しているため通知しません（必要な場合はコントロールの公開プロパティから取得します）。
+通知するのはホストが付加情報を描くために必要な最小限（描画先の描画コンテキスト・描画計画）です。 座標変換に必要な値は描画計画が単一所有するため複製しません。 表示位置・表示サイズは、描画に必要な値をホストが既に保持しているため通知しません（必要な場合はコントロールの公開プロパティから取得します）。
 
 ```csharp
 loupe.Rendered += (_, e) =>
 {
     if (e.Content.CaptureTopLeft is not { } topLeft) return;
     var local = (対象座標 - topLeft) * e.Content.ZoomLevel;
-    // local の位置へ線分等を e.Bitmap へ描画する（表示はコントロールが反映する）
+    // local の位置へ線分等を e.Context へ描く（ルーペの内容の上に重なる）
 };
 ```
 
@@ -448,19 +446,19 @@ UI 固有のログ（`LoupeLogMessage`）は本プロジェクトの internal �
 公開 API は「5.1 プロパティ」「5.2 メソッド」に記載の通りです。
 StyledProperty は同ファイルに定義されます（Avalonia のバインディング・スタイル設定に必要なため public）。
 
-## 6. 非同期描画
+## 6. 描画のタイミング
 
-ルーペ画像の生成は非同期で実行され、古い描画結果は自動的に破棄されます。 複数のプロパティが連続して変更された場合、再描画は 1 フレームに 1 回に結合されます。
+ルーペの描画は**フレームの描画フェーズで 1 回**行われます。 複数のプロパティが連続して変更された場合も、再描画の要求は 1 回のポストへ結合されます（描画そのものはフレームごとに 1 回）。
 
-古い描画結果が無効になるタイミングは次のとおりです。
+描画が行われる契機は次のとおりです。
 
 - `CenterPoint` の変更
 - `Source` の変更
 - `Options`（設定・寸法）または `Appearance`（外観）の変更
-- `IsVisible = false`
+- `IsVisible = true`（表示の開始）
 - `RequestRender()` の実行
 
-描画エラー（`Source` が未対応の `IImage` 等）は `Log` へ記録され、アプリは落ちません（例外は開始側が観測し、呼び出し元へは伝播しません）。
+描画エラー（`Source` が未対応の `IImage` 等）は `Log` へ記録され、アプリは落ちません（そのフレームは下地までで終わり、例外は呼び出し元へ伝播しません）。
 
 `Log` へ設定したロガーは**コアへも伝搬**します。 設定（`Options`）・環境値（`ClientToPixelScaling`）・拡大中心（`CenterPoint`）の変更ログはコアが出力し、本コントロールは `Source` の変更と描画の例外だけを出力します。
 
@@ -472,20 +470,13 @@ StyledProperty は同ファイルに定義されます（Avalonia のバイン�
 
 `LoupeControl` は元画像を破棄しません（`EsBitmapAvaloniaAdapter` を設定した場合も、真実の画像の破棄は利用側に委ねる。 `EsBitmapAvaloniaAdapter` は `IImage` の非所有契約のため `Source` の設定では破棄されないので、**差し替える側が旧アダプタを破棄して射影を解放する**）。
 
-本コントロール自身が生成したアダプタ（`SetLoupeBitmap`）は本コントロールが破棄します。
+### 7.2 中間 Bitmap を持たない
 
-### 7.2 生成 Bitmap の所有権
-
-ルーペ表示用に生成したBitmapの所有権は `LoupeControl` が持ちます。
-
-- 次のBitmapを採用するとき、前のBitmapを破棄
-- 非表示時に破棄
-- `Clear()` 時に破棄
-- 世代が古い生成結果は採用せず破棄
+ルーペの描画は窓の描画面へ直接行うため、**本コントロールが所有・解放する中間 Bitmap はありません**（描画のたびの確保も画素の複製も無い）。 描画の範囲は子要素の矩形（`ClipToBounds`）が決めます。
 
 ## 8. 表示位置・サイズの責務
 
-`LoupeControl` は画像生成と内部Image表示に加え、**表示位置・表示サイズを自己計算**します
+`LoupeControl` は描画に加え、**表示位置・表示サイズを自己計算**します
 （座標変換ポート方式。 対になるコントロールと同様）。
 
 - 表示位置: `CenterPoint`（対象座標）を `SetCoordTransform` で設定したポートで親パネル DIP へ変換し、カーソル右下 + `PositionOffset` + 補正した位置を `RenderTransform` で反映します。

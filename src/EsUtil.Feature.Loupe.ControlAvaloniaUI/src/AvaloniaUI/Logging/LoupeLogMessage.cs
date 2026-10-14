@@ -7,7 +7,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Logging;
 /// <remarks>
 /// <b>本アセンブリが単一所有するもの</b>: 拡大元画像（<see cref="LoupeControl.Source"/>）はコントロール固有の概念であり、<br/>
 /// 「画像が差し替わった」ことを知っているのは画像を所有する UI 層だけである（記録も同じ層が担う）。<br/>
-/// 中間ビットマップを非同期生成する描画方式（Avalonia 版に固有。 MewUI 版には対応する処理が無い）の世代管理も本層が記録する。<br/>
+/// 描画の例外（<c>LogUpdateError</c>）も描画を実行する UI 層が記録する。<br/>
 /// ログ基盤（ファイル出力・レベル制御）はホストアプリケーションが所有する（本クラスは定義のみ）。<br/>
 /// 各メソッドは <see cref="ILogger"/> の拡張メソッド（<c>this ILogger</c> 第一引数）として定義し、呼び出し側では logger 引数を省略する。
 /// </remarks>
@@ -93,48 +93,6 @@ internal static partial class LoupeLogMessage
     /// <remarks>例外の記録は描画を実行する UI が行う（コアは描画 API を持たず例外を検知しない）。</remarks>
     internal static void LogUpdateError(this ILogger logger, Exception exception)
         => logger.LogUpdateErrorCore(exception, Prefix);
-
-    // ====================================================================
-    // 描画パイプライン（中間ビットマップの世代管理。 Avalonia 版に固有）
-    // ====================================================================
-
-    /// <summary>再描画コアの実行ログ（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Loupe] RenderCore: generation={Generation}</c></remarks>
-    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    /// <param name="generation">描画世代番号。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} RenderCore: generation={Generation}")]
-    private static partial void LogRenderCoreCore(this ILogger logger, string prefix, long generation);
-
-    /// <summary>再描画コアの実行ログ。</summary>
-    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    /// <param name="generation">描画世代番号。</param>
-    internal static void LogRenderCore(this ILogger logger, long generation)
-        => logger.LogRenderCoreCore(Prefix, generation);
-
-    /// <summary>非同期描画の完了・破棄ログ（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Loupe] GenerateAsync done: set={Set} disposed={Disposed} visible={Visible} gen={Generation} current={Current}</c></remarks>
-    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    /// <param name="set">生成したビットマップを表示へ反映したかどうか。</param>
-    /// <param name="disposed">古い世代のビットマップとして破棄したかどうか。</param>
-    /// <param name="visible">表示状態。</param>
-    /// <param name="generation">生成したビットマップの世代番号。</param>
-    /// <param name="current">判定時点の最新世代番号。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} GenerateAsync done: set={Set} disposed={Disposed} visible={Visible} gen={Generation} current={Current}")]
-    private static partial void LogGenerateAsyncDoneCore(
-        this ILogger logger, string prefix, bool set, bool disposed, bool visible, long generation, long current);
-
-    /// <summary>非同期描画の完了・破棄ログ。</summary>
-    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    /// <param name="set">生成したビットマップを表示へ反映したかどうか。</param>
-    /// <param name="disposed">古い世代のビットマップとして破棄したかどうか。</param>
-    /// <param name="visible">表示状態。</param>
-    /// <param name="generation">生成したビットマップの世代番号。</param>
-    /// <param name="current">判定時点の最新世代番号。</param>
-    internal static void LogGenerateAsyncDone(
-        this ILogger logger, bool set, bool disposed, bool visible, long generation, long current)
-        => logger.LogGenerateAsyncDoneCore(Prefix, set, disposed, visible, generation, current);
 
     /// <summary>ソース画像の寸法をログ用の文字列（<c>幅x高さ</c>）へ整形する。</summary>
     /// <param name="source">対象のソース画像。 null は「画像なし」。</param>

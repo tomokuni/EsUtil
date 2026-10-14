@@ -14,7 +14,7 @@
   - [5.3 Code-behind](#53-code-behind)
 - [6. 描画動作](#6-描画動作)
   - [6.1 画像境界](#61-画像境界)
-  - [6.2 非同期描画](#62-非同期描画)
+  - [6.2 描画のタイミング](#62-描画のタイミング)
 - [7. サポート外の画像](#7-サポート外の画像)
 - [8. 所有権とライフサイクル](#8-所有権とライフサイクル)
 - [9. パフォーマンス](#9-パフォーマンス)
@@ -45,11 +45,11 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 - 枠線の色（`Appearance`）・太さ（`Options`）設定
 - **色と、ラベルのフォントサイズ・角丸は `Appearance` プロパティ（`LoupeAppearance`）、寸法（タイルサイズ・枠線の太さ）は `Options`（`LoupeOptions`）で設定**（コアは寸法・表示可否だけを持ち、描画にだけ必要な設定は描画層（`EsUtil.Feature.Loupe.Presenter`）が単一所有する）
 - DIP と物理ピクセルの分離（`ClientToPixelScaling`）
-- 非同期のルーペ画像生成（切り出し・合成は UI スレッドで実行）
+- 窓の描画面への直接描画（フレームの描画フェーズで 1 回。 中間 Bitmap の生成も画素の複製もしない）
 - 古い描画結果の自動破棄
-- 非表示時の生成Bitmap解放
+- 非表示時は描画しない（解放する中間 Bitmap は無い）
 - `ILogger` によるエラー通知
-- 描画完了通知イベント（`Rendered`・`LoupeRenderedEventArgs` で描画済み Bitmap と描画計画（切り出し左上・拡大率）を通知。 ホスト側のオーバーレイ描画用。 線分・選択矩形等の破線はホストが描画済み Bitmap へ直接描く）
+- 描画完了通知イベント（`Rendered`・`LoupeRenderedEventArgs` で描画先の `DrawingContext` と描画計画（切り出し左上・拡大率）を通知。 ホスト側の付加情報の描画用。 線分・選択矩形等の破線はホストが描画 API で描く）
 - 中心座標ラベルはコントロールが **`Border` + `TextBlock` の子要素として配置**します（文言・表示可否はコア、実寸 → 配置矩形の写像は描画層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter`（`LabelPlan` partial））、実寸測定は `FormattedText`、描画順はコアの `LoupeDrawLayer` が単一所有）
 - **座標変換ポート（`SetCoordTransform(ICoordTransform?)` + `PositionOffset`）**: 対になるコントロールと同方式。 表示位置（`RenderTransform`）と表示サイズ（要求サイズ）をレイアウト時に自己計算（ウィンドウサイズ変更・ズーム・スクロールに追従）
 - **`RefreshPosition()`**: パン・ズーム等のレイアウト非変更なビューポート変化時に、表示位置・サイズを再計算（座標変換ポートは呼び出し毎に最新の表示状態を評価）
@@ -157,17 +157,17 @@ Canvas.SetTop(loupe, 220);
 - 画像範囲外の領域: 画像を描かず、画像外の色（無地）を表示
 - 視野全体が画像範囲外: 全面が画像外の色
 
-### 6.2 非同期描画
+### 6.2 描画のタイミング
 
-ルーペ画像の生成は非同期で実行され、古い描画結果は自動的に破棄されます。 複数のプロパティが連続して変更された場合、再描画は 1 フレームに 1 回に結合されます。
+ルーペの描画は**フレームの描画フェーズで 1 回**行われ、中間 Bitmap は作りません（窓の描画面へ直接描きます）。 複数のプロパティが連続して変更された場合も、再描画の要求は 1 回のポストへ結合されます。
 
 ## 7. サポート外の画像
 
 公開プロパティの型はAvalonia標準の `IImage?` ですが、ピクセル抽出を必要とするため、対応する実体は `Bitmap` と `EsBitmapAvaloniaAdapter`（コアの画像を内包する `IImage` アダプタ）です。
 
-**`WriteableBitmap` と `RenderTargetBitmap` は `Bitmap` の派生であるため、そのまま設定できます**（`Bitmap` と同じ経路でピクセルを複製します）。
+**`WriteableBitmap` と `RenderTargetBitmap` は `Bitmap` の派生であるため、そのまま設定できます**（表示用の射影を切り出し元としてそのまま使える場合は複製しません）。
 
-`Bitmap`（派生を含む） / `EsBitmapAvaloniaAdapter` 以外の `IImage`（`CroppedBitmap` 等）を設定した場合は、`NotSupportedException` を発生させ、設定された `ILogger` へ記録します。
+`Bitmap`（派生を含む） / `EsBitmapAvaloniaAdapter` 以外の `IImage`（`CroppedBitmap` 等）を設定した場合は、`NotSupportedException` を発生させ、設定された `ILogger` へ記録します（描画の経路ではそのフレームを下地までで終え、アプリを落としません）。
 
 ```csharp
 loupe.Log = logger;

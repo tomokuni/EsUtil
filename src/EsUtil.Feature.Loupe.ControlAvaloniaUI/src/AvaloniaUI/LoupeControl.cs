@@ -7,7 +7,6 @@ using EsUtil.Feature.Loupe.AvaloniaUI.Logging;
 using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
@@ -64,50 +63,22 @@ public sealed class LoupeControl : Panel
 
     /// <summary><see cref="LoupeControl"/> クラスの新しいインスタンスを初期化する。</summary>
     /// <remarks>
-    /// 子要素（ルーペ画像を表示する <see cref="Image"/>）を生成し、初期状態を非表示にする。<br/>
+    /// 内容（ペーストボード・拡大画像・十字線・枠線）を描く子要素（<c>RenderLayer</c>）を生成し、初期状態は非表示にする。<br/>
     /// ラベル要素は配置フェーズ（<see cref="ArrangeOverride"/>）でラベルの有無に追従して追加・削除する。
     /// </remarks>
     public LoupeControl()
     {
-        // 提示層（描画計画の窓口）と再描画コーディネーターを先に初期化する（以降のプロパティ設定で参照されるため）
+        // 提示層（描画計画の窓口）を先に初期化する（以降のプロパティ設定で参照されるため）
         // ロガーは Log プロパティの setter が提示層へ伝搬する（生成時点では未設定のため引き継がない）
         _presenter = new LoupePresenter();
-        _renderCoordinator = CreateRenderCoordinator();
 
-        // ルーペ画像を表示する子要素を最初に加える（子は親より後に描かれるため、ラベル要素より下になる）
-        _image = new Image { Stretch = Stretch.Fill, IsHitTestVisible = false };
-        Children.Add(_image);
+        // 内容を描く子要素を最初に加える（子は親より後に描かれるため、ラベル要素より下になる）
+        _renderLayer = new RenderLayer(this);
+        Children.Add(_renderLayer);
 
         // 初期状態は非表示（表示指示は IsVisible=true で行う）
         IsVisible = false;
     }
-
-    /// <summary>再描画コーディネーターを、現在の表示状態・ロガー・解放処理を注入して生成する。</summary>
-    /// <remarks>
-    /// ログの有効・無効はロガー自身が判定する（<see cref="NullLogger"/> では生成コードが早期に戻る）ため、<br/>
-    /// 呼び出し側に「ログを記録するか」の判断を持たせない。<br/>
-    /// 実行キューへのポストは本 UI が指定する（描画フェーズ（Render 優先度）で実行させる）。<br/>
-    /// <b>Render 優先度を使う理由</b>: マウス移動中の連続再描画では、既定の Normal 優先度のポストが<br/>
-    /// 入力イベント（Input 優先度）に後回しにされ、描画反映が移動停止まで実行されない問題を防ぐ。<br/>
-    /// <b>ポストは 1 回だけ</b>である（このジョブの中で中心の取り直し（<see cref="RefreshCenterPoint"/>）・生成<br/>
-    /// （<see cref="LoupeRenderPipeline.RenderAsync"/>）・表示への反映（<see cref="ApplyBitmap"/>）まで行う。<br/>
-    /// 追加のディスパッチャー往復は、その往復を次の描画フェーズまで待つ分だけ画像の反映を遅らせる）。<br/>
-    /// ポストの注入により、コーディネーター自体は UI フレームワークに依存しない。
-    /// </remarks>
-    private LoupeRenderCoordinator CreateRenderCoordinator()
-        => new(
-            isVisible: () => IsVisible,
-            releaseBitmap: ReleaseBitmap,
-            startRender: StartRender,
-            logRenderCore: generation => Log.LogRenderCore(generation),
-            post: action => Dispatcher.UIThread.Post(
-                () =>
-                {
-                    // 中心を取り直してから再描画の本体を走らせる（取り直しの理由は CenterPointProvider を参照）
-                    RefreshCenterPoint();
-                    action();
-                },
-                DispatcherPriority.Render));
 
     // ====================================================================
     // コア（ファサード）と表示位置
@@ -123,14 +94,14 @@ public sealed class LoupeControl : Panel
     /// <summary>表示位置（RenderTransform）のインスタンス（座標更新時は値を書き換えて再利用する）。</summary>
     private readonly TranslateTransform _positionTransform = new();
 
-    /// <summary>ルーペ画像を表示する子要素（生成ビットマップを <see cref="Image.Source"/> へ設定する）。</summary>
-    private readonly Image _image;
+    /// <summary>ルーペの内容を描く子要素（窓の描画面へ直接描く）。</summary>
+    private readonly RenderLayer _renderLayer;
 
     /// <summary>配置中のラベル要素（背景 + テキスト）。 子の末尾側へ置くため常に最上位になる。</summary>
     private readonly List<Border> _labels = [];
 
-    /// <summary>再描画のバッチ化コーディネーター（Dispatcher へのポストで 1 フレームに 1 回に結合）。</summary>
-    private readonly LoupeRenderCoordinator _renderCoordinator;
+    /// <summary>再描画の要求を実行キューへポスト済みかどうか（true の間は追加要求を 1 回のポストへ結合する）。</summary>
+    private bool _renderQueued;
 
     // ====================================================================
     // 見た目のカスタマイズ（描画計画の差し替えと既定描画の可否）
@@ -170,6 +141,9 @@ public sealed class LoupeControl : Panel
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        // 未対応型は例外にする（対応型の判定は LoupeSourceResolver が単一所有する）
+        LoupeSourceResolver.EnsureSupported(source);
+
         var resolved = LoupeSourceResolver.Resolve(source);
         try
         {
@@ -206,8 +180,9 @@ public sealed class LoupeControl : Panel
     /// <summary>描画の直前に拡大中心を <see cref="CenterPointProvider"/> から取り直す。</summary>
     /// <remarks>
     /// 返された中心は <see cref="CenterPoint"/> へ反映する（同じ値の場合は何も起きない）。<br/>
-    /// <b>再描画の本体より前に呼ぶ</b>（本体は世代番号を採番して生成を始めるため、中心の取り直しと生成が同じ世代になる）。<br/>
-    /// 本メソッドは要求の結合フラグが下りる前に走るため、中心の変更で再描画が二重に要求されることはない。
+    /// <b>要求の結合フラグが下りる前に呼ぶ</b>（中心の変更で再描画が二重に要求されないようにする）。<br/>
+    /// 反映は描画（<see cref="RenderLayer.Render"/>）より前に行われるため、中心座標ラベル・表示位置・拡大画像が<br/>
+    /// 同じフレームで同じ中心になる。
     /// </remarks>
     private void RefreshCenterPoint()
     {
@@ -343,7 +318,7 @@ public sealed class LoupeControl : Panel
     /// <param name="displaySize">ルーペの一辺の表示サイズ（DIP）。</param>
     /// <returns>差し替え後の描画計画。</returns>
     /// <remarks>
-    /// <b>配置と描画の両経路が本メソッドを通る</b>（配置は <see cref="ArrangeOverride"/>、描画は <see cref="GenerateAsync"/>）。<br/>
+    /// <b>配置と描画の両経路が本メソッドを通る</b>（配置は <see cref="ArrangeOverride"/>、描画は <see cref="DrawLoupe"/>）。<br/>
     /// どちらの経路も同じ表示サイズを渡すため（配置は割り当てサイズ、描画は <see cref="PositionOffset"/> と同じくコアのレイアウトが返す値）、<br/>
     /// <b>同じ入力ではキャッシュを返して 1 フレーム 1 回の解決に留める</b>（解決のたびに十字線・枠線の矩形とラベルの実寸測定をやり直さない）。<br/>
     /// キャッシュのキーは「表示サイズ」と「スケーリング係数」である（後者は計画の物理ピクセルへ効く入力のため）。<br/>
@@ -590,61 +565,55 @@ public sealed class LoupeControl : Panel
     // 公開メソッド（操作）
     // ====================================================================
 
-    /// <summary>ルーペを非表示にしてリソースを解放する。</summary>
+    /// <summary>ルーペを非表示にする（表示の解除のみ。 解放する中間ビットマップは無い）。</summary>
     /// <remarks>
-    /// <see cref="Visual.IsVisible"/> を false に設定し、ビットマップを解放する。<br/>
-    /// 既に非表示の場合は <see cref="OnIsVisibleChanged"/> が発火しないため、直接解放する（冪等）。<br/>
+    /// <see cref="Visual.IsVisible"/> を false に設定する（既に非表示の場合は何も起きない。 冪等）。<br/>
+    /// 拡大元画像（<see cref="Source"/>）はホストが所有するため、破棄の判断もホストが行う。
     /// </remarks>
-    public void Clear()
-    {
-        IsVisible = false;
-        _renderCoordinator.CancelAndRelease();
-    }
+    public void Clear() => IsVisible = false;
 
-    /// <summary>現在の状態からルーペ画像の再生成を要求する（プロパティ変更を伴わない再描画要求）。</summary>
+    /// <summary>現在の状態からルーペの再描画を要求する（プロパティ変更を伴わない再描画要求）。</summary>
     /// <remarks>
-    /// ホストが <see cref="Rendered"/> でビットマップへオーバーレイを描画する場合、重ねるデータの変化<br/>
-    /// （一覧の選択・外部からの状態変更等）ではプロパティが変わらないため、本メソッドで再生成を要求する。<br/>
-    /// 生成は非同期で行われ、完了は <see cref="Rendered"/> で通知される（戻り値を待つ必要はない）。<br/>
-    /// プロパティ変更と同じ経路（<see cref="LoupeRenderCoordinator.RequestRender"/>）を通るため、<br/>
-    /// 複数の要求は1フレームに1回の生成へ結合される（呼び出し頻度を気にせず呼べる）。<br/>
-    /// 非表示中に呼び出した場合はビットマップを解放して終了する（生成しない）。<br/>
-    /// 破線の色・表示可否など、ルーペのプロパティに現れないオーバーレイの元データを変更した場合は、<br/>
-    /// ルーペのプロパティ変更では再生成されないため、本メソッドの呼び出しが必要になる。<br/>
+    /// ホストが <see cref="Rendered"/> で付加情報（線分の破線等）を描く場合、重ねるデータの変化<br/>
+    /// （一覧の選択・外部からの状態変更等）ではプロパティが変わらないため、本メソッドで再描画を要求する。<br/>
+    /// 描画は次のフレームで行われ、完了は <see cref="Rendered"/> で通知される（戻り値を待つ必要はない）。<br/>
+    /// 複数の要求は 1 フレーム 1 回の描画へ結合される（呼び出し頻度を気にせず呼べる）。<br/>
+    /// 非表示中は描画を行わない（状態は保持し、次の表示で反映される）。<br/>
     /// <b>保持している描画計画も破棄する</b>（本メソッドは「計画に効く入力が変わった」ことを表す唯一の入口である。 <see cref="ResolvePlan"/>）。
     /// </remarks>
     public void RequestRender()
     {
-        // 非表示中でも計画を破棄する（コーディネーターは非表示では早期に戻るため、ここで破棄しないと
-        // 非表示中に変えた状態が次の表示で反映されない）
+        // 非表示中でも計画を破棄する（破棄しないと非表示中に変えた状態が次の表示で反映されない）
         InvalidatePlan();
-        _renderCoordinator.RequestRender();
+        QueueRender();
     }
 
-    // ====================================================================
-    // 出力（internal）
-    // ====================================================================
-
-    /// <summary>表示用の画像アダプタ。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
+    /// <summary>描画面の再描画を要求する（実行キューへのポストを 1 回へ結合する）。</summary>
     /// <remarks>
-    /// <see cref="Image.Source"/> へ設定する <see cref="EsBitmapAvaloniaAdapter"/> を保持する（<see cref="IImage"/> は非所有の契約のため、
-    /// 差し替え時に本コントロールが <see cref="EsBitmapAvaloniaAdapter.Dispose"/> を呼ぶ）。<br/>
-    /// 破棄は <see cref="ReleaseBitmap"/> / <see cref="SetLoupeBitmap"/> で行う。
+    /// <b>ポストは 1 回だけ</b>である（このジョブの中で拡大中心の取り直し（<see cref="RefreshCenterPoint"/>）と<br/>
+    /// 描画面の無効化（<c>RenderLayer.InvalidateVisual()</c>）を行う。 描画そのものはフレームの描画フェーズで 1 回行われる）。<br/>
+    /// <b>Render 優先度を使う理由</b>: マウス移動中の連続再描画では、既定の Normal 優先度のポストが<br/>
+    /// 入力イベント（Input 優先度）に後回しにされ、反映が移動停止まで実行されない問題を防ぐ。<br/>
+    /// 中心の取り直しは結合フラグ（<see cref="_renderQueued"/>）が下りる前に走らせる<br/>
+    /// （中心の変更が同じフレームの再描画要求として二重にポストされないようにする）。
     /// </remarks>
-    private EsBitmapAvaloniaAdapter? _loupeImage;
+    private void QueueRender()
+    {
+        if (_renderQueued)
+        {
+            return;
+        }
 
-    /// <summary>内部描画結果（読み取りの面）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
-    /// <remarks>
-    /// 描画（<see cref="LoupeRenderPipeline"/>）が返した書き換え可能な画像を、オーバーレイの描画が済んだ後に
-    /// 凍結して 0 コピーで共有した面である（以降は読むだけのため、書き換えの入口を持つ必要が無い）。<br/>
-    /// <b>本コントロールが破棄する</b>（<see cref="ReleaseBitmap"/> / <see cref="SetLoupeBitmap"/> で破棄する）。<br/>
-    /// <see cref="LoupeBitmap"/> は本値を返す（共有参照。 破棄はしないこと）。
-    /// </remarks>
-    private EsReadOnlyBitmap? _loupeEs;
-
-    /// <summary>内部描画結果（読み取りの面）。 所有権は本コントロールが保持し、外部へ公開しない。</summary>
-    /// <remarks><see cref="LoupeBitmap"/> が返す。 破棄はしないこと（本コントロールが破棄する）。</remarks>
-    internal EsReadOnlyBitmap? LoupeBitmap => _loupeEs;
+        _renderQueued = true;
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                RefreshCenterPoint();
+                _renderQueued = false;
+                _renderLayer.InvalidateVisual();
+            },
+            DispatcherPriority.Render);
+    }
 
     // ====================================================================
     // ログ
@@ -690,27 +659,27 @@ public sealed class LoupeControl : Panel
     // イベント
     // ====================================================================
 
-    /// <summary>ルーペの描画完了を通知するイベント（描画済み Bitmap と描画計画を渡す）。</summary>
+    /// <summary>ルーペの描画完了を通知するイベント（描画先の描画コンテキストと描画計画を渡す）。</summary>
     /// <remarks>
-    /// 拡大画像の描画結果（<see cref="LoupeRenderedEventArgs.Bitmap"/>）と、描画に必要な値（切り出し領域・スケール）を通知する。<br/>
-    /// イベントは表示へ反映する前に同期的に発火するため、ホスト側はイベントハンドラ内で<br/>
-    /// Bitmap を <c>Lock</c> してオーバーレイ（線分の破線等）を直接描画できる（描画後は表示へ反映される）。<br/>
-    /// <b>中心座標ラベルは本コントロールがテキスト要素として表示する</b>ため、通知に含めない。<br/>
-    /// 描画は非同期・バッチ化されるため、プロパティ変更より 1 フレーム遅れて発火する。
+    /// ルーペの内容（ペーストボード・拡大画像・十字線・枠線）を描いた直後に、同じ描画コンテキストを通知する。<br/>
+    /// ホスト側はイベントハンドラ内で付加情報（選択矩形の破線・検出した線分等）を<b>描画 API で</b>描ける<br/>
+    /// （描いた内容はルーペの内容の上・中心座標ラベル（テキスト要素）の下に置かれる）。<br/>
+    /// <b>描画コンテキストは描画中のみ有効</b>である（ハンドラ内で描画を完了させること。 保持しない）。<br/>
+    /// <b>中心座標ラベルは本コントロールがテキスト要素として表示する</b>ため、通知に含めない。
     /// </remarks>
     public event EventHandler<LoupeRenderedEventArgs>? Rendered;
 
-    /// <summary><see cref="Rendered"/> イベントを発火する（描画済み画像と描画計画を構築して通知）。</summary>
-    /// <param name="bitmap">描画済みのルーペ画像（書き換え可能な面）。 ホストがピクセルにオーバーレイを描画できる。</param>
+    /// <summary><see cref="Rendered"/> イベントを発火する（描画先と描画計画を通知）。</summary>
+    /// <param name="context">ルーペの内容を描いた描画コンテキスト（描画中のみ有効）。</param>
     /// <param name="plan">実際に描画した描画計画（切り出し領域の左上と拡大率を持つ）。</param>
     /// <remarks>
     /// 切り出し領域の左上・拡大率は描画計画（<see cref="LoupeDrawPlan.CaptureTopLeft"/> / <see cref="LoupeDrawPlan.ZoomLevel"/>）が単一所有する。<br/>
-    /// 中心未設定時は <see cref="LoupeDrawPlan.CaptureTopLeft"/> が null になる（オーバーレイ描画不可）。<br/>
+    /// 中心未設定時は <see cref="LoupeDrawPlan.CaptureTopLeft"/> が null になる（付加情報の配置基準が無い）。<br/>
     /// <b>中心座標ラベルは本コントロールがテキスト要素として表示する</b>ため、通知に含めない。
     /// </remarks>
-    private void RaiseRendered(EsBitmap bitmap, in LoupeDrawPlan plan)
+    private void RaiseRendered(DrawingContext context, in LoupeDrawPlan plan)
     {
-        Rendered?.Invoke(this, new LoupeRenderedEventArgs(bitmap, plan));
+        Rendered?.Invoke(this, new LoupeRenderedEventArgs(context, plan));
     }
 
     // ====================================================================
@@ -721,11 +690,9 @@ public sealed class LoupeControl : Panel
     /// <param name="e">変更イベント引数。</param>
     /// <remarks>
     /// 表示・非表示の指示は標準プロパティ <see cref="Visual.IsVisible"/> に一元化する。<br/>
-    /// - 表示時: 最新の <see cref="Source"/> / <see cref="CenterPoint"/> からビットマップを生成し、表示位置を更新する。<br/>
-    /// - 非表示時: 未実行の再描画要求を破棄し、ビットマップを解放する。<br/>
-    /// 要求の破棄と解放の手順はコーディネーター（<see cref="LoupeRenderCoordinator.CancelAndRelease"/>）が単一所有する。<br/>
-    /// 非表示中は再描画要求がキューに残らない（<see cref="LoupeRenderCoordinator.RequestRender"/> が早期に戻る）ため、
-    /// 表示時は再描画の要求のみを行う。
+    /// - 表示時: 最新の <see cref="Source"/> / <see cref="CenterPoint"/> で再描画を要求し、表示位置を更新する。<br/>
+    /// - 非表示時: 保留中の再描画要求を破棄する（解放する中間ビットマップは無い）。<br/>
+    /// 非表示中も状態（拡大中心・設定・ソース）は保持するため、表示時に最新の状態で描かれる。
     /// </remarks>
     private void OnIsVisibleChanged(AvaloniaPropertyChangedEventArgs e)
     {
@@ -736,128 +703,91 @@ public sealed class LoupeControl : Panel
             return;
         }
 
-        _renderCoordinator.CancelAndRelease();
-    }
-
-    /// <summary>ビットマップを解放して画像表示をクリアする（冪等）。</summary>
-    private void ReleaseBitmap()
-    {
-        // 破棄済みの画像を Image.Source が参照し続けないよう、先に Source を解除してから解放する。
-        _image.Source = null;
-        _loupeImage?.Dispose();
-        _loupeImage = null;
-        _loupeEs?.Dispose();
-        _loupeEs = null;
-    }
-
-    /// <summary>自動再描画を開始し、失敗を観測済みタスクとして処理する。</summary>
-    private void StartRender(long generation)
-    {
-        _ = GenerateAsync(generation).ContinueWith(
-            static task => _ = task.Exception,
-            CancellationToken.None,
-            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
-            TaskScheduler.Default);
+        // 保留中の要求を破棄する（非表示のまま描画フェーズを迎えても描かれない）
+        _renderQueued = false;
     }
 
     // ====================================================================
-    // 描画（LoupeRenderPipeline への委譲）
+    // 描画（描画面へ直接描く）
     // ====================================================================
 
-    /// <summary><see cref="Source"/> と <see cref="CenterPoint"/> からルーペ画像を生成して表示する。</summary>
+    /// <summary>ルーペの内容を描画面へ描き、描画完了を通知する。</summary>
+    /// <param name="context">描画先の描画コンテキスト（描画中のみ有効）。</param>
     /// <remarks>
-    /// 生成は <see cref="LoupeRenderPipeline.RenderAsync"/> に一元化する（ソース解決・抽出・描画合成）。<br/>
-    /// <see cref="Source"/> / <see cref="CenterPoint"/> のいずれかが未設定、または切り出せない場合は下地（ペーストボード）のみを表示する<br/>
-    /// （判定は描画層が単一所有する）。<br/>
-    /// 例外は <see cref="LoupeLogMessage.LogUpdateError"/> で記録し、前回のビットマップを維持する。<br/>
-    /// <b>反映のタイミング</b>: 再描画の通常の経路は UI スレッド上のため、生成した画像はその場で表示へ反映し、<br/>
-    /// UI スレッド外から呼ばれた場合のみ描画フェーズ（Render 優先度）へポストする。
+    /// <b>中間ビットマップを作らない</b>: 描画計画をそのまま窓の描画面へ写す（MewUI 版と同じ描画モデル）。<br/>
+    /// 切り出し元の解決は <see cref="LoupeSourceResolver.Resolve"/> が単一所有し、表示用の射影をそのまま使える場合は<br/>
+    /// 複製を作らない（<see cref="LoupeContextPainter.Paint"/>）。<br/>
+    /// <see cref="Source"/> / <see cref="CenterPoint"/> のいずれかが未設定、または切り出せない場合は<br/>
+    /// 下地（ペーストボード）のみを描く（判定は描画層が単一所有する）。<br/>
+    /// 描画の例外はアプリを落とさず <see cref="LoupeLogMessage.LogUpdateError"/> で記録する（そのフレームは下地までで終える）。
     /// </remarks>
-    private async Task GenerateAsync(long generation)
+    private void DrawLoupe(DrawingContext context)
     {
+        // 描画計画（描画層が解決した幾何・外観・層の順序）は現在のレイアウト（要求サイズ）から組み立てる
+        // （値・単位・換算は描画層が単一所有する。 開始時に固定しない）
+        var plan = ResolvePlan(_presenter.ResolveLayout(ParentAreaSize).ClientSize);
+
+        // 計画の座標は描画面の物理ピクセル、コンテキストの座標は DIP である
+        // （DPI が 100% 以外では一致しないため、ピクセル → DIP の倍率を適用する）
+        var pixelToDip = 1.0 / plan.ClientToPixelScaling;
+
+        // 切り出し元を解決する（未対応型は例外。 例外の記録は本メソッドが行う）
+        var resolved = default(LoupeSourceResolver.Result);
         try
         {
-            // 描画計画（描画層が解決した幾何・外観・層の順序）は現在のレイアウト（要求サイズ）から組み立てる
-            // （値・単位・換算は描画層が単一所有する。 開始時に固定しない）
-            var plan = ResolvePlan(_presenter.ResolveLayout(ParentAreaSize).ClientSize);
+            LoupeSourceResolver.EnsureSupported(Source);
+            resolved = LoupeSourceResolver.Resolve(Source);
 
-            var bitmap = await LoupeRenderPipeline.RenderAsync(Source, plan);
-
-            // 表示への反映（ApplyBitmap）は、再描画の通常の経路が UI スレッド上のためその場で行い、
-            // UI スレッド外から呼ばれた場合のみ描画フェーズ（Render 優先度）へポストする。
-            // 表示位置は入力ハンドラー（CenterPoint の変更）で同期に確定するため、反映を別のディスパッチャー往復にすると
-            // ルーペ画像だけがその分あと（次の描画フェーズ）に現れ、画像と表示位置がずれて見える。
-            if (Dispatcher.UIThread.CheckAccess())
+            using (context.PushTransform(Matrix.CreateScale(pixelToDip, pixelToDip)))
             {
-                ApplyBitmap(generation, bitmap, plan);
-                return;
+                // 元の IImage は拡大元の全体を写しているため、そのまま元矩形つきの描画に使える
+                // （切り出しの複製も表示用の変換も作らない）
+                LoupeContextPainter.Paint(context, in plan, resolved.Size, display: Source, source: resolved.Bitmap);
+
+                // ホストが付加情報（選択矩形の破線等）を描くための入口（ルーペの内容の上へ重ねる）
+                RaiseRendered(context, in plan);
             }
-
-            await Dispatcher.UIThread.InvokeAsync(
-                () => ApplyBitmap(generation, bitmap, plan),
-                DispatcherPriority.Render);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
         {
+            // 描画の例外は記録して、そのフレームは下地までで終える（アプリを落とさない）
             Log.LogUpdateError(ex);
-            throw;
         }
-    }
-
-    /// <summary>生成したルーペ画像を表示へ反映する（古い世代・非表示の結果は破棄する）。</summary>
-    /// <param name="generation">生成したビットマップの世代番号。</param>
-    /// <param name="bitmap">生成したルーペ画像（反映しない場合は本メソッドが破棄する）。</param>
-    /// <param name="plan">実際に描画した描画計画。</param>
-    /// <remarks>採用の可否（表示中かつ最新世代か）の判定は <see cref="LoupeRenderCoordinator.ShouldApply"/> が単一所有する。</remarks>
-    private void ApplyBitmap(long generation, EsBitmap bitmap, in LoupeDrawPlan plan)
-    {
-        var current = _renderCoordinator.Generation;
-        var visible = IsVisible;
-        if (!_renderCoordinator.ShouldApply(generation))
+        finally
         {
-            bitmap.Dispose();
-            Log.LogGenerateAsyncDone(false, true, visible, generation, current);
-            return;
+            // 複製を返した場合のみ破棄する（表示アダプタからの借用は破棄しない）
+            if (resolved.IsSourceBitmap)
+            {
+                resolved.Bitmap?.Dispose();
+            }
         }
-
-        SetLoupeBitmap(bitmap, plan);
-        Log.LogGenerateAsyncDone(true, false, visible, generation, current);
     }
 
-    /// <summary>生成したルーペビットマップをコントロールへ反映する。</summary>
-    /// <param name="bmp">生成したルーペビットマップ（書き換え可能な画像）。</param>
-    /// <param name="plan">実際に描画した描画計画（切り出し領域の左上と拡大率を持つ）。</param>
+    /// <summary>ルーペの内容を描く子要素（窓の描画面へ直接描く）。</summary>
     /// <remarks>
-    /// 前回のビットマップを破棄し、<see cref="LoupeBitmap"/> と表示内容（画像）を更新する。<br/>
-    /// 表示状態（IsVisible）と要素サイズ（Width / Height）は変更しない（サイズは <see cref="UpdatePosition"/> が単一所有する）。<br/>
-    /// 表示への反映前に <see cref="Rendered"/> イベントを発火し、ホスト側が画像のピクセルに<br/>
-    /// オーバーレイ（線分の破線等）を描画できるようにする（イベント後に表示へ反映）。<br/>
-    /// <b>チラつき防止</b>: <c>Image.Source</c> が前回のアダプタを参照し続ける間に、<br/>
-    /// その画像を破棄すると、描画時に破棄済みピクセルへアクセスして例外・チラつきが生じる。<br/>
-    /// そのため、新しいアダプタを先に <c>Image.Source</c> へ設定し、旧アダプタは後から破棄する<br/>
-    /// （描画が参照するアダプタを連続的に保ち、破棄済みバッファの参照を防ぐ）。
+    /// 親（<see cref="LoupeControl"/>）は <see cref="Panel"/> であり <c>Render</c> をシールするため、描画は子が担う。<br/>
+    /// 子は<b>自分の描画リスト</b>を持つため、内容が変わるたびに本インスタンスを無効化する必要がある<br/>
+    /// （要求の集約は <see cref="QueueRender"/> が単一所有する）。<br/>
+    /// ラベル要素（さらに後から追加する子）は本要素より後に描かれるため、常に本要素の内容の上になる。<br/>
+    /// <b>切り取り（<see cref="Visual.ClipToBounds"/>）を有効にする</b>: 拡大画像・装飾・ホストの付加情報が<br/>
+    /// ルーペの矩形の外へ描かれないようにする（中間ビットマップを持たないため、描画の範囲は本要素の矩形が決める）。<br/>
+    /// 入力は親が受けるため、ヒットテストの対象からは外す。
     /// </remarks>
-    private void SetLoupeBitmap(EsBitmap bmp, in LoupeDrawPlan plan)
+    private sealed class RenderLayer : Control
     {
-        // ホストがピクセルへオーバーレイ（破線等）を描画するフック。 イベント内でピクセルが更新される
-        RaiseRendered(bmp, plan);
+        /// <summary>描画内容の取得元（親コントロール）。</summary>
+        private readonly LoupeControl _owner;
 
-        // イベント後の画像（ホストのオーバーレイ描画を含む）を表示境界で Avalonia 画像として反映する。
-        // EsBitmapAvaloniaAdapter（表示用の変換は初回のみ）を Source に設定する。
-        // 旧アダプタを破棄する前に、新しいアダプタを先に Source へ設定する（破棄済みバッファの参照防止・チラつき防止）。
-        // オーバーレイの描画が済んだ後は書き込みが無いため、ここで凍結して読み取り専用の面へ 0 コピーで引き渡す
-        bmp.SetReadOnly();
-        var read = EsReadOnlyBitmap.FromBitmap(bmp);
-        var previousImage = _loupeImage;
-        var previousEs = _loupeEs;
-        // 画像は本コントロールが所有し、アダプタは非所有で包むだけ（アダプタは射影だけを所有する）
-        _loupeEs = read;
-        _loupeImage = new EsBitmapAvaloniaAdapter(read);
-        _image.Source = _loupeImage;
-        // 新旧の Source 設定後、旧の画像とアダプタを破棄する（Image.Source が旧アダプタを参照しなくなった後）。
-        previousImage?.Dispose();
-        previousEs?.Dispose();
-        // 画素は読み取り専用の面が共有して引き継ぐため、書き換え可能の実体はここで解放する
-        bmp.Dispose();
+        /// <summary>描画先の親を指定して初期化する。</summary>
+        /// <param name="owner">描画内容の取得元（親コントロール）。</param>
+        public RenderLayer(LoupeControl owner)
+        {
+            _owner = owner;
+            IsHitTestVisible = false;
+            ClipToBounds = true;
+        }
+
+        /// <inheritdoc/>
+        public override void Render(DrawingContext context) => _owner.DrawLoupe(context);
     }
 }

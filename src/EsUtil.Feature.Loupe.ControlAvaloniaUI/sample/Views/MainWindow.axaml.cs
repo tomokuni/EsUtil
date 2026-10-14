@@ -71,7 +71,7 @@ public partial class MainWindow : Window
 
     /// <summary>ルーペの描画完了時に選択矩形の破線を描く。</summary>
     /// <param name="sender">イベント送信元。</param>
-    /// <param name="e">描画完了の通知引数（書き込み可能な画像と描画計画）。</param>
+    /// <param name="e">描画完了の通知引数（描画先の描画コンテキストと描画計画）。</param>
     /// <remarks>
     /// 破線の元データ（選択矩形）はルーペのプロパティに現れないため、描画完了のたびに描き直す。<br/>
     /// 変更の反映は <see cref="OnViewModelPropertyChanged"/> が <c>RequestRender()</c> で要求する。
@@ -84,7 +84,7 @@ public partial class MainWindow : Window
         }
 
         var content = e.Content;
-        SelectionRectPainter.Paint(e.Bitmap, in content, _vm.SelectionRect);
+        SelectionRectPainter.Paint(e.Context, in content, _vm.SelectionRect);
     }
 
     /// <summary>選択矩形の変更でルーペ画像の再生成を要求する。</summary>

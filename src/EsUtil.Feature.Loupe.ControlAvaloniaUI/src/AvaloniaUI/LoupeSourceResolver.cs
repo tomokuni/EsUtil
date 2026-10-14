@@ -12,7 +12,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI;
 
 /// <summary>ルーペのソース画像（<see cref="Bitmap"/> / コアの画像を内包する表示アダプタ）から切り出し元の解決ロジック（純粋関数）。</summary>
 /// <remarks>
-/// <see cref="LoupeControl.GenerateAsync"/> のソース解決（型判定・破棄済み判定・<see cref="EsReadOnlyBitmap"/> 取得）を<br/>
+/// <see cref="LoupeControl"/> のソース解決（型判定・破棄済み判定・<see cref="EsReadOnlyBitmap"/> 取得）を<br/>
 /// UI 非依存の純粋ロジックとして提供する。<br/>
 /// UI スレッドに依存しないため <c>[Fact]</c> で並列検証できる。
 /// </remarks>
@@ -44,7 +44,7 @@ internal static class LoupeSourceResolver
     /// 対応する型は <see cref="Bitmap"/>（<b>派生の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> を含む</b>）と
     /// <b>コアの画像を内包する表示アダプタ</b>（<see cref="BorrowMethodName"/> を公開する <see cref="IImage"/>）である
     /// （ピクセル抽出が可能な型だけを受け入れる）。<br/>
-    /// <see cref="LoupeRenderPipeline"/> の未対応型判定（<see cref="NotSupportedException"/>）を単一所有する（DRY）。<br/>
+    /// 未対応型の判定（<see cref="NotSupportedException"/>）を単一所有する（DRY）。<br/>
     /// null は「画像なし」を表すため対応可能（下地のみで描画する）として扱う。<br/>
     /// <b>継承による包含に依存する</b>ため、新しい対応型を足すときは <see cref="Bitmap"/> の派生かどうかを実測する。<br/>
     /// （実測: Avalonia 12 の <see cref="WriteableBitmap"/> / <see cref="RenderTargetBitmap"/> は <see cref="Bitmap"/> の派生、<br/>
@@ -52,6 +52,22 @@ internal static class LoupeSourceResolver
     /// </remarks>
     public static bool IsSourceSupported(IImage? source)
         => source is null or Bitmap || TryGetBorrower(source) is not null;
+
+    /// <summary>ソース画像がルーペで対応可能な型であることを確かめる（未対応は例外）。</summary>
+    /// <param name="source">判定するソース画像。 null は「画像なし」として許す。</param>
+    /// <exception cref="NotSupportedException"><paramref name="source"/> が対応していない型の場合。</exception>
+    /// <remarks>
+    /// 対応する型の判定（<see cref="IsSourceSupported"/>）を単一所有する（例外の送出もここに閉じる）。<br/>
+    /// 例外の記録（落とさない扱い）は呼び出し側の描画経路が行う。
+    /// </remarks>
+    public static void EnsureSupported(IImage? source)
+    {
+        if (!IsSourceSupported(source))
+        {
+            throw new NotSupportedException(
+                $"LoupeControl は {source!.GetType().FullName} をサポートしていません。Bitmap（WriteableBitmap を含む）または EsReadOnlyBitmap（表示アダプタ）を指定してください。");
+        }
+    }
 
     /// <summary>ソース画像の切り出し元（寸法と、必要ならコアの画像）を解決する。</summary>
     /// <param name="source">ルーペのソース画像（<see cref="Bitmap"/> / コアの画像を内包する表示アダプタ）。</param>

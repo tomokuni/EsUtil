@@ -1,41 +1,32 @@
-using EsUtil.Platform.Core.Imaging;
+using Avalonia.Media;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI;
 
-/// <summary>ルーペの描画完了時に上位へ通知する描画結果と描画計画。</summary>
+/// <summary>描画完了（ルーペの内容を描き終えたこと）を通知するイベント引数。</summary>
 /// <remarks>
-/// <see cref="LoupeControl.Rendered"/> イベントの引数。<br/>
-/// 描画済みのルーペ画像（<see cref="EsBitmap"/>）と、実際に描画した描画計画（<see cref="LoupeDrawPlan"/>）を渡す。<br/>
-/// ホスト側はイベントハンドラ内でこの画像のピクセルへオーバーレイ（破線・図形等）を<br/>
-/// 直接描画できる（描画後の画像は <see cref="LoupeControl"/> が表示へ反映する）。<br/>
-/// <b>中心座標ラベルは <see cref="LoupeControl"/> がテキスト要素として表示する</b>ため、本引数には含めない。<br/>
-/// 座標系は次のとおり:<br/>
-/// - <see cref="Bitmap"/>: ルーペ画像のピクセル座標<br/>
-/// - <see cref="LoupeDrawPlan.CaptureTopLeft"/>: 対象座標（元画像ピクセル座標）の可視域の左上（**小数を含む実効原点**）<br/>
-/// - <see cref="LoupeDrawPlan.ZoomLevel"/>: 対象座標 → ルーペ画像ピクセル座標の変換係数（拡大率と同値）<br/>
-/// オーバーレイの描画位置は <c>(対象座標 − CaptureTopLeft) × ZoomLevel</c> で求められる<br/>
-/// （拡大中心は描画面の中心へ写るため、十字線と本式の結果は一致する）。
-/// （導出値は描画計画が単一所有するため、本引数は複製しない）。<br/>
-/// 表示位置・表示サイズは、描画に必要な値をホストが既に保持しているため通知しない<br/>
-/// （必要な場合は <see cref="LoupeControl"/> の公開プロパティから取得する）。
+/// <b>ホスト固有の付加情報を描くための入口である</b>: ルーペの内容（ペーストボード・拡大画像・十字線・枠線）は<br/>
+/// コントロールが窓の描画面へ直接描くが、選択矩形の破線・検出した線分などアプリ固有の情報は<br/>
+/// 本コントロールの概念ではないため、ホストが本イベントで自前で描く。<br/>
+/// <br/>
+/// <b>描画順</b>: ルーペの内容を描いた直後に発火するため、ホストが描いた内容は<b>ルーペの内容の上</b>に置かれる。<br/>
+/// 中心座標ラベル（テキスト要素）は本イベントより後に描かれるため、常にホストの描画より前面になる。<br/>
+/// <br/>
+/// <b>コンテキストの有効期間</b>: <see cref="Context"/> は <c>Render</c> の実行中のみ有効である。<br/>
+/// ハンドラ内で描画を完了させること（後から使うために保持しない）。
 /// </remarks>
-/// <param name="bitmap">描画済みのルーペ画像（ホストがピクセルへ書き込めるように書き換え可能な面で渡す）。</param>
+/// <param name="context">描画コンテキスト（<c>Render</c> の実行中のみ有効）。</param>
 /// <param name="content">実際に描画した描画計画（切り出し領域の左上・拡大率・描画面のサイズを持つ）。</param>
-public sealed class LoupeRenderedEventArgs(EsBitmap bitmap, LoupeDrawPlan content) : EventArgs
+public sealed class LoupeRenderedEventArgs(DrawingContext context, LoupeDrawPlan content) : EventArgs
 {
-    /// <summary>描画済みのルーペ画像。 イベントハンドラ内でピクセルへオーバーレイを描画できる。</summary>
-    /// <remarks>
-    /// イベントハンドラ内で <see cref="Bitmap"/> のピクセルを更新した内容は、イベント終了後に
-    /// <see cref="LoupeControl"/> が表示へ反映する（イベントは表示反映前に同期的に発火する）。<br/>
-    /// <see cref="Bitmap"/> の所有権は <see cref="LoupeControl"/> が保持する（ホスト側で Dispose しないこと）。
-    /// </remarks>
-    public EsBitmap Bitmap { get; } = bitmap;
+    /// <summary>描画コンテキスト（<c>Render</c> の実行中のみ有効）。</summary>
+    /// <value>ルーペの内容を描いた描画先。 ホストはここへ付加情報を描く。</value>
+    public DrawingContext Context { get; } = context;
 
     /// <summary>実際に描画した描画計画を取得する。</summary>
     /// <value>切り出し領域の左上（<see cref="LoupeDrawPlan.CaptureTopLeft"/>）・拡大率・描画面のサイズを持つ計画。</value>
     /// <remarks>
-    /// オーバーレイの座標変換に必要な値（対象座標の左上・拡大率）は本値から取得する（値を複製しない）。<br/>
-    /// 中心未設定時は <see cref="LoupeDrawPlan.CaptureTopLeft"/> が null（オーバーレイ描画不可）。
+    /// 付加情報の座標変換に必要な値（対象座標の左上・拡大率）は本値から取得する（値を複製しない）。<br/>
+    /// 中心未設定時は <see cref="LoupeDrawPlan.CaptureTopLeft"/> が null（付加情報の配置基準が無い）。
     /// </remarks>
     public LoupeDrawPlan Content { get; } = content;
 }

@@ -1,3 +1,5 @@
+using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -7,11 +9,35 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests;
 /// <summary>テスト用の共通ヘルパー。</summary>
 public static class TestHelper
 {
+    /// <summary>コントロールをウィンドウへ載せて表示する（描画が行われる状態にする）。</summary>
+    /// <param name="control">対象のコントロール。</param>
+    /// <param name="size">ウィンドウと親パネルの一辺のサイズ（DIP）。</param>
+    /// <returns>表示したウィンドウ。</returns>
+    /// <remarks>ルーペの描画はウィンドウのフレームで行われるため、描画を待つテストは本メソッドを使う。</remarks>
+    internal static Window ShowInWindow(this LoupeControl control, double size = 300)
+    {
+        var panel = new Panel { Width = size, Height = size };
+        panel.Children.Add(control);
+        var window = new Window { Width = size, Height = size, Content = panel };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        return window;
+    }
+
+    /// <summary>ウィンドウのフレームを 1 回進める（描画を実行する）。</summary>
+    /// <param name="control">対象のコントロール（ウィンドウへ接続されていること）。</param>
+    /// <remarks>描画の要求は行わない（要求の回数を検証するテストが使う）。</remarks>
+    internal static void RenderOnce(this LoupeControl control)
+    {
+        Dispatcher.UIThread.RunJobs();
+        TopLevel.GetTopLevel(control)?.CaptureRenderedFrame();
+    }
+
     /// <summary>再描画の完了（<see cref="LoupeControl.Rendered"/> の発火）を待つ。</summary>
     /// <param name="control">対象のコントロール。</param>
     /// <remarks>
-    /// 描画は Dispatcher へのポスト（描画フェーズ）と非同期生成で行われるため、テストは通知（<see cref="LoupeControl.Rendered"/>）を<br/>
-    /// 待つ（ホストと同じ契約で待機する）。 待機中は Dispatcher をポンプして描画ジョブと非同期の継続を進める。<br/>
+    /// 描画はウィンドウのフレームで行われるため、テストは実行キューを消化しながら描画フレームを進める<br/>
+    /// （コントロールがウィンドウへ接続されていない場合は完了しない。 描画を待つテストはウィンドウへ載せること）。<br/>
     /// 描画要求が出ていない場合（非表示・変更なし）は完了しないため、呼び出し前に状態変更で要求を発生させること。
     /// </remarks>
     public static async Task WaitForRenderedAsync(this LoupeControl control)
@@ -22,7 +48,20 @@ public static class TestHelper
         control.Rendered += OnRendered;
         try
         {
-            await PumpUntilAsync(() => rendered);
+            for (var i = 0; i < PumpLimit && !rendered; i++)
+            {
+                // 描画を要求してから 1 フレーム進める（要求は 1 フレーム 1 回の描画へ結合される）
+                control.RequestRender();
+                Dispatcher.UIThread.RunJobs();
+
+                // 描画はフレーム（ヘッドレスでは明示的な 1 フレーム）で行われる
+                if (TopLevel.GetTopLevel(control) is { } topLevel)
+                {
+                    topLevel.CaptureRenderedFrame();
+                }
+
+                await Task.Yield();
+            }
 
             Assert.True(rendered, "描画完了（Rendered）が発火しませんでした");
         }
@@ -47,7 +86,7 @@ public static class TestHelper
         }
     }
 
-    /// <summary>保留中の描画ジョブを数回実行する（描画が発生しないことの検証用）。</summary>
+    /// <summary>保留中のジョブを数回実行する（描画が発生しないことの検証用）。</summary>
     /// <remarks><see cref="PumpUntilAsync"/> と同じ理由で拡張メソッドにはしない。</remarks>
     internal static async Task PumpAsync()
     {
