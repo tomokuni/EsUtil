@@ -66,8 +66,12 @@ Set-Location $repoRoot
 
 . (Join-Path $PSScriptRoot 'VerifyCommon.ps1')
 
+# `dotnet` を実行し、**出力と終了コード**を返す。 出力の文字列だけを見ると、CLI 自体の異常終了
+# （引数の誤り・復元の失敗など、警告の形で出ないもの）を「警告 0 件」と読み替えてしまうため、
+# 呼び出し側は終了コードも合否へ含める。
 function Invoke-DotNet([string[]]$Arguments) {
-    return (& dotnet @Arguments 2>&1 | Out-String)
+    $text = (& dotnet @Arguments 2>&1 | Out-String)
+    return [pscustomobject]@{ Text = $text; ExitCode = $LASTEXITCODE }
 }
 
 # 文書とコードの走査（5〜10 節）は buildScript/verifyDocs.ps1 が所有する。
@@ -172,10 +176,11 @@ if (-not $SkipBuild) {
     # 警告のエラー化は Directory.Build.props の TreatWarningsAsErrors が単一所有する（-warnaserror は付けない）。
     # これで素の `dotnet build` でも規約違反が終了コードに出る（スクリプトの引数に依存しない）。
     $buildArgs = @('build', $Solution, '-c', $Configuration, '-tl:off', '-v:q', '--no-incremental') + $restoreArgs
-    $buildText = Invoke-DotNet $buildArgs
+    $build = Invoke-DotNet $buildArgs
+    $buildText = $build.Text
     $buildWarnings = ([regex]::Matches($buildText, 'warning ')).Count
     $buildErrors = ([regex]::Matches($buildText, ': error ')).Count
-    Add-Result 'ビルド' ($buildWarnings -eq 0 -and $buildErrors -eq 0) "警告 $buildWarnings / エラー $buildErrors"
+    Add-Result 'ビルド' ($buildWarnings -eq 0 -and $buildErrors -eq 0 -and $build.ExitCode -eq 0) "警告 $buildWarnings / エラー $buildErrors / 終了コード $($build.ExitCode)"
     if ($buildWarnings -gt 0 -or $buildErrors -gt 0) {
         $buildText -split "`r?`n" | Where-Object { $_ -match 'warning |: error ' } | Select-Object -First 20 | ForEach-Object { "      $($_.Trim())" }
     }
@@ -267,13 +272,14 @@ if (-not $SkipTests) {
     $testArgs = @('test', $Solution, '-c', $Configuration, '-tl:off', '--no-build')
     $coverageDir = Join-Path ([IO.Path]::GetTempPath()) ("se_cov_" + [Guid]::NewGuid().ToString('N'))
     if ($Coverage) { $testArgs += @('--collect:XPlat Code Coverage', "--results-directory:$coverageDir") }
-    $testText = Invoke-DotNet $testArgs
+    $test = Invoke-DotNet $testArgs
+    $testText = $test.Text
     $passed = 0
     foreach ($m in [regex]::Matches($testText, '合格:\s*(\d+)')) { $passed += [int]$m.Groups[1].Value }
     $failed = 0
     foreach ($m in [regex]::Matches($testText, '失敗:\s*(\d+)')) { $failed += [int]$m.Groups[1].Value }
     $projects = [regex]::Matches($testText, '\.dll \(net10\.0[^)]*\)').Count
-    Add-Result 'テスト' ($failed -eq 0 -and $passed -gt 0) "合格 $passed / 失敗 $failed / $projects プロジェクト"
+    Add-Result 'テスト' ($failed -eq 0 -and $passed -gt 0 -and $test.ExitCode -eq 0) "合格 $passed / 失敗 $failed / $projects プロジェクト / 終了コード $($test.ExitCode)"
     if ($failed -gt 0) {
         # 失敗したテスト名を出す（合計だけでは原因を特定できない）
         $testText -split "`r?`n" | Where-Object { $_ -match '^\s*(失敗|Failed)\s+\S' } | Select-Object -First 10 | ForEach-Object { "      $($_.Trim())" }
@@ -333,13 +339,14 @@ if (-not $SkipPackage) {
     # （付けないと監査が省略され、0 件と誤判定する）。 監査は検査そのものなので、-NoRestore は適用しない。
     # 直接参照の脆弱性はビルドの復元でも検出される（`NuGetAuditMode` の既定は direct であり、
     # 警告は Directory.Build.props の TreatWarningsAsErrors でエラーになる）。 本節は推移的依存まで広げる。
-    $auditText = Invoke-DotNet @('restore', $Solution, '-p:NuGetAuditMode=all', '--force-evaluate')
+    $audit = Invoke-DotNet @('restore', $Solution, '-p:NuGetAuditMode=all', '--force-evaluate')
+    $auditText = $audit.Text
     $auditHits = @($auditText -split "`r?`n" | Where-Object { $_ -match 'NU19\d\d' })
 
-    # 監査自体が失敗した場合（復元の失敗）に 0 件と誤判定しない（終了コードは Invoke-DotNet が取れないため、
-    # 警告に加えて「監査の結果が出たか」ではなく NuGet のエラー（NU1xxx）の有無も見る）
-    $auditFailed = $auditText -match 'error NU1(?!9)\d\d'
-    Add-Result 'NuGet の健全性' ($auditHits.Count -eq 0 -and -not $auditFailed) "脆弱性 $($auditHits.Count) 件（推移的依存を含む）"
+    # 監査自体が失敗した場合（復元の失敗）に 0 件と誤判定しない（終了コードが 0 以外なら不合格にし、
+    # NuGet のエラー（NU1xxx。 脆弱性の NU19xx を除く）の有無も見る）
+    $auditFailed = $audit.ExitCode -ne 0 -or $auditText -match 'error NU1(?!9)\d\d'
+    Add-Result 'NuGet の健全性' ($auditHits.Count -eq 0 -and -not $auditFailed) "脆弱性 $($auditHits.Count) 件（推移的依存を含む） / 終了コード $($audit.ExitCode)"
     $auditHits | Select-Object -First 10 | ForEach-Object { "      $($_.Trim())" }
     if ($auditFailed) {
         "      監査（復元）が失敗した"
@@ -433,13 +440,14 @@ foreach ($project in $packableProjects) {
 
     # ④ 同じパッケージの版が 1 つだけある
     #    （`EsUtil.Platform.Core` の照合が `EsUtil.Platform.Core.Windows` を巻き込まないよう、名前と 3 桁の版を厳密に照合する）
-    $rxOwn = [regex]('^' + [regex]::Escape($name) + '\.\d+\.\d+\.\d+\.nupkg$')
-    $own = @(Get-ChildItem -Path $feedDir -File | Where-Object { $rxOwn.IsMatch($_.Name) })
-    if ($own.Count -gt 1) {
-        $feedDuplicateIssues.Add(("{0}: {1}" -f $name, (($own | Sort-Object Name | ForEach-Object { $_.Name }) -join ', ')))
+    $rxSameNamePackages = [regex]('^' + [regex]::Escape($name) + '\.\d+\.\d+\.\d+\.nupkg$')
+    $sameNamePackages = @(Get-ChildItem -Path $feedDir -File | Where-Object { $rxSameNamePackages.IsMatch($_.Name) })
+    if ($sameNamePackages.Count -gt 1) {
+        $files = ($sameNamePackages | Sort-Object Name | ForEach-Object { $_.Name }) -join ', '
+        $feedDuplicateIssues.Add(("{0}: {1}" -f $name, $files))
     }
-    elseif ($own.Count -eq 1 -and $own[0].Name -ne "$name.$tableVersion.nupkg") {
-        $feedDuplicateIssues.Add(("{0}: 表のバージョンと違う版だけがある {1}" -f $name, $own[0].Name))
+    elseif ($sameNamePackages.Count -eq 1 -and $sameNamePackages[0].Name -ne "$name.$tableVersion.nupkg") {
+        $feedDuplicateIssues.Add(("{0}: 表のバージョンと違う版だけがある {1}" -f $name, $sameNamePackages[0].Name))
     }
 }
 
@@ -482,10 +490,20 @@ elseif (-not $Fix -and -not $FullFormat) {
 else {
     Write-Output '== 11. コードスタイル（dotnet format） =='
     if ($Fix) {
-        # 自動修正してから判定する（修正した内容で合否を出す）
-        & dotnet format whitespace $Solution --no-restore 2>&1 | Out-Null
-        & dotnet format style $Solution --severity warn --no-restore 2>&1 | Out-Null
-        & dotnet format analyzers $Solution --severity warn --no-restore 2>&1 | Out-Null
+        # 自動修正してから判定する（修正した内容で合否を出す）。 修正自体の失敗は後段の判定では
+        # 見えない（判定は修正後の状態を見るため）ので、ここで終了コードを確かめる。
+        # `--severity warn` は style / analyzers だけが受ける（whitespace に渡すと引数の誤りになる）。
+        $fixSteps = @(
+            @('whitespace'),
+            @('style', '--severity', 'warn'),
+            @('analyzers', '--severity', 'warn')
+        )
+        $fixFailures = [System.Collections.Generic.List[string]]::new()
+        foreach ($step in $fixSteps) {
+            $fix = Invoke-DotNet (@('format') + $step + @($Solution, '--no-restore'))
+            if ($fix.ExitCode -ne 0) { $fixFailures.Add(("{0}（終了コード {1}）" -f $step[0], $fix.ExitCode)) }
+        }
+        Add-Result 'コードスタイルの修正' ($fixFailures.Count -eq 0) $(if ($fixFailures.Count -eq 0) { '3 段（whitespace / style / analyzers）' } else { $fixFailures -join ' / ' })
         # 修正した内容で判定するため、読み込みのキャッシュを捨てる
         Clear-FileCache
     }
