@@ -154,7 +154,7 @@ function Update-Toc {
 }
 
 # 一時プロジェクトはリポジトリの外へ置く（リポジトリのビルド設定を適用させない。 計測の再現性を保つ）
-$workspace = Join-Path ([IO.Path]::GetTempPath()) 'SaveEvidence.Measurement'
+$workspace = Join-Path ([IO.Path]::GetTempPath()) 'EsUtil.Measurement'
 if (Test-Path -LiteralPath $workspace) {
     Remove-Item -LiteralPath $workspace -Recurse -Force
 }
@@ -331,7 +331,7 @@ internal static class Program
     private const int SampleMagnification = 4;
 
     /// <summary>サンプル画像を置くフォルダを指す環境変数（未設定なら画像を作らない）。</summary>
-    private const string SampleDirectoryVariable = "SAVEEVIDENCE_SAMPLE_DIR";
+    private const string SampleDirectoryVariable = "ESUTIL_SAMPLE_DIR";
 
     private static readonly string[] s_classNames = [ClassBit, ClassRead, ClassView];
     private static readonly string[] s_sizeLabels = [.. s_sizes.Select(static s => s.Label)];
@@ -1239,7 +1239,7 @@ internal static class Program
     /// <summary>プロセッサの名前を返す（計測スクリプトが Win32_Processor から渡す）。</summary>
     private static string ProcessorName()
     {
-        var name = Environment.GetEnvironmentVariable("SAVEEVIDENCE_CPU_NAME");
+        var name = Environment.GetEnvironmentVariable("ESUTIL_CPU_NAME");
         return string.IsNullOrWhiteSpace(name) ? "不明（結果の所有者は文書ではなく計測環境です）" : name.Trim();
     }
 
@@ -1795,7 +1795,7 @@ internal static class Program
         => new(size.Width / 4, size.Height / 4, size.Width / 2, size.Height / 2);
 
     private static string FileDirectory()
-        => Path.Combine(Path.GetTempPath(), "SaveEvidence.Measurement.Files");
+        => Path.Combine(Path.GetTempPath(), "EsUtil.Measurement.Files");
 
     /// <summary>計測で書いたファイルを片付ける（次回の計測へ持ち越さない）。</summary>
     private static void CleanUpFiles()
@@ -1856,20 +1856,20 @@ catch {
     Write-Output "警告: プロセッサの名前を取得できませんでした（$($_.Exception.Message)）"
 }
 
-$previousCpuName = $env:SAVEEVIDENCE_CPU_NAME
-$env:SAVEEVIDENCE_CPU_NAME = $cpuName
+$previousCpuName = $env:ESUTIL_CPU_NAME
+$env:ESUTIL_CPU_NAME = $cpuName
 
 # サンプル画像は文書を差し替えるときだけ作る（-NoWrite でリポジトリを書き換えない。
 # 計測は 1 回で済ませるため、計測の前へ置く。 .github/ドキュメント規約.md §1）
 $sampleDir = Join-Path $PSScriptRoot 'sample'
-$previousSampleDir = $env:SAVEEVIDENCE_SAMPLE_DIR
+$previousSampleDir = $env:ESUTIL_SAMPLE_DIR
 if ($NoWrite) {
-    $env:SAVEEVIDENCE_SAMPLE_DIR = ''
+    $env:ESUTIL_SAMPLE_DIR = ''
 }
 else {
     Remove-Item -LiteralPath $sampleDir -Recurse -Force -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Path $sampleDir -Force | Out-Null
-    $env:SAVEEVIDENCE_SAMPLE_DIR = $sampleDir
+    $env:ESUTIL_SAMPLE_DIR = $sampleDir
 }
 
 try {
@@ -1879,8 +1879,8 @@ try {
     }
 }
 finally {
-    $env:SAVEEVIDENCE_CPU_NAME = $previousCpuName
-    $env:SAVEEVIDENCE_SAMPLE_DIR = $previousSampleDir
+    $env:ESUTIL_CPU_NAME = $previousCpuName
+    $env:ESUTIL_SAMPLE_DIR = $previousSampleDir
 }
 
 $measuredText = (($measured -join "`n") -replace "`r`n", "`n").TrimEnd()

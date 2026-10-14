@@ -5,10 +5,11 @@
     <RootNamespace>EsUtil.Feature.Marquee</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Description>マーキー選択（ドラッグ矩形の選択・移動・リサイズ）の UI 非依存の計算層。</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(Version)" />
   </ItemGroup>
 
   <ItemGroup>

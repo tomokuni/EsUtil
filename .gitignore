@@ -1,0 +1,41 @@
+# Build results
+bin/
+obj/
+
+# Visual Studio cache/options
+.vs/
+*.user
+*.suo
+*.cache
+*.ldf
+*.sdf
+
+# NuGet（nupkg/ はローカル フィードでありリポジトリへコミットするため無視しない）
+packages/
+*.snupkg
+.nuget/
+
+# BenchmarkDotNet
+BenchmarkDotNet.Artifacts/
+
+# Test Results
+TestResults/
+.trx
+
+# IDE
+.idea/
+.work/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# git
+.git
+
+# Project-specific
+*.log
+*.tmp

@@ -1,0 +1,71 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- ライブラリのバージョン。全プロジェクトで単一所有し、各 .csproj では指定しない。 -->
+    <!-- 自動インクリメントは行わない。パッケージはローカル フィード（nupkg/）へ出力し、外部へは公開しない。 -->
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- パッケージ出力（全プロジェクト共通。 各 .csproj では指定しない）。
+         本体プロジェクトはパッケージを作り、テスト・サンプルは作らない。
+         `PackageId` と `AssemblyName` は省略し、プロジェクト名と一致させる。 -->
+    <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample)$'))</_SeIsTestOrSample>
+    <IsPackable Condition="'$(_SeIsTestOrSample)' == 'true'">false</IsPackable>
+    <IsPackable Condition="'$(_SeIsTestOrSample)' != 'true'">true</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- パッケージの基本情報（全プロジェクト共通。 各 .csproj では指定しない）。 -->
+    <Authors>EsUtil</Authors>
+    <Company>EsUtil</Company>
+    <Product>EsUtil</Product>
+    <PackageProjectUrl>https://github.com/EsUtil</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- パッケージの説明は各 .csproj の Description が持つ（プロジェクトごとに異なる）。 -->
+    <!-- パッケージには XML ドキュメントを含めない（本リポジトリは検証にだけ使い、配布物へは出さない）。 -->
+    <IncludeSymbols>false</IncludeSymbols>
+    <!-- ローカル フィードはプロジェクトごとの 1 ファイルであるため、依存パッケージを同封しない。 -->
+    <SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- コード スタイルとドキュメントコメントの検証（全プロジェクト共通。 各 .csproj では指定しない）。
+         目的は「機械的に判定できる規約をビルドの警告にする」こと（0 件が合否。 .github/検証手順.md）。 -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- ドキュメント コメントの検証（不足・cref の誤り）を行う。
+         本リポジトリはライブラリであり、生成した XML は**パッケージ同封のドキュメント**として
+         利用側の IntelliSense に使われるため、出力（lib/<tfm>/<name>.xml）へ含める（既定のまま）。
+         そのため `CopyDocumentationFileToOutputDirectory` を false にしない
+         （false にするとパッケージ作成が NU5026 で失敗する。 実測）。 -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- アナライザーの解析モード（全プロジェクト共通。 各 .csproj では指定しない）。
+         `Recommended` は SDK が推奨する規則をまとめて有効にする（規則の列挙を .editorconfig へ手書きしない）。
+         無効にする規則だけを .editorconfig に `severity = none` で明示する（opt-out 方式）。 -->
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <!-- 警告をエラーにする（「dotnet build が通れば規約に準拠している」を終了コードで判定できる）。
+         検証スクリプトの `-warnaserror` に依存しない（素の `dotnet build` でも検出できる）。 -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 使用を禁止する API（BannedSymbols.txt）をコンパイラで検出する。
+         規則の所有者は .github/コーディング規約.md（例: フラグ enum は HasFlag ではなくビット演算を使う）。 -->
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="[5.*,)" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+
+    <!-- 規約のうち、SDK のアナライザー（AnalysisMode=Recommended）が検出しない項目を補うアナライザー。
+         有効にする規則は .editorconfig が単一所有する（既定の重要度のまま使わない）。 -->
+    <!-- 非同期の書き方（`async void` の禁止・`Async` 接尾辞）。 規則は .github/コーディング規約.md §7 / .github/命名規約.md。 -->
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="[17.*,)" PrivateAssets="all" />
+    <!-- ファイル名と型名の一致（MA0048）/ 名前空間セグメントと型名の一致の禁止（MA0049）。
+         規則は .github/命名規約.md（「1 ファイル 1 型」「ファイル名は型名と一致」「名前空間セグメントと型名を一致させない」）。 -->
+    <PackageReference Include="Meziantou.Analyzer" Version="[3.*,)" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

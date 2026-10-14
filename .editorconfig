@@ -1,0 +1,362 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# All files
+[*]
+charset = utf-8
+# 作業ツリーの改行コードは CRLF（リポジトリへ格納するブロブは .gitattributes の `* text=auto` が LF へ正規化する）。
+# ここを `lf` にすると `dotnet format` やエディタが作業ツリーを LF へ書き換え、検証（改行コード）に違反する。
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# XAML files
+[*.xaml]
+indent_style = space
+indent_size = 4
+
+# JSON files
+[*.json]
+indent_style = space
+indent_size = 2
+
+# XML files
+[*.xml]
+indent_style = space
+indent_size = 2
+
+# csproj files
+[*.csproj]
+indent_style = space
+indent_size = 2
+
+# C# のアナライザー設定（下のブロックはこのセクションに属させる）
+# 注意: セクションを分けないと設定が直前のセクション（[*.csproj]）へ属し、
+#       **.cs ファイルには一切適用されない**（実測: 設定が無効のまま 0 警告になっていた）。
+# C# files
+[*.cs]
+indent_style = space
+indent_size = 4
+
+# ============================================================
+# ビルドで検出するコード スタイルと品質（人・AI のレビューに頼らない）
+# ============================================================
+# 目的: 機械的に判定できる規約をビルドの警告（0 件の合否対象）にし、
+#       レビューと AI の調査を「機械が判定できない事項」に絞る。
+# 運用: 検出はビルド（全プロジェクトが EnforceCodeStyleInBuild を持つ）、
+#       修正は `dotnet format`（dotnet format whitespace / style / analyzers）。
+#       手順は .github/検証手順.md が定める。
+# 追加の指針: 規約を「人間と AI が読んで守る」ではなく「コンパイラが守らせる」形にする。
+#       有効化の候補は `dotnet build -p:AnalysisMode=All` で実測して選ぶ（実測手順は .github/検証手順.md）。
+
+# --- スタイル（IDE） ---
+
+# 不要な using をビルド時に警告として検出する（「必要のない名前空間に対する using は記載しない」方針の恒久化）
+dotnet_diagnostic.IDE0005.severity = warning
+
+# 書式（インデント・空白・改行の位置）を .editorconfig に一致させる。
+# IDE0055 は書式の逸脱をすべて挙げるため、`dotnet format whitespace` で一括修正する。
+dotnet_diagnostic.IDE0055.severity = warning
+
+# 名前空間をフォルダに追従させる（命名規約の「名前空間はフォルダに追従させる」をコンパイラで強制する）。
+# 自作スクリプトでの照合より確実で、AI が目視する必要もなくなる。
+dotnet_diagnostic.IDE0130.severity = warning
+
+# 名前空間の宣言はファイル スコープ（`namespace X;`）にする（命名規約）。
+dotnet_diagnostic.IDE0161.severity = warning
+
+# 不要な抑止（`#pragma warning disable` / `SuppressMessage`）を検出する。
+# 「許可する抑止は理由付きの最小限」という規約の機械的な裏付け（不要になった抑止を残さない）。
+dotnet_diagnostic.IDE0079.severity = warning
+
+# --- 品質（CA） ---
+
+# 一般例外（Exception）の捕捉は境界に限る（例外処理規約 §4）。
+# 境界での捕捉は catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex)) の形にし、when フィルターで本規則を満たす。
+# これで「境界かどうか」がコード上に現れ（git grep BoundaryCatch で一覧できる）、境界以外の包括捕捉がビルドで検出される。
+dotnet_diagnostic.CA1031.severity = warning
+
+# 死コード（プライベート メンバー）を検出する。 規約「本番で未使用になった公開 API は削除する」の機械的な裏付け。
+dotnet_diagnostic.IDE0051.severity = warning
+dotnet_diagnostic.IDE0052.severity = warning
+dotnet_diagnostic.CA1823.severity = warning
+
+# 変更しないフィールドを readonly にする（規約「readonly フィールドを積極的に使う」）。
+dotnet_diagnostic.IDE0044.severity = warning
+
+# 不要なコードを検出する（冗長なキャスト・不要な代入・未使用のパラメーター・冗長な default）。
+dotnet_diagnostic.IDE0004.severity = warning
+dotnet_diagnostic.IDE0059.severity = warning
+dotnet_diagnostic.IDE0060.severity = warning
+dotnet_diagnostic.IDE0034.severity = warning
+
+# インスタンス データを使わないメンバーを static にする。
+dotnet_diagnostic.CA1822.severity = warning
+
+# C# 14 / コレクション式を活用する（規約「C# 14 の機能をフル活用する」）。
+dotnet_diagnostic.IDE0290.severity = warning
+dotnet_diagnostic.IDE0305.severity = warning
+
+# オブジェクトの初期化を簡素化する（生成と同時に設定する）。
+dotnet_diagnostic.IDE0017.severity = warning
+
+# 到達しないコード（常に真/偽の条件・null にならない値の null 検査）を検出する。
+# 規約「到達不能な防御を書かない」の機械的な裏付け（実測: 2 ファイル 4 件）。
+dotnet_diagnostic.CA1508.severity = warning
+
+# 明示的な既定値の初期化（`= 0` / `= default` / `= null`）を検出する（冗長な初期化を残さない）。
+dotnet_diagnostic.CA1805.severity = warning
+
+# 静的フィールドを宣言時に初期化する（静的コンストラクターを不要に保つ）。
+dotnet_diagnostic.CA1810.severity = warning
+
+# 値型の等値（Equals / == / !=）を実装する（値型は値で比較できるようにする）。
+dotnet_diagnostic.CA1815.severity = warning
+
+# 戻り値の無視・引数の検証漏れ・例外の再スローを検出する。
+dotnet_diagnostic.CA1806.severity = warning
+
+# 書式（`ToString` / `string.Format`）と文字列比較に IFormatProvider / StringComparison を要求する。
+# ロケール依存の書式・比較は環境によって結果が変わる（座標ラベル・ファイル名テンプレートで実害になる）。
+dotnet_diagnostic.CA1305.severity = warning
+dotnet_diagnostic.CA1307.severity = warning
+dotnet_diagnostic.CA1308.severity = warning
+
+# 新しい例外ヘルパー（ArgumentOutOfRangeException.ThrowIf* / ObjectDisposedException.ThrowIf）を使う。
+dotnet_diagnostic.CA1512.severity = warning
+dotnet_diagnostic.CA1513.severity = warning
+
+# インデックス可能なコレクションに LINQ（First / Last 等）を使わない（性能）。
+dotnet_diagnostic.CA1826.severity = warning
+
+# `Span<T>.Fill(default)` の代わりに `Span<T>.Clear()` を使う。
+dotnet_diagnostic.CA1855.severity = warning
+
+# JsonSerializerOptions を毎回生成しない（実測: 1 ファイル 2 件）。
+dotnet_diagnostic.CA1869.severity = warning
+
+# nint / nuint への暗黙変換（オーバーフローで値が変わる）を検出する。
+dotnet_diagnostic.CA2020.severity = warning
+
+# ログが無効なときに評価が高価な引数を渡さない（ログ規約の「高頻度の出力は Trace」と対になる）。
+dotnet_diagnostic.CA1873.severity = warning
+
+# 静的ホルダー型（static メンバーだけを持つ型）を static class にする。
+dotnet_diagnostic.CA1052.severity = warning
+
+# P/Invoke の DLL 探索順序を固定する（カレント ディレクトリの偽 DLL を読み込ませない）。
+# 対象は kernel32 / user32 / dwmapi / gdi32 / shcore などのシステム DLL のみ（実測）。
+# `DefaultDllImportSearchPaths(DllImportSearchPath.System32)` はアセンブリ単位で指定する（メソッド単位も可能だが、P/Invoke を集約する 2 プロジェクトで 1 回だけ書く）。
+dotnet_diagnostic.CA5392.severity = warning
+
+# 型名の接尾辞（`Collection` / `Stack` 等）が実際の基底型と矛盾しないようにする。
+# 実測で修正した対象: テストの直列化コレクション定義（`...Group` へ改名）、`UndoStack`（`Stack` を連想させるため `UndoHistory` へ改名）、
+# `EventArgs` 接尾辞を持つ 6 型（`EventArgs` 派生にする）。
+dotnet_diagnostic.CA1711.severity = warning
+
+# 演算子には同名の代替メソッドを用意する（演算子を持たない言語・式木・リフレクションからも呼べるようにする）。
+# 実測で追加した対象: `EsPoint` / `EsVector` / `EsSize` / `EsPointInt` / `EsSizeInt` の `Add` / `Subtract` / `Negate` / `Multiply` / `Divide`。
+dotnet_diagnostic.CA2225.severity = warning
+
+# 公開イベントの型は EventHandler / EventHandler<T>（T は EventArgs 派生）に限る。
+# 値型・record の通知（ヒープ確保 0 を守る）は event を使わず IDisposable Subscribe(Action<T>) で公開する
+# （仕組みは EsUtil.Platform.Core.CallbackList<T> が単一所有する。 規則は .github/コーディング規約.md §7）。
+dotnet_diagnostic.CA1003.severity = warning
+
+# 連続する空行を検出する（体裁をコンパイラで守らせる）。
+dotnet_diagnostic.IDE2000.severity = warning
+
+# --- 追加のアナライザーで強制する規則（Directory.Build.props がパッケージを参照する） ---
+
+# `async void` を使わない（UI のイベント ハンドラー以外。 例外が呼び出し元へ伝わらない。 規約 §7）。
+dotnet_diagnostic.VSTHRD100.severity = warning
+
+# `Task` / `ValueTask` を返すメソッドは `Async` で終える（規則は .github/命名規約.md）。
+dotnet_diagnostic.VSTHRD200.severity = warning
+
+# 1 ファイル 1 型・ファイル名は型名と一致させる（規則は .github/命名規約.md「ファイル」）。
+# 入れ子型・付随型の同居は MA0048 の対象外である（実測してから採用した）。
+dotnet_diagnostic.MA0048.severity = warning
+
+# 名前空間のセグメントと型名を一致させない（一致すると配下から CS0118 で参照できない。 規則は .github/命名規約.md）。
+dotnet_diagnostic.MA0049.severity = warning
+
+# 文字列の比較は `string.Equals` + `StringComparison` を使う（`==` では比較規則を指定できない。
+# 規約 §4「文字列比較は StringComparison を明示する」と対になる。 実測で 1 件を修正）。
+dotnet_diagnostic.MA0006.severity = warning
+
+# アンマネージド資源は `SafeHandle` に包み、**手書きのファイナライザを使わない**（規則は .github/ビルド設定規約.md §3）。
+# ファイナライザは解放順序が保証されず（GC が任意のタイミング・スレッドで呼び、他のマネージド オブジェクトは
+# 既に回収済みかもしれない）、正しく書くには `Dispose(bool)` / `SuppressFinalize` / 二重解放の防止が必要で
+# **解放の経路が 2 本になる**（「解放の実装は 1 つ」に反する）。 `SafeHandle` 自身がファイナライザを持ち、
+# 解放の実装は `ReleaseHandle` 1 か所へ集約できる（Microsoft 公式「Implement a Dispose method」も同じ推奨）。
+# `SafeHandle` を使えない場合は付録 A に理由付きで載せる（一覧に無い抑止は使わない）。
+dotnet_diagnostic.MA0055.severity = warning
+
+# --- 記述スタイル（コンパイラで強制する。 規則は .github/コーディング規約.md） ---
+
+# 複数行のブロックは `{ }` を必須にする（1 行のガード節（早期 return / continue / throw）は省略できる。 規約 §4）。
+csharp_prefer_braces = when_multiline
+dotnet_diagnostic.IDE0011.severity = warning
+
+# null 判定は `is null` / `is not null` に統一する（`== null` / `!= null` を混ぜない。 規約 §4）。
+dotnet_diagnostic.IDE0041.severity = warning
+
+# 公開コレクションは読み取り専用インターフェースで公開する（規約 §5）。
+dotnet_diagnostic.CA1002.severity = warning
+
+# --- 命名（コンパイラで強制する。 規則は .github/命名規約.md） ---
+# private インスタンス フィールドは `_camelCase`。
+dotnet_naming_rule.private_instance_fields.symbols = private_instance_fields
+dotnet_naming_rule.private_instance_fields.style = underscore_camel
+dotnet_naming_rule.private_instance_fields.severity = warning
+dotnet_naming_symbols.private_instance_fields.applicable_kinds = field
+dotnet_naming_symbols.private_instance_fields.applicable_accessibilities = private, private_protected
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+dotnet_naming_style.underscore_camel.required_prefix = _
+
+# private 静的フィールドは `s_camelCase`（インスタンス フィールドの規則より後に書いて優先させる。
+# `required_modifiers` は「必須」の意味であり否定が書けないため、後勝ちの順序で分ける）。
+dotnet_naming_rule.private_static_fields.symbols = private_static_fields
+dotnet_naming_rule.private_static_fields.style = s_prefix_camel
+dotnet_naming_rule.private_static_fields.severity = warning
+dotnet_naming_symbols.private_static_fields.applicable_kinds = field
+dotnet_naming_symbols.private_static_fields.applicable_accessibilities = private, private_protected
+dotnet_naming_symbols.private_static_fields.required_modifiers = static
+dotnet_naming_style.s_prefix_camel.capitalization = camel_case
+dotnet_naming_style.s_prefix_camel.required_prefix = s_
+
+# `const` フィールドは PascalCase（アクセス修飾子によらず同じ）。
+dotnet_naming_rule.constant_fields.symbols = constant_fields
+dotnet_naming_rule.constant_fields.style = pascal_case
+dotnet_naming_rule.constant_fields.severity = warning
+dotnet_naming_symbols.constant_fields.applicable_kinds = field
+dotnet_naming_symbols.constant_fields.applicable_accessibilities = *
+dotnet_naming_symbols.constant_fields.required_modifiers = const
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+# インターフェースは `I` + PascalCase。
+dotnet_naming_rule.interfaces.symbols = interface_symbols
+dotnet_naming_rule.interfaces.style = begins_with_i
+dotnet_naming_rule.interfaces.severity = warning
+dotnet_naming_symbols.interface_symbols.applicable_kinds = interface
+dotnet_naming_style.begins_with_i.capitalization = pascal_case
+dotnet_naming_style.begins_with_i.required_prefix = I
+
+# 有効化しない規則（`AnalysisMode=Recommended` でも有効になるため、明示的に無効化する。 理由を必ず書く）:
+# 採用の是非は `dotnet build -p:AnalysisMode=All -v:q --no-incremental` の 1 回で再測定できる。
+# 注意: `dotnet_diagnostic.*` は直前のセクションに属するため、本ブロックは `[*.cs]` の直下（他のセクションより前）に置く。
+#
+# CA1859 … 具象型の使用を促す規則。 「抽象（インターフェース）へ依存する」方針（コーディング規約 §5）と衝突する。
+dotnet_diagnostic.CA1859.severity = none
+# CA1001 / CA1063 / CA2213 … 「破棄可能なフィールドを持つ型は IDisposable を実装し、そのフィールドを破棄する」。
+#   UI コントロールはビジュアル ツリー（親）が子の寿命を所有し、親の Dispose で子を破棄しない
+#   （実際に dotnet format が UI コントロールへ IDisposable を機械実装し、CA2213 が 2 → 24 件へ増えた）。
+#   資源の解放は各型が OnDetachedFromVisualTree 等のライフサイクルで行う（コーディング規約 §7）。
+dotnet_diagnostic.CA1001.severity = none
+dotnet_diagnostic.CA1063.severity = none
+dotnet_diagnostic.CA2213.severity = none
+# CA2000 … 「破棄される前にスコープ外になる」を検出するが、UI の子要素（追加した要素は親が所有する）を
+#   誤検出する（大半が `new Border()` 等の要素生成）。
+dotnet_diagnostic.CA2000.severity = none
+# CA2007 … ライブラリは `ConfigureAwait(false)` を明示する。
+#   方針（2026-10-04 検討）: **採用しない**。 本リポジトリの層には await が 1 つも無く（実測）、
+#   利用側の UI スレッドの文脈を前提とするコードでは `ConfigureAwait(false)` が逆に壊れる（実測 12 件以上）。
+dotnet_diagnostic.CA2007.severity = none
+# CA1062 … 公開メンバーの参照型引数を検証する（`ArgumentNullException.ThrowIfNull`）。
+#   方針（2026-10-04 検討）: **可搬なライブラリ（`EsUtil.*`）に限って有効にする**。
+#   これらは他リポジトリから呼ばれ、XAML・DI・リフレクション経由（コンパイル時の null 検査が効かない経路）もある。
+#   製品内の層（UI・アプリ）は `Nullable` 注釈を基本とし、境界（相互変換）で個別に検証する
+#   （全プロジェクトで有効にすると UI プロパティの setter の `value` まで対象になり、追加が広範囲に及ぶ。
+#    実測: 初波 17 件 + 以降も増加）。 適用は下のセクション。
+dotnet_diagnostic.CA1062.severity = none
+# 注意: セクション ヘッダーより後ろの設定はそのセクションに属するため、スコープを絞る設定は
+# グローバルな opt-out（本ブロック）より後に置く（先に置くと後続の opt-out がその glob 限定になる）。
+# CA1515 … 公開型を internal にすることを促すが、ライブラリの公開 API が対象のため衝突する。
+dotnet_diagnostic.CA1515.severity = none
+# CA1812 … 未使用の internal 型を検出するが、DI・XAML・リフレクションで生成する型を誤検出する。
+dotnet_diagnostic.CA1812.severity = none
+# CA1024 … メソッドをプロパティへ変えることを促すが、引数なしでも「計算する」意味を持つメソッドは残す。
+dotnet_diagnostic.CA1024.severity = none
+# CA1034 … 公開の入れ子型を避けるよう促すが、ファサードの入れ子 `Limits`（数値スキーマ）は意図した設計。
+dotnet_diagnostic.CA1034.severity = none
+# IDE0008 … `var` を禁止する方向の規則であり、本リポジトリの「型が自明な場合は var」と衝突する。
+dotnet_diagnostic.IDE0008.severity = none
+
+# --- 追加のアナライザー（Meziantou.Analyzer）で有効にしない規則 ---
+# MA0008 … struct へ `[StructLayout]` を要求する。 本リポジトリは P/Invoke の構造体に必要な箇所だけ明示する
+#   （レイアウトが自明な値型の組へ一律に付ける規則とは方針が違う）。 実測 18 件。
+dotnet_diagnostic.MA0008.severity = none
+# MA0051 … メソッドの行数上限（60 行）。 本規約は行数で分割を強制しない
+#   （実測 4 件はいずれも写像表の `switch` 式であり、分割すると対応関係が読みにくくなる）。
+dotnet_diagnostic.MA0051.severity = none
+# MA0099 … enum のメンバーへ明示的な数値を要求する。 規約（命名規約）は「数値は明示しない
+#   （順序に意味がある場合は明示し、理由を doc コメントに書く）」であるため衝突する。 実測 8 件。
+dotnet_diagnostic.MA0099.severity = none
+# MA0015 … `ArgumentException` へ渡す名前が「メソッドの引数」であることを要求する。 本リポジトリの検証は
+#   **オブジェクトの状態（設定値）** が対象であり、引数ではないため `nameof(プロパティ)` を渡す
+#   （実測 56 件はすべて設定値の検証。 引数の取り違えではない）。 規則は .github/例外処理規約.md §2。
+dotnet_diagnostic.MA0015.severity = none
+# VSTHRD003 … 「外部で生成された Task を await しない」を要求する。 本リポジトリは UI スレッドへ戻るため
+#   `ConfigureAwait` を使わず（CA2007 も無効）、タイムアウト付きで await する（実測 4 件）。
+dotnet_diagnostic.VSTHRD003.severity = none
+# MA0004 … `ConfigureAwait(false)` を要求する（CA2007 と同旨。 上記の方針で有効化する）。
+dotnet_diagnostic.MA0004.severity = none
+# VSTHRD100 / VSTHRD101 … `async void` と void デリゲートへの async ラムダを禁止するが、本規約は
+#   **UI のイベント ハンドラーでの `async void`** を許す（コーディング規約 §7）。 VSTHRD100 は XAML で配線した
+#   ハンドラーを識別できず、正しいシグネチャのハンドラーを報告する（実測 7 件はすべて
+#   `(object?, RoutedEventArgs)`のハンドラー）。 VSTHRD101 のイベント購読（`Opened += async (_, _) => …`）も同類。
+#   製品コードの非ハンドラー（`StartSelectionMode`）は本規約に従って `async Task` + 失敗のログへ是正済み。
+dotnet_diagnostic.VSTHRD100.severity = none
+dotnet_diagnostic.VSTHRD101.severity = none
+# VSTHRD002 … 「Task を同期的に待たない」を要求するが、本リポジトリの同期読み取りは
+#   `IsCompletedSuccessfully`（または `ContinueWith` の継続）を確認した後だけ行うためデッドロックしない。
+#   このガードをアナライザーが区別できない（実測 2 件はいずれもガード付き）。 規則は .github/コード規約ではない。
+dotnet_diagnostic.VSTHRD002.severity = none
+
+# ファイル単位の例外（機械的な判定が実装の意図と合わない箇所。 理由を必ず書く）:
+
+# CA1062 を可搬なライブラリ（UI 非依存・他リポジトリから呼ばれる層）に限って有効にする
+# （グローバルな opt-out より後に置く。 上記の注意を参照）。
+[src/EsUtil.Platform.Core/src/**,src/EsUtil.Feature.Loupe.Core/src/**,src/EsUtil.Feature.Loupe.Presenter/src/**,src/EsUtil.Feature.Marquee.Core/src/**,src/EsUtil.Feature.Marquee.Presenter/src/**]
+dotnet_diagnostic.CA1062.severity = warning
+# SkiaSharp の null 許容注釈と実際の戻り値が一致しない（SKCodec.Create は失敗時に null を返すが非 null として注釈されている）ため、
+# この 2 ファイルでは CA1508 を無効にする（防御的な null 検査を残す）。
+# 注意: セクション ヘッダーを 2 行 並べると、後のセクションだけが設定を持つ（EditorConfig の仕様）。 複数は 1 行へまとめる。
+[src/EsUtil.Platform.Core/src/EsKey.cs]
+dotnet_diagnostic.CA1720.severity = none
+
+# 禁止 API（RS0030）の所有者。 BannedSymbols.txt が禁止する API を「使う場所」はここだけである
+# （EnumCanonical は Enum.TryParse を使う）。
+[src/EsUtil.Platform.Core/src/EnumCanonical.cs]
+dotnet_diagnostic.RS0030.severity = none
+
+# 規約が認める付随型（型と一体の enum・操作クラス）を同居させるファイルは、ファイル名（主たる型）と
+# 2 番目の型名が一致しない（.github/命名規約.md「型と一体の付随型」）。 MA0048 を無効にする
+# （実測 7 ファイル。 主たる型＋付随型の組である）。
+[**/*.axaml.cs]
+dotnet_diagnostic.MA0048.severity = none
+
+# 同じ値を持つ別名（重複値）の解決を検証するテストは、検証データとして意図的に重複値を持つ
+# （実測: CA1069 は「意図的な重複」を区別できないため、本ファイルだけ無効にする）。
+[src/EsUtil.Platform.Core/tests/EnumCanonical.Tests.cs]
+dotnet_diagnostic.CA1069.severity = none
+
+# `CA1848`（LoggerMessage デリゲートの使用）と `RS0030`（禁止 API。 例: `Enum.HasFlag`）は
+# 製品コードの性能規則である。 テストは「NullLogger では何も起きない」ことの検証のために直接 ILogger を呼び、
+# サンプルは見た目の確認用であるため、どちらも対象外にする。
+[{**/tests/**,**/sample/**}]
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.RS0030.severity = none
+
+# テスト ファイル名は `{対象}.Tests.cs`・クラス名は `{対象}Tests`（`.` を除去する）ため、
+# ファイル名とクラス名が一致しない（.github/命名規約.md「テスト」）。 MA0048 を無効にする。
+# MA0002 … テストのアサーション（`Assert.Contains` / `Assert.Equal`）は xUnit の既定の比較を使う API であり、
+#   比較子を引数で渡すと検証の意図が読みにくくなる。
+dotnet_diagnostic.MA0048.severity = none
+dotnet_diagnostic.MA0002.severity = none
+
+# MA0006 … テストの照合は固定のリテラル（検証データ）との比較であり、文化依存の差異が生じない。
+dotnet_diagnostic.MA0006.severity = none

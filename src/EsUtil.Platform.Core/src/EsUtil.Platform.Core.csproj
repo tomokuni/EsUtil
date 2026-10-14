@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- EsBitmap がピクセルバッファへ直接アクセスするため unsafe を許可する -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>UI フレームワーク非依存の共通基盤（キーと入力・幾何・座標変換・画像・OS サービス抽象）。</Description>
   </PropertyGroup>
 
   <ItemGroup>

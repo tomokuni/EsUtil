@@ -5,10 +5,11 @@
     <RootNamespace>EsUtil.Feature.Loupe</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Description>ルーペ（選択範囲の拡大表示）の UI 非依存の計算層。</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(Version)" />
   </ItemGroup>
 
   <ItemGroup>

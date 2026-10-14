@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- System.Drawing.Bitmap のピクセルへ直接アクセスするため unsafe を許可する -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>System.Drawing.Bitmap と EsUtil.Platform.Core の画像型を相互変換する Windows 専用の拡張。</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(Version)" />
   </ItemGroup>
 
   <ItemGroup>

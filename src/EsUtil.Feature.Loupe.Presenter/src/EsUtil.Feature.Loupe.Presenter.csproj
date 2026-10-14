@@ -5,14 +5,15 @@
     <RootNamespace>EsUtil.Feature.Loupe</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Description>ルーペの外観・描画計画・ラベル計画を単一所有する UI 非依存の提示層。</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- 本層は「コアをコントロールへ組み込むときにだけ必要な処理」と「描画層（提示・外観・描画計画）」を単一所有する。
          描画 API は本層で抽象化しない（UI フレームワークごとの描画モデルの差を吸収しきれないため、描画は各 UI が行う）。
          UI フレームワークは参照しない（UI は本層を参照する）。 -->
-    <ProjectReference Include="..\..\EsUtil.Feature.Loupe.Core\src\EsUtil.Feature.Loupe.Core.csproj" />
-    <ProjectReference Include="..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <PackageReference Include="EsUtil.Feature.Loupe.Core" Version="$(Version)" />
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(Version)" />
   </ItemGroup>
 
   <ItemGroup>

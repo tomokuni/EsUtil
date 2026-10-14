@@ -1,0 +1,136 @@
+<Project>
+
+  <!-- ============================================================
+       依存関係の検査。
+       規則の所有者は .github/依存関係.md であり、本ファイルはその実装である。
+       規則を変えるときは .github/依存関係.md を先に更新する。
+
+       本リポジトリは「プロジェクト参照を使わず、ローカル フィードのパッケージを参照する」ため、
+       検査は ProjectReference ではなく PackageReference（`EsUtil.*`）を対象にする。
+       検査の対象は src/ の本体プロジェクトだけとする（テスト・サンプルは規則の対象外）。
+       ============================================================ -->
+  <Target Name="ValidatePackageReferences" BeforeTargets="Build" Condition="'$(MSBuildProjectName)' != ''">
+
+    <ItemGroup>
+      <_SeRef Include="@(PackageReference)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(Identity)', '^EsUtil\.'))">
+        <Name>%(Identity)</Name>
+      </_SeRef>
+      <_SeProjectRef Include="@(ProjectReference)">
+        <Name>%(Filename)</Name>
+      </_SeProjectRef>
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample)$'))</_SeIsTestOrSample>
+      <_SeIsTestProject>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.Tests$'))</_SeIsTestProject>
+      <_SeTestRootNamespaceOk>$([System.Text.RegularExpressions.Regex]::IsMatch('$(RootNamespace)', '\.Tests$'))</_SeTestRootNamespaceOk>
+
+      <!-- 層の判定（プロジェクト名から導出する。 規則の表は .github/依存関係.md §2・§3） -->
+      <_SeIsPlatformCore>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Platform\.Core$'))</_SeIsPlatformCore>
+      <_SeIsPlatformCoreWindows>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Platform\.Core\.Windows$'))</_SeIsPlatformCoreWindows>
+      <_SeIsFeatureCore>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Feature\.[A-Za-z]+\.Core$'))</_SeIsFeatureCore>
+      <_SeIsFeaturePresenter>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Feature\.[A-Za-z]+\.Presenter$'))</_SeIsFeaturePresenter>
+      <_SeIsFeatureControl>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Feature\.[A-Za-z]+\.Control[A-Za-z]*$'))</_SeIsFeatureControl>
+
+      <!-- 同一機能のコア / 提示層の名前（例: EsUtil.Feature.Loupe.Presenter → EsUtil.Feature.Loupe.Core） -->
+      <_SeFeatureName>$([System.Text.RegularExpressions.Regex]::Replace('$(MSBuildProjectName)', '\.(Core|Presenter|Control[A-Za-z]*)$', ''))</_SeFeatureName>
+      <_SeFeatureCoreName Condition="'$(_SeFeatureName)' != ''">$(_SeFeatureName).Core</_SeFeatureCoreName>
+      <_SeFeaturePresenterName Condition="'$(_SeFeatureName)' != ''">$(_SeFeatureName).Presenter</_SeFeaturePresenterName>
+    </PropertyGroup>
+
+    <!-- R1: 最下層（EsUtil.Platform.Core）は EsUtil のパッケージを参照しない -->
+    <Error Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsPlatformCore)' == 'true' And '@(_SeRef)' != ''"
+           Code="DEP0001"
+           Text="依存関係違反: EsUtil.Platform.Core は最下層のため EsUtil のパッケージを参照できません（参照: @(_SeRef->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
+
+    <!-- R2: EsUtil.Platform.Core.Windows は EsUtil.Platform.Core だけを参照する -->
+    <ItemGroup Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsPlatformCoreWindows)' == 'true'">
+      <_SeBad2 Include="@(_SeRef)" Exclude="@(_SeRef->WithMetadataValue('Name', 'EsUtil.Platform.Core'))" />
+    </ItemGroup>
+    <Error Condition="'@(_SeBad2)' != ''"
+           Code="DEP0002"
+           Text="依存関係違反: EsUtil.Platform.Core.Windows は EsUtil.Platform.Core だけを参照できます（違反: @(_SeBad2->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
+
+    <!-- R3: 機能コアは EsUtil.Platform.Core だけを参照する -->
+    <ItemGroup Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsFeatureCore)' == 'true'">
+      <_SeBad3 Include="@(_SeRef)" Exclude="@(_SeRef->WithMetadataValue('Name', 'EsUtil.Platform.Core'))" />
+    </ItemGroup>
+    <Error Condition="'@(_SeBad3)' != ''"
+           Code="DEP0003"
+           Text="依存関係違反: 機能コア（EsUtil.Feature.*.Core）は EsUtil.Platform.Core だけを参照できます（違反: @(_SeBad3->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
+
+    <!-- R4: 提示層は EsUtil.Platform.Core と同一機能のコアだけを参照する -->
+    <ItemGroup Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsFeaturePresenter)' == 'true'">
+      <_SeAllowed4 Include="@(_SeRef)" Condition="'%(Name)' == 'EsUtil.Platform.Core' Or '%(Name)' == '$(_SeFeatureCoreName)'" />
+      <_SeBad4 Include="@(_SeRef)" Exclude="@(_SeAllowed4)" />
+    </ItemGroup>
+    <Error Condition="'@(_SeBad4)' != ''"
+           Code="DEP0004"
+           Text="依存関係違反: 提示層（EsUtil.Feature.*.Presenter）は EsUtil.Platform.Core と同一機能のコアだけを参照できます（違反: @(_SeBad4->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
+
+    <!-- R5: UI 層は EsUtil.Platform.Core と同一機能のコア・提示層だけを参照する -->
+    <ItemGroup Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsFeatureControl)' == 'true'">
+      <_SeAllowed5 Include="@(_SeRef)" Condition="'%(Name)' == 'EsUtil.Platform.Core' Or '%(Name)' == '$(_SeFeatureCoreName)' Or '%(Name)' == '$(_SeFeaturePresenterName)'" />
+      <_SeBad5 Include="@(_SeRef)" Exclude="@(_SeAllowed5)" />
+    </ItemGroup>
+    <Error Condition="'@(_SeBad5)' != ''"
+           Code="DEP0005"
+           Text="依存関係違反: UI 層（EsUtil.Feature.*.Control*）は EsUtil.Platform.Core と同一機能のコア・提示層だけを参照できます（違反: @(_SeBad5->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
+
+    <!-- R6: 本体プロジェクトはプロジェクト参照を持たない（同一リポジトリでもパッケージ参照を使う） -->
+    <Error Condition="'$(_SeIsTestOrSample)' != 'true' And '@(_SeProjectRef)' != ''"
+           Code="DEP0006"
+           Text="依存関係違反: 本体プロジェクトは ProjectReference を持てません（参照: @(_SeProjectRef->'%(Name)', ', ')）。 ローカル フィード（nupkg/）のパッケージを参照します。 規則は .github/依存関係.md §1。" />
+
+  </Target>
+
+  <!-- ============================================================
+       ビルド設定（実効値）の検査。
+       規則の所有者は .github/ビルド設定規約.md であり、本ファイルはその実装である。
+       規則を変えるときは .github/ビルド設定規約.md を先に更新する。
+
+       `Directory.Build.props` のテキストは MSBuild から読めないため、ここでは「実効値」を検査する
+       （テキストの重複指定は buildScript/verify.ps1 が検査する）。
+       ============================================================ -->
+  <Target Name="ValidateProjectSettings" BeforeTargets="Build" Condition="'$(MSBuildProjectName)' != ''">
+
+    <PropertyGroup>
+      <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample)$'))</_SeIsTestOrSample>
+      <!-- テスト プロジェクトの RootNamespace が `.Tests` で終わるか（`Condition` へ否定を直接書けないため事前計算する） -->
+      <_SeIsTestProject>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.Tests$'))</_SeIsTestProject>
+      <_SeTestRootNamespaceOk>$([System.Text.RegularExpressions.Regex]::IsMatch('$(RootNamespace)', '\.Tests$'))</_SeTestRootNamespaceOk>
+    </PropertyGroup>
+
+    <!-- BUILD0001: コード スタイルとドキュメントコメントの検証（4 プロパティは Directory.Build.props が単一所有する） -->
+    <Error Condition="'$(EnforceCodeStyleInBuild)' != 'true'" Code="BUILD0001"
+           Text="ビルド設定違反: EnforceCodeStyleInBuild が true ではありません（Directory.Build.props が所有します）。 規則は .github/ビルド設定規約.md §3。" />
+    <Error Condition="'$(GenerateDocumentationFile)' != 'true'" Code="BUILD0001"
+           Text="ビルド設定違反: GenerateDocumentationFile が true ではありません（Directory.Build.props が所有します）。 規則は .github/ビルド設定規約.md §3。" />
+
+    <!-- BUILD0002: アナライザーの解析モードと警告のエラー化（Directory.Build.props が単一所有する） -->
+    <Error Condition="'$(AnalysisLevel)' == ''" Code="BUILD0002"
+           Text="ビルド設定違反: AnalysisLevel が未指定です（Directory.Build.props が所有します）。 規則は .github/ビルド設定規約.md §3。" />
+    <Error Condition="'$(AnalysisMode)' != 'Recommended'" Code="BUILD0002"
+           Text="ビルド設定違反: AnalysisMode が Recommended ではありません（無効にする規則は .editorconfig に severity = none で書きます）。 規則は .github/ビルド設定規約.md §3。" />
+    <Error Condition="'$(TreatWarningsAsErrors)' != 'true'" Code="BUILD0002"
+           Text="ビルド設定違反: TreatWarningsAsErrors が true ではありません（dotnet build の終了コードで規約準拠を判定します）。 規則は .github/ビルド設定規約.md §3。" />
+
+    <!-- BUILD0003: アセンブリ名はプロジェクト名（= フォルダ名）と一致させる -->
+    <Error Condition="'$(_SeIsTestOrSample)' != 'true' And '$(AssemblyName)' != '$(MSBuildProjectName)'" Code="BUILD0003"
+           Text="命名規約違反: アセンブリ名 '$(AssemblyName)' がプロジェクト名 '$(MSBuildProjectName)' と一致しません（AssemblyName は省略します）。 規則は .github/命名規約.md「アセンブリ名」。" />
+
+    <!-- BUILD0004: テスト プロジェクトの RootNamespace は対象の名前空間 + .Tests -->
+    <Error Condition="'$(_SeIsTestProject)' == 'true' And '$(_SeTestRootNamespaceOk)' != 'true'" Code="BUILD0004"
+           Text="命名規約違反: テスト プロジェクト '$(MSBuildProjectName)' の RootNamespace '$(RootNamespace)' が .Tests で終わっていません。 規則は .github/テスト規約.md §1。" />
+
+    <!-- BUILD0005: 本体プロジェクトはパッケージとして出力でき、ID はプロジェクト名と一致させる -->
+    <Error Condition="'$(_SeIsTestOrSample)' != 'true' And '$(IsPackable)' != 'true'" Code="BUILD0005"
+           Text="ビルド設定違反: 本体プロジェクト '$(MSBuildProjectName)' の IsPackable が true ではありません（ローカル フィードへ出力します）。 規則は .github/ビルド設定規約.md §4。" />
+    <Error Condition="'$(_SeIsTestOrSample)' != 'true' And '$(PackageId)' != '$(MSBuildProjectName)'" Code="BUILD0005"
+           Text="命名規約違反: パッケージ ID '$(PackageId)' がプロジェクト名 '$(MSBuildProjectName)' と一致しません（PackageId は省略します）。 規則は .github/ビルド設定規約.md §4。" />
+    <Error Condition="'$(_SeIsTestOrSample)' != 'true' And '$(Version)' == ''" Code="BUILD0005"
+           Text="ビルド設定違反: バージョンが未指定です（Directory.Build.props が所有します）。 規則は .github/ビルド設定規約.md §4。" />
+
+  </Target>
+
+</Project>

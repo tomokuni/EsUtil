@@ -5,7 +5,6 @@
     <RootNamespace>EsUtil.Feature.Loupe.Tests</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,10 +19,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Feature.Loupe.Presenter.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Platform.Skia\src\Platform.Skia.csproj" />
   </ItemGroup>
 
 </Project>

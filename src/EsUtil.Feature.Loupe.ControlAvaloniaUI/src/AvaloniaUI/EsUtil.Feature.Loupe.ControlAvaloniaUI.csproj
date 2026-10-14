@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>ルーペの Avalonia UI 版コントロール。</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,8 +16,8 @@
 
   <ItemGroup>
     <!-- コア（LoupeOptions / 幾何）と描画手順。 コアは提示層の公開面に現れるため推移参照で解決する -->
-    <ProjectReference Include="..\..\..\EsUtil.Feature.Loupe.Presenter\src\EsUtil.Feature.Loupe.Presenter.csproj" />
-    <ProjectReference Include="..\..\..\EsUtil.Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <PackageReference Include="EsUtil.Feature.Loupe.Presenter" Version="$(Version)" />
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(Version)" />
   </ItemGroup>
 
 

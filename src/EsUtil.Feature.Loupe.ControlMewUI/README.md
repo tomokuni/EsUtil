@@ -6,7 +6,7 @@
 
 ルーペのロジック（数値の安全域補正・切り出し領域の計算・表示レイアウト）は `EsUtil.Feature.Loupe.Core` が単一所有し、描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（色・枠線の太さ・表示可否）は UI 非依存の提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance`）が単一所有します。
 本プロジェクトはその計画を `SKCanvas` へ **Skia のキャンバスへ描画させるだけ** の層です。
-そのため Avalonia 版と**同じ設定・同じ見た目**になり、設定ファイル（`%LOCALAPPDATA%\SaveEvidence\settings.json`）も両 UI で共用できます。 層構成（Core / Presenter / UI）の全体像は [`src/README.md`](../README.md) を参照してください。
+そのため Avalonia 版と**同じ設定・同じ見た目**になり、同じ外観の設定を両 UI で共用できます。 層構成（Core / Presenter / UI）の全体像は [`src/README.md`](../README.md) を参照してください。
 
 ## 2. 特徴
 
@@ -182,7 +182,6 @@ dotnet test src/EsUtil.Feature.Loupe.ControlMewUI/tests/MewUI/EsUtil.Feature.Lou
 - [共有する UI 非依存ロジック](../EsUtil.Feature.Loupe.Core/README.md)
 - [共有する UI 非依存の描画層](../EsUtil.Feature.Loupe.Presenter/README.md)
 - [対になる Avalonia 版ルーペ](../EsUtil.Feature.Loupe.ControlAvaloniaUI/README.md)
-- [組み込み先のアプリ](../App.MewUI/README.md)
 - [サンプルアプリケーション](sample/README.md)
 
 ## 12. ライセンス

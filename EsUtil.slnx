@@ -1,0 +1,47 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/EsUtil.Platform.Core/">
+    <Project Path="src/EsUtil.Platform.Core/src/EsUtil.Platform.Core.csproj" />
+    <Project Path="src/EsUtil.Platform.Core/tests/EsUtil.Platform.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Platform.Core.Windows/">
+    <Project Path="src/EsUtil.Platform.Core.Windows/src/EsUtil.Platform.Core.Windows.csproj" />
+    <Project Path="src/EsUtil.Platform.Core.Windows/tests/EsUtil.Platform.Core.Windows.Tests.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Loupe.Core/">
+    <Project Path="src/EsUtil.Feature.Loupe.Core/src/EsUtil.Feature.Loupe.Core.csproj" />
+    <Project Path="src/EsUtil.Feature.Loupe.Core/tests/EsUtil.Feature.Loupe.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Loupe.Presenter/">
+    <Project Path="src/EsUtil.Feature.Loupe.Presenter/src/EsUtil.Feature.Loupe.Presenter.csproj" />
+    <Project Path="src/EsUtil.Feature.Loupe.Presenter/tests/EsUtil.Feature.Loupe.Presenter.Tests.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Loupe.ControlAvaloniaUI/">
+    <Project Path="src/EsUtil.Feature.Loupe.ControlAvaloniaUI/src/AvaloniaUI/EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj" />
+    <Project Path="src/EsUtil.Feature.Loupe.ControlAvaloniaUI/tests/AvaloniaUI/EsUtil.Feature.Loupe.ControlAvaloniaUI.Tests.csproj" />
+    <Project Path="src/EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/EsUtil.Feature.Loupe.ControlAvaloniaUI.Sample.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Loupe.ControlMewUI/">
+    <Project Path="src/EsUtil.Feature.Loupe.ControlMewUI/src/MewUI/EsUtil.Feature.Loupe.ControlMewUI.csproj" />
+    <Project Path="src/EsUtil.Feature.Loupe.ControlMewUI/tests/MewUI/EsUtil.Feature.Loupe.ControlMewUI.Tests.csproj" />
+    <Project Path="src/EsUtil.Feature.Loupe.ControlMewUI/sample/EsUtil.Feature.Loupe.ControlMewUI.Sample.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Marquee.Core/">
+    <Project Path="src/EsUtil.Feature.Marquee.Core/src/EsUtil.Feature.Marquee.Core.csproj" />
+    <Project Path="src/EsUtil.Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Marquee.Presenter/">
+    <Project Path="src/EsUtil.Feature.Marquee.Presenter/src/EsUtil.Feature.Marquee.Presenter.csproj" />
+    <Project Path="src/EsUtil.Feature.Marquee.Presenter/tests/EsUtil.Feature.Marquee.Presenter.Tests.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Marquee.ControlAvaloniaUI/">
+    <Project Path="src/EsUtil.Feature.Marquee.ControlAvaloniaUI/src/AvaloniaUI/EsUtil.Feature.Marquee.ControlAvaloniaUI.csproj" />
+    <Project Path="src/EsUtil.Feature.Marquee.ControlAvaloniaUI/tests/AvaloniaUI/EsUtil.Feature.Marquee.ControlAvaloniaUI.Tests.csproj" />
+    <Project Path="src/EsUtil.Feature.Marquee.ControlAvaloniaUI/sample/EsUtil.Feature.Marquee.ControlAvaloniaUI.Sample.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Marquee.ControlMewUI/">
+    <Project Path="src/EsUtil.Feature.Marquee.ControlMewUI/src/MewUI/EsUtil.Feature.Marquee.ControlMewUI.csproj" />
+    <Project Path="src/EsUtil.Feature.Marquee.ControlMewUI/tests/MewUI/EsUtil.Feature.Marquee.ControlMewUI.Tests.csproj" />
+    <Project Path="src/EsUtil.Feature.Marquee.ControlMewUI/sample/EsUtil.Feature.Marquee.ControlMewUI.Sample.csproj" />
+  </Folder>
+</Solution>
