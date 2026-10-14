@@ -123,10 +123,12 @@ foreach ($project in $projects) {
 }
 
 if ($failures.Count -eq 0) {
-    # 指紋は pack が成功したときだけ更新する（失敗を「最新」と記録しない）
+    # 指紋は pack が成功したときだけ更新する（失敗を「最新」と記録しない）。
+    # 改行は作業ツリーの規約（CRLF）に揃える（`ConvertTo-Json` の出力と混ざると `w/mixed` になる。 実測）。
     $json = [pscustomobject]@{ version = $version; fingerprints = $fingerprints } |
         ConvertTo-Json -Depth 3
-    [IO.File]::WriteAllText((Join-Path $feed 'fingerprints.json'), $json + "`n", $enc)
+    $json = ($json -replace "`r`n", "`n") -replace "`n", "`r`n"
+    [IO.File]::WriteAllText((Join-Path $feed 'fingerprints.json'), $json + "`r`n", $enc)
 }
 
 Write-Output ''
