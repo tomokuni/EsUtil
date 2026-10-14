@@ -193,9 +193,18 @@ Write-Output '== 2. ビルド設定 =='
 $propsPath = Join-Path $repoRoot 'Directory.Build.props'
 $propsText = if (Test-Path -LiteralPath $propsPath) { [IO.File]::ReadAllText($propsPath, $enc) } else { '' }
 $missingProps = [System.Collections.Generic.List[string]]::new()
-foreach ($p in 'EnforceCodeStyleInBuild', 'GenerateDocumentationFile', 'AnalysisLevel', 'AnalysisMode', 'TreatWarningsAsErrors', 'Version', 'IsPackable') {
+foreach ($p in 'EnforceCodeStyleInBuild', 'GenerateDocumentationFile', 'AnalysisLevel', 'AnalysisMode', 'TreatWarningsAsErrors', 'IsPackable') {
     # 属性付きの宣言（`<IsPackable Condition="…">`）も「指定がある」と見なす
     if ($propsText -notmatch "<$p(\s|>)") { $missingProps.Add($p) }
+}
+# 本体プロジェクト（パッケージを作る対象）の一覧。 §2 のバージョン表の検査と §4b のローカル フィードの検査が使う。
+$packableProjects = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter '*.csproj' |
+        Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample)\.csproj$' })
+# バージョン表が本体プロジェクトごとの行を持ち、値が 3 桁の数値か（テスト・サンプルは行を持たない。 規則は
+# .github/ビルド設定規約.md §4。 MSBuild のプロパティ名にドットは使えないため `_` へ置換した名前を使う）。
+foreach ($project in $packableProjects) {
+    $key = ($project.BaseName -replace '\.', '_') + '_Version'
+    if ($propsText -notmatch "<$key>\d+\.\d+\.\d+</$key>") { $missingProps.Add("$key（3 桁の数値）") }
 }
 # 各 .csproj が重複して指定していないか（単一所有の確認）
 $duplicateProps = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter '*.csproj' |
@@ -340,24 +349,37 @@ if (-not $SkipPackage) {
 
 
 # ============================================================
-# 4b. ローカル フィード（nupkg/ のパッケージ）
+# 4b. ローカル フィード（.nupkg/ のパッケージ）
 # ============================================================
 # 本リポジトリのプロジェクトは相互参照に ProjectReference ではなく PackageReference を使う（規則の所有者は
 # .github/依存関係.md §1・§3）。 そのため「パッケージが揃っていること」と「ソースと一致していること」が
 # ビルドの前提になる。 ここでは次を検査する（規則の所有者は .github/ビルド設定規約.md §4）。
-#   ① 本体プロジェクトのパッケージが nupkg/ に存在する（バージョンは Directory.Build.props の Version）
-#   ② 各プロジェクトの参照バージョン表記が `$(Version)`（単一所有の値を使っている）
+#   ① 本体プロジェクトのパッケージが .nupkg/ に存在する（**バージョンはプロジェクトごとに異なる**）
+#   ② 各プロジェクトの参照バージョンがバージョン表（`$(EsUtil_<パッケージ ID のドットを _ に置換>_Version)`）
 #   ③ パッケージの元になったソースの指紋が現在のソースと一致する（直したのに pack していない状態を検出）
+#   ④ 同じパッケージの版が .nupkg/ に 1 つだけある
+# ① が「表の版のパッケージが無い」を見るため、**「表だけ直して pack していない」状態もここで不合格になる**
+# （記録（buildScript/fingerprints.json）に版を持たせない理由。 版の値は表 1 箇所だけが持つ）。
+# 対象の列挙（$packableProjects）は §2 で作る。
 Write-Output '== 4b. ローカル フィード =='
-$feedDir = Join-Path $repoRoot 'nupkg'
-$propsVersion = [regex]::Match($propsText, '<Version>([^<]+)</Version>').Groups[1].Value
-$packableProjects = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter '*.csproj' |
-    Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample)\.csproj$' })
+$feedDir = Join-Path $repoRoot '.nupkg'
 $feedMissing = [System.Collections.Generic.List[string]]::new()
 $feedStale = [System.Collections.Generic.List[string]]::new()
 $feedVersionIssues = [System.Collections.Generic.List[string]]::new()
-$fingerprintPath = Join-Path $feedDir 'fingerprints.json'
+$feedDuplicateIssues = [System.Collections.Generic.List[string]]::new()
+$fingerprintPath = Join-Path $repoRoot 'buildScript/fingerprints.json'
 $fingerprints = if (Test-Path -LiteralPath $fingerprintPath) { Get-Content -LiteralPath $fingerprintPath -Raw | ConvertFrom-Json } else { $null }
+
+# バージョン表の名前（pack.ps1 と同じ規則。 MSBuild のプロパティ名にドットは使えない）
+function Get-VerifyVersionKey([string]$name) { return (($name -replace '\.', '_') + '_Version') }
+
+# 記録（fingerprints.json）から 1 プロジェクト分の値を読む（未記録は空文字）
+function Get-RecordedValue([object]$record, [string]$name) {
+    if (-not $record) { return '' }
+    $entry = $record.PSObject.Properties[$name]
+    if ($entry) { return $entry.Value }
+    return ''
+}
 
 # 指紋は pack.ps1 と同じ規則（プロジェクト配下の全ファイルの内容から作る）で求める
 function Get-VerifyFingerprint([System.IO.FileInfo]$projectFile) {
@@ -383,30 +405,51 @@ function Get-VerifyFingerprint([System.IO.FileInfo]$projectFile) {
 foreach ($project in $packableProjects) {
     $name = $project.BaseName
     $projectText = [IO.File]::ReadAllText($project.FullName, $enc)
+    $key = Get-VerifyVersionKey $name
+    $tableMatch = [regex]::Match($propsText, "<$key>([^<]+)</$key>")
+    $tableVersion = if ($tableMatch.Success) { $tableMatch.Groups[1].Value.Trim() } else { '' }
 
-    # ② パッケージ参照のバージョンは単一所有の `$(Version)` を使う（数値を直接書かない）
+    # ② 参照のバージョンはバージョン表を使う（数値を直接書かない）
     foreach ($m in [regex]::Matches($projectText, '<PackageReference Include="(?<id>EsUtil\.[^"]+)" Version="(?<v>[^"]+)"')) {
-        if ($m.Groups['v'].Value -ne '$(Version)') {
-            $feedVersionIssues.Add(("{0}: {1} = {2}" -f $name, $m.Groups['id'].Value, $m.Groups['v'].Value))
+        $expected = '$({0})' -f (Get-VerifyVersionKey $m.Groups['id'].Value)
+        if ($m.Groups['v'].Value -ne $expected) {
+            $feedVersionIssues.Add(("{0}: {1} = {2}（期待 {3}）" -f $name, $m.Groups['id'].Value, $m.Groups['v'].Value, $expected))
         }
     }
 
-    # ① パッケージの存在
-    if (-not (Test-Path -LiteralPath (Join-Path $feedDir "$name.$propsVersion.nupkg"))) {
-        $feedMissing.Add($name)
+    if (-not $tableVersion) {
+        $feedMissing.Add("$name（バージョン表に $key が無い）")
         continue
     }
 
     # ③ ソースの指紋（記録が無い場合は「未記録」として不合格にする。 pack.ps1 が作る）
-    $recorded = if ($fingerprints -and $fingerprints.fingerprints.PSObject.Properties[$name]) { $fingerprints.fingerprints.$name } else { '' }
-    if ($recorded -ne (Get-VerifyFingerprint $project)) { $feedStale.Add($name) }
+    $recordedFingerprint = Get-RecordedValue $(if ($fingerprints) { $fingerprints.fingerprints }) $name
+    if ($recordedFingerprint -ne (Get-VerifyFingerprint $project)) { $feedStale.Add($name) }
+
+    # ① パッケージの存在（バージョンはプロジェクトごとの表の値）
+    if (-not (Test-Path -LiteralPath (Join-Path $feedDir "$name.$tableVersion.nupkg"))) {
+        $feedMissing.Add($name)
+    }
+
+    # ④ 同じパッケージの版が 1 つだけある
+    #    （`EsUtil.Platform.Core` の照合が `EsUtil.Platform.Core.Windows` を巻き込まないよう、名前と 3 桁の版を厳密に照合する）
+    $rxOwn = [regex]('^' + [regex]::Escape($name) + '\.\d+\.\d+\.\d+\.nupkg$')
+    $own = @(Get-ChildItem -Path $feedDir -File | Where-Object { $rxOwn.IsMatch($_.Name) })
+    if ($own.Count -gt 1) {
+        $feedDuplicateIssues.Add(("{0}: {1}" -f $name, (($own | Sort-Object Name | ForEach-Object { $_.Name }) -join ', ')))
+    }
+    elseif ($own.Count -eq 1 -and $own[0].Name -ne "$name.$tableVersion.nupkg") {
+        $feedDuplicateIssues.Add(("{0}: 表のバージョンと違う版だけがある {1}" -f $name, $own[0].Name))
+    }
 }
 
-$feedOk = $feedMissing.Count -eq 0 -and $feedStale.Count -eq 0 -and $feedVersionIssues.Count -eq 0
-Add-Result 'ローカル フィード' $feedOk "未作成 $($feedMissing.Count) / 未 pack $($feedStale.Count) / バージョン表記 $($feedVersionIssues.Count)"
-$feedMissing | ForEach-Object { "      nupkg/ に無い: $_（buildScript/pack.ps1 を実行する）" }
+$feedOk = $feedMissing.Count -eq 0 -and $feedStale.Count -eq 0 -and $feedVersionIssues.Count -eq 0 -and
+    $feedDuplicateIssues.Count -eq 0
+Add-Result 'ローカル フィード' $feedOk "未作成 $($feedMissing.Count) / 未 pack $($feedStale.Count) / バージョン表記 $($feedVersionIssues.Count) / 版の重複 $($feedDuplicateIssues.Count)"
+$feedMissing | ForEach-Object { "      .nupkg/ に無い: $_（buildScript/pack.ps1 を実行する）" }
 $feedStale | ForEach-Object { "      ソースと一致しない: $_（buildScript/pack.ps1 を実行する）" }
-$feedVersionIssues | Select-Object -First 10 | ForEach-Object { "      参照のバージョン表記: $_" }
+$feedVersionIssues | Select-Object -First 10 | ForEach-Object { "      参照のバージョン: $_" }
+$feedDuplicateIssues | Select-Object -First 10 | ForEach-Object { "      版が 1 つでない: $_（buildScript/pack.ps1 を実行する）" }
 
 # ============================================================
 # 5〜10. 文書とコードの走査（buildScript/verifyDocs.ps1。 上の Start-DocsVerification で起動済み）

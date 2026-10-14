@@ -2,7 +2,7 @@
 
 複数の Windows デスクトップ アプリで使い回す **UI 非依存の共通基盤** と、**再利用可能な UI コントロール** を提供するライブラリ群です。
 
-本リポジトリの各プロジェクトは **NuGet パッケージ** として出力し、**ローカル フィード**（[`nupkg/`](nupkg/README.md)）で相互参照します（外部へは公開しません）。 利用側のアプリは `PackageReference` で参照します。
+本リポジトリの各プロジェクトは **NuGet パッケージ** として出力し、**ローカル フィード**（`.nupkg/`。 リポジトリへはコミットしません）で相互参照します（外部へは公開しません）。 利用側のアプリは `PackageReference` で参照します。
 
 ## 1. プロジェクト
 
@@ -25,7 +25,7 @@
 
 ### 2.1 ローカル フィードから参照する
 
-パッケージは本リポジトリの [`nupkg/`](nupkg/README.md) にあり、リポジトリへコミットされています。 利用側のリポジトリ（例: 画面キャプチャ アプリ）は次のどちらかで参照します。
+パッケージは本リポジトリの `.nupkg/` に出力されます（**リポジトリへはコミットしません**。 クローン直後に 1 回 [`buildScript/pack.ps1`](buildScript/pack.ps1) を実行してください）。 利用側のリポジトリ（例: 画面キャプチャ アプリ）は次のどちらかで参照します。
 
 - **プロジェクト参照**: 本リポジトリを同列に置き、`..\EsUtil\src\<プロジェクト>\src\<プロジェクト>.csproj` を参照する（開発中は型の変更が即座に反映される）。
 - **パッケージ参照**: `NuGet.config` にローカル フィードを追加し、`PackageReference` で参照する。
@@ -34,13 +34,13 @@
 <!-- 利用側の NuGet.config。 取得元はローカル フィードを優先する -->
 <packageSources>
   <clear />
-  <add key="esutil-local" value="..\EsUtil\nupkg" />
+  <add key="esutil-local" value="..\EsUtil\.nupkg" />
   <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
 </packageSources>
 ```
 
 ```xml
-<!-- 利用側の .csproj -->
+<!-- 利用側の .csproj。 バージョンはプロジェクトごとに異なる（実際の値は .nupkg/ のファイル名で確認する） -->
 <ItemGroup>
   <PackageReference Include="EsUtil.Feature.Loupe.ControlAvaloniaUI" Version="0.1.0" />
 </ItemGroup>
@@ -49,10 +49,16 @@
 ### 2.2 パッケージを作り直す
 
 ```powershell
+# 判定一覧を出し、変更のあったプロジェクトのバージョンの 3 桁目を +1 してから pack する
 pwsh -NoProfile -File buildScript/pack.ps1
+
+# 何も書き換えずに「変更あり / 変更なし」の判定だけを見る
+pwsh -NoProfile -File buildScript/pack.ps1 -WhatIf
 ```
 
 **依存順に pack する必要があります**（本リポジトリのプロジェクトは相互参照に `PackageReference` を使うため、前段のパッケージが無いと復元できない）。 手順は [`buildScript/pack.ps1`](buildScript/pack.ps1) が単一所有し、同じバージョンのままで中身を更新したときに古い DLL を拾わないよう、展開済みキャッシュも削除します。
+
+**バージョンはプロジェクトごとに異なります**（値は [`Directory.Build.props`](Directory.Build.props) の表が単一所有します）。 ソースが変わったプロジェクトだけ 3 桁目（一番右）が +1 され、変わらないプロジェクトは据え置きです。 1・2 桁目（`Major` / `Minor`）は人が表を書き換えて上げます（詳しくは [`.github/ビルド設定規約.md`](.github/ビルド設定規約.md) §4）。
 
 ### 2.3 ソースからのビルドとテスト
 
@@ -60,6 +66,19 @@ pwsh -NoProfile -File buildScript/pack.ps1
 dotnet build EsUtil.slnx
 dotnet test EsUtil.slnx --no-build
 ```
+
+### 2.4 ローカル フィード（`.nupkg/`）の管理
+
+本フォルダは、本リポジトリのプロジェクトが**相互参照に使うパッケージ**の出力先です。
+
+- **外部へは公開しません**（nuget.org へは push しない。 [`buildScript/pack.ps1`](buildScript/pack.ps1) は `dotnet pack` までを行う）。
+- **リポジトリへコミットしません**（[`.gitignore`](.gitignore) が `.nupkg/` を無視する）。 **クローン直後は `pack.ps1` を 1 回実行する**まで復元できません。
+- **バージョンはプロジェクトごとに異なります**（値は [`Directory.Build.props`](Directory.Build.props) のバージョン表が単一所有し、**変更のあったプロジェクトだけ `pack.ps1` が 3 桁目を +1** します）。
+- **同じパッケージの版は 1 つだけ**置きます（`pack.ps1` が古い版の `.nupkg` を削除します）。
+- 供給元は [`buildScript/pack.ps1`](buildScript/pack.ps1) です（依存順に `dotnet pack` し、各段の後に古いキャッシュを捨てる）。
+- 取得元の設定はルートの [`NuGet.config`](NuGet.config) が持ちます（`local` を最優先にする）。
+- **`.nupkg` を手で置かないでください**（再現できなくなる）。 更新は `pack.ps1` で行います。
+- **ソースの指紋の記録は [`buildScript/fingerprints.json`](buildScript/fingerprints.json) です**（**コミットします**。 版は持たず、`pack.ps1` が書き、`verify.ps1` が現在のソースと照合します）。 **手で編集しないでください**。
 
 ## 3. 検証
 

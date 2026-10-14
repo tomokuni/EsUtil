@@ -10,10 +10,11 @@ obj/
 *.ldf
 *.sdf
 
-# NuGet（nupkg/ はローカル フィードでありリポジトリへコミットするため無視しない）
+# NuGet（`.nupkg/` はローカル フィード（パッケージの出力先）であり、リポジトリへコミットしない）
 packages/
 *.snupkg
 .nuget/
+.nupkg/
 
 # BenchmarkDotNet
 BenchmarkDotNet.Artifacts/

@@ -80,7 +80,7 @@
     <!-- R6: 本体プロジェクトはプロジェクト参照を持たない（同一リポジトリでもパッケージ参照を使う） -->
     <Error Condition="'$(_SeIsTestOrSample)' != 'true' And '@(_SeProjectRef)' != ''"
            Code="DEP0006"
-           Text="依存関係違反: 本体プロジェクトは ProjectReference を持てません（参照: @(_SeProjectRef->'%(Name)', ', ')）。 ローカル フィード（nupkg/）のパッケージを参照します。 規則は .github/依存関係.md §1。" />
+           Text="依存関係違反: 本体プロジェクトは ProjectReference を持てません（参照: @(_SeProjectRef->'%(Name)', ', ')）。 ローカル フィード（.nupkg/）のパッケージを参照します。 規則は .github/依存関係.md §1。" />
 
   </Target>
 

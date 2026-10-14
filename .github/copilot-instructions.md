@@ -5,7 +5,7 @@
 ## 1. リポジトリ固有の前提
 
 - 本リポジトリは **UI 非依存の共通基盤と再利用可能な UI コントロールのライブラリ**である（実行ファイルを持たない）。
-- 本体プロジェクトは **NuGet パッケージ**として出力し、**ローカル フィード**（[`../nupkg/`](../nupkg/README.md)）で相互参照する。 **外部へは公開しない**。 手順は [`../buildScript/pack.ps1`](../buildScript/pack.ps1) が単一所有する。
+- 本体プロジェクトは **NuGet パッケージ**として出力し、**ローカル フィード**（`.nupkg/`。 **リポジトリへはコミットしない**）で相互参照する。 **外部へは公開しない**。 手順は [`../buildScript/pack.ps1`](../buildScript/pack.ps1) が単一所有する。
 - 利用側（アプリ）は**プロジェクト参照**（`..\EsUtil\src\<プロジェクト>\src\<プロジェクト>.csproj`）でも**パッケージ参照**でも参照できる。
 
 ## 2. 規約の一覧（主題ごとの所有者）
@@ -35,7 +35,7 @@
 - **作業の前に、対象の規約（上表）を読む**。 規約と実装が食い違う場合は、**規約を先に更新してから**実装を直す。
 - **実測してから書く**（推測でドキュメント・規約を書かない）。
 - **検証は `pwsh -NoProfile -File buildScript/verify.ps1` を 1 回実行する**（合否基準は [`検証手順.md`](検証手順.md) が所有する。 手順を手作業で書き起こさない）。
-- **パッケージへ影響する変更のあとは `pwsh -NoProfile -File buildScript/pack.ps1` を実行する**（ソースとパッケージの不一致は `verify.ps1` が不合格にする）。
+- **パッケージへ影響する変更のあとは `pwsh -NoProfile -File buildScript/pack.ps1` を実行する**（ソースとパッケージの不一致は `verify.ps1` が不合格にする）。 `pack.ps1` は**変更のあったプロジェクトのバージョンの 3 桁目を +1** する（判定だけ見るときは `-WhatIf`、表の値のまま pack するときは `-NoBump`）。 **クローン直後も 1 回実行する**（パッケージはコミットしない）。
 
 ## 4. このリポジトリ固有の事実
 
@@ -62,8 +62,9 @@
 ### 4.2 事実
 
 - **本体プロジェクトは `ProjectReference` を持たない**（ローカル フィードの `PackageReference` を使う。 ビルドの `DEP0006` が強制する）。 テスト・サンプルだけが対象プロジェクトを `ProjectReference` で参照する。
-- **パッケージは `nupkg/` へ出力し、リポジトリへコミットする**（`.gitignore` は `nupkg/` を無視しない）。 クローン直後でも `dotnet build` / `dotnet test` が解決できる。
-- **バージョンは `Directory.Build.props` の `<Version>` が単一所有**する（参照側は `Version="$(Version)"`）。
+- **パッケージは `.nupkg/` へ出力し、リポジトリへコミットしない**（`.gitignore` が無視する）。 **クローン直後は `buildScript/pack.ps1` を 1 回実行するまで復元できない**（実行しないとローカル フィードの検査も不合格になる）。
+- **指紋の記録（`buildScript/fingerprints.json`）はコミットする**（**版は持たず**、プロジェクトごとのソースの指紋だけを持つ。 `pack.ps1` が書き、`verify.ps1` が読む）。
+- **バージョンは本体プロジェクトごとに異なる**。 値は `Directory.Build.props` の**バージョン表**が単一所有し、参照側は `Version="$(EsUtil_<パッケージ ID のドットを _ に置換>_Version)"` を使う。 **3 桁目（一番右）は `buildScript/pack.ps1` が「変更があったときだけ」+1 する**（1・2 桁目は人が上げる。 規則は [`ビルド設定規約.md`](ビルド設定規約.md) §4）。
 - **文字コードは UTF-8（BOM なし）**で統一する（[`.editorconfig`](../.editorconfig) の `charset = utf-8`）。
 - **作業ツリーの改行コードは CRLF**（[`.editorconfig`](../.editorconfig) の `end_of_line = crlf`。 リポジトリのブロブは [`.gitattributes`](../.gitattributes) が LF へ正規化する）。
 - **生成した XML ドキュメントはパッケージへ同封する**（`CopyDocumentationFileToOutputDirectory` を `false` にすると `pack.ps1` が NU5026 で失敗する。 実測）。
