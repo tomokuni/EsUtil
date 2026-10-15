@@ -1,0 +1,5 @@
+// 使用を禁止する API（.github/コーディング規約.md が規則を所有する）。
+// 書式: <DocumentationCommentId>;<理由>
+M:System.Enum.HasFlag(System.Enum);フラグ enum の判定はビット演算（(flags & Flag) != 0）を使う（HasFlag はボックス化する。 .github/コーディング規約.md §6）
+M:System.Enum.TryParse``1(System.String,``0@);文字列からの列挙の解釈は EnumCanonical.TryParse を使う（Enum.TryParse は数値文字列を受理し、未定義値が通る。 .github/コーディング規約.md §6）
+M:System.Enum.TryParse``1(System.String,System.Boolean,``0@);文字列からの列挙の解釈は EnumCanonical.TryParse を使う（Enum.TryParse は数値文字列を受理し、未定義値が通る。 .github/コーディング規約.md §6）
