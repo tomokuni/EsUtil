@@ -60,6 +60,9 @@ $enc = [Text.UTF8Encoding]::new($false)
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Set-Location $repoRoot
 
+# ネイティブ コマンド（dotnet）の出力を UTF-8 として読む（規則の所有者は .github/検証手順.md §15）
+. (Join-Path $PSScriptRoot 'VerifyCommon.ps1')
+
 # 依存順の一覧（規則の所有者は .github/依存関係.md §3。 表を変えるときは本一覧も追随させる）。
 $projects = @(
     'src/EsUtil.Platform.Core/src/EsUtil.Platform.Core.csproj',
@@ -103,7 +106,10 @@ function Get-BumpedVersion([string]$version) {
 $propsText = [IO.File]::ReadAllText($propsPath, $enc)
 $recorded = if (Test-Path -LiteralPath $fingerprintPath) { Get-Content -LiteralPath $fingerprintPath -Raw | ConvertFrom-Json } else { $null }
 
-$globalPackages = (& dotnet nuget locals global-packages --list 2>&1 | Select-Object -First 1) -replace '^global-packages:\s*', ''
+$locals = Invoke-NativeText 'dotnet' @('nuget', 'locals', 'global-packages', '--list')
+$globalPackages = (($locals.Text + $locals.ErrorText) -split "`r?`n" |
+        Where-Object { $_ -match 'global-packages:' } |
+        Select-Object -First 1) -replace '^global-packages:\s*', ''
 $failures = [System.Collections.Generic.List[string]]::new()
 
 Write-Output "ローカル フィード: $feed"

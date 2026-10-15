@@ -49,7 +49,9 @@ Write-Output '== 5. ドキュメント（markdownlint） =='
 $mdArgs = @('--yes', 'markdownlint-cli2', '--config', '.markdownlint.json')
 if ($Fix) { $mdArgs += '--fix' }
 $mdArgs += @('src/**/*.md', '.github/**/*.md', '*.md', '!**/obj/**', '!**/bin/**')
-$mdText = & npx @mdArgs 2>&1 | Out-String
+# npx は `cmd.exe` 経由で起動する（`.cmd` は直接起動できない）。 出力の復号は Invoke-NativeText が行う。
+$mdRun = Invoke-NativeText $env:ComSpec (@('/c', 'npx') + $mdArgs)
+$mdText = $mdRun.Text + $mdRun.ErrorText
 # 自動修正した場合は、以降の検査が古い内容を読まないようキャッシュを捨てる
 if ($Fix) { Clear-FileCache }
 $mdIssues = 0

@@ -69,9 +69,11 @@ Set-Location $repoRoot
 # `dotnet` を実行し、**出力と終了コード**を返す。 出力の文字列だけを見ると、CLI 自体の異常終了
 # （引数の誤り・復元の失敗など、警告の形で出ないもの）を「警告 0 件」と読み替えてしまうため、
 # 呼び出し側は終了コードも合否へ含める。
+# 出力の復号は Invoke-NativeText（VerifyCommon.ps1）が所有する（`& dotnet` は環境によっては
+# 日本語の出力を文字化けさせ、テストの件数を読めなくする）。
 function Invoke-DotNet([string[]]$Arguments) {
-    $text = (& dotnet @Arguments 2>&1 | Out-String)
-    return [pscustomobject]@{ Text = $text; ExitCode = $LASTEXITCODE }
+    $result = Invoke-NativeText 'dotnet' $Arguments
+    return [pscustomobject]@{ Text = $result.Text + $result.ErrorText; ExitCode = $result.ExitCode }
 }
 
 # 文書とコードの走査（5〜10 節）は buildScript/verifyDocs.ps1 が所有する。
@@ -508,8 +510,9 @@ else {
         Clear-FileCache
     }
 
-    $fmtText = & dotnet format style $Solution --verify-no-changes --severity warn --no-restore 2>&1 | Out-String
-    $fmtExit = $LASTEXITCODE
+    $fmt = Invoke-DotNet @('format', 'style', $Solution, '--verify-no-changes', '--severity', 'warn', '--no-restore')
+    $fmtText = $fmt.Text
+    $fmtExit = $fmt.ExitCode
     $fmtIssues = ([regex]::Matches($fmtText, ': (error|warning) (IDE|CA)\d+')).Count
     # 合否は「警告以上」の件数で判定する（引数の `--severity warn` と同じ基準。 情報レベルの提案は
     # ビルドが強制する範囲ではなく、改善の必要がない状態でも返るため合否に含めない）。
