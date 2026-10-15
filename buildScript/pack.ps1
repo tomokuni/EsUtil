@@ -76,8 +76,12 @@ $projects = @(
     'src/EsUtil.Feature.Marquee.Presenter/src/EsUtil.Feature.Marquee.Presenter.csproj',
     'src/EsUtil.Feature.Loupe.ControlAvaloniaUI/src/AvaloniaUI/EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj',
     'src/EsUtil.Feature.Loupe.ControlMewUI/src/MewUI/EsUtil.Feature.Loupe.ControlMewUI.csproj',
+    'src/EsUtil.Feature.Loupe.ControlWinUI3/src/WinUI3/EsUtil.Feature.Loupe.ControlWinUI3.csproj',
+    'src/EsUtil.Feature.Loupe.ControlWinForms/src/WinForms/EsUtil.Feature.Loupe.ControlWinForms.csproj',
     'src/EsUtil.Feature.Marquee.ControlAvaloniaUI/src/AvaloniaUI/EsUtil.Feature.Marquee.ControlAvaloniaUI.csproj',
-    'src/EsUtil.Feature.Marquee.ControlMewUI/src/MewUI/EsUtil.Feature.Marquee.ControlMewUI.csproj'
+    'src/EsUtil.Feature.Marquee.ControlMewUI/src/MewUI/EsUtil.Feature.Marquee.ControlMewUI.csproj',
+    'src/EsUtil.Feature.Marquee.ControlWinUI3/src/WinUI3/EsUtil.Feature.Marquee.ControlWinUI3.csproj',
+    'src/EsUtil.Feature.Marquee.ControlWinForms/src/WinForms/EsUtil.Feature.Marquee.ControlWinForms.csproj'
 )
 
 $feed = Join-Path $repoRoot '.nupkg'

@@ -566,10 +566,14 @@ foreach ($f in @($allCs | Where-Object { $_.FullName -notmatch '\\(tests|sample)
 }
 # 可搬な層のカテゴリ フォルダは単数形（型の集合を表すカテゴリは複数形でよい）
 $allowedPluralFolders = @('Models', 'Services', 'Views', 'Enums', 'Controls', 'Extensions', 'Properties', 'Interop')
+# UI 層の UI フレームワーク フォルダはフレームワークの名称そのものであり、カテゴリではないため対象外
+# （規則の所有者は .github/命名規約.md「フォルダ」）
+$allowedFrameworkFolders = @('AvaloniaUI', 'MewUI', 'WinUI3', 'WinForms')
 foreach ($projDir in (Get-ChildItem -Path (Join-Path $repoRoot 'src') -Directory -Filter 'EsUtil.*')) {
     foreach ($d in (Get-ChildItem -Path (Join-Path $projDir.FullName 'src') -Recurse -Directory -ErrorAction SilentlyContinue |
             Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' })) {
         if ($d.Name -cin $allowedPluralFolders) { continue }
+        if ($d.Name -cin $allowedFrameworkFolders) { continue }
         if ($d.Name -cmatch 's$' -and $d.Name -notmatch '(ss|us|is|as|ics|ous)$') {
             $codeIssues.Add(("{0}  カテゴリ フォルダが複数形（単数形にする。 型の集合を表すカテゴリは除く）" -f $d.FullName.Substring($repoRoot.Length + 1).Replace('\', '/')))
         }

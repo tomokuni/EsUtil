@@ -83,8 +83,8 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 
 | コントロール | Core | Presenter | UI |
 | --- | --- | --- | --- |
-| `MarqueeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI |
-| `LoupeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI |
+| `MarqueeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
+| `LoupeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 
 **コントロール化を前提とした処理は UI が持ちます**: ホイール操作（どの入力がズーム・パンかを決める）・ビューポートの変化の追従・組み込み先の概念は、コントロールを何かへ組み込んで初めて必要になるためです。
 
@@ -95,7 +95,8 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | Marquee | [`EsUtil.Feature.Marquee.Core`](EsUtil.Feature.Marquee.Core/README.md) | [`EsUtil.Feature.Marquee.Presenter`](EsUtil.Feature.Marquee.Presenter/README.md) |
 | Loupe | [`EsUtil.Feature.Loupe.Core`](EsUtil.Feature.Loupe.Core/README.md) | [`EsUtil.Feature.Loupe.Presenter`](EsUtil.Feature.Loupe.Presenter/README.md) |
 
-UI 層は [`EsUtil.Feature.Marquee.ControlAvaloniaUI`](EsUtil.Feature.Marquee.ControlAvaloniaUI/README.md) / [`EsUtil.Feature.Marquee.ControlMewUI`](EsUtil.Feature.Marquee.ControlMewUI/README.md) / [`EsUtil.Feature.Loupe.ControlAvaloniaUI`](EsUtil.Feature.Loupe.ControlAvaloniaUI/README.md) / [`EsUtil.Feature.Loupe.ControlMewUI`](EsUtil.Feature.Loupe.ControlMewUI/README.md)、
+UI 層は [`EsUtil.Feature.Marquee.ControlAvaloniaUI`](EsUtil.Feature.Marquee.ControlAvaloniaUI/README.md) / [`EsUtil.Feature.Marquee.ControlMewUI`](EsUtil.Feature.Marquee.ControlMewUI/README.md) / [`EsUtil.Feature.Marquee.ControlWinUI3`](EsUtil.Feature.Marquee.ControlWinUI3/README.md) / [`EsUtil.Feature.Marquee.ControlWinForms`](EsUtil.Feature.Marquee.ControlWinForms/README.md) /
+[`EsUtil.Feature.Loupe.ControlAvaloniaUI`](EsUtil.Feature.Loupe.ControlAvaloniaUI/README.md) / [`EsUtil.Feature.Loupe.ControlMewUI`](EsUtil.Feature.Loupe.ControlMewUI/README.md) / [`EsUtil.Feature.Loupe.ControlWinUI3`](EsUtil.Feature.Loupe.ControlWinUI3/README.md) / [`EsUtil.Feature.Loupe.ControlWinForms`](EsUtil.Feature.Loupe.ControlWinForms/README.md)、
 共通基盤は [`EsUtil.Platform.Core`](EsUtil.Platform.Core/README.md) / [`EsUtil.Platform.Core.Windows`](EsUtil.Platform.Core.Windows/README.md) を参照してください。
 
 ## 7. 名前空間とフォルダ

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+    <UseWinUI>true</UseWinUI>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <RootNamespace>EsUtil.Feature.Loupe.WinUI3.Sample</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- アンパッケージ（MSIX なし）で起動できるようにする。 規則は .github/ビルド設定規約.md §5。 -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- Windows App SDK の自己完結配置は Windows のアーキテクチャ指定を要求する
+         （実測: 未指定は `WindowsAppSDKSelfContained requires a supported Windows architecture.` で失敗する）。
+         配布時は publish の実行時識別子の引数でも上書きできる。 -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <Description>ルーペの WinUI 3 版コントロールの動作確認用サンプル アプリケーション。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp.Views.WinUI" Version="[3.*,4.0.0)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\WinUI3\EsUtil.Feature.Loupe.ControlWinUI3.csproj" />
+  </ItemGroup>
+
+</Project>

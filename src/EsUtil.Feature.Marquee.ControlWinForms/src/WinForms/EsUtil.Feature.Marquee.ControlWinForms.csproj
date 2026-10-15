@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>EsUtil.Feature.Marquee.WinForms</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Description>マーキーの WinForms 版コントロール。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 選択幾何・状態機械（Core）とコントロール化の転送規則・描画手順。 コアは提示層の公開面に現れるため推移参照で解決する -->
+    <PackageReference Include="EsUtil.Feature.Marquee.Presenter" Version="$(EsUtil_Feature_Marquee_Presenter_Version)" />
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Feature.Marquee.ControlWinForms.Tests" />
+  </ItemGroup>
+
+</Project>

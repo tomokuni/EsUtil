@@ -26,6 +26,16 @@
     <Project Path="src/EsUtil.Feature.Loupe.ControlMewUI/tests/MewUI/EsUtil.Feature.Loupe.ControlMewUI.Tests.csproj" />
     <Project Path="src/EsUtil.Feature.Loupe.ControlMewUI/sample/EsUtil.Feature.Loupe.ControlMewUI.Sample.csproj" />
   </Folder>
+  <Folder Name="/src/EsUtil.Feature.Loupe.ControlWinForms/">
+    <Project Path="src/EsUtil.Feature.Loupe.ControlWinForms/src/WinForms/EsUtil.Feature.Loupe.ControlWinForms.csproj" />
+    <Project Path="src/EsUtil.Feature.Loupe.ControlWinForms/tests/WinForms/EsUtil.Feature.Loupe.ControlWinForms.Tests.csproj" />
+    <Project Path="src/EsUtil.Feature.Loupe.ControlWinForms/sample/EsUtil.Feature.Loupe.ControlWinForms.Sample.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Loupe.ControlWinUI3/">
+    <Project Path="src/EsUtil.Feature.Loupe.ControlWinUI3/src/WinUI3/EsUtil.Feature.Loupe.ControlWinUI3.csproj" />
+    <Project Path="src/EsUtil.Feature.Loupe.ControlWinUI3/tests/WinUI3/EsUtil.Feature.Loupe.ControlWinUI3.Tests.csproj" />
+    <Project Path="src/EsUtil.Feature.Loupe.ControlWinUI3/sample/EsUtil.Feature.Loupe.ControlWinUI3.Sample.csproj" />
+  </Folder>
   <Folder Name="/src/EsUtil.Feature.Marquee.Core/">
     <Project Path="src/EsUtil.Feature.Marquee.Core/src/EsUtil.Feature.Marquee.Core.csproj" />
     <Project Path="src/EsUtil.Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Tests.csproj" />
@@ -43,5 +53,15 @@
     <Project Path="src/EsUtil.Feature.Marquee.ControlMewUI/src/MewUI/EsUtil.Feature.Marquee.ControlMewUI.csproj" />
     <Project Path="src/EsUtil.Feature.Marquee.ControlMewUI/tests/MewUI/EsUtil.Feature.Marquee.ControlMewUI.Tests.csproj" />
     <Project Path="src/EsUtil.Feature.Marquee.ControlMewUI/sample/EsUtil.Feature.Marquee.ControlMewUI.Sample.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Marquee.ControlWinForms/">
+    <Project Path="src/EsUtil.Feature.Marquee.ControlWinForms/src/WinForms/EsUtil.Feature.Marquee.ControlWinForms.csproj" />
+    <Project Path="src/EsUtil.Feature.Marquee.ControlWinForms/tests/WinForms/EsUtil.Feature.Marquee.ControlWinForms.Tests.csproj" />
+    <Project Path="src/EsUtil.Feature.Marquee.ControlWinForms/sample/EsUtil.Feature.Marquee.ControlWinForms.Sample.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Marquee.ControlWinUI3/">
+    <Project Path="src/EsUtil.Feature.Marquee.ControlWinUI3/src/WinUI3/EsUtil.Feature.Marquee.ControlWinUI3.csproj" />
+    <Project Path="src/EsUtil.Feature.Marquee.ControlWinUI3/tests/WinUI3/EsUtil.Feature.Marquee.ControlWinUI3.Tests.csproj" />
+    <Project Path="src/EsUtil.Feature.Marquee.ControlWinUI3/sample/EsUtil.Feature.Marquee.ControlWinUI3.Sample.csproj" />
   </Folder>
 </Solution>

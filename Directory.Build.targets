@@ -30,10 +30,10 @@
       <_SeIsPlatformCoreWindows>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Platform\.Core\.Windows$'))</_SeIsPlatformCoreWindows>
       <_SeIsFeatureCore>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Feature\.[A-Za-z]+\.Core$'))</_SeIsFeatureCore>
       <_SeIsFeaturePresenter>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Feature\.[A-Za-z]+\.Presenter$'))</_SeIsFeaturePresenter>
-      <_SeIsFeatureControl>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Feature\.[A-Za-z]+\.Control[A-Za-z]*$'))</_SeIsFeatureControl>
+      <_SeIsFeatureControl>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Feature\.[A-Za-z]+\.Control[A-Za-z0-9]*$'))</_SeIsFeatureControl>
 
       <!-- 同一機能のコア / 提示層の名前（例: EsUtil.Feature.Loupe.Presenter → EsUtil.Feature.Loupe.Core） -->
-      <_SeFeatureName>$([System.Text.RegularExpressions.Regex]::Replace('$(MSBuildProjectName)', '\.(Core|Presenter|Control[A-Za-z]*)$', ''))</_SeFeatureName>
+      <_SeFeatureName>$([System.Text.RegularExpressions.Regex]::Replace('$(MSBuildProjectName)', '\.(Core|Presenter|Control[A-Za-z0-9]*)$', ''))</_SeFeatureName>
       <_SeFeatureCoreName Condition="'$(_SeFeatureName)' != ''">$(_SeFeatureName).Core</_SeFeatureCoreName>
       <_SeFeaturePresenterName Condition="'$(_SeFeatureName)' != ''">$(_SeFeatureName).Presenter</_SeFeaturePresenterName>
     </PropertyGroup>
