@@ -118,7 +118,7 @@ public class EsBitmapFileSaveLoadTests
             Assert.Equal(4, loaded.Size.Height);
 
             // 読み込んだ内容をそのまま書き換えられる（複製を作り直さない）
-            loaded.SetPixel(new EsUtil.Platform.Core.Geometry.EsPointInt(0, 0), System.Drawing.Color.FromArgb(255, 40, 50, 60));
+            loaded.SetPixel(new Core.Geometry.EsPointInt(0, 0), System.Drawing.Color.FromArgb(255, 40, 50, 60));
             var pixel = loaded.GetPixel(0, 0);
             Assert.Equal((byte)40, pixel.R);
             Assert.Equal((byte)50, pixel.G);

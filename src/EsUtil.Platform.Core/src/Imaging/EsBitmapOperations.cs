@@ -789,9 +789,9 @@ internal static class EsBitmapOperations
             // 箱の代表色（平均色）の Lab は 1 度だけ求める（詰め直しと参照表の両方が同じ値を要する）
             for (var i = 0; i < usedCount; i++)
             {
-                var centroid = BinCentroid(bins[i], counts, sums);
-                binLab[i] = ToLab(centroid.Red, centroid.Green, centroid.Blue);
-                binAlphaTier[i] = (byte)AlphaTier(centroid.Alpha);
+                var (red, green, blue, alpha) = BinCentroid(bins[i], counts, sums);
+                binLab[i] = ToLab(red, green, blue);
+                binAlphaTier[i] = (byte)AlphaTier(alpha);
             }
 
             RefinePalette(
@@ -1205,16 +1205,16 @@ internal static class EsBitmapOperations
     /// <returns>軸（0 = 赤 / 1 = 緑 / 2 = 青 / 3 = アルファ）。</returns>
     private static int LongestAxis(int[] bins, int start, int length)
     {
-        var ranges = ColorRanges(bins, start, length);
-        var alpha = ranges.Alpha * HistogramAlphaScale;
-        if (alpha >= ranges.Red && alpha >= ranges.Green && alpha >= ranges.Blue)
+        var (red, green, blue, alpha) = ColorRanges(bins, start, length);
+        var alphaScaled = alpha * HistogramAlphaScale;
+        if (alphaScaled >= red && alphaScaled >= green && alphaScaled >= blue)
         {
             return 3;
         }
 
-        return ranges.Red >= ranges.Green && ranges.Red >= ranges.Blue
+        return red >= green && red >= blue
             ? 0
-            : ranges.Green >= ranges.Blue ? 1 : 2;
+            : green >= blue ? 1 : 2;
     }
 
     /// <summary>箱の成分の範囲が最も長い長さを求める（アルファは RGB と同じ尺度へ揃える）。</summary>
@@ -1224,10 +1224,10 @@ internal static class EsBitmapOperations
     /// <returns>長さ。</returns>
     private static int LongestAxisLength(int[] bins, int start, int length)
     {
-        var ranges = ColorRanges(bins, start, length);
+        var (red, green, blue, alpha) = ColorRanges(bins, start, length);
         return Math.Max(
-            ranges.Alpha * HistogramAlphaScale,
-            Math.Max(ranges.Red, Math.Max(ranges.Green, ranges.Blue)));
+            alpha * HistogramAlphaScale,
+            Math.Max(red, Math.Max(green, blue)));
     }
 
     /// <summary>箱の成分ごとの範囲（最大 − 最小）を求める。</summary>

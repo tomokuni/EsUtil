@@ -111,12 +111,10 @@ internal static class LoupeSourceResolver
                 return new Result(size, null, IsSourceBitmap: false);
             }
 
-            using (var created = sourceBitmapImage.ToEsBitmap())
-            {
-                // その場で読むだけ（読み取り専用の面へ渡す）: 凍結して 0 コピーで共有し、書き換え可能の実体は解放する
-                created.SetReadOnly();
-                return new Result(size, EsReadOnlyBitmap.FromBitmap(created), IsSourceBitmap: true);
-            }
+            using var created = sourceBitmapImage.ToEsBitmap();
+            // その場で読むだけ（読み取り専用の面へ渡す）: 凍結して 0 コピーで共有し、書き換え可能の実体は解放する
+            created.SetReadOnly();
+            return new Result(size, EsReadOnlyBitmap.FromBitmap(created), IsSourceBitmap: true);
         }
 
         // 画像源（借用）を判定する（Bitmap はコアの画像を取り出す契約を持たないため両者は排他）
