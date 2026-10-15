@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    ローカル フィード（.nupkg/）へパッケージを出力し、変更のあったプロジェクトのバージョンを +1 し、ソースの指紋を記録する。
+    ローカル フィード（.nupkg/）へパッケージを出力し、**pack に成功した**プロジェクトのバージョンを +1 し、ソースの指紋を記録する。
 
 .DESCRIPTION
     本リポジトリのプロジェクトは相互参照に ProjectReference ではなく PackageReference を使うため、
@@ -11,13 +11,16 @@
          **変わったプロジェクトだけ**バージョンの 3 桁目（一番右）を +1 し、変わっていないプロジェクトは据え置く
          （判定の一覧は必ず表示する。 規則は .github/ビルド設定規約.md §4）。
          **記録が無いプロジェクトは「変更なし」として扱う**（初回と `.nupkg/` を削除した後に版が一斉に上がらないようにする）。
-      2. 一覧の順に `dotnet pack` する。
+      2. 一覧の順に `dotnet pack` する。 変更のあったプロジェクトの版は `-p:` で渡す
+         （**バージョン表はまだ書き換えない**。 pack に失敗したときに版だけが上がるのを防ぐため）。
       3. pack したパッケージの展開済みキャッシュ（グローバル パッケージ フォルダ）を削除する。
          同じバージョンのまま中身を更新しても NuGet はキャッシュを使うため、削除しないと
          後続のプロジェクトが**古い DLL** を参照する（実測で必要と確認した手順）。
       4. 同じパッケージの**古い版の .nupkg を削除する**（.nupkg/ には各パッケージ 1 版だけを置く）。
-      5. ソースの指紋を buildScript/fingerprints.json へ記録する（**版は記録しない**。 版の値は
-         Directory.Build.props の表 1 箇所だけが持つ）。
+      5. **pack に成功したプロジェクトだけ**バージョン表（Directory.Build.props）を新しい版へ書き換える
+         （**失敗したプロジェクトの版は据え置く**。 失敗のたびに番号が増えるのを防ぐ）。
+      6. **pack に成功したプロジェクトだけ**ソースの指紋を buildScript/fingerprints.json へ記録する
+         （**版は記録しない**。 版の値は Directory.Build.props の表 1 箇所だけが持つ）。
          `verify.ps1` はこの記録と現在のソースを比べ、「ソースを直したが pack していない」状態を検出する。
 
     パッケージは外部へ公開しない（ローカル保存のみ）。 出力先の `.nupkg/` はリポジトリへコミットしない。
@@ -162,10 +165,13 @@ foreach ($project in $projects) {
     $version = if ($isChanged -and -not $NoBump) { Get-BumpedVersion $table } else { $table }
 
     if ($isChanged) { $bumped++ }
+    # 記録は前回の値を引き継ぎ、pack に成功したプロジェクトだけ後で上書きする
+    # （失敗したプロジェクトの記録を残し、「直したが pack していない」状態を verify.ps1 が検出できるようにする）
+    if ($before -ne '') { $fingerprints[$name] = $before }
     $plan.Add([pscustomobject]@{ Project = $project; Name = $name; Table = $table; Version = $version; Changed = $isChanged; Fingerprint = $fingerprint })
 }
 
-Write-Output 'バージョンの判定（変更のあったプロジェクトだけ 3 桁目を +1 する）:'
+Write-Output 'バージョンの判定（変更のあったプロジェクトだけ 3 桁目を +1 する。 実際に上がるのは pack に成功したときのみ）:'
 foreach ($item in $plan) {
     $label = if ($item.Changed) { '変更あり' } else { '変更なし' }
     $to = if ($item.Version -ne $item.Table) { "$($item.Table) → $($item.Version)" }
@@ -180,29 +186,27 @@ if ($WhatIf) {
     exit 0
 }
 
-# 2. バージョン表を書き換える（値を持つのは本表だけ。 3 桁目だけを触る）。
-if (-not $NoBump) {
-    foreach ($item in $plan) {
-        if (-not $item.Changed) { continue }
-        $key = Get-VersionKey $item.Name
-        $propsText = [regex]::Replace($propsText, ("<{0}>[^<]+</{0}>" -f [regex]::Escape($key)), ("<{0}>$($item.Version)</{0}>" -f $key))
-    }
-
-    [IO.File]::WriteAllText($propsPath, $propsText, $enc)
-    if ($bumped -gt 0) {
-        Write-Output "バージョン表を更新: $bumped 件（Directory.Build.props）"
-        Write-Output ''
+# 2. pack へ渡す版の上書きを組み立てる（**表はまだ書き換えない**）。
+#    表を先に書き換えると、pack が失敗したときにも版だけが上がる（内容を戻すたびに番号が増える）。
+#    そのため pack の間だけ `-p:` で「今回出す版」を渡し、表の更新は pack の成功後（5.）に行う。
+#    依存先の版も一緒に渡す（後続のプロジェクトは参照先の新しい版で復元する必要がある）。
+$versionOverrides = @()
+foreach ($item in $plan) {
+    if ($item.Version -ne $item.Table) {
+        $versionOverrides += ('-p:{0}={1}' -f (Get-VersionKey $item.Name), $item.Version)
     }
 }
 
 # 3. 依存順に pack する（各段は前の段のパッケージが無いと復元できない）。
 New-Item -ItemType Directory -Force -Path $feed | Out-Null
+$packed = [System.Collections.Generic.List[object]]::new()
 foreach ($item in $plan) {
     $name = $item.Name
     $version = $item.Version
 
-    $text = (& dotnet pack $item.Project -c $Configuration -o $feed --nologo 2>&1 | Out-String)
-    if ($LASTEXITCODE -ne 0) {
+    $pack = Invoke-NativeText 'dotnet' (@('pack', $item.Project, '-c', $Configuration, '-o', $feed, '--nologo') + $versionOverrides)
+    $text = $pack.Text + $pack.ErrorText
+    if ($pack.ExitCode -ne 0) {
         Write-Output "FAIL  $name"
         Write-Output $text
         $failures.Add($name)
@@ -234,12 +238,33 @@ foreach ($item in $plan) {
             Remove-Item -Force
     }
 
+    $packed.Add($item)
     $fingerprints[$name] = $item.Fingerprint
     Write-Output "OK    $name  $version"
 }
 
-if ($failures.Count -eq 0) {
-    # 指紋は pack が成功したときだけ更新する（失敗を「最新」と記録しない）。
+# 5. バージョン表を書き換える（**pack に成功したプロジェクトだけ**。 失敗したプロジェクトは据え置き、
+#    次の実行で改めて +1 する。 値を持つのは本表だけであり、3 桁目だけを触る）。
+if (-not $NoBump -and $bumped -gt 0) {
+    $updated = 0
+    foreach ($item in $packed) {
+        if ($item.Version -eq $item.Table) { continue }
+        $key = Get-VersionKey $item.Name
+        $propsText = [regex]::Replace($propsText, ("<{0}>[^<]+</{0}>" -f [regex]::Escape($key)), ("<{0}>$($item.Version)</{0}>" -f $key))
+        $updated++
+    }
+
+    if ($updated -gt 0) {
+        [IO.File]::WriteAllText($propsPath, $propsText, $enc)
+        Write-Output "バージョン表を更新: $updated 件（Directory.Build.props）"
+        Write-Output ''
+    }
+}
+
+# 6. ソースの指紋を記録する（**pack に成功したプロジェクトだけ**を上書きする。 失敗したプロジェクトは
+#    前回の記録のまま残す＝「直したが pack していない」状態を verify.ps1 が不合格にする）。
+if ($packed.Count -gt 0) {
+    # 指紋は「フィードに入った版のソース」を記録する（失敗を「最新」と記録しない）。
     # 記録は指紋だけを持つ（版の値は Directory.Build.props の表 1 箇所だけが持つ）。
     # 改行は作業ツリーの規約（CRLF）に揃える（`ConvertTo-Json` の出力と混ざると `w/mixed` になる。 実測）。
     $json = [pscustomobject]@{ fingerprints = $fingerprints } |
