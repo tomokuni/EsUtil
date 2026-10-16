@@ -1,0 +1,79 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "検証（全体）",
+      "type": "shell",
+      "command": "pwsh -NoProfile -File buildScript/verify.ps1",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "検証（全体・自動修正）",
+      "type": "shell",
+      "command": "pwsh -NoProfile -File buildScript/verify.ps1 -Fix",
+      "problemMatcher": []
+    },
+    {
+      "label": "検証（ビルド省略）",
+      "type": "shell",
+      "command": "pwsh -NoProfile -File buildScript/verify.ps1 -SkipBuild -SkipPackage",
+      "problemMatcher": []
+    },
+    {
+      "label": "検証（パッケージ省略）",
+      "type": "shell",
+      "command": "pwsh -NoProfile -File buildScript/verify.ps1 -SkipPackage",
+      "problemMatcher": []
+    },
+    {
+      "label": "検証（テスト省略）",
+      "type": "shell",
+      "command": "pwsh -NoProfile -File buildScript/verify.ps1 -SkipTests",
+      "problemMatcher": []
+    },
+    {
+      "label": "検証（情報レベルの検出）",
+      "type": "shell",
+      "command": "pwsh -NoProfile -File buildScript/verifyInfoStyle.ps1",
+      "problemMatcher": []
+    },
+    {
+      "label": "検証（情報レベルの修正）",
+      "type": "shell",
+      "command": "pwsh -NoProfile -File buildScript/verifyInfoStyle.ps1 -Fix",
+      "problemMatcher": []
+    },
+    {
+      "label": "パッケージ作成（ローカル フィード）",
+      "type": "shell",
+      "command": "pwsh -NoProfile -File buildScript/pack.ps1",
+      "problemMatcher": []
+    },
+    {
+      "label": "テスト実行（全プロジェクト）",
+      "type": "shell",
+      "command": "dotnet test EsUtil.slnx",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "テスト実行（フィルタ指定）",
+      "type": "shell",
+      "command": "dotnet test EsUtil.slnx --filter ${input:testFilter}",
+      "group": "test",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "testFilter",
+      "type": "promptString",
+      "description": "テスト フィルタ（例: FullyQualifiedName~LoupeControlTests）",
+      "default": "FullyQualifiedName~LoupeControlTests"
+    }
+  ]
+}

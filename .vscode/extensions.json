@@ -1,0 +1,13 @@
+{
+    // 別の環境で開いたときも、リポジトリが定める検査がエディターでも有効になるようにする
+    // （拡張機能が読む設定は .vscode/settings.json。 根拠は .github/検証手順.md §14）。
+    "recommendations": [
+        "ms-dotnettools.csdevkit",
+        // Markdown の体裁（buildScript/markdownlint.json の規則）
+        "DavidAnson.vscode-markdownlint",
+        // PowerShell スクリプトの診断（.vscode/PSScriptAnalyzerSettings.psd1）
+        "ms-vscode.powershell",
+        // .editorconfig の適用（文字コード UTF-8・改行 CRLF）
+        "editorconfig.editorconfig"
+    ]
+}
