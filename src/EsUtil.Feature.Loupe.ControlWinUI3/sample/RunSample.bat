@@ -3,39 +3,43 @@ setlocal
 chcp 65001 >nul
 
 rem ====================================================================
-rem  LoupeControl サンプルアプリケーション（WinUI 3 版・ビルド＆起動）
+rem  LoupeControl sample application (WinUI 3, build and run)
 rem
-rem  リリース ビルド（dotnet build -c Release）を行い、成功したら
-rem  サンプル アプリケーション（EsUtil.Feature.Loupe.ControlWinUI3.Sample.exe）を起動する。
+rem  ASCII only.  cmd.exe reads a batch file with the console code page and counts the
+rem  read position in decoded characters, so non-ASCII text garbles the output and can
+rem  make cmd execute fragments of the file as commands.  The chcp below keeps the UTF-8
+rem  log of dotnet readable (safe because this file is ASCII).  See .github/ for the rules.
 rem
-rem  アンパッケージ（WindowsPackageType=None）で実行するため、MSIX の配置は不要である。
-rem  自己完結の Windows App SDK は実行時識別子（win-x64）のフォルダへ出力される。
+rem  Builds the sample in Release, and starts it when the build succeeded.
 rem
-rem  使い方:
+rem  Runs unpackaged (WindowsPackageType=None), so no MSIX deployment is needed.  The
+rem  self-contained Windows App SDK is published into the runtime identifier (win-x64) folder.
+rem
+rem  Usage:
 rem     RunSample.bat
 rem ====================================================================
 
 set "PROJECT=%~dp0EsUtil.Feature.Loupe.ControlWinUI3.Sample.csproj"
 set "EXE=%~dp0bin\Release\net10.0-windows10.0.22621.0\win-x64\EsUtil.Feature.Loupe.ControlWinUI3.Sample.exe"
 
-echo [1/2] リリース ビルドを開始します...
+echo [1/2] Building the sample in Release...
 dotnet build "%PROJECT%" -c Release --nologo
 if errorlevel 1 (
     echo.
-    echo [ERROR] リリース ビルドに失敗しました。エラーを確認してください。
+    echo [ERROR] The Release build failed.  Check the errors above.
     pause
     exit /b 1
 )
 
 echo.
-echo [2/2] サンプル アプリケーションを起動します...
+echo [2/2] Starting the sample application...
 if not exist "%EXE%" (
-    echo [ERROR] 実行ファイルが見つかりません: %EXE%
+    echo [ERROR] Executable not found: %EXE%
     pause
     exit /b 1
 )
 
 start "" "%EXE%"
 
-echo 起動しました（ウィンドウが表示されます）。
+echo Started (the window opens now).
 endlocal

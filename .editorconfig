@@ -6,6 +6,10 @@ root = true
 # All files
 [*]
 charset = utf-8
+# バッチ ファイル（*.bat）は ASCII だけを書く。 `charset = utf-8` は ASCII を含むため、ここでは強制できない
+# （cmd.exe はバッチ ファイルをコンソールのコードページで復号し、読み取り位置を復号後の文字数で数えるため、
+# 非 ASCII 文字は出力の化けとコメント断片の実行を招く。 検査は `buildScript/verifyDocs.ps1` の「バッチの
+# 文字コード」が行う。 根拠は `.github/検証手順.md` §15）。
 # 作業ツリーの改行コードは CRLF（リポジトリへ格納するブロブは .gitattributes の `* text=auto` が LF へ正規化する）。
 # ここを `lf` にすると `dotnet format` やエディタが作業ツリーを LF へ書き換え、検証（改行コード）に違反する。
 end_of_line = crlf

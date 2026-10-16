@@ -940,6 +940,24 @@ $eolIssues = @(Get-GitList @('ls-files', '--eol') | Select-String 'w/mixed|w/lf'
 Add-Result '改行コード' (@($eolIssues).Count -eq 0) "$(@($eolIssues).Count) 件"
 $eolIssues | Select-Object -First 5 | ForEach-Object { "      $($_.Line)" }
 
+# 9b) バッチ ファイルの文字コード（ASCII のみ。 `cmd.exe` は読み取り位置を復号後の文字数で数えるため、
+#      非 ASCII 文字は読み取りをずらし、出力の化けとコメント断片の実行を招く。 根拠は §15）
+$batIssues = [System.Collections.Generic.List[string]]::new()
+foreach ($f in (Get-GitList @('-c', 'core.quotepath=false', 'ls-files'))) {
+    if ($f -notmatch '\.bat$') { continue }
+    $path = Join-Path $repoRoot $f
+    if (-not (Test-Path -LiteralPath $path)) { continue }
+    $bytes = [IO.File]::ReadAllBytes($path)
+    for ($i = 0; $i -lt $bytes.Length; $i++) {
+        if ($bytes[$i] -gt 0x7F) {
+            $batIssues.Add(("{0}: 非 ASCII バイト（0x{1:X2}）。 バッチ ファイルは ASCII だけで書く" -f $f.Replace('\', '/'), $bytes[$i]))
+            break
+        }
+    }
+}
+Add-Result 'バッチの文字コード' ($batIssues.Count -eq 0) "$($batIssues.Count) 件"
+$batIssues | Select-Object -First 5 | ForEach-Object { "      $_" }
+
 # ============================================================
 # 10. フォルダ（空フォルダ / 孤立した bin・obj）
 # ============================================================
