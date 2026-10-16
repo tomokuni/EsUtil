@@ -944,15 +944,37 @@ $eolIssues | Select-Object -First 5 | ForEach-Object { "      $($_.Line)" }
 # 10. フォルダ（空フォルダ / 孤立した bin・obj）
 # ============================================================
 Write-Output '== 10. フォルダ =='
+# .gitignore が無視するパスは検査の対象外にする（リポジトリの構造を成さないため）。 入れ子の .gitignore と
+# 否定規則の解釈は git に委ねる。
+$ignoredDirs = @(Get-GitList @('ls-files', '--others', '--ignored', '--exclude-standard', '--directory') |
+        Where-Object { $_ -match '/$' } |
+        ForEach-Object { Join-Path $repoRoot ($_.TrimEnd('/') -replace '/', '\') })
+function Test-IgnoredFolder([string]$Folder) {
+    foreach ($ignored in $ignoredDirs) {
+        if ($Folder.Equals($ignored, [StringComparison]::OrdinalIgnoreCase)) { return $true }
+        if ($Folder.StartsWith("$ignored\", [StringComparison]::OrdinalIgnoreCase)) { return $true }
+    }
+    return $false
+}
+# ビルド出力の有無（`bin` / `obj` の残骸の判定に使う。 ツールが置くだけのフォルダを残骸と見なさない）
+$rxBuildOutput = [regex]'^(project\.assets\.json|.+\.nuget\.g\.(props|targets)|.+\.csproj\.nuget\.dgspec\.json)$'
+function Test-BuildOutput([string]$Folder) {
+    return @(Get-ChildItem -LiteralPath $Folder -Recurse -File -Force -ErrorAction SilentlyContinue |
+            Where-Object { $rxBuildOutput.IsMatch($_.Name) -or $_.Extension -in @('.dll', '.exe', '.pdb', '.cache') }).Count -gt 0
+}
 $emptyDirs = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -Directory |
         Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' } |
+        Where-Object { -not (Test-IgnoredFolder $_.FullName) } |
         Where-Object { @(Get-ChildItem -LiteralPath $_.FullName -Force).Count -eq 0 })
-# 孤立した bin/obj は「親に csproj が無い」ことで判定する（親を毎回列挙せず、csproj を持つフォルダーの集合と照合する）
+# 孤立した bin/obj は「親に csproj が無い」ことで判定する（親を毎回列挙せず、csproj を持つフォルダーの集合と照合する）。
+# 無視されるフォルダは対象外にするが、`bin` / `obj` の残骸だけは例外とする（ビルド出力は .gitignore に載るのが
+# 前提であり、無視されることを理由にすべて外すと検査が成立しない）。 残骸と見なすのはビルド出力を含むものに限る。
 $csprojDirs = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 foreach ($csproj in $allCsproj) { [void]$csprojDirs.Add([IO.Path]::GetDirectoryName($csproj.FullName)) }
 $orphanBins = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -Directory |
         Where-Object { $_.Name -in @('bin', 'obj') } |
-        Where-Object { -not $csprojDirs.Contains([IO.Path]::GetDirectoryName($_.FullName)) })
+        Where-Object { -not $csprojDirs.Contains([IO.Path]::GetDirectoryName($_.FullName)) } |
+        Where-Object { -not (Test-IgnoredFolder $_.FullName) -or (Test-BuildOutput $_.FullName) })
 Add-Result 'フォルダ' ($emptyDirs.Count -eq 0 -and $orphanBins.Count -eq 0) "空 $($emptyDirs.Count) / 孤立 bin・obj $($orphanBins.Count)"
 $emptyDirs | Select-Object -First 5 | ForEach-Object { "      $($_.FullName.Substring($repoRoot.Length + 1))" }
 $orphanBins | Select-Object -First 5 | ForEach-Object { "      $($_.FullName.Substring($repoRoot.Length + 1))" }
