@@ -15,14 +15,15 @@
 - [5. 公開API](#5-公開api)
   - [5.1 プロパティ](#51-プロパティ)
     - [5.1.1 Source](#511-source)
-    - [5.1.2 CenterPoint](#512-centerpoint)
-    - [5.1.3 Options（設定の単一値）](#513-options設定の単一値)
-    - [5.1.4 ClientToPixelScaling](#514-clienttopixelscaling)
-    - [5.1.5 寸法と外観（Appearance）](#515-寸法と外観appearance)
-    - [5.1.6 IsVisible](#516-isvisible)
-    - [5.1.7 Log](#517-log)
-    - [5.1.8 LogPrefix](#518-logprefix)
-    - [5.1.9 CenterPointProvider（描画の直前の拡大中心の取り直し）](#519-centerpointprovider描画の直前の拡大中心の取り直し)
+    - [5.1.2 DisplaySource](#512-displaysource)
+    - [5.1.3 CenterPoint](#513-centerpoint)
+    - [5.1.4 Options（設定の単一値）](#514-options設定の単一値)
+    - [5.1.5 ClientToPixelScaling](#515-clienttopixelscaling)
+    - [5.1.6 寸法と外観（Appearance）](#516-寸法と外観appearance)
+    - [5.1.7 IsVisible](#517-isvisible)
+    - [5.1.8 Log](#518-log)
+    - [5.1.9 LogPrefix](#519-logprefix)
+    - [5.1.10 CenterPointProvider（描画の直前の拡大中心の取り直し）](#5110-centerpointprovider描画の直前の拡大中心の取り直し)
   - [5.2 メソッド](#52-メソッド)
     - [5.2.1 RequestRender](#521-requestrender)
     - [5.2.2 Clear](#522-clear)
@@ -134,7 +135,10 @@ panel.Children.Add(loupe);
 ```csharp
 var loupe = new LoupeControl
 {
+    // 拡大元はコアの画像（表示境界の画像は ToEsBitmap() などで変換して渡す）
     Source = sourceBitmap,
+    // 省略可。 ホストが表示に使っている Avalonia の画像を渡すと、切り出しの複製を作らずに描ける
+    DisplaySource = source,
     CenterPoint = new Point(400, 300),
     Options = LoupeOptions.Default with { RequestedSize = 240, ZoomLevel = 4 },
     ClientToPixelScaling = 1.0,
@@ -150,14 +154,26 @@ Canvas.SetTop(loupe, 220);
 ### 4.3 Binding用ViewModel例
 
 ```csharp
-public IImage SourceImage { get; } = sourceBitmap;
+using EsUtil.Platform.Core.Imaging;
+
+public EsReadOnlyBitmap SourceBitmap { get; } = sourceBitmap;   // ルーペの拡大元（コアの画像）
+
+public IImage DisplaySource { get; } = displayImage;            // 省略可（表示用の射影）
 
 public Point? CenterPoint { get; set; } = new(400, 300);
 
 public bool IsLoupeVisible { get; set; } = true;
 ```
 
-`Source` は `Image.Source` と同じAvaloniaの `IImage?` 型です。 ピクセル抽出処理は `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む）と `EsBitmapAvaloniaAdapter`（コアの画像を内包し、`GetEsBitmap()` で取り出せる `IImage` アダプタ）をサポートします。
+`Source` はコアの読み取り専用画像（`EsReadOnlyBitmap?`）です（MewUI 版 / WinUI3 版 / WinForms 版と同じ契約）。 表示境界の画像（`Bitmap` / `EsBitmapAvaloniaAdapter` 等）しか持たない場合は、コアの画像へ変換してから設定します。 表示用の射影は `DisplaySource`（`IImage?`・省略可）として渡します。
+
+```csharp
+// 表示境界の画像（Bitmap）→ コアの画像（変換の責務は呼び出し側にある）
+using var esBitmap = displayBitmap.ToEsBitmap();   // Avalonia の Bitmap をコアの書き換え可能な画像へ複製する
+esBitmap.SetReadOnly();                            // 読み取り専用として渡す（凍結すると 0 コピーで共有される）
+loupe.Source = EsReadOnlyBitmap.FromBitmap(esBitmap);
+loupe.DisplaySource = displayBitmap;               // 表示用の射影（ホストが表示に使っている画像）
+```
 
 ## 5. 公開API
 
@@ -170,17 +186,33 @@ public bool IsLoupeVisible { get; set; } = true;
 
 | 項目 | 内容 |
 | --- | --- |
-| 型 | `IImage?` |
+| 型 | `EsReadOnlyBitmap?`（コアの読み取り専用画像） |
 | 既定値 | `null` |
-| 用途 | 拡大元画像 |
+| 用途 | 拡大元画像（切り出し元） |
 | Binding | 対応 |
-| 実装上の対応型 | `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む） / `EsBitmapAvaloniaAdapter` |
 
 `Source` が `null` の場合、画像なし（画像外の色のみ）を描画します。
 
-`Source` に `Bitmap`（派生を含む）以外の `IImage`（`EsBitmapAvaloniaAdapter` を除く）を設定した場合、`NotSupportedException` が発生します。 描画の経路では例外を `LoupeControl.Log` へ記録し、そのフレームは下地までで終えます（アプリを落としません）。
+**拡大元の型はコアの具象型です**（MewUI 版 / WinUI3 版 / WinForms 版と同じ契約）。 表示境界の画像（`Bitmap` / `EsBitmapAvaloniaAdapter` 等）は**そのままでは設定できません**。 ホストがコアの画像へ変換してから設定します（`ToEsBitmap()` で複製し、`SetReadOnly()` の後に `EsReadOnlyBitmap.FromBitmap()` で読み取り専用の面へ渡します）。
 
-#### 5.1.2 CenterPoint
+**所有権はホストにあります**: 本コントロールは設定された画像を破棄しません。 破棄済みの画像を設定した場合は、そのフレームは下地のみになります（例外は `LoupeControl.Log` へ記録し、アプリを落としません）。
+
+#### 5.1.2 DisplaySource
+
+| 項目 | 内容 |
+| --- | --- |
+| 型 | `IImage?`（表示境界の画像） |
+| 既定値 | `null` |
+| 用途 | 表示用の射影（ホストが表示に使っている画像） |
+| Binding | 対応 |
+
+**省略可能な入力です**（設定しなくても描画は成立します）。 ホストが既に表示へ使っている画像を渡すと、**切り出しの複製も表示用の変換も作らず**、元矩形つきの描画で済みます（0 コピー）。
+
+- **拡大元と寸法が一致するときだけ使います**: 描画 API は元矩形を画像の座標系で解釈するため、寸法が一致しない射影を使うと切り出す領域がずれます。 一致しない射影は無視され、拡大元（`Source`）の画素から描かれます。
+- **破棄済みの射影も無視されます**: 表示用の射影はホストが所有するため、ホストが先に破棄した状態と競合しえます。 その場合も拡大元から描くため、表示は失われません。
+- **描画の内容は射影の有無で変わりません**（拡大元の寸法だけが幾何の基準です）。
+
+#### 5.1.3 CenterPoint
 
 | 項目 | 内容 |
 | --- | --- |
@@ -193,7 +225,7 @@ public bool IsLoupeVisible { get; set; } = true;
 
 画像範囲外の座標も指定できます。 抽出領域と画像の重なり部分は画像として表示され、範囲外部分は画像外の色（無地）になります。
 
-#### 5.1.3 Options（設定の単一値）
+#### 5.1.4 Options（設定の単一値）
 
 | 項目 | 内容 |
 | --- | --- |
@@ -224,7 +256,7 @@ loupe.Options = LoupeOptions.Default with { RequestedSize = 240, ZoomLevel = 4 }
 
 矩形で表せない描画（円・斜線等）を加える場合は、外観の `Show*` を false にして `Rendered` のビットマップへ自前で描き、必要なら `DrawPlan` で計画どおりの描画を行います。
 
-#### 5.1.4 ClientToPixelScaling
+#### 5.1.5 ClientToPixelScaling
 
 | 項目 | 内容 |
 | --- | --- |
@@ -241,7 +273,7 @@ PixelSize = ceil(表示サイズ × ClientToPixelScaling)
 
 環境値（DPI）のためコアの `LoupeOptions` には含めず、補正（`coerce`）はプロパティが担います（安全域の定義はコアの `LoupeCore.Limits` が単一所有します）。
 
-#### 5.1.5 寸法と外観（Appearance）
+#### 5.1.6 寸法と外観（Appearance）
 
 ルーペの基本サイズと拡大率は **コアの `LoupeOptions`（`EsUtil.Feature.Loupe`）が単一所有**し、`Options` として指定します（両 UI で既定値・意味が一致します）。 **枠線の太さ・十字線と枠線とラベルの表示可否・色・ラベルのフォントサイズ・角丸は描画にだけ必要な設定**であり、提示層 `EsUtil.Feature.Loupe.Presenter` の `LoupeAppearance`（`EsUtil.Feature.Loupe`） が単一所有し、本コントロールの `Appearance` プロパティとして指定します（コアはこれらの値を決定せず、描画可否の判定にも使いません）。
 
@@ -250,7 +282,7 @@ PixelSize = ceil(表示サイズ × ClientToPixelScaling)
 | `Options` | `LoupeOptions` | コアの既定値 | ルーペの基本サイズと拡大率。 `with` 式で部分変更する。 数値項目はコアの `LoupeOptions` が生成時に安全域へ補正する |
 | `Appearance` | `LoupeAppearance`（`EsUtil.Feature.Loupe`） | `LoupeAppearance.Default` | 枠線の太さ・表示可否（十字線・枠線・ラベル）と描画に使う色（ペーストボード（画像外）・枠線・十字線・中心座標ラベルの 6 色）・ラベルのフォントサイズ・角丸。 `LoupeAppearance.Default with { ... }` で部分変更する |
 | `DrawPlanResolver` | `Func<LoupeDrawPlan, LoupeDrawPlan>?` | `null` | **描画計画の差し替え点**（装飾の矩形・ラベルの文言と配置）。 設定すると保持中の計画を破棄して再解決する（配置と描画の両方に適用され、同じ入力では 1 フレーム 1 回だけ解決されるため、呼び出しの時点に依存しない純粋関数にすること） |
-| `CenterPointProvider` | `Func<Point?>?` | `null` | **描画の直前に拡大中心を取り直す関数**（[5.1.9](#519-centerpointprovider描画の直前の拡大中心の取り直し)）。 null または null の戻り値は取り直さない |
+| `CenterPointProvider` | `Func<Point?>?` | `null` | **描画の直前に拡大中心を取り直す関数**（[5.1.10](#5110-centerpointprovider描画の直前の拡大中心の取り直し)）。 null または null の戻り値は取り直さない |
 
 `Options`（コアの `LoupeOptions`）の項目（詳細は `EsUtil.Feature.Loupe.Core` の `docs/SPEC_API.md` を参照）:
 
@@ -279,7 +311,7 @@ PixelSize = ceil(表示サイズ × ClientToPixelScaling)
 
 寸法項目（`Appearance.BorderThickness`）は DIP の値であり、描画計画の解決時に**物理ピクセルへ換算されます**（`EsUtil.Platform.Core` の `DpiScaler.ScaleToPixel`。 呼び出すのは `EsUtil.Feature.Loupe.Presenter` の `LoupePresenter`。 `ClientToPixelScaling` に追従するため、DPI ≠ 100% でも DIP 基準の見た目になります）。 UI 層は換算式を持ちません。
 
-#### 5.1.6 IsVisible
+#### 5.1.7 IsVisible
 
 Avalonia標準の `Visual.IsVisible` を使用します。 初期値は `false`（コンストラクタで設定。 表示指示は `IsVisible = true` で行う）。
 
@@ -288,7 +320,7 @@ Avalonia標準の `Visual.IsVisible` を使用します。 初期値は `false`�
 
 非表示中に画像・座標・設定を変更しても描画されません（状態は保持され、表示時に反映されます）。
 
-#### 5.1.7 Log
+#### 5.1.8 Log
 
 | 項目 | 内容 |
 | --- | --- |
@@ -296,7 +328,7 @@ Avalonia標準の `Visual.IsVisible` を使用します。 初期値は `false`�
 | 既定値 | `NullLogger.Instance` |
 | 用途 | 描画エラー・診断の通知先ロガー（出力先は利用側のロギング構成に依存） |
 
-#### 5.1.8 LogPrefix
+#### 5.1.9 LogPrefix
 
 | 項目 | 内容 |
 | --- | --- |
@@ -304,7 +336,7 @@ Avalonia標準の `Visual.IsVisible` を使用します。 初期値は `false`�
 | 既定値 | `null`（定義クラスの既定は `[Loupe]`） |
 | 用途 | ログの接頭辞（ロガーと一緒に設定する。 null・空白で既定値へ戻す）。 提示層・コアへ伝搬する |
 
-#### 5.1.9 CenterPointProvider（描画の直前の拡大中心の取り直し）
+#### 5.1.10 CenterPointProvider（描画の直前の拡大中心の取り直し）
 
 | 項目 | 内容 |
 | --- | --- |
@@ -420,7 +452,7 @@ event EventHandler<LoupeRenderedEventArgs>? Rendered
 
 オーバーレイの描画位置は `e.Content.CaptureTopLeft` と `e.Content.ZoomLevel` から `(対象座標 − CaptureTopLeft) × ZoomLevel` で求められます（`CaptureTopLeft` は**可視域の左上（実効原点。 小数を含む）**であり、拡大中心は描画面の中心へ写るため、十字線と本式の結果は一致します）。
 
-外観で装飾を止めている場合でも、`LoupeControl.DrawPlan(DrawingContext, IImage?, in LoupeDrawPlan)`（static）で計画どおりの描画を行えます（描画計画（`e.Content`）をそのまま渡す。 止めた項目はフラグを見て描かないため描かれません。 `DrawingContext` は描画中のみ有効）。
+外観で装飾を止めている場合でも、`LoupeControl.DrawPlan(DrawingContext, EsReadOnlyBitmap?, in LoupeDrawPlan, IImage?)`（static）で計画どおりの描画を行えます（描画計画（`e.Content`）をそのまま渡し、拡大元と任意の表示用の射影を渡す。 止めた項目はフラグを見て描かないため描かれません。 `DrawingContext` は描画中のみ有効）。
 
 通知するのはホストが付加情報を描くために必要な最小限（描画先の描画コンテキスト・描画計画）です。 座標変換に必要な値は描画計画が単一所有するため複製しません。 表示位置・表示サイズは、描画に必要な値をホストが既に保持しているため通知しません（必要な場合はコントロールの公開プロパティから取得します）。
 
@@ -430,6 +462,10 @@ loupe.Rendered += (_, e) =>
     if (e.Content.CaptureTopLeft is not { } topLeft) return;
     var local = (対象座標 - topLeft) * e.Content.ZoomLevel;
     // local の位置へ線分等を e.Context へ描く（ルーペの内容の上に重なる）
+
+    // 既定の描画をそのまま使う場合（表示用の射影は省略できる）
+    var plan = e.Content;
+    LoupeControl.DrawPlan(e.Context, sourceBitmap, in plan, displayImage);
 };
 ```
 
@@ -453,12 +489,12 @@ StyledProperty は同ファイルに定義されます（Avalonia のバイン�
 描画が行われる契機は次のとおりです。
 
 - `CenterPoint` の変更
-- `Source` の変更
+- `Source` / `DisplaySource` の変更
 - `Options`（設定・寸法）または `Appearance`（外観）の変更
 - `IsVisible = true`（表示の開始）
 - `RequestRender()` の実行
 
-描画エラー（`Source` が未対応の `IImage` 等）は `Log` へ記録され、アプリは落ちません（そのフレームは下地までで終わり、例外は呼び出し元へ伝播しません）。
+描画エラー（ホストが付加情報を描くハンドラーの例外等）は `Log` へ記録され、アプリは落ちません（そのフレームは下地までで終わり、例外は呼び出し元へ伝播しません）。
 
 `Log` へ設定したロガーは**コアへも伝搬**します。 設定（`Options`）・環境値（`ClientToPixelScaling`）・拡大中心（`CenterPoint`）の変更ログはコアが出力し、本コントロールは `Source` の変更と描画の例外だけを出力します。
 
@@ -466,9 +502,9 @@ StyledProperty は同ファイルに定義されます（Avalonia のバイン�
 
 ### 7.1 Source の所有権
 
-`Source` に設定した元画像（`Bitmap` / `EsBitmapAvaloniaAdapter`）の所有権は利用側にあります。
+`Source` に設定した拡大元（コアの画像）と `DisplaySource` に設定した表示用の射影の所有権は利用側にあります。
 
-`LoupeControl` は元画像を破棄しません（`EsBitmapAvaloniaAdapter` を設定した場合も、真実の画像の破棄は利用側に委ねる。 `EsBitmapAvaloniaAdapter` は `IImage` の非所有契約のため `Source` の設定では破棄されないので、**差し替える側が旧アダプタを破棄して射影を解放する**）。
+`LoupeControl` はどちらも破棄しません（表示用の射影が表示境界の画像を内包する場合も、射影の解放は利用側に委ねます。 **差し替える側が旧い射影を破棄して表示用の画像を解放する**）。
 
 ### 7.2 中間 Bitmap を持たない
 
@@ -508,9 +544,11 @@ private readonly LoupeControl _loupe = new()
     },
 };
 
-private void InitializeLoupe(Panel panel, Bitmap source)
+private void InitializeLoupe(Panel panel, EsReadOnlyBitmap source, IImage? display)
 {
+    // 拡大元はコアの画像（表示用の射影は任意）
     _loupe.Source = source;
+    _loupe.DisplaySource = display;
     panel.Children.Add(_loupe);
     _loupe.IsVisible = true;
 }
@@ -531,10 +569,11 @@ private void RefreshLoupe()
 
 ## 10. 制約事項
 
-- 領域抽出を行うため、実質的な画像入力対応型はAvalonia `Bitmap` です。
+- 領域抽出を行うため、拡大元はコアの読み取り専用画像（`EsReadOnlyBitmap`）です。 表示境界の画像しか持たない場合は、利用側がコアの画像へ変換してから設定します。
+- 表示用の射影（`DisplaySource`）は省略できます。 拡大元と寸法が一致する場合だけ使われ、一致しない場合と破棄済みの場合は無視されます（拡大元の画素から描きます）。
 - `RenderTargetBitmap` と `DrawingContext` の合成はUIスレッドで実行します。
 - 高頻度更新では、利用側でポインター更新頻度を制限することを推奨します。
-- `Source` に設定した画像は利用側が有効期間を管理してください。
+- `Source` / `DisplaySource` に設定した画像は利用側が有効期間を管理してください。
 - 色（`Appearance`）・寸法（`Options`）の連続変更は、同一Dispatcher待機中である場合に1回へ集約されます。
 - `RequestRender()` は完了待機APIではありません。 完了は `Rendered` イベントで通知されます。
 - 外部 `DrawingContext` へルーペを描画するAPIは提供しません。 必要な場合も `LoupeControl` をVisual Treeへ配置してください。
@@ -549,7 +588,7 @@ dotnet run --project src/EsUtil.Feature.Loupe.ControlAvaloniaUI/sample/EsUtil.Fe
 
 サンプルでは次を確認できます。
 
-- `Source` のBinding
+- `Source`（拡大元のコア画像）と `DisplaySource`（表示用の射影）のBinding
 - `CenterPoint` のマウス追従
 - 画像端から外れた部分の画像外の色（無地）
 - `Options`（`ZoomLevel` / `RequestedSize`）と `Appearance`（色・枠線の太さ・表示可否）・`ClientToPixelScaling`

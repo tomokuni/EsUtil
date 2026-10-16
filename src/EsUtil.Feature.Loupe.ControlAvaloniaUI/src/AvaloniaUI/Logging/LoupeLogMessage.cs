@@ -1,4 +1,4 @@
-using Avalonia.Media;
+using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Logging;
@@ -49,9 +49,10 @@ internal static partial class LoupeLogMessage
     /// <param name="newValue">変更後の拡大元画像（未設定は null）。</param>
     /// <remarks>
     /// LogLevel: Debug<br/>出力書式: <c>[Loupe] Setting: Source {OldValue} → {NewValue}</c><br/>
-    /// 「別のインスタンスに差し替わったか」の判断（参照の同一性）を本メソッドが単一所有する。
+    /// 「別のインスタンスに差し替わったか」の判断（参照の同一性）を本メソッドが単一所有する。<br/>
+    /// 寸法はコアの画像（<see cref="EsReadOnlyBitmap"/>）が破棄済みでも取得できる（幾何は破棄で失われない）。
     /// </remarks>
-    internal static void LogSourceChanged(this ILogger logger, IImage? oldValue, IImage? newValue)
+    internal static void LogSourceChanged(this ILogger logger, EsReadOnlyBitmap? oldValue, EsReadOnlyBitmap? newValue)
     {
         if (ReferenceEquals(oldValue, newValue))
         {
@@ -96,27 +97,11 @@ internal static partial class LoupeLogMessage
 
     /// <summary>ソース画像の寸法をログ用の文字列（<c>幅x高さ</c>）へ整形する。</summary>
     /// <param name="source">対象のソース画像。 null は「画像なし」。</param>
-    /// <returns><c>幅x高さ</c> 形式の文字列。 null は <c>null</c>、破棄済みは型名。</returns>
+    /// <returns><c>幅x高さ</c> 形式の文字列。 null は <c>null</c>。</returns>
     /// <remarks>
-    /// <see cref="IImage.Size"/> の参照は破棄済みビットマップで例外になるため、<br/>
-    /// 例外時は型名を返す（ログ出力で例外を発生させない）。
+    /// コアの画像（<see cref="EsReadOnlyBitmap"/>）は寸法を<b>破棄後も保持する</b>（幾何は破棄で失われない）ため、<br/>
+    /// ログのために破棄の状態を判定しない（表示の可用性は描画の経路が判定する）。
     /// </remarks>
-    private static string Describe(IImage? source)
-    {
-        if (source is null)
-        {
-            return "null";
-        }
-
-        try
-        {
-            var size = source.Size;
-            return $"{(int)size.Width}x{(int)size.Height}";
-        }
-        catch (ObjectDisposedException)
-        {
-            // 破棄済みビットマップ: 寸法を取得できないため型名で代用する（ログは継続する）
-            return source.GetType().Name;
-        }
-    }
+    private static string Describe(EsReadOnlyBitmap? source)
+        => source is null ? "null" : $"{source.Width}x{source.Height}";
 }

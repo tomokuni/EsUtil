@@ -79,7 +79,21 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 
 **コントロールを差し替えるには**: 描画計画の構成を変える場合は `XxxPresenter` を継承して `ResolveDrawPlan` を上書きする（または `XxxPresenterXxx` を作る）。 見た目だけを変える場合は外観（`XxxAppearance`）を差し替える。 コアの公開 API だけで描画計画を組み立てられるため、`XxxPresenter` を使わない独自実装も可能です。
 
-## 5. コントロールごとの層
+## 5. UI 層が受け取る画像
+
+**UI 層が拡大元・切り出し元の画像として受け取る型は、コアの具象型（`EsReadOnlyBitmap`）である**（4 つの UI（AvaloniaUI / MewUI / WinUI3 / WinForms）で同じ契約にする）。 コントロールは画素を読んで切り出すため、「読む入口を持つ型」を要求し、ホストがその型へ変換して渡す。
+
+| 何 | 型 | 理由 |
+| --- | --- | --- |
+| 拡大元（切り出し元）の画像 | コアの具象型（`EsReadOnlyBitmap?`） | コントロールは画素を読む。 読む入口と「書き換えない」ことが型に現れている必要がある |
+| 表示用の射影（ホストが表示に使っている自 UI の画像） | UI フレームワークの具象型（**省略可能な引数または任意プロパティ**） | ホストが既に持っている画像を「複製を作らないヒント」として渡すだけであり、省略しても描ける |
+
+- **抽象（インターフェース）を新設しない**: 「この画像はコアの画像を取り出せるか」を `interface` で表すと、**実装の差し替え点ではないインターフェース**を作ることになる（[`コーディング規約.md`](../.github/コーディング規約.md) §5 「`interface` は実装の差し替え点であり、権利や状態の表明ではない。 権利は型（具象型）で表す」）。 画像の種類は**型（具象型）**で表し、未知の型から画素を取り出す仕組み（反射）を持たない（[`ビルド設定規約.md`](../.github/ビルド設定規約.md) 付録 A）。
+- **表示用の射影を省略可能にする理由**: 射影は**表示にだけ**必要であり、コントロールが切り出しに要求するものではない（射影が無い経路（オフスクリーン描画）でも拡大元の画素から描ける）。 したがって必須の引数・必須のプロパティにしない。
+- **表示用の射影は「寸法が拡大元と一致するときだけ」使う**: 描画 API は元矩形を画像の座標系で解釈するため、拡大元の座標系（ピクセル）と一致しない射影をそのまま使うと切り出す領域がずれる。 一致しない射影は**無視して拡大元から描く**（DPI の違いや指定漏れが誤った描画結果にならない）。
+- **ホストは表示用の射影を変換して渡す**: UI の画像（表示境界の型）しか持たないホストは、コアの画像へ変換したものを拡大元として渡す（変換の責務が呼び出し側に現れる）。
+
+## 6. コントロールごとの層
 
 | コントロール | Core | Presenter | UI |
 | --- | --- | --- | --- |
@@ -88,7 +102,7 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 
 **コントロール化を前提とした処理は UI が持ちます**: ホイール操作（どの入力がズーム・パンかを決める）・ビューポートの変化の追従・組み込み先の概念は、コントロールを何かへ組み込んで初めて必要になるためです。
 
-## 6. 各層のドキュメント
+## 7. 各層のドキュメント
 
 | コントロール | Core | Presenter |
 | --- | --- | --- |
@@ -99,6 +113,6 @@ UI 層は [`EsUtil.Feature.Marquee.ControlAvaloniaUI`](EsUtil.Feature.Marquee.Co
 [`EsUtil.Feature.Loupe.ControlAvaloniaUI`](EsUtil.Feature.Loupe.ControlAvaloniaUI/README.md) / [`EsUtil.Feature.Loupe.ControlMewUI`](EsUtil.Feature.Loupe.ControlMewUI/README.md) / [`EsUtil.Feature.Loupe.ControlWinUI3`](EsUtil.Feature.Loupe.ControlWinUI3/README.md) / [`EsUtil.Feature.Loupe.ControlWinForms`](EsUtil.Feature.Loupe.ControlWinForms/README.md)、
 共通基盤は [`EsUtil.Platform.Core`](EsUtil.Platform.Core/README.md) / [`EsUtil.Platform.Core.Windows`](EsUtil.Platform.Core.Windows/README.md) を参照してください。
 
-## 7. 名前空間とフォルダ
+## 8. 名前空間とフォルダ
 
 名前空間とフォルダの対応表・`Control` を除く短縮名の制約（CS0118）・アセンブリ名の規則は [`.github/命名規約.md`](../.github/命名規約.md) が単一所有します。 本ドキュメントは層の帰属（Core / Presenter / UI のどれに置くか）だけを扱います。

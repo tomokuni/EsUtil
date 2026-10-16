@@ -28,7 +28,7 @@ internal static class LoupeContextPainter
     /// <param name="context">描画先の描画コンテキスト（<c>Render</c> の実行中のみ有効）。 null 不可。</param>
     /// <param name="plan">描画層が解決した描画計画（層の順序・矩形・色を持つ）。</param>
     /// <param name="sourceSize">拡大元の寸法（ピクセル）。 null の場合は拡大画像を描かない（画像外の色のみ。 未対応型・破棄済み・画像なし）。</param>
-    /// <param name="display">拡大元の全体を写した Avalonia の画像（省略可）。 切り出し元と同じ座標系なら<b>切り出しの複製を作らず</b>、元矩形つきの描画で済む。</param>
+    /// <param name="display">拡大元の全体を写した表示用の射影（省略可）。 切り出し元と同じ座標系なら<b>切り出しの複製を作らず</b>、元矩形つきの描画で済む。</param>
     /// <param name="source">拡大元のコアの画像（省略可。 表示用の射影をそのまま使えない場合の切り出し元）。 null の場合は表示用の射影だけで描く。</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> が null の場合。</exception>
     /// <remarks>
@@ -100,7 +100,7 @@ internal static class LoupeContextPainter
     /// <summary>ソース画像の切り出し領域を拡大描画する（寸法または切り出し領域が無い場合は何もしない）。</summary>
     /// <param name="context">描画先の描画コンテキスト。</param>
     /// <param name="sourceSize">拡大元の寸法（ピクセル。 切り出し元の座標系）。 null の場合は何もしない。</param>
-    /// <param name="display">拡大元の全体を写した Avalonia の画像（寸法が一致する場合だけ使う）。</param>
+    /// <param name="display">拡大元の全体を写した表示用の射影（寸法が一致する場合だけ使う。 破棄済みは無視する）。</param>
     /// <param name="source">拡大元のコアの画像（表示用の射影をそのまま使えない場合の切り出し元）。</param>
     /// <param name="plan">描画計画（切り出し領域と描画の矩形を持つ）。</param>
     /// <remarks>
@@ -108,13 +108,11 @@ internal static class LoupeContextPainter
     /// <paramref name="sourceSize"/> と一致する場合は、<b>元矩形つきの描画</b>（<c>DrawImage(image, 元矩形, 描画矩形)</c>）で
     /// 済ませます。 切り出しが画像の外へ出る場合も<b>交差する部分だけ</b>を対応する描画先の部分矩形へ写し、外側は描きません
     /// （ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）。<br/>
-    /// <b>表示用の射影だけのソース（コアの画像を持たない）も描けます</b>: その場合は射影の寸法が切り出し元の座標系と
-    /// 一致していることを前提とします（描画 API は元矩形を画像の座標系で解釈するため。 一致しない射影を渡すと
-    /// 切り出す領域がずれる。 切り出し元のコアの画像を渡せば一致しなくても描けます）。<br/>
-    /// <b>射影を使えない場合も切り出しの複製を作りません</b>: (1) 表示用の射影が無い（オフスクリーン描画の経路）、
-    /// (2) 射影の寸法が拡大元と違う（表示用の縮小が指定されている）のいずれでも、切り出しは
+    /// <b>射影を使えない場合も切り出しの複製を作りません</b>: (1) 表示用の射影が無い（省略された）、
+    /// (2) 射影の寸法が拡大元と違う（表示用の縮小が指定されている）、(3) 射影が破棄済み、のいずれでも、切り出しは
     /// <b>0 コピーのビュー</b>（<see cref="EsReadOnlyBitmap.ToPixmap"/>）で読み、表示用へ変換して描きます<br/>
-    /// （切り出しの複製を作ると、表示用の変換がピクセルを複製する前に余分な複製を払うことになります）。<br/>
+    /// （切り出しの複製を作ると、表示用の変換がピクセルを複製する前に余分な複製を払うことになります）。
+    /// 射影が使えても使えなくても<b>同じ幾何</b>を描きます（拡大元の座標系だけを基準にする）。<br/>
     /// 描画中にソースが破棄された場合（<see cref="ObjectDisposedException"/>）は何も描かずに戻る<br/>
     /// （ホストの状態と競合しても描画を継続できる。 画像外のみが残る）。
     /// </remarks>
@@ -137,8 +135,7 @@ internal static class LoupeContextPainter
             }
 
             // 表示用の射影をそのまま使う（切り出しの複製も表示用の変換も作らない）
-            if (display is not null
-                && (int)display.Size.Width == size.Width && (int)display.Size.Height == size.Height)
+            if (display is not null && IsUsableProjection(display, size))
             {
                 context.DrawImage(
                     display,
@@ -147,7 +144,7 @@ internal static class LoupeContextPainter
                 return;
             }
 
-            // 射影が無い（または寸法が違う）場合は切り出しのビューを表示用へ変換して描く（切り出し元の画素が要る）
+            // 射影が無い（または使えない）場合は切り出しのビューを表示用へ変換して描く（切り出し元の画素が要る）
             if (source is null)
             {
                 return;
@@ -164,6 +161,28 @@ internal static class LoupeContextPainter
         catch (ObjectDisposedException)
         {
             // 描画中にソースが破棄された: 画像の層を描かずに戻る（ペーストボードのみが残る）
+        }
+    }
+
+    /// <summary>表示用の射影を切り出し元の座標系としてそのまま使えるかどうかを判定する。</summary>
+    /// <param name="display">表示用の射影。</param>
+    /// <param name="size">切り出し元の寸法（ピクセル）。</param>
+    /// <returns>そのまま使える場合は true。</returns>
+    /// <remarks>
+    /// 描画 API は元矩形を画像の座標系で解釈するため、<b>寸法が切り出し元と一致する場合だけ</b>そのまま使える。<br/>
+    /// <b>破棄済みの射影は「使えないヒント」として扱う</b>: 寸法の取得が <see cref="ObjectDisposedException"/> になるためである<br/>
+    /// （拡大元のコア画像は生存していることがある。 射影だけを落として拡大元から描く）。
+    /// </remarks>
+    private static bool IsUsableProjection(IImage display, EsSizeInt size)
+    {
+        try
+        {
+            return (int)display.Size.Width == size.Width && (int)display.Size.Height == size.Height;
+        }
+        catch (ObjectDisposedException)
+        {
+            // 破棄済みの射影: 寸法を取得できないため「使えないヒント」として扱う（拡大元から描く）
+            return false;
         }
     }
 

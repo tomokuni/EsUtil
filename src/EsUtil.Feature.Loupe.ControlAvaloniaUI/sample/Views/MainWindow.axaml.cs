@@ -57,7 +57,9 @@ public partial class MainWindow : Window
         GridPreview.Appearance = GridLoupePlan.Appearance;
         GridPreview.DrawPlanResolver = static plan => GridLoupePlan.Resolve(in plan);
         GridPreview.Options = LoupeOptions.Default with { RequestedSize = 150, ZoomLevel = 6 };
-        GridPreview.Source = _gridPreviewImage;
+        // 拡大元はコア画像、表示用の射影は表示面の画像として渡す（寸法が一致するため 0 コピーの経路になる）
+        GridPreview.Source = _gridPreviewBitmap;
+        GridPreview.DisplaySource = _gridPreviewImage;
         GridPreview.CenterPoint = new Point(120, 80);
         // 本見本は常に表示する（既定は非表示。 表示可否はホストが指示する）
         GridPreview.IsVisible = true;

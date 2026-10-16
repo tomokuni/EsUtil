@@ -15,7 +15,7 @@
 - [6. 描画動作](#6-描画動作)
   - [6.1 画像境界](#61-画像境界)
   - [6.2 描画のタイミング](#62-描画のタイミング)
-- [7. サポート外の画像](#7-サポート外の画像)
+- [7. 画像の受け渡し](#7-画像の受け渡し)
 - [8. 所有権とライフサイクル](#8-所有権とライフサイクル)
 - [9. パフォーマンス](#9-パフォーマンス)
 - [10. サンプルアプリケーション](#10-サンプルアプリケーション)
@@ -35,8 +35,8 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 ## 2. 機能一覧
 
 - Avalonia Binding 対応の `LoupeControl`
-- `IImage` を受け取る画像入力API
-- 現在対応する画像実装は `Bitmap` / `EsBitmapAvaloniaAdapter`（コアの画像を内包する `IImage` アダプタ）
+- コアの画像（`EsReadOnlyBitmap`）を受け取る画像入力API（MewUI 版 / WinUI3 版 / WinForms 版と同じ契約）
+- 省略可能な表示用の射影（`DisplaySource: IImage?`）。 渡すと切り出しの複製を作らずに描ける（寸法が一致するときだけ使う）
 - 1〜64倍の拡大表示
 - 画像範囲外は描かない（画像外の色が見える）
 - 画像外（ペーストボード）の色（`Appearance`）設定
@@ -87,12 +87,13 @@ using EsUtil.Feature.Loupe.AvaloniaUI;
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loupe="clr-namespace:EsUtil.Feature.Loupe.AvaloniaUI;assembly=EsUtil.Feature.Loupe.ControlAvaloniaUI">
     <Canvas>
-        <Image Source="{Binding SourceImage}" />
+        <Image Source="{Binding DisplaySource}" />
 
         <loupe:LoupeControl
             IsVisible="{Binding IsLoupeVisible}"
             IsHitTestVisible="False"
-            Source="{Binding SourceImage}"
+            Source="{Binding SourceBitmap}"
+            DisplaySource="{Binding DisplaySource}"
             CenterPoint="{Binding CenterPoint}"
             Options="{Binding Options}"
             ClientToPixelScaling="1.0" />
@@ -105,11 +106,16 @@ using EsUtil.Feature.Loupe.AvaloniaUI;
 ```csharp
 using Avalonia;
 using Avalonia.Media.Imaging;
+using EsUtil.Platform.Core.Imaging;            // EsReadOnlyBitmap（ルーペの拡大元）
 using EsUtil.Feature.Loupe;                    // LoupeOptions（コア）と LoupeAppearance（描画にだけ必要な外観）
 
 public sealed class MainViewModel
 {
-    public Bitmap SourceImage { get; } = LoadBitmap();
+    // ルーペの拡大元はコアの画像（表示や保存に使う表示境界の画像は別に持つ）
+    public EsReadOnlyBitmap SourceBitmap { get; } = LoadSource();
+
+    // 表示用の射影（省略可）。 ホストが表示に使っている画像を渡すと切り出しの複製を作らない
+    public Bitmap DisplaySource { get; } = LoadBitmap();
 
     public Point? CenterPoint { get; set; } = new(400, 300);
 
@@ -119,9 +125,15 @@ public sealed class MainViewModel
     public LoupeOptions Options { get; set; } =
         LoupeOptions.Default with { RequestedSize = 240, ZoomLevel = 4 };
 
+    private static EsReadOnlyBitmap LoadSource()
+    {
+        // アプリケーション側の画像読み込み処理を実装します（コアの画像として読み込む）。
+        throw new NotImplementedException();
+    }
+
     private static Bitmap LoadBitmap()
     {
-        // アプリケーション側の画像読み込み処理を実装します。
+        // アプリケーション側の表示用画像の読み込み処理を実装します。
         throw new NotImplementedException();
     }
 }
@@ -129,12 +141,15 @@ public sealed class MainViewModel
 
 `LoupeControl` は `Panel` なので、親の `Panel` や `Canvas` のVisual Treeへ配置してください。 表示位置・表示サイズは座標変換ポート方式（`SetCoordTransform` + `PositionOffset`）で自己計算します。
 
+表示境界の画像しか読み込めない場合は、コアの画像へ変換してから渡します（`ToEsBitmap()` で複製し、`SetReadOnly()` の後に `EsReadOnlyBitmap.FromBitmap()` で読み取り専用の面へ渡します）。
+
 ### 5.3 Code-behind
 
 ```csharp
 var loupe = new LoupeControl
 {
-    Source = sourceBitmap,
+    Source = sourceBitmap,          // 拡大元（コアの読み取り専用画像）
+    DisplaySource = displayImage,   // 表示用の射影（省略可。 ホストが表示に使っている画像）
     CenterPoint = new Point(400, 300),
     Options = LoupeOptions.Default with { RequestedSize = 240, ZoomLevel = 4 },
     IsVisible = true,
@@ -161,13 +176,15 @@ Canvas.SetTop(loupe, 220);
 
 ルーペの描画は**フレームの描画フェーズで 1 回**行われ、中間 Bitmap は作りません（窓の描画面へ直接描きます）。 複数のプロパティが連続して変更された場合も、再描画の要求は 1 回のポストへ結合されます。
 
-## 7. サポート外の画像
+## 7. 画像の受け渡し
 
-公開プロパティの型はAvalonia標準の `IImage?` ですが、ピクセル抽出を必要とするため、対応する実体は `Bitmap` と `EsBitmapAvaloniaAdapter`（コアの画像を内包する `IImage` アダプタ）です。
+拡大元（`Source`）の型は**コアの読み取り専用画像（`EsReadOnlyBitmap?`）**です（MewUI 版 / WinUI3 版 / WinForms 版と同じ契約）。 表示境界の画像（`Bitmap` / `WriteableBitmap` / `EsBitmapAvaloniaAdapter` 等）は**そのままでは設定できません**。 利用側がコアの画像へ変換してから設定します（表示境界の画像しか持たない場合の変換は「5.2 ViewModel」を参照）。
 
-**`WriteableBitmap` と `RenderTargetBitmap` は `Bitmap` の派生であるため、そのまま設定できます**（表示用の射影を切り出し元としてそのまま使える場合は複製しません）。
+**表示用の射影（`DisplaySource: IImage?`）は省略できます**。 ホストが表示に使っている画像を渡すと、切り出しの複製も表示用の変換も作らずに描けます（0 コピー）。
 
-`Bitmap`（派生を含む） / `EsBitmapAvaloniaAdapter` 以外の `IImage`（`CroppedBitmap` 等）を設定した場合は、`NotSupportedException` を発生させ、設定された `ILogger` へ記録します（描画の経路ではそのフレームを下地までで終え、アプリを落としません）。
+- **拡大元と寸法が一致するときだけ使われます**（一致しない射影は無視され、拡大元の画素から描かれます。 描画 API は元矩形を画像の座標系で解釈するためです）。
+- **破棄済みの射影も無視されます**（ホストが先に破棄した状態と競合しても、拡大元から描くため表示は失われません）。
+- 描画の内容は射影の有無で変わりません。
 
 ```csharp
 loupe.Log = logger;
@@ -177,14 +194,14 @@ loupe.Log = logger;
 
 ## 8. 所有権とライフサイクル
 
-- `Source` に設定した元画像（`Bitmap`（`WriteableBitmap` を含む） / `EsBitmapAvaloniaAdapter`）は利用側が所有します。 `LoupeControl` は元画像を破棄しません（アダプタ自体は設定側が差し替え時に破棄します。 `EsBitmapAvaloniaAdapter` は `IImage` の非所有契約のため、`Source` の設定では破棄されません）。
+- `Source`（コアの画像）と `DisplaySource`（表示用の射影）は利用側が所有します。 `LoupeControl` はどちらも破棄しません（表示用の射影が表示境界の画像を内包する場合も、破棄は差し替える側が行います）。
 - ルーペ表示用に内部生成したBitmapは `LoupeControl` が所有します。
 - 非表示化、`Clear()`、新しい描画結果の採用時に、古い生成Bitmapを破棄します。
-- 非同期処理で古くなった生成結果も採用せず破棄します。
+- 非同期処理で古くなった生成結果も採用せず破棄します。 破棄済みの拡大元を設定した場合は下地のみを描き（新しい画像へ差し替えると描画が戻ります）、破棄済みの射影は無視して拡大元から描きます。
 
 ## 9. パフォーマンス
 
-- `Source` や `CenterPoint` の高頻度更新は、利用側で更新間隔を制限することを推奨します。
+- `Source` / `DisplaySource` や `CenterPoint` の高頻度更新は、利用側で更新間隔を制限することを推奨します。
 - 大きな `Options.RequestedSize` や高い `ClientToPixelScaling` は生成Bitmapのサイズと処理負荷を増加させます。
 
 ## 10. サンプルアプリケーション
@@ -198,6 +215,7 @@ dotnet run --project sample/EsUtil.Feature.Loupe.ControlAvaloniaUI.Sample.csproj
 サンプルで確認できる内容:
 
 - マウス追従による拡大表示
+- `Source`（コアの画像）と `DisplaySource`（表示用の射影）のBinding
 - 画像端から外れた部分の画像外の色（無地）
 - ズーム・サイズ・DPIスケール変更
 - 十字線・枠線の変更
@@ -221,7 +239,7 @@ EsUtil.Feature.Loupe.ControlAvaloniaUI/
 ├── src/AvaloniaUI/         # UI 層（Avalonia 固有の描画と配線）
 │   ├── EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj
 │   ├── LoupeControl.cs         # 公開 Panel（コードのみ。AXAML を持たない。公開API一覧・StyledProperty・公開プロパティ・公開メソッド・ラベル要素の配置・非公開実装）
-│   ├── LoupeSourceResolver.cs      # IImage の対応型判定・破棄済み検出・切り出し元の解決
+│   ├── LoupeContextPainter.cs      # 描画計画を DrawingContext へ写す描画実装
 │   ├── LoupeRenderedEventArgs.cs   # 描画完了の通知引数（UI 固有。中心座標ラベルはコントロールが表示する）
 │   └── （ラベル要素（`Border` + `TextBlock`）の配置は本コントロールが行う）
 ├── sample/                 # 独立サンプルアプリ（sample/README.md 参照）

@@ -19,7 +19,14 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>テスト画像の元（本 VM が生存する間保持する。 <see cref="SourceImage"/> のアダプタは本値を借用する）。</summary>
     private readonly EsReadOnlyBitmap _sourceBitmap = TestImageFactory.Create();
 
-    /// <summary>テスト画像（ルーペの <c>Source</c> にバインドする。 元画像を借りて包む非所有アダプタ）。</summary>
+    /// <summary>ルーペの拡大元（コアの画像。 ルーペの <c>Source</c> にバインドする）。</summary>
+    /// <remarks>
+    /// ルーペの拡大元はコアの画像である（`src/README.md` §5）。 表示用の画像（<see cref="SourceImage"/>）は<br/>
+    /// 別のプロパティとして渡す（拡大元と寸法が一致するため、切り出しの複製を作らない経路になる）。
+    /// </remarks>
+    public EsReadOnlyBitmap SourceBitmap => _sourceBitmap;
+
+    /// <summary>テスト画像の表示用の射影（表示面の <see cref="IImage"/>。 元画像を借りて包む非所有アダプタ）。</summary>
     /// <remarks><see cref="IImage"/> は非所有の契約のため、元画像の破棄は本 VM（<see cref="_sourceBitmap"/>）が行う。</remarks>
     public IImage SourceImage => _sourceImage;
 

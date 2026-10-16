@@ -1,9 +1,9 @@
-using Avalonia.Media;
 using EsUtil.Feature.Loupe.AvaloniaUI.Logging;
-using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
+using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests.Logging;
 
@@ -12,7 +12,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests.Logging;
 /// 拡大元画像（<see cref="LoupeControl.Source"/>）はコントロール固有の概念であり、その変更と描画の例外は<br/>
 /// 画像を所有する本 UI が記録する（<see cref="RecordingLogger"/>（IsEnabled=true）と<br/>
 /// <see cref="NullLogger"/>（IsEnabled=false）の両方で全メソッドを呼び、生成コードの両パスを網羅する）。<br/>
-/// <see cref="IImage"/> の寸法取得は破棄済みで例外になるため、その防御経路（型名での代用）も検証する。
+/// 寸法はコアの画像が破棄後も保持するため、ログは画像の状態を判定しない（その扱いも検証する）。
 /// </remarks>
 public class LoupeLogMessageTests
 {
@@ -75,20 +75,18 @@ public class LoupeLogMessageTests
         Assert.Equal("[Loupe] Setting: Source 8x6 → null", logger.Messages[1]);
     }
 
-    /// <summary>破棄済みの画像を渡しても例外にならず、型名で代用されることを検証する。</summary>
+    /// <summary>破棄済みの画像でも寸法を出力することを検証する。</summary>
     [Fact]
-    internal void 破棄済みの画像は型名で代用する()
+    internal void 破棄済みの画像でも寸法を出力する()
     {
+        // コアの画像は破棄後も寸法（幾何）を保持するため、ログのために状態を判定しない（例外にもならない）
         var image = CreateImage(8, 6);
         image.Dispose();
         var logger = new RecordingLogger();
 
         logger.LogSourceChanged(image, null);
 
-        // ログ出力で例外を発生させない（寸法が取れない場合は型名を出す）
-        Assert.Equal(
-            "[Loupe] Setting: Source EsBitmapAvaloniaAdapter → null",
-            Assert.Single(logger.Messages));
+        Assert.Equal("[Loupe] Setting: Source 8x6 → null", Assert.Single(logger.Messages));
     }
 
     /// <summary>例外ログに例外が渡されることを検証する。</summary>
@@ -103,12 +101,12 @@ public class LoupeLogMessageTests
         Assert.Equal("[Loupe] Update exception", Assert.Single(logger.Messages));
     }
 
-    /// <summary>テスト用の画像を生成する。</summary>
+    /// <summary>テスト用の画像（コア画像）を生成する。</summary>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
     /// <returns>生成した画像。</returns>
-    private static EsBitmapAvaloniaAdapter CreateImage(int width, int height)
-        => EsBitmapAvaloniaExtensions.CreateAvaloniaImage(width, height, Colors.Blue);
+    private static EsReadOnlyBitmap CreateImage(int width, int height)
+        => TestHelper.CreateSource(width, height, DrawingColor.Blue);
 
     /// <summary>全ログメソッドを指定ロガーで呼び出す。</summary>
     /// <param name="logger">ロガー。</param>

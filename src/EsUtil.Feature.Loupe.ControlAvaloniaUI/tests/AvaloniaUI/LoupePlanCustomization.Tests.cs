@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Feature.Loupe.AvaloniaUI.Internal;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
 
@@ -53,7 +52,7 @@ public class LoupePlanCustomizationTests
             Options = LoupeOptions.Default with { RequestedSize = 100, ZoomLevel = 2 },
             IsVisible = true,
             Appearance = LoupeAppearance.Default with { ShowCrosshair = false, ShowBorder = false },
-            Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Avalonia.Media.Colors.Blue),
+            Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue),
             CenterPoint = new Avalonia.Point(100, 100),
         };
         var window = TestHelper.ShowInWindow(control, 200);
@@ -90,7 +89,7 @@ public class LoupePlanCustomizationTests
             Options = LoupeOptions.Default with { RequestedSize = 100, ZoomLevel = 2 },
             IsVisible = true,
             CenterPoint = new Avalonia.Point(50, 50),
-            Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Avalonia.Media.Colors.Blue),
+            Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue),
             DrawPlanResolver = plan => { calls++; return plan; },
         };
         var window = TestHelper.ShowInWindow(control, 200);
@@ -116,7 +115,7 @@ public class LoupePlanCustomizationTests
             Options = LoupeOptions.Default with { RequestedSize = 100, ZoomLevel = 2 },
             IsVisible = true,
             CenterPoint = new Avalonia.Point(50, 50),
-            Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Avalonia.Media.Colors.Blue),
+            Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue),
             DrawPlanResolver = plan => { calls++; return plan; },
         };
         var window = TestHelper.ShowInWindow(control, 200);

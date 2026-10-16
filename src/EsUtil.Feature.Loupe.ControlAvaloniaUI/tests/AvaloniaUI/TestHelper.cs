@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Threading;
+using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -9,6 +10,21 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI.Tests;
 /// <summary>テスト用の共通ヘルパー。</summary>
 public static class TestHelper
 {
+    /// <summary>単色のコア画像（拡大元。 読み取り専用の画素の面）を生成する。</summary>
+    /// <param name="width">幅（ピクセル）。 正の値。</param>
+    /// <param name="height">高さ（ピクセル）。 正の値。</param>
+    /// <param name="color">塗りつぶし色（コアの色型）。</param>
+    /// <returns>生成した画像（読み取り専用の面）。</returns>
+    /// <remarks>
+    /// 書き換え可能な画像で作って凍結し、<b>0 コピー</b>で読み取り専用の面へ渡す（書き換え可能の実体はその場で解放する。 画素は共有して生存する）。<br/>
+    /// ルーペの拡大元（<see cref="LoupeControl.Source"/>）はコアの画像であり、表示用の射影は別のプロパティで渡す（`src/README.md` §5）。
+    /// </remarks>
+    public static EsReadOnlyBitmap CreateSource(int width, int height, System.Drawing.Color color)
+    {
+        using var bitmap = EsBitmap.Create(width, height, color);
+        bitmap.SetReadOnly();
+        return EsReadOnlyBitmap.FromBitmap(bitmap);
+    }
     /// <summary>コントロールをウィンドウへ載せて表示する（描画が行われる状態にする）。</summary>
     /// <param name="control">対象のコントロール。</param>
     /// <param name="size">ウィンドウと親パネルの一辺のサイズ（DIP）。</param>

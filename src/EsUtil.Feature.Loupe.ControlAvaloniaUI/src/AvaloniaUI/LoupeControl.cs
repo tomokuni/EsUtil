@@ -7,6 +7,7 @@ using EsUtil.Feature.Loupe.AvaloniaUI.Logging;
 using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
@@ -20,8 +21,9 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI;
 /// 共通利用するための単一のコントロール。<br/>
 /// 入力はすべて StyledProperty（<see cref="Source"/> / <see cref="CenterPoint"/> / <see cref="Options"/>）として公開され、<br/>
 /// バインディングまたはコードから制御できる。<br/>
-/// <see cref="Source"/>（元画像）と <see cref="CenterPoint"/>（拡大中心の元画像ピクセル座標）を与えると、<br/>
+/// <see cref="Source"/>（拡大元のコア画像）と <see cref="CenterPoint"/>（拡大中心の元画像ピクセル座標）を与えると、<br/>
 /// 中心周辺領域を切り出して拡大描画する（Binding 方式）。<br/>
+/// <see cref="DisplaySource"/>（ホストが表示に使っている Avalonia の画像）を渡すと、切り出しの複製を作らずに描ける（省略可）。<br/>
 /// 表示は内部の <see cref="Image"/> 要素へ生成Bitmapを設定する方式に統一する。<br/>
 /// <br/>
 /// <b>描画の委譲</b>: 描画（抽出→拡大→十字線→枠線）の手順は UI 非依存の描画層（<c>EsUtil.Feature.Loupe.Presenter</c>）が<br/>
@@ -46,7 +48,7 @@ namespace EsUtil.Feature.Loupe.AvaloniaUI;
 /// （UI 側に補正の登録を置かない）。 環境値の <see cref="ClientToPixelScaling"/> のみ本コントロールが補正（coerce）する。<br/>
 /// <br/>
 /// **公開 API 一覧**:<br/>
-/// - 入力: <see cref="Source"/> / <see cref="CenterPoint"/><br/>
+/// - 入力: <see cref="Source"/>（拡大元のコア画像） / <see cref="DisplaySource"/>（表示用の射影。 省略可） / <see cref="CenterPoint"/><br/>
 /// - 設定: <see cref="Options"/>（コアの <see cref="LoupeOptions"/> が単一所有。 表示サイズ・拡大率）<br/>
 /// - 環境: <see cref="ClientToPixelScaling"/>（DPI スケーリング係数）<br/>
 /// - 位置: <see cref="SetCoordTransform"/> / <see cref="PositionOffset"/> / <see cref="RefreshPosition"/><br/>
@@ -128,37 +130,23 @@ public sealed class LoupeControl : Panel
     }
     /// <summary>描画計画を指定の描画面へ描く（計画どおりに描く）。</summary>
     /// <param name="context">描画先の描画コンテキスト（<c>Render</c> の実行中のみ有効）。 null 不可。</param>
-    /// <param name="source">拡大元の画像（<see cref="Source"/> と同じ型）。 null の場合は拡大画像を描かない。</param>
+    /// <param name="source">拡大元のコア画像（<see cref="Source"/> と同じ型）。 null の場合は拡大画像を描かない。</param>
     /// <param name="plan">描く描画計画。 null 不可。</param>
+    /// <param name="display">表示用の射影（省略可）。 ホストが表示に使っている Avalonia の画像を渡すと、切り出しの複製を作らず元矩形つきで描ける。</param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> が null の場合。</exception>
-    /// <exception cref="NotSupportedException"><paramref name="source"/> が対応していない型の場合。</exception>
     /// <remarks>
     /// <b>既定の描画をホストへ提供する入口</b>である（ホストが任意のタイミングと順序で既定の描画を行える）。<br/>
-    /// 元画像（<see cref="IImage"/>）から切り出し元への解決は本コントロールが内部で行う（ホストは元画像の型を知らなくてよい）。<br/>
+    /// 拡大元はコア画像であるため、ホストは元画像の型を判定しなくてよい（変換はホストが 1 回行う）。<br/>
+    /// <paramref name="display"/> は<b>拡大元と寸法が一致するときだけ</b>使われ、一致しない場合（未指定を含む）は<br/>
+    /// コア画像から描く（`src/README.md` §5）。<br/>
     /// 計画を必要とする場合は <see cref="Rendered"/> の <c>Content</c> を使う。
     /// </remarks>
-    public static void DrawPlan(DrawingContext context, IImage? source, in LoupeDrawPlan plan)
+    public static void DrawPlan(DrawingContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan, IImage? display = null)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        // 未対応型は例外にする（対応型の判定は LoupeSourceResolver が単一所有する）
-        LoupeSourceResolver.EnsureSupported(source);
-
-        var resolved = LoupeSourceResolver.Resolve(source);
-        try
-        {
-            // 元の IImage は拡大元の全体を写しているため、そのまま元矩形つきの描画に使える
-            // （切り出しの複製も表示用の変換も作らない。 寸法が一致しない場合は 0 コピーのビューから描く）
-            LoupeContextPainter.Paint(context, in plan, resolved.Size, display: source, source: resolved.Bitmap);
-        }
-        finally
-        {
-            // 複製を返した場合のみ破棄する（表示アダプタからの借用は破棄しない）
-            if (resolved.IsSourceBitmap)
-            {
-                resolved.Bitmap?.Dispose();
-            }
-        }
+        // 表示用の射影をそのまま使える場合だけ渡す（寸法が一致しない射影は Paint が無視する）
+        LoupeContextPainter.Paint(context, in plan, source?.Size, display, source);
     }
 
     // ====================================================================
@@ -416,9 +404,11 @@ public sealed class LoupeControl : Panel
     {
         SourceProperty.Changed.AddClassHandler<LoupeControl>(static (o, e) =>
         {
-            o.Log.LogSourceChanged(e.OldValue as IImage, e.NewValue as IImage);
+            o.Log.LogSourceChanged(e.GetOldValue<EsReadOnlyBitmap?>(), e.GetNewValue<EsReadOnlyBitmap?>());
             o.RequestRender();
         });
+        // 表示用の射影は表示（0 コピーのヒント）だけを変えるため、再描画だけを要求する
+        DisplaySourceProperty.Changed.AddClassHandler<LoupeControl>(static (o, _) => o.RequestRender());
         // CenterPoint 変更時は再描画に加えて表示位置（RenderTransform）も更新する（コアが座標変換ポートと親パネルサイズから算出する）
         CenterPointProperty.Changed.AddClassHandler<LoupeControl>(static (o, e) =>
         {
@@ -462,8 +452,16 @@ public sealed class LoupeControl : Panel
     // ====================================================================
 
     /// <summary><see cref="Source"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<IImage?> SourceProperty =
-        AvaloniaProperty.Register<LoupeControl, IImage?>(nameof(Source));
+    /// <remarks>
+    /// 型はコアの具象型（<see cref="EsReadOnlyBitmap"/>）である（対になるコントロールと同じ契約。 画像の識別を<br/>
+    /// インターフェースで行わない理由は `src/README.md` §5）。
+    /// </remarks>
+    public static readonly StyledProperty<EsReadOnlyBitmap?> SourceProperty =
+        AvaloniaProperty.Register<LoupeControl, EsReadOnlyBitmap?>(nameof(Source));
+
+    /// <summary><see cref="DisplaySource"/> 依存関係プロパティ。</summary>
+    public static readonly StyledProperty<IImage?> DisplaySourceProperty =
+        AvaloniaProperty.Register<LoupeControl, IImage?>(nameof(DisplaySource));
 
     /// <summary><see cref="CenterPoint"/> 依存関係プロパティ。</summary>
     public static readonly StyledProperty<Point?> CenterPointProperty =
@@ -498,11 +496,34 @@ public sealed class LoupeControl : Panel
     // 公開プロパティ（入力）
     // ====================================================================
 
-    /// <summary>拡大元の元画像（100%画像）。 Binding で与える。</summary>
-    public IImage? Source
+    /// <summary>拡大元の画像（コアの読み取り専用画像）を取得または設定する。 Binding で与える。</summary>
+    /// <value>拡大元の画像。 null の場合は画像なし（画像外の色のみ）を描画する。</value>
+    /// <remarks>
+    /// <b>型はコアの具象型である</b>（対になるコントロールと同じ契約。 `src/README.md` §5）: コントロールは画素を読んで<br/>
+    /// 切り出すため、読む入口を持つ型を要求する。 <b>ホストは表示用の画像を変換して渡す</b>（表示境界の画像しか<br/>
+    /// 持たない場合は、コアの画像へ変換してから設定する）。<br/>
+    /// <b>本コントロールは破棄しない</b>（画像の所有権はホストにある）。 破棄済みの画像を設定した場合は<br/>
+    /// 何も描かない（例外は描画の経路が記録し、そのフレームは下地までで終える）。
+    /// </remarks>
+    public EsReadOnlyBitmap? Source
     {
         get => GetValue(SourceProperty);
         set => SetValue(SourceProperty, value);
+    }
+
+    /// <summary>表示用の射影（ホストが表示に使っている Avalonia の画像）を取得または設定する（省略可）。</summary>
+    /// <value>拡大元の全体を写した表示用の画像。 null の場合は拡大元の画素から描く。</value>
+    /// <remarks>
+    /// <b>切り出しの複製を作らないためのヒントである</b>: 表示用の射影を渡すと、切り出しの複製も表示用の変換も作らず、<br/>
+    /// 元矩形つきの描画で済む（射影が無い場合は 0 コピーの読み取りビューを表示用へ変換して描く）。<br/>
+    /// <b>拡大元と寸法が一致するときだけ使う</b>（描画 API は元矩形を画像の座標系で解釈するため。 一致しない射影・<br/>
+    /// 破棄済みの射影は無視して拡大元から描く。 省略しても描画は成立する）。<br/>
+    /// <b>本コントロールは破棄しない</b>（射影の所有権はホストにある）。
+    /// </remarks>
+    public IImage? DisplaySource
+    {
+        get => GetValue(DisplaySourceProperty);
+        set => SetValue(DisplaySourceProperty, value);
     }
 
     /// <summary>拡大表示する中心座標（元画像ピクセル座標）。 Binding で与える。</summary>
@@ -715,8 +736,8 @@ public sealed class LoupeControl : Panel
     /// <param name="context">描画先の描画コンテキスト（描画中のみ有効）。</param>
     /// <remarks>
     /// <b>中間ビットマップを作らない</b>: 描画計画をそのまま窓の描画面へ写す（MewUI 版と同じ描画モデル）。<br/>
-    /// 切り出し元の解決は <see cref="LoupeSourceResolver.Resolve"/> が単一所有し、表示用の射影をそのまま使える場合は<br/>
-    /// 複製を作らない（<see cref="LoupeContextPainter.Paint"/>）。<br/>
+    /// 拡大元は <see cref="Source"/>（コア画像）であり、表示用の射影（<see cref="DisplaySource"/>）がある場合は<br/>
+    /// 切り出しの複製を作らず元矩形つきで描く（<see cref="LoupeContextPainter.Paint"/>）。<br/>
     /// <see cref="Source"/> / <see cref="CenterPoint"/> のいずれかが未設定、または切り出せない場合は<br/>
     /// 下地（ペーストボード）のみを描く（判定は描画層が単一所有する）。<br/>
     /// 描画の例外はアプリを落とさず <see cref="LoupeLogMessage.LogUpdateError"/> で記録する（そのフレームは下地までで終える）。
@@ -731,18 +752,13 @@ public sealed class LoupeControl : Panel
         // （DPI が 100% 以外では一致しないため、ピクセル → DIP の倍率を適用する）
         var pixelToDip = 1.0 / plan.ClientToPixelScaling;
 
-        // 切り出し元を解決する（未対応型は例外。 例外の記録は本メソッドが行う）
-        var resolved = default(LoupeSourceResolver.Result);
         try
         {
-            LoupeSourceResolver.EnsureSupported(Source);
-            resolved = LoupeSourceResolver.Resolve(Source);
-
             using (context.PushTransform(Matrix.CreateScale(pixelToDip, pixelToDip)))
             {
-                // 元の IImage は拡大元の全体を写しているため、そのまま元矩形つきの描画に使える
-                // （切り出しの複製も表示用の変換も作らない）
-                LoupeContextPainter.Paint(context, in plan, resolved.Size, display: Source, source: resolved.Bitmap);
+                // 拡大元はホストが渡したコア画像である（切り出し元の寸法はその型が与える）
+                // 表示用の射影は「寸法が一致するときだけ使われる」ヒントであり、無くても描ける
+                LoupeContextPainter.Paint(context, in plan, Source?.Size, display: DisplaySource, source: Source);
 
                 // ホストが付加情報（選択矩形の破線等）を描くための入口（ルーペの内容の上へ重ねる）
                 RaiseRendered(context, in plan);
@@ -752,14 +768,6 @@ public sealed class LoupeControl : Panel
         {
             // 描画の例外は記録して、そのフレームは下地までで終える（アプリを落とさない）
             Log.LogUpdateError(ex);
-        }
-        finally
-        {
-            // 複製を返した場合のみ破棄する（表示アダプタからの借用は破棄しない）
-            if (resolved.IsSourceBitmap)
-            {
-                resolved.Bitmap?.Dispose();
-            }
         }
     }
 

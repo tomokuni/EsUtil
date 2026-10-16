@@ -23,6 +23,7 @@
 - [7. 依存ルール](#7-依存ルール)
 - [8. ライフサイクル](#8-ライフサイクル)
 - [9. 補正（coerce）一覧](#9-補正coerce一覧)
+- [10. 設計判断](#10-設計判断)
 
 ---
 
@@ -52,7 +53,6 @@
 
 ```text
 公開コントロール（LoupeControl）
-  → 切り出し元の解決（LoupeSourceResolver）※ UI 固有の機構
   → レンダリング（描画層 EsUtil.Feature.Loupe.Presenter の LoupePresenter。描画先は DrawingContext が適合させる）
   → Core（EsUtil.Feature.Loupe.Core: 寸法 / 数値補正 / 表示位置・サイズ / 切り出し領域と可否 / ラベル計画 / 区画数の切り上げ / 描画完了時の表示情報 / ログ定義）
 ```
@@ -64,7 +64,7 @@
 - 色の境界変換（設定文字列 → コアの色型）は上位AP 側で行い、LoupeControl 内に文字列解析を持ち込まない（外観は `Appearance`（`LoupeAppearance`）として `System.Drawing.Color` で受け取る）。
 - 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観は提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance`）が単一所有し、本コントロールは描画（`LoupeContextPainter` を `DrawingContext` へ写す）とラベル要素の配置、状態（DP）とライフサイクル（Bitmap 生成 / 解放）を担う。
 - 表示可否（十字線・枠線・ラベル・ペーストボード）と枠線の太さは提示層の外観（`LoupeAppearance`）が、切り出しの可否・表示サイズの決定はコアが判定・所有し、本プロジェクトはその結果で描画する。
-- `LoupeSourceResolver`（`IImage` の型判定）と中間ビットマップを生成するパイプラインは **Avalonia 固有の機構** であり、コアへ移さない（MewUI 版は同期描画のため不要）。
+- 拡大元の画像は**コアの具象型（`EsReadOnlyBitmap`）**で受け取り、ホストが持つ表示用の射影は**省略可能な入力**（`DisplaySource`）として受け取る（[`../README.md`](../README.md) §5）。 画像の識別をインターフェースで行わず、未知の型から画素を取り出す仕組み（反射）も持たない。
 - 再描画のバッチ化（保留中のポストを 1 件に結合する `_renderQueued`）は UI 固有の機構のため **本プロジェクトが所有する**（コアにも共有層にも置かない）。
 - 描画の可否（非表示なら描画しない）と、保留中の要求の破棄は **`LoupeControl` が単一所有** する（`InvalidateVisual` の coalesce と合わせて 1 フレーム 1 回の描画になる）。
 - 表示方式は子の描画層（`RenderLayer`）が窓の描画面へ直接描く方式に統一する（中間ビットマップも `Image.Source` も持たない）。
@@ -80,8 +80,9 @@
 
 ### 4.2 本プロジェクト固有の例外処理
 
-- `Source` に `Bitmap` / `EsBitmapAvaloniaAdapter` 以外の `IImage` が設定された場合、`NotSupportedException` を生成し `LoupeLogMessage.LogUpdateError` で記録する。
-- 描画の例外（未対応の画像型等）は `Log` へ記録され、呼び出し元へは伝播しない（開始側が例外を観測する）。
+- 拡大元（`Source`）の型は型で保証されるため、未対応型の判定を行わない（実行時の型チェックも反射も持たない）。
+- 破棄済みの拡大元・破棄済みの表示用の射影は描画の実装が吸収する（描かない。 拡大元から描ける場合はそこから描く）。
+- 描画の経路の例外（ホストが付加情報を描くハンドラーの例外等）は `Log` へ記録され、呼び出し元へは伝播しない（開始側が例外を観測する）。
 - 自動再描画の場合は例外を観測済みとして処理し、UI スレッドを未処理例外で終了させない。
 - 非同期生成は世代番号で古い結果を破棄し、解放後の破棄を防止する。
 
@@ -96,8 +97,6 @@ flowchart TB
         direction TB
         Ctl["LoupeControl<br/>public sealed<br/>: Panel<br/>LoupeControl.cs（コードのみ）"]
         Coh["RenderLayer<br/>private sealed class<br/>（ルーペの内容を窓の描画面へ直接描く子要素）"]
-        Pip["LoupeSourceResolver<br/>internal static class<br/>（ソースの対応型判定と切り出し元の解決）"]
-        Src["LoupeSourceResolver<br/>internal static class<br/>（IImage の型判定・破棄済み検出）"]
         Rdr["LoupeContextPainter<br/>internal static class<br/>（描画計画を DrawingContext へ写す描画実装）"]
         Brs["SolidColorBrushCache<br/>internal static class（Internal/）<br/>（色 → ブラシの共有キャッシュ）"]
         Evt["LoupeRenderedEventArgs<br/>public sealed class<br/>LoupeRenderedEventArgs.cs"]
@@ -121,17 +120,15 @@ flowchart TB
         CLog["LoupeLogMessage<br/>internal static partial class"]
     end
 
-    AP -->|"IsVisible / Source(IImage) / CenterPoint /<br/>Options / Appearance / ClientToPixelScaling /<br/>RequestRender / Clear / SetCoordTransform / PositionOffset"| Ctl
+    AP -->|"IsVisible / Source(EsReadOnlyBitmap) /<br/>DisplaySource(IImage。 省略可) / CenterPoint /<br/>Options / Appearance / ClientToPixelScaling /<br/>RequestRender / Clear / SetCoordTransform / PositionOffset"| Ctl
     Ctl -->|"RequestRender / CancelAndRelease / ShouldApply"| Coh
-    Ctl -->|"RenderAsync(source, plan)"| Pip
     Ctl -->|"ResolveDrawPlan（実寸測定関数を渡す）/ Appearance"| Pnt
     Ctl -->|"EsPoint / EsSize（境界の 1 行変換）"| Pos
     Ctl -->|"Coerce（ClientToPixelScaling）"| Coerce
     Ctl -->|"LogUpdateError（描画の例外）"| ULog
     Ctl -->|"LogUpdateError / LogSourceChanged（本 UI 固有）"| RLog
     Ctl -->|"Rendered（描画済み Bitmap / 描画計画）"| Evt
-    Pip -->|"IsSourceSupported / Resolve"| Src
-    Pip -->|"Paint(context, source, plan)"| Rdr
+    Ctl -->|"Paint(context, plan, 拡大元の寸法, 表示用の射影, 拡大元)"| Rdr
     Pnt --> Plan
     Pnt --> Layer
     Pnt --> Lay
@@ -150,7 +147,7 @@ flowchart TB
 
 - **分類**: 公開コントロール（`public sealed class LoupeControl : Panel`。 AXAML を持たずコードのみで子要素を構成する）
 - **責務**:
-  - 状態管理: 5 個の StyledProperty（`Source: IImage?` / `CenterPoint` / 設定 `Options` / 外観 `Appearance` / 環境値 `ClientToPixelScaling`）
+  - 状態管理: 6 個の StyledProperty（`Source: EsReadOnlyBitmap?`（拡大元のコア画像） / `DisplaySource: IImage?`（表示用の射影。 省略可） / `CenterPoint` / 設定 `Options` / 外観 `Appearance` / 環境値 `ClientToPixelScaling`）
   - 座標ラベル: **コントロールがテキスト要素（`Border` + `TextBlock`）として表示する**。 文言・基準点は提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter`（`LabelTexts` partial））が、表示可否と体裁（フォントサイズ・色・角丸）は外観（`LoupeAppearance`）が、実寸 → 配置矩形の写像は同層の `LoupePresenter`（`LabelPlan` partial） が単一所有する。 コントロールは配置フェーズ（`ArrangeOverride`）で要素を追加・更新する（ラベル要素は子の末尾に置かれ、子は親より後に描かれるため常に最上位）
     - **実寸測定は UI が行う理由**: テキストの実寸は描画 API（`FormattedText`）でしか測れないため、UI が測って `LoupePresenter`（`LabelPlan` partial）（描画層 `EsUtil.Feature.Loupe.Presenter`）へ渡し、返された配置を要素へ反映する
   - 表示制御: 標準プロパティ `IsVisible` で表示・非表示を指示（表示時=再描画の要求、非表示時=保留中の要求の破棄。 解放する中間ビットマップは無い）
@@ -162,15 +159,15 @@ flowchart TB
     - 表示サイズ・位置: `UpdatePosition` がコアのファサード `LoupeCore.ResolveLayout` を呼び、返された `LoupeLayout`（表示サイズと表示位置）を要素（`Width` / `Height`）と `RenderTransform` へ写すだけである（表示サイズの決定・オフセット加算・親領域内への位置の補正はコアが単一所有し、`UpdatePosition` は表示サイズの唯一の反映元になる）
     - 座標単位: `Options.RequestedSize` は DIP、描画計画へ渡す表示サイズと枠線の太さも DIP（物理ピクセルへの換算は提示層が `DpiScaler.ScaleToPixel` へ委譲する）
   - 値の補正: コアの設定値（`LoupeOptions`）は型の生成時に補正される（UI は関与しない）。 環境値の `ClientToPixelScaling` のみ `coerce` コールバックで矯正する
-- **公開API**: 入力（`Source: IImage?` / `CenterPoint`）/ 設定（`Options`（コアの `LoupeOptions` が単一所有する基本サイズ・拡大率。 UI は設定値を保持しない）/ 外観（`Appearance`（`LoupeAppearance`。 `System.Drawing.Color` で受け取り描画時にブラシへ変換する）））/ 環境（`ClientToPixelScaling`）/ ログ（`Log`）/ イベント（`Rendered`・`LoupeRenderedEventArgs` で**描画先の `DrawingContext`** と描画計画（切り出し左上・拡大率・描画面のサイズ）を通知。 ホストが付加情報（線分・選択枠等）を描画 API で描ける）/ 操作（`Clear` / `RequestRender` / `SetCoordTransform` / `PositionOffset` / `RefreshPosition`）
-- **依存**: LoupePresenter（描画計画と配置の写像）/ LoupeAppearance（`EsUtil.Feature.Loupe.Presenter`） / LoupeLogMessage（本プロジェクト） / LoupeContextPainter / LoupeSourceResolver（本プロジェクト） / LoupeOptions / Loupe（`EsUtil.Feature.Loupe.Core`） / DrawingContext（Avalonia） / Avalonia / ILogger
+- **公開API**: 入力（`Source: EsReadOnlyBitmap?`（拡大元のコア画像） / `DisplaySource: IImage?`（表示用の射影。 省略可） / `CenterPoint`）/ 設定（`Options`（コアの `LoupeOptions` が単一所有する基本サイズ・拡大率。 UI は設定値を保持しない）/ 外観（`Appearance`（`LoupeAppearance`。 `System.Drawing.Color` で受け取り描画時にブラシへ変換する）））/ 環境（`ClientToPixelScaling`）/ ログ（`Log`）/ イベント（`Rendered`・`LoupeRenderedEventArgs` で**描画先の `DrawingContext`** と描画計画（切り出し左上・拡大率・描画面のサイズ）を通知。 ホストが付加情報（線分・選択枠等）を描画 API で描ける）/ 操作（`Clear` / `RequestRender` / `SetCoordTransform` / `PositionOffset` / `RefreshPosition`）
+- **依存**: LoupePresenter（描画計画と配置の写像）/ LoupeAppearance（`EsUtil.Feature.Loupe.Presenter`） / LoupeLogMessage（本プロジェクト） / LoupeContextPainter（本プロジェクト） / LoupeOptions / Loupe（`EsUtil.Feature.Loupe.Core`） / EsReadOnlyBitmap（`EsUtil.Platform.Core`） / DrawingContext（Avalonia） / Avalonia / ILogger
 
 ### 6.2 LoupeContextPainter（描画実装）
 
 - **分類**: 内部静的クラス（`internal static class LoupeContextPainter`。 Avalonia 版の描画実装）
 - **責務**: 描画計画（`LoupeDrawPlan`）を Avalonia の描画 API（`DrawingContext`）へ写す（**層の順序も描く値も計画が単一所有する**ため、本クラスは順に描く だけである）
 - **可視性**: internal（描画の実装詳細。 見た目の差し替えは `LoupeControl.Appearance` / `DrawPlanResolver` / `DrawPlan` で行う）
-  **描画の入口**: `LoupeContextPainter.Paint(DrawingContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)`（図形のみ。 **テキストは描かない**。 中心座標ラベルはコントロールが UI 要素として配置する）
+  **描画の入口**: `LoupeContextPainter.Paint(DrawingContext context, in LoupeDrawPlan plan, EsSizeInt? sourceSize, IImage? display, EsReadOnlyBitmap? source)`（図形のみ。 **テキストは描かない**。 中心座標ラベルはコントロールが UI 要素として配置する）
 - **特徴**:  描画の可否は外観（`Appearance` の `Show*`）を見て本クラスが判断する（計画は表示可否で矩形も層も消さない）。 枠線の太さの物理ピクセルへの換算と装飾の矩形の導出は**提示層が解決済み**である（本クラスは計算を持たない）。 色 → ブラシの共有は `SolidColorBrushCache` が
 - **依存**: EsUtil.Feature.Loupe.Presenter（`LoupeDrawPlan` / `LoupeAppearance` / `LoupeDrawLayer`）/ `Internal/`（`SolidColorBrushCache`）/ EsUtil.Platform.Core（画像型 / `System.Drawing.Color`）
 
@@ -188,12 +185,11 @@ flowchart TB
 
 ### 6.4 画像入力とピクセル抽出
 
-- 公開画像入力はAvalonia標準の `IImage?` とし、`Image.Source` と同じBindingモデルで利用できる。
+- 公開画像入力（拡大元）はコアの具象型 `EsReadOnlyBitmap?` とし、MewUI 版 / WinUI3 版 / WinForms 版と同じ契約にする。
+- 表示用の射影は `DisplaySource`（`IImage?`。 省略可）として受け取る（[`../README.md`](../README.md) §5）。
+- 拡大元の型は型で保証されるため、未対応型の判定（実行時の型チェック・反射）を持たない。
 - ピクセル抽出が必要な切り出しの内部境界だけ `EsReadOnlyBitmap` を要求する（切り出し領域はコアの `LoupeGeometry.MagnifiedImage` が決める）。
-- `Source` が `Bitmap`（`WriteableBitmap` / `RenderTargetBitmap` を含む派生型）の場合は `CopyPixels` による複製（`EsBitmap` 化）で抽出する。 **この複製は表示用の射影を切り出し元の座標系として使えない場合だけ行う**（DPI が 96 以外の `Bitmap` は `Size`（DIP）と `PixelSize` が一致しないため元矩形の解釈が変わる。 一致する場合は射影をそのまま使えるため複製せず、寸法だけを解決する）。
-- `Source` が `EsBitmapAvaloniaAdapter` の場合は `GetEsBitmap()` でコアの画像（`EsReadOnlyBitmap`）を取り出し、そのピクセルを直接抽出する（複製なし）。
-- `Bitmap`（派生を含む） / `EsBitmapAvaloniaAdapter` 以外の `IImage`（`CroppedBitmap` 等）は `NotSupportedException` が発生する（判定は `LoupeSourceResolver.EnsureSupported` が単一所有する）。 **描画の経路では例外を記録して下地までで終える**（アプリを落とさない）。
-- **切り出しの複製を作らない**（表示用の射影を元矩形つきで描く）: `LoupeContextPainter` は `Source` の射影（`IImage`）と切り出し元の寸法を受け取り、**画像と交差する部分だけ**を `DrawImage(image, 元矩形, 描画矩形)` で描く。 外側は描かない（ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）ため、**毎フレームの切り出しの複製と表示用の変換が不要**になる。 射影が無い経路（オフスクリーン描画）と射影の寸法が切り出し元と違う場合は、**0 コピーの読み取りビュー**（`ToPixmap`）を読み、表示用の画像へ変換して描く（切り出しの複製は作らない。 射影だけのソース（コアの画像を持たない `Bitmap`）は射影をそのまま使うため、寸法が一致しない場合は渡さない）。
+- **切り出しの複製を作らない**（表示用の射影を元矩形つきで描く）: `LoupeContextPainter` は切り出し元の寸法と表示用の射影を受け取り、**画像と交差する部分だけ**を `DrawImage(image, 元矩形, 描画矩形)` で描く。 外側は描かない（ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）ため、**毎フレームの切り出しの複製と表示用の変換が不要**になる。 射影が無い場合と、寸法が一致しない場合と、破棄済みの場合は、**0 コピーの読み取りビュー**（`ToPixmap`）を読み、表示用の画像へ変換して描く（切り出しの複製は作らない）。
 - **中間ビットマップを作らない**: 描画は窓の描画面へ直接行う（描画のたびの `RenderTargetBitmap` の生成・画素の読み出し・表示用テクスチャの作り直しが無い）。 描画の範囲は子要素の矩形（`ClipToBounds`）が決める。
 
 ### 6.5 切り出し領域の幾何（`EsUtil.Feature.Loupe.Core`）
@@ -209,7 +205,7 @@ flowchart TB
 
 - **分類**: ログ定義（`LoggerMessage` source generator。 `public static partial class`）
 - **責務**: ログの書式・レベルを UI 間で揃え、定義の所有者を出力の主体ごとに分ける
-- **本 UI が呼ぶ定義**: **本プロジェクトの `LoupeLogMessage`** が単一所有する（`LogSourceChanged`（Debug。 設定名は本 UI が付与）/ `LogUpdateError`（Error））。 拡大元画像はコントロール固有の値であり（コアのファサードは画像を保持しない）、画像の寸法の文字列化は本 UI が `IImage.Size` から行う（`IImage` はコアの `EsReadOnlyBitmap` へ依存しないため共通化しない。 破棄済みは型名で代用する）
+- **本 UI が呼ぶ定義**: **本プロジェクトの `LoupeLogMessage`** が単一所有する（`LogSourceChanged`（Debug。 設定名は本 UI が付与）/ `LogUpdateError`（Error））。 拡大元画像はコントロール固有の値であり（コアのファサードは画像を保持しない）、画像の寸法の文字列化は本 UI が行う（拡大元はコアの `EsReadOnlyBitmap` であり、寸法は破棄後も得られる）
 - **コアが出力する定義**: `EsUtil.Feature.Loupe.Core` の `LoupeLogMessage`（internal）が持つ（設定値・拡大中心の変更。 **設定名はコアが付与**し、UI 層は値だけを渡す）
 - **依存**: Microsoft.Extensions.Logging
 
@@ -221,7 +217,7 @@ flowchart TB
 ### 6.8 UI 固有の機構（コアへ移さない）
 
 - `RenderLayer`: ルーペの内容を窓の描画面へ描く子要素（`Control`）。 `Panel` は `Render` をシールするため描画は子が担う。 切り取り（`ClipToBounds`）を有効にし、内容がルーペの矩形の外へ描かれないようにする。
-- `LoupeSourceResolver`: `IImage` の対応型判定（`EnsureSupported` で未対応型は例外）・破棄済みの検出・切り出し元の寸法の解決（`Bitmap` の複製の要否の判断を含む）を単一所有する（UI スレッドに依存しない純粋関数）。
+- 拡大元の識別: 拡大元はコアの具象型（`EsReadOnlyBitmap?`）で受け取るため、**実行時の型判定・反射を持たない**（[`../README.md`](../README.md) §5）。 破棄済みの検出と切り出しの描画は `LoupeContextPainter` が吸収する。
 
 ## 7. 依存ルール
 
@@ -241,23 +237,21 @@ sequenceDiagram
     participant AP as 上位AP
     participant Ctl as LoupeControl
     participant Lyr as RenderLayer（子要素が窓の描画面へ描く）
-    participant Sr as LoupeSourceResolver
     participant Ext as LoupeGeometry（コア。切り出し領域の幾何）
     participant Rdr as LoupeContextPainter（Avalonia の描画実装）
 
-    AP->>Ctl: IsVisible = true / Source / CenterPoint 変更
+    AP->>Ctl: IsVisible = true / Source（コア画像）/ DisplaySource（表示用の射影。 省略可）/ CenterPoint 変更
     Ctl->>Ctl: QueueRender（Dispatcher ポストで 1 回に結合）
     Ctl->>Ctl: RefreshCenterPoint（ポストしたジョブの先頭。 CenterPointProvider から拡大中心を取り直す）
     Ctl->>Lyr: InvalidateVisual（次のフレームで Render が走る）
     Lyr->>Ctl: DrawLoupe(DrawingContext)
     Ctl->>Ctl: ResolveLayout / ResolveDrawPlan（表示サイズと幾何・外観・層の順序・ラベル配置を解決する）
-    Ctl->>Sr: EnsureSupported(source)（未対応型は例外）/ Resolve(source)
-    Sr-->>Ctl: 切り出し元の寸法と、表示用の射影だけでは足りない場合のコアの画像（アダプタは GetEsBitmap で取り出す。 射影が切り出し元と同じ座標系なら複製しない）
+    Ctl->>Ctl: 拡大元の寸法を取得（Source?.Size。 破棄済みでも幾何は得られる）
     Ctl->>Ctl: ピクセル → DIP の倍率を適用（1 / ClientToPixelScaling）
-    Ctl->>Rdr: LoupeContextPainter.Paint(DrawingContext, plan, 切り出し元の寸法, display, source)
+    Ctl->>Rdr: LoupeContextPainter.Paint(DrawingContext, plan, 拡大元の寸法, 表示用の射影, 拡大元)
     Rdr->>Rdr: 切り出し矩形を画像の内側へ切り詰め、描画先の部分矩形を求める
-    Rdr->>Ext: 表示用の射影がある場合は DrawImage(display, 元矩形, 描画矩形)（切り出しの複製も変換も作らない）
-    Rdr->>Ext: 射影が無い/寸法が違う場合は ToPixmap（0 コピーのビュー）を表示用の画像へ変換して描く
+    Rdr->>Ext: 表示用の射影が寸法一致なら DrawImage(表示用の射影, 元矩形, 描画矩形)（切り出しの複製も変換も作らない）
+    Rdr->>Ext: 射影が無い・寸法が違う・破棄済みなら ToPixmap（0 コピーのビュー）を表示用の画像へ変換して描く
     Ctl->>AP: Rendered(DrawingContext, plan)（ホストが付加情報を描く）
 
     AP->>Ctl: IsVisible = false（または Clear）
@@ -278,3 +272,13 @@ sequenceDiagram
 環境値の `ClientToPixelScaling` は `coerce` コールバックへ登録するため、バインディングなど setter を経由しない設定にも適用されます（規則はコアの `LoupeCore.Limits` が単一所有し、UI は登録するだけです）。 MewUI 版も `MewProperty.Register` の coerce コールバックで同じ契約を満たします。
 
 設定（`Options`）の数値項目は**コアの型が生成時に補正**し、外観（`Appearance`）の数値項目は**提示層の型が生成時に補正**するため、UI 側に補正の登録を置きません（値の設定経路（オブジェクト初期化子・`with` 式・逆シリアル化・バインディング）によらず範囲内の値だけが保持されます）。
+
+## 10. 設計判断
+
+| 判断 | 理由 | 影響 |
+| --- | --- | --- |
+| 拡大元をコアの具象型（`EsReadOnlyBitmap?`）で受け取る | コントロールは画素を読んで切り出すため、読む入口を持つ型を要求する。 画像の種類を `interface` で表すと**実装の差し替え点ではないインターフェース**になる（[コーディング規約.md](../../../.github/コーディング規約.md) §5。 権利は型で表す） | 表示境界の画像しか持たないホストは、コアの画像へ変換してから渡す（変換の責務が呼び出し側に現れる）。 4 つの UI が同じ契約になる |
+| 表示用の射影を省略可能な入力（`DisplaySource`）とする | 射影は**表示にだけ**必要であり、切り出しには要らない（無くても拡大元の画素から描ける）。 ホストが既に表示へ使っている画像を渡せば、切り出しの複製も表示用の変換も作らずに済む | 射影を渡さないホストも描画は成立する。 射影の有無で描画の内容は変わらない |
+| 表示用の射影は「拡大元と寸法が一致するときだけ」使う | 描画 API は元矩形を画像の座標系で解釈するため、一致しない射影は切り出す領域をずらす | 一致しない射影・破棄済みの射影は無視して拡大元から描く（DPI の違いやホストの指定漏れが誤った描画結果にならない） |
+| 画像の識別に反射を使わない（`Type.GetMethod` + `Expression.Compile` を持たない） | 未知の型から画素を取り出す反射は **Native AOT を不能にする**（`IL2070` / `IL3050`。 [ビルド設定規約.md](../../../.github/ビルド設定規約.md) 付録 A）。 抑止で消すと AOT の発行は通るが、実行時に失敗しうるコードが残る | 本プロジェクトは `PublishAot` の警告なしで発行できる（AOT 互換の解析結果が 0 件）。 判定は型が担う |
+| 破棄済みの画像を描画の実装（`LoupeContextPainter`）が吸収する | 破棄の権利はホストにあり、コントロールの描画はホストの破棄と競合しうる（[例外処理規約.md](../../../.github/例外処理規約.md) §4） | 破棄済みの拡大元は下地のみ、破棄済みの射影は無視して拡大元から描く（例外はアプリへ伝播しない） |

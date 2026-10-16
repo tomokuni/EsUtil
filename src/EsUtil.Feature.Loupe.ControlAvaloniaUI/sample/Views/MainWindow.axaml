@@ -156,10 +156,13 @@
                            IsVisible="{Binding SelectionRectVisible}"/>
 
                 <!-- ルーペ（マウス追従・Binding 方式） -->
+                <!-- Source は拡大元のコア画像、DisplaySource はホストが表示に使っている Avalonia の画像
+                     （寸法が一致するため、切り出しの複製を作らない経路になる） -->
                 <loupe:LoupeControl x:Name="Loupe"
                                     IsHitTestVisible="False"
                                     IsVisible="{Binding IsLoupeVisible, Mode=TwoWay}"
-                                    Source="{Binding SourceImage}"
+                                    Source="{Binding SourceBitmap}"
+                                    DisplaySource="{Binding SourceImage}"
                                     CenterPoint="{Binding CenterPoint}"
                                     Options="{Binding Options}"
                                     Appearance="{Binding Appearance}"

@@ -4,7 +4,6 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using EsUtil.Platform.Core.Coord;
@@ -31,16 +30,19 @@ public class LoupeControlTests
         => new() { Options = LoupeOptions.Default with { RequestedSize = 100, ZoomLevel = 2 }, IsVisible = true };
 
     /// <summary>装飾を止めたテスト用の LoupeControl を生成する（画素の検証で装飾と混ざらないようにする）。</summary>
-    /// <param name="source">拡大元画像。 null の場合は画像なし（下地のみ）。</param>
+    /// <param name="source">拡大元の画像（コア画像）。 null の場合は画像なし（下地のみ）。</param>
     /// <param name="centerPoint">拡大中心。 null の場合は未設定。</param>
+    /// <param name="display">表示用の射影（省略可）。 渡すと切り出しの複製を作らない経路になる。</param>
     /// <returns>生成したコントロール。</returns>
-    private static LoupeControl CreatePlainControl(IImage? source = null, Point? centerPoint = null)
+    private static LoupeControl CreatePlainControl(
+        EsReadOnlyBitmap? source = null, Point? centerPoint = null, IImage? display = null)
         => new()
         {
             Options = LoupeOptions.Default with { RequestedSize = 100, ZoomLevel = 2 },
             Appearance = LoupeAppearance.Default with { ShowCrosshair = false, ShowBorder = false, ShowCoordLabel = false },
             IsVisible = true,
             Source = source,
+            DisplaySource = display,
             CenterPoint = centerPoint,
         };
 
@@ -132,7 +134,7 @@ public class LoupeControlTests
     internal async Task SourceとCenterPointを設定すると描画される()
     {
         var control = CreateControl();
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
         var window = TestHelper.ShowInWindow(control);
 
@@ -144,15 +146,13 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    internal async Task EsBitmapAvaloniaAdapterをSourceに設定すると描画される()
+    internal async Task 表示用の射影を渡すと表示用の画像から描画される()
     {
-        // EsBitmapAvaloniaAdapter（コアの画像を IImage として公開するアダプタ）を Source に設定した場合、
-        // 表示用の射影をそのまま使って描画される（複製を作らない経路の検証）。
-        using var bmp = EsBitmap.Create(200, 200, System.Drawing.Color.FromArgb(255, 200, 30, 30));
-        bmp.SetReadOnly();
-        using var read = EsReadOnlyBitmap.FromBitmap(bmp);
+        // EsBitmapAvaloniaAdapter（コアの画像を IImage として公開するアダプタ）を DisplaySource へ渡した場合、
+        // 表示用の射影をそのまま使って描画される（切り出しの複製を作らない経路の検証）。
+        using var read = TestHelper.CreateSource(200, 200, DrawingColor.FromArgb(255, 200, 30, 30));
         using var image = new EsBitmapAvaloniaAdapter(read);
-        var control = CreatePlainControl(image, new Point(100, 100));
+        var control = CreatePlainControl(read, new Point(100, 100), display: image);
         var window = TestHelper.ShowInWindow(control);
 
         await control.WaitForRenderedAsync();
@@ -162,10 +162,10 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    internal async Task WriteableBitmapをSourceに設定すると描画される()
+    internal async Task 表示用の射影が無くてもコア画像から描画される()
     {
-        // WriteableBitmap は Bitmap の派生であるため、Bitmap と同じ経路で対応する。
-        using var source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        // 表示用の射影（DisplaySource）は省略可能である。 省略した場合は拡大元の画素（0 コピーのビュー）から描く。
+        using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         var control = CreatePlainControl(source, new Point(100, 100));
         var window = TestHelper.ShowInWindow(control);
 
@@ -176,17 +176,166 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    internal void 対応可能なソース型の判定はWriteableBitmapとRenderTargetBitmapを含む()
+    internal async Task 表示用の射影の有無で描画結果が同じになる()
     {
-        // 判定は「Bitmap の派生かどうか」で決まる（実測: WriteableBitmap / RenderTargetBitmap は Bitmap の派生）。
-        using var writeable = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(10, 10, Colors.Blue);
-        using var target = new RenderTargetBitmap(new PixelSize(10, 10), new Vector(96, 96));
+        // 描画の幾何は拡大元の寸法だけを基準にするため、射影の有無で結果が変わらない
+        // （射影は「切り出しの複製を作らない」ヒントであり、描く内容を変えない）。
+        using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        using var projection = new EsBitmapAvaloniaAdapter(source);
 
-        Assert.True(LoupeSourceResolver.IsSourceSupported(writeable));
-        Assert.True(LoupeSourceResolver.IsSourceSupported(target));
+        var withDisplay = CreatePlainControl(source, new Point(100, 100), display: projection);
+        var withoutDisplay = CreatePlainControl(source, new Point(100, 100));
+        var firstWindow = TestHelper.ShowInWindow(withDisplay);
+        var secondWindow = TestHelper.ShowInWindow(withoutDisplay);
 
-        // Bitmap の派生ではない IImage（CroppedBitmap は AvaloniaObject の派生）は非対応
-        Assert.False(LoupeSourceResolver.IsSourceSupported(new CroppedBitmap(writeable, new PixelRect(0, 0, 5, 5))));
+        await withDisplay.WaitForRenderedAsync();
+        await withoutDisplay.WaitForRenderedAsync();
+
+        foreach (var (x, y) in new[] { (0, 0), (30, 30), (99, 99) })
+        {
+            Assert.Equal(
+                LoupePixelAt(secondWindow, withoutDisplay, x, y),
+                LoupePixelAt(firstWindow, withDisplay, x, y));
+        }
+
+        firstWindow.Close();
+        secondWindow.Close();
+    }
+
+    [AvaloniaFact]
+    internal async Task 寸法が一致しない表示用の射影は無視されコア画像から描画される()
+    {
+        // 描画 API は元矩形を画像の座標系で解釈するため、寸法が拡大元と違う射影は使わない（誤った切り出しを描かない）。
+        using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        using var smaller = TestHelper.CreateSource(100, 100, DrawingColor.Red);
+        using var projection = new EsBitmapAvaloniaAdapter(smaller);
+        var control = CreatePlainControl(source, new Point(100, 100), display: projection);
+        var window = TestHelper.ShowInWindow(control);
+
+        await control.WaitForRenderedAsync();
+
+        Assert.Equal(0x0000FF, LoupePixelAt(window, control, 30, 30));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    internal async Task 破棄済みの表示用の射影は無視されコア画像から描画される()
+    {
+        // 破棄済みの射影は寸法を取得できないため「使えないヒント」として扱い、拡大元の画素から描く
+        // （表示用の射影はホストが所有するため、ホストが先に破棄した状態と競合しうる）。
+        using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        var dead = TestHelper.CreateSource(200, 200, DrawingColor.Red);
+        var projection = new EsBitmapAvaloniaAdapter(dead);
+        var control = CreatePlainControl(source, new Point(100, 100), display: projection);
+        dead.Dispose();
+        var window = TestHelper.ShowInWindow(control);
+
+        await control.WaitForRenderedAsync();
+
+        Assert.Equal(0x0000FF, LoupePixelAt(window, control, 30, 30));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    internal async Task 表示用の射影の変更で再描画される()
+    {
+        using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        using var projection = new EsBitmapAvaloniaAdapter(source);
+        var control = CreatePlainControl(source, new Point(100, 100));
+        var window = TestHelper.ShowInWindow(control);
+        await control.WaitForRenderedAsync();
+
+        var rendered = 0;
+        control.Rendered += (_, _) => rendered++;
+        control.DisplaySource = projection;
+        await control.WaitForRenderedAsync();
+
+        Assert.Equal(1, rendered);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    internal async Task 寸法が一致する表示用の射影が優先して使われる()
+    {
+        // 寸法が一致する射影は切り出しの複製を作らない経路で使われる（射影の色がそのまま出る）。
+        using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        using var red = TestHelper.CreateSource(200, 200, DrawingColor.Red);
+        using var projection = new EsBitmapAvaloniaAdapter(red);
+        var control = CreatePlainControl(source, new Point(100, 100), display: projection);
+        var window = TestHelper.ShowInWindow(control);
+
+        await control.WaitForRenderedAsync();
+
+        Assert.Equal(0xFF0000, LoupePixelAt(window, control, 30, 30));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    internal async Task 表示用の射影だけでは描画されない()
+    {
+        // 拡大元（コア画像）が描画の真実である。 射影だけを渡しても切り出す元が無いため下地のみを描く。
+        using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        using var projection = new EsBitmapAvaloniaAdapter(source);
+        var control = CreatePlainControl(centerPoint: new Point(100, 100), display: projection);
+        var window = TestHelper.ShowInWindow(control);
+
+        await control.WaitForRenderedAsync();
+
+        Assert.Equal(0x535353, LoupePixelAt(window, control, 30, 30));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    internal async Task 拡大元の範囲外は下地のみが描画される()
+    {
+        // 拡大元の外側は描かない（交差する部分だけを描く）ため、画像外の色（下地）が見える。
+        using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        var control = CreatePlainControl(source, new Point(2, 2));
+        var window = TestHelper.ShowInWindow(control);
+
+        await control.WaitForRenderedAsync();
+
+        // 可視域は中心 ±25（要求サイズ 100 / 拡大率 2）であるため、左上側は画像の外になる
+        Assert.Equal(0x535353, LoupePixelAt(window, control, 30, 30));
+        // 右下側は画像の内側である
+        Assert.Equal(0x0000FF, LoupePixelAt(window, control, 80, 80));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    internal async Task 拡大元を差し替えると新しい画像が描画される()
+    {
+        using var blue = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        using var red = TestHelper.CreateSource(200, 200, DrawingColor.Red);
+        var control = CreatePlainControl(blue, new Point(100, 100));
+        var window = TestHelper.ShowInWindow(control);
+        await control.WaitForRenderedAsync();
+        Assert.Equal(0x0000FF, LoupePixelAt(window, control, 30, 30));
+
+        control.Source = red;
+        await control.WaitForRenderedAsync();
+
+        Assert.Equal(0xFF0000, LoupePixelAt(window, control, 30, 30));
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    internal async Task 破棄済みの拡大元を差し替えると描画が復帰する()
+    {
+        // 破棄済みの画像は下地のみになるが、新しい画像へ差し替えると描画が戻る（破棄済みを保持し続けない）。
+        var dead = TestHelper.CreateSource(200, 200, DrawingColor.Red);
+        var control = CreatePlainControl(dead, new Point(100, 100));
+        dead.Dispose();
+        var window = TestHelper.ShowInWindow(control);
+        await control.WaitForRenderedAsync();
+        Assert.Equal(0x535353, LoupePixelAt(window, control, 30, 30));
+
+        using var blue = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        control.Source = blue;
+        await control.WaitForRenderedAsync();
+
+        Assert.Equal(0x0000FF, LoupePixelAt(window, control, 30, 30));
+        window.Close();
     }
 
     [AvaloniaFact]
@@ -201,7 +350,7 @@ public class LoupeControlTests
         // フレームの描画前に複数のプロパティを変更しても、描画は 1 回に結合される
         for (var i = 0; i < 5; i++)
         {
-            control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+            control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
             control.CenterPoint = new Point(100 + i, 100);
         }
 
@@ -228,7 +377,7 @@ public class LoupeControlTests
     internal async Task Source設定_CenterPoint未設定でも下地のみ描画される()
     {
         var control = CreatePlainControl(
-            EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue));
+            TestHelper.CreateSource(200, 200, DrawingColor.Blue));
         var window = TestHelper.ShowInWindow(control);
 
         await control.WaitForRenderedAsync();
@@ -242,7 +391,7 @@ public class LoupeControlTests
     internal async Task CenterPoint変更で再描画される()
     {
         var control = CreatePlainControl(
-            EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue), new Point(100, 100));
+            TestHelper.CreateSource(200, 200, DrawingColor.Blue), new Point(100, 100));
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
 
@@ -261,7 +410,7 @@ public class LoupeControlTests
     internal async Task RequestRenderで再描画される()
     {
         var control = CreateControl();
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
@@ -280,7 +429,7 @@ public class LoupeControlTests
     internal async Task 設定の変更で再描画される()
     {
         var control = CreateControl();
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
@@ -303,7 +452,7 @@ public class LoupeControlTests
     internal async Task Clearで非表示になる()
     {
         var control = CreateControl();
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
@@ -323,7 +472,7 @@ public class LoupeControlTests
     internal async Task IsVisible_falseで描画されない()
     {
         var control = CreateControl();
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
@@ -348,7 +497,7 @@ public class LoupeControlTests
 
         var rendered = 0;
         control.Rendered += (_, _) => rendered++;
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
         await TestHelper.PumpAsync();
 
@@ -362,7 +511,7 @@ public class LoupeControlTests
     internal async Task IsVisible_trueで表示して描画する()
     {
         var control = CreatePlainControl(
-            EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue), new Point(100, 100));
+            TestHelper.CreateSource(200, 200, DrawingColor.Blue), new Point(100, 100));
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
 
@@ -415,49 +564,83 @@ public class LoupeControlTests
     }
 
     // ====================================================================
-    // ソース解決（表示用の射影をそのまま使えるかの判定）
+    // 既定の描画の提供（DrawPlan。 static。 ホストが任意の順序で描く入口）
     // ====================================================================
 
     [AvaloniaFact]
-    internal void Resolve_寸法が一致するBitmapは複製を作らず表示用の射影として扱う()
+    internal async Task DrawPlan_コア画像を渡すと計画どおりに描画される()
     {
-        // 表示用の射影（Avalonia の Bitmap）が切り出し元と同じ座標系（1 DIP = 1 ピクセル）で使える場合は、
-        // コアの画像へ複製しない（再描画のたびに画面全体の複製を払わない。 描画は元画像を元矩形つきで行う）
-        using var source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(20, 10, Colors.Blue);
+        // ホストは Rendered の Content（描画計画）をそのまま渡して既定の描画を行える。
+        using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        var control = CreatePlainControl(source, new Point(100, 100));
+        var window = TestHelper.ShowInWindow(control);
 
-        var resolved = LoupeSourceResolver.Resolve(source);
+        var calls = 0;
+        control.Rendered += (_, e) =>
+        {
+            // 同じ描画コンテキストへ既定の描画を重ねる（例外なく完了し、描画は継続する）
+            var plan = e.Content;
+            LoupeControl.DrawPlan(e.Context, source, in plan);
+            calls++;
+        };
 
-        Assert.Equal(new EsSizeInt(20, 10), resolved.Size);
-        Assert.Null(resolved.Bitmap);
-        Assert.False(resolved.IsSourceBitmap);
+        await control.WaitForRenderedAsync();
+
+        Assert.Equal(1, calls);
+        window.Close();
     }
 
     [AvaloniaFact]
-    internal void Resolve_寸法が一致しないBitmapは複製を返す()
+    internal async Task DrawPlan_表示用の射影を渡しても描画される()
     {
-        // DPI が 96 以外の Bitmap は DIP（Size）とピクセルが一致せず、射影を切り出し元の座標系として使えない
-        // （描画 API は元矩形を画像の座標系で解釈する）ため、コアの画像へ複製して切り出し元にする
-        using var source = new RenderTargetBitmap(new PixelSize(20, 10), new Vector(144, 144));
+        // 省略可能な引数（表示用の射影）を渡す経路も描画が成立する（射影は切り出しの複製を省くヒントである）。
+        using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        using var projection = new EsBitmapAvaloniaAdapter(source);
+        var control = CreatePlainControl(source, new Point(100, 100));
+        var window = TestHelper.ShowInWindow(control);
 
-        var resolved = LoupeSourceResolver.Resolve(source);
+        var calls = 0;
+        control.Rendered += (_, e) =>
+        {
+            var plan = e.Content;
+            LoupeControl.DrawPlan(e.Context, source, in plan, projection);
+            calls++;
+        };
 
-        using var copy = resolved.Bitmap;
-        Assert.Equal(new EsSizeInt(20, 10), resolved.Size);
-        Assert.NotNull(copy);
-        Assert.True(resolved.IsSourceBitmap);
+        await control.WaitForRenderedAsync();
+
+        Assert.Equal(1, calls);
+        window.Close();
     }
 
     [AvaloniaFact]
-    internal void Resolve_破棄済みのBitmapは寸法を返さない()
+    internal async Task DrawPlan_拡大元が無くても描画できる()
     {
-        var source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(20, 10, Colors.Blue);
-        source.Dispose();
+        // 拡大元が null（画像なし）でも描画は成立する（下地のみを描く）。
+        var control = CreatePlainControl(centerPoint: new Point(100, 100));
+        var window = TestHelper.ShowInWindow(control);
 
-        var resolved = LoupeSourceResolver.Resolve(source);
+        var calls = 0;
+        control.Rendered += (_, e) =>
+        {
+            var plan = e.Content;
+            LoupeControl.DrawPlan(e.Context, source: null, in plan);
+            calls++;
+        };
 
-        Assert.Null(resolved.Size);
-        Assert.Null(resolved.Bitmap);
-        Assert.False(resolved.IsSourceBitmap);
+        await control.WaitForRenderedAsync();
+
+        Assert.Equal(1, calls);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    internal void DrawPlan_コンテキストがnullの場合は例外になる()
+    {
+        // 描画先は必須である（描画できない呼び出しを早期に失敗させる）。
+        var plan = default(LoupeDrawPlan);
+
+        Assert.Throws<ArgumentNullException>(() => LoupeControl.DrawPlan(null!, source: null, in plan));
     }
 
     // ====================================================================
@@ -468,7 +651,7 @@ public class LoupeControlTests
     internal async Task CenterPointProvider_描画の直前に中心を取り直す()
     {
         var control = CreateControl();
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
         var window = TestHelper.ShowInWindow(control);
 
@@ -492,7 +675,7 @@ public class LoupeControlTests
     internal async Task CenterPointProvider_nullを返す場合は中心を変えない()
     {
         var control = CreateControl();
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
         control.CenterPointProvider = () => null;
         var window = TestHelper.ShowInWindow(control);
@@ -508,17 +691,19 @@ public class LoupeControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    internal async Task 未対応の画像型はログへ記録され描画を継続する()
+    internal async Task 描画経路の例外はログへ記録され描画を継続する()
     {
         var control = CreateControl();
         var sink = new TestHelper.ListLogger();
         control.Log = sink;
-        control.Source = new CroppedBitmap(
-            EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(100, 100, Colors.Blue), new PixelRect(0, 0, 10, 10));
-        control.CenterPoint = new Point(5, 5);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        control.CenterPoint = new Point(100, 100);
+
+        // 付加情報を描くホストのハンドラーが例外を投げても、アプリを落とさずログへ記録される
+        // （描画の経路が例外を吸収する。 拡大元の型は型で保証されるため、未対応型の例外は起こらない）
+        control.Rendered += static (_, _) => throw new InvalidOperationException("付加情報の描画に失敗");
         var window = TestHelper.ShowInWindow(control);
 
-        // 描画の例外（未対応型）はアプリを落とさずログへ記録される（描画は下地までで完了する）
         await WaitForErrorAsync(control, sink);
 
         Assert.True(sink.HasError);
@@ -526,14 +711,14 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    internal async Task RequestRender_描画失敗時もログへ記録される()
+    internal async Task RequestRender_描画経路の例外もログへ記録される()
     {
         var control = CreateControl();
         var sink = new TestHelper.ListLogger();
         control.Log = sink;
-        control.Source = new CroppedBitmap(
-            EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(100, 100, Colors.Blue), new PixelRect(0, 0, 10, 10));
-        control.CenterPoint = new Point(5, 5);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        control.CenterPoint = new Point(100, 100);
+        control.Rendered += static (_, _) => throw new InvalidOperationException("付加情報の描画に失敗");
         var window = TestHelper.ShowInWindow(control);
 
         // 明示的な再描画要求（RequestRender）経由の描画失敗もログへ記録される
@@ -552,7 +737,7 @@ public class LoupeControlTests
     internal async Task 非表示にすると描画されない()
     {
         var control = CreateControl();
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
@@ -930,7 +1115,7 @@ public class LoupeControlTests
     [AvaloniaFact]
     internal async Task 破棄済みSourceは下地のみで描画される()
     {
-        var bitmap = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        var bitmap = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         var control = CreatePlainControl(bitmap, new Point(100, 100));
         bitmap.Dispose(); // 破棄済み Bitmap（生存検証で ObjectDisposedException）
         var window = TestHelper.ShowInWindow(control);
@@ -945,7 +1130,7 @@ public class LoupeControlTests
     [AvaloniaFact]
     internal async Task 描画中にSourceが破棄されると下地のみで描画される()
     {
-        var bitmap = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        var bitmap = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         var control = CreatePlainControl(bitmap, new Point(100, 100));
         var window = TestHelper.ShowInWindow(control);
 
@@ -962,10 +1147,10 @@ public class LoupeControlTests
     internal void Sourceを再設定すると変更通知される()
     {
         var control = CreateControl();
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
 
         // 再設定（OldValue が null でない）→ 変更ログの両分岐が実行される
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(50, 50);
         control.Options = control.Options with { RequestedSize = 120 };
         control.ClientToPixelScaling = 1.5;
@@ -982,9 +1167,9 @@ public class LoupeControlTests
         var window = TestHelper.ShowInWindow(control);
 
         // 初回設定（OldValue = null）と再設定（NewValue あり）の両経路で LogSettingChanged を実行する
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
 
         // null 設定（NewValue = null）で LogSettingChanged の null 分岐を実行する
         control.Source = null;
@@ -1013,7 +1198,7 @@ public class LoupeControlTests
         LoupeRenderedEventArgs? args = null;
         control.Rendered += (_, e) => args = e;
 
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
@@ -1040,7 +1225,7 @@ public class LoupeControlTests
         LoupeRenderedEventArgs? args = null;
         control.Rendered += (_, e) => args = e;
 
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
@@ -1076,7 +1261,7 @@ public class LoupeControlTests
     internal async Task 再描画のたびにRenderedイベントが発火する()
     {
         var control = CreateControl();
-        control.Source = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(200, 200, Colors.Blue);
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
@@ -1092,26 +1277,15 @@ public class LoupeControlTests
     }
 
     // ====================================================================
-    // LoupeSourceResolver.IsSourceSupported（対応可能型の判定・ヘッドレス要）
+    // 拡大元の型（コアの画像。 型で保証されるため実行時の判定は無い）
     // ====================================================================
 
     [AvaloniaFact]
-    internal void IsSourceSupported_Bitmapは対応可能である()
+    internal void 拡大元のプロパティの型はコアの画像である()
     {
-        // WriteableBitmap（Avalonia.Media.Imaging.Bitmap のサブクラス）は対応可能。
-        // WriteableBitmap 生成はヘッドレス（IPlatformRenderInterface）を必要とするため、[AvaloniaFact] で検証する。
-        using var bitmap = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(10, 10, Colors.White);
-
-        Assert.True(LoupeSourceResolver.IsSourceSupported(bitmap));
-    }
-
-    [AvaloniaFact]
-    internal void IsSourceSupported_未対応型は非対応である()
-    {
-        // CroppedBitmap は Bitmap を継承しないため、未対応型（非対応）として判定される。
-        using var bitmap = EsBitmapAvaloniaExtensions.CreateAvaloniaWriteableBitmap(10, 10, Colors.White);
-        using var cropped = new CroppedBitmap(bitmap, new PixelRect(0, 0, 5, 5));
-
-        Assert.False(LoupeSourceResolver.IsSourceSupported(cropped));
+        // 拡大元（Source）はコアの具象型であり、表示用の射影（DisplaySource）は UI の画像型である。
+        // 型で保証されるため、未対応型を実行時に判定する仕組み（型チェック・反射）を持たない（`src/README.md` §5）。
+        Assert.Equal(typeof(EsReadOnlyBitmap), LoupeControl.SourceProperty.PropertyType);
+        Assert.Equal(typeof(IImage), LoupeControl.DisplaySourceProperty.PropertyType);
     }
 }
