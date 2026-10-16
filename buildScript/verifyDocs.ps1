@@ -46,7 +46,7 @@ $allCsproj = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -F
 # 5. ドキュメント（markdownlint）
 # ============================================================
 Write-Output '== 5. ドキュメント（markdownlint） =='
-$mdArgs = @('--yes', 'markdownlint-cli2', '--config', '.markdownlint.json')
+$mdArgs = @('--yes', 'markdownlint-cli2', '--config', 'buildScript/markdownlint.json')
 if ($Fix) { $mdArgs += '--fix' }
 $mdArgs += @('src/**/*.md', '.github/**/*.md', '*.md', '!**/obj/**', '!**/bin/**')
 # npx は `cmd.exe` 経由で起動する（`.cmd` は直接起動できない）。 出力の復号は Invoke-NativeText が行う。
