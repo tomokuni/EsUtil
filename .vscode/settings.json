@@ -1,6 +1,10 @@
 {
     // PowerShell スクリプトの診断設定（リポジトリの方針と衝突する規則だけを理由付きで除外する）
     "powershell.scriptAnalysis.settingsPath": ".vscode/PSScriptAnalyzerSettings.psd1",
+    // C# Dev Kit が読み込むソリューション。 **フォルダー単位の設定（本ファイル）へ置く**（複数ルートの
+    // ワークスペースでは、`.code-workspace` の `settings` が**すべてのフォルダー**へ適用されるため、
+    // リポジトリごとに名前の異なるソリューションを指定できない。 根拠は .github/検証手順.md §14）。
+    "dotnet.defaultSolution": "EsUtil.slnx",
     // markdownlint 拡張機能（DavidAnson.vscode-markdownlint）は、構成ファイルを**ワークスペースのルート**でのみ
     // 自動探索する。 本リポジトリは構成を buildScript/ へ置く（ルート直下のファイルを減らすため。
     // .github/ビルド設定規約.md §1）ため、場所を明示する。 ${workspaceFolder} は文書ごとのフォルダーへ解決される
