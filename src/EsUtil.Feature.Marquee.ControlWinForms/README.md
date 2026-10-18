@@ -107,7 +107,7 @@ pictureBox.Controls.Add(marquee);   // 画像の上に重なる（画像は親�
 | `HighlightSourceRect` | `EsRect?` | ハイライトする矩形（対象座標）。 指定がある場合は選択矩形より優先して注目矩形になる。 |
 | `ClientToSourceScaling` | `double` | 座標変換ポートへ適用する倍率（対象座標 / ローカル DIP）。 ポート未指定時のみ使う。 |
 | `DisplayScaleScaling` | `double` | サイズラベルの表示スケーリング係数（マルチ モニタ補正）。 |
-| `ClientToPixelScaling` | `double` | 表示 DIP を物理ピクセルへ変換する係数（DPI 変更時に自動更新。 描画面の DPI を解決できない場合の代替値）。 |
+| `ClientToPixelScaling` | `double` | 表示 DIP を物理ピクセルへ変換する係数（ハンドル生成時と DPI 変更時に自動更新。 入力の物理ピクセル → DIP の換算と、描画面の DPI を解決できない場合の描画倍率の代替値に使う）。 |
 | `SizeLabelOverrideProvider` | `Func<string?>?` | サイズラベルの文言を差し替える関数。 |
 | `SizeLabelDisplayScalingProvider` | `Func<EsRect, double>?` | サイズラベルの表示スケーリングを矩形ごとに解決する関数。 |
 | `DrawPlanResolver` | `Func<MarqueeDrawPlan, MarqueeDrawPlan>?` | 描画計画を差し替える関数。 |

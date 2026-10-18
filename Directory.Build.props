@@ -11,7 +11,7 @@
     <EsUtil_Platform_Core_Windows_Version>0.1.0</EsUtil_Platform_Core_Windows_Version>
     <EsUtil_Feature_Loupe_Core_Version>0.1.0</EsUtil_Feature_Loupe_Core_Version>
     <EsUtil_Feature_Loupe_Presenter_Version>0.1.0</EsUtil_Feature_Loupe_Presenter_Version>
-    <EsUtil_Feature_Loupe_ControlAvaloniaUI_Version>0.2.1</EsUtil_Feature_Loupe_ControlAvaloniaUI_Version>
+    <EsUtil_Feature_Loupe_ControlAvaloniaUI_Version>0.1.2</EsUtil_Feature_Loupe_ControlAvaloniaUI_Version>
     <EsUtil_Feature_Loupe_ControlMewUI_Version>0.1.0</EsUtil_Feature_Loupe_ControlMewUI_Version>
     <EsUtil_Feature_Loupe_ControlWinUI3_Version>0.1.0</EsUtil_Feature_Loupe_ControlWinUI3_Version>
     <EsUtil_Feature_Loupe_ControlWinForms_Version>0.1.0</EsUtil_Feature_Loupe_ControlWinForms_Version>
@@ -20,7 +20,7 @@
     <EsUtil_Feature_Marquee_ControlAvaloniaUI_Version>0.1.0</EsUtil_Feature_Marquee_ControlAvaloniaUI_Version>
     <EsUtil_Feature_Marquee_ControlMewUI_Version>0.1.0</EsUtil_Feature_Marquee_ControlMewUI_Version>
     <EsUtil_Feature_Marquee_ControlWinUI3_Version>0.1.0</EsUtil_Feature_Marquee_ControlWinUI3_Version>
-    <EsUtil_Feature_Marquee_ControlWinForms_Version>0.1.0</EsUtil_Feature_Marquee_ControlWinForms_Version>
+    <EsUtil_Feature_Marquee_ControlWinForms_Version>0.1.1</EsUtil_Feature_Marquee_ControlWinForms_Version>
   </PropertyGroup>
 
   <PropertyGroup>

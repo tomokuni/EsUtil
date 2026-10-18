@@ -111,10 +111,11 @@
 | --- | --- |
 | `IsInputKey(Keys)` | 矢印キー・Escape・Enter を入力キーとして扱う（既定では矢印キーがダイアログ キーになるため）。 |
 | `OnPaint(PaintEventArgs)` | 描画計画を解決し、DPI の拡大を適用して描画した後、`Rendered` を発火する。 |
-| `OnMouseDown` / `OnMouseMove` / `OnMouseUp` | 左ボタンのドラッグをコアへ通知する（座標は対象座標へ変換する）。 |
+| `OnMouseDown` / `OnMouseMove` / `OnMouseUp` | 左ボタンのドラッグをコアへ通知する（マウス イベントの物理ピクセル座標を DIP へ換算してから対象座標へ変換する）。 |
 | `OnMouseEnter` / `OnMouseLeave` | ポインターがコントロールの上にあるかどうかを記録する（追従位置の取り直しの判断に使う）。 |
 | `OnKeyDown(KeyEventArgs)` | キーをコア型（`EsKey`）へ変換して通知し、処理したキーの押下音と既定の処理を抑止する。 |
 | `OnLostFocus(EventArgs)` | nudge を終了し、非表示にしたカーソルを再表示する。 |
+| `OnHandleCreated(EventArgs)` | `ClientToPixelScaling` を `DeviceDpi` から設定して再描画する（入力座標の換算と描画の倍率を一致させる）。 |
 | `RescaleConstantsForDpi(int, int)` | DPI が変わったときに `ClientToPixelScaling` を更新して再描画する。 |
 
 ### 4.3 イベント

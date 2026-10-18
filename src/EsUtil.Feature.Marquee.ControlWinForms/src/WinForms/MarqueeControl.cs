@@ -638,6 +638,22 @@ public sealed class MarqueeControl : Control
         _marquee.EndNudge();
     }
 
+    /// <summary>ハンドルの生成時にスケーリング係数を DPI へ追随させる。</summary>
+    /// <param name="e">イベントの情報。</param>
+    /// <remarks>
+    /// ハンドルの生成前は DPI を取得できないため、生成時に解決して保持する。<br/>
+    /// 保持しないと、DPI の変更が届くまで倍率が 1.0 のままになり、高 DPI の環境で入力の座標がずれる<br/>
+    /// （描画は描画面の DPI から倍率を解決するため、描画だけが正しくなる）。
+    /// </remarks>
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        base.OnHandleCreated(e);
+
+        ClientToPixelScaling = DpiScaler.ToScaling(DeviceDpi);
+        InvalidateRender();
+    }
+
     /// <summary>DPI の変更時に表示スケーリング係数を追従させる。</summary>
     /// <param name="deviceDpiOld">変更前の DPI。</param>
     /// <param name="deviceDpiNew">変更後の DPI。</param>
@@ -693,14 +709,35 @@ public sealed class MarqueeControl : Control
     private void InvalidateFrame() => _frame = null;
 
     /// <summary>ローカル DIP 座標を対象座標へ変換する。</summary>
-    /// <param name="localDip">ローカル DIP 座標。</param>
+    /// <param name="clientPixels">クライアント座標（物理ピクセル。 <see cref="Control"/> のマウス イベントが渡す座標）。</param>
     /// <returns>対象座標。</returns>
-    private EsPoint ToSource(Point localDip) => _marquee.ToSource(localDip.ToEsPoint());
+    /// <remarks>
+    /// <b>物理ピクセルを DIP へ換算してから変換する</b>: WinForms のマウス イベントは物理ピクセルで届くが、<br/>
+    /// 描画計画と座標変換ポートは DIP を前提とする（描画は DPI の拡大を適用してから DIP で描く）。<br/>
+    /// 換算しないと、高 DPI の環境でポインター位置と選択枠が倍率の分だけずれる。
+    /// </remarks>
+    private EsPoint ToSource(Point clientPixels) => _marquee.ToSource(ToLocalDip(clientPixels));
+
+    /// <summary>クライアント座標（物理ピクセル）をローカル DIP 座標へ変換する。</summary>
+    /// <param name="clientPixels">クライアント座標（物理ピクセル）。</param>
+    /// <returns>ローカル DIP 座標。</returns>
+    /// <remarks>倍率は DPI の通知（<see cref="Control.OnHandleCreated"/> / <see cref="Control.RescaleConstantsForDpi"/>）が保つ値を使う。</remarks>
+    private EsPoint ToLocalDip(Point clientPixels)
+    {
+        var scaling = DpiScaler.NormalizeScaling(ClientToPixelScaling);
+        return new EsPoint(
+            DpiScaler.ToDip(clientPixels.X, scaling),
+            DpiScaler.ToDip(clientPixels.Y, scaling));
+    }
 
     /// <summary>対象座標を画面物理座標へ変換する。</summary>
     /// <param name="sourcePos">対象座標。</param>
     /// <returns>画面物理座標。 ハンドル未生成（ウィンドウ未接続）の場合は既定値。</returns>
-    /// <remarks>カーソルの移動（nudge）に使用する。 変換できない場合は原点へカーソルが飛ぶため、呼び出し側は nudge 中のウィンドウ表示を前提とする。</remarks>
+    /// <remarks>
+    /// カーソルの移動（nudge）に使用する。 変換できない場合は原点へカーソルが飛ぶため、<br/>
+    /// 呼び出し側は nudge 中のウィンドウ表示を前提とする。<br/>
+    /// <c>PointToScreen</c> は物理ピクセルを要求するため、DIP から物理ピクセルへ換算してから渡す。
+    /// </remarks>
     private EsPointInt ToScreen(EsPoint sourcePos)
     {
         if (!IsHandleCreated)
@@ -708,8 +745,12 @@ public sealed class MarqueeControl : Control
             return default;
         }
 
+        var scaling = DpiScaler.NormalizeScaling(ClientToPixelScaling);
         var localDip = _marquee.ToDip(sourcePos);
-        return PointToScreen(localDip.ToPoint()).ToEsPointInt();
+        var localPixels = new Point(
+            DpiScaler.ScaleToPixel(localDip.X, scaling),
+            DpiScaler.ScaleToPixel(localDip.Y, scaling));
+        return PointToScreen(localPixels).ToEsPointInt();
     }
 
     /// <summary>現在のカーソル位置（対象座標）を取得する。</summary>
@@ -732,7 +773,7 @@ public sealed class MarqueeControl : Control
             return null;
         }
 
-        return _marquee.ToSource(PointToClient(screenPoint.ToPoint()).ToEsPoint());
+        return _marquee.ToSource(ToLocalDip(PointToClient(screenPoint.ToPoint())));
     }
 
     /// <summary>カーソル形状をコアが示す種別に応じて更新する。</summary>
