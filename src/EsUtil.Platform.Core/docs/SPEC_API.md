@@ -39,6 +39,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.31 `Imaging.EsReadOnlyBitmap`（sealed class : IDisposable） / `Imaging.EsBitmap`（sealed class : IDisposable） / `Imaging.EsPixmap`（sealed class : IDisposable）](#231-imagingesreadonlybitmapsealed-class--idisposable--imagingesbitmapsealed-class--idisposable--imagingespixmapsealed-class--idisposable)
   - [2.32 画像のファイル入出力（`Save` / `Load`）](#232-画像のファイル入出力save--load)
   - [2.33 画像型の設計上の判断（兄弟と借用を選んだ理由）](#233-画像型の設計上の判断兄弟と借用を選んだ理由)
+  - [2.34 `Native.SystemWindowCommands`（静的クラス）](#234-nativesystemwindowcommands静的クラス)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -54,7 +55,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` | DIP 相当の幾何値型と領域の規則 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI の純粋計算 |
 | `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `EsImageQuality` / `EsDitherMode` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、縮小と減色の品質、描画色の判定 |
-| `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` | OS サービスの抽象（UI 非依存） |
+| `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` / `SystemWindowCommands` | OS サービスの抽象（UI 非依存）と、ウィンドウの標準メニューから実行する操作 |
 | `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` | 上記抽象の Windows 実装（ホストが生成して注入する） |
 
 可視性は public のみを記載します（`internal` は [`SPEC_System.md`](SPEC_System.md) の可視性ポリシーを参照）。
@@ -870,6 +871,17 @@ public readonly record struct ElementFinderResults(
 **9. 任意のストライド・ピクセル形式は受け入れません**: Skia の画像は任意の `RowBytes` と多数の `ColorType` / `AlphaType` を表せますが、本ライブラリは**連続した BGRA8888（アルファ乗算済み）に固定**しています。 理由は (1) 相互変換と画素処理（切り出し・縮小・減色・保存）が**ストライドを計算せずに 1 本の連続した領域として扱える**こと、(2) 扱う画像（画面キャプチャ・GDI+ のデコード結果）がどれもこの形式に揃うことです。 **借用（`InstallPixels`）も連続した領域に限ります**（行パディングがある領域は `ArgumentException`）。 任意形式が要る場面は、**取り込む時点で変換**します。
 
 **10. 座標が範囲外の場合は `ArgumentOutOfRangeException`** を投げます。 `IndexOutOfRangeException` はランタイムが予約した例外であり、送出を禁じるアナライザー（`CA2201` / `MA0012`）があるため使いません（`System.Drawing.Bitmap.GetPixel` も `ArgumentOutOfRangeException` を投げます）。 **判定を入れる理由**: 境界を跨いだ座標はバッファの内側に落ちるため、判定しないと隣の行の画素が静かに変わります。
+
+### 2.34 `Native.SystemWindowCommands`（静的クラス）
+
+ウィンドウの標準メニュー（左上のアイコンの押下で出す）から実行する操作です。 移動・サイズ変更は OS のモードへ入ります（アプリ側でマウス追従を実装しません）。
+
+| メンバー | 内容 |
+| --- | --- |
+| `BeginMove(EsPlatformHandle)` | ウィンドウの移動を開始する（`WM_SYSCOMMAND` / `SC_MOVE`） |
+| `BeginSize(EsPlatformHandle)` | ウィンドウのサイズ変更を開始する（`WM_SYSCOMMAND` / `SC_SIZE`） |
+
+**失敗しても例外にしない**（コマンドを送れなかった場合は `false`）。 操作できない状態でもウィンドウは動作し続けます。
 
 ## 3. 使用例
 

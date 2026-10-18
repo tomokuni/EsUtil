@@ -262,6 +262,15 @@ internal static partial class WinNative
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
+    /// <summary>システム メニューのコマンド（ウィンドウ メニュー）を送るメッセージ。</summary>
+    internal const uint WM_SYSCOMMAND = 0x0112;
+
+    /// <summary>システム コマンド: ウィンドウの移動を開始する。</summary>
+    internal const int SC_MOVE = 0xF010;
+
+    /// <summary>システム コマンド: ウィンドウのサイズ変更を開始する。</summary>
+    internal const int SC_SIZE = 0xF000;
+
     /// <summary>ウィンドウのキャプチャ除外設定を変更する（user32.SetWindowDisplayAffinity）。</summary>
     /// <param name="hWnd">対象ウィンドウハンドル。</param>
     /// <param name="dwAffinity">除外設定（<see cref="WDA_NONE"/> / <see cref="WDA_EXCLUDEFROMCAPTURE"/>）。</param>
