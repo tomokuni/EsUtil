@@ -66,23 +66,52 @@ Set-Location $repoRoot
 # ネイティブ コマンド（dotnet）の出力を UTF-8 として読む（規則の所有者は .github/検証手順.md §15）
 . (Join-Path $PSScriptRoot 'VerifyCommon.ps1')
 
-# 依存順の一覧（規則の所有者は .github/依存関係.md §3。 表を変えるときは本一覧も追随させる）。
-$projects = @(
-    'src/EsUtil.Platform.Core/src/EsUtil.Platform.Core.csproj',
-    'src/EsUtil.Platform.Core.Windows/src/EsUtil.Platform.Core.Windows.csproj',
-    'src/EsUtil.Feature.Loupe.Core/src/EsUtil.Feature.Loupe.Core.csproj',
-    'src/EsUtil.Feature.Marquee.Core/src/EsUtil.Feature.Marquee.Core.csproj',
-    'src/EsUtil.Feature.Loupe.Presenter/src/EsUtil.Feature.Loupe.Presenter.csproj',
-    'src/EsUtil.Feature.Marquee.Presenter/src/EsUtil.Feature.Marquee.Presenter.csproj',
-    'src/EsUtil.Feature.Loupe.ControlAvaloniaUI/src/AvaloniaUI/EsUtil.Feature.Loupe.ControlAvaloniaUI.csproj',
-    'src/EsUtil.Feature.Loupe.ControlMewUI/src/MewUI/EsUtil.Feature.Loupe.ControlMewUI.csproj',
-    'src/EsUtil.Feature.Loupe.ControlWinUI3/src/WinUI3/EsUtil.Feature.Loupe.ControlWinUI3.csproj',
-    'src/EsUtil.Feature.Loupe.ControlWinForms/src/WinForms/EsUtil.Feature.Loupe.ControlWinForms.csproj',
-    'src/EsUtil.Feature.Marquee.ControlAvaloniaUI/src/AvaloniaUI/EsUtil.Feature.Marquee.ControlAvaloniaUI.csproj',
-    'src/EsUtil.Feature.Marquee.ControlMewUI/src/MewUI/EsUtil.Feature.Marquee.ControlMewUI.csproj',
-    'src/EsUtil.Feature.Marquee.ControlWinUI3/src/WinUI3/EsUtil.Feature.Marquee.ControlWinUI3.csproj',
-    'src/EsUtil.Feature.Marquee.ControlWinForms/src/WinForms/EsUtil.Feature.Marquee.ControlWinForms.csproj'
-)
+# 対象（本体プロジェクト）は src/ 配下の .csproj から自動で求める（テスト・サンプルは除く）。
+# **依存順**（PackageReference の EsUtil.* が先）に並べる。 並べ替えの根拠は .github/依存関係.md §3。
+# 対象の追加は .csproj を置くだけでよく、本スクリプトの一覧は触らない。
+function Get-PackageProjects {
+    $all = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter '*.csproj' |
+        Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample)\.csproj$' })
+
+    # 各プロジェクトが参照するパッケージ（EsUtil.*）の名前
+    $deps = @{}
+    foreach ($file in $all) {
+        $text = [IO.File]::ReadAllText($file.FullName)
+        $deps[$file.BaseName] = @([regex]::Matches($text, '<PackageReference\s+Include="(EsUtil\.[^"]+)"') |
+            ForEach-Object { $_.Groups[1].Value })
+    }
+
+    # 依存先が先に来る順へ並べる（依存関係の循環は規約違反のため、見つけたら止める）
+    $ordered = [System.Collections.Generic.List[string]]::new()
+    $visiting = [System.Collections.Generic.HashSet[string]]::new()
+    $done = [System.Collections.Generic.HashSet[string]]::new()
+    $visit = $null
+    $visit = {
+        param([string]$name)
+        if ($done.Contains($name)) { return }
+        if (-not $visiting.Add($name)) { throw "パッケージの依存関係が循環しています: $name" }
+
+        foreach ($dep in $deps[$name]) {
+            if ($deps.ContainsKey($dep)) { & $visit $dep }
+        }
+
+        [void]$visiting.Remove($name)
+        [void]$done.Add($name)
+        $ordered.Add($name)
+    }
+
+    # 名前順に走査して、同じ依存関係なら並びが安定するようにする
+    foreach ($name in ($deps.Keys | Sort-Object)) { & $visit $name }
+
+    $byName = @{}
+    foreach ($file in $all) { $byName[$file.BaseName] = $file }
+
+    foreach ($name in $ordered) {
+        $byName[$name].FullName.Substring($repoRoot.Length + 1).Replace('\', '/')
+    }
+}
+
+$projects = @(Get-PackageProjects)
 
 $feed = Join-Path $repoRoot '.nupkg'
 $propsPath = Join-Path $repoRoot 'Directory.Build.props'
