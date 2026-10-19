@@ -38,6 +38,10 @@
     人が 1・2 桁目を上げた版を確定して出したいとき、**変更を戻して表の版へ戻したいとき**、
     最初の記録を作るときに使う。
 
+.PARAMETER Only
+    指定したパッケージ（プロジェクト名）だけを pack する（プロジェクト単体のビルドの前処理が使う）。
+    他のプロジェクトも判定は行うが、pack も版の更新も記録もしない。
+
 .PARAMETER WhatIf
     何も書き換えずに判定（変更あり / 変更なし）だけを表示する（バージョン表の更新も pack もしない）。
 
@@ -55,7 +59,8 @@ param(
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release',
     [switch]$NoClean,
     [switch]$NoBump,
-    [switch]$WhatIf
+    [switch]$WhatIf,
+    [string]$Only = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -204,6 +209,13 @@ foreach ($project in $projects) {
     $plan.Add([pscustomobject]@{ Project = $project; Name = $name; Table = $table; Version = $version; Changed = $isChanged; Fingerprint = $fingerprint })
 }
 
+# -Only: プロジェクト単体のビルドの前処理。 そのプロジェクトだけを pack の対象にする
+# （依存する側の版は上げない。 パッケージの依存は「以上」の範囲で記述されるため、参照側は新しい版を解決できる）。
+if ($Only -ne '') {
+    $plan = [System.Collections.Generic.List[object]]@($plan | Where-Object { $_.Name -eq $Only })
+    if ($plan.Count -eq 0) { throw "pack の対象に $Only はありません" }
+}
+
 Write-Output 'バージョンの判定（変更のあったプロジェクトだけ 3 桁目を +1 する。 実際に上がるのは pack に成功したときのみ）:'
 foreach ($item in $plan) {
     $label = if ($item.Changed) { '変更あり' } else { '変更なし' }
@@ -303,8 +315,14 @@ if (-not $NoBump -and $bumped -gt 0) {
 if ($packed.Count -gt 0) {
     # 指紋は「フィードに入った版のソース」を記録する（失敗を「最新」と記録しない）。
     # 記録は指紋だけを持つ（版の値は Directory.Build.props の表 1 箇所だけが持つ）。
+    # 並びはプロジェクト名の順に固定する（pack の対象順に依存させない。 差分を読めるようにする）。
     # 改行は作業ツリーの規約（CRLF）に揃える（`ConvertTo-Json` の出力と混ざると `w/mixed` になる。 実測）。
-    $json = [pscustomobject]@{ fingerprints = $fingerprints } |
+    $sorted = [ordered]@{}
+    foreach ($key in ([string[]]@($fingerprints.Keys) | Sort-Object -CaseSensitive)) {
+        $sorted[$key] = $fingerprints[$key]
+    }
+
+    $json = [pscustomobject]@{ fingerprints = $sorted } |
         ConvertTo-Json -Depth 3
     $json = ($json -replace "`r`n", "`n") -replace "`n", "`r`n"
     [IO.File]::WriteAllText($fingerprintPath, $json + "`r`n", $enc)
