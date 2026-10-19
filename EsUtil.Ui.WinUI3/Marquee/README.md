@@ -37,7 +37,7 @@
 同じソリューションから使う場合はプロジェクト参照を追加します（型の変更が即座に反映されます）。
 
 ```xml
-<ProjectReference Include="..\EsUtil\src\EsUtil.Ui.WinUI3.Marquee\src\WinUI3\EsUtil.Ui.WinUI3.Marquee.csproj" />
+<ProjectReference Include="..\EsUtil.Ui.WinUI3\Marquee\src\EsUtil.Ui.WinUI3.Marquee.csproj" />
 ```
 
 ローカル フィード（`.nupkg/`）のパッケージとして使う場合は、パッケージ参照と WinUI 3 の設定を追加します。
