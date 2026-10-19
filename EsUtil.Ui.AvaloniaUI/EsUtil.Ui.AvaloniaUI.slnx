@@ -11,5 +11,6 @@
   </Folder>
   <Folder Name="/Thumbnail/">
     <Project Path="Thumbnail/src/EsUtil.Ui.AvaloniaUI.Thumbnail.csproj" />
+    <Project Path="Thumbnail/tests/EsUtil.Ui.AvaloniaUI.Thumbnail.Tests.csproj" />
   </Folder>
 </Solution>

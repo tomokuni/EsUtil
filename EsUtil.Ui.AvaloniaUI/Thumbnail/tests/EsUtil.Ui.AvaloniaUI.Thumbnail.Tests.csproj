@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Ui.AvaloniaUI.Thumbnail.Tests</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="*" />
+    <PackageReference Include="xunit.v3" Version="3.*" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.*" />
+    <PackageReference Include="Avalonia.Headless" Version="[12.*,)" />
+    <PackageReference Include="Avalonia.Headless.XUnit" Version="[12.*,)" />
+    <PackageReference Include="Avalonia.Skia" Version="[12.*,)" />
+    <PackageReference Include="coverlet.collector" Version="*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\EsUtil.Ui.AvaloniaUI.Thumbnail.csproj" />
+  </ItemGroup>
+
+  <!-- xUnit 並列化設定（Avalonia ヘッドレスアセンブリ間の静的競合を防ぐためアセンブリ間の並列を無効化） -->
+  <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 名前空間が EsUtil.Ui.<UI>.<機能> へ分かれたため、機能のルート名前空間（ファサードの公開面）を
+         グローバル using で取り込む。 -->
+    <Using Include="EsUtil.Feature.Thumbnail" />
+  </ItemGroup>
+
+</Project>

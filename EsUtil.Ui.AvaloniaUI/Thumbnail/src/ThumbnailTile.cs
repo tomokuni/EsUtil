@@ -104,6 +104,10 @@ internal sealed class ThumbnailTile : Panel
     /// <value>画像の縦横比から決まる高さ。 画像が無い場合は幅と同じ値（正方形）。</value>
     public double ImageHeight { get; private set; }
 
+    /// <summary>表示する画像を取得する。</summary>
+    /// <value>設定されている画像。 未設定は null。</value>
+    public IImage? CurrentImage => _source;
+
     /// <summary>表示する画像を設定する。</summary>
     /// <param name="image">画像。 null の場合は画像を描かない。</param>
     public void SetImage(IImage? image)

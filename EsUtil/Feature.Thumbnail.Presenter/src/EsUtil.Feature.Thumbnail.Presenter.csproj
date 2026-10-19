@@ -16,6 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- 本層が単一所有する設定（計算に必要な設定・外観）の変更ログ（LoggerMessage ソース生成）を持つ -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
     <InternalsVisibleTo Include="EsUtil.Feature.Thumbnail.Presenter.Tests" />
   </ItemGroup>

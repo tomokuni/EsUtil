@@ -13,6 +13,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- 選択（コアが単一所有する状態）の変更ログ定義（LoggerMessage ソース生成）を持つ。
+         EsUtil.Platform.Core 経由の推移参照でも解決できるが、本コアが直接使う依存のため明示する。 -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- 内部手順（配置の計算）は単体テストにのみ公開する。 -->
     <InternalsVisibleTo Include="EsUtil.Feature.Thumbnail.Core.Tests" />
   </ItemGroup>

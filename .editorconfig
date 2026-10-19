@@ -324,7 +324,7 @@ dotnet_diagnostic.VSTHRD002.severity = none
 
 # CA1062 を可搬なライブラリ（UI 非依存・他リポジトリから呼ばれる層）に限って有効にする
 # （グローバルな opt-out より後に置く。 上記の注意を参照）。
-[EsUtil/Platform.Core/src/**,EsUtil/Feature.Loupe.Core/src/**,EsUtil/Feature.Loupe.Presenter/src/**,EsUtil/Feature.Marquee.Core/src/**,EsUtil/Feature.Marquee.Presenter/src/**]
+[EsUtil/Platform.Core/src/**,EsUtil/Feature.Loupe.Core/src/**,EsUtil/Feature.Loupe.Presenter/src/**,EsUtil/Feature.Marquee.Core/src/**,EsUtil/Feature.Marquee.Presenter/src/**,EsUtil/Feature.Thumbnail.Core/src/**,EsUtil/Feature.Thumbnail.Presenter/src/**]
 dotnet_diagnostic.CA1062.severity = warning
 # SkiaSharp の null 許容注釈と実際の戻り値が一致しない（SKCodec.Create は失敗時に null を返すが非 null として注釈されている）ため、
 # この 2 ファイルでは CA1508 を無効にする（防御的な null 検査を残す）。

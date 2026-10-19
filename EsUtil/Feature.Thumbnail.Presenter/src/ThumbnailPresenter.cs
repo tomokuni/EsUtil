@@ -1,3 +1,7 @@
+using EsUtil.Feature.Thumbnail.Logging;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace EsUtil.Feature.Thumbnail;
 
 /// <summary>サムネイル一覧の提示（外観・影・描画計画）を UI 層へ提供するファサード（本層の既定実装）。</summary>
@@ -52,22 +56,101 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
     /// <summary>描画にだけ必要な外観。</summary>
     private ThumbnailAppearance _appearance = appearance ?? ThumbnailAppearance.Default;
 
+    /// <summary>ログの出力先（未設定は <see cref="NullLogger"/>）。</summary>
+    private ILogger _log = NullLogger.Instance;
+
+    /// <summary>ログの接頭辞（未設定は null。 既定値は定義クラスが持つ）。</summary>
+    private string? _logPrefix;
+
+    /// <summary>生成の記録を出力済みかどうか（ロガーの初回設定時に 1 度だけ出力する）。</summary>
+    private bool _createdLogged;
+
     /// <summary>計算に必要な設定を取得または設定する。</summary>
     /// <value>設定。 null は設定できない（<see cref="ThumbnailOptions.Default"/> を使う）。</value>
-    /// <remarks>設定を変えたら UI は配置を解決し直す（<see cref="ResolveLayout"/>）。</remarks>
+    /// <remarks>
+    /// 設定を変えたら UI は配置を解決し直す（<see cref="ResolveLayout"/>）。<br/>
+    /// 変化した項目の検出と記録は本プロパティが単一所有する（ホストは同値判定を持たない）。
+    /// </remarks>
     public ThumbnailOptions Options
     {
         get => _options;
-        set => _options = value ?? ThumbnailOptions.Default;
+        set
+        {
+            var next = value ?? ThumbnailOptions.Default;
+            if (ReferenceEquals(next, _options))
+            {
+                return;
+            }
+
+            var previous = _options;
+            _options = next;
+            _log.LogOptionsChanged(previous, next);
+        }
     }
 
     /// <summary>描画にだけ必要な外観を取得または設定する。</summary>
     /// <value>外観。 null は設定できない（<see cref="ThumbnailAppearance.Default"/> を使う）。</value>
-    /// <remarks>外観を変えたら UI は項目を描き直す（<see cref="ResolveDrawPlan"/> を呼び直す）。</remarks>
+    /// <remarks>
+    /// 外観を変えたら UI は項目を描き直す（<see cref="ResolveDrawPlan"/> を呼び直す）。<br/>
+    /// 変化した項目の検出と記録は本プロパティが単一所有する（ホストは同値判定を持たない）。
+    /// </remarks>
     public ThumbnailAppearance Appearance
     {
         get => _appearance;
-        set => _appearance = value ?? ThumbnailAppearance.Default;
+        set
+        {
+            var next = value ?? ThumbnailAppearance.Default;
+            if (ReferenceEquals(next, _appearance))
+            {
+                return;
+            }
+
+            var previous = _appearance;
+            _appearance = next;
+            _log.LogAppearanceChanged(previous, next);
+        }
+    }
+
+    /// <summary>ログの出力先を取得または設定する。</summary>
+    /// <value>ロガー。 null を設定すると <see cref="NullLogger"/> になる。</value>
+    /// <remarks>
+    /// <b>生成の記録</b>: 本プロパティの<b>初回の設定時</b>に本層の生成を 1 度だけ記録する<br/>
+    /// （生成時は出力先が未設定のため、その場では記録できない。 2 回目以降の設定では繰り返さない）。
+    /// </remarks>
+    public ILogger Log
+    {
+        get => _log;
+        set
+        {
+            _log = value ?? NullLogger.Instance;
+            LogPresenterCreatedOnce();
+            _log.LogLoggerAttached();
+        }
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[Thumbnail]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    /// <remarks>本層のログ定義（<see cref="ThumbnailLogMessage"/>）の接頭辞を設定する（本層は最下層のため伝搬先は無い）。</remarks>
+    public string? LogPrefix
+    {
+        get => _logPrefix;
+        set
+        {
+            _logPrefix = value;
+            ThumbnailLogMessage.Prefix = string.IsNullOrWhiteSpace(value) ? ThumbnailLogMessage.DefaultPrefix : value;
+        }
+    }
+
+    /// <summary>ロガーが設定された時点で生成を 1 度だけ出力する。</summary>
+    private void LogPresenterCreatedOnce()
+    {
+        if (_createdLogged)
+        {
+            return;
+        }
+
+        _createdLogged = true;
+        _log.LogPresenterCreated();
     }
 
     /// <summary>一覧の配置を解決する。</summary>

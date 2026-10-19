@@ -93,12 +93,26 @@ presenter.Appearance = ThumbnailAppearance.Default with { Shadow = new NoShadowP
 
 ## 5. テスト
 
-`tests/`（xUnit v3）。 影の濃さ（実測値）・帯の生成・層の間引き・強調時の色・太字の規則を検証します。
+`tests/`（xUnit v3）。 影の濃さ（実測値）・帯の生成・層の間引き・強調時の色・太字の規則と、設定・外観の変更ログ（変化した項目だけを出力する）を検証します。
 
-## 6. ドキュメント
+## 6. ログ
+
+設定と外観の変更を記録します（既定は出力なし）。
+
+| レベル | 出力例 |
+| --- | --- |
+| Information | `[Thumbnail] Presenter created`（ロガーの初回設定時に 1 度だけ） |
+| Debug | `[Thumbnail] Setting: ItemSpacing 0 → 4` / `[Thumbnail] Setting: LabelFontSize 11 → 13`（変化した項目だけ） |
+| Trace | `[Thumbnail] Logger attached` |
+
+`ThumbnailPresenter.Log` へ `ILogger` を設定します（null は `NullLogger`）。 接頭辞は `LogPrefix` で設定します（既定 `[Thumbnail]`）。
+
+## 7. ドキュメント
 
 - 層の帰属 … [`../README.md`](../README.md)
+- API リファレンス … [`docs/SPEC_API.md`](docs/SPEC_API.md)
+- システム仕様書 … [`docs/SPEC_System.md`](docs/SPEC_System.md)
 
-## 7. ライセンス
+## 8. ライセンス
 
 MIT（リポジトリの [LICENSE](../../LICENSE) を参照）。

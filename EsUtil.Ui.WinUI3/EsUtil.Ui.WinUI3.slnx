@@ -11,5 +11,6 @@
   </Folder>
   <Folder Name="/Thumbnail/">
     <Project Path="Thumbnail/src/EsUtil.Ui.WinUI3.Thumbnail.csproj" />
+    <Project Path="Thumbnail/tests/EsUtil.Ui.WinUI3.Thumbnail.Tests.csproj" />
   </Folder>
 </Solution>

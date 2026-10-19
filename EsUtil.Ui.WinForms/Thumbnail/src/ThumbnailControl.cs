@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Drawing.Drawing2D;
 using EsUtil.Platform.Core.Geometry;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EsUtil.Ui.WinForms.Thumbnail;
 
@@ -42,6 +44,12 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <summary>最後に解決した配置（無効な場合は null）。</summary>
     private ThumbnailLayoutResult? _layout;
 
+    /// <summary>ログの出力先（未設定は <see cref="NullLogger"/>）。</summary>
+    private ILogger _log = NullLogger.Instance;
+
+    /// <summary>ログの接頭辞（未設定は null。 既定値は定義クラスが持つ）。</summary>
+    private string? _logPrefix;
+
     /// <summary>サムネイル一覧のコントロールを生成する。</summary>
     public ThumbnailControl()
     {
@@ -64,6 +72,45 @@ public sealed class ThumbnailControl : ScrollableControl
 
     /// <summary>項目が 2 回押されたときに発生する。</summary>
     public event EventHandler<ThumbnailActivatedEventArgs>? ItemActivated;
+
+    /// <summary>ログの出力先を取得または設定する。</summary>
+    /// <value>ロガー。 null を設定すると <see cref="NullLogger"/> になる。</value>
+    /// <remarks>
+    /// 設定・外観の変更は提示層が記録し、選択の変更はコア（<see cref="ThumbnailSelection"/>）が記録する。<br/>
+    /// 本コントロールは画像と項目数の変更を記録するため、同じロガーを両者へ渡す。
+    /// </remarks>
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public ILogger Log
+    {
+        get => _log;
+        set
+        {
+            _log = value ?? NullLogger.Instance;
+            _presenter.Log = _log;
+            _selection.Log = _log;
+        }
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[Thumbnail]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    /// <remarks>
+    /// 本コントロールのログ定義（<see cref="ThumbnailLogMessage"/>）の接頭辞を設定し、<br/>
+    /// 提示層・コアへ伝搬する（集約した接頭辞で全層のログを揃える）。
+    /// </remarks>
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public string? LogPrefix
+    {
+        get => _logPrefix;
+        set
+        {
+            _logPrefix = value;
+            ThumbnailLogMessage.Prefix = string.IsNullOrWhiteSpace(value) ? ThumbnailLogMessage.DefaultPrefix : value;
+            _presenter.LogPrefix = value;
+            _selection.LogPrefix = value;
+        }
+    }
 
     /// <summary>計算に必要な設定を取得または設定する。</summary>
     /// <value>設定。 既定は <see cref="ThumbnailOptions.Default"/>。</value>
@@ -137,6 +184,7 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <summary>一覧を空にする。</summary>
     public void ClearItems()
     {
+        var previous = _items.Count;
         foreach (var item in _items)
         {
             item.Image?.Dispose();
@@ -146,6 +194,7 @@ public sealed class ThumbnailControl : ScrollableControl
         _hoveredIndex = -1;
         _selection.Clear();
         InvalidateLayout();
+        _log.LogItemCountChanged(previous, 0);
     }
 
     /// <summary>サムネイルを 1 件追加する。</summary>
@@ -159,8 +208,10 @@ public sealed class ThumbnailControl : ScrollableControl
     {
         var item = new Item(image, caption, toolTip, isCurrent, tag);
         item.UpdateHeight(ImageWidth);
+        var previous = _items.Count;
         _items.Add(item);
         InvalidateLayout();
+        _log.LogItemCountChanged(previous, _items.Count);
         return _items.Count - 1;
     }
 
@@ -176,10 +227,12 @@ public sealed class ThumbnailControl : ScrollableControl
 
         var item = _items[index];
         var previous = item.Image;
+        var previousDescription = ThumbnailLogMessage.Describe(previous);
         item.Image = image;
         previous?.Dispose();
         item.UpdateHeight(ImageWidth);
         InvalidateLayout();
+        _log.LogImageChanged($"Image[{index}]", previousDescription, ThumbnailLogMessage.Describe(image));
     }
 
     /// <summary>項目の名前を差し替える。</summary>

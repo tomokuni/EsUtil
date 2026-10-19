@@ -16,7 +16,7 @@
 var list = new ThumbnailControl { ImageWidth = iconSize, IsDarkTheme = isDark, Dock = DockStyle.Fill };
 list.ItemActivated += (_, e) => Open((string)e.Tag!);
 
-list.Clear();
+list.ClearItems();
 foreach (var file in files)
 {
     list.Add(placeholder, Path.GetFileName(file), toolTip: file, tag: file);
@@ -41,12 +41,24 @@ list.SetImage(index, bitmap);
 
 ## 5. テスト
 
-自動テストは未整備です（ビルドの警告 0 と、利用側アプリの配布物の起動で確認しています）。
+`tests/`（xUnit v3）。 項目の追加・選択・クリア・範囲外の無視・レイアウト後の項目の矩形・ログ（画像と項目数）を検証します。
 
-## 6. ドキュメント
+## 6. ログ
+
+画像と項目数の変更を記録します（既定は出力なし）。
+
+| レベル | 出力例 |
+| --- | --- |
+| Debug | `[Thumbnail] Setting: Image[0] null → 96x64` / `[Thumbnail] Setting: ItemCount 0 → 12` |
+
+`Log` へ `ILogger` を設定します（null は `NullLogger`）。 接頭辞は `LogPrefix` で設定し、提示層・コアへ伝搬します（既定 `[Thumbnail]`）。 設定・外観の変更は提示層、選択の変更はコアが記録します。
+
+## 7. ドキュメント
 
 - 層の帰属 … [`../../EsUtil/README.md`](../../EsUtil/README.md)
+- API リファレンス … [`docs/SPEC_API.md`](docs/SPEC_API.md)
+- システム仕様書 … [`docs/SPEC_System.md`](docs/SPEC_System.md)
 
-## 7. ライセンス
+## 8. ライセンス
 
 MIT（リポジトリの [LICENSE](../../LICENSE) を参照）。

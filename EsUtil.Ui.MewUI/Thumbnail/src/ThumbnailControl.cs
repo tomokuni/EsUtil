@@ -2,6 +2,8 @@ using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EsUtil.Ui.MewUI.Thumbnail;
 
@@ -34,6 +36,12 @@ public sealed class ThumbnailControl : Panel
     /// <summary>ホバー中の添字。</summary>
     private int _hoveredIndex = -1;
 
+    /// <summary>ログの出力先（未設定は <see cref="NullLogger"/>）。</summary>
+    private ILogger _log = NullLogger.Instance;
+
+    /// <summary>ログの接頭辞（未設定は null。 既定値は定義クラスが持つ）。</summary>
+    private string? _logPrefix;
+
     /// <summary>サムネイル一覧のコントロールを生成する。</summary>
     public ThumbnailControl()
     {
@@ -61,6 +69,41 @@ public sealed class ThumbnailControl : Panel
 
     /// <summary>提示層（設定・外観・描画計画）を取得する。</summary>
     public ThumbnailPresenter Presentation { get; }
+
+    /// <summary>ログの出力先を取得または設定する。</summary>
+    /// <value>ロガー。 null を設定すると <see cref="NullLogger"/> になる。</value>
+    /// <remarks>
+    /// 設定・外観の変更は提示層が記録し、選択の変更はコア（<see cref="ThumbnailSelection"/>）が記録する。<br/>
+    /// 本コントロールは画像と項目数の変更を記録するため、同じロガーを両者へ渡す。
+    /// </remarks>
+    public ILogger Log
+    {
+        get => _log;
+        set
+        {
+            _log = value ?? NullLogger.Instance;
+            Presentation.Log = _log;
+            _selection.Log = _log;
+        }
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[Thumbnail]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    /// <remarks>
+    /// 本コントロールのログ定義（<see cref="ThumbnailLogMessage"/>）の接頭辞を設定し、<br/>
+    /// 提示層・コアへ伝搬する（集約した接頭辞で全層のログを揃える）。
+    /// </remarks>
+    public string? LogPrefix
+    {
+        get => _logPrefix;
+        set
+        {
+            _logPrefix = value;
+            ThumbnailLogMessage.Prefix = string.IsNullOrWhiteSpace(value) ? ThumbnailLogMessage.DefaultPrefix : value;
+            Presentation.LogPrefix = value;
+            _selection.LogPrefix = value;
+        }
+    }
 
     /// <summary>計算に必要な設定を取得または設定する。</summary>
     /// <value>設定。 既定は <see cref="ThumbnailOptions.Default"/>。</value>
@@ -135,10 +178,12 @@ public sealed class ThumbnailControl : Panel
     /// <summary>一覧を空にする。</summary>
     public void ClearItems()
     {
+        var previous = _items.Count;
         _hoveredIndex = -1;
         _selection.Clear();
         _items.Clear();
         _content.Clear();
+        _log.LogItemCountChanged(previous, 0);
     }
 
     /// <summary>サムネイルを 1 件追加する。</summary>
@@ -164,6 +209,7 @@ public sealed class ThumbnailControl : Panel
 
         _items.Add(tile);
         _content.Add(tile);
+        _log.LogItemCountChanged(index, _items.Count);
         return index;
     }
 
@@ -177,8 +223,11 @@ public sealed class ThumbnailControl : Panel
             return;
         }
 
-        _items[index].SetImage(image);
+        var tile = _items[index];
+        var previous = tile.Source;
+        tile.SetImage(image);
         _content.InvalidateMeasure();
+        _log.LogImageChanged($"Image[{index}]", previous, image);
     }
 
     /// <summary>項目の名前を差し替える。</summary>
