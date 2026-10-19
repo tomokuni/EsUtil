@@ -16,6 +16,12 @@
     <EsUtil_Feature_Loupe_ControlWinUI3_Version>0.1.0</EsUtil_Feature_Loupe_ControlWinUI3_Version>
     <EsUtil_Feature_Loupe_ControlWinForms_Version>0.1.0</EsUtil_Feature_Loupe_ControlWinForms_Version>
     <EsUtil_Feature_Marquee_Core_Version>0.1.0</EsUtil_Feature_Marquee_Core_Version>
+    <EsUtil_Feature_Thumbnail_Core_Version>0.1.0</EsUtil_Feature_Thumbnail_Core_Version>
+    <EsUtil_Feature_Thumbnail_Presenter_Version>0.1.4</EsUtil_Feature_Thumbnail_Presenter_Version>
+    <EsUtil_Feature_Thumbnail_ControlAvaloniaUI_Version>0.1.4</EsUtil_Feature_Thumbnail_ControlAvaloniaUI_Version>
+    <EsUtil_Feature_Thumbnail_ControlMewUI_Version>0.1.1</EsUtil_Feature_Thumbnail_ControlMewUI_Version>
+    <EsUtil_Feature_Thumbnail_ControlWinUI3_Version>0.1.1</EsUtil_Feature_Thumbnail_ControlWinUI3_Version>
+    <EsUtil_Feature_Thumbnail_ControlWinForms_Version>0.1.2</EsUtil_Feature_Thumbnail_ControlWinForms_Version>
     <EsUtil_Feature_Marquee_Presenter_Version>0.1.0</EsUtil_Feature_Marquee_Presenter_Version>
     <EsUtil_Feature_Marquee_ControlAvaloniaUI_Version>0.1.0</EsUtil_Feature_Marquee_ControlAvaloniaUI_Version>
     <EsUtil_Feature_Marquee_ControlMewUI_Version>0.1.0</EsUtil_Feature_Marquee_ControlMewUI_Version>
@@ -36,6 +42,12 @@
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Loupe.ControlWinUI3'">$(EsUtil_Feature_Loupe_ControlWinUI3_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Loupe.ControlWinForms'">$(EsUtil_Feature_Loupe_ControlWinForms_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Marquee.Core'">$(EsUtil_Feature_Marquee_Core_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.Core'">$(EsUtil_Feature_Thumbnail_Core_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.Presenter'">$(EsUtil_Feature_Thumbnail_Presenter_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.ControlAvaloniaUI'">$(EsUtil_Feature_Thumbnail_ControlAvaloniaUI_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.ControlMewUI'">$(EsUtil_Feature_Thumbnail_ControlMewUI_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.ControlWinUI3'">$(EsUtil_Feature_Thumbnail_ControlWinUI3_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.ControlWinForms'">$(EsUtil_Feature_Thumbnail_ControlWinForms_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Marquee.Presenter'">$(EsUtil_Feature_Marquee_Presenter_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Marquee.ControlAvaloniaUI'">$(EsUtil_Feature_Marquee_ControlAvaloniaUI_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Marquee.ControlMewUI'">$(EsUtil_Feature_Marquee_ControlMewUI_Version)</Version>

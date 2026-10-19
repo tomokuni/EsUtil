@@ -64,4 +64,22 @@
     <Project Path="src/EsUtil.Feature.Marquee.ControlWinUI3/tests/WinUI3/EsUtil.Feature.Marquee.ControlWinUI3.Tests.csproj" />
     <Project Path="src/EsUtil.Feature.Marquee.ControlWinUI3/sample/EsUtil.Feature.Marquee.ControlWinUI3.Sample.csproj" />
   </Folder>
+  <Folder Name="/src/EsUtil.Feature.Thumbnail.Core/">
+    <Project Path="src/EsUtil.Feature.Thumbnail.Core/src/EsUtil.Feature.Thumbnail.Core.csproj" />
+    <Project Path="src/EsUtil.Feature.Thumbnail.Core/tests/EsUtil.Feature.Thumbnail.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Thumbnail.Presenter/">
+    <Project Path="src/EsUtil.Feature.Thumbnail.Presenter/src/EsUtil.Feature.Thumbnail.Presenter.csproj" />
+    <Project Path="src/EsUtil.Feature.Thumbnail.Presenter/tests/EsUtil.Feature.Thumbnail.Presenter.Tests.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Thumbnail.ControlAvaloniaUI/">
+    <Project Path="src/EsUtil.Feature.Thumbnail.ControlAvaloniaUI/src/AvaloniaUI/EsUtil.Feature.Thumbnail.ControlAvaloniaUI.csproj" />
+  </Folder>
+  <Folder Name="/src/EsUtil.Feature.Thumbnail.ControlMewUI/">
+    <Project Path="src/EsUtil.Feature.Thumbnail.ControlMewUI/src/MewUI/EsUtil.Feature.Thumbnail.ControlMewUI.csproj" />
+  </Folder>  <Folder Name="/src/EsUtil.Feature.Thumbnail.ControlWinUI3/">
+    <Project Path="src/EsUtil.Feature.Thumbnail.ControlWinUI3/src/WinUI3/EsUtil.Feature.Thumbnail.ControlWinUI3.csproj" />
+  </Folder>  <Folder Name="/src/EsUtil.Feature.Thumbnail.ControlWinForms/">
+    <Project Path="src/EsUtil.Feature.Thumbnail.ControlWinForms/src/WinForms/EsUtil.Feature.Thumbnail.ControlWinForms.csproj" />
+  </Folder>
 </Solution>

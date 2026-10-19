@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Feature.Thumbnail.MewUI</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- MewUI は API が安定化中（0.x）。破壊的変更を避けるためバージョンを固定する。 -->
+    <MewUIVersion>0.21.1</MewUIVersion>
+    <Description>サムネイル一覧の MewUI 版コントロール。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- SkiaCanvasView（コアの EsBitmap をそのまま描画する） -->
+    <PackageReference Include="Aprillz.MewUI.Skia" Version="$(MewUIVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EsUtil.Feature.Thumbnail.Presenter" Version="$(EsUtil_Feature_Thumbnail_Presenter_Version)" />
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EsUtil.Feature.Thumbnail.ControlMewUI.Tests" />
+  </ItemGroup>
+
+</Project>

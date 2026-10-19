@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>EsUtil.Feature.Thumbnail.WinForms</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Description>サムネイル一覧の WinForms 版コントロール。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EsUtil.Feature.Thumbnail.Presenter" Version="$(EsUtil_Feature_Thumbnail_Presenter_Version)" />
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EsUtil.Feature.Thumbnail.ControlWinForms.Tests" />
+  </ItemGroup>
+
+</Project>

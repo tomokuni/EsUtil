@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Feature.Thumbnail</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Description>サムネイル一覧（折り返し配置・選択・可視範囲）の UI 非依存の計算層。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 内部手順（配置の計算）は単体テストにのみ公開する。 -->
+    <InternalsVisibleTo Include="EsUtil.Feature.Thumbnail.Core.Tests" />
+  </ItemGroup>
+
+</Project>

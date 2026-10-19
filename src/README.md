@@ -98,6 +98,7 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | コントロール | Core | Presenter | UI |
 | --- | --- | --- | --- |
 | `MarqueeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
+| `ThumbnailControl` | あり（配置・選択・可視範囲） | あり（提示 + 外観 + 影） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `LoupeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 
 **コントロール化を前提とした処理は UI が持ちます**: ホイール操作（どの入力がズーム・パンかを決める）・ビューポートの変化の追従・組み込み先の概念は、コントロールを何かへ組み込んで初めて必要になるためです。

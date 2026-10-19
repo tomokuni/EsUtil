@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Feature.Thumbnail</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Description>サムネイルの外観・影・描画計画・ラベル計画を単一所有する UI 非依存の提示層。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 本層は「描画計画（影・枠・ラベル）」と「外観」を単一所有する。 描画 API は抽象化しない
+         （UI フレームワークごとの描画モデルの差を吸収しきれないため、描画は各 UI が行う）。 -->
+    <PackageReference Include="EsUtil.Feature.Thumbnail.Core" Version="$(EsUtil_Feature_Thumbnail_Core_Version)" />
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Feature.Thumbnail.Presenter.Tests" />
+  </ItemGroup>
+
+</Project>
