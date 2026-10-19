@@ -1,19 +1,16 @@
 <Project>
 
   <!-- ============================================================
-       パッケージの版の前処理（ビルドが走ったときに自動で実行する）。
+       パッケージの版の前処理（プロジェクト単位のビルド）。
        規則の所有者は .github/ビルド設定規約.md §4 であり、本ファイルはその実装である。
 
-       ソースの指紋（buildScript/fingerprints.json）が変わったプロジェクトがあれば、
-       そのプロジェクトの 3 桁目を +1 してローカル フィードへ出力し、指紋を記録する
-       （判定と pack は buildScript/pack.ps1 が単一所有する。 本ターゲットは呼び出しだけを行う）。
-
-       **版はビルドの評価時に確定する**ため、更新した版をそのまま現在のビルドへは反映できない。
-       そのため更新した場合は「もう一度ビルドしてください」で止める（次回の復元から新しい版になる）。
-
-       対象は本リポジトリのソリューション（EsUtil.slnx）と、本リポジトリのプロジェクトの直接のビルド
-       とする（本リポジトリを参照する側のリポジトリのソリューション ビルドでは動かさない）。
-       `-p:EsUtilVersionCheck=false` で明示的に止められる（pack.ps1・verify.ps1 が使う）。
+       ソリューション（EsUtil.slnx）のビルドは Directory.Solution.targets が担う
+       （各プロジェクトの評価前に版を上げて復元するため、1 回のビルドで続行できる）。
+       本ターゲットは**ソリューション経由でないビルド**（プロジェクト単体・C# 拡張機能の fastbuild）で
+       同じ検査を行う（ビルドされたどのプロジェクトでも走る。 早期復帰があるため実質的な負荷は小さい）。
+       版はプロジェクトの評価時に確定済みのため、更新した場合は BUILD0006 で止める
+       （fastbuild はプロジェクトごとに MSBuild を起動し、ソリューションのターゲットを実行しないため、
+       1 回のビルドの中で評価をやり直せない）。
 
        **指紋の記録をビルドの入力に含める**: C# 拡張機能の fastbuild は「入力が変わっていなければ
        MSBuild を呼ばない」ため、記録だけを変えても本ターゲットは走らない。 `UpToDateCheckInput` へ
@@ -27,18 +24,18 @@
 
   <Target Name="CheckPackageVersions"
            BeforeTargets="Build"
-           Condition="'$(EsUtilVersionCheck)' != 'false' And '$(DesignTimeBuild)' != 'true' And '$(MSBuildProjectName)' == 'EsUtil.Platform.Core' And ('$(EsUtilVersionCheck)' == 'true' Or '$(SolutionFileName)' == '' Or '$(SolutionFileName)' == 'EsUtil.slnx')">
+           Condition="'$(EsUtilVersionCheck)' != 'false' And '$(DesignTimeBuild)' != 'true' And '$(BuildingSolutionFile)' != 'true'">
 
-    <!-- 1 プロジェクトだけが実行する（並列ビルドでの多重実行を防ぐ。 判定と pack は versionCheck.ps1） -->
-    <Exec Command="pwsh -NoProfile -File &quot;$(MSBuildThisFileDirectory)buildScript\versionCheck.ps1&quot;"
+    <!-- プロジェクト単体のビルドでは 1 プロジェクトしか走らない（判定と pack は versionCheck.ps1） -->
+    <Exec Command="pwsh -NoProfile -File &quot;$(MSBuildThisFileDirectory)buildScript\versionCheck.ps1&quot; -Configuration &quot;$(Configuration)&quot; -SolutionPath &quot;$(SolutionPath)&quot;"
            IgnoreExitCode="true"
-           StandardOutputImportance="normal"
+           StandardOutputImportance="high"
            StandardErrorImportance="high">
       <Output TaskParameter="ExitCode" PropertyName="_EsUtilVersionCheckExit" />
     </Exec>
 
     <Error Condition="'$(_EsUtilVersionCheckExit)' == '3'" Code="BUILD0006"
-           Text="パッケージの版を更新しました（ソースの指紋が変わったプロジェクトの 3 桁目を +1 し、ローカル フィードへ出力しました）。 版はビルドの評価時に確定するため、**もう一度ビルド**してください。 規則は .github/ビルド設定規約.md §4。" />
+           Text="パッケージの版を更新しました（ソースの指紋が変わったプロジェクトの 3 桁目を +1 し、ローカル フィードへ出力しました）。 版はビルドの評価時に確定するため、**もう一度ビルド**してください（ソリューションのビルドなら 1 回で続行できます）。 規則は .github/ビルド設定規約.md §4。" />
     <Error Condition="'$(_EsUtilVersionCheckExit)' == '4'" Code="BUILD0006"
            Text="パッケージの版の更新に失敗しました（buildScript/pack.ps1 の出力を確認してください）。 規則は .github/ビルド設定規約.md §4。" />
   </Target>

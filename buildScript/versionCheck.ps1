@@ -23,12 +23,19 @@
 .PARAMETER Configuration
     pack の構成（既定 Release）。
 
+.PARAMETER SolutionPath
+    ソリューションのパス。 指定すると、版を更新した後でそのソリューションを**復元**する
+    （ソリューションのビルドでは、本スクリプトの後に各プロジェクトが評価されるため、
+    復元まで済ませれば**1 回のビルドで新しい版を使って続行**できる）。
+    指定しない場合（プロジェクト単体のビルド）は案内だけを返し、呼び出し側がビルドを止める。
+
 .EXAMPLE
     pwsh -NoProfile -File buildScript/versionCheck.ps1
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release'
+    [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release',
+    [string]$SolutionPath = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -99,6 +106,17 @@ try {
     $updated = & pwsh -NoProfile -File $packScript -Configuration $Configuration 2>&1
     $updated | ForEach-Object { "  $($_.ToString().TrimEnd())" }
     if ($LASTEXITCODE -ne 0) { exit 4 }
+
+    # ソリューションのビルドでは、この後に各プロジェクトが評価される。
+    # 新しい版のパッケージができた状態で復元しておけば、そのまま続行できる。
+    if ($SolutionPath -ne '') {
+        Write-Output "復元します: $SolutionPath"
+        $restore = & dotnet restore $SolutionPath 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            $restore | ForEach-Object { "  $($_.ToString().TrimEnd())" }
+            exit 4
+        }
+    }
 
     $after = Get-Item -LiteralPath $fingerprintPath
     Set-Stamp ('{0}|{1}' -f $after.LastWriteTimeUtc.Ticks, $after.Length)

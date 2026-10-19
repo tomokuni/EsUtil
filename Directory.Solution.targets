@@ -1,0 +1,30 @@
+<Project>
+
+  <!-- ============================================================
+       パッケージの版の前処理（ソリューションのビルド）。
+       規則の所有者は .github/ビルド設定規約.md §4 であり、本ファイルはその実装である。
+
+       ソリューション（EsUtil.slnx）のビルドでは、**各プロジェクトが評価される前**に本ターゲットが走る。
+       指紋が変わったプロジェクトがあれば版を +1 してローカル フィードへ出力し、復元まで済ませるため、
+       **1 回のビルドで新しい版のまま続行**できる（ビルドをやり直す必要はない）。
+
+       プロジェクト単体のビルドでは本ファイルは使われない（Directory.Build.targets が同じ検査を行い、
+       版は評価済みのため BUILD0006 で止める）。
+       `-p:EsUtilVersionCheck=false` で明示的に止められる（pack.ps1・verify.ps1 が使う）。
+       ============================================================ -->
+  <Target Name="CheckPackageVersions" BeforeTargets="Build" Condition="'$(EsUtilVersionCheck)' != 'false'">
+
+    <Exec Command="pwsh -NoProfile -File &quot;$(MSBuildThisFileDirectory)buildScript\versionCheck.ps1&quot; -Configuration &quot;$(Configuration)&quot; -SolutionPath &quot;$(SolutionPath)&quot;"
+          IgnoreExitCode="true"
+          StandardOutputImportance="high"
+          StandardErrorImportance="high">
+      <Output TaskParameter="ExitCode" PropertyName="_EsUtilVersionCheckExit" />
+    </Exec>
+
+    <Message Condition="'$(_EsUtilVersionCheckExit)' == '3'" Importance="high"
+             Text="パッケージの版を更新して復元しました。 このままビルドを続けます（規則は .github/ビルド設定規約.md §4）。" />
+    <Error Condition="'$(_EsUtilVersionCheckExit)' == '4'" Code="BUILD0006"
+           Text="パッケージの版の更新に失敗しました（buildScript/pack.ps1 の出力を確認してください）。 規則は .github/ビルド設定規約.md §4。" />
+  </Target>
+
+</Project>
