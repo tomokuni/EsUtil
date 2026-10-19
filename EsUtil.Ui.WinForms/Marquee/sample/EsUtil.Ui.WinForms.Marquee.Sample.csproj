@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>EsUtil.Ui.WinForms.Marquee.Sample</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 操作ログ（コントロールの Log へ設定し、ログ表示へ流す） -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- サンプルの対象（コア・提示層は推移参照で解決する） -->
+    <ProjectReference Include="..\src\EsUtil.Ui.WinForms.Marquee.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 名前空間が EsUtil.Ui.<UI>.<機能> へ分かれたため、機能のルート名前空間（ファサードの公開面）を
+         グローバル using で取り込む（以前は名前空間の入れ子で解決していた）。 -->
+    <Using Include="EsUtil.Feature.Marquee" />
+  </ItemGroup>
+
+</Project>

@@ -46,7 +46,13 @@ pwsh -NoProfile -File buildScript/verify.ps1 -Configuration Release -Solution Es
 #>
 [CmdletBinding()]
 param(
-    [string]$Solution = 'EsUtil.slnx',
+    [string[]]$Solution = @(
+        'EsUtil/EsUtil.slnx',
+        'EsUtil.Ui.AvaloniaUI/EsUtil.Ui.AvaloniaUI.slnx',
+        'EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx',
+        'EsUtil.Ui.WinUI3/EsUtil.Ui.WinUI3.slnx',
+        'EsUtil.Ui.WinForms/EsUtil.Ui.WinForms.slnx'
+    ),
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Debug',
     [switch]$Fix,
     [switch]$SkipBuild,
@@ -177,15 +183,22 @@ if (-not $SkipBuild) {
     Write-Output '== 1. ビルド =='
     # 警告のエラー化は Directory.Build.props の TreatWarningsAsErrors が単一所有する（-warnaserror は付けない）。
     # これで素の `dotnet build` でも規約違反が終了コードに出る（スクリプトの引数に依存しない）。
-    $buildArgs = @('build', $Solution, '-c', $Configuration, '-tl:off', '-v:q', '--no-incremental', '-p:EsUtilVersionCheck=false') + $restoreArgs
-    $build = Invoke-DotNet $buildArgs
-    $buildText = $build.Text
-    $buildWarnings = ([regex]::Matches($buildText, 'warning ')).Count
-    $buildErrors = ([regex]::Matches($buildText, ': error ')).Count
-    Add-Result 'ビルド' ($buildWarnings -eq 0 -and $buildErrors -eq 0 -and $build.ExitCode -eq 0) "警告 $buildWarnings / エラー $buildErrors / 終了コード $($build.ExitCode)"
-    if ($buildWarnings -gt 0 -or $buildErrors -gt 0) {
-        $buildText -split "`r?`n" | Where-Object { $_ -match 'warning |: error ' } | Select-Object -First 20 | ForEach-Object { "      $($_.Trim())" }
+    # ソリューションは複数ある（Core / Presenter と UI 層を分けている。 規則は .github/ビルド設定規約.md §1）。
+    $buildWarnings = 0
+    $buildErrors = 0
+    $buildExit = 0
+    $buildDetails = [System.Collections.Generic.List[string]]::new()
+    foreach ($sln in $Solution) {
+        $buildArgs = @('build', $sln, '-c', $Configuration, '-tl:off', '-v:q', '--no-incremental', '-p:EsUtilVersionCheck=false') + $restoreArgs
+        $build = Invoke-DotNet $buildArgs
+        $buildText = $build.Text
+        $buildWarnings += ([regex]::Matches($buildText, 'warning ')).Count
+        $buildErrors += ([regex]::Matches($buildText, ': error ')).Count
+        if ($build.ExitCode -ne 0) { $buildExit = $build.ExitCode }
+        foreach ($line in ($buildText -split "`r?`n" | Where-Object { $_ -match 'warning |: error ' })) { $buildDetails.Add($line.Trim()) }
     }
+    Add-Result 'ビルド' ($buildWarnings -eq 0 -and $buildErrors -eq 0 -and $buildExit -eq 0) "警告 $buildWarnings / エラー $buildErrors / 終了コード $buildExit"
+    $buildDetails | Select-Object -First 20 | ForEach-Object { "      $_" }
 }
 else {
     # 省略した検査は合否に含めない（-SkipBuild は文書だけを直したときの往復を短くする用途）
@@ -205,7 +218,9 @@ foreach ($p in 'EnforceCodeStyleInBuild', 'GenerateDocumentationFile', 'Analysis
     if ($propsText -notmatch "<$p(\s|>)") { $missingProps.Add($p) }
 }
 # 本体プロジェクト（パッケージを作る対象）の一覧。 §2 のバージョン表の検査と §4b のローカル フィードの検査が使う。
-$packableProjects = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter '*.csproj' |
+$packableProjects = @(Get-ChildItem -Path $repoRoot -Directory |
+        Where-Object { $_.Name -like 'EsUtil*' } |
+        ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -File -Filter '*.csproj' } |
         Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample)\.csproj$' })
 # バージョン表が本体プロジェクトごとの行を持ち、値が 3 桁の数値か（テスト・サンプルは行を持たない。 規則は
 # .github/ビルド設定規約.md §4。 MSBuild のプロパティ名にドットは使えないため `_` へ置換した名前を使う）。
@@ -214,7 +229,9 @@ foreach ($project in $packableProjects) {
     if ($propsText -notmatch "<$key>\d+\.\d+\.\d+</$key>") { $missingProps.Add("$key（3 桁の数値）") }
 }
 # 各 .csproj が重複して指定していないか（単一所有の確認）
-$duplicateProps = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter '*.csproj' |
+$duplicateProps = @(Get-ChildItem -Path $repoRoot -Directory |
+        Where-Object { $_.Name -like 'EsUtil*' } |
+        ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -File -Filter '*.csproj' } |
         Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' } |
         Where-Object { [IO.File]::ReadAllText($_.FullName) -match '<EnforceCodeStyleInBuild>|<GenerateDocumentationFile>|<AnalysisLevel>|<AnalysisMode>|<TreatWarningsAsErrors>|<Version>|<IsPackable>' })
 Add-Result 'ビルド設定' ($missingProps.Count -eq 0 -and $duplicateProps.Count -eq 0) "不足 $($missingProps.Count) / 重複 $($duplicateProps.Count)"
@@ -257,7 +274,7 @@ $analyzerSectionIssues | Select-Object -First 8 | ForEach-Object { "      $_" }
 #     全呼び出し元を直すことになり、雑音にもなる（実測: 7 箇所のゲートを定義側へ移した）。
 #     --untracked: 新規ファイル（未コミット）も対象にする（無視対象の obj / bin は走査されない）。
 $callSiteGates = [System.Collections.Generic.List[string]]::new()
-foreach ($hit in @(git -c core.quotepath=false grep --untracked -n -E '\bIsEnabled\s*\(\s*LogLevel\.' -- 'src' 2>$null)) {
+foreach ($hit in @(git -c core.quotepath=false grep --untracked -n -E '\bIsEnabled\s*\(\s*LogLevel\.' -- 'EsUtil*' 2>$null)) {
     if ($hit -match '\\tests\\' -or $hit -match '/(tests)/') { continue }
     # ログ定義（*LogMessage.cs / AppLog.cs）と、記録用ロガーの実装は対象外
     if ($hit -match '(LogMessage|AppLog)\.cs:') { continue }
@@ -271,17 +288,23 @@ $callSiteGates | Select-Object -First 8 | ForEach-Object { "      $_" }
 # ============================================================
 if (-not $SkipTests) {
     Write-Output '== 3. テスト =='
-    $testArgs = @('test', $Solution, '-c', $Configuration, '-tl:off', '--no-build')
     $coverageDir = Join-Path ([IO.Path]::GetTempPath()) ("se_cov_" + [Guid]::NewGuid().ToString('N'))
-    if ($Coverage) { $testArgs += @('--collect:XPlat Code Coverage', "--results-directory:$coverageDir") }
-    $test = Invoke-DotNet $testArgs
-    $testText = $test.Text
     $passed = 0
-    foreach ($m in [regex]::Matches($testText, '合格:\s*(\d+)')) { $passed += [int]$m.Groups[1].Value }
     $failed = 0
-    foreach ($m in [regex]::Matches($testText, '失敗:\s*(\d+)')) { $failed += [int]$m.Groups[1].Value }
-    $projects = [regex]::Matches($testText, '\.dll \(net10\.0[^)]*\)').Count
-    Add-Result 'テスト' ($failed -eq 0 -and $passed -gt 0 -and $test.ExitCode -eq 0) "合格 $passed / 失敗 $failed / $projects プロジェクト / 終了コード $($test.ExitCode)"
+    $projects = 0
+    $testExit = 0
+    $testText = ''
+    foreach ($sln in $Solution) {
+        $testArgs = @('test', $sln, '-c', $Configuration, '-tl:off', '--no-build')
+        if ($Coverage) { $testArgs += @('--collect:XPlat Code Coverage', "--results-directory:$coverageDir") }
+        $test = Invoke-DotNet $testArgs
+        $testText += $test.Text + "`n"
+        foreach ($m in [regex]::Matches($test.Text, '合格:\s*(\d+)')) { $passed += [int]$m.Groups[1].Value }
+        foreach ($m in [regex]::Matches($test.Text, '失敗:\s*(\d+)')) { $failed += [int]$m.Groups[1].Value }
+        $projects += [regex]::Matches($test.Text, '\.dll \(net10\.0[^)]*\)').Count
+        if ($test.ExitCode -ne 0) { $testExit = $test.ExitCode }
+    }
+    Add-Result 'テスト' ($failed -eq 0 -and $passed -gt 0 -and $testExit -eq 0) "合格 $passed / 失敗 $failed / $projects プロジェクト / 終了コード $testExit"
     if ($failed -gt 0) {
         # 失敗したテスト名を出す（合計だけでは原因を特定できない）
         $testText -split "`r?`n" | Where-Object { $_ -match '^\s*(失敗|Failed)\s+\S' } | Select-Object -First 10 | ForEach-Object { "      $($_.Trim())" }
@@ -341,14 +364,19 @@ if (-not $SkipPackage) {
     # （付けないと監査が省略され、0 件と誤判定する）。 監査は検査そのものなので、-NoRestore は適用しない。
     # 直接参照の脆弱性はビルドの復元でも検出される（`NuGetAuditMode` の既定は direct であり、
     # 警告は Directory.Build.props の TreatWarningsAsErrors でエラーになる）。 本節は推移的依存まで広げる。
-    $audit = Invoke-DotNet @('restore', $Solution, '-p:NuGetAuditMode=all', '--force-evaluate')
-    $auditText = $audit.Text
+    $auditText = ''
+    $auditExit = 0
+    foreach ($sln in $Solution) {
+        $audit = Invoke-DotNet @('restore', $sln, '-p:NuGetAuditMode=all', '--force-evaluate')
+        $auditText += $audit.Text + "`n"
+        if ($audit.ExitCode -ne 0) { $auditExit = $audit.ExitCode }
+    }
     $auditHits = @($auditText -split "`r?`n" | Where-Object { $_ -match 'NU19\d\d' })
 
     # 監査自体が失敗した場合（復元の失敗）に 0 件と誤判定しない（終了コードが 0 以外なら不合格にし、
     # NuGet のエラー（NU1xxx。 脆弱性の NU19xx を除く）の有無も見る）
-    $auditFailed = $audit.ExitCode -ne 0 -or $auditText -match 'error NU1(?!9)\d\d'
-    Add-Result 'NuGet の健全性' ($auditHits.Count -eq 0 -and -not $auditFailed) "脆弱性 $($auditHits.Count) 件（推移的依存を含む） / 終了コード $($audit.ExitCode)"
+    $auditFailed = $auditExit -ne 0 -or $auditText -match 'error NU1(?!9)\d\d'
+    Add-Result 'NuGet の健全性' ($auditHits.Count -eq 0 -and -not $auditFailed) "脆弱性 $($auditHits.Count) 件（推移的依存を含む） / 終了コード $auditExit"
     $auditHits | Select-Object -First 10 | ForEach-Object { "      $($_.Trim())" }
     if ($auditFailed) {
         "      監査（復元）が失敗した"
@@ -501,18 +529,24 @@ else {
             @('analyzers', '--severity', 'warn')
         )
         $fixFailures = [System.Collections.Generic.List[string]]::new()
-        foreach ($step in $fixSteps) {
-            $fix = Invoke-DotNet (@('format') + $step + @($Solution, '--no-restore'))
-            if ($fix.ExitCode -ne 0) { $fixFailures.Add(("{0}（終了コード {1}）" -f $step[0], $fix.ExitCode)) }
+        foreach ($sln in $Solution) {
+            foreach ($step in $fixSteps) {
+                $fix = Invoke-DotNet (@('format') + $step + @($sln, '--no-restore'))
+                if ($fix.ExitCode -ne 0) { $fixFailures.Add(("{0}（{1}: 終了コード {2}）" -f $step[0], $sln, $fix.ExitCode)) }
+            }
         }
         Add-Result 'コードスタイルの修正' ($fixFailures.Count -eq 0) $(if ($fixFailures.Count -eq 0) { '3 段（whitespace / style / analyzers）' } else { $fixFailures -join ' / ' })
         # 修正した内容で判定するため、読み込みのキャッシュを捨てる
         Clear-FileCache
     }
 
-    $fmt = Invoke-DotNet @('format', 'style', $Solution, '--verify-no-changes', '--severity', 'warn', '--no-restore')
-    $fmtText = $fmt.Text
-    $fmtExit = $fmt.ExitCode
+    $fmtText = ''
+    $fmtExit = 0
+    foreach ($sln in $Solution) {
+        $fmt = Invoke-DotNet @('format', 'style', $sln, '--verify-no-changes', '--severity', 'warn', '--no-restore')
+        $fmtText += $fmt.Text + "`n"
+        if ($fmt.ExitCode -gt 2) { $fmtExit = $fmt.ExitCode }
+    }
     $fmtIssues = ([regex]::Matches($fmtText, ': (error|warning) (IDE|CA)\d+')).Count
     # 合否は「警告以上」の件数で判定する（引数の `--severity warn` と同じ基準。 情報レベルの提案は
     # ビルドが強制する範囲ではなく、改善の必要がない状態でも返るため合否に含めない）。

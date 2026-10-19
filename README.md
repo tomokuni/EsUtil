@@ -8,16 +8,16 @@
 
 | 区分 | プロジェクト | 内容 |
 | --- | --- | --- |
-| 共通基盤 | [`EsUtil.Platform.Core`](src/EsUtil.Platform.Core/README.md) | キーと入力・幾何・座標変換・画像・OS サービス抽象 |
-| 共通基盤（Windows） | [`EsUtil.Platform.Core.Windows`](src/EsUtil.Platform.Core.Windows/README.md) | `System.Drawing.Bitmap` との相互変換（Windows 専用） |
-| 機能（ルーペ） | [`EsUtil.Feature.Loupe.Core`](src/EsUtil.Feature.Loupe.Core/README.md) | 拡大表示の UI 非依存の計算層 |
-| 機能（ルーペ） | [`EsUtil.Feature.Loupe.Presenter`](src/EsUtil.Feature.Loupe.Presenter/README.md) | 外観・描画計画・ラベル計画 |
-| 機能（ルーペ） | [`EsUtil.Feature.Loupe.ControlAvaloniaUI`](src/EsUtil.Feature.Loupe.ControlAvaloniaUI/README.md) | Avalonia UI 版コントロール |
-| 機能（ルーペ） | [`EsUtil.Feature.Loupe.ControlMewUI`](src/EsUtil.Feature.Loupe.ControlMewUI/README.md) | MewUI 版コントロール |
-| 機能（マーキー） | [`EsUtil.Feature.Marquee.Core`](src/EsUtil.Feature.Marquee.Core/README.md) | ドラッグ矩形の選択・移動・リサイズの計算層 |
-| 機能（マーキー） | [`EsUtil.Feature.Marquee.Presenter`](src/EsUtil.Feature.Marquee.Presenter/README.md) | 外観・描画手順 |
-| 機能（マーキー） | [`EsUtil.Feature.Marquee.ControlAvaloniaUI`](src/EsUtil.Feature.Marquee.ControlAvaloniaUI/README.md) | Avalonia UI 版コントロール |
-| 機能（マーキー） | [`EsUtil.Feature.Marquee.ControlMewUI`](src/EsUtil.Feature.Marquee.ControlMewUI/README.md) | MewUI 版コントロール |
+| 共通基盤 | [`EsUtil.Platform.Core`](EsUtil/Platform.Core/README.md) | キーと入力・幾何・座標変換・画像・OS サービス抽象 |
+| 共通基盤（Windows） | [`EsUtil.Platform.Core.Windows`](EsUtil/Platform.Core.Windows/README.md) | `System.Drawing.Bitmap` との相互変換（Windows 専用） |
+| 機能（ルーペ） | [`EsUtil.Feature.Loupe.Core`](EsUtil/Feature.Loupe.Core/README.md) | 拡大表示の UI 非依存の計算層 |
+| 機能（ルーペ） | [`EsUtil.Feature.Loupe.Presenter`](EsUtil/Feature.Loupe.Presenter/README.md) | 外観・描画計画・ラベル計画 |
+| 機能（ルーペ） | [`EsUtil.Ui.AvaloniaUI.Loupe`](EsUtil.Ui.AvaloniaUI/Loupe/README.md) | Avalonia UI 版コントロール |
+| 機能（ルーペ） | [`EsUtil.Ui.MewUI.Loupe`](EsUtil.Ui.MewUI/Loupe/README.md) | MewUI 版コントロール |
+| 機能（マーキー） | [`EsUtil.Feature.Marquee.Core`](EsUtil/Feature.Marquee.Core/README.md) | ドラッグ矩形の選択・移動・リサイズの計算層 |
+| 機能（マーキー） | [`EsUtil.Feature.Marquee.Presenter`](EsUtil/Feature.Marquee.Presenter/README.md) | 外観・描画手順 |
+| 機能（マーキー） | [`EsUtil.Ui.AvaloniaUI.Marquee`](EsUtil.Ui.AvaloniaUI/Marquee/README.md) | Avalonia UI 版コントロール |
+| 機能（マーキー） | [`EsUtil.Ui.MewUI.Marquee`](EsUtil.Ui.MewUI/Marquee/README.md) | MewUI 版コントロール |
 
 層の帰属（Core / Presenter / UI のどれに置くか）と参照の許可範囲は [`.github/依存関係.md`](.github/依存関係.md) が単一所有します。
 
@@ -42,7 +42,7 @@
 ```xml
 <!-- 利用側の .csproj。 バージョンはプロジェクトごとに異なる（実際の値は .nupkg/ のファイル名で確認する） -->
 <ItemGroup>
-  <PackageReference Include="EsUtil.Feature.Loupe.ControlAvaloniaUI" Version="0.1.0" />
+  <PackageReference Include="EsUtil.Ui.AvaloniaUI.Loupe" Version="0.1.0" />
 </ItemGroup>
 ```
 

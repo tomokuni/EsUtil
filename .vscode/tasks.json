@@ -56,14 +56,14 @@
     {
       "label": "テスト実行（全プロジェクト）",
       "type": "shell",
-      "command": "dotnet test EsUtil.slnx",
+      "command": "dotnet test EsUtil/EsUtil.slnx",
       "group": "test",
       "problemMatcher": []
     },
     {
       "label": "テスト実行（フィルタ指定）",
       "type": "shell",
-      "command": "dotnet test EsUtil.slnx --filter ${input:testFilter}",
+      "command": "dotnet test EsUtil/EsUtil.slnx --filter ${input:testFilter}",
       "group": "test",
       "problemMatcher": []
     }

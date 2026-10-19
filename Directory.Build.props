@@ -7,26 +7,26 @@
 
          MSBuild のプロパティ名にドットは使えない（実測: <EsUtil.Platform.Core.Version> は MSB5016 で失敗する）。
          そのため名前は「パッケージ ID のドットを `_` に置換 + `_Version`」にする（参照側はこの名前を使う）。 -->
-    <EsUtil_Platform_Core_Version>0.1.2</EsUtil_Platform_Core_Version>
-    <EsUtil_Platform_Core_Windows_Version>0.1.0</EsUtil_Platform_Core_Windows_Version>
-    <EsUtil_Feature_Loupe_Core_Version>0.1.0</EsUtil_Feature_Loupe_Core_Version>
-    <EsUtil_Feature_Loupe_Presenter_Version>0.1.0</EsUtil_Feature_Loupe_Presenter_Version>
-    <EsUtil_Feature_Loupe_ControlAvaloniaUI_Version>0.1.2</EsUtil_Feature_Loupe_ControlAvaloniaUI_Version>
-    <EsUtil_Feature_Loupe_ControlMewUI_Version>0.1.0</EsUtil_Feature_Loupe_ControlMewUI_Version>
-    <EsUtil_Feature_Loupe_ControlWinUI3_Version>0.1.0</EsUtil_Feature_Loupe_ControlWinUI3_Version>
-    <EsUtil_Feature_Loupe_ControlWinForms_Version>0.1.0</EsUtil_Feature_Loupe_ControlWinForms_Version>
-    <EsUtil_Feature_Marquee_Core_Version>0.1.0</EsUtil_Feature_Marquee_Core_Version>
-    <EsUtil_Feature_Thumbnail_Core_Version>0.1.0</EsUtil_Feature_Thumbnail_Core_Version>
-    <EsUtil_Feature_Thumbnail_Presenter_Version>0.1.4</EsUtil_Feature_Thumbnail_Presenter_Version>
-    <EsUtil_Feature_Thumbnail_ControlAvaloniaUI_Version>0.1.4</EsUtil_Feature_Thumbnail_ControlAvaloniaUI_Version>
-    <EsUtil_Feature_Thumbnail_ControlMewUI_Version>0.1.1</EsUtil_Feature_Thumbnail_ControlMewUI_Version>
-    <EsUtil_Feature_Thumbnail_ControlWinUI3_Version>0.1.1</EsUtil_Feature_Thumbnail_ControlWinUI3_Version>
-    <EsUtil_Feature_Thumbnail_ControlWinForms_Version>0.1.2</EsUtil_Feature_Thumbnail_ControlWinForms_Version>
-    <EsUtil_Feature_Marquee_Presenter_Version>0.1.0</EsUtil_Feature_Marquee_Presenter_Version>
-    <EsUtil_Feature_Marquee_ControlAvaloniaUI_Version>0.1.0</EsUtil_Feature_Marquee_ControlAvaloniaUI_Version>
-    <EsUtil_Feature_Marquee_ControlMewUI_Version>0.1.0</EsUtil_Feature_Marquee_ControlMewUI_Version>
-    <EsUtil_Feature_Marquee_ControlWinUI3_Version>0.1.0</EsUtil_Feature_Marquee_ControlWinUI3_Version>
-    <EsUtil_Feature_Marquee_ControlWinForms_Version>0.1.1</EsUtil_Feature_Marquee_ControlWinForms_Version>
+    <EsUtil_Platform_Core_Version>0.1.3</EsUtil_Platform_Core_Version>
+    <EsUtil_Platform_Core_Windows_Version>0.1.1</EsUtil_Platform_Core_Windows_Version>
+    <EsUtil_Feature_Loupe_Core_Version>0.1.1</EsUtil_Feature_Loupe_Core_Version>
+    <EsUtil_Feature_Loupe_Presenter_Version>0.1.1</EsUtil_Feature_Loupe_Presenter_Version>
+    <EsUtil_Ui_AvaloniaUI_Loupe_Version>0.1.3</EsUtil_Ui_AvaloniaUI_Loupe_Version>
+    <EsUtil_Ui_MewUI_Loupe_Version>0.1.1</EsUtil_Ui_MewUI_Loupe_Version>
+    <EsUtil_Ui_WinUI3_Loupe_Version>0.1.1</EsUtil_Ui_WinUI3_Loupe_Version>
+    <EsUtil_Ui_WinForms_Loupe_Version>0.1.1</EsUtil_Ui_WinForms_Loupe_Version>
+    <EsUtil_Feature_Marquee_Core_Version>0.1.1</EsUtil_Feature_Marquee_Core_Version>
+    <EsUtil_Feature_Thumbnail_Core_Version>0.1.1</EsUtil_Feature_Thumbnail_Core_Version>
+    <EsUtil_Feature_Thumbnail_Presenter_Version>0.1.5</EsUtil_Feature_Thumbnail_Presenter_Version>
+    <EsUtil_Ui_AvaloniaUI_Thumbnail_Version>0.1.5</EsUtil_Ui_AvaloniaUI_Thumbnail_Version>
+    <EsUtil_Ui_MewUI_Thumbnail_Version>0.1.2</EsUtil_Ui_MewUI_Thumbnail_Version>
+    <EsUtil_Ui_WinUI3_Thumbnail_Version>0.1.2</EsUtil_Ui_WinUI3_Thumbnail_Version>
+    <EsUtil_Ui_WinForms_Thumbnail_Version>0.1.3</EsUtil_Ui_WinForms_Thumbnail_Version>
+    <EsUtil_Feature_Marquee_Presenter_Version>0.1.1</EsUtil_Feature_Marquee_Presenter_Version>
+    <EsUtil_Ui_AvaloniaUI_Marquee_Version>0.1.1</EsUtil_Ui_AvaloniaUI_Marquee_Version>
+    <EsUtil_Ui_MewUI_Marquee_Version>0.1.1</EsUtil_Ui_MewUI_Marquee_Version>
+    <EsUtil_Ui_WinUI3_Marquee_Version>0.1.1</EsUtil_Ui_WinUI3_Marquee_Version>
+    <EsUtil_Ui_WinForms_Marquee_Version>0.1.2</EsUtil_Ui_WinForms_Marquee_Version>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -37,22 +37,22 @@
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Platform.Core.Windows'">$(EsUtil_Platform_Core_Windows_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Loupe.Core'">$(EsUtil_Feature_Loupe_Core_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Loupe.Presenter'">$(EsUtil_Feature_Loupe_Presenter_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Loupe.ControlAvaloniaUI'">$(EsUtil_Feature_Loupe_ControlAvaloniaUI_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Loupe.ControlMewUI'">$(EsUtil_Feature_Loupe_ControlMewUI_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Loupe.ControlWinUI3'">$(EsUtil_Feature_Loupe_ControlWinUI3_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Loupe.ControlWinForms'">$(EsUtil_Feature_Loupe_ControlWinForms_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.AvaloniaUI.Loupe'">$(EsUtil_Ui_AvaloniaUI_Loupe_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.MewUI.Loupe'">$(EsUtil_Ui_MewUI_Loupe_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.Loupe'">$(EsUtil_Ui_WinUI3_Loupe_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinForms.Loupe'">$(EsUtil_Ui_WinForms_Loupe_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Marquee.Core'">$(EsUtil_Feature_Marquee_Core_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.Core'">$(EsUtil_Feature_Thumbnail_Core_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.Presenter'">$(EsUtil_Feature_Thumbnail_Presenter_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.ControlAvaloniaUI'">$(EsUtil_Feature_Thumbnail_ControlAvaloniaUI_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.ControlMewUI'">$(EsUtil_Feature_Thumbnail_ControlMewUI_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.ControlWinUI3'">$(EsUtil_Feature_Thumbnail_ControlWinUI3_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.ControlWinForms'">$(EsUtil_Feature_Thumbnail_ControlWinForms_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.AvaloniaUI.Thumbnail'">$(EsUtil_Ui_AvaloniaUI_Thumbnail_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.MewUI.Thumbnail'">$(EsUtil_Ui_MewUI_Thumbnail_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.Thumbnail'">$(EsUtil_Ui_WinUI3_Thumbnail_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinForms.Thumbnail'">$(EsUtil_Ui_WinForms_Thumbnail_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Marquee.Presenter'">$(EsUtil_Feature_Marquee_Presenter_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Marquee.ControlAvaloniaUI'">$(EsUtil_Feature_Marquee_ControlAvaloniaUI_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Marquee.ControlMewUI'">$(EsUtil_Feature_Marquee_ControlMewUI_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Marquee.ControlWinUI3'">$(EsUtil_Feature_Marquee_ControlWinUI3_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Marquee.ControlWinForms'">$(EsUtil_Feature_Marquee_ControlWinForms_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.AvaloniaUI.Marquee'">$(EsUtil_Ui_AvaloniaUI_Marquee_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.MewUI.Marquee'">$(EsUtil_Ui_MewUI_Marquee_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.Marquee'">$(EsUtil_Ui_WinUI3_Marquee_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinForms.Marquee'">$(EsUtil_Ui_WinForms_Marquee_Version)</Version>
   </PropertyGroup>
 
   <PropertyGroup>

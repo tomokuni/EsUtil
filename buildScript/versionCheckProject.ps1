@@ -33,7 +33,7 @@
     更新後の版を書き出すファイル（変更が無い場合は空にする）。
 
 .EXAMPLE
-    pwsh -NoProfile -File buildScript/versionCheckProject.ps1 -ProjectPath src/EsUtil.Platform.Core/src/EsUtil.Platform.Core.csproj -VersionFile obj/.esutil-version.txt
+    pwsh -NoProfile -File buildScript/versionCheckProject.ps1 -ProjectPath EsUtil/Platform.Core/src/EsUtil.Platform.Core.csproj -VersionFile obj/.esutil-version.txt
 #>
 [CmdletBinding()]
 param(

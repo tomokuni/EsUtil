@@ -23,7 +23,7 @@
 | コミット（メッセージ・ブランチ・バージョン） | [`コミット規約.md`](コミット規約.md) |
 | リファクタリングの指針（よくある指摘） | [`リファクタリング指針.md`](リファクタリング指針.md) |
 | 検証（ビルド・テスト・走査の手順と合否基準） | [`検証手順.md`](検証手順.md) |
-| 層の帰属（Core / Presenter / UI のどれに置くか） | [`../src/README.md`](../src/README.md) |
+| 層の帰属（Core / Presenter / UI のどれに置くか） | [`../EsUtil/README.md`](../EsUtil/README.md) |
 
 ## 3. GitHub Copilot の動作に関する指示
 
@@ -47,10 +47,14 @@
 | --- | --- |
 | 共通基盤 | `EsUtil.Platform.Core` |
 | 共通基盤（Windows 専用） | `EsUtil.Platform.Core.Windows` |
-| ルーペ（コア / 提示層 / UI） | `EsUtil.Feature.Loupe.Core` / `.Presenter` / `.ControlAvaloniaUI` / `.ControlMewUI` |
-| マーキー（コア / 提示層 / UI） | `EsUtil.Feature.Marquee.Core` / `.Presenter` / `.ControlAvaloniaUI` / `.ControlMewUI` |
+| ルーペ（コア / 提示層 / UI） | `EsUtil.Feature.Loupe.Core` / `.Presenter` / `EsUtil.Ui.<UI>.Loupe` |
+| マーキー（コア / 提示層 / UI） | `EsUtil.Feature.Marquee.Core` / `.Presenter` / `EsUtil.Ui.<UI>.Marquee` |
+| サムネイル一覧（コア / 提示層 / UI） | `EsUtil.Feature.Thumbnail.Core` / `.Presenter` / `EsUtil.Ui.<UI>.Thumbnail` |
 
-**層の帰属（Core / Presenter / UI のどれに置くか）・名前空間とフォルダの関係は [`../src/README.md`](../src/README.md) と [`命名規約.md`](命名規約.md) が所有する**（本節は要約しない）。
+- **`<UI>` は `AvaloniaUI` / `MewUI` / `WinUI3` / `WinForms`** である（UI 層は UI ごとのソリューションへ分かれる）。
+- **ソリューションは 5 本**（`EsUtil/EsUtil.slnx` と `EsUtil.Ui.<UI>/EsUtil.Ui.<UI>.slnx`）。 `.slnx` は各ソリューション フォルダーの直下に置く。
+
+**層の帰属（Core / Presenter / UI のどれに置くか）・名前空間とフォルダの関係は [`../EsUtil/README.md`](../EsUtil/README.md) と [`命名規約.md`](命名規約.md) が所有する**（本節は要約しない）。
 
 | 知りたいこと | 所有者 |
 | --- | --- |
@@ -68,6 +72,6 @@
 - **文字コードは UTF-8（BOM なし）**で統一する（[`.editorconfig`](../.editorconfig) の `charset = utf-8`）。
 - **作業ツリーの改行コードは CRLF**（[`.editorconfig`](../.editorconfig) の `end_of_line = crlf`。 リポジトリのブロブは [`.gitattributes`](../.gitattributes) が LF へ正規化する）。
 - **生成した XML ドキュメントはパッケージへ同封する**（`CopyDocumentationFileToOutputDirectory` を `false` にすると `pack.ps1` が NU5026 で失敗する。 実測）。
-- **`EsUtil.Feature.*.Control*` は利用側のプラットフォーム層を参照しない**。 使う変換・描画ヘルパーだけを各プロジェクトの `Internal/` へ `internal` でコピーし、複製元を 1 行のコメントへ残す（[`依存関係.md`](依存関係.md) §4.1）。
+- **`EsUtil.Ui.*.*` は利用側のプラットフォーム層を参照しない**。 使う変換・描画ヘルパーだけを各プロジェクトの `Internal/` へ `internal` でコピーし、複製元を 1 行のコメントへ残す（[`依存関係.md`](依存関係.md) §4.1）。
 - **CI は未設定**である（本リポジトリにリモートが無いため。 `buildScript/verify.ps1` を Release 構成で実行するのが等価）。
 - **本リポジトリは利用側のデスクトップ アプリから使われる**（元は利用側アプリと同じリポジトリにあり、履歴を保ったまま切り出して作られた）。

@@ -73,12 +73,16 @@
       <_SeIsPlatformCoreWindows>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Platform\.Core\.Windows$'))</_SeIsPlatformCoreWindows>
       <_SeIsFeatureCore>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Feature\.[A-Za-z]+\.Core$'))</_SeIsFeatureCore>
       <_SeIsFeaturePresenter>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Feature\.[A-Za-z]+\.Presenter$'))</_SeIsFeaturePresenter>
-      <_SeIsFeatureControl>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Feature\.[A-Za-z]+\.Control[A-Za-z0-9]*$'))</_SeIsFeatureControl>
+      <_SeIsUiControl>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.Ui\.(AvaloniaUI|MewUI|WinUI3|WinForms)\.[A-Za-z]+$'))</_SeIsUiControl>
 
-      <!-- 同一機能のコア / 提示層の名前（例: EsUtil.Feature.Loupe.Presenter → EsUtil.Feature.Loupe.Core） -->
-      <_SeFeatureName>$([System.Text.RegularExpressions.Regex]::Replace('$(MSBuildProjectName)', '\.(Core|Presenter|Control[A-Za-z0-9]*)$', ''))</_SeFeatureName>
+      <!-- 同一機能のコア / 提示層の名前（例: EsUtil.Feature.Loupe.Presenter → EsUtil.Feature.Loupe.Core、
+           EsUtil.Ui.AvaloniaUI.Loupe → EsUtil.Feature.Loupe.Core） -->
+      <_SeFeatureName>$([System.Text.RegularExpressions.Regex]::Replace('$(MSBuildProjectName)', '\.(Core|Presenter)$', ''))</_SeFeatureName>
+      <_SeUiFeatureName>$([System.Text.RegularExpressions.Regex]::Replace('$(MSBuildProjectName)', '^EsUtil\.Ui\.[A-Za-z0-9]+\.', ''))</_SeUiFeatureName>
       <_SeFeatureCoreName Condition="'$(_SeFeatureName)' != ''">$(_SeFeatureName).Core</_SeFeatureCoreName>
       <_SeFeaturePresenterName Condition="'$(_SeFeatureName)' != ''">$(_SeFeatureName).Presenter</_SeFeaturePresenterName>
+      <_SeUiFeatureCoreName Condition="'$(_SeIsUiControl)' == 'true'">EsUtil.Feature.$(_SeUiFeatureName).Core</_SeUiFeatureCoreName>
+      <_SeUiFeaturePresenterName Condition="'$(_SeIsUiControl)' == 'true'">EsUtil.Feature.$(_SeUiFeatureName).Presenter</_SeUiFeaturePresenterName>
     </PropertyGroup>
 
     <!-- R1: 最下層（EsUtil.Platform.Core）は EsUtil のパッケージを参照しない -->
@@ -112,13 +116,13 @@
            Text="依存関係違反: 提示層（EsUtil.Feature.*.Presenter）は EsUtil.Platform.Core と同一機能のコアだけを参照できます（違反: @(_SeBad4->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
 
     <!-- R5: UI 層は EsUtil.Platform.Core と同一機能のコア・提示層だけを参照する -->
-    <ItemGroup Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsFeatureControl)' == 'true'">
-      <_SeAllowed5 Include="@(_SeRef)" Condition="'%(Name)' == 'EsUtil.Platform.Core' Or '%(Name)' == '$(_SeFeatureCoreName)' Or '%(Name)' == '$(_SeFeaturePresenterName)'" />
+    <ItemGroup Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsUiControl)' == 'true'">
+      <_SeAllowed5 Include="@(_SeRef)" Condition="'%(Name)' == 'EsUtil.Platform.Core' Or '%(Name)' == '$(_SeUiFeatureCoreName)' Or '%(Name)' == '$(_SeUiFeaturePresenterName)'" />
       <_SeBad5 Include="@(_SeRef)" Exclude="@(_SeAllowed5)" />
     </ItemGroup>
     <Error Condition="'@(_SeBad5)' != ''"
            Code="DEP0005"
-           Text="依存関係違反: UI 層（EsUtil.Feature.*.Control*）は EsUtil.Platform.Core と同一機能のコア・提示層だけを参照できます（違反: @(_SeBad5->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
+           Text="依存関係違反: UI 層（EsUtil.Ui.*.*）は EsUtil.Platform.Core と同一機能のコア・提示層だけを参照できます（違反: @(_SeBad5->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
 
     <!-- R6: 本体プロジェクトはプロジェクト参照を持たない（同一リポジトリでもパッケージ参照を使う） -->
     <Error Condition="'$(_SeIsTestOrSample)' != 'true' And '@(_SeProjectRef)' != ''"

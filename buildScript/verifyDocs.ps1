@@ -25,10 +25,19 @@ Set-Location $repoRoot
 $enc = [Text.UTF8Encoding]::new($false)
 . (Join-Path $PSScriptRoot 'VerifyCommon.ps1')
 
+# ソリューション フォルダ（リポジトリ ルート直下の EsUtil*）と、その直下のプロジェクト フォルダ。
+# ソリューションを分けているため、走査の起点は「すべてのプロジェクト フォルダ」にする
+# （規則は .github/ビルド設定規約.md §1）。
+$solutionRoots = @(Get-ChildItem -Path $repoRoot -Directory | Where-Object { $_.Name -like 'EsUtil*' })
+$solutionNames = @($solutionRoots | Select-Object -ExpandProperty Name)
+$projectDirs = @($solutionRoots | ForEach-Object { Get-ChildItem -Path $_.FullName -Directory })
+$projectDirPaths = @($projectDirs | ForEach-Object { $_.FullName })
+$projectNames = @($projectDirs | Select-Object -ExpandProperty Name)
+
 # 以降のドキュメント検査で使う文書一覧（リポジトリ直下の文書も対象にする）
 $docs = @(
     Get-ChildItem -Path $repoRoot -File -Filter '*.md'
-    Get-ChildItem -Path (Join-Path $repoRoot 'src'), (Join-Path $repoRoot '.github') -Recurse -File -Filter '*.md'
+    Get-ChildItem -Path (@($projectDirPaths) + @(Join-Path $repoRoot '.github')) -Recurse -File -Filter '*.md'
 ) | Where-Object { $_.FullName -notmatch '\\(obj|bin|archive)\\' }
 
 # パスの照合（8a）はビルドスクリプトのコメントも対象にする（実測: 削除済みの検証スクリプトを
@@ -37,9 +46,9 @@ $scriptDocs = @(Get-ChildItem -Path (Join-Path $repoRoot 'buildScript') -Recurse
 
 # ソースの一覧（複数の検査が同じ列挙を繰り返さないよう 1 回だけ作る。
 # `-Include` は obj/bin まで全ファイルを走査してから絞るため遅い。 `-Filter` を使う）
-$allCs = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter '*.cs' |
+$allCs = @(Get-ChildItem -Path $projectDirPaths -Recurse -File -Filter '*.cs' |
     Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' })
-$allCsproj = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter '*.csproj' |
+$allCsproj = @(Get-ChildItem -Path $projectDirPaths -Recurse -File -Filter '*.csproj' |
     Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' })
 
 # ============================================================
@@ -48,7 +57,7 @@ $allCsproj = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -F
 Write-Output '== 5. ドキュメント（markdownlint） =='
 $mdArgs = @('--yes', 'markdownlint-cli2', '--config', 'buildScript/markdownlint.json')
 if ($Fix) { $mdArgs += '--fix' }
-$mdArgs += @('src/**/*.md', '.github/**/*.md', '*.md', '!**/obj/**', '!**/bin/**')
+$mdArgs += @('EsUtil*/**/*.md', '.github/**/*.md', '*.md', '!**/obj/**', '!**/bin/**')
 # npx は `cmd.exe` 経由で起動する（`.cmd` は直接起動できない）。 出力の復号は Invoke-NativeText が行う。
 $mdRun = Invoke-NativeText $env:ComSpec (@('/c', 'npx') + $mdArgs)
 $mdText = $mdRun.Text + $mdRun.ErrorText
@@ -101,7 +110,6 @@ foreach ($f in (Get-GitList @('ls-files'))) {
     $tracked[$f] = $true
     $trackedNames[[IO.Path]::GetFileName($f)] = $true
 }
-$projectNames = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Directory | Select-Object -ExpandProperty Name)
 # プロジェクト内のフォルダ（部分的な構成図のルートとして許可する）
 $intraFolders = @('src', 'tests', 'sample', 'docs')
 
@@ -126,9 +134,10 @@ foreach ($f in ($docs + $scriptDocs)) {
             if (Test-Path -LiteralPath (Join-Path $repoRoot $norm)) { continue }
             if (Test-Path -LiteralPath (Join-Path $f.DirectoryName $norm)) { continue }
             $cands = @()
-            foreach ($p in $projectNames) {
+            foreach ($proj in $projectDirs) {
+                $projRel = $proj.FullName.Substring($repoRoot.Length + 1).Replace('\', '/')
                 foreach ($pre in @('', 'src/', 'tests/', 'sample/')) {
-                    if ($tracked.ContainsKey("src/$p/$pre$norm")) { $cands += "src/$p/$pre$norm" }
+                    if ($tracked.ContainsKey("$projRel/$pre$norm")) { $cands += "$projRel/$pre$norm" }
                 }
             }
             if ($cands.Count -eq 0) { $loosePaths.Add(("解決不能 {0}:{1}  {2}" -f $rel, ($i + 1), $tok)) }
@@ -156,10 +165,10 @@ foreach ($f in $docs) {
         if (-not $treeRootSeen) {
             if ($line.Trim().Length -eq 0) { continue }
             $treeRootSeen = $true
-            if ($line -match '^(?:src/)?([A-Za-z0-9_.\-]+)/\s*$') {
+            if ($line -match '^([A-Za-z0-9_.\-]+)/\s*$') {
                 $label = $Matches[1]
                 # ルートはプロジェクト フォルダ名、またはプロジェクト内のフォルダ（部分的な構成図）
-                if ($projectNames -notcontains $label -and $intraFolders -notcontains $label) {
+                if ($projectNames -notcontains $label -and $intraFolders -notcontains $label -and $solutionNames -notcontains $label -and $label -ne 'EsUtil.slnx') {
                     $treeIssues.Add(("ルート名 {0}:{1}  {2}" -f $rel, ($i + 1), $label))
                 }
             }
@@ -413,11 +422,11 @@ $styleIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
 #     引用は、どのプロジェクトのものか読めない（実測: `Native/Win` のような記述が残っていた）。
 #     リポジトリ ルートのフォルダ（`publish/` / `.work/` 等）、リンクの表示文、コードフェンス内は対象外にする。
 $innerFolders = [System.Collections.Generic.HashSet[string]]::new()
-foreach ($p in (Get-GitList @('ls-files', 'src/*/src/*', 'src/*/tests/*', 'src/*/sample/*'))) {
+foreach ($p in (Get-GitList @('ls-files', 'EsUtil*/*/src/*', 'EsUtil*/*/tests/*', 'EsUtil*/*/sample/*'))) {
     $segments = $p.Split('/')
-    if ($segments.Count -ge 5) { [void]$innerFolders.Add($segments[3]) }
+    if ($segments.Count -ge 4) { [void]$innerFolders.Add($segments[3]) }
 }
-$rxAllowedRoot = [regex]'^(?:src|tests|sample|docs|buildScript|publish|artifacts|\.github|\.work|\.vscode|obj|bin)/'
+$rxAllowedRoot = [regex]'^(?:EsUtil[^/]*|src|tests|sample|docs|buildScript|publish|artifacts|\.github|\.work|\.vscode|obj|bin)/'
 $rxPathLike = [regex]'^[A-Za-z][\w.\-]*/[\w.\-]+$'
 $rxBacktick = [regex]'`([^`]+)`'
 $pathNotation = [System.Collections.Generic.List[string]]::new()
@@ -569,7 +578,7 @@ $allowedPluralFolders = @('Models', 'Services', 'Views', 'Enums', 'Controls', 'E
 # UI 層の UI フレームワーク フォルダはフレームワークの名称そのものであり、カテゴリではないため対象外
 # （規則の所有者は .github/命名規約.md「フォルダ」）
 $allowedFrameworkFolders = @('AvaloniaUI', 'MewUI', 'WinUI3', 'WinForms')
-foreach ($projDir in (Get-ChildItem -Path (Join-Path $repoRoot 'src') -Directory -Filter 'EsUtil.*')) {
+foreach ($projDir in $projectDirs) {
     foreach ($d in (Get-ChildItem -Path (Join-Path $projDir.FullName 'src') -Recurse -Directory -ErrorAction SilentlyContinue |
             Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' })) {
         if ($d.Name -cin $allowedPluralFolders) { continue }
@@ -694,22 +703,23 @@ $unlisted | Select-Object -First 10 | ForEach-Object { "      {0}:{1}  {2}（付
 
 # 8n) 文書の H1（ドキュメント規約 §2。 対象はリポジトリ直下と src/ 配下の文書）
 $h1Issues = [System.Collections.Generic.List[string]]::new()
-$docFiles = @(@(Get-ChildItem -Path $repoRoot -File -Filter '*.md') + @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter '*.md'))
+$docFiles = @(@(Get-ChildItem -Path $repoRoot -File -Filter '*.md') + @(Get-ChildItem -Path $projectDirPaths -Recurse -File -Filter '*.md'))
 foreach ($f in @($docFiles | Where-Object { $_.FullName -notmatch '\\(obj|bin|archive)\\' })) {
     $rel = $f.FullName.Substring($repoRoot.Length + 1).Replace('\', '/')
-    if ($rel -eq 'src/README.md') { continue }
+    if ($rel -eq 'EsUtil/README.md') { continue }
     $h1 = $null
     foreach ($l in (Get-Lines $f.FullName)) { if ($l.StartsWith('# ')) { $h1 = $l.Substring(2).Trim(); break } }
     $expected = $null
     if ($rel -eq 'README.md') { $expected = 'EsUtil' }
-    elseif ($rel -match '^src/(?<p>[^/]+)/docs/SPEC_(?<k>[A-Za-z]+)\.md$') {
+    elseif ($rel -match '^(?<proj>EsUtil[^/]*(?:/[^/]+)+)/docs/SPEC_(?<k>[A-Za-z]+)\.md$') {
+        $proj = $Matches['proj'].Replace('/', '.')
         $kind = @{ 'API' = 'API リファレンス'; 'System' = 'システム仕様書'; 'ExtFunc' = '外部機能仕様書' }[$Matches['k']]
-        if ($kind) { $expected = "$($Matches['p']) $kind" }
-        elseif ($h1 -notlike "$($Matches['p']) *") { $h1Issues.Add(("{0}  H1 [{1}] が「{2} <用途名>」の形でない" -f $rel, $h1, $Matches['p'])) }
+        if ($kind) { $expected = "$proj $kind" }
+        elseif ($h1 -notlike "$proj *") { $h1Issues.Add(("{0}  H1 [{1}] が「{2} <用途名>」の形でない" -f $rel, $h1, $proj)) }
         continue
     }
-    elseif ($rel -match '^src/(?<p>[^/]+)/sample/README\.md$') { $expected = "$($Matches['p']) サンプルアプリケーション" }
-    elseif ($rel -match '^src/(?<p>[^/]+)/README\.md$') { $expected = $Matches['p'] }
+    elseif ($rel -match '^(?<proj>EsUtil[^/]*(?:/[^/]+)+)/sample/README\.md$') { $expected = "$($Matches['proj'].Replace('/', '.')) サンプルアプリケーション" }
+    elseif ($rel -match '^(?<proj>EsUtil[^/]*(?:/[^/]+)+)/README\.md$') { $expected = $Matches['proj'].Replace('/', '.') }
     if ($null -eq $expected) { continue }
     if ($null -eq $h1) { $h1Issues.Add(("{0}  H1 がない" -f $rel)) }
     elseif ($h1 -ne $expected) { $h1Issues.Add(("{0}  H1 [{1}] / 期待 [{2}]" -f $rel, $h1, $expected)) }
@@ -788,7 +798,7 @@ $catchIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
 
 # 8q) イベント ハンドラーの登録は XAML とコードのどちらか一方（コーディング規約 §7）
 $wiringIssues = [System.Collections.Generic.List[string]]::new()
-foreach ($projDir in (Get-ChildItem -Path (Join-Path $repoRoot 'src') -Directory)) {
+foreach ($projDir in $projectDirs) {
     $axamlFiles = @(Get-ChildItem -Path $projDir.FullName -Recurse -File -Filter '*.axaml' -ErrorAction SilentlyContinue |
         Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' })
     if ($axamlFiles.Count -eq 0) { continue }
@@ -819,11 +829,11 @@ $readmeRequired = @(
     [pscustomobject]@{ Name = 'ライセンス'; Pattern = 'ライセンス' }
 )
 $readmeIssues = [System.Collections.Generic.List[string]]::new()
-foreach ($f in @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter 'README.md' |
+foreach ($f in @(Get-ChildItem -Path $projectDirPaths -Recurse -File -Filter 'README.md' |
         Where-Object { $_.FullName -notmatch '\\(obj|bin|sample)\\' })) {
     $rel = $f.FullName.Substring($repoRoot.Length + 1).Replace('\', '/')
     # `src/README.md` は層構成の文書（ドキュメント規約 §2 の例外）
-    if ($rel -eq 'src/README.md') { continue }
+    if ($rel -eq 'EsUtil/README.md') { continue }
     $headings = @(Get-Lines $f.FullName |
         Where-Object { $_ -match '^#{2,3} ' } |
         ForEach-Object { ($_ -replace '^#{2,3}\s*', '') -replace '^\d+(\.\d+)*\.?\s*', '' })
@@ -850,7 +860,7 @@ $sysRequired = @(
     [pscustomobject]@{ Name = '例外処理ポリシー'; Pattern = '(例外|エラー)' }
 )
 $sysIssues = [System.Collections.Generic.List[string]]::new()
-foreach ($f in @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter 'SPEC_System.md' |
+foreach ($f in @(Get-ChildItem -Path $projectDirPaths -Recurse -File -Filter 'SPEC_System.md' |
         Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' })) {
     $rel = $f.FullName.Substring($repoRoot.Length + 1).Replace('\', '/')
     $headings = @(Get-Lines $f.FullName |
@@ -869,7 +879,7 @@ $sysIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
 #     `{対象}` は実在のソース（ファイル名または型名）と一致するか、その名前で始まる（`<対象><観点>` を許す）。
 $rxTestFileName = [regex]'(?<target>.+)\.Tests\.cs$'
 $testTargetIssues = [System.Collections.Generic.List[string]]::new()
-foreach ($projDir in (Get-ChildItem -Path (Join-Path $repoRoot 'src') -Directory)) {
+foreach ($projDir in $projectDirs) {
     $srcDir = Join-Path $projDir.FullName 'src'
     if (-not (Test-Path -LiteralPath $srcDir)) { continue }
     # ソースの型名・ファイル名の集合
@@ -906,7 +916,7 @@ $testTargetIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
 #     型の節（`## N. `Type`` / `### N.M `Type``）の型がソースで `internal` なら、見出しに「（内部」が要る。
 $rxTypeHeading = [regex]'^#{2,3} \d+(?:\.\d+)*\.?\s*(?:`(?<t>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)`|(?<t2>[A-Za-z_]\w*))'
 $internalIssues = [System.Collections.Generic.List[string]]::new()
-foreach ($f in @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter 'SPEC_API.md' |
+foreach ($f in @(Get-ChildItem -Path $projectDirPaths -Recurse -File -Filter 'SPEC_API.md' |
         Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' })) {
     $rel = $f.FullName.Substring($repoRoot.Length + 1).Replace('\', '/')
     $projectDir = (Get-Item $f.FullName).Directory.Parent.FullName
@@ -980,7 +990,7 @@ function Test-BuildOutput([string]$Folder) {
     return @(Get-ChildItem -LiteralPath $Folder -Recurse -File -Force -ErrorAction SilentlyContinue |
             Where-Object { $rxBuildOutput.IsMatch($_.Name) -or $_.Extension -in @('.dll', '.exe', '.pdb', '.cache') }).Count -gt 0
 }
-$emptyDirs = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -Directory |
+$emptyDirs = @(Get-ChildItem -Path $projectDirPaths -Recurse -Directory |
         Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' } |
         Where-Object { -not (Test-IgnoredFolder $_.FullName) } |
         Where-Object { @(Get-ChildItem -LiteralPath $_.FullName -Force).Count -eq 0 })
@@ -989,7 +999,7 @@ $emptyDirs = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -Directo
 # 前提であり、無視されることを理由にすべて外すと検査が成立しない）。 残骸と見なすのはビルド出力を含むものに限る。
 $csprojDirs = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
 foreach ($csproj in $allCsproj) { [void]$csprojDirs.Add([IO.Path]::GetDirectoryName($csproj.FullName)) }
-$orphanBins = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -Directory |
+$orphanBins = @(Get-ChildItem -Path $projectDirPaths -Recurse -Directory |
         Where-Object { $_.Name -in @('bin', 'obj') } |
         Where-Object { -not $csprojDirs.Contains([IO.Path]::GetDirectoryName($_.FullName)) } |
         Where-Object { -not (Test-IgnoredFolder $_.FullName) -or (Test-BuildOutput $_.FullName) })
@@ -1016,7 +1026,7 @@ $testNameIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
 #      「名前空間宣言が不要」と指摘するが、ビルドは通るため機械検査が要る）。
 #      宣言そのもの（`xmlns:接頭辞="..."`）を取り除いた残りで `接頭辞:` が使われているかを見る。
 $xamlNamespaceIssues = [System.Collections.Generic.List[string]]::new()
-foreach ($f in (Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter '*.axaml' |
+foreach ($f in (Get-ChildItem -Path $projectDirPaths -Recurse -File -Filter '*.axaml' |
         Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' })) {
     $rel = $f.FullName.Substring($repoRoot.Length + 1).Replace('\', '/')
     $lines = Get-Lines $f.FullName
@@ -1045,7 +1055,7 @@ $xamlNamespaceIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
 #      合否にはせず件数だけを表示する
 $testPairs = 0
 $testTotal = 0
-foreach ($proj in (Get-ChildItem -Path (Join-Path $repoRoot 'src') -Directory)) {
+foreach ($proj in $projectDirs) {
     $srcDir = Join-Path $proj.FullName 'src'
     $testDir = Join-Path $proj.FullName 'tests'
     if (-not (Test-Path -LiteralPath $srcDir) -or -not (Test-Path -LiteralPath $testDir)) { continue }

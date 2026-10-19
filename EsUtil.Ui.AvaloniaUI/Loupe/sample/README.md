@@ -1,0 +1,138 @@
+# EsUtil.Ui.AvaloniaUI.Loupe サンプルアプリケーション
+
+## 目次 <!-- omit from toc -->
+
+- [1. 概要](#1-概要)
+- [2. 実行方法](#2-実行方法)
+  - [2.1 バッチファイル（リリースビルド＆起動）](#21-バッチファイルリリースビルド起動)
+- [3. 操作方法](#3-操作方法)
+- [4. 検証項目（動作確認チェックリスト）](#4-検証項目動作確認チェックリスト)
+- [5. 構成](#5-構成)
+- [6. 使い方（初めての方向け）](#6-使い方初めての方向け)
+- [7. 拡張例（計画の差し替え）](#7-拡張例計画の差し替え)
+
+---
+
+## 1. 概要
+
+`EsUtil.Ui.AvaloniaUI/Loupe/sample/` にある **LoupeControl 動作確認用の独立したサンプルアプリケーション**です。
+
+- `LoupeControl`（`EsUtil.Ui.AvaloniaUI.Loupe`）を実際に配置して動作を確認できます。
+- テスト画像（グラデーション＋グリッド＋マーカー）を生成し、マウス追従で拡大表示します。
+- ルーペの拡大元は**コアの画像（`EsReadOnlyBitmap`）**として渡し、ホストが表示に使っている画像は**表示用の射影（`DisplaySource`）**として渡します（射影は省略可能。 寸法が一致するときだけ使われ、切り出しの複製を作りません）。
+- 外観設定（拡大率・サイズ・十字線・画像外の色・枠線・描画スケール）をスライダー/コンボボックスで変更できます。
+- `LoupeControl` をVisual Treeへ配置し、内部の `Image` 要素で表示します。
+- `Clear()` / `RequestRender()` の API 呼び出しをボタンで確認できます。
+- `LoupeControl.Log` に `ILogger`（デバッグ出力）を設定し、描画エラー通知を確認できます。
+
+## 2. 実行方法
+
+```powershell
+dotnet run --project EsUtil.Ui.AvaloniaUI/Loupe/sample/EsUtil.Ui.AvaloniaUI.Loupe.Sample.csproj
+```
+
+リリース構成で実行する場合:
+
+```powershell
+dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Loupe/sample/EsUtil.Ui.AvaloniaUI.Loupe.Sample.csproj
+```
+
+### 2.1 バッチファイル（リリースビルド＆起動）
+
+`EsUtil.Ui.AvaloniaUI/Loupe/sample/RunSample.bat` をダブルクリックすると、リリースビルドを行った後、サンプルアプリケーションを起動します。
+
+```text
+RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil.Ui.AvaloniaUI.Loupe.Sample.exe を起動
+```
+
+> 本サンプルは独立したプロジェクトです。
+> `EsUtil.Ui.AvaloniaUI.Loupe.csproj` は `sample/**` をコンパイル対象から除外しています。
+
+## 3. 操作方法
+
+| 操作 | 内容 |
+| --- | --- |
+| テスト画像上をマウス移動 | ルーペがカーソルの右下に追従して拡大表示 |
+| 画像の外へマウス移動 | 画像外の領域のみ無地の色（画像外の色。 視野全体が外に出た場合は全面がその色） |
+| 「ルーペを表示」チェック | `IsVisible` の切り替え（非表示時は Bitmap 解放） |
+| 拡大率のスライダー | `Options.ZoomLevel`（拡大倍率） |
+| ルーペサイズのスライダー | `Options.RequestedSize`（基本サイズ。 そのまま表示サイズになる） |
+| 色コンボボックス | `Appearance`（`CrossColor` / `PasteboardColor` / `BorderColor`。 「なし」で描画なし） |
+| 枠線の太さ | `Appearance.BorderThickness` |
+| 描画スケール | `ClientToPixelScaling`（DIP→物理ピクセル変換の確認） |
+| 選択矩形オーバーレイ | `SelectionRectVisible` チェック・選択矩形（`SelectionRectX` / `SelectionRectY` / `SelectionRectWidth` / `SelectionRectHeight`）の編集（対象座標 = 元画像ピクセル）。 テスト画像上に破線の枠＋座標ラベルが表示され、ルーペ内にも破線が描画される |
+| Clear() ボタン | `Clear()` を呼び出し、非表示＋Bitmap 解放 |
+| RequestRender() ボタン | `RequestRender()` を呼び出し、プロパティ変更を伴わない再生成を要求 |
+
+## 4. 検証項目（動作確認チェックリスト）
+
+- [ ] マウス追従で拡大画像が表示される（グラデーション・円マーカー・グリッド）
+- [ ] 10px グリッドがズーム倍率どおりに拡大される（倍率の検証）
+- [ ] ズーム・サイズ変更が即時反映される
+- [ ] 十字線・画像外の色・枠線の色が反映される（不透明度は色のアルファに統合）
+- [ ] 「なし」を選ぶと該当要素が描画されなくなる
+- [ ] `ClientToPixelScaling` を 0.5〜2.0 に変更すると Bitmap の物理ピクセルサイズが変化する
+- [ ] `Options.RequestedSize` を変更すると表示サイズが変化する（基本サイズがそのまま表示サイズになる）
+- [ ] `SelectionRectVisible` を ON にすると、テスト画像上に選択矩形の破線枠＋座標ラベルが表示され、場所が一目でわかる
+- [ ] `SelectionRectVisible` を ON にすると、選択矩形（対象座標）の枠線がルーペ画像上にも破線で描画される（ズーム 2 倍以上）
+- [ ] 選択矩形の X / Y / W / H を変更すると、テスト画像上の枠とルーペ内の破線の位置・サイズが変化する
+- [ ] `SelectionRectColorA` / `SelectionRectColorB`（「なし」で非表示・不透明度は色のアルファ）が破線に反映される
+- [ ] チェック OFF / `Clear()` で Bitmap が解放され、チェック ON で再表示される
+- [ ] `RequestRender()` で再生成が要求され、`Rendered` が発火する
+- [ ] ルーペの左上に中心座標ラベル（`(x, y)`）が表示され、マウス移動で文言が追従する（コントロールがテキスト要素として表示する）
+- [ ] 画像の外では画像外の色（無地）が表示される（画像の透明部分と区別できる）
+- [ ] ルーペの拡大元（`Source`。 コアの画像）と表示用の射影（`DisplaySource`）が Binding で渡され、拡大画像が表示される（射影の有無で見た目が変わらない）
+
+## 5. 構成
+
+```text
+EsUtil.Ui.AvaloniaUI/Loupe/sample/
+├── EsUtil.Ui.AvaloniaUI.Loupe.Sample.csproj   # サンプルアプリのプロジェクト（net10.0 / Avalonia 12.1）
+├── app.manifest                 # Windows DPI 設定（PerMonitorV2）
+├── Program.cs                   # エントリポイント
+├── App.axaml / App.axaml.cs     # アプリケーション定義（FluentTheme）
+├── Logging/
+│   └── DebugLogger.cs           # LoupeControl.Log の設定例（デバッグ出力へ転送）
+├── Imaging/
+│   └── TestImageFactory.cs      # テスト画像生成（グラデーション＋グリッド＋マーカー）
+├── Internal/                    # Platform.* を使わないための複製（internal。 依存関係.md §4.1）
+│   ├── EsBitmapAvaloniaAdapter.cs   # コアの画像を表示面（IImage）として公開し、コアの画像は GetEsBitmap() で取り出すアダプタ
+│   └── EsBitmapAvaloniaExtensions.cs # コアの画像 ⇔ Avalonia の画像の変換
+├── Presentation/
+│   ├── GridLoupePlan.cs         # 外観と描画計画（格子線・四隅の鉤）と見本の元画像を与える見本
+│   └── SelectionRectPainter.cs  # ルーペ画像上の選択矩形の破線（Rendered の使用例）
+├── ViewModels/
+│   ├── BrushOption.cs           # 色選択肢
+│   └── MainWindowViewModel.cs   # ルーペ設定・中心座標
+└── Views/
+    ├── MainWindow.axaml(.cs)    # メイン画面（設定パネル＋テスト画像＋ルーペ）
+```
+
+## 6. 使い方（初めての方向け）
+
+1. **起動**: テスト画像（グラデーション＋グリッド＋マーカー）が表示されます。
+2. **マウス追従**: テスト画像上をマウスで動かすと、カーソルの右下にルーペが追従して拡大表示されます。 画像の外では、画像外の色（無地）が表示されます。
+3. **ルーペの表示/非表示**: 「ルーペを表示」チェックで切り替えます（非表示時は Bitmap 解放）。
+4. **外観の変更**: ズーム・サイズ・色・タイルサイズ・枠の太さ・描画スケールをスライダー/コンボボックスで変更します（即時反映）。
+5. **基本サイズ（Options.RequestedSize）**: スライダーで基本サイズを変更すると、その値がそのまま表示サイズになります。
+6. **選択矩形オーバーレイ**: 「選択矩形を表示」を ON にすると、選択矩形（対象座標 = 元画像ピクセル）の枠線がルーペ画像上に 2 色破線（色A/色B）で表示されます（ズーム 2 倍以上）。 X / Y / W / H・色A / 色B を変更できます（不透明度は色のアルファに統合）。
+7. **API 呼び出し**: `Clear()` / `RequestRender()` ボタンで各公開 API の動作を確認できます。
+8. **拡張例**: 設定パネル上部の見本は、外観（`Appearance`）と描画計画（`DrawPlanResolver`）で見た目を差し替えた例です（次節）。
+
+## 7. 拡張例（計画の差し替え）
+
+`Presentation/` に、外観（`Appearance`）と描画計画（`DrawPlanResolver`）で見た目を差し替える見本があります（設定パネル上部の見本）。
+
+- `GridLoupePlan` — 外観（色・枠線の太さ・表示可否）と、装飾の矩形（中心の格子線・四隅の鉤）を与えます。 計画を差し替える純粋関数（`Resolve(in plan)`）として提供します。 見本の元画像（`EsReadOnlyBitmap`）も本クラスが用意します。
+
+差し替えの入口は次の 3 つです（**派生は不要**。 XAML のコントロールへコードビハインドから設定します）。
+
+| 差し替える対象 | 差し替え方 |
+| --- | --- |
+| 外観（色・枠線の太さ・表示可否） | `Appearance`（`LoupeAppearance`）を設定する |
+| 装飾（十字線・枠線）の矩形 / ラベルの文言・位置 | `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）を設定する（計画の値の置き換え） |
+| 矩形で表せない描画（円・斜線等） | `Appearance` の `Show*` を false にして `Rendered` のビットマップへ自前で描く（必要なら `DrawPlan` で計画どおりの描画も呼べる） |
+
+差し替えは値の置き換えだけで完結するため、UI ごとの描画実装（Avalonia は `LoupeContextPainter`、MewUI は `LoupeSkiaPainter`。 いずれも内部）は変更不要です。
+
+**矩形の単位**: ルーペの描画面の矩形は**物理ピクセル**です（描画面のビットマップへ 1:1 で描くため）。 DIP で寸法を決めたい場合は計画の `ScaleDipToPixel` で換算します（見本はこの方法を使っているため、表示スケーリング（DPI）が変わっても見た目は DIP 基準のままです）。

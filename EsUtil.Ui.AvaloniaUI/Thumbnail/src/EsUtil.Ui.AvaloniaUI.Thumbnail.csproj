@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Ui.AvaloniaUI.Thumbnail</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Description>サムネイル一覧の Avalonia UI 版コントロール。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="[12.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 配置（コア）と描画計画・外観（提示層）。 コアは提示層の公開面に現れるため推移参照で解決する -->
+    <PackageReference Include="EsUtil.Feature.Thumbnail.Presenter" Version="$(EsUtil_Feature_Thumbnail_Presenter_Version)" />
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Ui.AvaloniaUI.Thumbnail.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 名前空間が EsUtil.Ui.<UI>.<機能> へ分かれたため、機能のルート名前空間（ファサードの公開面）を
+         グローバル using で取り込む（以前は名前空間の入れ子で解決していた）。 -->
+    <Using Include="EsUtil.Feature.Thumbnail" />
+  </ItemGroup>
+
+</Project>

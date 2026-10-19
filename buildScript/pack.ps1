@@ -71,11 +71,13 @@ Set-Location $repoRoot
 # ネイティブ コマンド（dotnet）の出力を UTF-8 として読む（規則の所有者は .github/検証手順.md §15）
 . (Join-Path $PSScriptRoot 'VerifyCommon.ps1')
 
-# 対象（本体プロジェクト）は src/ 配下の .csproj から自動で求める（テスト・サンプルは除く）。
-# **依存順**（PackageReference の EsUtil.* が先）に並べる。 並べ替えの根拠は .github/依存関係.md §3。
-# 対象の追加は .csproj を置くだけでよく、本スクリプトの一覧は触らない。
+# 対象（本体プロジェクト）はソリューション フォルダ（ルート直下の EsUtil*）配下の .csproj から求める
+# （テスト・サンプルは除く）。 **依存順**（PackageReference の EsUtil.* が先）に並べる。
+# 並べ替えの根拠は .github/依存関係.md §3。 対象の追加は .csproj を置くだけでよく、本スクリプトの一覧は触らない。
 function Get-PackageProjects {
-    $all = @(Get-ChildItem -Path (Join-Path $repoRoot 'src') -Recurse -File -Filter '*.csproj' |
+    $all = @(Get-ChildItem -Path $repoRoot -Directory |
+        Where-Object { $_.Name -like 'EsUtil*' } |
+        ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -File -Filter '*.csproj' } |
         Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample)\.csproj$' })
 
     # 各プロジェクトが参照するパッケージ（EsUtil.*）の名前

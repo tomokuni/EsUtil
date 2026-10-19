@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/Loupe/">
+    <Project Path="Loupe/sample/EsUtil.Ui.WinUI3.Loupe.Sample.csproj" />
+    <Project Path="Loupe/src/EsUtil.Ui.WinUI3.Loupe.csproj" />
+    <Project Path="Loupe/tests/EsUtil.Ui.WinUI3.Loupe.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Marquee/">
+    <Project Path="Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sample.csproj" />
+    <Project Path="Marquee/src/EsUtil.Ui.WinUI3.Marquee.csproj" />
+    <Project Path="Marquee/tests/EsUtil.Ui.WinUI3.Marquee.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Thumbnail/">
+    <Project Path="Thumbnail/src/EsUtil.Ui.WinUI3.Thumbnail.csproj" />
+  </Folder>
+</Solution>
