@@ -9,6 +9,41 @@
        検査は ProjectReference ではなく PackageReference（`EsUtil.*`）を対象にする。
        検査の対象は src/ の本体プロジェクトだけとする（テスト・サンプルは規則の対象外）。
        ============================================================ -->
+
+  <!-- ============================================================
+        パッケージの版の前処理（ビルドが走ったときに自動で実行する）。
+        規則の所有者は .github/ビルド設定規約.md §4 であり、本ファイルはその実装である。
+
+        ソースの指紋（buildScript/fingerprints.json）が変わったプロジェクトがあれば、
+        そのプロジェクトの 3 桁目を +1 してローカル フィードへ出力し、指紋を記録する
+        （判定と pack は buildScript/pack.ps1 が単一所有する。 本ターゲットは呼び出しだけを行う）。
+
+        **版はビルドの評価時に確定する**ため、更新した版をそのまま現在のビルドへは反映できない。
+        そのため更新した場合は「もう一度ビルドしてください」で止める（次回の復元から新しい版になる）。
+
+        対象は本リポジトリのソリューション（EsUtil.slnx）のビルドだけとする
+        （本リポジトリを参照する側のリポジトリのビルドでは動かさない）。
+        `-p:EsUtilVersionCheck=false` で明示的に止められる（pack.ps1・verify.ps1 が使う）。
+        ============================================================ -->
+    
+  <Target Name="CheckPackageVersions"
+           BeforeTargets="Build"
+           Condition="'$(EsUtilVersionCheck)' != 'false' And '$(_SeIsTestOrSample)' != 'true' And ('$(EsUtilVersionCheck)' == 'true' Or ('$(SolutionFileName)' == 'EsUtil.slnx' And '$(MSBuildProjectName)' == 'EsUtil.Platform.Core'))">
+
+    <!-- ソリューションのビルドでは 1 プロジェクトだけが実行する（並列ビルドでの多重実行を防ぐ） -->
+    <Exec Command="pwsh -NoProfile -File &quot;$(MSBuildThisFileDirectory)buildScript\versionCheck.ps1&quot;"
+           IgnoreExitCode="true"
+           StandardOutputImportance="normal"
+           StandardErrorImportance="high">
+       <Output TaskParameter="ExitCode" PropertyName="_EsUtilVersionCheckExit" />
+    </Exec>
+
+    <Error Condition="'$(_EsUtilVersionCheckExit)' == '3'" Code="BUILD0006"
+            Text="パッケージの版を更新しました（ソースの指紋が変わったプロジェクトの 3 桁目を +1 し、ローカル フィードへ出力しました）。 版はビルドの評価時に確定するため、**もう一度ビルド**してください。 規則は .github/ビルド設定規約.md §4。" />
+    <Error Condition="'$(_EsUtilVersionCheckExit)' == '4'" Code="BUILD0006"
+            Text="パッケージの版の更新に失敗しました（buildScript/pack.ps1 の出力を確認してください）。 規則は .github/ビルド設定規約.md §4。" />
+  </Target>
+
   <Target Name="ValidatePackageReferences" BeforeTargets="Build" Condition="'$(MSBuildProjectName)' != ''">
 
     <ItemGroup>

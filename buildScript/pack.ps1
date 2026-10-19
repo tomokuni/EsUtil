@@ -201,6 +201,10 @@ foreach ($item in $plan) {
     }
 }
 
+# pack が起動するビルドでは、本スクリプトを呼ぶ前処理（Directory.Build.targets の CheckPackageVersions）を
+# 止める（pack 自身が版を決めているため、入れ子で pack を呼ぶと循環する）。
+$versionOverrides += '-p:EsUtilVersionCheck=false'
+
 # 3. 依存順に pack する（各段は前の段のパッケージが無いと復元できない）。
 New-Item -ItemType Directory -Force -Path $feed | Out-Null
 $packed = [System.Collections.Generic.List[object]]::new()

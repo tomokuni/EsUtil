@@ -177,7 +177,7 @@ if (-not $SkipBuild) {
     Write-Output '== 1. ビルド =='
     # 警告のエラー化は Directory.Build.props の TreatWarningsAsErrors が単一所有する（-warnaserror は付けない）。
     # これで素の `dotnet build` でも規約違反が終了コードに出る（スクリプトの引数に依存しない）。
-    $buildArgs = @('build', $Solution, '-c', $Configuration, '-tl:off', '-v:q', '--no-incremental') + $restoreArgs
+    $buildArgs = @('build', $Solution, '-c', $Configuration, '-tl:off', '-v:q', '--no-incremental', '-p:EsUtilVersionCheck=false') + $restoreArgs
     $build = Invoke-DotNet $buildArgs
     $buildText = $build.Text
     $buildWarnings = ([regex]::Matches($buildText, 'warning ')).Count
