@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Themes.Fluent;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -166,6 +167,38 @@ public class ThumbnailControlTests
             logger.Messages);
     }
 
+    /// <summary>テーマが適用され、内容の寸法がスクロール範囲として反映されることを検証する。</summary>
+    /// <remarks>
+    /// 派生クラス自身の型でテーマを探すと（<see cref="Avalonia.StyledElement.StyleKey"/> を上書きしない場合）
+    /// <see cref="ScrollViewer"/> のテンプレートが見つからず、内容が表示されずスクロールもできない
+    /// （<c>Extent</c> と <c>Viewport</c> が 0 のままになる）。 テーマを当てたうえで寸法を確かめる。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void テーマの適用で内容の寸法がスクロール範囲になる()
+    {
+        var application = Application.Current!;
+        if (!application.Styles.OfType<FluentTheme>().Any())
+        {
+            application.Styles.Add(new FluentTheme());
+        }
+
+        var control = new ThumbnailControl { ImageWidth = 96 };
+        for (var i = 0; i < 40; i++)
+        {
+            control.Add(null, "item" + i);
+        }
+
+        var window = new Window { Width = 400, Height = 300, Content = control };
+        window.Show();
+        window.UpdateLayout();
+
+        Assert.Equal(400, control.Bounds.Width);
+        Assert.True(control.Viewport.Height > 0, $"Viewport={control.Viewport}");
+        Assert.True(control.Extent.Height > control.Viewport.Height, $"Extent={control.Extent} Viewport={control.Viewport}");
+        Assert.False(control.SlotBounds(0).IsEmpty);
+
+        window.Close();
+    }
     /// <summary>null のロガーを設定しても例外にしないことを検証する。</summary>
     [AvaloniaFact]
     internal void Log_nullを設定しても例外にしない()

@@ -62,6 +62,9 @@ internal sealed class ThumbnailTile : Panel
     public void SetImage(EsReadOnlyBitmap? image)
     {
         _viewport.Source = image;
+
+        // 描画面は寸法が変わらなければ再描画されないため、明示的に要求する（画像の差し替えを反映する）
+        _viewport.InvalidateVisual();
         InvalidateMeasure();
     }
 
@@ -82,6 +85,9 @@ internal sealed class ThumbnailTile : Panel
         _plan = plan;
         _viewport.Plan = plan;
 
+        // 描画面は寸法が変わらなければ再描画されないため、明示的に要求する（背景・影の変化を反映する）
+        _viewport.InvalidateVisual();
+
         _label.FontSize = plan.Label.FontSize;
         _label.TextAlignment = TextAlignment.Center;
         _label.VerticalTextAlignment = TextAlignment.Top;
@@ -94,8 +100,6 @@ internal sealed class ThumbnailTile : Panel
         {
             _label.Foreground = Color.FromArgb(plan.Label.ForegroundArgb);
         }
-
-        InvalidateMeasure();
     }
 
     /// <summary>子要素を計測する（寸法は描画計画が決める）。</summary>
@@ -114,7 +118,11 @@ internal sealed class ThumbnailTile : Panel
     }
 
     /// <summary>子要素を配置する。</summary>
-    /// <param name="bounds">本要素へ割り当てられた矩形。</param>
+    /// <param name="bounds">本要素へ割り当てられた矩形（ウィンドウ絶対座標・DIP）。</param>
+    /// <remarks>
+    /// MewUI の <c>Arrange</c> はウィンドウ絶対座標を受け取るため、子の座標は本要素の絶対座標を<br/>
+    /// 加算して渡す（相対座標を渡すと要素が画面の左上へ寄る）。
+    /// </remarks>
     protected override void ArrangeContent(Rect bounds)
     {
         if (_plan is not { } plan)
@@ -122,10 +130,10 @@ internal sealed class ThumbnailTile : Panel
             return;
         }
 
-        _viewport.Arrange(new Rect(0, 0, plan.Slot.Width, plan.Slot.Height));
+        _viewport.Arrange(new Rect(bounds.X, bounds.Y, plan.Slot.Width, plan.Slot.Height));
         _label.Arrange(new Rect(
-            plan.Label.Bounds.X - plan.Slot.X,
-            plan.Label.Bounds.Y - plan.Slot.Y,
+            bounds.X + plan.Label.Bounds.X - plan.Slot.X,
+            bounds.Y + plan.Label.Bounds.Y - plan.Slot.Y,
             plan.Label.Bounds.Width,
             plan.Label.Bounds.Height));
     }

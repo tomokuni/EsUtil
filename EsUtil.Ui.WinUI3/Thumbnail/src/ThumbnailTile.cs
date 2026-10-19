@@ -70,6 +70,9 @@ internal sealed class ThumbnailTile : Grid
     public void SetImage(EsReadOnlyBitmap? image)
     {
         _viewport.Source = image;
+
+        // 描画面は寸法が変わらなければ再描画されないため、明示的に要求する（画像の差し替えを反映する）
+        _viewport.Invalidate();
         InvalidateMeasure();
     }
 
@@ -89,6 +92,9 @@ internal sealed class ThumbnailTile : Grid
     {
         _plan = plan;
         _viewport.Plan = plan;
+
+        // 描画面は寸法が変わらなければ再描画されないため、明示的に要求する（背景・影の変化を反映する）
+        _viewport.Invalidate();
 
         _label.FontSize = plan.Label.FontSize;
         _label.TextAlignment = TextAlignment.Center;
@@ -115,8 +121,6 @@ internal sealed class ThumbnailTile : Grid
                     (byte)(plan.Label.ForegroundArgb >> 8),
                     (byte)plan.Label.ForegroundArgb));
         }
-
-        InvalidateMeasure();
     }
 
     /// <summary>子要素を計測する（寸法は描画計画が決める）。</summary>

@@ -31,7 +31,7 @@ WinUI 3 版のサムネイル一覧コントロールの構造・依存・設計
 | 種別 | 内容 |
 | --- | --- |
 | 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.22621.0`） |
-| UI フレームワーク | WinUI 3（Windows App SDK。 `Grid` / `ScrollViewer` / `Canvas`） |
+| UI フレームワーク | WinUI 3（Windows App SDK。 `Grid` / `ScrollViewer` / `Panel`） |
 | 描画 | Skia（`SkiaSharp.Views.WinUI` の `SKXamlCanvas`） |
 | 参照パッケージ | `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core` / `Microsoft.WindowsAppSDK` / `SkiaSharp.Views.WinUI` |
 | テスト | xUnit v3（`EsUtil.Ui.WinUI3.Thumbnail.Tests`。 ログ定義と影の描画手順を検証する。 コントロールは XAML の初期化を必要とするため配布物の起動で確認する） |
@@ -70,7 +70,9 @@ flowchart TD
 
 ### 3.3 設計判断
 
-- **`Canvas` へ絶対配置する**: WinUI 3 の標準パネルには任意の大きさの子を折り返すパネルがありません。 コアが返す矩形をそのまま使える `Canvas` の方が、折り返しの計算を XAML へ二重に持たせません。
+- **絶対配置する**: WinUI 3 の標準パネルには任意の大きさの子を折り返すパネルがありません。 コアが返す矩形をそのまま使える絶対配置のパネルの方が、折り返しの計算を XAML へ二重に持たせません。
+- **配置は内側のパネルが解く**: コントロール側の計測で子の寸法（キャンバスの幅・高さ）を書き換えると、計測の途中で再計測が要求されて**レイアウト サイクル**になります（実測: `LayoutCycleException`）。 スクロールの内容として寸法を返すのは内側のパネルの役割とし、コントロールは `Grid` の既定の計測・配置に任せます。
+- **描画面は明示的に再描画を要求する**: Skia の描画面は寸法が変わらなければ再描画されません。 計画・画像を差し替えた時点で `Invalidate()` を呼ばないと、生成したサムネイルが反映されません（実測）。
 - **`Grid` を継承する**: `ScrollViewer` を単独の基底にすると、スクロールの外側に余白や重なりを置けません。 一覧は `Grid` の子としてスクロールを持ちます。
 - **影は Skia で描く**: 縮小キャンバス（`SKXamlCanvas`）の内容は XAML 要素より**背面**に合成されるため、影を要素（`Border` の `Shadow`）で重ねると画像が隠れます。 影も同じキャンバスへ描きます。
 - **画像は非所有ビューで描く**: コアの画像（`EsReadOnlyBitmap`）のピクセルを複製せず、Skia の画像として包んで描きます。
@@ -139,7 +141,7 @@ classDiagram
         +Plan ThumbnailDrawPlan
     }
 
-    ThumbnailControl o-- ThumbnailTile : Canvas へ配置
+    ThumbnailControl o-- ThumbnailTile : 絶対配置
     ThumbnailTile *-- ThumbnailViewport : 描画面
 ```
 
@@ -150,19 +152,19 @@ sequenceDiagram
     participant Host as ホスト
     participant Control as ThumbnailControl
     participant Presenter as ThumbnailPresenter
-    participant Canvas as Canvas
+    participant Panel as ThumbnailCanvas
 
     Host->>Control: Add(image, caption, ...)
     Host->>Control: Refresh()
     Control->>Presenter: ResolveLayout(幅, 画像の幅, 高さ)
-    Control->>Canvas: 幅・高さ = 内容の寸法
-    Control->>Canvas: 各項目の矩形を割り当てる
+    Control->>Panel: 寸法 = 内容の寸法（計測で返す）
+    Control->>Panel: 各項目の矩形を割り当てる
     Note over Control: ポインターの移動
     Control->>Presenter: ResolveDrawPlan(...)
-    Control->>Canvas: 項目へ計画を適用（再描画）
+    Control->>Panel: 項目へ計画を適用（再描画）
 ```
 
-1. `Refresh()` が配置を解き、各項目の矩形を `Canvas` の子へ割り当てます。
+1. `Refresh()` が配置を解き直し、内側のパネルが内容の寸法と各項目の矩形を決めます。
 2. ポインターの移動は位置から添字へ変換し、ホバーを切り替えます。
 3. 押下は選択、2 回押しは `ItemActivated` の通知になります。
 4. スクロールは内側の `ScrollViewer` が行い、`ViewChanged` を `ScrollChanged` として通知します。
@@ -182,6 +184,7 @@ sequenceDiagram
 ## 9. 実装上の注意
 
 - **コアの画像を保持しない**: コントロールは画像の所有権を持ちません（`ClearItems` でも解放しません）。
-- **`Canvas` の子は座標をそのまま使う**: 折り返し・行の高さはコアが決めます（XAML のレイアウトに任せません）。
+- **子の座標はそのまま使う**: 折り返し・行の高さはコアが決めます（XAML のレイアウトに任せません）。
+- **見た目の適用は計測フェーズで行う**: 配置フェーズで子の計測を無効化すると `LayoutCycleException` になります（実測）。 `ApplyState` は `ThumbnailCanvas.MeasureOverride` で計測の前に呼びます。
 - **`IsDarkTheme` / `ImageWidth` の変更は `Refresh()` を呼ぶ**: `Options` / `Appearance` は setter が配置を解き直すため自動で反映されます。
 - **ログ**: 画像と項目数の変更は本コントロールが記録します（`Log` / `LogPrefix`。 設定・外観の変更は提示層、選択の変更はコアが記録するため、本コントロールは重複して出力しません）。

@@ -314,6 +314,26 @@ public sealed class ThumbnailControl : Panel
         }
     }
 
+    /// <summary>内側のスクロールを計測する。</summary>
+    /// <param name="availableSize">親から提示された利用可能サイズ。</param>
+    /// <returns>一覧の寸法（与えられた領域いっぱい）。</returns>
+    /// <remarks>
+    /// <b>子は自動で計測されない</b>: MewUI の <see cref="Panel"/> は子の計測・配置を持たないため、<br/>
+    /// 本クラスが内側のスクロールを明示的に計測する（これが無いとスクロールは大きさ 0 のまま描かれない）。
+    /// </remarks>
+    protected override Size MeasureContent(Size availableSize)
+    {
+        _scroll.Measure(availableSize);
+
+        return double.IsInfinity(availableSize.Width) || double.IsInfinity(availableSize.Height)
+            ? _scroll.DesiredSize
+            : availableSize;
+    }
+
+    /// <summary>内側のスクロールを領域いっぱいに配置する。</summary>
+    /// <param name="bounds">本コントロールへ割り当てられた矩形（ウィンドウ絶対座標・DIP）。</param>
+    protected override void ArrangeContent(Rect bounds) => _scroll.Arrange(bounds);
+
     /// <summary>項目を並べる内容パネル（配置はコアの計算に従う）。</summary>
     private sealed class ThumbnailContent(ThumbnailControl owner) : Panel
     {
@@ -344,6 +364,9 @@ public sealed class ThumbnailControl : Panel
             for (var i = 0; i < owner._items.Count; i++)
             {
                 var slot = layout.Slot(i);
+
+                // 見た目は計測の前に適用する（配置で子の計測を無効化するとレイアウト サイクルになる）
+                owner.ApplyState(i);
                 owner._items[i].Measure(new Size(slot.Width, slot.Height));
             }
 
@@ -351,7 +374,8 @@ public sealed class ThumbnailControl : Panel
         }
 
         /// <summary>子要素を配置する。</summary>
-        /// <param name="bounds">本要素へ割り当てられた矩形。</param>
+        /// <param name="bounds">本要素へ割り当てられた矩形（ウィンドウ絶対座標・DIP）。</param>
+        /// <remarks>MewUI の <c>Arrange</c> はウィンドウ絶対座標を受け取るため、内容の座標に親の絶対座標を加算する。</remarks>
         protected override void ArrangeContent(Rect bounds)
         {
             if (Layout is not { } layout)
@@ -362,8 +386,7 @@ public sealed class ThumbnailControl : Panel
             for (var i = 0; i < owner._items.Count; i++)
             {
                 var slot = layout.Slot(i);
-                owner.ApplyState(i);
-                owner._items[i].Arrange(new Rect(slot.X, slot.Y, slot.Width, slot.Height));
+                owner._items[i].Arrange(new Rect(bounds.X + slot.X, bounds.Y + slot.Y, slot.Width, slot.Height));
             }
         }
     }

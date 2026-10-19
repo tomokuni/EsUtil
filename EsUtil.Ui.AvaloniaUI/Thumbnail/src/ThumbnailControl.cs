@@ -23,6 +23,14 @@ namespace EsUtil.Ui.AvaloniaUI.Thumbnail;
 /// </remarks>
 public sealed class ThumbnailControl : ScrollViewer
 {
+    /// <summary>テーマの適用に使う型を取得する。</summary>
+    /// <value><see cref="ScrollViewer"/>。 派生クラスでも標準のテンプレート（スクロール バー・内容の表示）を使う。</value>
+    /// <remarks>
+    /// 上書きしないと<b>派生クラス自身の型でテーマを探し</b>、テンプレートが見つからないため内容が表示されず、
+    /// スクロールもできない（<c>Extent</c> / <c>Viewport</c> が 0 のままになる）。
+    /// </remarks>
+    protected override Type StyleKeyOverride => typeof(ScrollViewer);
+
     /// <summary>項目を並べるパネル。</summary>
     private readonly ThumbnailPanel _panel;
 
@@ -406,6 +414,9 @@ public sealed class ThumbnailControl : ScrollViewer
             for (var i = 0; i < _items.Count; i++)
             {
                 var slot = layout.Slot(i);
+
+                // 見た目は計測の前に適用する（配置で子の計測を無効化するとレイアウト サイクルになる）
+                owner.ApplyState(i);
                 _items[i].Measure(new Size(slot.Width, slot.Height));
             }
 
@@ -425,7 +436,6 @@ public sealed class ThumbnailControl : ScrollViewer
             for (var i = 0; i < _items.Count; i++)
             {
                 var slot = layout.Slot(i);
-                owner.ApplyState(i);
                 _items[i].Arrange(new Rect(slot.X, slot.Y, slot.Width, slot.Height));
             }
 

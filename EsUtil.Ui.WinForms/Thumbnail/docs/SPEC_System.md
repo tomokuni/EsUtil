@@ -35,7 +35,7 @@ WinForms 版のサムネイル一覧コントロールの構造・依存・設�
 | UI フレームワーク | WinForms（`ScrollableControl` を継承する） |
 | 描画 | GDI+（`System.Drawing.Graphics`。 `System.Drawing.Common` は WinForms と共に解決される） |
 | 参照パッケージ | `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core` |
-| テスト | xUnit v3（`EsUtil.Ui.WinForms.Thumbnail.Tests`。 公開 API とログを検証する） |
+| テスト | xUnit v3（`EsUtil.Ui.WinForms.Thumbnail.Tests`。 公開 API・ログ・描画（`Bitmap` 上の画素）を検証する） |
 
 ## 3. アーキテクチャ
 

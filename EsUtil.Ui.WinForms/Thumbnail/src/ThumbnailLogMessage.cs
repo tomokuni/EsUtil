@@ -74,8 +74,26 @@ internal static partial class ThumbnailLogMessage
 
     /// <summary>画像をログ用の文字列（<c>幅x高さ</c>）へ整形する。</summary>
     /// <param name="image">対象の画像。 null は「画像なし」。</param>
-    /// <returns><c>幅x高さ</c> 形式の文字列。 null は <c>null</c>。</returns>
-    /// <remarks><b>解放する前に呼ぶ</b>（解放後の <see cref="Bitmap"/> の幅 は例外になる）。</remarks>
+    /// <returns><c>幅x高さ</c> 形式の文字列。 null は <c>null</c>。 破棄済みの画像は <c>disposed</c>。</returns>
+    /// <remarks>
+    /// <b>解放する前に呼ぶ</b>（解放後の <see cref="Bitmap"/> の幅は例外になる）。<br/>
+    /// 呼び出し側が所有権を移さずに破棄した画像を渡した場合でも、記録のために例外を投げない。
+    /// </remarks>
     internal static string? Describe(Bitmap? image)
-        => image is null ? null : $"{image.Width}x{image.Height}";
+    {
+        if (image is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return $"{image.Width}x{image.Height}";
+        }
+        catch (ArgumentException)
+        {
+            // 破棄済みの GDI+ ビットマップ（寸法を取得できない）
+            return "disposed";
+        }
+    }
 }

@@ -15,6 +15,7 @@
     <PackageReference Include="Avalonia.Headless" Version="[12.*,)" />
     <PackageReference Include="Avalonia.Headless.XUnit" Version="[12.*,)" />
     <PackageReference Include="Avalonia.Skia" Version="[12.*,)" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="[12.*,)" />
     <PackageReference Include="coverlet.collector" Version="*">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

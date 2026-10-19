@@ -69,6 +69,7 @@ flowchart TD
 ### 3.3 設計判断
 
 - **`ScrollViewer` を継承する**: スクロール・ビューポート・ホイール操作を自前で実装しないためです（MewUI の `ScrollViewer` は sealed のため同じ形にできません）。
+- **テーマは `StyleKeyOverride` で `ScrollViewer` のものを借りる**: 上書きしないと Avalonia は**派生クラス自身の型**でテーマを探し、`ScrollViewer` のテンプレートが見つからないため内容が表示されず、スクロールもできません（`Extent` / `Viewport` が 0 のままになる。 実測）。
 - **入力は位置から判定する**: 子要素のヒット テストに依存すると、影・名前の要素の有無や `IsHitTestVisible` の設定で当たり判定が変わります。 `IndexAt` を使い、入力の経路を 1 つにします。
 - **影は要素に任せる（既定の算法だけ）**: 既定の `ThumbnailShadowPlan` は Avalonia の `BoxShadow` の実測値から作られており、`BoxShadow` に描かせれば 4 辺・4 隅がそのまま正しく出ます。
 - **差し替えた算法は帯を塗る**: `BoxShadow` は計画の値（色・ぼかし）しか受け取れないため、別の算法の帯は `ThumbnailShadowBandsView` が 1 画素の帯として塗ります（全 UI で同じ結果にするため）。
@@ -190,5 +191,6 @@ sequenceDiagram
 
 - **計画は 1 フレーム 1 回だけ解決する**: 描画のたびに解くと、状態の変化と表示がずれます。
 - **要素をヒット テストの対象にしない**: 影と画像の要素は `IsHitTestVisible` を false にし、入力はパネルが受けます。
+- **見た目の適用は計測フェーズで行う**: 配置フェーズで子の計測を無効化するとレイアウト サイクルになります。 項目の見た目は `ThumbnailPanel.MeasureOverride` で計測の前に適用します。
 - **`IsDarkTheme` の変更は `Refresh()` を呼ぶ**: `Options` / `Appearance` / `ImageWidth` は setter が計測を無効化するため自動で反映されます。
 - **ログ**: 画像と項目数の変更は本コントロールが記録します（`Log` / `LogPrefix`。 設定・外観の変更は提示層、選択の変更はコアが記録するため、本コントロールは重複して出力しません）。

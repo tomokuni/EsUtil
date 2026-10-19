@@ -25,8 +25,8 @@ namespace EsUtil.Ui.WinUI3.Thumbnail;
 /// </remarks>
 public sealed class ThumbnailControl : Grid
 {
-    /// <summary>項目を置く面。</summary>
-    private readonly Canvas _canvas = new();
+    /// <summary>項目を置く面（配置はコアの計算に従う）。</summary>
+    private readonly ThumbnailCanvas _canvas;
 
     /// <summary>スクロール。</summary>
     private readonly ScrollViewer _scroll;
@@ -46,16 +46,15 @@ public sealed class ThumbnailControl : Grid
     /// <summary>ログの接頭辞（未設定は null。 既定値は定義クラスが持つ）。</summary>
     private string? _logPrefix;
 
-    /// <summary>最後に解決した配置。</summary>
-    private ThumbnailLayoutResult? _layout;
-
     /// <summary>サムネイル一覧のコントロールを生成する。</summary>
     public ThumbnailControl()
     {
         Presentation = new ThumbnailPresenter();
-
-        // 背景が未設定の要素はヒット テストの対象にならず、ポインターの位置も取得できない
-        _canvas.Background = new SolidColorBrush(Colors.Transparent);
+        _canvas = new ThumbnailCanvas(this)
+        {
+            // 背景が未設定の要素はヒット テストの対象にならず、ポインターの位置も取得できない
+            Background = new SolidColorBrush(Colors.Transparent),
+        };
         _scroll = new ScrollViewer
         {
             Padding = new Thickness(0),
@@ -174,12 +173,12 @@ public sealed class ThumbnailControl : Grid
     /// <summary>見えている項目の範囲を取得する。</summary>
     /// <value>ビューポートと交差する項目の範囲。 項目が無い場合は空。</value>
     public ThumbnailRange VisibleRange
-        => _layout?.VisibleRange(_scroll.VerticalOffset, _scroll.ViewportHeight) ?? ThumbnailRange.Empty;
+        => _canvas.Layout?.VisibleRange(_scroll.VerticalOffset, _scroll.ViewportHeight) ?? ThumbnailRange.Empty;
 
     /// <summary>項目の外枠の矩形（内容の座標）を取得する。</summary>
     /// <param name="index">項目の添字。</param>
     /// <returns>外枠の矩形。 未レイアウト・範囲外の場合は空の矩形。</returns>
-    public EsRect SlotBounds(int index) => _layout?.Slot(index) ?? EsRect.Empty;
+    public EsRect SlotBounds(int index) => _canvas.Layout?.Slot(index) ?? EsRect.Empty;
 
     /// <summary>一覧を空にする。</summary>
     public void ClearItems()
@@ -189,7 +188,7 @@ public sealed class ThumbnailControl : Grid
         _selection.Clear();
         _items.Clear();
         _canvas.Children.Clear();
-        _layout = null;
+        _canvas.Invalidate();
         _log.LogItemCountChanged(previous, 0);
     }
 
@@ -207,7 +206,7 @@ public sealed class ThumbnailControl : Grid
         var previous = _items.Count;
         _items.Add(tile);
         _canvas.Children.Add(tile);
-        _layout = null;
+        _canvas.Invalidate();
         _log.LogItemCountChanged(previous, _items.Count);
         return _items.Count - 1;
     }
@@ -225,7 +224,7 @@ public sealed class ThumbnailControl : Grid
         var tile = _items[index];
         var previous = tile.Source;
         tile.SetImage(image);
-        _layout = null;
+        _canvas.Invalidate();
         InvalidateMeasure();
         _log.LogImageChanged($"Image[{index}]", previous, image);
     }
@@ -246,7 +245,7 @@ public sealed class ThumbnailControl : Grid
     /// <param name="index">項目の添字。</param>
     public void ScrollToIndex(int index)
     {
-        if (_layout is not { } layout || index < 0 || index >= layout.Count)
+        if (_canvas.Layout is not { } layout || index < 0 || index >= layout.Count)
         {
             return;
         }
@@ -265,66 +264,7 @@ public sealed class ThumbnailControl : Grid
     }
 
     /// <summary>配置と見た目を解決し直す。</summary>
-    public void Refresh()
-    {
-        _layout = null;
-        InvalidateMeasure();
-    }
-
-    /// <summary>子要素を計測する（配置を解決し、子の大きさを決める）。</summary>
-    /// <param name="availableSize">利用可能なサイズ。</param>
-    /// <returns>内容の寸法。</returns>
-    protected override Size MeasureOverride(Size availableSize)
-    {
-        var width = double.IsInfinity(availableSize.Width) ? ActualWidth : availableSize.Width;
-
-        var heights = new double[_items.Count];
-        for (var i = 0; i < _items.Count; i++)
-        {
-            var source = _items[i].Source;
-            heights[i] = source is null || source.IsDisposed
-                ? ImageWidth
-                : ThumbnailLayout.ImageHeight(ImageWidth, source.Width, source.Height);
-        }
-
-        var layout = Presentation.ResolveLayout(width, ImageWidth, heights);
-        _layout = layout;
-
-        for (var i = 0; i < _items.Count; i++)
-        {
-            var slot = layout.Slot(i);
-            _items[i].Measure(new Size(slot.Width, slot.Height));
-        }
-
-        _canvas.Width = layout.ContentSize.Width;
-        _canvas.Height = layout.ContentSize.Height;
-        _scroll.Measure(new Size(width, availableSize.Height));
-        return new Size(width, double.IsInfinity(availableSize.Height) ? layout.ContentSize.Height : availableSize.Height);
-    }
-
-    /// <summary>子要素を配置する。</summary>
-    /// <param name="finalSize">最終的なサイズ。</param>
-    /// <returns>配置したサイズ。</returns>
-    protected override Size ArrangeOverride(Size finalSize)
-    {
-        _scroll.Arrange(new Rect(0, 0, finalSize.Width, finalSize.Height));
-
-        if (_layout is not { } layout)
-        {
-            return finalSize;
-        }
-
-        for (var i = 0; i < _items.Count; i++)
-        {
-            var slot = layout.Slot(i);
-            ApplyState(i);
-            Canvas.SetLeft(_items[i], slot.X);
-            Canvas.SetTop(_items[i], slot.Y);
-            _items[i].Arrange(new Rect(0, 0, slot.Width, slot.Height));
-        }
-
-        return finalSize;
-    }
+    public void Refresh() => _canvas.Invalidate();
 
     /// <summary>ポインターが移動したときにホバーを切り替える。</summary>
     /// <param name="sender">イベントの発生元。</param>
@@ -364,7 +304,7 @@ public sealed class ThumbnailControl : Grid
     /// <param name="position">項目の面の座標。</param>
     /// <returns>項目の添字。 該当が無い場合は -1。</returns>
     private int IndexAt(Point position)
-        => _layout?.IndexAt(new EsPoint(position.X, position.Y)) ?? -1;
+        => _canvas.Layout?.IndexAt(new EsPoint(position.X, position.Y)) ?? -1;
 
     /// <summary>ホバー中の項目を切り替える。</summary>
     /// <param name="index">新しい添字。 解除する場合は -1。</param>
@@ -384,7 +324,7 @@ public sealed class ThumbnailControl : Grid
     /// <param name="index">項目の添字。 範囲外は無視する。</param>
     private void ApplyState(int index)
     {
-        if (_layout is not { } layout || index < 0 || index >= _items.Count)
+        if (_canvas.Layout is not { } layout || index < 0 || index >= _items.Count)
         {
             return;
         }
@@ -404,6 +344,79 @@ public sealed class ThumbnailControl : Grid
         if (second != first)
         {
             ApplyState(second);
+        }
+    }
+
+    /// <summary>項目を置く面（配置はコアの計算に従う）。</summary>
+    /// <remarks>
+    /// <b>配置を自分の計測で解く理由</b>: コントロール側の計測で子の寸法（キャンバスの幅・高さ）を書き換えると、<br/>
+    /// 計測の途中で再計測が要求されてレイアウト サイクルになる（実測: <c>LayoutCycleException</c>）。<br/>
+    /// スクロールの内容として寸法を返すのは本パネルの役割とし、コントロールは <see cref="Grid"/> の既定の<br/>
+    /// 計測・配置（子のスクロールを画面いっぱいに置く）に任せる。
+    /// </remarks>
+    private sealed class ThumbnailCanvas(ThumbnailControl owner) : Panel
+    {
+        /// <summary>最後に解決した配置。</summary>
+        public ThumbnailLayoutResult? Layout { get; private set; }
+
+        /// <summary>配置を無効化する（次の計測で解き直す）。</summary>
+        /// <remarks>解き直すまでの間は「未レイアウト」として扱う（古い配置で項目を引かない）。</remarks>
+        public void Invalidate()
+        {
+            Layout = null;
+            InvalidateMeasure();
+        }
+
+        /// <summary>配置を解決して子要素を計測する。</summary>
+        /// <param name="availableSize">利用可能なサイズ。</param>
+        /// <returns>内容の寸法。</returns>
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            var width = double.IsInfinity(availableSize.Width) || availableSize.Width <= 0
+                ? owner.ActualWidth
+                : availableSize.Width;
+
+            var heights = new double[owner._items.Count];
+            for (var i = 0; i < owner._items.Count; i++)
+            {
+                var source = owner._items[i].Source;
+                heights[i] = source is null || source.IsDisposed
+                    ? owner.ImageWidth
+                    : ThumbnailLayout.ImageHeight(owner.ImageWidth, source.Width, source.Height);
+            }
+
+            var layout = owner.Presentation.ResolveLayout(width, owner.ImageWidth, heights);
+            Layout = layout;
+
+            for (var i = 0; i < owner._items.Count; i++)
+            {
+                var slot = layout.Slot(i);
+
+                // 見た目は計測の前に適用する（配置で子の計測を無効化するとレイアウト サイクルになる）
+                owner.ApplyState(i);
+                owner._items[i].Measure(new Size(slot.Width, slot.Height));
+            }
+
+            return new Size(layout.ContentSize.Width, layout.ContentSize.Height);
+        }
+
+        /// <summary>子要素を配置する（内容の座標をそのまま使う）。</summary>
+        /// <param name="finalSize">最終的なサイズ。</param>
+        /// <returns>配置したサイズ。</returns>
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            if (Layout is not { } layout)
+            {
+                return finalSize;
+            }
+
+            for (var i = 0; i < owner._items.Count; i++)
+            {
+                var slot = layout.Slot(i);
+                owner._items[i].Arrange(new Rect(slot.X, slot.Y, slot.Width, slot.Height));
+            }
+
+            return finalSize;
         }
     }
 }
