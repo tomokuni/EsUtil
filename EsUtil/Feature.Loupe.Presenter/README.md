@@ -62,7 +62,7 @@ protected override void Render(DrawingContext context)
 - **UI フレームワークへ依存しません**（描画 API の抽象も持ちません）。
 - 依存方向は UI 層 → 本層 → `EsUtil.Feature.Loupe.Core` → `EsUtil.Platform.Core` の一方向です（コアは本層を参照しません）。
 
-層の全体像は [`src/README.md`](../README.md) を参照してください。
+層の全体像は [`../README.md`](../README.md) を参照してください。
 
 ## 5. カスタマイズ
 

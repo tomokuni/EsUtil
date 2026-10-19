@@ -272,7 +272,7 @@ flowchart TB
 
 ## 7. 依存ルール
 
-- 依存方向は**一方向の階層構造**です（層の全体像は [`src/README.md`](../README.md)）。 コア内部は MarqueeControl → Marquee（ファサード） → MarqueeSession → MarqueeState → MarqueeSelection（幾何計算はコア内部の値の振る舞いに閉じる）、提示層は MarqueeControl → MarqueePresenter（EsUtil.Feature.Marquee.Presenter）→ 幾何（EsUtil.Feature.Marquee.Core）。
+- 依存方向は**一方向の階層構造**です（層の全体像は [`../README.md`](../README.md)）。 コア内部は MarqueeControl → Marquee（ファサード） → MarqueeSession → MarqueeState → MarqueeSelection（幾何計算はコア内部の値の振る舞いに閉じる）、提示層は MarqueeControl → MarqueePresenter（EsUtil.Feature.Marquee.Presenter）→ 幾何（EsUtil.Feature.Marquee.Core）。
 - MarqueeControl は上位 AP に**依存しない**（再利用可能）。
 - 判断（状態遷移・確定/キャンセル・スナップ・クリック検出）はコアの `MarqueeCore`（内部の `MarqueeSession`）に集約し、UI 層は効果（`IMarqueeEffects`）を適用するだけにする。
 - 描画計画（層の順序・装飾矩形・文言・配置）と外観（色・フォント・枠線の太さ・表示可否）は提示層（`EsUtil.Feature.Marquee.Presenter` の `MarqueePresenter` / `MarqueeAppearance` / `MarqueeDrawPlan`）が単一所有し、**描画は本コントロールが自 UI の API（`DrawingContext`）で行う**（`MarqueeContextPainter`。 描画 API の抽象は持たない）。 状態（選択矩形・nudge）は MarqueeState に集約し、装飾の**判断**は持たない。

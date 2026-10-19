@@ -45,7 +45,7 @@
 | **ビルドツール** | MSBuild / .NET SDK 10.0 |
 | **ログ** | Microsoft.Extensions.Logging（LoggerMessage ソース生成） |
 | **テスト** | xUnit v3 / Avalonia.Headless.XUnit |
-| **依存プロジェクト** | `EsUtil.Feature.Loupe.Core`（UI 非依存の計算ロジック）/ `EsUtil.Feature.Loupe.Presenter`（描画の手順・ラベル計画）/ `EsUtil.Platform.Core`（コア型）。 製品固有のプラットフォーム層（`Platform.*`）は参照せず、使う変換・描画ヘルパーを `src/AvaloniaUI/Internal/` へ複製して持つ（[`.github/依存関係.md`](../../../.github/依存関係.md) §4.1） |
+| **依存プロジェクト** | `EsUtil.Feature.Loupe.Core`（UI 非依存の計算ロジック）/ `EsUtil.Feature.Loupe.Presenter`（描画の手順・ラベル計画）/ `EsUtil.Platform.Core`（コア型）。 製品固有のプラットフォーム層（`Platform.*`）は参照せず、使う変換・描画ヘルパーを `src/Internal/` へ複製して持つ（[`.github/依存関係.md`](../../../.github/依存関係.md) §4.1） |
 
 ## 3. アーキテクチャ
 
@@ -221,7 +221,7 @@ flowchart TB
 
 ## 7. 依存ルール
 
-- 依存方向は**一方向の階層構造**です（層の全体像は [`src/README.md`](../README.md)）。 LoupeControl（UI）→ EsUtil.Feature.Loupe.Presenter（提示層）→ EsUtil.Feature.Loupe.Core（コア）→ EsUtil.Platform.Core。 双方向依存・具象依存なし。
+- 依存方向は**一方向の階層構造**です（層の全体像は [`../README.md`](../README.md)）。 LoupeControl（UI）→ EsUtil.Feature.Loupe.Presenter（提示層）→ EsUtil.Feature.Loupe.Core（コア）→ EsUtil.Platform.Core。 双方向依存・具象依存なし。
 - LoupeControl は上位AP に**依存しない**（再利用可能）。
 - 色の境界変換（string → IBrush）は上位AP 側で行い、LoupeControl 内に文字列解析を持ち込まない。
 - 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観は提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance`）が単一所有し、本コントロールは描画（`LoupeContextPainter` の写し）とラベル要素の配置、状態（DP）を担う。

@@ -22,7 +22,7 @@
 
 ```xml
 <PackageReference Include="Aprillz.MewUI.Skia" Version="0.21.1" />
-<ProjectReference Include="..\EsUtil.Ui.MewUI.Marquee\src\MewUI\EsUtil.Ui.MewUI.Marquee.csproj" />
+<ProjectReference Include="..\EsUtil.Ui.MewUI\Marquee\src\EsUtil.Ui.MewUI.Marquee.csproj" />
 ```
 
 MewUI は API が安定化中（0.x）のため、パッケージのバージョンは固定してください（`MewUIVersion` プロパティで一元管理）。

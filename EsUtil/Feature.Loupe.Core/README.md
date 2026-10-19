@@ -65,7 +65,7 @@ var capture = geometry.MagnifiedImage;   // 切り出し領域・描画先
 - UI フレームワークを参照しません。 UI 固有の型は利用者（UI 実装）が境界で変換します。
 - 依存方向は UI 実装 → 描画層（上位の層） → 本プロジェクト → `EsUtil.Platform.Core` の一方向です（コアは上位の層を参照しません）。
 
-層の全体像は [`src/README.md`](../README.md) を参照してください。
+層の全体像は [`../README.md`](../README.md) を参照してください。
 
 ## 5. カスタマイズ
 

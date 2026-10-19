@@ -73,7 +73,7 @@
 ### 3.1 プロジェクト参照
 
 ```xml
-<ProjectReference Include="..\EsUtil.Ui.AvaloniaUI.Marquee\src\AvaloniaUI\EsUtil.Ui.AvaloniaUI.Marquee.csproj" />
+<ProjectReference Include="..\EsUtil.Ui.AvaloniaUI\Marquee\src\EsUtil.Ui.AvaloniaUI.Marquee.csproj" />
 ```
 
 ### 3.2 必要な名前空間

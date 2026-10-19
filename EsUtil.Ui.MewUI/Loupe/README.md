@@ -18,13 +18,13 @@
 | 拡大方式 | 最近傍（画素をそのまま拡大表示する） |
 | DPI 追従 | `OnDpiChanged` で表示スケーリング係数を DPI から換算した値へ自動更新する（換算規則は `DpiScaler.ToScaling` が単一所有。 ホストの設定は不要） |
 | 連続再描画 | **無効**。 プロパティ変更時にのみ再描画する（静止画のため） |
-| 位置決め | **本コントロールは位置を持たない**。 ホストが `ResolveLayout`（コアのファサード）の結果で配置する |
+| 位置決め | **本コントロールは位置を持たない**。 ホストが `ResolveLayout`（コアの計算を委譲した公開メソッド）の結果で配置する |
 | 見た目のカスタマイズ | 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`、矩形で表せない描画は `Appearance` の `Show*` を false にして `Rendered` のキャンバスへ自前で描く（`DrawPlan` で計画どおりの描画もできる。 派生は不要 ） |
 
 ## 3. インストール（プロジェクト参照）
 
 ```xml
-<ProjectReference Include="..\..\EsUtil.Ui.MewUI.Loupe\src\MewUI\EsUtil.Ui.MewUI.Loupe.csproj" />
+<ProjectReference Include="..\EsUtil.Ui.MewUI\Loupe\src\EsUtil.Ui.MewUI.Loupe.csproj" />
 ```
 
 パッケージは `Aprillz.MewUI.Skia` を参照します（バージョンは `MewUIVersion` プロパティで 0.21.1 に固定）。
@@ -69,7 +69,7 @@ if (layout.Position is { } position)
 }
 ```
 
-> **注意**: `ResolveLayout` はコアのファサード（`EsUtil.Feature.Loupe.Core` の `LoupeCore`、`public` 型）の API です（汎用コアとして公開されており、`InternalsVisibleTo` は不要です）。
+> **注意**: `ResolveLayout` は本コントロールの公開メソッドであり、計算はコアのファサード（`EsUtil.Feature.Loupe.Core` の `LoupeCore`、`public` 型）へ委譲しています（汎用コアとして公開されており、`InternalsVisibleTo` は不要です）。
 
 ## 5. プロパティ
 

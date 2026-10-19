@@ -14,12 +14,24 @@
 | 機能（ルーペ） | [`EsUtil.Feature.Loupe.Presenter`](EsUtil/Feature.Loupe.Presenter/README.md) | 外観・描画計画・ラベル計画 |
 | 機能（ルーペ） | [`EsUtil.Ui.AvaloniaUI.Loupe`](EsUtil.Ui.AvaloniaUI/Loupe/README.md) | Avalonia UI 版コントロール |
 | 機能（ルーペ） | [`EsUtil.Ui.MewUI.Loupe`](EsUtil.Ui.MewUI/Loupe/README.md) | MewUI 版コントロール |
+| 機能（ルーペ） | [`EsUtil.Ui.WinUI3.Loupe`](EsUtil.Ui.WinUI3/Loupe/README.md) | WinUI 3 版コントロール |
+| 機能（ルーペ） | [`EsUtil.Ui.WinForms.Loupe`](EsUtil.Ui.WinForms/Loupe/README.md) | WinForms 版コントロール |
 | 機能（マーキー） | [`EsUtil.Feature.Marquee.Core`](EsUtil/Feature.Marquee.Core/README.md) | ドラッグ矩形の選択・移動・リサイズの計算層 |
 | 機能（マーキー） | [`EsUtil.Feature.Marquee.Presenter`](EsUtil/Feature.Marquee.Presenter/README.md) | 外観・描画手順 |
 | 機能（マーキー） | [`EsUtil.Ui.AvaloniaUI.Marquee`](EsUtil.Ui.AvaloniaUI/Marquee/README.md) | Avalonia UI 版コントロール |
 | 機能（マーキー） | [`EsUtil.Ui.MewUI.Marquee`](EsUtil.Ui.MewUI/Marquee/README.md) | MewUI 版コントロール |
+| 機能（マーキー） | [`EsUtil.Ui.WinUI3.Marquee`](EsUtil.Ui.WinUI3/Marquee/README.md) | WinUI 3 版コントロール |
+| 機能（マーキー） | [`EsUtil.Ui.WinForms.Marquee`](EsUtil.Ui.WinForms/Marquee/README.md) | WinForms 版コントロール |
+| 機能（サムネイル一覧） | [`EsUtil.Feature.Thumbnail.Core`](EsUtil/Feature.Thumbnail.Core/README.md) | 折り返し配置・選択・可視範囲の計算層 |
+| 機能（サムネイル一覧） | [`EsUtil.Feature.Thumbnail.Presenter`](EsUtil/Feature.Thumbnail.Presenter/README.md) | 外観・影・描画計画 |
+| 機能（サムネイル一覧） | [`EsUtil.Ui.AvaloniaUI.Thumbnail`](EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) | Avalonia UI 版コントロール |
+| 機能（サムネイル一覧） | [`EsUtil.Ui.MewUI.Thumbnail`](EsUtil.Ui.MewUI/Thumbnail/README.md) | MewUI 版コントロール |
+| 機能（サムネイル一覧） | [`EsUtil.Ui.WinUI3.Thumbnail`](EsUtil.Ui.WinUI3/Thumbnail/README.md) | WinUI 3 版コントロール |
+| 機能（サムネイル一覧） | [`EsUtil.Ui.WinForms.Thumbnail`](EsUtil.Ui.WinForms/Thumbnail/README.md) | WinForms 版コントロール |
 
-層の帰属（Core / Presenter / UI のどれに置くか）と参照の許可範囲は [`.github/依存関係.md`](.github/依存関係.md) が単一所有します。
+**ソリューションは 5 本**です（`EsUtil/` と UI ごとの `EsUtil.Ui.<UI>/`。 `<UI>` = `AvaloniaUI` / `MewUI` / `WinUI3` / `WinForms`）。 リポジトリ直下のフォルダがソリューション フォルダであり、その直下のフォルダがプロジェクト フォルダです。
+
+層の帰属（Core / Presenter / UI のどれに置くか）は [`EsUtil/README.md`](EsUtil/README.md) が、参照の許可範囲は [`.github/依存関係.md`](.github/依存関係.md) が単一所有します。
 
 ## 2. 使い方
 
@@ -27,7 +39,7 @@
 
 パッケージは本リポジトリの `.nupkg/` に出力されます（**リポジトリへはコミットしません**。 クローン直後に 1 回 [`buildScript/pack.ps1`](buildScript/pack.ps1) を実行してください）。 利用側のリポジトリ（例: 画面キャプチャ アプリ）は次のどちらかで参照します。
 
-- **プロジェクト参照**: 本リポジトリを同列に置き、`..\EsUtil\EsUtil\<プロジェクト>\src\<プロジェクト>.csproj` を参照する（開発中は型の変更が即座に反映される）。
+- **プロジェクト参照**: 本リポジトリを同列に置き、`..\EsUtil\EsUtil\<プロジェクト>\src\<プロジェクト>.csproj`（UI 層は `..\EsUtil\EsUtil.Ui.<UI>\<機能>\src\<プロジェクト>.csproj`）を参照する（開発中は型の変更が即座に反映される）。
 - **パッケージ参照**: `NuGet.config` にローカル フィードを追加し、`PackageReference` で参照する。
 
 ```xml
@@ -63,8 +75,14 @@ pwsh -NoProfile -File buildScript/pack.ps1 -WhatIf
 ### 2.3 ソースからのビルドとテスト
 
 ```powershell
-dotnet build EsUtil.slnx
-dotnet test EsUtil.slnx --no-build
+dotnet build EsUtil/EsUtil.slnx
+dotnet test EsUtil/EsUtil.slnx --no-build
+
+# UI 層はソリューションごとに 1 本ずつ
+dotnet build EsUtil.Ui.AvaloniaUI/EsUtil.Ui.AvaloniaUI.slnx
+dotnet build EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx
+dotnet build EsUtil.Ui.WinUI3/EsUtil.Ui.WinUI3.slnx
+dotnet build EsUtil.Ui.WinForms/EsUtil.Ui.WinForms.slnx
 ```
 
 ### 2.4 ローカル フィード（`.nupkg/`）の管理
@@ -95,7 +113,7 @@ pwsh -NoProfile -File buildScript/verify.ps1
 | 規約の索引と本リポジトリ固有の事実 | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) |
 | 参照の許可範囲（層構造） | [`.github/依存関係.md`](.github/依存関係.md) |
 | 検証の手順と合否基準 | [`.github/検証手順.md`](.github/検証手順.md) |
-| 各プロジェクトの仕様 | `src/<プロジェクト>/docs/SPEC_API.md` / `SPEC_System.md` |
+| 各プロジェクトの仕様 | `<ソリューション フォルダ>/<プロジェクト フォルダ>/docs/SPEC_API.md` / `SPEC_System.md`（例: `EsUtil.Ui.AvaloniaUI/Loupe/docs/SPEC_API.md`） |
 
 ## 5. ライセンス
 

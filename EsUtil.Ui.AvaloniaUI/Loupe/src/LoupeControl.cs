@@ -138,7 +138,7 @@ public sealed class LoupeControl : Panel
     /// <b>既定の描画をホストへ提供する入口</b>である（ホストが任意のタイミングと順序で既定の描画を行える）。<br/>
     /// 拡大元はコア画像であるため、ホストは元画像の型を判定しなくてよい（変換はホストが 1 回行う）。<br/>
     /// <paramref name="display"/> は<b>拡大元と寸法が一致するときだけ</b>使われ、一致しない場合（未指定を含む）は<br/>
-    /// コア画像から描く（`src/README.md` §5）。<br/>
+    /// コア画像から描く（`EsUtil/README.md` §5）。<br/>
     /// 計画を必要とする場合は <see cref="Rendered"/> の <c>Content</c> を使う。
     /// </remarks>
     public static void DrawPlan(DrawingContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan, IImage? display = null)
@@ -454,7 +454,7 @@ public sealed class LoupeControl : Panel
     /// <summary><see cref="Source"/> 依存関係プロパティ。</summary>
     /// <remarks>
     /// 型はコアの具象型（<see cref="EsReadOnlyBitmap"/>）である（対になるコントロールと同じ契約。 画像の識別を<br/>
-    /// インターフェースで行わない理由は `src/README.md` §5）。
+    /// インターフェースで行わない理由は `EsUtil/README.md` §5）。
     /// </remarks>
     public static readonly StyledProperty<EsReadOnlyBitmap?> SourceProperty =
         AvaloniaProperty.Register<LoupeControl, EsReadOnlyBitmap?>(nameof(Source));
@@ -499,7 +499,7 @@ public sealed class LoupeControl : Panel
     /// <summary>拡大元の画像（コアの読み取り専用画像）を取得または設定する。 Binding で与える。</summary>
     /// <value>拡大元の画像。 null の場合は画像なし（画像外の色のみ）を描画する。</value>
     /// <remarks>
-    /// <b>型はコアの具象型である</b>（対になるコントロールと同じ契約。 `src/README.md` §5）: コントロールは画素を読んで<br/>
+    /// <b>型はコアの具象型である</b>（対になるコントロールと同じ契約。 `EsUtil/README.md` §5）: コントロールは画素を読んで<br/>
     /// 切り出すため、読む入口を持つ型を要求する。 <b>ホストは表示用の画像を変換して渡す</b>（表示境界の画像しか<br/>
     /// 持たない場合は、コアの画像へ変換してから設定する）。<br/>
     /// <b>本コントロールは破棄しない</b>（画像の所有権はホストにある）。 破棄済みの画像を設定した場合は<br/>

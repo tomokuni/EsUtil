@@ -95,11 +95,9 @@ EsUtil.Ui.WinForms/Marquee/
 │   ├── Imaging/
 │   └── Logging/
 ├── src/
-│   └── WinForms/
-│       └── Internal/
+│   └── Internal/
 └── tests/
-    └── WinForms/
-        └── Internal/
+    └── Internal/
 ```
 
 | コンポーネント | 所在 | 内容 |

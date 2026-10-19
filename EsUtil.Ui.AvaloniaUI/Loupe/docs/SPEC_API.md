@@ -29,6 +29,7 @@
     - [5.2.2 Clear](#522-clear)
     - [5.2.3 SetCoordTransform](#523-setcoordtransform)
     - [5.2.4 RefreshPosition](#524-refreshposition)
+    - [5.2.5 DrawPlan（既定の描画の提供）](#525-drawplan既定の描画の提供)
   - [5.3 表示位置・サイズの自己計算（座標変換ポート方式）](#53-表示位置サイズの自己計算座標変換ポート方式)
     - [5.3.1 PositionOffset](#531-positionoffset)
   - [5.4 イベント](#54-イベント)
@@ -83,7 +84,7 @@
 利用側プロジェクトから `EsUtil.Ui.AvaloniaUI.Loupe.csproj` を参照します（`EsUtil.Feature.Loupe.Core` は本プロジェクトが参照するため、追加の参照は不要です）。
 
 ```xml
-<ProjectReference Include="..\EsUtil.Ui.AvaloniaUI.Loupe\src\AvaloniaUI\EsUtil.Ui.AvaloniaUI.Loupe.csproj" />
+<ProjectReference Include="..\EsUtil.Ui.AvaloniaUI\Loupe\src\EsUtil.Ui.AvaloniaUI.Loupe.csproj" />
 ```
 
 ### 3.2 必要な名前空間
@@ -406,6 +407,16 @@ void RefreshPosition()
 表示位置と表示サイズを最新のレイアウトから再計算します（外部からの更新要求）。
 
 座標変換ポートは呼び出し毎に最新の表示状態を評価するため、パン・ズーム等のレイアウト非変更なビューポート変化時にホスト（上位 AP）が呼び出すことで、再計算だけで追従できます。
+
+#### 5.2.5 DrawPlan（既定の描画の提供）
+
+```csharp
+static void DrawPlan(DrawingContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan, IImage? display = null)
+```
+
+**既定の描画をホストへ提供する入口**です（ホストが任意のタイミングと順序で既定の描画を行えます）。 拡大元はコアの画像であるため、ホストは元画像の型を判定しなくてよい（変換はホストが 1 回行う）。
+
+`display` は**拡大元と寸法が一致するときだけ**使われ、一致しない場合（未指定を含む）はコア画像から描きます（[`../../../EsUtil/README.md`](../../../EsUtil/README.md) §5）。 計画を必要とする場合は `Rendered` の `Content` を使います。
 
 ### 5.3 表示位置・サイズの自己計算（座標変換ポート方式）
 

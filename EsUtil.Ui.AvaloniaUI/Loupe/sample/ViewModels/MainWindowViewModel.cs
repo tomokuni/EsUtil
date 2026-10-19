@@ -21,7 +21,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
     /// <summary>ルーペの拡大元（コアの画像。 ルーペの <c>Source</c> にバインドする）。</summary>
     /// <remarks>
-    /// ルーペの拡大元はコアの画像である（`src/README.md` §5）。 表示用の画像（<see cref="SourceImage"/>）は<br/>
+    /// ルーペの拡大元はコアの画像である（`EsUtil/README.md` §5）。 表示用の画像（<see cref="SourceImage"/>）は<br/>
     /// 別のプロパティとして渡す（拡大元と寸法が一致するため、切り出しの複製を作らない経路になる）。
     /// </remarks>
     public EsReadOnlyBitmap SourceBitmap => _sourceBitmap;

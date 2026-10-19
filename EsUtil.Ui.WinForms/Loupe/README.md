@@ -20,7 +20,7 @@
 ## 3. インストール（プロジェクト参照）
 
 ```xml
-<ProjectReference Include="..\..\EsUtil.Ui.WinForms.Loupe\src\WinForms\EsUtil.Ui.WinForms.Loupe.csproj" />
+<ProjectReference Include="..\EsUtil.Ui.WinForms\Loupe\src\EsUtil.Ui.WinForms.Loupe.csproj" />
 ```
 
 本プロジェクトは `EsUtil.Platform.Core.Windows`（Windows 向けの画像変換）を参照しません（依存関係の規約により UI 層からは参照できない）。 必要な画像変換だけを `Internal` へ複製して所有します。

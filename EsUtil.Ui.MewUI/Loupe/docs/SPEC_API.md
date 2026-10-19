@@ -8,6 +8,7 @@
 - [1. 概要](#1-概要)
 - [2. 公開 API](#2-公開-api)
   - [2.1 プロパティ](#21-プロパティ)
+  - [2.2 メソッド](#22-メソッド)
 - [3. 描画仕様](#3-描画仕様)
   - [3.1 サイズの決定](#31-サイズの決定)
   - [3.2 座標ラベルの表示条件](#32-座標ラベルの表示条件)
@@ -66,6 +67,16 @@
 | `CoordLabelCornerRadius` | `int` | 2 | 0〜64 | 座標ラベルの背景の角丸半径（DIP。 0 は角丸なし） |
 
 `Color` は `Aprillz.MewUI.Color`、`DrawingColor` は `System.Drawing.Color`（`Appearance` の色）です。
+
+### 2.2 メソッド
+
+| メソッド | 説明 |
+| --- | --- |
+| `void SetCoordTransform(ICoordTransform? port)` | 論理座標（対象）↔ 親パネル DIP の座標変換ポートを設定する（null は等価変換）。 変換関数は呼び出しのたびに評価される |
+| `LoupeLayout ResolveLayout(EsSize parentSize)` | **どこへ・どの大きさで置くか**を決める（親領域 DIP の世界）。 親領域サイズから表示レイアウト（表示サイズ + 位置）を解決する。 拡大中心未設定時と、親領域に収められない場合は位置が null。 計算はコアのファサード（`LoupeCore.ResolveLayout`）へ委譲する |
+| `static void DrawPlan(SKCanvas canvas, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)` | **既定の描画をホストへ提供する入口**（任意のタイミングと順序で既定の描画を行える）。 拡大元はコアの画像であるため、ホストは元画像の型を判定しなくてよい |
+
+- `DrawPlan` は `Rendered` の `Content`（描画計画）と組み合わせて使います（`Rendered` の `Canvas` へ追加描画する例と同じ経路です）。
 
 ## 3. 描画仕様
 

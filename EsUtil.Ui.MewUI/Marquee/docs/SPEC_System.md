@@ -45,7 +45,7 @@ nudge セッション・ダブルクリックの確定/キャンセル・ハン�
 
 ### 3.1 依存方向
 
-層の全体像（Core / Presenter / UI）は [`src/README.md`](../README.md) を参照してください。
+層の全体像（Core / Presenter / UI）は [`../README.md`](../README.md) を参照してください。
 
 ```text
 UI 層（Avalonia / MewUI の実装）

@@ -1284,7 +1284,7 @@ public class LoupeControlTests
     internal void 拡大元のプロパティの型はコアの画像である()
     {
         // 拡大元（Source）はコアの具象型であり、表示用の射影（DisplaySource）は UI の画像型である。
-        // 型で保証されるため、未対応型を実行時に判定する仕組み（型チェック・反射）を持たない（`src/README.md` §5）。
+        // 型で保証されるため、未対応型を実行時に判定する仕組み（型チェック・反射）を持たない（`EsUtil/README.md` §5）。
         Assert.Equal(typeof(EsReadOnlyBitmap), LoupeControl.SourceProperty.PropertyType);
         Assert.Equal(typeof(IImage), LoupeControl.DisplaySourceProperty.PropertyType);
     }

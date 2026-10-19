@@ -24,7 +24,7 @@
 ## 3. インストール
 
 ```xml
-<ProjectReference Include="..\EsUtil.Ui.WinForms.Marquee\src\WinForms\EsUtil.Ui.WinForms.Marquee.csproj" />
+<ProjectReference Include="..\EsUtil.Ui.WinForms\Marquee\src\EsUtil.Ui.WinForms.Marquee.csproj" />
 ```
 
 ローカル フィード（`.nupkg/`）のパッケージを使う場合は次を参照します。

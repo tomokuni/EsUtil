@@ -58,7 +58,7 @@ Avalonia UI 用のリサイズ可能な領域選択コントロールです。 �
 現在は NuGet パッケージではなく、プロジェクト参照で利用します。
 
 ```xml
-<ProjectReference Include="..\EsUtil.Ui.AvaloniaUI.Marquee\src\AvaloniaUI\EsUtil.Ui.AvaloniaUI.Marquee.csproj" />
+<ProjectReference Include="..\EsUtil.Ui.AvaloniaUI\Marquee\src\EsUtil.Ui.AvaloniaUI.Marquee.csproj" />
 ```
 
 必要な名前空間:
@@ -163,7 +163,7 @@ dotnet run --project sample/EsUtil.Ui.AvaloniaUI.Marquee.Sample.csproj
 
 ```text
 EsUtil.Ui.AvaloniaUI/Marquee/
-├── src/AvaloniaUI/                          # UI 層（Avalonia 固有の描画と配線）
+├── src/                                     # UI 層（Avalonia 固有の描画と配線）
 │   ├── EsUtil.Ui.AvaloniaUI.Marquee.csproj  # 独立プロジェクト（Core + Presenter + EsUtil.Platform.Core を参照）
 │   ├── MarqueeControl.cs                    # 公開 API + 効果の適用 + 通知の転送 + ポインター入力 + 描画の起動
 │   ├── MarqueeControl.Input.cs              # キーボード入力（フォーカス非依存。コア型 EsKey への変換と通知）

@@ -66,7 +66,7 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 現在はNuGetパッケージではなく、プロジェクト参照で利用します。
 
 ```xml
-<ProjectReference Include="..\EsUtil.Ui.AvaloniaUI.Loupe\src\AvaloniaUI\EsUtil.Ui.AvaloniaUI.Loupe.csproj" />
+<ProjectReference Include="..\EsUtil.Ui.AvaloniaUI\Loupe\src\EsUtil.Ui.AvaloniaUI.Loupe.csproj" />
 ```
 
 必要な名前空間:
@@ -236,7 +236,7 @@ dotnet run --project sample/EsUtil.Ui.AvaloniaUI.Loupe.Sample.csproj
 
 ```text
 EsUtil.Ui.AvaloniaUI/Loupe/
-├── src/AvaloniaUI/         # UI 層（Avalonia 固有の描画と配線）
+├── src/                    # UI 層（Avalonia 固有の描画と配線）
 │   ├── EsUtil.Ui.AvaloniaUI.Loupe.csproj
 │   ├── LoupeControl.cs         # 公開 Panel（コードのみ。AXAML を持たない。公開API一覧・StyledProperty・公開プロパティ・公開メソッド・ラベル要素の配置・非公開実装）
 │   ├── LoupeContextPainter.cs      # 描画計画を DrawingContext へ写す描画実装

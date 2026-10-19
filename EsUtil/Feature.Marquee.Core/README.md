@@ -69,7 +69,7 @@ marquee.Subscribe(notice => Raise(notice));
 - UI フレームワークを参照しません。
 - 依存方向は UI 実装 → 描画層（上位の層） → 本プロジェクト → `EsUtil.Platform.Core` の一方向です（コアは上位の層を参照しません）。
 
-層の全体像は [`src/README.md`](../README.md) を参照してください。
+層の全体像は [`../README.md`](../README.md) を参照してください。
 
 ## 5. カスタマイズ
 

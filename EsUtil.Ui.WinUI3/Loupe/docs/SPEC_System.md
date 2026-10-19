@@ -50,7 +50,7 @@ WinUI 3 固有の実装は次の 3 点です。
 
 ### 3.1 依存方向
 
-層の全体像（Core / Presenter / UI）は [`src/README.md`](../README.md) を参照してください。
+層の全体像（Core / Presenter / UI）は [`../README.md`](../README.md) を参照してください。
 
 ```text
 UI 層（WinUI 3 の実装）

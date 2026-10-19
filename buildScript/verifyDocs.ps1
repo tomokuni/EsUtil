@@ -832,7 +832,7 @@ $readmeIssues = [System.Collections.Generic.List[string]]::new()
 foreach ($f in @(Get-ChildItem -Path $projectDirPaths -Recurse -File -Filter 'README.md' |
         Where-Object { $_.FullName -notmatch '\\(obj|bin|sample)\\' })) {
     $rel = $f.FullName.Substring($repoRoot.Length + 1).Replace('\', '/')
-    # `src/README.md` は層構成の文書（ドキュメント規約 §2 の例外）
+    # `EsUtil/README.md` は層構成の文書（ドキュメント規約 §2 の例外）
     if ($rel -eq 'EsUtil/README.md') { continue }
     $headings = @(Get-Lines $f.FullName |
         Where-Object { $_ -match '^#{2,3} ' } |

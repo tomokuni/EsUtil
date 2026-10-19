@@ -17,7 +17,7 @@ public static class TestHelper
     /// <returns>生成した画像（読み取り専用の面）。</returns>
     /// <remarks>
     /// 書き換え可能な画像で作って凍結し、<b>0 コピー</b>で読み取り専用の面へ渡す（書き換え可能の実体はその場で解放する。 画素は共有して生存する）。<br/>
-    /// ルーペの拡大元（<see cref="LoupeControl.Source"/>）はコアの画像であり、表示用の射影は別のプロパティで渡す（`src/README.md` §5）。
+    /// ルーペの拡大元（<see cref="LoupeControl.Source"/>）はコアの画像であり、表示用の射影は別のプロパティで渡す（`EsUtil/README.md` §5）。
     /// </remarks>
     public static EsReadOnlyBitmap CreateSource(int width, int height, System.Drawing.Color color)
     {

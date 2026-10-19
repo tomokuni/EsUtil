@@ -120,7 +120,7 @@ EsUtil.Ui.WinUI3/Marquee/
             GuideMarqueePlan.cs
         Views/
             TestPatternCanvas.cs
-    src/WinUI3/
+    src/
         EsUtil.Ui.WinUI3.Marquee.csproj
         MarqueeControl.cs
         MarqueeControl.Input.cs
@@ -142,7 +142,7 @@ EsUtil.Ui.WinUI3/Marquee/
             SkiaGeometryInterop.cs
             SkiaText.cs
             Win32Interop.cs
-    tests/WinUI3/
+    tests/
         EsUtil.Ui.WinUI3.Marquee.Tests.csproj
         RecordingLogger.cs
         MarqueeLabelPainter.Tests.cs

@@ -47,7 +47,7 @@ graph LR
   B --> D[EsUtil.Platform.Core]
 ```
 
-層の全体像は [`src/README.md`](../../README.md) を参照してください。
+層の全体像は [`../../README.md`](../../README.md) を参照してください。
 
 - `EsUtil.Feature.Loupe.Core` は UI フレームワークへ依存しません。 依存は `EsUtil.Platform.Core` のみです。
 - **提示（描画計画の解決）と外観は描画層（本コアを参照する上位の層）が単一所有します**（本プロジェクトは描画 API も描画の抽象も色も持ちません）。 **描画は各 UI が自 UI の描画 API で行います**。
