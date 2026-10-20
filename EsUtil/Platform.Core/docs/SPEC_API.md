@@ -460,7 +460,7 @@ public readonly record struct ElementFinderResults(
 | `WinCursorOverrideGuard` | `ICursorOverrideGuard`（ロガーを持たない） |
 | `WinGlobalHotKeyService<T>` | `IGlobalHotKeyService<T>`（`T : notnull`。 ロガーを持たない） |
 
-`Native.Win.WinNative`（internal）が OS の API（`user32` / `gdi32` / `dwmapi` / `kernel32` / `gdiplus`）の P/Invoke の宣言を集約します。 **本プロジェクトはログを出力しません**（`ILogger` を扱わないため。 失敗は例外または戻り値で返し、記録は呼び出し側が行います）。
+`Native.Win.WinNative`（internal）が OS の API（`user32` / `gdi32` / `dwmapi` / `kernel32` / WIC）の P/Invoke と COM の宣言を集約します。 **本プロジェクトはログを出力しません**（`ILogger` を扱わないため。 失敗は例外または戻り値で返し、記録は呼び出し側が行います）。
 
 ### 2.29 `Coord.ICoordTransform`（interface）
 
@@ -682,7 +682,7 @@ public readonly record struct ElementFinderResults(
 
 ### 2.32 画像のファイル入出力（`Save` / `Load`）
 
-コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー（`Load` は静的・`Save` はインスタンス。 2 型が同じ名前を持ちます）**であり、GDI+（`gdiplus.dll`）を呼ぶ実装は `EsUtil/Platform.Core/src/Native/Win/WinGdiPlusImageCodec.cs` の `internal` クラスが単一所有します（入口は内部の `EsBitmapBuffer.LoadFromFile` / `SaveToFile`）。 **Windows 専用**です。
+コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー（`Load` は静的・`Save` はインスタンス。 2 型が同じ名前を持ちます）**であり、WIC（`windowscodecs.dll` の COM）を呼ぶ実装は `EsUtil/Platform.Core/src/Native/Win/WinWicImageCodec.cs` の `internal` クラスが単一所有します（入口は内部の `EsBitmapBuffer.LoadFromFile` / `SaveToFile`）。 **Windows 専用**です。
 
 | 型 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- | --- |
@@ -691,10 +691,10 @@ public readonly record struct ElementFinderResults(
 | `EsReadOnlyBitmap` / `EsBitmap` | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`） |
 | `EsReadOnlyBitmap` | `Load` | `static EsReadOnlyBitmap Load(string filePath)` | ファイルから**読み取り専用の**画像を読み込む（形式は内容から判別する。 所有権は呼び出し側へ移る） |
 | `EsBitmap` | `Load` | `static EsBitmap Load(string filePath)` | ファイルから**書き換え可能な**画像として読み込む（所有権は呼び出し側へ移る） |
-| `EsImageFileFormat` | （enum） | `Bmp` / `Png` / `Jpeg` / `Gif` / `Tiff` | 保存する形式（GDI+ のエンコーダーと 1 対 1。 通常は拡張子で足りるため、拡張子が無い場合と拡張子と違う形式で書きたい場合だけ使う） |
+| `EsImageFileFormat` | （enum） | `Bmp` / `Png` / `Jpeg` / `Gif` / `Tiff` | 保存する形式（WIC のエンコーダーと 1 対 1。 通常は拡張子で足りるため、拡張子が無い場合と拡張子と違う形式で書きたい場合だけ使う） |
 | `EsImageSaveOptions` | `Format` | `EsImageFileFormat? Format { get; init; }` | 保存する形式（`null` は拡張子が決める。 指定した場合は**拡張子より優先**し、拡張子が無ければ補完する） |
 | `EsImageSaveOptions` | `IgnoreFormatMismatch` | `bool IgnoreFormatMismatch { get; init; }` | 拡張子と `Format` の食い違いを無視するか（既定 false = 例外）。 不変の `readonly record struct` であり、部分更新は `with` 式で行う |
-| `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG の品質（0〜100。 `null` は GDI+ の既定） |
+| `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG の品質（0〜100。 `null` は指定しない = WIC の既定） |
 | `EsImageSaveOptions` | `ColorCount` | `int? ColorCount { get; init; }` | 減色（パレット化）して残す色数（2〜256。 `null` は減色しない。 **BMP / PNG / GIF だけ**） |
 | `EsImageSaveOptions` | `ColorQuality` | `EsImageQuality? ColorQuality { get; init; }` | 減色の品質（`null` は `EsImageQuality.Mid`。 **減色する場合だけ指定できる**） |
 | `EsImageSaveOptions` | `Dither` | `EsDitherMode? Dither { get; init; }` | 減色のディザ（`null` は `EsDitherMode.None`。 **減色する場合だけ指定できる**） |
@@ -707,7 +707,7 @@ public readonly record struct ElementFinderResults(
 - **`Load` は具体型の静的メソッドに置きます**: 戻したい型（読み取り専用 / 書き換え可能）を**呼び出し側が名指す**必要があるためです（静的メソッドは戻り値の型を共変にできないため、`EsReadOnlyBitmap.Load` と `EsBitmap.Load` の 2 つが要ります）。 書き換えが要る場合は `EsBitmap.Load` を使ってください（`EsReadOnlyBitmap.Load` の結果を `EsBitmap.FromReadOnlyBitmap` で複製すると、2 回目の複製が無駄になります）。 つまりファイル入出力の見え方は「**読むときは型を名指す（`Load`）／書くときはどちらの型でも同じ（`Save`）**」です。
 - **`Save` は再び画像型のメンバーになりました**: いったん拡張メソッドへ移しましたが、その理由（読み取り専用の面を実装する外部の画像からもキャストせずに呼べること）は**面（interface）の廃止で消えました**。 いまは実装を内部の 1 か所（`EsBitmapBuffer.SaveToFile`）に置き、公開の入口を両方の型のメンバーにしています（`Load` と同じ型にファイル入出力が並びます）。
 - **`Crop` / `Resize` / `ReduceColors` も同じ形にしました**: 実装は内部の 1 か所（`EsBitmapOperations`）に置き、公開の入口は両方の型のメンバーです（規則と理由は §2.31）。 これにより型の外に並ぶ操作は無くなり、`Copy` / `ToPixmap` と同じ「型自身の能力」として読めます。
-- **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・GDI+ の呼び出し・状態値の例外化は 1 か所（「`WinGdiPlusImageCodec`」）が単一所有し、公開面（`Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
+- **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・WIC の呼び出し・状態値の例外化は 1 か所（「`WinWicImageCodec`」）が単一所有し、公開面（`Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
 - **実装の入出力は画像型を知りません**: 符号化は受け取ったピクセル バイト列を書き（`EncodeToFile`）、復号は**画像の生成処理を受け取ってデコード結果をその領域へ直接書きます**（`DecodeFromFile<T>`）。 コーデックが画像型（`EsBitmap` 等）を名指ししないため、画像型が要るのは公開面だけになります。 **中間バッファも追加のコピーも作りません**（デコード結果を画像の領域へそのまま書きます。 中間バッファを挟む方式に対して**読み込みで有利**であり、保存は両方式とも同じです）。
 - **形式は既定では拡張子が決めます**: `Save` は拡張子から形式を選びます（`.bmp` = Windows Bitmap / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`）。 大文字・小文字は区別しません。
 - **形式を明示する入口を持ちます（拡張子の補完を含む）**: `EsImageSaveOptions.Format` を指定すると形式が優先されます。 指定しなかった場合は従来どおり拡張子が形式を決めます（**既存の呼び出しの挙動は変わりません**）。
@@ -725,44 +725,27 @@ public readonly record struct ElementFinderResults(
 
   - **補完に使う拡張子は 1 つに固定します**（`.bmp` / `.png` / `.jpg` / `.gif` / `.tif`）。 別名（`.jpeg` / `.tiff`）は受け付けますが補完には使いません（同じ形式に 2 つの候補があると、呼び出し側が保存先を予測できないため）。
   - **食い違いを既定で例外にする理由**: どちらが呼び出し側の意図か読めないためです。 例外にしないと、拡張子を直し忘れたまま別形式で保存され、**拡張子と中身が食い違ったファイルが黙ってできます**。 `IgnoreFormatMismatch` は「承知の上で食い違わせる」ことを明示する入口です。
-  - **どちらの値も GDI+ の初期化より前に判定します**（拒否される呼び出しはプロセス全体の副作用を起こしません）。
+  - **どちらの値も COM の起動より前に判定します**（拒否される呼び出しは WIC を起動しません）。
 - **未対応の拡張子は例外にします**: PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かないためです（`NotSupportedException`。 対応形式の単一所有は `EsReadOnlyBitmap.SupportedFileExtensions`）。
-- **保存のオプションを指定できます**: `Save(string, EsImageSaveOptions)` は指定した値だけを GDI+ のエンコーダー パラメーター（減色は自前の計算）として渡します。
+- **保存のオプションを指定できます**: `Save(string, EsImageSaveOptions)` は指定した値だけを WIC のエンコーダー オプション（`IPropertyBag2` の `ImageQuality`。 減色は自前の計算）として渡します。
 
   - **`JpegQuality` は値が大きいほど画質が良くファイルも大きくなります**（0〜100。 変化の乏しい画像では差が出ません）。
-  - **既定は明示した品質と一致しません**: GDI+ の既定は**品質 75 とは違う値**であり（品質 90 と 100 の間）、したがって「既定のまま」と「品質 75 を明示」は別物です。 調整しない場合は `Save(string)` を使ってください。
+  - **既定は明示した品質と一致しません**: 品質を指定しない場合は **WIC の既定**が使われるため、「既定のまま」と「品質 75 を明示」は別物です。 調整しない場合は `Save(string)` を使ってください。
   - **単色の画像では効きません**: 変化の乏しい画像はどの品質でも同じように圧縮されます。
 
   ファイル サイズと復号した画素の比較結果は [`Result_Measurement.md`](Result_Measurement.md) を参照してください。
-- **GDI+ のエンコーダー パラメーターを全通り試した結果（実測。 640x360 の不規則な画像）**: 「JPEG 以外にも品質・圧縮率のオプションがあるのでは」という疑問に答えるため、**`Encoder` の全 13 パラメーター × 全形式**を総当たりし（`EncoderParameters` を自前で組み立てて `GdipSaveImageToFile` へ直接渡す。 型 `Long` / `Short[64]` を明示）、出力のバイト列のハッシュで判定しました。
+- **公開するオプションは JPEG の品質だけにします**: WIC の JPEG エンコーダーは `IPropertyBag2` の `ImageQuality`（0.0〜1.0 の実数）で品質を受け取ります。 公開面は 0〜100 の整数 1 つに留めます（**効果が確認できた値だけを公開する**方針。 [`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI）。
 
-  | パラメーター（試した値） | BMP | PNG | GIF | JPEG | TIFF |
-  | --- | --- | --- | --- | --- | --- |
-  | `Quality`（0〜200） | 無効 | 無効 | 無効 | **有効**（値が大きいほど高画質・大サイズ。 101 以上は 100 と同じ） | 無効 |
-  | `LuminanceTable` / `ChrominanceTable`（short[64]） | 無効 | 無効 | 無効 | **有効**（量子化テーブルを差し替える） | 無効 |
-  | `Compression`（0〜10 / 32773） | 無効 | 無効 | 無効 | 全部**失敗**（状態 2） | **一部有効**（2 = LZW / 3 = CCITT3 / 4 = CCITT4 / 5 = RLE / 6 = 無圧縮。 他は状態 2 で失敗） |
-  | `ColorDepth`（1〜64） | 無効 | 無効 | 無効 | 無効 | **一部有効**（1 / 4 / 8 / 24 のみ。 12 / 16 / 48 / 64 は失敗） |
-  | `ScanMethod`（0 / 7 / 8） | 無効 | 無効 | **無効** | 無効 | 無効 |
-  | `Version`（0 / 9 / 10） | 無効 | 無効 | **無効** | 無効 | 無効 |
-  | `Transformation`（0〜17） | 無効 | 無効 | 無効 | 一部失敗・残りは**無効** | 無効 |
-  | `SaveFlag`（0 / 18 / 19 / 20） | 無効 | 無効 | **18 で保存後にファイルが開いたまま** | 無効 | **18 で保存後にファイルが開いたまま** |
-  | `ColorSpace`（0〜5） | 無効 | 無効 | 無効 | 0 のみ**有効**（CMYK 化）。 他は失敗 | 無効 |
-  | `SaveAsCmyk`（0 / 1） | 無効 | 無効 | 無効 | 無効 | 1 で**有効**（CMYK で保存） |
-  | `RenderMethod` / `ImageItems` | 無効 | 無効 | 無効 | 無効（`ImageItems` は失敗） | 無効 |
-
-  - **公開するのは JPEG の品質だけにします**: 効果のある残りは、(1) 品質と**同じつまみ**（`LuminanceTable` / `ChrominanceTable`。 品質を併せて指定すると**テーブルは黙って無視される**ことを実測で確認したため、2 つ公開すると片方が効かない）、(2) **情報を失う**（TIFF の CCITT3 / CCITT4 は 1 ビットへ落として画素を壊す。 `ColorDepth` の 1 / 4 / 8 は減色）、(3) **既定より必ず大きくなる**（TIFF の圧縮方式。 下記）、(4) **ファイルを開いたまま返す**（`SaveFlag` = 18。 保存後にファイル ハンドルが残り、続けて読むと `IOException` になることを実測で確認）、のいずれかです。 使うと分かっている値だけを公開する方針（[`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI）に従います（**減色は GDI+ のパラメーターではなく自前の実装であり、この表の対象外**です）。
-  - **TIFF の圧縮方式を公開しない理由**: 指定はできますが（無圧縮 / LZW / RLE）、**既定より小さい値が選べません**（なだらかな画像でも一様な画像でも、指定した方が既定より大きくなりました）。 生成したファイルの TIFF タグを読むと、**既定も LZW 指定も圧縮タグ（259）は 5 = LZW で同じ**であり、違うのは予測子タグ（317）だけでした（既定 = 2 = 水平差分 / 指定 = 1 = なし）。 GDI+ は予測子を指定する手段を持たないため、**指定すると既定より悪くなる**ことになります。
-- **形式ごとの名前付きメソッドを作らない理由**: `EncodeToJpgFile` / `EncodeToPngFile` のような形式を名前に持つ入口を足すと、**形式を表す引数と拡張子が二重管理になり**、食い違えば拡張子と実体がずれたファイルができます。 GDI+ のパラメーターで調整できる値を持つ形式は JPEG だけであり（減色は GDI+ のパラメーターではなく自前の実装）、その JPEG の 1 つも「オプション付きの `Save(string, EsImageSaveOptions)` 1 つ（形式は `Format` が決める）」で表せるため、公開面は `Save(string)` / `Save(string, EsImageSaveOptions)` の 2 つに留めます（減色の 3 項目も同じ入口に載ります）。
-- **オプションの値は形式ごとに検証します**: 使えない形式へ設定すると `NotSupportedException`、JPEG の品質が 0〜100 の範囲外なら `ArgumentOutOfRangeException`、**減色しない保存（`ColorCount` が `null` かつ GIF 以外）へ `ColorQuality` / `Dither` を設定すると `InvalidOperationException`** です（黙って無視すると「設定したのに効かない」ことに気付かないため。 また上限へ丸めると、呼び出し側が指定した値と実際の出力が食い違います）。 検証は **GDI+ の初期化より前**に行うため、拒否された呼び出しはプロセス全体の副作用（バックグラウンド スレッド +1 等）を起こしません。
-- **WebP / HEIF を対応形式へ入れない理由（実測）**: GDI+ のエンコーダーは 5 件だけです（`GdipGetImageEncoders` が返すのは BMP / JPEG / GIF / TIFF / PNG。 デコーダーはこれに EMF / WMF / ICO を加えた 8 件）。 WebP / HEIF のエンコーダーは無く、**存在しない形式の CLSID を渡すと例外を出さずに PNG を書き出します**（実測: PNG の CLSID と `.webp` のパスで **PNG が書かれ**、先頭バイトは PNG のシグネチャ）。 拡張子と中身が食い違うファイルが**黙って**できるため、対応形式へ追加しません（食い違いを承知で作る場合は `Format` + `IgnoreFormatMismatch` を使います）。
+- **オプションの値は形式ごとに検証します**: 使えない形式へ設定すると `NotSupportedException`、JPEG の品質が 0〜100 の範囲外なら `ArgumentOutOfRangeException`、**減色しない保存（`ColorCount` が `null` かつ GIF 以外）へ `ColorQuality` / `Dither` を設定すると `InvalidOperationException`** です（黙って無視すると「設定したのに効かない」ことに気付かないため。 また上限へ丸めると、呼び出し側が指定した値と実際の出力が食い違います）。 検証は **COM の起動より前**に行うため、拒否された呼び出しは WIC を起動しません。
+- **WebP / HEIF / JPEG XL / RAW / DDS を対応形式へ入れない理由**: WIC にはこれらを扱うコーデックも登録されていますが（環境によっては**コーデック拡張（Store アプリ）で提供**され、拡張の無い環境では列挙から消えます）、**本ライブラリが検証したのは BMP / PNG / JPEG / GIF / TIFF の 5 形式だけ**です。 未検証の形式を対応形式へ入れると「拡張子は受け付けるが、環境によっては保存できない」入口になります（[`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI）。
 - **減色（パレット化）を指定できます**: `EsImageSaveOptions.ColorCount` を指定すると、保存の前に
   `EsReadOnlyBitmap.ReduceColors`（`ReduceColors(int, EsImageQuality, EsDitherMode)`。 両方の型が同じ名前のメンバーを持ちます）と同じ計算で減色し、**8bpp のインデックス カラー（パレット付き）として**書きます。 **`ColorQuality` と `Dither` はこの計算へそのまま渡します**（段階の意味は `EsImageQuality` / `EsDitherMode` の備考が単一所有します。 減色しない保存へ指定すると `InvalidOperationException` です）。
 
-  - **32bpp のまま減色しても意味がありません（実測）**: GDI+ の PNG エンコーダーは 32bpp の入力をパレット PNG にしません
+  - **32bpp のまま減色しても意味がありません（実測）**: WIC のエンコーダーは 32bpp の入力をパレット画像にしません
     （減色の効果は圧縮率の向上だけであり、BMP では 1 バイトも減りません）。 **8bpp のインデックス カラーとして渡すと
     パレット画像になります**（実測で確認した 3 形式。 BMP / PNG / GIF）。
-  - **BMP の RLE 圧縮は併用できません**（GDI+ の BMP エンコーダーは圧縮の指定を無視します）。 減色した BMP も無圧縮のままです。
-  - **GIF は指定が無くても常に量子化して書きます（実測に基づく）**: GDI+ の GIF エンコーダーは透明色の番号を書きますが、**その番号をどの画素にも使わせません**（実測: GDI+・`System.Drawing`・`SkiaSharp` のいずれで読み戻しても全画素が不透明になった）。 そのため 32bpp のまま渡すと透過が失われます。 これは GDI+ の不具合であり GIF の仕様の制約ではありません（GIF の透過はパレットの 1 色を透明とする仕組みであり、量子化の有無とは無関係です）。 自前の量子化は透過を保ち、**ファイルも小さく画質も良くなります**（詳細な実測値は [`Result_Measurement.md`](Result_Measurement.md) を参照）。
+  - **BMP の圧縮方式は公開しません**（WIC の BMP エンコーダーへ圧縮の指定を渡していないため、常に無圧縮です）。 減色した BMP も無圧縮のままです。
+  - **GIF は指定が無くても常に量子化して書きます**: GIF はパレットが必須の形式です。 自前の量子化は透明な画素を透明なパレットの色へ割り当てるため**透過が保たれ**、副次的に**ファイルも小さく画質も良くなります**（実測値は [`Result_Measurement.md`](Result_Measurement.md) を参照）。
   - **JPEG と TIFF へ指定すると例外になります**（`NotSupportedException`）。 JPEG はパレットを持てず、TIFF は**未検証**であるため受け付けません（未検証の組み合わせを黙って通さない方針。 [`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI と対になる）。
   - **透過の扱い（実測）**: **形式ごとに保存できるアルファが違います**。 減色はアルファも色の一部として扱うため（4 段階に量子化）、**透明な画素は透明なパレットの色へ寄ります**。
 
@@ -774,7 +757,7 @@ public readonly record struct ElementFinderResults(
     | JPEG | アルファを**保存しない** | 減色を指定できない | JPEG はアルファを持てない |
 
     - **減色しない PNG は透過を保ちます**（デコードし直しても画素のアルファが一致します）。 減色した場合も `tRNS` により**保たれます**。
-    - **GIF は指定が無くても自前の量子化で書きます（実測に基づく）**: **GDI+ の GIF エンコーダーは透明色の番号を書きますが、その番号をどの画素にも使わせません**（GDI+・`System.Drawing`・**SkiaSharp のいずれで読み戻しても全画素が不透明**になった）。 つまり 32bpp のまま渡すと**透過が失われます**（これは GDI+ のエンコーダーの不具合であり、GIF の仕様の制約ではありません。 GIF の透過は「パレットの 1 色を透明とする」仕組みであり、減色の有無とは関係ありません）。 自前の量子化は透明な画素を透明なパレットの色へ割り当てるため透過が保たれます（読み戻しても円の外のアルファは 0）。 **副次的にファイルが小さく画質も良くなります**（写真風・スクリーンショット風のどちらでも、GDI+ の量子化より小さく色差も小さくなりました）。
+    - **GIF は指定が無くても自前の量子化で書きます**: GIF はパレットが必須であり、32bpp のまま渡すと透過を保てません。 自前の量子化は透明な画素を透明なパレットの色へ割り当てるため透過が保たれます（読み戻しても円の外のアルファは 0）。 **副次的にファイルが小さく画質も良くなります**。
     - **半透明は減色で 4 段階へ量子化されます**（0〜63 / 64〜127 / 128〜191 / 192〜255。 段階の境界の値はそのまま残り、中間の値は段階の平均になります）。 **RGBA を平均するため、半透明の色は元の値とわずかに違います**（透明と不透明は完全に一致します）。
     - **切り出しのパディング（透明）を持つ画像も減色できます**（32x32 の画像から 48x48 を切り出して 8 色へ減色しても、PNG / GIF とも透明の画素はそのまま残る）。
   - **ディザは既定では行いません**: ディザはパレットの色を交互に置くため保存のファイルが**大きくなります**。 本ライブラリはファイル サイズを下げる目的で減色するため、`EsDitherMode.FloydSteinberg` を明示された場合だけ行います（**減色だけの場合よりファイルは大きくなります**。 **平坦な色の画像は変化しません**。 縞が消えるかどうかの判断は `EsDitherMode` の備考が単一所有します）。
@@ -793,40 +776,29 @@ public readonly record struct ElementFinderResults(
       **NetVips** は pngquant と同じ libimagequant を積みますが**ネイティブが LGPL** です。
   - **減色を既定にしない理由**: 減色は**不可逆**であり、既定の `Save` の「見た目を変えずに書き出す」期待と衝突します。
     また効果は形式と内容に強く依存します（写真風の画像ほど小さくなります）。 明示した場合だけ行います。
-- **エンコード・デコードは `gdiplus.dll` のフラット API を直接呼びます**（宣言は `EsUtil/Platform.Core/src/Native/Win/WinNative.GdiPlus.cs` が集約。 `WinNative` は DLL ごとの `partial` ファイルに分かれます）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
-- **本機能は Windows 専用です**: `gdiplus.dll` は Windows にのみ存在します（非 Windows では `DllNotFoundException`）。 公開メンバー（`Save` / `Load` / `SupportedFileExtensions`）は `SupportedOSPlatform("windows")` で限定します。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、`EsUtil/Platform.Core/src/Native` だけが Windows に依存します）。
-- **GDI+ の初期化は `WinGdiPlusLifetime` が単一所有します**（プロセス単位で 1 回だけ `GdiplusStartup` を呼びます）。 終了処理（`GdiplusShutdown`）は**呼びません**（プロセス全体の GDI+ を終了させるため、ホストが別の目的で GDI+ を使っている場合に影響します。 GDI+ はプロセスの終了時に OS が解放します）。
-- **初期化を前倒しする公開 API は持ちません**: 初期化は `WinGdiPlusLifetime`（`internal`）が単一所有するため、ホストからは呼べません。 初期化のコストは最初の `Save` / `Load` が負担します。 公開しない理由は**利得が小さいこと**です（初期化は 1 プロセスで 1 回だけであり、最初の `Save` / `Load` に乗る遅延は**その操作の所要に対して小さい**）。 加えて、公開すると**利用者が起動時に呼び、実際に必要になる前にプロセス全体の副作用（バックグラウンド スレッド +1・解放されない参照カウント）を起こす**誘導になります。
-- **本機能はプロセス全体に及ぶ副作用を引き受けます（実測）**: 初回の `Save` / `Load` で次が起きます。
-  - **GDI+ が有効になる**（初期化しないと状態 18 = `GdiplusNotInitialized` で全 API が失敗する）。
-  - **バックグラウンド スレッドが 1 本増える**（起動直後 8 → 9。 GDI+ が表示設定の通知を受け取るためで、抑止すると初期化自体が `InvalidParameter` になる）。
-  - **解放されない参照カウントを 1 つ取る**（`GdiplusShutdown` を呼ばない。 プロセス終了時に OS が解放する）。
-  - **初回だけ遅延が乗る**（2 回目以降の呼び出しは初期化のコストを含まない）。
+- **エンコード・デコードは WIC（`windowscodecs.dll` の COM）を直接呼びます**（宣言と呼び出しは `EsUtil/Platform.Core/src/Native/Win/WinNative.Wic.cs` と `WinWicCom.cs` が集約。 `WinNative` は DLL ごとの `partial` ファイルに分かれます）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
+- **本機能は Windows 専用です**: WIC は Windows にのみ存在します。 公開メンバー（`Save` / `Load` / `SupportedFileExtensions`）は `SupportedOSPlatform("windows")` で限定します。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、`EsUtil/Platform.Core/src/Native` だけが Windows に依存します）。
+- **COM の初期化は `WinNative` が単一所有します**（プロセスで 1 回だけ `CoInitializeEx` を呼び、`CLSID_WICImagingFactory` を都度生成します）。 **`RPC_E_CHANGED_MODE`（`0x80010106`）は成功として扱います**（既に別のモデルで初期化済みのプロセスでも動くことを実測で確認しました）。 **プロセス全体に及ぶ副作用はありません**（スレッドは増えず、解放されない参照カウントも取りません）。
+- **初期化を前倒しする公開 API は持ちません**: 初期化は `WinNative`（`internal`）が単一所有するため、ホストからは呼べません。 初期化のコストは最初の `Save` / `Load` が負担します。
+- **`[ComImport]` を使いません（Native AOT のため）**: `[ComImport]` と `Marshal.GetObjectForIUnknown` の組み合わせは Native AOT で `NotSupportedException`（`COM Interop requires ComWrapper instance registered for marshalling.`）になります（実測）。 そのため **vtable を関数ポインター（`delegate* unmanaged[Stdcall]`）として呼びます**（P/Invoke と同じ性質であり、AOT でも動作することを実測済み）。 vtable の位置は `wincodec.h` / `ocidl.h` の宣言順であり、**推測しません**（`IWICBitmapDecoder::GetFrame` は 13、`IWICBitmapFrameEncode::SetPixelFormat` は 6 など）。
+- **エンコーダーのキャッシュは一時ファイル方式を使います（実測）**: `WICBitmapEncoderNoCache` を `IWICStream::InitializeFromFilename` のストリームへ渡すと `WINCODEC_ERR_UNSUPPORTEDOPERATION`（`0x88982F81`）で初期化に失敗します。 `WICBitmapEncoderCacheTempFile` は BMP / PNG / JPEG / GIF / TIFF のすべてで成功しました。
+- **エンコーダーが返した画素形式に合わせて並びを直します（実測）**: アルファ乗算済みの BGRA（`GUID_WICPixelFormat32bppPBGRA`）を要求しても、PNG / TIFF はアルファ乗算なしの BGRA、JPEG は 24bpp の BGR を返します（BMP だけが要求どおり）。 エンコーダーは形式を変換しないため、**返された形式に合わせてから書きます**（BMP はコピーを作りません）。
+- **形式ごとのコンテナ GUID は実測値を持ちます**: `IWICImagingFactory::CreateComponentEnumerator` で、この環境に登録されているデコーダーとエンコーダーを列挙して確かめました（BMP / PNG / JPEG / GIF / TIFF の 5 形式。 既定の 5 形式は `wincodec.h` の `GUID_ContainerFormat*` と一致します）。 **公表値を写して 1 文字でも取り違えると `WINCODEC_ERR_COMPONENTNOTFOUND`（`0x88982F50`）になり、原因が分かりにくい**ためです。
+- **本機能はプロセス全体に及ぶ副作用を持ちません**: GDI+ の `GdiplusStartup` が起こしていた「バックグラウンド スレッド +1」「解放されない参照カウント」「初回の遅延」は **WIC では起きません**。 判断の記録は [`SPEC_System.md`](SPEC_System.md) §7.1 を参照してください。
+- **Native AOT（実測）**: 本機能は `LibraryImport` と vtable の関数ポインターだけを使うため、**Native AOT でも動作します**（実行時マーシャリングを使いません）。
+- **WebP / HEIF / JPEG XL / RAW / DDS を対応形式へ入れない理由**: WIC にはこれらを扱うコーデックも登録されていますが（環境によっては**コーデック拡張（Store アプリ）で提供**され、拡張の無い環境では列挙から消えます）、**本ライブラリが検証したのは 5 形式だけ**です。 未検証の形式を対応形式へ入れると「拡張子は受け付けるが、環境によっては保存できない」入口になります（[`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI）。
 
-  **この副作用は本ライブラリ固有ではなく、`System.Drawing.Common.Bitmap` を使っても同じです**（`System.Drawing.Common` の実装（`System.Private.Windows.Core`）も `GdiplusStartup` だけを宣言し、`GdiplusShutdown` を宣言していません）。 したがって **影響を受けるのは GDI+ を他に使っていないプロセスだけです**。 副作用を避けるには WIC へ移す必要があります（下記）。
-- **代替（採用していない）**: **マネージド .NET には他に標準の画像コーデックがありません**。 Windows ネイティブにはあります（下記）。 いずれも実装量または依存の代償があります。
-  - **WIC / WinRT（Windows ネイティブ）**: `Windows.Graphics.Imaging`（`BitmapEncoder` / `BitmapDecoder`。 WIC の .NET 投影）が**追加の NuGet なしで使えます**（Windows TFM `net10.0-windows10.0.x` が Windows SDK の投影を自動参照します）。 実測したエンコーダーは BMP / GIF / JPEG / PNG / TIFF / WMPhoto（JPEG XR）/ DDS / **HEIF（AVIF を含む）/ JPEG XL** で、**いずれも保存に成功しました**。 デコーダーはさらに ICO / CUR / DNG / RAW / **WebP（デコードのみ）** を含みます。 ただし (1) 本コアは `net10.0`（可搬）のため WinRT を直接参照できず、**TFM を Windows 固有にするか常駐アセンブリを分ける**必要があります（COM 相互運用を自前で宣言すれば `net10.0` のまま `Native/` に置けますが、`IWICImagingFactory` 等の宣言に数百行を要します）、(2) HEIF / JPEG XL / WebP は**OS のコーデック拡張（Store アプリ）で提供**されるため、拡張の無い環境では使えません。
-  - **WPF の `System.Windows.Media.Imaging`（`BitmapEncoder` / `BitmapDecoder`）**: Microsoft 公式ですが `UseWPF` が必要で、UI 非依存のコアへ WPF を持ち込みます。
-  - **SkiaSharp**: WebP を含む多くの形式を扱えますが、**外部パッケージを参照しない**という本プロジェクトの依存規則に反します（Skia に依存する変換は Skia を使う上位層が単一所有する）。
-- **WebP の保存は Windows 標準のどちらでもできません（実測）**: GDI+ は**例外を出さずに PNG を書く**（危険）ので本機能は `NotSupportedException` で拒否し、Windows ネイティブも `BitmapEncoder` に WebP の識別子を持ちません（`BitmapDecoder.WebpDecoderId` があり**デコードのみ**）。 保存が必要なら SkiaSharp などの外部ライブラリが要ります。
-- **`gdiplus.dll` のフラット API を選ぶ理由**: 用途（BMP / PNG / JPEG / GIF / TIFF）に対して OS 標準のコーデックで足り、**外部パッケージも相互運用の宣言も要りません**（宣言は `WinNative` が集約）。 **GDI+ が最も速く、可逆形式の圧縮効率も同等以上**です（実測値は [`Result_Measurement.md`](Result_Measurement.md) を参照）。
-- **Native AOT（実測）**: 本機能は `LibraryImport`（ソース生成の相互運用）だけを使うため、**Native AOT でも動作します**（実行時マーシャリングを使いません）。 参考として、代案の `Windows.Graphics.Imaging` は **WinRT（COM ベース）の .NET 投影**であり、エンコード・デコードの実体は **OS 側（WIC）にあります**:
-  - **COM の登録や DLL の同梱は不要です**（自分で `regsvr32` する COM ではなく、OS が提供するランタイム クラスを起動するだけ）。 配布物に追加ファイルは増えません。
-  - **Native AOT で動作します**（AOT で発行した上位のアプリで `BitmapEncoder.GetEncoderInformationEnumerator()` がエンコーダーを列挙できました）。 CsWinRT（投影と `WinRT.Runtime.dll`）は**マネージド コードとして exe へリンクされる**ため、**配布物の構成（exe 1 個 + ネイティブ DLL）を保てます**。
-  - **制限**: Windows 専用であること、HEIF / JPEG XL / WebP（デコード）は **OS のコーデック拡張に依存**すること（拡張の無い環境では列挙から消えます）、そして**コア（`net10.0`）からは直接参照できない**こと（`net10.0-windows10.0.x` の TFM が Windows SDK の投影を自動参照する。 COM 相互運用を自前で宣言すれば `net10.0` のまま `Native/` に置けますが数百行）。
+- **速度**: 本ライブラリは WIC だけを使います（読み込み・保存の所要は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します）。
 
-- **速度の関係（数値なしの結論。 実測値は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します）**: **すべての形式・両方向で GDI+ が WIC より速い**です。 WIC は WinRT の境界越しにサーフェスを渡すため中間コピーが入り、**BMP のような「memcpy で済む」形式ほど差が開きます**。 **コアの画像との相互変換も GDI+ が速い**です（WinRT はバイト配列を 1 回経由するため）。
+- **保存したファイルの大きさ**: JPEG の品質と減色の指定が効きます（形式ごとの大きさは [`Result_Measurement.md`](Result_Measurement.md) が単一所有します）。
 
-- **同じ品質に揃えたときのサイズと画質（数値なしの結論）**: JPEG は両者へ同じ品質の値を指定し（GDI+ は 0〜100 / WIC は 0.0〜1.0）、可逆形式は既定設定で比較しました。
-
-  - **可逆形式（BMP / PNG / TIFF）は往復の誤差が 0** です（画素は完全に一致し、「品質」の差は無く、差は圧縮効率だけです）。 **PNG は GDI+ の圧縮が優れ**、TIFF はほぼ同じです。
-  - **JPEG は品質を揃えるとサイズ・誤差とも同程度**です（GDI+ がわずかに小さい場合があります）。
-  - **GIF だけは WIC が明確に優位**です（**サイズが小さく、往復誤差も大幅に小さい**）。 GDI+ の GIF エンコーダーはパレット量子化の誤差が大きいためです（速度は WIC が遅いので、**GIF だけは速度と品質の交換**になります）。
-  - まとめると **通常の用途（BMP / PNG / JPEG / TIFF）は GDI+ が速くサイズも同等以上**であり、**GIF を配布物として小さく・きれいに作りたい場合だけ WIC に分がある**という関係です。
+  - **可逆形式（BMP / PNG / TIFF）は往復の誤差が 0** です（画素は完全に一致します）。 テストが往復の一致を検証しています。
+  - **JPEG は非可逆**です（品質を上げるほど誤差が減り、ファイルが大きくなります）。
+  - **GIF は 2 値の透過**しか持てません（完全透明は残り、半透明は不透明になります）。 PNG は 8 ビットのアルファを保ちます。
   - 形式ごとの圧縮効率・パレット生成の差は画像の内容と API 側の実装に依存するため、**数値は画像によって変わります**。
 
 - **制限**: JPEG / BMP はアルファ （透明度）を保存できません（形式の仕様。 透過を保つ場合は PNG を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする。 小さく使う場合は `Resize` で縮小する）。
-- **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（GDI+ はどちらも同じ状態値を返すため区別しません）。 エンコード・デコードの失敗は `Win32Exception`（`ExternalException` の派生。 GDI+ の状態値を保持）で通知します。
+- **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（WIC はどちらも同じ状態値を返すため区別しません）。 エンコード・デコードの失敗は `Win32Exception`（`ExternalException` の派生。 GDI+ の状態値を保持）で通知します。
 
 ### 2.33 画像型の設計上の判断（兄弟と借用を選んだ理由）
 

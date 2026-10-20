@@ -7,7 +7,7 @@
 
          MSBuild のプロパティ名にドットは使えない（実測: <EsUtil.Platform.Core.Version> は MSB5016 で失敗する）。
          そのため名前は「パッケージ ID のドットを `_` に置換 + `_Version`」にする（参照側はこの名前を使う）。 -->
-    <EsUtil_Platform_Core_Version>0.1.3</EsUtil_Platform_Core_Version>
+    <EsUtil_Platform_Core_Version>0.1.4</EsUtil_Platform_Core_Version>
     <EsUtil_Platform_Core_Windows_Version>0.1.1</EsUtil_Platform_Core_Windows_Version>
     <EsUtil_Feature_Loupe_Core_Version>0.1.1</EsUtil_Feature_Loupe_Core_Version>
     <EsUtil_Feature_Loupe_Presenter_Version>0.1.1</EsUtil_Feature_Loupe_Presenter_Version>

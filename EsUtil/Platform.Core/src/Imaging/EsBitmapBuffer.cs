@@ -13,7 +13,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// アセンブリの外へ出さないためである（公開面の型に置くと、読み取り専用の型が書き込みの入口を持つ）。<br/>
 /// <b>ファイル入出力</b>: <see cref="LoadFromFile"/> / <see cref="SaveToFile(string)"/> は<b>画素の寿命の両端</b>であり、
 /// 画素を持つ本型が受ける（公開面の <c>Load</c> / <c>Save</c> は本型へ転送するだけになる）。 実装は
-/// <see cref="WinGdiPlusImageCodec"/> が単一所有する（<b>Windows 専用</b>）。<br/>
+/// <see cref="WinWicImageCodec"/> が単一所有する（<b>Windows 専用</b>）。<br/>
 /// <b>画素形式</b>: BGRA8888（アルファ乗算済み）。 ストライドは <c>幅 × <see cref="BytesPerPixel"/></c>（行パディングなし）に
 /// 固定する（連続した領域として <see cref="ReadOnlyPixels"/> で公開し、相互変換が同じ手順を使えるようにするため）。<br/>
 /// <b>確保と借用</b>: <see cref="Allocate"/> は 64 バイト整列で確保し、<see cref="Borrow"/> は呼び出し側が確保した
@@ -133,14 +133,14 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <b>0 埋めを省く</b>: 生成の直後にデコード結果で全領域を書くため、未初期化で確保する。<br/>
     /// <b>中間バッファを作らない</b>: デコードは確保した画素領域へ直接書く（中間バッファを挟むと、
     /// その確保と複製の分だけ余分に費用がかかる）。<br/>
-    /// <b>Windows 専用</b>（デコードの実装は GDI+ であり、<see cref="WinGdiPlusImageCodec"/> が単一所有する）。
+    /// <b>Windows 専用</b>（デコードの実装は GDI+ であり、<see cref="WinWicImageCodec"/> が単一所有する）。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
     /// または画像として解釈できない場合。</exception>
     [SupportedOSPlatform("windows")]
     internal static EsBitmapBuffer LoadFromFile(string filePath)
-        => WinGdiPlusImageCodec.DecodeFromFile(filePath, (width, height, fill) =>
+        => WinWicImageCodec.DecodeFromFile(filePath, (width, height, fill) =>
         {
             var buffer = Allocate(width, height, clear: false);
             try
@@ -343,7 +343,7 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <remarks>
     /// <b>画素は複製しない</b>: <see cref="ReadOnlyPixels"/> のビューをそのままエンコードへ渡す（一時バッファを確保しない）。<br/>
     /// 形式の決め方と使える値は <see cref="SaveToFile(string, EsImageSaveOptions)"/> を参照。<br/>
-    /// <b>Windows 専用</b>（エンコードの実装は GDI+ であり、<see cref="WinGdiPlusImageCodec"/> が単一所有する）。
+    /// <b>Windows 専用</b>（エンコードの実装は GDI+ であり、<see cref="WinWicImageCodec"/> が単一所有する）。
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="EsReadOnlyBitmap.SupportedFileExtensions"/>）。</exception>
@@ -357,7 +357,7 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <param name="options">保存のオプション（形式ごとに使える項目が異なる。 既定は拡張子が形式を決める）。</param>
     /// <remarks>
     /// <b>形式の決め方と使える値</b>の規則は公開面（<see cref="EsReadOnlyBitmap.Save(string, EsImageSaveOptions)"/> の備考）が
-    /// 単一所有し、本メソッドは受け取った値をそのまま <see cref="WinGdiPlusImageCodec.EncodeToFile(ReadOnlySpan{byte}, int, int, string, EsImageSaveOptions)"/> へ渡す。
+    /// 単一所有し、本メソッドは受け取った値をそのまま <see cref="WinWicImageCodec.EncodeToFile(ReadOnlySpan{byte}, int, int, string, EsImageSaveOptions)"/> へ渡す。
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または
     /// <paramref name="filePath"/> の拡張子と <see cref="EsImageSaveOptions.Format"/> が食い違い
@@ -372,7 +372,7 @@ internal sealed class EsBitmapBuffer : IDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         ThrowIfDisposed();
-        WinGdiPlusImageCodec.EncodeToFile(ReadOnlyPixels, Width, Height, filePath, options);
+        WinWicImageCodec.EncodeToFile(ReadOnlyPixels, Width, Height, filePath, options);
     }
 
     /// <summary>破棄済みなら <see cref="ObjectDisposedException"/> を送出する。</summary>

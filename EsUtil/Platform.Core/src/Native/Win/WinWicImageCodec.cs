@@ -1,38 +1,28 @@
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
-/// <summary>画像のファイル保存・読み込みの実装（GDI+ のフラット API を使う Windows 専用）。</summary>
+/// <summary>画像のファイル保存・読み込みの実装（WIC を使う Windows 専用）。</summary>
 /// <remarks>
-/// <b>唯一の実装</b>: 公開面は画像型のメンバー（<see cref="EsUtil.Platform.Core.Imaging.EsReadOnlyBitmap.Save(string)"/> /
-/// <see cref="EsUtil.Platform.Core.Imaging.EsBitmap.Save(string)"/> /
-/// <see cref="EsUtil.Platform.Core.Imaging.EsReadOnlyBitmap.Load(string)"/> / <see cref="EsUtil.Platform.Core.Imaging.EsBitmap.Load(string)"/>) であり、
-/// 本クラスはその実装を 1 箇所へ集約する（本層は internal）。<br/>
+/// <b>唯一の実装</b>: 公開面は画像型のメンバー（<see cref="EsReadOnlyBitmap.Save(string)"/> /
+/// <see cref="EsBitmap.Save(string)"/> / <see cref="EsReadOnlyBitmap.Load(string)"/> /
+/// <see cref="EsBitmap.Load(string)"/>）であり、本クラスはその実装を 1 箇所へ集約する（本層は internal）。<br/>
 /// <b>画像型を知らない</b>: 符号化は受け取ったピクセル バイト列を書き
 /// （<see cref="EncodeToFile(ReadOnlySpan{byte}, int, int, string)"/>）、復号は生成処理を受け取って
-/// デコード結果をその領域へ直接書く（<see cref="DecodeFromFile{T}(string, Func{int, int, Action{Span{byte}}, T})"/>）。
-/// 画像型（<c>EsReadOnlyBitmap</c> 等）を名指ししないため、画像型が要るのは公開面だけになる。<br/>
+/// デコード結果をその領域へ直接書く（<see cref="DecodeFromFile{T}(string, Func{int, int, Action{Span{byte}}, T})"/>）。<br/>
 /// <b>依存分離</b>: ファイル形式（BMP / PNG / JPEG / GIF / TIFF）のエンコード・デコードは OS の
-/// <c>gdiplus.dll</c> が担い、<b>外部パッケージ（<c>System.Drawing.Common</c> 等）を参照しない</b>。<br/>
-/// <b>形式は拡張子が決める</b>: <see cref="EncodeToFile(ReadOnlySpan{byte}, int, int, string)"/> は保存先の拡張子から形式を選ぶ。
-/// <b>未対応の拡張子は例外にする</b>（PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルが
-/// できて気付かない。 対応形式は <see cref="SupportedExtensions"/> が単一所有する）。<br/>
-/// <b>Windows 専用</b>: <c>gdiplus.dll</c> は Windows でのみ利用可能（<see cref="SupportedOSPlatformAttribute"/> で限定）。<br/>
-/// <b>副作用（実測）</b>: 初回の呼び出しで GDI+ をプロセス単位に初期化するため、
-/// <b>バックグラウンド スレッドが 1 本増え</b>（GDI+ が表示設定の通知を受け取るため）、
-/// <b>解放されない参照カウントを 1 つ取り</b>（<c>GdiplusShutdown</c> は呼ばない。 呼ぶとホストの GDI+ を止めうる）、
-/// <b>初回だけ約 5 ms の遅延が乗る</b>。 GDI+ を他に使っていないプロセスだけが影響を受けます
-/// （<c>System.Drawing.Common</c> を使うホストには同じ初期化とスレッドが既にあります）。<br/>
-/// <b>WebP / HEIF を対応形式へ入れない理由（実測）</b>: GDI+ のエンコーダーは 5 件だけである
-/// （<c>GdipGetImageEncoders</c> が返すのは BMP / JPEG / GIF / TIFF / PNG）。 WebP / HEIF のエンコーダーは無く、
-/// 存在しない形式の CLSID を渡した <c>GdipSaveImageToFile</c> は失敗するか<b>別形式（PNG）を書く</b>ため、
-/// 拡張子と実体が食い違うファイルができる（PNG の CLSID と <c>.webp</c> のパスでは PNG が書かれる）。<br/>
+/// WIC（<c>windowscodecs.dll</c>）が担い、<b>外部パッケージ（<c>System.Drawing.Common</c> 等）を参照しない</b>。
+/// WIC は OS の一部であるため、追加の配布物も追加のスレッドも要らない。<br/>
+/// <b>形式は拡張子が決める</b>: 保存先の拡張子から形式を選び、<b>未対応の拡張子は例外にする</b>
+/// （PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かない。
+/// 対応形式は <see cref="SupportedExtensions"/> が単一所有する）。<br/>
+/// <b>Windows 専用</b>: WIC は Windows でのみ利用可能（<see cref="SupportedOSPlatformAttribute"/> で限定）。<br/>
 /// <b>制限</b>: JPEG / BMP はアルファ（透明度）を保存できない（形式の仕様）。 透過を保つ場合は PNG を選ぶこと。
 /// </remarks>
-internal static class WinGdiPlusImageCodec
+[SupportedOSPlatform("windows")]
+internal static class WinWicImageCodec
 {
     /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
     internal static readonly IReadOnlyList<string> SupportedExtensions = [".bmp", ".png", ".jpg", ".jpeg", ".gif", ".tif", ".tiff"];
@@ -43,6 +33,23 @@ internal static class WinGdiPlusImageCodec
     /// <summary>JPEG の品質として許容する最大値。</summary>
     internal const int JpegQualityMaximum = 100;
 
+    /// <summary>形式ごとのコンテナ GUID。</summary>
+    /// <remarks>
+    /// <b>実測値を持つ</b>: <c>IWICImagingFactory::CreateComponentEnumerator</c> で、この環境に登録されている
+    /// デコーダーとエンコーダーのコンテナ形式と拡張子を列挙して確かめた値である（既定の 5 形式は
+    /// <c>wincodec.h</c> の <c>GUID_ContainerFormat*</c> と一致する）。<br/>
+    /// <b>公表値を写さない理由</b>: GUID を 1 文字でも取り違えると
+    /// <c>WINCODEC_ERR_COMPONENTNOTFOUND</c>（<c>0x88982F50</c>）になり、原因が分かりにくい。
+    /// </remarks>
+    private static readonly Dictionary<ImageFileFormat, Guid> s_containerFormats = new()
+    {
+        [ImageFileFormat.Bmp] = new Guid("0AF1D87E-FCFE-4188-BDEB-A7906471CBE3"),
+        [ImageFileFormat.Png] = new Guid("1B7CFAF4-713F-473C-BBCD-6137425FAEAF"),
+        [ImageFileFormat.Jpeg] = new Guid("19E4A5AA-5662-4FC5-A0C0-1758028E1057"),
+        [ImageFileFormat.Gif] = new Guid("1F8A5601-7D4D-4CBD-9C82-1BC8D4EEB9A5"),
+        [ImageFileFormat.Tiff] = new Guid("163BCC30-E2E9-4F0B-961D-A3E9FDB788A3"),
+    };
+
     /// <summary>ピクセル データをファイルへエンコードする（形式は拡張子が決める。 オプションは既定）。</summary>
     /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
     /// <param name="width">幅（ピクセル）。</param>
@@ -51,9 +58,8 @@ internal static class WinGdiPlusImageCodec
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または
     /// <paramref name="pixels"/> の長さが <c>幅 × 4 × 高さ</c> と一致しない場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedExtensions"/>）。</exception>
-    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合（<see cref="Win32Exception"/> で状態値を持つ）。</exception>
+    /// <exception cref="Win32Exception">エンコード（WIC）が失敗した場合（状態値を持つ）。</exception>
     /// <remarks>形式ごとの調整値は <see cref="EncodeToFile(ReadOnlySpan{byte}, int, int, string, EsImageSaveOptions)"/> を使う。</remarks>
-    [SupportedOSPlatform("windows")]
     internal static void EncodeToFile(ReadOnlySpan<byte> pixels, int width, int height, string filePath)
         => EncodeToFile(pixels, width, height, filePath, default);
 
@@ -65,36 +71,18 @@ internal static class WinGdiPlusImageCodec
     /// <param name="options">保存のオプション（既定の場合は <c>default</c>）。</param>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、
     /// <paramref name="pixels"/> の長さが <c>幅 × 4 × 高さ</c> と一致しない場合、または
-    /// <paramref name="filePath"/> の拡張子と <paramref name="options"/> の形式が食い違い
-    /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
+    /// 拡張子と <paramref name="options"/> の形式が食い違い <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedExtensions"/>）、または
     /// <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
-    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合（<see cref="Win32Exception"/> で状態値を持つ）。</exception>
+    /// <exception cref="Win32Exception">エンコード（WIC）が失敗した場合（状態値を持つ）。</exception>
     /// <remarks>
-    /// 保存形式は<b>拡張子</b>から決める（<c>.bmp</c> = Windows Bitmap / <c>.png</c> / <c>.jpg</c> / <c>.jpeg</c> /
+    /// <b>保存形式は拡張子から決める</b>（<c>.bmp</c> / <c>.png</c> / <c>.jpg</c> / <c>.jpeg</c> /
     /// <c>.gif</c> / <c>.tif</c> / <c>.tiff</c>）。 <see cref="EsImageSaveOptions.Format"/> を指定した場合は
-    /// <b>形式の方が優先</b>され、次のように扱う:
-    ///
-    /// <list type="table">
-    /// <item><term>拡張子が無い</term><description>指定形式の拡張子を補完して保存する（<c>shot</c> + PNG → <c>shot.png</c>）。</description></item>
-    /// <item><term>拡張子が同じ形式</term><description>そのまま保存する。</description></item>
-    /// <item><term>拡張子が違う形式</term><description><see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が true なら<b>指定形式で</b>与えられたファイル名へ保存する。 false なら <see cref="ArgumentException"/>。</description></item>
-    /// <item><term>拡張子が未対応（<c>.webp</c> 等）</term><description>フラグが true なら指定形式で保存し、false なら <see cref="NotSupportedException"/>（拡張子が対応形式でない場合と同じ）。</description></item>
-    /// </list>
-    ///
-    /// <b>形式を引数にしない理由</b>: 形式を表す引数（enum 等）を必須にすると、拡張子との整合を呼び出し側が保つ必要が生じ、
-    /// 食い違った場合は拡張子と実体がずれたファイルができる（形式の単一所有は <see cref="SupportedExtensions"/> である）。
-    /// <b>本オプションはその食い違いを明示的に選んだ場合だけ許す</b>。<br/>
-    /// <b>オプションは形式ごとに検証する</b>: その形式で反映されない項目を設定した場合は例外にする
-    /// （黙って無視すると「設定したのに効かない」ことに気付かない）。<br/>
-    /// <b>GDI+ の初期化より前に判定する</b>: 拡張子とオプションの検証は GDI+ の初期化（副作用を持つ）より先に行うため、
-    /// 拒否される呼び出しは GDI+ を初期化しない。<br/>
-    /// <b>ピクセルは複製しない</b>: 受け取ったバイト列を指す GDI+ のビットマップを作り、そのままエンコードする<br/>
-    /// （ストライドは <c>幅 × 4</c> 固定。 行パディングを持つ画像を受け取らない）。<br/>
+    /// <b>形式の方が優先</b>され、<see cref="ResolveTarget"/> の規則で保存先が決まる。<br/>
+    /// <b>減色する場合と GIF は 8bpp のインデックス カラーとして書く</b>（<see cref="ResolveColorCount"/>）。<br/>
     /// <b>JPEG / BMP はアルファを保存できない</b>（透過を保つ場合は PNG を選ぶ）。
     /// </remarks>
-    [SupportedOSPlatform("windows")]
     internal static void EncodeToFile(ReadOnlySpan<byte> pixels, int width, int height, string filePath, EsImageSaveOptions options)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -120,28 +108,48 @@ internal static class WinGdiPlusImageCodec
             return;
         }
 
-        WinGdiPlusLifetime.EnsureInitialized();
-
-        unsafe
+        var factory = OpenFactory();
+        try
         {
-            fixed (byte* p = pixels)
+            var encoder = CreateEncoderFor(factory, format);
+            try
             {
-                var status = WinNative.GdipCreateBitmapFromScan0(
-                    width, height, stride, WinNative.GpPixelFormat32bppPArgb, (nint)p, out var image);
-                if (status != WinNative.GpOk)
-                {
-                    throw new Win32Exception(status, $"保存用のビットマップを作成できませんでした（GDI+ の状態: {status}）。");
-                }
-
+                var stream = CreateStreamFor(factory, targetPath);
                 try
                 {
-                    SaveImage(image, targetPath, format, options);
+                    var frame = CreateFrame(factory, encoder, stream, width, height, options, palette: null, out var properties);
+                    try
+                    {
+                        var pixelFormat = WinNative.WicPixelFormat32bppPBgra;
+                        WinWicCom.ThrowIfFailed(
+                            WinWicCom.SetFramePixelFormat(frame, ref pixelFormat),
+                            $"保存する画像のピクセル形式を設定できませんでした（{ToPublicName(format)}）。");
+
+                        WritePixels(frame, width, height, pixels, pixelFormat, format);
+                        WinWicCom.ThrowIfFailed(WinWicCom.CommitFrame(frame), $"'{targetPath}' の画像を確定できませんでした。");
+
+                        // ストリームが生きているうちに確定する（確定してから解放すると内容が書かれない）
+                        WinWicCom.ThrowIfFailed(WinWicCom.CommitEncoder(encoder), $"'{targetPath}' へ保存できませんでした。");
+                    }
+                    finally
+                    {
+                        WinWicCom.Release(frame);
+                        WinWicCom.Release(properties);
+                    }
                 }
                 finally
                 {
-                    WinNative.GdipDisposeImage(image);
+                    WinWicCom.Release(stream);
                 }
             }
+            finally
+            {
+                WinWicCom.Release(encoder);
+            }
+        }
+        finally
+        {
+            WinWicCom.Release(factory);
         }
     }
 
@@ -154,27 +162,23 @@ internal static class WinGdiPlusImageCodec
     /// <param name="colorCount">減色して残す色数。</param>
     /// <param name="quality">減色の品質。</param>
     /// <param name="dither">減色のディザ。</param>
-    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    /// <exception cref="Win32Exception">エンコード（WIC）が失敗した場合。</exception>
     /// <remarks>
-    /// <b>なぜ 8bpp で書くのか（実測）</b>: 32bpp のまま減色しても、GDI+ の PNG エンコーダーはパレット PNG を書かない
+    /// <b>なぜ 8bpp で書くのか</b>: 32bpp のまま減色しても、エンコーダーはパレット画像を書かない
     /// （減色の効果は圧縮率の向上だけであり、BMP では 1 バイトも減らない）。
-    /// <b>8bpp のインデックス カラー（パレット付き）を渡すとパレット画像になる</b>
-    /// （実測: BMP 8,294,454 → 2,074,678 B / PNG 4,305,898 → 595,082 B。 いずれも <c>Load</c> で読み戻せる）。
-    /// <b>GIF もここを通る</b>（<see cref="ResolveColorCount"/> を参照。 GDI+ の GIF エンコーダーは
-    /// 透明色の番号をどの画素にも使わせないため、32bpp のまま渡すと透過が失われる）。<br/>
-    /// <b>GDI+ 側の前提</b>: ピクセルはコピーされないため<b>行幅を 4 バイト境界へ揃えた作業バッファ</b>を用意し、
-    /// 破棄するまで生存させる。 パレットは <c>GdipSetImagePalette</c> が複製するため、設定の後に解放してよい。
+    /// <b>8bpp のインデックス カラー（パレット付き）を渡すとパレット画像になる</b>。<br/>
+    /// <b>GIF もここを通る</b>（<see cref="ResolveColorCount"/> を参照。 GIF はパレットが必須であり、
+    /// 自前の量子化は透明な画素を透明なパレットの色へ割り当てるため透過が保たれる）。<br/>
+    /// <b>行幅を 4 バイト境界へ揃える</b>: BMP の行は 4 バイト境界へ揃えられるため、揃えないと
+    /// 読み戻した画像が斜めにずれる。
     /// </remarks>
-    [SupportedOSPlatform("windows")]
     private static void EncodeIndexedToFile(
         ReadOnlySpan<byte> pixels, int width, int height, string filePath, ImageFileFormat format, int colorCount,
         EsImageQuality quality, EsDitherMode dither)
     {
-        // エンコードへ渡る画素は常に密（行幅 = 幅 × 4）である
         var (indices, palette) = EsBitmapOperations.ReduceToIndexed(
             pixels, width, height, width * EsReadOnlyBitmap.BytesPerPixel, colorCount, quality, dither);
 
-        // GDI+ の行幅は 4 バイト境界へ揃えられる（8bpp では 1 行 = 幅 バイト）
         var stride = (width + 3) & ~3;
         var rows = new byte[stride * height];
         for (var y = 0; y < height; y++)
@@ -182,76 +186,269 @@ internal static class WinGdiPlusImageCodec
             indices.AsSpan(y * width, width).CopyTo(rows.AsSpan(y * stride, width));
         }
 
-        WinGdiPlusLifetime.EnsureInitialized();
-        var clsid = GetEncoderClsid(format);
-
-        unsafe
+        var factory = OpenFactory();
+        try
         {
-            fixed (byte* p = rows)
+            var encoder = CreateEncoderFor(factory, format);
+            try
             {
-                var status = WinNative.GdipCreateBitmapFromScan0(
-                    width, height, stride, WinNative.GpPixelFormat8bppIndexed, (nint)p, out var image);
-                if (status != WinNative.GpOk)
-                {
-                    throw new Win32Exception(status, $"減色した画像を作成できませんでした（GDI+ の状態: {status}）。");
-                }
-
+                var stream = CreateStreamFor(factory, filePath);
                 try
                 {
-                    SetPalette(image, palette);
-                    SaveImage(image, filePath, clsid);
+                    var frame = CreateFrame(factory, encoder, stream, width, height, default, palette, out var properties);
+                    try
+                    {
+                        var pixelFormat = WinNative.WicPixelFormat8bppIndexed;
+                        WinWicCom.ThrowIfFailed(
+                            WinWicCom.SetFramePixelFormat(frame, ref pixelFormat),
+                            $"減色した画像のピクセル形式を設定できませんでした（{ToPublicName(format)}）。");
+
+                        if (pixelFormat != WinNative.WicPixelFormat8bppIndexed)
+                        {
+                            throw new NotSupportedException(
+                                $"この環境の {ToPublicName(format)} エンコーダーはパレット画像を書けません（{pixelFormat}）。");
+                        }
+
+                        WritePixelsCore(frame, height, stride, rows, format);
+                        WinWicCom.ThrowIfFailed(WinWicCom.CommitFrame(frame), $"'{filePath}' の画像を確定できませんでした。");
+
+                        // ストリームが生きているうちに確定する（確定してから解放すると内容が書かれない）
+                        WinWicCom.ThrowIfFailed(WinWicCom.CommitEncoder(encoder), $"'{filePath}' へ保存できませんでした。");
+                    }
+                    finally
+                    {
+                        WinWicCom.Release(frame);
+                        WinWicCom.Release(properties);
+                    }
                 }
                 finally
                 {
-                    WinNative.GdipDisposeImage(image);
+                    WinWicCom.Release(stream);
                 }
             }
-        }
-    }
-
-    /// <summary>8bpp のインデックス カラーの画像へパレットを設定する。</summary>
-    /// <param name="image">対象の GDI+ の画像。</param>
-    /// <param name="palette">パレット（ARGB）。</param>
-    /// <exception cref="Win32Exception">パレットを設定できなかった場合。</exception>
-    [SupportedOSPlatform("windows")]
-    private static void SetPalette(IntPtr image, uint[] palette)
-    {
-        var count = Math.Min(EsBitmapOperations.MaximumColorCount, palette.Length);
-        var memory = Marshal.AllocHGlobal(8 + (count * 4));
-        try
-        {
-            Marshal.WriteInt32(memory, 0, 0);          // Flags（0 = ARGB）
-            Marshal.WriteInt32(memory, 4, count);      // Count
-            for (var i = 0; i < count; i++)
+            finally
             {
-                Marshal.WriteInt32(memory, 8 + (i * 4), unchecked((int)palette[i]));
-            }
-
-            var status = WinNative.GdipSetImagePalette(image, memory);
-            if (status != WinNative.GpOk)
-            {
-                throw new Win32Exception(status, $"パレットを設定できませんでした（GDI+ の状態: {status}）。");
+                WinWicCom.Release(encoder);
             }
         }
         finally
         {
-            Marshal.FreeHGlobal(memory);
+            WinWicCom.Release(factory);
         }
     }
 
-    /// <summary>GDI+ の画像をファイルへ書き出す（エンコーダー パラメーターなし）。</summary>
-    /// <param name="image">書き出す GDI+ の画像。</param>
-    /// <param name="filePath">保存先のファイルパス。</param>
-    /// <param name="clsid">使用するエンコーダーの CLSID。</param>
-    /// <exception cref="Win32Exception">保存できなかった場合。</exception>
-    [SupportedOSPlatform("windows")]
-    private static void SaveImage(IntPtr image, string filePath, Guid clsid)
+    /// <summary>WIC のイメージング ファクトリを生成する。</summary>
+    /// <returns>生成したファクトリ。 解放が必要。</returns>
+    /// <exception cref="Win32Exception">WIC を使えない場合。</exception>
+    private static IntPtr OpenFactory()
     {
-        var status = WinNative.GdipSaveImageToFile(image, filePath, ref clsid, IntPtr.Zero);
-        if (status != WinNative.GpOk)
+        var factory = WinNative.CreateImagingFactory();
+        return factory != IntPtr.Zero
+            ? factory
+            : throw new Win32Exception(0, "WIC（Windows Imaging Component）を使えませんでした。");
+    }
+
+    /// <summary>形式を書き出せるエンコーダーを作る。</summary>
+    /// <param name="factory">イメージング ファクトリ。</param>
+    /// <param name="format">保存する形式。</param>
+    /// <returns>生成したエンコーダー。 解放が必要。</returns>
+    /// <exception cref="NotSupportedException">その形式を書き出せるエンコーダーが無い場合。</exception>
+    private static IntPtr CreateEncoderFor(IntPtr factory, ImageFileFormat format)
+    {
+        if (WinNative.Succeeded(WinWicCom.CreateEncoder(factory, s_containerFormats[format], out var encoder)))
         {
-            throw new Win32Exception(status, $"'{filePath}' へ保存できませんでした（GDI+ の状態: {status}）。");
+            return encoder;
         }
+
+        throw new NotSupportedException(
+            $"この環境には {ToPublicName(format)} 形式を書き出すエンコーダーがありません。");
+    }
+
+    /// <summary>ファイルへ結び付けた書き込み用のストリームを作る。</summary>
+    /// <param name="factory">イメージング ファクトリ。</param>
+    /// <param name="filePath">保存先のファイルパス。</param>
+    /// <returns>生成したストリーム。 解放が必要。</returns>
+    /// <exception cref="Win32Exception">ファイルを開けなかった場合、またはストリームを作れなかった場合。</exception>
+    private static IntPtr CreateStreamFor(IntPtr factory, string filePath)
+    {
+        WinWicCom.ThrowIfFailed(WinWicCom.CreateStream(factory, out var stream), $"'{filePath}' を書き込み用に開けませんでした。");
+        try
+        {
+            WinWicCom.ThrowIfFailed(
+                WinWicCom.InitializeStreamForWrite(stream, filePath),
+                $"'{filePath}' を書き込み用に開けませんでした。");
+            return stream;
+        }
+        catch
+        {
+            // 失敗したストリームを解放してから呼び出し側へ伝える（解放しないとファイルが開いたままになる）
+            WinWicCom.Release(stream);
+            throw;
+        }
+    }
+
+    /// <summary>エンコーダーへフレームを作り、寸法・パレット・オプションを設定する。</summary>
+    /// <param name="factory">イメージング ファクトリ。</param>
+    /// <param name="encoder">対象のエンコーダー。</param>
+    /// <param name="stream">書き込み先のストリーム。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="options">保存のオプション（品質を書き込む）。</param>
+    /// <param name="palette">パレット（インデックス カラーでない場合は <c>null</c>）。</param>
+    /// <param name="properties">エンコーダーが用意したオプション（解放が必要）。</param>
+    /// <returns>生成したフレーム（解放が必要）。</returns>
+    /// <exception cref="Win32Exception">エンコーダーを初期化できなかった場合。</exception>
+    /// <remarks>
+    /// <b>エンコーダーの初期化は 1 回だけ</b>である（<c>IWICBitmapEncoder::Initialize</c> を 2 回呼ぶと失敗する）。
+    /// そのため、ここで初期化・フレーム作成・オプション設定・寸法・パレットをまとめて行う。<br/>
+    /// <b>返した 2 つは呼び出し側が解放する</b>: 解放しないとエンコーダーとストリームが生き残り、
+    /// <b>保存したファイルが開いたまま</b>になる（実測: 直後の読み込みや削除が共有違反で失敗した）。
+    /// </remarks>
+    private static IntPtr CreateFrame(
+        IntPtr factory, IntPtr encoder, IntPtr stream, int width, int height, in EsImageSaveOptions options,
+        uint[]? palette, out IntPtr properties)
+    {
+        WinWicCom.ThrowIfFailed(WinWicCom.InitializeEncoder(encoder, stream), "エンコーダーを初期化できませんでした。");
+        WinWicCom.ThrowIfFailed(
+            WinWicCom.CreateNewFrame(encoder, out var frame, out properties),
+            "画像のフレームを作成できませんでした。");
+
+        if (options.JpegQuality is int quality)
+        {
+            // WIC の品質は 0.0〜1.0 の実数である（公開面は 0〜100 の整数）
+            WinWicCom.ThrowIfFailed(
+                WinWicCom.WriteRealOption(properties, "ImageQuality", quality / (float)JpegQualityMaximum),
+                "JPEG の品質を設定できませんでした。");
+        }
+
+        WinWicCom.ThrowIfFailed(WinWicCom.InitializeFrame(frame, properties), "画像のフレームを初期化できませんでした。");
+        WinWicCom.ThrowIfFailed(
+            WinWicCom.SetFrameSize(frame, (uint)width, (uint)height),
+            $"画像の寸法（{width}x{height}）を設定できませんでした。");
+
+        if (palette is null)
+        {
+            return frame;
+        }
+
+        WinWicCom.ThrowIfFailed(WinWicCom.CreatePalette(factory, out var instance), "パレットを作成できませんでした。");
+        try
+        {
+            WinWicCom.ThrowIfFailed(
+                WinWicCom.InitializePalette(instance, palette),
+                "パレットの色を設定できませんでした。");
+            WinWicCom.ThrowIfFailed(WinWicCom.SetFramePalette(frame, instance), "パレットを画像へ設定できませんでした。");
+        }
+        finally
+        {
+            WinWicCom.Release(instance);
+        }
+
+        return frame;
+    }
+
+    /// <summary>エンコーダーが受け付けたピクセル形式へ直してから画素を書き込む。</summary>
+    /// <param name="frame">対象のフレーム。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="pixels">画素（BGRA8888・アルファ乗算済み。 行幅は密）。</param>
+    /// <param name="pixelFormat"><c>SetPixelFormat</c> が返したピクセル形式。</param>
+    /// <param name="format">保存する形式（例外メッセージ用）。</param>
+    /// <exception cref="NotSupportedException">想定していないピクセル形式が返された場合。</exception>
+    /// <exception cref="Win32Exception">書き込めなかった場合。</exception>
+    /// <remarks>
+    /// <b>要求と返答が違う（実測）</b>: アルファ乗算済みの BGRA を要求しても、PNG / TIFF は
+    /// アルファ乗算なしの BGRA、JPEG は 24bpp の BGR を返す（JPEG はアルファを持てない形式である）。
+    /// そのため<b>返された形式に合わせて並びを直してから書く</b>（エンコーダーは形式の変換をしない）。
+    /// BMP だけは要求どおりアルファ乗算済みを受け付けるため、コピーを作らない。
+    /// </remarks>
+    private static void WritePixels(IntPtr frame, int width, int height, ReadOnlySpan<byte> pixels, Guid pixelFormat, ImageFileFormat format)
+    {
+        if (pixelFormat == WinNative.WicPixelFormat32bppPBgra)
+        {
+            WritePixelsCore(frame, height, width * EsReadOnlyBitmap.BytesPerPixel, pixels, format);
+            return;
+        }
+
+        if (pixelFormat == WinNative.WicPixelFormat32bppBgra)
+        {
+            WritePixelsCore(frame, height, width * EsReadOnlyBitmap.BytesPerPixel, Unpremultiply(pixels), format);
+            return;
+        }
+
+        if (pixelFormat == WinNative.WicPixelFormat24bppBgr)
+        {
+            WritePixelsCore(frame, height, width * 3, ToBgr24(pixels, width, height), format);
+            return;
+        }
+
+        throw new NotSupportedException(
+            $"この環境の {ToPublicName(format)} エンコーダーは想定外のピクセル形式を要求しました（{pixelFormat}）。");
+    }
+
+    /// <summary>行幅を指定して画素を書き込む。</summary>
+    /// <param name="frame">対象のフレーム。</param>
+    /// <param name="height">行数。</param>
+    /// <param name="stride">行幅（バイト）。</param>
+    /// <param name="pixels">画素（行幅が密な並び）。</param>
+    /// <param name="format">保存する形式（例外メッセージ用）。</param>
+    /// <exception cref="Win32Exception">書き込めなかった場合。</exception>
+    private static unsafe void WritePixelsCore(IntPtr frame, int height, int stride, ReadOnlySpan<byte> pixels, ImageFileFormat format)
+    {
+        fixed (byte* source = pixels)
+        {
+            WinWicCom.ThrowIfFailed(
+                WinWicCom.WritePixels(frame, (uint)height, (uint)stride, (uint)pixels.Length, source),
+                $"{ToPublicName(format)} 形式の画素を書き込めませんでした。");
+        }
+    }
+
+    /// <summary>アルファ乗算済みの画素を、乗算していない並びへ直す。</summary>
+    /// <param name="pixels">アルファ乗算済みの画素（BGRA）。</param>
+    /// <returns>乗算していない画素（BGRA）。</returns>
+    /// <remarks>
+    /// <b>必要な場合だけ呼ぶ</b>: エンコーダーがアルファ乗算済みを受け付ける場合はコピーを作らない
+    /// （受け付けるかどうかは <c>SetPixelFormat</c> が返した形式で判定する）。
+    /// </remarks>
+    private static byte[] Unpremultiply(ReadOnlySpan<byte> pixels)
+    {
+        var straight = pixels.ToArray();
+        for (var i = 0; i < straight.Length; i += EsReadOnlyBitmap.BytesPerPixel)
+        {
+            var alpha = straight[i + 3];
+            if (alpha is 0 or 255)
+            {
+                continue;
+            }
+
+            for (var channel = 0; channel < 3; channel++)
+            {
+                var value = (straight[i + channel] * 255) + (alpha / 2);
+                straight[i + channel] = (byte)Math.Min(255, value / alpha);
+            }
+        }
+
+        return straight;
+    }
+
+    /// <summary>アルファ乗算済みの BGRA を 24bpp の BGR へ直す。</summary>
+    /// <param name="pixels">アルファ乗算済みの画素（BGRA）。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <returns>BGR の画素（行幅は <c>幅 × 3</c>）。</returns>
+    /// <remarks>アルファを持てない形式（JPEG）向けに、乗算を解いてからアルファを落とす。</remarks>
+    private static byte[] ToBgr24(ReadOnlySpan<byte> pixels, int width, int height)
+    {
+        var straight = Unpremultiply(pixels);
+        var result = new byte[width * 3 * height];
+        for (var i = 0; i < width * height; i++)
+        {
+            result[(i * 3) + 0] = straight[(i * 4) + 0];
+            result[(i * 3) + 1] = straight[(i * 4) + 1];
+            result[(i * 3) + 2] = straight[(i * 4) + 2];
+        }
+
+        return result;
     }
 
     /// <summary>保存する形式と実際の保存先を決める（拡張子の補完と食い違いの判定を含む）。</summary>
@@ -266,7 +463,6 @@ internal static class WinGdiPlusImageCodec
     /// <b>形式を指定した場合は形式が優先</b>され、拡張子が無ければ補完し、食い違いは
     /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> で判定する。
     /// </remarks>
-    [SupportedOSPlatform("windows")]
     private static (ImageFileFormat Format, string FilePath) ResolveTarget(string filePath, in EsImageSaveOptions options)
     {
         var extension = Path.GetExtension(filePath);
@@ -316,7 +512,6 @@ internal static class WinGdiPlusImageCodec
     /// <returns>保存する形式。</returns>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合、または設定されたオプションがその形式で使えない場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException">JPEG の品質が許容範囲外の場合。</exception>
-    [SupportedOSPlatform("windows")]
     private static ImageFileFormat ResolveExtension(string extension, in EsImageSaveOptions options)
     {
         var format = TryResolveExtension(extension) ?? throw CreateUnsupportedExtension(extension);
@@ -327,7 +522,6 @@ internal static class WinGdiPlusImageCodec
     /// <summary>拡張子から形式を求める（未対応の場合は null）。</summary>
     /// <param name="extension">拡張子（先頭のドットを含む。 空の場合もある）。</param>
     /// <returns>形式。 未対応の場合は null。</returns>
-    [SupportedOSPlatform("windows")]
     private static ImageFileFormat? TryResolveExtension(string extension)
         => extension.ToUpperInvariant() switch
         {
@@ -346,13 +540,12 @@ internal static class WinGdiPlusImageCodec
     /// <exception cref="InvalidOperationException">減色しない保存へ減色の指定（品質・ディザ）が設定されている場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException">値が許容範囲外の場合。</exception>
     /// <remarks>
-    /// <b>品質を使えるのは JPEG だけである</b>（他の形式は品質を受け取っても出力が変わらない。 実測）。
-    /// <b>減色を使えるのは BMP / PNG / GIF だけである</b>（パレットを持てる形式。 実測で確認した 3 形式）。
+    /// <b>品質を使えるのは JPEG だけである</b>（他の形式は品質を受け取っても出力が変わらない）。
+    /// <b>減色を使えるのは BMP / PNG / GIF だけである</b>（パレットを持てる形式）。
     /// <b>減色の品質とディザは減色が行われる場合だけ意味を持つ</b>（<see cref="EsImageSaveOptions.ColorCount"/> を
     /// 指定した場合、または GIF へ保存する場合）。 黙って無視すると「設定したのに効かない」ことに気付かないため、
     /// 例外にする。
     /// </remarks>
-    [SupportedOSPlatform("windows")]
     private static void ValidateOptions(ImageFileFormat format, in EsImageSaveOptions options)
     {
         if (options.ColorCount is int colorCount)
@@ -375,7 +568,7 @@ internal static class WinGdiPlusImageCodec
             && quality is not (EsImageQuality.Low or EsImageQuality.Mid or EsImageQuality.High))
         {
             throw new ArgumentOutOfRangeException(
-                nameof(options), quality, "定義されていない減色の品質です。");
+                nameof(options), quality, "定義されていない減色の品質の指定です。");
         }
 
         if (options.Dither is EsDitherMode dither
@@ -420,7 +613,7 @@ internal static class WinGdiPlusImageCodec
     /// <param name="optionName">指定されたオプションの名前。</param>
     /// <returns>送出する例外。</returns>
     /// <remarks>
-    /// <b>黙って無視しない理由</b>: 本型の他の項目と同じ規則です（設定したのに効かないことに気付かないため）。
+    /// <b>黙って無視しない理由</b>: 本型の他の項目と同じ規則である（設定したのに効かないことに気付かないため）。
     /// 例外の種類は「その組み合わせでは使えない」を表す <see cref="InvalidOperationException"/> にする
     /// （形式そのものが使えない場合は <see cref="NotSupportedException"/> である）。
     /// </remarks>
@@ -436,7 +629,6 @@ internal static class WinGdiPlusImageCodec
     /// 確かめたのは BMP / PNG / GIF である。 JPEG はパレットを持てない（必ず減色結果が壊れる）。
     /// TIFF はパレットを持てる形式だが<b>未検証</b>のため受け付けない（未検証の組み合わせを黙って通さない）。
     /// </remarks>
-    [SupportedOSPlatform("windows")]
     private static bool SupportsPalette(ImageFileFormat format)
         => format is ImageFileFormat.Bmp or ImageFileFormat.Png or ImageFileFormat.Gif;
 
@@ -445,14 +637,10 @@ internal static class WinGdiPlusImageCodec
     /// <param name="options">保存のオプション（検証済み）。</param>
     /// <returns>残す色数。 量子化しない場合は null。</returns>
     /// <remarks>
-    /// <b>GIF は指定が無くても常に量子化する</b>: GIF はパレットが必須の形式であり、
-    /// <b>GDI+ の GIF エンコーダーは透明色の番号を書くがその番号をどの画素にも使わせない</b>ため、
-    /// 32bpp のまま渡すと<b>透過が失われる</b>（透明色の指定は番号を指すが、GDI+ / System.Drawing /
-    /// SkiaSharp のいずれで読み戻しても全画素が不透明になった）。 自前の量子化は透明な画素を透明な
-    /// パレットの色へ割り当てるため、透過が保たれる。 副次的に<b>ファイルも小さく画質も良くなる</b>
-    /// （GDI+ の既定の量子化より誤差が小さい）。
+    /// <b>GIF は指定が無くても常に量子化する</b>: GIF はパレットが必須の形式である。
+    /// 自前の量子化は透明な画素を透明なパレットの色へ割り当てるため、透過が保たれる。
+    /// 副次的に<b>ファイルも小さく画質も良くなる</b>。
     /// </remarks>
-    [SupportedOSPlatform("windows")]
     private static int? ResolveColorCount(ImageFileFormat format, in EsImageSaveOptions options)
         => options.ColorCount is int colorCount
             ? colorCount
@@ -462,7 +650,6 @@ internal static class WinGdiPlusImageCodec
     /// <param name="format">公開の形式。</param>
     /// <returns>内部の形式。</returns>
     /// <exception cref="ArgumentOutOfRangeException">定義されていない値の場合。</exception>
-    [SupportedOSPlatform("windows")]
     private static ImageFileFormat ToFormat(EsImageFileFormat format)
         => format switch
         {
@@ -479,7 +666,6 @@ internal static class WinGdiPlusImageCodec
     /// <returns><see cref="EsImageFileFormat"/> の対応する値の名前。</returns>
     /// <remarks>公開の enum と内部の enum は<b>同じ名前の値を持つ</b>（対応を名前で読み取れるようにするため）。
     /// 内部の名前をそのまま使うと、対応が崩れたときに気付きにくくなるため対応表を持つ。</remarks>
-    [SupportedOSPlatform("windows")]
     private static string ToPublicName(ImageFileFormat format)
         => format switch
         {
@@ -494,7 +680,6 @@ internal static class WinGdiPlusImageCodec
     /// <summary>拡張子が対応形式でないことを表す例外を作る。</summary>
     /// <param name="extension">対象の拡張子（空の場合もある）。</param>
     /// <returns>例外。</returns>
-    [SupportedOSPlatform("windows")]
     private static NotSupportedException CreateUnsupportedExtension(string extension)
         => new(extension.Length == 0
             ? $"拡張子が無いため保存形式を決められません。 拡張子を付けるか {nameof(EsImageSaveOptions)}.{nameof(EsImageSaveOptions.Format)} を指定してください。"
@@ -505,7 +690,6 @@ internal static class WinGdiPlusImageCodec
     /// <param name="format">保存する形式。</param>
     /// <returns>先頭のドットを含む拡張子。</returns>
     /// <remarks>別名（<c>.jpeg</c> / <c>.tiff</c>）ではなく、対応形式の一覧の先頭にある値を返す。</remarks>
-    [SupportedOSPlatform("windows")]
     private static string CanonicalExtension(ImageFileFormat format)
         => format switch
         {
@@ -517,109 +701,16 @@ internal static class WinGdiPlusImageCodec
             var other => throw new ArgumentOutOfRangeException(nameof(format), other, "未知の画像形式です。"),
         };
 
-    /// <summary>GDI+ の画像をファイルへ書き出す（形式ごとのエンコーダーとオプションを使う）。</summary>
-    /// <param name="image">書き出す GDI+ の画像。</param>
-    /// <param name="filePath">保存先のファイルパス。</param>
-    /// <param name="format">保存する形式（拡張子から決定済み）。</param>
-    /// <param name="options">保存のオプション（<paramref name="format"/> との整合は検証済み）。</param>
-    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
-    [SupportedOSPlatform("windows")]
-    private static void SaveImage(IntPtr image, string filePath, ImageFileFormat format, in EsImageSaveOptions options)
-    {
-        var clsid = GetEncoderClsid(format);
-        var parameters = CreateEncoderParameters(format, options);
-        try
-        {
-            var status = WinNative.GdipSaveImageToFile(image, filePath, ref clsid, parameters);
-            if (status != WinNative.GpOk)
-            {
-                throw new Win32Exception(status, $"'{filePath}' へ保存できませんでした（GDI+ の状態: {status}）。");
-            }
-        }
-        finally
-        {
-            if (parameters != IntPtr.Zero)
-            {
-                Marshal.FreeHGlobal(parameters);
-            }
-        }
-    }
-
-    /// <summary>GDI+ へ渡すエンコーダー パラメーターの領域を 1 つの塊として確保して組み立てる。</summary>
-    /// <param name="format">保存する形式（オプションの整合は検証済み）。</param>
-    /// <param name="options">保存のオプション。</param>
-    /// <returns>確保した領域。 解放が必要（既定値を渡す場合は <see cref="IntPtr.Zero"/> であり、解放も不要）。</returns>
-    /// <remarks>
-    /// <b>値も同じ塊に置く</b>: GDI+ は値へのポインターを保持し、<c>GdipSaveImageToFile</c> が返るまで解放してはならない。
-    /// 1 回の確保にまとめれば解放も 1 回で済む。<br/>
-    /// <b>位置は型の定義から求める</b>: 並びの先頭から <c>Marshal.OffsetOf</c> で求めた位置へエントリーを書き、
-    /// その直後（<c>Marshal.SizeOf</c> で求めた大きさの倍数）へ値を書く。 64 ビットでのパディングを手計算した定数で表さない。<br/>
-    /// <b>渡す値は 1 件だけ</b>: オプションを持つのは JPEG の品質だけである（理由は <see cref="EsImageSaveOptions"/> を参照）。
-    /// </remarks>
-    [SupportedOSPlatform("windows")]
-    private static IntPtr CreateEncoderParameters(ImageFileFormat format, in EsImageSaveOptions options)
-    {
-        if (format != ImageFileFormat.Jpeg || options.JpegQuality is not int quality)
-        {
-            // 既定値の場合はパラメーターを渡さない（IntPtr.Zero が GDI+ の既定を表す）
-            return IntPtr.Zero;
-        }
-
-        var entryOffset = Marshal.OffsetOf<WinNative.GpEncoderParameters>(nameof(WinNative.GpEncoderParameters.Parameter)).ToInt32();
-        var entrySize = Marshal.SizeOf<WinNative.GpEncoderParameter>();
-        var memory = Marshal.AllocHGlobal(entryOffset + entrySize + sizeof(int));
-
-        Marshal.WriteInt32(memory, 0, 1);
-
-        // 値のアドレスは並びの直後（エントリーは 4 バイト境界に並ぶため、値も 4 バイト境界に載る）
-        var address = IntPtr.Add(memory, entryOffset + entrySize);
-        Marshal.WriteInt32(address, quality);
-
-        var entry = CreateLongEntry(WinNative.GpEncoderQuality);
-        entry.Value = address;
-        Marshal.StructureToPtr(entry, IntPtr.Add(memory, entryOffset), false);
-
-        return memory;
-    }
-
-    /// <summary>32 ビット整数 1 件を渡すエンコーダー パラメーターを作る。</summary>
-    /// <param name="parameterGuid">パラメーターの種類を表す GUID。</param>
-    /// <returns>値のアドレスだけを書き入れていないエントリー。</returns>
-    [SupportedOSPlatform("windows")]
-    private static WinNative.GpEncoderParameter CreateLongEntry(Guid parameterGuid)
-        => new()
-        {
-            Guid = parameterGuid,
-            NumberOfValues = 1,
-            Type = WinNative.GpEncoderParameterValueTypeLong,
-        };
-
-    /// <summary>使用するエンコーダーの CLSID を形式から決める。</summary>
-    /// <param name="format">保存する形式。</param>
-    /// <returns>エンコーダーの CLSID。</returns>
-    [SupportedOSPlatform("windows")]
-    private static Guid GetEncoderClsid(ImageFileFormat format)
-        => format switch
-        {
-            ImageFileFormat.Bmp => WinNative.GpBmpEncoderClsid,
-            ImageFileFormat.Png => WinNative.GpPngEncoderClsid,
-            ImageFileFormat.Jpeg => WinNative.GpJpegEncoderClsid,
-            ImageFileFormat.Gif => WinNative.GpGifEncoderClsid,
-            ImageFileFormat.Tiff => WinNative.GpTiffEncoderClsid,
-            var other => throw new ArgumentOutOfRangeException(nameof(format), other, "未知の画像形式です。"),
-        };
-
     /// <summary>その形式で使えないオプションが設定されたことを表す例外を作る。</summary>
     /// <param name="format">保存する形式。</param>
     /// <param name="optionName">使えないオプションの名前。</param>
     /// <returns>例外。</returns>
-    [SupportedOSPlatform("windows")]
     private static NotSupportedException CreateUnsupportedOption(ImageFileFormat format, string optionName)
         => new($"オプション '{optionName}' は {ToPublicName(format)} 形式では使えません"
             + $"（現在オプションを持つのは JPEG の {nameof(EsImageSaveOptions.JpegQuality)} だけです）。");
 
     /// <summary>保存する形式。</summary>
-    /// <remarks>GDI+ のエンコーダーと 1 対 1 に対応する（拡張子の一覧は <see cref="SupportedExtensions"/> が単一所有する）。</remarks>
+    /// <remarks>WIC のコンテナ形式と 1 対 1 に対応する（拡張子の一覧は <see cref="SupportedExtensions"/> が単一所有する）。</remarks>
     private enum ImageFileFormat
     {
         /// <summary>Windows Bitmap（<c>.bmp</c>）。</summary>
@@ -639,125 +730,102 @@ internal static class WinGdiPlusImageCodec
     }
 
     /// <summary>ファイルをデコードし、生成された画像として返す（形式は内容から判別される）。</summary>
-    /// <typeparam name="T">生成する画像の型（<see cref="EsUtil.Platform.Core.Imaging.EsReadOnlyBitmap"/> または
-    /// <see cref="EsUtil.Platform.Core.Imaging.EsBitmap"/>）。</typeparam>
+    /// <typeparam name="T">生成する画像の型（<see cref="EsReadOnlyBitmap"/> または <see cref="EsBitmap"/>）。</typeparam>
     /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。</param>
     /// <param name="create">寸法と充填処理を受け取って画像を生成する処理（デコード結果をこの充填処理で
     /// 受け取った領域へ直接書くため、中間バッファも追加のコピーも要らない）。</param>
     /// <returns>生成された画像。 所有権は呼び出し側へ移る。</returns>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
-    /// または画像として解釈できない場合（GDI+ はどちらも同じ状態値を返すため区別しない）。</exception>
+    /// または画像として解釈できない場合（WIC はどちらも同じ状態値を返すため区別しない）。</exception>
     /// <remarks>
-    /// <b>画像型を知らない</b>: 本メソッドは生成処理を受け取るだけで、画像型（<c>EsReadOnlyBitmap</c> 等）を名指ししない
-    /// （型引数と充填処理は呼び出し側が決める）。 画像型が要るのは読み込みと保存の公開面
-    /// （<see cref="EsUtil.Platform.Core.Imaging.EsReadOnlyBitmap"/>）だけになる。<br/>
-    /// <b><paramref name="create"/> は充填処理を 1 回だけ呼ぶ責任を持つ</b>（呼ばなければピクセルが不定のまま、
-    /// 2 回呼べば同じ領域を二度書く）。<br/>
-    /// <b>ピクセルは 1 回だけ書かれる</b>: 中間バッファを作らず、GDI+ のロックしたデータから画像のバッファへ
-    /// 直接コピーする（画像型のバッファは 64 バイト整列されているため、一時バッファを挟むと
-    /// 画素数に比例した余分なコピーが増える）。<br/>
+    /// <b>画像型を知らない</b>: 本メソッドは生成処理を受け取るだけで、画像型（<c>EsReadOnlyBitmap</c> 等）を名指ししない。<br/>
+    /// <b><paramref name="create"/> は充填処理を 1 回だけ呼ぶ責任を持つ</b>。<br/>
+    /// <b>ピクセルは 1 回だけ書かれる</b>: 中間バッファを作らず、WIC の変換結果を画像のバッファへ直接コピーする。<br/>
     /// <b>縮小読み込みはしない</b>（元の寸法でデコードする。 大きな画像を小さく使う場合は
     /// <c>Resize</c> で縮小すること。 サムネイルのようにデコード自体を小さくしたい場合は、各 UI の
     /// コーデック（縮小デコード対応）を使う方が速い）。<br/>
     /// <b>形式は内容から判別する</b>（拡張子と内容が一致しない場合は内容に従う）。<br/>
-    /// <b>ピクセルはアルファ乗算済みの BGRA8888 へ変換して取り込む</b>（元の形式が異なっても GDI+ が変換する）。
+    /// <b>ピクセルはアルファ乗算済みの BGRA8888 へ変換して取り込む</b>（元の形式が異なっても WIC が変換する）。
     /// </remarks>
-    [SupportedOSPlatform("windows")]
     internal static T DecodeFromFile<T>(string filePath, Func<int, int, Action<Span<byte>>, T> create)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        WinGdiPlusLifetime.EnsureInitialized();
 
-        var status = WinNative.GdipCreateBitmapFromFile(filePath, out var image);
-        if (status != WinNative.GpOk)
-        {
-            throw new ArgumentException($"'{filePath}' を画像として読み込めませんでした。", nameof(filePath));
-        }
-
+        var factory = OpenFactory();
         try
         {
-            var (width, height) = ReadSize(image);
-            return create(width, height, destination => CopyPixelsFrom(image, width, height, destination));
-        }
-        finally
-        {
-            WinNative.GdipDisposeImage(image);
-        }
-    }
-
-    /// <summary>GDI+ の画像の寸法を読み取る。</summary>
-    /// <param name="image">対象の GDI+ の画像。</param>
-    /// <returns>幅と高さ（ピクセル）。</returns>
-    /// <exception cref="Win32Exception">寸法を取得できなかった場合。</exception>
-    [SupportedOSPlatform("windows")]
-    private static (int Width, int Height) ReadSize(IntPtr image)
-    {
-        var width = GetDimension(WinNative.GdipGetImageWidth(image, out var w), w, "幅");
-        var height = GetDimension(WinNative.GdipGetImageHeight(image, out var h), h, "高さ");
-        return (width, height);
-    }
-
-    /// <summary>GDI+ が返した寸法を検証して取り出す。</summary>
-    /// <param name="status">GDI+ の状態値。</param>
-    /// <param name="value">GDI+ が返した寸法。</param>
-    /// <param name="name">寸法の名前（例外メッセージ用）。</param>
-    /// <returns>検証済みの寸法。</returns>
-    /// <exception cref="Win32Exception">寸法を取得できなかった場合。</exception>
-    [SupportedOSPlatform("windows")]
-    private static int GetDimension(int status, uint value, string name)
-        => status == WinNative.GpOk && value <= int.MaxValue
-            ? (int)value
-            : throw new Win32Exception(status, $"画像の{name}を取得できませんでした（GDI+ の状態: {status}）。");
-
-    /// <summary>GDI+ の画像のピクセルをコアの画像のバッファへコピーする。</summary>
-    /// <param name="image">コピー元の GDI+ の画像。</param>
-    /// <param name="width">幅（ピクセル）。</param>
-    /// <param name="height">高さ（ピクセル）。</param>
-    /// <param name="destination">コピー先（<c>幅 × 4 × 高さ</c> バイト以上）。</param>
-    /// <exception cref="Win32Exception">ピクセルを取得できなかった場合。</exception>
-    /// <remarks>
-    /// <b>アルファ乗算済みの BGRA8888 を指定してロックする</b>ため、元の画像が別の形式でも GDI+ が変換する。<br/>
-    /// <b>経路は 2 つ</b>: 行幅が一致する場合は連続領域として全領域を 1 回でコピーし、一致しない場合は行単位でコピーする
-    /// （GDI+ の行幅は 4 バイト境界へ揃えられるため、幅が奇数の画像では一致しない）。
-    /// </remarks>
-    [SupportedOSPlatform("windows")]
-    private static void CopyPixelsFrom(IntPtr image, int width, int height, Span<byte> destination)
-    {
-        var stride = width * EsReadOnlyBitmap.BytesPerPixel;
-        var rect = new WinNative.GpRect { X = 0, Y = 0, Width = width, Height = height };
-        var data = default(WinNative.GpBitmapData);
-
-        var status = WinNative.GdipBitmapLockBits(
-            image, ref rect, WinNative.GpImageLockModeRead, WinNative.GpPixelFormat32bppPArgb, ref data);
-        if (status != WinNative.GpOk)
-        {
-            throw new Win32Exception(status, $"画像のピクセルを取得できませんでした（GDI+ の状態: {status}）。");
-        }
-
-        try
-        {
-            var rowBytes = Math.Min(data.Stride, stride);
-            unsafe
+            var hr = WinWicCom.CreateDecoderFromFilename(factory, filePath, out var decoder);
+            if (!WinNative.Succeeded(hr))
             {
-                var source = (byte*)data.Scan0;
-                if (data.Stride == stride)
+                throw new ArgumentException($"'{filePath}' を画像として読み込めませんでした。", nameof(filePath));
+            }
+
+            try
+            {
+                WinWicCom.ThrowIfFailed(WinWicCom.GetFrame(decoder, 0, out var frame), $"'{filePath}' の画像を取得できませんでした。");
+                try
                 {
-                    // 行幅が同一の場合は連続領域なので、行単位ではなく全領域を 1 回でコピーする（高速化）
-                    new ReadOnlySpan<byte>(source, rowBytes * height).CopyTo(destination);
-                }
-                else
-                {
-                    for (var y = 0; y < height; y++)
+                    WinWicCom.ThrowIfFailed(
+                        WinWicCom.CreateFormatConverter(factory, out var converter),
+                        $"'{filePath}' の画素を変換する準備ができませんでした。");
+
+                    try
                     {
-                        new ReadOnlySpan<byte>(source + (y * data.Stride), rowBytes)
-                            .CopyTo(destination.Slice(y * stride, rowBytes));
+                        WinWicCom.ThrowIfFailed(
+                            WinWicCom.InitializeConverter(converter, frame, WinNative.WicPixelFormat32bppPBgra),
+                            $"'{filePath}' の画素を変換できませんでした。");
+
+                        var (width, height) = ReadSize(converter);
+                        return create(width, height, destination => CopyPixelsFrom(converter, width, height, destination));
+                    }
+                    finally
+                    {
+                        WinWicCom.Release(converter);
                     }
                 }
+                finally
+                {
+                    WinWicCom.Release(frame);
+                }
+            }
+            finally
+            {
+                WinWicCom.Release(decoder);
             }
         }
         finally
         {
-            WinNative.GdipBitmapUnlockBits(image, ref data);
+            WinWicCom.Release(factory);
+        }
+    }
+
+    /// <summary>画素源の寸法を読み取る。</summary>
+    /// <param name="source">対象の画素源。</param>
+    /// <returns>幅と高さ（ピクセル）。</returns>
+    /// <exception cref="Win32Exception">寸法を取得できなかった場合、または寸法が 1 以上でない場合。</exception>
+    private static (int Width, int Height) ReadSize(IntPtr source)
+    {
+        WinWicCom.ThrowIfFailed(WinWicCom.GetSize(source, out var width, out var height), "画像の寸法を取得できませんでした。");
+        return width is > 0 and <= int.MaxValue && height is > 0 and <= int.MaxValue
+            ? ((int)width, (int)height)
+            : throw new Win32Exception(0, $"画像の寸法が不正です（{width}x{height}）。");
+    }
+
+    /// <summary>画素源のピクセルをコアの画像のバッファへコピーする。</summary>
+    /// <param name="source">コピー元の画素源（アルファ乗算済みの BGRA8888 へ変換済み）。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="destination">コピー先（<c>幅 × 4 × 高さ</c> バイト以上）。</param>
+    /// <exception cref="Win32Exception">ピクセルを取得できなかった場合。</exception>
+    /// <remarks>コピー先の行幅は常に密（<c>幅 × 4</c>）であるため、1 回の呼び出しで全領域を書く。</remarks>
+    private static unsafe void CopyPixelsFrom(IntPtr source, int width, int height, Span<byte> destination)
+    {
+        var stride = width * EsReadOnlyBitmap.BytesPerPixel;
+        fixed (byte* target = destination)
+        {
+            WinWicCom.ThrowIfFailed(
+                WinWicCom.CopyPixels(source, (uint)stride, (uint)(stride * height), target),
+                "画像のピクセルを取得できませんでした。");
         }
     }
 }

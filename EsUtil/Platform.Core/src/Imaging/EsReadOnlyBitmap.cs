@@ -81,7 +81,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// 形式の判定（拡張子 → エンコーダー）の単一所有は本一覧である。 <see cref="EsBitmap"/> も同じ値を公開する。
     /// </remarks>
     [SupportedOSPlatform("windows")]
-    public static IReadOnlyList<string> SupportedFileExtensions => WinGdiPlusImageCodec.SupportedExtensions;
+    public static IReadOnlyList<string> SupportedFileExtensions => WinWicImageCodec.SupportedExtensions;
 
     /// <summary>ファイルを読み込んで読み取り専用の画像を生成する。</summary>
     /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。 null 不可。</param>

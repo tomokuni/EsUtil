@@ -28,7 +28,7 @@ UI フレームワーク非依存の共通基盤の型を提供するライブ�
 
 - .NET 10 / C# 14
 - 外部パッケージを参照しない（ログは呼び出し側が所有し、OS 操作は OS の API を直接呼ぶ）
-- OS 標準のコーデック（`gdiplus.dll` のフラット API。 `EsUtil/Platform.Core/src/Native/Win` の画像ファイル入出力のみ。 Windows 専用。 **外部パッケージは参照しない**）
+- OS 標準のコーデック（WIC = `windowscodecs.dll` の COM。 `EsUtil/Platform.Core/src/Native/Win` の画像ファイル入出力のみ。 Windows 専用。 **外部パッケージは参照しない**）
 - UI フレームワークは一切参照しない
 
 ## 3. アーキテクチャ
@@ -59,21 +59,21 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/ICursorOverrideGuard.cs` | カーソル上書き抑止の抽象 |
 | `EsUtil/Platform.Core/src/Native/IGlobalHotKeyService.cs` | グローバルホットキー管理の抽象 |
 | `EsUtil/Platform.Core/src/Native/ElementFinderResults.cs` | 要素検出の結果（`readonly record struct`） |
-| `EsUtil/Platform.Core/src/Native/Win/WinNative.cs` | OS API（Win32 / GDI+）の P/Invoke の宣言集約（internal）。 **本ファイルは複数の DLL で共有する構造体とヘルパーを持ち、宣言は DLL ごとの `partial` ファイルが持つ** |
+| `EsUtil/Platform.Core/src/Native/Win/WinNative.cs` | OS API（Win32 / WIC）の P/Invoke の宣言集約（internal）。 **本ファイルは複数の DLL で共有する構造体とヘルパーを持ち、宣言は DLL ごとの `partial` ファイルが持つ** |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.User32.cs` | user32 の宣言（カーソル・ウィンドウ・要素検出・画面キャプチャのデバイス コンテキスト） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.Gdi32.cs` | gdi32 の宣言（画面キャプチャの DIB と `BitBlt`） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.DwmApi.cs` | dwmapi の宣言（影を除いた可視矩形・合成の完了待ち） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.Kernel32.cs` | kernel32 の宣言（プロセス ID） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.HotKey.cs` | グローバル ホットキーの宣言（user32）とキー変換 |
-| `EsUtil/Platform.Core/src/Native/Win/WinNative.GdiPlus.cs` | gdiplus の宣言（画像のエンコード・デコード） |
+| `EsUtil/Platform.Core/src/Native/Win/WinNative.Wic.cs` | WIC の宣言（COM の起動・画素形式の GUID） |
+| `EsUtil/Platform.Core/src/Native/Win/WinWicCom.cs` | WIC の COM インターフェイスを vtable の関数ポインターで呼ぶ薄い層（AOT 対応） |
 | `EsUtil/Platform.Core/src/Native/Win/WinCaptureService.cs` | `ICaptureService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorService.cs` | `ICursorService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinWindowService.cs` | `IWindowService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinElementFinder.cs` | `IElementFinder` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorOverrideGuard.cs` | `ICursorOverrideGuard` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinGlobalHotKeyService.cs` | `IGlobalHotKeyService<T>` の Windows 実装 |
-| `EsUtil/Platform.Core/src/Native/Win/WinGdiPlusImageCodec.cs` | 画像のファイル保存・読み込みの実装（GDI+。 Windows 専用。 画像型を名指しせず、公開面は画像型の `Save` / `Load`） |
-| `EsUtil/Platform.Core/src/Native/Win/WinGdiPlusLifetime.cs` | GDI+ のプロセス単位の初期化（internal・1 回だけ実行） |
+| `EsUtil/Platform.Core/src/Native/Win/WinWicImageCodec.cs` | 画像のファイル保存・読み込みの実装（WIC。 Windows 専用。 画像型を名指しせず、公開面は画像型の `Save` / `Load`） |
 | `EsUtil/Platform.Core/src/Coord/ScrollMath.cs` | スクロール範囲・ビューポートサイズの純粋計算とホイール 1 段のスクロール量（`WheelScrollUnit`） |
 | `EsUtil/Platform.Core/src/Coord/DpiScaler.cs` | DIP 値を物理ピクセルへ変換する純粋計算（DPI 基準値と DPI → スケーリング換算を含む） |
 | `EsUtil/Platform.Core/src/Coord/CoordTransformExtensions.cs` | 座標変換ポート未設定（null）を等価変換として解決する |
@@ -133,16 +133,17 @@ graph LR
 
 ### 7.1 ファイル入出力の実装方式
 
-画像のファイル入出力（画像型の `Save` / `Load`）は **OS の `gdiplus.dll` を直接呼びます**。 この判断は「外部パッケージを参照しない」ことと引き換えに、**プロセス全体に及ぶ副作用**を引き受けます（所要の実測値は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します）。
+画像のファイル入出力（画像型の `Save` / `Load`）は **OS の WIC（`windowscodecs.dll` の COM）を直接呼びます**。 外部パッケージを参照せず、**プロセス全体に及ぶ副作用も持ちません**（所要の実測値は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します）。
 
-| 副作用 | 内容 |
+| 項目 | 内容 |
 | --- | --- |
-| GDI+ の有効化 | 初回の `Save` / `Load` で `GdiplusStartup` を 1 回呼ぶ。 **呼ばないと GDI+ の API は 1 つも動かない**（未初期化の `GdipCreateBitmapFromScan0` は状態 18 = `GdiplusNotInitialized` で失敗する） |
-| バックグラウンド スレッド +1 | GDI+ が表示設定の通知を受け取るために作る（**プロセスのスレッドが 1 本増える**）。 **抑止すると初期化自体が失敗する**（`SuppressBackgroundThread = 1` は通知フックを要求するため `InvalidParameter` になる。 実測） |
-| 解放されない参照カウント | `GdiplusShutdown` を**呼ばない**（呼ぶと利用者の GDI+ を止める可能性がある）。 プロセス終了時に OS が解放する |
-| 初回の遅延 | 最初の `Save` / `Load` に初期化のコストが乗る（**2 回目以降の呼び出しは初期化のコストを含まない**） |
+| 初期化 | 初回に `CoInitializeEx` と `CoCreateInstance`（`CLSID_WICImagingFactory`）を 1 回だけ呼ぶ。 **スレッドは増えない**（GDI+ の `GdiplusStartup` が起こす表示設定の通知スレッドに相当するものが無い） |
+| 既に COM が初期化済みのプロセス | `CoInitializeEx` は `RPC_E_CHANGED_MODE`（`0x80010106`）を返すが、**成功として続行する**（実測で問題なく動作した） |
+| Native AOT | **`[ComImport]` と `Marshal.GetObjectForIUnknown` は使えない**（実測: `NotSupportedException: COM Interop requires ComWrapper instance registered for marshalling.`）。 vtable を関数ポインターとして呼ぶ（`WinWicCom`） |
+| エンコーダーのキャッシュ | **`WICBitmapEncoderNoCache` は使えない**（実測: `IWICStream::InitializeFromFilename` のストリームで `WINCODEC_ERR_UNSUPPORTEDOPERATION` = `0x88982F81`）。 `WICBitmapEncoderCacheTempFile`（一時ファイルへ書いてから確定する）は全形式で成功した |
+| 戻される画素形式 | アルファ乗算済みの BGRA（`GUID_WICPixelFormat32bppPBGRA`）を要求しても、**エンコーダーは別の形式を返す**（実測: PNG / TIFF はアルファ乗算なしの BGRA、JPEG は 24bpp の BGR、BMP だけが要求どおり）。 返された形式に合わせて並びを直してから書く |
 
-**影響を受けるのは GDI+ を他に使っていないプロセスだけです**（`System.Drawing.Common` を使うアプリには同じ初期化とスレッドが既に存在します）。 副作用を避ける唯一の現実的な手段は **WIC へ移すこと**（`IWICImagingFactory` の COM 起動であり、プロセス全体の初期化もスレッドも不要）ですが、実装量が増え、**単純な形式ほど遅くなる**ため採用していません。 形式の網羅性と速度の比較は [`SPEC_API.md`](SPEC_API.md) の該当節が持ちます。
+**外部パッケージ（`System.Drawing.Common` 等）は参照しません**。 WIC は OS の一部であるため、配布物も追加も要りません。 形式の網羅性は [`SPEC_API.md`](SPEC_API.md) の該当節が持ちます。
 
 ### 7.2 コア型の命名
 
@@ -161,8 +162,8 @@ graph LR
 | **ソリューション固有の概念を持たない** | 特定のアプリ・コントロールに固有の型は置かない（そのような型は各コントロールの層へ置く） |
 | **OS 依存なし** | Win32 P/Invoke を含まない（`Native/` 配下の責務） |
 
-**`Native/` 配下は上記の「可搬性」の基準から除外します**（Windows 限定の実装を、抽象と同じ場所で保守するための例外です）。 **Win32 の P/Invoke（`user32` / `gdi32` / `dwmapi` / `kernel32`）と OS 標準のコーデック（`gdiplus`）は `Native/` 配下だけが持ちます**（外部パッケージは参照しません）。
+**`Native/` 配下は上記の「可搬性」の基準から除外します**（Windows 限定の実装を、抽象と同じ場所で保守するための例外です）。 **Win32 の P/Invoke（`user32` / `gdi32` / `dwmapi` / `kernel32`）と OS 標準のコーデック（WIC）は `Native/` 配下だけが持ちます**（外部パッケージは参照しません）。
 
-**画像のファイル入出力（`EsBitmap.Save` / `EsReadOnlyBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`）は Windows 専用のメンバーです**（画像型のメンバーであり、実体は `EsUtil/Platform.Core/src/Native/Win` の `WinGdiPlusImageCodec` が担います）。 型そのものは可搬であり、これらのメンバーだけが `SupportedOSPlatform("windows")` で限定されます（非 Windows では `DllNotFoundException`。 判断の詳細は §7.1）。
+**画像のファイル入出力（`EsBitmap.Save` / `EsReadOnlyBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`）は Windows 専用のメンバーです**（画像型のメンバーであり、実体は `EsUtil/Platform.Core/src/Native/Win` の `WinWicImageCodec` が担います）。 型そのものは可搬であり、これらのメンバーだけが `SupportedOSPlatform("windows")` で限定されます（非 Windows では `DllNotFoundException`。 判断の詳細は §7.1）。
 
 **Skia は「外部パッケージ」に該当するため、本プロジェクトは SkiaSharp に依存しません**（Skia への依存は Skia を使用する上位層が単一所有します）。

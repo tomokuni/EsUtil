@@ -87,7 +87,7 @@ public sealed class EsBitmap : IDisposable
     /// <summary>保存に使える拡張子（値は <see cref="EsReadOnlyBitmap.SupportedFileExtensions"/> と同一）。</summary>
     /// <remarks>読み取り専用の画像からも保存できるため、基底と同じ値を本型でも公開する（どちらの権利の画像でも同じ一覧を使う）。</remarks>
     [SupportedOSPlatform("windows")]
-    public static IReadOnlyList<string> SupportedFileExtensions => WinGdiPlusImageCodec.SupportedExtensions;
+    public static IReadOnlyList<string> SupportedFileExtensions => WinWicImageCodec.SupportedExtensions;
 
     /// <summary>ファイルを読み込んで書き換え可能な画像を生成する。</summary>
     /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。 null 不可。</param>

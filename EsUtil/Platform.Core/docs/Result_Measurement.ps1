@@ -43,7 +43,7 @@ $ErrorActionPreference = 'Stop'
 
 # 本スクリプトはプロジェクトの docs/ 配下にあるため、リポジトリ ルートまで 3 段上がる
 $repoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
-$coreProject = Join-Path $repoRoot 'EsUtil/Platform.Core/EsUtil/Platform.Core.csproj'
+$coreProject = Join-Path $repoRoot 'EsUtil/Platform.Core/src/EsUtil.Platform.Core.csproj'
 $docPath = Join-Path $PSScriptRoot 'Result_Measurement.md'
 $startMarker = '<!-- 計測開始（EsUtil/Platform.Core/docs/Result_Measurement.ps1 が差し替える） -->'
 $endMarker = '<!-- 計測終了 -->'
