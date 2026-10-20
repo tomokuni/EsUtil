@@ -4,29 +4,30 @@ using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using SkiaSharp;
-using SkiaSharp.Views.Windows;
 using Windows.Foundation;
 
 namespace EsUtil.Ui.WinUI3.Thumbnail;
 
 /// <summary>サムネイル 1 件分の要素（背景・影・画像・名前）。</summary>
 /// <remarks>
-/// <b>構成</b>: Skia の描画面（背景・影・画像）と名前の要素を重ねる。 矩形は描画計画<br/>
+/// <b>構成</b>: 背景・影・画像の層と名前の要素を重ねる。 矩形は描画計画<br/>
 /// （<see cref="ThumbnailDrawPlan"/>）を写すだけであり、本クラスは計算を持たない。<br/>
 /// <b>影は帯で塗る</b>: 計画（<see cref="ThumbnailShadowPlan"/>）の 1 画素の帯を単色で塗る<br/>
 /// （縮小キャンバスの内容は XAML 要素より背面に合成されるため、影を要素で重ねると画像が隠れる）。
 /// </remarks>
-internal sealed class ThumbnailTile : Grid
+internal sealed partial class ThumbnailTile : Grid
 {
     /// <summary>背景・影・画像を描く面。</summary>
-    private readonly ThumbnailViewport _viewport = new();
+    private readonly ThumbnailVisualLayer _viewport = new();
 
     /// <summary>名前の要素。</summary>
     private readonly TextBlock _label = new();
 
     /// <summary>最後に適用した描画計画。</summary>
     private ThumbnailDrawPlan? _plan;
+
+    /// <summary>表示する画像。</summary>
+    private EsReadOnlyBitmap? _source;
 
     /// <summary>サムネイル 1 件分の要素を生成する。</summary>
     /// <param name="image">表示する画像。 null の場合は画像を描かない。</param>
@@ -63,16 +64,14 @@ internal sealed class ThumbnailTile : Grid
     public string Caption { get; private set; }
 
     /// <summary>表示する画像を取得する。</summary>
-    public EsReadOnlyBitmap? Source => _viewport.Source;
+    public EsReadOnlyBitmap? Source => _source;
 
     /// <summary>表示する画像を設定する。</summary>
     /// <param name="image">画像。 null の場合は画像を描かない。</param>
     public void SetImage(EsReadOnlyBitmap? image)
     {
-        _viewport.Source = image;
-
-        // 描画面は寸法が変わらなければ再描画されないため、明示的に要求する（画像の差し替えを反映する）
-        _viewport.Invalidate();
+        _source = image;
+        ApplyVisual();
         InvalidateMeasure();
     }
 
@@ -91,10 +90,7 @@ internal sealed class ThumbnailTile : Grid
     public void Apply(ThumbnailDrawPlan plan, ThumbnailOptions options)
     {
         _plan = plan;
-        _viewport.Plan = plan;
-
-        // 描画面は寸法が変わらなければ再描画されないため、明示的に要求する（背景・影の変化を反映する）
-        _viewport.Invalidate();
+        ApplyVisual();
 
         _label.FontSize = plan.Label.FontSize;
         _label.TextAlignment = TextAlignment.Center;
@@ -123,6 +119,21 @@ internal sealed class ThumbnailTile : Grid
         }
     }
 
+    /// <summary>背景・影・画像を計画のとおりに反映する。</summary>
+    /// <remarks>
+    /// 表示の更新は本メソッドへ集約する（画像の差し替えと計画の適用の両方から呼ぶ）。<br/>
+    /// 影の帯は物理ピクセルで解決されるため、DIP へ戻す係数（1 / スケーリング係数）を渡す。
+    /// </remarks>
+    private void ApplyVisual()
+    {
+        if (_plan is not { } plan)
+        {
+            return;
+        }
+
+        var scaling = XamlRoot?.RasterizationScale ?? 1;
+        _viewport.Apply(plan, _source, 1 / scaling);
+    }
     /// <summary>子要素を計測する（寸法は描画計画が決める）。</summary>
     /// <param name="availableSize">利用可能なサイズ。</param>
     /// <returns>項目の外枠の寸法。</returns>
@@ -155,83 +166,5 @@ internal sealed class ThumbnailTile : Grid
             plan.Label.Bounds.Width,
             plan.Label.Bounds.Height));
         return finalSize;
-    }
-
-    /// <summary>背景・影・画像を Skia で描く面。</summary>
-    private sealed class ThumbnailViewport : SKXamlCanvas
-    {
-        /// <summary>描画計画。</summary>
-        public ThumbnailDrawPlan? Plan { get; set; }
-
-        /// <summary>表示する画像。</summary>
-        public EsReadOnlyBitmap? Source { get; set; }
-
-        /// <summary>描画する。</summary>
-        /// <param name="sender">イベントの送信元。</param>
-        /// <param name="e">描画先の表面と情報。</param>
-        private void OnPaintSurface(object? sender, SKPaintSurfaceEventArgs e)
-        {
-            var canvas = e.Surface.Canvas;
-            canvas.Clear(SKColors.Transparent);
-
-            if (Plan is not { } plan || ActualWidth <= 0 || ActualHeight <= 0)
-            {
-                return;
-            }
-
-            // 描画面（物理ピクセル）と表示領域（DIP）の比から倍率を求める
-            var scaling = e.Info.Width / ActualWidth;
-
-            if (plan.BackgroundArgb != 0)
-            {
-                using var background = new SKPaint
-                {
-                    IsAntialias = false,
-                    Style = SKPaintStyle.Fill,
-                    Color = new SKColor(
-                        (byte)(plan.BackgroundArgb >> 16),
-                        (byte)(plan.BackgroundArgb >> 8),
-                        (byte)plan.BackgroundArgb,
-                        (byte)(plan.BackgroundArgb >> 24)),
-                };
-                canvas.DrawRect(
-                    new SKRect(0, 0, (float)(ActualWidth * scaling), (float)(ActualHeight * scaling)), background);
-            }
-
-            var imageRect = new SKRect(
-                (float)(plan.Image.X - plan.Slot.X),
-                (float)(plan.Image.Y - plan.Slot.Y),
-                (float)(plan.Image.X - plan.Slot.X + plan.Image.Width),
-                (float)(plan.Image.Y - plan.Slot.Y + plan.Image.Height));
-
-            if (plan.Shadow is { } shadow && !imageRect.IsEmpty)
-            {
-                SkiaShadowRenderer.Draw(
-                    canvas,
-                    shadow.BuildDeviceBands(
-                        imageRect.Left, imageRect.Top, imageRect.Width, imageRect.Height, scaling));
-            }
-
-            if (Source is { } bitmap && !bitmap.IsDisposed && !imageRect.IsEmpty)
-            {
-                canvas.Save();
-                canvas.Scale((float)scaling);
-                try
-                {
-                    using var view = bitmap.ToSKBitmap();
-                    canvas.DrawBitmap(view, imageRect);
-                }
-                finally
-                {
-                    canvas.Restore();
-                }
-            }
-        }
-
-        /// <summary>面を生成する（描画の配線だけを行う）。</summary>
-        public ThumbnailViewport()
-        {
-            PaintSurface += OnPaintSurface;
-        }
     }
 }

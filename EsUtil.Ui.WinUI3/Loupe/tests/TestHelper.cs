@@ -1,13 +1,13 @@
-using EsUtil.Ui.WinUI3.Loupe.Internal;
 using EsUtil.Platform.Core.Imaging;
-using SkiaSharp;
+using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.WinUI3.Loupe.Tests;
 
 /// <summary>テストで共用するユーティリティ。</summary>
 /// <remarks>
 /// 拡大元の画像はコアの読み取りの面（<see cref="EsReadOnlyBitmap"/>）として用意する<br/>
-/// （ルーペの <c>Source</c> が受け取る型はコアの画像だけである）。
+/// （ルーペの <c>Source</c> が受け取る型はコアの画像だけである）。<br/>
+/// 描画の検証は画素ではなく矩形の列（<c>LoupeRectList</c>）で行うため、描画先（キャンバス）の用意は不要である。
 /// </remarks>
 internal static class TestHelper
 {
@@ -19,13 +19,9 @@ internal static class TestHelper
     /// 生成した画像は書き込まず読むだけ（ルーペの <c>Source</c> 等へ渡す）であるため、凍結して 0 コピーで<br/>
     /// 読み取り専用の面へ渡す。
     /// </remarks>
-    public static EsReadOnlyBitmap CreateBitmap(int size, SKColor color)
+    public static EsReadOnlyBitmap CreateBitmap(int size, DrawingColor color)
     {
-        // 変換は複製を返すため、元の SKBitmap は破棄する
-        using var bitmap = new SKBitmap(size, size);
-        bitmap.Erase(color);
-
-        using var created = bitmap.ToEsBitmap();
+        using var created = EsBitmap.Create(size, size, color);
         created.SetReadOnly();
         return EsReadOnlyBitmap.FromBitmap(created);
     }
@@ -35,14 +31,11 @@ internal static class TestHelper
     /// <param name="background">背景色。</param>
     /// <param name="center">中心画素の色。</param>
     /// <returns>生成した画像（読み取りの面）。 破棄は呼び出し側。</returns>
-    public static EsReadOnlyBitmap CreateBitmapWithCenter(int size, SKColor background, SKColor center)
+    public static EsReadOnlyBitmap CreateBitmapWithCenter(int size, DrawingColor background, DrawingColor center)
     {
-        // 変換は複製を返すため、元の SKBitmap は破棄する
-        using var bitmap = new SKBitmap(size, size);
-        bitmap.Erase(background);
-        bitmap.SetPixel(size / 2, size / 2, center);
-
-        using var created = bitmap.ToEsBitmap();
+        using var created = EsBitmap.Create(size, size, background);
+        var half = size / 2;
+        created.SetPixel(half, half, center.B, center.G, center.R, center.A);
         created.SetReadOnly();
         return EsReadOnlyBitmap.FromBitmap(created);
     }

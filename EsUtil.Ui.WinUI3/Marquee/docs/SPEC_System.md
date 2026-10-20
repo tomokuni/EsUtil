@@ -15,7 +15,7 @@
 - [6. シーケンス図（新規選択のドラッグ）](#6-シーケンス図新規選択のドラッグ)
 - [7. シーケンス図（矢印キー nudge）](#7-シーケンス図矢印キー-nudge)
 - [8. 状態遷移](#8-状態遷移)
-- [9. 描画フロー](#9-描画フロー)
+- [9. 表示フロー](#9-表示フロー)
 - [10. 例外処理ポリシー](#10-例外処理ポリシー)
 - [11. 実装上の注意](#11-実装上の注意)
 - [12. 未実装（今後の判断）](#12-未実装今後の判断)
@@ -41,7 +41,7 @@
 | `UseWinUI` | `true` | XAML のコンパイルと WinUI 3 の参照解決を行う |
 | `SupportedOSPlatformVersion` | `10.0.19041.0` | `Microsoft.UI.Input.InputSystemCursor`（カーソル形状の設定）が使える下限 |
 | UI フレームワーク | Windows App SDK 1.x（`Microsoft.WindowsAppSDK`） | WinUI 3 のコントロール基盤（`Canvas` / ポインター イベント / `XamlRoot`） |
-| 描画 | SkiaSharp 3.x（`SkiaSharp.Views.WinUI`） | コアの幾何と色をそのまま描ける描画 API。 `SKXamlCanvas` が描画面を提供する |
+| 表示 | WinUI 3 の XAML 要素（`Rectangle` / `Border` / `TextBlock`） | 描画計画の矩形と色をそのまま要素へ写せる |
 | ログ | `Microsoft.Extensions.Logging.Abstractions` | ホストが出力先を注入できる形にする（本コントロールは定義だけを持つ） |
 | P/Invoke | `DllImport`（`user32.dll`） | 画面物理座標 ↔ クライアント座標の変換と、ダブルクリックの時間の上限の取得。 安全でないコードの許可（`AllowUnsafeBlocks`）を必要としない |
 
@@ -55,13 +55,13 @@
 flowchart TB
     subgraph UI["UI 層（本プロジェクト）"]
         CTRL["MarqueeControl<br/>入力の受付・効果の適用・通知の転送"]
-        PAINT["MarqueeSkiaPainter / MarqueeLabelPainter<br/>描画計画を Skia へ写す"]
+        PAINT["MarqueeShapePlan / MarqueeVisualLayer<br/>描画計画を要素へ写す"]
         HELP["Internal<br/>境界変換・テキスト測定・画面座標"]
     end
     UB["提示層<br/>MarqueePresenter / MarqueeAppearance"]
     CORE["機能コア<br/>MarqueeCore（状態機械・入力の解釈）"]
     PLAT["共通基盤<br/>EsPoint / EsRect / ICoordTransform / DpiScaler / ICursorService"]
-    SKIA["SkiaSharp.Views.WinUI<br/>SKXamlCanvas"]
+    SKIA["Microsoft.UI.Xaml.Controls<br/>Canvas"]
     XAML["WinUI 3<br/>Canvas / ポインター イベント / XamlRoot"]
 
     CTRL --> UB
@@ -84,7 +84,7 @@ flowchart TB
 | 入力の解釈・状態遷移・ハンドルのヒットテスト・nudge の許可条件・確定/キャンセルの判断 | 機能コア（`EsUtil.Feature.Marquee.Core`） |
 | 外観（色・フォントサイズ・枠線の太さ・表示可否）・描画計画（層の順序・装飾の矩形・ラベル配置） | 提示層（`EsUtil.Feature.Marquee.Presenter`） |
 | 入力の受付・効果の適用・通知の転送・描画・カーソル形状の写像・画面座標の変換 | 本コントロール |
-| 描画計画を Skia の描画 API へ写すこと（判断しない） | `MarqueeSkiaPainter` / `MarqueeLabelPainter` |
+| 描画計画を要素へ写すこと（判断しない） | `MarqueeShapePlan` / `MarqueeVisualLayer` |
 
 **本コントロールは描画計画を解決しません**（`MarqueePresenter.ResolveDrawPlan` が返した値を写すだけです）。
 **表示可否（`Show*`）は描画側が判断します**（計画は可否で値を消さないため、ホストは止めた項目の値も使えます）。
@@ -93,8 +93,8 @@ flowchart TB
 
 | 判断 | 理由 |
 | --- | --- |
-| `SKXamlCanvas`（`Canvas`）を基底クラスにする | 描画面（`SKSurface`）をフレームワークが用意し、コントロールは自 UI の描画 API で描くだけで済む。 中間ビットマップを作らない |
-| ラベルも同じ描画面へ描く | XAML の要素（`Border` + `TextBlock`）として置くと、実寸の測定（XAML のレイアウト）と描画（Skia）が別のエンジンになり、背景から文字がはみ出しうる。 同じエンジンに揃える |
+| `Canvas` を基底クラスにする | 子要素の追加順がそのまま描画順になり、層の順序を計画の順に写せる。 描画ライブラリを持たない |
+| ラベルも要素として置く | 測定と表示を同じエンジン（WinUI 3 のテキスト レイアウト）に揃える。 別のエンジンで測ると背景から文字がはみ出しうる |
 | 描画の倍率を描画面の実寸から求める | XAML のルートが未確定の間は表示倍率が既定値（`1.0`）のため、保持値だけに頼ると図形が 100% で描かれる。 描画面（物理ピクセル）÷ 割り当て領域（DIP）で実測する |
 | ダブルクリックを OS の設定値で判定する | WinUI 3 のポインター イベントはクリック数を報告しない。 固定値をコントロールが決めると OS の設定と食い違う |
 | 画面座標の変換だけを Win32 に委ねる | XAML のルートは表示倍率とコンテンツ内の相対座標までしか与えない（nudge でカーソルを動かすには画面物理座標が要る） |
@@ -125,11 +125,9 @@ EsUtil.Ui.WinUI3/Marquee/
         MarqueeControl.cs
         MarqueeControl.Input.cs
         MarqueeControl.Visual.cs
-        MarqueeLabelPainter.cs
         MarqueeLogMessage.cs
         MarqueePointEventArgs.cs
         MarqueeRenderedEventArgs.cs
-        MarqueeSkiaPainter.cs
         SelectionRectEventArgs.cs
         Internal/
             ClientPixelScale.cs
@@ -137,26 +135,16 @@ EsUtil.Ui.WinUI3/Marquee/
             EsGeometryWinUI3Interop.cs
             EsKeyWinUI3Interop.cs
             ScreenConverter.cs
-            SkiaColorInterop.cs
-            SkiaFill.cs
-            SkiaGeometryInterop.cs
-            SkiaText.cs
             Win32Interop.cs
     tests/
         EsUtil.Ui.WinUI3.Marquee.Tests.csproj
         RecordingLogger.cs
-        MarqueeLabelPainter.Tests.cs
         MarqueeLogMessage.Tests.cs
-        MarqueeSkiaPainter.Tests.cs
         Internal/
             ClientPixelScale.Tests.cs
             DoubleClickDetector.Tests.cs
             EsGeometryWinUI3Interop.Tests.cs
             EsKeyWinUI3Interop.Tests.cs
-            SkiaColorInterop.Tests.cs
-            SkiaFill.Tests.cs
-            SkiaGeometryInterop.Tests.cs
-            SkiaText.Tests.cs
 ```
 
 ## 5. クラス図
@@ -177,7 +165,7 @@ classDiagram
         +RequestConfirm()
         +RequestCancel()
         +InvalidateRender()
-        +DrawPlan()
+        +RequestRedraw()
     }
     class MarqueeControl_Input {
         <<partial>>
@@ -189,13 +177,14 @@ classDiagram
         描画・フレーム解決
         表示倍率の追従
     }
-    class MarqueeSkiaPainter {
+    class MarqueeShapePlan {
         <<internal>>
-        +Paint(canvas, plan)
+        +Build(plan, rects, labels)$
     }
-    class MarqueeLabelPainter {
+    class MarqueeVisualLayer {
         <<internal>>
-        +Paint(canvas, plan)
+        +Apply(plan)
+        +ApplyOverlay(list)
     }
     class MarqueeLogMessage {
         <<internal>>
@@ -226,15 +215,14 @@ classDiagram
         +Show*
         +色・太さ
     }
-    class SKXamlCanvas {
+    class Canvas {
         <<基底クラス>>
-        +OnPaintSurface()
-        +Invalidate()
+        <<Microsoft.UI.Xaml.Controls>>
     }
-    SKXamlCanvas <|-- MarqueeControl
+    Canvas <|-- MarqueeControl
     MarqueeControl --> MarqueePresenter
-    MarqueeControl --> MarqueeSkiaPainter
-    MarqueeControl --> MarqueeLabelPainter
+    MarqueeControl --> MarqueeVisualLayer
+    MarqueeVisualLayer --> MarqueeShapePlan
     MarqueeControl --> MarqueeLogMessage
     MarqueeControl ..> MarqueeDrawPlan
     MarqueeControl ..> MarqueeAppearance
@@ -247,10 +235,10 @@ classDiagram
 | `MarqueeControl.cs` | `MarqueeControl` | `public` | 公開 API（プロパティ・イベント・メソッド）と通知の転送、コアが要求する効果の適用 |
 | `MarqueeControl.Input.cs` | `MarqueeControl`（partial） | `public` | ポインター・キー・フォーカスの処理、カーソル形状、画面座標の変換 |
 | `MarqueeControl.Visual.cs` | `MarqueeControl`（partial） | `public` | 描画（`OnPaintSurface`）、フレームの解決、表示倍率の追従 |
-| `MarqueeSkiaPainter.cs` | `MarqueeSkiaPainter` | `internal` | 図形の層（装飾・ハンドル・マーカー）を Skia へ写す |
-| `MarqueeLabelPainter.cs` | `MarqueeLabelPainter` | `internal` | ラベル（背景と文字）を Skia へ写す |
+| `MarqueeShapePlan.cs` | `MarqueeShapePlan` | `internal` | 描画計画（図形の層とラベル）を矩形と配置指示の列へ写す |
+| `MarqueeVisualLayer.cs` | `MarqueeVisualLayer` | `internal` | 矩形を `Rectangle` へ、ラベルを `Border` + `TextBlock` へ反映する |
 | `MarqueeLogMessage.cs` | `MarqueeLogMessage` | `internal` | ログ定義（接頭辞・操作の例外） |
-| `MarqueeRenderedEventArgs.cs` | `MarqueeRenderedEventArgs` | `public` | 描画完了の通知（キャンバスと描画内容） |
+| `MarqueeRenderedEventArgs.cs` | `MarqueeRenderedEventArgs` | `public` | 表示完了の通知（追加描画の入力先と描画内容） |
 | `MarqueePointEventArgs.cs` | `MarqueePointEventArgs` | `public` | 座標の通知（対象座標とスナップショット） |
 | `SelectionRectEventArgs.cs` | `SelectionRectEventArgs` | `public` | 矩形の通知（対象座標とスナップショット） |
 
@@ -272,7 +260,7 @@ sequenceDiagram
     UI->>UI: Focus() / InvalidateRender() / CapturePointer()
     UI->>Presenter: ResolveDrawPlan(描画領域, 実寸測定)
     Presenter-->>UI: 描画計画（層・矩形・ラベル）
-    UI->>UI: MarqueeSkiaPainter.Paint / MarqueeLabelPainter.Paint
+    UI->>UI: MarqueeVisualLayer.Apply（図形とラベル）
     Note over UI: ポインター移動（ドラッグ）
     UI->>Core: Move(対象座標)
     Core-->>UI: 効果（再描画）＋ 通知（SelectionChanged）
@@ -317,24 +305,19 @@ sequenceDiagram
 | nudge | 矢印キー（選択あり・許可条件を満たす） | カーソルの非表示と実カーソルの移動、再描画 |
 | 確定済み | Enter・内側のダブルクリック | 通知の転送（選択はコアがクリアする） |
 
-## 9. 描画フロー
+## 9. 表示フロー
 
 ```mermaid
 flowchart TB
     A["InvalidateRender()"] --> B["InvalidateFrame()（保持している計画を破棄）"]
-    B --> C["SKXamlCanvas.Invalidate()"]
-    C --> D["OnPaintSurface(SKPaintSurfaceEventArgs)"]
-    D --> E["倍率 = 描画面の実寸 ÷ 割り当て領域（未確定なら表示倍率）"]
-    E --> F["描画面を消す（前フレームを残さない）"]
-    F --> G["キャンバスを倍率でスケーリング（以降は DIP 座標）"]
-    G --> H["描画計画の解決（同じ基準サイズでは再解決しない）"]
-    H --> I["MarqueeSkiaPainter.Paint（装飾・ハンドル・マーカー）"]
-    I --> J["MarqueeLabelPainter.Paint（背景と文字）"]
-    J --> K["Rendered を発火（ホスト固有の付加情報を描く機会）"]
+    C --> D["ApplyVisual()"]
+    D --> E["計画の解決（要素の幅を基準。 同じ入力では再解決しない）"]
+    E --> I["MarqueeVisualLayer.Apply（図形・ハンドル・マーカー・ラベル）"]
+    I --> K["Rendered を発火（ホスト固有の矩形を追加する機会）"]
 ```
 
-**描画計画は 1 フレーム 1 回だけ解決します**（同じ基準サイズの間は保持した値をそのまま使います）。
-状態が変わると `InvalidateFrame()` が破棄し、次の描画で最新の状態を反映します。
+**描画計画は 1 更新 1 回だけ解決します**（同じ基準サイズの間は保持した値をそのまま使います）。
+状態が変わると `InvalidateFrame()` が破棄し、次の更新で最新の状態を反映します。
 
 ## 10. 例外処理ポリシー
 
@@ -346,7 +329,7 @@ flowchart TB
 | 画面座標の変換に失敗した（ウィンドウ未特定・`ScreenToClient` の失敗） | 例外にせず、等価変換（入力をそのまま使う）か `false` を返します |
 | カーソル位置を取得できない | `TryGetCurrentLoupePosition` が `false` を返し、nudge の基点を記録しません |
 | 倍率が未確定（非数・`0` 以下） | `DpiScaler.NormalizeScaling` で基準値へ寄せます（描画は続行します） |
-| 引数が `null`（キャンバス等） | `ArgumentNullException` を投げます（呼び出し側の実装誤り） |
+| 引数が `null`（計画等） | `ArgumentNullException` を投げます（呼び出し側の実装誤り） |
 
 **引数の検証は `try` の外に置きます**（プログラミング エラーは捕捉の対象外です）。
 
@@ -354,8 +337,8 @@ flowchart TB
 
 | 注意 | 理由 |
 | --- | --- |
-| 描画面は毎フレーム消す | `SKXamlCanvas` の描画面は前フレームの画素を保持するため、消さないと選択矩形が残像になる |
-| 背景（`Background`）をコントロールが塗らない | 消すのは透明（`SKColors.Transparent`）にする。 下の画像を透かすため（`SKXamlCanvas` は初回の描画で背景を自前のブラシへ差し替える） |
+| 要素は反映のたびに作り直さない | `RectShapeLayer` が件数が足りないときだけ要素を追加し、余った要素は隠す（パンのたびに数百の要素を割り当てない） |
+| 背景をコントロールが塗らない | 下の画像を透かすため透明のままにする（背景を持たない要素は入力を受け取れないため、透明のブラシだけ与える） |
 | ポインターは押下時に記録する | `CapturePointer` はポインター オブジェクトを要求するため、コアからの要求時に渡せるよう保持する |
 | `KeyDown` / `PointerPressed` はイベントを購読する | WinUI 3 の `UIElement` は `OnPointerPressed` 等の `protected override` の入口を持たない |
 | ポインターの進入・退出を自前で覚える | `UIElement` は「ポインターが上にあるか」を公開しない（追従位置の取り直しの条件に使う） |

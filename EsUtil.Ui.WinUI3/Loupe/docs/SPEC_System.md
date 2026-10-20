@@ -12,7 +12,7 @@
 - [4. 例外処理ポリシー](#4-例外処理ポリシー)
 - [5. コンポーネント構成](#5-コンポーネント構成)
 - [6. クラス図](#6-クラス図)
-- [7. シーケンス図（描画）](#7-シーケンス図描画)
+- [7. シーケンス図（表示）](#7-シーケンス図表示)
 - [8. 設計判断](#8-設計判断)
 - [9. テスト方針](#9-テスト方針)
 - [10. 未実装・今後の対応](#10-未実装今後の対応)
@@ -21,17 +21,17 @@
 ## 1. システム概要
 
 `EsUtil.Ui.WinUI3.Loupe` は、他の UI 版 `LoupeControl` と**同一の UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、
-描画（`SKCanvas`）のみを WinUI 3（Windows App SDK）で実装したルーペ コントロールです。
+表示（XAML の要素と Composition）のみを WinUI 3（Windows App SDK）で実装したルーペ コントロールです。
 
 コアが担う範囲（数値の安全域補正・切り出し領域の計算・表示レイアウト）は複数の UI で完全に共通であり、
-本プロジェクトはその計算結果をキャンバスへ描画するだけです。
-これにより **UI ごとの見た目の差を作らずに済み**、UI 追加時の再実装は描画 API の呼び出しのみになります。
+本プロジェクトはその計算結果を要素として表示するだけです。
+これにより **UI ごとの見た目の差を作らずに済み**、UI 追加時の再実装は要素への写像のみになります。
 
 WinUI 3 固有の実装は次の 3 点です。
 
-- 描画面に `SkiaSharp.Views.WinUI` の `SKXamlCanvas`（`Microsoft.UI.Xaml.Controls.Canvas` 派生）を使う。
+- 拡大画像を Composition のサーフェス（`LoupeImageView`）で表示し、図形とラベルは XAML の要素で置く。
 - 公開プロパティを CLR プロパティとして公開し、値の補正と変更ログを setter に集約する。
-- 中心座標ラベルを描画面へ描く（テキスト要素を重ねない）。
+- 中心座標ラベルを `Border` + `TextBlock` として置く（実寸は同じテキスト エンジンで測る）。
 
 ## 2. 技術スタック
 
@@ -40,8 +40,8 @@ WinUI 3 固有の実装は次の 3 点です。
 | 対象フレームワーク | .NET 10（`net10.0-windows10.0.22621.0`。 `SupportedOSPlatformVersion` は `10.0.19041.0`） |
 | 言語 | C# 14 |
 | UI フレームワーク | WinUI 3（Windows App SDK 1.x。 `UseWinUI` を有効にする） |
-| 描画 | SkiaSharp（描画実装 `LoupeSkiaPainter` が `SKCanvas` へ描く） |
-| 描画面 | `SkiaSharp.Views.WinUI` の `SKXamlCanvas`（`SkiaSharp.Views.Windows` 名前空間） |
+| 表示（図形・ラベル） | XAML の `Rectangle` / `Border` / `TextBlock`（表示の実装 `LoupeVisualLayer` が計画の順に置く） |
+| 表示（拡大画像） | Composition（`LoupeImageView`。 無圧縮 BMP を `LoadedImageSurface` へ渡し、最近傍で拡大する） |
 | プロパティ | CLR プロパティ（依存関係プロパティではない。 §8 を参照） |
 | ログ | `Microsoft.Extensions.Logging.Abstractions`（`LoggerMessage` ソース生成） |
 | テスト | xUnit v3（`dotnet test`。 実行可能なテスト プロジェクト） |
@@ -54,7 +54,7 @@ WinUI 3 固有の実装は次の 3 点です。
 
 ```text
 UI 層（WinUI 3 の実装）
-  入力の受付・値の補正・通知の転送・描画先の用意（SKXamlCanvas）
+入力の受付・値の補正・通知の転送・表示の更新（XAML と Composition）
     └──> EsUtil.Feature.Loupe.Presenter   どう描くか（描画計画の解決と外観）
            └──> EsUtil.Feature.Loupe.Core   何を描くか + 判断（状態・値・純粋計算・幾何）
                   └──> EsUtil.Platform.Core（Es* 値型・ICoordTransform）
@@ -67,9 +67,6 @@ UI 層（WinUI 3 の実装）
 | --- | --- | --- |
 | `EsUtil.Ui.WinUI3.Loupe` | `EsUtil.Feature.Loupe.Presenter` | 描画計画（層の順序・矩形・ラベルの文言と配置）と外観の解決 |
 | `EsUtil.Ui.WinUI3.Loupe` | `EsUtil.Platform.Core` | コア型（`EsReadOnlyBitmap` / `EsPoint` / `EsRect` / `DpiScaler` / `ICoordTransform`） |
-| `EsUtil.Ui.WinUI3.Loupe` | `Microsoft.WindowsAppSDK` / `Microsoft.Windows.SDK.BuildTools` | WinUI 3 の要素と XAML のビルド |
-| `EsUtil.Ui.WinUI3.Loupe` | `SkiaSharp.Views.WinUI` | 描画面（`SKXamlCanvas`）と Skia の描画 API |
-| `EsUtil.Ui.WinUI3.Loupe` | `Microsoft.Extensions.Logging.Abstractions` | ログの定義（LoggerMessage ソース生成）と `NullLogger` |
 
 ### 3.2 責務の分担
 
@@ -77,14 +74,14 @@ UI 層（WinUI 3 の実装）
 | --- | --- |
 | `EsUtil.Feature.Loupe.Core` | 数値の安全域補正、表示レイアウト、切り出し領域の幾何（`LoupeGeometry`）、設定（`LoupeOptions`）の保持 |
 | `EsUtil.Feature.Loupe.Presenter` | 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（`LoupeAppearance`）の保持。 UI 非依存であり、UI フレームワークを参照しない |
-| `EsUtil.Ui.WinUI3.Loupe` | 提示層が解決した描画計画を `LoupeSkiaPainter` で `SKCanvas` へ写す。 公開プロパティの受付（値の補正と変更ログ）。 表示倍率の追従 |
+| `EsUtil.Ui.WinUI3.Loupe` | 提示層が解決した描画計画を `LoupeVisualLayer` で要素へ写す。 公開プロパティの受付（値の補正と変更ログ）。 表示倍率の追従 |
 | ホスト（利用側のアプリ） | `Source` / `CenterPoint` の設定、表示位置の決定（コアのファサード `ResolveLayout` を利用）、入力の受付 |
 
 ## 4. 例外処理ポリシー
 
 | 状況 | 挙動 |
 | --- | --- |
-| 描画中に拡大元が破棄された（`ObjectDisposedException`） | 拡大画像の層を描かずに戻る（描画実装 `LoupeSkiaPainter` が吸収する。 [例外処理規約.md](../../../.github/例外処理規約.md) §4） |
+| 表示中に拡大元が破棄された（`ObjectDisposedException`） | 拡大画像を表示せずに戻る（取得の判定が吸収する。 [例外処理規約.md](../../../.github/例外処理規約.md) §4） |
 | 描画中のその他の例外 | 記録して再送出しない（`Log` へ Error を記録し、そのフレームの描画を中断する。 アプリは継続する） |
 | 公開 API（`SetCoordTransform`）の例外 | 記録して再送出する（呼び出し側が対処できるようにする） |
 
@@ -95,27 +92,25 @@ UI 層（WinUI 3 の実装）
 | コンポーネント | 責務 | 主な型 |
 | --- | --- | --- |
 | コントロール | 公開プロパティの受付（値の補正と変更ログ）、描画計画の解決とキャッシュ、描画の起動、描画完了の通知 | `LoupeControl` |
-| 描画実装（内部） | 描画計画（`LoupeDrawPlan`）を Skia の描画 API へ写す。 層の順序は計画に従い、中心座標ラベルも描く | `LoupeSkiaPainter` |
+| 表示の実装（内部） | 描画計画（`LoupeDrawPlan`）を要素へ写す。 層の順序は計画に従い、中心座標ラベルも置く | `LoupeVisualLayer` |
 | 描画完了の通知 | 描画済みのキャンバスと実際に使われた描画計画を渡す | `LoupeRenderedEventArgs` |
 | ログ定義 | 拡大元画像の差し替え、描画の例外、公開 API の例外の出力書式 | `LoupeLogMessage` |
-| Skia の補助（内部） | テキストの実寸測定と描画、矩形の塗り、色・幾何の変換、描画面と表示領域からの実効倍率の解決、コアの画像のビュー | `SkiaText` / `SkiaFill` / `SkiaColorInterop` / `SkiaGeometryInterop` / `ClientPixelScale` / `EsBitmapSkiaExtensions` |
-| テスト | 画素の検証（描画）、変換と補助の検証、ログの出力書式、描画計画の保持 | `LoupeSkiaPainterTests` ほか |
+| 表示の補助（内部） | 矩形の列、要素への反映、テキストの実寸測定、コアの画像のビュー、表示領域からの実効倍率の解決 | `LoupeRectList` / `LoupeShapeLayer` / `LoupeTextMeasure` / `LoupeBitmapStream` / `LoupeImageView` / `ClientPixelScale` |
+| テスト | 矩形の列の検証（描画計画の写像）、変換と補助の検証、ログの出力書式、イベント引数の保持 | `LoupeShapePlanTests` ほか |
 
 `LoupeControl` の役割:
 
 - プロパティの変更で保持中の描画計画を破棄し、描画を無効化する（設定・外観・拡大中心）。
 - `Options` の変更ではレイアウトの無効化も行う（要求サイズが変わるため）。
-- 描画のたびに、描画面（物理ピクセル）と割り当て領域（DIP）の比から実効倍率を求め、`ClientToPixelScaling` と提示層へ反映する（DPI の変更通知が届かない状況でも拡大画像と図形の倍率が一致する）。
-- 同じ入力（表示サイズとスケーリング係数）では描画計画を再解決しない（1 フレーム 1 回に留める）。
+- 表示の更新のたびに、XAML のルートの拡大率から実効倍率を求め、`ClientToPixelScaling` と提示層へ反映する（DPI の変更通知が届かない状況でも拡大画像と図形の倍率が一致する）。
+- 同じ入力（表示サイズとスケーリング係数）では描画計画を再解決しない（1 更新 1 回に留める）。
 
 ## 6. クラス図
 
 ```mermaid
 classDiagram
-    class SKXamlCanvas {
-        <<SkiaSharp.Views.WinUI>>
-        +OnPaintSurface(e) void
-        +Invalidate() void
+    class Canvas {
+        <<Microsoft.UI.Xaml.Controls>>
     }
     class LoupeControl {
         +EsReadOnlyBitmap? Source
@@ -129,12 +124,12 @@ classDiagram
         +string? LogPrefix
         +LoupeLayout ResolveLayout(parentSize)
         +SetCoordTransform(port) void
-        +DrawPlan(canvas, source, plan) void$
+        +RequestRedraw() void
         +Rendered~LoupeRenderedEventArgs~
         +MeasureOverride(availableSize) Size
-        +OnPaintSurface(e) void
+        -ApplyVisual() void
         -ResolvePlan(displaySize) LoupeDrawPlan
-        -ApplyClientPixelScaling(info) double
+        -ApplyClientPixelScaling() double
         -RaiseRendered(args) void
     }
     class LoupePresenter {
@@ -142,26 +137,6 @@ classDiagram
         +LoupeAppearance Appearance
         +ResolveDrawPlan(clientSize, measureText) LoupeDrawPlan
         +ResolveLayout(parentSize) LoupeLayout
-    }
-    class LoupeOptions {
-        <<EsUtil.Feature.Loupe.Core>>
-        +int RequestedSize
-        +int ZoomLevel
-    }
-    class LoupeAppearance {
-        <<EsUtil.Feature.Loupe.Presenter>>
-        +int BorderThickness
-        +bool ShowCrosshair
-        +bool ShowBorder
-        +bool ShowCoordLabel
-        +bool ShowPasteboard
-        +DrawingColor PasteboardColor
-        +DrawingColor CrossColor
-        +DrawingColor BorderColor
-        +DrawingColor CoordLabelColor
-        +DrawingColor CoordLabelBackgroundColor
-        +double CoordLabelFontSize
-        +int CoordLabelCornerRadius
     }
     class LoupeDrawPlan {
         <<EsUtil.Feature.Loupe.Presenter>>
@@ -174,37 +149,43 @@ classDiagram
         +int ZoomLevel
         +ScaleDipToPixel(dip) int
     }
-    class LoupeSkiaPainter {
-        <<EsUtil.Ui.WinUI3.Loupe / internal>>
-        +Paint(canvas, source, plan) void$
+    class LoupeVisualLayer {
+        <<Internal>>
+        +Apply(plan, pixelToDip) void
+        +LoupeImageView Image
+        +LoupeShapeLayer OverlayLayer
     }
-    class SkiaText {
-        <<WinUI3.Internal / internal>>
-        +Measure(text, fontSize) EsSize$
-        +Draw(canvas, text, left, top, fontSize, color) void$
+    class LoupeShapePlan {
+        <<Internal>>
+        +BuildCrosshair(plan) LoupeRectList$
+        +BuildBorder(plan) LoupeRectList$
+        +VisibleLabels(plan) IReadOnlyList~LoupeLabelPlacement~$
     }
-    class SkiaFill {
-        <<WinUI3.Internal / internal>>
-        +Rects(canvas, rects, color) void$
-        +RoundRect(canvas, rect, cornerRadius, color) void$
+    class LoupeImageView {
+        <<Internal / Composition>>
+        +SetSource(image) void
+        +SetMagnification(..., zoomLevel, scaling) void
+    }
+    class LoupeShapeLayer {
+        <<Internal / Canvas>>
+        +Apply(list, pixelToDip) void
     }
     class LoupeRenderedEventArgs {
         <<EsUtil.Ui.WinUI3.Loupe>>
-        +SKCanvas Canvas
+        +AddRect(x, y, width, height, argb) void
         +LoupeDrawPlan Content
     }
-    SKXamlCanvas <|-- LoupeControl
+    Canvas <|-- LoupeControl
     LoupeControl ..> LoupePresenter : 計画の解決
-    LoupeControl ..> LoupeSkiaPainter : 描画
-    LoupeSkiaPainter ..> SkiaText : 文字
-    LoupeSkiaPainter ..> SkiaFill : 塗り
+    LoupeControl ..> LoupeVisualLayer : 表示の反映
+    LoupeVisualLayer ..> LoupeShapePlan : 矩形の組み立て
+    LoupeVisualLayer ..> LoupeImageView : 拡大画像
+    LoupeVisualLayer ..> LoupeShapeLayer : 図形
     LoupePresenter ..> LoupeDrawPlan : 解決結果
-    LoupePresenter ..> LoupeOptions : 設定
-    LoupePresenter ..> LoupeAppearance : 外観
-    LoupeControl ..> LoupeRenderedEventArgs : 通知
+    LoupeControl ..> LoupeRenderedEventArgs : 追加描画の入力先
 ```
 
-## 7. シーケンス図（描画）
+## 7. シーケンス図（表示）
 
 ```mermaid
 sequenceDiagram
@@ -212,7 +193,7 @@ sequenceDiagram
     participant Control as LoupeControl
     participant Presenter as LoupePresenter
     participant Core as LoupeCore
-    participant Painter as LoupeSkiaPainter
+    participant Visual as LoupeVisualLayer
 
     Host->>Control: Source / CenterPoint / Options / Appearance を設定
     Control->>Presenter: 値を転送（設定・環境値・拡大中心）
@@ -221,7 +202,7 @@ sequenceDiagram
     Note over Control: 描画は UI スレッドの描画パスで行われる
     Control->>Control: OnPaintSurface（描画面の準備完了）
     Control->>Control: 描画面と割り当て領域から実効倍率を解決
-    Control->>Presenter: ResolveDrawPlan(clientSize, SkiaText.Measure)
+    Control->>Presenter: ResolveDrawPlan(clientSize, LoupeTextMeasure.Measure)
     Presenter->>Core: ResolveGeometry(clientSize)
     Core-->>Presenter: LoupeGeometry（描画面・切り出し・拡大画像）
     Presenter-->>Control: LoupeDrawPlan（層の順序・矩形・ラベル配置）
@@ -238,12 +219,12 @@ sequenceDiagram
 | 判断 | 理由 | 影響 |
 | --- | --- | --- |
 | 公開プロパティを CLR プロパティにする | WinUI 3 の `DependencyProperty` は WinRT へ投影できる型だけを登録できるため、コアと描画層の型（`EsReadOnlyBitmap` / `LoupeOptions` / `LoupeAppearance`）は依存関係プロパティにできない | XAML のバインディングでは設定できない（コードビハインドから設定する）。 同値判定と補正は setter に集約する |
-| 基底クラスに `SKXamlCanvas` を選ぶ | 描画面（Skia の表面）を要素そのものにし、中間ビットマップを持たずに済む | 要素の大きさと描画面の大きさが一致する。 位置と描画のずれが構造的に起きない |
-| 中心座標ラベルを描画面へ描く | ラベルを要素として重ねると、要素のフォントと実寸測定のフォントが分かれ、背景から文字がはみ出す。 測定と描画を同じ関数にすれば大きさが必ず一致する | ラベルの実寸測定（`SkiaText.Measure`）を提示層の解決へ渡し、描画も同じ関数を使う |
+| 基底クラスに `Canvas` を選ぶ | 子要素の追加順がそのまま描画順になる（層の順序を計画の順に写せる） | 画像・図形・ラベルの重なりが要素の順序で決まり、描画順の判断を UI 層に持たない |
+| 中心座標ラベルを要素として置く | 測定と表示を同じエンジンにすれば、背景から文字がはみ出さない | ラベルの実寸測定（`LoupeTextMeasure.Measure`）を提示層の解決へ渡し、表示も `TextBlock` で行う |
 | 実効倍率を描画のたびに描画面から実測する | DPI の変更通知は追加直後のコントロールへ届かないことがある（保持値だけでは拡大画像と図形の倍率が食い違う） | `ClientToPixelScaling` はホストが明示しなくても正しい値へ追従する |
 | 位置を持たない | 位置の計算（オフセット・親領域内への補正）はコアのファサードが単一所有する | ホストが `ResolveLayout` の結果で配置する（`Canvas` 等の親へ置く） |
 | `MeasureOverride` で一辺 `RequestedSize` の正方形を返す | ルーペは正方形であり、要求サイズを親へ伝える | 親が余白を決める場合でも要求サイズが伝わる（配置はホストが行う） |
-| Skia の描画プリミティブを Internal へ複製する | 本プロジェクトは独立したパッケージとして配布するため、利用側のプラットフォーム層へ依存できない（[依存関係.md](../../../.github/依存関係.md) §4.1） | 複製した型は `internal` とし、複製元を 1 行コメントで示す |
+| 表示の補助型（矩形の列・要素への反映・テキスト測定・BMP の組み立て・Composition の画像）を Internal へ複製する | 本プロジェクトは独立したパッケージとして配布するため、利用側のプラットフォーム層へ依存できない（[依存関係.md](../../../.github/依存関係.md) §4.1） | 複製した型は `internal` とし、複製元を 1 行コメントで示す |
 
 ## 9. テスト方針
 
@@ -251,15 +232,15 @@ sequenceDiagram
 
 | 検証する範囲 | 検証内容 |
 | --- | --- |
-| 描画（`LoupeSkiaPainter`） | 層の順序、画像外の色、拡大画像の切り出しと行幅、十字線、枠線、中心座標ラベル（背景・文字・表示可否・スケーリング係数の換算）、既定描画の入口 |
-| Skia の補助（Internal） | テキストの実寸と描画、矩形の塗りと角丸、色と幾何の変換、描画面からの実効倍率、コアの画像のビュー（所有権と行幅） |
+| 表示（`LoupeShapePlan` / `LoupeVisualLayer`） | 層の順序、画像外の色、拡大画像の切り出しと拡大率、十字線、枠線、中心座標ラベル（背景・文字・表示可否）、追加描画の受け付け |
+| 表示の補助（Internal） | テキストの実寸、矩形の列と要素への反映、無圧縮 BMP の組み立て、コアの画像のビュー、表示領域からの実効倍率 |
 | ログ | 出力書式（`LoupeLogMessage`）、同値の設定で出力しないこと、接頭辞の反映 |
 | 通知 | 描画完了の引数が保持する値（キャンバス・計画） |
 
 | 検証しない範囲 | 理由と代替 |
 | --- | --- |
 | `LoupeControl` のインスタンス（プロパティの補正・変更ログ・DPI 追従・描画計画のキャッシュ） | XAML 型の生成ができない（上記の実測）。 代替として、サンプル アプリケーション（アンパッケージの WinUI 3 アプリ）で動作を確認する |
-| 実際の描画面（`SKXamlCanvas` の表面）の画素 | 描画面の生成にウィンドウが必要である。 代替として、同じ描画計画を `SKBitmap` のキャンバスへ描いて画素を検証する |
+| XAML の要素の見た目 | 要素の生成にウィンドウが必要である。 代替として、計画から組み立てた矩形の列（位置・色・順序）を「描画内容」として検証する |
 | XAML の読み込みとレイアウト | XAML のコンパイルとサンプル アプリの起動で確認する |
 
 ## 10. 未実装・今後の対応

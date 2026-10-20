@@ -27,7 +27,7 @@
 ルーペ（拡大鏡）は、**拡大元の 100% 画像**と**拡大中心（元画像ピクセル座標）**を受け取り、
 画像外の色（無地）・拡大画像・十字線・枠線・中心座標ラベルを描画するコントロールです。
 
-名前空間 `EsUtil.Ui.WinUI3.Loupe` / クラス `LoupeControl`（`public sealed`、`SkiaSharp.Views.Windows.SKXamlCanvas` 派生）。
+名前空間 `EsUtil.Ui.WinUI3.Loupe` / クラス `LoupeControl`（`public sealed`、`Microsoft.UI.Xaml.Controls.Canvas` 派生）。
 
 **他の UI 版の `LoupeControl` と同じ UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）を使うため、設定値と見た目は複数の UI で一致します。**
 
@@ -42,14 +42,14 @@
 | 種別 | メンバー |
 | --- | --- |
 | プロパティ | `Source` / `CenterPoint` / `Options` / `Appearance` / `ClientToPixelScaling` / `PositionOffset` / `DrawPlanResolver` / `Log` / `LogPrefix` |
-| メソッド | `ResolveLayout` / `SetCoordTransform` / `DrawPlan`（静的） |
+| メソッド | `ResolveLayout` / `SetCoordTransform` / `RequestRedraw` |
 | イベント | `Rendered` |
 
 ### 2.1 プロパティ
 
 | プロパティ | 型 | 既定値 | 安全域（範囲外は自動補正） | 説明 |
 | --- | --- | --- | --- | --- |
-| `Source` | `EsReadOnlyBitmap?` | `null` | — | 拡大元の 100% 画像（**受け取る型はコアの画像（`EsReadOnlyBitmap`）だけ**。 フレームワークのビットマップ型や Skia の `SKBitmap` は受け付けない。 借用であり破棄しない）。 null の場合は画像外の色のみ |
+| `Source` | `EsReadOnlyBitmap?` | `null` | — | 拡大元の 100% 画像（**受け取る型はコアの画像（`EsReadOnlyBitmap`）だけ**。 フレームワークのビットマップ型は受け付けない。 借用であり破棄しない）。 null の場合は画像外の色のみ |
 | `CenterPoint` | `EsPoint?` | `null` | — | 拡大中心（元画像ピクセル座標）。 null の場合は画像外の色のみ |
 | `Options` | `LoupeOptions` | `LoupeOptions.Default` | 下表のとおり | 設定（基本サイズ・拡大率）。 `with` 式で部分変更する |
 | `Appearance` | `LoupeAppearance` | `LoupeAppearance.Default` | 下表のとおり | 外観（枠線の太さ・表示可否）と描画に使う色（画像外・枠線・十字線・中心座標ラベルの 6 色）・ラベルの体裁。 `with` 式で部分変更する。 外観はコアの計算に入らない |
@@ -61,7 +61,7 @@
 
 `CenterPoint` は基底（`UIElement`）の同名プロパティ（描画変換の中心点）を隠します。 名前を揃えて移植しやすくするためで、描画変換の中心点が必要な場合は基底の実装として扱います。
 
-**見た目のカスタマイズ**: 色・枠線の太さ・表示可否は外観（`Appearance`）で指定します（**表示可否が描画の停止の唯一の入口**です。 表示を止めても計画は矩形と層を保ち、描画側がフラグを見て描かないため、ホストは止めた項目も計算値を使って自前で描けます）。 矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）で描画計画（`LoupeDrawPlan`）を差し替えられます（例はサンプルの `GridLoupePlan`）。 矩形で表せない描画（円・斜線等）は `Appearance` の `Show*` を false にして `Rendered` のキャンバスへ自前で描き、必要なら `DrawPlan` で計画どおりの描画を行います。
+**見た目のカスタマイズ**: 色・枠線の太さ・表示可否は外観（`Appearance`）で指定します（**表示可否が描画の停止の唯一の入口**です。 表示を止めても計画は矩形と層を保ち、描画側がフラグを見て描かないため、ホストは止めた項目も計算値を使って自前で描けます）。 矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）で描画計画（`LoupeDrawPlan`）を差し替えられます（例はサンプルの `GridLoupePlan`）。 矩形で表せない描画（円・斜線等）は `Appearance` の `Show*` を false にして `Rendered` の `AddRect` へ矩形を積んで表します。
 
 `Options`（コアの `LoupeOptions`。 UI 非依存の値）の項目:
 
@@ -93,17 +93,17 @@
 | --- | --- | --- |
 | `ResolveLayout(EsSize parentSize)` | `LoupeLayout` | 親領域のサイズ（DIP）から表示レイアウト（表示サイズ・表示位置）を解決する。 位置が null になるのは、拡大中心が未設定の場合と、親領域が表示サイズを収められない場合である |
 | `SetCoordTransform(ICoordTransform? port)` | — | 対象 ↔ 親領域 DIP の座標変換ポートを設定する（null は等価変換）。 例外は記録して再送出する |
-| `DrawPlan(SKCanvas canvas, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)` | — | 描画計画を指定の描画面へ描く（**静的**）。 ホストが任意のタイミングと順序で既定の描画を行える入口である |
+| `RequestRedraw()` | — | プロパティの変更を伴わない再表示を要求する（DPI の変更・親の再配置など）。 移行前の `Invalidate` に代わる入口である |
 
 使用例:
 
 ```csharp
-// 描画完了の直後とは別のタイミングで、既定の描画を行いたい場合
+// 表示完了の直後に、選択矩形の破線などを追加したい場合
 Loupe.Rendered += (_, e) =>
 {
     // e.Content は実際に使われた計画（切り出し左上・拡大率・描画サイズを持つ）
-    LoupeControl.DrawPlan(e.Canvas, Loupe.Source, in e.Content);
-    // 追加のオーバーレイはここへ描く（キャンバスはルーペ画像のピクセル座標）
+    // 矩形はルーペ画像のピクセル座標で追加する（計画の層より前面、ラベルより背面）
+    e.AddRect(x, y, width, 1, 0xFFFF0000);
 };
 ```
 
@@ -111,11 +111,11 @@ Loupe.Rendered += (_, e) =>
 
 | イベント | 引数 | 説明 |
 | --- | --- | --- |
-| `Rendered` | `LoupeRenderedEventArgs` | 描画完了の通知。 `Canvas`（描画済みのキャンバス）と `Content`（実際に使われた描画計画）を渡す |
+| `Rendered` | `LoupeRenderedEventArgs` | 表示完了の通知。 `AddRect`（追加描画の入力先）と `Content`（実際に使われた描画計画）を渡す |
 
 ## 3. 描画仕様
 
-**描く層とその順序は提示層が単一所有します**（`LoupeDrawLayer`）。 描画計画（`LoupeDrawPlan`）が層の順序を解決し、描画実装（`LoupeSkiaPainter`。 内部）はその順に写すだけです。
+**描く層とその順序は提示層が単一所有します**（`LoupeDrawLayer`）。 描画計画（`LoupeDrawPlan`）が層の順序を解決し、表示の実装（`LoupeVisualLayer`。 内部）はその順に写すだけです。
 
 ### 3.1 層の順序
 
@@ -129,12 +129,12 @@ Loupe.Rendered += (_, e) =>
 | 4 | 枠線 | 四辺（`Appearance.BorderThickness` の太さ） |
 | 5 | 中心座標ラベル | **描画面へ描く**（背景の角丸矩形 + 文字）。 常に最上位 |
 
-中心座標ラベルは、文言と基準点を提示層（`LoupePresenter`）が、体裁（フォントサイズ・色・角丸・内側余白）を外観（`LoupeAppearance`）が単一所有し、実寸の測定と描画は同じ Internal のヘルパー（`SkiaText`）が担います（測定と描画に関数が分かれないため、背景と文字の大きさが必ず一致します）。 配置指示（`LoupeLabelPlacement`）の寸法は DIP であるため、描画時にスケーリング係数を掛けて物理ピクセルへ換算します。
+中心座標ラベルは、文言と基準点を提示層（`LoupePresenter`）が、体裁（フォントサイズ・色・角丸・内側余白）を外観（`LoupeAppearance`）が単一所有し、実寸の測定は WinUI 3 のテキスト エンジン（`LoupeTextMeasure`。 内部）が担います（表示する要素と同じエンジンで測るため、背景と文字の大きさが必ず一致します）。 配置指示（`LoupeLabelPlacement`）の寸法は DIP であるため、描画時にスケーリング係数を掛けて物理ピクセルへ換算します。
 
 ### 3.2 サイズの決定
 
 - 一辺の表示サイズ（DIP）は `Options.RequestedSize` である（親領域に合わせた縮小はしない）。
-- 描画面（Skia の表面）は、要素の表示サイズへ表示倍率を掛けた大きさになる。 描画計画の矩形（描画面・拡大画像・枠線の太さ）は**物理ピクセル**で解決されるため、キャンバスは拡大せず 1:1 で描く。
+- 描画計画の矩形（描画面・拡大画像・枠線の太さ）は**物理ピクセル**で解決されるため、要素へ写すときに 1 / 倍率で DIP へ戻す。
 - 描画のたびに、描画面の大きさと割り当て領域（DIP）の比から実効倍率を求め、`ClientToPixelScaling` と提示層へ反映する（DPI の変更通知が届かない状況でも整合する）。
 - **`MeasureOverride` は一辺 `RequestedSize` の正方形を返す**（レイアウトの要求サイズ）。 表示位置はホストが `ResolveLayout` の結果で配置する。
 
@@ -189,7 +189,7 @@ if (layout.Position is { } position)
 
 `Rendered` は描画の直後（同一フレーム内）に発火し、描画済みのキャンバスと実際に使われた描画計画を渡します。
 
-- `LoupeRenderedEventArgs.Canvas`: 拡大画像のピクセル座標系（1 ピクセル = ルーペ画像の 1 ピクセル）。
+- `LoupeRenderedEventArgs.AddRect`: 拡大画像のピクセル座標系（1 ピクセル = ルーペ画像の 1 ピクセル）で矩形を追加する。
 - `LoupeRenderedEventArgs.Content`: `CaptureTopLeft`（対象座標の可視域の左上。 小数を含む）、`ZoomLevel`（拡大率）、`ClientPixelSize`（一辺の物理ピクセル）を持つ。
 - 対象座標のオーバーレイは `(対象座標 − CaptureTopLeft) × ZoomLevel` の位置へ描く。
 - DIP で見せたい寸法は `LoupeDrawPlan.ScaleDipToPixel`（拡大率とスケーリングから物理ピクセルへ換算する唯一の入口）を使う。
@@ -212,7 +212,7 @@ if (layout.Position is { } position)
 
 - **公開プロパティは CLR プロパティである**（依存関係プロパティではない）。 XAML のバインディングでは設定できないため、コードビハインドから設定する。 また、`CenterPoint` は基底（`UIElement`）の同名プロパティを隠す。
 - **XAML から設定できるのは XAML が扱えるプロパティだけ**である（`x:Name` や `Visibility` 等）。 コアと描画層の型を取るプロパティはコードから設定する。
-- 拡大元の画像はコアの画像（`EsReadOnlyBitmap`）だけを受け取る（フレームワークのビットマップ型や Skia の `SKBitmap` は受け付けない）。
+- 拡大元の画像はコアの画像（`EsReadOnlyBitmap`）だけを受け取る（フレームワークのビットマップ型は受け付けない）。
 - 表示位置は本コントロールが持たない（ホストが `ResolveLayout` の結果で配置する）。
 - 連続再描画は行わない（静止画として扱う。 入力や設定の変更時にのみ描画する）。
 - `Clipping`・変形（`Rotation` / `Scale` 等）は本コントロールの描画に反映されない（描画面は要素の表示サイズから作る）。

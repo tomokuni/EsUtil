@@ -1,57 +1,67 @@
 using EsUtil.Platform.Core.Geometry;
-using SkiaSharp;
+using EsUtil.Ui.WinUI3.Loupe.Internal;
 using Xunit;
 
 namespace EsUtil.Ui.WinUI3.Loupe.Tests;
 
 /// <summary><see cref="LoupeRenderedEventArgs"/>（ルーペの描画完了通知）のテスト。</summary>
 /// <remarks>
-/// イベントの発火は実際の描画（ウィンドウ）を必要とするため、引数の契約（保持する値）のみを検証する。<br/>
-/// 描画完了時のオーバーレイ描画はホスト（サンプルアプリケーションのホスト）のテストが担う。
+/// イベントの発火は実際の表示（ウィンドウ）を必要とするため、引数の契約（保持する値と追加描画の受け付け）のみを検証する。<br/>
+/// 移行前は描画先キャンバスを渡していたが、描画 API を公開しないため矩形の列を渡す形へ変わった。
 /// </remarks>
 public class LoupeRenderedEventArgsTests
 {
-    /// <summary>保持した値がそのまま取得できることを検証する。</summary>
     [Fact]
     internal void 保持した値を取得できる()
     {
-        using var bitmap = new SKBitmap(new SKImageInfo(32, 32));
-        using var canvas = new SKCanvas(bitmap);
-        var plan = CreatePlan(new EsPoint(16, 16));
+        var overlay = new LoupeRectList();
+        var plan = CreatePlan();
 
-        var args = new LoupeRenderedEventArgs(canvas, plan);
+        var args = new LoupeRenderedEventArgs(overlay, plan);
 
-        Assert.Same(canvas, args.Canvas);
-        // 描画計画は値で比較できる（切り出し左上・拡大率・描画面のサイズを単一所有する）
+        Assert.Same(overlay, args.Overlay);
         Assert.Equal(plan, args.Content);
-        // 中心 (16,16)・拡大率 2 → 切り出し一辺 16、左上 = (16−8, 16−8) = (8, 8)
         Assert.Equal(new EsPoint(8, 8), args.Content.CaptureTopLeft);
     }
 
-    /// <summary>中心が未設定の場合は切り出し左上が null になることを検証する。</summary>
     [Fact]
-    internal void 中心が未設定の場合は切り出し左上がnullになる()
+    internal void AddRect_追加した矩形が順に並ぶ()
     {
-        using var bitmap = new SKBitmap(new SKImageInfo(32, 32));
-        using var canvas = new SKCanvas(bitmap);
+        var overlay = new LoupeRectList();
+        var args = new LoupeRenderedEventArgs(overlay, CreatePlan());
 
-        var args = new LoupeRenderedEventArgs(canvas, CreatePlan(center: null));
+        args.AddRect(1, 2, 3, 4, 0xFF112233);
+        args.AddRect(5, 6, 7, 8, 0xFF445566);
 
-        Assert.Null(args.Content.CaptureTopLeft);
+        Assert.Equal(2, overlay.Count);
+        Assert.Equal(1, overlay.Rects[0].X);
+        Assert.Equal(0xFF112233u, overlay.Rects[0].ColorArgb);
+        Assert.Equal(7, overlay.Rects[1].Width);
     }
 
-    /// <summary>テスト用の描画計画を提示層（実際の解決経路）で解決する。</summary>
-    /// <param name="center">拡大中心。 null の場合は中心未設定の計画になる。</param>
-    /// <returns>描画計画。</returns>
-    /// <remarks>実寸測定はダミーを渡す（本テストは計画の保持のみを検証する）。</remarks>
-    private static LoupeDrawPlan CreatePlan(EsPoint? center)
+    [Fact]
+    internal void AddRect_大きさが0以下の矩形は追加しない()
     {
-        var presenter = new LoupePresenter
-        {
-            Options = LoupeOptions.Default with { RequestedSize = 32, ZoomLevel = 2 },
-            CenterPoint = center,
-        };
+        var overlay = new LoupeRectList();
+        var args = new LoupeRenderedEventArgs(overlay, CreatePlan());
 
-        return presenter.ResolveDrawPlan(32, static (_, _) => default);
+        args.AddRect(1, 2, 0, 4, 0xFF112233);
+        args.AddRect(1, 2, 3, 0, 0xFF112233);
+
+        Assert.Equal(0, overlay.Count);
     }
+
+    private static LoupeDrawPlan CreatePlan()
+        => new(
+            LoupeAppearance.Default,
+            new EsRect(0, 0, 64, 64),
+            null,
+            [],
+            [],
+            [],
+            [],
+            new EsPoint(8, 8),
+            2,
+            64,
+            1);
 }

@@ -30,7 +30,7 @@
 選択矩形・ドラッグ・nudge のロジックは UI 非依存コア（`EsUtil.Feature.Marquee.Core`）が単一所有し、
 他の UI 版（Avalonia / MewUI）と同一の挙動になります。
 
-基底クラスは `SkiaSharp.Views.Windows.SKXamlCanvas`（`Canvas`）で、自前の描画面へ Skia で直接描画します。
+基底クラスは `Microsoft.UI.Xaml.Controls.Canvas` で、図形とラベルを要素として置きます。
 サイズラベル・カーソル座標ラベルも同じ描画面へ描きます。
 
 ## 2. 依存関係
@@ -40,7 +40,7 @@
 | `EsUtil.Feature.Marquee.Presenter` | 提示層（描画計画の解決・外観・ラベル配置）: `MarqueePresenter`（描画計画の解決）/ `MarqueeAppearance`（外観）/ `MarqueeDrawPlan`（UI が見る唯一の描画値）/ `MarqueeLabelPlacement`（ラベルの配置指示） |
 | `EsUtil.Platform.Core` | コア幾何型（`EsPoint` / `EsRect` / `EsSize`）、`ICoordTransform` / `CoordTransform` / `DpiScaler`、`ICursorService`（`Native.Win` の既定実装） |
 | `Microsoft.WindowsAppSDK` | WinUI 3（`Canvas` / ポインター イベント / `Microsoft.UI.Input` のカーソル / ウィンドウ ID） |
-| `SkiaSharp.Views.WinUI` | `SKXamlCanvas`（描画面）と Skia の描画 API |
+| `Microsoft.WindowsAppSDK` | WinUI 3 のコントロールと XAML の要素 |
 | `Microsoft.Extensions.Logging.Abstractions` | ログの出力先（`ILogger`） |
 
 コア（`EsUtil.Feature.Marquee.Core`）は提示層の推移参照で解決されます。
@@ -83,7 +83,6 @@
 | `RequestCancel()` | キャンセル要求を処理します（Escape キーと同じ条件。 選択を破棄してから `CancelRequested` を発火します） |
 | `TryGetCurrentLoupePosition(out EsPoint)` | 追従位置（ルーペ中心。 対象座標）を実カーソルから取り直します。 追従していない場合（ドラッグ中・nudge 中）とポインターがコントロールの外にある場合は `false` を返します |
 | `InvalidateRender()` | 描画計画の再解決と再描画を要求します（座標変換ポートが参照するホスト側の状態を変えたときに呼びます） |
-| `DrawPlan(SKCanvas, in MarqueeDrawPlan)` | 描画計画を自前のキャンバスへ描きます（既定の描画をホストが再利用するための入口。 `static` メソッドです） |
 
 ## 6. プロパティ（取得のみ）
 
@@ -120,7 +119,7 @@
 | 文言 | 提示層が自動生成します（`SizeLabelOverrideProvider` で差し替え可能） |
 | 体裁（色・フォントサイズ・内側余白） | `Appearance` が単一所有します（`MarqueeAppearance.LabelPadding` 等） |
 | 表示可否 | `Appearance` の `ShowSizeLabel` / `ShowCoordLabel` で決まります（止めても配置指示は残り、描画側だけが止まります） |
-| 描画 | コントロールが背景（矩形）と文字を描きます。 実寸測定と描画が同じエンジン（Skia）です |
+| 表示 | コントロールが背景（矩形）と文字（`TextBlock`）を置きます。 実寸測定と表示が同じエンジンです |
 | ホスト固有のラベル | 操作ラベル・情報ラベルなどアプリ固有の情報はホストが `Rendered` のハンドラで描きます |
 
 ## 8. 操作仕様
@@ -151,7 +150,7 @@
 
 | 項目 | 本コントロール（WinUI 3） |
 | --- | --- |
-| ラベルの描画 | 子要素（`Border` + `TextBlock`）ではなく、**同じ描画面へ Skia で描きます**。 実寸測定と描画が同じエンジンになり、背景から文字がはみ出しません |
+| ラベルの表示 | 子要素（`Border` + `TextBlock`）として置きます。 実寸測定と表示が同じエンジンになり、背景から文字がはみ出しません |
 | 矢印キーの nudge | **フォーカスが必要**です（他 UI 版のフォーカス非依存の TopLevel 購読とは異なります） |
 | ダブルクリック | OS の設定値と押下位置から本 UI が判定します（ポインター イベントがクリック数を報告しないため） |
 | ポインター キャプチャ | コアからの要求で取得・解放します（押下時に記録したポインターを使います） |
@@ -203,12 +202,12 @@ Marquee.DrawPlanResolver = plan => plan.FocusDipRect is { } focus
 ### 10.3 付加情報の描画とログ
 
 ```csharp
-// 描画の直後に呼ばれるため、ホスト固有のラベルはここで描く（キャンバスは描画中のみ有効）
+// 表示の直後に呼ばれるため、ホスト固有のラベルはここで矩形として追加する（座標は DIP）
 Marquee.Rendered += (sender, e) =>
 {
     if (e.Content.FocusDipRect is { } focus)
     {
-        DrawOperationLabel(e.Canvas, focus);
+        e.AddRect(focus.X, focus.Y, focus.Width, 1, 0xFF00FF00);
     }
 };
 
@@ -233,7 +232,7 @@ Marquee.LogPrefix = "[Marquee]";
 
 | 型 | 役割 |
 | --- | --- |
-| `MarqueeSkiaPainter`（内部・描画実装） | 描画計画（図形の層）を Skia の描画 API へ写します |
-| `MarqueeLabelPainter`（内部・描画実装） | ラベルの配置指示（背景と文字）を Skia の描画 API へ写します |
+| `MarqueeShapePlan`（内部） | 描画計画（図形の層とラベル）を矩形と配置指示の列へ写します |
+| `MarqueeVisualLayer`（内部・表示の実装） | 矩形を `Rectangle` へ、ラベルを `Border` + `TextBlock` へ反映します |
 | `MarqueeLogMessage`（内部・ログ定義） | 本コントロールのログ定義（接頭辞と操作の例外の記録） |
 | `Internal` 名前空間のヘルパー（内部・境界変換） | 倍率の解決（`ClientPixelScale`）、座標とキーと色の相互変換、ダブルクリックの判定、Win32 の画面座標変換、テキストと矩形の描画 |

@@ -22,7 +22,6 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="[1.*,2.0.0)" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="[10.0.*,)" />
     <!-- 背景のテスト パターンを描く SKXamlCanvas（コントロールと同じ描画基盤） -->
-    <PackageReference Include="SkiaSharp.Views.WinUI" Version="[3.*,4.0.0)" />
     <!-- 操作ログ（コントロールの Log へ設定する） -->
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
   </ItemGroup>

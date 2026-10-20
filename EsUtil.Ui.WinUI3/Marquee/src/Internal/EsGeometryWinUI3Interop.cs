@@ -9,7 +9,7 @@ namespace EsUtil.Ui.WinUI3.Marquee.Internal;
 /// 変換は拡張メソッドとして提供し、呼び出し側は <c>using</c> 1 行のみで利用できる。<br/>
 /// WinUI の幾何型（<see cref="WinUIPoint"/> 等）は <c>float</c> ベースの値型のため、値の変換で丸めが入る<br/>
 /// （<see cref="EsPoint"/> は <c>double</c> を保持する）。<br/>
-/// <b>色は変換しない</b>: 本 UI の色は Skia の描画 API へ渡すだけであり、XAML のブラシを作らない（<see cref="SkiaColorInterop"/> が担う）。
+/// <b>色は変換しない</b>: 本 UI の色は要素へ渡すときにだけ XAML の色へ変換する（<see cref="MarqueeShapePlan.ToArgb"/> が担う）。
 /// </remarks>
 internal static class EsGeometryWinUI3Interop
 {

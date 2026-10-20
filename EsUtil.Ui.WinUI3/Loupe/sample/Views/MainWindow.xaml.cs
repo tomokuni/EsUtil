@@ -109,7 +109,26 @@ public sealed partial class MainWindow : Window
         Loupe.Rendered += (_, e) =>
         {
             var content = e.Content;
-            LoupeSelectionPainter.Paint(e.Canvas, in content, _selection);
+            // 選択矩形の破線は、ルーペ画像のピクセル座標で追加する（描画 API は公開しない）
+            if (content.CaptureTopLeft is not { } topLeft || !_selection.IsVisible)
+            {
+                return;
+            }
+
+            var rect = _selection.Rect;
+            var scale = content.ZoomLevel;
+            e.AddRect(
+                (rect.X - topLeft.X) * scale,
+                (rect.Y - topLeft.Y) * scale,
+                rect.Width * scale,
+                1,
+                0xFFFF0000);
+            e.AddRect(
+                (rect.X - topLeft.X) * scale,
+                ((rect.Y + rect.Height) * scale) - (topLeft.Y * scale) - 1,
+                rect.Width * scale,
+                1,
+                0xFFFF0000);
         };
 
         // ── 入力と変更の結線 ──
@@ -319,7 +338,7 @@ public sealed partial class MainWindow : Window
     /// <summary>ルーペへ再描画を要求する（プロパティ変更を伴わない再描画の確認）。</summary>
     /// <param name="sender">イベントの送信元（ボタン）。</param>
     /// <param name="e">イベント引数。</param>
-    private void OnRequestRender(object sender, RoutedEventArgs e) => Loupe.Invalidate();
+    private void OnRequestRender(object sender, RoutedEventArgs e) => Loupe.RequestRedraw();
 
     /// <summary>ルーペを非表示にしてソースを解放する。</summary>
     /// <param name="sender">イベントの送信元（ボタン）。</param>
@@ -405,7 +424,7 @@ public sealed partial class MainWindow : Window
 
         SourceCanvas.SetSelection(rect, isVisible);
         UpdateSelectionLabel();
-        Loupe.Invalidate();
+        Loupe.RequestRedraw();
     }
 
     /// <summary>選択矩形の座標ラベルを選択矩形の左上へ配置する。</summary>

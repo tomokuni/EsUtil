@@ -23,7 +23,7 @@ namespace EsUtil.Ui.WinUI3.Thumbnail;
 /// <b>WinUI 3 の標準パネルには任意の大きさの子を折り返すパネルが無い</b>ため、列数を計算して<br/>
 /// <see cref="Canvas"/> へ絶対配置する（コアの計算が返す矩形をそのまま使う）。
 /// </remarks>
-public sealed class ThumbnailControl : Grid
+public sealed partial class ThumbnailControl : Grid
 {
     /// <summary>項目を置く面（配置はコアの計算に従う）。</summary>
     private readonly ThumbnailCanvas _canvas;
@@ -354,7 +354,7 @@ public sealed class ThumbnailControl : Grid
     /// スクロールの内容として寸法を返すのは本パネルの役割とし、コントロールは <see cref="Grid"/> の既定の<br/>
     /// 計測・配置（子のスクロールを画面いっぱいに置く）に任せる。
     /// </remarks>
-    private sealed class ThumbnailCanvas(ThumbnailControl owner) : Panel
+    private sealed partial class ThumbnailCanvas(ThumbnailControl owner) : Panel
     {
         /// <summary>最後に解決した配置。</summary>
         public ThumbnailLayoutResult? Layout { get; private set; }

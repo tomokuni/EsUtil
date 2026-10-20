@@ -1,13 +1,13 @@
-using EsUtil.Ui.WinUI3.Loupe.Internal;
 using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.Ui.WinUI3.Loupe.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.UI.Xaml;
-using SkiaSharp;
-using SkiaSharp.Views.Windows;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
 
@@ -16,7 +16,7 @@ namespace EsUtil.Ui.WinUI3.Loupe;
 /// <summary>拡大鏡（ルーペ）コントロール（WinUI 3 版）。</summary>
 /// <remarks>
 /// 他の UI 版の <c>LoupeControl</c> と同一の UI 非依存コア（<c>EsUtil.Feature.Loupe.Core</c>）を使い、<br/>
-/// 描画層のみを <see cref="SKXamlCanvas"/>（Skia の描画面）で実装する（同じ設定・同じ見た目になる）。<br/>
+/// 描画層のみを XAML と Composition の要素で実装する（同じ設定・同じ見た目になる）。<br/>
 /// <br/>
 /// <b>入力</b>: <see cref="Source"/>（拡大元の 100% 画像）と <see cref="CenterPoint"/>（元画像ピクセル座標）。<br/>
 /// <b>設定</b>: <see cref="Options"/>（コアの <see cref="LoupeOptions"/> が単一所有する表示サイズ・拡大率）。<br/>
@@ -26,9 +26,9 @@ namespace EsUtil.Ui.WinUI3.Loupe;
 /// <see cref="LoupePresenter.ResolveDrawPlan"/>（描画層）が、寸法値（枠線の太さ）と<br/>
 /// ラベル表示の可否は <see cref="LoupeAppearance"/>（描画層）が単一所有する。<br/>
 /// <br/>
-/// <b>基底クラス</b>: 描画先を Skia の表面にするため <see cref="SKXamlCanvas"/> を採用する。<br/>
-/// <b>中心座標ラベルも描画面へ描く</b>（<see cref="LoupeSkiaPainter"/>）。 テキスト要素を重ねる構造を持たないため、<br/>
-/// ラベルは常に図形の後に描かれ最上位になる（層の順序は描画層の <see cref="LoupeDrawPlan.Layers"/> が決める）。<br/>
+/// <b>基底クラス</b>: 子要素を重ねる <see cref="Canvas"/> を採用する。<br/>
+/// <b>中心座標ラベルも要素として置く</b>（<see cref="LoupeVisualLayer"/>）。 子要素の順序が描画順になるため、
+/// ラベルは常に図形の後に置かれ最上位になる（層の順序は描画層の <see cref="LoupeDrawPlan.Layers"/> が決める）。
 /// <br/>
 /// <b>プロパティは CLR プロパティである</b>: WinUI 3 の <see cref="DependencyProperty"/> は WinRT へ投影できる型だけを<br/>
 /// 受け付けるため、コアと描画層の型（<see cref="EsReadOnlyBitmap"/> / <see cref="LoupeOptions"/> / <see cref="LoupeAppearance"/>）は<br/>
@@ -42,10 +42,10 @@ namespace EsUtil.Ui.WinUI3.Loupe;
 /// <br/>
 /// <b>見た目のカスタマイズ</b>: 色・太さ・表示可否は <see cref="Appearance"/> で、<br/>
 /// 矩形の並びで表せる装飾とラベルの文言・位置は <see cref="DrawPlanResolver"/> で差し替えられる。<br/>
-/// 矩形で表せない描画（円・斜線等）は <see cref="DrawPlan"/> を呼んで自前で描く（装飾は外観の <c>Show*</c> で止める）<br/>
-/// （描画の直後に呼ばれる <see cref="Rendered"/> のキャンバスへ描き、必要なら <see cref="DrawPlan"/> で既定の描画を行う）。
+/// 矩形で表せない描画（円・斜線等）は、<see cref="Rendered"/> で受け取る追加描画の入力先へ<b>矩形を積んで表す</b><br/>
+/// （描画 API は公開しない。 装飾は外観の <c>Show*</c> で止める）。
 /// </remarks>
-public sealed class LoupeControl : SKXamlCanvas
+public sealed partial class LoupeControl : Canvas
 {
     /// <summary>提示層のファサード（設定・表示レイアウト・描画計画の窓口）。</summary>
     /// <remarks>
@@ -69,6 +69,9 @@ public sealed class LoupeControl : SKXamlCanvas
     /// <summary>表示スケーリング係数（<see cref="ClientToPixelScaling"/> の保持値）。</summary>
     private double _clientToPixelScaling = ClientToPixelScalingDefault;
 
+    /// <summary>計画を要素へ写す層（子要素の順序が描画順になる）。</summary>
+    private readonly LoupeVisualLayer _visual = new();
+
     /// <summary>直近に解決した描画計画（null = 未解決）。</summary>
     private LoupeDrawPlan? _plan;
 
@@ -89,15 +92,22 @@ public sealed class LoupeControl : SKXamlCanvas
         // ロガーは Log プロパティの setter が提示層へ伝搬する（生成時点では未設定のため引き継がない）
         _presenter = new LoupePresenter();
 
+        Children.Add(_visual);
+
         Loaded += HandleLoaded;
         Unloaded += HandleUnloaded;
     }
 
-    /// <summary>ルーペの描画完了を通知するイベント（描画先キャンバスと描画計画を渡す）。</summary>
+    /// <summary>表示を最新の状態へ更新し直す。</summary>
     /// <remarks>
-    /// 拡大画像の描画結果（<see cref="LoupeRenderedEventArgs.Canvas"/>）と描画計画を通知する。<br/>
-    /// イベントは本コントロールの描画直後（同一フレーム内）に発火するため、ホスト側は<br/>
-    /// イベントハンドラ内でキャンバスへオーバーレイ（選択矩形の破線等）を追加描画できる。<br/>
+    /// プロパティの変更を伴わない再表示（DPI の変更・親の再配置など）を要求する入口である。<br/>
+    /// 移行前は描画の無効化（<c>Invalidate</c>）を呼んでいたが、要素で描く現在は同じ更新手順を直接呼ぶ。
+    /// </remarks>
+    public void RequestRedraw() => ApplyVisual();
+    /// <summary>ルーペの描画完了を通知するイベント（追加描画の入力先と描画計画を渡す）。</summary>
+    /// <remarks>
+    /// 描画計画と、追加描画を受け取る矩形の列（<see cref="LoupeRenderedEventArgs.AddRect"/>）を通知する。<br/>
+    /// イベントは表示の更新中に発火するため、ホスト側はハンドラ内でオーバーレイ（選択矩形の破線等）を追加できる。<br/>
     /// 描画位置の計算は <see cref="LoupeDrawPlan.CaptureTopLeft"/> と <see cref="LoupeDrawPlan.ZoomLevel"/> から求める。
     /// </remarks>
     public event EventHandler<LoupeRenderedEventArgs>? Rendered;
@@ -132,7 +142,7 @@ public sealed class LoupeControl : SKXamlCanvas
             }
 
             Log.LogSourceChanged(previous, value);
-            Invalidate();
+            ApplyVisual();
         }
     }
 
@@ -157,7 +167,7 @@ public sealed class LoupeControl : SKXamlCanvas
 
             _presenter.CenterPoint = value;
             InvalidatePlan();
-            Invalidate();
+            ApplyVisual();
         }
     }
 
@@ -181,7 +191,7 @@ public sealed class LoupeControl : SKXamlCanvas
             _presenter.Options = value;
             InvalidatePlan();
             InvalidateMeasure();
-            Invalidate();
+            ApplyVisual();
         }
     }
 
@@ -204,7 +214,7 @@ public sealed class LoupeControl : SKXamlCanvas
 
             _presenter.Appearance = value;
             InvalidatePlan();
-            Invalidate();
+            ApplyVisual();
         }
     }
 
@@ -229,7 +239,7 @@ public sealed class LoupeControl : SKXamlCanvas
 
             _clientToPixelScaling = coerced;
             _presenter.ClientToPixelScaling = coerced;
-            Invalidate();
+            ApplyVisual();
         }
     }
 
@@ -281,17 +291,6 @@ public sealed class LoupeControl : SKXamlCanvas
     }
 
     /// <summary>描画計画を指定の描画面へ描く（計画どおりに描く）。</summary>
-    /// <param name="canvas">描画先のキャンバス（物理ピクセル・拡大画像と同じ座標系）。 null 不可。</param>
-    /// <param name="source">拡大元の 100% 画像。 null の場合は拡大画像を描かない。</param>
-    /// <param name="plan">描く描画計画。 null 不可。</param>
-    /// <exception cref="ArgumentNullException"><paramref name="canvas"/> が null の場合。</exception>
-    /// <remarks>
-    /// <b>既定の描画をホストへ提供する入口</b>である（ホストが任意のタイミングと順序で既定の描画を行える）。<br/>
-    /// 描画実装（<see cref="LoupeSkiaPainter"/>）は本プロジェクトの内部であるため、外部へは本メソッドが窓口になる。<br/>
-    /// 計画を必要とする場合は <see cref="Rendered"/> の <c>Content</c> を使う。
-    /// </remarks>
-    public static void DrawPlan(SKCanvas canvas, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)
-        => LoupeSkiaPainter.Paint(canvas, source, in plan);
 
     /// <summary>対象 ↔ 親領域 DIP の座標変換ポートを設定する。</summary>
     /// <param name="port">座標変換ポート（ToDip = 対象 → 親領域 DIP）。 null の場合は等価変換。</param>
@@ -338,43 +337,43 @@ public sealed class LoupeControl : SKXamlCanvas
         return new Size(Options.RequestedSize, Options.RequestedSize);
     }
 
-    /// <summary>ルーペを描画する。</summary>
-    /// <param name="e">描画先の表面（Skia のキャンバス）と描画先の情報（物理ピクセルの大きさ）。</param>
+    /// <summary>ルーペの表示を最新の状態へ反映する。</summary>
     /// <remarks>
-    /// 描画計画（描画層が解決した幾何・外観・層の順序）を自 UI の公開プロパティから組み立てて描画層へ渡す<br/>
-    /// （DIP → 物理ピクセルの換算は描画層が単一所有する）。<br/>
-    /// <b>描く層とその順序は描画層が単一所有する</b>（<see cref="LoupeDrawPlan.Layers"/> の順に処理する）。<br/>
-    /// <b>キャンバスを拡大せず 1:1 で描く</b>: 描画計画の矩形（描画面・拡大画像の描画先・枠線の太さ）は<b>物理ピクセル</b>で<br/>
-    /// 解決されるため、拡大すると設定した拡大率より大きい画像をルーペ領域へ描くことになり、切り取られてずれる。<br/>
-    /// 中心座標ラベルは同じキャンバスへ <see cref="LoupeSkiaPainter"/> が描く（層の順序の最後 = 最上位）。
+    /// 描画計画（描画層が解決した幾何・外観・層の順序）を公開プロパティから組み立て、要素へ写す<br/>
+    /// （DIP → 物理ピクセルの換算は描画層が単一所有する。 要素へ写すときだけ 1 / 倍率で DIP へ戻す）。<br/>
+    /// <b>要素の順序が描画順になる</b>（画像 → 十字線 → 枠線 → ホストの追加分 → ラベル）。<br/>
+    /// <b>追加描画も要素として置く</b>: 移行前は描画 API をホストへ渡していたが、<br/>
+    /// 現在は <see cref="LoupeRenderedEventArgs.AddRect"/> で受け取った矩形を追加の層へ置く。
     /// </remarks>
-    protected override void OnPaintSurface(SKPaintSurfaceEventArgs e)
+    private void ApplyVisual()
     {
-        base.OnPaintSurface(e);
-
-        var canvas = e.Surface.Canvas;
-
-        // 描画先の表面サイズ（物理ピクセル）から表示サイズ（DIP）を導いて描画計画を組み立てる
-        // （表面は要素の大きさそのものであるため、要素の大きさと描画サイズが一致する）。
-        // 倍率は描画面と割り当て領域（DIP）の比から求め、保持値とファサードへも反映する
-        // （反映しないと、拡大画像がルーペ領域より小さい倍率で描かれる）。
-        var scaling = ApplyClientPixelScaling(e.Info);
-        var plan = ResolvePlan(DpiScaler.ToDip(e.Info.Size.ToEsSize(), scaling).Width);
-
         try
         {
-            // 描画の手順（層の順序と描画 API への写し）は LoupeSkiaPainter が単一所有する
-            LoupeSkiaPainter.Paint(canvas, Source, in plan);
+            // 倍率と表示サイズ（DIP）から描画計画を組み立てる
+            var scaling = ApplyClientPixelScaling();
+            var plan = ResolvePlan(ActualWidth);
+
+            // 層の順序と描画内容は LoupeVisualLayer が計画に従って写す
+            Background = new SolidColorBrush(ToColor(plan.Appearance.ResolvePasteboardColor()));
+            _visual.Image.SetSource(Source);
+            _visual.Apply(plan, 1 / scaling);
+
+            var args = new LoupeRenderedEventArgs(new LoupeRectList(), plan);
+            RaiseRendered(args);
+            _visual.OverlayLayer.Apply(args.Overlay, 1 / scaling);
         }
         catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
         {
-            // 描画の例外はアプリを落とさずログへ記録する（キャンバスは中途半端な状態になりうるが、次の描画で復帰する）
+            // 表示の例外はアプリを落とさずログへ記録する（要素は中途半端な状態になりうるが、次の更新で復帰する）
             Log.LogUpdateError(ex);
-            return;
         }
-
-        RaiseRendered(new LoupeRenderedEventArgs(canvas, plan));
     }
+
+    /// <summary>色を WinUI の色へ変換する。</summary>
+    /// <param name="color">変換する色。</param>
+    /// <returns>変換した色。</returns>
+    private static Windows.UI.Color ToColor(System.Drawing.Color color)
+        => Windows.UI.Color.FromArgb(color.A, color.R, color.G, color.B);
 
     /// <summary><see cref="Rendered"/> イベントを発火する。</summary>
     /// <param name="args">通知する引数（描画先のキャンバスと描画計画）。</param>
@@ -419,19 +418,19 @@ public sealed class LoupeControl : SKXamlCanvas
     private void HandleXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args)
         => ClientToPixelScaling = sender.RasterizationScale;
 
-    /// <summary>描画先の表面サイズから描画に使う実効倍率を解決し、保持値へも反映する。</summary>
-    /// <param name="info">描画先の情報（物理ピクセルの大きさ）。</param>
+    /// <summary>描画に使う実効倍率を解決し、保持値へも反映する。</summary>
     /// <returns>描画に使うスケーリング係数（保持値へ反映済みの値）。</returns>
     /// <remarks>
-    /// <b>なぜ描画面から求めるか</b>: DPI の変更通知は<b>追加直後のコントロールへ届かない</b>ことがある。<br/>
-    /// その状態で保持値だけを使うと、拡大画像がルーペ領域（描画面）より小さい倍率で描かれる<br/>
+    /// <b>なぜ XAML のルートから求めるか</b>: DPI の変更通知は<b>追加直後のコントロールへ届かない</b>ことがある。<br/>
+    /// その状態で保持値だけを使うと、拡大画像がルーペ領域より小さい倍率で表示される<br/>
     /// （実測: 125% の環境で 1/1.25 の大きさになり、右と下に画像外の帯が残る）。<br/>
-    /// 描画面（物理ピクセル）と割り当て領域（DIP）の比は実際に描くときの倍率そのものであるため、こちらを保持値とする<br/>
-    /// （保持値の変更はファサードへ伝搬されるため、拡大画像の物理ピクセルサイズの算出元は 1 つに保たれる）。
+    /// ルートの拡大率は実際に表示するときの倍率そのものであるため、こちらを保持値とする<br/>
+    /// （保持値の変更はファサードへ伝搬されるため、拡大画像のピクセルサイズの算出元は 1 つに保たれる）。
     /// </remarks>
-    private double ApplyClientPixelScaling(SKImageInfo info)
+    private double ApplyClientPixelScaling()
     {
-        var resolved = ClientPixelScale.Resolve(info.Width, ActualWidth, ClientToPixelScaling);
+        var resolved = ClientPixelScale.Resolve(
+            XamlRoot?.RasterizationScale ?? ClientToPixelScaling, ActualWidth, ClientToPixelScaling);
 
         if (resolved == ClientToPixelScaling)
         {
@@ -443,26 +442,24 @@ public sealed class LoupeControl : SKXamlCanvas
         // 保持値の補正（範囲外は安全域へ）を通した値を返す（計算に使う値と保持値を一致させる）
         return ClientToPixelScaling;
     }
-
     /// <summary>描画計画を解決し、<see cref="DrawPlanResolver"/> を適用する（同じ入力では再解決しない）。</summary>
     /// <param name="displaySize">ルーペの一辺の表示サイズ（DIP）。</param>
     /// <returns>差し替え後の描画計画。</returns>
     /// <remarks>
-    /// <b>描画の経路は本メソッドを通る</b>（表示サイズは <see cref="ApplyClientPixelScaling"/> が描画面から求めた倍率で<br/>
-    /// 描画面の大きさを DIP へ戻した値である）。<br/>
+    /// <b>表示の経路は本メソッドを通る</b>（表示サイズは要素の幅（DIP）である）。<br/>
     /// <b>同じ入力ではキャッシュを返して 1 フレーム 1 回の解決に留める</b><br/>
     /// （解決のたびに十字線・枠線の矩形とラベルの実寸測定をやり直さない）。<br/>
     /// キャッシュのキーは「表示サイズ」と「スケーリング係数」である（後者は描画の直前に書き戻されるため、<br/>
     /// 書き戻し後の解決を取りこぼさないようキーに含める）。<br/>
     /// それ以外の入力（拡大中心・設定・外観・<see cref="DrawPlanResolver"/>）の変更は <see cref="InvalidatePlan"/> で破棄する。<br/>
-    /// ラベルの実寸は Skia の実測（<see cref="SkiaText.Measure"/>）で測る（描画に使う関数と同じ関数で測るため、背景と文字が一致する）。
+    /// ラベルの実寸は WinUI 3 のテキスト エンジン（<see cref="LoupeTextMeasure.Measure"/>）で測る<br/>
     /// </remarks>
     private LoupeDrawPlan ResolvePlan(double displaySize)
     {
         var scaling = ClientToPixelScaling;
         if (_plan is not { } cached || _planSize != displaySize || _planScaling != scaling)
         {
-            cached = _presenter.ResolveDrawPlan(displaySize, SkiaText.Measure);
+            cached = _presenter.ResolveDrawPlan(displaySize, LoupeTextMeasure.Measure);
             cached = DrawPlanResolver?.Invoke(cached) ?? cached;
             _plan = cached;
             _planSize = displaySize;

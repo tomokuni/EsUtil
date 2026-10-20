@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
-using SkiaSharp.Views.Windows;
+using Microsoft.UI.Xaml.Controls;
 using static EsUtil.Feature.Marquee.MarqueeCore.Limits;
 
 namespace EsUtil.Ui.WinUI3.Marquee;
@@ -18,8 +18,8 @@ namespace EsUtil.Ui.WinUI3.Marquee;
 /// 他の UI 版と同じ UI 非依存のコアのファサード（<c>EsUtil.Feature.Marquee.Presenter</c> の <see cref="MarqueePresenter"/>）を使い、<br/>
 /// 本コントロールは「入力の受付」「効果の適用」「通知の転送」「描画」のみを行う薄い層である。<br/>
 /// <br/>
-/// <b>基底クラス</b>: SkiaSharp の <see cref="SKXamlCanvas"/>（<c>Canvas</c>）を継承し、自前の描画面へ直接描く<br/>
-/// （中間ビットマップを作らない。 描画面の実寸と割り当て領域の比から倍率を求めて DIP 座標で描く）。<br/>
+/// <b>基底クラス</b>: 子要素を重ねる <see cref="Canvas"/> を継承し、図形とラベルを要素として置く<br/>
+/// （描画ライブラリを持たない。 移行前は Skia の描画面へ直接描いていた）。<br/>
 /// <br/>
 /// <b>座標系</b>:<br/>
 /// - 対象座標 = 選択対象（画像ピクセル・仮想スクリーンピクセル等）。 コアはこの座標で動作する。<br/>
@@ -42,9 +42,9 @@ namespace EsUtil.Ui.WinUI3.Marquee;
 /// <b>見た目のカスタマイズ</b>: 色・太さ・表示可否は <see cref="Appearance"/> で、<br/>
 /// 矩形の並びで表せる装飾とラベルの文言・位置は <see cref="DrawPlanResolver"/> で差し替えられる。<br/>
 /// 矩形で表せない描画（円・斜線等）は外観（<see cref="MarqueeAppearance"/>）の <c>Show*</c> を false にして自前で描く<br/>
-/// （描画の直後に呼ばれる <see cref="Rendered"/> で描画先へ描き、必要なら <see cref="DrawPlan"/> で既定の描画を行う）。
+/// （表示の直後に呼ばれる <see cref="Rendered"/> で矩形を追加する）。
 /// </remarks>
-public sealed partial class MarqueeControl : SKXamlCanvas
+public sealed partial class MarqueeControl : Canvas
 {
     /// <summary><see cref="Options"/> プロパティ（寸法・対話パラメータをまとめた設定）。</summary>
     /// <remarks>
@@ -102,8 +102,8 @@ public sealed partial class MarqueeControl : SKXamlCanvas
 
     /// <summary>ヒットテストを有効にするための透明な背景（全インスタンスで共有する）。</summary>
     /// <remarks>
-    /// <see cref="SKXamlCanvas"/> は最初の描画まで背景を持たないため、その間はポインター イベントが届かない。<br/>
-    /// 透明な背景を与えて、表示直後から入力を受け取れるようにする（描画面ができた後は基底クラスが背景を差し替える）。
+    /// 背景を持たない要素はポインター ヒットテストの対象にならず、入力を受け取れない。<br/>
+    /// 透明な背景を与えて、表示直後から入力を受け取れるようにする。
     /// </remarks>
     private static readonly SolidColorBrush s_hitTestBackground = new(Microsoft.UI.Colors.Transparent);
 

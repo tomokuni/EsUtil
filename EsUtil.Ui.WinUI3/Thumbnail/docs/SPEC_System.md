@@ -23,7 +23,7 @@ WinUI 3 版のサムネイル一覧コントロールの構造・依存・設計
 本アセンブリは、サムネイル一覧を WinUI 3（Windows App SDK）のコントロールとして提供します。
 
 - **配置と見た目は下の層が単一所有します**（`EsUtil.Feature.Thumbnail.Core` が並べ方、`EsUtil.Feature.Thumbnail.Presenter` が描画計画と外観）。
-- **本アセンブリが行うのは 4 つだけ**: 入力の受付、スクロール、計画の適用（キャンバスへの絶対配置）、Skia による描画。
+- **本アセンブリが行うのは 4 つだけ**: 入力の受付、スクロール、計画の適用（要素への絶対配置）、要素による表示。
 - 対象フレームワークは `net10.0-windows10.0.22621.0`（`UseWinUI`）です。
 
 ## 2. 技術スタック
@@ -32,8 +32,8 @@ WinUI 3 版のサムネイル一覧コントロールの構造・依存・設計
 | --- | --- |
 | 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.22621.0`） |
 | UI フレームワーク | WinUI 3（Windows App SDK。 `Grid` / `ScrollViewer` / `Panel`） |
-| 描画 | Skia（`SkiaSharp.Views.WinUI` の `SKXamlCanvas`） |
-| 参照パッケージ | `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core` / `Microsoft.WindowsAppSDK` / `SkiaSharp.Views.WinUI` |
+| 表示 | XAML の要素（`Rectangle` / `Image`） |
+| 参照パッケージ | `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core` / `Microsoft.WindowsAppSDK` |
 | テスト | xUnit v3（`EsUtil.Ui.WinUI3.Thumbnail.Tests`。 ログ定義と影の描画手順を検証する。 コントロールは XAML の初期化を必要とするため配布物の起動で確認する） |
 
 ## 3. アーキテクチャ
@@ -65,18 +65,18 @@ flowchart TD
 | ポインターの受付・選択の決定・2 回押しの通知 | `ThumbnailControl` |
 | スクロール（`ScrollViewer` の保持と通知） | `ThumbnailControl` |
 | 項目の描画（背景・影・画像・名前） | `ThumbnailTile`（内部） |
-| コアの画像 ⇔ Skia の画像の変換 | `Internal.EsBitmapSkiaExtensions` |
-| 影の帯の描画 | `Internal.SkiaShadowRenderer` |
+| コアの画像 ⇔ 表示用の画像の変換 | `Internal.EsReadOnlyBitmapCache` |
+| 背景・影・画像の反映 | `Internal.ThumbnailVisualLayer` |
 
 ### 3.3 設計判断
 
 - **絶対配置する**: WinUI 3 の標準パネルには任意の大きさの子を折り返すパネルがありません。 コアが返す矩形をそのまま使える絶対配置のパネルの方が、折り返しの計算を XAML へ二重に持たせません。
 - **配置は内側のパネルが解く**: コントロール側の計測で子の寸法（キャンバスの幅・高さ）を書き換えると、計測の途中で再計測が要求されて**レイアウト サイクル**になります（実測: `LayoutCycleException`）。 スクロールの内容として寸法を返すのは内側のパネルの役割とし、コントロールは `Grid` の既定の計測・配置に任せます。
-- **描画面は明示的に再描画を要求する**: Skia の描画面は寸法が変わらなければ再描画されません。 計画・画像を差し替えた時点で `Invalidate()` を呼ばないと、生成したサムネイルが反映されません（実測）。
+- **表示は明示的に更新する**: 要素は計画と画像を差し替えた時点で反映しないと、生成したサムネイルが表示されません。
 - **`Grid` を継承する**: `ScrollViewer` を単独の基底にすると、スクロールの外側に余白や重なりを置けません。 一覧は `Grid` の子としてスクロールを持ちます。
-- **影は Skia で描く**: 縮小キャンバス（`SKXamlCanvas`）の内容は XAML 要素より**背面**に合成されるため、影を要素（`Border` の `Shadow`）で重ねると画像が隠れます。 影も同じキャンバスへ描きます。
-- **画像は非所有ビューで描く**: コアの画像（`EsReadOnlyBitmap`）のピクセルを複製せず、Skia の画像として包んで描きます。
-- **倍率は描画面と割り当て領域の比から解決する**: `SKXamlCanvas` の描画情報（物理ピクセル）と `ActualWidth`（DIP）の比を使います（DPI の通知に依存しません）。
+- **影は 1 画素の帯で置く**: 計画が返す帯を `Rectangle` として画像の背面へ置きます（`DropShadow` のぼかしに依存すると、他の UI 版と濃さが変わります）。
+- **画像は 1 度だけ変換する**: コアの画像は `WriteableBitmap` へ変換してキャッシュします（一覧はスクロールのたびに項目を作り直すため、毎回変換すると重くなります）。
+- **倍率は XAML のルートから解決する**: `XamlRoot.RasterizationScale` を使います（DPI の通知に依存しません）。
 - **ポインターの移動は handled 済みでも受ける**: `ScrollViewer` が処理した移動も拾うため、`AddHandler` に `handledEventsToo: true` を指定します。
 
 ## 4. コンポーネント構成
@@ -91,10 +91,10 @@ EsUtil.Ui.WinUI3/Thumbnail/
 | コンポーネント | 所在 | 内容 |
 | --- | --- | --- |
 | コントロール | `EsUtil.Ui.WinUI3/Thumbnail/src/ThumbnailControl.cs` | 公開面。 入力の受付・選択・スクロール・キャンバスへの配置 |
-| 項目の要素 | `EsUtil.Ui.WinUI3/Thumbnail/src/ThumbnailTile.cs` | Skia の描画面と名前の要素（内部） |
+| 項目の要素 | `EsUtil.Ui.WinUI3/Thumbnail/src/ThumbnailTile.cs` | 表示の層と名前の要素（内部） |
 | イベント引数 | `EsUtil.Ui.WinUI3/Thumbnail/src/ThumbnailActivatedEventArgs.cs` | 2 回押しの通知（公開） |
-| 画像の変換 | `EsUtil.Ui.WinUI3/Thumbnail/src/Internal/EsBitmapSkiaExtensions.cs` | コアの画像を Skia の画像として包む（内部） |
-| 影の描画 | `EsUtil.Ui.WinUI3/Thumbnail/src/Internal/SkiaShadowRenderer.cs` | 帯を単色で塗る（内部） |
+| 画像の変換 | `EsUtil.Ui.WinUI3/Thumbnail/src/Internal/EsReadOnlyBitmapCache.cs` | コアの画像を表示用の画像へ変換する（内部） |
+| 背景・影・画像の反映 | `EsUtil.Ui.WinUI3/Thumbnail/src/Internal/ThumbnailVisualLayer.cs` | 計画の矩形を要素へ写す（内部） |
 
 ### 4.1 可視性
 
@@ -102,7 +102,7 @@ EsUtil.Ui.WinUI3/Thumbnail/
 | --- | --- | --- |
 | `ThumbnailControl` / `ThumbnailActivatedEventArgs` | `public` | ホストが使う |
 | `ThumbnailTile` / `Internal.*` | `internal` | コントロールの実装詳細 |
-| `ThumbnailViewport` | `private`（入れ子） | 項目だけが使う描画面 |
+| `ThumbnailVisualLayer` | `internal` | 項目だけが使う表示の層 |
 
 ## 5. クラス図
 
@@ -136,13 +136,13 @@ classDiagram
         +SetCaption(caption)
         +Apply(plan, options)
     }
-    class ThumbnailViewport {
+    class ThumbnailVisualLayer {
         +Source EsReadOnlyBitmap
         +Plan ThumbnailDrawPlan
     }
 
     ThumbnailControl o-- ThumbnailTile : 絶対配置
-    ThumbnailTile *-- ThumbnailViewport : 描画面
+    ThumbnailTile *-- ThumbnailVisualLayer : 表示
 ```
 
 ## 6. 入力から描画までの流れ
@@ -171,8 +171,8 @@ sequenceDiagram
 
 ## 7. 影と画像の描画
 
-- **影**: `Internal.SkiaShadowRenderer` が `BuildDeviceBands` の帯を 1 画素ずつ単色で塗ります。 倍率は描画面の物理ピクセルと `ActualWidth` の比から求めます。
-- **画像**: コアの画像を Skia の画像として包み（`Internal.EsBitmapSkiaExtensions`）、`SKCanvas.DrawImage` で描きます。 **ピクセルは複製しません**。
+- **影**: `Internal.ThumbnailVisualLayer` が `BuildDeviceBands` の帯を 1 画素ずつ `Rectangle` として置きます。 倍率は `XamlRoot.RasterizationScale` から求めます。
+- **画像**: コアの画像を `WriteableBitmap` へ変換し（`Internal.EsReadOnlyBitmapCache`）、`Image` 要素で表示します。 変換結果は画像ごとにキャッシュします。
 - **名前**: 要素（テキスト）として重ねます。 計画の `Bounds` をそのまま割り当てます。
 
 ## 8. エラー処理ポリシー
