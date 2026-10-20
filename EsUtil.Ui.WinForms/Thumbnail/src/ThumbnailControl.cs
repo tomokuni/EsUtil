@@ -376,12 +376,18 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <param name="graphics">描画先。</param>
     /// <param name="plan">描画計画。</param>
     /// <param name="caption">表示する名前。</param>
+    /// <remarks>
+    /// <b>文字サイズは DIP から pt へ換算する</b>: 描画計画の文字サイズは DIP（96 DPI 基準）だが、<br/>
+    /// <see cref="Font"/> のコンストラクターは pt を受け取る。 DIP の値をそのまま渡すと 1.33 倍の大きさになり、<br/>
+    /// 他の UI 版（11 DIP）より文字が大きくなる（実測）。
+    /// </remarks>
     private void DrawLabel(Graphics graphics, ThumbnailDrawPlan plan, string caption)
     {
         using var font = new Font(
             DefaultFont.FontFamily,
-            (float)plan.Label.FontSize,
-            plan.Label.IsBold ? FontStyle.Bold : FontStyle.Regular);
+            (float)(plan.Label.FontSize * 72.0 / 96.0),
+            plan.Label.IsBold ? FontStyle.Bold : FontStyle.Regular,
+            GraphicsUnit.Point);
 
         var color = plan.Label.ForegroundArgb == 0 ? ForeColor : ToColor(plan.Label.ForegroundArgb);
         TextRenderer.DrawText(
