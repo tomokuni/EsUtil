@@ -1,5 +1,4 @@
 using EsUtil.Platform.Core.Geometry;
-using SkiaSharp;
 using Xunit;
 
 namespace EsUtil.Ui.MewUI.Loupe.Tests;
@@ -15,13 +14,13 @@ public class LoupeRenderedEventArgsTests
     [Fact]
     internal void 保持した値を取得できる()
     {
-        using var bitmap = new SKBitmap(new SKImageInfo(32, 32));
-        using var canvas = new SKCanvas(bitmap);
+        using var context = TestCanvas.Factory.CreateContext(
+            TestCanvas.Factory.CreateSurface(Aprillz.MewUI.Rendering.RenderSurfaceDescriptor.CpuPixels(32, 32, 1.0, true, "test")));
         var plan = CreatePlan(new EsPoint(16, 16));
 
-        var args = new LoupeRenderedEventArgs(canvas, plan);
+        var args = new LoupeRenderedEventArgs(context, plan);
 
-        Assert.Same(canvas, args.Canvas);
+        Assert.Same(context, args.Context);
         // 描画計画は値で比較できる（切り出し左上・拡大率・描画面のサイズを単一所有する）
         Assert.Equal(plan, args.Content);
         // 中心 (16,16)・拡大率 2 → 切り出し一辺 16、左上 = (16−8, 16−8) = (8, 8)
@@ -32,10 +31,10 @@ public class LoupeRenderedEventArgsTests
     [Fact]
     internal void 中心が未設定の場合は切り出し左上がnullになる()
     {
-        using var bitmap = new SKBitmap(new SKImageInfo(32, 32));
-        using var canvas = new SKCanvas(bitmap);
+        using var context = TestCanvas.Factory.CreateContext(
+            TestCanvas.Factory.CreateSurface(Aprillz.MewUI.Rendering.RenderSurfaceDescriptor.CpuPixels(32, 32, 1.0, true, "test")));
 
-        var args = new LoupeRenderedEventArgs(canvas, CreatePlan(center: null));
+        var args = new LoupeRenderedEventArgs(context, CreatePlan(center: null));
 
         Assert.Null(args.Content.CaptureTopLeft);
     }

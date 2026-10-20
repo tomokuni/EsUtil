@@ -126,11 +126,11 @@ internal static class MainWindow
         selection.Changed += (_, _) => ApplySelection();
         ApplySelection();
 
-        // ルーペ画像上の破線は、描画完了直後に同一のキャンバスへ描く（Rendered の用途）
+        // ルーペ画像上の破線は、描画完了直後に同じ描画コンテキストへ描く（Rendered の用途）
         loupe.Rendered += (_, e) =>
         {
             var content = e.Content;
-            LoupeSelectionPainter.Paint(e.Canvas, in content, selection);
+            LoupeSelectionPainter.Paint(e.Context, in content, selection);
         };
 
         // ── 設定パネル ──

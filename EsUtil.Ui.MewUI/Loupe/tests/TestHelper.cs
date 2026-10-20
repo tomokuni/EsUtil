@@ -2,8 +2,7 @@ using System.Reflection;
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.Ui.MewUI.Loupe.Internal;
-using SkiaSharp;
+using DrawingColor = System.Drawing.Color;
 
 
 namespace EsUtil.Ui.MewUI.Loupe.Tests;
@@ -34,13 +33,10 @@ internal static class TestHelper
     /// 生成した画像は書き込まず読むだけ（ルーペの <c>Source</c> 等へ渡す）であるため、凍結して 0 コピーで
     /// 読み取り専用の面へ渡す。
     /// </remarks>
-    public static EsReadOnlyBitmap CreateBitmap(int size, SKColor color)
+    public static EsReadOnlyBitmap CreateBitmap(int size, DrawingColor color)
     {
-        // 変換は複製を返すため、元の SKBitmap は破棄する
-        using var bitmap = new SKBitmap(size, size);
-        bitmap.Erase(color);
+        using var created = EsBitmap.Create(size, size, color);
 
-        using var created = bitmap.ToEsBitmap();
         created.SetReadOnly();
         return EsReadOnlyBitmap.FromBitmap(created);
     }
@@ -50,14 +46,11 @@ internal static class TestHelper
     /// <param name="background">背景色。</param>
     /// <param name="center">中心画素の色。</param>
     /// <returns>生成した画像（読み取りの面）。 破棄は呼び出し側。</returns>
-    public static EsReadOnlyBitmap CreateBitmapWithCenter(int size, SKColor background, SKColor center)
+    public static EsReadOnlyBitmap CreateBitmapWithCenter(int size, DrawingColor background, DrawingColor center)
     {
-        // 変換は複製を返すため、元の SKBitmap は破棄する
-        using var bitmap = new SKBitmap(size, size);
-        bitmap.Erase(background);
-        bitmap.SetPixel(size / 2, size / 2, center);
+        using var created = EsBitmap.Create(size, size, background);
+        created.SetPixel(size / 2, size / 2, center.B, center.G, center.R, center.A);
 
-        using var created = bitmap.ToEsBitmap();
         created.SetReadOnly();
         return EsReadOnlyBitmap.FromBitmap(created);
     }

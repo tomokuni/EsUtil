@@ -1,4 +1,4 @@
-using SkiaSharp;
+using Aprillz.MewUI.Rendering;
 
 namespace EsUtil.Ui.MewUI.Marquee;
 
@@ -12,17 +12,17 @@ namespace EsUtil.Ui.MewUI.Marquee;
 /// ラベル（テキスト要素）はコントロールの子要素として描かれた後（＝最上位）に本イベントが発火する。<br/>
 /// すなわちホストが描いた内容はラベルより前面に置かれる。<br/>
 /// <br/>
-/// <b>キャンバスの有効期間</b>: <see cref="Canvas"/> は描画中のみ有効である。<br/>
-/// <b>座標系</b>: <see cref="Canvas"/> には DPI スケーリングが適用済みのため、ホストは DIP 座標で描ける。
+/// <b>キャンバスの有効期間</b>: <see cref="Context"/> は描画中のみ有効である。<br/>
+/// <b>座標系</b>: <see cref="Context"/> は DIP 座標で描けるため、ホストはそのまま DIP で描ける。
 /// </remarks>
 /// <remarks>描画完了イベント引数を初期化する。</remarks>
-/// <param name="canvas">描画先のキャンバス（DPI スケーリング適用済み）。</param>
+/// <param name="context">描画先のコンテキスト（DIP 座標）。</param>
 /// <param name="content">1 フレーム分の描画内容。</param>
-public sealed class MarqueeRenderedEventArgs(SKCanvas canvas, MarqueeDrawPlan content) : EventArgs
+public sealed class MarqueeRenderedEventArgs(IGraphicsContext context, MarqueeDrawPlan content) : EventArgs
 {
-    /// <summary>描画先のキャンバス（DPI スケーリング適用済み・描画中のみ有効）。</summary>
+    /// <summary>描画先のコンテキスト（描画中のみ有効）。</summary>
     /// <value>コントロールの描画面。 ホストはここへ付加情報を描く。</value>
-    public SKCanvas Canvas { get; } = canvas;
+    public IGraphicsContext Context { get; } = context;
 
     /// <summary>1 フレーム分の描画内容（装飾・ハンドル・始点マーカー・ラベル・層の順序）。</summary>
     /// <value>コントロールが実際に描画に使った値（描くものが無い項目は空・null）。</value>

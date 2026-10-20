@@ -1,9 +1,8 @@
 using System.Globalization;
+using EsUtil.Ui.MewUI.Loupe.Internal;
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Ui.MewUI.Loupe.Internal;
-using SkiaSharp;
 using Xunit;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
 using DrawingColor = System.Drawing.Color;
@@ -175,7 +174,7 @@ public class LoupeControlTests
         Layout(control, 240);
         Assert.Equal(ClientToPixelScalingDefault, control.ClientToPixelScaling);
 
-        var scaling = control.ApplyClientPixelScaling(new SKImageInfo(300, 300));
+        var scaling = control.ApplyClientPixelScaling(CreateContext(1.25));
 
         Assert.Equal(1.25, scaling, 3);
         Assert.Equal(1.25, control.ClientToPixelScaling, 3);
@@ -189,7 +188,7 @@ public class LoupeControlTests
         var control = new LoupeControl { Options = LoupeOptions.Default with { RequestedSize = 240 } };
         Layout(control, 240);
 
-        var scaling = control.ApplyClientPixelScaling(new SKImageInfo(240, 240));
+        var scaling = control.ApplyClientPixelScaling(CreateContext(1.0));
 
         Assert.Equal(ClientToPixelScalingDefault, scaling, 3);
         Assert.Equal(ClientToPixelScalingDefault, control.ClientToPixelScaling, 3);
@@ -206,11 +205,10 @@ public class LoupeControlTests
         var control = new LoupeControl { Options = LoupeOptions.Default with { RequestedSize = 180 } };
         Layout(control, 180);
 
-        // 180 DIP × 1.25 = 225 物理ピクセル（切り上げなしで一致する値を使う）
-        var info = new SKImageInfo(225, 225);
-        var scaling = control.ApplyClientPixelScaling(info);
+        // 180 DIP × 1.25 = 225 物理ピクセル
+        var scaling = control.ApplyClientPixelScaling(CreateContext(1.25));
 
-        Assert.Equal(info.Width, scaling * control.Bounds.Size.Width, 3);
+        Assert.Equal(225, scaling * control.Bounds.Size.Width, 3);
     }
 
     /// <summary>中心座標を設定するとラベル要素が表示されることを検証する（中心未設定では表示しない）。</summary>
@@ -229,8 +227,8 @@ public class LoupeControlTests
         // 文言はコアの EsPoint.Format が単一所有する（本コントロールは要 素へ写すだけ）
         Assert.Equal("(12, 34)", LabelText(control));
 
-        // 幅は実測値（本コントロールが Skia で測ってコアへ渡す）と内側余白から決まる
-        var measured = SkiaText.Measure("(12, 34)", control.Appearance.CoordLabelFontSize);
+        // 幅は実測値（本コントロールが MewUI のエンジンで測ってコアへ渡す）と内側余白から決まる
+        var measured = MewUITextMeasure.Measure("(12, 34)", control.Appearance.CoordLabelFontSize);
         Assert.True(LabelElement(control).Bounds.Width > measured.Width);
     }
 
@@ -304,7 +302,7 @@ public class LoupeControlTests
     [Fact]
     internal void ソース画像を設定できる()
     {
-        using var source = TestHelper.CreateBitmap(8, SKColors.Red);
+        using var source = TestHelper.CreateBitmap(8, DrawingColor.Red);
         var control = new LoupeControl { Source = source };
 
         Assert.Same(source, control.Source);
@@ -352,7 +350,7 @@ public class LoupeControlTests
     {
         var logger = new RecordingLogger();
         var control = new LoupeControl { Log = logger };
-        using var source = TestHelper.CreateBitmap(8, SKColors.Red);
+        using var source = TestHelper.CreateBitmap(8, DrawingColor.Red);
 
         switch (propertyName)
         {
@@ -429,9 +427,6 @@ public class LoupeControlTests
     [Fact]
     internal void 外観で装飾を止めると装飾だけが描かれない()
     {
-        using var bitmap = new SKBitmap(new SKImageInfo(64, 64));
-        using var canvas = new SKCanvas(bitmap);
-
         var presenter = new LoupePresenter
         {
             Options = LoupeOptions.Default with { RequestedSize = 64, ZoomLevel = 1 },
@@ -446,21 +441,19 @@ public class LoupeControlTests
         var plan = presenter.ResolveDrawPlan(64, static (_, _) => default);
 
         // 既定（装飾を描く）: 枠線の色の画素が現れる
-        LoupeSkiaPainter.Paint(canvas, null, in plan);
-        var borderPixel = bitmap.GetPixel(32, 1);
+        var borderPixel = PaintPixel(plan, 32, 1);
 
         // 外観で止める: 矩形と層は残るが、描画実装は旗を見て描かない（ペーストボードの色になる）
         presenter.Appearance = presenter.Appearance with { ShowCrosshair = false, ShowBorder = false };
         var stopped = presenter.ResolveDrawPlan(64, static (_, _) => default);
 
-        LoupeSkiaPainter.Paint(canvas, null, in stopped);
-        var withoutBorderPixel = bitmap.GetPixel(32, 1);
+        var withoutBorderPixel = PaintPixel(stopped, 32, 1);
 
         Assert.Contains(LoupeDrawLayer.Crosshair, stopped.Layers);
         Assert.Contains(LoupeDrawLayer.Border, stopped.Layers);
         Assert.NotEqual(borderPixel, withoutBorderPixel);
         // ペーストボード（画像外の色）は描かれる
-        Assert.Equal(LoupeAppearance.Default.PasteboardColor.ToSKColor(), withoutBorderPixel);
+        Assert.Equal(LoupeAppearance.Default.PasteboardColor, withoutBorderPixel);
     }
 
     /// <summary>レイヤーを差し替えると装飾だけを止められることを検証する。</summary>
@@ -471,9 +464,6 @@ public class LoupeControlTests
     [Fact]
     internal void レイヤーを差し替えると装飾だけを止められる()
     {
-        using var bitmap = new SKBitmap(new SKImageInfo(64, 64));
-        using var canvas = new SKCanvas(bitmap);
-
         var presenter = new LoupePresenter
         {
             Options = LoupeOptions.Default with { RequestedSize = 64, ZoomLevel = 1 },
@@ -483,16 +473,14 @@ public class LoupeControlTests
         var plan = presenter.ResolveDrawPlan(64, static (_, _) => default);
 
         // 既定（装飾を描く）: 枠線の色の画素が現れる
-        LoupeSkiaPainter.Paint(canvas, null, in plan);
-        var borderPixel = bitmap.GetPixel(32, 1);
+        var borderPixel = PaintPixel(plan, 32, 1);
 
         // ホストが層を差し替える（ペーストボードと拡大画像だけを残す）
         var host = plan with { Layers = [LoupeDrawLayer.Pasteboard, LoupeDrawLayer.Image] };
-        LoupeSkiaPainter.Paint(canvas, null, in host);
-        var withoutBorderPixel = bitmap.GetPixel(32, 1);
+        var withoutBorderPixel = PaintPixel(host, 32, 1);
 
         Assert.NotEqual(borderPixel, withoutBorderPixel);
-        Assert.Equal(LoupeAppearance.Default.PasteboardColor.ToSKColor(), withoutBorderPixel);
+        Assert.Equal(LoupeAppearance.Default.PasteboardColor, withoutBorderPixel);
         // 値は残る（ホストは矩形を使って自前で描ける）
         Assert.Equal(2, host.CrosshairPixelRects.Count);
         Assert.Equal(4, host.BorderPixelRects.Count);
@@ -528,7 +516,7 @@ public class LoupeControlTests
         Assert.Equal(1, calls);
 
         // スケーリング係数が変われば再解決する（描画の直前の書き戻しをキーで捉える）
-        control.ApplyClientPixelScaling(new SKImageInfo(125, 125));
+        control.ApplyClientPixelScaling(CreateContext(1.25));
         control.InvalidateArrange();
         Layout(control);
         Assert.Equal(2, calls);
@@ -566,5 +554,27 @@ public class LoupeControlTests
         control.Options = control.Options with { ZoomLevel = 2 };
         Layout(control);
         Assert.Equal(4, calls);
+    }
+    /// <summary>描画計画をオフスクリーンへ描き、指定位置の画素を返す。</summary>
+    /// <param name="plan">描く描画計画。</param>
+    /// <param name="x">X 座標。</param>
+    /// <param name="y">Y 座標。</param>
+    /// <returns>画素の色。</returns>
+    private static DrawingColor PaintPixel(LoupeDrawPlan plan, int x, int y)
+    {
+        var size = plan.ClientPixelSize;
+        var surface = TestCanvas.Render(size, size, context => LoupePainter.Paint(context, null, in plan));
+        return surface.GetPixel(x, y);
+    }
+
+    /// <summary>指定の DPI 倍率を持つ描画コンテキストを生成する（スケーリングの解決だけを検証するため）。</summary>
+    /// <param name="dpiScale">DPI の倍率。</param>
+    /// <returns>描画コンテキスト。 破棄は呼び出し側。</returns>
+    private static Aprillz.MewUI.Rendering.IGraphicsContext CreateContext(double dpiScale)
+    {
+        var factory = TestCanvas.Factory;
+        var surface = factory.CreateSurface(
+            Aprillz.MewUI.Rendering.RenderSurfaceDescriptor.CpuPixels(64, 64, dpiScale, true, "test"));
+        return factory.CreateContext(surface);
     }
 }

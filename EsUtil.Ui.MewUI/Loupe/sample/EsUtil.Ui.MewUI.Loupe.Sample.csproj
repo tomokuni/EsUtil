@@ -14,10 +14,8 @@
     <!-- Win32 プラットフォームホスト + Windows 向け描画バックエンド -->
     <PackageReference Include="Aprillz.MewUI.Windows" Version="$(MewUIVersion)" />
     <!-- SkiaCanvasView（コントロールが使う描画キャンバス） -->
-    <PackageReference Include="Aprillz.MewUI.Skia" Version="$(MewUIVersion)" />
-    <!-- Direct2D ⇔ Skia の GPU ブリッジ（未登録でも CPU 経路で動作するが、描画コストが高い） -->
-    <PackageReference Include="Aprillz.MewUI.Skia.Interop.Direct2D" Version="$(MewUIVersion)" />
-    <!-- 操作ログ（コントロールの Log へ設定する） -->
+        <!-- Direct2D ⇔ Skia の GPU ブリッジ（未登録でも CPU 経路で動作するが、描画コストが高い） -->
+        <!-- 操作ログ（コントロールの Log へ設定する） -->
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
   </ItemGroup>
 

@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <!-- SkiaCanvasView（コアの EsBitmap をそのまま描画する） -->
-    <PackageReference Include="Aprillz.MewUI.Skia" Version="$(MewUIVersion)" />
+    <PackageReference Include="Aprillz.MewUI.Core" Version="$(MewUIVersion)" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,7 +1,7 @@
 using Aprillz.MewUI;
 using EsUtil.Ui.MewUI.Marquee.Internal;
 using Aprillz.MewUI.Controls;
-using Aprillz.MewUI.Skia.Controls;
+using Aprillz.MewUI.Rendering;
 using EsUtil.Feature.Marquee.Core.Contract;
 using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
@@ -10,7 +10,6 @@ using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core.Native.Win;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using SkiaSharp;
 using static EsUtil.Feature.Marquee.MarqueeCore.Limits;
 
 
@@ -32,7 +31,7 @@ namespace EsUtil.Ui.MewUI.Marquee;
 /// - Escape: キャンセル要求 / Enter: 確定要求<br/>
 /// <br/>
 /// <b>Avalonia 版との違い</b>:<br/>
-/// - 描画は中間ビットマップを経由せず <see cref="SkiaCanvasView"/> のキャンバスへ直接行う。<br/>
+/// - 描画は中間ビットマップを経由せず、フレームワーク標準の描画（<see cref="IGraphicsContext"/>）で直接行う。<br/>
 /// - イベント引数の座標はコア型（<see cref="EsPoint"/> / <see cref="EsRect"/>）で公開する（境界変換が不要）。<br/>
 /// - <c>ScrollViewer</c> の自動連携は行わない。 ビューポートの変化はホストが検知して再描画を要求する。<br/>
 /// - 矢印キーの nudge はフォーカスを必要とする（Avalonia 版の TopLevel 購読によるフォーカス非依存とは異なる）。<br/>
@@ -119,7 +118,7 @@ public sealed class MarqueeControl : Panel
     /// ラベルは常に図形より後に描かれる（コアの「ラベルは最上位」契約が構造で成り立つ）。<br/>
     /// 入力は本パネルが受ける（本キャンバスはヒットテスト対象外）。
     /// </remarks>
-    private readonly ShapeCanvas _shapes;
+    private readonly ShapeLayer _shapes;
 
     /// <summary>配置中のラベル要素（背景 + テキスト）。 子の末尾側へ置くため常に最上位になる。</summary>
     private readonly List<Border> _labels = [];
@@ -158,7 +157,7 @@ public sealed class MarqueeControl : Panel
         _marquee.HighlightSourceRect = GetValue(HighlightSourceRectProperty);
 
         // 図形は専用の子キャンバスが描く（ラベル要素より先に子として加えるため、常にラベルの下になる）
-        _shapes = new ShapeCanvas(this) { IsHitTestVisible = false };
+        _shapes = new ShapeLayer(this) { IsHitTestVisible = false };
         Add(_shapes);
 
         // フォーカスを失ったら nudge を終了する（カーソル非表示の残留防止）
@@ -166,27 +165,19 @@ public sealed class MarqueeControl : Panel
         this.OnLostFocus(EndNudge);
     }
 
-    /// <summary>図形（装飾・ハンドル・始点マーカー）だけを描画する内部 Skia キャンバス。</summary>
+    /// <summary>図形（装飾・ハンドル・始点マーカー）だけを描画する内部の層。</summary>
     /// <remarks>
-    /// 親（<see cref="MarqueeControl"/>）の描画内容を読んで描くだけであり、判断を持たない。<br/>
-    /// 連続再描画を無効化し、親からの要求（選択・設定の変更）があるときだけ描き直す。
+    /// 親（<see cref="MarqueeControl"/>）の描画入力を組み立てて描画層へ渡すだけであり、判断を持たない。<br/>
+    /// ラベルの文字は本層が描かない（親パネルのラベル要素が描く）。<br/>
+    /// <b>フレームワーク標準の描画</b>（<see cref="Control.OnRender"/>）を使うため、描画先の確保は不要である。
     /// </remarks>
-    private sealed class ShapeCanvas : SkiaCanvasView
+    /// <param name="owner">描画内容の取得元（親コントロール）。</param>
+    private sealed class ShapeLayer(MarqueeControl owner) : Control
     {
-        /// <summary>描画内容の取得元（親コントロール）。</summary>
-        private readonly MarqueeControl _owner;
-
-        /// <summary>描画先の親を指定して初期化する。</summary>
-        /// <param name="owner">描画内容の取得元（親コントロール）。</param>
-        public ShapeCanvas(MarqueeControl owner)
-        {
-            _owner = owner;
-            // 静止画として扱う（選択・設定の変更時のみ再描画する）
-            ContinuousAnimation = false;
-            PaintSurface += _owner.OnPaintSurface;
-        }
+        /// <summary>親の描画手順へ委譲する。</summary>
+        /// <param name="context">描画先のコンテキスト。</param>
+        protected override void OnRender(IGraphicsContext context) => owner.Paint(context);
     }
-
     /// <summary>ドラッグの始点が決定されたときに発火する（新規選択のドラッグ開始。 座標は対象座標）。</summary>
     public event EventHandler<MarqueePointEventArgs>? SelectionStarted;
 
@@ -521,7 +512,7 @@ public sealed class MarqueeControl : Panel
     /// <param name="clientSize">描画領域のサイズ（DIP。 DIP 換算済みの描画先サイズ）。</param>
     /// <returns>そのフレームの描画計画。</returns>
     /// <remarks>
-    /// 図形の描画（<c>OnPaintSurface</c>）とラベルの配置（<c>ArrangeContent</c>）が同じ描画計画を使う。<br/>
+    /// 図形の描画（<c>Paint</c>）とラベルの配置（<c>ArrangeContent</c>）が同じ描画計画を使う。<br/>
     /// 解決を 2 回行うと、選択矩形・装飾・ラベル文言の解決と確保が 1 フレームで重複する。<br/>
     /// 実寸の測定は描画 API に依存するため、本層が <see cref="MewUITextMeasure"/>（MewUI のテキスト エンジン）を渡す<br/>
     /// （配置の計算（クランプ）は提示層が単一所有する）。<br/>
@@ -545,7 +536,7 @@ public sealed class MarqueeControl : Panel
     /// <param name="clientSize">描画領域のサイズ（DIP。 未解決時の解決にだけ使う）。</param>
     /// <returns>そのフレームの描画計画。</returns>
     /// <remarks>
-    /// 描画フェーズ（<c>OnPaintSurface</c>）は配置フェーズが解決した値をそのまま使う<br/>
+    /// 描画フェーズ（<c>Paint</c>）は配置フェーズが解決した値をそのまま使う<br/>
     /// （配置と描画で基準サイズが丸めによりわずかに違っても、1 フレームの解決を 2 回にしない）。
     /// </remarks>
     private MarqueeDrawPlan CurrentFrame(EsSize clientSize) => _frame ?? ResolveFrame(clientSize);
@@ -578,21 +569,21 @@ public sealed class MarqueeControl : Panel
     }
 
     /// <summary>描画計画を自 UI の描画面へ描く（計画どおりに描く）。</summary>
-    /// <param name="canvas">描画先のキャンバス（DIP 座標で描画できる状態であること）。 null 不可。</param>
+    /// <param name="context">描画先のコンテキスト（DIP 座標で描画できる状態であること）。 null 不可。</param>
     /// <param name="plan">描く描画計画。 null 不可。</param>
-    /// <exception cref="ArgumentNullException"><paramref name="canvas"/> が null の場合。</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="context"/> が null の場合。</exception>
     /// <remarks>
     /// <b>既定の描画をホストへ提供する入口</b>である（ホストが自前の描画と組み合わせて使う。 例: 自前の下地 → 本メソッド → 自前の上描き）。<br/>
     /// <b>計画どおり（外観の <c>Show*</c> を適用済みの層）に描く</b>ため、装飾を止めている場合は描かれない。<br/>
-    /// 描画実装（<c>MarqueeSkiaPainter</c>）は本プロジェクトの内部であるため、外部へは本メソッドが窓口になる。<br/>
+    /// 描画実装（<c>MarqueePainter</c>）は本プロジェクトの内部であるため、外部へは本メソッドが窓口になる。<br/>
     /// 計画を必要とする場合は <see cref="Rendered"/> の <c>Content</c> を使う。
     /// </remarks>
-    public static void DrawPlan(SKCanvas canvas, in MarqueeDrawPlan plan)
-        => MarqueeSkiaPainter.Paint(canvas, in plan);
+    public static void DrawPlan(IGraphicsContext context, in MarqueeDrawPlan plan)
+        => MarqueePainter.Paint(context, in plan);
 
     /// <summary>描画内容の再解決と、図形・ラベルの再描画を要求する（描画に関わる変更の唯一の入口）。</summary>
     /// <remarks>
-    /// 図形は子（<see cref="ShapeCanvas"/> = <c>SkiaCanvasView</c>）が描くため、親の <c>InvalidateVisual</c> だけでは再描画されない<br/>
+    /// 図形は子（<see cref="ShapeLayer"/>）が描くため、親の <c>InvalidateVisual</c> だけでは再描画されない<br/>
     /// （子のサーフェスは自ら再描画を要求されたときだけ描き直し、初期描画の内容が残る）。<br/>
     /// ラベルは子要素の配置フェーズで内容と位置が変わるため、配置の無効化も併せて要求する。<br/>
     /// 保持している描画計画を破棄し、次の解決で最新の状態を反映する。
@@ -621,7 +612,7 @@ public sealed class MarqueeControl : Panel
         _shapes.Arrange(bounds);
         _shapes.InvalidateVisual();
 
-        // 描画計画は本フェーズで 1 回だけ解決し、図形の描画（OnPaintSurface）と共有する
+        // 描画計画は本フェーズで 1 回だけ解決し、図形の描画（Paint）と共有する
         // ラベルは描画計画が持つ配置指示（実寸を反映済み）をそのまま反映する
         SyncLabels(ResolveFrame(bounds.Size.ToEsSize()).Labels, bounds);
     }
@@ -801,7 +792,7 @@ public sealed class MarqueeControl : Panel
 
         /// <summary>再描画を要求する。</summary>
         /// <remarks>
-        /// 図形は子（<c>ShapeCanvas</c>）が描くため子も無効化する（要求の集約は <see cref="MarqueeControl.InvalidateRender"/> が単一所有する）。
+        /// 図形は子（<see cref="ShapeLayer"/>）が描くため子も無効化する（要求の集約は <see cref="MarqueeControl.InvalidateRender"/> が単一所有する）。
         /// </remarks>
         public override void RequestRedraw() => owner.InvalidateRender();
 
@@ -914,40 +905,29 @@ public sealed class MarqueeControl : Panel
     }
 
     /// <summary>選択矩形の外側に描く装飾・ハンドル・十字マーカーを描画し、付加情報の描画機会をホストへ通知する。</summary>
-    /// <param name="canvas">描画先のキャンバス（物理ピクセル）。</param>
-    /// <param name="info">描画先の情報（幅・高さ）。</param>
+    /// <param name="context">描画先のコンテキスト（物理ピクセル）。</param>
     /// <remarks>
     /// <b>描画の手順は提示層が単一所有する</b>: 層の順序と描画 API への写し方は描画計画（<see cref="MarqueeDrawPlan"/>）が持ち、<br/>
-    /// 本メソッドは自 UI の描画面へ写すだけである（<see cref="MarqueeSkiaPainter.Paint"/>）。<br/>
+    /// 本メソッドは自 UI の描画面へ写すだけである（<see cref="MarqueePainter.Paint"/>）。<br/>
     /// <b>ラベルは本パネルの子要素が描く</b>ため図形の層のみを描く。<br/>
     /// 選択枠線は装飾の外枠（同じ矩形の内側）と重なる（別々に描くと線幅が二重になる）。<br/>
-    /// キャンバスを DPI スケーリングしてから DIP 座標で描画する（コアの計算と座標系を一致させる）。<br/>
     /// 背景は塗らない（透明のままにして下の画像を透かす）。
     /// </remarks>
-    private void OnPaintSurface(SKCanvas canvas, SKImageInfo info)
+    private void Paint(IGraphicsContext context)
     {
-        // 倍率は描画面（物理ピクセル）と割り当て領域（DIP）の比から求める
-        // （DPI の通知は追加直後のコントロールへ届かないため、保持値だけに頼ると 100% で描いてしまう）
-        var scaling = ClientPixelScale.Resolve(info.Width, Bounds.Size.Width, ClientToPixelScaling);
+        var scaling = DpiScaler.NormalizeScaling(context.DpiScale);
 
-        canvas.Save();
-        canvas.Scale((float)scaling);
-        try
-        {
-            // 前フレームの描画（選択矩形・暗転マスク）を残さないため、自分の描画面を消してから描く
-            canvas.Clear(SKColors.Transparent);
+        // 前フレームの描画（選択矩形・暗転マスク）を残さないため、自分の描画面を消してから描く
+        // （コンテキストは DIP 座標で描けるため、消去の後は DIP のまま描く）
+        context.Clear(Color.Transparent);
 
-            // 描画計画は配置フェーズ（ArrangeContent）が解決した値を共有する（未解決の場合のみ本メソッドが解決する）
-            var plan = CurrentFrame(DpiScaler.ToDip(info.Size.ToEsSize(), scaling));
+        // 描画計画は配置フェーズ（ArrangeContent）が解決した値を共有する（未解決の場合のみ本メソッドが解決する）
+        var plan = CurrentFrame(new EsSize(Bounds.Width > 0 ? Bounds.Width : RenderSize.Width, Bounds.Height > 0 ? Bounds.Height : RenderSize.Height));
+        _ = scaling;
 
-            MarqueeSkiaPainter.Paint(canvas, in plan);
+        MarqueePainter.Paint(context, in plan);
 
-            // 描画完了をホストへ通知する（操作・情報ラベルなどホスト固有の付加情報を描くための入口）。
-            Rendered?.Invoke(this, new MarqueeRenderedEventArgs(canvas, plan));
-        }
-        finally
-        {
-            canvas.Restore();
-        }
+        // 描画完了をホストへ通知する（操作・情報ラベルなどホスト固有の付加情報を描くための入口）。
+        Rendered?.Invoke(this, new MarqueeRenderedEventArgs(context, plan));
     }
 }

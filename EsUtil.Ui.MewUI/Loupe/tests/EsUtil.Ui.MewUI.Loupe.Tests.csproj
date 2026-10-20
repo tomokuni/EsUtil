@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- テストが使うバックエンドのバージョン（本体と同じ値に固定する） -->
+    <MewUIVersion>0.21.1</MewUIVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +22,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Ui.MewUI.Loupe.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 画素を読み戻せるオフスクリーン表面（GDI バックエンド）をテストの土台に使う -->
+    <PackageReference Include="Aprillz.MewUI.Backend.Gdi" Version="$(MewUIVersion)" />
   </ItemGroup>
 
   <ItemGroup>

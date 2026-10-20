@@ -3,9 +3,9 @@ using EsUtil.Platform.Core.Coord;
 // 複製元: EsUtil.SaveEvidence.Platform.MewUI.Imaging（独立パッケージ用の意図的な複製。 .github/依存関係.md §4.1）
 namespace EsUtil.Ui.MewUI.Marquee.Internal;
 
-/// <summary>Skia の描画面（物理ピクセル）と表示領域（DIP）から、描画に使うスケーリング係数を解決する。</summary>
+/// <summary>描画面（物理ピクセル）と表示領域（DIP）から、描画に使うスケーリング係数を解決する。</summary>
 /// <remarks>
-/// <b>位置付け</b>: <c>SkiaCanvasView</c> の描画面は要素の表示サイズ（DIP）へ表示倍率を掛けた大きさで作られるため、<br/>
+/// <b>位置付け</b>: 描画面は要素の表示サイズ（DIP）へ表示倍率を掛けた大きさで作られるため、<br/>
 /// 両者の比がその時点で実際に使うべき倍率になる。<br/>
 /// <br/>
 /// <b>なぜ保持値（DPI の通知）だけに頼らないか</b>: DPI の通知は<b>追加直後の要素へ届かないことがある</b><br/>

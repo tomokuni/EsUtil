@@ -12,9 +12,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- SkiaCanvasView（コアの EsBitmap をそのまま描画する） -->
-    <PackageReference Include="Aprillz.MewUI.Skia" Version="$(MewUIVersion)" />
+    <!-- コアの EsBitmap をフレームワーク標準の描画（IGraphicsContext）で描く -->
     <!-- 設定変更・描画例外のログ（LoggerMessage ソース生成・NullLogger。Avalonia 版と同一の書式） -->
+    <!-- MewUI のコア（型・標準描画の IGraphicsContext）。 描画はフレームワーク標準を使う -->
+    <PackageReference Include="Aprillz.MewUI.Core" Version="$(MewUIVersion)" />
+
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
   </ItemGroup>
 

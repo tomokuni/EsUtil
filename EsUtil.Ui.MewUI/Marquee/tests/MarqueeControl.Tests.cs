@@ -4,7 +4,6 @@ using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native;
 using Microsoft.Extensions.Logging;
-using SkiaSharp;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
 
@@ -583,16 +582,14 @@ public class MarqueeControlTests
     [Fact]
     internal void 外観で装飾を止めると装飾が描かれない()
     {
-        using var bitmap = new SKBitmap(new SKImageInfo(64, 64));
-        using var canvas = new SKCanvas(bitmap);
-
         var presenter = new MarqueePresenter(new StubEffects(), cursor: null, MarqueeOptions.Default);
         presenter.SetSelection(new EsRect(10, 10, 40, 40));
         var plan = presenter.ResolveDrawPlan(new EsSize(64, 64), static (_, _) => default);
+        var surface = TestCanvas.Render(64, 64, context => MarqueePainter.Paint(context, in plan));
+
 
         // 既定（装飾を描く）: 外枠の色の画素が現れる
-        MarqueeSkiaPainter.Paint(canvas, in plan);
-        Assert.Contains(plan.OuterBorderDipRects, rect => bitmap.GetPixel((int)rect.X, (int)rect.Y).Alpha > 0);
+        Assert.Contains(plan.OuterBorderDipRects, rect => surface.IsOpaque((int)rect.X, (int)rect.Y));
 
         // 外観で止める: 層と値は残るが、描画実装はフラグを見て描かない（何も描かれない）
         presenter.Appearance = MarqueeAppearance.Default with
@@ -604,12 +601,11 @@ public class MarqueeControlTests
         };
         var stopped = presenter.ResolveDrawPlan(new EsSize(64, 64), static (_, _) => default);
 
-        canvas.Clear(SKColors.Transparent);
-        MarqueeSkiaPainter.Paint(canvas, in stopped);
+        var stoppedSurface = TestCanvas.Render(64, 64, context => MarqueePainter.Paint(context, in stopped));
         Assert.Contains(MarqueeDrawLayer.Decoration, stopped.Layers);
         Assert.Contains(MarqueeDrawLayer.Handles, stopped.Layers);
-        Assert.Equal(0, bitmap.GetPixel(10, 10).Alpha);
-        Assert.Equal(0, bitmap.GetPixel(32, 32).Alpha);
+        Assert.Equal(0, stoppedSurface.GetAlpha(10, 10));
+        Assert.Equal(0, stoppedSurface.GetAlpha(32, 32));
     }
 
     /// <summary>レイヤーを差し替えると既定の描画を止められることを検証する。</summary>
@@ -620,23 +616,21 @@ public class MarqueeControlTests
     [Fact]
     internal void レイヤーを差し替えると既定の描画を止められる()
     {
-        using var bitmap = new SKBitmap(new SKImageInfo(64, 64));
-        using var canvas = new SKCanvas(bitmap);
-
         var presenter = new MarqueePresenter(new StubEffects(), cursor: null, MarqueeOptions.Default);
         presenter.SetSelection(new EsRect(10, 10, 40, 40));
         var plan = presenter.ResolveDrawPlan(new EsSize(64, 64), static (_, _) => default);
 
+
         // ホストが層を空に差し替える（既定の描画は何も描かない）
         var host = plan with { Layers = [] };
-        MarqueeSkiaPainter.Paint(canvas, in host);
+        var hostSurface = TestCanvas.Render(64, 64, context => MarqueePainter.Paint(context, in host));
 
         Assert.Empty(host.Layers);
         // 値は残る（ホストは計算値を使って自前で描ける）
         Assert.NotEmpty(host.OverlayDipRects);
         Assert.NotNull(host.Handles);
-        Assert.Equal(0, bitmap.GetPixel(10, 10).Alpha);
-        Assert.Equal(0, bitmap.GetPixel(32, 32).Alpha);
+        Assert.Equal(0, hostSurface.GetAlpha(10, 10));
+        Assert.Equal(0, hostSurface.GetAlpha(32, 32));
     }
 
     /// <summary>テスト用の効果の最小実装（描画計画の解決だけに使う）。</summary>
