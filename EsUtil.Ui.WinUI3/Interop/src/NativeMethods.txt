@@ -1,0 +1,6 @@
+// CsWin32 が生成する Win32 API の一覧（.github/ビルド設定規約.md §7）。
+// 宣言を手で書かず、必要な API だけをここへ足す（足した API は PInvoke.* として internal に生成される）。
+// 本プロジェクトはウィンドウの矩形（枠の太さの実測）に必要な API だけを使う。
+
+GetWindowRect
+GetClientRect

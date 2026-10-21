@@ -25,11 +25,11 @@
     <EsUtil_Feature_Marquee_Presenter_Version>0.1.1</EsUtil_Feature_Marquee_Presenter_Version>
     <EsUtil_Ui_AvaloniaUI_Marquee_Version>0.1.1</EsUtil_Ui_AvaloniaUI_Marquee_Version>
     <EsUtil_Ui_MewUI_Marquee_Version>0.1.2</EsUtil_Ui_MewUI_Marquee_Version>
-    <EsUtil_Ui_WinUI3_Marquee_Version>0.1.2</EsUtil_Ui_WinUI3_Marquee_Version>
+    <EsUtil_Ui_WinUI3_Marquee_Version>0.1.3</EsUtil_Ui_WinUI3_Marquee_Version>
     <EsUtil_Ui_WinForms_Marquee_Version>0.1.2</EsUtil_Ui_WinForms_Marquee_Version>
     <EsUtil_Ui_AvaloniaUI_Interop_Version>0.1.0</EsUtil_Ui_AvaloniaUI_Interop_Version>
     <EsUtil_Ui_MewUI_Interop_Version>0.1.1</EsUtil_Ui_MewUI_Interop_Version>
-    <EsUtil_Ui_WinUI3_Interop_Version>0.1.1</EsUtil_Ui_WinUI3_Interop_Version>
+    <EsUtil_Ui_WinUI3_Interop_Version>0.1.2</EsUtil_Ui_WinUI3_Interop_Version>
     <EsUtil_Ui_WinForms_Interop_Version>0.1.1</EsUtil_Ui_WinForms_Interop_Version>
   </PropertyGroup>
 

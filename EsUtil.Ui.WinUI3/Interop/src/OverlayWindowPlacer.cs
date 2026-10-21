@@ -1,8 +1,9 @@
-using System.Runtime.InteropServices;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Windows.Graphics;
+using Windows.Win32;
+using Windows.Win32.Foundation;
 
 namespace EsUtil.Ui.WinUI3.Interop;
 
@@ -34,14 +35,14 @@ public static class OverlayWindowPlacer
 
         var hwnd = Win32Interop.GetWindowFromWindowId(appWindow.Id);
         if (hwnd == IntPtr.Zero ||
-            !GetWindowRect(hwnd, out var window) ||
-            !GetClientRect(hwnd, out var client))
+            !PInvoke.GetWindowRect((HWND)hwnd, out var window) ||
+            !PInvoke.GetClientRect((HWND)hwnd, out var client))
         {
             return;
         }
 
-        var frameWidth = (window.Right - window.Left) - (client.Right - client.Left);
-        var frameHeight = (window.Bottom - window.Top) - (client.Bottom - client.Top);
+        var frameWidth = (window.right - window.left) - (client.right - client.left);
+        var frameHeight = (window.bottom - window.top) - (client.bottom - client.top);
         if (frameWidth <= 0 && frameHeight <= 0)
         {
             return;
@@ -55,37 +56,4 @@ public static class OverlayWindowPlacer
             target.Height + frameHeight));
     }
 
-    /// <summary>ウィンドウの矩形（画面座標・画面物理ピクセル）を取得する。</summary>
-    /// <param name="hwnd">対象のウィンドウ ハンドル。</param>
-    /// <param name="rect">取得した矩形。</param>
-    /// <returns>取得できた場合は true。</returns>
-    [DllImport("user32.dll")]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetWindowRect(IntPtr hwnd, out NativeRect rect);
-
-    /// <summary>ウィンドウのクライアント領域の大きさを取得する。</summary>
-    /// <param name="hwnd">対象のウィンドウ ハンドル。</param>
-    /// <param name="rect">取得した矩形（左上は常に 0）。</param>
-    /// <returns>取得できた場合は true。</returns>
-    [DllImport("user32.dll")]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetClientRect(IntPtr hwnd, out NativeRect rect);
-
-    /// <summary>Win32 の矩形（<c>RECT</c>）。</summary>
-    private struct NativeRect
-    {
-        /// <summary>左端の座標。</summary>
-        public int Left;
-
-        /// <summary>上端の座標。</summary>
-        public int Top;
-
-        /// <summary>右端の座標。</summary>
-        public int Right;
-
-        /// <summary>下端の座標。</summary>
-        public int Bottom;
-    }
 }

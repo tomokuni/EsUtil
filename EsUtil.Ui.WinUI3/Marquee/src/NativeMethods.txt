@@ -1,0 +1,7 @@
+// CsWin32 が生成する Win32 API の一覧（.github/ビルド設定規約.md §7）。
+// 宣言を手で書かず、必要な API だけをここへ足す（足した API は PInvoke.* として internal に生成される）。
+// 本プロジェクトは画面物理座標とウィンドウのクライアント座標の変換に必要な API だけを使う。
+
+ScreenToClient
+ClientToScreen
+GetDoubleClickTime
