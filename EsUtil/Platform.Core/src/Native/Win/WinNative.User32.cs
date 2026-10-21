@@ -231,8 +231,11 @@ internal static partial class WinNative
     /// <summary>指定されたシステムメトリクス（SM_ 定数）を取得する（user32.GetSystemMetrics）。</summary>
     /// <param name="nIndex">取得するシステムメトリクスのインデックス。</param>
     /// <returns>システムメトリクスの値。</returns>
-    [LibraryImport("user32.dll")]
-    internal static partial int GetSystemMetrics(int nIndex);
+    /// <remarks>宣言は CsWin32 が生成する（<c>src/NativeMethods.txt</c>）。</remarks>
+#pragma warning disable CA1416 // 生成された宣言の「Windows 5.1 以降」は本ライブラリの前提（Windows 10 以降）に含まれる
+    internal static int GetSystemMetrics(int nIndex)
+        => Windows.Win32.PInvoke.GetSystemMetrics((Windows.Win32.UI.WindowsAndMessaging.SYSTEM_METRICS_INDEX)nIndex);
+#pragma warning restore CA1416
 
     /// <summary>ウィンドウの位置・サイズ・Z オーダーを変更する（user32.SetWindowPos）。</summary>
     /// <param name="hWnd">対象ウィンドウのハンドル。</param>

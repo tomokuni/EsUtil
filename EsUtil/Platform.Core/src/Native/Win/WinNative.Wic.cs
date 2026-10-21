@@ -74,10 +74,14 @@ internal static partial class WinNative
 
     /// <summary>COM を初期化する（Win32）。</summary>
     /// <param name="reserved">予約（0）。</param>
-    /// <param name="model">同時実行モデル。</param>
+    /// <param name="model">同時実行モデル（<c>COINIT</c>）。</param>
     /// <returns>HRESULT。</returns>
-    [LibraryImport("ole32.dll")]
-    private static partial int CoInitializeEx(IntPtr reserved, uint model);
+    /// <remarks>宣言は CsWin32 が生成する（<c>src/NativeMethods.txt</c>）。</remarks>
+#pragma warning disable CA1416 // 生成された宣言の「Windows 5.1 以降」は本ライブラリの前提（Windows 10 以降）に含まれる
+    private static unsafe int CoInitializeEx(IntPtr reserved, uint model)
+        => Windows.Win32.PInvoke.CoInitializeEx(
+            (void*)reserved, (Windows.Win32.System.Com.COINIT)model).Value;
+#pragma warning restore CA1416
 
     /// <summary>COM のオブジェクトを生成する（Win32）。</summary>
     /// <param name="clsid">生成するクラスの CLSID。</param>
@@ -86,6 +90,13 @@ internal static partial class WinNative
     /// <param name="iid">取得するインターフェイスの IID。</param>
     /// <param name="instance">生成したオブジェクト。</param>
     /// <returns>HRESULT。</returns>
+    /// <remarks>
+    /// <b>手書きの宣言を残す理由</b>: 生成された API は COM のインターフェイス ポインター
+    /// （<c>IUnknown**</c>）を要求するが、本ライブラリは生ポインターを
+    /// <see cref="WinWicFactory"/> へ渡して <c>StrategyBasedComWrappers</c> で包む
+    /// （COM の相互運用は <c>[GeneratedComInterface]</c> が単一所有する）。 ここで型付きの
+    /// ポインターへ変えると、包む前の生ポインターを得るために別の変換が要る。
+    /// </remarks>
     [LibraryImport("ole32.dll")]
     internal static partial int CoCreateInstance(
         in Guid clsid, IntPtr outer, uint context, in Guid iid, out IntPtr instance);

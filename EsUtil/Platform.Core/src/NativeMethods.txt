@@ -3,3 +3,7 @@
 // WIC などの COM は [GeneratedComInterface] が担うため、この一覧へは入れない。
 
 GetCurrentProcessId
+GetSystemMetrics
+DwmFlush
+DwmGetWindowAttribute
+CoInitializeEx
