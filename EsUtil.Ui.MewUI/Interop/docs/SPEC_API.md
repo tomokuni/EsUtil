@@ -28,7 +28,7 @@ MewUI と EsUtil の型の相互変換が提供する公開 API です。 使い
 | `EsGeometryInterop` | `EsPoint` / `EsSize` / `EsRect` と整数版 ↔ MewUI の幾何型 |
 | `EsWindowStateInterop` | `EsWindowState` ↔ MewUI のウィンドウ状態 |
 | `EsPlatformHandleInterop` | `EsPlatformHandle` ↔ MewUI のウィンドウ ハンドル |
-| `WindowPlacementMath` | 設定の物理ピクセル ↔ MewUI の DIP の換算 |
+| `EsWindowPlacementMath`（コア） | 設定の物理ピクセル ↔ MewUI の DIP の換算 |
 
 ### 2.2 部分名前空間
 
@@ -38,9 +38,8 @@ MewUI と EsUtil の型の相互変換が提供する公開 API です。 使い
 | `Imaging.ImageRenderer` | `EsReadOnlyBitmap` を描く層 |
 | `Imaging.ImageRenderPlan` | 描画の計画（元矩形・先矩形。 internal） |
 | `Imaging.ImageBinding` | コアの画像を `IImage` として保持する（internal） |
-| `Imaging.ImageDrawMath` | 配置の矩形の純粋計算 |
-| `Imaging.ImageDrawMode` | 配置の仕方（`Fit` / `Fill` など） |
-| `Imaging.ClientPixelScale` | 実効倍率（物理ピクセルと DIP の比） |
+| `EsImageDrawMath`（コア） | 配置の矩形の純粋計算 |
+| `EsImageDrawMode`（コア） | 配置の仕方（`Fill` / `Uniform`） |
 | `Imaging.TextMeasure` | 文字列の実寸（MewUI のテキスト エンジン） |
 
 ## 3. 制限事項

@@ -29,13 +29,12 @@ WinUI 3 と EsUtil の型の相互変換が提供する公開 API です。 使�
 | `EsWindowStateInterop` | `EsWindowState` ↔ WinUI 3 のウィンドウ状態 |
 | `EsPlatformHandleInterop` | `EsPlatformHandle` ↔ WinUI 3 のウィンドウ ハンドル |
 | `OverlayWindowPlacer` | オーバーレイ ウィンドウを対象の矩形へ配置する |
-| `WindowPlacementMath` | 設定の物理ピクセル ↔ WinUI 3 の DIP の換算 |
+| `EsWindowPlacementMath`（コア） | 設定の物理ピクセル ↔ WinUI 3 の DIP の換算 |
 
 ### 2.2 部分名前空間
 
 | 型 | 内容 |
 | --- | --- |
-| `Imaging.ClientPixelScale` | 実効倍率（物理ピクセルと DIP の比） |
 | `Imaging.TextMeasure` | 文字列の実寸（WinUI 3 のテキスト計測） |
 | `Drawing.CompositionImageView` | コアの画像を Composition で描く表示ビュー |
 | `Drawing.RectShapeLayer` | 矩形（角丸を含む）を Composition の図形として描く |

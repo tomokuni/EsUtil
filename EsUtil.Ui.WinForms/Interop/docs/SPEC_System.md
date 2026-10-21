@@ -45,9 +45,8 @@ graph LR
 | `Imaging.ImageView` | 画像を描く表示ビュー（`Control` + `OnPaint`） |
 | `Imaging.ImageRenderer` | コアの画像を GDI+ で描く |
 | `Imaging.GdiFill` / `GdiText` / `GdiLabel` | GDI+ の塗り・文字・ラベル |
-| `Imaging.ImageDrawMath` | 配置の矩形の純粋計算 |
-| `Imaging.ImageDrawMode` | 配置の仕方（`Fit` / `Fill` など） |
-| `Imaging.ClientPixelScale` | 実効倍率（物理ピクセルと DIP の比） |
+| `EsImageDrawMath`（コア） | 配置の矩形の純粋計算 |
+| `EsImageDrawMode`（コア） | 配置の仕方（`Fill` / `Uniform`） |
 
 ## 5. 依存関係
 

@@ -47,5 +47,5 @@ public class ImageView : Control
     /// <inheritdoc/>
     protected override void OnRender(IGraphicsContext context)
         => _renderer.Render(
-            context, Source, RenderSize.Width, RenderSize.Height, UniformDraw ? ImageDrawMode.Uniform : ImageDrawMode.Fill);
+            context, Source, RenderSize.Width, RenderSize.Height, UniformDraw ? EsImageDrawMode.Uniform : EsImageDrawMode.Fill);
 }

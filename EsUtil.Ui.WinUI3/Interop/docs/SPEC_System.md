@@ -41,7 +41,6 @@ graph LR
 
 | 区分 | 型 |
 | --- | --- |
-| `Imaging.ClientPixelScale` | 実効倍率（物理ピクセルと DIP の比） |
 | `Imaging.TextMeasure` | 文字列の実寸（WinUI 3 のテキスト計測） |
 | `Drawing.CompositionImageView` | コアの画像を Composition で描く表示ビュー |
 | `Drawing.RectShapeLayer` | 矩形（角丸を含む）を Composition の図形として描く |

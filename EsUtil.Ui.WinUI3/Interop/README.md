@@ -15,8 +15,7 @@ UI フレームワーク非依存の値型と抽象は `EsUtil.Platform.Core` �
 | `EsWindowStateInterop` | `EsWindowState` ↔ WinUI 3 のウィンドウ状態 |
 | `EsPlatformHandleInterop` | `EsPlatformHandle` ↔ WinUI 3 のウィンドウ ハンドル |
 | `OverlayWindowPlacer` | 撮影用オーバーレイ ウィンドウを対象の矩形へ配置する |
-| `WindowPlacementMath` | 設定の物理ピクセル ↔ WinUI 3 の DIP の換算 |
-| `Imaging.ClientPixelScale` | 物理ピクセルと DIP の比から実効倍率を求める |
+| `EsWindowPlacementMath`（コア） | 設定の物理ピクセル ↔ WinUI 3 の DIP の換算 |
 | `Imaging.TextMeasure` | WinUI 3 のテキスト計測で実寸を測る |
 | `Drawing.CompositionImageView` | コアの画像を Composition で描く表示ビュー |
 | `Drawing.RectShapeLayer` | 矩形（角丸を含む）を Composition の図形として描く |

@@ -14,14 +14,13 @@ UI フレームワーク非依存の値型と抽象は `EsUtil.Platform.Core` �
 | `EsGeometryInterop` | `EsPoint` / `EsSize` / `EsRect` と整数版 ↔ MewUI の幾何型 |
 | `EsWindowStateInterop` | `EsWindowState` ↔ MewUI のウィンドウ状態 |
 | `EsPlatformHandleInterop` | `EsPlatformHandle` ↔ MewUI のウィンドウ ハンドル |
-| `WindowPlacementMath` | 設定の物理ピクセル ↔ MewUI の DIP の換算 |
+| `EsWindowPlacementMath`（コア） | 設定の物理ピクセル ↔ MewUI の DIP の換算 |
 | `Imaging.ImageView` | 画像を描く表示ビュー（`Control` + `OnRender`） |
 | `Imaging.ImageRenderer` | `EsReadOnlyBitmap` を描く層（変換は元画像の変更時だけ） |
 | `Imaging.ImageRenderPlan` | 描画の計画（元矩形・先矩形）の純粋計算 |
 | `Imaging.ImageBinding` | コアの画像を MewUI の `IImage` として保持する |
-| `Imaging.ImageDrawMath` | 配置の矩形の純粋計算 |
-| `Imaging.ImageDrawMode` | 配置の仕方（収める / 切り出す） |
-| `Imaging.ClientPixelScale` | 物理ピクセルと DIP の比から実効倍率を求める |
+| `EsImageDrawMath`（コア） | 配置の矩形の純粋計算 |
+| `EsImageDrawMode`（コア） | 配置の仕方（`Fill` / `Uniform`） |
 | `Imaging.TextMeasure` | MewUI のテキスト エンジンで実寸を測る |
 
 一覧は [`docs/SPEC_API.md`](docs/SPEC_API.md) を参照してください。
@@ -29,7 +28,7 @@ UI フレームワーク非依存の値型と抽象は `EsUtil.Platform.Core` �
 ## 3. 使い方
 
 ```csharp
-var view = new ImageView { Mode = ImageDrawMode.Fit };
+var view = new ImageView { Mode = EsImageDrawMode.Uniform };
 view.Source = EsReadOnlyBitmap.Load(path, 320);
 var key = Aprillz.MewUI.Key.A.ToEsKey();
 ```

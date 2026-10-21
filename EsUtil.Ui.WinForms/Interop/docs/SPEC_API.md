@@ -29,7 +29,7 @@ Windows Forms と EsUtil の型の相互変換が提供する公開 API です�
 | `EsWindowStateInterop` | `EsWindowState` ↔ `FormWindowState` |
 | `EsPlatformHandleInterop` | `EsPlatformHandle` ↔ WinForms のウィンドウ ハンドル |
 | `MonitorDpi` | モニター単位の DPI（`GetDpiForMonitor`） |
-| `WindowPlacementMath` | 設定の物理ピクセル ↔ WinForms の DIP の換算 |
+| `EsWindowPlacementMath`（コア） | 設定の物理ピクセル ↔ WinForms の DIP の換算 |
 
 ### 2.2 部分名前空間
 
@@ -39,9 +39,8 @@ Windows Forms と EsUtil の型の相互変換が提供する公開 API です�
 | `Imaging.ImageView` | 画像を描く表示ビュー（`Control` + `OnPaint`） |
 | `Imaging.ImageRenderer` | コアの画像を GDI+ で描く |
 | `Imaging.GdiFill` / `GdiText` / `GdiLabel` | GDI+ の塗り・文字・ラベル |
-| `Imaging.ImageDrawMath` | 配置の矩形の純粋計算 |
-| `Imaging.ImageDrawMode` | 配置の仕方（`Fit` / `Fill` など） |
-| `Imaging.ClientPixelScale` | 実効倍率（物理ピクセルと DIP の比） |
+| `EsImageDrawMath`（コア） | 配置の矩形の純粋計算 |
+| `EsImageDrawMode`（コア） | 配置の仕方（`Fill` / `Uniform`） |
 
 ## 3. 制限事項
 

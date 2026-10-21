@@ -15,21 +15,20 @@ UI フレームワーク非依存の値型と抽象は `EsUtil.Platform.Core` �
 | `EsWindowStateInterop` | `EsWindowState` ↔ `FormWindowState` |
 | `EsPlatformHandleInterop` | `EsPlatformHandle` ↔ WinForms のウィンドウ ハンドル |
 | `MonitorDpi` | モニター単位の DPI を照会する（`GetDpiForMonitor`） |
-| `WindowPlacementMath` | 設定の物理ピクセル ↔ WinForms の DIP の換算 |
+| `EsWindowPlacementMath`（コア） | 設定の物理ピクセル ↔ WinForms の DIP の換算 |
 | `Imaging.EsBitmapDrawingInterop` | コアの画像 ↔ `System.Drawing.Bitmap` |
 | `Imaging.ImageView` | 画像を描く表示ビュー（`Control` + `OnPaint`） |
 | `Imaging.ImageRenderer` | コアの画像を GDI+ で描く |
 | `Imaging.GdiFill` / `GdiText` / `GdiLabel` | GDI+ の塗り・文字・ラベル |
-| `Imaging.ImageDrawMath` | 配置の矩形の純粋計算 |
-| `Imaging.ImageDrawMode` | 配置の仕方（収める / 切り出す） |
-| `Imaging.ClientPixelScale` | 物理ピクセルと DIP の比から実効倍率を求める |
+| `EsImageDrawMath`（コア） | 配置の矩形の純粋計算 |
+| `EsImageDrawMode`（コア） | 配置の仕方（`Fill` / `Uniform`） |
 
 一覧は [`docs/SPEC_API.md`](docs/SPEC_API.md) を参照してください。
 
 ## 3. 使い方
 
 ```csharp
-var view = new ImageView { Mode = ImageDrawMode.Fit };
+var view = new ImageView { Mode = EsImageDrawMode.Uniform };
 view.Source = EsReadOnlyBitmap.Load(path);
 var key = System.Windows.Forms.Keys.A.ToEsKey();
 ```

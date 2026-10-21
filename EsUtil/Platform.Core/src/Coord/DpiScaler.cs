@@ -98,4 +98,22 @@ public static class DpiScaler
     /// </remarks>
     public static EsSize ToDip(EsSize physicalSize, double scaling)
         => new(ToDip(physicalSize.Width, scaling), ToDip(physicalSize.Height, scaling));
+
+    /// <summary>描画面の実サイズと表示領域（DIP）の比から、描画に使うスケーリング係数を解決する。</summary>
+    /// <param name="clientPixels">クライアント領域の一辺の長さ（物理ピクセル）。</param>
+    /// <param name="clientDip">同じ辺の長さ（DIP）。 0 以下の場合は <paramref name="fallback"/> を使う。</param>
+    /// <param name="fallback">表示領域が未確定のときに使う係数（DPI から与えられる値）。</param>
+    /// <returns>スケーリング係数（0.1〜8.0 へ補正済み）。</returns>
+    /// <remarks>
+    /// <b>保持値（DPI の通知）だけに頼らない理由</b>: DPI の通知は<b>要素が届かないことがある</b>
+    /// （実測: ウィンドウ表示後に追加したコントロールは DPI 変更の通知を受けず、登録時の既定値 1.0 のままになる）。
+    /// その状態で描画すると図形が 100% で描かれ、DPI を反映済みの画像と重ねたときにずれる。
+    /// 描画面から求めた倍率を使えば、通知の有無によらず画像と同じ倍率で描ける。<br/>
+    /// 表示領域が確定していれば常に実測値（<paramref name="clientPixels"/> ÷ <paramref name="clientDip"/>）を返す。
+    /// 補正（非数・範囲外は基準値）は <see cref="NormalizeScaling"/> が単一所有する。
+    /// </remarks>
+    public static double ResolveClientScale(double clientPixels, double clientDip, double fallback)
+        => clientDip > 0
+            ? NormalizeScaling(clientPixels / clientDip)
+            : NormalizeScaling(fallback);
 }

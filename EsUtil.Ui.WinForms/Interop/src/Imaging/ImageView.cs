@@ -108,7 +108,7 @@ public class ImageView : Control
     /// 表示の描画手順を <see cref="OnPaint"/> から分離し、ウィンドウ（ハンドル）を生成せずに画素を検証できるようにする。
     /// </remarks>
     internal void RenderTo(Graphics graphics, Size targetSize)
-        => ImageRenderer.Render(graphics, targetSize, _bitmap, UniformDraw ? ImageDrawMode.Uniform : ImageDrawMode.Fill);
+        => ImageRenderer.Render(graphics, targetSize, _bitmap, UniformDraw ? EsImageDrawMode.Uniform : EsImageDrawMode.Fill);
 
     /// <summary>保持している資源を解放する。</summary>
     /// <param name="disposing">マネージドの資源も解放する場合は true。</param>

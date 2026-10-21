@@ -18,7 +18,7 @@ public sealed class ImageRendererTests
         using var source = TestHelper.CreateBitmap(4, 2, DrawingColor.FromArgb(255, 0, 128, 0));
         using var target = TestHelper.CreateTarget(8, 8);
 
-        ImageRenderer.Render(target.Graphics, target.Size, ToBitmap(source), ImageDrawMode.Fill);
+        ImageRenderer.Render(target.Graphics, target.Size, ToBitmap(source), EsImageDrawMode.Fill);
 
         Assert.Equal(DrawingColor.FromArgb(255, 0, 128, 0), target.GetPixel(0, 0));
         Assert.Equal(DrawingColor.FromArgb(255, 0, 128, 0), target.GetPixel(7, 7));
@@ -31,7 +31,7 @@ public sealed class ImageRendererTests
         using var source = TestHelper.CreateBitmap(4, 2, DrawingColor.FromArgb(255, 0, 128, 0));
         using var target = TestHelper.CreateTarget(8, 8);
 
-        ImageRenderer.Render(target.Graphics, target.Size, ToBitmap(source), ImageDrawMode.Uniform);
+        ImageRenderer.Render(target.Graphics, target.Size, ToBitmap(source), EsImageDrawMode.Uniform);
 
         // 4x2 を 8x8 へ収める → 8x4 を縦の中央（y=2..5）へ描く
         Assert.Equal(TestHelper.EmptyPixel, target.GetPixel(4, 0));
@@ -45,7 +45,7 @@ public sealed class ImageRendererTests
     {
         using var target = TestHelper.CreateTarget(8, 8);
 
-        ImageRenderer.Render(target.Graphics, target.Size, null, ImageDrawMode.Fill);
+        ImageRenderer.Render(target.Graphics, target.Size, null, EsImageDrawMode.Fill);
 
         Assert.Equal(TestHelper.EmptyPixel, target.GetPixel(0, 0));
     }
@@ -57,7 +57,7 @@ public sealed class ImageRendererTests
         using var source = TestHelper.CreateBitmap(4, 2, DrawingColor.FromArgb(255, 0, 128, 0));
         using var target = TestHelper.CreateTarget(8, 8);
 
-        ImageRenderer.Render(target.Graphics, new Size(0, 0), ToBitmap(source), ImageDrawMode.Fill);
+        ImageRenderer.Render(target.Graphics, new Size(0, 0), ToBitmap(source), EsImageDrawMode.Fill);
 
         Assert.Equal(TestHelper.EmptyPixel, target.GetPixel(0, 0));
     }
@@ -66,7 +66,7 @@ public sealed class ImageRendererTests
     [Fact]
     internal void Render_描画面がnullなら例外になる()
         => Assert.Throws<ArgumentNullException>(
-            () => ImageRenderer.Render(null!, new Size(8, 8), null, ImageDrawMode.Fill));
+            () => ImageRenderer.Render(null!, new Size(8, 8), null, EsImageDrawMode.Fill));
 
     /// <summary>テスト用にコアの画像から GDI+ のビットマップを作る。</summary>
     /// <param name="source">変換元の画像。</param>

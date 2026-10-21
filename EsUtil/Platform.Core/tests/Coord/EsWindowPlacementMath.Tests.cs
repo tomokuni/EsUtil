@@ -1,14 +1,15 @@
+using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
 
-namespace EsUtil.Ui.MewUI.Interop.Tests;
+namespace EsUtil.Platform.Core.Tests.Coord;
 
-/// <summary><see cref="WindowPlacementMath"/> のテスト（DIP ⇔ 画面物理ピクセルの変換）。</summary>
+/// <summary><see cref="EsWindowPlacementMath"/> のテスト（DIP ⇔ 画面物理ピクセルの変換）。</summary>
 /// <remarks>
 /// 設定ファイルは画面物理ピクセル、MewUI のウィンドウは DIP のため、この変換がずれると<br/>
 /// ウィンドウが画面外へ復元される。 純粋関数のみのため UI 初期化なしで並列検証できる。
 /// </remarks>
-public sealed class WindowPlacementMathTests
+public sealed class EsWindowPlacementMathTests
 {
     // ====================================================================
     // DIP → 物理ピクセル
@@ -29,7 +30,7 @@ public sealed class WindowPlacementMathTests
     internal void ToPhysicalPixelPoint_スケールを掛けて四捨五入する(
         double x, double y, double scale, int expectedX, int expectedY)
     {
-        var result = WindowPlacementMath.ToPhysicalPixelPoint(new EsPoint(x, y), scale);
+        var result = EsWindowPlacementMath.ToPhysicalPixelPoint(new EsPoint(x, y), scale);
 
         Assert.Equal(expectedX, result.X);
         Assert.Equal(expectedY, result.Y);
@@ -39,7 +40,7 @@ public sealed class WindowPlacementMathTests
     internal void ToPhysicalPixelPoint_端数は四捨五入する()
     {
         // 101.6 * 1.25 = 127.0 / 100.4 * 1.25 = 125.5 → 126（MidpointRounding.AwayFromZero ではなく ToEven だが 125.5 は偶数へ）
-        var result = WindowPlacementMath.ToPhysicalPixelPoint(new EsPoint(101.6, 100.4), 1.25);
+        var result = EsWindowPlacementMath.ToPhysicalPixelPoint(new EsPoint(101.6, 100.4), 1.25);
 
         Assert.Equal(127, result.X);
         Assert.Equal(126, result.Y);
@@ -54,7 +55,7 @@ public sealed class WindowPlacementMathTests
     [InlineData(double.PositiveInfinity)]
     internal void ToPhysicalPixelPoint_無効なスケールは1として扱う(double scale)
     {
-        var result = WindowPlacementMath.ToPhysicalPixelPoint(new EsPoint(100, 200), scale);
+        var result = EsWindowPlacementMath.ToPhysicalPixelPoint(new EsPoint(100, 200), scale);
 
         Assert.Equal(100, result.X);
         Assert.Equal(200, result.Y);
@@ -73,7 +74,7 @@ public sealed class WindowPlacementMathTests
     internal void ToPhysicalPixelSize_スケールを掛けて四捨五入する(
         double width, double height, double scale, int expectedWidth, int expectedHeight)
     {
-        var result = WindowPlacementMath.ToPhysicalPixelSize(new EsSize(width, height), scale);
+        var result = EsWindowPlacementMath.ToPhysicalPixelSize(new EsSize(width, height), scale);
 
         Assert.Equal(expectedWidth, result.Width);
         Assert.Equal(expectedHeight, result.Height);
@@ -87,7 +88,7 @@ public sealed class WindowPlacementMathTests
     [InlineData(-100, -50)]
     internal void ToPhysicalPixelSize_最小1へクランプする(double width, double height)
     {
-        var result = WindowPlacementMath.ToPhysicalPixelSize(new EsSize(width, height), 1.0);
+        var result = EsWindowPlacementMath.ToPhysicalPixelSize(new EsSize(width, height), 1.0);
 
         Assert.Equal(1, result.Width);
         Assert.Equal(1, result.Height);
@@ -110,7 +111,7 @@ public sealed class WindowPlacementMathTests
     internal void ToDipPoint_スケールで割る(
         int x, int y, double scale, double expectedX, double expectedY)
     {
-        var result = WindowPlacementMath.ToDipPoint(new EsPointInt(x, y), scale);
+        var result = EsWindowPlacementMath.ToDipPoint(new EsPointInt(x, y), scale);
 
         Assert.Equal(expectedX, result.X, 6);
         Assert.Equal(expectedY, result.Y, 6);
@@ -119,7 +120,7 @@ public sealed class WindowPlacementMathTests
     [Fact]
     internal void ToDipPoint_無効なスケールは1として扱う()
     {
-        var result = WindowPlacementMath.ToDipPoint(new EsPointInt(100, 200), 0);
+        var result = EsWindowPlacementMath.ToDipPoint(new EsPointInt(100, 200), 0);
 
         Assert.Equal(100, result.X);
         Assert.Equal(200, result.Y);
@@ -136,8 +137,8 @@ public sealed class WindowPlacementMathTests
     {
         var original = new EsPoint(1234, 567);
 
-        var physical = WindowPlacementMath.ToPhysicalPixelPoint(original, scale);
-        var restored = WindowPlacementMath.ToDipPoint(physical, scale);
+        var physical = EsWindowPlacementMath.ToPhysicalPixelPoint(original, scale);
+        var restored = EsWindowPlacementMath.ToDipPoint(physical, scale);
 
         // 物理ピクセルは整数のため、往復では 1 スケール単位（= 1/scale DIP）以内の誤差を許容する
         Assert.Equal(original.X, restored.X, 1.0 / scale);
@@ -151,21 +152,21 @@ public sealed class WindowPlacementMathTests
     [Fact]
     internal void IsUsable_幅と高さが正ならtrueを返す()
     {
-        Assert.True(WindowPlacementMath.IsUsable(new EsRectInt(10, 20, 1200, 800)));
+        Assert.True(EsWindowPlacementMath.IsUsable(new EsRectInt(10, 20, 1200, 800)));
     }
 
     /// <summary>幅または高さが 0 以下の場合は復元しないことを検証する。</summary>
     [Fact]
     internal void IsUsable_幅か高さが0以下ならfalseを返す()
     {
-        Assert.False(WindowPlacementMath.IsUsable(new EsRectInt(10, 20, 0, 800)));
-        Assert.False(WindowPlacementMath.IsUsable(new EsRectInt(10, 20, 1200, 0)));
-        Assert.False(WindowPlacementMath.IsUsable(new EsRectInt(10, 20, -100, -50)));
+        Assert.False(EsWindowPlacementMath.IsUsable(new EsRectInt(10, 20, 0, 800)));
+        Assert.False(EsWindowPlacementMath.IsUsable(new EsRectInt(10, 20, 1200, 0)));
+        Assert.False(EsWindowPlacementMath.IsUsable(new EsRectInt(10, 20, -100, -50)));
     }
 
     [Fact]
     internal void IsUsable_nullはfalseを返す()
     {
-        Assert.False(WindowPlacementMath.IsUsable(null));
+        Assert.False(EsWindowPlacementMath.IsUsable(null));
     }
 }

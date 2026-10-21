@@ -1,4 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
 using System.Drawing.Drawing2D;
 
 namespace EsUtil.Ui.WinForms.Interop.Imaging;
@@ -12,7 +13,7 @@ namespace EsUtil.Ui.WinForms.Interop.Imaging;
 /// <br/>
 /// <b>手順</b>:<br/>
 /// 1. 画像が null の場合は描画しない。<br/>
-/// 2. 配置の矩形（<see cref="ImageDrawMath"/>）が空の場合は描画しない。<br/>
+/// 2. 配置の矩形（<see cref="EsImageDrawMath"/>）が空の場合は描画しない。<br/>
 /// 3. 矩形へ画像を 1 回の <c>DrawImage</c> で描く。<br/>
 /// <br/>
 /// <b>背景を塗らない理由</b>: GDI+ の描画面はコントロールの下地と共有される（別のキャンバスを持たない）。<br/>
@@ -29,7 +30,7 @@ public static class ImageRenderer
     /// <param name="mode">配置方法（縦横比を保つ / 領域全体へ引き伸ばす）。</param>
     /// <remarks>前提条件の判定（未設定・配置が空）をすべて本メソッドが担うため、呼び出し側は判定を持たない。</remarks>
     /// <exception cref="ArgumentNullException"><paramref name="graphics"/> が null の場合。</exception>
-    public static void Render(Graphics graphics, Size targetSize, Bitmap? source, ImageDrawMode mode)
+    public static void Render(Graphics graphics, Size targetSize, Bitmap? source, EsImageDrawMode mode)
     {
         ArgumentNullException.ThrowIfNull(graphics);
 
@@ -38,7 +39,7 @@ public static class ImageRenderer
             return;
         }
 
-        var destination = ImageDrawMath.ComputeDestination(
+        var destination = EsImageDrawMath.ComputeDestination(
             source.Width, source.Height, targetSize.Width, targetSize.Height, mode);
 
         DrawScaled(graphics, source, destination);

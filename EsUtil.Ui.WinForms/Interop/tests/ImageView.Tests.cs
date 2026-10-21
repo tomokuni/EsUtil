@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Imaging;
 using EsUtil.Ui.WinForms.Interop.Imaging;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
@@ -7,7 +8,7 @@ namespace EsUtil.Ui.WinForms.Interop.Tests;
 /// <summary><see cref="ImageView"/> のプロパティと描画のテスト。</summary>
 /// <remarks>
 /// ハンドル（ウィンドウ）を必要としないよう、描画は <c>RenderTo</c> をオフスクリーンへ向けて要求する。<br/>
-/// 配置の計算そのものは <see cref="ImageDrawMath"/> のテストが担うため、本テストは<br/>
+/// 配置の計算そのものは <see cref="EsImageDrawMath"/> のテストが担うため、本テストは<br/>
 /// 「プロパティの往復」と「配置方法の選択（派生クラス）」を固定する。
 /// </remarks>
 public sealed class ImageViewTests

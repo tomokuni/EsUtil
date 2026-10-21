@@ -24,16 +24,16 @@ internal readonly record struct ImageRenderPlan(bool ShouldDraw, EsRect Source, 
     /// <param name="targetHeight">描画先の高さ（DIP）。</param>
     /// <param name="mode">配置方法（縦横比を保つ / 領域全体へ引き伸ばす）。</param>
     /// <returns>組み立てた計画。</returns>
-    /// <remarks>配置の計算は <see cref="ImageDrawMath"/> が単一所有する（本型は可否の判定だけを足す）。</remarks>
+    /// <remarks>配置の計算は <see cref="EsImageDrawMath"/> が単一所有する（本型は可否の判定だけを足す）。</remarks>
     public static ImageRenderPlan Create(
-        EsReadOnlyBitmap? source, double targetWidth, double targetHeight, ImageDrawMode mode)
+        EsReadOnlyBitmap? source, double targetWidth, double targetHeight, EsImageDrawMode mode)
     {
         if (source is not { } bitmap || bitmap.IsDisposed)
         {
             return None;
         }
 
-        var destination = ImageDrawMath.ComputeDestination(
+        var destination = EsImageDrawMath.ComputeDestination(
             bitmap.Width, bitmap.Height, (int)targetWidth, (int)targetHeight, mode);
 
         return destination.IsEmpty

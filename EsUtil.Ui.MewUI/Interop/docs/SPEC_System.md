@@ -45,9 +45,8 @@ graph LR
 | `Imaging.ImageRenderer` | `EsReadOnlyBitmap` を描く層 |
 | `Imaging.ImageRenderPlan` | 描画の計画（元矩形・先矩形。 internal） |
 | `Imaging.ImageBinding` | コアの画像を `IImage` として保持する（internal） |
-| `Imaging.ImageDrawMath` | 配置の矩形の純粋計算 |
-| `Imaging.ImageDrawMode` | 配置の仕方（`Fit` / `Fill` など） |
-| `Imaging.ClientPixelScale` | 実効倍率（物理ピクセルと DIP の比） |
+| `EsImageDrawMath`（コア） | 配置の矩形の純粋計算 |
+| `EsImageDrawMode`（コア） | 配置の仕方（`Fill` / `Uniform`） |
 | `Imaging.TextMeasure` | 文字列の実寸（MewUI のテキスト エンジン） |
 
 ## 5. 依存関係

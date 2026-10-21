@@ -28,7 +28,7 @@ public sealed class ImageRenderer : IDisposable
     /// <param name="targetHeight">描画先の高さ（DIP）。</param>
     /// <param name="mode">配置方法（縦横比を保つ / 領域全体へ引き伸ばす）。</param>
     public void Render(
-        IGraphicsContext context, EsReadOnlyBitmap? source, double targetWidth, double targetHeight, ImageDrawMode mode)
+        IGraphicsContext context, EsReadOnlyBitmap? source, double targetWidth, double targetHeight, EsImageDrawMode mode)
     {
         ArgumentNullException.ThrowIfNull(context);
 
