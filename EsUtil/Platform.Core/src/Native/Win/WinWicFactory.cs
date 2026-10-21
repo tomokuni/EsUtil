@@ -1,6 +1,4 @@
 using System.ComponentModel;
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
 using Windows.Win32;
@@ -12,28 +10,20 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <remarks>
 /// <b>COM の解放は GC に任せる</b>: Native AOT では <c>Marshal.ReleaseComObject</c> /
 /// <c>Marshal.FinalReleaseComObject</c> が <c>NotSupportedException: COM Interop is not supported on this platform.</c>
-/// になる（実測）。 <see cref="StrategyBasedComWrappers"/> が作ったラッパーはファイナライズで参照を 1 つ戻し、
-/// <c>GetOrCreateObjectForComInstance</c> は元の参照とは別に 1 つ数えるため、<b>合計は作った数と一致する</b>
-/// （二重解放にはならない。 実測: GC を走らせても異常終了しない）。<br/>
+/// になる（実測）。 <c>[GeneratedComInterface]</c> が生成するラッパーはファイナライズで参照を 1 つ戻すため、
+/// <b>GC に任せれば解放される</b>（実測: GC を走らせても異常終了しない）。<br/>
 /// <b>そのため COM にファイル ハンドルを持たせない</b>: 解放が GC の時期に依存するため、
 /// <c>IWICStream::InitializeFromFilename</c> でファイルを開くと<b>解放までファイルが開いたまま</b>になる
 /// （実測: 保存直後の削除が <c>IOException</c> になった）。 読み書きは<b>メモリ ストリーム</b>
 /// （<c>CreateStreamOnHGlobal</c>）で行い、ファイルは <see cref="File"/> で読む・書く（実測: 直後の削除が成功する）。<br/>
-/// <b>ジェネリックで包まない理由</b>: <c>(T)GetOrCreateObjectForComInstance(...)</c> のように型引数へキャストすると、
-/// Native AOT では型のメタデータが残らず <c>InvalidOperationException</c> になる（実測）。
-/// <b>インターフェイス型へ直接キャストする</b>こと。<br/>
+/// <b>COM の生成は <see cref="WinWicNative"/> の宣言に任せる</b>: 戻り値は <c>[GeneratedComInterface]</c> の型であり、
+/// ソース生成された <c>ComInterfaceMarshaller&lt;T&gt;</c>（<c>ComWrappers</c> ベース）が変換する
+/// （生ポインターを扱わない。 Native AOT で動作することを実測）。<br/>
 /// <b>COM の起動と WIC の GUID を本クラスが単一所有する</b>（初期化はプロセスで 1 回だけ行う）。
 /// </remarks>
 [SupportedOSPlatform("windows10.0.17763")]
 internal static unsafe class WinWicFactory
 {
-    /// <summary>COM のラッパーを作るための唯一のインスタンス。</summary>
-    /// <remarks>
-    /// <b>1 つだけ持つ理由</b>: <see cref="StrategyBasedComWrappers"/> はインスタンスごとに COM の同一性を持つため、
-    /// 複数作ると同じ COM オブジェクトが別のラッパーになる（参照の数え方が分からなくなる）。
-    /// </remarks>
-    internal static readonly StrategyBasedComWrappers Wrappers = new();
-
     /// <summary>WIC のイメージング ファクトリの CLSID。</summary>
     private static readonly Guid s_imagingFactoryClsid = new("CACAF262-9370-4615-A13B-9F5539DA4C0A");
 
@@ -106,9 +96,7 @@ internal static unsafe class WinWicFactory
             1 /* CLSCTX_INPROC_SERVER */,
             s_imagingFactoryIid,
             out var instance);
-        return hr >= 0 && instance != IntPtr.Zero
-            ? (IWICImagingFactory)Wrappers.GetOrCreateObjectForComInstance(instance, CreateObjectFlags.None)
-            : null;
+        return hr >= 0 && instance is not null ? instance : null;
     }
 
     /// <summary>空のメモリ ストリームを作る（書き込み先）。</summary>
@@ -117,9 +105,9 @@ internal static unsafe class WinWicFactory
     internal static IStream CreateMemoryStream()
     {
         ThrowIfFailed(
-            WinWicNative.CreateStreamOnHGlobal(IntPtr.Zero, 1 /* 解放時に領域も解放する */, out var instance),
+            WinWicNative.CreateStreamOnHGlobal(IntPtr.Zero, 1 /* 解放時に領域も解放する */, out var stream),
             "メモリ ストリームを作成できませんでした。");
-        return (IStream)Wrappers.GetOrCreateObjectForComInstance(instance, CreateObjectFlags.None);
+        return stream;
     }
 
     /// <summary>内容を持つメモリ ストリームを作る（読み込み元）。</summary>

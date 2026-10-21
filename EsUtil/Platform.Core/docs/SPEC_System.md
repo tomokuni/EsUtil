@@ -65,7 +65,7 @@ graph LR
 | `EsUtil/Platform.Core/src/NativeMethods.txt` | **CsWin32 が生成する Win32 API と定数の唯一の一覧**（宣言を手で書かない。 user32 / gdi32 / dwmapi / comctl32 / kernel32 / ole32 の API と、メッセージ番号・スタイル値などのマクロ、使う列挙型・構造体を列挙する） |
 | `EsUtil/Platform.Core/src/Native/Win/Win32DllSearchPath.cs` | 本アセンブリの P/Invoke の探索先を `System32` に固定する宣言（`DefaultDllImportSearchPaths`） |
 | `EsUtil/Platform.Core/src/Native/Win/WinWicFactory.cs` | WIC の COM の生成と解放・COM の起動・画素形式の GUID・縮小・変換・回転・画素のコピーの補助 |
-| `EsUtil/Platform.Core/src/Native/Win/WinWicNative.cs` | 生ポインターを扱う COM の宣言（`CoCreateInstance` / `CreateStreamOnHGlobal`。 AOT で使えない投影型を避ける） |
+| `EsUtil/Platform.Core/src/Native/Win/WinWicNative.cs` | COM の生成の宣言（`CoCreateInstance` / `CreateStreamOnHGlobal` の 2 件。 `out` は `[GeneratedComInterface]` の型で受ける。 §7.3.1） |
 | `EsUtil/Platform.Core/src/Native/Win/IWICImagingFactory.cs` ほか WIC の型ごとのファイル | WIC の COM インターフェイス定義（`[GeneratedComInterface]`。 **宣言順が vtable の位置**） |
 | `EsUtil/Platform.Core/src/Native/Win/WinCaptureService.cs` | `ICaptureService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorService.cs` | `ICursorService` の Windows 実装 |
@@ -164,7 +164,7 @@ graph LR
 | 項目 | 内容 |
 | --- | --- |
 | アーキテクチャ固有の API | `SetWindowLongPtrW` は **`NativeMethods.txt` へ `SetWindowLongPtrW` と書くだけでは生成できない**（実測: `SetWindowLongPtr` は存在せず、`SetWindowLongPtrW` は `PInvoke005`「AnyCPU 不可」）。 csproj の `<CsWin32PlatformTarget>x64</CsWin32PlatformTarget>` で `PInvoke.SetWindowLongPtr`（`nint`）が生成される（本アプリは x64 のみを配布する） |
-| 手書きが残る唯一の箇所 | **`WinWicNative.cs` の `CoCreateInstance` と `CreateStreamOnHGlobal` の 2 件だけ**（理由は下表）。 宣言だけで、マーシャリングは `[LibraryImport]` のソース生成が担う |
+| 手書きが残る唯一の箇所 | **`WinWicNative.cs` の `CoCreateInstance` と `CreateStreamOnHGlobal` の 2 件だけ**（理由は §7.3.1）。 どちらも `[LibraryImport]` の宣言だけで、**`out` は `[GeneratedComInterface]` の型**（`ComWrappers` ベースのマーシャリング）なので生ポインターを扱わない |
 | `CA1416` | **抑止しない**。 Windows 専用の型に `[SupportedOSPlatform("windows10.0.17763")]` を書く（本プロジェクトは可搬のため TFM で下限を表せない）。 **版なしの `"windows"` は下限を満たさず警告になる**（実測） |
 | `LibraryImport` を自作しない | CsWin32 の列挙型を引数に取る `LibraryImport` は `SYSLIB1051` で拒否される。 手書きが必要な場合は引数を `int` / `nint` で受ける |
 | サブクラス化 | **`SetWindowSubclass` / `DefSubclassProc` / `RemoveWindowSubclass`（comctl32）を使う**。 `SetWindowLongPtr(GWLP_WNDPROC)` は元のプロシージャを自前で保存・復元する必要があり、他のサブクラス化（ビジュアル スタイル等）と共存できない |
@@ -178,9 +178,23 @@ graph LR
 
 | 設定 | `CoCreateInstance` | `CreateStreamOnHGlobal` | 判定 |
 | --- | --- | --- | --- |
-| 既定（`allowMarshaling: true`） | `HRESULT (Guid*, object, CLSCTX, Guid*, out object)` | `HRESULT (HGLOBAL, BOOL, out IStream)` | **使えない**。 `object` / `out IStream` は RCW（クラシック相互運用）を作る経路であり、Native AOT で `NotSupportedException: COM Interop requires ComWrapper instance registered for marshalling.` になる（実測） |
+| 既定（`allowMarshaling: true`） | `HRESULT (Guid*, object, CLSCTX, Guid*, out object)` | `HRESULT (HGLOBAL, BOOL, out IStream)` | **使えない**。 `object` / `out IStream` は RCW（クラシック相互運用）を作る経路であり、Native AOT で `NotSupportedException: COM Interop requires ComWrapper instance registered for marshalling.` になる（実測）。 また生成される `IStream` は `[ComImport]` ベースであり、本ライブラリの `[GeneratedComInterface]` の `IStream` と型が二重になる |
 | `allowMarshaling: false`（`NativeMethods.json`） | `HRESULT (Guid*, IUnknown*, CLSCTX, Guid*, void**)` | `HRESULT (HGLOBAL, BOOL, IStream**)` | 生ポインターで使えるが、**設定はプロジェクト全体に効く**。 切り替えると `WNDENUMPROC` / `MONITORENUMPROC` / `SUBCLASSPROC` が**関数ポインター型**になり、4 ファイル 19 箇所のコールバックを `[UnmanagedCallersOnly]` + `dwRefData`（`GCHandle`）へ書き換える必要がある（実測: CS 14 件 + IDE0060 5 件） |
 
+**採った方法: 2 件の宣言だけを手書きし、`out` に `[GeneratedComInterface]` の型を取る。**
+
+```csharp
+[LibraryImport("ole32.dll")]
+internal static partial int CoCreateInstance(
+    in Guid clsid, IntPtr outer, uint context, in Guid iid, out IWICImagingFactory instance);
+
+[LibraryImport("ole32.dll")]
+internal static partial int CreateStreamOnHGlobal(IntPtr memory, int deleteOnRelease, out IStream stream);
+```
+
+- **`[GeneratedComInterface]` の型を `[LibraryImport]` の引数にすると、ソース生成された `ComInterfaceMarshaller<T>`（`ComWrappers` ベース）が変換する**（`IStream` は本ライブラリが `[GeneratedComInterface]` で定義済み。 §4）。
+  実測 2026-10-21: **JIT と Native AOT の両方で `CoCreateInstance` / `CreateStreamOnHGlobal` が成功し、返った型のメソッド（`Write` / `Stat`）をそのまま呼べた**（AOT は `dotnet publish -p:PublishAot=true -r win-x64` の実行で確認）。
+- **生ポインターを扱わない**: `void**` を受けず、`StrategyBasedComWrappers.GetOrCreateObjectForComInstance` の手動呼び出しもキャストも要らない。 そのため `WinWicFactory` から `Wrappers` を削除した。
 - **API 単位の切り替えはできない**: `CoCreateInstance(allowMarshaling=false)` のように行へ書くと `PInvoke001`（「その名前の API は無い」）で拒否される（実測）。 `NativeMethods.json` は 1 プロジェクト 1 つのため、2 件のためだけに全体を切り替えることはしない。
 - **.NET 側に AOT 安全な代替は無い**: `Type.GetTypeFromCLSID` / `Activator.CreateInstance` / `Marshal.GetObjectForIUnknown` はいずれもクラシック相互運用であり AOT で失敗する（実測）。 COM の起動は `CoCreateInstance` を直接呼ぶしかない。
 - **`[LibraryImport]` の宣言だけを書く**ため、`DllImport` の手書きマーシャリング（`MarshalAs` の列など）は発生しない。 文字列・構造体・コールバックの生成は CsWin32 のままである。

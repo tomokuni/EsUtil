@@ -63,7 +63,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | --- | --- | --- |
 | 初期化 | 初回に `CoInitializeEx` と `CoCreateInstance`（`CLSID_WICImagingFactory`）を 1 回だけ呼ぶ | **スレッドは増えない**（GDI+ の `GdiplusStartup` が起こす表示設定の通知スレッドに相当するものが無い） |
 | 既に COM が初期化済みのプロセス | `CoInitializeEx` の `RPC_E_CHANGED_MODE`（`0x80010106`）は**成功として続行する** | 変更モードのプロセスでも全形式の保存と読み込みが成功した |
-| Native AOT | `[ComImport]` を使わず、`[GeneratedComInterface]`（ソース生成）+ `StrategyBasedComWrappers` で呼ぶ | `[ComImport]` + `Marshal.GetObjectForIUnknown` は `NotSupportedException` になった（実測） |
+| Native AOT | `[ComImport]` を使わず、`[GeneratedComInterface]`（ソース生成）で呼ぶ。 「`[LibraryImport]` の `out` にその型を取る」ため、生ポインターも手動ラップも要らない（`CoCreateInstance` も同じ形。 §`docs/SPEC_System.md` 7.3.1） | `[ComImport]` + `Marshal.GetObjectForIUnknown` は `NotSupportedException` になった（実測） |
 
 **初期化を前倒しする公開 API はありません**（初期化は `WinWicFactory` が単一所有しますが `internal` のため本アセンブリ専用です）。 コストを払うのは最初の `Save` / `Load` です。
 
