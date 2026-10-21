@@ -66,7 +66,9 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.Kernel32.cs` | kernel32 の宣言（プロセス ID） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.HotKey.cs` | グローバル ホットキーの宣言（user32）とキー変換 |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.Wic.cs` | WIC の宣言（COM の起動・画素形式の GUID） |
-| `EsUtil/Platform.Core/src/Native/Win/WinWicCom.cs` | WIC の COM インターフェイスを vtable の関数ポインターで呼ぶ薄い層（AOT 対応） |
+| `EsUtil/Platform.Core/src/Native/Win/WinWicInterfaces.cs` | WIC の呼び出しで共通に使う値（キャッシュ方法・補間・EXIF の名前） |
+| `EsUtil/Platform.Core/src/Native/Win/IWICImagingFactory.cs` ほか WIC の型ごとのファイル | WIC の COM インターフェイス定義（`[GeneratedComInterface]`。 **宣言順が vtable の位置**） |
+| `EsUtil/Platform.Core/src/Native/Win/WinWicFactory.cs` | WIC の COM オブジェクトの生成・解放と、縮小・変換・回転・画素のコピーの補助 |
 | `EsUtil/Platform.Core/src/Native/Win/WinCaptureService.cs` | `ICaptureService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorService.cs` | `ICursorService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinWindowService.cs` | `IWindowService` の Windows 実装 |
@@ -139,8 +141,10 @@ graph LR
 | --- | --- |
 | 初期化 | 初回に `CoInitializeEx` と `CoCreateInstance`（`CLSID_WICImagingFactory`）を 1 回だけ呼ぶ。 **スレッドは増えない**（GDI+ の `GdiplusStartup` が起こす表示設定の通知スレッドに相当するものが無い） |
 | 既に COM が初期化済みのプロセス | `CoInitializeEx` は `RPC_E_CHANGED_MODE`（`0x80010106`）を返すが、**成功として続行する**（実測で問題なく動作した） |
-| Native AOT | **`[ComImport]` と `Marshal.GetObjectForIUnknown` は使えない**（実測: `NotSupportedException: COM Interop requires ComWrapper instance registered for marshalling.`）。 vtable を関数ポインターとして呼ぶ（`WinWicCom`） |
-| エンコーダーのキャッシュ | **`WICBitmapEncoderNoCache` は使えない**（実測: `IWICStream::InitializeFromFilename` のストリームで `WINCODEC_ERR_UNSUPPORTEDOPERATION` = `0x88982F81`）。 `WICBitmapEncoderCacheTempFile`（一時ファイルへ書いてから確定する）は全形式で成功した |
+| Native AOT | **`[ComImport]` と `Marshal.GetObjectForIUnknown` は使えない**（実測: `NotSupportedException: COM Interop requires ComWrapper instance registered for marshalling.`）。 **`[GeneratedComInterface]`（ソース生成）+ `StrategyBasedComWrappers`** で呼ぶ（実測で動作） |
+| COM の解放 | **`Marshal.ReleaseComObject` / `Marshal.FinalReleaseComObject` は使えない**（実測: `NotSupportedException: COM Interop is not supported on this platform.`）。 ラッパーのファイナライズに任せ、**WIC にファイルを開かせない**（メモリ ストリームを使い、ファイルは `System.IO.File` が開いて閉じる） |
+| エンコーダーのキャッシュ | **`WICBitmapEncoderNoCache` は使えない**（実測: メモリ ストリームでも `WINCODEC_ERR_UNSUPPORTEDOPERATION` = `0x88982F81`）。 `WICBitmapEncoderCacheTempFile`（一時ファイルへ書いてから確定する）は全形式で成功した |
+| EXIF の向き | デコードしたフレームの `/app1/ifd/{ushort=274}`（無ければ `/ifd/...`・`/...`）を読み、**`IWICBitmapFlipRotator` で回転してから縮小する**（縮小してから回転すると丸め誤差の入り方が変わり、WinUI 3 版の `ExifOrientationMode.RespectExifOrientation` と画素が一致しない） |
 | 戻される画素形式 | アルファ乗算済みの BGRA（`GUID_WICPixelFormat32bppPBGRA`）を要求しても、**エンコーダーは別の形式を返す**（実測: PNG / TIFF はアルファ乗算なしの BGRA、JPEG は 24bpp の BGR、BMP だけが要求どおり）。 返された形式に合わせて並びを直してから書く |
 
 **外部パッケージ（`System.Drawing.Common` 等）は参照しません**。 WIC は OS の一部であるため、配布物も追加も要りません。 形式の網羅性は [`SPEC_API.md`](SPEC_API.md) の該当節が持ちます。

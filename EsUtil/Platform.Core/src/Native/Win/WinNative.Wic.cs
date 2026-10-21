@@ -4,10 +4,10 @@ namespace EsUtil.Platform.Core.Native.Win;
 
 /// <summary>WIC（Windows Imaging Component）の P/Invoke 宣言・GUID・COM の初期化を集約する。</summary>
 /// <remarks>
-/// <b>COM を関数ポインターで呼ぶ理由</b>: Native AOT では <c>[ComImport]</c> による相互運用が使えない
-/// （実測: <c>NotSupportedException: COM Interop requires ComWrapper instance registered for marshalling.</c>）。
-/// そのため <c>CoCreateInstance</c> で得たポインターの vtable を関数ポインターとして呼ぶ
-/// （<see cref="WinWicCom"/> が担う。 AOT でも動作することを実測済み）。<br/>
+/// <b>COM を <c>[GeneratedComInterface]</c> で呼ぶ理由</b>: Native AOT では <c>[ComImport]</c> による相互運用が
+/// 使えない（実測: <c>NotSupportedException: COM Interop requires ComWrapper instance registered for marshalling.</c>）。
+/// <c>[GeneratedComInterface]</c> はソース生成で <c>StrategyBasedComWrappers</c> 用の実装を作るため AOT でも動く
+/// （定義は <see cref="WinWicInterfaces"/>、生成と呼び出しは <see cref="WinWicFactory"/> が担う）。<br/>
 /// <b>COM の初期化</b>: 呼び出し側は <see cref="EnsureInitialized"/> を 1 回呼ぶ。
 /// 既に別のモデルで初期化済みのプロセス（<c>RPC_E_CHANGED_MODE</c>）でも続行する。
 /// </remarks>
@@ -72,20 +72,6 @@ internal static partial class WinNative
         return true;
     }
 
-    /// <summary>WIC のイメージング ファクトリを生成する。</summary>
-    /// <returns>生成したファクトリのポインター。 生成できなかった場合は <see cref="IntPtr.Zero"/>。</returns>
-    /// <remarks>返したポインターは <see cref="WinWicCom.Release(IntPtr)"/> で解放する。</remarks>
-    internal static IntPtr CreateImagingFactory()
-    {
-        if (!EnsureInitialized())
-        {
-            return IntPtr.Zero;
-        }
-
-        var hr = CoCreateInstance(WicImagingFactoryClsid, IntPtr.Zero, 1 /* CLSCTX_INPROC_SERVER */, WicImagingFactoryIid, out var factory);
-        return Succeeded(hr) ? factory : IntPtr.Zero;
-    }
-
     /// <summary>COM を初期化する（Win32）。</summary>
     /// <param name="reserved">予約（0）。</param>
     /// <param name="model">同時実行モデル。</param>
@@ -101,5 +87,19 @@ internal static partial class WinNative
     /// <param name="instance">生成したオブジェクト。</param>
     /// <returns>HRESULT。</returns>
     [LibraryImport("ole32.dll")]
-    private static partial int CoCreateInstance(in Guid clsid, IntPtr outer, uint context, in Guid iid, out IntPtr instance);
+    internal static partial int CoCreateInstance(
+        in Guid clsid, IntPtr outer, uint context, in Guid iid, out IntPtr instance);
+
+    /// <summary>メモリを裏付けとしたストリームを作る（Win32）。</summary>
+    /// <param name="memory">裏付けるメモリ（0 の場合は確保から行う）。</param>
+    /// <param name="deleteOnRelease">解放時にメモリも解放する場合は 0 以外。</param>
+    /// <param name="stream">生成したストリーム。</param>
+    /// <returns>HRESULT。</returns>
+    /// <remarks>
+    /// <b>メモリ ストリームを使う理由</b>: COM の解放は GC の時期に依存するため、WIC にファイルを開かせると
+    /// <b>解放までファイルが開いたまま</b>になる（実測: 保存直後の削除が <c>IOException</c> になった）。
+    /// メモリ ストリームならファイルは <see cref="File"/> が開いて閉じるため、直後から削除も上書きもできる。
+    /// </remarks>
+    [LibraryImport("ole32.dll")]
+    internal static partial int CreateStreamOnHGlobal(IntPtr memory, int deleteOnRelease, out IntPtr stream);
 }

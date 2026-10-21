@@ -108,49 +108,8 @@ internal static class WinWicImageCodec
             return;
         }
 
-        var factory = OpenFactory();
-        try
-        {
-            var encoder = CreateEncoderFor(factory, format);
-            try
-            {
-                var stream = CreateStreamFor(factory, targetPath);
-                try
-                {
-                    var frame = CreateFrame(factory, encoder, stream, width, height, options, palette: null, out var properties);
-                    try
-                    {
-                        var pixelFormat = WinNative.WicPixelFormat32bppPBgra;
-                        WinWicCom.ThrowIfFailed(
-                            WinWicCom.SetFramePixelFormat(frame, ref pixelFormat),
-                            $"保存する画像のピクセル形式を設定できませんでした（{ToPublicName(format)}）。");
-
-                        WritePixels(frame, width, height, pixels, pixelFormat, format);
-                        WinWicCom.ThrowIfFailed(WinWicCom.CommitFrame(frame), $"'{targetPath}' の画像を確定できませんでした。");
-
-                        // ストリームが生きているうちに確定する（確定してから解放すると内容が書かれない）
-                        WinWicCom.ThrowIfFailed(WinWicCom.CommitEncoder(encoder), $"'{targetPath}' へ保存できませんでした。");
-                    }
-                    finally
-                    {
-                        WinWicCom.Release(frame);
-                        WinWicCom.Release(properties);
-                    }
-                }
-                finally
-                {
-                    WinWicCom.Release(stream);
-                }
-            }
-            finally
-            {
-                WinWicCom.Release(encoder);
-            }
-        }
-        finally
-        {
-            WinWicCom.Release(factory);
-        }
+        var bytes = EncodeToBytes(format, width, height, options, palette: null, pixels, indexed: false);
+        File.WriteAllBytes(targetPath, bytes);
     }
 
     /// <summary>減色したピクセルを 8bpp のインデックス カラーとしてファイルへ書き出す。</summary>
@@ -186,165 +145,126 @@ internal static class WinWicImageCodec
             indices.AsSpan(y * width, width).CopyTo(rows.AsSpan(y * stride, width));
         }
 
+        var bytes = EncodeToBytes(format, width, height, default, palette, rows, indexed: true);
+        File.WriteAllBytes(filePath, bytes);
+    }
+
+    /// <summary>ピクセルを WIC でエンコードし、ファイルへ書く内容を返す。</summary>
+    /// <param name="format">保存する形式。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="options">保存のオプション（JPEG の品質を書き込む）。</param>
+    /// <param name="palette">パレット（インデックス カラーでない場合は null）。</param>
+    /// <param name="pixels">書き込む画素（<paramref name="indexed"/> が true の場合は 8bpp のインデックス）。</param>
+    /// <param name="indexed">8bpp のインデックス カラーとして書く場合は true。</param>
+    /// <returns>エンコードした内容。</returns>
+    /// <exception cref="NotSupportedException">その形式を書き出せるエンコーダーが無い場合、または
+    /// パレットを持てない形式へパレットを渡した場合。</exception>
+    /// <exception cref="Win32Exception">エンコード（WIC）が失敗した場合。</exception>
+    /// <remarks>
+    /// <b>メモリ ストリームへ書いてからファイルへ書く理由</b>: COM の解放は GC の時期に依存するため、
+    /// WIC にファイルを開かせると解放までファイルが開いたままになる（実測: 直後の削除が共有違反で失敗した）。
+    /// メモリ ストリームならファイルは呼び出し側が開いて閉じるため、直後から削除も上書きもできる。<br/>
+    /// <b>エンコーダーの初期化は 1 回だけ</b>である（<c>IWICBitmapEncoder::Initialize</c> を 2 回呼ぶと失敗する）。
+    /// そのため、ここで初期化・フレーム作成・オプション設定・寸法・パレット・画素の書き込みをまとめて行う。<br/>
+    /// <b>画素の書き込みを処理として受け取らない理由</b>: 画素は <see cref="ReadOnlySpan{T}"/>（ref 構造体）であり、
+    /// ラムダへ捕捉できないため。
+    /// </remarks>
+    private static unsafe byte[] EncodeToBytes(
+        ImageFileFormat format, int width, int height, in EsImageSaveOptions options, uint[]? palette,
+        ReadOnlySpan<byte> pixels, bool indexed)
+    {
         var factory = OpenFactory();
-        try
+        var stream = WinWicFactory.CreateMemoryStream();
+        var encoder = CreateEncoderFor(factory, format);
+
+        WinWicFactory.ThrowIfFailed(
+            encoder.Initialize(stream, WinWicInterfaces.EncoderCacheTempFile),
+            "エンコーダーを初期化できませんでした。");
+        WinWicFactory.ThrowIfFailed(
+            encoder.CreateNewFrame(out var frame, out var properties),
+            "画像のフレームを作成できませんでした。");
+        var instance = frame!;
+
+        if (options.JpegQuality is int quality)
         {
-            var encoder = CreateEncoderFor(factory, format);
-            try
-            {
-                var stream = CreateStreamFor(factory, filePath);
-                try
-                {
-                    var frame = CreateFrame(factory, encoder, stream, width, height, default, palette, out var properties);
-                    try
-                    {
-                        var pixelFormat = WinNative.WicPixelFormat8bppIndexed;
-                        WinWicCom.ThrowIfFailed(
-                            WinWicCom.SetFramePixelFormat(frame, ref pixelFormat),
-                            $"減色した画像のピクセル形式を設定できませんでした（{ToPublicName(format)}）。");
-
-                        if (pixelFormat != WinNative.WicPixelFormat8bppIndexed)
-                        {
-                            throw new NotSupportedException(
-                                $"この環境の {ToPublicName(format)} エンコーダーはパレット画像を書けません（{pixelFormat}）。");
-                        }
-
-                        WritePixelsCore(frame, height, stride, rows, format);
-                        WinWicCom.ThrowIfFailed(WinWicCom.CommitFrame(frame), $"'{filePath}' の画像を確定できませんでした。");
-
-                        // ストリームが生きているうちに確定する（確定してから解放すると内容が書かれない）
-                        WinWicCom.ThrowIfFailed(WinWicCom.CommitEncoder(encoder), $"'{filePath}' へ保存できませんでした。");
-                    }
-                    finally
-                    {
-                        WinWicCom.Release(frame);
-                        WinWicCom.Release(properties);
-                    }
-                }
-                finally
-                {
-                    WinWicCom.Release(stream);
-                }
-            }
-            finally
-            {
-                WinWicCom.Release(encoder);
-            }
+            // WIC の品質は 0.0〜1.0 の実数である（公開面は 0〜100 の整数）
+            WinWicFactory.ThrowIfFailed(
+                WinWicFactory.WriteRealOption(properties!, "ImageQuality", quality / (float)JpegQualityMaximum),
+                "JPEG の品質を設定できませんでした。");
         }
-        finally
+
+        WinWicFactory.ThrowIfFailed(instance.Initialize(properties), "画像のフレームを初期化できませんでした。");
+        WinWicFactory.ThrowIfFailed(
+            instance.SetSize((uint)width, (uint)height),
+            $"画像の寸法（{width}x{height}）を設定できませんでした。");
+
+        if (palette is not null)
         {
-            WinWicCom.Release(factory);
+            WinWicFactory.ThrowIfFailed(factory.CreatePalette(out var colors), "パレットを作成できませんでした。");
+            fixed (uint* values = palette)
+            {
+                WinWicFactory.ThrowIfFailed(
+                    colors!.InitializeCustom(values, (uint)palette.Length),
+                    "パレットの色を設定できませんでした。");
+            }
+
+            WinWicFactory.ThrowIfFailed(instance.SetPalette(colors), "パレットを画像へ設定できませんでした。");
         }
+
+        if (indexed)
+        {
+            var indexFormat = WinNative.WicPixelFormat8bppIndexed;
+            WinWicFactory.ThrowIfFailed(
+                instance.SetPixelFormat(ref indexFormat),
+                $"減色した画像のピクセル形式を設定できませんでした（{ToPublicName(format)}）。");
+            if (indexFormat != WinNative.WicPixelFormat8bppIndexed)
+            {
+                throw new NotSupportedException(
+                    $"この環境の {ToPublicName(format)} エンコーダーはパレット画像を書けません（{indexFormat}）。");
+            }
+
+            WritePixelsCore(instance, height, (width + 3) & ~3, pixels, format);
+        }
+        else
+        {
+            var pixelFormat = WinNative.WicPixelFormat32bppPBgra;
+            WinWicFactory.ThrowIfFailed(
+                instance.SetPixelFormat(ref pixelFormat),
+                $"保存する画像のピクセル形式を設定できませんでした（{ToPublicName(format)}）。");
+
+            WritePixels(instance, width, height, pixels, pixelFormat, format);
+        }
+
+        WinWicFactory.ThrowIfFailed(instance.Commit(), "画像を確定できませんでした。");
+
+        // ストリームが生きているうちに確定する（確定してから解放すると内容が書かれない）
+        WinWicFactory.ThrowIfFailed(encoder.Commit(), "エンコードした内容を確定できませんでした。");
+        return WinWicFactory.ReadStream(stream);
     }
 
     /// <summary>WIC のイメージング ファクトリを生成する。</summary>
-    /// <returns>生成したファクトリ。 解放が必要。</returns>
+    /// <returns>生成したファクトリ。</returns>
     /// <exception cref="Win32Exception">WIC を使えない場合。</exception>
-    private static IntPtr OpenFactory()
-    {
-        var factory = WinNative.CreateImagingFactory();
-        return factory != IntPtr.Zero
-            ? factory
-            : throw new Win32Exception(0, "WIC（Windows Imaging Component）を使えませんでした。");
-    }
+    private static IWICImagingFactory OpenFactory()
+        => WinWicFactory.CreateFactory()
+            ?? throw new Win32Exception(0, "WIC（Windows Imaging Component）を使えませんでした。");
 
     /// <summary>形式を書き出せるエンコーダーを作る。</summary>
     /// <param name="factory">イメージング ファクトリ。</param>
     /// <param name="format">保存する形式。</param>
-    /// <returns>生成したエンコーダー。 解放が必要。</returns>
+    /// <returns>生成したエンコーダー。</returns>
     /// <exception cref="NotSupportedException">その形式を書き出せるエンコーダーが無い場合。</exception>
-    private static IntPtr CreateEncoderFor(IntPtr factory, ImageFileFormat format)
+    private static IWICBitmapEncoder CreateEncoderFor(IWICImagingFactory factory, ImageFileFormat format)
     {
-        if (WinNative.Succeeded(WinWicCom.CreateEncoder(factory, s_containerFormats[format], out var encoder)))
+        var containerFormat = s_containerFormats[format];
+        if (factory.CreateEncoder(in containerFormat, IntPtr.Zero, out var encoder) >= 0 && encoder is not null)
         {
             return encoder;
         }
 
         throw new NotSupportedException(
             $"この環境には {ToPublicName(format)} 形式を書き出すエンコーダーがありません。");
-    }
-
-    /// <summary>ファイルへ結び付けた書き込み用のストリームを作る。</summary>
-    /// <param name="factory">イメージング ファクトリ。</param>
-    /// <param name="filePath">保存先のファイルパス。</param>
-    /// <returns>生成したストリーム。 解放が必要。</returns>
-    /// <exception cref="Win32Exception">ファイルを開けなかった場合、またはストリームを作れなかった場合。</exception>
-    private static IntPtr CreateStreamFor(IntPtr factory, string filePath)
-    {
-        WinWicCom.ThrowIfFailed(WinWicCom.CreateStream(factory, out var stream), $"'{filePath}' を書き込み用に開けませんでした。");
-        try
-        {
-            WinWicCom.ThrowIfFailed(
-                WinWicCom.InitializeStreamForWrite(stream, filePath),
-                $"'{filePath}' を書き込み用に開けませんでした。");
-            return stream;
-        }
-        catch
-        {
-            // 失敗したストリームを解放してから呼び出し側へ伝える（解放しないとファイルが開いたままになる）
-            WinWicCom.Release(stream);
-            throw;
-        }
-    }
-
-    /// <summary>エンコーダーへフレームを作り、寸法・パレット・オプションを設定する。</summary>
-    /// <param name="factory">イメージング ファクトリ。</param>
-    /// <param name="encoder">対象のエンコーダー。</param>
-    /// <param name="stream">書き込み先のストリーム。</param>
-    /// <param name="width">幅（ピクセル）。</param>
-    /// <param name="height">高さ（ピクセル）。</param>
-    /// <param name="options">保存のオプション（品質を書き込む）。</param>
-    /// <param name="palette">パレット（インデックス カラーでない場合は <c>null</c>）。</param>
-    /// <param name="properties">エンコーダーが用意したオプション（解放が必要）。</param>
-    /// <returns>生成したフレーム（解放が必要）。</returns>
-    /// <exception cref="Win32Exception">エンコーダーを初期化できなかった場合。</exception>
-    /// <remarks>
-    /// <b>エンコーダーの初期化は 1 回だけ</b>である（<c>IWICBitmapEncoder::Initialize</c> を 2 回呼ぶと失敗する）。
-    /// そのため、ここで初期化・フレーム作成・オプション設定・寸法・パレットをまとめて行う。<br/>
-    /// <b>返した 2 つは呼び出し側が解放する</b>: 解放しないとエンコーダーとストリームが生き残り、
-    /// <b>保存したファイルが開いたまま</b>になる（実測: 直後の読み込みや削除が共有違反で失敗した）。
-    /// </remarks>
-    private static IntPtr CreateFrame(
-        IntPtr factory, IntPtr encoder, IntPtr stream, int width, int height, in EsImageSaveOptions options,
-        uint[]? palette, out IntPtr properties)
-    {
-        WinWicCom.ThrowIfFailed(WinWicCom.InitializeEncoder(encoder, stream), "エンコーダーを初期化できませんでした。");
-        WinWicCom.ThrowIfFailed(
-            WinWicCom.CreateNewFrame(encoder, out var frame, out properties),
-            "画像のフレームを作成できませんでした。");
-
-        if (options.JpegQuality is int quality)
-        {
-            // WIC の品質は 0.0〜1.0 の実数である（公開面は 0〜100 の整数）
-            WinWicCom.ThrowIfFailed(
-                WinWicCom.WriteRealOption(properties, "ImageQuality", quality / (float)JpegQualityMaximum),
-                "JPEG の品質を設定できませんでした。");
-        }
-
-        WinWicCom.ThrowIfFailed(WinWicCom.InitializeFrame(frame, properties), "画像のフレームを初期化できませんでした。");
-        WinWicCom.ThrowIfFailed(
-            WinWicCom.SetFrameSize(frame, (uint)width, (uint)height),
-            $"画像の寸法（{width}x{height}）を設定できませんでした。");
-
-        if (palette is null)
-        {
-            return frame;
-        }
-
-        WinWicCom.ThrowIfFailed(WinWicCom.CreatePalette(factory, out var instance), "パレットを作成できませんでした。");
-        try
-        {
-            WinWicCom.ThrowIfFailed(
-                WinWicCom.InitializePalette(instance, palette),
-                "パレットの色を設定できませんでした。");
-            WinWicCom.ThrowIfFailed(WinWicCom.SetFramePalette(frame, instance), "パレットを画像へ設定できませんでした。");
-        }
-        finally
-        {
-            WinWicCom.Release(instance);
-        }
-
-        return frame;
     }
 
     /// <summary>エンコーダーが受け付けたピクセル形式へ直してから画素を書き込む。</summary>
@@ -362,7 +282,9 @@ internal static class WinWicImageCodec
     /// そのため<b>返された形式に合わせて並びを直してから書く</b>（エンコーダーは形式の変換をしない）。
     /// BMP だけは要求どおりアルファ乗算済みを受け付けるため、コピーを作らない。
     /// </remarks>
-    private static void WritePixels(IntPtr frame, int width, int height, ReadOnlySpan<byte> pixels, Guid pixelFormat, ImageFileFormat format)
+    private static void WritePixels(
+        IWICBitmapFrameEncode frame, int width, int height, ReadOnlySpan<byte> pixels, Guid pixelFormat,
+        ImageFileFormat format)
     {
         if (pixelFormat == WinNative.WicPixelFormat32bppPBgra)
         {
@@ -393,12 +315,12 @@ internal static class WinWicImageCodec
     /// <param name="pixels">画素（行幅が密な並び）。</param>
     /// <param name="format">保存する形式（例外メッセージ用）。</param>
     /// <exception cref="Win32Exception">書き込めなかった場合。</exception>
-    private static unsafe void WritePixelsCore(IntPtr frame, int height, int stride, ReadOnlySpan<byte> pixels, ImageFileFormat format)
+    private static unsafe void WritePixelsCore(IWICBitmapFrameEncode frame, int height, int stride, ReadOnlySpan<byte> pixels, ImageFileFormat format)
     {
         fixed (byte* source = pixels)
         {
-            WinWicCom.ThrowIfFailed(
-                WinWicCom.WritePixels(frame, (uint)height, (uint)stride, (uint)pixels.Length, source),
+            WinWicFactory.ThrowIfFailed(
+                frame.WritePixels((uint)height, (uint)stride, (uint)pixels.Length, source),
                 $"{ToPublicName(format)} 形式の画素を書き込めませんでした。");
         }
     }
@@ -766,133 +688,47 @@ internal static class WinWicImageCodec
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
         var factory = OpenFactory();
-        try
+
+        // メモリ ストリームから読む理由: WIC にファイルを開かせると COM の解放（GC）まで掴んだままになる
+        var stream = WinWicFactory.CreateMemoryStream(ReadAllBytes(filePath));
+        if (factory.CreateDecoderFromStream(stream, IntPtr.Zero, 0, out var decoder) < 0 || decoder is null)
         {
-            var hr = WinWicCom.CreateDecoderFromFilename(factory, filePath, out var decoder);
-            if (!WinNative.Succeeded(hr))
-            {
-                throw new ArgumentException($"'{filePath}' を画像として読み込めませんでした。", nameof(filePath));
-            }
-
-            try
-            {
-                WinWicCom.ThrowIfFailed(WinWicCom.GetFrame(decoder, 0, out var frame), $"'{filePath}' の画像を取得できませんでした。");
-                try
-                {
-                    // 縮小する場合だけスケーラーを挟む（元の寸法が上限以下なら原寸でデコードする）
-                    var scaler = CreateScaler(factory, frame, maxSize);
-                    try
-                    {
-                        var source = scaler != IntPtr.Zero ? scaler : frame;
-
-                        WinWicCom.ThrowIfFailed(
-                            WinWicCom.CreateFormatConverter(factory, out var converter),
-                            $"'{filePath}' の画素を変換する準備ができませんでした。");
-
-                        try
-                        {
-                            WinWicCom.ThrowIfFailed(
-                                WinWicCom.InitializeConverter(converter, source, WinNative.WicPixelFormat32bppPBgra),
-                                $"'{filePath}' の画素を変換できませんでした。");
-
-                            var (width, height) = ReadSize(converter);
-                            return create(width, height, destination => CopyPixelsFrom(converter, width, height, destination));
-                        }
-                        finally
-                        {
-                            WinWicCom.Release(converter);
-                        }
-                    }
-                    finally
-                    {
-                        WinWicCom.Release(scaler);
-                    }
-                }
-                finally
-                {
-                    WinWicCom.Release(frame);
-                }
-            }
-            finally
-            {
-                WinWicCom.Release(decoder);
-            }
+            throw new ArgumentException($"'{filePath}' を画像として読み込めませんでした。", nameof(filePath));
         }
-        finally
+
+        if (decoder.GetFrame(0, out var frame) < 0 || frame is null)
         {
-            WinWicCom.Release(factory);
+            throw new ArgumentException($"'{filePath}' の画像を取得できませんでした。", nameof(filePath));
         }
+
+        // 回転（EXIF の向き）→ 縮小 → 画素形式の変換の順に挟む（拡大はしない）
+        var oriented = WinWicFactory.ApplyOrientation(factory, frame);
+        var scaled = WinWicFactory.Scale(factory, oriented, maxSize);
+        var source = WinWicFactory.Convert(factory, scaled, WinNative.WicPixelFormat32bppPBgra);
+
+        var (width, height) = WinWicFactory.GetSize(source);
+        return create(width, height, destination => WinWicFactory.CopyPixels(source, width, height, destination));
     }
 
-    /// <summary>元の寸法が上限を超える場合だけ、縮小用のスケーラーを作る。</summary>
-    /// <param name="factory">イメージング ファクトリ。</param>
-    /// <param name="frame">デコードしたフレーム（画素源）。</param>
-    /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は縮小しない。</param>
-    /// <returns>生成したスケーラー。 縮小しない場合は <see cref="IntPtr.Zero"/>。</returns>
+    /// <summary>ファイルの内容を読み込む。</summary>
+    /// <param name="filePath">対象のファイル。</param>
+    /// <returns>内容。</returns>
+    /// <exception cref="ArgumentException">ファイルが存在しない場合、または読み込めない場合。</exception>
     /// <remarks>
-    /// <b>目標の寸法は長辺を上限へ揃えて求める</b>（縦横比を保つ。 各辺は 1 以上）。
-    /// 上限以下なら作らない（拡大はしない）。
+    /// <b>WIC にファイルを開かせない理由</b>: COM の解放は GC の時期に依存するため、WIC にファイルを開かせると
+    /// <b>解放までファイルが掴んだまま</b>になる（実測: 削除が共有違反で失敗した）。
+    /// <see cref="File"/> で読めば開いた直後に閉じるため、読み込み中でも削除も上書きもできる。
     /// </remarks>
-    private static IntPtr CreateScaler(IntPtr factory, IntPtr frame, int maxSize)
+    private static byte[] ReadAllBytes(string filePath)
     {
-        if (maxSize <= 0)
-        {
-            return IntPtr.Zero;
-        }
-
-        var (width, height) = ReadSize(frame);
-        if (width <= maxSize && height <= maxSize)
-        {
-            return IntPtr.Zero;
-        }
-
-        var scale = Math.Min((double)maxSize / width, (double)maxSize / height);
-        var targetWidth = (uint)Math.Max(1, Math.Round(width * scale));
-        var targetHeight = (uint)Math.Max(1, Math.Round(height * scale));
-
-        WinWicCom.ThrowIfFailed(WinWicCom.CreateBitmapScaler(factory, out var scaler), "縮小用のスケーラーを作成できませんでした。");
         try
         {
-            WinWicCom.ThrowIfFailed(
-                WinWicCom.InitializeScaler(scaler, frame, targetWidth, targetHeight),
-                "画像を縮小できませんでした。");
-            return scaler;
+            return File.ReadAllBytes(filePath);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
         {
-            // 失敗したスケーラーを解放してから呼び出し側へ伝える（解放しないと COM の参照が残る）
-            WinWicCom.Release(scaler);
-            throw;
-        }
-    }
-
-    /// <summary>画素源の寸法を読み取る。</summary>
-    /// <param name="source">対象の画素源。</param>
-    /// <returns>幅と高さ（ピクセル）。</returns>
-    /// <exception cref="Win32Exception">寸法を取得できなかった場合、または寸法が 1 以上でない場合。</exception>
-    private static (int Width, int Height) ReadSize(IntPtr source)
-    {
-        WinWicCom.ThrowIfFailed(WinWicCom.GetSize(source, out var width, out var height), "画像の寸法を取得できませんでした。");
-        return width is > 0 and <= int.MaxValue && height is > 0 and <= int.MaxValue
-            ? ((int)width, (int)height)
-            : throw new Win32Exception(0, $"画像の寸法が不正です（{width}x{height}）。");
-    }
-
-    /// <summary>画素源のピクセルをコアの画像のバッファへコピーする。</summary>
-    /// <param name="source">コピー元の画素源（アルファ乗算済みの BGRA8888 へ変換済み）。</param>
-    /// <param name="width">幅（ピクセル）。</param>
-    /// <param name="height">高さ（ピクセル）。</param>
-    /// <param name="destination">コピー先（<c>幅 × 4 × 高さ</c> バイト以上）。</param>
-    /// <exception cref="Win32Exception">ピクセルを取得できなかった場合。</exception>
-    /// <remarks>コピー先の行幅は常に密（<c>幅 × 4</c>）であるため、1 回の呼び出しで全領域を書く。</remarks>
-    private static unsafe void CopyPixelsFrom(IntPtr source, int width, int height, Span<byte> destination)
-    {
-        var stride = width * EsReadOnlyBitmap.BytesPerPixel;
-        fixed (byte* target = destination)
-        {
-            WinWicCom.ThrowIfFailed(
-                WinWicCom.CopyPixels(source, (uint)stride, (uint)(stride * height), target),
-                "画像のピクセルを取得できませんでした。");
+            // 存在しない・権限が無い・パスとして不正などの失敗は「画像として読めない」へ翻訳する
+            throw new ArgumentException($"'{filePath}' を画像として読み込めませんでした。", nameof(filePath), ex);
         }
     }
 }
