@@ -5,14 +5,14 @@
 ## 1. 目的
 
 ルーペのロジック（数値の安全域補正・切り出し領域の計算・表示レイアウト）は `EsUtil.Feature.Loupe.Core` が単一所有し、描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（色・枠線の太さ・表示可否）は UI 非依存の提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance`）が単一所有します。
-本プロジェクトはその計画を `SKCanvas` へ **Skia のキャンバスへ描画させるだけ** の層です。
+本プロジェクトはその計画を `IGraphicsContext` へ **フレームワーク標準の描画で写すだけ** の層です。
 そのため Avalonia 版と**同じ設定・同じ見た目**になり、同じ外観の設定を両 UI で共用できます。 層構成（Core / Presenter / UI）の全体像は [`EsUtil/README.md`](../../EsUtil/README.md) を参照してください。
 
 ## 2. 特徴
 
 | 項目 | 内容 |
 | --- | --- |
-| 基底クラス | `Aprillz.MewUI.Controls.Panel`（子の `SkiaCanvasView` が Skia で直接描画する） |
+| 基底クラス | `Aprillz.MewUI.Controls.Panel`（子の `Control` が `OnRender` で描画する） |
 | 中間バッファ | **生成しない**。 画面のキャンバスへ直接描画する（Avalonia 版は `RenderTargetBitmap` を経由する） |
 | 描画サイズ | `Options.RequestedSize` × `ClientToPixelScaling`（物理ピクセル）。 表示サイズはキャンバスの大きさから導くため常に一致する（領域に合わせた縮小はしない） |
 | 拡大方式 | 最近傍（画素をそのまま拡大表示する） |
@@ -27,7 +27,7 @@
 <ProjectReference Include="..\EsUtil.Ui.MewUI\Loupe\src\EsUtil.Ui.MewUI.Loupe.csproj" />
 ```
 
-パッケージは `Aprillz.MewUI.Skia` を参照します（バージョンは `MewUIVersion` プロパティで 0.21.1 に固定）。
+パッケージは `Aprillz.MewUI.Core` を参照します（バージョンは `MewUIVersion` プロパティで 0.21.1 に固定）。
 
 ## 4. 使い方
 
@@ -82,7 +82,7 @@ if (layout.Position is { } position)
 | `ClientToPixelScaling` | `double` | 1.0 | DIP → 物理ピクセルの係数。 0.1〜8.0 に補正（非有限は既定値）。 **描画のたびに描画面（物理ピクセル）と割り当て領域（DIP）の比へ合わせる**（DPI の変更通知は追加直後のコントロールへ届かないため、保持値だけに頼るとルーペ領域より小さい画像を描く） |
 | `Log` | `ILogger` | `NullLogger` | 設定変更ログと描画例外の出力先（null は `NullLogger`。 Avalonia 版と同一の書式） |
 
-`Source` が受け取る画像型はコアの画像（`EsReadOnlyBitmap`）**だけ**です（Avalonia 版のようなフレームワークのビットマップ型や Skia の `SKBitmap` は受け付けません）。 MewUI は表示用のビットマップ型を持たず、コアの画像のピクセルを Skia 描画面へ直接描くためです（画像の変換は不要）。
+`Source` が受け取る画像型はコアの画像（`EsReadOnlyBitmap`）**だけ**です（Avalonia 版のようなフレームワークのビットマップ型は受け付けません）。 コアの画素（BGRA8888）を `ImageSource.FromBgraPixels` で取り込み、`Source` が変わったときだけ変換します。
 
 `Options`（コアの `LoupeOptions`）の項目:
 
@@ -137,9 +137,9 @@ EsUtil.Ui.MewUI/Loupe/
 ├── sample/                  # 独立サンプルアプリ（sample/README.md 参照）
 ├── src/
 │   ├── EsUtil.Ui.MewUI.Loupe.csproj   # net10.0 / MewUI 0.21.1 固定
-│   ├── LoupeControl.cs             # Panel 派生のコントロール（描画は LoupeSkiaPainter へ委譲する）
+│   ├── LoupeControl.cs             # Panel 派生のコントロール（描画は LoupePainter へ委譲する）
 │   ├── LoupeRenderedEventArgs.cs   # 描画完了の通知（キャンバスと表示情報）
-│   ├── LoupeSkiaPainter.cs         # 描画計画（LoupeDrawPlan）を SKCanvas へ写す描画実装
+│   ├── LoupePainter.cs             # 描画計画（LoupeDrawPlan）を IGraphicsContext へ写す描画実装
 └── tests/
     ├── EsUtil.Ui.MewUI.Loupe.Tests.csproj
     ├── TestHelper.cs                   # テスト共通（描画先・画像生成）

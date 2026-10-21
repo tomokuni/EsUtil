@@ -40,7 +40,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// </remarks>
     private readonly EsBitmapBuffer _buffer;
 
-    /// <summary>画素バッファを受け取る（生成は本クラスの静的メソッドと <see cref="EsBitmap.Load"/> 系が行う）。</summary>
+    /// <summary>画素バッファを受け取る（生成は本クラスの静的メソッドと <see cref="EsBitmap.Load(string)"/> 系が行う）。</summary>
     /// <param name="buffer">画素バッファ。 破棄の責任は本インスタンスが持つ。</param>
     /// <remarks><c>internal</c> にするのは、生成を本アセンブリへ限るためである
     /// （外部が任意のバッファで実体を作れると、画素の整合を保証できない）。</remarks>
@@ -89,13 +89,35 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <remarks>
     /// <b>中間バッファを作らない</b>: デコードは確保した画素領域へ直接書く（中間バッファを挟むと、その確保と
     /// 複製の分だけ余計に要する）。 0 埋めも省く（直後に全領域を書くため）。<br/>
-    /// <b>書き換えが要る場合</b>は <see cref="EsBitmap.Load"/> を使う。
+    /// <b>書き換えが要る場合</b>は <see cref="EsBitmap.Load(string)"/> を使う。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、または画像として解釈できない場合。</exception>
     [SupportedOSPlatform("windows")]
     public static EsReadOnlyBitmap Load(string filePath)
         => new(EsBitmapBuffer.LoadFromFile(filePath));
+
+    /// <summary>ファイルを読み込み、長辺が指定サイズを超えない読み取り専用の画像を生成する。</summary>
+    /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。 null 不可。</param>
+    /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法で読み込む。</param>
+    /// <returns>読み込んだ画像。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>デコードしながら縮小する</b>: WIC のスケーラー（<c>IWICBitmapScaler</c>）へ目標の寸法を渡すため、
+    /// <b>原寸のバッファを確保しない</b>（4K の画像を多数並べるときのメモリと時間を抑える）。<br/>
+    /// <b>拡大はしない</b>（元の寸法が上限以下なら元の寸法で返す）。<br/>
+    /// <b>縦横比を保つ</b>（長辺を <paramref name="maxSize"/> へ揃える）。<br/>
+    /// <b><see cref="EsReadOnlyBitmap.Resize"/> との違い</b>: <c>Resize</c> は<b>原寸でデコードしてから</b>縮小するため、
+    /// 原寸のバッファが一時的に必要になる。 サムネイルのように「小さく表示するだけ」の用途は本メソッドを使う。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、または画像として解釈できない場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 未満の場合。</exception>
+    [SupportedOSPlatform("windows")]
+    public static EsReadOnlyBitmap Load(string filePath, int maxSize)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(maxSize);
+        return new(EsBitmapBuffer.LoadFromFile(filePath, maxSize));
+    }
 
     /// <summary>指定サイズの空の画像（BGRA8888・全ピクセル透明）を生成する。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>

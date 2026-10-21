@@ -737,17 +737,31 @@ internal static class WinWicImageCodec
     /// <returns>生成された画像。 所有権は呼び出し側へ移る。</returns>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
     /// または画像として解釈できない場合（WIC はどちらも同じ状態値を返すため区別しない）。</exception>
+    /// <remarks>元の寸法でデコードする（縮小読み込みは <see cref="DecodeFromFile{T}(string, int, Func{int, int, Action{Span{byte}}, T})"/> を使う）。</remarks>
+    internal static T DecodeFromFile<T>(string filePath, Func<int, int, Action<Span<byte>>, T> create)
+        => DecodeFromFile(filePath, 0, create);
+
+    /// <summary>ファイルをデコードし、長辺が指定サイズを超えない画像として返す（形式は内容から判別される）。</summary>
+    /// <typeparam name="T">生成する画像の型（<see cref="EsReadOnlyBitmap"/> または <see cref="EsBitmap"/>）。</typeparam>
+    /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。</param>
+    /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法でデコードする（拡大はしない）。</param>
+    /// <param name="create">寸法と充填処理を受け取って画像を生成する処理（デコード結果をこの充填処理で
+    /// 受け取った領域へ直接書くため、中間バッファも追加のコピーも要らない）。</param>
+    /// <returns>生成された画像。 所有権は呼び出し側へ移る。</returns>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
+    /// または画像として解釈できない場合（WIC はどちらも同じ状態値を返すため区別しない）。</exception>
     /// <remarks>
     /// <b>画像型を知らない</b>: 本メソッドは生成処理を受け取るだけで、画像型（<c>EsReadOnlyBitmap</c> 等）を名指ししない。<br/>
     /// <b><paramref name="create"/> は充填処理を 1 回だけ呼ぶ責任を持つ</b>。<br/>
     /// <b>ピクセルは 1 回だけ書かれる</b>: 中間バッファを作らず、WIC の変換結果を画像のバッファへ直接コピーする。<br/>
-    /// <b>縮小読み込みはしない</b>（元の寸法でデコードする。 大きな画像を小さく使う場合は
-    /// <c>Resize</c> で縮小すること。 サムネイルのようにデコード自体を小さくしたい場合は、各 UI の
-    /// コーデック（縮小デコード対応）を使う方が速い）。<br/>
+    /// <b>縮小は WIC のスケーラー（<c>IWICBitmapScaler</c>）で行う</b>: 原寸のバッファを確保せず、
+    /// デコードしながら目標の寸法へ縮小する（4K の画像を多数並べるときのメモリと時間を抑える）。
+    /// 補間は <c>Fant</c>（画素の面積平均に近い）であり、WinUI 3 版と同じ画質になる。<br/>
+    /// <b>拡大はしない</b>（元の寸法が上限以下なら元の寸法で返す）。<br/>
     /// <b>形式は内容から判別する</b>（拡張子と内容が一致しない場合は内容に従う）。<br/>
     /// <b>ピクセルはアルファ乗算済みの BGRA8888 へ変換して取り込む</b>（元の形式が異なっても WIC が変換する）。
     /// </remarks>
-    internal static T DecodeFromFile<T>(string filePath, Func<int, int, Action<Span<byte>>, T> create)
+    internal static T DecodeFromFile<T>(string filePath, int maxSize, Func<int, int, Action<Span<byte>>, T> create)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
@@ -765,22 +779,33 @@ internal static class WinWicImageCodec
                 WinWicCom.ThrowIfFailed(WinWicCom.GetFrame(decoder, 0, out var frame), $"'{filePath}' の画像を取得できませんでした。");
                 try
                 {
-                    WinWicCom.ThrowIfFailed(
-                        WinWicCom.CreateFormatConverter(factory, out var converter),
-                        $"'{filePath}' の画素を変換する準備ができませんでした。");
-
+                    // 縮小する場合だけスケーラーを挟む（元の寸法が上限以下なら原寸でデコードする）
+                    var scaler = CreateScaler(factory, frame, maxSize);
                     try
                     {
-                        WinWicCom.ThrowIfFailed(
-                            WinWicCom.InitializeConverter(converter, frame, WinNative.WicPixelFormat32bppPBgra),
-                            $"'{filePath}' の画素を変換できませんでした。");
+                        var source = scaler != IntPtr.Zero ? scaler : frame;
 
-                        var (width, height) = ReadSize(converter);
-                        return create(width, height, destination => CopyPixelsFrom(converter, width, height, destination));
+                        WinWicCom.ThrowIfFailed(
+                            WinWicCom.CreateFormatConverter(factory, out var converter),
+                            $"'{filePath}' の画素を変換する準備ができませんでした。");
+
+                        try
+                        {
+                            WinWicCom.ThrowIfFailed(
+                                WinWicCom.InitializeConverter(converter, source, WinNative.WicPixelFormat32bppPBgra),
+                                $"'{filePath}' の画素を変換できませんでした。");
+
+                            var (width, height) = ReadSize(converter);
+                            return create(width, height, destination => CopyPixelsFrom(converter, width, height, destination));
+                        }
+                        finally
+                        {
+                            WinWicCom.Release(converter);
+                        }
                     }
                     finally
                     {
-                        WinWicCom.Release(converter);
+                        WinWicCom.Release(scaler);
                     }
                 }
                 finally
@@ -796,6 +821,48 @@ internal static class WinWicImageCodec
         finally
         {
             WinWicCom.Release(factory);
+        }
+    }
+
+    /// <summary>元の寸法が上限を超える場合だけ、縮小用のスケーラーを作る。</summary>
+    /// <param name="factory">イメージング ファクトリ。</param>
+    /// <param name="frame">デコードしたフレーム（画素源）。</param>
+    /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は縮小しない。</param>
+    /// <returns>生成したスケーラー。 縮小しない場合は <see cref="IntPtr.Zero"/>。</returns>
+    /// <remarks>
+    /// <b>目標の寸法は長辺を上限へ揃えて求める</b>（縦横比を保つ。 各辺は 1 以上）。
+    /// 上限以下なら作らない（拡大はしない）。
+    /// </remarks>
+    private static IntPtr CreateScaler(IntPtr factory, IntPtr frame, int maxSize)
+    {
+        if (maxSize <= 0)
+        {
+            return IntPtr.Zero;
+        }
+
+        var (width, height) = ReadSize(frame);
+        if (width <= maxSize && height <= maxSize)
+        {
+            return IntPtr.Zero;
+        }
+
+        var scale = Math.Min((double)maxSize / width, (double)maxSize / height);
+        var targetWidth = (uint)Math.Max(1, Math.Round(width * scale));
+        var targetHeight = (uint)Math.Max(1, Math.Round(height * scale));
+
+        WinWicCom.ThrowIfFailed(WinWicCom.CreateBitmapScaler(factory, out var scaler), "縮小用のスケーラーを作成できませんでした。");
+        try
+        {
+            WinWicCom.ThrowIfFailed(
+                WinWicCom.InitializeScaler(scaler, frame, targetWidth, targetHeight),
+                "画像を縮小できませんでした。");
+            return scaler;
+        }
+        catch
+        {
+            // 失敗したスケーラーを解放してから呼び出し側へ伝える（解放しないと COM の参照が残る）
+            WinWicCom.Release(scaler);
+            throw;
         }
     }
 

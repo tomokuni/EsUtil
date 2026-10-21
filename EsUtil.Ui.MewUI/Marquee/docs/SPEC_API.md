@@ -32,10 +32,10 @@ Avalonia 版と同一の挙動になります。
 | 参照 | 用途 |
 | --- | --- |
 | `EsUtil.Feature.Marquee.Core` | **公開ファサード（`MarqueeCore`）/ 効果の適用先（`IMarqueeEffects`）**・公開型（`MarqueeHitTarget` / `MarqueeInteractionState` / `MarqueeSnapshot` / `MarqueeRenderRequest`）。 状態管理クラス（`MarqueeSession`）・状態機械（`MarqueeState`）・選択幾何（`MarqueeSelection`）は internal（ファサードの内部実装） |
-| `EsUtil.Feature.Marquee.Presenter` | 提示層（描画計画の解決・外観・ラベル計画・組み込み規則）: `MarqueePresenter`（描画計画の解決） / `MarqueeAppearance`（色・体裁・枠線の太さ・表示可否） / `MarqueeDrawPlan`（UI が見る唯一の描画値） / `MarqueePresenter`（`LabelPlan` partial）（実寸 → 配置指示）。 **描画は本 UI が自 UI の描画 API（Skia）で行う**（`MarqueeSkiaPainter`） |
+| `EsUtil.Feature.Marquee.Presenter` | 提示層（描画計画の解決・外観・ラベル計画・組み込み規則）: `MarqueePresenter`（描画計画の解決） / `MarqueeAppearance`（色・体裁・枠線の太さ・表示可否） / `MarqueeDrawPlan`（UI が見る唯一の描画値） / `MarqueePresenter`（`LabelPlan` partial）（実寸 → 配置指示）。 **描画は本 UI がフレームワーク標準の描画 API で行う**（`MarqueePainter`） |
 | `EsUtil.Platform.Core` | コア幾何型（`EsPoint` / `EsRect` / `EsSize`）、`ICoordTransform` / `CoordTransform`、`ICursorService` |
 | `EsUtil.Platform.Core`（`Native.Win`） | カーソルサービスの既定実装（Win32） |
-| `Aprillz.MewUI.Skia`（0.21.1 固定） | `SkiaCanvasView`・`MewProperty`・SkiaSharp 描画 |
+| `Aprillz.MewUI.Core`（0.21.1 固定） | `描画の層`・`MewProperty`・MewUI の標準描画 描画 |
 
 ## 3. 座標系
 
@@ -56,7 +56,7 @@ Avalonia 版と同一の挙動になります。
 | `SizeLabelOverrideProvider` | `Func<string?>?` | `null` | サイズラベル（1 行目）の文言を描画時に評価するプロバイダ。 **文言はホストが与える**（コアは特定の文言を持たない。 文言の生成は上位のアプリが担う）。 操作・情報ラベルの文言も同様にホストが与える。 設定すると保持している描画内容を破棄して再描画を要求する |
 | `ClientToPixelScaling` | `double` | `1.0` | DIP → 物理ピクセルのスケーリング係数（DPI 変更時に自動更新）。 **描画では描画面と表示領域の比（`ClientPixelScale`）を使う**ため、追加直後でこの値が未更新でも図形は画像と同じ倍率で描かれる |
 
-**見た目のカスタマイズ**: 色・枠線の太さ・表示可否は外観（`Appearance`。 `MarqueeAppearance`）で指定します（**表示可否が描画の停止の唯一の入口**です。 表示を止めても計画は矩形と層を保ち、描画側（コントロールの描画実装）がフラグを見て描かないため、ホストは止めた項目も計算値を使って自前で描けます）。 矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で描画計画（`MarqueeDrawPlan`）を差し替えられます（差し替えは値の置き換えだけで完結し、描画実装（本 UI の `MarqueeSkiaPainter`）は変更不要です。 例は Avalonia 版サンプルの `sample/Presentation/GuideMarqueePlan`）。 矩形で表せない描画（円・斜線等）は `Rendered` のキャンバスへ自前で描き、必要なら `DrawPlan` で既定の描画を行います。
+**見た目のカスタマイズ**: 色・枠線の太さ・表示可否は外観（`Appearance`。 `MarqueeAppearance`）で指定します（**表示可否が描画の停止の唯一の入口**です。 表示を止めても計画は矩形と層を保ち、描画側（コントロールの描画実装）がフラグを見て描かないため、ホストは止めた項目も計算値を使って自前で描けます）。 矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で描画計画（`MarqueeDrawPlan`）を差し替えられます（差し替えは値の置き換えだけで完結し、描画実装（本 UI の `MarqueePainter`）は変更不要です。 例は Avalonia 版サンプルの `sample/Presentation/GuideMarqueePlan`）。 矩形で表せない描画（円・斜線等）は `Rendered` のキャンバスへ自前で描き、必要なら `DrawPlan` で既定の描画を行います。
 
 `MarqueeOptions` の項目（既定値はコアが単一所有。 Avalonia 版と一致）:
 
@@ -99,9 +99,9 @@ Avalonia 版と同一の挙動になります。
 | `RequestCancel()` | - | キャンセル要求を処理する（Escape と同じ条件）。 選択を破棄した後にイベントを発火する |
 | `InvalidateRender()` | - | 表示（パン・ズーム・表示サイズ）の変化へ追従する（再描画と配置の再評価。 選択の状態は変更しない） |
 | `TryGetCurrentLoupePosition(out EsPoint)` | `bool` | 追従位置（ルーペ中心。 対象座標）を**実カーソルから取り直す**。 取り直した場合は `true` と位置を返す。 追従していない場合（ドラッグ中・nudge 中。 判断はコアの `MarqueeSnapshot.IsMarkerFollowingPointer`）とポインターがコントロールの外にある場合（`UIElement.IsMouseOver`）とカーソル位置を取得できない場合は `false`（状態は変えない。 採用は呼び出し側が決める。 **ポインター移動イベントの座標は入力へ積まれた分だけ古い**ため、イベント処理の直後に取り直すとルーペ中心がカーソルへ一致する） |
-| `InvalidateRender()` | - | 描画内容の再解決と、図形・ラベルの再描画を要求する（**描画に関わる変更の唯一の入口**。 図形は子の Skia キャンバスが描くため、親の無効化だけでは更新されない） |
+| `InvalidateRender()` | - | 描画内容の再解決と、図形・ラベルの再描画を要求する（**描画に関わる変更の唯一の入口**。 図形は子の層が描くため、親の無効化だけでは更新されない） |
 | `DrawPlanResolver` | `Func<MarqueeDrawPlan, MarqueeDrawPlan>?` | **描画計画の差し替え点**（矩形の並び・文言・位置）。 設定すると再描画を要求する（同じ入力では 1 フレーム 1 回だけ解決されるため、呼び出しの時点に依存しない純粋関数にすること） |
-| `DrawPlan(SKCanvas, in MarqueeDrawPlan)` | `static` | 描画計画を描画面へ描く（計画どおりに描く。 表示を止めた項目はフラグを見て描かないため描かれない） |
+| `DrawPlan(IGraphicsContext, in MarqueeDrawPlan)` | `static` | 描画計画を描画面へ描く（計画どおりに描く。 表示を止めた項目はフラグを見て描かないため描かれない） |
 
 ## 6. プロパティ（取得のみ）
 
@@ -127,7 +127,7 @@ Avalonia 版と同一の挙動になります。
 
 ### 7.1 ラベル（文字）の表示
 
-サイズラベルとカーソル座標ラベルの**文言と基準点は提示層の `MarqueePresenter`（`LabelTexts` partial） が、色とフォントサイズは外観（`MarqueeAppearance`）が、実寸から配置矩形を求める写像は提示層の `MarqueePresenter`（`LabelPlan` partial） が単一所有**します。 コントロールは `Border` + `TextBlock` を子要素として置き（`SkiaText.Measure` で実寸を測って渡す）、**ラベルは常に最上位**に表示されます。 操作・情報ラベルはアプリ固有の付加情報のため、ホストが `Rendered` のハンドラで `Options.Labels` の外観に従って描きます（配置指示は組み込み先の共有層が単一所有する）。
+サイズラベルとカーソル座標ラベルの**文言と基準点は提示層の `MarqueePresenter`（`LabelTexts` partial） が、色とフォントサイズは外観（`MarqueeAppearance`）が、実寸から配置矩形を求める写像は提示層の `MarqueePresenter`（`LabelPlan` partial） が単一所有**します。 コントロールは `Border` + `TextBlock` を子要素として置き（`MewUITextMeasure.Measure` で実寸を測って渡す）、**ラベルは常に最上位**に表示されます。 操作・情報ラベルはアプリ固有の付加情報のため、ホストが `Rendered` のハンドラで `Options.Labels` の外観に従って描きます（配置指示は組み込み先の共有層が単一所有する）。
 描画のたびに `Rendered` が発火するため、ホストはそのハンドラで追加描画できます。
 
 ```csharp

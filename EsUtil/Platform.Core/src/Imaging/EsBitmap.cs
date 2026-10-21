@@ -93,14 +93,33 @@ public sealed class EsBitmap : IDisposable
     /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。 null 不可。</param>
     /// <returns>読み込んだ画像。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// 中間バッファを作らず、0 埋めも省く（<see cref="EsReadOnlyBitmap.Load"/> と同じ手順）。
-    /// <b>書き換えが要らない場合</b>は <see cref="EsReadOnlyBitmap.Load"/> を使う。
+    /// 中間バッファを作らず、0 埋めも省く（<see cref="EsReadOnlyBitmap.Load(string)"/> と同じ手順）。
+    /// <b>書き換えが要らない場合</b>は <see cref="EsReadOnlyBitmap.Load(string)"/> を使う。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、または画像として解釈できない場合。</exception>
     [SupportedOSPlatform("windows")]
     public static EsBitmap Load(string filePath)
         => new(EsBitmapBuffer.LoadFromFile(filePath));
+
+    /// <summary>ファイルを読み込み、長辺が指定サイズを超えない書き換え可能な画像を生成する。</summary>
+    /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。 null 不可。</param>
+    /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法で読み込む。</param>
+    /// <returns>読み込んだ画像。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>デコードしながら縮小する</b>（WIC のスケーラーへ目標の寸法を渡すため、原寸のバッファを確保しない）。<br/>
+    /// <b>拡大はしない</b>（元の寸法が上限以下なら元の寸法で返す）。 詳細は
+    /// <see cref="EsReadOnlyBitmap.Load(string, int)"/> を参照。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、または画像として解釈できない場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 未満の場合。</exception>
+    [SupportedOSPlatform("windows")]
+    public static EsBitmap Load(string filePath, int maxSize)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(maxSize);
+        return new(EsBitmapBuffer.LoadFromFile(filePath, maxSize));
+    }
 
     /// <summary>指定サイズの空の画像（BGRA8888・全ピクセル透明）を生成する。</summary>
     /// <param name="width">幅（ピクセル）。 0 以上。</param>

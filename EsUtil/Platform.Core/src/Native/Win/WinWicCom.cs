@@ -30,6 +30,9 @@ internal static unsafe class WinWicCom
     /// <summary><c>IWICImagingFactory::CreateFormatConverter</c> の vtable 位置。</summary>
     private const int FactoryCreateFormatConverter = 10;
 
+    /// <summary><c>IWICImagingFactory::CreateBitmapScaler</c> の vtable 位置。</summary>
+    private const int FactoryCreateBitmapScaler = 11;
+
     /// <summary><c>IWICImagingFactory::CreateStream</c> の vtable 位置。</summary>
     private const int FactoryCreateStream = 14;
 
@@ -46,6 +49,9 @@ internal static unsafe class WinWicCom
 
     /// <summary><c>IWICFormatConverter::Initialize</c> の vtable 位置。</summary>
     private const int ConverterInitialize = 8;
+
+    /// <summary><c>IWICBitmapScaler::Initialize</c> の vtable 位置（<c>IWICBitmapSource</c> の 5 件の後）。</summary>
+    private const int ScalerInitialize = 8;
 
     /// <summary><c>IWICPalette::InitializeCustom</c> の vtable 位置。</summary>
     private const int PaletteInitializeCustom = 4;
@@ -97,6 +103,12 @@ internal static unsafe class WinWicCom
     /// <summary>書き込み用にファイルを開くアクセス権（<c>GENERIC_WRITE</c>）。</summary>
     private const uint GenericWrite = 0x40000000;
 
+    /// <summary>スケーラーの補間方法（<c>WICBitmapInterpolationModeFant</c>）。</summary>
+    /// <remarks>
+    /// <c>Fant</c> は画素の面積平均に近い補間であり、縮小で細線が消えたり濃くなったりしにくい。<br/>
+    /// 他の UI 版（WinUI 3 の <c>BitmapInterpolationMode.Fant</c>）と同じ補間である。
+    /// </remarks>
+    private const int InterpolationFant = 3;
     /// <summary>読み込み用にファイルを開くアクセス権（<c>GENERIC_READ</c>）。</summary>
     private const uint GenericRead = 0x80000000;
 
@@ -184,6 +196,36 @@ internal static unsafe class WinWicCom
         var hr = create(factory, &instance);
         converter = WinNative.Succeeded(hr) ? instance : IntPtr.Zero;
         return hr;
+    }
+
+    /// <summary>縮小（拡大）用のスケーラーを作る。</summary>
+    /// <param name="factory">イメージング ファクトリ。</param>
+    /// <param name="scaler">生成したスケーラー（失敗した場合は 0）。</param>
+    /// <returns>HRESULT。</returns>
+    internal static int CreateBitmapScaler(IntPtr factory, out IntPtr scaler)
+    {
+        var create = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr*, int>)(*(IntPtr**)factory.ToPointer())[FactoryCreateBitmapScaler];
+        IntPtr instance;
+        var hr = create(factory, &instance);
+        scaler = WinNative.Succeeded(hr) ? instance : IntPtr.Zero;
+        return hr;
+    }
+
+    /// <summary>スケーラーへ変換元と目標の寸法を設定する。</summary>
+    /// <param name="scaler">対象のスケーラー。</param>
+    /// <param name="source">変換元の画素源（デコーダーのフレーム）。</param>
+    /// <param name="width">目標の幅。</param>
+    /// <param name="height">目標の高さ。</param>
+    /// <returns>HRESULT。</returns>
+    /// <remarks>
+    /// <b>補間は Fant を指定する</b>（画素の面積平均に近く、縮小で細線が消えたり濃くなったりしにくい）。
+    /// 他の UI 版（WinUI 3 の <c>BitmapInterpolationMode.Fant</c>）と同じ補間であり、同じ画質になる。
+    /// </remarks>
+    internal static int InitializeScaler(IntPtr scaler, IntPtr source, uint width, uint height)
+    {
+        var initialize = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, uint, uint, int, int>)
+            (*(IntPtr**)scaler.ToPointer())[ScalerInitialize];
+        return initialize(scaler, source, width, height, InterpolationFant);
     }
 
     /// <summary>書き込み用のストリームを作る。</summary>

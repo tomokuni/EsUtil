@@ -21,7 +21,7 @@
 ## 1. システム概要
 
 `EsUtil.Ui.MewUI.Loupe` は、Avalonia 版 `LoupeControl` と**同一の UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と描画層（`EsUtil.Feature.Loupe.Presenter`）** を使い、
-描画（`SKCanvas`）と入力の受付のみを MewUI（SkiaSharp）で実装したルーペコントロールです。
+描画（`IGraphicsContext`）と入力の受付のみを MewUI（MewUI の標準描画）で実装したルーペコントロールです。
 
 コアが担う範囲（数値の安全域補正・切り出し領域の計算・装飾矩形の計算）は両 UI で完全に共通であり、
 本プロジェクトはその計算結果をキャンバスへ描画するだけです。
@@ -33,9 +33,9 @@
 | --- | --- |
 | 対象フレームワーク | .NET 10（`net10.0`） |
 | 言語 | C# 14 |
-| UI フレームワーク | MewUI（`Aprillz.MewUI.Skia` **0.21.1 固定**） |
-| 描画 | SkiaSharp（描画実装 `LoupeSkiaPainter` が `SKCanvas` へ描く） |
-| 基底コントロール | `Aprillz.MewUI.Controls.Panel`（図形は子の `SkiaCanvasView` が描画する） |
+| UI フレームワーク | MewUI（`Aprillz.MewUI.Core` **0.21.1 固定**） |
+| 描画 | MewUI の標準描画（描画実装 `LoupePainter` が `IGraphicsContext` へ描く） |
+| 基底コントロール | `Aprillz.MewUI.Controls.Panel`（図形は子の `描画の層` が描画する） |
 | プロパティシステム | `MewProperty<T>`（`MewPropertyOptions.AffectsRender` / `AffectsLayout`） |
 
 ## 3. アーキテクチャ
@@ -62,14 +62,14 @@ Avalonia 版と MewUI 版の間に依存はありません（互いを参照し�
 | --- | --- |
 | `EsUtil.Feature.Loupe.Core` | 数値の安全域補正、表示レイアウト、切り出し領域の幾何（`LoupeGeometry`）。 設定（`LoupeOptions`）の単一所有 |
 | `EsUtil.Feature.Loupe.Presenter` | 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（`LoupeAppearance`）の単一所有。 UI 非依存であり、UI フレームワークを参照しない |
-| `EsUtil.Ui.MewUI.Loupe` | 提示層が解決した描画計画を `LoupeSkiaPainter` で `SKCanvas` へ写す。 `MewProperty` による入力の受付。 DPI の自動追従 |
+| `EsUtil.Ui.MewUI.Loupe` | 提示層が解決した描画計画を `LoupePainter` で `IGraphicsContext` へ写す。 `MewProperty` による入力の受付。 DPI の自動追従 |
 | ホスト（上位のアプリ） | `Source` / `CenterPoint` の設定、表示位置の決定（コアのファサード `ResolveLayout` を利用） |
 
 ## 4. 例外処理ポリシー
 
 | 状況 | 挙動 |
 | --- | --- |
-| 描画中に拡大元が破棄された（`ObjectDisposedException`） | 何も描かずに戻る（描画実装 `LoupeSkiaPainter` が吸収する。 [例外処理規約.md](../../../.github/例外処理規約.md) §4「破棄済みソースの吸収は描画実装の責務」） |
+| 描画中に拡大元が破棄された（`ObjectDisposedException`） | 何も描かずに戻る（描画実装 `LoupePainter` が吸収する。 [例外処理規約.md](../../../.github/例外処理規約.md) §4「破棄済みソースの吸収は描画実装の責務」） |
 
 共通方針（送出・捕捉・翻訳）は [例外処理規約.md](../../../.github/例外処理規約.md) §2・§3 に従います。
 
@@ -79,10 +79,10 @@ Avalonia 版と MewUI 版の間に依存はありません（互いを参照し�
 EsUtil.Ui.MewUI/Loupe/
 ├── src/
 │   ├── LoupeControl.cs         MewProperty の定義・DPI 追従・描画の起動（描画計画の解決）
-│   ├── LoupeSkiaPainter.cs     描画計画（LoupeDrawPlan）を SKCanvas へ写す描画実装
+│   ├── LoupePainter.cs     描画計画（LoupeDrawPlan）を IGraphicsContext へ写す描画実装
 │   └── LoupeRenderedEventArgs.cs  描画完了の通知引数（中心座標ラベルはコントロールが表示する）
 └── tests/
-    ├── TestHelper.cs                テスト用の描画先（SKBitmap + SKCanvas）・画像生成・setter を経由しない設定
+    ├── TestHelper.cs                テスト用の描画先（画像の画素 + IGraphicsContext）・画像生成・setter を経由しない設定
     ├── RecordingLogger.cs           ログ収集
     ├── LoupeRenderedEventArgs.Tests.cs      イベント引数の保持
     └── LoupeControl.Tests.cs        プロパティ補正・レイアウト・全設定経路の補正・ログ・要求サイズ
@@ -90,16 +90,16 @@ EsUtil.Ui.MewUI/Loupe/
 
 | コンポーネント | 責務 |
 | --- | --- |
-| `LoupeControl` | 入力プロパティ（`MewProperty`）の定義（補正と変更ログもここへ登録する）、DPI 変更の追従、子（図形キャンバス・ラベル要素）の計測と配置、ラベル要素（`Border` + `TextBlock`）の追加・更新。 描画は提示層（`LoupePresenter.ResolveDrawPlan`）が解決した計画を `LoupeSkiaPainter` で `SKCanvas` へ写す（層の順序も描く値も計画が単一所有する）。 **描画のたびに描画面（物理ピクセル）と割り当て領域（DIP）の比を実効倍率として `ClientToPixelScaling` へ反映する**（DPI の変更通知は追加直後のコントロールへ届かないため、保持値だけに頼るとルーペ領域より小さい拡大画像を描く） |
-| `LoupeSkiaPainter`（描画実装） | 描画計画（`LoupeDrawPlan`。 層の順序・矩形・拡大画像の切り出しと描画の矩形）を Skia の描画 API へ写す。 **描く層とその順序は計画が単一所有する**（`LoupeDrawLayer` を先頭から処理し、中心座標ラベルは処理しない）。 色は計画の外観（`LoupeAppearance`）を使う。 拡大画像は**画像と交差する部分だけ**を `DrawBitmap(切り出しの非所有ビュー, 描画矩形)` で描き、外側は描かない（ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）。 したがって**毎フレームの切り出しの複製を作らない** |
-| `RenderTarget`（テスト） | ウィンドウ不要の描画先。 `SKBitmap` と `SKCanvas` を保持し、画素を読み取る |
+| `LoupeControl` | 入力プロパティ（`MewProperty`）の定義（補正と変更ログもここへ登録する）、DPI 変更の追従、子（図形キャンバス・ラベル要素）の計測と配置、ラベル要素（`Border` + `TextBlock`）の追加・更新。 描画は提示層（`LoupePresenter.ResolveDrawPlan`）が解決した計画を `LoupePainter` で `IGraphicsContext` へ写す（層の順序も描く値も計画が単一所有する）。 **描画のたびに描画面（物理ピクセル）と割り当て領域（DIP）の比を実効倍率として `ClientToPixelScaling` へ反映する**（DPI の変更通知は追加直後のコントロールへ届かないため、保持値だけに頼るとルーペ領域より小さい拡大画像を描く） |
+| `LoupePainter`（描画実装） | 描画計画（`LoupeDrawPlan`。 層の順序・矩形・拡大画像の切り出しと描画の矩形）をフレームワーク標準の描画 API（`IGraphicsContext`）へ写す。 **描く層とその順序は計画が単一所有する**（`LoupeDrawLayer` を先頭から処理し、中心座標ラベルは処理しない）。 色は計画の外観（`LoupeAppearance`）を使う。 拡大画像は**画像と交差する部分だけ**を `DrawImage(画像, 切り出し矩形, 描画矩形)` で描き、外側は描かない（ペーストボードが出る ＝ 透明で埋めた画像を貼るのと同じ見た目）。 したがって**毎フレームの切り出しの複製を作らない** |
+| `RenderTarget`（テスト） | ウィンドウ不要の描画先。 `画像の画素` と `IGraphicsContext` を保持し、画素を読み取る |
 
 ## 6. クラス図
 
 ```mermaid
 classDiagram
-    class SkiaCanvasView {
-        <<Aprillz.MewUI.Skia>>
+    class 描画の層 {
+        <<Aprillz.MewUI.Core>>
         +PaintSurface
         +ContinuousAnimation
         +MeasureContent(size) Size
@@ -145,7 +145,7 @@ classDiagram
         +LoupeAppearance Appearance
         +ResolveDrawPlan(displaySize, measureText) LoupeDrawPlan
     }
-    class LoupeSkiaPainter {
+    class LoupePainter {
         <<EsUtil.Ui.MewUI.Loupe / internal 描画実装>>
         +Paint(canvas, source, plan) void$
     }
@@ -163,7 +163,7 @@ classDiagram
     }
     class LoupeRenderedEventArgs {
         <<EsUtil.Ui.MewUI.Loupe>>
-        +SKCanvas Canvas
+        +IGraphicsContext Canvas
         +LoupeDrawPlan Content
     }
     class LoupeGeometry {
@@ -197,16 +197,16 @@ classDiagram
         +Format(decimals) string$
     }
 
-    SkiaCanvasView <|-- ShapeCanvas
+    描画の層 <|-- ShapeCanvas
     Panel <|-- LoupeControl
     LoupeControl *-- ShapeCanvas : 子（図形の描画）
     LoupeControl *-- LoupeCore : 操作の唯一の窓口（公開ファサード）
     LoupeControl ..> LoupePresenter : 描画計画の解決を委譲する
     LoupeControl ..> LoupeAppearance : 外観（Appearance プロパティ）
-    LoupeControl ..> LoupeSkiaPainter : 描画の写し（SKCanvas）
+    LoupeControl ..> LoupePainter : 描画の写し（IGraphicsContext）
     LoupePresenter ..> LoupeAppearance : 外観
     LoupePresenter ..> LoupeDrawPlan : 層の順序・矩形・ラベル配置（自ら解決する）
-    LoupeSkiaPainter ..> LoupeDrawPlan : 描く値（計画が解決済み）
+    LoupePainter ..> LoupeDrawPlan : 描く値（計画が解決済み）
     Loupe ..> LoupeOptions : 設定の単一値
     LoupeControl ..> LoupeCore.Limits : 値の補正（プロパティ登録の coerce）
     Loupe ..> LoupeGeometry : 表示レイアウト・描画サイズ・幾何の解決
@@ -219,19 +219,19 @@ classDiagram
 sequenceDiagram
     participant MW as MewUI
     participant LC as LoupeControl
-    participant R as LoupeSkiaPainter（描画実装）
+    participant R as LoupePainter（描画実装）
     participant P as LoupePresenter（提示層）
     participant C as EsUtil.Feature.Loupe.Core
-    participant SK as SkiaSharp
+    participant SK as MewUI の標準描画
 
     MW->>LC: PaintSurface(canvas, info)
     LC->>C: ResolveLayout / ResolveGeometry（表示サイズ・幾何）
-    LC->>P: ResolveDrawPlan(displaySize, SkiaText.Measure)（提示層が幾何・外観・層の順序・ラベル配置を解決する）
-    LC->>R: LoupeSkiaPainter.Paint(SKCanvas, Source, plan)（層の順に写す）
+    LC->>P: ResolveDrawPlan(displaySize, MewUITextMeasure.Measure)（提示層が幾何・外観・層の順序・ラベル配置を解決する）
+    LC->>R: LoupePainter.Paint(IGraphicsContext, Source, plan)（層の順に写す）
     R->>SK: 画像外の色（plan.Appearance.ResolvePasteboardColor()。 非表示時は透明）を表面全体へ塗る
     alt Source と切り出し領域が揃っている
         R->>R: 切り出し矩形を画像の内側へ切り詰め、描画先の部分矩形を求める（交差しなければ描かない）
-        R->>SK: DrawBitmap(source.ToPixmap(crop).ToSKBitmap(), 描画矩形)（切り出しの複製を作らない。 画像の外側は描かない）
+        R->>SK: DrawBitmap(source.ToPixmap(crop).To画像の画素(), 描画矩形)（切り出しの複製を作らない。 画像の外側は描かない）
     else 未設定または破棄済み
         R-->>R: 画像外の色のみを残す
     end
@@ -249,7 +249,7 @@ sequenceDiagram
 ## 8. 設計判断
 
 1. **中間ビットマップを持たない**。 Avalonia 版は `RenderTargetBitmap` に描いて `EsBitmap` へコピーするが、
-   MewUI 版は `SkiaCanvasView` のキャンバスへ直接描画する（コピーとメモリ確保を排除）。
+   MewUI 版は `描画の層` のキャンバスへ直接描画する（コピーとメモリ確保を排除）。
 2. **拡大は最近傍で行う**。 ルーペは画素をそのまま拡大する用途であり、補間すると画素が判別できなくなる。
 3. **装飾矩形の導出は提示層が単一所有する**。 両 UI で同じ見た目を保証するため、
    Avalonia 版と MewUI 版は同じ描画計画を使う（描画実装は計画を写すだけである）。
@@ -265,7 +265,7 @@ sequenceDiagram
    （DIP → 物理ピクセルの換算はコアのファサード（`LoupeCore.ResolveGeometry`）が単一所有する。 本コントロールは表示サイズをキャンバスの大きさから導くため、
    キャンバスと描画サイズは常に一致し、領域に合わせた縮小は行わない）。
 8. **静的画像では連続再描画を無効化する**。 `ContinuousAnimation` を `false` にし、プロパティ変更時のみ再描画する。
-9. **座標ラベルはコントロールがテキスト要素として表示する**（両 UI 共通）。 文言は提示層の `LoupePresenter`（`LabelTexts` partial）、表示可否と体裁（フォントサイズ・色・角丸）は外観（`LoupeAppearance`）、実寸 → 配置の写像は同層の `LoupePresenter`（`LabelPlan` partial） が単一所有し、コントロールは自 UI の実寸（`SkiaText.Measure`）を渡して要素を配置する（ラベル要素は子の末尾に置かれ、子は親より後に描かれるため常に最上位）。 Avalonia 版も同じ契約を使い、測定 API（`FormattedText`）だけが異なる。
+9. **座標ラベルはコントロールがテキスト要素として表示する**（両 UI 共通）。 文言は提示層の `LoupePresenter`（`LabelTexts` partial）、表示可否と体裁（フォントサイズ・色・角丸）は外観（`LoupeAppearance`）、実寸 → 配置の写像は同層の `LoupePresenter`（`LabelPlan` partial） が単一所有し、コントロールは自 UI の実寸（`MewUITextMeasure.Measure`）を渡して要素を配置する（ラベル要素は子の末尾に置かれ、子は親より後に描かれるため常に最上位）。 Avalonia 版も同じ契約を使い、測定 API（`FormattedText`）だけが異なる。
 10. **値の補正と変更ログはプロパティの登録が所有する**。 `MewProperty.Register` の `coerce` / `changed` へ渡すため、
    setter を経由しない設定（バインディング等）でも安全域が保たれ、変更が記録される
    （Avalonia 版の `coerce` コールバック + `Changed` クラスハンドラと同じ契約。 規則と書式はコアが単一所有する）。
@@ -277,7 +277,7 @@ sequenceDiagram
 
 | 対象 | 方針 |
 | --- | --- |
-| `LoupeSkiaPainter`（描画実装） | `SKBitmap` + `SKCanvas`（`TestHelper.LoupeSkiaPainter` 経由）へ実際に描画し、**画素を実測**して検証する（ウィンドウ不要で並行実行できる） |
+| `LoupePainter`（描画実装） | `画像の画素` + `IGraphicsContext`（`TestHelper.LoupePainter` 経由）へ実際に描画し、**画素を実測**して検証する（ウィンドウ不要で並行実行できる） |
 | `LoupeControl` | `MewProperty` の補正・既定値・要求サイズを検証する（MewUI の要素生成はホスト登録を要しない） |
 | コアロジック | `EsUtil.Feature.Loupe.Core.Tests` が担保する（本プロジェクトでは再検証しない） |
 | アプリ組み込み | 上位のアプリの実機検証（撮影した画素の実測）で確認する |

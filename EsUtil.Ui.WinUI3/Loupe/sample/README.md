@@ -97,8 +97,6 @@ EsUtil.Ui.WinUI3/Loupe/sample/
 ├── App.xaml.cs                  # エントリ（メイン ウィンドウの生成）
 ├── Imaging/
 │   └── TestImageFactory.cs      # テスト画像生成（グラデーション＋グリッド＋マーカー）
-├── Internal/
-│   └── EsBitmapSkiaExtensions.cs # コアの画像を Skia で読む（サンプルが使う分だけの複製）
 ├── Logging/
 │   └── InMemoryLogger.cs        # 画面のログ欄へ出力する ILogger
 ├── Presentation/
@@ -144,5 +142,5 @@ Preview.DrawPlanResolver = static plan => GridLoupePlan.Resolve(in plan);
 - **起動方法**: `dotnet run --project EsUtil.Ui.WinUI3/Loupe/sample/EsUtil.Ui.WinUI3.Loupe.Sample.csproj` または `RunSample.bat`（リリース ビルド＆起動）です。
 - **サンプルが確認する項目**: [`3. 操作方法`](#3-操作方法)と[`4. 検証項目（動作確認チェックリスト）`](#4-検証項目動作確認チェックリスト)のとおりです（マウス追従・外観・計画の差し替え・描画完了イベント）。
 - **プロジェクト参照**: サンプルは本体（`EsUtil.Ui.WinUI3/Loupe/src/EsUtil.Ui.WinUI3.Loupe.csproj`）を `ProjectReference` で参照します。 コアと提示層は本体のパッケージ参照を通して解決されます。
-- **公開 API と実装の境界**: サンプルが使う本体の公開 API は `LoupeControl`（`Source` / `CenterPoint` / `Options` / `Appearance` / `ClientToPixelScaling` / `Log` / `LogPrefix` / `DrawPlanResolver` / `Rendered` / `ResolveLayout`）です。 本体の `internal`（描画実装と Internal のヘルパー）は参照できないため、**テスト画像を Skia で描くための変換だけを `sample/Internal/` へ複製**しています（`Rendered` へ渡る矩形の並びは、サンプル自身の `EsUtil.Ui.WinUI3/Loupe/sample/Presentation/GridLoupePlan.cs` が組み立てます）。
+- **公開 API と実装の境界**: サンプルが使う本体の公開 API は `LoupeControl`（`Source` / `CenterPoint` / `Options` / `Appearance` / `ClientToPixelScaling` / `Log` / `LogPrefix` / `DrawPlanResolver` / `Rendered` / `ResolveLayout`）です。 本体の `internal`（描画実装と Internal のヘルパー）は参照できないため、**サンプル固有の装飾だけを `sample/Presentation/` に置いています**（`Rendered` へ渡る矩形の並びは、サンプル自身の `EsUtil.Ui.WinUI3/Loupe/sample/Presentation/GridLoupePlan.cs` が組み立てます）。
 - **コントロール本体の動作（プロパティの補正・変更ログ・DPI 追従）**は、XAML 型がヘッドレス環境で生成できないため自動テストの対象外です（理由は [`../docs/SPEC_System.md`](../docs/SPEC_System.md) のテスト方針を参照）。 本サンプルがその確認の場になります。

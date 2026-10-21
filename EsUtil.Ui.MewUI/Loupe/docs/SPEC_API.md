@@ -28,13 +28,13 @@
 
 ## 2. 公開 API
 
-名前空間 `EsUtil.Ui.MewUI.Loupe` / クラス `LoupeControl`（`public sealed`、`Panel` 派生。 図形は子の `SkiaCanvasView` が描画する）。
+名前空間 `EsUtil.Ui.MewUI.Loupe` / クラス `LoupeControl`（`public sealed`、`Panel` 派生。 図形は子の `描画の層` が描画する）。
 
 ### 2.1 プロパティ
 
 | プロパティ | 型 | 既定値 | 安全域（範囲外は自動補正） | 説明 |
 | --- | --- | --- | --- | --- |
-| `Source` | `EsReadOnlyBitmap?` | `null` | — | 拡大元の 100% 画像（**受け取る型はコアの画像（`EsReadOnlyBitmap`）だけ**。 Avalonia 版のようなフレームワークのビットマップ型や Skia の `SKBitmap` は受け付けない。 借用であり破棄しない）。 null の場合は画像外の色のみ |
+| `Source` | `EsReadOnlyBitmap?` | `null` | — | 拡大元の 100% 画像（**受け取る型はコアの画像（`EsReadOnlyBitmap`）だけ**。 Avalonia 版のようなフレームワークのビットマップ型は受け付けない。 借用であり破棄しない）。 null の場合は画像外の色のみ |
 | `CenterPoint` | `EsPoint?` | `null` | — | 拡大中心（元画像ピクセル座標）。 null の場合は画像外の色のみ |
 | `Options` | `LoupeOptions` | `LoupeOptions.Default` | 下表のとおり | 設定（基本サイズ・拡大率）。 `with` 式で部分変更する |
 | `Appearance` | `LoupeAppearance` | `LoupeAppearance.Default` | 下表のとおり | 外観（枠線の太さ・表示可否）と描画に使う色（ペーストボード（画像外）・枠線・十字線・中心座標ラベルの 6 色）・ラベルの体裁。 `with` 式で部分変更する。 外観はコアの計算に入らない |
@@ -74,13 +74,13 @@
 | --- | --- |
 | `void SetCoordTransform(ICoordTransform? port)` | 論理座標（対象）↔ 親パネル DIP の座標変換ポートを設定する（null は等価変換）。 変換関数は呼び出しのたびに評価される |
 | `LoupeLayout ResolveLayout(EsSize parentSize)` | **どこへ・どの大きさで置くか**を決める（親領域 DIP の世界）。 親領域サイズから表示レイアウト（表示サイズ + 位置）を解決する。 拡大中心未設定時と、親領域に収められない場合は位置が null。 計算はコアのファサード（`LoupeCore.ResolveLayout`）へ委譲する |
-| `static void DrawPlan(SKCanvas canvas, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)` | **既定の描画をホストへ提供する入口**（任意のタイミングと順序で既定の描画を行える）。 拡大元はコアの画像であるため、ホストは元画像の型を判定しなくてよい |
+| `static void DrawPlan(IGraphicsContext canvas, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)` | **既定の描画をホストへ提供する入口**（任意のタイミングと順序で既定の描画を行える）。 拡大元はコアの画像であるため、ホストは元画像の型を判定しなくてよい |
 
 - `DrawPlan` は `Rendered` の `Content`（描画計画）と組み合わせて使います（`Rendered` の `Canvas` へ追加描画する例と同じ経路です）。
 
 ## 3. 描画仕様
 
-**描く層とその順序は提示層が単一所有します**（`LoupeDrawLayer`）。 描画計画（`LoupeDrawPlan`）が層の順序を解決し、描画実装（`LoupeSkiaPainter`）はその順に写すだけです。 層の順序は次のとおりです（後から描いたものが上に重なります）。
+**描く層とその順序は提示層が単一所有します**（`LoupeDrawLayer`）。 描画計画（`LoupeDrawPlan`）が層の順序を解決し、描画実装（`LoupePainter`）はその順に写すだけです。 層の順序は次のとおりです（後から描いたものが上に重なります）。
 
 | 順序 | 要素 | 備考 |
 | --- | --- | --- |
@@ -132,18 +132,18 @@
 
 `Rendered` イベントは、ルーペを描画した直後（同一フレーム内）に引数 `LoupeRenderedEventArgs` で通知します。 ホストはハンドラ内で描画先キャンバスへ追加描画（選択矩形の破線等のオーバーレイ）を行えます。
 
-中心座標ラベルは**コントロールが子要素として表示します**（`Border` + `TextBlock`）。 文言は提示層の `LoupePresenter`（`LabelTexts` partial）、表示可否と体裁は外観（`LoupeAppearance`）、実寸からの配置は同層の `LoupePresenter`（`LabelPlan` partial） が単一所有するため、コントロールは自 UI の API（`SkiaText.Measure`）で測った実寸を渡し、返された配置を要素へ反映するだけです。
+中心座標ラベルは**コントロールが子要素として表示します**（`Border` + `TextBlock`）。 文言は提示層の `LoupePresenter`（`LabelTexts` partial）、表示可否と体裁は外観（`LoupeAppearance`）、実寸からの配置は同層の `LoupePresenter`（`LabelPlan` partial） が単一所有するため、コントロールは自 UI の API（`MewUITextMeasure.Measure`）で測った実寸を渡し、返された配置を要素へ反映するだけです。
 
 | メンバー | 型 | 説明 |
 | --- | --- | --- |
-| `Canvas` | `SKCanvas` | ルーペを描画したキャンバス（座標系はルーペ画像のピクセル） |
+| `Canvas` | `IGraphicsContext` | ルーペを描画したキャンバス（座標系はルーペ画像のピクセル） |
 | `Content` | `LoupeDrawPlan` | 実際に描画した描画計画（可視域の左上 `CaptureTopLeft`（実数を含む実効原点）・拡大率 `ZoomLevel`・描画面のサイズ `ClientPixelSize` を持つ） |
 
 描画入力（`LoupeGeometry`）の組み立てはコアのファサード（`LoupeCore.ResolveGeometry`）が単一所有し、コントロールは現在の状態を渡すだけです。
 
 オーバーレイの描画位置は `e.Content.CaptureTopLeft` と `e.Content.ZoomLevel` から `(対象座標 − CaptureTopLeft) × ZoomLevel` で求めます （`CaptureTopLeft` は**可視域の左上（実効原点。 小数を含む）**であり、切り出し領域と倍率の計算は Avalonia 版と同じコアの計算を共有します）。
 
-外観で装飾を止めている場合でも、`LoupeControl.DrawPlan(SKCanvas, EsReadOnlyBitmap?, in LoupeDrawPlan)`（static）で計画どおりの描画を行えます（描画計画（`e.Content`）をそのまま渡す。 止めた項目はフラグを見て描かないため描かれません。 キャンバスは `Rendered` のハンドラ内でのみ有効です）。
+外観で装飾を止めている場合でも、`LoupeControl.DrawPlan(IGraphicsContext, EsReadOnlyBitmap?, in LoupeDrawPlan)`（static）で計画どおりの描画を行えます（描画計画（`e.Content`）をそのまま渡す。 止めた項目はフラグを見て描かないため描かれません。 キャンバスは `Rendered` のハンドラ内でのみ有効です）。
 
 ## 8. ログ
 

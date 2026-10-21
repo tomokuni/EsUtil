@@ -11,7 +11,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <b>目的</b>: 公開する 2 型（<see cref="EsBitmap"/> / <see cref="EsReadOnlyBitmap"/>）が同じ実装を使うため、
 /// ポインタの扱い・共有・解放・ファイル入出力を本型へ 1 回だけ書く。 公開しないのは、生ポインタと書き込みの入口を
 /// アセンブリの外へ出さないためである（公開面の型に置くと、読み取り専用の型が書き込みの入口を持つ）。<br/>
-/// <b>ファイル入出力</b>: <see cref="LoadFromFile"/> / <see cref="SaveToFile(string)"/> は<b>画素の寿命の両端</b>であり、
+/// <b>ファイル入出力</b>: <see cref="LoadFromFile(string)"/> / <see cref="SaveToFile(string)"/> は<b>画素の寿命の両端</b>であり、
 /// 画素を持つ本型が受ける（公開面の <c>Load</c> / <c>Save</c> は本型へ転送するだけになる）。 実装は
 /// <see cref="WinWicImageCodec"/> が単一所有する（<b>Windows 専用</b>）。<br/>
 /// <b>画素形式</b>: BGRA8888（アルファ乗算済み）。 ストライドは <c>幅 × <see cref="BytesPerPixel"/></c>（行パディングなし）に
@@ -140,7 +140,35 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// または画像として解釈できない場合。</exception>
     [SupportedOSPlatform("windows")]
     internal static EsBitmapBuffer LoadFromFile(string filePath)
-        => WinWicImageCodec.DecodeFromFile(filePath, (width, height, fill) =>
+        => Decode(filePath, 0);
+
+    /// <summary>ファイルを読み込み、長辺が指定サイズを超えない画素バッファを生成する。</summary>
+    /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。 null 不可。</param>
+    /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法で読み込む。</param>
+    /// <returns>読み込んだ画素を持つバッファ。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>デコードしながら縮小する</b>（WIC のスケーラーへ目標の寸法を渡すため、原寸のバッファを確保しない）。<br/>
+    /// <b>Windows 専用</b>（デコードの実装は WIC であり、<see cref="WinWicImageCodec"/> が単一所有する）。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
+    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
+    /// または画像として解釈できない場合。</exception>
+    [SupportedOSPlatform("windows")]
+    internal static EsBitmapBuffer LoadFromFile(string filePath, int maxSize)
+        => Decode(filePath, maxSize);
+
+    /// <summary>ファイルをデコードして画素バッファへ写す。</summary>
+    /// <param name="filePath">読み込むファイルのパス。</param>
+    /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法で読み込む。</param>
+    /// <returns>読み込んだ画素を持つバッファ。 所有権は呼び出し側へ移る。</returns>
+    /// <remarks>
+    /// <b>0 埋めを省く</b>: 生成の直後にデコード結果で全領域を書くため、未初期化で確保する。<br/>
+    /// <b>中間バッファを作らない</b>: デコードは確保した画素領域へ直接書く。<br/>
+    /// <b><paramref name="maxSize"/> が 0 の場合は縮小しない</b>（WIC のスケーラーを作らない）。
+    /// </remarks>
+    [SupportedOSPlatform("windows")]
+    private static EsBitmapBuffer Decode(string filePath, int maxSize)
+        => WinWicImageCodec.DecodeFromFile(filePath, maxSize, (width, height, fill) =>
         {
             var buffer = Allocate(width, height, clear: false);
             try

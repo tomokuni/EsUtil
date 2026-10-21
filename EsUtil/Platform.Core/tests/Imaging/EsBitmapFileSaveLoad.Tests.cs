@@ -619,7 +619,130 @@ public class EsBitmapFileSaveLoadTests
         }
     }
 
-    /// <summary>単色で塗りつぶした読み取り専用の画像を生成する（保存の入力）。</summary>
+    // ====================================================================
+    // 縮小読み込み（WIC のスケーラーでデコードしながら縮小する）
+    // ====================================================================
+
+    /// <summary>長辺が上限を超える画像は、縦横比を保って上限へ縮小されることを検証する。</summary>
+    /// <param name="width">元の幅。</param>
+    /// <param name="height">元の高さ。</param>
+    /// <param name="maxSize">長辺の上限。</param>
+    /// <param name="expectedWidth">期待する幅。</param>
+    /// <param name="expectedHeight">期待する高さ。</param>
+    [Theory]
+    [InlineData(400, 200, 100, 100, 50)]
+    [InlineData(200, 400, 100, 50, 100)]
+    [InlineData(1000, 1000, 320, 320, 320)]
+    internal void Load_長辺が上限を超える画像は縮小して読み込む(
+        int width, int height, int maxSize, int expectedWidth, int expectedHeight)
+    {
+        using var source = CreateReadOnly(width, height, System.Drawing.Color.FromArgb(255, 10, 20, 30));
+        var path = TempPath(".png");
+        try
+        {
+            source.Save(path);
+
+            using var loaded = EsReadOnlyBitmap.Load(path, maxSize);
+
+            Assert.Equal(expectedWidth, loaded.Width);
+            Assert.Equal(expectedHeight, loaded.Height);
+
+            // 縮小しても色は保たれる（単色の画像を縮小しても同じ色）
+            Assert.Equal((byte)10, loaded.GetPixel(expectedWidth / 2, expectedHeight / 2).R);
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    /// <summary>長辺が上限以下の画像は縮小されない（拡大もしない）ことを検証する。</summary>
+    [Fact]
+    internal void Load_上限以下の画像は元の寸法で読み込む()
+    {
+        using var source = CreateReadOnly(40, 20, System.Drawing.Color.FromArgb(255, 10, 20, 30));
+        var path = TempPath(".png");
+        try
+        {
+            source.Save(path);
+
+            using var loaded = EsReadOnlyBitmap.Load(path, 100);
+
+            Assert.Equal(40, loaded.Width);
+            Assert.Equal(20, loaded.Height);
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    /// <summary><c>maxSize</c> に 0 を渡すと元の寸法で読み込むことを検証する（上限なし）。</summary>
+    [Fact]
+    internal void Load_上限に0を渡すと元の寸法で読み込む()
+    {
+        using var source = CreateReadOnly(40, 20, System.Drawing.Color.FromArgb(255, 10, 20, 30));
+        var path = TempPath(".png");
+        try
+        {
+            source.Save(path);
+
+            using var loaded = EsBitmap.Load(path, 0);
+
+            Assert.Equal(40, loaded.Width);
+            Assert.Equal(20, loaded.Height);
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    /// <summary>負の上限は例外になることを検証する（上限なしは 0 で表す）。</summary>
+    [Fact]
+    internal void Load_負の上限は例外()
+    {
+        using var source = CreateReadOnly(4, 4, System.Drawing.Color.Red);
+        var path = TempPath(".png");
+        try
+        {
+            source.Save(path);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => EsReadOnlyBitmap.Load(path, -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => EsBitmap.Load(path, -1));
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    /// <summary>縮小読み込みでも透過が保たれることを検証する（アルファ乗算済みのまま縮小される）。</summary>
+    [Fact]
+    internal void Load_縮小読み込みでも透過が保たれる()
+    {
+        using var source = CreateWithAlpha(48, 8);
+        var path = TempPath(".png");
+        try
+        {
+            source.Save(path);
+
+            using var loaded = EsReadOnlyBitmap.Load(path, 24);
+
+            Assert.Equal(24, loaded.Width);
+            Assert.Equal(4, loaded.Height);
+
+            // 透明の画素は縮小後も透明のまま（右端の 1/3 はアルファ 0）
+            Assert.Equal((byte)0, loaded.GetPixel(loaded.Width - 1, 0).A);
+            // 不透明の画素は縮小後も不透明
+            Assert.Equal((byte)255, loaded.GetPixel(0, 0).A);
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
     /// <param name="width">幅。</param>
     /// <param name="height">高さ。</param>
     /// <param name="color">塗りつぶす色。</param>

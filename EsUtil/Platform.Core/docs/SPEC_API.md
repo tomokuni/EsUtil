@@ -691,7 +691,9 @@ public readonly record struct ElementFinderResults(
 | `EsReadOnlyBitmap` / `EsBitmap` | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`） |
 | `EsReadOnlyBitmap` | `Load` | `static EsReadOnlyBitmap Load(string filePath)` | ファイルから**読み取り専用の**画像を読み込む（形式は内容から判別する。 所有権は呼び出し側へ移る） |
 | `EsBitmap` | `Load` | `static EsBitmap Load(string filePath)` | ファイルから**書き換え可能な**画像として読み込む（所有権は呼び出し側へ移る） |
+| `EsReadOnlyBitmap` | `Load` | `static EsReadOnlyBitmap Load(string filePath, int maxSize)` | ファイルから**読み取り専用の**画像を**長辺が `maxSize` を超えないように縮小して**読み込む（WIC のスケーラーでデコードしながら縮小する。 0 以下は元の寸法。 拡大はしない） |
 | `EsImageFileFormat` | （enum） | `Bmp` / `Png` / `Jpeg` / `Gif` / `Tiff` | 保存する形式（WIC のエンコーダーと 1 対 1。 通常は拡張子で足りるため、拡張子が無い場合と拡張子と違う形式で書きたい場合だけ使う） |
+| `EsBitmap` | `Load` | `static EsBitmap Load(string filePath, int maxSize)` | ファイルから**書き換え可能な**画像として縮小して読み込む（`maxSize` の意味は読み取り専用の版と同じ） |
 | `EsImageSaveOptions` | `Format` | `EsImageFileFormat? Format { get; init; }` | 保存する形式（`null` は拡張子が決める。 指定した場合は**拡張子より優先**し、拡張子が無ければ補完する） |
 | `EsImageSaveOptions` | `IgnoreFormatMismatch` | `bool IgnoreFormatMismatch { get; init; }` | 拡張子と `Format` の食い違いを無視するか（既定 false = 例外）。 不変の `readonly record struct` であり、部分更新は `with` 式で行う |
 | `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG の品質（0〜100。 `null` は指定しない = WIC の既定） |
@@ -797,7 +799,7 @@ public readonly record struct ElementFinderResults(
   - **GIF は 2 値の透過**しか持てません（完全透明は残り、半透明は不透明になります）。 PNG は 8 ビットのアルファを保ちます。
   - 形式ごとの圧縮効率・パレット生成の差は画像の内容と API 側の実装に依存するため、**数値は画像によって変わります**。
 
-- **制限**: JPEG / BMP はアルファ （透明度）を保存できません（形式の仕様。 透過を保つ場合は PNG を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする。 小さく使う場合は `Resize` で縮小する）。
+- **制限**: JPEG / BMP はアルファ （透明度）を保存できません（形式の仕様。 透過を保つ場合は PNG を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする）。 小さく表示するだけの用途は **`Load(string, int)`** を使う（WIC のスケーラーでデコードしながら縮小するため、原寸のバッファを確保しない）。 `Resize` は原寸でデコードしてから縮小するため、原寸のバッファが一時的に必要になる。
 - **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（WIC はどちらも同じ状態値を返すため区別しません）。 エンコード・デコードの失敗は `Win32Exception`（`ExternalException` の派生。 GDI+ の状態値を保持）で通知します。
 
 ### 2.33 画像型の設計上の判断（兄弟と借用を選んだ理由）

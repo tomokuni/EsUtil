@@ -1,22 +1,22 @@
 # EsUtil.Ui.WinUI3.Loupe
 
-対になる他 UI 実装と同じ **UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、描画（`SKCanvas`）のみを **WinUI 3（Windows App SDK）** で実装したルーペ（拡大鏡）コントロールです。
+対になる他 UI 実装と同じ **UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、描画（XAML の要素と Composition）のみを **WinUI 3（Windows App SDK）** で実装したルーペ（拡大鏡）コントロールです。
 
 ## 1. 目的
 
 ルーペのロジック（数値の安全域補正・切り出し領域の計算・表示レイアウト）は `EsUtil.Feature.Loupe.Core` が単一所有し、描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（色・枠線の太さ・表示可否）は UI 非依存の提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance`）が単一所有します。
-本プロジェクトはその計画を **Skia のキャンバスへ描画させるだけ** の層です。
+本プロジェクトはその計画を **XAML の要素（`Rectangle`）と Composition のサーフェスへ写すだけ** の層です。
 そのため他の UI 版と**同じ設定・同じ見た目**になり、同じ外観の設定を複数の UI で共用できます。 層構成（Core / Presenter / UI）の全体像は [`EsUtil/README.md`](../../EsUtil/README.md) を参照してください。
 
 ## 2. 特徴
 
 | 項目 | 内容 |
 | --- | --- |
-| 基底クラス | `SkiaSharp.Views.Windows.SKXamlCanvas`（Skia の描画面を持つ WinUI 3 の要素） |
+| 基底クラス | `Microsoft.UI.Xaml.Controls.Panel`（図形は `Canvas` の子、画像は Composition のサーフェス） |
 | 中間バッファ | **生成しない**。 画面のキャンバスへ直接描画する |
 | 描画サイズ | `Options.RequestedSize` × `ClientToPixelScaling`（物理ピクセル）。 表示サイズは描画面の大きさから導くため常に一致する（領域に合わせた縮小はしない） |
 | 拡大方式 | 最近傍（画素をそのまま拡大表示する） |
-| 中心座標ラベル | **描画面へ描く**（テキスト要素を重ねない）。 実寸の測定と描画に同じ Skia の関数を使うため、背景と文字の大きさが常に一致する |
+| 中心座標ラベル | **要素として重ねる**（`Border` + `TextBlock`）。 実寸の測定と表示に同じ XAML のテキスト機能を使うため、背景と文字の大きさが常に一致する |
 | DPI 追従 | `XamlRoot` の変更通知で表示倍率を取り込み、あわせて**描画のたびに描画面（物理ピクセル）と割り当て領域（DIP）の比へ合わせる**（ホストの設定は不要） |
 | 連続再描画 | **無効**。 プロパティ変更時にのみ再描画する（静止画のため） |
 | 位置決め | **本コントロールは位置を持たない**。 ホストが `ResolveLayout`（コアの計算を委譲した公開メソッド）の結果で配置する |
@@ -30,7 +30,7 @@
 ```
 
 参照する側は **WinUI 3（Windows App SDK）** のプロジェクトにします（対象フレームワークは `net10.0-windows10.0.22621.0`、`UseWinUI` を有効にする）。
-パッケージは `Microsoft.WindowsAppSDK` / `Microsoft.Windows.SDK.BuildTools` / `SkiaSharp.Views.WinUI` を参照します（バージョンの範囲は本体のプロジェクト ファイルが単一所有します）。
+パッケージは `Microsoft.WindowsAppSDK` / `Microsoft.Windows.SDK.BuildTools` を参照します（バージョンの範囲は本体のプロジェクト ファイルが単一所有します）。
 
 ## 4. 使い方
 
@@ -89,7 +89,7 @@ if (layout.Position is { } position)
 | `Log` | `ILogger` | `NullLogger` | 設定変更ログと描画例外の出力先（null は `NullLogger`） |
 | `LogPrefix` | `string?` | `[Loupe]` | ログの接頭辞（提示層・コアへも伝搬する） |
 
-`Source` が受け取る画像型はコアの画像（`EsReadOnlyBitmap`）**だけ**です（フレームワークのビットマップ型や Skia の `SKBitmap` は受け付けません）。 コアの画像のピクセルを Skia の描画面へ直接描くためです（画像の変換は不要）。
+`Source` が受け取る画像型はコアの画像（`EsReadOnlyBitmap`）**だけ**です（フレームワークのビットマップ型は受け付けません）。 コアの画素（BGRA8888）を無圧縮 BMP として組み立て、`LoadedImageSurface` として取り込みます。
 
 `Options`（コアの `LoupeOptions`）の項目:
 
@@ -145,17 +145,16 @@ EsUtil.Ui.WinUI3/Loupe/
 ├── sample/                    # 独立サンプル アプリ（sample/README.md 参照）
 ├── src/
 │   ├── EsUtil.Ui.WinUI3.Loupe.csproj  # net10.0-windows10.0.22621.0 / WinUI 3
-│   ├── LoupeControl.cs             # SKXamlCanvas 派生のコントロール（描画は LoupeSkiaPainter へ委譲する）
-│   ├── LoupeSkiaPainter.cs         # 描画計画（LoupeDrawPlan）を SKCanvas へ写す描画実装
+│   ├── LoupeControl.cs             # Panel 派生のコントロール（計画を要素と Composition へ写す）
 │   ├── LoupeRenderedEventArgs.cs   # 描画完了の通知（キャンバスと描画計画）
 │   ├── LoupeLogMessage.cs          # 画像の差し替え・描画例外のログ定義
-│   └── Internal/                   # Skia の描画プリミティブ（テキスト・塗り・変換・スケーリング）
+│   └── Internal/                   # 描画の補助（スケーリングの解決）
 └── tests/
     ├── EsUtil.Ui.WinUI3.Loupe.Tests.csproj
     ├── TestHelper.cs                   # テスト共通（テスト画像の生成）
     ├── RecordingLogger.cs              # ログ収集（テスト用）
     ├── LogPrefixGroup.cs               # ログの接頭辞を設定するテストの直列化
-    ├── LoupeSkiaPainter.Tests.cs       # 描画（画素の検証。 ラベルを含む）
+    ├── LoupeShapePlan.Tests.cs         # 矩形の並び（形状の計画）の検証
     ├── LoupeLogMessage.Tests.cs        # ログの出力書式
     └── LoupeRenderedEventArgs.Tests.cs # 描画完了通知の引数
 ```

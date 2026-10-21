@@ -23,11 +23,11 @@ MarqueeControl（MewUI 版）のシステム概要・アーキテクチャ・依
 ## 1. システム概要
 
 `EsUtil.Ui.MewUI.Marquee` は、Avalonia 版 `MarqueeControl` と**同一の UI 非依存コア（`EsUtil.Feature.Marquee.Core`）と描画層（`EsUtil.Feature.Marquee.Presenter`）**を使い、
-入力の受付・効果の適用・通知の転送・描画ポートの適合のみを MewUI（SkiaSharp）で実装したドラッグ矩形コントロールです。
+入力の受付・効果の適用・通知の転送・描画ポートの適合のみを MewUI（MewUI の標準描画）で実装したドラッグ矩形コントロールです。
 
 コアが担う範囲（選択矩形の正規化・ハンドル位置・ヒットテスト・ドラッグ変形・nudge・境界クリップ・対話状態の合成に加えて、
 nudge セッション・ダブルクリックの確定/キャンセル・ハンドルのスナップ・クリック検出・最小サイズによるキャンセルの判断）は
-両 UI で完全に共通であり、本プロジェクトは入力をコア（公開ファサード `MarqueeCore`）へ通知し、返された効果を適用し、描画計画（提示層の `MarqueePresenter.ResolveDrawPlan`）を自 UI の描画 API（Skia）で描きます。
+両 UI で完全に共通であり、本プロジェクトは入力をコア（公開ファサード `MarqueeCore`）へ通知し、返された効果を適用し、描画計画（提示層の `MarqueePresenter.ResolveDrawPlan`）をフレームワーク標準の描画 API で描きます。
 
 ## 2. 技術スタック
 
@@ -35,9 +35,9 @@ nudge セッション・ダブルクリックの確定/キャンセル・ハン�
 | --- | --- |
 | 対象フレームワーク | .NET 10（`net10.0`） |
 | 言語 | C# 14 |
-| UI フレームワーク | MewUI（`Aprillz.MewUI.Skia` **0.21.1 固定**） |
-| 描画 | SkiaSharp（本プロジェクトが自 UI の描画 API で描画計画を写す。 描画の部品は `Internal/` の複製） |
-| 基底コントロール | `Aprillz.MewUI.Skia.Controls.SkiaCanvasView` |
+| UI フレームワーク | MewUI（`Aprillz.MewUI.Core` **0.21.1 固定**） |
+| 描画 | MewUI の標準描画（本プロジェクトが自 UI の描画 API で描画計画を写す。 描画の部品は `Internal/` の複製） |
+| 基底コントロール | `Aprillz.MewUI.Core.Controls.描画の層` |
 | プロパティシステム | `MewProperty<T>`（`MewPropertyOptions.AffectsRender`） |
 | カーソル操作 | `ICursorService`（`EsUtil.Platform.Core` の `Native`。 既定実装は `Native.Win`） |
 
@@ -54,7 +54,7 @@ UI 層（Avalonia / MewUI の実装）
     └──> EsUtil.Feature.Marquee.Core   何を計算するか + 判断（状態・値・純粋計算・コア⇔UI の契約）
            └──> EsUtil.Platform.Core（Es* 値型・ICoordTransform・ICursorService）
 ※ Core は提示層を参照しない（提示層がコアの幾何を使う向きだけ）。
-※ 本コントロール（UI 層）は EsUtil.Platform.Core（Win32 実装は `Native.Win`）も参照する。MewUI / Skia の変換ヘルパーは `Internal/` に複製して持つ（`Platform.*` は参照しない）。
+※ 本コントロール（UI 層）は EsUtil.Platform.Core（Win32 実装は `Native.Win`）も参照する。MewUI の変換ヘルパーは `Internal/` に複製して持つ（`Platform.*` は参照しない）。
 ```
 
 ### 3.2 責務の分担
@@ -63,7 +63,7 @@ UI 層（Avalonia / MewUI の実装）
 | --- | --- |
 | `EsUtil.Feature.Marquee.Core` | 選択矩形の幾何計算、ヒットテスト、ドラッグ変形、nudge、境界クリップ、対話状態の合成、スナップショット生成、**入力の解釈（nudge セッション・確定/キャンセル・スナップ・クリック検出・最小サイズ判定）と通知・効果の生成（効果の適用順、ログの保持を含む）**。 公開ファサード `MarqueeCore` を唯一の窓口とし、状態機械と幾何の解決は内部契約（`internal`）とする |
 | `EsUtil.Feature.Marquee.Presenter` | 描画計画（層の順序・装飾矩形・文言・配置）と外観（`MarqueeAppearance`）とラベル計画（実寸 → 配置指示）。 UI 非依存であり、UI フレームワークを参照しない |
-| `EsUtil.Ui.MewUI.Marquee` | 入力（マウス・キー）をコア型へ変換して提示層へ通知する、`IMarqueeEffects` を実装して要求された効果（再描画・フォーカス・マウスキャプチャ・カーソル形状/操作）を適用する、通知を公開イベントへ転送する、**描画計画を自 UI の描画 API（Skia）で描く**、DPI の追従 |
+| `EsUtil.Ui.MewUI.Marquee` | 入力（マウス・キー）をコア型へ変換して提示層へ通知する、`IMarqueeEffects` を実装して要求された効果（再描画・フォーカス・マウスキャプチャ・カーソル形状/操作）を適用する、通知を公開イベントへ転送する、**描画計画をフレームワーク標準の描画 API で描く**、DPI の追従 |
 | ホスト | 座標変換ポートの設定、選択の復元・確定・キャンセル、重ね順の管理、ビューポート変化の通知 |
 
 ### 3.3 設計判断
@@ -74,7 +74,7 @@ UI 層（Avalonia / MewUI の実装）
 | コアの操作を公開ファサード `MarqueeCore` に一本化し、状態機械とフレーム解決を `internal` にする | 操作の入口が 1 つになり、UI 層がコアの内部契約へ踏み込む余地がなくなる（両 UI で同じ窓口を使う） |
 | イベント引数をコア型（`EsPoint` / `EsRect`）で公開する | コアの状態機械と同一の型になり境界変換が不要になる。 MewUI の `Rect` は負のサイズを 0 にクランプするため、`EsRect` のほうが安全 |
 | カーソルサービスの既定実装の解決を UI 層で行う | コアは既定実装（`Native.Win`）を知らず、抽象と `null` のみを扱う（既定実装の選択は組み込み先＝UI 層の責務） |
-| `SkiaCanvasView`（`Control` 系）を基底にする | 画像の上へ重ねるオーバーレイであり、子要素を持たない。 背景を塗らないため下の画像が透ける |
+| `描画の層`（`Control` 系）を基底にする | 画像の上へ重ねるオーバーレイであり、子要素を持たない。 背景を塗らないため下の画像が透ける |
 | `ScrollViewer` を自動購読しない | MewUI の入力はポインター下の要素が受け取るため祖先の `ScrollViewer` を探索しない。 表示の変化はホストが検知して `InvalidateRender()` で再描画を要求する |
 | ホイール操作を扱わない | コントロール化を前提とした処理であり、ホストが `MouseWheel` を購読してビューポートへ転送する（本コントロールは素通しする） |
 | マウスダウン・アップのイベントを公開しない | `UIElement` が同名メンバー（＝同じ情報を提供するイベント）を持つため、本コントロールでは公開しない（重複を避ける） |
@@ -85,8 +85,8 @@ UI 層（Avalonia / MewUI の実装）
 ```text
 EsUtil.Ui.MewUI/Marquee/
 ├── src/
-│   ├── MarqueeControl.cs                 公開 API・入力の受付と効果の適用・カーソル制御・描画（描画計画を Skia で写す。ラベル要素の配置も含む）
-│   ├── MarqueeSkiaPainter.cs             描画計画を Skia のキャンバスへ写す（層の順に描く）
+│   ├── MarqueeControl.cs                 公開 API・入力の受付と効果の適用・カーソル制御・描画（描画計画を `IGraphicsContext` へ写す。ラベル要素の配置も含む）
+│   ├── MarqueePainter.cs             描画計画を `IGraphicsContext` へ写す（層の順に描く）
 │   ├── ラベルの要素配置（ArrangeContent）        内部: ラベル要素（Border + TextBlock）の追加・更新と配置
 │   ├── MarqueeRenderedEventArgs.cs        描画完了通知のイベント引数（サイズ・座標ラベルはコントロールが表示する）
 │   ├── MarqueePointEventArgs.cs          座標通知のイベント引数
@@ -98,10 +98,10 @@ EsUtil.Ui.MewUI/Marquee/
 
 | コンポーネント | 責務 |
 | --- | --- |
-| `MarqueeControl` | `MewProperty` の定義、入力の対象変換と提示層への通知、`IMarqueeEffects` の実装（効果の適用）、マウスキャプチャの取得/解放、DPI 変更の追従、描画計画の自 UI への写し（`MarqueeSkiaPainter`）、子要素（図形キャンバス・ラベル要素）の計測と配置、付加情報の描画機会の通知（`Rendered`） |
+| `MarqueeControl` | `MewProperty` の定義、入力の対象変換と提示層への通知、`IMarqueeEffects` の実装（効果の適用）、マウスキャプチャの取得/解放、DPI 変更の追従、描画計画の自 UI への写し（`MarqueePainter`）、子要素（図形キャンバス・ラベル要素）の計測と配置、付加情報の描画機会の通知（`Rendered`） |
 | `MarqueePresenter`（提示層） | 幾何（コア）と外観から描画計画（`MarqueeDrawPlan`）を解決する。 継承して `ResolveDrawPlan` を上書きすることで独自の見た目を提供できる |
 | `MarqueeAppearance`（提示層） | 色・ラベルの体裁・枠線の太さ・表示可否の単一所有者 |
-| `MarqueeSkiaPainter`（本プロジェクト） | 描画計画を層の順に Skia のキャンバスへ写す。 **選択枠線は描かない**（装飾の外枠が同じ矩形を描くため）。 **サイズ・座標ラベルも描かない**（コントロールがテキスト要素として表示する） |
+| `MarqueePainter`（本プロジェクト） | 描画計画を層の順に `IGraphicsContext` へ写す。 **選択枠線は描かない**（装飾の外枠が同じ矩形を描くため）。 **サイズ・座標ラベルも描かない**（コントロールがテキスト要素として表示する） |
 | UI 層のラベル要素 | 親パネルの子要素（`Border` + `TextBlock`）としてサイズ・座標ラベルを配置する。 文言と基準点は提示層が、色とフォントサイズは `MarqueeAppearance` が単一所有し、実寸から配置矩形を求める写像は `MarqueePresenter`（`LabelPlan` partial）（提示層）が単一所有する |
 | `MarqueePointEventArgs` / `SelectionRectEventArgs` / `MarqueeRenderedEventArgs` | 通知時点の座標（矩形）とスナップショットの組・描画完了（描画先と描画内容の契約） |
 
@@ -109,8 +109,8 @@ EsUtil.Ui.MewUI/Marquee/
 
 ```mermaid
 classDiagram
-    class SkiaCanvasView {
-        <<Aprillz.MewUI.Skia>>
+    class 描画の層 {
+        <<Aprillz.MewUI.Core>>
         +PaintSurface
         +ContinuousAnimation
         +MeasureContent(size) Size
@@ -201,7 +201,7 @@ classDiagram
         +bool ShowOverlay / ShowOuterBorder / ShowFullOverlay
         +bool ShowInnerFill / ShowInnerBorder
     }
-      class MarqueeSkiaPainter {
+      class MarqueePainter {
         <<本プロジェクト（UI 層 / internal）>>
         +Paint(canvas, plan)$ void
       }
@@ -263,14 +263,14 @@ classDiagram
         +ShowCursor(show) void
     }
 
-    SkiaCanvasView <|-- MarqueeControl
+    描画の層 <|-- MarqueeControl
     MarqueeControl *-- MarqueeCore : 操作の唯一の窓口（公開ファサード）
     MarqueeControl *-- ラベル要素の配置 : 子要素として配置（テキスト要素。常に最上位）
     MarqueeControl ..> IMarqueeEffects : 実装（effects の適用先）
     MarqueeCore *-- MarqueeSession : 状態管理（入力の解釈）
     Marquee ..> MarqueeNotice : 通知を UI へ転送（UI は公開イベントへ）
     Marquee ..> MarqueeFeedback : 効果を IMarqueeEffects 経由で適用
-    MarqueeControl ..> MarqueeSkiaPainter : 描画（図形）
+    MarqueeControl ..> MarqueePainter : 描画（図形）
     MarqueeControl ..> MarqueePresenter : 描画計画の解決・外観の設定
     MarqueePresenter ..> MarqueeAppearance : 保持
     MarqueeSession *-- MarqueeState : 状態機械
@@ -382,7 +382,7 @@ OnPaintSurface(canvas, info)
   ├─ 実効倍率の解決（描画面 ÷ 表示領域）             … DPI の適用（境界 1 箇所）
   ├─ canvas.Clear(透明)                              … 前フレームの描画を残さない
   ├─ MarqueePresenter.ResolveDrawPlan(clientSize, MewUITextMeasure.Measure)  … 描画計画 1 値（幾何はコア、外観と層の順序は提示層）
-  └─ MarqueeSkiaPainter.Paint(canvas, plan)          … Layers の順に描く
+  └─ MarqueePainter.Paint(canvas, plan)          … Layers の順に描く
        ├─ 層 Decoration   … 暗転領域・外枠・内側の塗りと内枠（すべて解決済みの矩形）
        ├─ 層 Handles      … 8 方向の矩形（中心はコアが解決済み）
        └─ 層 Marker       … nudge 中の十字マーカー

@@ -16,7 +16,7 @@ MewUI 版のサムネイル一覧コントロールが提供する公開 API の
 
 ## 1. 前提条件
 
-- 対象フレームワークは `net10.0` で、`Aprillz.MewUI.Skia` を参照します（MewUI は API が安定化中（0.x）のため、バージョンは本体のプロジェクト ファイルが固定します）。
+- 対象フレームワークは `net10.0` で、`Aprillz.MewUI.Core` を参照します（MewUI は API が安定化中（0.x）のため、バージョンは本体のプロジェクト ファイルが固定します）。
 - 画像は **`EsReadOnlyBitmap`**（コアの読み取り専用画像型）で受け取ります。 **ピクセルは複製しません**（非所有ビューとして描画します）。
 - 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Presenter` が単一所有します。
 - 単位は **DIP** です。
@@ -62,7 +62,7 @@ MewUI 版のサムネイル一覧コントロールが提供する公開 API の
 | `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 提示層・コアへ伝搬する |
 
 - **`Add` は項目を末尾へ追加します**（画像が null でも項目は作られ、画像の領域だけが空になります）。
-- **影は計画の帯を Skia で塗ります**（`ThumbnailShadowPlan.BuildDeviceBands` の 1 画素の帯。 グラデーション ブラシの端の扱いに依存しません）。
+- **影は計画の帯を単色で塗ります**（`ThumbnailShadowPlan.BuildDeviceBands` の 1 画素の帯。 グラデーション ブラシの端の扱いに依存しません）。
 
 ### 2.3 `ThumbnailActivatedEventArgs`（2 回押しの通知）
 
@@ -108,7 +108,7 @@ var visible = list.VisibleRange;
 
 ## 5. 制限事項
 
-- **画像は `EsReadOnlyBitmap` だけ**です（MewUI の画像型や Skia の `SKBitmap` は受け取りません。 変換はホストが行います）。
+- **画像は `EsReadOnlyBitmap` だけ**です（MewUI の画像型やフレームワークのビットマップ型は受け取りません。 変換はホストが行います）。
 - **画像の所有権はホストに残ります**（コントロールはピクセルを複製せず、非所有ビューとして描画します。 コントロールを破棄しても画像は解放されません）。
 - **自動テストは未整備**です（ビルドの警告 0 と、利用側アプリの配布物の起動で確認しています）。
 - **複数選択は提供しません**（単一選択だけです）。

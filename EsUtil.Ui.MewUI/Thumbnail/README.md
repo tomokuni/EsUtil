@@ -34,16 +34,16 @@ var visible = list.VisibleRange;
 var bounds = list.SlotBounds(index);
 ```
 
-- 影は計画（`ThumbnailShadowPlan.BuildDeviceBands`）の 1 画素の帯を Skia で単色に塗ります。
+- 影は計画（`ThumbnailShadowPlan.BuildDeviceBands`）の 1 画素の帯を単色で塗ります。
 - 画像は `EsReadOnlyBitmap` を非所有ビューで描画します（ピクセルを複製しない）。
 
 ## 3. 含まれるもの
 
-`ThumbnailControl` / `ThumbnailTile` / `ThumbnailActivatedEventArgs` と、Skia 相互変換の内部ヘルパー。
+`ThumbnailControl` / `ThumbnailTile` / `ThumbnailActivatedEventArgs` と、画像の変換の内部ヘルパー。
 
 ## 4. 依存
 
-`EsUtil.Feature.Thumbnail.Core` / `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core` / Aprillz.MewUI.Skia。
+`EsUtil.Feature.Thumbnail.Core` / `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core` / Aprillz.MewUI.Core。
 規則は [`.github/依存関係.md`](../../.github/依存関係.md)。
 
 ## 5. テスト

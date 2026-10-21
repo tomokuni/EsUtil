@@ -23,7 +23,7 @@ MewUI 版のサムネイル一覧コントロールの構造・依存・設計�
 本アセンブリは、サムネイル一覧を MewUI のコントロールとして提供します。
 
 - **配置と見た目は下の層が単一所有します**（`EsUtil.Feature.Thumbnail.Core` が並べ方、`EsUtil.Feature.Thumbnail.Presenter` が描画計画と外観）。
-- **本アセンブリが行うのは 4 つだけ**: 入力の受付、スクロール、計画の適用、Skia による描画。
+- **本アセンブリが行うのは 4 つだけ**: 入力の受付、スクロール、計画の適用、フレームワーク標準の描画。
 - 対象フレームワークは `net10.0` です。
 
 ## 2. 技術スタック
@@ -31,9 +31,9 @@ MewUI 版のサムネイル一覧コントロールの構造・依存・設計�
 | 種別 | 内容 |
 | --- | --- |
 | 言語 / フレームワーク | C# / .NET 10（`net10.0`） |
-| UI フレームワーク | MewUI（`Panel` / `ScrollViewer` / Skia の描画面）。 **バージョンは固定**（API が安定化中（0.x）のため） |
-| 描画 | Skia（`SKCanvas`。 `Aprillz.MewUI.Skia`） |
-| 参照パッケージ | `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core` / `Aprillz.MewUI.Skia` |
+| UI フレームワーク | MewUI（`Panel` / `ScrollViewer` / `Control.OnRender`）。 **バージョンは固定**（API が安定化中（0.x）のため） |
+| 描画 | フレームワーク標準（`IGraphicsContext`。 `Aprillz.MewUI.Core`） |
+| 参照パッケージ | `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core` / `Aprillz.MewUI.Core` |
 | テスト | xUnit v3（`EsUtil.Ui.MewUI.Thumbnail.Tests`。 公開 API とログを検証する） |
 
 ## 3. アーキテクチャ
@@ -67,16 +67,16 @@ flowchart TD
 | 項目の描画（背景・影・画像・名前） | `ThumbnailTile`（内部） |
 | 内容の配置（レイアウトの結果を子へ割り当てる） | `ThumbnailContent`（内部） |
 | DIP → 物理ピクセルの倍率の解決 | `Internal.ClientPixelScale` |
-| コアの画像 ⇔ Skia の画像の変換 | `Internal.EsBitmapSkiaExtensions` |
-| 影の帯の描画 | `Internal.SkiaShadowRenderer` |
+| コアの画像 ⇔ MewUI の画像の変換 | `Internal.MewImageBinding` |
+| 影の帯の描画 | `ThumbnailViewport`（`FillRectangle`） |
 
 ### 3.3 設計判断
 
 - **`ScrollViewer` を継承しない**: MewUI の `ScrollViewer` は sealed です。 一覧は `Panel` を継承し、スクロールと内容を子として持ちます（AvaloniaUI 版と継承関係が異なる理由）。
-- **項目は Skia の描画面で描く**: 背景・影・画像・名前のうち、背景・影・画像は Skia の描画面へ描き、名前は要素として重ねます（テキストの折り返しと省略を要素の機能に任せるため）。
-- **描画面は明示的に再描画を要求する**: Skia の描画面は寸法が変わらなければ再描画されません。 計画・画像を差し替えた時点で `InvalidateVisual()` を呼ばないと、生成したサムネイルが反映されません（実測）。
+- **項目はフレームワーク標準の描画で描く**: 背景・影・画像・名前のうち、背景・影・画像は `OnRender` で描き、名前は要素として重ねます（テキストの折り返しと省略を要素の機能に任せるため）。
+- **再描画は明示的に要求する**: 要素は寸法が変わらなければ再描画されません。 計画・画像を差し替えた時点で `InvalidateVisual()` を呼ばないと、生成したサムネイルが反映されません（実測）。
 - **影は 1 画素の帯を塗る**: グラデーション ブラシの端の扱いに依存せず、全 UI で同じ結果にするためです。
-- **画像は非所有ビューで描く**: コアの画像（`EsReadOnlyBitmap`）のピクセルを複製せず、Skia の画像として包んで描きます（一覧に数百件を並べても複製でメモリを圧迫しません）。
+- **画像の変換は 1 回だけ**: コアの画像（`EsReadOnlyBitmap`）を `ImageSource.FromBgraPixels` で MewUI の画像へ取り込み、`Source` が変わったときだけ作り直します（一覧に数百件を並べても毎フレームの複製でメモリを圧迫しません）。
 - **倍率は描画面と割り当て領域の比から解決する**: DPI の通知が届かない状況でも、描画面の物理ピクセルと DIP の比から正しい倍率が得られます（`ClientPixelScale`）。
 - **入力は位置から判定する**: 子要素のヒット テストに依存せず、`IndexAt` で添字を求めます。
 
@@ -92,11 +92,11 @@ EsUtil.Ui.MewUI/Thumbnail/
 | コンポーネント | 所在 | 内容 |
 | --- | --- | --- |
 | コントロール | `EsUtil.Ui.MewUI/Thumbnail/src/ThumbnailControl.cs` | 公開面。 入力の受付・選択・スクロール・計画の適用 |
-| 項目の要素 | `EsUtil.Ui.MewUI/Thumbnail/src/ThumbnailTile.cs` | Skia の描画面と名前の要素（内部） |
+| 項目の要素 | `EsUtil.Ui.MewUI/Thumbnail/src/ThumbnailTile.cs` / `ThumbnailViewport.cs` | 描画の層と名前の要素（内部） |
 | イベント引数 | `EsUtil.Ui.MewUI/Thumbnail/src/ThumbnailActivatedEventArgs.cs` | 2 回押しの通知（公開） |
 | 倍率の解決 | `EsUtil.Ui.MewUI/Thumbnail/src/Internal/ClientPixelScale.cs` | 描画面と割り当て領域から倍率を求める（内部） |
-| 画像の変換 | `EsUtil.Ui.MewUI/Thumbnail/src/Internal/EsBitmapSkiaExtensions.cs` | コアの画像を Skia の画像として包む（内部） |
-| 影の描画 | `EsUtil.Ui.MewUI/Thumbnail/src/Internal/SkiaShadowRenderer.cs` | 帯を単色で塗る（内部） |
+| 画像の変換 | `EsUtil.Ui.MewUI/Thumbnail/src/Internal/MewImageBinding.cs` | コアの画像を MewUI の画像として保持する（内部） |
+| 影の描画 | `EsUtil.Ui.MewUI/Thumbnail/src/ThumbnailViewport.cs` | 帯を単色で塗る（内部） |
 
 ### 4.1 可視性
 
@@ -173,8 +173,8 @@ sequenceDiagram
 
 ## 7. 影と画像の描画
 
-- **影**: `Internal.SkiaShadowRenderer` が `BuildDeviceBands` の帯を 1 画素ずつ単色で塗ります。 倍率は `ClientPixelScale` が解決します。
-- **画像**: コアの画像を Skia の画像として包み（`Internal.EsBitmapSkiaExtensions`）、`SKCanvas.DrawImage` で描きます。 **ピクセルは複製しません**。
+- **影**: `ThumbnailViewport` が `BuildDeviceBands` の帯を 1 画素ずつ単色で塗ります。 倍率は描画先の DPI（`DpiScaler`）が解決します。
+- **画像**: コアの画像を MewUI の画像として保持し（`Internal.MewImageBinding`）、`IGraphicsContext.DrawImage` で描きます。 **変換は画像が変わったときだけ**です。
 - **名前**: 要素（テキスト）として重ねます。 計画の `Bounds` をそのまま割り当てます。
 
 ## 8. エラー処理ポリシー
