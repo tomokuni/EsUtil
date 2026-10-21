@@ -41,7 +41,9 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | 画像のファイル入出力 | `Save` / `Load`（**画像型のメンバー**。 `Load(string, int maxSize)` は **WIC のスケーラーでデコードしながら縮小する**（サムネイル用。 原寸のバッファを確保しない）。 `EsReadOnlyBitmap.Save` / `EsBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`。 **形式は既定で拡張子が決め**、`EsImageSaveOptions.Format` で明示もできる（拡張子が無ければ補完する）。 BMP / PNG / JPEG / GIF / TIFF。 保存のオプションは `EsImageSaveOptions`（**JPEG の品質と減色 `ColorCount` / `ColorQuality` / `Dither`**）。 **EXIF の向き（`Orientation`）を適用してから縮小する**（回転した JPEG も正しい向きで読める）。 OS の WIC（`windowscodecs.dll` の COM）を使う Windows 専用で、外部パッケージは参照しない） |
 | OS サービス抽象 | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` |
 | Windows 実装 | `Native.Win.*`（Win32 / WIC の P/Invoke と COM。 ホストが生成して注入する） |
-| 補助 | `EsPlatformHandle` / `DrawingColorExtensions` |
+| 補助 | `EsPlatformHandle` / `DrawingColorExtensions` / `EsImageFileExtensions`（一覧に並べる画像の拡張子の判定） |
+| キャッシュ | `Caching.CapacityLimitedCache<TKey, TValue>`（生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ） |
+| SVG | `Svg.SvgIconSource`（読み込み元: 埋め込みリソース・フォルダー・テキスト） / `SvgIcon` / `SvgPathParser` / `SvgPathFigure` / `SvgPathSegment` / `SvgPathRasterizer` |
 
 各 UI 実装は、自身の型とコア型を相互変換する Interop 層を個別に提供します（本プロジェクトは UI 型を参照しないため、変換は利用側が持ちます）。
 

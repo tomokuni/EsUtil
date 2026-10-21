@@ -63,7 +63,8 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.User32.cs` | user32 の宣言（カーソル・ウィンドウ・要素検出・画面キャプチャのデバイス コンテキスト） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.Gdi32.cs` | gdi32 の宣言（画面キャプチャの DIB と `BitBlt`） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.DwmApi.cs` | dwmapi の宣言（影を除いた可視矩形・合成の完了待ち） |
-| `EsUtil/Platform.Core/src/Native/Win/WinNative.Kernel32.cs` | kernel32 の宣言（プロセス ID） |
+| `EsUtil/Platform.Core/src/NativeMethods.txt` | CsWin32 が生成する Win32 API の一覧（宣言を手で書かない） |
+| `EsUtil/Platform.Core/src/Native/Win/WinNative.Kernel32.cs` | kernel32 の宣言（プロセス ID。 **CsWin32 の `PInvoke` を包む**） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.HotKey.cs` | グローバル ホットキーの宣言（user32）とキー変換 |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.Wic.cs` | WIC の宣言（COM の起動・画素形式の GUID） |
 | `EsUtil/Platform.Core/src/Native/Win/WinWicInterfaces.cs` | WIC の呼び出しで共通に使う値（キャッシュ方法・補間・EXIF の名前） |
@@ -76,6 +77,9 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorOverrideGuard.cs` | `ICursorOverrideGuard` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinGlobalHotKeyService.cs` | `IGlobalHotKeyService<T>` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinWicImageCodec.cs` | 画像のファイル保存・読み込みの実装（WIC。 Windows 専用。 画像型を名指しせず、公開面は画像型の `Save` / `Load`） |
+| `EsUtil/Platform.Core/src/Caching/CapacityLimitedCache.cs` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（4 つの UI 版とコントロールが使う） |
+| `EsUtil/Platform.Core/src/Svg/SvgIconSource.cs` ほか `src/Svg/` | SVG アイコンの読み込み元（埋め込みリソース・フォルダー・テキスト）と解析（`XDocument`）、パス データの解析、図形の画素への展開 |
+| `EsUtil/Platform.Core/src/Imaging/EsImageFileExtensions.cs` | 一覧に並べる画像ファイルの拡張子の判定（保存できる形式より広い） |
 | `EsUtil/Platform.Core/src/Coord/ScrollMath.cs` | スクロール範囲・ビューポートサイズの純粋計算とホイール 1 段のスクロール量（`WheelScrollUnit`） |
 | `EsUtil/Platform.Core/src/Coord/DpiScaler.cs` | DIP 値を物理ピクセルへ変換する純粋計算（DPI 基準値と DPI → スケーリング換算を含む） |
 | `EsUtil/Platform.Core/src/Coord/CoordTransformExtensions.cs` | 座標変換ポート未設定（null）を等価変換として解決する |

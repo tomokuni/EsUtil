@@ -40,6 +40,9 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.32 画像のファイル入出力（`Save` / `Load`）](#232-画像のファイル入出力save--load)
   - [2.33 画像型の設計上の判断（兄弟と借用を選んだ理由）](#233-画像型の設計上の判断兄弟と借用を選んだ理由)
   - [2.34 `Native.SystemWindowCommands`（静的クラス）](#234-nativesystemwindowcommands静的クラス)
+  - [2.35 `Caching.CapacityLimitedCache<TKey, TValue>`（sealed class）](#235-cachingcapacitylimitedcachetkey-tvaluesealed-class)
+  - [2.36 `Svg.SvgIconSource`（sealed class） / `Svg.SvgIcon`（record struct）](#236-svgsvgiconsourcesealed-class--svgsvgiconrecord-struct)
+  - [2.37 `Imaging.EsImageFileExtensions`（static class）](#237-imagingesimagefileextensionsstatic-class)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -54,7 +57,9 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `EsUtil.Platform.Core` | `EsKey` / `EsKeyExtensions` / `EnumCanonical` / `EsWindowState` / `HotKeyModifiers` / `HotKeySetting` / `CaptureType` / `EsPlatformHandle` / `BoundaryCatch` | キーと入力（正規化含む）・ウィンドウ状態・ホットキー・境界の判定 |
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` | DIP 相当の幾何値型と領域の規則 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI の純粋計算 |
-| `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `EsImageQuality` / `EsDitherMode` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、縮小と減色の品質、描画色の判定 |
+| `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `EsImageQuality` / `EsDitherMode` / `EsImageFileExtensions` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、縮小と減色の品質、描画色の判定、一覧に並べる画像の拡張子の判定 |
+| `.Caching` | `CapacityLimitedCache<TKey, TValue>` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ |
+| `.Svg` | `SvgIconSource` / `SvgIcon` / `SvgPathParser` / `SvgPathFigure` / `SvgPathSegment` / `SvgPathRasterizer` | SVG アイコンの読み込み元・解析結果・パス データの解析・図形の画素への展開 |
 | `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` / `SystemWindowCommands` | OS サービスの抽象（UI 非依存）と、ウィンドウの標準メニューから実行する操作 |
 | `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` | 上記抽象の Windows 実装（ホストが生成して注入する） |
 
@@ -857,6 +862,51 @@ public readonly record struct ElementFinderResults(
 | `BeginSize(EsPlatformHandle)` | ウィンドウのサイズ変更を開始する（`WM_SYSCOMMAND` / `SC_SIZE`） |
 
 **失敗しても例外にしない**（コマンドを送れなかった場合は `false`）。 操作できない状態でもウィンドウは動作し続けます。
+
+### 2.35 `Caching.CapacityLimitedCache<TKey, TValue>`（sealed class）
+
+生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（Flyweight・スレッド安全）です。 **容量管理を本型が単一所有**するため、利用側は同じ処理を書きません。
+
+| メンバー | 内容 |
+| --- | --- |
+| `CapacityLimitedCache(Func<TKey, TValue> factory, int capacity = 128, IEqualityComparer<TKey>? comparer = null)` | 値を生成する関数・最大保持数・キーの比較を指定する |
+| `GetOrAdd(TKey key)` | 未登録なら生成して登録する（**生成はロックの外**。 上限に達していたら全体をクリアしてから登録する） |
+| `TryGetValue(TKey key, out TValue value)` | 生成せずに取得する（一覧の「生成済みだけをその場で表示する」用途） |
+| `Capacity` / `Count` / `Clear()` | 最大保持数（設定可）・保持数・全消去 |
+
+- **上限は設定できます**（一覧が表示する件数のように、呼び出しのたびに決まる上限があるため）。
+- **`IDisposable` の値は破棄してから消します**（画素や GDI ハンドルを残さない）。 生成の競合で捨てる値も同様です。
+- **`EsUtil.Platform.Core` に置く理由**: アプリ固有の知識が無く、4 つの UI 版とコントロールから使えるためです（アプリ層に置くとコントロールから参照できません）。
+
+### 2.36 `Svg.SvgIconSource`（sealed class） / `Svg.SvgIcon`（record struct）
+
+SVG アイコンの**読み込み元**を表し、解析結果を共有します。 読み込み元は 3 通りです。
+
+| 読み込み元 | キー |
+| --- | --- |
+| `FromEmbeddedResource(Assembly, string namePrefix)` | 前置きを除いたリソース名 |
+| `FromDirectory(string directory)` | ファイル名（読み込みのたびに走査する） |
+| `FromText(string svg)` | 任意（テキストは 1 件だけ） |
+
+| メンバー | 内容 |
+| --- | --- |
+| `Load(string key)` | `SvgIcon`（viewBox・パス データ・塗りの色）を返す。 読めない場合は空のアイコン |
+| `TryLoad(string key, out SvgIcon icon)` | 成否を返す |
+| `EnumerateKeys()` | キーの一覧 |
+
+- **XML の解釈は `System.Xml.Linq.XDocument` を使います**（要素の入れ子・属性の順序・実体参照の扱いを自前で持たない）。 パス データ（`d` 属性）の解釈は `Svg.SvgPathParser` が担います。
+- **`SvgPathParser.Parse(string? data)`** は `SvgPathFigure` の列を返します（`M` / `L` / `H` / `V` / `C` / `Z` のみ。 未対応のコマンドは空の列）。
+- **`SvgPathRasterizer.Rasterize(IReadOnlyList<SvgPathFigure>, int size, uint argb)`** は図形を `size` × `size` の BGRA8888 画素へ展開します（図形の外接矩形を一辺いっぱいへ広げる）。
+- **解析結果を UI 非依存の形で返す理由**: 各 UI 版は自分の描画 API へ写すだけであり、解析を UI 版へ複製すると片方だけ直したときにアイコンの形がずれます。 **SVG のパス構文を解釈する .NET 標準の API は無い**ため、パス データの解析だけは自前で持ちます（`System.Drawing.Drawing2D` は外部パッケージかつ Windows 限定、WPF の `Geometry.Parse` は UI 依存）。
+
+### 2.37 `Imaging.EsImageFileExtensions`（static class）
+
+一覧に並べる画像ファイルの拡張子の判定です（**保存できる形式より広い**: `.webp` は一覧に並べるが本ライブラリでは保存しない）。
+
+| メンバー | 内容 |
+| --- | --- |
+| `All` | 先頭のドットを含む拡張子の集合（`.png` / `.jpg` / `.jpeg` / `.bmp` / `.gif` / `.tiff` / `.tif` / `.webp`） |
+| `IsImageFile(string path)` | 拡張子だけを見て判定する（大文字・小文字を区別しない） |
 
 ## 3. 使用例
 
