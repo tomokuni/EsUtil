@@ -18,7 +18,6 @@ GetCursorPos
 SetCursorPos
 ShowCursor
 GetCursorInfo
-CallWindowProc
 EnumWindows
 GetWindowRect
 IsZoomed
@@ -46,3 +45,9 @@ WINDOW_DISPLAY_AFFINITY
 // 生成された宣言は internal であり、Native AOT の publish では未使用のため除かれる）。
 CreateWindowEx
 DestroyWindow
+SendMessage
+SetWindowLongPtrW
+GetWindowLongPtrW
+SetWindowSubclass
+RemoveWindowSubclass
+DefSubclassProc

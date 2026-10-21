@@ -33,7 +33,7 @@ public sealed class WinElementFinder : IElementFinder
     {
         var bounds = new List<EsRectInt>();
         _ = WinNative.EnumDisplayMonitors(
-            IntPtr.Zero, IntPtr.Zero, (_, _, lprcMonitor, _) =>
+            IntPtr.Zero, (_, _, lprcMonitor, _) =>
             {
                 if (lprcMonitor != IntPtr.Zero)
                 {

@@ -13,6 +13,7 @@ UI フレームワーク非依存の共通基盤の型を提供するライブ�
 - [7. 設計判断（UI 非依存の境界）](#7-設計判断ui-非依存の境界)
   - [7.1 ファイル入出力の実装方式](#71-ファイル入出力の実装方式)
   - [7.2 コア型の命名](#72-コア型の命名)
+  - [7.3 Win32 API の宣言と WndProc のサブクラス化](#73-win32-api-の宣言と-wndproc-のサブクラス化)
 - [8. 依存の判定基準（本プロジェクトの存在理由）](#8-依存の判定基準本プロジェクトの存在理由)
 
 ## 1. システム概要
@@ -60,7 +61,7 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/IGlobalHotKeyService.cs` | グローバルホットキー管理の抽象 |
 | `EsUtil/Platform.Core/src/Native/ElementFinderResults.cs` | 要素検出の結果（`readonly record struct`） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.cs` | OS API（Win32 / WIC）の P/Invoke の宣言集約（internal）。 **本ファイルは複数の DLL で共有する構造体とヘルパーを持ち、宣言は DLL ごとの `partial` ファイルが持つ** |
-| `EsUtil/Platform.Core/src/Native/Win/WinNative.User32.cs` | user32 の呼び出し（カーソル・ウィンドウ・要素検出・画面キャプチャのデバイス コンテキスト。 **宣言は CsWin32 が生成する**。 デリゲートを受ける API と 64 ビットのポインター長 API だけ手書き） |
+| `EsUtil/Platform.Core/src/Native/Win/WinNative.User32.cs` | user32 / comctl32 の呼び出し（カーソル・ウィンドウ・要素検出・画面キャプチャのデバイス コンテキスト・WndProc のサブクラス化。 **宣言はすべて CsWin32 が生成する**） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.Gdi32.cs` | gdi32 の呼び出し（画面キャプチャの DIB と `BitBlt`。 **宣言は CsWin32 が生成する**） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.DwmApi.cs` | dwmapi の宣言（影を除いた可視矩形・合成の完了待ち） |
 | `EsUtil/Platform.Core/src/NativeMethods.txt` | CsWin32 が生成する Win32 API の一覧（宣言を手で書かない。 kernel32 / user32 / gdi32 / dwmapi / ole32 の API と、使う列挙型・構造体を列挙する） |
@@ -158,6 +159,19 @@ graph LR
 コア型には **`Es`（`EsUtil` の略）接頭辞**を付けます（`EsKey` / `EsPoint` / `EsSize` / `EsVector` / `EsRect` / `EsPointInt` / `EsSizeInt` / `EsRectInt` / `EsAxis` / `EsPlatformHandle` / `EsWindowState` / `EsBitmap`）。 **整数版の型は `Es` + 型名 + `Int`** とします。
 
 規則（付ける理由・整数版の扱い）は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有します。
+
+### 7.3 Win32 API の宣言と WndProc のサブクラス化
+
+**Win32 API の宣言は手で書きません**。 使う API は `src/NativeMethods.txt` に列挙し、**CsWin32（ソース生成）が `PInvoke` として生成**します（`Microsoft.Windows.CsWin32` は `PrivateAssets="all"` で参照し、**配布物へは入りません**）。 本プロジェクトのファイルは IntPtr を保つ薄い包みだけを持ちます。
+
+| 項目 | 内容 |
+| --- | --- |
+| アーキテクチャ固有の API | `SetWindowLongPtrW` は **`NativeMethods.txt` へ `SetWindowLongPtrW` と書くだけでは生成できない**（実測: `SetWindowLongPtr` は存在せず、`SetWindowLongPtrW` は `PInvoke005`「AnyCPU 不可」）。 csproj の `<CsWin32PlatformTarget>x64</CsWin32PlatformTarget>` で `PInvoke.SetWindowLongPtr`（`nint`）が生成される（本アプリは x64 のみを配布する） |
+| `LibraryImport` を自作しない | CsWin32 の列挙型を引数に取る `LibraryImport` は `SYSLIB1051` で拒否される。 生成 API を包む関数を 1 つ置き、`CA1416`（「Windows 5.1 以降」の注記）はその関数の中で 1 回だけ抑止する |
+| サブクラス化 | **`SetWindowSubclass` / `DefSubclassProc` / `RemoveWindowSubclass`（comctl32）を使う**。 `SetWindowLongPtr(GWLP_WNDPROC)` は元のプロシージャを自前で保存・復元する必要があり、他のサブクラス化（ビジュアル スタイル等）と共存できない |
+| comctl32 v6 の要否 | **実測: アクティベーション コンテキスト（comctl32 v6）が無いプロセスでも動作する**（`SetWindowSubclass` が TRUE を返し、サブクラス プロシージャが実際に呼ばれた）。 そのためライブラリ側でマニフェストを要求しない |
+| デリゲートの保持 | サブクラス プロシージャは**インスタンスごとに 1 回だけ作ってフィールドへ保持**する（`WM_SETCURSOR` はマウス移動のたびに届くため、メッセージごとにデリゲートを作らない）。 識別値（`uIdSubclass`）はクラス内の連番で一意にする |
+| 解除 | 明示的な破棄（`Dispose`）に加え、**`WM_NCDESTROY` でも解除する**（解除しないと comctl32 がサブクラス プロシージャへの参照を保持し続ける） |
 
 ## 8. 依存の判定基準（本プロジェクトの存在理由）
 

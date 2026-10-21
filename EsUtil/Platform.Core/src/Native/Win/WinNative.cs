@@ -9,7 +9,7 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <summary>プラットフォーム機能に必要な Win32 API の P/Invoke 宣言・構造体・デリゲート・定数を集約する。</summary>
 /// <remarks>
 /// カーソル操作（<c>GetCursorPos</c> / <c>SetCursorPos</c> / <c>ShowCursor</c>）、<br/>
-/// カーソル上書き抑止（WndProc サブクラス化: <c>SetWindowLongPtrW</c> / <c>CallWindowProcW</c>）、<br/>
+/// カーソル上書き抑止（WndProc サブクラス化: <c>SetWindowSubclass</c> / <c>DefSubclassProc</c>）、<br/>
 /// 要素（ウィンドウ・スクリーン）検出（<c>EnumWindows</c> / <c>EnumDisplayMonitors</c> 等）、<br/>
 /// 画面キャプチャ（<c>GetDC</c> / <c>CreateDIBSection</c> / <c>BitBlt</c> / <c>GetSystemMetrics</c> 等）、<br/>
 /// ネイティブウィンドウ操作（<c>SetWindowPos</c> / <c>ShowWindow</c> / <c>PostMessage</c> 等）、<br/>

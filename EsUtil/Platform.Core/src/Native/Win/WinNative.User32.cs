@@ -1,14 +1,15 @@
-using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Gdi;
+using Windows.Win32.UI.Shell;
 using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
 // 本ファイルは user32.dll の宣言（カーソル・ウィンドウ・要素検出・画面キャプチャのデバイス コンテキスト）を集約する。
 // 型の説明は WinNative.cs を参照する。
-// 宣言は CsWin32 が生成する（src/NativeMethods.txt）。 本ファイルは内部の値型（POINT / RECT / CURSORINFO）と
+// 宣言は CsWin32 が生成する（src/NativeMethods.txt。 アーキテクチャ固有の SetWindowLongPtr のため
+// csproj が CsWin32PlatformTarget=x64 を指定する）。 本ファイルは内部の値型（POINT / RECT / CURSORINFO）と
 // IntPtr を保つ薄い包みであり、呼び出し側（Win* 実装）の型を変えない。
 internal static partial class WinNative
 {
@@ -16,10 +17,6 @@ internal static partial class WinNative
     // ============================================================
     // デリゲート
     // ============================================================
-
-    /// <summary>WndProc サブクラス化用のウィンドウプロシージャ。</summary>
-    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-    internal delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
     /// <summary>EnumWindows のコールバック。 true を返すと列挙を継続する。</summary>
     /// <param name="hWnd">ウィンドウハンドル。</param>
@@ -61,16 +58,10 @@ internal static partial class WinNative
 
     // --- ウィンドウスタイル（Alt+Tab 非表示用） ---
     /// <summary>拡張ウィンドウスタイルを取得/設定するインデックス。</summary>
-    /// <remarks>
-    /// <b><c>int</c> として持つ理由</b>: <c>SetWindowLongPtr</c> は手書きの <c>LibraryImport</c>
-    /// （64 ビットのポインター長 API）であり、<c>LibraryImport</c> は CsWin32 の列挙型を引数に取れない
-    /// （<c>SYSLIB1051</c>）。 値は列挙型から取る（数値を書かない）。
-    /// </remarks>
-    internal const int GWL_EXSTYLE = (int)WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE;
+    internal const WINDOW_LONG_PTR_INDEX GWL_EXSTYLE = WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE;
 
-    /// <summary>ウィンドウプロシージャを取得/設定するインデックス。</summary>
-    /// <remarks><c>int</c> として持つ理由は <see cref="GWL_EXSTYLE"/> を参照する。</remarks>
-    internal const int GWLP_WNDPROC = (int)WINDOW_LONG_PTR_INDEX.GWLP_WNDPROC;
+    /// <summary>ウィンドウ破棄時に最後に届くメッセージ（サブクラス化の解除に使う）。</summary>
+    internal const uint WM_NCDESTROY = 0x0082;
 
     /// <summary>タスクスイッチャー非表示の拡張スタイル。</summary>
     internal const int WS_EX_TOOLWINDOW = 0x00000080;
@@ -103,6 +94,52 @@ internal static partial class WinNative
 
     /// <summary>ウィンドウを全キャプチャAPI（GDI / DXGI）から除外する（Windows 10 2004+）。</summary>
     internal const WINDOW_DISPLAY_AFFINITY WDA_EXCLUDEFROMCAPTURE = WINDOW_DISPLAY_AFFINITY.WDA_EXCLUDEFROMCAPTURE;
+
+    // ============================================================
+    // コールバックの橋渡し（アンマネージド境界を越えるため、呼び出しごとにデリゲートを作らない）
+    // ============================================================
+    /// <summary>EnumWindows の現在のコールバック（スレッドごと。 入れ子の呼び出しは LIFO で戻す）。</summary>
+    [ThreadStatic]
+    private static EnumWindowsProc? s_enumWindowsCallback;
+
+    /// <summary>EnumDisplayMonitors の現在のコールバック（スレッドごと。 入れ子の呼び出しは LIFO で戻す）。</summary>
+    [ThreadStatic]
+    private static MonitorEnumProc? s_monitorEnumCallback;
+
+    /// <summary>EnumWindows のコールバック（1 回だけ生成して使い回す）。</summary>
+    /// <remarks>
+    /// <b>静的にする理由</b>: アンマネージド境界を越えるデリゲートは、呼び出しのたびに作ると GC の負荷になる
+    /// （要素検出は撮影のたびに走る）。 呼び出しの文脈は <see cref="s_enumWindowsCallback"/> で渡す。
+    /// </remarks>
+    private static readonly WNDENUMPROC s_enumWindowsThunk = EnumWindowsThunk;
+
+    /// <summary>EnumDisplayMonitors のコールバック（1 回だけ生成して使い回す）。</summary>
+    /// <remarks>
+    /// <b>生成をメソッドへ切り出す理由</b>: 生成されたデリゲートの引数にポインター（<c>RECT*</c>）があるため、
+    /// フィールドの初期化子では unsafe コンテキストにならない。 生成は 1 回だけであり、呼び出しごとの負荷は無い。
+    /// </remarks>
+    private static readonly MONITORENUMPROC s_monitorEnumThunk = CreateMonitorEnumThunk();
+
+    /// <summary>EnumDisplayMonitors のコールバックを生成する。</summary>
+    /// <returns>生成したデリゲート。</returns>
+    private static unsafe MONITORENUMPROC CreateMonitorEnumThunk() => MonitorEnumThunk;
+
+    /// <summary>EnumWindows のコールバックの実体。</summary>
+    /// <param name="hWnd">ウィンドウハンドル。</param>
+    /// <param name="lParam">アプリケーション定義の値。</param>
+    /// <returns>列挙を継続する場合は true。</returns>
+    private static BOOL EnumWindowsThunk(HWND hWnd, LPARAM lParam)
+        => s_enumWindowsCallback is { } callback && callback((IntPtr)hWnd, (IntPtr)lParam);
+
+    /// <summary>EnumDisplayMonitors のコールバックの実体。</summary>
+    /// <param name="hMonitor">モニターハンドル。</param>
+    /// <param name="hdcMonitor">モニターのデバイスコンテキスト。</param>
+    /// <param name="lprcMonitor">モニターの矩形へのポインター。</param>
+    /// <param name="dwData">アプリケーション定義の値。</param>
+    /// <returns>列挙を継続する場合は true。</returns>
+    private static unsafe BOOL MonitorEnumThunk(HMONITOR hMonitor, HDC hdcMonitor, Windows.Win32.Foundation.RECT* lprcMonitor, LPARAM dwData)
+        => s_monitorEnumCallback is { } callback
+            && callback((IntPtr)hMonitor, hdcMonitor, (IntPtr)lprcMonitor, (IntPtr)dwData);
 
     // ============================================================
     // user32.dll
@@ -143,7 +180,7 @@ internal static partial class WinNative
     /// <remarks>
     /// 表示状態（<see cref="CURSORINFO.flags"/> の <see cref="CURSOR_SHOWING"/>）を取得して、<br/>
     /// Win32 の表示カウンタと <see cref="WinCursorService"/> の状態追跡を同期するために使用する。<br/>
-    /// 生成された宣言は幅・高さの計算を持たない <c>CURSORINFO</c> を使うため、本メソッドで写す。
+    /// 生成された宣言は <c>System.Drawing.Point</c> を使うため、本メソッドで自前の値型へ写す。
     /// </remarks>
 #pragma warning disable CA1416 // 生成された宣言の「Windows 5.1 以降」は本ライブラリの前提（Windows 10 以降）に含まれる
     internal static unsafe bool GetCursorInfo(ref CURSORINFO pci)
@@ -161,49 +198,124 @@ internal static partial class WinNative
     }
 #pragma warning restore CA1416
 
-    /// <summary>指定したウィンドウの情報を取得/設定する（user32.SetWindowLongPtrW）。 WndProc サブクラス化とスタイル設定に使用する。</summary>
+    /// <summary>指定したウィンドウの情報を設定する（user32.SetWindowLongPtrW）。 拡張スタイルの設定に使用する。</summary>
     /// <param name="hWnd">対象ウィンドウのハンドル。</param>
-    /// <param name="nIndex">設定する情報のインデックス（<see cref="GWLP_WNDPROC"/> / <see cref="GWL_EXSTYLE"/> 等）。</param>
+    /// <param name="nIndex">設定する情報のインデックス（<see cref="GWL_EXSTYLE"/> 等）。</param>
     /// <param name="dwNewLong">設定する値。</param>
     /// <returns>設定前の値。</returns>
     /// <remarks>
-    /// <b>手書きの宣言を残す理由</b>: CsWin32 が生成するのは 32 ビットの <c>SetWindowLong</c> であり、
-    /// <b>64 ビットのポインター長 API は生成されない</b>。 ウィンドウ プロシージャ（<c>GWLP_WNDPROC</c>）は
-    /// ポインター長であり、32 ビット版ではアドレスが切り詰められて実行時に落ちる。
+    /// <b>64 ビットのポインター長 API を使う</b>: この API はポインター長の値を扱うため、
+    /// 32 ビットの <c>SetWindowLong</c> では値が切り詰められる。
+    /// 生成には <c>CsWin32PlatformTarget</c> の指定が要る（csproj を参照する）。
     /// </remarks>
-    [LibraryImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
-    internal static partial IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+#pragma warning disable CA1416 // 生成された宣言の「Windows 5.1 以降」は本ライブラリの前提（Windows 10 以降）に含まれる
+    internal static nint SetWindowLongPtr(IntPtr hWnd, WINDOW_LONG_PTR_INDEX nIndex, nint dwNewLong)
+        => PInvoke.SetWindowLongPtr((HWND)hWnd, nIndex, dwNewLong);
+#pragma warning restore CA1416
 
     /// <summary>指定したウィンドウの情報を取得する（user32.GetWindowLongPtrW）。</summary>
     /// <param name="hWnd">対象ウィンドウのハンドル。</param>
     /// <param name="nIndex">取得する情報のインデックス（<see cref="GWL_EXSTYLE"/> 等）。</param>
     /// <returns>取得した値。</returns>
-    /// <remarks>手書きの宣言を残す理由は <see cref="SetWindowLongPtr"/> を参照する。</remarks>
-    [LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
-    internal static partial IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
+#pragma warning disable CA1416 // 生成された宣言の「Windows 5.1 以降」は本ライブラリの前提（Windows 10 以降）に含まれる
+    internal static nint GetWindowLongPtr(IntPtr hWnd, WINDOW_LONG_PTR_INDEX nIndex)
+        => PInvoke.GetWindowLongPtr((HWND)hWnd, nIndex);
+#pragma warning restore CA1416
 
-    /// <summary>元の WndProc にメッセージを委譲する（user32.CallWindowProcW）。</summary>
-    /// <param name="lpPrevWndFunc">元の WndProc アドレス。</param>
+    /// <summary>ウィンドウ プロシージャをサブクラス化する（comctl32.SetWindowSubclass）。</summary>
+    /// <param name="hWnd">対象ウィンドウのハンドル。</param>
+    /// <param name="pfnSubclass">サブクラス プロシージャ。 呼び出し側がフィールドに保持する（GC 対策）。</param>
+    /// <param name="uIdSubclass">サブクラスを識別する値。 同一ウィンドウ内で一意にする。</param>
+    /// <param name="dwRefData">サブクラス プロシージャへ渡すアプリケーション定義の値。</param>
+    /// <returns>成功した場合は <see langword="true"/>。</returns>
+    /// <remarks>
+    /// <b><c>SetWindowLongPtr(GWLP_WNDPROC)</c> を使わない理由</b>: 従来の差し替えは
+    /// 元のプロシージャを自前で保存・復元する必要があり、他のサブクラス化（ビジュアル スタイル等）と
+    /// 共存できない。 <c>SetWindowSubclass</c> は comctl32 が連鎖を管理し、
+    /// <see cref="DefSubclassProc"/> で元のプロシージャへ委譲できる（Windows の推奨手順）。<br/>
+    /// <b>ウィンドウを作成したスレッドから呼ぶ</b>（スレッド アフィン）。<br/>
+    /// ウィンドウ破棄時は <see cref="WM_NCDESTROY"/> で <see cref="RemoveWindowSubclass"/> を呼び、
+    /// サブクラス プロシージャへの参照を解放する（呼ばないと comctl32 が参照を保持し続ける）。
+    /// </remarks>
+#pragma warning disable CA1416 // 生成された宣言の「Windows 5.1 以降」は本ライブラリの前提（Windows 10 以降）に含まれる
+    internal static bool SetWindowSubclass(IntPtr hWnd, SUBCLASSPROC pfnSubclass, nuint uIdSubclass, nuint dwRefData)
+        => PInvoke.SetWindowSubclass((HWND)hWnd, pfnSubclass, uIdSubclass, dwRefData);
+#pragma warning restore CA1416
+
+    /// <summary>サブクラス化を解除する（comctl32.RemoveWindowSubclass）。</summary>
+    /// <param name="hWnd">対象ウィンドウのハンドル。</param>
+    /// <param name="pfnSubclass"><see cref="SetWindowSubclass"/> へ渡したサブクラス プロシージャ。</param>
+    /// <param name="uIdSubclass"><see cref="SetWindowSubclass"/> へ渡した識別値。</param>
+    /// <returns>成功した場合は <see langword="true"/>。</returns>
+#pragma warning disable CA1416 // 生成された宣言の「Windows 5.1 以降」は本ライブラリの前提（Windows 10 以降）に含まれる
+    internal static bool RemoveWindowSubclass(IntPtr hWnd, SUBCLASSPROC pfnSubclass, nuint uIdSubclass)
+        => PInvoke.RemoveWindowSubclass((HWND)hWnd, pfnSubclass, uIdSubclass);
+#pragma warning restore CA1416
+
+    /// <summary>元のウィンドウ プロシージャへメッセージを委譲する（comctl32.DefSubclassProc）。</summary>
     /// <param name="hWnd">対象ウィンドウのハンドル。</param>
     /// <param name="msg">ウィンドウメッセージ。</param>
     /// <param name="wParam">WPARAM。</param>
     /// <param name="lParam">LPARAM。</param>
-    /// <returns>ウィンドウプロシージャの処理結果。</returns>
+    /// <returns>ウィンドウ プロシージャの処理結果。</returns>
     /// <remarks>
-    /// <b>手書きの宣言を残す理由</b>: 生成された宣言の第 1 引数はデリゲート（<c>WNDPROC</c>）であり、
-    /// <c>IntPtr</c> から渡すにはメッセージごとにデリゲートを作る（<c>WM_SETCURSOR</c> はマウス移動のたびに届く）。
-    /// 本ライブラリはサブクラス化で得たアドレスをそのまま渡すため、<c>IntPtr</c> を受ける宣言を持つ。
+    /// <b>サブクラス プロシージャの中から呼ぶ</b>: comctl32 が次のプロシージャ（本来の WndProc を含む）へ
+    /// 連鎖させる。 元のプロシージャのアドレスを自前で保持する必要はない。
     /// </remarks>
-    [LibraryImport("user32.dll", EntryPoint = "CallWindowProcW", SetLastError = true)]
-    internal static partial IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+#pragma warning disable CA1416 // 生成された宣言の「Windows 5.1 以降」は本ライブラリの前提（Windows 10 以降）に含まれる
+    internal static LRESULT DefSubclassProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+        => PInvoke.DefSubclassProc((HWND)hWnd, msg, (nuint)wParam, lParam);
+#pragma warning restore CA1416
 
     /// <summary>全トップレベルウィンドウを列挙する（user32.EnumWindows）。</summary>
     /// <param name="lpEnumFunc">列挙コールバック。</param>
     /// <param name="lParam">アプリケーション定義の値。</param>
-    /// <remarks>手書きの宣言を残す理由は <see cref="CallWindowProc"/> と同じ（コールバックをデリゲートで受けない）。</remarks>
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+    /// <returns>最後のコールバックが true を返した場合は true。</returns>
+    /// <remarks>
+    /// <b>コールバックを毎回作らない</b>: アンマネージド境界を越えるデリゲートは GC の負荷になるため、
+    /// 静的などラムを使い、呼び出しの文脈はスレッド ローカルで渡す（入れ子の呼び出しも LIFO で戻す）。
+    /// </remarks>
+#pragma warning disable CA1416 // 生成された宣言の「Windows 5.1 以降」は本ライブラリの前提（Windows 10 以降）に含まれる
+    internal static bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam)
+    {
+        var previous = s_enumWindowsCallback;
+        s_enumWindowsCallback = lpEnumFunc;
+        try
+        {
+            return PInvoke.EnumWindows(s_enumWindowsThunk, lParam);
+        }
+        finally
+        {
+            s_enumWindowsCallback = previous;
+        }
+    }
+#pragma warning restore CA1416
+
+    /// <summary>全ディスプレイモニターを列挙する（user32.EnumDisplayMonitors）。</summary>
+    /// <param name="hdc">デバイスコンテキスト（NULL = 全モニター）。</param>
+    /// <param name="lpfnEnum">列挙コールバック。</param>
+    /// <param name="dwData">アプリケーション定義の値。</param>
+    /// <returns>最後のコールバックが true を返した場合は true。</returns>
+    /// <remarks>
+    /// コールバックを毎回作らない理由は <see cref="EnumWindows"/> を参照する。<br/>
+    /// <b>クリップ矩形は取らない</b>: 全モニターを列挙する用途しかなく、常に NULL を渡すため
+    /// （引数を持たせると「渡したのに効かない」と誤解される）。
+    /// </remarks>
+#pragma warning disable CA1416 // 生成された宣言の「Windows 5.1 以降」は本ライブラリの前提（Windows 10 以降）に含まれる
+    internal static bool EnumDisplayMonitors(IntPtr hdc, MonitorEnumProc lpfnEnum, IntPtr dwData)
+    {
+        var previous = s_monitorEnumCallback;
+        s_monitorEnumCallback = lpfnEnum;
+        try
+        {
+            return PInvoke.EnumDisplayMonitors((HDC)hdc, null, s_monitorEnumThunk, dwData);
+        }
+        finally
+        {
+            s_monitorEnumCallback = previous;
+        }
+    }
+#pragma warning restore CA1416
 
     /// <summary>ウィンドウの外接矩形を取得する（user32.GetWindowRect）。</summary>
     /// <param name="hWnd">ウィンドウハンドル。</param>
@@ -298,16 +410,6 @@ internal static partial class WinNative
         return threadId;
     }
 #pragma warning restore CA1416
-
-    /// <summary>全ディスプレイモニターを列挙する（user32.EnumDisplayMonitors）。</summary>
-    /// <param name="hdc">デバイスコンテキスト（NULL = 全モニター）。</param>
-    /// <param name="lprcClip">クリップ矩形（NULL = クリップなし）。</param>
-    /// <param name="lpfnEnum">列挙コールバック。</param>
-    /// <param name="dwData">アプリケーション定義の値。</param>
-    /// <remarks>手書きの宣言を残す理由は <see cref="CallWindowProc"/> と同じ（コールバックをデリゲートで受けない）。</remarks>
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
 
     /// <summary>指定されたシステムメトリクス（SM_ 定数）を取得する（user32.GetSystemMetrics）。</summary>
     /// <param name="nIndex">取得するシステムメトリクスのインデックス。</param>

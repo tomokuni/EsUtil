@@ -1,23 +1,34 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.Shell;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
 /// <summary>Windows 実装の <see cref="IGlobalHotKeyService{T}"/>。</summary>
 /// <remarks>
 /// RegisterHotKey / UnregisterHotKey Win32 API でホットキーを登録管理し、<br/>
-/// WndProc サブクラス化で WM_HOTKEY メッセージを捕捉して <see cref="Subscribe"/> の購読者へ配信する。<br/>
+/// WndProc サブクラス化（<c>SetWindowSubclass</c>）で WM_HOTKEY メッセージを捕捉して <see cref="Subscribe"/> の購読者へ配信する。<br/>
 /// P/Invoke 呼び出しは <c>WinNative</c> に委譲する。<br/>
-/// デリゲートはフィールドに保持し、WndProc の呼び出し中に GC されないようにする。<br/>
+/// サブクラス プロシージャはフィールドに保持し、呼び出し中に GC されないようにする。<br/>
 /// <b>ログを出力しない</b>: 失敗の種類に応じて例外または戻り値で呼び出し側へ渡し、記録は呼び出し側が行う。<br/>
 /// 継承不可。<br/>
 /// </remarks>
 /// <typeparam name="T">ホットキーに割り当てるアクションの識別子。</typeparam>
 public sealed class WinGlobalHotKeyService<T> : IGlobalHotKeyService<T> where T : notnull
 {
+    /// <summary><c>SetWindowSubclass</c> に渡すサブクラスの識別値（クラス内で共有する連番）。</summary>
+    /// <remarks>識別値は<b>ウィンドウごとに一意</b>であればよい（comctl32 がウィンドウ単位で管理する）。</remarks>
+    private static nuint s_lastSubclassId;
+
     private IntPtr _hWnd;
-    private IntPtr _originalWndProc;
-    private WinNative.WndProcDelegate? _wndProcDelegate;
+
+    /// <summary>サブクラス プロシージャ。 GC 防止と解除のためフィールドに保持する。</summary>
+    private SUBCLASSPROC? _subclassProc;
+
+    /// <summary><c>SetWindowSubclass</c> へ渡した識別値（解除時に同じ値を返す）。</summary>
+    private nuint _subclassId;
+
     private int _currentId;
     private readonly Dictionary<int, T> _registeredHotKeys = [];
     private readonly CallbackList<T> _pressed = new();
@@ -33,18 +44,17 @@ public sealed class WinGlobalHotKeyService<T> : IGlobalHotKeyService<T> where T 
         _hWnd = hWnd;
         if (_hWnd == IntPtr.Zero) return;
 
-        _wndProcDelegate = WndProc;
-        _originalWndProc = WinNative.SetWindowLongPtr(
-            hWnd, WinNative.GWLP_WNDPROC, Marshal.GetFunctionPointerForDelegate(_wndProcDelegate));
-
-        if (_originalWndProc == IntPtr.Zero)
+        var subclassProc = _subclassProc ??= WndProc;
+        var id = ++s_lastSubclassId;
+        if (!WinNative.SetWindowSubclass(hWnd, subclassProc, id, 0))
         {
-            // 差し替えに失敗すると、ホットキーを登録できても押下を検出できない（回復できないため例外にする）
+            // サブクラス化に失敗すると、ホットキーを登録できても押下を検出できない（回復できないため例外にする）
             _hWnd = IntPtr.Zero;
-            _wndProcDelegate = null;
             throw new Win32Exception(
                 Marshal.GetLastWin32Error(), "ウィンドウ プロシージャを差し替えられませんでした（ホットキーを受信できません）。");
         }
+
+        _subclassId = id;
     }
 
     /// <inheritdoc/>
@@ -93,29 +103,49 @@ public sealed class WinGlobalHotKeyService<T> : IGlobalHotKeyService<T> where T 
         }
     }
 
-    /// <summary>WndProc サブクラス化を解除し、元の WndProc を復元する。</summary>
+    /// <summary>WndProc サブクラス化を解除する。</summary>
+    /// <param name="hWnd">サブクラス化したウィンドウのハンドル。</param>
+    private void DetachCore(IntPtr hWnd)
+    {
+        if (_subclassProc is null) return;
+        _ = WinNative.RemoveWindowSubclass(hWnd, _subclassProc, _subclassId);
+        _subclassId = 0;
+    }
+
+    /// <summary>WndProc サブクラス化を解除する。</summary>
     private void Detach()
     {
-        if (_hWnd != IntPtr.Zero && _originalWndProc != IntPtr.Zero)
+        if (_hWnd != IntPtr.Zero)
         {
-            WinNative.SetWindowLongPtr(_hWnd, WinNative.GWLP_WNDPROC, _originalWndProc);
-            _originalWndProc = IntPtr.Zero;
+            DetachCore(_hWnd);
             _hWnd = IntPtr.Zero;
         }
-        _wndProcDelegate = null;
     }
 
     /// <summary>サブクラス化した WndProc。 WM_HOTKEY メッセージを捕捉して対応するアクションを配信する。</summary>
-    private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+    /// <param name="hWnd">ウィンドウハンドル。</param>
+    /// <param name="msg">ウィンドウメッセージ。</param>
+    /// <param name="wParam">WPARAM（ホットキーの ID）。</param>
+    /// <param name="lParam">LPARAM。</param>
+    /// <param name="uIdSubclass">サブクラスの識別値（<see cref="Initialize"/> で渡した値）。</param>
+    /// <param name="dwRefData"><see cref="Initialize"/> で渡したコンテキスト値（本クラスでは未使用）。</param>
+    /// <returns>メッセージの処理結果。</returns>
+    private LRESULT WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam, nuint uIdSubclass, nuint dwRefData)
     {
-        if (msg == WinNative.WM_HOTKEY)
+        // WM_NCDESTROY: ウィンドウ破棄の最終段階。 解除しないと comctl32 が本プロシージャへの参照を保持し続ける。
+        if (msg == WinNative.WM_NCDESTROY)
         {
-            var id = checked((int)wParam);
+            DetachCore((IntPtr)hWnd);
+            _hWnd = IntPtr.Zero;
+        }
+        else if (msg == WinNative.WM_HOTKEY)
+        {
+            var id = checked((int)(nint)(nuint)wParam);
             if (_registeredHotKeys.TryGetValue(id, out var action))
                 _pressed.Raise(action);
-            return new IntPtr(1);
+            return (LRESULT)1;
         }
-        return WinNative.CallWindowProc(_originalWndProc, hWnd, msg, wParam, lParam);
+        return WinNative.DefSubclassProc((IntPtr)hWnd, msg, (nint)(nuint)wParam, lParam);
     }
 
     /// <summary>1 件のホットキーを登録する。</summary>

@@ -7,6 +7,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- EsBitmap がピクセルバッファへ直接アクセスするため unsafe を許可する -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- CsWin32 の生成対象のアーキテクチャ。 SetWindowLongPtrW / GetWindowLongPtrW はメタデータ上
+         「特定の CPU アーキテクチャでのみ利用可能」とされており、AnyCPU では生成されない（実測: PInvoke005）。
+         本ライブラリの配布物は win-x64 のみであり、x64 として生成する。
+         生成されるのは user32 の P/Invoke 宣言だけであり、公開面は変わらない。 -->
+    <CsWin32PlatformTarget>x64</CsWin32PlatformTarget>
     <Description>UI フレームワーク非依存の共通基盤（キーと入力・幾何・座標変換・画像・OS サービス抽象）。</Description>
   </PropertyGroup>
 
