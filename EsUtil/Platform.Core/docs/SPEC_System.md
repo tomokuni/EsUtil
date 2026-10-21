@@ -14,6 +14,7 @@ UI フレームワーク非依存の共通基盤の型を提供するライブ�
   - [7.1 ファイル入出力の実装方式](#71-ファイル入出力の実装方式)
   - [7.2 コア型の命名](#72-コア型の命名)
   - [7.3 Win32 API の宣言と WndProc のサブクラス化](#73-win32-api-の宣言と-wndproc-のサブクラス化)
+    - [7.3.1 COM の 2 件だけを手書きする理由（実測 2026-10-21）](#731-com-の-2-件だけを手書きする理由実測-2026-10-21)
 - [8. 依存の判定基準（本プロジェクトの存在理由）](#8-依存の判定基準本プロジェクトの存在理由)
 
 ## 1. システム概要
@@ -163,13 +164,26 @@ graph LR
 | 項目 | 内容 |
 | --- | --- |
 | アーキテクチャ固有の API | `SetWindowLongPtrW` は **`NativeMethods.txt` へ `SetWindowLongPtrW` と書くだけでは生成できない**（実測: `SetWindowLongPtr` は存在せず、`SetWindowLongPtrW` は `PInvoke005`「AnyCPU 不可」）。 csproj の `<CsWin32PlatformTarget>x64</CsWin32PlatformTarget>` で `PInvoke.SetWindowLongPtr`（`nint`）が生成される（本アプリは x64 のみを配布する） |
-| 生成できない COM | `CoCreateInstance` の生成版は `out object`（クラシックな相互運用）で **Native AOT では使えない**。 生ポインターを受ける宣言だけを `WinWicNative.cs` に手書きし、`StrategyBasedComWrappers` で包む |
+| 手書きが残る唯一の箇所 | **`WinWicNative.cs` の `CoCreateInstance` と `CreateStreamOnHGlobal` の 2 件だけ**（理由は下表）。 宣言だけで、マーシャリングは `[LibraryImport]` のソース生成が担う |
 | `CA1416` | **抑止しない**。 Windows 専用の型に `[SupportedOSPlatform("windows10.0.17763")]` を書く（本プロジェクトは可搬のため TFM で下限を表せない）。 **版なしの `"windows"` は下限を満たさず警告になる**（実測） |
-| `LibraryImport` を自作しない | CsWin32 の列挙型を引数に取る `LibraryImport` は `SYSLIB1051` で拒否される。 生成 API を包む関数を 1 つ置き、`CA1416`（「Windows 5.1 以降」の注記）はその関数の中で 1 回だけ抑止する |
+| `LibraryImport` を自作しない | CsWin32 の列挙型を引数に取る `LibraryImport` は `SYSLIB1051` で拒否される。 手書きが必要な場合は引数を `int` / `nint` で受ける |
 | サブクラス化 | **`SetWindowSubclass` / `DefSubclassProc` / `RemoveWindowSubclass`（comctl32）を使う**。 `SetWindowLongPtr(GWLP_WNDPROC)` は元のプロシージャを自前で保存・復元する必要があり、他のサブクラス化（ビジュアル スタイル等）と共存できない |
 | comctl32 v6 の要否 | **実測: アクティベーション コンテキスト（comctl32 v6）が無いプロセスでも動作する**（`SetWindowSubclass` が TRUE を返し、サブクラス プロシージャが実際に呼ばれた）。 そのためライブラリ側でマニフェストを要求しない |
 | デリゲートの保持 | サブクラス プロシージャは**インスタンスごとに 1 回だけ作ってフィールドへ保持**する（`WM_SETCURSOR` はマウス移動のたびに届くため、メッセージごとにデリゲートを作らない）。 識別値（`uIdSubclass`）はクラス内の連番で一意にする |
 | 解除 | 明示的な破棄（`Dispose`）に加え、**`WM_NCDESTROY` でも解除する**（解除しないと comctl32 がサブクラス プロシージャへの参照を保持し続ける） |
+
+#### 7.3.1 COM の 2 件だけを手書きする理由（実測 2026-10-21）
+
+`NativeMethods.txt` に `CoCreateInstance` / `CreateStreamOnHGlobal` を入れて生成した結果は次のとおりです。
+
+| 設定 | `CoCreateInstance` | `CreateStreamOnHGlobal` | 判定 |
+| --- | --- | --- | --- |
+| 既定（`allowMarshaling: true`） | `HRESULT (Guid*, object, CLSCTX, Guid*, out object)` | `HRESULT (HGLOBAL, BOOL, out IStream)` | **使えない**。 `object` / `out IStream` は RCW（クラシック相互運用）を作る経路であり、Native AOT で `NotSupportedException: COM Interop requires ComWrapper instance registered for marshalling.` になる（実測） |
+| `allowMarshaling: false`（`NativeMethods.json`） | `HRESULT (Guid*, IUnknown*, CLSCTX, Guid*, void**)` | `HRESULT (HGLOBAL, BOOL, IStream**)` | 生ポインターで使えるが、**設定はプロジェクト全体に効く**。 切り替えると `WNDENUMPROC` / `MONITORENUMPROC` / `SUBCLASSPROC` が**関数ポインター型**になり、4 ファイル 19 箇所のコールバックを `[UnmanagedCallersOnly]` + `dwRefData`（`GCHandle`）へ書き換える必要がある（実測: CS 14 件 + IDE0060 5 件） |
+
+- **API 単位の切り替えはできない**: `CoCreateInstance(allowMarshaling=false)` のように行へ書くと `PInvoke001`（「その名前の API は無い」）で拒否される（実測）。 `NativeMethods.json` は 1 プロジェクト 1 つのため、2 件のためだけに全体を切り替えることはしない。
+- **.NET 側に AOT 安全な代替は無い**: `Type.GetTypeFromCLSID` / `Activator.CreateInstance` / `Marshal.GetObjectForIUnknown` はいずれもクラシック相互運用であり AOT で失敗する（実測）。 COM の起動は `CoCreateInstance` を直接呼ぶしかない。
+- **`[LibraryImport]` の宣言だけを書く**ため、`DllImport` の手書きマーシャリング（`MarshalAs` の列など）は発生しない。 文字列・構造体・コールバックの生成は CsWin32 のままである。
 
 ## 8. 依存の判定基準（本プロジェクトの存在理由）
 
