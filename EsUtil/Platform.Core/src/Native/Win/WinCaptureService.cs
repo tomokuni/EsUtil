@@ -1,22 +1,25 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
+using Windows.Win32;
+using Windows.Win32.Graphics.Gdi;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
 /// <summary>画面のキャプチャ機能を提供するクラス。</summary>
 /// <remarks>
 /// GDI の <c>BitBlt</c>（Win32 API）で画面のピクセルをメモリへコピーする。<br/>
-/// P/Invoke 呼び出しは <c>WinNative</c> に委譲する。<br/>
+/// <b>Win32 の宣言は CsWin32 が生成する</b>（<c>src/NativeMethods.txt</c>）。 本クラスは <c>PInvoke</c> を直接呼ぶ。<br/>
 /// <see cref="ICaptureService"/> の実装であり、テスト時のモックに備える。<br/>
 /// 公開 API（<see cref="ICaptureService"/>）は UI 非依存の型（<see cref="EsBitmap"/> / <see cref="EsRectInt"/>）のみを使用する。<br/>
 /// ホスト（アプリ）が生成して注入する（Windows のみ。 テストではモックを注入できる）。<br/>
 /// GDI は Windows 専用のため、本クラスは <see cref="SupportedOSPlatformAttribute"/> で Windows に限定する。<br/>
 /// 継承不可。<br/>
 /// </remarks>
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows10.0.17763")]
 public sealed class WinCaptureService : ICaptureService
 {
     // ====================================================================
@@ -27,7 +30,7 @@ public sealed class WinCaptureService : ICaptureService
     /// <param name="bounds">キャプチャする画面領域（画面物理座標）。</param>
     /// <returns>キャプチャした画像。 破棄は呼び出し側。</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="bounds"/> の幅または高さが 0 以下の場合。</exception>
-    /// <exception cref="Win32Exception">画面の取得（デバイス コンテキスト・DIB・<see cref="WinNative.BitBlt"/>）に失敗した場合。</exception>
+    /// <exception cref="Win32Exception">画面の取得（デバイス コンテキスト・DIB・<c>BitBlt</c>）に失敗した場合。</exception>
     /// <remarks>
     /// 内部で GDI の <c>BitBlt</c> を使用し、<see cref="EsBitmap"/> のバッファへ直接コピーする
     /// （中間の画像を経由しない）。<br/>
@@ -55,16 +58,17 @@ public sealed class WinCaptureService : ICaptureService
     /// </remarks>
     public EsBitmap? CaptureVirtualScreen(out EsPointInt origin)
     {
-        // Win32 の仮想スクリーン境界（全モニタのバウンディングボックス）を取得
-        var (vx, vy, vw, vh) = WinNative.GetVirtualScreenBounds();
-        origin = new EsPointInt(vx, vy);
-        if (vw <= 0 || vh <= 0)
+        // Win32 の仮想スクリーン境界（全モニタのバウンディングボックス）を取得する
+        // （境界の計算は EsWindowPlacementMath が単一所有する）
+        var bounds = EsWindowPlacementMath.GetVirtualScreenBounds();
+        origin = new EsPointInt(bounds.X, bounds.Y);
+        if (bounds.Width <= 0 || bounds.Height <= 0)
         {
             // 境界が取得できない場合はキャプチャできない（null はこの 1 つの意味だけを表す）
             return null;
         }
 
-        return CaptureArea(new EsRectInt(vx, vy, vw, vh));
+        return CaptureArea(bounds);
     }
 
     // ====================================================================
@@ -106,81 +110,86 @@ public sealed class WinCaptureService : ICaptureService
     /// <c>BitBlt</c> のコピー元座標は負値を許容する（クリップされる）が、コピー先は常に (0, 0) から始める。<br/>
     /// <c>biHeight</c> を負値にしてトップダウン DIB にする（行の並びを画像と一致させる）。
     /// </remarks>
-    private static void CopyScreenInto(EsBitmap target, EsRectInt bounds)
+    private static unsafe void CopyScreenInto(EsBitmap target, EsRectInt bounds)
     {
-        var screenDc = IntPtr.Zero;
-        var memoryDc = IntPtr.Zero;
-        var dib = IntPtr.Zero;
-        var previous = IntPtr.Zero;
+        HDC screenDc = default;
+        HDC memoryDc = default;
+        HBITMAP dib = default;
+        HGDIOBJ previous = default;
         try
         {
-            screenDc = WinNative.GetDC(IntPtr.Zero);
-            if (screenDc == IntPtr.Zero)
+            screenDc = PInvoke.GetDC(default);
+            if (screenDc.IsNull)
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "画面のデバイス コンテキストを取得できませんでした。");
             }
 
-            memoryDc = WinNative.CreateCompatibleDC(screenDc);
-            if (memoryDc == IntPtr.Zero)
+            memoryDc = PInvoke.CreateCompatibleDC(screenDc);
+            if (memoryDc.IsNull)
             {
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "メモリ デバイス コンテキストを作成できませんでした。");
             }
 
-            var info = new Windows.Win32.Graphics.Gdi.BITMAPINFO
+            var info = new BITMAPINFO
             {
-                bmiHeader = new Windows.Win32.Graphics.Gdi.BITMAPINFOHEADER
+                bmiHeader = new BITMAPINFOHEADER
                 {
-                    biSize = (uint)Marshal.SizeOf<Windows.Win32.Graphics.Gdi.BITMAPINFOHEADER>(),
+                    biSize = (uint)Marshal.SizeOf<BITMAPINFOHEADER>(),
                     biWidth = bounds.Width,
                     biHeight = -bounds.Height,
                     biPlanes = 1,
                     biBitCount = 32,
-                    biCompression = (uint)WinNative.BI_RGB,
+                    biCompression = (uint)BI_COMPRESSION.BI_RGB,
                 },
             };
 
-            dib = WinNative.CreateDIBSection(memoryDc, ref info, WinNative.DIB_RGB_COLORS, out var bits, IntPtr.Zero, 0);
-            if (dib == IntPtr.Zero || bits == IntPtr.Zero)
+            unsafe
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "キャプチャ用の DIB セクションを作成できませんでした。");
-            }
+                void* bits;
+                dib = PInvoke.CreateDIBSection(memoryDc, &info, DIB_USAGE.DIB_RGB_COLORS, &bits, default, 0);
+                if (dib.IsNull || bits is null)
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "キャプチャ用の DIB セクションを作成できませんでした。");
+                }
 
-            previous = WinNative.SelectObject(memoryDc, dib);
-            if (previous == IntPtr.Zero)
-            {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "キャプチャ用のビットマップを選択できませんでした。");
-            }
+                previous = PInvoke.SelectObject(memoryDc, (HGDIOBJ)dib.Value);
+                if (previous.IsNull)
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "キャプチャ用のビットマップを選択できませんでした。");
+                }
 
-            // 重ね合わせウィンドウ（レイヤード ウィンドウ）も写して、GDI+ の CopyFromScreen と同じ見え方にする
-            if (!WinNative.BitBlt(
-                memoryDc, 0, 0, bounds.Width, bounds.Height, screenDc, bounds.X, bounds.Y, WinNative.SRCCOPY | WinNative.CAPTUREBLT))
-            {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "画面のコピーに失敗しました。");
-            }
+                // 重ね合わせウィンドウ（レイヤード ウィンドウ）も写して、GDI+ の CopyFromScreen と同じ見え方にする
+                if (!PInvoke.BitBlt(
+                    memoryDc, 0, 0, bounds.Width, bounds.Height, screenDc, bounds.X, bounds.Y,
+                    ROP_CODE.SRCCOPY | ROP_CODE.CAPTUREBLT))
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "画面のコピーに失敗しました。");
+                }
 
-            CopyPixels(target, bits);
+                CopyPixels(target, (IntPtr)bits);
+            }
         }
         finally
         {
             // GDI オブジェクトは選択を戻してから削除する（選択中のビットマップは削除できない）
-            if (memoryDc != IntPtr.Zero && previous != IntPtr.Zero)
+            if (!memoryDc.IsNull && !previous.IsNull)
             {
-                WinNative.SelectObject(memoryDc, previous);
+                _ = PInvoke.SelectObject(memoryDc, previous);
             }
 
-            if (dib != IntPtr.Zero)
+            if (!dib.IsNull)
             {
-                WinNative.DeleteObject(dib);
+                _ = PInvoke.DeleteObject((HGDIOBJ)dib.Value);
             }
 
-            if (memoryDc != IntPtr.Zero)
+            if (!memoryDc.IsNull)
             {
-                WinNative.DeleteDC(memoryDc);
+                _ = PInvoke.DeleteDC(memoryDc);
             }
 
-            if (screenDc != IntPtr.Zero)
+            if (!screenDc.IsNull)
             {
-                WinNative.ReleaseDC(IntPtr.Zero, screenDc);
+                _ = PInvoke.ReleaseDC(default, screenDc);
             }
         }
     }

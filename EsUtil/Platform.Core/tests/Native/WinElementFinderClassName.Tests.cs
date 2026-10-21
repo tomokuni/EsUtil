@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Native.Win;
 using Xunit;
 
@@ -9,6 +10,7 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// <c>[Fact]</c> で並列実行する（テスト全体の高速化）。<br/>
 /// デスクトップにカーソルを合わせたとき WorkerW（デスクトップ壁紙）が選択されないことを保証する回帰テスト。
 /// </remarks>
+[SupportedOSPlatform("windows10.0.17763")]
 public class WinElementFinderClassNameTests
 {
     [Fact]

@@ -90,7 +90,7 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 
 | パス | 内容 |
 | --- | --- |
-| `EsUtil.Ui.WinForms/Loupe/sample/EsUtil.Ui.WinForms.Loupe.Sample.csproj` | サンプルアプリのプロジェクト（`net10.0-windows` / `UseWindowsForms` / `WinExe`） |
+| `EsUtil.Ui.WinForms/Loupe/sample/EsUtil.Ui.WinForms.Loupe.Sample.csproj` | サンプルアプリのプロジェクト（`net10.0-windows10.0.17763.0` / `UseWindowsForms` / `WinExe`） |
 | `EsUtil.Ui.WinForms/Loupe/sample/RunSample.bat` | リリースビルド＆起動 |
 | `EsUtil.Ui.WinForms/Loupe/sample/Program.cs` | エントリポイント（高 DPI（PerMonitorV2）の指定と起動） |
 | `EsUtil.Ui.WinForms/Loupe/sample/Imaging/TestImageFactory.cs` | テスト画像生成（グラデーション＋グリッド＋マーカー） |

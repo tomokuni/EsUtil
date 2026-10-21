@@ -1,11 +1,15 @@
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
+using Windows.Win32;
+using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
 /// <summary>Win32 API を用いた OS カーソル操作（位置取得・位置移動・表示/非表示）を提供する。</summary>
 /// <remarks>
-/// カーソル位置の取得は <c>GetCursorPos</c>、移動は <c>SetCursorPos</c>、表示/非表示は <c>ShowCursor</c> を使用する。<br/>
+/// カーソル位置の取得は <c>GetCursorPos</c>、移動は <c>SetCursorPos</c>、表示/非表示は <c>ShowCursor</c> を使用する
+/// （<b>宣言は CsWin32 が生成する</b>。 <c>src/NativeMethods.txt</c>）。<br/>
 /// カーソル形状（Avalonia の <c>Cursor</c> プロパティで代替）やポインター位置取得
 /// （<c>PointerEventArgs.GetPosition</c> で代替）は扱わない。<br/>
 /// <see cref="ICursorService"/> の Windows 実装。<br/>
@@ -13,11 +17,9 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <b>ログを出力しない</b>: 失敗は <c>Try</c> 系の戻り値で呼び出し側へ渡し、記録は呼び出し側が行う。<br/>
 /// 継承不可。<br/>
 /// </remarks>
+[SupportedOSPlatform("windows10.0.17763")]
 public sealed class WinCursorService : ICursorService
 {
-    /// <summary><see cref="WinNative.CURSORINFO"/> 構造体のマーシャリングサイズ（バイト）。</summary>
-    private static readonly int s_cursorInfoSize = Marshal.SizeOf<WinNative.CURSORINFO>();
-
     /// <summary>マウスポインターの表示状態（Win32 の表示カウンタとの整合を保つための追跡値）。</summary>
     private bool _cursorVisible = true;
 
@@ -34,10 +36,10 @@ public sealed class WinCursorService : ICursorService
     public WinCursorService()
     {
         // Win32 の表示カウンタと状態追跡を同期する（初期状態の実態を取得）
-        var info = new WinNative.CURSORINFO { cbSize = s_cursorInfoSize };
-        if (WinNative.GetCursorInfo(ref info))
+        var info = new CURSORINFO { cbSize = (uint)Marshal.SizeOf<CURSORINFO>() };
+        if (PInvoke.GetCursorInfo(ref info))
         {
-            _cursorVisible = (info.flags & WinNative.CURSOR_SHOWING) != 0;
+            _cursorVisible = (info.flags & CURSORINFO_FLAGS.CURSOR_SHOWING) != 0;
         }
     }
 
@@ -53,7 +55,7 @@ public sealed class WinCursorService : ICursorService
     /// </remarks>
     public bool TryGetCursorScreenPoint(out EsPointInt point)
     {
-        if (WinNative.GetCursorPos(out var pt))
+        if (PInvoke.GetCursorPos(out var pt))
         {
             point = new EsPointInt(pt.X, pt.Y);
             return true;
@@ -69,7 +71,7 @@ public sealed class WinCursorService : ICursorService
 
     /// <inheritdoc/>
     /// <remarks>nudge（カーソルキーによる選択の移動）で使用する。</remarks>
-    public bool TrySetCursorScreenPoint(EsPointInt point) => WinNative.SetCursorPos(point.X, point.Y);
+    public bool TrySetCursorScreenPoint(EsPointInt point) => PInvoke.SetCursorPos(point.X, point.Y);
 
     // ====================================================================
     // カーソル表示/非表示
@@ -87,6 +89,6 @@ public sealed class WinCursorService : ICursorService
     {
         if (_cursorVisible == show) return;
         _cursorVisible = show;
-        WinNative.ShowCursor(show);
+        _ = PInvoke.ShowCursor(show);
     }
 }

@@ -31,7 +31,7 @@ public class MarqueeControlTests
 
     /// <summary>カーソルサービスを注入してテスト用の MarqueeControl を生成する。</summary>
     /// <param name="cursorService">カーソルサービス（GetCursorScreenPoint が固定位置を返すモック）。</param>
-    private static MarqueeControl CreateControl(ICursorService? cursorService)
+    private static MarqueeControl CreateControl(ICursorService cursorService)
         => new(cursorService) { Width = 200, Height = 200, Options = TestOptions };
 
     /// <summary>テスト用の設定（最小サイズを 10 にしてドラッグ判定をしやすくする）。</summary>

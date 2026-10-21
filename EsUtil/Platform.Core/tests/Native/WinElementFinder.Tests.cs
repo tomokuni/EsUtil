@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native.Win;
 using Xunit;
@@ -15,6 +16,7 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// <see cref="WinElementFinder"/> は Win32 へ直接問い合わせるため、モックを介さず実実装を検証する。
 /// </remarks>
 [Collection("Win32")]
+[SupportedOSPlatform("windows10.0.17763")]
 public class WinElementFinderTests
 {
     /// <summary>テスト対象のファインダーを生成する。</summary>

@@ -3,6 +3,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
+using Windows.Win32;
+using Windows.Win32.System.Com;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
@@ -19,9 +21,10 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// （<c>CreateStreamOnHGlobal</c>）で行い、ファイルは <see cref="File"/> で読む・書く（実測: 直後の削除が成功する）。<br/>
 /// <b>ジェネリックで包まない理由</b>: <c>(T)GetOrCreateObjectForComInstance(...)</c> のように型引数へキャストすると、
 /// Native AOT では型のメタデータが残らず <c>InvalidOperationException</c> になる（実測）。
-/// <b>インターフェイス型へ直接キャストする</b>こと。
+/// <b>インターフェイス型へ直接キャストする</b>こと。<br/>
+/// <b>COM の起動と WIC の GUID を本クラスが単一所有する</b>（初期化はプロセスで 1 回だけ行う）。
 /// </remarks>
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows10.0.17763")]
 internal static unsafe class WinWicFactory
 {
     /// <summary>COM のラッパーを作るための唯一のインスタンス。</summary>
@@ -30,6 +33,27 @@ internal static unsafe class WinWicFactory
     /// 複数作ると同じ COM オブジェクトが別のラッパーになる（参照の数え方が分からなくなる）。
     /// </remarks>
     internal static readonly StrategyBasedComWrappers Wrappers = new();
+
+    /// <summary>WIC のイメージング ファクトリの CLSID。</summary>
+    private static readonly Guid s_imagingFactoryClsid = new("CACAF262-9370-4615-A13B-9F5539DA4C0A");
+
+    /// <summary>WIC のイメージング ファクトリの IID。</summary>
+    private static readonly Guid s_imagingFactoryIid = new("EC5EC8A9-C395-4314-9C77-54D7A935FF70");
+
+    /// <summary>32bpp の BGRA（アルファ乗算なし）。</summary>
+    internal static readonly Guid PixelFormat32bppBgra = new("6FDDC324-4E03-4BFE-B185-3D77768DC90F");
+
+    /// <summary>32bpp の BGRA（アルファ乗算済み）。</summary>
+    internal static readonly Guid PixelFormat32bppPBgra = new("6FDDC324-4E03-4BFE-B185-3D77768DC910");
+
+    /// <summary>24bpp の BGR（アルファを持てない形式向け）。</summary>
+    internal static readonly Guid PixelFormat24bppBgr = new("6FDDC324-4E03-4BFE-B185-3D77768DC90C");
+
+    /// <summary>8bpp のインデックス カラー（パレット）。</summary>
+    internal static readonly Guid PixelFormat8bppIndexed = new("6FDDC324-4E03-4BFE-B185-3D77768DC904");
+
+    /// <summary>COM を初期化済みかどうか。</summary>
+    private static bool s_comInitialized;
 
     /// <summary>HRESULT が失敗であれば例外を送出する。</summary>
     /// <param name="hr">HRESULT。</param>
@@ -43,20 +67,44 @@ internal static unsafe class WinWicFactory
         }
     }
 
+    /// <summary>COM を初期化する（1 回だけ呼ぶ）。</summary>
+    /// <returns>初期化できた場合は true。 既に別のモデルで初期化済みの場合も true。</returns>
+    /// <remarks>
+    /// <c>RPC_E_CHANGED_MODE</c>（0x80010106）は「既に初期化済み」を表すため、成功として扱う
+    /// （WIC は呼び出し側のアパートメントに依存しない。 実測で問題なく動作した）。
+    /// </remarks>
+    internal static bool EnsureInitialized()
+    {
+        if (s_comInitialized)
+        {
+            return true;
+        }
+
+        const int ChangedMode = unchecked((int)0x80010106);
+        var hr = PInvoke.CoInitializeEx(null, COINIT.COINIT_APARTMENTTHREADED).Value;
+        if (hr != ChangedMode && hr < 0)
+        {
+            return false;
+        }
+
+        s_comInitialized = true;
+        return true;
+    }
+
     /// <summary>WIC のイメージング ファクトリを生成する。</summary>
     /// <returns>生成したファクトリ。 生成できなかった場合は null。</returns>
     internal static IWICImagingFactory? CreateFactory()
     {
-        if (!WinNative.EnsureInitialized())
+        if (!EnsureInitialized())
         {
             return null;
         }
 
-        var hr = WinNative.CoCreateInstance(
-            WinNative.WicImagingFactoryClsid,
+        var hr = WinWicNative.CoCreateInstance(
+            s_imagingFactoryClsid,
             IntPtr.Zero,
             1 /* CLSCTX_INPROC_SERVER */,
-            WinNative.WicImagingFactoryIid,
+            s_imagingFactoryIid,
             out var instance);
         return hr >= 0 && instance != IntPtr.Zero
             ? (IWICImagingFactory)Wrappers.GetOrCreateObjectForComInstance(instance, CreateObjectFlags.None)
@@ -69,7 +117,7 @@ internal static unsafe class WinWicFactory
     internal static IStream CreateMemoryStream()
     {
         ThrowIfFailed(
-            WinNative.CreateStreamOnHGlobal(IntPtr.Zero, 1 /* 解放時に領域も解放する */, out var instance),
+            WinWicNative.CreateStreamOnHGlobal(IntPtr.Zero, 1 /* 解放時に領域も解放する */, out var instance),
             "メモリ ストリームを作成できませんでした。");
         return (IStream)Wrappers.GetOrCreateObjectForComInstance(instance, CreateObjectFlags.None);
     }

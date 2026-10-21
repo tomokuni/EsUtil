@@ -3,14 +3,14 @@ using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Native;
 
-/// <summary><see cref="WinNative.KeyToWin32VirtualKey"/>（仮想キーコードの変換表）の単体テスト。</summary>
+/// <summary><see cref="WinVirtualKey.KeyToWin32VirtualKey"/>（仮想キーコードの変換表）の単体テスト。</summary>
 /// <remarks>
 /// <b>検証の目的</b>: <c>RegisterHotKey</c> の vk へ渡す値が Win32 の仮想キーコードとして正しいこと。<br/>
 /// 序数（<c>(uint)key</c>）を返すと<b>無言で別のキーが登録される</b>（実測: 以前は <c>PrintScreen</c> の序数 89 = <c>0x59</c> = <c>Y</c> が<br/>
 /// 登録されていた）ため、表に無いキーは <c>0</c>（登録できない値）であることを固定する。<br/>
 /// 期待値は Win32 の <c>VK_*</c> 定義（WinUI 3 の <c>Windows.System.VirtualKey</c> は同じ値であることを実測で確認済み）に基づく。
 /// </remarks>
-public class WinNativeKeyTests
+public class WinVirtualKeyTests
 {
     /// <summary>代表的なキーが正しい仮想キーコードへ変換されることを検証する。</summary>
     /// <remarks>族ごとに 1 件以上を含める（修飾キー・文字・数字・テンキー・F キー・記号・メディア・ブラウザー・IME）。</remarks>
@@ -81,7 +81,7 @@ public class WinNativeKeyTests
     [InlineData(EsKey.ImeConvert, 0x1C)]
     [InlineData(EsKey.KanaMode, 0x15)]
     internal void 変換_代表的なキーは仮想キーコードへ変換される(EsKey key, int expected)
-        => Assert.Equal((uint)expected, WinNative.KeyToWin32VirtualKey(key));
+        => Assert.Equal((uint)expected, WinVirtualKey.KeyToWin32VirtualKey(key));
 
     /// <summary>対応する仮想キーコードが無いキーは 0（登録できない値）を返すことを検証する。</summary>
     /// <remarks>
@@ -99,23 +99,23 @@ public class WinNativeKeyTests
     [InlineData(EsKey.MediaTvGuide)]
     [InlineData(EsKey.MediaPreviousChannel)]
     internal void 変換_対応表に無いキーは0を返す(EsKey key)
-        => Assert.Equal(0u, WinNative.KeyToWin32VirtualKey(key));
+        => Assert.Equal(0u, WinVirtualKey.KeyToWin32VirtualKey(key));
 
     /// <summary>未定義値（列挙に無い数値）でも例外にならず 0 を返すことを検証する。</summary>
     [Fact]
     internal void 変換_未定義値は0を返す()
-        => Assert.Equal(0u, WinNative.KeyToWin32VirtualKey((EsKey)9999));
+        => Assert.Equal(0u, WinVirtualKey.KeyToWin32VirtualKey((EsKey)9999));
 
     /// <summary>同じキーを表す別名が同じ仮想キーコードへ変換されることを検証する。</summary>
     /// <remarks>Win32 では <c>VK_CAPITAL</c> に <c>CapsLock</c> / <c>Capital</c> の 2 名がある（対称性の確認）。</remarks>
     [Fact]
     internal void 変換_別名は同じ値になる()
     {
-        Assert.Equal(WinNative.KeyToWin32VirtualKey(EsKey.CapsLock), WinNative.KeyToWin32VirtualKey(EsKey.Capital));
-        Assert.Equal(WinNative.KeyToWin32VirtualKey(EsKey.Return), WinNative.KeyToWin32VirtualKey(EsKey.Enter));
-        Assert.Equal(WinNative.KeyToWin32VirtualKey(EsKey.PageUp), WinNative.KeyToWin32VirtualKey(EsKey.Prior));
-        Assert.Equal(WinNative.KeyToWin32VirtualKey(EsKey.OemSemicolon), WinNative.KeyToWin32VirtualKey(EsKey.Oem1));
-        Assert.Equal(WinNative.KeyToWin32VirtualKey(EsKey.OemBackslash), WinNative.KeyToWin32VirtualKey(EsKey.Oem102));
+        Assert.Equal(WinVirtualKey.KeyToWin32VirtualKey(EsKey.CapsLock), WinVirtualKey.KeyToWin32VirtualKey(EsKey.Capital));
+        Assert.Equal(WinVirtualKey.KeyToWin32VirtualKey(EsKey.Return), WinVirtualKey.KeyToWin32VirtualKey(EsKey.Enter));
+        Assert.Equal(WinVirtualKey.KeyToWin32VirtualKey(EsKey.PageUp), WinVirtualKey.KeyToWin32VirtualKey(EsKey.Prior));
+        Assert.Equal(WinVirtualKey.KeyToWin32VirtualKey(EsKey.OemSemicolon), WinVirtualKey.KeyToWin32VirtualKey(EsKey.Oem1));
+        Assert.Equal(WinVirtualKey.KeyToWin32VirtualKey(EsKey.OemBackslash), WinVirtualKey.KeyToWin32VirtualKey(EsKey.Oem102));
     }
 
     /// <summary>表に載せたキーが重複した仮想キーコードへ無秩序に潰れていないことを検証する。</summary>
@@ -129,13 +129,13 @@ public class WinNativeKeyTests
         var letters = new List<uint>();
         foreach (var c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
         {
-            letters.Add(WinNative.KeyToWin32VirtualKey(Enum.Parse<EsKey>(c.ToString())));
+            letters.Add(WinVirtualKey.KeyToWin32VirtualKey(Enum.Parse<EsKey>(c.ToString())));
         }
 
         var digits = new List<uint>();
         for (var i = 0; i <= 9; i++)
         {
-            digits.Add(WinNative.KeyToWin32VirtualKey(Enum.Parse<EsKey>("D" + i)));
+            digits.Add(WinVirtualKey.KeyToWin32VirtualKey(Enum.Parse<EsKey>("D" + i)));
         }
 
         Assert.Equal(26, letters.Distinct().Count());

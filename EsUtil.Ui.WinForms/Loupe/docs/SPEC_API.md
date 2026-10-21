@@ -1,6 +1,6 @@
 # EsUtil.Ui.WinForms.Loupe API リファレンス
 
-`EsUtil.Ui.WinForms.Loupe`（WinForms 版ルーペ コントロール）の公開 API を記載します。 対象フレームワークは `net10.0-windows`、名前空間は `EsUtil.Ui.WinForms.Loupe` です。
+`EsUtil.Ui.WinForms.Loupe`（WinForms 版ルーペ コントロール）の公開 API を記載します。 対象フレームワークは `net10.0-windows10.0.17763.0`、名前空間は `EsUtil.Ui.WinForms.Loupe` です。
 
 ## 目次 <!-- omit from toc -->
 
@@ -163,7 +163,7 @@ loupe.DrawPlanResolver = static plan => plan with { CrosshairPixelRects = [new E
 
 ## 7. 制限事項
 
-- **Windows 専用**です（`System.Drawing` を使うため）。 対象フレームワークは `net10.0-windows` です。
+- **Windows 専用**です（`System.Drawing` を使うため）。 対象フレームワークは `net10.0-windows10.0.17763.0` です。
 - **透明を画面へ伝えられません**: ペーストボード（画像外の色）を非表示（`ShowPasteboard = false`）にすると、描画面は置き換えられず**下地（コントロールの `BackColor`）**が見えます。 他の UI のように親の内容が透けることはありません。
 - **コントロール自身は位置を持ちません**: 表示位置と表示サイズはホストが `ResolveLayout` の結果で決めます。
 - **拡大元画像は借用です**: ホストが破棄した画像を描画しようとした場合、画像の層は描かれず下地のみが残ります（例外は記録され、アプリは継続します）。

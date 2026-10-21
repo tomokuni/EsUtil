@@ -1,52 +1,20 @@
-using System.Runtime.InteropServices;
-
 namespace EsUtil.Platform.Core.Native.Win;
 
-// 本ファイルはグローバル ホットキー（user32.dll）の宣言とキー変換を集約する。 型の説明は WinNative.cs を参照する。
-internal static partial class WinNative
+
+/// <summary>UI 非依存の <see cref="EsKey"/> を Win32 の仮想キーコードへ変換する。</summary>
+/// <remarks>
+/// <b>変換表を本クラスが単一所有する理由</b>: <c>RegisterHotKey</c> の <c>vk</c> は Win32 の仮想キーコードであり、
+/// UI フレームワークのキー列挙（<see cref="EsKey"/>。 Avalonia の <c>Key</c> と同名）の序数とは別体系である。
+/// 変換を各 UI 版へ複製すると、片方だけ直したときに<b>別のキーが登録される</b>。<br/>
+/// <b>対応表に無いキーへ序数（<c>(uint)key</c>）を返さない</b>: 無言で別のキーが登録される
+/// （実測: 以前は <c>PrintScreen</c> の序数 89 = <c>0x59</c> = <c>Y</c> が登録されていた）。
+/// 未対応は <c>0</c> として失敗させる（呼び出し側が記録する）。
+/// </remarks>
+internal static class WinVirtualKey
 {
-
-    // ============================================================
-    // 定数（ホットキー）
-    // ============================================================
-
-    /// <summary>WM_HOTKEY: グローバルホットキーが押下されたときに送られるメッセージ。</summary>
-    internal const uint WM_HOTKEY = 0x0312;
-
-    // ============================================================
-    // user32.dll — ホットキー
-    // ============================================================
-
-    /// <summary>グローバルホットキーを登録する（user32.RegisterHotKey）。</summary>
-    /// <param name="hWnd">ホットキー通知を受け取るウィンドウのハンドル。</param>
-    /// <param name="id">ホットキーの識別子。</param>
-    /// <param name="fsModifiers">修飾キーのフラグ（MOD_ALT / MOD_CONTROL / MOD_SHIFT / MOD_WIN）。</param>
-    /// <param name="vk">仮想キーコード。</param>
-    /// <returns>成功した場合は <see langword="true"/>。</returns>
-    [LibraryImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, uint vk);
-
-    /// <summary>グローバルホットキーを解除する（user32.UnregisterHotKey）。</summary>
-    /// <param name="hWnd">ホットキーを登録したウィンドウのハンドル。</param>
-    /// <param name="id">解除するホットキーの識別子。</param>
-    /// <returns>成功した場合は <see langword="true"/>。</returns>
-    [LibraryImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool UnregisterHotKey(IntPtr hWnd, int id);
-
-    /// <summary>UI 非依存の <see cref="EsKey"/> を Win32 仮想キーコードへ変換する。</summary>
-    /// <param name="key">変換対象のキー。</param>
-    /// <returns>
-    /// 対応する Win32 仮想キーコード。 対応するコードが無いキー（<c>LineFeed</c> / <c>System</c> / <c>DeadCharProcessed</c> /<br/>
-    /// <c>Fn*</c> / メディアの一部（<c>MediaHome</c> 等））は <c>0</c>（<c>RegisterHotKey</c> が失敗する値 = 登録できない）。
-    /// </returns>
-    /// <remarks>
-    /// <c>RegisterHotKey</c> の vk パラメータに渡すために使用する。<br/>
-    /// <b>対応表に無いキーへ序数（<c>(uint)key</c>）を返さない</b>: 序数は仮想キーコードと別体系であり、<br/>
-    /// 無言で<b>別のキーが登録される</b>（実測: 以前は <c>PrintScreen</c> の序数 89 = <c>0x59</c> = <c>Y</c> が登録され、<br/>
-    /// <c>Sleep</c> の序数 65 = <c>0x41</c> = <c>A</c> が登録されていた）。 未対応は <c>0</c> として失敗させる（呼び出し側が記録する）。
-    /// </remarks>
+    /// <summary>キーを Win32 の仮想キーコードへ変換する。</summary>
+    /// <param name="key">変換するキー。</param>
+    /// <returns>仮想キーコード。 対応するコードが無いキーは <c>0</c>（<c>RegisterHotKey</c> が失敗する値）。</returns>
     internal static uint KeyToWin32VirtualKey(EsKey key) => key switch
     {
         EsKey.None => 0x00,

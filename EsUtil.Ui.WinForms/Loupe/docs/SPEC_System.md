@@ -31,12 +31,12 @@
 
 | 区分 | 採用技術 |
 | --- | --- |
-| 対象フレームワーク | .NET 10（`net10.0-windows`。 `UseWindowsForms` により Windows 専用） |
+| 対象フレームワーク | .NET 10（`net10.0-windows10.0.17763.0`。 `UseWindowsForms` により Windows 専用） |
 | 言語 | C# 14 |
 | UI フレームワーク | Windows Forms（基底クラスは `System.Windows.Forms.Control`） |
 | 描画 | System.Drawing（GDI+。 描画実装 `LoupeGraphicsPainter` が `Graphics` へ描く） |
 | 依存パッケージ | `EsUtil.Feature.Loupe.Presenter` / `EsUtil.Platform.Core` / `Microsoft.Extensions.Logging.Abstractions` |
-| 参照しないパッケージ | **SkiaSharp**（`SkiaSharp.Views.WindowsForms`（4.153.1）は `net10.0-windows10.0.19041` 向けの資産のみを持ち、`net10.0-windows` では .NET Framework 向けの資産へフォールバックして復元に失敗する。 実測 `NU1701`） / `EsUtil.Platform.Core.Windows`（UI 層からは参照できないため、必要な画像変換を `Internal` へ複製する） |
+| 参照しないパッケージ | **SkiaSharp**（`SkiaSharp.Views.WindowsForms`（4.153.1）は `net10.0-windows10.0.19041` 向けの資産のみを持ち、`net10.0-windows10.0.17763.0` では .NET Framework 向けの資産へフォールバックして復元に失敗する。 実測 `NU1701`） / `EsUtil.Platform.Core.Windows`（UI 層からは参照できないため、必要な画像変換を `Internal` へ複製する） |
 
 ## 3. アーキテクチャ
 
@@ -189,7 +189,7 @@ sequenceDiagram
 
 | 判断 | 理由 |
 | --- | --- |
-| **SkiaSharp を使わず GDI+ で描く** | `SkiaSharp.Views.WindowsForms`（4.153.1）は `net10.0-windows10.0.19041` 向けの資産のみを持ち、`net10.0-windows` では .NET Framework 向けの資産へフォールバックして復元に失敗する（実測 `NU1701`）。 対象フレームワークの方針（WinForms は Windows の版を含めない）と併せ、WinForms 自身の描画 API で描く |
+| **SkiaSharp を使わず GDI+ で描く** | `SkiaSharp.Views.WindowsForms`（4.153.1）は `net10.0-windows10.0.19041` 向けの資産のみを持ち、`net10.0-windows10.0.17763.0` では .NET Framework 向けの資産へフォールバックして復元に失敗する（実測 `NU1701`）。 対象フレームワークの方針（WinForms は Windows の版を含めない）と併せ、WinForms 自身の描画 API で描く |
 | **描画実装を `Graphics` を受け取る独立クラスにする** | 描画の検証（画素）を `Bitmap` とその描画面で行えるため（ウィンドウもメッセージ ループも不要）。 計画を渡すだけの層であるため、UI の初期化なしに並列で検証できる |
 | **ラベルも描画実装が描く** | WinForms の子コントロールは半透明の背景を持てない（既定の背景色は黒 60%）。 要素として置くと背景のアルファを再現できないため、計画の配置指示（`DipRect` は DIP）を倍率で換算して描画面へ描く |
 | **透明なペーストボードは描画面を置き換えない** | WinForms は画面へアルファを伝えられないため、透明は「下地（コントロールの背景色）を見せる」ことを意味する。 透明で塗ると未定義の下地が残る。 下地はフレームワークが毎フレーム塗るため、前のフレームは残らない |

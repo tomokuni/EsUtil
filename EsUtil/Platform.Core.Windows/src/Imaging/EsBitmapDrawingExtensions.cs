@@ -30,7 +30,6 @@ public static class EsBitmapDrawingExtensions
     /// 読み取り専用の画像へ直接 1 回だけ書き込む（コピーの回数がそのまま所要と確保量の差になる）。<br/>
     /// System.Drawing は Windows 専用のため、本メソッドは Windows でのみ利用可能。
     /// </remarks>
-    [SupportedOSPlatform("windows")]
     public static EsReadOnlyBitmap ToEsReadOnlyBitmap(this DrawingBitmap bitmap)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
@@ -47,7 +46,6 @@ public static class EsBitmapDrawingExtensions
     /// System.Drawing は Windows 専用のため、本メソッドは Windows でのみ利用可能。<br/>
     /// 全行をコピーする場合は生成時の 0 埋めを省く（大きなキャプチャ画像の書き込み量を減らす）。
     /// </remarks>
-    [SupportedOSPlatform("windows")]
     public static EsBitmap ToEsBitmap(this DrawingBitmap bitmap)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
@@ -79,7 +77,6 @@ public static class EsBitmapDrawingExtensions
     /// <param name="bitmap">対象の画像。 借用であり破棄しない。</param>
     /// <returns>変換された System.Drawing.Bitmap。</returns>
     /// <remarks>System.Drawing は Windows 専用のため、本メソッドは Windows でのみ利用可能。</remarks>
-    [SupportedOSPlatform("windows")]
     public static DrawingBitmap ToDrawingBitmap(this EsReadOnlyBitmap bitmap)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
@@ -102,7 +99,6 @@ public static class EsBitmapDrawingExtensions
     /// <summary>System.Drawing.Bitmap を読み取り専用でロックする。</summary>
     /// <param name="bitmap">対象の Bitmap。</param>
     /// <returns>ロックしたピクセル データ。 使い終わったら <c>UnlockBits</c> する。</returns>
-    [SupportedOSPlatform("windows")]
     private static DrawingBitmapData Lock(DrawingBitmap bitmap)
         => bitmap.LockBits(
             new DrawingRect(0, 0, bitmap.Width, bitmap.Height),
@@ -117,7 +113,6 @@ public static class EsBitmapDrawingExtensions
     /// <b>上書きされない右端を透明にする</b>: 元の行幅がコピー先より小さい場合は、行ごとに不足する分を 0 にする
     /// （元の Bitmap の仕様上ありうる。 行単位のコピーでは覆われない領域が残るため）。
     /// </remarks>
-    [SupportedOSPlatform("windows")]
     private static void CopyFromBitmap(DrawingBitmap bitmap, Span<byte> destination, int dstStride)
     {
         var data = Lock(bitmap);
@@ -145,7 +140,6 @@ public static class EsBitmapDrawingExtensions
     /// <b>経路は 2 つ</b>: 行幅が一致する場合は連続領域として全領域を 1 回でコピーし、一致しない場合は行単位で
     /// コピーする。 行単位の場合、行の残り（<c>dstStride − min</c>）は呼び出し側が 0 にする。
     /// </remarks>
-    [SupportedOSPlatform("windows")]
     private static void CopyLocked(DrawingBitmapData data, Span<byte> destination, int dstStride, int height)
     {
         var srcStride = data.Stride;
@@ -174,7 +168,6 @@ public static class EsBitmapDrawingExtensions
     /// <param name="data">ロック済みのコピー先。</param>
     /// <param name="srcStride">コピー元の行幅（<c>幅 × 4</c>）。</param>
     /// <param name="height">コピーする行数。</param>
-    [SupportedOSPlatform("windows")]
     private static void CopyToLocked(EsReadOnlyBitmap bitmap, DrawingBitmapData data, int srcStride, int height)
     {
         var src = bitmap.ReadOnlyPixels;

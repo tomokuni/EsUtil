@@ -1,10 +1,11 @@
+using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native.Win;
 using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Native;
 
-/// <summary><see cref="WinCursorService"/> と <see cref="WinNative"/>（Win32 P/Invoke）の単体テスト。</summary>
+/// <summary><see cref="WinCursorService"/> の単体テスト（Win32 の呼び出しが例外にならないこと）。</summary>
 /// <remarks>
 /// Win32 API は実環境で動作するため、例外なく呼び出せることと状態追跡（ShowCursor の重複呼び出し抑制）を確認する。<br/>
 /// <see cref="WinCursorService"/> は UI スレッド（Dispatcher）に依存せず <c>PixelPoint</c> のみを扱うため、<br/>
@@ -13,6 +14,7 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// **カーソルを動かせない環境**（ロック中・非対話セッション）では、その 1 件をスキップする（環境要因を不合格にしない）。
 /// </remarks>
 [Collection("Win32")]
+[SupportedOSPlatform("windows10.0.17763")]
 public class WinCursorServiceTests
 {
     [Fact]
@@ -63,7 +65,7 @@ public class WinCursorServiceTests
     [Fact]
     internal void POINT_コンストラクタとプロパティ()
     {
-        var pt = new WinNative.POINT(10, 20);
+        var pt = new System.Drawing.Point(10, 20);
 
         Assert.Equal(10, pt.X);
         Assert.Equal(20, pt.Y);

@@ -89,7 +89,7 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 
 ```text
 EsUtil.Ui.MewUI/Loupe/sample/
-├── EsUtil.Ui.MewUI.Loupe.Sample.csproj  # サンプルアプリのプロジェクト（net10.0-windows / MewUI 0.21.1）
+├── EsUtil.Ui.MewUI.Loupe.Sample.csproj  # サンプルアプリのプロジェクト（net10.0-windows10.0.17763.0 / MewUI 0.21.1）
 ├── RunSample.bat                # リリースビルド＆起動
 ├── Program.cs                   # エントリポイント（バックエンドとプラットフォーム ホストの登録）
 ├── Imaging/
@@ -137,6 +137,6 @@ DIP で書いた寸法は計画が持つ倍率（`LoupeDrawPlan.ScaleDipToPixel`
 | 選択矩形の破線（ルーペ内） | `Rendered` の Skia キャンバスへ描く | `Rendered` の書き込み可能な画像のピクセルへ描く |
 | 再描画の要求 | `InvalidateVisual()`（プロパティ変更を伴わない再描画要求） | `RequestRender()`（同左。 計画の破棄を含む） |
 | 文字の描画 | 実寸測定（`MewUITextMeasure`）した結果を要素として置く | `Border` + `TextBlock`（`FormattedText`）を置く |
-| 実行ファイルの対象 | `net10.0-windows`（Win32 のウィンドウ連携を使う） | `net10.0-windows10.0.17763.0`（`Avalonia.Desktop` を使う） |
+| 実行ファイルの対象 | `net10.0-windows10.0.17763.0`（Win32 のウィンドウ連携を使う） | `net10.0-windows10.0.17763.0`（`Avalonia.Desktop` を使う） |
 
 `Clear()` / `RequestRender()` は Avalonia 版の `LoupeControl` の公開 API です（MewUI 版は中間ビットマップを持たず同期描画するため、同 API を持ちません）。 本サンプルは同じ結果になる操作（`IsVisible` + `Source` の解除、`InvalidateVisual()`）をボタンへ割り当てています。

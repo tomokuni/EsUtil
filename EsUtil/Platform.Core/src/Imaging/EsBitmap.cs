@@ -86,7 +86,7 @@ public sealed class EsBitmap : IDisposable
 
     /// <summary>保存に使える拡張子（値は <see cref="EsReadOnlyBitmap.SupportedFileExtensions"/> と同一）。</summary>
     /// <remarks>読み取り専用の画像からも保存できるため、基底と同じ値を本型でも公開する（どちらの権利の画像でも同じ一覧を使う）。</remarks>
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("windows10.0.17763")]
     public static IReadOnlyList<string> SupportedFileExtensions => WinWicImageCodec.SupportedExtensions;
 
     /// <summary>ファイルを読み込んで書き換え可能な画像を生成する。</summary>
@@ -98,7 +98,7 @@ public sealed class EsBitmap : IDisposable
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、または画像として解釈できない場合。</exception>
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("windows10.0.17763")]
     public static EsBitmap Load(string filePath)
         => new(EsBitmapBuffer.LoadFromFile(filePath));
 
@@ -114,7 +114,7 @@ public sealed class EsBitmap : IDisposable
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、または画像として解釈できない場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 未満の場合。</exception>
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("windows10.0.17763")]
     public static EsBitmap Load(string filePath, int maxSize)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(maxSize);
@@ -533,7 +533,7 @@ public sealed class EsBitmap : IDisposable
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("windows10.0.17763")]
     public void Save(string filePath) => _buffer.SaveToFile(filePath);
 
     /// <summary>本画像をファイルへ保存する（形式とオプションを指定できる。 読み取り専用の画像と同じ手順）。</summary>
@@ -548,7 +548,7 @@ public sealed class EsBitmap : IDisposable
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）、または <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("windows10.0.17763")]
     public void Save(string filePath, EsImageSaveOptions options) => _buffer.SaveToFile(filePath, options);
 
     /// <summary>画像の寸法を「幅x高さ」形式の文字列で返す（意味は <see cref="EsReadOnlyBitmap.ToSizeText"/> と同じ）。</summary>

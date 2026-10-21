@@ -16,7 +16,7 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// （同じ呼び出しを繰り返せること）。<br/>
 /// Win32 の資源を扱うため <see cref="Win32Group"/> で直列化する。
 /// </remarks>
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows10.0.17763")]
 [Collection("Win32")]
 public class WinCaptureServiceTests
 {

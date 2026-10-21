@@ -82,12 +82,12 @@ public sealed class MarqueeControl : Control
 
     /// <summary>ドラッグ矩形コントロールを既定構成で初期化する。</summary>
     public MarqueeControl()
-        : this(null)
+        : this(new WinCursorService())
     {
     }
 
     /// <summary>カーソルサービスを注入してドラッグ矩形コントロールを初期化する。</summary>
-    /// <param name="cursorService">カーソルサービス。 null の場合は Windows 既定実装を使用する。</param>
+    /// <param name="cursorService">カーソルサービス（Windows の既定実装を使う場合は <see cref="WinCursorService"/> を渡す）。</param>
     /// <remarks>
     /// 描画は自前で行い（<see cref="ControlStyles.UserPaint"/>）、ちらつきを抑えるため二重バッファリングする。<br/>
     /// 背景を透明にして下の画像を透かす（オーバーレイのための必須の設定）。<br/>
@@ -95,7 +95,7 @@ public sealed class MarqueeControl : Control
     /// フォーカスを失った時点で nudge を終了する（カーソルの非表示残留を防ぐ）。<br/>
     /// コアからの通知は公開イベントへ転送し、設定（<see cref="Options"/>）をファサードへ伝搬する。
     /// </remarks>
-    public MarqueeControl(ICursorService? cursorService)
+    public MarqueeControl(ICursorService cursorService)
     {
         SetStyle(
             ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw,
@@ -108,7 +108,7 @@ public sealed class MarqueeControl : Control
         // 矢印キー nudge のフォーカスと、ダブルクリック（確定/キャンセル）の検出に必要な設定。
         SetStyle(ControlStyles.Selectable | ControlStyles.StandardClick | ControlStyles.StandardDoubleClick, true);
 
-        _cursor = cursorService ?? new WinCursorService();
+        _cursor = cursorService;
         _effects = new Effects(this);
         _marquee = new MarqueePresenter(_effects, _cursor, _options);
         _marquee.Subscribe(OnNotified);

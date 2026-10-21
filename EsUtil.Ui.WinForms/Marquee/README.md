@@ -7,7 +7,7 @@
 
 `MarqueeControl`（リサイズ可能なドラッグ矩形）の **WinForms 版**です。 UI 非依存のコア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）を共有し、**描画と入力の受付だけ**を WinForms で実装します。
 
-対象フレームワークは `net10.0-windows`（`UseWindowsForms`）です。 描画は GDI+（`System.Drawing`）で行います。
+対象フレームワークは `net10.0-windows10.0.17763.0`（`UseWindowsForms`）です。 描画は GDI+（`System.Drawing`）で行います。
 
 ## 2. 特徴
 

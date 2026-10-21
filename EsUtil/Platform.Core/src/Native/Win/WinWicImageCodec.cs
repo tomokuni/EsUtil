@@ -21,7 +21,7 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <b>Windows 専用</b>: WIC は Windows でのみ利用可能（<see cref="SupportedOSPlatformAttribute"/> で限定）。<br/>
 /// <b>制限</b>: JPEG / BMP はアルファ（透明度）を保存できない（形式の仕様）。 透過を保つ場合は PNG を選ぶこと。
 /// </remarks>
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows10.0.17763")]
 internal static class WinWicImageCodec
 {
     /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
@@ -214,11 +214,11 @@ internal static class WinWicImageCodec
 
         if (indexed)
         {
-            var indexFormat = WinNative.WicPixelFormat8bppIndexed;
+            var indexFormat = WinWicFactory.PixelFormat8bppIndexed;
             WinWicFactory.ThrowIfFailed(
                 instance.SetPixelFormat(ref indexFormat),
                 $"減色した画像のピクセル形式を設定できませんでした（{ToPublicName(format)}）。");
-            if (indexFormat != WinNative.WicPixelFormat8bppIndexed)
+            if (indexFormat != WinWicFactory.PixelFormat8bppIndexed)
             {
                 throw new NotSupportedException(
                     $"この環境の {ToPublicName(format)} エンコーダーはパレット画像を書けません（{indexFormat}）。");
@@ -228,7 +228,7 @@ internal static class WinWicImageCodec
         }
         else
         {
-            var pixelFormat = WinNative.WicPixelFormat32bppPBgra;
+            var pixelFormat = WinWicFactory.PixelFormat32bppPBgra;
             WinWicFactory.ThrowIfFailed(
                 instance.SetPixelFormat(ref pixelFormat),
                 $"保存する画像のピクセル形式を設定できませんでした（{ToPublicName(format)}）。");
@@ -291,19 +291,19 @@ internal static class WinWicImageCodec
         IWICBitmapFrameEncode frame, int width, int height, ReadOnlySpan<byte> pixels, Guid pixelFormat,
         ImageFileFormat format)
     {
-        if (pixelFormat == WinNative.WicPixelFormat32bppPBgra)
+        if (pixelFormat == WinWicFactory.PixelFormat32bppPBgra)
         {
             WritePixelsCore(frame, height, width * EsReadOnlyBitmap.BytesPerPixel, pixels, format);
             return;
         }
 
-        if (pixelFormat == WinNative.WicPixelFormat32bppBgra)
+        if (pixelFormat == WinWicFactory.PixelFormat32bppBgra)
         {
             WritePixelsCore(frame, height, width * EsReadOnlyBitmap.BytesPerPixel, Unpremultiply(pixels), format);
             return;
         }
 
-        if (pixelFormat == WinNative.WicPixelFormat24bppBgr)
+        if (pixelFormat == WinWicFactory.PixelFormat24bppBgr)
         {
             WritePixelsCore(frame, height, width * 3, ToBgr24(pixels, width, height), format);
             return;
@@ -709,7 +709,7 @@ internal static class WinWicImageCodec
         // 回転（EXIF の向き）→ 縮小 → 画素形式の変換の順に挟む（拡大はしない）
         var oriented = WinWicFactory.ApplyOrientation(factory, frame);
         var scaled = WinWicFactory.Scale(factory, oriented, maxSize);
-        var source = WinWicFactory.Convert(factory, scaled, WinNative.WicPixelFormat32bppPBgra);
+        var source = WinWicFactory.Convert(factory, scaled, WinWicFactory.PixelFormat32bppPBgra);
 
         var (width, height) = WinWicFactory.GetSize(source);
         return create(width, height, destination => WinWicFactory.CopyPixels(source, width, height, destination));

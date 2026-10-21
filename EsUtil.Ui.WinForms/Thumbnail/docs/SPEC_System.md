@@ -25,13 +25,13 @@ WinForms 版のサムネイル一覧コントロールの構造・依存・設�
 - **配置と見た目は下の層が単一所有します**（`EsUtil.Feature.Thumbnail.Core` が並べ方、`EsUtil.Feature.Thumbnail.Presenter` が描画計画と外観）。
 - **本アセンブリが行うのは 3 つだけ**: 入力の受付、スクロール（`AutoScroll`）、GDI+ による描画。
 - **子コントロールを持ちません**（内容をすべて自分で描きます）。
-- 対象フレームワークは `net10.0-windows`（`UseWindowsForms`）です。
+- 対象フレームワークは `net10.0-windows10.0.17763.0`（`UseWindowsForms`）です。
 
 ## 2. 技術スタック
 
 | 種別 | 内容 |
 | --- | --- |
-| 言語 / フレームワーク | C# / .NET 10（`net10.0-windows`） |
+| 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.17763.0`） |
 | UI フレームワーク | WinForms（`ScrollableControl` を継承する） |
 | 描画 | GDI+（`System.Drawing.Graphics`。 `System.Drawing.Common` は WinForms と共に解決される） |
 | 参照パッケージ | `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core` |

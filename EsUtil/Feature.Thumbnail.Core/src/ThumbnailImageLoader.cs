@@ -23,7 +23,7 @@ namespace EsUtil.Feature.Thumbnail;
 /// <b>本層に置く理由</b>: 画素の型（<see cref="EsReadOnlyBitmap"/>）だけで完結して UI に依存せず、
 /// 「画像でなければ null」「上限は表示件数」という<b>一覧の意味論</b>を持つ（汎用の画像 API へ混ぜると意味が広がりすぎる）。
 /// </remarks>
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows10.0.17763")]
 public static class ThumbnailImageLoader
 {
     /// <summary>デコード結果のキャッシュ（キー: パス・要求サイズ・更新日時）。</summary>

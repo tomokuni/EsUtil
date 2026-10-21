@@ -1,24 +1,51 @@
 // CsWin32 が生成する Win32 API の一覧（.github/ビルド設定規約.md §7）。
 // 宣言を手で書かず、必要な API だけをここへ足す（足した API は PInvoke.* として internal に生成される）。
+// メッセージ番号・スタイル値などの定数も CsWin32 が生成するため、自前の const を書かずにここへ列挙する。
 // WIC などの COM は [GeneratedComInterface] が担うため、この一覧へは入れない。
 
+// --- プロセス・システム ---
 GetCurrentProcessId
 GetSystemMetrics
+SYSTEM_METRICS_INDEX
+
+// --- COM の起動 ---
+CoInitializeEx
+COINIT
+
+// --- DWM（影を除いた可視矩形・合成の完了待ち） ---
 DwmFlush
 DwmGetWindowAttribute
-CoInitializeEx
+DWMWINDOWATTRIBUTE
+
+// --- 画面キャプチャ（GDI） ---
 CreateCompatibleDC
 DeleteDC
 CreateDIBSection
 SelectObject
 DeleteObject
 BitBlt
+GetDC
+ReleaseDC
+BITMAPINFO
+BITMAPINFOHEADER
 BI_COMPRESSION
+DIB_USAGE
+ROP_CODE
+
+// --- カーソル ---
 GetCursorPos
 SetCursorPos
 ShowCursor
 GetCursorInfo
+CURSORINFO
+CURSORINFO_FLAGS
+
+// --- ウィンドウ（要素検出・配置・退避・キャプチャ除外） ---
 EnumWindows
+WNDENUMPROC
+EnumDisplayMonitors
+MONITORENUMPROC
+RECT
 GetWindowRect
 IsZoomed
 IsWindowVisible
@@ -28,26 +55,40 @@ GetClassName
 GetWindowTextLength
 GetWindowText
 GetWindowThreadProcessId
-EnumDisplayMonitors
 SetWindowPos
-ShowWindow
-PostMessage
-SetWindowDisplayAffinity
-GetDC
-ReleaseDC
-CURSORINFO
-RECT
-WINDOW_LONG_PTR_INDEX
 SET_WINDOW_POS_FLAGS
+ShowWindow
 SHOW_WINDOW_CMD
+PostMessage
+WM_CLOSE
+WM_SYSCOMMAND
+SC_MOVE
+SC_SIZE
+SetWindowDisplayAffinity
 WINDOW_DISPLAY_AFFINITY
-// テストが検証用のウィンドウを作るために使う（製品コードは自前のウィンドウを作らない。
-// 生成された宣言は internal であり、Native AOT の publish では未使用のため除かれる）。
-CreateWindowEx
-DestroyWindow
-SendMessage
+
+// --- ウィンドウ（拡張スタイル・サブクラス化） ---
 SetWindowLongPtrW
 GetWindowLongPtrW
+WINDOW_LONG_PTR_INDEX
+WINDOW_EX_STYLE
 SetWindowSubclass
 RemoveWindowSubclass
 DefSubclassProc
+SUBCLASSPROC
+WM_SETCURSOR
+WM_NCDESTROY
+HTCLIENT
+
+// --- グローバル ホットキー ---
+RegisterHotKey
+UnregisterHotKey
+HOT_KEY_MODIFIERS
+WM_HOTKEY
+
+// --- テストが検証用のウィンドウを作るために使う（製品コードは自前のウィンドウを作らない。
+//     生成された宣言は internal であり、Native AOT の publish では未使用のため除かれる） ---
+CreateWindowEx
+DestroyWindow
+SendMessage
+HWND_NOTOPMOST

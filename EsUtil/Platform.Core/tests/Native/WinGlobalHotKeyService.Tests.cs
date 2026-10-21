@@ -16,7 +16,7 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// サブクラス化が効いているかどうかが戻り値に現れる（<c>DefWindowProc</c> は 0 を返す）。<br/>
 /// <b>ウィンドウを作れない環境</b>: <c>CreateWindowEx</c> が失敗する場合は読み飛ばす。
 /// </remarks>
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows10.0.17763")]
 [Collection("Win32")]
 public class WinGlobalHotKeyServiceTests : IDisposable
 {
@@ -28,9 +28,7 @@ public class WinGlobalHotKeyServiceTests : IDisposable
     {
         if (_window != IntPtr.Zero)
         {
-#pragma warning disable CA1416 // 生成された宣言の「Windows 5.0 以降」は Windows 専用のテストの前提に含まれる
             _ = PInvoke.DestroyWindow((HWND)_window);
-#pragma warning restore CA1416
             _window = IntPtr.Zero;
         }
 
@@ -46,7 +44,7 @@ public class WinGlobalHotKeyServiceTests : IDisposable
 
         service.Initialize(hwnd);
 
-        Assert.Equal(1, SendMessage(hwnd, WinNative.WM_HOTKEY).Value);
+        Assert.Equal(1, SendMessage(hwnd, PInvoke.WM_HOTKEY).Value);
     }
 
     /// <summary>破棄するとサブクラス化が解除され、<c>WM_HOTKEY</c> が元の WndProc へ渡ることを検証する。</summary>
@@ -59,7 +57,7 @@ public class WinGlobalHotKeyServiceTests : IDisposable
 
         service.Dispose();
 
-        Assert.Equal(0, SendMessage(hwnd, WinNative.WM_HOTKEY).Value);
+        Assert.Equal(0, SendMessage(hwnd, PInvoke.WM_HOTKEY).Value);
     }
 
     /// <summary>ウィンドウ破棄（<c>WM_NCDESTROY</c>）でも例外にならないことを検証する。</summary>
@@ -69,10 +67,7 @@ public class WinGlobalHotKeyServiceTests : IDisposable
         var hwnd = CreateHiddenWindow();
         var service = new WinGlobalHotKeyService<string>();
         service.Initialize(hwnd);
-
-#pragma warning disable CA1416 // 生成された宣言の「Windows 5.0 以降」は Windows 専用のテストの前提に含まれる
         _ = PInvoke.DestroyWindow((HWND)hwnd);
-#pragma warning restore CA1416
         _window = IntPtr.Zero;
 
         // 破棄済みのウィンドウを解除しようとしても失敗するだけで、例外にはならない
@@ -85,16 +80,13 @@ public class WinGlobalHotKeyServiceTests : IDisposable
     /// <returns>ウィンドウ プロシージャの戻り値。</returns>
     private static LRESULT SendMessage(IntPtr hwnd, uint msg)
     {
-#pragma warning disable CA1416 // 生成された宣言の「Windows 5.0 以降」は Windows 専用のテストの前提に含まれる
         return PInvoke.SendMessage((HWND)hwnd, msg, default, default);
-#pragma warning restore CA1416
     }
 
     /// <summary>非表示の自前ウィンドウを作る（作れない環境では読み飛ばす）。</summary>
     /// <returns>作ったウィンドウのハンドル。</returns>
     private unsafe IntPtr CreateHiddenWindow()
     {
-#pragma warning disable CA1416 // 生成された宣言の「Windows 5.0 以降」は Windows 専用のテストの前提に含まれる
         _window = PInvoke.CreateWindowEx(
             WINDOW_EX_STYLE.WS_EX_TOOLWINDOW,
             "STATIC",
@@ -108,7 +100,6 @@ public class WinGlobalHotKeyServiceTests : IDisposable
             default,
             default,
             null);
-#pragma warning restore CA1416
 
         if (_window == IntPtr.Zero)
         {

@@ -16,7 +16,7 @@ WinForms 版のサムネイル一覧コントロールが提供する公開 API 
 
 ## 1. 前提条件
 
-- 対象フレームワークは `net10.0-windows` で、`UseWindowsForms` を有効にします。
+- 対象フレームワークは `net10.0-windows10.0.17763.0` で、`UseWindowsForms` を有効にします。
 - 画像は **`System.Drawing.Bitmap`** で受け取ります。 **渡した画像の所有権はコントロールへ移ります**（差し替え時と破棄時に解放します）。
 - 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Presenter` が単一所有します。 本コントロールは入力の受付・スクロール・描画（GDI+）だけを行います。
 - 単位は **DIP** です（`AutoScaleMode` は `Dpi` を前提とします）。

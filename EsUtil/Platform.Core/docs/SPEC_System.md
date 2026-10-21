@@ -59,18 +59,13 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/IElementFinder.cs` | 要素（ウィンドウ・スクリーン）検出の抽象 |
 | `EsUtil/Platform.Core/src/Native/ICursorOverrideGuard.cs` | カーソル上書き抑止の抽象 |
 | `EsUtil/Platform.Core/src/Native/IGlobalHotKeyService.cs` | グローバルホットキー管理の抽象 |
+| `EsUtil/Platform.Core/src/Native/Win/WinVirtualKey.cs` | `EsKey` → Win32 仮想キーコードの変換表（`RegisterHotKey` に渡す値。 対応表に無いキーは 0） |
 | `EsUtil/Platform.Core/src/Native/ElementFinderResults.cs` | 要素検出の結果（`readonly record struct`） |
-| `EsUtil/Platform.Core/src/Native/Win/WinNative.cs` | OS API（Win32 / WIC）の P/Invoke の宣言集約（internal）。 **本ファイルは複数の DLL で共有する構造体とヘルパーを持ち、宣言は DLL ごとの `partial` ファイルが持つ** |
-| `EsUtil/Platform.Core/src/Native/Win/WinNative.User32.cs` | user32 / comctl32 の呼び出し（カーソル・ウィンドウ・要素検出・画面キャプチャのデバイス コンテキスト・WndProc のサブクラス化。 **宣言はすべて CsWin32 が生成する**） |
-| `EsUtil/Platform.Core/src/Native/Win/WinNative.Gdi32.cs` | gdi32 の呼び出し（画面キャプチャの DIB と `BitBlt`。 **宣言は CsWin32 が生成する**） |
-| `EsUtil/Platform.Core/src/Native/Win/WinNative.DwmApi.cs` | dwmapi の宣言（影を除いた可視矩形・合成の完了待ち） |
-| `EsUtil/Platform.Core/src/NativeMethods.txt` | CsWin32 が生成する Win32 API の一覧（宣言を手で書かない。 kernel32 / user32 / gdi32 / dwmapi / ole32 の API と、使う列挙型・構造体を列挙する） |
-| `EsUtil/Platform.Core/src/Native/Win/WinNative.Kernel32.cs` | kernel32 の宣言（プロセス ID。 **CsWin32 の `PInvoke` を包む**） |
-| `EsUtil/Platform.Core/src/Native/Win/WinNative.HotKey.cs` | グローバル ホットキーの宣言（user32）とキー変換 |
-| `EsUtil/Platform.Core/src/Native/Win/WinNative.Wic.cs` | WIC の宣言（COM の起動・画素形式の GUID） |
-| `EsUtil/Platform.Core/src/Native/Win/WinWicInterfaces.cs` | WIC の呼び出しで共通に使う値（キャッシュ方法・補間・EXIF の名前） |
+| `EsUtil/Platform.Core/src/NativeMethods.txt` | **CsWin32 が生成する Win32 API と定数の唯一の一覧**（宣言を手で書かない。 user32 / gdi32 / dwmapi / comctl32 / kernel32 / ole32 の API と、メッセージ番号・スタイル値などのマクロ、使う列挙型・構造体を列挙する） |
+| `EsUtil/Platform.Core/src/Native/Win/Win32DllSearchPath.cs` | 本アセンブリの P/Invoke の探索先を `System32` に固定する宣言（`DefaultDllImportSearchPaths`） |
+| `EsUtil/Platform.Core/src/Native/Win/WinWicFactory.cs` | WIC の COM の生成と解放・COM の起動・画素形式の GUID・縮小・変換・回転・画素のコピーの補助 |
+| `EsUtil/Platform.Core/src/Native/Win/WinWicNative.cs` | 生ポインターを扱う COM の宣言（`CoCreateInstance` / `CreateStreamOnHGlobal`。 AOT で使えない投影型を避ける） |
 | `EsUtil/Platform.Core/src/Native/Win/IWICImagingFactory.cs` ほか WIC の型ごとのファイル | WIC の COM インターフェイス定義（`[GeneratedComInterface]`。 **宣言順が vtable の位置**） |
-| `EsUtil/Platform.Core/src/Native/Win/WinWicFactory.cs` | WIC の COM オブジェクトの生成・解放と、縮小・変換・回転・画素のコピーの補助 |
 | `EsUtil/Platform.Core/src/Native/Win/WinCaptureService.cs` | `ICaptureService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorService.cs` | `ICursorService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinWindowService.cs` | `IWindowService` の Windows 実装 |
@@ -163,11 +158,13 @@ graph LR
 
 ### 7.3 Win32 API の宣言と WndProc のサブクラス化
 
-**Win32 API の宣言は手で書きません**。 使う API は `src/NativeMethods.txt` に列挙し、**CsWin32（ソース生成）が `PInvoke` として生成**します（`Microsoft.Windows.CsWin32` は `PrivateAssets="all"` で参照し、**配布物へは入りません**）。 本プロジェクトのファイルは IntPtr を保つ薄い包みだけを持ちます。
+**Win32 API の宣言は手で書きません**。 使う API は `src/NativeMethods.txt` に列挙し、**CsWin32（ソース生成）が `PInvoke` として生成**します（`Microsoft.Windows.CsWin32` は `PrivateAssets="all"` で参照し、**配布物へは入りません**）。 **`Win*` 実装は `PInvoke` を直接呼びます**（宣言を包む中間クラスを持たない。 メッセージ番号・スタイル値などのマクロも CsWin32 が生成する）。
 
 | 項目 | 内容 |
 | --- | --- |
 | アーキテクチャ固有の API | `SetWindowLongPtrW` は **`NativeMethods.txt` へ `SetWindowLongPtrW` と書くだけでは生成できない**（実測: `SetWindowLongPtr` は存在せず、`SetWindowLongPtrW` は `PInvoke005`「AnyCPU 不可」）。 csproj の `<CsWin32PlatformTarget>x64</CsWin32PlatformTarget>` で `PInvoke.SetWindowLongPtr`（`nint`）が生成される（本アプリは x64 のみを配布する） |
+| 生成できない COM | `CoCreateInstance` の生成版は `out object`（クラシックな相互運用）で **Native AOT では使えない**。 生ポインターを受ける宣言だけを `WinWicNative.cs` に手書きし、`StrategyBasedComWrappers` で包む |
+| `CA1416` | **抑止しない**。 Windows 専用の型に `[SupportedOSPlatform("windows10.0.17763")]` を書く（本プロジェクトは可搬のため TFM で下限を表せない）。 **版なしの `"windows"` は下限を満たさず警告になる**（実測） |
 | `LibraryImport` を自作しない | CsWin32 の列挙型を引数に取る `LibraryImport` は `SYSLIB1051` で拒否される。 生成 API を包む関数を 1 つ置き、`CA1416`（「Windows 5.1 以降」の注記）はその関数の中で 1 回だけ抑止する |
 | サブクラス化 | **`SetWindowSubclass` / `DefSubclassProc` / `RemoveWindowSubclass`（comctl32）を使う**。 `SetWindowLongPtr(GWLP_WNDPROC)` は元のプロシージャを自前で保存・復元する必要があり、他のサブクラス化（ビジュアル スタイル等）と共存できない |
 | comctl32 v6 の要否 | **実測: アクティベーション コンテキスト（comctl32 v6）が無いプロセスでも動作する**（`SetWindowSubclass` が TRUE を返し、サブクラス プロシージャが実際に呼ばれた）。 そのためライブラリ側でマニフェストを要求しない |

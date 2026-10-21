@@ -132,22 +132,22 @@ public sealed class MarqueeControl : Panel
 
     /// <summary>ドラッグ矩形コントロールを既定構成で初期化する。</summary>
     public MarqueeControl()
-        : this(null)
+        : this(new WinCursorService())
     {
     }
 
     /// <summary>カーソルサービスを注入してドラッグ矩形コントロールを初期化する。</summary>
-    /// <param name="cursorService">カーソルサービス。 null の場合は Windows 既定実装を使用する。</param>
+    /// <param name="cursorService">カーソルサービス（Windows の既定実装を使う場合は <see cref="WinCursorService"/> を渡す）。</param>
     /// <remarks>
     /// 静止画として扱い連続再描画を無効化する（選択の変更時のみ再描画する）。<br/>
     /// フォーカスを失った時点で nudge を終了する（カーソルの非表示残留を防ぐ）。<br/>
     /// 矢印キーの nudge はフォーカスを必要とする（Avalonia 版の TopLevel 購読によるフォーカス非依存とは異なる）。<br/>
     /// コアからの通知は公開イベントへ転送し、設定（<see cref="Options"/>）をファサードへ伝搬する。
     /// </remarks>
-    public MarqueeControl(ICursorService? cursorService)
+    public MarqueeControl(ICursorService cursorService)
     {
         Focusable = true;
-        _cursor = cursorService ?? new WinCursorService();
+        _cursor = cursorService;
         _effects = new Effects(this);
         _marquee = new MarqueePresenter(_effects, _cursor, Options);
         _marquee.Subscribe(OnNotified);

@@ -138,7 +138,7 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
     /// または画像として解釈できない場合。</exception>
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("windows10.0.17763")]
     internal static EsBitmapBuffer LoadFromFile(string filePath)
         => Decode(filePath, 0);
 
@@ -153,7 +153,7 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
     /// または画像として解釈できない場合。</exception>
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("windows10.0.17763")]
     internal static EsBitmapBuffer LoadFromFile(string filePath, int maxSize)
         => Decode(filePath, maxSize);
 
@@ -166,7 +166,7 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <b>中間バッファを作らない</b>: デコードは確保した画素領域へ直接書く。<br/>
     /// <b><paramref name="maxSize"/> が 0 の場合は縮小しない</b>（WIC のスケーラーを作らない）。
     /// </remarks>
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("windows10.0.17763")]
     private static EsBitmapBuffer Decode(string filePath, int maxSize)
         => WinWicImageCodec.DecodeFromFile(filePath, maxSize, (width, height, fill) =>
         {
@@ -377,7 +377,7 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="EsReadOnlyBitmap.SupportedFileExtensions"/>）。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("windows10.0.17763")]
     internal void SaveToFile(string filePath) => SaveToFile(filePath, default);
 
     /// <summary>画素をファイルへ保存する（形式とオプションを指定できる。 公開面の <c>Save</c> の共通手順）。</summary>
@@ -395,7 +395,7 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// その形式で使えない項目が設定されている場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("windows10.0.17763")]
     internal void SaveToFile(string filePath, EsImageSaveOptions options)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);

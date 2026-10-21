@@ -34,7 +34,7 @@ dotnet run --project EsUtil.Ui.WinForms/Marquee/sample/EsUtil.Ui.WinForms.Marque
 
 ```powershell
 dotnet build EsUtil.Ui.WinForms/Marquee/sample/EsUtil.Ui.WinForms.Marquee.Sample.csproj
-EsUtil.Ui.WinForms/Marquee/sample/bin/Debug/net10.0-windows/EsUtil.Ui.WinForms.Marquee.Sample.exe
+EsUtil.Ui.WinForms/Marquee/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.WinForms.Marquee.Sample.exe
 ```
 
 DPI は Per-Monitor V2 で有効化しています（`Program.cs`）。 モニター間でウィンドウを移動すると、枠線・ハンドル・マーカーの画面上の大きさが保たれることを確認できます。

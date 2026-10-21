@@ -13,7 +13,7 @@ Windows Forms と EsUtil の型の相互変換が提供する公開 API です�
 
 ## 1. 前提条件
 
-- 対象フレームワークは `net10.0-windows` です（バージョンの範囲はプロジェクト ファイルが持つ）。
+- 対象フレームワークは `net10.0-windows10.0.17763.0` です（バージョンの範囲はプロジェクト ファイルが持つ）。
 - UI フレームワーク非依存の値型（`EsKey` / `EsPoint` / `EsRect` / `EsReadOnlyBitmap` など）は `EsUtil.Platform.Core` が提供します。
 - 変換は**拡張メソッド**として提供します（`using EsUtil.Ui.WinForms.Interop;` で使えます）。
 - 単位は **DIP** です（物理ピクセルを扱う API は名前で区別します）。

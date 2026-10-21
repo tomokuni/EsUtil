@@ -11,11 +11,11 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows`（`UseWindowsForms`。 Windows 専用） |
+| 対象フレームワーク | `net10.0-windows10.0.17763.0`（`UseWindowsForms`。 Windows 専用） |
 | 描画 API | GDI+（`System.Drawing`。 **SkiaSharp を使わない**） |
 | 評価版の制限 | なし（パッケージは `EsUtil.Feature.Loupe.Presenter` / `EsUtil.Platform.Core` と `Microsoft.Extensions.Logging.Abstractions` のみを参照する） |
 
-**SkiaSharp を使わない理由**: `SkiaSharp.Views.WindowsForms`（4.153.1）は `net10.0-windows10.0.19041` 向けの資産を持ち、`net10.0-windows`（= `net10.0-windows7.0`）では .NET Framework 向けの資産へフォールバックして復元に失敗します（実測: `NU1701`）。 対象フレームワークの方針（WinForms は Windows の版を含めない）と併せ、本プロジェクトは WinForms 自身の描画 API（GDI+）で描きます。
+**SkiaSharp を使わない理由**: `SkiaSharp.Views.WindowsForms`（4.153.1）は `net10.0-windows10.0.19041` 向けの資産を持ち、`net10.0-windows10.0.17763.0`（= `net10.0-windows7.0`）では .NET Framework 向けの資産へフォールバックして復元に失敗します（実測: `NU1701`）。 対象フレームワークの方針（WinForms は Windows の版を含めない）と併せ、本プロジェクトは WinForms 自身の描画 API（GDI+）で描きます。
 
 ## 3. インストール（プロジェクト参照）
 
@@ -125,7 +125,7 @@ loupe.Rendered += (_, e) =>
 | `EsUtil.Ui.WinForms/Loupe/README.md` | 本ファイル |
 | `EsUtil.Ui.WinForms/Loupe/docs/SPEC_API.md` | API リファレンス |
 | `EsUtil.Ui.WinForms/Loupe/docs/SPEC_System.md` | システム仕様書 |
-| `EsUtil.Ui.WinForms/Loupe/src/EsUtil.Ui.WinForms.Loupe.csproj` | ライブラリ（`net10.0-windows` / `UseWindowsForms`） |
+| `EsUtil.Ui.WinForms/Loupe/src/EsUtil.Ui.WinForms.Loupe.csproj` | ライブラリ（`net10.0-windows10.0.17763.0` / `UseWindowsForms`） |
 | `EsUtil.Ui.WinForms/Loupe/src/LoupeControl.cs` | コントロール（プロパティ・描画の入口・DPI 追従） |
 | `EsUtil.Ui.WinForms/Loupe/src/LoupeGraphicsPainter.cs` | 描画計画を GDI+ へ写す描画実装 |
 | `EsUtil.Ui.WinForms/Loupe/src/LoupeRenderedEventArgs.cs` | 描画完了の通知 |

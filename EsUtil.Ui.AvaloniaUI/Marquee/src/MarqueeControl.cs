@@ -98,22 +98,22 @@ public sealed partial class MarqueeControl : Panel
 
     /// <summary><see cref="MarqueeControl"/> の新しいインスタンスを初期化します（AXAML および既定構成向け）。</summary>
     /// <remarks>
-    /// カーソル操作は既定の Win32 実装（<see cref="WinCursorService"/>）で動作する。<br/>
+    /// カーソル操作は Win32 の既定実装（<see cref="WinCursorService"/>）を生成して動作する（Windows 専用）。<br/>
     /// nudge 後の再描画要求は本コントロール自身の <see cref="Avalonia.Visual.InvalidateVisual"/> に配線し、<br/>
     /// 矢印キーを受け取れるようフォーカス可能にする（自己完結・ホスト依存なし）。<br/>
     /// </remarks>
     public MarqueeControl()
-        : this(null)
+        : this(new WinCursorService())
     {
     }
 
     /// <summary>カーソルサービスを注入して初期化する。</summary>
-    /// <param name="cursorService">カーソルサービス。 null の場合は Windows 既定実装を使用する。</param>
+    /// <param name="cursorService">カーソルサービス（Windows の既定実装を使う場合は <see cref="WinCursorService"/> を渡す）。</param>
     /// <remarks>
     /// カーソルサービスの既定実装（Win32）の解決は UI 側で行い、コア（状態管理クラス）は抽象のみに依存する。<br/>
     /// コアからの通知は公開イベントへ転送し、設定（<see cref="Options"/>）をファサードへ伝搬する。
     /// </remarks>
-    public MarqueeControl(ICursorService? cursorService)
+    public MarqueeControl(ICursorService cursorService)
     {
         Focusable = true;
         // ヒットテストは「描画された内容」に対して行われるため、背景を持たない Panel は押下を一切受け取れない
@@ -121,7 +121,7 @@ public sealed partial class MarqueeControl : Panel
         // イベントは本コントロールまで届かない）。 透明の背景で全面を当たり判定の対象にする
         // （透明は描画結果を変えないため見た目には影響しない）。
         Background = Brushes.Transparent;
-        _cursor = cursorService ?? new WinCursorService();
+        _cursor = cursorService;
         _effects = new Effects(this);
         _marquee = new MarqueePresenter(_effects, _cursor, Options);
         _marquee.Subscribe(OnNotified);

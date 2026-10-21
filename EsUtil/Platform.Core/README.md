@@ -65,7 +65,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | 既に COM が初期化済みのプロセス | `CoInitializeEx` の `RPC_E_CHANGED_MODE`（`0x80010106`）は**成功として続行する** | 変更モードのプロセスでも全形式の保存と読み込みが成功した |
 | Native AOT | `[ComImport]` を使わず、`[GeneratedComInterface]`（ソース生成）+ `StrategyBasedComWrappers` で呼ぶ | `[ComImport]` + `Marshal.GetObjectForIUnknown` は `NotSupportedException` になった（実測） |
 
-**初期化を前倒しする公開 API はありません**（初期化は `WinNative` が単一所有しますが `internal` のため本アセンブリ専用です）。 コストを払うのは最初の `Save` / `Load` です。
+**初期化を前倒しする公開 API はありません**（初期化は `WinWicFactory` が単一所有しますが `internal` のため本アセンブリ専用です）。 コストを払うのは最初の `Save` / `Load` です。
 
 **WIC を選んだ理由**は、GDI+ が持っていた副作用（バックグラウンド スレッド +1・解放されない参照カウント・初回の遅延）を**引き受けずに済む**ことです。 代償は実装量です（COM インターフェイスの宣言を自前で持つため、`[ComImport]` を使う場合より宣言が増えます）。 判断の記録は [`docs/SPEC_System.md`](docs/SPEC_System.md) の「ファイル入出力の実装方式」を参照してください。
 

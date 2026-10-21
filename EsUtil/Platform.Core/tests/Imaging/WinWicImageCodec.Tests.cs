@@ -13,7 +13,7 @@ namespace EsUtil.Platform.Core.Tests.Imaging;
 /// <b>寸法で判定する理由</b>: 向き 6 / 8 は縦横が入れ替わるため、画素を比べなくても適用の有無が分かる
 /// （JPEG は非可逆であり画素の一致は期待できない）。
 /// </remarks>
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows10.0.17763")]
 public class WinWicImageCodecTests
 {
     /// <summary>一時ファイルのパスを作る。</summary>

@@ -1,3 +1,5 @@
+using System.Runtime.Versioning;
+using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.Shell;
 
@@ -17,6 +19,7 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// ホスト（アプリ）が生成して注入する（テストではモックを注入できる）。<br/>
 /// 継承不可。<br/>
 /// </remarks>
+[SupportedOSPlatform("windows10.0.17763")]
 public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
 {
     /// <summary>lParam 下位ワード（ヒットテスト結果）を取得するための 16bit マスク。</summary>
@@ -59,7 +62,7 @@ public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
         // サブクラス プロシージャは 1 回だけ作る（WM_SETCURSOR はマウス移動のたびに届く）
         var subclassProc = _subclassProc ??= WndProc;
         var id = ++s_lastSubclassId;
-        if (!WinNative.SetWindowSubclass(hwnd, subclassProc, id, 0))
+        if (!PInvoke.SetWindowSubclass((HWND)hwnd, subclassProc, id, 0))
         {
             // 失敗した状態を残さない（IsAttached を false に戻し、呼び出し側が判別できるようにする）
             return;
@@ -74,7 +77,7 @@ public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
     private void DetachCore(IntPtr hwnd)
     {
         if (_subclassProc is null) return;
-        _ = WinNative.RemoveWindowSubclass(hwnd, _subclassProc, _subclassId);
+        _ = PInvoke.RemoveWindowSubclass((HWND)hwnd, _subclassProc, _subclassId);
     }
 
     /// <summary>サブクラス化を解除する。</summary>
@@ -105,21 +108,21 @@ public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
     private LRESULT WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam, nuint uIdSubclass, nuint dwRefData)
     {
         // WM_NCDESTROY: ウィンドウ破棄の最終段階。 解除しないと comctl32 が本プロシージャへの参照を保持し続ける。
-        if (msg == WinNative.WM_NCDESTROY)
+        if (msg == PInvoke.WM_NCDESTROY)
         {
             DetachCore((IntPtr)hWnd);
             _hwnd = IntPtr.Zero;
             _subclassId = 0;
         }
         // WM_SETCURSOR: OS がカーソル形状を上書きしようとしたときに送られる。
-        else if (msg == WinNative.WM_SETCURSOR)
+        else if (msg == PInvoke.WM_SETCURSOR)
         {
             // lParam 下位ワード = ヒットテスト結果。 クライアント領域内のときのみ抑止する。
             int hitTest = (int)(nint)lParam & LowWordMask;
-            if (hitTest == WinNative.HTCLIENT)
+            if (hitTest == (int)PInvoke.HTCLIENT)
                 return (LRESULT)1; // 処理済み（TRUE）: OS によるカーソル上書きを抑止
         }
 
-        return WinNative.DefSubclassProc((IntPtr)hWnd, msg, (nint)(nuint)wParam, lParam);
+        return PInvoke.DefSubclassProc(hWnd, msg, wParam, lParam);
     }
 }

@@ -76,7 +76,7 @@ UI フレームワーク非依存のキー識別子。 **メンバー集合と�
 - **他のキー体系とは上位互換の関係**です。 `System.Windows.Input.Key`（.NET / WPF）と `Aprillz.MewUI.Key` は本型の**部分集合**です。
 - `Windows.System.VirtualKey`（WinUI 3 が使う WinRT 射影）は**名前が別体系**で、記号キー（`Oem*`）とメディア キー（`Volume*` / `Media*` / `Launch*`）を持たず、キー以外（マウス ボタン・ゲームパッド）が混在するため、本型の基盤にはしません。
 - **Avalonia 側には同じ値を持つ別名があります**（`Return` / `Enter`、`CapsLock` / `Capital`、`OemTilde` / `Oem3` 等）。 本型は値の指定が無い（連番）ため**重複を持ちません**。 別名の同一性は保てないため、**変換の契約は「キーの値が保たれる」**とします（**代表名へ正規化**され、どの名前が代表かは .NET が保証しません）。 なお順方向（本型 → Avalonia）では 2 つの別名が**同じ値へ衝突**するため、Avalonia 側から元の名前は復元できません。
-- **各 UI 実装は自身のキー型との相互変換を Interop 層で提供**します（名前ベース。 未定義値は `None`）。 Win32 の仮想キーコードへの変換は `Native.Win.WinNative.KeyToWin32VirtualKey` が単一所有します（未対応のキーは `0` = 登録できない値）。
+- **各 UI 実装は自身のキー型との相互変換を Interop 層で提供**します（名前ベース。 未定義値は `None`）。 Win32 の仮想キーコードへの変換は `Native.Win.WinVirtualKey.KeyToWin32VirtualKey` が単一所有します（未対応のキーは `0` = 登録できない値）。
 - **`Avalonia.Input.Key` への追随は往復テストが強制**します（実装側の Interop テスト。 双方向の名前集合一致・往復・未定義値）。
 
 ### 2.2 `EnumCanonical`（static class）
@@ -465,7 +465,7 @@ public readonly record struct ElementFinderResults(
 | `WinCursorOverrideGuard` | `ICursorOverrideGuard`（ロガーを持たない） |
 | `WinGlobalHotKeyService<T>` | `IGlobalHotKeyService<T>`（`T : notnull`。 ロガーを持たない） |
 
-`Native.Win.WinNative`（internal）が OS の API（`user32` / `gdi32` / `dwmapi` / `kernel32` / WIC）の P/Invoke と COM の宣言を集約します。 **本プロジェクトはログを出力しません**（`ILogger` を扱わないため。 失敗は例外または戻り値で返し、記録は呼び出し側が行います）。
+`Native.Win.Win*`（internal）の実装が OS の API（`user32` / `gdi32` / `dwmapi` / `kernel32` / WIC）の P/Invoke と COM の宣言を集約します。 **本プロジェクトはログを出力しません**（`ILogger` を扱わないため。 失敗は例外または戻り値で返し、記録は呼び出し側が行います）。
 
 ### 2.29 `Coord.ICoordTransform`（interface）
 
@@ -783,10 +783,10 @@ public readonly record struct ElementFinderResults(
       **NetVips** は pngquant と同じ libimagequant を積みますが**ネイティブが LGPL** です。
   - **減色を既定にしない理由**: 減色は**不可逆**であり、既定の `Save` の「見た目を変えずに書き出す」期待と衝突します。
     また効果は形式と内容に強く依存します（写真風の画像ほど小さくなります）。 明示した場合だけ行います。
-- **エンコード・デコードは WIC（`windowscodecs.dll` の COM）を直接呼びます**（宣言は `EsUtil/Platform.Core/src/Native/Win/WinNative.Wic.cs`、COM インターフェイスの定義は型ごとのファイル（`IWICImagingFactory.cs` など）、生成と解放は `WinWicFactory.cs` が集約。 `WinNative` は DLL ごとの `partial` ファイルに分かれます）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
+- **エンコード・デコードは WIC（`windowscodecs.dll` の COM）を直接呼びます**（宣言は `EsUtil/Platform.Core/src/Native/Win/WinWicFactory.cs`、COM インターフェイスの定義は型ごとのファイル（`IWICImagingFactory.cs` など）、生成と解放は `WinWicFactory.cs` が集約。 `WinNative` は DLL ごとの `partial` ファイルに分かれます）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
 - **本機能は Windows 専用です**: WIC は Windows にのみ存在します。 公開メンバー（`Save` / `Load` / `SupportedFileExtensions`）は `SupportedOSPlatform("windows")` で限定します。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、`EsUtil/Platform.Core/src/Native` だけが Windows に依存します）。
-- **COM の初期化は `WinNative` が単一所有します**（プロセスで 1 回だけ `CoInitializeEx` を呼び、`CLSID_WICImagingFactory` を都度生成します）。 **`RPC_E_CHANGED_MODE`（`0x80010106`）は成功として扱います**（既に別のモデルで初期化済みのプロセスでも動くことを実測で確認しました）。 **プロセス全体に及ぶ副作用はありません**（スレッドは増えず、解放されない参照カウントも取りません）。
-- **初期化を前倒しする公開 API は持ちません**: 初期化は `WinNative`（`internal`）が単一所有するため、ホストからは呼べません。 初期化のコストは最初の `Save` / `Load` が負担します。
+- **COM の初期化は `WinWicFactory` が単一所有します**（プロセスで 1 回だけ `CoInitializeEx` を呼び、`CLSID_WICImagingFactory` を都度生成します）。 **`RPC_E_CHANGED_MODE`（`0x80010106`）は成功として扱います**（既に別のモデルで初期化済みのプロセスでも動くことを実測で確認しました）。 **プロセス全体に及ぶ副作用はありません**（スレッドは増えず、解放されない参照カウントも取りません）。
+- **初期化を前倒しする公開 API は持ちません**: 初期化は `WinWicFactory`（`internal`）が単一所有するため、ホストからは呼べません。 初期化のコストは最初の `Save` / `Load` が負担します。
 - **`[ComImport]` を使いません（Native AOT のため）**: `[ComImport]` と `Marshal.GetObjectForIUnknown` の組み合わせは Native AOT で `NotSupportedException`（`COM Interop requires ComWrapper instance registered for marshalling.`）になります（実測）。 そのため **`[GeneratedComInterface]`（ソース生成）+ `StrategyBasedComWrappers` で呼びます**（AOT でも生成・呼び出し・画素の取得・保存まで動作することを実測済み）。 **メソッドの宣言順が vtable の位置（0〜2 は `IUnknown`）になる**ため、使わないメソッドも位置を合わせて宣言し、**推測して飛ばしません**（`IWICBitmapDecoder::GetFrame` は 13、`IWICBitmapFrameEncode::SetPixelFormat` は 6 など）。 **GUID は `wincodec.h` の `MIDL_INTERFACE` と一致させます**（1 文字でも違うと `InvalidCastException` になり原因が分かりにくい。 実測）。
 - **COM の解放は GC に任せ、COM にファイル ハンドルを持たせません（実測）**: Native AOT では `Marshal.ReleaseComObject` / `Marshal.FinalReleaseComObject` が `NotSupportedException`（`COM Interop is not supported on this platform.`）になります。 `StrategyBasedComWrappers` が作ったラッパーはファイナライズで参照を戻し、`GetOrCreateObjectForComInstance` は元の参照とは別に 1 つ数えるため**合計は作った数と一致します**（二重解放にならないことを実測）。 そのため **WIC にファイルを開かせません**（`IWICStream::InitializeFromFilename` を使うと解放までファイルが開いたままになり、保存直後の削除が `IOException` になった）。 読み書きは**メモリ ストリーム**（`CreateStreamOnHGlobal`）で行い、ファイルは `System.IO.File` が開いて閉じます（直後から削除も上書きもできることを実測）。
 - **エンコーダーのキャッシュは一時ファイル方式を使います（実測）**: `WICBitmapEncoderNoCache` を `IWICStream::InitializeFromFilename` のストリームへ渡すと `WINCODEC_ERR_UNSUPPORTEDOPERATION`（`0x88982F81`）で初期化に失敗します。 `WICBitmapEncoderCacheTempFile` は BMP / PNG / JPEG / GIF / TIFF のすべてで成功しました。

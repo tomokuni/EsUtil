@@ -88,7 +88,7 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 
 ```text
 EsUtil.Ui.MewUI/Marquee/sample/
-├── EsUtil.Ui.MewUI.Marquee.Sample.csproj  # サンプルアプリのプロジェクト（net10.0-windows / MewUI 0.21.1）
+├── EsUtil.Ui.MewUI.Marquee.Sample.csproj  # サンプルアプリのプロジェクト（net10.0-windows10.0.17763.0 / MewUI 0.21.1）
 ├── RunSample.bat                # リリースビルド＆起動
 ├── Program.cs                   # エントリポイント（バックエンドとプラットフォーム ホストの登録）
 ├── Imaging/
@@ -130,7 +130,7 @@ EsUtil.Ui.MewUI/Marquee/sample/
 | 表示領域のパン | 通常ホイール（`ScrollViewer` へ自分で転送する）とスクロール バー | 通常ホイール（`ScrollViewer` が標準で処理）とスクロール バー |
 | nudge の前提 | クリックでコントロールへフォーカスを与える（フォーカスが必要） | TopLevel の購読によりフォーカス不要 |
 | 選択状態の表示 | 選択矩形の座標を画面に表示する | ログ（`[Event]` 行）に表示する |
-| 実行ファイルの対象 | `net10.0-windows`（Win32 のウィンドウ連携を使う） | `net10.0-windows10.0.17763.0`（`Avalonia.Desktop` を使う） |
+| 実行ファイルの対象 | `net10.0-windows10.0.17763.0`（Win32 のウィンドウ連携を使う） | `net10.0-windows10.0.17763.0`（`Avalonia.Desktop` を使う） |
 
 **マウス ホイールの配送が両者で異なります**: Avalonia は祖先へバブルするため `ScrollViewer` が標準で処理しますが、MewUI はポインター下の要素（本サンプルではマーキー）が受け取るため、サンプルが `ScrollViewer.ScrollBy` へ転送しています（コントロール本体は、どちらの版もホイールを扱いません）。
 

@@ -12,7 +12,7 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <c>InvalidCastException</c> になり、原因が分かりにくい（実測）。<br/>
 /// <b>戻り値は HRESULT のまま</b>（<c>[PreserveSig]</c>）: 呼び出し側が状態値を例外メッセージへ出せるようにする。
 /// </remarks>
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows10.0.17763")]
 internal static class WinWicInterfaces
 {
     /// <summary>エンコーダーのキャッシュ方法: 一時ファイルへ書いてから確定する。</summary>

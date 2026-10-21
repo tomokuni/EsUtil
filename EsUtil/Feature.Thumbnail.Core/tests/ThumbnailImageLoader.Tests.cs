@@ -11,7 +11,7 @@ namespace EsUtil.Feature.Thumbnail.Tests;
 /// 実ファイルへ書き出した画像を読み込み、寸法・アルファ・同一性（キャッシュ）を検証する。<br/>
 /// 復号は Windows の WIC を使うため、本クラスは <see cref="SupportedOSPlatformAttribute"/> で Windows に限定する。
 /// </remarks>
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows10.0.17763")]
 public class ThumbnailImageLoaderTests : IDisposable
 {
     /// <summary>キャッシュの最大保持数（一覧が表示する件数を渡す想定。 テストでは十分に大きい値を使う）。</summary>

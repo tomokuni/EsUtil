@@ -14,7 +14,7 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// カーソル上書きの抑止だけが静かに効かなくなる（例外にはならない）。<br/>
 /// <b>ウィンドウを作れない環境</b>: <c>CreateWindowEx</c> が失敗する場合は読み飛ばす。
 /// </remarks>
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows10.0.17763")]
 [Collection("Win32")]
 public class WinCursorOverrideGuardTests : IDisposable
 {
@@ -26,9 +26,7 @@ public class WinCursorOverrideGuardTests : IDisposable
     {
         if (_window != IntPtr.Zero)
         {
-#pragma warning disable CA1416 // 生成された宣言の「Windows 5.0 以降」は Windows 専用のテストの前提に含まれる
             _ = PInvoke.DestroyWindow((HWND)_window);
-#pragma warning restore CA1416
             _window = IntPtr.Zero;
         }
 
@@ -78,7 +76,6 @@ public class WinCursorOverrideGuardTests : IDisposable
     /// <returns>作ったウィンドウのハンドル。</returns>
     private unsafe IntPtr CreateHiddenWindow()
     {
-#pragma warning disable CA1416 // 生成された宣言の「Windows 5.0 以降」は Windows 専用のテストの前提に含まれる
         _window = PInvoke.CreateWindowEx(
             WINDOW_EX_STYLE.WS_EX_TOOLWINDOW,
             "STATIC",
@@ -92,7 +89,6 @@ public class WinCursorOverrideGuardTests : IDisposable
             default,
             default,
             null);
-#pragma warning restore CA1416
 
         if (_window == IntPtr.Zero)
         {

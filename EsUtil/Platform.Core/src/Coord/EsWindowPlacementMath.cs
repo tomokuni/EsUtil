@@ -1,5 +1,7 @@
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
+using Windows.Win32;
+using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace EsUtil.Platform.Core.Coord;
 
@@ -70,10 +72,13 @@ public static class EsWindowPlacementMath
     /// ウィンドウに依存せず、画面キャプチャと同じ値の出所になる。<br/>
     /// <b>プライマリ モニタが (0,0) にない場合は負値</b>になる（仮想スクリーンの座標そのものである）。
     /// </remarks>
-    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("windows10.0.17763")]
     public static EsRectInt GetVirtualScreenBounds()
     {
-        var (x, y, width, height) = Native.Win.WinNative.GetVirtualScreenBounds();
+        var x = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_XVIRTUALSCREEN);
+        var y = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_YVIRTUALSCREEN);
+        var width = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXVIRTUALSCREEN);
+        var height = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYVIRTUALSCREEN);
         return width <= 0 || height <= 0
             ? new EsRectInt(0, 0, 0, 0)
             : new EsRectInt(x, y, width, height);

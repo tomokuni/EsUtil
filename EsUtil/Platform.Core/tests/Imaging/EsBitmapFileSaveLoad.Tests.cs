@@ -11,7 +11,7 @@ namespace EsUtil.Platform.Core.Tests.Imaging;
 /// 実ファイルへ書き出して読み戻すため、各テストが独立した一時ファイルを使い（静的共有状態を持たない）、
 /// <c>[Fact]</c> で並列実行できる。
 /// </remarks>
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows10.0.17763")]
 public class EsBitmapFileSaveLoadTests
 {
     /// <summary>一時ファイルのパスを作る（拡張子は呼び出し側が指定する）。</summary>

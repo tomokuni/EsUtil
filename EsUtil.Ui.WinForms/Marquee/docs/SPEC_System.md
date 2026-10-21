@@ -28,17 +28,17 @@ WinForms 版の選択矩形コントロールの構造・依存・設計判断�
 - **描画計画を提示層から受け取る**: 層の順序・装飾の矩形・ラベルの文言と配置は `EsUtil.Feature.Marquee.Presenter` が単一所有します。
 - **本アセンブリが行うのは 4 つだけ**: 入力の受付（WinForms のメッセージ → コア型）、効果の適用（フォーカス・再描画・カーソル・キャプチャ・画面座標）、通知の転送（コアの通知 → 公開イベント）、描画（描画計画 → GDI+）。
 
-対象は Windows デスクトップです。 対象フレームワークは `net10.0-windows` です。
+対象は Windows デスクトップです。 対象フレームワークは `net10.0-windows10.0.17763.0` です。
 
 ## 2. 技術スタック
 
 | 種別 | 内容 |
 | --- | --- |
-| 言語 / フレームワーク | C# / .NET 10（`net10.0-windows`） |
+| 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.17763.0`） |
 | UI フレームワーク | WinForms（`UseWindowsForms`。 `System.Windows.Forms.Control` を継承する） |
 | 描画 | GDI+（`System.Drawing.Graphics`。 `System.Drawing.Common` は WinForms と共に解決される） |
 | 参照パッケージ | `EsUtil.Feature.Marquee.Presenter` / `EsUtil.Platform.Core` / `Microsoft.Extensions.Logging.Abstractions` |
-| テスト | xUnit v3（`net10.0-windows`。 ウィンドウを作らず `Bitmap` 上で描画を検証する） |
+| テスト | xUnit v3（`net10.0-windows10.0.17763.0`。 ウィンドウを作らず `Bitmap` 上で描画を検証する） |
 | サンプル | WinForms アプリケーション（`WinExe`） |
 
 ## 3. アーキテクチャ

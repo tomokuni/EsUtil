@@ -20,7 +20,7 @@ Windows Forms の型と EsUtil の型の**境界**を担うアセンブリです
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows` |
+| 対象フレームワーク | `net10.0-windows10.0.17763.0` |
 | UI フレームワーク | （`UseWindowsForms`。 追加のパッケージ参照は無し） |
 | 共通基盤 | `EsUtil.Platform.Core`（値型・画像・OS の抽象） |
 | テスト | xUnit v3 |

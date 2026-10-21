@@ -18,7 +18,7 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// <b>ウィンドウを作れない環境</b>: 破棄できない・生成できない場合は <see cref="Assert.Skip(string)"/> で読み飛ばす
 /// （ヘッドレスのセッションでは <c>CreateWindowEx</c> が失敗する）。
 /// </remarks>
-[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("windows10.0.17763")]
 [Collection("Win32")]
 public class WinWindowServiceTests : IDisposable
 {
@@ -30,9 +30,7 @@ public class WinWindowServiceTests : IDisposable
     {
         if (_window != IntPtr.Zero)
         {
-#pragma warning disable CA1416 // 生成された宣言の「Windows 5.0 以降」は Windows 専用のテストの前提に含まれる
             _ = PInvoke.DestroyWindow((HWND)_window);
-#pragma warning restore CA1416
             _window = IntPtr.Zero;
         }
 
@@ -47,8 +45,8 @@ public class WinWindowServiceTests : IDisposable
 
         new WinWindowService().HideFromTaskSwitcher(handle);
 
-        var style = WinNative.GetWindowLongPtr(handle.Handle, WinNative.GWL_EXSTYLE).ToInt64();
-        Assert.NotEqual(0, style & WinNative.WS_EX_TOOLWINDOW);
+        var style = PInvoke.GetWindowLongPtr((HWND)handle.Handle, WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE).ToInt64();
+        Assert.NotEqual(0, style & (int)WINDOW_EX_STYLE.WS_EX_TOOLWINDOW);
     }
 
     /// <summary>キャプチャ除外の設定と解除が成功することを検証する。</summary>
@@ -70,9 +68,9 @@ public class WinWindowServiceTests : IDisposable
 
         new WinWindowService().SetBounds(handle, new EsRectInt(40, 60, 120, 90));
 
-        Assert.True(WinNative.GetWindowRect(handle.Handle, out var rect));
-        Assert.Equal(40, rect.Left);
-        Assert.Equal(60, rect.Top);
+        Assert.True(PInvoke.GetWindowRect((HWND)handle.Handle, out var rect));
+        Assert.Equal(40, rect.left);
+        Assert.Equal(60, rect.top);
         Assert.Equal(120, rect.Width);
         Assert.Equal(90, rect.Height);
     }
@@ -86,14 +84,13 @@ public class WinWindowServiceTests : IDisposable
 
         new WinWindowService().EvacuateWindow(handle);
 
-        Assert.False(WinNative.IsWindowVisible(handle.Handle));
+        Assert.False(PInvoke.IsWindowVisible((HWND)handle.Handle));
     }
 
     /// <summary>非表示の自前ウィンドウを作る（作れない環境では読み飛ばす）。</summary>
     /// <returns>作ったウィンドウのハンドル。</returns>
     private unsafe EsPlatformHandle CreateHiddenWindow()
     {
-#pragma warning disable CA1416 // 生成された宣言の「Windows 5.0 以降」は Windows 専用のテストの前提に含まれる
         _window = PInvoke.CreateWindowEx(
             WINDOW_EX_STYLE.WS_EX_TOOLWINDOW,
             "STATIC",
@@ -107,7 +104,6 @@ public class WinWindowServiceTests : IDisposable
             default,
             default,
             null);
-#pragma warning restore CA1416
 
         if (_window == IntPtr.Zero)
         {

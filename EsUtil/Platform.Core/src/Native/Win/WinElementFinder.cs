@@ -1,20 +1,50 @@
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.Graphics.Dwm;
+using Windows.Win32.Graphics.Gdi;
+using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
 /// <summary>Win32 API を利用した要素（ウィンドウ・スクリーン）検出実装。</summary>
 /// <remarks>
-/// P/Invoke 呼び出しは <c>WinNative</c> に委譲する。<br/>
+/// <b>Win32 の宣言は CsWin32 が生成する</b>（<c>src/NativeMethods.txt</c>）。 本クラスは <c>PInvoke</c> を直接呼ぶ。<br/>
 /// 自己完結型: 自ウィンドウの除外（自プロセスのウィンドウ）とスクリーン境界は外部からの設定なしに解決する。<br/>
 /// ホスト（アプリ）が生成して注入する（テストではモックを注入できる）。<br/>
 /// <b>ログを出力しない</b>: 見つからないこと（該当なし）は空の結果で表し、記録は呼び出し側が行う。<br/>
 /// 継承不可。<br/>
 /// </remarks>
+[SupportedOSPlatform("windows10.0.17763")]
 public sealed class WinElementFinder : IElementFinder
 {
     /// <summary>クラス名取得バッファのサイズ（文字数）。</summary>
     private const int ClassNameBufferSize = 256;
+
+    /// <summary><c>EnumWindows</c> の現在のコールバック（スレッドごと。 入れ子の呼び出しは LIFO で戻す）。</summary>
+    /// <remarks>
+    /// <b>スレッド ローカルにする理由</b>: アンマネージド境界を越えるデリゲートは、呼び出しのたびに作ると
+    /// GC の負荷になる（要素検出は撮影のたびに走る）。 コールバックは<b>静的などラムを 1 回だけ生成</b>し、
+    /// 呼び出しの文脈（どの検出処理か）だけをここで渡す。
+    /// </remarks>
+    [ThreadStatic]
+    private static Func<IntPtr, bool>? s_windowCallback;
+
+    /// <summary><c>EnumDisplayMonitors</c> が受け取るモニター矩形の集約先（スレッドごと）。</summary>
+    [ThreadStatic]
+    private static List<EsRectInt>? s_monitorBounds;
+
+    /// <summary><c>EnumWindows</c> のコールバック（1 回だけ生成して使い回す）。</summary>
+    private static readonly WNDENUMPROC s_windowThunk = WindowThunk;
+
+    /// <summary><c>EnumDisplayMonitors</c> のコールバック（1 回だけ生成して使い回す）。</summary>
+    /// <remarks>
+    /// <b>生成をメソッドへ切り出す理由</b>: 生成されたデリゲートの引数にポインター（<c>RECT*</c>）があるため、
+    /// フィールドの初期化子では unsafe コンテキストにならない。 生成は 1 回だけであり、呼び出しごとの負荷は無い。
+    /// </remarks>
+    private static readonly MONITORENUMPROC s_monitorThunk = CreateMonitorThunk();
 
     private IReadOnlyList<EsRectInt>? _screenBounds;
 
@@ -32,19 +62,64 @@ public sealed class WinElementFinder : IElementFinder
     private static IReadOnlyList<EsRectInt> EnumerateMonitorBoundsCore()
     {
         var bounds = new List<EsRectInt>();
-        _ = WinNative.EnumDisplayMonitors(
-            IntPtr.Zero, (_, _, lprcMonitor, _) =>
-            {
-                if (lprcMonitor != IntPtr.Zero)
-                {
-                    var rect = Marshal.PtrToStructure<WinNative.RECT>(lprcMonitor);
-                    bounds.Add(new EsRectInt(rect.Left, rect.Top, rect.Width, rect.Height));
-                }
-                return true;
-            }, IntPtr.Zero);
+        var previous = s_monitorBounds;
+        s_monitorBounds = bounds;
+        try
+        {
+            _ = PInvoke.EnumDisplayMonitors(default, null, s_monitorThunk, default);
+        }
+        finally
+        {
+            s_monitorBounds = previous;
+        }
 
         return bounds;
     }
+
+    /// <summary><c>EnumDisplayMonitors</c> のコールバックを生成する。</summary>
+    /// <returns>生成したデリゲート。</returns>
+    private static unsafe MONITORENUMPROC CreateMonitorThunk() => MonitorThunk;
+
+    /// <summary><c>EnumDisplayMonitors</c> のコールバックの実体。</summary>
+    /// <param name="hMonitor">モニターハンドル（未使用）。</param>
+    /// <param name="hdcMonitor">モニターのデバイス コンテキスト（未使用）。</param>
+    /// <param name="lprcMonitor">モニターの矩形へのポインター。</param>
+    /// <param name="dwData">アプリケーション定義の値（未使用）。</param>
+    /// <returns>列挙を継続する場合は true。</returns>
+    private static unsafe BOOL MonitorThunk(HMONITOR hMonitor, HDC hdcMonitor, RECT* lprcMonitor, LPARAM dwData)
+    {
+        if (lprcMonitor is not null && s_monitorBounds is { } bounds)
+        {
+            bounds.Add(new EsRectInt(
+                lprcMonitor->left, lprcMonitor->top,
+                lprcMonitor->right - lprcMonitor->left, lprcMonitor->bottom - lprcMonitor->top));
+        }
+
+        return true;
+    }
+
+    /// <summary>トップレベル ウィンドウを列挙し、コールバックが false を返すまで続ける。</summary>
+    /// <param name="callback">各ウィンドウの判定（false を返すと列挙を停止する）。</param>
+    private static void EnumerateWindows(Func<IntPtr, bool> callback)
+    {
+        var previous = s_windowCallback;
+        s_windowCallback = callback;
+        try
+        {
+            _ = PInvoke.EnumWindows(s_windowThunk, default);
+        }
+        finally
+        {
+            s_windowCallback = previous;
+        }
+    }
+
+    /// <summary><c>EnumWindows</c> のコールバックの実体。</summary>
+    /// <param name="hWnd">ウィンドウハンドル。</param>
+    /// <param name="lParam">アプリケーション定義の値（未使用）。</param>
+    /// <returns>列挙を継続する場合は true。</returns>
+    private static BOOL WindowThunk(HWND hWnd, LPARAM lParam)
+        => s_windowCallback is { } callback && callback((IntPtr)hWnd);
 
     /// <summary>指定位置の最前面ウィンドウを検出する。</summary>
     /// <param name="screenPoint">判定する位置（画面物理座標）。</param>
@@ -56,10 +131,10 @@ public sealed class WinElementFinder : IElementFinder
     /// </remarks>
     public ElementFinderResults FindWindowUnderCursor(EsPointInt screenPoint)
     {
-        var selfPid = WinNative.GetCurrentProcessId();
+        var selfPid = PInvoke.GetCurrentProcessId();
         ElementFinderResults result = default;
 
-        _ = WinNative.EnumWindows((hWnd, _) =>
+        EnumerateWindows(hWnd =>
         {
             if (IsEligibleWindow(hWnd, selfPid, out var candidate) && candidate.Bounds.Contains(screenPoint))
             {
@@ -67,7 +142,7 @@ public sealed class WinElementFinder : IElementFinder
                 return false; // 最初の一致で列挙を停止（ホットパス最適化）
             }
             return true;
-        }, IntPtr.Zero);
+        });
 
         return result;
     }
@@ -80,20 +155,20 @@ public sealed class WinElementFinder : IElementFinder
     private static bool IsEligibleWindow(IntPtr hWnd, uint selfPid, out ElementFinderResults candidate)
     {
         candidate = default;
-        WinNative.GetWindowThreadProcessId(hWnd, out var pid);
+        _ = PInvoke.GetWindowThreadProcessId((HWND)hWnd, out var pid);
         if (pid == selfPid) return false;
-        if (!WinNative.IsWindowVisible(hWnd)) return false;
-        if (!WinNative.IsWindowEnabled(hWnd)) return false;
-        if (WinNative.IsIconic(hWnd)) return false;
+        if (!PInvoke.IsWindowVisible((HWND)hWnd)) return false;
+        if (!PInvoke.IsWindowEnabled((HWND)hWnd)) return false;
+        if (PInvoke.IsIconic((HWND)hWnd)) return false;
         if (IsExcludedClass(hWnd)) return false;
 
-        if (!WinNative.GetWindowRect(hWnd, out var rect))
+        if (!PInvoke.GetWindowRect((HWND)hWnd, out var rect))
         {
             // 矩形を取得できないウィンドウは選択対象にできない（列挙の内部で起こりうるため、対象外として除外する）
             return false;
         }
 
-        if (rect.Width <= 0 || rect.Height <= 0) return false;
+        if (rect.right <= rect.left || rect.bottom <= rect.top) return false;
 
         var handle = new EsPlatformHandle(hWnd, "HWND");
         if (!TryGetWindowVisibleRect(handle, out var visibleRect))
@@ -164,16 +239,16 @@ public sealed class WinElementFinder : IElementFinder
     public IReadOnlyList<ElementFinderResults> ListWindows()
     {
         var results = new List<ElementFinderResults>();
-        var selfPid = WinNative.GetCurrentProcessId();
+        var selfPid = PInvoke.GetCurrentProcessId();
 
         // EnumWindows: 全トップレベルウィンドウを列挙し、除外条件を適用して一覧化する
         // 除外判定は IsEligibleWindow（FindWindowUnderCursor と共用・単一所有）に委譲する。
-        _ = WinNative.EnumWindows((hWnd, _) =>
+        EnumerateWindows(hWnd =>
         {
             if (IsEligibleWindow(hWnd, selfPid, out var candidate))
                 results.Add(candidate);
             return true;
-        }, IntPtr.Zero);
+        });
 
         return results;
     }
@@ -185,7 +260,7 @@ public sealed class WinElementFinder : IElementFinder
     private static string GetWindowClassName(IntPtr hWnd)
     {
         var className = new char[ClassNameBufferSize];
-        var len = WinNative.GetClassName(hWnd, className, className.Length);
+        var len = PInvoke.GetClassName((HWND)hWnd, className);
         return len > 0 ? className.AsSpan(0, len).ToString() : "";
     }
 
@@ -231,21 +306,47 @@ public sealed class WinElementFinder : IElementFinder
     /// <param name="rect">取得した可視矩形（画面物理座標）。</param>
     /// <returns>取得できた場合は true。</returns>
     /// <remarks>
-    /// 可視矩形の取得（最大化のワークエリア / DWM 影除外 / GetWindowRect フォールバック）は
-    /// <see cref="WinNative.TryGetVisibleRect"/> に委譲する（<see cref="WinCaptureService"/> と共用・単一所有）。<br/>
+    /// 最大化ウィンドウには影がなく、<c>DWMWA_EXTENDED_FRAME_BOUNDS</c> は左右に 8px の内部マージンを返す<br/>
+    /// （Windows 10 の既知の挙動）ため、<c>GetWindowRect</c>（ワークエリア = タスクバーを除く最大化領域）を使用する。<br/>
+    /// 通常ウィンドウは <c>DWMWA_EXTENDED_FRAME_BOUNDS</c> で影を除外した可視領域を取得し、<br/>
+    /// 失敗時は <c>GetWindowRect</c> にフォールバックする。<br/>
     /// インターフェイスからは公開せず、<see cref="FindWindowUnderCursor"/> の内部実装として使用する。
     /// </remarks>
     internal static bool TryGetWindowVisibleRect(EsPlatformHandle handle, out EsRectInt rect)
     {
-        if (!WinNative.TryGetVisibleRect(handle.Handle, out var nativeRect))
+        var hWnd = (HWND)handle.Handle;
+        rect = default;
+        if (hWnd.IsNull) return false;
+
+        RECT windowRect;
+        if (!PInvoke.IsZoomed(hWnd))
         {
-            rect = default;
+            // 通常ウィンドウ: DWM 影除外（DWMWA_EXTENDED_FRAME_BOUNDS）で可視領域を取得する
+            var visibleRect = default(RECT);
+            var bytes = MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref visibleRect, 1));
+            var hr = PInvoke.DwmGetWindowAttribute(hWnd, DWMWINDOWATTRIBUTE.DWMWA_EXTENDED_FRAME_BOUNDS, bytes);
+            if (hr.Succeeded && visibleRect.left < visibleRect.right && visibleRect.top < visibleRect.bottom)
+            {
+                rect = ToRectInt(visibleRect);
+                return true;
+            }
+        }
+
+        // フォールバック: GetWindowRect（最大化時はワークエリア）
+        if (!PInvoke.GetWindowRect(hWnd, out windowRect))
+        {
             return false;
         }
 
-        rect = new EsRectInt(nativeRect.Left, nativeRect.Top, nativeRect.Width, nativeRect.Height);
+        rect = ToRectInt(windowRect);
         return true;
     }
+
+    /// <summary>Win32 の矩形をコアの整数矩形へ変換する。</summary>
+    /// <param name="rect">変換する矩形。</param>
+    /// <returns>コアの整数矩形。</returns>
+    private static EsRectInt ToRectInt(in RECT rect)
+        => new(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
 
     /// <summary>ウィンドウのタイトルを取得する。</summary>
     /// <param name="handle">タイトルを取得するウィンドウのハンドル。</param>
@@ -254,11 +355,11 @@ public sealed class WinElementFinder : IElementFinder
     internal static string GetWindowTitle(EsPlatformHandle handle)
     {
         var hWnd = handle.Handle;
-        var len = WinNative.GetWindowTextLength(hWnd);
+        var len = PInvoke.GetWindowTextLength((HWND)hWnd);
         if (len <= 0) return "";
         var titleChars = new char[len + 1];
-        WinNative.GetWindowText(hWnd, titleChars, titleChars.Length);
-        return new string(titleChars, 0, len);
+        var written = PInvoke.GetWindowText((HWND)hWnd, titleChars);
+        return new string(titleChars, 0, Math.Min(written, len));
     }
 }
 
