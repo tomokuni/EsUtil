@@ -221,6 +221,21 @@ internal static partial int CreateStreamOnHGlobal(IntPtr memory, int deleteOnRel
 - **`SYSLIB1054`（`DllImport` を `LibraryImport` へ置き換えよという指摘）は .NET 10 + `IsAotCompatible` では出なかった**（実測）。 Microsoft は強制はしないが、**AOT 互換のためには `LibraryImport` が推奨**である（`DllImport` は実行時マーシャリングに依存する）。
 - **`LibraryImport` を選ぶ決め手**: (1) 宣言が型付きで残る（IntelliSense・XML doc・引数検査）、(2) マーシャリングをソース生成するため AOT で安全、(3) `[GeneratedComInterface]` の型を引数に取れる（`ComInterfaceMarshaller` が変換する）。
 
+**`out` をインターフェイス型にするか、生ポインターにするか（実測 2026-10-22）**
+
+`out` に `[GeneratedComInterface]` の型を書く方法と、`out nint` で受けて `ComInterfaceMarshaller<T>.ConvertToManaged` する方法を実際に両方ビルドして比べました。
+
+| 観点 | `out IStream`（**採用**） | `out nint` + `ConvertToManaged` |
+| --- | --- | --- |
+| 動作（JIT） | 成功（`0x00000000`、`Write` も成功） | 成功 |
+| 動作（**Native AOT**。 `-p:PublishAot=true -r win-x64`） | **成功** | 成功 |
+| `IsAotCompatible=true` での警告 | **0 件**（`IL2026` / `IL3050` は出ない） | 0 件 |
+| `[MarshalUsing]` の指定 | **不要**（実測: 型を書くだけで生成される） | 不要 |
+| 参照カウント | **生成コードが `ConvertToManaged` の直後に `Free` を呼ぶ**（実測: 生成された `LibraryImports.g.cs` に両方の呼び出しがある） | **呼び出し側が `Free` を書く必要がある**（忘れると参照が 1 つ残る） |
+| 宣言の読みやすさ | 型がそのまま出る（戻り値の意味が自明） | 生ポインターから変換する 2 行が増える |
+
+**結論: 型付きの `out`（現状）を維持する。** 「生ポインターで受けて `ComInterfaceMarshaller` で変換する」方式は、**型付きの `out` が内部で行っていることと同じ処理**（`ConvertToManaged` + `Free`）を手で書くことになり、`Free` の呼び忘れというリスクだけが増えます。 生ポインターが必要になるのは、CsWin32 の既定生成（`out object`）のように**型付きで受けられない API を包む場合**です。
+
 ## 8. 依存の判定基準（本プロジェクトの存在理由）
 
 本プロジェクトは**「このソリューション以外でもそのまま使える型」**だけを置きます（`Native/` 配下だけが例外です）。 判定は依存で機械的に行います。
