@@ -11,6 +11,10 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// JIT と Native AOT の両方で <c>CoCreateInstance</c> / <c>CreateStreamOnHGlobal</c> が成功し、返った型をそのまま呼べた）。<br/>
 /// <b>生ポインターを扱わない</b>: 戻り値は本ライブラリのインターフェイス型であり、
 /// <c>StrategyBasedComWrappers.GetOrCreateObjectForComInstance</c> の呼び出しも手動キャストも要らない。<br/>
+/// <b><c>[GeneratedComInterface]</c> を関数へは付けられない</b>: 本ファイルの 2 件は vtable を持たない
+/// エクスポートされた C 関数であり、属性は<b>インターフェイス宣言でしか有効でない</b>（実測 2026-10-22:
+/// <c>CS0592</c>）。 属性の対象は <c>out</c> が指す先の型（<see cref="IWICImagingFactory"/> / <see cref="IStream"/>）であり、
+/// そこには既に付けてある。<br/>
 /// <b>解放</b>: 生成されたラッパーはファイナライズで参照を 1 つ戻す（Native AOT では
 /// <c>Marshal.ReleaseComObject</c> が使えないため、GC に任せる方針そのものは変えない）。
 /// </remarks>

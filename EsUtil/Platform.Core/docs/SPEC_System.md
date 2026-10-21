@@ -15,6 +15,7 @@ UI フレームワーク非依存の共通基盤の型を提供するライブ�
   - [7.2 コア型の命名](#72-コア型の命名)
   - [7.3 Win32 API の宣言と WndProc のサブクラス化](#73-win32-api-の宣言と-wndproc-のサブクラス化)
     - [7.3.1 COM の 2 件だけを手書きする理由（実測 2026-10-21）](#731-com-の-2-件だけを手書きする理由実測-2026-10-21)
+    - [7.3.2 関数の宣言方法の比較（実測 2026-10-22）](#732-関数の宣言方法の比較実測-2026-10-22)
 - [8. 依存の判定基準（本プロジェクトの存在理由）](#8-依存の判定基準本プロジェクトの存在理由)
 
 ## 1. システム概要
@@ -197,12 +198,28 @@ internal static partial int CoCreateInstance(
 internal static partial int CreateStreamOnHGlobal(IntPtr memory, int deleteOnRelease, out IStream stream);
 ```
 
+- **`[GeneratedComInterface]` を関数へは付けられない**（実測 2026-10-22: `CS0592: 属性 'GeneratedComInterface' はこの宣言型では無効です。'インターフェイス' 宣言でのみ有効です。`）。 `CoCreateInstance` / `CreateStreamOnHGlobal` は **vtable を持たないエクスポートされた C 関数**であるため、COM インターフェイスの宣言機構（`[GeneratedComInterface]`）の対象外である。 対象になるのは**その `out` が指す先の型**（`IWICImagingFactory` / `IStream`）であり、そこには既に付けてある。
 - **`[GeneratedComInterface]` の型を `[LibraryImport]` の引数にすると、ソース生成された `ComInterfaceMarshaller<T>`（`ComWrappers` ベース）が変換する**（`IStream` は本ライブラリが `[GeneratedComInterface]` で定義済み。 §4）。
   実測 2026-10-21: **JIT と Native AOT の両方で `CoCreateInstance` / `CreateStreamOnHGlobal` が成功し、返った型のメソッド（`Write` / `Stat`）をそのまま呼べた**（AOT は `dotnet publish -p:PublishAot=true -r win-x64` の実行で確認）。
 - **生ポインターを扱わない**: `void**` を受けず、`StrategyBasedComWrappers.GetOrCreateObjectForComInstance` の手動呼び出しもキャストも要らない。 そのため `WinWicFactory` から `Wrappers` を削除した。
 - **API 単位の切り替えはできない**: `CoCreateInstance(allowMarshaling=false)` のように行へ書くと `PInvoke001`（「その名前の API は無い」）で拒否される（実測）。 `NativeMethods.json` は 1 プロジェクト 1 つのため、2 件のためだけに全体を切り替えることはしない。
 - **.NET 側に AOT 安全な代替は無い**: `Type.GetTypeFromCLSID` / `Activator.CreateInstance` / `Marshal.GetObjectForIUnknown` はいずれもクラシック相互運用であり AOT で失敗する（実測）。 COM の起動は `CoCreateInstance` を直接呼ぶしかない。
 - **`[LibraryImport]` の宣言だけを書く**ため、`DllImport` の手書きマーシャリング（`MarshalAs` の列など）は発生しない。 文字列・構造体・コールバックの生成は CsWin32 のままである。
+
+#### 7.3.2 関数の宣言方法の比較（実測 2026-10-22）
+
+`CoCreateInstance` / `CreateStreamOnHGlobal` のような**エクスポートされた C 関数**を宣言する方法は 4 通りあり、実測で次のようになりました。
+
+| 方法 | 実測結果 | 判定 |
+| --- | --- | --- |
+| **`[LibraryImport]`**（ソース生成。 採用） | 0x00000000 で成功。 `partial` な型が要る（`SYSLIB1050`） | **採用**。 Microsoft が Native AOT 向けに推奨する方法であり、マーシャリングもソース生成される |
+| `[DllImport]`（実行時マーシャリング） | 動作はするが、**`EntryPoint` を省くとメソッド名で探して `EntryPointNotFoundException`**（実測）。 実行時マーシャリングは AOT で制限がある | 使わない（AOT 互換を保証できない） |
+| `NativeLibrary.GetExport` + **関数ポインター**（属性を一切使わない） | 0x00000000 で成功（`delegate* unmanaged[Stdcall]<...>`） | 可能だが**宣言が型として残らない**（IntelliSense・XML doc・引数検査が無い）。 引数がすべて blittable な場合だけ使える |
+| CsWin32（`allowMarshaling: false`） | 生ポインターで正しく生成されるが、設定が**プロジェクト全体**に効く（§7.3.1） | 2 件のためには使わない |
+
+- **`[GeneratedComInterface]` は関数に付けられない**: 実測で `CS0592`（「インターフェイス宣言でのみ有効」）。 属性の対象は `out` の先の型（`IWICImagingFactory` / `IStream`）であり、そこには付けてある（§7.3.1）。
+- **`SYSLIB1054`（`DllImport` を `LibraryImport` へ置き換えよという指摘）は .NET 10 + `IsAotCompatible` では出なかった**（実測）。 Microsoft は強制はしないが、**AOT 互換のためには `LibraryImport` が推奨**である（`DllImport` は実行時マーシャリングに依存する）。
+- **`LibraryImport` を選ぶ決め手**: (1) 宣言が型付きで残る（IntelliSense・XML doc・引数検査）、(2) マーシャリングをソース生成するため AOT で安全、(3) `[GeneratedComInterface]` の型を引数に取れる（`ComInterfaceMarshaller` が変換する）。
 
 ## 8. 依存の判定基準（本プロジェクトの存在理由）
 
