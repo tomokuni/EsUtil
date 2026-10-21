@@ -47,7 +47,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 
 ## 4. 依存
 
-- 外部パッケージを参照しません（画像のファイル入出力は OS の WIC を直接呼びます）。
+- 外部パッケージを参照しません（画像のファイル入出力は OS の WIC を直接呼びます）。 **例外はソース生成だけを目的とするパッケージ**（`Microsoft.Windows.CsWin32`。 `PrivateAssets="all"` のため実行時依存と配布物は増えません）。
 - UI フレームワーク（Avalonia / MewUI / WinUI / WinForms）と SkiaSharp を参照しません（Skia への依存は Skia を使用する層が単一所有する）。
 - 他のプロジェクトは本プロジェクトへ依存します（本プロジェクトは他のプロジェクトを参照しません）。
 

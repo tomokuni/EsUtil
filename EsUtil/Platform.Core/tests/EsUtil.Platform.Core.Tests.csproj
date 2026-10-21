@@ -23,6 +23,13 @@
     <ProjectReference Include="..\src\EsUtil.Platform.Core.csproj" />
   </ItemGroup>
 
+  <!-- SvgIconSource のテストが読む埋め込みリソース（論理名は RootNamespace + フォルダ + ファイル名） -->
+  <ItemGroup>
+    <EmbeddedResource Include="Svg\*.svg">
+      <LogicalName>EsUtil.Platform.Core.Tests.Svg.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
   <!-- xUnit 並列化設定（Win32 API を扱うテストを直列化する） -->
   <ItemGroup>
     <None Include="Native\xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
