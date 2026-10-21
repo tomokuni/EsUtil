@@ -32,6 +32,12 @@ BI_COMPRESSION
 DIB_USAGE
 ROP_CODE
 
+// --- モニターの DPI（指定位置のモニターの実効 DPI） ---
+MonitorFromPoint
+MONITOR_FROM_FLAGS
+GetDpiForMonitor
+MONITOR_DPI_TYPE
+
 // --- カーソル ---
 GetCursorPos
 SetCursorPos

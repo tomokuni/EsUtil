@@ -60,6 +60,7 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/IElementFinder.cs` | 要素（ウィンドウ・スクリーン）検出の抽象 |
 | `EsUtil/Platform.Core/src/Native/ICursorOverrideGuard.cs` | カーソル上書き抑止の抽象 |
 | `EsUtil/Platform.Core/src/Native/IGlobalHotKeyService.cs` | グローバルホットキー管理の抽象 |
+| `EsUtil/Platform.Core/src/Native/Win/WinMonitorDpi.cs` | 指定位置のモニターの実効 DPI の照会（4 つの UI 版が使う単一所有。 WinForms 版の `MonitorDpi` も本クラスへ委譲する） |
 | `EsUtil/Platform.Core/src/Native/Win/WinVirtualKey.cs` | `EsKey` → Win32 仮想キーコードの変換表（`RegisterHotKey` に渡す値。 対応表に無いキーは 0） |
 | `EsUtil/Platform.Core/src/Native/ElementFinderResults.cs` | 要素検出の結果（`readonly record struct`） |
 | `EsUtil/Platform.Core/src/NativeMethods.txt` | **CsWin32 が生成する Win32 API と定数の唯一の一覧**（宣言を手で書かない。 user32 / gdi32 / dwmapi / comctl32 / kernel32 / ole32 の API と、メッセージ番号・スタイル値などのマクロ、使う列挙型・構造体を列挙する） |
