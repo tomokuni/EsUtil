@@ -126,16 +126,16 @@ public sealed class WinCaptureService : ICaptureService
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "メモリ デバイス コンテキストを作成できませんでした。");
             }
 
-            var info = new WinNative.BITMAPINFO
+            var info = new Windows.Win32.Graphics.Gdi.BITMAPINFO
             {
-                bmiHeader = new WinNative.BITMAPINFOHEADER
+                bmiHeader = new Windows.Win32.Graphics.Gdi.BITMAPINFOHEADER
                 {
-                    biSize = (uint)Marshal.SizeOf<WinNative.BITMAPINFOHEADER>(),
+                    biSize = (uint)Marshal.SizeOf<Windows.Win32.Graphics.Gdi.BITMAPINFOHEADER>(),
                     biWidth = bounds.Width,
                     biHeight = -bounds.Height,
                     biPlanes = 1,
                     biBitCount = 32,
-                    biCompression = WinNative.BI_RGB,
+                    biCompression = (uint)WinNative.BI_RGB,
                 },
             };
 

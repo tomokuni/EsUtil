@@ -60,10 +60,10 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/IGlobalHotKeyService.cs` | グローバルホットキー管理の抽象 |
 | `EsUtil/Platform.Core/src/Native/ElementFinderResults.cs` | 要素検出の結果（`readonly record struct`） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.cs` | OS API（Win32 / WIC）の P/Invoke の宣言集約（internal）。 **本ファイルは複数の DLL で共有する構造体とヘルパーを持ち、宣言は DLL ごとの `partial` ファイルが持つ** |
-| `EsUtil/Platform.Core/src/Native/Win/WinNative.User32.cs` | user32 の宣言（カーソル・ウィンドウ・要素検出・画面キャプチャのデバイス コンテキスト） |
-| `EsUtil/Platform.Core/src/Native/Win/WinNative.Gdi32.cs` | gdi32 の宣言（画面キャプチャの DIB と `BitBlt`） |
+| `EsUtil/Platform.Core/src/Native/Win/WinNative.User32.cs` | user32 の呼び出し（カーソル・ウィンドウ・要素検出・画面キャプチャのデバイス コンテキスト。 **宣言は CsWin32 が生成する**。 デリゲートを受ける API と 64 ビットのポインター長 API だけ手書き） |
+| `EsUtil/Platform.Core/src/Native/Win/WinNative.Gdi32.cs` | gdi32 の呼び出し（画面キャプチャの DIB と `BitBlt`。 **宣言は CsWin32 が生成する**） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.DwmApi.cs` | dwmapi の宣言（影を除いた可視矩形・合成の完了待ち） |
-| `EsUtil/Platform.Core/src/NativeMethods.txt` | CsWin32 が生成する Win32 API の一覧（宣言を手で書かない。 現在は kernel32 / user32 の `GetSystemMetrics` / dwmapi / ole32 の `CoInitializeEx`） |
+| `EsUtil/Platform.Core/src/NativeMethods.txt` | CsWin32 が生成する Win32 API の一覧（宣言を手で書かない。 kernel32 / user32 / gdi32 / dwmapi / ole32 の API と、使う列挙型・構造体を列挙する） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.Kernel32.cs` | kernel32 の宣言（プロセス ID。 **CsWin32 の `PInvoke` を包む**） |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.HotKey.cs` | グローバル ホットキーの宣言（user32）とキー変換 |
 | `EsUtil/Platform.Core/src/Native/Win/WinNative.Wic.cs` | WIC の宣言（COM の起動・画素形式の GUID） |

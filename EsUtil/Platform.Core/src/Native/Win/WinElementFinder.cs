@@ -254,7 +254,7 @@ public sealed class WinElementFinder : IElementFinder
     internal static string GetWindowTitle(EsPlatformHandle handle)
     {
         var hWnd = handle.Handle;
-        var len = WinNative.GetWindowTextLengthW(hWnd);
+        var len = WinNative.GetWindowTextLength(hWnd);
         if (len <= 0) return "";
         var titleChars = new char[len + 1];
         WinNative.GetWindowText(hWnd, titleChars, titleChars.Length);

@@ -93,60 +93,6 @@ internal static partial class WinNative
         public POINT ptScreenPos;
     }
 
-    /// <summary>Win32 BITMAPINFOHEADER 構造体（DIB の形式と寸法）。</summary>
-    /// <remarks>
-    /// P/Invoke のマーシャリング用にレイアウトを定義する。<br/>
-    /// <c>biHeight</c> を負値にするとトップダウン DIB になり、行の並びが上から下（画像の並びと一致）になる。
-    /// </remarks>
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct BITMAPINFOHEADER
-    {
-        /// <summary>構造体のサイズ（biSize）。 呼び出し前に設定する。</summary>
-        public uint biSize;
-
-        /// <summary>幅（ピクセル）。</summary>
-        public int biWidth;
-
-        /// <summary>高さ（ピクセル）。 負値はトップダウン（上から下の並び）。</summary>
-        public int biHeight;
-
-        /// <summary>プレーンの数（常に 1）。</summary>
-        public ushort biPlanes;
-
-        /// <summary>1 ピクセルあたりのビット数（32 を指定する）。</summary>
-        public ushort biBitCount;
-
-        /// <summary>圧縮方式（<see cref="BI_RGB"/> = 無圧縮）。</summary>
-        public uint biCompression;
-
-        /// <summary>画像データのサイズ（<see cref="BI_RGB"/> では 0 でよい）。</summary>
-        public uint biSizeImage;
-
-        /// <summary>水平方向の解像度（メートルあたりのピクセル）。</summary>
-        public int biXPelsPerMeter;
-
-        /// <summary>垂直方向の解像度（メートルあたりのピクセル）。</summary>
-        public int biYPelsPerMeter;
-
-        /// <summary>パレットの色数（<see cref="BI_RGB"/> では 0）。</summary>
-        public uint biClrUsed;
-
-        /// <summary>重要な色数（<see cref="BI_RGB"/> では 0）。</summary>
-        public uint biClrImportant;
-    }
-
-    /// <summary>Win32 BITMAPINFO 構造体（<see cref="BITMAPINFOHEADER"/> と色テーブル）。</summary>
-    /// <remarks>
-    /// P/Invoke のマーシャリング用にレイアウトを定義する。 32bpp では色テーブルを使わないため宣言しない。<br/>
-    /// 色テーブルを持つ形式（8bpp 等）で使う場合は、可変長部分を続けて確保する必要がある。
-    /// </remarks>
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct BITMAPINFO
-    {
-        /// <summary>画像の形式と寸法。</summary>
-        public BITMAPINFOHEADER bmiHeader;
-    }
-
     // ============================================================
     // ヘルパー
     // ============================================================
