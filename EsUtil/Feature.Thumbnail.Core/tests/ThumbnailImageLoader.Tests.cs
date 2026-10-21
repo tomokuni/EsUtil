@@ -172,11 +172,71 @@ public class ThumbnailImageLoaderTests : IDisposable
         Assert.Equal(40, thumbnail!.Width);
     }
 
+    /// <summary>EXIF の向きがサムネイルにも適用されることを検証する。</summary>
+    /// <remarks>
+    /// <b>4 つの UI 版が同じ結果になることの根拠</b>: 縮小と EXIF の適用は本ローダー（コアの
+    /// <c>EsReadOnlyBitmap.Load(string, int)</c>）が単一所有する。 向き 6（90 度回転）の JPEG は
+    /// 幅と高さが入れ替わるため、寸法で適用の有無が分かる。
+    /// </remarks>
+    [Fact]
+    internal void Load_EXIFの向きを適用する()
+    {
+        var path = CreateTempPath(".jpg");
+        using (var source = EsBitmap.Create(64, 32, Color.Red))
+        {
+            source.Save(path);
+        }
+
+        File.WriteAllBytes(path, AddExifOrientation(File.ReadAllBytes(path), orientation: 6));
+        _files.Add(path);
+
+        var thumbnail = ThumbnailImageLoader.Load(path, 32, Capacity);
+
+        Assert.NotNull(thumbnail);
+
+        // 向き 6 は 90 度回転であり、長辺（64）が上限へ縮小されて縦長になる
+        Assert.Equal(16, thumbnail!.Width);
+        Assert.Equal(32, thumbnail.Height);
+    }
+
     /// <summary>一時ファイルのパスを作る。</summary>
     /// <param name="extension">拡張子（先頭のドットを含む）。</param>
     /// <returns>一時フォルダー内の一意なパス。</returns>
     private static string CreateTempPath(string extension)
         => Path.Combine(Path.GetTempPath(), $"se_thumbnail_{Guid.NewGuid():N}{extension}");
+
+    /// <summary>JPEG の先頭（<c>SOI</c>）の直後へ EXIF の向きを差し込む。</summary>
+    /// <param name="jpeg">元の JPEG。</param>
+    /// <param name="orientation">EXIF の向き（1〜8）。</param>
+    /// <returns>向きを持つ JPEG。</returns>
+    /// <remarks>
+    /// <c>APP1</c> マーカー → 長さ → <c>Exif\0\0</c> → TIFF ヘッダー（リトルエンディアン）→
+    /// IFD0（タグ 274 が 1 件）→ 次の IFD の位置（0）の順に並べる。
+    /// </remarks>
+    private static byte[] AddExifOrientation(byte[] jpeg, ushort orientation)
+    {
+        var segment = new List<byte>
+        {
+            0xFF, 0xE1,                         // APP1
+            0x00, 0x00,                         // 長さ（後で埋める）
+            0x45, 0x78, 0x69, 0x66, 0x00, 0x00, // "Exif\0\0"
+            0x49, 0x49, 0x2A, 0x00,             // "II"（リトルエンディアン）と 42
+            0x08, 0x00, 0x00, 0x00,             // IFD0 の位置
+            0x01, 0x00,                         // エントリ数
+            0x12, 0x01,                         // タグ 274（Orientation）
+            0x03, 0x00,                         // 型 3（SHORT）
+            0x01, 0x00, 0x00, 0x00,             // 個数
+            (byte)(orientation & 0xFF), (byte)(orientation >> 8), 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,             // 次の IFD の位置
+        };
+
+        // 長さは自身（2 バイト）を含み、マーカー（2 バイト）を含まない
+        var length = segment.Count - 2;
+        segment[2] = (byte)(length >> 8);
+        segment[3] = (byte)(length & 0xFF);
+
+        return [.. jpeg.AsSpan(0, 2), .. segment, .. jpeg.AsSpan(2)];
+    }
 
     /// <summary>テスト用の画像ファイルを書き出す。</summary>
     /// <param name="width">幅（1 以上）。</param>
