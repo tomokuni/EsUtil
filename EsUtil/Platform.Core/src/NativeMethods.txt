@@ -86,6 +86,25 @@ WM_SETCURSOR
 WM_NCDESTROY
 HTCLIENT
 
+// --- ウィンドウ枠（外寸とクライアント領域の差） ---
+GetClientRect
+
+// --- タスク バーのグループ分け（アプリ ユーザー モデル ID） ---
+SetCurrentProcessExplicitAppUserModelID
+
+// --- XAML の初期化前に使えるエラー表示 ---
+MessageBox
+MESSAGEBOX_STYLE
+
+// --- クリップボード（CF_DIB の読み取り） ---
+OpenClipboard
+CloseClipboard
+GetClipboardData
+GlobalLock
+GlobalUnlock
+HGLOBAL
+HANDLE
+
 // --- グローバル ホットキー ---
 RegisterHotKey
 UnregisterHotKey
