@@ -151,6 +151,7 @@ graph LR
 | エンコーダーのキャッシュ | **`WICBitmapEncoderNoCache` は使えない**（実測: メモリ ストリームでも `WINCODEC_ERR_UNSUPPORTEDOPERATION` = `0x88982F81`）。 `WICBitmapEncoderCacheTempFile`（一時ファイルへ書いてから確定する）は全形式で成功した |
 | EXIF の向き | デコードしたフレームの `/app1/ifd/{ushort=274}`（無ければ `/ifd/...`・`/...`）を読み、**`IWICBitmapFlipRotator` で回転してから縮小する**（縮小してから回転すると丸め誤差の入り方が変わり、WinUI 3 版の `ExifOrientationMode.RespectExifOrientation` と画素が一致しない） |
 | 戻される画素形式 | アルファ乗算済みの BGRA（`GUID_WICPixelFormat32bppPBGRA`）を要求しても、**エンコーダーは別の形式を返す**（実測: PNG / TIFF はアルファ乗算なしの BGRA、JPEG は 24bpp の BGR、BMP だけが要求どおり）。 返された形式に合わせて並びを直してから書く |
+| 書き込み時の並びの変換 | **自前で行う**。 変換器（`IWICFormatConverter`）へ渡す画素の源は `IWICImagingFactory::CreateBitmapFromMemory` でしか作れないが、この API は **`[GeneratedComInterface]` 経由でも生の vtable 呼び出しでもアクセス違反で落ちる**（実測: 同じ引数・同じプロセスで `[ComImport]` 経由なら成功する。 Native AOT では `[ComImport]` を使えない） |
 
 **外部パッケージ（`System.Drawing.Common` 等）は参照しません**。 WIC は OS の一部であるため、配布物も追加も要りません。 形式の網羅性は [`SPEC_API.md`](SPEC_API.md) の該当節が持ちます。
 

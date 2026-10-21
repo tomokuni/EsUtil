@@ -280,7 +280,12 @@ internal static class WinWicImageCodec
     /// <b>要求と返答が違う（実測）</b>: アルファ乗算済みの BGRA を要求しても、PNG / TIFF は
     /// アルファ乗算なしの BGRA、JPEG は 24bpp の BGR を返す（JPEG はアルファを持てない形式である）。
     /// そのため<b>返された形式に合わせて並びを直してから書く</b>（エンコーダーは形式の変換をしない）。
-    /// BMP だけは要求どおりアルファ乗算済みを受け付けるため、コピーを作らない。
+    /// BMP だけは要求どおりアルファ乗算済みを受け付けるため、コピーを作らない。<br/>
+    /// <b>変換器（<c>IWICFormatConverter</c>）を使わない理由（実測）</b>: 変換器へ渡す画素の源は
+    /// <c>IWICImagingFactory::CreateBitmapFromMemory</c> でしか作れないが、この API は
+    /// <b><c>[GeneratedComInterface]</c> 経由でも生の vtable 呼び出しでもアクセス違反で落ちる</b>
+    /// （同じ引数・同じプロセスでも <c>[ComImport]</c> 経由なら成功する。 Native AOT では
+    /// <c>[ComImport]</c> を使えない）。 そのため並びの変換だけは自前で行う。
     /// </remarks>
     private static void WritePixels(
         IWICBitmapFrameEncode frame, int width, int height, ReadOnlySpan<byte> pixels, Guid pixelFormat,

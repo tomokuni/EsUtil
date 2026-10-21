@@ -6,7 +6,8 @@ namespace EsUtil.Platform.Core.Tests.Imaging;
 
 /// <summary>画像のファイル保存・読み込み（<see cref="EsReadOnlyBitmap.Save(string)"/> / <see cref="EsReadOnlyBitmap.Save(string, EsImageSaveOptions)"/> / <see cref="EsBitmap.Save(string)"/> / <see cref="EsReadOnlyBitmap.Load(string)"/> / <see cref="EsBitmap.Load(string)"/>）のテスト（Windows 専用・並列実行）。</summary>
 /// <remarks>
-/// GDI+ は Windows 専用のため、本クラスは <see cref="SupportedOSPlatformAttribute"/> で Windows に限定する。<br/>
+/// 画像のファイル入出力は OS の WIC を使うため Windows 専用であり、本クラスは
+/// <see cref="SupportedOSPlatformAttribute"/> で Windows に限定する。<br/>
 /// 実ファイルへ書き出して読み戻すため、各テストが独立した一時ファイルを使い（静的共有状態を持たない）、
 /// <c>[Fact]</c> で並列実行できる。
 /// </remarks>
@@ -555,6 +556,57 @@ public class EsBitmapFileSaveLoadTests
     }
 
     [Fact]
+    internal void Save_半透明はアルファの乗算を解いてから書く()
+    {
+        // コアの画素はアルファ乗算済みである（B=20 / G=40 / R=60 / A=128 は、乗算前の色に直すと 40 / 80 / 120）。
+        // PNG はアルファ乗算なし（straight）で保存するため、乗算を解かずに書くと色がアルファ倍だけ暗くなる。
+        using var source = CreatePremultiplied(System.Drawing.Color.FromArgb(128, 60, 40, 20));
+        var path = TempPath(".png");
+        try
+        {
+            source.Save(path);
+
+            using var loaded = EsReadOnlyBitmap.Load(path);
+
+            // 読み込みは再び乗算済みへ戻るため、元の画素と同じ値になる（丸めの ±2 を許す）
+            var pixel = loaded.GetPixel(0, 0);
+            Assert.Equal((byte)128, pixel.A);
+            Assert.InRange(pixel.B, 18, 22);
+            Assert.InRange(pixel.G, 38, 42);
+            Assert.InRange(pixel.R, 58, 62);
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    [Fact]
+    internal void Save_アルファを持てない形式でも乗算を解いてから書く()
+    {
+        // JPEG はアルファを持てないため、乗算済みの画素をそのまま書くと全体が暗くなる（乗算前の色へ直してから落とす）
+        using var source = CreatePremultiplied(System.Drawing.Color.FromArgb(128, 60, 40, 20));
+        var path = TempPath(".jpg");
+        try
+        {
+            source.Save(path, new EsImageSaveOptions { JpegQuality = 100 });
+
+            using var loaded = EsReadOnlyBitmap.Load(path);
+
+            // 一色だけの画像なので JPEG の誤差は小さく、乗算前の色（40 / 80 / 120）へ戻る
+            var pixel = loaded.GetPixel(0, 0);
+            Assert.Equal((byte)255, pixel.A);
+            Assert.InRange(pixel.B, 32, 48);
+            Assert.InRange(pixel.G, 72, 88);
+            Assert.InRange(pixel.R, 112, 128);
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
+    }
+
+    [Fact]
     internal void Save_減色しても透過が保たれる()
     {
         using var source = CreateWithAlpha();
@@ -762,6 +814,17 @@ public class EsBitmapFileSaveLoadTests
     /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
     private static EsReadOnlyBitmap CreateReadOnly(int width, int height)
         => CreateReadOnly(width, height, System.Drawing.Color.Transparent);
+
+    /// <summary>1 色で塗りつぶした画像を作る（画素はアルファ乗算済み）。</summary>
+    /// <param name="color">塗りつぶす色。</param>
+    /// <param name="size">1 辺の長さ（ピクセル）。</param>
+    /// <returns>生成した画像。 所有権は呼び出し側へ移る。</returns>
+    private static EsReadOnlyBitmap CreatePremultiplied(System.Drawing.Color color, int size = 16)
+    {
+        using var bitmap = EsBitmap.Create(size, size, color);
+        bitmap.SetReadOnly();
+        return EsReadOnlyBitmap.FromBitmap(bitmap);
+    }
 
     /// <summary>透明・半透明・不透明の 3 段階を持つ画像を作る（RGB は同じ）。</summary>
     /// <param name="width">幅（ピクセル。 3 等分する）。</param>
