@@ -27,6 +27,10 @@
     <EsUtil_Ui_MewUI_Marquee_Version>0.1.2</EsUtil_Ui_MewUI_Marquee_Version>
     <EsUtil_Ui_WinUI3_Marquee_Version>0.1.2</EsUtil_Ui_WinUI3_Marquee_Version>
     <EsUtil_Ui_WinForms_Marquee_Version>0.1.2</EsUtil_Ui_WinForms_Marquee_Version>
+    <EsUtil_Ui_AvaloniaUI_Interop_Version>0.1.0</EsUtil_Ui_AvaloniaUI_Interop_Version>
+    <EsUtil_Ui_MewUI_Interop_Version>0.1.0</EsUtil_Ui_MewUI_Interop_Version>
+    <EsUtil_Ui_WinUI3_Interop_Version>0.1.0</EsUtil_Ui_WinUI3_Interop_Version>
+    <EsUtil_Ui_WinForms_Interop_Version>0.1.0</EsUtil_Ui_WinForms_Interop_Version>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -53,6 +57,10 @@
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.MewUI.Marquee'">$(EsUtil_Ui_MewUI_Marquee_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.Marquee'">$(EsUtil_Ui_WinUI3_Marquee_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinForms.Marquee'">$(EsUtil_Ui_WinForms_Marquee_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.AvaloniaUI.Interop'">$(EsUtil_Ui_AvaloniaUI_Interop_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.MewUI.Interop'">$(EsUtil_Ui_MewUI_Interop_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.Interop'">$(EsUtil_Ui_WinUI3_Interop_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinForms.Interop'">$(EsUtil_Ui_WinForms_Interop_Version)</Version>
   </PropertyGroup>
 
   <PropertyGroup>

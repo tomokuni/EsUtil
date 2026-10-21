@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Ui.MewUI.Interop</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Description>MewUI と EsUtil の型（キー・幾何・色・ウィンドウ状態・画像）を相互変換するブリッジ。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MewUI のコア（型・値型・標準描画の IGraphicsContext）。 プラットフォームホストは含まない -->
+    <PackageReference Include="Aprillz.MewUI.Core" Version="0.21.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Ui.MewUI.Interop.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+    <UseWinUI>true</UseWinUI>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <RootNamespace>EsUtil.Ui.WinUI3.Interop</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Description>WinUI 3 と EsUtil の型（キー・幾何・色・ウィンドウ状態・画像）を相互変換するブリッジ。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WinUI 3（Microsoft.UI.Xaml）のコントロールと、WinRT の投影型（Windows.Foundation の幾何型・色型） -->
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="[1.*,2.0.0)" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="[10.0.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする（指定はアセンブリ名） -->
+    <InternalsVisibleTo Include="EsUtil.Ui.WinUI3.Interop.Tests" />
+  </ItemGroup>
+
+</Project>

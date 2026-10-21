@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Ui.AvaloniaUI.Interop</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- C# 14 静的拡張メンバー（extension(Color) 構文）を有効化する -->
+    <Features>extension</Features>
+    <Description>Avalonia UI と EsUtil の型（キー・幾何・色・ウィンドウ状態・画像）を相互変換するブリッジ。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 描画エンジン（Avalonia.Skia）はアプリが選ぶ。 本層は型の変換だけを行うため Avalonia 本体のみを参照する -->
+    <PackageReference Include="Avalonia" Version="[12.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Ui.AvaloniaUI.Interop.Tests" />
+  </ItemGroup>
+
+</Project>

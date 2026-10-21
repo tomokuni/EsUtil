@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>EsUtil.Ui.WinForms.Interop</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- モニター単位の DPI 照会（Win32 の GetDpiForMonitor）は P/Invoke の座標構造体を伴うため有効化する
+         （WinForms の公開 API にモニター単位の DPI 照会が無い）。 -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>WinForms と EsUtil の型（キー・幾何・色・ウィンドウ状態・画像）を相互変換するブリッジ。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Ui.WinForms.Interop.Tests" />
+  </ItemGroup>
+
+</Project>
