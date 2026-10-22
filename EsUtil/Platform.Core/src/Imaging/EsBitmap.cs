@@ -1,6 +1,6 @@
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Native.Win;
+using EsUtil.Platform.Core.Native.Win.Wic;
 using Color = System.Drawing.Color;
 
 namespace EsUtil.Platform.Core.Imaging;

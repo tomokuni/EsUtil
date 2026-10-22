@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace EsUtil.Platform.Core.Native.Win;
+namespace EsUtil.Platform.Core.Native.Win.Wic;
 
 /// <summary><c>PROPVARIANT</c>（メタデータの値を 1 件受け取る）。</summary>
 /// <remarks>

@@ -4,7 +4,7 @@ using EsUtil.Platform.Core.Imaging;
 using Windows.Win32;
 using Windows.Win32.System.Com;
 
-namespace EsUtil.Platform.Core.Native.Win;
+namespace EsUtil.Platform.Core.Native.Win.Wic;
 
 /// <summary>WIC の COM オブジェクトの生成・解放と呼び出しの補助。</summary>
 /// <remarks>

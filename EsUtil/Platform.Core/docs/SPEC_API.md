@@ -687,7 +687,7 @@ public readonly record struct ElementFinderResults(
 
 ### 2.32 画像のファイル入出力（`Save` / `Load`）
 
-コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー（`Load` は静的・`Save` はインスタンス。 2 型が同じ名前を持ちます）**であり、WIC（`windowscodecs.dll` の COM）を呼ぶ実装は `EsUtil/Platform.Core/src/Native/Win/WinWicImageCodec.cs` の `internal` クラスが単一所有します（入口は内部の `EsBitmapBuffer.LoadFromFile` / `SaveToFile`）。 **Windows 専用**です。
+コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー（`Load` は静的・`Save` はインスタンス。 2 型が同じ名前を持ちます）**であり、WIC（`windowscodecs.dll` の COM）を呼ぶ実装は `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicImageCodec.cs` の `internal` クラスが単一所有します（入口は内部の `EsBitmapBuffer.LoadFromFile` / `SaveToFile`）。 **Windows 専用**です。
 
 | 型 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- | --- |
@@ -783,7 +783,7 @@ public readonly record struct ElementFinderResults(
       **NetVips** は pngquant と同じ libimagequant を積みますが**ネイティブが LGPL** です。
   - **減色を既定にしない理由**: 減色は**不可逆**であり、既定の `Save` の「見た目を変えずに書き出す」期待と衝突します。
     また効果は形式と内容に強く依存します（写真風の画像ほど小さくなります）。 明示した場合だけ行います。
-- **エンコード・デコードは WIC（`windowscodecs.dll` の COM）を直接呼びます**（宣言は `EsUtil/Platform.Core/src/Native/Win/WinWicFactory.cs`、COM インターフェイスの定義は型ごとのファイル（`IWICImagingFactory.cs` など）、生成と解放は `WinWicFactory.cs` が集約。 `WinNative` は DLL ごとの `partial` ファイルに分かれます）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
+- **エンコード・デコードは WIC（`windowscodecs.dll` の COM）を直接呼びます**（宣言は `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFactory.cs`、COM インターフェイスの定義は型ごとのファイル（`IWICImagingFactory.cs` など）、生成と解放は `WinWicFactory.cs` が集約。 `WinNative` は DLL ごとの `partial` ファイルに分かれます）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
 - **本機能は Windows 専用です**: WIC は Windows にのみ存在します。 公開メンバー（`Save` / `Load` / `SupportedFileExtensions`）は `SupportedOSPlatform("windows")` で限定します。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、`EsUtil/Platform.Core/src/Native` だけが Windows に依存します）。
 - **COM の初期化は `WinWicFactory` が単一所有します**（プロセスで 1 回だけ `CoInitializeEx` を呼び、`CLSID_WICImagingFactory` を都度生成します）。 **`RPC_E_CHANGED_MODE`（`0x80010106`）は成功として扱います**（既に別のモデルで初期化済みのプロセスでも動くことを実測で確認しました）。 **プロセス全体に及ぶ副作用はありません**（スレッドは増えず、解放されない参照カウントも取りません）。
 - **初期化を前倒しする公開 API は持ちません**: 初期化は `WinWicFactory`（`internal`）が単一所有するため、ホストからは呼べません。 初期化のコストは最初の `Save` / `Load` が負担します。

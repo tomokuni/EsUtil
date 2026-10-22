@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace EsUtil.Platform.Core.Native.Win;
+namespace EsUtil.Platform.Core.Native.Win.Wic;
 
 /// <summary>WIC の呼び出しに必要な COM の生成の宣言。</summary>
 /// <remarks>

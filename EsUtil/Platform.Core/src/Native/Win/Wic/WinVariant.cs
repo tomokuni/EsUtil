@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace EsUtil.Platform.Core.Native.Win;
+namespace EsUtil.Platform.Core.Native.Win.Wic;
 
 /// <summary><c>VARIANT</c>（<c>PROPBAG2</c> と対になる値）。</summary>
 /// <remarks>型は先頭、値は 8 バイト目に置かれる（32/64 ビットで同じ）。</remarks>

@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace EsUtil.Platform.Core.Native.Win;
+namespace EsUtil.Platform.Core.Native.Win.Wic;
 
 /// <summary><c>STATSTG</c>（ストリームの大きさを受け取る）。</summary>
 [StructLayout(LayoutKind.Sequential)]

@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
 
-namespace EsUtil.Platform.Core.Native.Win;
+namespace EsUtil.Platform.Core.Native.Win.Wic;
 
 /// <summary>画像のファイル保存・読み込みの実装（WIC を使う Windows 専用）。</summary>
 /// <remarks>

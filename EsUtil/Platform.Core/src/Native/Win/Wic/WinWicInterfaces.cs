@@ -1,6 +1,6 @@
 using System.Runtime.Versioning;
 
-namespace EsUtil.Platform.Core.Native.Win;
+namespace EsUtil.Platform.Core.Native.Win.Wic;
 
 /// <summary>WIC（Windows Imaging Component）の呼び出しで共通に使う値。</summary>
 /// <remarks>

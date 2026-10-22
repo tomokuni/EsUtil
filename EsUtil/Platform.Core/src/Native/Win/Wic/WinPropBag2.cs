@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace EsUtil.Platform.Core.Native.Win;
+namespace EsUtil.Platform.Core.Native.Win.Wic;
 
 /// <summary><c>PROPBAG2</c>（<c>IPropertyBag2::Write</c> へ渡す 1 件分の指定）。</summary>
 /// <remarks>
