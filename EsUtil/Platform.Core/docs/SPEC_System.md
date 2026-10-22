@@ -69,7 +69,7 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/Win/WinVirtualKey.cs` | `EsKey` → Win32 仮想キーコードの変換表（`RegisterHotKey` に渡す値。 対応表に無いキーは 0） |
 | `EsUtil/Platform.Core/src/Native/ElementFinderResults.cs` | 要素検出の結果（`readonly record struct`） |
 | `EsUtil/Platform.Core/src/NativeMethods.txt` | **CsWin32 が生成する Win32 API と定数の唯一の一覧**（宣言を手で書かない。 user32 / gdi32 / dwmapi / comctl32 / kernel32 / ole32 の API と、メッセージ番号・スタイル値などのマクロ、使う列挙型・構造体を列挙する） |
-| `EsUtil/Platform.Core/src/AssemblyInfo.cs` | 本アセンブリの P/Invoke の探索先を `System32` に固定する宣言（`DefaultDllImportSearchPaths`。 アセンブリ全体に効くため名前空間を持たず `src/` 直下に置く） |
+| `EsUtil/Platform.Core/src/AssemblyAttributes.cs` | アセンブリ全体に効く属性だけを持つ（P/Invoke の探索先を `System32` に固定する `DefaultDllImportSearchPaths`。 名前空間を持たないため `src/` 直下） |
 | `EsUtil/Platform.Core/src/Native/Win/WinWicFactory.cs` | WIC の COM の生成と解放・COM の起動・画素形式の GUID・縮小・変換・回転・画素のコピーの補助 |
 | `EsUtil/Platform.Core/src/Native/Win/WinWicNative.cs` | COM の生成の宣言（`CoCreateInstance` / `CreateStreamOnHGlobal` の 2 件。 `out` は `[GeneratedComInterface]` の型で受ける。 §7.3.1） |
 | `EsUtil/Platform.Core/src/Native/Win/IWICImagingFactory.cs` ほか WIC の型ごとのファイル | WIC の COM インターフェイス定義（`[GeneratedComInterface]`。 **宣言順が vtable の位置**） |
