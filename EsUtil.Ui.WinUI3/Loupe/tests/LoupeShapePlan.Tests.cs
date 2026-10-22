@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Geometry;
 using EsUtil.Ui.WinUI3.Loupe.Internal;
 using Xunit;
 using DrawingColor = System.Drawing.Color;

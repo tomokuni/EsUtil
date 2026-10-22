@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Imaging;
 using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Imaging;

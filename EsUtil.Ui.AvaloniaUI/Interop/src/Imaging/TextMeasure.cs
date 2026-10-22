@@ -1,5 +1,6 @@
 using System.Globalization;
 using Avalonia.Media;
+using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 

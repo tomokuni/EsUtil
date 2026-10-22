@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Imaging;
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 

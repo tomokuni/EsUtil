@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.Versioning;
+using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Platform.Core.Native.Win;
 

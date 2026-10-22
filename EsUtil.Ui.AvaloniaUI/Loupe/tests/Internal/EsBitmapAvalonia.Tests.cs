@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using EsUtil.Platform.Core.Imaging;
 using EsUtil.Ui.AvaloniaUI.Loupe.Internal;
 using Xunit;
 

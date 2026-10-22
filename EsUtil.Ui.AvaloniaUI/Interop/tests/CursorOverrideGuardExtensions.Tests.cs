@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Native;
 using Xunit;
 

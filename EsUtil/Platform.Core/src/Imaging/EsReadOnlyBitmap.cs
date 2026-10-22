@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Versioning;
+using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native.Win;
 using Color = System.Drawing.Color;
 

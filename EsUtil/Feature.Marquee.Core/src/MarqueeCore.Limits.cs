@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Coord;
 
 namespace EsUtil.Feature.Marquee;
 

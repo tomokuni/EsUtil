@@ -1,4 +1,5 @@
 using EsUtil.Ui.MewUI.Loupe.Internal;
+using EsUtil.Platform.Core.Coord;
 using Xunit;
 
 namespace EsUtil.Ui.MewUI.Loupe.Tests.Internal;

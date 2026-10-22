@@ -1,3 +1,5 @@
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native.Win;
 
 namespace EsUtil.Ui.WinForms.Interop;

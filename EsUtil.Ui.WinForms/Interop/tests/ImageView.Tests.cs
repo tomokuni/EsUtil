@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Imaging;
 using EsUtil.Ui.WinForms.Interop.Imaging;
 using Xunit;
 using DrawingColor = System.Drawing.Color;

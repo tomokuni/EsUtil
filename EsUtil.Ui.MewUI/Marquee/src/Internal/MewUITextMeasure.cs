@@ -1,5 +1,6 @@
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
+using EsUtil.Platform.Core.Geometry;
 
 // 複製元: EsUtil.SaveEvidence.Platform.MewUI.Imaging（独立パッケージ用の意図的な複製。 .github/依存関係.md §4.1）
 namespace EsUtil.Ui.MewUI.Marquee.Internal;

@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media.Imaging;
+using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
 using EsUtil.Ui.AvaloniaUI.Loupe.Internal;
 using Xunit;
 

@@ -4,6 +4,7 @@ using Aprillz.MewUI.Controls;
 using EsUtil.Ui.MewUI.Loupe.Sample.Imaging;
 using EsUtil.Ui.MewUI.Loupe.Sample.Logging;
 using EsUtil.Ui.MewUI.Loupe.Sample.Presentation;
+using EsUtil.Platform.Core.Geometry;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.MewUI.Loupe.Sample.Views;

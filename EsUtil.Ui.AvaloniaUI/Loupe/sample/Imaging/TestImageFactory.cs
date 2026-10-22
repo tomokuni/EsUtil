@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Ui.AvaloniaUI.Loupe.Sample.Imaging;
 

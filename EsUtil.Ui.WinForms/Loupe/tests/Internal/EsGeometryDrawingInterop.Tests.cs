@@ -1,4 +1,5 @@
 using EsUtil.Ui.WinForms.Loupe.Internal;
+using EsUtil.Platform.Core.Geometry;
 using Xunit;
 using DrawingRectangle = System.Drawing.Rectangle;
 using DrawingRectangleF = System.Drawing.RectangleF;

@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Threading;
+using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
 using Xunit;
 

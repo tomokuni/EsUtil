@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Platform.Core.Imaging;
 

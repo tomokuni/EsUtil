@@ -1,3 +1,5 @@
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using DrawingColor = System.Drawing.Color;

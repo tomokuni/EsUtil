@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using EsUtil.Platform.Core.Imaging;
 using DrawingBitmap = System.Drawing.Bitmap;
 using DrawingImageLockMode = System.Drawing.Imaging.ImageLockMode;
 using DrawingPixelFormat = System.Drawing.Imaging.PixelFormat;

@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Geometry;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.AvaloniaUI.Marquee.Sample.Presentation;

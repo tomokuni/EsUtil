@@ -1,4 +1,7 @@
 using System.Globalization;
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
 using DrawingColor = System.Drawing.Color;
 

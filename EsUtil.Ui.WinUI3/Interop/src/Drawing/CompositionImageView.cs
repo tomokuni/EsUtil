@@ -1,4 +1,5 @@
 using System.Numerics;
+using EsUtil.Platform.Core.Imaging;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;

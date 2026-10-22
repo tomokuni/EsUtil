@@ -1,5 +1,8 @@
 using EsUtil.Feature.Marquee.Presenter.Drawing;
 using EsUtil.Feature.Marquee.Presenter.Logging;
+using EsUtil.Platform.Core;
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native;
 using Microsoft.Extensions.Logging;
 

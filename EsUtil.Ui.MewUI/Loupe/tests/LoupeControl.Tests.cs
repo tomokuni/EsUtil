@@ -2,6 +2,7 @@ using System.Globalization;
 using EsUtil.Ui.MewUI.Loupe.Internal;
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
+using EsUtil.Platform.Core.Geometry;
 using Xunit;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
 using DrawingColor = System.Drawing.Color;

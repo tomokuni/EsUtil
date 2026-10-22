@@ -1,4 +1,6 @@
 using EsUtil.Ui.WinForms.Loupe.Sample.Internal;
+using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
 using DrawingColor = System.Drawing.Color;
 using DrawingPen = System.Drawing.Pen;
 using DrawingRectangleF = System.Drawing.RectangleF;

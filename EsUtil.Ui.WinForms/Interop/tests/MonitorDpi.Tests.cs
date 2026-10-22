@@ -1,3 +1,5 @@
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
 using Xunit;
 
 namespace EsUtil.Ui.WinForms.Interop.Tests;

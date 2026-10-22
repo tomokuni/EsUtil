@@ -1,6 +1,7 @@
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using Aprillz.MewUI.Rendering;
+using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.MewUI.Loupe.Sample.Views;
 

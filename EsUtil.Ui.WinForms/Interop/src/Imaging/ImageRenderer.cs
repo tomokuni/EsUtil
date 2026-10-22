@@ -1,3 +1,5 @@
+using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
 using System.Drawing.Drawing2D;
 
 namespace EsUtil.Ui.WinForms.Interop.Imaging;

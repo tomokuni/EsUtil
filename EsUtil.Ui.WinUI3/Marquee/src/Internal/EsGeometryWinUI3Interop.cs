@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Geometry;
 using WinUIPoint = Windows.Foundation.Point;
 
 namespace EsUtil.Ui.WinUI3.Marquee.Internal;

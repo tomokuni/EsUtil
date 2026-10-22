@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core;
 using Xunit;
 using WinFormsWindowState = System.Windows.Forms.FormWindowState;
 

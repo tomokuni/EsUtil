@@ -1,4 +1,6 @@
 using EsUtil.Ui.WinUI3.Marquee.Internal;
+using EsUtil.Platform.Core;
+using EsUtil.Platform.Core.Geometry;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;

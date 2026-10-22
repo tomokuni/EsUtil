@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Geometry;
 using Xunit;
 using DrawingPixelFormat = System.Drawing.Imaging.PixelFormat;
 

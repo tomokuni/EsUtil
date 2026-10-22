@@ -1,4 +1,5 @@
 using System.Drawing;
+using EsUtil.Platform.Core.Geometry;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 

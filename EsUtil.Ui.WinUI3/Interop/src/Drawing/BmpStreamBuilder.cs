@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Ui.WinUI3.Interop.Drawing;
 

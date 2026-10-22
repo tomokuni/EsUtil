@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Imaging;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.MewUI.Interop.Tests;

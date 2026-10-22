@@ -1,5 +1,6 @@
 using Aprillz.MewUI;
 using Aprillz.MewUI.Rendering;
+using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Ui.MewUI.Interop.Imaging;
 

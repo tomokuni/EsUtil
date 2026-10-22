@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 

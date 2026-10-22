@@ -1,4 +1,5 @@
 using System.Drawing.Imaging;
+using EsUtil.Platform.Core.Imaging;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.WinForms.Interop.Tests;

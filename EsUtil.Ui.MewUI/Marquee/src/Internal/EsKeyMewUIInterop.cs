@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core;
 using MewUIKey = Aprillz.MewUI.Key;
 
 // 複製元: 製品共通の MewUI 変換ヘルパー（独立パッケージ用の意図的な複製。 .github/依存関係.md §4.1）

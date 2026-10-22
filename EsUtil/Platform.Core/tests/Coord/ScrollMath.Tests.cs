@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Coord;
 using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Coord;

@@ -1,3 +1,6 @@
+using EsUtil.Platform.Core;
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
 using EsUtil.Ui.WinUI3.Marquee.Internal;
 using Microsoft.UI.Xaml;
 

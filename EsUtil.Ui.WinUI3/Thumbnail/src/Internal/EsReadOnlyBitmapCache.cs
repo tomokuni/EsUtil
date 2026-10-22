@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices.WindowsRuntime;
+using EsUtil.Platform.Core.Imaging;
 using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace EsUtil.Ui.WinUI3.Thumbnail.Internal;

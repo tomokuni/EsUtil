@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Ui.WinForms.Interop.Imaging;
 

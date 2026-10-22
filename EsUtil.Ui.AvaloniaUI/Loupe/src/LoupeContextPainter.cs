@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Media;
 using EsUtil.Ui.AvaloniaUI.Loupe.Internal;
+using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.AvaloniaUI.Loupe;

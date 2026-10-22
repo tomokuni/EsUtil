@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Ui.MewUI.Loupe;

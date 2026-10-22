@@ -1,4 +1,5 @@
 using EsUtil.Ui.WinForms.Marquee.Internal;
+using EsUtil.Platform.Core.Coord;
 using Xunit;
 
 namespace EsUtil.Ui.WinForms.Marquee.Tests.Internal;

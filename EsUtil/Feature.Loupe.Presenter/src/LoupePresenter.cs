@@ -1,5 +1,8 @@
 using EsUtil.Feature.Loupe.Presenter.Drawing;
 using EsUtil.Feature.Loupe.Presenter.Logging;
+using EsUtil.Platform.Core;
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Feature.Loupe;

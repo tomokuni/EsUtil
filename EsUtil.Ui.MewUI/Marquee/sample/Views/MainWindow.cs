@@ -4,6 +4,8 @@ using Aprillz.MewUI.Controls;
 using EsUtil.Ui.MewUI.Marquee.Sample.Imaging;
 using EsUtil.Ui.MewUI.Marquee.Sample.Logging;
 using EsUtil.Ui.MewUI.Marquee.Sample.Presentation;
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.MewUI.Marquee.Sample.Views;

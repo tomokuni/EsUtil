@@ -1,5 +1,6 @@
 using Avalonia;
 using EsUtil.Ui.AvaloniaUI.Marquee.Internal;
+using EsUtil.Platform.Core.Geometry;
 using Xunit;
 
 namespace EsUtil.Ui.AvaloniaUI.Marquee.Tests.Internal;

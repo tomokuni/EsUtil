@@ -6,6 +6,8 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
 using EsUtil.Feature.Marquee.Core.Interaction;
+using EsUtil.Platform.Core.Coord;
+using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native;
 using EsUtil.Ui.AvaloniaUI.Marquee.Internal;
 using Xunit;

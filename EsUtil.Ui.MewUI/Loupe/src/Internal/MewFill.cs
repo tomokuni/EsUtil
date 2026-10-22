@@ -1,4 +1,5 @@
 using Aprillz.MewUI.Rendering;
+using EsUtil.Platform.Core.Geometry;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.MewUI.Loupe.Internal;

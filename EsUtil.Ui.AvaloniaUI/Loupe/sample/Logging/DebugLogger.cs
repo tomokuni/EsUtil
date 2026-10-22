@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using EsUtil.Platform.Core;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Ui.AvaloniaUI.Loupe.Sample.Logging;

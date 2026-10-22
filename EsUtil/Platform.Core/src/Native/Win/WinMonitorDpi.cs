@@ -1,4 +1,5 @@
 using System.Runtime.Versioning;
+using EsUtil.Platform.Core.Geometry;
 using Windows.Win32;
 using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.UI.HiDpi;

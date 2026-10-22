@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core;
 using Microsoft.UI.Windowing;
 using Xunit;
 

@@ -1,5 +1,6 @@
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Ui.MewUI.Marquee.Internal;
+using EsUtil.Platform.Core.Geometry;
 using MewUIColor = Aprillz.MewUI.Color;
 using MewUIPoint = Aprillz.MewUI.Point;
 using MewUIRect = Aprillz.MewUI.Rect;

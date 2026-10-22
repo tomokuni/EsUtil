@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Coord;
 
 // 複製元: EsUtil.Ui.MewUI.Loupe.Internal（独立パッケージ用の意図的な複製。 .github/依存関係.md §4.1）
 namespace EsUtil.Ui.MewUI.Thumbnail.Internal;
