@@ -2,7 +2,7 @@ using System.Runtime.Versioning;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 
-namespace EsUtil.Platform.Core.Native;
+namespace EsUtil.Platform.Core.Native.Win;
 
 /// <summary>ウィンドウの標準メニュー（左上のアイコンの押下で出す）から実行する操作。</summary>
 /// <remarks>

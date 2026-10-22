@@ -39,7 +39,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.31 `Imaging.EsReadOnlyBitmap`（sealed class : IDisposable） / `Imaging.EsBitmap`（sealed class : IDisposable） / `Imaging.EsPixmap`（sealed class : IDisposable）](#231-imagingesreadonlybitmapsealed-class--idisposable--imagingesbitmapsealed-class--idisposable--imagingespixmapsealed-class--idisposable)
   - [2.32 画像のファイル入出力（`Save` / `Load`）](#232-画像のファイル入出力save--load)
   - [2.33 画像型の設計上の判断（兄弟と借用を選んだ理由）](#233-画像型の設計上の判断兄弟と借用を選んだ理由)
-  - [2.34 `Native.SystemWindowCommands`（静的クラス）](#234-nativesystemwindowcommands静的クラス)
+  - [2.34 `Native.Win.SystemWindowCommands`（静的クラス）](#234-nativewinsystemwindowcommands静的クラス)
   - [2.35 `Caching.CapacityLimitedCache<TKey, TValue>`（sealed class）](#235-cachingcapacitylimitedcachetkey-tvaluesealed-class)
   - [2.36 `Svg.SvgIconSource`（sealed class） / `Svg.SvgIcon`（record struct）](#236-svgsvgiconsourcesealed-class--svgsvgiconrecord-struct)
   - [2.37 `Imaging.EsImageFileExtensions`（static class）](#237-imagingesimagefileextensionsstatic-class)
@@ -852,7 +852,7 @@ public readonly record struct ElementFinderResults(
 
 **10. 座標が範囲外の場合は `ArgumentOutOfRangeException`** を投げます。 `IndexOutOfRangeException` はランタイムが予約した例外であり、送出を禁じるアナライザー（`CA2201` / `MA0012`）があるため使いません（`System.Drawing.Bitmap.GetPixel` も `ArgumentOutOfRangeException` を投げます）。 **判定を入れる理由**: 境界を跨いだ座標はバッファの内側に落ちるため、判定しないと隣の行の画素が静かに変わります。
 
-### 2.34 `Native.SystemWindowCommands`（静的クラス）
+### 2.34 `Native.Win.SystemWindowCommands`（静的クラス）
 
 ウィンドウの標準メニュー（左上のアイコンの押下で出す）から実行する操作です。 移動・サイズ変更は OS のモードへ入ります（アプリ側でマウス追従を実装しません）。
 
