@@ -1,5 +1,4 @@
 using EsUtil.Ui.MewUI.Marquee.Internal;
-using EsUtil.Platform.Core.Coord;
 using Xunit;
 
 namespace EsUtil.Ui.MewUI.Marquee.Tests.Internal;

@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core;
 using Xunit;
 using WinFormsKeys = System.Windows.Forms.Keys;
 

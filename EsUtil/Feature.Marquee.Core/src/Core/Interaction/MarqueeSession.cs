@@ -1,8 +1,5 @@
 using EsUtil.Feature.Marquee.Core.Logging;
 using EsUtil.Feature.Marquee.Core.Selection;
-using EsUtil.Platform.Core;
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 

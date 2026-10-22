@@ -3,7 +3,6 @@ using EsUtil.Ui.AvaloniaUI.Marquee.Internal;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.AvaloniaUI.Marquee;
 

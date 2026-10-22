@@ -1,5 +1,4 @@
 using EsUtil.Ui.AvaloniaUI.Loupe.Logging;
-using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;

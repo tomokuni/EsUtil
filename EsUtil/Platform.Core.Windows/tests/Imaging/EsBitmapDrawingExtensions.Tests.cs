@@ -1,5 +1,4 @@
 using System.Runtime.Versioning;
-using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core.Windows.Imaging;
 using Xunit;
 using DrawingBitmap = System.Drawing.Bitmap;

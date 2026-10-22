@@ -1,5 +1,4 @@
 using EsUtil.Feature.Marquee.Core.Selection;
-using EsUtil.Platform.Core.Geometry;
 using Xunit;
 
 namespace EsUtil.Feature.Marquee.Tests.Core.Selection;

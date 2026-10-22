@@ -1,6 +1,4 @@
 using System.Globalization;
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Feature.Marquee.Core.Logging;

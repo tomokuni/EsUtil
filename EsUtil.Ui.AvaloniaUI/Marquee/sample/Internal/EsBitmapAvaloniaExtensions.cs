@@ -2,7 +2,6 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using EsUtil.Platform.Core.Imaging;
 using AvaloniaColor = Avalonia.Media.Color;
 using Color = System.Drawing.Color;
 

@@ -1,8 +1,6 @@
 using EsUtil.Ui.WinUI3.Loupe.Sample.Imaging;
 using EsUtil.Ui.WinUI3.Loupe.Sample.Logging;
 using EsUtil.Ui.WinUI3.Loupe.Sample.Presentation;
-using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Imaging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;

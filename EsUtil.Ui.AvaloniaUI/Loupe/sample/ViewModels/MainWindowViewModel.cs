@@ -4,8 +4,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Ui.AvaloniaUI.Loupe.Sample.Imaging;
 using EsUtil.Ui.AvaloniaUI.Loupe.Sample.Internal;
-using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Ui.AvaloniaUI.Loupe.Sample.ViewModels;
 

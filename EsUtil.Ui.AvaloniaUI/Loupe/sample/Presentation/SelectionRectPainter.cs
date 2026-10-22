@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Media;
-using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.AvaloniaUI.Loupe.Sample.Presentation;
 

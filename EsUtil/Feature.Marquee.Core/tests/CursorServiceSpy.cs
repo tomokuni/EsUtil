@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native;
 
 namespace EsUtil.Feature.Marquee.Tests;

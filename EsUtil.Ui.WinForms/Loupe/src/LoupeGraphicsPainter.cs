@@ -8,9 +8,6 @@ using DrawingPixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode;
 using DrawingRectangleF = System.Drawing.RectangleF;
 using DrawingSmoothingMode = System.Drawing.Drawing2D.SmoothingMode;
 using EsUtil.Ui.WinForms.Loupe.Internal;
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Ui.WinForms.Loupe;
 

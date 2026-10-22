@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core.Geometry;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
 using MewUIColor = Aprillz.MewUI.Color;

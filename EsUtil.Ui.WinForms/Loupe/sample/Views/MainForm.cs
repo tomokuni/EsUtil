@@ -2,8 +2,6 @@ using System.Globalization;
 using EsUtil.Ui.WinForms.Loupe.Sample.Imaging;
 using EsUtil.Ui.WinForms.Loupe.Sample.Logging;
 using EsUtil.Ui.WinForms.Loupe.Sample.Presentation;
-using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Imaging;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.WinForms.Loupe.Sample.Views;

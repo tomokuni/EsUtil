@@ -1,9 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Imaging;
 using Windows.Win32;
 using Windows.Win32.Graphics.Gdi;
 

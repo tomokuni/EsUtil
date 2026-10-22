@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core.Geometry;
 using DrawingRectangle = System.Drawing.Rectangle;
 using DrawingRectangleF = System.Drawing.RectangleF;
 

@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core;
 using Microsoft.UI.Windowing;
 
 namespace EsUtil.Ui.WinUI3.Interop;

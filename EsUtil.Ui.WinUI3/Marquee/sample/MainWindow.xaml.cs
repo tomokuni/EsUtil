@@ -1,8 +1,6 @@
 using System.Collections.ObjectModel;
 using EsUtil.Ui.WinUI3.Marquee.Sample.Logging;
 using EsUtil.Ui.WinUI3.Marquee.Sample.Presentation;
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 

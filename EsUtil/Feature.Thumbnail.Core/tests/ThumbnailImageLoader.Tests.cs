@@ -1,7 +1,5 @@
 using System.Drawing;
 using System.Runtime.Versioning;
-using EsUtil.Platform.Core;
-using EsUtil.Platform.Core.Imaging;
 using Xunit;
 
 namespace EsUtil.Feature.Thumbnail.Tests;

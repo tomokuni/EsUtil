@@ -1,5 +1,4 @@
 using EsUtil.Ui.WinUI3.Thumbnail.Internal;
-using EsUtil.Platform.Core.Imaging;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;

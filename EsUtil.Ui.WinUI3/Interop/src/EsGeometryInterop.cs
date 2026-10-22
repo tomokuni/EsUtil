@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core.Geometry;
 using System.Numerics;
 using WinUIColor = Windows.UI.Color;
 using WinUIPoint = Windows.Foundation.Point;

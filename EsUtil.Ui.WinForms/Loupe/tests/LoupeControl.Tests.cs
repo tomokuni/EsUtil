@@ -1,7 +1,5 @@
 using System.Globalization;
 using EsUtil.Ui.WinForms.Loupe.Internal;
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
 using Xunit;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
 using DrawingColor = System.Drawing.Color;

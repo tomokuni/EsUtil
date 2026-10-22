@@ -1,5 +1,4 @@
 using EsUtil.Ui.MewUI.Marquee.Internal;
-using EsUtil.Platform.Core;
 using MewUIKey = Aprillz.MewUI.Key;
 using Xunit;
 

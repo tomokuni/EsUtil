@@ -1,9 +1,5 @@
 using System.ComponentModel;
 using EsUtil.Ui.WinForms.Loupe.Internal;
-using EsUtil.Platform.Core;
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;

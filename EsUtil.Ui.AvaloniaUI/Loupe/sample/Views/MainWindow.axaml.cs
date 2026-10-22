@@ -7,7 +7,6 @@ using EsUtil.Ui.AvaloniaUI.Loupe.Sample.Internal;
 using EsUtil.Ui.AvaloniaUI.Loupe.Sample.Logging;
 using EsUtil.Ui.AvaloniaUI.Loupe.Sample.Presentation;
 using EsUtil.Ui.AvaloniaUI.Loupe.Sample.ViewModels;
-using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Ui.AvaloniaUI.Loupe.Sample.Views;
 

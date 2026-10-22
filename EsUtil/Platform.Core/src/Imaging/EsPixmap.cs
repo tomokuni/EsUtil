@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core.Geometry;
 using Color = System.Drawing.Color;
 
 namespace EsUtil.Platform.Core.Imaging;

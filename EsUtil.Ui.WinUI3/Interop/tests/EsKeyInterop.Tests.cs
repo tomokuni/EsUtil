@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core;
 using Xunit;
 using VirtualKey = Windows.System.VirtualKey;
 

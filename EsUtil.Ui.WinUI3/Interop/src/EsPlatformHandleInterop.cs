@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core;
 using Microsoft.UI.Xaml;
 using WinRT.Interop;
 

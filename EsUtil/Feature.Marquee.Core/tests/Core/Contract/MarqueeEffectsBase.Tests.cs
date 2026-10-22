@@ -1,6 +1,4 @@
 using EsUtil.Feature.Marquee.Core.Contract;
-using EsUtil.Platform.Core;
-using EsUtil.Platform.Core.Geometry;
 using Xunit;
 
 namespace EsUtil.Feature.Marquee.Tests.Core.Contract;

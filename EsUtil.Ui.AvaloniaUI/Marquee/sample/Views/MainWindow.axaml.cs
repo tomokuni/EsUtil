@@ -9,9 +9,6 @@ using EsUtil.Ui.AvaloniaUI.Marquee.Sample.Internal;
 using EsUtil.Ui.AvaloniaUI.Marquee.Sample.Logging;
 using EsUtil.Ui.AvaloniaUI.Marquee.Sample.Presentation;
 using EsUtil.Ui.AvaloniaUI.Marquee.Sample.ViewModels;
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Imaging;
 using Point = Avalonia.Point;
 using Rect = Avalonia.Rect;
 

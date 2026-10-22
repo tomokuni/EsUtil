@@ -1,5 +1,4 @@
 using EsUtil.Ui.WinForms.Marquee.Internal;
-using EsUtil.Platform.Core;
 using Xunit;
 using WinFormsKeys = System.Windows.Forms.Keys;
 

@@ -1,5 +1,4 @@
 using System.Globalization;
-using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.WinForms.Loupe.Sample.Views;
 

@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core.Geometry;
 using System.Numerics;
 using Xunit;
 using DrawingColor = System.Drawing.Color;

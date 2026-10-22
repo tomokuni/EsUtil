@@ -1,5 +1,4 @@
 using EsUtil.Feature.Marquee.Core.Contract;
-using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.WinForms.Marquee.Tests;
 

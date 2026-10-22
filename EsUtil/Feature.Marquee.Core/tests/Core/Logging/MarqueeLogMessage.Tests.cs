@@ -1,6 +1,5 @@
 using System.Globalization;
 using EsUtil.Feature.Marquee.Core.Logging;
-using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;

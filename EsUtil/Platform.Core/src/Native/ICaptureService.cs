@@ -1,6 +1,4 @@
 using System.ComponentModel;
-using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Platform.Core.Native;
 

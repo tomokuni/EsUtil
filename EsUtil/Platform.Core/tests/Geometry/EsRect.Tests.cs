@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core.Geometry;
 using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Geometry;

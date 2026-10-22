@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core.Geometry;
 using EsUtil.Ui.WinUI3.Marquee.Internal;
 using Xunit;
 using DrawingColor = System.Drawing.Color;

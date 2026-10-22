@@ -1,6 +1,5 @@
 using EsUtil.Ui.WinForms.Marquee.Sample.Imaging;
 using EsUtil.Ui.WinForms.Marquee.Sample.Logging;
-using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.WinForms.Marquee.Sample;
 

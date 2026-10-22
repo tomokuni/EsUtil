@@ -1,5 +1,3 @@
-using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Imaging;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
 using DrawingPixelFormat = System.Drawing.Imaging.PixelFormat;

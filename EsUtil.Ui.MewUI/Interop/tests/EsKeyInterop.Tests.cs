@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core;
 using Xunit;
 using MewUIKey = Aprillz.MewUI.Key;
 

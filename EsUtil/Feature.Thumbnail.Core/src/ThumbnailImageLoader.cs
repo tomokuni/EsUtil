@@ -1,7 +1,5 @@
 using System.Runtime.Versioning;
-using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Caching;
-using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Feature.Thumbnail;
 

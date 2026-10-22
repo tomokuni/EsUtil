@@ -4,8 +4,6 @@ using DrawingFont = System.Drawing.Font;
 using DrawingGraphics = System.Drawing.Graphics;
 using DrawingPointF = System.Drawing.PointF;
 using DrawingStringFormat = System.Drawing.StringFormat;
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.WinForms.Loupe.Internal;
 

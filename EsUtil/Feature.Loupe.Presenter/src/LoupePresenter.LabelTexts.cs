@@ -1,5 +1,4 @@
 using EsUtil.Feature.Loupe.Presenter.Drawing;
-using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Feature.Loupe;
 

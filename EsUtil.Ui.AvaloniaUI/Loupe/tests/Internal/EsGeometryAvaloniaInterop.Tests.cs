@@ -1,6 +1,5 @@
 using Avalonia;
 using EsUtil.Ui.AvaloniaUI.Loupe.Internal;
-using EsUtil.Platform.Core.Geometry;
 using Xunit;
 
 namespace EsUtil.Ui.AvaloniaUI.Loupe.Tests.Internal;

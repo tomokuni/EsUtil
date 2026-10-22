@@ -1,7 +1,5 @@
 using Avalonia;
 using Avalonia.Platform;
-using EsUtil.Platform.Core;
-using EsUtil.Platform.Core.Geometry;
 using Xunit;
 
 namespace EsUtil.Ui.AvaloniaUI.Interop.Tests;

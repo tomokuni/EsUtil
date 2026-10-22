@@ -1,5 +1,4 @@
 using System.Drawing.Imaging;
-using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.WinForms.Marquee.Tests;
 

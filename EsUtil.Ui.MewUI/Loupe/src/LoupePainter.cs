@@ -1,6 +1,4 @@
 using Aprillz.MewUI.Rendering;
-using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Imaging;
 using EsUtil.Ui.MewUI.Loupe.Internal;
 
 namespace EsUtil.Ui.MewUI.Loupe;

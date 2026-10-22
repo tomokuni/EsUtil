@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core;
 using WinFormsKeys = System.Windows.Forms.Keys;
 
 namespace EsUtil.Ui.WinForms.Interop;

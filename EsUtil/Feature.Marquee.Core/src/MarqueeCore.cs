@@ -1,8 +1,5 @@
 using EsUtil.Feature.Marquee.Core.Interaction;
 using EsUtil.Feature.Marquee.Core.Logging;
-using EsUtil.Platform.Core;
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native;
 using Microsoft.Extensions.Logging;
 using static EsUtil.Feature.Marquee.MarqueeCore.Limits;

@@ -1,5 +1,3 @@
-using EsUtil.Platform.Core.Coord;
-using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native;
 using Microsoft.Extensions.Logging;
 using Xunit;

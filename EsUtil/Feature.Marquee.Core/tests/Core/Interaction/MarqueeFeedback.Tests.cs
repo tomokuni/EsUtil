@@ -1,5 +1,4 @@
 using EsUtil.Feature.Marquee.Core.Interaction;
-using EsUtil.Platform.Core.Geometry;
 using Xunit;
 
 namespace EsUtil.Feature.Marquee.Tests.Core.Interaction;

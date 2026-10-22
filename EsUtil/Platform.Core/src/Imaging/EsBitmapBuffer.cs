@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native.Win;
 
 namespace EsUtil.Platform.Core.Imaging;

@@ -1,6 +1,4 @@
 using System.Runtime.Versioning;
-using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Native.Win;
 using Xunit;
 

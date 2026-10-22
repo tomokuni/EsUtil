@@ -1,5 +1,4 @@
 using Avalonia;
-using EsUtil.Platform.Core.Geometry;
 
 // 複製元: EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop（独立パッケージ用の意図的な複製。 .github/依存関係.md §4.1）
 namespace EsUtil.Ui.AvaloniaUI.Marquee.Internal;

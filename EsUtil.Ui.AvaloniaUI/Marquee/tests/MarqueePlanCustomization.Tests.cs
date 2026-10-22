@@ -2,7 +2,6 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
-using EsUtil.Platform.Core.Geometry;
 using Xunit;
 using AvaloniaRect = Avalonia.Rect;
 

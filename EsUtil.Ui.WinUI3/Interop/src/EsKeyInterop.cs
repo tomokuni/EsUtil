@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core;
 using VirtualKey = Windows.System.VirtualKey;
 
 namespace EsUtil.Ui.WinUI3.Interop;

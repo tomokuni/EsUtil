@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core.Geometry;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Foundation;
 

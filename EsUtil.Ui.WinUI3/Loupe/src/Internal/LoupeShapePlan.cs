@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.WinUI3.Loupe.Internal;
 

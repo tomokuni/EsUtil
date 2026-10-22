@@ -1,5 +1,3 @@
-using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Imaging;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.WinUI3.Loupe.Sample.Presentation;

@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core.Geometry;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Windows.Graphics;

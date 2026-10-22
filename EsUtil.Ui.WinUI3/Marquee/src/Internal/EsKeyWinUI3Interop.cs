@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core;
 using Windows.System;
 
 namespace EsUtil.Ui.WinUI3.Marquee.Internal;

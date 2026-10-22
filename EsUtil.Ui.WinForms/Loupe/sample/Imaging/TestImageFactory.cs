@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Ui.WinForms.Loupe.Sample.Imaging;
 

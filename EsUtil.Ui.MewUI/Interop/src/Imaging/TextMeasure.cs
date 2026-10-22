@@ -1,6 +1,5 @@
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
-using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.MewUI.Interop.Imaging;
 

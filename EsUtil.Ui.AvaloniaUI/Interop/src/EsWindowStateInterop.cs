@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core;
 using AvaloniaWindowState = Avalonia.Controls.WindowState;
 
 namespace EsUtil.Ui.AvaloniaUI.Interop;
