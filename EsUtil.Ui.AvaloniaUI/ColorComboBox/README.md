@@ -46,7 +46,7 @@ Avalonia UI 用の色選択コントロールです。 色名/16進コード入�
 
 ## 4. インストール
 
-現在はNuGetパッケージではなく、プロジェクト参照で利用します。
+NuGet パッケージ（`EsUtil.Ui.AvaloniaUI.ColorComboBox`）またはプロジェクト参照で利用します。
 
 ```xml
 <ProjectReference Include="..\EsUtil.Ui.AvaloniaUI.ColorComboBox\src\EsUtil.Ui.AvaloniaUI.ColorComboBox.csproj" />

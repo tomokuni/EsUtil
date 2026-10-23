@@ -28,7 +28,7 @@
 | 何 | 型 |
 | --- | --- |
 | 一覧 | `ThumbnailControl`（`ScrollViewer` を継承） |
-| 項目（背景・影・画像・名前） | `ThumbnailTile` |
+| 項目（背景・影・画像・名前） | `ThumbnailTile`（内部型。 ホストは `Add` / `SetImage` / `SetCaption` を使う） |
 | 2 回押しの通知 | `ThumbnailActivatedEventArgs` |
 
 ---
@@ -102,7 +102,7 @@ var bounds = list.SlotBounds(index);
 
 ## 6. 含まれるもの
 
-`ThumbnailControl` / `ThumbnailTile` / `ThumbnailActivatedEventArgs`。
+`ThumbnailControl` / `ThumbnailActivatedEventArgs`（項目の要素 `ThumbnailTile` は内部型）。
 
 ---
 

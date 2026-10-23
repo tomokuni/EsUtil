@@ -28,7 +28,7 @@
 | 何 | 型 |
 | --- | --- |
 | 一覧（スクロールを含む） | `ThumbnailControl`（`Grid` を継承し、内側にスクロールを持つ） |
-| 項目（背景・影・画像・名前） | `ThumbnailTile` |
+| 項目（背景・影・画像・名前） | `ThumbnailTile`（内部型。 ホストは `Add` / `SetImage` / `SetCaption` を使う） |
 | 2 回押しの通知 | `ThumbnailActivatedEventArgs` |
 
 **WinUI 3 の標準パネルには任意の大きさの子を折り返すパネルが無い**ため、コアが返す矩形を
@@ -103,7 +103,7 @@ var bounds = list.SlotBounds(index);
 
 ## 6. 含まれるもの
 
-`ThumbnailControl` / `ThumbnailTile` / `ThumbnailActivatedEventArgs` と、Skia 相互変換の内部ヘルパー。
+`ThumbnailControl` / `ThumbnailActivatedEventArgs`（項目の要素 `ThumbnailTile` と Skia 相互変換は内部型）。
 
 ---
 

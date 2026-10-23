@@ -28,7 +28,7 @@
 | 何 | 型 |
 | --- | --- |
 | 一覧（スクロールを含む） | `ThumbnailControl`（`Panel` を継承し、内側にスクロールを持つ） |
-| 項目（背景・影・画像・名前） | `ThumbnailTile` |
+| 項目（背景・影・画像・名前） | `ThumbnailTile`（内部型。 ホストは `Add` / `SetImage` / `SetCaption` を使う） |
 | 2 回押しの通知 | `ThumbnailActivatedEventArgs` |
 
 **MewUI の `ScrollViewer` は sealed のため継承できません**（AvaloniaUI 版との差）。 そのため一覧は
@@ -102,7 +102,7 @@ var bounds = list.SlotBounds(index);
 
 ## 6. 含まれるもの
 
-`ThumbnailControl` / `ThumbnailTile` / `ThumbnailActivatedEventArgs` と、画像の変換の内部ヘルパー。
+`ThumbnailControl` / `ThumbnailActivatedEventArgs`（項目の要素 `ThumbnailTile` と画像の変換は内部型）。
 
 ---
 

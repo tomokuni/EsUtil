@@ -67,7 +67,7 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 
 ## 4. インストール
 
-現在はNuGetパッケージではなく、プロジェクト参照で利用します。
+NuGet パッケージ（`EsUtil.Ui.AvaloniaUI.Loupe`）またはプロジェクト参照で利用します。
 
 ```xml
 <ProjectReference Include="..\EsUtil.Ui.AvaloniaUI\Loupe\src\EsUtil.Ui.AvaloniaUI.Loupe.csproj" />

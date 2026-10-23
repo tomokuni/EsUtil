@@ -190,9 +190,10 @@ MarqueeControl は 3 つの座標系を使い分けます。
 
 ## 11. 未対応
 
-- `ScrollViewer` の自動購読を行わない（MewUI の入力はポインター下の要素が受け取るため、祖先の `ScrollViewer` を探索しない）。 表示の変化はホストが検知して `InvalidateRender()` を呼ぶ。
+- **ホイール操作**: 扱わない（ホストが `MouseWheel` を購読する）。
+- **`ScrollViewer` に相当する自動連携**: 行わない（MewUI の入力はポインター下の要素が受け取るため、祖先の `ScrollViewer` を探索しない。 ビューポートの変化はホストが検知して `InvalidateRender()` を呼ぶ）。
+- **マウスダウン・アップ専用のイベント**: 持たない（生のポインター入力は基底クラスのイベントで観測する。 本コントロールは選択の解釈だけを公開する）。
 - **フォーカス非依存の矢印キー nudge**: 行わない（本コントロールにフォーカスがある間だけキーが届く）。
-- **文字（ラベル・座標ラベル）の要素配置**: UI 層の責務である（配置矩形は描画層 `EsUtil.Feature.Marquee.Presenter` の `MarqueePresenter`（`LabelPlan` partial）が求める）。
 
 ---
 
