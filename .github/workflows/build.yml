@@ -1,0 +1,38 @@
+name: build
+
+# 検証（`.github/検証手順.md` が合否基準の所有者）を CI でも同じ 1 コマンドで実行する。
+# 手順を CI 用に書き起こさない（ローカルと CI で食い違わせない）。
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    # Win32 / WIC を呼ぶ層と UI コントロールのテストは Windows を要求する。
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # プロジェクト同士はパッケージ参照で結ばれているため、検証の前にローカル フィードを作る。
+      - name: Pack packages
+        shell: pwsh
+        run: ./buildScript/pack.ps1
+
+      - name: Verify
+        shell: pwsh
+        run: ./buildScript/verify.ps1 -Configuration Release -NoRestore

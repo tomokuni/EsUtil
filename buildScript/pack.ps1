@@ -284,8 +284,9 @@ foreach ($item in $plan) {
     # 名前は「パッケージ ID + 3 桁のバージョン」だけを対象にする（`EsUtil.Platform.Core` が
     # `EsUtil.Platform.Core.Windows` のパッケージを巻き込まないようにする）。
     if (-not $NoClean) {
-        $rxOwn = [regex]("^" + [regex]::Escape($name) + "\.\d+\.\d+\.\d+\.nupkg$")
-        Get-ChildItem -Path $feed -File | Where-Object { $rxOwn.IsMatch($_.Name) -and $_.Name -ne "$name.$version.nupkg" } |
+        $rxOwn = [regex]("^" + [regex]::Escape($name) + "\.\d+\.\d+\.\d+\.(nupkg|snupkg)$")
+        Get-ChildItem -Path $feed -File |
+            Where-Object { $rxOwn.IsMatch($_.Name) -and $_.Name -ne "$name.$version.nupkg" -and $_.Name -ne "$name.$version.snupkg" } |
             Remove-Item -Force
     }
 

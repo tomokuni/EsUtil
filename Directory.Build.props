@@ -7,31 +7,31 @@
 
          MSBuild のプロパティ名にドットは使えない（実測: <EsUtil.Platform.Core.Version> は MSB5016 で失敗する）。
          そのため名前は「パッケージ ID のドットを `_` に置換 + `_Version`」にする（参照側はこの名前を使う）。 -->
-    <EsUtil_Platform_Core_Version>0.2.31</EsUtil_Platform_Core_Version>
-    <EsUtil_Platform_Core_Windows_Version>0.1.3</EsUtil_Platform_Core_Windows_Version>
-    <EsUtil_Feature_Loupe_Core_Version>0.1.4</EsUtil_Feature_Loupe_Core_Version>
-    <EsUtil_Feature_Loupe_Presenter_Version>0.1.4</EsUtil_Feature_Loupe_Presenter_Version>
-    <EsUtil_Ui_AvaloniaUI_Loupe_Version>0.1.9</EsUtil_Ui_AvaloniaUI_Loupe_Version>
-    <EsUtil_Ui_MewUI_Loupe_Version>0.1.7</EsUtil_Ui_MewUI_Loupe_Version>
-    <EsUtil_Ui_WinUI3_Loupe_Version>0.1.9</EsUtil_Ui_WinUI3_Loupe_Version>
-    <EsUtil_Ui_WinForms_Loupe_Version>0.1.7</EsUtil_Ui_WinForms_Loupe_Version>
-    <EsUtil_Feature_Marquee_Core_Version>0.1.4</EsUtil_Feature_Marquee_Core_Version>
-    <EsUtil_Feature_Thumbnail_Core_Version>0.1.7</EsUtil_Feature_Thumbnail_Core_Version>
-    <EsUtil_Feature_Thumbnail_Presenter_Version>0.1.8</EsUtil_Feature_Thumbnail_Presenter_Version>
-    <EsUtil_Ui_AvaloniaUI_Thumbnail_Version>0.1.8</EsUtil_Ui_AvaloniaUI_Thumbnail_Version>
-    <EsUtil_Ui_MewUI_Thumbnail_Version>0.1.8</EsUtil_Ui_MewUI_Thumbnail_Version>
-    <EsUtil_Ui_WinUI3_Thumbnail_Version>0.1.8</EsUtil_Ui_WinUI3_Thumbnail_Version>
-    <EsUtil_Ui_WinForms_Thumbnail_Version>0.1.9</EsUtil_Ui_WinForms_Thumbnail_Version>
-    <EsUtil_Feature_Marquee_Presenter_Version>0.1.4</EsUtil_Feature_Marquee_Presenter_Version>
-    <EsUtil_Ui_AvaloniaUI_Marquee_Version>0.1.7</EsUtil_Ui_AvaloniaUI_Marquee_Version>
-    <EsUtil_Ui_MewUI_Marquee_Version>0.1.8</EsUtil_Ui_MewUI_Marquee_Version>
-    <EsUtil_Ui_WinUI3_Marquee_Version>0.1.9</EsUtil_Ui_WinUI3_Marquee_Version>
-    <EsUtil_Ui_WinForms_Marquee_Version>0.1.8</EsUtil_Ui_WinForms_Marquee_Version>
-    <EsUtil_Ui_AvaloniaUI_ColorComboBox_Version>0.1.0</EsUtil_Ui_AvaloniaUI_ColorComboBox_Version>
-    <EsUtil_Ui_AvaloniaUI_Interop_Version>0.1.3</EsUtil_Ui_AvaloniaUI_Interop_Version>
-    <EsUtil_Ui_MewUI_Interop_Version>0.1.3</EsUtil_Ui_MewUI_Interop_Version>
-    <EsUtil_Ui_WinUI3_Interop_Version>0.1.4</EsUtil_Ui_WinUI3_Interop_Version>
-    <EsUtil_Ui_WinForms_Interop_Version>0.1.6</EsUtil_Ui_WinForms_Interop_Version>
+    <EsUtil_Platform_Core_Version>0.2.32</EsUtil_Platform_Core_Version>
+    <EsUtil_Platform_Core_Windows_Version>0.1.4</EsUtil_Platform_Core_Windows_Version>
+    <EsUtil_Feature_Loupe_Core_Version>0.1.5</EsUtil_Feature_Loupe_Core_Version>
+    <EsUtil_Feature_Loupe_Presenter_Version>0.1.5</EsUtil_Feature_Loupe_Presenter_Version>
+    <EsUtil_Ui_AvaloniaUI_Loupe_Version>0.1.10</EsUtil_Ui_AvaloniaUI_Loupe_Version>
+    <EsUtil_Ui_MewUI_Loupe_Version>0.1.8</EsUtil_Ui_MewUI_Loupe_Version>
+    <EsUtil_Ui_WinUI3_Loupe_Version>0.1.10</EsUtil_Ui_WinUI3_Loupe_Version>
+    <EsUtil_Ui_WinForms_Loupe_Version>0.1.8</EsUtil_Ui_WinForms_Loupe_Version>
+    <EsUtil_Feature_Marquee_Core_Version>0.1.5</EsUtil_Feature_Marquee_Core_Version>
+    <EsUtil_Feature_Thumbnail_Core_Version>0.1.8</EsUtil_Feature_Thumbnail_Core_Version>
+    <EsUtil_Feature_Thumbnail_Presenter_Version>0.1.9</EsUtil_Feature_Thumbnail_Presenter_Version>
+    <EsUtil_Ui_AvaloniaUI_Thumbnail_Version>0.1.9</EsUtil_Ui_AvaloniaUI_Thumbnail_Version>
+    <EsUtil_Ui_MewUI_Thumbnail_Version>0.1.9</EsUtil_Ui_MewUI_Thumbnail_Version>
+    <EsUtil_Ui_WinUI3_Thumbnail_Version>0.1.9</EsUtil_Ui_WinUI3_Thumbnail_Version>
+    <EsUtil_Ui_WinForms_Thumbnail_Version>0.1.10</EsUtil_Ui_WinForms_Thumbnail_Version>
+    <EsUtil_Feature_Marquee_Presenter_Version>0.1.5</EsUtil_Feature_Marquee_Presenter_Version>
+    <EsUtil_Ui_AvaloniaUI_Marquee_Version>0.1.8</EsUtil_Ui_AvaloniaUI_Marquee_Version>
+    <EsUtil_Ui_MewUI_Marquee_Version>0.1.9</EsUtil_Ui_MewUI_Marquee_Version>
+    <EsUtil_Ui_WinUI3_Marquee_Version>0.1.10</EsUtil_Ui_WinUI3_Marquee_Version>
+    <EsUtil_Ui_WinForms_Marquee_Version>0.1.9</EsUtil_Ui_WinForms_Marquee_Version>
+    <EsUtil_Ui_AvaloniaUI_ColorComboBox_Version>0.1.1</EsUtil_Ui_AvaloniaUI_ColorComboBox_Version>
+    <EsUtil_Ui_AvaloniaUI_Interop_Version>0.1.4</EsUtil_Ui_AvaloniaUI_Interop_Version>
+    <EsUtil_Ui_MewUI_Interop_Version>0.1.4</EsUtil_Ui_MewUI_Interop_Version>
+    <EsUtil_Ui_WinUI3_Interop_Version>0.1.5</EsUtil_Ui_WinUI3_Interop_Version>
+    <EsUtil_Ui_WinForms_Interop_Version>0.1.7</EsUtil_Ui_WinForms_Interop_Version>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -76,15 +76,24 @@
 
   <PropertyGroup>
     <!-- パッケージの基本情報（全プロジェクト共通。 各 .csproj では指定しない）。 -->
-    <Authors>EsUtil</Authors>
-    <Company>EsUtil</Company>
+    <Authors>tomokuni</Authors>
+    <Company>tomokuni</Company>
     <Product>EsUtil</Product>
-    <PackageProjectUrl>https://github.com/EsUtil</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/tomokuni/EsUtil</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/tomokuni/EsUtil.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <!-- SourceLink（.NET SDK 同梱）にリポジトリの URL とコミットを埋め込む（nuget.org の [Source] リンクが機能する）。 -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>avalonia;mewui;winui;winforms;ui;controls;imaging;geometry;hotkey;windows</PackageTags>
     <!-- パッケージの説明は各 .csproj の Description が持つ（プロジェクトごとに異なる）。 -->
-    <!-- パッケージには XML ドキュメントを含めない（本リポジトリは検証にだけ使い、配布物へは出さない）。 -->
-    <IncludeSymbols>false</IncludeSymbols>
+    <!-- nuget.org のページに README を出す（`PackageReadmeFile` が指すファイルは
+         Directory.Build.targets が `../README.md` として pack へ含める）。 -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- シンボル パッケージ（`.snupkg`）を出力し、nuget.org のスタック トレースからソースへ辿れるようにする。
+         形式は `.snupkg`（レガシーの `.symbols.nupkg` は使わない）。 -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <!-- ローカル フィードはプロジェクトごとの 1 ファイルであるため、依存パッケージを同封しない。 -->
     <SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
   </PropertyGroup>

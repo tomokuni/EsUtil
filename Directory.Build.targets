@@ -20,6 +20,14 @@
                         Condition="Exists('$(MSBuildThisFileDirectory)buildScript\fingerprints.json')" />
   </ItemGroup>
 
+  <!-- パッケージに README を同封する（nuget.org のページへ表示する。 `PackageReadmeFile` が名前を定める）。
+       README はプロジェクト フォルダ（`src/` の 1 つ上）が持つ。 存在しない場合は何もしない
+       （`PackageReadmeFile` を設定したまま同封しないと NU5039 で pack が失敗するため、
+       同封できないプロジェクトは名前ごと空にする）。 -->
+  <ItemGroup Condition="'$(_SeIsTestOrSample)' != 'true' And Exists('$(MSBuildProjectDirectory)\..\README.md')">
+    <None Include="$(MSBuildProjectDirectory)\..\README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
 
 
   <Target Name="CheckPackageVersions"

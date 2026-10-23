@@ -1,8 +1,15 @@
 # EsUtil
 
-複数の Windows デスクトップ アプリで使い回す **UI 非依存の共通基盤** と、**再利用可能な UI コントロール** を提供するライブラリ群です。
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4.svg)](https://dotnet.microsoft.com/)
+[![Native AOT](https://img.shields.io/badge/Native%20AOT-compatible-brightgreen.svg)](#5-対応フレームワークと-native-aot)
+[![verify](https://img.shields.io/badge/verify-buildScript%2Fverify.ps1-informational.svg)](buildScript/verify.ps1)
 
-本リポジトリの各プロジェクトは **NuGet パッケージ** として出力し、**ローカル フィード**（`.nupkg/`。 リポジトリへはコミットしません）で相互参照します（外部へは公開しません）。 利用側のアプリは `PackageReference` で参照します。
+複数の Windows デスクトップ アプリで使い回す **UI 非依存の共通基盤** と、**再利用可能な UI コントロール** を提供するライブラリ群です。 Avalonia UI / MewUI / WinUI 3 / WinForms の 4 つの UI 実装で、同じ計算結果と同じ見た目のコントロールを共有できます。
+
+各プロジェクトは **NuGet パッケージ**として出力します。 リポジトリ内のプロジェクト同士は**ローカル フィード**（`.nupkg/`。 リポジトリへはコミットしません）で相互参照し、利用側のアプリは `PackageReference` で参照します。
+
+**ドキュメントと例外メッセージは日本語です**（利用者・開発者ともに日本語を前提とします。 識別子とログの接頭辞は英語です）。
 
 ## 1. プロジェクト
 
@@ -35,9 +42,14 @@
 
 ## 2. 使い方
 
-### 2.1 ローカル フィードから参照する
+### 2.1 パッケージとして参照する
 
-パッケージは本リポジトリの `.nupkg/` に出力されます（**リポジトリへはコミットしません**。 クローン直後に 1 回 [`buildScript/pack.ps1`](buildScript/pack.ps1) を実行してください）。 利用側のリポジトリ（例: 画面キャプチャ アプリ）は次のどちらかで参照します。
+```powershell
+# nuget.org から取得する場合（公開後）
+dotnet add package EsUtil.Ui.AvaloniaUI.Marquee
+```
+
+リポジトリ内で開発する場合は、ローカル フィードを使います。 パッケージは `.nupkg/` に出力されます（**リポジトリへはコミットしません**。 クローン直後に 1 回 [`buildScript/pack.ps1`](buildScript/pack.ps1) を実行してください）。 利用側のリポジトリ（例: 画面キャプチャ アプリ）は次のどちらかで参照します。
 
 - **プロジェクト参照**: 本リポジトリを同列に置き、`..\EsUtil\EsUtil\<プロジェクト>\src\<プロジェクト>.csproj`（UI 層は `..\EsUtil\EsUtil.Ui.<UI>\<機能>\src\<プロジェクト>.csproj`）を参照する（開発中は型の変更が即座に反映される）。
 - **パッケージ参照**: `NuGet.config` にローカル フィードを追加し、`PackageReference` で参照する。
@@ -89,7 +101,6 @@ dotnet build EsUtil.Ui.WinForms/EsUtil.Ui.WinForms.slnx
 
 本フォルダは、本リポジトリのプロジェクトが**相互参照に使うパッケージ**の出力先です。
 
-- **外部へは公開しません**（nuget.org へは push しない。 [`buildScript/pack.ps1`](buildScript/pack.ps1) は `dotnet pack` までを行う）。
 - **リポジトリへコミットしません**（[`.gitignore`](.gitignore) が `.nupkg/` を無視する）。 **クローン直後は `pack.ps1` を 1 回実行する**まで復元できません。
 - **バージョンはプロジェクトごとに異なります**（値は [`Directory.Build.props`](Directory.Build.props) のバージョン表が単一所有し、**変更のあったプロジェクトだけ `pack.ps1` が 3 桁目を +1** します）。
 - **同じパッケージの版は 1 つだけ**置きます（`pack.ps1` が古い版の `.nupkg` を削除します）。
@@ -113,8 +124,22 @@ pwsh -NoProfile -File buildScript/verify.ps1
 | 規約の索引と本リポジトリ固有の事実 | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) |
 | 参照の許可範囲（層構造） | [`.github/依存関係.md`](.github/依存関係.md) |
 | 検証の手順と合否基準 | [`.github/検証手順.md`](.github/検証手順.md) |
+| 開発への参加（ビルド・テスト・規約） | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| 変更履歴 | [`CHANGELOG.md`](CHANGELOG.md) |
 | 各プロジェクトの仕様 | `<ソリューション フォルダ>/<プロジェクト フォルダ>/docs/SPEC_API.md` / `SPEC_System.md`（例: `EsUtil.Ui.AvaloniaUI/Loupe/docs/SPEC_API.md`） |
 
-## 5. ライセンス
+## 5. 対応フレームワークと Native AOT
+
+| 区分 | 対象フレームワーク |
+| --- | --- |
+| 共通基盤・機能層（`EsUtil.Platform.Core*` / `EsUtil.Feature.*`） | `net10.0`（`Platform.Core` は OS 依存の実装を含むため Windows 10 1809 以降） |
+| UI 層（`EsUtil.Ui.*`） | `net10.0` / `net10.0-windows10.0.17763.0`（UI フレームワークの要件に従う） |
+
+- **全パッケージが Native AOT 互換です**（`IsAotCompatible=true`。 トリム/AOT の解析警告が 0 件であることをビルドで検査している）。
+- **言語**: C# 14 / .NET 10。
+- **プラットフォーム**: Windows のみ（`EsUtil.Platform.Core/src/Native/Win` 配下が Win32 / WIC を呼びます。 UI 非依存の計算層は他 OS でも動きます）。
+- シンボル パッケージ（`.snupkg`）を同梱し、SourceLink でリポジトリの該当コミットへ辿れます。
+
+## 6. ライセンス
 
 [MIT](LICENSE)
