@@ -1,5 +1,6 @@
 using Avalonia;
-using EsUtil.Ui.AvaloniaUI.Marquee.Internal;
+using EsUtil.Ui.AvaloniaUI.Interop;
+using EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
@@ -198,7 +199,7 @@ public partial class MarqueeControl
     /// <returns>テキストの実寸（DIP）。</returns>
     /// <remarks>
     /// 配置矩形は実寸から決まるため、実寸を返さないと背景が内側余白だけの大きさになり文字が切り落とされる<br/>
-    /// （測定の実装は <see cref="AvaloniaTextMeasure"/> が単一所有する）。
+    /// （測定の実装は <see cref="TextMeasure"/> が単一所有する）。
     /// </remarks>
-    private static EsSize MeasureText(string text, double fontSize) => AvaloniaTextMeasure.Measure(text, fontSize);
+    private static EsSize MeasureText(string text, double fontSize) => TextMeasure.Measure(text, fontSize);
 }

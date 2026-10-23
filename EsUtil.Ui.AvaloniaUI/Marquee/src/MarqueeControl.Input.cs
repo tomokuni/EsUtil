@@ -2,7 +2,8 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Input;
-using EsUtil.Ui.AvaloniaUI.Marquee.Internal;
+using EsUtil.Ui.AvaloniaUI.Interop;
+using EsUtil.Ui.AvaloniaUI.Interop.Coord;
 
 namespace EsUtil.Ui.AvaloniaUI.Marquee;
 

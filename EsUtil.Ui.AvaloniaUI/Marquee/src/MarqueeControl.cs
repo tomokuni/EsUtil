@@ -10,7 +10,8 @@ using EsUtil.Platform.Core.Input;
 using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core.Native.Win;
 using EsUtil.Platform.Core;
-using EsUtil.Ui.AvaloniaUI.Marquee.Internal;
+using EsUtil.Ui.AvaloniaUI.Interop;
+using EsUtil.Ui.AvaloniaUI.Interop.Coord;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 

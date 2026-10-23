@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Ui.AvaloniaUI.Marquee.csproj" />
+    <PackageReference Include="EsUtil.Ui.AvaloniaUI.Interop" Version="$(EsUtil_Ui_AvaloniaUI_Interop_Version)" />
   </ItemGroup>
 
   <ItemGroup>

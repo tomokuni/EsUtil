@@ -9,7 +9,8 @@ using Avalonia.Threading;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.Ui.AvaloniaUI.Loupe.Internal;
+using EsUtil.Ui.AvaloniaUI.Interop;
+using EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 using Xunit;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
 using DrawingColor = System.Drawing.Color;
@@ -148,10 +149,10 @@ public class LoupeControlTests
     [AvaloniaFact]
     internal async Task 表示用の射影を渡すと表示用の画像から描画される()
     {
-        // EsBitmapAvaloniaAdapter（コアの画像を IImage として公開するアダプタ）を DisplaySource へ渡した場合、
+        // EsBitmapAdapter（コアの画像を IImage として公開するアダプタ）を DisplaySource へ渡した場合、
         // 表示用の射影をそのまま使って描画される（切り出しの複製を作らない経路の検証）。
         using var read = TestHelper.CreateSource(200, 200, DrawingColor.FromArgb(255, 200, 30, 30));
-        using var image = new EsBitmapAvaloniaAdapter(read);
+        using var image = new EsBitmapAdapter(read);
         var control = CreatePlainControl(read, new Point(100, 100), display: image);
         var window = TestHelper.ShowInWindow(control);
 
@@ -181,7 +182,7 @@ public class LoupeControlTests
         // 描画の幾何は拡大元の寸法だけを基準にするため、射影の有無で結果が変わらない
         // （射影は「切り出しの複製を作らない」ヒントであり、描く内容を変えない）。
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        using var projection = new EsBitmapAvaloniaAdapter(source);
+        using var projection = new EsBitmapAdapter(source);
 
         var withDisplay = CreatePlainControl(source, new Point(100, 100), display: projection);
         var withoutDisplay = CreatePlainControl(source, new Point(100, 100));
@@ -208,7 +209,7 @@ public class LoupeControlTests
         // 描画 API は元矩形を画像の座標系で解釈するため、寸法が拡大元と違う射影は使わない（誤った切り出しを描かない）。
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         using var smaller = TestHelper.CreateSource(100, 100, DrawingColor.Red);
-        using var projection = new EsBitmapAvaloniaAdapter(smaller);
+        using var projection = new EsBitmapAdapter(smaller);
         var control = CreatePlainControl(source, new Point(100, 100), display: projection);
         var window = TestHelper.ShowInWindow(control);
 
@@ -225,7 +226,7 @@ public class LoupeControlTests
         // （表示用の射影はホストが所有するため、ホストが先に破棄した状態と競合しうる）。
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         var dead = TestHelper.CreateSource(200, 200, DrawingColor.Red);
-        var projection = new EsBitmapAvaloniaAdapter(dead);
+        var projection = new EsBitmapAdapter(dead);
         var control = CreatePlainControl(source, new Point(100, 100), display: projection);
         dead.Dispose();
         var window = TestHelper.ShowInWindow(control);
@@ -240,7 +241,7 @@ public class LoupeControlTests
     internal async Task 表示用の射影の変更で再描画される()
     {
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        using var projection = new EsBitmapAvaloniaAdapter(source);
+        using var projection = new EsBitmapAdapter(source);
         var control = CreatePlainControl(source, new Point(100, 100));
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
@@ -260,7 +261,7 @@ public class LoupeControlTests
         // 寸法が一致する射影は切り出しの複製を作らない経路で使われる（射影の色がそのまま出る）。
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         using var red = TestHelper.CreateSource(200, 200, DrawingColor.Red);
-        using var projection = new EsBitmapAvaloniaAdapter(red);
+        using var projection = new EsBitmapAdapter(red);
         var control = CreatePlainControl(source, new Point(100, 100), display: projection);
         var window = TestHelper.ShowInWindow(control);
 
@@ -275,7 +276,7 @@ public class LoupeControlTests
     {
         // 拡大元（コア画像）が描画の真実である。 射影だけを渡しても切り出す元が無いため下地のみを描く。
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        using var projection = new EsBitmapAvaloniaAdapter(source);
+        using var projection = new EsBitmapAdapter(source);
         var control = CreatePlainControl(centerPoint: new Point(100, 100), display: projection);
         var window = TestHelper.ShowInWindow(control);
 
@@ -595,7 +596,7 @@ public class LoupeControlTests
     {
         // 省略可能な引数（表示用の射影）を渡す経路も描画が成立する（射影は切り出しの複製を省くヒントである）。
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        using var projection = new EsBitmapAvaloniaAdapter(source);
+        using var projection = new EsBitmapAdapter(source);
         var control = CreatePlainControl(source, new Point(100, 100));
         var window = TestHelper.ShowInWindow(control);
 

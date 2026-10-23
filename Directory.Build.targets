@@ -81,8 +81,12 @@
       <_SeUiFeatureName>$([System.Text.RegularExpressions.Regex]::Replace('$(MSBuildProjectName)', '^EsUtil\.Ui\.[A-Za-z0-9]+\.', ''))</_SeUiFeatureName>
       <_SeFeatureCoreName Condition="'$(_SeFeatureName)' != ''">$(_SeFeatureName).Core</_SeFeatureCoreName>
       <_SeFeaturePresenterName Condition="'$(_SeFeatureName)' != ''">$(_SeFeatureName).Presenter</_SeFeaturePresenterName>
+      <_SeUiPlatformName>$([System.Text.RegularExpressions.Regex]::Replace('$(MSBuildProjectName)', '^EsUtil\.Ui\.[A-Za-z0-9]+\..*$', '$0'))</_SeUiPlatformName>
       <_SeUiFeatureCoreName Condition="'$(_SeIsUiControl)' == 'true'">EsUtil.Feature.$(_SeUiFeatureName).Core</_SeUiFeatureCoreName>
       <_SeUiFeaturePresenterName Condition="'$(_SeIsUiControl)' == 'true'">EsUtil.Feature.$(_SeUiFeatureName).Presenter</_SeUiFeaturePresenterName>
+      <!-- 同一 UI の変換ブリッジ（例: EsUtil.Ui.AvaloniaUI.Marquee → EsUtil.Ui.AvaloniaUI.Interop）。
+           ブリッジは EsUtil.Platform.Core と Avalonia だけに依存するため、参照しても配布の独立性は保たれる。 -->
+      <_SeUiPlatformInteropName Condition="'$(_SeIsUiControl)' == 'true'">$([System.Text.RegularExpressions.Regex]::Match('$(MSBuildProjectName)', '^EsUtil\.Ui\.[A-Za-z0-9]+').Value).Interop</_SeUiPlatformInteropName>
     </PropertyGroup>
 
     <!-- R1: 最下層（EsUtil.Platform.Core）は EsUtil のパッケージを参照しない -->
@@ -115,14 +119,14 @@
            Code="DEP0004"
            Text="依存関係違反: 提示層（EsUtil.Feature.*.Presenter）は EsUtil.Platform.Core と同一機能のコアだけを参照できます（違反: @(_SeBad4->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
 
-    <!-- R5: UI 層は EsUtil.Platform.Core と同一機能のコア・提示層だけを参照する -->
+    <!-- R5: UI 層は EsUtil.Platform.Core・同一機能のコア/提示層・同一 UI の変換ブリッジだけを参照する -->
     <ItemGroup Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsUiControl)' == 'true'">
-      <_SeAllowed5 Include="@(_SeRef)" Condition="'%(Name)' == 'EsUtil.Platform.Core' Or '%(Name)' == '$(_SeUiFeatureCoreName)' Or '%(Name)' == '$(_SeUiFeaturePresenterName)'" />
+      <_SeAllowed5 Include="@(_SeRef)" Condition="'%(Name)' == 'EsUtil.Platform.Core' Or '%(Name)' == '$(_SeUiFeatureCoreName)' Or '%(Name)' == '$(_SeUiFeaturePresenterName)' Or '%(Name)' == '$(_SeUiPlatformInteropName)'" />
       <_SeBad5 Include="@(_SeRef)" Exclude="@(_SeAllowed5)" />
     </ItemGroup>
     <Error Condition="'@(_SeBad5)' != ''"
            Code="DEP0005"
-           Text="依存関係違反: UI 層（EsUtil.Ui.*.*）は EsUtil.Platform.Core と同一機能のコア・提示層だけを参照できます（違反: @(_SeBad5->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
+           Text="依存関係違反: UI 層（EsUtil.Ui.*.*）は EsUtil.Platform.Core・同一機能のコア/提示層・同一 UI の変換ブリッジ（$(_SeUiPlatformInteropName)）だけを参照できます（違反: @(_SeBad5->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
 
     <!-- R6: 本体プロジェクトはプロジェクト参照を持たない（同一リポジトリでもパッケージ参照を使う） -->
     <Error Condition="'$(_SeIsTestOrSample)' != 'true' And '@(_SeProjectRef)' != ''"

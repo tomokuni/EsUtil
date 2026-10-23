@@ -163,8 +163,7 @@ EsUtil.Ui.AvaloniaUI/Marquee/sample/
 ├── App.axaml / App.axaml.cs       # アプリケーション定義（FluentTheme）
 ├── Logging/
 │   └── InMemoryLogger.cs          # MarqueeControl.Log の設定例（メモリ内ログ）
-├── Internal/                      # Platform.* を使わないための複製（internal。 依存関係.md §4.1）
-│   ├── ColorAvaloniaInterop.cs    # Avalonia の色 ⇔ System.Drawing.Color
+├── Internal/                      # このサンプルだけが使う複製（internal。 依存関係.md §4.1。 変換は EsUtil.Ui.AvaloniaUI.Interop を使う）
 │   ├── EsBitmapAvaloniaAdapter.cs # コアの画像を表示面（IImage）として公開し、コアの画像は GetEsBitmap() で取り出すアダプタ
 │   └── EsBitmapAvaloniaExtensions.cs # コアの画像 ⇔ Avalonia の画像の変換
 ├── Presentation/

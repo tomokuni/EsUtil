@@ -7,7 +7,8 @@ using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core;
-using EsUtil.Ui.AvaloniaUI.Loupe.Internal;
+using EsUtil.Ui.AvaloniaUI.Interop;
+using EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 using EsUtil.Ui.AvaloniaUI.Loupe.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -390,8 +391,8 @@ public sealed class LoupeControl : Panel
     /// <param name="text">測定するテキスト。</param>
     /// <param name="fontSize">フォントサイズ（DIP）。</param>
     /// <returns>テキストの実寸（DIP）。</returns>
-    /// <remarks>測定の実装は <see cref="AvaloniaTextMeasure"/> が単一所有する（UI ごとの実寸の食い違いを防ぐ）。</remarks>
-    private static EsSize MeasureText(string text, double fontSize) => AvaloniaTextMeasure.Measure(text, fontSize);
+    /// <remarks>測定の実装は <see cref="TextMeasure"/> が単一所有する（UI ごとの実寸の食い違いを防ぐ）。</remarks>
+    private static EsSize MeasureText(string text, double fontSize) => TextMeasure.Measure(text, fontSize);
 
     /// <summary>入力（Source / CenterPoint / 設定）の変更で再描画を要求する。</summary>
     /// <remarks>
