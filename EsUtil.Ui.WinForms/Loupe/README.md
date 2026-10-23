@@ -2,12 +2,44 @@
 
 他の UI 版と同一の **UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、描画を **System.Drawing（GDI+）** で行うルーペ（拡大鏡）コントロールです。
 
-## 1. 目的
+## 目次 <!-- omit from toc -->
+
+- [1. 概要](#1-概要)
+- [2. 機能一覧](#2-機能一覧)
+- [3. システム要件](#3-システム要件)
+- [4. インストール](#4-インストール)
+- [5. クイックスタート](#5-クイックスタート)
+- [6. カスタマイズ](#6-カスタマイズ)
+- [7. ログ](#7-ログ)
+- [8. 未対応](#8-未対応)
+- [9. サンプルアプリケーション](#9-サンプルアプリケーション)
+- [10. ドキュメント](#10-ドキュメント)
+- [11. プロジェクト構成](#11-プロジェクト構成)
+- [12. テスト](#12-テスト)
+- [13. ライセンス](#13-ライセンス)
+
+---
+
+## 1. 概要
 
 ルーペのロジック（数値の安全域補正・切り出し領域の計算・表示レイアウト）は `EsUtil.Feature.Loupe.Core` が、描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（色・枠線の太さ・表示可否）は提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance`）が所有します。
 本プロジェクトはその計画を **GDI+ の描画面へ写すだけ** の層です。 そのため他の UI 版と**同じ設定・同じ見た目**になり、同じ外観の設定を各 UI で共用できます。 層構成（Core / Presenter / UI）の全体像は [`EsUtil/README.md`](../../EsUtil/README.md) を参照してください。
 
-## 2. 動作環境
+---
+
+## 2. 機能一覧
+
+- コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）を他の UI 版と共有する（同じ設定・同じ見た目）
+- 拡大元はコアの画像（`EsReadOnlyBitmap`）を受け取る（GDI+ の `Bitmap` は受け付けない。 変換はホストが行う）
+- 1〜64 倍の拡大表示と、画像外（ペーストボード）の色
+- 十字線・枠線・中心座標ラベルの表示（色・太さ・表示可否は `Appearance`）
+- 描画計画の差し替え（`DrawPlanResolver`）と描画完了通知（`Rendered`）
+- 表示位置・表示サイズは提示層が計算し、ホストが `ResolveLayout` の結果で配置する
+- `ILogger` によるログ（`Log` / `LogPrefix`）
+
+---
+
+## 3. システム要件
 
 | 項目 | 内容 |
 | --- | --- |
@@ -17,7 +49,9 @@
 
 **SkiaSharp を使わない理由**: `SkiaSharp.Views.WindowsForms`（4.153.1）は `net10.0-windows10.0.19041` 向けの資産を持ち、`net10.0-windows10.0.17763.0`（= `net10.0-windows7.0`）では .NET Framework 向けの資産へフォールバックして復元に失敗します（実測: `NU1701`）。 対象フレームワークの方針（WinForms は Windows の版を含めない）と併せ、本プロジェクトは WinForms 自身の描画 API（GDI+）で描きます。
 
-## 3. インストール（プロジェクト参照）
+---
+
+## 4. インストール
 
 ```xml
 <ProjectReference Include="..\EsUtil.Ui.WinForms\Loupe\src\EsUtil.Ui.WinForms.Loupe.csproj" />
@@ -25,7 +59,9 @@
 
 本プロジェクトは `EsUtil.Platform.Core.Windows`（Windows 向けの画像変換）を参照しません（依存関係の規約により UI 層からは参照できない）。 必要な画像変換だけを `Internal` へ複製して所有します。
 
-## 4. 使い方
+---
+
+## 5. クイックスタート
 
 ```csharp
 using EsUtil.Feature.Loupe;                    // LoupeOptions（コア）と LoupeAppearance（描画にだけ必要な外観）
@@ -85,29 +121,21 @@ loupe.Rendered += (_, e) =>
 };
 ```
 
-## 5. プロパティ
+---
 
-| プロパティ | 型 | 既定値 | 説明 |
-| --- | --- | --- | --- |
-| `Source` | `EsReadOnlyBitmap?` | `null` | 拡大元の 100% 画像（借用であり破棄しない）。 null の場合は画像外の色のみ |
-| `CenterPoint` | `EsPoint?` | `null` | 拡大中心（元画像ピクセル座標） |
-| `Options` | `LoupeOptions` | `LoupeOptions.Default` | 設定（表示サイズ・拡大率）。 `with` 式で部分変更する。 数値項目はコアの型が生成時に安全域へ補正する |
-| `Appearance` | `LoupeAppearance` | `LoupeAppearance.Default` | 外観（色・枠線の太さ・表示可否・ラベルの体裁）。 コアの計算には入らない |
-| `ClientToPixelScaling` | `double` | 1.0 | DIP → 物理ピクセルの係数。 0.1〜8.0 に補正（非有限は既定値）。 ハンドルの生成時と DPI の変更時に実測値へ更新される |
-| `PositionOffset` | `double` | 0 | ルーペ中心からの右下オフセット（DIP）。 位置の補正はコアが行う |
-| `DrawPlanResolver` | `Func<LoupeDrawPlan, LoupeDrawPlan>?` | `null` | 描画計画の差し替え（矩形で表せる装飾とラベルの文言・位置）。 純粋関数にすること |
-| `Log` | `ILogger` | `NullLogger` | 設定変更ログと描画例外の出力先（null は `NullLogger`） |
-| `LogPrefix` | `string?` | `[Loupe]` | ログの接頭辞（提示層とコアへ伝搬する） |
+## 6. カスタマイズ
 
-メンバーの詳細は [`docs/SPEC_API.md`](docs/SPEC_API.md) を参照してください。
+差し替えの入口は 3 つです（**派生は不要**。 コントロールのプロパティへ設定します）。
 
-## 6. イベント
+| 差し替える対象 | 差し替え方 |
+| --- | --- |
+| 色・枠線の太さ・表示可否・ラベルの体裁 | `Appearance`（`LoupeAppearance`）を設定する |
+| 矩形で並べられる装飾（十字線・枠線）とラベルの文言・位置 | `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）を設定する（計画の値の置き換え） |
+| 矩形で表せない描画（円・斜線等） | `Appearance` の `Show*` を false にして `Rendered` で受け取る描画面へ自前で描く（`DrawPlan` を持つ UI 版では計画どおりの描画も呼べる） |
 
-| イベント | 引数 | 説明 |
-| --- | --- | --- |
-| `Rendered` | `LoupeRenderedEventArgs` | 描画完了の通知（描画面と描画計画）。 ホストはハンドラー内で描画面へオーバーレイを追加描画できる |
+描画計画（`LoupeDrawPlan`）と外観（`LoupeAppearance`）は `EsUtil.Feature.Loupe.Presenter` が単一所有し、4 つの UI 版で共通です。 UI が持つのは UI フレームワーク固有の描画 API の呼び出しだけです（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
 
-オーバーレイの描画位置は `(対象座標 − e.Content.CaptureTopLeft) × e.Content.ZoomLevel` で求めます（`CaptureTopLeft` は可視域の左上（実効原点。 小数を含む）です）。
+---
 
 ## 7. ログ
 
@@ -118,21 +146,17 @@ loupe.Rendered += (_, e) =>
 | Debug | `[Loupe] Setting: Source 800x600 → null`（拡大元画像）/ `[Loupe] Setting: ZoomLevel 4 → 8`（設定・環境値・拡大中心はコアが出力する） |
 | Error | `[Loupe] Update exception`（描画の例外。 アプリは継続する） |
 
-## 8. 構成
+---
 
-| パス | 内容 |
-| --- | --- |
-| `EsUtil.Ui.WinForms/Loupe/README.md` | 本ファイル |
-| `EsUtil.Ui.WinForms/Loupe/docs/SPEC_API.md` | API リファレンス |
-| `EsUtil.Ui.WinForms/Loupe/docs/SPEC_System.md` | システム仕様書 |
-| `EsUtil.Ui.WinForms/Loupe/src/EsUtil.Ui.WinForms.Loupe.csproj` | ライブラリ（`net10.0-windows10.0.17763.0` / `UseWindowsForms`） |
-| `EsUtil.Ui.WinForms/Loupe/src/LoupeControl.cs` | コントロール（プロパティ・描画の入口・DPI 追従） |
-| `EsUtil.Ui.WinForms/Loupe/src/LoupeGraphicsPainter.cs` | 描画計画を GDI+ へ写す描画実装 |
-| `EsUtil.Ui.WinForms/Loupe/src/LoupeRenderedEventArgs.cs` | 描画完了の通知 |
-| `EsUtil.Ui.WinForms/Loupe/src/LoupeLogMessage.cs` | ログ定義（本プロジェクトが所有する拡大元画像の変更・描画の例外） |
-| `EsUtil.Ui.WinForms/Loupe/src/Internal/` | 複製した内部ヘルパー（DPI の換算・画像変換・幾何変換・ラベルの文字） |
-| `EsUtil.Ui.WinForms/Loupe/tests/EsUtil.Ui.WinForms.Loupe.Tests.csproj` | 単体テスト |
-| `EsUtil.Ui.WinForms/Loupe/sample/` | 独立サンプルアプリ（[`sample/README.md`](sample/README.md) を参照） |
+## 8. 未対応
+
+本コントロールが対象外とする操作・機能は次のとおりです（制限の詳細は [`docs/SPEC_API.md`](docs/SPEC_API.md) を参照）。
+
+- **拡大元の画像**: コアの画像（`EsReadOnlyBitmap`）だけを受け取る（UI フレームワークのビットマップ型は受け付けない）。
+- **ポインター入力**: 拡大中心はホストが決める（入力の購読はホストが行う）。
+- **印刷・画像の書き出し**: 持たない（`Rendered` で受け取る描画面へ描いた結果をホストが保存する）。
+
+---
 
 ## 9. サンプルアプリケーション
 
@@ -155,7 +179,37 @@ dotnet run --project EsUtil.Ui.WinForms/Loupe/sample/EsUtil.Ui.WinForms.Loupe.Sa
 
 詳細は [`sample/README.md`](sample/README.md) を参照してください。
 
-## 10. ビルドとテスト
+---
+
+## 10. ドキュメント
+
+- [共有する UI 非依存ロジック](../../EsUtil/Feature.Loupe.Core/README.md)
+- [共有する UI 非依存の描画層](../../EsUtil/Feature.Loupe.Presenter/README.md)
+- [対になる Avalonia UI 版ルーペ](../../EsUtil.Ui.AvaloniaUI/Loupe/README.md)
+- [対になる MewUI 版ルーペ](../../EsUtil.Ui.MewUI/Loupe/README.md)
+- [サンプルアプリケーション](sample/README.md)
+
+---
+
+## 11. プロジェクト構成
+
+| パス | 内容 |
+| --- | --- |
+| `EsUtil.Ui.WinForms/Loupe/README.md` | 本ファイル |
+| `EsUtil.Ui.WinForms/Loupe/docs/SPEC_API.md` | API リファレンス |
+| `EsUtil.Ui.WinForms/Loupe/docs/SPEC_System.md` | システム仕様書 |
+| `EsUtil.Ui.WinForms/Loupe/src/EsUtil.Ui.WinForms.Loupe.csproj` | ライブラリ（`net10.0-windows10.0.17763.0` / `UseWindowsForms`） |
+| `EsUtil.Ui.WinForms/Loupe/src/LoupeControl.cs` | コントロール（プロパティ・描画の入口・DPI 追従） |
+| `EsUtil.Ui.WinForms/Loupe/src/LoupeGraphicsPainter.cs` | 描画計画を GDI+ へ写す描画実装 |
+| `EsUtil.Ui.WinForms/Loupe/src/LoupeRenderedEventArgs.cs` | 描画完了の通知 |
+| `EsUtil.Ui.WinForms/Loupe/src/LoupeLogMessage.cs` | ログ定義（本プロジェクトが所有する拡大元画像の変更・描画の例外） |
+| `EsUtil.Ui.WinForms/Loupe/src/Internal/` | 複製した内部ヘルパー（DPI の換算・画像変換・幾何変換・ラベルの文字） |
+| `EsUtil.Ui.WinForms/Loupe/tests/EsUtil.Ui.WinForms.Loupe.Tests.csproj` | 単体テスト |
+| `EsUtil.Ui.WinForms/Loupe/sample/` | 独立サンプルアプリ（[`sample/README.md`](sample/README.md) を参照） |
+
+---
+
+## 12. テスト
 
 ```powershell
 dotnet build EsUtil.Ui.WinForms/Loupe/src/EsUtil.Ui.WinForms.Loupe.csproj
@@ -164,14 +218,8 @@ dotnet test EsUtil.Ui.WinForms/Loupe/tests/EsUtil.Ui.WinForms.Loupe.Tests.csproj
 
 画素の検証（描画の正しさ）は `Bitmap` とその描画面で行うため、ウィンドウもメッセージ ループも不要です。 コントロールの検証は**ハンドルを生成しない範囲**（プロパティの補正・表示レイアウトの解決・描画計画の解決・ログ）に限ります。
 
-## 11. 関連ドキュメント
+---
 
-- [共有する UI 非依存ロジック](../../EsUtil/Feature.Loupe.Core/README.md)
-- [共有する UI 非依存の描画層](../../EsUtil/Feature.Loupe.Presenter/README.md)
-- [対になる Avalonia UI 版ルーペ](../../EsUtil.Ui.AvaloniaUI/Loupe/README.md)
-- [対になる MewUI 版ルーペ](../../EsUtil.Ui.MewUI/Loupe/README.md)
-- [サンプルアプリケーション](sample/README.md)
-
-## 12. ライセンス
+## 13. ライセンス
 
 MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。

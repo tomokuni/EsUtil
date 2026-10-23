@@ -111,7 +111,7 @@ for (var i = visible.First; i <= visible.Last; i++)
 ## 5. 制限事項
 
 - **画像は `IImage` だけ**です（コアの `EsReadOnlyBitmap` は受け取りません。 変換はホストが行います）。
-- **自動テストは未整備**です（ビルドの警告 0 と、利用側アプリの配布物の起動で確認しています）。
+- **単体テストは `tests/` にあります**（検証の範囲と手順は [`../../.github/検証手順.md`](../../../.github/検証手順.md) を参照）。
 - **複数選択は提供しません**（単一選択だけです）。
 - **項目の要素（`ThumbnailTile`）は内部型**です（ホストは `Add` / `SetImage` / `SetCaption` を使います）。
 - **`Options` / `Appearance` / `ImageWidth` の変更は自動で反映されます**（`IsDarkTheme` だけは `Refresh()` を呼んでください）。

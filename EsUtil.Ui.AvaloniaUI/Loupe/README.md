@@ -12,12 +12,10 @@
   - [5.1 AXAML](#51-axaml)
   - [5.2 ViewModel](#52-viewmodel)
   - [5.3 Code-behind](#53-code-behind)
-- [6. 描画動作](#6-描画動作)
-  - [6.1 画像境界](#61-画像境界)
-  - [6.2 描画のタイミング](#62-描画のタイミング)
-- [7. 画像の受け渡し](#7-画像の受け渡し)
-- [8. 所有権とライフサイクル](#8-所有権とライフサイクル)
-- [9. パフォーマンス](#9-パフォーマンス)
+- [6. 画像の受け渡し](#6-画像の受け渡し)
+- [7. カスタマイズ](#7-カスタマイズ)
+- [8. ログ](#8-ログ)
+- [9. 未対応](#9-未対応)
 - [10. サンプルアプリケーション](#10-サンプルアプリケーション)
 - [11. ドキュメント](#11-ドキュメント)
 - [12. プロジェクト構成](#12-プロジェクト構成)
@@ -31,6 +29,8 @@
 Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピクセル座標を中心に領域を拡大し、十字線・枠線付きで表示します（画像外は無地）。
 
 画像端から外れた領域は透明として扱われるため、画像がルーペの視野から離れるほど、その部分だけ画像外の色（無地）で埋まります。
+
+---
 
 ## 2. 機能一覧
 
@@ -55,11 +55,15 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 - **`RefreshPosition()`**: パン・ズーム等のレイアウト非変更なビューポート変化時に、表示位置・サイズを再計算（座標変換ポートは呼び出し毎に最新の表示状態を評価）
 - **見た目のカスタマイズ（2 つの入口）**: 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）で差し替えます。 矩形で表せない描画（円・斜線等）は `Appearance` の `Show*` を false にして `Rendered` のビットマップへ自前で描き、必要なら `DrawPlan` で計画どおりの描画を行います（派生は不要。 例はサンプルの `sample/Presentation/GridLoupePlan`）
 
+---
+
 ## 3. システム要件
 
 - .NET 10
 - Avalonia 12.1 以降
 - C# 14
+
+---
 
 ## 4. インストール
 
@@ -77,6 +81,8 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using EsUtil.Ui.AvaloniaUI.Loupe;
 ```
+
+---
 
 ## 5. クイックスタート
 
@@ -162,21 +168,9 @@ Canvas.SetLeft(loupe, 300);
 Canvas.SetTop(loupe, 220);
 ```
 
-## 6. 描画動作
+---
 
-### 6.1 画像境界
-
-`CenterPoint` は画像範囲外の座標も指定できます。
-
-- 画像と重なる領域: 拡大画像を表示
-- 画像範囲外の領域: 画像を描かず、画像外の色（無地）を表示
-- 視野全体が画像範囲外: 全面が画像外の色
-
-### 6.2 描画のタイミング
-
-ルーペの描画は**フレームの描画フェーズで 1 回**行われ、中間 Bitmap は作りません（窓の描画面へ直接描きます）。 複数のプロパティが連続して変更された場合も、再描画の要求は 1 回のポストへ結合されます。
-
-## 7. 画像の受け渡し
+## 6. 画像の受け渡し
 
 拡大元（`Source`）の型は**コアの読み取り専用画像（`EsReadOnlyBitmap?`）**です（MewUI 版 / WinUI3 版 / WinForms 版と同じ契約）。 表示境界の画像（`Bitmap` / `WriteableBitmap` / `EsBitmapAvaloniaAdapter` 等）は**そのままでは設定できません**。 利用側がコアの画像へ変換してから設定します（表示境界の画像しか持たない場合の変換は「5.2 ViewModel」を参照）。
 
@@ -186,23 +180,50 @@ Canvas.SetTop(loupe, 220);
 - **破棄済みの射影も無視されます**（ホストが先に破棄した状態と競合しても、拡大元から描くため表示は失われません）。
 - 描画の内容は射影の有無で変わりません。
 
+---
+
+## 7. カスタマイズ
+
+差し替えの入口は 3 つです（**派生は不要**。 コントロールのプロパティへ設定します）。
+
+| 差し替える対象 | 差し替え方 |
+| --- | --- |
+| 色・枠線の太さ・表示可否・ラベルの体裁 | `Appearance`（`LoupeAppearance`）を設定する |
+| 矩形で並べられる装飾（十字線・枠線）とラベルの文言・位置 | `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）を設定する（計画の値の置き換え） |
+| 矩形で表せない描画（円・斜線等） | `Appearance` の `Show*` を false にして `Rendered` で受け取る描画面へ自前で描く（`DrawPlan` を持つ UI 版では計画どおりの描画も呼べる） |
+
+描画計画（`LoupeDrawPlan`）と外観（`LoupeAppearance`）は `EsUtil.Feature.Loupe.Presenter` が単一所有し、4 つの UI 版で共通です。 UI が持つのは UI フレームワーク固有の描画 API の呼び出しだけです（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
+
+---
+
+## 8. ログ
+
+`Log` へ `ILogger` を設定すると、設定の変更と、描画・操作の例外を出力します（既定は出力なし）。
+
+| レベル | 出力例 |
+| --- | --- |
+| Debug | `[Loupe] Setting: ZoomLevel 4 → 8`（拡大元の画像・外観の変更も同じ書式） |
+| Error | `[Loupe] Update exception` / `[Loupe] <操作> で例外が発生`（アプリは継続する） |
+
+接頭辞は `LogPrefix` で設定し、提示層・コアへ伝搬します（既定 `[Loupe]`）。 ログ基盤（出力先・レベルの制御）はホストが所有します。
+
 ```csharp
 loupe.Log = logger;
 ```
 
-`LoupeControl` はログをファイルへ直接出力しません。 ファイル、コンソール、デバッグ出力などの出力先は利用側の `ILogger` 構成に依存します。
+`LoupeControl` はログをファイルへ直接出力しません。 出力先（ファイル・コンソール・デバッグ出力）は利用側の `ILogger` 構成が決めます。
 
-## 8. 所有権とライフサイクル
+---
 
-- `Source`（コアの画像）と `DisplaySource`（表示用の射影）は利用側が所有します。 `LoupeControl` はどちらも破棄しません（表示用の射影が表示境界の画像を内包する場合も、破棄は差し替える側が行います）。
-- ルーペ表示用に内部生成したBitmapは `LoupeControl` が所有します。
-- 非表示化、`Clear()`、新しい描画結果の採用時に、古い生成Bitmapを破棄します。
-- 非同期処理で古くなった生成結果も採用せず破棄します。 破棄済みの拡大元を設定した場合は下地のみを描き（新しい画像へ差し替えると描画が戻ります）、破棄済みの射影は無視して拡大元から描きます。
+## 9. 未対応
 
-## 9. パフォーマンス
+本コントロールが対象外とする操作・機能は次のとおりです（制限の詳細は [`docs/SPEC_API.md`](docs/SPEC_API.md) を参照）。
 
-- `Source` / `DisplaySource` や `CenterPoint` の高頻度更新は、利用側で更新間隔を制限することを推奨します。
-- 大きな `Options.RequestedSize` や高い `ClientToPixelScaling` は生成Bitmapのサイズと処理負荷を増加させます。
+- **拡大元の画像**: コアの画像（`EsReadOnlyBitmap`）だけを受け取る（UI フレームワークのビットマップ型は受け付けない）。
+- **ポインター入力**: 拡大中心はホストが決める（入力の購読はホストが行う）。
+- **印刷・画像の書き出し**: 持たない（`Rendered` で受け取る描画面へ描いた結果をホストが保存する）。
+
+---
 
 ## 10. サンプルアプリケーション
 
@@ -224,11 +245,15 @@ dotnet run --project sample/EsUtil.Ui.AvaloniaUI.Loupe.Sample.csproj
 
 詳細は [sample/README.md](sample/README.md) を参照してください。
 
+---
+
 ## 11. ドキュメント
 
 - [外部機能仕様書](docs/SPEC_API.md)
 - [システム仕様書](docs/SPEC_System.md)
 - [サンプルアプリケーション](sample/README.md)
+
+---
 
 ## 12. プロジェクト構成
 
@@ -250,6 +275,8 @@ EsUtil/Feature.Loupe.Core/       # UI フレームワーク非依存の設定・
 EsUtil/Feature.Loupe.Presenter/     # 描画計画と外観の単一所有（LoupePresenter / LoupeAppearance / LoupeDrawPlan）
 ```
 
+---
+
 ## 13. テスト
 
 `EsUtil.Ui.AvaloniaUI/Loupe/tests` が本プロジェクトのテストを持ちます（xUnit v3）。 実行手順と合否基準は [検証手順.md](../../.github/検証手順.md) が定めます。
@@ -257,6 +284,8 @@ EsUtil/Feature.Loupe.Presenter/     # 描画計画と外観の単一所有（Lou
 ```powershell
 dotnet test EsUtil.Ui.AvaloniaUI/Loupe/tests/EsUtil.Ui.AvaloniaUI.Loupe.Tests.csproj
 ```
+
+---
 
 ## 14. ライセンス
 

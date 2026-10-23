@@ -3,13 +3,36 @@
 `MarqueeControl`（リサイズ可能なドラッグ矩形）の **WinForms 版**です。 他の UI 版と同一の UI 非依存コア（`EsUtil.Feature.Marquee.Core`）と描画層（`EsUtil.Feature.Marquee.Presenter`）を使い、
 入力の受付・効果の適用・カーソル制御と、GDI+ への描画のみを WinForms で実装しています。 層構成（Core / Presenter / UI）の全体像は [`EsUtil/README.md`](../../EsUtil/README.md) を参照してください。
 
+## 目次 <!-- omit from toc -->
+
+- [1. 概要](#1-概要)
+- [2. 機能一覧](#2-機能一覧)
+- [3. システム要件](#3-システム要件)
+- [4. インストール](#4-インストール)
+- [5. クイックスタート](#5-クイックスタート)
+- [6. 座標系](#6-座標系)
+- [7. 操作](#7-操作)
+- [8. 他の UI 版との違い](#8-他の-ui-版との違い)
+- [9. カスタマイズ](#9-カスタマイズ)
+- [10. ログ](#10-ログ)
+- [11. 未対応](#11-未対応)
+- [12. サンプルアプリケーション](#12-サンプルアプリケーション)
+- [13. ドキュメント](#13-ドキュメント)
+- [14. プロジェクト構成](#14-プロジェクト構成)
+- [15. テスト](#15-テスト)
+- [16. ライセンス](#16-ライセンス)
+
+---
+
 ## 1. 概要
 
 `MarqueeControl`（リサイズ可能なドラッグ矩形）の **WinForms 版**です。 UI 非依存のコア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）を共有し、**描画と入力の受付だけ**を WinForms で実装します。
 
 対象フレームワークは `net10.0-windows10.0.17763.0`（`UseWindowsForms`）です。 描画は GDI+（`System.Drawing`）で行います。
 
-## 2. 特徴
+---
+
+## 2. 機能一覧
 
 - **コア共有**: 選択矩形の幾何計算・状態機械・**入力の解釈（nudge セッション・確定/キャンセル・スナップ・クリック検出・最小サイズ判定）** は `EsUtil.Feature.Marquee.Core` が単一所有します（本コントロールは公開ファサード `MarqueePresenter` だけを参照し、内部の状態機械には触れません）。 他の UI 版と挙動は同じ計算に基づきます。
 - **直接描画（GDI+）**: 中間ビットマップを経由せず、`OnPaint` で受け取った `Graphics` へ直接描画します。 描画計画（層の順序・装飾矩形・文言・配置）は提示層（`EsUtil.Feature.Marquee.Presenter`）が単一所有し、描画は自 UI の描画 API で行います。
@@ -21,7 +44,19 @@
 - **コア型のイベント引数**: イベントの座標は UI 非依存のコア型（`EsPoint` / `EsRect`）で公開します（境界変換が不要）。
 - **見た目のカスタマイズ（2 つの入口）**: 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で差し替えます。 矩形で表せない描画（円・斜線等）は `Appearance` の `Show*` を false にして `Rendered` の描画面へ自前で描き、必要なら `DrawPlan` で計画どおりの描画を行います（派生は不要）。
 
-## 3. インストール
+---
+
+## 3. システム要件
+
+| 項目 | 内容 |
+| --- | --- |
+| 対象フレームワーク | `net10.0-windows10.0.17763.0`（`UseWindowsForms`。 Windows 専用） |
+| 描画 API | GDI+（`System.Drawing`） |
+| 言語 | C# 14（.NET 10） |
+
+---
+
+## 4. インストール
 
 ```xml
 <ProjectReference Include="..\EsUtil.Ui.WinForms\Marquee\src\EsUtil.Ui.WinForms.Marquee.csproj" />
@@ -35,7 +70,9 @@
 
 コア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）は推移参照で解決されるため、明示的に参照する必要はありません。
 
-## 4. 使い方
+---
+
+## 5. クイックスタート
 
 ```csharp
 using EsUtil.Ui.WinForms.Marquee;
@@ -83,7 +120,23 @@ marquee.SetSelection(new EsRect(100, 100, 400, 300));
 pictureBox.Controls.Add(marquee);   // 画像の上に重なる（画像は親が描く）
 ```
 
-## 5. 操作
+---
+
+## 6. 座標系
+
+MarqueeControl は 3 つの座標系を使い分けます。
+
+| 座標系 | 用途 |
+| --- | --- |
+| 対象座標 | 選択状態・nudge・イベント通知 |
+| コントロールローカル DIP | 入力・描画 |
+| 画面物理 Pixel | カーソル操作・画面変換 |
+
+対象 ↔ DIP の変換は `SetCoordTransform(ICoordTransform?)` で注入します（ToSource = DIP→対象 / ToDip = 対象→DIP / SourceArea = 対象の境界）。
+
+---
+
+## 7. 操作
 
 | 操作 | 動作 |
 | --- | --- |
@@ -98,72 +151,40 @@ pictureBox.Controls.Add(marquee);   // 画像の上に重なる（画像は親�
 
 矢印キーの nudge は本コントロールにフォーカスがある場合のみ動作します（マウス押下時に自動でフォーカスを取得します）。 矢印キーは入力キー（`IsInputKey` が true を返すキー）として扱うため、既定のフォーカス移動（ダイアログ キー）には使われません。
 
-## 6. 主なプロパティ
+---
 
-| プロパティ | 型 | 説明 |
-| --- | --- | --- |
-| `Options` | `MarqueeOptions` | 寸法・対話パラメータ（ハンドルの寸法・十字マーカーの長さ・最小選択サイズ・ヒットテスト半径・境界外選択の禁止）。 既定は `MarqueeOptions.Default`。 |
-| `Appearance` | `MarqueeAppearance` | 描画にだけ必要な外観（色・ラベル体裁・表示可否）。 既定は `MarqueeAppearance.Default`。 |
-| `HighlightSourceRect` | `EsRect?` | ハイライトする矩形（対象座標）。 指定がある場合は選択矩形より優先して注目矩形になる。 |
-| `ClientToSourceScaling` | `double` | 座標変換ポートへ適用する倍率（対象座標 / ローカル DIP）。 ポート未指定時のみ使う。 |
-| `DisplayScaleScaling` | `double` | サイズラベルの表示スケーリング係数（マルチ モニタ補正）。 |
-| `ClientToPixelScaling` | `double` | 表示 DIP を物理ピクセルへ変換する係数（ハンドル生成時と DPI 変更時に自動更新。 入力の物理ピクセル → DIP の換算と、描画面の DPI を解決できない場合の描画倍率の代替値に使う）。 |
-| `SizeLabelOverrideProvider` | `Func<string?>?` | サイズラベルの文言を差し替える関数。 |
-| `SizeLabelDisplayScalingProvider` | `Func<EsRect, double>?` | サイズラベルの表示スケーリングを矩形ごとに解決する関数。 |
-| `DrawPlanResolver` | `Func<MarqueeDrawPlan, MarqueeDrawPlan>?` | 描画計画を差し替える関数。 |
-| `Log` | `ILogger` | 操作ログの出力先（既定は `NullLogger`）。 |
-| `LogPrefix` | `string?` | ログの接頭辞（既定は `[Marquee]`）。 |
-| `HasSelection` | `bool` | 選択矩形があるかどうか（取得のみ）。 |
-| `SelectionSourceRect` | `EsRect` | 現在の選択矩形（対象座標。 取得のみ）。 |
-| `CurrentSnapshot` | `MarqueeSnapshot` | 現在の状態のスナップショット（取得のみ）。 |
+## 8. 他の UI 版との違い
 
-## 7. 主なメソッド
+| 項目 | Avalonia UI 版 | MewUI 版 | WinUI 3 版 | WinForms 版 |
+| --- | --- | --- | --- | --- |
+| 描画 API | Skia（`DrawingContext`） | Skia（`IGraphicsContext`） | Skia（描画層） | GDI+（`Graphics`） |
+| イベント引数の座標 | `Point` / `Rect`（Avalonia の型） | `EsPoint` / `EsRect`（コアの型） | `EsPoint` / `EsRect`（コアの型） | `EsPoint` / `EsRect`（コアの型） |
+| マウスダウン・アップのイベント | 公開しない | 同左 | 同左 | 同左 |
+| ホイール操作 | 扱わない（ホストが購読する） | 同左 | 同左 | 同左 |
+| 矢印キーによる nudge | フォーカスに依存しない（`TopLevel` を購読） | フォーカスが必要 | フォーカスが必要 | フォーカスが必要（`IsInputKey` で入力キーにする） |
+| ラベル（文字）の表示 | UI 要素（`Border` + `TextBlock`） | UI 要素（`Border` + `TextBlock`） | 描画面へ描く | 描画面へ描く（GDI+） |
+| 背景の透かし方 | 描画面を透明で消して下を透かす | 同左 | 同左 | 背景を透明にして親の描画を背景に使う |
+| ビューポート（スクロール・ズーム）への追従 | ホストが変化を検知して `InvalidateRender()` を呼ぶ | 同左 | 同左 | 同左 |
 
-| メソッド | 説明 |
+いずれの UI 版も、選択矩形の計算・入力の解釈・描画計画は同じコアと提示層が所有します（差は UI フレームワーク固有の描画 API と入力の受け取り方だけです）。
+
+---
+
+## 9. カスタマイズ
+
+差し替えの入口は 3 つです（**派生は不要**。 コントロールのプロパティへ設定します）。
+
+| 差し替える対象 | 差し替え方 |
 | --- | --- |
-| `SetCoordTransform(ICoordTransform?)` | 対象 ↔ ローカル DIP の座標変換ポートを設定する（null は等価変換）。 |
-| `SetSelection(EsRect)` | 選択矩形を外部状態から復元する。 |
-| `ResetSelection()` | 選択状態と nudge 状態を初期化する。 |
-| `RequestConfirm()` | 確定要求を処理する（Enter キーと同じ条件）。 |
-| `RequestCancel()` | キャンセル要求を処理する（Escape キーと同じ条件）。 |
-| `TryGetCurrentLoupePosition(out EsPoint)` | 追従位置を実カーソルから取り直す。 取り直した場合は true。 |
-| `InvalidateRender()` | 描画計画の再解決と再描画を要求する。 |
-| `DrawPlan(Graphics, in MarqueeDrawPlan)` | 描画計画を描画面へ描く（静的。 自前の描画と組み合わせる場合に使う）。 |
+| 色・枠線の太さ・表示可否 | `Appearance`（`MarqueeAppearance`）を設定する |
+| 矩形で並べられる装飾（枠・ハンドル・マーカー・破線）とラベルの文言・位置 | `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）を設定する（計画の値の置き換え） |
+| 矩形で表せない描画（円・斜線等） | `Appearance` の `Show*` を false にして `Rendered` で受け取る描画面へ自前で描く（`DrawPlan` を持つ UI 版では計画どおりの描画も呼べる） |
 
-## 8. イベント
+描画計画（`MarqueeDrawPlan`）と外観（`MarqueeAppearance`）は `EsUtil.Feature.Marquee.Presenter` が単一所有し、4 つの UI 版で共通です。 UI が持つのは UI フレームワーク固有の描画 API の呼び出しだけです（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
 
-| イベント | 説明 |
-| --- | --- |
-| `SelectionStarted` | 新規選択のドラッグ開始（始点の決定）。 |
-| `SelectionChanged` | 選択矩形の変更。 |
-| `SelectionCompleted` | 選択矩形の確定（ドラッグの終了）。 |
-| `SelectionCancelled` | 領域のキャンセル（小さすぎる矩形・枠外ダブルクリック等）。 |
-| `LoupePositionMoved` | ルーペが表示する中心座標の移動（通常追従ではポインター位置）。 |
-| `ConfirmRequested` | 確定要求（Enter・ダブルクリック・`RequestConfirm`）。 |
-| `CancelRequested` | キャンセル要求（Escape・枠外ダブルクリック・`RequestCancel`）。 |
-| `Rendered` | 描画完了（図形とラベルを描き終えたこと）。 ホスト固有の付加情報を描く入口。 |
+---
 
-## 9. 他の UI 版との違い
-
-| 項目 | 他の UI 版（Avalonia / MewUI） | WinForms 版 |
-| --- | --- | --- |
-| 描画 API | Skia（キャンバス） | **GDI+（`Graphics`）** |
-| 背景の透かし方 | 描画面を透明で消して下の画像を透かす | **背景を透明（`SupportsTransparentBackColor`）にして親の描画を背景に使う** |
-| 文字（ラベル） | テキスト要素として子に置く UI 版がある | **描画計画に従って本コントロールが描く** |
-| 入力キーの扱い | フレームワークの既定で矢印キーが届く | **`IsInputKey` で矢印キー・Escape・Enter を入力キーにする** |
-| マウス キャプチャ | ウィンドウへ要求する | **`Control.Capture` を設定する** |
-| カーソル形状 | フレームワークのカーソル型へ写す | **`Cursors` へ写す** |
-| 座標変換ポート | 同じ（`ICoordTransform`） | 同じ（`ICoordTransform`） |
-
-## 10. テスト
-
-```powershell
-dotnet test EsUtil.Ui.WinForms/Marquee/tests/EsUtil.Ui.WinForms.Marquee.Tests.csproj
-```
-
-検証は**ハンドル（ウィンドウ）を作らない範囲**で行います。 描画は `Bitmap` 上の実寸の画素を検査し、内部型（キー変換・色・矩形塗り・テキスト測定）も併せて検証します。 ハンドルを要求する操作（実際の描画・マウス入力・フォーカス・追従位置の取り直し）は対象外です。
-
-## 11. 操作ログ
+## 10. ログ
 
 ```csharp
 marquee.Log = loggerFactory.CreateLogger("Marquee");
@@ -172,14 +193,18 @@ marquee.LogPrefix = "[MyApp]";
 
 本コントロールが記録するのは**委譲した操作の例外**（`Error`）だけです。 設定の変更・入力の判断・描画はコアと提示層が同じロガーへ記録します（接頭辞は `LogPrefix` で全層へ伝搬します）。
 
-## 12. 未対応
+---
+
+## 11. 未対応
 
 - **ホイール操作**: 扱いません（ホストが `MouseWheel` を購読してください）。
 - **`ScrollViewer` に相当する自動連携**: 行いません（ビューポートの変化はホストが検知して `InvalidateRender()` を呼んでください）。
 - **デザイナーによる設定の保存**: 公開プロパティは実行時にコードで与える値のため、デザイナーのコード生成の対象にしていません。
 - **描画のピクセル検査を伴わない見た目の差**: 文字の描画は GDI+ の書式（`StringFormat.GenericTypographic`）に従うため、他の UI 版と字形の送りがわずかに異なります。
 
-## 13. サンプル アプリケーション
+---
+
+## 12. サンプルアプリケーション
 
 [`sample/README.md`](sample/README.md) に起動方法と操作方法を示します。
 
@@ -187,12 +212,43 @@ marquee.LogPrefix = "[MyApp]";
 dotnet run --project EsUtil.Ui.WinForms/Marquee/sample/EsUtil.Ui.WinForms.Marquee.Sample.csproj
 ```
 
-## 14. ドキュメント
+---
+
+## 13. ドキュメント
 
 - [API リファレンス](docs/SPEC_API.md)
 - [システム仕様書](docs/SPEC_System.md)
 - [サンプル アプリケーション](sample/README.md)
 
-## 15. ライセンス
+---
+
+## 14. プロジェクト構成
+
+```text
+EsUtil.Ui.WinForms/Marquee/
+├── src/                                     # UI 層（GDI+ による描画と入力）
+│   ├── EsUtil.Ui.WinForms.Marquee.csproj     # 独立プロジェクト（Core + Presenter + Platform.Core を参照）
+│   ├── MarqueeControl.cs                     # 公開 API・入力の受付・描画の起動
+│   ├── MarqueeGraphicsPainter.cs             # 描画計画を GDI+ の描画面へ写す
+│   ├── MarqueePointEventArgs.cs / SelectionRectEventArgs.cs / MarqueeRenderedEventArgs.cs
+│   └── MarqueeLogMessage.cs
+├── docs/                                     # SPEC_API.md / SPEC_System.md
+├── sample/                                   # サンプルアプリ（sample/README.md 参照）
+└── tests/                                    # 単体テスト（GDI+ の画素を検査）
+```
+
+---
+
+## 15. テスト
+
+```powershell
+dotnet test EsUtil.Ui.WinForms/Marquee/tests/EsUtil.Ui.WinForms.Marquee.Tests.csproj
+```
+
+検証は**ハンドル（ウィンドウ）を作らない範囲**で行います。 描画は `Bitmap` 上の実寸の画素を検査し、内部型（キー変換・色・矩形塗り・テキスト測定）も併せて検証します。 ハンドルを要求する操作（実際の描画・マウス入力・フォーカス・追従位置の取り直し）は対象外です。
+
+---
+
+## 16. ライセンス
 
 MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。

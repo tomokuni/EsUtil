@@ -12,20 +12,26 @@
   - [5.1 AXAML](#51-axaml)
   - [5.2 Code-behind（設定・イベント購読・座標ポート設定）](#52-code-behind設定イベント購読座標ポート設定)
 - [6. 座標系](#6-座標系)
-- [7. 未対応](#7-未対応)
-- [8. サンプル](#8-サンプル)
-- [9. ドキュメント](#9-ドキュメント)
-- [10. プロジェクト構成](#10-プロジェクト構成)
-  - [10.1 共有コア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）](#101-共有コアesutilfeaturemarqueecoreと提示層esutilfeaturemarqueepresenter)
-  - [10.2 装飾（提示層が単一所有する）](#102-装飾提示層が単一所有する)
-- [11. テスト](#11-テスト)
-- [12. ライセンス](#12-ライセンス)
+- [7. 操作](#7-操作)
+- [8. 他の UI 版との違い](#8-他の-ui-版との違い)
+- [9. カスタマイズ](#9-カスタマイズ)
+- [10. ログ](#10-ログ)
+- [11. 未対応](#11-未対応)
+- [12. サンプルアプリケーション](#12-サンプルアプリケーション)
+- [13. ドキュメント](#13-ドキュメント)
+- [14. プロジェクト構成](#14-プロジェクト構成)
+  - [14.1 共有コア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）](#141-共有コアesutilfeaturemarqueecoreと提示層esutilfeaturemarqueepresenter)
+  - [14.2 装飾（提示層が単一所有する）](#142-装飾提示層が単一所有する)
+- [15. テスト](#15-テスト)
+- [16. ライセンス](#16-ライセンス)
 
 ---
 
 ## 1. 概要
 
 Avalonia UI 用のリサイズ可能な領域選択コントロールです。 マウスドラッグ・キーボード微調整（nudge）・描画をコントロール内で完結します。
+
+---
 
 ## 2. 機能一覧
 
@@ -48,11 +54,15 @@ Avalonia UI 用のリサイズ可能な領域選択コントロールです。 �
 - **薄い UI 層**: 入力の解釈（nudge セッション・確定/キャンセル・スナップ・クリック検出・最小サイズ判定）はコアの公開ファサード（`MarqueeCore`）が担います。 本コントロールは「入力の受付」「効果の適用」「通知の転送」「描画計画の写し」のみを行います
 - **見た目のカスタマイズ（2 つの入口）**: 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で差し替えます。 矩形で表せない描画（円・斜線等）は `Appearance` の `Show*` を false にして `Rendered` の描画先へ自前で描き、必要なら `DrawPlan` で計画どおりの描画を行います（派生は不要。 例はサンプルの `sample/Presentation/GuideMarqueePlan`）
 
+---
+
 ## 3. システム要件
 
 - .NET 10
 - Avalonia 12.1 以降
 - C# 14
+
+---
 
 ## 4. インストール
 
@@ -72,6 +82,8 @@ using EsUtil.Feature.Marquee;          // MarqueeCore / MarqueePresenter（フ�
 using EsUtil.Platform.Core.Coord;       // ICoordTransform / CoordTransform（コア提供）
 using EsUtil.Platform.Core.Geometry;         // EsPoint / EsSize（コア提供）
 ```
+
+---
 
 ## 5. クイックスタート
 
@@ -133,6 +145,8 @@ marquee.SetCoordTransform(CoordTransform.ClientToSource(() => 2.0)); // 例: DPI
 panel.Children.Add(marquee);
 ```
 
+---
+
 ## 6. 座標系
 
 MarqueeControl は 3 つの座標系を使い分けます。
@@ -145,14 +159,78 @@ MarqueeControl は 3 つの座標系を使い分けます。
 
 対象 ↔ DIP の変換は `SetCoordTransform(ICoordTransform?)` で注入します（ToSource = DIP→対象 / ToDip = 対象→DIP / SourceArea = 対象の境界）。
 
-## 7. 未対応
+---
+
+## 7. 操作
+
+| 操作 | 動作 |
+| --- | --- |
+| 左ドラッグ（矩形外） | 新規選択の開始 |
+| 左ドラッグ（ハンドル上） | リサイズ（角・辺の 8 方向） |
+| 左ドラッグ（矩形内） | 移動 |
+| ダブルクリック（矩形内） | 確定要求（`ConfirmRequested`） |
+| ダブルクリック（矩形外） | キャンセル要求（`CancelRequested`） |
+| 矢印キー | nudge（1 対象ピクセル単位の微調整。 カーソルを非表示にして十字マーカーを表示） |
+| Enter | 確定要求（`ConfirmRequested`） |
+| Escape | キャンセル要求（`CancelRequested`） |
+
+矢印キーの nudge はフォーカスに依存しません（本コントロールが `TopLevel` のキー入力を購読するため、フォーカスの位置に関わらず動作します）。
+
+---
+
+## 8. 他の UI 版との違い
+
+| 項目 | Avalonia UI 版 | MewUI 版 | WinUI 3 版 | WinForms 版 |
+| --- | --- | --- | --- | --- |
+| 描画 API | Skia（`DrawingContext`） | Skia（`IGraphicsContext`） | Skia（描画層） | GDI+（`Graphics`） |
+| イベント引数の座標 | `Point` / `Rect`（Avalonia の型） | `EsPoint` / `EsRect`（コアの型） | `EsPoint` / `EsRect`（コアの型） | `EsPoint` / `EsRect`（コアの型） |
+| マウスダウン・アップのイベント | 公開しない | 同左 | 同左 | 同左 |
+| ホイール操作 | 扱わない（ホストが購読する） | 同左 | 同左 | 同左 |
+| 矢印キーによる nudge | フォーカスに依存しない（`TopLevel` を購読） | フォーカスが必要 | フォーカスが必要 | フォーカスが必要（`IsInputKey` で入力キーにする） |
+| ラベル（文字）の表示 | UI 要素（`Border` + `TextBlock`） | UI 要素（`Border` + `TextBlock`） | 描画面へ描く | 描画面へ描く（GDI+） |
+| 背景の透かし方 | 描画面を透明で消して下を透かす | 同左 | 同左 | 背景を透明にして親の描画を背景に使う |
+| ビューポート（スクロール・ズーム）への追従 | ホストが変化を検知して `InvalidateRender()` を呼ぶ | 同左 | 同左 | 同左 |
+
+いずれの UI 版も、選択矩形の計算・入力の解釈・描画計画は同じコアと提示層が所有します（差は UI フレームワーク固有の描画 API と入力の受け取り方だけです）。
+
+---
+
+## 9. カスタマイズ
+
+差し替えの入口は 3 つです（**派生は不要**。 コントロールのプロパティへ設定します）。
+
+| 差し替える対象 | 差し替え方 |
+| --- | --- |
+| 色・枠線の太さ・表示可否 | `Appearance`（`MarqueeAppearance`）を設定する |
+| 矩形で並べられる装飾（枠・ハンドル・マーカー・破線）とラベルの文言・位置 | `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）を設定する（計画の値の置き換え） |
+| 矩形で表せない描画（円・斜線等） | `Appearance` の `Show*` を false にして `Rendered` で受け取る描画面へ自前で描く（`DrawPlan` を持つ UI 版では計画どおりの描画も呼べる） |
+
+描画計画（`MarqueeDrawPlan`）と外観（`MarqueeAppearance`）は `EsUtil.Feature.Marquee.Presenter` が単一所有し、4 つの UI 版で共通です。 UI が持つのは UI フレームワーク固有の描画 API の呼び出しだけです（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
+
+---
+
+## 10. ログ
+
+`Log` へ `ILogger` を設定すると、コントロールが委譲した操作の例外を出力します（`Error`。 既定は出力なし）。
+
+| レベル | 出力例 |
+| --- | --- |
+| Error | `[Marquee] <操作> で例外が発生`（アプリは継続する） |
+
+設定の変更・入力の判断・描画はコアと提示層が同じロガーへ記録し、接頭辞は `LogPrefix` で全層へ伝搬します（既定 `[Marquee]`）。 ログ基盤（出力先・レベルの制御）はホストが所有します。
+
+---
+
+## 11. 未対応
 
 - **ホイール操作**: 扱わない（ホストが `PointerWheelChanged` を購読する）。
 - **`ScrollViewer` に相当する自動連携**: 行わない（ビューポートの変化はホストが検知して `InvalidateRender()` を呼ぶ）。
 - **マウスダウン・アップのイベント**: 公開しない（生のポインター入力はホストが自 UI のイベントで観測する）。
 - **文字（ラベル・座標ラベル）を描画面へ直接描くこと**: 行わない（`Border` + `TextBlock` の子要素として置き、実寸の測定だけを行う）。
 
-## 8. サンプル
+---
+
+## 12. サンプルアプリケーション
 
 `sample/` に動作確認用のサンプルアプリが含まれています。 マウスドラッグによる選択・nudge・外観変更・イベントログを確認できます。
 
@@ -162,12 +240,16 @@ dotnet run --project sample/EsUtil.Ui.AvaloniaUI.Marquee.Sample.csproj
 
 詳細は [sample/README.md](sample/README.md) を参照してください。
 
-## 9. ドキュメント
+---
+
+## 13. ドキュメント
 
 - [外部機能仕様書](docs/SPEC_API.md)
 - [システム仕様書](docs/SPEC_System.md)
 
-## 10. プロジェクト構成
+---
+
+## 14. プロジェクト構成
 
 ```text
 EsUtil.Ui.AvaloniaUI/Marquee/
@@ -183,7 +265,7 @@ EsUtil.Ui.AvaloniaUI/Marquee/
 └── tests/                                   # 単体テスト（公開 API 経由）
 ```
 
-### 10.1 共有コア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）
+### 14.1 共有コア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）
 
 UI 非依存の幾何計算・状態機械・入力の解釈は `EsUtil/Feature.Marquee.Core` が単一所有し、描画計画（層の順序・装飾矩形・文言・配置）と外観（`MarqueeAppearance`）は `EsUtil/Feature.Marquee.Presenter` が単一所有します（Avalonia / MewUI で共有）。 UI 層は描画計画を自 UI の描画 API で描き、ラベル要素の配置を担います。
 
@@ -204,11 +286,13 @@ EsUtil/Feature.Marquee.Core/
 └── tests/                                   # 単体テスト（UI 非依存・並列実行）
 ```
 
-### 10.2 装飾（提示層が単一所有する）
+### 14.2 装飾（提示層が単一所有する）
 
 選択矩形の**外側・内側に描く装飾**（暗転マスク・外枠・ハイライト・内側の塗り）は、選択矩形コントロール単体の概念ではない（撮影オーバーレイ等へ組み込むときの表示である）ため、提示層（`EsUtil.Feature.Marquee.Presenter`）が単一所有します。 装飾の矩形は `MarqueePresenter`（`DrawPlan` partial） が計算し、表示可否と太さと色は外観（`MarqueeAppearance`）が持ち、描画順は `MarqueePresenter` が決めます（詳細は同プロジェクトの `README.md`）。
 
-## 11. テスト
+---
+
+## 15. テスト
 
 `EsUtil.Ui.AvaloniaUI/Marquee/tests` が本プロジェクトのテストを持ちます（xUnit v3）。 実行手順と合否基準は [検証手順.md](../../.github/検証手順.md) が定めます。
 
@@ -216,6 +300,8 @@ EsUtil/Feature.Marquee.Core/
 dotnet test EsUtil.Ui.AvaloniaUI/Marquee/tests/EsUtil.Ui.AvaloniaUI.Marquee.Tests.csproj
 ```
 
-## 12. ライセンス
+---
+
+## 16. ライセンス
 
 MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。
