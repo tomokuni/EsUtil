@@ -1,4 +1,9 @@
 <Solution>
+  <Folder Name="/ColorPicker/">
+    <Project Path="ColorPicker/sample/EsUtil.Ui.AvaloniaUI.ColorPicker.Sample.csproj" />
+    <Project Path="ColorPicker/src/EsUtil.Ui.AvaloniaUI.ColorPicker.csproj" />
+    <Project Path="ColorPicker/tests/EsUtil.Ui.AvaloniaUI.ColorPicker.Tests.csproj" />
+  </Folder>
   <Folder Name="/Loupe/">
     <Project Path="Loupe/sample/EsUtil.Ui.AvaloniaUI.Loupe.Sample.csproj" />
     <Project Path="Loupe/src/EsUtil.Ui.AvaloniaUI.Loupe.csproj" />

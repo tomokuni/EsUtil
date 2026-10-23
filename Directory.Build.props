@@ -27,6 +27,7 @@
     <EsUtil_Ui_MewUI_Marquee_Version>0.1.7</EsUtil_Ui_MewUI_Marquee_Version>
     <EsUtil_Ui_WinUI3_Marquee_Version>0.1.7</EsUtil_Ui_WinUI3_Marquee_Version>
     <EsUtil_Ui_WinForms_Marquee_Version>0.1.7</EsUtil_Ui_WinForms_Marquee_Version>
+    <EsUtil_Ui_AvaloniaUI_ColorPicker_Version>0.1.0</EsUtil_Ui_AvaloniaUI_ColorPicker_Version>
     <EsUtil_Ui_AvaloniaUI_Interop_Version>0.1.3</EsUtil_Ui_AvaloniaUI_Interop_Version>
     <EsUtil_Ui_MewUI_Interop_Version>0.1.3</EsUtil_Ui_MewUI_Interop_Version>
     <EsUtil_Ui_WinUI3_Interop_Version>0.1.4</EsUtil_Ui_WinUI3_Interop_Version>
@@ -48,6 +49,7 @@
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Marquee.Core'">$(EsUtil_Feature_Marquee_Core_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.Core'">$(EsUtil_Feature_Thumbnail_Core_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.Presenter'">$(EsUtil_Feature_Thumbnail_Presenter_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.AvaloniaUI.ColorPicker'">$(EsUtil_Ui_AvaloniaUI_ColorPicker_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.AvaloniaUI.Thumbnail'">$(EsUtil_Ui_AvaloniaUI_Thumbnail_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.MewUI.Thumbnail'">$(EsUtil_Ui_MewUI_Thumbnail_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.Thumbnail'">$(EsUtil_Ui_WinUI3_Thumbnail_Version)</Version>

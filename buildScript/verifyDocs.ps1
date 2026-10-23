@@ -190,7 +190,7 @@ $stalePatterns = @(
     'App\.(Core|AvaloniaUI|MewUI)',
     'Parts\.(CapturePreview|LineDetection)',
     'Platform\.(Skia|AvaloniaUI|MewUI)',
-    'ColorPickerControl',
+    'ColorPickerControl\.AvaloniaUI',
     'SaveEvidence',
     'local-nuget',
     'verify-ui'
