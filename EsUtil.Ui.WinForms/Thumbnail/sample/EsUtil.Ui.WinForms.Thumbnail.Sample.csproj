@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>EsUtil.Ui.WinForms.Thumbnail.Sample</RootNamespace>
+    <Description>サムネイル一覧の WinForms 版コントロールの動作確認用サンプル アプリケーション。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\EsUtil.Ui.WinForms.Thumbnail.csproj" />
+    <!-- 動作確認用の画像はコアの型で作り、変換ブリッジで GDI+ の型へ写す（サンプルは参照してよい）。 -->
+    <PackageReference Include="EsUtil.Ui.WinForms.Interop" Version="$(EsUtil_Ui_WinForms_Interop_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 機能のルート名前空間（ファサードの公開面）を取り込む。 -->
+    <Using Include="EsUtil.Feature.Thumbnail" />
+  </ItemGroup>
+
+</Project>

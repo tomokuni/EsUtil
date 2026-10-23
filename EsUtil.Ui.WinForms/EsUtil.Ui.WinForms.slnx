@@ -10,6 +10,7 @@
     <Project Path="Marquee/tests/EsUtil.Ui.WinForms.Marquee.Tests.csproj" />
   </Folder>
   <Folder Name="/Thumbnail/">
+    <Project Path="Thumbnail/sample/EsUtil.Ui.WinForms.Thumbnail.Sample.csproj" />
     <Project Path="Thumbnail/src/EsUtil.Ui.WinForms.Thumbnail.csproj" />
     <Project Path="Thumbnail/tests/EsUtil.Ui.WinForms.Thumbnail.Tests.csproj" />
   </Folder>

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>EsUtil.Ui.MewUI.Thumbnail.Sample</RootNamespace>
+    <!-- MewUI は API が安定化中（0.x）。 破壊的変更を避けるためバージョンを固定する。 -->
+    <MewUIVersion>0.21.1</MewUIVersion>
+    <Description>サムネイル一覧の MewUI 版コントロールの動作確認用サンプル アプリケーション。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Win32 プラットフォームホスト + Windows 向け描画バックエンド -->
+    <PackageReference Include="Aprillz.MewUI.Windows" Version="$(MewUIVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- サンプルの対象（コア・提示層は推移参照で解決する） -->
+    <ProjectReference Include="..\src\EsUtil.Ui.MewUI.Thumbnail.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 機能のルート名前空間（ファサードの公開面）を取り込む。 -->
+    <Using Include="EsUtil.Feature.Thumbnail" />
+  </ItemGroup>
+
+</Project>

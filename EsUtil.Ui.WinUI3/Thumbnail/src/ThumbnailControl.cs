@@ -151,6 +151,16 @@ public sealed partial class ThumbnailControl : Grid
         }
     }
 
+
+    /// <summary>描画計画を差し替える関数を取得または設定する。</summary>
+    /// <value>提示層が解決した計画を受け取り、置き換えた計画を返す関数。 null の場合は既定の計画を使う。</value>
+    /// <remarks>
+    /// 矩形の並びで表せる装飾とラベルの文言・位置は本関数で差し替える（色・表示可否は <see cref="Appearance"/>）。<br/>
+    /// 受け取る計画は提示層が解決済みであるため、本関数は値の置き換えだけで完結する<br/>
+    /// （<c>plan with { ... }</c>）。 <b>純粋関数（同じ入力に同じ出力）にすること</b>。<br/>
+    /// 他の UI 版（Loupe / Marquee）と同じ入口であり、派生せずに見た目を変えられる。
+    /// </remarks>
+    public Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? DrawPlanResolver { get; set; }
     /// <summary>暗色テーマかどうかを取得または設定する。</summary>
     /// <value>暗色テーマの場合は true。 既定は false。</value>
     public bool IsDarkTheme { get; set; }
@@ -332,6 +342,7 @@ public sealed partial class ThumbnailControl : Grid
         var tile = _items[index];
         var plan = Presentation.ResolveDrawPlan(
             layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme);
+        plan = DrawPlanResolver?.Invoke(plan) ?? plan;
         tile.Apply(plan, Presentation.Options);
     }
 

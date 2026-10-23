@@ -1,0 +1,24 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:thumbnail="clr-namespace:EsUtil.Ui.AvaloniaUI.Thumbnail;assembly=EsUtil.Ui.AvaloniaUI.Thumbnail"
+        x:Class="EsUtil.Ui.AvaloniaUI.Thumbnail.Sample.Views.MainWindow"
+        Title="ThumbnailControl 動作確認サンプル"
+        Width="900" Height="600"
+        WindowStartupLocation="CenterScreen">
+
+    <DockPanel>
+
+        <Border DockPanel.Dock="Top" Padding="12" Background="#F0F0F0">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <TextBlock x:Name="StatusText" VerticalAlignment="Center" Text="サムネイルを選択してください。" />
+                <Button x:Name="AddButton" Content="追加" />
+                <Button x:Name="ScrollButton" Content="末尾へスクロール" />
+                <CheckBox x:Name="DarkThemeCheck" Content="暗色テーマ" />
+            </StackPanel>
+        </Border>
+
+        <thumbnail:ThumbnailControl x:Name="Thumbnails" />
+
+    </DockPanel>
+
+</Window>
