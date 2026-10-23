@@ -1,4 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Ui.WinUI3.Interop.Drawing;
 using EsUtil.Ui.WinUI3.Marquee.Internal;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
@@ -42,16 +43,16 @@ public class MarqueeShapePlanTests
         var plan = CreatePlan(
             s_appearance,
             [MarqueeDrawLayer.Decoration, MarqueeDrawLayer.Handles, MarqueeDrawLayer.Marker]);
-        var rects = new MarqueeRectList();
+        var rects = new DrawList();
         var labels = new List<MarqueeLabelPlacement>();
 
         MarqueeShapePlan.Build(plan, rects, labels);
 
         // 暗転 1 + ハンドル（塗り 1 + 枠 4）+ マーカー（十字 2）
-        Assert.Equal(1 + 5 + 2, rects.Count);
-        Assert.Equal(MarqueeShapePlan.ToArgb(s_overlay), rects.Rects[0].ColorArgb);
-        Assert.Equal(MarqueeShapePlan.ToArgb(s_handle), rects.Rects[1].ColorArgb);
-        Assert.Equal(MarqueeShapePlan.ToArgb(s_marker), rects.Rects[6].ColorArgb);
+        Assert.Equal(1 + 5 + 2, rects.RectCount);
+        Assert.Equal(s_overlay, rects.Rects[0].Color);
+        Assert.Equal(s_handle, rects.Rects[1].Color);
+        Assert.Equal(s_marker, rects.Rects[6].Color);
     }
 
     /// <summary>暗転を表示しない外観では暗転の矩形を追加しないことを検証する。</summary>
@@ -59,11 +60,11 @@ public class MarqueeShapePlanTests
     internal void Build_暗転を表示しない外観では暗転を追加しない()
     {
         var plan = CreatePlan(s_appearance with { ShowOverlay = false }, [MarqueeDrawLayer.Decoration]);
-        var rects = new MarqueeRectList();
+        var rects = new DrawList();
 
         MarqueeShapePlan.Build(plan, rects, []);
 
-        Assert.Equal(0, rects.Count);
+        Assert.Equal(0, rects.RectCount);
     }
 
     /// <summary>ハンドルを表示しない外観ではハンドルを追加しないことを検証する。</summary>
@@ -71,11 +72,11 @@ public class MarqueeShapePlanTests
     internal void Build_ハンドルを表示しない外観ではハンドルを追加しない()
     {
         var plan = CreatePlan(s_appearance with { ShowHandles = false }, [MarqueeDrawLayer.Handles]);
-        var rects = new MarqueeRectList();
+        var rects = new DrawList();
 
         MarqueeShapePlan.Build(plan, rects, []);
 
-        Assert.Equal(0, rects.Count);
+        Assert.Equal(0, rects.RectCount);
     }
 
     /// <summary>表示が有効なラベルだけを取り出すことを検証する。</summary>
@@ -85,7 +86,7 @@ public class MarqueeShapePlanTests
         var plan = CreatePlan(s_appearance, [MarqueeDrawLayer.Label]);
         var labels = new List<MarqueeLabelPlacement>();
 
-        MarqueeShapePlan.Build(plan, new MarqueeRectList(), labels);
+        MarqueeShapePlan.Build(plan, new DrawList(), labels);
 
         Assert.Equal(2, labels.Count);
         Assert.All(labels, label => Assert.True(label.IsVisible));

@@ -1,4 +1,5 @@
-using EsUtil.Ui.WinUI3.Marquee.Internal;
+using EsUtil.Platform.Core.Geometry;
+using EsUtil.Ui.WinUI3.Interop.Drawing;
 
 // 複製元: EsUtil.Ui.MewUI.Marquee/src/MewUI/MarqueeRenderedEventArgs.cs（独立パッケージ用の意図的な複製。 .github/依存関係.md §4.1）
 namespace EsUtil.Ui.WinUI3.Marquee;
@@ -16,11 +17,11 @@ namespace EsUtil.Ui.WinUI3.Marquee;
 /// </remarks>
 /// <param name="overlay">追加描画を受け取る矩形の列（DIP）。</param>
 /// <param name="content">1 フレーム分の描画内容。</param>
-public sealed class MarqueeRenderedEventArgs(MarqueeRectList overlay, MarqueeDrawPlan content) : EventArgs
+public sealed class MarqueeRenderedEventArgs(DrawList overlay, MarqueeDrawPlan content) : EventArgs
 {
     /// <summary>追加描画を受け取る矩形の列を取得する。</summary>
     /// <value>ホストが <see cref="AddRect"/> で追加した矩形の列。</value>
-    internal MarqueeRectList Overlay { get; } = overlay;
+    internal DrawList Overlay { get; } = overlay;
 
     /// <summary>1 フレーム分の描画内容（装飾・ハンドル・始点マーカー・ラベル・層の順序）。</summary>
     /// <value>コントロールが実際に描画に使った値（描くものが無い項目は空・null）。</value>
@@ -41,5 +42,5 @@ public sealed class MarqueeRenderedEventArgs(MarqueeRectList overlay, MarqueeDra
     /// 移行前は <c>SKCanvas</c> へ直接描いていたが、描画 API を公開しないため矩形の追加に置き換えた。
     /// </remarks>
     public void AddRect(double x, double y, double width, double height, uint argb)
-        => Overlay.Add(x, y, width, height, argb);
+        => Overlay.AddRect(new EsRect(x, y, width, height), System.Drawing.Color.FromArgb((int)argb));
 }

@@ -1,6 +1,8 @@
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core;
+using EsUtil.Ui.WinUI3.Interop.Drawing;
+using EsUtil.Ui.WinUI3.Interop.Imaging;
 using EsUtil.Ui.WinUI3.Marquee.Internal;
 using Microsoft.UI.Xaml;
 
@@ -10,7 +12,7 @@ namespace EsUtil.Ui.WinUI3.Marquee;
 /// <remarks>
 /// <b>描画の手順は提示層が単一所有する</b>: 層の順序と描画 API への写し方は描画計画（<see cref="MarqueeDrawPlan"/>）が持ち、<br/>
 /// 本クラスは自 UI の要素へ写すだけである（<see cref="MarqueeVisualLayer"/>）。<br/>
-/// ラベルは文字の実寸を測るエンジンと表示するエンジンを一致させるため、<see cref="MarqueeTextMeasure"/> で測る。<br/>
+/// ラベルは文字の実寸を測るエンジンと表示するエンジンを一致させるため、<see cref="TextMeasure"/> で測る。<br/>
 /// 背景は塗らない（透明のままにして下の画像を透かす）。
 /// </remarks>
 public sealed partial class MarqueeControl
@@ -53,7 +55,7 @@ public sealed partial class MarqueeControl
             // 層の順序と描画内容は MarqueeVisualLayer が計画に従って写す
             _visual.Apply(plan);
 
-            var args = new MarqueeRenderedEventArgs(new MarqueeRectList(), plan);
+            var args = new MarqueeRenderedEventArgs(new DrawList(), plan);
             Raise(Rendered, args);
             _visual.ApplyOverlay(args.Overlay);
         }
@@ -69,7 +71,7 @@ public sealed partial class MarqueeControl
     /// <returns>そのフレームの描画計画。</returns>
     /// <remarks>
     /// 解決を 2 回行うと、選択矩形・装飾・ラベル文言の解決と確保が 1 フレームで重複する。<br/>
-    /// 実寸の測定は表示する要素と同じエンジンで行うため、本層が <see cref="MarqueeTextMeasure"/> を渡す<br/>
+    /// 実寸の測定は表示する要素と同じエンジンで行うため、本層が <see cref="TextMeasure"/> を渡す<br/>
     /// （配置の計算（クランプ）は提示層が単一所有する。 背景の矩形は測定結果から解決されるため、<br/>
     /// 測定と描画が同じエンジンでないと文字が背景からはみ出して切れる）。<br/>
     /// 状態が変わると <see cref="InvalidateFrame"/> が破棄し、次の解決で最新の状態を反映する。
@@ -78,7 +80,7 @@ public sealed partial class MarqueeControl
     {
         if (_frame is not { } cached || _frameSize != clientSize)
         {
-            cached = _marquee.ResolveDrawPlan(clientSize, MarqueeTextMeasure.Measure);
+            cached = _marquee.ResolveDrawPlan(clientSize, TextMeasure.Measure);
             cached = DrawPlanResolver?.Invoke(cached) ?? cached;
             _frame = cached;
             _frameSize = clientSize;

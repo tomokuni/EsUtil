@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Geometry;
 using Xunit;
 
 namespace EsUtil.Feature.Thumbnail.Tests;
@@ -168,7 +169,7 @@ public class ThumbnailPresenterTests
         public uint ColorArgb => ThumbnailShadowPlan.Default.ColorArgb;
 
         /// <inheritdoc/>
-        public ThumbnailShadowInsets Insets { get; } = new(40, 40, 40, 40);
+        public EsThickness Insets { get; } = new(40, 40, 40, 40);
 
         /// <inheritdoc/>
         public IReadOnlyList<ThumbnailShadowEdge> Edges => ThumbnailShadowPlan.Default.Edges;

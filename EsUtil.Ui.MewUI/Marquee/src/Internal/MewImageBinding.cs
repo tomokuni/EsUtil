@@ -1,6 +1,7 @@
 using Aprillz.MewUI;
 using Aprillz.MewUI.Rendering;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Ui.MewUI.Interop;
 using EsUtil.Platform.Core.Imaging;
 
 namespace EsUtil.Ui.MewUI.Marquee.Internal;

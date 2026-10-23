@@ -3,6 +3,8 @@ using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core;
+using EsUtil.Ui.WinUI3.Interop.Drawing;
+using EsUtil.Ui.WinUI3.Interop.Imaging;
 using EsUtil.Ui.WinUI3.Loupe.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -358,7 +360,7 @@ public sealed partial class LoupeControl : Canvas
             _visual.Image.SetSource(Source);
             _visual.Apply(plan, 1 / scaling);
 
-            var args = new LoupeRenderedEventArgs(new LoupeRectList(), plan);
+            var args = new LoupeRenderedEventArgs(new DrawList(), plan);
             RaiseRendered(args);
             _visual.OverlayLayer.Apply(args.Overlay, 1 / scaling);
         }
@@ -452,14 +454,14 @@ public sealed partial class LoupeControl : Canvas
     /// キャッシュのキーは「表示サイズ」と「スケーリング係数」である（後者は描画の直前に書き戻されるため、<br/>
     /// 書き戻し後の解決を取りこぼさないようキーに含める）。<br/>
     /// それ以外の入力（拡大中心・設定・外観・<see cref="DrawPlanResolver"/>）の変更は <see cref="InvalidatePlan"/> で破棄する。<br/>
-    /// ラベルの実寸は WinUI 3 のテキスト エンジン（<see cref="LoupeTextMeasure.Measure"/>）で測る<br/>
+    /// ラベルの実寸は WinUI 3 のテキスト エンジン（<see cref="TextMeasure.Measure"/>）で測る<br/>
     /// </remarks>
     private LoupeDrawPlan ResolvePlan(double displaySize)
     {
         var scaling = ClientToPixelScaling;
         if (_plan is not { } cached || _planSize != displaySize || _planScaling != scaling)
         {
-            cached = _presenter.ResolveDrawPlan(displaySize, LoupeTextMeasure.Measure);
+            cached = _presenter.ResolveDrawPlan(displaySize, TextMeasure.Measure);
             cached = DrawPlanResolver?.Invoke(cached) ?? cached;
             _plan = cached;
             _planSize = displaySize;

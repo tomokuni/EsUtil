@@ -6,7 +6,8 @@ using EsUtil.Platform.Core.Input;
 using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core.Native.Win;
 using EsUtil.Platform.Core;
-using EsUtil.Ui.WinForms.Marquee.Internal;
+using EsUtil.Ui.WinForms.Interop;
+using EsUtil.Ui.WinForms.Interop.Imaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -689,7 +690,7 @@ public sealed class MarqueeControl : Control
     /// <returns>そのフレームの描画計画。</returns>
     /// <remarks>
     /// 描画は 1 フレーム 1 回だけ解決する（解決を 2 回行うと選択矩形・装飾・ラベル文言の解決と確保が重複する）。<br/>
-    /// 実寸の測定は描画 API に依存するため、本層が <see cref="GraphicsText.Measure"/> を渡す<br/>
+    /// 実寸の測定は描画 API に依存するため、本層が <see cref="GdiText.Measure"/> を渡す<br/>
     /// （配置の計算（クランプ）は提示層が単一所有する）。<br/>
     /// 状態が変わると <see cref="InvalidateFrame"/> が破棄し、次の解決で最新の状態を反映する。
     /// </remarks>
@@ -697,7 +698,7 @@ public sealed class MarqueeControl : Control
     {
         if (_frame is not { } cached || _frameSize != clientSize)
         {
-            cached = _marquee.ResolveDrawPlan(clientSize, GraphicsText.Measure);
+            cached = _marquee.ResolveDrawPlan(clientSize, GdiText.Measure);
             cached = DrawPlanResolver?.Invoke(cached) ?? cached;
             _frame = cached;
             _frameSize = clientSize;

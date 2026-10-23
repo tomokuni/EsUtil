@@ -53,6 +53,68 @@ public static class EsBitmapDrawingInterop
         }
     }
 
+    /// <summary>画像の一部を GDI+ のビットマップへ複製する。</summary>
+    /// <param name="source">コピー元の画像（読み取りのみ。 破棄しない）。 null 不可。</param>
+    /// <param name="x">複製する領域の左上 X（画像のピクセル座標）。 領域は画像の内側であること（呼び出し側が切り詰める）。</param>
+    /// <param name="y">複製する領域の左上 Y（画像のピクセル座標）。</param>
+    /// <param name="width">複製する領域の幅（ピクセル）。 1 以上。</param>
+    /// <param name="height">複製する領域の高さ（ピクセル）。 1 以上。</param>
+    /// <returns>複製したビットマップ（<c>Format32bppPArgb</c>）。 所有権は呼び出し側へ移る。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> が null の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException">領域が不正（幅・高さが 1 未満、または画像の外へ出る）な場合。</exception>
+    /// <exception cref="ObjectDisposedException"><paramref name="source"/> が破棄済みの場合。</exception>
+    /// <remarks>
+    /// 描画のたびの複製を小さく保つための入口である（拡大画像の切り出し領域だけを複製する）。<br/>
+    /// 行幅（<c>Stride</c>）は画像ごとに異なりうるため、行単位でコピーする。
+    /// </remarks>
+    public static DrawingBitmap CopyRegion(EsReadOnlyBitmap source, int x, int y, int width, int height)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (width < 1 || height < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width), width, "複製する領域は 1 ピクセル以上である必要があります。");
+        }
+
+        if (x < 0 || y < 0 || x + width > source.Width || y + height > source.Height)
+        {
+            throw new ArgumentOutOfRangeException(nameof(x), x, "複製する領域が画像の外へ出ています。");
+        }
+
+        var destination = new DrawingBitmap(width, height, DrawingPixelFormat.Format32bppPArgb);
+        var data = destination.LockBits(
+            new DrawingRectangle(0, 0, width, height), DrawingImageLockMode.WriteOnly, DrawingPixelFormat.Format32bppPArgb);
+        try
+        {
+            CopyRows(source, x, y, width, height, data);
+            return destination;
+        }
+        finally
+        {
+            destination.UnlockBits(data);
+        }
+    }
+
+    /// <summary>画像の指定領域の行を、ロック済みのビットマップへコピーする。</summary>
+    /// <param name="source">コピー元の画像。</param>
+    /// <param name="x">領域の左上 X（画像のピクセル座標）。</param>
+    /// <param name="y">領域の左上 Y（画像のピクセル座標）。</param>
+    /// <param name="width">領域の幅（ピクセル）。</param>
+    /// <param name="height">領域の高さ（ピクセル）。</param>
+    /// <param name="data">ロック済みのコピー先（コピー先の行幅は <c>Stride</c>）。</param>
+    /// <remarks><see cref="CopyRows(EsReadOnlyBitmap, BitmapData)"/> と同じ手順を、領域の範囲だけで行う。</remarks>
+    private static void CopyRows(EsReadOnlyBitmap source, int x, int y, int width, int height, BitmapData data)
+    {
+        var bytesPerPixel = EsReadOnlyBitmap.BytesPerPixel;
+        var rowBytes = width * bytesPerPixel;
+        var pixels = source.ReadOnlyPixels;
+        var row = new byte[rowBytes];
+
+        for (var offset = 0; offset < height; offset++)
+        {
+            pixels.Slice(((y + offset) * source.Stride) + (x * bytesPerPixel), rowBytes).CopyTo(row);
+            Marshal.Copy(row, 0, nint.Add(data.Scan0, offset * data.Stride), rowBytes);
+        }
+    }
     /// <summary>画像の全行を、ロック済みのビットマップへコピーする。</summary>
     /// <param name="source">コピー元の画像。</param>
     /// <param name="data">ロック済みのコピー先（コピー先の行幅は <c>Stride</c>）。</param>

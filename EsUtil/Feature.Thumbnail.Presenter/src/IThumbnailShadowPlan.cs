@@ -28,7 +28,7 @@ public interface IThumbnailShadowPlan
 
     /// <summary>画像の周囲へ確保する影の余白を取得する。</summary>
     /// <value>4 辺の余白（DIP）。</value>
-    ThumbnailShadowInsets Insets { get; }
+    EsThickness Insets { get; }
 
     /// <summary>4 辺の計画（描画順は上辺・右辺・下辺・左辺）を取得する。</summary>
     /// <value>要素として辺を描く UI が使う。 帯を塗る UI は <see cref="BuildDeviceBands"/> を使う。</value>

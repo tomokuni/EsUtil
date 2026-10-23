@@ -28,6 +28,7 @@
   <ItemGroup>
     <PackageReference Include="EsUtil.Feature.Marquee.Presenter" Version="$(EsUtil_Feature_Marquee_Presenter_Version)" />
     <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+    <PackageReference Include="EsUtil.Ui.WinUI3.Interop" Version="$(EsUtil_Ui_WinUI3_Interop_Version)" />
   </ItemGroup>
 
   <ItemGroup>

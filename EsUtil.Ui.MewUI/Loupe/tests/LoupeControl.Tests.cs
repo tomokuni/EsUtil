@@ -1,5 +1,5 @@
 using System.Globalization;
-using EsUtil.Ui.MewUI.Loupe.Internal;
+using EsUtil.Ui.MewUI.Interop.Imaging;
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Geometry;
@@ -228,7 +228,7 @@ public class LoupeControlTests
         Assert.Equal("(12, 34)", LabelText(control));
 
         // 幅は実測値（本コントロールが MewUI のエンジンで測ってコアへ渡す）と内側余白から決まる
-        var measured = MewUITextMeasure.Measure("(12, 34)", control.Appearance.CoordLabelFontSize);
+        var measured = TextMeasure.Measure("(12, 34)", control.Appearance.CoordLabelFontSize);
         Assert.True(LabelElement(control).Bounds.Width > measured.Width);
     }
 

@@ -1,12 +1,12 @@
+using EsUtil.Ui.WinUI3.Interop.Drawing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
-using Windows.UI;
 
 namespace EsUtil.Ui.WinUI3.Loupe.Internal;
 
-/// <summary><see cref="LoupeRectList"/> を XAML の矩形へ反映する層。</summary>
+/// <summary><see cref="DrawList"/> を XAML の矩形へ反映する層。</summary>
 /// <remarks>
 /// <b>位置付け</b>: 描く内容（どの矩形をどの色で、どの順に）は呼び出し側が単一所有する。<br/>
 /// 本クラスは受け取った矩形を <see cref="Rectangle"/> として反映するだけで、計算・判断を持たない。<br/>
@@ -16,8 +16,6 @@ namespace EsUtil.Ui.WinUI3.Loupe.Internal;
 /// <br/>
 /// <b>要素を使い回す</b>: 反映のたびに要素を作ると、パンのたびに数百の要素が割り当てられる。<br/>
 /// 件数が足りないときだけ追加し、余った要素は隠す。
-/// <para/>
-/// <b>複製元: EsUtil.SaveEvidence.Platform.WinUI3.Drawing.RectShapeLayer</b>（単独パッケージとして配布するための意図的な複製。 依存関係 §4.1）。
 /// </remarks>
 internal sealed partial class LoupeShapeLayer : Canvas
 {
@@ -28,11 +26,11 @@ internal sealed partial class LoupeShapeLayer : Canvas
     /// <value>表示中の矩形の件数。</value>
     public int AppliedCount { get; private set; }
 
-    /// <summary><see cref="LoupeRectList"/> の内容を反映する。</summary>
+    /// <summary><see cref="DrawList"/> の内容を反映する。</summary>
     /// <param name="list">反映する描画リスト。 null 不可。</param>
     /// <param name="pixelToDip">物理ピクセル → DIP の係数（1 / スケーリング係数）。</param>
     /// <exception cref="ArgumentNullException"><paramref name="list"/> が null の場合。</exception>
-    public void Apply(LoupeRectList list, double pixelToDip)
+    public void Apply(DrawList list, double pixelToDip)
     {
         ArgumentNullException.ThrowIfNull(list);
 
@@ -54,11 +52,11 @@ internal sealed partial class LoupeShapeLayer : Canvas
             }
 
             var item = rects[i];
-            SetLeft(rectangle, item.X * pixelToDip);
-            SetTop(rectangle, item.Y * pixelToDip);
-            rectangle.Width = item.Width * pixelToDip;
-            rectangle.Height = item.Height * pixelToDip;
-            rectangle.Fill = new SolidColorBrush(ToColor(item.ColorArgb));
+            SetLeft(rectangle, item.Bounds.X * pixelToDip);
+            SetTop(rectangle, item.Bounds.Y * pixelToDip);
+            rectangle.Width = item.Bounds.Width * pixelToDip;
+            rectangle.Height = item.Bounds.Height * pixelToDip;
+            rectangle.Fill = new SolidColorBrush(ToColor(item.Color));
             rectangle.Visibility = Visibility.Visible;
         }
 
@@ -77,11 +75,8 @@ internal sealed partial class LoupeShapeLayer : Canvas
     }
 
     /// <summary>色を WinUI の色へ変換する。</summary>
-    /// <param name="argb">色（<c>0xAARRGGBB</c>）。</param>
+    /// <param name="color">変換する色（不透明度はアルファ）。</param>
     /// <returns>変換した色。</returns>
-    private static Color ToColor(uint argb) => Color.FromArgb(
-        (byte)((argb >> 24) & 0xFF),
-        (byte)((argb >> 16) & 0xFF),
-        (byte)((argb >> 8) & 0xFF),
-        (byte)(argb & 0xFF));
+    private static Windows.UI.Color ToColor(System.Drawing.Color color)
+        => Windows.UI.Color.FromArgb(color.A, color.R, color.G, color.B);
 }

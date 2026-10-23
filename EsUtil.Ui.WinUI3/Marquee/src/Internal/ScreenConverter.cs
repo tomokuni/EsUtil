@@ -1,5 +1,6 @@
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Ui.WinUI3.Interop;
 using Microsoft.UI.Xaml;
 
 namespace EsUtil.Ui.WinUI3.Marquee.Internal;

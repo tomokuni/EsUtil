@@ -3,6 +3,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 
+using EsUtil.Ui.WinUI3.Interop.Drawing;
+
 namespace EsUtil.Ui.WinUI3.Marquee.Internal;
 
 /// <summary>描画計画（<see cref="MarqueeDrawPlan"/>）を XAML の要素へ写す層。</summary>
@@ -36,7 +38,7 @@ internal sealed partial class MarqueeVisualLayer : Canvas
     private readonly List<TextBlock> _labelTexts = [];
 
     /// <summary>計画から組み立てた矩形（毎回の更新で詰め直す）。</summary>
-    private readonly MarqueeRectList _rects = new();
+    private readonly DrawList _rects = new();
 
     /// <summary>表示するラベルの配置指示（毎回の更新で詰め直す）。</summary>
     private readonly List<MarqueeLabelPlacement> _visibleLabels = [];
@@ -72,7 +74,7 @@ internal sealed partial class MarqueeVisualLayer : Canvas
     /// <summary>ホストが追加した矩形を反映する。</summary>
     /// <param name="list">追加された矩形。 null 不可。</param>
     /// <exception cref="ArgumentNullException"><paramref name="list"/> が null の場合。</exception>
-    public void ApplyOverlay(MarqueeRectList list)
+    public void ApplyOverlay(DrawList list)
     {
         _overlay.Apply(list, 1);
     }

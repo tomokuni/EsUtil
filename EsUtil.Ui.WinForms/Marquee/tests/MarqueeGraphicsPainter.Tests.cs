@@ -1,4 +1,4 @@
-using EsUtil.Ui.WinForms.Marquee.Internal;
+using EsUtil.Ui.WinForms.Interop.Imaging;
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
 
@@ -354,7 +354,7 @@ public sealed class MarqueeGraphicsPainterTests
         };
         presenter.SetSelection(new EsRect(40, 30, 60, 50));
 
-        var plan = presenter.ResolveDrawPlan(new EsSize(200, 200), GraphicsText.Measure);
+        var plan = presenter.ResolveDrawPlan(new EsSize(200, 200), GdiText.Measure);
         using var bitmap = TestHelper.Paint(plan, 200, 200);
 
         Assert.Contains(MarqueeDrawLayer.Decoration, plan.Layers);

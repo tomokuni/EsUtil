@@ -109,10 +109,10 @@ EsUtil.Ui.WinForms/Marquee/
 | イベント引数 | `EsUtil.Ui.WinForms/Marquee/src/SelectionRectEventArgs.cs` | 選択矩形の通知（公開）。 |
 | イベント引数 | `EsUtil.Ui.WinForms/Marquee/src/MarqueeRenderedEventArgs.cs` | 描画完了の通知（公開）。 |
 | 倍率の解決 | `EsUtil/Platform.Core/src/Coord/DpiScaler.cs` | 描画面と表示領域からの倍率の解決（コアが単一所有。 各 UI は複製しない）。 |
-| 幾何の変換 | `EsUtil.Ui.WinForms/Marquee/src/Internal/EsGeometryWinFormsInterop.cs` | コア幾何型 ⇔ GDI+ の型（内部）。 |
-| キーの変換 | `EsUtil.Ui.WinForms/Marquee/src/Internal/EsKeyWinFormsInterop.cs` | `EsKey` ⇔ `Keys`（内部）。 |
-| 塗り | `EsUtil.Ui.WinForms/Marquee/src/Internal/GraphicsFill.cs` | 矩形の単色塗り（内部）。 |
-| テキスト | `EsUtil.Ui.WinForms/Marquee/src/Internal/GraphicsText.cs` | 実寸の測定と描画（内部）。 |
+| 幾何の変換 | `EsUtil.Ui.WinForms/Interop/src/EsGeometryInterop.cs` | コア幾何型 ⇔ GDI+ の型（変換ブリッジが単一所有。 本プロジェクトは複製しない）。 |
+| キーの変換 | `EsUtil.Ui.WinForms/Interop/src/EsKeyInterop.cs` | `EsKey` ⇔ `Keys`（変換ブリッジが単一所有）。 |
+| 塗り | `EsUtil.Ui.WinForms/Interop/src/Imaging/GdiFill.cs` | 矩形の単色塗り（変換ブリッジが単一所有）。 |
+| テキスト | `EsUtil.Ui.WinForms/Interop/src/Imaging/GdiText.cs` | 実寸の測定と描画（変換ブリッジが単一所有）。 |
 | テスト | `EsUtil.Ui.WinForms/Marquee/tests/` | 描画の画素検査・公開 API の検証。 |
 | サンプル | `EsUtil.Ui.WinForms/Marquee/sample/` | 画像へ重ねる操作の確認。 |
 
@@ -121,7 +121,7 @@ EsUtil.Ui.WinForms/Marquee/
 | 型 | 可視性 |
 | --- | --- |
 | `MarqueeControl` / `MarqueePointEventArgs` / `SelectionRectEventArgs` / `MarqueeRenderedEventArgs` | `public` |
-| `MarqueeGraphicsPainter` / `MarqueeLogMessage` / `Internal` の各型 | `internal` |
+| `MarqueeGraphicsPainter` / `MarqueeLogMessage` | `internal` |
 
 `internal` 型は本アセンブリの単体テスト（`InternalsVisibleTo`）だけが参照します。
 

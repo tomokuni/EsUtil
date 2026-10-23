@@ -1,4 +1,4 @@
-using EsUtil.Ui.WinUI3.Loupe.Internal;
+using EsUtil.Ui.WinUI3.Interop.Drawing;
 
 namespace EsUtil.Ui.WinUI3.Loupe;
 
@@ -19,11 +19,11 @@ namespace EsUtil.Ui.WinUI3.Loupe;
 /// </remarks>
 /// <param name="overlay">追加描画を受け取る矩形の列（ルーペ画像のピクセル座標）。</param>
 /// <param name="content">実際に描画した描画計画（切り出し領域の左上・拡大率・描画面のサイズを持つ）。</param>
-public sealed class LoupeRenderedEventArgs(LoupeRectList overlay, LoupeDrawPlan content) : EventArgs
+public sealed class LoupeRenderedEventArgs(DrawList overlay, LoupeDrawPlan content) : EventArgs
 {
     /// <summary>追加描画を受け取る矩形の列を取得する。</summary>
     /// <value>ホストが <see cref="AddRect"/> で追加した矩形の列。</value>
-    internal LoupeRectList Overlay { get; } = overlay;
+    internal DrawList Overlay { get; } = overlay;
 
     /// <summary>実際に描画した描画計画を取得する。</summary>
     /// <value>切り出し領域の左上（<see cref="LoupeDrawPlan.CaptureTopLeft"/>）・拡大率（<see cref="LoupeDrawPlan.ZoomLevel"/>）・描画面のサイズ（<see cref="LoupeDrawPlan.ClientPixelSize"/>）を持つ計画。</value>
@@ -44,5 +44,5 @@ public sealed class LoupeRenderedEventArgs(LoupeRectList overlay, LoupeDrawPlan 
     /// 移行前は <c>SKCanvas</c> へ直接描いていたが、描画 API を公開しないため矩形の追加に置き換えた。
     /// </remarks>
     public void AddRect(double x, double y, double width, double height, uint argb)
-        => Overlay.Add(x, y, width, height, argb);
+        => Overlay.AddRect(new EsUtil.Platform.Core.Geometry.EsRect(x, y, width, height), System.Drawing.Color.FromArgb((int)argb));
 }

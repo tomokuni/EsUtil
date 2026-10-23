@@ -1,4 +1,5 @@
 using Aprillz.MewUI.Rendering;
+using EsUtil.Ui.MewUI.Interop;
 using EsUtil.Ui.MewUI.Marquee.Internal;
 
 namespace EsUtil.Ui.MewUI.Marquee;

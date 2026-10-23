@@ -16,6 +16,7 @@
   <ItemGroup>
     <PackageReference Include="EsUtil.Feature.Loupe.Presenter" Version="$(EsUtil_Feature_Loupe_Presenter_Version)" />
     <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+    <PackageReference Include="EsUtil.Ui.WinForms.Interop" Version="$(EsUtil_Ui_WinForms_Interop_Version)" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,3 +1,4 @@
+
 using EsUtil.Ui.WinUI3.Marquee.Internal;
 using EsUtil.Platform.Core.Geometry;
 using Xunit;

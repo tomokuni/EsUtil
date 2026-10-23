@@ -1,6 +1,7 @@
 using WinUIPoint = Windows.Foundation.Point;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Input;
+using EsUtil.Ui.WinUI3.Interop;
 using EsUtil.Ui.WinUI3.Marquee.Internal;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;

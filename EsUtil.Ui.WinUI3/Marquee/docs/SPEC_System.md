@@ -131,8 +131,6 @@ EsUtil.Ui.WinUI3/Marquee/
         SelectionRectEventArgs.cs
         Internal/
             DoubleClickDetector.cs
-            EsGeometryWinUI3Interop.cs
-            EsKeyWinUI3Interop.cs
             ScreenConverter.cs
             Win32Interop.cs
     tests/
@@ -141,8 +139,6 @@ EsUtil.Ui.WinUI3/Marquee/
         MarqueeLogMessage.Tests.cs
         Internal/
             DoubleClickDetector.Tests.cs
-            EsGeometryWinUI3Interop.Tests.cs
-            EsKeyWinUI3Interop.Tests.cs
 ```
 
 ## 5. クラス図

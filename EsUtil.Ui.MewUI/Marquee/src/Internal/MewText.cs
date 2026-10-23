@@ -1,13 +1,15 @@
 using Aprillz.MewUI;
 using Aprillz.MewUI.Rendering;
 using Aprillz.MewUI.Text;
+using EsUtil.Ui.MewUI.Interop;
+using EsUtil.Ui.MewUI.Interop.Imaging;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.MewUI.Marquee.Internal;
 
 /// <summary>MewUI のテキスト描画（レイアウトの生成・キャッシュ・描画）を単一所有する。</summary>
 /// <remarks>
-/// 実寸の測定は <see cref="MewUITextMeasure"/> が単一所有する（同じテキスト エンジンで測る）。<br/>
+/// 実寸の測定は <see cref="TextMeasure"/> が単一所有する（同じテキスト エンジンで測る）。<br/>
 /// 本クラスは <b>描画</b>の入口だけを提供する（レイアウトは文字列とサイズごとに作り直さず、使い回す）。<br/>
 /// レイアウト規則（余白・行送り・配置）は各コントロールのコアが単一所有し、本クラスは描画のプリミティブのみを提供する。
 /// </remarks>

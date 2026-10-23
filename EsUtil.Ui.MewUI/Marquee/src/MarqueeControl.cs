@@ -9,7 +9,8 @@ using EsUtil.Platform.Core.Input;
 using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core.Native.Win;
 using EsUtil.Platform.Core;
-using EsUtil.Ui.MewUI.Marquee.Internal;
+using EsUtil.Ui.MewUI.Interop;
+using EsUtil.Ui.MewUI.Interop.Imaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -515,7 +516,7 @@ public sealed class MarqueeControl : Panel
     /// <remarks>
     /// 図形の描画（<c>Paint</c>）とラベルの配置（<c>ArrangeContent</c>）が同じ描画計画を使う。<br/>
     /// 解決を 2 回行うと、選択矩形・装飾・ラベル文言の解決と確保が 1 フレームで重複する。<br/>
-    /// 実寸の測定は描画 API に依存するため、本層が <see cref="MewUITextMeasure"/>（MewUI のテキスト エンジン）を渡す<br/>
+    /// 実寸の測定は描画 API に依存するため、本層が <see cref="TextMeasure"/>（MewUI のテキスト エンジン）を渡す<br/>
     /// （配置の計算（クランプ）は提示層が単一所有する）。<br/>
     /// ラベルはテキスト要素として置くため、要素を描くエンジンで測らないと背景から文字がはみ出して切れる。<br/>
     /// 状態が変わると <see cref="InvalidateFrame"/> が破棄し、次の解決で最新の状態を反映する。
@@ -524,7 +525,7 @@ public sealed class MarqueeControl : Panel
     {
         if (_frame is not { } cached || _frameSize != clientSize)
         {
-            cached = _marquee.ResolveDrawPlan(clientSize, MewUITextMeasure.Measure);
+            cached = _marquee.ResolveDrawPlan(clientSize, TextMeasure.Measure);
             cached = DrawPlanResolver?.Invoke(cached) ?? cached;
             _frame = cached;
             _frameSize = clientSize;

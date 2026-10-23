@@ -38,6 +38,36 @@ public static class GdiFill
         graphics.FillRectangle(ResolveFill(color), rect.ToRectangleF());
     }
 
+    /// <summary>複数の矩形を同じ色で塗る。</summary>
+    /// <param name="graphics">描画先。 null 不可。</param>
+    /// <param name="rects">塗る矩形の一覧（コア座標）。 空の場合は何もしない。</param>
+    /// <param name="color">塗り色（不透明度はアルファ）。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="graphics"/> または <paramref name="rects"/> が null の場合。</exception>
+    /// <remarks>
+    /// 辺（4 本）のような同色の矩形を列挙する場合にまとめて塗る（ブラシの解決を 1 回に保つ）。<br/>
+    /// 幅・高さが 0 以下の矩形は塗らない（<see cref="Rect"/> と同じ規則）。
+    /// </remarks>
+    public static void Rects(Graphics graphics, IReadOnlyList<EsRect> rects, Color color)
+    {
+        ArgumentNullException.ThrowIfNull(graphics);
+        ArgumentNullException.ThrowIfNull(rects);
+
+        if (rects.Count == 0)
+        {
+            return;
+        }
+
+        var brush = ResolveFill(color);
+        foreach (var rect in rects)
+        {
+            if (rect.Width <= 0 || rect.Height <= 0)
+            {
+                continue;
+            }
+
+            graphics.FillRectangle(brush, rect.ToRectangleF());
+        }
+    }
     /// <summary>角丸の矩形を塗る（角丸半径 0 以下は四角形）。</summary>
     /// <param name="graphics">描画先。 null 不可。</param>
     /// <param name="rect">塗る矩形（コア座標）。 幅・高さが 0 以下の場合は塗らない。</param>

@@ -1,3 +1,4 @@
+
 using EsUtil.Ui.WinForms.Loupe.Internal;
 using Xunit;
 using DrawingBrush = System.Drawing.SolidBrush;

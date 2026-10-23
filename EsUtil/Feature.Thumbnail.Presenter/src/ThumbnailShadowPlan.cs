@@ -1,3 +1,5 @@
+using EsUtil.Platform.Core.Geometry;
+
 namespace EsUtil.Feature.Thumbnail;
 
 /// <summary>画像の 4 辺と 4 隅へ落とす影の描画計画（全 UI 版で共通の唯一の定義）。</summary>
@@ -86,7 +88,7 @@ public sealed class ThumbnailShadowPlan : IThumbnailShadowPlan
     /// <summary>画像の周囲へ確保する影の余白を取得する。</summary>
     /// <value>4 辺とも <see cref="BlurRadius"/>。</value>
     /// <remarks>アイテムの寸法を決めるときに使う（画像の外側にこの分の余地を確保する）。</remarks>
-    public ThumbnailShadowInsets Insets => new(BlurRadius, BlurRadius, BlurRadius, BlurRadius);
+    public EsThickness Insets => new(BlurRadius, BlurRadius, BlurRadius, BlurRadius);
 
     /// <summary>指定の辺の計画を取得する。</summary>
     /// <param name="side">辺。</param>

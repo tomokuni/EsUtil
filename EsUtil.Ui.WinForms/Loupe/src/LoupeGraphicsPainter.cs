@@ -7,6 +7,8 @@ using DrawingPath = System.Drawing.Drawing2D.GraphicsPath;
 using DrawingPixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode;
 using DrawingRectangleF = System.Drawing.RectangleF;
 using DrawingSmoothingMode = System.Drawing.Drawing2D.SmoothingMode;
+using EsUtil.Ui.WinForms.Interop;
+using EsUtil.Ui.WinForms.Interop.Imaging;
 using EsUtil.Ui.WinForms.Loupe.Internal;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
@@ -21,7 +23,7 @@ namespace EsUtil.Ui.WinForms.Loupe;
 /// <br/>
 /// <b>キャンバスの抽象化を持たない</b>: 描画 API は本クラスが直接呼ぶ（UI フレームワークをまたぐ描画の抽象は、<br/>
 /// フレームワークごとの描画モデルの差を吸収しきれないため導入しない）。 共有できるプリミティブは<br/>
-/// <see cref="EsGeometryDrawingInterop"/> / <see cref="DrawingLabelText"/> が本プロジェクトの Internal で所有する。<br/>
+/// <see cref="EsGeometryInterop"/> / <see cref="DrawingLabelText"/> が本プロジェクトの Internal で所有する。<br/>
 /// <br/>
 /// <b>文字も本クラスが描く</b>: WinForms の子コントロールは半透明の背景を持てないため、<br/>
 /// ラベルを要素として置くと背景のアルファ（既定は黒 60%）を再現できない。 したがって<br/>

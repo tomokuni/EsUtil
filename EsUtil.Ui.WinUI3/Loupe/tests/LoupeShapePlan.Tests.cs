@@ -36,10 +36,10 @@ public class LoupeShapePlanTests
 
         var list = LoupeShapePlan.BuildCrosshair(plan);
 
-        Assert.Equal(plan.CrosshairPixelRects.Count, list.Count);
-        Assert.Equal(plan.CrosshairPixelRects[0].X, list.Rects[0].X);
-        Assert.Equal(plan.CrosshairPixelRects[0].Width, list.Rects[0].Width);
-        Assert.Equal(LoupeShapePlan.ToArgb(s_cross), list.Rects[0].ColorArgb);
+        Assert.Equal(plan.CrosshairPixelRects.Count, list.RectCount);
+        Assert.Equal(plan.CrosshairPixelRects[0].X, list.Rects[0].Bounds.X);
+        Assert.Equal(plan.CrosshairPixelRects[0].Width, list.Rects[0].Bounds.Width);
+        Assert.Equal(s_cross, list.Rects[0].Color);
     }
 
     /// <summary>枠線の矩形を計画のとおりに組み立てることを検証する。</summary>
@@ -50,8 +50,8 @@ public class LoupeShapePlanTests
 
         var list = LoupeShapePlan.BuildBorder(plan);
 
-        Assert.Equal(plan.BorderPixelRects.Count, list.Count);
-        Assert.Equal(LoupeShapePlan.ToArgb(s_border), list.Rects[0].ColorArgb);
+        Assert.Equal(plan.BorderPixelRects.Count, list.RectCount);
+        Assert.Equal(s_border, list.Rects[0].Color);
     }
 
     /// <summary>十字線を表示しない外観では矩形を組み立てないことを検証する。</summary>
@@ -60,7 +60,7 @@ public class LoupeShapePlanTests
     {
         var plan = CreatePlan(s_appearance with { ShowCrosshair = false });
 
-        Assert.Equal(0, LoupeShapePlan.BuildCrosshair(plan).Count);
+        Assert.Equal(0, LoupeShapePlan.BuildCrosshair(plan).RectCount);
     }
 
     /// <summary>枠線を表示しない外観では矩形を組み立てないことを検証する。</summary>
@@ -69,7 +69,7 @@ public class LoupeShapePlanTests
     {
         var plan = CreatePlan(s_appearance with { ShowBorder = false });
 
-        Assert.Equal(0, LoupeShapePlan.BuildBorder(plan).Count);
+        Assert.Equal(0, LoupeShapePlan.BuildBorder(plan).RectCount);
     }
 
     /// <summary>表示が有効なラベルだけを取り出すことを検証する。</summary>

@@ -1,4 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Ui.WinUI3.Interop.Drawing;
 
 namespace EsUtil.Ui.WinUI3.Marquee.Internal;
 
@@ -19,7 +20,7 @@ internal static class MarqueeShapePlan
     /// <exception cref="ArgumentNullException"><paramref name="rects"/> または <paramref name="labels"/> が null の場合。</exception>
     /// <remarks>描く内容が無い項目は追加しない（要素の無駄を作らない）。</remarks>
     public static void Build(
-        MarqueeDrawPlan plan, MarqueeRectList rects, List<MarqueeLabelPlacement> labels)
+        MarqueeDrawPlan plan, DrawList rects, List<MarqueeLabelPlacement> labels)
     {
         ArgumentNullException.ThrowIfNull(rects);
         ArgumentNullException.ThrowIfNull(labels);
@@ -56,26 +57,26 @@ internal static class MarqueeShapePlan
     /// <param name="appearance">外観（表示可否の所有者）。</param>
     /// <param name="rects">追加先。</param>
     private static void AddDecoration(
-        MarqueeDrawPlan plan, MarqueeAppearance appearance, MarqueeRectList rects)
+        MarqueeDrawPlan plan, MarqueeAppearance appearance, DrawList rects)
     {
         if (appearance.ShowOverlay && appearance.ShouldDrawOverlay(plan.FocusDipRect is not null))
         {
-            AddRects(rects, plan.OverlayDipRects, ToArgb(appearance.OverlayColor));
+            AddRects(rects, plan.OverlayDipRects, appearance.OverlayColor);
         }
 
         if (appearance.ShowOuterBorder)
         {
-            AddRects(rects, plan.OuterBorderDipRects, ToArgb(appearance.OuterBorderColor));
+            AddRects(rects, plan.OuterBorderDipRects, appearance.OuterBorderColor);
         }
 
         if (appearance.ShowInnerFill && plan.InnerFillDipRect is { } fill)
         {
-            rects.Add(fill.X, fill.Y, fill.Width, fill.Height, ToArgb(appearance.InnerFillColor));
+            rects.AddRect(fill, appearance.InnerFillColor);
         }
 
         if (appearance.ShowInnerBorder)
         {
-            AddRects(rects, plan.InnerBorderDipRects, ToArgb(appearance.InnerBorderColor));
+            AddRects(rects, plan.InnerBorderDipRects, appearance.InnerBorderColor);
         }
     }
 
@@ -84,19 +85,18 @@ internal static class MarqueeShapePlan
     /// <param name="appearance">外観。</param>
     /// <param name="rects">追加先。</param>
     /// <remarks>枠線は塗りの外側へ太さの分だけ広げた矩形の 4 辺で表す（要素に枠線を持たせない）。</remarks>
-    private static void AddHandles(MarqueeHandles handles, MarqueeAppearance appearance, MarqueeRectList rects)
+    private static void AddHandles(MarqueeHandles handles, MarqueeAppearance appearance, DrawList rects)
     {
         var thickness = Math.Max(0, handles.BorderThickness);
-        var fillArgb = ToArgb(appearance.HandleColor);
-        var borderArgb = ToArgb(appearance.HandleBorderColor);
+
 
         for (var i = 0; i < handles.HandleDipRects.Count; i++)
         {
             var bounds = handles.HandleDipRects[i];
-            rects.Add(bounds.X, bounds.Y, bounds.Width, bounds.Height, fillArgb);
+            rects.AddRect(bounds, appearance.HandleColor);
             if (thickness > 0)
             {
-                AddOutline(rects, bounds, thickness, borderArgb);
+                AddOutline(rects, bounds, thickness, appearance.HandleBorderColor);
             }
         }
     }
@@ -106,7 +106,7 @@ internal static class MarqueeShapePlan
     /// <param name="appearance">外観。</param>
     /// <param name="rects">追加先。</param>
     /// <remarks>十字線は 2 本の細い矩形で表す（線を描く要素を別に持たない）。</remarks>
-    private static void AddMarker(MarqueeMarker marker, MarqueeAppearance appearance, MarqueeRectList rects)
+    private static void AddMarker(MarqueeMarker marker, MarqueeAppearance appearance, DrawList rects)
     {
         var thickness = Math.Max(0, appearance.MarkerThickness);
         if (thickness <= 0)
@@ -114,13 +114,12 @@ internal static class MarqueeShapePlan
             return;
         }
 
-        var argb = ToArgb(appearance.MarkerColor);
         var centerX = marker.Center.X;
         var centerY = marker.Center.Y;
         var half = marker.Size;
 
-        rects.Add(centerX - half, centerY - (thickness / 2), half * 2, thickness, argb);
-        rects.Add(centerX - (thickness / 2), centerY - half, thickness, half * 2, argb);
+        rects.AddRect(new EsRect(centerX - half, centerY - (thickness / 2), half * 2, thickness), appearance.MarkerColor);
+        rects.AddRect(new EsRect(centerX - (thickness / 2), centerY - half, thickness, half * 2), appearance.MarkerColor);
     }
 
     /// <summary>表示するラベルの配置指示を追加する。</summary>
@@ -141,13 +140,12 @@ internal static class MarqueeShapePlan
     /// <summary>矩形の列を追加する。</summary>
     /// <param name="rects">追加先。</param>
     /// <param name="source">追加する矩形（DIP）。</param>
-    /// <param name="argb">塗り色。</param>
-    private static void AddRects(MarqueeRectList rects, IReadOnlyList<EsRect> source, uint argb)
+    /// <param name="color">塗り色。</param>
+    private static void AddRects(DrawList rects, IReadOnlyList<EsRect> source, System.Drawing.Color color)
     {
         for (var i = 0; i < source.Count; i++)
         {
-            var rect = source[i];
-            rects.Add(rect.X, rect.Y, rect.Width, rect.Height, argb);
+            rects.AddRect(source[i], color);
         }
     }
 
@@ -155,14 +153,14 @@ internal static class MarqueeShapePlan
     /// <param name="rects">追加先。</param>
     /// <param name="bounds">対象の矩形。</param>
     /// <param name="thickness">線の太さ。</param>
-    /// <param name="argb">線の色。</param>
+    /// <param name="color">線の色。</param>
     private static void AddOutline(
-        MarqueeRectList rects, EsRect bounds, double thickness, uint argb)
+        DrawList rects, EsRect bounds, double thickness, System.Drawing.Color color)
     {
-        rects.Add(bounds.X, bounds.Y, bounds.Width, thickness, argb);
-        rects.Add(bounds.X, bounds.Y + bounds.Height - thickness, bounds.Width, thickness, argb);
-        rects.Add(bounds.X, bounds.Y, thickness, bounds.Height, argb);
-        rects.Add(bounds.X + bounds.Width - thickness, bounds.Y, thickness, bounds.Height, argb);
+        rects.AddRect(new EsRect(bounds.X, bounds.Y, bounds.Width, thickness), color);
+        rects.AddRect(new EsRect(bounds.X, bounds.Y + bounds.Height - thickness, bounds.Width, thickness), color);
+        rects.AddRect(new EsRect(bounds.X, bounds.Y, thickness, bounds.Height), color);
+        rects.AddRect(new EsRect(bounds.X + bounds.Width - thickness, bounds.Y, thickness, bounds.Height), color);
     }
 
     /// <summary>色を <c>0xAARRGGBB</c> へ変換する。</summary>

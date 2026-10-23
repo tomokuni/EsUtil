@@ -6,7 +6,8 @@ using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core;
-using EsUtil.Ui.MewUI.Loupe.Internal;
+using EsUtil.Ui.MewUI.Interop;
+using EsUtil.Ui.MewUI.Interop.Imaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -33,7 +34,7 @@ namespace EsUtil.Ui.MewUI.Loupe;
 /// <b>ホスト側の操作</b>: <see cref="Source"/> を設定して <see cref="CenterPoint"/> を現在位置へ更新すると、<br/>
 /// ルーペがその位置を拡大表示する（描画はプロパティ変更で自動的に無効化される）。<br/>
 /// <b>座標ラベル</b>: 表示可否は <see cref="LoupeAppearance.ShouldShowCoordLabel"/>（描画層）が判断し、<br/>
-/// 文言・基準点・配置は描画層（<see cref="LoupePresenter"/>）が実寸（<see cref="MewUITextMeasure"/>）から<br/>
+/// 文言・基準点・配置は描画層（<see cref="LoupePresenter"/>）が実寸（<see cref="TextMeasure"/>）から<br/>
 /// 単一所有する（本コントロールは要素を置くだけである）。<br/>
 /// <br/>
 /// <b>見た目のカスタマイズ</b>: 色・太さ・表示可否は <see cref="Appearance"/> で、<br/>
@@ -415,7 +416,7 @@ public sealed class LoupeControl : Panel
         var scaling = ClientToPixelScaling;
         if (_plan is not { } cached || _planSize != displaySize || _planScaling != scaling)
         {
-            cached = _presenter.ResolveDrawPlan(displaySize, MewUITextMeasure.Measure);
+            cached = _presenter.ResolveDrawPlan(displaySize, TextMeasure.Measure);
             cached = DrawPlanResolver?.Invoke(cached) ?? cached;
             _plan = cached;
             _planSize = displaySize;

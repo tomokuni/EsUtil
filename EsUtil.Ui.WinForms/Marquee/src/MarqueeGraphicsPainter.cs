@@ -1,4 +1,5 @@
-using EsUtil.Ui.WinForms.Marquee.Internal;
+using EsUtil.Ui.WinForms.Interop;
+using EsUtil.Ui.WinForms.Interop.Imaging;
 
 namespace EsUtil.Ui.WinForms.Marquee;
 
@@ -11,7 +12,7 @@ namespace EsUtil.Ui.WinForms.Marquee;
 /// DIP から物理ピクセルへの拡大は呼び出し側（<see cref="MarqueeControl"/>）が描画面の変換として適用する。<br/>
 /// <br/>
 /// <b>文字も本クラスが描く</b>: ラベルは計画の <see cref="MarqueeDrawPlan.Labels"/> が持つ配置指示（文言・背景・色・内側余白）に従い、<br/>
-/// 図形と同じ描画面へ描く（文字の実寸測定は <see cref="GraphicsText"/> が単一所有する）。<br/>
+/// 図形と同じ描画面へ描く（文字の実寸測定は <see cref="GdiText"/> が単一所有する）。<br/>
 /// <br/>
 /// <b>Bitmap 上で検証できる</b>: 描画先は <see cref="Graphics"/> だけであるため、ウィンドウを持たない単体テストでも実寸の画素を検査できる。
 /// </remarks>
@@ -81,22 +82,22 @@ internal static class MarqueeGraphicsPainter
     {
         if (appearance.ShowOverlay && appearance.ShouldDrawOverlay(plan.FocusDipRect is not null))
         {
-            GraphicsFill.Rects(graphics, plan.OverlayDipRects, appearance.OverlayColor);
+            GdiFill.Rects(graphics, plan.OverlayDipRects, appearance.OverlayColor);
         }
 
         if (appearance.ShowOuterBorder)
         {
-            GraphicsFill.Rects(graphics, plan.OuterBorderDipRects, appearance.OuterBorderColor);
+            GdiFill.Rects(graphics, plan.OuterBorderDipRects, appearance.OuterBorderColor);
         }
 
         if (appearance.ShowInnerFill && plan.InnerFillDipRect is { } fill)
         {
-            GraphicsFill.Rect(graphics, fill, appearance.InnerFillColor);
+            GdiFill.Rect(graphics, fill, appearance.InnerFillColor);
         }
 
         if (appearance.ShowInnerBorder)
         {
-            GraphicsFill.Rects(graphics, plan.InnerBorderDipRects, appearance.InnerBorderColor);
+            GdiFill.Rects(graphics, plan.InnerBorderDipRects, appearance.InnerBorderColor);
         }
     }
 
@@ -113,7 +114,7 @@ internal static class MarqueeGraphicsPainter
         for (var index = 0; index < handleRects.Count; index++)
         {
             var rect = handleRects[index];
-            GraphicsFill.Rect(graphics, rect, appearance.HandleColor);
+            GdiFill.Rect(graphics, rect, appearance.HandleColor);
             graphics.DrawRectangle(stroke, rect.ToRectangleF());
         }
     }
@@ -150,8 +151,8 @@ internal static class MarqueeGraphicsPainter
                 continue;
             }
 
-            GraphicsFill.Rect(graphics, label.DipRect, label.BackgroundColor);
-            GraphicsText.Draw(
+            GdiFill.Rect(graphics, label.DipRect, label.BackgroundColor);
+            GdiText.Draw(
                 graphics,
                 label.Text,
                 label.DipRect.X + label.PaddingX,
