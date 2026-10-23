@@ -100,7 +100,7 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | `MarqueeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `ThumbnailControl` | あり（配置・選択・可視範囲） | あり（提示 + 外観 + 影） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `LoupeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
-| `ColorPickerControl` | なし（色文字列の解析・検証は UI が持つ） | なし | AvaloniaUI |
+| `ColorComboBoxControl` | なし（色文字列の解析・検証は UI が持つ） | なし | AvaloniaUI |
 
 **コントロール化を前提とした処理は UI が持ちます**: ホイール操作（どの入力がズーム・パンかを決める）・ビューポートの変化の追従・組み込み先の概念は、コントロールを何かへ組み込んで初めて必要になるためです。
 
@@ -112,7 +112,7 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | Loupe | [`EsUtil.Feature.Loupe.Core`](../EsUtil/Feature.Loupe.Core/README.md) | [`EsUtil.Feature.Loupe.Presenter`](../EsUtil/Feature.Loupe.Presenter/README.md) |
 | Thumbnail | [`EsUtil.Feature.Thumbnail.Core`](../EsUtil/Feature.Thumbnail.Core/README.md) | [`EsUtil.Feature.Thumbnail.Presenter`](../EsUtil/Feature.Thumbnail.Presenter/README.md) |
 
-UI 層は [`EsUtil.Ui.AvaloniaUI.ColorPicker`](../EsUtil.Ui.AvaloniaUI/ColorPicker/README.md) / [`EsUtil.Ui.AvaloniaUI.Marquee`](../EsUtil.Ui.AvaloniaUI/Marquee/README.md) / [`EsUtil.Ui.MewUI.Marquee`](../EsUtil.Ui.MewUI/Marquee/README.md) / [`EsUtil.Ui.WinUI3.Marquee`](../EsUtil.Ui.WinUI3/Marquee/README.md) / [`EsUtil.Ui.WinForms.Marquee`](../EsUtil.Ui.WinForms/Marquee/README.md) /
+UI 層は [`EsUtil.Ui.AvaloniaUI.ColorComboBox`](../EsUtil.Ui.AvaloniaUI/ColorPicker/README.md) / [`EsUtil.Ui.AvaloniaUI.Marquee`](../EsUtil.Ui.AvaloniaUI/Marquee/README.md) / [`EsUtil.Ui.MewUI.Marquee`](../EsUtil.Ui.MewUI/Marquee/README.md) / [`EsUtil.Ui.WinUI3.Marquee`](../EsUtil.Ui.WinUI3/Marquee/README.md) / [`EsUtil.Ui.WinForms.Marquee`](../EsUtil.Ui.WinForms/Marquee/README.md) /
 [`EsUtil.Ui.AvaloniaUI.Loupe`](../EsUtil.Ui.AvaloniaUI/Loupe/README.md) / [`EsUtil.Ui.MewUI.Loupe`](../EsUtil.Ui.MewUI/Loupe/README.md) / [`EsUtil.Ui.WinUI3.Loupe`](../EsUtil.Ui.WinUI3/Loupe/README.md) / [`EsUtil.Ui.WinForms.Loupe`](../EsUtil.Ui.WinForms/Loupe/README.md) /
 [`EsUtil.Ui.AvaloniaUI.Thumbnail`](../EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) / [`EsUtil.Ui.MewUI.Thumbnail`](../EsUtil.Ui.MewUI/Thumbnail/README.md) / [`EsUtil.Ui.WinUI3.Thumbnail`](../EsUtil.Ui.WinUI3/Thumbnail/README.md) / [`EsUtil.Ui.WinForms.Thumbnail`](../EsUtil.Ui.WinForms/Thumbnail/README.md)、
 共通基盤は [`EsUtil.Platform.Core`](../EsUtil/Platform.Core/README.md) / [`EsUtil.Platform.Core.Windows`](../EsUtil/Platform.Core.Windows/README.md) を参照してください。

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Ui.AvaloniaUI.ColorComboBox</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Description>Avalonia UI の色選択コントロール（色名の解決・入力の検証・不透明度の編集）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="[12.*,)" />
+    <PackageReference Include="Avalonia.Controls.ColorPicker" Version="[12.1.*, )" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ログの接頭辞（logPrefix）と null 吸収（?? NullLogger.Instance）。 UI 層は変換ブリッジ（EsUtil.Ui.*.Interop）を参照できない（.github/依存関係.md §3）。 -->
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Ui.AvaloniaUI.ColorComboBox.Tests" />
+  </ItemGroup>
+
+</Project>
