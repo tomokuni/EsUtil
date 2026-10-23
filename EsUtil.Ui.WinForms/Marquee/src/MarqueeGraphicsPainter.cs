@@ -18,7 +18,7 @@ namespace EsUtil.Ui.WinForms.Marquee;
 /// </remarks>
 internal static class MarqueeGraphicsPainter
 {
-    /// <summary>枠線・十字線に使うペン（スレッドごとに 1 つを使い回す）。</summary>
+    /// <summary>枠線・十字線に使うペン（スレッドごとに 1 つ）。</summary>
     [ThreadStatic]
     private static Pen? s_stroke;
 

@@ -16,9 +16,9 @@ namespace EsUtil.Ui.WinUI3.Loupe.Internal;
 /// スプライトの拡大・移動で表す（拡大率を変えても取り込み直さない）。<br/>
 /// <br/>
 /// <b>最近傍で拡大する</b>: ルーペは撮影画像の画素を確認する用途であるため、補間で色を混ぜない<br/>
-/// （移行前の Skia の描画と同じ見た目になる）。
+/// （補間で色を混ぜない）。
 /// <para/>
-/// <b>複製元: EsUtil.SaveEvidence.Platform.WinUI3.Drawing.CompositionImageView</b>（単独パッケージとして配布するための意図的な複製。 依存関係 §4.1）。
+/// <b>本コントロールだけが使う複製</b>（独立パッケージのため。 .github/依存関係.md §4.1）。
 /// </remarks>
 internal sealed partial class LoupeImageView : Grid
 {

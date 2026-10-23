@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-// 複製元: EsUtil.Ui.MewUI.Marquee/src/MewUI/MarqueeLogMessage.cs（独立パッケージ用の意図的な複製。 .github/依存関係.md §4.1）
+// 本コントロールだけが使う複製（独立パッケージのため。 .github/依存関係.md §4.1）
 namespace EsUtil.Ui.WinUI3.Marquee;
 
 /// <summary>選択矩形コントロール（WinUI 3 版）が出力する LoggerMessage 定義（ソース生成ログ）。</summary>

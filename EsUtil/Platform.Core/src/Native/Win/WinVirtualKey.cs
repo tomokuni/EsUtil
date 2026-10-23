@@ -8,7 +8,7 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// UI フレームワークのキー列挙（<see cref="EsKey"/>。 Avalonia の <c>Key</c> と同名）の序数とは別体系である。
 /// 変換を各 UI 版へ複製すると、片方だけ直したときに<b>別のキーが登録される</b>。<br/>
 /// <b>対応表に無いキーへ序数（<c>(uint)key</c>）を返さない</b>: 無言で別のキーが登録される
-/// （実測: 以前は <c>PrintScreen</c> の序数 89 = <c>0x59</c> = <c>Y</c> が登録されていた）。
+/// （実測: 序数を返すと <c>PrintScreen</c> の 89 = <c>0x59</c> = <c>Y</c> が登録される）。
 /// 未対応は <c>0</c> として失敗させる（呼び出し側が記録する）。
 /// </remarks>
 internal static class WinVirtualKey

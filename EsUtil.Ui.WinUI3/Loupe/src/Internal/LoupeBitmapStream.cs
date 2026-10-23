@@ -12,7 +12,7 @@ namespace EsUtil.Ui.WinUI3.Loupe.Internal;
 /// <br/>
 /// <b>UI に依存しない</b>: 純粋なバイト列の組み立てであるため、ウィンドウ無しで検証できる。
 /// <para/>
-/// <b>複製元: EsUtil.SaveEvidence.Platform.WinUI3.Drawing.BmpStreamBuilder</b>（単独パッケージとして配布するための意図的な複製。 依存関係 §4.1）。
+/// <b>本コントロールだけが使う複製</b>（独立パッケージのため。 .github/依存関係.md §4.1）。
 /// </remarks>
 internal static class LoupeBitmapStream
 {

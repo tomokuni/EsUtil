@@ -3,7 +3,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using EsUtil.Platform.Core.Imaging;
 
-// 複製元: EsUtil.SaveEvidence.Platform.AvaloniaUI.Imaging（サンプルが単独で動くための意図的な複製。 .github/依存関係.md §4.1）
+// 本サンプルだけが使う複製（サンプルが単独で動くため。 .github/依存関係.md §4.1）
 namespace EsUtil.Ui.AvaloniaUI.Marquee.Sample.Internal;
 
 /// <summary>コアの画像（<see cref="EsReadOnlyBitmap"/>）を、表示境界の <see cref="IImage"/> として公開するアダプタ。</summary>

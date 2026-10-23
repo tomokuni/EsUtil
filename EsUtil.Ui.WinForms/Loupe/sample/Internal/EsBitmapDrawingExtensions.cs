@@ -5,7 +5,7 @@ using DrawingImageLockMode = System.Drawing.Imaging.ImageLockMode;
 using DrawingPixelFormat = System.Drawing.Imaging.PixelFormat;
 using DrawingRectangle = System.Drawing.Rectangle;
 
-// 複製元: EsUtil.Ui.WinForms.Loupe.Internal（独立パッケージ用の意図的な複製。 .github/依存関係.md §4.1）
+// 本サンプルだけが使う複製（サンプルが単独で動くため。 .github/依存関係.md §4.1）
 namespace EsUtil.Ui.WinForms.Loupe.Sample.Internal;
 
 /// <summary>コアの画像（<see cref="EsReadOnlyBitmap"/>）を GDI+ のビットマップへ複製する。</summary>

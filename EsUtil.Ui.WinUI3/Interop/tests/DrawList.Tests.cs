@@ -7,7 +7,7 @@ namespace EsUtil.Ui.WinUI3.Interop.Tests;
 
 /// <summary><see cref="DrawList"/> の単体テスト（追加順・空の矩形の除外）。</summary>
 /// <remarks>
-/// 本型は UI 型を持たないため、XAML を初期化せずに検証できる（移行前の描画の画素テストに代わる回帰検出力）。
+/// 本型は UI 型を持たないため、XAML を初期化せずに検証できる（要素の生成を伴わずに描画内容を検証できる）。
 /// </remarks>
 public class DrawListTests
 {

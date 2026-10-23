@@ -13,20 +13,20 @@ namespace EsUtil.Ui.WinForms.Interop.Imaging;
 /// 描画は与えられた描画面の変換（DPI の拡大）に従う（両者を同じフォント サイズで扱うことで寸法が一致する）。<br/>
 /// <b>フォントの単位はピクセル</b>である（描画先の <c>PageUnit</c> に依存しない固定の単位で扱う）。<br/>
 /// <br/>
-/// <b>保持する資源の寿命</b>: 測定用の描画面・フォント・ブラシはスレッドごとに 1 つを保持し、<br/>
-/// 測定・描画のたびに作らない（作成と破棄の費用が描画の費用を上回る）。
+/// <b>資源の共有</b>: 測定用の描画面・フォント・ブラシはスレッドごとに 1 つを持つ（<see cref="Graphics"/> と<br/>
+/// <see cref="SolidBrush"/> は複数のスレッドで同時に使えないため、スレッド単位で分ける）。
 /// </remarks>
 public static class GdiText
 {
-    /// <summary>測定に使う描画面（スレッドごとに 1 つを保持する）。</summary>
+    /// <summary>測定に使う描画面（スレッドごとに 1 つ）。</summary>
     [ThreadStatic]
     private static Graphics? s_measure;
 
-    /// <summary>測定に使う描画面の下地（スレッドごとに 1 つを保持する）。</summary>
+    /// <summary>測定に使う描画面の下地（スレッドごとに 1 つ）。</summary>
     [ThreadStatic]
     private static Bitmap? s_probe;
 
-    /// <summary>描画に使うフォント（スレッドごとに 1 つを、大きさごとに作り直して使い回す）。</summary>
+    /// <summary>描画に使うフォント（スレッドごとに 1 つ。 大きさが変わったときだけ作り直す）。</summary>
     [ThreadStatic]
     private static Font? s_font;
 
@@ -34,11 +34,11 @@ public static class GdiText
     [ThreadStatic]
     private static double s_fontSize;
 
-    /// <summary>描画に使うブラシ（スレッドごとに 1 つを、色だけ書き換えて使い回す）。</summary>
+    /// <summary>描画に使うブラシ（スレッドごとに 1 つ。 色だけを書き換える）。</summary>
     [ThreadStatic]
     private static SolidBrush? s_text;
 
-    /// <summary>測定と描画に使う書式（スレッドごとに 1 つを保持する）。</summary>
+    /// <summary>測定と描画に使う書式（スレッドごとに 1 つ）。</summary>
     /// <remarks>
     /// <see cref="StringFormat.GenericTypographic"/> を測定と描画の両方で使う（余白の加算規則を一致させ、<br/>
     /// 測定した寸法で作った背景から文字がはみ出さないようにする）。
@@ -89,7 +89,7 @@ public static class GdiText
     /// <returns>基準 DPI（96）の描画面。</returns>
     /// <remarks>
     /// 下地（<see cref="Bitmap"/>）は描画面の寿命の間保持する（破棄されると描画面が無効になる）。<br/>
-    /// 保持はプロセス（スレッド）の寿命と同じであり、測定のたびに生成と破棄を繰り返さない。
+    /// 保持はスレッドの寿命と同じである。
     /// </remarks>
     private static Graphics ResolveMeasure()
     {

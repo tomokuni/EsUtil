@@ -19,7 +19,7 @@ namespace EsUtil.Ui.WinUI3.Interop.Drawing;
 /// 符号化と復号の往復を伴わない（WIC も使わない）。<br/>
 /// <br/>
 /// <b>補間</b>: <see cref="CompositionBitmapInterpolationMode.NearestNeighbor"/> を使う。 拡大しても画素がぼやけず、<br/>
-/// 撮影画像の確認という用途に合う（移行前の Skia の描画と同じ見た目になる）。<br/>
+/// 撮影画像の確認という用途に合う（画素がそのまま見える）。<br/>
 /// <br/>
 /// <b>XAML 要素との重なり</b>: 本ビューは子要素を持たない透明な面であり、同じ親の中で先に置かれた要素の背面に合成される。<br/>
 /// 図形や文字は本ビューの兄弟として<b>後</b>に置く（前面に来る）。<br/>
@@ -114,7 +114,7 @@ public sealed partial class CompositionImageView : Grid
     /// <param name="blurRadius">ぼかしの半径（DIP）。</param>
     /// <param name="argb">影の色（<c>0xAARRGGBB</c>）。 透過度が濃さになる。</param>
     /// <remarks>
-    /// 移行前は 1 画素の帯を数百枚塗って影を近似していたが、本メソッドは Composition の<br/>
+    /// 影は Composition の<br/>
     /// <c>DropShadow</c> を使う（実際のぼかしになり、要素も増えない）。<br/>
     /// <b>画像より先に呼んでよい</b>: 影の外形は画像のサーフェス（ブラシ）に依存するため、画像を設定した時点で付け直す。
     /// </remarks>

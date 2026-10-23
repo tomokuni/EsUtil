@@ -19,7 +19,7 @@ namespace EsUtil.Ui.WinUI3.Marquee.Internal;
 /// <b>要素を使い回す</b>: 反映のたびに要素を作ると、パンのたびに数百の要素が割り当てられる。<br/>
 /// 件数が足りないときだけ追加し、余った要素は隠す。
 /// <para/>
-/// <b>複製元: EsUtil.SaveEvidence.Platform.WinUI3.Drawing.RectShapeLayer</b>（単独パッケージとして配布するための意図的な複製。 依存関係 §4.1）。
+/// <b>本コントロールだけが使う複製</b>（独立パッケージのため。 .github/依存関係.md §4.1）。
 /// </remarks>
 internal sealed partial class MarqueeShapeLayer : Canvas
 {

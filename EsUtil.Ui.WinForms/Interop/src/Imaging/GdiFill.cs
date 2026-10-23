@@ -11,9 +11,9 @@ namespace EsUtil.Ui.WinForms.Interop.Imaging;
 /// </remarks>
 public static class GdiFill
 {
-    /// <summary>塗りに使うブラシ（スレッドごとに 1 つを使い回す）。</summary>
+    /// <summary>塗りに使うブラシ（スレッドごとに 1 つ）。</summary>
     /// <remarks>
-    /// 塗りは描画のたびに必要になるため、生成と破棄を繰り返さず<b>色だけを書き換えて使い回す</b>。<br/>
+    /// <b>色だけを書き換えて使う</b>。<br/>
     /// スレッドごとに持つのは、<see cref="SolidBrush"/> の同時書き換えを避けるためである。<br/>
     /// 値を書き換えて使うため、<b>塗りの途中で別の色の塗りを求めない</b>前提とする（各メソッドが先頭で 1 度だけ求める）。
     /// </remarks>

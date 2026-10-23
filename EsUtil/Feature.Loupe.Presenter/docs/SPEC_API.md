@@ -63,7 +63,7 @@
 | `Appearance` | property | 外観（本層が単一所有する）。 **変化したときだけ**変更ログ（Debug）を出力する |
 | `SetCoordTransform(ICoordTransform?)` | method | コアへ委譲する（**本層を通過したことを Trace で記録する**） |
 | `ResolveLayout(EsSize)` | method | コアへ委譲する（表示サイズ + 位置。 毎フレーム呼ばれるためログは出力しない） |
-| `ResolveDrawPlan(double displaySize, Func<string, double, EsSize> measureText)` | method（`virtual`） | 描画計画（`LoupeDrawPlan`）を解決する。 `measureText` が null なら `ArgumentNullException`。 毎フレーム呼ばれるためログは出力しない |
+| `ResolveDrawPlan(double displaySize, Func<string, double, EsSize> measureText)` | method | 描画計画（`LoupeDrawPlan`）を解決する。 `measureText` が null なら `ArgumentNullException`。 毎フレーム呼ばれるためログは出力しない |
 
 **ログの出力方針**: 生成（コンストラクター注入時、または `Log` の初回設定時に 1 度だけ。 Information）・本層を通過した値（Trace）・本層が単一所有する外観の変更（Debug）を出力します。 値の保持と変更の記録はコアが行うため、本層は「通過したこと」を Trace で残します（ホストの設定が本層を通ったかを確認できます。 詳細は [`SPEC_System.md`](SPEC_System.md) の「ログ」を参照）。
 

@@ -93,7 +93,7 @@
 | --- | --- | --- |
 | `ResolveLayout(EsSize parentSize)` | `LoupeLayout` | 親領域のサイズ（DIP）から表示レイアウト（表示サイズ・表示位置）を解決する。 位置が null になるのは、拡大中心が未設定の場合と、親領域が表示サイズを収められない場合である |
 | `SetCoordTransform(ICoordTransform? port)` | — | 対象 ↔ 親領域 DIP の座標変換ポートを設定する（null は等価変換）。 例外は記録して再送出する |
-| `RequestRedraw()` | — | プロパティの変更を伴わない再表示を要求する（DPI の変更・親の再配置など）。 移行前の `Invalidate` に代わる入口である |
+| `RequestRedraw()` | — | プロパティの変更を伴わない再表示を要求する（DPI の変更・親の再配置など）。 描画の無効化ではなく更新手順を直接呼ぶ入口である |
 
 使用例:
 

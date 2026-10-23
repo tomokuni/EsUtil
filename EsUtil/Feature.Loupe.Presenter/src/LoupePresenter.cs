@@ -28,7 +28,7 @@ namespace EsUtil.Feature.Loupe;
 /// 派生クラスで <see cref="Appearance"/> を差し替えるか <see cref="ResolveDrawPlan"/> を上書きすることで、独自の見た目を提供できる<br/>
 /// （このため本クラスは <c>sealed</c> にしない。 拡張点を持つことが役割である）。
 /// </remarks>
-public partial class LoupePresenter
+public sealed partial class LoupePresenter
 {
     /// <summary>内部に保持するコアのファサード（設定・表示レイアウト・幾何の解決）。</summary>
     private readonly LoupeCore _core = new();
@@ -237,7 +237,7 @@ public partial class LoupePresenter
     /// （配置の計算（補正）は <see cref="ResolveLabelPlacements"/> が単一所有する）。<br/>
     /// 描画先の表面は、本メソッドが返す計画の <see cref="LoupeDrawPlan.ClientPixelSize"/> と同じ大きさで用意する（呼び出し側の責務）。
     /// </remarks>
-    public virtual LoupeDrawPlan ResolveDrawPlan(
+    public LoupeDrawPlan ResolveDrawPlan(
         double clientSize, Func<string, double, EsSize> measureText)
     {
         ArgumentNullException.ThrowIfNull(measureText);

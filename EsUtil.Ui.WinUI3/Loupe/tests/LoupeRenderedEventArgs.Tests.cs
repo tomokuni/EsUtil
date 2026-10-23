@@ -7,7 +7,7 @@ namespace EsUtil.Ui.WinUI3.Loupe.Tests;
 /// <summary><see cref="LoupeRenderedEventArgs"/>（ルーペの描画完了通知）のテスト。</summary>
 /// <remarks>
 /// イベントの発火は実際の表示（ウィンドウ）を必要とするため、引数の契約（保持する値と追加描画の受け付け）のみを検証する。<br/>
-/// 移行前は描画先キャンバスを渡していたが、描画 API を公開しないため矩形の列を渡す形へ変わった。
+/// 描画 API を公開しないため、引数は描画先ではなく矩形の列を持つ。
 /// </remarks>
 public class LoupeRenderedEventArgsTests
 {

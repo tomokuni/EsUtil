@@ -41,7 +41,7 @@ public sealed class LoupeRenderedEventArgs(DrawList overlay, LoupeDrawPlan conte
     /// <param name="argb">塗り色（<c>0xAARRGGBB</c>。 透過度はアルファ）。</param>
     /// <remarks>
     /// 追加した矩形は計画の層（拡大画像・十字線・枠線）より前面、中心座標ラベルより背面へ置かれる。<br/>
-    /// 移行前は <c>SKCanvas</c> へ直接描いていたが、描画 API を公開しないため矩形の追加に置き換えた。
+    /// 描画 API を公開しないため、追加描画は矩形の追加として受け取る。
     /// </remarks>
     public void AddRect(double x, double y, double width, double height, uint argb)
         => Overlay.AddRect(new EsUtil.Platform.Core.Geometry.EsRect(x, y, width, height), System.Drawing.Color.FromArgb((int)argb));

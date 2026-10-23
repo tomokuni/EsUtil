@@ -11,7 +11,7 @@ namespace EsUtil.Ui.WinUI3.Marquee.Sample.Views;
 /// そのため背景は別の面（本クラス）が表示する。 画像ファイルを用意せずに選択の位置と寸法が読めるよう、<br/>
 /// 格子・色見本・中心の十字を置く。<br/>
 /// <b>描画ライブラリを使わない</b>: 要素（<see cref="Rectangle"/>）とブラシだけでパターンを表す<br/>
-/// （移行前は Skia の描画面へ直接描いていた）。
+/// （描画ライブラリを必要としない）。
 /// </remarks>
 public sealed partial class TestPatternCanvas : Canvas
 {

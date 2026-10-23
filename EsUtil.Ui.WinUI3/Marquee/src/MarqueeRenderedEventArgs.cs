@@ -1,7 +1,7 @@
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Ui.WinUI3.Interop.Drawing;
 
-// 複製元: EsUtil.Ui.MewUI.Marquee/src/MewUI/MarqueeRenderedEventArgs.cs（独立パッケージ用の意図的な複製。 .github/依存関係.md §4.1）
+// 本コントロールだけが使う複製（独立パッケージのため。 .github/依存関係.md §4.1）
 namespace EsUtil.Ui.WinUI3.Marquee;
 
 /// <summary>描画完了（コントロールが図形とラベルを描き終えたこと）を通知するイベント引数。</summary>
@@ -39,7 +39,7 @@ public sealed class MarqueeRenderedEventArgs(DrawList overlay, MarqueeDrawPlan c
     /// <param name="argb">塗り色（<c>0xAARRGGBB</c>。 透過度はアルファ）。</param>
     /// <remarks>
     /// 追加した矩形は計画の層（装飾・ハンドル・始点マーカー）より前面、ラベルより背面へ置かれる。<br/>
-    /// 移行前は <c>SKCanvas</c> へ直接描いていたが、描画 API を公開しないため矩形の追加に置き換えた。
+    /// 描画 API を公開しないため、追加描画は矩形の追加として受け取る。
     /// </remarks>
     public void AddRect(double x, double y, double width, double height, uint argb)
         => Overlay.AddRect(new EsRect(x, y, width, height), System.Drawing.Color.FromArgb((int)argb));

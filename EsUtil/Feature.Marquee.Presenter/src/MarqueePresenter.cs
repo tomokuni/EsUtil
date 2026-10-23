@@ -30,7 +30,7 @@ namespace EsUtil.Feature.Marquee;
 /// 派生クラスで <see cref="Appearance"/> を差し替えるか <see cref="ResolveDrawPlan"/> を上書きすることで、独自の見た目を提供できる<br/>
 /// （このため本クラスは <c>sealed</c> にしない。 拡張点を持つことが役割である）。
 /// </remarks>
-public partial class MarqueePresenter
+public sealed partial class MarqueePresenter
 {
     /// <summary>描画層の組合せのうち、装飾の有無を表すビット。</summary>
     private const int DecorationBit = 1;
@@ -340,7 +340,7 @@ public partial class MarqueePresenter
     /// 実寸の測定は描画 API に依存するため、UI 層が関数として渡す<br/>
     /// （配置の計算（クランプ）は <see cref="ResolveLabelPlacements"/> が単一所有する）。
     /// </remarks>
-    public virtual MarqueeDrawPlan ResolveDrawPlan(EsSize clientSize, Func<string, double, EsSize> measureText)
+    public MarqueeDrawPlan ResolveDrawPlan(EsSize clientSize, Func<string, double, EsSize> measureText)
     {
         ArgumentNullException.ThrowIfNull(measureText);
 

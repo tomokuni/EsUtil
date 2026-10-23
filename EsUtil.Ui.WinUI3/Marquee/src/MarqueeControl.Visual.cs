@@ -43,7 +43,7 @@ public sealed partial class MarqueeControl
     /// <remarks>
     /// 描画計画（描画層が解決した幾何・外観・層の順序）を公開プロパティから組み立て、要素へ写す。<br/>
     /// <b>要素の順序が描画順になる</b>（図形 → ホストの追加分 → ラベル）。<br/>
-    /// <b>追加描画も要素として置く</b>: 移行前は描画 API をホストへ渡していたが、
+    /// <b>追加描画も要素として置く</b>: 描画 API は公開せず、
     /// 現在は <see cref="MarqueeRenderedEventArgs.AddRect"/> で受け取った矩形を追加の層へ置く。
     /// </remarks>
     private void ApplyVisual()

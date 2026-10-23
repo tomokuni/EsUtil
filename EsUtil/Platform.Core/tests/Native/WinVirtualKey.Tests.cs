@@ -7,7 +7,7 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// <summary><see cref="WinVirtualKey.KeyToWin32VirtualKey"/>（仮想キーコードの変換表）の単体テスト。</summary>
 /// <remarks>
 /// <b>検証の目的</b>: <c>RegisterHotKey</c> の vk へ渡す値が Win32 の仮想キーコードとして正しいこと。<br/>
-/// 序数（<c>(uint)key</c>）を返すと<b>無言で別のキーが登録される</b>（実測: 以前は <c>PrintScreen</c> の序数 89 = <c>0x59</c> = <c>Y</c> が<br/>
+/// 序数（<c>(uint)key</c>）を返すと<b>無言で別のキーが登録される</b>（実測: <c>PrintScreen</c> の序数 89 = <c>0x59</c> = <c>Y</c> が<br/>
 /// 登録されていた）ため、表に無いキーは <c>0</c>（登録できない値）であることを固定する。<br/>
 /// 期待値は Win32 の <c>VK_*</c> 定義（WinUI 3 の <c>Windows.System.VirtualKey</c> は同じ値であることを実測で確認済み）に基づく。
 /// </remarks>
@@ -28,7 +28,7 @@ public class WinVirtualKeyTests
     [InlineData(EsKey.Escape, 0x1B)]
     [InlineData(EsKey.Space, 0x20)]
     [InlineData(EsKey.Delete, 0x2E)]
-    // ロック系（以前は表に無く序数が返っていた）
+    // ロック系（対応表に無いと序数が返る）
     [InlineData(EsKey.CapsLock, 0x14)]
     [InlineData(EsKey.NumLock, 0x90)]
     [InlineData(EsKey.Scroll, 0x91)]

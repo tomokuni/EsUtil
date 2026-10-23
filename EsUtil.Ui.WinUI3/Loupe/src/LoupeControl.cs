@@ -103,7 +103,7 @@ public sealed partial class LoupeControl : Canvas
     /// <summary>表示を最新の状態へ更新し直す。</summary>
     /// <remarks>
     /// プロパティの変更を伴わない再表示（DPI の変更・親の再配置など）を要求する入口である。<br/>
-    /// 移行前は描画の無効化（<c>Invalidate</c>）を呼んでいたが、要素で描く現在は同じ更新手順を直接呼ぶ。
+    /// 要素で描くため、描画の無効化ではなく同じ更新手順を直接呼ぶ。
     /// </remarks>
     public void RequestRedraw() => ApplyVisual();
     /// <summary>ルーペの描画完了を通知するイベント（追加描画の入力先と描画計画を渡す）。</summary>
@@ -344,7 +344,7 @@ public sealed partial class LoupeControl : Canvas
     /// 描画計画（描画層が解決した幾何・外観・層の順序）を公開プロパティから組み立て、要素へ写す<br/>
     /// （DIP → 物理ピクセルの換算は描画層が単一所有する。 要素へ写すときだけ 1 / 倍率で DIP へ戻す）。<br/>
     /// <b>要素の順序が描画順になる</b>（画像 → 十字線 → 枠線 → ホストの追加分 → ラベル）。<br/>
-    /// <b>追加描画も要素として置く</b>: 移行前は描画 API をホストへ渡していたが、<br/>
+    /// <b>追加描画も要素として置く</b>: 描画 API は公開せず、<br/>
     /// 現在は <see cref="LoupeRenderedEventArgs.AddRect"/> で受け取った矩形を追加の層へ置く。
     /// </remarks>
     private void ApplyVisual()
