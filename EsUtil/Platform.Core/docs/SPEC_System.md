@@ -16,6 +16,7 @@ UI フレームワーク非依存の共通基盤の型を提供するライブ�
   - [7.3 Win32 API の宣言と WndProc のサブクラス化](#73-win32-api-の宣言と-wndproc-のサブクラス化)
     - [7.3.1 COM の 2 件だけを手書きする理由（実測 2026-10-21）](#731-com-の-2-件だけを手書きする理由実測-2026-10-21)
     - [7.3.2 関数の宣言方法の比較（実測 2026-10-22）](#732-関数の宣言方法の比較実測-2026-10-22)
+  - [7.4 ルート名前空間に置くのは窓口だけにする（実測 2026-10-23）](#74-ルート名前空間に置くのは窓口だけにする実測-2026-10-23)
 - [8. 依存の判定基準（本プロジェクトの存在理由）](#8-依存の判定基準本プロジェクトの存在理由)
 
 ## 1. システム概要
@@ -49,12 +50,17 @@ graph LR
 
 | ファイル | 内容 |
 | --- | --- |
-| `EsKey.cs` | UI フレームワーク非依存のキー識別子（列挙型）。 `Avalonia.Input.Key` と名前集合が完全一致し、WPF / MewUI のキー型の上位互換である（往復テストが追随を強制する） |
-| `EsWindowState.cs` | UI フレームワーク非依存のウィンドウ表示状態（列挙型）。 `Avalonia.Controls.WindowState` と同名のメンバーを持つ |
-| `HotKeyModifiers.cs` | ホットキー修飾キーのフラグ列挙型 |
-| `HotKeySetting.cs` | ホットキー設定の値オブジェクト（record） |
-| `EsKeyExtensions.cs` | キーの正規化（未定義値を `None` へ寄せる拡張メソッド `Normalize`） |
-| `EnumCanonical.cs` | 同じ値を持つ別名（重複値）を持つ列挙型の代表名による解決（各 Interop が共有する） |
+| `EsUtil/Platform.Core/src/EsInput.cs` | 入力（キーとホットキー）機能の窓口（解釈・正規化・生成。 **実装を持たず** `Input` / `Common` の型へ委譲する） |
+| `EsUtil/Platform.Core/src/EsWindow.cs` | ウィンドウ（ハンドルと表示状態）機能の窓口（ハンドルの生成・状態の解釈。 実装を持たない） |
+| `EsUtil/Platform.Core/src/EsCapture.cs` | キャプチャ（種別）機能の窓口（種別の解釈。 実装を持たない） |
+| `EsUtil/Platform.Core/src/EsErrors.cs` | 例外の扱いの窓口（境界での捕捉可否。 実装を持たない） |
+| `EsUtil/Platform.Core/src/EsCallbacks.cs` | 購読の窓口（購読の一覧の生成。 実装を持たない） |
+| `EsUtil/Platform.Core/src/Input/EsKey.cs` | UI フレームワーク非依存のキー識別子（列挙型）。 `Avalonia.Input.Key` と名前集合が完全一致し、WPF / MewUI のキー型の上位互換である（往復テストが追随を強制する） |
+| `EsUtil/Platform.Core/src/Window/EsWindowState.cs` | UI フレームワーク非依存のウィンドウ表示状態（列挙型）。 `Avalonia.Controls.WindowState` と同名のメンバーを持つ |
+| `EsUtil/Platform.Core/src/Input/HotKeyModifiers.cs` | ホットキー修飾キーのフラグ列挙型 |
+| `EsUtil/Platform.Core/src/Input/HotKeySetting.cs` | ホットキー設定の値オブジェクト（record） |
+| `EsUtil/Platform.Core/src/Input/EsKeyExtensions.cs` | キーの正規化（未定義値を `None` へ寄せる拡張メソッド `Normalize`） |
+| `EsUtil/Platform.Core/src/Common/EnumCanonical.cs` | 同じ値を持つ別名（重複値）を持つ列挙型の代表名による解決（各 Interop が共有する） |
 | `EsUtil/Platform.Core/src/Native/ICaptureService.cs` | 画面領域キャプチャの抽象 |
 | `EsUtil/Platform.Core/src/Native/ICursorService.cs` | OS カーソル操作の抽象 |
 | `EsUtil/Platform.Core/src/Native/IWindowService.cs` | ネイティブウィンドウ操作の抽象 |
@@ -101,7 +107,10 @@ graph LR
 | `EsUtil/Platform.Core/src/Geometry/EsThickness.cs` | 4 辺の厚さ（`readonly record struct`。 `EsSize` / `EsRect` の `Inflate` / `Deflate` の引数） |
 | `EsUtil/Platform.Core/src/Geometry/EsRectEdges.cs` | 矩形の 4 辺の矩形を保持する固定長コンテナ（`readonly struct`。 `EsRect.ResolveInnerEdges` の戻り値） |
 | `EsUtil/Platform.Core/src/Geometry/EsMath.cs` | 幾何値の近似比較（`AreClose`）と整数への丸め（`RoundToInt`）の単一所有者（internal） |
-| `EsPlatformHandle.cs` | UI フレームワーク非依存のネイティブウィンドウ識別子（座標・寸法ではないため `Geometry` に置かない） |
+| `EsUtil/Platform.Core/src/Window/EsPlatformHandle.cs` | UI フレームワーク非依存のネイティブウィンドウ識別子（座標・寸法ではないため `Geometry` に置かない） |
+| `EsUtil/Platform.Core/src/Capture/CaptureType.cs` | UI フレームワーク非依存のキャプチャ種別（全画面 / ウィンドウ選択 / 範囲選択）。 ホストではグローバルホットキーのアクション識別子としても使う |
+| `EsUtil/Platform.Core/src/Common/BoundaryCatch.cs` | 境界（アプリのイベント ハンドラー・外部 I/O・描画・UI コールバック）での例外捕捉の可否の単一所有者（`catch when` フィルターへ渡す） |
+| `EsUtil/Platform.Core/src/Common/CallbackList.cs` | 値型・`EventArgs` 非派生の値（`record` 等）を通知する購読の一覧（`event` を使わずヒープ確保を避ける。 通知中の購読変更に耐える） |
 | `EsUtil/Platform.Core/src/Imaging/EsBitmap.cs` | **書き換え可能**な画像（`EsReadOnlyBitmap` とは**兄弟**。 BGRA8888・Premul。 外部パッケージに依存しない。 書き込みの入口（`Pixels`・`SetPixel`・`TrySetPixel`・`Clear`・`SetReadOnly`）だけが読み取り専用の型と異なる） |
 | `EsUtil/Platform.Core/src/Imaging/EsReadOnlyBitmap.cs` | **読み取り専用**の画像（画素を書き換える入口を持たない。 `EsBitmap` と対称な入口を持ち、変換の向き（`FromBitmap`）だけが異なる） |
 | `EsUtil/Platform.Core/src/Imaging/EsBitmapBuffer.cs` | 画素バッファの内部型（確保・借用・共有・凍結・解放と**ファイル入出力**（`LoadFromFile` / `SaveToFile`）を単一所有する。 公開しない。 2 型の実装の共有もこの型が担う） |
@@ -235,6 +244,16 @@ internal static partial int CreateStreamOnHGlobal(IntPtr memory, int deleteOnRel
 | 宣言の読みやすさ | 型がそのまま出る（戻り値の意味が自明） | 生ポインターから変換する 2 行が増える |
 
 **結論: 型付きの `out`（現状）を維持する。** 「生ポインターで受けて `ComInterfaceMarshaller` で変換する」方式は、**型付きの `out` が内部で行っていることと同じ処理**（`ConvertToManaged` + `Free`）を手で書くことになり、`Free` の呼び忘れというリスクだけが増えます。 生ポインターが必要になるのは、CsWin32 の既定生成（`out object`）のように**型付きで受けられない API を包む場合**です。
+
+### 7.4 ルート名前空間に置くのは窓口だけにする（実測 2026-10-23）
+
+**背景**: `src/` 直下に 10 型（`EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `EsPlatformHandle` / `EsWindowState` / `CaptureType` / `BoundaryCatch` / `CallbackList<T>` / `EnumCanonical`）とアセンブリ属性が同居し、「どの機能の型か」が名前から読めませんでした（実測: 移設前の `src/` 直下は 11 ファイル）。
+
+**判断**: 型を機能フォルダ（`Input` / `Window` / `Capture` / `Common`）へ移し、`src/` 直下は**機能の窓口**（`EsInput` / `EsWindow` / `EsCapture` / `EsErrors` / `EsCallbacks`）とアセンブリ属性だけにします（§4 の構成、公開面は [`SPEC_API.md`](SPEC_API.md) §1・§2.38）。
+
+**代償と受容**: `using` は名前空間単位であるため、**型を名指しする利用側は機能の名前空間を 1 行 `using` する**必要があります（グローバル using は使いません）。 実測 2026-10-23: 移設に伴い更新した `.cs` ファイルは EsUtil 側 90・隣のリポジトリ側 96 です（大半は `using` 1 行の追加）。 解釈・正規化・生成という**操作**は窓口で足りるため、呼び出し側は窓口へ寄せます。
+
+窓口は**実装を持ちません**（判断の所有者を 2 つにしないため、機能の型へ委譲します）。 配置の規則は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有します。
 
 ## 8. 依存の判定基準（本プロジェクトの存在理由）
 

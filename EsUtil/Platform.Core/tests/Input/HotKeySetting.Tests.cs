@@ -1,6 +1,7 @@
+using EsUtil.Platform.Core.Input;
 using Xunit;
 
-namespace EsUtil.Platform.Core.Tests;
+namespace EsUtil.Platform.Core.Tests.Input;
 
 /// <summary><see cref="HotKeySetting"/> の純粋計算テスト（UI 非依存・並列実行）。</summary>
 /// <remarks>

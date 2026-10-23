@@ -1,6 +1,6 @@
-using EsUtil.Platform.Core;
-using Xunit;
 using AvaloniaKey = Avalonia.Input.Key;
+using EsUtil.Platform.Core.Input;
+using Xunit;
 
 namespace EsUtil.Ui.AvaloniaUI.Interop.Tests;
 

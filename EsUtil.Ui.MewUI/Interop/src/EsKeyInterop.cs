@@ -1,5 +1,6 @@
-using EsUtil.Platform.Core;
 using MewUIKey = Aprillz.MewUI.Key;
+using EsUtil.Platform.Core.Common;
+using EsUtil.Platform.Core.Input;
 
 namespace EsUtil.Ui.MewUI.Interop;
 
@@ -37,7 +38,7 @@ public static class EsKeyInterop
     /// <returns>対応する MewUI のキー。 対応先がない場合（MewUI が表現できないキー・未定義値）は <see cref="MewUIKey.None"/>。</returns>
     /// <remarks>
     /// 1. 名前が異なるキー（<see cref="EsKey.Back"/> 等）を別名表で解決する<br/>
-    /// 2. 未定義値（<c>(EsKey)999</c> 等）は <see cref="EsUtil.Platform.Core.EnumCanonical"/> が検出し <see cref="MewUIKey.None"/> を返す
+    /// 2. 未定義値（<c>(EsKey)999</c> 等）は <see cref="EsUtil.Platform.Core.Common.EnumCanonical"/> が検出し <see cref="MewUIKey.None"/> を返す
     ///    （<c>Enum.TryParse</c> は数値文字列を受け付けてしまうため、名前解決の成否だけでは検出できない）<br/>
     /// 3. 名前が一致する MewUI のメンバーへ変換する
     /// </remarks>
@@ -56,7 +57,7 @@ public static class EsKeyInterop
     /// <returns>対応する <see cref="EsKey"/>。 対応先がない場合（未定義値）は <see cref="EsKey.None"/>。</returns>
     /// <remarks>
     /// 1. 名前が異なるキー（<see cref="MewUIKey.Backspace"/> 等）を別名表で解決する<br/>
-    /// 2. 未定義値は <see cref="EsUtil.Platform.Core.EnumCanonical"/> が検出し <see cref="EsKey.None"/> を返す<br/>
+    /// 2. 未定義値は <see cref="EsUtil.Platform.Core.Common.EnumCanonical"/> が検出し <see cref="EsKey.None"/> を返す<br/>
     /// 3. 名前が一致する <see cref="EsKey"/> のメンバーへ変換する
     /// </remarks>
     public static EsKey ToEsKey(this MewUIKey key)

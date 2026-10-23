@@ -1,6 +1,7 @@
+using EsUtil.Platform.Core.Window;
 using Xunit;
 
-namespace EsUtil.Platform.Core.Tests;
+namespace EsUtil.Platform.Core.Tests.Window;
 
 /// <summary><see cref="EsPlatformHandle"/> の純粋計算テスト（UI 非依存・並列実行）。</summary>
 /// <remarks>

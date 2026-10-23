@@ -1,5 +1,6 @@
-using EsUtil.Platform.Core;
 using VirtualKey = Windows.System.VirtualKey;
+using EsUtil.Platform.Core.Common;
+using EsUtil.Platform.Core.Input;
 
 namespace EsUtil.Ui.WinUI3.Interop;
 
@@ -118,7 +119,7 @@ public static class EsKeyInterop
     /// <returns>対応する WinUI 3 のキー。 対応先がない場合（未定義値・WinUI 3 が表現できないキー）は <see cref="VirtualKey.None"/>。</returns>
     /// <remarks>
     /// 1. 名前が異なるキー（<see cref="EsKey.Return"/> 等）を別名表で解決する<br/>
-    /// 2. 未定義値（<c>(EsKey)999</c> 等）は <see cref="EsUtil.Platform.Core.EnumCanonical"/> が検出し <see cref="VirtualKey.None"/> を返す<br/>
+    /// 2. 未定義値（<c>(EsKey)999</c> 等）は <see cref="EsUtil.Platform.Core.Common.EnumCanonical"/> が検出し <see cref="VirtualKey.None"/> を返す<br/>
     ///    （<c>Enum.TryParse</c> は数値文字列を受け付けてしまうため、名前解決の成否だけでは検出できない）<br/>
     /// 3. 名前が一致する WinUI 3 のメンバーへ変換する
     /// </remarks>
@@ -137,7 +138,7 @@ public static class EsKeyInterop
     /// <returns>対応する <see cref="EsKey"/>。 対応先がない場合（未定義値・キー以外の入力）は <see cref="EsKey.None"/>。</returns>
     /// <remarks>
     /// 1. 名前が異なるキー（<see cref="VirtualKey.Enter"/> 等）を別名表で解決する<br/>
-    /// 2. 未定義値は <see cref="EsUtil.Platform.Core.EnumCanonical"/> が検出し <see cref="EsKey.None"/> を返す<br/>
+    /// 2. 未定義値は <see cref="EsUtil.Platform.Core.Common.EnumCanonical"/> が検出し <see cref="EsKey.None"/> を返す<br/>
     /// 3. 名前が一致する <see cref="EsKey"/> のメンバーへ変換する<br/>
     /// <b>キー以外の入力</b>（<c>LeftButton</c> / <c>GamepadA</c> 等）は <see cref="EsKey"/> に同名のメンバーがないため <see cref="EsKey.None"/> になる。
     /// </remarks>

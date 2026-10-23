@@ -1,4 +1,4 @@
-namespace EsUtil.Platform.Core;
+namespace EsUtil.Platform.Core.Window;
 
 /// <summary>UI フレームワーク非依存のネイティブウィンドウ識別子を表す値オブジェクト。</summary>
 /// <remarks>

@@ -1,4 +1,4 @@
-namespace EsUtil.Platform.Core;
+namespace EsUtil.Platform.Core.Common;
 
 /// <summary>同じ値を持つ別名（重複値）を許す列挙型の「代表名」による解決を提供する。</summary>
 /// <remarks>

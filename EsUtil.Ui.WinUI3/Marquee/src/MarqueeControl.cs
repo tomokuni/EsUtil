@@ -1,5 +1,6 @@
 using EsUtil.Feature.Marquee.Core.Contract;
-using EsUtil.Platform.Core;
+using static EsUtil.Feature.Marquee.MarqueeCore.Limits;
+using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native;
@@ -7,9 +8,8 @@ using EsUtil.Platform.Core.Native.Win;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Controls;
-using static EsUtil.Feature.Marquee.MarqueeCore.Limits;
+using Microsoft.UI.Xaml.Media;
 
 namespace EsUtil.Ui.WinUI3.Marquee;
 

@@ -1,5 +1,6 @@
-using EsUtil.Platform.Core;
 using WinFormsWindowState = System.Windows.Forms.FormWindowState;
+using EsUtil.Platform.Core.Common;
+using EsUtil.Platform.Core.Window;
 
 namespace EsUtil.Ui.WinForms.Interop;
 

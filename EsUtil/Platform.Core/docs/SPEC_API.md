@@ -43,6 +43,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.35 `Caching.CapacityLimitedCache<TKey, TValue>`（sealed class）](#235-cachingcapacitylimitedcachetkey-tvaluesealed-class)
   - [2.36 `Svg.SvgIconSource`（sealed class） / `Svg.SvgIcon`（record struct）](#236-svgsvgiconsourcesealed-class--svgsvgiconrecord-struct)
   - [2.37 `Imaging.EsImageFileExtensions`（static class）](#237-imagingesimagefileextensionsstatic-class)
+  - [2.38 機能の窓口](#238-機能の窓口)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -54,20 +55,26 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 
 | 名前空間 | 型 | 用途 |
 | --- | --- | --- |
-| `EsUtil.Platform.Core` | `EsKey` / `EsKeyExtensions` / `EnumCanonical` / `EsWindowState` / `HotKeyModifiers` / `HotKeySetting` / `CaptureType` / `EsPlatformHandle` / `BoundaryCatch` | キーと入力（正規化含む）・ウィンドウ状態・ホットキー・境界の判定 |
+| `EsUtil.Platform.Core` | `EsInput` / `EsWindow` / `EsCapture` / `EsErrors` / `EsCallbacks` | 機能フォルダの窓口（利用側が `using EsUtil.Platform.Core;` だけで解釈・正規化・生成を行えるようにする。 実装は持たず機能の型へ委譲する） |
+| `.Input` | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` | キーとホットキー（正規化含む） |
+| `.Window` | `EsPlatformHandle` / `EsWindowState` | ネイティブ ハンドルとウィンドウの表示状態 |
+| `.Capture` | `CaptureType` | キャプチャ種別 |
+| `.Common` | `BoundaryCatch` / `CallbackList<T>` / `EnumCanonical` | 機能に閉じない小さな基盤（境界の判定・購読の一覧・別名を持つ列挙の解決） |
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` | DIP 相当の幾何値型と領域の規則 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI の純粋計算 |
 | `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `EsImageQuality` / `EsDitherMode` / `EsImageFileExtensions` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、縮小と減色の品質、描画色の判定、一覧に並べる画像の拡張子の判定 |
 | `.Caching` | `CapacityLimitedCache<TKey, TValue>` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ |
 | `.Svg` | `SvgIconSource` / `SvgIcon` / `SvgPathParser` / `SvgPathFigure` / `SvgPathSegment` / `SvgPathRasterizer` | SVG アイコンの読み込み元・解析結果・パス データの解析・図形の画素への展開 |
-| `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` / `SystemWindowCommands` | OS サービスの抽象（UI 非依存）と、ウィンドウの標準メニューから実行する操作 |
-| `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` | 上記抽象の Windows 実装（ホストが生成して注入する） |
+| `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` | OS サービスの抽象（UI 非依存。 実装は置かない） |
+| `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` / `WinWindowFrame` / `WinClipboard` / `WinAppUserModelId` / `WinMessageBox` / `WinMonitorDpi` / `WinVirtualKey` / `SystemWindowCommands` | 上記抽象の Windows 実装（ホストが生成して注入する）と、ウィンドウの標準メニューから実行する操作 |
+| `.Native.Win.Wic` | `IWICImagingFactory` ほかの COM 宣言 / `WinWicFactory` / `WinWicImageCodec` | WIC（windowscodecs）の COM 宣言・補助・実装 |
 
 可視性は public のみを記載します（`internal` は [`SPEC_System.md`](SPEC_System.md) の可視性ポリシーを参照）。
 
 ## 2. 公開 API
 
-公開型を 1 型 1 節で記載します。 型名の接頭辞は名前空間を表します（`Coord.` / `Geometry.` / `Imaging.` / `Native.` を省略した型はルート名前空間）。
+公開型を 1 型 1 節で記載します。 型名の接頭辞は名前空間を表します（`Coord.` / `Geometry.` / `Imaging.` / `Native.` / `Input.` / `Window.` / `Capture.` / `Common.` を省略した型はルート名前空間）。
+ルート名前空間（`EsUtil.Platform.Core`）は**機能の窓口だけ**を持ちます。 型そのものを名指しする利用側は、その機能の名前空間を `using` します（例: `using EsUtil.Platform.Core.Input;`）。
 
 ### 2.1 `EsKey`（enum）
 
@@ -907,6 +914,20 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 | --- | --- |
 | `All` | 先頭のドットを含む拡張子の集合（`.png` / `.jpg` / `.jpeg` / `.bmp` / `.gif` / `.tiff` / `.tif` / `.webp`） |
 | `IsImageFile(string path)` | 拡張子だけを見て判定する（大文字・小文字を区別しない） |
+
+### 2.38 機能の窓口
+
+ルート名前空間（`EsUtil.Platform.Core`）が持つ**窓口**です。 実装は持たず、機能フォルダの型へ委譲します（判断の所有者は型の側だけです）。 利用側は `using EsUtil.Platform.Core;` だけでこれらの操作を使えます。
+
+| 窓口 | メンバー | 委譲先 |
+| --- | --- | --- |
+| `EsInput` | `TryParseKey(string, out EsKey)` / `NormalizeKey(EsKey)` / `CreateHotKey(HotKeyModifiers, EsKey)` | `Input.EsKey` / `Input.EsKeyExtensions` / `Input.HotKeySetting` / `Common.EnumCanonical` |
+| `EsWindow` | `FromHandle(nint, string?)` / `TryParseState(string, out EsWindowState)` | `Window.EsPlatformHandle` / `Window.EsWindowState` / `Common.EnumCanonical` |
+| `EsCapture` | `TryParseType(string, out CaptureType)` | `Capture.CaptureType` / `Common.EnumCanonical` |
+| `EsErrors` | `IsRecoverable(Exception)` | `Common.BoundaryCatch` |
+| `EsCallbacks` | `Create<T>()` | `Common.CallbackList<T>` |
+
+`TryParse*` は**数値文字列を受理しません**（列挙に無い値を弾く。 判断は `EnumCanonical` が単一所有します）。 型そのものを名指しする利用側は、その機能の名前空間を `using` します。
 
 ## 3. 使用例
 

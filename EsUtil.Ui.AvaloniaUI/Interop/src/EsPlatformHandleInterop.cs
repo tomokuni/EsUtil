@@ -1,5 +1,5 @@
 using Avalonia.Platform;
-using EsUtil.Platform.Core;
+using EsUtil.Platform.Core.Window;
 
 namespace EsUtil.Ui.AvaloniaUI.Interop;
 

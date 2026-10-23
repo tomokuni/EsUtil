@@ -1,4 +1,4 @@
-namespace EsUtil.Platform.Core;
+namespace EsUtil.Platform.Core.Input;
 
 /// <summary>ホットキーの修飾キーを指定するためのフラグ列挙型。</summary>
 /// <remarks>

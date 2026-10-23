@@ -1,5 +1,5 @@
 using Aprillz.MewUI;
-using EsUtil.Platform.Core;
+using EsUtil.Platform.Core.Window;
 
 namespace EsUtil.Ui.MewUI.Interop;
 

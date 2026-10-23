@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Input;
 using EsUtil.Platform.Core.Native.Win;
 using Xunit;
 

@@ -1,5 +1,6 @@
-using EsUtil.Platform.Core;
 using AvaloniaKey = Avalonia.Input.Key;
+using EsUtil.Platform.Core.Common;
+using EsUtil.Platform.Core.Input;
 
 // 複製元: EsUtil.SaveEvidence.Platform.AvaloniaUI.Interop（独立パッケージ用の意図的な複製。 .github/依存関係.md §4.1）
 namespace EsUtil.Ui.AvaloniaUI.Marquee.Internal;
@@ -17,7 +18,7 @@ namespace EsUtil.Ui.AvaloniaUI.Marquee.Internal;
 /// どれを返すかを保証しない）ため、特定の名前を前提にした実装をしない。<br/>
 /// <br/>
 /// <b>未定義値</b>: <c>Enum.TryParse</c> は数値文字列を受け付けてしまうため、<br/>
-/// 名前解決の成否だけでは未定義値を検出できない。 検査は <see cref="EsUtil.Platform.Core.EnumCanonical"/> が単一所有し、<br/>
+/// 名前解決の成否だけでは未定義値を検出できない。 検査は <see cref="EsUtil.Platform.Core.Common.EnumCanonical"/> が単一所有し、<br/>
 /// 本変換はそれを用いて未定義値を <c>None</c> へフォールバックする<br/>
 /// （実測: 検査が無いと <c>(EsKey)9999</c> が <c>(AvaloniaKey)9999</c> へ変換され、キー入力の解釈が未定義になる）。
 /// </remarks>

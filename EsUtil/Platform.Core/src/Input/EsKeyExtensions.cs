@@ -1,4 +1,5 @@
-namespace EsUtil.Platform.Core;
+using EsUtil.Platform.Core.Common;
+namespace EsUtil.Platform.Core.Input;
 
 /// <summary><see cref="EsKey"/> の正規化（値の妥当性へ寄せる）を提供する。</summary>
 /// <remarks>

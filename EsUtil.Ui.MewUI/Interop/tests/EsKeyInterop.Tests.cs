@@ -1,6 +1,6 @@
-using EsUtil.Platform.Core;
-using Xunit;
 using MewUIKey = Aprillz.MewUI.Key;
+using EsUtil.Platform.Core.Input;
+using Xunit;
 
 namespace EsUtil.Ui.MewUI.Interop.Tests;
 

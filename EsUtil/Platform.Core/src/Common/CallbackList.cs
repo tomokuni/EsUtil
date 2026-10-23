@@ -1,4 +1,4 @@
-namespace EsUtil.Platform.Core;
+namespace EsUtil.Platform.Core.Common;
 
 /// <summary>値型・<see cref="EventArgs"/> 非派生の値（<c>record</c> 等）を通知する購読の一覧を単一所有する。</summary>
 /// <typeparam name="T">通知する値の型（値型・<see cref="EventArgs"/> 非派生のクラスを許容する）。</typeparam>

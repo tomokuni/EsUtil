@@ -1,6 +1,6 @@
-using EsUtil.Platform.Core;
-using Xunit;
 using WinFormsWindowState = System.Windows.Forms.FormWindowState;
+using EsUtil.Platform.Core.Window;
+using Xunit;
 
 namespace EsUtil.Ui.WinForms.Interop.Tests;
 

@@ -166,7 +166,7 @@ dotnet_diagnostic.CA2225.severity = warning
 
 # 公開イベントの型は EventHandler / EventHandler<T>（T は EventArgs 派生）に限る。
 # 値型・record の通知（ヒープ確保 0 を守る）は event を使わず IDisposable Subscribe(Action<T>) で公開する
-# （仕組みは EsUtil.Platform.Core.CallbackList<T> が単一所有する。 規則は .github/コーディング規約.md §7）。
+# （仕組みは EsUtil.Platform.Core.Common.CallbackList<T> が単一所有する。 規則は .github/コーディング規約.md §7）。
 dotnet_diagnostic.CA1003.severity = warning
 
 # 連続する空行を検出する（体裁をコンパイラで守らせる）。
@@ -329,12 +329,12 @@ dotnet_diagnostic.CA1062.severity = warning
 # SkiaSharp の null 許容注釈と実際の戻り値が一致しない（SKCodec.Create は失敗時に null を返すが非 null として注釈されている）ため、
 # この 2 ファイルでは CA1508 を無効にする（防御的な null 検査を残す）。
 # 注意: セクション ヘッダーを 2 行 並べると、後のセクションだけが設定を持つ（EditorConfig の仕様）。 複数は 1 行へまとめる。
-[EsUtil/Platform.Core/src/EsKey.cs]
+[EsUtil/Platform.Core/src/**/EsKey.cs]
 dotnet_diagnostic.CA1720.severity = none
 
 # 禁止 API（RS0030）の所有者。 BannedSymbols.txt が禁止する API を「使う場所」はここだけである
 # （EnumCanonical は Enum.TryParse を使う）。
-[EsUtil/Platform.Core/src/EnumCanonical.cs]
+[EsUtil/Platform.Core/src/**/EnumCanonical.cs]
 dotnet_diagnostic.RS0030.severity = none
 
 # 規約が認める付随型（型と一体の enum・操作クラス）を同居させるファイルは、ファイル名（主たる型）と
@@ -345,7 +345,7 @@ dotnet_diagnostic.MA0048.severity = none
 
 # 同じ値を持つ別名（重複値）の解決を検証するテストは、検証データとして意図的に重複値を持つ
 # （実測: CA1069 は「意図的な重複」を区別できないため、本ファイルだけ無効にする）。
-[EsUtil/Platform.Core/tests/EnumCanonical.Tests.cs]
+[EsUtil/Platform.Core/tests/**/EnumCanonical.Tests.cs]
 dotnet_diagnostic.CA1069.severity = none
 
 # `CA1848`（LoggerMessage デリゲートの使用）と `RS0030`（禁止 API。 例: `Enum.HasFlag`）は

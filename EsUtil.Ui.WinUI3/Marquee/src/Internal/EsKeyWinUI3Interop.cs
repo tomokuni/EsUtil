@@ -1,4 +1,4 @@
-using EsUtil.Platform.Core;
+using EsUtil.Platform.Core.Input;
 using Windows.System;
 
 namespace EsUtil.Ui.WinUI3.Marquee.Internal;

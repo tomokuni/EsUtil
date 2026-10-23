@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using EsUtil.Platform.Core;
+using EsUtil.Platform.Core.Common;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Ui.AvaloniaUI.Loupe.Sample.Logging;

@@ -1,6 +1,6 @@
 using AvaloniaKey = Avalonia.Input.Key;
+using EsUtil.Platform.Core.Input;
 using EsUtil.Ui.AvaloniaUI.Marquee.Internal;
-using EsUtil.Platform.Core;
 using Xunit;
 
 namespace EsUtil.Ui.AvaloniaUI.Marquee.Tests.Internal;

@@ -1,4 +1,4 @@
-namespace EsUtil.Platform.Core;
+namespace EsUtil.Platform.Core.Input;
 
 /// <summary>UI フレームワーク非依存のキー識別子。</summary>
 /// <remarks>

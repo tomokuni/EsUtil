@@ -1,6 +1,6 @@
-using EsUtil.Platform.Core;
-using Xunit;
 using VirtualKey = Windows.System.VirtualKey;
+using EsUtil.Platform.Core.Input;
+using Xunit;
 
 namespace EsUtil.Ui.WinUI3.Interop.Tests;
 

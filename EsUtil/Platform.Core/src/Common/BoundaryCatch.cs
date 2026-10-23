@@ -1,4 +1,4 @@
-namespace EsUtil.Platform.Core;
+namespace EsUtil.Platform.Core.Common;
 
 /// <summary>境界（アプリのイベント ハンドラー・外部 I/O・描画・UI コールバック）での例外捕捉の可否を単一所有する。</summary>
 /// <remarks>

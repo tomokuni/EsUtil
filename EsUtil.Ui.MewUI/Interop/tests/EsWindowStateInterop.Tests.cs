@@ -1,6 +1,6 @@
-using EsUtil.Platform.Core;
-using Xunit;
 using MewUIWindowState = Aprillz.MewUI.Controls.WindowState;
+using EsUtil.Platform.Core.Window;
+using Xunit;
 
 namespace EsUtil.Ui.MewUI.Interop.Tests;
 

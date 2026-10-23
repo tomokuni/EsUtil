@@ -1,6 +1,8 @@
+using EsUtil.Platform.Core.Common;
+using EsUtil.Platform.Core.Input;
 using Xunit;
 
-namespace EsUtil.Platform.Core.Tests;
+namespace EsUtil.Platform.Core.Tests.Common;
 
 /// <summary><see cref="EnumCanonical"/> と <see cref="EsKeyExtensions.Normalize"/> の単体テスト。</summary>
 /// <remarks>

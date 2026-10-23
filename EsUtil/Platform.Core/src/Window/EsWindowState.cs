@@ -1,4 +1,4 @@
-namespace EsUtil.Platform.Core;
+namespace EsUtil.Platform.Core.Window;
 
 /// <summary>ウィンドウの表示状態（UI フレームワーク非依存）。</summary>
 /// <remarks>

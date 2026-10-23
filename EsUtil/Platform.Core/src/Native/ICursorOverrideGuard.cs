@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Window;
 namespace EsUtil.Platform.Core.Native;
 
 /// <summary>ホストウィンドウの「カーソル上書き抑止」を抽象化するインターフェイス。</summary>

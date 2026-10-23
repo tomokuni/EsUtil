@@ -1,4 +1,4 @@
-namespace EsUtil.Platform.Core;
+namespace EsUtil.Platform.Core.Input;
 
 /// <summary>ホットキーの組合せ（修飾キー＋キー）を表す値オブジェクト。</summary>
 /// <remarks>

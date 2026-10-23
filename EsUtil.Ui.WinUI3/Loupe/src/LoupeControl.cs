@@ -1,4 +1,5 @@
-using EsUtil.Platform.Core;
+using static EsUtil.Feature.Loupe.LoupeCore.Limits;
+using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
@@ -9,7 +10,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
-using static EsUtil.Feature.Loupe.LoupeCore.Limits;
 
 namespace EsUtil.Ui.WinUI3.Loupe;
 

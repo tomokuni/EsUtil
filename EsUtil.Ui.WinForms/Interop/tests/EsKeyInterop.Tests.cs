@@ -1,6 +1,6 @@
-using EsUtil.Platform.Core;
-using Xunit;
 using WinFormsKeys = System.Windows.Forms.Keys;
+using EsUtil.Platform.Core.Input;
+using Xunit;
 
 namespace EsUtil.Ui.WinForms.Interop.Tests;
 

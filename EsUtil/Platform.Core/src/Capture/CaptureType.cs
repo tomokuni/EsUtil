@@ -1,4 +1,4 @@
-namespace EsUtil.Platform.Core;
+namespace EsUtil.Platform.Core.Capture;
 
 /// <summary>キャプチャ種別（UI フレームワーク非依存）。</summary>
 /// <remarks>

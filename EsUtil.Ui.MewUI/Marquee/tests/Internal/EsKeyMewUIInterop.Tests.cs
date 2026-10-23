@@ -1,6 +1,6 @@
-using EsUtil.Ui.MewUI.Marquee.Internal;
-using EsUtil.Platform.Core;
 using MewUIKey = Aprillz.MewUI.Key;
+using EsUtil.Platform.Core.Input;
+using EsUtil.Ui.MewUI.Marquee.Internal;
 using Xunit;
 
 namespace EsUtil.Ui.MewUI.Marquee.Tests.Internal;

@@ -1,5 +1,6 @@
-using EsUtil.Platform.Core;
 using WinFormsKeys = System.Windows.Forms.Keys;
+using EsUtil.Platform.Core.Common;
+using EsUtil.Platform.Core.Input;
 
 // 複製元: EsUtil.Ui.MewUI.Marquee.Internal（独立パッケージ用の意図的な複製。 .github/依存関係.md §4.1）
 namespace EsUtil.Ui.WinForms.Marquee.Internal;

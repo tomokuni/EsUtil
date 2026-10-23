@@ -1,10 +1,10 @@
-using EsUtil.Ui.WinUI3.Marquee.Internal;
-using EsUtil.Platform.Core;
+using WinUIPoint = Windows.Foundation.Point;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Input;
+using EsUtil.Ui.WinUI3.Marquee.Internal;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Input;
-using WinUIPoint = Windows.Foundation.Point;
 
 namespace EsUtil.Ui.WinUI3.Marquee;
 

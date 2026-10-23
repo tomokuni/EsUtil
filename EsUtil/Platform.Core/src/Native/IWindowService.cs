@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Window;
 
 namespace EsUtil.Platform.Core.Native;
 

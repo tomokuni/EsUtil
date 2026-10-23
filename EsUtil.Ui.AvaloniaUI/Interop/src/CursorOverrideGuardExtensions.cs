@@ -1,6 +1,6 @@
 using Avalonia.Controls;
-using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Native;
+using EsUtil.Platform.Core.Window;
 
 namespace EsUtil.Ui.AvaloniaUI.Interop;
 

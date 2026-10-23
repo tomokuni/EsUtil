@@ -1,6 +1,7 @@
+using EsUtil.Platform.Core.Common;
 using Xunit;
 
-namespace EsUtil.Platform.Core.Tests;
+namespace EsUtil.Platform.Core.Tests.Common;
 
 /// <summary><see cref="CallbackList{T}"/> の単体テスト。</summary>
 /// <remarks><c>event</c> を使わずに購読と通知を行う仕組み（値型の通知でヒープ確保を避けるための土台）を検証する。</remarks>

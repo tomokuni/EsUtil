@@ -1,5 +1,6 @@
-using EsUtil.Platform.Core;
 using MewUIWindowState = Aprillz.MewUI.Controls.WindowState;
+using EsUtil.Platform.Core.Common;
+using EsUtil.Platform.Core.Window;
 
 namespace EsUtil.Ui.MewUI.Interop;
 
