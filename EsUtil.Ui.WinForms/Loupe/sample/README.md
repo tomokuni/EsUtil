@@ -45,8 +45,7 @@ dotnet run -c Release --project EsUtil.Ui.WinForms/Loupe/sample/EsUtil.Ui.WinFor
 RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil.Ui.WinForms.Loupe.Sample.exe を起動
 ```
 
-> 本サンプルは独立したプロジェクトです。
-> コントロール本体の `EsUtil.Ui.WinForms.Loupe.csproj` は `sample/` をコンパイル対象に含めません（`sample/` は本体のプロジェクト フォルダの外にあるため）。
+> 本サンプルは独立したプロジェクトです（`sample/` はコントロール本体のプロジェクト フォルダの外にあり、本体の `csproj` のコンパイル対象には含まれません）。
 
 ## 3. 操作方法
 

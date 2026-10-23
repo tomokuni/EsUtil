@@ -42,8 +42,7 @@ dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/ColorComboBox/sample/EsUtil
 RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil.Ui.AvaloniaUI.ColorComboBox.Sample.exe を起動
 ```
 
-> 本サンプルは独立したプロジェクトです。
-> `EsUtil.Ui.AvaloniaUI.ColorComboBox.csproj` は `sample/**` をコンパイル対象から除外しています。
+> 本サンプルは独立したプロジェクトです（`sample/` はコントロール本体のプロジェクト フォルダの外にあり、本体の `csproj` のコンパイル対象には含まれません）。
 
 ## 3. 画面構成と操作
 

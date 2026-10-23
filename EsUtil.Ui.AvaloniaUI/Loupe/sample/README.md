@@ -45,8 +45,7 @@ dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Loupe/sample/EsUtil.Ui.Aval
 RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil.Ui.AvaloniaUI.Loupe.Sample.exe を起動
 ```
 
-> 本サンプルは独立したプロジェクトです。
-> `EsUtil.Ui.AvaloniaUI.Loupe.csproj` は `sample/**` をコンパイル対象から除外しています。
+> 本サンプルは独立したプロジェクトです（`sample/` はコントロール本体のプロジェクト フォルダの外にあり、本体の `csproj` のコンパイル対象には含まれません）。
 
 ## 3. 操作方法
 

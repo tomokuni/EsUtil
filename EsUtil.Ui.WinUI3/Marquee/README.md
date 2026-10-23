@@ -189,7 +189,14 @@ Marquee.ConfirmRequested += (sender, e) => Apply(e.Rect);     // Enter または
 | ビューポート連携 | スクロール・ズームの追従はホストが行います（変化を検知して `InvalidateRender()` を呼びます） |
 | 描画倍率の追従 | XAML のルートの変化（`XamlRoot.Changed`）で `ClientToPixelScaling` を更新し、描画のたびに描画面の実寸からも実測します |
 
-## 13. テスト
+## 13. 未対応
+
+- **ホイール操作**: 扱わない（ホストが `PointerWheelChanged` を購読する）。
+- **`ScrollViewer` に相当する自動連携**: 行わない（ビューポートの変化はホストが検知して `InvalidateRender()` を呼ぶ）。
+- **マウスダウン・アップのイベント**: 公開しない（生のポインター入力はホストが自 UI のイベントで観測する）。
+- **フォーカス非依存の矢印キー nudge**: 行わない（コントロールにフォーカスがある間だけキーが届く）。
+
+## 14. テスト
 
 ```powershell
 dotnet test EsUtil.Ui.WinUI3/Marquee/tests/EsUtil.Ui.WinUI3.Marquee.Tests.csproj
@@ -206,7 +213,7 @@ dotnet test EsUtil.Ui.WinUI3/Marquee/tests/EsUtil.Ui.WinUI3.Marquee.Tests.csproj
 WinUI 3 の XAML ランタイム（`Application` と `DispatcherQueue`）を必要とするため、テスト ホストでは生成できません。
 そのため、コントロール本体の入力経路はサンプル アプリでの手動確認に委ねています（サンプルの `sample/README.md` に確認項目を並べています）。
 
-## 14. サンプルアプリケーション
+## 15. サンプルアプリケーション
 
 `EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sample.csproj` が、
 背景のテスト パターン・ドラッグ選択・表示倍率・見本（破線とガイド線）・ログ表示を組み合わせたアンパッケージの WinUI 3 アプリです。
@@ -217,7 +224,7 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 
 詳細は [`sample/README.md`](sample/README.md) を参照してください。
 
-## 15. ドキュメント
+## 16. ドキュメント
 
 | 文書 | 内容 |
 | --- | --- |
@@ -226,6 +233,6 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 | [`sample/README.md`](sample/README.md) | サンプル アプリの実行方法と確認項目 |
 | [`../../EsUtil/README.md`](../../EsUtil/README.md) | 層の帰属（Core / Presenter / UI のどこに何を置くか） |
 
-## 16. ライセンス
+## 17. ライセンス
 
 MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。
