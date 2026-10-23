@@ -1,6 +1,6 @@
-using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core;
 using EsUtil.Ui.WinUI3.Marquee.Internal;
 using Microsoft.UI.Xaml;
 
@@ -57,7 +57,7 @@ public sealed partial class MarqueeControl
             Raise(Rendered, args);
             _visual.ApplyOverlay(args.Overlay);
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             // 表示の例外はアプリを落とさずログへ記録する（要素は中途半端な状態になりうるが、次の更新で復帰する）
             Log.LogOperationError(ex, nameof(ApplyVisual));

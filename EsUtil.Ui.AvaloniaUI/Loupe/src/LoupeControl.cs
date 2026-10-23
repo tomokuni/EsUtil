@@ -3,10 +3,10 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
-using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.Platform.Core;
 using EsUtil.Ui.AvaloniaUI.Loupe.Internal;
 using EsUtil.Ui.AvaloniaUI.Loupe.Logging;
 using Microsoft.Extensions.Logging;
@@ -215,7 +215,7 @@ public sealed class LoupeControl : Panel
             _presenter.SetCoordTransform(port);
             UpdatePosition();
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
             Log.LogOperationError(ex, nameof(SetCoordTransform));
@@ -764,7 +764,7 @@ public sealed class LoupeControl : Panel
                 RaiseRendered(context, in plan);
             }
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             // 描画の例外は記録して、そのフレームは下地までで終える（アプリを落とさない）
             Log.LogUpdateError(ex);

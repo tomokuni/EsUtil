@@ -171,7 +171,7 @@ public sealed class WinElementFinder : IElementFinder
 
         if (rect.right <= rect.left || rect.bottom <= rect.top) return false;
 
-        var handle = new EsPlatformHandle(hWnd, "HWND");
+        var handle = EsWindow.FromHandle(hWnd, "HWND");
         if (!TryGetWindowVisibleRect(handle, out var visibleRect))
         {
             return false;

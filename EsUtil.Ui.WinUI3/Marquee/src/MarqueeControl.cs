@@ -1,10 +1,10 @@
 using EsUtil.Feature.Marquee.Core.Contract;
 using static EsUtil.Feature.Marquee.MarqueeCore.Limits;
-using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core.Native.Win;
+using EsUtil.Platform.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.UI.Xaml;
@@ -399,7 +399,7 @@ public sealed partial class MarqueeControl : Canvas
         {
             _marquee.SetCoordTransform(port);
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
             Log.LogOperationError(ex, nameof(SetCoordTransform));
@@ -419,7 +419,7 @@ public sealed partial class MarqueeControl : Canvas
         {
             _marquee.SetSelection(rect);
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             Log.LogOperationError(ex, nameof(SetSelection));
             throw;
@@ -434,7 +434,7 @@ public sealed partial class MarqueeControl : Canvas
         {
             _marquee.ResetSelection();
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             Log.LogOperationError(ex, nameof(ResetSelection));
             throw;
@@ -452,7 +452,7 @@ public sealed partial class MarqueeControl : Canvas
         {
             _marquee.RequestCancel();
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             Log.LogOperationError(ex, nameof(RequestCancel));
             throw;
@@ -470,7 +470,7 @@ public sealed partial class MarqueeControl : Canvas
         {
             _marquee.RequestConfirm();
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             Log.LogOperationError(ex, nameof(RequestConfirm));
             throw;

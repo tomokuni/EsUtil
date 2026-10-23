@@ -1,7 +1,7 @@
 using System.Drawing;
 using System.Runtime.Versioning;
-using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.Platform.Core;
 using Xunit;
 
 namespace EsUtil.Feature.Thumbnail.Tests;
@@ -29,7 +29,7 @@ public class ThumbnailImageLoaderTests : IDisposable
             {
                 File.Delete(path);
             }
-            catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+            catch (Exception ex) when (EsErrors.IsRecoverable(ex))
             {
                 // 一時ファイルの削除失敗はテスト結果に影響しない
             }

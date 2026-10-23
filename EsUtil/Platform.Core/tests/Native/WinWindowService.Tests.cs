@@ -111,6 +111,6 @@ public class WinWindowServiceTests : IDisposable
             Assert.Skip("この環境ではウィンドウを作成できない（ヘッドレス セッション）。");
         }
 
-        return new EsPlatformHandle(_window);
+        return EsWindow.FromHandle(_window);
     }
 }

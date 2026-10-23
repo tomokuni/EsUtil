@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
-using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.Platform.Core;
 using EsUtil.Ui.WinForms.Loupe.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -278,7 +278,7 @@ public sealed class LoupeControl : Control
         {
             _presenter.SetCoordTransform(port);
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
             Log.LogOperationError(ex, nameof(SetCoordTransform));
@@ -416,7 +416,7 @@ public sealed class LoupeControl : Control
             // 描画の手順（層の順序と描画 API への写し）は LoupeGraphicsPainter が単一所有する
             LoupeGraphicsPainter.Paint(e.Graphics, Source, in plan);
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             // 描画の例外はアプリを落とさずログへ記録する（描画面は中途半端な状態になりうるが、次の描画で復帰する）
             Log.LogUpdateError(ex);

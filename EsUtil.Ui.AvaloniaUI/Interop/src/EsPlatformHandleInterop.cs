@@ -1,5 +1,6 @@
 using Avalonia.Platform;
 using EsUtil.Platform.Core.Window;
+using EsUtil.Platform.Core;
 
 namespace EsUtil.Ui.AvaloniaUI.Interop;
 
@@ -16,7 +17,7 @@ public static class EsPlatformHandleInterop
     public static EsPlatformHandle ToEsPlatformHandle(this IPlatformHandle? handle)
         => handle is null
             ? default
-            : new EsPlatformHandle(handle.Handle, handle.HandleDescriptor);
+            : EsWindow.FromHandle(handle.Handle, handle.HandleDescriptor);
 
     /// <summary><see cref="EsPlatformHandle"/> を Avalonia のネイティブハンドルへ変換する。</summary>
     /// <param name="handle">変換元のハンドル。</param>

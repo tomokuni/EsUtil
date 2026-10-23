@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Platform;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Window;
+using EsUtil.Platform.Core;
 using Xunit;
 
 namespace EsUtil.Ui.AvaloniaUI.Interop.Tests;
@@ -116,7 +116,7 @@ public class EsGeometryInteropTests
     [Fact]
     internal void EsPlatformHandle_Avaloniaハンドルへ変換する()
     {
-        var es = new EsPlatformHandle(0x1234, "HWND");
+        var es = EsWindow.FromHandle(0x1234, "HWND");
 
         var result = es.ToPlatformHandle();
 
@@ -127,7 +127,7 @@ public class EsGeometryInteropTests
     [Fact]
     internal void EsPlatformHandle_記述子nullは空文字として変換する()
     {
-        var es = new EsPlatformHandle(0x1234);
+        var es = EsWindow.FromHandle(0x1234);
 
         var result = es.ToPlatformHandle();
 

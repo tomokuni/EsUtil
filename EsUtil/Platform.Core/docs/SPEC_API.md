@@ -97,9 +97,10 @@ UI フレームワーク非依存のキー識別子。 **メンバー集合と�
 | メンバー | 説明 |
 | --- | --- |
 | `TryParse<TSource, TTarget>(TSource source, out TTarget target)` → `bool` | 別名を持つ可能性のある列挙値を、**代表名**で別の列挙型へ解決する（未定義値と名前が一致しない値は false。 同じ値の別名は同じ結果へ正規化される） |
+| `TryParse<TTarget>(string name, out TTarget target)` → `bool` | 名前から列挙値を解決する（数値文字列は拒否し、**失敗時は `target` を `default` に戻す**） |
 
 - **未定義値の検出は `Enum.IsDefined` が担う**（`Enum.TryParse` は数値文字列を受理するため、名前解決の成否だけでは検出できない）。
-- 各 UI 実装の Interop 層は本クラスを使う（同じ手順を各所に書かない）。
+- 各 UI 実装の Interop 層は本クラスを使う（同じ手順を各所に書かない）。 文字列の解釈を伴う窓口（`EsInput.TryParseKey` / `EsWindow.TryParseState` / `EsCapture.TryParseType`）は本クラスへ委譲する。
 
 ### 2.3 `EsKeyExtensions`（static class）
 
@@ -928,13 +929,15 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 
 | 窓口 | メンバー | 委譲先 |
 | --- | --- | --- |
-| `EsInput` | `TryParseKey(string, out EsKey)` / `NormalizeKey(EsKey)` / `TryParseHotKey(string?, out HotKeySetting)` / `CreateHotKey(HotKeyModifiers, EsKey)` | `Input.EsKey` / `Input.EsKeyExtensions` / `Input.HotKeyParser` / `Input.HotKeySetting` / `Common.EnumCanonical` |
+| `EsInput` | `TryParseKey(string, out EsKey)` / `NormalizeKey(EsKey)` / `TryParseHotKey(string?, out HotKeySetting)` / `CreateHotKey(HotKeyModifiers, EsKey)` / `NoHotKey` | `Input.EsKey` / `Input.EsKeyExtensions` / `Input.HotKeyParser` / `Input.HotKeySetting` / `Common.EnumCanonical` |
 | `EsWindow` | `FromHandle(nint, string?)` / `TryParseState(string, out EsWindowState)` | `Window.EsPlatformHandle` / `Window.EsWindowState` / `Common.EnumCanonical` |
 | `EsCapture` | `TryParseType(string, out CaptureType)` | `Capture.CaptureType` / `Common.EnumCanonical` |
 | `EsErrors` | `IsRecoverable(Exception)` | `Common.BoundaryCatch` |
 | `EsCallbacks` | `Create<T>()` | `Common.CallbackList<T>` |
 
-`TryParse*` は**数値文字列を受理しません**（列挙に無い値を弾く。 判断は `EnumCanonical` が単一所有します）。 型そのものを名指しする利用側は、その機能の名前空間を `using` します。
+`TryParse*` は**数値文字列を受理しません**（列挙に無い値を弾く。 判断は `EnumCanonical` が単一所有し、失敗時は `out` を `default` に戻します）。 型そのものを名指しする利用側は、その機能の名前空間を `using` します。
+
+**窓口は「操作の入口」である**（型そのものではなく、解釈・正規化・生成を行う）。 境界の包括捕捉は `EsErrors.IsRecoverable`、ホットキーの解釈と生成は `EsInput`、購読の一覧は `EsCallbacks` を使います（実測 2026-10-23: 4 UI の設定画面と全境界の 76 箇所が窓口経由になった）。
 
 ### 2.39 `Input.HotKeyParser`（static class）
 

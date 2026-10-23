@@ -1,8 +1,8 @@
 using EsUtil.Feature.Loupe.Presenter.Drawing;
 using EsUtil.Feature.Loupe.Presenter.Logging;
-using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Feature.Loupe;
@@ -202,7 +202,7 @@ public partial class LoupePresenter
             _core.SetCoordTransform(port);
             Log.LogForwarded(nameof(SetCoordTransform), port);
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
             Log.LogOperationError(ex, nameof(SetCoordTransform));

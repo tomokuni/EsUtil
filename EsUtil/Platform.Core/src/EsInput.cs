@@ -36,4 +36,12 @@ public static class EsInput
     /// <param name="key">ホットキーとして割り当てるキー。</param>
     /// <returns>生成した組合せ。</returns>
     public static HotKeySetting CreateHotKey(HotKeyModifiers modifiers, EsKey key) => new(modifiers, key);
+
+    /// <summary>未設定（修飾キーなし・<see cref="EsKey.None"/>）の組合せを取得する。</summary>
+    /// <value>ホットキーを解除するときに使う値。</value>
+    /// <remarks>
+    /// <see cref="HotKeySetting"/> は不変の record であるため、共有インスタンスを返してよい
+    /// （「未設定」の作り方が各所で 2 通りに書かれるのを防ぐ）。
+    /// </remarks>
+    public static HotKeySetting NoHotKey { get; } = new(HotKeyModifiers.None, EsKey.None);
 }

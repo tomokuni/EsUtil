@@ -1,6 +1,5 @@
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Native.Win;
-using EsUtil.Platform.Core.Window;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
@@ -38,7 +37,7 @@ public class WinCursorOverrideGuardTests : IDisposable
     [Fact]
     internal void Attach_サブクラス化を設定し_Dispose_で解除する()
     {
-        var handle = new EsPlatformHandle(CreateHiddenWindow());
+        var handle = EsWindow.FromHandle(CreateHiddenWindow());
         using var guard = new WinCursorOverrideGuard();
 
         guard.Attach(handle);
@@ -54,7 +53,7 @@ public class WinCursorOverrideGuardTests : IDisposable
     {
         using var guard = new WinCursorOverrideGuard();
 
-        guard.Attach(new EsPlatformHandle(IntPtr.Zero));
+        guard.Attach(EsWindow.FromHandle(IntPtr.Zero));
 
         Assert.False(guard.IsAttached);
     }
@@ -63,7 +62,7 @@ public class WinCursorOverrideGuardTests : IDisposable
     [Fact]
     internal void Dispose_二重に呼んでも例外にしない()
     {
-        var handle = new EsPlatformHandle(CreateHiddenWindow());
+        var handle = EsWindow.FromHandle(CreateHiddenWindow());
         var guard = new WinCursorOverrideGuard();
         guard.Attach(handle);
 

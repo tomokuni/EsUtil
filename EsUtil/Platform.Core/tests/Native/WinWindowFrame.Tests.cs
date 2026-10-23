@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Native.Win;
-using EsUtil.Platform.Core.Window;
 using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Native;
@@ -21,7 +20,7 @@ public class WinWindowFrameTests
     [Fact]
     internal void GetSize_ハンドルがゼロなら_Win32Exception_を投げる()
     {
-        var ex = Assert.Throws<Win32Exception>(() => WinWindowFrame.GetSize(new EsPlatformHandle(IntPtr.Zero)));
+        var ex = Assert.Throws<Win32Exception>(() => WinWindowFrame.GetSize(EsWindow.FromHandle(IntPtr.Zero)));
 
         Assert.False(string.IsNullOrWhiteSpace(ex.Message));
     }

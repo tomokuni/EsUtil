@@ -2,9 +2,10 @@ namespace EsUtil.Platform.Core.Common;
 
 /// <summary>境界（アプリのイベント ハンドラー・外部 I/O・描画・UI コールバック）での例外捕捉の可否を単一所有する。</summary>
 /// <remarks>
-/// <b>使い方</b>: <c>catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))</c> の形で <c>when</c> フィルターに渡す。<br/>
+/// <b>使い方</b>: 呼び出し側は窓口 <see cref="EsUtil.Platform.Core.EsErrors"/> を使う<br/>
+/// （<c>catch (Exception ex) when (EsErrors.IsRecoverable(ex))</c> の形で <c>when</c> フィルターに渡す）。 本クラスは判断の実装を持つ。<br/>
 /// <b>目的</b>: 「<c>catch (Exception)</c> は境界に限る」という規則（[`例外処理規約.md`] §4）を機械的に検証できるようにする。<br/>
-/// 明示的に呼び出しているため、境界での包括捕捉は <c>git grep BoundaryCatch</c> で一覧でき、<br/>
+/// 明示的に呼び出しているため、境界での包括捕捉は <c>git grep EsErrors.IsRecoverable</c> で一覧でき、<br/>
 /// 境界以外の包括捕捉はアナライザー <c>CA1031</c> がビルドで検出する（<c>when</c> フィルターが無い捕捉が該当する）。<br/>
 /// <para/>
 /// <b>判断の所有者</b>: 「どの例外を継続対象にするか」の判断は本クラスだけが持つ。 呼び出し側の <c>catch</c> は<br/>

@@ -1,8 +1,8 @@
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
-using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.Platform.Core;
 using EsUtil.Ui.WinUI3.Loupe.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -305,7 +305,7 @@ public sealed partial class LoupeControl : Canvas
         {
             _presenter.SetCoordTransform(port);
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             // 公開ファサードとして内部の例外を集約して記録し、呼び出し側へ伝搬する（例外処理規約 §4）
             Log.LogOperationError(ex, nameof(SetCoordTransform));
@@ -362,7 +362,7 @@ public sealed partial class LoupeControl : Canvas
             RaiseRendered(args);
             _visual.OverlayLayer.Apply(args.Overlay, 1 / scaling);
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             // 表示の例外はアプリを落とさずログへ記録する（要素は中途半端な状態になりうるが、次の更新で復帰する）
             Log.LogUpdateError(ex);

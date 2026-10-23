@@ -1,7 +1,7 @@
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Caching;
-using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.Platform.Core;
 
 namespace EsUtil.Feature.Thumbnail;
 
@@ -61,7 +61,7 @@ public static class ThumbnailImageLoader
             var key = (Path: filePath, Size: size, LastWrite: File.GetLastWriteTimeUtc(filePath));
             return s_cache.GetOrAdd(key);
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             // アクセス拒否・削除競合など、ファイルの状態による失敗は「表示できない」として扱う
             return null;
@@ -81,7 +81,7 @@ public static class ThumbnailImageLoader
         {
             return EsReadOnlyBitmap.Load(filePath, maxSize);
         }
-        catch (Exception ex) when (BoundaryCatch.IsRecoverable(ex))
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             // 非画像・破損・削除競合は「表示できない」として扱う（一覧を壊さない）
             return null;
