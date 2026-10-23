@@ -6,6 +6,8 @@
     <RootNamespace>EsUtil.Ui.WinForms.Loupe</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- このライブラリは Windows 専用だが、Native AOT の解析（トリム/AOT 警告）は有効にする。 -->
+    <IsAotCompatible>true</IsAotCompatible>
     <Description>ルーペの WinForms 版コントロール。</Description>
   </PropertyGroup>
 
@@ -24,8 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- 名前空間が EsUtil.Ui.<UI>.<機能> へ分かれたため、機能のルート名前空間（ファサードの公開面）を
-         グローバル using で取り込む（以前は名前空間の入れ子で解決していた）。 -->
+    <!-- 機能のルート名前空間（ファサードの公開面）を取り込む。 -->
     <Using Include="EsUtil.Feature.Loupe" />
   </ItemGroup>
 

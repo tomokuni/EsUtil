@@ -12,6 +12,7 @@
          本ライブラリの配布物は win-x64 のみであり、x64 として生成する。
          生成されるのは user32 の P/Invoke 宣言だけであり、公開面は変わらない。 -->
     <CsWin32PlatformTarget>x64</CsWin32PlatformTarget>
+    <IsAotCompatible>true</IsAotCompatible>
     <Description>UI フレームワーク非依存の共通基盤（キーと入力・幾何・座標変換・画像・OS サービス抽象）。</Description>
   </PropertyGroup>
 

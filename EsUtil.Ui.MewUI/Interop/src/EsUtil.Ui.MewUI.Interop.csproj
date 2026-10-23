@@ -5,6 +5,8 @@
     <RootNamespace>EsUtil.Ui.MewUI.Interop</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する。 実測 2026-10-23: 警告 0）。 -->
+    <IsAotCompatible>true</IsAotCompatible>
     <Description>MewUI と EsUtil の型（キー・幾何・色・ウィンドウ状態・画像）を相互変換するブリッジ。</Description>
   </PropertyGroup>
 

@@ -26,8 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- 名前空間が EsUtil.Ui.<UI>.<機能> へ分かれたため、機能のルート名前空間（ファサードの公開面）を
-         グローバル using で取り込む（以前は名前空間の入れ子で解決していた）。 -->
+    <!-- 機能のルート名前空間（ファサードの公開面）を取り込む。 -->
     <Using Include="EsUtil.Feature.Loupe" />
   </ItemGroup>
 

@@ -7,6 +7,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- System.Drawing.Bitmap のピクセルへ直接アクセスするため unsafe を許可する -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- このライブラリは Windows 専用だが、Native AOT の解析（トリム/AOT 警告）は有効にする。 -->
+    <IsAotCompatible>true</IsAotCompatible>
     <Description>System.Drawing.Bitmap と EsUtil.Platform.Core の画像型を相互変換する Windows 専用の拡張。</Description>
   </PropertyGroup>
 

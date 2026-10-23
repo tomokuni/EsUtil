@@ -10,6 +10,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- ウィンドウ矩形の取得（CsWin32 が生成する Win32 の宣言）で unsafe を使う -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- このライブラリは Windows 専用だが、Native AOT の解析（トリム/AOT 警告）は有効にする。 -->
+    <IsAotCompatible>true</IsAotCompatible>
     <Description>WinUI 3 と EsUtil の型（キー・幾何・色・ウィンドウ状態・画像）を相互変換するブリッジ。</Description>
   </PropertyGroup>
 

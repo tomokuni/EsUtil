@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する。 実測 2026-10-23: 警告 0）。 -->
+    <IsAotCompatible>true</IsAotCompatible>
     <Description>ルーペの Avalonia UI 版コントロール。</Description>
   </PropertyGroup>
 
@@ -28,8 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- 名前空間が EsUtil.Ui.<UI>.<機能> へ分かれたため、機能のルート名前空間（ファサードの公開面）を
-         グローバル using で取り込む（以前は名前空間の入れ子で解決していた）。 -->
+    <!-- 機能のルート名前空間（ファサードの公開面）を取り込む。 -->
     <Using Include="EsUtil.Feature.Loupe" />
   </ItemGroup>
 

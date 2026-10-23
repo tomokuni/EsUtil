@@ -5,6 +5,8 @@
     <RootNamespace>EsUtil.Ui.AvaloniaUI.ColorComboBox</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する。 実測 2026-10-23: 警告 0）。 -->
+    <IsAotCompatible>true</IsAotCompatible>
     <Description>Avalonia UI の色選択コントロール（色名の解決・入力の検証・不透明度の編集）。</Description>
   </PropertyGroup>
 
