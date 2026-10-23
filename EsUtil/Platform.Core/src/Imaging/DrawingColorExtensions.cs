@@ -1,3 +1,4 @@
+using System.Globalization;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Platform.Core.Imaging;
@@ -26,4 +27,49 @@ public static class DrawingColorExtensions
     /// 「描くかどうか（アルファ 0 か）」の判別も同じ表記でできる。
     /// </remarks>
     public static string ToHexText(this DrawingColor color) => $"#{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}";
+
+    /// <summary><c>#AARRGGBB</c> / <c>#RRGGBB</c> 形式の文字列を色へ変換する。</summary>
+    /// <param name="text">色の文字列（前後の空白と先頭の <c>#</c> は省略できる）。 null 可。</param>
+    /// <param name="color">変換した色。 変換できなかった場合は <see cref="DrawingColor.Empty"/>。</param>
+    /// <returns>変換できた場合は true。</returns>
+    /// <remarks>
+    /// <b>桁数で意味が変わる</b>: 8 桁は <c>AARRGGBB</c>、6 桁は <c>RRGGBB</c>（アルファは不透明として補う）。<br/>
+    /// <b>それ以外の桁数・16 進数でない文字は拒否する</b>（<c>Enum.TryParse</c> と同種の「緩い解釈」をしない）。<br/>
+    /// 設定ファイルの色は各 UI が自 UI の色型で保持するが、<b>文字列の解釈は本メソッドが単一所有する</b>
+    /// （UI ごとに桁数・大文字小文字・<c>#</c> の扱いがずれるのを防ぐ）。
+    /// </remarks>
+    public static bool TryParseHexText(string? text, out DrawingColor color)
+    {
+        color = DrawingColor.Empty;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        var span = text.AsSpan().Trim();
+        if (span.Length > 0 && span[0] == '#')
+        {
+            span = span[1..];
+        }
+
+        if (span.Length == 8)
+        {
+            if (!uint.TryParse(span, NumberStyles.HexNumber, null, out var argb))
+            {
+                return false;
+            }
+
+            color = DrawingColor.FromArgb(
+                (byte)(argb >> 24), (byte)(argb >> 16), (byte)(argb >> 8), (byte)argb);
+            return true;
+        }
+
+        if (span.Length == 6 && uint.TryParse(span, NumberStyles.HexNumber, null, out var rgb))
+        {
+            color = DrawingColor.FromArgb(0xFF, (byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
+            return true;
+        }
+
+        return false;
+    }
 }

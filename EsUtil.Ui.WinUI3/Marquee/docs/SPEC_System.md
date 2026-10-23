@@ -130,7 +130,6 @@ EsUtil.Ui.WinUI3/Marquee/
         MarqueeRenderedEventArgs.cs
         SelectionRectEventArgs.cs
         Internal/
-            ClientPixelScale.cs
             DoubleClickDetector.cs
             EsGeometryWinUI3Interop.cs
             EsKeyWinUI3Interop.cs
@@ -141,7 +140,6 @@ EsUtil.Ui.WinUI3/Marquee/
         RecordingLogger.cs
         MarqueeLogMessage.Tests.cs
         Internal/
-            ClientPixelScale.Tests.cs
             DoubleClickDetector.Tests.cs
             EsGeometryWinUI3Interop.Tests.cs
             EsKeyWinUI3Interop.Tests.cs

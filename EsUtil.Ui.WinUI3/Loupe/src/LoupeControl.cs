@@ -429,7 +429,7 @@ public sealed partial class LoupeControl : Canvas
     /// </remarks>
     private double ApplyClientPixelScaling()
     {
-        var resolved = ClientPixelScale.Resolve(
+        var resolved = DpiScaler.ResolveClientScale(
             XamlRoot?.RasterizationScale ?? ClientToPixelScaling, ActualWidth, ClientToPixelScaling);
 
         if (resolved == ClientToPixelScaling)

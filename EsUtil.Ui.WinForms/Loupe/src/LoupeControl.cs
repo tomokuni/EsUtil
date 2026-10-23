@@ -336,7 +336,7 @@ public sealed class LoupeControl : Control
     /// （他 UI での実測: ウィンドウ表示後に追加したコントロールは通知を受けず、既定値 1.0 のままになる）。<br/>
     /// その状態で描画すると図形が 100% で描かれ、DPI を反映済みの画像と重ねたときにずれる。<br/>
     /// 本メソッドは「クライアント領域（物理ピクセル）」と「その DIP 換算」の比から実効倍率を解決する<br/>
-    /// （クライアント領域が未確定（0）の間は DPI から換算した値を使う。 規則は <see cref="ClientPixelScale"/> が単一所有する）。<br/>
+    /// （クライアント領域が未確定（0）の間は DPI から換算した値を使う。 規則は <see cref="DpiScaler.ResolveClientScale"/> が単一所有する）。<br/>
     /// WinForms のクライアント領域は物理ピクセルであり独立した DIP の寸法を持たないため、DIP 換算は DPI に依る<br/>
     /// （比を通すのは、描画面と DIP の対応が崩れた場合（未確定・0 割り）に既定値へ落とすためである）。<br/>
     /// <b>本メソッドは internal である</b>: 保持値の更新はハンドルの生成時と DPI の変更時に自動で行われ、<br/>
@@ -346,7 +346,7 @@ public sealed class LoupeControl : Control
     {
         var fallback = DpiScaler.ToScaling(DeviceDpi);
         var dipSize = DpiScaler.ToDip(ClientSize.Width, fallback);
-        ClientToPixelScaling = ClientPixelScale.Resolve(ClientSize.Width, dipSize, fallback);
+        ClientToPixelScaling = DpiScaler.ResolveClientScale(ClientSize.Width, dipSize, fallback);
 
         // 保持値の補正（範囲外は安全域へ）を通した値を返す（計算に使う値と保持値を一致させる）
         return ClientToPixelScaling;

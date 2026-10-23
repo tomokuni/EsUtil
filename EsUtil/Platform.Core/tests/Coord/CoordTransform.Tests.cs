@@ -94,26 +94,4 @@ public class CoordTransformTests
         bounds = new EsSize(200, 200);
         Assert.Equal(new EsSize(200, 200), port.SourceArea);
     }
-
-    // ====================================================================
-    // 座標の純粋計算（原点基準の等方スケーリング）
-    // ====================================================================
-
-    [Fact]
-    internal void MultiplyPoint_倍率を乗算する()
-    {
-        var (x, y) = CoordTransform.MultiplyPoint(100, 150, 2.0);
-
-        Assert.Equal(200, x);
-        Assert.Equal(300, y);
-    }
-
-    [Fact]
-    internal void DividePoint_倍率で除算する()
-    {
-        var (x, y) = CoordTransform.DividePoint(200, 300, 2.0);
-
-        Assert.Equal(100, x);
-        Assert.Equal(150, y);
-    }
 }

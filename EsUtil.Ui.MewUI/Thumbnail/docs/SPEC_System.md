@@ -66,7 +66,7 @@ flowchart TD
 | スクロール（`ScrollViewer` の保持と通知） | `ThumbnailControl` |
 | 項目の描画（背景・影・画像・名前） | `ThumbnailTile`（内部） |
 | 内容の配置（レイアウトの結果を子へ割り当てる） | `ThumbnailContent`（内部） |
-| DIP → 物理ピクセルの倍率の解決 | `Internal.ClientPixelScale` |
+| DIP → 物理ピクセルの倍率の解決 | `DpiScaler.ResolveClientScale`（コア） |
 | コアの画像 ⇔ MewUI の画像の変換 | `Internal.MewImageBinding` |
 | 影の帯の描画 | `ThumbnailViewport`（`FillRectangle`） |
 
@@ -77,7 +77,7 @@ flowchart TD
 - **再描画は明示的に要求する**: 要素は寸法が変わらなければ再描画されません。 計画・画像を差し替えた時点で `InvalidateVisual()` を呼ばないと、生成したサムネイルが反映されません（実測）。
 - **影は 1 画素の帯を塗る**: グラデーション ブラシの端の扱いに依存せず、全 UI で同じ結果にするためです。
 - **画像の変換は 1 回だけ**: コアの画像（`EsReadOnlyBitmap`）を `ImageSource.FromBgraPixels` で MewUI の画像へ取り込み、`Source` が変わったときだけ作り直します（一覧に数百件を並べても毎フレームの複製でメモリを圧迫しません）。
-- **倍率は描画面と割り当て領域の比から解決する**: DPI の通知が届かない状況でも、描画面の物理ピクセルと DIP の比から正しい倍率が得られます（`ClientPixelScale`）。
+- **倍率は描画面と割り当て領域の比から解決する**: DPI の通知が届かない状況でも、描画面の物理ピクセルと DIP の比から正しい倍率が得られます（`DpiScaler.ResolveClientScale`）。
 - **入力は位置から判定する**: 子要素のヒット テストに依存せず、`IndexAt` で添字を求めます。
 
 ## 4. コンポーネント構成
@@ -94,7 +94,7 @@ EsUtil.Ui.MewUI/Thumbnail/
 | コントロール | `EsUtil.Ui.MewUI/Thumbnail/src/ThumbnailControl.cs` | 公開面。 入力の受付・選択・スクロール・計画の適用 |
 | 項目の要素 | `EsUtil.Ui.MewUI/Thumbnail/src/ThumbnailTile.cs` / `ThumbnailViewport.cs` | 描画の層と名前の要素（内部） |
 | イベント引数 | `EsUtil.Ui.MewUI/Thumbnail/src/ThumbnailActivatedEventArgs.cs` | 2 回押しの通知（公開） |
-| 倍率の解決 | `EsUtil.Ui.MewUI/Thumbnail/src/Internal/ClientPixelScale.cs` | 描画面と割り当て領域から倍率を求める（内部） |
+| 倍率の解決 | `EsUtil/Platform.Core/src/Coord/DpiScaler.cs` | 描画面と割り当て領域から倍率を求める（コアが単一所有。 各 UI は複製しない） |
 | 画像の変換 | `EsUtil.Ui.MewUI/Thumbnail/src/Internal/MewImageBinding.cs` | コアの画像を MewUI の画像として保持する（内部） |
 | 影の描画 | `EsUtil.Ui.MewUI/Thumbnail/src/ThumbnailViewport.cs` | 帯を単色で塗る（内部） |
 

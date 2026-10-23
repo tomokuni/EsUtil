@@ -1,4 +1,5 @@
 using Avalonia.Media;
+using EsUtil.Platform.Core.Caching;
 using DrawingColor = System.Drawing.Color;
 
 
@@ -26,5 +27,5 @@ internal static class SolidColorBrushCache
     /// <param name="color">ブラシへ変換する色。</param>
     /// <returns>色に対応するブラシ。</returns>
     public static SolidColorBrush GetOrCreate(DrawingColor color)
-        => s_brushes.GetOrCreate(color.ToAvaloniaColor());
+        => s_brushes.GetOrAdd(color.ToAvaloniaColor());
 }

@@ -1,6 +1,5 @@
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Native.Win;
 using Xunit;
 
@@ -94,7 +93,7 @@ public class WinCaptureServiceTests
         Assert.True(image.Height > 0);
 
         // 原点は仮想スクリーンの左上（プライマリ モニタが (0,0) なら 0、左に置いていれば負値）
-        var bounds = EsWindowPlacementMath.GetVirtualScreenBounds();
+        var bounds = WinVirtualScreen.Bounds;
         Assert.Equal(bounds.X, origin.X);
         Assert.Equal(bounds.Y, origin.Y);
     }

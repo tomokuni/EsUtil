@@ -235,4 +235,4 @@ Marquee.LogPrefix = "[Marquee]";
 | `MarqueeShapePlan`（内部） | 描画計画（図形の層とラベル）を矩形と配置指示の列へ写します |
 | `MarqueeVisualLayer`（内部・表示の実装） | 矩形を `Rectangle` へ、ラベルを `Border` + `TextBlock` へ反映します |
 | `MarqueeLogMessage`（内部・ログ定義） | 本コントロールのログ定義（接頭辞と操作の例外の記録） |
-| `Internal` 名前空間のヘルパー（内部・境界変換） | 倍率の解決（`ClientPixelScale`）、座標とキーと色の相互変換、ダブルクリックの判定、Win32 の画面座標変換、テキストと矩形の描画 |
+| `Internal` 名前空間のヘルパー（内部・境界変換） | 倍率の解決（`DpiScaler.ResolveClientScale`。 コア）、座標とキーと色の相互変換、ダブルクリックの判定、Win32 の画面座標変換、テキストと矩形の描画 |

@@ -24,6 +24,13 @@ public static class EsInput
     /// <remarks>正規化の内容は <see cref="EsKeyExtensions.Normalize"/> が単一所有する。</remarks>
     public static EsKey NormalizeKey(EsKey key) => key.Normalize();
 
+    /// <summary>文字列（設定画面の入力）からホットキーの組合せを解釈する。</summary>
+    /// <param name="text">解釈する文字列（例: "Ctrl + Shift + Q"）。 null 可。</param>
+    /// <param name="setting">解釈した組合せ。 解釈できなかった場合は修飾キーなし・<see cref="EsKey.None"/>。</param>
+    /// <returns>解釈できた場合は <see langword="true"/>。</returns>
+    /// <remarks>解釈の手順（修飾キーが 1 つ以上必要・数値文字列を受理しない）は <see cref="HotKeyParser"/> が単一所有する。</remarks>
+    public static bool TryParseHotKey(string? text, out HotKeySetting setting) => HotKeyParser.TryParse(text, out setting);
+
     /// <summary>キーの組合せ（修飾キー＋キー）を生成する。</summary>
     /// <param name="modifiers">修飾キー。</param>
     /// <param name="key">ホットキーとして割り当てるキー。</param>

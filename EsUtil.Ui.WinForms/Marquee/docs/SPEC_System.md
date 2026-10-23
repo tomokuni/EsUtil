@@ -73,7 +73,7 @@ flowchart TD
 | 描画計画の GDI+ への写像 | `MarqueeGraphicsPainter`（内部） |
 | コア型と GDI+ の型の変換 | `Internal.EsGeometryWinFormsInterop` / `Internal.EsKeyWinFormsInterop` |
 | 矩形の塗り・テキストの測定と描画 | `Internal.GraphicsFill` / `Internal.GraphicsText` |
-| 描画面と表示領域からの倍率の解決 | `Internal.ClientPixelScale` |
+| 描画面と表示領域からの倍率の解決 | `DpiScaler.ResolveClientScale`（コア） |
 | ログの定義（接頭辞・書式） | `MarqueeLogMessage`（内部） |
 
 ### 3.3 設計判断
@@ -108,7 +108,7 @@ EsUtil.Ui.WinForms/Marquee/
 | イベント引数 | `EsUtil.Ui.WinForms/Marquee/src/MarqueePointEventArgs.cs` | 座標の通知（公開）。 |
 | イベント引数 | `EsUtil.Ui.WinForms/Marquee/src/SelectionRectEventArgs.cs` | 選択矩形の通知（公開）。 |
 | イベント引数 | `EsUtil.Ui.WinForms/Marquee/src/MarqueeRenderedEventArgs.cs` | 描画完了の通知（公開）。 |
-| 倍率の解決 | `EsUtil.Ui.WinForms/Marquee/src/Internal/ClientPixelScale.cs` | 描画面と表示領域からの倍率の解決（内部）。 |
+| 倍率の解決 | `EsUtil/Platform.Core/src/Coord/DpiScaler.cs` | 描画面と表示領域からの倍率の解決（コアが単一所有。 各 UI は複製しない）。 |
 | 幾何の変換 | `EsUtil.Ui.WinForms/Marquee/src/Internal/EsGeometryWinFormsInterop.cs` | コア幾何型 ⇔ GDI+ の型（内部）。 |
 | キーの変換 | `EsUtil.Ui.WinForms/Marquee/src/Internal/EsKeyWinFormsInterop.cs` | `EsKey` ⇔ `Keys`（内部）。 |
 | 塗り | `EsUtil.Ui.WinForms/Marquee/src/Internal/GraphicsFill.cs` | 矩形の単色塗り（内部）。 |

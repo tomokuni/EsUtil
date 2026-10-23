@@ -99,6 +99,16 @@ public static class DpiScaler
     public static EsSize ToDip(EsSize physicalSize, double scaling)
         => new(ToDip(physicalSize.Width, scaling), ToDip(physicalSize.Height, scaling));
 
+    /// <summary>DIP の長さをポイント（1/72 インチ）へ換算する。</summary>
+    /// <param name="dip">DIP の長さ（フォント サイズ等）。</param>
+    /// <returns>ポイントの長さ。</returns>
+    /// <remarks>
+    /// <b>なぜ必要か</b>: WinForms（GDI+）のフォント サイズはポイント、本ソリューションの外観は DIP で持つ。
+    /// 換算比（<c>72 / 96</c>）を各所に書くと、片方だけ直したときに文字の大きさが UI 間でずれる。<br/>
+    /// DPI スケーリングは掛けない（DIP は論理単位であり、ポイントも論理単位であるため）。
+    /// </remarks>
+    public static double ToPoint(double dip) => dip * 72.0 / StandardDpi;
+
     /// <summary>描画面の実サイズと表示領域（DIP）の比から、描画に使うスケーリング係数を解決する。</summary>
     /// <param name="clientPixels">クライアント領域の一辺の長さ（物理ピクセル）。</param>
     /// <param name="clientDip">同じ辺の長さ（DIP）。 0 以下の場合は <paramref name="fallback"/> を使う。</param>

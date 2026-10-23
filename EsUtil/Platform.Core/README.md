@@ -34,19 +34,19 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | グループ | 型 |
 | --- | --- |
 | 窓口（ルート名前空間） | `EsInput` / `EsWindow` / `EsCapture` / `EsErrors` / `EsCallbacks`（機能の型へ委譲する薄い入口。 `using EsUtil.Platform.Core;` だけで解釈・正規化・生成ができる） |
-| キーと入力（`Input.*`） | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` |
-| ウィンドウ（`Window.*`） | `EsPlatformHandle`（ネイティブ ハンドル） / `EsWindowState` |
+| キーと入力（`Input.*`） | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser`（`"Ctrl + Shift + Q"` の解釈） |
+| ウィンドウ（`Window.*`） | `EsPlatformHandle`（ネイティブ ハンドル） / `EsWindowState` / `EsWindowPlacementMath`（復元可否・はみ出しの補正・DIP ⇔ 物理ピクセル） |
 | キャプチャ（`Capture.*`） | `CaptureType` |
 | 小さな共通基盤（`Common.*`） | `EnumCanonical` / `BoundaryCatch` / `CallbackList<T>` |
-| 幾何 | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` |
-| 座標変換 | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` |
+| 幾何 | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` / `EsRectIntJsonConverter`（設定ファイルの保存形式） |
+| 座標変換 | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler`（DIP ⇔ 物理ピクセル・ポイント換算・描画面からの係数解決） |
 | 画像 | **2 型は対称です**（書き込みに関するものだけが `EsBitmap`）。 `EsReadOnlyBitmap`（**読み取り専用**。 受け取る・保持する側）/ `EsBitmap`（**書き換え可能**。 作る・書く側。 `Pixels`・`SetPixel`・`Clear`・`SetReadOnly` が追加）/ `EsPixmap`（一部を指す 0 コピーの読み取りビュー。 切り出しの複製を避け、**縮小・減色の対象にもなる**）。 変換は向きごとに 1 つ（`FromBitmap`（凍結済みなら 0 コピー）/ `FromReadOnlyBitmap`（複製）） |
 | 画像の操作 | **両方の画像型が同じ名前のメンバーを持ちます**（切り出し `Crop`・縮小 `Resize`・減色 `ReduceColors`。 実装は内部の 1 か所）。 縮小と減色の速度と画質は `EsImageQuality`（`Low` / `Mid` / `High`）で選び、減色のディザは `EsDitherMode`（`None` / `FloydSteinberg`）で選びます。 `Resize` は縮小のみ（拡大は `NotSupportedException`） |
 | 画像のファイル入出力 | `Save` / `Load`（**画像型のメンバー**。 `Load(string, int maxSize)` は **WIC のスケーラーでデコードしながら縮小する**（サムネイル用。 原寸のバッファを確保しない）。 `EsReadOnlyBitmap.Save` / `EsBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`。 **形式は既定で拡張子が決め**、`EsImageSaveOptions.Format` で明示もできる（拡張子が無ければ補完する）。 BMP / PNG / JPEG / GIF / TIFF。 保存のオプションは `EsImageSaveOptions`（**JPEG の品質と減色 `ColorCount` / `ColorQuality` / `Dither`**）。 **EXIF の向き（`Orientation`）を適用してから縮小する**（回転した JPEG も正しい向きで読める）。 OS の WIC（`windowscodecs.dll` の COM）を使う Windows 専用で、外部パッケージは参照しない） |
 | OS サービス抽象 | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` |
 | Windows 実装 | `Native.Win.*`（Win32 / WIC の P/Invoke と COM。 ホストが生成して注入する） |
 | 補助 | `DrawingColorExtensions` / `EsImageFileExtensions`（一覧に並べる画像の拡張子の判定） |
-| キャッシュ | `Caching.CapacityLimitedCache<TKey, TValue>`（生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ） |
+| キャッシュ | `Caching.CapacityLimitedCache<TKey, TValue>`（生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ。 **各コントロールは複製せず本型を使う**） |
 | SVG | `Svg.SvgIconSource`（読み込み元: 埋め込みリソース・フォルダー・テキスト） / `SvgIcon` / `SvgPathParser` / `SvgPathFigure` / `SvgPathSegment` / `SvgPathRasterizer` |
 
 各 UI 実装は、自身の型とコア型を相互変換する Interop 層を個別に提供します（本プロジェクトは UI 型を参照しないため、変換は利用側が持ちます）。

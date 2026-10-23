@@ -1,6 +1,7 @@
 using Avalonia.Media;
-using EsUtil.Ui.AvaloniaUI.Marquee.Internal;
+using EsUtil.Platform.Core.Caching;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Ui.AvaloniaUI.Marquee.Internal;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.AvaloniaUI.Marquee;
@@ -28,7 +29,7 @@ internal static class MarqueeContextPainter
     /// <param name="thickness">線の太さ（DIP）。</param>
     /// <returns>太さと色に対応するペン。</returns>
     private static Pen ResolvePen(DrawingColor color, double thickness)
-        => s_pens.GetOrCreate((color.ToAvaloniaColor(), thickness));
+        => s_pens.GetOrAdd((color.ToAvaloniaColor(), thickness));
 
     /// <summary>描画計画を描画順に描く。</summary>
     /// <param name="context">描画先の描画コンテキスト（<c>Render</c> の実行中のみ有効）。 null 不可。</param>

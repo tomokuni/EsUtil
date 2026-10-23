@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Drawing.Drawing2D;
+using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -385,7 +386,7 @@ public sealed class ThumbnailControl : ScrollableControl
     {
         using var font = new Font(
             DefaultFont.FontFamily,
-            (float)(plan.Label.FontSize * 72.0 / 96.0),
+            (float)DpiScaler.ToPoint(plan.Label.FontSize),
             plan.Label.IsBold ? FontStyle.Bold : FontStyle.Regular,
             GraphicsUnit.Point);
 

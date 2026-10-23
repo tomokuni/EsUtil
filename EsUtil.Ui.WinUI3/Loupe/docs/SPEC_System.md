@@ -95,7 +95,7 @@ UI 層（WinUI 3 の実装）
 | 表示の実装（内部） | 描画計画（`LoupeDrawPlan`）を要素へ写す。 層の順序は計画に従い、中心座標ラベルも置く | `LoupeVisualLayer` |
 | 描画完了の通知 | 描画済みのキャンバスと実際に使われた描画計画を渡す | `LoupeRenderedEventArgs` |
 | ログ定義 | 拡大元画像の差し替え、描画の例外、公開 API の例外の出力書式 | `LoupeLogMessage` |
-| 表示の補助（内部） | 矩形の列、要素への反映、テキストの実寸測定、コアの画像のビュー、表示領域からの実効倍率の解決 | `LoupeRectList` / `LoupeShapeLayer` / `LoupeTextMeasure` / `LoupeBitmapStream` / `LoupeImageView` / `ClientPixelScale` |
+| 表示の補助（内部） | 矩形の列、要素への反映、テキストの実寸測定、コアの画像のビュー、表示領域からの実効倍率の解決 | `LoupeRectList` / `LoupeShapeLayer` / `LoupeTextMeasure` / `LoupeBitmapStream` / `LoupeImageView` / `DpiScaler.ResolveClientScale`（コア） |
 | テスト | 矩形の列の検証（描画計画の写像）、変換と補助の検証、ログの出力書式、イベント引数の保持 | `LoupeShapePlanTests` ほか |
 
 `LoupeControl` の役割:

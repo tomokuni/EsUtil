@@ -44,6 +44,10 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.36 `Svg.SvgIconSource`（sealed class） / `Svg.SvgIcon`（record struct）](#236-svgsvgiconsourcesealed-class--svgsvgiconrecord-struct)
   - [2.37 `Imaging.EsImageFileExtensions`（static class）](#237-imagingesimagefileextensionsstatic-class)
   - [2.38 機能の窓口](#238-機能の窓口)
+  - [2.39 `Input.HotKeyParser`（static class）](#239-inputhotkeyparserstatic-class)
+  - [2.40 `Window.EsWindowPlacementMath`（static class）](#240-windoweswindowplacementmathstatic-class)
+  - [2.41 `Geometry.EsRectIntJsonConverter`（sealed class : `JsonConverter<EsRectInt>`）](#241-geometryesrectintjsonconvertersealed-class--jsonconverteresrectint)
+  - [2.42 `Native.Win.WinVirtualScreen`（static class）](#242-nativewinwinvirtualscreenstatic-class)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -56,17 +60,17 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | 名前空間 | 型 | 用途 |
 | --- | --- | --- |
 | `EsUtil.Platform.Core` | `EsInput` / `EsWindow` / `EsCapture` / `EsErrors` / `EsCallbacks` | 機能フォルダの窓口（利用側が `using EsUtil.Platform.Core;` だけで解釈・正規化・生成を行えるようにする。 実装は持たず機能の型へ委譲する） |
-| `.Input` | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` | キーとホットキー（正規化含む） |
-| `.Window` | `EsPlatformHandle` / `EsWindowState` | ネイティブ ハンドルとウィンドウの表示状態 |
+| `.Input` | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser` | キーとホットキー（正規化・文字列の解釈を含む） |
+| `.Window` | `EsPlatformHandle` / `EsWindowState` / `EsWindowPlacementMath` | ネイティブ ハンドル・表示状態・ウィンドウ配置の規則（復元可否・はみ出しの補正・DIP ⇔ 物理ピクセル） |
 | `.Capture` | `CaptureType` | キャプチャ種別 |
 | `.Common` | `BoundaryCatch` / `CallbackList<T>` / `EnumCanonical` | 機能に閉じない小さな基盤（境界の判定・購読の一覧・別名を持つ列挙の解決） |
-| `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` | DIP 相当の幾何値型と領域の規則 |
-| `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI の純粋計算 |
+| `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` / `EsRectIntJsonConverter` | DIP 相当の幾何値型と領域の規則、整数矩形の JSON の保存形式 |
+| `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI・ポイント換算の純粋計算（OS を呼ばない） |
 | `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `EsImageQuality` / `EsDitherMode` / `EsImageFileExtensions` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、縮小と減色の品質、描画色の判定、一覧に並べる画像の拡張子の判定 |
-| `.Caching` | `CapacityLimitedCache<TKey, TValue>` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ |
+| `.Caching` | `CapacityLimitedCache<TKey, TValue>` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（汎用の単一所有者。 UI コントロールは複製せず本型を使う） |
 | `.Svg` | `SvgIconSource` / `SvgIcon` / `SvgPathParser` / `SvgPathFigure` / `SvgPathSegment` / `SvgPathRasterizer` | SVG アイコンの読み込み元・解析結果・パス データの解析・図形の画素への展開 |
 | `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` | OS サービスの抽象（UI 非依存。 実装は置かない） |
-| `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` / `WinWindowFrame` / `WinClipboard` / `WinAppUserModelId` / `WinMessageBox` / `WinMonitorDpi` / `WinVirtualKey` / `SystemWindowCommands` | 上記抽象の Windows 実装（ホストが生成して注入する）と、ウィンドウの標準メニューから実行する操作 |
+| `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` / `WinWindowFrame` / `WinVirtualScreen` / `WinClipboard` / `WinAppUserModelId` / `WinMessageBox` / `WinMonitorDpi` / `WinVirtualKey` / `SystemWindowCommands` | 上記抽象の Windows 実装（ホストが生成して注入する）と、ウィンドウの標準メニューから実行する操作 |
 | `.Native.Win.Wic` | `IWICImagingFactory` ほかの COM 宣言 / `WinWicFactory` / `WinWicImageCodec` | WIC（windowscodecs）の COM 宣言・補助・実装 |
 
 可視性は public のみを記載します（`internal` は [`SPEC_System.md`](SPEC_System.md) の可視性ポリシーを参照）。
@@ -164,6 +168,8 @@ public sealed record HotKeySetting(HotKeyModifiers Modifiers, EsKey Key)
 - `ScaleToPixel(int/double dipValue, double scaling)`: DIP 値を物理ピクセルへ変換（切り上げ・最低 1。 浮動小数誤差を吸収）。
 - `ToDip(int/double physical, double scaling)`: 物理ピクセルを DIP へ変換（`ScaleToPixel` の逆変換。 **丸め・最低値の規則は適用しない**）。 ウィンドウの位置・サイズを物理ピクセルから DIP へ戻す場面（全モニタの包含矩形をウィンドウへ適用する等）で共用する。
 - `ToDip(EsSize physicalSize, double scaling)`: 物理ピクセルのサイズを DIP のサイズへ変換する（成分ごとの換算を上記 `ToDip` へ委譲する）。 コア型同士の換算を UI 側で組み立てないための入口。
+- `ToPoint(double dip)`: DIP の長さをポイント（1/72 インチ）へ換算する（`dip × 72 / 96`。 DPI スケーリングは掛けない）。 WinForms（GDI+）のフォント サイズはポイントで指定するため、外観（DIP）との換算比を各所へ書かずに済む。
+- `ResolveClientScale(double clientPixels, double clientDip, double fallback)`: 描画面の実サイズと表示領域（DIP）の比から、描画に使う係数を解決する（表示領域が未確定なら `fallback`）。 各 UI コントロールは `internal` の複製を持たず本メソッドを使う。
 - 表示サイズ・外枠の太さの物理ピクセル換算と、ウィンドウの位置・サイズの換算で共用する。
 
 ### 2.10 `Geometry.EsAxis`（enum）
@@ -336,6 +342,7 @@ public readonly record struct EsRectInt(int X, int Y, int Width, int Height);
 | `WithWidth` / `WithHeight` | `EsSizeInt WithWidth(int width)` / `WithHeight(int height)` | サイズの成分の差し替え |
 | 演算子 | `+` / `-`（点・サイズの成分ごと） | 整数の加減算（オーバーフローは .NET の既定どおり） |
 | `FromTuple` / `ToTuple` | `static Xxx FromTuple((...))` / `(...) ToTuple()` | タプルとの相互変換（全 3 型） |
+| EsSizeInt.ToSizeText | `string ToSizeText()` | 「幅x高さ」形式の表示用文字列（例: `1920x1080`）。 ログ・ステータス表示の書式を単一所有し、画像型（`EsBitmap` / `EsReadOnlyBitmap` / `EsPixmap`）は本メソッドへ委譲する |
 
 ### 2.17 `Geometry.EsThickness`（readonly record struct）
 
@@ -921,13 +928,43 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 
 | 窓口 | メンバー | 委譲先 |
 | --- | --- | --- |
-| `EsInput` | `TryParseKey(string, out EsKey)` / `NormalizeKey(EsKey)` / `CreateHotKey(HotKeyModifiers, EsKey)` | `Input.EsKey` / `Input.EsKeyExtensions` / `Input.HotKeySetting` / `Common.EnumCanonical` |
+| `EsInput` | `TryParseKey(string, out EsKey)` / `NormalizeKey(EsKey)` / `TryParseHotKey(string?, out HotKeySetting)` / `CreateHotKey(HotKeyModifiers, EsKey)` | `Input.EsKey` / `Input.EsKeyExtensions` / `Input.HotKeyParser` / `Input.HotKeySetting` / `Common.EnumCanonical` |
 | `EsWindow` | `FromHandle(nint, string?)` / `TryParseState(string, out EsWindowState)` | `Window.EsPlatformHandle` / `Window.EsWindowState` / `Common.EnumCanonical` |
 | `EsCapture` | `TryParseType(string, out CaptureType)` | `Capture.CaptureType` / `Common.EnumCanonical` |
 | `EsErrors` | `IsRecoverable(Exception)` | `Common.BoundaryCatch` |
 | `EsCallbacks` | `Create<T>()` | `Common.CallbackList<T>` |
 
 `TryParse*` は**数値文字列を受理しません**（列挙に無い値を弾く。 判断は `EnumCanonical` が単一所有します）。 型そのものを名指しする利用側は、その機能の名前空間を `using` します。
+
+### 2.39 `Input.HotKeyParser`（static class）
+
+ホットキーの文字列表現（例: `"Ctrl + Shift + Q"`）を解釈します。 設定画面の入力解釈を 4 つの UI 版が共有します（以前はアプリ層が持っていました）。
+
+| メンバー | 内容 |
+| --- | --- |
+| `TryParse(string? text, out HotKeySetting setting)` | `+` 区切りで修飾キーとキーを解釈する（大文字小文字を区別しない）。 **修飾キーが 1 つ以上必要**。 キー名の解決は `EnumCanonical.TryParse` へ委譲する（数値文字列を受理しない） |
+
+修飾キーの名前は `Ctrl` / `Control` / `Shift` / `Alt` / `Win` / `Windows` です。 未知の修飾キーは無視され、修飾キーが 1 つも残らなければ失敗します。
+
+### 2.40 `Window.EsWindowPlacementMath`（static class）
+
+ウィンドウの位置・サイズの規則と DIP ⇔ 画面物理ピクセルの換算（**純粋計算**。 OS を呼びません）。 4 つの UI 版と設定の単位（画面物理ピクセル）を単一所有します。
+
+| 区分 | メンバー |
+| --- | --- |
+| 換算 | `ToPhysicalPixelPoint(EsPoint, double)` / `ToPhysicalPixelSize(EsSize, double)` / `ToPhysicalLength(double, double)` / `ToDipPoint(EsPointInt, double)` / `ToDipLength(int, double)` |
+| 枠の差し引き | `ToClientLength(double outerDip, int framePixels, double scale)` / `ToClientLength(int outerPixels, int framePixels, double scale)` / `ToOuterPhysicalLength(double clientDip, int framePixels, double scale)` |
+| 復元の規則 | `MinimumVisibleSize`（64） / `IsUsable(EsRectInt?)` / `CanRestore(EsRectInt?, EsRectInt)` / `ToRestorableState(EsWindowState)` / `ClampToVisibleArea(EsRectInt, EsRectInt)` |
+
+**復元しない 3 つの場合**: 幅・高さが 0 以下（壊れた設定）／表示領域との重なりが 64 ピクセル未満（画面外で起動して操作できない）／保存値が最小化（見えないまま起動する）。 仮想スクリーンの照会は `Native.Win.WinVirtualScreen` が担います（本型は OS を呼びません）。
+
+### 2.41 `Geometry.EsRectIntJsonConverter`（sealed class : `JsonConverter<EsRectInt>`）
+
+`EsRectInt` の JSON の保存形式（`X` / `Y` / `Width` / `Height` のみ）を単一所有します。 `EsRectInt` は読み取り専用プロパティを持つため既定のシリアライザーでは往復できません。 未知のプロパティは無視し、欠落したプロパティは 0 として読みます（**既存の設定ファイルをそのまま読める**）。 `System.Text.Json` は共有フレームワークに含まれるため外部パッケージは増えません。
+
+### 2.42 `Native.Win.WinVirtualScreen`（static class）
+
+全モニターを包含する仮想スクリーンの矩形（画面物理ピクセル）を `GetSystemMetrics` で照会します。 `DisplayArea.FindAll()` を使わないのは、ウィンドウの表示前に列挙すると WinRT の射影で起動できないためです（実測 2026-10-17）。 プライマリ モニタが原点にない場合は負値を返します（仮想スクリーンの座標そのもの）。
 
 ## 3. 使用例
 

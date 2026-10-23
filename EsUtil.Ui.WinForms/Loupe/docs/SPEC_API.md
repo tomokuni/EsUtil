@@ -45,7 +45,7 @@
 | --- | --- |
 | `LoupeGraphicsPainter`（内部・描画実装） | 描画計画を GDI+ へ写す（`LoupeControl.DrawPlan` の実体） |
 | `LoupeLogMessage`（内部・ログ定義） | 拡大元画像の変更と描画の例外のログ定義（`internal`） |
-| `ClientPixelScale`（内部・DPI 換算） | クライアント領域（物理ピクセル）と DIP から実効倍率を解決する |
+| `DpiScaler.ResolveClientScale`（コア・DPI 換算） | クライアント領域（物理ピクセル）と DIP から実効倍率を解決する（コアが単一所有。 本プロジェクトは複製しない） |
 | `EsBitmapDrawingInterop`（内部・画像変換） | コアの画像の一部を GDI+ のビットマップへ複製する |
 | `EsGeometryDrawingInterop`（内部・幾何変換） | コアの幾何型を GDI+ の型へ変換する |
 | `DrawingLabelText`（内部・文字） | ラベルの文字の実寸測定と描画（測る API と描く API を揃える） |

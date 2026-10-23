@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Windows.Win32;
@@ -59,8 +58,8 @@ public sealed class WinCaptureService : ICaptureService
     public EsBitmap? CaptureVirtualScreen(out EsPointInt origin)
     {
         // Win32 の仮想スクリーン境界（全モニタのバウンディングボックス）を取得する
-        // （境界の計算は EsWindowPlacementMath が単一所有する）
-        var bounds = EsWindowPlacementMath.GetVirtualScreenBounds();
+        // （照会は WinVirtualScreen が単一所有する）
+        var bounds = WinVirtualScreen.Bounds;
         origin = new EsPointInt(bounds.X, bounds.Y);
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {

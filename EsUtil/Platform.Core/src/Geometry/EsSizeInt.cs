@@ -62,6 +62,14 @@ public readonly record struct EsSizeInt(int Width, int Height)
     /// <returns>(Width, Height) 形式のタプル。</returns>
     public (int Width, int Height) ToTuple() => (Width, Height);
 
+    /// <summary>「幅x高さ」形式の表示用文字列を取得する。</summary>
+    /// <returns>例: <c>1920x1080</c>。</returns>
+    /// <remarks>
+    /// ログ・ステータス表示の書式を単一所有する（画像型は本メソッドへ委譲する。 各所で補間を書くと
+    /// 区切り文字（<c>x</c>）と順序がずれる）。
+    /// </remarks>
+    public string ToSizeText() => $"{Width}x{Height}";
+
     /// <summary>2 つのサイズを成分ごとに加算する。</summary>
     /// <param name="a">1 つ目のサイズ。</param>
     /// <param name="b">2 つ目のサイズ。</param>

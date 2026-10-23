@@ -83,7 +83,7 @@ UI 版の間には依存がありません（互いを参照しません）。 �
 | `LoupeGraphicsPainter` | 内部 | 描画計画を GDI+ へ写す（層の順序は計画に従う）。 拡大画像の切り出しの複製、十字線・枠線の塗り、ラベルの背景と文字の描画 |
 | `LoupeRenderedEventArgs` | 公開 | 描画完了の通知の引数（描画面と描画計画） |
 | `LoupeLogMessage` | 内部 | 本プロジェクトが所有する値（拡大元画像）の変更と描画の例外のログ定義 |
-| `ClientPixelScale` | 内部 | クライアント領域（物理ピクセル）と DIP から実効倍率を解決する（複製元は他 UI 版の同名クラス） |
+| `DpiScaler.ResolveClientScale` | コア | クライアント領域（物理ピクセル）と DIP から実効倍率を解決する（コアが単一所有。 各 UI は複製しない） |
 | `EsBitmapDrawingInterop` | 内部 | コアの画像の指定領域を GDI+ のビットマップへ複製する |
 | `EsGeometryDrawingInterop` | 内部 | コアの幾何型を GDI+ の型へ変換する |
 | `DrawingLabelText` | 内部 | ラベルの文字の実寸測定と描画（測る API と描く API を同じ体裁設定にする） |
@@ -140,10 +140,6 @@ classDiagram
         +CopyRegion(source, x, y, width, height) Bitmap$
     }
 
-    class ClientPixelScale {
-        +Resolve(clientPixels, clientDip, fallback) double$
-    }
-
     class LoupePresenter {
         <<提示層>>
         +Options LoupeOptions
@@ -156,7 +152,7 @@ classDiagram
     LoupeControl --> LoupePresenter : 計画の解決
     LoupeControl ..> LoupeGraphicsPainter : 描画
     LoupeControl ..> DrawingLabelText : 実寸の測定
-    LoupeControl ..> ClientPixelScale : 倍率の解決
+    LoupeControl ..> DpiScaler : 倍率の解決（コア）
     LoupeControl ..> LoupeRenderedEventArgs : 通知
     LoupeGraphicsPainter ..> EsBitmapDrawingInterop : 切り出しの複製
     LoupeGraphicsPainter ..> DrawingLabelText : 文字の描画
@@ -204,7 +200,7 @@ sequenceDiagram
 | --- | --- |
 | 描画（`LoupeGraphicsPainter`） | `Bitmap` とその描画面で画素を検証する（層の順序・ペーストボード・拡大画像の切り出しと行幅・十字線・枠線・ラベル・描画面の状態の復帰・引数の検証） |
 | コントロール（`LoupeControl`） | **ハンドルを生成しない範囲**を検証する（既定値・安全域への補正・DIP ↔ 物理ピクセルの換算・表示レイアウトの解決・描画計画の解決と再解決の条件・ログ）。 描画はハンドル（ウィンドウ）を必要とするため対象外とする |
-| 内部ヘルパー | `ClientPixelScale`（倍率の解決）・`EsBitmapDrawingInterop`（切り出しの複製）・`EsGeometryDrawingInterop`（幾何の変換）・`DrawingLabelText`（実寸と描画）を個別に検証する |
+| 内部ヘルパー | `EsBitmapDrawingInterop`（切り出しの複製）・`EsGeometryDrawingInterop`（幾何の変換）・`DrawingLabelText`（実寸と描画）を個別に検証する |
 | イベント引数・ログ定義 | 保持する値と出力書式を検証する（`NullLogger` と実ロガーの両方で生成コードの両パスを通す） |
 
 ## 10. 未実装・今後の対応

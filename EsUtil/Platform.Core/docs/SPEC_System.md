@@ -86,11 +86,11 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorOverrideGuard.cs` | `ICursorOverrideGuard` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinGlobalHotKeyService.cs` | `IGlobalHotKeyService<T>` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicImageCodec.cs` | 画像のファイル保存・読み込みの実装（WIC。 Windows 専用。 画像型を名指しせず、公開面は画像型の `Save` / `Load`） |
-| `EsUtil/Platform.Core/src/Caching/CapacityLimitedCache.cs` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（4 つの UI 版とコントロールが使う） |
+| `EsUtil/Platform.Core/src/Caching/CapacityLimitedCache.cs` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（4 つの UI 版とコントロールが使う。 **各コントロールの `Internal/` に複製を置かない**。 破棄できる値は容量超過・`Clear` で破棄する） |
 | `EsUtil/Platform.Core/src/Svg/SvgIconSource.cs` ほか `src/Svg/` | SVG アイコンの読み込み元（埋め込みリソース・フォルダー・テキスト）と解析（`XDocument`）、パス データの解析、図形の画素への展開 |
 | `EsUtil/Platform.Core/src/Imaging/EsImageFileExtensions.cs` | 一覧に並べる画像ファイルの拡張子の判定（保存できる形式より広い） |
 | `EsUtil/Platform.Core/src/Coord/ScrollMath.cs` | スクロール範囲・ビューポートサイズの純粋計算とホイール 1 段のスクロール量（`WheelScrollUnit`） |
-| `EsUtil/Platform.Core/src/Coord/DpiScaler.cs` | DIP 値を物理ピクセルへ変換する純粋計算（DPI 基準値と DPI → スケーリング換算を含む） |
+| `EsUtil/Platform.Core/src/Coord/DpiScaler.cs` | DIP 値を物理ピクセルへ変換する純粋計算（DPI 基準値・DPI → スケーリング・ポイント換算 `ToPoint`・描画面の実測からの係数解決 `ResolveClientScale` を含む） |
 | `EsUtil/Platform.Core/src/Coord/CoordTransformExtensions.cs` | 座標変換ポート未設定（null）を等価変換として解決する |
 | `EsUtil/Platform.Core/src/Coord/ICoordTransform.cs` | ローカル DIP と対象座標の変換ポート（`ToSource` / `ToDip` / `SourceArea`） |
 | `EsUtil/Platform.Core/src/Coord/CoordTransform.cs` | 変換ポートの具象実装（`Func` 委譲・`Identity` / `ClientToSource`）。 **原点基準の等方スケーリングの純粋計算も単一所有する**（`MultiplyPoint` / `DividePoint` は internal） |
@@ -99,7 +99,11 @@ graph LR
 | `EsUtil/Platform.Core/src/Geometry/EsVector.cs` | UI フレームワーク非依存の 2 次元ベクター（`readonly record struct`。 `Length` / `LengthSquared` / `Normalize` / `Dot` / `Cross` / `Min` / `Max` / `Abs` / 四則演算） |
 | `EsUtil/Platform.Core/src/Geometry/EsRect.cs` | UI フレームワーク非依存の矩形（`readonly record struct`。 枠線の内側 4 辺 `ResolveInnerEdges`（配列版 `ComputeInnerEdges`）・領域内クランプ `ClampToArea`・重なり部分 `Intersect` / `Intersects`・`Union` / `CenterRect` / `Normalize`・区間の流儀 `Interval`）。 派生メソッドは座標・サイズを差し替えても `Interval` を引き継ぐ（`CenterRect` のみ引数の流儀を使う） |
 | `EsUtil/Platform.Core/src/Geometry/EsPointInt.cs` | UI フレームワーク非依存の整数座標（`EsPoint` の整数版。 丸めは `FromEsPoint` が単一所有する） |
-| `EsUtil/Platform.Core/src/Geometry/EsSizeInt.cs` | UI フレームワーク非依存の整数サイズ（`EsSize` の整数版。 `IsEmpty`（0 以下）と `FromEsSize`） |
+| `EsUtil/Platform.Core/src/Geometry/EsSizeInt.cs` | UI フレームワーク非依存の整数サイズ（`EsSize` の整数版。 `IsEmpty`（0 以下）と `FromEsSize`、表示用の `ToSizeText`） |
+| `EsUtil/Platform.Core/src/Geometry/EsRectIntJsonConverter.cs` | `EsRectInt` の JSON の保存形式（`X` / `Y` / `Width` / `Height` のみ。 未知のプロパティは無視し、欠落は 0）の単一所有者 |
+| `EsUtil/Platform.Core/src/Input/HotKeyParser.cs` | ホットキーの文字列（`"Ctrl + Shift + Q"`）の解釈（修飾キー 1 つ以上・キー名は `EnumCanonical` で解決） |
+| `EsUtil/Platform.Core/src/Window/EsWindowPlacementMath.cs` | ウィンドウ配置の規則と換算（復元可否・はみ出しの補正・枠の差し引き・DIP ⇔ 画面物理ピクセル）。 **OS を呼ばない** |
+| `EsUtil/Platform.Core/src/Native/Win/WinVirtualScreen.cs` | 全モニターを包含する仮想スクリーンの矩形の照会（`GetSystemMetrics`。 ウィンドウ表示前でも安全） |
 | `EsUtil/Platform.Core/src/Geometry/EsRectInt.cs` | UI フレームワーク非依存の整数矩形（`EsRect` の整数版。 `Contains` / `Intersects` / `Intersect` / `Union` / `Center` / `FromEsRect`） |
 | `EsUtil/Platform.Core/src/Geometry/EsAxis.cs` | レイアウト計算で扱う軸（`X` / `Y`）。 軸を `bool` で指定しないための列挙型 |
 | `EsUtil/Platform.Core/src/Geometry/EsRounding.cs` | 小数を整数へ丸める方法（`Truncate` / `Round` / `Ceiling`）。 丸め規則を整数型の変換へ集約するための列挙型 |

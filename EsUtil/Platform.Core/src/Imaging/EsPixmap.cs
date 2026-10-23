@@ -208,7 +208,7 @@ public sealed class EsPixmap : IDisposable
 
     /// <summary>ビューの寸法を「幅x高さ」形式の文字列で返す（ログ等への記録用）。</summary>
     /// <returns>寸法の文字列（例: <c>1000x800</c>）。</returns>
-    public string ToSizeText() => $"{Width}x{Height}";
+    public string ToSizeText() => Size.ToSizeText();
 
     /// <summary>破棄済みなら <see cref="ObjectDisposedException"/> を送出する。</summary>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>

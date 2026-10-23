@@ -678,7 +678,7 @@ public sealed class MarqueeControl : Control
     private double ResolveClientScaling(Graphics graphics)
     {
         var paintScaling = DpiScaler.ToScaling(graphics.DpiX);
-        return ClientPixelScale.Resolve(
+        return DpiScaler.ResolveClientScale(
             ClientSize.Width,
             DpiScaler.ToDip(ClientSize.Width, paintScaling),
             ClientToPixelScaling);

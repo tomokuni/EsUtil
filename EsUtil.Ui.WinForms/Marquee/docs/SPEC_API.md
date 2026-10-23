@@ -18,7 +18,7 @@
 - [6. 内部型（本アセンブリの実装）](#6-内部型本アセンブリの実装)
   - [6.1 `MarqueeGraphicsPainter`（内部）](#61-marqueegraphicspainter内部)
   - [6.2 `MarqueeLogMessage`（内部）](#62-marqueelogmessage内部)
-  - [6.3 `Internal.ClientPixelScale`（内部）](#63-internalclientpixelscale内部)
+  - [6.3 描画に使うスケーリング係数の解決（コア）](#63-描画に使うスケーリング係数の解決コア)
   - [6.4 `Internal.EsGeometryWinFormsInterop`（内部）](#64-internalesgeometrywinformsinterop内部)
   - [6.5 `Internal.EsKeyWinFormsInterop`（内部）](#65-internaleskeywinformsinterop内部)
   - [6.6 `Internal.GraphicsFill`（内部）](#66-internalgraphicsfill内部)
@@ -187,13 +187,14 @@
 | `Prefix` | 適用する接頭辞（`MarqueeControl.LogPrefix` が設定する）。 |
 | `LogOperationError(ILogger, Exception, string)` | 公開操作の例外を `Error` として記録する（出力書式は `[Marquee] {Operation} で例外が発生`）。 |
 
-### 6.3 `Internal.ClientPixelScale`（内部）
+### 6.3 描画に使うスケーリング係数の解決（コア）
 
-描画面（物理ピクセル）と表示領域（DIP）から、描画に使うスケーリング係数を解決します。
+描画面（物理ピクセル）と表示領域（DIP）から描画に使う倍率を求める処理は
+**`EsUtil.Platform.Core.Coord.DpiScaler.ResolveClientScale` が単一所有**します（2026-10-23 に各 UI が持っていた `internal` の複製を削除）。
 
 | メソッド | 説明 |
 | --- | --- |
-| `Resolve(double clientPixels, double clientDip, double fallback)` | 表示領域が確定していれば `clientPixels ÷ clientDip` を、未確定（0 以下）なら `fallback` を返す。 結果は 0.1〜8.0 へ補正する。 |
+| `ResolveClientScale(double clientPixels, double clientDip, double fallback)` | 表示領域が確定していれば `clientPixels ÷ clientDip` を、未確定（0 以下）なら `fallback` を返す。 結果は基準値へ補正する。 |
 
 ### 6.4 `Internal.EsGeometryWinFormsInterop`（内部）
 

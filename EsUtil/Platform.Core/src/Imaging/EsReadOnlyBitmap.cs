@@ -534,7 +534,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <returns>寸法の文字列（例: <c>1920x1080</c>）。 ピクセルを持たない場合は <c>0x0</c>。</returns>
     /// <remarks>書式を本面が単一所有する（実装ごとに書式を持つと、同じ画像が経路によって違う文字列で記録される）。
     /// 未設定（null）の扱いは書式ではないため面は持ちず、記録する側が決める（例: <c>image?.ToSizeText() ?? "null"</c>）。</remarks>
-    public string ToSizeText() => $"{Width}x{Height}";
+    public string ToSizeText() => Size.ToSizeText();
 
     /// <summary>破棄済みなら <see cref="ObjectDisposedException"/> を送出する。</summary>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
