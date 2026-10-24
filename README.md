@@ -142,11 +142,11 @@ pwsh -NoProfile -File buildScript/verify.ps1
 | 共通基盤・機能層（`EsUtil.Platform.Core*` / `EsUtil.Feature.*`） | **互換** | COM・P/Invoke を `[GeneratedComInterface]` / `[LibraryImport]`（ソース生成）だけで呼ぶ（AOT での動作を `Platform.Core` の仕様書が実測記録） |
 | Avalonia UI 層（Loupe / Marquee / Thumbnail） | **互換** | サンプルを AOT で発行し、起動を確認 |
 | MewUI 層（Loupe / Marquee / Thumbnail） | **互換** | 同上 |
-| WinUI 3 層（Loupe / Thumbnail） | **互換** | 同上（Windows App SDK 1.6 以降が Native AOT に対応） |
-| WinUI 3 層（Marquee） | **非対応** | AOT で発行した配布物が起動時に `0xC000027B`（`E_INVALIDARG`）で終了する（非 AOT では起動する。 原因は未特定） |
+| WinUI 3 層（Loupe / Marquee / Thumbnail） | **互換** | 同上（Windows App SDK 1.6 以降が Native AOT に対応） |
 | WinForms 層 | **非対応** | **Windows Forms 自体がトリミング/AOT に対応しない**（`PublishAot` は `NETSDK1175` で失敗する） |
 
-- **`IsAotCompatible` を設定するのは AOT で動くことを実測できた層だけです**（設定すると `IsTrimmable` のメタデータが埋め込まれ、消費者へ「トリム/AOT で使える」と宣言することになるため）。 実測で動かない層（WinUI 3 の Marquee・WinForms）は**宣言せず**、解析だけを有効にします（`EnableAotAnalyzer` / `EnableTrimAnalyzer`。 WinForms は解析も意味を持たないため付けません）。
+- **`IsAotCompatible` を設定するのは AOT で動くことを実測できた層だけです**（設定すると `IsTrimmable` のメタデータが埋め込まれ、消費者へ「トリム/AOT で使える」と宣言することになるため）。 WinForms 層は宣言も解析も付けません（AOT に対応しないため）。
+- **WinUI 3 + Native AOT では managed コレクションを `ItemsSource` に渡せません**（`E_INVALIDARG`。 実測 2026-10-24: `ObservableCollection<string>` / `List<string>` / `string[]` のいずれも失敗し、`Items.Add(文字列)` は成功する。 CsWinRT が AOT で managed オブジェクトの COM ラッパーを作れないため）。 一覧へは 1 件ずつ `Items.Add` で渡してください。
 - **WinUI 3 のサンプルは `EnableMsixTooling=true` を持ちます**（これが無いと `dotnet publish` が自分自身の `.pri` を発行せず、配布物が起動時に `0xC000027B` で終了します）。
 - **言語**: C# 14 / .NET 10。
 - **プラットフォーム**: Windows のみ（`EsUtil.Platform.Core/src/Native/Win` 配下が Win32 / WIC を呼びます。 UI 非依存の計算層は他 OS でも動きます）。

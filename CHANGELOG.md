@@ -35,12 +35,13 @@
 - `EnumCanonical.TryParse<TTarget>(string, out TTarget)` が失敗時に未定義値（例: `"999"` → `(EsKey)999`）を `out` に残していたのを `default` へ戻すよう修正しました。
 - 各 UI 版の設定画面で、ホットキー入力の解釈と「未設定」の表現を窓口へ統一しました。
 - **WinUI 3 のサンプルを `dotnet publish` した配布物が起動時に `0xC000027B` で終了していた**のを修正しました（`EnableMsixTooling` が無く、自分自身の `.pri` が発行されていませんでした）。
-- **`IsAotCompatible` の宣言を実際に AOT で動く層だけへ限定しました**。 WinForms 層は宣言を外し（Windows Forms 自体が AOT/トリミング非対応で `NETSDK1175` になります）、WinUI 3 の Marquee は解析だけを有効にしています（AOT で発行した配布物が起動時に失敗するため。 原因は調査中）。
+- **`IsAotCompatible` の宣言を実際に AOT で動く層だけへ限定しました**。 WinForms 層は宣言を外しています（Windows Forms 自体が AOT/トリミング非対応で `NETSDK1175` になります）。
+- **WinUI 3 の Marquee のサンプルが Native AOT で起動しなかった**のを修正しました。 原因は `ItemsSource` へ managed コレクションを渡していたことで（AOT では CsWinRT が COM ラッパーを作れず `E_INVALIDARG`）、`Items.Add` で 1 件ずつ渡すよう変更しました。
 
 ### 既知の制限
 
-- `EsUtil.Ui.WinUI3.Marquee`: Native AOT で発行した配布物が起動時に `0xC000027B`（`E_INVALIDARG`）で終了します（非 AOT では動作します。 実測 2026-10-24。 原因は未特定）。
 - `EsUtil.Ui.WinForms.*`: Windows Forms がトリミング/AOT に対応しないため、Native AOT では使用できません。
+- **WinUI 3 + Native AOT では managed コレクションを `ItemsSource` に渡せません**（`Items.Add` を使う。 ライブラリ側ではなく WinRT の制約です）。
 
 ## 公開前の版（0.x）
 

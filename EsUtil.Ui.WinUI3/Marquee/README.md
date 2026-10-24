@@ -56,6 +56,7 @@
 | UI フレームワーク | WinUI 3（Windows App SDK 1.x。 パッケージ参照 `Microsoft.WindowsAppSDK`） |
 | 描画 | WinUI 3 の要素（`Microsoft.UI.Xaml.Shapes.Rectangle`）と Composition の描画面（SkiaSharp を使わない） |
 | プラットフォーム | x64 / x86 / arm64（アンパッケージで自己完結配置する場合は対象アーキテクチャの明示が必要です） |
+| Native AOT | 対応（AOT で発行したサンプルが起動することを実測）。 ただし AOT では managed コレクションを `ItemsSource` へ渡せない（`Items.Add` を使う） |
 
 ---
 
@@ -205,7 +206,6 @@ MarqueeControl は 3 つの座標系を使い分けます。
 - **`ScrollViewer` に相当する自動連携**: 行わない（ビューポートの変化はホストが検知して `InvalidateRender()` を呼ぶ）。
 - **マウスダウン・アップ専用のイベント**: 持たない（生のポインター入力は基底クラスのイベントで観測する。 本コントロールは選択の解釈だけを公開する）。
 - **フォーカス非依存の矢印キー nudge**: 行わない（コントロールにフォーカスがある間だけキーが届く）。
-- **Native AOT**: 未対応（AOT で発行した配布物が起動時に失敗する。 実測 2026-10-24。 Loupe / Thumbnail の WinUI 3 版は AOT で起動することを実測済み）。
 
 ---
 

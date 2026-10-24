@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using EsUtil.Ui.WinUI3.Marquee.Sample.Logging;
 using EsUtil.Ui.WinUI3.Marquee.Sample.Presentation;
 using EsUtil.Platform.Core.Coord;
@@ -39,9 +38,6 @@ public sealed partial class MainWindow : Window
     /// <summary>表示倍率の選択肢（対象座標 / ローカル DIP）。</summary>
     private static readonly double[] s_zoomChoices = [0.5, 1.0, 1.5, 2.0];
 
-    /// <summary>ログ表示の行。</summary>
-    private readonly ObservableCollection<string> _logLines = [];
-
     /// <summary>コントロールへ設定するロガー（画面のログ表示へ出力する）。</summary>
     private readonly InMemoryLogger _logger;
 
@@ -57,7 +53,6 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
 
         _logger = new InMemoryLogger(AppendLog);
-        LogList.ItemsSource = _logLines;
 
         ConfigureZoomSelector();
         ConfigureCommands();
@@ -71,7 +66,11 @@ public sealed partial class MainWindow : Window
     /// <summary>表示倍率の選択肢を設定する。</summary>
     private void ConfigureZoomSelector()
     {
-        ScaleSelector.ItemsSource = s_zoomChoices.Select(static zoom => $"{zoom:0.0} 倍").ToList();
+        // 項目は 1 件ずつ渡す（ItemsSource は Native AOT で失敗する。 AppendLog の注記を参照）。
+        foreach (var zoom in s_zoomChoices)
+        {
+            ScaleSelector.Items.Add($"{zoom:0.0} 倍");
+        }
         ScaleSelector.SelectedIndex = Array.IndexOf(s_zoomChoices, _zoom);
         ScaleSelector.SelectionChanged += OnScaleChanged;
     }
@@ -200,15 +199,17 @@ public sealed partial class MainWindow : Window
 
     /// <summary>ログ表示へ 1 行追加する。</summary>
     /// <param name="line">追加する行。</param>
-    /// <remarks>表示は直近の <see cref="MaxLogLines"/> 行だけを保つ（際限なく増やさない）。</remarks>
+    /// <remarks>表示は直近の <see cref="MaxLogLines"/> 行だけを保つ（際限なく増やさない）。<br/>
+    /// <b>1 件ずつ渡す</b>: Native AOT では CsWinRT が managed コレクションの COM ラッパーを作れず、
+    /// <c>ItemsSource</c> へコレクションを渡すと <c>E_INVALIDARG</c> で失敗する（実測 2026-10-24）。</remarks>
     private void AppendLog(string line)
     {
-        _logLines.Add(line);
-        while (_logLines.Count > MaxLogLines)
+        LogList.Items.Add(line);
+        while (LogList.Items.Count > MaxLogLines)
         {
-            _logLines.RemoveAt(0);
+            LogList.Items.RemoveAt(0);
         }
 
-        LogList.ScrollIntoView(_logLines[^1]);
+        LogList.ScrollIntoView(line);
     }
 }

@@ -156,7 +156,7 @@
 | ポインター キャプチャ | コアからの要求で取得・解放します（押下時に記録したポインターを使います） |
 | 描画倍率 | 描画面の実寸 ÷ 割り当て領域で実測し、XAML のルートの変化にも追従します |
 | `IsPointerOver` | `UIElement` が公開しないため、ポインターの進入・退出からコントロールが保持します（他 UI 版は基底クラスの `IsMouseOver` / `IsPointerOver` を使います） |
-| Native AOT | **未対応**です（`dotnet publish -p:PublishAot=true -r win-x64` は成功しますが、配布物が起動時に `0xC000027B`（`E_INVALIDARG`）で終了します。 実測 2026-10-24）。 トリム/AOT の解析警告は 0 件のため、原因は実行時の XAML / WinRT 解決と考えられます（未特定） |
+| Native AOT | **対応**です（AOT で発行した配布物が起動することを実測 2026-10-24）。 ただし **AOT では managed コレクションを `ItemsSource` へ渡せません**（CsWinRT が AOT で managed オブジェクトの COM ラッパーを作れず `E_INVALIDARG` になります。 `Items.Add` で 1 件ずつ渡してください） |
 
 ## 10. 使用例
 

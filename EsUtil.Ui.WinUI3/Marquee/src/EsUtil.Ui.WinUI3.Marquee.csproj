@@ -10,11 +10,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- ウィンドウ座標の変換（CsWin32 が生成する Win32 の宣言）で unsafe を使う -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <!-- Native AOT で発行したサンプルの配布物が起動時に失敗するため（実測 2026-10-24）、
-         AOT 互換の宣言（IsTrimmable のメタデータ）はしない。 解析（トリム/AOT 警告）だけを有効にして
-         未対応 API の混入を防ぐ（契約は .github/ビルド設定規約.md §6.1）。 -->
-    <EnableAotAnalyzer>true</EnableAotAnalyzer>
-    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する。 実測 2026-10-24: 警告 0）。
+         本コントロールを AOT で発行したサンプルが起動することを確認済み（失敗していたのはサンプルの
+         `ItemsSource` の使い方であり、コントロール側の問題ではなかった）。 -->
+    <IsAotCompatible>true</IsAotCompatible>
     <Description>マーキーの WinUI 3 版コントロール。</Description>
   </PropertyGroup>
 

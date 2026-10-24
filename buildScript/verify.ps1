@@ -283,6 +283,18 @@ foreach ($hit in @(git -c core.quotepath=false grep --untracked -n -E '\bIsEnabl
 Add-Result 'ログの有効判定' ($callSiteGates.Count -eq 0) "呼び出し側の IsEnabled $($callSiteGates.Count) 件"
 $callSiteGates | Select-Object -First 8 | ForEach-Object { "      $_" }
 
+# 2d) WinUI 3 + Native AOT で起動できる形を保つ（managed コレクションを ItemsSource へ渡さない）
+#     WinRT へ managed コレクションを渡すと、AOT では CsWinRT が COM ラッパーを作れず
+#     起動時に `E_INVALIDARG`（0xC000027B）で落ちる（実測 2026-10-24）。 一覧へは `Items.Add` で 1 件ずつ渡す
+#     （規則の所有者は .github/ビルド設定規約.md §6.1）。
+$itemsSourceAssignments = [System.Collections.Generic.List[string]]::new()
+foreach ($hit in @(git -c core.quotepath=false grep --untracked -n -E '\.ItemsSource\s*=' -- 'EsUtil.Ui.WinUI3' 2>$null)) {
+    if ($hit -match '\\tests\\' -or $hit -match '/tests/') { continue }
+    $itemsSourceAssignments.Add($hit)
+}
+Add-Result 'WinUI 3 の AOT 制約' ($itemsSourceAssignments.Count -eq 0) "ItemsSource への代入 $($itemsSourceAssignments.Count) 件"
+$itemsSourceAssignments | Select-Object -First 8 | ForEach-Object { "      $_" }
+
 # ============================================================
 # 3. テスト（全件合格。 -Coverage でカバレッジも集計する）
 # ============================================================
