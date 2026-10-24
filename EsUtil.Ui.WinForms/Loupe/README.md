@@ -45,6 +45,7 @@
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.17763.0`（`UseWindowsForms`。 Windows 専用） |
 | 描画 API | GDI+（`System.Drawing`。 **SkiaSharp を使わない**） |
+| Native AOT | 非対応（Windows Forms 自体がトリミング/AOT に対応しない。 `PublishAot` は `NETSDK1175` で失敗する） |
 | 評価版の制限 | なし（パッケージは `EsUtil.Feature.Loupe.Presenter` / `EsUtil.Platform.Core` と `Microsoft.Extensions.Logging.Abstractions` のみを参照する） |
 
 **SkiaSharp を使わない理由**: `SkiaSharp.Views.WindowsForms`（4.153.1）は `net10.0-windows10.0.19041` 向けの資産を持ち、`net10.0-windows10.0.17763.0`（= `net10.0-windows7.0`）では .NET Framework 向けの資産へフォールバックして復元に失敗します（実測: `NU1701`）。 対象フレームワークの方針（WinForms は Windows の版を含めない）と併せ、本プロジェクトは WinForms 自身の描画 API（GDI+）で描きます。

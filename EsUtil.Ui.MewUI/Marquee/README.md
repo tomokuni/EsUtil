@@ -50,6 +50,7 @@
 | 対象フレームワーク | `net10.0-windows10.0.17763.0` |
 | UI フレームワーク | MewUI 0.21.1（`MewUIVersion` プロパティで固定） |
 | 言語 | C# 14（.NET 10） |
+| Native AOT | 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測） |
 
 ---
 

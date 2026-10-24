@@ -54,6 +54,7 @@
 | 対象フレームワーク | `net10.0` |
 | UI フレームワーク | Avalonia 12.1 以降 |
 | 言語 | C# 14（.NET 10） |
+| Native AOT | 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測） |
 
 ---
 

@@ -61,6 +61,7 @@ Avalonia UI 用のリサイズ可能な領域選択コントロールです。 �
 - .NET 10
 - Avalonia 12.1 以降
 - C# 14
+- **Native AOT**: 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測）
 
 ---
 

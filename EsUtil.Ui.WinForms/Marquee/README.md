@@ -52,6 +52,7 @@
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.17763.0`（`UseWindowsForms`。 Windows 専用） |
 | 描画 API | GDI+（`System.Drawing`） |
+| Native AOT | 非対応（Windows Forms 自体がトリミング/AOT に対応しない。 `PublishAot` は `NETSDK1175` で失敗する） |
 | 言語 | C# 14（.NET 10） |
 
 ---

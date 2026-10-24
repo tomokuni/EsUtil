@@ -12,6 +12,10 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- アンパッケージ（MSIX なし）で起動できるようにする。 規則は .github/ビルド設定規約.md §5。 -->
+    <!-- publish のときだけ必要な指定（ビルドとテストには影響しない）。
+         これを付けないと publish が自分自身の .pri（リソース インデックス）を発行せず、
+         配布物の起動時に XAML の読み込みが失敗して 0xC000027B（stowed exception）で終了する（実測 2026-10-24）。 -->
+    <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <!-- Windows App SDK の自己完結配置は Windows のアーキテクチャ指定を要求する
@@ -22,7 +26,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SkiaSharp.Views.WinUI" Version="[3.*,4.0.0)" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
   </ItemGroup>
 

@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4.svg)](https://dotnet.microsoft.com/)
-[![Native AOT](https://img.shields.io/badge/Native%20AOT-compatible-brightgreen.svg)](#5-対応フレームワークと-native-aot)
+[![Native AOT](https://img.shields.io/badge/Native%20AOT-compatible%20(except%20WinForms)-brightgreen.svg)](#5-対応フレームワークと-native-aot)
 [![verify](https://img.shields.io/badge/verify-buildScript%2Fverify.ps1-informational.svg)](buildScript/verify.ps1)
 
 複数の Windows デスクトップ アプリで使い回す **UI 非依存の共通基盤** と、**再利用可能な UI コントロール** を提供するライブラリ群です。 Avalonia UI / MewUI / WinUI 3 / WinForms の 4 つの UI 実装で、同じ計算結果と同じ見た目のコントロールを共有できます。
@@ -135,7 +135,19 @@ pwsh -NoProfile -File buildScript/verify.ps1
 | 共通基盤・機能層（`EsUtil.Platform.Core*` / `EsUtil.Feature.*`） | `net10.0`（`Platform.Core` は OS 依存の実装を含むため Windows 10 1809 以降） |
 | UI 層（`EsUtil.Ui.*`） | `net10.0` / `net10.0-windows10.0.17763.0`（UI フレームワークの要件に従う） |
 
-- **全パッケージが Native AOT 互換です**（`IsAotCompatible=true`。 トリム/AOT の解析警告が 0 件であることをビルドで検査している）。
+- **Native AOT への対応は層によって異なります**（`IsAotCompatible=true` は「そのアセンブリを AOT で発行して動かせる」ことの宣言です。 実測 2026-10-24: 各層のサンプルを `dotnet publish -p:PublishAot=true -r win-x64` で発行し、起動を確認）。
+
+| 層 | Native AOT | 根拠（実測） |
+| --- | --- | --- |
+| 共通基盤・機能層（`EsUtil.Platform.Core*` / `EsUtil.Feature.*`） | **互換** | COM・P/Invoke を `[GeneratedComInterface]` / `[LibraryImport]`（ソース生成）だけで呼ぶ（AOT での動作を `Platform.Core` の仕様書が実測記録） |
+| Avalonia UI 層（Loupe / Marquee / Thumbnail） | **互換** | サンプルを AOT で発行し、起動を確認 |
+| MewUI 層（Loupe / Marquee / Thumbnail） | **互換** | 同上 |
+| WinUI 3 層（Loupe / Thumbnail） | **互換** | 同上（Windows App SDK 1.6 以降が Native AOT に対応） |
+| WinUI 3 層（Marquee） | **非対応** | AOT で発行した配布物が起動時に `0xC000027B`（`E_INVALIDARG`）で終了する（非 AOT では起動する。 原因は未特定） |
+| WinForms 層 | **非対応** | **Windows Forms 自体がトリミング/AOT に対応しない**（`PublishAot` は `NETSDK1175` で失敗する） |
+
+- **`IsAotCompatible` を設定するのは AOT で動くことを実測できた層だけです**（設定すると `IsTrimmable` のメタデータが埋め込まれ、消費者へ「トリム/AOT で使える」と宣言することになるため）。 実測で動かない層（WinUI 3 の Marquee・WinForms）は**宣言せず**、解析だけを有効にします（`EnableAotAnalyzer` / `EnableTrimAnalyzer`。 WinForms は解析も意味を持たないため付けません）。
+- **WinUI 3 のサンプルは `EnableMsixTooling=true` を持ちます**（これが無いと `dotnet publish` が自分自身の `.pri` を発行せず、配布物が起動時に `0xC000027B` で終了します）。
 - **言語**: C# 14 / .NET 10。
 - **プラットフォーム**: Windows のみ（`EsUtil.Platform.Core/src/Native/Win` 配下が Win32 / WIC を呼びます。 UI 非依存の計算層は他 OS でも動きます）。
 - シンボル パッケージ（`.snupkg`）を同梱し、SourceLink でリポジトリの該当コミットへ辿れます。

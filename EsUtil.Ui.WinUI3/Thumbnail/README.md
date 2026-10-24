@@ -57,6 +57,7 @@
 | 対象フレームワーク | `net10.0-windows10.0.22621.0`（Windows App SDK 1.x） |
 | 対応 OS | Windows 10 バージョン 2004（ビルド 19041）以降 |
 | 言語 | C# 14（.NET 10） |
+| Native AOT | 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測） |
 
 ---
 
