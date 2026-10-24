@@ -299,7 +299,23 @@ public sealed class LoupeControl : Panel
     {
         /// <summary>親の描画手順へ委譲する。</summary>
         /// <param name="context">描画先のコンテキスト。</param>
-        protected override void OnRender(IGraphicsContext context) => owner.Paint(context);
+        /// <remarks>
+        /// <b>描画コンテキストはウィンドウ絶対座標である</b>（要素の左上は (0, 0) ではない）。 親の描画手順は
+        /// 自領域の座標で描くため、ここで自領域の左上へ原点を移してから委譲する（兄弟の描画へ漏らさない）。
+        /// </remarks>
+        protected override void OnRender(IGraphicsContext context)
+        {
+            context.Save();
+            context.Translate(Bounds.X, Bounds.Y);
+            try
+            {
+                owner.Paint(context);
+            }
+            finally
+            {
+                context.Restore();
+            }
+        }
     }
 
     /// <summary>ルーペの描画完了を通知するイベント（描画先キャンバスと描画計画を渡す）。</summary>

@@ -26,6 +26,9 @@ public sealed partial class ColorComboBoxControl : Grid
     /// <summary>スウォッチの一辺（DIP）。</summary>
     private const double SwatchSize = 16.0;
 
+    /// <summary>スウォッチと入力欄の左端・文字との間の余白（DIP）。</summary>
+    private const double SwatchGap = 6.0;
+
     /// <summary>テキスト入力の最小幅（DIP）。</summary>
     private const double TextBoxMinWidth = 120.0;
 
@@ -57,10 +60,26 @@ public sealed partial class ColorComboBoxControl : Grid
     };
 
     /// <summary>一覧のポップアップ。</summary>
-    private readonly Flyout _listFlyout = new() { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
+    /// <summary>一覧のポップアップ（アプリのウィンドウ外へはみ出してよい）。</summary>
+    private readonly Flyout _listFlyout = new()
+    {
+        Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft,
+
+        // ウィンドウの内側へ押し戻すと、狭いウィンドウで一覧が極端に短くなる（はみ出してよい）
+        ShouldConstrainToRootBounds = false,
+    };
 
     /// <summary>ピッカーのポップアップ。</summary>
-    private readonly Flyout _pickerFlyout = new() { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
+    /// <summary>ピッカーのポップアップ（アプリのウィンドウ外へはみ出してよい。 スクロールさせない）。</summary>
+    private readonly Flyout _pickerFlyout = new()
+    {
+        Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft,
+
+        // ピッカーは 1 画面に収まる大きさであり、スクロールさせると操作しにくい（はみ出して全体を見せる）。
+        // FlyoutPresenter の既定は高さを制限して ScrollViewer を入れるため、上限を外してスクロールを切る
+        ShouldConstrainToRootBounds = false,
+        FlyoutPresenterStyle = CreatePickerPresenterStyle(),
+    };
 
     /// <summary>入力と状態の往復でイベントが循環するのを防ぐ。</summary>
     private bool _applying;
@@ -83,11 +102,11 @@ public sealed partial class ColorComboBoxControl : Grid
     /// <summary>コントロールを生成する。</summary>
     public ColorComboBoxControl()
     {
-        ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        // テキスト部（スウォッチを含む）・一覧ボタン・ピッカーボタンを隙間なく並べる（1 つの入力欄に見せる）
         ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        ColumnSpacing = 6;
+        ColumnSpacing = 0;
 
         _swatch = new Border
         {
@@ -98,20 +117,27 @@ public sealed partial class ColorComboBoxControl : Grid
             VerticalAlignment = VerticalAlignment.Center,
             Background = new SolidColorBrush(Colors.White),
         };
-        SetColumn(_swatch, 0);
-        Children.Add(_swatch);
-
         _text.TextChanged += OnTextChanged;
         _text.LostFocus += OnTextLostFocus;
-        SetColumn(_text, 1);
-        Children.Add(_text);
+
+        // 入力欄の中で文字が重ならないよう、スウォッチの幅 + 余白だけ左を空ける
+        _text.Padding = new Thickness(SwatchSize + SwatchGap, 0, 0, 0);
+
+        // スウォッチは入力欄の内側へ重ねる（同じセルに置き、入力欄の背面に敷く）
+        var textArea = new Grid();
+        textArea.Children.Add(_text);
+        textArea.Children.Add(_swatch);
+        _swatch.HorizontalAlignment = HorizontalAlignment.Left;
+        _swatch.Margin = new Thickness(SwatchGap, 0, 0, 0);
+        SetColumn(textArea, 0);
+        Children.Add(textArea);
 
         _listButton.Click += (_, _) => _listFlyout.ShowAt(_listButton);
-        SetColumn(_listButton, 2);
+        SetColumn(_listButton, 1);
         Children.Add(_listButton);
 
         _pickerButton.Click += (_, _) => ShowPicker();
-        SetColumn(_pickerButton, 3);
+        SetColumn(_pickerButton, 2);
         Children.Add(_pickerButton);
 
         _list.SelectionChanged += OnListSelectionChanged;
@@ -177,6 +203,20 @@ public sealed partial class ColorComboBoxControl : Grid
     }
 
     /// <summary>ピッカーのポップアップを組み立てる。</summary>
+    /// <summary>ピッカーのポップアップの表示スタイルを作る（高さの上限を外し、スクロールさせない）。</summary>
+    /// <returns>FlyoutPresenter のスタイル。</returns>
+    /// <remarks>
+    /// <see cref="FlyoutPresenter"/> の既定スタイルは高さを制限し、内容を <c>ScrollViewer</c> に入れる。
+    /// ピッカーは 1 画面に収まるため、上限を外してスクロールを切る（ウィンドウ外へはみ出して全体を見せる）。
+    /// </remarks>
+    private static Style CreatePickerPresenterStyle()
+    {
+        var style = new Style(typeof(FlyoutPresenter));
+        style.Setters.Add(new Setter(FrameworkElement.MaxHeightProperty, double.PositiveInfinity));
+        style.Setters.Add(new Setter(ScrollViewer.VerticalScrollBarVisibilityProperty, ScrollBarVisibility.Disabled));
+        style.Setters.Add(new Setter(ScrollViewer.VerticalScrollModeProperty, ScrollMode.Disabled));
+        return style;
+    }
     private void BuildPickerFlyout()
     {
         var ok = new Button { Content = "OK" };

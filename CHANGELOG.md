@@ -48,6 +48,10 @@
 - **`IsAotCompatible` の宣言を実際に AOT で動く層だけへ限定しました**。 WinForms 層は宣言を外しています（Windows Forms 自体が AOT/トリミング非対応で `NETSDK1175` になります）。
 - **WinUI 3 の Marquee のサンプルが Native AOT で起動しなかった**のを修正しました。 原因は `ItemsSource` へ managed コレクションを渡していたことで（AOT では CsWinRT が COM ラッパーを作れず `E_INVALIDARG`）、`Items.Add` で 1 件ずつ渡すよう変更しました。
 
+- **MewUI の `Marquee` / `Loupe` が自分の位置を無視して描画していた**のを修正しました。 MewUI の描画コンテキストは**ウィンドウ絶対座標**（要素の左上は (0, 0) ではない）であるため、描画の前に自領域の左上へ原点を移します。 併せて `Clear` の使用をやめました（`Clear` は**描画面全体**を消すため、兄弟の要素まで消えていました。 実測 2026-10-24）。
+- **WinUI 3 の `CompositionImageView` が `SetBounds` を呼ばない使い方で画像を表示しなかった**のを修正しました（スプライトの大きさが 0×0 のままでした。 割り当てられた大きさへ追従させます）。
+- **`ColorComboBox`（Avalonia / MewUI / WinUI 3）の見た目を揃えました**: スウォッチ・入力欄・一覧ボタン・ピッカーボタンの間隔を無くし、スウォッチを入力欄の内側へ入れました。 WinUI 3 版のポップアップは**ウィンドウの外へはみ出せる**ようにし（`ShouldConstrainToRootBounds = false`）、ピッカーのポップアップは高さの上限を外して**スクロールしない**ようにしました。
+
 ### 既知の制限
 
 - `EsUtil.Ui.WinForms.*`: Windows Forms がトリミング/AOT に対応しないため、Native AOT では使用できません。

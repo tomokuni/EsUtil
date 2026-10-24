@@ -24,6 +24,9 @@ public sealed class ColorComboBoxControl : Grid
     /// <summary>スウォッチの一辺（DIP）。</summary>
     private const double SwatchSize = 16.0;
 
+    /// <summary>スウォッチと入力欄の左端・文字との間の余白（DIP）。</summary>
+    private const double SwatchGap = 6.0;
+
     /// <summary>テキスト入力の最小幅（DIP）。</summary>
     private const double TextBoxMinWidth = 120.0;
 
@@ -117,8 +120,17 @@ public sealed class ColorComboBoxControl : Grid
         _pickerPopup.Content(pickerBody);
         _pickerPopup.Closed += (_, _) => _pickerButton.Content("…");
 
-        var row = new StackPanel().Horizontal().Spacing(6);
-        row.Children(_swatch, _text, _listButton, _pickerButton);
+        // スウォッチは入力欄の内側へ重ねる（同じセルに置き、文字が重ならないよう左を空ける）
+        _swatch.HorizontalAlignment = HorizontalAlignment.Left;
+        _swatch.Margin = new Thickness(SwatchGap, 0, 0, 0);
+        _text.Padding = new Thickness(SwatchSize + SwatchGap, 0, 0, 0);
+        var textArea = new Grid();
+        textArea.Add(_text);
+        textArea.Add(_swatch);
+
+        // テキスト部・一覧ボタン・ピッカーボタンを隙間なく並べる（1 つの入力欄に見せる）
+        var row = new StackPanel().Horizontal().Spacing(0);
+        row.Children(textArea, _listButton, _pickerButton);
         Add(row);
 
         RefreshList();

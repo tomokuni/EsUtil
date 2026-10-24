@@ -54,6 +54,10 @@ public sealed partial class CompositionImageView : Grid
         _sprite = compositor.CreateSpriteVisual();
         _sprite.IsVisible = false;
         ElementCompositionPreview.SetElementChildVisual(this, _sprite);
+
+        // スプライトは自動では大きさを持たない（0x0 のままでは何も表示されない）。
+        // 割り当てられた大きさへ常に追従させる（SetBounds を呼ばずに領域いっぱいへ敷く使い方を許す）
+        SizeChanged += (_, e) => ApplySize(e.NewSize.Width, e.NewSize.Height);
     }
 
     /// <summary>表示する画像を取得または設定する。</summary>
@@ -171,9 +175,19 @@ public sealed partial class CompositionImageView : Grid
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
 
-        if (_sprite.Size.X != (float)bounds.Width || _sprite.Size.Y != (float)bounds.Height)
+        ApplySize(bounds.Width, bounds.Height);
+    }
+
+    /// <summary>スプライトの大きさを設定する（表示領域と一致させる）。</summary>
+    /// <param name="width">幅（DIP）。</param>
+    /// <param name="height">高さ（DIP）。</param>
+    /// <remarks>大きさが変わらない場合は何もしない（毎フレームの再設定を避ける）。</remarks>
+    private void ApplySize(double width, double height)
+    {
+        var size = new Vector2((float)Math.Max(0, width), (float)Math.Max(0, height));
+        if (_sprite.Size != size)
         {
-            _sprite.Size = new Vector2((float)bounds.Width, (float)bounds.Height);
+            _sprite.Size = size;
         }
     }
 

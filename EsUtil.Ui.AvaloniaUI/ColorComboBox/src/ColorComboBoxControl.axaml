@@ -16,7 +16,7 @@
             <Setter Property="BorderBrush" Value="Red"/>
         </Style>
     </UserControl.Styles>
-    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="3">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="0">
         <!-- ComboBox はデフォルトテーマを維持 -->
         <Grid>
             <ComboBox x:Name="_comboBox"
@@ -25,6 +25,7 @@
                       MinWidth="{Binding ComboBoxMinWidth, ElementName=PART_Root}"
                       MaxWidth="{Binding ComboBoxMaxWidth, ElementName=PART_Root}"
                       Width="{Binding ComboBoxWidth, ElementName=PART_Root}"
+                      Padding="30,0,0,0"
                       HorizontalAlignment="Stretch"
                       SelectionChanged="OnSelectionChanged"
                       LostFocus="OnLostFocus"

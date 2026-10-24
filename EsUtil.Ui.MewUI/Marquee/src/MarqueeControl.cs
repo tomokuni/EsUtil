@@ -178,7 +178,23 @@ public sealed class MarqueeControl : Panel
     {
         /// <summary>親の描画手順へ委譲する。</summary>
         /// <param name="context">描画先のコンテキスト。</param>
-        protected override void OnRender(IGraphicsContext context) => owner.Paint(context);
+        /// <remarks>
+        /// <b>描画コンテキストはウィンドウ絶対座標である</b>（要素の左上は (0, 0) ではない）。 親の描画手順は
+        /// 自領域の座標で描くため、ここで自領域の左上へ原点を移してから委譲する（兄弟の描画へ漏らさない）。
+        /// </remarks>
+        protected override void OnRender(IGraphicsContext context)
+        {
+            context.Save();
+            context.Translate(Bounds.X, Bounds.Y);
+            try
+            {
+                owner.Paint(context);
+            }
+            finally
+            {
+                context.Restore();
+            }
+        }
     }
     /// <summary>ドラッグの始点が決定されたときに発火する（新規選択のドラッグ開始。 座標は対象座標）。</summary>
     public event EventHandler<MarqueePointEventArgs>? SelectionStarted;
@@ -919,9 +935,8 @@ public sealed class MarqueeControl : Panel
     {
         var scaling = DpiScaler.NormalizeScaling(context.DpiScale);
 
-        // 前フレームの描画（選択矩形・暗転マスク）を残さないため、自分の描画面を消してから描く
-        // （コンテキストは DIP 座標で描けるため、消去の後は DIP のまま描く）
-        context.Clear(Color.Transparent);
+        // 前フレームの描画は残らない（MewUI はフレームごとに要素を描き直す）。
+        // Clear は描画面全体（ウィンドウ）を消すため使わない（兄弟の要素まで消える。 実測 2026-10-24）。
 
         // 描画計画は配置フェーズ（ArrangeContent）が解決した値を共有する（未解決の場合のみ本メソッドが解決する）
         var plan = CurrentFrame(new EsSize(Bounds.Width > 0 ? Bounds.Width : RenderSize.Width, Bounds.Height > 0 ? Bounds.Height : RenderSize.Height));
