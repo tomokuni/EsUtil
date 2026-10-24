@@ -25,14 +25,12 @@ internal static unsafe class WinWicFormats
     private const uint EnumerateDefault = 0;
 
     /// <summary>書き出せる形式（初回のアクセスで 1 度だけ調べる）。</summary>
-    private static readonly Lazy<IReadOnlyList<WinWicFormat>> s_all = new(Discover);
+    private static readonly Lazy<IReadOnlyList<Entry>> s_all = new(Discover);
 
     /// <summary>書き出せる拡張子（初回のアクセスで 1 度だけ作る）。</summary>
     private static readonly Lazy<IReadOnlyList<string>> s_extensions =
         new(() => [.. s_all.Value.SelectMany(format => format.Extensions)]);
 
-    /// <summary>実行環境で書き出せる形式。</summary>
-    internal static IReadOnlyList<WinWicFormat> All => s_all.Value;
 
     /// <summary>実行環境で書き出せる拡張子（小文字・先頭のドットを含む）。</summary>
     /// <remarks>WIC を使えない環境では空になる。</remarks>
@@ -41,9 +39,9 @@ internal static unsafe class WinWicFormats
     /// <summary>拡張子から形式を求める。</summary>
     /// <param name="extension">拡張子（先頭のドットを含む。 大文字・小文字は区別しない）。</param>
     /// <returns>形式。 書き出せない拡張子の場合は null。</returns>
-    internal static WinWicFormat? FindByExtension(string extension)
+    internal static Entry? FindByExtension(string extension)
     {
-        foreach (var format in All)
+        foreach (var format in s_all.Value)
         {
             foreach (var candidate in format.Extensions)
             {
@@ -57,25 +55,9 @@ internal static unsafe class WinWicFormats
         return null;
     }
 
-    /// <summary>コンテナ GUID から形式を求める。</summary>
-    /// <param name="container">コンテナ形式の GUID。</param>
-    /// <returns>形式。 書き出せない形式の場合は null。</returns>
-    internal static WinWicFormat? FindByContainer(Guid container)
-    {
-        foreach (var format in All)
-        {
-            if (format.Container == container)
-            {
-                return format;
-            }
-        }
-
-        return null;
-    }
-
     /// <summary>OS に登録されているエンコーダーを列挙し、試し書きが通った形式だけを返す。</summary>
     /// <returns>書き出せる形式（OS が申告した順）。</returns>
-    private static IReadOnlyList<WinWicFormat> Discover()
+    private static IReadOnlyList<Entry> Discover()
     {
         var factory = WinWicFactory.Create();
         if (factory is null)
@@ -83,7 +65,7 @@ internal static unsafe class WinWicFormats
             return [];
         }
 
-        var formats = new List<WinWicFormat>();
+        var formats = new List<Entry>();
         try
         {
             var enumerator = CreateEnumerator(factory);
@@ -144,7 +126,7 @@ internal static unsafe class WinWicFormats
     /// <summary>列挙された 1 件から形式を読み取る（試し書きが通った場合だけ返す）。</summary>
     /// <param name="unknown">列挙されたオブジェクト。</param>
     /// <returns>形式。 読み取れない・書き出せない場合は null。</returns>
-    private static WinWicFormat? TryRead(IUnknown* unknown)
+    private static Entry? TryRead(IUnknown* unknown)
     {
         IWICBitmapEncoderInfo* info;
         var iid = typeof(IWICBitmapEncoderInfo).GUID;
@@ -164,7 +146,7 @@ internal static unsafe class WinWicFormats
                 return null;
             }
 
-            return new WinWicFormat
+            return new Entry
             {
                 Container = container,
                 Name = ReadText(codec, friendly: true),
@@ -222,5 +204,23 @@ internal static unsafe class WinWicFormats
         }
 
         return new string(buffer, 0, (int)length - 1);
+    }
+
+    /// <summary>書き出せる 1 つの形式（コンテナ 1 つと、その拡張子）。</summary>
+    /// <remarks>
+    /// <b>形式の一覧は OS から取る</b>（<see cref="WinWicFormats"/>）。 本型はその 1 件であり、
+    /// <b>拡張子は WIC のエンコーダーが申告したもの</b>である（補完に使う名前は
+    /// <c>WinWicImageCodec.ExtensionOf</c> が固定する）。
+    /// </remarks>
+    internal readonly record struct Entry
+    {
+        /// <summary>コンテナ形式の GUID（WIC のエンコーダーが申告した値）。</summary>
+        internal required Guid Container { get; init; }
+
+        /// <summary>エンコーダーの表示名（例外メッセージに使う）。</summary>
+        internal required string Name { get; init; }
+
+        /// <summary>この形式の拡張子（小文字・先頭のドットを含む。 空にならない）。</summary>
+        internal required IReadOnlyList<string> Extensions { get; init; }
     }
 }

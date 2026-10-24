@@ -77,9 +77,7 @@ graph LR
 | `EsUtil/Platform.Core/src/NativeMethods.txt` / `NativeMethods.json` | **CsWin32 が生成する Win32 API・定数の唯一の一覧**と、その設定（**宣言を手で書かない**。 `allowMarshaling: false` で COM を構造体として生成する） |
 | `EsUtil/Platform.Core/src/AssemblyAttributes.cs` | アセンブリ全体に効く属性だけを持つ（P/Invoke の探索先を `System32` に固定する `DefaultDllImportSearchPaths`。 名前空間を持たないため `src/` 直下） |
 | `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFactory.cs` | WIC の COM の生成と解放・COM の起動・画素の入出力・縮小・変換・回転の補助（**宣言は CsWin32 が生成する**） |
-| `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFormats.cs` | 実行環境で書き出せる形式の一覧（OS のエンコーダーを列挙し、試し書きが通った形式だけを残す。 §7.3.1） |
-| `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFormat.cs` / `WinWicConstants.cs` | 一覧の 1 件（コンテナ GUID・名前・拡張子）と、WIC の定数（EXIF の名前・HEIF の最小寸法とコンテナ） |
-| `EsUtil/Platform.Core/src/Native/Win/WinCaptureService.cs` | `ICaptureService` の Windows 実装 |
+| `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFormats.cs` | 実行環境で書き出せる形式の一覧（OS のエンコーダーを列挙し、試し書きが通った形式だけを残す。 §7.3.1）。 一覧の 1 件は**入れ子の型 `Entry`**（コンテナ GUID・名前・拡張子）である |
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorService.cs` | `ICursorService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinWindowService.cs` | `IWindowService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinElementFinder.cs` | `IElementFinder` の Windows 実装 |

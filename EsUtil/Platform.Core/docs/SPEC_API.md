@@ -73,7 +73,6 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `.Svg` | `SvgIconSource` / `SvgIcon` / `SvgPathParser` / `SvgPathFigure` / `SvgPathSegment` / `SvgPathRasterizer` | SVG アイコンの読み込み元・解析結果・パス データの解析・図形の画素への展開 |
 | `.Native.Win.Wic` | `WinWicFactory`（COM の生成・解放・画素の入出力）/ `WinWicFormats`（OS のエンコーダーから作る形式の一覧）/ `WinWicImageCodec`（符号化・復号） | WIC（windowscodecs）の実装 |
 | `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` / `WinWindowFrame` / `WinVirtualScreen` / `WinClipboard` / `WinAppUserModelId` / `WinMessageBox` / `WinMonitorDpi` / `WinVirtualKey` / `SystemWindowCommands` | 上記抽象の Windows 実装（ホストが生成して注入する）と、ウィンドウの標準メニューから実行する操作 |
-| `.Native.Win.Wic` | `IWICImagingFactory` ほかの COM 宣言 / `WinWicFactory` / `WinWicImageCodec` | WIC（windowscodecs）の COM 宣言・補助・実装 |
 
 可視性は public のみを記載します（`internal` は [`SPEC_System.md`](SPEC_System.md) の可視性ポリシーを参照）。
 

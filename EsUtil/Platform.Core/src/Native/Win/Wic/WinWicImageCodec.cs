@@ -60,6 +60,21 @@ internal static unsafe class WinWicImageCodec
     /// </remarks>
     private const double AlphaThresholdPercent = 1.0;
 
+    /// <summary>HEIF が書ける最小の寸法（ピクセル）。</summary>
+    /// <remarks>
+    /// <b>8x8 未満は書けない（実測）</b>: 保存自体は成功するが、書き出したファイルを読み戻すと
+    /// <c>WINCODEC_ERR_INVALIDPARAMETER</c>（<c>0x80070057</c>）になる（HEVC の最小の符号化単位）。
+    /// </remarks>
+    private const int HeifMinimumSize = 8;
+
+    /// <summary>HEIF のコンテナ形式の GUID（実測値）。</summary>
+    /// <remarks>
+    /// <b><c>wincodec.h</c> に無い</b>: HEIF のコーデック拡張（Store アプリ）が登録する GUID であり、
+    /// 本環境の列挙（<c>CreateComponentEnumerator</c>）で得た値を持つ。 <b>この形式だけは寸法の下限がある</b>ため、
+    /// 拡張子ではなくコンテナで判定できるようにここへ置く。
+    /// </remarks>
+    private static readonly Guid s_heifContainer = new("E1E62521-6787-405B-A339-500715B5763F");
+
     /// <summary>ピクセル データをファイルへエンコードする（形式は拡張子が決める。 オプションは既定）。</summary>
     /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
     /// <param name="width">幅（ピクセル）。</param>
@@ -318,7 +333,7 @@ internal static unsafe class WinWicImageCodec
     /// 読み戻した画像が斜めにずれる。
     /// </remarks>
     private static void EncodeIndexedToFile(
-        ReadOnlySpan<byte> pixels, int width, int height, string filePath, WinWicFormat format, int colorCount,
+        ReadOnlySpan<byte> pixels, int width, int height, string filePath, WinWicFormats.Entry format, int colorCount,
         EsDitherMode dither)
     {
         var (indices, palette) = ReduceToIndexed(
@@ -786,11 +801,11 @@ internal static unsafe class WinWicImageCodec
     /// </remarks>
     private static void ValidateSize(Guid container, int width, int height)
     {
-        if (container == WinWicConstants.HeifContainer
-            && (width < WinWicConstants.HeifMinimumSize || height < WinWicConstants.HeifMinimumSize))
+        if (container == s_heifContainer
+            && (width < HeifMinimumSize || height < HeifMinimumSize))
         {
             throw new NotSupportedException(
-                $"HEIF 形式は {WinWicConstants.HeifMinimumSize}x{WinWicConstants.HeifMinimumSize} 未満の画像を書けません"
+                $"HEIF 形式は {HeifMinimumSize}x{HeifMinimumSize} 未満の画像を書けません"
                 + $"（指定された寸法は {width}x{height}）。");
         }
     }
@@ -807,7 +822,7 @@ internal static unsafe class WinWicImageCodec
     /// <b>形式を指定した場合は形式が優先</b>され、拡張子が無ければ補完し、食い違いは
     /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> で判定する。
     /// </remarks>
-    private static (WinWicFormat Format, string FilePath) ResolveTarget(string filePath, in EsImageSaveOptions options)
+    private static (WinWicFormats.Entry Format, string FilePath) ResolveTarget(string filePath, in EsImageSaveOptions options)
     {
         var extension = Path.GetExtension(filePath);
         if (options.Format is not EsImageFileFormat requested)
@@ -855,7 +870,7 @@ internal static unsafe class WinWicImageCodec
     /// <returns>保存する形式。</returns>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合、または設定されたオプションがその形式で使えない場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException">オプションの値が許容範囲外の場合。</exception>
-    private static WinWicFormat ResolveExtension(string extension, in EsImageSaveOptions options)
+    private static WinWicFormats.Entry ResolveExtension(string extension, in EsImageSaveOptions options)
     {
         var format = WinWicFormats.FindByExtension(extension) ?? throw CreateUnsupportedExtension(extension);
         ValidateOptions(format, options);
@@ -871,7 +886,7 @@ internal static unsafe class WinWicImageCodec
     /// <b>拡張子を経由して解決する</b>: 形式の一覧は OS が持つため、本クラスは
     /// 「<see cref="EsImageFileFormat"/> の値 → 代表の拡張子 → OS のエンコーダー」の順に引く。
     /// </remarks>
-    private static WinWicFormat ResolveFormat(EsImageFileFormat format)
+    private static WinWicFormats.Entry ResolveFormat(EsImageFileFormat format)
     {
         var extension = ExtensionOf(format);
         return WinWicFormats.FindByExtension(extension) ?? throw new NotSupportedException(
@@ -905,7 +920,7 @@ internal static unsafe class WinWicImageCodec
     /// <param name="format">形式。</param>
     /// <param name="extension">拡張子。</param>
     /// <returns>持つ場合は true（大文字・小文字は区別しない）。</returns>
-    private static bool MatchesExtension(WinWicFormat format, string extension)
+    private static bool MatchesExtension(WinWicFormats.Entry format, string extension)
     {
         foreach (var candidate in format.Extensions)
         {
@@ -932,7 +947,7 @@ internal static unsafe class WinWicImageCodec
     /// <b>減色をその形式が扱えるかは保存を試すまで分からない</b>ため、ここでは判定しない
     /// （<see cref="WritePixels"/> がエンコーダーの返答を見て <see cref="NotSupportedException"/> にする）。
     /// </remarks>
-    private static void ValidateOptions(WinWicFormat format, in EsImageSaveOptions options)
+    private static void ValidateOptions(WinWicFormats.Entry format, in EsImageSaveOptions options)
     {
         if (options.ColorCount is int colorCount
             && (colorCount < EsBitmapOperations.MinimumColorCount || colorCount > EsBitmapOperations.MaximumColorCount))
@@ -991,7 +1006,7 @@ internal static unsafe class WinWicImageCodec
     /// <b>GIF はパレットが必須である</b>（コンテナ形式で判定する。 拡張子ではない）。
     /// 指定が無くても常に量子化するのは、GIF が 256 色しか持てないためである。
     /// </remarks>
-    private static bool IsPaletteRequired(WinWicFormat format)
+    private static bool IsPaletteRequired(WinWicFormats.Entry format)
         => format.Container == PInvoke.GUID_ContainerFormatGif;
 
     /// <summary>量子化して 8bpp のインデックス カラーとして書く場合の色数を求める。</summary>
@@ -1003,7 +1018,7 @@ internal static unsafe class WinWicImageCodec
     /// 自前の量子化は透明な画素を透明なパレットの色へ割り当てるため、透過が保たれる。
     /// 副次的に<b>ファイルも小さく画質も良くなる</b>。
     /// </remarks>
-    private static int? ResolveColorCount(WinWicFormat format, in EsImageSaveOptions options)
+    private static int? ResolveColorCount(WinWicFormats.Entry format, in EsImageSaveOptions options)
         => options.ColorCount is int colorCount
             ? colorCount
             : IsPaletteRequired(format) ? EsBitmapOperations.MaximumColorCount : null;
@@ -1015,14 +1030,14 @@ internal static unsafe class WinWicImageCodec
     /// <b>WIC が品質を受け取るのは非可逆の JPEG 系だけである</b>（JPEG と JPEG XR）。
     /// コンテナ形式で判定する（拡張子ではない）ため、<c>.jfif</c> のような別名でも同じ扱いになる。
     /// </remarks>
-    private static bool SupportsQuality(WinWicFormat format)
+    private static bool SupportsQuality(WinWicFormats.Entry format)
         => format.Container == PInvoke.GUID_ContainerFormatJpeg || format.Container == PInvoke.GUID_ContainerFormatWmp;
 
     /// <summary>その形式で使えないオプションが設定されたことを表す例外を作る。</summary>
     /// <param name="format">保存する形式。</param>
     /// <param name="optionName">使えないオプションの名前。</param>
     /// <returns>例外。</returns>
-    private static NotSupportedException CreateUnsupportedOption(WinWicFormat format, string optionName)
+    private static NotSupportedException CreateUnsupportedOption(WinWicFormats.Entry format, string optionName)
         => new($"オプション '{optionName}' は {format.Name} 形式では使えません"
             + $"（{nameof(EsImageSaveOptions.JpegQuality)} を使えるのは JPEG と JPEG XR だけであり、"
             + $"減色（{nameof(EsImageSaveOptions.ColorCount)}）を使えるのは BMP / PNG / GIF だけです）。");

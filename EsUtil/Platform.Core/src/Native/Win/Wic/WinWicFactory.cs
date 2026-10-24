@@ -30,6 +30,18 @@ internal static unsafe class WinWicFactory
     /// <summary>COM を初期化済みかどうか。</summary>
     private static bool s_comInitialized;
 
+    /// <summary>EXIF の方向（<c>Orientation</c> = 274）の名前（試す順）。</summary>
+    /// <remarks>
+    /// <b>形式で階層が違う</b>（JPEG は <c>app1/ifd</c>、TIFF は <c>ifd</c>）ため、この順に試す。
+    /// 読めない名前は <c>WINCODEC_ERR_PROPERTYNOTFOUND</c> で失敗するだけであり、次の候補へ進む。
+    /// </remarks>
+    private static readonly string[] s_orientationNames =
+    [
+        "/app1/ifd/{ushort=274}",
+        "/ifd/{ushort=274}",
+        "/{ushort=274}",
+    ];
+
     /// <summary>HRESULT が失敗であれば例外を送出する。</summary>
     /// <param name="result">HRESULT。</param>
     /// <param name="message">例外のメッセージ。</param>
@@ -285,7 +297,7 @@ internal static unsafe class WinWicFactory
     /// <remarks>
     /// <b>読めなくても例外にしない</b>: メタデータを持たない形式（BMP など）では読み取り器自体が無い。
     /// その場合は「回転しない」が正しい扱いである。<br/>
-    /// <b>名前の階層は形式で異なる</b>ため、<see cref="WinWicConstants.OrientationNames"/> の順に試す。
+    /// <b>名前の階層は形式で異なる</b>ため、<see cref="s_orientationNames"/> の順に試す。
     /// </remarks>
     internal static ushort ReadOrientation(IWICBitmapFrameDecode* frame)
     {
@@ -302,7 +314,7 @@ internal static unsafe class WinWicFactory
 
         try
         {
-            foreach (var name in WinWicConstants.OrientationNames)
+            foreach (var name in s_orientationNames)
             {
                 PROPVARIANT value = default;
                 try
