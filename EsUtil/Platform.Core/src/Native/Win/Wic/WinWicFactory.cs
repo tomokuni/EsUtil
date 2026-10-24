@@ -42,6 +42,83 @@ internal static unsafe class WinWicFactory
         "/{ushort=274}",
     ];
 
+    /// <summary>メタデータの先頭の階層の名前を列挙する（例外を出さない）。</summary>
+    /// <param name="reader">メタデータの読み取り器。</param>
+    /// <returns>先頭の階層の名前の集合。 列挙できない場合は null（呼び出し側は総当たりへ戻る）。</returns>
+    /// <remarks>
+    /// <b>先頭の階層だけを列挙する理由</b>: <c>IWICMetadataQueryReader::GetEnumerator</c> は
+    /// <b>その読み取り器の直下の名前</b>だけを返す（入れ子の名前は返らない）。 入れ子のタグを読む前に
+    /// 「その階層があるか」だけを確かめれば、階層を持たない形式（BMP・PNG など）で
+    /// <see cref="COMException"/> を出さずに済む。
+    /// </remarks>
+    private static HashSet<string>? ListTopLevelNames(IWICMetadataQueryReader* reader)
+    {
+        IEnumString* enumerator;
+        try
+        {
+            reader->GetEnumerator(&enumerator);
+        }
+        catch (COMException)
+        {
+            // 列挙子を作れない読み取り器は「分からない」として扱う（呼び出し側が総当たりする）
+            return null;
+        }
+
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            while (true)
+            {
+                PWSTR buffer = default;
+                uint fetched;
+                var hr = enumerator->Next(1, &buffer, &fetched);
+                if (hr.Failed || fetched == 0 || buffer.Value is null)
+                {
+                    return names;
+                }
+
+                try
+                {
+                    _ = names.Add(buffer.ToString());
+                }
+                finally
+                {
+                    Marshal.FreeCoTaskMem((nint)buffer.Value);
+                }
+            }
+        }
+        finally
+        {
+            enumerator->Release();
+        }
+    }
+
+    /// <summary>列挙した名前から、読みに行く候補かどうかを判断する。</summary>
+    /// <param name="names">先頭の階層の名前の集合。 null（列挙できない）の場合はすべての候補を読む。</param>
+    /// <param name="name">読みたい名前。</param>
+    /// <returns>読みに行く場合は true。</returns>
+    /// <remarks>
+    /// 階層を持つ名前（<c>/app1/ifd/{ushort=274}</c>）は<b>先頭の階層の有無</b>で判断し、
+    /// 階層を持たない名前（<c>/{ushort=274}</c>）は<b>名前そのものの有無</b>で判断する。
+    /// </remarks>
+    private static bool IsCandidatePresent(HashSet<string>? names, string name)
+    {
+        if (names is null)
+        {
+            return true;
+        }
+
+        var prefix = RequiredPrefix(name);
+        return names.Contains(prefix.Length > 0 ? prefix : name);
+    }
+    /// <summary>名前が属する先頭の階層を求める（<c>/app1</c> など）。</summary>
+    /// <param name="name">メタデータの名前。</param>
+    /// <returns>先頭の階層。 階層を持たない名前（<c>/{ushort=274}</c> など）は空文字。</returns>
+    private static string RequiredPrefix(string name)
+    {
+        var next = name.IndexOf('/', 1);
+        return next < 0 ? string.Empty : name[..next];
+    }
     /// <summary>HRESULT が失敗であれば例外を送出する。</summary>
     /// <param name="result">HRESULT。</param>
     /// <param name="message">例外のメッセージ。</param>
@@ -314,8 +391,17 @@ internal static unsafe class WinWicFactory
 
         try
         {
+            // 先頭の階層（/app1 ・ /ifd など）を先に読む。 無い階層を辿ると WIC は毎回
+            // COMException を投げ、デバッガーに「例外がスローされました」が並ぶ（実測 2026-10-24）
+            var topLevel = ListTopLevelNames(reader);
+
             foreach (var name in s_orientationNames)
             {
+                if (!IsCandidatePresent(topLevel, name))
+                {
+                    continue;
+                }
+
                 PROPVARIANT value = default;
                 try
                 {
@@ -323,7 +409,7 @@ internal static unsafe class WinWicFactory
                 }
                 catch (COMException)
                 {
-                    // その形式に無い名前は失敗する（次の候補へ進む）
+                    // 読めない名前は失敗する（次の候補へ進む）
                     continue;
                 }
 

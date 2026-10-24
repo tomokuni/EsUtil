@@ -69,9 +69,10 @@ internal sealed class MewImageBinding
         }
 
         context.ImageScaleQuality = ImageScaleQuality.Fast;
+        // 3 引数版は (image, 描画先, 元矩形) の順（引数名で確認）
         context.DrawImage(
             image,
-            new Rect(crop.X, crop.Y, crop.Width, crop.Height),
-            destination.ToMewUIRect());
+            destination.ToMewUIRect(),
+            new Rect(crop.X, crop.Y, crop.Width, crop.Height));
     }
 }

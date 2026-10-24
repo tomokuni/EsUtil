@@ -81,7 +81,7 @@ public class LoupePainterTests
     /// <summary>画像の層は切り出しの矩形を計画から受け取る（画素の比較はしない）。</summary>
     /// <remarks>
     /// <b>画素で検証しない理由</b>: 画素を読み戻せる GDI バックエンドは、元矩形つきの画像描画
-    /// （<c>DrawImage(IImage, Rect src, Rect dst)</c>）を描かない（実測）。 実際の見た目は Direct2D の
+    /// （<c>DrawImage(IImage, Rect destRect, Rect sourceRect)</c>）を描かない（実測）。 実際の見た目は Direct2D の
     /// アプリで確認する。 ここでは「層が計画の矩形を受け取って例外なく描ける」ことを固定する。
     /// </remarks>
     [Fact]

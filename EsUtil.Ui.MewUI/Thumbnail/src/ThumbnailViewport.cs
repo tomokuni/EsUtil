@@ -79,7 +79,8 @@ internal sealed class ThumbnailViewport : Control
             if (_images.Resolve(bitmap) is { } image)
             {
                 context.ImageScaleQuality = ImageScaleQuality.Fast;
-                context.DrawImage(image, new EsRect(0, 0, bitmap.Width, bitmap.Height).ToMewUIRect(), imageRect.ToMewUIRect());
+                // 3 引数版は (image, 描画先, 元矩形) の順（引数名で確認）
+                context.DrawImage(image, imageRect.ToMewUIRect(), new EsRect(0, 0, bitmap.Width, bitmap.Height).ToMewUIRect());
             }
         }
     }

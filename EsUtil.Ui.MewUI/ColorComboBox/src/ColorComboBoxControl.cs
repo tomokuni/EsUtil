@@ -27,6 +27,9 @@ public sealed class ColorComboBoxControl : Grid
     /// <summary>スウォッチと入力欄の左端・文字との間の余白（DIP）。</summary>
     private const double SwatchGap = 6.0;
 
+    /// <summary>カラーピッカーのポップアップの幅（DIP）。</summary>
+    private const double PickerPopupWidth = 320.0;
+
     /// <summary>テキスト入力の最小幅（DIP）。</summary>
     private const double TextBoxMinWidth = 120.0;
 
@@ -114,7 +117,9 @@ public sealed class ColorComboBoxControl : Grid
         var pickerButtons = new StackPanel().Horizontal().Spacing(8);
         pickerButtons.Children(ok, cancel);
 
-        var pickerBody = new StackPanel().Vertical().Spacing(8);
+        // ポップアップは内容の実寸で大きさが決まるため、幅を明示する（未指定だと極端に小さくなる）
+        _picker.Width = PickerPopupWidth;
+        var pickerBody = new StackPanel().Vertical().Spacing(8).Width(PickerPopupWidth);
         pickerBody.Children(_picker, pickerButtons);
         _pickerPopup = new Popup();
         _pickerPopup.Content(pickerBody);
@@ -304,7 +309,8 @@ public sealed class ColorComboBoxControl : Grid
             return;
         }
 
-        _listPopup.ShowAt(this, new Rect(0, Bounds.Height, Bounds.Width, 320), PopupAnchorSide.Below);
+        // アンカーは**ウィンドウ座標**である（自領域の座標ではない）。 自領域の矩形をそのまま渡すとウィンドウ左上へ出る
+        _listPopup.ShowAt(this, Bounds, PopupAnchorSide.Below);
         _listButton.Content("▲");
     }
 
@@ -322,7 +328,7 @@ public sealed class ColorComboBoxControl : Grid
             _picker.SelectedColor = ToMewColor(color);
         }
 
-        _pickerPopup.ShowAt(this, new Rect(0, Bounds.Height, 320, 420), PopupAnchorSide.Below);
+        _pickerPopup.ShowAt(this, Bounds, PopupAnchorSide.Below);
         _pickerButton.Content("▲");
     }
 

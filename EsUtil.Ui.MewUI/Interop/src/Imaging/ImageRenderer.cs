@@ -64,7 +64,8 @@ public sealed class ImageRenderer : IDisposable
         }
 
         context.ImageScaleQuality = ImageScaleQuality.Fast;
-        context.DrawImage(image, new EsRect(0, 0, bitmap.Width, bitmap.Height).ToMewUIRect(), destination.ToMewUIRect());
+        // MewUI の 3 引数版は (image, 描画先, 元矩形) の順である（引数名で確認。 逆にすると拡大・位置ずれになる）
+        context.DrawImage(image, destination.ToMewUIRect(), new EsRect(0, 0, bitmap.Width, bitmap.Height).ToMewUIRect());
     }
 
     /// <summary>保持している画像を解放する。</summary>

@@ -17,6 +17,7 @@ IWICBitmapFlipRotator
 IWICPalette
 IWICFormatConverter
 IWICMetadataQueryReader
+IEnumString
 IWICComponentInfo
 IWICBitmapCodecInfo
 IWICBitmapEncoderInfo

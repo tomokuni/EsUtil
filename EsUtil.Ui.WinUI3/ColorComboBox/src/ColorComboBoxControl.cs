@@ -120,8 +120,13 @@ public sealed partial class ColorComboBoxControl : Grid
         _text.TextChanged += OnTextChanged;
         _text.LostFocus += OnTextLostFocus;
 
-        // 入力欄の中で文字が重ならないよう、スウォッチの幅 + 余白だけ左を空ける
-        _text.Padding = new Thickness(SwatchSize + SwatchGap, 0, 0, 0);
+        // 入力欄の中で文字が重ならないよう、スウォッチの幅 + 余白だけ左を空ける。
+        // 上下の余白はテーマの既定値を使う（0 にすると文字が上端へ寄る。 既定値はスタイル適用後でないと読めないため Loaded で行う）
+        _text.Loaded += (_, _) =>
+        {
+            var padding = _text.Padding;
+            _text.Padding = new Thickness(padding.Left + SwatchSize + SwatchGap, padding.Top, padding.Right, padding.Bottom);
+        };
 
         // スウォッチは入力欄の内側へ重ねる（同じセルに置き、入力欄の背面に敷く）
         var textArea = new Grid();
