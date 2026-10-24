@@ -1,7 +1,58 @@
 // CsWin32 が生成する Win32 API の一覧（.github/ビルド設定規約.md §7）。
 // 宣言を手で書かず、必要な API だけをここへ足す（足した API は PInvoke.* として internal に生成される）。
 // メッセージ番号・スタイル値などの定数も CsWin32 が生成するため、自前の const を書かずにここへ列挙する。
-// WIC などの COM は [GeneratedComInterface] が担うため、この一覧へは入れない。
+// WIC（windowscodecs.dll）の COM も CsWin32 が生成する（vtable を手で並べない。 実測: 手書きの
+// 宣言は位置がずれて 0xC0000005 になった）。
+
+// --- 画像（WIC） ---
+IWICImagingFactory
+IWICBitmap
+IWICBitmapSource
+IWICBitmapDecoder
+IWICBitmapFrameDecode
+IWICBitmapEncoder
+IWICBitmapFrameEncode
+IWICBitmapScaler
+IWICBitmapFlipRotator
+IWICPalette
+IWICFormatConverter
+IWICMetadataQueryReader
+IWICComponentInfo
+IWICBitmapCodecInfo
+IWICBitmapEncoderInfo
+IEnumUnknown
+IPropertyBag2
+IStream
+CLSID_WICImagingFactory
+CoCreateInstance
+CreateStreamOnHGlobal
+CLSCTX
+STGC
+PROPBAG2
+PROPVARIANT
+VARENUM
+WICComponentType
+WICComponentEnumerateOptions
+WICDecodeOptions
+WICBitmapDitherType
+WICBitmapPaletteType
+WICBitmapEncoderCacheOption
+WICBitmapCreateCacheOption
+WICBitmapInterpolationMode
+WICBitmapTransformOptions
+WICRect
+GUID_WICPixelFormat8bppIndexed
+GUID_WICPixelFormat24bppBGR
+GUID_WICPixelFormat32bppBGR
+GUID_WICPixelFormat32bppBGRA
+GUID_WICPixelFormat32bppPBGRA
+GUID_WICPixelFormat32bppRGBA
+GUID_ContainerFormatBmp
+GUID_ContainerFormatGif
+GUID_ContainerFormatJpeg
+GUID_ContainerFormatPng
+GUID_ContainerFormatTiff
+GUID_ContainerFormatWmp
 
 // --- プロセス・システム ---
 GetCurrentProcessId

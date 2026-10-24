@@ -478,7 +478,9 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// 本実装より大きい（PSNR 28.8 dB 対 27.1 dB は同等、平坦な画像では 53.8 dB 対 43.6 dB で WIC が上）。
     /// <b>本実装を既定にしている理由</b>は、WIC が Windows 専用であること（本計算は UI 非依存で
     /// 他 OS でも動く）、COM を必要とせず単体テストで検証できること、品質（ディザ無し）が上であることです。
-    /// 速度が要る場面では WIC の経路を足す余地があります。
+    /// <b>WIC の経路は足していません</b>（実装は可能であり AOT でも動くことを実測しましたが、同じ「色数へ減らす」
+    /// 計算を 2 つ持つと、**保存したファイルの画素が形式や環境で変わる**ため。 単一所有の規則は
+    /// <c>EsUtil/Platform.Core/README.md</c> が定めます）。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>

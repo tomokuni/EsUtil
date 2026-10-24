@@ -1,74 +1,51 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
 using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.Graphics.Imaging;
 using Windows.Win32.System.Com;
+using Windows.Win32.System.Com.StructuredStorage;
+using Windows.Win32.System.Variant;
 
 namespace EsUtil.Platform.Core.Native.Win.Wic;
 
-/// <summary>WIC の COM オブジェクトの生成・解放と呼び出しの補助。</summary>
+/// <summary>WIC の COM の生成・解放と、画素の入出力の補助。</summary>
 /// <remarks>
-/// <b>COM の解放は GC に任せる</b>: Native AOT では <c>Marshal.ReleaseComObject</c> /
-/// <c>Marshal.FinalReleaseComObject</c> が <c>NotSupportedException: COM Interop is not supported on this platform.</c>
-/// になる（実測）。 <c>[GeneratedComInterface]</c> が生成するラッパーはファイナライズで参照を 1 つ戻すため、
-/// <b>GC に任せれば解放される</b>（実測: GC を走らせても異常終了しない）。<br/>
-/// <b>そのため COM にファイル ハンドルを持たせない</b>: 解放が GC の時期に依存するため、
-/// <c>IWICStream::InitializeFromFilename</c> でファイルを開くと<b>解放までファイルが開いたまま</b>になる
-/// （実測: 保存直後の削除が <c>IOException</c> になった）。 読み書きは<b>メモリ ストリーム</b>
-/// （<c>CreateStreamOnHGlobal</c>）で行い、ファイルは <see cref="File"/> で読む・書く（実測: 直後の削除が成功する）。<br/>
-/// <b>COM の生成は <see cref="WinWicNative"/> の宣言に任せる</b>: 戻り値は <c>[GeneratedComInterface]</c> の型であり、
-/// ソース生成された <c>ComInterfaceMarshaller&lt;T&gt;</c>（<c>ComWrappers</c> ベース）が変換する
-/// （生ポインターを扱わない。 Native AOT で動作することを実測）。<br/>
-/// <b>COM の起動と WIC の GUID を本クラスが単一所有する</b>（初期化はプロセスで 1 回だけ行う）。
+/// <b>宣言は CsWin32 が生成する</b>: <c>wincodec.h</c> の宣言から生成した型（<c>IWICImagingFactory</c> など）を
+/// <b>生ポインターのまま</b>使う（<c>[GeneratedComInterface]</c> も <c>[ComImport]</c> も使わない）。
+/// 生成された型は vtable を<b>メソッドの位置ではなく関数ポインターの表</b>として持つため、
+/// <b>位置を数え間違えることがない</b>（実測: 手書きの宣言は位置がずれて <c>0xC0000005</c> になった）。<br/>
+/// <b>解放は明示する</b>: <c>Release()</c> を呼ぶ（Native AOT では <c>Marshal.ReleaseComObject</c> が使えず、
+/// GC 任せにすると COM にファイル ハンドルを持たせたときに解放の時期を読めない）。<br/>
+/// <b>COM にファイル ハンドルを持たせない</b>: <c>IWICStream::InitializeFromFilename</c> でファイルを開くと
+/// <b>解放までファイルが開いたまま</b>になる（実測: 保存直後の削除が <c>IOException</c> になった）。
+/// 読み書きは<b>メモリ ストリーム</b>（<c>CreateStreamOnHGlobal</c>）で行い、ファイルは <see cref="File"/> が開いて閉じる。<br/>
+/// <b>COM の初期化はプロセスで 1 回だけ</b>行う（<c>RPC_E_CHANGED_MODE</c> は「初期化済み」として成功に扱う）。
 /// </remarks>
 [SupportedOSPlatform("windows10.0.17763")]
 internal static unsafe class WinWicFactory
 {
-    /// <summary>WIC のイメージング ファクトリの CLSID。</summary>
-    private static readonly Guid s_imagingFactoryClsid = new("CACAF262-9370-4615-A13B-9F5539DA4C0A");
-
-    /// <summary>WIC のイメージング ファクトリの IID。</summary>
-    private static readonly Guid s_imagingFactoryIid = new("EC5EC8A9-C395-4314-9C77-54D7A935FF70");
-
-    /// <summary>32bpp の BGRA（アルファ乗算なし）。</summary>
-    internal static readonly Guid PixelFormat32bppBgra = new("6FDDC324-4E03-4BFE-B185-3D77768DC90F");
-
-    /// <summary>32bpp の BGRA（アルファ乗算済み）。</summary>
-    internal static readonly Guid PixelFormat32bppPBgra = new("6FDDC324-4E03-4BFE-B185-3D77768DC910");
-
-    /// <summary>32bpp の BGR（4 バイト目は詰め物。 アルファを持てない形式向け）。</summary>
-    /// <remarks>
-    /// <b>HEIF のエンコーダーが要求する形式</b>（実測: <c>SetPixelFormat</c> が 32bppPBGRA の要求を
-    /// この形式へ差し替えて返す）。 BGR の 3 バイトに 1 バイトの詰め物を足した 32 ビットであるため、
-    /// <b>画素あたり 4 バイト</b>の並びは BGRA と同じである（詰め物は書いても無視される）。
-    /// </remarks>
-    internal static readonly Guid PixelFormat32bppBgr = new("6FDDC324-4E03-4BFE-B185-3D77768DC90E");
-
-    /// <summary>24bpp の BGR（アルファを持てない形式向け）。</summary>
-    internal static readonly Guid PixelFormat24bppBgr = new("6FDDC324-4E03-4BFE-B185-3D77768DC90C");
-
-    /// <summary>8bpp のインデックス カラー（パレット）。</summary>
-    internal static readonly Guid PixelFormat8bppIndexed = new("6FDDC324-4E03-4BFE-B185-3D77768DC904");
-
     /// <summary>COM を初期化済みかどうか。</summary>
     private static bool s_comInitialized;
 
     /// <summary>HRESULT が失敗であれば例外を送出する。</summary>
-    /// <param name="hr">HRESULT。</param>
+    /// <param name="result">HRESULT。</param>
     /// <param name="message">例外のメッセージ。</param>
-    /// <exception cref="Win32Exception"><paramref name="hr"/> が失敗の場合（状態値を持つ）。</exception>
-    internal static void ThrowIfFailed(int hr, string message)
+    /// <exception cref="Win32Exception"><paramref name="result"/> が失敗の場合（状態値を持つ）。</exception>
+    internal static void ThrowIfFailed(HRESULT result, string message)
     {
-        if (hr < 0)
+        if (result.Failed)
         {
-            throw new Win32Exception(hr, $"{message}（WIC の状態: 0x{hr:X8}）");
+            throw new Win32Exception(result.Value, $"{message}（WIC の状態: 0x{result.Value:X8}）");
         }
     }
 
     /// <summary>COM を初期化する（1 回だけ呼ぶ）。</summary>
     /// <returns>初期化できた場合は true。 既に別のモデルで初期化済みの場合も true。</returns>
     /// <remarks>
-    /// <c>RPC_E_CHANGED_MODE</c>（0x80010106）は「既に初期化済み」を表すため、成功として扱う
+    /// <c>RPC_E_CHANGED_MODE</c>（<c>0x80010106</c>）は「既に初期化済み」を表すため、成功として扱う
     /// （WIC は呼び出し側のアパートメントに依存しない。 実測で問題なく動作した）。
     /// </remarks>
     internal static bool EnsureInitialized()
@@ -79,8 +56,8 @@ internal static unsafe class WinWicFactory
         }
 
         const int ChangedMode = unchecked((int)0x80010106);
-        var hr = PInvoke.CoInitializeEx(null, COINIT.COINIT_APARTMENTTHREADED).Value;
-        if (hr != ChangedMode && hr < 0)
+        var result = PInvoke.CoInitializeEx(null, COINIT.COINIT_APARTMENTTHREADED);
+        if (result.Value != ChangedMode && result.Failed)
         {
             return false;
         }
@@ -91,29 +68,28 @@ internal static unsafe class WinWicFactory
 
     /// <summary>WIC のイメージング ファクトリを生成する。</summary>
     /// <returns>生成したファクトリ。 生成できなかった場合は null。</returns>
-    internal static IWICImagingFactory? CreateFactory()
+    /// <remarks>呼び出し側が <c>Release()</c> を呼ぶ。</remarks>
+    internal static IWICImagingFactory* Create()
     {
         if (!EnsureInitialized())
         {
             return null;
         }
 
-        var hr = WinWicNative.CoCreateInstance(
-            s_imagingFactoryClsid,
-            IntPtr.Zero,
-            1 /* CLSCTX_INPROC_SERVER */,
-            s_imagingFactoryIid,
-            out var instance);
-        return hr >= 0 && instance is not null ? instance : null;
+        var result = PInvoke.CoCreateInstance(
+            PInvoke.CLSID_WICImagingFactory, null, CLSCTX.CLSCTX_INPROC_SERVER, out IWICImagingFactory* factory);
+        return result.Failed ? null : factory;
     }
 
     /// <summary>空のメモリ ストリームを作る（書き込み先）。</summary>
     /// <returns>生成したストリーム。</returns>
     /// <exception cref="Win32Exception">生成できなかった場合。</exception>
-    internal static IStream CreateMemoryStream()
+    /// <remarks>呼び出し側が <c>Release()</c> を呼ぶ（解放時に領域も解放される）。</remarks>
+    internal static IStream* CreateMemoryStream()
     {
+        IStream* stream;
         ThrowIfFailed(
-            WinWicNative.CreateStreamOnHGlobal(IntPtr.Zero, 1 /* 解放時に領域も解放する */, out var stream),
+            PInvoke.CreateStreamOnHGlobal(default, true, &stream),
             "メモリ ストリームを作成できませんでした。");
         return stream;
     }
@@ -122,49 +98,61 @@ internal static unsafe class WinWicFactory
     /// <param name="data">ストリームの内容（借用であり書き換えない）。</param>
     /// <returns>生成したストリーム。</returns>
     /// <exception cref="Win32Exception">生成できなかった場合、または書き込めなかった場合。</exception>
-    internal static IStream CreateMemoryStream(ReadOnlySpan<byte> data)
+    /// <remarks>呼び出し側が <c>Release()</c> を呼ぶ。</remarks>
+    internal static IStream* CreateMemoryStream(ReadOnlySpan<byte> data)
     {
         var stream = CreateMemoryStream();
-        fixed (byte* source = data)
+        try
         {
-            ThrowIfFailed(
-                stream.Write(source, (uint)data.Length, out var written),
-                "メモリ ストリームへ書き込めませんでした。");
-            if (written != data.Length)
+            fixed (byte* source = data)
             {
-                throw new Win32Exception(
-                    0, $"メモリ ストリームへ書き込めた大きさが足りません（{written} / {data.Length} バイト）。");
+                uint written;
+                ThrowIfFailed(
+                    stream->Write(source, (uint)data.Length, &written),
+                    "メモリ ストリームへ書き込めませんでした。");
+                if (written != data.Length)
+                {
+                    throw new Win32Exception(
+                        0, $"メモリ ストリームへ書き込めた大きさが足りません（{written} / {data.Length} バイト）。");
+                }
             }
-        }
 
-        SeekToStart(stream);
-        return stream;
+            SeekToStart(stream);
+            return stream;
+        }
+        catch
+        {
+            // 失敗したストリームを解放してから、呼び出し側へ伝える（状態値はそのまま残す）
+            stream->Release();
+            throw;
+        }
     }
 
     /// <summary>ストリームの現在の内容をバイト列として取り出す。</summary>
     /// <param name="stream">対象のストリーム。</param>
     /// <returns>内容（ストリームの先頭から末尾まで）。</returns>
     /// <exception cref="Win32Exception">大きさを得られない・移動できない・読み込めない場合。</exception>
-    internal static byte[] ReadStream(IStream stream)
+    internal static byte[] ReadStream(IStream* stream)
     {
-        var stat = default(WinStatStg);
-        ThrowIfFailed(stream.Stat(&stat, 0), "メモリ ストリームの大きさを取得できませんでした。");
-        if (stat.Size == 0)
+        STATSTG stat;
+        stream->Stat(&stat, 0);
+        if (stat.cbSize == 0)
         {
             return [];
         }
 
-        if (stat.Size > int.MaxValue)
+        if (stat.cbSize > int.MaxValue)
         {
-            throw new Win32Exception(0, $"メモリ ストリームが大きすぎます（{stat.Size} バイト）。");
+            throw new Win32Exception(0, $"メモリ ストリームが大きすぎます（{stat.cbSize} バイト）。");
         }
 
         SeekToStart(stream);
-        var buffer = new byte[(int)stat.Size];
+        var buffer = new byte[(int)stat.cbSize];
         fixed (byte* destination = buffer)
         {
+            uint read;
             ThrowIfFailed(
-                stream.Read(destination, (uint)buffer.Length, out var read),
+                stream->Read(destination, (uint)buffer.Length, &read),
                 "メモリ ストリームから読み込めませんでした。");
             if (read != buffer.Length)
             {
@@ -179,84 +167,116 @@ internal static unsafe class WinWicFactory
     /// <summary>画素の寸法を得る。</summary>
     /// <param name="source">対象の画素の源。</param>
     /// <returns>幅と高さ（ピクセル）。</returns>
-    /// <exception cref="Win32Exception">寸法を取得できなかった場合、または寸法が 1 以上でない場合。</exception>
-    internal static (int Width, int Height) GetSize(IWICBitmapSource source)
+    /// <exception cref="Win32Exception">寸法が 1 以上でない場合。</exception>
+    internal static (int Width, int Height) GetSize(IWICBitmapSource* source)
     {
-        ThrowIfFailed(source.GetSize(out var width, out var height), "画像の寸法を取得できませんでした。");
+        uint width;
+        uint height;
+        source->GetSize(&width, &height);
         return width is > 0 and <= int.MaxValue && height is > 0 and <= int.MaxValue
             ? ((int)width, (int)height)
             : throw new Win32Exception(0, $"画像の寸法が不正です（{width}x{height}）。");
     }
 
-    /// <summary>長辺が上限を超える場合だけ、縮小する画素の源を作る。</summary>
+    /// <summary>長辺が上限を超える場合だけ、縮小するスケーラーを作る。</summary>
     /// <param name="factory">イメージング ファクトリ。</param>
     /// <param name="source">変換元の画素の源。</param>
     /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は縮小しない。</param>
-    /// <returns>縮小した画素の源。 縮小しない場合は <paramref name="source"/> をそのまま返す。</returns>
-    /// <exception cref="Win32Exception">縮小できなかった場合。</exception>
+    /// <returns>縮小した画素の源。 縮小しない場合は null（<paramref name="source"/> をそのまま使う）。</returns>
     /// <remarks>
     /// <b>目標の寸法は長辺を上限へ揃えて求める</b>（縦横比を保つ。 各辺は 1 以上）。
-    /// 上限以下なら作らない（拡大はしない）。 補間は <see cref="WinWicInterfaces.InterpolationFant"/> を指定する。
+    /// 上限以下なら作らない（拡大はしない）。 補間は <c>Fant</c> を指定する。
+    /// 呼び出し側が <c>Release()</c> を呼ぶ。
     /// </remarks>
-    internal static IWICBitmapSource Scale(IWICImagingFactory factory, IWICBitmapSource source, int maxSize)
+    internal static IWICBitmapScaler* Scale(IWICImagingFactory* factory, IWICBitmapSource* source, int maxSize)
     {
         if (maxSize <= 0)
         {
-            return source;
+            return null;
         }
 
         var (width, height) = GetSize(source);
         if (width <= maxSize && height <= maxSize)
         {
-            return source;
+            return null;
         }
 
         var scale = Math.Min((double)maxSize / width, (double)maxSize / height);
         var targetWidth = (uint)Math.Max(1, Math.Round(width * scale));
         var targetHeight = (uint)Math.Max(1, Math.Round(height * scale));
 
-        ThrowIfFailed(factory.CreateBitmapScaler(out var scaler), "縮小用のスケーラーを作成できませんでした。");
-        ThrowIfFailed(
-            scaler!.Initialize(source, targetWidth, targetHeight, WinWicInterfaces.InterpolationFant),
-            "画像を縮小できませんでした。");
-        return scaler;
+        IWICBitmapScaler* scaler;
+        factory->CreateBitmapScaler(&scaler);
+        try
+        {
+            scaler->Initialize(
+                source, targetWidth, targetHeight, WICBitmapInterpolationMode.WICBitmapInterpolationModeFant);
+            return scaler;
+        }
+        catch
+        {
+            // 失敗したスケーラーを解放してから、呼び出し側へ伝える
+            scaler->Release();
+            throw;
+        }
     }
 
-    /// <summary>画素形式を変換した画素の源を作る。</summary>
+    /// <summary>画素形式を変換する変換器を作る。</summary>
     /// <param name="factory">イメージング ファクトリ。</param>
     /// <param name="source">変換元の画素の源。</param>
     /// <param name="pixelFormat">変換先の画素形式。</param>
-    /// <returns>変換した画素の源。</returns>
-    /// <exception cref="Win32Exception">変換器を作れない・初期化できない場合。</exception>
-    internal static IWICBitmapSource Convert(IWICImagingFactory factory, IWICBitmapSource source, Guid pixelFormat)
+    /// <returns>変換器。</returns>
+    /// <remarks>呼び出し側が <c>Release()</c> を呼ぶ。</remarks>
+    internal static IWICFormatConverter* Convert(
+        IWICImagingFactory* factory, IWICBitmapSource* source, in Guid pixelFormat)
     {
-        ThrowIfFailed(factory.CreateFormatConverter(out var converter), "画素形式の変換器を作成できませんでした。");
-        ThrowIfFailed(
-            converter!.Initialize(source, in pixelFormat, 0, null, 0.0, 0),
-            "画像の画素形式を変換できませんでした。");
-        return converter;
+        IWICFormatConverter* converter;
+        factory->CreateFormatConverter(&converter);
+        try
+        {
+            converter->Initialize(
+                source, pixelFormat, WICBitmapDitherType.WICBitmapDitherTypeNone, null, 0.0,
+                WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+            return converter;
+        }
+        catch
+        {
+            // 失敗した変換器を解放してから、呼び出し側へ伝える
+            converter->Release();
+            throw;
+        }
     }
 
-    /// <summary>EXIF の方向を適用した画素の源を返す。</summary>
+    /// <summary>EXIF の方向を適用する回転・反転を作る。</summary>
     /// <param name="factory">イメージング ファクトリ。</param>
     /// <param name="frame">デコードしたフレーム。</param>
-    /// <returns>回転・反転した画素の源。 方向が 1（そのまま）または読めない場合は <paramref name="frame"/> をそのまま返す。</returns>
-    /// <exception cref="Win32Exception">回転・反転を作れない・初期化できない場合。</exception>
+    /// <returns>回転・反転。 方向が 1（そのまま）または読めない場合は null（<paramref name="frame"/> をそのまま使う）。</returns>
     /// <remarks>
     /// <b>回転してから縮小する</b>: 縮小してから回転すると丸め誤差の入り方が変わり、
     /// 他の UI 版（WinUI 3 の <c>ExifOrientationMode.RespectExifOrientation</c>）と画素が一致しなくなる。
+    /// 呼び出し側が <c>Release()</c> を呼ぶ。
     /// </remarks>
-    internal static IWICBitmapSource ApplyOrientation(IWICImagingFactory factory, IWICBitmapFrameDecode frame)
+    internal static IWICBitmapFlipRotator* ApplyOrientation(IWICImagingFactory* factory, IWICBitmapFrameDecode* frame)
     {
         var options = TransformOptions(ReadOrientation(frame));
-        if (options == 0)
+        if (options == WICBitmapTransformOptions.WICBitmapTransformRotate0)
         {
-            return frame;
+            return null;
         }
 
-        ThrowIfFailed(factory.CreateBitmapFlipRotator(out var rotator), "回転・反転を作成できませんでした。");
-        ThrowIfFailed(rotator!.Initialize(frame, options), "画像を回転できませんでした。");
-        return rotator;
+        IWICBitmapFlipRotator* rotator;
+        factory->CreateBitmapFlipRotator(&rotator);
+        try
+        {
+            rotator->Initialize((IWICBitmapSource*)frame, options);
+            return rotator;
+        }
+        catch
+        {
+            // 失敗した回転・反転を解放してから、呼び出し側へ伝える
+            rotator->Release();
+            throw;
+        }
     }
 
     /// <summary>EXIF の方向（<c>Orientation</c>）を読む。</summary>
@@ -265,55 +285,69 @@ internal static unsafe class WinWicFactory
     /// <remarks>
     /// <b>読めなくても例外にしない</b>: メタデータを持たない形式（BMP など）では読み取り器自体が無い。
     /// その場合は「回転しない」が正しい扱いである。<br/>
-    /// <b>名前の階層は形式で異なる</b>ため、<see cref="WinWicInterfaces.OrientationNames"/> の順に試す。
+    /// <b>名前の階層は形式で異なる</b>ため、<see cref="WinWicConstants.OrientationNames"/> の順に試す。
     /// </remarks>
-    internal static ushort ReadOrientation(IWICBitmapFrameDecode frame)
+    internal static ushort ReadOrientation(IWICBitmapFrameDecode* frame)
     {
-        if (frame.GetMetadataQueryReader(out var reader) < 0 || reader is null)
+        IWICMetadataQueryReader* reader;
+        try
         {
+            frame->GetMetadataQueryReader(&reader);
+        }
+        catch (COMException)
+        {
+            // メタデータを持たない形式（BMP など）は読み取り器自体が作れない（回転しないのが正しい扱い）
             return 1;
         }
 
-        foreach (var name in WinWicInterfaces.OrientationNames)
+        try
         {
-            var value = default(WinPropVariant);
-            if (reader.GetMetadataByName(name, &value) < 0)
+            foreach (var name in WinWicConstants.OrientationNames)
             {
-                continue;
+                PROPVARIANT value = default;
+                try
+                {
+                    reader->GetMetadataByName(name, ref value);
+                }
+                catch (COMException)
+                {
+                    // その形式に無い名前は失敗する（次の候補へ進む）
+                    continue;
+                }
+
+                ushort orientation = value.Anonymous.Anonymous.vt switch
+                {
+                    VARENUM.VT_UI2 => value.Anonymous.Anonymous.Anonymous.uiVal,
+                    VARENUM.VT_UI4 => (ushort)value.Anonymous.Anonymous.Anonymous.ulVal,
+                    _ => 0,
+                };
+                if (orientation is >= 1 and <= 8)
+                {
+                    return orientation;
+                }
             }
 
-            ushort orientation = value.Type switch
-            {
-                WinWicInterfaces.VariantTypeUnsignedShort => value.UnsignedShort,
-                WinWicInterfaces.VariantTypeUnsignedInt => (ushort)value.UnsignedInt,
-                _ => 0,
-            };
-            if (orientation is >= 1 and <= 8)
-            {
-                return orientation;
-            }
+            return 1;
         }
-
-        return 1;
+        finally
+        {
+            reader->Release();
+        }
     }
 
     /// <summary>EXIF の方向を WIC の変換の指定へ変換する。</summary>
     /// <param name="orientation">EXIF の方向（1〜8）。</param>
-    /// <returns>変換の指定（<c>WICBitmapTransformOptions</c>）。 回転しない場合は 0。</returns>
-    /// <remarks>
-    /// 指定は <c>Rotate0=0</c> / <c>Rotate90=1</c> / <c>Rotate180=2</c> / <c>Rotate270=3</c> /
-    /// <c>FlipHorizontal=4</c> / <c>FlipVertical=8</c> の組み合わせである。
-    /// </remarks>
-    internal static int TransformOptions(ushort orientation) => orientation switch
+    /// <returns>変換の指定。 回転しない場合は <c>Rotate0</c>。</returns>
+    internal static WICBitmapTransformOptions TransformOptions(ushort orientation) => orientation switch
     {
-        2 => 4,
-        3 => 2,
-        4 => 8,
-        5 => 1 | 4,
-        6 => 1,
-        7 => 3 | 4,
-        8 => 3,
-        _ => 0,
+        2 => WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal,
+        3 => WICBitmapTransformOptions.WICBitmapTransformRotate180,
+        4 => WICBitmapTransformOptions.WICBitmapTransformFlipVertical,
+        5 => WICBitmapTransformOptions.WICBitmapTransformRotate90 | WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal,
+        6 => WICBitmapTransformOptions.WICBitmapTransformRotate90,
+        7 => WICBitmapTransformOptions.WICBitmapTransformRotate270 | WICBitmapTransformOptions.WICBitmapTransformFlipHorizontal,
+        8 => WICBitmapTransformOptions.WICBitmapTransformRotate270,
+        _ => WICBitmapTransformOptions.WICBitmapTransformRotate0,
     };
 
     /// <summary>画素の源から画素をコピーする。</summary>
@@ -321,16 +355,13 @@ internal static unsafe class WinWicFactory
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
     /// <param name="destination">コピー先（<c>幅 × 4 × 高さ</c> バイト以上）。</param>
-    /// <exception cref="Win32Exception">画素を取得できなかった場合。</exception>
     /// <remarks>コピー先の行幅は常に密（<c>幅 × 4</c>）であるため、1 回の呼び出しで全領域を書く。</remarks>
-    internal static void CopyPixels(IWICBitmapSource source, int width, int height, Span<byte> destination)
+    internal static void CopyPixels(IWICBitmapSource* source, int width, int height, Span<byte> destination)
     {
         var stride = width * EsReadOnlyBitmap.BytesPerPixel;
         fixed (byte* target = destination)
         {
-            ThrowIfFailed(
-                source.CopyPixels(null, (uint)stride, (uint)(stride * height), target),
-                "画像のピクセルを取得できませんでした。");
+            source->CopyPixels(null, (uint)stride, (uint)(stride * height), target);
         }
     }
 
@@ -338,32 +369,27 @@ internal static unsafe class WinWicFactory
     /// <param name="properties">エンコーダーが用意したオプション。</param>
     /// <param name="name">オプションの名前（<c>ImageQuality</c> など）。</param>
     /// <param name="value">書き込む値。</param>
-    /// <returns>HRESULT。</returns>
     /// <remarks>
     /// <c>PROPBAG2</c>（名前と値の型を指定する構造体）と <c>VARIANT</c>（<c>VT_R4</c>）を組み立てて渡す。
-    /// <b><c>Marshal.StructureToPtr</c> を使わない理由</b>: 実行時の型情報を必要とするため Native AOT で確実でない。
-    /// どちらもアンマネージド型であるため、領域へ直接書き込む。
+    /// <b>どちらもアンマネージド型であるため、領域へ直接書き込む</b>（実行時の型情報を使わない）。
     /// </remarks>
-    internal static unsafe int WriteRealOption(IPropertyBag2 properties, string name, float value)
+    internal static void WriteRealOption(IPropertyBag2* properties, string name, float value)
     {
-        const ushort VariantTypeR4 = 4;
-        var bagSize = sizeof(WinPropBag2);
-        var variantSize = sizeof(WinVariant);
-        var memory = stackalloc byte[bagSize + variantSize];
-        var bag = (WinPropBag2*)memory;
-        var variant = (WinVariant*)(memory + bagSize);
-
         fixed (char* text = name)
         {
-            *bag = new WinPropBag2 { ValueType = VariantTypeR4, Name = (IntPtr)text };
-            *variant = new WinVariant { Type = VariantTypeR4, Float = value };
-            return properties.Write(1, bag, variant);
+            var bag = new PROPBAG2
+            {
+                vt = VARENUM.VT_R4,
+                pstrName = text,
+            };
+            var variant = new VARIANT();
+            variant.Anonymous.Anonymous.vt = VARENUM.VT_R4;
+            variant.Anonymous.Anonymous.Anonymous.fltVal = value;
+            properties->Write(1, &bag, &variant);
         }
     }
 
     /// <summary>ストリームの位置を先頭へ戻す。</summary>
     /// <param name="stream">対象のストリーム。</param>
-    /// <exception cref="Win32Exception">移動できなかった場合。</exception>
-    private static void SeekToStart(IStream stream)
-        => ThrowIfFailed(stream.Seek(0, 0 /* STREAM_SEEK_SET */, out _), "ストリームの位置を先頭へ戻せませんでした。");
+    private static void SeekToStart(IStream* stream) => stream->Seek(0, SeekOrigin.Begin, null);
 }

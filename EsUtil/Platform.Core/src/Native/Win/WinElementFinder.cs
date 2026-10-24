@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
@@ -6,7 +7,6 @@ using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Dwm;
 using Windows.Win32.Graphics.Gdi;
-using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
@@ -37,16 +37,6 @@ public sealed class WinElementFinder : IElementFinder
     [ThreadStatic]
     private static List<EsRectInt>? s_monitorBounds;
 
-    /// <summary><c>EnumWindows</c> のコールバック（1 回だけ生成して使い回す）。</summary>
-    private static readonly WNDENUMPROC s_windowThunk = WindowThunk;
-
-    /// <summary><c>EnumDisplayMonitors</c> のコールバック（1 回だけ生成して使い回す）。</summary>
-    /// <remarks>
-    /// <b>生成をメソッドへ切り出す理由</b>: 生成されたデリゲートの引数にポインター（<c>RECT*</c>）があるため、
-    /// フィールドの初期化子では unsafe コンテキストにならない。 生成は 1 回だけであり、呼び出しごとの負荷は無い。
-    /// </remarks>
-    private static readonly MONITORENUMPROC s_monitorThunk = CreateMonitorThunk();
-
     private IReadOnlyList<EsRectInt>? _screenBounds;
 
     /// <summary>全ディスプレイモニターの矩形（画面物理座標）を列挙する（自己完結）。</summary>
@@ -67,7 +57,10 @@ public sealed class WinElementFinder : IElementFinder
         s_monitorBounds = bounds;
         try
         {
-            _ = PInvoke.EnumDisplayMonitors(default, null, s_monitorThunk, default);
+            unsafe
+            {
+                _ = PInvoke.EnumDisplayMonitors(default, null, &MonitorThunk, default);
+            }
         }
         finally
         {
@@ -77,23 +70,23 @@ public sealed class WinElementFinder : IElementFinder
         return bounds;
     }
 
-    /// <summary><c>EnumDisplayMonitors</c> のコールバックを生成する。</summary>
-    /// <returns>生成したデリゲート。</returns>
-    private static unsafe MONITORENUMPROC CreateMonitorThunk() => MonitorThunk;
-
     /// <summary><c>EnumDisplayMonitors</c> のコールバックの実体。</summary>
-    /// <param name="hMonitor">モニターハンドル（未使用）。</param>
-    /// <param name="hdcMonitor">モニターのデバイス コンテキスト（未使用）。</param>
-    /// <param name="lprcMonitor">モニターの矩形へのポインター。</param>
-    /// <param name="dwData">アプリケーション定義の値（未使用）。</param>
+    /// <param name="monitor">モニターハンドル（未使用）。</param>
+    /// <param name="hdc">モニターのデバイス コンテキスト（未使用）。</param>
+    /// <param name="bounds">モニターの矩形へのポインター。</param>
+    /// <param name="data">アプリケーション定義の値（未使用）。</param>
     /// <returns>列挙を継続する場合は true。</returns>
-    private static unsafe BOOL MonitorThunk(HMONITOR hMonitor, HDC hdcMonitor, RECT* lprcMonitor, LPARAM dwData)
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
+    private static unsafe BOOL MonitorThunk(HMONITOR monitor, HDC hdc, RECT* bounds, LPARAM data)
     {
-        if (lprcMonitor is not null && s_monitorBounds is { } bounds)
+        _ = monitor;
+        _ = hdc;
+        _ = data;
+        if (bounds is not null && s_monitorBounds is { } values)
         {
-            bounds.Add(new EsRectInt(
-                lprcMonitor->left, lprcMonitor->top,
-                lprcMonitor->right - lprcMonitor->left, lprcMonitor->bottom - lprcMonitor->top));
+            values.Add(new EsRectInt(
+                bounds->left, bounds->top,
+                bounds->right - bounds->left, bounds->bottom - bounds->top));
         }
 
         return true;
@@ -107,7 +100,10 @@ public sealed class WinElementFinder : IElementFinder
         s_windowCallback = callback;
         try
         {
-            _ = PInvoke.EnumWindows(s_windowThunk, default);
+            unsafe
+            {
+                _ = PInvoke.EnumWindows(&WindowThunk, default);
+            }
         }
         finally
         {
@@ -117,10 +113,14 @@ public sealed class WinElementFinder : IElementFinder
 
     /// <summary><c>EnumWindows</c> のコールバックの実体。</summary>
     /// <param name="hWnd">ウィンドウハンドル。</param>
-    /// <param name="lParam">アプリケーション定義の値（未使用）。</param>
+    /// <param name="data">アプリケーション定義の値（未使用）。</param>
     /// <returns>列挙を継続する場合は true。</returns>
-    private static BOOL WindowThunk(HWND hWnd, LPARAM lParam)
-        => s_windowCallback is { } callback && callback((IntPtr)hWnd);
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
+    private static BOOL WindowThunk(HWND hWnd, LPARAM data)
+    {
+        _ = data;
+        return s_windowCallback is { } callback && callback((IntPtr)hWnd);
+    }
 
     /// <summary>指定位置の最前面ウィンドウを検出する。</summary>
     /// <param name="screenPoint">判定する位置（画面物理座標）。</param>

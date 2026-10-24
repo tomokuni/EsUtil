@@ -6,7 +6,6 @@ using EsUtil.Platform.Core.Input;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.Input.KeyboardAndMouse;
-using Windows.Win32.UI.Shell;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
@@ -29,8 +28,12 @@ public sealed class WinGlobalHotKeyService<T> : IGlobalHotKeyService<T> where T 
 
     private IntPtr _hWnd;
 
-    /// <summary>サブクラス プロシージャ。 GC 防止と解除のためフィールドに保持する。</summary>
-    private SUBCLASSPROC? _subclassProc;
+    /// <summary>サブクラス プロシージャへ渡す文脈。 未初期化時は null。</summary>
+    /// <remarks>
+    /// <b>デリゲートを保持しない理由</b>: CsWin32 の <c>SUBCLASSPROC</c> はアンマネージド関数ポインターであり、
+    /// GC の対象ではない（<see cref="WinSubclass"/>）。 代わりに<b>インスタンスを指す文脈</b>を保持する。
+    /// </remarks>
+    private WinSubclass.Context? _context;
 
     /// <summary><c>SetWindowSubclass</c> へ渡した識別値（解除時に同じ値を返す）。</summary>
     private nuint _subclassId;
@@ -44,15 +47,15 @@ public sealed class WinGlobalHotKeyService<T> : IGlobalHotKeyService<T> where T 
     public IDisposable Subscribe(Action<T> onPressed) => _pressed.Add(onPressed);
 
     /// <inheritdoc/>
-    public void Initialize(IntPtr hWnd)
+    public unsafe void Initialize(IntPtr hWnd)
     {
         Detach();
         _hWnd = hWnd;
         if (_hWnd == IntPtr.Zero) return;
 
-        var subclassProc = _subclassProc ??= WndProc;
+        var context = _context ??= WinSubclass.CreateContext(WndProc);
         var id = ++s_lastSubclassId;
-        if (!PInvoke.SetWindowSubclass((HWND)hWnd, subclassProc, id, 0))
+        if (!PInvoke.SetWindowSubclass((HWND)hWnd, WinSubclass.Procedure, id, context.ReferenceData))
         {
             // サブクラス化に失敗すると、ホットキーを登録できても押下を検出できない（回復できないため例外にする）
             _hWnd = IntPtr.Zero;
@@ -111,10 +114,10 @@ public sealed class WinGlobalHotKeyService<T> : IGlobalHotKeyService<T> where T 
 
     /// <summary>WndProc サブクラス化を解除する。</summary>
     /// <param name="hWnd">サブクラス化したウィンドウのハンドル。</param>
-    private void DetachCore(IntPtr hWnd)
+    private unsafe void DetachCore(IntPtr hWnd)
     {
-        if (_subclassProc is null) return;
-        _ = PInvoke.RemoveWindowSubclass((HWND)hWnd, _subclassProc, _subclassId);
+        if (_context is null) return;
+        _ = PInvoke.RemoveWindowSubclass((HWND)hWnd, WinSubclass.Procedure, _subclassId);
         _subclassId = 0;
     }
 
@@ -126,6 +129,9 @@ public sealed class WinGlobalHotKeyService<T> : IGlobalHotKeyService<T> where T 
             DetachCore(_hWnd);
             _hWnd = IntPtr.Zero;
         }
+
+        _context?.Release();
+        _context = null;
     }
 
     /// <summary>サブクラス化した WndProc。 WM_HOTKEY メッセージを捕捉して対応するアクションを配信する。</summary>
@@ -133,16 +139,16 @@ public sealed class WinGlobalHotKeyService<T> : IGlobalHotKeyService<T> where T 
     /// <param name="msg">ウィンドウメッセージ。</param>
     /// <param name="wParam">WPARAM（ホットキーの ID）。</param>
     /// <param name="lParam">LPARAM。</param>
-    /// <param name="uIdSubclass">サブクラスの識別値（<see cref="Initialize"/> で渡した値）。</param>
-    /// <param name="dwRefData"><see cref="Initialize"/> で渡したコンテキスト値（本クラスでは未使用）。</param>
     /// <returns>メッセージの処理結果。</returns>
-    private LRESULT WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam, nuint uIdSubclass, nuint dwRefData)
+    private LRESULT WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam)
     {
         // WM_NCDESTROY: ウィンドウ破棄の最終段階。 解除しないと comctl32 が本プロシージャへの参照を保持し続ける。
         if (msg == PInvoke.WM_NCDESTROY)
         {
             DetachCore((IntPtr)hWnd);
             _hWnd = IntPtr.Zero;
+            _context?.Release();
+            _context = null;
         }
         else if (msg == PInvoke.WM_HOTKEY)
         {

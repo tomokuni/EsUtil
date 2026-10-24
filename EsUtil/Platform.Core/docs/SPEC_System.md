@@ -161,12 +161,12 @@ graph LR
 | --- | --- |
 | 初期化 | 初回に `CoInitializeEx` と `CoCreateInstance`（`CLSID_WICImagingFactory`）を 1 回だけ呼ぶ。 **スレッドは増えない**（GDI+ の `GdiplusStartup` が起こす表示設定の通知スレッドに相当するものが無い） |
 | 既に COM が初期化済みのプロセス | `CoInitializeEx` は `RPC_E_CHANGED_MODE`（`0x80010106`）を返すが、**成功として続行する**（実測で問題なく動作した） |
-| Native AOT | **`[ComImport]` と `Marshal.GetObjectForIUnknown` は使えない**（実測: `NotSupportedException: COM Interop requires ComWrapper instance registered for marshalling.`）。 **`[GeneratedComInterface]`（ソース生成）+ `StrategyBasedComWrappers`** で呼ぶ（実測で動作） |
-| COM の解放 | **`Marshal.ReleaseComObject` / `Marshal.FinalReleaseComObject` は使えない**（実測: `NotSupportedException: COM Interop is not supported on this platform.`）。 ラッパーのファイナライズに任せ、**WIC にファイルを開かせない**（メモリ ストリームを使い、ファイルは `System.IO.File` が開いて閉じる） |
-| エンコーダーのキャッシュ | **`WICBitmapEncoderNoCache` は使えない**（実測: メモリ ストリームでも `WINCODEC_ERR_UNSUPPORTEDOPERATION` = `0x88982F81`）。 `WICBitmapEncoderCacheTempFile`（一時ファイルへ書いてから確定する）は全形式で成功した |
+| Native AOT | **`[ComImport]` と `Marshal.GetObjectForIUnknown` は使えない**（実測: `NotSupportedException: COM Interop requires ComWrapper instance registered for marshalling.`）。 **`[GeneratedComInterface]` も vtable の位置を宣言順で決めるため取り違えやすい**（実測: 生成時は動くが、手書きの宣言は位置がずれて `0xC0000005` で落ちた）。 そのため **CsWin32 が `wincodec.h` から生成した型（関数ポインター）を使う**（`allowMarshaling: false` が必要。 実行時マーシャリングを使わない） |
+| COM の解放 | **`Marshal.ReleaseComObject` / `Marshal.FinalReleaseComObject` は使えない**（実測: `NotSupportedException: COM Interop is not supported on this platform.`）。 生成された `Release()` を `try/finally` で**明示的に呼ぶ**。 **WIC にファイルを開かせない**（解放までファイルが開いたままになるため。 メモリ ストリームを使い、ファイルは `System.IO.File` が開いて閉じる） |
+| エンコーダーのキャッシュ | **`WICBitmapEncoderNoCache`（2）を使う**（実測: メモリ ストリームでは `WICBitmapEncoderCacheInMemory`（0）も `WICBitmapEncoderCacheTempFile`（1）も `WINCODEC_ERR_UNSUPPORTEDOPERATION` = `0x88982F81` で初期化に失敗した） |
 | EXIF の向き | デコードしたフレームの `/app1/ifd/{ushort=274}`（無ければ `/ifd/...`・`/...`）を読み、**`IWICBitmapFlipRotator` で回転してから縮小する**（縮小してから回転すると丸め誤差の入り方が変わり、WinUI 3 版の `ExifOrientationMode.RespectExifOrientation` と画素が一致しない） |
-| 戻される画素形式 | アルファ乗算済みの BGRA（`GUID_WICPixelFormat32bppPBGRA`）を要求しても、**エンコーダーは別の形式を返す**（実測: PNG / TIFF はアルファ乗算なしの BGRA、JPEG は 24bpp の BGR、BMP だけが要求どおり）。 返された形式に合わせて並びを直してから書く |
-| 書き込み時の並びの変換 | **自前で行う**。 変換器（`IWICFormatConverter`）へ渡す画素の源は `IWICImagingFactory::CreateBitmapFromMemory` でしか作れないが、この API は **`[GeneratedComInterface]` 経由でも生の vtable 呼び出しでもアクセス違反で落ちる**（実測: 同じ引数・同じプロセスで `[ComImport]` 経由なら成功する。 Native AOT では `[ComImport]` を使えない） |
+| 戻される画素形式 | アルファ乗算済みの BGRA（`GUID_WICPixelFormat32bppPBGRA`）を要求しても、**エンコーダーは別の形式を返す**（実測: PNG / TIFF / DDS はアルファ乗算なしの BGRA、JPEG は 24bpp の BGR、HEIF は 32bpp の BGR、JPEG XL は RGBA。 BMP だけが要求どおり）。 返された形式に合わせて並びを直してから書く |
+| 書き込み時の並びの変換 | **自前で行う**（画素の複製を 1 パスで済ませるため）。 変換器（`IWICFormatConverter`）を使うこともできる（`CreateBitmapFromMemory` で画素の源を作る。 CsWin32 の生成物では Native AOT でも動作することを実測）が、その場合は 1 枚分の `IWICBitmap` が余計に要る |
 
 **外部パッケージ（`System.Drawing.Common` 等）は参照しません**。 WIC は OS の一部であるため、配布物も追加も要りません。 形式の網羅性は [`SPEC_API.md`](SPEC_API.md) の該当節が持ちます。
 

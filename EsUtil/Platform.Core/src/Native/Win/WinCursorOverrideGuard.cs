@@ -2,7 +2,6 @@ using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Window;
 using Windows.Win32;
 using Windows.Win32.Foundation;
-using Windows.Win32.UI.Shell;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
@@ -10,7 +9,7 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <remarks>
 /// 選択操作（Crop モード等）中の WM_SETCURSOR によるカーソル上書きを防ぐために使用する。<br/>
 /// <c>SetWindowSubclass</c>（comctl32）でサブクラス化し、<c>DefSubclassProc</c> で元の WndProc に委譲する。<br/>
-/// サブクラス プロシージャはフィールドに保持し、呼び出し中に GC されないようにする。<br/>
+/// サブクラス プロシージャは <see cref="WinSubclass"/> が単一所有する（アンマネージド関数ポインターであり、GC の対象ではない）。<br/>
 /// 破棄時（Detach / Dispose）とウィンドウ破棄時（WM_NCDESTROY）にサブクラス化を解除する。<br/>
 /// <br/>
 /// Windows 固有のメッセージ番号（WM_SETCURSOR）とヒットテスト値（HTCLIENT）の判定は本クラスに内蔵し、<br/>
@@ -36,8 +35,12 @@ public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
     /// <summary>サブクラス化中のウィンドウハンドル。 未アタッチ時は <see cref="IntPtr.Zero"/>。</summary>
     private IntPtr _hwnd;
 
-    /// <summary>サブクラス プロシージャ。 GC 防止と解除のためフィールドに保持する。</summary>
-    private SUBCLASSPROC? _subclassProc;
+    /// <summary>サブクラス プロシージャへ渡す文脈。 未アタッチ時は null。</summary>
+    /// <remarks>
+    /// <b>デリゲートを保持しない理由</b>: CsWin32 の <c>SUBCLASSPROC</c> はアンマネージド関数ポインターであり、
+    /// GC の対象ではない（<see cref="WinSubclass"/>）。 代わりに<b>インスタンスを指す文脈</b>を保持する。
+    /// </remarks>
+    private WinSubclass.Context? _context;
 
     /// <summary><c>SetWindowSubclass</c> へ渡した識別値（解除時に同じ値を返す）。</summary>
     private nuint _subclassId;
@@ -54,16 +57,16 @@ public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
     /// <b>例外にしない理由</b>: サブクラス化に失敗しても<b>カーソル形状が上書きされるだけ</b>で、
     /// 選択操作そのものは成立する（呼び出し側は <see cref="IsAttached"/> で成否を判断できる）。
     /// </remarks>
-    public void Attach(EsPlatformHandle handle)
+    public unsafe void Attach(EsPlatformHandle handle)
     {
         if (IsAttached) return;
         var hwnd = handle.Handle;
         if (hwnd == IntPtr.Zero) return;
 
-        // サブクラス プロシージャは 1 回だけ作る（WM_SETCURSOR はマウス移動のたびに届く）
-        var subclassProc = _subclassProc ??= WndProc;
+        // 文脈は 1 回だけ作る（WM_SETCURSOR はマウス移動のたびに届く）
+        var context = _context ??= WinSubclass.CreateContext(WndProc);
         var id = ++s_lastSubclassId;
-        if (!PInvoke.SetWindowSubclass((HWND)hwnd, subclassProc, id, 0))
+        if (!PInvoke.SetWindowSubclass((HWND)hwnd, WinSubclass.Procedure, id, context.ReferenceData))
         {
             // 失敗した状態を残さない（IsAttached を false に戻し、呼び出し側が判別できるようにする）
             return;
@@ -75,10 +78,10 @@ public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
 
     /// <summary>サブクラス化を解除する。</summary>
     /// <param name="hwnd">サブクラス化したウィンドウのハンドル。</param>
-    private void DetachCore(IntPtr hwnd)
+    private unsafe void DetachCore(IntPtr hwnd)
     {
-        if (_subclassProc is null) return;
-        _ = PInvoke.RemoveWindowSubclass((HWND)hwnd, _subclassProc, _subclassId);
+        if (_context is null) return;
+        _ = PInvoke.RemoveWindowSubclass((HWND)hwnd, WinSubclass.Procedure, _subclassId);
     }
 
     /// <summary>サブクラス化を解除する。</summary>
@@ -98,15 +101,13 @@ public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
     /// <param name="msg">ウィンドウメッセージ。</param>
     /// <param name="wParam">WPARAM。</param>
     /// <param name="lParam">LPARAM。</param>
-    /// <param name="uIdSubclass">サブクラスの識別値（<see cref="Attach"/> で渡した値）。</param>
-    /// <param name="dwRefData"><see cref="Attach"/> で渡したコンテキスト値（本クラスでは未使用）。</param>
     /// <returns>メッセージの処理結果。</returns>
     /// <remarks>
     /// WM_SETCURSOR かつクライアント領域（HTCLIENT）内ではカーソル上書きを抑止し、<br/>
     /// メッセージを処理済み（TRUE）として元の WndProc へ委譲しない。<br/>
     /// アタッチ中は常に抑止する（現在のカーソル形状を維持する）。
     /// </remarks>
-    private LRESULT WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam, nuint uIdSubclass, nuint dwRefData)
+    private LRESULT WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam)
     {
         // WM_NCDESTROY: ウィンドウ破棄の最終段階。 解除しないと comctl32 が本プロシージャへの参照を保持し続ける。
         if (msg == PInvoke.WM_NCDESTROY)

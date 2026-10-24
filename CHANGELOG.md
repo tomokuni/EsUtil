@@ -16,11 +16,14 @@
   - `Input.HotKeyParser`（ホットキー文字列の解釈）/ `Window.EsWindowPlacementMath`（ウィンドウ配置の規則）/ `Geometry.EsRectIntJsonConverter`（設定ファイルの保存形式）/ `Native.Win.WinVirtualScreen`。
   - `DpiScaler.ToPoint` / `DpiScaler.ResolveClientScale` / `EsSizeInt.ToSizeText` / `DrawingColorExtensions.TryParseHexText` / `EsInput.NoHotKey`。
   - **画像の保存形式を 5 から 8 へ拡張**しました（`EsImageFileFormat.JpegXr` / `Heif` / `JpegXl`）。 JPEG XR（`.jxr` / `.wdp`）は Windows 標準で常に使え、品質指定（`EsImageSaveOptions.JpegQuality`）も効きます。 HEIF（`.heic` / `.heif`）と JPEG XL（`.jxl`）はコーデック拡張が必要で、`EsReadOnlyBitmap.SupportedFileExtensions` は**実際にエンコーダーがある拡張子だけ**を返します（実行環境で判定し、結果を保持）。
+  - **形式の一覧を実行環境から作るようになりました**（固定の一覧を廃止）。 `IWICImagingFactory::CreateComponentEnumerator` で登録済みのエンコーダーを列挙し、**8x8 の試し書きが通った形式だけ**を `SupportedFileExtensions` に残します。 この環境では 19 拡張子（`.bmp` / `.dib` / `.rle` / `.gif` / `.jpeg` / `.jpe` / `.jpg` / `.jfif` / `.exif` / `.png` / `.tiff` / `.tif` / `.wdp` / `.jxr` / `.dds` / `.heic` / `.heif` / `.hif` / `.jxl`）が並びます。
+  - **減色（`ColorCount`）を受け付ける形式を固定しなくなりました**（エンコーダーの返答で決まります）。 実測では TIFF もパレット画像として保存できます（以前は「未検証」として拒否していました）。
   - `EsImageFileExtensions.All` に `.jxr` / `.wdp` / `.heic` / `.heif` / `.jxl` を追加（一覧に並べる判断は、読み書きできるかの判断と別であるため）。
 - `CONTRIBUTING.md` / `CHANGELOG.md` / `.github/workflows/build.yml`（公開に向けた整備）。
 
 ### 変更（破壊的）
 
+- **WIC の相互運用を CsWin32 の生成物へ移行しました**（`EsUtil.Platform.Core` の内部実装。 公開 API は変わりません）。 手書きの `[GeneratedComInterface]`（20 ファイル）を削除し、`wincodec.h` から生成した型を生ポインターで使います。 これにより **vtable の位置ずれによるアクセス違反（`0xC0000005`）が構造的に起きなくなります**（実測で 2 回踏んでいました）。 併せて `EsUtil/Platform.Core/src/NativeMethods.json` に `"allowMarshaling": false` を追加したため、Win32 の宣言から**実行時マーシャリングが無くなりました**（`string` の代わりに `PCWSTR` / `Span<char>`、デリゲートの代わりに `delegate* unmanaged` を使います）。
 - **`EsUtil.Platform.Core` のルート名前空間は機能の窓口だけになりました**。 型は機能フォルダ（`Input` / `Window` / `Capture` / `Common`）へ移りました。 型を名指しする利用側は、その機能の名前空間を `using` してください
   （例: `using EsUtil.Platform.Core.Input;` で `EsKey`。 `EsInput.TryParseKey` などの窓口は `using EsUtil.Platform.Core;` だけで使えます）。
 - `EsUtil.Ui.AvaloniaUI.ColorPicker` を **`EsUtil.Ui.AvaloniaUI.ColorComboBox`** へ改名しました（型名 `ColorPickerControl` → `ColorComboBoxControl`）。

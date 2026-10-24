@@ -1,6 +1,11 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
+using Windows.Win32;
+using Windows.Win32.Graphics.Imaging;
+using Windows.Win32.System.Com;
+using Windows.Win32.System.Com.StructuredStorage;
 
 namespace EsUtil.Platform.Core.Native.Win.Wic;
 
@@ -12,42 +17,26 @@ namespace EsUtil.Platform.Core.Native.Win.Wic;
 /// <b>画像型を知らない</b>: 符号化は受け取ったピクセル バイト列を書き
 /// （<see cref="EncodeToFile(ReadOnlySpan{byte}, int, int, string)"/>）、復号は生成処理を受け取って
 /// デコード結果をその領域へ直接書く（<see cref="DecodeFromFile{T}(string, Func{int, int, Action{Span{byte}}, T})"/>）。<br/>
-/// <b>依存分離</b>: ファイル形式（BMP / PNG / JPEG / GIF / TIFF）のエンコード・デコードは OS の
-/// WIC（<c>windowscodecs.dll</c>）が担い、<b>外部パッケージ（<c>System.Drawing.Common</c> 等）を参照しない</b>。
+/// <b>依存分離</b>: ファイル形式のエンコード・デコードは OS の WIC（<c>windowscodecs.dll</c>）が担い、
+/// <b>外部パッケージ（<c>System.Drawing.Common</c> 等）を参照しない</b>。
 /// WIC は OS の一部であるため、追加の配布物も追加のスレッドも要らない。<br/>
 /// <b>形式は拡張子が決める</b>: 保存先の拡張子から形式を選び、<b>未対応の拡張子は例外にする</b>
-/// （PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かない。
-/// 対応形式は <see cref="SupportedExtensions"/> が単一所有する）。<br/>
+/// （PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かない）。
+/// <b>対応形式の単一所有は <see cref="WinWicFormats"/></b> であり、本クラスは固定の一覧を持たない。<br/>
 /// <b>Windows 専用</b>: WIC は Windows でのみ利用可能（<see cref="SupportedOSPlatformAttribute"/> で限定）。<br/>
-/// <b>制限</b>: JPEG / BMP / HEIF はアルファ（透明度）を保存できない（形式の仕様、またはエンコーダーが
-/// アルファ無しのピクセル形式を要求するため。 HEIF は実測で <c>32bppBGR</c> を要求する）。
-/// 透過を保つ場合は PNG / TIFF / GIF / JPEG XR を選ぶこと。
+/// <b>制限</b>: 透過（アルファ）を保存できない形式がある（JPEG / BMP / HEIF など。 形式の仕様、または
+/// エンコーダーがアルファ無しのピクセル形式を要求するため）。 透過を保つ場合は PNG / TIFF / JPEG XR を選ぶこと。
 /// </remarks>
 [SupportedOSPlatform("windows10.0.17763")]
-internal static class WinWicImageCodec
+internal static unsafe class WinWicImageCodec
 {
     /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
     /// <remarks>
-    /// <b>実行環境で書き出せる形式だけを含む</b>: OS にコーデック拡張が入っていない形式（例: JPEG XL）は
-    /// 一覧から外れる（初回のアクセスで WIC のエンコーダーを調べ、結果を保持する）。
+    /// <b>実行環境で書き出せる形式だけを含む</b>: OS にコーデック拡張が入っていない形式は一覧から外れる
+    /// （<see cref="WinWicFormats"/> が初回のアクセスで調べ、結果を保持する）。
     /// <b>一覧に無い拡張子は保存できない</b>ため、呼び出し側は本一覧をそのまま選択肢にできる。
     /// </remarks>
-    internal static IReadOnlyList<string> SupportedExtensions => s_supportedExtensions.Value;
-
-    /// <summary>本ライブラリが扱いを知っている拡張子（実行環境に依らない並び）。</summary>
-    /// <remarks>
-    /// <b>JPEG XR（<c>.jxr</c> / <c>.wdp</c>）は Windows 標準</b>であり、コーデック拡張を要さない。
-    /// <b>HEIF（<c>.heic</c> / <c>.heif</c>）と JPEG XL（<c>.jxl</c>）はコーデック拡張が必要</b>で、
-    /// 入っていない環境では <see cref="SupportedExtensions"/> から外れる。
-    /// </remarks>
-    private static readonly string[] s_knownExtensions =
-    [
-        ".bmp", ".png", ".jpg", ".jpeg", ".gif", ".tif", ".tiff",
-        ".jxr", ".wdp", ".heic", ".heif", ".jxl",
-    ];
-
-    /// <summary>実行環境で書き出せる拡張子（初回のアクセスで 1 度だけ調べる）。</summary>
-    private static readonly Lazy<IReadOnlyList<string>> s_supportedExtensions = new(ProbeExtensions);
+    internal static IReadOnlyList<string> SupportedExtensions => WinWicFormats.Extensions;
 
     /// <summary>JPEG の品質として許容する最小値。</summary>
     internal const int JpegQualityMinimum = 0;
@@ -55,25 +44,12 @@ internal static class WinWicImageCodec
     /// <summary>JPEG の品質として許容する最大値。</summary>
     internal const int JpegQualityMaximum = 100;
 
-    /// <summary>形式ごとのコンテナ GUID。</summary>
+    /// <summary>試し書きに使う寸法（ピクセル）。</summary>
     /// <remarks>
-    /// <b>実測値を持つ</b>: <c>IWICImagingFactory::CreateComponentEnumerator</c> で、この環境に登録されている
-    /// デコーダーとエンコーダーのコンテナ形式と拡張子を列挙して確かめた値である（既定の 5 形式は
-    /// <c>wincodec.h</c> の <c>GUID_ContainerFormat*</c> と一致する）。<br/>
-    /// <b>公表値を写さない理由</b>: GUID を 1 文字でも取り違えると
-    /// <c>WINCODEC_ERR_COMPONENTNOTFOUND</c>（<c>0x88982F50</c>）になり、原因が分かりにくい。
+    /// <b>8 にする理由</b>: HEIF は 8x8 未満を書けない（HEVC の最小の符号化単位）ため、
+    /// これより小さいと<b>書ける形式まで落ちる</b>。
     /// </remarks>
-    private static readonly Dictionary<ImageFileFormat, Guid> s_containerFormats = new()
-    {
-        [ImageFileFormat.Bmp] = new Guid("0AF1D87E-FCFE-4188-BDEB-A7906471CBE3"),
-        [ImageFileFormat.Png] = new Guid("1B7CFAF4-713F-473C-BBCD-6137425FAEAF"),
-        [ImageFileFormat.Jpeg] = new Guid("19E4A5AA-5662-4FC5-A0C0-1758028E1057"),
-        [ImageFileFormat.Gif] = new Guid("1F8A5601-7D4D-4CBD-9C82-1BC8D4EEB9A5"),
-        [ImageFileFormat.Tiff] = new Guid("163BCC30-E2E9-4F0B-961D-A3E9FDB788A3"),
-        [ImageFileFormat.JpegXr] = new Guid("57A37CAA-367A-4540-916B-F183C5093A4B"),
-        [ImageFileFormat.Heif] = new Guid("E1E62521-6787-405B-A339-500715B5763F"),
-        [ImageFileFormat.JpegXl] = new Guid("FEC14E3F-427A-4736-AAE6-27ED84F69322"),
-    };
+    private const int ProbeSize = 8;
 
     /// <summary>ピクセル データをファイルへエンコードする（形式は拡張子が決める。 オプションは既定）。</summary>
     /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
@@ -102,11 +78,11 @@ internal static class WinWicImageCodec
     /// <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
     /// <exception cref="Win32Exception">エンコード（WIC）が失敗した場合（状態値を持つ）。</exception>
     /// <remarks>
-    /// <b>保存形式は拡張子から決める</b>（<c>.bmp</c> / <c>.png</c> / <c>.jpg</c> / <c>.jpeg</c> /
-    /// <c>.gif</c> / <c>.tif</c> / <c>.tiff</c>）。 <see cref="EsImageSaveOptions.Format"/> を指定した場合は
+    /// <b>保存形式は拡張子から決める</b>（<see cref="WinWicFormats"/> が OS のエンコーダーから作った一覧を引く）。
+    /// <see cref="EsImageSaveOptions.Format"/> を指定した場合は
     /// <b>形式の方が優先</b>され、<see cref="ResolveTarget"/> の規則で保存先が決まる。<br/>
     /// <b>減色する場合と GIF は 8bpp のインデックス カラーとして書く</b>（<see cref="ResolveColorCount"/>）。<br/>
-    /// <b>JPEG / BMP はアルファを保存できない</b>（透過を保つ場合は PNG を選ぶ）。
+    /// <b>透過を保てない形式がある</b>（JPEG / BMP / HEIF など。 透過を保つ場合は PNG / TIFF / JPEG XR を選ぶ）。
     /// </remarks>
     internal static void EncodeToFile(ReadOnlySpan<byte> pixels, int width, int height, string filePath, EsImageSaveOptions options)
     {
@@ -133,16 +109,81 @@ internal static class WinWicImageCodec
             return;
         }
 
-        var bytes = EncodeToBytes(format, width, height, options, palette: null, pixels, indexed: false);
+        var bytes = EncodeToBytes(format.Container, width, height, options, palette: null, pixels, indexed: false);
         File.WriteAllBytes(targetPath, bytes);
     }
+
+    /// <summary>形式を書き出せるかを試し書きで確かめる（<see cref="WinWicFormats"/> の一覧を作るために使う）。</summary>
+    /// <param name="container">コンテナ形式の GUID。</param>
+    /// <returns>8x8 の画像を書けた場合は true。</returns>
+    /// <remarks>
+    /// <b>列挙に現れることと書けることは違う</b>: 実測では JPEG XL のエンコーダーが一覧に現れるが、
+    /// 本ライブラリの画素（BGRA8888）からは書けなかった。 一覧に載せると「一覧の拡張子で保存すれば成功する」
+    /// という約束が崩れるため、実際に書いて確かめる。<br/>
+    /// <b>パレットを要求する形式</b>（GIF など）のために、通常の画素で失敗した場合はインデックス カラーでも試す。
+    /// </remarks>
+    internal static bool CanEncode(Guid container)
+    {
+        var pixels = new byte[ProbeSize * ProbeSize * EsReadOnlyBitmap.BytesPerPixel];
+        for (var i = 0; i < ProbeSize * ProbeSize; i++)
+        {
+            pixels[(i * EsReadOnlyBitmap.BytesPerPixel) + 0] = (byte)(i * 3);
+            pixels[(i * EsReadOnlyBitmap.BytesPerPixel) + 1] = (byte)(i * 5);
+            pixels[(i * EsReadOnlyBitmap.BytesPerPixel) + 2] = 200;
+            pixels[(i * EsReadOnlyBitmap.BytesPerPixel) + 3] = 255;
+        }
+
+        if (TryEncode(container, pixels, indexed: false))
+        {
+            return true;
+        }
+
+        return TryEncode(container, CreateProbeIndices(), indexed: true);
+    }
+
+    /// <summary>試し書きを行い、失敗を例外にせず真偽で返す。</summary>
+    /// <param name="container">コンテナ形式の GUID。</param>
+    /// <param name="pixels">書き込む画素（8bpp のインデックスの場合もある）。</param>
+    /// <param name="indexed">8bpp のインデックス カラーとして書く場合は true。</param>
+    /// <returns>書けた場合は true。</returns>
+    private static bool TryEncode(Guid container, ReadOnlySpan<byte> pixels, bool indexed)
+    {
+        uint[]? palette = indexed ? CreateProbePalette() : null;
+        try
+        {
+            EncodeToBytes(container, ProbeSize, ProbeSize, default, palette, pixels, indexed);
+            return true;
+        }
+        catch (Exception ex) when (ex is Win32Exception or COMException or NotSupportedException or InvalidOperationException)
+        {
+            // 試し書きの失敗は「この環境では書けない」を意味するだけであり、例外にしない
+            return false;
+        }
+    }
+
+    /// <summary>試し書きに使う 8bpp のインデックスを作る。</summary>
+    /// <returns>インデックス（2 色を交互に置く）。</returns>
+    private static byte[] CreateProbeIndices()
+    {
+        var indices = new byte[ProbeSize * ProbeSize];
+        for (var i = 0; i < indices.Length; i++)
+        {
+            indices[i] = (byte)(i % 2);
+        }
+
+        return indices;
+    }
+
+    /// <summary>試し書きに使うパレットを作る。</summary>
+    /// <returns>パレット（BGRA の 2 色）。</returns>
+    private static uint[] CreateProbePalette() => [0xFF000000, 0xFFFFFFFF];
 
     /// <summary>減色したピクセルを 8bpp のインデックス カラーとしてファイルへ書き出す。</summary>
     /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
     /// <param name="filePath">保存先のファイルパス（形式は決定済み）。</param>
-    /// <param name="format">保存する形式（パレットを持てる形式であることは検証済み）。</param>
+    /// <param name="format">保存する形式。</param>
     /// <param name="colorCount">減色して残す色数。</param>
     /// <param name="quality">減色の品質。</param>
     /// <param name="dither">減色のディザ。</param>
@@ -157,7 +198,7 @@ internal static class WinWicImageCodec
     /// 読み戻した画像が斜めにずれる。
     /// </remarks>
     private static void EncodeIndexedToFile(
-        ReadOnlySpan<byte> pixels, int width, int height, string filePath, ImageFileFormat format, int colorCount,
+        ReadOnlySpan<byte> pixels, int width, int height, string filePath, WinWicFormat format, int colorCount,
         EsImageQuality quality, EsDitherMode dither)
     {
         var (indices, palette) = EsBitmapOperations.ReduceToIndexed(
@@ -170,12 +211,12 @@ internal static class WinWicImageCodec
             indices.AsSpan(y * width, width).CopyTo(rows.AsSpan(y * stride, width));
         }
 
-        var bytes = EncodeToBytes(format, width, height, default, palette, rows, indexed: true);
+        var bytes = EncodeToBytes(format.Container, width, height, default, palette, rows, indexed: true);
         File.WriteAllBytes(filePath, bytes);
     }
 
     /// <summary>ピクセルを WIC でエンコードし、ファイルへ書く内容を返す。</summary>
-    /// <param name="format">保存する形式。</param>
+    /// <param name="container">コンテナ形式の GUID。</param>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
     /// <param name="options">保存のオプション（JPEG の品質を書き込む）。</param>
@@ -184,230 +225,230 @@ internal static class WinWicImageCodec
     /// <param name="indexed">8bpp のインデックス カラーとして書く場合は true。</param>
     /// <returns>エンコードした内容。</returns>
     /// <exception cref="NotSupportedException">その形式を書き出せるエンコーダーが無い場合、または
-    /// パレットを持てない形式へパレットを渡した場合。</exception>
+    /// エンコーダーがパレット画像を書けない場合。</exception>
     /// <exception cref="Win32Exception">エンコード（WIC）が失敗した場合。</exception>
     /// <remarks>
-    /// <b>メモリ ストリームへ書いてからファイルへ書く理由</b>: COM の解放は GC の時期に依存するため、
+    /// <b>メモリ ストリームへ書いてからファイルへ書く理由</b>: COM の解放は明示するが、
     /// WIC にファイルを開かせると解放までファイルが開いたままになる（実測: 直後の削除が共有違反で失敗した）。
     /// メモリ ストリームならファイルは呼び出し側が開いて閉じるため、直後から削除も上書きもできる。<br/>
-    /// <b>エンコーダーの初期化は 1 回だけ</b>である（<c>IWICBitmapEncoder::Initialize</c> を 2 回呼ぶと失敗する）。
+    /// <b>エンコーダーのキャッシュは <c>NoCache</c> を使う（実測）</b>: メモリ ストリームでは
+    /// <c>CacheInMemory</c>（0）も <c>CacheTempFile</c>（1）も <c>WINCODEC_ERR_UNSUPPORTEDOPERATION</c>
+    /// （<c>0x88982F81</c>）で初期化に失敗し、<c>NoCache</c>（2）だけが成功した。<br/>
+    /// <b>エンコーダーの初期化は 1 回だけ</b>である（<c>IWICBitmapFrameEncode::Initialize</c> を 2 回呼ぶと失敗する）。
     /// そのため、ここで初期化・フレーム作成・オプション設定・寸法・パレット・画素の書き込みをまとめて行う。<br/>
     /// <b>画素の書き込みを処理として受け取らない理由</b>: 画素は <see cref="ReadOnlySpan{T}"/>（ref 構造体）であり、
     /// ラムダへ捕捉できないため。
     /// </remarks>
-    private static unsafe byte[] EncodeToBytes(
-        ImageFileFormat format, int width, int height, in EsImageSaveOptions options, uint[]? palette,
+    private static byte[] EncodeToBytes(
+        Guid container, int width, int height, in EsImageSaveOptions options, uint[]? palette,
         ReadOnlySpan<byte> pixels, bool indexed)
     {
-        ValidateSize(format, width, height);
+        ValidateSize(container, width, height);
 
         var factory = OpenFactory();
-        var stream = WinWicFactory.CreateMemoryStream();
-        var encoder = CreateEncoderFor(factory, format);
-
-        WinWicFactory.ThrowIfFailed(
-            encoder.Initialize(stream, WinWicInterfaces.EncoderCacheTempFile),
-            "エンコーダーを初期化できませんでした。");
-        WinWicFactory.ThrowIfFailed(
-            encoder.CreateNewFrame(out var frame, out var properties),
-            "画像のフレームを作成できませんでした。");
-        var instance = frame!;
-
-        if (options.JpegQuality is int quality)
+        try
         {
-            // WIC の品質は 0.0〜1.0 の実数である（公開面は 0〜100 の整数）
-            WinWicFactory.ThrowIfFailed(
-                WinWicFactory.WriteRealOption(properties!, "ImageQuality", quality / (float)JpegQualityMaximum),
-                "JPEG の品質を設定できませんでした。");
-        }
-
-        WinWicFactory.ThrowIfFailed(instance.Initialize(properties), "画像のフレームを初期化できませんでした。");
-        WinWicFactory.ThrowIfFailed(
-            instance.SetSize((uint)width, (uint)height),
-            $"画像の寸法（{width}x{height}）を設定できませんでした。");
-
-        if (palette is not null)
-        {
-            WinWicFactory.ThrowIfFailed(factory.CreatePalette(out var colors), "パレットを作成できませんでした。");
-            fixed (uint* values = palette)
+            var stream = WinWicFactory.CreateMemoryStream();
+            try
             {
-                WinWicFactory.ThrowIfFailed(
-                    colors!.InitializeCustom(values, (uint)palette.Length),
-                    "パレットの色を設定できませんでした。");
+                var encoder = CreateEncoder(factory, container);
+                try
+                {
+                    encoder->Initialize(stream, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
+
+                    IPropertyBag2* properties;
+                    var frame = CreateFrame(encoder, &properties);
+                    try
+                    {
+                        if (options.JpegQuality is int quality)
+                        {
+                            // WIC の品質は 0.0〜1.0 の実数である（公開面は 0〜100 の整数）
+                            WinWicFactory.WriteRealOption(
+                                properties, "ImageQuality", quality / (float)JpegQualityMaximum);
+                        }
+
+                        frame->Initialize(properties);
+                        frame->SetSize((uint)width, (uint)height);
+                        if (palette is not null)
+                        {
+                            ApplyPalette(factory, frame, palette);
+                        }
+
+                        WritePixels(factory, frame, width, height, pixels, indexed, container);
+                        frame->Commit();
+                    }
+                    finally
+                    {
+                        frame->Release();
+                        properties->Release();
+                    }
+
+                    // ストリームが生きているうちに確定する（確定してから解放すると内容が書かれない）
+                    encoder->Commit();
+                    return WinWicFactory.ReadStream(stream);
+                }
+                finally
+                {
+                    encoder->Release();
+                }
             }
-
-            WinWicFactory.ThrowIfFailed(instance.SetPalette(colors), "パレットを画像へ設定できませんでした。");
-        }
-
-        if (indexed)
-        {
-            var indexFormat = WinWicFactory.PixelFormat8bppIndexed;
-            WinWicFactory.ThrowIfFailed(
-                instance.SetPixelFormat(ref indexFormat),
-                $"減色した画像のピクセル形式を設定できませんでした（{ToPublicName(format)}）。");
-            if (indexFormat != WinWicFactory.PixelFormat8bppIndexed)
+            finally
             {
-                throw new NotSupportedException(
-                    $"この環境の {ToPublicName(format)} エンコーダーはパレット画像を書けません（{indexFormat}）。");
+                stream->Release();
             }
-
-            WritePixelsCore(instance, height, (width + 3) & ~3, pixels, format);
         }
-        else
+        finally
         {
-            var pixelFormat = WinWicFactory.PixelFormat32bppPBgra;
-            WinWicFactory.ThrowIfFailed(
-                instance.SetPixelFormat(ref pixelFormat),
-                $"保存する画像のピクセル形式を設定できませんでした（{ToPublicName(format)}）。");
-
-            WritePixels(instance, width, height, pixels, pixelFormat, format);
+            factory->Release();
         }
-
-        WinWicFactory.ThrowIfFailed(instance.Commit(), "画像を確定できませんでした。");
-
-        // ストリームが生きているうちに確定する（確定してから解放すると内容が書かれない）
-        WinWicFactory.ThrowIfFailed(encoder.Commit(), "エンコードした内容を確定できませんでした。");
-        return WinWicFactory.ReadStream(stream);
     }
 
-    /// <summary>形式ごとの最小寸法を満たしているかを確かめる。</summary>
-    /// <param name="format">保存する形式。</param>
-    /// <param name="width">幅（ピクセル）。</param>
-    /// <param name="height">高さ（ピクセル）。</param>
-    /// <exception cref="NotSupportedException">その形式で書けない寸法の場合。</exception>
-    /// <remarks>
-    /// <b>HEIF は 8x8 未満を書けません（実測）</b>: 8x8 以上は往復できるが、8x7 / 8x6 / 4x4 は
-    /// <b>保存自体は成功する</b>ものの、書き出したファイルを読み戻すと
-    /// <c>WINCODEC_ERR_INVALIDPARAMETER</c>（<c>0x80070057</c>）になります（HEVC の最小の符号化単位）。
-    /// 読めないファイルを作らないため、保存の前に断ります。
-    /// </remarks>
-    private static void ValidateSize(ImageFileFormat format, int width, int height)
+    /// <summary>エンコーダーを作る。</summary>
+    /// <param name="factory">イメージング ファクトリ。</param>
+    /// <param name="container">コンテナ形式の GUID。</param>
+    /// <returns>生成したエンコーダー（呼び出し側が <c>Release()</c> を呼ぶ）。</returns>
+    /// <exception cref="NotSupportedException">その形式を書き出せるエンコーダーが無い場合。</exception>
+    private static IWICBitmapEncoder* CreateEncoder(IWICImagingFactory* factory, Guid container)
     {
-        const int HeifMinimumSize = 8;
-        if (format is ImageFileFormat.Heif && (width < HeifMinimumSize || height < HeifMinimumSize))
+        try
         {
-            throw new NotSupportedException(
-                $"{ToPublicName(format)} 形式は {HeifMinimumSize}x{HeifMinimumSize} 未満の画像を書けません"
-                + $"（指定された寸法は {width}x{height}）。");
+            var noVendor = Guid.Empty;
+            return factory->CreateEncoder(in container, in noVendor);
+        }
+        catch (COMException ex)
+        {
+            // エンコーダーが無いことを「未対応の形式」として翻訳する（原因の状態値は内部例外へ残す）
+            throw CreateEncoderMissing(container, ex);
+        }
+    }
+
+    /// <summary>エンコーダーからフレームを作る。</summary>
+    /// <param name="encoder">エンコーダー。</param>
+    /// <param name="properties">エンコーダーが用意したオプション（呼び出し側が <c>Release()</c> を呼ぶ）。</param>
+    /// <returns>生成したフレーム（呼び出し側が <c>Release()</c> を呼ぶ）。</returns>
+    private static IWICBitmapFrameEncode* CreateFrame(IWICBitmapEncoder* encoder, IPropertyBag2** properties)
+    {
+        IWICBitmapFrameEncode* frame;
+        encoder->CreateNewFrame(&frame, properties);
+        return frame;
+    }
+
+    /// <summary>減色したパレットをフレームへ設定する。</summary>
+    /// <param name="factory">イメージング ファクトリ。</param>
+    /// <param name="frame">対象のフレーム。</param>
+    /// <param name="palette">設定するパレット（BGRA の配列）。</param>
+    private static void ApplyPalette(IWICImagingFactory* factory, IWICBitmapFrameEncode* frame, uint[] palette)
+    {
+        IWICPalette* wicPalette;
+        factory->CreatePalette(&wicPalette);
+        try
+        {
+            fixed (uint* colors = palette)
+            {
+                wicPalette->InitializeCustom(colors, (uint)palette.Length);
+            }
+
+            frame->SetPalette(wicPalette);
+        }
+        finally
+        {
+            wicPalette->Release();
         }
     }
 
     /// <summary>WIC のイメージング ファクトリを生成する。</summary>
     /// <returns>生成したファクトリ。</returns>
     /// <exception cref="Win32Exception">WIC を使えない場合。</exception>
-    private static IWICImagingFactory OpenFactory()
-        => WinWicFactory.CreateFactory()
-            ?? throw new Win32Exception(0, "WIC（Windows Imaging Component）を使えませんでした。");
-
-    /// <summary>実行環境で書き出せる形式の拡張子を調べる（<see cref="SupportedExtensions"/> の実装）。</summary>
-    /// <returns>エンコーダーが存在する形式の拡張子。</returns>
-    /// <remarks>
-    /// <b>WIC を使えない環境では既知の一覧を返す</b>（一覧を得るために COM を初期化できないことを
-    /// 「保存できない」と解釈すると、原因が分からないまま一覧が空になるため）。 実際に保存できない場合は
-    /// <see cref="EncodeToFile(ReadOnlySpan{byte}, int, int, string)"/> が例外になる。
-    /// </remarks>
-    private static IReadOnlyList<string> ProbeExtensions()
+    private static IWICImagingFactory* OpenFactory()
     {
-        var factory = WinWicFactory.CreateFactory();
+        var factory = WinWicFactory.Create();
         if (factory is null)
         {
-            return s_knownExtensions;
+            throw new Win32Exception(0, "WIC（Windows Imaging Component）を使えませんでした。");
         }
 
-        var available = new List<string>(s_knownExtensions.Length);
-        foreach (var extension in s_knownExtensions)
-        {
-            if (TryResolveExtension(extension) is { } format && HasEncoder(factory, format))
-            {
-                available.Add(extension);
-            }
-        }
-
-        return available;
+        return factory;
     }
 
-    /// <summary>指定した形式を書き出せるエンコーダーがあるかを判定する。</summary>
-    /// <param name="factory">イメージング ファクトリ。</param>
-    /// <param name="format">判定する形式。</param>
-    /// <returns>エンコーダーがある場合は true。</returns>
-    private static bool HasEncoder(IWICImagingFactory factory, ImageFileFormat format)
-    {
-        var containerFormat = s_containerFormats[format];
-        return factory.CreateEncoder(in containerFormat, IntPtr.Zero, out var encoder) >= 0 && encoder is not null;
-    }
-
-    /// <summary>形式を書き出せるエンコーダーを作る。</summary>
-    /// <param name="factory">イメージング ファクトリ。</param>
-    /// <param name="format">保存する形式。</param>
-    /// <returns>生成したエンコーダー。</returns>
-    /// <exception cref="NotSupportedException">その形式を書き出せるエンコーダーが無い場合。</exception>
-    private static IWICBitmapEncoder CreateEncoderFor(IWICImagingFactory factory, ImageFileFormat format)
-    {
-        var containerFormat = s_containerFormats[format];
-        if (factory.CreateEncoder(in containerFormat, IntPtr.Zero, out var encoder) >= 0 && encoder is not null)
-        {
-            return encoder;
-        }
-
-        // コーデック拡張が必要な形式は、入っていない環境でここへ来る（Windows 標準の形式は来ない）
-        var hint = format is ImageFileFormat.Heif or ImageFileFormat.JpegXl
-            ? "（Microsoft Store のコーデック拡張が必要です）"
-            : string.Empty;
-        throw new NotSupportedException(
-            $"この環境には {ToPublicName(format)} 形式を書き出すエンコーダーがありません{hint}。");
-    }
+    /// <summary>エンコーダーが無いことを表す例外を作る。</summary>
+    /// <param name="container">コンテナ形式の GUID。</param>
+    /// <param name="inner">WIC が返した失敗。</param>
+    /// <returns>送出する例外。</returns>
+    private static NotSupportedException CreateEncoderMissing(Guid container, Exception inner)
+        => new(
+            $"コンテナ形式 {container} を書き出すエンコーダーがありません"
+            + "（コーデック拡張が要る形式は Microsoft Store の拡張が必要です）。",
+            inner);
 
     /// <summary>エンコーダーが受け付けたピクセル形式へ直してから画素を書き込む。</summary>
+    /// <param name="factory">イメージング ファクトリ。</param>
     /// <param name="frame">対象のフレーム。</param>
     /// <param name="width">幅（ピクセル）。</param>
     /// <param name="height">高さ（ピクセル）。</param>
-    /// <param name="pixels">画素（BGRA8888・アルファ乗算済み。 行幅は密）。</param>
-    /// <param name="pixelFormat"><c>SetPixelFormat</c> が返したピクセル形式。</param>
-    /// <param name="format">保存する形式（例外メッセージ用）。</param>
-    /// <exception cref="NotSupportedException">想定していないピクセル形式が返された場合。</exception>
-    /// <exception cref="Win32Exception">書き込めなかった場合。</exception>
+    /// <param name="pixels">画素（BGRA8888・アルファ乗算済み。 行幅は密）。 <paramref name="indexed"/> が true の場合はインデックス。</param>
+    /// <param name="indexed">8bpp のインデックス カラーとして書く場合は true。</param>
+    /// <param name="container">保存する形式（例外メッセージ用）。</param>
+    /// <exception cref="NotSupportedException">エンコーダーが想定外のピクセル形式を要求した場合。</exception>
     /// <remarks>
     /// <b>要求と返答が違う（実測）</b>: アルファ乗算済みの BGRA を要求しても、PNG / TIFF は
-    /// アルファ乗算なしの BGRA、JPEG は 24bpp の BGR を返す（JPEG はアルファを持てない形式である）。
-    /// そのため<b>返された形式に合わせて並びを直してから書く</b>（エンコーダーは形式の変換をしない）。
-    /// BMP だけは要求どおりアルファ乗算済みを受け付けるため、コピーを作らない。<br/>
-    /// <b>変換器（<c>IWICFormatConverter</c>）を使わない理由（実測）</b>: 変換器へ渡す画素の源は
-    /// <c>IWICImagingFactory::CreateBitmapFromMemory</c> でしか作れないが、この API は
-    /// <b><c>[GeneratedComInterface]</c> 経由でも生の vtable 呼び出しでもアクセス違反で落ちる</b>
-    /// （同じ引数・同じプロセスでも <c>[ComImport]</c> 経由なら成功する。 Native AOT では
-    /// <c>[ComImport]</c> を使えない）。 そのため並びの変換だけは自前で行う。
+    /// アルファ乗算なしの BGRA、JPEG は 24bpp の BGR、HEIF は 32bpp の BGR、JPEG XL は RGBA を返す
+    /// （エンコーダーは形式の変換をしない）。 そのため<b>返された形式に合わせて並びを直してから書く</b>。<br/>
+    /// <b>変換器（<c>IWICFormatConverter</c>）で並びを直さない理由</b>: 画素の源を
+    /// <c>CreateBitmapFromMemory</c> で作れば変換器も使えるが、そのためには毎回 1 枚分の
+    /// <c>IWICBitmap</c> を作ることになり、<b>画素の複製が 1 回増える</b>。 並びの付け替えは
+    /// 自前の 1 パスで足りるため、そちらで行う（BMP だけは要求どおりの形式なのでコピーを作らない）。
     /// </remarks>
     private static void WritePixels(
-        IWICBitmapFrameEncode frame, int width, int height, ReadOnlySpan<byte> pixels, Guid pixelFormat,
-        ImageFileFormat format)
+        IWICImagingFactory* factory, IWICBitmapFrameEncode* frame, int width, int height,
+        ReadOnlySpan<byte> pixels, bool indexed, Guid container)
     {
-        if (pixelFormat == WinWicFactory.PixelFormat32bppPBgra)
+        if (indexed)
         {
-            WritePixelsCore(frame, height, width * EsReadOnlyBitmap.BytesPerPixel, pixels, format);
+            var indexFormat = PInvoke.GUID_WICPixelFormat8bppIndexed;
+            frame->SetPixelFormat(&indexFormat);
+            if (indexFormat != PInvoke.GUID_WICPixelFormat8bppIndexed)
+            {
+                throw new NotSupportedException(
+                    $"この形式（コンテナ {container}）のエンコーダーはパレット画像を書けません（{indexFormat}）。"
+                    + "減色（ColorCount）は PNG / GIF / BMP などパレットを持てる形式で指定してください。");
+            }
+
+            WritePixelsCore(frame, height, (width + 3) & ~3, pixels, container);
             return;
         }
 
-        if (pixelFormat == WinWicFactory.PixelFormat32bppBgra)
+        var pixelFormat = PInvoke.GUID_WICPixelFormat32bppPBGRA;
+        frame->SetPixelFormat(&pixelFormat);
+
+        if (pixelFormat == PInvoke.GUID_WICPixelFormat32bppPBGRA)
         {
-            WritePixelsCore(frame, height, width * EsReadOnlyBitmap.BytesPerPixel, Unpremultiply(pixels), format);
+            WritePixelsCore(frame, height, width * EsReadOnlyBitmap.BytesPerPixel, pixels, container);
             return;
         }
 
-        if (pixelFormat == WinWicFactory.PixelFormat32bppBgr)
+        if (pixelFormat == PInvoke.GUID_WICPixelFormat32bppBGRA || pixelFormat == PInvoke.GUID_WICPixelFormat32bppBGR)
         {
-            // BGR はアルファを持てないため、乗算を解いてから書く（4 バイト目の詰め物は無視される）
-            WritePixelsCore(frame, height, width * EsReadOnlyBitmap.BytesPerPixel, Unpremultiply(pixels), format);
+            // どちらも画素は BGRA の並びである（BGR の 4 バイト目は詰め物であり、書いても無視される）
+            WritePixelsCore(
+                frame, height, width * EsReadOnlyBitmap.BytesPerPixel, Unpremultiply(pixels), container);
             return;
         }
 
-        if (pixelFormat == WinWicFactory.PixelFormat24bppBgr)
+        if (pixelFormat == PInvoke.GUID_WICPixelFormat24bppBGR)
         {
-            WritePixelsCore(frame, height, width * 3, ToBgr24(pixels, width, height), format);
+            WritePixelsCore(frame, height, width * 3, ToBgr24(pixels, width, height), container);
+            return;
+        }
+
+        if (pixelFormat == PInvoke.GUID_WICPixelFormat32bppRGBA)
+        {
+            WritePixelsCore(
+                frame, height, width * EsReadOnlyBitmap.BytesPerPixel, ToRgba32(pixels), container);
             return;
         }
 
         throw new NotSupportedException(
-            $"この環境の {ToPublicName(format)} エンコーダーは想定外のピクセル形式を要求しました（{pixelFormat}）。");
+            $"この形式（コンテナ {container}）のエンコーダーは想定外のピクセル形式を要求しました（{pixelFormat}）。");
     }
 
     /// <summary>行幅を指定して画素を書き込む。</summary>
@@ -415,15 +456,22 @@ internal static class WinWicImageCodec
     /// <param name="height">行数。</param>
     /// <param name="stride">行幅（バイト）。</param>
     /// <param name="pixels">画素（行幅が密な並び）。</param>
-    /// <param name="format">保存する形式（例外メッセージ用）。</param>
-    /// <exception cref="Win32Exception">書き込めなかった場合。</exception>
-    private static unsafe void WritePixelsCore(IWICBitmapFrameEncode frame, int height, int stride, ReadOnlySpan<byte> pixels, ImageFileFormat format)
+    /// <param name="container">保存する形式（例外メッセージ用）。</param>
+    private static void WritePixelsCore(
+        IWICBitmapFrameEncode* frame, int height, int stride, ReadOnlySpan<byte> pixels, Guid container)
     {
-        fixed (byte* source = pixels)
+        try
         {
-            WinWicFactory.ThrowIfFailed(
-                frame.WritePixels((uint)height, (uint)stride, (uint)pixels.Length, source),
-                $"{ToPublicName(format)} 形式の画素を書き込めませんでした。");
+            fixed (byte* source = pixels)
+            {
+                frame->WritePixels((uint)height, (uint)stride, (uint)pixels.Length, source);
+            }
+        }
+        catch (COMException ex)
+        {
+            // 状態値を Win32 の例外へ翻訳する（公開面は Win32Exception で状態値を運ぶ）
+            throw new Win32Exception(
+                ex.HResult, $"画素を書き込めませんでした（コンテナ {container}。 WIC の状態: 0x{ex.HResult:X8}）");
         }
     }
 
@@ -475,19 +523,56 @@ internal static class WinWicImageCodec
         return result;
     }
 
+    /// <summary>アルファ乗算済みの BGRA を 32bpp の RGBA（乗算なし）へ直す。</summary>
+    /// <param name="pixels">アルファ乗算済みの画素（BGRA）。</param>
+    /// <returns>RGBA の画素。</returns>
+    /// <remarks>RGBA を要求するエンコーダー（実測: JPEG XL）向けに、乗算を解いてから並びを入れ替える。</remarks>
+    private static byte[] ToRgba32(ReadOnlySpan<byte> pixels)
+    {
+        var straight = Unpremultiply(pixels);
+        for (var i = 0; i < straight.Length; i += EsReadOnlyBitmap.BytesPerPixel)
+        {
+            (straight[i + 0], straight[i + 2]) = (straight[i + 2], straight[i + 0]);
+        }
+
+        return straight;
+    }
+
+    /// <summary>形式ごとの最小寸法を満たしているかを確かめる。</summary>
+    /// <param name="container">コンテナ形式の GUID。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <exception cref="NotSupportedException">その形式で書けない寸法の場合。</exception>
+    /// <remarks>
+    /// <b>HEIF は 8x8 未満を書けません（実測）</b>: 8x8 以上は往復できるが、8x7 / 8x6 / 4x4 は
+    /// <b>保存自体は成功する</b>ものの、書き出したファイルを読み戻すと
+    /// <c>WINCODEC_ERR_INVALIDPARAMETER</c>（<c>0x80070057</c>）になります（HEVC の最小の符号化単位）。
+    /// 読めないファイルを作らないため、保存の前に断ります。
+    /// </remarks>
+    private static void ValidateSize(Guid container, int width, int height)
+    {
+        if (container == WinWicConstants.HeifContainer
+            && (width < WinWicConstants.HeifMinimumSize || height < WinWicConstants.HeifMinimumSize))
+        {
+            throw new NotSupportedException(
+                $"HEIF 形式は {WinWicConstants.HeifMinimumSize}x{WinWicConstants.HeifMinimumSize} 未満の画像を書けません"
+                + $"（指定された寸法は {width}x{height}）。");
+        }
+    }
+
     /// <summary>保存する形式と実際の保存先を決める（拡張子の補完と食い違いの判定を含む）。</summary>
     /// <param name="filePath">保存先のファイルパス。</param>
     /// <param name="options">保存のオプション。</param>
     /// <returns>保存する形式と実際の保存先。</returns>
     /// <exception cref="ArgumentException">拡張子と指定形式が食い違い、無視する設定でない場合。</exception>
-    /// <exception cref="ArgumentOutOfRangeException">JPEG の品質が許容範囲外の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException">オプションの値が許容範囲外の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合、または設定されたオプションがその形式で使えない場合。</exception>
     /// <remarks>
     /// <b>形式を指定しない場合は拡張子が形式を決める</b>（従来の挙動を変えない）。
     /// <b>形式を指定した場合は形式が優先</b>され、拡張子が無ければ補完し、食い違いは
     /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> で判定する。
     /// </remarks>
-    private static (ImageFileFormat Format, string FilePath) ResolveTarget(string filePath, in EsImageSaveOptions options)
+    private static (WinWicFormat Format, string FilePath) ResolveTarget(string filePath, in EsImageSaveOptions options)
     {
         var extension = Path.GetExtension(filePath);
         if (options.Format is not EsImageFileFormat requested)
@@ -496,16 +581,15 @@ internal static class WinWicImageCodec
             return (ResolveExtension(extension, options), filePath);
         }
 
-        var format = ToFormat(requested);
+        var format = ResolveFormat(requested);
         if (extension.Length == 0)
         {
-            // 拡張子が無い場合は指定形式の拡張子を補完する（保存先は補完後のパスになる）
+            // 拡張子が無い場合は指定形式の代表の拡張子を補完する（保存先は補完後のパスになる）
             ValidateOptions(format, options);
-            return (format, string.Concat(filePath, CanonicalExtension(format)));
+            return (format, string.Concat(filePath, ExtensionOf(requested)));
         }
 
-        var fromExtension = TryResolveExtension(extension);
-        if (fromExtension == format)
+        if (MatchesExtension(format, extension))
         {
             ValidateOptions(format, options);
             return (format, filePath);
@@ -514,7 +598,7 @@ internal static class WinWicImageCodec
         if (!options.IgnoreFormatMismatch)
         {
             // 未対応の拡張子は「拡張子が対応形式でない」として扱う（指定形式で黙って上書きしない）
-            if (fromExtension is null)
+            if (WinWicFormats.FindByExtension(extension) is null)
             {
                 throw CreateUnsupportedExtension(extension);
             }
@@ -535,30 +619,69 @@ internal static class WinWicImageCodec
     /// <param name="options">保存のオプション。</param>
     /// <returns>保存する形式。</returns>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合、または設定されたオプションがその形式で使えない場合。</exception>
-    /// <exception cref="ArgumentOutOfRangeException">JPEG の品質が許容範囲外の場合。</exception>
-    private static ImageFileFormat ResolveExtension(string extension, in EsImageSaveOptions options)
+    /// <exception cref="ArgumentOutOfRangeException">オプションの値が許容範囲外の場合。</exception>
+    private static WinWicFormat ResolveExtension(string extension, in EsImageSaveOptions options)
     {
-        var format = TryResolveExtension(extension) ?? throw CreateUnsupportedExtension(extension);
+        var format = WinWicFormats.FindByExtension(extension) ?? throw CreateUnsupportedExtension(extension);
         ValidateOptions(format, options);
         return format;
     }
 
-    /// <summary>拡張子から形式を求める（未対応の場合は null）。</summary>
-    /// <param name="extension">拡張子（先頭のドットを含む。 空の場合もある）。</param>
-    /// <returns>形式。 未対応の場合は null。</returns>
-    private static ImageFileFormat? TryResolveExtension(string extension)
-        => extension.ToUpperInvariant() switch
+    /// <summary>指定された形式を、実行環境で書き出せる形式へ解決する。</summary>
+    /// <param name="format">公開の形式。</param>
+    /// <returns>解決した形式。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">定義されていない値の場合。</exception>
+    /// <exception cref="NotSupportedException">その形式を書き出せるエンコーダーが無い場合。</exception>
+    /// <remarks>
+    /// <b>拡張子を経由して解決する</b>: 形式の一覧は OS が持つため、本クラスは
+    /// 「<see cref="EsImageFileFormat"/> の値 → 代表の拡張子 → OS のエンコーダー」の順に引く。
+    /// </remarks>
+    private static WinWicFormat ResolveFormat(EsImageFileFormat format)
+    {
+        var extension = ExtensionOf(format);
+        return WinWicFormats.FindByExtension(extension) ?? throw new NotSupportedException(
+            $"{format} 形式（{extension}）を書き出すエンコーダーがありません"
+            + "（コーデック拡張が要る形式は Microsoft Store の拡張が必要です）。");
+    }
+
+    /// <summary>形式の代表の拡張子を求める。</summary>
+    /// <param name="format">公開の形式。</param>
+    /// <returns>代表の拡張子（先頭のドットを含む）。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">定義されていない値の場合。</exception>
+    /// <remarks>
+    /// <b>OS が申告する順に依らない理由</b>: 同じ形式に複数の拡張子があり（<c>.jpeg</c> / <c>.jpe</c> /
+    /// <c>.jpg</c> など）、<b>OS の並びは保証されない</b>。 補完に使う名前は本ライブラリが固定する
+    /// （そうしないと、環境によって <c>shot</c> から作られる名前が変わる）。
+    /// </remarks>
+    private static string ExtensionOf(EsImageFileFormat format) => format switch
+    {
+        EsImageFileFormat.Bmp => ".bmp",
+        EsImageFileFormat.Png => ".png",
+        EsImageFileFormat.Jpeg => ".jpg",
+        EsImageFileFormat.Gif => ".gif",
+        EsImageFileFormat.Tiff => ".tif",
+        EsImageFileFormat.JpegXr => ".jxr",
+        EsImageFileFormat.Heif => ".heic",
+        EsImageFileFormat.JpegXl => ".jxl",
+        var other => throw new ArgumentOutOfRangeException(nameof(format), other, "定義されていない画像形式です。"),
+    };
+
+    /// <summary>形式が指定された拡張子を持つかを調べる。</summary>
+    /// <param name="format">形式。</param>
+    /// <param name="extension">拡張子。</param>
+    /// <returns>持つ場合は true（大文字・小文字は区別しない）。</returns>
+    private static bool MatchesExtension(WinWicFormat format, string extension)
+    {
+        foreach (var candidate in format.Extensions)
         {
-            ".BMP" => ImageFileFormat.Bmp,
-            ".PNG" => ImageFileFormat.Png,
-            ".JPG" or ".JPEG" => ImageFileFormat.Jpeg,
-            ".GIF" => ImageFileFormat.Gif,
-            ".TIF" or ".TIFF" => ImageFileFormat.Tiff,
-            ".JXR" or ".WDP" => ImageFileFormat.JpegXr,
-            ".HEIC" or ".HEIF" => ImageFileFormat.Heif,
-            ".JXL" => ImageFileFormat.JpegXl,
-            _ => null,
-        };
+            if (string.Equals(candidate, extension, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>その形式のオプションの組み合わせを検証する。</summary>
     /// <param name="format">保存する形式。</param>
@@ -568,27 +691,21 @@ internal static class WinWicImageCodec
     /// <exception cref="ArgumentOutOfRangeException">値が許容範囲外の場合。</exception>
     /// <remarks>
     /// <b>品質を使えるのは JPEG と JPEG XR だけである</b>（他の形式は品質を受け取っても出力が変わらない）。
-    /// <b>減色を使えるのは BMP / PNG / GIF だけである</b>（パレットを持てる形式）。
     /// <b>減色の品質とディザは減色が行われる場合だけ意味を持つ</b>（<see cref="EsImageSaveOptions.ColorCount"/> を
     /// 指定した場合、または GIF へ保存する場合）。 黙って無視すると「設定したのに効かない」ことに気付かないため、
-    /// 例外にする。
+    /// 例外にする。<br/>
+    /// <b>減色をその形式が扱えるかは保存を試すまで分からない</b>ため、ここでは判定しない
+    /// （<see cref="WritePixels"/> がエンコーダーの返答を見て <see cref="NotSupportedException"/> にする）。
     /// </remarks>
-    private static void ValidateOptions(ImageFileFormat format, in EsImageSaveOptions options)
+    private static void ValidateOptions(WinWicFormat format, in EsImageSaveOptions options)
     {
-        if (options.ColorCount is int colorCount)
+        if (options.ColorCount is int colorCount
+            && (colorCount < EsBitmapOperations.MinimumColorCount || colorCount > EsBitmapOperations.MaximumColorCount))
         {
-            if (!SupportsPalette(format))
-            {
-                throw CreateUnsupportedOption(format, nameof(EsImageSaveOptions.ColorCount));
-            }
-
-            if (colorCount < EsBitmapOperations.MinimumColorCount || colorCount > EsBitmapOperations.MaximumColorCount)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(options),
-                    colorCount,
-                    $"減色して残す色数は {EsBitmapOperations.MinimumColorCount}〜{EsBitmapOperations.MaximumColorCount} の範囲で指定します。");
-            }
+            throw new ArgumentOutOfRangeException(
+                nameof(options),
+                colorCount,
+                $"減色して残す色数は {EsBitmapOperations.MinimumColorCount}〜{EsBitmapOperations.MaximumColorCount} の範囲で指定します。");
         }
 
         if (options.ColorQuality is EsImageQuality quality
@@ -606,7 +723,7 @@ internal static class WinWicImageCodec
         }
 
         // 減色の指定（品質・ディザ）は減色が行われる場合だけ意味を持つ（GIF は指定が無くても量子化される）
-        if (options.ColorCount is null && format != ImageFileFormat.Gif)
+        if (options.ColorCount is null && !IsPaletteRequired(format))
         {
             if (options.ColorQuality is not null)
             {
@@ -624,7 +741,7 @@ internal static class WinWicImageCodec
             return;
         }
 
-        if (format is not (ImageFileFormat.Jpeg or ImageFileFormat.JpegXr))
+        if (!SupportsQuality(format))
         {
             throw CreateUnsupportedOption(format, nameof(EsImageSaveOptions.JpegQuality));
         }
@@ -648,16 +765,15 @@ internal static class WinWicImageCodec
         => new($"オプション '{optionName}' は減色する場合だけ使えます"
             + $"（{nameof(EsImageSaveOptions.ColorCount)} を指定するか、GIF へ保存してください）。");
 
-    /// <summary>その形式がパレット（インデックス カラー）を持てるかを求める。</summary>
+    /// <summary>その形式がパレットを必須とするかを求める。</summary>
     /// <param name="format">保存する形式。</param>
-    /// <returns>持てる場合 true。</returns>
+    /// <returns>必須の場合は true。</returns>
     /// <remarks>
-    /// <b>実測で確認した 3 形式だけを返す</b>: 8bpp のインデックス カラーを渡して意図どおりのパレット画像になることを
-    /// 確かめたのは BMP / PNG / GIF である。 JPEG はパレットを持てない（必ず減色結果が壊れる）。
-    /// TIFF はパレットを持てる形式だが<b>未検証</b>のため受け付けない（未検証の組み合わせを黙って通さない）。
+    /// <b>GIF はパレットが必須である</b>（コンテナ形式で判定する。 拡張子ではない）。
+    /// 指定が無くても常に量子化するのは、GIF が 256 色しか持てないためである。
     /// </remarks>
-    private static bool SupportsPalette(ImageFileFormat format)
-        => format is ImageFileFormat.Bmp or ImageFileFormat.Png or ImageFileFormat.Gif;
+    private static bool IsPaletteRequired(WinWicFormat format)
+        => format.Container == PInvoke.GUID_ContainerFormatGif;
 
     /// <summary>量子化して 8bpp のインデックス カラーとして書く場合の色数を求める。</summary>
     /// <param name="format">保存する形式。</param>
@@ -668,112 +784,37 @@ internal static class WinWicImageCodec
     /// 自前の量子化は透明な画素を透明なパレットの色へ割り当てるため、透過が保たれる。
     /// 副次的に<b>ファイルも小さく画質も良くなる</b>。
     /// </remarks>
-    private static int? ResolveColorCount(ImageFileFormat format, in EsImageSaveOptions options)
+    private static int? ResolveColorCount(WinWicFormat format, in EsImageSaveOptions options)
         => options.ColorCount is int colorCount
             ? colorCount
-            : format == ImageFileFormat.Gif ? EsBitmapOperations.MaximumColorCount : null;
+            : IsPaletteRequired(format) ? EsBitmapOperations.MaximumColorCount : null;
 
-    /// <summary>形式を表す enum を内部の形式へ変換する。</summary>
-    /// <param name="format">公開の形式。</param>
-    /// <returns>内部の形式。</returns>
-    /// <exception cref="ArgumentOutOfRangeException">定義されていない値の場合。</exception>
-    private static ImageFileFormat ToFormat(EsImageFileFormat format)
-        => format switch
-        {
-            EsImageFileFormat.Bmp => ImageFileFormat.Bmp,
-            EsImageFileFormat.Png => ImageFileFormat.Png,
-            EsImageFileFormat.Jpeg => ImageFileFormat.Jpeg,
-            EsImageFileFormat.Gif => ImageFileFormat.Gif,
-            EsImageFileFormat.Tiff => ImageFileFormat.Tiff,
-            EsImageFileFormat.JpegXr => ImageFileFormat.JpegXr,
-            EsImageFileFormat.Heif => ImageFileFormat.Heif,
-            EsImageFileFormat.JpegXl => ImageFileFormat.JpegXl,
-            var other => throw new ArgumentOutOfRangeException(nameof(format), other, "定義されていない画像形式です。"),
-        };
-
-    /// <summary>形式を表す enum の名前を得る（例外メッセージ用）。</summary>
-    /// <param name="format">内部の形式。</param>
-    /// <returns><see cref="EsImageFileFormat"/> の対応する値の名前。</returns>
-    /// <remarks>公開の enum と内部の enum は<b>同じ名前の値を持つ</b>（対応を名前で読み取れるようにするため）。
-    /// 内部の名前をそのまま使うと、対応が崩れたときに気付きにくくなるため対応表を持つ。</remarks>
-    private static string ToPublicName(ImageFileFormat format)
-        => format switch
-        {
-            ImageFileFormat.Bmp => nameof(EsImageFileFormat.Bmp),
-            ImageFileFormat.Png => nameof(EsImageFileFormat.Png),
-            ImageFileFormat.Jpeg => nameof(EsImageFileFormat.Jpeg),
-            ImageFileFormat.Gif => nameof(EsImageFileFormat.Gif),
-            ImageFileFormat.Tiff => nameof(EsImageFileFormat.Tiff),
-            ImageFileFormat.JpegXr => nameof(EsImageFileFormat.JpegXr),
-            ImageFileFormat.Heif => nameof(EsImageFileFormat.Heif),
-            ImageFileFormat.JpegXl => nameof(EsImageFileFormat.JpegXl),
-            var other => other.ToString(),
-        };
-
-    /// <summary>拡張子が対応形式でないことを表す例外を作る。</summary>
-    /// <param name="extension">対象の拡張子（空の場合もある）。</param>
-    /// <returns>例外。</returns>
-    private static NotSupportedException CreateUnsupportedExtension(string extension)
-        => new(extension.Length == 0
-            ? $"拡張子が無いため保存形式を決められません。 拡張子を付けるか {nameof(EsImageSaveOptions)}.{nameof(EsImageSaveOptions.Format)} を指定してください。"
-                + $" 対応形式: {string.Join(" / ", SupportedExtensions)}"
-            : $"拡張子 '{extension}' へは保存できません。 対応形式: {string.Join(" / ", SupportedExtensions)}");
-
-    /// <summary>形式ごとの標準の拡張子（拡張子が無い場合の補完に使う）。</summary>
+    /// <summary>その形式が品質（<c>ImageQuality</c>）を受け付けるかを求める。</summary>
     /// <param name="format">保存する形式。</param>
-    /// <returns>先頭のドットを含む拡張子。</returns>
-    /// <remarks>別名（<c>.jpeg</c> / <c>.tiff</c>）ではなく、対応形式の一覧の先頭にある値を返す。</remarks>
-    private static string CanonicalExtension(ImageFileFormat format)
-        => format switch
-        {
-            ImageFileFormat.Bmp => ".bmp",
-            ImageFileFormat.Png => ".png",
-            ImageFileFormat.Jpeg => ".jpg",
-            ImageFileFormat.Gif => ".gif",
-            ImageFileFormat.Tiff => ".tif",
-            ImageFileFormat.JpegXr => ".jxr",
-            ImageFileFormat.Heif => ".heic",
-            ImageFileFormat.JpegXl => ".jxl",
-            var other => throw new ArgumentOutOfRangeException(nameof(format), other, "未知の画像形式です。"),
-        };
+    /// <returns>受け付ける場合は true。</returns>
+    /// <remarks>
+    /// <b>WIC が品質を受け取るのは非可逆の JPEG 系だけである</b>（JPEG と JPEG XR）。
+    /// コンテナ形式で判定する（拡張子ではない）ため、<c>.jfif</c> のような別名でも同じ扱いになる。
+    /// </remarks>
+    private static bool SupportsQuality(WinWicFormat format)
+        => format.Container == PInvoke.GUID_ContainerFormatJpeg || format.Container == PInvoke.GUID_ContainerFormatWmp;
 
     /// <summary>その形式で使えないオプションが設定されたことを表す例外を作る。</summary>
     /// <param name="format">保存する形式。</param>
     /// <param name="optionName">使えないオプションの名前。</param>
     /// <returns>例外。</returns>
-    private static NotSupportedException CreateUnsupportedOption(ImageFileFormat format, string optionName)
-        => new($"オプション '{optionName}' は {ToPublicName(format)} 形式では使えません"
+    private static NotSupportedException CreateUnsupportedOption(WinWicFormat format, string optionName)
+        => new($"オプション '{optionName}' は {format.Name} 形式では使えません"
             + $"（{nameof(EsImageSaveOptions.JpegQuality)} を使えるのは JPEG と JPEG XR だけであり、"
             + $"減色（{nameof(EsImageSaveOptions.ColorCount)}）を使えるのは BMP / PNG / GIF だけです）。");
 
-    /// <summary>保存する形式。</summary>
-    /// <remarks>WIC のコンテナ形式と 1 対 1 に対応する（拡張子の一覧は <see cref="SupportedExtensions"/> が単一所有する）。</remarks>
-    private enum ImageFileFormat
-    {
-        /// <summary>Windows Bitmap（<c>.bmp</c>）。</summary>
-        Bmp,
-
-        /// <summary>PNG（<c>.png</c>）。</summary>
-        Png,
-
-        /// <summary>JPEG（<c>.jpg</c> / <c>.jpeg</c>）。</summary>
-        Jpeg,
-
-        /// <summary>GIF（<c>.gif</c>）。</summary>
-        Gif,
-
-        /// <summary>TIFF（<c>.tif</c> / <c>.tiff</c>）。</summary>
-        Tiff,
-
-        /// <summary>JPEG XR（<c>.jxr</c> / <c>.wdp</c>）。</summary>
-        JpegXr,
-
-        /// <summary>HEIF（<c>.heic</c> / <c>.heif</c>）。 コーデック拡張が必要。</summary>
-        Heif,
-
-        /// <summary>JPEG XL（<c>.jxl</c>）。 コーデック拡張が必要。</summary>
-        JpegXl,
-    }
+    /// <summary>拡張子が対応形式でないことを表す例外を作る。</summary>
+    /// <param name="extension">拡張子。</param>
+    /// <returns>例外。</returns>
+    private static NotSupportedException CreateUnsupportedExtension(string extension)
+        => new(extension.Length == 0
+            ? $"保存先の拡張子がありません。 対応形式: {string.Join(" / ", SupportedExtensions)}"
+            : $"拡張子 '{extension}' へは保存できません。 対応形式: {string.Join(" / ", SupportedExtensions)}");
 
     /// <summary>ファイルをデコードし、生成された画像として返す（形式は内容から判別される）。</summary>
     /// <typeparam name="T">生成する画像の型（<see cref="EsReadOnlyBitmap"/> または <see cref="EsBitmap"/>）。</typeparam>
@@ -812,26 +853,119 @@ internal static class WinWicImageCodec
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
         var factory = OpenFactory();
-
-        // メモリ ストリームから読む理由: WIC にファイルを開かせると COM の解放（GC）まで掴んだままになる
-        var stream = WinWicFactory.CreateMemoryStream(ReadAllBytes(filePath));
-        if (factory.CreateDecoderFromStream(stream, IntPtr.Zero, 0, out var decoder) < 0 || decoder is null)
+        try
         {
-            throw new ArgumentException($"'{filePath}' を画像として読み込めませんでした。", nameof(filePath));
+            // メモリ ストリームから読む理由: WIC にファイルを開かせると解放まで掴んだままになる
+            var stream = WinWicFactory.CreateMemoryStream(ReadAllBytes(filePath));
+            try
+            {
+                var decoder = CreateDecoder(factory, stream, filePath);
+                try
+                {
+                    var frame = CreateFrame(decoder, filePath);
+                    try
+                    {
+                        // 回転（EXIF の向き）→ 縮小 → 画素形式の変換の順に挟む（拡大はしない）
+                        var rotator = WinWicFactory.ApplyOrientation(factory, frame);
+                        try
+                        {
+                            IWICBitmapSource* oriented =
+                                rotator != null ? (IWICBitmapSource*)rotator : (IWICBitmapSource*)frame;
+                            var scaler = WinWicFactory.Scale(factory, oriented, maxSize);
+                            try
+                            {
+                                IWICBitmapSource* scaled =
+                                    scaler != null ? (IWICBitmapSource*)scaler : oriented;
+                                var pixelFormat = PInvoke.GUID_WICPixelFormat32bppPBGRA;
+                                var converter = WinWicFactory.Convert(factory, scaled, in pixelFormat);
+                                try
+                                {
+                                    var (width, height) = WinWicFactory.GetSize((IWICBitmapSource*)converter);
+                                    return create(
+                                        width, height,
+                                        destination => WinWicFactory.CopyPixels(
+                                            (IWICBitmapSource*)converter, width, height, destination));
+                                }
+                                finally
+                                {
+                                    converter->Release();
+                                }
+                            }
+                            finally
+                            {
+                                if (scaler != null)
+                                {
+                                    scaler->Release();
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            if (rotator != null)
+                            {
+                                rotator->Release();
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        frame->Release();
+                    }
+                }
+                finally
+                {
+                    decoder->Release();
+                }
+            }
+            finally
+            {
+                stream->Release();
+            }
         }
-
-        if (decoder.GetFrame(0, out var frame) < 0 || frame is null)
+        finally
         {
-            throw new ArgumentException($"'{filePath}' の画像を取得できませんでした。", nameof(filePath));
+            factory->Release();
         }
+    }
 
-        // 回転（EXIF の向き）→ 縮小 → 画素形式の変換の順に挟む（拡大はしない）
-        var oriented = WinWicFactory.ApplyOrientation(factory, frame);
-        var scaled = WinWicFactory.Scale(factory, oriented, maxSize);
-        var source = WinWicFactory.Convert(factory, scaled, WinWicFactory.PixelFormat32bppPBgra);
+    /// <summary>ストリームからデコーダーを作る。</summary>
+    /// <param name="factory">イメージング ファクトリ。</param>
+    /// <param name="stream">内容を持つストリーム。</param>
+    /// <param name="filePath">読み込むファイルのパス（例外メッセージ用）。</param>
+    /// <returns>生成したデコーダー（呼び出し側が <c>Release()</c> を呼ぶ）。</returns>
+    /// <exception cref="ArgumentException">画像として解釈できない場合。</exception>
+    private static IWICBitmapDecoder* CreateDecoder(IWICImagingFactory* factory, IStream* stream, string filePath)
+    {
+        try
+        {
+            return factory->CreateDecoderFromStream(
+                stream, null, WICDecodeOptions.WICDecodeMetadataCacheOnDemand);
+        }
+        catch (COMException ex)
+        {
+            // 「画像として解釈できない」へ翻訳する（WIC はファイル不在と同じ状態値を返すため区別しない）
+            throw new ArgumentException($"'{filePath}' を画像として読み込めませんでした。", nameof(filePath), ex);
+        }
+    }
 
-        var (width, height) = WinWicFactory.GetSize(source);
-        return create(width, height, destination => WinWicFactory.CopyPixels(source, width, height, destination));
+    /// <summary>デコーダーから最初のフレームを取り出す。</summary>
+    /// <param name="decoder">デコーダー。</param>
+    /// <param name="filePath">読み込むファイルのパス（例外メッセージ用）。</param>
+    /// <returns>生成したフレーム（呼び出し側が <c>Release()</c> を呼ぶ）。</returns>
+    /// <exception cref="ArgumentException">フレームを取り出せない場合。</exception>
+    private static IWICBitmapFrameDecode* CreateFrame(IWICBitmapDecoder* decoder, string filePath)
+    {
+        try
+        {
+            IWICBitmapFrameDecode* frame;
+            decoder->GetFrame(0, &frame);
+            return frame;
+        }
+        catch (COMException ex)
+        {
+            // 「画像を取得できない」へ翻訳する（デコードできない形式や壊れたフレーム）
+            throw new ArgumentException($"'{filePath}' の画像を取得できませんでした。", nameof(filePath), ex);
+        }
     }
 
     /// <summary>ファイルの内容を読み込む。</summary>
@@ -840,7 +974,7 @@ internal static class WinWicImageCodec
     /// <exception cref="ArgumentException">ファイルが存在しない場合、または読み込めない場合。</exception>
     /// <remarks>
     /// <b>WIC にファイルを開かせない理由</b>: COM の解放は GC の時期に依存するため、WIC にファイルを開かせると
-    /// <b>解放までファイルが掴んだまま</b>になる（実測: 削除が共有違反で失敗した）。
+    /// <b>解放までファイルを掴んだまま</b>になる（実測: 削除が共有違反で失敗した）。
     /// <see cref="File"/> で読めば開いた直後に閉じるため、読み込み中でも削除も上書きもできる。
     /// </remarks>
     private static byte[] ReadAllBytes(string filePath)

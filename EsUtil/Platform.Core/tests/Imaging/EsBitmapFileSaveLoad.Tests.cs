@@ -474,7 +474,6 @@ public class EsBitmapFileSaveLoadTests
 
     [Theory]
     [InlineData(".jpg")]
-    [InlineData(".tiff")]
     internal void Save_パレットを持てない形式へ減色を指定するとNotSupportedExceptionを投げる(string extension)
     {
         using var source = CreateNoisy(32, 32, levels: 32);
@@ -483,6 +482,34 @@ public class EsBitmapFileSaveLoadTests
         Assert.Throws<NotSupportedException>(
             () => source.Save(path, new EsImageSaveOptions { ColorCount = 16 }));
         Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    internal void Save_TIFFへ減色を指定するとパレット画像として保存される()
+    {
+        // TIFF のエンコーダーは 8bpp のインデックス カラーを受け付ける（実測）。
+        // 形式ごとの可否は固定の一覧ではなく、エンコーダーの返答で決まる。
+        using var source = CreateNoisy(32, 32, levels: 32);
+        var path = TempPath(".tiff");
+        try
+        {
+            source.Save(path, new EsImageSaveOptions { ColorCount = 16 });
+
+            Assert.True(File.Exists(path));
+            using var loaded = EsReadOnlyBitmap.Load(path);
+            var colors = new HashSet<uint>();
+            var pixels = loaded.ReadOnlyPixels;
+            for (var i = 0; i + 3 < pixels.Length; i += 4)
+            {
+                colors.Add(BitConverter.ToUInt32(pixels[i..]));
+            }
+
+            Assert.True(colors.Count <= 16, $"色数が減っていない（{colors.Count} 色）");
+        }
+        finally
+        {
+            DeleteFile(path);
+        }
     }
 
     [Theory]
