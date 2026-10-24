@@ -10,15 +10,18 @@
 ![WinForms](https://img.shields.io/badge/UI-WinForms-512BD4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-複数の Windows デスクトップ アプリで使い回す **UI 非依存の共通基盤** と、**再利用可能な UI コントロール** を提供するライブラリ群です。 Avalonia UI / MewUI / WinUI 3 / WinForms の 4 つの UI 実装で、同じ計算結果と同じ見た目のコントロールを共有できます。
+複数の Windows デスクトップ アプリで使い回す **UI 非依存の共通基盤** と、**再利用可能な UI コントロール** を提供するライブラリ群です。
+Avalonia UI / MewUI / WinUI 3 / WinForms の 4 つの UI 実装で、同じ計算結果と同じ見た目のコントロールを共有できます。
 
-各プロジェクトは **NuGet パッケージ**として出力します。 リポジトリ内のプロジェクト同士は**ローカル フィード**（`.nupkg/`。 リポジトリへはコミットしません）で相互参照し、利用側のアプリは `PackageReference` で参照します。
+各プロジェクトは **NuGet パッケージ**として出力します。
+リポジトリ内のプロジェクト同士は**ローカル フィード**（`.nupkg/`。 リポジトリへはコミットしません）で相互参照し、利用側のアプリは `PackageReference` で参照します。
 
 **ドキュメントと例外メッセージは日本語です**（利用者・開発者ともに日本語を前提とします。 識別子とログの接頭辞は英語です）。
 
 ## 1. ソリューションとプロジェクト
 
-リポジトリ直下のフォルダが**ソリューション フォルダ**であり、その直下のフォルダが**プロジェクト フォルダ**です（プロジェクトはソリューションの中にだけ置きます）。 **使い方（インストール・クイックスタート）は各プロジェクトの `README.md` が持ちます**（版は nuget.org のバッジで示します。 公開前は「not found」と表示されます）。
+リポジトリ直下のフォルダが**ソリューション フォルダ**であり、その直下のフォルダが**プロジェクト フォルダ**です（プロジェクトはソリューションの中にだけ置きます）。
+**使い方（インストール・クイックスタート）は各プロジェクトの `README.md` が持ちます**（版は nuget.org のバッジで示します。 公開前は「not found」と表示されます）。
 
 **層の帰属（Core / Presenter / UI のどれに置くか）は [`EsUtil/README.md`](EsUtil/README.md) が、参照の許可範囲は [`.github/依存関係.md`](.github/依存関係.md) が単一所有します**（本節は分類だけを示します）。
 
@@ -99,8 +102,6 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | 変更履歴 | [`CHANGELOG.md`](CHANGELOG.md) |
 | 各プロジェクトの仕様 | `<ソリューション フォルダ>/<プロジェクト フォルダ>/docs/SPEC_API.md` / `SPEC_System.md`（例: `EsUtil.Ui.AvaloniaUI/Loupe/docs/SPEC_API.md`） |
 
-本リポジトリは**個人が保守するライブラリ**です。 **外部からのコントリビューション（Pull Request・Issue）は受け付けません**（MIT ライセンスのため、フォークして自分の用途に使うことは自由です）。
-
 ## 3. 対応フレームワークと Native AOT
 
 | 区分 | 対象フレームワーク |
@@ -108,7 +109,8 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | 共通基盤・機能層（`EsUtil.Platform.Core*` / `EsUtil.Feature.*`） | `net10.0`（`Platform.Core` は OS 依存の実装を含むため Windows 10 1809 以降） |
 | UI 層（`EsUtil.Ui.*`） | `net10.0` / `net10.0-windows10.0.17763.0`（UI フレームワークの要件に従う） |
 
-- **Native AOT への対応は層によって異なります**（`IsAotCompatible=true` は「そのアセンブリを AOT で発行して動かせる」ことの宣言です。 実測 2026-10-24: 各層のサンプルを `dotnet publish -p:PublishAot=true -r win-x64` で発行し、起動を確認）。
+- **Native AOT への対応は層によって異なります**（`IsAotCompatible=true` は「そのアセンブリを AOT で発行して動かせる」ことの宣言です。
+  実測 2026-10-24: 各層のサンプルを `dotnet publish -p:PublishAot=true -r win-x64` で発行し、起動を確認）。
 
 | 層 | Native AOT | 根拠（実測） |
 | --- | --- | --- |
