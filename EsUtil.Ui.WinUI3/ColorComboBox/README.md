@@ -119,7 +119,11 @@ Host.Children.Add(color);
 
 ## 9. サンプルアプリケーション
 
-サンプルはまだありません（WinUI 3 の他コントロールと同じ形式で追加する予定です）。 動作確認はテスト（`tests/`）と利用側アプリで行います。
+`sample/` に動作確認用のサンプル アプリケーションがあります。 起動方法と確認項目は [`sample/README.md`](sample/README.md) を参照してください。
+
+```powershell
+dotnet run --project EsUtil.Ui.WinUI3/ColorComboBox/sample/EsUtil.Ui.WinUI3.ColorComboBox.Sample.csproj
+```
 
 ---
 
@@ -140,7 +144,7 @@ EsUtil.Ui.WinUI3/ColorComboBox/
 │   ├── ColorComboBoxControl.cs                      # 公開 API・入力と状態の同期・Flyout
 │   └── LogMessage.cs                                # ログ定義（LoggerMessage ソース生成）
 ├── docs/                                           # SPEC_API.md / SPEC_System.md
-├── sample/                                         # （未作成）
+├── sample/                                         # サンプルアプリ（sample/README.md 参照）
 └── tests/                                          # 単体テスト（XAML ランタイム不要の範囲）
 ```
 

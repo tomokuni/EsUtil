@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="EsUtil.Ui.WinUI3.ColorComboBox.Sample.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="ColorComboBoxControl サンプル（WinUI 3）">
+
+    <ScrollViewer Padding="16">
+        <StackPanel Spacing="12">
+            <TextBlock Text="色選択コントロール（WinUI 3）" FontSize="16" />
+            <TextBlock
+                FontSize="11"
+                TextWrapping="Wrap"
+                Text="入力できる形: 色名（Red）/ 16 進（#RRGGBB・#AARRGGBB）/ 不透明度（Red+50%）。 無効な入力はフォーカスを外すと戻ります。" />
+
+            <Border BorderBrush="#FF505050" BorderThickness="1" Padding="12">
+                <StackPanel x:Name="Rows" Spacing="8" />
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="一覧の並び順" Width="120" VerticalAlignment="Center" />
+                <ComboBox x:Name="SortMode" MinWidth="120" />
+            </StackPanel>
+
+            <TextBlock Text="プレビュー（枠線 = 1 番目 / 背景 = 2 番目の色）" FontSize="11" />
+            <Border x:Name="Preview" Height="64" BorderThickness="1" BorderBrush="#FF808080" />
+
+            <TextBlock x:Name="Status" TextWrapping="Wrap" />
+            <TextBlock x:Name="Error" FontSize="11" Foreground="#FFD02020" />
+        </StackPanel>
+    </ScrollViewer>
+</Window>

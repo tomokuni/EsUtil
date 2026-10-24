@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/ColorComboBox/">
+    <Project Path="ColorComboBox/sample/EsUtil.Ui.MewUI.ColorComboBox.Sample.csproj" />
     <Project Path="ColorComboBox/src/EsUtil.Ui.MewUI.ColorComboBox.csproj" />
     <Project Path="ColorComboBox/tests/EsUtil.Ui.MewUI.ColorComboBox.Tests.csproj" />
   </Folder>
