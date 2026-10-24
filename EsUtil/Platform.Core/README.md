@@ -35,7 +35,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 
 | グループ | 型 |
 | --- | --- |
-| 窓口（ルート名前空間） | `EsInput` / `EsWindow` / `EsCapture` / `EsErrors` / `EsCallbacks`（機能の型へ委譲する薄い入口。 `using EsUtil.Platform.Core;` だけで解釈・正規化・生成ができる） |
+| 窓口（ルート名前空間） | `EsInput` / `EsWindow` / `EsCapture` / `EsColor` / `EsErrors` / `EsCallbacks`（機能の型へ委譲する薄い入口。 `using EsUtil.Platform.Core;` だけで解釈・正規化・生成ができる） |
 | キーと入力（`Input.*`） | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser`（`"Ctrl + Shift + Q"` の解釈） |
 | ウィンドウ（`Window.*`） | `EsPlatformHandle`（ネイティブ ハンドル） / `EsWindowState` / `EsWindowPlacementMath`（復元可否・はみ出しの補正・DIP ⇔ 物理ピクセル） |
 | キャプチャ（`Capture.*`） | `CaptureType` |
@@ -48,6 +48,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | OS サービス抽象 | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` |
 | Windows 実装 | `Native.Win.*`（Win32 / WIC の P/Invoke と COM。 ホストが生成して注入する） |
 | 補助 | `DrawingColorExtensions` / `EsImageFileExtensions`（一覧に並べる画像の拡張子の判定） |
+| 色 | `Palette.ColorNames`（Windows 標準の色名の表と色名 ⇔ 色の相互参照） / `Palette.ColorEntry`（一覧と並び順） / `Palette.ColorString`（色名・16 進・不透明度 % の解析と整形） / `Palette.ColorValidation` / `Palette.ColorSortMode`（色名順・色相順）。 色を選ばせるコントロールと設定ファイルが同じ解釈を共有する |
 | キャッシュ | `Caching.CapacityLimitedCache<TKey, TValue>`（生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ。 **各コントロールは複製せず本型を使う**） |
 | SVG | `Svg.SvgIconSource`（読み込み元: 埋め込みリソース・フォルダー・テキスト） / `SvgIcon` / `SvgPathParser` / `SvgPathFigure` / `SvgPathSegment` / `SvgPathRasterizer` |
 

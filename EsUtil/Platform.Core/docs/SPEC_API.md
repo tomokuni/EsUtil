@@ -48,6 +48,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.40 `Window.EsWindowPlacementMath`（static class）](#240-windoweswindowplacementmathstatic-class)
   - [2.41 `Geometry.EsRectIntJsonConverter`（sealed class : `JsonConverter<EsRectInt>`）](#241-geometryesrectintjsonconvertersealed-class--jsonconverteresrectint)
   - [2.42 `Native.Win.WinVirtualScreen`（static class）](#242-nativewinwinvirtualscreenstatic-class)
+  - [2.43 `Palette`（色名と色文字列）](#243-palette色名と色文字列)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -59,7 +60,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 
 | 名前空間 | 型 | 用途 |
 | --- | --- | --- |
-| `EsUtil.Platform.Core` | `EsInput` / `EsWindow` / `EsCapture` / `EsErrors` / `EsCallbacks` | 機能フォルダの窓口（利用側が `using EsUtil.Platform.Core;` だけで解釈・正規化・生成を行えるようにする。 実装は持たず機能の型へ委譲する） |
+| `EsUtil.Platform.Core` | `EsInput` / `EsWindow` / `EsCapture` / `EsColor` / `EsErrors` / `EsCallbacks` | 機能フォルダの窓口（利用側が `using EsUtil.Platform.Core;` だけで解釈・正規化・生成を行えるようにする。 実装は持たず機能の型へ委譲する） |
 | `.Input` | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser` | キーとホットキー（正規化・文字列の解釈を含む） |
 | `.Window` | `EsPlatformHandle` / `EsWindowState` / `EsWindowPlacementMath` | ネイティブ ハンドル・表示状態・ウィンドウ配置の規則（復元可否・はみ出しの補正・DIP ⇔ 物理ピクセル） |
 | `.Capture` | `CaptureType` | キャプチャ種別 |
@@ -67,6 +68,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` / `EsRectIntJsonConverter` | DIP 相当の幾何値型と領域の規則、整数矩形の JSON の保存形式 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI・ポイント換算の純粋計算（OS を呼ばない） |
 | `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `EsImageQuality` / `EsDitherMode` / `EsImageFileExtensions` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、縮小と減色の品質、描画色の判定、一覧に並べる画像の拡張子の判定 |
+| `.Palette` | `ColorNames` / `ColorEntry` / `ColorString` / `ColorValidation` / `ColorValidationState` / `ColorSortMode` | 色名（Windows 標準）の表と色名 ⇔ 色の相互参照、色文字列（色名・16 進・不透明度 %）の解析と整形、入力の妥当性、一覧の並び順 |
 | `.Caching` | `CapacityLimitedCache<TKey, TValue>` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（汎用の単一所有者。 UI コントロールは複製せず本型を使う） |
 | `.Svg` | `SvgIconSource` / `SvgIcon` / `SvgPathParser` / `SvgPathFigure` / `SvgPathSegment` / `SvgPathRasterizer` | SVG アイコンの読み込み元・解析結果・パス データの解析・図形の画素への展開 |
 | `.Native` | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `ElementFinderResults` | OS サービスの抽象（UI 非依存。 実装は置かない） |
@@ -968,6 +970,42 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 ### 2.42 `Native.Win.WinVirtualScreen`（static class）
 
 全モニターを包含する仮想スクリーンの矩形（画面物理ピクセル）を `GetSystemMetrics` で照会します。 `DisplayArea.FindAll()` を使わないのは、ウィンドウの表示前に列挙すると WinRT の射影で起動できないためです（実測 2026-10-17）。 プライマリ モニタが原点にない場合は負値を返します（仮想スクリーンの座標そのもの）。
+
+### 2.43 `Palette`（色名と色文字列）
+
+色を選ばせるコントロール（`EsUtil.Ui.*.ColorComboBox`）と設定ファイルが共有する、**色名の表**と**色文字列の解釈**です。
+
+| 型 | 用途 |
+| --- | --- |
+| `ColorNames`（static class） | 色名（Windows 標準の `System.Drawing.KnownColor`。 システム色は除く）→ 色 の表と、色 → 色名 の逆引き（`TryGet` / `IsDefined` / `FindName` / `ByName`） |
+| `ColorEntry`（record） | 一覧の 1 件（`Name` / `Color`）。 色名順（`All`）と色相順（`AllByHue`）を持ち、`GetSorted(ColorSortMode)` で選ぶ |
+| `ColorSortMode`（enum） | 並び順（`ByName` / `ByHue`） |
+| `ColorString`（static class） | 色文字列の解析（`TryParse`）・整形（`Format`）・表示（`ToDisplayText`）・保存値への正規化（`ToArgbHex`） |
+| `ColorValidation`（static class） / `ColorValidationState`（record struct） | 入力の妥当性（`IsValid`）、エラー状態の決定（`Determine`）、フォーカスを失ったときの復帰判定（`ShouldRecover`） |
+
+**色名の出所は Windows 標準です**（`KnownColor` から作り、`ActiveBorder` などのシステム色は除く）。 UI フレームワークの色名の表を使わないため、4 つの UI 版で同じ名前・同じ並びになります。 リフレクションを使わないため Native AOT でもそのまま動きます。
+
+**色文字列の 2 形式**:
+
+| 形式 | 例 | 用途 |
+| --- | --- | --- |
+| 保存値 | `#AARRGGBB`（アルファが先頭） | 設定ファイル・`SelectedColor`（`ToArgbHex` の出力） |
+| 画面表示 | `{色名または #RRGGBB}+{不透明度%}`（100% なら `+…` を省く） | ドロップダウンの表示（`ToDisplayText` / `Format` の出力） |
+
+**受理する入力**: 色名 / `#RRGGBB` / `#AARRGGBB`（`#` は省略可）/ それらに `+{0〜100}%` を付けた形。 3・4 桁の 16 進や `+50`（% なし）は**拒否します**（緩い解釈をしない）。 不透明度はアルファへ合成し、`50%` は誤差の出ない整数計算で `128`（`#80`）になります。
+
+**窓口**: `using EsUtil.Platform.Core;` だけで `EsColor`（`TryParse` / `ToArgbHex` / `ToDisplayText` / `Format` / `IsDefinedName` / `TryParseName` / `FindName` / `GetPalette` / `IsValid`）を使えます。
+
+```csharp
+if (EsColor.TryParse("#80FF0000", out var color, out var opacity))
+{
+    // color = ARGB(128, 255, 0, 0) / opacity = 1.0
+}
+
+var text = EsColor.ToDisplayText("#80FF0000");   // "Red+50%"
+var hex = EsColor.ToArgbHex("Red+50%");          // "#80FF0000"
+foreach (var entry in EsColor.GetPalette(ColorSortMode.ByHue)) { /* Name と Color */ }
+```
 
 ## 3. 使用例
 
