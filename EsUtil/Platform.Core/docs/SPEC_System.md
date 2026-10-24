@@ -74,18 +74,18 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/Win/WinClipboard.cs` | クリップボードの DIB の読み取り（開く・ロック・解放の順序を単一所有し、解放漏れを作らない） |
 | `EsUtil/Platform.Core/src/Native/Win/WinVirtualKey.cs` | `EsKey` → Win32 仮想キーコードの変換表（`RegisterHotKey` に渡す値。 対応表に無いキーは 0） |
 | `EsUtil/Platform.Core/src/Native/ElementFinderResults.cs` | 要素検出の結果（`readonly record struct`） |
-| `EsUtil/Platform.Core/src/NativeMethods.txt` | **CsWin32 が生成する Win32 API と定数の唯一の一覧**（宣言を手で書かない。 user32 / gdi32 / dwmapi / comctl32 / kernel32 / ole32 の API と、メッセージ番号・スタイル値などのマクロ、使う列挙型・構造体を列挙する） |
+| `EsUtil/Platform.Core/src/NativeMethods.txt` / `NativeMethods.json` | **CsWin32 が生成する Win32 API・定数の唯一の一覧**と、その設定（**宣言を手で書かない**。 `allowMarshaling: false` で COM を構造体として生成する） |
 | `EsUtil/Platform.Core/src/AssemblyAttributes.cs` | アセンブリ全体に効く属性だけを持つ（P/Invoke の探索先を `System32` に固定する `DefaultDllImportSearchPaths`。 名前空間を持たないため `src/` 直下） |
-| `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFactory.cs` | WIC の COM の生成と解放・COM の起動・画素形式の GUID・縮小・変換・回転・画素のコピーの補助 |
-| `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicNative.cs` | COM の生成の宣言（`CoCreateInstance` / `CreateStreamOnHGlobal` の 2 件。 `out` は `[GeneratedComInterface]` の型で受ける。 §7.3.1） |
-| `EsUtil/Platform.Core/src/Native/Win/Wic/IWICImagingFactory.cs` ほか WIC の型ごとのファイル | WIC の COM インターフェイス定義（`[GeneratedComInterface]`。 **宣言順が vtable の位置**）。 **WIC は `Native.Win.Wic` にまとめる**（Win32 の実装と混ぜない） |
+| `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFactory.cs` | WIC の COM の生成と解放・COM の起動・画素の入出力・縮小・変換・回転の補助（**宣言は CsWin32 が生成する**） |
+| `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFormats.cs` | 実行環境で書き出せる形式の一覧（OS のエンコーダーを列挙し、試し書きが通った形式だけを残す。 §7.3.1） |
+| `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFormat.cs` / `WinWicConstants.cs` | 一覧の 1 件（コンテナ GUID・名前・拡張子）と、WIC の定数（EXIF の名前・HEIF の最小寸法とコンテナ） |
 | `EsUtil/Platform.Core/src/Native/Win/WinCaptureService.cs` | `ICaptureService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorService.cs` | `ICursorService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinWindowService.cs` | `IWindowService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinElementFinder.cs` | `IElementFinder` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorOverrideGuard.cs` | `ICursorOverrideGuard` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinGlobalHotKeyService.cs` | `IGlobalHotKeyService<T>` の Windows 実装 |
-| `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicImageCodec.cs` | 画像のファイル保存・読み込みの実装（WIC。 Windows 専用。 画像型を名指しせず、公開面は画像型の `Save` / `Load`） |
+| `EsUtil/Platform.Core/src/Native/Win/WinSubclass.cs` | ウィンドウ プロシージャのサブクラス化の共通部分（`SUBCLASSPROC` はアンマネージド関数ポインター。 §7.3.1） |
 | `EsUtil/Platform.Core/src/Caching/CapacityLimitedCache.cs` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（4 つの UI 版とコントロールが使う。 **各コントロールの `Internal/` に複製を置かない**。 破棄できる値は容量超過・`Clear` で破棄する） |
 | `EsUtil/Platform.Core/src/Svg/SvgIconSource.cs` ほか `src/Svg/` | SVG アイコンの読み込み元（埋め込みリソース・フォルダー・テキスト）と解析（`XDocument`）、パス データの解析、図形の画素への展開 |
 | `EsUtil/Platform.Core/src/Imaging/EsImageFileExtensions.cs` | 一覧に並べる画像ファイルの拡張子の判定（保存できる形式より広い） |
