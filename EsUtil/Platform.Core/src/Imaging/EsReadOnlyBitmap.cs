@@ -426,69 +426,37 @@ public sealed class EsReadOnlyBitmap : IDisposable
 
     /// <summary>本画像を指定の色数へ減色する（パレット化。 画素数と寸法は変えない）。</summary>
     /// <param name="colorCount">残す色数（2〜256）。</param>
-    /// <param name="quality">減色の品質。 既定は <see cref="EsImageQuality.Mid"/>。</param>
     /// <param name="dither">ディザの指定。 既定は <see cref="EsDitherMode.None"/>（ファイルが最も小さくなる）。</param>
     /// <returns>減色した新しい画像（使われる色は <paramref name="colorCount"/> 種類以下）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>不可逆です</b>: 元の画素は戻りません（減色後の色数は <paramref name="colorCount"/> 以下になります）。<br/>
-    /// <b>透過は保たれます</b>: アルファも減色の対象であり、透明な画素は透明なパレットの色へ寄ります。
-    /// 保存した PNG には <c>tRNS</c>（インデックス透過）、GIF には透明の色番号が書かれます。<br/>
+    /// <b>透過はパレットのアルファで保たれます</b>: 透明な画素は透明なパレットの色へ寄ります（WIC の
+    /// <c>IWICPalette::InitializeFromBitmap</c> へ透明色の追加を指示するため）。 保存した PNG には
+    /// <c>tRNS</c>（インデックス透過）、GIF には透明の色番号が書かれます。<br/>
     /// <b>用途</b>: 保存のファイル サイズを小さくする（<see cref="EsImageSaveOptions.ColorCount"/> を指定した保存は
     /// 本処理を行います）。 切り出し・縮小と同じく<b>新しい画像を作る</b>ため、元の画像は変更しません。<br/>
-    /// <b>品質とディザの選び方</b>: <see cref="EsImageQuality"/> は<b>色の詰め直し（反復）の回数</b>を変えるため、
-    /// <see cref="EsImageQuality.Low"/> に対する差は知覚誤差（CIEDE2000 の平均）に出ます。
-    /// <see cref="EsImageQuality.High"/> は <see cref="EsImageQuality.Mid"/> と同じ結果になる場合が多い
-    /// （箱が多い画像だけに効く）。 <b>見た目の差が最も大きいのはディザ</b>であり、
-    /// <see cref="EsDitherMode.FloydSteinberg"/> を指定すると階調の縞が消えますが、<b>保存のファイルは大きくなります</b>
-    /// （平坦な色の画像は変化しない）。 どちらを選ぶかの判断は <see cref="EsDitherMode"/> の備考が単一所有します。<br/>
-    /// <b>所要は使われている色の数で決まります</b>: ヒストグラムの箱が多い画像ほど詰め直しの費用が増し、
-    /// ノイズのような画像では <see cref="EsImageQuality.Low"/> / <see cref="EsImageQuality.Mid"/> /
-    /// <see cref="EsImageQuality.High"/> の差が大きくなります。 平坦な色の画像は品質に依りません。<br/>
-    /// <b>所要には上限があります（正味 500 ms の安全網）</b>: <see cref="EsImageQuality.High"/> の詰め直しは
-    /// <b>減色の計算を始めてから 500 ms</b> を過ぎたら行いません（採用済みのパレットで止めるため、結果は常に
-    /// 有効で色数も指定どおりです。 通常の寸法と色数ではこの上限には達しません。 上限は 8K・遅い環境・
-    /// 収束しにくい画像のための安全網です）。<br/>
-    /// <b>一部だけを減色する場合</b>: 本画像から切り出してから減色すると、<b>切り出しの複製</b>を払います。
-    /// <see cref="ToPixmap"/> でビューを作り <see cref="EsPixmap.ReduceColors"/> を呼ぶと、その分が要りません。<br/>
-    /// <b>アルゴリズム</b>: 5 ビットのヒストグラム（32³ = 32,768 箱）を作り、
-    /// <b>中央値分割</b>で箱を色数まで分け、箱ごとの平均色をパレットにします。 画素の割り当ては
-    /// <b>箱ごとに 1 度だけ最近傍を求めた参照表</b>を引きます（画素ごとに 256 色と比較しません）。<br/>
-    /// <b>色の近さは知覚の尺度（CIELAB の二乗距離。 CIE76）で測ります</b>: 素の RGB の二乗距離は人の目の
-    /// 感度と一致しないため（暗部の差を過小に、明部や彩度の差を過大に見積もる）、Lab へ替えると
-    /// <b>知覚誤差（CIEDE2000 の平均）が小さくなります</b>。 <b>平坦な色の画像は変わりません</b>
-    /// （色数が足りているため）。 <b>費用は画素ごとに増えません</b>（Lab への変換は「使われている箱」と
-    /// パレットの色について 1 度だけ行います）。 CIEDE2000 を使わない理由と輝度の重みを採らない理由は
-    /// <c>EsBitmapOperations.Distance</c> の備考を参照してください。<br/>
-    /// <b>色数はアルファの段階も数えます</b>: アルファは 4 段階（0〜63 / 64〜127 / 128〜191 / 192〜255）に
-    /// 量子化されるため、同じ RGB でもアルファが違えば別の色としてパレットを消費します
-    /// （不透明な画像ではアルファが 1 段階のため、色数の数え方は変わりません）。 <b>アルファの段階より色数が
-    /// 少ないときは段階が統合されます</b>（例: 同じ RGB でアルファ 0 / 128 / 255 の 3 段階を持つ画像を
-    /// <b>2 色</b>へ減色すると 64 と 255 の 2 段階になり、<b>3 色</b>以上なら 0 / 128 / 255 がそのまま残ります）。<br/>
+    /// <b>減色は WIC が行います</b>: パレットの生成は <c>IWICPalette::InitializeFromBitmap</c>（中央値分割）、
+    /// 画素の割り当ては <c>IWICFormatConverter</c> の 8bpp インデックスへの変換です。 <b>本ライブラリは減色の
+    /// 計算を自前で持ちません</b>（同じ計算を 2 つ持つと、保存したファイルの画素が経路によって変わるため）。
+    /// 実測（1920x1080・256 色）では WIC が 2〜3 倍速く（写真風 8 ms / 画面キャプチャ風 5 ms）、
+    /// ディザ無しの画素誤差は自前実装がわずかに上（PSNR 33.5 dB 対 30.5 dB）でしたが、
+    /// <b>実装を 1 つに保つことを優先します</b>。<br/>
+    /// <b>Windows 専用です</b>（WIC は Windows にのみ存在します）。 <see cref="EsImageSaveOptions"/> を使う
+    /// 保存と同じ制約です。<br/>
     /// <b>ディザを既定にしない理由</b>: ディザはパレットの色を交互に置くため<b>保存のファイルが大きくなります</b>。
-    /// 本ライブラリはファイル サイズを下げる目的で減色するため、明示された場合だけ行います。<br/>
-    /// <b>外部ライブラリを使わない理由</b>: 256 色 PNG の保存では本実装の方が速く、ファイルは写真では
-    /// 外部ライブラリの方が小さくなります（減色の品質は pngquant が最も高いが、実行ファイルの同梱と
-    /// 1 枚あたりの待ち時間を要します）。<br/>
-    /// <b>WIC で行わない理由（実測 2026-10-24・1920x1080・256 色）</b>: WIC にも減色の部品はあり
-    /// （<c>IWICPalette.InitializeFromBitmap</c> の中央値分割と、<c>IWICFormatConverter</c> の
-    /// <c>WICBitmapDitherType.ErrorDiffusion</c> によるインデックス化）、<b>パレット生成と割り当ては 2〜3 倍速い</b>
-    /// （写真風 8 ms / 画面キャプチャ風 5 ms。 本実装は 22 ms / 10 ms）。 しかし
-    /// <b>ディザ無しの画素誤差は本実装の方が小さい</b>（PSNR 33.5 dB 対 30.5 dB / 53.3 dB 対 28.6 dB）。
-    /// WIC の誤差拡散を使うと局所平均の差は小さくなる（8x8 平均差 0.7 対 2.0）が、画素ごとの誤差は
-    /// 本実装より大きい（PSNR 28.8 dB 対 27.1 dB は同等、平坦な画像では 53.8 dB 対 43.6 dB で WIC が上）。
-    /// <b>本実装を既定にしている理由</b>は、WIC が Windows 専用であること（本計算は UI 非依存で
-    /// 他 OS でも動く）、COM を必要とせず単体テストで検証できること、品質（ディザ無し）が上であることです。
-    /// <b>WIC の経路は足していません</b>（実装は可能であり AOT でも動くことを実測しましたが、同じ「色数へ減らす」
-    /// 計算を 2 つ持つと、**保存したファイルの画素が形式や環境で変わる**ため。 単一所有の規則は
-    /// <c>EsUtil/Platform.Core/README.md</c> が定めます）。
+    /// 本ライブラリはファイル サイズを下げる目的で減色するため、明示された場合だけ行います
+    /// （判断の材料は <see cref="EsDitherMode"/> の備考が単一所有します）。<br/>
+    /// <b>一部だけを減色する場合</b>: 本画像から切り出してから減色すると、<b>切り出しの複製</b>を払います。
+    /// <see cref="ToPixmap"/> でビューを作り <see cref="EsPixmap.ReduceColors"/> を呼ぶと、その分が要りません。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    public EsBitmap ReduceColors(
-        int colorCount, EsImageQuality quality = EsImageQuality.Mid, EsDitherMode dither = EsDitherMode.None)
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">減色（WIC）が失敗した場合。</exception>
+    [SupportedOSPlatform("windows10.0.17763")]
+    public EsBitmap ReduceColors(int colorCount, EsDitherMode dither = EsDitherMode.None)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.ReduceColors(ReadOnlyPixels, Width, Height, Stride, colorCount, quality, dither);
+        return EsBitmapOperations.ReduceColors(ReadOnlyPixels, Width, Height, Stride, colorCount, dither);
     }
 
     /// <summary>本画像の一部を指す<b>0 コピーの読み取りビュー</b>を生成する（切り出しの複製を避ける）。</summary>

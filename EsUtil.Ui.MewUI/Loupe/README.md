@@ -1,6 +1,11 @@
 # EsUtil.Ui.MewUI.Loupe
 
-[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Loupe)
+![Release](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Loupe.svg)
+![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
+![MewUI](https://img.shields.io/badge/UI-MewUI-00BFFF)
+![License](https://img.shields.io/badge/License-MIT-3DA639)
 
 対になる Avalonia UI 実装と同じ **UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、描画（`SKCanvas`）と入力の受付のみを **MewUI** で実装したルーペ（拡大鏡）コントロールです。
 

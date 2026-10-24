@@ -601,7 +601,7 @@ public readonly record struct ElementFinderResults(
 | 複製 | `Copy` | あり（`EsReadOnlyBitmap`） | あり（`EsBitmap`） | **独立した画素**の複製（費用は画素数に比例） |
 | 操作 | `Crop`（2 版） | あり（`EsBitmap`） | あり（`EsBitmap`） | 指定矩形を切り出す（**ソース範囲外は透明で埋める**。 実装は内部の 1 か所） |
 | 操作 | `Resize` | あり（`EsBitmap`） | あり（`EsBitmap`） | 長辺を上限へ収める（**拡大は未サポート**。 品質 `EsImageQuality` で速度と画質を選ぶ） |
-| 操作 | `ReduceColors` | あり（`EsBitmap`） | あり（`EsBitmap`） | 指定の色数へ減色する（パレット化。 **不可逆**。 品質 `EsImageQuality` と `EsDitherMode` を選ぶ） |
+| 操作 | `ReduceColors` | あり（`EsBitmap`） | あり（`EsBitmap`） | 指定の色数へ減色する（パレット化。 **不可逆**。 `EsDitherMode` を選ぶ。 **Windows 専用**） |
 | ビュー | `ToPixmap` | あり（`EsPixmap`） | あり（`EsPixmap`） | **0 コピーの読み取りビュー**（行幅は元のストライドのまま。 矩形は画像の内側であること） |
 | ファイル | `Save`（2 版） | あり | あり | ファイルへ保存する（**形式は拡張子が決める**。 2 型とも同じ手順。 Windows 専用） |
 | static | `SupportedFileExtensions` | あり | あり | 保存に使える拡張子（Windows 専用） |
@@ -638,7 +638,7 @@ public readonly record struct ElementFinderResults(
 | プロパティ | `ReadOnlyPixels` | `ReadOnlySpan<byte>` | 先頭から `Stride × Height` バイトのビュー（**行の余白を含む**） |
 | ピクセル | `GetPixel` | `(byte B, byte G, byte e, byte A) GetPixel(int x, int y)` / `Color GetPixel(EsPointInt point)` | 画素の取得（**行幅を考慮する**。 ビューの左上が 0, 0）。 範囲外は `ArgumentOutOfRangeException` |
 | 操作 | `Resize` | `EsBitmap Resize(int maxSize, EsImageQuality quality = Mid)` | ビューを縮小した画像を作る（**切り出しの実体化を挟まない**） |
-| 操作 | `ReduceColors` | `EsBitmap ReduceColors(int colorCount, EsImageQuality quality = Mid, EsDitherMode dither = None)` | ビューを減色した画像を作る（**切り出しの実体化を挟まない**） |
+| 操作 | `ReduceColors` | `EsBitmap ReduceColors(int colorCount, EsDitherMode dither = None)` | ビューを減色した画像を作る（**切り出しの実体化を挟まない**。 **Windows 専用**） |
 | ビュー | `ToPixmap` | `EsPixmap ToPixmap(EsRectInt rect)` | ビューの一部をさらに 0 コピーで切り出す |
 | その他 | `ToSizeText` | `string ToSizeText()` | 寸法を `幅x高さ` 形式で返す |
 | その他 | `IsDisposed` / `ThrowIfDisposed` / `Dispose` | `bool` / `void` / `void` | 破棄状態の判定と、元の画素への参照の返却（**画素は破棄しない**。 冪等） |
@@ -658,12 +658,12 @@ public readonly record struct ElementFinderResults(
 | --- | --- | --- |
 | `Crop` | `EsBitmap Crop(int x, int y, int width, int height)` / `EsBitmap Crop(EsRectInt rect)` | 指定矩形を切り出す（**ソース範囲外は透明で埋める**。 位置関係は保たれる。 0 初期化は行わない） |
 | `Resize` | `EsBitmap Resize(int maxSize, EsImageQuality quality = Mid)` | 長辺を `maxSize` へ収める（**拡大は未サポート**。 速度と画質は `EsImageQuality`（`Low` / `Mid` / `High`）で選ぶ） |
-| `ReduceColors` | `EsBitmap ReduceColors(int colorCount, EsImageQuality quality = Mid, EsDitherMode dither = None)` | 指定の色数へ減色する（パレット化。 **不可逆**。 品質とディザを選べる） |
+| `ReduceColors` | `EsBitmap ReduceColors(int colorCount, EsDitherMode dither = None)` | 指定の色数へ減色する（パレット化。 **不可逆**。 ディザを選ぶ。 **Windows 専用**） |
 | `Save` | `void Save(string filePath)` / `void Save(string filePath, EsImageSaveOptions options)` | ファイルへ保存する（[2.32](#232-画像のファイル入出力save--load)） |
 
 - **同じ実装を 2 型のメンバーとして公開します（拡張メソッドにしません）**: 実装は内部の 1 か所（`EsBitmapBuffer` / `EsBitmapOperations`）に置き、公開の入口は**両方の型のメンバー**にします。 拡張メソッドにすると、**同じ操作が型の外へ 2 組並び**、型自身の能力（`Copy` / `GetPixel` / `Load` 等）と置き場所が分かれます（IntelliSense でも 1 か所にまとまりません）。 **共通の面（interface）は作りません**（復活させると、書き換え可能な画像を読み取り専用の面として**保持・後読みできる経路**ができ、兄弟にした理由（[2.33](#233-画像型の設計上の判断兄弟と借用を選んだ理由)）が崩れます）。
   - **代償**: 宣言が型ごとに必要です（**実装は 1 つのまま**）。 それぞれの型の `Crop` / `Resize` / `ReduceColors` / `Save` は内部の実装へ転送するだけであり、規則の記述（備考）は読み取り専用側（`EsReadOnlyBitmap`）が単一所有します。
-- **減色の色の近さは知覚の尺度（CIELAB の二乗距離。 CIE76）で測ります**: 素の RGB の二乗距離は人の目の感度と一致しません（暗部の差を過小に、明部や彩度の差を過大に見積もる）。 Lab の二乗距離にすると**知覚誤差（CIEDE2000 の平均）が小さくなります**（写真風とグラデーションの画像で確認。 **平坦な色の画像は変わらない**）。 費用は**画素ごとに増えません**（Lab への変換は「使われている箱」とパレットの色について 1 度だけ行い、画素の走査は参照表を引くだけです）。 **CIEDE2000 は採用していません**（さらに誤差は小さくなりますが、距離 1 回ごとに立方根・冪・三角関数が要り、詰め直しの「箱の数 × 色数 × 反復回数」回だけ呼ばれるため）。 **輝度の重み（Rec.709 等）も採用していません**（かえって誤差が増えます）。 アルファは 4 段階の量子化のまま扱い、**段階の違い 1 つを RGB の差と釣り合わせます**（同じ RGB で段階だけが違う色は選ばれません ＝ 透過が保たれます）。 詳細は `EsReadOnlyBitmap.ReduceColors` と `EsBitmapOperations.Distance` の備考が単一所有します。
+- **減色は WIC が単一所有します**: パレットの生成（`IWICPalette::InitializeFromBitmap` の中央値分割）と画素の割り当て（`IWICFormatConverter` の 8bpp インデックスへの変換）を WIC が行い、**本ライブラリは減色の計算を持ちません**（保存の `ColorCount` と同じパレットを使うため。 2 か所に書くと、同じ色数でも保存経路によって画素が変わります）。 比較の記録は §2.32 を参照してください。
 - **減色の所要には上限があります（正味 500 ms の安全網）**: `EsImageQuality.High` の詰め直し（反復）は、**減色の計算を始めてから 500 ms** を過ぎたら行いません（採用済みのパレットで止めるため、結果は常に有効で色数も指定どおりです）。 **中断できないのは数え上げ・中央値分割・参照表の作成だけ**であり（中断すると色数が指定どおりになりません）、この部分は**元画像の画素数に比例して伸びます**。 上限は**8K・遅い環境・収束しにくい画像**のための安全網であり、通常の大きさの画像では達しません（所要の実測値は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します）。 **縮小には時間の上限を設けていません**（反復も収束も無い 1 回の走査であり、途中で打ち切ると画像の一部が書かれないまま返るため。 費用は寸法から予測できます）。
 - **書き換え可能な画像を渡しても凍結しません**: 画素を読むだけの操作であるためです（`Save` / `Crop` / `Resize` / `ReduceColors` の後も書き続けられます）。 0 コピーで安定した内容を渡したい場合は、書き終えた時点で `SetReadOnly` を呼びます。
 - **戻り値は書き換え可能な画像**です（生成した側が所有し、破棄します）。 読み取り専用で足りる場合は `Copy`（複製）または `ToPixmap`（0 コピーのビュー）を使います。
@@ -719,11 +719,10 @@ public readonly record struct ElementFinderResults(
 | `EsImageSaveOptions` | `Format` | `EsImageFileFormat? Format { get; init; }` | 保存する形式（`null` は拡張子が決める。 指定した場合は**拡張子より優先**し、拡張子が無ければ補完する） |
 | `EsImageSaveOptions` | `IgnoreFormatMismatch` | `bool IgnoreFormatMismatch { get; init; }` | 拡張子と `Format` の食い違いを無視するか（既定 false = 例外）。 不変の `readonly record struct` であり、部分更新は `with` 式で行う |
 | `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG と JPEG XR の品質（0〜100。 `null` は指定しない = WIC の既定） |
-| `EsImageSaveOptions` | `ColorCount` | `int? ColorCount { get; init; }` | 減色（パレット化）して残す色数（2〜256。 `null` は減色しない。 **BMP / PNG / GIF だけ**） |
-| `EsImageSaveOptions` | `ColorQuality` | `EsImageQuality? ColorQuality { get; init; }` | 減色の品質（`null` は `EsImageQuality.Mid`。 **減色する場合だけ指定できる**） |
+| `EsImageSaveOptions` | `ColorCount` | `int? ColorCount { get; init; }` | 減色（パレット化）して残す色数（2〜256。 `null` は減色しない。 **パレットを持てる形式でだけ使える**） |
 | `EsImageSaveOptions` | `Dither` | `EsDitherMode? Dither { get; init; }` | 減色のディザ（`null` は `EsDitherMode.None`。 **減色する場合だけ指定できる**） |
-| `EsImageQuality` | （enum） | `Low` / `Mid` / `High` | 縮小と減色の速度と画質の釣り合い（`Low` = 最速・最低画質、`Mid` = 既定、`High` = 最高画質。 段階の意味は操作ごとに決まる） |
-| `EsDitherMode` | （enum） | `None` / `FloydSteinberg` | 減色のディザ（誤差拡散。 既定は `None` = ファイルが最も小さい） |
+| `EsImageQuality` | （enum） | `Low` / `Mid` / `High` | **縮小**の速度と画質の釣り合い（`Low` = 最速・最低画質、`Mid` = 既定、`High` = 最高画質） |
+| `EsDitherMode` | （enum） | `None` / `ErrorDiffusion` | 減色のディザ（誤差拡散。 既定は `None` = ファイルが最も小さい） |
 
 - **`Save` は 2 型のメンバーです（拡張メソッドにしません）**: 保存は**ピクセルを読むだけ**であり、書き換えの権利も要らないため実装は内部の 1 か所に置きますが、公開の入口は**両方の型のメンバー**にします（`Load` と同じ型にファイル入出力が並び、型自身の能力として IntelliSense に現れます。 置き場所の規則は §2.31）。 **保存は凍結しません**（書き換え可能な画像を保存した後も書き続けられます）。
 - **保存に使える形式の一覧は画像型が公開します**: 形式を決める規則の単一所有は `EsReadOnlyBitmap.SupportedFileExtensions`（`EsBitmap` も同じ値を公開）であり、保存の実装がそこを参照します（一覧は型の能力であり、特定の実体を要さないため）。
@@ -760,10 +759,10 @@ public readonly record struct ElementFinderResults(
   ファイル サイズと復号した画素の比較結果は [`Result_Measurement.md`](Result_Measurement.md) を参照してください。
 - **公開するオプションは品質だけにします**: WIC の JPEG / JPEG XR エンコーダーは `IPropertyBag2` の `ImageQuality`（0.0〜1.0 の実数）で品質を受け取ります。 公開面は 0〜100 の整数 1 つに留めます（**効果が確認できた値だけを公開する**方針。 [`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI）。
 
-- **オプションの値は形式ごとに検証します**: 使えない形式へ設定すると `NotSupportedException`、JPEG の品質が 0〜100 の範囲外なら `ArgumentOutOfRangeException`、**減色しない保存（`ColorCount` が `null` かつ GIF 以外）へ `ColorQuality` / `Dither` を設定すると `InvalidOperationException`** です（黙って無視すると「設定したのに効かない」ことに気付かないため。 また上限へ丸めると、呼び出し側が指定した値と実際の出力が食い違います）。 検証は **COM の起動より前**に行うため、拒否された呼び出しは WIC を起動しません。
+- **オプションの値は形式ごとに検証します**: 使えない形式へ設定すると `NotSupportedException`、JPEG の品質が 0〜100 の範囲外なら `ArgumentOutOfRangeException`、**減色しない保存（`ColorCount` が `null` かつ GIF 以外）へ `Dither` を設定すると `InvalidOperationException`** です（黙って無視すると「設定したのに効かない」ことに気付かないため。 また上限へ丸めると、呼び出し側が指定した値と実際の出力が食い違います）。 検証は **COM の起動より前**に行うため、拒否された呼び出しは WIC を起動しません。
 - **形式の網羅性は OS に委ねます**: 固定の一覧を持たず、`IWICImagingFactory::CreateComponentEnumerator` で登録済みのエンコーダーを列挙してコンテナ GUID と拡張子を受け取ります。 そのうえで **8x8 の試し書きが通った形式だけ**を `SupportedFileExtensions` に残します（列挙に現れても本ライブラリの画素から書けない組み合わせがあるため。 実測では 19 拡張子すべてが書けました）。 **コーデック拡張（Store アプリ）が入っていない環境では、その形式は一覧から外れます**（保存時に `NotSupportedException`）。 WebP は**デコーダーは OS にあるがエンコーダーが無い**ため一覧に入りません（読み込みは可能）。
 - **減色（パレット化）を指定できます**: `EsImageSaveOptions.ColorCount` を指定すると、保存の前に
-  `EsReadOnlyBitmap.ReduceColors`（`ReduceColors(int, EsImageQuality, EsDitherMode)`。 両方の型が同じ名前のメンバーを持ちます）と同じ計算で減色し、**8bpp のインデックス カラー（パレット付き）として**書きます。 **`ColorQuality` と `Dither` はこの計算へそのまま渡します**（段階の意味は `EsImageQuality` / `EsDitherMode` の備考が単一所有します。 減色しない保存へ指定すると `InvalidOperationException` です）。
+  `EsReadOnlyBitmap.ReduceColors`（`ReduceColors(int, EsDitherMode)`。 両方の型が同じ名前のメンバーを持ちます）と同じ計算で減色し、**8bpp のインデックス カラー（パレット付き）として**書きます。 **`Dither` はこの計算へそのまま渡します**（段階の意味は `EsImageQuality` / `EsDitherMode` の備考が単一所有します。 減色しない保存へ指定すると `InvalidOperationException` です）。
 
   - **32bpp のまま減色しても意味がありません（実測）**: WIC のエンコーダーは 32bpp の入力をパレット画像にしません
     （減色の効果は圧縮率の向上だけであり、BMP では 1 バイトも減りません）。 **8bpp のインデックス カラーとして渡すと
@@ -784,12 +783,12 @@ public readonly record struct ElementFinderResults(
     - **GIF は指定が無くても自前の量子化で書きます**: GIF はパレットが必須であり、32bpp のまま渡すと透過を保てません。 自前の量子化は透明な画素を透明なパレットの色へ割り当てるため透過が保たれます（読み戻しても円の外のアルファは 0）。 **副次的にファイルが小さく画質も良くなります**。
     - **半透明は減色で 4 段階へ量子化されます**（0〜63 / 64〜127 / 128〜191 / 192〜255。 段階の境界の値はそのまま残り、中間の値は段階の平均になります）。 **RGBA を平均するため、半透明の色は元の値とわずかに違います**（透明と不透明は完全に一致します）。
     - **切り出しのパディング（透明）を持つ画像も減色できます**（32x32 の画像から 48x48 を切り出して 8 色へ減色しても、PNG / GIF とも透明の画素はそのまま残る）。
-  - **ディザは既定では行いません**: ディザはパレットの色を交互に置くため保存のファイルが**大きくなります**。 本ライブラリはファイル サイズを下げる目的で減色するため、`EsDitherMode.FloydSteinberg` を明示された場合だけ行います（**減色だけの場合よりファイルは大きくなります**。 **平坦な色の画像は変化しません**。 縞が消えるかどうかの判断は `EsDitherMode` の備考が単一所有します）。
+  - **ディザは既定では行いません**: ディザはパレットの色を交互に置くため保存のファイルが**大きくなります**。 本ライブラリはファイル サイズを下げる目的で減色するため、`EsDitherMode.ErrorDiffusion` を明示された場合だけ行います（**減色だけの場合よりファイルは大きくなります**。 **平坦な色の画像は変化しません**。 縞が消えるかどうかの判断は `EsDitherMode` の備考が単一所有します）。
   - **減色したファイルはどの形式でも 32bpp のままより小さくなります**（**減少量は形式と内容で決まります**: 写真風の PNG で最も大きく減り、次にスクリーンショット風の PNG、無圧縮の BMP、元から量子化されている GIF の順に小さくなります）。 減色した結果も `Load` で読み戻せます（BMP は画素が**完全一致**します）。 実測値は [`Result_Measurement.md`](Result_Measurement.md) を参照してください。
   - **外部ライブラリ・外部ツールとの関係（数値なしの結論）**:
 
-    - **本実装が最も速い**です（外部ツールは**実行ファイルの同梱**を要し、NuGet の減色ライブラリは**ネイティブを同梱**します）。
-    - **ファイル サイズが最小なのは OptiPNG**（本実装よりわずかに小さい）であり、**減色の画質（色差）が最も良いのは pngquant** です。 どちらも外部実行ファイルを要します。
+    - **減色は OS の WIC で行います**（外部ツールも外部ライブラリも要しません）。 パレットは中央値分割、割り当ては最近傍（ディザは誤差拡散）です。 実測（960x540・256 色）では写真風 13.6 ms・画面キャプチャ風 7.7 ms で、**画面キャプチャ風は画素が完全に一致**しました（PSNR 99 dB）。 写真風は PSNR 30.6 dB です。
+    - **ファイル サイズが最小なのは OptiPNG**（WIC よりわずかに小さい）であり、**減色の画質が最も良いのは pngquant** です。 どちらも外部実行ファイルを要します。
     - したがって本ライブラリは **「OS の API だけで完結し、サイズと画質が実用の範囲に入る」** 点を採ります。
     - 所要・サイズ・色差の実測値は [`Result_Measurement.md`](Result_Measurement.md) を参照してください。
     - **外部ライブラリの候補と制約**: **SixLabors.ImageSharp** は減色・ディザ・PNG 圧縮レベル・

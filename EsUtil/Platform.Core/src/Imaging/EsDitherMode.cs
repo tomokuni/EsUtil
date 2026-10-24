@@ -13,8 +13,8 @@ namespace EsUtil.Platform.Core.Imaging;
 ///   （縞は残る）。</description>
 /// </item>
 /// <item>
-///   <term><see cref="FloydSteinberg"/></term>
-///   <description>Floyd–Steinberg 法（誤差を右 7/16・下 5/16・左下 3/16・右下 1/16 の 4 画素へ配る）。</description>
+///   <term><see cref="ErrorDiffusion"/></term>
+///   <description>誤差拡散（WIC の <c>WICBitmapDitherTypeErrorDiffusion</c>。 誤差を周囲の画素へ配る）。</description>
 /// </item>
 /// </list>
 ///
@@ -37,23 +37,19 @@ namespace EsUtil.Platform.Core.Imaging;
 /// </list>
 ///
 /// <b>勧めるのは色数が内容に対して足りないとき</b>である（縞が消え、8x8 ブロック平均の差が小さくなる）。
-/// <b>256 色のように足りている場合は勧めない</b>。 また<b>もともと平坦な画像では何も変わらない</b>
-/// （誤差が 0 の画素には何も配られないため）。
+/// <b>256 色のように足りている場合は勧めない</b>。
 ///
 /// <b>ファイルは大きくなる</b>: パレットの色を交互に置くと<b>隣り合う画素が変わる</b>ため、PNG の圧縮が効かなくなる
 /// （<b>平坦な色の画像は変化しない</b>）。
 ///
-/// <b>所要は増える</b>: 誤差の配布が画素ごとに加わり、加えて<b>参照表を全域（131,072 箱）へ広げる</b>ためである
-/// （誤差を加えた色は画素が無かった色になりうる）。
-///
-/// <b>透過との関係</b>: 誤差を配るのは RGB だけで、アルファは画素ごとのパレットの色（減色で量子化された値）のままである
-/// （誤差をアルファへ配ると、透明と不透明の境目がにじむ）。
+/// <b>実装は WIC が持ちます</b>（本ライブラリは減色の計算を自前で持ちません。 判断の記録は
+/// <see cref="EsReadOnlyBitmap.ReduceColors"/> の備考を参照）。
 /// </remarks>
 public enum EsDitherMode
 {
     /// <summary>ディザを行わない（既定。 ファイルが最も小さい）。</summary>
     None,
 
-    /// <summary>Floyd–Steinberg 法の誤差拡散を行う（色数が足りないときの縞を消す。 ファイルは大きい）。</summary>
-    FloydSteinberg,
+    /// <summary>誤差拡散を行う（色数が足りないときの縞を消す。 ファイルは大きい）。</summary>
+    ErrorDiffusion,
 }

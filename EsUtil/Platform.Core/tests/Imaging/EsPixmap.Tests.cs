@@ -258,6 +258,7 @@ public class EsPixmapTests
     }
 
     [Fact]
+    [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.17763")]
     internal void ReduceColors_切り出しの画像を減色した結果と一致する()
     {
         using var source = CreateGradient(64, 48);
@@ -297,6 +298,7 @@ public class EsPixmapTests
     }
 
     [Fact]
+    [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.17763")]
     internal void ReduceColors_破棄済みならObjectDisposedExceptionを投げる()
     {
         using var source = CreateGradient(16, 16);
@@ -307,6 +309,7 @@ public class EsPixmapTests
     }
 
     [Fact]
+    [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.17763")]
     internal void ReduceColors_色数の範囲外はArgumentOutOfRangeExceptionを投げる()
     {
         using var source = CreateGradient(16, 16);

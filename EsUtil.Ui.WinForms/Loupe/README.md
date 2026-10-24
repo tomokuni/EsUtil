@@ -1,6 +1,11 @@
 # EsUtil.Ui.WinForms.Loupe
 
-[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.Loupe)
+![Release](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Loupe.svg)
+![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
+![WinForms](https://img.shields.io/badge/UI-WinForms-512BD4)
+![License](https://img.shields.io/badge/License-MIT-3DA639)
 
 他の UI 版と同一の **UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、描画を **System.Drawing（GDI+）** で行うルーペ（拡大鏡）コントロールです。
 

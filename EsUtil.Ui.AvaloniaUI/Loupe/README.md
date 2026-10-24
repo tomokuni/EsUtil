@@ -1,6 +1,11 @@
 # EsUtil.Ui.AvaloniaUI.Loupe
 
-[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Loupe)
+![Release](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Loupe.svg)
+![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
+![Avalonia](https://img.shields.io/badge/UI-Avalonia-8D46D6)
+![License](https://img.shields.io/badge/License-MIT-3DA639)
 
 > プロジェクト名: `EsUtil.Ui.AvaloniaUI.Loupe`（Avalonia UI 版）。 UI 非依存のロジックは `EsUtil.Feature.Loupe.Core`、MewUI 版は対になるコントロール（別プロジェクト）にあります。
 

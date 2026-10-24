@@ -1,6 +1,11 @@
 # EsUtil.Ui.MewUI.ColorComboBox
 
-[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.ColorComboBox.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.ColorComboBox)
+![Release](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.ColorComboBox.svg)
+![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
+![MewUI](https://img.shields.io/badge/UI-MewUI-00BFFF)
+![License](https://img.shields.io/badge/License-MIT-3DA639)
 
 色を選ぶ MewUI のコントロールです。 色名・16 進コードの入力、色の一覧からの選択、カラーピッカー（`ColorPicker`）を 1 つにまとめ、選択色の検証まで行います。
 

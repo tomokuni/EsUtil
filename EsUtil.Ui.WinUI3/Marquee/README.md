@@ -1,6 +1,11 @@
 # EsUtil.Ui.WinUI3.Marquee
 
-[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Marquee)
+![Release](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Marquee.svg)
+![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
+![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
+![License](https://img.shields.io/badge/License-MIT-3DA639)
 
 画像やスクリーンの上へ重ねて使う、リサイズ可能なドラッグ矩形（マーキー）の WinUI 3 コントロールです。
 

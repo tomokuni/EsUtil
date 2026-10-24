@@ -1,6 +1,14 @@
 # EsUtil.Platform.Core
 
-[![NuGet](https://img.shields.io/nuget/v/EsUtil.Platform.Core.svg)](https://www.nuget.org/packages/EsUtil.Platform.Core)
+![Release](https://img.shields.io/nuget/v/EsUtil.Platform.Core.svg)
+![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
+![Avalonia](https://img.shields.io/badge/UI-Avalonia-8D46D6)
+![MewUI](https://img.shields.io/badge/UI-MewUI-00BFFF)
+![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
+![WinForms](https://img.shields.io/badge/UI-WinForms-512BD4)
+![License](https://img.shields.io/badge/License-MIT-3DA639)
 
 UI フレームワーク非依存の **共通基盤の型**（キーと入力・幾何・座標変換・画像・OS サービス抽象）を提供するライブラリです。
 
@@ -43,7 +51,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | 幾何 | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` / `EsRectIntJsonConverter`（設定ファイルの保存形式） |
 | 座標変換 | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler`（DIP ⇔ 物理ピクセル・ポイント換算・描画面からの係数解決） |
 | 画像 | **2 型は対称です**（書き込みに関するものだけが `EsBitmap`）。 `EsReadOnlyBitmap`（**読み取り専用**。 受け取る・保持する側）/ `EsBitmap`（**書き換え可能**。 作る・書く側。 `Pixels`・`SetPixel`・`Clear`・`SetReadOnly` が追加）/ `EsPixmap`（一部を指す 0 コピーの読み取りビュー。 切り出しの複製を避け、**縮小・減色の対象にもなる**）。 変換は向きごとに 1 つ（`FromBitmap`（凍結済みなら 0 コピー）/ `FromReadOnlyBitmap`（複製）） |
-| 画像の操作 | **両方の画像型が同じ名前のメンバーを持ちます**（切り出し `Crop`・縮小 `Resize`・減色 `ReduceColors`。 実装は内部の 1 か所）。 縮小と減色の速度と画質は `EsImageQuality`（`Low` / `Mid` / `High`）で選び、減色のディザは `EsDitherMode`（`None` / `FloydSteinberg`）で選びます。 `Resize` は縮小のみ（拡大は `NotSupportedException`） |
+| 画像の操作 | **両方の画像型が同じ名前のメンバーを持ちます**（切り出し `Crop`・縮小 `Resize`・減色 `ReduceColors`。 実装は内部の 1 か所）。 縮小の速度と画質は `EsImageQuality`（`Low` / `Mid` / `High`）で選びます。 **減色は WIC が行い**（自前の計算を持たない）、ディザは `EsDitherMode`（`None` / `ErrorDiffusion`）で選びます（**Windows 専用**）。 `Resize` は縮小のみ（拡大は `NotSupportedException`） |
 | 画像のファイル入出力 | `Save` / `Load`（**画像型のメンバー**。 `Load(string, int maxSize)` は **WIC のスケーラーでデコードしながら縮小する**（サムネイル用。 原寸のバッファを確保しない）。 `EsReadOnlyBitmap.Save` / `EsBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`。 **形式は既定で拡張子が決め**、`EsImageSaveOptions.Format` で明示もできる（拡張子が無ければ補完する）。 **形式の一覧は OS のエンコーダーから作り**（固定の一覧を持たない）、試し書きが通った形式だけを `SupportedFileExtensions` が返す（この環境では 19 拡張子。 BMP / PNG / JPEG / GIF / TIFF / JPEG XR に加えて DDS / HEIF / JPEG XL など）。 保存のオプションは `EsImageSaveOptions`（**品質（JPEG / JPEG XR）と減色 `ColorCount` / `ColorQuality` / `Dither`**）。 **EXIF の向き（`Orientation`）を適用してから縮小する**（回転した JPEG も正しい向きで読める）。 OS の WIC（`windowscodecs.dll` の COM）を使う Windows 専用で、外部パッケージは参照しない） |
 | OS サービス抽象 | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` |
 | Windows 実装 | `Native.Win.*`（Win32 / WIC の P/Invoke と COM。 ホストが生成して注入する） |

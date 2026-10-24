@@ -13,10 +13,9 @@ namespace EsUtil.Platform.Core.Imaging;
 ///   <description><see cref="JpegQuality"/>（値によってファイル サイズが大きく変わる。 JPEG と JPEG XR で使える）。</description>
 /// </item>
 /// <item>
-///   <term>減色で色数・画質・見た目が変わる</term>
-///   <description><see cref="ColorCount"/>（実装は自前であり WIC のパラメーターではない。
-///   8bpp のインデックス カラーとして書くため BMP / PNG / GIF で効く）、および<b>減色が行われる場合だけ</b>効く
-///   <see cref="ColorQuality"/> と <see cref="Dither"/>。</description>
+///   <term>減色で色数・見た目が変わる</term>
+///   <description><see cref="ColorCount"/>（WIC のパレット生成と 8bpp のインデックス カラーとして書くため、
+///   パレットを持てる形式で効く）、および<b>減色が行われる場合だけ</b>効く <see cref="Dither"/>。</description>
 /// </item>
 /// <item>
 ///   <term>値を変えても出力が完全に同一</term>
@@ -67,10 +66,10 @@ public readonly record struct EsImageSaveOptions
     /// <value>null（既定）の場合は減色しない（元の画素のまま保存する）。</value>
     /// <remarks>
     /// <b>不可逆である</b>: 元の画素は戻らない（ファイル サイズを下げる代わりに色を失う）。
-    /// 減色の結果は <see cref="EsReadOnlyBitmap.ReduceColors(int, EsImageQuality, EsDitherMode)"/> と同じ計算である（同じ色数・品質・ディザを指定すれば同じ絵になる）。<br/><br/>
+    /// 減色の結果は <see cref="EsReadOnlyBitmap.ReduceColors(int, EsDitherMode)"/> と同じ計算である（同じ色数・ディザを指定すれば同じ絵になる）。<br/><br/>
     /// <b>指定しなくても GIF は常に量子化される</b>（GIF はパレットが必須であり、WIC のエンコーダーは
     /// 透明色の番号をどの画素にも使わせないため、32bpp のまま渡すと透過が失われる）。<br/>
-    /// <b>使えるのは BMP / PNG / GIF だけである</b>（これらの形式はパレットを持てるため、
+    /// <b>パレットを持てる形式でだけ使える</b>（
     /// 8bpp のインデックス カラーとして書く）。 <b>JPEG と TIFF へ設定すると例外になる</b>
     /// （JPEG はパレットを持てない。 TIFF は未検証のため受け付けない）。<br/>
     /// <b>ファイル サイズは小さくなる</b>（32bpp のままの既定と比較。 減色したファイルは
@@ -89,26 +88,15 @@ public readonly record struct EsImageSaveOptions
     /// </remarks>
     public int? ColorCount { get; init; }
 
-    /// <summary>減色の品質（速度と画質の釣り合い）。</summary>
-    /// <value>null（既定）の場合は <see cref="EsImageQuality.Mid"/> を使う。 指定できるのは
-    /// <see cref="ColorCount"/> を指定した場合、または形式が GIF（常に量子化される）の場合だけである。</value>
-    /// <remarks>
-    /// <b>段階の意味</b>は <see cref="EsImageQuality"/> と
-    /// <see cref="EsReadOnlyBitmap.ReduceColors(int, EsImageQuality, EsDitherMode)"/> が単一所有する
-    /// （本値は保存の入口から同じ計算へ渡すだけである）。<br/>
-    /// <b>減色しない保存へ設定すると例外になる</b>（<see cref="ColorCount"/> が null で GIF 以外の場合。
-    /// 黙って無視すると「設定したのに効かない」ことに気付かないため）。
-    /// </remarks>
-    public EsImageQuality? ColorQuality { get; init; }
 
     /// <summary>減色のディザ（誤差拡散）の指定。</summary>
     /// <value>null（既定）の場合は <see cref="EsDitherMode.None"/> を使う（ファイルが最も小さくなる）。
     /// 指定できるのは <see cref="ColorCount"/> を指定した場合、または形式が GIF（常に量子化される）の場合だけである。</value>
     /// <remarks>
-    /// <b>何が変わるか</b>: <see cref="EsDitherMode.FloydSteinberg"/> は<b>色数が内容に対して足りないとき</b>に
+    /// <b>何が変わるか</b>: <see cref="EsDitherMode.ErrorDiffusion"/> は<b>色数が内容に対して足りないとき</b>に
     /// グラデーションの縞（バンディング）を消す代わりに<b>ファイルが大きくなる</b>（<b>平坦な色の画像は
     /// 変化しない</b>）。 256 色のように足りている場合の判断を含む詳細は <see cref="EsDitherMode"/> を参照する。<br/>
-    /// <b>減色しない保存へ設定すると例外になる</b>（<see cref="ColorQuality"/> と同じ規則）。
+    /// <b>減色しない保存へ設定すると例外になる</b>（<see cref="ColorCount"/> が null で GIF 以外の場合）。
     /// </remarks>
     public EsDitherMode? Dither { get; init; }
 }

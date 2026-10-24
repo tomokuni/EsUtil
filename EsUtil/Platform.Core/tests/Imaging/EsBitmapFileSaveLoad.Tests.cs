@@ -527,25 +527,13 @@ public class EsBitmapFileSaveLoadTests
     }
 
     [Fact]
-    internal void Save_減色しない保存へ減色の品質を指定するとInvalidOperationExceptionを投げる()
-    {
-        // 黙って無視すると「設定したのに効かない」ことに気付かないため、組み合わせを例外にする
-        using var source = CreateReadOnly(4, 4);
-        var path = TempPath(".png");
-
-        Assert.Throws<InvalidOperationException>(
-            () => source.Save(path, new EsImageSaveOptions { ColorQuality = EsImageQuality.High }));
-        Assert.False(File.Exists(path));
-    }
-
-    [Fact]
     internal void Save_減色しない保存へディザを指定するとInvalidOperationExceptionを投げる()
     {
         using var source = CreateReadOnly(4, 4);
         var path = TempPath(".png");
 
         Assert.Throws<InvalidOperationException>(
-            () => source.Save(path, new EsImageSaveOptions { Dither = EsDitherMode.FloydSteinberg }));
+            () => source.Save(path, new EsImageSaveOptions { Dither = EsDitherMode.ErrorDiffusion }));
         Assert.False(File.Exists(path));
     }
 
@@ -557,7 +545,7 @@ public class EsBitmapFileSaveLoadTests
         var path = TempPath(".gif");
         try
         {
-            source.Save(path, new EsImageSaveOptions { Dither = EsDitherMode.FloydSteinberg });
+            source.Save(path, new EsImageSaveOptions { Dither = EsDitherMode.ErrorDiffusion });
 
             using var loaded = EsReadOnlyBitmap.Load(path);
             Assert.Equal(32, loaded.Width);
@@ -566,19 +554,6 @@ public class EsBitmapFileSaveLoadTests
         {
             DeleteFile(path);
         }
-    }
-
-    [Theory]
-    [InlineData(99)]
-    [InlineData(-1)]
-    internal void Save_定義されていない減色の品質はArgumentOutOfRangeExceptionを投げる(int quality)
-    {
-        using var source = CreateNoisy(4, 4);
-        var path = TempPath(".png");
-
-        Assert.Throws<ArgumentOutOfRangeException>(
-            () => source.Save(path, new EsImageSaveOptions { ColorCount = 4, ColorQuality = (EsImageQuality)quality }));
-        Assert.False(File.Exists(path));
     }
 
     [Theory]
@@ -595,24 +570,6 @@ public class EsBitmapFileSaveLoadTests
     }
 
     [Fact]
-    internal void Save_減色の品質を指定しても色数は指定以下になる()
-    {
-        using var source = CreateNoisy(32, 32);
-        var path = TempPath(".png");
-        try
-        {
-            source.Save(path, new EsImageSaveOptions { ColorCount = 16, ColorQuality = EsImageQuality.Low });
-
-            using var loaded = EsReadOnlyBitmap.Load(path);
-            Assert.True(CountDistinctColors(loaded) <= 16, $"{CountDistinctColors(loaded)} 色になりました。");
-        }
-        finally
-        {
-            DeleteFile(path);
-        }
-    }
-
-    [Fact]
     internal void Save_ディザを指定した減色は平坦な色の画像を変えない()
     {
         // 誤差が 0 の画素には何も配られないため、単色の画像はディザの有無で結果が同じになる
@@ -622,7 +579,7 @@ public class EsBitmapFileSaveLoadTests
         try
         {
             source.Save(plain, new EsImageSaveOptions { ColorCount = 8 });
-            source.Save(dithered, new EsImageSaveOptions { ColorCount = 8, Dither = EsDitherMode.FloydSteinberg });
+            source.Save(dithered, new EsImageSaveOptions { ColorCount = 8, Dither = EsDitherMode.ErrorDiffusion });
 
             using var plainImage = EsReadOnlyBitmap.Load(plain);
             using var ditheredImage = EsReadOnlyBitmap.Load(dithered);
@@ -697,9 +654,10 @@ public class EsBitmapFileSaveLoadTests
 
             using var loaded = EsReadOnlyBitmap.Load(path);
 
-            // PNG はパレットへアルファを書ける（tRNS）ため、3 段階のアルファがそのまま残る
+            // パレットの透過は「透明か不透明か」の 2 値である（WIC のパレットは透明色を 1 つ持つ）。
+            // 完全透明はそのまま残り、半透明は不透明な色へ寄る。
             Assert.Equal((byte)255, loaded.GetPixel(0, 0).A);
-            Assert.Equal((byte)128, loaded.GetPixel(source.Width / 2, 0).A);
+            Assert.Equal((byte)255, loaded.GetPixel(source.Width / 2, 0).A);
             Assert.Equal((byte)0, loaded.GetPixel(source.Width - 1, 0).A);
         }
         finally
@@ -711,8 +669,7 @@ public class EsBitmapFileSaveLoadTests
     [Fact]
     internal void Save_減色を指定しなくてもGIFは透過を保つ()
     {
-        // GDI+ の GIF エンコーダーは透明色の番号をどの画素にも使わせないため、32bpp のまま渡すと透過が失われる。
-        // 本ライブラリは GIF を常に自前の量子化で書く（GIF はパレットが必須の形式である）。
+        // GIF はパレットが必須であるため、指定が無くても量子化して書く（透明色の番号も書ける）。
         using var source = CreateWithAlpha();
         var path = TempPath(".gif");
         try

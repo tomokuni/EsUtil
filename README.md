@@ -1,9 +1,14 @@
 # EsUtil
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4.svg)](https://dotnet.microsoft.com/)
-[![Native AOT](https://img.shields.io/badge/Native%20AOT-compatible%20(except%20WinForms)-brightgreen.svg)](#5-対応フレームワークと-native-aot)
-[![verify](https://img.shields.io/badge/verify-buildScript%2Fverify.ps1-informational.svg)](buildScript/verify.ps1)
+![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
+![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
+![Avalonia](https://img.shields.io/badge/UI-Avalonia-8D46D6)
+![MewUI](https://img.shields.io/badge/UI-MewUI-00BFFF)
+![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
+![WinForms](https://img.shields.io/badge/UI-WinForms-512BD4)
+![License](https://img.shields.io/badge/License-MIT-3DA639)
 
 複数の Windows デスクトップ アプリで使い回す **UI 非依存の共通基盤** と、**再利用可能な UI コントロール** を提供するライブラリ群です。 Avalonia UI / MewUI / WinUI 3 / WinForms の 4 つの UI 実装で、同じ計算結果と同じ見た目のコントロールを共有できます。
 
@@ -11,7 +16,23 @@
 
 **ドキュメントと例外メッセージは日本語です**（利用者・開発者ともに日本語を前提とします。 識別子とログの接頭辞は英語です）。
 
-## 1. プロジェクト
+## 1. ソリューションとプロジェクト
+
+リポジトリ直下のフォルダが**ソリューション フォルダ**（`EsUtil/` と UI ごとの `EsUtil.Ui.<UI>/`）であり、その直下のフォルダが**プロジェクト フォルダ**です。 プロジェクトは**ソリューションの中**にだけ置きます（リポジトリ直下にプロジェクトを並べません）。
+
+### 1.1 ソリューション
+
+| ソリューション | フォルダ | プロジェクト数 | 内容 |
+| --- | --- | --- | --- |
+| `EsUtil` | [`EsUtil/`](EsUtil/README.md) | 8 | 共通基盤と機能層（**UI 非依存**。 4 つの UI 版が共有する） |
+| `EsUtil.Ui.AvaloniaUI` | [`EsUtil.Ui.AvaloniaUI/`](EsUtil.Ui.AvaloniaUI/Interop/README.md) | 5 | Avalonia UI 版のコントロールと相互運用 |
+| `EsUtil.Ui.MewUI` | [`EsUtil.Ui.MewUI/`](EsUtil.Ui.MewUI/Interop/README.md) | 5 | MewUI 版のコントロールと相互運用 |
+| `EsUtil.Ui.WinUI3` | [`EsUtil.Ui.WinUI3/`](EsUtil.Ui.WinUI3/Interop/README.md) | 5 | WinUI 3 版のコントロールと相互運用 |
+| `EsUtil.Ui.WinForms` | [`EsUtil.Ui.WinForms/`](EsUtil.Ui.WinForms/Interop/README.md) | 4 | WinForms 版のコントロールと相互運用 |
+
+**層の帰属（Core / Presenter / UI のどれに置くか）は [`EsUtil/README.md`](EsUtil/README.md) が、参照の許可範囲は [`.github/依存関係.md`](.github/依存関係.md) が単一所有します**（本節は分類だけを示します）。
+
+### 1.2 プロジェクト
 
 | 区分 | プロジェクト | 内容 |
 | --- | --- | --- |
@@ -38,10 +59,9 @@
 | 機能（サムネイル一覧） | [`EsUtil.Ui.MewUI.Thumbnail`](EsUtil.Ui.MewUI/Thumbnail/README.md) | MewUI 版コントロール |
 | 機能（サムネイル一覧） | [`EsUtil.Ui.WinUI3.Thumbnail`](EsUtil.Ui.WinUI3/Thumbnail/README.md) | WinUI 3 版コントロール |
 | 機能（サムネイル一覧） | [`EsUtil.Ui.WinForms.Thumbnail`](EsUtil.Ui.WinForms/Thumbnail/README.md) | WinForms 版コントロール |
+| 相互運用 | [`EsUtil.Ui.<UI>.Interop`](EsUtil.Ui.AvaloniaUI/Interop/README.md) | UI の型とコアの型の相互変換・描画の補助（**UI ごとに 1 つ**） |
 
-**ソリューションは 5 本**です（`EsUtil/` と UI ごとの `EsUtil.Ui.<UI>/`。 `<UI>` = `AvaloniaUI` / `MewUI` / `WinUI3` / `WinForms`）。 リポジトリ直下のフォルダがソリューション フォルダであり、その直下のフォルダがプロジェクト フォルダです。
-
-層の帰属（Core / Presenter / UI のどれに置くか）は [`EsUtil/README.md`](EsUtil/README.md) が、参照の許可範囲は [`.github/依存関係.md`](.github/依存関係.md) が単一所有します。
+各パッケージの版と一覧は [§6](#6-パッケージソリューション別) が持ちます。
 
 ## 2. 使い方
 

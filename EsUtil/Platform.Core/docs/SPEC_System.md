@@ -118,7 +118,7 @@ graph LR
 | `EsUtil/Platform.Core/src/Imaging/EsBitmap.cs` | **書き換え可能**な画像（`EsReadOnlyBitmap` とは**兄弟**。 BGRA8888・Premul。 外部パッケージに依存しない。 書き込みの入口（`Pixels`・`SetPixel`・`TrySetPixel`・`Clear`・`SetReadOnly`）だけが読み取り専用の型と異なる） |
 | `EsUtil/Platform.Core/src/Imaging/EsReadOnlyBitmap.cs` | **読み取り専用**の画像（画素を書き換える入口を持たない。 `EsBitmap` と対称な入口を持ち、変換の向き（`FromBitmap`）だけが異なる） |
 | `EsUtil/Platform.Core/src/Imaging/EsBitmapBuffer.cs` | 画素バッファの内部型（確保・借用・共有・凍結・解放と**ファイル入出力**（`LoadFromFile` / `SaveToFile`）を単一所有する。 公開しない。 2 型の実装の共有もこの型が担う） |
-| `EsUtil/Platform.Core/src/Imaging/EsBitmapOperations.cs` | 画像を変更せずに新しい画像を作る操作（切り出し・縮小・減色）の内部実装（公開面は 2 型の同じ名前のメンバーであり、本型が手順を単一所有する。 減色の計算は保存の実装とも共有する） |
+| `EsUtil/Platform.Core/src/Imaging/EsBitmapOperations.cs` | 画像を変更せずに新しい画像を作る操作（切り出し・縮小・減色）の内部実装（公開面は 2 型の同じ名前のメンバーであり、本型が手順を単一所有する。 **減色の計算は WIC が単一所有**し、本型は引数の検証と画像型への受け渡しだけを行う） |
 | `EsUtil/Platform.Core/src/Imaging/EsPixmap.cs` | 画像の一部を指す **0 コピーの読み取りビュー**（行幅を持つ。 切り出しの複製を避ける。 元の寿命に依存しない） |
 | `EsUtil/Platform.Core/src/Imaging/SafeAlignedBuffer.cs` | 整列したアンマネージド バッファの所有者（`SafeHandle`。 **解放の実装を単一所有する**。 `Dispose` 忘れはファイナライザが解放する） |
 | `EsUtil/Platform.Core/src/Imaging/DrawingColorExtensions.cs` | 描画色の可視判定（アルファが 0 より大きいか）の単一所有 |

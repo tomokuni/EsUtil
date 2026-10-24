@@ -51,6 +51,15 @@ internal static unsafe class WinWicImageCodec
     /// </remarks>
     private const int ProbeSize = 8;
 
+    /// <summary>パレットの透明色へ寄せるアルファのしきい値（パーセント）。</summary>
+    /// <remarks>
+    /// <b>実測</b>: <c>IWICPalette::InitializeFromBitmap</c> へ透明色の追加を指示しても、
+    /// <c>IWICFormatConverter</c> のしきい値が <c>0.0</c> のままでは<b>透明な画素が透明なパレットの色へ寄りません</b>
+    /// （実測: 市松の透明画像で透明画素 0 / 1024）。 <c>1.0</c> 以上にすると<b>透明な画素がすべて透明の色番号</b>になります
+    /// （実測: 512 / 1024）。 アルファが 1 以上の画素は不透明として扱うため、値は <c>1.0</c> で足ります。
+    /// </remarks>
+    private const double AlphaThresholdPercent = 1.0;
+
     /// <summary>ピクセル データをファイルへエンコードする（形式は拡張子が決める。 オプションは既定）。</summary>
     /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
     /// <param name="width">幅（ピクセル）。</param>
@@ -103,15 +112,127 @@ internal static unsafe class WinWicImageCodec
         if (ResolveColorCount(format, options) is int colorCount)
         {
             EncodeIndexedToFile(
-                pixels, width, height, targetPath, format, colorCount,
-                options.ColorQuality ?? EsImageQuality.Mid,
-                options.Dither ?? EsDitherMode.None);
+                pixels, width, height, targetPath, format, colorCount, options.Dither ?? EsDitherMode.None);
             return;
         }
 
         var bytes = EncodeToBytes(format.Container, width, height, options, palette: null, pixels, indexed: false);
         File.WriteAllBytes(targetPath, bytes);
     }
+
+    /// <summary>画素を指定の色数へ減色し、色番号とパレットで返す。</summary>
+    /// <param name="pixels">元の画素（BGRA8888・アルファ乗算済み。 行の余白を含んでよい）。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
+    /// <param name="colorCount">残す色数（2〜256。 呼び出し側が検証済みであること）。</param>
+    /// <param name="dither">ディザの指定。</param>
+    /// <returns>色番号（1 画素 1 バイト・行は密）とパレット（BGRA）。</returns>
+    /// <exception cref="Win32Exception">減色（WIC）が失敗した場合。</exception>
+    /// <remarks>
+    /// <b>WIC の部品で減色します</b>: パレットの生成は <c>IWICPalette::InitializeFromBitmap</c>（中央値分割）、
+    /// 画素の割り当ては <c>IWICFormatConverter</c> の 8bpp インデックスへの変換（ディザは
+    /// <c>WICBitmapDitherTypeErrorDiffusion</c>）です。 <b>本ライブラリは減色の計算を自前で持ちません</b>
+    /// （同じ計算を 2 つ持つと、保存したファイルの画素が経路によって変わる）。<br/>
+    /// <b>行の余白は数えない・読まない</b>（<paramref name="stride"/> を使って行単位で渡す）。<br/>
+    /// <b>透過はパレットのアルファで保たれます</b>: <c>IWICPalette::InitializeFromBitmap</c> へ
+    /// 透明色の追加を指示するため、透明な画素は透明なパレットの色へ寄ります（PNG の <c>tRNS</c> /
+    /// GIF の透明色番号として書かれます）。<br/>
+    /// <b>パレットの色は乗算していない ARGB です</b>: 画素（乗算済み BGRA）へ戻すときは
+    /// <see cref="Reduce"/> が乗算し直します。
+    /// </remarks>
+    internal static (byte[] Indices, uint[] Palette) ReduceToIndexed(
+        ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount, EsDitherMode dither)
+    {
+        var factory = OpenFactory();
+        void* buffer = null;
+        try
+        {
+            var bitmap = CreateBitmapFromPixels(factory, pixels, width, height, stride, out buffer);
+            try
+            {
+                var palette = CreatePalette(factory, (IWICBitmapSource*)bitmap, colorCount);
+                try
+                {
+                    var converter = CreateIndexedConverter(factory, (IWICBitmapSource*)bitmap, palette, dither);
+                    try
+                    {
+                        var indices = new byte[width * height];
+                        fixed (byte* destination = indices)
+                        {
+                            ((IWICBitmapSource*)converter)->CopyPixels(
+                                null, (uint)width, (uint)indices.Length, destination);
+                        }
+
+                        return (indices, ReadPalette(palette));
+                    }
+                    finally
+                    {
+                        converter->Release();
+                    }
+                }
+                finally
+                {
+                    palette->Release();
+                }
+            }
+            finally
+            {
+                bitmap->Release();
+            }
+        }
+        finally
+        {
+            if (buffer != null)
+            {
+                NativeMemory.Free(buffer);
+            }
+
+            factory->Release();
+        }
+    }
+
+    /// <summary>画素を指定の色数へ減色し、画素（BGRA8888・アルファ乗算済み）で返す。</summary>
+    /// <param name="pixels">元の画素（BGRA8888・アルファ乗算済み。 行の余白を含んでよい）。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
+    /// <param name="colorCount">残す色数（2〜256）。 呼び出し側が検証済みであること）。</param>
+    /// <param name="dither">ディザの指定。</param>
+    /// <returns>減色した画素（行は密）。</returns>
+    /// <exception cref="Win32Exception">減色（WIC）が失敗した場合。</exception>
+    /// <remarks>
+    /// <b>色番号を経由します</b>: 減色の結果は 8bpp の色番号とパレットであり、画素へ戻すのは
+    /// 本メソッドの役目です（保存は色番号のまま書くため、戻す必要がありません）。<br/>
+    /// <b>乗算し直します</b>: パレットの色は乗算していない ARGB であるため、本ライブラリの画素の約束
+    /// （BGRA8888・アルファ乗算済み）へ揃えます。
+    /// </remarks>
+    internal static byte[] Reduce(
+        ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount, EsDitherMode dither)
+    {
+        var (indices, palette) = ReduceToIndexed(pixels, width, height, stride, colorCount, dither);
+        var result = new byte[width * height * EsReadOnlyBitmap.BytesPerPixel];
+        for (var i = 0; i < indices.Length; i++)
+        {
+            var color = palette[indices[i]];
+            var alpha = (byte)(color >> 24);
+            var offset = i * EsReadOnlyBitmap.BytesPerPixel;
+            var multiplier = alpha == 255 ? 1.0 : alpha / 255.0;
+            result[offset + 0] = Premultiply((byte)color, multiplier);
+            result[offset + 1] = Premultiply((byte)(color >> 8), multiplier);
+            result[offset + 2] = Premultiply((byte)(color >> 16), multiplier);
+            result[offset + 3] = alpha;
+        }
+
+        return result;
+    }
+
+    /// <summary>色成分をアルファで乗算する。</summary>
+    /// <param name="value">乗算していない色成分。</param>
+    /// <param name="multiplier">アルファ（0.0〜1.0）。</param>
+    /// <returns>乗算した色成分。</returns>
+    private static byte Premultiply(byte value, double multiplier)
+        => multiplier == 1.0 ? value : (byte)Math.Min(255, (int)((value * multiplier) + 0.5));
 
     /// <summary>形式を書き出せるかを試し書きで確かめる（<see cref="WinWicFormats"/> の一覧を作るために使う）。</summary>
     /// <param name="container">コンテナ形式の GUID。</param>
@@ -185,24 +306,23 @@ internal static unsafe class WinWicImageCodec
     /// <param name="filePath">保存先のファイルパス（形式は決定済み）。</param>
     /// <param name="format">保存する形式。</param>
     /// <param name="colorCount">減色して残す色数。</param>
-    /// <param name="quality">減色の品質。</param>
     /// <param name="dither">減色のディザ。</param>
     /// <exception cref="Win32Exception">エンコード（WIC）が失敗した場合。</exception>
     /// <remarks>
     /// <b>なぜ 8bpp で書くのか</b>: 32bpp のまま減色しても、エンコーダーはパレット画像を書かない
     /// （減色の効果は圧縮率の向上だけであり、BMP では 1 バイトも減らない）。
     /// <b>8bpp のインデックス カラー（パレット付き）を渡すとパレット画像になる</b>。<br/>
-    /// <b>GIF もここを通る</b>（<see cref="ResolveColorCount"/> を参照。 GIF はパレットが必須であり、
-    /// 自前の量子化は透明な画素を透明なパレットの色へ割り当てるため透過が保たれる）。<br/>
+    /// <b>GIF もここを通る</b>（<see cref="ResolveColorCount"/> を参照。 GIF はパレットが必須であるため
+    /// 指定が無くても量子化する）。<br/>
     /// <b>行幅を 4 バイト境界へ揃える</b>: BMP の行は 4 バイト境界へ揃えられるため、揃えないと
     /// 読み戻した画像が斜めにずれる。
     /// </remarks>
     private static void EncodeIndexedToFile(
         ReadOnlySpan<byte> pixels, int width, int height, string filePath, WinWicFormat format, int colorCount,
-        EsImageQuality quality, EsDitherMode dither)
+        EsDitherMode dither)
     {
-        var (indices, palette) = EsBitmapOperations.ReduceToIndexed(
-            pixels, width, height, width * EsReadOnlyBitmap.BytesPerPixel, colorCount, quality, dither);
+        var (indices, palette) = ReduceToIndexed(
+            pixels, width, height, width * EsReadOnlyBitmap.BytesPerPixel, colorCount, dither);
 
         var stride = (width + 3) & ~3;
         var rows = new byte[stride * height];
@@ -213,6 +333,121 @@ internal static unsafe class WinWicImageCodec
 
         var bytes = EncodeToBytes(format.Container, width, height, default, palette, rows, indexed: true);
         File.WriteAllBytes(filePath, bytes);
+    }
+
+    /// <summary>メモリ上の画素から WIC のビットマップを作る。</summary>
+    /// <param name="factory">イメージング ファクトリ。</param>
+    /// <param name="pixels">画素（BGRA8888・アルファ乗算済み。 行の余白を含んでよい）。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
+    /// <param name="buffer">画素を複製したアンマネージド領域（呼び出し側が <c>NativeMemory.Free</c> で解放する）。</param>
+    /// <returns>生成したビットマップ（呼び出し側が <c>Release()</c> を呼ぶ）。</returns>
+    /// <remarks>
+    /// <b>アンマネージド領域へ複製します</b>: <c>CreateBitmapFromMemory</c> は<b>渡した領域を参照する</b>
+    /// （コピーしない）ため、マネージド配列のアドレスを渡すと GC の移動で壊れます。 実測でも、
+    /// <c>fixed</c> の中で作って抜けた後に使うと<b>色数が 2 になる</b>などの壊れ方をしました。
+    /// 費用は 1 枚分の複製ですが、<b>壊れた結果を返さないこと</b>を優先します。<br/>
+    /// <b>行の余白をそのまま渡せます</b>: <c>cbStride</c> に <paramref name="stride"/> を渡すため、
+    /// 密でない並びも受け付けます。
+    /// </remarks>
+    private static IWICBitmap* CreateBitmapFromPixels(
+        IWICImagingFactory* factory, ReadOnlySpan<byte> pixels, int width, int height, int stride, out void* buffer)
+    {
+        var size = (nuint)pixels.Length;
+        buffer = NativeMemory.Alloc(size);
+        fixed (byte* source = pixels)
+        {
+            Buffer.MemoryCopy(source, buffer, pixels.Length, pixels.Length);
+        }
+
+        var pixelFormat = PInvoke.GUID_WICPixelFormat32bppPBGRA;
+        IWICBitmap* bitmap;
+        factory->CreateBitmapFromMemory(
+            (uint)width, (uint)height, &pixelFormat, (uint)stride, (uint)pixels.Length, (byte*)buffer, &bitmap);
+        return bitmap;
+    }
+
+    /// <summary>画素から色数ぶんのパレットを作る。</summary>
+    /// <param name="factory">イメージング ファクトリ。</param>
+    /// <param name="source">元の画素の源。</param>
+    /// <param name="colorCount">残す色数。</param>
+    /// <returns>生成したパレット（呼び出し側が <c>Release()</c> を呼ぶ）。</returns>
+    /// <remarks>
+    /// <b>透明色を加える</b>: <c>fAddTransparentColor</c> を true にするため、透明な画素は
+    /// 透明なパレットの色へ寄ります（PNG の <c>tRNS</c> / GIF の透明色番号）。
+    /// </remarks>
+    private static IWICPalette* CreatePalette(
+        IWICImagingFactory* factory, IWICBitmapSource* source, int colorCount)
+    {
+        IWICPalette* palette;
+        factory->CreatePalette(&palette);
+        try
+        {
+            palette->InitializeFromBitmap(source, (uint)colorCount, true);
+            return palette;
+        }
+        catch
+        {
+            // 失敗したパレットを解放してから、呼び出し側へ伝える
+            palette->Release();
+            throw;
+        }
+    }
+
+    /// <summary>8bpp のインデックス カラーへ変換する変換器を作る。</summary>
+    /// <param name="factory">イメージング ファクトリ。</param>
+    /// <param name="source">元の画素の源。</param>
+    /// <param name="palette">割り当てに使うパレット。</param>
+    /// <param name="dither">ディザの指定。</param>
+    /// <returns>生成した変換器（呼び出し側が <c>Release()</c> を呼ぶ）。</returns>
+    private static IWICFormatConverter* CreateIndexedConverter(
+        IWICImagingFactory* factory, IWICBitmapSource* source, IWICPalette* palette, EsDitherMode dither)
+    {
+        var ditherType = dither switch
+        {
+            EsDitherMode.None => WICBitmapDitherType.WICBitmapDitherTypeNone,
+            EsDitherMode.ErrorDiffusion => WICBitmapDitherType.WICBitmapDitherTypeErrorDiffusion,
+            var other => throw new ArgumentOutOfRangeException(nameof(dither), other, "定義されていないディザの指定です。"),
+        };
+
+        IWICFormatConverter* converter;
+        factory->CreateFormatConverter(&converter);
+        try
+        {
+            converter->Initialize(
+                source, PInvoke.GUID_WICPixelFormat8bppIndexed, ditherType, palette, AlphaThresholdPercent,
+                WICBitmapPaletteType.WICBitmapPaletteTypeCustom);
+            return converter;
+        }
+        catch
+        {
+            // 失敗した変換器を解放してから、呼び出し側へ伝える
+            converter->Release();
+            throw;
+        }
+    }
+
+    /// <summary>パレットの色を読み取る。</summary>
+    /// <param name="palette">対象のパレット。</param>
+    /// <returns>色（ARGB の並び。 パレットの色数ぶん）。</returns>
+    private static uint[] ReadPalette(IWICPalette* palette)
+    {
+        uint count;
+        palette->GetColorCount(&count);
+        if (count == 0)
+        {
+            return [];
+        }
+
+        var colors = new uint[count];
+        fixed (uint* destination = colors)
+        {
+            uint actual;
+            palette->GetColors(count, destination, &actual);
+        }
+
+        return colors;
     }
 
     /// <summary>ピクセルを WIC でエンコードし、ファイルへ書く内容を返す。</summary>
@@ -708,32 +943,16 @@ internal static unsafe class WinWicImageCodec
                 $"減色して残す色数は {EsBitmapOperations.MinimumColorCount}〜{EsBitmapOperations.MaximumColorCount} の範囲で指定します。");
         }
 
-        if (options.ColorQuality is EsImageQuality quality
-            && quality is not (EsImageQuality.Low or EsImageQuality.Mid or EsImageQuality.High))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(options), quality, "定義されていない減色の品質の指定です。");
-        }
-
-        if (options.Dither is EsDitherMode dither
-            && dither is not (EsDitherMode.None or EsDitherMode.FloydSteinberg))
+        if (options.Dither is EsDitherMode dither && dither is not (EsDitherMode.None or EsDitherMode.ErrorDiffusion))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(options), dither, "定義されていないディザの指定です。");
         }
 
-        // 減色の指定（品質・ディザ）は減色が行われる場合だけ意味を持つ（GIF は指定が無くても量子化される）
-        if (options.ColorCount is null && !IsPaletteRequired(format))
+        // 減色の指定（ディザ）は減色が行われる場合だけ意味を持つ（GIF は指定が無くても量子化される）
+        if (options.ColorCount is null && !IsPaletteRequired(format) && options.Dither is not null)
         {
-            if (options.ColorQuality is not null)
-            {
-                throw CreateReductionRequired(nameof(EsImageSaveOptions.ColorQuality));
-            }
-
-            if (options.Dither is not null)
-            {
-                throw CreateReductionRequired(nameof(EsImageSaveOptions.Dither));
-            }
+            throw CreateReductionRequired(nameof(EsImageSaveOptions.Dither));
         }
 
         if (options.JpegQuality is not int jpegQuality)

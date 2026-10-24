@@ -490,21 +490,21 @@ public sealed class EsBitmap : IDisposable
 
     /// <summary>本画像を指定の色数へ減色する（読み取り専用の画像と同じ手順）。</summary>
     /// <param name="colorCount">残す色数（2〜256）。</param>
-    /// <param name="quality">減色の品質。 既定は <see cref="EsImageQuality.Mid"/>。</param>
     /// <param name="dither">ディザの指定。 既定は <see cref="EsDitherMode.None"/>。</param>
     /// <returns>減色した新しい画像（使われる色は <paramref name="colorCount"/> 種類以下）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>不可逆です</b>（元の画素は戻りません）。 規則（アルゴリズム・アルファの扱い・ディザの選び方）は
-    /// <see cref="EsReadOnlyBitmap.ReduceColors(int, EsImageQuality, EsDitherMode)"/> が単一所有し、実装も同じ手順です。
+    /// <see cref="EsReadOnlyBitmap.ReduceColors(int, EsDitherMode)"/> が単一所有し、実装も同じ手順です。
     /// <b>本画像は変更せず、凍結もしません</b>。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    public EsBitmap ReduceColors(
-        int colorCount, EsImageQuality quality = EsImageQuality.Mid, EsDitherMode dither = EsDitherMode.None)
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">減色（WIC）が失敗した場合。</exception>
+    [SupportedOSPlatform("windows10.0.17763")]
+    public EsBitmap ReduceColors(int colorCount, EsDitherMode dither = EsDitherMode.None)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.ReduceColors(ReadOnlyPixels, Width, Height, Stride, colorCount, quality, dither);
+        return EsBitmapOperations.ReduceColors(ReadOnlyPixels, Width, Height, Stride, colorCount, dither);
     }
 
     /// <summary>本画像の一部を指す<b>0 コピーの読み取りビュー</b>を生成する（切り出しの複製を避ける）。</summary>

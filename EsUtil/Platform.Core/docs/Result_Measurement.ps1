@@ -633,18 +633,18 @@ internal static class Program
             // ディザ × 品質の全組み合わせを使うため、全組み合わせを測る
             foreach (var colors in s_qualityColors)
             {
-                foreach (var dither in new[] { EsDitherMode.None, EsDitherMode.FloydSteinberg })
+                foreach (var dither in new[] { EsDitherMode.None, EsDitherMode.ErrorDiffusion })
                 {
                     foreach (var quality in s_qualities)
                     {
-                        var variant = ReduceVariant(colors, quality, dither);
-                        Measure(SectionReduce, "ReduceColors", ClassBit, label, variant, () => new Item(bit.ReduceColors(colors, quality, dither)));
-                        Measure(SectionReduce, "ReduceColors", ClassRead, label, variant, () => new Item(read.ReduceColors(colors, quality, dither)));
-                        Measure(SectionReduce, "ReduceColors", ClassView, label, variant, () => new Item(view.ReduceColors(colors, quality, dither)));
+                        var variant = ReduceVariant(colors, dither);
+                        Measure(SectionReduce, "ReduceColors", ClassBit, label, variant, () => new Item(bit.ReduceColors(colors, dither)));
+                        Measure(SectionReduce, "ReduceColors", ClassRead, label, variant, () => new Item(read.ReduceColors(colors, dither)));
+                        Measure(SectionReduce, "ReduceColors", ClassView, label, variant, () => new Item(view.ReduceColors(colors, dither)));
 
-                        RecordQuality(SectionReduce, "ReduceColors", ClassBit, label, variant, () => bit.ReadOnlyPixels, bit.Width, bit.Height, bit.Stride, () => bit.ReduceColors(colors, quality, dither));
-                        RecordQuality(SectionReduce, "ReduceColors", ClassRead, label, variant, () => read.ReadOnlyPixels, read.Width, read.Height, read.Stride, () => read.ReduceColors(colors, quality, dither));
-                        RecordQuality(SectionReduce, "ReduceColors", ClassView, label, variant, () => view.ReadOnlyPixels, view.Width, view.Height, view.Stride, () => view.ReduceColors(colors, quality, dither));
+                        RecordQuality(SectionReduce, "ReduceColors", ClassBit, label, variant, () => bit.ReadOnlyPixels, bit.Width, bit.Height, bit.Stride, () => bit.ReduceColors(colors, dither));
+                        RecordQuality(SectionReduce, "ReduceColors", ClassRead, label, variant, () => read.ReadOnlyPixels, read.Width, read.Height, read.Stride, () => read.ReduceColors(colors, dither));
+                        RecordQuality(SectionReduce, "ReduceColors", ClassView, label, variant, () => view.ReadOnlyPixels, view.Width, view.Height, view.Stride, () => view.ReduceColors(colors, dither));
                     }
                 }
             }
@@ -662,10 +662,10 @@ internal static class Program
             using var bit = CreateWith(contentSize, content.Key);
             using var read = ReadOnlyWith(contentSize, content.Key);
             using var view = bit.ToPixmap(new EsRectInt(0, 0, contentSize.Width, contentSize.Height));
-            var variant = ReduceVariant(256, EsImageQuality.Mid, EsDitherMode.None);
-            Measure(SectionReduce, "ReduceColors", ClassBit, content.Key, variant, () => new Item(bit.ReduceColors(256, EsImageQuality.Mid)));
-            Measure(SectionReduce, "ReduceColors", ClassRead, content.Key, variant, () => new Item(read.ReduceColors(256, EsImageQuality.Mid)));
-            Measure(SectionReduce, "ReduceColors", ClassView, content.Key, variant, () => new Item(view.ReduceColors(256, EsImageQuality.Mid)));
+            var variant = ReduceVariant(256, EsDitherMode.None);
+            Measure(SectionReduce, "ReduceColors", ClassBit, content.Key, variant, () => new Item(bit.ReduceColors(256)));
+            Measure(SectionReduce, "ReduceColors", ClassRead, content.Key, variant, () => new Item(read.ReduceColors(256)));
+            Measure(SectionReduce, "ReduceColors", ClassView, content.Key, variant, () => new Item(view.ReduceColors(256)));
         }
     }
 
@@ -814,10 +814,10 @@ internal static class Program
 
         foreach (var colors in s_qualityColors)
         {
-            foreach (var dither in new[] { EsDitherMode.None, EsDitherMode.FloydSteinberg })
+            foreach (var dither in new[] { EsDitherMode.None, EsDitherMode.ErrorDiffusion })
             {
                 var name = $"reduce-{colors}-{DitherKey(dither)}";
-                using var reduced = source.ReduceColors(colors, EsImageQuality.Mid, dither);
+                using var reduced = source.ReduceColors(colors, dither);
                 Save(reduced, directory, $"{name}.png");
 
                 using var magnified = Magnify(reduced, s_sampleRegion, SampleMagnification);
@@ -1165,7 +1165,7 @@ internal static class Program
             var zoomSection = qualitySection + 1;
 
             AddHeading($"### {number}.{3 + (2 * i)} 減色（{colors} 色・実施前 → 実施後）");
-            AddText($"実施前は {s_sampleSize.Label}（全色）です。 実施後は同じ寸法のまま {colors} 色へ減色した結果です。 縮小していないため、**減色だけの違い**が分かります。 所要は §7.2、1 画素ごとの差は §7.{qualitySection} です。");
+            AddText($"実施前は {s_sampleSize.Label}（全色）です。 実施後は同じ寸法のまま {colors} 色へ減色した結果です。 縮小していないため、**減色だけの違い**が分かります。 所要は §7、1 画素ごとの差は §7.{qualitySection} です。");
             AddImages(
                 [
                     ("実施前", "sample/before.png"),
@@ -1173,7 +1173,7 @@ internal static class Program
                     ("実施後（ディザあり）", $"sample/reduce-{colors}-dither.png"),
                 ]);
 
-            AddHeading($"### {number}.{4 + (2 * i)} 減色の拡大（{colors} 色・{EsImageQuality.Mid}）");
+            AddHeading($"### {number}.{4 + (2 * i)} 減色の拡大（{colors} 色）");
             AddText($"上の表の**1 画素を {SampleMagnification}×{SampleMagnification} で写した**ものです（実施前の ({s_sampleRegion.X}, {s_sampleRegion.Y}) から {s_sampleRegion.Width}x{s_sampleRegion.Height} の領域）。 **ディザの粒**（色を混ぜて中間色に見せる点）が見えます。 縞の出にくさは §7.{zoomSection} です。");
             AddImages(
                 [
@@ -1387,17 +1387,9 @@ internal static class Program
         for (var i = 0; i < s_classNames.Length; i++)
         {
             var cls = s_classNames[i];
-            AddHeading($"### {number}.{++sub} {cls}（品質）");
-            AddTimeGrid(
-                "品質（256 色）",
-                s_sizeLabels,
-                s_qualityLabels,
-                [.. s_qualities.Select(q => s_sizes.Select(s => Time(SectionReduce, "ReduceColors", cls, s.Label, ReduceVariant(256, q, EsDitherMode.None))).ToArray())],
-                (row, column) => Time(SectionReduce, "ReduceColors", cls, s_sizes[column].Label, ReduceVariant(256, s_qualities[row], EsDitherMode.None)));
-
             AddHeading($"### {number}.{++sub} {cls}（ディザ）");
             var ditherRows = new List<(string Label, int Colors, EsDitherMode Dither)>();
-            foreach (var dither in new[] { EsDitherMode.None, EsDitherMode.FloydSteinberg })
+            foreach (var dither in new[] { EsDitherMode.None, EsDitherMode.ErrorDiffusion })
             {
                 foreach (var colors in s_qualityColors.Reverse())
                 {
@@ -1409,13 +1401,13 @@ internal static class Program
                 "指定（Mid）",
                 s_sizeLabels,
                 ditherRows.Select(static r => r.Label).ToArray(),
-                [.. ditherRows.Select(r => s_sizes.Select(s => Time(SectionReduce, "ReduceColors", cls, s.Label, ReduceVariant(r.Colors, EsImageQuality.Mid, r.Dither))).ToArray())],
-                (row, column) => Time(SectionReduce, "ReduceColors", cls, s_sizes[column].Label, ReduceVariant(ditherRows[row].Colors, EsImageQuality.Mid, ditherRows[row].Dither)));
+                [.. ditherRows.Select(r => s_sizes.Select(s => Time(SectionReduce, "ReduceColors", cls, s.Label, ReduceVariant(r.Colors, r.Dither))).ToArray())],
+                (row, column) => Time(SectionReduce, "ReduceColors", cls, s_sizes[column].Label, ReduceVariant(ditherRows[row].Colors, ditherRows[row].Dither)));
         }
 
         // 減色の費用は「画素が入った箱の数」で決まる（内容を変えた表も示す）
-        var ditherNone = ReduceVariant(256, EsImageQuality.Mid, EsDitherMode.None);
-        AddHeading($"### {number}.{++sub} 内容による違い（{s_sizes[0].Label}・Mid・256 色）");
+        var ditherNone = ReduceVariant(256, EsDitherMode.None);
+        AddHeading($"### {number}.{++sub} 内容による違い（{s_sizes[0].Label}・256 色）");
         AddText("減色の費用は**画素が入った箱の数**で決まるため、内容を変えた表を示します（行を型・列を内容とした 2 軸表）。 平坦は箱が 1 つで下限の側、ノイズは箱が最大で上限の側です。");
         AddTimeGrid(
             "型",
@@ -1432,66 +1424,19 @@ internal static class Program
     }
 
     /// <summary>減色の出力の品質を「ディザ × 品質 × 寸法」の 2 軸表で出力する（低周波の一致度も続けて示す）。</summary>
+    /// <summary>減色の出力の品質（PSNR）は測りません（品質の段階が無いため。 画素の一致はテストが検証する）。</summary>
     private static void AppendReduceQuality(int number, ref int sub, int colors)
     {
-        // 品質の段階で速度が変わらないなら、選ぶ意味が無いため品質の行を畳む
-        var collapsed = IsQualityCollapsed(SectionReduce, "ReduceColors", colors, EsDitherMode.None)
-            && IsQualityCollapsed(SectionReduce, "ReduceColors", colors, EsDitherMode.FloydSteinberg);
-
-        AddHeading($"### {number}.{++sub} 出力の品質（{colors} 色）");
-        var dithers = new[] { EsDitherMode.None, EsDitherMode.FloydSteinberg };
-        var rows = new List<(string Label, EsImageQuality Quality, EsDitherMode Dither)>();
-        foreach (var dither in dithers)
-        {
-            if (collapsed)
-            {
-                // 速度差が無い場合は最も高い品質だけを示す（品質の名前も書かない）
-                rows.Add((DitherOnlyLabel(dither), EsImageQuality.High, dither));
-            }
-            else
-            {
-                foreach (var quality in s_qualities)
-                {
-                    rows.Add(($"{DitherOnlyLabel(dither)}・{quality}", quality, dither));
-                }
-            }
-        }
-
-        AddText($"**元画像を基準**とした PSNR (dB) です（大きいほど元に近い）。 行をディザ" + (collapsed ? "・列を元画像の寸法" : "と品質・列を元画像の寸法") + "とした 2 軸表を示します。 " + QualityTypeNote(SectionReduce, "ReduceColors", s_sizes[0].Label, ReduceVariant(colors, rows[0].Quality, rows[0].Dither)));
-        if (collapsed)
-        {
-            AddText($"品質の段階（Low / Mid / High）による所要の**最大と最小の比が {QualityCollapseRatio:F2} 倍以内**だったため、**品質の行を畳んでいます**（同じ所要で品質が最も高い {EsImageQuality.High} だけを示します）。");
-        }
-        else
-        {
-            AddText($"品質の段階（Low / Mid / High）による所要の**最大と最小の比が {QualityCollapseRatio:F2} 倍を超える**ため、**品質ごとに示しています**（所要は同じ条件の表を参照）。");
-        }
-
-        AddValueGrid(
-            "指定",
-            s_sizeLabels,
-            rows.Select(static r => r.Label).ToArray(),
-            [.. rows.Select(r => s_sizes.Select(s => Decibels(SectionReduce, "ReduceColors", ClassBit, s.Label, ReduceVariant(colors, r.Quality, r.Dither))).ToArray())],
-            (row, column) => Time(SectionReduce, "ReduceColors", ClassBit, s_sizes[column].Label, ReduceVariant(colors, rows[row].Quality, rows[row].Dither)));
-
-        // 1 画素ごとの差では、ディザの狙い（縞を散らすこと）が見えないため、低い周波数の一致度も示す
-        sub++;
-        var pair = new[] { EsDitherMode.None, EsDitherMode.FloydSteinberg };
-        AddHeading($"### {number}.{sub} 縞の出にくさ（{colors} 色・{EsImageQuality.Mid}）");
-        AddText($"**元画像を基準**とし、{LowFrequencyBlock}×{LowFrequencyBlock} の平均で見た PSNR (dB) です（大きいほど元のなだらかな変化に一致し、**縞が出にくい**）。 行をディザ・列を元画像の寸法とした 2 軸表を示します。 1 画素ごとの差（上の表）ではディザが不利に出ますが、**目のぼけを模したこの比べ方ではディザが有利に出ます**（ディザは差をとなりへ散らすため、平均すると打ち消し合います）。");
-        AddValueGrid(
-            "指定",
-            s_sizeLabels,
-            pair.Select(DitherOnlyLabel).ToArray(),
-            [.. pair.Select(d => s_sizes.Select(s => Decibels(SectionReduce + LowFrequencySuffix, "ReduceColors", ClassBit, s.Label, ReduceVariant(colors, EsImageQuality.Mid, d))).ToArray())],
-            (row, column) => Time(SectionReduce, "ReduceColors", ClassBit, s_sizes[column].Label, ReduceVariant(colors, EsImageQuality.Mid, pair[row])));
+        _ = number;
+        _ = sub;
+        _ = colors;
     }
 
     /// <summary>品質の段階による所要の差が小さいかどうか（最も大きい寸法で比べる）。</summary>
     private static bool IsQualityCollapsed(string section, string method, int colors, EsDitherMode dither)
     {
         var times = s_qualities
-            .Select(q => Time(section, method, ClassBit, s_sizes[0].Label, ReduceVariant(colors, q, dither)))
+            .Select(q => Time(section, method, ClassBit, s_sizes[0].Label, ReduceVariant(colors, dither)))
             .ToArray();
         if (times.Any(static t => t is null or <= 0))
         {
@@ -1807,16 +1752,16 @@ internal static class Program
         }
     }
 
-    private static string ReduceVariant(int colors, EsImageQuality quality, EsDitherMode dither)
-        => string.Create(CultureInfo.InvariantCulture, $"{colors}色 {quality} {dither}");
+    private static string ReduceVariant(int colors, EsDitherMode dither)
+        => string.Create(CultureInfo.InvariantCulture, $"{colors}色 {dither}");
 
     private static string DitherLabel(int colors, EsDitherMode dither)
         => dither == EsDitherMode.None
             ? string.Create(CultureInfo.InvariantCulture, $"{colors} 色（ディザなし）")
-            : string.Create(CultureInfo.InvariantCulture, $"{colors} 色（Floyd–Steinberg）");
+            : string.Create(CultureInfo.InvariantCulture, $"{colors} 色（誤差拡散）");
 
     private static string DitherOnlyLabel(EsDitherMode dither)
-        => dither == EsDitherMode.None ? "ディザなし" : "ディザあり（Floyd–Steinberg）";
+        => dither == EsDitherMode.None ? "ディザなし" : "ディザあり（誤差拡散）";
 
     private readonly record struct SizeCase(string Label, int Width, int Height);
 
