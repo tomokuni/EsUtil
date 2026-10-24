@@ -43,12 +43,13 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.35 `Caching.CapacityLimitedCache<TKey, TValue>`（sealed class）](#235-cachingcapacitylimitedcachetkey-tvaluesealed-class)
   - [2.36 `Svg.SvgIconSource`（sealed class） / `Svg.SvgIcon`（record struct）](#236-svgsvgiconsourcesealed-class--svgsvgiconrecord-struct)
   - [2.37 `Imaging.EsImageFileExtensions`（static class）](#237-imagingesimagefileextensionsstatic-class)
-  - [2.38 機能の窓口](#238-機能の窓口)
-  - [2.39 `Input.HotKeyParser`（static class）](#239-inputhotkeyparserstatic-class)
-  - [2.40 `Window.EsWindowPlacementMath`（static class）](#240-windoweswindowplacementmathstatic-class)
-  - [2.41 `Geometry.EsRectIntJsonConverter`（sealed class : `JsonConverter<EsRectInt>`）](#241-geometryesrectintjsonconvertersealed-class--jsonconverteresrectint)
-  - [2.42 `Native.Win.WinVirtualScreen`（static class）](#242-nativewinwinvirtualscreenstatic-class)
-  - [2.43 `Palette`（色名と色文字列）](#243-palette色名と色文字列)
+  - [2.38 `EsImageCodec`（static class）](#238-esimagecodecstatic-class)
+  - [2.39 機能の窓口](#239-機能の窓口)
+  - [2.40 `Input.HotKeyParser`（static class）](#240-inputhotkeyparserstatic-class)
+  - [2.41 `Window.EsWindowPlacementMath`（static class）](#241-windoweswindowplacementmathstatic-class)
+  - [2.42 `Geometry.EsRectIntJsonConverter`（sealed class : `JsonConverter<EsRectInt>`）](#242-geometryesrectintjsonconvertersealed-class--jsonconverteresrectint)
+  - [2.43 `Native.Win.WinVirtualScreen`（static class）](#243-nativewinwinvirtualscreenstatic-class)
+  - [2.44 `Palette`（色名と色文字列）](#244-palette色名と色文字列)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -60,7 +61,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 
 | 名前空間 | 型 | 用途 |
 | --- | --- | --- |
-| `EsUtil.Platform.Core` | `EsInput` / `EsWindow` / `EsCapture` / `EsColor` / `EsErrors` / `EsCallbacks` | 機能フォルダの窓口（利用側が `using EsUtil.Platform.Core;` だけで解釈・正規化・生成を行えるようにする。 実装は持たず機能の型へ委譲する） |
+| `EsUtil.Platform.Core` | `EsInput` / `EsWindow` / `EsCapture` / `EsColor` / `EsErrors` / `EsCallbacks` / `EsImageCodec` | 機能フォルダの窓口（利用側が `using EsUtil.Platform.Core;` だけで解釈・正規化・生成を行えるようにする。 実装は持たず機能の型へ委譲する） |
 | `.Input` | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser` | キーとホットキー（正規化・文字列の解釈を含む） |
 | `.Window` | `EsPlatformHandle` / `EsWindowState` / `EsWindowPlacementMath` | ネイティブ ハンドル・表示状態・ウィンドウ配置の規則（復元可否・はみ出しの補正・DIP ⇔ 物理ピクセル） |
 | `.Capture` | `CaptureType` | キャプチャ種別 |
@@ -660,10 +661,10 @@ public readonly record struct ElementFinderResults(
 | `ReduceColors` | `EsBitmap ReduceColors(int colorCount, EsDitherMode dither = None)` | 指定の色数へ減色する（パレット化。 **不可逆**。 ディザを選ぶ。 **Windows 専用**） |
 | `Save` | `void Save(string filePath)` / `void Save(string filePath, EsImageSaveOptions options)` | ファイルへ保存する（[2.32](#232-画像のファイル入出力save--load)） |
 
-- **同じ実装を 2 型のメンバーとして公開します（拡張メソッドにしません）**: 実装は内部の 1 か所（`EsBitmapBuffer` / `EsBitmapOperations`）に置き、公開の入口は**両方の型のメンバー**にします。 拡張メソッドにすると、**同じ操作が型の外へ 2 組並び**、型自身の能力（`Copy` / `GetPixel` / `Load` 等）と置き場所が分かれます（IntelliSense でも 1 か所にまとまりません）。 **共通の面（interface）は作りません**（復活させると、書き換え可能な画像を読み取り専用の面として**保持・後読みできる経路**ができ、兄弟にした理由（[2.33](#233-画像型の設計上の判断兄弟と借用を選んだ理由)）が崩れます）。
+- **同じ実装を 2 型のメンバーとして公開します（拡張メソッドにしません）**: 実装は内部の 1 か所（`EsBitmapBuffer` / `EsBitmapOperations` / `EsImageCodec`）に置き、公開の入口は**両方の型のメンバー**にします。 拡張メソッドにすると、**同じ操作が型の外へ 2 組並び**、型自身の能力（`Copy` / `GetPixel` / `Load` 等）と置き場所が分かれます（IntelliSense でも 1 か所にまとまりません）。 **共通の面（interface）は作りません**（復活させると、書き換え可能な画像を読み取り専用の面として**保持・後読みできる経路**ができ、兄弟にした理由（[2.33](#233-画像型の設計上の判断兄弟と借用を選んだ理由)）が崩れます）。
   - **代償**: 宣言が型ごとに必要です（**実装は 1 つのまま**）。 それぞれの型の `Crop` / `Resize` / `ReduceColors` / `Save` は内部の実装へ転送するだけであり、規則の記述（備考）は読み取り専用側（`EsReadOnlyBitmap`）が単一所有します。
 - **減色は WIC が単一所有します**: パレットの生成（`IWICPalette::InitializeFromBitmap` の中央値分割）と画素の割り当て（`IWICFormatConverter` の 8bpp インデックスへの変換）を WIC が行い、**本ライブラリは減色の計算を持ちません**（保存の `ColorCount` と同じパレットを使うため。 2 か所に書くと、同じ色数でも保存経路によって画素が変わります）。 比較の記録は §2.32 を参照してください。
-- **減色の所要には上限があります（正味 500 ms の安全網）**: `EsImageQuality.High` の詰め直し（反復）は、**減色の計算を始めてから 500 ms** を過ぎたら行いません（採用済みのパレットで止めるため、結果は常に有効で色数も指定どおりです）。 **中断できないのは数え上げ・中央値分割・参照表の作成だけ**であり（中断すると色数が指定どおりになりません）、この部分は**元画像の画素数に比例して伸びます**。 上限は**8K・遅い環境・収束しにくい画像**のための安全網であり、通常の大きさの画像では達しません（所要の実測値は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します）。 **縮小には時間の上限を設けていません**（反復も収束も無い 1 回の走査であり、途中で打ち切ると画像の一部が書かれないまま返るため。 費用は寸法から予測できます）。
+- **減色の所要は元画像の画素数に比例します**: パレットの生成（中央値分割）と画素の割り当ては WIC が行い、**途中で打ち切る入口はありません**（打ち切ると色数が指定どおりになりません）。 所要の実測値は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します。 **縮小にも時間の上限を設けていません**（反復も収束も無い 1 回の走査であり、途中で打ち切ると画像の一部が書かれないまま返るため。 費用は寸法から予測できます）。
 - **書き換え可能な画像を渡しても凍結しません**: 画素を読むだけの操作であるためです（`Save` / `Crop` / `Resize` / `ReduceColors` の後も書き続けられます）。 0 コピーで安定した内容を渡したい場合は、書き終えた時点で `SetReadOnly` を呼びます。
 - **戻り値は書き換え可能な画像**です（生成した側が所有し、破棄します）。 読み取り専用で足りる場合は `Copy`（複製）または `ToPixmap`（0 コピーのビュー）を使います。
 - **切り出しは 2 通りあります**: 画像の外側を含み**透明で埋めたい**場合は `Crop`（複製）、**内側だけ**を複製せずに読みたい場合は `ToPixmap`（0 コピーのビュー）です。
@@ -703,7 +704,7 @@ public readonly record struct ElementFinderResults(
 
 ### 2.32 画像のファイル入出力（`Save` / `Load`）
 
-コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー（`Load` は静的・`Save` はインスタンス。 2 型が同じ名前を持ちます）**であり、WIC（`windowscodecs.dll` の COM）を呼ぶ実装は `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicImageCodec.cs` の `internal` クラスが単一所有します（入口は内部の `EsBitmapBuffer.LoadFromFile` / `SaveToFile`）。 **Windows 専用**です。
+コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー（`Load` は静的・`Save` はインスタンス。 2 型が同じ名前を持ちます）**であり、画像型は画素と寸法を渡して **`EsImageCodec`**（§2.38）へ委譲します。 WIC（`windowscodecs.dll` の COM）を呼ぶ実装は `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicImageCodec.cs` の `internal` クラスが単一所有します。 **Windows 専用**です。
 
 | 型 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- | --- |
@@ -728,8 +729,8 @@ public readonly record struct ElementFinderResults(
 
 - **`Load` は具体型の静的メソッドに置きます**: 戻したい型（読み取り専用 / 書き換え可能）を**呼び出し側が名指す**必要があるためです（静的メソッドは戻り値の型を共変にできないため、`EsReadOnlyBitmap.Load` と `EsBitmap.Load` の 2 つが要ります）。 書き換えが要る場合は `EsBitmap.Load` を使ってください（`EsReadOnlyBitmap.Load` の結果を `EsBitmap.FromReadOnlyBitmap` で複製すると、2 回目の複製が無駄になります）。 つまりファイル入出力の見え方は「**読むときは型を名指す（`Load`）／書くときはどちらの型でも同じ（`Save`）**」です。
 - **`Save` は再び画像型のメンバーになりました**: いったん拡張メソッドへ移しましたが、その理由（読み取り専用の面を実装する外部の画像からもキャストせずに呼べること）は**面（interface）の廃止で消えました**。 いまは実装を内部の 1 か所（`EsBitmapBuffer.SaveToFile`）に置き、公開の入口を両方の型のメンバーにしています（`Load` と同じ型にファイル入出力が並びます）。
-- **`Crop` / `Resize` / `ReduceColors` も同じ形にしました**: 実装は内部の 1 か所（`EsBitmapOperations`）に置き、公開の入口は両方の型のメンバーです（規則と理由は §2.31）。 これにより型の外に並ぶ操作は無くなり、`Copy` / `ToPixmap` と同じ「型自身の能力」として読めます。
-- **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・WIC の呼び出し・状態値の例外化は 1 か所（「`WinWicImageCodec`」）が単一所有し、公開面（`Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
+- **`Crop` / `Resize` / `ReduceColors` も同じ形にしました**: 実装は内部の 1 か所（寸法の判断と入口は `EsImageCodec`、縮小の計算は `EsBitmapOperations`、減色は WIC）に置き、公開の入口は両方の型のメンバーです（規則と理由は §2.31）。 これにより型の外に並ぶ操作は無くなり、`Copy` / `ToPixmap` と同じ「型自身の能力」として読めます。
+- **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・WIC の呼び出し・状態値の例外化は 1 か所（「`WinWicImageCodec`」）が単一所有し、公開面（`EsImageCodec` と画像型の `Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
 - **実装の入出力は画像型を知りません**: 符号化は受け取ったピクセル バイト列を書き（`EncodeToFile`）、復号は**画像の生成処理を受け取ってデコード結果をその領域へ直接書きます**（`DecodeFromFile<T>`）。 コーデックが画像型（`EsBitmap` 等）を名指ししないため、画像型が要るのは公開面だけになります。 **中間バッファも追加のコピーも作りません**（デコード結果を画像の領域へそのまま書きます。 中間バッファを挟む方式に対して**読み込みで有利**であり、保存は両方式とも同じです）。
 - **形式は既定では拡張子が決めます**: `Save` は拡張子から形式を選びます（形式の一覧は `SupportedFileExtensions` と同じく OS から作ります）。 大文字・小文字は区別しません。
 - **形式を明示する入口を持ちます（拡張子の補完を含む）**: `EsImageSaveOptions.Format` を指定すると形式が優先されます。 指定しなかった場合は従来どおり拡張子が形式を決めます（**既存の呼び出しの挙動は変わりません**）。
@@ -798,7 +799,7 @@ public readonly record struct ElementFinderResults(
       **NetVips** は pngquant と同じ libimagequant を積みますが**ネイティブが LGPL** です。
   - **減色を既定にしない理由**: 減色は**不可逆**であり、既定の `Save` の「見た目を変えずに書き出す」期待と衝突します。
     また効果は形式と内容に強く依存します（写真風の画像ほど小さくなります）。 明示した場合だけ行います。
-- **エンコード・デコードは WIC（`windowscodecs.dll` の COM）を直接呼びます**（宣言は CsWin32 が `wincodec.h` から生成します（`EsUtil/Platform.Core/src/NativeMethods.txt`）。 呼び出しの補助（生成・解放・画素の入出力）は `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFactory.cs`、形式の一覧は `WinWicFormats.cs`、符号化・復号は `WinWicImageCodec.cs` が単一所有します）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
+- **エンコード・デコードは WIC（`windowscodecs.dll` の COM）を直接呼びます**（宣言は CsWin32 が `wincodec.h` から生成します（`EsUtil/Platform.Core/src/NativeMethods.txt`）。 呼び出しの補助（生成・解放・画素の入出力）は `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFactory.cs`、形式の一覧は `WinWicFormats.cs`、符号化・復号は `WinWicImageCodec.cs` が単一所有し、入口は `EsImageCodec.cs` です）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
 - **本機能は Windows 専用です**: WIC は Windows にのみ存在します。 公開メンバー（`Save` / `Load` / `SupportedFileExtensions`）は `SupportedOSPlatform("windows")` で限定します。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、`EsUtil/Platform.Core/src/Native` だけが Windows に依存します）。
 - **COM の宣言は CsWin32 が生成します（vtable を手で並べません）**: 生成された型は vtable を**関数ポインターの表**として持つため、**メソッドの位置を数え間違えません**（実測: 手書きの宣言は位置がずれて `0xC0000005` で落ちました）。 生成には `allowMarshaling: false`（`EsUtil/Platform.Core/src/NativeMethods.json`）が必要です（既定のモードでは COM インターフェイスが**マネージド クラス**として生成され、ポインターで扱えません）。 この設定では `string` を受け取る補助が消えるため、`PCWSTR` / `Span<char>` を使います。
 - **COM の初期化は `WinWicFactory` が単一所有します**（プロセスで 1 回だけ `CoInitializeEx` を呼び、`CLSID_WICImagingFactory` を都度生成します）。 **`RPC_E_CHANGED_MODE`（`0x80010106`）は成功として扱います**（既に別のモデルで初期化済みのプロセスでも動くことを実測で確認しました）。 **プロセス全体に及ぶ副作用はありません**（スレッドは増えず、解放されない参照カウントも取りません）。
@@ -925,7 +926,33 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 | `All` | 先頭のドットを含む拡張子の集合（`.png` / `.jpg` / `.jpeg` / `.bmp` / `.gif` / `.tiff` / `.tif` / `.webp` / `.jxr` / `.wdp` / `.heic` / `.heif` / `.jxl`） |
 | `IsImageFile(string path)` | 拡張子だけを見て判定する（大文字・小文字を区別しない） |
 
-### 2.38 機能の窓口
+### 2.38 `EsImageCodec`（static class）
+
+画像の**符号化・復号と形式の窓口**です（Windows の WIC を汎用に扱います）。 **画像型に依存しません**: 画素は `ReadOnlySpan<byte>`（BGRA8888・アルファ乗算済み）+ 寸法 + 行幅で受け渡すため、`EsBitmap` を作らずに他の UI のビットマップ（`Avalonia.Media.Imaging.WriteableBitmap` など）の画素をそのまま渡せます。 画像型（`EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap`）の `Save` / `Load` / `Resize` / `ReduceColors` / `SupportedFileExtensions` も**本クラスへ委譲**します（同じ実装を 2 つ持たない）。
+
+| メンバー | 内容 | WIC を使う |
+| --- | --- | --- |
+| `SaveExtensions` | 実行環境で書き出せる形式の拡張子（小文字・先頭のドットを含む）。 保存先の選択肢にそのまま使える | はい |
+| `ListableExtensions` / `IsImageFile(string)` | 一覧に並べる拡張子（保存できない形式も含む。 判定は `Imaging.EsImageFileExtensions`） | いいえ |
+| `TryParseFormat(string?, out EsImageFileFormat)` | 拡張子または形式の名前の解釈（解釈できなかった場合は `Png`） | いいえ |
+| `GetExtension(EsImageFileFormat)` / `GetDisplayName(EsImageFileFormat)` | 形式の代表の拡張子（`.jpg`）と表示名（`JPEG XR`） | いいえ |
+| `GetResizedSize(EsSizeInt, int)` | 縦横比を保ち長辺を上限へ揃えた寸法（切り捨て丸め・拡大は `NotSupportedException`） | いいえ |
+| `Decode(string, int)` / `Decode(ReadOnlySpan<byte>, int)` | 復号して密な画素と寸法を返す（`maxSize` で長辺を上限へ縮小する） | はい |
+| `Decode(string, int, Span<byte>)` / `Decode(ReadOnlySpan<byte>, int, Span<byte>)` | 呼び出し側の領域へ直接書く（画素を複製しない） | はい |
+| `ReadSize(string, int)` / `ReadSize(ReadOnlySpan<byte>, int)` | 画素を読まずに寸法だけを返す（確保の前に使う） | はい |
+| `Save(ReadOnlySpan<byte>, EsSizeInt, [int stride,] string, EsImageSaveOptions)` | ファイルへ保存する（拡張子が形式を決める） | はい |
+| `Resize(ReadOnlySpan<byte>, EsSizeInt, int, int, EsImageQuality)` | 縮小した画素と寸法を返す（拡大は未サポート） | いいえ |
+| `ReduceColors(ReadOnlySpan<byte>, EsSizeInt, int, int, EsDitherMode)` | 指定の色数へ減色した画素を返す（保存と同じパレット） | はい |
+
+- **画素の形式は 1 つに固定します**（BGRA8888・アルファ乗算済み・行は上が先頭・行幅は `幅 × 4` 以上）: 形式を引数にすると、呼び出し側が変換の有無を毎回判断することになり、取り違えが起きるためです。
+- **画素を複製しません**: 復号は呼び出し側が確保した領域へ直接書きます（寸法は `ReadSize` で先に求めます。 確保を含む `Decode` も確保は 1 回だけです）。 行幅が密でない画素を `Save` へ渡した場合だけ、WIC のエンコーダーへ渡す前に 1 回複製します。
+- **静止画だけを扱います**（アニメーション GIF の各フレーム・メタデータの書き込み・色空間の変換は対象外）。
+- **静的クラスである理由**: 保持する状態が無く（WIC のファクトリは呼び出しごとに生成して解放します）、4 つの UI 版へ DI を持ち込まないためです。
+- **生データの型を作りません**（`EsPixels` のような型を公開しない）: 画素の受け渡しは `ReadOnlySpan<byte>` と寸法・行幅で足り、型を増やすと画像型との変換が増えるためです。
+- **Windows App SDK のクラスを写していません**（`SoftwareBitmap` / `BitmapDecoder` / `BitmapEncoder`）: あちらは WinRT の型を返すため、WIC の結果を WinRT へ包む層が要ります（本ライブラリは 4 UI 共通の基盤であり、WinRT と Avalonia / MewUI のどちらにも依存できません）。
+- **形式の一覧は実行環境から作ります**: `SaveExtensions` は OS のエンコーダーを列挙し、実際に試し書きできた形式だけを返します（コーデック拡張が入っていない環境では `.heic` / `.jxl` が現れません）。
+
+### 2.39 機能の窓口
 
 ルート名前空間（`EsUtil.Platform.Core`）が持つ**窓口**です。 実装は持たず、機能フォルダの型へ委譲します（判断の所有者は型の側だけです）。 利用側は `using EsUtil.Platform.Core;` だけでこれらの操作を使えます。
 
@@ -936,12 +963,13 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 | `EsCapture` | `TryParseType(string, out CaptureType)` | `Capture.CaptureType` / `Common.EnumCanonical` |
 | `EsErrors` | `IsRecoverable(Exception)` | `Common.BoundaryCatch` |
 | `EsCallbacks` | `Create<T>()` | `Common.CallbackList<T>` |
+| `EsImageCodec` | `SaveExtensions` / `Decode` / `Save` / `Resize` / `ReduceColors` / `GetExtension` ほか（詳細は §2.38） | `Native.Win.Wic.WinWicImageCodec` / `Imaging.EsImageFileFormatExtensions` / `Imaging.EsBitmapOperations` |
 
 `TryParse*` は**数値文字列を受理しません**（列挙に無い値を弾く。 判断は `EnumCanonical` が単一所有し、失敗時は `out` を `default` に戻します）。 型そのものを名指しする利用側は、その機能の名前空間を `using` します。
 
 **窓口は「操作の入口」である**（型そのものではなく、解釈・正規化・生成を行う）。 境界の包括捕捉は `EsErrors.IsRecoverable`、ホットキーの解釈と生成は `EsInput`、購読の一覧は `EsCallbacks` を使います（実測 2026-10-23: 4 UI の設定画面と全境界の 76 箇所が窓口経由になった）。
 
-### 2.39 `Input.HotKeyParser`（static class）
+### 2.40 `Input.HotKeyParser`（static class）
 
 ホットキーの文字列表現（例: `"Ctrl + Shift + Q"`）を解釈します。 設定画面の入力解釈を 4 つの UI 版が共有します。
 
@@ -951,7 +979,7 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 
 修飾キーの名前は `Ctrl` / `Control` / `Shift` / `Alt` / `Win` / `Windows` です。 未知の修飾キーは無視され、修飾キーが 1 つも残らなければ失敗します。
 
-### 2.40 `Window.EsWindowPlacementMath`（static class）
+### 2.41 `Window.EsWindowPlacementMath`（static class）
 
 ウィンドウの位置・サイズの規則と DIP ⇔ 画面物理ピクセルの換算（**純粋計算**。 OS を呼びません）。 4 つの UI 版と設定の単位（画面物理ピクセル）を単一所有します。
 
@@ -963,15 +991,15 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 
 **復元しない 3 つの場合**: 幅・高さが 0 以下（壊れた設定）／表示領域との重なりが 64 ピクセル未満（画面外で起動して操作できない）／保存値が最小化（見えないまま起動する）。 仮想スクリーンの照会は `Native.Win.WinVirtualScreen` が担います（本型は OS を呼びません）。
 
-### 2.41 `Geometry.EsRectIntJsonConverter`（sealed class : `JsonConverter<EsRectInt>`）
+### 2.42 `Geometry.EsRectIntJsonConverter`（sealed class : `JsonConverter<EsRectInt>`）
 
 `EsRectInt` の JSON の保存形式（`X` / `Y` / `Width` / `Height` のみ）を単一所有します。 `EsRectInt` は読み取り専用プロパティを持つため既定のシリアライザーでは往復できません。 未知のプロパティは無視し、欠落したプロパティは 0 として読みます（**既存の設定ファイルをそのまま読める**）。 `System.Text.Json` は共有フレームワークに含まれるため外部パッケージは増えません。
 
-### 2.42 `Native.Win.WinVirtualScreen`（static class）
+### 2.43 `Native.Win.WinVirtualScreen`（static class）
 
 全モニターを包含する仮想スクリーンの矩形（画面物理ピクセル）を `GetSystemMetrics` で照会します。 `DisplayArea.FindAll()` を使わないのは、ウィンドウの表示前に列挙すると WinRT の射影で起動できないためです（実測 2026-10-17）。 プライマリ モニタが原点にない場合は負値を返します（仮想スクリーンの座標そのもの）。
 
-### 2.43 `Palette`（色名と色文字列）
+### 2.44 `Palette`（色名と色文字列）
 
 色を選ばせるコントロール（`EsUtil.Ui.*.ColorComboBox`）と設定ファイルが共有する、**色名の表**と**色文字列の解釈**です。
 

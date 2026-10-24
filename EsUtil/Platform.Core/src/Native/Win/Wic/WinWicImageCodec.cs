@@ -109,16 +109,34 @@ internal static unsafe class WinWicImageCodec
     /// <b>透過を保てない形式がある</b>（JPEG / BMP / HEIF など。 透過を保つ場合は PNG / TIFF / JPEG XR を選ぶ）。
     /// </remarks>
     internal static void EncodeToFile(ReadOnlySpan<byte> pixels, int width, int height, string filePath, EsImageSaveOptions options)
+        => EncodeToFile(pixels, width, height, width * EsReadOnlyBitmap.BytesPerPixel, filePath, options);
+
+    /// <summary>ピクセル データをファイルへエンコードする（行幅を指定できる）。</summary>
+    /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数（<c>幅 × 4</c> 以上）。</param>
+    /// <param name="filePath">保存先のファイルパス（拡張子が形式を決める）。</param>
+    /// <param name="options">保存のオプション。</param>
+    /// <remarks>
+    /// <b>行幅が密でない場合は 1 回だけ複製します</b>（WIC のエンコーダーへは密な並びで渡すため）。
+    /// </remarks>
+    internal static void EncodeToFile(
+        ReadOnlySpan<byte> pixels, int width, int height, int stride, string filePath, EsImageSaveOptions options)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
-        var stride = width * EsReadOnlyBitmap.BytesPerPixel;
         var expected = (long)stride * height;
-        if (pixels.Length != expected)
+        if (pixels.Length < expected)
         {
             throw new ArgumentException(
-                $"ピクセル データの長さが寸法と一致しません（{width}x{height} は {expected} バイト。 実際は {pixels.Length} バイト）。",
+                $"ピクセル データの長さが寸法と一致しません（{width}x{height}・行幅 {stride} は {expected} バイト。 実際は {pixels.Length} バイト）。",
                 nameof(pixels));
+        }
+
+        if (stride != width * EsReadOnlyBitmap.BytesPerPixel)
+        {
+            pixels = PackRows(pixels, width, height, stride);
         }
 
         var (format, targetPath) = ResolveTarget(filePath, options);
@@ -313,6 +331,24 @@ internal static unsafe class WinWicImageCodec
     /// <summary>試し書きに使うパレットを作る。</summary>
     /// <returns>パレット（BGRA の 2 色）。</returns>
     private static uint[] CreateProbePalette() => [0xFF000000, 0xFFFFFFFF];
+
+    /// <summary>行幅が密でない画素を、密な並びへ複製する。</summary>
+    /// <param name="pixels">元の画素（行の余白を含む）。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="stride">元の行幅（バイト）。</param>
+    /// <returns>密な並びの画素。</returns>
+    private static byte[] PackRows(ReadOnlySpan<byte> pixels, int width, int height, int stride)
+    {
+        var rowBytes = width * EsReadOnlyBitmap.BytesPerPixel;
+        var packed = new byte[rowBytes * height];
+        for (var y = 0; y < height; y++)
+        {
+            pixels.Slice(y * stride, rowBytes).CopyTo(packed.AsSpan(y * rowBytes, rowBytes));
+        }
+
+        return packed;
+    }
 
     /// <summary>減色したピクセルを 8bpp のインデックス カラーとしてファイルへ書き出す。</summary>
     /// <param name="pixels">エンコードするピクセル データ（BGRA8888・アルファ乗算済み）。 借用であり書き換えない。</param>
@@ -903,18 +939,7 @@ internal static unsafe class WinWicImageCodec
     /// <c>.jpg</c> など）、<b>OS の並びは保証されない</b>。 補完に使う名前は本ライブラリが固定する
     /// （そうしないと、環境によって <c>shot</c> から作られる名前が変わる）。
     /// </remarks>
-    private static string ExtensionOf(EsImageFileFormat format) => format switch
-    {
-        EsImageFileFormat.Bmp => ".bmp",
-        EsImageFileFormat.Png => ".png",
-        EsImageFileFormat.Jpeg => ".jpg",
-        EsImageFileFormat.Gif => ".gif",
-        EsImageFileFormat.Tiff => ".tif",
-        EsImageFileFormat.JpegXr => ".jxr",
-        EsImageFileFormat.Heif => ".heic",
-        EsImageFileFormat.JpegXl => ".jxl",
-        var other => throw new ArgumentOutOfRangeException(nameof(format), other, "定義されていない画像形式です。"),
-    };
+    private static string ExtensionOf(EsImageFileFormat format) => format.ToExtension();
 
     /// <summary>形式が指定された拡張子を持つかを調べる。</summary>
     /// <param name="format">形式。</param>
@@ -1085,18 +1110,30 @@ internal static unsafe class WinWicImageCodec
     internal static T DecodeFromFile<T>(string filePath, int maxSize, Func<int, int, Action<Span<byte>>, T> create)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        return DecodeFromFile(ReadAllBytes(filePath), maxSize, create);
+    }
 
+    /// <summary>ファイルの内容をデコードし、生成された値を返す。</summary>
+    /// <typeparam name="T">生成する値の型。</typeparam>
+    /// <param name="fileBytes">ファイルの内容（借用であり書き換えない）。</param>
+    /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法。</param>
+    /// <param name="create">寸法と充填処理を受け取る処理。</param>
+    /// <returns>生成した値。</returns>
+    /// <exception cref="ArgumentException">画像として解釈できない場合。</exception>
+    internal static T DecodeFromFile<T>(
+        ReadOnlySpan<byte> fileBytes, int maxSize, Func<int, int, Action<Span<byte>>, T> create)
+    {
         var factory = OpenFactory();
         try
         {
             // メモリ ストリームから読む理由: WIC にファイルを開かせると解放まで掴んだままになる
-            var stream = WinWicFactory.CreateMemoryStream(ReadAllBytes(filePath));
+            var stream = WinWicFactory.CreateMemoryStream(fileBytes);
             try
             {
-                var decoder = CreateDecoder(factory, stream, filePath);
+                var decoder = CreateDecoder(factory, stream);
                 try
                 {
-                    var frame = CreateFrame(decoder, filePath);
+                    var frame = CreateFrame(decoder);
                     try
                     {
                         // 回転（EXIF の向き）→ 縮小 → 画素形式の変換の順に挟む（拡大はしない）
@@ -1165,10 +1202,9 @@ internal static unsafe class WinWicImageCodec
     /// <summary>ストリームからデコーダーを作る。</summary>
     /// <param name="factory">イメージング ファクトリ。</param>
     /// <param name="stream">内容を持つストリーム。</param>
-    /// <param name="filePath">読み込むファイルのパス（例外メッセージ用）。</param>
     /// <returns>生成したデコーダー（呼び出し側が <c>Release()</c> を呼ぶ）。</returns>
     /// <exception cref="ArgumentException">画像として解釈できない場合。</exception>
-    private static IWICBitmapDecoder* CreateDecoder(IWICImagingFactory* factory, IStream* stream, string filePath)
+    private static IWICBitmapDecoder* CreateDecoder(IWICImagingFactory* factory, IStream* stream)
     {
         try
         {
@@ -1178,16 +1214,15 @@ internal static unsafe class WinWicImageCodec
         catch (COMException ex)
         {
             // 「画像として解釈できない」へ翻訳する（WIC はファイル不在と同じ状態値を返すため区別しない）
-            throw new ArgumentException($"'{filePath}' を画像として読み込めませんでした。", nameof(filePath), ex);
+            throw new ArgumentException("画像として読み込めませんでした（形式が未対応か、ファイルが壊れています）。", ex);
         }
     }
 
     /// <summary>デコーダーから最初のフレームを取り出す。</summary>
     /// <param name="decoder">デコーダー。</param>
-    /// <param name="filePath">読み込むファイルのパス（例外メッセージ用）。</param>
     /// <returns>生成したフレーム（呼び出し側が <c>Release()</c> を呼ぶ）。</returns>
     /// <exception cref="ArgumentException">フレームを取り出せない場合。</exception>
-    private static IWICBitmapFrameDecode* CreateFrame(IWICBitmapDecoder* decoder, string filePath)
+    private static IWICBitmapFrameDecode* CreateFrame(IWICBitmapDecoder* decoder)
     {
         try
         {
@@ -1198,7 +1233,7 @@ internal static unsafe class WinWicImageCodec
         catch (COMException ex)
         {
             // 「画像を取得できない」へ翻訳する（デコードできない形式や壊れたフレーム）
-            throw new ArgumentException($"'{filePath}' の画像を取得できませんでした。", nameof(filePath), ex);
+            throw new ArgumentException("画像を取得できませんでした（フレームが壊れています）。", ex);
         }
     }
 
@@ -1211,7 +1246,7 @@ internal static unsafe class WinWicImageCodec
     /// <b>解放までファイルを掴んだまま</b>になる（実測: 削除が共有違反で失敗した）。
     /// <see cref="File"/> で読めば開いた直後に閉じるため、読み込み中でも削除も上書きもできる。
     /// </remarks>
-    private static byte[] ReadAllBytes(string filePath)
+    internal static byte[] ReadAllBytes(string filePath)
     {
         try
         {

@@ -519,7 +519,7 @@ public class EsBitmapOperationsTests
 
         using var expected = EsReadOnlyBitmap.FromPixelCopy(400, 300, dense);
         using var fromDense = expected.Resize(320, quality);
-        using var fromPadded = EsBitmapOperations.Resize(padded, 400, 300, stride, 320, quality);
+        using var fromPadded = EsBitmapOperations.CreateScaled(padded, 400, 300, stride, 320, quality);
 
         Assert.Equal(fromDense.ReadOnlyPixels.ToArray(), fromPadded.ReadOnlyPixels.ToArray());
     }

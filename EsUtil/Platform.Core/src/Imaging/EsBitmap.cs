@@ -1,6 +1,5 @@
 using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Native.Win.Wic;
 using Color = System.Drawing.Color;
 
 namespace EsUtil.Platform.Core.Imaging;
@@ -87,7 +86,7 @@ public sealed class EsBitmap : IDisposable
     /// <summary>保存に使える拡張子（値は <see cref="EsReadOnlyBitmap.SupportedFileExtensions"/> と同一）。</summary>
     /// <remarks>読み取り専用の画像からも保存できるため、基底と同じ値を本型でも公開する（どちらの権利の画像でも同じ一覧を使う）。</remarks>
     [SupportedOSPlatform("windows10.0.17763")]
-    public static IReadOnlyList<string> SupportedFileExtensions => WinWicImageCodec.SupportedExtensions;
+    public static IReadOnlyList<string> SupportedFileExtensions => EsImageCodec.SaveExtensions;
 
     /// <summary>ファイルを読み込んで書き換え可能な画像を生成する。</summary>
     /// <param name="filePath">読み込むファイルのパス（形式は内容から判別される）。 null 不可。</param>
@@ -485,7 +484,7 @@ public sealed class EsBitmap : IDisposable
     public EsBitmap Resize(int maxSize, EsImageQuality quality = EsImageQuality.Mid)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.Resize(ReadOnlyPixels, Width, Height, Stride, maxSize, quality);
+        return EsBitmapOperations.CreateScaled(ReadOnlyPixels, Width, Height, Stride, maxSize, quality);
     }
 
     /// <summary>本画像を指定の色数へ減色する（読み取り専用の画像と同じ手順）。</summary>
@@ -504,7 +503,7 @@ public sealed class EsBitmap : IDisposable
     public EsBitmap ReduceColors(int colorCount, EsDitherMode dither = EsDitherMode.None)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.ReduceColors(ReadOnlyPixels, Width, Height, Stride, colorCount, dither);
+        return EsBitmapOperations.CreateReduced(ReadOnlyPixels, Width, Height, Stride, colorCount, dither);
     }
 
     /// <summary>本画像の一部を指す<b>0 コピーの読み取りビュー</b>を生成する（切り出しの複製を避ける）。</summary>

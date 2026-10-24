@@ -159,7 +159,7 @@ public sealed class EsPixmap : IDisposable
     public EsBitmap Resize(int maxSize, EsImageQuality quality = EsImageQuality.Mid)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.Resize(ReadOnlyPixels, Width, Height, Stride, maxSize, quality);
+        return EsBitmapOperations.CreateScaled(ReadOnlyPixels, Width, Height, Stride, maxSize, quality);
     }
 
     /// <summary>本ビューを指定の色数へ減色した画像を生成する（<b>切り出しの実体化を挟まない</b>）。</summary>
@@ -181,7 +181,7 @@ public sealed class EsPixmap : IDisposable
     public EsBitmap ReduceColors(int colorCount, EsDitherMode dither = EsDitherMode.None)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.ReduceColors(ReadOnlyPixels, Width, Height, Stride, colorCount, dither);
+        return EsBitmapOperations.CreateReduced(ReadOnlyPixels, Width, Height, Stride, colorCount, dither);
     }
 
     /// <summary>本ビューの一部を指す別のビューを生成する（さらに 0 コピーで切り出す）。</summary>
