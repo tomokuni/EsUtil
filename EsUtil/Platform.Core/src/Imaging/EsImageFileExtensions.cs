@@ -12,9 +12,15 @@ namespace EsUtil.Platform.Core.Imaging;
 public static class EsImageFileExtensions
 {
     /// <summary>一覧に含める画像ファイルの拡張子（先頭のドットを含む）。</summary>
+    /// <remarks>
+    /// <b>拡張子の判定は OS のデコーダーの有無に依らない</b>（一覧に並べる判断と、読み書きできるかの判断は別である）。
+    /// <c>.webp</c> や <c>.heic</c> は、コーデック拡張が入っていない環境では読み込みに失敗するが、
+    /// <b>一覧には並べる</b>（ユーザーが「画像が 1 枚も無い」と誤解しないため）。
+    /// </remarks>
     private static readonly HashSet<string> s_all = new(StringComparer.OrdinalIgnoreCase)
     {
         ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".tif", ".webp",
+        ".jxr", ".wdp", ".heic", ".heif", ".jxl",
     };
 
     /// <summary>一覧に含める画像ファイルの拡張子を取得する。</summary>

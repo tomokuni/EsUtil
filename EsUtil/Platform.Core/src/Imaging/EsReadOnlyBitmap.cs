@@ -75,10 +75,19 @@ public sealed class EsReadOnlyBitmap : IDisposable
     public ReadOnlySpan<byte> ReadOnlyPixels => _buffer.ReadOnlyPixels;
 
     /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
-    /// <value><c>.bmp</c> / <c>.png</c> / <c>.jpg</c> / <c>.jpeg</c> / <c>.gif</c> / <c>.tif</c> / <c>.tiff</c>。</value>
+    /// <value>
+    /// <c>.bmp</c> / <c>.png</c> / <c>.jpg</c> / <c>.jpeg</c> / <c>.gif</c> / <c>.tif</c> / <c>.tiff</c> /
+    /// <c>.jxr</c> / <c>.wdp</c>（Windows 標準）。 これに加えて、OS にコーデック拡張が入っている環境では
+    /// <c>.heic</c> / <c>.heif</c> / <c>.jxl</c> が含まれる。
+    /// </value>
     /// <remarks>
     /// <b>Windows 専用の値</b>（実装は WIC（Windows Imaging Component）のエンコーダーであり、<see cref="Save(string)"/> と同じ制約）。
-    /// 形式の判定（拡張子 → エンコーダー）の単一所有は本一覧である。 <see cref="EsBitmap"/> も同じ値を公開する。
+    /// 形式の判定（拡張子 → エンコーダー）の単一所有は本一覧である。 <see cref="EsBitmap"/> も同じ値を公開する。<br/>
+    /// <b>実行環境で書き出せる形式だけを含む</b>: コーデック拡張を要する形式は、入っていない環境では一覧から外れる
+    /// （初回のアクセスで WIC のエンコーダーを調べる）。 そのため<b>一覧をそのまま選択肢にできる</b>
+    /// （一覧の拡張子で保存すれば <see cref="Save(string)"/> は成功する）。<br/>
+    /// <b>形式ごとの制約</b>: JPEG / BMP / HEIF は透過（アルファ）を保存できない。 品質（JPEG の圧縮率）を
+    /// 指定できるのは JPEG と JPEG XR、減色（パレット）を使えるのは BMP / PNG / GIF である。
     /// </remarks>
     [SupportedOSPlatform("windows10.0.17763")]
     public static IReadOnlyList<string> SupportedFileExtensions => WinWicImageCodec.SupportedExtensions;

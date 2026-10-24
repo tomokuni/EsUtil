@@ -10,7 +10,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <list type="table">
 /// <item>
 ///   <term>JPEG の品質が変わる</term>
-///   <description><see cref="JpegQuality"/>（値によってファイル サイズが大きく変わる）。</description>
+///   <description><see cref="JpegQuality"/>（値によってファイル サイズが大きく変わる。 JPEG と JPEG XR で使える）。</description>
 /// </item>
 /// <item>
 ///   <term>減色で色数・画質・見た目が変わる</term>
@@ -52,10 +52,11 @@ public readonly record struct EsImageSaveOptions
     /// </remarks>
     public bool IgnoreFormatMismatch { get; init; }
 
-    /// <summary>JPEG の品質（0〜100。 大きいほど高画質・大サイズ）。</summary>
+    /// <summary>JPEG と JPEG XR の品質（0〜100。 大きいほど高画質・大サイズ）。</summary>
     /// <value>null（既定）の場合はエンコーダーの既定の品質を使う。 0〜100 の範囲外は例外になる（上限へ丸めない）。</value>
     /// <remarks>
-    /// <b>JPEG（<c>.jpg</c> / <c>.jpeg</c>）だけが使える</b>（他の拡張子へ設定すると例外になる）。<br/>
+    /// <b>JPEG（<c>.jpg</c> / <c>.jpeg</c>）と JPEG XR（<c>.jxr</c> / <c>.wdp</c>）だけが使える</b>
+    /// （他の形式へ設定すると例外になる）。 両者は同じ WIC のプロパティ（<c>ImageQuality</c>）を使うため値の意味も同じである。<br/>
     /// <b>値はファイル サイズへ直に効く</b>: 同じ画像でも品質によってファイル サイズが大きく変わる
     /// （低いほど小さい）。<br/>
     /// <b>画素の変化が乏しい画像では効果がない</b>（どの品質でも同じように圧縮されるため）。

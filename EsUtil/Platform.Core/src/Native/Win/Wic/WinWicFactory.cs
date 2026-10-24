@@ -36,6 +36,14 @@ internal static unsafe class WinWicFactory
     /// <summary>32bpp の BGRA（アルファ乗算済み）。</summary>
     internal static readonly Guid PixelFormat32bppPBgra = new("6FDDC324-4E03-4BFE-B185-3D77768DC910");
 
+    /// <summary>32bpp の BGR（4 バイト目は詰め物。 アルファを持てない形式向け）。</summary>
+    /// <remarks>
+    /// <b>HEIF のエンコーダーが要求する形式</b>（実測: <c>SetPixelFormat</c> が 32bppPBGRA の要求を
+    /// この形式へ差し替えて返す）。 BGR の 3 バイトに 1 バイトの詰め物を足した 32 ビットであるため、
+    /// <b>画素あたり 4 バイト</b>の並びは BGRA と同じである（詰め物は書いても無視される）。
+    /// </remarks>
+    internal static readonly Guid PixelFormat32bppBgr = new("6FDDC324-4E03-4BFE-B185-3D77768DC90E");
+
     /// <summary>24bpp の BGR（アルファを持てない形式向け）。</summary>
     internal static readonly Guid PixelFormat24bppBgr = new("6FDDC324-4E03-4BFE-B185-3D77768DC90C");
 

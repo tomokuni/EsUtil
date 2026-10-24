@@ -710,15 +710,15 @@ public readonly record struct ElementFinderResults(
 | --- | --- | --- | --- |
 | `EsReadOnlyBitmap` / `EsBitmap` | `Save` | `void Save(string filePath)` | 画像をファイルへ保存する（**形式は拡張子が決める**。 2 型が同じ手順で保存する） |
 | `EsReadOnlyBitmap` / `EsBitmap` | `Save` | `void Save(string filePath, EsImageSaveOptions options)` | 保存の形式とオプションを指定して保存する（**形式の指定は拡張子より優先され、拡張子が無ければ補完する**。 下記） |
-| `EsReadOnlyBitmap` / `EsBitmap` | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（`.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`） |
+| `EsReadOnlyBitmap` / `EsBitmap` | `SupportedFileExtensions` | `static IReadOnlyList<string> SupportedFileExtensions { get; }` | 保存に使える拡張子（**実行環境で書き出せる形式だけ**。 Windows 標準は `.bmp` / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff` / `.jxr` / `.wdp`。 コーデック拡張が入っていれば `.heic` / `.heif` / `.jxl` も加わる） |
 | `EsReadOnlyBitmap` | `Load` | `static EsReadOnlyBitmap Load(string filePath)` | ファイルから**読み取り専用の**画像を読み込む（形式は内容から判別する。 所有権は呼び出し側へ移る） |
 | `EsBitmap` | `Load` | `static EsBitmap Load(string filePath)` | ファイルから**書き換え可能な**画像として読み込む（所有権は呼び出し側へ移る） |
 | `EsReadOnlyBitmap` | `Load` | `static EsReadOnlyBitmap Load(string filePath, int maxSize)` | ファイルから**読み取り専用の**画像を**長辺が `maxSize` を超えないように縮小して**読み込む（WIC のスケーラーでデコードしながら縮小する。 0 以下は元の寸法。 拡大はしない） |
-| `EsImageFileFormat` | （enum） | `Bmp` / `Png` / `Jpeg` / `Gif` / `Tiff` | 保存する形式（WIC のエンコーダーと 1 対 1。 通常は拡張子で足りるため、拡張子が無い場合と拡張子と違う形式で書きたい場合だけ使う） |
+| `EsImageFileFormat` | （enum） | `Bmp` / `Png` / `Jpeg` / `Gif` / `Tiff` / `JpegXr` / `Heif` / `JpegXl` | 保存する形式（WIC のエンコーダーと 1 対 1。 通常は拡張子で足りるため、拡張子が無い場合と拡張子と違う形式で書きたい場合だけ使う） |
 | `EsBitmap` | `Load` | `static EsBitmap Load(string filePath, int maxSize)` | ファイルから**書き換え可能な**画像として縮小して読み込む（`maxSize` の意味は読み取り専用の版と同じ） |
 | `EsImageSaveOptions` | `Format` | `EsImageFileFormat? Format { get; init; }` | 保存する形式（`null` は拡張子が決める。 指定した場合は**拡張子より優先**し、拡張子が無ければ補完する） |
 | `EsImageSaveOptions` | `IgnoreFormatMismatch` | `bool IgnoreFormatMismatch { get; init; }` | 拡張子と `Format` の食い違いを無視するか（既定 false = 例外）。 不変の `readonly record struct` であり、部分更新は `with` 式で行う |
-| `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG の品質（0〜100。 `null` は指定しない = WIC の既定） |
+| `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG と JPEG XR の品質（0〜100。 `null` は指定しない = WIC の既定） |
 | `EsImageSaveOptions` | `ColorCount` | `int? ColorCount { get; init; }` | 減色（パレット化）して残す色数（2〜256。 `null` は減色しない。 **BMP / PNG / GIF だけ**） |
 | `EsImageSaveOptions` | `ColorQuality` | `EsImageQuality? ColorQuality { get; init; }` | 減色の品質（`null` は `EsImageQuality.Mid`。 **減色する場合だけ指定できる**） |
 | `EsImageSaveOptions` | `Dither` | `EsDitherMode? Dither { get; init; }` | 減色のディザ（`null` は `EsDitherMode.None`。 **減色する場合だけ指定できる**） |
@@ -733,7 +733,7 @@ public readonly record struct ElementFinderResults(
 - **`Crop` / `Resize` / `ReduceColors` も同じ形にしました**: 実装は内部の 1 か所（`EsBitmapOperations`）に置き、公開の入口は両方の型のメンバーです（規則と理由は §2.31）。 これにより型の外に並ぶ操作は無くなり、`Copy` / `ToPixmap` と同じ「型自身の能力」として読めます。
 - **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・WIC の呼び出し・状態値の例外化は 1 か所（「`WinWicImageCodec`」）が単一所有し、公開面（`Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
 - **実装の入出力は画像型を知りません**: 符号化は受け取ったピクセル バイト列を書き（`EncodeToFile`）、復号は**画像の生成処理を受け取ってデコード結果をその領域へ直接書きます**（`DecodeFromFile<T>`）。 コーデックが画像型（`EsBitmap` 等）を名指ししないため、画像型が要るのは公開面だけになります。 **中間バッファも追加のコピーも作りません**（デコード結果を画像の領域へそのまま書きます。 中間バッファを挟む方式に対して**読み込みで有利**であり、保存は両方式とも同じです）。
-- **形式は既定では拡張子が決めます**: `Save` は拡張子から形式を選びます（`.bmp` = Windows Bitmap / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff`）。 大文字・小文字は区別しません。
+- **形式は既定では拡張子が決めます**: `Save` は拡張子から形式を選びます（`.bmp` = Windows Bitmap / `.png` / `.jpg` / `.jpeg` / `.gif` / `.tif` / `.tiff` / `.jxr` / `.wdp` = JPEG XR / `.heic` / `.heif` = HEIF / `.jxl` = JPEG XL）。 大文字・小文字は区別しません。
 - **形式を明示する入口を持ちます（拡張子の補完を含む）**: `EsImageSaveOptions.Format` を指定すると形式が優先されます。 指定しなかった場合は従来どおり拡張子が形式を決めます（**既存の呼び出しの挙動は変わりません**）。
 
   | `Format` | 拡張子 | `IgnoreFormatMismatch` | 結果 |
@@ -747,7 +747,7 @@ public readonly record struct ElementFinderResults(
   | 指定 | 未対応 | false | `NotSupportedException`（拡張子が対応形式でない場合と同じ） |
   | 指定 | 未対応 | true | 指定形式で与えられたファイル名へ保存する |
 
-  - **補完に使う拡張子は 1 つに固定します**（`.bmp` / `.png` / `.jpg` / `.gif` / `.tif`）。 別名（`.jpeg` / `.tiff`）は受け付けますが補完には使いません（同じ形式に 2 つの候補があると、呼び出し側が保存先を予測できないため）。
+  - **補完に使う拡張子は 1 つに固定します**（`.bmp` / `.png` / `.jpg` / `.gif` / `.tif` / `.jxr` / `.heic` / `.jxl`）。 別名（`.jpeg` / `.tiff` / `.wdp` / `.heif`）は受け付けますが補完には使いません（同じ形式に 2 つの候補があると、呼び出し側が保存先を予測できないため）。
   - **食い違いを既定で例外にする理由**: どちらが呼び出し側の意図か読めないためです。 例外にしないと、拡張子を直し忘れたまま別形式で保存され、**拡張子と中身が食い違ったファイルが黙ってできます**。 `IgnoreFormatMismatch` は「承知の上で食い違わせる」ことを明示する入口です。
   - **どちらの値も COM の起動より前に判定します**（拒否される呼び出しは WIC を起動しません）。
 - **未対応の拡張子は例外にします**: PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かないためです（`NotSupportedException`。 対応形式の単一所有は `EsReadOnlyBitmap.SupportedFileExtensions`）。
@@ -758,10 +758,10 @@ public readonly record struct ElementFinderResults(
   - **単色の画像では効きません**: 変化の乏しい画像はどの品質でも同じように圧縮されます。
 
   ファイル サイズと復号した画素の比較結果は [`Result_Measurement.md`](Result_Measurement.md) を参照してください。
-- **公開するオプションは JPEG の品質だけにします**: WIC の JPEG エンコーダーは `IPropertyBag2` の `ImageQuality`（0.0〜1.0 の実数）で品質を受け取ります。 公開面は 0〜100 の整数 1 つに留めます（**効果が確認できた値だけを公開する**方針。 [`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI）。
+- **公開するオプションは品質だけにします**: WIC の JPEG / JPEG XR エンコーダーは `IPropertyBag2` の `ImageQuality`（0.0〜1.0 の実数）で品質を受け取ります。 公開面は 0〜100 の整数 1 つに留めます（**効果が確認できた値だけを公開する**方針。 [`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI）。
 
 - **オプションの値は形式ごとに検証します**: 使えない形式へ設定すると `NotSupportedException`、JPEG の品質が 0〜100 の範囲外なら `ArgumentOutOfRangeException`、**減色しない保存（`ColorCount` が `null` かつ GIF 以外）へ `ColorQuality` / `Dither` を設定すると `InvalidOperationException`** です（黙って無視すると「設定したのに効かない」ことに気付かないため。 また上限へ丸めると、呼び出し側が指定した値と実際の出力が食い違います）。 検証は **COM の起動より前**に行うため、拒否された呼び出しは WIC を起動しません。
-- **WebP / HEIF / JPEG XL / RAW / DDS を対応形式へ入れない理由**: WIC にはこれらを扱うコーデックも登録されていますが（環境によっては**コーデック拡張（Store アプリ）で提供**され、拡張の無い環境では列挙から消えます）、**本ライブラリが検証したのは BMP / PNG / JPEG / GIF / TIFF の 5 形式だけ**です。 未検証の形式を対応形式へ入れると「拡張子は受け付けるが、環境によっては保存できない」入口になります（[`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI）。
+- **コーデック拡張を要する形式は実行環境で判定します**: WebP / RAW / DDS は対応形式へ入れません（WebP はコーデック拡張が Store 提供で、拡張の無い環境では列挙から消えるうえ**本ライブラリでは検証していない**ため。 RAW は形式ごとに拡張が分かれ、DDS は画像の保存先として用がないため）。 **HEIF と JPEG XL は実測で書き出しを確認して対応形式へ入れました**が、どちらもコーデック拡張が要るため、`SupportedFileExtensions` は**実際にエンコーダーがある拡張子だけを返します**（初回のアクセスで `CreateEncoder` を試し、結果を保持する）。 これにより「拡張子は受け付けるが、環境によっては保存できない」入口を作りません。
 - **減色（パレット化）を指定できます**: `EsImageSaveOptions.ColorCount` を指定すると、保存の前に
   `EsReadOnlyBitmap.ReduceColors`（`ReduceColors(int, EsImageQuality, EsDitherMode)`。 両方の型が同じ名前のメンバーを持ちます）と同じ計算で減色し、**8bpp のインデックス カラー（パレット付き）として**書きます。 **`ColorQuality` と `Dither` はこの計算へそのまま渡します**（段階の意味は `EsImageQuality` / `EsDitherMode` の備考が単一所有します。 減色しない保存へ指定すると `InvalidOperationException` です）。
 
@@ -806,12 +806,13 @@ public readonly record struct ElementFinderResults(
 - **初期化を前倒しする公開 API は持ちません**: 初期化は `WinWicFactory`（`internal`）が単一所有するため、ホストからは呼べません。 初期化のコストは最初の `Save` / `Load` が負担します。
 - **`[ComImport]` を使いません（Native AOT のため）**: `[ComImport]` と `Marshal.GetObjectForIUnknown` の組み合わせは Native AOT で `NotSupportedException`（`COM Interop requires ComWrapper instance registered for marshalling.`）になります（実測）。 そのため **`[GeneratedComInterface]`（ソース生成）で呼びます**（AOT でも生成・呼び出し・画素の取得・保存まで動作することを実測済み）。 **`[LibraryImport]` の `out` にも同じ型を取れる**ため、COM の生成（`CoCreateInstance` / `CreateStreamOnHGlobal`）でも生ポインターを扱いません（`ComInterfaceMarshaller` が `ComWrappers` ベースで変換する。 AOT で動作することを実測）。 **メソッドの宣言順が vtable の位置（0〜2 は `IUnknown`）になる**ため、使わないメソッドも位置を合わせて宣言し、**推測して飛ばしません**（`IWICBitmapDecoder::GetFrame` は 13、`IWICBitmapFrameEncode::SetPixelFormat` は 6 など）。 **GUID は `wincodec.h` の `MIDL_INTERFACE` と一致させます**（1 文字でも違うと `InvalidCastException` になり原因が分かりにくい。 実測）。
 - **COM の解放は GC に任せ、COM にファイル ハンドルを持たせません（実測）**: Native AOT では `Marshal.ReleaseComObject` / `Marshal.FinalReleaseComObject` が `NotSupportedException`（`COM Interop is not supported on this platform.`）になります。 `[GeneratedComInterface]` が生成するラッパーはファイナライズで参照を 1 つ戻すため、**GC に任せれば解放されます**（二重解放にならないことを実測）。 そのため **WIC にファイルを開かせません**（`IWICStream::InitializeFromFilename` を使うと解放までファイルが開いたままになり、保存直後の削除が `IOException` になった）。 読み書きは**メモリ ストリーム**（`CreateStreamOnHGlobal`）で行い、ファイルは `System.IO.File` が開いて閉じます（直後から削除も上書きもできることを実測）。
-- **エンコーダーのキャッシュは一時ファイル方式を使います（実測）**: `WICBitmapEncoderNoCache` を `IWICStream::InitializeFromFilename` のストリームへ渡すと `WINCODEC_ERR_UNSUPPORTEDOPERATION`（`0x88982F81`）で初期化に失敗します。 `WICBitmapEncoderCacheTempFile` は BMP / PNG / JPEG / GIF / TIFF のすべてで成功しました。
+- **エンコーダーのキャッシュは一時ファイル方式を使います（実測）**: `WICBitmapEncoderNoCache` を `IWICStream::InitializeFromFilename` のストリームへ渡すと `WINCODEC_ERR_UNSUPPORTEDOPERATION`（`0x88982F81`）で初期化に失敗します。 `WICBitmapEncoderCacheTempFile` は BMP / PNG / JPEG / GIF / TIFF / JPEG XR / HEIF のすべてで成功しました。
 - **エンコーダーが返した画素形式に合わせて並びを直します（実測）**: アルファ乗算済みの BGRA（`GUID_WICPixelFormat32bppPBGRA`）を要求しても、PNG / TIFF はアルファ乗算なしの BGRA、JPEG は 24bpp の BGR を返します（BMP だけが要求どおり）。 エンコーダーは形式を変換しないため、**返された形式に合わせてから書きます**（BMP はコピーを作りません）。
-- **形式ごとのコンテナ GUID は実測値を持ちます**: `IWICImagingFactory::CreateComponentEnumerator` で、この環境に登録されているデコーダーとエンコーダーを列挙して確かめました（BMP / PNG / JPEG / GIF / TIFF の 5 形式。 既定の 5 形式は `wincodec.h` の `GUID_ContainerFormat*` と一致します）。 **公表値を写して 1 文字でも取り違えると `WINCODEC_ERR_COMPONENTNOTFOUND`（`0x88982F50`）になり、原因が分かりにくい**ためです。
+- **形式ごとのコンテナ GUID は実測値を持ちます**: `IWICImagingFactory::CreateComponentEnumerator` で、この環境に登録されているデコーダーとエンコーダーを列挙して確かめました（BMP / PNG / JPEG / GIF / TIFF / JPEG XR / HEIF / JPEG XL の 8 形式。 既定の 5 形式は `wincodec.h` の `GUID_ContainerFormat*` と一致し、**JPEG XR の GUID は公表値を写すと誤る**（実測で `57A37CAA-367A-4540-916B-F183C5093A4B`）。 **公表値を写して 1 文字でも取り違えると `WINCODEC_ERR_COMPONENTNOTFOUND`（`0x88982F50`）になり、原因が分かりにくい**ためです。
 - **本機能はプロセス全体に及ぶ副作用を持ちません**: GDI+ の `GdiplusStartup` が起こしていた「バックグラウンド スレッド +1」「解放されない参照カウント」「初回の遅延」は **WIC では起きません**。 判断の記録は [`SPEC_System.md`](SPEC_System.md) §7.1 を参照してください。
 - **Native AOT（実測）**: 本機能は `LibraryImport` と `[GeneratedComInterface]`（ソース生成）だけを使うため、**Native AOT でも動作します**（実行時マーシャリングを使いません）。
-- **WebP / HEIF / JPEG XL / RAW / DDS を対応形式へ入れない理由**: WIC にはこれらを扱うコーデックも登録されていますが（環境によっては**コーデック拡張（Store アプリ）で提供**され、拡張の無い環境では列挙から消えます）、**本ライブラリが検証したのは 5 形式だけ**です。 未検証の形式を対応形式へ入れると「拡張子は受け付けるが、環境によっては保存できない」入口になります（[`.github/コーディング規約.md`](../../../.github/コーディング規約.md) の YAGNI）。
+- **HEIF は 8x8 未満の画像を書けません（実測）**: 8x8 以上は往復できますが、8x7 / 8x6 / 4x4 は保存自体は成功するものの**読み戻すと `0x80070057`** になります（HEVC の最小の符号化単位）。 読めないファイルを作らないため、保存の前に `NotSupportedException` にします。
+- **JPEG XR と HEIF のピクセル形式は実測で決めています**: JPEG XR は `32bppPBGRA` をそのまま受け付けます（往復の誤差は非可逆の範囲。 可逆の指定は公開していません）。 HEIF のエンコーダーは `32bppBGR`（アルファ無し）を要求するため、**透過は失われます**（`32bppPBGRA` を要求すると `SetPixelFormat` が `32bppBGR` を返す）。 どちらも `IWICFormatConverter` を使わず、返された形式に合わせて並びを直してから書きます（変換器の源を作る `CreateBitmapFromMemory` が Native AOT で使えないため。 後述）。
 
 - **速度**: 本ライブラリは WIC だけを使います（読み込み・保存の所要は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します）。
 
@@ -822,7 +823,7 @@ public readonly record struct ElementFinderResults(
   - **GIF は 2 値の透過**しか持てません（完全透明は残り、半透明は不透明になります）。 PNG は 8 ビットのアルファを保ちます。
   - 形式ごとの圧縮効率・パレット生成の差は画像の内容と API 側の実装に依存するため、**数値は画像によって変わります**。
 
-- **制限**: JPEG / BMP はアルファ （透明度）を保存できません（形式の仕様。 透過を保つ場合は PNG を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする）。 小さく表示するだけの用途は **`Load(string, int)`** を使う（WIC のスケーラーでデコードしながら縮小するため、原寸のバッファを確保しない）。 `Resize` は原寸でデコードしてから縮小するため、原寸のバッファが一時的に必要になる。
+- **制限**: JPEG / BMP / HEIF はアルファ（透明度）を保存できません（形式の仕様、またはエンコーダーがアルファ無しの画素形式を要求するため。 透過を保つ場合は PNG / TIFF / JPEG XR を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする）。 小さく表示するだけの用途は **`Load(string, int)`** を使う（WIC のスケーラーでデコードしながら縮小するため、原寸のバッファを確保しない）。 `Resize` は原寸でデコードしてから縮小するため、原寸のバッファが一時的に必要になる。
 - **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（WIC はどちらも同じ状態値を返すため区別しません）。 エンコード・デコードの失敗は `Win32Exception`（WIC の HRESULT を保持）で通知します。
 
 ### 2.33 画像型の設計上の判断（兄弟と借用を選んだ理由）
@@ -922,7 +923,7 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 
 | メンバー | 内容 |
 | --- | --- |
-| `All` | 先頭のドットを含む拡張子の集合（`.png` / `.jpg` / `.jpeg` / `.bmp` / `.gif` / `.tiff` / `.tif` / `.webp`） |
+| `All` | 先頭のドットを含む拡張子の集合（`.png` / `.jpg` / `.jpeg` / `.bmp` / `.gif` / `.tiff` / `.tif` / `.webp` / `.jxr` / `.wdp` / `.heic` / `.heif` / `.jxl`） |
 | `IsImageFile(string path)` | 拡張子だけを見て判定する（大文字・小文字を区別しない） |
 
 ### 2.38 機能の窓口

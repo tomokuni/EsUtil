@@ -15,6 +15,8 @@
   - `EsInput` / `EsWindow` / `EsCapture` / `EsErrors` / `EsCallbacks`（機能の窓口）。
   - `Input.HotKeyParser`（ホットキー文字列の解釈）/ `Window.EsWindowPlacementMath`（ウィンドウ配置の規則）/ `Geometry.EsRectIntJsonConverter`（設定ファイルの保存形式）/ `Native.Win.WinVirtualScreen`。
   - `DpiScaler.ToPoint` / `DpiScaler.ResolveClientScale` / `EsSizeInt.ToSizeText` / `DrawingColorExtensions.TryParseHexText` / `EsInput.NoHotKey`。
+  - **画像の保存形式を 5 から 8 へ拡張**しました（`EsImageFileFormat.JpegXr` / `Heif` / `JpegXl`）。 JPEG XR（`.jxr` / `.wdp`）は Windows 標準で常に使え、品質指定（`EsImageSaveOptions.JpegQuality`）も効きます。 HEIF（`.heic` / `.heif`）と JPEG XL（`.jxl`）はコーデック拡張が必要で、`EsReadOnlyBitmap.SupportedFileExtensions` は**実際にエンコーダーがある拡張子だけ**を返します（実行環境で判定し、結果を保持）。
+  - `EsImageFileExtensions.All` に `.jxr` / `.wdp` / `.heic` / `.heif` / `.jxl` を追加（一覧に並べる判断は、読み書きできるかの判断と別であるため）。
 - `CONTRIBUTING.md` / `CHANGELOG.md` / `.github/workflows/build.yml`（公開に向けた整備）。
 
 ### 変更（破壊的）

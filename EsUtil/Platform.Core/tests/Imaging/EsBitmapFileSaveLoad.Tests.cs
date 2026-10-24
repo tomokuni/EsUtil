@@ -26,6 +26,8 @@ public class EsBitmapFileSaveLoadTests
     [InlineData(".jpg")]
     [InlineData(".gif")]
     [InlineData(".tiff")]
+    [InlineData(".jxr")]
+    [InlineData(".wdp")]
     internal void Save_拡張子に応じた形式で保存しLoadで読み戻せる(string extension)
     {
         using var source = EsBitmap.Create(6, 4, System.Drawing.Color.FromArgb(255, 10, 20, 30));
@@ -64,6 +66,51 @@ public class EsBitmapFileSaveLoadTests
         {
             if (File.Exists(path)) { File.Delete(path); }
         }
+    }
+
+    [Fact]
+    internal void SupportedFileExtensions_一覧の拡張子はすべて保存できる()
+    {
+        // 一覧は「実行環境で書き出せる形式」だけを持つ（保存を試して例外にならないことを保証する）
+        var extensions = EsReadOnlyBitmap.SupportedFileExtensions;
+        Assert.Equal(extensions, EsBitmap.SupportedFileExtensions);
+
+        // Windows 標準の形式はコーデック拡張の有無に依らず必ず含まれる
+        foreach (var required in new[] { ".bmp", ".png", ".jpg", ".gif", ".tif", ".jxr" })
+        {
+            Assert.Contains(required, extensions);
+        }
+
+        // 16x16 にするのは、HEIF が 8x8 未満を書けないため（コアが NotSupportedException にする）
+        using var source = CreateReadOnly(16, 16, System.Drawing.Color.FromArgb(255, 10, 20, 30));
+        foreach (var extension in extensions)
+        {
+            var path = TempPath(extension);
+            try
+            {
+                source.Save(path);
+
+                Assert.True(File.Exists(path), $"{extension} へ保存されていない");
+
+                // 書き出したファイルは読み戻せる（読めないファイルを作らない）
+                using var loaded = EsReadOnlyBitmap.Load(path);
+                Assert.Equal(16, loaded.Width);
+                Assert.Equal(16, loaded.Height);
+            }
+            finally
+            {
+                if (File.Exists(path)) { File.Delete(path); }
+            }
+        }
+    }
+
+    [Fact]
+    internal void Save_HEIFは8x8未満の画像を書けない()
+    {
+        // HEIF（HEVC）の最小の符号化単位が 8x8 であるため、保存の前に断る（読めないファイルを作らない）
+        using var source = CreateReadOnly(8, 6);
+
+        Assert.Throws<NotSupportedException>(() => source.Save(TempPath(".heic")));
     }
 
     [Fact]
@@ -352,6 +399,12 @@ public class EsBitmapFileSaveLoadTests
         if (header[0] == 0x42 && header[1] == 0x4D)
         {
             return EsImageFileFormat.Bmp;
+        }
+
+        // JPEG XR（.jxr / .wdp）は先頭に 0x49 0x49 0xBC 0x01 を持つ（TIFF の判定より先に見る）
+        if (header[0] == 0x49 && header[1] == 0x49 && header[2] == 0xBC && header[3] == 0x01)
+        {
+            return EsImageFileFormat.JpegXr;
         }
 
         if ((header[0] == 0x49 && header[1] == 0x49) || (header[0] == 0x4D && header[1] == 0x4D))
