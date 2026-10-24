@@ -77,7 +77,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
     /// <value><c>.bmp</c> / <c>.png</c> / <c>.jpg</c> / <c>.jpeg</c> / <c>.gif</c> / <c>.tif</c> / <c>.tiff</c>。</value>
     /// <remarks>
-    /// <b>Windows 専用の値</b>（実装は GDI+ のエンコーダーであり、<see cref="Save(string)"/> と同じ制約）。
+    /// <b>Windows 専用の値</b>（実装は WIC（Windows Imaging Component）のエンコーダーであり、<see cref="Save(string)"/> と同じ制約）。
     /// 形式の判定（拡張子 → エンコーダー）の単一所有は本一覧である。 <see cref="EsBitmap"/> も同じ値を公開する。
     /// </remarks>
     [SupportedOSPlatform("windows10.0.17763")]
@@ -459,7 +459,17 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// 本ライブラリはファイル サイズを下げる目的で減色するため、明示された場合だけ行います。<br/>
     /// <b>外部ライブラリを使わない理由</b>: 256 色 PNG の保存では本実装の方が速く、ファイルは写真では
     /// 外部ライブラリの方が小さくなります（減色の品質は pngquant が最も高いが、実行ファイルの同梱と
-    /// 1 枚あたりの待ち時間を要します）。
+    /// 1 枚あたりの待ち時間を要します）。<br/>
+    /// <b>WIC で行わない理由（実測 2026-10-24・1920x1080・256 色）</b>: WIC にも減色の部品はあり
+    /// （<c>IWICPalette.InitializeFromBitmap</c> の中央値分割と、<c>IWICFormatConverter</c> の
+    /// <c>WICBitmapDitherType.ErrorDiffusion</c> によるインデックス化）、<b>パレット生成と割り当ては 2〜3 倍速い</b>
+    /// （写真風 8 ms / 画面キャプチャ風 5 ms。 本実装は 22 ms / 10 ms）。 しかし
+    /// <b>ディザ無しの画素誤差は本実装の方が小さい</b>（PSNR 33.5 dB 対 30.5 dB / 53.3 dB 対 28.6 dB）。
+    /// WIC の誤差拡散を使うと局所平均の差は小さくなる（8x8 平均差 0.7 対 2.0）が、画素ごとの誤差は
+    /// 本実装より大きい（PSNR 28.8 dB 対 27.1 dB は同等、平坦な画像では 53.8 dB 対 43.6 dB で WIC が上）。
+    /// <b>本実装を既定にしている理由</b>は、WIC が Windows 専用であること（本計算は UI 非依存で
+    /// 他 OS でも動く）、COM を必要とせず単体テストで検証できること、品質（ディザ無し）が上であることです。
+    /// 速度が要る場面では WIC の経路を足す余地があります。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または <paramref name="quality"/> / <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
@@ -498,12 +508,12 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <b>画素を読むだけの操作です</b>: 書き換えの権利も実体の指定も要らないため、書き換え可能な画像（<see cref="EsBitmap"/>）も
     /// 同じ名前のメンバーを持ちます。 実装は内部の画素バッファ（<see cref="EsBitmapBuffer"/>）が単一所有します
     /// （<b>ピクセルは複製しません</b>。 一時バッファを確保しません）。<br/>
-    /// <b>Windows 専用</b>: OS の GDI+ を呼ぶため <see cref="SupportedOSPlatformAttribute"/> で限定します。
+    /// <b>Windows 専用</b>: OS の WIC（Windows Imaging Component）を呼ぶため <see cref="SupportedOSPlatformAttribute"/> で限定します。
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（WIC）が失敗した場合。</exception>
     [SupportedOSPlatform("windows10.0.17763")]
     public void Save(string filePath) => _buffer.SaveToFile(filePath);
 
@@ -519,14 +529,14 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// （<see cref="EsImageSaveOptions.JpegQuality"/>）と減色（<see cref="EsImageSaveOptions.ColorCount"/>）だけであり、
     /// 他の形式へ設定すると例外になります（理由は <see cref="EsImageSaveOptions"/> を参照）。<br/>
     /// <b>オプションを省略した場合との違い</b>: 本オーバーロードは明示された値だけをエンコーダーへ渡すため、
-    /// 既定値は GDI+ の既定と一致しません。
+    /// 既定値はエンコーダーの既定と一致しません。
     /// 調整しない場合は <see cref="Save(string)"/> を使います。
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、または <paramref name="filePath"/> の拡張子と <see cref="EsImageSaveOptions.Format"/> が食い違い <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> が false の場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）、または <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（WIC）が失敗した場合。</exception>
     [SupportedOSPlatform("windows10.0.17763")]
     public void Save(string filePath, EsImageSaveOptions options) => _buffer.SaveToFile(filePath, options);
 

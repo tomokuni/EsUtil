@@ -5,7 +5,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <b>形式は既定では拡張子が決める</b>: どの形式で保存するかは保存先の拡張子が決める（<see cref="Format"/> を指定すると
 /// 拡張子より優先される）。 本型は<b>その形式の中で調整できる値</b>だけを持ち、設定した項目が選ばれた形式で使えない場合は
 /// <see cref="EsReadOnlyBitmap.Save(string, EsImageSaveOptions)"/> が例外にする（黙って無視しない）。<br/>
-/// <b>出力を変える項目と変えない項目</b>: GDI+ のエンコーダーが実際に出力を変える値は限られる。
+/// <b>出力を変える項目と変えない項目</b>: WIC のエンコーダーが実際に出力を変える値は限られる。
 ///
 /// <list type="table">
 /// <item>
@@ -14,18 +14,18 @@ namespace EsUtil.Platform.Core.Imaging;
 /// </item>
 /// <item>
 ///   <term>減色で色数・画質・見た目が変わる</term>
-///   <description><see cref="ColorCount"/>（実装は自前であり GDI+ のパラメーターではない。
+///   <description><see cref="ColorCount"/>（実装は自前であり WIC のパラメーターではない。
 ///   8bpp のインデックス カラーとして書くため BMP / PNG / GIF で効く）、および<b>減色が行われる場合だけ</b>効く
 ///   <see cref="ColorQuality"/> と <see cref="Dither"/>。</description>
 /// </item>
 /// <item>
 ///   <term>値を変えても出力が完全に同一</term>
 ///   <description>BMP の色深度（8 / 16 / 24 / 32）と圧縮、PNG の圧縮レベル、GIF の走査方式（インターレース）と版。
-///   GDI+ は値を受け取って<b>無視する</b>。 載せると「設定したのに効かない」ことになる。</description>
+///   WIC は対応する画素形式を受け取らないため、本ライブラリは値をエンコーダーへ渡さない。 載せると「設定したのに効かない」ことになる。</description>
 /// </item>
 /// </list>
 ///
-/// <b>既定（<c>default</c>）は GDI+ の既定と一致させない</b>: 明示した値だけをエンコーダーへ渡すため、
+/// <b>既定（<c>default</c>）はエンコーダーの既定と一致させない</b>: 明示した値だけをエンコーダーへ渡すため、
 /// 省略した場合と結果が変わる。
 /// 調整しない場合は <see cref="EsReadOnlyBitmap.Save(string)"/>（オプションを渡さない版）を使う。
 /// </remarks>
@@ -53,7 +53,7 @@ public readonly record struct EsImageSaveOptions
     public bool IgnoreFormatMismatch { get; init; }
 
     /// <summary>JPEG の品質（0〜100。 大きいほど高画質・大サイズ）。</summary>
-    /// <value>null（既定）の場合は GDI+ の既定の品質を使う。 0〜100 の範囲外は例外になる（上限へ丸めない）。</value>
+    /// <value>null（既定）の場合はエンコーダーの既定の品質を使う。 0〜100 の範囲外は例外になる（上限へ丸めない）。</value>
     /// <remarks>
     /// <b>JPEG（<c>.jpg</c> / <c>.jpeg</c>）だけが使える</b>（他の拡張子へ設定すると例外になる）。<br/>
     /// <b>値はファイル サイズへ直に効く</b>: 同じ画像でも品質によってファイル サイズが大きく変わる
@@ -67,7 +67,7 @@ public readonly record struct EsImageSaveOptions
     /// <remarks>
     /// <b>不可逆である</b>: 元の画素は戻らない（ファイル サイズを下げる代わりに色を失う）。
     /// 減色の結果は <see cref="EsReadOnlyBitmap.ReduceColors(int, EsImageQuality, EsDitherMode)"/> と同じ計算である（同じ色数・品質・ディザを指定すれば同じ絵になる）。<br/><br/>
-    /// <b>指定しなくても GIF は常に量子化される</b>（GIF はパレットが必須であり、GDI+ のエンコーダーは
+    /// <b>指定しなくても GIF は常に量子化される</b>（GIF はパレットが必須であり、WIC のエンコーダーは
     /// 透明色の番号をどの画素にも使わせないため、32bpp のまま渡すと透過が失われる）。<br/>
     /// <b>使えるのは BMP / PNG / GIF だけである</b>（これらの形式はパレットを持てるため、
     /// 8bpp のインデックス カラーとして書く）。 <b>JPEG と TIFF へ設定すると例外になる</b>
@@ -76,13 +76,13 @@ public readonly record struct EsImageSaveOptions
     /// <see cref="EsReadOnlyBitmap.Load(string)"/> で読み戻せ、BMP は画素が完全に一致する）。
     /// BMP は無圧縮であるため画素あたりのバイト数がそのまま効き（4 バイトから 1 バイトになる）、
     /// PNG と GIF は同じ色の繰り返しが増えるため圧縮が効く。<br/>
-    /// <b>BMP の RLE 圧縮は併用できない</b>（GDI+ の BMP エンコーダーは圧縮の指定を無視するため、
+    /// <b>BMP の RLE 圧縮は併用できない</b>（WIC の BMP エンコーダーは圧縮の指定を受け取らないため、
     /// 減色しても無圧縮のままである。 圧縮も欲しい場合は PNG を選ぶこと）。<br/>
     /// <b>透過は形式ごとに扱いが違う</b>: 減色はアルファも色の一部として扱う（4 段階に量子化する）。
     /// <b>PNG はパレットのアルファ（<c>tRNS</c>）を書くため透過がそのまま残り</b>、 <b>GIF は完全透明だけが残る</b>
     /// （1 ビットの透過しか持てないため、半透明は不透明になる）。 <b>BMP はアルファを持てない</b>（パレットのアルファも無視される）。
     /// <b>半透明は 4 段階へ量子化され、RGBA を平均するため元の値とわずかに違う</b>（透明と不透明は完全に一致する）。<br/>
-    /// <b>GIF は本値を指定しなくても常に量子化される</b>（GIF はパレットが必須であり、GDI+ の GIF エンコーダーは
+    /// <b>GIF は本値を指定しなくても常に量子化される</b>（GIF はパレットが必須であり、WIC の GIF エンコーダーは
     /// 透明色の番号をどの画素にも使わせないため、32bpp のまま渡すと透過が失われる。
     /// 自前の量子化にすると透過が保たれ、ファイルも小さく画質も良くなる）。
     /// </remarks>

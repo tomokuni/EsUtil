@@ -133,7 +133,7 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <b>0 埋めを省く</b>: 生成の直後にデコード結果で全領域を書くため、未初期化で確保する。<br/>
     /// <b>中間バッファを作らない</b>: デコードは確保した画素領域へ直接書く（中間バッファを挟むと、
     /// その確保と複製の分だけ余分に費用がかかる）。<br/>
-    /// <b>Windows 専用</b>（デコードの実装は GDI+ であり、<see cref="WinWicImageCodec"/> が単一所有する）。
+    /// <b>Windows 専用</b>（デコードの実装は WIC であり、<see cref="WinWicImageCodec"/> が単一所有する）。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、
@@ -371,12 +371,12 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <remarks>
     /// <b>画素は複製しない</b>: <see cref="ReadOnlyPixels"/> のビューをそのままエンコードへ渡す（一時バッファを確保しない）。<br/>
     /// 形式の決め方と使える値は <see cref="SaveToFile(string, EsImageSaveOptions)"/> を参照。<br/>
-    /// <b>Windows 専用</b>（エンコードの実装は GDI+ であり、<see cref="WinWicImageCodec"/> が単一所有する）。
+    /// <b>Windows 専用</b>（エンコードの実装は WIC であり、<see cref="WinWicImageCodec"/> が単一所有する）。
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="EsReadOnlyBitmap.SupportedFileExtensions"/>）。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（WIC）が失敗した場合。</exception>
     [SupportedOSPlatform("windows10.0.17763")]
     internal void SaveToFile(string filePath) => SaveToFile(filePath, default);
 
@@ -394,7 +394,7 @@ internal sealed class EsBitmapBuffer : IDisposable
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合、または <paramref name="options"/> に
     /// その形式で使えない項目が設定されている場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（WIC）が失敗した場合。</exception>
     [SupportedOSPlatform("windows10.0.17763")]
     internal void SaveToFile(string filePath, EsImageSaveOptions options)
     {

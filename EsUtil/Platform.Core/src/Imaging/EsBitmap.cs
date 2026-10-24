@@ -532,7 +532,7 @@ public sealed class EsBitmap : IDisposable
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（WIC）が失敗した場合。</exception>
     [SupportedOSPlatform("windows10.0.17763")]
     public void Save(string filePath) => _buffer.SaveToFile(filePath);
 
@@ -547,7 +547,7 @@ public sealed class EsBitmap : IDisposable
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）、または <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（GDI+）が失敗した場合。</exception>
+    /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（WIC）が失敗した場合。</exception>
     [SupportedOSPlatform("windows10.0.17763")]
     public void Save(string filePath, EsImageSaveOptions options) => _buffer.SaveToFile(filePath, options);
 

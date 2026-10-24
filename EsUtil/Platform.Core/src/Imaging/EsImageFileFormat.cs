@@ -8,7 +8,7 @@ namespace EsUtil.Platform.Core.Imaging;
 /// <b>拡張子との対応</b>: 各値は 1 つの拡張子を持つ（<c>.bmp</c> / <c>.png</c> / <c>.jpg</c> / <c>.gif</c> / <c>.tif</c>）。
 /// 別名（<c>.jpeg</c> / <c>.tiff</c>）も受け付けるが、<b>補完に使うのは別名ではない方</b>である
 /// （保存先の一覧は <see cref="EsReadOnlyBitmap.SupportedFileExtensions"/>）。<br/>
-/// <b>GDI+ のエンコーダーと 1 対 1 に対応する</b>（5 形式。 WebP / HEIF を持たない理由は
+/// <b>WIC（Windows Imaging Component）のエンコーダーと 1 対 1 に対応する</b>（5 形式）。 WIC は環境によってはさらに多くの形式（JPEG XR / DDS / HEIF / JPEG XL）を扱えるが、**本ライブラリが検証したのはこの 5 形式だけ**であるため公開しない（理由は
 /// <see cref="EsReadOnlyBitmap.Save(string)"/> の備考を参照）。
 /// </remarks>
 public enum EsImageFileFormat
