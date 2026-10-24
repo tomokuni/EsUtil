@@ -84,6 +84,9 @@ public sealed partial class ColorComboBoxControl : Grid
     /// <summary>入力と状態の往復でイベントが循環するのを防ぐ。</summary>
     private bool _applying;
 
+    /// <summary>入力欄の左余白（スウォッチの分）を足し終えたかどうか。</summary>
+    private bool _textPaddingApplied;
+
     /// <summary>内部ロガー。</summary>
     private ILogger _log = NullLogger.Instance;
 
@@ -124,8 +127,15 @@ public sealed partial class ColorComboBoxControl : Grid
         // 上下の余白はテーマの既定値を使う（0 にすると文字が上端へ寄る。 既定値はスタイル適用後でないと読めないため Loaded で行う）
         _text.Loaded += (_, _) =>
         {
+            // Loaded は再配置でも再度発火するため、余白の加算は 1 回だけ行う（重ねて足さない）
+            if (_textPaddingApplied)
+            {
+                return;
+            }
+
+            _textPaddingApplied = true;
             var padding = _text.Padding;
-            _text.Padding = new Thickness(padding.Left + SwatchSize + SwatchGap, padding.Top, padding.Right, padding.Bottom);
+            _text.Padding = new Thickness(padding.Left + (SwatchGap * 2) + SwatchSize, padding.Top, padding.Right, padding.Bottom);
         };
 
         // スウォッチは入力欄の内側へ重ねる（同じセルに置き、入力欄の背面に敷く）

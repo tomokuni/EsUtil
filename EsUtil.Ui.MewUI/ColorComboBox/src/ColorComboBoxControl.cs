@@ -30,6 +30,9 @@ public sealed class ColorComboBoxControl : Grid
     /// <summary>カラーピッカーのポップアップの幅（DIP）。</summary>
     private const double PickerPopupWidth = 320.0;
 
+    /// <summary>カラーピッカーのポップアップの高さ（DIP）。</summary>
+    private const double PickerPopupHeight = 300.0;
+
     /// <summary>テキスト入力の最小幅（DIP）。</summary>
     private const double TextBoxMinWidth = 120.0;
 
@@ -117,8 +120,9 @@ public sealed class ColorComboBoxControl : Grid
         var pickerButtons = new StackPanel().Horizontal().Spacing(8);
         pickerButtons.Children(ok, cancel);
 
-        // ポップアップは内容の実寸で大きさが決まるため、幅を明示する（未指定だと極端に小さくなる）
+        // ポップアップは内容の実寸で大きさが決まるため、幅と高さを明示する（未指定だと極端に小さくなる）
         _picker.Width = PickerPopupWidth;
+        _picker.Height = PickerPopupHeight;
         var pickerBody = new StackPanel().Vertical().Spacing(8).Width(PickerPopupWidth);
         pickerBody.Children(_picker, pickerButtons);
         _pickerPopup = new Popup();
@@ -128,7 +132,7 @@ public sealed class ColorComboBoxControl : Grid
         // スウォッチは入力欄の内側へ重ねる（同じセルに置き、文字が重ならないよう左を空ける）
         _swatch.HorizontalAlignment = HorizontalAlignment.Left;
         _swatch.Margin = new Thickness(SwatchGap, 0, 0, 0);
-        _text.Padding = new Thickness(SwatchSize + SwatchGap, 0, 0, 0);
+        _text.Padding = new Thickness((SwatchGap * 2) + SwatchSize, 0, 0, 0);
         var textArea = new Grid();
         textArea.Add(_text);
         textArea.Add(_swatch);

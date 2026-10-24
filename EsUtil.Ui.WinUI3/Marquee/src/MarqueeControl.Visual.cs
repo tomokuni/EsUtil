@@ -52,6 +52,10 @@ public sealed partial class MarqueeControl
         {
             var plan = CurrentFrame(new EsSize(ActualWidth, ActualHeight));
 
+            // 層は自コントロールの全域を占める（Canvas の子は自分の希望サイズで配置されるため、明示する）
+            _visual.Width = ActualWidth;
+            _visual.Height = ActualHeight;
+
             // 層の順序と描画内容は MarqueeVisualLayer が計画に従って写す
             _visual.Apply(plan);
 

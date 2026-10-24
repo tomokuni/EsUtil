@@ -16,16 +16,16 @@
             <Setter Property="BorderBrush" Value="Red"/>
         </Style>
     </UserControl.Styles>
-    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="0">
-        <!-- ComboBox はデフォルトテーマを維持 -->
-        <Grid>
+    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto" VerticalAlignment="Top" ColumnSpacing="0">
+        <!-- ComboBox はデフォルトテーマを維持（行は Auto。 伸ばすとスウォッチだけが下へずれる） -->
+        <Grid RowDefinitions="Auto" VerticalAlignment="Top">
             <ComboBox x:Name="_comboBox"
                       Text="{Binding SelectedColor, ElementName=PART_Root, Converter={StaticResource ColorDisplayConverter}, UpdateSourceTrigger=PropertyChanged}"
                       IsEditable="True"
                       MinWidth="{Binding ComboBoxMinWidth, ElementName=PART_Root}"
                       MaxWidth="{Binding ComboBoxMaxWidth, ElementName=PART_Root}"
                       Width="{Binding ComboBoxWidth, ElementName=PART_Root}"
-                      Padding="30,0,0,0"
+                      Padding="12,0,0,0"
                       HorizontalAlignment="Stretch"
                       SelectionChanged="OnSelectionChanged"
                       LostFocus="OnLostFocus"

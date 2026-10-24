@@ -147,6 +147,10 @@ public sealed partial class MarqueeControl : Canvas
         _marquee.ClientToSourceScaling = (double)GetValue(ClientToSourceScalingProperty);
         _marquee.HighlightSourceRect = (EsRect?)GetValue(HighlightSourceRectProperty);
 
+        // 描画の層を子として載せる（載せないと何も描かれない。 実測 2026-10-25:
+        // 選択枠・暗転・ハンドル・ラベルがすべて表示されなかった）
+        Children.Add(_visual);
+
         SubscribeInputEvents();
         Loaded += OnControlLoaded;
         Unloaded += OnControlUnloaded;
