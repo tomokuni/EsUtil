@@ -23,6 +23,9 @@
 | 機能（ルーペ） | [`EsUtil.Ui.MewUI.Loupe`](EsUtil.Ui.MewUI/Loupe/README.md) | MewUI 版コントロール |
 | 機能（ルーペ） | [`EsUtil.Ui.WinUI3.Loupe`](EsUtil.Ui.WinUI3/Loupe/README.md) | WinUI 3 版コントロール |
 | 機能（ルーペ） | [`EsUtil.Ui.WinForms.Loupe`](EsUtil.Ui.WinForms/Loupe/README.md) | WinForms 版コントロール |
+| 色選択 | [`EsUtil.Ui.AvaloniaUI.ColorComboBox`](EsUtil.Ui.AvaloniaUI/ColorComboBox/README.md) | Avalonia UI 版コントロール（色名・16 進・ピッカー） |
+| 色選択 | [`EsUtil.Ui.MewUI.ColorComboBox`](EsUtil.Ui.MewUI/ColorComboBox/README.md) | MewUI 版コントロール |
+| 色選択 | [`EsUtil.Ui.WinUI3.ColorComboBox`](EsUtil.Ui.WinUI3/ColorComboBox/README.md) | WinUI 3 版コントロール |
 | 機能（マーキー） | [`EsUtil.Feature.Marquee.Core`](EsUtil/Feature.Marquee.Core/README.md) | ドラッグ矩形の選択・移動・リサイズの計算層 |
 | 機能（マーキー） | [`EsUtil.Feature.Marquee.Presenter`](EsUtil/Feature.Marquee.Presenter/README.md) | 外観・描画手順 |
 | 機能（マーキー） | [`EsUtil.Ui.AvaloniaUI.Marquee`](EsUtil.Ui.AvaloniaUI/Marquee/README.md) | Avalonia UI 版コントロール |
@@ -193,6 +196,7 @@ pwsh -NoProfile -File buildScript/verify.ps1
 | [`EsUtil.Ui.MewUI.Loupe`](EsUtil.Ui.MewUI/Loupe/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Loupe) |
 | [`EsUtil.Ui.MewUI.Marquee`](EsUtil.Ui.MewUI/Marquee/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Marquee) |
 | [`EsUtil.Ui.MewUI.Thumbnail`](EsUtil.Ui.MewUI/Thumbnail/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Thumbnail) |
+| [`EsUtil.Ui.MewUI.ColorComboBox`](EsUtil.Ui.MewUI/ColorComboBox/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.ColorComboBox.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.ColorComboBox) |
 
 ### 6.4 `EsUtil.Ui.WinUI3`（WinUI 3 版）
 
@@ -204,6 +208,7 @@ pwsh -NoProfile -File buildScript/verify.ps1
 | [`EsUtil.Ui.WinUI3.Loupe`](EsUtil.Ui.WinUI3/Loupe/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Loupe) |
 | [`EsUtil.Ui.WinUI3.Marquee`](EsUtil.Ui.WinUI3/Marquee/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Marquee) |
 | [`EsUtil.Ui.WinUI3.Thumbnail`](EsUtil.Ui.WinUI3/Thumbnail/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Thumbnail) |
+| [`EsUtil.Ui.WinUI3.ColorComboBox`](EsUtil.Ui.WinUI3/ColorComboBox/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.ColorComboBox.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.ColorComboBox) |
 
 ### 6.5 `EsUtil.Ui.WinForms`（WinForms 版）
 

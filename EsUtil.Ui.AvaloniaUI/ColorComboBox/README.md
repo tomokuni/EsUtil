@@ -169,22 +169,18 @@ dotnet run --project sample/EsUtil.Ui.AvaloniaUI.ColorComboBox.Sample.csproj
 ## 12. プロジェクト構成
 
 ```text
-EsUtil.Ui.AvaloniaUI/ColorPicker/
-├── src/
-│   ├── EsUtil.Ui.AvaloniaUI.ColorComboBox.csproj
-│   ├── ColorComboBoxControl.axaml          # 公開コントロール（UIレイアウト）
-│   ├── ColorComboBoxControl.axaml.cs       # コードビハインド（公開 API・StyledProperty・イベント処理・バリデーション状態）
-│   ├── ColorComboBoxFlyoutFactory.cs# カラーピッカー Flyout 構築（Simple Factory）
-│   ├── ColorValidator.cs          # 色文字列の妥当性検証
-│   ├── TextBoxSelectionHelper.cs  # TextBox 検索とテキスト選択解除
-│   ├── ColorSortMode.cs           # 並び順 enum（公開）
-│   ├── StringToBrushConverter.cs  # 色→ブラシコンバーター（公開）
-│   ├── ColorDisplayConverter.cs   # 保存値↔表示テキスト変換（公開）
-│   ├── ColorString.cs             # 色文字列ユーティリティ（公開）
-│   ├── ColorEntry.cs              # 色名レコード・全色一覧（internal）
-│   └── Logging/                   # LoggerMessage ログ定義（internal）
-├── sample/                        # サンプルアプリ（sample/README.md 参照）
-└── tests/                         # 単体テスト（行・ブランチ 100%）
+EsUtil.Ui.AvaloniaUI/ColorComboBox/
+├── src/                                          # UI 層（Avalonia の要素と入出力の結び付け）
+│   ├── EsUtil.Ui.AvaloniaUI.ColorComboBox.csproj  # 独立プロジェクト（Platform.Core を参照）
+│   ├── ColorComboBoxControl.axaml                 # 見た目（ComboBox・スウォッチ・ボタン）
+│   ├── ColorComboBoxControl.axaml.cs              # 公開 API（StyledProperty・イベント・検証状態）
+│   ├── ColorComboBoxFlyoutFactory.cs              # カラーピッカー（ColorView）の Flyout 構築
+│   ├── ColorDisplayConverter.cs                   # 保存値 ⇔ 表示テキストの変換
+│   ├── StringToBrushConverter.cs                  # 色文字列 → ブラシの変換
+│   ├── TextBoxSelectionHelper.cs                  # ドロップダウン選択後のテキスト選択解除
+│   └── Logging/                                   # ログ定義（LoggerMessage ソース生成）
+├── sample/                                        # サンプルアプリ（sample/README.md 参照）
+└── tests/                                         # 単体テスト（Avalonia ヘッドレス）
 ```
 
 ## 13. テスト

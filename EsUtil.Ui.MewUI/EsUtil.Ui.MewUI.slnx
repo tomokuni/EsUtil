@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/ColorComboBox/">
+    <Project Path="ColorComboBox/src/EsUtil.Ui.MewUI.ColorComboBox.csproj" />
+    <Project Path="ColorComboBox/tests/EsUtil.Ui.MewUI.ColorComboBox.Tests.csproj" />
+  </Folder>
   <Folder Name="/Loupe/">
     <Project Path="Loupe/sample/EsUtil.Ui.MewUI.Loupe.Sample.csproj" />
     <Project Path="Loupe/src/EsUtil.Ui.MewUI.Loupe.csproj" />

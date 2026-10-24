@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using EsUtil.Platform.Core.Palette;
 using EsUtil.Ui.AvaloniaUI.ColorComboBox.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -16,9 +17,9 @@ namespace EsUtil.Ui.AvaloniaUI.ColorComboBox;
 /// **適用パターン**: Simple Factory（シンプルファクトリ）— 生成ロジックを静的なファクトリメソッドへ集約。<br/>
 /// <br/>
 /// **構成**:<br/>
-/// - ColorView の初期色は <see cref="ColorString.TryParse(string, out Color, out double)"/> で解析
+/// - ColorView の初期色は <see cref="ColorString.TryParse(string, out System.Drawing.Color, out double)"/>（コア）で解析
 ///   （失敗時は白）。 Hex 入力タブは <c>#AARRGGBB</c>（アルファ先頭）形式で表示する。<br/>
-/// - OK ボタンは <see cref="ColorString.ToArgbHex(Color)"/> で保存値へ変換し、
+/// - OK ボタンは <see cref="ColorString.ToArgbHex(System.Drawing.Color)"/>（コア）で保存値へ変換し、
 ///   <see cref="Action{T}"/>（applyColor）経由で <see cref="ColorComboBoxControl.SelectedColor"/> へ反映する。<br/>
 /// - ログ出力は <c>ColorPickerLog</c> の LoggerMessage 定義を使用する。<br/>
 /// <br/>
@@ -44,9 +45,9 @@ internal static class ColorComboBoxFlyoutFactory
     {
         // 初期色をパース（色 + 不透明度の統合形式に対応。 失敗時は白）
         var initColor = Colors.White;
-        if (!string.IsNullOrWhiteSpace(currentColor) && ColorString.TryParse(currentColor, out var parsed, out _))
+        if (ColorString.TryParse(currentColor, out var parsed, out _))
         {
-            initColor = parsed;
+            initColor = Color.FromArgb(parsed.A, parsed.R, parsed.G, parsed.B);
         }
 
         // ColorView コントロール
@@ -93,7 +94,7 @@ internal static class ColorComboBoxFlyoutFactory
         okButton.Click += (_, _) =>
         {
             // アルファを含む #AARRGGBB 形式へ整形して SelectedColor（保存値）へ反映する
-            var formatted = ColorString.ToArgbHex(colorView.Color);
+            var formatted = ColorString.ToArgbHex(System.Drawing.Color.FromArgb(colorView.Color.A, colorView.Color.R, colorView.Color.G, colorView.Color.B));
             log.LogFlyoutOk(formatted);
             applyColor(formatted);
             flyout.Hide();

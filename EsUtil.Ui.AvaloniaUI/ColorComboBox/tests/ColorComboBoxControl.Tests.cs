@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.Logging.Abstractions;
+using EsUtil.Platform.Core.Palette;
 using Xunit;
 
 namespace EsUtil.Ui.AvaloniaUI.ColorComboBox.Tests;

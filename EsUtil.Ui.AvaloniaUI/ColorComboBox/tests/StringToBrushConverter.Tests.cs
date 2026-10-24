@@ -1,5 +1,6 @@
 using System.Globalization;
 using Avalonia.Media;
+using EsUtil.Platform.Core.Palette;
 using Xunit;
 
 namespace EsUtil.Ui.AvaloniaUI.ColorComboBox.Tests;
@@ -36,9 +37,9 @@ public class StringToBrushConverterTests
     [Fact]
     internal void Convert_キャッシュ容量超過後も正しく変換される()
     {
-        // 容量（BrushCacheCapacity）を超える個別の入力でキャッシュを溢れさせ、
+        // 容量（コアの既定の 128）を超える個別の入力でキャッシュを溢れさせ、
         // 全クリア後も正しく変換できることを検証する（無制限増加の防止と正しさの両立）
-        for (var i = 0; i < StringToBrushConverter.BrushCacheCapacity + 1; i++)
+        for (var i = 0; i < 300; i++)
         {
             var r = s_converter.Convert($"#{i:X6}", typeof(IBrush), null, CultureInfo.InvariantCulture);
             Assert.IsType<SolidColorBrush>(r);

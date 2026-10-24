@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:EsUtil.Ui.AvaloniaUI.ColorComboBox"
+             xmlns:palette="clr-namespace:EsUtil.Platform.Core.Palette;assembly=EsUtil.Platform.Core"
              x:Class="EsUtil.Ui.AvaloniaUI.ColorComboBox.ColorComboBoxControl"
              x:Name="PART_Root"
              x:DataType="local:ColorComboBoxControl"
@@ -29,11 +30,11 @@
                       LostFocus="OnLostFocus"
                       ToolTip.Tip="色名または16進カラーコードを入力、または▼から選択">
                 <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="local:ColorEntry">
+                    <DataTemplate x:DataType="palette:ColorEntry">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <Border Width="14" Height="14" CornerRadius="2"
                                     BorderBrush="Gray" BorderThickness="1"
-                                    Background="{Binding Value, Converter={StaticResource StringToBrushConverter}}"/>
+                                    Background="{Binding Name, Converter={StaticResource StringToBrushConverter}}"/>
                             <TextBlock Text="{Binding Name}"/>
                         </StackPanel>
                     </DataTemplate>

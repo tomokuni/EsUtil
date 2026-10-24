@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using EsUtil.Platform.Core.Palette;
 using EsUtil.Ui.AvaloniaUI.ColorComboBox.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -33,15 +34,15 @@ namespace EsUtil.Ui.AvaloniaUI.ColorComboBox;
 /// - 外観（ComboBox サイズ）: <see cref="ComboBoxWidth"/> / <see cref="ComboBoxMinWidth"/> / <see cref="ComboBoxMaxWidth"/> /<br/>
 ///   <see cref="ComboBoxPadding"/> / <see cref="ComboBoxMargin"/><br/>
 /// - ログ: <see cref="Log"/><br/>
-/// - 関連型: <see cref="ColorSortMode"/> / <see cref="StringToBrushConverter"/> / <see cref="ColorDisplayConverter"/> / <see cref="ColorString"/> / <see cref="ColorEntry"/>（internal）<br/>
+/// - 関連型: <see cref="ColorSortMode"/>（コア）/ <see cref="StringToBrushConverter"/> / <see cref="ColorDisplayConverter"/> / <see cref="ColorString"/>（コア）/ <see cref="ColorEntry"/>（コア）<br/>
 /// <br/>
 /// **構成**: 本クラスは <c>ColorComboBoxControl.axaml</c>（<c>x:Class</c>）と対になるコードビハインドであり、<br/>
 /// 依存関係プロパティ（StyledProperty）・公開プロパティ・入力イベント処理・バリデーション状態を保持する。<br/>
 /// 関心事ごとに以下のクラスへ委譲し、単一責任と一方向依存を維持する:<br/>
 /// - カラーピッカー Flyout 構築: <see cref="ColorComboBoxFlyoutFactory"/>（Simple Factory パターン）<br/>
-/// - 色文字列の妥当性検証: <see cref="ColorValidator"/><br/>
+/// - 色文字列の妥当性検証: <see cref="ColorValidation"/><br/>
 /// - ComboBox テキスト選択の解除: <see cref="TextBoxSelectionHelper"/><br/>
-/// - 色文字列の解析・整形・正規化: <see cref="ColorString"/> / <see cref="ColorEntry"/> / 各コンバーター<br/>
+/// - 色文字列の解析・整形・正規化: <see cref="ColorString"/>（コア）/ <see cref="ColorEntry"/>（コア）/ 各コンバーター<br/>
 /// </remarks>
 public sealed partial class ColorComboBoxControl : UserControl
 {
@@ -236,7 +237,7 @@ public sealed partial class ColorComboBoxControl : UserControl
     {
         InitializeComponent();
 
-        _comboBox.ItemsSource = ColorEntry.AllByHue;
+        _comboBox.ItemsSource = ColorEntry.GetSorted(ColorSortMode.ByHue);
 
         if (!Design.IsDesignMode)
         {
@@ -284,7 +285,7 @@ public sealed partial class ColorComboBoxControl : UserControl
             Log.LogSelectedColorChanged((string)change.OldValue!, color);
 
             // 解析は 1 回だけ行い、最終有効値の追跡とバリデーション更新で共有する（二重解析の排除）
-            var valid = ColorValidator.IsValid(color);
+            var valid = ColorValidation.IsValid(color);
             if (valid)
             {
                 _lastValidColor = color;
@@ -299,7 +300,7 @@ public sealed partial class ColorComboBoxControl : UserControl
         {
             // change.NewValue は StyledProperty&lt;ColorSortMode&gt; により常に ColorSortMode（分岐なし）
             var mode = (ColorSortMode)change.NewValue!;
-            _comboBox.ItemsSource = mode == ColorSortMode.ByHue ? ColorEntry.AllByHue : ColorEntry.All;
+            _comboBox.ItemsSource = ColorEntry.GetSorted(mode);
         }
         else if (change.Property == ComboBoxPaddingProperty)
         {
@@ -335,7 +336,7 @@ public sealed partial class ColorComboBoxControl : UserControl
     private void OnLostFocus(object? sender, RoutedEventArgs e)
     {
         var color = SelectedColor;
-        var valid = ColorValidator.IsValid(color);
+        var valid = ColorValidation.IsValid(color);
         var hasLastValid = _lastValidColor is not null;
 
         // 無効な入力を最終有効値へ復帰するかは純粋関数（ColorValidation.ShouldRecover）で判定する
@@ -397,7 +398,7 @@ public sealed partial class ColorComboBoxControl : UserControl
     /// <param name="color">検証対象の色文字列。</param>
     /// <remarks>テスト（EsUtil.Ui.AvaloniaUI.ColorComboBox.Tests）が全分岐を検証するため internal 公開する。</remarks>
     internal void UpdateValidationStatus(string color)
-        => UpdateValidationStatusCore(color, ColorValidator.IsValid(color));
+        => UpdateValidationStatusCore(color, ColorValidation.IsValid(color));
 
     /// <summary>バリデーション状態を更新する（解析結果を再利用する内部実装）。</summary>
     /// <param name="color">検証対象の色文字列。</param>
@@ -410,8 +411,8 @@ public sealed partial class ColorComboBoxControl : UserControl
     private void UpdateValidationStatusCore(string color, bool isValid)
     {
         var state = ColorValidation.Determine(color, isValid);
-        HasValidationError = state.hasError;
-        ValidationErrorMessage = state.message;
+        HasValidationError = state.HasError;
+        ValidationErrorMessage = state.Message;
         UpdateBorderValidationVisual();
     }
 }

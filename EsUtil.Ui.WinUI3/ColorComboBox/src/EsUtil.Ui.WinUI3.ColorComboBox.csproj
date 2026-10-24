@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+    <UseWinUI>true</UseWinUI>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <RootNamespace>EsUtil.Ui.WinUI3.ColorComboBox</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsAotCompatible>true</IsAotCompatible>
+    <Description>色選択の WinUI 3 版コントロール。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="[1.*,2.0.0)" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="[10.0.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 色名の表・色文字列の解釈・並び順はコアが単一所有する（UI ごとに規則を持たない） -->
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EsUtil.Ui.WinUI3.ColorComboBox.Tests" />
+  </ItemGroup>
+
+</Project>

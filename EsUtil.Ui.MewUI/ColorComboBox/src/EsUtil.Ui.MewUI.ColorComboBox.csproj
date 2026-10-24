@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Ui.MewUI.ColorComboBox</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- MewUI は API が安定化中（0.x）。破壊的変更を避けるためバージョンを固定する。 -->
+    <MewUIVersion>0.21.1</MewUIVersion>
+    <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する）。 -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <Description>MewUI の色選択コントロール（色名の一覧・入力の検証・カラーピッカー）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MewUI のコア（型・標準の入力と描画） -->
+    <PackageReference Include="Aprillz.MewUI.Core" Version="$(MewUIVersion)" />
+    <!-- ログ（LoggerMessage ソース生成・NullLogger） -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 色名の表・色文字列の解釈・一覧の並び順はコアが単一所有する（UI ごとに規則を持たない） -->
+    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Ui.MewUI.ColorComboBox.Tests" />
+  </ItemGroup>
+
+</Project>
