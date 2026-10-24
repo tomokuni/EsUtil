@@ -1,5 +1,7 @@
 # EsUtil.Ui.WinUI3.Loupe
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Loupe)
+
 対になる他 UI 実装と同じ **UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、描画（XAML の要素と Composition）のみを **WinUI 3（Windows App SDK）** で実装したルーペ（拡大鏡）コントロールです。
 
 ## 目次 <!-- omit from toc -->

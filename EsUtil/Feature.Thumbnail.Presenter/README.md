@@ -1,5 +1,7 @@
 # EsUtil.Feature.Thumbnail.Presenter
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Thumbnail.Presenter.svg)](https://www.nuget.org/packages/EsUtil.Feature.Thumbnail.Presenter)
+
 ## 1. 概要
 
 サムネイルの **外観・影・描画計画・ラベル計画** を単一所有する UI 非依存の提示層です。

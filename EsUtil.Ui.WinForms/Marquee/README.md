@@ -1,5 +1,7 @@
 # EsUtil.Ui.WinForms.Marquee
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.Marquee)
+
 `MarqueeControl`（リサイズ可能なドラッグ矩形）の **WinForms 版**です。 他の UI 版と同一の UI 非依存コア（`EsUtil.Feature.Marquee.Core`）と描画層（`EsUtil.Feature.Marquee.Presenter`）を使い、
 入力の受付・効果の適用・カーソル制御と、GDI+ への描画のみを WinForms で実装しています。 層構成（Core / Presenter / UI）の全体像は [`EsUtil/README.md`](../../EsUtil/README.md) を参照してください。
 

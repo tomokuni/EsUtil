@@ -1,5 +1,7 @@
 # EsUtil.Ui.AvaloniaUI.Interop
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Interop.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Interop)
+
 ## 1. 概要
 
 Avalonia UI と EsUtil の型（キー・幾何・色・ウィンドウ状態・画像）を相互変換する**ブリッジ**です。

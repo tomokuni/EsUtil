@@ -1,5 +1,7 @@
 # EsUtil.Feature.Loupe.Presenter
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Loupe.Presenter.svg)](https://www.nuget.org/packages/EsUtil.Feature.Loupe.Presenter)
+
 ルーペ（拡大鍵）の見た目を定める **コントロール化を前提としない UI 非依存の層**です。 UI 実装が変わっても同じ処理を共有します。
 
 ## 1. 概要

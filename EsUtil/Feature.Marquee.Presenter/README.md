@@ -1,5 +1,7 @@
 # EsUtil.Feature.Marquee.Presenter
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Marquee.Presenter.svg)](https://www.nuget.org/packages/EsUtil.Feature.Marquee.Presenter)
+
 マーキー選択（ドラッグで矩形を選び、移動・リサイズできる操作）の見た目を定める **コントロール化を前提としない UI 非依存の層**です。 UI 実装が変わっても同じ処理を共有します。
 
 ## 1. 概要

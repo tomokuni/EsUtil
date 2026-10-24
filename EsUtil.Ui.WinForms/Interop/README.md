@@ -1,5 +1,7 @@
 # EsUtil.Ui.WinForms.Interop
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Interop.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.Interop)
+
 ## 1. 概要
 
 Windows Forms と EsUtil の型（キー・幾何・色・ウィンドウ状態・画像）を相互変換する**ブリッジ**です。

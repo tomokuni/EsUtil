@@ -1,5 +1,7 @@
 # EsUtil.Ui.AvaloniaUI.Marquee
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Marquee)
+
 > プロジェクト名: `EsUtil.Ui.AvaloniaUI.Marquee`（Avalonia UI 版）。 UI 非依存のロジックは `EsUtil.Feature.Marquee.Core`、MewUI 版は対になるコントロール（別プロジェクト）にあります。
 
 ## 目次 <!-- omit from toc -->

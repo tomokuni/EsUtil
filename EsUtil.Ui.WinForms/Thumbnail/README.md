@@ -1,5 +1,7 @@
 # EsUtil.Ui.WinForms.Thumbnail
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.Thumbnail)
+
 ## 目次 <!-- omit from toc -->
 
 - [1. 概要](#1-概要)

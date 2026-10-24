@@ -1,5 +1,7 @@
 # EsUtil.Ui.MewUI.Thumbnail
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Thumbnail)
+
 ## 目次 <!-- omit from toc -->
 
 - [1. 概要](#1-概要)

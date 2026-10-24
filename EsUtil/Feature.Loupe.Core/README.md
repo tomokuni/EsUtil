@@ -1,5 +1,7 @@
 # EsUtil.Feature.Loupe.Core
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Loupe.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Loupe.Core)
+
 ルーペ（選択範囲の拡大表示）の **UI 非依存のコア**です。 UI 実装が変わっても同じ計算結果を共有します。
 
 ## 1. 概要

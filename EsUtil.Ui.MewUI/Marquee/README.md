@@ -1,5 +1,7 @@
 # EsUtil.Ui.MewUI.Marquee
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Marquee)
+
 `MarqueeControl`（リサイズ可能なドラッグ矩形）の **MewUI 版**です。 Avalonia 版と同一の UI 非依存コア（`EsUtil.Feature.Marquee.Core`）と描画層（`EsUtil.Feature.Marquee.Presenter`）を使い、
 入力の受付と効果の適用・カーソル制御・描画ポートの適合のみを MewUI で実装しています。 層構成（Core / Presenter / UI）の全体像は [`EsUtil/README.md`](../../EsUtil/README.md) を参照してください。
 

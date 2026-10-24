@@ -152,6 +152,70 @@ pwsh -NoProfile -File buildScript/verify.ps1
 - **プラットフォーム**: Windows のみ（`EsUtil.Platform.Core/src/Native/Win` 配下が Win32 / WIC を呼びます。 UI 非依存の計算層は他 OS でも動きます）。
 - シンボル パッケージ（`.snupkg`）を同梱し、SourceLink でリポジトリの該当コミットへ辿れます。
 
-## 6. ライセンス
+## 6. パッケージ（ソリューション別）
+
+各パッケージは **NuGet パッケージ**として出力します。 版はバッジで示します（**公開後に解決します**。 公開前は「not found」と表示されます）。 版の値は [`Directory.Build.props`](Directory.Build.props) の表が単一所有します。
+
+### 6.1 `EsUtil`（共通基盤・機能層）
+
+ソリューション: [`EsUtil.slnx`](EsUtil/EsUtil.slnx)
+
+| パッケージ | 版 |
+| --- | --- |
+| [`EsUtil.Platform.Core`](EsUtil/Platform.Core/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Platform.Core.svg)](https://www.nuget.org/packages/EsUtil.Platform.Core) |
+| [`EsUtil.Platform.Core.Windows`](EsUtil/Platform.Core.Windows/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Platform.Core.Windows.svg)](https://www.nuget.org/packages/EsUtil.Platform.Core.Windows) |
+| [`EsUtil.Feature.Loupe.Core`](EsUtil/Feature.Loupe.Core/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Loupe.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Loupe.Core) |
+| [`EsUtil.Feature.Loupe.Presenter`](EsUtil/Feature.Loupe.Presenter/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Loupe.Presenter.svg)](https://www.nuget.org/packages/EsUtil.Feature.Loupe.Presenter) |
+| [`EsUtil.Feature.Marquee.Core`](EsUtil/Feature.Marquee.Core/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Marquee.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Marquee.Core) |
+| [`EsUtil.Feature.Marquee.Presenter`](EsUtil/Feature.Marquee.Presenter/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Marquee.Presenter.svg)](https://www.nuget.org/packages/EsUtil.Feature.Marquee.Presenter) |
+| [`EsUtil.Feature.Thumbnail.Core`](EsUtil/Feature.Thumbnail.Core/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Thumbnail.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Thumbnail.Core) |
+| [`EsUtil.Feature.Thumbnail.Presenter`](EsUtil/Feature.Thumbnail.Presenter/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Thumbnail.Presenter.svg)](https://www.nuget.org/packages/EsUtil.Feature.Thumbnail.Presenter) |
+
+### 6.2 `EsUtil.Ui.AvaloniaUI`（Avalonia UI 版）
+
+ソリューション: [`EsUtil.Ui.AvaloniaUI.slnx`](EsUtil.Ui.AvaloniaUI/EsUtil.Ui.AvaloniaUI.slnx)
+
+| パッケージ | 版 |
+| --- | --- |
+| [`EsUtil.Ui.AvaloniaUI.Interop`](EsUtil.Ui.AvaloniaUI/Interop/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Interop.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Interop) |
+| [`EsUtil.Ui.AvaloniaUI.ColorComboBox`](EsUtil.Ui.AvaloniaUI/ColorComboBox/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.ColorComboBox.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.ColorComboBox) |
+| [`EsUtil.Ui.AvaloniaUI.Loupe`](EsUtil.Ui.AvaloniaUI/Loupe/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Loupe) |
+| [`EsUtil.Ui.AvaloniaUI.Marquee`](EsUtil.Ui.AvaloniaUI/Marquee/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Marquee) |
+| [`EsUtil.Ui.AvaloniaUI.Thumbnail`](EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Thumbnail) |
+
+### 6.3 `EsUtil.Ui.MewUI`（MewUI 版）
+
+ソリューション: [`EsUtil.Ui.MewUI.slnx`](EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx)
+
+| パッケージ | 版 |
+| --- | --- |
+| [`EsUtil.Ui.MewUI.Interop`](EsUtil.Ui.MewUI/Interop/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Interop.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Interop) |
+| [`EsUtil.Ui.MewUI.Loupe`](EsUtil.Ui.MewUI/Loupe/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Loupe) |
+| [`EsUtil.Ui.MewUI.Marquee`](EsUtil.Ui.MewUI/Marquee/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Marquee) |
+| [`EsUtil.Ui.MewUI.Thumbnail`](EsUtil.Ui.MewUI/Thumbnail/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Thumbnail) |
+
+### 6.4 `EsUtil.Ui.WinUI3`（WinUI 3 版）
+
+ソリューション: [`EsUtil.Ui.WinUI3.slnx`](EsUtil.Ui.WinUI3/EsUtil.Ui.WinUI3.slnx)
+
+| パッケージ | 版 |
+| --- | --- |
+| [`EsUtil.Ui.WinUI3.Interop`](EsUtil.Ui.WinUI3/Interop/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Interop.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Interop) |
+| [`EsUtil.Ui.WinUI3.Loupe`](EsUtil.Ui.WinUI3/Loupe/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Loupe) |
+| [`EsUtil.Ui.WinUI3.Marquee`](EsUtil.Ui.WinUI3/Marquee/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Marquee) |
+| [`EsUtil.Ui.WinUI3.Thumbnail`](EsUtil.Ui.WinUI3/Thumbnail/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Thumbnail) |
+
+### 6.5 `EsUtil.Ui.WinForms`（WinForms 版）
+
+ソリューション: [`EsUtil.Ui.WinForms.slnx`](EsUtil.Ui.WinForms/EsUtil.Ui.WinForms.slnx)
+
+| パッケージ | 版 |
+| --- | --- |
+| [`EsUtil.Ui.WinForms.Interop`](EsUtil.Ui.WinForms/Interop/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Interop.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.Interop) |
+| [`EsUtil.Ui.WinForms.Loupe`](EsUtil.Ui.WinForms/Loupe/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.Loupe) |
+| [`EsUtil.Ui.WinForms.Marquee`](EsUtil.Ui.WinForms/Marquee/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.Marquee) |
+| [`EsUtil.Ui.WinForms.Thumbnail`](EsUtil.Ui.WinForms/Thumbnail/README.md) | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.Thumbnail) |
+
+## 7. ライセンス
 
 [MIT](LICENSE)

@@ -1,5 +1,7 @@
 # EsUtil.Platform.Core
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Platform.Core.svg)](https://www.nuget.org/packages/EsUtil.Platform.Core)
+
 UI フレームワーク非依存の **共通基盤の型**（キーと入力・幾何・座標変換・画像・OS サービス抽象）を提供するライブラリです。
 
 ## 1. 概要

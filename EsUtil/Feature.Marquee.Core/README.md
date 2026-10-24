@@ -1,5 +1,7 @@
 # EsUtil.Feature.Marquee.Core
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Marquee.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Marquee.Core)
+
 マーキー選択（ドラッグで矩形を選び、移動・リサイズできる操作）の **UI 非依存の計算層**です。 UI 実装が変わっても同じ状態管理・判断・幾何を共有します。
 
 ## 1. 概要

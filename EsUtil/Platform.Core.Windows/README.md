@@ -1,5 +1,7 @@
 # EsUtil.Platform.Core.Windows
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Platform.Core.Windows.svg)](https://www.nuget.org/packages/EsUtil.Platform.Core.Windows)
+
 `EsUtil.Platform.Core` の画像型（`EsReadOnlyBitmap` / `EsBitmap`）と **`System.Drawing.Bitmap` を相互変換する Windows 専用の拡張メソッド**を提供するライブラリです。
 
 ## 1. 目的

@@ -1,5 +1,7 @@
 # EsUtil.Ui.AvaloniaUI.ColorComboBox
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.ColorComboBox.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.ColorComboBox)
+
 > プロジェクト名: `EsUtil.Ui.AvaloniaUI.ColorComboBox`（Avalonia UI 版）。 MewUI 側は標準の `ColorPicker` を使うため移植していません（`XxxControl.Core` / `XxxControl.MewUI` は作成しません）。
 
 ## 目次 <!-- omit from toc -->

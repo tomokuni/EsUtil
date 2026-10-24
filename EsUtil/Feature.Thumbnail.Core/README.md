@@ -1,5 +1,7 @@
 # EsUtil.Feature.Thumbnail.Core
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Thumbnail.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Thumbnail.Core)
+
 ## 1. 概要
 
 サムネイル一覧（折り返し配置・選択・可視範囲）の **UI 非依存の計算層** です。

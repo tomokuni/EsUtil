@@ -1,5 +1,7 @@
 # EsUtil.Ui.AvaloniaUI.Loupe
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Loupe)
+
 > プロジェクト名: `EsUtil.Ui.AvaloniaUI.Loupe`（Avalonia UI 版）。 UI 非依存のロジックは `EsUtil.Feature.Loupe.Core`、MewUI 版は対になるコントロール（別プロジェクト）にあります。
 
 ## 目次 <!-- omit from toc -->

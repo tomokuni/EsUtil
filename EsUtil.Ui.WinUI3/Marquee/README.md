@@ -1,5 +1,7 @@
 # EsUtil.Ui.WinUI3.Marquee
 
+[![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Marquee)
+
 画像やスクリーンの上へ重ねて使う、リサイズ可能なドラッグ矩形（マーキー）の WinUI 3 コントロールです。
 
 ## 目次 <!-- omit from toc -->
