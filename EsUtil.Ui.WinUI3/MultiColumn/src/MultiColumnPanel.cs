@@ -3,7 +3,7 @@ using System.Diagnostics;
 using Windows.Foundation;
 
 using EsUtil.Feature.MultiColumn;
-using static EsUtil.Feature.MultiColumn.MultiColumnLayoutEngine;
+using static EsUtil.Feature.MultiColumn.ColumnPacker;
 
 namespace EsUtil.Ui.WinUI3.MultiColumn;
 
@@ -40,7 +40,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
     /// <remarks>
     /// デバッグやモニタリング用に保持<br/>
     /// </remarks>
-    protected MultiColumnLayoutEngine? Layout { get; set; }
+    protected ColumnPacker? Layout { get; set; }
 
 
     /// <summary><b>行間スペースを指定する DependencyProperty</b></summary>
@@ -332,7 +332,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
         var items = childElements.Select(e => (e.DesiredSize.Width, e.DesiredSize.Height)).ToArray();
 
         // VerticalMultiColumnLayout インスタンスを作成
-        Layout ??= new MultiColumnLayoutEngine(items, (RowSpace, ColumnSpace), ColumnLimit);
+        Layout ??= new ColumnPacker(items, (RowSpace, ColumnSpace), ColumnLimit);
         Layout.CurrentMethod = Method;
 
         // 利用可能な幅を決定する。

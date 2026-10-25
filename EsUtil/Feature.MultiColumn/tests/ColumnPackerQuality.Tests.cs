@@ -1,5 +1,5 @@
 using Xunit;
-using static EsUtil.Feature.MultiColumn.MultiColumnLayoutEngine;
+using static EsUtil.Feature.MultiColumn.ColumnPacker;
 
 namespace EsUtil.Feature.MultiColumn.Tests;
 
@@ -8,7 +8,7 @@ namespace EsUtil.Feature.MultiColumn.Tests;
 #region MultiColumnLayoutTest
 
 /// <summary>MultiColumnLayout の単体テスト</summary>
-public class MultiColumnLayoutEngineQualityTests
+public class ColumnPackerQualityTests
 {
 
     #region QualityComparison
@@ -19,7 +19,7 @@ public class MultiColumnLayoutEngineQualityTests
     {
         // Arrange
         var items = TestHelper.GetLargeTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (5.0, 5.0), columnLimit: 5);
+        var layout = new ColumnPacker(items, (5.0, 5.0), columnLimit: 5);
         const double widthLimit = 200.0;
 
         // Act
@@ -45,7 +45,7 @@ public class MultiColumnLayoutEngineQualityTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         const double widthLimit = 100.0;
 
         // Act
@@ -69,7 +69,7 @@ public class MultiColumnLayoutEngineQualityTests
     {
         // Arrange
         var items = TestHelper.GetUniformTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 3);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 3);
         const double widthLimit = 150.0;
 
         // Act
@@ -117,7 +117,7 @@ public class MultiColumnLayoutEngineQualityTests
         foreach (var items in itemsList)
         {
             // Act
-            var layout = new MultiColumnLayoutEngine(items, (2.0, 2.0), columnLimit: 5)
+            var layout = new ColumnPacker(items, (2.0, 2.0), columnLimit: 5)
             {
                 CurrentMethod = method
             };
@@ -147,7 +147,7 @@ public class MultiColumnLayoutEngineQualityTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();  // 幅: 40, 50, 60
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         const double widthLimit = 40.0;  // 最小幅
         layout.CurrentMethod = method;
 
@@ -171,7 +171,7 @@ public class MultiColumnLayoutEngineQualityTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 3);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 3);
         const double widthLimit = 1000.0;  // 非常に大きい幅
         layout.CurrentMethod = method;
 
@@ -200,7 +200,7 @@ public class MultiColumnLayoutEngineQualityTests
     {
         // Arrange
         var items = TestHelper.GenerateTestItems(20);
-        var layout = new MultiColumnLayoutEngine(items, (1.0, 1.0), columnLimit: 20);
+        var layout = new ColumnPacker(items, (1.0, 1.0), columnLimit: 20);
         const double widthLimit = 500.0;
         layout.CurrentMethod = method;
 
@@ -224,7 +224,7 @@ public class MultiColumnLayoutEngineQualityTests
     {
         // Arrange
         var items = TestHelper.GenerateTestItems(50);
-        var layout = new MultiColumnLayoutEngine(items, (0.5, 0.5), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.5, 0.5), columnLimit: 10);
         const double widthLimit = 1000.0;
         layout.CurrentMethod = method;
 
@@ -248,8 +248,8 @@ public class MultiColumnLayoutEngineQualityTests
     {
         // Arrange
         var items = TestHelper.GenerateTestItems(40);
-        var stackallocThreshold = MultiColumnLayoutEngine.STACKALLOC_THRESHOLD;
-        var layout = new MultiColumnLayoutEngine(items, (0.5, 0.5), columnLimit: stackallocThreshold);
+        var stackallocThreshold = ColumnPacker.STACKALLOC_THRESHOLD;
+        var layout = new ColumnPacker(items, (0.5, 0.5), columnLimit: stackallocThreshold);
         const double widthLimit = 600.0;
         layout.CurrentMethod = method;
 
@@ -275,8 +275,8 @@ public class MultiColumnLayoutEngineQualityTests
     {
         // Arrange
         var items = TestHelper.GenerateTestItems(40);
-        var stackallocThreshold = MultiColumnLayoutEngine.STACKALLOC_THRESHOLD;
-        var layout = new MultiColumnLayoutEngine(items, (0.5, 0.5), columnLimit: stackallocThreshold + 1);
+        var stackallocThreshold = ColumnPacker.STACKALLOC_THRESHOLD;
+        var layout = new ColumnPacker(items, (0.5, 0.5), columnLimit: stackallocThreshold + 1);
         const double widthLimit = 600.0;
         layout.CurrentMethod = method;
 
@@ -310,7 +310,7 @@ public class MultiColumnLayoutEngineQualityTests
             (0.2 + 0.1, 100.0),         // 0.30000000000000004
             (0.3, 100.0)                // 0.3
         };
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 3);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 3);
         const double widthLimit = 150.0;
 
         // Act
@@ -339,7 +339,7 @@ public class MultiColumnLayoutEngineQualityTests
             (0.002, 0.002),
             (0.003, 0.003)
         };
-        var layout = new MultiColumnLayoutEngine(items, (0.0001, 0.0001), columnLimit: 3);
+        var layout = new ColumnPacker(items, (0.0001, 0.0001), columnLimit: 3);
         const double widthLimit = 0.01;
         layout.CurrentMethod = method;
 
@@ -366,7 +366,7 @@ public class MultiColumnLayoutEngineQualityTests
             (20000.0, 20000.0),
             (30000.0, 30000.0)
         };
-        var layout = new MultiColumnLayoutEngine(items, (100.0, 100.0), columnLimit: 3);
+        var layout = new ColumnPacker(items, (100.0, 100.0), columnLimit: 3);
         const double widthLimit = 100000.0;
         layout.CurrentMethod = method;
 
@@ -395,7 +395,7 @@ public class MultiColumnLayoutEngineQualityTests
         {
             // Act
             var items = TestHelper.GenerateRandomItems(30, seed);
-            var layout = new MultiColumnLayoutEngine(items, (1.0, 1.0), 5)
+            var layout = new ColumnPacker(items, (1.0, 1.0), 5)
             {
                 CurrentMethod = Method.DynamicProgramming
             };
@@ -432,7 +432,7 @@ public class MultiColumnLayoutEngineQualityTests
         foreach (var items in testCases)
         {
             // Act
-            var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 4)
+            var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 4)
             {
                 CurrentMethod = Method.DynamicProgramming
             };
@@ -460,7 +460,7 @@ public class MultiColumnLayoutEngineQualityTests
         {
             // Act
             var items = TestHelper.GenerateRandomItems(30, seed);
-            var layout = new MultiColumnLayoutEngine(items, (1.0, 1.0), 5)
+            var layout = new ColumnPacker(items, (1.0, 1.0), 5)
             {
                 CurrentMethod = Method.DynamicProgramming
             };
@@ -495,7 +495,7 @@ public class MultiColumnLayoutEngineQualityTests
         foreach (var seed in seeds)
         {
             var items = TestHelper.GenerateRandomItems(30, seed);
-            var layout = new MultiColumnLayoutEngine(items, (1.0, 1.0), 5)
+            var layout = new ColumnPacker(items, (1.0, 1.0), 5)
             {
                 CurrentMethod = Method.DynamicProgramming
             };
@@ -533,7 +533,7 @@ public class MultiColumnLayoutEngineQualityTests
         // Arrange
         var items = TestHelper.GetSingleItem();  // 幅50
         var space = (Row: 1000.0, Column: 1000.0);
-        var layout = new MultiColumnLayoutEngine(items, space, 1);  // 列数最小
+        var layout = new ColumnPacker(items, space, 1);  // 列数最小
         const double widthLimit = 40.0;  // 最小幅
         layout.CurrentMethod = Method.DynamicProgramming;
 
@@ -554,7 +554,7 @@ public class MultiColumnLayoutEngineQualityTests
         // Arrange
         var items = TestHelper.GenerateRandomItems(20);
         var space = (Row: 0.0, Column: 0.0);
-        var layout = new MultiColumnLayoutEngine(items, space, 20)  // 列数最大
+        var layout = new ColumnPacker(items, space, 20)  // 列数最大
         {
             CurrentMethod = Method.BinarySearch
         };

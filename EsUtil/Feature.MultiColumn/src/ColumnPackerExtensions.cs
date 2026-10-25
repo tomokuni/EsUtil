@@ -1,12 +1,12 @@
-using static EsUtil.Feature.MultiColumn.MultiColumnLayoutEngine;
+using static EsUtil.Feature.MultiColumn.ColumnPacker;
 
 namespace EsUtil.Feature.MultiColumn;
 
-/// <summary><b>MultiColumnLayoutEngine の状態参照とアルゴリズム指定を拡張メンバーで提供します</b></summary>
+/// <summary><b>ColumnPacker の状態参照とアルゴリズム指定を拡張メンバーで提供します</b></summary>
 /// <remarks>
 /// 【概要】<br/>
 /// C# 14 の拡張メンバー（extension ブロック）で実装しています。<br/>
-/// MultiColumnLayoutEngine 本体の型を変更せずに、メソッドとプロパティを型へ追加できます。<br/>
+/// ColumnPacker 本体の型を変更せずに、メソッドとプロパティを型へ追加できます。<br/>
 /// <br/>
 /// 【提供機能】<br/>
 /// • Solve(widthLimit, method)：アルゴリズムを引数で指定して 1 回だけ解く（CurrentMethod は呼び出し前へ戻る）<br/>
@@ -23,16 +23,16 @@ namespace EsUtil.Feature.MultiColumn;
 /// • Solve(widthLimit, method) は内部で CurrentMethod を切り替えるため、スレッド セーフではありません。<br/>
 /// <br/>
 /// 【使用例】<br/>
-/// var engine = new MultiColumnLayoutEngine(items, (1.0, 2.0), 10);<br/>
+/// var engine = new ColumnPacker(items, (1.0, 2.0), 10);<br/>
 /// var (width, height) = engine.Solve(100.0, Method.Greedy); // 1 回だけ Greedy で解く<br/>
 /// int columns = engine.ColumnCount;<br/>
 /// <br/>
 /// 【最適化手法】<br/>
 /// • プロパティは既存の公開 API（GetLastColumnSegments 等）の薄いラッパーとし、追加の計算を行いません。<br/>
 /// </remarks>
-public static class MultiColumnLayoutEngineExtensions
+public static class ColumnPackerExtensions
 {
-    extension(MultiColumnLayoutEngine engine)
+    extension(ColumnPacker engine)
     {
         /// <summary><b>指定したアルゴリズムで 1 回だけレイアウトを計算します</b></summary>
         /// <remarks>

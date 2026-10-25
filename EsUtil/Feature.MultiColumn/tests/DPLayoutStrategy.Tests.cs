@@ -1,7 +1,7 @@
 using Xunit;
 
 using EsUtil.Feature.MultiColumn.Internal;
-using static EsUtil.Feature.MultiColumn.MultiColumnLayoutEngine;
+using static EsUtil.Feature.MultiColumn.ColumnPacker;
 
 namespace EsUtil.Feature.MultiColumn.Tests;
 
@@ -15,7 +15,7 @@ public class DPLayoutStrategyTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 3);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 3);
         const double widthLimit = 150.0;
 
         // Act
@@ -24,7 +24,7 @@ public class DPLayoutStrategyTests
 
         // Assert
         // DP は最適解を保証
-        var greedyLayout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 3)
+        var greedyLayout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 3)
         {
             CurrentMethod = Method.Greedy
         };
@@ -38,7 +38,7 @@ public class DPLayoutStrategyTests
     {
         // Arrange
         var items = TestHelper.GetLargeTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (5.0, 5.0), columnLimit: 5);
+        var layout = new ColumnPacker(items, (5.0, 5.0), columnLimit: 5);
         const double widthLimit = 200.0;
 
         // Act
@@ -61,7 +61,7 @@ public class DPLayoutStrategyTests
     {
         // Arrange
         var items = new List<(double Width, double Height)>();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         const double widthLimit = 100.0;
 
         // Act
@@ -81,7 +81,7 @@ public class DPLayoutStrategyTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         const double widthLimit = 100.0;
 
         // Act
@@ -102,7 +102,7 @@ public class DPLayoutStrategyTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 3);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 3);
         const double widthLimit = 150.0;
 
         // Act

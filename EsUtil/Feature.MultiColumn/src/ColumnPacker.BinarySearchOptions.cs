@@ -2,7 +2,7 @@ using EsUtil.Feature.MultiColumn.Internal;
 
 namespace EsUtil.Feature.MultiColumn;
 
-public partial class MultiColumnLayoutEngine
+public partial class ColumnPacker
 {
 
     /// <summary><b>バイナリサーチアルゴリズムの動作制御オプション</b></summary>

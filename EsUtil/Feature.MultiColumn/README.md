@@ -11,7 +11,7 @@
 **対応 OS**: 指定なし（`net10.0`。 OS 固有の API を使わない）。 ただし **Windows 以外での動作は未検証**。
 
 複数のアイテムを複数の列へ並べ、**最大列高さを最小化**する UI 非依存のレイアウト計算ライブラリです。
-名前空間とアセンブリ名は `EsUtil.Feature.MultiColumn` です（型名 `MultiColumnLayoutEngine` はパッケージ名と一致しません）。
+名前空間とアセンブリ名は `EsUtil.Feature.MultiColumn` です（型名 `ColumnPacker` はパッケージ名と一致しません）。
 アイテムの高さがばらつく一覧（カード・サムネイル・タグなど）を縦方向の列へ詰めるときに使います。
 
 ## 1. 概要
@@ -34,7 +34,7 @@ var items = new (double Width, double Height)[]
 };
 
 // 行間・列間の余白と、列数の上限（10 列まで）
-var engine = new MultiColumnLayoutEngine(items, (RowSpace: 8.0, ColumnSpace: 8.0), columnLimit: 10);
+var engine = new ColumnPacker(items, (RowSpace: 8.0, ColumnSpace: 8.0), columnLimit: 10);
 
 // 使用できる幅の上限を渡す（この幅を超えないよう列数が決まる）
 var (usedWidth, minHeight) = engine.Solve(widthLimit: 400.0);
@@ -61,7 +61,7 @@ engine.CurrentBinarySearchOptions = new BinarySearchOptions(Epsilon: 1e-3, MaxIt
 
 ## 3. 含まれるもの
 
-`MultiColumnLayoutEngine`（本体）と、その入れ子の型（`Method` / `BinarySearchOptions` / `MetadataKey`）、拡張メンバー（`MultiColumnLayoutEngineExtensions` の `Solve(widthLimit, method)` と状態参照プロパティ）。
+`ColumnPacker`（本体）と、その入れ子の型（`Method` / `BinarySearchOptions` / `MetadataKey`）、拡張メンバー（`ColumnPackerExtensions` の `Solve(widthLimit, method)` と状態参照プロパティ）。
 
 ## 4. 依存
 

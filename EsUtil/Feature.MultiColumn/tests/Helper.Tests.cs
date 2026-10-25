@@ -106,7 +106,7 @@ public class HelperTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();  // 幅 50
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), 10);
         const double widthLimit = 100.0;
 
         // Act
@@ -122,7 +122,7 @@ public class HelperTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();  // 幅 50
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), 10);
         const double widthLimit = 40.0;
 
         // Act
@@ -138,7 +138,7 @@ public class HelperTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();  // 幅: 40, 50, 60
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), 10);
         const double widthLimit = 59.0;
 
         // Act
@@ -154,7 +154,7 @@ public class HelperTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), 10);
 
         // Act
         bool result1 = layout.IsValidWidth(100.0);

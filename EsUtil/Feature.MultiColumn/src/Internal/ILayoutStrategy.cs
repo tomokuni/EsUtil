@@ -1,4 +1,4 @@
-using static EsUtil.Feature.MultiColumn.MultiColumnLayoutEngine;
+using static EsUtil.Feature.MultiColumn.ColumnPacker;
 
 namespace EsUtil.Feature.MultiColumn.Internal;
 

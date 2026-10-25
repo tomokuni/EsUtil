@@ -55,11 +55,11 @@ UI 層は同一 UI の変換ブリッジと、層を持たない機能パッケ�
 sequenceDiagram
     participant X as WinUI 3 のレイアウト
     participant P as MultiColumnPanel
-    participant E as MultiColumnLayoutEngine
+    participant E as ColumnPacker
     participant C as 子要素
     X->>P: MeasureOverride(availableSize)
     P->>P: 子を計測し（幅, 高さ）を集める
-    P->>E: new MultiColumnLayoutEngine(…)。Solve(可用幅)
+    P->>E: new ColumnPacker(…)。Solve(可用幅)
     E-->>P: 使用幅・最大列高さ・列の区切り
     P->>P: 結果を Layout* の依存関係プロパティへ写す
     P-->>X: 望ましい大きさ

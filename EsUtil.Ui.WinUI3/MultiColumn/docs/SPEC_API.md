@@ -31,12 +31,12 @@
 | `double RowSpace { get; set; }` | 行間（DIP）。 既定は 0。 |
 | `double ColumnSpace { get; set; }` | 列間（DIP）。 既定は 0。 |
 | `int ColumnLimit { get; set; }` | 列数の上限。 既定は 10。 |
-| `MultiColumnLayoutEngine.Method Method { get; set; }` | 配置の算法（`DynamicProgramming` / `Greedy` / `BinarySearch`）。 既定は `BinarySearch`。 |
+| `ColumnPacker.Method Method { get; set; }` | 配置の算法（`DynamicProgramming` / `Greedy` / `BinarySearch`）。 既定は `BinarySearch`。 |
 | `double? LayoutUsedWidth { get; }` | 直前の配置で使った幅。 未計算の間は null。 |
 | `double? LayoutMinHeight { get; }` | 直前の配置の最大列高さ（最小化された値）。 未計算の間は null。 |
 | `int? LayoutColumnCount { get; }` | 直前の配置の列数。 未計算の間は null。 |
 | `string? LayoutColumnSegments { get; }` | 直前の配置の列の区切り（`0-4, 5-9, …` 形式）。 未計算の間は null。 |
-| `protected MultiColumnLayoutEngine? Layout { get; set; }` | 直前の配置に使った計算のインスタンス（派生クラス向け）。 |
+| `protected ColumnPacker? Layout { get; set; }` | 直前の配置に使った計算のインスタンス（派生クラス向け）。 |
 | `protected override Size MeasureOverride(Size availableSize)` | 幅の上限から配置を計算します。 |
 | `protected override Size ArrangeOverride(Size finalSize)` | 計算した矩形へ子を配置します。 |
 

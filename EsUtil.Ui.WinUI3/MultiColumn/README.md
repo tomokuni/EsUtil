@@ -108,7 +108,7 @@ using EsUtil.Ui.WinUI3.MultiColumn;
 using Microsoft.UI.Xaml.Controls;
 
 // 既定は二分探索。 最適解が必要なら動的計画法を選ぶ
-var panel = new MultiColumnPanel { ColumnLimit = 4, Method = MultiColumnLayoutEngine.Method.DynamicProgramming };
+var panel = new MultiColumnPanel { ColumnLimit = 4, Method = ColumnPacker.Method.DynamicProgramming };
 ```
 
 ## 6. 描画動作

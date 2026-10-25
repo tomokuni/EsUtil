@@ -15,7 +15,7 @@ public class ColumnMetricsCacheTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (5.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (5.0, 0.0), columnLimit: 10);
 
         // Act
         var (Width, Height) = layout.GetColumnMetrics(new ColumnSegment(0, 1));  // 最初の2個のアイテム
@@ -33,7 +33,7 @@ public class ColumnMetricsCacheTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
 
         // Act
         var (Width, Height) = layout.GetColumnMetrics(new ColumnSegment(0, 0));
@@ -49,7 +49,7 @@ public class ColumnMetricsCacheTests
     {
         // Arrange
         var items = TestHelper.GetLargeTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (2.0, 2.0), columnLimit: 5);
+        var layout = new ColumnPacker(items, (2.0, 2.0), columnLimit: 5);
 
         // Act
         // 同じセグメントで複数回呼び出し
@@ -71,7 +71,7 @@ public class ColumnMetricsCacheTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
 
         // Act
         var (width, height) = layout.GetColumnMetrics(new(5, 2));  // 逆順
@@ -88,7 +88,7 @@ public class ColumnMetricsCacheTests
         // Arrange
         var items = TestHelper.GetStandardTestItems();  // 最初のアイテム (40, 100)
         var space = (Row: 100.0, Column: 0.0);
-        var layout = new MultiColumnLayoutEngine(items, space, 10);
+        var layout = new ColumnPacker(items, space, 10);
 
         // Act
         var (width, height) = layout.GetColumnMetrics(new ColumnSegment(0, 0));
@@ -106,7 +106,7 @@ public class ColumnMetricsCacheTests
         // Arrange
         var items = TestHelper.GetStandardTestItems();  // (40,100), (50,120), (60,140)
         var space = (Row: 5.0, Column: 0.0);
-        var layout = new MultiColumnLayoutEngine(items, space, 10);
+        var layout = new ColumnPacker(items, space, 10);
 
         // Act
         var (width, height) = layout.GetColumnMetrics(new(0, 2));
@@ -124,7 +124,7 @@ public class ColumnMetricsCacheTests
     {
         // Arrange
         var items = TestHelper.GetLargeTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (2.0, 2.0), columnLimit: 5);
+        var layout = new ColumnPacker(items, (2.0, 2.0), columnLimit: 5);
 
         // Act
         var (Width, Height) = layout.GetColumnMetrics(new ColumnSegment(0, 2));

@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using Xunit;
-using static EsUtil.Feature.MultiColumn.MultiColumnLayoutEngine;
+using static EsUtil.Feature.MultiColumn.ColumnPacker;
 
 namespace EsUtil.Feature.MultiColumn.Tests;
 
@@ -177,7 +177,7 @@ public class Benchmark
             {
                 // コンストラクタ計測
                 var swCtor = Stopwatch.StartNew();
-                var layout = new MultiColumnLayoutEngine(items, (RowSpace, ColumnSpace), DefaultColumnLimit);
+                var layout = new ColumnPacker(items, (RowSpace, ColumnSpace), DefaultColumnLimit);
                 swCtor.Stop();
                 ctorTimes.Add(swCtor.Elapsed.TotalMilliseconds);
 
@@ -343,19 +343,19 @@ public class Benchmark
         var warmupItems = TestHelper.GenerateRandomItems(10, seed: 42);
 
         // 各アルゴリズムを1回実行してJITコンパイルとメモリ割り当てを安定化
-        var layout1 = new MultiColumnLayoutEngine(warmupItems, (RowSpace, ColumnSpace), DefaultColumnLimit)
+        var layout1 = new ColumnPacker(warmupItems, (RowSpace, ColumnSpace), DefaultColumnLimit)
         {
             CurrentMethod = Method.DynamicProgramming
         };
         _ = layout1.Solve(WidthLimit);
 
-        var layout2 = new MultiColumnLayoutEngine(warmupItems, (RowSpace, ColumnSpace), DefaultColumnLimit)
+        var layout2 = new ColumnPacker(warmupItems, (RowSpace, ColumnSpace), DefaultColumnLimit)
         {
             CurrentMethod = Method.Greedy
         };
         _ = layout2.Solve(WidthLimit);
 
-        var layout3 = new MultiColumnLayoutEngine(warmupItems, (RowSpace, ColumnSpace), DefaultColumnLimit)
+        var layout3 = new ColumnPacker(warmupItems, (RowSpace, ColumnSpace), DefaultColumnLimit)
         {
             CurrentMethod = Method.BinarySearch
         };

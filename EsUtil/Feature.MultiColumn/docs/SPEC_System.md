@@ -37,8 +37,8 @@
 
 ```mermaid
 flowchart TB
-    API["公開面<br/>MultiColumnLayoutEngine（入れ子の型を含む）"]
-    EXT["拡張メンバー<br/>MultiColumnLayoutEngineExtensions"]
+    API["公開面<br/>ColumnPacker（入れ子の型を含む）"]
+    EXT["拡張メンバー<br/>ColumnPackerExtensions"]
     FACT["戦略の生成<br/>LayoutStrategyFactory"]
     STRAT["戦略<br/>DP / Greedy / BinarySearch"]
     CACHE["計測のキャッシュ<br/>ColumnMetricsCache"]
@@ -51,14 +51,14 @@ flowchart TB
     API --> CACHE
 ```
 
-依存は上から下への一方向です。 公開面（`MultiColumnLayoutEngine` と拡張メンバー）だけが `public` で、戦略・キャッシュ・補助は `internal` です。
+依存は上から下への一方向です。 公開面（`ColumnPacker` と拡張メンバー）だけが `public` で、戦略・キャッシュ・補助は `internal` です。
 
 ### 3.2 データフロー
 
 ```mermaid
 sequenceDiagram
     participant H as 利用者
-    participant E as MultiColumnLayoutEngine
+    participant E as ColumnPacker
     participant F as LayoutStrategyFactory
     participant S as 戦略（DP / Greedy / BinarySearch）
     participant C as ColumnMetricsCache
@@ -83,22 +83,22 @@ sequenceDiagram
 EsUtil/Feature.MultiColumn/
 ├── docs/
 ├── src/
-│   ├── MultiColumnLayoutEngine.cs
-│   ├── MultiColumnLayoutEngine.Base.cs
-│   ├── MultiColumnLayoutEngine.BinarySearchOptions.cs
-│   ├── MultiColumnLayoutEngine.Method.cs
-│   ├── MultiColumnLayoutEngine.MetadataKey.cs
-│   ├── MultiColumnLayoutEngineExtensions.cs
+│   ├── ColumnPacker.cs
+│   ├── ColumnPacker.Base.cs
+│   ├── ColumnPacker.BinarySearchOptions.cs
+│   ├── ColumnPacker.Method.cs
+│   ├── ColumnPacker.MetadataKey.cs
+│   ├── ColumnPackerExtensions.cs
 │   └── Internal/
 └── tests/
 ```
 
 | コンポーネント | 所在 | 内容 |
 | --- | --- | --- |
-| 公開面（本体） | `EsUtil/Feature.MultiColumn/src/MultiColumnLayoutEngine.Base.cs` | アイテムと余白の保持・`Solve`・結果の取得（`partial`） |
-| 公開面（算法の切り替え） | `EsUtil/Feature.MultiColumn/src/MultiColumnLayoutEngine.cs` | `CurrentMethod` と補足情報の取得 |
-| 公開面（入れ子の型） | `EsUtil/Feature.MultiColumn/src/MultiColumnLayoutEngine.*.cs` | `Method` / `BinarySearchOptions` / `MetadataKey` |
-| 拡張メンバー | `EsUtil/Feature.MultiColumn/src/MultiColumnLayoutEngineExtensions.cs` | 算法を引数で指定する `Solve` と状態参照のプロパティ |
+| 公開面（本体） | `EsUtil/Feature.MultiColumn/src/ColumnPacker.Base.cs` | アイテムと余白の保持・`Solve`・結果の取得（`partial`） |
+| 公開面（算法の切り替え） | `EsUtil/Feature.MultiColumn/src/ColumnPacker.cs` | `CurrentMethod` と補足情報の取得 |
+| 公開面（入れ子の型） | `EsUtil/Feature.MultiColumn/src/ColumnPacker.*.cs` | `Method` / `BinarySearchOptions` / `MetadataKey` |
+| 拡張メンバー | `EsUtil/Feature.MultiColumn/src/ColumnPackerExtensions.cs` | 算法を引数で指定する `Solve` と状態参照のプロパティ |
 | 戦略の生成 | `EsUtil/Feature.MultiColumn/src/Internal/LayoutStrategyFactory.cs` | 算法ごとの戦略を生成し、キャッシュする |
 | 戦略 | `EsUtil/Feature.MultiColumn/src/Internal/*LayoutStrategy.cs` | 動的計画法・貪欲法・二分探索 |
 | 計測のキャッシュ | `EsUtil/Feature.MultiColumn/src/Internal/ColumnMetricsCache.cs` | 列の範囲ごとの幅・高さを保持する |
@@ -136,4 +136,4 @@ EsUtil/Feature.MultiColumn/
 - **描画 API を持たない**: 位置と大きさを数値で返すため、どの UI のパネルからも同じ結果になります。 描画の都合（要素の生成・仮想化）は UI 側の関心事です。
 - **算法を差し替えられる**: アイテム数と必要な精度で計算量を選べるようにしています（最適解が必要なら動的計画法、速度が必要なら貪欲法）。
 - **キャッシュをインスタンスが持つ**: 列の範囲ごとの計測は同じ解の中で何度も参照されるため、解の間だけ保持します（アイテムを変えたら `ClearCache`）。
-- **名前空間とアセンブリ名を `EsUtil.Feature.MultiColumn` に揃える**: 型名（`MultiColumnLayoutEngine`）をそのままパッケージ名にすると名前空間のセグメントと一致し、配下から型を参照できなくなる（`MA0049`。 `CS0118`）。 そのためパッケージ名は機能名、型名は実装の名前にしています。
+- **名前空間とアセンブリ名を `EsUtil.Feature.MultiColumn` に揃える**: 型名（`ColumnPacker`）をそのままパッケージ名にすると名前空間のセグメントと一致し、配下から型を参照できなくなる（`MA0049`。 `CS0118`）。 そのためパッケージ名は機能名、型名は実装の名前にしています。

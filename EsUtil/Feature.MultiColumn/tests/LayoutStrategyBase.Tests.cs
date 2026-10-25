@@ -1,6 +1,6 @@
 using Xunit;
 
-using static EsUtil.Feature.MultiColumn.MultiColumnLayoutEngine;
+using static EsUtil.Feature.MultiColumn.ColumnPacker;
 
 namespace EsUtil.Feature.MultiColumn.Tests;
 
@@ -17,7 +17,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         const double widthLimit = 100.0;
 
         // Act
@@ -41,7 +41,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 3);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 3);
         const double widthLimit = 150.0;
 
         // Act
@@ -65,7 +65,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = new List<(double Width, double Height)>();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         const double widthLimit = 100.0;
 
         // Act
@@ -90,7 +90,7 @@ public class LayoutStrategyBaseTests
         // Arrange
         var items = TestHelper.GetStandardTestItems();
         var space = (Row: 10.0, Column: 0.0);
-        var layout = new MultiColumnLayoutEngine(items, space, columnLimit: 3);
+        var layout = new ColumnPacker(items, space, columnLimit: 3);
         const double widthLimit = 150.0;
 
         // Act
@@ -101,7 +101,7 @@ public class LayoutStrategyBaseTests
         // Assert
         Assert.True(TestHelper.ValidateMinHeight(minHeight, columnSegments, items, space));
         // 行間スペースがあるため、スペースなしより高さが増加
-        var layoutNoSpace = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 3)
+        var layoutNoSpace = new ColumnPacker(items, (0.0, 0.0), columnLimit: 3)
         {
             CurrentMethod = method
         };
@@ -120,7 +120,7 @@ public class LayoutStrategyBaseTests
         // Arrange
         var items = TestHelper.GetStandardTestItems();
         var space = (Row: 0.0, Column: 20.0);
-        var layout = new MultiColumnLayoutEngine(items, space, columnLimit: 3);
+        var layout = new ColumnPacker(items, space, columnLimit: 3);
         const double widthLimit = 200.0;
 
         // Act
@@ -146,7 +146,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetUniformTestItems();  // 6個の (50, 100) アイテム
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 3);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 3);
         const double widthLimit = 150.0;
 
         // Act
@@ -174,7 +174,7 @@ public class LayoutStrategyBaseTests
         {
             (150.0, 100.0)  // 幅が widthLimit と同等
         };
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         const double widthLimit = 100.0;  // アイテム幅が超過
 
         // Act
@@ -200,7 +200,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetExtremeWidthItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 4);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 4);
         const double widthLimit = 150.0;
 
         // Act
@@ -224,7 +224,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetExtremeHeightItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 4);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 4);
         const double widthLimit = 150.0;
 
         // Act
@@ -248,7 +248,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetLargeTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 5);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 5);
         const double widthLimit = 150.0;
 
         // Act
@@ -273,7 +273,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 1);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 1);
         const double widthLimit = 100.0;
 
         // Act
@@ -296,7 +296,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();  // 3個
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);  // 上限は 10
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);  // 上限は 10
         const double widthLimit = 200.0;
 
         // Act
@@ -320,7 +320,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();  // 幅: 40, 50, 60
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         const double widthLimit = 35.0;  // 最小アイテム幅 40より小さい
 
         // Act
@@ -350,7 +350,7 @@ public class LayoutStrategyBaseTests
             (33.34, 100.02),
             (33.33, 100.01)
         };
-        var layout = new MultiColumnLayoutEngine(items, (1.5, 2.5), columnLimit: 3);
+        var layout = new ColumnPacker(items, (1.5, 2.5), columnLimit: 3);
         const double widthLimit = 150.0;
 
         // Act
@@ -370,7 +370,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
 
         // Act
         var isValid = layout.IsValidWidth(100.0);
@@ -385,7 +385,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
 
         // Act
         var isValid = layout.IsValidWidth(30.0);
@@ -400,7 +400,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         layout.Solve(100.0);
 
         // Act
@@ -421,7 +421,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         layout.Solve(100.0);
 
         // Act & Assert
@@ -435,7 +435,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (5.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (5.0, 0.0), columnLimit: 10);
 
         // Act
         var (usedWidth, minHeight) = layout.SolveSingleColumnLayout();
@@ -454,7 +454,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         layout.Solve(100.0);
 
         // Act
@@ -471,7 +471,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         layout.Solve(100.0);
 
         // Act
@@ -488,7 +488,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         layout.Solve(100.0);
 
         // Act
@@ -515,7 +515,7 @@ public class LayoutStrategyBaseTests
             (50.0, 140.0)
         };
         var space = (Row: 10.0, Column: 0.0);
-        var layout = new MultiColumnLayoutEngine(items, space, 1)
+        var layout = new ColumnPacker(items, space, 1)
         {
             CurrentMethod = Method.DynamicProgramming
         };  // 1列に強制
@@ -542,7 +542,7 @@ public class LayoutStrategyBaseTests
             (60.0, 100.0)
         };
         var space = (Row: 0.0, Column: 10.0);
-        var layout = new MultiColumnLayoutEngine(items, space, 3)
+        var layout = new ColumnPacker(items, space, 3)
         {
             CurrentMethod = Method.DynamicProgramming
         };
@@ -567,7 +567,7 @@ public class LayoutStrategyBaseTests
         // Arrange
         var items = TestHelper.GetUniformTestItems();  // 6個の (50, 100)
         var space = (Row: 0.0, Column: 0.0);
-        var layout = new MultiColumnLayoutEngine(items, space, 3)
+        var layout = new ColumnPacker(items, space, 3)
         {
             CurrentMethod = Method.DynamicProgramming
         };
@@ -597,7 +597,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         const double widthLimit = 100.0;
         layout.CurrentMethod = Method.DynamicProgramming;
         layout.Solve(widthLimit);
@@ -621,7 +621,7 @@ public class LayoutStrategyBaseTests
         // Arrange
         var items = TestHelper.GetUniformTestItems();  // 6個の (50, 100)
         var space = (Row: 0.0, Column: 0.0);
-        var layout = new MultiColumnLayoutEngine(items, space, columnLimit: 3);
+        var layout = new ColumnPacker(items, space, columnLimit: 3);
         const double widthLimit = 150.0;
         layout.CurrentMethod = Method.DynamicProgramming;
         layout.Solve(widthLimit);
@@ -648,7 +648,7 @@ public class LayoutStrategyBaseTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         layout.Solve(100.0);  // キャッシュを使用
 
         // Act

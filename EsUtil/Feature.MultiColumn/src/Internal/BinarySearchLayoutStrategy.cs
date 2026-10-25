@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 
-using static EsUtil.Feature.MultiColumn.MultiColumnLayoutEngine;
+using static EsUtil.Feature.MultiColumn.ColumnPacker;
 
 namespace EsUtil.Feature.MultiColumn.Internal;
 
@@ -150,7 +150,7 @@ internal sealed class BinarySearchLayoutStrategy(
                 }
             }
 
-            Span<ColumnSegment> tempBuffer = columnLimit <= MultiColumnLayoutEngine.STACKALLOC_THRESHOLD
+            Span<ColumnSegment> tempBuffer = columnLimit <= ColumnPacker.STACKALLOC_THRESHOLD
                 ? stackalloc ColumnSegment[columnLimit]
                 : new ColumnSegment[columnLimit];
 

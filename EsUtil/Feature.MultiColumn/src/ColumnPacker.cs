@@ -43,7 +43,7 @@ namespace EsUtil.Feature.MultiColumn;
 /// 結果の検証を自動で行います。<br/>
 /// <br/>
 /// 【使用例】<br/>
-/// var engine = new MultiColumnLayoutEngine(items, (1.0, 2.0), 10);<br/>
+/// var engine = new ColumnPacker(items, (1.0, 2.0), 10);<br/>
 /// engine.CurrentMethod = Method.BinarySearch;<br/>
 /// var (width, height) = engine.Solve(100.0);<br/>
 /// <br/>
@@ -52,7 +52,7 @@ namespace EsUtil.Feature.MultiColumn;
 /// • ArrayPool によるメモリプール化<br/>
 /// • Strategy パターンでアルゴリズム切り替え<br/>
 /// </remarks>
-public partial class MultiColumnLayoutEngine
+public partial class ColumnPacker
 {
 
     /// <summary><b>フィールド変数：Strategy Factory（遅延初期化）</b></summary>

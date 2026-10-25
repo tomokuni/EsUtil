@@ -1,7 +1,7 @@
 using Xunit;
 
 using EsUtil.Feature.MultiColumn.Internal;
-using static EsUtil.Feature.MultiColumn.MultiColumnLayoutEngine;
+using static EsUtil.Feature.MultiColumn.ColumnPacker;
 
 namespace EsUtil.Feature.MultiColumn.Tests;
 
@@ -59,7 +59,7 @@ public class LayoutStrategyFactoryTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10)
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10)
         {
             CurrentMethod = method
         };

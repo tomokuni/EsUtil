@@ -1,6 +1,6 @@
 namespace EsUtil.Feature.MultiColumn;
 
-public partial class MultiColumnLayoutEngine
+public partial class ColumnPacker
 {
 
     /// <summary><b>戦略固有のメトリクスを指定するキー<br/></b></summary>

@@ -1,7 +1,7 @@
 using Xunit;
 
 using EsUtil.Feature.MultiColumn.Internal;
-using static EsUtil.Feature.MultiColumn.MultiColumnLayoutEngine;
+using static EsUtil.Feature.MultiColumn.ColumnPacker;
 
 namespace EsUtil.Feature.MultiColumn.Tests;
 
@@ -14,7 +14,7 @@ public class BinarySearchLayoutStrategyTests
     internal void BinarySearchOptions_コンストラクタ_テスト()
     {
         // Act
-        var options = new MultiColumnLayoutEngine.BinarySearchOptions(1e-4, 50, 0.9);
+        var options = new ColumnPacker.BinarySearchOptions(1e-4, 50, 0.9);
 
         // Assert
         Assert.Equal(1e-4, options.Epsilon);
@@ -43,7 +43,7 @@ public class BinarySearchLayoutStrategyTests
     {
         // Arrange
         var items = TestHelper.GetLargeTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 5);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 5);
         const double widthLimit = 200.0;
 
         // Act
@@ -64,7 +64,7 @@ public class BinarySearchLayoutStrategyTests
     {
         // Arrange
         var items = TestHelper.GetLargeTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 5)
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 5)
         {
             CurrentBinarySearchOptions = new BinarySearchOptions(Epsilon: 1e-6, MaxIterations: 100, LowerBoundRatio: 0.75)
         };

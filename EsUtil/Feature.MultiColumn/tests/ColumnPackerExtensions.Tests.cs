@@ -1,11 +1,11 @@
 using Xunit;
 
-using static EsUtil.Feature.MultiColumn.MultiColumnLayoutEngine;
+using static EsUtil.Feature.MultiColumn.ColumnPacker;
 
 namespace EsUtil.Feature.MultiColumn.Tests;
 
-/// <summary>MultiColumnLayoutEngineExtensions（C# 14 拡張メンバー）の単体テスト</summary>
-public class MultiColumnLayoutEngineExtensionsTests
+/// <summary>ColumnPackerExtensions（C# 14 拡張メンバー）の単体テスト</summary>
+public class ColumnPackerExtensionsTests
 {
 
     /// <summary>Solve_アルゴリズム指定_テスト</summary>
@@ -17,13 +17,13 @@ public class MultiColumnLayoutEngineExtensionsTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var expectedEngine = new MultiColumnLayoutEngine(items, (0.0, 0.0), 3)
+        var expectedEngine = new ColumnPacker(items, (0.0, 0.0), 3)
         {
             CurrentMethod = method
         };
         var expected = expectedEngine.Solve(150.0);
 
-        var engine = new MultiColumnLayoutEngine(items, (0.0, 0.0), 3);
+        var engine = new ColumnPacker(items, (0.0, 0.0), 3);
 
         // Act
         var actual = engine.Solve(150.0, method);
@@ -42,7 +42,7 @@ public class MultiColumnLayoutEngineExtensionsTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var engine = new MultiColumnLayoutEngine(items, (0.0, 0.0), 3)
+        var engine = new ColumnPacker(items, (0.0, 0.0), 3)
         {
             CurrentMethod = before
         };
@@ -60,7 +60,7 @@ public class MultiColumnLayoutEngineExtensionsTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var engine = new MultiColumnLayoutEngine(items, (0.0, 0.0), 3)
+        var engine = new ColumnPacker(items, (0.0, 0.0), 3)
         {
             CurrentMethod = Method.DynamicProgramming
         };
@@ -79,7 +79,7 @@ public class MultiColumnLayoutEngineExtensionsTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var engine = new MultiColumnLayoutEngine(items, (0.0, 0.0), 3);
+        var engine = new ColumnPacker(items, (0.0, 0.0), 3);
 
         // Act
         var count = engine.ItemCount;
@@ -94,7 +94,7 @@ public class MultiColumnLayoutEngineExtensionsTests
     {
         // Arrange
         var items = new List<(double Width, double Height)>();
-        var engine = new MultiColumnLayoutEngine(items, (0.0, 0.0), 3);
+        var engine = new ColumnPacker(items, (0.0, 0.0), 3);
 
         // Act
         var count = engine.ItemCount;
@@ -109,7 +109,7 @@ public class MultiColumnLayoutEngineExtensionsTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var engine = new MultiColumnLayoutEngine(items, (0.0, 0.0), 3);
+        var engine = new ColumnPacker(items, (0.0, 0.0), 3);
 
         // Act
         var count = engine.ColumnCount;
@@ -124,7 +124,7 @@ public class MultiColumnLayoutEngineExtensionsTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var engine = new MultiColumnLayoutEngine(items, (0.0, 0.0), 3);
+        var engine = new ColumnPacker(items, (0.0, 0.0), 3);
 
         // Act
         engine.Solve(1.0); // 最大アイテム幅を下回るため単列配置へフォールバックする
@@ -140,7 +140,7 @@ public class MultiColumnLayoutEngineExtensionsTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var engine = new MultiColumnLayoutEngine(items, (0.0, 0.0), 3);
+        var engine = new ColumnPacker(items, (0.0, 0.0), 3);
 
         // Act
         engine.Solve(150.0);
@@ -157,7 +157,7 @@ public class MultiColumnLayoutEngineExtensionsTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var engine = new MultiColumnLayoutEngine(items, (0.0, 0.0), 3);
+        var engine = new ColumnPacker(items, (0.0, 0.0), 3);
 
         // Act
         var count = engine.IterationCount;
@@ -172,7 +172,7 @@ public class MultiColumnLayoutEngineExtensionsTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var engine = new MultiColumnLayoutEngine(items, (0.0, 0.0), 3);
+        var engine = new ColumnPacker(items, (0.0, 0.0), 3);
 
         // Act
         engine.Solve(150.0, Method.BinarySearch);

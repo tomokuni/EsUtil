@@ -6,11 +6,11 @@
 
 - [1. 前提条件](#1-前提条件)
 - [2. 公開 API](#2-公開-api)
-  - [2.1 `MultiColumnLayoutEngine`](#21-multicolumnlayoutengine)
-  - [2.2 `MultiColumnLayoutEngine.Method`](#22-multicolumnlayoutenginemethod)
-  - [2.3 `MultiColumnLayoutEngine.BinarySearchOptions`](#23-multicolumnlayoutenginebinarysearchoptions)
-  - [2.4 `MultiColumnLayoutEngine.MetadataKey`](#24-multicolumnlayoutenginemetadatakey)
-  - [2.5 `MultiColumnLayoutEngineExtensions`](#25-multicolumnlayoutengineextensions)
+  - [2.1 `ColumnPacker`](#21-columnpacker)
+  - [2.2 `ColumnPacker.Method`](#22-columnpackermethod)
+  - [2.3 `ColumnPacker.BinarySearchOptions`](#23-columnpackerbinarysearchoptions)
+  - [2.4 `ColumnPacker.MetadataKey`](#24-columnpackermetadatakey)
+  - [2.5 `ColumnPackerExtensions`](#25-columnpackerextensions)
 - [3. 契約（利用者が守る・受け取る値）](#3-契約利用者が守る受け取る値)
 - [4. 使用例](#4-使用例)
 - [5. 制限事項](#5-制限事項)
@@ -26,13 +26,13 @@
 
 名前空間とアセンブリ名は `EsUtil.Feature.MultiColumn` です。
 
-### 2.1 `MultiColumnLayoutEngine`
+### 2.1 `ColumnPacker`
 
 アイテムの集合と余白を保持し、指定した幅の上限でレイアウトを解きます。
 
 | メンバー | 内容 |
 | --- | --- |
-| `MultiColumnLayoutEngine(IReadOnlyList<(double Width, double Height)> items, (double Row, double Column) space, int columnLimit)` | アイテム・行間と列間の余白・列数の上限を渡して生成します。 |
+| `ColumnPacker(IReadOnlyList<(double Width, double Height)> items, (double Row, double Column) space, int columnLimit)` | アイテム・行間と列間の余白・列数の上限を渡して生成します。 |
 | `(double UsedWidth, double MinHeight) Solve(double widthLimit)` | 幅の上限を渡して解きます。 `UsedWidth` は実際に使った幅、`MinHeight` は最小化された最大列高さです。 |
 | `bool IsValidWidth(double widthLimit)` | 幅の上限が「最も広いアイテム + 余白」を下回るか（＝1 列でしか並べられないか）を返します。 |
 | `(double UsedWidth, double MinHeight) SolveSingleColumnLayout()` | 1 列で並べたときの結果を返します。 |
@@ -46,7 +46,7 @@
 | `string GetCurrentStrategyName()` | 現在の算法の名前（`Greedy` / `DynamicProgramming` / `BinarySearch`）を返します。 |
 | `int? GetBinarySearchIterationCount()` | 直前の二分探索の反復回数を返します（二分探索を使っていない場合は null）。 |
 
-### 2.2 `MultiColumnLayoutEngine.Method`
+### 2.2 `ColumnPacker.Method`
 
 使う算法です。
 
@@ -56,7 +56,7 @@
 | `Greedy` | 貪欲法。 高速（O(n × m)）ですが最適解を保証しません。 |
 | `BinarySearch` | 二分探索。 貪欲法の結果を上限に、達成できる最大列高さを二分探索します（既定）。 |
 
-### 2.3 `MultiColumnLayoutEngine.BinarySearchOptions`
+### 2.3 `ColumnPacker.BinarySearchOptions`
 
 二分探索の調整値です（`readonly record struct`）。
 
@@ -67,7 +67,7 @@
 | `Epsilon` / `MaxIterations` / `LowerBoundRatio` | 各値です。 |
 | `void IsValid()` | 値が範囲内か検証します（範囲外は `ArgumentOutOfRangeException`）。 |
 
-### 2.4 `MultiColumnLayoutEngine.MetadataKey`
+### 2.4 `ColumnPacker.MetadataKey`
 
 算法が返す補足情報のキーです。
 
@@ -76,9 +76,9 @@
 | `StrategyName` | 使った算法の名前。 |
 | `BinarySearchIterationCount` | 二分探索の反復回数。 |
 
-### 2.5 `MultiColumnLayoutEngineExtensions`
+### 2.5 `ColumnPackerExtensions`
 
-`MultiColumnLayoutEngine` のインスタンスへ、C# 14 の拡張メンバーで追加される API です（`using EsUtil.Feature.MultiColumn;` だけで使えます）。
+`ColumnPacker` のインスタンスへ、C# 14 の拡張メンバーで追加される API です（`using EsUtil.Feature.MultiColumn;` だけで使えます）。
 
 | メンバー | 内容 |
 | --- | --- |
@@ -101,7 +101,7 @@
 using EsUtil.Feature.MultiColumn;
 
 var items = new (double Width, double Height)[] { (120, 40), (120, 80), (120, 56) };
-var engine = new MultiColumnLayoutEngine(items, (8.0, 8.0), columnLimit: 10);
+var engine = new ColumnPacker(items, (8.0, 8.0), columnLimit: 10);
 
 var (usedWidth, minHeight) = engine.Solve(400.0);
 foreach (var (start, end) in engine.GetLastColumnSegments())

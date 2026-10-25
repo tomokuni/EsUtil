@@ -13,7 +13,8 @@
   - **`EsUtil.Feature.MultiColumn`**: 複数のアイテムを複数列へ並べ、**最大列高さを最小化**する UI 非依存の計算層（動的計画法・貪欲法・二分探索）。 旧 `EsUtil.Algorithm` の `MultiColumnLayoutEngine`（旧パッケージ ID）を改名しました（**NuGet の ID が変わります**）。
   - **`EsUtil.Feature.ZenHan`**: 全角・半角・ひらがな・カタカナ・記号の相互変換（定義は CSV から T4 で生成）。 旧 `EsUtil.Text` の `ZenHanConverter`（旧パッケージ ID）を改名しました（**NuGet の ID が変わります**）。
   - **`EsUtil.Ui.WinUI3.MultiColumn`**: 上記の計算を使う WinUI 3 のパネル（`ItemsSource` と直接の子を同時に並べる）。 旧 `EsUtil.WinUI3.Controls` の `MultiColumnPanel`（旧パッケージ ID）を改名しました（**NuGet の ID が変わります**）。
-  - **パッケージ名（アセンブリ名）は名前空間と同じにしました**（`EsUtil.Feature.MultiColumn` / `EsUtil.Feature.ZenHan` / `EsUtil.Ui.WinUI3.MultiColumn`）。 型名（`MultiColumnLayoutEngine` / `ZenHanConverter` / `MultiColumnPanel`）をそのままパッケージ名にすると、**名前空間のセグメントと型名が一致**して配下から型を参照できなくなる（`MA0049`。 CS0118）ため、パッケージ名は機能名、型名は実装の名前です。
+  - **パッケージ名（アセンブリ名）は名前空間と同じにしました**（`EsUtil.Feature.MultiColumn` / `EsUtil.Feature.ZenHan` / `EsUtil.Ui.WinUI3.MultiColumn`）。 型名（`ColumnPacker` / `ZenHanConverter` / `MultiColumnPanel`）をそのままパッケージ名にすると、**名前空間のセグメントと型名が一致**して配下から型を参照できなくなる（`MA0049`。 CS0118）ため、パッケージ名は機能名、型名は実装の名前です。
+  - **型名を `ColumnPacker` にしました**（旧 `MultiColumnLayoutEngine`）。 名前空間が `EsUtil.Feature.MultiColumn` なので `MultiColumn` の重複を避け、規約の接尾辞表へ `Packer`（制約の下で要素を箱へ詰める計算）を追加しました。 拡張メンバーのクラスは `ColumnPackerExtensions` です。
   - **UI 層が層を持たない機能パッケージを参照できる**ようにしました（`DEP0005` の許可を追加）。
   - 変換定義の生成物（`Generated.cs`）は CSV から機械的に作られるため、`CA1052` / `CA1707` / `IDE0055` / `MA0048` をファイル スコープで無効にし、付録 A へ理由付きで載せました。
 - `EsUtil.Ui.AvaloniaUI.ColorComboBox`: 色名・16 進コードの入力とカラーピッカー（`ColorView` の Flyout）を統合した色選択コントロール。

@@ -1,6 +1,6 @@
 namespace EsUtil.Feature.MultiColumn;
 
-public partial class MultiColumnLayoutEngine
+public partial class ColumnPacker
 {
 
     /// <summary><b>使用するレイアウトアルゴリズムを指定する列挙型</b></summary>

@@ -3,7 +3,7 @@ using EsUtil.Feature.MultiColumn.Internal;
 namespace EsUtil.Feature.MultiColumn;
 
 
-public partial class MultiColumnLayoutEngine
+public partial class ColumnPacker
 {
     /// <summary><b>スタックアロケーションの閾値（この要素以下は stackalloc を使用）</b></summary>
     internal const int STACKALLOC_THRESHOLD = 32;
@@ -70,7 +70,7 @@ public partial class MultiColumnLayoutEngine
     /// <param name="space">行間スペース (Row) と列間スペース (Column)（非負）</param>
     /// <param name="columnLimit">使用可能な列数の上限（デフォルト: 10、正の値）</param>
     /// <exception cref="ArgumentException">パラメータが無効な場合に発生</exception>
-    public MultiColumnLayoutEngine(
+    public ColumnPacker(
         IReadOnlyList<(double Width, double Height)> items,
         (double Row, double Column) space,
         int columnLimit = 10)

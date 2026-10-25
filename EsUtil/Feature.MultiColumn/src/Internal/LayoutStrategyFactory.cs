@@ -1,4 +1,4 @@
-using static EsUtil.Feature.MultiColumn.MultiColumnLayoutEngine;
+using static EsUtil.Feature.MultiColumn.ColumnPacker;
 
 namespace EsUtil.Feature.MultiColumn.Internal;
 
@@ -62,7 +62,7 @@ internal sealed class LayoutStrategyFactory(
     /// GetStrategy() で使用するアルゴリズムを指定します。<br/>
     /// デフォルトは BinarySearch です。<br/>
     /// </remarks>
-    public MultiColumnLayoutEngine.Method CurrentMethod { get; set; } = MultiColumnLayoutEngine.Method.BinarySearch;
+    public ColumnPacker.Method CurrentMethod { get; set; } = ColumnPacker.Method.BinarySearch;
 
     /// <summary><b>BinarySearch 用のオプションを取得または設定します（遅延初期化）</b></summary>
     /// <remarks>
@@ -78,7 +78,7 @@ internal sealed class LayoutStrategyFactory(
         get
         {
             // BinarySearchOptions が未初期化の場合、デフォルト値を設定する
-            _bSearchOptions ??= MultiColumnLayoutEngine.BinarySearchOptions.Default;
+            _bSearchOptions ??= ColumnPacker.BinarySearchOptions.Default;
             return _bSearchOptions.Value;
         }
         set
@@ -110,9 +110,9 @@ internal sealed class LayoutStrategyFactory(
         // CurrentMethod に応じて対応する Strategy を取得または作成する
         return CurrentMethod switch
         {
-            MultiColumnLayoutEngine.Method.DynamicProgramming => GetOrCreateDPStrategy(),
-            MultiColumnLayoutEngine.Method.Greedy => GetOrCreateGreedyStrategy(),
-            MultiColumnLayoutEngine.Method.BinarySearch => GetOrCreateBinarySearchStrategy(),
+            ColumnPacker.Method.DynamicProgramming => GetOrCreateDPStrategy(),
+            ColumnPacker.Method.Greedy => GetOrCreateGreedyStrategy(),
+            ColumnPacker.Method.BinarySearch => GetOrCreateBinarySearchStrategy(),
             _ => throw new ArgumentException($"Invalid method: {CurrentMethod}", nameof(CurrentMethod))
         };
     }

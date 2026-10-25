@@ -1,6 +1,6 @@
 using Xunit;
 
-using static EsUtil.Feature.MultiColumn.MultiColumnLayoutEngine;
+using static EsUtil.Feature.MultiColumn.ColumnPacker;
 
 namespace EsUtil.Feature.MultiColumn.Tests;
 
@@ -17,7 +17,7 @@ public class ILayoutStrategyTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         const double widthLimit = 100.0;
 
         // Act
@@ -41,7 +41,7 @@ public class ILayoutStrategyTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 3);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 3);
         const double widthLimit = 150.0;
 
         // Act
@@ -65,7 +65,7 @@ public class ILayoutStrategyTests
     {
         // Arrange
         var items = new List<(double Width, double Height)>();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10);
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10);
         const double widthLimit = 100.0;
 
         // Act
@@ -88,7 +88,7 @@ public class ILayoutStrategyTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10)
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10)
         {
             CurrentMethod = method
         };
@@ -108,7 +108,7 @@ public class ILayoutStrategyTests
     {
         // Arrange
         var items = TestHelper.GetStandardTestItems();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 3)
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 3)
         {
             CurrentMethod = Method.BinarySearch
         };
@@ -128,7 +128,7 @@ public class ILayoutStrategyTests
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
-        var layout = new MultiColumnLayoutEngine(items, (0.0, 0.0), columnLimit: 10)
+        var layout = new ColumnPacker(items, (0.0, 0.0), columnLimit: 10)
         {
             CurrentMethod = Method.Greedy
         };
