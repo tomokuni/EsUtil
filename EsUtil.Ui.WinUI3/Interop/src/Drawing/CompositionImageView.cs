@@ -58,6 +58,10 @@ public sealed partial class CompositionImageView : Grid
         // スプライトは自動では大きさを持たない（0x0 のままでは何も表示されない）。
         // 割り当てられた大きさへ常に追従させる（SetBounds を呼ばずに領域いっぱいへ敷く使い方を許す）
         SizeChanged += (_, e) => ApplySize(e.NewSize.Width, e.NewSize.Height);
+
+        // スプライトは XAML のツリーへ載る前でも設定できるが、**載る前の子ビジュアルは合成されない**
+        // ことがあるため、読み込み時にも大きさを設定し直す（実測 2026-10-25: オーバーレイの背景画像が出なかった）
+        Loaded += (_, _) => ApplySize(ActualWidth, ActualHeight);
     }
 
     /// <summary>表示する画像を取得または設定する。</summary>

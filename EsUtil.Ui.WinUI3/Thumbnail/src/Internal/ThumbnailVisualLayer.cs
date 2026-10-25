@@ -97,7 +97,11 @@ internal sealed partial class ThumbnailVisualLayer : Canvas
         }
 
         var scaling = pixelToDip > 0 ? 1 / pixelToDip : 1;
-        var bands = shadow.BuildDeviceBands(rect.X * scaling, rect.Y * scaling, rect.Width * scaling, rect.Height * scaling, scaling);
+
+        // BuildDeviceBands の入力は DIP、出力は物理ピクセルである（IThumbnailShadowPlan の契約）。
+        // 入力へ倍率を掛けると影だけが画面外へ飛ぶ（実測 2026-10-25: 一覧の影が大きな四角として
+        // サムネイルの左上へずれて表示された）
+        var bands = shadow.BuildDeviceBands(rect.X, rect.Y, rect.Width, rect.Height, scaling);
 
         EnsureShadowBands(bands.Count);
         for (var i = 0; i < _shadowBands.Count; i++)

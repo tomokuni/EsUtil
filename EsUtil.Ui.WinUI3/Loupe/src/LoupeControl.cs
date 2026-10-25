@@ -431,17 +431,16 @@ public sealed partial class LoupeControl : Canvas
     /// </remarks>
     private double ApplyClientPixelScaling()
     {
-        var resolved = DpiScaler.ResolveClientScale(
-            XamlRoot?.RasterizationScale ?? ClientToPixelScaling, ActualWidth, ClientToPixelScaling);
-
+        // ルートの拡大率をそのまま使う（DIP → 物理ピクセルの倍率そのものである）。
+        // 以前は ResolveClientScale へ (拡大率, 実際の幅) を渡していたため「拡大率 ÷ 幅」が倍率になり、
+        // 1.25 / 160 = 0.0078 → 下限の 0.1 へ丸められて**拡大画像が 10 倍**に表示されていた（実測 2026-10-25）
+        var resolved = DpiScaler.NormalizeScaling(XamlRoot?.RasterizationScale ?? ClientToPixelScaling);
         if (resolved == ClientToPixelScaling)
         {
             return ClientToPixelScaling;
         }
 
         ClientToPixelScaling = resolved;
-
-        // 保持値の補正（範囲外は安全域へ）を通した値を返す（計算に使う値と保持値を一致させる）
         return ClientToPixelScaling;
     }
     /// <summary>描画計画を解決し、<see cref="DrawPlanResolver"/> を適用する（同じ入力では再解決しない）。</summary>

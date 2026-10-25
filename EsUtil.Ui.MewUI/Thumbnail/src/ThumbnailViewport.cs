@@ -40,6 +40,26 @@ internal sealed class ThumbnailViewport : Control
             return;
         }
 
+        // 描画コンテキストはウィンドウ絶対座標である（要素の左上は (0, 0) ではない）。
+        // 原点を自領域の左上へ移さないと、一覧のすべてのサムネイルがウィンドウの左上へ重なって描かれる
+        // （実測 2026-10-25）。 兄弟の描画へ漏らさないよう必ず戻す
+        context.Save();
+        context.Translate(Bounds.X, Bounds.Y);
+        try
+        {
+            RenderCore(context, plan);
+        }
+        finally
+        {
+            context.Restore();
+        }
+    }
+
+    /// <summary>背景・影・画像を描画する（原点は自領域の左上）。</summary>
+    /// <param name="context">描画先のコンテキスト。</param>
+    /// <param name="plan">描画計画。</param>
+    private void RenderCore(IGraphicsContext context, ThumbnailDrawPlan plan)
+    {
         // 背景（ホバー・選択の帯）
         if (plan.BackgroundArgb != 0)
         {
