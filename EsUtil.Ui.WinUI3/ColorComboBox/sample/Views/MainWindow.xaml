@@ -22,6 +22,11 @@
                 <ComboBox x:Name="SortMode" MinWidth="120" />
             </StackPanel>
 
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="入力欄の表記" Width="120" VerticalAlignment="Center" />
+                <ComboBox x:Name="TextFormat" MinWidth="120" />
+            </StackPanel>
+
             <TextBlock Text="プレビュー（枠線 = 1 番目 / 背景 = 2 番目の色）" FontSize="11" />
             <Border x:Name="Preview" Height="64" BorderThickness="1" BorderBrush="#FF808080" />
 

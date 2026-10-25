@@ -17,7 +17,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.22621.0`（Windows App SDK 1.x） |
-| 色名と色文字列 | `EsUtil.Platform.Core` の `Palette` |
+| 色名と色文字列 | `EsUtil.Platform.Core` の `Palette`（`ColorNames` / `ColorString` / `ColorValidation` / `ColorEntry` / `ColorSortMode` / `ColorTextFormat`） |
 
 ## 2. 公開 API
 
@@ -26,7 +26,8 @@
 | メンバー | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
 | `SelectedColor` | `string` | `#FFFFFFFF` | 選択中の色（保存値）。 色名や `+{n}%` を設定すると正規化される |
-| `ColorSortMode` | `ColorSortMode`（コア） | `ByHue` | 一覧の並び順 |
+| `ColorSortMode` | `ColorSortMode`（コア） | `ByHue` | 一覧の並び順（`ByName` / `ByHue`） |
+| `TextFormat` | `ColorTextFormat`（コア） | `NameWithAlpha` | 入力欄の表記（`NameWithAlpha` = `{色名}+{%}` / `HexCode` = `#AARRGGBB`）。 設定すると入力欄とツールチップの表記が切り替わる |
 | `HasValidationError` | `bool`（取得のみ） | `false` | 現在の入力が無効か |
 | `ValidationErrorMessage` | `string?`（取得のみ） | `null` | 無効な場合の理由 |
 | `Log` | `ILogger` | `NullLogger` | 変更の記録先 |
@@ -53,6 +54,7 @@ var color = new ColorComboBoxControl
 {
     SelectedColor = EsColor.ToArgbHex("Red"),
     ColorSortMode = ColorSortMode.ByName,
+    TextFormat = ColorTextFormat.HexCode,               // 入力欄を #AARRGGBB で表示する
     Log = loggerFactory.CreateLogger("ColorComboBox"),
 };
 color.SelectedColorChanged += (_, _) => settings.CaptureBorderColor = color.SelectedColor;
@@ -60,7 +62,7 @@ color.SelectedColorChanged += (_, _) => settings.CaptureBorderColor = color.Sele
 
 ## 4. 座標系と単位
 
-寸法はすべて DIP です（スウォッチ 16、入力欄の最小幅 120）。 Flyout の配置は WinUI が決めます。
+寸法はすべて DIP です（スウォッチ 16、入力欄の最小幅 120、▼ と … の区画幅 26、区切りの垂直線 1 ピクセル）。 Flyout（一覧・カラーピッカー）の配置は WinUI が決めます。 一覧とカラーピッカーの Flyout は `ShouldConstrainToRootBounds = false` でウィンドウの外へ出られるようにしています。
 
 ## 5. 制限事項
 

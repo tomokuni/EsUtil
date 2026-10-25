@@ -72,6 +72,18 @@ public sealed partial class MainWindow : Window
             }
         };
 
+        TextFormat.Items.Add("色名 + 不透明度");
+        TextFormat.Items.Add("#AARRGGBB");
+        TextFormat.SelectedIndex = 0;
+        TextFormat.SelectionChanged += (_, _) =>
+        {
+            var format = TextFormat.SelectedIndex == 1 ? ColorTextFormat.HexCode : ColorTextFormat.NameWithAlpha;
+            foreach (var control in _controls)
+            {
+                control.TextFormat = format;
+            }
+        };
+
         UpdateStatus();
     }
 

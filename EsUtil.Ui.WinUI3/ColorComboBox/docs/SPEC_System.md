@@ -30,14 +30,14 @@ WinUI 3 の要素だけで色選択の UI を組み立て、**色名・色文字
 ```mermaid
 graph TD
   UI["ColorComboBoxControl（WinUI 3）"] --> Core["Palette（Platform.Core）"]
-  UI --> Win["WinUI の要素（TextBox / ListView / Flyout / ColorPicker）"]
+  UI --> Win["WinUI の要素（Border / TextBox / Button / ListView / Flyout / ColorPicker）"]
   Core --> Names["ColorNames（Windows 標準の色名）"]
   Core --> Str["ColorString（解析・整形）"]
   Core --> Val["ColorValidation（妥当性）"]
 ```
 
-- **UI 層が持つもの**: 要素の組み立て、入力と状態の同期、Flyout の開閉、`SelectedColorChanged` の発火。
-- **コアが持つもの**: 受理する入力、保存値と表示の形式、色名の表、並び順、妥当性の判定。
+- **UI 層が持つもの**: 要素の組み立て（外周の 1 つの枠・薄い区切り線）、入力と状態の同期、Flyout の開閉、ツールチップ（`ToolTipService`）、`SelectedColorChanged` の発火。
+- **コアが持つもの**: 受理する入力、保存値と表示の形式（`ColorTextFormat`）、色名の表、並び順、妥当性の判定。
 
 ## 4. 例外処理ポリシー
 
@@ -47,7 +47,7 @@ graph TD
 
 | 型 | 役割 |
 | --- | --- |
-| `ColorComboBoxControl` | 公開 API。 入力・一覧・ピッカーの 3 経路を `SelectedColor` へ集約する |
+| `ColorComboBoxControl` | 公開 API。 入力・一覧・ピッカーの 3 経路を `SelectedColor` へ集約する（一覧とピッカーはどちらも `Flyout`。 `ShouldConstrainToRootBounds = false` でウィンドウの外へ出られる） |
 | `LogMessage` | 変更の記録（`Setting: SelectedColor <旧> → <新>`） |
 
 ## 6. 依存関係

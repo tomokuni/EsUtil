@@ -26,11 +26,28 @@ public sealed partial class ColorComboBoxControl : Grid
     /// <summary>スウォッチの一辺（DIP）。</summary>
     private const double SwatchSize = 16.0;
 
-    /// <summary>スウォッチと入力欄の左端・文字との間の余白（DIP）。</summary>
+    /// <summary>スウォッチと枠・文字との間の余白（DIP）。</summary>
     private const double SwatchGap = 6.0;
+
+    /// <summary>区切りの垂直線の幅（DIP）。</summary>
+    private const double SeparatorWidth = 1.0;
+
+    /// <summary>区切りの垂直線の上下の余白（DIP。 枠の内側に収める）。</summary>
+    private const double SeparatorMargin = 5.0;
+
+    /// <summary>▼ と … の区画の幅（DIP）。</summary>
+    private const double SegmentWidth = 26.0;
 
     /// <summary>テキスト入力の最小幅（DIP）。</summary>
     private const double TextBoxMinWidth = 120.0;
+
+    /// <summary>枠の色（半透明の灰色。 明色・暗色のどちらのテーマでも見える）。</summary>
+    private static readonly Windows.UI.Color s_borderColor =
+        Windows.UI.Color.FromArgb(0x80, 0x80, 0x80, 0x80);
+
+    /// <summary>区切りの色（枠より薄い）。</summary>
+    private static readonly Windows.UI.Color s_separatorColor =
+        Windows.UI.Color.FromArgb(0x40, 0x80, 0x80, 0x80);
 
     /// <summary>現在の色を示すスウォッチ。</summary>
     private readonly Border _swatch;
@@ -59,7 +76,6 @@ public sealed partial class ColorComboBoxControl : Grid
         IsAlphaTextInputVisible = true,
     };
 
-    /// <summary>一覧のポップアップ。</summary>
     /// <summary>一覧のポップアップ（アプリのウィンドウ外へはみ出してよい）。</summary>
     private readonly Flyout _listFlyout = new()
     {
@@ -69,7 +85,6 @@ public sealed partial class ColorComboBoxControl : Grid
         ShouldConstrainToRootBounds = false,
     };
 
-    /// <summary>ピッカーのポップアップ。</summary>
     /// <summary>ピッカーのポップアップ（アプリのウィンドウ外へはみ出してよい。 スクロールさせない）。</summary>
     private readonly Flyout _pickerFlyout = new()
     {
@@ -99,14 +114,19 @@ public sealed partial class ColorComboBoxControl : Grid
     /// <summary>一覧の並び順。</summary>
     private ColorSortMode _colorSortMode = ColorSortMode.ByHue;
 
+    /// <summary>テキスト部の表記。</summary>
+    private ColorTextFormat _textFormat = ColorTextFormat.NameWithAlpha;
+
     /// <summary>選択中の色（保存値）が変わったときに発生する。</summary>
     public event EventHandler? SelectedColorChanged;
 
     /// <summary>コントロールを生成する。</summary>
     public ColorComboBoxControl()
     {
-        // テキスト部（スウォッチを含む）・一覧ボタン・ピッカーボタンを隙間なく並べる（1 つの入力欄に見せる）
+        // テキスト部（スウォッチを含む）・▼・… を隙間なく並べ、区切りは薄い垂直線で表す
         ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         ColumnSpacing = 0;
@@ -120,6 +140,9 @@ public sealed partial class ColorComboBoxControl : Grid
             VerticalAlignment = VerticalAlignment.Center,
             Background = new SolidColorBrush(Colors.White),
         };
+        // 入力欄は枠を持たない（枠は本コントロールの外周が 1 つだけ持つ）
+        _text.BorderThickness = new Thickness(0);
+        _text.Background = new SolidColorBrush(Colors.Transparent);
         _text.TextChanged += OnTextChanged;
         _text.LostFocus += OnTextLostFocus;
 
@@ -134,8 +157,11 @@ public sealed partial class ColorComboBoxControl : Grid
             }
 
             _textPaddingApplied = true;
+
+            // 左の余白は「スウォッチの左余白 + スウォッチ + 文字との間隔」で**置き換える**
+            // （テーマの既定値へ足すと間隔が広すぎる。 実測 2026-10-25）。 上下・右はテーマの既定値を保つ
             var padding = _text.Padding;
-            _text.Padding = new Thickness(padding.Left + (SwatchGap * 2) + SwatchSize, padding.Top, padding.Right, padding.Bottom);
+            _text.Padding = new Thickness((SwatchGap * 2) + SwatchSize, padding.Top, padding.Right, padding.Bottom);
         };
 
         // スウォッチは入力欄の内側へ重ねる（同じセルに置き、入力欄の背面に敷く）
@@ -147,13 +173,28 @@ public sealed partial class ColorComboBoxControl : Grid
         SetColumn(textArea, 0);
         Children.Add(textArea);
 
+        var separator1 = CreateSeparator();
+        SetColumn(separator1, 1);
+        Children.Add(separator1);
+
+        StyleSegmentButton(_listButton);
         _listButton.Click += (_, _) => _listFlyout.ShowAt(_listButton);
-        SetColumn(_listButton, 1);
+        SetColumn(_listButton, 2);
         Children.Add(_listButton);
 
+        var separator2 = CreateSeparator();
+        SetColumn(separator2, 3);
+        Children.Add(separator2);
+
+        StyleSegmentButton(_pickerButton);
         _pickerButton.Click += (_, _) => ShowPicker();
-        SetColumn(_pickerButton, 2);
+        SetColumn(_pickerButton, 4);
         Children.Add(_pickerButton);
+
+        // 外周の枠（全体を 1 つのコントロールに見せる）
+        BorderBrush = new SolidColorBrush(s_borderColor);
+        BorderThickness = new Thickness(1);
+        CornerRadius = new CornerRadius(4);
 
         _list.SelectionChanged += OnListSelectionChanged;
         _listFlyout.Content = new ScrollViewer { Content = _list, MaxHeight = 360 };
@@ -189,6 +230,23 @@ public sealed partial class ColorComboBoxControl : Grid
         }
     }
 
+    /// <summary>テキスト部の表記を取得または設定する。</summary>
+    /// <value>色名 + 不透明度（既定）またはカラーコード。 入力欄は編集できるため、表記と異なる形の入力も受理する。</value>
+    public ColorTextFormat TextFormat
+    {
+        get => _textFormat;
+        set
+        {
+            if (_textFormat == value)
+            {
+                return;
+            }
+
+            _textFormat = value;
+            ApplyColor(_selectedColor, raiseChanged: false);
+        }
+    }
+
     /// <summary>バリデーション エラーがあるかを取得する。</summary>
     /// <value>現在の入力が無効な場合 true。</value>
     public bool HasValidationError { get; private set; }
@@ -218,6 +276,28 @@ public sealed partial class ColorComboBoxControl : Grid
     }
 
     /// <summary>ピッカーのポップアップを組み立てる。</summary>
+    /// <summary>区切りの垂直線を生成する。</summary>
+    /// <returns>枠より薄い垂直線（上下に余白を取り、枠の内側へ収める）。</returns>
+    private static Border CreateSeparator() => new()
+    {
+        Width = SeparatorWidth,
+        Background = new SolidColorBrush(s_separatorColor),
+        Margin = new Thickness(0, SeparatorMargin, 0, SeparatorMargin),
+        VerticalAlignment = VerticalAlignment.Stretch,
+    };
+
+    /// <summary>区画のボタンを枠・背景なしの外観にする。</summary>
+    /// <param name="button">対象のボタン。</param>
+    /// <remarks>外周の枠と区切りの垂直線だけで 1 つの入力欄に見せる（ボタン自身の枠は消す）。</remarks>
+    private static void StyleSegmentButton(Button button)
+    {
+        button.Width = SegmentWidth;
+        button.BorderThickness = new Thickness(0);
+        button.CornerRadius = new CornerRadius(0);
+        button.Background = new SolidColorBrush(Colors.Transparent);
+        button.Padding = new Thickness(0);
+        button.VerticalAlignment = VerticalAlignment.Stretch;
+    }
     /// <summary>ピッカーのポップアップの表示スタイルを作る（高さの上限を外し、スクロールさせない）。</summary>
     /// <returns>FlyoutPresenter のスタイル。</returns>
     /// <remarks>
@@ -232,6 +312,8 @@ public sealed partial class ColorComboBoxControl : Grid
         style.Setters.Add(new Setter(ScrollViewer.VerticalScrollModeProperty, ScrollMode.Disabled));
         return style;
     }
+
+    /// <summary>ピッカーのポップアップを組み立てる。</summary>
     private void BuildPickerFlyout()
     {
         var ok = new Button { Content = "OK" };
@@ -265,7 +347,14 @@ public sealed partial class ColorComboBoxControl : Grid
         _applying = true;
         try
         {
-            _text.Text = ColorString.ToDisplayText(normalized);
+            _text.Text = ColorString.ToText(normalized, _textFormat);
+
+            // スウォッチとテキスト部のツールチップは 2 行（色名+不透明度 / カラーコード）を出す
+            var tooltip = string.Concat(
+                ColorString.ToDisplayText(normalized), Environment.NewLine, ColorString.ToArgbHex(normalized));
+            ToolTipService.SetToolTip(_text, tooltip);
+            ToolTipService.SetToolTip(_swatch, tooltip);
+
             if (ColorString.TryParse(normalized, out var color, out _))
             {
                 _swatch.Background = new SolidColorBrush(ToWinUIColor(color));
