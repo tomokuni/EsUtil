@@ -1,4 +1,4 @@
-namespace EsUtil.Ui.WinUI3.MultiColumn.Sample;
+namespace EsUtil.Ui.WinUI3.ColumnPacking.Sample;
 
 /// <summary>一覧に並べる 1 件分の項目。</summary>
 /// <remarks>

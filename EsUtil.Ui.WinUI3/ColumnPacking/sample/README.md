@@ -1,4 +1,4 @@
-# EsUtil.Ui.WinUI3.MultiColumn サンプルアプリケーション
+# EsUtil.Ui.WinUI3.ColumnPacking サンプルアプリケーション
 
 ## 目次 <!-- omit from toc -->
 
@@ -13,7 +13,7 @@
 
 ## 1. 概要
 
-`EsUtil.Ui.WinUI3.MultiColumn` の使い方を**動くアプリ**として確認するためのサンプルです（WinUI 3 / アンパッケージ）。
+`EsUtil.Ui.WinUI3.ColumnPacking` の使い方を**動くアプリ**として確認するためのサンプルです（WinUI 3 / アンパッケージ）。
 
 | 示すこと | 内容 |
 | --- | --- |
@@ -21,18 +21,18 @@
 | 配置の制御 | 列の上限・行間・列間・項目数をスライダーで変える |
 | 順序の制御 | 「ItemsSource を先に置く」で並び順が変わる |
 | 結果の公開 | レイアウト結果（使用幅・最大列高さ・列数・列の区切り）をデバッグ表示で読む |
-| 派生 | `MultiColumnPanelDebugText`（パネルを継承し、結果を画面へ重ねる） |
+| 派生 | `ColumnPackingPanelDebugText`（パネルを継承し、結果を画面へ重ねる） |
 
 ## 2. 実行方法
 
 ```powershell
-dotnet run --project EsUtil.Ui.WinUI3/MultiColumn/sample/EsUtil.Ui.WinUI3.MultiColumn.Sample.csproj
+dotnet run --project EsUtil.Ui.WinUI3/ColumnPacking/sample/EsUtil.Ui.WinUI3.ColumnPacking.Sample.csproj
 ```
 
 **アンパッケージ + 自己完結**で動かすため、対象アーキテクチャを明示しています（既定は `win-x64`。 `-r win-arm64` 等で上書きできます）。
 
 ```powershell
-dotnet run --project EsUtil.Ui.WinUI3/MultiColumn/sample/EsUtil.Ui.WinUI3.MultiColumn.Sample.csproj -r win-x64
+dotnet run --project EsUtil.Ui.WinUI3/ColumnPacking/sample/EsUtil.Ui.WinUI3.ColumnPacking.Sample.csproj -r win-x64
 ```
 
 ## 3. 操作方法
@@ -63,7 +63,7 @@ sample/
 ├── SampleItem.cs                           一覧に並べる項目
 ├── Helper.cs                               デバッグ表示を祖先のパネルへ取り付ける補助
 ├── FrameworkElementExtensions.cs           内側の大きさ・余白の表示用の書式
-├── MultiColumnPanelDebugText.cs            パネルを継承したデバッグ表示
+├── ColumnPackingPanelDebugText.cs          パネルを継承したデバッグ表示
 └── app.manifest                            DPI 認識と対応 OS の宣言
 ```
 
@@ -76,7 +76,7 @@ sample/
 
 ## 7. 拡張例（派生クラス）
 
-`MultiColumnPanelDebugText` は `MultiColumnPanel` を継承し、レイアウト結果（`LayoutMinHeight` など）を読んで表示するだけの例です。
+`ColumnPackingPanelDebugText` は `ColumnPackingPanel` を継承し、レイアウト結果（`LayoutMinHeight` など）を読んで表示するだけの例です。
 表示の要素は**自分の子ではなく祖先のパネルへ追加**します（自分の子にすると配置の対象になり、結果が変わってしまいます）。
 
 ## 8. ドキュメント

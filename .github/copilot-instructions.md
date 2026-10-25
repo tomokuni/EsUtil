@@ -52,7 +52,7 @@
 | マーキー（コア / 提示層 / UI） | `EsUtil.Feature.Marquee.Core` / `.Presenter` / `EsUtil.Ui.<UI>.Marquee` |
 | サムネイル一覧（コア / 提示層 / UI） | `EsUtil.Feature.Thumbnail.Core` / `.Presenter` / `EsUtil.Ui.<UI>.Thumbnail` |
 | 複数列の配置（計算のみ） | `EsUtil.Feature.ColumnPacking` |
-| 複数列の配置（WinUI 3 のパネル） | `EsUtil.Ui.WinUI3.MultiColumn`（計算は `EsUtil.Feature.ColumnPacking`） |
+| 複数列の配置（WinUI 3 のパネル） | `EsUtil.Ui.WinUI3.ColumnPacking`（計算は `EsUtil.Feature.ColumnPacking`） |
 | 全角・半角・かなの変換 | `EsUtil.Feature.ZenHan` |
 
 - **`<UI>` は `AvaloniaUI` / `MewUI` / `WinUI3` / `WinForms`** である（UI 層は UI ごとのソリューションへ分かれる）。

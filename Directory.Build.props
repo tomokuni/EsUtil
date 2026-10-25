@@ -34,9 +34,9 @@
     <EsUtil_Ui_MewUI_ColorComboBox_Version>0.1.6</EsUtil_Ui_MewUI_ColorComboBox_Version>
     <EsUtil_Ui_WinUI3_Interop_Version>0.1.9</EsUtil_Ui_WinUI3_Interop_Version>
     <EsUtil_Ui_WinForms_Interop_Version>0.1.8</EsUtil_Ui_WinForms_Interop_Version>
-    <EsUtil_Feature_ColumnPacking_Version>0.1.3</EsUtil_Feature_ColumnPacking_Version>
+    <EsUtil_Feature_ColumnPacking_Version>0.1.4</EsUtil_Feature_ColumnPacking_Version>
     <EsUtil_Feature_ZenHan_Version>0.1.1</EsUtil_Feature_ZenHan_Version>
-    <EsUtil_Ui_WinUI3_MultiColumn_Version>0.1.2</EsUtil_Ui_WinUI3_MultiColumn_Version>
+    <EsUtil_Ui_WinUI3_ColumnPacking_Version>0.1.3</EsUtil_Ui_WinUI3_ColumnPacking_Version>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -72,7 +72,7 @@
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinForms.Interop'">$(EsUtil_Ui_WinForms_Interop_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.ColumnPacking'">$(EsUtil_Feature_ColumnPacking_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.ZenHan'">$(EsUtil_Feature_ZenHan_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.MultiColumn'">$(EsUtil_Ui_WinUI3_MultiColumn_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.ColumnPacking'">$(EsUtil_Ui_WinUI3_ColumnPacking_Version)</Version>
   </PropertyGroup>
 
   <PropertyGroup>

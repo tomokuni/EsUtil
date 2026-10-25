@@ -6,7 +6,7 @@
     <UseWinUI>true</UseWinUI>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
-    <RootNamespace>EsUtil.Ui.WinUI3.MultiColumn.Sample</RootNamespace>
+    <RootNamespace>EsUtil.Ui.WinUI3.ColumnPacking.Sample</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- アンパッケージ（MSIX を使わない）で実行するため、パッケージ化せず Windows App SDK を同封する -->
@@ -29,7 +29,7 @@
 
   <ItemGroup>
     <!-- サンプルの対象（依存するレイアウト計算は推移参照で解決する） -->
-    <ProjectReference Include="..\src\EsUtil.Ui.WinUI3.MultiColumn.csproj" />
+    <ProjectReference Include="..\src\EsUtil.Ui.WinUI3.ColumnPacking.csproj" />
   </ItemGroup>
 
 </Project>

@@ -5,9 +5,9 @@ namespace EsUtil.Feature.ColumnPacking.Tests;
 
 
 
-#region MultiColumnLayoutTest
+#region ColumnPackingTest
 
-/// <summary>MultiColumnLayout の単体テスト</summary>
+/// <summary>ColumnPacking の単体テスト</summary>
 public class ColumnPackerQualityTests
 {
 
@@ -573,4 +573,4 @@ public class ColumnPackerQualityTests
     #endregion EdgeCaseCombinationTests
 }
 
-#endregion VerticalMultiColumnLayoutTest
+#endregion ColumnPackingTest

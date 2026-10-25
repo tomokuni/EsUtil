@@ -1,6 +1,6 @@
 using Microsoft.UI.Xaml;
 
-namespace EsUtil.Ui.WinUI3.MultiColumn.Sample;
+namespace EsUtil.Ui.WinUI3.ColumnPacking.Sample;
 
 /// <summary>サンプル アプリ（アンパッケージ）のアプリケーション エントリ。</summary>
 /// <remarks>ウィンドウの生成と表示だけを行う（サンプルの内容は <see cref="MainWindow"/> が持つ）。</remarks>

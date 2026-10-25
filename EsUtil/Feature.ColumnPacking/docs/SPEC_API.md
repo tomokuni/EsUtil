@@ -122,4 +122,4 @@ var optimal = engine.Solve(400.0, Method.DynamicProgramming);
 - **`Solve` はインスタンスの状態を更新します**（直前の結果・キャッシュ）。 同じインスタンスを複数スレッドから同時に使わないでください。
 - **アイテムを差し替える方法はありません**。 アイテムが変わった場合は新しいインスタンスを作ります（計測のキャッシュは `ClearCache` で破棄できます）。
 - **列数は `columnLimit` を超えません**が、幅の上限が足りない場合は列数が減ります（1 列になることもあります）。
-- **本ライブラリは描画を行いません**。 返した矩形を UI のパネルへ反映するのは利用側です（例: [`EsUtil.Ui.WinUI3.MultiColumn`](../../../EsUtil.Ui.WinUI3/MultiColumn/README.md)）。
+- **本ライブラリは描画を行いません**。 返した矩形を UI のパネルへ反映するのは利用側です（例: [`EsUtil.Ui.WinUI3.ColumnPacking`](../../../EsUtil.Ui.WinUI3/ColumnPacking/README.md)）。

@@ -5,7 +5,7 @@ using Windows.Foundation;
 using EsUtil.Feature.ColumnPacking;
 using static EsUtil.Feature.ColumnPacking.ColumnPacker;
 
-namespace EsUtil.Ui.WinUI3.MultiColumn;
+namespace EsUtil.Ui.WinUI3.ColumnPacking;
 
 /// <summary><b>垂直方向にアイテムを複数列配置し、高さを自動計算するカスタムパネル</b></summary>
 /// <remarks>
@@ -14,7 +14,7 @@ namespace EsUtil.Ui.WinUI3.MultiColumn;
 /// <br/>
 /// 【特徴】<br/>
 /// • DualSourceItemsPanel から継承（ItemsControl の ItemsPanel として使用可能）<br/>
-/// • MultiColumnLayout.Solve() の結果を直接反映<br/>
+/// • ColumnPacker.Solve() の結果を直接反映<br/>
 /// • 行間・列間スペースを制御可能な DependencyProperty<br/>
 /// • 3 種類のアルゴリズム（DynamicProgramming/BinarySearch/Greedy）をサポート<br/>
 /// • ベースクラスから継承したデバッグプロパティで実行状態をモニタリング可能<br/>
@@ -34,7 +34,7 @@ namespace EsUtil.Ui.WinUI3.MultiColumn;
 /// • ChildElements プロパティで LINQ Iterator なしの直接イテレーションを使用し、オブジェクト割り当てを削減<br/>
 /// • FrameworkElement のみをフィルタリングして効率的な処理を実現<br/>
 /// </remarks>
-public partial class MultiColumnPanel : DualSourceItemsPanel
+public partial class ColumnPackingPanel : DualSourceItemsPanel
 {
     /// <summary><b>最後に計算したレイアウト結果</b></summary>
     /// <remarks>
@@ -50,7 +50,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
     public static readonly DependencyProperty RowSpaceProperty = DependencyProperty.Register(
         nameof(RowSpace),
         typeof(double),
-        typeof(MultiColumnPanel),
+        typeof(ColumnPackingPanel),
         new PropertyMetadata(8.0, OnLayoutPropertyChanged));
 
     /// <summary><b>列間スペースを指定する DependencyProperty</b></summary>
@@ -60,7 +60,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
     public static readonly DependencyProperty ColumnSpaceProperty = DependencyProperty.Register(
         nameof(ColumnSpace),
         typeof(double),
-        typeof(MultiColumnPanel),
+        typeof(ColumnPackingPanel),
         new PropertyMetadata(8.0, OnLayoutPropertyChanged));
 
     /// <summary><b>最大列数を指定する DependencyProperty</b></summary>
@@ -70,7 +70,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
     public static readonly DependencyProperty ColumnLimitProperty = DependencyProperty.Register(
         nameof(ColumnLimit),
         typeof(int),
-        typeof(MultiColumnPanel),
+        typeof(ColumnPackingPanel),
         new PropertyMetadata(10, OnLayoutPropertyChanged));
 
     /// <summary><b>使用するアルゴリズムを指定する DependencyProperty</b></summary>
@@ -80,7 +80,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
     public static readonly DependencyProperty MethodProperty = DependencyProperty.Register(
         nameof(Method),
         typeof(Method),
-        typeof(MultiColumnPanel),
+        typeof(ColumnPackingPanel),
         new PropertyMetadata(Method.BinarySearch, OnLayoutPropertyChanged));
 
     /// <summary><b>行間スペース（ピクセル）</b></summary>
@@ -129,7 +129,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
     /// </remarks>
     private static void OnLayoutPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        var panel = (MultiColumnPanel)d;
+        var panel = (ColumnPackingPanel)d;
         // レイアウトキャッシュを無効化
         panel.Layout = null;
         // DependencyProperty も null にリセット
@@ -145,7 +145,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
     public static readonly DependencyProperty LayoutUsedWidthProperty = DependencyProperty.Register(
         nameof(LayoutUsedWidth),
         typeof(double?),
-        typeof(MultiColumnPanel),
+        typeof(ColumnPackingPanel),
         new PropertyMetadata(null));
 
     /// <summary><b>最小高さを指定する DependencyProperty</b></summary>
@@ -155,7 +155,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
     public static readonly DependencyProperty LayoutMinHeightProperty = DependencyProperty.Register(
         nameof(LayoutMinHeight),
         typeof(double?),
-        typeof(MultiColumnPanel),
+        typeof(ColumnPackingPanel),
         new PropertyMetadata(null));
 
     /// <summary><b>計算されたレイアウトの列数を指定する DependencyProperty</b></summary>
@@ -165,7 +165,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
     public static readonly DependencyProperty LayoutColumnCountProperty = DependencyProperty.Register(
         nameof(LayoutColumnCount),
         typeof(int?),
-        typeof(MultiColumnPanel),
+        typeof(ColumnPackingPanel),
         new PropertyMetadata(null));
 
     /// <summary><b>計算されたレイアウトの列セグメント情報を指定する DependencyProperty</b></summary>
@@ -175,7 +175,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
     public static readonly DependencyProperty LayoutColumnSegmentsProperty = DependencyProperty.Register(
         nameof(LayoutColumnSegments),
         typeof(string),
-        typeof(MultiColumnPanel),
+        typeof(ColumnPackingPanel),
         new PropertyMetadata(null));
 
     /// <summary><b>使用された幅（ピクセル）</b></summary>
@@ -306,7 +306,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
     /// 【処理フロー】<br/>
     /// 1. 子要素がない場合：(0, 0) を返す<br/>
     /// 2. 各子要素を無限サイズで測定（自然サイズ取得）<br/>
-    /// 3. VerticalMultiColumnLayout.Solve() で最適レイアウトを計算<br/>
+    /// 3. ColumnPacking.Solve() で最適レイアウトを計算<br/>
     /// 4. 計算結果から必要なサイズ（MinHeight, UsedWidth）を返す<br/>
     /// <br/>
     /// 【統合キャッシング】<br/>
@@ -331,7 +331,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
         foreach (var el in childElements) el.Measure(inf);
         var items = childElements.Select(e => (e.DesiredSize.Width, e.DesiredSize.Height)).ToArray();
 
-        // VerticalMultiColumnLayout インスタンスを作成
+        // ColumnPacking インスタンスを作成
         Layout ??= new ColumnPacker(items, (RowSpace, ColumnSpace), ColumnLimit);
         Layout.CurrentMethod = Method;
 
@@ -340,7 +340,7 @@ public partial class MultiColumnPanel : DualSourceItemsPanel
             ? double.PositiveInfinity
             : availableSize.Width;
 
-        // VerticalMultiColumnLayout で最適レイアウトを計算
+        // ColumnPacking で最適レイアウトを計算
         var (UsedWidth, MinHeight) = Layout.Solve(widthLimit);
         Debug.WriteLine($"(UsedWidth, MinHeight): ({UsedWidth}, {MinHeight})");
 

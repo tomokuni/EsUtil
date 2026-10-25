@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace EsUtil.Ui.WinUI3.MultiColumn.Tests;
+namespace EsUtil.Ui.WinUI3.ColumnPacking.Tests;
 
 /// <summary><see cref="DualSourceItemsManager"/> の単体テスト。</summary>
 public class DualSourceItemsManagerTests

@@ -1,4 +1,4 @@
-# EsUtil.Ui.WinUI3.MultiColumn システム仕様書
+# EsUtil.Ui.WinUI3.ColumnPacking システム仕様書
 
 WinUI 3 のパネルとして、複数列の配置を要素へ反映する層の内部仕様です。
 
@@ -38,7 +38,7 @@ WinUI 3 のパネルとして、複数列の配置を要素へ反映する層の
 
 ```mermaid
 flowchart TB
-    PANEL["MultiColumnPanel<br/>（Measure/Arrange と結果の公開）"]
+    PANEL["ColumnPackingPanel<br/>（Measure/Arrange と結果の公開）"]
     BASE["DualSourceItemsPanel<br/>（ItemsSource と直接の子）"]
     MGR["DualSourceItemsManager<br/>（子の並べ直し）"]
     ENGINE["EsUtil.Feature.ColumnPacking<br/>（配置の計算）"]
@@ -54,7 +54,7 @@ UI 層は同一 UI の変換ブリッジと、層を持たない機能パッケ�
 ```mermaid
 sequenceDiagram
     participant X as WinUI 3 のレイアウト
-    participant P as MultiColumnPanel
+    participant P as ColumnPackingPanel
     participant E as ColumnPacker
     participant C as 子要素
     X->>P: MeasureOverride(availableSize)
@@ -70,11 +70,11 @@ sequenceDiagram
 ## 4. コンポーネント構成
 
 ```text
-EsUtil.Ui.WinUI3/MultiColumn/
+EsUtil.Ui.WinUI3/ColumnPacking/
 ├── docs/
 ├── sample/
 ├── src/
-│   ├── MultiColumnPanel.cs
+│   ├── ColumnPackingPanel.cs
 │   ├── DualSourceItemsPanel.cs
 │   └── DualSourceItemsManager.cs
 └── tests/
@@ -82,10 +82,10 @@ EsUtil.Ui.WinUI3/MultiColumn/
 
 | コンポーネント | 所在 | 内容 |
 | --- | --- | --- |
-| パネル本体 | `EsUtil.Ui.WinUI3/MultiColumn/src/MultiColumnPanel.cs` | 配置の計算の呼び出し・結果の公開・子の配置 |
-| ItemsSource の管理 | `EsUtil.Ui.WinUI3/MultiColumn/src/DualSourceItemsPanel.cs` | 依存関係プロパティと子の作り直し |
-| 子の並べ直し | `EsUtil.Ui.WinUI3/MultiColumn/src/DualSourceItemsManager.cs` | 直接の子の保存と `ItemsSource` の要素の生成 |
-| サンプル | `EsUtil.Ui.WinUI3/MultiColumn/sample/` | 列数・余白・項目数を変えて確認するアプリ（デバッグ表示の派生クラスを含む） |
+| パネル本体 | `EsUtil.Ui.WinUI3/ColumnPacking/src/ColumnPackingPanel.cs` | 配置の計算の呼び出し・結果の公開・子の配置 |
+| ItemsSource の管理 | `EsUtil.Ui.WinUI3/ColumnPacking/src/DualSourceItemsPanel.cs` | 依存関係プロパティと子の作り直し |
+| 子の並べ直し | `EsUtil.Ui.WinUI3/ColumnPacking/src/DualSourceItemsManager.cs` | 直接の子の保存と `ItemsSource` の要素の生成 |
+| サンプル | `EsUtil.Ui.WinUI3/ColumnPacking/sample/` | 列数・余白・項目数を変えて確認するアプリ（デバッグ表示の派生クラスを含む） |
 
 ## 5. 依存関係
 
@@ -109,4 +109,4 @@ EsUtil.Ui.WinUI3/MultiColumn/
 - **配置の計算を UI 非依存の層へ置く**: 同じ計算を UI ごとに書き直すと、UI によって並びが変わります。 計算を 1 か所に置き、パネルは写すだけにしています。
 - **結果を依存関係プロパティで公開する**: バインディングで表示でき、派生クラスからも読めます（[サンプル](../sample/README.md) のデバッグ表示）。
 - **子の仮想化を行わない**: 配置の計算が「全件の高さ」を必要とするためです（仮想化するには高さの推定が要り、結果が変わります）。
-- **名前空間とアセンブリ名を `EsUtil.Ui.WinUI3.MultiColumn` に揃える**: 型名（`MultiColumnPanel`）をそのままパッケージ名にすると名前空間のセグメントと一致し、配下から型を参照できなくなる（`MA0049`。 `CS0118`）。 そのためパッケージ名は機能名、型名は実装の名前にしています。
+- **名前空間とアセンブリ名を `EsUtil.Ui.WinUI3.ColumnPacking` に揃える**: 型名（`ColumnPackingPanel`）をそのままパッケージ名にすると名前空間のセグメントと一致し、配下から型を参照できなくなる（`MA0049`。 `CS0118`）。 そのためパッケージ名は機能名、型名は実装の名前にしています。

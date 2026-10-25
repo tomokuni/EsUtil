@@ -1,7 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
-namespace EsUtil.Ui.WinUI3.MultiColumn;
+namespace EsUtil.Ui.WinUI3.ColumnPacking;
 
 /// <summary><b>ItemsSource と直接子要素の両方を管理するパネルベースクラス</b></summary>
 /// <remarks>

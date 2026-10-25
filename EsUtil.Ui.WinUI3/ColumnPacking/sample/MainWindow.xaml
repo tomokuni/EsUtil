@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Window
-    x:Class="EsUtil.Ui.WinUI3.MultiColumn.Sample.MainWindow"
+    x:Class="EsUtil.Ui.WinUI3.ColumnPacking.Sample.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:EsUtil.Ui.WinUI3.MultiColumn.Sample"
-    Title="EsUtil.Ui.WinUI3.MultiColumn サンプル">
+    xmlns:local="using:EsUtil.Ui.WinUI3.ColumnPacking.Sample"
+    Title="EsUtil.Ui.WinUI3.ColumnPacking サンプル">
 
     <Grid Padding="12" RowSpacing="8">
         <Grid.Resources>
@@ -36,7 +36,7 @@
         </StackPanel>
 
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-            <local:MultiColumnPanelDebugText x:Name="Panel"
+            <local:ColumnPackingPanelDebugText x:Name="Panel"
                     ColumnLimit="{x:Bind ColumnLimit, Mode=OneWay}"
                     RowSpace="{x:Bind RowSpace, Mode=OneWay}"
                     ColumnSpace="{x:Bind ColumnSpace, Mode=OneWay}"
@@ -50,7 +50,7 @@
                 <Border Background="#FFFFF3E0" BorderBrush="#FFFB8C00" BorderThickness="1" CornerRadius="4" Height="72">
                     <TextBlock Text="直接の子 B" Margin="8,4" VerticalAlignment="Center" />
                 </Border>
-            </local:MultiColumnPanelDebugText>
+            </local:ColumnPackingPanelDebugText>
         </ScrollViewer>
     </Grid>
 </Window>

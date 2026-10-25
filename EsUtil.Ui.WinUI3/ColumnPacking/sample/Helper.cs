@@ -2,7 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 
-namespace EsUtil.Ui.WinUI3.MultiColumn.Sample;
+namespace EsUtil.Ui.WinUI3.ColumnPacking.Sample;
 
 /// <summary>デバッグ表示の要素を画面へ取り付けるための補助。</summary>
 /// <remarks>

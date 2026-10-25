@@ -77,7 +77,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Ui.WinUI3.Loupe`](EsUtil.Ui.WinUI3/Loupe/README.md) | ルーペ（拡大鏡） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Loupe) |
 | [`EsUtil.Ui.WinUI3.Marquee`](EsUtil.Ui.WinUI3/Marquee/README.md) | マーキー（ドラッグ矩形） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Marquee) |
 | [`EsUtil.Ui.WinUI3.Thumbnail`](EsUtil.Ui.WinUI3/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Thumbnail) |
-| [`EsUtil.Ui.WinUI3.MultiColumn`](EsUtil.Ui.WinUI3/MultiColumn/README.md) | 複数列の配置（パネル） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.MultiColumn.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.MultiColumn) |
+| [`EsUtil.Ui.WinUI3.ColumnPacking`](EsUtil.Ui.WinUI3/ColumnPacking/README.md) | 複数列の配置（パネル） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.ColumnPacking.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.ColumnPacking) |
 
 ### 1.5 `EsUtil.Ui.WinForms`（WinForms 版）
 

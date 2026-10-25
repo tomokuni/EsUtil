@@ -3,16 +3,16 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 
-namespace EsUtil.Ui.WinUI3.MultiColumn.Sample;
+namespace EsUtil.Ui.WinUI3.ColumnPacking.Sample;
 
-/// <summary>レイアウト結果を画面へ重ねて表示する <see cref="MultiColumnPanel"/>（サンプル）。</summary>
+/// <summary>レイアウト結果を画面へ重ねて表示する <see cref="ColumnPackingPanel"/>（サンプル）。</summary>
 /// <remarks>
 /// <b>派生の例</b>: コントロールを継承し、レイアウト結果を読むだけで独自の表示を足せます。 結果は読み取り専用の
-/// 依存関係プロパティ（<see cref="MultiColumnPanel.LayoutMinHeight"/> など）として公開されています。<br/>
+/// 依存関係プロパティ（<see cref="ColumnPackingPanel.LayoutMinHeight"/> など）として公開されています。<br/>
 /// <b>表示の置き場所</b>: デバッグ表示の要素は自分の子ではなく、祖先の <see cref="Panel"/> へ追加します
 /// （自分の子にすると列の配置対象になり、レイアウト結果が変わってしまいます）。
 /// </remarks>
-public partial class MultiColumnPanelDebugText : MultiColumnPanel
+public partial class ColumnPackingPanelDebugText : ColumnPackingPanel
 {
     /// <summary>デバッグ表示の内容。</summary>
     private readonly TextBlock _debugText = new()
@@ -26,7 +26,7 @@ public partial class MultiColumnPanelDebugText : MultiColumnPanel
     private readonly Border _debugArea;
 
     /// <summary>デバッグ表示を持つパネルを初期化する。</summary>
-    public MultiColumnPanelDebugText()
+    public ColumnPackingPanelDebugText()
     {
         _debugArea = new Border
         {
@@ -51,7 +51,7 @@ public partial class MultiColumnPanelDebugText : MultiColumnPanel
     public static readonly DependencyProperty DebugTextVisibilityProperty = DependencyProperty.Register(
         nameof(DebugTextVisibility),
         typeof(Visibility),
-        typeof(MultiColumnPanelDebugText),
+        typeof(ColumnPackingPanelDebugText),
         new PropertyMetadata(Visibility.Collapsed, OnDebugTextVisibilityChanged));
 
     /// <summary>デバッグ表示の表示状態を取得または設定する。</summary>
@@ -98,7 +98,7 @@ public partial class MultiColumnPanelDebugText : MultiColumnPanel
     /// <param name="d">変更された要素。</param>
     /// <param name="e">変更の内容。</param>
     private static void OnDebugTextVisibilityChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        => ((MultiColumnPanelDebugText)d)._debugArea.Visibility = (Visibility)e.NewValue;
+        => ((ColumnPackingPanelDebugText)d)._debugArea.Visibility = (Visibility)e.NewValue;
 
     /// <summary>読み込み時にデバッグ表示を祖先へ取り付ける。</summary>
     /// <param name="sender">イベントの送信元。</param>

@@ -108,7 +108,7 @@ EsUtil/Feature.ColumnPacking/
 ## 5. 依存関係
 
 - **EsUtil のパッケージを参照しません**（最下層と同じ扱い）。 外部の NuGet パッケージも参照しません。
-- **利用側**: [`EsUtil.Ui.WinUI3.MultiColumn`](../../../EsUtil.Ui.WinUI3/MultiColumn/README.md) が本パッケージを参照します（同じ計算を UI ごとに書き直さないため）。
+- **利用側**: [`EsUtil.Ui.WinUI3.ColumnPacking`](../../../EsUtil.Ui.WinUI3/ColumnPacking/README.md) が本パッケージを参照します（同じ計算を UI ごとに書き直さないため）。
 - 許可範囲の規則は [`.github/依存関係.md`](../../../.github/依存関係.md)。
 
 ## 6. 例外処理ポリシー

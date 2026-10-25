@@ -1,6 +1,6 @@
-# EsUtil.Ui.WinUI3.MultiColumn
+# EsUtil.Ui.WinUI3.ColumnPacking
 
-![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.MultiColumn.svg)
+![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.ColumnPacking.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(2004)%2B-0078D6)
@@ -16,7 +16,7 @@ WinUI 3 のパネルです。 子要素（および `ItemsSource` から作る�
 
 ```mermaid
 flowchart LR
-    P["EsUtil.Ui.WinUI3.MultiColumn<br/>（WinUI 3 のパネル）"]
+    P["EsUtil.Ui.WinUI3.ColumnPacking<br/>（WinUI 3 のパネル）"]
     E["EsUtil.Feature.ColumnPacking<br/>（配置の計算）"]
     P -->|"幅の上限を渡す"| E
     E -->|"使用幅・最大列高さ・列の区切り"| P
@@ -70,7 +70,7 @@ flowchart LR
 ## 4. インストール
 
 ```powershell
-dotnet add package EsUtil.Ui.WinUI3.MultiColumn
+dotnet add package EsUtil.Ui.WinUI3.ColumnPacking
 ```
 
 依存する配置の計算（`EsUtil.Feature.ColumnPacking`）は推移参照で解決されます。
@@ -79,7 +79,7 @@ dotnet add package EsUtil.Ui.WinUI3.MultiColumn
 
 ```xml
 <Page
-    xmlns:panel="using:EsUtil.Ui.WinUI3.MultiColumn"
+    xmlns:panel="using:EsUtil.Ui.WinUI3.ColumnPacking"
     ...>
     <Page.Resources>
         <DataTemplate x:Key="ItemTemplate" x:DataType="local:SampleItem">
@@ -90,7 +90,7 @@ dotnet add package EsUtil.Ui.WinUI3.MultiColumn
     </Page.Resources>
 
     <ScrollViewer>
-        <panel:MultiColumnPanel
+        <panel:ColumnPackingPanel
             ColumnLimit="4"
             RowSpace="8"
             ColumnSpace="8"
@@ -98,17 +98,17 @@ dotnet add package EsUtil.Ui.WinUI3.MultiColumn
             ItemTemplate="{StaticResource ItemTemplate}">
             <!-- ItemsSource と直接の子の両方を並べられる -->
             <Border Height="56"><TextBlock Text="直接の子" Margin="8,4" /></Border>
-        </panel:MultiColumnPanel>
+        </panel:ColumnPackingPanel>
     </ScrollViewer>
 </Page>
 ```
 
 ```csharp
-using EsUtil.Ui.WinUI3.MultiColumn;
+using EsUtil.Ui.WinUI3.ColumnPacking;
 using Microsoft.UI.Xaml.Controls;
 
 // 既定は二分探索。 最適解が必要なら動的計画法を選ぶ
-var panel = new MultiColumnPanel { ColumnLimit = 4, Method = ColumnPacker.Method.DynamicProgramming };
+var panel = new ColumnPackingPanel { ColumnLimit = 4, Method = ColumnPacker.Method.DynamicProgramming };
 ```
 
 ## 6. 描画動作
@@ -119,7 +119,7 @@ var panel = new MultiColumnPanel { ColumnLimit = 4, Method = ColumnPacker.Method
 
 ## 7. 含まれるもの
 
-`MultiColumnPanel`（パネル本体）と、その基底の `DualSourceItemsPanel`（ItemsSource と直接の子の管理）、`DualSourceItemsManager`（管理の実装）。
+`ColumnPackingPanel`（パネル本体）と、その基底の `DualSourceItemsPanel`（ItemsSource と直接の子の管理）、`DualSourceItemsManager`（管理の実装）。
 
 ## 8. カスタマイズ
 
@@ -127,7 +127,7 @@ var panel = new MultiColumnPanel { ColumnLimit = 4, Method = ColumnPacker.Method
 | --- | --- |
 | 余白・列数・算法を変える | `RowSpace` / `ColumnSpace` / `ColumnLimit` / `Method` を設定します。 |
 | レイアウト結果を表示する | `LayoutMinHeight` / `LayoutUsedWidth` / `LayoutColumnCount` / `LayoutColumnSegments` をバインディングします。 |
-| 独自の表示を足す | `MultiColumnPanel` を継承し、`Layout` を読んで表示を組み立てます（[サンプル](sample/README.md) の `MultiColumnPanelDebugText`）。 |
+| 独自の表示を足す | `ColumnPackingPanel` を継承し、`Layout` を読んで表示を組み立てます（[サンプル](sample/README.md) の `ColumnPackingPanelDebugText`）。 |
 
 ## 9. ログ
 
@@ -153,7 +153,7 @@ var panel = new MultiColumnPanel { ColumnLimit = 4, Method = ColumnPacker.Method
 ## 13. プロジェクト構成
 
 ```text
-EsUtil.Ui.WinUI3/MultiColumn/
+EsUtil.Ui.WinUI3/ColumnPacking/
 ├── docs/
 ├── sample/
 ├── src/

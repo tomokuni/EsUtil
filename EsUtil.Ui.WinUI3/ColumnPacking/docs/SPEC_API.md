@@ -1,12 +1,12 @@
-# EsUtil.Ui.WinUI3.MultiColumn API リファレンス
+# EsUtil.Ui.WinUI3.ColumnPacking API リファレンス
 
-`EsUtil.Ui.WinUI3.MultiColumn` の公開 API です。
+`EsUtil.Ui.WinUI3.ColumnPacking` の公開 API です。
 
 ## 目次 <!-- omit from toc -->
 
 - [1. 前提条件](#1-前提条件)
 - [2. 公開 API](#2-公開-api)
-  - [2.1 `MultiColumnPanel`](#21-multicolumnpanel)
+  - [2.1 `ColumnPackingPanel`](#21-columnpackingpanel)
   - [2.2 `DualSourceItemsPanel`（基底）](#22-dualsourceitemspanel基底)
   - [2.3 `DualSourceItemsManager`](#23-dualsourceitemsmanager)
 - [3. 契約（利用者が守る・受け取る値）](#3-契約利用者が守る受け取る値)
@@ -16,13 +16,13 @@
 ## 1. 前提条件
 
 - **単位**: すべて DIP です（WinUI 3 の座標系）。
-- **名前空間**: `EsUtil.Ui.WinUI3.MultiColumn`（アセンブリ名も同じ）。 型 `MultiColumnPanel` はパッケージ名と一致しません（名前空間のセグメントと型名を一致させない規則 `MA0049` のためです）。
+- **名前空間**: `EsUtil.Ui.WinUI3.ColumnPacking`（アセンブリ名も同じ）。 型 `ColumnPackingPanel` はパッケージ名と一致しません（名前空間のセグメントと型名を一致させない規則 `MA0049` のためです）。
 - **ItemsSource**: `ItemsSource` を使う場合は `ItemTemplate` も設定してください（どちらかが null の間は要素を作りません）。
 - **レイアウトの実行**: 配置は WinUI 3 のレイアウト パス（`Measure` / `Arrange`）で行います。 パネルを `ScrollViewer` の中に置くと、幅の上限が確定してから計算されます。
 
 ## 2. 公開 API
 
-### 2.1 `MultiColumnPanel`
+### 2.1 `ColumnPackingPanel`
 
 `DualSourceItemsPanel` を継承した、複数列の配置を行うパネルです。
 
@@ -85,10 +85,10 @@
 
 ```xml
 <ScrollViewer>
-    <panel:MultiColumnPanel ColumnLimit="3" RowSpace="8" ColumnSpace="8"
+    <panel:ColumnPackingPanel ColumnLimit="3" RowSpace="8" ColumnSpace="8"
                             ItemsSource="{x:Bind Items}" ItemTemplate="{StaticResource ItemTemplate}">
         <Border Height="64"><TextBlock Text="固定の要素" Margin="8,4" /></Border>
-    </panel:MultiColumnPanel>
+    </panel:ColumnPackingPanel>
 </ScrollViewer>
 ```
 

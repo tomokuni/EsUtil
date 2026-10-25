@@ -6,7 +6,7 @@ using static EsUtil.Feature.ColumnPacking.ColumnPacker;
 namespace EsUtil.Feature.ColumnPacking.Tests;
 
 /// <summary>
-/// MultiColumnLayout 詳細ベンチマーク<br/>
+/// ColumnPacking 詳細ベンチマーク<br/>
 /// 
 /// 【計測項目】<br/>
 /// - double型対応<br/>
@@ -44,7 +44,7 @@ public class Benchmark
         // 【エンコーディング修正】PowerShell での文字化け対策
         System.Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-        Console.WriteLine("VerticalMultiColumnLayout - ベンチマーク");
+        Console.WriteLine("ColumnPacking - ベンチマーク");
         Console.WriteLine(new string('=', 80));
         Console.WriteLine();
 
@@ -280,7 +280,7 @@ public class Benchmark
         var path = Path.Combine(dir, $"benchmark_{typeName}_report.txt");
 
         using var writer = new StreamWriter(path, false, Encoding.UTF8);
-        writer.WriteLine($"VerticalMultiColumnLayout - {typeName}型 詳細ベンチマークレポート");
+        writer.WriteLine($"ColumnPacking - {typeName}型 詳細ベンチマークレポート");
         writer.WriteLine(new string('=', 160));
         writer.WriteLine();
         writer.WriteLine("【実行環境】");

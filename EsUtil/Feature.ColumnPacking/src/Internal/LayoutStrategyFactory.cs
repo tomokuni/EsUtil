@@ -5,7 +5,7 @@ namespace EsUtil.Feature.ColumnPacking.Internal;
 /// <summary><b>Layout Strategy インスタンスを生成する Factory クラス</b></summary>
 /// <remarks>
 /// 【概要】<br/>
-/// MultiColumnLayoutMethod に応じて適切な Strategy インスタンスを生成し、
+/// ColumnPackingMethod に応じて適切な Strategy インスタンスを生成し、
 /// 遅延初期化と ColumnMetricsCache の共有を管理します。<br/>
 /// <br/>
 /// 【ポイント】<br/>

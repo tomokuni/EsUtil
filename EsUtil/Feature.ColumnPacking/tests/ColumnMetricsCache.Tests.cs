@@ -5,7 +5,7 @@ using EsUtil.Feature.ColumnPacking.Internal;
 namespace EsUtil.Feature.ColumnPacking.Tests;
 
 
-/// <summary>MultiColumnLayout の単体テスト</summary>
+/// <summary>ColumnPacking の単体テスト</summary>
 public class ColumnMetricsCacheTests
 {
 

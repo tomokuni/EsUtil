@@ -2,7 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Foundation;
 
-namespace EsUtil.Ui.WinUI3.MultiColumn.Sample;
+namespace EsUtil.Ui.WinUI3.ColumnPacking.Sample;
 
 /// <summary>要素の内側の大きさを求める拡張メソッド（サンプルのデバッグ表示で使う）。</summary>
 internal static class FrameworkElementExtensions

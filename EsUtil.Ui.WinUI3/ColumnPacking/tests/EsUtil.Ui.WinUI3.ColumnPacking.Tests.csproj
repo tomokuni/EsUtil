@@ -5,7 +5,7 @@
     <UseWinUI>true</UseWinUI>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
-    <RootNamespace>EsUtil.Ui.WinUI3.MultiColumn.Tests</RootNamespace>
+    <RootNamespace>EsUtil.Ui.WinUI3.ColumnPacking.Tests</RootNamespace>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\EsUtil.Ui.WinUI3.MultiColumn.csproj" />
+    <ProjectReference Include="..\src\EsUtil.Ui.WinUI3.ColumnPacking.csproj" />
   </ItemGroup>
 
 </Project>

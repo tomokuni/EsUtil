@@ -3,13 +3,13 @@ using System.ComponentModel;
 using System.Globalization;
 using Microsoft.UI.Xaml;
 
-namespace EsUtil.Ui.WinUI3.MultiColumn.Sample;
+namespace EsUtil.Ui.WinUI3.ColumnPacking.Sample;
 
-/// <summary>サンプルのメイン ウィンドウ（<see cref="MultiColumnPanel"/> の使い方を示す）。</summary>
+/// <summary>サンプルのメイン ウィンドウ（<see cref="ColumnPackingPanel"/> の使い方を示す）。</summary>
 /// <remarks>
 /// <b>示すこと</b>: <see cref="DualSourceItemsPanel.ItemsSource"/>（データ）と直接の子（XAML に書いた要素）を
-/// 同時に並べられること、<see cref="MultiColumnPanel.ColumnLimit"/> と余白で配置が変わること、
-/// レイアウト結果（<see cref="MultiColumnPanel.LayoutMinHeight"/> など）が依存関係プロパティとして読めることです。<br/>
+/// 同時に並べられること、<see cref="ColumnPackingPanel.ColumnLimit"/> と余白で配置が変わること、
+/// レイアウト結果（<see cref="ColumnPackingPanel.LayoutMinHeight"/> など）が依存関係プロパティとして読めることです。<br/>
 /// <b>項目の高さ</b>: 高さの違う項目を混ぜ、列ごとの高さの偏りが結果に出るようにしています。
 /// </remarks>
 public sealed partial class MainWindow : Window, INotifyPropertyChanged
