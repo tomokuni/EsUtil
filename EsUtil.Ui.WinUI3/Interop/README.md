@@ -3,11 +3,13 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Interop.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(2004)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
+
+**対応 OS**: 指定なし（`net10.0`。 UI フレームワークの対応 OS に従う）
 
 ## 1. 概要
 

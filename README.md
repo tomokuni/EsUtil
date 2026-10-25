@@ -11,17 +11,14 @@
 ![WinForms](https://img.shields.io/badge/UI-WinForms-512BD4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-複数の Windows デスクトップ アプリで使い回す **UI 非依存の共通基盤** と、**再利用可能な UI コントロール** を提供するライブラリ群です。
+複数の Windows デスクトップ アプリで使い回す **UI 非依存の共通基盤** と、**再利用可能な UI コントロール** を提供するライブラリ群です。  
 Avalonia UI / MewUI / WinUI 3 / WinForms の 4 つの UI 実装で、同じ計算結果と同じ見た目のコントロールを共有できます。
 
-各プロジェクトは **NuGet パッケージ**として出力します。
-リポジトリ内のプロジェクト同士は**ローカル フィード**（`.nupkg/`。 リポジトリへはコミットしません）で相互参照し、利用側のアプリは `PackageReference` で参照します。
-
-**ドキュメントと例外メッセージは日本語です**（利用者・開発者ともに日本語を前提とします。 識別子とログの接頭辞は英語です）。
+各プロジェクトは **NuGet パッケージ**として出力します。  
 
 ## 1. ソリューションとプロジェクト
 
-リポジトリ直下のフォルダが**ソリューション フォルダ**であり、その直下のフォルダが**プロジェクト フォルダ**です（プロジェクトはソリューションの中にだけ置きます）。
+リポジトリ直下のフォルダが**ソリューション フォルダ**であり、その直下のフォルダが**プロジェクト フォルダ**です（プロジェクトはソリューションの中にだけ置きます）。  
 **使い方（インストール・クイックスタート）は各プロジェクトの `README.md` が持ちます**（版は nuget.org のバッジで示します。 公開前は「not found」と表示されます）。
 
 **層の帰属（Core / Presenter / UI のどれに置くか）は [`EsUtil/README.md`](EsUtil/README.md) が、参照の許可範囲は [`.github/依存関係.md`](.github/依存関係.md) が単一所有します**（本節は分類だけを示します）。
@@ -105,28 +102,31 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 
 ## 3. 対応フレームワークと Native AOT
 
-| 区分 | 対象フレームワーク |
-| --- | --- |
-| 共通基盤・機能層（`EsUtil.Platform.Core*` / `EsUtil.Feature.*`） | `net10.0`（`Platform.Core` は OS 依存の実装を含むため Windows 10 1809 以降） |
-| UI 層（`EsUtil.Ui.*`） | `net10.0` / `net10.0-windows10.0.17763.0`（UI フレームワークの要件に従う） |
+**対象フレームワークと、実行に必要な Windows の下限**です（値の所有者は各 `.csproj` の `<TargetFramework>` / `<SupportedOSPlatformVersion>` と `[SupportedOSPlatform]`。 パッケージの `README.md` も同じ値を書きます）。
 
-- **Native AOT への対応は層によって異なります**（`IsAotCompatible=true` は「そのアセンブリを AOT で発行して動かせる」ことの宣言です。
-  実測 2026-10-24: 各層のサンプルを `dotnet publish -p:PublishAot=true -r win-x64` で発行し、起動を確認）。
+| 区分 | 対象フレームワーク | Windows の下限 | 対象プロジェクト |
+| --- | --- | --- | --- |
+| 共通基盤（可搬） | `net10.0` | **Windows 10 バージョン 1809（ビルド 17763）以降**（Windows 実装と画像の保存/読み込みを使う場合。 可搬な型だけなら指定なし） | `EsUtil.Platform.Core` |
+| 共通基盤（Windows 専用） | `net10.0-windows10.0.17763.0` | Windows 10 バージョン 1809（ビルド 17763）以降 | `EsUtil.Platform.Core.Windows` |
+| 機能層（可搬） | `net10.0` | 指定なし（他 OS でも動く） | `EsUtil.Feature.Loupe.Core` / `.Presenter` / `EsUtil.Feature.Marquee.Core` / `.Presenter` / `EsUtil.Feature.Thumbnail.Presenter` |
+| 機能層（画像の読み込みだけ Windows） | `net10.0` | Windows 10 バージョン 1809（ビルド 17763）以降（`ThumbnailImageLoader`。 WIC を使う） | `EsUtil.Feature.Thumbnail.Core` |
+| Avalonia UI 層 | `net10.0`（`Marquee` だけ `net10.0-windows10.0.17763.0`） | 指定なし（`Marquee` は Windows 10 バージョン 1809（ビルド 17763）以降） | `EsUtil.Ui.AvaloniaUI.*` |
+| MewUI 層 | `net10.0`（`Marquee` だけ `net10.0-windows10.0.17763.0`） | 指定なし（`Marquee` は Windows 10 バージョン 1809（ビルド 17763）以降） | `EsUtil.Ui.MewUI.*` |
+| WinUI 3 層 | `net10.0-windows10.0.22621.0`（`SupportedOSPlatformVersion` = `10.0.19041.0`） | **Windows 10 バージョン 2004（ビルド 19041）以降**（Windows App SDK の下限。 対象フレームワークの 22621 は API 面であり、実行の下限ではない） | `EsUtil.Ui.WinUI3.*` |
+| WinForms 層 | `net10.0-windows10.0.17763.0` | Windows 10 バージョン 1809（ビルド 17763）以降 | `EsUtil.Ui.WinForms.*` |
+
+### 3.1 Native AOT
 
 | 層 | Native AOT | 根拠（実測） |
 | --- | --- | --- |
-| 共通基盤・機能層（`EsUtil.Platform.Core*` / `EsUtil.Feature.*`） | **互換** | Win32 / WIC の呼び出しを **CsWin32 の生成物**（関数ポインター）だけで行う（AOT での動作を `Platform.Core` の仕様書が実測記録） |
-| Avalonia UI 層（Loupe / Marquee / Thumbnail / ColorComboBox） | **互換** | サンプルを AOT で発行し、起動を確認 |
-| MewUI 層（Loupe / Marquee / Thumbnail / ColorComboBox） | **互換** | 同上 |
-| WinUI 3 層（Loupe / Marquee / Thumbnail / ColorComboBox） | **互換** | 同上（Windows App SDK 1.6 以降が Native AOT に対応） |
+| 共通基盤・機能層 | **互換** | Win32 / WIC の呼び出しを **CsWin32 の生成物**（関数ポインター）だけで行う |
+| Avalonia UI 層 | **互換** | サンプルを AOT で発行し、起動を確認 |
+| MewUI 層 | **互換** | 同上 |
+| WinUI 3 層 | **互換** | 同上（Windows App SDK 1.6 以降が Native AOT に対応） |
 | WinForms 層 | **非対応** | **Windows Forms 自体がトリミング/AOT に対応しない**（`PublishAot` は `NETSDK1175` で失敗する） |
 
-- **`IsAotCompatible` を設定するのは AOT で動くことを実測できた層だけです**（設定すると `IsTrimmable` のメタデータが埋め込まれ、消費者へ「トリム/AOT で使える」と宣言することになるため）。 WinForms 層は宣言も解析も付けません（AOT に対応しないため）。
-- **WinUI 3 + Native AOT では managed コレクションを `ItemsSource` に渡せません**（`E_INVALIDARG`。 実測 2026-10-24: `ObservableCollection<string>` / `List<string>` / `string[]` のいずれも失敗し、`Items.Add(文字列)` は成功する。 CsWinRT が AOT で managed オブジェクトの COM ラッパーを作れないため）。 一覧へは 1 件ずつ `Items.Add` で渡してください。
-- **WinUI 3 のサンプルは `EnableMsixTooling=true` を持ちます**（これが無いと `dotnet publish` が自分自身の `.pri` を発行せず、配布物が起動時に `0xC000027B` で終了します）。
 - **言語**: C# 14 / .NET 10。
-- **プラットフォーム**: Windows のみ（`EsUtil.Platform.Core/src/Native/Win` 配下が Win32 / WIC を呼びます。 UI 非依存の計算層は他 OS でも動きます）。
-- シンボル パッケージ（`.snupkg`）を同梱し、SourceLink でリポジトリの該当コミットへ辿れます。
+- **プラットフォーム**: アプリは Windows のみ（`EsUtil.Platform.Core/src/Native/Win` 配下が Win32 / WIC を呼びます）。 可搬な計算層と、Avalonia UI / MewUI の UI 層（`Marquee` を除く）は OS を限定しません。
 
 ## 4. ライセンス
 

@@ -3,7 +3,7 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Marquee.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(2004)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
@@ -61,7 +61,7 @@
 | 項目 | 要件 |
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.22621.0` |
-| OS | Windows 10 ビルド 19041 以降（`Microsoft.UI.Input.InputSystemCursor` を使うため） |
+| 対応 OS | Windows 10 バージョン 2004（ビルド 19041）以降（`Microsoft.UI.Input.InputSystemCursor` を使うため） |
 | UI フレームワーク | WinUI 3（Windows App SDK 1.x。 パッケージ参照 `Microsoft.WindowsAppSDK`） |
 | 描画 | WinUI 3 の要素（`Microsoft.UI.Xaml.Shapes.Rectangle`）と Composition の描画面（SkiaSharp を使わない） |
 | プラットフォーム | x64 / x86 / arm64（アンパッケージで自己完結配置する場合は対象アーキテクチャの明示が必要です） |

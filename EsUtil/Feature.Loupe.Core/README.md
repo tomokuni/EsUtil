@@ -3,10 +3,12 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Loupe.Core.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Portable-6E6E6E)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
+
+**対応 OS**: 指定なし（`net10.0`。 OS 固有の API を使わない）
 
 ルーペ（選択範囲の拡大表示）の **UI 非依存のコア**です。 UI 実装が変わっても同じ計算結果を共有します。
 

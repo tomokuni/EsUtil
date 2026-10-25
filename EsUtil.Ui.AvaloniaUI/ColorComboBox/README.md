@@ -3,7 +3,7 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.ColorComboBox.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Portable-6E6E6E)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![Avalonia](https://img.shields.io/badge/UI-Avalonia-8D46D6)
@@ -54,6 +54,7 @@ Avalonia UI 用の色選択コントロールです。 スウォッチ・色名/
 ## 3. システム要件
 
 - .NET 10
+- **対応 OS**: 指定なし（`net10.0`。 UI フレームワークの対応 OS に従う）
 - Avalonia 12.1 以降
 - C# 14
 

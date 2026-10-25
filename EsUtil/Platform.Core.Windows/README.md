@@ -3,7 +3,7 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Platform.Core.Windows.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1809)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
@@ -64,6 +64,7 @@ using Bitmap back = editableImage.ToDrawingBitmap();
 
 - **Windows のみ**（`System.Drawing.Common` は .NET 7 以降、非 Windows では動作しません）
 - .NET 10 以降
+- **対応 OS**: Windows 10 バージョン 1809（ビルド 17763）以降
 
 ## 6. テスト
 
