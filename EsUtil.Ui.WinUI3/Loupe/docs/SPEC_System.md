@@ -91,7 +91,7 @@ UI 層（WinUI 3 の実装）
 
 | コンポーネント | 責務 | 主な型 |
 | --- | --- | --- |
-| コントロール | 公開プロパティの受付（値の補正と変更ログ）、描画計画の解決とキャッシュ、描画の起動、描画完了の通知 | `LoupeControl` |
+| コントロール | 公開プロパティの受付（値の補正と変更ログ）、描画計画の解決とキャッシュ、描画の起動、描画完了の通知。 **自分の矩形で切り取る**（破線・十字線がルーペの外＝ウィンドウ全体へ出ないようにする） | `LoupeControl` |
 | 表示の実装（内部） | 描画計画（`LoupeDrawPlan`）を要素へ写す。 層の順序は計画に従い、中心座標ラベルも置く。 **層の大きさをルーペの表示サイズへ合わせる**（`Canvas` の子は既定で 0×0 になり、拡大画像の層は自身の大きさで切り取るため、大きさを与えないと画像が 1 枚も描かれない。 実測 2026-10-25） | `LoupeVisualLayer` |
 | 描画完了の通知 | 描画済みのキャンバスと実際に使われた描画計画を渡す | `LoupeRenderedEventArgs` |
 | ログ定義 | 拡大元画像の差し替え、描画の例外、公開 API の例外の出力書式 | `LoupeLogMessage` |
@@ -255,6 +255,7 @@ sequenceDiagram
 | レベル | 出力書式 | 所有者 |
 | --- | --- | --- |
 | Debug | `[Loupe] Setting: Source {前} → {後}` | 本プロジェクトの `LoupeLogMessage` |
+| Trace | `[Loupe] Geometry: display={幅}x{高} (DIP) / pixel={一辺} / scaling={倍率}` | 本プロジェクトの `LoupeLogMessage`（割り当てと面の対応。 DPI の解釈がずれたときの特定用） |
 | Debug | `[Loupe] Setting: {名前} {前} → {後}` | コア（設定値・環境値・拡大中心）と提示層（外観） |
 | Error | `[Loupe] Update exception` | 本プロジェクトの `LoupeLogMessage`（描画の例外） |
 | Error | `[Loupe] {操作} で例外が発生` | 本プロジェクトの `LoupeLogMessage`（公開 API の例外） |

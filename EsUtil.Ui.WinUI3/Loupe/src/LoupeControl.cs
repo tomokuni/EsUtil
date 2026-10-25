@@ -96,6 +96,18 @@ public sealed partial class LoupeControl : Canvas
 
         Children.Add(_visual);
 
+        // **ルーペの矩形で切り取る**。 十字線・枠線・破線は「ルーペの面」の座標で作られるが、
+        // 選択矩形が切り出し領域より大きいと破線は面の外まで伸びる（Canvas は子を切り取らないため、
+        // ウィンドウ全体へ線が描かれる。 実測 2026-10-25）。 ルーペの外へは何も描かない。
+        Clip = new RectangleGeometry();
+        SizeChanged += (_, e) =>
+        {
+            if (Clip is RectangleGeometry clip)
+            {
+                clip.Rect = new Rect(0, 0, e.NewSize.Width, e.NewSize.Height);
+            }
+        };
+
         // レイアウトで大きさが決まった時点で計画を解決し直す。
         // 表示前は ActualWidth が 0 であり、その状態で解決した計画は面（ClientPixelSize）が 1 画素になる。
         // 計画は表示サイズをキーにキャッシュされるため、再解決しないと拡大画像も十字線も 1 画素のまま
@@ -364,6 +376,9 @@ public sealed partial class LoupeControl : Canvas
             // 倍率と表示サイズ（DIP）から描画計画を組み立てる
             var scaling = ApplyClientPixelScaling();
             var plan = ResolvePlan(ActualWidth);
+
+            // 割り当て（DIP）と面（物理ピクセル）の対応を残す（DPI の解釈がずれた場合にログだけで特定できる）
+            Log.LogGeometry(ActualWidth, ActualHeight, plan.ClientPixelSize, plan.ClientToPixelScaling);
 
             // 層の順序と描画内容は LoupeVisualLayer が計画に従って写す
             Background = new SolidColorBrush(ToColor(plan.Appearance.ResolvePasteboardColor()));

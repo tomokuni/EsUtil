@@ -232,6 +232,19 @@ public sealed class ColorComboBoxControl : Grid
         }
     }
 
+    /// <summary>入力欄の文字サイズ（DIP）を取得または設定する。</summary>
+    /// <value>文字サイズ。 <see cref="double.NaN"/>（既定）の場合はテーマの既定（<c>ThemeMetrics.FontSize</c>）を使う。</value>
+    /// <remarks>
+    /// <b>MewUI の文字サイズは継承されない</b>: 他の UI（Avalonia / WinUI 3）は親の <c>FontSize</c> を継承するため
+    /// 周囲の入力欄と同じ大きさになるが、MewUI の要素は自分の値だけを使う。 設定画面のように周囲の入力欄より
+    /// 小さい文字で表示されるのを避けるため、ホストが同じ値を設定できるようにする（実測 2026-10-25）。
+    /// </remarks>
+    public double TextFontSize
+    {
+        get => _text.FontSize;
+        set => _text.FontSize(value);
+    }
+
     /// <summary>バリデーション エラーがあるかを取得する。</summary>
     /// <value>現在の入力が無効な場合 true。</value>
     public bool HasValidationError { get; private set; }

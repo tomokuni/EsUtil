@@ -37,6 +37,14 @@ public sealed partial class CompositionImageView : Grid
     /// <summary>現在のサーフェス（差し替え時に破棄する）。</summary>
     private LoadedImageSurface? _loadedImage;
 
+    /// <summary>サーフェスの読み込み完了を通知する（読み込み前は完了しない）。</summary>
+    /// <remarks>
+    /// <c>LoadedImageSurface</c> は**段階的に復号する**ため、読み込みの途中は縮小された内容が見える<br/>
+    /// （オーバーレイを表示した直後に「画面が小さく出る」のはこのため。 実測 2026-10-25）。<br/>
+    /// ホストは本タスクを待ってから画面内へ移す（途中の内容を見せない）。
+    /// </remarks>
+    private TaskCompletionSource? _sourceReady;
+
     /// <summary>拡大の補間に最近傍を使うかどうか。</summary>
     private bool _useNearestNeighbor = true;
 
@@ -182,6 +190,24 @@ public sealed partial class CompositionImageView : Grid
         ApplySize(bounds.Width, bounds.Height);
     }
 
+    /// <summary>画像（サーフェス）の読み込みが完了するまで待つ。</summary>
+    /// <returns>読み込みの完了（または失敗）で完了するタスク。</returns>
+    /// <remarks>
+    /// 画像が未設定の場合は完了済みのタスクを返す（呼び出し側に分岐を作らない）。<br/>
+    /// <c>LoadedImageSurface</c> は段階的に復号するため、完了前に表示すると縮小された内容が見える。
+    /// </remarks>
+    public Task WaitForSourceReadyAsync()
+        => _sourceReady?.Task ?? Task.CompletedTask;
+
+    /// <summary>サーフェスの読み込み完了を通知する。</summary>
+    /// <param name="sender">イベントの送信元（サーフェス）。</param>
+    /// <param name="args">イベント引数。</param>
+    private void OnLoadCompleted(LoadedImageSurface sender, LoadedImageSourceLoadCompletedEventArgs args)
+    {
+        sender.LoadCompleted -= OnLoadCompleted;
+        _sourceReady?.TrySetResult();
+    }
+
     /// <summary>スプライトの大きさを設定する（表示領域と一致させる）。</summary>
     /// <param name="width">幅（DIP）。</param>
     /// <param name="height">高さ（DIP）。</param>
@@ -217,7 +243,9 @@ public sealed partial class CompositionImageView : Grid
 
         // 以前のサーフェスを破棄してから差し替える（破棄しないと画素が解放されない）
         _loadedImage?.Dispose();
+        _sourceReady = new TaskCompletionSource();
         _loadedImage = LoadedImageSurface.StartLoadFromStream(stream);
+        _loadedImage.LoadCompleted += OnLoadCompleted;
         _brush = compositor.CreateSurfaceBrush(_loadedImage);
         _brush.Stretch = CompositionStretch.Fill;
         _brush.BitmapInterpolationMode = UseNearestNeighbor

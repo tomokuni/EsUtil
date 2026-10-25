@@ -40,6 +40,36 @@ internal static partial class LoupeLogMessage
     internal static void LogOperationError(this ILogger logger, Exception exception, string operation)
         => logger.LogOperationErrorCore(exception, Prefix, operation);
 
+    /// <summary>表示の寸法（割り当て・面・倍率）を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="displayWidth">割り当てられた幅（DIP）。</param>
+    /// <param name="displayHeight">割り当てられた高さ（DIP）。</param>
+    /// <param name="pixelSize">描画に使う一辺（物理ピクセル）。</param>
+    /// <param name="scaling">表示 DIP → 物理ピクセルの倍率。</param>
+    /// <remarks>
+    /// LogLevel: Trace<br/>
+    /// 出力書式: <c>[Loupe] Geometry: display={DisplayWidth}x{DisplayHeight} (DIP) / pixel={PixelSize} / scaling={Scaling}</c><br/>
+    /// 接頭辞は既定値が <c>[Loupe]</c> であり、<c>Prefix</c> で設定できる。<br/>
+    /// <b>割り当て（DIP）と面（物理ピクセル）の対応を 1 行で残す</b>ため、DPI の解釈がずれたときに<br/>
+    /// ログだけで原因を特定できる（実測 2026-10-25: ルーペだけが実寸の 0.8 倍で表示される事象の調査用）。
+    /// </remarks>
+    public static void LogGeometry(this ILogger logger, double displayWidth, double displayHeight, int pixelSize, double scaling)
+        => logger.LogGeometryCore(Prefix, displayWidth, displayHeight, pixelSize, scaling);
+
+    /// <summary>表示の寸法を記録する（生成メソッド）。</summary>
+    /// <remarks>
+    /// LogLevel: Trace<br/>
+    /// 出力書式: <c>[Loupe] Geometry: display={DisplayWidth}x{DisplayHeight} (DIP) / pixel={PixelSize} / scaling={Scaling}</c><br/>
+    /// </remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="displayWidth">割り当てられた幅（DIP）。</param>
+    /// <param name="displayHeight">割り当てられた高さ（DIP）。</param>
+    /// <param name="pixelSize">描画に使う一辺（物理ピクセル）。</param>
+    /// <param name="scaling">表示 DIP → 物理ピクセルの倍率。</param>
+    [LoggerMessage(LogLevel.Trace, "{Prefix} Geometry: display={DisplayWidth}x{DisplayHeight} (DIP) / pixel={PixelSize} / scaling={Scaling}")]
+    private static partial void LogGeometryCore(this ILogger logger, string prefix, double displayWidth, double displayHeight, int pixelSize, double scaling);
+
     /// <summary>拡大元画像の変更ログ（同値の再設定では出力しない）。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="oldValue">変更前の拡大元画像（未設定は null）。</param>

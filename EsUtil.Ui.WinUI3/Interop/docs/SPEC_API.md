@@ -36,7 +36,7 @@ WinUI 3 と EsUtil の型の相互変換が提供する公開 API です。 使�
 | 型 | 内容 |
 | --- | --- |
 | `Imaging.TextMeasure` | 文字列の実寸（WinUI 3 のテキスト計測） |
-| `Drawing.CompositionImageView` | コアの画像を Composition で描く表示ビュー |
+| `Drawing.CompositionImageView` | コアの画像を Composition で描く表示ビュー。 `WaitForSourceReadyAsync()` は**サーフェスの読み込み完了**を待つ（`LoadedImageSurface` は段階的に復号するため、完了前に表示すると縮小された内容が見える） |
 | `Drawing.RectShapeLayer` | 矩形（角丸を含む）を Composition の図形として描く |
 | `Drawing.DrawList` / `DrawRect` / `DrawRoundRect` | 描く図形の一覧（UI 非依存の値） |
 | `Drawing.BmpStreamBuilder` | BMP をメモリ上で組み立てる（ICO の中身） |
