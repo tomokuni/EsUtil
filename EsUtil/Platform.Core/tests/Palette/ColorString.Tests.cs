@@ -81,6 +81,22 @@ public class ColorStringTests
         => Assert.Equal(string.Empty, ColorString.ToDisplayText(null));
 
     [Theory]
+    [InlineData("Red", ColorTextFormat.NameWithAlpha, "Red")]
+    [InlineData("#80FF0000", ColorTextFormat.NameWithAlpha, "Red+50%")]
+    [InlineData("#80FF0000", ColorTextFormat.HexCode, "#80FF0000")]
+    [InlineData("#336699+75%", ColorTextFormat.HexCode, "#BF336699")]
+    internal void ToText_指定の表記へ変換する(string text, ColorTextFormat format, string expected)
+        => Assert.Equal(expected, ColorString.ToText(text, format));
+
+    [Fact]
+    internal void ToText_解析できない場合は入力をそのまま返す()
+        => Assert.Equal("NotAColor", ColorString.ToText("NotAColor", ColorTextFormat.HexCode));
+
+    [Fact]
+    internal void ToText_nullは空文字を返す()
+        => Assert.Equal(string.Empty, ColorString.ToText(null, ColorTextFormat.HexCode));
+
+    [Theory]
     [InlineData("Red", "#FFFF0000")]
     [InlineData("Red+50%", "#80FF0000")]
     [InlineData("#FF0000", "#FFFF0000")]

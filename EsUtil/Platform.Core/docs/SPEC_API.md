@@ -69,7 +69,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` / `EsRectIntJsonConverter` | DIP 相当の幾何値型と領域の規則、整数矩形の JSON の保存形式 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI・ポイント換算の純粋計算（OS を呼ばない） |
 | `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `EsImageQuality` / `EsDitherMode` / `EsImageFileExtensions` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、縮小と減色の品質、描画色の判定、一覧に並べる画像の拡張子の判定 |
-| `.Palette` | `ColorNames` / `ColorEntry` / `ColorString` / `ColorValidation` / `ColorValidationState` / `ColorSortMode` | 色名（Windows 標準）の表と色名 ⇔ 色の相互参照、色文字列（色名・16 進・不透明度 %）の解析と整形、入力の妥当性、一覧の並び順 |
+| `.Palette` | `ColorNames` / `ColorEntry` / `ColorString` / `ColorValidation` / `ColorValidationState` / `ColorSortMode` / `ColorTextFormat` | 色名（Windows 標準）の表と色名 ⇔ 色の相互参照、色文字列（色名・16 進・不透明度 %）の解析と整形、入力の妥当性、一覧の並び順、入力欄の表記 |
 | `.Caching` | `CapacityLimitedCache<TKey, TValue>` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（汎用の単一所有者。 UI コントロールは複製せず本型を使う） |
 | `.Svg` | `SvgIconSource` / `SvgIcon` / `SvgPathParser` / `SvgPathFigure` / `SvgPathSegment` / `SvgPathRasterizer` | SVG アイコンの読み込み元・解析結果・パス データの解析・図形の画素への展開 |
 | `.Native.Win.Wic` | `WinWicFactory`（COM の生成・解放・画素の入出力）/ `WinWicFormats`（OS のエンコーダーから作る形式の一覧）/ `WinWicImageCodec`（符号化・復号） | WIC（windowscodecs）の実装 |
@@ -1008,7 +1008,8 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 | `ColorNames`（static class） | 色名（Windows 標準の `System.Drawing.KnownColor`。 システム色は除く）→ 色 の表と、色 → 色名 の逆引き（`TryGet` / `IsDefined` / `FindName` / `ByName`） |
 | `ColorEntry`（record） | 一覧の 1 件（`Name` / `Color`）。 色名順（`All`）と色相順（`AllByHue`）を持ち、`GetSorted(ColorSortMode)` で選ぶ |
 | `ColorSortMode`（enum） | 並び順（`ByName` / `ByHue`） |
-| `ColorString`（static class） | 色文字列の解析（`TryParse`）・整形（`Format`）・表示（`ToDisplayText`）・保存値への正規化（`ToArgbHex`） |
+| `ColorTextFormat`（enum） | 入力欄の表記（`NameWithAlpha` = 色名 + 不透明度 / `HexCode` = `#AARRGGBB`） |
+| `ColorString`（static class） | 色文字列の解析（`TryParse`）・整形（`Format`）・表示（`ToDisplayText`）・保存値への正規化（`ToArgbHex`）・表記の切替（`ToText`） |
 | `ColorValidation`（static class） / `ColorValidationState`（record struct） | 入力の妥当性（`IsValid`）、エラー状態の決定（`Determine`）、フォーカスを失ったときの復帰判定（`ShouldRecover`） |
 
 **色名の出所は Windows 標準です**（`KnownColor` から作り、`ActiveBorder` などのシステム色は除く）。 UI フレームワークの色名の表を使わないため、4 つの UI 版で同じ名前・同じ並びになります。 リフレクションを使わないため Native AOT でもそのまま動きます。
@@ -1018,11 +1019,12 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 | 形式 | 例 | 用途 |
 | --- | --- | --- |
 | 保存値 | `#AARRGGBB`（アルファが先頭） | 設定ファイル・`SelectedColor`（`ToArgbHex` の出力） |
-| 画面表示 | `{色名または #RRGGBB}+{不透明度%}`（100% なら `+…` を省く） | ドロップダウンの表示（`ToDisplayText` / `Format` の出力） |
+| 画面表示 | `{色名または #RRGGBB}+{不透明度%}`（100% なら `+…` を省く） | ドロップダウンと入力欄の表示（`ToDisplayText` / `ToText` / `Format` の出力） |
+| 入力欄の表記切替 | `ColorTextFormat.NameWithAlpha` → 画面表示 / `ColorTextFormat.HexCode` → `#AARRGGBB` | 色選択コントロールの `TextFormat`（`ToText` の出力） |
 
 **受理する入力**: 色名 / `#RRGGBB` / `#AARRGGBB`（`#` は省略可）/ それらに `+{0〜100}%` を付けた形。 3・4 桁の 16 進や `+50`（% なし）は**拒否します**（緩い解釈をしない）。 不透明度はアルファへ合成し、`50%` は誤差の出ない整数計算で `128`（`#80`）になります。
 
-**窓口**: `using EsUtil.Platform.Core;` だけで `EsColor`（`TryParse` / `ToArgbHex` / `ToDisplayText` / `Format` / `IsDefinedName` / `TryParseName` / `FindName` / `GetPalette` / `IsValid`）を使えます。
+**窓口**: `using EsUtil.Platform.Core;` だけで `EsColor`（`TryParse` / `ToArgbHex` / `ToDisplayText` / `ToText` / `Format` / `IsDefinedName` / `TryParseName` / `FindName` / `GetPalette` / `IsValid`）を使えます。
 
 ```csharp
 if (EsColor.TryParse("#80FF0000", out var color, out var opacity))
@@ -1031,6 +1033,7 @@ if (EsColor.TryParse("#80FF0000", out var color, out var opacity))
 }
 
 var text = EsColor.ToDisplayText("#80FF0000");   // "Red+50%"
+var code = EsColor.ToText("#80FF0000", ColorTextFormat.HexCode);   // "#80FF0000"
 var hex = EsColor.ToArgbHex("Red+50%");          // "#80FF0000"
 foreach (var entry in EsColor.GetPalette(ColorSortMode.ByHue)) { /* Name と Color */ }
 ```

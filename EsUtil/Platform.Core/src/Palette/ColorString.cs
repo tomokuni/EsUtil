@@ -82,6 +82,18 @@ public static class ColorString
     public static string ToDisplayText(string? text)
         => string.IsNullOrWhiteSpace(text) ? text ?? string.Empty : s_displayTextCache.GetOrAdd(text);
 
+    /// <summary>色文字列を指定の表記へ変換する（入力欄へ出す文字列）。</summary>
+    /// <param name="text">保存値（例: <c>#80FF0000</c>）。 null 可。</param>
+    /// <param name="format">表記（色名 + 不透明度 / カラーコード）。</param>
+    /// <returns>表記へ変換した文字列。 解析できない場合は入力をそのまま返す。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">定義されていない表記の場合。</exception>
+    public static string ToText(string? text, ColorTextFormat format) => format switch
+    {
+        ColorTextFormat.NameWithAlpha => ToDisplayText(text),
+        ColorTextFormat.HexCode => ToArgbHex(text),
+        var other => throw new ArgumentOutOfRangeException(nameof(format), other, "定義されていない表記です。"),
+    };
+
     /// <summary>任意の色文字列を <c>#AARRGGBB</c>（アルファが先頭）へ正規化する。</summary>
     /// <param name="text">入力（例: <c>Red</c> / <c>Red+50%</c> / <c>#FF0000</c>）。 null 可。</param>
     /// <returns><c>#AARRGGBB</c> の保存値（例: <c>#80FF0000</c>）。 解析できない場合は入力をそのまま返す。</returns>

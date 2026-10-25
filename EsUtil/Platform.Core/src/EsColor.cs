@@ -6,7 +6,7 @@ namespace EsUtil.Platform.Core;
 /// <summary>色（色名と色文字列）機能の窓口。</summary>
 /// <remarks>
 /// 型は <see cref="EsUtil.Platform.Core.Palette"/>（<see cref="ColorNames"/> / <see cref="ColorEntry"/> /
-/// <see cref="ColorString"/> / <see cref="ColorValidation"/>）に置く。<br/>
+/// <see cref="ColorString"/> / <see cref="ColorValidation"/> / <see cref="ColorTextFormat"/>）に置く。<br/>
 /// 本クラスは<b>利用側が <c>using EsUtil.Platform.Core;</c> だけで解釈・整形・一覧の取得を行えるようにする</b>ための
 /// 窓口であり、<b>実装を持たない</b>（判断は各型が単一所有し、本クラスは委譲する）。<br/>
 /// <b>色名は Windows 標準（<see cref="System.Drawing.KnownColor"/>）である</b>（UI フレームワークの色名の表を使わない
@@ -31,6 +31,12 @@ public static class EsColor
     /// <param name="text">保存値。 null 可。</param>
     /// <returns>画面表示。 解析できない場合は入力そのもの。</returns>
     public static string ToDisplayText(string? text) => ColorString.ToDisplayText(text);
+
+    /// <summary>保存値を指定の表記へ変換する。</summary>
+    /// <param name="text">保存値。 null 可。</param>
+    /// <param name="format">表記（色名 + 不透明度 / <c>#AARRGGBB</c>）。</param>
+    /// <returns>指定の表記の文字列。 解析できない場合は入力そのもの。</returns>
+    public static string ToText(string? text, ColorTextFormat format) => ColorString.ToText(text, format);
 
     /// <summary>色と不透明度を画面表示の形へ整形する。</summary>
     /// <param name="color">色。</param>
