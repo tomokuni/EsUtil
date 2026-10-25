@@ -33,9 +33,11 @@
 
 `ColorComboBoxControl` は 1 行の複合コントロールです。 左から「現在色のスウォッチ」「テキスト入力」「一覧ボタン（▼）」「カラーピッカー ボタン（…）」を並べます。
 
-- **保存値**は `<c>#AARRGGBB</c>`（アルファが先頭。 例: `#80FF0000`）です（設定ファイルへそのまま保存できます）。
-- **画面表示**は `{色名または #RRGGBB}+{不透明度%}`（100% なら `+…` を省く。 例: `Red+50%`）です。
+- 4 つの区画は**隙間なく並べ、外周の 1 つの枠に収めます**（`Border` は 1 つだけ）。 区切りは枠より薄い 1 ピクセルの垂直線です。
+- **保存値**は `#AARRGGBB`（アルファが先頭。 例: `#80FF0000`）です（設定ファイルへそのまま保存できます）。
+- **画面表示**は既定で `{色名または #RRGGBB}+{不透明度%}`（100% なら `+…` を省く。 例: `Red+50%`）です。 `TextFormat` で `#AARRGGBB` へ切り替えられます。
 - 入力は色名 / `#RRGGBB` / `#AARRGGBB` / それらに `+{0〜100}%` を付けた形を受け付けます。
+- スウォッチと入力欄のツールチップに「色名 + 不透明度」と「`#AARRGGBB`」を 2 行で表示します。
 
 ## 2. 機能一覧
 
@@ -43,6 +45,8 @@
 - 色の一覧からの選択（色名順・色相順を切り替え可能）
 - ネイティブのカラーピッカー（`ColorPicker`。 色相環とパレットの両方、アルファ編集あり）
 - 現在色のスウォッチ表示
+- 入力欄の表記を切替可能（`TextFormat`。 色名 + 不透明度 / `#AARRGGBB`）
+- スウォッチと入力欄のツールチップ（色名 + 不透明度 / `#AARRGGBB` の 2 行）
 - 入力の検証（無効な入力はエラー状態になり、フォーカスを外すと最後の有効値へ戻る）
 - `ILogger` による変更の記録（`Log` / `LogPrefix`）
 
@@ -79,6 +83,7 @@ var color = new ColorComboBoxControl
 {
     SelectedColor = "#80FF0000",              // 保存値（色名や "Red+50%" も設定できる）
     ColorSortMode = ColorSortMode.ByHue,      // 色名順にするなら ByName
+    TextFormat = ColorTextFormat.HexCode,     // 入力欄を #AARRGGBB で表示する（既定は色名 + 不透明度）
 };
 color.SelectedColorChanged += (_, _) => Save(color.SelectedColor);
 
@@ -95,6 +100,7 @@ panel.Children(color);
 | 変える対象 | 入口 |
 | --- | --- |
 | 色の一覧の並び順 | `ColorSortMode`（`ByName` / `ByHue`） |
+| 入力欄の表記 | `TextFormat`（`NameWithAlpha` / `HexCode`） |
 | 一覧に出す色 | コアの `ColorNames`（Windows 標準の色名。 システム色は含まない） |
 | ログの接頭辞 | `LogPrefix`（既定 `[ColorComboBox]`） |
 
@@ -116,7 +122,7 @@ panel.Children(color);
 
 ## 8. 未対応
 
-- **ドロップダウン内での編集**: 行わない（テキスト入力は常に表示される入力欄が担う。 MewUI の `ComboBox` は編集可能でないため）。
+- **ドロップダウン内での編集**: 行わない（一覧（▼）は選択専用。 文字の編集は常に表示される入力欄が担う）。
 - **複数色の同時編集**: 持たない（1 つの色だけを扱う）。
 - **色名の追加・変更**: 持たない（色名は Windows 標準。 追加したい場合はコアの `ColorNames` を拡張する）。
 
@@ -146,7 +152,7 @@ dotnet run --project EsUtil.Ui.MewUI/ColorComboBox/sample/EsUtil.Ui.MewUI.ColorC
 EsUtil.Ui.MewUI/ColorComboBox/
 ├── src/                                           # UI 層（MewUI の要素の組み立てと同期）
 │   ├── EsUtil.Ui.MewUI.ColorComboBox.csproj        # 独立プロジェクト（Platform.Core を参照）
-│   ├── ColorComboBoxControl.cs                     # 公開 API・入力と状態の同期・ポップアップ
+│   ├── ColorComboBoxControl.cs                     # 公開 API・入力と状態の同期・一覧とピッカー
 │   └── LogMessage.cs                               # ログ定義（LoggerMessage ソース生成）
 ├── docs/                                          # SPEC_API.md / SPEC_System.md
 ├── sample/                                        # サンプルアプリ（sample/README.md 参照）

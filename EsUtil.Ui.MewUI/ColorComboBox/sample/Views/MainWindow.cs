@@ -79,6 +79,21 @@ internal static class MainWindow
             new TextBlock().Text("一覧の並び順").Width(LabelWidth),
             sortMode);
 
+        var textFormat = new ComboBox().Items(["色名 + 不透明度", "#AARRGGBB"]);
+        textFormat.SelectedIndex = 0;
+        textFormat.SelectionChanged += _ =>
+        {
+            var format = textFormat.SelectedIndex == 1 ? ColorTextFormat.HexCode : ColorTextFormat.NameWithAlpha;
+            foreach (var control in controls)
+            {
+                control.TextFormat = format;
+            }
+        };
+
+        var formatRow = new StackPanel().Horizontal().Spacing(8).Children(
+            new TextBlock().Text("入力欄の表記").Width(LabelWidth),
+            textFormat);
+
         var body = new StackPanel().Vertical().Spacing(12).Children(
             new TextBlock().Text("色選択コントロール（MewUI）").FontSize(16),
             new TextBlock()
@@ -92,6 +107,7 @@ internal static class MainWindow
                 BorderBrush = MewColor.FromRgb(0x50, 0x50, 0x50),
             },
             sortRow,
+            formatRow,
             new TextBlock().Text("プレビュー（枠線 = 1 番目 / 背景 = 2 番目の色）").FontSize(11),
             preview,
             status,

@@ -18,7 +18,7 @@
 | --- | --- |
 | 対象フレームワーク | `net10.0` |
 | UI フレームワーク | MewUI 0.21.1 |
-| 色名と色文字列 | `EsUtil.Platform.Core` の `Palette`（`ColorNames` / `ColorString` / `ColorValidation` / `ColorEntry` / `ColorSortMode`） |
+| 色名と色文字列 | `EsUtil.Platform.Core` の `Palette`（`ColorNames` / `ColorString` / `ColorValidation` / `ColorEntry` / `ColorSortMode` / `ColorTextFormat`） |
 
 ## 2. 公開 API
 
@@ -30,6 +30,7 @@
 | --- | --- | --- | --- |
 | `SelectedColor` | `string` | `#FFFFFFFF` | 選択中の色（**保存値** `<c>#AARRGGBB</c>`）。 色名や `+{n}%` を設定すると正規化される。 設定すると入力欄・スウォッチ・一覧の選択が追従する |
 | `ColorSortMode` | `ColorSortMode`（コア） | `ByHue` | 一覧の並び順（`ByName` / `ByHue`） |
+| `TextFormat` | `ColorTextFormat`（コア） | `NameWithAlpha` | 入力欄の表記（`NameWithAlpha` = `{色名}+{%}` / `HexCode` = `#AARRGGBB`）。 設定すると入力欄とツールチップの表記が切り替わる |
 | `HasValidationError` | `bool`（取得のみ） | `false` | 現在の入力が無効か |
 | `ValidationErrorMessage` | `string?`（取得のみ） | `null` | 無効な場合の理由（`無効な色コードです。`） |
 | `Log` | `ILogger` | `NullLogger` | 変更の記録先（null は `NullLogger` へ） |
@@ -56,6 +57,7 @@ var color = new ColorComboBoxControl
 {
     SelectedColor = EsColor.ToArgbHex("Red"),          // "#FFFF0000"
     ColorSortMode = ColorSortMode.ByName,
+    TextFormat = ColorTextFormat.HexCode,               // 入力欄を #AARRGGBB で表示する
     Log = loggerFactory.CreateLogger("ColorComboBox"),
 };
 color.SelectedColorChanged += (_, _) => settings.CaptureBorderColor = color.SelectedColor;
@@ -63,10 +65,10 @@ color.SelectedColorChanged += (_, _) => settings.CaptureBorderColor = color.Sele
 
 ## 4. 座標系と単位
 
-寸法はすべて DIP です（スウォッチ 16、入力欄の最小幅 120）。 ポップアップの配置はコントロールの実寸から決めます。
+寸法はすべて DIP です（スウォッチ 16、入力欄の最小幅 120、▼ と … の区画幅 26、区切りの垂直線 1 ピクセル）。 一覧のポップアップはコントロールの実寸（`Bounds`）を基準に置きます。
 
 ## 5. 制限事項
 
 - **色名は Windows 標準**（`System.Drawing.KnownColor`。 システム色は除く）であり、追加・変更はできません（コアの `ColorNames` が所有します）。
-- **ドロップダウン内での編集はできません**（MewUI の `ComboBox` が編集可能でないため、テキスト入力は常設の入力欄が担います）。
+- **一覧（▼）は選択専用です**（文字の編集は常設の入力欄が担います）。
 - **1 つの色だけを扱います**（複数色の同時編集は持ちません）。

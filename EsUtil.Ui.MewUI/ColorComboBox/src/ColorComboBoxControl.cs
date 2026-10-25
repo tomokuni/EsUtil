@@ -14,27 +14,39 @@ namespace EsUtil.Ui.MewUI.ColorComboBox;
 /// 画面表示（<c>{色}+{不透明度%}</c>）、並び順、入力の妥当性は
 /// <see cref="EsUtil.Platform.Core.Palette"/>（<see cref="ColorString"/> / <see cref="ColorEntry"/> /
 /// <see cref="ColorValidation"/>）が単一所有する。 本クラスは MewUI の要素の組み立てと、
-/// 入力と状態の同期だけを行う（AvaloniaUI 版と同じ意味の値になる）。<br/>
-/// <b>構成</b>: 1 行に「スウォッチ（現在色）」「テキスト入力」「一覧ボタン（▼）」「カラーピッカー ボタン（…）」を置く。
-/// 一覧とピッカーは <see cref="Popup"/> で開く（MewUI の <see cref="ComboBox"/> は編集可能でないため、
-/// テキスト入力は別の <see cref="TextBox"/> が持つ）。
+/// 入力と状態の同期だけを行う（AvaloniaUI 版・WinUI 3 版と同じ意味の値になる）。<br/>
+/// <b>構成</b>: 1 つの枠の中へ「スウォッチ（現在色）」「テキスト入力」「一覧ボタン（▼）」「カラーピッカー ボタン（…）」を
+/// 隙間なく並べ、区切りは枠より薄い垂直線で表す（1 つの入力欄に見せる）。<br/>
+/// <b>一覧は自前のポップアップ</b>、<b>カラーピッカーは <see cref="ColorPicker"/> 自身のドロップダウン</b>を使う
+/// （<see cref="ColorPicker"/> はドロップダウン コントロールであり、内容を自前のポップアップへ入れると
+/// 折り畳んだ見出ししか表示されない。 実測 2026-10-25）。<br/>
+/// <b>ツールチップ</b>: スウォッチとテキスト部には「色名+不透明度」と「<c>#AARRGGBB</c>」の 2 行を出す。
 /// </remarks>
 public sealed class ColorComboBoxControl : Grid
 {
     /// <summary>スウォッチの一辺（DIP）。</summary>
     private const double SwatchSize = 16.0;
 
-    /// <summary>スウォッチと入力欄の左端・文字との間の余白（DIP）。</summary>
+    /// <summary>スウォッチと枠・文字との間の余白（DIP）。</summary>
     private const double SwatchGap = 6.0;
 
-    /// <summary>カラーピッカーのポップアップの幅（DIP）。</summary>
-    private const double PickerPopupWidth = 320.0;
+    /// <summary>区切りの垂直線の幅（DIP）。</summary>
+    private const double SeparatorWidth = 1.0;
 
-    /// <summary>カラーピッカーのポップアップの高さ（DIP）。</summary>
-    private const double PickerPopupHeight = 300.0;
+    /// <summary>区切りの垂直線の上下の余白（DIP。 枠の内側に収める）。</summary>
+    private const double SeparatorMargin = 5.0;
+
+    /// <summary>▼ と … の区画の幅（DIP）。</summary>
+    private const double SegmentWidth = 26.0;
 
     /// <summary>テキスト入力の最小幅（DIP）。</summary>
     private const double TextBoxMinWidth = 120.0;
+
+    /// <summary>枠の色（半透明の灰色。 明色・暗色のどちらのテーマでも見える）。</summary>
+    private static readonly MewColor s_borderColor = MewColor.FromArgb(0x80, 0x80, 0x80, 0x80);
+
+    /// <summary>区切りの色（枠より薄い）。</summary>
+    private static readonly MewColor s_separatorColor = MewColor.FromArgb(0x40, 0x80, 0x80, 0x80);
 
     /// <summary>現在の色を示すスウォッチ。</summary>
     private readonly Border _swatch;
@@ -51,13 +63,10 @@ public sealed class ColorComboBoxControl : Grid
     /// <summary>一覧のポップアップ。</summary>
     private readonly Popup _listPopup;
 
-    /// <summary>ピッカーのポップアップ。</summary>
-    private readonly Popup _pickerPopup;
-
     /// <summary>一覧（色名順または色相順）。</summary>
     private readonly ListBox _list;
 
-    /// <summary>MewUI のカラーピッカー。</summary>
+    /// <summary>カラーピッカー（自身のドロップダウンを開くためのアンカーを兼ねる）。</summary>
     private readonly ColorPicker _picker;
 
     /// <summary>入力の反映中かどうか（入力と状態の往復でイベントが循環するのを防ぐ）。</summary>
@@ -75,6 +84,9 @@ public sealed class ColorComboBoxControl : Grid
     /// <summary>一覧の並び順。</summary>
     private ColorSortMode _colorSortMode = ColorSortMode.ByHue;
 
+    /// <summary>テキスト部の表記。</summary>
+    private ColorTextFormat _textFormat = ColorTextFormat.NameWithAlpha;
+
     /// <summary>選択中の色（保存値の文字列）が変わったときに発生する。</summary>
     public event EventHandler? SelectedColorChanged;
 
@@ -87,16 +99,31 @@ public sealed class ColorComboBoxControl : Grid
             Height = SwatchSize,
             BorderBrush = MewColor.FromRgb(0x80, 0x80, 0x80),
             BorderThickness = 1,
+            CornerRadius = 2,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(SwatchGap, 0, 0, 0),
+            IsHitTestVisible = false,
+        };
+
+        // 入力欄は枠を持たない（枠は本コントロールの外周が 1 つだけ持つ）
+        _text = new TextBox
+        {
+            Text = "White",
+            MinWidth = TextBoxMinWidth,
+            BorderThickness = 0,
+            CornerRadius = 0,
+            Background = MewColor.Transparent,
+            Padding = new Thickness((SwatchGap * 2) + SwatchSize, 0, 0, 0),
             VerticalAlignment = VerticalAlignment.Center,
         };
-        _text = new TextBox { Text = "White", MinWidth = TextBoxMinWidth };
         _text.TextChanged += OnTextChanged;
         _text.LostFocus += OnTextLostFocus;
 
-        _listButton = new Button().Content("▼");
+        _listButton = CreateSegmentButton("▼");
         _listButton.Click += ToggleList;
 
-        _pickerButton = new Button().Content("…");
+        _pickerButton = CreateSegmentButton("…");
         _pickerButton.Click += TogglePicker;
 
         _list = new ListBox();
@@ -105,42 +132,44 @@ public sealed class ColorComboBoxControl : Grid
         _listPopup.Content(_list);
         _listPopup.Closed += (_, _) => _listButton.Content("▼");
 
+        // カラーピッカーは**自身のドロップダウン**を使う（内容を自前のポップアップへ入れると
+        // 折り畳んだ見出しだけが表示される。 ColorPicker はドロップダウン コントロールである）。
+        // アンカーは … の位置へ置くため 1×1 にして右下へ寄せる
         _picker = new ColorPicker
         {
             Kind = ColorPickerKind.Both,
             ShowAlpha = true,
-            SelectedColor = ToMewColor(DrawingColor.White),
+            SelectedColor = MewColor.FromArgb(0xFF, 0xFF, 0xFF, 0xFF),
+            Width = 1,
+            Height = 1,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            IsHitTestVisible = false,
         };
         _picker.SelectedColorChanged += OnPickerColorChanged;
 
-        var ok = new Button().Content("OK");
-        ok.Click += () => ClosePicker(apply: true);
-        var cancel = new Button().Content("キャンセル");
-        cancel.Click += () => ClosePicker(apply: false);
-        var pickerButtons = new StackPanel().Horizontal().Spacing(8);
-        pickerButtons.Children(ok, cancel);
-
-        // ポップアップは内容の実寸で大きさが決まるため、幅と高さを明示する（未指定だと極端に小さくなる）
-        _picker.Width = PickerPopupWidth;
-        _picker.Height = PickerPopupHeight;
-        var pickerBody = new StackPanel().Vertical().Spacing(8).Width(PickerPopupWidth);
-        pickerBody.Children(_picker, pickerButtons);
-        _pickerPopup = new Popup();
-        _pickerPopup.Content(pickerBody);
-        _pickerPopup.Closed += (_, _) => _pickerButton.Content("…");
-
         // スウォッチは入力欄の内側へ重ねる（同じセルに置き、文字が重ならないよう左を空ける）
-        _swatch.HorizontalAlignment = HorizontalAlignment.Left;
-        _swatch.Margin = new Thickness(SwatchGap, 0, 0, 0);
-        _text.Padding = new Thickness((SwatchGap * 2) + SwatchSize, 0, 0, 0);
         var textArea = new Grid();
         textArea.Add(_text);
         textArea.Add(_swatch);
 
-        // テキスト部・一覧ボタン・ピッカーボタンを隙間なく並べる（1 つの入力欄に見せる）
-        var row = new StackPanel().Horizontal().Spacing(0);
-        row.Children(textArea, _listButton, _pickerButton);
-        Add(row);
+        // テキスト部・▼・… を隙間なく並べ、区切りは薄い垂直線で表す
+        var row = new Grid().Columns("*,Auto,Auto,Auto,Auto");
+        row.Add(textArea.Column(0));
+        row.Add(CreateSeparator().Column(1));
+        row.Add(_listButton.Column(2));
+        row.Add(CreateSeparator().Column(3));
+        row.Add(_pickerButton.Column(4));
+
+        Add(new Border
+        {
+            Child = row,
+            BorderBrush = s_borderColor,
+            BorderThickness = 1,
+            CornerRadius = 3,
+        });
+
+        Add(_picker);
 
         RefreshList();
         ApplyColor(_selectedColor, raiseChanged: false);
@@ -168,6 +197,23 @@ public sealed class ColorComboBoxControl : Grid
 
             _colorSortMode = value;
             RefreshList();
+        }
+    }
+
+    /// <summary>テキスト部の表記を取得または設定する。</summary>
+    /// <value>色名 + 不透明度（既定）またはカラーコード。 入力欄は編集できるため、表記と異なる形の入力も受理する。</value>
+    public ColorTextFormat TextFormat
+    {
+        get => _textFormat;
+        set
+        {
+            if (_textFormat == value)
+            {
+                return;
+            }
+
+            _textFormat = value;
+            ApplyColor(_selectedColor, raiseChanged: false);
         }
     }
 
@@ -199,6 +245,31 @@ public sealed class ColorComboBoxControl : Grid
         }
     }
 
+    /// <summary>区画（▼ / …）のボタンを生成する。</summary>
+    /// <param name="glyph">表示する文字。</param>
+    /// <returns>枠と背景を持たないボタン（外周の枠と区切りだけで 1 つの入力欄に見せる）。</returns>
+    private static Button CreateSegmentButton(string glyph)
+    {
+        var button = new Button().Content(glyph);
+        button.Width = SegmentWidth;
+        button.BorderThickness = 0;
+        button.CornerRadius = 0;
+        button.Background = MewColor.Transparent;
+        button.Padding = new Thickness(0);
+        button.VerticalAlignment = VerticalAlignment.Stretch;
+        return button;
+    }
+
+    /// <summary>区切りの垂直線を生成する。</summary>
+    /// <returns>枠より薄い垂直線（上下に余白を取り、枠の内側へ収める）。</returns>
+    private static Border CreateSeparator() => new()
+    {
+        Width = SeparatorWidth,
+        Background = s_separatorColor,
+        Margin = new Thickness(0, SeparatorMargin, 0, SeparatorMargin),
+        VerticalAlignment = VerticalAlignment.Stretch,
+    };
+
     /// <summary>色を設定し、入力欄とスウォッチへ反映する。</summary>
     /// <param name="value">設定する色（保存値・色名・<c>+{n}%</c> のいずれか）。</param>
     /// <param name="raiseChanged">変更イベントを発火する場合は true。</param>
@@ -211,7 +282,14 @@ public sealed class ColorComboBoxControl : Grid
         _applying = true;
         try
         {
-            _text.Text = ColorString.ToDisplayText(normalized);
+            _text.Text = ColorString.ToText(normalized, _textFormat);
+
+            // スウォッチとテキスト部のツールチップは 2 行（色名+不透明度 / カラーコード）を出す
+            var tooltip = string.Concat(
+                ColorString.ToDisplayText(normalized), Environment.NewLine, ColorString.ToArgbHex(normalized));
+            _text.ToolTip(tooltip);
+            _swatch.ToolTip(tooltip);
+
             if (ColorString.TryParse(normalized, out var color, out _))
             {
                 _swatch.Background = ToMewColor(color);
@@ -299,10 +377,17 @@ public sealed class ColorComboBoxControl : Grid
         }
     }
 
-    /// <summary>カラーピッカーの色が変わったときにスウォッチだけ先に反映する。</summary>
+    /// <summary>カラーピッカーの色が変わったときに色を反映する（確定操作を持たないため即時に反映する）。</summary>
     /// <param name="color">選ばれた色。</param>
     private void OnPickerColorChanged(MewColor color)
-        => _swatch.Background = color;
+    {
+        if (_applying)
+        {
+            return;
+        }
+
+        ApplyColor(ColorString.ToArgbHex(DrawingColor.FromArgb(color.A, color.R, color.G, color.B)), raiseChanged: true);
+    }
 
     /// <summary>一覧のポップアップを開閉する。</summary>
     private void ToggleList()
@@ -318,35 +403,15 @@ public sealed class ColorComboBoxControl : Grid
         _listButton.Content("▲");
     }
 
-    /// <summary>カラーピッカーのポップアップを開閉する。</summary>
+    /// <summary>カラーピッカーのドロップダウンを開閉する。</summary>
     private void TogglePicker()
     {
-        if (_pickerPopup.IsOpen)
-        {
-            _pickerPopup.Close();
-            return;
-        }
-
         if (ColorString.TryParse(_selectedColor, out var color, out _))
         {
             _picker.SelectedColor = ToMewColor(color);
         }
 
-        _pickerPopup.ShowAt(this, Bounds, PopupAnchorSide.Below);
-        _pickerButton.Content("▲");
-    }
-
-    /// <summary>ピッカーを閉じ、必要なら色を反映する。</summary>
-    /// <param name="apply">色を反映する場合は true。</param>
-    private void ClosePicker(bool apply)
-    {
-        if (apply)
-        {
-            var color = _picker.SelectedColor;
-            ApplyColor(ColorString.ToArgbHex(DrawingColor.FromArgb(color.A, color.R, color.G, color.B)), raiseChanged: true);
-        }
-
-        _pickerPopup.Close();
+        _picker.IsDropDownOpen = !_picker.IsDropDownOpen;
     }
 
     /// <summary>コアの色を MewUI の色へ写す。</summary>
