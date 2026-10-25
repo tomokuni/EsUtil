@@ -12,6 +12,10 @@
 - `EsUtil.Ui.AvaloniaUI.ColorComboBox`: 色名・16 進コードの入力とカラーピッカー（`ColorView` の Flyout）を統合した色選択コントロール。
 - **`ColorComboBox`（Avalonia / MewUI / WinUI 3）のスウォッチと入力欄にツールチップを追加しました**
   （「色名 + 不透明度」と「`#AARRGGBB`」の 2 行）。
+- **MewUI の `ColorComboBox` の「…」の上へ折り畳み時の見出し（「︿」）が出ていた**のを修正しました。
+  ピッカー（`ColorPicker`）は 1×1 にして右下へ寄せていましたが、折り畳んだ見出しは
+  自分の矩形の外へ描かれるため、行の上に見えていました。 1×1 の入れ物で切り取ります
+  （ドロップダウン本体は別の面へ出るため、切り取りの影響を受けません。 実測 2026-10-25）。
 - **Avalonia UI 版の一覧を自前の `ListBox`（Flyout）にしました**。 選択後にテキストが全選択されたままにならず、
   行の見た目（スウォッチ + 表記）をコントロール側で決められます。
 - **入力欄の表記を選べるようになりました**: `EsUtil.Platform.Core.Palette.ColorTextFormat`（`NameWithAlpha` = 色名 + 不透明度 / `HexCode` = `#AARRGGBB`）を追加し、`ColorString.ToText(text, format)` と窓口 `EsColor.ToText` を追加しました。 `ColorComboBox`（Avalonia / MewUI / WinUI 3）の `TextFormat` プロパティから切り替えられます。
@@ -49,6 +53,16 @@
 
 ### 修正
 
+- **WinUI 3 のルーペが拡大画像を表示しなかった**のを修正しました。 2 つの原因がありました。
+  1 つは表示の層（`LoupeVisualLayer`）が `Canvas` の子として既定の 0×0 のまま配置され、
+  拡大画像の層が自分自身の矩形で切り取るため**常に空の切り取り**になっていたことです。
+  もう 1 つは**レイアウト前（`ActualWidth` = 0）に解決した描画計画が固定されていた**ことで、
+  面（`ClientPixelSize`）が 1 画素のままになり、拡大画像も十字線も 1 画素で描かれていました。
+  大きさが決まった時点で計画を解決し直します（`SizeChanged`）。
+- **WinUI 3 のルーペの拡大画像を CPU で切り出すようにしました**。 これまでは撮影画像全体の
+  無圧縮 BMP（4K で 50 MB 超）を作って `LoadedImageSurface` へ渡していましたが、
+  ルーペの面（1 辺 160 DIP 程度）の画素だけを `LoupeImageSampler` で最近傍のまま切り出し、
+  `WriteableBitmap` へ書いて画像要素で表示します（画素を検証できるようになりました）。
 - **MewUI のルーペが描画面全体を消していた**のを修正しました。 ペーストボード（画像外の色）を
   `IGraphicsContext.Clear` で塗っていたため、**背後に描いた撮影画像までルーペの色（既定 `#535353`）で
   塗り潰されていました**（実測 2026-10-25: 領域選択の背景が一色になり、撮影結果が見えない）。
