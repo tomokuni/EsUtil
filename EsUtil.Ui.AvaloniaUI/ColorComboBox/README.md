@@ -7,7 +7,7 @@
 ![Avalonia](https://img.shields.io/badge/UI-Avalonia-8D46D6)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-> プロジェクト名: `EsUtil.Ui.AvaloniaUI.ColorComboBox`（Avalonia UI 版）。 MewUI 側は標準の `ColorPicker` を使うため移植していません（`XxxControl.Core` / `XxxControl.MewUI` は作成しません）。
+> プロジェクト名: `EsUtil.Ui.AvaloniaUI.ColorComboBox`（Avalonia UI 版）。 MewUI 版（`EsUtil.Ui.MewUI.ColorComboBox`）と WinUI 3 版（`EsUtil.Ui.WinUI3.ColorComboBox`）は同じ外観・同じ API を持ちます。
 
 ## 目次 <!-- omit from toc -->
 
@@ -32,20 +32,22 @@
 
 ## 1. 概要
 
-Avalonia UI 用の色選択コントロールです。 色名/16進コード入力の ComboBox とカラーピッカーを統合し、選択色のプレビュー・バリデーションを自己完結します。
+Avalonia UI 用の色選択コントロールです。 スウォッチ・色名/16進コードの入力欄・一覧（▼）・カラーピッカー（…）を**1 つの枠に収めた 1 つのコントロール**として提供し、選択色のプレビュー・バリデーションを自己完結します。
 
 色名の表と色文字列の解釈（受理する入力・保存値 `#AARRGGBB`・画面表示 `{色}+{不透明度%}`）は **コア（`EsUtil.Platform.Core` の `Palette`）が単一所有**します。 本コントロールは Avalonia の色型（`Avalonia.Media.Color`）との変換だけを行います（MewUI 版・WinUI 3 版と同じ解釈になります）。
 
 ## 2. 機能一覧
 
 - 色名（英名）または16進カラーコードのテキスト入力
-- ドロップダウンによる色一覧選択（色相順 / 色名順）
-- 選択中の色をテキスト領域左端にスウォッチ表示
-- カラーピッカー（ColorView）を Flyout で表示
+- 一覧（▼）による色選択（色相順 / 色名順）
+- 選択中の色を入力欄の左端にスウォッチ表示
+- カラーピッカー（ColorView）を Flyout で表示（…）
 - 入力バリデーション（無効な色はエラー通知・最終有効値への自動復帰）
 - バリデーション失敗時の枠線強調（オプション）
-- Avalonia Binding対応のStyledProperty（双方向バインド）
-- ComboBox のサイズ・パディング・マージンを外部制御可能
+- Avalonia Binding 対応の StyledProperty（双方向バインド）
+- 入力欄の表記を切替可能（色名 + 不透明度 / `#AARRGGBB`）
+- スウォッチと入力欄のツールチップ（色名 + 不透明度 / `#AARRGGBB` の 2 行）
+- 入力欄のサイズ・パディング・マージンを外部制御可能
 
 ## 3. システム要件
 
@@ -77,6 +79,7 @@ using EsUtil.Ui.AvaloniaUI.ColorComboBox;
         xmlns:cp="clr-namespace:EsUtil.Ui.AvaloniaUI.ColorComboBox;assembly=EsUtil.Ui.AvaloniaUI.ColorComboBox">
     <cp:ColorComboBoxControl SelectedColor="{Binding BorderColor, Mode=TwoWay}"
                            ColorSortMode="ByHue"
+                           TextFormat="HexCode"
                            HighlightBorderOnError="True"
                            Width="300" />
 </Window>
@@ -91,6 +94,7 @@ var colorPicker = new ColorComboBoxControl
 {
     SelectedColor = "Red",
     ColorSortMode = ColorSortMode.ByHue,
+    TextFormat = ColorTextFormat.HexCode,
     HighlightBorderOnError = true,
     Width = 300,
 };
@@ -109,10 +113,11 @@ panel.Children.Add(colorPicker);
 
 ## 6. 入力動作
 
-- **テキスト入力**: 色名または16進コードを直接入力できます。
-- **ドロップダウン選択**: 選択後にテキストの全選択が自動解除されます。
+- **テキスト入力**: 色名または16進コードを直接入力できます（表示中の表記と異なる形でも受理します）。
+- **一覧（▼）**: 色の一覧を開き、選ぶと入力欄とスウォッチが更新されます。
 - **無効な入力**: フォーカス喪失時に最終有効値へ自動復帰します。
 - **カラーピッカー**: 右端の「…」ボタンで Flyout 形式の ColorView を開きます。 OK で適用、キャンセルで破棄。
+- **ツールチップ**: スウォッチと入力欄に「色名 + 不透明度」と「`#AARRGGBB`」を 2 行で表示します。
 
 ## 7. ColorView テーマ（ホストが取り込む）
 
@@ -141,7 +146,8 @@ panel.Children.Add(colorPicker);
 - 色相順（`ByHue`）と色名順（`ByName`）の切替（並び順切替 ComboBox 連動）
 - `HighlightBorderOnError` による枠線強調の有効/無効
 - バリデーション状態（`HasValidationError` / `ValidationErrorMessage`）のライブ表示
-- ComboBox レイアウト設定（`ComboBoxMinWidth` / `ComboBoxMaxWidth` / `ComboBoxWidth` / `ComboBoxPadding` / `ComboBoxMargin`）
+- 入力欄のレイアウト設定（`TextMinWidth` / `TextMaxWidth` / `TextWidth` / `TextPadding` / `TextMargin`）
+- 入力欄の表記（`TextFormat`）の切替
 - カラーピッカー（「…」ボタン）の Flyout 表示
 
 ```bash
@@ -159,14 +165,11 @@ dotnet run --project sample/EsUtil.Ui.AvaloniaUI.ColorComboBox.Sample.csproj
 関心事ごとに専用クラスへ委譲し、単一責任（SRP）と一方向依存を維持します。
 
 - `ColorComboBoxControl.axaml.cs`: 公開 API（StyledProperty・公開プロパティ）＋ イベント処理 ＋ バリデーション状態
-- `ColorComboBoxControl.axaml`: UI レイアウト（ComboBox + スウォッチ + Button）
+- `ColorComboBoxControl.axaml`: UI レイアウト（外周の枠 + スウォッチ + 入力欄 + ▼ + …）
 - `ColorComboBoxFlyoutFactory.cs`: カラーピッカー Flyout の構築（Simple Factory パターン）
 - `ColorValidator.cs`: 色文字列の妥当性検証
-- `TextBoxSelectionHelper.cs`: ビジュアルツリー内の TextBox 検索と選択解除
 - `ColorSortMode.cs`: 公開 enum（並び順）
 - `StringToBrushConverter.cs`: 公開コンバーター（色 → Brush）
-- `ColorDisplayConverter.cs`: 公開コンバーター（保存値 ↔ 表示テキスト）
-- `ColorString.cs`: 公開静的ユーティリティ（色文字列の解析・整形・正規化）
 - `ColorEntry.cs`: 色一覧データ（internal）
 
 依存方向は**一方向の階層構造**（コントロール → 生成/検証 → 対象（ColorString / ColorEntry / コンバーター））で、双方向依存・内部公開・具象依存を解消します。
@@ -177,12 +180,10 @@ dotnet run --project sample/EsUtil.Ui.AvaloniaUI.ColorComboBox.Sample.csproj
 EsUtil.Ui.AvaloniaUI/ColorComboBox/
 ├── src/                                          # UI 層（Avalonia の要素と入出力の結び付け）
 │   ├── EsUtil.Ui.AvaloniaUI.ColorComboBox.csproj  # 独立プロジェクト（Platform.Core を参照）
-│   ├── ColorComboBoxControl.axaml                 # 見た目（ComboBox・スウォッチ・ボタン）
+│   ├── ColorComboBoxControl.axaml                 # 見た目（外周の枠・スウォッチ・入力欄・▼・…）
 │   ├── ColorComboBoxControl.axaml.cs              # 公開 API（StyledProperty・イベント・検証状態）
 │   ├── ColorComboBoxFlyoutFactory.cs              # カラーピッカー（ColorView）の Flyout 構築
-│   ├── ColorDisplayConverter.cs                   # 保存値 ⇔ 表示テキストの変換
 │   ├── StringToBrushConverter.cs                  # 色文字列 → ブラシの変換
-│   ├── TextBoxSelectionHelper.cs                  # ドロップダウン選択後のテキスト選択解除
 │   └── Logging/                                   # ログ定義（LoggerMessage ソース生成）
 ├── sample/                                        # サンプルアプリ（sample/README.md 参照）
 └── tests/                                         # 単体テスト（Avalonia ヘッドレス）

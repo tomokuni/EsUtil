@@ -8,52 +8,61 @@
              x:CompileBindings="True">
     <UserControl.Resources>
         <local:StringToBrushConverter x:Key="StringToBrushConverter"/>
-        <local:ColorDisplayConverter x:Key="ColorDisplayConverter"/>
+        <!-- 一覧の 1 行（色の四角 + 色名） -->
+        <DataTemplate x:Key="ColorEntryTemplate" x:DataType="palette:ColorEntry">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+                <Border Width="14" Height="14" CornerRadius="2"
+                        BorderBrush="Gray" BorderThickness="1"
+                        Background="{Binding Name, Converter={StaticResource StringToBrushConverter}}"/>
+                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </DataTemplate>
     </UserControl.Resources>
     <UserControl.Styles>
-        <!-- バリデーションエラー時の枠線強調（フォーカス・ホバー状態でもテーマスタイルに優先する） -->
-        <Style Selector="ComboBox.validation-error /template/ Border#Background">
+        <!-- バリデーションエラー時の枠線強調（外周の 1 つの枠だけが枠線を持つ） -->
+        <Style Selector="Border#PART_Frame.validation-error">
             <Setter Property="BorderBrush" Value="Red"/>
         </Style>
+        <!-- 区画（▼ / …）は枠も背景も持たない（外周の枠と区切りだけで 1 つの入力欄に見せる） -->
+        <Style Selector="Button.segment">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.segment:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#20808080"/>
+        </Style>
     </UserControl.Styles>
-    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto" VerticalAlignment="Top" ColumnSpacing="0">
-        <!-- ComboBox はデフォルトテーマを維持（行は Auto。 伸ばすとスウォッチだけが下へずれる） -->
-        <Grid RowDefinitions="Auto" VerticalAlignment="Top">
-            <ComboBox x:Name="_comboBox"
-                      Text="{Binding SelectedColor, ElementName=PART_Root, Converter={StaticResource ColorDisplayConverter}, UpdateSourceTrigger=PropertyChanged}"
-                      IsEditable="True"
-                      MinWidth="{Binding ComboBoxMinWidth, ElementName=PART_Root}"
-                      MaxWidth="{Binding ComboBoxMaxWidth, ElementName=PART_Root}"
-                      Width="{Binding ComboBoxWidth, ElementName=PART_Root}"
-                      Padding="12,0,0,0"
-                      HorizontalAlignment="Stretch"
-                      SelectionChanged="OnSelectionChanged"
-                      LostFocus="OnLostFocus"
-                      ToolTip.Tip="色名または16進カラーコードを入力、または▼から選択">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="palette:ColorEntry">
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <Border Width="14" Height="14" CornerRadius="2"
-                                    BorderBrush="Gray" BorderThickness="1"
-                                    Background="{Binding Name, Converter={StaticResource StringToBrushConverter}}"/>
-                            <TextBlock Text="{Binding Name}"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <!-- 色スウォッチ（ComboBox のテキスト領域左端にオーバーレイ） -->
-            <Border Width="16" Height="16"
-                    CornerRadius="2"
-                    BorderBrush="Gray" BorderThickness="1"
-                    VerticalAlignment="Center"
-                    HorizontalAlignment="Left"
-                    IsHitTestVisible="False"
-                    Margin="10,0,0,0"
-                    Background="{Binding SelectedColor, ElementName=PART_Root, Converter={StaticResource StringToBrushConverter}}"/>
+    <!-- 全体を覆う 1 つの枠（スウォッチ・テキスト・▼・… を 1 つのコントロールに見せる） -->
+    <Border x:Name="PART_Frame"
+            BorderBrush="#80808080" BorderThickness="1" CornerRadius="4"
+            VerticalAlignment="Top">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" RowDefinitions="Auto">
+            <!-- テキスト部（スウォッチは入力欄の内側へ重ねる） -->
+            <Grid Grid.Column="0">
+                <TextBox x:Name="PART_Text"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         VerticalAlignment="Center"
+                         VerticalContentAlignment="Center"/>
+                <Border x:Name="PART_Swatch"
+                        Width="16" Height="16" CornerRadius="2"
+                        BorderBrush="Gray" BorderThickness="1"
+                        HorizontalAlignment="Left" VerticalAlignment="Center"
+                        IsHitTestVisible="False"
+                        Margin="6,0,0,0"
+                        Background="{Binding SelectedColor, ElementName=PART_Root, Converter={StaticResource StringToBrushConverter}}"/>
+            </Grid>
+            <!-- 区切り（枠より薄い垂直線） -->
+            <Border Grid.Column="1" Width="1" Margin="0,5" Background="#40808080"/>
+            <Button x:Name="PART_ListButton" Grid.Column="2" Classes="segment" Width="26"
+                    Content="▼" Click="OnListButtonClick" ToolTip.Tip="色の一覧"/>
+            <Border Grid.Column="3" Width="1" Margin="0,5" Background="#40808080"/>
+            <Button x:Name="PART_PickerButton" Grid.Column="4" Classes="segment" Width="26"
+                    Content="…" Click="OnColorPickerButtonClick" ToolTip.Tip="色選択ダイアログ"/>
         </Grid>
-        <Button Grid.Column="1" Content="…" MinWidth="24" MinHeight="22"
-                Click="OnColorPickerButtonClick"
-                ToolTip.Tip="色選択ダイアログ"/>
-    </Grid>
+    </Border>
 </UserControl>
-

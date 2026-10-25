@@ -17,14 +17,14 @@
     - [5.1.1 選択状態](#511-選択状態)
     - [5.1.2 表示・動作設定](#512-表示動作設定)
     - [5.1.3 バリデーション状態（読み取り専用）](#513-バリデーション状態読み取り専用)
-    - [5.1.4 ComboBox レイアウト](#514-combobox-レイアウト)
+    - [5.1.4 入力欄のレイアウト](#514-入力欄のレイアウト)
   - [5.2 メソッド](#52-メソッド)
   - [5.3 イベント](#53-イベント)
   - [5.4 型](#54-型)
     - [5.4.1 ColorComboBoxControl（`ColorComboBoxControl.axaml.cs`）](#541-colorcomboboxcontrolcolorcomboboxcontrolaxamlcs)
     - [5.4.2 ColorSortMode（`ColorSortMode.cs`）](#542-colorsortmodecolorsortmodecs)
     - [5.4.3 StringToBrushConverter](#543-stringtobrushconverter)
-    - [5.4.4 ColorDisplayConverter](#544-colordisplayconverter)
+    - [5.4.4 ColorTextFormat（`ColorTextFormat.cs`・コア）](#544-colortextformatcolortextformatcsコア)
     - [5.4.5 ColorString（`ColorString.cs`）](#545-colorstringcolorstringcs)
 - [6. 入力動作](#6-入力動作)
   - [6.1 テキスト入力](#61-テキスト入力)
@@ -100,7 +100,8 @@ var colorPicker = new ColorComboBoxControl
     ColorSortMode = ColorSortMode.ByHue,
     HighlightBorderOnError = true,
     Width = 300,
-    ComboBoxMinWidth = 200,
+    TextMinWidth = 200,
+    TextFormat = ColorTextFormat.NameWithAlpha,
 };
 
 parentPanel.Children.Add(colorPicker);
@@ -127,7 +128,7 @@ if (colorPicker.HasValidationError)
 ## 5. 公開API
 
 公開 API は「プロパティ / メソッド / イベント / 型」の 4 分類で構成されます。
-公開型は `ColorComboBoxControl` / `ColorSortMode` / `StringToBrushConverter` / `ColorDisplayConverter` / `ColorString` です。
+公開型は `ColorComboBoxControl` / `ColorSortMode` / `ColorTextFormat` / `StringToBrushConverter` / `ColorString` です。
 `ColorEntry` と `ColorComboBoxControl` の非公開実装（private / internal メンバー）は非公開です。
 
 ### 5.1 プロパティ
@@ -144,8 +145,9 @@ if (colorPicker.HasValidationError)
 
 | プロパティ | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
-| `ColorSortMode` | `ColorSortMode` | `ByHue` | ドロップダウンの色の並び順（`ByHue` / `ByName`） |
-| `HighlightBorderOnError` | `bool` | `false` | バリデーション失敗時に ComboBox の枠線を赤くするか |
+| `ColorSortMode` | `ColorSortMode` | `ByHue` | 一覧の色の並び順（`ByHue` / `ByName`） |
+| `TextFormat` | `ColorTextFormat` | `NameWithAlpha` | 入力欄の表記（`NameWithAlpha` = 色名+不透明度 / `HexCode` = `#AARRGGBB`） |
+| `HighlightBorderOnError` | `bool` | `false` | バリデーション失敗時に外周の枠線を赤くするか |
 | `Log` | `ILogger` | `NullLogger` | 内部ロガー（null 設定時は `NullLogger` へフォールバック）。 診断ログの出力先 |
 | `LogPrefix` | `string?` | `null` | ログの接頭辞（ロガーと一緒に設定する。 null・空白で既定値 `[ColorComboBox]` へ戻す） |
 
@@ -156,17 +158,17 @@ if (colorPicker.HasValidationError)
 | `HasValidationError` | `bool` | 現在の `SelectedColor` が無効な場合 `true` |
 | `ValidationErrorMessage` | `string?` | 無効な場合の理由。 有効時は `null` |
 
-#### 5.1.4 ComboBox レイアウト
+#### 5.1.4 入力欄のレイアウト
 
-単位はすべて DIP 座標系（Avalonia 論理座標）です。
+単位はすべて DIP 座標系（Avalonia 論理座標）です。 外周の枠（1 つ）と区画（▼ / …）は入力欄の指定に追従します。
 
 | プロパティ | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
-| `ComboBoxMinWidth` | `double` | `120` | ComboBox の最小幅（DIP 座標系） |
-| `ComboBoxMaxWidth` | `double` | `Infinity` | ComboBox の最大幅（DIP 座標系） |
-| `ComboBoxWidth` | `double` | `NaN` | ComboBox の明示的な幅（DIP 座標系。 NaN は自動） |
-| `ComboBoxPadding` | `Thickness?` | `null` | 内部パディング（DIP 座標系。 null はテーマ標準。 スウォッチ分が自動加算される） |
-| `ComboBoxMargin` | `Thickness?` | `null` | マージン（DIP 座標系。 null はテーマ標準） |
+| `TextMinWidth` | `double` | `120` | 入力欄の最小幅（DIP 座標系） |
+| `TextMaxWidth` | `double` | `Infinity` | 入力欄の最大幅（DIP 座標系） |
+| `TextWidth` | `double` | `NaN` | 入力欄の明示的な幅（DIP 座標系。 NaN は自動） |
+| `TextPadding` | `Thickness?` | `null` | 入力欄の余白（DIP 座標系。 null はテーマ標準。 左にはスウォッチ分が自動加算される） |
+| `TextMargin` | `Thickness?` | `null` | 入力欄の外側の余白（DIP 座標系。 null はテーマ標準） |
 
 ### 5.2 メソッド
 
@@ -201,15 +203,14 @@ if (colorPicker.HasValidationError)
 | `Convert(object?, Type, object?, CultureInfo)` | `object?` | 色名/16進コード（`{色}+{不透明度%}` 形式も可） → `IBrush`。 不透明度はアルファへ合成。 解釈不能な場合は `Brushes.Transparent` |
 | `ConvertBack(object?, Type, object?, CultureInfo)` | `object?` | 未サポート。 常に `NotSupportedException` |
 
-#### 5.4.4 ColorDisplayConverter
+#### 5.4.4 ColorTextFormat（`ColorTextFormat.cs`・コア）
 
-保存値（`#AARRGGBB`）と画面表示テキスト（`{色}+{不透明度%}`）を相互変換する双方向コンバーター。
-ComboBox の `Text` プロパティとのバインドに使用する（`SelectedColor` のバインドに内蔵）。
+入力欄の表記です（`EsUtil.Platform.Core.Palette`）。
 
-| メンバー | 型 | 説明 |
-| --- | --- | --- |
-| `Convert(object?, Type, object?, CultureInfo)` | `object?` | 保存値（例: `#80FF0000`）→ 表示テキスト（例: `Red+50%`）。 不透明度 100% は `{色}` のみ。 解釈不能な場合は入力をそのまま返す |
-| `ConvertBack(object?, Type, object?, CultureInfo)` | `object?` | 入力テキスト（例: `Red+50%`）→ 保存値（例: `#80FF0000`）。 解釈不能な場合は入力をそのまま返す |
+| 値 | 説明 |
+| --- | --- |
+| `NameWithAlpha` | 色名 + 不透明度（例: `Red` / `Orange+75%`）。 色名が無い色は 16 進で表す |
+| `HexCode` | カラーコード（例: `#FFFF0000`）。 アルファが先頭（保存値と同じ形） |
 
 #### 5.4.5 ColorString（`ColorString.cs`）
 
@@ -241,7 +242,7 @@ ComboBox の `Text` プロパティとのバインドに使用する（`Selected
 ### 6.1 テキスト入力
 
 - 色名（英名）・16進カラーコード（`#RRGGBB` / `#AARRGGBB`）・`{色}+{不透明度%}`（例: `Red+50%`）を直接入力できます。
-- 入力値は ComboBox の双方向バインディング（`ColorDisplayConverter`）により `#AARRGGBB` へ正規化されます。
+- 入力値は `ColorString.ToArgbHex`（コア）により `#AARRGGBB` へ正規化されます。
 - 画面表示は `{色}+{不透明度%}` 形式（色名が `Colors` にあれば色名、なければ `#RRGGBB`）。
 - `+{n}%` 形式を含まない入力（`#AARRGGBB` 等）はアルファ成分を不透明度として解釈します（例: `#80FF0000` → `Red+50%`）。
 - 不透明度は `0〜100%` の整数へ丸めて表示し、100% の場合は省略します。

@@ -1,9 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Interactivity;
-using Avalonia.Threading;
+using Avalonia.Reactive;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Ui.AvaloniaUI.ColorComboBox.Logging;
 using Microsoft.Extensions.Logging;
@@ -11,38 +11,27 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EsUtil.Ui.AvaloniaUI.ColorComboBox;
 
-/// <summary>色選択コンボボックスとカラーピッカーを統合した再利用可能コントロール。</summary>
+/// <summary>色を選ぶコントロール（色名の入力・一覧からの選択・カラーピッカー）。</summary>
 /// <remarks>
-/// ComboBox（色名/16進入力＋ドロップダウン選択）のテキスト領域左端に
-/// 選択中の色を示す色スウォッチ（四角）をオーバーレイ配置する。<br/>
-/// ComboBox はデフォルトテーマを維持し、カスタム ControlTemplate は使用しない。<br/>
-/// 右側にカラーピッカーダイアログ起動ボタンを配置する。<br/>
-/// 内部レイアウトは Grid（*,Auto）で、ComboBox が残りの幅を埋める。<br/>
-/// そのため UserControl 自体の <c>MinWidth</c>/<c>Width</c>/<c>MaxWidth</c> で
-/// ComboBox＋ボタン＋スペースを含めた全体のサイズを制御できる。<br/>
-/// ドロップダウン選択後はテキスト選択状態を自動解除する。<br/>
-/// 無効な色が入力された場合は最終有効値に自動復帰する。<br/>
-/// <see cref="HighlightBorderOnError"/> が true の場合、バリデーション失敗時に ComboBox の枠線が赤くなる。<br/>
-/// ComboBox 単体のサイズ/パディング/マージンは <see cref="ComboBoxMinWidth"/>、
-/// <see cref="ComboBoxMaxWidth"/>、<see cref="ComboBoxWidth"/>、
-/// <see cref="ComboBoxPadding"/>、<see cref="ComboBoxMargin"/> で外部から制御できる。<br/>
+/// <b>1 つの入力欄に見せる</b>: 外周の 1 つの <c>Border</c> の中へ「スウォッチ（現在色）」「テキスト入力」
+/// 「一覧ボタン（▼）」「カラーピッカー ボタン（…）」を隙間なく並べ、区切りは枠より薄い垂直線で表す
+/// （区画のボタン自身は枠も背景も持たない）。<br/>
+/// <b>規則の所有者はコアである</b>: 受理する入力（色名・16 進・<c>+{n}%</c>）、色名の表、保存値（<c>#AARRGGBB</c>）と
+/// 画面表示（<c>{色}+{不透明度%}</c>）、並び順、入力の妥当性は
+/// <see cref="EsUtil.Platform.Core.Palette"/>（<see cref="ColorString"/> / <see cref="ColorEntry"/> /
+/// <see cref="ColorValidation"/>）が単一所有する。 本クラスは要素の組み立てと、入力と状態の同期だけを行う。<br/>
+/// <b>ツールチップ</b>: スウォッチとテキスト部には「色名+不透明度」と「<c>#AARRGGBB</c>」の 2 行を出す。<br/>
+/// <b>カラーピッカー</b>は <see cref="ColorComboBoxFlyoutFactory"/> が構築する（OK / キャンセル付き）。<br/>
 /// <br/>
 /// **公開 API 一覧**:<br/>
 /// - コンストラクタ: <see cref="ColorComboBoxControl()"/><br/>
-/// - 値: <see cref="SelectedColor"/> / <see cref="ColorSortMode"/><br/>
+/// - 値: <see cref="SelectedColor"/> / <see cref="ColorSortMode"/> / <see cref="TextFormat"/><br/>
 /// - 検証: <see cref="HasValidationError"/> / <see cref="ValidationErrorMessage"/> / <see cref="HighlightBorderOnError"/><br/>
-/// - 外観（ComboBox サイズ）: <see cref="ComboBoxWidth"/> / <see cref="ComboBoxMinWidth"/> / <see cref="ComboBoxMaxWidth"/> /<br/>
-///   <see cref="ComboBoxPadding"/> / <see cref="ComboBoxMargin"/><br/>
+/// - 外観（入力欄のサイズ）: <see cref="TextWidth"/> / <see cref="TextMinWidth"/> / <see cref="TextMaxWidth"/> /<br/>
+///   <see cref="TextPadding"/> / <see cref="TextMargin"/><br/>
 /// - ログ: <see cref="Log"/><br/>
-/// - 関連型: <see cref="ColorSortMode"/>（コア）/ <see cref="StringToBrushConverter"/> / <see cref="ColorDisplayConverter"/> / <see cref="ColorString"/>（コア）/ <see cref="ColorEntry"/>（コア）<br/>
-/// <br/>
-/// **構成**: 本クラスは <c>ColorComboBoxControl.axaml</c>（<c>x:Class</c>）と対になるコードビハインドであり、<br/>
-/// 依存関係プロパティ（StyledProperty）・公開プロパティ・入力イベント処理・バリデーション状態を保持する。<br/>
-/// 関心事ごとに以下のクラスへ委譲し、単一責任と一方向依存を維持する:<br/>
-/// - カラーピッカー Flyout 構築: <see cref="ColorComboBoxFlyoutFactory"/>（Simple Factory パターン）<br/>
-/// - 色文字列の妥当性検証: <see cref="ColorValidation"/><br/>
-/// - ComboBox テキスト選択の解除: <see cref="TextBoxSelectionHelper"/><br/>
-/// - 色文字列の解析・整形・正規化: <see cref="ColorString"/>（コア）/ <see cref="ColorEntry"/>（コア）/ 各コンバーター<br/>
+/// - 関連型: <see cref="ColorSortMode"/>（コア）/ <see cref="ColorTextFormat"/>（コア）/ <see cref="StringToBrushConverter"/> /
+///   <see cref="ColorString"/>（コア）/ <see cref="ColorEntry"/>（コア）
 /// </remarks>
 public sealed partial class ColorComboBoxControl : UserControl
 {
@@ -59,6 +48,11 @@ public sealed partial class ColorComboBoxControl : UserControl
     public static readonly StyledProperty<ColorSortMode> ColorSortModeProperty =
         AvaloniaProperty.Register<ColorComboBoxControl, ColorSortMode>(nameof(ColorSortMode), defaultValue: ColorSortMode.ByHue);
 
+    /// <summary><see cref="TextFormat"/> 依存関係プロパティ。</summary>
+    public static readonly StyledProperty<ColorTextFormat> TextFormatProperty =
+        AvaloniaProperty.Register<ColorComboBoxControl, ColorTextFormat>(
+            nameof(TextFormat), defaultValue: ColorTextFormat.NameWithAlpha);
+
     /// <summary><see cref="HasValidationError"/> 依存関係プロパティ。</summary>
     public static readonly StyledProperty<bool> HasValidationErrorProperty =
         AvaloniaProperty.Register<ColorComboBoxControl, bool>(nameof(HasValidationError), defaultValue: false);
@@ -71,25 +65,54 @@ public sealed partial class ColorComboBoxControl : UserControl
     public static readonly StyledProperty<bool> HighlightBorderOnErrorProperty =
         AvaloniaProperty.Register<ColorComboBoxControl, bool>(nameof(HighlightBorderOnError), defaultValue: false);
 
-    /// <summary><see cref="ComboBoxMinWidth"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<double> ComboBoxMinWidthProperty =
-        AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(ComboBoxMinWidth), defaultValue: 120d);
+    /// <summary><see cref="TextMinWidth"/> 依存関係プロパティ。</summary>
+    public static readonly StyledProperty<double> TextMinWidthProperty =
+        AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(TextMinWidth), defaultValue: 120d);
 
-    /// <summary><see cref="ComboBoxPadding"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<Thickness?> ComboBoxPaddingProperty =
-        AvaloniaProperty.Register<ColorComboBoxControl, Thickness?>(nameof(ComboBoxPadding));
+    /// <summary><see cref="TextPadding"/> 依存関係プロパティ。</summary>
+    public static readonly StyledProperty<Thickness?> TextPaddingProperty =
+        AvaloniaProperty.Register<ColorComboBoxControl, Thickness?>(nameof(TextPadding));
 
-    /// <summary><see cref="ComboBoxMargin"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<Thickness?> ComboBoxMarginProperty =
-        AvaloniaProperty.Register<ColorComboBoxControl, Thickness?>(nameof(ComboBoxMargin));
+    /// <summary><see cref="TextMargin"/> 依存関係プロパティ。</summary>
+    public static readonly StyledProperty<Thickness?> TextMarginProperty =
+        AvaloniaProperty.Register<ColorComboBoxControl, Thickness?>(nameof(TextMargin));
 
-    /// <summary><see cref="ComboBoxMaxWidth"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<double> ComboBoxMaxWidthProperty =
-        AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(ComboBoxMaxWidth), defaultValue: double.PositiveInfinity);
+    /// <summary><see cref="TextMaxWidth"/> 依存関係プロパティ。</summary>
+    public static readonly StyledProperty<double> TextMaxWidthProperty =
+        AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(TextMaxWidth), defaultValue: double.PositiveInfinity);
 
-    /// <summary><see cref="ComboBoxWidth"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<double> ComboBoxWidthProperty =
-        AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(ComboBoxWidth), defaultValue: double.NaN);
+    /// <summary><see cref="TextWidth"/> 依存関係プロパティ。</summary>
+    public static readonly StyledProperty<double> TextWidthProperty =
+        AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(TextWidth), defaultValue: double.NaN);
+
+    // ====================================================================
+    // 定数
+    // ====================================================================
+
+    /// <summary>スウォッチの一辺（ピクセル）。</summary>
+    private const double SwatchSize = 16;
+
+    /// <summary>スウォッチと枠・文字との間の余白（ピクセル）。</summary>
+    private const double SwatchGap = 6;
+
+    // ====================================================================
+    // 状態
+    // ====================================================================
+
+    /// <summary>最後に有効だった色（無効な入力の復帰先）。</summary>
+    private string? _lastValidColor;
+
+    /// <summary>入力の反映中かどうか（入力と状態の往復でイベントが循環するのを防ぐ）。</summary>
+    private bool _applying;
+
+    /// <summary>保存値の正規化中かどうか（正規化の再入を防ぐ）。</summary>
+    private bool _normalizing;
+
+    /// <summary>内部ロガー。</summary>
+    private ILogger _log = NullLogger.Instance;
+
+    /// <summary>ログの接頭辞。</summary>
+    private string? _logPrefix;
 
     // ====================================================================
     // 値
@@ -98,19 +121,27 @@ public sealed partial class ColorComboBoxControl : UserControl
     /// <summary>現在選択されている色（双方向バインド用）。</summary>
     /// <value>保存値は <c>#AARRGGBB</c>（アルファ先頭16進）形式（例: "#80FF0000"）。<br/>
     /// 色名や <c>+{n}%</c> 形式を設定することもできる（正規化は <see cref="ColorString"/> で行う）。<br/>
-    /// ComboBox の表示テキストは <see cref="ColorDisplayConverter"/> により「色名+不透明度%」形式へ変換される。</value>
+    /// 入力欄の表示は <see cref="TextFormat"/> が決める。</value>
     public string SelectedColor
     {
         get => GetValue(SelectedColorProperty);
         set => SetValue(SelectedColorProperty, value);
     }
 
-    /// <summary>ドロップダウンの色の並び順を取得または設定する。</summary>
+    /// <summary>一覧の色の並び順を取得または設定する。</summary>
     /// <value>色名順 (<see cref="ColorSortMode.ByName"/>) または色相順 (<see cref="ColorSortMode.ByHue"/>)。</value>
     public ColorSortMode ColorSortMode
     {
         get => GetValue(ColorSortModeProperty);
         set => SetValue(ColorSortModeProperty, value);
+    }
+
+    /// <summary>入力欄の表記を取得または設定する。</summary>
+    /// <value>色名 + 不透明度（既定）またはカラーコード。 入力欄は編集できるため、表記と異なる形の入力も受理する。</value>
+    public ColorTextFormat TextFormat
+    {
+        get => GetValue(TextFormatProperty);
+        set => SetValue(TextFormatProperty, value);
     }
 
     // ====================================================================
@@ -126,15 +157,15 @@ public sealed partial class ColorComboBoxControl : UserControl
     }
 
     /// <summary>バリデーションエラーメッセージを取得する。</summary>
-    /// <value>無効な場合の理由説明。 有効な場合は null。</value>
+    /// <value>無効な場合の理由。 有効な場合は null。</value>
     public string? ValidationErrorMessage
     {
         get => GetValue(ValidationErrorMessageProperty);
         private set => SetValue(ValidationErrorMessageProperty, value);
     }
 
-    /// <summary>バリデーション失敗時に ComboBox の枠線を赤くするかどうかを取得または設定する。</summary>
-    /// <value>true の場合、バリデーション失敗時に ComboBox の BorderBrush が赤色になる。</value>
+    /// <summary>エラー時に枠線を強調するかどうかを取得または設定する。</summary>
+    /// <value>true の場合、バリデーションエラー時に外周の枠線が赤くなる。</value>
     public bool HighlightBorderOnError
     {
         get => GetValue(HighlightBorderOnErrorProperty);
@@ -142,138 +173,110 @@ public sealed partial class ColorComboBoxControl : UserControl
     }
 
     // ====================================================================
-    // 外観（ComboBox サイズ・パディング・マージン）
+    // 外観
     // ====================================================================
 
-    /// <summary>ComboBox の明示的な幅を取得または設定する。</summary>
-    /// <value>デフォルトは NaN（自動）。</value>
-    public double ComboBoxWidth
+    /// <summary>入力欄の幅を取得または設定する。</summary>
+    /// <value>幅。 <see cref="double.NaN"/>（既定）の場合は親の幅に従う。</value>
+    public double TextWidth
     {
-        get => GetValue(ComboBoxWidthProperty);
-        set => SetValue(ComboBoxWidthProperty, value);
+        get => GetValue(TextWidthProperty);
+        set => SetValue(TextWidthProperty, value);
     }
 
-    /// <summary>ComboBox の最小幅を取得または設定する。</summary>
-    /// <value>デフォルトは 120。</value>
-    public double ComboBoxMinWidth
+    /// <summary>入力欄の最小幅を取得または設定する。</summary>
+    /// <value>最小幅。 既定は 120。</value>
+    public double TextMinWidth
     {
-        get => GetValue(ComboBoxMinWidthProperty);
-        set => SetValue(ComboBoxMinWidthProperty, value);
+        get => GetValue(TextMinWidthProperty);
+        set => SetValue(TextMinWidthProperty, value);
     }
 
-    /// <summary>ComboBox の最大幅を取得または設定する。</summary>
-    /// <value>デフォルトは Infinity（制限なし）。</value>
-    public double ComboBoxMaxWidth
+    /// <summary>入力欄の最大幅を取得または設定する。</summary>
+    /// <value>最大幅。 既定は無制限。</value>
+    public double TextMaxWidth
     {
-        get => GetValue(ComboBoxMaxWidthProperty);
-        set => SetValue(ComboBoxMaxWidthProperty, value);
+        get => GetValue(TextMaxWidthProperty);
+        set => SetValue(TextMaxWidthProperty, value);
     }
 
-    /// <summary>ComboBox の内部パディングを取得または設定する。</summary>
-    /// <value>null の場合はテーマ標準のパディングが適用される。</value>
-    public Thickness? ComboBoxPadding
+    /// <summary>入力欄の余白を取得または設定する。</summary>
+    /// <value>余白。 null の場合はテーマの既定値を使う。</value>
+    public Thickness? TextPadding
     {
-        get => GetValue(ComboBoxPaddingProperty);
-        set => SetValue(ComboBoxPaddingProperty, value);
+        get => GetValue(TextPaddingProperty);
+        set => SetValue(TextPaddingProperty, value);
     }
 
-    /// <summary>ComboBox のマージンを取得または設定する。</summary>
-    /// <value>null の場合はテーマ標準のマージンが適用される。</value>
-    public Thickness? ComboBoxMargin
+    /// <summary>入力欄の外側の余白を取得または設定する。</summary>
+    /// <value>余白。 null の場合はテーマの既定値を使う。</value>
+    public Thickness? TextMargin
     {
-        get => GetValue(ComboBoxMarginProperty);
-        set => SetValue(ComboBoxMarginProperty, value);
+        get => GetValue(TextMarginProperty);
+        set => SetValue(TextMarginProperty, value);
     }
 
     // ====================================================================
     // ログ
     // ====================================================================
 
-    /// <summary>内部ロガー（横断的関心事）。</summary>
-    /// <value>null を設定した場合は <see cref="NullLogger"/> へフォールバックする。</value>
-    /// <remarks>
-    /// C#14 の <c>field</c> キーワードでバッキングフィールドを暗黙定義する。<br/>
-    /// getter / setter とも null を <see cref="NullLogger"/> へ安全に変換する。
-    /// </remarks>
+    /// <summary>内部ロガーを取得または設定する。</summary>
+    /// <value>ロガー。 null を設定した場合は <see cref="NullLogger"/> を使う。</value>
     public ILogger Log
     {
-        get => field ?? NullLogger.Instance;
-        set => field = value ?? NullLogger.Instance;
+        get => _log;
+        set => _log = value ?? NullLogger.Instance;
     }
 
-    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
-    /// <value>接頭辞（例: <c>[ColorComboBox]</c>）。 null または空白を設定すると既定値へ戻す。</value>
-    /// <remarks>本アセンブリのログ定義（<see cref="ColorComboBoxLogMessage"/>）の接頭辞を設定する。</remarks>
+    /// <summary>ログの接頭辞を取得または設定する。</summary>
+    /// <value>接頭辞。 null の場合は既定値を使う。</value>
     public string? LogPrefix
     {
-        get;
+        get => _logPrefix;
         set
         {
-            field = value;
-            ColorComboBoxLogMessage.Prefix =
-                string.IsNullOrWhiteSpace(value) ? ColorComboBoxLogMessage.DefaultPrefix : value;
+            _logPrefix = value;
+            ColorComboBoxLogMessage.Prefix = value ?? ColorComboBoxLogMessage.DefaultPrefix;
         }
     }
-
-    // ====================================================================
-    // 定数
-    // ====================================================================
-
-    /// <summary>色スウォッチの幅＋両脇マージン（ピクセル）。 Left Padding に加算される。</summary>
-    private const double SwatchPaddingOffset = 20;
-
-    /// <summary>スウォッチの縦位置をテキストと揃えるための微調整（ピクセル）。</summary>
-    private const double SwatchTextYAxisOffset = 1;
 
     // ====================================================================
     // コンストラクタ・初期化
     // ====================================================================
 
-    /// <summary>直前に有効だった色（無効入力の復帰先）。 コンストラクタ・入力処理で使用する。</summary>
-    private string? _lastValidColor;
-
-    /// <summary>ColorComboBoxControl を初期化する。</summary>
+    /// <summary>コントロールを生成する。</summary>
     public ColorComboBoxControl()
     {
         InitializeComponent();
 
-        _comboBox.ItemsSource = ColorEntry.GetSorted(ColorSortMode.ByHue);
+        // TextChanged はプログラムからの Text 変更では発火しない（実測 2026-10-25）。
+        // Text プロパティの変更を直接購読し、入力の経路に依らず同期する
+        _text.GetObservable(TextBox.TextProperty).Subscribe(new AnonymousObserver<string?>(OnTextValueChanged));
+        _text.LostFocus += OnTextLostFocus;
 
         if (!Design.IsDesignMode)
         {
             // SelectedColor は 1 回だけ取得して初期値とバリデーションで共有する（二重 getter の排除）
             var initialColor = SelectedColor;
             _lastValidColor = initialColor;
+            UpdateTextAndToolTip(initialColor);
             UpdateValidationStatus(initialColor);
         }
 
-        // テーマテンプレート適用後に Padding を調整
-        _comboBox.TemplateApplied += OnComboBoxTemplateApplied;
+        ApplyTextLayout();
     }
+
+    /// <summary><see cref="_text"/>（入力欄）。</summary>
+    private TextBox _text => PART_Text;
+
+    /// <summary>外周の枠（検証エラーの強調を付ける対象）。</summary>
+    private Border Frame => PART_Frame;
 
     // ====================================================================
-    // 入力イベント処理・非公開 UI ロジック
+    // プロパティ変更
     // ====================================================================
 
-    /// <summary>ComboBox テンプレート適用後、テーマ標準 Padding にスウォッチ分を加算する。</summary>
-    private void OnComboBoxTemplateApplied(object? sender, TemplateAppliedEventArgs e)
-    {
-        _comboBox.TemplateApplied -= OnComboBoxTemplateApplied;
-        ApplyPaddingWithSwatchOffset();
-    }
-
-    /// <summary>ComboBox の Padding にスウォッチ分の左余白を加算して設定する。</summary>
-    private void ApplyPaddingWithSwatchOffset()
-    {
-        var basePadding = ComboBoxPadding ?? _comboBox.Padding;
-        _comboBox.Padding = new Thickness(
-            basePadding.Left + SwatchPaddingOffset,
-            basePadding.Top + SwatchTextYAxisOffset,
-            basePadding.Right,
-            basePadding.Bottom - SwatchTextYAxisOffset);
-    }
-
-    /// <summary>プロパティ変更時に有効な色の追跡とバリデーション状態を更新する。</summary>
+    /// <inheritdoc/>
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -282,6 +285,25 @@ public sealed partial class ColorComboBoxControl : UserControl
         {
             // change.NewValue / OldValue は StyledProperty<string> により常に string（分岐なし）
             var color = (string)change.NewValue!;
+
+            // 保存値は #AARRGGBB へ正規化する（色名や #RRGGBB を設定しても保存値の形を保つ）。
+            // 正規化した値の通知で残りの処理を行う（同じ処理を 2 回書かない）
+            var normalized = ColorString.ToArgbHex(color);
+            if (!_normalizing && !string.Equals(normalized, color, StringComparison.Ordinal))
+            {
+                _normalizing = true;
+                try
+                {
+                    SetCurrentValue(SelectedColorProperty, normalized);
+                }
+                finally
+                {
+                    _normalizing = false;
+                }
+
+                return;
+            }
+
             Log.LogSelectedColorChanged((string)change.OldValue!, color);
 
             // 解析は 1 回だけ行い、最終有効値の追跡とバリデーション更新で共有する（二重解析の排除）
@@ -290,50 +312,117 @@ public sealed partial class ColorComboBoxControl : UserControl
             {
                 _lastValidColor = color;
             }
+
             UpdateValidationStatusCore(color, valid);
+
+            // 入力中の文字を打ち消さないよう、入力欄からの反映では書き戻さない
+            if (!_applying)
+            {
+                UpdateTextAndToolTip(color);
+            }
+        }
+        else if (change.Property == TextFormatProperty)
+        {
+            UpdateTextAndToolTip(SelectedColor);
         }
         else if (change.Property == HighlightBorderOnErrorProperty)
         {
             UpdateBorderValidationVisual();
         }
-        else if (change.Property == ColorSortModeProperty)
+        else if (change.Property == TextPaddingProperty ||
+                 change.Property == TextMarginProperty ||
+                 change.Property == TextWidthProperty ||
+                 change.Property == TextMinWidthProperty ||
+                 change.Property == TextMaxWidthProperty)
         {
-            // change.NewValue は StyledProperty&lt;ColorSortMode&gt; により常に ColorSortMode（分岐なし）
-            var mode = (ColorSortMode)change.NewValue!;
-            _comboBox.ItemsSource = ColorEntry.GetSorted(mode);
-        }
-        else if (change.Property == ComboBoxPaddingProperty)
-        {
-            ApplyPaddingWithSwatchOffset();
-        }
-        else if (change.Property == ComboBoxMarginProperty)
-        {
-            if (change.NewValue is Thickness margin)
-                _comboBox.Margin = margin;
-            else
-                _comboBox.ClearValue(MarginProperty);
+            ApplyTextLayout();
         }
     }
 
-    /// <summary>ドロップダウン選択後にテキスト選択状態を解除する。</summary>
-    /// <param name="sender">イベント送信元。</param>
-    /// <param name="e">イベント引数（未使用）。</param>
-    private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    /// <summary>入力欄のサイズ・余白の指定を反映する。</summary>
+    /// <remarks>
+    /// 左の余白にはスウォッチの幅と両脇の余白を必ず足す（文字がスウォッチへ重ならないようにする）。
+    /// 上下の余白はテーマの既定値を使う（0 にすると文字が上端へ寄る）。
+    /// </remarks>
+    private void ApplyTextLayout()
     {
-        if (sender is not ComboBox comboBox) return;
+        var text = _text;
+        text.MinWidth = TextMinWidth;
+        text.MaxWidth = TextMaxWidth;
+        text.Width = TextWidth;
 
-        Dispatcher.UIThread.Post(() => TextBoxSelectionHelper.ResetSelection(comboBox));
+        if (TextMargin is { } margin)
+        {
+            text.Margin = margin;
+        }
+        else
+        {
+            text.ClearValue(MarginProperty);
+        }
+
+        var basePadding = TextPadding ?? default;
+        text.Padding = new Thickness(
+            basePadding.Left + (SwatchGap * 2) + SwatchSize,
+            basePadding.Top,
+            basePadding.Right,
+            basePadding.Bottom);
+    }
+
+    // ====================================================================
+    // 入力イベント処理・非公開 UI ロジック
+    // ====================================================================
+
+    /// <summary>入力欄へ色の表記とツールチップを反映する。</summary>
+    /// <param name="color">表示する色（保存値）。</param>
+    /// <remarks>ツールチップは 2 行（色名+不透明度 / カラーコード）を出す。</remarks>
+    private void UpdateTextAndToolTip(string? color)
+    {
+        _applying = true;
+        try
+        {
+            var normalized = ColorString.ToArgbHex(color);
+            _text.Text = ColorString.ToText(normalized, TextFormat);
+
+            var tooltip = string.Concat(
+                ColorString.ToDisplayText(normalized), Environment.NewLine, ColorString.ToArgbHex(normalized));
+            ToolTip.SetTip(_text, tooltip);
+            ToolTip.SetTip(PART_Swatch, tooltip);
+        }
+        finally
+        {
+            _applying = false;
+        }
+    }
+
+    /// <summary>入力欄の変更を <see cref="SelectedColor"/> へ反映する。</summary>
+    /// <param name="text">入力欄の文字列。</param>
+    private void OnTextValueChanged(string? text)
+    {
+        if (_applying)
+        {
+            return;
+        }
+
+        _applying = true;
+        try
+        {
+            SelectedColor = text ?? string.Empty;
+        }
+        finally
+        {
+            _applying = false;
+        }
     }
 
     /// <summary>フォーカス喪失時、無効な色を最終有効値に戻す。</summary>
     /// <param name="sender">イベント送信元。</param>
-    /// <param name="e">イベント引数（未使用）。</param>
+    /// <param name="e">イベント引数。</param>
     /// <remarks>
     /// 最終有効値が存在し現在の値が無効な場合は復帰する（復帰後の再検証は
     /// <see cref="OnPropertyChanged(AvaloniaPropertyChangedEventArgs)"/> が行う）。<br/>
     /// 解析は 1 回だけ行い、復帰判定・バリデーション更新・ログ判定で共有する。
     /// </remarks>
-    private void OnLostFocus(object? sender, RoutedEventArgs e)
+    private void OnTextLostFocus(object? sender, RoutedEventArgs e)
     {
         var color = SelectedColor;
         var valid = ColorValidation.IsValid(color);
@@ -345,6 +434,7 @@ public sealed partial class ColorComboBoxControl : UserControl
             // 無効な入力は最終有効値へ復帰する（再検証は OnPropertyChanged が行う）
             color = _lastValidColor!;
             SelectedColor = color;
+            UpdateTextAndToolTip(color);
         }
         else
         {
@@ -355,12 +445,46 @@ public sealed partial class ColorComboBoxControl : UserControl
         Log.LogLostFocus(color, valid || hasLastValid);
     }
 
+    /// <summary>一覧のポップアップを開く。</summary>
+    /// <param name="sender">イベント送信元。</param>
+    /// <param name="e">イベント引数。</param>
+    private void OnListButtonClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button)
+        {
+            return;
+        }
+
+        var list = new ListBox
+        {
+            ItemsSource = ColorEntry.GetSorted(ColorSortMode),
+            ItemTemplate = (IDataTemplate?)Resources["ColorEntryTemplate"],
+            MaxHeight = 360,
+        };
+
+        var flyout = new Flyout { Content = list, Placement = PlacementMode.BottomEdgeAlignedLeft };
+        list.SelectionChanged += (_, _) =>
+        {
+            if (list.SelectedItem is ColorEntry entry)
+            {
+                SelectedColor = entry.Name;
+                UpdateTextAndToolTip(entry.Name);
+                flyout.Hide();
+            }
+        };
+
+        flyout.ShowAt(button);
+    }
+
     /// <summary>Flyout 形式のカラーピッカーを開いて選択色を反映する。</summary>
     /// <param name="sender">イベント送信元。</param>
-    /// <param name="e">イベント引数（未使用）。</param>
+    /// <param name="e">イベント引数。</param>
     private void OnColorPickerButtonClick(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Button button) return;
+        if (sender is not Button button)
+        {
+            return;
+        }
 
         // SelectedColor は 1 回だけ取得してログと Flyout 構築で共有する（二重 getter の排除）
         var color = SelectedColor;
@@ -369,51 +493,30 @@ public sealed partial class ColorComboBoxControl : UserControl
         flyout.ShowAt(button);
     }
 
-    /// <summary>バリデーション状態に応じて ComboBox の枠線を更新する。</summary>
-    /// <remarks>
-    /// ComboBox の <c>BorderBrush</c> を直接設定する方式では、フォーカス・ホバー時（<c>:pointerover</c>）に
-    /// Fluent テーマのテンプレートスタイル（<c>Border#Background</c> への上書き）が優先され、
-    /// エラー枠が表示されない。<br/>
-    /// そのため <c>validation-error</c> クラスを設定し、コントロールのローカルスタイル
-    /// （<c>ColorComboBoxControl.axaml</c> の <c>ComboBox.validation-error /template/ Border#Background</c>）で
-    /// 枠線色を上書きする（ローカルスタイルはテーマスタイルより優先される）。<br/>
-    /// 疑似クラス（<c>PseudoClasses</c>）は protected のため外部から操作できず、<c>Classes</c> で設定する。
-    /// </remarks>
-    private void UpdateBorderValidationVisual()
-    {
-        // InitializeComponent 中は名前スコープのフィールド代入前のため _comboBox が null のことがある
-        // （TwoWay Text バインディングの初期書き戻しが SelectedColor 変更として届く）。
-        // バリデーション状態（HasValidationError / ValidationErrorMessage）は更新済みのため、
-        // 枠線のみ構築後にコンストラクタの UpdateValidationStatus が適用する。
-        if (_comboBox is null) return;
-
-        _comboBox.Classes.Set("validation-error", HighlightBorderOnError && HasValidationError);
-    }
-
     // ====================================================================
-    // 色バリデーション（純粋演算）
+    // 検証状態
     // ====================================================================
 
-    /// <summary>バリデーション状態を更新する。</summary>
-    /// <param name="color">検証対象の色文字列。</param>
+    /// <summary>バリデーション状態を更新し、エラー時に枠線を強調する。</summary>
+    /// <param name="color">検証対象の色。</param>
     /// <remarks>テスト（EsUtil.Ui.AvaloniaUI.ColorComboBox.Tests）が全分岐を検証するため internal 公開する。</remarks>
     internal void UpdateValidationStatus(string color)
         => UpdateValidationStatusCore(color, ColorValidation.IsValid(color));
 
-    /// <summary>バリデーション状態を更新する（解析結果を再利用する内部実装）。</summary>
-    /// <param name="color">検証対象の色文字列。</param>
-    /// <param name="isValid">事前に判定済みの有効性（呼び出し元での二重解析を排除）。</param>
-    /// <remarks>
-    /// 空文字または有効な色はエラーなし、無効な色はエラーありとして<br/>
-    /// <see cref="HasValidationError"/> / <see cref="ValidationErrorMessage"/> を更新し、枠線表示も更新する。<br/>
-    /// 判定ロジックは <see cref="ColorValidation.Determine"/>（純粋関数・UI 非依存）へ委譲する。
-    /// </remarks>
-    private void UpdateValidationStatusCore(string color, bool isValid)
+    /// <summary>バリデーション状態を更新する。</summary>
+    /// <param name="color">検証対象の色。</param>
+    /// <param name="isValid">検証済みの結果。</param>
+    internal void UpdateValidationStatusCore(string color, bool isValid)
     {
         var state = ColorValidation.Determine(color, isValid);
         HasValidationError = state.HasError;
         ValidationErrorMessage = state.Message;
         UpdateBorderValidationVisual();
     }
-}
 
+    /// <summary>検証エラーの強調を枠線へ反映する。</summary>
+    private void UpdateBorderValidationVisual()
+    {
+        Frame.Classes.Set("validation-error", HighlightBorderOnError && HasValidationError);
+    }
+}

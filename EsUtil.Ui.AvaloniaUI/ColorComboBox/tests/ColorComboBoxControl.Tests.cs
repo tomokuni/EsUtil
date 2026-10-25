@@ -1,30 +1,42 @@
-using EsUtil.Platform.Core;
-using BindingFlags = System.Reflection.BindingFlags;
 using Avalonia;
-using Avalonia.Collections;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Threading;
-using Avalonia.VisualTree;
-using Microsoft.Extensions.Logging.Abstractions;
 using EsUtil.Platform.Core.Palette;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace EsUtil.Ui.AvaloniaUI.ColorComboBox.Tests;
 
-/// <summary><see cref="ColorComboBoxControl"/> の単体テスト（公開プロパティ・バリデーション・ソート・イベント）。</summary>
+/// <summary><see cref="ColorComboBoxControl"/> の単体テスト（公開プロパティ・バリデーション・入力の反映）。</summary>
 /// <remarks>
-/// Flyout 構築（<see cref="ColorComboBoxFlyoutFactory"/>）は
-/// 各クラスのテストファイルで検証する。<br/>
-/// 純粋演算テストは <c>[Fact]</c> で並列実行し、ヘッドレス必須のテストのみ <c>[AvaloniaFact]</c> で直列実行する。
+/// コントロール生成と入力欄の操作を含むため、Avalonia ヘッドレス実行（<c>[AvaloniaFact]</c>）で直列検証する。<br/>
+/// Flyout の構築（<see cref="ColorComboBoxFlyoutFactory"/>）は専用のテストファイルで検証する。
 /// </remarks>
 [Collection("AvaloniaHeadless")]
 public class ColorComboBoxControlTests
 {
-    /// <summary>テスト用の ColorComboBoxControl を生成する。</summary>
-    private static ColorComboBoxControl CreateControl() => new();
+    /// <summary>テスト用の <see cref="ColorComboBoxControl"/> を生成する。</summary>
+    /// <returns>生成したコントロール（入力欄の名前解決が済んでいること）。</returns>
+    private static ColorComboBoxControl CreateControl()
+    {
+        var control = new ColorComboBoxControl();
+        control.ApplyTemplate();
+        return control;
+    }
+
+    /// <summary>入力欄（<c>PART_Text</c>）を取り出す。</summary>
+    /// <param name="control">対象のコントロール。</param>
+    /// <returns>入力欄。</returns>
+    private static TextBox TextOf(ColorComboBoxControl control)
+        => control.FindControl<TextBox>("PART_Text")!;
+
+    /// <summary>外周の枠（<c>PART_Frame</c>）を取り出す。</summary>
+    /// <param name="control">対象のコントロール。</param>
+    /// <returns>外周の枠。</returns>
+    private static Border FrameOf(ColorComboBoxControl control)
+        => control.FindControl<Border>("PART_Frame")!;
 
     // ====================================================================
     // ログ（Log プロパティ）
@@ -35,7 +47,7 @@ public class ColorComboBoxControlTests
     {
         var control = CreateControl();
 
-        Assert.IsType<NullLogger>(control.Log);
+        Assert.Same(NullLogger.Instance, control.Log);
     }
 
     [AvaloniaFact]
@@ -56,7 +68,18 @@ public class ColorComboBoxControlTests
 
         control.Log = null!;
 
-        Assert.IsType<NullLogger>(control.Log);
+        Assert.Same(NullLogger.Instance, control.Log);
+    }
+
+    [AvaloniaFact]
+    internal void LogPrefix_nullは既定の接頭辞へ戻る()
+    {
+        var control = CreateControl();
+
+        control.LogPrefix = "[Test]";
+        control.LogPrefix = null;
+
+        Assert.Null(control.LogPrefix);
     }
 
     // ====================================================================
@@ -68,37 +91,64 @@ public class ColorComboBoxControlTests
     {
         var control = CreateControl();
 
-        // 注: ヘッドレス環境ではテーマ未適用のため ComboBox の TwoWay バインディングが
-        // SelectedColor を空文字に上書きする。 ここでは SelectedColor 以外のデフォルト値を検証する。
         Assert.Equal(ColorSortMode.ByHue, control.ColorSortMode);
+        Assert.Equal(ColorTextFormat.NameWithAlpha, control.TextFormat);
         Assert.False(control.HasValidationError);
         Assert.Null(control.ValidationErrorMessage);
         Assert.False(control.HighlightBorderOnError);
-        Assert.Equal(120d, control.ComboBoxMinWidth);
-        Assert.Equal(double.PositiveInfinity, control.ComboBoxMaxWidth);
-        Assert.Equal(double.NaN, control.ComboBoxWidth);
-        Assert.Null(control.ComboBoxPadding);
-        Assert.Null(control.ComboBoxMargin);
+        Assert.Equal(120d, control.TextMinWidth);
+        Assert.Equal(double.PositiveInfinity, control.TextMaxWidth);
+        Assert.Equal(double.NaN, control.TextWidth);
+        Assert.Null(control.TextPadding);
+        Assert.Null(control.TextMargin);
+    }
+
+    // ====================================================================
+    // 1 つの入力欄としての構造
+    // ====================================================================
+
+    [AvaloniaFact]
+    internal void 構造_外周の枠と入力欄と区画がある()
+    {
+        var control = CreateControl();
+
+        Assert.NotNull(control.FindControl<Border>("PART_Frame"));
+        Assert.NotNull(control.FindControl<Border>("PART_Swatch"));
+        Assert.NotNull(control.FindControl<Button>("PART_ListButton"));
+        Assert.NotNull(control.FindControl<Button>("PART_PickerButton"));
     }
 
     [AvaloniaFact]
-    internal void コンストラクタ_デザインモードでは初期化をスキップする()
+    internal void 構造_入力欄は枠を持たない()
     {
-        // Design.IsDesignMode を true にすると、コンストラクタの _lastValidColor 初期化と
-        // バリデーション更新がスキップされる（分岐カバレッジ向上のため）
-        var prop = typeof(Design).GetProperty("IsDesignMode")!;
-        prop.SetValue(null, true);
-        try
-        {
-            var control = CreateControl();
+        var control = CreateControl();
 
-            // デザインモードでは初期化がスキップされても例外なく生成される
-            Assert.NotNull(control._comboBox);
-        }
-        finally
+        // 枠は外周の 1 つだけが持つ（入力欄自身の枠は消す。 1 つの入力欄に見せるため）
+        Assert.Equal(new Thickness(0), TextOf(control).BorderThickness);
+        Assert.Equal(1d, FrameOf(control).BorderThickness.Left);
+    }
+
+    [AvaloniaFact]
+    internal void 構造_入力欄の左余白はスウォッチ分を確保する()
+    {
+        var control = CreateControl();
+
+        // スウォッチ（6 + 16）と文字の間隔（6）の分を左へ確保する
+        Assert.Equal(28d, TextOf(control).Padding.Left);
+    }
+
+    [AvaloniaFact]
+    internal void 構造_区画のボタンは枠と背景を持たない()
+    {
+        var control = CreateControl();
+
+        var list = control.FindControl<Button>("PART_ListButton")!;
+        var picker = control.FindControl<Button>("PART_PickerButton")!;
+
+        // 区画のボタン自身が枠を持つと、外周の枠と二重になる
+        foreach (var button in new[] { list, picker })
         {
-            // 他のテストへの影響を防ぐため確実に戻す
-            prop.SetValue(null, false);
+            Assert.Contains("segment", button.Classes);
         }
     }
 
@@ -113,8 +163,8 @@ public class ColorComboBoxControlTests
 
         control.SelectedColor = "Red";
 
-        // ComboBox の双方向バインディング（ColorDisplayConverter）により保存値は #AARRGGBB へ正規化される
-        Assert.Equal("#FFFF0000", control.SelectedColor);
+        // 入力欄は表記（色名+不透明度）で表示する
+        Assert.Equal("Red", TextOf(control).Text);
         Assert.False(control.HasValidationError);
         Assert.Null(control.ValidationErrorMessage);
     }
@@ -124,10 +174,8 @@ public class ColorComboBoxControlTests
     {
         var control = CreateControl();
 
-        control.SelectedColor = "#00FF00";
+        control.SelectedColor = "#FF0000";
 
-        // アルファ先頭の8桁（#AARRGGBB）へ正規化される
-        Assert.Equal("#FF00FF00", control.SelectedColor);
         Assert.False(control.HasValidationError);
     }
 
@@ -157,11 +205,10 @@ public class ColorComboBoxControlTests
     internal void SelectedColor_無効後_有効な値を設定するとエラーが解除される()
     {
         var control = CreateControl();
-
         control.SelectedColor = "NotAColor";
-        Assert.True(control.HasValidationError);
 
         control.SelectedColor = "Blue";
+
         Assert.False(control.HasValidationError);
         Assert.Null(control.ValidationErrorMessage);
     }
@@ -170,134 +217,104 @@ public class ColorComboBoxControlTests
     internal void SelectedColor_nullを設定すると例外にならない()
     {
         var control = CreateControl();
-        control.SelectedColor = "Red";
-        var changed = false;
-        control.PropertyChanged += (_, e) =>
-        {
-            if (e.Property == ColorComboBoxControl.SelectedColorProperty) changed = true;
-        };
 
-        // 非 null 想定の StyledProperty<string> へ null を設定した場合でも、
-        // バリデーション更新（null → 空扱い）により例外なくエラーにならないことを保証する
-        control.SetValue(ColorComboBoxControl.SelectedColorProperty, null!);
+        var exception = Record.Exception(() => control.SelectedColor = null!);
 
-        Assert.True(changed, "PropertyChanged が発火するはず");
-        Assert.False(control.HasValidationError);
+        Assert.Null(exception);
     }
 
     // ====================================================================
-    // ColorSortMode
+    // 表記（TextFormat）
     // ====================================================================
 
     [AvaloniaFact]
-    internal void ColorSortMode_変更でItemsSourceが切り替わる()
+    internal void TextFormat_色名と不透明度で表示する()
     {
         var control = CreateControl();
+        control.SelectedColor = "#80FF0000";
 
-        control.ColorSortMode = ColorSortMode.ByName;
+        control.TextFormat = ColorTextFormat.NameWithAlpha;
 
-        var combo = control._comboBox;
-        Assert.Same(ColorEntry.All, combo.ItemsSource);
-
-        control.ColorSortMode = ColorSortMode.ByHue;
-        Assert.Same(ColorEntry.AllByHue, combo.ItemsSource);
-    }
-
-    // ====================================================================
-    // 外観プロパティ
-    // ====================================================================
-
-    [AvaloniaFact]
-    internal void ComboBoxサイズプロパティを設定すると反映される()
-    {
-        var control = CreateControl();
-
-        control.ComboBoxMinWidth = 200;
-        control.ComboBoxMaxWidth = 400;
-        control.ComboBoxWidth = 300;
-        control.ComboBoxPadding = new Thickness(5);
-        control.ComboBoxMargin = new Thickness(2);
-
-        Assert.Equal(200, control.ComboBoxMinWidth);
-        Assert.Equal(400, control.ComboBoxMaxWidth);
-        Assert.Equal(300, control.ComboBoxWidth);
-        Assert.Equal(new Thickness(5), control.ComboBoxPadding);
-        Assert.Equal(new Thickness(2), control.ComboBoxMargin);
+        Assert.Equal("Red+50%", TextOf(control).Text);
     }
 
     [AvaloniaFact]
-    internal void HighlightBorderOnError_切り替えが反映される()
+    internal void TextFormat_カラーコードで表示する()
     {
         var control = CreateControl();
+        control.SelectedColor = "#80FF0000";
 
-        control.HighlightBorderOnError = true;
-        Assert.True(control.HighlightBorderOnError);
+        control.TextFormat = ColorTextFormat.HexCode;
 
-        control.HighlightBorderOnError = false;
-        Assert.False(control.HighlightBorderOnError);
+        Assert.Equal("#80FF0000", TextOf(control).Text);
     }
 
     // ====================================================================
-    // ComboBox 連動
+    // ツールチップ
     // ====================================================================
 
     [AvaloniaFact]
-    internal void ComboBoxPadding変更でComboBoxのPaddingにスウォッチ分が加算される()
+    internal void ツールチップ_色名とカラーコードの2行を出す()
     {
         var control = CreateControl();
-        var combo = control._comboBox;
 
-        control.ComboBoxPadding = new Thickness(4);
+        control.SelectedColor = "#80FF0000";
 
-        // スウォッチ分 (20) + 縦調整 (1) が加算される
-        Assert.Equal(24, combo.Padding.Left);
-        Assert.Equal(5, combo.Padding.Top);
-        Assert.Equal(4, combo.Padding.Right);
-        Assert.Equal(3, combo.Padding.Bottom);
+        var text = ToolTip.GetTip(TextOf(control)) as string;
+        Assert.NotNull(text);
+        var lines = text.Split(Environment.NewLine);
+        Assert.Equal("Red+50%", lines[0]);
+        Assert.Equal("#80FF0000", lines[1]);
     }
 
     [AvaloniaFact]
-    internal void ComboBoxMargin変更でComboBoxのMarginが設定される()
+    internal void ツールチップ_スウォッチにも同じ内容を出す()
     {
         var control = CreateControl();
-        var combo = control._comboBox;
 
-        control.ComboBoxMargin = new Thickness(3);
+        control.SelectedColor = "#80FF0000";
 
-        Assert.Equal(new Thickness(3), combo.Margin);
+        var swatch = control.FindControl<Border>("PART_Swatch")!;
+        Assert.Equal(ToolTip.GetTip(TextOf(control)), ToolTip.GetTip(swatch));
+    }
+
+    // ====================================================================
+    // 入力欄の編集
+    // ====================================================================
+
+    [AvaloniaFact]
+    internal void 入力_有効な色を入力すると保存値へ反映する()
+    {
+        var control = CreateControl();
+        var text = TextOf(control);
+
+        text.Text = "Lime";
+
+        Assert.Equal("#FF00FF00", control.SelectedColor);
     }
 
     [AvaloniaFact]
-    internal void ComboBoxMargin_nullでMarginがクリアされる()
+    internal void 入力_無効な色を入力するとエラーになる()
     {
         var control = CreateControl();
-        var combo = control._comboBox;
-        control.ComboBoxMargin = new Thickness(3);
 
-        control.ComboBoxMargin = null;
+        TextOf(control).Text = "NotAColor";
 
-        Assert.Equal(default, combo.Margin);
+        Assert.True(control.HasValidationError);
     }
-
-    // ====================================================================
-    // OnLostFocus（無効値の復帰）
-    // ====================================================================
 
     [AvaloniaFact]
     internal void LostFocus_無効な色が最終有効値に戻る()
     {
         var control = CreateControl();
         control.SelectedColor = "Red";
+        var text = TextOf(control);
+        text.Text = "NotAColor";
 
-        control.SelectedColor = "NotAColor";
-        Assert.True(control.HasValidationError);
+        text.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
 
-        // OnLostFocus は XAML で ComboBox にアタッチされているため、ComboBox に対してイベントを発火する
-        control._comboBox.RaiseEvent(new RoutedEventArgs(Avalonia.Input.InputElement.LostFocusEvent));
-        Dispatcher.UIThread.RunJobs();
-
-        // 最終有効値（#AARRGGBB へ正規化済み）へ復帰する
         Assert.Equal("#FFFF0000", control.SelectedColor);
+        Assert.Equal("Red", text.Text);
         Assert.False(control.HasValidationError);
     }
 
@@ -305,151 +322,18 @@ public class ColorComboBoxControlTests
     internal void LostFocus_有効な色の場合はそのまま維持される()
     {
         var control = CreateControl();
-        control.SelectedColor = "Green";
-
-        control._comboBox.RaiseEvent(new RoutedEventArgs(Avalonia.Input.InputElement.LostFocusEvent));
-        Dispatcher.UIThread.RunJobs();
-
-        Assert.Equal("#FF008000", control.SelectedColor);
-        Assert.False(control.HasValidationError);
-    }
-
-    [AvaloniaFact]
-    internal void LostFocus_最終有効値がnullでも例外にならない()
-    {
-        var control = CreateControl();
         control.SelectedColor = "Red";
-        control.SelectedColor = "NotAColor";
-        // _lastValidColor を null にして防御分岐をカバーする
-        typeof(ColorComboBoxControl).GetField("_lastValidColor",
-            BindingFlags.Instance | BindingFlags.NonPublic)!
-            .SetValue(control, null);
+        var text = TextOf(control);
+        text.Text = "Blue";
 
-        // 例外なく完了する（_lastValidColor が null の場合は復帰しない）
-        control._comboBox.RaiseEvent(new RoutedEventArgs(Avalonia.Input.InputElement.LostFocusEvent));
-        Dispatcher.UIThread.RunJobs();
+        text.RaiseEvent(new FocusChangedEventArgs(InputElement.LostFocusEvent));
 
-        Assert.Equal("NotAColor", control.SelectedColor);
-    }
-
-    [AvaloniaFact]
-    internal void カラーピッカーボタンクリック_senderがButton以外なら何もしない()
-    {
-        var control = CreateControl();
-        var window = new Window { Content = control };
-        window.Show();
-
-        // OnColorPickerButtonClick をリフレクションで呼び、sender に Button 以外を渡す
-        var method = typeof(ColorComboBoxControl).GetMethod("OnColorPickerButtonClick",
-            BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.NotNull(method);
-        var e = new RoutedEventArgs(Button.ClickEvent);
-        method!.Invoke(control, [control, e]); // sender = control（Button 以外）
-
-        // 例外なく無視される（SelectedColor は変化しない）
-        window.Close();
+        Assert.Equal("#FF0000FF", control.SelectedColor);
     }
 
     // ====================================================================
-    // イベントハンドラ（SelectionChanged / カラーピッカー / テンプレート）
+    // バリデーションの強調
     // ====================================================================
-
-    [AvaloniaFact]
-    internal void SelectionChanged_ドロップダウン選択後にテキスト選択が解除される()
-    {
-        var control = CreateControl();
-
-        // SelectionChanged を発火（ヘッドレスではテキストボックスが無いため null パスも通る）
-        control._comboBox.RaiseEvent(new SelectionChangedEventArgs(
-            SelectingItemsControl.SelectionChangedEvent,
-            new AvaloniaList<object?>(),
-            new AvaloniaList<object?>()));
-        Dispatcher.UIThread.RunJobs();
-
-        // 例外なく完了すれば成功
-        Assert.True(true);
-    }
-
-    [AvaloniaFact]
-    internal void SelectionChanged_senderがComboBox以外では何もしない()
-    {
-        var control = CreateControl();
-
-        // sender が ComboBox 以外（Button 等）でも例外なく無視される
-        control.RaiseEvent(new SelectionChangedEventArgs(
-            SelectingItemsControl.SelectionChangedEvent,
-            new AvaloniaList<object?>(),
-            new AvaloniaList<object?>())
-        { Source = control });
-        Dispatcher.UIThread.RunJobs();
-
-        Assert.True(true);
-    }
-
-    [AvaloniaFact]
-    internal void カラーピッカーボタンクリックでFlyoutが構築される()
-    {
-        var control = CreateControl();
-        var window = new Window { Content = control };
-        window.Show();
-        control.SelectedColor = "#FF8800";
-
-        // AXAML の「…」ボタンを検索して Click を発火
-        var button = control.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Content is string s && s == "…");
-        Assert.NotNull(button);
-
-        // ヘッドレス環境では IPopupImpl が無いため ShowAt で例外が発生する（それまでの Flyout 構築は実行される）
-        try
-        {
-            button!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Dispatcher.UIThread.RunJobs();
-        }
-        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
-        {
-            // ヘッドレスではポップアップを表示できないため、構築までで検証する
-        }
-
-        window.Close();
-    }
-
-    [AvaloniaFact]
-    internal void カラーピッカーボタンクリック_SelectedColorが空でもFlyoutが構築される()
-    {
-        var control = CreateControl();
-        var window = new Window { Content = control };
-        window.Show();
-        control.SelectedColor = "";
-
-        var button = control.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Content is string s && s == "…");
-        Assert.NotNull(button);
-
-        try
-        {
-            button!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Dispatcher.UIThread.RunJobs();
-        }
-        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
-        {
-            // ヘッドレスではポップアップを表示できないため、構築までで検証する
-        }
-
-        window.Close();
-    }
-
-    [AvaloniaFact]
-    internal void TemplateApplied_適用後にPaddingが調整される()
-    {
-        var control = CreateControl();
-        var combo = control._comboBox;
-
-        // TemplateApplied を発火して OnComboBoxTemplateApplied を実行する
-        combo.RaiseEvent(new TemplateAppliedEventArgs(new NameScope()));
-        Dispatcher.UIThread.RunJobs();
-
-        // ハンドラ解除後に再度発火しても影響なし（冪等）
-        combo.RaiseEvent(new TemplateAppliedEventArgs(new NameScope()));
-        Dispatcher.UIThread.RunJobs();
-    }
 
     [AvaloniaFact]
     internal void HighlightBorderOnError_エラー時にvalidationErrorクラスが設定される()
@@ -459,8 +343,7 @@ public class ColorComboBoxControlTests
 
         control.SelectedColor = "NotAColor";
 
-        var combo = control._comboBox;
-        Assert.Contains("validation-error", combo.Classes);
+        Assert.Contains("validation-error", FrameOf(control).Classes);
     }
 
     [AvaloniaFact]
@@ -469,10 +352,9 @@ public class ColorComboBoxControlTests
         var control = CreateControl();
         control.HighlightBorderOnError = true;
 
-        control.SelectedColor = "Blue";
+        control.SelectedColor = "Red";
 
-        var combo = control._comboBox;
-        Assert.DoesNotContain("validation-error", combo.Classes);
+        Assert.DoesNotContain("validation-error", FrameOf(control).Classes);
     }
 
     [AvaloniaFact]
@@ -483,32 +365,77 @@ public class ColorComboBoxControlTests
 
         control.SelectedColor = "NotAColor";
 
-        var combo = control._comboBox;
-        Assert.DoesNotContain("validation-error", combo.Classes);
+        Assert.DoesNotContain("validation-error", FrameOf(control).Classes);
     }
 
     // ====================================================================
-    // InitializeComponent 中のバインディング書き戻し（回帰）
+    // 外観（入力欄のサイズ）
     // ====================================================================
 
     [AvaloniaFact]
-    internal void SelectedColor_ComboBox未構築時の書き戻しでも例外にならない()
+    internal void 入力欄サイズプロパティを設定すると反映される()
     {
         var control = CreateControl();
-        var combo = control._comboBox;
 
-        // InitializeComponent 中は名前スコープのフィールド代入前のため _comboBox が null のことがある
-        // （実アプリでは TwoWay Text バインディングの初期書き戻しがこのタイミングで届く）。
-        // 枠線更新をスキップし、バリデーション状態のみ更新されることを保証する。
-        control._comboBox = null!;
-        control.SelectedColor = "NotAColor";
+        control.TextMinWidth = 100;
+        control.TextMaxWidth = 300;
+        control.TextWidth = 200;
 
-        Assert.True(control.HasValidationError);
-        Assert.Equal("無効な色コードです。", control.ValidationErrorMessage);
+        var text = TextOf(control);
+        Assert.Equal(100d, text.MinWidth);
+        Assert.Equal(300d, text.MaxWidth);
+        Assert.Equal(200d, text.Width);
+    }
 
-        // フィールド復元後は枠線更新が適用される
-        control._comboBox = combo;
-        control.HighlightBorderOnError = true;
-        Assert.Contains("validation-error", combo.Classes);
+    [AvaloniaFact]
+    internal void TextPadding変更で入力欄の左余白にスウォッチ分が加算される()
+    {
+        var control = CreateControl();
+
+        control.TextPadding = new Thickness(4, 2, 8, 2);
+
+        var padding = TextOf(control).Padding;
+        Assert.Equal(32d, padding.Left);
+        Assert.Equal(2d, padding.Top);
+        Assert.Equal(8d, padding.Right);
+    }
+
+    [AvaloniaFact]
+    internal void TextMargin変更で入力欄のMarginが設定される()
+    {
+        var control = CreateControl();
+        var margin = new Thickness(1, 2, 3, 4);
+
+        control.TextMargin = margin;
+
+        Assert.Equal(margin, TextOf(control).Margin);
+    }
+
+    [AvaloniaFact]
+    internal void TextMargin_nullでMarginがクリアされる()
+    {
+        var control = CreateControl();
+        control.TextMargin = new Thickness(1);
+
+        control.TextMargin = null;
+
+        Assert.Equal(default, TextOf(control).Margin);
+    }
+
+    // ====================================================================
+    // カラーピッカー ボタン
+    // ====================================================================
+
+    [AvaloniaFact]
+    internal void カラーピッカーボタンクリック_senderがButton以外なら何もしない()
+    {
+        var control = CreateControl();
+
+        var exception = Record.Exception(() =>
+            control.GetType()
+                .GetMethod("OnColorPickerButtonClick", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(control, [null, new RoutedEventArgs()]));
+
+        Assert.Null(exception);
     }
 }

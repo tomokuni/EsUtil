@@ -18,9 +18,9 @@
   - [6.4 ColorSortMode](#64-colorsortmode)
   - [6.5 StringToBrushConverter](#65-stringtobrushconverter)
   - [6.6 ColorString](#66-colorstring)
-  - [6.7 ColorDisplayConverter](#67-colordisplayconverter)
+  - [6.7 入力欄の表記（`TextFormat`）](#67-入力欄の表記textformat)
   - [6.8 ColorValidator](#68-colorvalidator)
-  - [6.9 TextBoxSelectionHelper](#69-textboxselectionhelper)
+  - [6.9 区画（スウォッチ・入力欄・▼・…）の構成](#69-区画スウォッチ入力欄の構成)
   - [6.10 ColorComboBoxFlyoutFactory](#610-colorcomboboxflyoutfactory)
 - [7. 依存ルール](#7-依存ルール)
 - [8. バリデーション状態遷移](#8-バリデーション状態遷移)
@@ -59,9 +59,9 @@ Avalonia UI の色選択コントロールです（.NET 10.0 / C# 14 / MVVM）�
 ```text
 公開コントロール（ColorComboBoxControl: ColorComboBoxControl.axaml.cs）
   → 生成（ColorComboBoxFlyoutFactory）
-  → 検証（ColorValidator）/ 選択解除（TextBoxSelectionHelper）
-  → 対象（ColorEntry / ColorSortMode / ColorString）
-  → コンバーター（StringToBrushConverter / ColorDisplayConverter）
+  → 検証（ColorValidator）
+  → 対象（ColorEntry / ColorSortMode / ColorString / ColorTextFormat）
+  → コンバーター（StringToBrushConverter）
 ```
 
 ### 3.2 依存方向
@@ -71,7 +71,6 @@ Avalonia UI の色選択コントロールです（.NET 10.0 / C# 14 / MVVM）�
 - 関心事ごとに専用クラスへ委譲し、単一責任（SRP）と疎結合を維持する:
   - Flyout 構築: `ColorComboBoxFlyoutFactory`（Simple Factory）
   - 色の妥当性検証: `ColorValidator`
-  - テキスト選択の解除: `TextBoxSelectionHelper`
 - 状態管理はすべて StyledProperty（Avalonia プロパティシステム）に集約する。
 - 対象ロジック（`ColorString` / `ColorEntry`）は UI 非依存（Avalonia.Media のみ）。
 - 上位APへは双方向バインド（StyledProperty）と PropertyChanged のみで連携。
@@ -100,9 +99,9 @@ flowchart TB
     subgraph CPC["EsUtil.Ui.AvaloniaUI.ColorComboBox プロジェクト"]
         direction TB
         Ctl["ColorComboBoxControl<br/>public sealed partial : UserControl<br/>（公開 API ＋ イベント処理 ＋ バリデーション状態）"]
-        Xaml["ColorComboBoxControl.axaml<br/>ComboBox + スウォッチ + Button"]
-        Fac["ColorComboBoxFlyoutFactory<br/>Simple Factory（色ドロップダウン構築）"]
-        Impl["内部実装<br/>ColorValidator / ColorEntry / ColorString<br/>TextBoxSelectionHelper<br/>StringToBrushConverter / ColorDisplayConverter / ColorSortMode"]
+        Xaml["ColorComboBoxControl.axaml<br/>外周の枠 + スウォッチ + 入力欄 + ▼ + …"]
+        Fac["ColorComboBoxFlyoutFactory<br/>Simple Factory（カラーピッカー構築）"]
+        Impl["内部実装<br/>ColorValidator / ColorEntry / ColorString / ColorTextFormat<br/>StringToBrushConverter / ColorSortMode"]
     end
     AP -->|"SelectedColor (TwoWay)"| Ctl
     AP -->|"ColorSortMode / HighlightBorderOnError"| Ctl
@@ -121,26 +120,28 @@ flowchart TB
 - **責務**:
   - `SelectedColor`（色名/16進コード）の双方向バインド対応の保持（公開 API は ColorComboBoxControl.axaml.cs に集約）
   - 入力バリデーション状態の管理（`UpdateValidationStatus`。 検証自体は `ColorValidator` に委譲）
-  - ドロップダウン（ComboBox）の構築と並び順切替（`ColorSortMode`）
-  - テキスト選択の自動解除（`OnSelectionChanged` → `TextBoxSelectionHelper.ResetSelection`）
-  - 無効入力の最終有効値復帰（`OnLostFocus`）
+  - 一覧のポップアップ（▼）の構築と並び順切替（`ColorSortMode`）
+  - 入力欄の文字と保存値の同期（`OnTextValueChanged`。 プログラムからの `Text` 変更でも発火させるため、`Text` プロパティの変更を購読する）
+  - 無効入力の最終有効値復帰（`OnTextLostFocus`）
   - カラーピッカー Flyout の表示（`OnColorPickerButtonClick` → `ColorComboBoxFlyoutFactory.Create`）
-  - スウォッチ用の Padding 調整（`OnComboBoxTemplateApplied` → `ApplyPaddingWithSwatchOffset`）
+  - 入力欄の余白調整（`ApplyTextLayout`。 左へスウォッチ分を確保する）
+  - スウォッチと入力欄のツールチップ（色名+不透明度 / `#AARRGGBB` の 2 行）
   - バリデーション失敗時の枠線強調（`UpdateBorderValidationVisual`）
-- **公開API**: `SelectedColor` / `ColorSortMode` / `HighlightBorderOnError` / `HasValidationError` / `ValidationErrorMessage` / `ComboBoxMinWidth` / `ComboBoxMaxWidth` / `ComboBoxWidth` / `ComboBoxPadding` / `ComboBoxMargin` / `Log`（StyledProperty も同ファイルに定義）
+- **公開API**: `SelectedColor` / `ColorSortMode` / `TextFormat` / `HighlightBorderOnError` / `HasValidationError` / `ValidationErrorMessage` / `TextMinWidth` / `TextMaxWidth` / `TextWidth` / `TextPadding` / `TextMargin` / `Log`（StyledProperty も同ファイルに定義）
 - **構成**: 公開 API（StyledProperty・公開プロパティ）とイベント処理・バリデーション状態を保持し、関心事ごとに専用クラスへ委譲（単一責任・疎結合）
 - **内部メソッド（internal）**: `UpdateValidationStatus`（テストからの検証用に公開）
-- **依存**: ColorComboBoxFlyoutFactory / ColorValidator / TextBoxSelectionHelper / ColorEntry / ColorSortMode / ColorString
+- **依存**: ColorComboBoxFlyoutFactory / ColorValidator / ColorEntry / ColorSortMode / ColorString / ColorTextFormat
 
 ### 6.2 ColorComboBoxControl.axaml
 
 - **分類**: UI レイアウト（XAML）
 - **責務**:
-  - ComboBox（テキスト入力 + ドロップダウン）の配置
-  - 色スウォッチ（Border）のオーバーレイ配置
-  - カラーピッカー起動ボタン（…）の配置
-  - コンバーターのリソース登録
-- **依存**: ColorComboBoxControl / StringToBrushConverter / ColorDisplayConverter
+  - 全体を覆う 1 つの枠（`PART_Frame`）の配置（検証エラーの強調もここへ付ける）
+  - 色スウォッチ（`PART_Swatch`）を入力欄の内側へ配置
+  - 入力欄（`PART_Text`）の配置
+  - 区切りの垂直線（枠より薄い 1 ピクセル）と区画（`PART_ListButton` / `PART_PickerButton`）の配置
+  - 一覧の行とスウォッチのブラシ（`StringToBrushConverter`）のリソース登録
+- **依存**: ColorComboBoxControl / StringToBrushConverter
 
 ### 6.3 ColorEntry
 
@@ -179,12 +180,12 @@ flowchart TB
   - `Colors` のリフレクション列挙を単一所有し、`ColorEntry` が再利用する
 - **依存**: Avalonia.Media
 
-### 6.7 ColorDisplayConverter
+### 6.7 入力欄の表記（`TextFormat`）
 
-- **分類**: 公開 IValueConverter（`public sealed class`）
-- **責務**: 保存値（`#AARRGGBB`）と画面表示テキスト（`{色}+{不透明度%}`）の相互変換
-- **特徴**: `Convert` / `ConvertBack` とも `ColorString`（`ToDisplayText` / `ToArgbHex`）に委譲。 解釈不能な値は入力をそのまま返す
-- **依存**: Avalonia.Media / Avalonia.Data.Converters / ColorString
+- **分類**: 公開プロパティ（StyledProperty。 値はコアの `ColorTextFormat`）
+- **責務**: 入力欄へ出す文字列の形を決める（色名 + 不透明度 / `#AARRGGBB`）
+- **特徴**: 変換は `ColorString.ToText`（コア）が単一所有する。 保存値は表記に依らず常に `#AARRGGBB`（入力欄は編集できるため、表記と異なる形の入力も受理する）
+- **依存**: EsUtil.Platform.Core.Palette（`ColorTextFormat` / `ColorString`）
 
 ### 6.8 ColorValidator
 
@@ -193,12 +194,12 @@ flowchart TB
 - **特徴**: 検証は `ColorString.TryParse` に一元委譲（解析ロジックの二重所有を排除）。 UI 非依存のため他プロジェクトでも流用可能
 - **依存**: ColorString
 
-### 6.9 TextBoxSelectionHelper
+### 6.9 区画（スウォッチ・入力欄・▼・…）の構成
 
-- **分類**: 内部静的ユーティリティ（`internal static class`）
-- **責務**: ビジュアルツリー内の `TextBox` の検索（`FindTextBox`）とテキスト選択の解除（`ResetSelection`）
-- **特徴**: ドロップダウン選択後のテキスト全選択解除を担当。 `ColorComboBoxControl` から独立しており、ComboBox 等の他のコントロールでも流用可能
-- **依存**: Avalonia ビジュアルツリー
+- **分類**: XAML のレイアウト
+- **責務**: 4 つの区画を隙間なく並べ、1 つの入力欄に見せる
+- **特徴**: 枠線は外周の 1 つだけが持ち、区画のボタンは枠も背景も持たない（`Button.segment`）。 区切りは枠より薄い 1 ピクセルの垂直線で表す（上下に 5 ピクセルの余白を取る）。 行は `Auto` にして入力欄の高さへ揃える（行を伸ばすとスウォッチだけが下へずれる）
+- **依存**: ColorComboBoxControl.axaml.cs
 
 ### 6.10 ColorComboBoxFlyoutFactory
 
@@ -211,8 +212,8 @@ flowchart TB
 
 - 依存方向は**一方向の階層構造**（XAML → コントロール → 生成/検証 → 対象/コンバーター）。
 - 公開 API（StyledProperty・公開プロパティ）は `ColorComboBoxControl.axaml.cs` に集約する。
-- 関心事ごとの専用クラス（Factory / ThemeManager / Validator / Helper）は internal とし、コントロールからのみ参照する（外部へは公開しない）。
-- 依存は 1 方向のみ（コントロール → Factory/Validator/Helper → ColorString）。 双方向依存・循環参照は持たない。
+- 関心事ごとの専用クラス（Factory / Validator）は internal とし、コントロールからのみ参照する（外部へは公開しない）。
+- 依存は 1 方向のみ（コントロール → Factory/Validator → ColorString）。 双方向依存・循環参照は持たない。
 - 状態管理はすべて StyledProperty（Avalonia プロパティシステム）に集約し、private フィールドは補助（`_lastValidColor`）のみ。
 - 対象ロジック（`ColorString` / `ColorEntry`）は UI 非依存（Avalonia.Media のみ）。
 - 上位APへは双方向バインド（StyledProperty）と PropertyChanged のみで連携。
