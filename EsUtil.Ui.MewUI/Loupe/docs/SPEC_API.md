@@ -57,8 +57,8 @@
 | `BorderThickness` | `int` | 2 | 1〜64 | 枠線の太さ（DIP） |
 | `ShowCrosshair` / `ShowBorder` | `bool` | `true` | — | 十字線・枠線の表示可否（透明色を「描かない」の代用にしない） |
 | `ShowCoordLabel` | `bool` | `true` | — | 左上の座標ラベルの表示可否（中心未設定時は描画しない） |
-| `ShowPasteboard` | `bool` | `true` | — | 画像外（ペーストボード）の表示可否（非表示でも描画面を透明で塗る） |
-| `PasteboardColor` | `DrawingColor` | 中性グレー（`#FF535353`） | — | 画 像外（ペーストボード）の色。 描画面を置き換えて前フレームの残像を残さない（非表示時は透明で塗る） |
+| `ShowPasteboard` | `bool` | `true` | — | 画像外（ペーストボード）の表示可否（非表示でもルーペの矩形を透明で塗る） |
+| `PasteboardColor` | `DrawingColor` | 中性グレー（`#FF535353`） | — | 画像外（ペーストボード）の色。 **ルーペの矩形だけ**を塗る（描画面全体は消さない。 背後の撮影画像を消さないため） |
 | `CrossColor` | `DrawingColor` | 赤 40%（`#66FF0000`） | — | 十字線の色（不透明度はアルファ） |
 | `BorderColor` | `DrawingColor` | LightGray | — | 枠線の色 |
 | `CoordLabelColor` | `DrawingColor` | 白 | — | 座標ラベルの文字色 |

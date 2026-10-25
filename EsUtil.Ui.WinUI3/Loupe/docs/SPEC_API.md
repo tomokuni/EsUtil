@@ -77,8 +77,8 @@
 | `BorderThickness` | `int` | 2 | 1〜64 | 枠線の太さ（DIP） |
 | `ShowCrosshair` / `ShowBorder` | `bool` | `true` | — | 十字線・枠線の表示可否（透明色を「描かない」の代用にしない） |
 | `ShowCoordLabel` | `bool` | `true` | — | 左上の座標ラベルの表示可否（中心未設定時は描画しない） |
-| `ShowPasteboard` | `bool` | `true` | — | 画像外（ペーストボード）の表示可否（非表示でも描画面を透明で塗る） |
-| `PasteboardColor` | `System.Drawing.Color` | 中性グレー（`#FF535353`） | — | 画像外（ペーストボード）の色。 描画面を置き換えて前フレームの残像を残さない |
+| `ShowPasteboard` | `bool` | `true` | — | 画像外（ペーストボード）の表示可否（非表示でも下地は透明として扱う） |
+| `PasteboardColor` | `System.Drawing.Color` | 中性グレー（`#FF535353`） | — | 画像外（ペーストボード）の色。 ルーペの下地（`Background`）として塗る |
 | `CrossColor` | `System.Drawing.Color` | 赤 40%（`#66FF0000`） | — | 十字線の色（不透明度はアルファ） |
 | `BorderColor` | `System.Drawing.Color` | LightGray | — | 枠線の色 |
 | `CoordLabelColor` | `System.Drawing.Color` | 白 | — | 座標ラベルの文字色 |
@@ -123,7 +123,7 @@ Loupe.Rendered += (_, e) =>
 
 | 順序 | 要素 | 備考 |
 | --- | --- | --- |
-| 1 | 画像外（ペーストボード） | 描画面の全体を塗る（表示可否が false の場合は透明で塗る ＝ 前フレームの残像を残さない） |
+| 1 | 画像外（ペーストボード） | ルーペの下地を塗る（表示可否が false の場合は透明） |
 | 2 | 拡大画像 | `Source` と `CenterPoint` がある場合のみ。 切り出し領域の外は透明（画像外の色が見える） |
 | 3 | 十字線 | 中央の縦横 2 本（幅は拡大率と同じ物理ピクセル） |
 | 4 | 枠線 | 四辺（`Appearance.BorderThickness` の太さ） |

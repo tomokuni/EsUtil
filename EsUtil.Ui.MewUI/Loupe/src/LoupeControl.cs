@@ -286,6 +286,10 @@ public sealed class LoupeControl : Panel
         // 図形は専用の子キャンバスが描く（ラベル要素より先に子として加えるため、常にラベルの下になる）
         _shapes = new ShapeLayer(this) { IsHitTestVisible = false };
         Add(_shapes);
+
+        // 図形・拡大画像・ホストの付加情報をルーペの矩形の外へ描かない
+        // （描画 API は切り取りを行わないため、はみ出しは要素の切り取りで止める）
+        this.ClipToBounds(true);
     }
 
     /// <summary>図形（背景・拡大画像・十字線・枠線）だけを描画する内部の層。</summary>
@@ -539,37 +543,49 @@ public sealed class LoupeControl : Panel
     }
 
     /// <summary>ルーペを描画する。</summary>
-    /// <param name="context">描画先のコンテキスト（物理ピクセル）。</param>
+    /// <param name="context">描画先のコンテキスト（DIP 座標）。</param>
     /// <remarks>
     /// 描画計画（描画層が解決した幾何・外観・層の順序）を自 UI の公開プロパティから組み立てて描画層へ渡す<br/>
     /// （DIP → 物理ピクセルの換算は描画層が単一所有する）。<br/>
     /// <b>描く層とその順序は描画層が単一所有する</b>（<see cref="LoupeDrawPlan.Layers"/> の順に処理する）。<br/>
-    /// <b>コンテキストを拡大せず 1:1 で描く</b>: 描画計画の矩形（描画面・拡大画像の描画先・枠線の太さ）は<b>物理ピクセル</b>で<br/>
-    /// 解決されるため、拡大すると設定した拡大率より大きい画像をルーペ領域へ描くことになり、切り取られてずれる。<br/>
+    /// <b>計画の座標は物理ピクセルである</b>: コンテキストの座標は DIP のため、計画をそのまま描くと<br/>
+    /// 125% の環境では 1.25 倍の大きさになり、ルーペの矩形からはみ出す（実測 2026-10-25）。<br/>
+    /// そのため <c>1 / ClientToPixelScaling</c> の倍率を掛けてから描く（Avalonia 版の <c>PushTransform</c> と同じ規則）。<br/>
     /// 中心座標ラベルはテキストの実寸測定が必要なため本手順では描かず、<br/>
     /// 親パネルのラベル要素（<c>Border</c> + <c>TextBlock</c>）が表示する（要素は DIP で配置する）。
     /// </remarks>
     private void Paint(IGraphicsContext context)
     {
-        var scaling = ApplyClientPixelScaling(context);
+        ApplyClientPixelScaling(context);
 
         // 割り当て領域（DIP）を描画計画の基準にする（計画は DIP と物理ピクセルの両方を持つ）
         var displaySize = Bounds.Width > 0 ? Bounds.Width : RenderSize.Width;
         var plan = ResolvePlan(displaySize);
 
+        // 物理ピクセル → DIP の倍率（計画の座標をそのまま描かない）
+        var pixelToDip = 1.0 / DpiScaler.NormalizeScaling(plan.ClientToPixelScaling);
+
         try
         {
-            // 描画の手順（層の順序と描画 API への写し）は LoupePainter が単一所有する
-            LoupePainter.Paint(context, Source, in plan);
+            context.Save();
+            context.Scale(pixelToDip, pixelToDip);
+            try
+            {
+                // 描画の手順（層の順序と描画 API への写し）は LoupePainter が単一所有する
+                LoupePainter.Paint(context, Source, in plan);
+
+                // ホストが付加情報（選択矩形の破線等）を描く入口（同じ座標系で描けるよう内側で通知する）
+                Rendered?.Invoke(this, new LoupeRenderedEventArgs(context, plan));
+            }
+            finally
+            {
+                context.Restore();
+            }
         }
         catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
             // 描画の例外はアプリを落とさずログへ記録する（描画面は中途半端な状態になりうるが、次の描画で復帰する）
             Log.LogUpdateError(ex);
-            return;
         }
-
-        Rendered?.Invoke(this, new LoupeRenderedEventArgs(context, plan));
-        _ = scaling;
     }
 }

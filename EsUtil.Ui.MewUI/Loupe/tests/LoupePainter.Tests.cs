@@ -56,22 +56,23 @@ public class LoupePainterTests
         Assert.Equal(s_background, target.GetPixel(1, 1));
     }
 
-    /// <summary>ペーストボードが非表示なら前フレームを消して透明にすることを検証する。</summary>
+    /// <summary>ペーストボードが非表示なら、ペーストボードの色で塗らないことを検証する。</summary>
     /// <remarks>
-    /// 描画面を保持する UI では層を省くと前フレームが残るため、<br/>
-    /// 非表示は「描画面を透明で塗る」として実装する（<see cref="LoupeAppearance.ResolvePasteboardColor"/>）。
+    /// <b>描画コンテキスト全体を消す <c>Clear</c> は使わない</b>: <c>Clear</c> はウィンドウの描画面全体を消すため、
+    /// 背後の撮影画像まで消える（実測 2026-10-25）。 本 UI の描画面はフレームごとに構築されるため、
+    /// 消さなくても前フレームは残らない（<see cref="LoupeAppearance.ResolvePasteboardColor"/> が透明を返す）。
     /// </remarks>
     [Fact]
-    internal void Paint_ペーストボードが非表示なら透明で塗る()
+    internal void Paint_ペーストボードが非表示ならペーストボードの色で塗らない()
     {
         var target = Paint(
             CreateAppearance(pasteboard: s_background, showPasteboard: false),
             s_center,
             before: static ctx => ctx.Clear(Color.FromRgb(0, 0, 255)));
 
-        // 透明（アルファ 0）になり、前フレームの色も残らない
-        Assert.Equal(0, target.GetAlpha(16, 16));
-        Assert.Equal(0, target.GetAlpha(0, 0));
+        // 透明の塗りはアルファ合成で描かれないため、前フレームの色がそのまま残る（ペーストボードの色にはならない）
+        Assert.NotEqual(s_background, target.GetPixel(0, 0));
+        Assert.NotEqual(s_background, target.GetPixel(16, 16));
     }
 
     // ====================================================================

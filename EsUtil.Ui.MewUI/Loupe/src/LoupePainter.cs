@@ -1,7 +1,6 @@
 using Aprillz.MewUI.Rendering;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
-using EsUtil.Ui.MewUI.Interop;
 using EsUtil.Ui.MewUI.Loupe.Internal;
 
 namespace EsUtil.Ui.MewUI.Loupe;
@@ -42,7 +41,9 @@ internal static class LoupePainter
             switch (layer)
             {
                 case LoupeDrawLayer.Pasteboard:
-                    context.Clear(appearance.ResolvePasteboardColor().ToMewUIColor());
+                    // 描画面（ルーペの矩形）だけを塗る。 コンテキスト全体を消す Clear は使わない
+                    // （Clear はウィンドウの描画面全体を消すため、背後の撮影画像まで消える。 実測 2026-10-25）
+                    MewFill.Rect(context, plan.ClientPixelRect, appearance.ResolvePasteboardColor());
                     break;
 
                 case LoupeDrawLayer.Image:

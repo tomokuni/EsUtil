@@ -92,7 +92,7 @@ UI 層（WinUI 3 の実装）
 | コンポーネント | 責務 | 主な型 |
 | --- | --- | --- |
 | コントロール | 公開プロパティの受付（値の補正と変更ログ）、描画計画の解決とキャッシュ、描画の起動、描画完了の通知 | `LoupeControl` |
-| 表示の実装（内部） | 描画計画（`LoupeDrawPlan`）を要素へ写す。 層の順序は計画に従い、中心座標ラベルも置く | `LoupeVisualLayer` |
+| 表示の実装（内部） | 描画計画（`LoupeDrawPlan`）を要素へ写す。 層の順序は計画に従い、中心座標ラベルも置く。 **層の大きさをルーペの表示サイズへ合わせる**（`Canvas` の子は既定で 0×0 になり、拡大画像の層は自身の大きさで切り取るため、大きさを与えないと画像が 1 枚も描かれない。 実測 2026-10-25） | `LoupeVisualLayer` |
 | 描画完了の通知 | 描画済みのキャンバスと実際に使われた描画計画を渡す | `LoupeRenderedEventArgs` |
 | ログ定義 | 拡大元画像の差し替え、描画の例外、公開 API の例外の出力書式 | `LoupeLogMessage` |
 | 表示の補助（内部） | 矩形の列、要素への反映、テキストの実寸測定、コアの画像のビュー、表示領域からの実効倍率の解決 | `LoupeRectList` / `LoupeShapeLayer` / `LoupeTextMeasure` / `LoupeBitmapStream` / `LoupeImageView` / `DpiScaler.ResolveClientScale`（コア） |
