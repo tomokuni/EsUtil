@@ -108,20 +108,7 @@ internal sealed partial class LoupeVisualLayer : Canvas
     /// <summary>拡大画像を反映する。</summary>
     /// <param name="plan">描画計画。</param>
     private void ApplyImage(LoupeDrawPlan plan)
-    {
-        if (plan.MagnifiedImage is not { } magnified)
-        {
-            return;
-        }
-
-        _image.SetMagnification(
-            magnified.CropSourceRect.X,
-            magnified.CropSourceRect.Y,
-            magnified.DrawClientPixelRect.X,
-            magnified.DrawClientPixelRect.Y,
-            plan.ZoomLevel,
-            plan.ClientToPixelScaling);
-    }
+        => _image.Apply(plan);
 
     /// <summary>十字線と枠線を反映する。</summary>
     /// <param name="plan">描画計画。</param>

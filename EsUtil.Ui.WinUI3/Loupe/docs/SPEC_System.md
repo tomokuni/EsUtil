@@ -21,7 +21,7 @@
 ## 1. システム概要
 
 `EsUtil.Ui.WinUI3.Loupe` は、他の UI 版 `LoupeControl` と**同一の UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、
-表示（XAML の要素と Composition）のみを WinUI 3（Windows App SDK）で実装したルーペ コントロールです。
+表示（XAML の要素）のみを WinUI 3（Windows App SDK）で実装したルーペ コントロールです。
 
 コアが担う範囲（数値の安全域補正・切り出し領域の計算・表示レイアウト）は複数の UI で完全に共通であり、
 本プロジェクトはその計算結果を要素として表示するだけです。
@@ -29,7 +29,7 @@
 
 WinUI 3 固有の実装は次の 3 点です。
 
-- 拡大画像を Composition のサーフェス（`LoupeImageView`）で表示し、図形とラベルは XAML の要素で置く。
+- 拡大画像は**画素を CPU で切り出して**（`LoupeImageSampler`）画像要素（`WriteableBitmap`）で表示し、図形とラベルも XAML の要素で置く。
 - 公開プロパティを CLR プロパティとして公開し、値の補正と変更ログを setter に集約する。
 - 中心座標ラベルを `Border` + `TextBlock` として置く（実寸は同じテキスト エンジンで測る）。
 
@@ -41,7 +41,7 @@ WinUI 3 固有の実装は次の 3 点です。
 | 言語 | C# 14 |
 | UI フレームワーク | WinUI 3（Windows App SDK 1.x。 `UseWinUI` を有効にする） |
 | 表示（図形・ラベル） | XAML の `Rectangle` / `Border` / `TextBlock`（表示の実装 `LoupeVisualLayer` が計画の順に置く） |
-| 表示（拡大画像） | Composition（`LoupeImageView`。 無圧縮 BMP を `LoadedImageSurface` へ渡し、最近傍で拡大する） |
+| 表示（拡大画像） | XAML の画像要素（`LoupeImageView`。 面の画素を `LoupeImageSampler` で最近傍のまま切り出し、`WriteableBitmap` へ書く） |
 | プロパティ | CLR プロパティ（依存関係プロパティではない。 §8 を参照） |
 | ログ | `Microsoft.Extensions.Logging.Abstractions`（`LoggerMessage` ソース生成） |
 | テスト | xUnit v3（`dotnet test`。 実行可能なテスト プロジェクト） |
@@ -54,7 +54,7 @@ WinUI 3 固有の実装は次の 3 点です。
 
 ```text
 UI 層（WinUI 3 の実装）
-入力の受付・値の補正・通知の転送・表示の更新（XAML と Composition）
+入力の受付・値の補正・通知の転送・表示の更新（XAML）
     └──> EsUtil.Feature.Loupe.Presenter   どう描くか（描画計画の解決と外観）
            └──> EsUtil.Feature.Loupe.Core   何を描くか + 判断（状態・値・純粋計算・幾何）
                   └──> EsUtil.Platform.Core（Es* 値型・ICoordTransform）
@@ -95,7 +95,7 @@ UI 層（WinUI 3 の実装）
 | 表示の実装（内部） | 描画計画（`LoupeDrawPlan`）を要素へ写す。 層の順序は計画に従い、中心座標ラベルも置く。 **層の大きさをルーペの表示サイズへ合わせる**（`Canvas` の子は既定で 0×0 になり、拡大画像の層は自身の大きさで切り取るため、大きさを与えないと画像が 1 枚も描かれない。 実測 2026-10-25） | `LoupeVisualLayer` |
 | 描画完了の通知 | 描画済みのキャンバスと実際に使われた描画計画を渡す | `LoupeRenderedEventArgs` |
 | ログ定義 | 拡大元画像の差し替え、描画の例外、公開 API の例外の出力書式 | `LoupeLogMessage` |
-| 表示の補助（内部） | 矩形の列、要素への反映、テキストの実寸測定、コアの画像のビュー、表示領域からの実効倍率の解決 | `LoupeRectList` / `LoupeShapeLayer` / `LoupeTextMeasure` / `LoupeBitmapStream` / `LoupeImageView` / `DpiScaler.ResolveClientScale`（コア） |
+| 表示の補助（内部） | 矩形の列、要素への反映、テキストの実寸測定、拡大画像の画素の切り出し、表示領域からの実効倍率の解決 | `LoupeShapeLayer` / `LoupeTextMeasure` / `LoupeImageSampler` / `LoupeImageView` / `DpiScaler.ResolveClientScale`（コア） |
 | テスト | 矩形の列の検証（描画計画の写像）、変換と補助の検証、ログの出力書式、イベント引数の保持 | `LoupeShapePlanTests` ほか |
 
 `LoupeControl` の役割:
@@ -162,7 +162,7 @@ classDiagram
         +VisibleLabels(plan) IReadOnlyList~LoupeLabelPlacement~$
     }
     class LoupeImageView {
-        <<Internal / Composition>>
+        <<Internal>>
         +SetSource(image) void
         +SetMagnification(..., zoomLevel, scaling) void
     }
@@ -224,7 +224,7 @@ sequenceDiagram
 | 実効倍率を描画のたびに描画面から実測する | DPI の変更通知は追加直後のコントロールへ届かないことがある（保持値だけでは拡大画像と図形の倍率が食い違う） | `ClientToPixelScaling` はホストが明示しなくても正しい値へ追従する |
 | 位置を持たない | 位置の計算（オフセット・親領域内への補正）はコアのファサードが単一所有する | ホストが `ResolveLayout` の結果で配置する（`Canvas` 等の親へ置く） |
 | `MeasureOverride` で一辺 `RequestedSize` の正方形を返す | ルーペは正方形であり、要求サイズを親へ伝える | 親が余白を決める場合でも要求サイズが伝わる（配置はホストが行う） |
-| 表示の補助型（矩形の列・要素への反映・テキスト測定・BMP の組み立て・Composition の画像）を Internal へ複製する | 本プロジェクトは独立したパッケージとして配布するため、利用側のプラットフォーム層へ依存できない（[依存関係.md](../../../.github/依存関係.md) §4.1） | 複製した型は `internal` とし、複製元を 1 行コメントで示す |
+| 表示の補助型（矩形の列・要素への反映・テキスト測定・拡大画像の切り出し）を Internal へ持つ | 本プロジェクトは独立したパッケージとして配布するため、利用側のプラットフォーム層へ依存できない（[依存関係.md](../../../.github/依存関係.md) §4.1） | 複製した型は `internal` とし、複製元を 1 行コメントで示す |
 
 ## 9. テスト方針
 

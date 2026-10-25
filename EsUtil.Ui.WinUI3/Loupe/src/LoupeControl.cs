@@ -96,6 +96,16 @@ public sealed partial class LoupeControl : Canvas
 
         Children.Add(_visual);
 
+        // レイアウトで大きさが決まった時点で計画を解決し直す。
+        // 表示前は ActualWidth が 0 であり、その状態で解決した計画は面（ClientPixelSize）が 1 画素になる。
+        // 計画は表示サイズをキーにキャッシュされるため、再解決しないと拡大画像も十字線も 1 画素のまま
+        // 描かれず、ペーストボード（下地）だけが見える（実測 2026-10-25）。
+        SizeChanged += (_, _) =>
+        {
+            InvalidatePlan();
+            ApplyVisual();
+        };
+
         Loaded += HandleLoaded;
         Unloaded += HandleUnloaded;
     }

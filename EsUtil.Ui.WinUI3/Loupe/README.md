@@ -7,7 +7,7 @@
 ![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-対になる他 UI 実装と同じ **UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、描画（XAML の要素と Composition）のみを **WinUI 3（Windows App SDK）** で実装したルーペ（拡大鏡）コントロールです。
+対になる他 UI 実装と同じ **UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、描画（XAML の要素）のみを **WinUI 3（Windows App SDK）** で実装したルーペ（拡大鏡）コントロールです。
 
 ## 目次 <!-- omit from toc -->
 
@@ -30,7 +30,7 @@
 ## 1. 概要
 
 ルーペのロジック（数値の安全域補正・切り出し領域の計算・表示レイアウト）は `EsUtil.Feature.Loupe.Core` が単一所有し、描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（色・枠線の太さ・表示可否）は UI 非依存の提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance`）が単一所有します。
-本プロジェクトはその計画を **XAML の要素（`Rectangle`）と Composition のサーフェスへ写すだけ** の層です。
+本プロジェクトはその計画を **XAML の要素（`Rectangle` と `WriteableBitmap` の画像）へ写すだけ** の層です。
 そのため他の UI 版と**同じ設定・同じ見た目**になり、同じ外観の設定を複数の UI で共用できます。 層構成（Core / Presenter / UI）の全体像は [`EsUtil/README.md`](../../EsUtil/README.md) を参照してください。
 
 ---
@@ -39,7 +39,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 基底クラス | `Microsoft.UI.Xaml.Controls.Panel`（図形は `Canvas` の子、画像は Composition のサーフェス） |
+| 基底クラス | `Microsoft.UI.Xaml.Controls.Canvas`（図形は `Rectangle`、拡大画像は `Image` + `WriteableBitmap`） |
 | 中間バッファ | **生成しない**。 画面のキャンバスへ直接描画する |
 | 描画サイズ | `Options.RequestedSize` × `ClientToPixelScaling`（物理ピクセル）。 表示サイズは描画面の大きさから導くため常に一致する（領域に合わせた縮小はしない） |
 | 拡大方式 | 最近傍（画素をそのまま拡大表示する） |
@@ -201,7 +201,7 @@ EsUtil.Ui.WinUI3/Loupe/
 ├── sample/                    # 独立サンプル アプリ（sample/README.md 参照）
 ├── src/
 │   ├── EsUtil.Ui.WinUI3.Loupe.csproj  # net10.0-windows10.0.22621.0 / WinUI 3
-│   ├── LoupeControl.cs             # Panel 派生のコントロール（計画を要素と Composition へ写す）
+│   ├── LoupeControl.cs             # Canvas 派生のコントロール（計画を要素と画像へ写す）
 │   ├── LoupeRenderedEventArgs.cs   # 描画完了の通知（キャンバスと描画計画）
 │   ├── LoupeLogMessage.cs          # 画像の差し替え・描画例外のログ定義
 │   └── Internal/                   # 描画の補助（スケーリングの解決）
