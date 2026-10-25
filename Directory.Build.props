@@ -34,9 +34,9 @@
     <EsUtil_Ui_MewUI_ColorComboBox_Version>0.1.6</EsUtil_Ui_MewUI_ColorComboBox_Version>
     <EsUtil_Ui_WinUI3_Interop_Version>0.1.9</EsUtil_Ui_WinUI3_Interop_Version>
     <EsUtil_Ui_WinForms_Interop_Version>0.1.8</EsUtil_Ui_WinForms_Interop_Version>
-    <EsUtil_Feature_MultiColumnLayoutEngine_Version>0.1.1</EsUtil_Feature_MultiColumnLayoutEngine_Version>
-    <EsUtil_Feature_ZenHanConverter_Version>0.1.1</EsUtil_Feature_ZenHanConverter_Version>
-    <EsUtil_Ui_WinUI3_MultiColumnPanel_Version>0.1.0</EsUtil_Ui_WinUI3_MultiColumnPanel_Version>
+    <EsUtil_Feature_MultiColumn_Version>0.1.1</EsUtil_Feature_MultiColumn_Version>
+    <EsUtil_Feature_ZenHan_Version>0.1.1</EsUtil_Feature_ZenHan_Version>
+    <EsUtil_Ui_WinUI3_MultiColumn_Version>0.1.0</EsUtil_Ui_WinUI3_MultiColumn_Version>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -70,9 +70,9 @@
 <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.MewUI.ColorComboBox'">$(EsUtil_Ui_MewUI_ColorComboBox_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.Interop'">$(EsUtil_Ui_WinUI3_Interop_Version)</Version>
     <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinForms.Interop'">$(EsUtil_Ui_WinForms_Interop_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.MultiColumnLayoutEngine'">$(EsUtil_Feature_MultiColumnLayoutEngine_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.ZenHanConverter'">$(EsUtil_Feature_ZenHanConverter_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.MultiColumnPanel'">$(EsUtil_Ui_WinUI3_MultiColumnPanel_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.MultiColumn'">$(EsUtil_Feature_MultiColumn_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.ZenHan'">$(EsUtil_Feature_ZenHan_Version)</Version>
+    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.MultiColumn'">$(EsUtil_Ui_WinUI3_MultiColumn_Version)</Version>
   </PropertyGroup>
 
   <PropertyGroup>

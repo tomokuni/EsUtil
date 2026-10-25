@@ -106,8 +106,8 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 
 | 機能 | パッケージ | UI |
 | --- | --- | --- |
-| 複数列の配置（最大列高さの最小化） | `EsUtil.Feature.MultiColumnLayoutEngine` | `EsUtil.Ui.WinUI3.MultiColumnPanel` |
-| 全角・半角・かなの変換 | `EsUtil.Feature.ZenHanConverter` | なし（UI を持たない） |
+| 複数列の配置（最大列高さの最小化） | `EsUtil.Feature.MultiColumn` | `EsUtil.Ui.WinUI3.MultiColumn` |
+| 全角・半角・かなの変換 | `EsUtil.Feature.ZenHan` | なし（UI を持たない） |
 
 **コントロール化を前提とした処理は UI が持ちます**: ホイール操作（どの入力がズーム・パンかを決める）・ビューポートの変化の追従・組み込み先の概念は、コントロールを何かへ組み込んで初めて必要になるためです。
 

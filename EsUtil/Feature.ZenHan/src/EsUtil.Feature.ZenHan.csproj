@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Feature.ZenHan</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する）。 -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <Description>全角・半角・ひらがな・カタカナ・記号の相互変換（CSV から生成した定義を不変リストで保持する）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EsUtil.Feature.ZenHan.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 変換定義は ConvertDefine.csv から Generated.tt（T4）で生成する。
+         生成物（Generated.cs）はコミットするため、ビルドに T4 の実行は要らない。 -->
+    <None Update="Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Generated.cs</LastGenOutput>
+    </None>
+    <Compile Update="Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Generated.tt</DependentUpon>
+    </Compile>
+    <None Update="ConvertDefine.csv" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
+</Project>

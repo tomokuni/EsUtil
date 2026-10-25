@@ -31,12 +31,12 @@
     <Project Path="Platform.Core.Windows/src/EsUtil.Platform.Core.Windows.csproj" />
     <Project Path="Platform.Core.Windows/tests/EsUtil.Platform.Core.Windows.Tests.csproj" />
   </Folder>
-  <Folder Name="/MultiColumnLayoutEngine/">
-    <Project Path="Feature.MultiColumnLayoutEngine/src/EsUtil.Feature.MultiColumnLayoutEngine.csproj" />
-    <Project Path="Feature.MultiColumnLayoutEngine/tests/EsUtil.Feature.MultiColumnLayoutEngine.Tests.csproj" />
+  <Folder Name="/Feature.MultiColumn/">
+    <Project Path="Feature.MultiColumn/src/EsUtil.Feature.MultiColumn.csproj" />
+    <Project Path="Feature.MultiColumn/tests/EsUtil.Feature.MultiColumn.Tests.csproj" />
   </Folder>
-  <Folder Name="/ZenHanConverter/">
-    <Project Path="Feature.ZenHanConverter/src/EsUtil.Feature.ZenHanConverter.csproj" />
-    <Project Path="Feature.ZenHanConverter/tests/EsUtil.Feature.ZenHanConverter.Tests.csproj" />
+  <Folder Name="/Feature.ZenHan/">
+    <Project Path="Feature.ZenHan/src/EsUtil.Feature.ZenHan.csproj" />
+    <Project Path="Feature.ZenHan/tests/EsUtil.Feature.ZenHan.Tests.csproj" />
   </Folder>
 </Solution>
