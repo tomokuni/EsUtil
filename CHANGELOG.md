@@ -9,6 +9,7 @@
 
 ### 追加
 
+- **`EsUtil.Platform.Core.Native.Win.WinClipboard` にテキストの読み書きと変更の検出を追加しました**（`TryReadText` / `TryWriteText` / `SequenceNumber`）。 クリップボードの開閉・ロック・解放の順序と、書き込み用メモリの確保（`GMEM_MOVEABLE`）を 1 箇所に閉じます（利用側は書き込みの可否だけを見ればよい）。
 - **3 つのパッケージを取り込みました**（別リポジトリで開発していたものを本リポジトリへ統合）。
   - **`EsUtil.Feature.ColumnPacking.Core`**: 複数のアイテムを複数列へ並べ、**最大列高さを最小化**する UI 非依存の計算層（動的計画法・貪欲法・二分探索）。 旧 `EsUtil.Algorithm` の `MultiColumnLayoutEngine`（旧パッケージ ID）を改名しました（**NuGet の ID が変わります**）。
   - **`EsUtil.Feature.ZenHan.Core`**: 全角・半角・ひらがな・カタカナ・記号の相互変換（定義は CSV から T4 で生成）。 旧 `EsUtil.Text` の `ZenHanConverter`（旧パッケージ ID）を改名しました（**NuGet の ID が変わります**）。

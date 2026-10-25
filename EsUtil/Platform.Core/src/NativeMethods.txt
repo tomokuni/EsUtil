@@ -148,10 +148,17 @@ SetCurrentProcessExplicitAppUserModelID
 MessageBox
 MESSAGEBOX_STYLE
 
-// --- クリップボード（CF_DIB の読み取り） ---
+// --- クリップボード（CF_DIB の読み取り・テキストの読み書き・変更の検出） ---
 OpenClipboard
 CloseClipboard
+EmptyClipboard
 GetClipboardData
+SetClipboardData
+GetClipboardSequenceNumber
+CLIPBOARD_FORMAT
+GlobalAlloc
+GlobalFree
+GLOBAL_ALLOC_FLAGS
 GlobalLock
 GlobalUnlock
 HGLOBAL

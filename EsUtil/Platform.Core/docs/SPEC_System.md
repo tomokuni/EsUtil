@@ -71,7 +71,7 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/Win/WinWindowFrame.cs` | ウィンドウの外寸とクライアント領域の差（枠の太さ）の実測（最小サイズの計算に使う。 4 つの UI 版が共有） |
 | `EsUtil/Platform.Core/src/Native/Win/WinAppUserModelId.cs` | プロセスのアプリ ユーザー モデル ID の設定（タスク バーのグループ分け。 値はアプリが決める） |
 | `EsUtil/Platform.Core/src/Native/Win/WinMessageBox.cs` | XAML などの初期化前に使えるエラー表示（起動できない理由を利用者へ示す） |
-| `EsUtil/Platform.Core/src/Native/Win/WinClipboard.cs` | クリップボードの DIB の読み取り（開く・ロック・解放の順序を単一所有し、解放漏れを作らない） |
+| `EsUtil/Platform.Core/src/Native/Win/WinClipboard.cs` | クリップボードの DIB の読み取りとテキストの読み書き、変更の検出（開く・ロック・解放の順序を単一所有し、解放漏れを作らない） |
 | `EsUtil/Platform.Core/src/Native/Win/WinVirtualKey.cs` | `EsKey` → Win32 仮想キーコードの変換表（`RegisterHotKey` に渡す値。 対応表に無いキーは 0） |
 | `EsUtil/Platform.Core/src/Native/ElementFinderResults.cs` | 要素検出の結果（`readonly record struct`） |
 | `EsUtil/Platform.Core/src/NativeMethods.txt` / `NativeMethods.json` | **CsWin32 が生成する Win32 API・定数の唯一の一覧**と、その設定（**宣言を手で書かない**。 `allowMarshaling: false` で COM を構造体として生成する） |

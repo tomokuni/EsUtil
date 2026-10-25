@@ -50,6 +50,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.42 `Geometry.EsRectIntJsonConverter`（sealed class : `JsonConverter<EsRectInt>`）](#242-geometryesrectintjsonconvertersealed-class--jsonconverteresrectint)
   - [2.43 `Native.Win.WinVirtualScreen`（static class）](#243-nativewinwinvirtualscreenstatic-class)
   - [2.44 `Palette`（色名と色文字列）](#244-palette色名と色文字列)
+  - [2.45 `Native.Win.WinClipboard`（static class）](#245-nativewinwinclipboardstatic-class)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -1037,6 +1038,19 @@ var code = EsColor.ToText("#80FF0000", ColorTextFormat.HexCode);   // "#80FF0000
 var hex = EsColor.ToArgbHex("Red+50%");          // "#80FF0000"
 foreach (var entry in EsColor.GetPalette(ColorSortMode.ByHue)) { /* Name と Color */ }
 ```
+
+### 2.45 `Native.Win.WinClipboard`（static class）
+
+クリップボードの読み書きを **寿命の管理ごと** 提供します（`OpenClipboard` → ロック → 解放 → `CloseClipboard` の順序を単一所有し、解放漏れを作りません）。 **失敗は例外にしません**（他アプリが使用中・内容が無い場合は `false`）。
+
+| メンバー | 用途 |
+| --- | --- |
+| `TryReadDib(uint format, Action<IntPtr> read)` | DIB（`CF_DIB` = 8 など）の先頭ポインターをコールバックへ渡す。 戻るまでロックしたままにする |
+| `TryReadText(out string? text)` | テキスト（`CF_UNICODETEXT`）を読む |
+| `TryWriteText(string text)` | 既存の内容を消してからテキストを書く（アプリ終了後も内容が残る） |
+| `SequenceNumber` | 内容が変わるたびに増える番号（変更の検出用。 クリップボードを開かずに取得できる） |
+
+**書き込みのメモリは `GMEM_MOVEABLE` で確保します**（`SetClipboardData` の要求。 固定メモリを渡すと内容が残らない）。 設定に成功したメモリの所有権はシステムへ移り、失敗した場合だけ解放します。
 
 ## 3. 使用例
 
