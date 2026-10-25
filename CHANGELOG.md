@@ -42,6 +42,11 @@
 
 ### 変更（破壊的）
 
+- **README のバッジを「その README が説明している対象に当てはまるものだけ」に整理しました**（[`ドキュメント規約.md`](.github/ドキュメント規約.md) §3.4）。
+  - **共通基盤・機能層（`EsUtil.Platform.Core*` / `EsUtil.Feature.*`）から 4 つの UI バッジを外しました**。 UI を含まないパッケージに「Avalonia / MewUI / WinUI 3 / WinForms」を並べると、そのパッケージが UI を含むと読めてしまいます（4 つの UI 版から使えることはルート `README.md` の表が示します）。
+  - **`AOT` バッジ（`AOT-Ready`）を追加しました**。 対象はルート `README.md` と AOT に対応するパッケージで、**WinForms 層は除きます**（[`ビルド設定規約.md`](.github/ビルド設定規約.md) §6.1 と同じ判断）。
+  - **nuget.org の版のバッジのラベルを `Release` から `NuGet` へ変えました**（`Release` は `release.yml` の状態を指すため、同じラベルで 2 つの意味を持たせない）。 併せて `release.yml` のバッジをパッケージの README にも置きました。
+  - 並び順は NuGet → Release → Build → Platform → .NET → AOT → 対応 UI → License です。
 - **ルート `README.md` を再編しました**: プロジェクトの一覧を**ソリューションごと**に並べ（版は nuget.org のバッジ）、`使い方` / `検証` の節を外しました（使い方は各プロジェクトの `README.md`、手順は `.github/開発手順.md` / `.github/検証手順.md` が所有します）。 **`CONTRIBUTING.md` を削除**し、内容を `.github/開発手順.md` へ移しました（本リポジトリは外部からのコントリビューションを受け付けません。 フォークは自由です）。
 - **WIC の相互運用を CsWin32 の生成物へ移行しました**（`EsUtil.Platform.Core` の内部実装。 公開 API は変わりません）。 手書きの `[GeneratedComInterface]`（20 ファイル）を削除し、`wincodec.h` から生成した型を生ポインターで使います。 これにより **vtable の位置ずれによるアクセス違反（`0xC0000005`）が構造的に起きなくなります**（実測で 2 回踏んでいました）。 併せて `EsUtil/Platform.Core/src/NativeMethods.json` に `"allowMarshaling": false` を追加したため、Win32 の宣言から**実行時マーシャリングが無くなりました**（`string` の代わりに `PCWSTR` / `Span<char>`、デリゲートの代わりに `delegate* unmanaged` を使います）。
 - **減色の実装を WIC へ置き換えました**（`EsUtil.Platform.Core`）。 `EsReadOnlyBitmap.ReduceColors` / `EsBitmap.ReduceColors` / `EsPixmap.ReduceColors` は **WIC のパレット生成（中央値分割）と 8bpp インデックスへの変換**を使い、**自前の減色の計算（ヒストグラム・中央値分割・CIELAB の距離・ディザ）を削除しました**。 保存の `ColorCount` と同じパレットを使うため、**保存したファイルの画素と `ReduceColors` の結果が一致します**（テストが検証）。

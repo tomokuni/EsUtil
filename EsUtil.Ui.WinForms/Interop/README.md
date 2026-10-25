@@ -1,6 +1,7 @@
 # EsUtil.Ui.WinForms.Interop
 
-![Release](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Interop.svg)
+![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Interop.svg)
+![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)

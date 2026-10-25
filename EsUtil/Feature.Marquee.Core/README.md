@@ -1,13 +1,11 @@
 # EsUtil.Feature.Marquee.Core
 
-![Release](https://img.shields.io/nuget/v/EsUtil.Feature.Marquee.Core.svg)
+![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Marquee.Core.svg)
+![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
-![Avalonia](https://img.shields.io/badge/UI-Avalonia-8D46D6)
-![MewUI](https://img.shields.io/badge/UI-MewUI-00BFFF)
-![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
-![WinForms](https://img.shields.io/badge/UI-WinForms-512BD4)
+![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
 マーキー選択（ドラッグで矩形を選び、移動・リサイズできる操作）の **UI 非依存の計算層**です。 UI 実装が変わっても同じ状態管理・判断・幾何を共有します。
