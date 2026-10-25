@@ -71,4 +71,5 @@ color.SelectedColorChanged += (_, _) => settings.CaptureBorderColor = color.Sele
 
 - **色名は Windows 標準**（`System.Drawing.KnownColor`。 システム色は除く）であり、追加・変更はできません（コアの `ColorNames` が所有します）。
 - **一覧（▼）は選択専用です**（文字の編集は常設の入力欄が担います）。
+- **ピッカー（…）の折り畳み時の見出しは表示しません**（1×1 の入れ物で切り取り、行の上へ「︿」が出ないようにしています）。
 - **1 つの色だけを扱います**（複数色の同時編集は持ちません）。

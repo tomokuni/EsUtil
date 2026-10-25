@@ -148,6 +148,21 @@ public sealed class ColorComboBoxControl : Grid
         };
         _picker.SelectedColorChanged += OnPickerColorChanged;
 
+        // ピッカーは**折り畳んだ見出しを描かない**（1×1 でも見出しの「︿」が行の上へはみ出し、
+        // … の上に別の矢印が見えていた。 実測 2026-10-25）。
+        // 1×1 の入れ物で切り取ったうえで、ドロップダウンの開閉だけを使う
+        // （ポップアップ自体は別の面へ出るため、切り取りの影響を受けない）
+        var pickerHost = new Grid
+        {
+            Width = 1,
+            Height = 1,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            IsHitTestVisible = false,
+        };
+        pickerHost.ClipToBounds(true);
+        pickerHost.Add(_picker);
+
         // スウォッチは入力欄の内側へ重ねる（同じセルに置き、文字が重ならないよう左を空ける）
         var textArea = new Grid();
         textArea.Add(_text);
@@ -169,7 +184,7 @@ public sealed class ColorComboBoxControl : Grid
             CornerRadius = 3,
         });
 
-        Add(_picker);
+        Add(pickerHost);
 
         RefreshList();
         ApplyColor(_selectedColor, raiseChanged: false);
