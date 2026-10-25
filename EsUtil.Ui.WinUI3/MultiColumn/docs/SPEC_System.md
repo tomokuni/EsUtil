@@ -17,7 +17,7 @@ WinUI 3 のパネルとして、複数列の配置を要素へ反映する層の
 
 ## 1. システム概要
 
-**配置の計算は UI 非依存の [`EsUtil.Feature.MultiColumn`](../../../EsUtil/Feature.MultiColumn/README.md) が単一所有**します。 本パネルは「幅の上限を渡す」「返ってきた矩形へ子を配置する」「結果を依存関係プロパティへ写す」だけを行います。
+**配置の計算は UI 非依存の [`EsUtil.Feature.ColumnPacking`](../../../EsUtil/Feature.ColumnPacking/README.md) が単一所有**します。 本パネルは「幅の上限を渡す」「返ってきた矩形へ子を配置する」「結果を依存関係プロパティへ写す」だけを行います。
 
 子は 2 種類あります。 `ItemsSource` + `ItemTemplate` から作る要素と、XAML に直接書いた要素です。 どちらを先に置くかは `ItemsSourceFirst` が決め、並べ直しは `DualSourceItemsManager` が担います。
 
@@ -28,7 +28,7 @@ WinUI 3 のパネルとして、複数列の配置を要素へ反映する層の
 | 対象フレームワーク | `net10.0-windows10.0.22621.0` |
 | 対応 OS | Windows 10 バージョン 2004（ビルド 19041）以降（`SupportedOSPlatformVersion`） |
 | UI フレームワーク | WinUI 3（Windows App SDK 1.x） |
-| 配置の計算 | `EsUtil.Feature.MultiColumn`（パッケージ参照） |
+| 配置の計算 | `EsUtil.Feature.ColumnPacking`（パッケージ参照） |
 | テスト | xUnit v3（`tests/`）。 XAML のランタイムを要する部分はサンプルで確認する |
 | Native AOT | `IsAotCompatible=true`（解析警告 0 件をビルドで検査） |
 
@@ -41,7 +41,7 @@ flowchart TB
     PANEL["MultiColumnPanel<br/>（Measure/Arrange と結果の公開）"]
     BASE["DualSourceItemsPanel<br/>（ItemsSource と直接の子）"]
     MGR["DualSourceItemsManager<br/>（子の並べ直し）"]
-    ENGINE["EsUtil.Feature.MultiColumn<br/>（配置の計算）"]
+    ENGINE["EsUtil.Feature.ColumnPacking<br/>（配置の計算）"]
     PANEL --> BASE
     BASE --> MGR
     PANEL --> ENGINE
@@ -89,7 +89,7 @@ EsUtil.Ui.WinUI3/MultiColumn/
 
 ## 5. 依存関係
 
-- **`EsUtil.Feature.MultiColumn`**（配置の計算）。
+- **`EsUtil.Feature.ColumnPacking`**（配置の計算）。
 - **`Microsoft.WindowsAppSDK`** / **`Microsoft.Windows.SDK.BuildTools`**。
 - `EsUtil.Platform.Core` などの他の EsUtil の層は参照しません。
 - サンプルは `ProjectReference` で本体を参照します（サンプルは配布しないため）。

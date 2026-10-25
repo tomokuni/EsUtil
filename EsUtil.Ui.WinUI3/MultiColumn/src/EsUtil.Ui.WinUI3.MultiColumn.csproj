@@ -12,7 +12,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する）。 -->
     <IsAotCompatible>true</IsAotCompatible>
-    <Description>縦方向のマルチカラム配置を行う WinUI 3 のパネル（最大列高さを最小化するレイアウト計算は EsUtil.Feature.MultiColumn が単一所有する）。</Description>
+    <Description>縦方向のマルチカラム配置を行う WinUI 3 のパネル（最大列高さを最小化するレイアウト計算は EsUtil.Feature.ColumnPacking が単一所有する）。</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="EsUtil.Feature.MultiColumn" Version="$(EsUtil_Feature_MultiColumn_Version)" />
+    <PackageReference Include="EsUtil.Feature.ColumnPacking" Version="$(EsUtil_Feature_ColumnPacking_Version)" />
   </ItemGroup>
 
   <ItemGroup>

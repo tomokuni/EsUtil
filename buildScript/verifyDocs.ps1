@@ -273,7 +273,7 @@ foreach ($f in ($allCs)) {
 $rxTypeRef = [regex]'(?<![\w.])((?:[A-Za-z_]\w*\.)+[A-Za-z_]\w*)(?![\w./\\-])'
 $rxExternalRoot = [regex]'^(System|Microsoft|Avalonia|SkiaSharp|Serilog|Xunit|Newtonsoft|Windows|Moq|NSubstitute|Aprillz|ShimSkiaSharp|HarfBuzz|CommunityToolkit)\b'
 # **パッケージ名（アセンブリ名）は型参照として判定しない**。 パッケージ ID は名前空間と一致しないことがある
-# （例: `EsUtil.Feature.MultiColumnLayoutEngine` の型は `EsUtil.Feature.MultiColumn` 名前空間にある）。
+# （例: `EsUtil.Feature.ColumnPacking` の型 `ColumnPacker` は同じ名前空間にある）。
 # 文書はパッケージ ID を書く必要があるため、プロジェクト名（= アセンブリ名）と一致する語は対象外にする。
 $packageNames = [System.Collections.Generic.HashSet[string]]::new([string[]]@($allCsproj | ForEach-Object { $_.BaseName }), [StringComparer]::Ordinal)
 $typeRefIssues = [System.Collections.Generic.List[string]]::new()

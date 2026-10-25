@@ -2,8 +2,8 @@ using Microsoft.UI.Xaml;
 using System.Diagnostics;
 using Windows.Foundation;
 
-using EsUtil.Feature.MultiColumn;
-using static EsUtil.Feature.MultiColumn.ColumnPacker;
+using EsUtil.Feature.ColumnPacking;
+using static EsUtil.Feature.ColumnPacking.ColumnPacker;
 
 namespace EsUtil.Ui.WinUI3.MultiColumn;
 

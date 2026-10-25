@@ -12,12 +12,12 @@
 **対応 OS**: Windows 10 バージョン 2004（ビルド 19041）以降。
 
 WinUI 3 のパネルです。 子要素（および `ItemsSource` から作る要素）を**縦方向の複数列**へ並べ、最大列高さを最小化します。
-配置の計算は UI 非依存の [`EsUtil.Feature.MultiColumn`](../../EsUtil/Feature.MultiColumn/README.md) が単一所有し、本パネルはその結果を要素の配置へ写すだけです。
+配置の計算は UI 非依存の [`EsUtil.Feature.ColumnPacking`](../../EsUtil/Feature.ColumnPacking/README.md) が単一所有し、本パネルはその結果を要素の配置へ写すだけです。
 
 ```mermaid
 flowchart LR
     P["EsUtil.Ui.WinUI3.MultiColumn<br/>（WinUI 3 のパネル）"]
-    E["EsUtil.Feature.MultiColumn<br/>（配置の計算）"]
+    E["EsUtil.Feature.ColumnPacking<br/>（配置の計算）"]
     P -->|"幅の上限を渡す"| E
     E -->|"使用幅・最大列高さ・列の区切り"| P
 ```
@@ -73,7 +73,7 @@ flowchart LR
 dotnet add package EsUtil.Ui.WinUI3.MultiColumn
 ```
 
-依存する配置の計算（`EsUtil.Feature.MultiColumn`）は推移参照で解決されます。
+依存する配置の計算（`EsUtil.Feature.ColumnPacking`）は推移参照で解決されます。
 
 ## 5. クイックスタート
 

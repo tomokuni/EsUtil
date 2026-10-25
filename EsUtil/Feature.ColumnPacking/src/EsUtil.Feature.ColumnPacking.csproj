@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Feature.ColumnPacking</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する）。 -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <Description>複数のアイテムを複数列へ配置し、最大列高さを最小化する UI 非依存のレイアウト計算層（貪欲法・動的計画法・二分探索）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 内部契約（戦略・キャッシュ・計測の補助）は単体テストからのみ参照する。 -->
+    <InternalsVisibleTo Include="EsUtil.Feature.ColumnPacking.Tests" />
+  </ItemGroup>
+
+</Project>
