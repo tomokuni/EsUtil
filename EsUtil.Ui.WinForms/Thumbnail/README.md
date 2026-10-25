@@ -192,4 +192,4 @@ EsUtil.Ui.WinForms/Thumbnail/
 
 ## 15. ライセンス
 
-MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。
+[MIT License](LICENSE)

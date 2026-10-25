@@ -263,4 +263,4 @@ dotnet test EsUtil.Ui.WinForms/Marquee/tests/EsUtil.Ui.WinForms.Marquee.Tests.cs
 
 ## 16. ライセンス
 
-MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。
+[MIT License](LICENSE)

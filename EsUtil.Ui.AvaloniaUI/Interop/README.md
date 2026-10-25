@@ -65,4 +65,4 @@ var brush = SolidColorBrushCache.GetOrCreate(System.Drawing.Color.Red);
 
 ## 7. ライセンス
 
-MIT（リポジトリの [LICENSE](../../LICENSE) を参照）。
+[MIT License](LICENSE)

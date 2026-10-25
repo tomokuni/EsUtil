@@ -115,4 +115,4 @@ dotnet test EsUtil/Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Tests.
 
 ## 10. ライセンス
 
-MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。
+[MIT License](LICENSE)

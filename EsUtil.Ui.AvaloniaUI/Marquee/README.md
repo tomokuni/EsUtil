@@ -315,4 +315,4 @@ dotnet test EsUtil.Ui.AvaloniaUI/Marquee/tests/EsUtil.Ui.AvaloniaUI.Marquee.Test
 
 ## 16. ライセンス
 
-MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。
+[MIT License](LICENSE)

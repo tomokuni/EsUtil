@@ -300,4 +300,4 @@ dotnet test EsUtil.Ui.AvaloniaUI/Loupe/tests/EsUtil.Ui.AvaloniaUI.Loupe.Tests.cs
 
 ## 14. ライセンス
 
-MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。
+[MIT License](LICENSE)

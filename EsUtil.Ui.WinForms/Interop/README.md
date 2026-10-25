@@ -62,4 +62,4 @@ var key = System.Windows.Forms.Keys.A.ToEsKey();
 
 ## 7. ライセンス
 
-MIT（リポジトリの [LICENSE](../../LICENSE) を参照）。
+[MIT License](LICENSE)

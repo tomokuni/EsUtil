@@ -125,4 +125,4 @@ presenter.Appearance = ThumbnailAppearance.Default with { Shadow = new NoShadowP
 
 ## 8. ライセンス
 
-MIT（リポジトリの [LICENSE](../../LICENSE) を参照）。
+[MIT License](LICENSE)

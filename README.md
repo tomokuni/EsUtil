@@ -134,4 +134,4 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 
 ## 4. ライセンス
 
-[MIT](LICENSE)
+[MIT License](LICENSE)

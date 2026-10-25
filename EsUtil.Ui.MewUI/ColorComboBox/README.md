@@ -176,4 +176,4 @@ dotnet test EsUtil.Ui.MewUI/ColorComboBox/tests/EsUtil.Ui.MewUI.ColorComboBox.Te
 
 ## 13. ライセンス
 
-MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。
+[MIT License](LICENSE)

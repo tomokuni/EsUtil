@@ -64,4 +64,4 @@ var key = Aprillz.MewUI.Key.A.ToEsKey();
 
 ## 7. ライセンス
 
-MIT（リポジトリの [LICENSE](../../LICENSE) を参照）。
+[MIT License](LICENSE)

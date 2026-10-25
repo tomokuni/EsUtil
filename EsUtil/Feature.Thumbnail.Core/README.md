@@ -69,4 +69,4 @@ var visible = layout.VisibleRange(scrollOffset, viewportHeight);
 
 ## 8. ライセンス
 
-MIT（リポジトリの [LICENSE](../../LICENSE) を参照）。
+[MIT License](LICENSE)

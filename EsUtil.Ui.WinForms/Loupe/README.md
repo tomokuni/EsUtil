@@ -232,4 +232,4 @@ dotnet test EsUtil.Ui.WinForms/Loupe/tests/EsUtil.Ui.WinForms.Loupe.Tests.csproj
 
 ## 13. ライセンス
 
-MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。
+[MIT License](LICENSE)

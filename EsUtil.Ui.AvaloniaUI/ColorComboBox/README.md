@@ -202,4 +202,4 @@ dotnet test EsUtil.Ui.AvaloniaUI/ColorComboBox/tests/EsUtil.Ui.AvaloniaUI.ColorC
 
 ## 14. ライセンス
 
-MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。
+[MIT License](LICENSE)

@@ -221,4 +221,4 @@ dotnet test EsUtil.Ui.MewUI/Loupe/tests/EsUtil.Ui.MewUI.Loupe.Tests.csproj
 
 ## 13. ライセンス
 
-MIT License（全文は [`../../LICENSE`](../../LICENSE) を参照）。
+[MIT License](LICENSE)
