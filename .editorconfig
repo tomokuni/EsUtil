@@ -355,7 +355,7 @@ dotnet_diagnostic.MA0048.severity = none
 # 型名・メンバー名は CSV のデータ（カテゴリ/グループ/名称）から機械的に作られ、`_` を含む
 # （例: `GroupOf_Ascii_Alphabet_Large`）。 整形（波かっこの位置）も T4 の出力どおりにする。
 # CSV を直せば名前が変わるため、ここで人の手による命名の規則は適用しない。
-[EsUtil/Feature.ZenHan/src/Generated.cs]
+[EsUtil/Feature.ZenHan.Core/src/Generated.cs]
 dotnet_diagnostic.CA1052.severity = none
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.IDE0055.severity = none
@@ -365,7 +365,7 @@ dotnet_diagnostic.MA0048.severity = none
 # `extension` ブロック（C# 14 の拡張メンバー）は複数あると、コンパイラーが作る入れ物の名前が
 # どれも `Members` になる。 CA1708 は「大文字と小文字の区別以外でも相違させる」ことを求めるため、
 # この 1 ファイルだけ無効にする（ソース上の名前は重複していない）。
-[EsUtil/Feature.ZenHan/src/ZenHanConverterExtensions.cs]
+[EsUtil/Feature.ZenHan.Core/src/ZenHanConverterExtensions.cs]
 dotnet_diagnostic.CA1708.severity = none
 
 # 同じ値を持つ別名（重複値）の解決を検証するテストは、検証データとして意図的に重複値を持つ

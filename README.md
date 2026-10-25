@@ -39,8 +39,8 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Feature.Marquee.Presenter`](EsUtil/Feature.Marquee.Presenter/README.md) | 外観・描画手順 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Marquee.Presenter.svg)](https://www.nuget.org/packages/EsUtil.Feature.Marquee.Presenter) |
 | [`EsUtil.Feature.Thumbnail.Core`](EsUtil/Feature.Thumbnail.Core/README.md) | 折り返し配置・選択・可視範囲の計算層 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Thumbnail.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Thumbnail.Core) |
 | [`EsUtil.Feature.Thumbnail.Presenter`](EsUtil/Feature.Thumbnail.Presenter/README.md) | 外観・影・描画計画 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Thumbnail.Presenter.svg)](https://www.nuget.org/packages/EsUtil.Feature.Thumbnail.Presenter) |
-| [`EsUtil.Feature.ColumnPacking`](EsUtil/Feature.ColumnPacking/README.md) | 複数列の配置（最大列高さの最小化）の計算層 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.ColumnPacking.svg)](https://www.nuget.org/packages/EsUtil.Feature.ColumnPacking) |
-| [`EsUtil.Feature.ZenHan`](EsUtil/Feature.ZenHan/README.md) | 全角・半角・ひらがな・カタカナ・記号の相互変換 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.ZenHan.svg)](https://www.nuget.org/packages/EsUtil.Feature.ZenHan) |
+| [`EsUtil.Feature.ColumnPacking.Core`](EsUtil/Feature.ColumnPacking.Core/README.md) | 複数列の配置（最大列高さの最小化）の計算層 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.ColumnPacking.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.ColumnPacking.Core) |
+| [`EsUtil.Feature.ZenHan.Core`](EsUtil/Feature.ZenHan.Core/README.md) | 全角・半角・ひらがな・カタカナ・記号の相互変換 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.ZenHan.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.ZenHan.Core) |
 
 ### 1.2 `EsUtil.Ui.AvaloniaUI`（Avalonia UI 版）
 
@@ -111,13 +111,11 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | --- | --- | --- | --- |
 | 共通基盤（可搬） | `net10.0` | **Windows 10 バージョン 1809（ビルド 17763）以降**（Windows 実装と画像の保存/読み込みを使う場合。 それ以外は指定なしだが **Windows 以外での動作は未検証**） | `EsUtil.Platform.Core` |
 | 共通基盤（Windows 専用） | `net10.0-windows10.0.17763.0` | Windows 10 バージョン 1809（ビルド 17763）以降 | `EsUtil.Platform.Core.Windows` |
-| 機能層（可搬） | `net10.0` | 指定なし（**Windows 以外での動作は未検証**。 `EsUtil.Platform.Core` を参照し、その中には Windows 専用の型（`Native.Win` 配下・画像の保存/読み込み）がある） | `EsUtil.Feature.Loupe.Core` / `.Presenter` / `EsUtil.Feature.Marquee.Core` / `.Presenter` / `EsUtil.Feature.Thumbnail.Presenter` |
-| 機能層（画像の読み込みだけ Windows） | `net10.0` | Windows 10 バージョン 1809（ビルド 17763）以降（`ThumbnailImageLoader`。 WIC を使う） | `EsUtil.Feature.Thumbnail.Core` |
+| 機能層 | `net10.0` | Windows 10 バージョン 1809（ビルド 17763）以降 | `EsUtil.Feature.Loupe.Core` / `.Presenter` / `EsUtil.Feature.Marquee.Core` / `.Presenter` / `EsUtil.Feature.Thumbnail.Core` / `.Presenter` / `EsUtil.Feature.ColumnPacking.Core` / `EsUtil.Feature.ZenHan.Core` |
 | Avalonia UI 層 | `net10.0`（`Marquee` だけ `net10.0-windows10.0.17763.0`） | 指定なし（**Windows 以外での動作は未検証**。 `Marquee` は Windows 10 バージョン 1809（ビルド 17763）以降） | `EsUtil.Ui.AvaloniaUI.*` |
 | MewUI 層 | `net10.0`（`Marquee` だけ `net10.0-windows10.0.17763.0`） | 指定なし（**Windows 以外での動作は未検証**。 `Marquee` は Windows 10 バージョン 1809（ビルド 17763）以降） | `EsUtil.Ui.MewUI.*` |
 | WinUI 3 層 | `net10.0-windows10.0.22621.0`（`SupportedOSPlatformVersion` = `10.0.19041.0`） | **Windows 10 バージョン 2004（ビルド 19041）以降**（Windows App SDK の下限。 対象フレームワークの 22621 は API 面であり、実行の下限ではない） | `EsUtil.Ui.WinUI3.*` |
 | WinForms 層 | `net10.0-windows10.0.17763.0` | Windows 10 バージョン 1809（ビルド 17763）以降 | `EsUtil.Ui.WinForms.*` |
-| 計算・テキスト処理（層を持たない機能） | `net10.0` | 指定なし（**Windows 以外での動作は未検証**。 OS 固有の API を使わない） | `EsUtil.Feature.ColumnPacking` / `EsUtil.Feature.ZenHan` |
 
 - **検証は Windows でだけ行っています**。 `net10.0`（OS 固有の対象フレームワークを持たない）層も、**Windows 以外での動作は未検証**です（`EsUtil.Platform.Core` には Windows 専用の型（`Native.Win` 配下・画像の保存/読み込み）が含まれます）。
 

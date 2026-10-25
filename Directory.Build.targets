@@ -131,7 +131,7 @@
          層を持たない機能パッケージ（`EsUtil.Feature.<機能>`）だけを参照する -->
     <ItemGroup Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsUiControl)' == 'true'">
       <_SeAllowed5 Include="@(_SeRef)" Condition="'%(Name)' == 'EsUtil.Platform.Core' Or '%(Name)' == '$(_SeUiFeatureCoreName)' Or '%(Name)' == '$(_SeUiFeaturePresenterName)' Or '%(Name)' == '$(_SeUiPlatformInteropName)'" />
-      <!-- 層を持たない機能パッケージ（例: EsUtil.Feature.ColumnPackingLayoutEngine）は UI に依存しない
+      <!-- 提示層を持たない機能のコア（例: EsUtil.Feature.ColumnPacking.Core）は UI に依存しない
            可搬な計算層であり、UI 層が参照しても配布の独立性を損なわない -->
       <_SeAllowed5 Include="@(_SeRef)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(Name)', '^EsUtil\.Feature\.[A-Za-z][A-Za-z0-9]*$'))" />
       <_SeBad5 Include="@(_SeRef)" Exclude="@(_SeAllowed5)" />

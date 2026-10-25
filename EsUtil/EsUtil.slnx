@@ -31,12 +31,12 @@
     <Project Path="Platform.Core.Windows/src/EsUtil.Platform.Core.Windows.csproj" />
     <Project Path="Platform.Core.Windows/tests/EsUtil.Platform.Core.Windows.Tests.csproj" />
   </Folder>
-  <Folder Name="/Feature.ColumnPacking/">
-    <Project Path="Feature.ColumnPacking/src/EsUtil.Feature.ColumnPacking.csproj" />
-    <Project Path="Feature.ColumnPacking/tests/EsUtil.Feature.ColumnPacking.Tests.csproj" />
+  <Folder Name="/Feature.ColumnPacking.Core/">
+    <Project Path="Feature.ColumnPacking.Core/src/EsUtil.Feature.ColumnPacking.Core.csproj" />
+    <Project Path="Feature.ColumnPacking.Core/tests/EsUtil.Feature.ColumnPacking.Core.Tests.csproj" />
   </Folder>
-  <Folder Name="/Feature.ZenHan/">
-    <Project Path="Feature.ZenHan/src/EsUtil.Feature.ZenHan.csproj" />
-    <Project Path="Feature.ZenHan/tests/EsUtil.Feature.ZenHan.Tests.csproj" />
+  <Folder Name="/Feature.ZenHan.Core/">
+    <Project Path="Feature.ZenHan.Core/src/EsUtil.Feature.ZenHan.Core.csproj" />
+    <Project Path="Feature.ZenHan.Core/tests/EsUtil.Feature.ZenHan.Core.Tests.csproj" />
   </Folder>
 </Solution>

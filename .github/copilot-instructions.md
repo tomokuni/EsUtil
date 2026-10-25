@@ -51,9 +51,9 @@
 | ルーペ（コア / 提示層 / UI） | `EsUtil.Feature.Loupe.Core` / `.Presenter` / `EsUtil.Ui.<UI>.Loupe` |
 | マーキー（コア / 提示層 / UI） | `EsUtil.Feature.Marquee.Core` / `.Presenter` / `EsUtil.Ui.<UI>.Marquee` |
 | サムネイル一覧（コア / 提示層 / UI） | `EsUtil.Feature.Thumbnail.Core` / `.Presenter` / `EsUtil.Ui.<UI>.Thumbnail` |
-| 複数列の配置（計算のみ） | `EsUtil.Feature.ColumnPacking` |
-| 複数列の配置（WinUI 3 のパネル） | `EsUtil.Ui.WinUI3.ColumnPacking`（計算は `EsUtil.Feature.ColumnPacking`） |
-| 全角・半角・かなの変換 | `EsUtil.Feature.ZenHan` |
+| 複数列の配置（計算のみ） | `EsUtil.Feature.ColumnPacking.Core` |
+| 複数列の配置（WinUI 3 のパネル） | `EsUtil.Ui.WinUI3.ColumnPacking`（計算は `EsUtil.Feature.ColumnPacking.Core`） |
+| 全角・半角・かなの変換 | `EsUtil.Feature.ZenHan.Core` |
 
 - **`<UI>` は `AvaloniaUI` / `MewUI` / `WinUI3` / `WinForms`** である（UI 層は UI ごとのソリューションへ分かれる）。
 - **ソリューションは 5 本**（`EsUtil/EsUtil.slnx` と `EsUtil.Ui.<UI>/EsUtil.Ui.<UI>.slnx`）。 `.slnx` は各ソリューション フォルダーの直下に置く。
