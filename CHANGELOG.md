@@ -9,6 +9,13 @@
 
 ### 追加
 
+- **3 つのパッケージを取り込みました**（別リポジトリで開発していたものを本リポジトリへ統合）。
+  - **`EsUtil.Feature.MultiColumnLayoutEngine`**: 複数のアイテムを複数列へ並べ、**最大列高さを最小化**する UI 非依存の計算層（動的計画法・貪欲法・二分探索）。 旧 `EsUtil.Algorithm` の `MultiColumnLayoutEngine`（旧パッケージ ID）を改名しました（**NuGet の ID が変わります**）。
+  - **`EsUtil.Feature.ZenHanConverter`**: 全角・半角・ひらがな・カタカナ・記号の相互変換（定義は CSV から T4 で生成）。 旧 `EsUtil.Text` の `ZenHanConverter`（旧パッケージ ID）を改名しました（**NuGet の ID が変わります**）。
+  - **`EsUtil.Ui.WinUI3.MultiColumnPanel`**: 上記の計算を使う WinUI 3 のパネル（`ItemsSource` と直接の子を同時に並べる）。 旧 `EsUtil.WinUI3.Controls` の `MultiColumnPanel`（旧パッケージ ID）を改名しました（**NuGet の ID が変わります**）。
+  - **名前空間はアセンブリ名と一致させていません**（`EsUtil.Feature.MultiColumn` / `EsUtil.Feature.Text` / `EsUtil.Ui.WinUI3.MultiColumn`）。 型名（`MultiColumnLayoutEngine` / `ZenHanConverter` / `MultiColumnPanel`）と同じ名前空間セグメントを作れない規則（`MA0049`）に従うためです。
+  - **UI 層が層を持たない機能パッケージを参照できる**ようにしました（`DEP0005` の許可を追加）。
+  - 変換定義の生成物（`Generated.cs`）は CSV から機械的に作られるため、`CA1052` / `CA1707` / `IDE0055` / `MA0048` をファイル スコープで無効にし、付録 A へ理由付きで載せました。
 - `EsUtil.Ui.AvaloniaUI.ColorComboBox`: 色名・16 進コードの入力とカラーピッカー（`ColorView` の Flyout）を統合した色選択コントロール。
 - **`ColorComboBox`（Avalonia / MewUI / WinUI 3）のスウォッチと入力欄にツールチップを追加しました**
   （「色名 + 不透明度」と「`#AARRGGBB`」の 2 行）。

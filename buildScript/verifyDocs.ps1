@@ -272,6 +272,10 @@ foreach ($f in ($allCs)) {
 }
 $rxTypeRef = [regex]'(?<![\w.])((?:[A-Za-z_]\w*\.)+[A-Za-z_]\w*)(?![\w./\\-])'
 $rxExternalRoot = [regex]'^(System|Microsoft|Avalonia|SkiaSharp|Serilog|Xunit|Newtonsoft|Windows|Moq|NSubstitute|Aprillz|ShimSkiaSharp|HarfBuzz|CommunityToolkit)\b'
+# **パッケージ名（アセンブリ名）は型参照として判定しない**。 パッケージ ID は名前空間と一致しないことがある
+# （例: `EsUtil.Feature.MultiColumnLayoutEngine` の型は `EsUtil.Feature.MultiColumn` 名前空間にある）。
+# 文書はパッケージ ID を書く必要があるため、プロジェクト名（= アセンブリ名）と一致する語は対象外にする。
+$packageNames = [System.Collections.Generic.HashSet[string]]::new([string[]]@($allCsproj | ForEach-Object { $_.BaseName }), [StringComparer]::Ordinal)
 $typeRefIssues = [System.Collections.Generic.List[string]]::new()
 foreach ($f in $docs) {
     $rel = $f.FullName.Substring($repoRoot.Length + 1).Replace('\', '/')
@@ -285,6 +289,7 @@ foreach ($f in $docs) {
             $last = $segments[-1]
             if (-not $typeQualifiers.ContainsKey($last)) { continue }
             if ($rxExternalRoot.IsMatch($token)) { continue }
+            if ($packageNames.Contains($token)) { continue }
             $isVariable = $false
             for ($k = 0; $k -lt $segments.Count - 1; $k++) { if ($segments[$k] -cmatch '^[a-z]') { $isVariable = $true } }
             if ($isVariable) { continue }

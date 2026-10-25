@@ -127,14 +127,18 @@
            Code="DEP0004"
            Text="依存関係違反: 提示層（EsUtil.Feature.*.Presenter）は EsUtil.Platform.Core と同一機能のコアだけを参照できます（違反: @(_SeBad4->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
 
-    <!-- R5: UI 層は EsUtil.Platform.Core・同一機能のコア/提示層・同一 UI の変換ブリッジだけを参照する -->
+    <!-- R5: UI 層は EsUtil.Platform.Core・同一機能のコア/提示層・同一 UI の変換ブリッジ・
+         層を持たない機能パッケージ（`EsUtil.Feature.<機能>`）だけを参照する -->
     <ItemGroup Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsUiControl)' == 'true'">
       <_SeAllowed5 Include="@(_SeRef)" Condition="'%(Name)' == 'EsUtil.Platform.Core' Or '%(Name)' == '$(_SeUiFeatureCoreName)' Or '%(Name)' == '$(_SeUiFeaturePresenterName)' Or '%(Name)' == '$(_SeUiPlatformInteropName)'" />
+      <!-- 層を持たない機能パッケージ（例: EsUtil.Feature.MultiColumnLayoutEngine）は UI に依存しない
+           可搬な計算層であり、UI 層が参照しても配布の独立性を損なわない -->
+      <_SeAllowed5 Include="@(_SeRef)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(Name)', '^EsUtil\.Feature\.[A-Za-z][A-Za-z0-9]*$'))" />
       <_SeBad5 Include="@(_SeRef)" Exclude="@(_SeAllowed5)" />
     </ItemGroup>
     <Error Condition="'@(_SeBad5)' != ''"
            Code="DEP0005"
-           Text="依存関係違反: UI 層（EsUtil.Ui.*.*）は EsUtil.Platform.Core・同一機能のコア/提示層・同一 UI の変換ブリッジ（$(_SeUiPlatformInteropName)）だけを参照できます（違反: @(_SeBad5->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
+           Text="依存関係違反: UI 層（EsUtil.Ui.*.*）は EsUtil.Platform.Core・同一機能のコア/提示層・同一 UI の変換ブリッジ（$(_SeUiPlatformInteropName)）・層を持たない機能パッケージ（EsUtil.Feature.&lt;機能&gt;）だけを参照できます（違反: @(_SeBad5->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
 
     <!-- R6: 本体プロジェクトはプロジェクト参照を持たない（同一リポジトリでもパッケージ参照を使う） -->
     <Error Condition="'$(_SeIsTestOrSample)' != 'true' And '@(_SeProjectRef)' != ''"

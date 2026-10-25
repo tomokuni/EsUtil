@@ -102,6 +102,13 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | `LoupeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `ColorComboBoxControl` | なし（色文字列の解析・検証は UI が持つ） | なし | AvaloniaUI |
 
+**層を持たない機能**（1 つの計算層で完結し、提示層を必要としないもの）は、`EsUtil.Feature.<機能>` の 1 パッケージだけを持ちます。 UI 層はこれを参照できます（[`.github/依存関係.md`](../.github/依存関係.md) §3）。
+
+| 機能 | パッケージ | UI |
+| --- | --- | --- |
+| 複数列の配置（最大列高さの最小化） | `EsUtil.Feature.MultiColumnLayoutEngine` | `EsUtil.Ui.WinUI3.MultiColumnPanel` |
+| 全角・半角・かなの変換 | `EsUtil.Feature.ZenHanConverter` | なし（UI を持たない） |
+
 **コントロール化を前提とした処理は UI が持ちます**: ホイール操作（どの入力がズーム・パンかを決める）・ビューポートの変化の追従・組み込み先の概念は、コントロールを何かへ組み込んで初めて必要になるためです。
 
 ## 7. 各層のドキュメント

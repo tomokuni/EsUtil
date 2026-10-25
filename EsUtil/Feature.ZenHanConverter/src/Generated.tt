@@ -1,0 +1,594 @@
+// Auto-generated from Genetated.tt, ConvertDefine.csv
+using System.Collections.Immutable;
+
+using static EsUtil.Feature.Text.Define;
+
+namespace EsUtil.Feature.Text;
+#pragma warning disable IDE1006 // 命名スタイル
+
+<#
+string csvPath = Path.Combine(Path.GetDirectoryName(Host.TemplateFile), "ConvertDefine.csv");
+var Entries = DefineReader.GetEntries(csvPath, Encoding.UTF8);
+#>
+
+#region Entry.All
+/// <summary>定義</summary>
+public partial class Define
+{
+    /// <summary>CSV から生成した変換定義の一覧</summary>
+    /// <remarks>初回アクセス時に生成し、以降は同じインスタンスを返します（C# 14 の field による遅延初期化）。<br/></remarks>
+    public static ImmutableList<EntryRecord> AllList
+    {
+        get => field ??= CreateAllList();
+    }
+
+    /// <summary>CSV から生成した変換定義の一覧を生成します。</summary>
+    /// <returns>CSV の全エントリを含む不変リスト</returns>
+    private static ImmutableList<EntryRecord> CreateAllList() =>
+    [
+        // Category, Group, SubGroup, Forward, Inverse, Source, Target, Name, Summary
+<# foreach (var e in Entries) { #>
+        ("<#= e.Category #>", "<#= e.Group #>", "<#= e.SubGroup #>", "<#= e.Forward #>", "<#= e.Inverse #>", "<#= HexFromUnicodeCodePoints(e.Source) #>", "<#= HexFromUnicodeCodePoints(e.Target) #>", "<#= e.Name #>", "<#= e.Summary #>"),
+<# } #>
+    ];
+}
+#endregion Entry.All
+
+
+#region Define GroupOf 変換定義をグループ単位に纏めたクラス
+public partial class Define {
+<#
+foreach (var cat in Entries.GroupBy(e => e.Category)) {
+    var ctx = new EntryContext { Prefix = "GroupOf", Category = cat.Key };
+    RenderEntryLevel(ctx, cat);
+}
+#>
+}
+#endregion Define GroupOf 変換定義をグループ単位に纏めたクラス
+
+
+#region Define NameOf 変換定義を名前別に纏めたクラス
+public partial class Define {
+<#
+foreach (var cat in Entries.GroupBy(e => e.Category)) {
+    var ctx = new EntryContext { Prefix = "NameOf", Category = cat.Key };
+    RenderEntryLevel(ctx, cat);
+}
+#>
+}
+#endregion Define NameOf 変換定義を名前別に纏めたクラス
+
+
+#region Define Leaf 変換定義の一覧
+public partial class Define {
+<#
+foreach (var ent in Entries.GroupBy(e => (e.Category, e.Group, e.SubGroup, e.Name))) {
+    var ctx = new EntryContext { Prefix = "Leaf", Category = ent.Key.Category, Group = ent.Key.Group, SubGroup = ent.Key.SubGroup, Name = ent.Key.Name };
+    RenderEntryLevel(ctx, ent);
+}
+#>
+}
+#endregion Define Leaf 変換定義の一覧
+
+
+#region Define Interface
+#pragma warning disable CS1591 // 公開されている型またはメンバーの XML コメントがありません
+public partial class Define {
+    public interface IZenHanConverterHasToMap;
+<#
+foreach (var cnv in Entries.GroupBy(e => (e.Forward, e.Inverse)).Distinct()) {
+    var eFwd = cnv.Key.Forward;
+    var eInv = cnv.Key.Inverse;
+#>
+    public interface IZenHanConverter<#= eFwd #> : IZenHanConverterHasToMap {  public ConvertPairs <#= eFwd #>Map { get; }  }
+<# if (!string.IsNullOrEmpty(eInv)) { #>
+    public interface IZenHanConverter<#= eInv #> : IZenHanConverterHasToMap {  public ConvertPairs <#= eInv #>Map { get; }  }
+    public interface IZenHanConverter<#= eFwd #><#= eInv #> : IZenHanConverter<#= eFwd #>, IZenHanConverter<#= eInv #>;
+<# } } #>
+}
+#pragma warning restore CS1591 // 公開されている型またはメンバーの XML コメントがありません
+#endregion Define GroupOf 変換定義をグループ単位に纏めたクラス
+
+
+#region GroupOf, NameOf
+/// <summary>変換定義をグループ単位に纏めたクラス</summary>
+public static class GroupOf {
+<#
+foreach (var eleC in Entries.GroupBy(e => (e.Category))) {
+    var ctxC = new EntryContext { Prefix = "GroupOf", Category = eleC.Key };
+    var infC = ctxC.GetClassContext();
+#>
+    /// <summary><#= infC.smy #></summary>  <remarks><#= infC.rmk #></remarks>
+    public static <#= infC.cls #> <#= ctxC.Category #> { get; } = <#= infC.cls #>.Instance;
+<# } #>
+}
+
+/// <summary>変換定義を名前別に纏めたクラス</summary>
+public static class NameOf {
+<#
+foreach (var eleC in Entries.GroupBy(e => (e.Category))) {
+    var ctxC = new EntryContext { Prefix = "NameOf", Category = eleC.Key };
+    var infC = ctxC.GetClassContext();
+#>
+    /// <summary><#= infC.smy #></summary>  <remarks><#= infC.rmk #></remarks>
+    public static <#= infC.cls #> <#= ctxC.Category #> { get; } = <#= infC.cls #>.Instance;
+<# } #>
+}
+#endregion GroupOf, NameOf
+
+
+<#
+void RenderEntryLevel(EntryContext ctx, IEnumerable<EntryRecord> entries) {
+    var cls = ctx.GetClassContext();
+    var children = ctx.GetChildren(entries);
+    bool hasChildren = children.Count > 0;
+    if ((ctx.Prefix == "GroupOf" || ctx.Prefix == "NameOf") && ctx.IsLeaf ) {
+        return; // 末端レベルは処理しない
+    }
+#>
+    /// <summary><#= cls.smy #></summary>  <remarks><#= cls.rmk #></remarks>
+    public record <#= cls.cls #><#= string.IsNullOrEmpty(cls.iface) ? "" : " : " + cls.iface #> {
+        /// <summary><#= cls.smy #></summary>  <remarks><#= cls.rmk #></remarks>
+        public static <#= cls.cls #> Instance { get; } = new();
+
+<#
+    foreach (var cnv in ctx.GetToXxContext(entries)) {
+#>
+        /// <summary><#= cnv.smy #></summary>  <remarks><#= cnv.rmk #></remarks>
+        public ConvertPairs <#= cnv.cvt #>Map { get; } = ConvertPairs.From<#= cnv.type #>($"<#= cnv.cnvCtx.MainKey #>");
+<#
+    }
+
+    if (hasChildren) {
+#>
+
+<#
+        foreach (var group in children) {
+            var childCtx = ctx.NextShortcut(group.Key!, group);
+            var childCls = childCtx.GetClassContext();
+#>
+        /// <summary><#= childCls.smy #></summary>  <remarks><#= childCls.rmk #></remarks>
+        public <#= childCls.cls #> <#= group.Key #> { get; } = <#= childCls.cls #>.Instance;
+<#
+        }
+    }
+#>
+    }
+<#
+    if (hasChildren) {
+        foreach (var group in children) {
+            var childCtx = ctx.NextShortcut(group.Key!, group);
+            RenderEntryLevel(childCtx, group);
+        }
+    }
+}
+#>
+
+
+<#@ template debug="false" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Text.RegularExpressions" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" encoding="utf-8" #>
+
+<#+
+public class EntryRecord
+{
+    public string Category { get; set; } = "";
+    public string Group { get; set; } = "";
+    public string SubGroup { get; set; } = "";
+    public string Forward { get; set; } = "";
+    public string Inverse { get; set; } = "";
+    public string Source { get; set; } = "";
+    public string Target { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Summary { get; set; } = "";
+
+    public EntryRecord(string Category, string Group, string SubGroup, string Forward, string Inverse, string Source, string Target, string Name, string Summary)
+    {
+        this.Category = Category;
+        this.Group = Group;
+        this.SubGroup = SubGroup;
+        this.Forward = Forward;
+        this.Inverse = Inverse;
+        this.Source = Source;
+        this.Target = Target;
+        this.Name = Name;
+        this.Summary = Summary;
+    }
+}
+
+
+public record EntryContext {
+    public string Prefix { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Category { get; set; } = "";
+    public string Group { get; set; } = "";
+    public string SubGroup { get; set; } = "";
+    public string Forward { get; set; } = "";
+    public string Inverse { get; set; } = "";
+
+    /// <summary>メインキー文字列を取得します。</summary>
+    public string MainKey
+        =>  string.Join("|", new[] { "ZenHanConverter", Forward, Category, Group, SubGroup, Name }).TrimEnd('|');
+
+    /// <summary>末端レベルかどうかを取得します。</summary>
+    public bool IsLeaf
+        => !string.IsNullOrEmpty(Category)
+        && !string.IsNullOrEmpty(Group)
+        && !string.IsNullOrEmpty(SubGroup)
+        && !string.IsNullOrEmpty(Name);
+
+    /// <summary>次のレベルのコンテキストを取得します。</summary>
+    public EntryContext Next(string key) {
+        if (Prefix == "GroupOf") {
+            if (string.IsNullOrEmpty(Group)) return this with { Group = key };
+            if (string.IsNullOrEmpty(SubGroup)) return this with { SubGroup = key };
+            if (string.IsNullOrEmpty(Name)) return this with { Name = key };
+        }
+        else if (Prefix == "NameOf") {
+            if (string.IsNullOrEmpty(Name)) return this with { Name = key };
+            if (string.IsNullOrEmpty(Group)) return this with { Group = key };
+            if (string.IsNullOrEmpty(SubGroup)) return this with { SubGroup = key };
+        }
+        throw new InvalidOperationException("No further nesting supported.");
+    }
+
+    /// <summary>次のレベルのコンテキストをショートカットで取得します。</summary>
+    public EntryContext NextShortcut(string key, IEnumerable<EntryRecord> entries) {
+        var childCtx = this.Next(key!);
+        var childChilren = childCtx.GetChildren(entries);
+        while (childChilren.Count == 1) {
+            childCtx = childCtx.Next(childChilren.First().Key!);
+            childChilren = childCtx.GetChildren(entries);
+        }
+        return childCtx;
+    }
+
+    /// <summary>次のレベルのセレクターを取得します。</summary>
+    public Func<EntryRecord, string> GetNextLevelSelector() {
+        if (Prefix == "GroupOf") {
+            if (string.IsNullOrEmpty(Group)) return e => e.Group;
+            if (string.IsNullOrEmpty(SubGroup)) return e => e.SubGroup;
+            if (string.IsNullOrEmpty(Name)) return e => e.Name;
+        }
+        else if (Prefix == "NameOf") {
+            if (string.IsNullOrEmpty(Name)) return e => e.Name;
+            if (string.IsNullOrEmpty(Group)) return e => e.Group;
+            if (string.IsNullOrEmpty(SubGroup)) return e => e.SubGroup;
+        }
+        return _ => null;
+    }
+    
+    /// <summary>子エントリーのグループ化を取得します。</summary>
+    public List<IGrouping<string, EntryRecord>> GetChildren(IEnumerable<EntryRecord> entries)
+    {
+        var nextKeySelector = this.GetNextLevelSelector();
+        var children = entries.GroupBy(nextKeySelector).Where(g => !string.IsNullOrEmpty(g.Key)).ToList();
+        return children;
+    }
+
+    /// <summary>プロパティのリストを取得します。</summary>
+    public List<string> GetPropertyList()
+    {
+        if (IsLeaf) {
+            return new[] { "Leaf", Category, Group, SubGroup, Name, Forward, Inverse }
+                .ToList();
+        }
+        else if (Prefix == "GroupOf") {
+            return new[] { Prefix, Category, Group, SubGroup, Name, Forward, Inverse }
+                .ToList();
+        }
+        else if (Prefix == "NameOf") {
+            return new[] { Prefix, Category, Name, Group, SubGroup, Forward, Inverse }
+                .ToList();
+        }
+        else {
+            throw new InvalidOperationException("Unknown Prefix");
+        }
+    }
+
+    /// <summary>空でないプロパティのリストを取得します。</summary>
+    public List<string> GetPropertyListWithoutEmpty()
+    {
+        return GetPropertyList()
+            .Where(p => !string.IsNullOrEmpty(p))
+            .ToList();
+    }
+
+    /// <summary>フィルタ条件に合致するエントリーを取得します。</summary>
+    public IEnumerable<EntryRecord> GetFilterdEntries()
+    {
+        var entries = Entries.AsEnumerable();
+        if (!string.IsNullOrEmpty(Category)) entries = entries.Where(e => e.Category == Category);
+        if (!string.IsNullOrEmpty(Name))     entries = entries.Where(e => e.Name     == Name);
+        if (!string.IsNullOrEmpty(Group))    entries = entries.Where(e => e.Group    == Group);
+        if (!string.IsNullOrEmpty(SubGroup)) entries = entries.Where(e => e.SubGroup == SubGroup);
+        if (!string.IsNullOrEmpty(Forward))  entries = entries.Where(e => e.Forward  == Forward);
+        return entries;
+    }
+
+    /// <summary>クラスコンテキスト情報を取得します。</summary>
+    public (string smy, string rmk, string cls, string iface) GetClassContext()
+    {
+        var entries = this.GetFilterdEntries();
+
+        var summary = GetSummary(this, "");  // category, group, subGroup, forward, name, convertType
+        var remarks = GetRemarksGroup(this, "");
+        var className = string.Join("_", this.GetPropertyListWithoutEmpty());
+        var ifaceN = GetInterfaceList(entries);
+
+        return (summary, remarks, className, ifaceN);
+    }
+
+    /// <summary>変換コンテキスト情報の列挙を取得します。</summary>
+    public IEnumerable<(EntryContext cnvCtx, string smy, string rmk, string type, string cvt)>
+        GetToXxContext(IEnumerable<EntryRecord> entries)
+    {
+        return entries
+            .GroupBy(e => (e.Forward, e.Inverse))
+            .SelectMany(g => {
+                var cnvCtx = new EntryContext {
+                    Prefix = this.Prefix,
+                    Category = this.Category,
+                    Group = this.Group,
+                    SubGroup = this.SubGroup,
+                    Forward = g.Key.Forward,
+                    Inverse = g.Key.Inverse,
+                    Name = this.Name,
+                };
+                return GetConvertPairs(cnvCtx)
+                    .Select(p => (cnvCtx, p.summary, p.remarks, p.type, p.convert));
+            })
+            .ToList(); // 念のため即時評価
+    }
+
+    // インターフェイスのカンマ区切りのリスト文字列を作成
+    public string GetInterfaceList(IEnumerable<EntryRecord> entries)
+    {
+        var cnv = entries.GroupBy(e => (e.Forward, e.Inverse)).Distinct().Select(g => $"{g.Key.Forward}{g.Key.Inverse}");
+        return string.Join(", ", cnv.Select(e => $"IZenHanConverter{e}"));
+    }
+
+    /// サマリと変換タイプごとのタプル列挙を返す
+    public IEnumerable<(string summary, string remarks, string type, string convert)> GetConvertPairs(EntryContext ctx)
+    {
+        var convertTypes = new List<(string type, string convert)>();
+        if (!string.IsNullOrEmpty(ctx.Forward))
+            convertTypes.Add(("Forward", ctx.Forward));
+        if (!string.IsNullOrEmpty(ctx.Inverse))
+            convertTypes.Add(("Inverse", ctx.Inverse));
+
+        foreach (var convertType in convertTypes)
+        {
+            var summary = "";
+            var remarks = "";
+            if (ctx.Category != "" && ctx.Group != "" && ctx.SubGroup != "" && ctx.Name != "") {
+                summary = GetSummary(ctx, convertType.convert);  // category, group, subGroup, forward, name, convertType
+                remarks = GetRemarksSingleEntry(ctx, convertType.type);
+            }
+            else {
+                summary = GetSummary(ctx, convertType.convert);  // category, group, subGroup, forward, name, convertType
+                remarks = GetRemarksGroup(ctx, convertType.type);
+            }
+            yield return (summary, remarks, convertType.type, convertType.convert);
+        }
+    }
+
+    /// <summary>ドキュメントコメント用の summary を生成します。</summary>
+    public string GetSummary(EntryContext ctx, string convertType)
+    {
+        var summary = string.Join(" - ", GetPropertyListWithoutEmpty());
+        if (!string.IsNullOrEmpty(convertType))
+            summary += $" - {convertType}";
+
+        return summary;
+    }
+
+    /// <summary>ドキュメントコメントを生成します。</summary>
+    public string GetRemarksGroup(EntryContext ctx, string convertType)
+    {
+        var entries = ctx.GetFilterdEntries();
+
+        var smyList = new List<string>();
+
+        var groups = entries.GroupBy(e => (e.Group, e.SubGroup));
+        foreach (var grp in groups)
+        {
+            var keyGrp = grp.Key.Group;
+            var keySub = grp.Key.SubGroup;
+            var hasSub = keySub != "";
+            var grpSmy = hasSub switch {
+                true => $"{keyGrp}-{keySub}",
+                _    => $"{keyGrp}",
+            };
+            foreach (var cnv in grp.GroupBy(e => (e.Forward, e.Inverse)))
+            {
+                var keyFwd = cnv.Key.Forward;
+                var keyInv = cnv.Key.Inverse;
+                var hasInv = keyInv != "";
+                var cnvSmy = (hasInv, convertType) switch {
+                    (true, "Forward") => $"{keyFwd}",
+                    (true, "Inverse") => $"{keyInv}",
+                    (true, "")        => $"{keyFwd}-{keyInv}",
+                    (_, _)            => $"{keyFwd}",
+                };
+                var separator = (hasInv, convertType) switch {
+                    (true, "Forward") => $"⇢",
+                    (true, "Inverse") => $"⇠",
+                    (true, "")        => $"-",
+                    (_, _)            => $"⇢",
+                };
+                var chrlist = cnv.Select(e => $"<b>{XmlEscape(e.Source)}</b>{separator}<b>{XmlEscape(e.Target)}</b>").Distinct();
+                var chrSmy = string.Join(" 、 ", chrlist);
+
+                var smys = cnv.Select(e => $"{XmlEscape(e.Summary)}").Distinct();
+                var smySmy = GetCommonAffix(smys, true);
+
+                var grpcnvSmy = $"(<u>{grpSmy}</u>, <u><b>{cnvSmy}</b></u>, <u>{smySmy}</u>)：  {chrSmy}";
+                smyList.Add(grpcnvSmy);
+            }
+        }
+        
+        var grpSummary = $"<br/>{string.Join("<br/>", smyList)}";
+
+        var catRem = string.IsNullOrEmpty(ctx.Category) ? "" : $"<b><u>{ctx.Category}</u></b> (Category)<br/>";
+        var grpRem = string.IsNullOrEmpty(ctx.Group) ? "" : $"<b><u>{ctx.Group}</u></b> (Group)<br/>";
+        var subRem = (string.IsNullOrEmpty(ctx.SubGroup) || ctx.SubGroup == "_") ? "" : $"<b><u>{ctx.SubGroup}</u></b> (SubGroup)<br/>";
+        var fwdInv = convertType == "Inverse" ? ctx.Inverse : ctx.Forward;
+        var typeRem = string.IsNullOrEmpty(convertType) ? "" : $"<b><u>{XmlEscape(fwdInv)}</u></b> ({convertType} convert)<br/>";
+        var list = new List<string> { catRem, grpRem, subRem, typeRem };
+        var remarks = string.Join("", list.Where(e => !string.IsNullOrEmpty(e)));
+
+        return $"{remarks}  {grpSummary}";
+    }
+
+    /// <summary>ドキュメントコメントを生成します。</summary>
+    public string GetRemarksSingleEntry(EntryContext ctx, string convertType)
+    {
+        var entry = ctx.GetFilterdEntries().First();
+
+        var catRem = string.IsNullOrEmpty(entry.Category) ? "" : $"<b><u>{XmlEscape(entry.Category)}</u></b> (Category)<br/>";
+        var grpRem = string.IsNullOrEmpty(entry.Group) ? "" : $"<b><u>{XmlEscape(entry.Group)}</u></b> (Group)<br/>";
+        var subRem = (string.IsNullOrEmpty(entry.SubGroup) || entry.SubGroup == "_") ? "" : $"<b><u>{XmlEscape(entry.SubGroup)}</u></b> (SubGroup)<br/>";
+        var fwdInv = convertType == "Inverse" ? ctx.Inverse : ctx.Forward;
+        var typeRem = string.IsNullOrEmpty(convertType) ? "" : $"<b><u>{XmlEscape(fwdInv)}</u></b> ({convertType} convert)<br/>";
+        var srcRem = entry.Source.StartsWith("U+") ? "" : $"\"<b><u>{XmlEscape(entry.Source)}</u></b>\" Unicode: {ToUnicodeCodePoints(entry.Source)} (Source)<br/>";
+        var tgtRem = entry.Target.StartsWith("U+") ? "" : $"\"<b><u>{XmlEscape(entry.Target)}</u></b>\" Unicode: {ToUnicodeCodePoints(entry.Target)} (Target)<br/>";
+        var list = new List<string> { catRem, grpRem, subRem, typeRem, srcRem, tgtRem };
+        var remarks = string.Join("", list.Where(e => !string.IsNullOrEmpty(e)));
+
+        return $"{remarks}";
+    }
+}
+
+
+/// <summary>指定された文字列群の共通接頭辞または接尾辞を取得します。</summary>
+public static string GetCommonAffix(IEnumerable<string> strings, bool fromEnd = false) {
+    if (strings == null || !strings.Any()) return "";
+
+    var list = strings.ToList();
+
+    if (fromEnd) {
+        list = list.Select(s => new string(s.Reverse().ToArray())).ToList();
+    }
+
+    var first = list.First();
+    int matchLength = first.Length;
+
+    foreach (var str in list.Skip(1)) {
+        int i = 0;
+        while (i < matchLength && i < str.Length && first[i] == str[i]) {
+            i++;
+        }
+        matchLength = i;
+        if (matchLength == 0) break;
+    }
+
+    var result = first.Substring(0, matchLength);
+    return fromEnd ? new string(result.Reverse().ToArray()) : result;
+}
+
+
+// ドキュメントコメント用に XML エスケープ（& を先に置換すること）
+static string XmlEscape(string s)
+{
+    if (string.IsNullOrEmpty(s))
+        return string.Empty;
+    s = s.StartsWith("U+") ? ("u" + s.Substring(2)) : s;
+    return s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;").Replace("'", "&apos;");
+}
+
+
+/// <summary>指定された文字列内の各文字を、Unicodeのコードポイント表現に変換します。</summary>
+/// <param name="input">Unicodeコードポイント形式に変換する対象の文字列。null は指定できません。</param>
+/// <returns>
+/// 入力文字列内の各文字を "U+XXXX" 形式で表現し、スペースで区切った文字列を返します。<br/>
+/// 入力が空文字列の場合は、空文字列を返します。
+/// </returns>
+static string ToUnicodeCodePoints(string input)
+{
+    var sb = new StringBuilder();
+    foreach (var ch in input)
+    {
+        sb.AppendFormat("U+{0:X4} ", (int)ch);
+    }
+    return sb.ToString().Trim();
+}
+
+
+/// <summary>
+/// "U+XXXX" 形式の文字列から XXXX の文字列を返します。
+/// </summary>
+static string HexFromUnicodeCodePoints(string input)
+{
+    if (input.StartsWith("U+", StringComparison.OrdinalIgnoreCase))
+        return "\\u" + input.Substring(2);
+    if (input == "\"")
+        return "\\\"";
+    return input;
+}
+
+
+static List<EntryRecord> Entries { get; set; } = null;
+class DefineReader
+{
+    public static List<EntryRecord> GetEntries(string csvPath, Encoding enc)
+    {
+        if (Entries != null)
+            return Entries;
+
+        List<EntryRecord> list = new();
+        var lines = File.ReadAllLines(csvPath, enc);
+
+        foreach (var line in lines.Skip(1)) // ヘッダ行をスキップ
+        {
+            var parts = ParseCsvLine(line);
+            string f(int idx) => idx < parts.Length ? parts[idx].Trim() : string.Empty;    // 安全にフィールドを取り出す（不足時は空文字）
+            list.Add(new EntryRecord(f(0), f(1), f(2), f(3), f(4), f(5), f(6), f(7), f(8)));
+        }
+
+        Entries = list;
+        return list;
+    }
+
+    private static string[] ParseCsvLine(string line)
+    {
+        var fields = new List<string>();
+        var sb = new StringBuilder();
+        bool inQuotes = false;
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+            if (c == '"')
+            {
+                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    sb.Append('"');
+                    i++; // skip next quote
+                    continue;
+                }
+                inQuotes = !inQuotes;
+                continue;
+            }
+
+            if (c == ',' && !inQuotes)
+            {
+                fields.Add(sb.ToString());
+                sb.Clear();
+                continue;
+            }
+
+            sb.Append(c);
+        }
+
+        fields.Add(sb.ToString());
+        return fields.ToArray();
+    }
+}
+#>

@@ -1,0 +1,561 @@
+Category,Group,SubGroup,Forward,Inverse,Source,Target,Name,Summary
+Ascii,Numeric,Number,ToHan,ToZen,０,0,n0,０ (数字) <全角-半角 変換>
+Ascii,Numeric,Number,ToHan,ToZen,１,1,n1,１ (数字) <全角-半角 変換>
+Ascii,Numeric,Number,ToHan,ToZen,２,2,n2,２ (数字) <全角-半角 変換>
+Ascii,Numeric,Number,ToHan,ToZen,３,3,n3,３ (数字) <全角-半角 変換>
+Ascii,Numeric,Number,ToHan,ToZen,４,4,n4,４ (数字) <全角-半角 変換>
+Ascii,Numeric,Number,ToHan,ToZen,５,5,n5,５ (数字) <全角-半角 変換>
+Ascii,Numeric,Number,ToHan,ToZen,６,6,n6,６ (数字) <全角-半角 変換>
+Ascii,Numeric,Number,ToHan,ToZen,７,7,n7,７ (数字) <全角-半角 変換>
+Ascii,Numeric,Number,ToHan,ToZen,８,8,n8,８ (数字) <全角-半角 変換>
+Ascii,Numeric,Number,ToHan,ToZen,９,9,n9,９ (数字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ａ,A,A,Ａ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｂ,B,B,Ｂ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｃ,C,C,Ｃ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｄ,D,D,Ｄ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｅ,E,E,Ｅ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｆ,F,F,Ｆ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｇ,G,G,Ｇ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｈ,H,H,Ｈ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｉ,I,I,Ｉ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｊ,J,J,Ｊ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｋ,K,K,Ｋ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｌ,L,L,Ｌ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｍ,M,M,Ｍ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｎ,N,N,Ｎ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｏ,O,O,Ｏ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｐ,P,P,Ｐ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｑ,Q,Q,Ｑ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｒ,R,R,Ｒ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｓ,S,S,Ｓ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｔ,T,T,Ｔ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｕ,U,U,Ｕ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｖ,V,V,Ｖ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｗ,W,W,Ｗ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｘ,X,X,Ｘ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｙ,Y,Y,Ｙ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Large,ToHan,ToZen,Ｚ,Z,Z,Ｚ (英大文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ａ,a,A,ａ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｂ,b,B,ｂ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｃ,c,C,ｃ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｄ,d,D,ｄ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｅ,e,E,ｅ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｆ,f,F,ｆ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｇ,g,G,ｇ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｈ,h,H,ｈ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｉ,i,I,ｉ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｊ,j,J,ｊ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｋ,k,K,ｋ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｌ,l,L,ｌ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｍ,m,M,ｍ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｎ,n,N,ｎ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｏ,o,O,ｏ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｐ,p,P,ｐ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｑ,q,Q,ｑ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｒ,r,R,ｒ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｓ,s,S,ｓ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｔ,t,T,ｔ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｕ,u,U,ｕ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｖ,v,V,ｖ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｗ,w,W,ｗ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｘ,x,X,ｘ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｙ,y,Y,ｙ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Small,ToHan,ToZen,ｚ,z,Z,ｚ (英小文字) <全角-半角 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ａ,ａ,A,Ａ↔ａ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｂ,ｂ,B,Ｂ↔ｂ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｃ,ｃ,C,Ｃ↔ｃ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｄ,ｄ,D,Ｄ↔ｄ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｅ,ｅ,E,Ｅ↔ｅ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｆ,ｆ,F,Ｆ↔ｆ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｇ,ｇ,G,Ｇ↔ｇ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｈ,ｈ,H,Ｈ↔ｈ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｉ,ｉ,I,Ｉ↔ｉ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｊ,ｊ,J,Ｊ↔ｊ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｋ,ｋ,K,Ｋ↔ｋ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｌ,ｌ,L,Ｌ↔ｌ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｍ,ｍ,M,Ｍ↔ｍ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｎ,ｎ,N,Ｎ↔ｎ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｏ,ｏ,O,Ｏ↔ｏ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｐ,ｐ,P,Ｐ↔ｐ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｑ,ｑ,Q,Ｑ↔ｑ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｒ,ｒ,R,Ｒ↔ｒ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｓ,ｓ,S,Ｓ↔ｓ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｔ,ｔ,T,Ｔ↔ｔ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｕ,ｕ,U,Ｕ↔ｕ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｖ,ｖ,V,Ｖ↔ｖ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｗ,ｗ,W,Ｗ↔ｗ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｘ,ｘ,X,Ｘ↔ｘ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｙ,ｙ,Y,Ｙ↔ｙ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Zen,ToLower,ToUpper,Ｚ,ｚ,Z,Ｚ↔ｚ (英字 全角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,A,a,A,A↔a (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,B,b,B,B↔b (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,C,c,C,C↔c (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,D,d,D,D↔d (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,E,e,E,E↔e (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,F,f,F,F↔f (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,G,g,G,G↔g (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,H,h,H,H↔h (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,I,i,I,I↔i (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,J,j,J,J↔j (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,K,k,K,K↔k (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,L,l,L,L↔l (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,M,m,M,M↔m (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,N,n,N,N↔n (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,O,o,O,O↔o (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,P,p,P,P↔p (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,Q,q,Q,Q↔q (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,R,r,R,R↔r (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,S,s,S,S↔s (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,T,t,T,T↔t (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,U,u,U,U↔u (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,V,v,V,V↔v (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,W,w,W,W↔w (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,X,x,X,X↔x (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,Y,y,Y,Y↔y (英字 半角) <大文字-小文字 変換>
+Ascii,Alphabet,Han,ToLower,ToUpper,Z,z,Z,Z↔z (英字 半角) <大文字-小文字 変換>
+Ascii,Symbol,Bracket,ToHan,ToZen,（,(,ParenthesisLeft,丸括弧 左 (記号) <全角-半角 変換>
+Ascii,Symbol,Bracket,ToHan,ToZen,）,),ParenthesisRight,丸括弧 右 (記号) <全角-半角 変換>
+Ascii,Symbol,Bracket,ToHan,ToZen,［,[,SquareBracketLeft,角括弧 左 (記号) <全角-半角 変換>
+Ascii,Symbol,Bracket,ToHan,ToZen,］,],SquareBracketRight,角括弧 右 (記号) <全角-半角 変換>
+Ascii,Symbol,Bracket,ToHan,ToZen,｛,{,CurlyBracketLeft,波括弧 左 (記号) <全角-半角 変換>
+Ascii,Symbol,Bracket,ToHan,ToZen,｝,},CurlyBracketRight,波括弧 右 (記号) <全角-半角 変換>
+Ascii,Symbol,Punc,ToHan,ToZen,”,"""",DoubleQuote,ダブルクォート (記号) <全角-半角 変換>
+Ascii,Symbol,Punc,ToHan,ToZen,’,',SingleQuote,シングルクォート (記号) <全角-半角 変換>
+Ascii,Symbol,Punc,ToHan,ToZen,‘,`,Backquote,バッククォート (記号) <全角-半角 変換>
+Ascii,Symbol,Punc,ToHan,ToZen,，,",",Comma,カンマ (記号) <全角-半角 変換>
+Ascii,Symbol,Punc,ToHan,ToZen,．,.,Period,ピリオド (記号) <全角-半角 変換>
+Ascii,Symbol,Punc,ToHan,ToZen,：,:,Colon,コロン (記号) <全角-半角 変換>
+Ascii,Symbol,Punc,ToHan,ToZen,；,;,Semicolon,セミコロン (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,＜,<,LessThan,不等号 小 (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,＞,>,GreaterThan,不等号 大 (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,＝,=,Equal,等号 (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,＋,+,Plus,プラス (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,－,-,HyphenMinus,ハイフン (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,？,?,Question,はてな (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,！,!,Exclamation,感嘆符 (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,＆,&,Ampersand,アンパサンド (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,＠,@,At,アットマーク (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,＊,*,Asterisk,アスタリスク (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,＾,^,Caret,キャレット (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,＿,_,UnderBar,アンダーバー (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,｜,|,VerticalBar,縦棒 (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,～,~,Tilde,チルダ (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,／,/,Slash,スラッシュ (記号) <全角-半角 変換>
+Ascii,Symbol,Ope,ToHan,ToZen,＼,\\,Bslash,逆斜線(uFF3C-u005C) (記号) <全角-半角 変換>
+Ascii,Symbol,Fin,ToHan,ToZen,＃,#,Sharp,シャープ (記号) <全角-半角 変換>
+Ascii,Symbol,Fin,ToHan,ToZen,＄,$,Dollar,ドル (記号) <全角-半角 変換>
+Ascii,Symbol,Fin,ToHan,ToZen,％,%,Percent,パーセント (記号) <全角-半角 変換>
+Ascii,Symbol,Fin,ToHan,ToZen,￥,¥,Yen,円(uFFE5-u00A5) (記号) <全角-半角 変換>
+Ascii,Symbol,Space,ToHan,ToZen,U+3000,U+0020,Space,スペース (記号) <全角-半角 変換>
+Ascii,Replace,Fringe,ToASpace,,U+00A0,U+0020,Space,U+00A0 自動改行を防ぐ固定スペース  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+00AD,U+0020,Space,U+00AD ソフトハイフン SOFT HYPHEN  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+2000,U+0020,Space,U+2000 en クワッド  EN QUAD  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+2001,U+0020,Space,U+2001 em クワッド  EM QUAD  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+2002,U+0020,Space,U+2002 en スペース  EN SPACE  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+2003,U+0020,Space,U+2003 em スペース  EM SPACE  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+2004,U+0020,Space,U+2004 3 分の 1em 幅のスペース  SPACING THREE-PER-EM  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+2005,U+0020,Space,U+2005 4 分の 1em 幅のスペース  SPACING FOUR-PER-EM  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+2006,U+0020,Space,U+2006 6 分の 1em 幅のスペース  SPACING SIX-PER-EM  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+2007,U+0020,Space,U+2007 固定幅の数字と同じ幅のスペース  FIGURE SPACE  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+2008,U+0020,Space,U+2008 ピリオドと同じ幅のスペース  PUNCTUATION SPACE  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+2009,U+0020,Space,U+2009 6 分の 1em ～ 4 分の 1em のシンスペース  THIN SPACE  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+200A,U+0020,Space,U+200A シンスペースよりさらに狭いヘアスペース  HAIR SPACE  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+202F,U+0020,Space,U+202F ナローノンブレークスペース  NARROW NO-BREAK SPACE  /  U+0020 スペース
+Ascii,Replace,Fringe,ToASpace,,U+205F,U+0020,Space,U+205F 中数学空白 MEDIUM MATHEMATICAL SPACE  /  U+0020 スペース
+Ascii,Replace,Fringe,ToAHyphen,,U+2010,U+002D,Hyphen,U+2010 ‐ 別のハイフン  /  U+002D - ハイフン
+Ascii,Replace,Fringe,ToAHyphen,,U+2011,U+002D,Hyphen,U+2011 ‑ 改行しないハイフン  /  U+002D - ハイフン
+Ascii,Replace,Fringe,ToAHyphen,,U+2013,U+002D,Hyphen,U+2013 – ENダッシュ  /  U+002D - ハイフン
+Ascii,Replace,Fringe,ToAHyphen,,U+2014,U+002D,Hyphen,U+2014 — EMダッシュ  /  U+002D - ハイフン
+Ascii,Replace,Fringe,ToAHyphen,,U+2212,U+002D,Hyphen,U+2212 − 全角のマイナス  /  U+002D - ハイフン
+Ascii,Replace,Fringe,ToSpaceFromTab,,U+0009,U+0020,Tab,U+0009 水平タブ  /  U+0020 スペース
+Ascii,Replace,Zen,ToBslashFromYen,,￥,＼,Yen,円(U+FFE5) → 逆斜線(U+FF3C) (記号) <全角-文字変更>
+Ascii,Replace,Zen,ToYenFromBslash,,＼,￥,Bslash,逆斜線(U+FF3C) → 円(U+FFE5) (記号) <全角-文字変更>
+Ascii,Replace,Han,ToBslashFromYen,,¥,\\,Yen,円(U+00A5) → 逆斜線(U+005C) (記号) <半角-文字変更>
+Ascii,Replace,Han,ToYenFromBslash,,\\,¥,Bslash,逆斜線(U+005C) → 円(U+00A5) (記号) <半角-文字変更>
+Kana,Kata,Large,ToHan,ToZen,ガ,ｶﾞ,GA,ガ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ギ,ｷﾞ,GI,ギ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,グ,ｸﾞ,GU,グ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ゲ,ｹﾞ,GE,ゲ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ゴ,ｺﾞ,GO,ゴ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ザ,ｻﾞ,ZA,ザ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ジ,ｼﾞ,JI,ジ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ズ,ｽﾞ,ZU,ズ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ゼ,ｾﾞ,ZE,ゼ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ゾ,ｿﾞ,ZO,ゾ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ダ,ﾀﾞ,DA,ダ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ヂ,ﾁﾞ,DI,ヂ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ヅ,ﾂﾞ,DU,ヅ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,デ,ﾃﾞ,DE,デ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ド,ﾄﾞ,DO,ド (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,バ,ﾊﾞ,BA,バ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ビ,ﾋﾞ,BI,ビ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ブ,ﾌﾞ,BU,ブ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ベ,ﾍﾞ,BE,ベ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ボ,ﾎﾞ,BO,ボ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ヴ,ｳﾞ,VU,ヴ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,パ,ﾊﾟ,PA,パ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ピ,ﾋﾟ,PI,ピ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,プ,ﾌﾟ,PU,プ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ペ,ﾍﾟ,PE,ペ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ポ,ﾎﾟ,PO,ポ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ア,ｱ,A,ア (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,イ,ｲ,I,イ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ウ,ｳ,U,ウ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,エ,ｴ,E,エ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,オ,ｵ,O,オ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,カ,ｶ,KA,カ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,キ,ｷ,KI,キ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ク,ｸ,KU,ク (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ケ,ｹ,KE,ケ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,コ,ｺ,KO,コ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,サ,ｻ,SA,サ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,シ,ｼ,SHI,シ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ス,ｽ,SU,ス (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,セ,ｾ,SE,セ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ソ,ｿ,SO,ソ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,タ,ﾀ,TA,タ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,チ,ﾁ,CHI,チ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ツ,ﾂ,TSU,ツ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,テ,ﾃ,TE,テ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ト,ﾄ,TO,ト (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ナ,ﾅ,NA,ナ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ニ,ﾆ,NI,ニ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ヌ,ﾇ,NU,ヌ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ネ,ﾈ,NE,ネ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ノ,ﾉ,NO,ノ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ハ,ﾊ,HA,ハ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ヒ,ﾋ,HI,ヒ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,フ,ﾌ,FU,フ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ヘ,ﾍ,HE,ヘ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ホ,ﾎ,HO,ホ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,マ,ﾏ,MA,マ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ミ,ﾐ,MI,ミ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ム,ﾑ,MU,ム (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,メ,ﾒ,ME,メ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,モ,ﾓ,MO,モ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ヤ,ﾔ,YA,ヤ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ユ,ﾕ,YU,ユ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ヨ,ﾖ,YO,ヨ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ラ,ﾗ,RA,ラ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,リ,ﾘ,RI,リ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ル,ﾙ,RU,ル (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,レ,ﾚ,RE,レ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ロ,ﾛ,RO,ロ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ワ,ﾜ,WA,ワ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ヲ,ｦ,WO,ヲ (カタカナ) <全角-半角 変換>
+Kana,Kata,Large,ToHan,ToZen,ン,ﾝ,N,ン (カタカナ) <全角-半角 変換>
+Kana,Kata,Small,ToHan,ToZen,ァ,ｧ,A,ァ (カタカナ 小文字) <全角-半角 変換>
+Kana,Kata,Small,ToHan,ToZen,ィ,ｨ,I,ィ (カタカナ 小文字) <全角-半角 変換>
+Kana,Kata,Small,ToHan,ToZen,ゥ,ｩ,U,ゥ (カタカナ 小文字) <全角-半角 変換>
+Kana,Kata,Small,ToHan,ToZen,ェ,ｪ,E,ェ (カタカナ 小文字) <全角-半角 変換>
+Kana,Kata,Small,ToHan,ToZen,ォ,ｫ,O,ォ (カタカナ 小文字) <全角-半角 変換>
+Kana,Kata,Small,ToHan,ToZen,ッ,ｯ,TSU,ッ (カタカナ 小文字) <全角-半角 変換>
+Kana,Kata,Small,ToHan,ToZen,ャ,ｬ,YA,ャ (カタカナ 小文字) <全角-半角 変換>
+Kana,Kata,Small,ToHan,ToZen,ュ,ｭ,YU,ュ (カタカナ 小文字) <全角-半角 変換>
+Kana,Kata,Small,ToHan,ToZen,ョ,ｮ,YO,ョ (カタカナ 小文字) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,が,ｶﾞ,GA,が (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ぎ,ｷﾞ,GI,ぎ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ぐ,ｸﾞ,GU,ぐ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,げ,ｹﾞ,GE,げ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ご,ｺﾞ,GO,ご (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ざ,ｻﾞ,ZA,ざ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,じ,ｼﾞ,JI,じ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ず,ｽﾞ,ZU,ず (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ぜ,ｾﾞ,ZE,ぜ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ぞ,ｿﾞ,ZO,ぞ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,だ,ﾀﾞ,DA,だ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ぢ,ﾁﾞ,DI,ぢ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,づ,ﾂﾞ,DU,づ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,で,ﾃﾞ,DE,で (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ど,ﾄﾞ,DO,ど (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ば,ﾊﾞ,BA,ば (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,び,ﾋﾞ,BI,び (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ぶ,ﾌﾞ,BU,ぶ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,べ,ﾍﾞ,BE,べ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ぼ,ﾎﾞ,BO,ぼ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ゔ,ｳﾞ,VU,ゔ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ぱ,ﾊﾟ,PA,ぱ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ぴ,ﾋﾟ,PI,ぴ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ぷ,ﾌﾟ,PU,ぷ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ぺ,ﾍﾟ,PE,ぺ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ぽ,ﾎﾟ,PO,ぽ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,あ,ｱ,A,あ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,い,ｲ,I,い (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,う,ｳ,U,う (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,え,ｴ,E,え (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,お,ｵ,O,お (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,か,ｶ,KA,か (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,き,ｷ,KI,き (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,く,ｸ,KU,く (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,け,ｹ,KE,け (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,こ,ｺ,KO,こ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,さ,ｻ,SA,さ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,し,ｼ,SHI,し (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,す,ｽ,SU,す (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,せ,ｾ,SE,せ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,そ,ｿ,SO,そ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,た,ﾀ,TA,た (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ち,ﾁ,CHI,ち (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,つ,ﾂ,TSU,つ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,て,ﾃ,TE,て (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,と,ﾄ,TO,と (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,な,ﾅ,NA,な (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,に,ﾆ,NI,に (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ぬ,ﾇ,NU,ぬ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ね,ﾈ,NE,ね (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,の,ﾉ,NO,の (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,は,ﾊ,HA,は (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ひ,ﾋ,HI,ひ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ふ,ﾌ,FU,ふ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,へ,ﾍ,HE,へ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ほ,ﾎ,HO,ほ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ま,ﾏ,MA,ま (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,み,ﾐ,MI,み (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,む,ﾑ,MU,む (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,め,ﾒ,ME,め (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,も,ﾓ,MO,も (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,や,ﾔ,YA,や (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ゆ,ﾕ,YU,ゆ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,よ,ﾖ,YO,よ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ら,ﾗ,RA,ら (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,り,ﾘ,RI,り (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,る,ﾙ,RU,る (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,れ,ﾚ,RE,れ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ろ,ﾛ,RO,ろ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,わ,ﾜ,WA,わ (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,を,ｦ,WO,を (ひらがな) <全角-半角 変換>
+Kana,Hira,Large,ToHan,ToZen,ん,ﾝ,N,ん (ひらがな) <全角-半角 変換>
+Kana,Hira,Small,ToHan,ToZen,ぁ,ｧ,A,ぁ (ひらがな 小文字) <全角-半角 変換>
+Kana,Hira,Small,ToHan,ToZen,ぃ,ｨ,I,ぃ (ひらがな 小文字) <全角-半角 変換>
+Kana,Hira,Small,ToHan,ToZen,ぅ,ｩ,U,ぅ (ひらがな 小文字) <全角-半角 変換>
+Kana,Hira,Small,ToHan,ToZen,ぇ,ｪ,E,ぇ (ひらがな 小文字) <全角-半角 変換>
+Kana,Hira,Small,ToHan,ToZen,ぉ,ｫ,O,ぉ (ひらがな 小文字) <全角-半角 変換>
+Kana,Hira,Small,ToHan,ToZen,っ,ｯ,TSU,っ (ひらがな 小文字) <全角-半角 変換>
+Kana,Hira,Small,ToHan,ToZen,ゃ,ｬ,YA,ゃ (ひらがな 小文字) <全角-半角 変換>
+Kana,Hira,Small,ToHan,ToZen,ゅ,ｭ,YU,ゅ (ひらがな 小文字) <全角-半角 変換>
+Kana,Hira,Small,ToHan,ToZen,ょ,ｮ,YO,ょ (ひらがな 小文字) <全角-半角 変換>
+Kana,Symbol,Voice,ToHan,ToZen,゛,ﾞ,Voice,゛ (かな 濁点) <全角-半角 変換>
+Kana,Symbol,Voice,ToHan,ToZen,゜,ﾟ,SemiVoice,゜ (かな 半濁点) <全角-半角 変換>
+Kana,Symbol,Voice,ToHan,ToZen,ー,ｰ,Prolong,ー (かな 長音記号) <全角-半角 変換>
+Kana,Symbol,Punc,ToHan,ToZen,・,･,MiddleDot,・ (かな Punctuation 中点) <全角-半角 変換>
+Kana,Symbol,Punc,ToHan,ToZen,「,｢,LeftCornerBracket,「 (かな Punctuation 左上括弧) <全角-半角 変換>
+Kana,Symbol,Punc,ToHan,ToZen,」,｣,RightCornerBracket,」 (かな Punctuation 右下括弧) <全角-半角 変換>
+Kana,Symbol,Punc,ToHan,ToZen,。,｡,Period,。 (かな Punctuation 読点) <全角-半角 変換>
+Kana,Symbol,Punc,ToHan,ToZen,、,､,Comma,、 (かな Punctuation 句点) <全角-半角 変換>
+Kana,Symbol,Zen,ToAscii,FromAscii,ー,-,Prolong,U+30FC ー 全角の長音記号  /  U+002D ハイフンマイナス
+Kana,Symbol,Zen,ToAscii,FromAscii,、,",",Comma,U+3001 、 全角の読点  /  U+002C カンマ
+Kana,Symbol,Zen,ToAscii,FromAscii,。,.,Period,U+3002 。 全角の句点  /  U+002E ピリオド
+Kana,Symbol,Han,ToAscii,FromAscii,ｰ,-,Prolong,U+FF70 ｰ 半角の長音記号  /  U+002D ハイフンマイナス
+Kana,Symbol,Han,ToAscii,FromAscii,､,",",Comma,U+FF64 ､ 半角の読点  /  U+002C カンマ
+Kana,Symbol,Han,ToAscii,FromAscii,｡,.,Period,U+FF61 ｡ 半角の句点  /  U+002E ピリオド
+Kana,Case,Large,ToHira,ToKata,ガ,が,GA,ガ↔が (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ギ,ぎ,GI,ギ↔ぎ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,グ,ぐ,GU,グ↔ぐ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ゲ,げ,GE,ゲ↔げ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ゴ,ご,GO,ゴ↔ご (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ザ,ざ,ZA,ザ↔ざ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ジ,じ,JI,ジ↔じ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ズ,ず,ZU,ズ↔ず (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ゼ,ぜ,ZE,ゼ↔ぜ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ゾ,ぞ,ZO,ゾ↔ぞ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ダ,だ,DA,ダ↔だ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ヂ,ぢ,DI,ヂ↔ぢ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ヅ,づ,DU,ヅ↔づ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,デ,で,DE,デ↔で (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ド,ど,DO,ド↔ど (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,バ,ば,BA,バ↔ば (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ビ,び,BI,ビ↔び (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ブ,ぶ,BU,ブ↔ぶ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ベ,べ,BE,ベ↔べ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ボ,ぼ,BO,ボ↔ぼ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ヴ,ゔ,VU,ヴ↔ゔ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,パ,ぱ,PA,パ↔ぱ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ピ,ぴ,PI,ピ↔ぴ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,プ,ぷ,PU,プ↔ぷ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ペ,ぺ,PE,ペ↔ぺ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ポ,ぽ,PO,ポ↔ぽ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ア,あ,A,ア↔あ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,イ,い,I,イ↔い (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ウ,う,U,ウ↔う (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,エ,え,E,エ↔え (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,オ,お,O,オ↔お (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,カ,か,KA,カ↔か (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,キ,き,KI,キ↔き (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ク,く,KU,ク↔く (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ケ,け,KE,ケ↔け (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,コ,こ,KO,コ↔こ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,サ,さ,SA,サ↔さ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,シ,し,SHI,シ↔し (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ス,す,SU,ス↔す (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,セ,せ,SE,セ↔せ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ソ,そ,SO,ソ↔そ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,タ,た,TA,タ↔た (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,チ,ち,CHI,チ↔ち (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ツ,つ,TSU,ツ↔つ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,テ,て,TE,テ↔て (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ト,と,TO,ト↔と (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ナ,な,NA,ナ↔な (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ニ,に,NI,ニ↔に (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ヌ,ぬ,NU,ヌ↔ぬ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ネ,ね,NE,ネ↔ね (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ノ,の,NO,ノ↔の (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ハ,は,HA,ハ↔は (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ヒ,ひ,HI,ヒ↔ひ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,フ,ふ,FU,フ↔ふ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ヘ,へ,HE,ヘ↔へ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ホ,ほ,HO,ホ↔ほ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,マ,ま,MA,マ↔ま (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ミ,み,MI,ミ↔み (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ム,む,MU,ム↔む (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,メ,め,ME,メ↔め (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,モ,も,MO,モ↔も (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ヤ,や,YA,ヤ↔や (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ユ,ゆ,YU,ユ↔ゆ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ヨ,よ,YO,ヨ↔よ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ラ,ら,RA,ラ↔ら (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,リ,り,RI,リ↔り (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ル,る,RU,ル↔る (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,レ,れ,RE,レ↔れ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ロ,ろ,RO,ロ↔ろ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ワ,わ,WA,ワ↔わ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ヲ,を,WO,ヲ↔を (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Large,ToHira,ToKata,ン,ん,N,ン↔ん (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Small,ToHira,ToKata,ァ,ぁ,A,ァ↔ぁ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Small,ToHira,ToKata,ィ,ぃ,I,ィ↔ぃ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Small,ToHira,ToKata,ゥ,ぅ,U,ゥ↔ぅ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Small,ToHira,ToKata,ェ,ぇ,E,ェ↔ぇ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Small,ToHira,ToKata,ォ,ぉ,O,ォ↔ぉ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Small,ToHira,ToKata,ッ,っ,TSU,ッ↔っ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Small,ToHira,ToKata,ャ,ゃ,YA,ャ↔ゃ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Small,ToHira,ToKata,ュ,ゅ,YU,ュ↔ゅ (かな) <カタカナ-ひらがな 変換>
+Kana,Case,Small,ToHira,ToKata,ョ,ょ,YO,ョ↔ょ (かな) <カタカナ-ひらがな 変換>
+Kana,Kata,ZZ,Compose,,カ゛,ガ,GA,ガ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,キ゛,ギ,GI,ギ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ク゛,グ,GU,グ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ケ゛,ゲ,GE,ゲ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,コ゛,ゴ,GO,ゴ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,サ゛,ザ,ZA,ザ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,シ゛,ジ,JI,ジ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ス゛,ズ,ZU,ズ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,セ゛,ゼ,ZE,ゼ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ソ゛,ゾ,ZO,ゾ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,タ゛,ダ,DA,ダ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,チ゛,ヂ,DI,ヂ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ツ゛,ヅ,DU,ヅ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,テ゛,デ,DE,デ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ト゛,ド,DO,ド (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ハ゛,バ,BA,バ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ヒ゛,ビ,BI,ビ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,フ゛,ブ,BU,ブ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ヘ゛,ベ,BE,ベ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ホ゛,ボ,BO,ボ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ウ゛,ヴ,VU,ヴ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ハ゜,パ,PA,パ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ヒ゜,ピ,PI,ピ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,フ゜,プ,PU,プ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ヘ゜,ペ,PE,ペ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZZ,Compose,,ホ゜,ポ,PO,ポ (分離カタカナ 全-全) <文字結合>
+Kana,Kata,ZH,Compose,,カﾞ,ガ,GA,ガ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,キﾞ,ギ,GI,ギ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,クﾞ,グ,GU,グ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,ケﾞ,ゲ,GE,ゲ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,コﾞ,ゴ,GO,ゴ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,サﾞ,ザ,ZA,ザ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,シﾞ,ジ,JI,ジ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,スﾞ,ズ,ZU,ズ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,セﾞ,ゼ,ZE,ゼ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,ソﾞ,ゾ,ZO,ゾ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,タﾞ,ダ,DA,ダ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,チﾞ,ヂ,DI,ヂ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,ツﾞ,ヅ,DU,ヅ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,テﾞ,デ,DE,デ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,トﾞ,ド,DO,ド (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,ハﾞ,バ,BA,バ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,ヒﾞ,ビ,BI,ビ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,フﾞ,ブ,BU,ブ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,ヘﾞ,ベ,BE,ベ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,ホﾞ,ボ,BO,ボ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,ウﾞ,ヴ,VU,ヴ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,ハﾟ,パ,PA,パ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,ヒﾟ,ピ,PI,ピ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,フﾟ,プ,PU,プ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,ヘﾟ,ペ,PE,ペ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,ZH,Compose,,ホﾟ,ポ,PO,ポ (分離カタカナ 全-半) <文字結合>
+Kana,Kata,HZ,Compose,,ｶ゛,ｶﾞ,GA,ガ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ｷ゛,ｷﾞ,GI,ギ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ｸ゛,ｸﾞ,GU,グ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ｹ゛,ｹﾞ,GE,ゲ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ｺ゛,ｺﾞ,GO,ゴ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ｻ゛,ｻﾞ,ZA,ザ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ｼ゛,ｼﾞ,JI,ジ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ｽ゛,ｽﾞ,ZU,ズ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ｾ゛,ｾﾞ,ZE,ゼ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ｿ゛,ｿﾞ,ZO,ゾ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾀ゛,ﾀﾞ,DA,ダ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾁ゛,ﾁﾞ,DI,ヂ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾂ゛,ﾂﾞ,DU,ヅ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾃ゛,ﾃﾞ,DE,デ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾄ゛,ﾄﾞ,DO,ド (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾊ゛,ﾊﾞ,BA,バ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾋ゛,ﾋﾞ,BI,ビ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾌ゛,ﾌﾞ,BU,ブ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾍ゛,ﾍﾞ,BE,ベ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾎ゛,ﾎﾞ,BO,ボ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ｳ゛,ｳﾞ,VU,ヴ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾊ゜,ﾊﾟ,PA,パ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾋ゜,ﾋﾟ,PI,ピ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾌ゜,ﾌﾟ,PU,プ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾍ゜,ﾍﾟ,PE,ペ (分離カタカナ 半-全) <文字結合>
+Kana,Kata,HZ,Compose,,ﾎ゜,ﾎﾟ,PO,ポ (分離カタカナ 半-全) <文字結合>
+Kana,Hira,ZZ,Compose,,か゛,が,GA,が (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,き゛,ぎ,GI,ぎ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,く゛,ぐ,GU,ぐ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,け゛,げ,GE,げ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,こ゛,ご,GO,ご (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,さ゛,ざ,ZA,ざ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,し゛,じ,JI,じ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,す゛,ず,ZU,ず (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,せ゛,ぜ,ZE,ぜ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,そ゛,ぞ,ZO,ぞ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,た゛,だ,DA,だ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,ち゛,ぢ,DI,ぢ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,つ゛,づ,DU,づ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,て゛,で,DE,で (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,と゛,ど,DO,ど (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,は゛,ば,BA,ば (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,ひ゛,び,BI,び (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,ふ゛,ぶ,BU,ぶ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,へ゛,べ,BE,べ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,ほ゛,ぼ,BO,ぼ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,う゛,ゔ,VU,ヴ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,は゜,ぱ,PA,ぱ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,ひ゜,ぴ,PI,ぴ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,ふ゜,ぷ,PU,ぷ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,へ゜,ぺ,PE,ぺ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZZ,Compose,,ほ゜,ぽ,PO,ぽ (分離ひらがな 全-全) <文字結合>
+Kana,Hira,ZH,Compose,,かﾞ,が,GA,が (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,きﾞ,ぎ,GI,ぎ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,くﾞ,ぐ,GU,ぐ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,けﾞ,げ,GE,げ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,こﾞ,ご,GO,ご (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,さﾞ,ざ,ZA,ざ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,しﾞ,じ,JI,じ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,すﾞ,ず,ZU,ず (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,せﾞ,ぜ,ZE,ぜ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,そﾞ,ぞ,ZO,ぞ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,たﾞ,だ,DA,だ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,ちﾞ,ぢ,DI,ぢ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,つﾞ,づ,DU,づ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,てﾞ,で,DE,で (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,とﾞ,ど,DO,ど (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,はﾞ,ば,BA,ば (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,ひﾞ,び,BI,び (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,ふﾞ,ぶ,BU,ぶ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,へﾞ,べ,BE,べ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,ほﾞ,ぼ,BO,ぼ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,うﾞ,ゔ,VU,ヴ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,はﾟ,ぱ,PA,ぱ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,ひﾟ,ぴ,PI,ぴ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,ふﾟ,ぷ,PU,ぷ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,へﾟ,ぺ,PE,ぺ (分離ひらがな 全-半) <文字結合>
+Kana,Hira,ZH,Compose,,ほﾟ,ぽ,PO,ぽ (分離ひらがな 全-半) <文字結合>

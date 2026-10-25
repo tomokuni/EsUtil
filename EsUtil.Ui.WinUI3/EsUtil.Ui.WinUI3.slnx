@@ -14,6 +14,11 @@
     <Project Path="Marquee/src/EsUtil.Ui.WinUI3.Marquee.csproj" />
     <Project Path="Marquee/tests/EsUtil.Ui.WinUI3.Marquee.Tests.csproj" />
   </Folder>
+  <Folder Name="/MultiColumnPanel/">
+    <Project Path="MultiColumnPanel/sample/EsUtil.Ui.WinUI3.MultiColumnPanel.Sample.csproj" />
+    <Project Path="MultiColumnPanel/src/EsUtil.Ui.WinUI3.MultiColumnPanel.csproj" />
+    <Project Path="MultiColumnPanel/tests/EsUtil.Ui.WinUI3.MultiColumnPanel.Tests.csproj" />
+  </Folder>
   <Folder Name="/Thumbnail/">
     <Project Path="Thumbnail/sample/EsUtil.Ui.WinUI3.Thumbnail.Sample.csproj" />
     <Project Path="Thumbnail/src/EsUtil.Ui.WinUI3.Thumbnail.csproj" />
