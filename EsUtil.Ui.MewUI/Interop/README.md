@@ -9,7 +9,7 @@
 ![MewUI](https://img.shields.io/badge/UI-MewUI-00BFFF)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-**対応 OS**: 指定なし（`net10.0`。 UI フレームワークの対応 OS に従う）
+**対応 OS**: 指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**（UI フレームワークの対応 OS に従う。 参照する `EsUtil.Platform.Core` には Windows 専用の型が含まれる）
 
 ## 1. 概要
 

@@ -8,7 +8,7 @@
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-**対応 OS**: 指定なし（`net10.0`。 OS 固有の API を使わない）
+**対応 OS**: 指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**（本パッケージは `EsUtil.Platform.Core` を参照し、その中には Windows 専用の型（`Native.Win` 配下・画像の保存/読み込み）が含まれる）
 
 マーキー選択（ドラッグで矩形を選び、移動・リサイズできる操作）の見た目を定める **コントロール化を前提としない UI 非依存の層**です。 UI 実装が変わっても同じ処理を共有します。
 

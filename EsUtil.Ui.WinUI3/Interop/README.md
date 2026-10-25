@@ -9,7 +9,7 @@
 ![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-**対応 OS**: 指定なし（`net10.0`。 UI フレームワークの対応 OS に従う）
+**対応 OS**: Windows 10 バージョン 2004（ビルド 19041）以降
 
 ## 1. 概要
 

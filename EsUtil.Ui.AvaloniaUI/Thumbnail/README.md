@@ -61,7 +61,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0` |
-| 対応 OS | 指定なし（`net10.0`。 UI フレームワークの対応 OS に従う） |
+| 対応 OS | 指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**（UI フレームワークの対応 OS に従う。 参照する `EsUtil.Platform.Core` には Windows 専用の型が含まれる） |
 | UI フレームワーク | Avalonia 12.1 以降 |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測） |

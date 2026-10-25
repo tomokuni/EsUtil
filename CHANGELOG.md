@@ -43,8 +43,9 @@
 ### 変更（破壊的）
 
 - **README に「実行に必要な Windows の下限」を書きました**（[`ドキュメント規約.md`](.github/ドキュメント規約.md) §3.4）。
-  - **パッケージの `README.md`**: バッジを `Platform-Windows 10 (1809)+`（ビルド 17763）/ `Platform-Windows 10 (2004)+`（ビルド 19041）/ `Platform-Portable`（OS の宣言なし）に分け、本文の「システム要件」（節が無いものはバッジの直後）にも同じ値を書きました。
-  - **値は `.csproj` の実測**: `net10.0-windows10.0.17763.0` の層はビルド 17763、`EsUtil.Ui.WinUI3.*` は `<SupportedOSPlatformVersion>` = `10.0.19041.0` のため**ビルド 19041**（対象フレームワークの `22621` は API 面であり、実行の下限ではありません）、`net10.0` の可搬な層は下限なしです。 `EsUtil.Platform.Core` は Windows 専用の型（`Native.Win` 配下・画像の保存/読み込み）だけが 17763、`EsUtil.Feature.Thumbnail.Core` は `ThumbnailImageLoader`（WIC）だけが 17763 です。
+  - **パッケージの `README.md`**: バッジを `Platform-Windows 10 (1809)+`（ビルド 17763）/ `Platform-Windows 10 (2004)+`（ビルド 19041）/ `Platform-Portable`（OS 固有の対象フレームワークを持たない）に分け、本文の「システム要件」（節が無いものはバッジの直後）にも同じ値を書きました。
+  - **「指定なし」を「どの OS でも動く」と書かないようにしました**。 `net10.0` の層も `EsUtil.Platform.Core`（Windows 専用の型を持つ）を参照するため、**Windows 以外での動作は未検証**と書きます（検証は Windows でだけ行っています）。
+  - **値は `.csproj` の実測**: `net10.0-windows10.0.17763.0` の層はビルド 17763、`EsUtil.Ui.WinUI3.*` は `<SupportedOSPlatformVersion>` = `10.0.19041.0` のため**ビルド 19041**（対象フレームワークの `22621` は API 面であり、実行の下限ではありません）、`net10.0` の層は下限なし（ただし **Windows 以外での動作は未検証**）です。 `EsUtil.Platform.Core` は Windows 専用の型（`Native.Win` 配下・画像の保存/読み込み）だけが 17763、`EsUtil.Feature.Thumbnail.Core` は `ThumbnailImageLoader`（WIC）だけが 17763 です。
   - **ルート `README.md` §3** の表に「Windows の下限」の列を足し、層ごとの差（WinUI 3 だけ 2004 以降）を 1 か所で読めるようにしました。
 - **README のバッジを「その README が説明している対象に当てはまるものだけ」に整理しました**（[`ドキュメント規約.md`](.github/ドキュメント規約.md) §3.4）。
   - **共通基盤・機能層（`EsUtil.Platform.Core*` / `EsUtil.Feature.*`）から 4 つの UI バッジを外しました**。 UI を含まないパッケージに「Avalonia / MewUI / WinUI 3 / WinForms」を並べると、そのパッケージが UI を含むと読めてしまいます（4 つの UI 版から使えることはルート `README.md` の表が示します）。

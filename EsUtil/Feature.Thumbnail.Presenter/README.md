@@ -8,7 +8,7 @@
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-**対応 OS**: 指定なし（`net10.0`。 OS 固有の API を使わない）
+**対応 OS**: 指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**（本パッケージは `EsUtil.Platform.Core` を参照し、その中には Windows 専用の型（`Native.Win` 配下・画像の保存/読み込み）が含まれる）
 
 ## 1. 概要
 

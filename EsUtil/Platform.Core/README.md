@@ -8,7 +8,7 @@
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-**対応 OS**: Windows 専用の型（Native.Win 配下・画像の保存/読み込み）は Windows 10 バージョン 1809（ビルド 17763）以降（`[SupportedOSPlatform("windows10.0.17763")]`）。 それ以外は指定なし（`net10.0` の可搬な型）
+**対応 OS**: Windows 専用の型（Native.Win 配下・画像の保存/読み込み）は Windows 10 バージョン 1809（ビルド 17763）以降（`[SupportedOSPlatform("windows10.0.17763")]`）。 それ以外は指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**
 
 UI フレームワーク非依存の **共通基盤の型**（キーと入力・幾何・座標変換・画像・OS サービス抽象）を提供するライブラリです。
 

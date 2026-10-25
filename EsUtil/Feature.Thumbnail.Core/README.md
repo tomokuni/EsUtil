@@ -8,7 +8,7 @@
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-**対応 OS**: `ThumbnailImageLoader`（WIC で画像を読む）は Windows 10 バージョン 1809（ビルド 17763）以降。 それ以外は指定なし（`net10.0` の可搬な型）
+**対応 OS**: `ThumbnailImageLoader`（WIC で画像を読む）は Windows 10 バージョン 1809（ビルド 17763）以降。 それ以外は指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**（本パッケージは `EsUtil.Platform.Core` を参照する）
 
 ## 1. 概要
 

@@ -57,7 +57,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0` |
-| 対応 OS | 指定なし（`net10.0`。 UI フレームワークの対応 OS に従う） |
+| 対応 OS | 指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**（UI フレームワークの対応 OS に従う。 参照する `EsUtil.Platform.Core` には Windows 専用の型が含まれる） |
 | UI フレームワーク | MewUI 0.21.1（`MewUIVersion` プロパティで固定） |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`IsAotCompatible=true`。 AOT の解析警告が 0 件であることをビルドで検査する） |
