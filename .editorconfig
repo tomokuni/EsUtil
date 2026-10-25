@@ -16,6 +16,14 @@ end_of_line = crlf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
+# Markdown files
+[*.md]
+# **末尾の空白を削除しない**（Markdown のハードブレークは行末の半角スペース 2 つ。
+# 保存のたびに削除されると改行が失われ、規約（.github/コーディング規約.md「日本語の体裁」）を守れない。 実測 2026-10-25）。
+# 余分な空白（1 個・3 個以上）は markdownlint の MD009（`br_spaces` = 2）が検出するため、
+# ここを false にしても体裁は崩れない（buildScript/markdownlint.json）。
+trim_trailing_whitespace = false
+
 # XAML files
 [*.xaml]
 indent_style = space
