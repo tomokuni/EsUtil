@@ -18,6 +18,12 @@
   （ドロップダウン本体は別の面へ出るため、切り取りの影響を受けません。 実測 2026-10-25）。
 - **Avalonia UI 版の一覧を自前の `ListBox`（Flyout）にしました**。 選択後にテキストが全選択されたままにならず、
   行の見た目（スウォッチ + 表記）をコントロール側で決められます。
+- **MewUI の `ColorComboBox` に入力欄の文字サイズ（`TextFontSize`）を追加しました**。 MewUI の要素は
+  文字サイズを継承しないため、周囲の入力欄より 1 回り小さく表示されていました（他の UI は親の
+  `FontSize` を継承するため揃います）。 ホストが同じ値を設定できます。
+- **`EsUtil.Ui.WinUI3.Interop` の `CompositionImageView` に `WaitForSourceReadyAsync()` を追加しました**。
+  `LoadedImageSurface` は**段階的に復号する**ため、読み込みの完了前に表示すると縮小された内容が
+  1〜2 フレーム見えます（キャプチャのオーバーレイが一瞬だけ小さく出る原因。 実測 2026-10-25）。
 - **入力欄の表記を選べるようになりました**: `EsUtil.Platform.Core.Palette.ColorTextFormat`（`NameWithAlpha` = 色名 + 不透明度 / `HexCode` = `#AARRGGBB`）を追加し、`ColorString.ToText(text, format)` と窓口 `EsColor.ToText` を追加しました。 `ColorComboBox`（Avalonia / MewUI / WinUI 3）の `TextFormat` プロパティから切り替えられます。
 - `EsUtil.Ui.*.Interop` に `TextMeasure` / `GdiFill.Rects` / `EsBitmapDrawingInterop.CopyRegion` / `DrawList` / `DrawRect` を追加（UI コントロールが持っていた複製を置き換えるため）。
 - `EsUtil.Platform.Core`:
@@ -53,6 +59,11 @@
 
 ### 修正
 
+- **WinUI 3 のルーペが自分の矩形で切り取っていなかった**のを修正しました。 十字線・破線は
+  「ルーペの面」の座標で作られますが、選択矩形が切り出し領域より大きいと破線は面の外まで伸び、
+  `Canvas` は子を切り取らないため**ウィンドウ全体へ線が描かれていました**（実測 2026-10-25）。
+  ルーペの矩形で切り取ります。 併せて `Trace` で割り当て（DIP）と面（物理ピクセル）の対応を
+  記録するようにしました（DPI の解釈がずれた場合にログだけで特定できます）。
 - **WinUI 3 のルーペが拡大画像を表示しなかった**のを修正しました。 2 つの原因がありました。
   1 つは表示の層（`LoupeVisualLayer`）が `Canvas` の子として既定の 0×0 のまま配置され、
   拡大画像の層が自分自身の矩形で切り取るため**常に空の切り取り**になっていたことです。
