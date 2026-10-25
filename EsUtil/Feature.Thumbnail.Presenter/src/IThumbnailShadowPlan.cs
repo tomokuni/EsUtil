@@ -8,9 +8,9 @@ namespace EsUtil.Feature.Thumbnail;
 /// 別の算法（ぼかしを使う・影をずらす・描かない等）は本インターフェースを実装して
 /// <see cref="ThumbnailAppearance.Shadow"/> へ渡す。<br/>
 /// <br/>
-/// <b>UI が使うもの</b>: 帯を塗る UI（MewUI / WinUI3 / WinForms）は <see cref="BuildDeviceBands"/> の結果を<br/>
-/// 単色の矩形として塗る。 要素で描く UI（AvaloniaUI）は <see cref="BlurRadius"/> と <see cref="ColorArgb"/> を使えるが、<br/>
-/// それは既定の実装（<see cref="ThumbnailShadowPlan"/>）に限る（他の実装は帯を描く）。<br/>
+/// <b>UI が使うもの</b>: 描画 API へ直接塗る UI（AvaloniaUI / MewUI / WinForms）は <see cref="BuildDeviceBands"/> の結果を<br/>
+/// 単色の矩形として塗る。 要素を並べる UI（WinUI3 の一覧）は <see cref="Edges"/> と <see cref="CornerStops"/> を<br/>
+/// グラデーション ブラシへ写す（1 画素の帯を 1 要素ずつ置くと 1 件あたり数百個になり、一覧の初回描画が待たされる）。<br/>
 /// <br/>
 /// <b>座標系</b>: <see cref="BuildDeviceBands"/> の入出力は DIP（入力）と物理ピクセル（出力）である。<br/>
 /// <b>余白</b>: <see cref="Insets"/> は画像の外側へ確保する余白であり、レイアウトの項目の大きさに反映される<br/>

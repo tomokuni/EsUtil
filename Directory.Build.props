@@ -17,16 +17,16 @@
     <EsUtil_Ui_WinForms_Loupe_Version>0.1.9</EsUtil_Ui_WinForms_Loupe_Version>
     <EsUtil_Feature_Marquee_Core_Version>0.1.5</EsUtil_Feature_Marquee_Core_Version>
     <EsUtil_Feature_Thumbnail_Core_Version>0.1.8</EsUtil_Feature_Thumbnail_Core_Version>
-    <EsUtil_Feature_Thumbnail_Presenter_Version>0.1.9</EsUtil_Feature_Thumbnail_Presenter_Version>
+    <EsUtil_Feature_Thumbnail_Presenter_Version>0.1.10</EsUtil_Feature_Thumbnail_Presenter_Version>
     <EsUtil_Ui_AvaloniaUI_Thumbnail_Version>0.1.9</EsUtil_Ui_AvaloniaUI_Thumbnail_Version>
     <EsUtil_Ui_MewUI_Thumbnail_Version>0.1.11</EsUtil_Ui_MewUI_Thumbnail_Version>
     <EsUtil_Ui_WinUI3_ColorComboBox_Version>0.1.4</EsUtil_Ui_WinUI3_ColorComboBox_Version>
-    <EsUtil_Ui_WinUI3_Thumbnail_Version>0.1.10</EsUtil_Ui_WinUI3_Thumbnail_Version>
+    <EsUtil_Ui_WinUI3_Thumbnail_Version>0.1.13</EsUtil_Ui_WinUI3_Thumbnail_Version>
     <EsUtil_Ui_WinForms_Thumbnail_Version>0.1.11</EsUtil_Ui_WinForms_Thumbnail_Version>
     <EsUtil_Feature_Marquee_Presenter_Version>0.1.5</EsUtil_Feature_Marquee_Presenter_Version>
     <EsUtil_Ui_AvaloniaUI_Marquee_Version>0.1.8</EsUtil_Ui_AvaloniaUI_Marquee_Version>
     <EsUtil_Ui_MewUI_Marquee_Version>0.1.11</EsUtil_Ui_MewUI_Marquee_Version>
-    <EsUtil_Ui_WinUI3_Marquee_Version>0.1.14</EsUtil_Ui_WinUI3_Marquee_Version>
+    <EsUtil_Ui_WinUI3_Marquee_Version>0.1.15</EsUtil_Ui_WinUI3_Marquee_Version>
     <EsUtil_Ui_WinForms_Marquee_Version>0.1.10</EsUtil_Ui_WinForms_Marquee_Version>
     <EsUtil_Ui_AvaloniaUI_ColorComboBox_Version>0.1.8</EsUtil_Ui_AvaloniaUI_ColorComboBox_Version>
     <EsUtil_Ui_AvaloniaUI_Interop_Version>0.1.4</EsUtil_Ui_AvaloniaUI_Interop_Version>

@@ -103,8 +103,9 @@ var visible = list.VisibleRange;
 var bounds = list.SlotBounds(index);
 ```
 
-- 影は計画（`ThumbnailShadowPlan.BuildDeviceBands`）の 1 画素の帯を Skia で単色に塗ります
-  （縮小キャンバスの内容は XAML 要素より背面に合成されるため、影を要素で重ねません）。
+- 影は計画の 4 辺の停止点を `LinearGradientBrush`、4 隅の停止点を `RadialGradientBrush` へ写した
+  `Rectangle` 8 個で塗ります（1 画素の帯を要素にすると 1 件あたり数百個になり、一覧の初回描画が
+  待たされます。 濃さの変化は画像の位置・大きさに依存しないため、ブラシは全項目で共有します）。
 - 画像は `EsReadOnlyBitmap` を非所有ビューで描画します（ピクセルを複製しない）。
 
 ---
@@ -195,7 +196,7 @@ EsUtil.Ui.WinUI3/Thumbnail/
 
 ## 14. テスト
 
-`tests/`（xUnit v3）。 ログ定義（画像と項目数）と影の描画手順（帯を単色で塗る）を検証します（コントロールは XAML の初期化を必要とするため、配布物の起動で確認します）。
+`tests/`（xUnit v3）。 ログ定義（画像と項目数）を検証します（コントロールは XAML の初期化を必要とするため、配布物の起動で確認します）。
 
 ---
 

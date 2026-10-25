@@ -93,10 +93,16 @@ public sealed partial class MarqueeControl
         return cached;
     }
 
-    /// <summary>保持している描画計画を取得する（未解決の場合のみ解決する）。</summary>
-    /// <param name="clientSize">描画領域のサイズ（DIP。 未解決時の解決にだけ使う）。</param>
+    /// <summary>保持している描画計画を取得する（未解決・サイズ変更の場合のみ解決する）。</summary>
+    /// <param name="clientSize">描画領域のサイズ（DIP）。</param>
     /// <returns>そのフレームの描画計画。</returns>
-    private MarqueeDrawPlan CurrentFrame(EsSize clientSize) => _frame ?? ResolveFrame(clientSize);
+    /// <remarks>
+    /// <b>サイズが変わったら解決し直す</b>: レイアウト前（<c>ActualWidth</c> = 0）に解決した計画は
+    /// 幅・高さが 0 であり、それを保持したままだと**暗転も枠も描かれない**
+    /// （マウスを動かして初めて暗くなる。 実測 2026-10-25）。
+    /// </remarks>
+    private MarqueeDrawPlan CurrentFrame(EsSize clientSize)
+        => _frame is { } cached && _frameSize == clientSize ? cached : ResolveFrame(clientSize);
 
     /// <summary>保持している描画計画を破棄する（次の解決で最新の状態を反映する）。</summary>
     private void InvalidateFrame() => _frame = null;
@@ -114,7 +120,16 @@ public sealed partial class MarqueeControl
         }
 
         UpdateDeviceScaling();
+
+        // レイアウトで大きさが決まった時点で描き直す（レイアウト前の計画は幅・高さが 0 のため）
+        SizeChanged -= OnControlSizeChanged;
+        SizeChanged += OnControlSizeChanged;
     }
+
+    /// <summary>大きさが変わったときに描き直す。</summary>
+    /// <param name="sender">イベント送信元（本コントロール）。</param>
+    /// <param name="e">サイズ変更イベント。</param>
+    private void OnControlSizeChanged(object sender, SizeChangedEventArgs e) => InvalidateRender();
 
     /// <summary>破棄時に表示倍率の変化の購読を解除する。</summary>
     /// <param name="sender">イベント送信元（本コントロール）。</param>

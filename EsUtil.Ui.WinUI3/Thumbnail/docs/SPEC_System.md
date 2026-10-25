@@ -74,7 +74,7 @@ flowchart TD
 - **配置は内側のパネルが解く**: コントロール側の計測で子の寸法（キャンバスの幅・高さ）を書き換えると、計測の途中で再計測が要求されて**レイアウト サイクル**になります（実測: `LayoutCycleException`）。 スクロールの内容として寸法を返すのは内側のパネルの役割とし、コントロールは `Grid` の既定の計測・配置に任せます。
 - **表示は明示的に更新する**: 要素は計画と画像を差し替えた時点で反映しないと、生成したサムネイルが表示されません。
 - **`Grid` を継承する**: `ScrollViewer` を単独の基底にすると、スクロールの外側に余白や重なりを置けません。 一覧は `Grid` の子としてスクロールを持ちます。
-- **影は 1 画素の帯で置く**: 計画が返す帯を `Rectangle` として画像の背面へ置きます（`DropShadow` のぼかしに依存すると、他の UI 版と濃さが変わります）。
+- **影はグラデーションで置く**: 計画が返す 4 辺の停止点を `LinearGradientBrush`、4 隅の停止点を `RadialGradientBrush` へ写し、`Rectangle` 8 個として画像の背面へ置きます（`DropShadow` のぼかしに依存すると、他の UI 版と濃さが変わります）。 1 画素の帯（`BuildDeviceBands`）を 1 要素ずつ置くと 1 件あたり数百個（実測 125% で 532 個）になり、31 件の一覧の初回描画に 258 ms かかりました。 8 個にすると 44 ms です（実測 2026-10-25）。 濃さの変化は画像の位置・大きさに依存しないため、ブラシは一覧の全項目で共有します。
 - **画像は 1 度だけ変換する**: コアの画像は `WriteableBitmap` へ変換してキャッシュします（一覧はスクロールのたびに項目を作り直すため、毎回変換すると重くなります）。
 - **倍率は XAML のルートから解決する**: `XamlRoot.RasterizationScale` を使います（DPI の通知に依存しません）。
 - **ポインターの移動は handled 済みでも受ける**: `ScrollViewer` が処理した移動も拾うため、`AddHandler` に `handledEventsToo: true` を指定します。
@@ -171,7 +171,7 @@ sequenceDiagram
 
 ## 7. 影と画像の描画
 
-- **影**: `Internal.ThumbnailVisualLayer` が `BuildDeviceBands` の帯を 1 画素ずつ `Rectangle` として置きます。 倍率は `XamlRoot.RasterizationScale` から求めます。
+- **影**: `Internal.ThumbnailVisualLayer` が 4 辺（`IThumbnailShadowPlan.Edges` の停止点 → `LinearGradientBrush`）と 4 隅（`IThumbnailShadowPlan.CornerStops` → `RadialGradientBrush`）を `Rectangle` 8 個として画像の背面へ置きます。 ブラシは `Internal.ThumbnailShadowBrushes` が計画ごとに 1 組だけ作って共有します。 辺の矩形は画像の内側へ 1 画素だけ延ばし、画像が端の画素を塗り残したときに背景が 1 画素の線として見えるのを防ぎます。
 - **画像**: コアの画像を `WriteableBitmap` へ変換し（`Internal.EsReadOnlyBitmapCache`）、`Image` 要素で表示します。 変換結果は画像ごとにキャッシュします。
 - **名前**: 要素（テキスト）として重ねます。 計画の `Bounds` をそのまま割り当てます。
 
