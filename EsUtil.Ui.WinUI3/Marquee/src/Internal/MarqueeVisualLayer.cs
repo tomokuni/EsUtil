@@ -77,6 +77,11 @@ internal sealed partial class MarqueeVisualLayer : Canvas
     }
 
     /// <summary>ラベルを反映する。</summary>
+    /// <remarks>
+    /// <b>値が変わった項目だけを書く</b>: 要素のプロパティを書くたびに XAML の測定・配置が無効になる。
+    /// ドラッグ中はラベルの文字（寸法・座標）が毎フレーム変わるため、変わらない書式（色・余白・文字サイズ）は
+    /// 書かない（実測 2026-10-25）。
+    /// </remarks>
     private void ApplyLabels()
     {
         EnsureLabels(_visibleLabels.Count);
@@ -88,23 +93,67 @@ internal sealed partial class MarqueeVisualLayer : Canvas
 
             if (i >= _visibleLabels.Count)
             {
-                border.Visibility = Visibility.Collapsed;
+                if (border.Visibility != Visibility.Collapsed)
+                {
+                    border.Visibility = Visibility.Collapsed;
+                }
+
                 continue;
             }
 
             var label = _visibleLabels[i];
-            SetLeft(border, label.DipRect.X);
-            SetTop(border, label.DipRect.Y);
-            border.Width = label.DipRect.Width;
-            border.Height = label.DipRect.Height;
-            border.Background = SolidBrushCache.Get(MarqueeShapePlan.ToArgb(label.BackgroundColor));
+            if (GetLeft(border) != label.DipRect.X)
+            {
+                SetLeft(border, label.DipRect.X);
+            }
 
-            text.Text = label.Text;
-            text.FontSize = label.FontSize;
-            text.Foreground = SolidBrushCache.Get(MarqueeShapePlan.ToArgb(label.TextColor));
-            text.Padding = new Thickness(label.PaddingX, label.PaddingY, label.PaddingX, label.PaddingY);
+            if (GetTop(border) != label.DipRect.Y)
+            {
+                SetTop(border, label.DipRect.Y);
+            }
 
-            border.Visibility = Visibility.Visible;
+            if (border.Width != label.DipRect.Width)
+            {
+                border.Width = label.DipRect.Width;
+            }
+
+            if (border.Height != label.DipRect.Height)
+            {
+                border.Height = label.DipRect.Height;
+            }
+
+            var background = SolidBrushCache.Get(MarqueeShapePlan.ToArgb(label.BackgroundColor));
+            if (!ReferenceEquals(border.Background, background))
+            {
+                border.Background = background;
+            }
+
+            if (!string.Equals(text.Text, label.Text, System.StringComparison.Ordinal))
+            {
+                text.Text = label.Text;
+            }
+
+            if (text.FontSize != label.FontSize)
+            {
+                text.FontSize = label.FontSize;
+            }
+
+            var foreground = SolidBrushCache.Get(MarqueeShapePlan.ToArgb(label.TextColor));
+            if (!ReferenceEquals(text.Foreground, foreground))
+            {
+                text.Foreground = foreground;
+            }
+
+            var padding = new Thickness(label.PaddingX, label.PaddingY, label.PaddingX, label.PaddingY);
+            if (text.Padding != padding)
+            {
+                text.Padding = padding;
+            }
+
+            if (border.Visibility != Visibility.Visible)
+            {
+                border.Visibility = Visibility.Visible;
+            }
         }
     }
 

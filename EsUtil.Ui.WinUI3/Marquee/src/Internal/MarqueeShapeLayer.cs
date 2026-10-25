@@ -31,6 +31,11 @@ internal sealed partial class MarqueeShapeLayer : Canvas
     /// <param name="list">反映する描画リスト。 null 不可。</param>
     /// <param name="pixelToDip">物理ピクセル → DIP の係数（1 / スケーリング係数）。</param>
     /// <exception cref="ArgumentNullException"><paramref name="list"/> が null の場合。</exception>
+    /// <remarks>
+    /// <b>値が変わった項目だけを書く</b>: 要素のプロパティを書くたびに XAML の測定・配置が
+    /// 無効になり、ドラッグ中は毎フレーム数十個の要素へ 4 つの値を書いていた（実測 2026-10-25）。
+    /// 前フレームと同じ値なら書かない（位置だけ動く項目・大きさだけ変わる項目をそれぞれ最小の更新にする）。
+    /// </remarks>
     public void Apply(DrawList list, double pixelToDip)
     {
         ArgumentNullException.ThrowIfNull(list);
@@ -48,15 +53,40 @@ internal sealed partial class MarqueeShapeLayer : Canvas
             var rectangle = _rectangles[i];
             if (i >= rects.Count)
             {
-                rectangle.Visibility = Visibility.Collapsed;
+                // Visibility の書き込みも測定を無効にするため、既に隠れている場合は書かない
+                if (rectangle.Visibility != Visibility.Collapsed)
+                {
+                    rectangle.Visibility = Visibility.Collapsed;
+                }
+
                 continue;
             }
 
             var item = rects[i];
-            SetLeft(rectangle, item.Bounds.X * pixelToDip);
-            SetTop(rectangle, item.Bounds.Y * pixelToDip);
-            rectangle.Width = item.Bounds.Width * pixelToDip;
-            rectangle.Height = item.Bounds.Height * pixelToDip;
+            var x = item.Bounds.X * pixelToDip;
+            var y = item.Bounds.Y * pixelToDip;
+            var width = item.Bounds.Width * pixelToDip;
+            var height = item.Bounds.Height * pixelToDip;
+            if (GetLeft(rectangle) != x)
+            {
+                SetLeft(rectangle, x);
+            }
+
+            if (GetTop(rectangle) != y)
+            {
+                SetTop(rectangle, y);
+            }
+
+            if (rectangle.Width != width)
+            {
+                rectangle.Width = width;
+            }
+
+            if (rectangle.Height != height)
+            {
+                rectangle.Height = height;
+            }
+
             // 色は ARGB ごとに 1 つだけ作る（毎フレーム作ると WinRT の割り当てが積み上がり、
             // ドラッグ中の描画が重くなる。 実測 2026-10-25）
             var brush = SolidBrushCache.Get(item.Color);
@@ -65,7 +95,10 @@ internal sealed partial class MarqueeShapeLayer : Canvas
                 rectangle.Fill = brush;
             }
 
-            rectangle.Visibility = Visibility.Visible;
+            if (rectangle.Visibility != Visibility.Visible)
+            {
+                rectangle.Visibility = Visibility.Visible;
+            }
         }
 
         AppliedCount = rects.Count;
