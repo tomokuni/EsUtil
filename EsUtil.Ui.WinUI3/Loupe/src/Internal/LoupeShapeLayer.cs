@@ -1,7 +1,6 @@
 using EsUtil.Ui.WinUI3.Interop.Drawing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 
 namespace EsUtil.Ui.WinUI3.Loupe.Internal;
@@ -56,7 +55,13 @@ internal sealed partial class LoupeShapeLayer : Canvas
             SetTop(rectangle, item.Bounds.Y * pixelToDip);
             rectangle.Width = item.Bounds.Width * pixelToDip;
             rectangle.Height = item.Bounds.Height * pixelToDip;
-            rectangle.Fill = new SolidColorBrush(ToColor(item.Color));
+            // 色は ARGB ごとに 1 つだけ作る（毎フレーム作ると WinRT の割り当てが積み上がる。 実測 2026-10-25）
+            var brush = SolidBrushCache.Get(item.Color);
+            if (!ReferenceEquals(rectangle.Fill, brush))
+            {
+                rectangle.Fill = brush;
+            }
+
             rectangle.Visibility = Visibility.Visible;
         }
 
@@ -74,9 +79,4 @@ internal sealed partial class LoupeShapeLayer : Canvas
         AppliedCount = 0;
     }
 
-    /// <summary>色を WinUI の色へ変換する。</summary>
-    /// <param name="color">変換する色（不透明度はアルファ）。</param>
-    /// <returns>変換した色。</returns>
-    private static Windows.UI.Color ToColor(System.Drawing.Color color)
-        => Windows.UI.Color.FromArgb(color.A, color.R, color.G, color.B);
 }

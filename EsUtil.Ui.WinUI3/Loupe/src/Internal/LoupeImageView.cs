@@ -40,6 +40,13 @@ internal sealed partial class LoupeImageView : Grid
     /// <summary>画素の作業領域（画像の寸法が変わったときだけ作り直す）。</summary>
     private byte[] _buffer = [];
 
+    /// <summary>画像の画素へ書き込むストリーム（画像の寸法が変わったときだけ作り直す）。</summary>
+    /// <remarks>
+    /// <c>PixelBuffer.AsStream()</c> は呼ぶたびに新しいストリームを作る。 ルーペはポインター移動のたびに
+    /// 書き込むため、ストリームを保持して先頭へ戻して使い回す（実測 2026-10-25）。
+    /// </remarks>
+    private Stream? _pixelStream;
+
     /// <summary>拡大画像の表示層を初期化する。</summary>
     /// <remarks>領域の外へはみ出さないよう、自分の大きさで切り取る。</remarks>
     public LoupeImageView()
@@ -102,13 +109,14 @@ internal sealed partial class LoupeImageView : Grid
             pixelSize,
             _buffer);
 
-        using (var target = _bitmap!.PixelBuffer.AsStream())
+        // ストリームは保持して使い回す（破棄しない。 破棄すると次のフレームで書き込めない）
+        if (_pixelStream is { } target && _bitmap is { } bitmap)
         {
+            target.Seek(0, SeekOrigin.Begin);
             target.Write(_buffer, 0, _buffer.Length);
+            bitmap.Invalidate();
+            _image.Source = bitmap;
         }
-
-        _bitmap.Invalidate();
-        _image.Source = _bitmap;
     }
 
     /// <summary>画像（<see cref="WriteableBitmap"/>）と作業領域を必要な寸法で用意する。</summary>
@@ -127,5 +135,7 @@ internal sealed partial class LoupeImageView : Grid
 
         _bitmap = new WriteableBitmap(pixelSize, pixelSize);
         _buffer = new byte[pixelSize * pixelSize * LoupeImageSampler.BytesPerPixel];
+        _pixelStream?.Dispose();
+        _pixelStream = _bitmap.PixelBuffer.AsStream();
     }
 }

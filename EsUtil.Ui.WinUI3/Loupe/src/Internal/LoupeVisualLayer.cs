@@ -1,7 +1,6 @@
+using EsUtil.Ui.WinUI3.Interop.Drawing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using Windows.UI;
 namespace EsUtil.Ui.WinUI3.Loupe.Internal;
 
 /// <summary>描画計画（<see cref="LoupeDrawPlan"/>）を XAML と Composition の要素へ写す層。</summary>
@@ -143,11 +142,11 @@ internal sealed partial class LoupeVisualLayer : Canvas
             border.Width = label.DipRect.Width;
             border.Height = label.DipRect.Height;
             border.CornerRadius = new CornerRadius(Math.Max(0, label.CornerRadius));
-            border.Background = new SolidColorBrush(ToColor(LoupeShapePlan.ToArgb(label.BackgroundColor)));
+            border.Background = SolidBrushCache.Get(LoupeShapePlan.ToArgb(label.BackgroundColor));
 
             text.Text = label.Text;
             text.FontSize = label.FontSize;
-            text.Foreground = new SolidColorBrush(ToColor(LoupeShapePlan.ToArgb(label.TextColor)));
+            text.Foreground = SolidBrushCache.Get(LoupeShapePlan.ToArgb(label.TextColor));
             text.Padding = new Thickness(label.PaddingX, label.PaddingY, label.PaddingX, label.PaddingY);
 
             border.Visibility = Visibility.Visible;
@@ -168,12 +167,4 @@ internal sealed partial class LoupeVisualLayer : Canvas
         }
     }
 
-    /// <summary>色を WinUI の色へ変換する。</summary>
-    /// <param name="argb">色（<c>0xAARRGGBB</c>）。</param>
-    /// <returns>変換した色。</returns>
-    private static Color ToColor(uint argb) => Color.FromArgb(
-        (byte)((argb >> 24) & 0xFF),
-        (byte)((argb >> 16) & 0xFF),
-        (byte)((argb >> 8) & 0xFF),
-        (byte)(argb & 0xFF));
 }
