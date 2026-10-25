@@ -7,32 +7,32 @@
 
          MSBuild のプロパティ名にドットは使えない（実測: <EsUtil.Platform.Core.Version> は MSB5016 で失敗する）。
          そのため名前は「パッケージ ID のドットを `_` に置換 + `_Version`」にする（参照側はこの名前を使う）。 -->
-    <EsUtil_Platform_Core_Version>0.2.47</EsUtil_Platform_Core_Version>
+    <EsUtil_Platform_Core_Version>0.2.50</EsUtil_Platform_Core_Version>
     <EsUtil_Platform_Core_Windows_Version>0.1.4</EsUtil_Platform_Core_Windows_Version>
     <EsUtil_Feature_Loupe_Core_Version>0.1.5</EsUtil_Feature_Loupe_Core_Version>
     <EsUtil_Feature_Loupe_Presenter_Version>0.1.5</EsUtil_Feature_Loupe_Presenter_Version>
     <EsUtil_Ui_AvaloniaUI_Loupe_Version>0.1.10</EsUtil_Ui_AvaloniaUI_Loupe_Version>
     <EsUtil_Ui_MewUI_Loupe_Version>0.1.10</EsUtil_Ui_MewUI_Loupe_Version>
-    <EsUtil_Ui_WinUI3_Loupe_Version>0.1.10</EsUtil_Ui_WinUI3_Loupe_Version>
+    <EsUtil_Ui_WinUI3_Loupe_Version>0.1.11</EsUtil_Ui_WinUI3_Loupe_Version>
     <EsUtil_Ui_WinForms_Loupe_Version>0.1.9</EsUtil_Ui_WinForms_Loupe_Version>
     <EsUtil_Feature_Marquee_Core_Version>0.1.5</EsUtil_Feature_Marquee_Core_Version>
     <EsUtil_Feature_Thumbnail_Core_Version>0.1.8</EsUtil_Feature_Thumbnail_Core_Version>
     <EsUtil_Feature_Thumbnail_Presenter_Version>0.1.9</EsUtil_Feature_Thumbnail_Presenter_Version>
     <EsUtil_Ui_AvaloniaUI_Thumbnail_Version>0.1.9</EsUtil_Ui_AvaloniaUI_Thumbnail_Version>
-    <EsUtil_Ui_MewUI_Thumbnail_Version>0.1.10</EsUtil_Ui_MewUI_Thumbnail_Version>
-    <EsUtil_Ui_WinUI3_ColorComboBox_Version>0.1.3</EsUtil_Ui_WinUI3_ColorComboBox_Version>
-    <EsUtil_Ui_WinUI3_Thumbnail_Version>0.1.9</EsUtil_Ui_WinUI3_Thumbnail_Version>
+    <EsUtil_Ui_MewUI_Thumbnail_Version>0.1.11</EsUtil_Ui_MewUI_Thumbnail_Version>
+    <EsUtil_Ui_WinUI3_ColorComboBox_Version>0.1.4</EsUtil_Ui_WinUI3_ColorComboBox_Version>
+    <EsUtil_Ui_WinUI3_Thumbnail_Version>0.1.10</EsUtil_Ui_WinUI3_Thumbnail_Version>
     <EsUtil_Ui_WinForms_Thumbnail_Version>0.1.11</EsUtil_Ui_WinForms_Thumbnail_Version>
     <EsUtil_Feature_Marquee_Presenter_Version>0.1.5</EsUtil_Feature_Marquee_Presenter_Version>
     <EsUtil_Ui_AvaloniaUI_Marquee_Version>0.1.8</EsUtil_Ui_AvaloniaUI_Marquee_Version>
     <EsUtil_Ui_MewUI_Marquee_Version>0.1.11</EsUtil_Ui_MewUI_Marquee_Version>
     <EsUtil_Ui_WinUI3_Marquee_Version>0.1.13</EsUtil_Ui_WinUI3_Marquee_Version>
     <EsUtil_Ui_WinForms_Marquee_Version>0.1.10</EsUtil_Ui_WinForms_Marquee_Version>
-    <EsUtil_Ui_AvaloniaUI_ColorComboBox_Version>0.1.5</EsUtil_Ui_AvaloniaUI_ColorComboBox_Version>
+    <EsUtil_Ui_AvaloniaUI_ColorComboBox_Version>0.1.8</EsUtil_Ui_AvaloniaUI_ColorComboBox_Version>
     <EsUtil_Ui_AvaloniaUI_Interop_Version>0.1.4</EsUtil_Ui_AvaloniaUI_Interop_Version>
     <EsUtil_Ui_MewUI_Interop_Version>0.1.5</EsUtil_Ui_MewUI_Interop_Version>
-    <EsUtil_Ui_MewUI_ColorComboBox_Version>0.1.3</EsUtil_Ui_MewUI_ColorComboBox_Version>
-    <EsUtil_Ui_WinUI3_Interop_Version>0.1.6</EsUtil_Ui_WinUI3_Interop_Version>
+    <EsUtil_Ui_MewUI_ColorComboBox_Version>0.1.4</EsUtil_Ui_MewUI_ColorComboBox_Version>
+    <EsUtil_Ui_WinUI3_Interop_Version>0.1.7</EsUtil_Ui_WinUI3_Interop_Version>
     <EsUtil_Ui_WinForms_Interop_Version>0.1.8</EsUtil_Ui_WinForms_Interop_Version>
   </PropertyGroup>
 

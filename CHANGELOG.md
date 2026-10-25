@@ -10,6 +10,11 @@
 ### 追加
 
 - `EsUtil.Ui.AvaloniaUI.ColorComboBox`: 色名・16 進コードの入力とカラーピッカー（`ColorView` の Flyout）を統合した色選択コントロール。
+- **`ColorComboBox`（Avalonia / MewUI / WinUI 3）のスウォッチと入力欄にツールチップを追加しました**
+  （「色名 + 不透明度」と「`#AARRGGBB`」の 2 行）。
+- **Avalonia UI 版の一覧を自前の `ListBox`（Flyout）にしました**。 選択後にテキストが全選択されたままにならず、
+  行の見た目（スウォッチ + 表記）をコントロール側で決められます。
+- **入力欄の表記を選べるようになりました**: `EsUtil.Platform.Core.Palette.ColorTextFormat`（`NameWithAlpha` = 色名 + 不透明度 / `HexCode` = `#AARRGGBB`）を追加し、`ColorString.ToText(text, format)` と窓口 `EsColor.ToText` を追加しました。 `ColorComboBox`（Avalonia / MewUI / WinUI 3）の `TextFormat` プロパティから切り替えられます。
 - `EsUtil.Ui.*.Interop` に `TextMeasure` / `GdiFill.Rects` / `EsBitmapDrawingInterop.CopyRegion` / `DrawList` / `DrawRect` を追加（UI コントロールが持っていた複製を置き換えるため）。
 - `EsUtil.Platform.Core`:
   - `EsInput` / `EsWindow` / `EsCapture` / `EsErrors` / `EsCallbacks`（機能の窓口）。
@@ -32,6 +37,8 @@
 - **`EsUtil.Platform.Core` のルート名前空間は機能の窓口だけになりました**。 型は機能フォルダ（`Input` / `Window` / `Capture` / `Common`）へ移りました。 型を名指しする利用側は、その機能の名前空間を `using` してください
   （例: `using EsUtil.Platform.Core.Input;` で `EsKey`。 `EsInput.TryParseKey` などの窓口は `using EsUtil.Platform.Core;` だけで使えます）。
 - `EsUtil.Ui.AvaloniaUI.ColorPicker` を **`EsUtil.Ui.AvaloniaUI.ColorComboBox`** へ改名しました（型名 `ColorPickerControl` → `ColorComboBoxControl`）。
+- **`ColorComboBox`（Avalonia UI 版）のレイアウト用プロパティを改名しました（破壊的）**: `ComboBoxWidth` / `ComboBoxMinWidth` / `ComboBoxMaxWidth` / `ComboBoxPadding` / `ComboBoxMargin` → **`TextWidth` / `TextMinWidth` / `TextMaxWidth` / `TextPadding` / `TextMargin`**（外枠を 1 つにしたため、調整の対象は入力欄であることを名前に表す）。
+- **`EsUtil.Ui.AvaloniaUI.ColorComboBox` から次の公開型を削除しました（破壊的）**: `ColorDisplayConverter`（表記の変換は `ColorTextFormat` と `ColorString.ToText` がコアで単一所有）と `TextBoxSelectionHelper`（一覧のポップアップを自前で持つため選択解除が不要）。
 - 機能層・アプリ層にあった次の型を `EsUtil.Platform.Core` へ統合しました（利用側の実装は削除できます）。
   - ウィンドウ配置の復元規則 → `Window.EsWindowPlacementMath`
   - ホットキー文字列の解釈 → `Input.HotKeyParser`
@@ -49,7 +56,7 @@
 - **WinUI 3 の Marquee のサンプルが Native AOT で起動しなかった**のを修正しました。 原因は `ItemsSource` へ managed コレクションを渡していたことで（AOT では CsWinRT が COM ラッパーを作れず `E_INVALIDARG`）、`Items.Add` で 1 件ずつ渡すよう変更しました。
 - **MewUI の `Marquee` / `Loupe` が自分の位置を無視して描画していた**のを修正しました。 MewUI の描画コンテキストは**ウィンドウ絶対座標**（要素の左上は (0, 0) ではない）であるため、描画の前に自領域の左上へ原点を移します。 併せて `Clear` の使用をやめました（`Clear` は**描画面全体**を消すため、兄弟の要素まで消えていました。 実測 2026-10-24）。
 - **WinUI 3 の `CompositionImageView` が `SetBounds` を呼ばない使い方で画像を表示しなかった**のを修正しました（スプライトの大きさが 0×0 のままでした。 割り当てられた大きさへ追従させます）。
-- **`ColorComboBox`（Avalonia / MewUI / WinUI 3）の見た目を揃えました**: スウォッチ・入力欄・一覧ボタン・ピッカーボタンの間隔を無くし、スウォッチを入力欄の内側へ入れました。 WinUI 3 版のポップアップは**ウィンドウの外へはみ出せる**ようにし（`ShouldConstrainToRootBounds = false`）、ピッカーのポップアップは高さの上限を外して**スクロールしない**ようにしました。
+- **`ColorComboBox`（Avalonia / MewUI / WinUI 3）の見た目を揃えました**: スウォッチ・入力欄・一覧ボタン・ピッカーボタンの間隔を無くし、スウォッチを入力欄の内側へ入れました。 WinUI 3 版のポップアップは**ウィンドウの外へはみ出せる**ようにし（`ShouldConstrainToRootBounds = false`）、ピッカーのポップアップは高さの上限を外して**スクロールしない**ようにしました。 **枠は外周の 1 つだけ**にし、区画の区切りは枠より薄い 1 ピクセルの垂直線にしました（1 つの入力欄に見えるようにするため）。
 
 - **MewUI の画像描画が拡大・位置ずれしていた**のを修正しました。 `IGraphicsContext.DrawImage` の 3 引数版は
   **`(image, 描画先, 元矩形)`** の順ですが、`ImageRenderer` / `ThumbnailViewport` / `MewImageBinding`（Loupe・
@@ -62,6 +69,18 @@
   変え、BMP / PNG（階層を持たない形式）では例外が出ません（実測: PNG の読み込みで 0 件）。
 - **WinUI 3 の `ColorComboBox` の入力欄の文字が上へ寄っていた**のを修正しました。 スウォッチの分だけ左の
   余白を足すときに上下の余白まで 0 にしていたためです（テーマの既定値を保つように変更）。
+- **WinUI 3 の Loupe が像を 10 倍に拡大していた**のを修正しました。 `XamlRoot.RasterizationScale`（1.25）を
+  `DpiScaler.ResolveClientScale(クライアント画素, クライアント DIP, 既定)` の**第 1 引数**へ渡していたため、
+  倍率が `1.25 / 160 ≈ 0.0078` となり下限の `0.1` へ丸められていました（実測: ログの
+  `ClientToPixelScaling` が `1` → `0.1`）。 `NormalizeScaling(RasterizationScale)` を使うよう変更しました。
+- **WinUI 3 の `MarqueeControl` が選択枠を描画しなかった**のを修正しました。 追加描画のレイヤーを
+  `Children` へ入れていませんでした（`LoupeControl` は入れていました）。 併せてレイヤーの大きさを
+  `ActualWidth` / `ActualHeight` へ追従させました。
+- **WinUI 3 の `Thumbnail` の影がずれていた**のを修正しました。 `ThumbnailShadowPlan.BuildDeviceBands` は
+  **入力が DIP・出力が物理画素**ですが、呼び出し側が入力まで倍率を掛けていました。
+- **MewUI の `ThumbnailViewport` がすべてのサムネイルをウィンドウ左上へ描いていた**のを修正しました
+  （MewUI の描画コンテキストはウィンドウ絶対座標のため、自領域の左上へ原点を移します）。
+
 - **MewUI の `ColorComboBox` のポップアップがウィンドウ左上へ出ていた**のを修正しました（アンカーは
   **ウィンドウ座標**が必要ですが、自領域の矩形を渡していました）。 ピッカーのポップアップは内容の幅を
   明示し、極端に小さくならないようにしました。
