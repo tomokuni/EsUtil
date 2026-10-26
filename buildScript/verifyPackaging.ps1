@@ -74,26 +74,35 @@ $packages = @(Get-ChildItem -Path $repoRoot -Directory |
     ForEach-Object { [pscustomobject]@{ Name = $_.BaseName; Group = (Get-GroupName $_.BaseName) } } |
     Sort-Object Name)
 
-$versions = @{}
-$missing = [System.Collections.Generic.List[string]]::new()
-foreach ($group in $groups) {
-    $prefix = Get-VersionPrefix $group
-    if ($prefix -match '-') {
-        Add-Result '公開する版' $false "$group の VersionPrefix にローカル識別子が含まれています: $prefix"
+# 記録からグループごとのローカル識別子を求める（pack の後にも呼ぶ）。
+# **識別子はフィード全体で 1 つ**（グループごとに変えると依存の版と実パッケージの版が食い違う）。
+function Get-PackageVersions {
+    $result = @{}
+    $suffix = 0
+    if (Test-Path -LiteralPath $recordPath) {
+        $loaded = Get-Content -LiteralPath $recordPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($loaded.PSObject.Properties['suffix'] -and $null -ne $loaded.suffix) { $suffix = [int]$loaded.suffix }
     }
-    $suffix = if ($record[$group]) { $record[$group].suffix } else { 0 }
-    if ($suffix -lt 1) {
-        $missing.Add("$group（記録が無い）")
-        continue
+    if ($suffix -lt 1) { return $result }
+    foreach ($group in $groups) {
+        $result[$group] = "$(Get-VersionPrefix $group)-local.$suffix"
     }
-    $versions[$group] = "$prefix-local.$suffix"
+    return $result
 }
 
-foreach ($package in $packages) {
-    if (-not $versions.ContainsKey($package.Group)) { continue }
-    $path = Join-Path $feed ("{0}.{1}.nupkg" -f $package.Name, $versions[$package.Group])
-    if (-not (Test-Path -LiteralPath $path)) { $missing.Add($package.Name) }
+# 期待するパッケージのうち、ローカル フィードに無いものを返す
+function Get-MissingPackages([hashtable]$map) {
+    $result = [System.Collections.Generic.List[string]]::new()
+    foreach ($package in $packages) {
+        if (-not $map.ContainsKey($package.Group)) { $result.Add("$($package.Name)（$($package.Group) のローカル識別子の記録が無い）"); continue }
+        $path = Join-Path $feed ("{0}.{1}.nupkg" -f $package.Name, $map[$package.Group])
+        if (-not (Test-Path -LiteralPath $path)) { $result.Add("$($package.Name)（$($map[$package.Group])）") }
+    }
+    return $result
 }
+
+$versions = Get-PackageVersions
+$missing = Get-MissingPackages $versions
 
 if ($missing.Count -gt 0 -and -not $SkipPack) {
     Write-Output "パッケージが揃っていないため pack.ps1 を実行します: $($missing.Count) 件"
@@ -103,11 +112,9 @@ if ($missing.Count -gt 0 -and -not $SkipPack) {
         Add-Result 'パッケージの作成' $false "pack.ps1 が失敗しました（終了コード $($packResult.ExitCode)）"
         exit 1
     }
-    # 記録が更新されたため読み直す
-    $loaded = Get-Content -LiteralPath $recordPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    foreach ($property in $loaded.groups.PSObject.Properties) {
-        $versions[$property.Name] = "$(Get-VersionPrefix $property.Name)-local.$($property.Value.suffix)"
-    }
+    # 記録とフィードが更新されたため、**求め直す**（pack の前の判定を持ち越さない）
+    $versions = Get-PackageVersions
+    $missing = Get-MissingPackages $versions
 }
 
 Add-Result '公開する版' (@($groups | Where-Object { (Get-VersionPrefix $_) -match '-' }).Count -eq 0) 'グループの VersionPrefix に `-` を含まない'

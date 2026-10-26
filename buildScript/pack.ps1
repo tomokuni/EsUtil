@@ -169,13 +169,18 @@ $propsPath = Join-Path $repoRoot 'Directory.Build.props'
 $recordPath = Join-Path $PSScriptRoot 'local-versions.json'
 
 $propsText = [IO.File]::ReadAllText($propsPath, $enc)
-$record = @{}
+# 記録の形: { "suffix": <n>, "fingerprints": { "<グループ>": "<指紋>" } }
+# **ローカル識別子はフィード全体で 1 つ**である。 グループごとに変えると、同じフィードへ入れた
+# パッケージの依存（ProjectReference の版）と実際のパッケージの版が食い違い、参照側の復元が
+# NU1102 で失敗する（実測 2026-10-26）。
+$previousSuffix = 0
+$recordedFingerprints = @{}
 if (Test-Path -LiteralPath $recordPath) {
     $loaded = Get-Content -LiteralPath $recordPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    foreach ($property in $loaded.groups.PSObject.Properties) {
-        $record[$property.Name] = [pscustomobject]@{
-            suffix      = [int]$property.Value.suffix
-            fingerprint = [string]$property.Value.fingerprint
+    if ($loaded.PSObject.Properties['suffix'] -and $null -ne $loaded.suffix) { $previousSuffix = [int]$loaded.suffix }
+    if ($loaded.PSObject.Properties['fingerprints']) {
+        foreach ($property in $loaded.fingerprints.PSObject.Properties) {
+            $recordedFingerprints[$property.Name] = [string]$property.Value
         }
     }
 }
@@ -193,24 +198,30 @@ $globalPackages = (($locals.Text + $locals.ErrorText) -split "`r?`n" |
         Where-Object { $_ -match 'global-packages:' } |
         Select-Object -First 1) -replace '^global-packages:\s*', ''
 
-$plan = [System.Collections.Generic.List[object]]::new()
+# グループごとの指紋と変更の有無を先に求める（識別子は「どれか 1 つでも変わったら」進める）
+$states = [System.Collections.Generic.List[object]]::new()
+$anyChanged = $false
 foreach ($group in $targets) {
-    $prefix = Get-VersionPrefix $propsText $group
     $fingerprint = Get-GroupFingerprint $group
-    $previous = $record[$group]
-    $isChanged = (-not $previous) -or ($previous.fingerprint -ne $fingerprint)
+    $previous = $recordedFingerprints[$group]
+    $isChanged = (-not $previous) -or ($previous -ne $fingerprint)
+    if ($isChanged) { $anyChanged = $true }
+    $states.Add([pscustomobject]@{ Group = $group; Prefix = (Get-VersionPrefix $propsText $group); Changed = $isChanged; Fingerprint = $fingerprint })
+}
 
-    $suffix = if ($previous) { $previous.suffix } else { 0 }
-    if ($isChanged -and -not $NoBump) { $suffix += 1 }
-    if ($suffix -lt 1) { $suffix = 1 }
+$suffix = $previousSuffix
+if ($anyChanged -and -not $NoBump) { $suffix += 1 }
+if ($suffix -lt 1) { $suffix = 1 }
 
+$plan = [System.Collections.Generic.List[object]]::new()
+foreach ($state in $states) {
     $plan.Add([pscustomobject]@{
-            Group       = $group
-            Prefix      = $prefix
+            Group       = $state.Group
+            Prefix      = $state.Prefix
             Suffix      = $suffix
-            Version     = "$prefix-local.$suffix"
-            Changed     = $isChanged
-            Fingerprint = $fingerprint
+            Version     = "$($state.Prefix)-local.$suffix"
+            Changed     = $state.Changed
+            Fingerprint = $state.Fingerprint
         })
 }
 
@@ -222,6 +233,7 @@ foreach ($item in $plan) {
     if ($item.Changed -and $NoBump) { $state = '変更あり（-NoBump のため据え置き）' }
     Write-Output ("{0,-28} {1,-24} 公開する版 {2} / ローカル {3}" -f $item.Group, $state, $item.Prefix, $item.Version)
 }
+Write-Output ("ローカル識別子（フィード全体で共通）: local.{0}" -f $suffix)
 
 if ($WhatIf) {
     Write-Output ''
@@ -292,14 +304,14 @@ foreach ($item in $plan) {
     $groupProjects = @($projects | Where-Object { $_.Group -eq $item.Group })
     $anyFailed = @($groupProjects | Where-Object { $failedNames.Contains($_.Name) }).Count -gt 0
     if ($anyFailed) { continue }
-    $record[$item.Group] = [pscustomobject]@{ suffix = $item.Suffix; fingerprint = $item.Fingerprint }
+    $recordedFingerprints[$item.Group] = $item.Fingerprint
 }
 
-$groups = [ordered]@{}
-foreach ($group in ($record.Keys | Sort-Object)) {
-    $groups[$group] = [ordered]@{ suffix = $record[$group].suffix; fingerprint = $record[$group].fingerprint }
+$fingerprints = [ordered]@{}
+foreach ($group in ($recordedFingerprints.Keys | Sort-Object)) {
+    $fingerprints[$group] = $recordedFingerprints[$group]
 }
-$json = (([ordered]@{ groups = $groups } | ConvertTo-Json -Depth 5) -replace "`r?`n", "`r`n")
+$json = ((ConvertTo-Json -InputObject ([ordered]@{ suffix = $suffix; fingerprints = $fingerprints }) -Depth 5) -replace "`r?`n", "`r`n")
 [IO.File]::WriteAllText($recordPath, $json + "`r`n", $enc)
 
 Write-Output ''
