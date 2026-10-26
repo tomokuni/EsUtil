@@ -1,0 +1,9 @@
+{
+  "releaseBranches": [
+    "main"
+  ],
+  "dryRunBranches": [
+    "main",
+    "dev"
+  ]
+}
