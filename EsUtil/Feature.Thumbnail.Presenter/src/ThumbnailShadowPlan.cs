@@ -155,7 +155,10 @@ public sealed class ThumbnailShadowPlan : IThumbnailShadowPlan
     /// <b>画像の下へ潜らせる</b>: 内側の端は切り捨てるため、帯は画像の端の画素（画像と背景の混色）に<br/>
     /// 最大 1 画素掛かる。 影を画像より先に描けば隠れ、混色の下地が影になるため白い線が出ない。<br/>
     /// <b>4 隅</b>は<b>画像の隅の頂点からの距離</b>（斜めの距離）で濃さを決める。 辺と同じ濃さの変化が<br/>
-    /// 斜めにもそのまま続くため、四角い塊や濃い点にならない（辺とは重ねない。 重ねると隅だけ濃くなる）。
+    /// 斜めにもそのまま続くため、四角い塊や濃い点にならない（辺とは重ねない。 重ねると隅だけ濃くなる）。<br/>
+    /// <b>帯の形は位置に依存しない</b>（画素寸法と倍率だけで決まる）ため、形を覚えて平行移動する。<br/>
+    /// 一覧のサムネイルは寸法が揃うので、2 件目以降は隅の走査（1 件あたり最大 <c>4 × 広がり²</c> 回の<br/>
+    /// 距離計算）をやり直さない（実測 2026-10-27）。
     /// </remarks>
     public IReadOnlyList<ThumbnailShadowBand> BuildDeviceBands(
         double x, double y, double width, double height, double scaling)
@@ -182,6 +185,64 @@ public sealed class ThumbnailShadowPlan : IThumbnailShadowPlan
         {
             return bands;
         }
+
+        var template = GetBandTemplate(pixelsWide, pixelsHigh, extent, scaling);
+        foreach (var band in template)
+        {
+            bands.Add(new ThumbnailShadowBand(band.X + left, band.Y + top, band.Width, band.Height, band.Argb));
+        }
+
+        return bands;
+    }
+
+    /// <summary>帯の形の記憶（画素寸法・広がり・倍率 → 画像の左上を原点とする帯）。</summary>
+    /// <remarks>
+    /// 値は入力だけで決まる（純粋な関数）ため、覚えても結果は変わらない。 一覧のサムネイルは寸法が
+    /// 揃うので、項目数が増えても走査は 1 回で済む。 鍵は画素寸法と広がりと倍率だけなので、
+    /// 大きさを変えても項目は増えない（<see cref="MaxBandTemplates"/> で上限を切る）。
+    /// </remarks>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(int Wide, int High, int Extent, int ScalingKey), ThumbnailShadowBand[]> _bandTemplates = new();
+
+    /// <summary>覚える帯の形の上限（超えたら捨てる。 寸法は 1 通りが普通のため、実際には届かない）。</summary>
+    private const int MaxBandTemplates = 8;
+
+    /// <summary>帯の形を取得する（無ければ作って覚える）。</summary>
+    /// <param name="pixelsWide">画像の幅（画素）。</param>
+    /// <param name="pixelsHigh">画像の高さ（画素）。</param>
+    /// <param name="extent">影の広がり（画素）。</param>
+    /// <param name="scaling">DIP → 物理ピクセルの倍率。</param>
+    /// <returns>画像の左上を原点とする帯の並び。</returns>
+    private ThumbnailShadowBand[] GetBandTemplate(int pixelsWide, int pixelsHigh, int extent, double scaling)
+    {
+        var key = (pixelsWide, pixelsHigh, extent, (int)Math.Round(scaling * 1000));
+        if (_bandTemplates.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var built = BuildBandTemplate(pixelsWide, pixelsHigh, extent, scaling);
+        if (_bandTemplates.Count >= MaxBandTemplates)
+        {
+            _bandTemplates.Clear();
+        }
+
+        _bandTemplates[key] = built;
+        return built;
+    }
+
+    /// <summary>帯の形を作る（画像の左上を原点とする）。</summary>
+    /// <param name="pixelsWide">画像の幅（画素）。</param>
+    /// <param name="pixelsHigh">画像の高さ（画素）。</param>
+    /// <param name="extent">影の広がり（画素）。</param>
+    /// <param name="scaling">DIP → 物理ピクセルの倍率。</param>
+    /// <returns>帯の並び。</returns>
+    private ThumbnailShadowBand[] BuildBandTemplate(int pixelsWide, int pixelsHigh, int extent, double scaling)
+    {
+        var bands = new List<ThumbnailShadowBand>();
+        const int left = 0;
+        const int top = 0;
+        var right = pixelsWide;
+        var bottom = pixelsHigh;
 
         // 4 辺は画像の幅・高さいっぱい（隅は AddCornerBands が塗る。 重ねない）
         for (var i = 0; i < extent; i++)
@@ -221,7 +282,7 @@ public sealed class ThumbnailShadowPlan : IThumbnailShadowPlan
         AddCornerBands(bands, right - 1, bottom - 1, extent, stepX: 1, stepY: 1, scaling); // 右下
         AddCornerBands(bands, left, bottom - 1, extent, stepX: -1, stepY: 1, scaling);     // 左下
 
-        return bands;
+        return [.. bands];
     }
 
     /// <summary>1 隅分の帯（画素）を追加する。</summary>

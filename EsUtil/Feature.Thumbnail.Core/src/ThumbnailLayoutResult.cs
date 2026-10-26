@@ -103,11 +103,43 @@ public sealed class ThumbnailLayoutResult
     /// <returns>項目の添字。 どの項目にも当たらない場合は -1。</returns>
     /// <remarks>
     /// 外枠（ホバー帯）で判定する。 項目の外枠は隙間なく並ぶため、隣り合う項目の間で<br/>
-    /// 「どこにも当たらない」帯は生じない（<see cref="ThumbnailOptions.ItemSpacing"/> を空けた場合を除く）。
+    /// 「どこにも当たらない」帯は生じない（<see cref="ThumbnailOptions.ItemSpacing"/> を空けた場合を除く）。<br/>
+    /// <b>行を二分探索して、その行の中だけを見る</b>: ポインターの移動のたびに呼ばれるため、全件を<br/>
+    /// 走査すると項目数に比例した費用になる。 外枠の下端は行の中で同じ値（行の高さ）で、行の順に<br/>
+    /// 単調に増えるため、下端で行を特定できる（走査は 1 行分 = 列数まで）。
     /// </remarks>
     public int IndexAt(EsPoint position)
     {
-        for (var i = 0; i < _slots.Length; i++)
+        if (_slots.Length == 0)
+        {
+            return -1;
+        }
+
+        // 下端が position.Y より大きい最初の項目 = position.Y を含む行の先頭
+        // （外枠の下端は行内で同じ値・行の順に単調増加。 行内で上端は揃わないため上端では二分探索できない）
+        var low = 0;
+        var high = _slots.Length;
+        while (low < high)
+        {
+            var mid = low + ((high - low) / 2);
+            if (_slots[mid].Bottom <= position.Y)
+            {
+                low = mid + 1;
+            }
+            else
+            {
+                high = mid;
+            }
+        }
+
+        if (low >= _slots.Length)
+        {
+            return -1;
+        }
+
+        var first = (low / Columns) * Columns;
+        var last = Math.Min(first + Columns, _slots.Length);
+        for (var i = first; i < last; i++)
         {
             if (_slots[i].Contains(position))
             {

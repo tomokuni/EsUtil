@@ -82,6 +82,35 @@ public class ThumbnailLayoutTests
         Assert.Equal(-1, layout.IndexAt(new EsPoint(10_000, 10_000)));
     }
 
+    /// <summary>複数行の配置でも、すべての項目の位置から正しい添字を求めることを検証する。</summary>
+    /// <remarks>
+    /// 実装は行を二分探索して 1 行分だけを見る（ポインターの移動のたびに呼ばれるため）。
+    /// <b>行内で上端は揃わない</b>（下端を揃える）ため上端では二分探索できない。 全件走査と同じ結果に
+    /// なることを、行内で高さが違う並びでも固定する。
+    /// </remarks>
+    [Fact]
+    public void 複数行でも位置から正しい添字を求める()
+    {
+        // 行内で高さが違う並び（2 行目は 96 と 48 が混ざる）
+        var layout = Arrange([96, 96, 96, 48, 96], width: 300);
+        Assert.True(layout.Rows >= 2);
+
+        for (var i = 0; i < layout.Count; i++)
+        {
+            var slot = layout.Slot(i);
+            var center = new EsPoint(slot.X + (slot.Width / 2), slot.Y + (slot.Height / 2));
+            Assert.Equal(i, layout.IndexAt(center));
+
+            // 4 隅の内側 1 点でも同じ添字になる（丸めの境界を避けて 1 だけ内側）
+            Assert.Equal(i, layout.IndexAt(new EsPoint(slot.X + 1, slot.Y + 1)));
+            Assert.Equal(i, layout.IndexAt(new EsPoint(slot.Right - 1, slot.Bottom - 1)));
+        }
+
+        // すべての項目より下は「どこにも当たらない」
+        var last = layout.Slot(layout.Count - 1);
+        Assert.Equal(-1, layout.IndexAt(new EsPoint(last.X, last.Bottom + 1)));
+    }
+
     /// <summary>ビューポートと交差する項目の範囲を返すことを検証する。</summary>
     [Fact]
     public void 見えている項目の範囲を返す()
