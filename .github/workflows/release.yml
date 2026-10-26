@@ -15,6 +15,8 @@
 #     ポリシーは「リポジトリ + ワークフロー ファイル + environment: release」に紐づける。
 #   - **変更のあったグループだけを公開する**（前回のグループ別タグからの差分で決める）。
 #   - 公開する版にローカル識別子（`-`）を含めない。
+#   - **実行できるブランチはモードで変わる**（dry-run は main / dev、公開は main のみ）。
+#     一覧は .github/release-config.json が単一所有する（開発〜dry-run の確認は dev で行う）。
 #
 # 詳細な合否基準は .github/検証手順.md §9、版の規則は .github/ビルド設定規約.md §4 が持つ。
 name: Release
@@ -63,6 +65,26 @@ jobs:
         with:
           # グループ別タグとの差分を取るため全履歴を取得する
           fetch-depth: 0
+
+      - name: 実行ブランチを検証する
+        shell: pwsh
+        env:
+          MODE: ${{ inputs.mode }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          # 許可ブランチの所有者は .github/release-config.json（ワークフローへ書き写さない）
+          $config = Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json
+          $key = if ($env:MODE -eq 'release') { 'releaseBranches' } else { 'dryRunBranches' }
+          $allowed = @($config.$key)
+
+          if ($allowed.Count -eq 0) { throw ".github/release-config.json の $key が空です" }
+          if ($allowed -notcontains $env:BRANCH) {
+            throw "このブランチ（$($env:BRANCH)）では mode=$($env:MODE) を実行できません（許可: $($allowed -join ', ')。 .github/release-config.json）"
+          }
+
+          Write-Host "実行ブランチ: $($env:BRANCH)（mode=$($env:MODE)）"
 
       - name: 版と対象グループを決める
         id: plan
