@@ -278,8 +278,11 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           foreach ($item in @(ConvertFrom-Json $env:GROUPS)) {
+            # グループ別の Release にする。 「Latest」は共通基盤（EsUtil）の Release だけに付け、
+            # ほかのグループは付けない（Latest は 1 つしか選べず、UI の版が最新に見えると誤解を招く）。
             $notes = "公開したパッケージ: $($item.group) v$($item.version)"
-            & gh release create $item.tag --target $env:SHA --title "$($item.group) v$($item.version)" --notes $notes
+            $latest = if ($item.group -eq 'EsUtil') { '--latest' } else { '--latest=false' }
+            & gh release create $item.tag --target $env:SHA --title "$($item.group) v$($item.version)" --notes $notes $latest
             if ($LASTEXITCODE -ne 0) { throw "タグと Release の作成が失敗しました: $($item.tag)" }
             Write-Host "作成しました: $($item.tag)"
           }
