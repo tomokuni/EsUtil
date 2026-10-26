@@ -148,3 +148,29 @@ jobs:
 
           & pwsh -NoProfile -Command $command
           if ($LASTEXITCODE -ne 0) { throw "検証が失敗しました（exit $LASTEXITCODE）" }
+  # ────────────────────────────────────────────────────────────
+  # 3. 必須チェックの受け皿
+  # ────────────────────────────────────────────────────────────
+  # 必須チェック（ruleset `Protect main`）は**このジョブ名**を要求する。
+  # `verify` は条件（`if`）でスキップされ得るため、そのまま必須にするとスキップ時に
+  # 「Expected」のまま残ってマージできなくなる。 常に走る集約ジョブで受ける。
+  ci:
+    needs: [changes, verify]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 結果を集約
+        shell: bash
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          VERIFY: ${{ needs.verify.result }}
+        run: |
+          echo "changes=$CHANGES verify=$VERIFY"
+          # verify のスキップは「対象のソリューションが無い」だけなので合格にする
+          if [[ "$VERIFY" != "success" && "$VERIFY" != "skipped" ]]; then
+            echo "::error::検証が失敗しました（$VERIFY）"; exit 1
+          fi
+          if [[ "$CHANGES" != "success" ]]; then
+            echo "::error::変更の判定が失敗しました（$CHANGES）"; exit 1
+          fi
