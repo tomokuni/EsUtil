@@ -131,6 +131,8 @@ jobs:
 
       # 検証は buildScript/verify.ps1 が単一所有する（合否基準は .github/検証手順.md が所有者）。
       # 対象は変更のあったソリューションだけにする（paths フィルタ）。
+      # -Solution は配列のため、**1 つの -Command の中で配列として組み立てる**
+      # （`-File` へ -Solution を複数回渡すと「2 回指定された」で失敗する。 実測）。
       - name: 検証（Release）
         shell: pwsh
         env:
@@ -139,9 +141,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $solutions = @(ConvertFrom-Json $env:SOLUTIONS)
-          $arguments = @('-NoProfile', '-File', 'buildScript/verify.ps1', '-Configuration', 'Release')
-          foreach ($solution in $solutions) { $arguments += @('-Solution', $solution) }
-          if ($env:PACKAGING -ne 'true') { $arguments += '-SkipPackaging' }
+          $list = ($solutions | ForEach-Object { "'$_'" }) -join ','
 
-          & pwsh @arguments
+          $command = "& './buildScript/verify.ps1' -Configuration Release -Solution @($list)"
+          if ($env:PACKAGING -ne 'true') { $command += ' -SkipPackaging' }
+
+          & pwsh -NoProfile -Command $command
           if ($LASTEXITCODE -ne 0) { throw "検証が失敗しました（exit $LASTEXITCODE）" }
