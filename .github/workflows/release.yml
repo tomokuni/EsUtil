@@ -124,8 +124,10 @@ jobs:
 
           # release は「同じコミットの dry-run が成功している」ことを前提にする
           if ($env:MODE -eq 'release') {
-            $runs = @(gh run list --repo $env:REPO --workflow release.yml --commit $env:SHA --limit 50 --json name,conclusion,headSha | ConvertFrom-Json)
-            $ok = @($runs | Where-Object { $_.name -like 'DryRun*' -and $_.conclusion -eq 'success' }).Count -gt 0
+            # displayTitle は run-name（`DryRun <ブランチ> <SHA>` / `Release …`）である。
+            # name はワークフロー名（Release）なので判定に使えない。
+            $runs = @(gh run list --repo $env:REPO --workflow release.yml --commit $env:SHA --limit 50 --json displayTitle,conclusion,headSha | ConvertFrom-Json)
+            $ok = @($runs | Where-Object { $_.displayTitle -like 'DryRun*' -and $_.conclusion -eq 'success' }).Count -gt 0
             if (-not $ok) {
               throw "このコミット（$env:SHA）の dry-run の成功実行がありません。先に mode=dry-run で実行してください。"
             }
