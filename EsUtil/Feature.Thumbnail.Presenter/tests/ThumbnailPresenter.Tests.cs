@@ -33,6 +33,53 @@ public class ThumbnailPresenterTests
         Assert.Contains(bands, band => band.Y < 20);
     }
 
+    /// <summary>同じ寸法の帯は、位置を変えても同じ形（平行移動）になることを検証する。</summary>
+    /// <remarks>
+    /// 帯の形は寸法と倍率だけで決まるため実装は形を覚えて平行移動する。 覚えた形を返すようになっても
+    /// **位置だけが変わり、形と濃さは変わらない**ことを固定する（描画結果が変わらないための条件）。
+    /// 端数のある位置（切り捨てが効く場合）と倍率が 1 でない場合も含める。
+    /// </remarks>
+    [Fact]
+    public void 影の帯は位置を変えても同じ形になる()
+    {
+        var shadow = ThumbnailShadowPlan.Default;
+
+        foreach (var (x, y, scaling) in new[] { (20.0, 20.0, 1.0), (20.5, 20.7, 1.0), (0.0, 0.0, 1.5), (120.3, 64.9, 2.0) })
+        {
+            var first = shadow.BuildDeviceBands(x, y, 96, 48, scaling);
+            var moved = shadow.BuildDeviceBands(x + 300, y + 200, 96, 48, scaling);
+
+            Assert.Equal(first.Count, moved.Count);
+            var dx = 300 * scaling;
+            var dy = 200 * scaling;
+            for (var i = 0; i < first.Count; i++)
+            {
+                Assert.Equal(first[i].Width, moved[i].Width);
+                Assert.Equal(first[i].Height, moved[i].Height);
+                Assert.Equal(first[i].Argb, moved[i].Argb);
+
+                // 位置は画素へ丸めた後に平行移動する（丸めの誤差は 1 画素以内）
+                Assert.InRange(moved[i].X - first[i].X, dx - 1, dx + 1);
+                Assert.InRange(moved[i].Y - first[i].Y, dy - 1, dy + 1);
+            }
+        }
+    }
+
+    /// <summary>帯の形を覚えても、寸法が違えば別の形を返すことを検証する。</summary>
+    [Fact]
+    public void 寸法が違えば別の帯になる()
+    {
+        var shadow = ThumbnailShadowPlan.Default;
+
+        var small = shadow.BuildDeviceBands(0, 0, 48, 24, scaling: 1);
+        var large = shadow.BuildDeviceBands(0, 0, 192, 96, scaling: 1);
+
+        // 帯の本数は広がりだけで決まる（大きさでは変わらない）。 変わるのは辺の長さと位置である
+        Assert.Equal(small.Count, large.Count);
+        Assert.Equal(48, small.First(band => band.Y == 0 && band.Height == 1).Width);
+        Assert.Equal(192, large.First(band => band.Y == 0 && band.Height == 1).Width);
+    }
+
     /// <summary>強調中に影を隠す外観で層から影が除かれることを検証する。</summary>
     [Fact]
     public void 影を描かない場合は層から影が除かれる()
