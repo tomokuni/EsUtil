@@ -128,7 +128,17 @@ jobs:
             # 前回のグループ別タグから変わったかを差分で決める（タグが無ければ初回＝対象）
             $tag = "$group/v$version"
             $lastTag = @(git tag --list "$group/v*" --sort=-v:refname) | Select-Object -First 1
-            if ($lastTag -eq $tag) { throw "タグ $tag は既に存在します（同じ版を再リリースできません）" }
+
+            # 同じ版は再リリースできない（公開済みの版は不変）。 **dry-run では止めない**。
+            # 版を上げていないだけの状態でも「それ以外の条件が通る」ことを確認できるようにする
+            # （その確認が dry-run の役目。 公開（release）では失敗させる）。
+            $alreadyReleased = $lastTag -eq $tag
+            if ($alreadyReleased) {
+              if ($env:MODE -ne 'dry-run') {
+                throw "タグ $tag は既に存在します（同じ版を再リリースできません）。版を上げてコミットしてください。"
+              }
+              Write-Host "::warning::$tag は既に存在します。release モードでは失敗します（版を上げてください）。 dry-run のため続行します。"
+            }
 
             $changed = if ($lastTag) {
               @(git diff --name-only "$lastTag...$($env:SHA)" -- $group).Count -gt 0
@@ -137,6 +147,9 @@ jobs:
 
             if ($changed) {
               $groups.Add([ordered]@{ group = $group; version = $version; tag = $tag; solution = $solutions[$group] })
+            }
+            elseif ($alreadyReleased) {
+              Write-Host "   $group : 版 $version は公開済みで、タグからの変更もありません（対象外）"
             }
           }
 
