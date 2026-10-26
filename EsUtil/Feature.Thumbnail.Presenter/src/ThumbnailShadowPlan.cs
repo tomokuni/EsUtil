@@ -156,9 +156,8 @@ public sealed class ThumbnailShadowPlan : IThumbnailShadowPlan
     /// 最大 1 画素掛かる。 影を画像より先に描けば隠れ、混色の下地が影になるため白い線が出ない。<br/>
     /// <b>4 隅</b>は<b>画像の隅の頂点からの距離</b>（斜めの距離）で濃さを決める。 辺と同じ濃さの変化が<br/>
     /// 斜めにもそのまま続くため、四角い塊や濃い点にならない（辺とは重ねない。 重ねると隅だけ濃くなる）。<br/>
-    /// <b>帯の形は位置に依存しない</b>（画素寸法と倍率だけで決まる）ため、形を覚えて平行移動する。<br/>
-    /// 一覧のサムネイルは寸法が揃うので、2 件目以降は隅の走査（1 件あたり最大 <c>4 × 広がり²</c> 回の<br/>
-    /// 距離計算）をやり直さない（実測 2026-10-27）。
+    /// <b>帯の形は位置に依存しない</b>（画素寸法・広がり・倍率だけで決まる）ため、形は左上を原点として<br/>
+    /// 求めて平行移動する。<br/>
     /// </remarks>
     public IReadOnlyList<ThumbnailShadowBand> BuildDeviceBands(
         double x, double y, double width, double height, double scaling)
@@ -196,14 +195,10 @@ public sealed class ThumbnailShadowPlan : IThumbnailShadowPlan
     }
 
     /// <summary>帯の形の記憶（画素寸法・広がり・倍率 → 画像の左上を原点とする帯）。</summary>
-    /// <remarks>
-    /// 値は入力だけで決まる（純粋な関数）ため、覚えても結果は変わらない。 一覧のサムネイルは寸法が
-    /// 揃うので、項目数が増えても走査は 1 回で済む。 鍵は画素寸法と広がりと倍率だけなので、
-    /// 大きさを変えても項目は増えない（<see cref="MaxBandTemplates"/> で上限を切る）。
-    /// </remarks>
+    /// <remarks>値は入力だけで決まるため、覚えても結果は変わらない（上限を超えたら捨てる）。</remarks>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<(int Wide, int High, int Extent, int ScalingKey), ThumbnailShadowBand[]> _bandTemplates = new();
 
-    /// <summary>覚える帯の形の上限（超えたら捨てる。 寸法は 1 通りが普通のため、実際には届かない）。</summary>
+    /// <summary>覚える帯の形の上限（超えたら捨てる）。</summary>
     private const int MaxBandTemplates = 8;
 
     /// <summary>帯の形を取得する（無ければ作って覚える）。</summary>
