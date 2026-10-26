@@ -18,7 +18,7 @@
 
   <ItemGroup>
     <!-- ログの接頭辞（logPrefix）と null 吸収（?? NullLogger.Instance）。 UI 層は変換ブリッジ（EsUtil.Ui.*.Interop）を参照できない（.github/依存関係.md §3）。 -->
-    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+    <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

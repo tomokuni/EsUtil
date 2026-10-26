@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <!-- 色名の表・色文字列の解釈・並び順はコアが単一所有する（UI ごとに規則を持たない） -->
-    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+    <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
   </ItemGroup>
 

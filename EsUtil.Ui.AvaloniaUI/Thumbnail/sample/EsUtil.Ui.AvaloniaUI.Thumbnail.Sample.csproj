@@ -24,7 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Ui.AvaloniaUI.Thumbnail.csproj" />
     <!-- 動作確認用の画像はコアの型で作り、変換ブリッジで UI の型へ写す（サンプルは参照してよい）。 -->
-    <PackageReference Include="EsUtil.Ui.AvaloniaUI.Interop" Version="$(EsUtil_Ui_AvaloniaUI_Interop_Version)" />
+    <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.AvaloniaUI.Interop.csproj" />
   </ItemGroup>
 
   <ItemGroup>

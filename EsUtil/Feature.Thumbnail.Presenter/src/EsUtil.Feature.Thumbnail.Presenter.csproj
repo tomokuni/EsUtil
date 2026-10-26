@@ -13,8 +13,8 @@
   <ItemGroup>
     <!-- 本層は「描画計画（影・枠・ラベル）」と「外観」を単一所有する。 描画 API は抽象化しない
          （UI フレームワークごとの描画モデルの差を吸収しきれないため、描画は各 UI が行う）。 -->
-    <PackageReference Include="EsUtil.Feature.Thumbnail.Core" Version="$(EsUtil_Feature_Thumbnail_Core_Version)" />
-    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+    <ProjectReference Include="..\..\Feature.Thumbnail.Core\src\EsUtil.Feature.Thumbnail.Core.csproj" />
+    <ProjectReference Include="..\..\Platform.Core\src\EsUtil.Platform.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

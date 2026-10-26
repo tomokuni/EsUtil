@@ -17,7 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Ui.WinForms.Thumbnail.csproj" />
     <!-- 動作確認用の画像はコアの型で作り、変換ブリッジで GDI+ の型へ写す（サンプルは参照してよい）。 -->
-    <PackageReference Include="EsUtil.Ui.WinForms.Interop" Version="$(EsUtil_Ui_WinForms_Interop_Version)" />
+    <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.WinForms.Interop.csproj" />
   </ItemGroup>
 
   <ItemGroup>

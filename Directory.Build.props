@@ -1,85 +1,37 @@
 <Project>
 
   <PropertyGroup>
-    <!-- ライブラリのバージョン。 本体プロジェクトごとに異なるため、**値を持つのは本表だけ**（各 .csproj では指定しない）。
-         3 桁目（一番右）だけを buildScript/pack.ps1 が自動で +1 する（ソースの指紋が変わったプロジェクトのみ）。
-         1・2 桁目は人が上げる（3 桁目は 0 に戻す）。 規則は .github/ビルド設定規約.md §4。
+    <!-- 版グループごとのバージョン（公開する版の意味を人が決める）。 値を持つのは 5 行だけであり、
+         各 .csproj では指定しない。 規則は .github/ビルド設定規約.md §4。
 
-         MSBuild のプロパティ名にドットは使えない（実測: <EsUtil.Platform.Core.Version> は MSB5016 で失敗する）。
-         そのため名前は「パッケージ ID のドットを `_` に置換 + `_Version`」にする（参照側はこの名前を使う）。 -->
-    <EsUtil_Platform_Core_Version>0.2.51</EsUtil_Platform_Core_Version>
-    <EsUtil_Platform_Core_Windows_Version>0.1.4</EsUtil_Platform_Core_Windows_Version>
-    <EsUtil_Feature_Loupe_Core_Version>0.1.5</EsUtil_Feature_Loupe_Core_Version>
-    <EsUtil_Feature_Loupe_Presenter_Version>0.1.5</EsUtil_Feature_Loupe_Presenter_Version>
-    <EsUtil_Ui_AvaloniaUI_Loupe_Version>0.1.10</EsUtil_Ui_AvaloniaUI_Loupe_Version>
-    <EsUtil_Ui_MewUI_Loupe_Version>0.1.11</EsUtil_Ui_MewUI_Loupe_Version>
-    <EsUtil_Ui_WinUI3_Loupe_Version>0.1.17</EsUtil_Ui_WinUI3_Loupe_Version>
-    <EsUtil_Ui_WinForms_Loupe_Version>0.1.9</EsUtil_Ui_WinForms_Loupe_Version>
-    <EsUtil_Feature_Marquee_Core_Version>0.1.5</EsUtil_Feature_Marquee_Core_Version>
-    <EsUtil_Feature_Thumbnail_Core_Version>0.1.8</EsUtil_Feature_Thumbnail_Core_Version>
-    <EsUtil_Feature_Thumbnail_Presenter_Version>0.1.10</EsUtil_Feature_Thumbnail_Presenter_Version>
-    <EsUtil_Ui_AvaloniaUI_Thumbnail_Version>0.1.9</EsUtil_Ui_AvaloniaUI_Thumbnail_Version>
-    <EsUtil_Ui_MewUI_Thumbnail_Version>0.1.11</EsUtil_Ui_MewUI_Thumbnail_Version>
-    <EsUtil_Ui_WinUI3_ColorComboBox_Version>0.1.4</EsUtil_Ui_WinUI3_ColorComboBox_Version>
-    <EsUtil_Ui_WinUI3_Thumbnail_Version>0.1.13</EsUtil_Ui_WinUI3_Thumbnail_Version>
-    <EsUtil_Ui_WinForms_Thumbnail_Version>0.1.11</EsUtil_Ui_WinForms_Thumbnail_Version>
-    <EsUtil_Feature_Marquee_Presenter_Version>0.1.5</EsUtil_Feature_Marquee_Presenter_Version>
-    <EsUtil_Ui_AvaloniaUI_Marquee_Version>0.1.8</EsUtil_Ui_AvaloniaUI_Marquee_Version>
-    <EsUtil_Ui_MewUI_Marquee_Version>0.1.11</EsUtil_Ui_MewUI_Marquee_Version>
-    <EsUtil_Ui_WinUI3_Marquee_Version>0.1.16</EsUtil_Ui_WinUI3_Marquee_Version>
-    <EsUtil_Ui_WinForms_Marquee_Version>0.1.10</EsUtil_Ui_WinForms_Marquee_Version>
-    <EsUtil_Ui_AvaloniaUI_ColorComboBox_Version>0.1.8</EsUtil_Ui_AvaloniaUI_ColorComboBox_Version>
-    <EsUtil_Ui_AvaloniaUI_Interop_Version>0.1.4</EsUtil_Ui_AvaloniaUI_Interop_Version>
-    <EsUtil_Ui_MewUI_Interop_Version>0.1.5</EsUtil_Ui_MewUI_Interop_Version>
-    <EsUtil_Ui_MewUI_ColorComboBox_Version>0.1.6</EsUtil_Ui_MewUI_ColorComboBox_Version>
-    <EsUtil_Ui_WinUI3_Interop_Version>0.1.9</EsUtil_Ui_WinUI3_Interop_Version>
-    <EsUtil_Ui_WinForms_Interop_Version>0.1.8</EsUtil_Ui_WinForms_Interop_Version>
-    <EsUtil_Feature_ColumnPacking_Core_Version>0.1.4</EsUtil_Feature_ColumnPacking_Core_Version>
-    <EsUtil_Feature_ZenHan_Core_Version>0.1.1</EsUtil_Feature_ZenHan_Core_Version>
-    <EsUtil_Ui_WinUI3_ColumnPacking_Version>0.1.4</EsUtil_Ui_WinUI3_ColumnPacking_Version>
+         ローカル フィードへ出すときだけ buildScript/pack.ps1 が VersionSuffix=local.<n> を付ける
+         （公開する版には含めない。 ローカル フィード専用の識別子である）。 -->
+    <EsUtil_VersionPrefix>0.1.0</EsUtil_VersionPrefix>
+    <EsUtil_Ui_AvaloniaUI_VersionPrefix>0.1.0</EsUtil_Ui_AvaloniaUI_VersionPrefix>
+    <EsUtil_Ui_MewUI_VersionPrefix>0.1.0</EsUtil_Ui_MewUI_VersionPrefix>
+    <EsUtil_Ui_WinUI3_VersionPrefix>0.1.0</EsUtil_Ui_WinUI3_VersionPrefix>
+    <EsUtil_Ui_WinForms_VersionPrefix>0.1.0</EsUtil_Ui_WinForms_VersionPrefix>
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- 自分の版は本表から引く（数値を 2 箇所へ書かない）。
-         テスト・サンプルは表に行を持たない（パッケージを作らないため SDK 既定のまま）。
-         表に行が無い本体プロジェクトは buildScript/verify.ps1 が不合格にする（表の行の欠落・綴り違いを検出する）。 -->
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Platform.Core'">$(EsUtil_Platform_Core_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Platform.Core.Windows'">$(EsUtil_Platform_Core_Windows_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Loupe.Core'">$(EsUtil_Feature_Loupe_Core_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Loupe.Presenter'">$(EsUtil_Feature_Loupe_Presenter_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.AvaloniaUI.Loupe'">$(EsUtil_Ui_AvaloniaUI_Loupe_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.MewUI.Loupe'">$(EsUtil_Ui_MewUI_Loupe_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.Loupe'">$(EsUtil_Ui_WinUI3_Loupe_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinForms.Loupe'">$(EsUtil_Ui_WinForms_Loupe_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Marquee.Core'">$(EsUtil_Feature_Marquee_Core_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.Core'">$(EsUtil_Feature_Thumbnail_Core_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Thumbnail.Presenter'">$(EsUtil_Feature_Thumbnail_Presenter_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.AvaloniaUI.ColorComboBox'">$(EsUtil_Ui_AvaloniaUI_ColorComboBox_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.AvaloniaUI.Thumbnail'">$(EsUtil_Ui_AvaloniaUI_Thumbnail_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.MewUI.Thumbnail'">$(EsUtil_Ui_MewUI_Thumbnail_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.ColorComboBox'">$(EsUtil_Ui_WinUI3_ColorComboBox_Version)</Version>
-<Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.Thumbnail'">$(EsUtil_Ui_WinUI3_Thumbnail_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinForms.Thumbnail'">$(EsUtil_Ui_WinForms_Thumbnail_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.Marquee.Presenter'">$(EsUtil_Feature_Marquee_Presenter_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.AvaloniaUI.Marquee'">$(EsUtil_Ui_AvaloniaUI_Marquee_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.MewUI.Marquee'">$(EsUtil_Ui_MewUI_Marquee_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.Marquee'">$(EsUtil_Ui_WinUI3_Marquee_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinForms.Marquee'">$(EsUtil_Ui_WinForms_Marquee_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.AvaloniaUI.Interop'">$(EsUtil_Ui_AvaloniaUI_Interop_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.MewUI.Interop'">$(EsUtil_Ui_MewUI_Interop_Version)</Version>
-<Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.MewUI.ColorComboBox'">$(EsUtil_Ui_MewUI_ColorComboBox_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.Interop'">$(EsUtil_Ui_WinUI3_Interop_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinForms.Interop'">$(EsUtil_Ui_WinForms_Interop_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.ColumnPacking.Core'">$(EsUtil_Feature_ColumnPacking_Core_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Feature.ZenHan.Core'">$(EsUtil_Feature_ZenHan_Core_Version)</Version>
-    <Version Condition="'$(MSBuildProjectName)' == 'EsUtil.Ui.WinUI3.ColumnPacking'">$(EsUtil_Ui_WinUI3_ColumnPacking_Version)</Version>
+    <!-- 自分の版はグループの値から引く（数値を 2 箇所へ書かない）。
+         グループはプロジェクト名から導出する（30 プロジェクト分の条件を書かない）。
+         テスト・サンプルはパッケージを作らないため版を持たない（SDK 既定のまま）。 -->
+    <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample)$'))</_SeIsTestOrSample>
+    <_SeIsCoreGroup>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.(Platform|Feature)\.'))</_SeIsCoreGroup>
+    <_SeUiGroup>$([System.Text.RegularExpressions.Regex]::Match('$(MSBuildProjectName)', '^EsUtil\.Ui\.(AvaloniaUI|MewUI|WinUI3|WinForms)\.').Groups[1].Value)</_SeUiGroup>
+
+    <VersionPrefix Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsCoreGroup)' == 'true'">$(EsUtil_VersionPrefix)</VersionPrefix>
+    <VersionPrefix Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeUiGroup)' == 'AvaloniaUI'">$(EsUtil_Ui_AvaloniaUI_VersionPrefix)</VersionPrefix>
+    <VersionPrefix Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeUiGroup)' == 'MewUI'">$(EsUtil_Ui_MewUI_VersionPrefix)</VersionPrefix>
+    <VersionPrefix Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeUiGroup)' == 'WinUI3'">$(EsUtil_Ui_WinUI3_VersionPrefix)</VersionPrefix>
+    <VersionPrefix Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeUiGroup)' == 'WinForms'">$(EsUtil_Ui_WinForms_VersionPrefix)</VersionPrefix>
   </PropertyGroup>
 
   <PropertyGroup>
     <!-- パッケージ出力（全プロジェクト共通。 各 .csproj では指定しない）。
          本体プロジェクトはパッケージを作り、テスト・サンプルは作らない。
          `PackageId` と `AssemblyName` は省略し、プロジェクト名と一致させる。 -->
-    <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample)$'))</_SeIsTestOrSample>
     <IsPackable Condition="'$(_SeIsTestOrSample)' == 'true'">false</IsPackable>
     <IsPackable Condition="'$(_SeIsTestOrSample)' != 'true'">true</IsPackable>
   </PropertyGroup>
@@ -106,6 +58,9 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <!-- ローカル フィードはプロジェクトごとの 1 ファイルであるため、依存パッケージを同封しない。 -->
     <SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
+    <!-- API の互換と依存の欠落を dotnet pack が検証する（基準版は初回公開後に設定する。
+         基準が無いあいだは検査されない）。 規則は .github/ビルド設定規約.md §4。 -->
+    <EnablePackageValidation Condition="'$(_SeIsTestOrSample)' != 'true'">true</EnablePackageValidation>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -21,9 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="EsUtil.Feature.Loupe.Presenter" Version="$(EsUtil_Feature_Loupe_Presenter_Version)" />
-    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
-    <PackageReference Include="EsUtil.Ui.WinUI3.Interop" Version="$(EsUtil_Ui_WinUI3_Interop_Version)" />
+    <ProjectReference Include="..\..\..\EsUtil\Feature.Loupe.Presenter\src\EsUtil.Feature.Loupe.Presenter.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.WinUI3.Interop.csproj" />
   </ItemGroup>
 
   <ItemGroup>

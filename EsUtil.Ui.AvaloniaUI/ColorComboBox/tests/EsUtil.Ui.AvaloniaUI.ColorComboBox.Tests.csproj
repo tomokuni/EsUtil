@@ -25,7 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Ui.AvaloniaUI.ColorComboBox.csproj" />
     <!-- テストは検証データの生成に変換ブリッジ（Color.FromAColor）を使ってよい（本体は参照しない） -->
-    <PackageReference Include="EsUtil.Ui.AvaloniaUI.Interop" Version="$(EsUtil_Ui_AvaloniaUI_Interop_Version)" />
+    <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.AvaloniaUI.Interop.csproj" />
   </ItemGroup>
 
   <!-- xUnit 並列化設定（Avalonia ヘッドレスアセンブリ間の静的競合を防ぐためアセンブリ間の並列を無効化） -->

@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="EsUtil.Feature.ColumnPacking.Core" Version="$(EsUtil_Feature_ColumnPacking_Core_Version)" />
+    <ProjectReference Include="..\..\..\EsUtil\Feature.ColumnPacking.Core\src\EsUtil.Feature.ColumnPacking.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

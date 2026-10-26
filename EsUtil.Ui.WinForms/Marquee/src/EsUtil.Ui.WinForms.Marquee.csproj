@@ -15,9 +15,9 @@
 
   <ItemGroup>
     <!-- 選択幾何・状態機械（Core）とコントロール化の転送規則・描画手順。 コアは提示層の公開面に現れるため推移参照で解決する -->
-    <PackageReference Include="EsUtil.Feature.Marquee.Presenter" Version="$(EsUtil_Feature_Marquee_Presenter_Version)" />
-    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
-    <PackageReference Include="EsUtil.Ui.WinForms.Interop" Version="$(EsUtil_Ui_WinForms_Interop_Version)" />
+    <ProjectReference Include="..\..\..\EsUtil\Feature.Marquee.Presenter\src\EsUtil.Feature.Marquee.Presenter.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.WinForms.Interop.csproj" />
   </ItemGroup>
 
   <ItemGroup>

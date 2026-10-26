@@ -1,7 +1,23 @@
-name: build
-
-# 検証（`.github/検証手順.md` が合否基準の所有者）を CI でも同じ 1 コマンドで実行する。
-# 手順を CI 用に書き起こさない（ローカルと CI で食い違わせない）。
+# ビルドワークフロー
+#
+# 実行契機は次のとおり。
+#   main への push（マージ含む） … 必ず実行する
+#   main 向け Pull Request       … 必ず実行する
+#   dev への push                … 実行する（作業ブランチの確認）
+#   手動実行（workflow_dispatch）  … 任意のブランチで確認する場合に使用する
+#
+# **変更のあったソリューションだけを検証する**（paths フィルタ）。
+# 共通基盤（`EsUtil/`）・ビルド設定・スクリプト・文書を変えたときは 5 本すべてを検証する。
+# 検証の中身は buildScript/verify.ps1 が単一所有し、合否基準は .github/検証手順.md が定める。
+#
+# .NET SDK のバージョンはリポジトリルートの global.json が単一所有する（ワークフローでは指定しない）。
+# .NET SDK はランナー イメージに含まれる最新版をそのまま使う（actions/setup-dotnet を使わない）。
+# キャッシュは NuGet の復元（最も時間を使う工程）だけを対象にする。
+#
+# Windows 専用（Win32 API の P/Invoke を含む）のため windows-latest で実行する。
+#
+# README の「build」バッジはこのワークフローの status を表示する（badge.svg?branch=main）。
+name: Build
 
 on:
   push:
@@ -13,26 +29,119 @@ on:
 permissions:
   contents: read
 
+# 同一ブランチの古い実行は打ち切る（バッジは最新の実行結果を表示する）
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  verify:
-    # Win32 / WIC を呼ぶ層と UI コントロールのテストは Windows を要求する。
-    runs-on: windows-latest
-    timeout-minutes: 60
-
+  # ────────────────────────────────────────────────────────────
+  # 1. 変更のあったソリューションを決める
+  # ────────────────────────────────────────────────────────────
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      solutions: ${{ steps.plan.outputs.solutions }}
+      packaging: ${{ steps.plan.outputs.packaging }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - name: チェックアウト
+        uses: actions/checkout@v5
         with:
-          global-json-file: global.json
+          # 変更の判定に全履歴を使う
+          fetch-depth: 0
 
-      # プロジェクト同士はパッケージ参照で結ばれているため、検証の前にローカル フィードを作る。
-      - name: Pack packages
+      # 変更の判定は git の差分だけを使う（追加のアクションに依存しない）。
+      # 判定できない場合（初回 push・タグ・手動実行）は**すべて**を対象にする（取りこぼしを避ける）。
+      - name: 変更のあったソリューションを決める
+        id: plan
         shell: pwsh
-        run: ./buildScript/pack.ps1
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
 
-      - name: Verify
+          function Get-ChangedFiles {
+            if ($env:EVENT_NAME -eq 'pull_request' -and $env:BASE_REF) {
+              git fetch --no-tags origin $env:BASE_REF 2>$null | Out-Null
+              return @(git diff --name-only "origin/$($env:BASE_REF)...$env:HEAD_SHA")
+            }
+            if ($env:BEFORE_SHA -and $env:BEFORE_SHA -notmatch '^0+$') {
+              return @(git diff --name-only "$($env:BEFORE_SHA)...$($env:HEAD_SHA)")
+            }
+            return @()
+          }
+
+          $solutions = [ordered]@{
+            'EsUtil'               = 'EsUtil/EsUtil.slnx'
+            'EsUtil.Ui.AvaloniaUI' = 'EsUtil.Ui.AvaloniaUI/EsUtil.Ui.AvaloniaUI.slnx'
+            'EsUtil.Ui.MewUI'      = 'EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx'
+            'EsUtil.Ui.WinUI3'     = 'EsUtil.Ui.WinUI3/EsUtil.Ui.WinUI3.slnx'
+            'EsUtil.Ui.WinForms'   = 'EsUtil.Ui.WinForms/EsUtil.Ui.WinForms.slnx'
+          }
+
+          $changed = @(Get-ChangedFiles)
+          $repoWide = ($changed.Count -eq 0) -or (@($changed | Where-Object {
+                $_ -match '^(Directory\.|buildScript/|\.github/|global\.json|NuGet\.config|\.editorconfig|\.gitattributes)'
+              }).Count -gt 0)
+
+          $targets = @()
+          if ($repoWide -or @($changed | Where-Object { $_ -match '^EsUtil/' }).Count -gt 0) {
+            $targets = @($solutions.Values)
+          }
+          else {
+            foreach ($group in $solutions.Keys) {
+              if (@($changed | Where-Object { $_ -like "$group/*" }).Count -gt 0) { $targets += $solutions[$group] }
+            }
+          }
+          $targets = @($targets | Sort-Object -Unique)
+
+          "solutions=$($targets | ConvertTo-Json -Compress -AsArray)" >> $env:GITHUB_OUTPUT
+          "packaging=$($repoWide.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+
+          Write-Host "対象のソリューション: $($targets -join ', ')"
+          Write-Host "パッケージング検証: $repoWide"
+
+  # ────────────────────────────────────────────────────────────
+  # 2. 検証（verify.ps1 が単一所有する）
+  # ────────────────────────────────────────────────────────────
+  verify:
+    needs: changes
+    if: needs.changes.outputs.solutions != '[]'
+    runs-on: windows-latest
+    # テストが停止した場合に 6 時間（既定）待たないための上限
+    timeout-minutes: 60
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v5
+
+      # .NET SDK はランナー イメージの最新版を使う（setup-dotnet は不要。イメージが C:\Program Files\dotnet を
+      # PATH へ追加しているため、以降のステップでそのまま dotnet を実行できる）。
+      # NuGet のグローバル パッケージ フォルダはキャッシュする（復元が最も時間を使う工程のため）。
+      - name: NuGet をキャッシュ
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      # 検証は buildScript/verify.ps1 が単一所有する（合否基準は .github/検証手順.md が所有者）。
+      # 対象は変更のあったソリューションだけにする（paths フィルタ）。
+      - name: 検証（Release）
         shell: pwsh
-        run: ./buildScript/verify.ps1 -Configuration Release -NoRestore
+        env:
+          SOLUTIONS: ${{ needs.changes.outputs.solutions }}
+          PACKAGING: ${{ needs.changes.outputs.packaging }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $solutions = @(ConvertFrom-Json $env:SOLUTIONS)
+          $arguments = @('-NoProfile', '-File', 'buildScript/verify.ps1', '-Configuration', 'Release')
+          foreach ($solution in $solutions) { $arguments += @('-Solution', $solution) }
+          if ($env:PACKAGING -ne 'true') { $arguments += '-SkipPackaging' }
+
+          & pwsh @arguments
+          if ($LASTEXITCODE -ne 0) { throw "検証が失敗しました（exit $LASTEXITCODE）" }

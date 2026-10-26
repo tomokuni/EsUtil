@@ -19,9 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="EsUtil.Feature.Thumbnail.Presenter" Version="$(EsUtil_Feature_Thumbnail_Presenter_Version)" />
-    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
-    <PackageReference Include="EsUtil.Ui.MewUI.Interop" Version="$(EsUtil_Ui_MewUI_Interop_Version)" />
+    <ProjectReference Include="..\..\..\EsUtil\Feature.Thumbnail.Presenter\src\EsUtil.Feature.Thumbnail.Presenter.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.MewUI.Interop.csproj" />
     <!-- 本コントロールが単一所有する値（画像・項目数）の変更ログ（LoggerMessage ソース生成）を持つ -->
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
   </ItemGroup>

@@ -14,8 +14,8 @@
     <!-- 本層は「コアをコントロールへ組み込むときにだけ必要な処理」と「描画層（提示・外観・描画計画）」を単一所有する。
          描画 API は本層で抽象化しない（UI フレームワークごとの描画モデルの差を吸収しきれないため、描画は各 UI が行う）。
          UI フレームワークは参照しない（UI は本層を参照する）。 -->
-    <PackageReference Include="EsUtil.Feature.Loupe.Core" Version="$(EsUtil_Feature_Loupe_Core_Version)" />
-    <PackageReference Include="EsUtil.Platform.Core" Version="$(EsUtil_Platform_Core_Version)" />
+    <ProjectReference Include="..\..\Feature.Loupe.Core\src\EsUtil.Feature.Loupe.Core.csproj" />
+    <ProjectReference Include="..\..\Platform.Core\src\EsUtil.Platform.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,47 +1,288 @@
-name: release
+# リリース ワークフロー（手動実行のみ）
+#
+# 手順の全体:
+#   1. mode=dry-run で実行する（配布物の作成と検証だけ。 タグも公開もしない）
+#   2. 問題が無ければ mode=release で実行する
+#      （**同じコミットの dry-run が成功していることを前提**にし、満たさなければ中止する）
+#   3. release は「承認（environment: release）」→「公開」→「タグ付け」の順に進む
+#
+# 設計の要点:
+#   - **版は人が Directory.Build.props の VersionPrefix へ書いてコミットしておく**（自動採番しない）。
+#     入力 `version` は確認用であり、ツリーの値と一致しなければ失敗する。
+#   - **公開が成功した後にだけタグを打つ**（公開できなかった版にタグを残さない）。
+#   - **タグはグループ別**（`EsUtil/v0.2.0` / `EsUtil.Ui.<UI>/v0.1.0`）。
+#   - **公開は Trusted Publishing**（OIDC で短命の API キーを取得する。 長期の API キーを持たない）。
+#     ポリシーは「リポジトリ + ワークフロー ファイル + environment: release」に紐づける。
+#   - **変更のあったグループだけを公開する**（前回のグループ別タグからの差分で決める）。
+#   - 公開する版にローカル識別子（`-`）を含めない。
+#
+# 詳細な合否基準は .github/検証手順.md §9、版の規則は .github/ビルド設定規約.md §4 が持つ。
+name: Release
 
-# タグ（`v<版>`）を打ったときにパッケージを作り、成果物として残す。
-# 版の値は `Directory.Build.props` の表が単一所有する（タグの文字列は印であり、版の所有者ではない）。
-# nuget.org への公開はこのワークフローでは行わない（公開の手順はリポジトリの運用で決める）。
+run-name: ${{ inputs.mode == 'dry-run' && 'DryRun' || 'Release' }} ${{ github.ref_name }} ${{ github.sha }}
 
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry-run（作成と検証のみ）/ release（公開とタグ付け）'
+        required: true
+        type: choice
+        options: [dry-run, release]
+        default: dry-run
+      version:
+        description: '任意: 公開する版（Directory.Build.props の VersionPrefix と一致しなければ失敗します）'
+        required: false
+        type: string
+
+# リリース処理は同時に 1 つだけ実行する
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
+  # ────────────────────────────────────────────────────────────
+  # 1. 前提検証（版・対象グループ・dry-run の成功）
+  # ────────────────────────────────────────────────────────────
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      # dry-run の実行結果の参照
+      actions: read
+    outputs:
+      groups: ${{ steps.plan.outputs.groups }}
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v5
+        with:
+          # グループ別タグとの差分を取るため全履歴を取得する
+          fetch-depth: 0
+
+      - name: 版と対象グループを決める
+        id: plan
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MODE: ${{ inputs.mode }}
+          INPUT_VERSION: ${{ inputs.version }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $solutions = [ordered]@{
+            'EsUtil'               = 'EsUtil/EsUtil.slnx'
+            'EsUtil.Ui.AvaloniaUI' = 'EsUtil.Ui.AvaloniaUI/EsUtil.Ui.AvaloniaUI.slnx'
+            'EsUtil.Ui.MewUI'      = 'EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx'
+            'EsUtil.Ui.WinUI3'     = 'EsUtil.Ui.WinUI3/EsUtil.Ui.WinUI3.slnx'
+            'EsUtil.Ui.WinForms'   = 'EsUtil.Ui.WinForms/EsUtil.Ui.WinForms.slnx'
+          }
+
+          $props = [IO.File]::ReadAllText('Directory.Build.props', [Text.UTF8Encoding]::new($false))
+
+          function Get-Prefix([string]$group) {
+            $key = ($group -replace '\.', '_') + '_VersionPrefix'
+            $m = [regex]::Match($props, ("<{0}>([^<]+)</{0}>" -f [regex]::Escape($key)))
+            if (-not $m.Success) { throw "Directory.Build.props に $key がありません" }
+            return $m.Groups[1].Value.Trim()
+          }
+
+          # 公開する版にローカル識別子を含めない（取り消せない公開を守る）
+          $groups = [System.Collections.Generic.List[object]]::new()
+          foreach ($group in $solutions.Keys) {
+            $version = Get-Prefix $group
+            if ($version -match '-') { throw "$group の VersionPrefix にローカル識別子が含まれています: $version" }
+
+            if ($env:INPUT_VERSION -and $env:INPUT_VERSION.Trim() -ne $version) {
+              throw "入力 $($env:INPUT_VERSION) が $group の VersionPrefix $version と一致しません（版はコミット済みの値を使います）"
+            }
+
+            # 前回のグループ別タグから変わったかを差分で決める（タグが無ければ初回＝対象）
+            $tag = "$group/v$version"
+            $lastTag = @(git tag --list "$group/v*" --sort=-v:refname) | Select-Object -First 1
+            if ($lastTag -eq $tag) { throw "タグ $tag は既に存在します（同じ版を再リリースできません）" }
+
+            $changed = if ($lastTag) {
+              @(git diff --name-only "$lastTag...$($env:SHA)" -- $group).Count -gt 0
+            }
+            else { $true }
+
+            if ($changed) {
+              $groups.Add([ordered]@{ group = $group; version = $version; tag = $tag; solution = $solutions[$group] })
+            }
+          }
+
+          if ($groups.Count -eq 0) {
+            Write-Host 'リリースするグループがありません（前回のタグから変更がありません）。'
+          }
+
+          # release は「同じコミットの dry-run が成功している」ことを前提にする
+          if ($env:MODE -eq 'release') {
+            $runs = @(gh run list --repo $env:REPO --workflow release.yml --commit $env:SHA --limit 50 --json name,conclusion,headSha | ConvertFrom-Json)
+            $ok = @($runs | Where-Object { $_.name -like 'DryRun*' -and $_.conclusion -eq 'success' }).Count -gt 0
+            if (-not $ok) {
+              throw "このコミット（$env:SHA）の dry-run の成功実行がありません。先に mode=dry-run で実行してください。"
+            }
+          }
+
+          $json = $groups | ConvertTo-Json -Compress -AsArray
+          "groups=$json" >> $env:GITHUB_OUTPUT
+          "count=$($groups.Count)" >> $env:GITHUB_OUTPUT
+          Write-Host "対象: $json"
+
+  # ────────────────────────────────────────────────────────────
+  # 2. 配布物の作成（dry-run でも release でも実行する）
+  # ────────────────────────────────────────────────────────────
   pack:
-    # Win32 / WIC を呼ぶ層を含むため Windows を要求する。
+    needs: verify
+    if: needs.verify.outputs.count != '0'
     runs-on: windows-latest
     timeout-minutes: 60
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: チェックアウト
+        uses: actions/checkout@v5
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - name: NuGet をキャッシュ
+        uses: actions/cache@v6
         with:
-          global-json-file: global.json
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
 
-      # 版を上げ、ローカル フィード（`.nupkg/`）へ出力する。
-      - name: Pack packages
+      # 版はコミット済みの VersionPrefix を使う（ワークフローで書き換えない）。
+      # グループ（= ソリューション）ごとに pack する。 公開する版にはローカル識別子を付けない。
+      - name: パッケージを作成
         shell: pwsh
-        run: ./buildScript/pack.ps1
+        env:
+          GROUPS: ${{ needs.verify.outputs.groups }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($item in @(ConvertFrom-Json $env:GROUPS)) {
+            $out = Join-Path 'artifacts' ($item.group -replace '\.', '-')
+            & dotnet pack $item.solution -c Release -o $out --nologo
+            if ($LASTEXITCODE -ne 0) { throw "pack が失敗しました: $($item.group)" }
+          }
+          Get-ChildItem -Path 'artifacts' -Recurse -File | ForEach-Object { $_.FullName }
 
-      # 作り直したパッケージで検証する（タグの指す木が合格しない状態で配布物を残さない）。
-      - name: Verify
-        shell: pwsh
-        run: ./buildScript/verify.ps1 -Configuration Release -NoRestore
-
-      - name: Upload packages
+      - name: 配布物を保管
         uses: actions/upload-artifact@v4
         with:
           name: nupkg
           path: |
-            .nupkg/*.nupkg
-            .nupkg/*.snupkg
+            artifacts/**/*.nupkg
+            artifacts/**/*.snupkg
           if-no-files-found: error
+
+  # ────────────────────────────────────────────────────────────
+  # 3. 公開（release のみ。 承認を要求する）
+  # ────────────────────────────────────────────────────────────
+  publish:
+    needs: [verify, pack]
+    if: inputs.mode == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # 承認されたジョブだけが公開できる（Trusted Publishing のポリシーもこの環境に紐づける）
+    environment: release
+    permissions:
+      contents: read
+      # OIDC で短命の NuGet API キーを取得する
+      id-token: write
+    steps:
+      - name: 配布物を取得
+        uses: actions/download-artifact@v4
+        with:
+          name: nupkg
+          path: artifacts
+
+      # 短命の API キーを取得する（1 時間有効。 1 トークン = 1 キー。 **push の直前に取得する**）
+      - name: NuGet の API キーを取得
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # 既に同じ版がある場合はハッシュを比べる（一致＝成功、不一致＝失敗）。
+      # --skip-duplicate を無条件に使うと、別物を上げた事故を見逃す。
+      - name: 公開
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = 'https://api.nuget.org/v3/index.json'
+          $flat = 'https://api.nuget.org/v3-flatcontainer'
+
+          foreach ($package in @(Get-ChildItem -Path 'artifacts' -Recurse -File -Filter '*.nupkg')) {
+            # ファイル名から PackageId と版を取り出す（<id>.<version>.nupkg）
+            if ($package.BaseName -notmatch '^(?<id>.+?)\.(?<v>\d+\.\d+\.\d+)$') {
+              throw "パッケージ名から版を判定できません: $($package.Name)"
+            }
+            $id = $Matches['id'].ToLowerInvariant()
+            $version = $Matches['v']
+            $url = "$flat/$id/$version/$id.$version.nupkg"
+
+            $exists = $false
+            try {
+              $head = Invoke-WebRequest -Uri $url -Method Head -ErrorAction Stop
+              $exists = $head.StatusCode -eq 200
+            }
+            catch { $exists = $false }
+
+            if ($exists) {
+              $temp = Join-Path ([IO.Path]::GetTempPath()) "$id.$version.nupkg"
+              Invoke-WebRequest -Uri $url -OutFile $temp
+              $local = (Get-FileHash -LiteralPath $package.FullName -Algorithm SHA256).Hash
+              $remote = (Get-FileHash -LiteralPath $temp -Algorithm SHA256).Hash
+              Remove-Item -LiteralPath $temp -Force
+              if ($local -ne $remote) { throw "$id $version は既に公開されており、内容が違います（版を上げてください）" }
+              Write-Host "公開済み（同一の内容）: $id $version"
+              continue
+            }
+
+            & dotnet nuget push $package.FullName --source $source --api-key $env:NUGET_API_KEY
+            if ($LASTEXITCODE -ne 0) { throw "push が失敗しました: $($package.Name)" }
+          }
+
+          # シンボル パッケージ（.snupkg）も同じ版で送る
+          foreach ($symbols in @(Get-ChildItem -Path 'artifacts' -Recurse -File -Filter '*.snupkg')) {
+            & dotnet nuget push $symbols.FullName --source $source --api-key $env:NUGET_API_KEY
+            if ($LASTEXITCODE -ne 0) { throw "シンボルの push が失敗しました: $($symbols.Name)" }
+          }
+
+  # ────────────────────────────────────────────────────────────
+  # 4. タグと GitHub Release（公開が成功した後にだけ実行する）
+  # ────────────────────────────────────────────────────────────
+  tag:
+    needs: [verify, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      # グループ別にタグと Release を作る（タグはワークフローだけが作る）
+      - name: タグと Release を作成
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GROUPS: ${{ needs.verify.outputs.groups }}
+          SHA: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($item in @(ConvertFrom-Json $env:GROUPS)) {
+            $notes = "公開したパッケージ: $($item.group) v$($item.version)"
+            & gh release create $item.tag --target $env:SHA --title "$($item.group) v$($item.version)" --notes $notes
+            if ($LASTEXITCODE -ne 0) { throw "タグと Release の作成が失敗しました: $($item.tag)" }
+            Write-Host "作成しました: $($item.tag)"
+          }
