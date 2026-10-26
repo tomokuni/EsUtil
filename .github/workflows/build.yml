@@ -92,17 +92,21 @@ jobs:
           }
 
           $changed = @(Get-ChangedFiles)
-          $repoWide = ($changed.Count -eq 0) -or (@($changed | Where-Object {
+
+          # **文書（.md）だけの変更ではビルドもテストも要らない**（実測 2026-10-27: 文書だけの push に
+          # 8 分かけていた）。 文書の検査は docs ジョブ（verifyDocs.ps1）が持つ。
+          $code = @($changed | Where-Object { $_ -notmatch '\.md$' })
+          $repoWide = ($changed.Count -eq 0) -or (@($code | Where-Object {
                 $_ -match '^(Directory\.|buildScript/|\.github/|global\.json|NuGet\.config|\.editorconfig|\.gitattributes)'
               }).Count -gt 0)
 
           $targets = @()
-          if ($repoWide -or @($changed | Where-Object { $_ -match '^EsUtil/' }).Count -gt 0) {
+          if ($repoWide -or @($code | Where-Object { $_ -match '^EsUtil/' }).Count -gt 0) {
             $targets = @($solutions.Values)
           }
           else {
             foreach ($group in $solutions.Keys) {
-              if (@($changed | Where-Object { $_ -like "$group/*" }).Count -gt 0) { $targets += $solutions[$group] }
+              if (@($code | Where-Object { $_ -like "$group/*" }).Count -gt 0) { $targets += $solutions[$group] }
             }
           }
           $targets = @($targets | Sort-Object -Unique)
