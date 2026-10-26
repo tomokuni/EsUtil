@@ -47,7 +47,7 @@
   - **形式の一覧を実行環境から作るようになりました**（固定の一覧を廃止）。 `IWICImagingFactory::CreateComponentEnumerator` で登録済みのエンコーダーを列挙し、**8x8 の試し書きが通った形式だけ**を `SupportedFileExtensions` に残します。 この環境では 19 拡張子（`.bmp` / `.dib` / `.rle` / `.gif` / `.jpeg` / `.jpe` / `.jpg` / `.jfif` / `.exif` / `.png` / `.tiff` / `.tif` / `.wdp` / `.jxr` / `.dds` / `.heic` / `.heif` / `.hif` / `.jxl`）が並びます。
   - **減色（`ColorCount`）を受け付ける形式を固定しなくなりました**（エンコーダーの返答で決まります）。 実測では TIFF もパレット画像として保存できます（以前は「未検証」として拒否していました）。
   - `EsImageFileExtensions.All` に `.jxr` / `.wdp` / `.heic` / `.heif` / `.jxl` を追加（一覧に並べる判断は、読み書きできるかの判断と別であるため）。
-- `CHANGELOG.md` / `.github/workflows/build.yml` / `.github/workflows/release.yml` / `.github/開発手順.md`（公開に向けた整備）。 **`CONTRIBUTING.md` は置きません**（本リポジトリは外部からのコントリビューションを受け付けないため。 開発の進め方は `.github/開発手順.md` が持ちます）。
+- `CHANGELOG.md` / `.github/workflows/build.yml` / `.github/workflows/release.yml` / `.github/開発手順.md`（公開に向けた整備）。 **`CONTRIBUTING.md` は置きません**（開発の進め方は `.github/開発手順.md` が持ちます）。
 
 ### 変更（破壊的）
 
@@ -63,7 +63,7 @@
   - **`AOT` バッジ（`AOT-Ready`）を追加しました**。 対象はルート `README.md` と AOT に対応するパッケージで、**WinForms 層は除きます**（[`ビルド設定規約.md`](.github/ビルド設定規約.md) §6.1 と同じ判断）。
   - **nuget.org の版のバッジのラベルを `Release` から `NuGet` へ変えました**（`Release` は `release.yml` の状態を指すため、同じラベルで 2 つの意味を持たせない）。 併せて `release.yml` のバッジをパッケージの README にも置きました。
   - 並び順は NuGet → Release → Build → Platform → .NET → AOT → 対応 UI → License です。
-- **ルート `README.md` を再編しました**: プロジェクトの一覧を**ソリューションごと**に並べ（版は nuget.org のバッジ）、`使い方` / `検証` の節を外しました（使い方は各プロジェクトの `README.md`、手順は `.github/開発手順.md` / `.github/検証手順.md` が所有します）。 **`CONTRIBUTING.md` を削除**し、内容を `.github/開発手順.md` へ移しました（本リポジトリは外部からのコントリビューションを受け付けません。 フォークは自由です）。
+- **ルート `README.md` を再編しました**: プロジェクトの一覧を**ソリューションごと**に並べ（版は nuget.org のバッジ）、`使い方` / `検証` の節を外しました（使い方は各プロジェクトの `README.md`、手順は `.github/開発手順.md` / `.github/検証手順.md` が所有します）。 **`CONTRIBUTING.md` を削除**し、内容を `.github/開発手順.md` へ移しました。
 - **WIC の相互運用を CsWin32 の生成物へ移行しました**（`EsUtil.Platform.Core` の内部実装。 公開 API は変わりません）。 手書きの `[GeneratedComInterface]`（20 ファイル）を削除し、`wincodec.h` から生成した型を生ポインターで使います。 これにより **vtable の位置ずれによるアクセス違反（`0xC0000005`）が構造的に起きなくなります**（実測で 2 回踏んでいました）。 併せて `EsUtil/Platform.Core/src/NativeMethods.json` に `"allowMarshaling": false` を追加したため、Win32 の宣言から**実行時マーシャリングが無くなりました**（`string` の代わりに `PCWSTR` / `Span<char>`、デリゲートの代わりに `delegate* unmanaged` を使います）。
 - **減色の実装を WIC へ置き換えました**（`EsUtil.Platform.Core`）。 `EsReadOnlyBitmap.ReduceColors` / `EsBitmap.ReduceColors` / `EsPixmap.ReduceColors` は **WIC のパレット生成（中央値分割）と 8bpp インデックスへの変換**を使い、**自前の減色の計算（ヒストグラム・中央値分割・CIELAB の距離・ディザ）を削除しました**。 保存の `ColorCount` と同じパレットを使うため、**保存したファイルの画素と `ReduceColors` の結果が一致します**（テストが検証）。
 - **減色の API が変わりました（破壊的）**: `ReduceColors(int colorCount, EsImageQuality quality = Mid, EsDitherMode dither = None)` → **`ReduceColors(int colorCount, EsDitherMode dither = None)`**（WIC には品質の段階が無い）。 `EsImageSaveOptions.ColorQuality` を削除しました。 `EsDitherMode.FloydSteinberg` を **`EsDitherMode.ErrorDiffusion`** へ改名しました。
