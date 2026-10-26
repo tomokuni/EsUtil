@@ -318,8 +318,10 @@ if (-not $SkipTests) {
         if ($Coverage) { $testArgs += @('--collect:XPlat Code Coverage', "--results-directory:$coverageDir") }
         $test = Invoke-DotNet $testArgs
         $testText += $test.Text + "`n"
-        foreach ($m in [regex]::Matches($test.Text, '合格:\s*(\d+)')) { $passed += [int]$m.Groups[1].Value }
-        foreach ($m in [regex]::Matches($test.Text, '失敗:\s*(\d+)')) { $failed += [int]$m.Groups[1].Value }
+        # 件数の見出しはランナーの言語で変わる（日本語の "合格:" と英語の "Passed:"）。
+        # **どちらでも数える**（片方だけだと、英語のランナーで「0 件＝不合格」と誤判定する。 実測 2026-10-26）。
+        foreach ($m in [regex]::Matches($test.Text, '(?:合格|Passed):\s*(\d+)')) { $passed += [int]$m.Groups[1].Value }
+        foreach ($m in [regex]::Matches($test.Text, '(?:失敗|Failed):\s*(\d+)')) { $failed += [int]$m.Groups[1].Value }
         $projects += [regex]::Matches($test.Text, '\.dll \(net10\.0[^)]*\)').Count
         if ($test.ExitCode -ne 0) { $testExit = $test.ExitCode }
     }
