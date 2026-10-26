@@ -299,8 +299,8 @@ $groups = [ordered]@{}
 foreach ($group in ($record.Keys | Sort-Object)) {
     $groups[$group] = [ordered]@{ suffix = $record[$group].suffix; fingerprint = $record[$group].fingerprint }
 }
-$json = ([ordered]@{ groups = $groups } | ConvertTo-Json -Depth 5) -replace "`r?`n", "`n"
-[IO.File]::WriteAllText($recordPath, $json + "`n", $enc)
+$json = (([ordered]@{ groups = $groups } | ConvertTo-Json -Depth 5) -replace "`r?`n", "`r`n")
+[IO.File]::WriteAllText($recordPath, $json + "`r`n", $enc)
 
 Write-Output ''
 if ($failedNames.Count -gt 0) {
