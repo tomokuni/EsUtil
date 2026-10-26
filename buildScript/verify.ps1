@@ -37,6 +37,10 @@ NuGet の健全性（既知の脆弱性。 推移的依存を含む）の検査�
 .PARAMETER Coverage
 テスト時にカバレッジを取得し、対象ファイルごとの被覆率を集計する（テスト規約の「カバレッジ 100% を目指す」の数値確認用）。
 
+.PARAMETER SkipDocs
+文書とコードの走査（ビルド・テストと重ねて実行する独立した検査）を省略する。
+**CI が走査を別のジョブへ分けたときに使う**（同じ走査を 2 回走らせないため）。 省略した検査は合否に含めない。
+
 .PARAMETER NoRestore
 `--no-restore` を付ける（呼び出し側が復元済みのとき。 CI は復元を別ステップで行う）。
 
@@ -65,6 +69,7 @@ param(
     [switch]$SkipPackage,
     [switch]$SkipPackaging,
     [switch]$Coverage,
+    [switch]$SkipDocs,
     [switch]$NoRestore
 )
 
@@ -75,6 +80,15 @@ Set-Location $repoRoot
 
 
 . (Join-Path $PSScriptRoot 'VerifyCommon.ps1')
+
+# 各節の所要時間を記録する（どこに時間を使っているかを出力に残し、最適化を推測でやらないため）。
+$scriptClock = [Diagnostics.Stopwatch]::StartNew()
+$sectionClock = [Diagnostics.Stopwatch]::StartNew()
+$sectionTimings = [System.Collections.Generic.List[string]]::new()
+function Add-SectionTiming([string]$Name) {
+    $sectionTimings.Add(("{0} {1:N1} 秒" -f $Name, $sectionClock.Elapsed.TotalSeconds))
+    $sectionClock.Restart()
+}
 
 # `dotnet` を実行し、**出力と終了コード**を返す。 出力の文字列だけを見ると、CLI 自体の異常終了
 # （引数の誤り・復元の失敗など、警告の形で出ないもの）を「警告 0 件」と読み替えてしまうため、
@@ -172,7 +186,7 @@ $restoreArgs = if ($NoRestore) { @('--no-restore') } else { @() }
 
 # 文書とコードの走査をここで起動する（ビルド・テストと重ねるため、結果を出す位置より先に始める）。
 # -Fix のときは直列にする（修正と判定の順序が決まっているため）ので、ここでは起動しない。
-$docsBackground = if ($Fix) { $null } else { Start-DocsVerification }
+$docsBackground = if ($Fix -or $SkipDocs) { $null } else { Start-DocsVerification }
 
 # 途中で例外が出ても走査の子プロセスと一時ファイルを残さない（`break` で例外はそのまま伝える）。
 trap {
@@ -208,6 +222,7 @@ else {
     # 省略した検査は合否に含めない（-SkipBuild は文書だけを直したときの往復を短くする用途）
     Add-Info 'ビルド' '省略（-SkipBuild。 直前にビルドした出力を使う）'
 }
+Add-SectionTiming 'ビルド'
 
 
 # ============================================================
@@ -313,6 +328,9 @@ if (-not $SkipTests) {
     $projects = 0
     $testExit = 0
     $testText = ''
+    # ソリューションごとに `dotnet test` を実行する。 **同時には走らせない**: 各ソリューションのテストは
+    # 内部で並列に走るため、重ねても短くならず、プロセス起動と CPU の取り合いで遅くなる（実測 2026-10-27:
+    # 直列 14 秒 / 並列 17 秒）。 CI はソリューションごとにジョブを分けて並列にする（build.yml）。
     foreach ($sln in $Solution) {
         $testArgs = @('test', $sln, '-c', $Configuration, '-tl:off', '--no-build')
         if ($Coverage) { $testArgs += @('--collect:XPlat Code Coverage', "--results-directory:$coverageDir") }
@@ -326,6 +344,7 @@ if (-not $SkipTests) {
         if ($test.ExitCode -ne 0) { $testExit = $test.ExitCode }
     }
     Add-Result 'テスト' ($failed -eq 0 -and $passed -gt 0 -and $testExit -eq 0) "合格 $passed / 失敗 $failed / $projects プロジェクト / 終了コード $testExit"
+    Add-SectionTiming 'テスト'
     if ($failed -gt 0) {
         # 失敗したテスト名を出す（合計だけでは原因を特定できない）
         $testText -split "`r?`n" | Where-Object { $_ -match '^\s*(失敗|Failed)\s+\S' } | Select-Object -First 10 | ForEach-Object { "      $($_.Trim())" }
@@ -404,6 +423,7 @@ if (-not $SkipPackage) {
         $auditText -split "`r?`n" | Where-Object { $_ -match 'error NU1' } | Select-Object -First 5 | ForEach-Object { "      $($_.Trim())" }
     }
 }
+Add-SectionTiming 'NuGet の健全性'
 
 
 # ============================================================
@@ -428,16 +448,22 @@ else {
             ForEach-Object { "      $_" }
     }
 }
+Add-SectionTiming 'パッケージング（pack と パッケージ参照での復元・ビルド・起動）'
 # ============================================================
 # 5〜10. 文書とコードの走査（buildScript/verifyDocs.ps1。 上の Start-DocsVerification で起動済み）
 # ============================================================
 if ($docsBackground) {
     Receive-DocsVerification $docsBackground
 }
+elseif ($SkipDocs) {
+    # 別のジョブ（buildScript/verifyDocs.ps1）が実行する。 合否に含めない（二重計上しないため）
+    Add-Info '文書とコードの走査' '省略（-SkipDocs。 CI の docs ジョブが buildScript/verifyDocs.ps1 を実行する）'
+}
 else {
     # -Fix のときは直列で走らせる（修正と判定の順序を保つ）
     Receive-DocsVerification (Start-DocsVerification)
 }
+Add-SectionTiming '走査（背景で実行。 ビルド・テストと重なる）'
 
 # ============================================================
 # 11. コードスタイル（`dotnet format`。 既定では省略し、ビルドと走査で代替する）
@@ -509,6 +535,10 @@ foreach ($r in $script:Results) {
     $mark = if ($r.Kind -eq 'Info') { 'INFO' } elseif ($r.Ok) { 'OK  ' } else { 'FAIL' }
     Write-Output ("{0}  {1}`t{2}" -f $mark, $r.Name, $r.Detail)
 }
+# どこに時間を使ったかを残す（走査はビルド・テストと重なるため、内訳の合計は実時間より長くなる）
+Add-SectionTiming 'その他'
+Write-Output ''
+Write-Output ("INFO  所要時間`t実時間 {0:N1} 秒 / 内訳: {1}" -f $scriptClock.Elapsed.TotalSeconds, ($sectionTimings -join ' / '))
 Write-Output ''
 if ($failed.Count -eq 0) {
     $checks = @($script:Results | Where-Object { $_.Kind -eq 'Check' }).Count

@@ -10,9 +10,15 @@
 # 共通基盤（`EsUtil/`）・ビルド設定・スクリプト・文書を変えたときは 5 本すべてを検証する。
 # 検証の中身は buildScript/verify.ps1 が単一所有し、合否基準は .github/検証手順.md が定める。
 #
+# **ジョブは 3 つを同時に走らせる**（直列だと 1 ジョブ 8 分だった。 実測 2026-10-26）。
+#   verify    … ソリューションごとに 1 ジョブ（マトリクス）。 ビルドとテスト（走査とパッケージングは除く）
+#   docs      … 文書とコードの走査（復元もビルドも要らない）
+#   packaging … パッケージング（リポジトリ全体の設定を変えたときだけ）
+# ソリューションは互いに独立しているため、分けても検証の意味は変わらない（壁時計は最も遅い 1 本になる）。
+#
 # .NET SDK のバージョンはリポジトリルートの global.json が単一所有する（ワークフローでは指定しない）。
 # .NET SDK はランナー イメージに含まれる最新版をそのまま使う（actions/setup-dotnet を使わない）。
-# キャッシュは NuGet の復元（最も時間を使う工程）だけを対象にする。
+# キャッシュは NuGet の復元と npm（markdownlint）だけを対象にする。
 #
 # Windows 専用（Win32 API の P/Invoke を含む）のため windows-latest で実行する。
 #
@@ -108,12 +114,23 @@ jobs:
   # ────────────────────────────────────────────────────────────
   # 2. 検証（verify.ps1 が単一所有する）
   # ────────────────────────────────────────────────────────────
+  # **ソリューションごとに 1 ジョブ**にする（マトリクス）。 ローカルでは 1 プロセスで順に検証するが、
+  # 5 本を直列に回すと CI で 8 分かかっていた（実測 2026-10-26）。 ソリューションは互いに独立している
+  # （共通基盤を ProjectReference で持つだけ）ため、ジョブを分ければ**壁時計は最も遅い 1 本**になる。
+  # 走査とパッケージングは別ジョブへ出し、3 ジョブを同時に走らせる（同じ検査を 2 回走らせない）。
   verify:
     needs: changes
     if: needs.changes.outputs.solutions != '[]'
+    strategy:
+      # 1 本が落ちても他を最後まで走らせる（どのソリューションが壊れたかを 1 回で全部見る）
+      fail-fast: false
+      matrix:
+        # 対象が無いときも 1 件（"(none)"）にして、空のマトリクスで失敗しないようにする（上の if でスキップする）
+        solution: ${{ fromJSON(needs.changes.outputs.solutions != '[]' && needs.changes.outputs.solutions || '["(none)"]') }}
     runs-on: windows-latest
     # テストが停止した場合に 6 時間（既定）待たないための上限
     timeout-minutes: 60
+    name: verify (${{ matrix.solution }})
     steps:
       - name: チェックアウト
         uses: actions/checkout@v5
@@ -130,24 +147,66 @@ jobs:
             nuget-${{ runner.os }}-
 
       # 検証は buildScript/verify.ps1 が単一所有する（合否基準は .github/検証手順.md が所有者）。
-      # 対象は変更のあったソリューションだけにする（paths フィルタ）。
-      # -Solution は配列のため、**1 つの -Command の中で配列として組み立てる**
-      # （`-File` へ -Solution を複数回渡すと「2 回指定された」で失敗する。 実測）。
+      # 走査（-SkipDocs）とパッケージング（-SkipPackaging）は別ジョブが持つ。
       - name: 検証（Release）
         shell: pwsh
-        env:
-          SOLUTIONS: ${{ needs.changes.outputs.solutions }}
-          PACKAGING: ${{ needs.changes.outputs.packaging }}
         run: |
-          $ErrorActionPreference = 'Stop'
-          $solutions = @(ConvertFrom-Json $env:SOLUTIONS)
-          $list = ($solutions | ForEach-Object { "'$_'" }) -join ','
-
-          $command = "& './buildScript/verify.ps1' -Configuration Release -Solution @($list)"
-          if ($env:PACKAGING -ne 'true') { $command += ' -SkipPackaging' }
-
-          & pwsh -NoProfile -Command $command
+          & './buildScript/verify.ps1' -Configuration Release -Solution '${{ matrix.solution }}' -SkipDocs -SkipPackaging
           if ($LASTEXITCODE -ne 0) { throw "検証が失敗しました（exit $LASTEXITCODE）" }
+
+  # ────────────────────────────────────────────────────────────
+  # 2b. 文書とコードの走査（ビルドも復元も要らない。 verify と同時に走らせる）
+  # ────────────────────────────────────────────────────────────
+  docs:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v5
+
+      # markdownlint は npx で取る（毎回ダウンロードすると 2 分近くかかる。 実測 2026-10-26: 走査 125 秒）
+      - name: npm をキャッシュ
+        uses: actions/cache@v6
+        with:
+          path: ~\AppData\Local\npm-cache
+          # 版は buildScript/verifyDocs.ps1 が単一所有する（版を上げるとキーが変わる）
+          key: npm-${{ runner.os }}-${{ hashFiles('buildScript/verifyDocs.ps1', 'buildScript/markdownlint.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
+
+      # 合否基準は .github/検証手順.md（実装は buildScript/verifyDocs.ps1 が単一所有する）
+      - name: 走査
+        shell: pwsh
+        run: |
+          & pwsh -NoProfile -File buildScript/verifyDocs.ps1
+          if ($LASTEXITCODE -ne 0) { throw "走査が失敗しました（exit $LASTEXITCODE）" }
+
+  # ────────────────────────────────────────────────────────────
+  # 2c. パッケージング（リポジトリ全体の設定を変えたときだけ。 verify と同時に走らせる）
+  # ────────────────────────────────────────────────────────────
+  packaging:
+    needs: changes
+    if: needs.changes.outputs.packaging == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v5
+
+      - name: NuGet をキャッシュ
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      # pack → 一時フィード → 一時コンシューマーで復元・ビルド・起動（規則は .github/検証手順.md §9）
+      - name: パッケージング
+        shell: pwsh
+        run: |
+          & pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -Configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "パッケージングの検証が失敗しました（exit $LASTEXITCODE）" }
   # ────────────────────────────────────────────────────────────
   # 3. 必須チェックの受け皿
   # ────────────────────────────────────────────────────────────
@@ -155,7 +214,7 @@ jobs:
   # `verify` は条件（`if`）でスキップされ得るため、そのまま必須にするとスキップ時に
   # 「Expected」のまま残ってマージできなくなる。 常に走る集約ジョブで受ける。
   ci:
-    needs: [changes, verify]
+    needs: [changes, verify, docs, packaging]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -165,12 +224,17 @@ jobs:
         env:
           CHANGES: ${{ needs.changes.result }}
           VERIFY: ${{ needs.verify.result }}
+          DOCS: ${{ needs.docs.result }}
+          PACKAGING: ${{ needs.packaging.result }}
         run: |
-          echo "changes=$CHANGES verify=$VERIFY"
-          # verify のスキップは「対象のソリューションが無い」だけなので合格にする
-          if [[ "$VERIFY" != "success" && "$VERIFY" != "skipped" ]]; then
-            echo "::error::検証が失敗しました（$VERIFY）"; exit 1
-          fi
+          echo "changes=$CHANGES verify=$VERIFY docs=$DOCS packaging=$PACKAGING"
+          # スキップは「対象が無い」だけなので合格にする
+          # （verify は対象のソリューションが無い / packaging はリポジトリ全体の変更が無い）
+          for result in "$VERIFY" "$DOCS" "$PACKAGING"; do
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              echo "::error::検証が失敗しました（$result）"; exit 1
+            fi
+          done
           if [[ "$CHANGES" != "success" ]]; then
             echo "::error::変更の判定が失敗しました（$CHANGES）"; exit 1
           fi
