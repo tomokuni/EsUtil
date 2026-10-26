@@ -156,11 +156,12 @@ sequenceDiagram
 1. `RefreshLayout()` が配置を解き、スクロール範囲を設定します。
 2. ポインターの移動は位置から添字へ変換し、ホバーを切り替えて描き直します。
 3. 押下は選択、2 回押しは `ItemActivated` の通知になります。
-4. `OnPaint` は `AutoScrollPosition` だけ座標系を移し、各項目を層の順に描きます。
+4. `OnPaint` は `AutoScrollPosition` だけ座標系を移し、**見えている項目だけ**を層の順に描きます（範囲は `ThumbnailLayoutResult.VisibleRange` が決めます。 全件を描くとフォルダーのファイル数に比例して GDI+ のオブジェクトを作ることになります）。
 
 ## 7. 影と画像の描画
 
 - **影**: `BuildDeviceBands` の帯（倍率 1）を 1 画素ずつ単色で塗ります。
+- **描画のキャッシュ**: `Font`（大きさ・太さごと）と `SolidBrush`（色ごと）は使い回し、コントロールの破棄で解放します（影の帯は濃さごとに色が変わるため、同じ色が何度も現れます）。
 - **画像**: `Bitmap` を `DrawImage` で描きます（`InterpolationMode` は高品質系へ切り替え、元の値へ戻します）。
 - **名前**: `TextRenderer.DrawText` で描きます（中央揃え・語単位の折り返し・末尾の省略）。
 

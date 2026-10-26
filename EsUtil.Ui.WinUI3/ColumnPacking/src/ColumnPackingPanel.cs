@@ -45,7 +45,7 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
 
     /// <summary><b>行間スペースを指定する DependencyProperty</b></summary>
     /// <remarks>
-    /// デフォルト: 8.0<br/>
+    /// デフォルト: 8.0 DIP<br/>
     /// </remarks>
     public static readonly DependencyProperty RowSpaceProperty = DependencyProperty.Register(
         nameof(RowSpace),
@@ -55,7 +55,7 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
 
     /// <summary><b>列間スペースを指定する DependencyProperty</b></summary>
     /// <remarks>
-    /// デフォルト: 8.0<br/>
+    /// デフォルト: 8.0 DIP<br/>
     /// </remarks>
     public static readonly DependencyProperty ColumnSpaceProperty = DependencyProperty.Register(
         nameof(ColumnSpace),
@@ -83,9 +83,9 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
         typeof(ColumnPackingPanel),
         new PropertyMetadata(Method.BinarySearch, OnLayoutPropertyChanged));
 
-    /// <summary><b>行間スペース（ピクセル）</b></summary>
+    /// <summary><b>行間スペース（DIP）</b></summary>
     /// <remarks>
-    /// デフォルト: 8.0<br/>
+    /// デフォルト: 8.0 DIP<br/>
     /// </remarks>
     public double RowSpace
     {
@@ -93,9 +93,9 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
         set => SetValue(RowSpaceProperty, value);
     }
 
-    /// <summary><b>列間スペース（ピクセル）</b></summary>
+    /// <summary><b>列間スペース（DIP）</b></summary>
     /// <remarks>
-    /// デフォルト: 8.0<br/>
+    /// デフォルト: 8.0 DIP<br/>
     /// </remarks>
     public double ColumnSpace
     {
@@ -178,7 +178,7 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
         typeof(ColumnPackingPanel),
         new PropertyMetadata(null));
 
-    /// <summary><b>使用された幅（ピクセル）</b></summary>
+    /// <summary><b>使用された幅（DIP）</b></summary>
     /// <remarks>
     /// Layout.Solve() の結果から自動更新されます。未計算時は null。<br/>
     /// </remarks>
@@ -188,7 +188,7 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
         private set => SetValue(LayoutUsedWidthProperty, value);
     }
 
-    /// <summary><b>最小高さ（ピクセル）</b></summary>
+    /// <summary><b>最小高さ（DIP）</b></summary>
     /// <remarks>
     /// Layout.Solve() の結果から自動更新されます。未計算時は null。<br/>
     /// </remarks>
