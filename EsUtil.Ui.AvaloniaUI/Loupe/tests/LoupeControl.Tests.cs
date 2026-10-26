@@ -480,6 +480,12 @@ public class LoupeControlTests
 
         var rendered = 0;
         control.Rendered += (_, _) => rendered++;
+        // 非表示にする**前**に残っている描画要求を流し切る。
+        // 残したままにすると、非表示後の Pump でその要求が処理され、描画回数が 0 か 1 かで判定がぶれる
+        // （実測 2026-10-26: CI で 1 回だけ失敗し、ローカルでは再現しない競合だった）。
+        await TestHelper.PumpAsync();
+        rendered = 0;
+
         control.IsVisible = false;
         control.CenterPoint = new Point(120, 120);
         await TestHelper.PumpAsync();
