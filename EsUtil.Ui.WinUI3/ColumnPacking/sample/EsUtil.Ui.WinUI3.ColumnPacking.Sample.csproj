@@ -10,10 +10,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- アンパッケージ（MSIX を使わない）で実行するため、パッケージ化せず Windows App SDK を同封する -->
-    <!-- publish のときだけ必要な指定（ビルドとテストには影響しない）。
-         これを付けないと publish が自分自身の .pri（リソース インデックス）を発行せず、
-         配布物の起動時に XAML の読み込みが失敗して 0xC000027B（stowed exception）で終了する（実測 2026-10-24）。 -->
-    <EnableMsixTooling>true</EnableMsixTooling>
+    <!-- EnableMsixTooling は付けない。 付けると publish は自身の .pri を発行するが、
+         ソリューションのビルド順によっては参照側の .pri が未生成のまま PRI252 で失敗する（実測 2026-10-26）。
+         サンプルは配布しないため、通常のビルドが出力する .pri で足りる。
+         配布するときは publish へ -p:EnableMsixTooling=true を渡す。 -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <!-- 自己完結の配置は対象アーキテクチャを要する（既定を x64 とし、`-r` で上書きできるようにする） -->
