@@ -221,6 +221,9 @@ jobs:
           $source = 'https://api.nuget.org/v3/index.json'
           $flat = 'https://api.nuget.org/v3-flatcontainer'
 
+          # 実際に push したパッケージ（シンボルも同じ版で送るため、対象を控える）
+          $pushed = [System.Collections.Generic.HashSet[string]]::new()
+
           foreach ($package in @(Get-ChildItem -Path 'artifacts' -Recurse -File -Filter '*.nupkg')) {
             # ファイル名から PackageId と版を取り出す（<id>.<version>.nupkg）
             if ($package.BaseName -notmatch '^(?<id>.+?)\.(?<v>\d+\.\d+\.\d+)$') {
@@ -250,10 +253,16 @@ jobs:
 
             & dotnet nuget push $package.FullName --source $source --api-key $env:NUGET_API_KEY
             if ($LASTEXITCODE -ne 0) { throw "push が失敗しました: $($package.Name)" }
+            [void]$pushed.Add($package.BaseName)
           }
 
-          # シンボル パッケージ（.snupkg）も同じ版で送る
+          # シンボル パッケージ（.snupkg）は、本体を push したものだけ送る。
+          # 既に公開済みの版では本体を送っていないため、送ると 409 で失敗する（再実行を冪等にする）。
           foreach ($symbols in @(Get-ChildItem -Path 'artifacts' -Recurse -File -Filter '*.snupkg')) {
+            if (-not $pushed.Contains($symbols.BaseName)) {
+              Write-Host "送らない（本体が公開済み）: $($symbols.Name)"
+              continue
+            }
             & dotnet nuget push $symbols.FullName --source $source --api-key $env:NUGET_API_KEY
             if ($LASTEXITCODE -ne 0) { throw "シンボルの push が失敗しました: $($symbols.Name)" }
           }
