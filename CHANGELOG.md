@@ -1,9 +1,9 @@
 # 変更履歴
 
-本リポジトリは**プロジェクトごとに版が異なります**（値の所有者は [`Directory.Build.props`](Directory.Build.props) のバージョン表）。 そのため、この文書は**利用者に影響する変更**を時系列で記録し、版番号は各パッケージのものを併記します。
+本リポジトリは**5 つの版グループ（`EsUtil` / `EsUtil.Ui.<UI>`）ごとに版が異なります**（値の所有者は [`Directory.Build.props`](Directory.Build.props) の `VersionPrefix`）。 そのため、この文書は**利用者に影響する変更**を時系列で記録し、版番号は各グループのものを併記します。
 
-- 版の 3 桁目（`Patch`）は [`buildScript/pack.ps1`](buildScript/pack.ps1) がソースの指紋から自動で +1 します（人が書きません）。
-- 1・2 桁目（`Major` / `Minor`）は破壊的変更・機能追加のときに人が上げます。
+- **公開する版は人が決めます**（グループの `VersionPrefix` を書き換える）。
+- **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
 ## 未リリース
 
@@ -50,6 +50,8 @@
 - `CHANGELOG.md` / `.github/workflows/build.yml` / `.github/workflows/release.yml` / `.github/開発手順.md`（公開に向けた整備）。 **`CONTRIBUTING.md` は置きません**（本リポジトリは外部からのコントリビューションを受け付けないため。 開発の進め方は `.github/開発手順.md` が持ちます）。
 
 ### 変更（破壊的）
+
+- **版の付け方をグループ単位へ変えました**。 版は 5 つのグループ（`EsUtil` / `EsUtil.Ui.AvaloniaUI` / `EsUtil.Ui.MewUI` / `EsUtil.Ui.WinUI3` / `EsUtil.Ui.WinForms`）ごとに 1 つになり、**グループ内の全パッケージが同じ版**になります。 グループの版は人が決め（[`Directory.Build.props`](Directory.Build.props) の `VersionPrefix`）、ソースの変更で自動的に上がることはありません。 初回の公開版は全グループ `0.1.0` です。
 
 - **README に「実行に必要な Windows の下限」を書きました**（[`ドキュメント規約.md`](.github/ドキュメント規約.md) §3.4）。
   - **パッケージの `README.md`**: バッジを `Platform-Windows 10 (1809)+`（ビルド 17763）/ `Platform-Windows 10 (2004)+`（ビルド 19041）/ `Platform-Portable`（OS 固有の対象フレームワークを持たない）に分け、本文の「システム要件」（節が無いものはバッジの直後）にも同じ値を書きました。
