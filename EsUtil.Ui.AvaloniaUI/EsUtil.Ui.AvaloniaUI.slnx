@@ -19,4 +19,8 @@
     <Project Path="Thumbnail/src/EsUtil.Ui.AvaloniaUI.Thumbnail.csproj" />
     <Project Path="Thumbnail/tests/EsUtil.Ui.AvaloniaUI.Thumbnail.Tests.csproj" />
   </Folder>
+  <Folder Name="/Interop/">
+    <Project Path="Interop/src/EsUtil.Ui.AvaloniaUI.Interop.csproj" />
+    <Project Path="Interop/tests/EsUtil.Ui.AvaloniaUI.Interop.Tests.csproj" />
+  </Folder>
 </Solution>

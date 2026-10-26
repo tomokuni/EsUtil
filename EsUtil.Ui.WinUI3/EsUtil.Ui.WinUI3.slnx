@@ -24,4 +24,8 @@
     <Project Path="Thumbnail/src/EsUtil.Ui.WinUI3.Thumbnail.csproj" />
     <Project Path="Thumbnail/tests/EsUtil.Ui.WinUI3.Thumbnail.Tests.csproj" />
   </Folder>
+  <Folder Name="/Interop/">
+    <Project Path="Interop/src/EsUtil.Ui.WinUI3.Interop.csproj" />
+    <Project Path="Interop/tests/EsUtil.Ui.WinUI3.Interop.Tests.csproj" />
+  </Folder>
 </Solution>

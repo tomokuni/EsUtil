@@ -19,4 +19,8 @@
     <Project Path="Thumbnail/src/EsUtil.Ui.MewUI.Thumbnail.csproj" />
     <Project Path="Thumbnail/tests/EsUtil.Ui.MewUI.Thumbnail.Tests.csproj" />
   </Folder>
+  <Folder Name="/Interop/">
+    <Project Path="Interop/src/EsUtil.Ui.MewUI.Interop.csproj" />
+    <Project Path="Interop/tests/EsUtil.Ui.MewUI.Interop.Tests.csproj" />
+  </Folder>
 </Solution>

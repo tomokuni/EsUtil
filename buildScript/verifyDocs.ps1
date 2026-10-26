@@ -1012,6 +1012,31 @@ Add-Result 'フォルダ' ($emptyDirs.Count -eq 0 -and $orphanBins.Count -eq 0) 
 $emptyDirs | Select-Object -First 5 | ForEach-Object { "      $($_.FullName.Substring($repoRoot.Length + 1))" }
 $orphanBins | Select-Object -First 5 | ForEach-Object { "      $($_.FullName.Substring($repoRoot.Length + 1))" }
 
+# 10a) ソリューションの網羅（ソリューション フォルダ直下のプロジェクト フォルダは、すべてそのソリューションに入れる）
+#      入れ忘れると、ビルド・テスト・パッケージ作成が静かにそのプロジェクトを飛ばす
+#      （実測 2026-10-26: Interop が 4 つの UI ソリューションから漏れ、テストは 26 プロジェクト・
+#       パッケージは 26 個しか作られなかった）。 規則は .github/命名規約.md §2。
+$solutionMissing = [System.Collections.Generic.List[string]]::new()
+foreach ($solutionRoot in $solutionRoots) {
+    $slnx = Join-Path $solutionRoot.FullName "$($solutionRoot.Name).slnx"
+    if (-not (Test-Path -LiteralPath $slnx)) { $solutionMissing.Add("$($solutionRoot.Name): $($solutionRoot.Name).slnx がありません"); continue }
+    $slnxText = Get-Text $slnx
+    $declared = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($m in [regex]::Matches($slnxText, 'Project\s+Path="(?<p>[^"]+\.csproj)"')) {
+        [void]$declared.Add(([IO.Path]::GetFullPath((Join-Path $solutionRoot.FullName $m.Groups['p'].Value))))
+    }
+    foreach ($projectDir in (Get-ChildItem -Path $solutionRoot.FullName -Directory)) {
+        foreach ($csproj in (Get-ChildItem -Path $projectDir.FullName -Recurse -File -Filter '*.csproj' |
+                Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' })) {
+            if (-not $declared.Contains($csproj.FullName)) {
+                $solutionMissing.Add($csproj.FullName.Substring($repoRoot.Length + 1))
+            }
+        }
+    }
+}
+Add-Result 'ソリューションの網羅' ($solutionMissing.Count -eq 0) "未登録 $($solutionMissing.Count) 件"
+$solutionMissing | Select-Object -First 10 | ForEach-Object { "      $_（.slnx へ追加する）" }
+
 # 10b) テスト ファイル名（`.` を挟まない `{対象}Tests.cs` を使わない）
 #      ファイル名は `{対象}.Tests.cs`、クラス名は `{対象}Tests` とする（命名規約）。 クラス名だけから
 #      作った `{対象}Tests.cs` は、ファイル名とクラス名の対応が崩れる（実測: 17 ファイルを統一した）

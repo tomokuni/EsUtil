@@ -210,8 +210,9 @@ jobs:
         with:
           user: ${{ secrets.NUGET_USER }}
 
-      # 既に同じ版がある場合はハッシュを比べる（一致＝成功、不一致＝失敗）。
-      # --skip-duplicate を無条件に使うと、別物を上げた事故を見逃す。
+      # 既に同じ版がある場合は「公開済み」として扱う（nuget.org の版は不変であり、上書きは拒否される）。
+      # **シンボル パッケージ（.snupkg）は明示的に送らない**: `dotnet nuget push <nupkg>` が同じフォルダの
+      # `.snupkg` を自動で送るため、送ると 409（既に検証待ちの複製がある）で失敗する（実測 2026-10-26）。
       - name: 公開
         shell: pwsh
         env:
@@ -220,18 +221,17 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $source = 'https://api.nuget.org/v3/index.json'
           $flat = 'https://api.nuget.org/v3-flatcontainer'
+          $published = 0
+          $skipped = 0
 
-          # 実際に push したパッケージ（シンボルも同じ版で送るため、対象を控える）
-          $pushed = [System.Collections.Generic.HashSet[string]]::new()
-
-          foreach ($package in @(Get-ChildItem -Path 'artifacts' -Recurse -File -Filter '*.nupkg')) {
+          foreach ($package in @(Get-ChildItem -Path 'artifacts' -Recurse -File -Filter '*.nupkg' | Sort-Object Name)) {
             # ファイル名から PackageId と版を取り出す（<id>.<version>.nupkg）
             if ($package.BaseName -notmatch '^(?<id>.+?)\.(?<v>\d+\.\d+\.\d+)$') {
               throw "パッケージ名から版を判定できません: $($package.Name)"
             }
-            $id = $Matches['id'].ToLowerInvariant()
+            $id = $Matches['id']
             $version = $Matches['v']
-            $url = "$flat/$id/$version/$id.$version.nupkg"
+            $url = "$flat/$($id.ToLowerInvariant())/$version/$($id.ToLowerInvariant()).$version.nupkg"
 
             $exists = $false
             try {
@@ -241,31 +241,17 @@ jobs:
             catch { $exists = $false }
 
             if ($exists) {
-              $temp = Join-Path ([IO.Path]::GetTempPath()) "$id.$version.nupkg"
-              Invoke-WebRequest -Uri $url -OutFile $temp
-              $local = (Get-FileHash -LiteralPath $package.FullName -Algorithm SHA256).Hash
-              $remote = (Get-FileHash -LiteralPath $temp -Algorithm SHA256).Hash
-              Remove-Item -LiteralPath $temp -Force
-              if ($local -ne $remote) { throw "$id $version は既に公開されており、内容が違います（版を上げてください）" }
-              Write-Host "公開済み（同一の内容）: $id $version"
+              Write-Host "公開済み（版は不変。 上書きしない）: $id $version"
+              $skipped += 1
               continue
             }
 
             & dotnet nuget push $package.FullName --source $source --api-key $env:NUGET_API_KEY
             if ($LASTEXITCODE -ne 0) { throw "push が失敗しました: $($package.Name)" }
-            [void]$pushed.Add($package.BaseName)
+            $published += 1
           }
 
-          # シンボル パッケージ（.snupkg）は、本体を push したものだけ送る。
-          # 既に公開済みの版では本体を送っていないため、送ると 409 で失敗する（再実行を冪等にする）。
-          foreach ($symbols in @(Get-ChildItem -Path 'artifacts' -Recurse -File -Filter '*.snupkg')) {
-            if (-not $pushed.Contains($symbols.BaseName)) {
-              Write-Host "送らない（本体が公開済み）: $($symbols.Name)"
-              continue
-            }
-            & dotnet nuget push $symbols.FullName --source $source --api-key $env:NUGET_API_KEY
-            if ($LASTEXITCODE -ne 0) { throw "シンボルの push が失敗しました: $($symbols.Name)" }
-          }
+          Write-Host "公開: $published 件 / 公開済みのため省略: $skipped 件"
 
   # ────────────────────────────────────────────────────────────
   # 4. タグと GitHub Release（公開が成功した後にだけ実行する）
