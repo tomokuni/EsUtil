@@ -80,7 +80,7 @@ public class DualSourceItemsManager
     /// </remarks>
     /// <param name="itemsSource">アイテムのソース</param>
     /// <param name="itemTemplate">アイテムテンプレート</param>
-    /// <returns>生成された FrameworkElement のリスト</returns>
+    /// <returns>生成された <see cref="FrameworkElement"/> のリスト。 次のいずれかに当たる場合は**空のリスト**（<c>ItemTemplate</c> が <see langword="null"/> / <c>ItemsSource</c> が <see langword="null"/> / <c>ItemsSource</c> が <see cref="IEnumerable"/> でない）。</returns>
     public static IReadOnlyList<FrameworkElement> GenerateItemsSourceElements(object? itemsSource, DataTemplate? itemTemplate)
     {
         var itemsSourceElements = new List<FrameworkElement>();
@@ -142,10 +142,15 @@ public class DualSourceItemsManager
         }
     }
 
-    /// <inheritdoc cref="RebuildChildren(UIElementCollection, IReadOnlyList{FrameworkElement})"/>
+    /// <summary><b>ItemsSource から要素を生成し、それを含めて子要素を再構築します</b></summary>
+    /// <remarks>
+    /// <see cref="GenerateItemsSourceElements"/> で <paramref name="itemsSource"/> の各要素を
+    /// <see cref="DataTemplate"/> から生成し、直接の子要素と結合して
+    /// <paramref name="targetCollection"/> を作り直します（生成が空でも直接の子要素は残ります）。
+    /// </remarks>
     /// <param name="targetCollection">要素を追加するターゲットコレクション</param>
     /// <param name="itemsSource">アイテムのソース（null 可）</param>
-    /// <param name="itemTemplate">アイテムテンプレート（null 可）</param>
+    /// <param name="itemTemplate">アイテム テンプレート（null 可）</param>
     public void RebuildChildren(UIElementCollection targetCollection, object? itemsSource, DataTemplate? itemTemplate)
     {
         // ItemsSource から要素を生成

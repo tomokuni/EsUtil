@@ -28,8 +28,8 @@
 
 | メンバー | 内容 |
 | --- | --- |
-| `double RowSpace { get; set; }` | 行間（DIP）。 既定は 0。 |
-| `double ColumnSpace { get; set; }` | 列間（DIP）。 既定は 0。 |
+| `double RowSpace { get; set; }` | 行間（DIP）。 既定は 8。 |
+| `double ColumnSpace { get; set; }` | 列間（DIP）。 既定は 8。 |
 | `int ColumnLimit { get; set; }` | 列数の上限。 既定は 10。 |
 | `ColumnPacker.Method Method { get; set; }` | 配置の算法（`DynamicProgramming` / `Greedy` / `BinarySearch`）。 既定は `BinarySearch`。 |
 | `double? LayoutUsedWidth { get; }` | 直前の配置で使った幅。 未計算の間は null。 |

@@ -45,6 +45,17 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <summary>最後に解決した配置（無効な場合は null）。</summary>
     private ThumbnailLayoutResult? _layout;
 
+    /// <summary>描画に使うフォントのキャッシュ（キーは「pt の 1/100 単位の大きさ + 太字か」）。</summary>
+    /// <remarks>
+    /// <see cref="Font"/> の生成は 1 件ごとに GDI+ のオブジェクトを作るため、項目数に比例した費用になる。
+    /// 同じ大きさ・太さのフォントは使い回す（破棄は <see cref="Dispose(bool)"/> が行う）。
+    /// </remarks>
+    private readonly Dictionary<(int Size, bool Bold), Font> _fonts = [];
+
+    /// <summary>描画に使うブラシのキャッシュ（キーは色）。</summary>
+    /// <remarks>影の帯は濃さごとに色が変わるため、同じ描画の中で同じ色が何度も現れる（辺と隅）。 使い回す。</remarks>
+    private readonly Dictionary<uint, SolidBrush> _brushes = [];
+
     /// <summary>ログの出力先（未設定は <see cref="NullLogger"/>）。</summary>
     private ILogger _log = NullLogger.Instance;
 
@@ -286,6 +297,12 @@ public sealed class ThumbnailControl : ScrollableControl
 
     /// <summary>項目を描画する。</summary>
     /// <param name="e">描画のイベント引数。</param>
+    /// <remarks>
+    /// <b>見えている項目だけを描く</b>: 全件を描くと、フォルダーのファイル数に比例して
+    /// GDI+ のオブジェクト（<see cref="Font"/> / <see cref="SolidBrush"/>）を作ることになり、
+    /// スクロールのたびにその費用がかかる（実測 2026-10-27）。 範囲は
+    /// <see cref="ThumbnailLayoutResult.VisibleRange"/> が持つ（判定を 2 か所に書かない）。
+    /// </remarks>
     protected override void OnPaint(PaintEventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
@@ -298,11 +315,18 @@ public sealed class ThumbnailControl : ScrollableControl
             return;
         }
 
+        // AutoScrollPosition はスクロール時に負の値になる（内容の座標 = クライアント座標 - スクロール位置）
+        var range = layout.VisibleRange(-AutoScrollPosition.Y, ClientSize.Height);
+        if (range.IsEmpty)
+        {
+            return;
+        }
+
         var state = e.Graphics.Save();
         try
         {
             e.Graphics.TranslateTransform(AutoScrollPosition.X, AutoScrollPosition.Y);
-            for (var i = 0; i < _items.Count; i++)
+            for (var i = range.First; i <= range.Last && i < _items.Count; i++)
             {
                 DrawTile(e.Graphics, layout, i);
             }
@@ -329,11 +353,7 @@ public sealed class ThumbnailControl : ScrollableControl
             switch (layer)
             {
                 case ThumbnailDrawLayer.Background:
-                    using (var brush = new SolidBrush(ToColor(plan.BackgroundArgb)))
-                    {
-                        graphics.FillRectangle(brush, ToRect(plan.Slot));
-                    }
-
+                    graphics.FillRectangle(GetBrush(plan.BackgroundArgb), ToRect(plan.Slot));
                     break;
 
                 case ThumbnailDrawLayer.Shadow:
@@ -369,7 +389,7 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <summary>影を描画する（1 画素の帯を単色で塗る）。</summary>
     /// <param name="graphics">描画先。</param>
     /// <param name="plan">描画計画。</param>
-    private static void DrawShadow(Graphics graphics, ThumbnailDrawPlan plan)
+    private void DrawShadow(Graphics graphics, ThumbnailDrawPlan plan)
     {
         if (plan.Shadow is not { } shadow)
         {
@@ -380,8 +400,7 @@ public sealed class ThumbnailControl : ScrollableControl
         foreach (var band in shadow.BuildDeviceBands(
             plan.Image.X, plan.Image.Y, plan.Image.Width, plan.Image.Height, scaling: 1))
         {
-            using var brush = new SolidBrush(ToColor(band.Argb));
-            graphics.FillRectangle(brush, band.X, band.Y, band.Width, band.Height);
+            graphics.FillRectangle(GetBrush(band.Argb), band.X, band.Y, band.Width, band.Height);
         }
     }
 
@@ -396,11 +415,7 @@ public sealed class ThumbnailControl : ScrollableControl
     /// </remarks>
     private void DrawLabel(Graphics graphics, ThumbnailDrawPlan plan, string caption)
     {
-        using var font = new Font(
-            DefaultFont.FontFamily,
-            (float)DpiScaler.ToPoint(plan.Label.FontSize),
-            plan.Label.IsBold ? FontStyle.Bold : FontStyle.Regular,
-            GraphicsUnit.Point);
+        var font = GetFont(plan.Label.FontSize, plan.Label.IsBold);
 
         var color = plan.Label.ForegroundArgb == 0 ? ForeColor : ToColor(plan.Label.ForegroundArgb);
         TextRenderer.DrawText(
@@ -411,6 +426,42 @@ public sealed class ThumbnailControl : ScrollableControl
             color,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis
             | TextFormatFlags.NoPrefix | TextFormatFlags.WordBreak);
+    }
+
+    /// <summary>指定した大きさ・太さのフォントを取得する（同じものは使い回す）。</summary>
+    /// <param name="fontSize">文字サイズ（DIP。 96 DPI 基準）。</param>
+    /// <param name="bold">太字にするか。</param>
+    /// <returns>フォント。 破棄は本コントロールが行う（呼び出し側で破棄しない）。</returns>
+    private Font GetFont(double fontSize, bool bold)
+    {
+        // DIP → pt の換算は DpiScaler が単一所有する。 キーは 1/100 pt の整数（同じ値なら同じフォント）
+        var points = DpiScaler.ToPoint(fontSize);
+        var key = ((int)Math.Round(points * 100), bold);
+        if (!_fonts.TryGetValue(key, out var font))
+        {
+            font = new Font(
+                DefaultFont.FontFamily,
+                (float)points,
+                bold ? FontStyle.Bold : FontStyle.Regular,
+                GraphicsUnit.Point);
+            _fonts[key] = font;
+        }
+
+        return font;
+    }
+
+    /// <summary>指定した色のブラシを取得する（同じ色は使い回す）。</summary>
+    /// <param name="argb">色（<c>0xAARRGGBB</c>）。</param>
+    /// <returns>ブラシ。 破棄は本コントロールが行う（呼び出し側で破棄しない）。</returns>
+    private SolidBrush GetBrush(uint argb)
+    {
+        if (!_brushes.TryGetValue(argb, out var brush))
+        {
+            brush = new SolidBrush(ToColor(argb));
+            _brushes[argb] = brush;
+        }
+
+        return brush;
     }
 
     /// <summary>ポインターの移動に合わせてホバーを切り替える。</summary>
@@ -501,6 +552,20 @@ public sealed class ThumbnailControl : ScrollableControl
             }
 
             _items.Clear();
+
+            // 描画のキャッシュ（GDI+ のオブジェクト）も解放する
+            foreach (var font in _fonts.Values)
+            {
+                font.Dispose();
+            }
+
+            _fonts.Clear();
+            foreach (var brush in _brushes.Values)
+            {
+                brush.Dispose();
+            }
+
+            _brushes.Clear();
             _toolTip.Dispose();
         }
 

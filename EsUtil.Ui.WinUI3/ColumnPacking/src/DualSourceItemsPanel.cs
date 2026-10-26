@@ -79,7 +79,7 @@ public abstract class DualSourceItemsPanel : Panel
         nameof(ItemsSource), typeof(object), typeof(DualSourceItemsPanel),
         new PropertyMetadata(null, OnItemsSourceChanged));
 
-    /// <summary><b>IItemTemplate 依存関係プロパティ</b></summary>
+    /// <summary><b>ItemTemplate 依存関係プロパティ</b></summary>
     /// <remarks>
     /// 各アイテムの表示テンプレートを指定します。
     /// </remarks>
