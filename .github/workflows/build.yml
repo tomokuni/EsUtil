@@ -169,7 +169,9 @@ jobs:
       - name: 検証（Release）
         shell: pwsh
         run: |
-          & './buildScript/verify.ps1' -Configuration Release -Solution '${{ matrix.solution }}' -SkipDocs -SkipPackaging
+          # -FullBuild: ゲートでは警告の取りこぼしを許さない（増分ビルドは前回の生成物を再利用するため、
+          # 該当プロジェクトがスキップされて警告が隠れることがある。 規則は .github/検証手順.md §3）
+          & './buildScript/verify.ps1' -Configuration Release -Solution '${{ matrix.solution }}' -SkipDocs -SkipPackaging -FullBuild
           if ($LASTEXITCODE -ne 0) { throw "検証が失敗しました（exit $LASTEXITCODE）" }
 
   # ────────────────────────────────────────────────────────────
