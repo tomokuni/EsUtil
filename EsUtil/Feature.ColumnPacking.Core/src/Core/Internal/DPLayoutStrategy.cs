@@ -148,14 +148,7 @@ internal sealed class DPLayoutStrategy(
         int colLimit = columnLimit;
 
         // DP テーブル初期化：全て無効な状態に設定
-        for (int i = 0; i <= n; i++)
-        {
-            for (int j = 0; j <= colLimit; j++)
-            {
-                int idx = i * (colLimit + 1) + j;
-                dp[idx] = DpState.Create(double.MaxValue, 0, -1);
-            }
-        }
+        Array.Fill(dp, DpState.Invalid, 0, (n + 1) * (colLimit + 1));
 
         // ベースケース：0 個のアイテムを 0 列で配置 → 高さ 0、幅 0
         dp[0] = DpState.Create(0.0, 0, -1);
@@ -314,15 +307,19 @@ internal sealed class DPLayoutStrategy(
     /// DP計算の状態を保持します。<br/>
     /// <br/>
     /// 【制約】<br/>
-    /// Height が double.MaxValue の場合、無効状態。<br/>
+    /// Height が正の無限大の場合、無効状態（<see cref="Invalid"/>）。<br/>
     /// <br/>
     /// 【最適化手法】<br/>
     /// • AggressiveInlining でCreateメソッド最適化<br/>
     /// </remarks>
     internal readonly record struct DpState(double Height, double Width, int BreakIdx)
     {
+        /// <summary><b>無効な状態を取得します</b></summary>
+        /// <remarks>テーブルの初期値（まだ遷移が無い状態）として使います。</remarks>
+        public static DpState Invalid => new(double.PositiveInfinity, 0.0, -1);
+
         /// <summary><b>この DP 状態が有効かどうかを判定します</b></summary>
-        public bool IsValid => !double.IsInfinity(Height);
+        public bool IsValid => !double.IsPositiveInfinity(Height);
 
         /// <summary><b>DpState インスタンスを作成します</b></summary>
         /// <remarks>
