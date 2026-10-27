@@ -130,6 +130,12 @@ internal sealed class BinarySearchLayoutStrategy(
         var maxIterations = options.MaxIterations;
         var epsilon = options.Epsilon;
 
+        // 試行用のバッファは ArrayPool から借りる（探索の反復ごとに確保しない）。 上限が小さい場合はスタックを使う
+        ColumnSegment[]? tempArray = null;
+        Span<ColumnSegment> tempBuffer = columnLimit <= ColumnPacker.STACKALLOC_THRESHOLD
+            ? stackalloc ColumnSegment[columnLimit]
+            : (tempArray = ArrayPool<ColumnSegment>.Shared.Rent(columnLimit)).AsSpan(0, columnLimit);
+
         try
         {
             // 高さ上限を検証し、問題なければ最良結果として記録
@@ -150,10 +156,7 @@ internal sealed class BinarySearchLayoutStrategy(
                 }
             }
 
-            Span<ColumnSegment> tempBuffer = columnLimit <= ColumnPacker.STACKALLOC_THRESHOLD
-                ? stackalloc ColumnSegment[columnLimit]
-                : new ColumnSegment[columnLimit];
-
+            // 試行用のバッファは ArrayPool から借りる（探索の反復ごとに確保しない）
             double upper = bestHeight;
             double difference = upper * (1 - options.LowerBoundRatio);
             double lower = upper - difference;
@@ -235,6 +238,10 @@ internal sealed class BinarySearchLayoutStrategy(
         {
             // ArrayPool を返却する
             ArrayPool<ColumnSegment>.Shared.Return(bestSegmentsBuffer, clearArray: false);
+            if (tempArray is not null)
+            {
+                ArrayPool<ColumnSegment>.Shared.Return(tempArray, clearArray: false);
+            }
         }
     }
 

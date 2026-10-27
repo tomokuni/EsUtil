@@ -128,6 +128,94 @@ public class ThumbnailLayoutTests
         Assert.Equal(3, onlySecond.Last);
     }
 
+    /// <summary>見えている項目の範囲が、すべての項目を調べた結果と一致することを検証する。</summary>
+    /// <remarks>
+    /// 行の境界を使って交差する行だけを調べるため、行の高さが不揃い・高さ 0・先頭より上・末尾より下でも
+    /// 全件を調べた場合と同じ範囲になることを固定する。
+    /// </remarks>
+    [Fact]
+    public void 見えている項目の範囲は全件を調べた結果と一致する()
+    {
+        // 行内・行間で高さが不揃いになる並び
+        var heights = new[] { 96.0, 48.0, 120.0, 72.0, 96.0, 24.0, 96.0, 108.0, 60.0, 96.0, 96.0, 36.0 };
+
+        foreach (var width in new[] { 300.0, 120.0, 2000.0 })
+        {
+            var layout = Arrange(heights, width);
+
+            // スクロール位置は「項目の上端・下端・中央」と、その前後の端数を試す
+            var offsets = new List<double> { -1000, -1, 0 };
+            foreach (var slot in layout.Slots)
+            {
+                offsets.Add(slot.Y);
+                offsets.Add(slot.Y + (slot.Height / 2));
+                offsets.Add(slot.Bottom);
+                offsets.Add(slot.Y - 0.5);
+                offsets.Add(slot.Bottom + 0.5);
+            }
+
+            offsets.Add(layout.ContentSize.Height);
+            offsets.Add(100_000);
+
+            foreach (var offset in offsets)
+            {
+                foreach (var height in new[] { 0.0, 1.0, 50.0, 200.0, 10_000.0 })
+                {
+                    var expected = BruteForceVisibleRange(layout, offset, height);
+                    var actual = layout.VisibleRange(offset, height);
+
+                    var context = $"width={width} offset={offset} height={height} columns={layout.Columns} count={layout.Count}";
+                    Assert.True(expected.First == actual.First, $"{context} 先頭 expected={expected.First} actual={actual.First}");
+                    Assert.True(expected.Last == actual.Last, $"{context} 末尾 expected={expected.Last} actual={actual.Last}");
+                }
+            }
+        }
+    }
+
+    /// <summary>すべての項目を調べて可視範囲を求める（期待値の計算）。</summary>
+    /// <param name="layout">配置。</param>
+    /// <param name="offsetY">スクロール位置。</param>
+    /// <param name="viewportHeight">見えている高さ。</param>
+    /// <returns>可視範囲。</returns>
+    private static ThumbnailRange BruteForceVisibleRange(ThumbnailLayoutResult layout, double offsetY, double viewportHeight)
+    {
+        var top = offsetY;
+        var bottom = offsetY + Math.Max(0, viewportHeight);
+        var first = -1;
+        var last = -1;
+        for (var i = 0; i < layout.Count; i++)
+        {
+            var slot = layout.Slot(i);
+            if (slot.Bottom <= top || slot.Y >= bottom)
+            {
+                continue;
+            }
+
+            if (first < 0)
+            {
+                first = i;
+            }
+
+            last = i;
+        }
+
+        if (first < 0)
+        {
+            for (var i = 0; i < layout.Count; i++)
+            {
+                var slot = layout.Slot(i);
+                if (slot.Y <= top && top < slot.Bottom)
+                {
+                    return new ThumbnailRange(i, i);
+                }
+            }
+
+            return ThumbnailRange.Empty;
+        }
+
+        return new ThumbnailRange(first, last);
+    }
+
     /// <summary>項目が無い場合に空の配置と範囲を返すことを検証する。</summary>
     [Fact]
     public void 項目が無い場合は空の配置を返す()
