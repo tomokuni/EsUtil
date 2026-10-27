@@ -63,7 +63,6 @@ public static class ThumbnailLayout
 
         var rows = ((count - 1) / columns) + 1;
         var rowHeights = new double[rows];
-        var imageHeightCopy = new double[count];
         for (var i = 0; i < count; i++)
         {
             var height = imageHeights[i];
@@ -72,7 +71,6 @@ public static class ThumbnailLayout
                 throw new ArgumentOutOfRangeException(nameof(imageHeights), height, "画像の高さは 0 以上である必要があります。");
             }
 
-            imageHeightCopy[i] = height;
             var row = i / columns;
             rowHeights[row] = Math.Max(rowHeights[row], height);
         }
@@ -98,7 +96,7 @@ public static class ThumbnailLayout
         {
             var row = i / columns;
             var column = i % columns;
-            var imageHeight = imageHeightCopy[i];
+            var imageHeight = imageHeights[i];
             var slotHeight = (inset * 2) + imageHeight + settings.LabelHeight;
             var slotX = padding + (column * stride);
 

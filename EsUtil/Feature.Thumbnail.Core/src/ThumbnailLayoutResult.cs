@@ -155,7 +155,9 @@ public sealed class ThumbnailLayoutResult
     /// <returns>見えている項目の範囲。 項目が無い場合は <see cref="ThumbnailRange.Empty"/>。</returns>
     /// <remarks>
     /// ビューポートと交差する項目を返す（一部だけ見えている項目を含む）。<br/>
-    /// 高さが 0 以下の場合はスクロール位置にある行だけを返す。
+    /// 高さが 0 以下の場合はスクロール位置にある行だけを返す。<br/>
+    /// 行の下端は行の中で同じ値で行の順に増えるため、行の下端で最初の行を決め、<br/>
+    /// 行の上端がビューポートの下端に達したら打ち切る（全件は調べない）。
     /// </remarks>
     public ThumbnailRange VisibleRange(double offsetY, double viewportHeight)
     {
@@ -166,38 +168,103 @@ public sealed class ThumbnailLayoutResult
 
         var top = offsetY;
         var bottom = offsetY + Math.Max(0, viewportHeight);
-        var first = -1;
-        var last = -1;
-        for (var i = 0; i < _slots.Length; i++)
+        var rows = Rows;
+
+        // 下端が top より大きい最初の行（行の下端は行の順に増える）
+        var firstRow = 0;
+        var high = rows;
+        while (firstRow < high)
         {
-            var slot = _slots[i];
-            if (slot.Bottom <= top || slot.Y >= bottom)
+            var mid = firstRow + ((high - firstRow) / 2);
+            if (RowBottom(mid) <= top)
             {
-                continue;
+                firstRow = mid + 1;
             }
-
-            if (first < 0)
+            else
             {
-                first = i;
+                high = mid;
             }
-
-            last = i;
         }
 
-        if (first < 0)
+        if (firstRow >= rows)
         {
-            // 高さ 0 のビューポートでも「その位置の項目」を返す（生成の優先度に使う）
-            for (var i = 0; i < _slots.Length; i++)
+            // すべての行がビューポートより上にある
+            return ThumbnailRange.Empty;
+        }
+
+        var first = -1;
+        var last = -1;
+        for (var row = firstRow; row < rows; row++)
+        {
+            // 行の上端は行の順に増えるため、ビューポートの下端に達したら以降の行は交差しない
+            if (RowTop(row) >= bottom)
+            {
+                break;
+            }
+
+            var start = row * Columns;
+            var end = Math.Min(start + Columns, _slots.Length);
+            for (var i = start; i < end; i++)
+            {
+                // 行内は下端を揃えるため上端が揃わない。 交差しない項目は除く
+                if (_slots[i].Bottom <= top || _slots[i].Y >= bottom)
+                {
+                    continue;
+                }
+
+                if (first < 0)
+                {
+                    first = i;
+                }
+
+                last = i;
+            }
+        }
+
+        if (first >= 0)
+        {
+            return new ThumbnailRange(first, last);
+        }
+
+        // 高さ 0 のビューポートでも「その位置の項目」を返す（生成の優先度に使う）
+        for (var row = firstRow; row < rows && RowTop(row) <= top; row++)
+        {
+            var start = row * Columns;
+            var end = Math.Min(start + Columns, _slots.Length);
+            for (var i = start; i < end; i++)
             {
                 if (_slots[i].Y <= top && top < _slots[i].Bottom)
                 {
                     return new ThumbnailRange(i, i);
                 }
             }
-
-            return ThumbnailRange.Empty;
         }
 
-        return new ThumbnailRange(first, last);
+        return ThumbnailRange.Empty;
     }
+
+    /// <summary>行の上端（DIP）を取得する。</summary>
+    /// <param name="row">行の添字。</param>
+    /// <returns>行の上端。 行の中で最も背の高い項目の上端（下端揃えのため行の上端になる）。</returns>
+    private double RowTop(int row)
+    {
+        var start = row * Columns;
+        var end = Math.Min(start + Columns, _slots.Length);
+        var top = double.MaxValue;
+        for (var i = start; i < end; i++)
+        {
+            if (_slots[i].Y < top)
+            {
+                top = _slots[i].Y;
+            }
+        }
+
+        return top;
+    }
+
+    /// <summary>行の下端（DIP）を取得する。</summary>
+    /// <param name="row">行の添字。</param>
+    /// <returns>行の下端。 行の末尾の項目の下端と同じ値。</returns>
+    private double RowBottom(int row)
+        => _slots[Math.Min(((row + 1) * Columns) - 1, _slots.Length - 1)].Bottom;
 }

@@ -17,10 +17,19 @@ public sealed partial class MarqueeCore
     /// <summary>描画対象の 8 方向ハンドル（<see cref="MarqueeHitTarget.None"/> / <see cref="MarqueeHitTarget.Move"/> を除く）。</summary>
     /// <remarks>
     /// 列挙順は <see cref="MarqueeHitTarget"/> の宣言順。 描画の幾何の解決が本一覧を走査してハンドルの矩形を作る（一覧の単一所有）。<br/>
-    /// 読み取り専用の一覧として共有する（呼び出し側が書き換えない）。
+    /// 読み取り専用の一覧として共有する（呼び出し側が書き換えない）。 宣言順に固定した配列で持つ（列挙の反映を待たない）。
     /// </remarks>
     private static readonly IReadOnlyList<MarqueeHitTarget> s_directionalHandles =
-        [.. Enum.GetValues<MarqueeHitTarget>().Where(static h => h is not (MarqueeHitTarget.None or MarqueeHitTarget.Move))];
+    [
+        MarqueeHitTarget.TopLeft,
+        MarqueeHitTarget.TopCenter,
+        MarqueeHitTarget.TopRight,
+        MarqueeHitTarget.MiddleLeft,
+        MarqueeHitTarget.MiddleRight,
+        MarqueeHitTarget.BottomLeft,
+        MarqueeHitTarget.BottomCenter,
+        MarqueeHitTarget.BottomRight,
+    ];
 
     /// <summary>描画 1 フレーム分の幾何（選択矩形・注目矩形・ハンドル・マーカー）を解決する。</summary>
     /// <param name="request">描画の入力（設定・状態と描画時に決まる値）。</param>

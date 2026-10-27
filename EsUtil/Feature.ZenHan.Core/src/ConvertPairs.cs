@@ -13,7 +13,7 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
     private ImmutableList<(string Source, string Target)>? _pairs;
     private Func<IEnumerable<(string Source, string Target)>>? _factory;
 
-    private IEnumerable<(string Source, string Target)> Values
+    private ImmutableList<(string Source, string Target)> Values
     {
         get
         {
@@ -104,13 +104,15 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
     /// <param name="right">もう一方のペア集合</param>
     /// <returns>結合されたペア集合</returns>
     public static ConvertPairs operator +(ConvertPairs left, ConvertPairs right)
-        => Concat(left, right);
+        => Add(left, right);
 
     /// <summary>２つの <see cref="ConvertPairs"/> を結合した新しい <see cref="ConvertPairs"/> を生成します（<c>+</c> 演算子の代替）。</summary>
     /// <param name="left">一方のペア集合</param>
     /// <param name="right">もう一方のペア集合</param>
     /// <returns>結合されたペア集合</returns>
-    public static ConvertPairs Add(ConvertPairs left, ConvertPairs right) => left + right;
+    /// <remarks><see cref="Concat"/> の <c>params</c> 版は呼び出しごとに配列を作るため、2 つを結合する場合は本メソッドを使います。</remarks>
+    public static ConvertPairs Add(ConvertPairs left, ConvertPairs right)
+        => new(() => left.Values.Concat(right.Values));
 
 
     /// <summary>２つの <see cref="ConvertPairs"/> を連鎖変換させる <see cref="ConvertPairs"/> を生成します。</summary>
@@ -121,14 +123,25 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
     /// <remarks>first の Target と second の Source をキーに連結し、必要に応じてマッチしない要素を残します。</remarks>
     public ConvertPairs Chain(ConvertPairs second, bool includeUnmatchedFirst, bool includeUnmatchedSecond)
     {
-        // 第2段の Source ごとに Target 群をまとめた辞書を構築し、後段のルックアップを O(1) にする。
-        var lookup = second.Values
-            .GroupBy(e => e.Source, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => g.Select(e => e.Target), StringComparer.Ordinal);
+        // 第2段の Source ごとに Target 群をまとめた辞書を構築し、後段のルックアップを O(1) にする
+        // （GroupBy + ToDictionary は中間のグループと遅延列挙を作るため、1 回の走査で組み立てる）
+        var secondValues = second.Values;
+        var lookup = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (var (source, target) in secondValues)
+        {
+            if (!lookup.TryGetValue(source, out var targets))
+            {
+                targets = [];
+                lookup[source] = targets;
+            }
+
+            targets.Add(target);
+        }
 
         // 連鎖先が存在する場合は Source を維持したまま Target を置き換える。存在しない場合は includeUnmatchedFirst に応じて保持または除外。
-        var chained = new List<(string Source, string Target)>();
-        foreach (var entry in Values)
+        var firstValues = Values;
+        var chained = new List<(string Source, string Target)>(firstValues.Count);
+        foreach (var entry in firstValues)
         {
             if (lookup.TryGetValue(entry.Target, out var targets))
             {
@@ -145,8 +158,11 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
             return new ConvertPairs(chained);
 
         // first に登場する Target をセット化し、second のみが持つエントリを抽出して結合する。
-        var firstTargets = new HashSet<string>(Values.Select(e => e.Target), StringComparer.Ordinal);
-        foreach (var entry in second.Values)
+        var firstTargets = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (_, target) in firstValues)
+            firstTargets.Add(target);
+
+        foreach (var entry in secondValues)
         {
             if (!firstTargets.Contains(entry.Source))
                 chained.Add(entry);
@@ -189,24 +205,25 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
             return text;
         }
 
-        var (regexRef, mapRef) = compiled.Value;
-        return regexRef.Replace(text, m =>
-        {
-            var value = m.Value;
-            return mapRef.TryGetValue(value, out var replacement)
-                ? replacement
-                : value;
-        });
+        var (regexRef, mapRef, evaluator) = compiled.Value;
+        return regexRef.Replace(text, evaluator);
     }
 
+    /// <summary>置換の評価器を生成します（変換マップを閉じ込める）。</summary>
+    /// <param name="map">変換マップ</param>
+    /// <returns>一致した文字列を変換マップで置き換える評価器</returns>
+    /// <remarks>呼び出しごとに評価器を作り直さないよう、変換マップと一緒に 1 度だけ生成します。</remarks>
+    private static MatchEvaluator CreateEvaluator(Dictionary<string, string> map)
+        => m => map.TryGetValue(m.Value, out var replacement) ? replacement : m.Value;
+
     /// <summary>変換に使用する正規表現と変換マップを保持します。</summary>
-    /// <returns>コンパイル済みの正規表現と変換マップ。変換元が 1 件もない場合は null</returns>
+    /// <returns>コンパイル済みの正規表現と変換マップ、置換の評価器。変換元が 1 件もない場合は null</returns>
     /// <remarks>
     /// C# 14 の <c>field</c> キーワードにより、バッキング フィールドを宣言せずに遅延初期化します。<br/>
     /// 初回アクセス時のみ生成し、以降は同じインスタンスを返して再生成を避けます。<br/>
     /// 生成できない場合は null を返し、次回呼び出しで再試行されます。<br/>
     /// </remarks>
-    private (Regex Regex, Dictionary<string, string> Map)? Compiled
+    private (Regex Regex, Dictionary<string, string> Map, MatchEvaluator Evaluator)? Compiled
     {
         get
         {
@@ -226,7 +243,8 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
                             return null;
                         }
 
-                        field = (regex, CreateConvertMap(values));
+                        var map = CreateConvertMap(values);
+                        field = (regex, map, CreateEvaluator(map));
                     }
                 }
             }

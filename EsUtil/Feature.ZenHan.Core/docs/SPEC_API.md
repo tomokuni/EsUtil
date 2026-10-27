@@ -64,7 +64,7 @@
 | `FromInverse(EntryRecord entry)` / `FromInverse(string key)` | 定義の「変換後 → 変換前」の組を作ります。 |
 | `FromFunc(string key, Func<IEnumerable<(string Source, string Target)>> func)` | 遅延生成の組を作ります。 |
 | `Concat(params IEnumerable<(string Source, string Target)>[] pairs)` | 複数の組を連結します。 |
-| `operator +` / `Add(left, right)` | 2 つの集合を連結します。 |
+| `operator +` / `Add(left, right)` | 2 つの集合を連結します（`Concat` の `params` 版は呼び出しごとに配列を作るため、2 つの連結にはこちらを使います）。 |
 | `Chain(ConvertPairs second, bool includeUnmatchedFirst, bool includeUnmatchedSecond)` | 2 段の連鎖変換を組み立てます（1 段目の変換先を 2 段目の変換元として使う）。 |
 | `Chain(ConvertPairs second)` / `ChainMerge(ConvertPairs second)` | 連鎖の簡易形（前者は一致しない要素を捨て、後者は残す）。 |
 | `Convert(string text)` | 保持している組で文字列を置換します（長い変換元から順に一致させます）。 |

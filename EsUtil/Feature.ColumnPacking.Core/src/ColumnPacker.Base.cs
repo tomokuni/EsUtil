@@ -81,7 +81,10 @@ public partial class ColumnPacker
         _items = Size.ToSizeArray(items);
         _space = new Space(space.Row, space.Column);
         _columnLimit = columnLimit;
-        _metricsCache = new ColumnMetricsCache(_items, _space);
+
+        // キャッシュの初期容量は入力の規模に合わせる（既定値のままでは大規模な入力で再配置が起き、
+        // 小規模な入力では不要な領域を確保する）
+        _metricsCache = new ColumnMetricsCache(_items, _space, Math.Max(16, Math.Min(_items.Length * columnLimit, 4096)));
     }
 
 
