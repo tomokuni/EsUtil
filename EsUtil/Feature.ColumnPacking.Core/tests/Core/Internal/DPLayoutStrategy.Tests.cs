@@ -248,6 +248,37 @@ public class DPLayoutStrategyTests
         Assert.Equal(0.0, dp[0].Width);
     }
 
+    /// <summary>DP テーブルの未到達の状態が無効として扱われることを検証する。</summary>
+    /// <remarks>
+    /// 初期値は <see cref="DPLayoutStrategy.DpState.Invalid"/>（高さが正の無限大）であり、遷移が無い状態を
+    /// 「幅 0・高さ無限大の有効な状態」と取り違えない。 取り違えると、列数の少ない状態（1 列）を
+    /// 経由した誤った遷移が最適解として選ばれ得る。
+    /// </remarks>
+    [Fact]
+    internal void DPテーブルの未到達の状態は無効になる()
+    {
+        // Arrange
+        var items = Size.ToSizeArray(TestHelper.GetStandardTestItems());
+        var space = new Space(0.0, 0.0);
+        var cache = new ColumnMetricsCache(items, space);
+        var strategy = new DPLayoutStrategy(items, space, 3, cache);
+        int n = items.Length;
+        var dp = new DPLayoutStrategy.DpState[(n + 1) * (3 + 1)];
+
+        // Act
+        strategy.FillDPTable(dp, n, 150.0);
+
+        // Assert
+        // 0 個のアイテムを 0 列以外で配置する状態（dp[0][j] j>=1）には遷移が無い
+        for (var j = 1; j <= 3; j++)
+        {
+            Assert.False(dp[j].IsValid);
+        }
+
+        // 埋まらなかった状態も無効のまま（幅 0 の有効な状態として残らない）
+        Assert.All(dp, state => Assert.True(state.IsValid || double.IsPositiveInfinity(state.Height)));
+    }
+
     /// <summary>DPLayoutStrategy_FindBestLayout_テスト</summary>
     [Fact]
     internal void DPLayoutStrategy_FindBestLayout_テスト()

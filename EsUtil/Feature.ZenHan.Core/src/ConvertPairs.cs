@@ -189,7 +189,7 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
     /// <summary>登録された変換表に従い文字列を置換します。</summary>
     /// <param name="text">置換対象の文字列</param>
     /// <returns>置換後の文字列</returns>
-    /// <remarks>正規表現と変換マップをインスタンス内にキャッシュし、２回目以降の呼び出しを高速化します。</remarks>
+    /// <remarks>変換の手順（文字の走査・正規表現）はインスタンス内にキャッシュし、２回目以降の呼び出しで作り直しません。</remarks>
     public string Convert(string text)
     {
         // 早期リターン
@@ -198,32 +198,18 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
             return text ?? string.Empty;
         }
 
-        // 遅延初期化された変換キャッシュを取得する（変換元が空の場合は生成されない）
-        var compiled = Compiled;
-        if (compiled == null)
-        {
-            return text;
-        }
-
-        var (regexRef, mapRef, evaluator) = compiled.Value;
-        return regexRef.Replace(text, evaluator);
+        // 遅延初期化された変換手順を取得する（変換元が空の場合は生成されない）
+        return Compiled?.Apply(text) ?? text;
     }
 
-    /// <summary>置換の評価器を生成します（変換マップを閉じ込める）。</summary>
-    /// <param name="map">変換マップ</param>
-    /// <returns>一致した文字列を変換マップで置き換える評価器</returns>
-    /// <remarks>呼び出しごとに評価器を作り直さないよう、変換マップと一緒に 1 度だけ生成します。</remarks>
-    private static MatchEvaluator CreateEvaluator(Dictionary<string, string> map)
-        => m => map.TryGetValue(m.Value, out var replacement) ? replacement : m.Value;
-
-    /// <summary>変換に使用する正規表現と変換マップを保持します。</summary>
-    /// <returns>コンパイル済みの正規表現と変換マップ、置換の評価器。変換元が 1 件もない場合は null</returns>
+    /// <summary>変換の手順を保持します。</summary>
+    /// <returns>変換の手順。 変換元が 1 件もない場合は null</returns>
     /// <remarks>
     /// C# 14 の <c>field</c> キーワードにより、バッキング フィールドを宣言せずに遅延初期化します。<br/>
     /// 初回アクセス時のみ生成し、以降は同じインスタンスを返して再生成を避けます。<br/>
     /// 生成できない場合は null を返し、次回呼び出しで再試行されます。<br/>
     /// </remarks>
-    private (Regex Regex, Dictionary<string, string> Map, MatchEvaluator Evaluator)? Compiled
+    private ConvertPlan? Compiled
     {
         get
         {
@@ -236,15 +222,7 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
                     // ロック待ちの間に他スレッドが生成している可能性があるため再確認する
                     if (field == null)
                     {
-                        var values = Values;
-                        var regex = CreateConvertRegex(values);
-                        if (regex == null)
-                        {
-                            return null;
-                        }
-
-                        var map = CreateConvertMap(values);
-                        field = (regex, map, CreateEvaluator(map));
+                        field = ConvertPlan.Create(Values);
                     }
                 }
             }
@@ -254,10 +232,126 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
         }
     }
 
+    /// <summary>変換の手順（1 文字ずつの対応表、または正規表現）を表します。</summary>
+    /// <remarks>
+    /// <b>変換元がすべて 1 文字なら文字の対応表で変換し、正規表現を作らない</b>。<br/>
+    /// 2 文字以上の変換元（かなと濁点の合成など）を含む場合は、長い並びを優先する必要があるため
+    /// 正規表現で照合する。
+    /// </remarks>
+    private sealed class ConvertPlan
+    {
+        /// <summary>1 文字ずつの対応表（正規表現を使わない場合にだけ作る）。</summary>
+        private readonly Dictionary<char, string>? _chars;
+
+        /// <summary>正規表現（1 文字ずつの対応に落とせない場合にだけ作る）。</summary>
+        private readonly Regex? _regex;
+
+        /// <summary>正規表現の置換の評価器。</summary>
+        private readonly MatchEvaluator? _evaluator;
+
+        /// <summary>変換の手順を生成します。</summary>
+        /// <param name="chars">1 文字ずつの対応表。</param>
+        /// <param name="regex">正規表現。</param>
+        /// <param name="evaluator">正規表現の置換の評価器。</param>
+        private ConvertPlan(Dictionary<char, string>? chars, Regex? regex, MatchEvaluator? evaluator)
+        {
+            _chars = chars;
+            _regex = regex;
+            _evaluator = evaluator;
+        }
+
+        /// <summary>変換元から変換の手順を生成します。</summary>
+        /// <param name="pairs">変換元と変換先の組。</param>
+        /// <returns>変換の手順。 変換元が 1 件もない場合は null。</returns>
+        public static ConvertPlan? Create(ImmutableList<(string Source, string Target)> pairs)
+        {
+            // 変換元がすべて 1 文字なら、正規表現を作らずに対応表だけで変換できる
+            var singleChars = true;
+            foreach (var (source, _) in pairs)
+            {
+                if (!string.IsNullOrEmpty(source) && source.Length != 1)
+                {
+                    singleChars = false;
+                    break;
+                }
+            }
+
+            if (singleChars)
+            {
+                var chars = new Dictionary<char, string>(pairs.Count);
+                foreach (var (source, target) in pairs)
+                {
+                    if (string.IsNullOrEmpty(source))
+                        continue;
+
+                    // 同一キーが複数ある場合は最初に登場した組を優先する
+                    chars.TryAdd(source[0], target ?? string.Empty);
+                }
+
+                return chars.Count == 0 ? null : new ConvertPlan(chars, null, null);
+            }
+
+            var regex = CreateConvertRegex(pairs);
+            if (regex == null)
+            {
+                return null;
+            }
+
+            var map = CreateConvertMap(pairs);
+            return new ConvertPlan(null, regex, m => map.TryGetValue(m.Value, out var replacement) ? replacement : m.Value);
+        }
+
+        /// <summary>変換を適用します。</summary>
+        /// <param name="text">変換対象の文字列。</param>
+        /// <returns>変換後の文字列。</returns>
+        public string Apply(string text)
+            => _chars is not null ? ApplyChars(text, _chars) : _regex!.Replace(text, _evaluator!);
+
+        /// <summary>1 文字ずつの対応表で変換します。</summary>
+        /// <param name="text">変換対象の文字列。</param>
+        /// <param name="chars">1 文字ずつの対応表。</param>
+        /// <returns>変換後の文字列。 変換する文字が無い場合は渡された文字列をそのまま返す。</returns>
+        /// <remarks>変換する文字が 1 つも無い場合に文字列を作り直さないよう、最初に走査して有無を確かめます。</remarks>
+        private static string ApplyChars(string text, Dictionary<char, string> chars)
+        {
+            var first = -1;
+            for (var i = 0; i < text.Length; i++)
+            {
+                if (chars.ContainsKey(text[i]))
+                {
+                    first = i;
+                    break;
+                }
+            }
+
+            if (first < 0)
+            {
+                return text;
+            }
+
+            var builder = new StringBuilder(text.Length + 16);
+            builder.Append(text, 0, first);
+            for (var i = first; i < text.Length; i++)
+            {
+                var c = text[i];
+                if (chars.TryGetValue(c, out var replacement))
+                {
+                    builder.Append(replacement);
+                }
+                else
+                {
+                    builder.Append(c);
+                }
+            }
+
+            return builder.ToString();
+        }
+    }
+
     /// <summary>変換対象文字列を網羅する正規表現を生成します。</summary>
     /// <returns>生成した正規表現</returns>
     /// <remarks>空 Source を除外し、重複を排除した上で "|" 連結したパターンをコンパイルします。</remarks>
-    private static Regex? CreateConvertRegex(IEnumerable<(string Source, string Target)> pairs)
+    private static Regex? CreateConvertRegex(IReadOnlyCollection<(string Source, string Target)> pairs)
     {
         var uniques = new HashSet<string>(StringComparer.Ordinal);
         var builder = new StringBuilder();
@@ -282,11 +376,9 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
     /// <summary>変換元から変換先へのマップを生成します。</summary>
     /// <returns>変換元から変換先への辞書</returns>
     /// <remarks>同一キーが複数ある場合は最初に登場したペアを優先し、変換先が null の場合は空文字列にフォールバックします。</remarks>
-    private static Dictionary<string, string> CreateConvertMap(IEnumerable<(string Source, string Target)> pairs)
+    private static Dictionary<string, string> CreateConvertMap(IReadOnlyCollection<(string Source, string Target)> pairs)
     {
-        // 事前に要素数がわかる場合は capacity を指定してリサイズを抑止
-        var initialCapacity = pairs is IReadOnlyCollection<(string Source, string Target)> col ? col.Count : 0;
-        var map = new Dictionary<string, string>(initialCapacity, StringComparer.Ordinal);
+        var map = new Dictionary<string, string>(pairs.Count, StringComparer.Ordinal);
         foreach (var (source, target) in pairs)
         {
             if (string.IsNullOrEmpty(source))

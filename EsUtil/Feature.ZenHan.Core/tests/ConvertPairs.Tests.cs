@@ -136,4 +136,38 @@ public class ConvertPairsTests
 
         Assert.Equal("０１", result);
     }
+
+    /// <summary>1 文字ずつの対応表による変換が、正規表現による変換と同じ結果になることを検証する。</summary>
+    /// <remarks>
+    /// 変換元がすべて 1 文字の場合は文字の対応表で変換する（正規表現を作らない）。 変換の対象が無い文字列・
+    /// 一部だけ該当する文字列・すべて該当する文字列で、定義順の優先（初出優先）と未該当文字の保持が
+    /// 同じになることを固定する。
+    /// </remarks>
+    [Fact]
+    internal void 一文字の対応表による変換は正規表現と同じ結果になる()
+    {
+        // 同じ変換元を 2 回定義し、初出の変換先が優先されることを含める（c は空文字列へ変換する）
+        var pairs = new ConvertPairs([("a", "1"), ("b", "bb"), ("c", ""), ("a", "9")]);
+
+        Assert.Equal("1bb", pairs.Convert("abc"));
+        Assert.Equal("1xbbxx", pairs.Convert("axbxcx"));
+        Assert.Equal("xyz", pairs.Convert("xyz"));
+        Assert.Equal("", pairs.Convert("c"));
+        Assert.Equal("", pairs.Convert(""));
+    }
+
+    /// <summary>2 文字以上の変換元を含む場合は長い並びを優先することを検証する。</summary>
+    /// <remarks>
+    /// かなと濁点の合成のように 2 文字以上の変換元がある場合、1 文字ずつ置き換えると「かな + 濁点」の
+    /// 組み合わせを 1 文字の対応で壊してしまうため、正規表現で照合する。
+    /// </remarks>
+    [Fact]
+    internal void 二文字以上の変換元は長い並びを優先する()
+    {
+        // 「か」+ 濁点 を「が」へ、「か」を「カ」へ変換する（並びを優先しないと「カ゛」になる）
+        var pairs = new ConvertPairs([("か\u3099", "が"), ("か", "カ")]);
+
+        Assert.Equal("が", pairs.Convert("か\u3099"));
+        Assert.Equal("カ", pairs.Convert("か"));
+    }
 }
