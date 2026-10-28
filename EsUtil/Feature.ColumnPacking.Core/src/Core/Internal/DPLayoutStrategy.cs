@@ -145,56 +145,83 @@ internal sealed class DPLayoutStrategy(
     {
         // ホットパス開始：タプルのローカルキャッシング化
         double spaceColumn = space.Column;
+        double spaceRow = space.Row;
         int colLimit = columnLimit;
+        int stride = colLimit + 1;
 
         // DP テーブル初期化：全て無効な状態に設定
-        Array.Fill(dp, DpState.Invalid, 0, (n + 1) * (colLimit + 1));
+        Array.Fill(dp, DpState.Invalid, 0, (n + 1) * stride);
 
         // ベースケース：0 個のアイテムを 0 列で配置 → 高さ 0、幅 0
         dp[0] = DpState.Create(0.0, 0, -1);
 
-        // DP 埋充ループ
-        for (int i = 1; i <= n; i++)
+        // 末尾が i-1 の区間の幅と高さを、開始位置 k ごとに 1 度だけ求めて持つ
+        // （同じ区間を列数 j ごとに引き直さない。 末尾を固定すれば k を減らしながら累積で求まる）
+        var segmentMetrics = ArrayPool<Size>.Shared.Rent(Math.Max(1, n));
+        try
         {
-            for (int j = 1; j <= Math.Min(i, colLimit); j++)
+            // DP 埋充ループ
+            for (int i = 1; i <= n; i++)
             {
-                // 最後の j 番目の列の開始位置 k を全て試す
-                for (int k = j - 1; k < i; k++)
+                double totalHeight = 0.0;
+                double maxWidth = 0.0;
+                for (int k = i - 1; k >= 0; k--)
                 {
-                    // キャッシュ経由でメトリクスを取得
-                    var metrics = metricsCache.GetMetrics(new ColumnSegment(k, i - 1));
-                    double Width = metrics.Width;
-                    double Height = metrics.Height;
+                    var item = items[k];
+                    totalHeight += item.Height;
+                    if (item.Width > maxWidth)
+                        maxWidth = item.Width;
 
-                    // 条件判定：幅チェック + 前の状態チェック
-                    int prevIdx = k * (colLimit + 1) + (j - 1);
-                    var prev = dp[prevIdx];
+                    // 列の高さ = Σ(アイテム高さ) + (アイテム数 - 1) × space.Row
+                    var metrics = new Size(maxWidth, totalHeight + ((i - k - 1) * spaceRow));
+                    // 他の Strategy と共有するキャッシュにも同じ値を載せる
+                    metricsCache.SetMetrics(new ColumnSegment(k, i - 1), metrics);
+                    segmentMetrics[k] = metrics;
+                }
 
-                    // 前の状態が無効、または幅制限超過なら遷移不可
-                    if (!prev.IsValid || (Width > widthLimit))
-                        continue;
+                int currentBase = i * stride;
+                int jMax = Math.Min(i, colLimit);
+                for (int j = 1; j <= jMax; j++)
+                {
+                    // より優れている場合（高さ小、同じ高さなら幅小）に更新する対象
+                    ref var currentState = ref dp[currentBase + j];
 
-                    // 新しい総幅と高さを計算
-                    double newWidth = prev.Width + Width + (j > 1 ? spaceColumn : 0.0);
-                    if (newWidth > widthLimit)
-                        continue;
-
-                    // 最大列高さ = max（前 j-1 列の最大高さ、この列の高さ）
-                    double newHeight = Math.Max(prev.Height, Height);
-
-                    // 更新判定と実行
-                    // より優れている場合（高さ小、同じ高さなら幅小）に更新
-                    int currentIdx = i * (colLimit + 1) + j;
-                    ref var currentState = ref dp[currentIdx];
-
-                    // 参照型で直接比較・更新
-                    if (newHeight < currentState.Height ||
-                        (newHeight == currentState.Height && newWidth < currentState.Width))
+                    // 最後の j 番目の列の開始位置 k を全て試す
+                    for (int k = j - 1; k < i; k++)
                     {
-                        currentState = DpState.Create(newHeight, newWidth, k);
+                        var metrics = segmentMetrics[k];
+                        double Width = metrics.Width;
+                        double Height = metrics.Height;
+
+                        // 条件判定：幅チェック + 前の状態チェック
+                        int prevIdx = k * stride + (j - 1);
+                        var prev = dp[prevIdx];
+
+                        // 前の状態が無効、または幅制限超過なら遷移不可
+                        if (!prev.IsValid || (Width > widthLimit))
+                            continue;
+
+                        // 新しい総幅と高さを計算
+                        double newWidth = prev.Width + Width + (j > 1 ? spaceColumn : 0.0);
+                        if (newWidth > widthLimit)
+                            continue;
+
+                        // 最大列高さ = max（前 j-1 列の最大高さ、この列の高さ）
+                        double newHeight = Math.Max(prev.Height, Height);
+
+                        // 参照型で直接比較・更新
+                        if (newHeight < currentState.Height ||
+                            (newHeight == currentState.Height && newWidth < currentState.Width))
+                        {
+                            currentState = DpState.Create(newHeight, newWidth, k);
+                        }
                     }
                 }
             }
+        }
+        finally
+        {
+            ArrayPool<Size>.Shared.Return(segmentMetrics, clearArray: false);
         }
     }
 
