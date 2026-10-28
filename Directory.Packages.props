@@ -61,6 +61,8 @@
   </ItemGroup>
 
   <ItemGroup Label="アナライザー（全プロジェクトが Directory.Build.props で参照する）">
+    <!-- SDK が注入する版に追従させない（packages.lock.json を SDK 非依存に保つ。 ビルド設定規約 §8）。 -->
+    <PackageVersion Include="Microsoft.NET.ILLink.Tasks" Version="10.0.14" />
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.14.15" />
     <PackageVersion Include="Meziantou.Analyzer" Version="3.0.317" />
