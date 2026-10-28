@@ -100,6 +100,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | 参照の許可範囲（層構造）と依存関係 | [`.github/依存関係.md`](.github/依存関係.md) |
 | ビルド・テスト・pack・検証の進め方 | [`.github/開発手順.md`](.github/開発手順.md) |
 | 検証の手順と合否基準 | [`.github/検証手順.md`](.github/検証手順.md) |
+| リリースの手順（公開・タグ・SBOM・失敗時の復旧） | [`.github/RELEASE.md`](.github/RELEASE.md) |
 | 変更履歴 | [`CHANGELOG.md`](CHANGELOG.md) |
 | 各プロジェクトの仕様 | `<ソリューション フォルダ>/<プロジェクト フォルダ>/docs/SPEC_API.md` / `SPEC_System.md`（例: `EsUtil.Ui.AvaloniaUI/Loupe/docs/SPEC_API.md`） |
 
