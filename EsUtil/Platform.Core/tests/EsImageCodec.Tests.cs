@@ -164,7 +164,7 @@ public class EsImageCodecTests
 
             EsImageCodec.Save(pixels, size, path);
 
-            var (loaded, loadedSize) = EsImageCodec.Decode(path);
+            var (loaded, loadedSize) = EsImageCodec.Decode(File.ReadAllBytes(path));
             Assert.Equal(size, loadedSize);
             Assert.Equal(pixels, loaded);
         }
@@ -215,8 +215,9 @@ public class EsImageCodecTests
             var size = new EsSizeInt(48, 16);
             EsImageCodec.Save(CreateGradientPixels(size.Width, size.Height), size, path);
 
-            Assert.Equal(size, EsImageCodec.ReadSize(path));
-            Assert.Equal(new EsSizeInt(24, 8), EsImageCodec.ReadSize(path, 24));
+            var bytes = File.ReadAllBytes(path);
+            Assert.Equal(size, EsImageCodec.ReadSize(bytes));
+            Assert.Equal(new EsSizeInt(24, 8), EsImageCodec.ReadSize(bytes, 24));
         }
         finally
         {
@@ -235,7 +236,7 @@ public class EsImageCodecTests
             EsImageCodec.Save(pixels, size, path);
 
             var destination = new byte[pixels.Length];
-            EsImageCodec.Decode(path, 0, destination);
+            EsImageCodec.Decode(File.ReadAllBytes(path), 0, destination);
 
             Assert.Equal(pixels, destination);
         }
@@ -255,7 +256,7 @@ public class EsImageCodecTests
             EsImageCodec.Save(CreateGradientPixels(size.Width, size.Height), size, path);
 
             var tooSmall = new byte[16 * 4];
-            Assert.Throws<ArgumentException>(() => EsImageCodec.Decode(path, 0, tooSmall));
+            Assert.Throws<ArgumentException>(() => EsImageCodec.Decode(File.ReadAllBytes(path), 0, tooSmall));
         }
         finally
         {
@@ -272,7 +273,7 @@ public class EsImageCodecTests
             var size = new EsSizeInt(64, 32);
             EsImageCodec.Save(CreateGradientPixels(size.Width, size.Height), size, path);
 
-            var (pixels, loadedSize) = EsImageCodec.Decode(path, 32);
+            var (pixels, loadedSize) = EsImageCodec.Decode(File.ReadAllBytes(path), 32);
 
             Assert.Equal(new EsSizeInt(32, 16), loadedSize);
             Assert.Equal(32 * 4 * 16, pixels.Length);

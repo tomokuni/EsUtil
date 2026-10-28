@@ -51,6 +51,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.43 `Native.Win.WinVirtualScreen`（static class）](#243-nativewinwinvirtualscreenstatic-class)
   - [2.44 `Palette`（色名と色文字列）](#244-palette色名と色文字列)
   - [2.45 `Native.Win.WinClipboard`（static class）](#245-nativewinwinclipboardstatic-class)
+  - [2.46 `Imaging.EsImageFile`（sealed class : `IDisposable`）](#246-imagingesimagefilesealed-class--idisposable)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -938,15 +939,16 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 | `TryParseFormat(string?, out EsImageFileFormat)` | 拡張子または形式の名前の解釈（解釈できなかった場合は `Png`） | いいえ |
 | `GetExtension(EsImageFileFormat)` / `GetDisplayName(EsImageFileFormat)` | 形式の代表の拡張子（`.jpg`）と表示名（`JPEG XR`） | いいえ |
 | `GetResizedSize(EsSizeInt, int)` | 縦横比を保ち長辺を上限へ揃えた寸法（切り捨て丸め・拡大は `NotSupportedException`） | いいえ |
-| `Decode(string, int)` / `Decode(ReadOnlySpan<byte>, int)` | 復号して密な画素と寸法を返す（`maxSize` で長辺を上限へ縮小する） | はい |
-| `Decode(string, int, Span<byte>)` / `Decode(ReadOnlySpan<byte>, int, Span<byte>)` | 呼び出し側の領域へ直接書く（画素を複製しない） | はい |
-| `ReadSize(string, int)` / `ReadSize(ReadOnlySpan<byte>, int)` | 画素を読まずに寸法だけを返す（確保の前に使う） | はい |
+| `Decode(ReadOnlySpan<byte>, int)` | 復号して密な画素と寸法を返す（`maxSize` で長辺を上限へ縮小する） | はい |
+| `Decode(ReadOnlySpan<byte>, int, Span<byte>)` | 呼び出し側の領域へ直接書く（画素を複製しない） | はい |
+| `ReadSize(ReadOnlySpan<byte>, int)` | 画素を読まずに寸法だけを返す（確保の前に使う） | はい |
 | `Save(ReadOnlySpan<byte>, EsSizeInt, [int stride,] string, EsImageSaveOptions)` | ファイルへ保存する（拡張子が形式を決める） | はい |
 | `Resize(ReadOnlySpan<byte>, EsSizeInt, int, int, EsImageQuality)` | 縮小した画素と寸法を返す（拡大は未サポート） | いいえ |
 | `ReduceColors(ReadOnlySpan<byte>, EsSizeInt, int, int, EsDitherMode)` | 指定の色数へ減色した画素を返す（保存と同じパレット） | はい |
 
 - **画素の形式は 1 つに固定します**（BGRA8888・アルファ乗算済み・行は上が先頭・行幅は `幅 × 4` 以上）: 形式を引数にすると、呼び出し側が変換の有無を毎回判断することになり、取り違えが起きるためです。
 - **画素を複製しません**: 復号は呼び出し側が確保した領域へ直接書きます（寸法は `ReadSize` で先に求めます。 確保を含む `Decode` も確保は 1 回だけです）。 行幅が密でない画素を `Save` へ渡した場合だけ、WIC のエンコーダーへ渡す前に 1 回複製します。
+- **パスから読む場合は `Imaging.EsImageFile`（§2.46）を使います**: 本クラスは**内容（`ReadOnlySpan<byte>`）を受ける面だけ**を持ちます。 パスの面を別に持つと、寸法の取得と復号で**同じファイルを 2 回読む**経路ができます（実測 2026-10-28: 読み込みはファイル全体の複製であるため、2 回読むとファイル サイズの領域を余分に確保します）。
 - **静止画だけを扱います**（アニメーション GIF の各フレーム・メタデータの書き込み・色空間の変換は対象外）。
 - **静的クラスである理由**: 保持する状態が無く（WIC のファクトリは呼び出しごとに生成して解放します）、4 つの UI 版へ DI を持ち込まないためです。
 - **生データの型を作りません**（`EsPixels` のような型を公開しない）: 画素の受け渡しは `ReadOnlySpan<byte>` と寸法・行幅で足り、型を増やすと画像型との変換が増えるためです。
@@ -1051,6 +1053,21 @@ foreach (var entry in EsColor.GetPalette(ColorSortMode.ByHue)) { /* Name と Col
 | `SequenceNumber` | 内容が変わるたびに増える番号（変更の検出用。 クリップボードを開かずに取得できる） |
 
 **書き込みのメモリは `GMEM_MOVEABLE` で確保します**（`SetClipboardData` の要求。 固定メモリを渡すと内容が残らない）。 設定に成功したメモリの所有権はシステムへ移り、失敗した場合だけ解放します。
+
+### 2.46 `Imaging.EsImageFile`（sealed class : `IDisposable`）
+
+画像ファイルを **1 回だけ読み込み**、寸法の取得と復号を同じ内容から行います。 パスの面を `EsImageCodec`（§2.38）へ置くと、寸法を先に求めてから復号する呼び出しで**同じファイルを 2 回読む**経路ができるため、パスの読み込みは本条が単一所有します。 **Windows 専用**です。
+
+| メンバー | 内容 | WIC を使う |
+| --- | --- | --- |
+| `Open(string filePath)` | ファイルを読み込む（形式は内容から判別する。 この時点では復号しない） | はい |
+| `GetSize(int maxSize = 0)` | 画素を読まずに寸法だけを返す（`maxSize` で縮小した後の寸法） | はい |
+| `Decode(int maxSize = 0)` | 復号して密な画素と寸法を返す | はい |
+| `Decode(int maxSize, Span<byte> destination)` | 呼び出し側の領域へ直接書く（画素を複製しない） | はい |
+| `Dispose()` | 読み込んだ内容を手放す（復号の結果は呼び出し側のもの。 二重に呼んでも安全） | いいえ |
+
+- **開いたままにしません**: 内容は `Open` でメモリへ取り込むため、ファイルは直ちに解放されます（他のアプリが開いているファイルも読めます）。
+- **破棄後は `ObjectDisposedException`** になります（`GetSize` / `Decode`）。
 
 ## 3. 使用例
 
