@@ -219,11 +219,11 @@ public class EsBitmapOperationsTests
 
     /// <summary>公開している縮小の契約（寸法・縦横比・所有権・例外）を品質別に回す。</summary>
     /// <remarks>契約は品質に依らず同じなので、引数だけを差し替えて検証する。</remarks>
-    public static TheoryData<EsImageQuality> Qualities =>
+    public static TheoryData<EsImageScalingMode> Qualities =>
     [
-        EsImageQuality.Low,
-        EsImageQuality.Mid,
-        EsImageQuality.High,
+        EsImageScalingMode.EsNearestNeighbor,
+        EsImageScalingMode.EsBilinear,
+        EsImageScalingMode.EsBox,
     ];
 
     /// <summary>黒地に 1 画素幅の白線を持つ画像を生成する（縮小で線が残るかの検証用）。</summary>
@@ -268,11 +268,11 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_上限を超える画像は長辺が上限へ収まる(EsImageQuality quality)
+    internal void 縮小_上限を超える画像は長辺が上限へ収まる(EsImageScalingMode mode)
     {
         using var src = CreateRed(200, 100);
 
-        using var result = src.Resize(50, quality);
+        using var result = src.Resize(50, mode);
 
         // 長辺（幅）が上限へ収まり、縦横比が保たれる（200:100 = 2:1）
         Assert.Equal(50, result.Size.Width);
@@ -282,11 +282,11 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_縦長の画像では高さが上限へ収まる(EsImageQuality quality)
+    internal void 縮小_縦長の画像では高さが上限へ収まる(EsImageScalingMode mode)
     {
         using var src = CreateRed(100, 400);
 
-        using var result = src.Resize(50, quality);
+        using var result = src.Resize(50, mode);
 
         Assert.Equal(50, result.Size.Height);
         Assert.Equal(12, result.Size.Width);
@@ -294,11 +294,11 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_長辺が上限と同じなら等倍の複製を返す(EsImageQuality quality)
+    internal void 縮小_長辺が上限と同じなら等倍の複製を返す(EsImageScalingMode mode)
     {
         using var src = CreateRed(40, 20);
 
-        using var result = src.Resize(40, quality);
+        using var result = src.Resize(40, mode);
 
         Assert.Equal(40, result.Size.Width);
         Assert.Equal(20, result.Size.Height);
@@ -308,11 +308,11 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_画素を保つ(EsImageQuality quality)
+    internal void 縮小_画素を保つ(EsImageScalingMode mode)
     {
         using var src = CreateFilled(8, 8, System.Drawing.Color.FromArgb(255, 10, 20, 30));
 
-        using var result = src.Resize(4, quality);
+        using var result = src.Resize(4, mode);
 
         Assert.Equal(4, result.Size.Width);
         Assert.Equal(4, result.Size.Height);
@@ -325,11 +325,11 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_1ピクセル未満には縮小しない(EsImageQuality quality)
+    internal void 縮小_1ピクセル未満には縮小しない(EsImageScalingMode mode)
     {
         using var src = CreateRed(10, 1000);
 
-        using var result = src.Resize(2, quality);
+        using var result = src.Resize(2, mode);
 
         // 高さは上限、幅は最低 1 ピクセル
         Assert.Equal(2, result.Size.Height);
@@ -338,23 +338,23 @@ public class EsBitmapOperationsTests
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_拡大が必要な上限はNotSupportedExceptionを投げる(EsImageQuality quality)
+    internal void 縮小_拡大が必要な上限はNotSupportedExceptionを投げる(EsImageScalingMode mode)
     {
         using var src = CreateRed(40, 20);
 
         // 長辺（40）より大きい上限は拡大を要求することになる（黙って等倍を返さない）
-        var ex = Assert.Throws<NotSupportedException>(() => src.Resize(50, quality));
+        var ex = Assert.Throws<NotSupportedException>(() => src.Resize(50, mode));
         Assert.Contains("拡大", ex.Message, StringComparison.Ordinal);
     }
 
     [Theory]
     [MemberData(nameof(Qualities))]
-    internal void 縮小_上限が0以下ならArgumentOutOfRangeExceptionを投げる(EsImageQuality quality)
+    internal void 縮小_上限が0以下ならArgumentOutOfRangeExceptionを投げる(EsImageScalingMode mode)
     {
         using var src = CreateRed(4, 4);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(0, quality));
-        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(-1, quality));
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(0, mode));
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(-1, mode));
     }
 
     [Fact]
@@ -363,7 +363,7 @@ public class EsBitmapOperationsTests
         using var src = CreateRed(200, 100);
 
         using var byDefault = src.Resize(50);
-        using var byBilinear = src.Resize(50, EsImageQuality.Mid);
+        using var byBilinear = src.Resize(50, EsImageScalingMode.EsBilinear);
 
         Assert.Equal(byBilinear.Size, byDefault.Size);
         Assert.Equal(byBilinear.GetPixel(10, 10), byDefault.GetPixel(10, 10));
@@ -374,28 +374,28 @@ public class EsBitmapOperationsTests
     {
         using var src = CreateRed(200, 100);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(50, (EsImageQuality)99));
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(50, (EsImageScalingMode)99));
     }
 
     [Fact]
-    internal void 縮小_細線の残り方は品質で異なる()
+    internal void 縮小_細線の残り方は方法で異なる()
     {
-        // 40x4 の黒地に、最近傍（Low）が読む位置（0,4,8,…,36 列）の間（21 列）へ 1 画素幅の白線を置く
+        // 40x4 の黒地に、最近傍が読む位置（0,4,8,…,36 列）の間（21 列）へ 1 画素幅の白線を置く
         using var src = CreateThinLine(40, 4, lineX: 21);
 
-        using var nearest = src.Resize(10, EsImageQuality.Low);
-        using var bilinear = src.Resize(10, EsImageQuality.Mid);
-        using var box = src.Resize(10, EsImageQuality.High);
+        using var nearest = src.Resize(10, EsImageScalingMode.EsNearestNeighbor);
+        using var bilinear = src.Resize(10, EsImageScalingMode.EsBilinear);
+        using var box = src.Resize(10, EsImageScalingMode.EsBox);
 
         Assert.Equal(10, nearest.Size.Width);
         Assert.Equal(1, nearest.Size.Height);
 
-        // Low（最近傍）は比例位置の画素だけを写すため、間に落ちた細線は残らない
+        // 最近傍は比例位置の画素だけを写すため、間に落ちた細線は残らない
         Assert.Equal(0, Brightness(nearest, 5, 0));
-        // Mid（双線形）は線と隣の画素を等分する（255 の半分）
+        // 双線形は線と隣の画素を等分する（255 の半分）
         Assert.Equal(127, Brightness(bilinear, 5, 0));
-        // High（Fant）は線を含む範囲を面積平均に近く均す（4 画素に 1 本 = 255 / 4 を四捨五入して 64）
-        Assert.Equal(64, Brightness(box, 5, 0));
+        // 面積平均は線を含む矩形の平均（4 画素に 1 本 = 255 / 4 を切り捨てて 63）
+        Assert.Equal(63, Brightness(box, 5, 0));
     }
 
     [Fact]
@@ -404,7 +404,7 @@ public class EsBitmapOperationsTests
         // 一様な画像は補間の種類によらず同じ色のまま（縮小で色がずれないこと）
         using var src = CreateFilled(40, 40, System.Drawing.Color.FromArgb(255, 3, 5, 7));
 
-        using var result = src.Resize(8, EsImageQuality.High);
+        using var result = src.Resize(8, EsImageScalingMode.EsBox);
 
         var (b, g, r, _) = result.GetPixel(4, 4);
         Assert.Equal((byte)7, b);
@@ -415,15 +415,75 @@ public class EsBitmapOperationsTests
     [Fact]
     internal void 縮小_大きい画像でも細線が薄く残る()
     {
-        // 600x480（縮小後 150x120）でも Fant の面積平均に近い性質が保たれることを確かめる
+        // 600x480（縮小後 150x120。 面積平均の並列化のしきい値を跨ぐ）
         using var src = CreateThinLine(600, 480, lineX: 301);
 
-        using var result = src.Resize(150, EsImageQuality.High);
+        using var result = src.Resize(150, EsImageScalingMode.EsBox);
 
         Assert.Equal(150, result.Size.Width);
         Assert.Equal(120, result.Size.Height);
-        // 線（1 画素幅）は 4 画素幅の範囲へ均される（輝度 = 255 / 4 を四捨五入して 64）
-        Assert.Equal(64, Brightness(result, 75, 60));
+        // 線（1 画素幅）は 4 画素幅の範囲へ均される（輝度 = 255 / 4 を切り捨てて 63）
+        Assert.Equal(63, Brightness(result, 75, 60));
+    }
+
+    [Theory]
+    [InlineData(EsImageScalingMode.WicNearestNeighbor)]
+    [InlineData(EsImageScalingMode.WicLinear)]
+    [InlineData(EsImageScalingMode.WicCubic)]
+    [InlineData(EsImageScalingMode.WicFant)]
+    [InlineData(EsImageScalingMode.WicHighQualityCubic)]
+    internal void 縮小_WICの方法は同じ寸法と縦横比で縮小する(EsImageScalingMode mode)
+    {
+        using var src = CreateRed(200, 100);
+
+        using var result = src.Resize(50, mode);
+
+        Assert.Equal(50, result.Size.Width);
+        Assert.Equal(25, result.Size.Height);
+        Assert.Equal(50 * 4, result.Stride);
+    }
+
+    [Fact]
+    internal void 縮小_双線形はWICと最大1だけ違う()
+    {
+        // 双線形は同じ定義の算法であるため、実装が違っても画素はほぼ同じになる（違いは丸めだけ）
+        using var src = EsReadOnlyBitmap.FromPixelCopy(64, 48, CreateGradientPixels(64, 48));
+
+        using var byWic = src.Resize(24, EsImageScalingMode.WicLinear);
+        using var bySelf = src.Resize(24, EsImageScalingMode.EsBilinear);
+
+        var wic = byWic.ReadOnlyPixels.ToArray();
+        var self = bySelf.ReadOnlyPixels.ToArray();
+        for (var i = 0; i < wic.Length; i++)
+        {
+            Assert.InRange(Math.Abs(wic[i] - self[i]), 0, 1);
+        }
+    }
+
+    [Fact]
+    internal void 縮小_面積平均は整数倍ならFantと最大1だけ違う()
+    {
+        // 面積平均と Fant は同じフィルタ（丸めだけが切捨てと四捨五入）。
+        // 整数倍の縮小では Fant が支持幅を広げないため、差は丸めだけになる
+        using var src = EsReadOnlyBitmap.FromPixelCopy(64, 48, CreateGradientPixels(64, 48));
+
+        using var byFant = src.Resize(32, EsImageScalingMode.WicFant);
+        using var byBox = src.Resize(32, EsImageScalingMode.EsBox);
+
+        var fant = byFant.ReadOnlyPixels.ToArray();
+        var box = byBox.ReadOnlyPixels.ToArray();
+        for (var i = 0; i < fant.Length; i++)
+        {
+            Assert.InRange(Math.Abs(fant[i] - box[i]), 0, 1);
+        }
+    }
+
+    [Fact]
+    internal void 縮小_定義されていない方法はArgumentOutOfRangeExceptionを投げる()
+    {
+        using var src = CreateRed(40, 20);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => src.Resize(10, (EsImageScalingMode)99));
     }
 
     // ====================================================================
@@ -456,7 +516,7 @@ public class EsBitmapOperationsTests
     {
         using var bitmap = EsBitmap.Create(20, 10, System.Drawing.Color.FromArgb(255, 1, 2, 3));
 
-        using var result = bitmap.Resize(5, EsImageQuality.High);
+        using var result = bitmap.Resize(5, EsImageScalingMode.EsBox);
 
         Assert.False(bitmap.IsReadOnly);
         Assert.Equal(5, result.Width);
@@ -508,10 +568,10 @@ public class EsBitmapOperationsTests
     }
 
     [Theory]
-    [InlineData(EsImageQuality.Low)]
-    [InlineData(EsImageQuality.Mid)]
-    [InlineData(EsImageQuality.High)]
-    internal void 縮小_行の余白を含むソースでも余白の画素を混ぜない(EsImageQuality quality)
+    [InlineData(EsImageScalingMode.EsNearestNeighbor)]
+    [InlineData(EsImageScalingMode.EsBilinear)]
+    [InlineData(EsImageScalingMode.EsBox)]
+    internal void 縮小_行の余白を含むソースでも余白の画素を混ぜない(EsImageScalingMode mode)
     {
         // 並列実行の経路（縮小先の画素数がしきい値以上）も通すため、400x300 → 長辺 320 を使う
         var dense = CreateGradientPixels(400, 300);
@@ -519,8 +579,8 @@ public class EsBitmapOperationsTests
         var padded = CreatePadded(dense, 400, 300, stride, padding: 0xAB);
 
         using var expected = EsReadOnlyBitmap.FromPixelCopy(400, 300, dense);
-        using var fromDense = expected.Resize(320, quality);
-        using var fromPadded = EsBitmapOperations.CreateScaled(padded, 400, 300, stride, 320, quality);
+        using var fromDense = expected.Resize(320, mode);
+        using var fromPadded = EsBitmapOperations.CreateScaled(padded, 400, 300, stride, 320, mode);
 
         Assert.Equal(fromDense.ReadOnlyPixels.ToArray(), fromPadded.ReadOnlyPixels.ToArray());
     }

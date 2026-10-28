@@ -285,15 +285,15 @@ public class EsImageCodecTests
     }
 
     [Theory]
-    [InlineData(EsImageQuality.Low)]
-    [InlineData(EsImageQuality.Mid)]
-    [InlineData(EsImageQuality.High)]
-    internal void Resize_長辺の上限へ縮小した画素を返す(EsImageQuality quality)
+    [InlineData(EsImageScalingMode.EsNearestNeighbor)]
+    [InlineData(EsImageScalingMode.EsBilinear)]
+    [InlineData(EsImageScalingMode.EsBox)]
+    internal void Resize_長辺の上限へ縮小した画素を返す(EsImageScalingMode mode)
     {
         var size = new EsSizeInt(64, 32);
         var pixels = CreateGradientPixels(size.Width, size.Height);
 
-        var (resized, resizedSize) = EsImageCodec.Resize(pixels, size, size.Width * EsReadOnlyBitmap.BytesPerPixel, 32, quality);
+        var (resized, resizedSize) = EsImageCodec.Resize(pixels, size, size.Width * EsReadOnlyBitmap.BytesPerPixel, 32, mode);
 
         Assert.Equal(new EsSizeInt(32, 16), resizedSize);
         Assert.Equal(32 * 4 * 16, resized.Length);

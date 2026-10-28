@@ -472,20 +472,20 @@ public sealed class EsBitmap : IDisposable
 
     /// <summary>長辺を上限へ収めた画像を生成する（読み取り専用の画像と同じ手順）。</summary>
     /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
-    /// <param name="quality">縮小の品質。 既定は <see cref="EsImageQuality.Mid"/>。</param>
+    /// <param name="mode">縮小の方法。 既定は <see cref="EsImageScalingMode.WicFant"/>（読み込み時の縮小と同じ補間）。</param>
     /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
-    /// 規則（拡大は未サポート・丸め・品質の選び方）は <see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> が
+    /// 規則（拡大は未サポート・丸め・品質の選び方）は <see cref="EsReadOnlyBitmap.Resize(int, EsImageScalingMode)"/> が
     /// 単一所有し、実装も同じ手順です。 <b>本画像は変更せず、凍結もしません</b>。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または <paramref name="quality"/> が定義されていない値の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または <paramref name="mode"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     [SupportedOSPlatform("windows10.0.17763")]
-    public EsBitmap Resize(int maxSize, EsImageQuality quality = EsImageQuality.Mid)
+    public EsBitmap Resize(int maxSize, EsImageScalingMode mode = EsImageScalingMode.WicFant)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.CreateScaled(ReadOnlyPixels, Width, Height, Stride, maxSize, quality);
+        return EsBitmapOperations.CreateScaled(ReadOnlyPixels, Width, Height, Stride, maxSize, mode);
     }
 
     /// <summary>本画像を指定の色数へ減色する（読み取り専用の画像と同じ手順）。</summary>

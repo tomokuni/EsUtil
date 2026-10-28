@@ -60,10 +60,13 @@
   - **公開する nuspec の依存は最小版**のままです（`Avalonia` などは `12.1.4` と書かれ、利用側の解決幅は狭まりません）。
   - **構成に依存する `PackageReference` を置けなくなりました**（lock は構成ごとに分かれないため、Release のビルドが `NU1004` で失敗します）。 サンプル 4 本の `AvaloniaUI.DiagnosticsSupport`（Debug のみ・どこからも未使用）を削除しました。
 
-- **縮小を WIC（`IWICBitmapScaler`）へ移しました**（`Resize` / `EsImageCodec.Resize`）。 読み込み時の縮小と同じ補間を使うため、**読み込んで縮小した画素と、表示用に縮小した画素が一致**します。 本ライブラリは縮小の計算を持ちません（自前の最近傍・双線形・面積平均の 3 実装を削除）。
-  - **`Resize` が Windows 専用になりました**（`[SupportedOSPlatform]`。 非 Windows では `PlatformNotSupportedException`）。 減色・保存・読み込みと同じ扱いです。
-  - **`EsImageQuality` は補間の指定へ変わります**（`Low` = 最近傍 / `Mid` = 双線形 / `High` = Fant）。 **`High` の画素は自前の面積平均とわずかに異なります**（一様な画像は同じ。 1 画素幅の細線を 1/4 に縮小した値は 63 → 64）。
-  - **所要は元画像の画素数に比例します**（自前実装は `Low` が縮小先、`High` が元画像の画素数）。 実測は 4K → 長辺 320 で `Low` 0.015 ms → 6.5 ms、`High` 1.0 ms → 9.7 ms（[`Result_Measurement.md`](EsUtil/Platform.Core/docs/Result_Measurement.md) §6）。 一覧のサムネイルは 1 回だけ生成してキャッシュするため、体感の待ちには表れません。
+- **縮小の指定を `EsImageQuality` から `EsImageScalingMode` へ変えました**（破壊的）。 縮小を **WIC の 5 つの補間**と**本ライブラリの 3 つの算法**から選べるようにしました。
+  - **値**: `WicNearestNeighbor` / `WicLinear` / `WicCubic` / `WicFant`（**既定**）/ `WicHighQualityCubic` / `EsNearestNeighbor` / `EsBilinear` / `EsBox`（面積平均）。 `Low` / `Mid` / `High` という段階の名前を廃止し、**算法の名前**にしました（何をするかが型から読めます）。
+  - **`Wic*` は WIC（`IWICBitmapScaler`）へ 1 対 1 で写します**（`ToInterpolationMode`。 読み込み時の縮小と同じ実装）。
+  - **`Es*` は本ライブラリの計算**です（最近傍・双線形・面積平均）。 縮小先に必要な画素だけを読むため **WIC より 3〜340 倍速い**一方、**読み込み経路（WIC）とは画素が一致しません**（`EsBilinear` は `WicLinear` と同じ算法で最大差 1、`EsBox` は `WicFant` と同じフィルタで整数倍なら最大差 1）。
+  - **既定は `WicFant`** です（読み込み時の縮小と同じ補間であり、経路によって画素が変わらないため）。 **画面キャプチャを速く縮小したい場合は `EsBox`** を選びます（同じフィルタで 5.5 倍以上速く、リンギングも出ません）。
+  - **`Resize` は Windows 専用のまま**です（`Wic*` に加えて `Es*` も WIC の初期化を伴うため）。
+  - 実測（速度・Lanczos-3 を参照とした一致度・参照を変えたときの逆転）は [`Result_Measurement.md`](EsUtil/Platform.Core/docs/Result_Measurement.md) §11.3 に記録しました。
 
 - **`EsImageCodec` のパス受け取りのメンバーを削除し、`Imaging.EsImageFile` へ移しました**（`Decode(string, int)` / `Decode(string, int, Span<byte>)` / `ReadSize(string, int)`）。 パスの面を別に持つと、寸法を先に求めてから復号する呼び出しで**同じファイルを 2 回読む**経路ができます。 `EsImageFile.Open` が 1 回だけ読み、`GetSize` / `Decode` がその内容を使います（`EsImageCodec` は内容（`ReadOnlySpan<byte>`）を受ける面だけを持ちます）。
 
@@ -82,7 +85,7 @@
 - **ルート `README.md` を再編しました**: プロジェクトの一覧を**ソリューションごと**に並べ（版は nuget.org のバッジ）、`使い方` / `検証` の節を外しました（使い方は各プロジェクトの `README.md`、手順は `.github/開発手順.md` / `.github/検証手順.md` が所有します）。 **`CONTRIBUTING.md` を削除**し、内容を `.github/開発手順.md` へ移しました。
 - **WIC の相互運用を CsWin32 の生成物へ移行しました**（`EsUtil.Platform.Core` の内部実装。 公開 API は変わりません）。 手書きの `[GeneratedComInterface]`（20 ファイル）を削除し、`wincodec.h` から生成した型を生ポインターで使います。 これにより **vtable の位置ずれによるアクセス違反（`0xC0000005`）が構造的に起きなくなります**（実測で 2 回踏んでいました）。 併せて `EsUtil/Platform.Core/src/NativeMethods.json` に `"allowMarshaling": false` を追加したため、Win32 の宣言から**実行時マーシャリングが無くなりました**（`string` の代わりに `PCWSTR` / `Span<char>`、デリゲートの代わりに `delegate* unmanaged` を使います）。
 - **減色の実装を WIC へ置き換えました**（`EsUtil.Platform.Core`）。 `EsReadOnlyBitmap.ReduceColors` / `EsBitmap.ReduceColors` / `EsPixmap.ReduceColors` は **WIC のパレット生成（中央値分割）と 8bpp インデックスへの変換**を使い、**自前の減色の計算（ヒストグラム・中央値分割・CIELAB の距離・ディザ）を削除しました**。 保存の `ColorCount` と同じパレットを使うため、**保存したファイルの画素と `ReduceColors` の結果が一致します**（テストが検証）。
-- **減色の API が変わりました（破壊的）**: `ReduceColors(int colorCount, EsImageQuality quality = Mid, EsDitherMode dither = None)` → **`ReduceColors(int colorCount, EsDitherMode dither = None)`**（WIC には品質の段階が無い）。 `EsImageSaveOptions.ColorQuality` を削除しました。 `EsDitherMode.FloydSteinberg` を **`EsDitherMode.ErrorDiffusion`** へ改名しました。
+- **減色の API が変わりました（破壊的）**: 品質の指定を削除しました（WIC には品質の段階が無い）。 現在は `ReduceColors(int colorCount, EsDitherMode dither = None)` だけです。
 - **減色は Windows 専用になりました**: `ReduceColors` は `[SupportedOSPlatform("windows10.0.17763")]` です（WIC は Windows にのみ存在するため）。 `Save` / `Load` と同じ制約です。
 - **パレットの透過は「透明か不透明か」の 2 値になりました**: WIC のパレットは透明色を 1 つ持てるため、**完全透明はそのまま残り**、半透明は不透明な色へ寄ります（以前は 4 段階のアルファをパレットへ持てました）。
 - **`EsUtil.Platform.Core` のルート名前空間は機能の窓口だけになりました**。 型は機能フォルダ（`Input` / `Window` / `Capture` / `Common`）へ移りました。 型を名指しする利用側は、その機能の名前空間を `using` してください

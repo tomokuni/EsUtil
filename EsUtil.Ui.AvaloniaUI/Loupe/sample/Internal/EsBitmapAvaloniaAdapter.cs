@@ -22,7 +22,7 @@ namespace EsUtil.Ui.AvaloniaUI.Loupe.Sample.Internal;
 /// <b>射影は初回に一度だけ</b>: 表示用の射影（Avalonia の <see cref="Bitmap"/>）は初回の描画（または寸法取得）で
 /// 1 回だけ作り、以降は作り直さない（ピクセルを複製するため、作り直すたびに所要時間とメモリを払う）。<br/>
 /// <b>表示用の射影だけを縮小できる</b>: <see cref="DisplayMaxSize"/> を指定すると、表示用の射影は
-/// コアの縮小（<see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> の <see cref="EsImageQuality.High"/>。 WIC の Fant）で縮小される
+/// コアの縮小（<see cref="EsReadOnlyBitmap.Resize(int, EsImageScalingMode)"/> の <see cref="EsImageScalingMode.WicFant"/>。 WIC の Fant）で縮小される
 /// （縮小した射影は元の寸法の複製より小さく、所要時間もメモリも抑えられる）。
 /// 一覧のサムネイルのように小さく表示する場面で、元の寸法の複製を保持しないための入口である。
 /// <b>画像が上限に収まっている場合は縮小しない</b>（等倍の射影を共用する）。<br/>
@@ -57,7 +57,7 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IDisposable
     /// <b>大きな画像を小さく表示する場面（一覧のサムネイル等）で、表示用の射影を縮小する</b>。
     /// 等倍の射影は画像 1 枚につき元の寸法の複製を保持するため（4K は幅 × 4 × 高さで約 32 MB）、
     /// 96px のサムネイルを 5 枚並べると 160 MB を超える。<br/>
-    /// <b>縮小は Fant</b>（コアの <see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> へ <see cref="EsImageQuality.High"/> を渡す。 面積平均に近い補間で、細線が落ちにくい）。
+    /// <b>縮小は Fant</b>（コアの <see cref="EsReadOnlyBitmap.Resize(int, EsImageScalingMode)"/> へ <see cref="EsImageScalingMode.WicFant"/> を渡す。 面積平均に近い補間で、細線が落ちにくい）。
     /// <b>画質を優先する理由</b>: 同じ寸法のサムネイルを出すフォルダビュー（ファイル → <c>Bitmap.DecodeToWidth</c>）は
     /// <b>面積平均相当</b>の画質であり、双線形だと<b>同じサイズなのに一覧ごとに見え方が変わる</b>（幅 1 px の細線は
     /// 面積平均に近い Fant なら残り、双線形だと背景へ混ざって薄れる）。
@@ -191,7 +191,7 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IDisposable
     /// <summary>表示用の射影を取得する（初回だけ作る）。</summary>
     /// <param name="source">真実のコア画像。</param>
     /// <returns>表示に使う Avalonia の画像（本クラスが所有する。 縮小が不要な場合は等倍の射影）。</returns>
-    /// <remarks>縮小はコアの <see cref="EsImageQuality.High"/>（WIC の Fant）が単一所有する
+    /// <remarks>縮小はコアの <see cref="EsImageScalingMode.WicFant"/>（WIC の Fant）が単一所有する
     /// （縮小した中間画像は小さく、変換（表示用）のコピーは無視できる）。</remarks>
     private Bitmap EnsureDisplayProjection(EsReadOnlyBitmap source)
     {
@@ -212,7 +212,7 @@ internal sealed class EsBitmapAvaloniaAdapter : IImage, IDisposable
             throw new PlatformNotSupportedException("表示用の縮小は Windows 10 バージョン 1809 以降でのみ使えます。");
         }
 
-        using var scaled = source.Resize(DisplayMaxSize, EsImageQuality.High);
+        using var scaled = source.Resize(DisplayMaxSize, EsImageScalingMode.WicFant);
         // その場で読むだけ（読み取り専用の面へ引き渡す）: 凍結して 0 コピーで共有する
         scaled.SetReadOnly();
         using var read = EsReadOnlyBitmap.FromBitmap(scaled);

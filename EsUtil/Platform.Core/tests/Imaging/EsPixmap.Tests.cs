@@ -239,21 +239,21 @@ public class EsPixmapTests
     // ====================================================================
 
     [Theory]
-    [InlineData(EsImageQuality.Low)]
-    [InlineData(EsImageQuality.Mid)]
-    [InlineData(EsImageQuality.High)]
-    internal void Resize_切り出しの画像を縮小した結果と一致する(EsImageQuality quality)
+    [InlineData(EsImageScalingMode.EsNearestNeighbor)]
+    [InlineData(EsImageScalingMode.EsBilinear)]
+    [InlineData(EsImageScalingMode.EsBox)]
+    internal void Resize_切り出しの画像を縮小した結果と一致する(EsImageScalingMode mode)
     {
         using var source = CreateGradient(64, 48);
         var rect = new EsRectInt(9, 7, 32, 24);
 
         // 画像型の経路: 切り出しの複製（実体化）を作ってから縮小する
         using var cropped = source.Crop(rect);
-        using var expected = cropped.Resize(16, quality);
+        using var expected = cropped.Resize(16, mode);
 
         // ビューの経路: 実体化を挟まずにビューの範囲だけを縮小する
         using var view = source.ToPixmap(rect);
-        using var actual = view.Resize(16, quality);
+        using var actual = view.Resize(16, mode);
 
         Assert.Equal(expected.Size, actual.Size);
         Assert.Equal(expected.ReadOnlyPixels.ToArray(), actual.ReadOnlyPixels.ToArray());

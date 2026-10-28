@@ -142,25 +142,25 @@ public sealed class EsPixmap : IDisposable
 
     /// <summary>本ビューを長辺が上限に収まるよう縮小した画像を生成する（<b>切り出しの実体化を挟まない</b>）。</summary>
     /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
-    /// <param name="quality">縮小の品質。 既定は <see cref="EsImageQuality.Mid"/>。</param>
+    /// <param name="mode">縮小の方法。 既定は <see cref="EsImageScalingMode.WicFant"/>（読み込み時の縮小と同じ補間）。</param>
     /// <returns>縮小した画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>用途</b>: 大きな画像の一部だけを縮小したい場面（一覧のサムネイル・プレビューの一部）。 画像型の
-    /// <see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> を先に呼ぶと、<b>切り出しの複製を
+    /// <see cref="EsReadOnlyBitmap.Resize(int, EsImageScalingMode)"/> を先に呼ぶと、<b>切り出しの複製を
     /// 払ってから縮小する</b>ことになります。 本メソッドはビュー（0 コピー）をそのまま読むため、
     /// <b>その複製と確保が要りません</b>。<br/>
     /// <b>代金</b>: ビューの行幅（<see cref="Stride"/>。 元画像のストライド）のまま読むため、<b>行ごとに余白を飛ばす</b>
     /// 分だけ余計にアドレスを計算します（密な画像から切り出した画像を縮小する場合との差）。
-    /// 品質の選び方と規則は画像型と同じです（<see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/>）。
+    /// 品質の選び方と規則は画像型と同じです（<see cref="EsReadOnlyBitmap.Resize(int, EsImageScalingMode)"/>）。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または <paramref name="quality"/> が定義されていない値の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または <paramref name="mode"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     [SupportedOSPlatform("windows10.0.17763")]
-    public EsBitmap Resize(int maxSize, EsImageQuality quality = EsImageQuality.Mid)
+    public EsBitmap Resize(int maxSize, EsImageScalingMode mode = EsImageScalingMode.WicFant)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.CreateScaled(ReadOnlyPixels, Width, Height, Stride, maxSize, quality);
+        return EsBitmapOperations.CreateScaled(ReadOnlyPixels, Width, Height, Stride, maxSize, mode);
     }
 
     /// <summary>本ビューを指定の色数へ減色した画像を生成する（<b>切り出しの実体化を挟まない</b>）。</summary>

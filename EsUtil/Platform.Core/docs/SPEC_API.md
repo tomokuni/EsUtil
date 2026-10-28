@@ -70,7 +70,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `.Common` | `BoundaryCatch` / `CallbackList<T>` / `EnumCanonical` | 機能に閉じない小さな基盤（境界の判定・購読の一覧・別名を持つ列挙の解決） |
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` / `EsRectIntJsonConverter` | DIP 相当の幾何値型と領域の規則、整数矩形の JSON の保存形式 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI・ポイント換算の純粋計算（OS を呼ばない） |
-| `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `EsImageQuality` / `EsDitherMode` / `EsImageFileExtensions` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、縮小と減色の品質、描画色の判定、一覧に並べる画像の拡張子の判定 |
+| `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `EsImageScalingMode` / `EsDitherMode` / `EsImageFileExtensions` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、縮小と減色の品質、描画色の判定、一覧に並べる画像の拡張子の判定 |
 | `.Palette` | `ColorNames` / `ColorEntry` / `ColorString` / `ColorValidation` / `ColorValidationState` / `ColorSortMode` / `ColorTextFormat` | 色名（Windows 標準）の表と色名 ⇔ 色の相互参照、色文字列（色名・16 進・不透明度 %）の解析と整形、入力の妥当性、一覧の並び順、入力欄の表記 |
 | `.Caching` | `CapacityLimitedCache<TKey, TValue>` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（汎用の単一所有者。 UI コントロールは複製せず本型を使う） |
 | `.Svg` | `SvgIconSource` / `SvgIcon` / `SvgPathParser` / `SvgPathFigure` / `SvgPathSegment` / `SvgPathRasterizer` | SVG アイコンの読み込み元・解析結果・パス データの解析・図形の画素への展開 |
@@ -602,7 +602,7 @@ public readonly record struct ElementFinderResults(
 | その他 | `Dispose` | あり | あり | 画素領域の解放（冪等） |
 | 複製 | `Copy` | あり（`EsReadOnlyBitmap`） | あり（`EsBitmap`） | **独立した画素**の複製（費用は画素数に比例） |
 | 操作 | `Crop`（2 版） | あり（`EsBitmap`） | あり（`EsBitmap`） | 指定矩形を切り出す（**ソース範囲外は透明で埋める**。 実装は内部の 1 か所） |
-| 操作 | `Resize` | あり（`EsBitmap`） | あり（`EsBitmap`） | 長辺を上限へ収める（**拡大は未サポート**。 品質 `EsImageQuality` で速度と画質を選ぶ） |
+| 操作 | `Resize` | あり（`EsBitmap`） | あり（`EsBitmap`） | 長辺を上限へ収める（**拡大は未サポート**。 縮小の方法 `EsImageScalingMode` で速度と画質を選ぶ） |
 | 操作 | `ReduceColors` | あり（`EsBitmap`） | あり（`EsBitmap`） | 指定の色数へ減色する（パレット化。 **不可逆**。 `EsDitherMode` を選ぶ。 **Windows 専用**） |
 | ビュー | `ToPixmap` | あり（`EsPixmap`） | あり（`EsPixmap`） | **0 コピーの読み取りビュー**（行幅は元のストライドのまま。 矩形は画像の内側であること） |
 | ファイル | `Save`（2 版） | あり | あり | ファイルへ保存する（**形式は拡張子が決める**。 2 型とも同じ手順。 Windows 専用） |
@@ -639,7 +639,7 @@ public readonly record struct ElementFinderResults(
 | プロパティ | `Stride` | `int` | **元画像のストライドのまま**（`幅 × 4` より大きい場合がある。 名前を画像と同じ `Stride` にするのは「1 ラインあたりのバイト数」が同じ概念であるため） |
 | プロパティ | `ReadOnlyPixels` | `ReadOnlySpan<byte>` | 先頭から `Stride × Height` バイトのビュー（**行の余白を含む**） |
 | ピクセル | `GetPixel` | `(byte B, byte G, byte e, byte A) GetPixel(int x, int y)` / `Color GetPixel(EsPointInt point)` | 画素の取得（**行幅を考慮する**。 ビューの左上が 0, 0）。 範囲外は `ArgumentOutOfRangeException` |
-| 操作 | `Resize` | `EsBitmap Resize(int maxSize, EsImageQuality quality = Mid)` | ビューを縮小した画像を作る（**切り出しの実体化を挟まない**） |
+| 操作 | `Resize` | `EsBitmap Resize(int maxSize, EsImageScalingMode mode = WicFant)` | ビューを縮小した画像を作る（**切り出しの実体化を挟まない**） |
 | 操作 | `ReduceColors` | `EsBitmap ReduceColors(int colorCount, EsDitherMode dither = None)` | ビューを減色した画像を作る（**切り出しの実体化を挟まない**。 **Windows 専用**） |
 | ビュー | `ToPixmap` | `EsPixmap ToPixmap(EsRectInt rect)` | ビューの一部をさらに 0 コピーで切り出す |
 | その他 | `ToSizeText` | `string ToSizeText()` | 寸法を `幅x高さ` 形式で返す |
@@ -659,13 +659,13 @@ public readonly record struct ElementFinderResults(
 | メンバー | シグネチャ（`EsReadOnlyBitmap` と `EsBitmap` の同じ形） | 説明 |
 | --- | --- | --- |
 | `Crop` | `EsBitmap Crop(int x, int y, int width, int height)` / `EsBitmap Crop(EsRectInt rect)` | 指定矩形を切り出す（**ソース範囲外は透明で埋める**。 位置関係は保たれる。 0 初期化は行わない） |
-| `Resize` | `EsBitmap Resize(int maxSize, EsImageQuality quality = Mid)` | 長辺を `maxSize` へ収める（**拡大は未サポート**。 速度と画質は `EsImageQuality`（`Low` / `Mid` / `High`）で選ぶ。 **Windows 専用**） |
+| `Resize` | `EsBitmap Resize(int maxSize, EsImageScalingMode mode = WicFant)` | 長辺を `maxSize` へ収める（**拡大は未サポート**。 速度と画質は `EsImageScalingMode`（WIC 5 種 + 自前 3 種）で選ぶ。 **Windows 専用**） |
 | `ReduceColors` | `EsBitmap ReduceColors(int colorCount, EsDitherMode dither = None)` | 指定の色数へ減色する（パレット化。 **不可逆**。 ディザを選ぶ。 **Windows 専用**） |
 | `Save` | `void Save(string filePath)` / `void Save(string filePath, EsImageSaveOptions options)` | ファイルへ保存する（[2.32](#232-画像のファイル入出力save--load)） |
 
 - **同じ実装を 2 型のメンバーとして公開します（拡張メソッドにしません）**: 実装は内部の 1 か所（`EsBitmapBuffer` / `EsBitmapOperations` / `EsImageCodec`）に置き、公開の入口は**両方の型のメンバー**にします。 拡張メソッドにすると、**同じ操作が型の外へ 2 組並び**、型自身の能力（`Copy` / `GetPixel` / `Load` 等）と置き場所が分かれます（IntelliSense でも 1 か所にまとまりません）。 **共通の面（interface）は作りません**（復活させると、書き換え可能な画像を読み取り専用の面として**保持・後読みできる経路**ができ、兄弟にした理由（[2.33](#233-画像型の設計上の判断兄弟と借用を選んだ理由)）が崩れます）。
   - **代償**: 宣言が型ごとに必要です（**実装は 1 つのまま**）。 それぞれの型の `Crop` / `Resize` / `ReduceColors` / `Save` は内部の実装へ転送するだけであり、規則の記述（備考）は読み取り専用側（`EsReadOnlyBitmap`）が単一所有します。
-- **縮小と減色は WIC が単一所有します**: 縮小は `IWICBitmapScaler`（補間は `EsImageQuality` が選ぶ）、減色は `IWICPalette`（中央値分割）と `IWICFormatConverter`（8bpp）が行い、**本ライブラリは縮小・減色の計算を持ちません**（読み込み・保存と同じ実装を使うため、経路によって画素が変わりません）。 減色の比較の記録は §2.32 を参照してください。
+- **縮小の方法は `EsImageScalingMode` が選びます**: `Wic` で始まる 5 つは `IWICBitmapScaler`（WIC）が、`Es` で始まる 3 つは**本ライブラリ**が計算します。 減色は `IWICPalette`（中央値分割）と `IWICFormatConverter`（8bpp）が行い、**本ライブラリは減色の計算を持ちません**（読み込み・保存と同じ実装を使うため、経路によって画素が変わりません）。 減色の比較の記録は §2.32 を参照してください。
 - **減色の所要は元画像の画素数に比例します**: パレットの生成（中央値分割）と画素の割り当ては WIC が行い、**途中で打ち切る入口はありません**（打ち切ると色数が指定どおりになりません）。 所要の実測値は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します。 **縮小にも時間の上限を設けていません**（反復も収束も無い 1 回の走査であり、途中で打ち切ると画像の一部が書かれないまま返るため。 費用は寸法から予測できます）。
 - **書き換え可能な画像を渡しても凍結しません**: 画素を読むだけの操作であるためです（`Save` / `Crop` / `Resize` / `ReduceColors` の後も書き続けられます）。 0 コピーで安定した内容を渡したい場合は、書き終えた時点で `SetReadOnly` を呼びます。
 - **戻り値は書き換え可能な画像**です（生成した側が所有し、破棄します）。 読み取り専用で足りる場合は `Copy`（複製）または `ToPixmap`（0 コピーのビュー）を使います。
@@ -697,7 +697,7 @@ public readonly record struct ElementFinderResults(
 **速度と画質の傾向（数値なしの結論。 実測値は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します）**:
 
 - **切り出しは他フレームワークと同等以上に速く**（**画素を複製しない経路が最速**であり、コアでは `ToPixmap` がこれに当たります。 複製する切り出しは行ごとのコピーだけであり、ネイティブの複製 API と並びます）、**縮小は WIC に任せているため自前実装より遅い**です（4K → 長辺 320 で `Low` 0.09 ms → 6.6 ms、`High` 1.19 ms → 10.1 ms。 §11.3）。
-- **`EsImageQuality` の速さは `High` が最も遅く、`Low` と `Mid` はほぼ同じ**です（WIC のスケーラーはどの補間でも元画像を走査するため）。 いずれも**元画像の画素数**に比例します。
+- **同じ系統の中では `WicHighQualityCubic` が最も遅く**（`WicFant` の 2.4 倍）、`WicNearestNeighbor` と `WicLinear` はほぼ同じです（WIC のスケーラーはどの補間でも元画像を走査するため）。 **`Es` で始まる方法は 3〜340 倍速い**です（縮小先に必要な画素だけを読むため）。 実測は [`Result_Measurement.md`](Result_Measurement.md) §11.3。
 - **`High`（WIC の Fant）は画素の面積平均に最も近く**（最大誤差 1。 実測は [`Result_Measurement.md`](Result_Measurement.md) §11.3）、**読み込み時の縮小と同じ補間**です（経路によって画質が変わりません）。
 - **縮小で `High` より画質が上になる実装を段階へ加えません**: 立方畳み込み（`Cubic` / `HighQualityCubic` 相当）は**元の画素の範囲を外れる値（リンギング）**を生じ、**4 倍以上の縮小では `Mid`（双線形）より誤差が大きくなります**（実測: 画面キャプチャ風の 6 倍縮小で 20.6 dB / 36.4 dB 対 23.2 dB。 §11.3）。 立方畳み込みが意味を持つのは**拡大**であり、`Resize` は拡大を行いません。
 - **費用の内訳は順に「中間画像を作らないこと」「色形式を変換しないこと」「補間の支持幅」**です。 縮小は WIC のスケーラーへ直接渡すため、コア側では中間画像も画素形式の変換も作りません。
@@ -723,7 +723,7 @@ public readonly record struct ElementFinderResults(
 | `EsImageSaveOptions` | `JpegQuality` | `int? JpegQuality { get; init; }` | JPEG と JPEG XR の品質（0〜100。 `null` は指定しない = WIC の既定） |
 | `EsImageSaveOptions` | `ColorCount` | `int? ColorCount { get; init; }` | 減色（パレット化）して残す色数（2〜256。 `null` は減色しない。 **パレットを持てる形式でだけ使える**） |
 | `EsImageSaveOptions` | `Dither` | `EsDitherMode? Dither { get; init; }` | 減色のディザ（`null` は `EsDitherMode.None`。 **減色する場合だけ指定できる**） |
-| `EsImageQuality` | （enum） | `Low` / `Mid` / `High` | **縮小**の速度と画質の釣り合い（`Low` = 最速・最低画質、`Mid` = 既定、`High` = 最高画質） |
+| `EsImageScalingMode` | （enum） | `WicNearestNeighbor` / `WicLinear` / `WicCubic` / `WicFant`（既定）/ `WicHighQualityCubic` / `EsNearestNeighbor` / `EsBilinear` / `EsBox` | **縮小**の方法。 `Wic*` は WIC（読み込み経路と同じ実装）、`Es*` は本ライブラリの計算（速いが読み込み経路とは画素が違う） |
 | `EsDitherMode` | （enum） | `None` / `ErrorDiffusion` | 減色のディザ（誤差拡散。 既定は `None` = ファイルが最も小さい） |
 
 - **`Save` は 2 型のメンバーです（拡張メソッドにしません）**: 保存は**ピクセルを読むだけ**であり、書き換えの権利も要らないため実装は内部の 1 か所に置きますが、公開の入口は**両方の型のメンバー**にします（`Load` と同じ型にファイル入出力が並び、型自身の能力として IntelliSense に現れます。 置き場所の規則は §2.31）。 **保存は凍結しません**（書き換え可能な画像を保存した後も書き続けられます）。
@@ -943,7 +943,7 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 | `Decode(ReadOnlySpan<byte>, int, Span<byte>)` | 呼び出し側の領域へ直接書く（画素を複製しない） | はい |
 | `ReadSize(ReadOnlySpan<byte>, int)` | 画素を読まずに寸法だけを返す（確保の前に使う） | はい |
 | `Save(ReadOnlySpan<byte>, EsSizeInt, [int stride,] string, EsImageSaveOptions)` | ファイルへ保存する（拡張子が形式を決める） | はい |
-| `Resize(ReadOnlySpan<byte>, EsSizeInt, int, int, EsImageQuality)` | 縮小した画素と寸法を返す（拡大は未サポート。 補間は `EsImageQuality` が選ぶ） | はい |
+| `Resize(ReadOnlySpan<byte>, EsSizeInt, int, int, EsImageScalingMode)` | 縮小した画素と寸法を返す（拡大は未サポート。 方法は `EsImageScalingMode` が選ぶ） | はい |
 | `ReduceColors(ReadOnlySpan<byte>, EsSizeInt, int, int, EsDitherMode)` | 指定の色数へ減色した画素を返す（保存と同じパレット） | はい |
 
 - **画素の形式は 1 つに固定します**（BGRA8888・アルファ乗算済み・行は上が先頭・行幅は `幅 × 4` 以上）: 形式を引数にすると、呼び出し側が変換の有無を毎回判断することになり、取り違えが起きるためです。
