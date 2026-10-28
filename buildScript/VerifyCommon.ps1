@@ -103,3 +103,15 @@ function Clear-FileCache {
     $script:TextCache.Clear()
     $script:ListCache.Clear()
 }
+
+# リポジトリの設定（.github/release-config.json）を単一の取得口にする。
+# **製品名・ソリューション ファイル・配布物の名前はリポジトリごとに違う**ため、スクリプトの本文へ
+# 書かずにここから取る（本文を同じに保ち、リポジトリ間で検証スクリプトを共有できるようにする）。
+# <param name="RepoRoot">リポジトリのルート。省略すると本ファイルの親フォルダー。</param>
+# <returns>`product` / `solutionFile` などを持つオブジェクト。</returns>
+function Get-RepoConfig([string]$RepoRoot) {
+    if (-not $RepoRoot) { $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path }
+    $path = Join-Path $RepoRoot '.github/release-config.json'
+    if (-not (Test-Path -LiteralPath $path)) { throw "リポジトリの設定がありません: $path" }
+    return [IO.File]::ReadAllText($path, [Text.UTF8Encoding]::new($false)) | ConvertFrom-Json
+}

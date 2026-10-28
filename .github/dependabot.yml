@@ -1,0 +1,133 @@
+# 依存関係（GitHub Actions と NuGet パッケージ）の更新を検知し、Pull Request を作成する。
+#
+# 作成された Pull Request は build.yml（main 向け PR）でビルドとテストが実行される。
+# 内容を確認して main へマージする（方式は Squash merge を推奨）。
+#
+# 注意事項:
+# - Dependabot の Pull Request は fork 相当（読み取り専用トークン・シークレット無し）で実行される。
+#   本リポジトリの build.yml はシークレットを使用しないため、CI はそのまま動作する。
+# - **NuGet の directories はプロジェクト（.csproj のあるフォルダ）を全列挙する**。 Dependabot は
+#   指定したフォルダ直下だけを走査し、再帰しないため。 列挙漏れは verify.ps1 §2e が不合格にする
+#   （規則の所有者は .github/検証手順.md §9）。
+# - NuGet のメジャー更新（xunit.v3 4 系など、テストの書き方と実行基盤が変わるもの）は自動では作成しない。
+#   ignore の dependency-name は**実際のパッケージ ID と完全一致**させること
+#   （xunit では xunit.v3 / xunit.analyzers に一致しない）。
+version: 2
+
+updates:
+  # ─── GitHub Actions（.github/workflows の uses: で参照しているアクション）───
+  - package-ecosystem: "github-actions"
+    # GitHub Actions の場合は "/" を指定する（/.github/workflows が走査される）
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    groups:
+      # 複数のアクションを 1 つの Pull Request にまとめる（レビューとマージの回数を減らす）
+      actions:
+        patterns: ["*"]
+
+  # ─── NuGet（各プロジェクトのパッケージ）───
+  - package-ecosystem: "nuget"
+    directories:
+      # ── 共通基盤と機能層 ──
+      - "/EsUtil/Platform.Core/src"
+      - "/EsUtil/Platform.Core/tests"
+      - "/EsUtil/Platform.Core.Windows/src"
+      - "/EsUtil/Platform.Core.Windows/tests"
+      - "/EsUtil/Feature.ColumnPacking.Core/src"
+      - "/EsUtil/Feature.ColumnPacking.Core/tests"
+      - "/EsUtil/Feature.Loupe.Core/src"
+      - "/EsUtil/Feature.Loupe.Core/tests"
+      - "/EsUtil/Feature.Loupe.Presenter/src"
+      - "/EsUtil/Feature.Loupe.Presenter/tests"
+      - "/EsUtil/Feature.Marquee.Core/src"
+      - "/EsUtil/Feature.Marquee.Core/tests"
+      - "/EsUtil/Feature.Marquee.Presenter/src"
+      - "/EsUtil/Feature.Marquee.Presenter/tests"
+      - "/EsUtil/Feature.Thumbnail.Core/src"
+      - "/EsUtil/Feature.Thumbnail.Core/tests"
+      - "/EsUtil/Feature.Thumbnail.Presenter/src"
+      - "/EsUtil/Feature.Thumbnail.Presenter/tests"
+      - "/EsUtil/Feature.ZenHan.Core/src"
+      - "/EsUtil/Feature.ZenHan.Core/tests"
+      # ── Avalonia UI ──
+      - "/EsUtil.Ui.AvaloniaUI/ColorComboBox/sample"
+      - "/EsUtil.Ui.AvaloniaUI/ColorComboBox/src"
+      - "/EsUtil.Ui.AvaloniaUI/ColorComboBox/tests"
+      - "/EsUtil.Ui.AvaloniaUI/Interop/src"
+      - "/EsUtil.Ui.AvaloniaUI/Interop/tests"
+      - "/EsUtil.Ui.AvaloniaUI/Loupe/sample"
+      - "/EsUtil.Ui.AvaloniaUI/Loupe/src"
+      - "/EsUtil.Ui.AvaloniaUI/Loupe/tests"
+      - "/EsUtil.Ui.AvaloniaUI/Marquee/sample"
+      - "/EsUtil.Ui.AvaloniaUI/Marquee/src"
+      - "/EsUtil.Ui.AvaloniaUI/Marquee/tests"
+      - "/EsUtil.Ui.AvaloniaUI/Thumbnail/sample"
+      - "/EsUtil.Ui.AvaloniaUI/Thumbnail/src"
+      - "/EsUtil.Ui.AvaloniaUI/Thumbnail/tests"
+      # ── MewUI ──
+      - "/EsUtil.Ui.MewUI/ColorComboBox/sample"
+      - "/EsUtil.Ui.MewUI/ColorComboBox/src"
+      - "/EsUtil.Ui.MewUI/ColorComboBox/tests"
+      - "/EsUtil.Ui.MewUI/Interop/src"
+      - "/EsUtil.Ui.MewUI/Interop/tests"
+      - "/EsUtil.Ui.MewUI/Loupe/sample"
+      - "/EsUtil.Ui.MewUI/Loupe/src"
+      - "/EsUtil.Ui.MewUI/Loupe/tests"
+      - "/EsUtil.Ui.MewUI/Marquee/sample"
+      - "/EsUtil.Ui.MewUI/Marquee/src"
+      - "/EsUtil.Ui.MewUI/Marquee/tests"
+      - "/EsUtil.Ui.MewUI/Thumbnail/sample"
+      - "/EsUtil.Ui.MewUI/Thumbnail/src"
+      - "/EsUtil.Ui.MewUI/Thumbnail/tests"
+      # ── WinUI 3 ──
+      - "/EsUtil.Ui.WinUI3/ColorComboBox/sample"
+      - "/EsUtil.Ui.WinUI3/ColorComboBox/src"
+      - "/EsUtil.Ui.WinUI3/ColorComboBox/tests"
+      - "/EsUtil.Ui.WinUI3/ColumnPacking/sample"
+      - "/EsUtil.Ui.WinUI3/ColumnPacking/src"
+      - "/EsUtil.Ui.WinUI3/ColumnPacking/tests"
+      - "/EsUtil.Ui.WinUI3/Interop/src"
+      - "/EsUtil.Ui.WinUI3/Interop/tests"
+      - "/EsUtil.Ui.WinUI3/Loupe/sample"
+      - "/EsUtil.Ui.WinUI3/Loupe/src"
+      - "/EsUtil.Ui.WinUI3/Loupe/tests"
+      - "/EsUtil.Ui.WinUI3/Marquee/sample"
+      - "/EsUtil.Ui.WinUI3/Marquee/src"
+      - "/EsUtil.Ui.WinUI3/Marquee/tests"
+      - "/EsUtil.Ui.WinUI3/Thumbnail/sample"
+      - "/EsUtil.Ui.WinUI3/Thumbnail/src"
+      - "/EsUtil.Ui.WinUI3/Thumbnail/tests"
+      # ── WinForms ──
+      - "/EsUtil.Ui.WinForms/Interop/src"
+      - "/EsUtil.Ui.WinForms/Interop/tests"
+      - "/EsUtil.Ui.WinForms/Loupe/sample"
+      - "/EsUtil.Ui.WinForms/Loupe/src"
+      - "/EsUtil.Ui.WinForms/Loupe/tests"
+      - "/EsUtil.Ui.WinForms/Marquee/sample"
+      - "/EsUtil.Ui.WinForms/Marquee/src"
+      - "/EsUtil.Ui.WinForms/Marquee/tests"
+      - "/EsUtil.Ui.WinForms/Thumbnail/sample"
+      - "/EsUtil.Ui.WinForms/Thumbnail/src"
+      - "/EsUtil.Ui.WinForms/Thumbnail/tests"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
+    groups:
+      # minor / patch を 1 つの Pull Request にまとめる
+      nuget-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      # xunit 系はテストの書き方・実行基盤が変わる（破壊的変更）ため、メジャー更新は手動で判断する
+      - dependency-name: "xunit.v3"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "xunit.analyzers"
+        update-types: ["version-update:semver-major"]
+      # MewUI は API が安定化中（0.x）のため、バージョンは固定して手動で更新する
+      - dependency-name: "Aprillz.MewUI*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]

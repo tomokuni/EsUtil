@@ -7,7 +7,7 @@
 Copilot・CI・開発者が同じ手順を 1 コマンドで再現できるようにする（手作業の再実装をなくす）。
 
 .PARAMETER Solution
-対象のソリューション ファイル（既定: EsUtil.slnx）。
+対象のソリューション ファイル（既定: `.github/release-config.json` の `solutions`。 5 本すべて）。
 
 .PARAMETER Configuration
 ビルド構成（既定: Debug）。 CI は Release を渡す。
@@ -60,13 +60,8 @@ pwsh -NoProfile -File buildScript/verify.ps1 -Configuration Release -Solution Es
 #>
 [CmdletBinding()]
 param(
-    [string[]]$Solution = @(
-        'EsUtil/EsUtil.slnx',
-        'EsUtil.Ui.AvaloniaUI/EsUtil.Ui.AvaloniaUI.slnx',
-        'EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx',
-        'EsUtil.Ui.WinUI3/EsUtil.Ui.WinUI3.slnx',
-        'EsUtil.Ui.WinForms/EsUtil.Ui.WinForms.slnx'
-    ),
+    # 既定は release-config.json の solutions（リポジトリごとに違うため、本文には書かない）
+    [string[]]$Solution = @(),
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Debug',
     [switch]$Fix,
     [switch]$SkipBuild,
@@ -88,6 +83,11 @@ Set-Location $repoRoot
 
 
 . (Join-Path $PSScriptRoot 'VerifyCommon.ps1')
+
+# 対象のソリューション ファイルは release-config.json が単一所有する（CI は検証するソリューションを渡す）
+$repoConfig = Get-RepoConfig $repoRoot
+if (-not $Solution -or $Solution.Count -eq 0) { $Solution = @($repoConfig.solutions) }
+if ($Solution.Count -eq 0) { throw '.github/release-config.json の solutions が空です' }
 
 # 各節の所要時間を記録する（どこに時間を使っているかを出力に残し、最適化を推測でやらないため）。
 $scriptClock = [Diagnostics.Stopwatch]::StartNew()
@@ -328,6 +328,31 @@ foreach ($hit in @(git -c core.quotepath=false grep --untracked -n -E '\.ItemsSo
 }
 Add-Result 'WinUI 3 の AOT 制約' ($itemsSourceAssignments.Count -eq 0) "ItemsSource への代入 $($itemsSourceAssignments.Count) 件"
 $itemsSourceAssignments | Select-Object -First 8 | ForEach-Object { "      $_" }
+
+# 2e) Dependabot の対象（.csproj を持つフォルダが全て列挙されているか）
+#     列挙漏れがあると、後から足したプロジェクトの依存だけが更新されない（気付かないまま古くなる）。
+#     規則の所有者は .github/検証手順.md §9。 対象は**リポジトリ内の全プロジェクト**（テスト・サンプルを含む。
+#     どれも依存を持つため）。
+$dependabotPath = Join-Path $repoRoot '.github/dependabot.yml'
+$dependabotMissing = [System.Collections.Generic.List[string]]::new()
+if (-not (Test-Path -LiteralPath $dependabotPath)) {
+    Add-Result 'Dependabot の対象' $false '.github/dependabot.yml が無い'
+}
+else {
+    $dependabotText = [IO.File]::ReadAllText($dependabotPath, $enc)
+    $listedDirectories = @([regex]::Matches($dependabotText, '(?m)^\s*-\s*"(?<path>/[^"]*)"\s*$') |
+            ForEach-Object { $_.Groups['path'].Value.TrimEnd('/') })
+    # **追跡対象と未追跡（無視されない）の `.csproj` だけを見る**: 無視されたフォルダー（`.idea/` 等）の
+    # 生成物を対象にすると、リポジトリの外の事情で不合格になる（実測 2026-10-28）。
+    $projectDirectories = @(git ls-files --cached --others --exclude-standard -- '*.csproj' |
+            ForEach-Object { '/' + ([IO.Path]::GetDirectoryName($_)).Replace('\', '/') } |
+            Sort-Object -Unique)
+    foreach ($directory in $projectDirectories) {
+        if ($listedDirectories -notcontains $directory) { $dependabotMissing.Add($directory) }
+    }
+    Add-Result 'Dependabot の対象' ($dependabotMissing.Count -eq 0) "未登録 $($dependabotMissing.Count) 件"
+    $dependabotMissing | Select-Object -First 8 | ForEach-Object { "      .github/dependabot.yml の directories に無い: $_" }
+}
 
 # ============================================================
 # 3. テスト（全件合格。 -Coverage でカバレッジも集計する）
