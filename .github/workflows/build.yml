@@ -52,7 +52,7 @@ jobs:
       packaging: ${{ steps.plan.outputs.packaging }}
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           # 変更の判定に全履歴を使う
           fetch-depth: 0
@@ -151,7 +151,7 @@ jobs:
     name: verify (${{ matrix.solution }})
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # .NET SDK はランナー イメージの最新版を使う（setup-dotnet は不要。イメージが C:\Program Files\dotnet を
       # PATH へ追加しているため、以降のステップでそのまま dotnet を実行できる）。
@@ -186,7 +186,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # markdownlint は npx で取る（毎回ダウンロードすると 2 分近くかかる。 実測 2026-10-26: 走査 125 秒）
       - name: npm をキャッシュ
@@ -215,7 +215,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: NuGet をキャッシュ
         uses: actions/cache@v6
