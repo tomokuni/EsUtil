@@ -14,9 +14,9 @@
 
   <ItemGroup>
     <!-- MewUI のコア（型・標準の入力と描画） -->
-    <PackageReference Include="Aprillz.MewUI.Core" Version="$(MewUIVersion)" />
+    <PackageReference Include="Aprillz.MewUI.Core" />
     <!-- ログ（LoggerMessage ソース生成・NullLogger） -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

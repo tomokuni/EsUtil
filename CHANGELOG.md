@@ -52,6 +52,14 @@
 
 ### 変更（破壊的）
 
+- **パッケージの版を中央管理（`Directory.Packages.props`）＋完全一致＋`packages.lock.json` へ移しました**。 以前は各 `.csproj` が範囲・浮動版（`[12.*,)` / `*` / `3.*`）を書いていたため、**同じコミット（タグ）でも復元した時点の最新が入り**、公開済みのパッケージを後から再現できませんでした。
+  - **版は [`Directory.Packages.props`](Directory.Packages.props) だけが持ちます**（`ManagePackageVersionsCentrally`）。 各 `.csproj` の `PackageReference` から `Version` を削除しました（残すと NU1008）。
+  - **版は完全一致**にしました（浮動版 100 件を解決済みの版へ固定）。
+  - **復元結果は `packages.lock.json` で固定**します（`RestorePackagesWithLockFile`。 全 76 プロジェクト分をコミット）。 ビルドと検証は `-p:RestoreLockedMode=true` で復元し、lock と `Directory.Packages.props` の食い違いを `NU1004` で検出します。
+  - **取得元は `nuget.org` だけ**とし、`NuGet.config` に `packageSourceMapping` を追加しました（中央パッケージ管理では必須。 無いと `NU1507`）。
+  - **公開する nuspec の依存は最小版**のままです（`Avalonia` などは `12.1.4` と書かれ、利用側の解決幅は狭まりません）。
+  - **構成に依存する `PackageReference` を置けなくなりました**（lock は構成ごとに分かれないため、Release のビルドが `NU1004` で失敗します）。 サンプル 4 本の `AvaloniaUI.DiagnosticsSupport`（Debug のみ・どこからも未使用）を削除しました。
+
 - **縮小を WIC（`IWICBitmapScaler`）へ移しました**（`Resize` / `EsImageCodec.Resize`）。 読み込み時の縮小と同じ補間を使うため、**読み込んで縮小した画素と、表示用に縮小した画素が一致**します。 本ライブラリは縮小の計算を持ちません（自前の最近傍・双線形・面積平均の 3 実装を削除）。
   - **`Resize` が Windows 専用になりました**（`[SupportedOSPlatform]`。 非 Windows では `PlatformNotSupportedException`）。 減色・保存・読み込みと同じ扱いです。
   - **`EsImageQuality` は補間の指定へ変わります**（`Low` = 最近傍 / `Mid` = 双線形 / `High` = Fant）。 **`High` の画素は自前の面積平均とわずかに異なります**（一様な画像は同じ。 1 画素幅の細線を 1/4 に縮小した値は 63 → 64）。

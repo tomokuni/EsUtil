@@ -9,13 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="*" />
-    <PackageReference Include="xunit.v3" Version="3.*" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.*" />
-    <PackageReference Include="Avalonia.Headless" Version="[12.*,)" />
-    <PackageReference Include="Avalonia.Headless.XUnit" Version="[12.*,)" />
-    <PackageReference Include="Avalonia.Skia" Version="[12.*,)" />
-    <PackageReference Include="coverlet.collector" Version="*">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Avalonia.Headless.XUnit" />
+    <PackageReference Include="Avalonia.Skia" />
+    <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

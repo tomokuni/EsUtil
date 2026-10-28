@@ -18,7 +18,7 @@
     <!-- 設定変更のログ定義（LoggerMessage ソース生成）をコアが所有する。
          EsUtil.Platform.Core 経由の推移参照でも解決できるが、本コアが直接使う依存のため明示する
          （EsUtil.Platform.Core が参照を外すと本コアが壊れるため）。 -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

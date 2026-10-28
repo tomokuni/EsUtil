@@ -17,11 +17,11 @@
 
   <ItemGroup>
     <!-- WinUI 3（Microsoft.UI.Xaml）のコントロールと、WinRT の投影型（Windows.Foundation の幾何型・色型） -->
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="[1.*,2.0.0)" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="[10.0.*,)" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
     <!-- Win32 の宣言は CsWin32 が生成する（ソース生成だけを目的とするため実行時依存を持たない。
          規則は .github/命名規約.md §ルート名前空間）。 生成対象は src/NativeMethods.txt。 -->
-    <PackageReference Include="Microsoft.Windows.CsWin32" Version="[0.3.*,)">
+    <PackageReference Include="Microsoft.Windows.CsWin32">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

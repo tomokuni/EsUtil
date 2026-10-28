@@ -21,7 +21,7 @@
          ログは呼び出し側が所有し、OS 操作の失敗は例外または bool の戻り値で表す。
          **例外はソース生成だけを目的とするパッケージ**である（実行時依存を持たない。 規則は
          .github/命名規約.md §ルート名前空間）。 Win32 の宣言は CsWin32 が生成する。 -->
-    <PackageReference Include="Microsoft.Windows.CsWin32" Version="[0.3.*,)">
+    <PackageReference Include="Microsoft.Windows.CsWin32">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>

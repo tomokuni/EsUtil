@@ -1,0 +1,69 @@
+<Project>
+
+  <!-- ============================================================
+       パッケージの版の単一所有（Central Package Management）。
+       規則の所有者は .github/ビルド設定規約.md §4 であり、本ファイルはその実装である。
+
+       - 版は**本ファイルだけ**が持つ（各 .csproj の PackageReference には Version を書かない）。
+       - 版は**完全一致**で書く（`[12.*,)` のような範囲・浮動版を使わない）。 範囲を書くと、
+         同じコミットでも復元した時点の最新が入り、タグを打っても中身が変わる。
+         「新しい版へ上げる」は Dependabot の Pull Request で行う。
+       - 復元結果は packages.lock.json でも固定する（Directory.Build.props の RestorePackagesWithLockFile）。
+       - **公開する nuspec の依存は最小版**として書かれる（`PackageReference` の版は nuspec で最小版になる）。
+         利用側の解決幅は狭まらない（規則と検査は buildScript/verifyPackaging.ps1）。
+       ============================================================ -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup Label="共通基盤">
+    <!-- ログの抽象（機能層と UI 層が使う。 実装はホストが持ち込む） -->
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
+    <!-- 色（System.Drawing.Color）の値型だけを使う（描画は OS と UI が行う） -->
+    <PackageVersion Include="System.Drawing.Common" Version="10.0.14" />
+  </ItemGroup>
+
+  <ItemGroup Label="Avalonia UI">
+    <PackageVersion Include="Avalonia" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Skia" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Controls.ColorPicker" Version="12.1.4" />
+    <!-- テスト（ヘッドレスで描画する） -->
+    <PackageVersion Include="Avalonia.Headless" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Headless.XUnit" Version="12.1.4" />
+  </ItemGroup>
+
+  <ItemGroup Label="MewUI">
+    <!-- API が安定化中（0.x）のため、版は固定して手動で更新する（Dependabot の ignore も同じ理由） -->
+    <PackageVersion Include="Aprillz.MewUI.Core" Version="0.21.1" />
+    <PackageVersion Include="Aprillz.MewUI.Backend.Gdi" Version="0.21.1" />
+    <PackageVersion Include="Aprillz.MewUI.Windows" Version="0.21.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="WinUI 3（Windows App SDK）">
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
+    <!-- CsWin32 が wincodec.h などから P/Invoke の宣言を生成する（ビルド時だけ使う） -->
+    <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.367" />
+    <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
+  </ItemGroup>
+
+  <ItemGroup Label="MVVM">
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup Label="テスト">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="coverlet.collector" Version="10.1.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="アナライザー（全プロジェクトが Directory.Build.props で参照する）">
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
+    <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.14.15" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.317" />
+  </ItemGroup>
+
+</Project>

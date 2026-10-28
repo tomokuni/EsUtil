@@ -11,7 +11,7 @@
 
   <ItemGroup>
     <!-- 操作ログ（コントロールの Log へ設定し、ログ表示へ流す） -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

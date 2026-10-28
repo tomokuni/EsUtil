@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <!-- 描画エンジン（Avalonia.Skia）はアプリが選ぶ。 本層は型の変換だけを行うため Avalonia 本体のみを参照する -->
-    <PackageReference Include="Avalonia" Version="[12.*,)" />
+    <PackageReference Include="Avalonia" />
   </ItemGroup>
 
   <ItemGroup>

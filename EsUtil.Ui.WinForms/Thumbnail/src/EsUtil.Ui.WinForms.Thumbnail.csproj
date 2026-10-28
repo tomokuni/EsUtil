@@ -14,7 +14,7 @@
     <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
     <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.WinForms.Interop.csproj" />
     <!-- 本コントロールが単一所有する値（画像・項目数）の変更ログ（LoggerMessage ソース生成）を持つ -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>
