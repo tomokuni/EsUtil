@@ -52,6 +52,11 @@
 
 ### 変更（破壊的）
 
+- **縮小を WIC（`IWICBitmapScaler`）へ移しました**（`Resize` / `EsImageCodec.Resize`）。 読み込み時の縮小と同じ補間を使うため、**読み込んで縮小した画素と、表示用に縮小した画素が一致**します。 本ライブラリは縮小の計算を持ちません（自前の最近傍・双線形・面積平均の 3 実装を削除）。
+  - **`Resize` が Windows 専用になりました**（`[SupportedOSPlatform]`。 非 Windows では `PlatformNotSupportedException`）。 減色・保存・読み込みと同じ扱いです。
+  - **`EsImageQuality` は補間の指定へ変わります**（`Low` = 最近傍 / `Mid` = 双線形 / `High` = Fant）。 **`High` の画素は自前の面積平均とわずかに異なります**（一様な画像は同じ。 1 画素幅の細線を 1/4 に縮小した値は 63 → 64）。
+  - **所要は元画像の画素数に比例します**（自前実装は `Low` が縮小先、`High` が元画像の画素数）。 実測は 4K → 長辺 320 で `Low` 0.015 ms → 6.5 ms、`High` 1.0 ms → 9.7 ms（[`Result_Measurement.md`](EsUtil/Platform.Core/docs/Result_Measurement.md) §6）。 一覧のサムネイルは 1 回だけ生成してキャッシュするため、体感の待ちには表れません。
+
 - **`EsImageCodec` のパス受け取りのメンバーを削除し、`Imaging.EsImageFile` へ移しました**（`Decode(string, int)` / `Decode(string, int, Span<byte>)` / `ReadSize(string, int)`）。 パスの面を別に持つと、寸法を先に求めてから復号する呼び出しで**同じファイルを 2 回読む**経路ができます。 `EsImageFile.Open` が 1 回だけ読み、`GetSize` / `Decode` がその内容を使います（`EsImageCodec` は内容（`ReadOnlySpan<byte>`）を受ける面だけを持ちます）。
 
 - **版の付け方をグループ単位へ変えました**。 版は 5 つのグループ（`EsUtil` / `EsUtil.Ui.AvaloniaUI` / `EsUtil.Ui.MewUI` / `EsUtil.Ui.WinUI3` / `EsUtil.Ui.WinForms`）ごとに 1 つになり、**グループ内の全パッケージが同じ版**になります。 グループの版は人が決め（[`Directory.Build.props`](Directory.Build.props) の `VersionPrefix`）、ソースの変更で自動的に上がることはありません。 初回の公開版は全グループ `0.1.0` です。

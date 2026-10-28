@@ -399,24 +399,24 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <b>名前が <c>Resize</c> である理由</b>: 将来の拡大対応を見込んで双方向の名前を残しています（現在の実装は縮小だけを
     /// 行います）。 拡大が必要な要求は黙って等倍を返さず <see cref="NotSupportedException"/> にします（「拡大された」と
     /// 誤解されるため）。 長辺と上限が一致する場合は縮小不要のため<b>等倍の複製</b>を返します。<br/>
-    /// <b>品質の選び方</b>: どの段階も<b>縮小先の行を範囲へ分けて並列実行します</b>（小さい画像では逐次のままにします）。
-    /// 段階ごとの速度と画質の選び方は <see cref="EsImageQuality"/> を参照してください。<b><see cref="EsImageQuality.High"/> の
-    /// 費用は元画像の画素数で決まる</b>ため、縮小先が大きい場合は <see cref="EsImageQuality.Mid"/> より速くなることがあります。<br/>
-    /// <b>時間の上限（タイムアウト）を設けない理由</b>: 縮小は<b>反復も収束も無い 1 回の走査</b>であり
-    /// （最近傍・双線形は縮小先の画素数、面積平均は元画像の画素数に<b>比例するだけ</b>で、止まる条件を待ちません）、
+    /// <b>縮小の計算は WIC が単一所有します</b>: 補間は <see cref="EsImageQuality"/> が選び
+    /// （<c>Low</c> 最近傍 / <c>Mid</c> 双線形 / <c>High</c> Fant）、<b>デコード時の縮小（<see cref="Load(string, int)"/>）と
+    /// 同じ実装</b>を使うため、読み込み経路と表示経路で画質が変わりません。 計算は OS の WIC（<c>windowscodecs.dll</c>）が
+    /// 行い、本ライブラリは補間の実装を持ちません。<br/>
+    /// <b>時間の上限（タイムアウト）を設けない理由</b>: 縮小は<b>反復も収束も無い 1 回の走査</b>であり、
     /// 途中で打ち切ると<b>画像の一部が書かれないまま返る</b>（壊れた画像になる）ため、時間による打ち切りは
     /// 行いません。 費用は元画像の画素数に比例するため、縮小の前に決まっている寸法から予測できます。<br/>
     /// <b>一部だけを縮小する場合</b>: 本画像から切り出してから縮小すると、<b>切り出しの複製</b>を払います。
     /// <see cref="ToPixmap"/> でビューを作り <see cref="EsPixmap.Resize"/> を呼ぶと、その分が要りません。<br/>
-    /// <b>立方畳み込み（bicubic）を段階へ加えない理由</b>: 縮小では
-    /// <see cref="EsImageQuality.High"/>（面積平均）が最も速く最も正しい（縮小率に応じて支持幅を広げた立方畳み込みは、
-    /// 支持幅が広がる分だけ遅く、2 倍縮小では鮮鋭さでも負けます。 立方畳み込みの方が柔らかくなる）。 立方畳み込みが
-    /// 正しい選択になるのは<b>拡大</b>であり、本メソッドは拡大を行いません。<br/>
+    /// <b>立方畳み込み（bicubic）を段階へ加えない理由</b>: 縮小ではリンギング（細線の縁にできる白黒の縞）が出やすく、
+    /// 画面キャプチャの文字が読みにくくなります。 面積平均に近い Fant の方が、文字・罫線が落ちず縁も濁りません
+    /// （立方畳み込みが正しい選択になるのは<b>拡大</b>であり、本メソッドは拡大を行いません）。<br/>
     /// <b>返す寸法の丸め</b>: 切り捨てで丸めるため<b>1 px 未満の誤差が出えます</b>（座標の対応付けが必要な場面では使わないこと）。
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または <paramref name="quality"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    [SupportedOSPlatform("windows10.0.17763")]
     public EsBitmap Resize(int maxSize, EsImageQuality quality = EsImageQuality.Mid)
     {
         ThrowIfDisposed();

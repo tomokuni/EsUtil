@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
@@ -172,10 +173,34 @@ internal static unsafe class WinWicImageCodec
     /// 透明色の追加を指示するため、透明な画素は透明なパレットの色へ寄ります（PNG の <c>tRNS</c> /
     /// GIF の透明色番号として書かれます）。<br/>
     /// <b>パレットの色は乗算していない ARGB です</b>: 画素（乗算済み BGRA）へ戻すときは
-    /// <see cref="Reduce"/> が乗算し直します。
+    /// <see cref="Reduce(ReadOnlySpan{byte}, int, int, int, int, EsDitherMode, Span{byte})"/> が乗算し直します。
     /// </remarks>
     internal static (byte[] Indices, uint[] Palette) ReduceToIndexed(
         ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount, EsDitherMode dither)
+    {
+        var indices = new byte[width * height];
+        var palette = ReduceToIndexed(pixels, width, height, stride, colorCount, dither, indices);
+        return (indices, palette);
+    }
+
+    /// <summary>画素を指定の色数へ減色し、色番号を呼び出し側の領域へ書く。</summary>
+    /// <param name="pixels">元の画素（BGRA8888・アルファ乗算済み。 行の余白を含んでよい）。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
+    /// <param name="colorCount">残す色数（2〜256。 呼び出し側が検証済みであること）。</param>
+    /// <param name="dither">ディザの指定。</param>
+    /// <param name="indices">色番号の書き込み先（<c>width × height</c> バイト以上。 行は密に書く）。</param>
+    /// <returns>パレット（乗算していない ARGB）。</returns>
+    /// <exception cref="Win32Exception">減色（WIC）が失敗した場合。</exception>
+    /// <remarks>
+    /// <b>色番号を呼び出し側の領域へ直接書きます</b>: 保存は色番号のまま書き、画素へ戻す経路は
+    /// <see cref="Reduce(ReadOnlySpan{byte}, int, int, int, int, EsDitherMode, Span{byte})"/> が担うため、
+    /// 中間の配列を作る必要がない呼び出し側（保存・画素への変換）はこちらを使います。
+    /// </remarks>
+    internal static uint[] ReduceToIndexed(
+        ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount, EsDitherMode dither,
+        Span<byte> indices)
     {
         var factory = OpenFactory();
         void* buffer = null;
@@ -190,14 +215,13 @@ internal static unsafe class WinWicImageCodec
                     var converter = CreateIndexedConverter(factory, (IWICBitmapSource*)bitmap, palette, dither);
                     try
                     {
-                        var indices = new byte[width * height];
                         fixed (byte* destination = indices)
                         {
                             ((IWICBitmapSource*)converter)->CopyPixels(
-                                null, (uint)width, (uint)indices.Length, destination);
+                                null, (uint)width, (uint)(width * height), destination);
                         }
 
-                        return (indices, ReadPalette(palette));
+                        return ReadPalette(palette);
                     }
                     finally
                     {
@@ -225,6 +249,65 @@ internal static unsafe class WinWicImageCodec
         }
     }
 
+    /// <summary>画素を縮小し、呼び出し側の領域へ書く（WIC のスケーラーを使う）。</summary>
+    /// <param name="pixels">元の画素（BGRA8888・アルファ乗算済み。 行の余白を含んでよい）。</param>
+    /// <param name="width">元の幅（ピクセル）。</param>
+    /// <param name="height">元の高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
+    /// <param name="targetWidth">縮小後の幅（ピクセル）。 元の幅以下。</param>
+    /// <param name="targetHeight">縮小後の高さ（ピクセル）。 元の高さ以下。</param>
+    /// <param name="mode">補間の指定（品質から選ぶ。 呼び出し側が決める）。</param>
+    /// <param name="destination">書き込み先（<c>targetWidth × 4 × targetHeight</c> バイト以上。 行は密に書く）。</param>
+    /// <exception cref="Win32Exception">WIC の呼び出しが失敗した場合。</exception>
+    /// <remarks>
+    /// <b>縮小の計算は WIC が単一所有します</b>: 本ライブラリは補間の計算を持たない（デコード時の縮小と
+    /// 同じ実装・同じ画質になり、経路によって画素が変わらない）。<br/>
+    /// <b>中間画像を作りません</b>: 元の画素をそのまま WIC のビットマップとして参照させ（<c>fixed</c> の間だけ
+    /// 有効）、スケーラーの結果を呼び出し側の領域へ直接コピーします。 参照させるため<b>複製もしません</b>。<br/>
+    /// <b>画素形式の変換を挟みません</b>: 元の画素を <c>32bppPBGRA</c> として渡し、<c>IWICBitmapScaler</c> は
+    /// 元の画素形式を保つためです（変換器を挟むと画像 1 枚分の写しが増えます）。
+    /// </remarks>
+    internal static void Resize(
+        ReadOnlySpan<byte> pixels, int width, int height, int stride,
+        int targetWidth, int targetHeight, WICBitmapInterpolationMode mode, Span<byte> destination)
+    {
+        var factory = OpenFactory();
+        try
+        {
+            // WIC は渡した領域を参照する（複製しない）ため、固定したスコープの中でだけ使う
+            fixed (byte* source = pixels)
+            {
+                var pixelFormat = PInvoke.GUID_WICPixelFormat32bppPBGRA;
+                IWICBitmap* bitmap;
+                factory->CreateBitmapFromMemory(
+                    (uint)width, (uint)height, &pixelFormat, (uint)stride, (uint)(stride * height), source, &bitmap);
+                try
+                {
+                    IWICBitmapScaler* scaler;
+                    factory->CreateBitmapScaler(&scaler);
+                    try
+                    {
+                        scaler->Initialize((IWICBitmapSource*)bitmap, (uint)targetWidth, (uint)targetHeight, mode);
+                        WinWicFactory.CopyPixels(
+                            (IWICBitmapSource*)scaler, targetWidth, targetHeight, destination);
+                    }
+                    finally
+                    {
+                        scaler->Release();
+                    }
+                }
+                finally
+                {
+                    bitmap->Release();
+                }
+            }
+        }
+        finally
+        {
+            factory->Release();
+        }
+    }
+
     /// <summary>画素を指定の色数へ減色し、画素（BGRA8888・アルファ乗算済み）で返す。</summary>
     /// <param name="pixels">元の画素（BGRA8888・アルファ乗算済み。 行の余白を含んでよい）。</param>
     /// <param name="width">幅（ピクセル）。</param>
@@ -243,21 +326,74 @@ internal static unsafe class WinWicImageCodec
     internal static byte[] Reduce(
         ReadOnlySpan<byte> pixels, int width, int height, int stride, int colorCount, EsDitherMode dither)
     {
-        var (indices, palette) = ReduceToIndexed(pixels, width, height, stride, colorCount, dither);
         var result = new byte[width * height * EsReadOnlyBitmap.BytesPerPixel];
-        for (var i = 0; i < indices.Length; i++)
+        Reduce(pixels, width, height, stride, colorCount, dither, result);
+        return result;
+    }
+
+    /// <summary>画素を指定の色数へ減色し、呼び出し側の領域へ書く。</summary>
+    /// <param name="pixels">元の画素（BGRA8888・アルファ乗算済み。 行の余白を含んでよい）。</param>
+    /// <param name="width">幅（ピクセル）。</param>
+    /// <param name="height">高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
+    /// <param name="colorCount">残す色数（2〜256）。 呼び出し側が検証済みであること。</param>
+    /// <param name="dither">ディザの指定。</param>
+    /// <param name="destination">書き込み先（<c>width × 4 × height</c> バイト以上。 行は密に書く）。</param>
+    /// <exception cref="Win32Exception">減色（WIC）が失敗した場合。</exception>
+    /// <remarks>
+    /// <b>中間の画素を持ちません</b>: 色番号とパレットから<b>直接</b>書き込み先へ書きます（画像 1 枚分の
+    /// 複製を挟みません）。 乗算は<b>パレットの色ごとに 1 回</b>だけ行い、画素はその表を引きます
+    /// （パレットは 256 色以下であるため、画素ごとの乗算が消えます）。
+    /// </remarks>
+    internal static void Reduce(
+        ReadOnlySpan<byte> pixels, int width, int height, int stride,
+        int colorCount, EsDitherMode dither, Span<byte> destination)
+    {
+        var indices = ArrayPool<byte>.Shared.Rent(width * height);
+        try
         {
-            var color = palette[indices[i]];
+            var colors = ReduceToIndexed(pixels, width, height, stride, colorCount, dither, indices);
+            var table = BuildPremultipliedTable(colors);
+            var count = width * height;
+            for (var i = 0; i < count; i++)
+            {
+                var offset = i * EsReadOnlyBitmap.BytesPerPixel;
+                var color = indices[i] * EsReadOnlyBitmap.BytesPerPixel;
+                destination[offset + 0] = table[color + 0];
+                destination[offset + 1] = table[color + 1];
+                destination[offset + 2] = table[color + 2];
+                destination[offset + 3] = table[color + 3];
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(indices);
+        }
+    }
+
+    /// <summary>パレットの色を、本ライブラリの画素の並び（BGRA8888・アルファ乗算済み）へ直す。</summary>
+    /// <param name="palette">パレットの色（乗算していない ARGB）。</param>
+    /// <returns>乗算済みの BGRA（色数 × 4 バイト）。</returns>
+    /// <remarks>
+    /// <b>乗算を色ごとに 1 回だけ行う</b>: 画素ごとに乗算すると、色数によらず画素数の回数だけ実数演算が残ります
+    /// （パレットは 256 色以下であるため、表にすると最大 256 回で済みます）。
+    /// </remarks>
+    private static byte[] BuildPremultipliedTable(uint[] palette)
+    {
+        var table = new byte[palette.Length * EsReadOnlyBitmap.BytesPerPixel];
+        for (var i = 0; i < palette.Length; i++)
+        {
+            var color = palette[i];
             var alpha = (byte)(color >> 24);
-            var offset = i * EsReadOnlyBitmap.BytesPerPixel;
             var multiplier = alpha == 255 ? 1.0 : alpha / 255.0;
-            result[offset + 0] = Premultiply((byte)color, multiplier);
-            result[offset + 1] = Premultiply((byte)(color >> 8), multiplier);
-            result[offset + 2] = Premultiply((byte)(color >> 16), multiplier);
-            result[offset + 3] = alpha;
+            var offset = i * EsReadOnlyBitmap.BytesPerPixel;
+            table[offset + 0] = Premultiply((byte)color, multiplier);
+            table[offset + 1] = Premultiply((byte)(color >> 8), multiplier);
+            table[offset + 2] = Premultiply((byte)(color >> 16), multiplier);
+            table[offset + 3] = alpha;
         }
 
-        return result;
+        return table;
     }
 
     /// <summary>色成分をアルファで乗算する。</summary>

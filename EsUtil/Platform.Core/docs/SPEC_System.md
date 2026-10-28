@@ -116,7 +116,7 @@ graph LR
 | `EsUtil/Platform.Core/src/Imaging/EsBitmap.cs` | **書き換え可能**な画像（`EsReadOnlyBitmap` とは**兄弟**。 BGRA8888・Premul。 外部パッケージに依存しない。 書き込みの入口（`Pixels`・`SetPixel`・`TrySetPixel`・`Clear`・`SetReadOnly`）だけが読み取り専用の型と異なる） |
 | `EsUtil/Platform.Core/src/Imaging/EsReadOnlyBitmap.cs` | **読み取り専用**の画像（画素を書き換える入口を持たない。 `EsBitmap` と対称な入口を持ち、変換の向き（`FromBitmap`）だけが異なる） |
 | `EsUtil/Platform.Core/src/Imaging/EsBitmapBuffer.cs` | 画素バッファの内部型（確保・借用・共有・凍結・解放と**ファイル入出力**（`LoadFromFile` / `SaveToFile`）を単一所有する。 公開しない。 2 型の実装の共有もこの型が担う） |
-| `EsUtil/Platform.Core/src/Imaging/EsBitmapOperations.cs` | 画像を変更せずに新しい画像を作る操作（切り出し・縮小・減色）の内部実装（公開面は 2 型の同じ名前のメンバーであり、切り出しの手順と縮小の計算を単一所有する。 **寸法の判断は `EsImageCodec`**、**減色の計算は WIC** が持ち、本型は画像型への受け渡しだけを行う） |
+| `EsUtil/Platform.Core/src/Imaging/EsBitmapOperations.cs` | 画像を変更せずに新しい画像を作る操作（切り出し・縮小・減色）の内部実装（公開面は 2 型の同じ名前のメンバーであり、切り出しの手順を単一所有する。 **寸法の判断は `EsImageCodec`**、**縮小と減色の計算は WIC** が持ち、本型は画像型への受け渡しだけを行う） |
 | `EsUtil/Platform.Core/src/EsImageCodec.cs` | 画像の符号化・復号と形式の窓口（**画像型に依存しない**。 画素は `ReadOnlySpan<byte>` + 寸法 + 行幅で受け渡す。 形式の対応・縮小の寸法・保存・読み込み・縮小・減色の入口であり、画像型はここへ委譲する。 **パスの読み込みは `Imaging.EsImageFile` が単一所有する**（寸法の取得と復号でファイルを 2 回読まない）。 実装は `Native.Win.Wic` と `EsBitmapOperations` が持つ） |
 | `EsUtil/Platform.Core/src/Imaging/EsPixmap.cs` | 画像の一部を指す **0 コピーの読み取りビュー**（行幅を持つ。 切り出しの複製を避ける。 元の寿命に依存しない） |
 | `EsUtil/Platform.Core/src/Imaging/SafeAlignedBuffer.cs` | 整列したアンマネージド バッファの所有者（`SafeHandle`。 **解放の実装を単一所有する**。 `Dispose` 忘れはファイナライザが解放する） |

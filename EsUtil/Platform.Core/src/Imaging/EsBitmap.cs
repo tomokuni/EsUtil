@@ -481,6 +481,7 @@ public sealed class EsBitmap : IDisposable
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または <paramref name="quality"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
+    [SupportedOSPlatform("windows10.0.17763")]
     public EsBitmap Resize(int maxSize, EsImageQuality quality = EsImageQuality.Mid)
     {
         ThrowIfDisposed();

@@ -317,8 +317,8 @@ internal static class Program
     /// <summary>サンプル画像に使う寸法（実施前を等倍で表示できる大きさ。 計測の寸法は大きすぎて表示できない）。</summary>
     /// <remarks>
     /// <b>この寸法にする理由</b>: 縮小先は計測と同じ長辺 <see cref="ResizeMaxSize"/> にしたいが、
-    /// 640x360 から縮めると**ちょうど 2 倍**になり、双線形（Mid）と面積平均（High）が同じ画素になります
-    /// （実測で最大差 0）。 割り切れない比（2.5 倍）にするため 800x450 にしています。
+    /// 640x360 から縮めると**ちょうど 2 倍**になり、補間の違いが画素の差として現れにくくなります
+    /// 割り切れない比（2.5 倍）にするため 800x450 にしています。
     /// </remarks>
     private static readonly SizeCase s_sampleSize = new("800x450", 800, 450);
     /// <summary>サンプル画像で拡大する領域（実施前の左上からの位置と大きさ。 勾配の折り返しをまたぐ）。</summary>
@@ -582,7 +582,7 @@ internal static class Program
             using var read = ReadOnly(size);
             using var view = source.ToPixmap(new EsRectInt(0, 0, size.Width, size.Height));
 
-            // 品質の基準は面積平均（最も正確な縮小）の結果とする
+            // 品質の基準は Fant（最も正確な縮小）の結果とする
             using var reference = read.Resize(ResizeMaxSize, EsImageQuality.High);
 
             foreach (var quality in s_qualities)
@@ -1149,7 +1149,7 @@ internal static class Program
             [
                 .. s_qualities.Select(q => ($"実施後 {q}", $"sample/resize-{q.ToString().ToLowerInvariant()}.png")),
             ]);
-        AddText($"縮小先の長辺は**計測と同じ {ResizeMaxSize}** です。 元画像を **{s_sampleSize.Label}**（計測は {s_sizes[0].Label}）にしているため、比は **{s_sampleSize.Width / (double)ResizeMaxSize:F1} 倍**です。 元画像を 640x360 にすると**ちょうど 2 倍**になり、**{EsImageQuality.Mid}（双線形）と {EsImageQuality.High}（面積平均）が同じ画素**になります（2 倍の縮小では双線形が 2x2 の平均をそのまま求めるためです。 実測で最大差 0）。 3 つの違いを見るため、**割り切れない比**にしています。");
+        AddText($"縮小先の長辺は**計測と同じ {ResizeMaxSize}** です。 元画像を **{s_sampleSize.Label}**（計測は {s_sizes[0].Label}）にしているため、比は **{s_sampleSize.Width / (double)ResizeMaxSize:F1} 倍**です。 元画像を 640x360 にすると**ちょうど 2 倍**になり、補間の違いが画素の差として現れにくくなります。 3 つの違いを見るため、**割り切れない比**にしています。");
 
         AddHeading($"### {number}.2 縮小の拡大（{EsImageQuality.Low} / {EsImageQuality.Mid} / {EsImageQuality.High}）");
         AddText($"実施後の**1 画素を {SampleMagnification}×{SampleMagnification} で写した**ものです（実施後の ({s_resizeZoomRegion.X}, {s_resizeZoomRegion.Y}) から {s_resizeZoomRegion.Width}x{s_resizeZoomRegion.Height} の領域。 **実施前は上の表**を参照）。 縮小の違いは細かい模様に出るため、拡大すると**{EsImageQuality.Low}（最近傍）の階段**（元の模様を飛ばして拾うため）と、**{EsImageQuality.Mid}・{EsImageQuality.High} のなだらかさ**が見えます。");
@@ -1263,7 +1263,7 @@ internal static class Program
 
         AddText($"計測に使う画像は**折り返す勾配**です（B = X % {PatternPeriod}・G = Y % {PatternPeriod}・R = (X + Y) % {PatternPeriod}・A = 255。 決定的で、実行のたびに同じ画像になります）。 折り返すのは、画像の一部を切り出したビューと元画像とで**色の範囲を揃える**ためです（減色の費用は色の範囲で決まるため、折り返さない勾配では内容の違うもの同士を比べることになります）。 減色だけは内容の影響が大きいため、内容を変えた表を別に示します。");
 
-        AddText("**品質の表**は、出力がどれだけ元の画素に近いかを **PSNR (dB)** で示します（大きいほど近い）。 縮小は**面積平均の結果を基準**とし（最も正確な縮小）、減色は**元画像を基準**とします。 1 画素ごとの差では**ディザの狙い（縞を散らすこと）が見えない**ため、減色は**縞の出にくさ**（" + LowFrequencyBlock + "×" + LowFrequencyBlock + " の平均で見た PSNR）も示します（§7.9・§7.11）。");
+        AddText("**品質の表**は、出力がどれだけ元の画素に近いかを **PSNR (dB)** で示します（大きいほど近い）。 縮小は **{EsImageQuality.High}（Fant）の結果を基準**とし（最も正確な縮小）、減色は**元画像を基準**とします。 1 画素ごとの差では**ディザの狙い（縞を散らすこと）が見えない**ため、減色は**縞の出にくさ**（" + LowFrequencyBlock + "×" + LowFrequencyBlock + " の平均で見た PSNR）も示します（§7.9・§7.11）。");
 
         AddText("画素の領域（`幅 × 4 × 高さ`）は**アンマネージド**であり、所要の表には現れません（ビューは `行間隔 × 高さ`）。");
         AddValueGrid("項目", s_sizeLabels, ["画素の領域 (B)"], [s_sizes.Select(PixelBytes).ToArray()]);
@@ -1365,10 +1365,10 @@ internal static class Program
                 (row, column) => ResizeTargetTime(cls, targets[row], s_qualities[column]));
         }
 
-        // 品質は出力がどれだけ面積平均（最も正確な縮小）に近いかで測る
+        // 品質は出力がどれだけ Fant（最も正確な縮小）に近いかで測る
         var qualitySub = sub + 1;
         AddHeading($"### {number}.{qualitySub} 出力の品質（品質 × 寸法）");
-        AddText($"縮小先を長辺 {ResizeMaxSize} に固定し、**面積平均（{EsImageQuality.High}）の結果を基準**とした PSNR (dB) です（大きいほど基準に近い）。 行を品質・列を元画像の寸法とした 2 軸表を示します。 " + QualityTypeNote(SectionResize, "Resize", s_sizes[0].Label, EsImageQuality.Low.ToString()));
+        AddText($"縮小先を長辺 {ResizeMaxSize} に固定し、**{EsImageQuality.High}（Fant）の結果を基準**とした PSNR (dB) です（大きいほど基準に近い）。 行を品質・列を元画像の寸法とした 2 軸表を示します。 " + QualityTypeNote(SectionResize, "Resize", s_sizes[0].Label, EsImageQuality.Low.ToString()));
         AddValueGrid(
             "品質",
             s_sizeLabels,

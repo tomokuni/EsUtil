@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Xunit;
@@ -11,6 +12,7 @@ namespace EsUtil.Platform.Core.Tests.Imaging;
 /// <b>元の画像が変更されないこと・凍結されないこと</b>も確かめる。<br/>
 /// 静的共有状態を持たないため、UI フレームワークの初期化に依存しない（<c>[Fact]</c> で並列実行される）。
 /// </remarks>
+[SupportedOSPlatform("windows10.0.17763")]
 public class EsBitmapOperationsTests
 {
     /// <summary>赤で塗りつぶした読み取り専用の画像を生成する（切り出し元）。</summary>
@@ -378,7 +380,7 @@ public class EsBitmapOperationsTests
     [Fact]
     internal void 縮小_細線の残り方は品質で異なる()
     {
-        // 40x4 の黒地に、最近傍（Low）の対応表（0,4,8,…,36 列）が読まない位置（21 列）へ 1 画素幅の白線を置く
+        // 40x4 の黒地に、最近傍（Low）が読む位置（0,4,8,…,36 列）の間（21 列）へ 1 画素幅の白線を置く
         using var src = CreateThinLine(40, 4, lineX: 21);
 
         using var nearest = src.Resize(10, EsImageQuality.Low);
@@ -388,19 +390,18 @@ public class EsBitmapOperationsTests
         Assert.Equal(10, nearest.Size.Width);
         Assert.Equal(1, nearest.Size.Height);
 
-        // Low（最近傍）は比例位置の画素だけを読むため、間に落ちた細線は残らない
+        // Low（最近傍）は比例位置の画素だけを写すため、間に落ちた細線は残らない
         Assert.Equal(0, Brightness(nearest, 5, 0));
         // Mid（双線形）は線と隣の画素を等分する（255 の半分）
         Assert.Equal(127, Brightness(bilinear, 5, 0));
-        // High（面積平均）は線を含む矩形の平均（4 画素に 1 本 = 255 / 4）
-        Assert.Equal(63, Brightness(box, 5, 0));
+        // High（Fant）は線を含む範囲を面積平均に近く均す（4 画素に 1 本 = 255 / 4 を四捨五入して 64）
+        Assert.Equal(64, Brightness(box, 5, 0));
     }
 
     [Fact]
-    internal void 縮小_面積平均は中間の丸めを持たない()
+    internal void 縮小_一様な画像は縮小しても色が変わらない()
     {
-        // 40x40 の一様な画像（値 3）を 8x8 へ縮小する: 面積平均は 3 のまま（2 パスでも同じだが、
-        // 中間で割る実装だと丸めが入る。 1 パスであることを値で固定する）
+        // 一様な画像は補間の種類によらず同じ色のまま（縮小で色がずれないこと）
         using var src = CreateFilled(40, 40, System.Drawing.Color.FromArgb(255, 3, 5, 7));
 
         using var result = src.Resize(8, EsImageQuality.High);
@@ -412,17 +413,17 @@ public class EsBitmapOperationsTests
     }
 
     [Fact]
-    internal void 縮小_面積平均は大きい画像でも結果が同じ_並列化の確認()
+    internal void 縮小_大きい画像でも細線が薄く残る()
     {
-        // 並列化のしきい値（262,144 画素）を跨ぐ寸法で、逐次と並列の結果が一致することを確認する
+        // 600x480（縮小後 150x120）でも Fant の面積平均に近い性質が保たれることを確かめる
         using var src = CreateThinLine(600, 480, lineX: 301);
 
         using var result = src.Resize(150, EsImageQuality.High);
 
         Assert.Equal(150, result.Size.Width);
         Assert.Equal(120, result.Size.Height);
-        // 線（1 画素幅 × 480 行）は 4 画素幅のブロックへ平均される（輝度 = 255 × 480 / 4 / 480 = 63）
-        Assert.Equal(63, Brightness(result, 75, 60));
+        // 線（1 画素幅）は 4 画素幅の範囲へ均される（輝度 = 255 / 4 を四捨五入して 64）
+        Assert.Equal(64, Brightness(result, 75, 60));
     }
 
     // ====================================================================
