@@ -282,7 +282,7 @@
       "esutil.ui.winui3.columnpacking": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Feature.ColumnPacking.Core": "[0.1.0, )",
+          "EsUtil.Feature.ColumnPacking.Core": "[0.2.0, )",
           "Microsoft.Windows.SDK.BuildTools": "[10.0.28000.2705, )",
           "Microsoft.WindowsAppSDK": "[1.8.260921001, )"
         }

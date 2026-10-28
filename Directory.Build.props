@@ -6,11 +6,11 @@
 
          ローカル フィードへ出すときだけ buildScript/pack.ps1 が VersionSuffix=local.<n> を付ける
          （公開する版には含めない。 ローカル フィード専用の識別子である）。 -->
-    <EsUtil_VersionPrefix>0.1.0</EsUtil_VersionPrefix>
-    <EsUtil_Ui_AvaloniaUI_VersionPrefix>0.1.0</EsUtil_Ui_AvaloniaUI_VersionPrefix>
-    <EsUtil_Ui_MewUI_VersionPrefix>0.1.0</EsUtil_Ui_MewUI_VersionPrefix>
-    <EsUtil_Ui_WinUI3_VersionPrefix>0.1.0</EsUtil_Ui_WinUI3_VersionPrefix>
-    <EsUtil_Ui_WinForms_VersionPrefix>0.1.0</EsUtil_Ui_WinForms_VersionPrefix>
+    <EsUtil_VersionPrefix>0.2.0</EsUtil_VersionPrefix>
+    <EsUtil_Ui_AvaloniaUI_VersionPrefix>0.2.0</EsUtil_Ui_AvaloniaUI_VersionPrefix>
+    <EsUtil_Ui_MewUI_VersionPrefix>0.2.0</EsUtil_Ui_MewUI_VersionPrefix>
+    <EsUtil_Ui_WinUI3_VersionPrefix>0.2.0</EsUtil_Ui_WinUI3_VersionPrefix>
+    <EsUtil_Ui_WinForms_VersionPrefix>0.2.0</EsUtil_Ui_WinForms_VersionPrefix>
   </PropertyGroup>
 
   <PropertyGroup>

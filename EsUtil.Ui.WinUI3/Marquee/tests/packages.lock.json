@@ -284,15 +284,15 @@
       "esutil.feature.marquee.core": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.1.0, )",
+          "EsUtil.Platform.Core": "[0.2.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
       "esutil.feature.marquee.presenter": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Feature.Marquee.Core": "[0.1.0, )",
-          "EsUtil.Platform.Core": "[0.1.0, )",
+          "EsUtil.Feature.Marquee.Core": "[0.2.0, )",
+          "EsUtil.Platform.Core": "[0.2.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
@@ -302,7 +302,7 @@
       "esutil.ui.winui3.interop": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.1.0, )",
+          "EsUtil.Platform.Core": "[0.2.0, )",
           "Microsoft.Windows.SDK.BuildTools": "[10.0.28000.2705, )",
           "Microsoft.WindowsAppSDK": "[1.8.260921001, )"
         }
@@ -310,9 +310,9 @@
       "esutil.ui.winui3.marquee": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Feature.Marquee.Presenter": "[0.1.0, )",
-          "EsUtil.Platform.Core": "[0.1.0, )",
-          "EsUtil.Ui.WinUI3.Interop": "[0.1.0, )",
+          "EsUtil.Feature.Marquee.Presenter": "[0.2.0, )",
+          "EsUtil.Platform.Core": "[0.2.0, )",
+          "EsUtil.Ui.WinUI3.Interop": "[0.2.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )",
           "Microsoft.Windows.SDK.BuildTools": "[10.0.28000.2705, )",
           "Microsoft.WindowsAppSDK": "[1.8.260921001, )"

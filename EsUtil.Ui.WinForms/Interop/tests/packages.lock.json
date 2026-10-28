@@ -187,7 +187,7 @@
       "esutil.ui.winforms.interop": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.1.0, )"
+          "EsUtil.Platform.Core": "[0.2.0, )"
         }
       }
     }

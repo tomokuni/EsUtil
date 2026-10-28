@@ -324,7 +324,7 @@
         "dependencies": {
           "Avalonia": "[12.1.4, )",
           "Avalonia.Controls.ColorPicker": "[12.1.4, )",
-          "EsUtil.Platform.Core": "[0.1.0, )",
+          "EsUtil.Platform.Core": "[0.2.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
@@ -332,7 +332,7 @@
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "EsUtil.Platform.Core": "[0.1.0, )"
+          "EsUtil.Platform.Core": "[0.2.0, )"
         }
       },
       "Avalonia": {
