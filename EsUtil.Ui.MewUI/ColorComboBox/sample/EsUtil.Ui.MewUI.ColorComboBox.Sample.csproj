@@ -13,8 +13,8 @@
 
   <ItemGroup>
     <!-- Win32 プラットフォームホスト + Windows 向け描画バックエンド -->
-    <PackageReference Include="Aprillz.MewUI.Windows" Version="$(MewUIVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+    <PackageReference Include="Aprillz.MewUI.Windows" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

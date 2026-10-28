@@ -15,8 +15,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="[1.*,2.0.0)" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="[10.0.*,)" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,7 +24,7 @@
     <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
     <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.WinUI3.Interop.csproj" />
     <!-- 本コントロールが単一所有する値（画像・項目数）の変更ログ（LoggerMessage ソース生成）を持つ -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

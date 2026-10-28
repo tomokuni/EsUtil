@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <!-- 入力の判断と描画状態変更のログ定義（LoggerMessage ソース生成）をコアが所有する -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

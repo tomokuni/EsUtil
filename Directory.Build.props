@@ -86,20 +86,28 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!-- 復元結果を packages.lock.json で固定する（各プロジェクトの直下に置き、**コミットする**）。
+         パッケージの版は Directory.Packages.props が完全一致で持ち、その解決結果を lock が固定するため、
+         同じコミットは常に同じ依存で復元される。 CI は -p:RestoreLockedMode=true で lock どおりに復元し、
+         lock と Directory.Packages.props の食い違いを NU1004 で検出する。 規則は .github/ビルド設定規約.md §4。 -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- 使用を禁止する API（buildScript/BannedSymbols.txt）をコンパイラで検出する。
          規則の所有者は .github/コーディング規約.md（例: フラグ enum は HasFlag ではなくビット演算を使う）。
          一覧をルート直下に置かないのは、ルートのファイルを減らすため（規則は .github/ビルド設定規約.md §1）。 -->
-    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="[5.*,)" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)buildScript\BannedSymbols.txt" />
 
     <!-- 規約のうち、SDK のアナライザー（AnalysisMode=Recommended）が検出しない項目を補うアナライザー。
          有効にする規則は .editorconfig が単一所有する（既定の重要度のまま使わない）。 -->
     <!-- 非同期の書き方（`async void` の禁止・`Async` 接尾辞）。 規則は .github/コーディング規約.md §7 / .github/命名規約.md。 -->
-    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="[17.*,)" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="all" />
     <!-- ファイル名と型名の一致（MA0048）/ 名前空間セグメントと型名の一致の禁止（MA0049）。
          規則は .github/命名規約.md（「1 ファイル 1 型」「ファイル名は型名と一致」「名前空間セグメントと型名を一致させない」）。 -->
-    <PackageReference Include="Meziantou.Analyzer" Version="[3.*,)" PrivateAssets="all" />
+    <PackageReference Include="Meziantou.Analyzer" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>

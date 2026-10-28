@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <!-- Windows 専用の画像型（System.Drawing.Bitmap）との相互変換を行う。 Windows でのみ動作する -->
-    <PackageReference Include="System.Drawing.Common" Version="[10.*,)" />
+    <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 
   <ItemGroup>

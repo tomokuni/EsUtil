@@ -14,9 +14,9 @@
 
   <ItemGroup>
     <!-- SkiaCanvasView（枠線・ハンドル・マーカー・座標ラベルを描画する） -->
-    <PackageReference Include="Aprillz.MewUI.Core" Version="$(MewUIVersion)" />
+    <PackageReference Include="Aprillz.MewUI.Core" />
     <!-- 操作ログ（LoggerMessage ソース生成・NullLogger。Avalonia 版と同一の書式） -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <!-- 本層が単一所有する設定（計算に必要な設定・外観）の変更ログ（LoggerMessage ソース生成）を持つ -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

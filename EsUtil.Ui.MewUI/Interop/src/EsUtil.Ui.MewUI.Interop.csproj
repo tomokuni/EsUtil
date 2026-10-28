@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <!-- MewUI のコア（型・値型・標準描画の IGraphicsContext）。 プラットフォームホストは含まない -->
-    <PackageReference Include="Aprillz.MewUI.Core" Version="0.21.1" />
+    <PackageReference Include="Aprillz.MewUI.Core" />
   </ItemGroup>
 
   <ItemGroup>

@@ -25,7 +25,7 @@
 
   <ItemGroup>
     <!-- UI が出力するログ定義（LoggerMessage ソース生成）を本層が所有する -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="[10.*,)" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
 </Project>

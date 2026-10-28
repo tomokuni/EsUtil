@@ -219,6 +219,9 @@ if (-not $SkipBuild) {
         # 全プロジェクトを作り直すのは -FullBuild のときだけ（規則は .github/検証手順.md §3）。
         $buildArgs = @('build', $sln, '-c', $Configuration, '-tl:off', '-v:q', '-p:EsUtilVersionCheck=false')
         if ($FullBuild) { $buildArgs += '--no-incremental' }
+        # lock どおりに復元する（packages.lock.json と Directory.Packages.props が食い違えば NU1004 で失敗する）。
+        # 復元を省略した場合（-NoRestore）も、呼び出し側が同じ指定で復元済みであることを前提にする。
+        $buildArgs += '-p:RestoreLockedMode=true'
         $buildArgs += $restoreArgs
         $build = Invoke-DotNet $buildArgs
         $buildText = $build.Text
@@ -271,6 +274,45 @@ $duplicateProps = @(Get-ChildItem -Path $repoRoot -Directory |
 Add-Result 'ビルド設定' ($missingProps.Count -eq 0 -and $duplicateProps.Count -eq 0) "不足 $($missingProps.Count) / 重複 $($duplicateProps.Count)"
 $missingProps | ForEach-Object { "      Directory.Build.props に無い: $_" }
 $duplicateProps | ForEach-Object { "      重複指定: $($_.FullName.Substring($repoRoot.Length + 1))" }
+
+# 2a) パッケージの版の単一所有（Central Package Management）と完全一致
+#     規則の所有者は .github/ビルド設定規約.md §8。
+#       - 版は Directory.Packages.props だけが持ち、各 .csproj は Version を書かない（NU1008）。
+#       - 版は完全一致で書く（範囲・浮動版を書くと、同じコミットでも復元した時点の最新が入る）。
+$packagesPropsPath = Join-Path $repoRoot 'Directory.Packages.props'
+$packagesPropsText = if (Test-Path -LiteralPath $packagesPropsPath) { [IO.File]::ReadAllText($packagesPropsPath, $enc) } else { '' }
+$packageIssues = [System.Collections.Generic.List[string]]::new()
+if ($packagesPropsText -notmatch '<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>') {
+    $packageIssues.Add('Directory.Packages.props に ManagePackageVersionsCentrally=true が無い')
+}
+foreach ($m in [regex]::Matches($packagesPropsText, '<PackageVersion\s+Include="(?<id>[^"]+)"\s+Version="(?<v>[^"]+)"')) {
+    if ($m.Groups['v'].Value -notmatch '^\d+\.\d+\.\d+') {
+        $packageIssues.Add(("{0}: 版が完全一致ではありません（範囲・浮動版は使わない）: {1}" -f $m.Groups['id'].Value, $m.Groups['v'].Value))
+    }
+}
+# .csproj と Directory.Build.props の PackageReference に Version を書いていないか
+$versionInReference = @(git ls-files --cached --others --exclude-standard -- '*.csproj' 'Directory.Build.props' |
+        Where-Object { $_ -notmatch '\\(obj|bin)\\' } |
+        ForEach-Object {
+            $text = [IO.File]::ReadAllText((Join-Path $repoRoot $_), $enc)
+            foreach ($m in [regex]::Matches($text, '<PackageReference(?<attrs>[^>]*)>')) {
+                if ($m.Groups['attrs'].Value -match 'VersionOverride|Include="(?<id>[^"]+)"[^>]*\sVersion=') {
+                    "{0}: {1}" -f $_, $m.Value.Trim()
+                }
+            }
+        })
+foreach ($hit in $versionInReference) { $packageIssues.Add(("Version を書いている（Directory.Packages.props へ移す）: {0}" -f $hit)) }
+Add-Result 'パッケージの版' ($packageIssues.Count -eq 0) "違反 $($packageIssues.Count) 件"
+$packageIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
+
+# 2b) 復元結果の固定（packages.lock.json を全プロジェクトが持つこと。 規則は §8）
+#     lock が無いと、同じコミットでも復元した時点の依存で中身が変わる。 lock の一致はビルドの
+#     `-p:RestoreLockedMode=true`（§1）が NU1004 で検出する。
+$lockMissing = @(git ls-files --cached --others --exclude-standard -- '*.csproj' |
+        Where-Object { $_ -notmatch '\\(obj|bin)\\' } |
+        Where-Object { -not (Test-Path -LiteralPath (Join-Path $repoRoot (Join-Path (Split-Path $_ -Parent) 'packages.lock.json'))) })
+Add-Result 'ロックファイル' ($lockMissing.Count -eq 0) "未作成 $($lockMissing.Count) 件"
+$lockMissing | Select-Object -First 10 | ForEach-Object { "      packages.lock.json が無い: $_（dotnet restore で作られる）" }
 
 # 2b) アナライザー設定が .cs へ適用されているか
 #     `.editorconfig` の `dotnet_diagnostic.*` は「直前のセクション」に属する。 セクションを分け忘れると
