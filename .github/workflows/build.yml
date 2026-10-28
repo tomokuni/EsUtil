@@ -155,14 +155,18 @@ jobs:
 
       # .NET SDK はランナー イメージの最新版を使う（setup-dotnet は不要。イメージが C:\Program Files\dotnet を
       # PATH へ追加しているため、以降のステップでそのまま dotnet を実行できる）。
-      # NuGet のグローバル パッケージ フォルダはキャッシュする（復元が最も時間を使う工程のため）。
+      # NuGet のグローバル パッケージ フォルダは**ソリューションごと**にキャッシュする。
+      # 5 ジョブが同時に走るため、共通の大きなキャッシュ（実測 1.45 GB）を 5 重に復元すると
+      # 1 ジョブあたり 43 秒かかり、ディスクも 7 GB を超える。 ソリューションごとに分けると
+      # 復元量が必要な分だけになる（キーの識別子は `.slnx` の内容のハッシュ。 変更しても
+      # restore-keys で同じソリューションの直前のキャッシュへ戻る）。
       - name: NuGet をキャッシュ
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles(matrix.solution) }}-${{ hashFiles('**/*.csproj') }}
           restore-keys: |
-            nuget-${{ runner.os }}-
+            nuget-${{ runner.os }}-${{ hashFiles(matrix.solution) }}-
 
       # 検証は buildScript/verify.ps1 が単一所有する（合否基準は .github/検証手順.md が所有者）。
       # 走査（-SkipDocs）とパッケージング（-SkipPackaging）は別ジョブが持つ。
