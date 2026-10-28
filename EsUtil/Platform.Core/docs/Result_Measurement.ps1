@@ -215,7 +215,7 @@ internal static class Program
     private const string SectionStability = "安定性";
 
     // 備考の文言（1 行目を基準とし、行ごとに総括して述べる）
-    private const string RemarkBaseline = "基準";
+    private const string RemarkBaseline = "速度の基準";
     private const string RemarkNoDifference = "差は誤差の範囲";
     private const string RemarkFaster = "速い";
     private const string RemarkSlower = "遅い";
@@ -582,8 +582,12 @@ internal static class Program
             using var read = ReadOnly(size);
             using var view = source.ToPixmap(new EsRectInt(0, 0, size.Width, size.Height));
 
-            // 品質の基準は Fant（最も正確な縮小）の結果とする
-            using var reference = read.Resize(ResizeMaxSize, EsImageQuality.High);
+            // 品質の**参照**は Lanczos-3（独立した参照実装）。 自分の実装を参照にすると、その段階が
+            // 必ず ∞ になり、実装を変えると参照も動いて版をまたいで比べられない（説明は §6.7）。
+            var referenceSize = EsUtil.Platform.Core.EsImageCodec.GetResizedSize(new EsSizeInt(size.Width, size.Height), ResizeMaxSize);
+            var referencePixels = Lanczos3(
+                read.ReadOnlyPixels, size.Width, size.Height, read.Stride, referenceSize.Width, referenceSize.Height);
+            using var reference = EsReadOnlyBitmap.FromPixelCopy(referenceSize.Width, referenceSize.Height, referencePixels);
 
             foreach (var quality in s_qualities)
             {
@@ -1013,7 +1017,7 @@ internal static class Program
         }
     }
 
-    /// <summary>出力の品質（基準との PSNR (dB)）を求めて記録する。</summary>
+    /// <summary>出力の品質（参照との PSNR (dB)）を求めて記録する。</summary>
     /// <remarks>
     /// <b>所要の計測と混ぜない理由</b>: PSNR の計算は全画素を走査するため、計測の本体へ混ぜると
     /// <b>所要が PSNR の分だけ増えます</b>。<br/>
@@ -1263,7 +1267,7 @@ internal static class Program
 
         AddText($"計測に使う画像は**折り返す勾配**です（B = X % {PatternPeriod}・G = Y % {PatternPeriod}・R = (X + Y) % {PatternPeriod}・A = 255。 決定的で、実行のたびに同じ画像になります）。 折り返すのは、画像の一部を切り出したビューと元画像とで**色の範囲を揃える**ためです（減色の費用は色の範囲で決まるため、折り返さない勾配では内容の違うもの同士を比べることになります）。 減色だけは内容の影響が大きいため、内容を変えた表を別に示します。");
 
-        AddText("**品質の表**は、出力がどれだけ元の画素に近いかを **PSNR (dB)** で示します（大きいほど近い）。 縮小は **{EsImageQuality.High}（Fant）の結果を基準**とし（最も正確な縮小）、減色は**元画像を基準**とします。 1 画素ごとの差では**ディザの狙い（縞を散らすこと）が見えない**ため、減色は**縞の出にくさ**（" + LowFrequencyBlock + "×" + LowFrequencyBlock + " の平均で見た PSNR）も示します（§7.9・§7.11）。");
+        AddText("**品質の表**は、出力がどれだけ元の画素に近いかを **PSNR (dB)** で示します（大きいほど近い）。 縮小は **Lanczos-3（独立した参照実装）を参照**とし、減色は**元画像を参照**とします。 1 画素ごとの差では**ディザの狙い（縞を散らすこと）が見えない**ため、減色は**縞の出にくさ**（" + LowFrequencyBlock + "×" + LowFrequencyBlock + " の平均で見た PSNR）も示します（§7.9・§7.11）。");
 
         AddText("画素の領域（`幅 × 4 × 高さ`）は**アンマネージド**であり、所要の表には現れません（ビューは `行間隔 × 高さ`）。");
         AddValueGrid("項目", s_sizeLabels, ["画素の領域 (B)"], [s_sizes.Select(PixelBytes).ToArray()]);
@@ -1365,10 +1369,10 @@ internal static class Program
                 (row, column) => ResizeTargetTime(cls, targets[row], s_qualities[column]));
         }
 
-        // 品質は出力がどれだけ Fant（最も正確な縮小）に近いかで測る
+        // 品質は出力がどれだけ Lanczos-3（独立した参照実装）に近いかで測る
         var qualitySub = sub + 1;
         AddHeading($"### {number}.{qualitySub} 出力の品質（品質 × 寸法）");
-        AddText($"縮小先を長辺 {ResizeMaxSize} に固定し、**{EsImageQuality.High}（Fant）の結果を基準**とした PSNR (dB) です（大きいほど基準に近い）。 行を品質・列を元画像の寸法とした 2 軸表を示します。 " + QualityTypeNote(SectionResize, "Resize", s_sizes[0].Label, EsImageQuality.Low.ToString()));
+        AddText($"縮小先を長辺 {ResizeMaxSize} に固定し、**Lanczos-3（独立した参照実装）を参照**とした PSNR (dB) です（大きいほど参照に近い）。 行を品質・列を元画像の寸法とした 2 軸表を示します。 " + QualityTypeNote(SectionResize, "Resize", s_sizes[0].Label, EsImageQuality.Low.ToString()));
         AddValueGrid(
             "品質",
             s_sizeLabels,
@@ -1683,6 +1687,111 @@ internal static class Program
     /// <summary>指定の内容で読み取り専用の画像を生成する。</summary>
     private static EsReadOnlyBitmap ReadOnlyWith(SizeCase size, string content)
         => EsReadOnlyBitmap.CreateFilled(size.Width, size.Height, pixels => FillPattern(pixels, size.Width, size.Height, content));
+
+    /// <summary>Lanczos-3 で縮小する（品質の**参照**。 ライブラリの実装に依存しない独立した計算）。</summary>
+    /// <param name="source">元の画素（BGRA8888。 行の余白を含んでよい）。</param>
+    /// <param name="width">元の幅（ピクセル）。</param>
+    /// <param name="height">元の高さ（ピクセル）。</param>
+    /// <param name="stride"><paramref name="source"/> の 1 ラインあたりのバイト数。</param>
+    /// <param name="targetWidth">縮小後の幅（ピクセル）。</param>
+    /// <param name="targetHeight">縮小後の高さ（ピクセル）。</param>
+    /// <returns>縮小した画素（密な並び）。</returns>
+    /// <remarks>
+    /// <b>参照を Lanczos-3 にする理由</b>: 自分の実装（<c>EsImageQuality.High</c>）を参照にすると、
+    /// その段階が必ず ∞ になり、実装を変えると参照も動いて**版をまたいで比べられません**。
+    /// Lanczos-3 は**アンチエイリアスの効いた縮小の標準**であり、実装から独立しています。<br/>
+    /// <b>縮小率に応じて支持幅を広げます</b>（縮小率 s に対し半径 3s。 広げないと細部が折り返します）。<br/>
+    /// <b>2 パス（水平 → 垂直）</b>で計算し、値域へ丸めます（負のローブで 0〜255 を外れるため）。
+    /// </remarks>
+    private static byte[] Lanczos3(
+        ReadOnlySpan<byte> source, int width, int height, int stride,
+        int targetWidth, int targetHeight)
+    {
+        var scaleX = (double)width / targetWidth;
+        var radiusX = 3.0 * Math.Max(1.0, scaleX);
+        var horizontal = new float[targetWidth * height * 3];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < targetWidth; x++)
+            {
+                var center = ((x + 0.5) * scaleX) - 0.5;
+                var low = (int)Math.Floor(center - radiusX);
+                var high = (int)Math.Ceiling(center + radiusX);
+                double sumB = 0, sumG = 0, sumR = 0, weight = 0;
+                for (var sx = low; sx <= high; sx++)
+                {
+                    var clamped = Math.Clamp(sx, 0, width - 1);
+                    var t = (sx - center) / Math.Max(1.0, scaleX);
+                    var w = Sinc(t) * Sinc(t / 3.0);
+                    if (w == 0)
+                    {
+                        continue;
+                    }
+
+                    var i = (y * stride) + (clamped * 4);
+                    sumB += source[i] * w;
+                    sumG += source[i + 1] * w;
+                    sumR += source[i + 2] * w;
+                    weight += w;
+                }
+
+                var o = ((y * targetWidth) + x) * 3;
+                horizontal[o] = (float)(sumB / weight);
+                horizontal[o + 1] = (float)(sumG / weight);
+                horizontal[o + 2] = (float)(sumR / weight);
+            }
+        }
+
+        var scaleY = (double)height / targetHeight;
+        var radiusY = 3.0 * Math.Max(1.0, scaleY);
+        var result = new byte[targetWidth * targetHeight * 4];
+        for (var y = 0; y < targetHeight; y++)
+        {
+            var center = ((y + 0.5) * scaleY) - 0.5;
+            var low = (int)Math.Floor(center - radiusY);
+            var high = (int)Math.Ceiling(center + radiusY);
+            for (var x = 0; x < targetWidth; x++)
+            {
+                double sumB = 0, sumG = 0, sumR = 0, weight = 0;
+                for (var sy = low; sy <= high; sy++)
+                {
+                    var clamped = Math.Clamp(sy, 0, height - 1);
+                    var t = (sy - center) / Math.Max(1.0, scaleY);
+                    var w = Sinc(t) * Sinc(t / 3.0);
+                    if (w == 0)
+                    {
+                        continue;
+                    }
+
+                    var i = ((clamped * targetWidth) + x) * 3;
+                    sumB += horizontal[i] * w;
+                    sumG += horizontal[i + 1] * w;
+                    sumR += horizontal[i + 2] * w;
+                    weight += w;
+                }
+
+                var o = ((y * targetWidth) + x) * 4;
+                result[o] = (byte)Math.Clamp(Math.Round(sumB / weight), 0, 255);
+                result[o + 1] = (byte)Math.Clamp(Math.Round(sumG / weight), 0, 255);
+                result[o + 2] = (byte)Math.Clamp(Math.Round(sumR / weight), 0, 255);
+                result[o + 3] = 0xFF;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>sinc 関数（<c>sin(πx)/(πx)</c>。 0 のときは 1）。</summary>
+    private static double Sinc(double x)
+    {
+        if (Math.Abs(x) < 1e-9)
+        {
+            return 1.0;
+        }
+
+        var px = Math.PI * x;
+        return Math.Sin(px) / px;
+    }
 
     /// <summary>画像の内容を書き込む（平坦 / グラデーション / ノイズ。 いずれも決定的で、実行のたびに同じ画像になる）。</summary>
     private static void FillPattern(Span<byte> pixels, int width, int height, string content)
