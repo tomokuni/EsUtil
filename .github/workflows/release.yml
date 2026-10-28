@@ -15,10 +15,14 @@
 #     ポリシーは「リポジトリ + ワークフロー ファイル + environment: release」に紐づける。
 #   - **変更のあったグループだけを公開する**（前回のグループ別タグからの差分で決める）。
 #   - 公開する版にローカル識別子（`-`）を含めない。
+#   - **配布物には SBOM（CycloneDX）を添付する**（グループごとに 1 ファイル。 使った依存を公開物から辿れる）。
+#   - **公開したパッケージには由来の証明（build provenance）を付ける**（どのワークフロー・どのコミットが
+#     作ったかを後から検証できる。 `actions/attest-build-provenance`）。
 #   - **実行できるブランチはモードで変わる**（dry-run は main / dev、公開は main のみ）。
 #     一覧は .github/release-config.json が単一所有する（開発〜dry-run の確認は dev で行う）。
 #
-# 詳細な合否基準は .github/検証手順.md §9、版の規則は .github/ビルド設定規約.md §4 が持つ。
+# **手順の所有者は .github/RELEASE.md**（本ファイルはその実装）。 版の規則は .github/ビルド設定規約.md §4、
+# パッケージの合否基準は .github/検証手順.md §9 が持つ。
 name: Release
 
 run-name: ${{ inputs.mode == 'dry-run' && 'DryRun' || 'Release' }} ${{ github.ref_name }} ${{ github.sha }}
@@ -218,6 +222,49 @@ jobs:
           if-no-files-found: error
 
   # ────────────────────────────────────────────────────────────
+  # 2b. SBOM（CycloneDX）を作る（dry-run でも作って検証する）
+  # ────────────────────────────────────────────────────────────
+  # **pack と並列に走らせる**（SBOM は配布物を使わない。 直列にすると作成の待ち時間が毎回乗る）。
+  # グループ（= ソリューション）ごとに 1 ファイル作り、そのグループの Release へ添付する。
+  sbom:
+    needs: verify
+    if: needs.verify.outputs.count != '0'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v5
+
+      # ツール（CycloneDX）の取得と復元をキャッシュする
+      - name: NuGet をキャッシュ
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: SBOM を作成
+        shell: pwsh
+        env:
+          GROUPS: ${{ needs.verify.outputs.groups }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # ツールの版は .config/dotnet-tools.json が単一所有する（CI とローカルで同じものを使う）
+          foreach ($item in @(ConvertFrom-Json $env:GROUPS)) {
+            & pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output 'sbom' -Solution $item.solution -Version $item.version -Product $item.group
+            if ($LASTEXITCODE -ne 0) { throw "SBOM の作成に失敗しました（exit $LASTEXITCODE）: $($item.group)" }
+          }
+          Get-ChildItem -Path 'sbom' -File | ForEach-Object { $_.Name }
+
+      - name: SBOM を保管
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom/*.json
+          if-no-files-found: error
+
+  # ────────────────────────────────────────────────────────────
   # 3. 公開（release のみ。 承認を要求する）
   # ────────────────────────────────────────────────────────────
   publish:
@@ -292,16 +339,33 @@ jobs:
   # 4. タグと GitHub Release（公開が成功した後にだけ実行する）
   # ────────────────────────────────────────────────────────────
   tag:
-    needs: [verify, publish]
+    needs: [verify, publish, sbom]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: write
+      # 成果物の由来（provenance）を証明する（署名は GitHub の OIDC で行う）
+      id-token: write
+      attestations: write
     steps:
       - name: チェックアウト
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+
+      # 公開したパッケージと SBOM を 1 つのフォルダへ集約する
+      - name: 成果物をダウンロード
+        uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+
+      # **由来の証明**（どのワークフロー・どのコミットが作ったかを検証できるようにする）。
+      # 公開した版は取り消せないため、後から出所を確かめられる状態にする（規則は .github/RELEASE.md）。
+      - name: 由来を証明
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'assets/**/*.nupkg'
 
       # グループ別にタグと Release を作る（タグはワークフローだけが作る）
       - name: タグと Release を作成
@@ -317,7 +381,11 @@ jobs:
             # ほかのグループは付けない（Latest は 1 つしか選べず、UI の版が最新に見えると誤解を招く）。
             $notes = "公開したパッケージ: $($item.group) v$($item.version)"
             $latest = if ($item.group -eq 'EsUtil') { '--latest' } else { '--latest=false' }
-            & gh release create $item.tag --target $env:SHA --title "$($item.group) v$($item.version)" --notes $notes $latest
+
+            # そのグループの SBOM を添付する（グループごとに 1 ファイル。 名前は generateSbom.ps1 が決める）
+            $sbom = Join-Path 'assets' "$($item.group).$($item.version).sbom.cdx.json"
+            if (-not (Test-Path -LiteralPath $sbom)) { throw "SBOM がありません: $sbom" }
+            & gh release create $item.tag --target $env:SHA --title "$($item.group) v$($item.version)" --notes $notes $latest $sbom
             if ($LASTEXITCODE -ne 0) { throw "タグと Release の作成が失敗しました: $($item.tag)" }
-            Write-Host "作成しました: $($item.tag)"
+            Write-Host "作成しました: $($item.tag)（添付: $(Split-Path -Leaf $sbom)）"
           }
