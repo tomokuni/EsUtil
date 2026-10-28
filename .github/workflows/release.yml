@@ -207,7 +207,8 @@ jobs:
           $ErrorActionPreference = 'Stop'
           foreach ($item in @(ConvertFrom-Json $env:GROUPS)) {
             $out = Join-Path 'artifacts' ($item.group -replace '\.', '-')
-            & dotnet pack $item.solution -c Release -o $out --nologo
+            # lock どおりに復元する（packages.lock.json と Directory.Packages.props の食い違いを NU1004 で検出する）
+            & dotnet pack $item.solution -c Release -o $out --nologo -p:RestoreLockedMode=true
             if ($LASTEXITCODE -ne 0) { throw "pack が失敗しました: $($item.group)" }
           }
           Get-ChildItem -Path 'artifacts' -Recurse -File | ForEach-Object { $_.FullName }
