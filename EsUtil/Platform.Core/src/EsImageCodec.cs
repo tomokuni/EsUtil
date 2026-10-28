@@ -18,7 +18,7 @@ namespace EsUtil.Platform.Core;
 /// <b>パスから読む場合は <see cref="Imaging.EsImageFile"/> を使います</b>（寸法と画素を 1 回の読み込みから求めます）。<br/>
 /// <b>Windows 専用です</b>: 復号・保存・縮小・減色は WIC を呼ぶため（<see cref="Decode(ReadOnlySpan{byte}, int)"/> /
 /// <see cref="Save(ReadOnlySpan{byte}, EsSizeInt, string, EsImageSaveOptions)"/> /
-/// <see cref="Resize(ReadOnlySpan{byte}, EsSizeInt, int, int, EsImageQuality)"/> /
+/// <see cref="Resize(ReadOnlySpan{byte}, EsSizeInt, int, int, EsImageScalingMode)"/> /
 /// <see cref="ReduceColors(ReadOnlySpan{byte}, EsSizeInt, int, int, EsDitherMode)"/> / <see cref="SaveExtensions"/>）、
 /// <see cref="SupportedOSPlatformAttribute"/> で限定します。 <b>形式の対応（<see cref="GetExtension(EsImageFileFormat)"/> など）と
 /// <see cref="GetResizedSize(EsSizeInt, int)"/> は可搬</b>です（WIC を呼びません）。<br/>
@@ -212,23 +212,23 @@ public static class EsImageCodec
     /// <param name="size">元の寸法。</param>
     /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数（<c>幅 × 4</c> 以上）。</param>
     /// <param name="maxSize">長辺の上限（ピクセル）。 元の長辺以下。</param>
-    /// <param name="quality">縮小の品質（速度と画質の釣り合い）。 既定は <see cref="EsImageQuality.Mid"/>。</param>
+    /// <param name="mode">縮小の方法（<see cref="EsImageScalingMode"/>）。 既定は <see cref="EsImageScalingMode.WicFant"/>。</param>
     /// <returns>縮小した画素とその寸法。</returns>
     /// <exception cref="ArgumentException"><paramref name="pixels"/> の長さが寸法と一致しない場合。</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> または <paramref name="quality"/> が許容範囲外の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が許容範囲外の場合、または <paramref name="mode"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（拡大が必要な）場合。</exception>
-    /// <remarks><b>縮小の計算は WIC が単一所有します</b>（デコード時の縮小と同じ実装。 <see cref="EsImageQuality"/> を参照）。</remarks>
+    /// <remarks><b><c>Wic</c> で始まる方法は WIC が計算します</b>（デコード時の縮小と同じ実装。 <see cref="EsImageScalingMode"/> を参照）。 <c>Es</c> で始まる方法は本ライブラリの計算です（速いが WIC とは画素が一致しません）。</remarks>
     [SupportedOSPlatform("windows10.0.17763")]
     public static (byte[] Pixels, EsSizeInt Size) Resize(
         ReadOnlySpan<byte> pixels, EsSizeInt size, int stride, int maxSize,
-        EsImageQuality quality = EsImageQuality.Mid)
+        EsImageScalingMode mode = EsImageScalingMode.WicFant)
     {
         var target = GetResizedSize(size, maxSize);
         EnsurePixels(pixels, size, stride, nameof(pixels));
-        EnsureQuality(quality);
+        EnsureScalingMode(mode);
 
         var destination = new byte[(long)target.Width * EsReadOnlyBitmap.BytesPerPixel * target.Height];
-        ScaleInto(pixels, size, stride, target, quality, destination);
+        ScaleInto(pixels, size, stride, target, mode, destination);
         return (destination, target);
     }
 
@@ -237,17 +237,17 @@ public static class EsImageCodec
     /// <param name="size">元の寸法。</param>
     /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数（<c>幅 × 4</c> 以上）。</param>
     /// <param name="target">縮小後の寸法（<see cref="GetResizedSize(EsSizeInt, int)"/> が返す値）。</param>
-    /// <param name="quality">縮小の品質。</param>
+    /// <param name="mode">縮小の方法。</param>
     /// <param name="destination">書き込み先（<c>target の幅 × 4 × 高さ</c> バイト以上。 行は密に書く）。</param>
     /// <exception cref="ArgumentException"><paramref name="pixels"/> の長さが寸法と一致しない場合、または <paramref name="destination"/> が足りない場合。</exception>
     /// <remarks><b>縮小が不要な場合</b>（<paramref name="target"/> が <paramref name="size"/> と同じ）は行を写すだけです。</remarks>
     [SupportedOSPlatform("windows10.0.17763")]
     internal static void ScaleInto(
-        ReadOnlySpan<byte> pixels, EsSizeInt size, int stride, EsSizeInt target, EsImageQuality quality,
+        ReadOnlySpan<byte> pixels, EsSizeInt size, int stride, EsSizeInt target, EsImageScalingMode mode,
         Span<byte> destination)
     {
         EnsurePixels(pixels, size, stride, nameof(pixels));
-        EnsureQuality(quality);
+        EnsureScalingMode(mode);
         EnsureCapacity(destination, target.Width, target.Height, nameof(destination));
 
         if (target == size)
@@ -261,7 +261,7 @@ public static class EsImageCodec
             return;
         }
 
-        EsBitmapOperations.ScaleInto(pixels, size.Width, size.Height, stride, target, quality, destination);
+        EsBitmapOperations.ScaleInto(pixels, size.Width, size.Height, stride, target, mode, destination);
     }
 
     /// <summary>画素を指定の色数へ減色し、密な画素を返す。</summary>
@@ -400,14 +400,16 @@ public static class EsImageCodec
         }
     }
 
-    /// <summary>縮小の品質が定義されている値か確かめる。</summary>
-    /// <param name="quality">品質。</param>
+    /// <summary>縮小の方法が定義されている値か確かめる。</summary>
+    /// <param name="mode">縮小の方法。</param>
     /// <exception cref="ArgumentOutOfRangeException">定義されていない値の場合。</exception>
-    private static void EnsureQuality(EsImageQuality quality)
+    private static void EnsureScalingMode(EsImageScalingMode mode)
     {
-        if (quality is not (EsImageQuality.Low or EsImageQuality.Mid or EsImageQuality.High))
+        if (mode is not (EsImageScalingMode.WicNearestNeighbor or EsImageScalingMode.WicLinear
+            or EsImageScalingMode.WicCubic or EsImageScalingMode.WicFant or EsImageScalingMode.WicHighQualityCubic
+            or EsImageScalingMode.EsNearestNeighbor or EsImageScalingMode.EsBilinear or EsImageScalingMode.EsBox))
         {
-            throw new ArgumentOutOfRangeException(nameof(quality), quality, "定義されていない縮小の品質です。");
+            throw new ArgumentOutOfRangeException(nameof(mode), mode, "定義されていない縮小の方法です。");
         }
     }
 }

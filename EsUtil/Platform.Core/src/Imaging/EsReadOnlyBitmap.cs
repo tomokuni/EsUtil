@@ -391,7 +391,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
 
     /// <summary>長辺を上限へ収めた画像を生成する（速度と画質の釣り合いは引数で選ぶ）。</summary>
     /// <param name="maxSize">長辺の上限（ピクセル）。 正の値で、長辺以下。</param>
-    /// <param name="quality">縮小の品質。 既定は <see cref="EsImageQuality.Mid"/>。</param>
+    /// <param name="mode">縮小の方法。 既定は <see cref="EsImageScalingMode.WicFant"/>（読み込み時の縮小と同じ補間）。</param>
     /// <returns>生成された画像（書き換え可能）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>用途</b>: 大きな画像を小さく扱う場面（一覧のサムネイル・プレビュー等）。 元の寸法の複製を保持すると
@@ -399,7 +399,7 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <b>名前が <c>Resize</c> である理由</b>: 将来の拡大対応を見込んで双方向の名前を残しています（現在の実装は縮小だけを
     /// 行います）。 拡大が必要な要求は黙って等倍を返さず <see cref="NotSupportedException"/> にします（「拡大された」と
     /// 誤解されるため）。 長辺と上限が一致する場合は縮小不要のため<b>等倍の複製</b>を返します。<br/>
-    /// <b>縮小の計算は WIC が単一所有します</b>: 補間は <see cref="EsImageQuality"/> が選び
+    /// <b>縮小の方法は <see cref="EsImageScalingMode"/> が選びます</b>: <c>Wic</c> で始まる方法は WIC が計算し
     /// （<c>Low</c> 最近傍 / <c>Mid</c> 双線形 / <c>High</c> Fant）、<b>デコード時の縮小（<see cref="Load(string, int)"/>）と
     /// 同じ実装</b>を使うため、読み込み経路と表示経路で画質が変わりません。 計算は OS の WIC（<c>windowscodecs.dll</c>）が
     /// 行い、本ライブラリは補間の実装を持ちません。<br/>
@@ -413,14 +413,14 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// （立方畳み込みが正しい選択になるのは<b>拡大</b>であり、本メソッドは拡大を行いません）。<br/>
     /// <b>返す寸法の丸め</b>: 切り捨てで丸めるため<b>1 px 未満の誤差が出えます</b>（座標の対応付けが必要な場面では使わないこと）。
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または <paramref name="quality"/> が定義されていない値の場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または <paramref name="mode"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     [SupportedOSPlatform("windows10.0.17763")]
-    public EsBitmap Resize(int maxSize, EsImageQuality quality = EsImageQuality.Mid)
+    public EsBitmap Resize(int maxSize, EsImageScalingMode mode = EsImageScalingMode.WicFant)
     {
         ThrowIfDisposed();
-        return EsBitmapOperations.CreateScaled(ReadOnlyPixels, Width, Height, Stride, maxSize, quality);
+        return EsBitmapOperations.CreateScaled(ReadOnlyPixels, Width, Height, Stride, maxSize, mode);
     }
 
     /// <summary>本画像を指定の色数へ減色する（パレット化。 画素数と寸法は変えない）。</summary>

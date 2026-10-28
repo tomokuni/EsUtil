@@ -335,8 +335,27 @@ internal static class Program
 
     private static readonly string[] s_classNames = [ClassBit, ClassRead, ClassView];
     private static readonly string[] s_sizeLabels = [.. s_sizes.Select(static s => s.Label)];
-    private static readonly EsImageQuality[] s_qualities = [EsImageQuality.Low, EsImageQuality.Mid, EsImageQuality.High];
-    private static readonly string[] s_qualityLabels = [.. s_qualities.Select(static q => q.ToString())];
+    private static readonly EsImageScalingMode[] s_scalingModes =
+    [
+        EsImageScalingMode.WicNearestNeighbor,
+        EsImageScalingMode.WicLinear,
+        EsImageScalingMode.WicCubic,
+        EsImageScalingMode.WicFant,
+        EsImageScalingMode.WicHighQualityCubic,
+        EsImageScalingMode.EsNearestNeighbor,
+        EsImageScalingMode.EsBilinear,
+        EsImageScalingMode.EsBox,
+    ];
+    private static readonly string[] s_qualityLabels = [.. s_scalingModes.Select(static m => m.ToString())];
+
+    /// <summary>サンプル画像に並べる縮小の方法（全 8 通りを並べると表が広すぎるため、系統ごとに 1 つ選ぶ）。</summary>
+    private static readonly EsImageScalingMode[] s_sampleModes =
+    [
+        EsImageScalingMode.WicNearestNeighbor,
+        EsImageScalingMode.WicFant,
+        EsImageScalingMode.EsBilinear,
+        EsImageScalingMode.EsBox,
+    ];
     private static readonly Dictionary<(string, string, string, string, string), Measured> s_cases = [];
     private static readonly Dictionary<(string, string, string, string, string), double> s_values = [];
 
@@ -434,7 +453,7 @@ internal static class Program
     {
         using var source = Create(s_stabilitySize);
         var create = () => new Item(EsBitmap.Create(s_stabilitySize.Width, s_stabilitySize.Height));
-        var resize = () => new Item(source.Resize(ResizeMaxSize, EsImageQuality.Mid));
+        var resize = () => new Item(source.Resize(ResizeMaxSize, EsImageScalingMode.WicFant));
 
         return
         [
@@ -589,7 +608,7 @@ internal static class Program
                 read.ReadOnlyPixels, size.Width, size.Height, read.Stride, referenceSize.Width, referenceSize.Height);
             using var reference = EsReadOnlyBitmap.FromPixelCopy(referenceSize.Width, referenceSize.Height, referencePixels);
 
-            foreach (var quality in s_qualities)
+            foreach (var quality in s_scalingModes)
             {
                 var variant = quality.ToString();
                 Measure(SectionResize, "Resize", ClassBit, label, variant, () => new Item(bit.Resize(ResizeMaxSize, quality)));
@@ -610,7 +629,7 @@ internal static class Program
         using var targetView = targetSource.ToPixmap(new EsRectInt(0, 0, largest.Width, largest.Height));
         foreach (var maxSize in s_resizeTargets)
         {
-            foreach (var quality in s_qualities)
+            foreach (var quality in s_scalingModes)
             {
                 var key = TargetKey(maxSize);
                 var variant = quality.ToString();
@@ -633,23 +652,18 @@ internal static class Program
             using var read = ReadOnly(size);
             using var view = source.ToPixmap(new EsRectInt(0, 0, size.Width, size.Height));
 
-            // 時間の表は品質（256 色・ディザなし）とディザ（16 / 256 色・Mid）を使い、品質の表は
-            // ディザ × 品質の全組み合わせを使うため、全組み合わせを測る
             foreach (var colors in s_qualityColors)
             {
                 foreach (var dither in new[] { EsDitherMode.None, EsDitherMode.ErrorDiffusion })
                 {
-                    foreach (var quality in s_qualities)
-                    {
-                        var variant = ReduceVariant(colors, dither);
-                        Measure(SectionReduce, "ReduceColors", ClassBit, label, variant, () => new Item(bit.ReduceColors(colors, dither)));
-                        Measure(SectionReduce, "ReduceColors", ClassRead, label, variant, () => new Item(read.ReduceColors(colors, dither)));
-                        Measure(SectionReduce, "ReduceColors", ClassView, label, variant, () => new Item(view.ReduceColors(colors, dither)));
+                    var variant = ReduceVariant(colors, dither);
+                    Measure(SectionReduce, "ReduceColors", ClassBit, label, variant, () => new Item(bit.ReduceColors(colors, dither)));
+                    Measure(SectionReduce, "ReduceColors", ClassRead, label, variant, () => new Item(read.ReduceColors(colors, dither)));
+                    Measure(SectionReduce, "ReduceColors", ClassView, label, variant, () => new Item(view.ReduceColors(colors, dither)));
 
-                        RecordQuality(SectionReduce, "ReduceColors", ClassBit, label, variant, () => bit.ReadOnlyPixels, bit.Width, bit.Height, bit.Stride, () => bit.ReduceColors(colors, dither));
-                        RecordQuality(SectionReduce, "ReduceColors", ClassRead, label, variant, () => read.ReadOnlyPixels, read.Width, read.Height, read.Stride, () => read.ReduceColors(colors, dither));
-                        RecordQuality(SectionReduce, "ReduceColors", ClassView, label, variant, () => view.ReadOnlyPixels, view.Width, view.Height, view.Stride, () => view.ReduceColors(colors, dither));
-                    }
+                    RecordQuality(SectionReduce, "ReduceColors", ClassBit, label, variant, () => bit.ReadOnlyPixels, bit.Width, bit.Height, bit.Stride, () => bit.ReduceColors(colors, dither));
+                    RecordQuality(SectionReduce, "ReduceColors", ClassRead, label, variant, () => read.ReadOnlyPixels, read.Width, read.Height, read.Stride, () => read.ReduceColors(colors, dither));
+                    RecordQuality(SectionReduce, "ReduceColors", ClassView, label, variant, () => view.ReadOnlyPixels, view.Width, view.Height, view.Stride, () => view.ReduceColors(colors, dither));
                 }
             }
         }
@@ -806,14 +820,14 @@ internal static class Program
             Save(before, zoomDirectory, "before.png");
         }
 
-        foreach (var quality in s_qualities)
+        foreach (var mode in s_sampleModes)
         {
-            using var resized = source.Resize(ResizeMaxSize, quality);
-            Save(resized, directory, $"resize-{quality.ToString().ToLowerInvariant()}.png");
+            using var resized = source.Resize(ResizeMaxSize, mode);
+            Save(resized, directory, $"resize-{mode.ToString().ToLowerInvariant()}.png");
 
             // 縮小の差は細かい模様に出るため、同じ領域を拡大して並べる
             using var magnifiedResize = Magnify(resized, s_resizeZoomRegion, SampleMagnification);
-            Save(magnifiedResize, zoomDirectory, $"resize-{quality.ToString().ToLowerInvariant()}.png");
+            Save(magnifiedResize, zoomDirectory, $"resize-{mode.ToString().ToLowerInvariant()}.png");
         }
 
         foreach (var colors in s_qualityColors)
@@ -1143,7 +1157,7 @@ internal static class Program
     {
         AddHeading($"## {number}. 縮小と減色のサンプル");
         AddText($"計測に使った画像（折り返す勾配）で、**実施前と実施後**を並べます（所要や PSNR では分からない見え方を確かめるためです）。 サンプルの元画像は **{s_sampleSize.Label}** です（計測の {s_sizes[0].Label} のままでは実施前を等倍で表示できないため）。 **縮小先は計測と同じ長辺 {ResizeMaxSize}**、**減色は同じ寸法のまま**です。 画像は計測スクリプトが生成します（手で作った画像は置きません）。");
-        AddText($"**縮小の粗さは縮小の比率で変わります**。 サンプルの比（{s_sampleSize.Width / (double)ResizeMaxSize:F1} 倍）は計測（{s_sizes[0].Width / (double)ResizeMaxSize:F0} 倍）より小さいため、{EsImageQuality.Low}（最近傍）の粗さは**計測より小さく出ます**。");
+        AddText($"**縮小の粗さは縮小の比率で変わります**。 サンプルの比（{s_sampleSize.Width / (double)ResizeMaxSize:F1} 倍）は計測（{s_sizes[0].Width / (double)ResizeMaxSize:F0} 倍）より小さいため、{EsImageScalingMode.EsNearestNeighbor}（最近傍）の粗さは**計測より小さく出ます**。");
 
         AddHeading($"### {number}.1 縮小（実施前 → 実施後）");
         var target = ResizeTarget(s_sampleSize, ResizeMaxSize);
@@ -1151,15 +1165,15 @@ internal static class Program
         AddImages([("実施前", "sample/before.png")]);
         AddImages(
             [
-                .. s_qualities.Select(q => ($"実施後 {q}", $"sample/resize-{q.ToString().ToLowerInvariant()}.png")),
+                .. s_sampleModes.Select(m => ($"実施後 {m}", $"sample/resize-{m.ToString().ToLowerInvariant()}.png")),
             ]);
         AddText($"縮小先の長辺は**計測と同じ {ResizeMaxSize}** です。 元画像を **{s_sampleSize.Label}**（計測は {s_sizes[0].Label}）にしているため、比は **{s_sampleSize.Width / (double)ResizeMaxSize:F1} 倍**です。 元画像を 640x360 にすると**ちょうど 2 倍**になり、補間の違いが画素の差として現れにくくなります。 3 つの違いを見るため、**割り切れない比**にしています。");
 
-        AddHeading($"### {number}.2 縮小の拡大（{EsImageQuality.Low} / {EsImageQuality.Mid} / {EsImageQuality.High}）");
-        AddText($"実施後の**1 画素を {SampleMagnification}×{SampleMagnification} で写した**ものです（実施後の ({s_resizeZoomRegion.X}, {s_resizeZoomRegion.Y}) から {s_resizeZoomRegion.Width}x{s_resizeZoomRegion.Height} の領域。 **実施前は上の表**を参照）。 縮小の違いは細かい模様に出るため、拡大すると**{EsImageQuality.Low}（最近傍）の階段**（元の模様を飛ばして拾うため）と、**{EsImageQuality.Mid}・{EsImageQuality.High} のなだらかさ**が見えます。");
+        AddHeading($"### {number}.2 縮小の拡大（{string.Join(" / ", s_sampleModes.Select(static m => m.ToString()))}）");
+        AddText($"実施後の**1 画素を {SampleMagnification}×{SampleMagnification} で写した**ものです（実施後の ({s_resizeZoomRegion.X}, {s_resizeZoomRegion.Y}) から {s_resizeZoomRegion.Width}x{s_resizeZoomRegion.Height} の領域。 **実施前は上の表**を参照）。 縮小の違いは細かい模様に出るため、拡大すると**{EsImageScalingMode.EsNearestNeighbor}（最近傍）の階段**（元の模様を飛ばして拾うため）と、**{EsImageScalingMode.EsBilinear}・{EsImageScalingMode.EsBox} のなだらかさ**が見えます。");
         AddImages(
             [
-                .. s_qualities.Select(q => ($"実施後 {q}（拡大）", $"sample/zoom/resize-{q.ToString().ToLowerInvariant()}.png")),
+                .. s_sampleModes.Select(m => ($"実施後 {m}（拡大）", $"sample/zoom/resize-{m.ToString().ToLowerInvariant()}.png")),
             ]);
 
         for (var i = 0; i < s_qualityColors.Length; i++)
@@ -1267,7 +1281,7 @@ internal static class Program
 
         AddText($"計測に使う画像は**折り返す勾配**です（B = X % {PatternPeriod}・G = Y % {PatternPeriod}・R = (X + Y) % {PatternPeriod}・A = 255。 決定的で、実行のたびに同じ画像になります）。 折り返すのは、画像の一部を切り出したビューと元画像とで**色の範囲を揃える**ためです（減色の費用は色の範囲で決まるため、折り返さない勾配では内容の違うもの同士を比べることになります）。 減色だけは内容の影響が大きいため、内容を変えた表を別に示します。");
 
-        AddText("**品質の表**は、出力がどれだけ元の画素に近いかを **PSNR (dB)** で示します（大きいほど近い）。 縮小は **Lanczos-3（独立した参照実装）を参照**とし、減色は**元画像を参照**とします。 1 画素ごとの差では**ディザの狙い（縞を散らすこと）が見えない**ため、減色は**縞の出にくさ**（" + LowFrequencyBlock + "×" + LowFrequencyBlock + " の平均で見た PSNR）も示します（§7.9・§7.11）。");
+        AddText("**良さの表**は、出力がどれだけ参照に近いかを **PSNR (dB)** で示します（大きいほど参照に近い。 縮小の参照は Lanczos-3、減色の参照は元画像です）。 1 画素ごとの差では**ディザの狙い（縞を散らすこと）が見えない**ため、減色は**縞の出にくさ**（" + LowFrequencyBlock + "×" + LowFrequencyBlock + " の平均で見た PSNR）も示します（§7.9・§7.11）。");
 
         AddText("画素の領域（`幅 × 4 × 高さ`）は**アンマネージド**であり、所要の表には現れません（ビューは `行間隔 × 高さ`）。");
         AddValueGrid("項目", s_sizeLabels, ["画素の領域 (B)"], [s_sizes.Select(PixelBytes).ToArray()]);
@@ -1329,16 +1343,16 @@ internal static class Program
     }
 
     /// <summary>縮小先を変えた行の所要を返す（長辺 320 は品質の表（元画像 3840x2160）の計測を使い回す）。</summary>
-    private static double? ResizeTargetTime(string className, int maxSize, EsImageQuality quality)
+    private static double? ResizeTargetTime(string className, int maxSize, EsImageScalingMode mode)
         => maxSize == ResizeMaxSize
-            ? Time(SectionResize, "Resize", className, s_sizes[0].Label, quality.ToString())
-            : Time(SectionResize, "Resize", className, TargetKey(maxSize), quality.ToString());
+            ? Time(SectionResize, "Resize", className, s_sizes[0].Label, mode.ToString())
+            : Time(SectionResize, "Resize", className, TargetKey(maxSize), mode.ToString());
 
     /// <summary>縮小を型ごとに「品質 × 寸法」の 2 軸表で出力する。</summary>
     private static void AppendResizeSection(int number)
     {
         AddHeading($"## {number}. 縮小（長辺 {ResizeMaxSize} へ収める）");
-        AddText($"縮小先を**長辺 {ResizeMaxSize} に固定**し、型ごとに、行を品質・列を元画像の寸法とした 2 軸表を示します。");
+        AddText($"縮小先を**長辺 {ResizeMaxSize} に固定**し、型ごとに、行を縮小の方法・列を元画像の寸法とした 2 軸表を示します。");
 
         var sub = 0;
         for (var i = 0; i < s_classNames.Length; i++)
@@ -1346,11 +1360,11 @@ internal static class Program
             var cls = s_classNames[i];
             AddHeading($"### {number}.{++sub} {cls}");
             AddTimeGrid(
-                "品質",
+            "縮小の方法",
                 s_sizeLabels,
-                s_qualities.Select(static q => q.ToString()).ToArray(),
-                [.. s_qualities.Select(q => s_sizes.Select(s => Time(SectionResize, "Resize", cls, s.Label, q.ToString())).ToArray())],
-                (row, column) => Time(SectionResize, "Resize", cls, s_sizes[column].Label, s_qualities[row].ToString()));
+                s_scalingModes.Select(static q => q.ToString()).ToArray(),
+                [.. s_scalingModes.Select(q => s_sizes.Select(s => Time(SectionResize, "Resize", cls, s.Label, q.ToString())).ToArray())],
+                (row, column) => Time(SectionResize, "Resize", cls, s_sizes[column].Label, s_scalingModes[row].ToString()));
         }
 
         // 縮小先の大小で品質ごとの費用の順序が変わるため、縮小先を変えた表も示す
@@ -1358,27 +1372,27 @@ internal static class Program
         {
             var cls = s_classNames[i];
             AddHeading($"### {number}.{++sub} {cls}（縮小先を変えた場合）");
-            AddText($"元画像は {s_sizes[0].Label} に固定し、行を縮小先・列を品質とした 2 軸表を示します。 長辺 {ResizeMaxSize} は品質の表と同じ計測です。");
+        AddText($"元画像は {s_sizes[0].Label} に固定し、行を縮小先・列を縮小の方法とした 2 軸表を示します。 長辺 {ResizeMaxSize} は縮小の方法の表と同じ計測です。");
             var targets = new List<int> { ResizeMaxSize };
             targets.AddRange(s_resizeTargets);
             AddTimeGrid(
                 "縮小先",
                 s_qualityLabels,
                 targets.Select(TargetLabel).ToArray(),
-                [.. targets.Select(t => s_qualities.Select(q => ResizeTargetTime(cls, t, q)).ToArray())],
-                (row, column) => ResizeTargetTime(cls, targets[row], s_qualities[column]));
+                [.. targets.Select(t => s_scalingModes.Select(q => ResizeTargetTime(cls, t, q)).ToArray())],
+                (row, column) => ResizeTargetTime(cls, targets[row], s_scalingModes[column]));
         }
 
         // 品質は出力がどれだけ Lanczos-3（独立した参照実装）に近いかで測る
         var qualitySub = sub + 1;
-        AddHeading($"### {number}.{qualitySub} 出力の品質（品質 × 寸法）");
-        AddText($"縮小先を長辺 {ResizeMaxSize} に固定し、**Lanczos-3（独立した参照実装）を参照**とした PSNR (dB) です（大きいほど参照に近い）。 行を品質・列を元画像の寸法とした 2 軸表を示します。 " + QualityTypeNote(SectionResize, "Resize", s_sizes[0].Label, EsImageQuality.Low.ToString()));
+        AddHeading($"### {number}.{qualitySub} 出力の良さ（縮小の方法 × 寸法）");
+        AddText($"縮小先を長辺 {ResizeMaxSize} に固定し、**Lanczos-3（独立した参照実装）を参照**とした PSNR (dB) です（大きいほど参照に近い）。 **参照との一致度であり、画質の優劣ではありません**（参照もリンギングを持つため、リンギングする方法ほど高く出ます）。 行を縮小の方法・列を元画像の寸法とした 2 軸表を示します。 " + QualityTypeNote(SectionResize, "Resize", s_sizes[0].Label, EsImageScalingMode.WicNearestNeighbor.ToString()));
         AddValueGrid(
-            "品質",
+            "縮小の方法",
             s_sizeLabels,
             s_qualityLabels,
-            [.. s_qualities.Select(q => s_sizes.Select(s => Decibels(SectionResize, "Resize", ClassBit, s.Label, q.ToString())).ToArray())],
-            (row, column) => Time(SectionResize, "Resize", ClassBit, s_sizes[column].Label, s_qualities[row].ToString()));
+            [.. s_scalingModes.Select(q => s_sizes.Select(s => Decibels(SectionResize, "Resize", ClassBit, s.Label, q.ToString())).ToArray())],
+            (row, column) => Time(SectionResize, "Resize", ClassBit, s_sizes[column].Label, s_scalingModes[row].ToString()));
     }
 
     /// <summary>減色を型ごとに「品質 / ディザ × 寸法」の 2 軸表で出力する。</summary>
@@ -1439,7 +1453,7 @@ internal static class Program
     /// <summary>品質の段階による所要の差が小さいかどうか（最も大きい寸法で比べる）。</summary>
     private static bool IsQualityCollapsed(string section, string method, int colors, EsDitherMode dither)
     {
-        var times = s_qualities
+        var times = s_scalingModes
             .Select(q => Time(section, method, ClassBit, s_sizes[0].Label, ReduceVariant(colors, dither)))
             .ToArray();
         if (times.Any(static t => t is null or <= 0))
@@ -1697,7 +1711,7 @@ internal static class Program
     /// <param name="targetHeight">縮小後の高さ（ピクセル）。</param>
     /// <returns>縮小した画素（密な並び）。</returns>
     /// <remarks>
-    /// <b>参照を Lanczos-3 にする理由</b>: 自分の実装（<c>EsImageQuality.High</c>）を参照にすると、
+    /// <b>参照を Lanczos-3 にする理由</b>: 自分の実装（<c>EsImageScalingMode.WicFant</c>）を参照にすると、
     /// その段階が必ず ∞ になり、実装を変えると参照も動いて**版をまたいで比べられません**。
     /// Lanczos-3 は**アンチエイリアスの効いた縮小の標準**であり、実装から独立しています。<br/>
     /// <b>縮小率に応じて支持幅を広げます</b>（縮小率 s に対し半径 3s。 広げないと細部が折り返します）。<br/>
