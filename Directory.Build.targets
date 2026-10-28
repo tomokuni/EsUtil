@@ -10,6 +10,16 @@
 
 
 
+  <!-- SDK が暗黙に参照するパッケージの版を固定する。 IsAotCompatible のプロジェクトへ SDK が
+       Microsoft.NET.ILLink.Tasks（トリム・AOT の解析）を注入し、その版は SDK に追従して変わる。
+       版を固定しないと packages.lock.json の要求範囲が SDK の版で変わり、SDK の版が違う環境で NU1004 になる
+       （実測: SDK 10.0.403 で [10.0.14, )、ランナー イメージの SDK で [10.0.13, )）。
+       プロジェクトの値（IsAotCompatible）で条件を付けるため、.csproj より後に評価されるこのファイルに置く。
+       規則は .github/ビルド設定規約.md §8。 -->
+  <ItemGroup Condition="'$(IsAotCompatible)' == 'true'">
+    <PackageReference Include="Microsoft.NET.ILLink.Tasks" PrivateAssets="all" />
+  </ItemGroup>
+
   <Target Name="ValidatePackageReferences" BeforeTargets="Build" Condition="'$(MSBuildProjectName)' != ''">
 
     <ItemGroup>
