@@ -1,4 +1,13 @@
 {
+  "product": "EsUtil",
+  "solutionFile": "EsUtil/EsUtil.slnx",
+  "solutions": [
+    "EsUtil/EsUtil.slnx",
+    "EsUtil.Ui.AvaloniaUI/EsUtil.Ui.AvaloniaUI.slnx",
+    "EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx",
+    "EsUtil.Ui.WinUI3/EsUtil.Ui.WinUI3.slnx",
+    "EsUtil.Ui.WinForms/EsUtil.Ui.WinForms.slnx"
+  ],
   "releaseBranches": [
     "main"
   ],
