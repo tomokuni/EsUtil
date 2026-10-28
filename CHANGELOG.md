@@ -5,7 +5,7 @@
 - **公開する版は人が決めます**（グループの `VersionPrefix` を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
-## 未リリース
+## 未リリース（0.2.0）
 
 ### 追加
 
@@ -70,7 +70,7 @@
 
 - **`EsImageCodec` のパス受け取りのメンバーを削除し、`Imaging.EsImageFile` へ移しました**（`Decode(string, int)` / `Decode(string, int, Span<byte>)` / `ReadSize(string, int)`）。 パスの面を別に持つと、寸法を先に求めてから復号する呼び出しで**同じファイルを 2 回読む**経路ができます。 `EsImageFile.Open` が 1 回だけ読み、`GetSize` / `Decode` がその内容を使います（`EsImageCodec` は内容（`ReadOnlySpan<byte>`）を受ける面だけを持ちます）。
 
-- **版の付け方をグループ単位へ変えました**。 版は 5 つのグループ（`EsUtil` / `EsUtil.Ui.AvaloniaUI` / `EsUtil.Ui.MewUI` / `EsUtil.Ui.WinUI3` / `EsUtil.Ui.WinForms`）ごとに 1 つになり、**グループ内の全パッケージが同じ版**になります。 グループの版は人が決め（[`Directory.Build.props`](Directory.Build.props) の `VersionPrefix`）、ソースの変更で自動的に上がることはありません。 初回の公開版は全グループ `0.1.0` です。
+- **版の付け方をグループ単位へ変えました**。 版は 5 つのグループ（`EsUtil` / `EsUtil.Ui.AvaloniaUI` / `EsUtil.Ui.MewUI` / `EsUtil.Ui.WinUI3` / `EsUtil.Ui.WinForms`）ごとに 1 つになり、**グループ内の全パッケージが同じ版**になります。 グループの版は人が決め（[`Directory.Build.props`](Directory.Build.props) の `VersionPrefix`）、ソースの変更で自動的に上がることはありません。 初回の公開版は全グループ `0.1.0`、次の版は **`0.2.0`**（`EsImageScalingMode` への変更を含む）です。
 
 - **README に「実行に必要な Windows の下限」を書きました**（[`ドキュメント規約.md`](.github/ドキュメント規約.md) §3.4）。
   - **パッケージの `README.md`**: バッジを `Platform-Windows 10 (1809)+`（ビルド 17763）/ `Platform-Windows 10 (2004)+`（ビルド 19041）/ `Platform-Portable`（OS 固有の対象フレームワークを持たない）に分け、本文の「システム要件」（節が無いものはバッジの直後）にも同じ値を書きました。

@@ -49,15 +49,15 @@
       "esutil.feature.loupe.core": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.1.0, )",
+          "EsUtil.Platform.Core": "[0.2.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
       "esutil.feature.loupe.presenter": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Feature.Loupe.Core": "[0.1.0, )",
-          "EsUtil.Platform.Core": "[0.1.0, )",
+          "EsUtil.Feature.Loupe.Core": "[0.2.0, )",
+          "EsUtil.Platform.Core": "[0.2.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
@@ -68,7 +68,7 @@
         "type": "Project",
         "dependencies": {
           "Aprillz.MewUI.Core": "[0.21.1, )",
-          "EsUtil.Platform.Core": "[0.1.0, )"
+          "EsUtil.Platform.Core": "[0.2.0, )"
         }
       }
     }
