@@ -13,9 +13,10 @@ namespace EsUtil.Platform.Core;
 /// <b>本クラスへ委譲</b>します（実装を 2 つ持たない）。<br/>
 /// <b>画素の形式は 1 つに固定します</b>: BGRA8888・アルファ乗算済み、行の並びは上が先頭、行幅は <c>幅 × 4</c> 以上です。
 /// 形式を引数にすると、呼び出し側が変換の有無を毎回判断することになり、取り違えが起きるためです。<br/>
-/// <b>画素を複製しません</b>: 復号は呼び出し側が確保した領域へ直接書きます（寸法は <see cref="ReadSize(string, int)"/> で
-/// 先に求めます）。 確保を含む版（<see cref="Decode(string, int)"/>）は 1 回だけ確保します。<br/>
-/// <b>Windows 専用のメンバーがあります</b>: WIC を呼ぶもの（<see cref="Decode(string, int)"/> / <see cref="Save(ReadOnlySpan{byte}, EsSizeInt, string, EsImageSaveOptions)"/> /
+/// <b>画素を複製しません</b>: 復号は呼び出し側が確保した領域へ直接書きます（寸法は <see cref="ReadSize(ReadOnlySpan{byte}, int)"/> で
+/// 先に求めます）。 確保を含む版（<see cref="Decode(ReadOnlySpan{byte}, int)"/>）は 1 回だけ確保します。
+/// <b>パスから読む場合は <see cref="Imaging.EsImageFile"/> を使います</b>（寸法と画素を 1 回の読み込みから求めます）。<br/>
+/// <b>Windows 専用のメンバーがあります</b>: WIC を呼ぶもの（<see cref="Decode(ReadOnlySpan{byte}, int)"/> / <see cref="Save(ReadOnlySpan{byte}, EsSizeInt, string, EsImageSaveOptions)"/> /
 /// <see cref="ReduceColors(ReadOnlySpan{byte}, EsSizeInt, int, int, EsDitherMode)"/> / <see cref="SaveExtensions"/>）は
 /// <see cref="SupportedOSPlatformAttribute"/> で限定します。 <b>縮小（<see cref="Resize(ReadOnlySpan{byte}, EsSizeInt, int, int, EsImageQuality)"/>）と
 /// 形式の対応（<see cref="GetExtension(EsImageFileFormat)"/> など）は可搬</b>です（縮小は本ライブラリの計算です）。<br/>
@@ -110,24 +111,16 @@ public static class EsImageCodec
         return new EsSizeInt(Math.Max(1, (int)(size.Width * ratio)), Math.Max(1, (int)(size.Height * ratio)));
     }
 
-    /// <summary>ファイルを復号し、密な画素（BGRA8888・アルファ乗算済み）を返す。</summary>
-    /// <param name="filePath">読み込むファイルのパス（形式は内容から判別する）。</param>
-    /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法（拡大はしない）。</param>
-    /// <returns>復号した画素とその寸法。</returns>
-    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、または画像として解釈できない場合。</exception>
-    /// <remarks>
-    /// <b>EXIF の向きを適用してから縮小します</b>（回転した JPEG も正しい向きで読めます）。<br/>
-    /// <b>寸法だけが欲しい場合</b>は <see cref="ReadSize(string, int)"/> を使います（画素を複製しません）。
-    /// </remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
-    public static (byte[] Pixels, EsSizeInt Size) Decode(string filePath, int maxSize = 0)
-        => Decode(WinWicImageCodec.ReadAllBytes(filePath), maxSize);
-
     /// <summary>ファイルの内容を復号し、密な画素（BGRA8888・アルファ乗算済み）を返す。</summary>
-    /// <param name="fileBytes">ファイルの内容。</param>
+    /// <param name="fileBytes">ファイルの内容（パスから読む場合は <see cref="Imaging.EsImageFile"/> を使う）。</param>
     /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法（拡大はしない）。</param>
     /// <returns>復号した画素とその寸法。</returns>
     /// <exception cref="ArgumentException">画像として解釈できない場合。</exception>
+    /// <remarks>
+    /// <b>EXIF の向きを適用してから縮小します</b>（回転した JPEG も正しい向きで読めます）。<br/>
+    /// <b>パスから読み込む場合は <see cref="Imaging.EsImageFile"/> を使います</b>（寸法と画素を同じ内容から求めるため、
+    /// ファイルを 2 回読みません）。
+    /// </remarks>
     [SupportedOSPlatform("windows10.0.17763")]
     public static (byte[] Pixels, EsSizeInt Size) Decode(ReadOnlySpan<byte> fileBytes, int maxSize = 0)
         => WinWicImageCodec.DecodeFromFile(
@@ -140,14 +133,7 @@ public static class EsImageCodec
                 return (pixels, new EsSizeInt(width, height));
             });
 
-    /// <summary>ファイルを復号し、呼び出し側の領域へ書く（画素を複製しない）。</summary>
-    /// <param name="filePath">読み込むファイルのパス（形式は内容から判別する）。</param>
-    /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法（拡大はしない）。</param>
-    /// <param name="destination">書き込み先（<c>寸法の幅 × 4 × 高さ</c> バイト以上。 行は密に書く）。</param>
-    /// <exception cref="ArgumentException"><paramref name="destination"/> が足りない場合、または画像として解釈できない場合。</exception>
-    [SupportedOSPlatform("windows10.0.17763")]
-    public static void Decode(string filePath, int maxSize, Span<byte> destination)
-        => Decode(WinWicImageCodec.ReadAllBytes(filePath), maxSize, destination);
+    /// <summary>ファイルの内容を復号し、呼び出し側の領域へ書く（画素を複製しない）。</summary>
 
     /// <summary>ファイルの内容を復号し、呼び出し側の領域へ書く（画素を複製しない）。</summary>
     /// <param name="fileBytes">ファイルの内容。</param>
@@ -174,21 +160,15 @@ public static class EsImageCodec
         }
     }
 
-    /// <summary>ファイルを復号し、その寸法だけを返す（画素を複製しない）。</summary>
-    /// <param name="filePath">読み込むファイルのパス（形式は内容から判別する）。</param>
-    /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法（拡大はしない）。</param>
-    /// <returns>復号したときの寸法（EXIF の向きと縮小を反映する）。</returns>
-    /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、または画像として解釈できない場合。</exception>
-    /// <remarks><b>画素を複製しません</b>（デコーダーから寸法だけを読みます）。 確保の前に寸法を知りたい場合に使います。</remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
-    public static EsSizeInt ReadSize(string filePath, int maxSize = 0)
-        => ReadSize(WinWicImageCodec.ReadAllBytes(filePath), maxSize);
-
     /// <summary>ファイルの内容を復号し、その寸法だけを返す（画素を複製しない）。</summary>
-    /// <param name="fileBytes">ファイルの内容。</param>
+    /// <param name="fileBytes">ファイルの内容（パスから読む場合は <see cref="Imaging.EsImageFile"/> を使う）。</param>
     /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法（拡大はしない）。</param>
     /// <returns>復号したときの寸法（EXIF の向きと縮小を反映する）。</returns>
     /// <exception cref="ArgumentException">画像として解釈できない場合。</exception>
+    /// <remarks>
+    /// <b>画素を複製しません</b>（デコーダーから寸法だけを読みます）。 確保の前に寸法を知りたい場合は
+    /// <see cref="Imaging.EsImageFile.GetSize"/> を使うと、続く復号で同じ内容を読み直さずに済みます。
+    /// </remarks>
     [SupportedOSPlatform("windows10.0.17763")]
     public static EsSizeInt ReadSize(ReadOnlySpan<byte> fileBytes, int maxSize = 0)
         => WinWicImageCodec.DecodeFromFile(

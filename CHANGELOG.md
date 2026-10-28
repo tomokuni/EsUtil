@@ -9,6 +9,7 @@
 
 ### 追加
 
+- **`EsUtil.Platform.Core.Imaging.EsImageFile` を追加しました**。 画像ファイルを 1 回だけ読み込み、寸法の取得（`GetSize`）と復号（`Decode`）を同じ内容から行います（パスの読み込みの単一所有者）。
 - **`EsUtil.Platform.Core.Native.Win.WinClipboard` にテキストの読み書きと変更の検出を追加しました**（`TryReadText` / `TryWriteText` / `SequenceNumber`）。 クリップボードの開閉・ロック・解放の順序と、書き込み用メモリの確保（`GMEM_MOVEABLE`）を 1 箇所に閉じます（利用側は書き込みの可否だけを見ればよい）。
 - **3 つのパッケージを取り込みました**（別リポジトリで開発していたものを本リポジトリへ統合）。
   - **`EsUtil.Feature.ColumnPacking.Core`**: 複数のアイテムを複数列へ並べ、**最大列高さを最小化**する UI 非依存の計算層（動的計画法・貪欲法・二分探索）。 旧 `EsUtil.Algorithm` の `MultiColumnLayoutEngine`（旧パッケージ ID）を改名しました（**NuGet の ID が変わります**）。
@@ -50,6 +51,8 @@
 - `CHANGELOG.md` / `.github/workflows/build.yml` / `.github/workflows/release.yml` / `.github/開発手順.md`（公開に向けた整備）。 **`CONTRIBUTING.md` は置きません**（開発の進め方は `.github/開発手順.md` が持ちます）。
 
 ### 変更（破壊的）
+
+- **`EsImageCodec` のパス受け取りのメンバーを削除し、`Imaging.EsImageFile` へ移しました**（`Decode(string, int)` / `Decode(string, int, Span<byte>)` / `ReadSize(string, int)`）。 パスの面を別に持つと、寸法を先に求めてから復号する呼び出しで**同じファイルを 2 回読む**経路ができます。 `EsImageFile.Open` が 1 回だけ読み、`GetSize` / `Decode` がその内容を使います（`EsImageCodec` は内容（`ReadOnlySpan<byte>`）を受ける面だけを持ちます）。
 
 - **版の付け方をグループ単位へ変えました**。 版は 5 つのグループ（`EsUtil` / `EsUtil.Ui.AvaloniaUI` / `EsUtil.Ui.MewUI` / `EsUtil.Ui.WinUI3` / `EsUtil.Ui.WinForms`）ごとに 1 つになり、**グループ内の全パッケージが同じ版**になります。 グループの版は人が決め（[`Directory.Build.props`](Directory.Build.props) の `VersionPrefix`）、ソースの変更で自動的に上がることはありません。 初回の公開版は全グループ `0.1.0` です。
 
