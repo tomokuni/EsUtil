@@ -21,7 +21,7 @@ namespace EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 /// <b>射影は初回に一度だけ</b>: 表示用の射影（Avalonia の <see cref="Bitmap"/>）は初回の描画（または寸法取得）で
 /// 1 回だけ作り、以降は作り直さない（ピクセルを複製するため、作るたびに元の寸法の確保が積み上がる）。<br/>
 /// <b>表示用の射影だけを縮小できる</b>: <see cref="DisplayMaxSize"/> を指定すると、表示用の射影は
-/// コアの面積平均（<see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> の <see cref="EsImageQuality.High"/>）で縮小される
+/// コアの縮小（<see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> の <see cref="EsImageQuality.High"/>。 WIC の Fant）で縮小される
 /// （縮小した射影は等倍の射影より小さく、縮小の所要は縮小先の寸法で決まる）。
 /// 一覧のサムネイルのように小さく表示する場面で、元の寸法の複製を保持しないための入口である。
 /// <b>画像が上限に収まっている場合は縮小しない</b>（等倍の射影を共用する）。<br/>
@@ -55,11 +55,11 @@ public sealed class EsBitmapAdapter : IImage, IDisposable
     /// <remarks>
     /// <b>大きな画像を小さく表示する場面（一覧のサムネイル等）で、表示用の射影を縮小する</b>。
     /// 等倍の射影は画像 1 枚につき元の寸法の複製を保持するため、小さなサムネイルを並べるだけで確保量が積み上がる。<br/>
-    /// <b>縮小は面積平均</b>（コアの <see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> へ <see cref="EsImageQuality.High"/> を渡す）。
+    /// <b>縮小は Fant</b>（コアの <see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> へ <see cref="EsImageQuality.High"/> を渡す。 面積平均に近い補間で、細線が落ちにくい）。
     /// <b>画質を優先する理由</b>: 同じ寸法のサムネイルを出すフォルダビュー（ファイル → <c>Bitmap.DecodeToWidth</c>）は
     /// <b>面積平均相当</b>の画質であり、双線形だと<b>同じサイズなのに一覧ごとに見え方が変わる</b>
     /// （幅 1 px の細線を残すか落とすかが面積平均と双線形で逆になる）。
-    /// 面積平均は内部で並列化されるため、一覧のサムネイルを並べても待ち時間が積み上がらない。<br/>
+    /// WIC のスケーラーが行うため、一覧のサムネイルを並べても本ライブラリ側に待ち時間は積み上がらない。<br/>
     /// <b>画像が上限に収まっている場合は縮小しない</b>（等倍の射影を共用し、同じ寸法の複製を 2 つ作らない）。<br/>
     /// 上限を設定すると <see cref="IImage.Size"/> は縮小後の寸法を返す（Avalonia のレイアウトと描画がその寸法を基準にする）。
     /// <b>コアの読み取り面（<see cref="EsReadOnlyBitmap.Size"/> / <see cref="EsReadOnlyBitmap.Width"/> 等）は真実の寸法のまま</b>である。
@@ -189,7 +189,7 @@ public sealed class EsBitmapAdapter : IImage, IDisposable
     /// <summary>表示用の射影を取得する（初回だけ作る）。</summary>
     /// <param name="source">真実のコア画像。</param>
     /// <returns>表示に使う Avalonia の画像（本クラスが所有する。 縮小が不要な場合は等倍の射影）。</returns>
-    /// <remarks>縮小はコアの <see cref="EsImageQuality.High"/>（面積平均）が単一所有する
+    /// <remarks>縮小はコアの <see cref="EsImageQuality.High"/>（WIC の Fant）が単一所有する
     /// （縮小した中間画像は小さく、変換（表示用）のコピーは無視できる）。</remarks>
     private Bitmap EnsureDisplayProjection(EsReadOnlyBitmap source)
     {
@@ -202,6 +202,13 @@ public sealed class EsBitmapAdapter : IImage, IDisposable
         {
             // 縮小が不要（画像が上限に収まっている）: 等倍の射影を共用する
             return _avaloniaProjection ??= source.ToAvaloniaBitmap();
+        }
+
+        // 縮小は WIC（Windows 専用）。 非 Windows ではプラットフォーム非依存の入口を持たないため、
+        // ここで明示的に失敗させる（表示できないまま黙って等倍を出すより、原因が分かる）
+        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 17763))
+        {
+            throw new PlatformNotSupportedException("表示用の縮小は Windows 10 バージョン 1809 以降でのみ使えます。");
         }
 
         using var scaled = source.Resize(DisplayMaxSize, EsImageQuality.High);

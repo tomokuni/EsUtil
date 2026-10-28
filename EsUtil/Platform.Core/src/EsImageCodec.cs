@@ -16,10 +16,12 @@ namespace EsUtil.Platform.Core;
 /// <b>画素を複製しません</b>: 復号は呼び出し側が確保した領域へ直接書きます（寸法は <see cref="ReadSize(ReadOnlySpan{byte}, int)"/> で
 /// 先に求めます）。 確保を含む版（<see cref="Decode(ReadOnlySpan{byte}, int)"/>）は 1 回だけ確保します。
 /// <b>パスから読む場合は <see cref="Imaging.EsImageFile"/> を使います</b>（寸法と画素を 1 回の読み込みから求めます）。<br/>
-/// <b>Windows 専用のメンバーがあります</b>: WIC を呼ぶもの（<see cref="Decode(ReadOnlySpan{byte}, int)"/> / <see cref="Save(ReadOnlySpan{byte}, EsSizeInt, string, EsImageSaveOptions)"/> /
-/// <see cref="ReduceColors(ReadOnlySpan{byte}, EsSizeInt, int, int, EsDitherMode)"/> / <see cref="SaveExtensions"/>）は
-/// <see cref="SupportedOSPlatformAttribute"/> で限定します。 <b>縮小（<see cref="Resize(ReadOnlySpan{byte}, EsSizeInt, int, int, EsImageQuality)"/>）と
-/// 形式の対応（<see cref="GetExtension(EsImageFileFormat)"/> など）は可搬</b>です（縮小は本ライブラリの計算です）。<br/>
+/// <b>Windows 専用です</b>: 復号・保存・縮小・減色は WIC を呼ぶため（<see cref="Decode(ReadOnlySpan{byte}, int)"/> /
+/// <see cref="Save(ReadOnlySpan{byte}, EsSizeInt, string, EsImageSaveOptions)"/> /
+/// <see cref="Resize(ReadOnlySpan{byte}, EsSizeInt, int, int, EsImageQuality)"/> /
+/// <see cref="ReduceColors(ReadOnlySpan{byte}, EsSizeInt, int, int, EsDitherMode)"/> / <see cref="SaveExtensions"/>）、
+/// <see cref="SupportedOSPlatformAttribute"/> で限定します。 <b>形式の対応（<see cref="GetExtension(EsImageFileFormat)"/> など）と
+/// <see cref="GetResizedSize(EsSizeInt, int)"/> は可搬</b>です（WIC を呼びません）。<br/>
 /// <b>静的クラスである理由</b>: 保持する状態が無く（WIC のファクトリは呼び出しごとに生成して解放する）、
 /// 4 つの UI 版へ DI を持ち込まないためです。
 /// </remarks>
@@ -215,6 +217,8 @@ public static class EsImageCodec
     /// <exception cref="ArgumentException"><paramref name="pixels"/> の長さが寸法と一致しない場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> または <paramref name="quality"/> が許容範囲外の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（拡大が必要な）場合。</exception>
+    /// <remarks><b>縮小の計算は WIC が単一所有します</b>（デコード時の縮小と同じ実装。 <see cref="EsImageQuality"/> を参照）。</remarks>
+    [SupportedOSPlatform("windows10.0.17763")]
     public static (byte[] Pixels, EsSizeInt Size) Resize(
         ReadOnlySpan<byte> pixels, EsSizeInt size, int stride, int maxSize,
         EsImageQuality quality = EsImageQuality.Mid)
@@ -237,6 +241,7 @@ public static class EsImageCodec
     /// <param name="destination">書き込み先（<c>target の幅 × 4 × 高さ</c> バイト以上。 行は密に書く）。</param>
     /// <exception cref="ArgumentException"><paramref name="pixels"/> の長さが寸法と一致しない場合、または <paramref name="destination"/> が足りない場合。</exception>
     /// <remarks><b>縮小が不要な場合</b>（<paramref name="target"/> が <paramref name="size"/> と同じ）は行を写すだけです。</remarks>
+    [SupportedOSPlatform("windows10.0.17763")]
     internal static void ScaleInto(
         ReadOnlySpan<byte> pixels, EsSizeInt size, int stride, EsSizeInt target, EsImageQuality quality,
         Span<byte> destination)
@@ -269,7 +274,7 @@ public static class EsImageCodec
     /// <exception cref="ArgumentException"><paramref name="pixels"/> の長さが寸法と一致しない場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> または <paramref name="dither"/> が許容範囲外の場合。</exception>
     /// <remarks>
-    /// <b>減色は WIC が行います</b>（パレットは中央値分割、割り当ては最近傍）。 保存の
+    /// <b>減色は WIC が行います</b>（パレットは WIC の中央値分割、割り当ては 8bpp へ変換）。 保存の
     /// <see cref="EsImageSaveOptions.ColorCount"/> と同じパレットを使うため、<b>保存したファイルの画素と一致します</b>。
     /// </remarks>
     [SupportedOSPlatform("windows10.0.17763")]
@@ -292,6 +297,39 @@ public static class EsImageCodec
         }
 
         return WinWicImageCodec.Reduce(pixels, size.Width, size.Height, stride, colorCount, dither);
+    }
+
+    /// <summary>画素を指定の色数へ減色し、呼び出し側の領域へ書く（画素を複製しない）。</summary>
+    /// <param name="pixels">元の画素（BGRA8888・アルファ乗算済み。 行の余白を含んでよい）。</param>
+    /// <param name="size">元の寸法。</param>
+    /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数（<c>幅 × 4</c> 以上）。</param>
+    /// <param name="colorCount">残す色数（2〜256）。</param>
+    /// <param name="dither">ディザの指定。</param>
+    /// <param name="destination">書き込み先（<c>幅 × 4 × 高さ</c> バイト以上。 行は密に書く）。</param>
+    /// <exception cref="ArgumentException"><paramref name="pixels"/> の長さが寸法と一致しない場合、または <paramref name="destination"/> が足りない場合。</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> または <paramref name="dither"/> が許容範囲外の場合。</exception>
+    /// <remarks><b>画像 1 枚分の複製を作りません</b>（色番号から書き込み先へ直接書きます）。</remarks>
+    [SupportedOSPlatform("windows10.0.17763")]
+    internal static void ReduceInto(
+        ReadOnlySpan<byte> pixels, EsSizeInt size, int stride, int colorCount, EsDitherMode dither,
+        Span<byte> destination)
+    {
+        EnsurePixels(pixels, size, stride, nameof(pixels));
+        if (colorCount < EsBitmapOperations.MinimumColorCount || colorCount > EsBitmapOperations.MaximumColorCount)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(colorCount),
+                colorCount,
+                $"減色して残す色数は {EsBitmapOperations.MinimumColorCount}〜{EsBitmapOperations.MaximumColorCount} の範囲で指定します。");
+        }
+
+        if (dither is not (EsDitherMode.None or EsDitherMode.ErrorDiffusion))
+        {
+            throw new ArgumentOutOfRangeException(nameof(dither), dither, "定義されていないディザの指定です。");
+        }
+
+        EnsureCapacity(destination, size.Width, size.Height, nameof(destination));
+        WinWicImageCodec.Reduce(pixels, size.Width, size.Height, stride, colorCount, dither, destination);
     }
 
     /// <summary>画素を復号し、生成処理へ渡す（画像型が中間バッファを作らずに済ませるための内部経路）。</summary>
