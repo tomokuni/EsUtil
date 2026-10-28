@@ -58,7 +58,7 @@ public sealed class EsBitmapAdapter : IImage, IDisposable
     /// <b>縮小は Fant</b>（コアの <see cref="EsReadOnlyBitmap.Resize(int, EsImageQuality)"/> へ <see cref="EsImageQuality.High"/> を渡す。 面積平均に近い補間で、細線が落ちにくい）。
     /// <b>画質を優先する理由</b>: 同じ寸法のサムネイルを出すフォルダビュー（ファイル → <c>Bitmap.DecodeToWidth</c>）は
     /// <b>面積平均相当</b>の画質であり、双線形だと<b>同じサイズなのに一覧ごとに見え方が変わる</b>
-    /// （幅 1 px の細線を残すか落とすかが面積平均と双線形で逆になる）。
+    /// （幅 1 px の細線は面積平均に近い Fant なら残り、双線形だと背景へ混ざって薄れる）。
     /// WIC のスケーラーが行うため、一覧のサムネイルを並べても本ライブラリ側に待ち時間は積み上がらない。<br/>
     /// <b>画像が上限に収まっている場合は縮小しない</b>（等倍の射影を共用し、同じ寸法の複製を 2 つ作らない）。<br/>
     /// 上限を設定すると <see cref="IImage.Size"/> は縮小後の寸法を返す（Avalonia のレイアウトと描画がその寸法を基準にする）。
