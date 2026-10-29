@@ -65,6 +65,22 @@ public class LoupeControlTests
     }
 
 
+    /// <summary>既定の外観で塗られる下地の色（<c>0xRRGGBB</c>）。 非表示のときに残っていないことの判定に使う。</summary>
+    private const int DefaultPasteboardPixel = 0x535353;
+
+    /// <summary>非表示のときに、ルーペの位置へ何も描かれていないことを確かめる。</summary>
+    /// <param name="pixel">ルーペの位置の画素（<c>0xRRGGBB</c>）。</param>
+    /// <remarks>
+    /// 非表示のときは拡大した内容も下地も描かれない（ウィンドウの地がそのまま残る）。<br/>
+    /// 「描画回数が 0」で判定しないのは、ヘッドレスの描画は無効化された要素の <c>Render</c> を<br/>
+    /// 1 回呼ぶことがあり、状態の誤りと描画回数の差を区別できないため（実測で確認）。
+    /// </remarks>
+    private static void AssertHiddenPixel(int pixel)
+    {
+        Assert.NotEqual(0x0000FF, pixel);
+        Assert.NotEqual(DefaultPasteboardPixel, pixel);
+    }
+
     /// <summary>ルーペのローカル座標の画素を、ウィンドウの描画結果から読む（描画内容の実測）。</summary>
     /// <param name="window">対象のウィンドウ。</param>
     /// <param name="control">対象のコントロール。</param>
@@ -457,18 +473,14 @@ public class LoupeControlTests
         control.CenterPoint = new Point(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
+        Assert.Equal(0x0000FF, LoupePixelAt(window, control, 30, 30));
 
-        var rendered = 0;
-        control.Rendered += (_, _) => rendered++;
         control.Clear();
-        // 非表示にする前に残っている描画要求と画像の生成を流し切る（残すと後から 1 回描画される）
-        await control.SettleRenderingAsync(() => rendered);
-        rendered = 0;
-        await control.SettleRenderingAsync(() => rendered);
+        await control.AdvanceFramesAsync();
 
-        // 非表示になると描画されない
+        // 非表示になると描画されない（ルーペの位置に下地も残らない）
         Assert.False(control.IsVisible);
-        Assert.Equal(0, rendered);
+        AssertHiddenPixel(LoupePixelAt(window, control, 30, 30));
         window.Close();
     }
 
@@ -480,21 +492,14 @@ public class LoupeControlTests
         control.CenterPoint = new Point(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
-
-        var rendered = 0;
-        control.Rendered += (_, _) => rendered++;
-        // 非表示にする**前**の描画要求を流し切る（残すと非表示後に 1 回描画され、0 か 1 かで判定がぶれる）。
-        await control.SettleRenderingAsync(() => rendered);
+        Assert.Equal(0x0000FF, LoupePixelAt(window, control, 30, 30));
 
         control.IsVisible = false;
         control.CenterPoint = new Point(120, 120);
-        // 非表示にした直後のフレームは直前（表示中）の状態を映すことがあるため、落ち着かせてから数える
-        await control.SettleRenderingAsync(() => rendered);
-        rendered = 0;
-        await control.SettleRenderingAsync(() => rendered);
+        await control.AdvanceFramesAsync();
 
         Assert.False(control.IsVisible);
-        Assert.Equal(0, rendered);
+        AssertHiddenPixel(LoupePixelAt(window, control, 30, 30));
         window.Close();
     }
 
@@ -502,21 +507,19 @@ public class LoupeControlTests
     internal async Task 非表示中の再描画要求は描画しない()
     {
         var control = CreateControl();
-        var window = TestHelper.ShowInWindow(control);
-        control.IsVisible = false;
-
-        var rendered = 0;
-        control.Rendered += (_, _) => rendered++;
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
-        // 非表示にした直後のフレームは直前の状態を映すことがあるため、落ち着かせてから数える
-        await control.SettleRenderingAsync(() => rendered);
-        rendered = 0;
-        await control.SettleRenderingAsync(() => rendered);
+        var window = TestHelper.ShowInWindow(control);
+        await control.WaitForRenderedAsync();
+
+        control.IsVisible = false;
+        control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
+        control.CenterPoint = new Point(100, 100);
+        await control.AdvanceFramesAsync();
 
         // 非表示のため描画は行われない（状態は保持され、表示時に反映される）
         Assert.False(control.IsVisible);
-        Assert.Equal(0, rendered);
+        AssertHiddenPixel(LoupePixelAt(window, control, 30, 30));
         window.Close();
     }
 
@@ -756,17 +759,14 @@ public class LoupeControlTests
         await control.WaitForRenderedAsync();
 
         // 描画の要求（実行キューへのポスト）と描画の間に非表示へ切り替えても描画されない
-        var rendered = 0;
-        control.Rendered += (_, _) => rendered++;
+        Assert.Equal(0x0000FF, LoupePixelAt(window, control, 30, 30));
+
         control.IsVisible = false;
         control.RequestRender();
-        // 非表示にした直後のフレームは直前（表示中）の状態を映すことがあるため、落ち着かせてから数える
-        await control.SettleRenderingAsync(() => rendered);
-        rendered = 0;
-        await control.SettleRenderingAsync(() => rendered);
+        await control.AdvanceFramesAsync();
 
         Assert.False(control.IsVisible);
-        Assert.Equal(0, rendered);
+        AssertHiddenPixel(LoupePixelAt(window, control, 30, 30));
         window.Close();
     }
 
