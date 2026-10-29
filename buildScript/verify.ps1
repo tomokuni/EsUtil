@@ -397,17 +397,23 @@ else {
 }
 # 2f) 実行ファイルのアーキテクチャ（64bit）
 #     AnyCPU の exe は apphost をビルドしたマシンの RID で作るため、32bit 環境では 32bit になる。
-#     配布物とサンプルは x64 に固定する（規則は .github/ビルド設定規約.md §5）。
+#     判定は**コメントを除いた XML** で行う（コメントアウトした指定を「指定あり」と誤認しないため）。
+#     固定と見なすのは PlatformTarget=x64 か**単数形**の RuntimeIdentifier=win-x64 だけ
+#     （複数形の RuntimeIdentifiers は復元対象の RID 一覧であり、ビルド対象を固定しない）。
+#     規則は .github/ビルド設定規約.md §5。
 $archIssues = [System.Collections.Generic.List[string]]::new()
 $archChecked = 0
 foreach ($rel in @(git ls-files --cached --others --exclude-standard -- '*/sample/*.csproj')) {
     $text = [IO.File]::ReadAllText((Join-Path $repoRoot $rel), $enc)
     $archChecked += 1
-    if ($text -match '<Prefer32Bit>true</Prefer32Bit>' -or $text -match '<PlatformTarget>x86</PlatformTarget>') {
+    $xml = [regex]::Replace($text, '(?s)<!--.*?-->', '')
+    if ($xml -match '<Prefer32Bit>\s*true\s*</Prefer32Bit>' -or $xml -match '<PlatformTarget>\s*x86\s*</PlatformTarget>') {
         $archIssues.Add(("{0}: 32bit の指定がある" -f $rel))
     }
-    elseif ($text -match '<PlatformTarget>x64</PlatformTarget>' -or $text -match '<RuntimeIdentifier[s]?>\s*win-x64') {
-        continue
+    elseif ($xml -match '<PlatformTarget>\s*x64\s*</PlatformTarget>') { continue }
+    elseif ($xml -match '<RuntimeIdentifier(\s[^>]*)?>\s*win-x64\s*</RuntimeIdentifier>') { continue }
+    elseif ($xml -match '<RuntimeIdentifiers(\s[^>]*)?>') {
+        $archIssues.Add(("{0}: RuntimeIdentifiers（複数形）はビルド対象を固定しない（単数形の RuntimeIdentifier か PlatformTarget を書く）" -f $rel))
     }
     else {
         $archIssues.Add(("{0}: x64 の指定が無い（PlatformTarget か RuntimeIdentifier を書く）" -f $rel))
