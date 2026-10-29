@@ -49,19 +49,25 @@ public static class TestHelper
         TopLevel.GetTopLevel(control)?.CaptureRenderedFrame();
     }
 
-    /// <summary>実行キューとフレームを進める（描画の余地を与える）。</summary>
+    /// <summary>描画の要求が静まるまで、実行キューとフレームを進める。</summary>
     /// <param name="control">対象のコントロール（ウィンドウへ接続されていること）。</param>
-    /// <param name="frames">進めるフレーム数。</param>
+    /// <param name="renderedCount">描画回数を返す関数（<see cref="LoupeControl.Rendered"/> の購読で数える）。</param>
+    /// <param name="quietFrames">「新しい描画が起きない」状態が続けば静まったと見なすフレーム数。</param>
     /// <remarks>
-    /// 描画の要求は実行キューを経てフレームで処理されるため、状態を変えただけでは描画されない。<br/>
-    /// 「描画されないこと」を確かめるテストは、要求を出し切ったうえで本メソッドで描画の機会を与える。
+    /// 描画の要求は実行キューを経てフレームで処理され、画像の生成も数フレームにまたがるため、<br/>
+    /// 固定回数のフレームを進めるだけでは**途中で打ち切る**ことがある（打ち切った状態で判定すると、<br/>
+    /// 実行環境の速さで合否が変わる）。 新しい描画が一定回数続けて起きなくなるまで進める。<br/>
+    /// 打ち切りは <see cref="PumpLimit"/> で行う（描画が止まらない実装でも無限ループにしない）。
     /// </remarks>
-    internal static async Task AdvanceFramesAsync(this LoupeControl control, int frames = 8)
+    internal static async Task AdvanceUntilQuietAsync(this LoupeControl control, Func<int> renderedCount, int quietFrames = 3)
     {
-        for (var i = 0; i < frames; i++)
+        var quiet = 0;
+        for (var i = 0; i < PumpLimit && quiet < quietFrames; i++)
         {
+            var before = renderedCount();
             control.RenderOnce();
             await Task.Yield();
+            quiet = renderedCount() == before ? quiet + 1 : 0;
         }
     }
 
