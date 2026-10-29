@@ -49,6 +49,22 @@ public static class TestHelper
         TopLevel.GetTopLevel(control)?.CaptureRenderedFrame();
     }
 
+    /// <summary>実行キューとフレームを進める（描画の余地を与える）。</summary>
+    /// <param name="control">対象のコントロール（ウィンドウへ接続されていること）。</param>
+    /// <param name="frames">進めるフレーム数。</param>
+    /// <remarks>
+    /// 描画の要求は実行キューを経てフレームで処理されるため、状態を変えただけでは描画されない。<br/>
+    /// 「描画されないこと」を確かめるテストは、要求を出し切ったうえで本メソッドで描画の機会を与える。
+    /// </remarks>
+    internal static async Task AdvanceFramesAsync(this LoupeControl control, int frames = 8)
+    {
+        for (var i = 0; i < frames; i++)
+        {
+            control.RenderOnce();
+            await Task.Yield();
+        }
+    }
+
     /// <summary>再描画の完了（<see cref="LoupeControl.Rendered"/> の発火）を待つ。</summary>
     /// <param name="control">対象のコントロール。</param>
     /// <remarks>

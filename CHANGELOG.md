@@ -5,6 +5,12 @@
 - **公開する版は人が決めます**（グループの `VersionPrefix` を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
+## 未リリース
+
+### 変更
+
+- **依存パッケージを更新しました**（`Microsoft.WindowsAppSDK` 2.6.4。 `EsUtil.Ui.WinUI3.*` の利用側が要求する Windows App SDK の下限が上がります）。 アナライザーとテスト ランナーの更新は配布物に含まれません（`PrivateAssets=all`）。
+
 ## 0.2.0（2026-10-28）
 
 ### 追加
