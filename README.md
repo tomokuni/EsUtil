@@ -108,15 +108,24 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 
 **対象フレームワークと、実行に必要な Windows の下限**です（値の所有者は各 `.csproj` の `<TargetFramework>` / `<SupportedOSPlatformVersion>` と `[SupportedOSPlatform]`。 パッケージの `README.md` も同じ値を書きます）。
 
-| 区分 | 対象フレームワーク | Windows の下限 | 対象プロジェクト |
-| --- | --- | --- | --- |
-| 共通基盤（可搬） | `net10.0` | **Windows 10 バージョン 1809（ビルド 17763）以降**（Windows 実装と画像の保存/読み込みを使う場合。 それ以外は指定なしだが **Windows 以外での動作は未検証**） | `EsUtil.Platform.Core` |
-| 共通基盤（Windows 専用） | `net10.0-windows10.0.17763.0` | Windows 10 バージョン 1809（ビルド 17763）以降 | `EsUtil.Platform.Core.Windows` |
-| 機能層 | `net10.0` | Windows 10 バージョン 1809（ビルド 17763）以降 | `EsUtil.Feature.Loupe.Core` / `.Presenter` / `EsUtil.Feature.Marquee.Core` / `.Presenter` / `EsUtil.Feature.Thumbnail.Core` / `.Presenter` / `EsUtil.Feature.ColumnPacking.Core` / `EsUtil.Feature.ZenHan.Core` |
-| Avalonia UI 層 | `net10.0`（`Marquee` だけ `net10.0-windows10.0.17763.0`） | 指定なし（**Windows 以外での動作は未検証**。 `Marquee` は Windows 10 バージョン 1809（ビルド 17763）以降） | `EsUtil.Ui.AvaloniaUI.*` |
-| MewUI 層 | `net10.0`（`Marquee` だけ `net10.0-windows10.0.17763.0`） | 指定なし（**Windows 以外での動作は未検証**。 `Marquee` は Windows 10 バージョン 1809（ビルド 17763）以降） | `EsUtil.Ui.MewUI.*` |
-| WinUI 3 層 | `net10.0-windows10.0.22621.0`（`SupportedOSPlatformVersion` = `10.0.19041.0`） | **Windows 10 バージョン 2004（ビルド 19041）以降**（Windows App SDK の下限。 対象フレームワークの 22621 は API 面であり、実行の下限ではない） | `EsUtil.Ui.WinUI3.*` |
-| WinForms 層 | `net10.0-windows10.0.17763.0` | Windows 10 バージョン 1809（ビルド 17763）以降 | `EsUtil.Ui.WinForms.*` |
+| 区分 | 対象フレームワーク | 対象プロジェクト |
+| --- | --- | --- |
+| 共通基盤（可搬） | `net10.0` | `EsUtil.Platform.Core` |
+| 共通基盤（Windows 専用） | `net10.0-windows10.0.17763.0` | `EsUtil.Platform.Core.Windows` |
+| 機能層 | `net10.0` | `EsUtil.Feature.Loupe.Core` / `.Presenter` / `EsUtil.Feature.Marquee.Core` / `.Presenter` / `EsUtil.Feature.Thumbnail.Core` / `.Presenter` / `EsUtil.Feature.ColumnPacking.Core` / `EsUtil.Feature.ZenHan.Core` |
+| Avalonia UI 層 | `net10.0` | `EsUtil.Ui.AvaloniaUI.*` |
+| MewUI 層 | `net10.0` | `EsUtil.Ui.MewUI.*` |
+| WinUI 3 層 | `net10.0-windows10.0.22621.0`（`SupportedOSPlatformVersion` = `10.0.19041.0`） | `EsUtil.Ui.WinUI3.*` |
+| WinForms 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.WinForms.*` |
+
+| 区分 | Windows の下限 |
+| --- | --- |
+| 共通基盤 | **Windows 10 バージョン 1809（ビルド 17763）以降**（Windows 実装と画像の保存/読み込みを使う場合。 それ以外は指定なしだが **Windows 以外での動作は未検証**） |
+| 機能層 | Windows 10 バージョン 1809（ビルド 17763）以降 |
+| Avalonia UI 層 | 指定なし（**Windows 以外での動作は未検証**。 `Marquee` の**引数なしコンストラクター**だけが Windows 10 バージョン 1809（ビルド 17763）以降） |
+| MewUI 層 | 指定なし（**Windows 以外での動作は未検証**。 `Marquee` の**引数なしコンストラクター**だけが Windows 10 バージョン 1809（ビルド 17763）以降） |
+| WinUI 3 層 | **Windows 10 バージョン 2004（ビルド 19041）以降**（Windows App SDK の下限。 対象フレームワークの 22621 は API 面であり、実行の下限ではない） |
+| WinForms 層 | Windows 10 バージョン 1809（ビルド 17763）以降 |
 
 - **検証は Windows でだけ行っています**。 `net10.0`（OS 固有の対象フレームワークを持たない）層も、**Windows 以外での動作は未検証**です（`EsUtil.Platform.Core` には Windows 専用の型（`Native.Win` 配下・画像の保存/読み込み）が含まれます）。
 

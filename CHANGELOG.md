@@ -10,6 +10,8 @@
 ### 変更
 
 - **依存パッケージを更新しました**（`Microsoft.WindowsAppSDK` 2.6.4。 `EsUtil.Ui.WinUI3.*` の利用側が要求する Windows App SDK の下限が上がります）。 アナライザーとテスト ランナーの更新は配布物に含まれません（`PrivateAssets=all`）。
+- **`EsUtil.Ui.AvaloniaUI.Marquee` と `EsUtil.Ui.MewUI.Marquee` の対象フレームワークを `net10.0` へ戻しました**（`net10.0-windows10.0.17763.0` をやめます）。 Windows 専用なのは**引数なしコンストラクター**（`WinCursorService` を生成する既定構成）だけで、そこへ `[SupportedOSPlatform("windows10.0.17763")]` を付けます。 Windows 以外では `ICursorService` を渡すコンストラクターを使ってください（テストとサンプルは既定構築を使うため `net10.0-windows10.0.17763.0` のままです）。
+- **サンプルのアーキテクチャ固定をやめ、AnyCPU にしました**（`PlatformTarget` = `x64` と WinUI 3 の `RuntimeIdentifier` = `win-x64` を `.csproj` から外しました）。 WinUI 3 の自己完結配置（`WindowsAppSDKSelfContained`）は `-r` を渡したとき（publish）だけ有効になり、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。
 
 ## 0.2.0（2026-10-28）
 
