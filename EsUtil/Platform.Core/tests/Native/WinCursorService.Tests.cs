@@ -11,6 +11,8 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// <see cref="WinCursorService"/> は UI スレッド（Dispatcher）に依存せず <c>PixelPoint</c> のみを扱うため、<br/>
 /// Avalonia ヘッドレス（<c>[AvaloniaFact]</c>）ではなく実 OS 直列コレクション（<see cref="Win32Group"/>）で検証する。<br/>
 /// ヘッドレス環境でカーソル位置が OS と完全に同期しない場合があるため、位置の厳密一致は検証しない。<br/>
+/// <b>カーソルを動かす・表示を切り替えるテストは既定で読み飛ばす</b>（開発機の実画面へ影響するため。
+/// <see cref="TestHelper.SkipUnlessRealOsState"/>）。<br/>
 /// **カーソルを動かせない環境**（ロック中・非対話セッション）では、その 1 件をスキップする（環境要因を不合格にしない）。
 /// </remarks>
 [Collection("Win32")]
@@ -29,9 +31,16 @@ public class WinCursorServiceTests
         Assert.True(pos.X != int.MinValue || pos.Y != int.MinValue);
     }
 
+    /// <summary>カーソルを指定の位置へ移動できることを検証する。</summary>
+    /// <remarks>
+    /// <b>実 OS のカーソルを動かす</b>ため既定では読み飛ばす（開発機の操作を妨げない）。
+    /// CI か <c>ESUTIL_REAL_OS_TESTS=1</c> のときだけ実行する。
+    /// </remarks>
     [Fact]
     internal void WinCursorService_TrySetCursorScreenPointがカーソルを移動する()
     {
+        TestHelper.SkipUnlessRealOsState("実 OS のカーソルを動かす");
+
         var service = new WinCursorService();
         Assert.True(service.TryGetCursorScreenPoint(out var before));
 
@@ -47,9 +56,16 @@ public class WinCursorServiceTests
         Assert.True(service.TryGetCursorScreenPoint(out _));
     }
 
+    /// <summary>カーソルの表示・非表示を切り替えられることを検証する。</summary>
+    /// <remarks>
+    /// <b>実 OS のカーソルの表示を切り替える</b>ため既定では読み飛ばす（開発機の操作を妨げない）。
+    /// CI か <c>ESUTIL_REAL_OS_TESTS=1</c> のときだけ実行する。
+    /// </remarks>
     [Fact]
     internal void WinCursorService_ShowCursorが状態を追跡する()
     {
+        TestHelper.SkipUnlessRealOsState("実 OS のカーソルの表示を切り替える");
+
         var service = new WinCursorService();
 
         // 非表示 → 同一状態の再呼び出し（スキップ）→ 再表示 → 同一状態の再呼び出し（スキップ）
