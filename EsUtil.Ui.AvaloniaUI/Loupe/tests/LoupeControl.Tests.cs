@@ -68,7 +68,16 @@ public class LoupeControlTests
     /// <summary>既定の外観で塗られる下地の色（<c>0xRRGGBB</c>）。 非表示のときに残っていないことの判定に使う。</summary>
     private const int DefaultPasteboardPixel = 0x535353;
 
-    /// <summary>非表示のときに、ルーペの位置へ何も描かれていないことを確かめる。</summary>
+    /// <summary>描画が落ち着くまで（画が変わらなくなるまで）、実行キューとフレームを進める。</summary>
+    /// <param name="control">対象のコントロール（ウィンドウへ接続されていること）。</param>
+    /// <remarks>
+    /// 「描画されないこと」を確かめるテストは、**判定の前**にこれを呼んで保留中の要求を流し切る。<br/>
+    /// 流し切らずに判定すると、判定の後に処理された要求の分だけ結果がぶれる（実行環境の速さに依存する）。
+    /// </remarks>
+    private static Task AdvanceUntilQuietAsync(LoupeControl control) => control.AdvanceUntilQuietAsync();
+
+
+
     /// <param name="pixel">ルーペの位置の画素（<c>0xRRGGBB</c>）。</param>
     /// <remarks>
     /// 非表示のときは拡大した内容も下地も描かれない（ウィンドウの地がそのまま残る）。<br/>
@@ -476,7 +485,8 @@ public class LoupeControlTests
         Assert.Equal(0x0000FF, LoupePixelAt(window, control, 30, 30));
 
         control.Clear();
-        await control.AdvanceFramesAsync();
+        // 非表示にした直後に残っている描画要求と画像の生成を流し切ってから判定する（静まるまで待つ）
+        await AdvanceUntilQuietAsync(control);
 
         // 非表示になると描画されない（ルーペの位置に下地も残らない）
         Assert.False(control.IsVisible);
@@ -496,7 +506,8 @@ public class LoupeControlTests
 
         control.IsVisible = false;
         control.CenterPoint = new Point(120, 120);
-        await control.AdvanceFramesAsync();
+        // 非表示にした直後に残っている描画要求と画像の生成を流し切ってから判定する（静まるまで待つ）
+        await AdvanceUntilQuietAsync(control);
 
         Assert.False(control.IsVisible);
         AssertHiddenPixel(LoupePixelAt(window, control, 30, 30));
@@ -515,7 +526,7 @@ public class LoupeControlTests
         control.IsVisible = false;
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
-        await control.AdvanceFramesAsync();
+        await AdvanceUntilQuietAsync(control);
 
         // 非表示のため描画は行われない（状態は保持され、表示時に反映される）
         Assert.False(control.IsVisible);
@@ -763,7 +774,8 @@ public class LoupeControlTests
 
         control.IsVisible = false;
         control.RequestRender();
-        await control.AdvanceFramesAsync();
+        // 非表示にした直後に残っている描画要求と画像の生成を流し切ってから判定する（静まるまで待つ）
+        await AdvanceUntilQuietAsync(control);
 
         Assert.False(control.IsVisible);
         AssertHiddenPixel(LoupePixelAt(window, control, 30, 30));

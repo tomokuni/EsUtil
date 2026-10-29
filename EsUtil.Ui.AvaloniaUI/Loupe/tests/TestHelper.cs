@@ -49,20 +49,50 @@ public static class TestHelper
         TopLevel.GetTopLevel(control)?.CaptureRenderedFrame();
     }
 
-    /// <summary>実行キューとフレームを進める（描画の余地を与える）。</summary>
+    /// <summary>描画が落ち着くまで（画が変わらなくなるまで）、実行キューとフレームを進める。</summary>
     /// <param name="control">対象のコントロール（ウィンドウへ接続されていること）。</param>
-    /// <param name="frames">進めるフレーム数。</param>
+    /// <param name="stableFrames">画が変わらない状態が続けば落ち着いたと見なすフレーム数。</param>
     /// <remarks>
-    /// 描画の要求は実行キューを経てフレームで処理されるため、状態を変えただけでは描画されない。<br/>
-    /// 「描画されないこと」を確かめるテストは、要求を出し切ったうえで本メソッドで描画の機会を与える。
+    /// 描画の要求は実行キューを経てフレームで処理されるため、固定回数のフレームを進めるだけでは<br/>
+    /// **途中で打ち切る**ことがある（打ち切った状態で判定すると、実行環境の速さで合否が変わる）。<br/>
+    /// 判定は <b>実際の画（フレームバッファ）</b> が変わらなくなったことで行う。 <see cref="LoupeControl.Rendered"/> は<br/>
+    /// 描画したときにだけ発火するため、「通知が来ない＝保留が無い」とは限らない（保留があっても描かれなければ来ない）。<br/>
+    /// 打ち切りは <see cref="PumpLimit"/> で行う（画が変わり続ける実装でも無限ループにしない）。
     /// </remarks>
-    internal static async Task AdvanceFramesAsync(this LoupeControl control, int frames = 8)
+    internal static async Task AdvanceUntilQuietAsync(this LoupeControl control, int stableFrames = 2)
     {
-        for (var i = 0; i < frames; i++)
+        byte[]? previous = null;
+        var stable = 0;
+        for (var i = 0; i < PumpLimit && stable < stableFrames; i++)
         {
-            control.RenderOnce();
+            if (TopLevel.GetTopLevel(control) is not { } topLevel)
+            {
+                return;
+            }
+
+            Dispatcher.UIThread.RunJobs();
+            var frame = topLevel.CaptureRenderedFrame();
             await Task.Yield();
+            if (frame is null)
+            {
+                return;
+            }
+
+            var current = ReadFramePixels(frame);
+            stable = previous is not null && current.AsSpan().SequenceEqual(previous) ? stable + 1 : 0;
+            previous = current;
         }
+    }
+
+    /// <summary>フレームの画素を読み出す（画が変わったかの比較に使う）。</summary>
+    /// <param name="frame">描画済みのフレーム。</param>
+    /// <returns>画素の並び（行の余白を含む）。</returns>
+    private static byte[] ReadFramePixels(Avalonia.Media.Imaging.WriteableBitmap frame)
+    {
+        using var buffer = frame.Lock();
+        var bytes = new byte[buffer.RowBytes * buffer.Size.Height];
+        System.Runtime.InteropServices.Marshal.Copy(buffer.Address, bytes, 0, bytes.Length);
+        return bytes;
     }
 
     /// <summary>再描画の完了（<see cref="LoupeControl.Rendered"/> の発火）を待つ。</summary>
