@@ -68,27 +68,14 @@ public class LoupeControlTests
     /// <summary>既定の外観で塗られる下地の色（<c>0xRRGGBB</c>）。 非表示のときに残っていないことの判定に使う。</summary>
     private const int DefaultPasteboardPixel = 0x535353;
 
-    /// <summary>描画の要求と非同期の画像生成が静まるまで、実行キューとフレームを進める。</summary>
+    /// <summary>描画が落ち着くまで（画が変わらなくなるまで）、実行キューとフレームを進める。</summary>
     /// <param name="control">対象のコントロール（ウィンドウへ接続されていること）。</param>
     /// <remarks>
     /// 「描画されないこと」を確かめるテストは、**判定の前**にこれを呼んで保留中の要求を流し切る。<br/>
-    /// 流し切らずに判定すると、判定の後に処理された要求の分だけ結果がぶれる（実行環境の速さに依存する）。<br/>
-    /// 数えるのは静まったことの判定だけであり、合否は描画結果（画素）で判定する（数え直しで誤りを隠さない）。
+    /// 流し切らずに判定すると、判定の後に処理された要求の分だけ結果がぶれる（実行環境の速さに依存する）。
     /// </remarks>
-    private static async Task AdvanceUntilQuietAsync(LoupeControl control)
-    {
-        var rendered = 0;
-        void OnRendered(object? sender, LoupeRenderedEventArgs e) => rendered++;
-        control.Rendered += OnRendered;
-        try
-        {
-            await control.AdvanceUntilQuietAsync(() => rendered);
-        }
-        finally
-        {
-            control.Rendered -= OnRendered;
-        }
-    }
+    private static Task AdvanceUntilQuietAsync(LoupeControl control) => control.AdvanceUntilQuietAsync();
+
 
 
     /// <param name="pixel">ルーペの位置の画素（<c>0xRRGGBB</c>）。</param>
