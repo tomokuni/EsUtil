@@ -16,8 +16,10 @@
          配布するときは publish へ -p:EnableMsixTooling=true を渡す。 -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
-    <!-- 自己完結の配置は対象アーキテクチャを要する（既定を x64 とし、`-r` で上書きできるようにする） -->
-    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+    <!-- Windows App SDK の自己完結配置はアーキテクチャの指定を要求する
+         （実測: 未指定は `WindowsAppSDKSelfContained requires a supported Windows architecture.` で失敗する）。
+         既定は x64。 `-r`（グローバル プロパティ）で上書きできる。 -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <!-- DPI 認識と対応 OS の宣言（アンパッケージで実行するために必要） -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
