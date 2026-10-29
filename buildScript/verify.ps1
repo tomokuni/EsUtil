@@ -395,6 +395,26 @@ else {
     Add-Result 'Dependabot の対象' ($dependabotMissing.Count -eq 0) "未登録 $($dependabotMissing.Count) 件"
     $dependabotMissing | Select-Object -First 8 | ForEach-Object { "      .github/dependabot.yml の directories に無い: $_" }
 }
+# 2f) 実行ファイルのアーキテクチャ（64bit）
+#     AnyCPU の exe は apphost をビルドしたマシンの RID で作るため、32bit 環境では 32bit になる。
+#     配布物とサンプルは x64 に固定する（規則は .github/ビルド設定規約.md §5）。
+$archIssues = [System.Collections.Generic.List[string]]::new()
+$archChecked = 0
+foreach ($rel in @(git ls-files --cached --others --exclude-standard -- '*/sample/*.csproj')) {
+    $text = [IO.File]::ReadAllText((Join-Path $repoRoot $rel), $enc)
+    $archChecked += 1
+    if ($text -match '<Prefer32Bit>true</Prefer32Bit>' -or $text -match '<PlatformTarget>x86</PlatformTarget>') {
+        $archIssues.Add(("{0}: 32bit の指定がある" -f $rel))
+    }
+    elseif ($text -match '<PlatformTarget>x64</PlatformTarget>' -or $text -match '<RuntimeIdentifier[s]?>\s*win-x64') {
+        continue
+    }
+    else {
+        $archIssues.Add(("{0}: x64 の指定が無い（PlatformTarget か RuntimeIdentifier を書く）" -f $rel))
+    }
+}
+Add-Result '実行ファイルのアーキテクチャ' ($archIssues.Count -eq 0) "対象 $archChecked 件 / x64 以外 $($archIssues.Count) 件"
+$archIssues | Select-Object -First 8 | ForEach-Object { "      $_" }
 
 # ============================================================
 # 3. テスト（全件合格。 -Coverage でカバレッジも集計する）

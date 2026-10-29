@@ -18,9 +18,9 @@
          配布するときは publish へ -p:EnableMsixTooling=true を渡す。 -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
-    <!-- Windows App SDK の自己完結配置は Windows のアーキテクチャ指定を要求する
+    <!-- Windows App SDK の自己完結配置はアーキテクチャの指定を要求する
          （実測: 未指定は `WindowsAppSDKSelfContained requires a supported Windows architecture.` で失敗する）。
-         配布時は publish の実行時識別子の引数でも上書きできる。 -->
+         既定は x64。 `-r`（グローバル プロパティ）で上書きできる。 -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <Description>サムネイル一覧の WinUI 3 版コントロールの動作確認用サンプル アプリケーション。</Description>
   </PropertyGroup>
