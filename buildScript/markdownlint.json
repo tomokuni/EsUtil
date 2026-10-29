@@ -1,5 +1,7 @@
 {
     "default": true,
     "MD013": false,
-    "MD028": false
+    "MD028": false,
+    // 変更履歴は版ごとに同じ見出し（追加 / 変更 / 修正）を繰り返すため、兄弟でなければ重複を許す
+    "MD024": { "siblings_only": true }
 }
