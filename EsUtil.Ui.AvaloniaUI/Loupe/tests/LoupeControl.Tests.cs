@@ -461,7 +461,10 @@ public class LoupeControlTests
         var rendered = 0;
         control.Rendered += (_, _) => rendered++;
         control.Clear();
-        await TestHelper.PumpAsync();
+        // 非表示にする前に残っている描画要求と画像の生成を流し切る（残すと後から 1 回描画される）
+        await control.SettleRenderingAsync(() => rendered);
+        rendered = 0;
+        await control.SettleRenderingAsync(() => rendered);
 
         // 非表示になると描画されない
         Assert.False(control.IsVisible);
@@ -480,15 +483,15 @@ public class LoupeControlTests
 
         var rendered = 0;
         control.Rendered += (_, _) => rendered++;
-        // 非表示にする**前**に残っている描画要求を流し切る。
-        // 残したままにすると、非表示後の Pump でその要求が処理され、描画回数が 0 か 1 かで判定がぶれる
-        // （実測 2026-10-26: CI で 1 回だけ失敗し、ローカルでは再現しない競合だった）。
-        await TestHelper.PumpAsync();
-        rendered = 0;
+        // 非表示にする**前**の描画要求を流し切る（残すと非表示後に 1 回描画され、0 か 1 かで判定がぶれる）。
+        await control.SettleRenderingAsync(() => rendered);
 
         control.IsVisible = false;
         control.CenterPoint = new Point(120, 120);
-        await TestHelper.PumpAsync();
+        // 非表示にした直後のフレームは直前（表示中）の状態を映すことがあるため、落ち着かせてから数える
+        await control.SettleRenderingAsync(() => rendered);
+        rendered = 0;
+        await control.SettleRenderingAsync(() => rendered);
 
         Assert.False(control.IsVisible);
         Assert.Equal(0, rendered);
@@ -506,7 +509,10 @@ public class LoupeControlTests
         control.Rendered += (_, _) => rendered++;
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         control.CenterPoint = new Point(100, 100);
-        await TestHelper.PumpAsync();
+        // 非表示にした直後のフレームは直前の状態を映すことがあるため、落ち着かせてから数える
+        await control.SettleRenderingAsync(() => rendered);
+        rendered = 0;
+        await control.SettleRenderingAsync(() => rendered);
 
         // 非表示のため描画は行われない（状態は保持され、表示時に反映される）
         Assert.False(control.IsVisible);
@@ -754,7 +760,10 @@ public class LoupeControlTests
         control.Rendered += (_, _) => rendered++;
         control.IsVisible = false;
         control.RequestRender();
-        await TestHelper.PumpAsync();
+        // 非表示にした直後のフレームは直前（表示中）の状態を映すことがあるため、落ち着かせてから数える
+        await control.SettleRenderingAsync(() => rendered);
+        rendered = 0;
+        await control.SettleRenderingAsync(() => rendered);
 
         Assert.False(control.IsVisible);
         Assert.Equal(0, rendered);

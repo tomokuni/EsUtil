@@ -49,6 +49,27 @@ public static class TestHelper
         TopLevel.GetTopLevel(control)?.CaptureRenderedFrame();
     }
 
+    /// <summary>描画が落ち着くまで（新しい描画が一定回数続けて起きなくなるまで）実行キューとフレームを進める。</summary>
+    /// <param name="control">対象のコントロール（ウィンドウへ接続されていること）。</param>
+    /// <param name="renderedCount">描画回数を返す関数（<see cref="LoupeControl.Rendered"/> の購読で数える）。</param>
+    /// <param name="quietPumps">「新しい描画が起きない」状態が続けば落ち着いたと見なす回数。</param>
+    /// <remarks>
+    /// 描画要求の消化と画像の非同期生成は数フレームにまたがるため、固定回数のポンプでは<br/>
+    /// 途中で打ち切ることがある（打ち切った状態で状態を変えると、後から描画が 1 回だけ起きる）。<br/>
+    /// 回数を数えて落ち着くまで待つと、実行環境の速度に依存しない。
+    /// </remarks>
+    internal static async Task SettleRenderingAsync(this LoupeControl control, Func<int> renderedCount, int quietPumps = 4)
+    {
+        var quiet = 0;
+        for (var i = 0; i < PumpLimit && quiet < quietPumps; i++)
+        {
+            var before = renderedCount();
+            control.RenderOnce();
+            await Task.Yield();
+            quiet = renderedCount() == before ? quiet + 1 : 0;
+        }
+    }
+
     /// <summary>再描画の完了（<see cref="LoupeControl.Rendered"/> の発火）を待つ。</summary>
     /// <param name="control">対象のコントロール。</param>
     /// <remarks>
