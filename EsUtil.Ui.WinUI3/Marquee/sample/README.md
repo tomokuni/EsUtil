@@ -34,7 +34,9 @@
 dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sample.csproj
 ```
 
-**アンパッケージ + 自己完結**で動かすため、対象アーキテクチャを明示しています（既定は `win-x64`。 `-r win-arm64` 等で上書きできます）。
+**アンパッケージ**（MSIX を使わない）で動かします。 プロジェクトは **AnyCPU**（アーキテクチャを固定しない）で、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。
+
+Windows App SDK を同封する（自己完結）ときは `-r` を渡します（`-r` があるときだけ自己完結になります）。
 
 ```powershell
 dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sample.csproj -r win-x64
@@ -46,7 +48,7 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 | --- | --- |
 | OS | Windows 10 ビルド 19041 以降 |
 | .NET | .NET 10 SDK |
-| 実行時の配置 | Windows App SDK は同封（自己完結）。 MSIX でのインストールは不要 |
+| 実行時の配置 | 通常のビルドはインストール済みの Windows App SDK ランタイムを使う（`-r` を渡したときだけ同封。 MSIX でのインストールは不要） |
 
 ## 3. 操作方法
 
@@ -141,7 +143,7 @@ GuideMarqueePlan.Apply(control, show: true);
 
 | 項目 | 本サンプル（WinUI 3） |
 | --- | --- |
-| 実行形態 | アンパッケージ + 自己完結（MSIX を使わない） |
+| 実行形態 | アンパッケージ（MSIX を使わない）。 AnyCPU（自己完結にするときだけ `-r` を渡す） |
 | 設定パネル | 表示倍率・見本・選択操作のボタンに絞っている（色の選択は `Appearance` の差し替えで確認する） |
 | 背景 | 画像ファイルを読み込まず、`TestPatternCanvas`（`SKXamlCanvas`）が格子・色見本・十字を描く |
 | ルーペ | 拡大表示は行わず、`LoupePositionMoved` の位置を円の目印で示す |

@@ -137,7 +137,7 @@ Preview.DrawPlanResolver = static plan => GridLoupePlan.Resolve(in plan);
 
 - **前提**: WinUI 3（Windows App SDK）の `net10.0-windows10.0.22621.0` のプロジェクトです。 ビルドには .NET 10 SDK と Windows App SDK のパッケージ（NuGet）が必要です。
 - **対応 OS**: Windows 10 19041 以降（`SupportedOSPlatformVersion`）です。
-- **実行形式**: **アンパッケージ**（`WindowsPackageType=None`）で実行します。 Windows App SDK は**自己完結**（`WindowsAppSDKSelfContained=true`）で配置するため、Windows App SDK ランタイムを別途インストールしなくても起動できます。 自己完結の配置は Windows のアーキテクチャ指定を要求するため、本プロジェクトは実行時識別子 `win-x64` を持ちます。
+- **実行形式**: **アンパッケージ**（`WindowsPackageType=None`）で実行します。 プロジェクトは **AnyCPU** で、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。 Windows App SDK を同封する（`WindowsAppSDKSelfContained`。 自己完結）のは `-r` を渡したときだけです（RID の無い AnyCPU では自己完結にできないため、`Condition="'$(RuntimeIdentifier)' != ''"` にしてあります）。
 - **起動方法**: `dotnet run --project EsUtil.Ui.WinUI3/Loupe/sample/EsUtil.Ui.WinUI3.Loupe.Sample.csproj` または `RunSample.bat`（リリース ビルド＆起動）です。
 - **サンプルが確認する項目**: [`3. 操作方法`](#3-操作方法)と[`4. 検証項目（動作確認チェックリスト）`](#4-検証項目動作確認チェックリスト)のとおりです（マウス追従・外観・計画の差し替え・描画完了イベント）。
 - **プロジェクト参照**: サンプルは本体（`EsUtil.Ui.WinUI3/Loupe/src/EsUtil.Ui.WinUI3.Loupe.csproj`）を `ProjectReference` で参照します。 コアと提示層は本体のパッケージ参照を通して解決されます。

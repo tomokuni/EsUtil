@@ -29,7 +29,9 @@
 dotnet run --project EsUtil.Ui.WinUI3/ColumnPacking/sample/EsUtil.Ui.WinUI3.ColumnPacking.Sample.csproj
 ```
 
-**アンパッケージ + 自己完結**で動かすため、対象アーキテクチャを明示しています（既定は `win-x64`。 `-r win-arm64` 等で上書きできます）。
+**アンパッケージ**（MSIX を使わない）で動かします。 プロジェクトは **AnyCPU**（アーキテクチャを固定しない）で、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。
+
+Windows App SDK を同封する（自己完結）ときは `-r` を渡します（`-r` があるときだけ自己完結になります）。
 
 ```powershell
 dotnet run --project EsUtil.Ui.WinUI3/ColumnPacking/sample/EsUtil.Ui.WinUI3.ColumnPacking.Sample.csproj -r win-x64

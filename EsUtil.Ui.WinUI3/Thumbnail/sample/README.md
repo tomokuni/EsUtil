@@ -73,7 +73,7 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 
 ```text
 EsUtil.Ui.WinUI3/Thumbnail/sample/
-├── EsUtil.Ui.WinUI3.Thumbnail.Sample.csproj   # サンプルアプリのプロジェクト（net10.0-windows10.0.22621.0 / win-x64）
+├── EsUtil.Ui.WinUI3.Thumbnail.Sample.csproj   # サンプルアプリのプロジェクト（net10.0-windows10.0.22621.0）
 ├── app.manifest                 # Windows DPI 設定（PerMonitorV2）
 ├── App.xaml / App.xaml.cs       # アプリケーション定義
 ├── Imaging/
