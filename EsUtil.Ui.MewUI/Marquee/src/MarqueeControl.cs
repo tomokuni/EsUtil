@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using Aprillz.MewUI.Rendering;
@@ -133,6 +134,12 @@ public sealed class MarqueeControl : Panel
     private readonly ICursorService _cursor;
 
     /// <summary>ドラッグ矩形コントロールを既定構成で初期化する。</summary>
+    /// <remarks>
+    /// カーソル操作は Win32 の既定実装（<see cref="WinCursorService"/>）を生成して動作する（Windows 専用）。<br/>
+    /// 対象フレームワークは <c>net10.0</c>（可搬）であり、<b>Windows 以外ではこのコンストラクターを使えない</b><br/>
+    /// （<see cref="ICursorService"/> を渡すコンストラクターを使う）。
+    /// </remarks>
+    [SupportedOSPlatform("windows10.0.17763")]
     public MarqueeControl()
         : this(new WinCursorService())
     {

@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -101,9 +102,12 @@ public sealed partial class MarqueeControl : Panel
     /// <summary><see cref="MarqueeControl"/> の新しいインスタンスを初期化します（AXAML および既定構成向け）。</summary>
     /// <remarks>
     /// カーソル操作は Win32 の既定実装（<see cref="WinCursorService"/>）を生成して動作する（Windows 専用）。<br/>
+    /// 対象フレームワークは <c>net10.0</c>（可搬）であり、<b>Windows 以外ではこのコンストラクターを使えない</b><br/>
+    /// （<see cref="ICursorService"/> を渡すコンストラクターを使う）。<br/>
     /// nudge 後の再描画要求は本コントロール自身の <see cref="Avalonia.Visual.InvalidateVisual"/> に配線し、<br/>
     /// 矢印キーを受け取れるようフォーカス可能にする（自己完結・ホスト依存なし）。<br/>
     /// </remarks>
+    [SupportedOSPlatform("windows10.0.17763")]
     public MarqueeControl()
         : this(new WinCursorService())
     {

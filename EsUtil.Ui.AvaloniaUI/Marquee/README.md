@@ -67,8 +67,8 @@ Avalonia UI 用のリサイズ可能な領域選択コントロールです。 �
 
 ## 3. システム要件
 
-- .NET 10
-- **対応 OS**: Windows 10 バージョン 1809（ビルド 17763）以降
+- .NET 10（対象フレームワークは `net10.0`）
+- **対応 OS**: **引数なしコンストラクター**（`WinCursorService` を使う既定構成）は Windows 10 バージョン 1809（ビルド 17763）以降。 他 OS では `ICursorService` を渡すコンストラクターを使う
 - Avalonia 12.1 以降
 - C# 14
 - **Native AOT**: 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測）

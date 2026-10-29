@@ -97,7 +97,7 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 
 ```text
 EsUtil.Ui.AvaloniaUI/Marquee/sample/
-├── EsUtil.Ui.AvaloniaUI.Marquee.Sample.csproj # サンプルアプリのプロジェクト（net10.0 / Avalonia 12.1）
+├── EsUtil.Ui.AvaloniaUI.Marquee.Sample.csproj # サンプルアプリのプロジェクト（net10.0-windows10.0.17763.0 / Avalonia 12.1）
 ├── app.manifest                   # Windows DPI 設定（PerMonitorV2）
 ├── Program.cs                     # エントリポイント
 ├── App.axaml / App.axaml.cs       # アプリケーション定義（FluentTheme）
