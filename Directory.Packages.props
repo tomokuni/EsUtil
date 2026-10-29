@@ -43,7 +43,7 @@
   </ItemGroup>
 
   <ItemGroup Label="WinUI 3（Windows App SDK）">
-    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.6.4" />
     <!-- CsWin32 が wincodec.h などから P/Invoke の宣言を生成する（ビルド時だけ使う） -->
     <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.367" />
     <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
@@ -56,7 +56,7 @@
   <ItemGroup Label="テスト">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
   </ItemGroup>
 
@@ -64,7 +64,7 @@
     <!-- SDK が注入する版に追従させない（packages.lock.json を SDK 非依存に保つ。 ビルド設定規約 §8）。 -->
     <PackageVersion Include="Microsoft.NET.ILLink.Tasks" Version="10.0.14" />
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
-    <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.14.15" />
+    <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.12.1" />
     <PackageVersion Include="Meziantou.Analyzer" Version="3.0.317" />
   </ItemGroup>
 

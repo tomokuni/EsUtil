@@ -65,7 +65,7 @@ jobs:
       count: ${{ steps.plan.outputs.count }}
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           # グループ別タグとの差分を取るため全履歴を取得する
           fetch-depth: 0
@@ -187,7 +187,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: NuGet をキャッシュ
         uses: actions/cache@v6
@@ -214,7 +214,7 @@ jobs:
           Get-ChildItem -Path 'artifacts' -Recurse -File | ForEach-Object { $_.FullName }
 
       - name: 配布物を保管
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nupkg
           path: |
@@ -234,7 +234,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # ツール（CycloneDX）の取得と復元をキャッシュする
       - name: NuGet をキャッシュ
@@ -259,7 +259,7 @@ jobs:
           Get-ChildItem -Path 'sbom' -File | ForEach-Object { $_.Name }
 
       - name: SBOM を保管
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom
           path: sbom/*.json
@@ -281,7 +281,7 @@ jobs:
       id-token: write
     steps:
       - name: 配布物を取得
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: nupkg
           path: artifacts
@@ -350,13 +350,13 @@ jobs:
       attestations: write
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       # 公開したパッケージと SBOM を 1 つのフォルダへ集約する
       - name: 成果物をダウンロード
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: assets
           merge-multiple: true
@@ -364,7 +364,7 @@ jobs:
       # **由来の証明**（どのワークフロー・どのコミットが作ったかを検証できるようにする）。
       # 公開した版は取り消せないため、後から出所を確かめられる状態にする（規則は .github/RELEASE.md）。
       - name: 由来を証明
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: 'assets/**/*.nupkg'
 

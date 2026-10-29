@@ -52,7 +52,7 @@ jobs:
       packaging: ${{ steps.plan.outputs.packaging }}
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           # 変更の判定に全履歴を使う
           fetch-depth: 0
@@ -79,7 +79,9 @@ jobs:
               $out = @(git -c core.quotepath=false diff --name-only "origin/$($env:BASE_REF)...$env:HEAD_SHA" 2>&1)
             }
             elseif ($env:BEFORE_SHA -and $env:BEFORE_SHA -notmatch '^0+$') {
-              $out = @(git -c core.quotepath=false diff --name-only "$($env:BEFORE_SHA)...$($env:HEAD_SHA)" 2>&1)
+              # push は **2 点（A B）** で比べる。 3 点（A...B）は共通の祖先からの差分になるため、履歴を書き換えた push では
+              # before 側だけにあった変更（削除・巻き戻し）を取りこぼす（実測 2026-10-28: レビューで指摘）。
+              $out = @(git -c core.quotepath=false diff --name-only "$($env:BEFORE_SHA)" "$($env:HEAD_SHA)" 2>&1)
             }
             else {
               return @()
@@ -151,7 +153,7 @@ jobs:
     name: verify (${{ matrix.solution }})
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # .NET SDK はランナー イメージの最新版を使う（setup-dotnet は不要。イメージが C:\Program Files\dotnet を
       # PATH へ追加しているため、以降のステップでそのまま dotnet を実行できる）。
@@ -186,7 +188,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # markdownlint は npx で取る（毎回ダウンロードすると 2 分近くかかる。 実測 2026-10-26: 走査 125 秒）
       - name: npm をキャッシュ
@@ -215,7 +217,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: NuGet をキャッシュ
         uses: actions/cache@v6
