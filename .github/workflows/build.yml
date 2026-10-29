@@ -79,7 +79,9 @@ jobs:
               $out = @(git -c core.quotepath=false diff --name-only "origin/$($env:BASE_REF)...$env:HEAD_SHA" 2>&1)
             }
             elseif ($env:BEFORE_SHA -and $env:BEFORE_SHA -notmatch '^0+$') {
-              $out = @(git -c core.quotepath=false diff --name-only "$($env:BEFORE_SHA)...$($env:HEAD_SHA)" 2>&1)
+              # push は **2 点（A B）** で比べる。 3 点（A...B）は共通の祖先からの差分になるため、履歴を書き換えた push では
+              # before 側だけにあった変更（削除・巻き戻し）を取りこぼす（実測 2026-10-28: レビューで指摘）。
+              $out = @(git -c core.quotepath=false diff --name-only "$($env:BEFORE_SHA)" "$($env:HEAD_SHA)" 2>&1)
             }
             else {
               return @()
