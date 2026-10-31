@@ -17,19 +17,12 @@ public sealed record ThumbnailOptions
     /// <value>既定の余白・行の寸法（各 UI のプロパティの初期値）。</value>
     public static ThumbnailOptions Default { get; } = new();
 
-    /// <summary>項目の外枠（ホバー帯）と画像の周囲との間に確保する余白を取得する。</summary>
-    /// <value>余白（DIP）。 既定は 2。 負の値は 0 として扱う。</value>
-    public double ItemMargin
-    {
-        get;
-        init => field = CoerceNonNegative(value);
-    } = 2;
-
-    /// <summary>項目の外枠（ホバー帯）の内側に確保する余白を取得する。</summary>
+    /// <summary>項目の外枠（ホバー帯）と画像の間に確保する余白を取得する。</summary>
     /// <value>余白（DIP）。 既定は 12。 負の値は 0 として扱う。</value>
     /// <remarks>
-    /// ホバー帯を項目の外枠いっぱいに広げるための余白である。 画像の影（<see cref="SurroundExtent"/>）が<br/>
-    /// この余白と <see cref="ItemMargin"/> の合計より広い場合は、影が切れないよう <see cref="SlotInset"/> が広がる。
+    /// <b>ホバー帯の内側の余白である</b>（帯を画像のすぐ外側まで広げる）。 隣り合う項目の帯の間隔は<br/>
+    /// <see cref="ItemSpacing"/> が決める（本値は帯の内側だけに効く）。 画像の影（<see cref="SurroundExtent"/>）が<br/>
+    /// 本値より広い場合は、影が切れないよう <see cref="SlotInset"/> が広がる。
     /// </remarks>
     public double ItemPadding
     {
@@ -101,12 +94,12 @@ public sealed record ThumbnailOptions
     }
 
     /// <summary>画像の外側（外枠の内側）に確保する余白を取得する。</summary>
-    /// <value>片側の余白（DIP）。 <see cref="ItemMargin"/> + <see cref="ItemPadding"/> と <see cref="SurroundExtent"/> の大きい方。</value>
+    /// <value>片側の余白（DIP）。 <see cref="ItemPadding"/> と <see cref="SurroundExtent"/> の大きい方。</value>
     /// <remarks>
     /// 影はこの余白の中へ描く（余白より広い影は切れる）。 <see cref="ItemPadding"/> を小さくしても<br/>
     /// 影の広がりは失われない。
     /// </remarks>
-    public double SlotInset => Math.Max(ItemMargin + ItemPadding, SurroundExtent);
+    public double SlotInset => Math.Max(ItemPadding, SurroundExtent);
 
     /// <summary>負の値を 0 にする。</summary>
     /// <param name="value">補正する値。</param>

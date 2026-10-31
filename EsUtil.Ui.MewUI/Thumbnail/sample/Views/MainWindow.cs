@@ -35,9 +35,25 @@ internal static class MainWindow
         var appearance = ThumbnailAppearance.Default;
 
         var thumbnails = new ThumbnailControl { ImageWidth = 160, Log = logger, LogPrefix = "[Thumbnail]" };
+
+        // 選択と現在項目は利用者の操作でコントロール側が変えるため、設定パネルの表示を追随させる
+        var selectionRow = SampleSettings.NumberRow(
+            "選択インデックス", -1, -1, 10000, 1, true, value => thumbnails.SelectedIndex = (int)value);
+        var currentRow = SampleSettings.NumberRow(
+            "現在インデックス", -1, -1, 10000, 1, true, value => thumbnails.CurrentIndex = (int)value);
+
         thumbnails.SelectionChanged += (_, _) =>
+        {
+            selectionRow.SetValue(thumbnails.SelectedIndex);
             status.Text = $"選択: {thumbnails.SelectedIndex}（{thumbnails.ItemCount} 件中）";
-        thumbnails.ItemActivated += (_, e) => status.Text = $"確定: {e.Index}";
+        };
+        thumbnails.CurrentIndexChanged += (_, _) => currentRow.SetValue(thumbnails.CurrentIndex);
+        thumbnails.ItemActivated += (_, e) =>
+        {
+            // 2 回押しで開いた項目を現在項目にする（現在項目のラベルが太字になる）
+            thumbnails.CurrentIndex = e.Index;
+            status.Text = $"確定: {e.Index}";
+        };
 
         // プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通）
         var properties = new StackPanel().Vertical().Spacing(6).Children(
@@ -47,24 +63,23 @@ internal static class MainWindow
                 thumbnails.Refresh();
             }),
             SampleSettings.Number("画像の幅", 160, 40, 400, 10, true, value => thumbnails.ImageWidth = value),
-            SampleSettings.Number("選択インデックス", -1, -1, 10000, 1, true, value => thumbnails.SelectedIndex = (int)value),
-            SampleSettings.Slider("項目の余白", 0, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { ItemMargin = value }),
-            SampleSettings.Slider("項目の内側の余白", 8, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { ItemPadding = value }),
-            SampleSettings.Slider("項目の間隔", 8, 0, 32, 1, true, value => thumbnails.Options = thumbnails.Options with { ItemSpacing = value }),
-            SampleSettings.Slider("ラベルの高さ", 20, 0, 48, 1, true, value => thumbnails.Options = thumbnails.Options with { LabelHeight = value }),
-            SampleSettings.Slider("ラベルの左右の余白", 4, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { LabelHorizontalPadding = value }),
-            SampleSettings.Slider("外側の余白の広がり", 2, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { SurroundExtent = value }),
-            SampleSettings.Slider("内容の余白", 0, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { ContentPadding = value }),
-            SampleSettings.Slider("画像の最小幅", 64, 16, 320, 8, true, value => thumbnails.Options = thumbnails.Options with { MinimumImageWidth = value }),
+            selectionRow.Element,
+            currentRow.Element,
+            SampleSettings.Slider("項目の余白", 12, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { ItemPadding = value }),
+            SampleSettings.Slider("項目の間隔", 0, 0, 32, 1, true, value => thumbnails.Options = thumbnails.Options with { ItemSpacing = value }),
+            SampleSettings.Slider("ラベルの高さ", 30, 0, 48, 1, true, value => thumbnails.Options = thumbnails.Options with { LabelHeight = value }),
+            SampleSettings.Slider("ラベルの左右の余白", 1, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { LabelHorizontalPadding = value }),
+            SampleSettings.Slider("外側の余白の広がり", 10, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { SurroundExtent = value }),
+            SampleSettings.Slider("内容の余白", 2, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { ContentPadding = value }),
+            SampleSettings.Slider("画像の最小幅", 16, 16, 320, 8, true, value => thumbnails.Options = thumbnails.Options with { MinimumImageWidth = value }),
             SampleSettings.Slider("最大の列数", 0, 0, 16, 1, true, value => thumbnails.Options = thumbnails.Options with { MaximumColumns = (int)value }),
             SampleSettings.Slider("ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { LabelFontSize = value })),
-            SampleSettings.Slider("ラベルの上下の余白", 2, 0, 16, 1, true, value => Apply(appearance with { LabelVerticalPadding = value })),
+            SampleSettings.Slider("ラベルの上下の余白", 1, 0, 16, 1, true, value => Apply(appearance with { LabelVerticalPadding = value })),
             SampleSettings.Check("現在項目のラベルを太字にする", true, value => Apply(appearance with { BoldCurrentLabel = value })),
             SampleSettings.Check("ホバーの背景を表示", true, value => Apply(appearance with { ShowHoverBackground = value })),
             SampleSettings.Check("選択の背景を表示", true, value => Apply(appearance with { ShowSelectionBackground = value })),
-            SampleSettings.Check("強調時は影を隠す", true, value => Apply(appearance with { HideShadowWhenHighlighted = value })),
-            SampleSettings.Text("ログ接頭辞", "[Thumbnail]", value => thumbnails.LogPrefix = value),
-            SampleSettings.Buttons(("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))));
+            SampleSettings.Check("強調時は影を隠す", false, value => Apply(appearance with { HideShadowWhenHighlighted = value })),
+            SampleSettings.Text("ログ接頭辞", "[Thumbnail]", value => thumbnails.LogPrefix = value));
 
         // サンプル設定（サンプル固有の操作。 並びは他 UI と共通）
         var samples = new StackPanel().Vertical().Spacing(6).Children(
@@ -81,9 +96,11 @@ internal static class MainWindow
                     }
 
                     thumbnails.SelectedIndex = 0;
+                    thumbnails.CurrentIndex = 0;
                 }
         ),
-                ("末尾へスクロール", () => thumbnails.ScrollToIndex(thumbnails.ItemCount - 1))));
+                ("末尾へスクロール", () => thumbnails.ScrollToIndex(thumbnails.ItemCount - 1)),
+                ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))));
 
         for (var i = 0; i < 12; i++)
         {
@@ -91,6 +108,7 @@ internal static class MainWindow
         }
 
         thumbnails.SelectedIndex = 0;
+        thumbnails.CurrentIndex = 0;
 
         var window = SampleShell.Create("ThumbnailControl サンプル（MewUI）", properties, samples, thumbnails, log);
         window.Closed += () => logging.Dispose();
@@ -117,7 +135,7 @@ internal static class MainWindow
             EsReadOnlyBitmap.FromBitmap(image),
             $"capture-{s_count:D4}.png",
             $"生成した画像 {s_count}",
-            isCurrent: s_count == 0);
+            isCurrent: false);
 
         s_count++;
         status.Text = $"{s_count} 件を表示しています。";

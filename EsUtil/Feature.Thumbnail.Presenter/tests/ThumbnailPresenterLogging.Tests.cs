@@ -32,11 +32,11 @@ public class ThumbnailPresenterLoggingTests
         var presenter = new ThumbnailPresenter
         {
             Log = null!,
-            Options = ThumbnailOptions.Default with { ItemMargin = 1 },
+            Options = ThumbnailOptions.Default with { ItemPadding = 1 },
         };
 
         Assert.NotNull(presenter.Log);
-        Assert.Equal(1, presenter.Options.ItemMargin);
+        Assert.Equal(1, presenter.Options.ItemPadding);
     }
 
     /// <summary>設定の変更が変化した項目だけ記録されることを検証する。</summary>

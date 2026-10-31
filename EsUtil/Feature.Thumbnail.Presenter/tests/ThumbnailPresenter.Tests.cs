@@ -176,8 +176,8 @@ public class ThumbnailPresenterTests
         var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default with { Shadow = null });
         var layout = presenter.ResolveLayout(300, 96, [96]);
 
-        // 既定の余白（ItemMargin + ItemPadding = 14）だけが残る
-        Assert.Equal(96 + (14 * 2), layout.SlotWidth);
+        // 既定の余白（ItemPadding と SurroundExtent の大きい方 = 12）だけが残る
+        Assert.Equal(96 + (12 * 2), layout.SlotWidth);
 
         var plan = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, -1, false);
         Assert.Null(plan.Shadow);

@@ -38,9 +38,24 @@ public sealed class MainWindow : Window
         _thumbnails.Log = logger;
         _thumbnails.LogPrefix = "[Thumbnail]";
 
+        // 選択と現在項目は利用者の操作でコントロール側が変えるため、設定パネルの表示を追随させる
+        var selectionRow = SampleSettings.NumberRow(
+            "選択インデックス", -1, -1, 10000, 1, true, value => _thumbnails.SelectedIndex = (int)value);
+        var currentRow = SampleSettings.NumberRow(
+            "現在インデックス", -1, -1, 10000, 1, true, value => _thumbnails.CurrentIndex = (int)value);
+
         _thumbnails.SelectionChanged += (_, _) =>
+        {
+            selectionRow.SetValue(_thumbnails.SelectedIndex);
             _status.Text = $"選択: {_thumbnails.SelectedIndex}（{_thumbnails.ItemCount} 件中）";
-        _thumbnails.ItemActivated += (_, e) => _status.Text = $"確定: {e.Index}";
+        };
+        _thumbnails.CurrentIndexChanged += (_, _) => currentRow.SetValue(_thumbnails.CurrentIndex);
+        _thumbnails.ItemActivated += (_, e) =>
+        {
+            // 2 回押しで開いた項目を現在項目にする（現在項目のラベルが太字になる）
+            _thumbnails.CurrentIndex = e.Index;
+            _status.Text = $"確定: {e.Index}";
+        };
 
         var appearance = ThumbnailAppearance.Default;
 
@@ -56,22 +71,22 @@ public sealed class MainWindow : Window
                     _thumbnails.Refresh();
                 }),
                 SampleSettings.Number("画像の幅", 160, 40, 400, 10, true, value => _thumbnails.ImageWidth = value),
-                SampleSettings.Number("選択インデックス", -1, -1, 10000, 1, true, value => _thumbnails.SelectedIndex = (int)value),
-                SampleSettings.Slider("項目の余白", 0, 0, 24, 1, true, value => _thumbnails.Options = _thumbnails.Options with { ItemMargin = value }),
-                SampleSettings.Slider("項目の内側の余白", 8, 0, 24, 1, true, value => _thumbnails.Options = _thumbnails.Options with { ItemPadding = value }),
-                SampleSettings.Slider("項目の間隔", 8, 0, 32, 1, true, value => _thumbnails.Options = _thumbnails.Options with { ItemSpacing = value }),
-                SampleSettings.Slider("ラベルの高さ", 20, 0, 48, 1, true, value => _thumbnails.Options = _thumbnails.Options with { LabelHeight = value }),
-                SampleSettings.Slider("ラベルの左右の余白", 4, 0, 24, 1, true, value => _thumbnails.Options = _thumbnails.Options with { LabelHorizontalPadding = value }),
-                SampleSettings.Slider("外側の余白の広がり", 2, 0, 24, 1, true, value => _thumbnails.Options = _thumbnails.Options with { SurroundExtent = value }),
-                SampleSettings.Slider("内容の余白", 0, 0, 24, 1, true, value => _thumbnails.Options = _thumbnails.Options with { ContentPadding = value }),
-                SampleSettings.Slider("画像の最小幅", 64, 16, 320, 8, true, value => _thumbnails.Options = _thumbnails.Options with { MinimumImageWidth = value }),
+                selectionRow.Element,
+                currentRow.Element,
+                SampleSettings.Slider("項目の余白", 12, 0, 24, 1, true, value => _thumbnails.Options = _thumbnails.Options with { ItemPadding = value }),
+                SampleSettings.Slider("項目の間隔", 0, 0, 32, 1, true, value => _thumbnails.Options = _thumbnails.Options with { ItemSpacing = value }),
+                SampleSettings.Slider("ラベルの高さ", 30, 0, 48, 1, true, value => _thumbnails.Options = _thumbnails.Options with { LabelHeight = value }),
+                SampleSettings.Slider("ラベルの左右の余白", 1, 0, 24, 1, true, value => _thumbnails.Options = _thumbnails.Options with { LabelHorizontalPadding = value }),
+                SampleSettings.Slider("外側の余白の広がり", 10, 0, 24, 1, true, value => _thumbnails.Options = _thumbnails.Options with { SurroundExtent = value }),
+                SampleSettings.Slider("内容の余白", 2, 0, 24, 1, true, value => _thumbnails.Options = _thumbnails.Options with { ContentPadding = value }),
+                SampleSettings.Slider("画像の最小幅", 16, 16, 320, 8, true, value => _thumbnails.Options = _thumbnails.Options with { MinimumImageWidth = value }),
                 SampleSettings.Slider("最大の列数", 0, 0, 16, 1, true, value => _thumbnails.Options = _thumbnails.Options with { MaximumColumns = (int)value }),
                 SampleSettings.Slider("ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { LabelFontSize = value })),
-                SampleSettings.Slider("ラベルの上下の余白", 2, 0, 16, 1, true, value => Apply(appearance with { LabelVerticalPadding = value })),
+                SampleSettings.Slider("ラベルの上下の余白", 1, 0, 16, 1, true, value => Apply(appearance with { LabelVerticalPadding = value })),
                 SampleSettings.Check("現在項目のラベルを太字にする", true, value => Apply(appearance with { BoldCurrentLabel = value })),
                 SampleSettings.Check("ホバーの背景を表示", true, value => Apply(appearance with { ShowHoverBackground = value })),
                 SampleSettings.Check("選択の背景を表示", true, value => Apply(appearance with { ShowSelectionBackground = value })),
-                SampleSettings.Check("強調時は影を隠す", true, value => Apply(appearance with { HideShadowWhenHighlighted = value })),
+                SampleSettings.Check("強調時は影を隠す", false, value => Apply(appearance with { HideShadowWhenHighlighted = value })),
                 SampleSettings.Text("ログ接頭辞", "[Thumbnail]", value => _thumbnails.LogPrefix = value),
             },
         };
@@ -97,6 +112,7 @@ public sealed class MainWindow : Window
         }
 
         _thumbnails.SelectedIndex = 0;
+        _thumbnails.CurrentIndex = 0;
 
         var log = new SampleLogPanel(_logging.Buffer);
         Title = "ThumbnailControl サンプル（WinUI 3）";
@@ -125,7 +141,7 @@ public sealed class MainWindow : Window
             EsReadOnlyBitmap.FromBitmap(image),
             $"capture-{_count:D4}.png",
             $"生成した画像 {_count}",
-            isCurrent: _count == 0);
+            isCurrent: false);
 
         _count++;
         _status.Text = $"{_count} 件を表示しています。";
@@ -148,5 +164,6 @@ public sealed class MainWindow : Window
         }
 
         _thumbnails.SelectedIndex = 0;
+        _thumbnails.CurrentIndex = 0;
     }
 }

@@ -49,6 +49,22 @@ public class ThumbnailSelectionTests
         Assert.Equal(1, raised);
     }
 
+    /// <summary>通知が変更前後の添字を渡すことを検証する（UI が前の項目の見た目を戻せるようにする）。</summary>
+    [Fact]
+    internal void Changed_変更前後の添字を渡す()
+    {
+        var selection = new ThumbnailSelection();
+        selection.Select(1, 5);
+
+        ThumbnailSelectionChangedEventArgs? received = null;
+        selection.Changed += (_, e) => received = e;
+
+        Assert.True(selection.Select(3, 5));
+        Assert.NotNull(received);
+        Assert.Equal(1, received.PreviousIndex);
+        Assert.Equal(3, received.Index);
+    }
+
     /// <summary>選択の解除が変更として扱われることを検証する。</summary>
     [Fact]
     internal void Clear_選択を解除する()

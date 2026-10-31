@@ -65,16 +65,20 @@ public sealed class ThumbnailControl : ScrollViewer
         _panel.PointerPressed += OnPointerPressed;
         _panel.DoubleTapped += OnDoubleTapped;
 
-        _selection.Changed += (_, _) =>
+        _selection.Changed += (_, e) =>
         {
             SelectionChanged?.Invoke(this, EventArgs.Empty);
-            RefreshStates(-1, _selection.Index);
+
+            // 変更前と変更後の両方を描き直す（前の項目に選択の見た目が残らないようにする）
+            RefreshStates(e.PreviousIndex, e.Index);
         };
     }
 
     /// <summary>選択中の添字が変わったときに発生する。</summary>
     public event EventHandler? SelectionChanged;
 
+    /// <summary>現在項目（名前を太字で示す項目）の添字が変わったときに発生する。</summary>
+    public event EventHandler? CurrentIndexChanged;
     /// <summary>項目が 2 回押されたときに発生する。</summary>
     public event EventHandler<ThumbnailActivatedEventArgs>? ItemActivated;
 
@@ -177,6 +181,52 @@ public sealed class ThumbnailControl : ScrollViewer
     {
         get => _selection.Index;
         set => _selection.Select(value, _panel.Items.Count);
+    }
+
+    /// <summary>現在項目（名前を太字で示す項目）の添字を取得または設定する。</summary>
+    /// <value>項目の添字。 現在項目が無い場合は -1。</value>
+    /// <remarks>
+    /// <b>選択とは別の状態である</b>: 選択は利用者の操作で移り、現在項目は「いま表示している画像」を表す<br/>
+    /// （ブラウザでいえば、選択＝クリックした項目、現在＝開いている項目）。<br/>
+    /// 範囲外の添字は「現在項目なし」として扱う（例外にしない）。
+    /// </remarks>
+    public int CurrentIndex
+    {
+        get
+        {
+            for (var i = 0; i < _panel.Items.Count; i++)
+            {
+                if (_panel.Items[i].IsCurrent)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        set
+        {
+            var changed = false;
+            for (var i = 0; i < _panel.Items.Count; i++)
+            {
+                var tile = _panel.Items[i];
+                var isCurrent = i == value;
+                if (tile.IsCurrent == isCurrent)
+                {
+                    continue;
+                }
+
+                tile.SetIsCurrent(isCurrent);
+                ApplyState(i);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                CurrentIndexChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
     }
 
     /// <summary>見えている項目の範囲を取得する。</summary>

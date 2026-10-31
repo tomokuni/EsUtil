@@ -82,6 +82,8 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <summary>選択中の添字が変わったときに発生する。</summary>
     public event EventHandler? SelectionChanged;
 
+    /// <summary>現在項目（名前を太字で示す項目）の添字が変わったときに発生する。</summary>
+    public event EventHandler? CurrentIndexChanged;
     /// <summary>項目が 2 回押されたときに発生する。</summary>
     public event EventHandler<ThumbnailActivatedEventArgs>? ItemActivated;
 
@@ -188,6 +190,52 @@ public sealed class ThumbnailControl : ScrollableControl
         {
             _selection.Select(value, _items.Count);
             Invalidate();
+        }
+    }
+
+    /// <summary>現在項目（名前を太字で示す項目）の添字を取得または設定する。</summary>
+    /// <value>項目の添字。 現在項目が無い場合は -1。</value>
+    /// <remarks>
+    /// <b>選択とは別の状態である</b>: 選択は利用者の操作で移り、現在項目は「いま表示している画像」を表す。<br/>
+    /// 範囲外の添字は「現在項目なし」として扱う（例外にしない）。
+    /// </remarks>
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public int CurrentIndex
+    {
+        get
+        {
+            for (var i = 0; i < _items.Count; i++)
+            {
+                if (_items[i].IsCurrent)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        set
+        {
+            var changed = false;
+            for (var i = 0; i < _items.Count; i++)
+            {
+                var isCurrent = i == value;
+                if (_items[i].IsCurrent == isCurrent)
+                {
+                    continue;
+                }
+
+                _items[i].SetIsCurrent(isCurrent);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                Invalidate();
+                CurrentIndexChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
     }
 
@@ -632,7 +680,13 @@ public sealed class ThumbnailControl : ScrollableControl
         public string? ToolTip { get; } = toolTip;
 
         /// <summary>現在表示中の画像かどうか。</summary>
-        public bool IsCurrent { get; } = isCurrent;
+        /// <summary>現在表示中の画像かどうかを取得する。</summary>
+        /// <remarks>一覧の <c>CurrentIndex</c> が変更したときに切り替える（作成後は一覧だけが変更できる）。</remarks>
+        public bool IsCurrent { get; private set; } = isCurrent;
+
+        /// <summary>現在表示中の画像かどうかを設定する。</summary>
+        /// <param name="value">現在表示中の画像の場合は true。</param>
+        public void SetIsCurrent(bool value) => IsCurrent = value;
 
         /// <summary>2 回押しの通知へ渡す任意の値。</summary>
         public object? Tag { get; } = tag;

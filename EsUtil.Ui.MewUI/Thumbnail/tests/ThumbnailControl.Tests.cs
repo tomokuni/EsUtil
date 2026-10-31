@@ -47,6 +47,29 @@ public class ThumbnailControlTests
         Assert.Equal(2, raised);
     }
 
+    /// <summary>現在項目が選択とは独立に切り替わり、通知されることを検証する。</summary>
+    [Fact]
+    internal void CurrentIndex_選択とは別に現在項目を切り替える()
+    {
+        var control = new ThumbnailControl();
+        control.Add(null, "a");
+        control.Add(null, "b");
+        control.SelectedIndex = 0;
+
+        var raised = 0;
+        control.CurrentIndexChanged += (_, _) => raised++;
+
+        control.CurrentIndex = 1;
+        Assert.Equal(1, control.CurrentIndex);
+        Assert.Equal(0, control.SelectedIndex);
+        Assert.Equal(1, raised);
+
+        // 範囲外は「現在項目なし」として扱う（例外にしない）
+        control.CurrentIndex = 9;
+        Assert.Equal(-1, control.CurrentIndex);
+        Assert.Equal(2, raised);
+    }
+
     /// <summary>一覧を空にすると項目数が 0 になることを検証する。</summary>
     [Fact]
     internal void ClearItems_項目を空にする()

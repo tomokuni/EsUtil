@@ -158,38 +158,37 @@ public sealed class MainWindow : Window
                 SampleSettings.Slider("ズーム", zoom, MinZoom, MaxZoom, 0.1, false, value =>
                 {
                     zoom = value;
-                    _marquee.ClientToSourceScaling = value;
+                    _marquee.ClientToSourceScaling = 1.0 / value;
                     surface.Width = ImageWidth * value;
                     surface.Height = ImageHeight * value;
-                    _marquee.SetCoordTransform(CoordTransform.ClientToSource(() => zoom, () => new EsSize(ImageWidth, ImageHeight)));
+
+                    // 倍率は「対象座標 / ローカル DIP」。 ズームは画像を倍率ぶん大きく描くため、1 DIP が覆う対象座標は 1 / ズームになる
+                    _marquee.SetCoordTransform(CoordTransform.ClientToSource(() => 1.0 / zoom, () => new EsSize(ImageWidth, ImageHeight)));
                 }),
                 SampleSettings.Slider("表示スケール", 1.0, 0.5, 2.0, 0.1, false, value => _marquee.DisplayScaleScaling = value),
                 SampleSettings.Slider("ハンドル サイズ", 10, 2, 30, 1, true, value => _marquee.Options = _marquee.Options with { HandleSize = value }),
                 SampleSettings.Slider("ハンドル枠の太さ", 1.5, 0.5, 8, 0.5, false, value => _marquee.Options = _marquee.Options with { HandleBorderThickness = value }),
-                SampleSettings.Slider("マーカーの長さ", 16, 8, 40, 2, true, value => _marquee.Options = _marquee.Options with { MarkerLength = value }),
                 SampleSettings.Slider("ヒット半径", 12, 2, 40, 1, true, value => _marquee.Options = _marquee.Options with { HandleHitRadius = value }),
                 SampleSettings.Slider("最小選択サイズ", 6, 1, 40, 1, true, value => _marquee.Options = _marquee.Options with { MinSelectionSize = value }),
                 SampleSettings.Check("画像内にクリップ", true, value => _marquee.Options = _marquee.Options with { ClampToSourceBounds = value }),
-                SampleSettings.Text("ログ接頭辞", "[Marquee]", value => _marquee.LogPrefix = value),
-                SampleSettings.Check("描画計画を差し替える（破線・ガイド線）", false, value =>
-                    _marquee.DrawPlanResolver = value ? static plan => GuideMarqueePlan.Resolve(in plan) : null),
-                SampleSettings.Check("ハンドルを表示", true, value => Apply(appearance with { ShowHandles = value })),
-                ColorChoice("ハンドルの色", 1, index => Apply(appearance with { HandleColor = ResolveColor(index, appearance.HandleColor) })),
-                ColorChoice("ハンドル枠の色", 2, index => Apply(appearance with { HandleBorderColor = ResolveColor(index, appearance.HandleBorderColor) })),
-                SampleSettings.Check("マーカーを表示", true, value => Apply(appearance with { ShowMarker = value })),
-                ColorChoice("マーカーの色", 4, index => Apply(appearance with { MarkerColor = ResolveColor(index, appearance.MarkerColor) })),
-                SampleSettings.Slider("マーカーの太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { MarkerThickness = value })),
                 SampleSettings.Check("外枠を表示", true, value => Apply(appearance with { ShowOuterBorder = value })),
                 ColorChoice("外枠の色", 2, index => Apply(appearance with { OuterBorderColor = ResolveColor(index, appearance.OuterBorderColor) })),
                 SampleSettings.Slider("外枠の太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { OuterBorderThickness = value })),
-                SampleSettings.Check("内側の塗りを表示", true, value => Apply(appearance with { ShowInnerFill = value })),
-                ColorChoice("内側の塗りの色", 1, index => Apply(appearance with { InnerFillColor = ResolveColor(index, appearance.InnerFillColor) })),
                 SampleSettings.Check("内枠を表示", true, value => Apply(appearance with { ShowInnerBorder = value })),
                 ColorChoice("内枠の色", 5, index => Apply(appearance with { InnerBorderColor = ResolveColor(index, appearance.InnerBorderColor) })),
                 SampleSettings.Slider("内枠の太さ", 1, 0.5, 8, 0.5, false, value => Apply(appearance with { InnerBorderThickness = value })),
+                SampleSettings.Check("内側の塗りを表示", true, value => Apply(appearance with { ShowInnerFill = value })),
+                ColorChoice("内側の塗りの色", 1, index => Apply(appearance with { InnerFillColor = ResolveColor(index, appearance.InnerFillColor) })),
                 SampleSettings.Check("暗転マスクを表示", true, value => Apply(appearance with { ShowOverlay = value })),
                 ColorChoice("暗転マスクの色", 5, index => Apply(appearance with { OverlayColor = ResolveColor(index, appearance.OverlayColor) })),
                 SampleSettings.Check("マスクを全体に敷く", false, value => Apply(appearance with { ShowFullOverlay = value })),
+                SampleSettings.Check("マーカーを表示", true, value => Apply(appearance with { ShowMarker = value })),
+                ColorChoice("マーカーの色", 4, index => Apply(appearance with { MarkerColor = ResolveColor(index, appearance.MarkerColor) })),
+                SampleSettings.Slider("マーカーの太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { MarkerThickness = value })),
+                SampleSettings.Slider("マーカーの長さ", 16, 8, 40, 2, true, value => _marquee.Options = _marquee.Options with { MarkerLength = value }),
+                SampleSettings.Check("ハンドルを表示", true, value => Apply(appearance with { ShowHandles = value })),
+                ColorChoice("ハンドルの色", 1, index => Apply(appearance with { HandleColor = ResolveColor(index, appearance.HandleColor) })),
+                ColorChoice("ハンドル枠の色", 2, index => Apply(appearance with { HandleBorderColor = ResolveColor(index, appearance.HandleBorderColor) })),
                 SampleSettings.Check("サイズ ラベルを表示", true, value => Apply(appearance with { ShowSizeLabel = value })),
                 ColorChoice("サイズ ラベルの色", 1, index => Apply(appearance with { SizeLabelColor = ResolveColor(index, appearance.SizeLabelColor) })),
                 ColorChoice("サイズ ラベルの背景色", 5, index => Apply(appearance with { SizeLabelBackgroundColor = ResolveColor(index, appearance.SizeLabelBackgroundColor) })),
@@ -200,6 +199,9 @@ public sealed class MainWindow : Window
                 SampleSettings.Slider("座標ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { CoordLabelFontSize = value })),
                 SampleSettings.Slider("座標ラベルの間隔", 4, 0, 24, 1, true, value => Apply(appearance with { CoordLabelOffset = value })),
                 SampleSettings.Slider("ラベルの余白", 4, 0, 24, 1, true, value => Apply(appearance with { LabelPadding = value })),
+                SampleSettings.Text("ログ接頭辞", "[Marquee]", value => _marquee.LogPrefix = value),
+                SampleSettings.Check("描画計画を差し替える（破線・ガイド線）", false, value =>
+                    _marquee.DrawPlanResolver = value ? static plan => GuideMarqueePlan.Resolve(in plan) : null),
             },
         };
 

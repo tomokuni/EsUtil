@@ -125,7 +125,6 @@ internal static partial class ThumbnailLogMessage
         ArgumentNullException.ThrowIfNull(oldValue);
         ArgumentNullException.ThrowIfNull(newValue);
 
-        logger.LogSettingChanged(nameof(ThumbnailOptions.ItemMargin), oldValue.ItemMargin, newValue.ItemMargin);
         logger.LogSettingChanged(nameof(ThumbnailOptions.ItemPadding), oldValue.ItemPadding, newValue.ItemPadding);
         logger.LogSettingChanged(nameof(ThumbnailOptions.ItemSpacing), oldValue.ItemSpacing, newValue.ItemSpacing);
         logger.LogSettingChanged(nameof(ThumbnailOptions.LabelHeight), oldValue.LabelHeight, newValue.LabelHeight);

@@ -13,6 +13,7 @@
   - [2.4 `ThumbnailOptions`（設定）](#24-thumbnailoptions設定)
   - [2.5 `ThumbnailSelection`（単一選択）](#25-thumbnailselection単一選択)
   - [2.6 `ThumbnailRange`（項目の範囲）](#26-thumbnailrange項目の範囲)
+  - [2.7 `ThumbnailSelectionChangedEventArgs`（選択変更の引数）](#27-thumbnailselectionchangedeventargs選択変更の引数)
 - [3. 使用例](#3-使用例)
 - [4. 座標系](#4-座標系)
 - [5. 制限事項](#5-制限事項)
@@ -84,7 +85,6 @@
 
 | 項目 | 型 | 既定値 | 補正 |
 | --- | --- | --- | --- |
-| `ItemMargin` | `double` | 2 | 負の値は 0 |
 | `ItemPadding` | `double` | 12 | 負の値は 0 |
 | `ItemSpacing` | `double` | 0 | 負の値は 0 |
 | `LabelHeight` | `double` | 30 | 負の値は 0 |
@@ -93,7 +93,7 @@
 | `ContentPadding` | `double` | 2 | 負の値は 0 |
 | `MinimumImageWidth` | `double` | 16 | 0 以下は既定値（16） |
 | `MaximumColumns` | `int` | 0（無制限） | 0 以下は無制限 |
-| `SlotInset`（導出） | `double` | — | `ItemMargin + ItemPadding` と `SurroundExtent` の大きい方 |
+| `SlotInset`（導出） | `double` | — | `ItemPadding` と `SurroundExtent` の大きい方 |
 
 - `Default` は「すべての項目を既定値にした設定」です。
 - **`SurroundExtent` は長さだけを持ちます**（濃さ・色は提示層の外観が単一所有する）。 影が切れない余白を確保するためにだけ使います。
@@ -102,7 +102,7 @@
 
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
-| `Changed` | event | 選択が変わったときに発生する（同じ添字の再設定では発生しない） |
+| `Changed` | event | 選択が変わったときに発生する（同じ添字の再設定では発生しない。 引数は `ThumbnailSelectionChangedEventArgs`） |
 | `Index` | property | 選択中の添字（選択が無い場合は -1） |
 | `HasSelection` | property | 選択があるかどうか |
 | `Select(int index, int count)` | method | 選択を設定する。 負の値と範囲外の添字は**選択の解除**として扱う。 選択が変わった場合は true |
@@ -120,6 +120,15 @@
 | `Last` | property | 末尾の添字（含む） |
 | `IsEmpty` | property | 該当が無いかどうか（`Last < First`） |
 | `Count` | property | 含まれる項目数（該当が無い場合は 0） |
+
+### 2.7 `ThumbnailSelectionChangedEventArgs`（選択変更の引数）
+
+| メンバー | 種別 | 説明 |
+| --- | --- | --- |
+| `PreviousIndex` | property | 変更前の添字（選択が無かった場合は -1） |
+| `Index` | property | 変更後の添字（選択が無い場合は -1） |
+
+- **変更前の添字を渡します**: 選択の見た目は選択中の項目にだけ付くため、UI は変更前と変更後の**両方**を描き直す必要があります。 変更前を渡さないと、UI が直前の選択を自前で覚えることになり、一覧の組み直し・項目の削除と組み合わさったときに取りこぼします（前の項目が選択中のまま残る不具合になります）。
 
 ## 3. 使用例
 

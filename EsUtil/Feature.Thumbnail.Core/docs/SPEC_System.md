@@ -122,7 +122,6 @@ classDiagram
         +VisibleRange(offsetY, viewportHeight) ThumbnailRange
     }
     class ThumbnailOptions {
-        +ItemMargin double
         +ItemPadding double
         +ItemSpacing double
         +LabelHeight double

@@ -108,6 +108,23 @@ public static class SampleSettings
     /// <returns>項目名と数値入力を並べた行。</returns>
     public static FrameworkElement Number(
         string label, double initial, double minimum, double maximum, double step, bool isInteger, Action<double> apply)
+        => NumberRow(label, initial, minimum, maximum, step, isInteger, apply).Element;
+
+    /// <summary>数値入力の行を作る（外から値を更新できる）。</summary>
+    /// <param name="label">項目名。</param>
+    /// <param name="initial">初期値。</param>
+    /// <param name="minimum">最小値。</param>
+    /// <param name="maximum">最大値。</param>
+    /// <param name="step">増減の単位。</param>
+    /// <param name="isInteger">整数のみを受け付けるかどうか。</param>
+    /// <param name="apply">変更の反映先。</param>
+    /// <returns>行の要素と、値を外から更新する関数。</returns>
+    /// <remarks>
+    /// 対象コントロールの状態が利用者の操作で変わるとき（一覧の選択など）は、本メソッドの戻り値で表示を追随させる。<br/>
+    /// 更新は入力の変更イベントを発火しない（対象を再設定しない）。
+    /// </remarks>
+    public static SampleField NumberRow(
+        string label, double initial, double minimum, double maximum, double step, bool isInteger, Action<double> apply)
     {
         var input = new NumericUpDown()
             .Minimum(minimum)
@@ -117,8 +134,32 @@ public static class SampleSettings
             .Width(EditorWidth);
         input.Value = initial;
         input.FontSize(FontSize);
-        input.OnValueChanged(apply);
-        return Row(label, input);
+
+        var updating = false;
+        input.OnValueChanged(value =>
+        {
+            if (!updating)
+            {
+                apply(value);
+            }
+        });
+
+        return new SampleField
+        {
+            Element = Row(label, input),
+            SetValue = value =>
+            {
+                updating = true;
+                try
+                {
+                    input.Value = value;
+                }
+                finally
+                {
+                    updating = false;
+                }
+            },
+        };
     }
 
     /// <summary>選択肢の行を作る。</summary>

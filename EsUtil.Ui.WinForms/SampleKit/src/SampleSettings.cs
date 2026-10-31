@@ -132,6 +132,23 @@ public static class SampleSettings
     /// <returns>項目名と数値入力を並べた行。</returns>
     public static Control Number(
         string label, double initial, double minimum, double maximum, int decimalPlaces, Action<double> apply, double step = 0)
+        => NumberRow(label, initial, minimum, maximum, decimalPlaces, apply, step).Element;
+
+    /// <summary>数値入力の行を作る（外から値を更新できる）。</summary>
+    /// <param name="label">項目名。</param>
+    /// <param name="initial">初期値。</param>
+    /// <param name="minimum">最小値。</param>
+    /// <param name="maximum">最大値。</param>
+    /// <param name="decimalPlaces">小数の桁数（0 は整数のみ）。</param>
+    /// <param name="apply">変更の反映先。</param>
+    /// <param name="step">増減の単位（0 は桁数から決める。 他 UI の数値入力と同じ刻みにする）。</param>
+    /// <returns>行の要素と、値を外から更新する関数。</returns>
+    /// <remarks>
+    /// 対象コントロールの状態が利用者の操作で変わるとき（一覧の選択など）は、本メソッドの戻り値で表示を追随させる。<br/>
+    /// 更新は入力の変更イベントを発火しない（対象を再設定しない）。
+    /// </remarks>
+    public static SampleField NumberRow(
+        string label, double initial, double minimum, double maximum, int decimalPlaces, Action<double> apply, double step = 0)
     {
         var input = new NumericUpDown
         {
@@ -144,8 +161,31 @@ public static class SampleSettings
             Value = (decimal)initial,
             Width = EditorWidth,
         };
-        input.ValueChanged += (_, _) => apply((double)input.Value);
-        return Row(label, input);
+        var updating = false;
+        input.ValueChanged += (_, _) =>
+        {
+            if (!updating)
+            {
+                apply((double)input.Value);
+            }
+        };
+
+        return new SampleField
+        {
+            Element = Row(label, input),
+            SetValue = value =>
+            {
+                updating = true;
+                try
+                {
+                    input.Value = (decimal)value;
+                }
+                finally
+                {
+                    updating = false;
+                }
+            },
+        };
     }
 
     /// <summary>選択肢の行を作る。</summary>

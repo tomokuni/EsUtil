@@ -46,7 +46,12 @@ internal sealed class ThumbnailTile : Panel
     }
 
     /// <summary>現在表示中の画像かどうかを取得する。</summary>
-    public bool IsCurrent { get; }
+    /// <remarks>一覧の <c>CurrentIndex</c> が変更したときに切り替える（作成後は一覧だけが変更できる）。</remarks>
+    public bool IsCurrent { get; private set; }
+
+    /// <summary>現在表示中の画像かどうかを設定する。</summary>
+    /// <param name="value">現在表示中の画像の場合は true。</param>
+    internal void SetIsCurrent(bool value) => IsCurrent = value;
 
     /// <summary>表示する名前を取得する。</summary>
     public string Caption { get; private set; }
