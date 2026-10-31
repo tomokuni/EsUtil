@@ -1,18 +1,14 @@
 using EsUtil.Platform.Core.Geometry;
-using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.AvaloniaUI.Marquee.Sample.Presentation;
 
-/// <summary>ガイド線付きの見た目を与える見本の定義（外観と描画計画の差し替え）。</summary>
+/// <summary>ガイド線付きの見た目を与える見本の定義（描画計画の差し替え）。</summary>
 /// <remarks>
-/// <b>示すこと</b>: 提示層を派生しなくても、外観（<see cref="MarqueeAppearance"/>）と描画計画（<see cref="MarqueeDrawPlan"/>）で<br/>
-/// 見た目を差し替えられる（<see cref="MarqueeControl.Appearance"/> と <see cref="MarqueeControl.DrawPlanResolver"/> へ設定する）。<br/>
-/// 差し替えは公開 API だけで行う（コアの internal 型も描画 API も参照しない）。<br/>
+/// <b>示すこと</b>: 提示層を派生しなくても、描画計画（<see cref="MarqueeDrawPlan"/>）で見た目を差し替えられる<br/>
+/// （<see cref="MarqueeControl.DrawPlanResolver"/> へ設定する）。 差し替えは公開 API だけで行う（コアの internal 型も描画 API も参照しない）。<br/>
 /// <br/>
 /// <b>見た目</b>: 外枠を破線風に分割し、内側に三分割のガイド線を引く。<br/>
-/// 破線もガイド線も「塗る矩形の列」として計画へ載せるため、描画実装は計画のとおり描く（層の順序は既定の計画から引き継ぐ）。<br/>
-/// <br/>
-/// <b>外観の所有</b>: 外観（色・枠線の太さ・表示可否）も本クラスが与える（計画の解決は外観から導出されるため、表示可否と実際に描く値が食い違わない）。
+/// 破線もガイド線も「塗る矩形の列」として計画へ載せるため、描画実装は計画のとおり描く（層の順序は既定の計画から引き継ぐ）。
 /// </remarks>
 internal static class GuideMarqueePlan
 {
@@ -27,28 +23,6 @@ internal static class GuideMarqueePlan
 
     /// <summary>三分割の分母（1/3 と 2/3 の位置に引く）。</summary>
     private const int ThirdsDenominator = 3;
-
-    /// <summary>破線とガイド線の色（アンバー）。</summary>
-    private static readonly DrawingColor s_accentColor = DrawingColor.FromArgb(255, 255, 196, 0);
-
-    /// <summary>ガイド線の色（半透明の白）。</summary>
-    private static readonly DrawingColor s_guideColor = DrawingColor.FromArgb(160, 255, 255, 255);
-
-    /// <summary>内側の塗りの色（選択領域をわずかに明るくする）。</summary>
-    private static readonly DrawingColor s_innerFillColor = DrawingColor.FromArgb(28, 255, 255, 255);
-
-    /// <summary>見本の外観を取得する。</summary>
-    /// <value>破線とガイド線の色・表示可否を設定した外観。</value>
-    public static MarqueeAppearance Appearance { get; } = MarqueeAppearance.Default with
-    {
-        OuterBorderColor = s_accentColor,
-        InnerBorderColor = s_guideColor,
-        HandleColor = s_accentColor,
-        MarkerColor = s_accentColor,
-        ShowInnerBorder = true,
-        ShowInnerFill = true,
-        InnerFillColor = s_innerFillColor,
-    };
 
     /// <summary>注目矩形へ破線の枠と三分割のガイド線を載せた描画計画を返す。</summary>
     /// <param name="plan">既定の解決結果（幾何・外観・層の順序・ラベル配置を持つ）。</param>

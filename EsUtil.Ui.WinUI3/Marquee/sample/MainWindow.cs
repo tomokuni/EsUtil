@@ -32,10 +32,13 @@ public sealed class MainWindow : Window
     private const double LoupeMarkerSize = 24.0;
 
     /// <summary>ズームの最小倍率。</summary>
-    private const double MinZoom = 0.5;
+    private const double MinZoom = 0.1;
 
     /// <summary>ズームの最大倍率。</summary>
-    private const double MaxZoom = 2.0;
+    private const double MaxZoom = 5.0;
+
+    /// <summary>ズームの刻み（スライダーの増減）。</summary>
+    private const double ZoomStep = 0.1;
 
     /// <summary>色の選択肢（「なし」は描画しないことを表す）。</summary>
     private static readonly (string Name, DrawingColor? Color)[] s_colorChoices =
@@ -122,7 +125,7 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
-                SampleSettings.Slider("ズーム", _zoom, MinZoom, MaxZoom, 0.5, false, value =>
+                SampleSettings.Slider("ズーム", _zoom, MinZoom, MaxZoom, ZoomStep, false, value =>
                 {
                     _zoom = value;
                     _marquee.InvalidateRender();
@@ -135,7 +138,8 @@ public sealed class MainWindow : Window
                 SampleSettings.Slider("最小選択サイズ", 6, 1, 40, 1, true, value => _marquee.Options = _marquee.Options with { MinSelectionSize = value }),
                 SampleSettings.Check("画像内にクリップ", true, value => _marquee.Options = _marquee.Options with { ClampToSourceBounds = value }),
                 SampleSettings.Text("ログ接頭辞", "[Marquee]", value => _marquee.LogPrefix = value),
-                SampleSettings.Check("描画計画を差し替える（破線・ガイド線）", false, value => GuideMarqueePlan.Apply(_marquee, value)),
+                SampleSettings.Check("描画計画を差し替える（破線・ガイド線）", false, value =>
+                    _marquee.DrawPlanResolver = value ? static plan => GuideMarqueePlan.Resolve(in plan) : null),
                 SampleSettings.Check("ハンドルを表示", true, value => Apply(appearance with { ShowHandles = value })),
                 ColorChoice("ハンドルの色", 1, index => Apply(appearance with { HandleColor = ResolveColor(index, appearance.HandleColor) })),
                 ColorChoice("ハンドル枠の色", 2, index => Apply(appearance with { HandleBorderColor = ResolveColor(index, appearance.HandleBorderColor) })),
@@ -179,11 +183,11 @@ public sealed class MainWindow : Window
                     TextWrapping = TextWrapping.Wrap,
                 },
                 SampleSettings.Buttons(
-                    ("クリア", () => _marquee.ResetSelection()),
+                    ("選択をクリア", () => _marquee.ResetSelection()),
                     ("矩形を設定", () => _marquee.SetSelection(new EsRect(250, 180, 300, 200))),
                     ("ハイライト切替", ToggleHighlight),
-                    ("確定", () => _marquee.RequestConfirm()),
-                    ("キャンセル", () => _marquee.RequestCancel()),
+                    ("確定を要求", () => _marquee.RequestConfirm()),
+                    ("キャンセルを要求", () => _marquee.RequestCancel()),
                     ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
                 _status,
             },

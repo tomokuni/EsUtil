@@ -26,7 +26,7 @@
 | 確定・キャンセル | Enter / Escape と「確定」「キャンセル」ボタン、選択矩形の内側・外側のダブルクリック |
 | 表示倍率 | `CoordTransform.ClientToSource` による倍率の変更（コントロールは倍率を知らない） |
 | ログ表示 | コントロールの `Log` へ設定した `ILogger` の出力と、サンプルが受けた通知 |
-| 見た目の差し替え | 外観（`Appearance`）と描画計画（`DrawPlanResolver`）だけで破線とガイド線へ差し替える |
+| 見た目の差し替え | 描画計画（`DrawPlanResolver`）だけで破線とガイド線へ差し替える |
 
 ## 2. 実行方法
 
@@ -61,9 +61,9 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 | Escape / 「キャンセル」ボタン | キャンセル（`CancelRequested` が発火し、選択が消える） |
 | 選択矩形の内側をダブルクリック | 確定 |
 | 選択矩形の外側をダブルクリック | キャンセル |
-| 「クリア」ボタン | 選択を消す（`ResetSelection()`） |
+| 「選択をクリア」ボタン | 選択を消す（`ResetSelection()`） |
 | 「表示倍率」 | 対象座標と表示 DIP の倍率を変える（選択の座標は対象座標のまま） |
-| 「見本（破線・ガイド線）」 | 外観と描画計画を差し替える |
+| 「描画計画を差し替える（破線・ガイド線）」 | 描画計画を差し替える |
 
 **キー入力の前提**: 矢印キー・Enter・Escape はコントロールにフォーカスがある間だけ届きます（ステージを一度クリックしてから押してください）。
 
@@ -107,7 +107,7 @@ sample/
 | `EsUtil.Ui.WinUI3/Marquee/sample/App.xaml` / `EsUtil.Ui.WinUI3/Marquee/sample/App.xaml.cs` | アプリケーションのエントリ（ウィンドウの生成と表示） |
 | `EsUtil.Ui.WinUI3/Marquee/sample/Views/TestPatternCanvas.cs` | 背景のテスト パターン（格子・色見本・中心の十字）を描くキャンバス |
 | `EsUtil.Ui.WinUI3/Marquee/sample/MainWindow.cs` | 座標変換ポート・通知の購読・ログ表示・見本の切り替え |
-| `EsUtil.Ui.WinUI3/Marquee/sample/Presentation/GuideMarqueePlan.cs` | 見本（外観と描画計画の差し替え）の定義 |
+| `EsUtil.Ui.WinUI3/Marquee/sample/Presentation/GuideMarqueePlan.cs` | 見本（描画計画の差し替え）の定義 |
 
 ## 6. 使い方（初めての方向け）
 

@@ -105,7 +105,7 @@ EsUtil.Ui.AvaloniaUI/Marquee/sample/
 │   ├── EsBitmapAvaloniaAdapter.cs # コアの画像を表示面（IImage）として公開し、コアの画像は GetEsBitmap() で取り出すアダプタ
 │   └── EsBitmapAvaloniaExtensions.cs # コアの画像 ⇔ Avalonia の画像の変換
 ├── Presentation/
-│   └── GuideMarqueePlan.cs        # 外観と描画計画（破線枠・三分割ガイド）を与える見本
+│   └── GuideMarqueePlan.cs        # 描画計画（破線枠・三分割ガイド）を与える見本
 ├── ViewModels/
 │   └── MainWindowViewModel.cs     # 選択状態・ステータス表示（CommunityToolkit.Mvvm の ObservableObject）
 └── Views/
@@ -121,14 +121,14 @@ EsUtil.Ui.AvaloniaUI/Marquee/sample/
 4. **ズーム・スクロール**: Ctrl+マウスホイールで拡大・縮小、マウスホイール / スクロールバーでスクロールします（ズーム倍率に応じて座標ポートが動的更新）。
 5. **nudge**: 矢印キーで選択矩形を対象 1Pixel 単位で移動します（領域作成後はマウスボタン押下中のみ有効）。
 6. **確定・キャンセル**: Enter で確定（`ConfirmRequested`）、Escape でキャンセル（`CancelRequested`）です。 ダブルクリックは選択内 = 確定 / 選択外 = キャンセルとして扱われます。
-7. **API 呼び出し**: 「選択をクリア」/「固定矩形」/「確定要求」/「キャンセル要求」ボタンで各公開 API の動作を確認できます。
+7. **API 呼び出し**: 「選択をクリア」/「矩形を設定」/「ハイライト切替」/「確定を要求」/「キャンセルを要求」ボタンで各公開 API の動作を確認できます。
 8. **ログ**: 選択面下のログ表示領域に、`MarqueeControl` 内部の操作ログ（`Log` に設定した `ILogger` 経由）が表示されます。
 
 ---
 
 ## 7. 拡張例（計画の差し替え）
 
-`Presentation/` に、外観（`Appearance`）と描画計画（`DrawPlanResolver`）で見た目を差し替える見本があります（設定パネル上部の見本）。
+`Presentation/` に、描画計画（`DrawPlanResolver`）で見た目を差し替える見本があります（設定パネル上部の見本）。
 
 - `GuideMarqueePlan` — 外観（色・枠線の太さ・表示可否）と、注目矩形の装飾の矩形（破線枠・三分割ガイド・内側の塗り）を与えます。 計画を差し替える純粋関数（`Resolve(in plan)`）として提供します。
 

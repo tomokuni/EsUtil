@@ -1,5 +1,7 @@
 using EsUtil.Ui.WinForms.Marquee.Sample.Imaging;
+using EsUtil.Ui.WinForms.Marquee.Sample.Presentation;
 using EsUtil.Ui.WinForms.SampleKit;
+using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 
@@ -17,10 +19,19 @@ namespace EsUtil.Ui.WinForms.Marquee.Sample;
 internal static class MainForm
 {
     /// <summary>下地の画像の幅（画素）。</summary>
-    private const int ImageWidth = 1600;
+    private const int ImageWidth = 800;
 
     /// <summary>下地の画像の高さ（画素）。</summary>
-    private const int ImageHeight = 1000;
+    private const int ImageHeight = 600;
+
+    /// <summary>ズームの最小倍率。</summary>
+    private const double MinZoom = 0.1;
+
+    /// <summary>ズームの最大倍率。</summary>
+    private const double MaxZoom = 5.0;
+
+    /// <summary>ズームの刻み（スライダーの増減）。</summary>
+    private const double ZoomStep = 0.1;
 
     /// <summary>色の選択肢（「なし」は描画しないことを表す）。</summary>
     private static readonly (string Name, Color? Color)[] s_colorChoices =
@@ -52,9 +63,11 @@ internal static class MainForm
         };
 
         // ── 下地の画像とコントロール ──
+        // 画像はズーム倍率を掛けた画素サイズで置く（PictureBox の Zoom は画像をその大きさへ拡大する）
         var canvas = new PictureBox
         {
-            Dock = DockStyle.Fill,
+            Location = Point.Empty,
+            Size = new Size(ImageWidth, ImageHeight),
             SizeMode = PictureBoxSizeMode.Zoom,
             Image = TestImageFactory.Create(ImageWidth, ImageHeight),
         };
@@ -62,7 +75,7 @@ internal static class MainForm
         var marquee = new MarqueeControl
         {
             Dock = DockStyle.Fill,
-            Options = MarqueeOptions.Default with { HandleSize = 12.0, MinSelectionSize = 8.0 },
+            Options = MarqueeOptions.Default,
             Appearance = appearance,
             Log = logger,
             LogPrefix = "[Marquee]",
@@ -70,6 +83,16 @@ internal static class MainForm
 
         // 子（画像の上）へ重ねる（透明のコントロールは親の描画を背景に使う）
         canvas.Controls.Add(marquee);
+
+        // ズームで表示領域より大きくなったときにパンできるよう、スクロールできる入れ物へ置く
+        var surface = new Panel { Dock = DockStyle.Fill, AutoScroll = true };
+        surface.Controls.Add(canvas);
+
+        var zoom = 1.0;
+        ApplyZoom(zoom);
+
+        // 起動直後に枠線・ハンドル・ラベルが見えるように、選択を 1 つ与えておく
+        marquee.SetSelection(new EsRect(120, 80, 240, 180));
 
         var status = new TextBlockLike();
         var highlightRect = new EsRect(120, 120, 400, 300);
@@ -100,13 +123,17 @@ internal static class MainForm
 
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
         var properties = Column(
-            SampleSettings.Check("画像内にクリップ", true, value => marquee.Options = marquee.Options with { ClampToSourceBounds = value }),
-            SampleSettings.Slider("ハンドル サイズ", 12, 2, 30, 1, true, value => marquee.Options = marquee.Options with { HandleSize = value }),
+            SampleSettings.Slider("ズーム", zoom, MinZoom, MaxZoom, ZoomStep, false, value => ApplyZoom(value), 10),
+            SampleSettings.Slider("表示スケール", 1.0, 0.5, 2.0, 0.1, false, value => marquee.DisplayScaleScaling = value, 10),
+            SampleSettings.Slider("ハンドル サイズ", 10, 2, 30, 1, true, value => marquee.Options = marquee.Options with { HandleSize = value }),
             SampleSettings.Slider("ハンドル枠の太さ", 1.5, 0.5, 8, 0.5, false, value => marquee.Options = marquee.Options with { HandleBorderThickness = value }),
             SampleSettings.Slider("マーカーの長さ", 16, 8, 40, 2, true, value => marquee.Options = marquee.Options with { MarkerLength = value }),
             SampleSettings.Slider("ヒット半径", 12, 2, 40, 1, true, value => marquee.Options = marquee.Options with { HandleHitRadius = value }),
-            SampleSettings.Slider("最小選択サイズ", 8, 1, 40, 1, true, value => marquee.Options = marquee.Options with { MinSelectionSize = value }),
+            SampleSettings.Slider("最小選択サイズ", 6, 1, 40, 1, true, value => marquee.Options = marquee.Options with { MinSelectionSize = value }),
+            SampleSettings.Check("画像内にクリップ", true, value => marquee.Options = marquee.Options with { ClampToSourceBounds = value }),
             SampleSettings.Text("ログ接頭辞", "[Marquee]", value => marquee.LogPrefix = value),
+            SampleSettings.Check("描画計画を差し替える（破線・ガイド線）", false, value =>
+                marquee.DrawPlanResolver = value ? static plan => GuideMarqueePlan.Resolve(in plan) : null),
             SampleSettings.Check("ハンドルを表示", true, value => Apply(appearance with { ShowHandles = value })),
             ColorChoice("ハンドルの色", 1, index => Apply(appearance with { HandleColor = ResolveColor(index, appearance.HandleColor) })),
             ColorChoice("ハンドル枠の色", 2, index => Apply(appearance with { HandleBorderColor = ResolveColor(index, appearance.HandleBorderColor) })),
@@ -139,7 +166,7 @@ internal static class MainForm
         var samples = Column(
             new Label
             {
-                Text = "左ドラッグで選択 / ハンドルでリサイズ / 矢印キーで微調整 / Enter 確定 / Escape キャンセル",
+                Text = "ドラッグ: 選択 / 矢印キー: nudge / Enter: 確定 / Escape: キャンセル",
                 AutoSize = true,
                 MaximumSize = new Size(SampleShell.SettingsWidth - 80, 0),
             },
@@ -158,7 +185,7 @@ internal static class MainForm
             status);
 
         var log = new SampleLogPanel(logging.Buffer);
-        var form = SampleShell.Create("MarqueeControl サンプル（WinForms）", properties, samples, canvas, log);
+        var form = SampleShell.Create("MarqueeControl サンプル（WinForms）", properties, samples, surface, log);
         form.FormClosed += (_, _) =>
         {
             canvas.Image?.Dispose();
@@ -181,6 +208,18 @@ internal static class MainForm
             appearance = value;
             marquee.Appearance = value;
             marquee.InvalidateRender();
+        }
+
+        // ズームを反映する（画像の表示サイズと、クライアント座標 → 対象座標の変換を揃える）
+        void ApplyZoom(double value)
+        {
+            zoom = value;
+            canvas.Size = new Size(
+                (int)Math.Round(ImageWidth * value, MidpointRounding.AwayFromZero),
+                (int)Math.Round(ImageHeight * value, MidpointRounding.AwayFromZero));
+
+            marquee.ClientToSourceScaling = value;
+            marquee.SetCoordTransform(CoordTransform.ClientToSource(() => zoom, () => new EsSize(ImageWidth, ImageHeight)));
         }
     }
 

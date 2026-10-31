@@ -58,6 +58,9 @@ DPI は Per-Monitor V2 で有効化しています（`Program.cs`）。 モニ�
 | 矢印キー | 微調整（nudge。 1 対象ピクセル単位。 十字マーカーが出る） |
 | Enter | 確定要求 |
 | Escape | キャンセル要求 |
+| 「ズーム」スライダー | 表示倍率（0.1〜5.0 倍。 画像の表示サイズと座標変換を揃えて更新する） |
+| 「表示スケール」スライダー | `DisplayScaleScaling`（サイズラベルの百分率の補正） |
+| 「描画計画を差し替える（破線・ガイド線）」 | `DrawPlanResolver` で枠線を破線・三分割のガイド線へ差し替える |
 | 「選択をクリア」ボタン | 選択状態の初期化（`ResetSelection`） |
 | 「ハイライト切替」ボタン | 固定の矩形をハイライトする（`HighlightSourceRect`）／解除する |
 | 「ログを消去」ボタン | ログ欄の消去 |
@@ -70,12 +73,14 @@ DPI は Per-Monitor V2 で有効化しています（`Program.cs`）。 モニ�
 
 - 画像の上へ選択矩形が描かれ、**暗転マスクの外側が暗くならない**（注目矩形の中だけが明るいまま残る）。
 - 枠線・ハンドル・十字マーカーの**画面の大きさが拡大率によらず一定**である（DPI の反映）。
+- 起動直後に選択矩形（120, 80, 240×180）とハンドル・サイズラベルが表示される。
 - サイズラベルの値が選択矩形の実寸と一致し、`Escape` または「選択をクリア」で消える。
 - 選択矩形の上でドラッグすると**移動**、ハンドルの上では**リサイズ**になる（カーソル形状も変わる）。
 - 矢印キーで 1 対象ピクセルずつ動き、**カーソルが非表示**になる（フォーカスを失うと再表示される）。
 - ログ欄に `SelectionStarted` / `SelectionChanged` / `SelectionCompleted` / `ConfirmRequested` / `CancelRequested` が流れる。
 - ライブラリのログが接頭辞 `[Marquee]` 付きで流れる（「ハイライト切替」で設定変更が出力される）。
 - ウィンドウを別のモニターへ移しても、枠線とハンドルの大きさと位置がずれない。
+- 「ズーム」を変えると画像と選択矩形が同じ倍率で拡大・縮小する（両者の位置がずれない）。
 
 ---
 
@@ -84,6 +89,8 @@ DPI は Per-Monitor V2 で有効化しています（`Program.cs`）。 モニ�
 ```text
 sample/
 ├── Imaging/
+└── Presentation/
+    └── GuideMarqueePlan.cs      # 描画計画の差し替え（破線枠・三分割ガイド）の見本
 ```
 
 | ファイル | 内容 |
@@ -91,6 +98,7 @@ sample/
 | `EsUtil.Ui.WinForms/Marquee/sample/Program.cs` | エントリポイント（DPI の有効化とアプリケーションの起動）。 |
 | `EsUtil.Ui.WinForms/Marquee/sample/MainForm.cs` | 画面の組み立て（画像の上へ重ねる・イベントの購読・ログ表示・付加情報の描画）。 |
 | `EsUtil.Ui.WinForms/Marquee/sample/Imaging/TestImageFactory.cs` | 下地の検証用画像の生成（格子と同心円）。 |
+| `EsUtil.Ui.WinForms/Marquee/sample/Presentation/GuideMarqueePlan.cs` | 描画計画の差し替え（破線枠・三分割ガイド）の見本。 |
 
 **重ね方**: 透明なコントロールは親の描画を自分の背景に使うため、下地の画像を表示する `PictureBox` の子としてコントロールを追加しています。
 

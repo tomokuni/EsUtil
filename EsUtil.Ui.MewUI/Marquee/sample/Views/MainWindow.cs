@@ -91,7 +91,10 @@ internal static class MainWindow
         };
 
         // 画像とコントロールを同じ領域へ重ねる（コントロールが選択矩形と装飾を描く）
+        // 左上へ寄せて指定した大きさを保つ（引き伸ばされると画像と座標がずれる）
         var surface = new Grid().Columns("*").Rows("*").Children(image, marquee);
+        surface.HorizontalAlignment(HorizontalAlignment.Left);
+        surface.VerticalAlignment(VerticalAlignment.Top);
 
         // 表示領域より大きくなったとき（ズーム時）にパンできるようスクロールビューへ入れる
         var scroll = new ScrollViewer().Content(surface);
@@ -102,6 +105,9 @@ internal static class MainWindow
         var zoomText = new TextBlock().Width(52).VerticalAlignment(VerticalAlignment.Center).Text(FormatZoom(zoom));
 
         marquee.SetCoordTransform(CoordTransform.ClientToSource(() => zoom, () => new EsSize(ImageWidth, ImageHeight)));
+
+        // 起動直後に枠線・ハンドル・ラベルが見えるように、選択を 1 つ与えておく
+        marquee.SetSelection(new EsRect(120, 80, 240, 180));
 
         void UpdateSelection(MarqueeSnapshot snapshot)
         {
@@ -198,13 +204,14 @@ internal static class MainWindow
         var samples = new StackPanel().Vertical().Spacing(6).Children(
             new TextBlock
             {
-                Text = "ドラッグ: 選択 / 矢印キー: nudge / Ctrl+ホイール: ズーム / ホイール: パン / Enter・Escape: 確定・キャンセル",
+                Text = "ドラッグ: 選択 / 矢印キー: nudge / Enter: 確定 / Escape: キャンセル",
                 FontSize = 11,
                 TextWrapping = TextWrapping.Wrap,
             },
             SampleSettings.Buttons(
-                ("選択をリセット", () => marquee.ResetSelection()),
+                ("選択をクリア", () => marquee.ResetSelection()),
                 ("矩形を設定", () => marquee.SetSelection(new EsRect(250, 180, 300, 200))),
+                ("ハイライト切替", ToggleHighlight),
                 ("確定を要求", () => marquee.RequestConfirm()),
                 ("キャンセルを要求", () => marquee.RequestCancel()),
                 ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
@@ -233,6 +240,13 @@ internal static class MainWindow
         {
             appearance = value;
             marquee.Appearance = value;
+        }
+
+        // ハイライトの対象を切り替える
+        void ToggleHighlight()
+        {
+            marquee.HighlightSourceRect = marquee.HighlightSourceRect is null ? new EsRect(120, 120, 400, 300) : null;
+            WriteLog(marquee.HighlightSourceRect is null ? "ハイライト解除" : "ハイライト設定");
         }
     }
 

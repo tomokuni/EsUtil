@@ -90,7 +90,12 @@ public sealed class MainWindow : Window
         };
 
         // 画像とコントロールを同じ領域へ重ねる
-        var surface = new Grid();
+        // 左上へ寄せて指定した大きさを保つ（引き伸ばされると画像と座標がずれる）
+        var surface = new Grid
+        {
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+        };
         surface.Children.Add(_image);
         surface.Children.Add(_marquee);
 
@@ -206,7 +211,7 @@ public sealed class MainWindow : Window
             {
                 new TextBlock
                 {
-                    Text = "ドラッグ: 選択 / 矢印キー: nudge / Enter または Escape: 確定・キャンセル",
+                    Text = "ドラッグ: 選択 / 矢印キー: nudge / Enter: 確定 / Escape: キャンセル",
                     FontSize = 11,
                     TextWrapping = TextWrapping.Wrap,
                 },
