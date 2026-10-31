@@ -14,6 +14,9 @@
     <Project Path="Thumbnail/src/EsUtil.Ui.WinForms.Thumbnail.csproj" />
     <Project Path="Thumbnail/tests/EsUtil.Ui.WinForms.Thumbnail.Tests.csproj" />
   </Folder>
+  <Folder Name="/SampleKit/">
+    <Project Path="SampleKit/src/EsUtil.Ui.WinForms.SampleKit.csproj" />
+  </Folder>
   <Folder Name="/Interop/">
     <Project Path="Interop/src/EsUtil.Ui.WinForms.Interop.csproj" />
     <Project Path="Interop/tests/EsUtil.Ui.WinForms.Interop.Tests.csproj" />

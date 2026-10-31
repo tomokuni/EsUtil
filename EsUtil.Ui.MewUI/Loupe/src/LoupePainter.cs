@@ -14,7 +14,11 @@ namespace EsUtil.Ui.MewUI.Loupe;
 /// </remarks>
 internal static class LoupePainter
 {
-    /// <summary>画像の変換結果を保持する結び付け（層をまたいで使い回す）。</summary>
+    /// <summary>画像の変換結果を保持する結び付け（<see cref="LoupeControl.DrawPlan"/> 用の共有のもの）。</summary>
+    /// <remarks>
+    /// <b>コントロールの描画では使わない</b>: 本クラスは複数のルーペで共有されるため、1 つの結び付けだと
+    /// ルーペを 2 つ描くたびに画像（画素数分）を作り直す（<see cref="LoupeControl"/> は自前の結び付けを渡す）。
+    /// </remarks>
     [ThreadStatic]
     private static MewImageBinding? s_images;
 
@@ -22,18 +26,26 @@ internal static class LoupePainter
     /// <param name="context">描画先のコンテキスト。</param>
     /// <param name="source">拡大元の 100% 画像。 null の場合は画像の層を描かない（ペーストボードのみ）。</param>
     /// <param name="plan">描画計画（層の順序・矩形・色を持つ）。</param>
+    /// <param name="binding">
+    /// 画像の変換結果を保持する結び付け。 <b>呼び出し元（ルーペ 1 つ）が所有するものを渡す</b>。
+    /// null の場合は共有のものを使う（<see cref="LoupeControl.DrawPlan"/> のような単発の描画用）。
+    /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="context"/> が null の場合。</exception>
     /// <remarks>
     /// <b>層ごとに外観の表示可否（<c>Show*</c>）を見て描く</b>: 計画は表示可否で値を消さないため、<br/>
     /// 描くかどうかの判断は本クラス（描画側）が行う（色のアルファを「描かない」の代用にしない）。<br/>
-    /// ペーストボード（描画面の消去）と拡大画像は表示可否を持たず、常に描く。
+    /// ペーストボード（描画面の消去）と拡大画像は表示可否を持たず、常に描く。<br/>
+    /// <b>結び付けを呼び出し元から受け取る理由</b>: 共有の結び付けは最後に変換した 1 枚しか保持しないため、
+    /// ソースの異なるルーペを同じフレームで描くと<b>毎フレーム両方の画像を作り直す</b>（実測 2026-10-30: ポインターを
+    /// 動かすと 1 移動あたり約 1.7 回の全面変換が走り、追従が引っかかった）。
     /// </remarks>
-    public static void Paint(IGraphicsContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan)
+    public static void Paint(
+        IGraphicsContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan, MewImageBinding? binding = null)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         var appearance = plan.Appearance;
-        var images = s_images ??= new MewImageBinding();
+        var images = binding ?? (s_images ??= new MewImageBinding());
 
         // 描画順は描画層（Layers）が単一所有する。 本クラスは順に写すだけで、順序を判断しない
         foreach (var layer in plan.Layers)

@@ -17,7 +17,7 @@
     <!-- 自分の版はグループの値から引く（数値を 2 箇所へ書かない）。
          グループはプロジェクト名から導出する（30 プロジェクト分の条件を書かない）。
          テスト・サンプルはパッケージを作らないため版を持たない（SDK 既定のまま）。 -->
-    <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample)$'))</_SeIsTestOrSample>
+    <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample|SampleKit)$'))</_SeIsTestOrSample>
     <_SeIsCoreGroup>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.(Platform|Feature)\.'))</_SeIsCoreGroup>
     <_SeUiGroup>$([System.Text.RegularExpressions.Regex]::Match('$(MSBuildProjectName)', '^EsUtil\.Ui\.(AvaloniaUI|MewUI|WinUI3|WinForms)\.').Groups[1].Value)</_SeUiGroup>
 

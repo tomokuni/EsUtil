@@ -29,7 +29,11 @@ internal sealed class MainForm : Form
     private const int ImageHeight = 600;
 
     /// <summary>設定パネルの幅（ピクセル）。</summary>
-    private const int SettingsWidth = 384;
+    /// <remarks>
+    /// 各グループの実測幅（346 ピクセル）に縦スクロール バー（17）と余白（24）を足した幅にする<br/>
+    /// （狭いと横スクロール バーが出て、グループの右端が隠れる。 実測 2026-10-31）。
+    /// </remarks>
+    private const int SettingsWidth = 400;
 
     /// <summary>項目名の幅（ピクセル）。</summary>
     private const int RowLabelWidth = 110;
@@ -79,6 +83,9 @@ internal sealed class MainForm : Form
 
     /// <summary>ログ表示のテキスト ボックス。</summary>
     private readonly TextBox _logBox = new();
+
+    /// <summary>「ルーペを表示」のチェック ボックス（「非表示にして解放」で状態を合わせるため保持する）。</summary>
+    private readonly CheckBox _loupeVisible = new() { Text = "ルーペを表示", Checked = true, AutoSize = true };
 
     /// <summary>ログ表示に使うフォント。</summary>
     private readonly Font _logFont = new(FontFamily.GenericMonospace, 8f);
@@ -140,7 +147,26 @@ internal sealed class MainForm : Form
         // ルーペ画像上の破線は、描画完了直後に同一の描画面へ描く（Rendered の用途）
         _loupe.Rendered += OnLoupeRendered;
 
+        // 表示の切り替え（「非表示にして解放」でチェックの状態も合わせる）
+        _loupeVisible.CheckedChanged += (_, _) => _loupe.Visible = _loupeVisible.Checked;
+
         BuildLayout();
+
+
+    }
+
+    /// <summary>ウィンドウが表示されたときにルーペの配置を解決し直す。</summary>
+    /// <param name="e">イベント引数。</param>
+    /// <remarks>
+    /// 実効倍率（<c>ClientToPixelScaling</c>）はコントロールのハンドル生成時に確定するため、<br/>
+    /// 生成前（コンストラクター）に解決した配置は DPI 100% 相当の大きさになる（125% の環境では 20% 小さく置かれる。 実測 2026-10-31）。<br/>
+    /// 表示後にもう一度解決すると、確定した倍率で置き直される。
+    /// </remarks>
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+
+        _host.UpdateLoupeBounds();
     }
 
     /// <summary>ウィンドウを閉じるときに画像を解放する。</summary>
@@ -227,18 +253,20 @@ internal sealed class MainForm : Form
         _logBox.Font = _logFont;
         _logBox.Size = new Size(SettingsWidth - 60, LogHeight);
 
+        // スクロールは外側の settingsHost が持つ（内側も AutoScroll にすると横スクロール バーが二重に出る。 実測 2026-10-31）
         var settings = new FlowLayoutPanel
         {
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
-            AutoScroll = true,
         };
         var sections = new Control[]
         {
             CreateSection(
                 "表示",
-                CreateCheckRow(true, value => _loupe.Visible = value, "ルーペを表示"),
+                CreateBareRow(_loupeVisible),
                 CreateSliderRow("拡大率", 4, 1, 16, value => SetZoomLevel(value)),
                 CreateSliderRow("ルーペ サイズ", 240, 80, 480, value => SetRequestedSize(value)),
                 CreateSliderRow("描画スケール", 10, 5, 20, value => _loupe.ClientToPixelScaling = value / 10.0)),
@@ -281,18 +309,25 @@ internal sealed class MainForm : Form
                     _appearance = _appearance with { ShowCoordLabel = value };
                     _loupe.Appearance = _appearance;
                 }, "座標ラベルを表示")),
+            // ボタンは縦に並べる（横に並べると設定パネルの幅を超え、右端が切れる。 実測 2026-10-31）
             CreateSection(
                 "操作",
-                CreateRow(
-                    string.Empty,
-                    CreateButton("再描画を要求", () => _loupe.Invalidate()),
-                    CreateButton("非表示にして解放", () =>
-                    {
-                        // 表示を止めて描画資源（画像の参照）を手放す
-                        _loupe.Visible = false;
-                        _loupe.Source = null;
-                    }),
-                    CreateButton("ソースを再設定", () => _loupe.Source = _source))),
+                CreateBareRow(CreateButton("再描画を要求", () => _loupe.Invalidate())),
+                CreateBareRow(CreateButton("非表示にして解放", () =>
+                {
+                    // 表示を止めて描画資源（画像の参照）を手放す（チェックの状態も合わせる）
+                    _loupe.Visible = false;
+                    _loupe.Source = null;
+                    _loupeVisible.Checked = false;
+                })),
+                CreateBareRow(CreateButton("ソースを設定して再表示", () =>
+                {
+                    // 解放した後は、ソースの設定と表示の復帰の両方が必要である
+                    // （表示だけ戻してもソースが null のため何も描かれない）
+                    _loupe.Source = _source;
+                    _loupeVisible.Checked = true;
+                    _loupe.Visible = true;
+                }))),
             CreateSection(
                 "選択矩形（破線オーバーレイ）",
                 CreateCheckRow(true, value => _selection.IsVisible = value, "選択矩形を表示"),
@@ -307,8 +342,13 @@ internal sealed class MainForm : Form
         };
         settings.Controls.AddRange(sections);
 
-        var settingsHost = new Panel { Dock = DockStyle.Fill, Padding = new Padding(12), AutoScroll = true };
+        // スクロールは内側の設定パネルが持つ（外側も AutoScroll にすると横スクロール バーが二重に出る。 実測 2026-10-31）
+        var settingsHost = new Panel { Dock = DockStyle.Fill, Padding = new Padding(12) };
         settingsHost.Controls.Add(settings);
+
+        // 画像のホストはセル全体を占める（Dock を与えないと Control の既定サイズ 0x0 のままになり、
+        // TableLayoutPanel も Anchor が既定では拡げないため、画像が 1 ピクセルも描かれない。 実測 2026-10-31）
+        _host.Dock = DockStyle.Fill;
 
         var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1 };
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, SettingsWidth));
@@ -414,7 +454,29 @@ internal sealed class MainForm : Form
     {
         var check = new CheckBox { Text = text, Checked = initial, AutoSize = true };
         check.CheckedChanged += (_, _) => apply(check.Checked);
-        return CreateRow(string.Empty, check);
+        return CreateBareRow(check);
+    }
+
+    /// <summary>項目名を持たない行（チェック ボックス・ボタン）を構築する。</summary>
+    /// <param name="controls">並べるコントロール。</param>
+    /// <returns>横に並べた要素。</returns>
+    /// <remarks>
+    /// <see cref="CreateRow"/> の項目名の幅（110 ピクセル）を空けると、長い文言のチェック ボックスが
+    /// 設定パネルの幅を超えて横スクロールになる（実測 2026-10-31）。
+    /// </remarks>
+    private static FlowLayoutPanel CreateBareRow(params Control[] controls)
+    {
+        var row = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(0),
+        };
+
+        row.Controls.AddRange(controls);
+        return row;
     }
 
     /// <summary>スライダーの行を構築する（現在値を数値で表示する）。</summary>

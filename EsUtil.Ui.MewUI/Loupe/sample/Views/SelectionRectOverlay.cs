@@ -60,8 +60,12 @@ internal sealed class SelectionRectOverlay : Control
     }
 
     /// <summary>選択矩形の破線枠と半透明の塗りを描画する。</summary>
-    /// <param name="context">描画先のコンテキスト（DIP 座標）。</param>
-    /// <remarks>座標は DIP のまま扱う（枠線の太さと破線長を DIP で揃えるため）。</remarks>
+    /// <param name="context">描画先のコンテキスト。</param>
+    /// <remarks>
+    /// 座標は DIP のまま扱う（枠線の太さと破線長を DIP で揃えるため）。<br/>
+    /// <b>描画コンテキストはウィンドウ絶対座標である</b>（要素の左上は (0, 0) ではない）ため、
+    /// 自領域の左上へ原点を移してから描く（移さないとウィンドウの左上＝設定パネルの上へ描いてしまう）。
+    /// </remarks>
     protected override void OnRender(IGraphicsContext context)
     {
         if (_rect is not { } rect || rect.Width <= 0 || rect.Height <= 0)
@@ -69,14 +73,23 @@ internal sealed class SelectionRectOverlay : Control
             return;
         }
 
-        var bounds = new Rect(0, 0, rect.Width, rect.Height);
-        context.FillRectangle(bounds, Color.FromArgb(s_fillColor.A, s_fillColor.R, s_fillColor.G, s_fillColor.B));
+        context.Save();
+        context.Translate(Bounds.X, Bounds.Y);
+        try
+        {
+            var bounds = new Rect(0, 0, rect.Width, rect.Height);
+            context.FillRectangle(bounds, Color.FromArgb(s_fillColor.A, s_fillColor.R, s_fillColor.G, s_fillColor.B));
 
-        var color = Color.FromArgb(s_strokeColor.A, s_strokeColor.R, s_strokeColor.G, s_strokeColor.B);
-        StrokeDashedLine(context, 0, 0, rect.Width, 0, color);
-        StrokeDashedLine(context, rect.Width, 0, rect.Width, rect.Height, color);
-        StrokeDashedLine(context, rect.Width, rect.Height, 0, rect.Height, color);
-        StrokeDashedLine(context, 0, rect.Height, 0, 0, color);
+            var color = Color.FromArgb(s_strokeColor.A, s_strokeColor.R, s_strokeColor.G, s_strokeColor.B);
+            StrokeDashedLine(context, 0, 0, rect.Width, 0, color);
+            StrokeDashedLine(context, rect.Width, 0, rect.Width, rect.Height, color);
+            StrokeDashedLine(context, rect.Width, rect.Height, 0, rect.Height, color);
+            StrokeDashedLine(context, 0, rect.Height, 0, 0, color);
+        }
+        finally
+        {
+            context.Restore();
+        }
     }
 
     /// <summary>1 本の線分を破線で描く。</summary>

@@ -1,0 +1,161 @@
+{
+    // サンプル アプリ（各 UI 層の `sample/`）の起動構成。 16 件を UI 層ごとに並べる。
+    // **デバッグ実行**で起動する（`noDebug: false`。 ブレークポイント・ステップ実行が効く）。
+    // 種別は coreclr を使う（`dotnet` は不可）。 `dotnet` は読み込み済みソリューションのプロジェクトしか
+    // 解決できず、`dotnet.defaultSolution` は共通基盤だけの EsUtil.slnx を指すため、UI 層のサンプルは
+    // "Unable to determine debug settings for project ..." で起動できない（実測 2026-10-30）。
+    // program には apphost（.exe）を指す。 WinUI 3 は .dll を直接起動すると manifest が無く
+    // 0xC000027B で終了する（実測）。 TFM は各 csproj の TargetFramework に追随させる。
+    // 根拠は .github/検証手順.md §14。
+    "version": "0.2.0",
+    "configurations": [
+        // AvaloniaUI
+        {
+            "name": "AvaloniaUI / ColorComboBox",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（AvaloniaUI の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColorComboBox/sample/bin/Debug/net10.0/EsUtil.Ui.AvaloniaUI.ColorComboBox.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColorComboBox/sample"
+        },
+        {
+            "name": "AvaloniaUI / Loupe",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（AvaloniaUI の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/Loupe/sample/bin/Debug/net10.0/EsUtil.Ui.AvaloniaUI.Loupe.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/Loupe/sample"
+        },
+        {
+            "name": "AvaloniaUI / Marquee",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（AvaloniaUI の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/Marquee/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.AvaloniaUI.Marquee.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/Marquee/sample"
+        },
+        {
+            "name": "AvaloniaUI / Thumbnail",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（AvaloniaUI の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/Thumbnail/sample/bin/Debug/net10.0/EsUtil.Ui.AvaloniaUI.Thumbnail.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/Thumbnail/sample"
+        },
+        // MewUI
+        {
+            "name": "MewUI / ColorComboBox",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（MewUI の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.MewUI/ColorComboBox/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.ColorComboBox.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/ColorComboBox/sample"
+        },
+        {
+            "name": "MewUI / Loupe",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（MewUI の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.MewUI/Loupe/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.Loupe.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/Loupe/sample"
+        },
+        {
+            "name": "MewUI / Marquee",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（MewUI の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.MewUI/Marquee/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.Marquee.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/Marquee/sample"
+        },
+        {
+            "name": "MewUI / Thumbnail",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（MewUI の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.MewUI/Thumbnail/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.Thumbnail.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/Thumbnail/sample"
+        },
+        // WinUI3
+        {
+            "name": "WinUI3 / ColorComboBox",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（WinUI3 の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColorComboBox/sample/bin/Debug/net10.0-windows10.0.22621.0/EsUtil.Ui.WinUI3.ColorComboBox.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColorComboBox/sample"
+        },
+        {
+            "name": "WinUI3 / ColumnPacking",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（WinUI3 の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColumnPacking/sample/bin/Debug/net10.0-windows10.0.22621.0/EsUtil.Ui.WinUI3.ColumnPacking.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColumnPacking/sample"
+        },
+        {
+            "name": "WinUI3 / Loupe",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（WinUI3 の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinUI3/Loupe/sample/bin/Debug/net10.0-windows10.0.22621.0/EsUtil.Ui.WinUI3.Loupe.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/Loupe/sample"
+        },
+        {
+            "name": "WinUI3 / Marquee",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（WinUI3 の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinUI3/Marquee/sample/bin/Debug/net10.0-windows10.0.22621.0/EsUtil.Ui.WinUI3.Marquee.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/Marquee/sample"
+        },
+        {
+            "name": "WinUI3 / Thumbnail",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（WinUI3 の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinUI3/Thumbnail/sample/bin/Debug/net10.0-windows10.0.22621.0/EsUtil.Ui.WinUI3.Thumbnail.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/Thumbnail/sample"
+        },
+        // WinForms
+        {
+            "name": "WinForms / Loupe",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（WinForms の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinForms/Loupe/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.WinForms.Loupe.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinForms/Loupe/sample"
+        },
+        {
+            "name": "WinForms / Marquee",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（WinForms の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinForms/Marquee/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.WinForms.Marquee.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinForms/Marquee/sample"
+        },
+        {
+            "name": "WinForms / Thumbnail",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "preLaunchTask": "ビルド（WinForms の UI 層）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinForms/Thumbnail/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.WinForms.Thumbnail.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinForms/Thumbnail/sample"
+        }
+    ]
+}

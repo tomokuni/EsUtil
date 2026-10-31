@@ -61,6 +61,34 @@
       "problemMatcher": []
     },
     {
+      "label": "ビルド（AvaloniaUI の UI 層）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 Debug で作り直す",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.AvaloniaUI/EsUtil.Ui.AvaloniaUI.slnx",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（MewUI の UI 層）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 Debug で作り直す",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（WinUI3 の UI 層）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 Debug で作り直す",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinUI3/EsUtil.Ui.WinUI3.slnx",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（WinForms の UI 層）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 Debug で作り直す",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinForms/EsUtil.Ui.WinForms.slnx",
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "テスト実行（全プロジェクト）",
       "type": "shell",
       "command": "dotnet test EsUtil/EsUtil.slnx",
