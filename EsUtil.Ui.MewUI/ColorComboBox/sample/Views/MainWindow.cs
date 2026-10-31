@@ -117,6 +117,34 @@ internal static class MainWindow
                     control.TextFontSize = value;
                 }
             }),
+            SampleSettings.Slider("入力欄の幅", 0, 0, 600, 10, true, value =>
+            {
+                foreach (var control in controls)
+                {
+                    control.TextWidth = value <= 0 ? double.NaN : value;
+                }
+            }),
+            SampleSettings.Slider("入力欄の最小幅", 120, 40, 400, 10, true, value =>
+            {
+                foreach (var control in controls)
+                {
+                    control.TextMinWidth = value;
+                }
+            }),
+            SampleSettings.Slider("入力欄の最大幅", 0, 0, 1200, 20, true, value =>
+            {
+                foreach (var control in controls)
+                {
+                    control.TextMaxWidth = value <= 0 ? double.PositiveInfinity : value;
+                }
+            }),
+            SampleSettings.Check("入力が無効なら枠線を赤くする", true, value =>
+            {
+                foreach (var control in controls)
+                {
+                    control.HighlightBorderOnError = value;
+                }
+            }),
             SampleSettings.Text("ログ接頭辞", "[ColorComboBox]", value =>
             {
                 foreach (var control in controls)

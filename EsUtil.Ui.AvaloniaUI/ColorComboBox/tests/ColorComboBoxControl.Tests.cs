@@ -99,8 +99,7 @@ public class ColorComboBoxControlTests
         Assert.Equal(120d, control.TextMinWidth);
         Assert.Equal(double.PositiveInfinity, control.TextMaxWidth);
         Assert.Equal(double.NaN, control.TextWidth);
-        Assert.Null(control.TextPadding);
-        Assert.Null(control.TextMargin);
+        Assert.Equal(double.NaN, control.TextFontSize);
     }
 
     // ====================================================================
@@ -388,38 +387,24 @@ public class ColorComboBoxControlTests
     }
 
     [AvaloniaFact]
-    internal void TextPadding変更で入力欄の左余白にスウォッチ分が加算される()
+    internal void TextFontSize変更で入力欄の文字サイズが変わる()
     {
         var control = CreateControl();
 
-        control.TextPadding = new Thickness(4, 2, 8, 2);
+        control.TextFontSize = 18;
 
-        var padding = TextOf(control).Padding;
-        Assert.Equal(32d, padding.Left);
-        Assert.Equal(2d, padding.Top);
-        Assert.Equal(8d, padding.Right);
+        Assert.Equal(18d, TextOf(control).FontSize);
     }
 
     [AvaloniaFact]
-    internal void TextMargin変更で入力欄のMarginが設定される()
+    internal void TextFontSize_NaNで親の文字サイズを継承する()
     {
         var control = CreateControl();
-        var margin = new Thickness(1, 2, 3, 4);
+        control.TextFontSize = 18;
 
-        control.TextMargin = margin;
+        control.TextFontSize = double.NaN;
 
-        Assert.Equal(margin, TextOf(control).Margin);
-    }
-
-    [AvaloniaFact]
-    internal void TextMargin_nullでMarginがクリアされる()
-    {
-        var control = CreateControl();
-        control.TextMargin = new Thickness(1);
-
-        control.TextMargin = null;
-
-        Assert.Equal(default, TextOf(control).Margin);
+        Assert.False(TextOf(control).IsSet(Avalonia.Controls.Primitives.TemplatedControl.FontSizeProperty));
     }
 
     // ====================================================================

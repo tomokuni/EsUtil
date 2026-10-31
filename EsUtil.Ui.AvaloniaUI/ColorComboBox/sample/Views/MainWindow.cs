@@ -138,18 +138,32 @@ public sealed class MainWindow : Window
                             control.TextFormat = format;
                         }
                     }),
-                SampleSettings.Slider("入力欄の最小幅", 120, 60, 320, 10, true, value =>
+                SampleSettings.Slider("文字サイズ", 12, 8, 24, 1, true, value =>
+                {
+                    foreach (var control in _controls)
+                    {
+                        control.TextFontSize = value;
+                    }
+                }),
+                SampleSettings.Slider("入力欄の幅", 0, 0, 600, 10, true, value =>
+                {
+                    foreach (var control in _controls)
+                    {
+                        control.TextWidth = value <= 0 ? double.NaN : value;
+                    }
+                }),
+                SampleSettings.Slider("入力欄の最小幅", 120, 40, 400, 10, true, value =>
                 {
                     foreach (var control in _controls)
                     {
                         control.TextMinWidth = value;
                     }
                 }),
-                SampleSettings.Slider("入力欄の幅", 0, 0, 320, 10, true, value =>
+                SampleSettings.Slider("入力欄の最大幅", 0, 0, 1200, 20, true, value =>
                 {
                     foreach (var control in _controls)
                     {
-                        control.TextWidth = value <= 0 ? double.NaN : value;
+                        control.TextMaxWidth = value <= 0 ? double.PositiveInfinity : value;
                     }
                 }),
                 SampleSettings.Check("入力が無効なら枠線を赤くする", true, value =>
@@ -229,9 +243,10 @@ public sealed class MainWindow : Window
     }
 
     /// <summary>検証の状態だけを更新する（入力のたびに呼ぶ）。</summary>
+    /// <remarks>生成の途中（未作成の項目がある状態）でも呼ばれるため、未作成の項目は読み飛ばす。</remarks>
     private void UpdateError()
     {
-        _error.Text = _controls.Any(static control => control.HasValidationError)
+        _error.Text = _controls.Any(static control => control is { HasValidationError: true })
             ? "無効な入力があります（保存前に直してください）。"
             : string.Empty;
     }

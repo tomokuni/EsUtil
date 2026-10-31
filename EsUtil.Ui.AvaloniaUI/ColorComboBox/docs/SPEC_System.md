@@ -127,7 +127,7 @@ flowchart TB
   - 入力欄の余白調整（`ApplyTextLayout`。 左へスウォッチ分を確保する）
   - スウォッチと入力欄のツールチップ（色名+不透明度 / `#AARRGGBB` の 2 行）
   - バリデーション失敗時の枠線強調（`UpdateBorderValidationVisual`）
-- **公開API**: `SelectedColor` / `ColorSortMode` / `TextFormat` / `HighlightBorderOnError` / `HasValidationError` / `ValidationErrorMessage` / `TextMinWidth` / `TextMaxWidth` / `TextWidth` / `TextPadding` / `TextMargin` / `Log`（StyledProperty も同ファイルに定義）
+- **公開API**: `SelectedColor` / `ColorSortMode` / `TextFormat` / `HighlightBorderOnError` / `HasValidationError` / `ValidationErrorMessage` / `TextFontSize` / `TextMinWidth` / `TextMaxWidth` / `TextWidth` / `Log` / `LogPrefix`（StyledProperty も同ファイルに定義）
 - **構成**: 公開 API（StyledProperty・公開プロパティ）とイベント処理・バリデーション状態を保持し、関心事ごとに専用クラスへ委譲（単一責任・疎結合）
 - **内部メソッド（internal）**: `UpdateValidationStatus`（テストからの検証用に公開）
 - **依存**: ColorComboBoxFlyoutFactory / ColorValidator / ColorEntry / ColorSortMode / ColorString / ColorTextFormat

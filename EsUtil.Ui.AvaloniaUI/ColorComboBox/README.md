@@ -149,7 +149,7 @@ panel.Children.Add(colorPicker);
 - 色相順（`ByHue`）と色名順（`ByName`）の切替（並び順切替 ComboBox 連動）
 - `HighlightBorderOnError` による枠線強調の有効/無効
 - バリデーション状態（`HasValidationError` / `ValidationErrorMessage`）のライブ表示
-- 入力欄のレイアウト設定（`TextMinWidth` / `TextMaxWidth` / `TextWidth` / `TextPadding` / `TextMargin`）
+- 入力欄のサイズと文字サイズ（`TextFontSize` / `TextMinWidth` / `TextMaxWidth` / `TextWidth`）
 - 入力欄の表記（`TextFormat`）の切替
 - カラーピッカー（「…」ボタン）の Flyout 表示
 

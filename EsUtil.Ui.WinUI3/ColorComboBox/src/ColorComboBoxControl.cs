@@ -117,6 +117,9 @@ public sealed partial class ColorComboBoxControl : Grid
     /// <summary>テキスト部の表記。</summary>
     private ColorTextFormat _textFormat = ColorTextFormat.NameWithAlpha;
 
+    /// <summary>入力が無効なときに枠線を赤くするかどうか。</summary>
+    private bool _highlightBorderOnError;
+
     /// <summary>選択中の色（保存値）が変わったときに発生する。</summary>
     public event EventHandler? SelectedColorChanged;
 
@@ -247,6 +250,50 @@ public sealed partial class ColorComboBoxControl : Grid
         }
     }
 
+    /// <summary>入力欄の文字サイズ（DIP）を取得または設定する。</summary>
+    /// <value>文字サイズ。 未設定（<see cref="double.NaN"/>）の場合はテーマの既定値を使う。</value>
+    public double TextFontSize
+    {
+        get => _text.FontSize;
+        set => _text.FontSize = value;
+    }
+
+    /// <summary>入力欄の幅（DIP）を取得または設定する。</summary>
+    /// <value>幅。 <see cref="double.NaN"/>（既定）の場合は親の幅に従う。</value>
+    public double TextWidth
+    {
+        get => _text.Width;
+        set => _text.Width = value;
+    }
+
+    /// <summary>入力欄の最小幅（DIP）を取得または設定する。</summary>
+    /// <value>最小幅。 既定は 120。</value>
+    public double TextMinWidth
+    {
+        get => _text.MinWidth;
+        set => _text.MinWidth = value;
+    }
+
+    /// <summary>入力欄の最大幅（DIP）を取得または設定する。</summary>
+    /// <value>最大幅。 既定は無制限（<see cref="double.PositiveInfinity"/>）。</value>
+    public double TextMaxWidth
+    {
+        get => _text.MaxWidth;
+        set => _text.MaxWidth = value;
+    }
+
+    /// <summary>入力が無効なときに枠線を赤くするかを取得または設定する。</summary>
+    /// <value>true の場合は <see cref="HasValidationError"/> が true の間、外周の枠線を赤にする。 既定は false。</value>
+    public bool HighlightBorderOnError
+    {
+        get => _highlightBorderOnError;
+        set
+        {
+            _highlightBorderOnError = value;
+            UpdateBorderValidationVisual();
+        }
+    }
+
     /// <summary>バリデーション エラーがあるかを取得する。</summary>
     /// <value>現在の入力が無効な場合 true。</value>
     public bool HasValidationError { get; private set; }
@@ -363,6 +410,7 @@ public sealed partial class ColorComboBoxControl : Grid
 
             HasValidationError = state.HasError;
             ValidationErrorMessage = state.Message;
+            UpdateBorderValidationVisual();
         }
         finally
         {
@@ -377,6 +425,10 @@ public sealed partial class ColorComboBoxControl : Grid
             SelectedColorChanged?.Invoke(this, EventArgs.Empty);
         }
     }
+
+    /// <summary>検証エラーの強調を枠線へ反映する。</summary>
+    private void UpdateBorderValidationVisual()
+        => BorderBrush = new SolidColorBrush(_highlightBorderOnError && HasValidationError ? Colors.Red : s_borderColor);
 
     /// <summary>一覧の選択を現在の色へ合わせる。</summary>
     /// <param name="color">現在の色。</param>
