@@ -19,6 +19,9 @@ public static class SampleSettings
     /// <summary>編集 UI の幅（DIP）。</summary>
     public const double EditorWidth = 180;
 
+    /// <summary>設定パネルの文字サイズ（DIP。 MewUI のテーマ既定値と同じにして UI 層をまたいで揃える）。</summary>
+    public const double FontSize = 12;
+
     /// <summary>領域の見出しと中身を縦に並べる。</summary>
     /// <param name="title">領域の見出し。</param>
     /// <param name="rows">中身の行。</param>
@@ -38,7 +41,7 @@ public static class SampleSettings
         }
 
         var section = new StackPanel { Spacing = 6 };
-        section.Children.Add(new TextBlock { Text = title, FontWeight = FontWeight.Bold, FontSize = 12 });
+        section.Children.Add(new TextBlock { Text = title, FontWeight = FontWeight.Bold, FontSize = FontSize });
         section.Children.Add(body);
         return section;
     }
@@ -55,7 +58,7 @@ public static class SampleSettings
     /// <returns>チェック ボックス。</returns>
     public static Control Check(string label, bool initial, Action<bool> apply)
     {
-        var check = new CheckBox { Content = label, IsChecked = initial };
+        var check = new CheckBox { Content = label, IsChecked = initial, FontSize = FontSize };
         check.IsCheckedChanged += (_, _) => apply(check.IsChecked == true);
 
         // 初期値を対象へ反映する（対象の既定値とチェックの初期値が違う場合に表示と状態がずれないようにする）
@@ -80,6 +83,7 @@ public static class SampleSettings
             Width = 52,
             VerticalAlignment = VerticalAlignment.Center,
             Text = Format(initial, isInteger),
+            FontSize = FontSize,
         };
 
         var slider = new Avalonia.Controls.Slider
@@ -91,6 +95,7 @@ public static class SampleSettings
             TickFrequency = step,
             IsSnapToTickEnabled = true,
             VerticalAlignment = VerticalAlignment.Center,
+            FontSize = FontSize,
         };
         slider.PropertyChanged += (_, e) =>
         {
@@ -150,7 +155,7 @@ public static class SampleSettings
     /// <returns>項目名とコンボ ボックスを並べた行。</returns>
     public static Control Choice(string label, string[] choices, int selectedIndex, Action<int> apply)
     {
-        var combo = new ComboBox { ItemsSource = choices, SelectedIndex = selectedIndex, Width = EditorWidth };
+        var combo = new ComboBox { ItemsSource = choices, SelectedIndex = selectedIndex, Width = EditorWidth, FontSize = FontSize };
         combo.SelectionChanged += (_, _) => apply(combo.SelectedIndex);
         return Row(label, combo);
     }
@@ -162,7 +167,7 @@ public static class SampleSettings
     /// <returns>項目名と入力欄を並べた行。</returns>
     public static Control Text(string label, string initial, Action<string> apply)
     {
-        var input = new TextBox { Text = initial, Width = EditorWidth };
+        var input = new TextBox { Text = initial, Width = EditorWidth, FontSize = FontSize };
         input.TextChanged += (_, _) => apply(input.Text ?? string.Empty);
         return Row(label, input);
     }
@@ -175,7 +180,7 @@ public static class SampleSettings
         var panel = new StackPanel { Spacing = 6 };
         foreach (var (text, action) in buttons)
         {
-            var button = new Button { Content = text, HorizontalAlignment = HorizontalAlignment.Stretch };
+            var button = new Button { Content = text, HorizontalAlignment = HorizontalAlignment.Stretch, FontSize = FontSize };
             button.Click += (_, _) => action();
             panel.Children.Add(button);
         }
@@ -200,6 +205,7 @@ public static class SampleSettings
                     Width = LabelWidth,
                     VerticalAlignment = VerticalAlignment.Center,
                     TextWrapping = TextWrapping.Wrap,
+                    FontSize = FontSize,
                 },
                 control,
             },

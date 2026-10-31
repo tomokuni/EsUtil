@@ -195,6 +195,7 @@ internal static class MainWindow
 
         // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
         var samples = new StackPanel().Vertical().Spacing(6).Children(
+            SampleSettings.Choice("ログ レベル", [.. SampleLogging.LevelChoices], 1, logging.SetMinimumLevel),
             SampleSettings.Buttons(
                 ("再描画を要求", () => loupe.InvalidateVisual()),
                 ("ソースを設定して再表示", () =>

@@ -16,6 +16,10 @@ public static class SampleSettings
     /// <summary>編集 UI の幅（ピクセル）。</summary>
     public const int EditorWidth = 180;
 
+    /// <summary>設定パネルの文字サイズ（DIP。 他の UI 層と同じ 12 DIP）。</summary>
+    /// <remarks>WinForms の既定フォントは 9pt（= 12 DIP）であるため、明示の指定は行わず本値で意図を残す。</remarks>
+    public const double FontSize = 12;
+
     /// <summary>領域の見出しと中身を縦に並べる。</summary>
     /// <param name="title">領域の見出し。</param>
     /// <param name="rows">中身の行。</param>

@@ -61,33 +61,121 @@
       "problemMatcher": []
     },
     {
-      "label": "ビルド（AvaloniaUI の UI 層）",
-      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 Debug で作り直す",
+      "label": "ビルド（AvaloniaUI / ColorComboBox）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
-      "command": "dotnet build EsUtil.Ui.AvaloniaUI/EsUtil.Ui.AvaloniaUI.slnx",
+      "command": "dotnet build EsUtil.Ui.AvaloniaUI/ColorComboBox/sample/EsUtil.Ui.AvaloniaUI.ColorComboBox.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "ビルド（MewUI の UI 層）",
-      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 Debug で作り直す",
+      "label": "ビルド（AvaloniaUI / Loupe）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
-      "command": "dotnet build EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx",
+      "command": "dotnet build EsUtil.Ui.AvaloniaUI/Loupe/sample/EsUtil.Ui.AvaloniaUI.Loupe.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "ビルド（WinUI3 の UI 層）",
-      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 Debug で作り直す",
+      "label": "ビルド（AvaloniaUI / Marquee）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
-      "command": "dotnet build EsUtil.Ui.WinUI3/EsUtil.Ui.WinUI3.slnx",
+      "command": "dotnet build EsUtil.Ui.AvaloniaUI/Marquee/sample/EsUtil.Ui.AvaloniaUI.Marquee.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "ビルド（WinForms の UI 層）",
-      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 Debug で作り直す",
+      "label": "ビルド（AvaloniaUI / Thumbnail）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
-      "command": "dotnet build EsUtil.Ui.WinForms/EsUtil.Ui.WinForms.slnx",
+      "command": "dotnet build EsUtil.Ui.AvaloniaUI/Thumbnail/sample/EsUtil.Ui.AvaloniaUI.Thumbnail.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
+
+    {
+      "label": "ビルド（MewUI / ColorComboBox）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.MewUI/ColorComboBox/sample/EsUtil.Ui.MewUI.ColorComboBox.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（MewUI / Loupe）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.MewUI/Loupe/sample/EsUtil.Ui.MewUI.Loupe.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（MewUI / Marquee）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.MewUI/Marquee/sample/EsUtil.Ui.MewUI.Marquee.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（MewUI / Thumbnail）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.MewUI/Thumbnail/sample/EsUtil.Ui.MewUI.Thumbnail.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+
+    {
+      "label": "ビルド（WinUI3 / ColorComboBox）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinUI3/ColorComboBox/sample/EsUtil.Ui.WinUI3.ColorComboBox.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（WinUI3 / ColumnPacking）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinUI3/ColumnPacking/sample/EsUtil.Ui.WinUI3.ColumnPacking.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（WinUI3 / Loupe）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinUI3/Loupe/sample/EsUtil.Ui.WinUI3.Loupe.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（WinUI3 / Marquee）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（WinUI3 / Thumbnail）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinUI3/Thumbnail/sample/EsUtil.Ui.WinUI3.Thumbnail.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+
+    {
+      "label": "ビルド（WinForms / Loupe）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinForms/Loupe/sample/EsUtil.Ui.WinForms.Loupe.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（WinForms / Marquee）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinForms/Marquee/sample/EsUtil.Ui.WinForms.Marquee.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（WinForms / Thumbnail）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinForms/Thumbnail/sample/EsUtil.Ui.WinForms.Thumbnail.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+
     {
       "label": "テスト実行（全プロジェクト）",
       "type": "shell",

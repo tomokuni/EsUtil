@@ -919,11 +919,14 @@ public class LoupeControlTests
 
         var label = LabelElement(control);
 
-        // 背景の大きさはコアが「実測幅 + 内側余白」で決める（本コントロールは自 UI の API で実測して渡す）
+        // 背景の大きさはコアが「実測幅 + 内側余白」で決める（本コントロールは自 UI の API で実測して渡す）。
+        // 実際に描く文字が測定値より大きい場合に欠けないよう、計画の実寸は**最小値**として使い、要素は文字に合わせて伸ばす
         var text = new FormattedText(
             "(12, 34)", CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
             Typeface.Default, control.Appearance.CoordLabelFontSize, Brushes.White);
-        Assert.True(label.Width > text.Width);
+        Assert.True(label.MinWidth > text.Width);
+        Assert.True(double.IsNaN(label.Width));
+        Assert.True(double.IsNaN(label.Height));
 
         // 左上（基準点はルーペの左上から 2 DIP。 描画層が配置を単一所有する）
         Assert.Equal(2.0, label.Margin.Left, 1);

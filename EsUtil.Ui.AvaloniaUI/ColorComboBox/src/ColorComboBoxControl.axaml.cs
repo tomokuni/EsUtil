@@ -503,8 +503,16 @@ public sealed partial class ColorComboBoxControl : UserControl
     }
 
     /// <summary>検証エラーの強調を枠線へ反映する。</summary>
+    /// <remarks>
+    /// <b>Avalonia の標準の方法に対応する</b>: 検証エラーは <c>:error</c> 疑似クラスで表す<br/>
+    /// （<c>DataValidationErrors</c> と同じ疑似クラスであり、利用側のテーマ・スタイルが <c>Border:error</c> で装飾できる）。<br/>
+    /// <b>強調の可否は <see cref="HighlightBorderOnError"/> が決める</b>: false の間は疑似クラスも付けない<br/>
+    /// （既定は無効。 有効にすると同梱のスタイルが枠線を赤にする）。
+    /// </remarks>
     private void UpdateBorderValidationVisual()
     {
-        Frame.Classes.Set("validation-error", HighlightBorderOnError && HasValidationError);
+        var hasError = HighlightBorderOnError && HasValidationError;
+        Frame.Classes.Set("validation-error", hasError);
+        ((IPseudoClasses)Frame.Classes).Set(":error", hasError);
     }
 }

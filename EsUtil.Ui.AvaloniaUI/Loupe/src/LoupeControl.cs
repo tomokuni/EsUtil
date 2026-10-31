@@ -373,8 +373,14 @@ public sealed class LoupeControl : Panel
         border.Background = SolidColorBrushCache.GetOrCreate(placement.BackgroundColor);
         border.CornerRadius = new CornerRadius(placement.CornerRadius);
         border.Padding = new Thickness(placement.PaddingX, placement.PaddingY);
-        border.Width = placement.DipRect.Width;
-        border.Height = placement.DipRect.Height;
+
+        // 寸法は「計画の実寸以上・文字に合わせて伸びる」にする
+        // （計画の実寸は測定 API の値であり、TextBlock が実際に描く高さより小さいことがある。
+        //  固定すると文字の下端・右端が欠ける。 実測 2026-10-31）
+        border.Width = double.NaN;
+        border.Height = double.NaN;
+        border.MinWidth = placement.DipRect.Width;
+        border.MinHeight = placement.DipRect.Height;
         border.Margin = new Thickness(placement.DipRect.X, placement.DipRect.Y, 0, 0);
         border.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
         border.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;

@@ -86,6 +86,8 @@ public sealed class SampleLogPanel : Grid
         }
 
         _text.Text = string.Join(Environment.NewLine, _displayed);
-        _scroll.ChangeView(null, _scroll.ScrollableHeight, null);
+
+        // 最新の行が見える位置までスクロールする（範囲は ChangeView が現在の拡張へ丸める）
+        _scroll.ChangeView(null, double.MaxValue, null);
     }
 }

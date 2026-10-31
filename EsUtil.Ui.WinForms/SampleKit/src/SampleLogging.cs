@@ -26,24 +26,69 @@ public sealed class SampleLogging : IDisposable
     /// <summary>Serilog のロガー（破棄の対象）。</summary>
     private readonly Logger _serilog;
 
+    /// <summary>実行中に切り替えられる最小レベル（サンプルの設定パネルが操作する）。</summary>
+    private readonly LoggingLevelSwitch _levelSwitch = new(LogEventLevel.Debug);
+
     /// <summary>ログを初期化する。</summary>
     /// <param name="capacity">バッファが保持する行の上限。</param>
     public SampleLogging(int capacity = 2000)
     {
         _buffer = new SampleLogBuffer(capacity);
         _serilog = new LoggerConfiguration()
-            .MinimumLevel.Debug()
+            .MinimumLevel.ControlledBy(_levelSwitch)
             .WriteTo.Sink(new SampleLogBufferSink(_buffer))
             .CreateLogger();
 
         _factory = LoggerFactory.Create(builder =>
         {
-            builder.SetMinimumLevel(LogLevel.Debug);
+            builder.SetMinimumLevel(LogLevel.Trace);
             builder.AddSerilog(_serilog, dispose: false);
         });
 
         Logger = _factory.CreateLogger("Sample");
     }
+
+    /// <summary>選択できるログ レベルの一覧（設定パネルの選択肢）。</summary>
+    public static IReadOnlyList<string> LevelChoices { get; } = ["Trace", "Debug", "Information", "Warning", "Error"];
+
+    /// <summary>表示する最小レベルを取得または設定する（実行中に切り替えられる）。</summary>
+    /// <remarks>
+    /// <b>Trace は入力のたびに出力される</b>ため、既定の Debug のままにするとログ欄が溢れて<br/>
+    /// ポインターの追従が落ちる（実測 2026-10-31）。 表示レベルはサンプルの設定パネルから切り替える。
+    /// </remarks>
+    public LogLevel MinimumLevel
+    {
+        get => _levelSwitch.MinimumLevel switch
+        {
+            LogEventLevel.Verbose => LogLevel.Trace,
+            LogEventLevel.Debug => LogLevel.Debug,
+            LogEventLevel.Information => LogLevel.Information,
+            LogEventLevel.Warning => LogLevel.Warning,
+            LogEventLevel.Error => LogLevel.Error,
+            _ => LogLevel.Critical,
+        };
+        set => _levelSwitch.MinimumLevel = value switch
+        {
+            LogLevel.Trace => LogEventLevel.Verbose,
+            LogLevel.Debug => LogEventLevel.Debug,
+            LogLevel.Information => LogEventLevel.Information,
+            LogLevel.Warning => LogEventLevel.Warning,
+            LogLevel.Error => LogEventLevel.Error,
+            _ => LogEventLevel.Fatal,
+        };
+    }
+
+    /// <summary>一覧のインデックスで最小レベルを設定する（設定パネルの選択肢の位置）。</summary>
+    /// <param name="index">選択されたインデックス。</param>
+    public void SetMinimumLevel(int index)
+        => MinimumLevel = index switch
+        {
+            0 => LogLevel.Trace,
+            1 => LogLevel.Debug,
+            2 => LogLevel.Information,
+            3 => LogLevel.Warning,
+            _ => LogLevel.Error,
+        };
 
     /// <summary>コントロールへ設定するロガー。</summary>
     public ILogger Logger { get; }

@@ -35,6 +35,9 @@ public sealed class SampleLogPanel : StackPanel
     /// <summary>バッファを取り出すための一時領域。</summary>
     private readonly List<string> _pending = [];
 
+    /// <summary>末尾へ寄せる要求が残っているかどうか（レイアウト確定後の次の間隔で実行する）。</summary>
+    private bool _scrollPending;
+
     /// <summary>ログ パネルを初期化する。</summary>
     /// <param name="buffer">表示するバッファ。</param>
     /// <exception cref="ArgumentNullException"><paramref name="buffer"/> が null の場合。</exception>
@@ -59,6 +62,14 @@ public sealed class SampleLogPanel : StackPanel
     /// <summary>バッファから行を取り出して表示を更新する。</summary>
     private void Refresh()
     {
+        // 前回の更新で確定したレイアウトを使って末尾へ寄せる
+        // （文字を差し替えた直後は拡張後の高さがまだスクロール領域へ反映されていない）
+        if (_scrollPending)
+        {
+            _scroll.ScrollBy(double.MaxValue);
+            _scrollPending = false;
+        }
+
         _pending.Clear();
         if (_buffer.Drain(_pending) == 0)
         {
@@ -73,7 +84,8 @@ public sealed class SampleLogPanel : StackPanel
 
         _text.Text = string.Join(Environment.NewLine, _displayed);
 
-        // 最新の行が見える位置までスクロールする（追記のたびに末尾へ寄せる）
+        // 最新の行が見える位置までスクロールする（今すぐ寄せ、次の間隔でもう一度寄せる）
         _scroll.ScrollBy(double.MaxValue);
+        _scrollPending = true;
     }
 }

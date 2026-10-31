@@ -19,6 +19,9 @@ public static class SampleSettings
     /// <summary>編集 UI の幅（DIP）。</summary>
     public const double EditorWidth = 180;
 
+    /// <summary>設定パネルの文字サイズ（DIP。 テーマの既定値と同じ値を明示して UI 層をまたいで揃える）。</summary>
+    public const double FontSize = 12;
+
     /// <summary>領域の見出しと中身を縦に並べる。</summary>
     /// <param name="title">領域の見出し。</param>
     /// <param name="rows">中身の行。</param>
@@ -36,7 +39,7 @@ public static class SampleSettings
         body.Children(rows);
 
         var section = new StackPanel().Vertical().Spacing(6);
-        section.Children(new Label().Text(title).Bold().FontSize(12), body);
+        section.Children(new Label().Text(title).Bold().FontSize(FontSize), body);
         return section;
     }
 
@@ -52,7 +55,7 @@ public static class SampleSettings
     /// <returns>チェック ボックス。</returns>
     public static FrameworkElement Check(string label, bool initial, Action<bool> apply)
     {
-        var check = new CheckBox().IsChecked(initial).Content(label);
+        var check = new CheckBox().IsChecked(initial).Content(label).FontSize(FontSize);
         check.OnCheckedChanged(apply);
 
         // 初期値を対象へ反映する（対象の既定値とチェックの初期値が違う場合に表示と状態がずれないようにする）
@@ -72,7 +75,7 @@ public static class SampleSettings
     public static FrameworkElement Slider(
         string label, double initial, double minimum, double maximum, double step, bool isInteger, Action<double> apply)
     {
-        var value = new TextBlock().Width(52).VerticalAlignment(VerticalAlignment.Center);
+        var value = new TextBlock().Width(52).VerticalAlignment(VerticalAlignment.Center).FontSize(FontSize);
         value.Text = Format(initial, isInteger);
 
         var slider = new Slider
@@ -84,6 +87,7 @@ public static class SampleSettings
             VerticalAlignment = VerticalAlignment.Center,
         };
         slider.SmallChange(step);
+        slider.FontSize(FontSize);
         slider.ValueChanged += changed =>
         {
             value.Text = Format(changed, isInteger);
@@ -112,6 +116,7 @@ public static class SampleSettings
             .IsInteger(isInteger)
             .Width(EditorWidth);
         input.Value = initial;
+        input.FontSize(FontSize);
         input.OnValueChanged(apply);
         return Row(label, input);
     }
@@ -124,7 +129,7 @@ public static class SampleSettings
     /// <returns>項目名とコンボ ボックスを並べた行。</returns>
     public static FrameworkElement Choice(string label, string[] choices, int selectedIndex, Action<int> apply)
     {
-        var combo = new ComboBox().Items(choices);
+        var combo = new ComboBox().Items(choices).FontSize(FontSize);
         combo.SelectedIndex = selectedIndex;
         combo.OnSelectionChanged(_ => apply(combo.SelectedIndex));
         return Row(label, combo);
@@ -138,6 +143,7 @@ public static class SampleSettings
     public static FrameworkElement Text(string label, string initial, Action<string> apply)
     {
         var input = new TextBox { Text = initial, Width = EditorWidth };
+        input.FontSize(FontSize);
         input.TextChanged += text => apply(text);
         return Row(label, input);
     }
@@ -152,6 +158,7 @@ public static class SampleSettings
         {
             var button = new Button().Content(text).OnClick(action);
             button.Cursor(CursorType.Hand);
+            button.FontSize(FontSize);
             panel.Children(button);
         }
 
@@ -164,7 +171,7 @@ public static class SampleSettings
     /// <returns>並べた行。</returns>
     public static FrameworkElement Row(string label, Element control)
         => new StackPanel().Horizontal().Spacing(8).Children(
-            new Label().Text(label).Width(LabelWidth).VerticalTextAlignment(TextAlignment.Center),
+            new Label().Text(label).Width(LabelWidth).VerticalTextAlignment(TextAlignment.Center).FontSize(FontSize),
             control);
 
     /// <summary>値を表示用の文字列へ書式化する。</summary>

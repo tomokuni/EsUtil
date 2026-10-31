@@ -211,6 +211,7 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
+                SampleSettings.Choice("ログ レベル", [.. SampleLogging.LevelChoices], 1, _logging.SetMinimumLevel),
                 SampleSettings.Buttons(
                     ("再描画を要求", () => _loupe.RequestRender()),
                     ("ソースを設定して再表示", () =>

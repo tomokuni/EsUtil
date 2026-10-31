@@ -3,19 +3,20 @@ using EsUtil.Platform.Core.Imaging;
 namespace EsUtil.Ui.MewUI.Loupe.Sample.Imaging;
 
 /// <summary>ルーペの動作確認用テスト画像を生成する。</summary>
+/// <remarks>
+/// <b>画像の内容は 4 つの UI 層で同一</b>である（同じ画素・同じ位置のマーカー・同じグリッド）。<br/>
+/// 左上から右下へのグラデーションを背景とし、10px グリッド（拡大ピクセル検証用）・<br/>
+/// 50px グリッド（倍率計測用）・色付き円マーカー（ズーム確認用）を描画する。<br/>
+/// 画像外の色・十字線・枠線は <c>LoupeControl</c> 側が描画する。<br/>
+/// <b>読み取りの面で返す理由</b>: 生成（ピクセルの描画）が終わった後は書き換えないため、凍結して<br/>
+/// 読み取り専用の面へ 0 コピーで渡す（書き換え可能の実体はその場で解放する）。
+/// </remarks>
 internal static class TestImageFactory
 {
     /// <summary>グラデーション＋グリッド＋マーカー付きのテスト画像を生成する。</summary>
     /// <param name="width">画像の幅（ピクセル）。</param>
     /// <param name="height">画像の高さ（ピクセル）。</param>
     /// <returns>生成した画像（読み取りの面。 呼び出し側が保持して破棄する）。</returns>
-    /// <remarks>
-    /// 左上から右下へのグラデーションを背景とし、<br/>
-    /// 10px グリッド（拡大ピクセル検証用）・50px グリッド（倍率計測用）・色付き円マーカー（ズーム確認用）を描画する。<br/>
-    /// 画像外の色や十字線・枠線は <c>LoupeControl</c> 側が描画する。<br/>
-    /// <b>読み取りの面で返す理由</b>: 生成（ピクセルの描画）が終わった後は書き換えないため、凍結して
-    /// 読み取り専用の面へ 0 コピーで渡す（書き換え可能の実体はその場で解放する）。
-    /// </remarks>
     public static EsReadOnlyBitmap Create(int width = 800, int height = 600)
     {
         var bitmap = EsBitmap.Create(width, height);
@@ -26,9 +27,9 @@ internal static class TestImageFactory
             {
                 // 左上から右下へのグラデーション背景
                 var t = (x + y) / (double)(width + height);
-                var r = (byte)(t * 200 + 30);
-                var g = (byte)((1.0 - ((double)x / width)) * 140 + 50);
-                var b = (byte)(((double)y / height) * 180 + 40);
+                var r = (byte)((t * 200) + 30);
+                var g = (byte)(((1.0 - ((double)x / width)) * 140) + 50);
+                var b = (byte)((((double)y / height) * 180) + 40);
 
                 // 色付きマーカー（円）: ズーム確認用
                 if (InCircle(x, y, 120, 110, 45))
@@ -82,6 +83,6 @@ internal static class TestImageFactory
     {
         var dx = x - cx;
         var dy = y - cy;
-        return (dx * dx) + (dy * dy) <= radius * radius;
+        return ((dx * dx) + (dy * dy)) <= (radius * radius);
     }
 }
