@@ -103,7 +103,7 @@ public sealed class ThumbnailLayoutResult
     /// <returns>項目の添字。 どの項目にも当たらない場合は -1。</returns>
     /// <remarks>
     /// 外枠（ホバー帯）で判定する。 項目の外枠は隙間なく並ぶため、隣り合う項目の間で<br/>
-    /// 「どこにも当たらない」帯は生じない（<see cref="ThumbnailOptions.ItemSpacing"/> を空けた場合を除く）。<br/>
+    /// 「どこにも当たらない」帯は生じない（<see cref="ThumbnailOptions.ColumnSpace"/> を空けた場合を除く）。<br/>
     /// 外枠の下端は行の中で同じ値（行の高さ）であり、行の順に増える。 下端で行を求め、<br/>
     /// その行の列（<see cref="Columns"/> まで）だけを調べる（行内で上端は揃わないため、上端では行を決められない）。<br/>
     /// </remarks>

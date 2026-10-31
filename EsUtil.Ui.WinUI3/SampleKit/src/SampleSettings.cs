@@ -106,6 +106,9 @@ public static class SampleSettings
             apply(e.NewValue);
         };
 
+        // 初期値を対象へ反映する（対象の既定値とスライダーの初期値が違う場合に表示と状態がずれないようにする）
+        apply(initial);
+
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         row.Children.Add(slider);
         row.Children.Add(value);

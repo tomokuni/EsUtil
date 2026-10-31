@@ -184,7 +184,7 @@
 using EsUtil.Feature.Thumbnail;
 
 var presenter = new ThumbnailPresenter(
-    options: ThumbnailOptions.Default with { ItemSpacing = 4 },
+    options: ThumbnailOptions.Default with { ColumnSpace = 4 },
     appearance: ThumbnailAppearance.Default with { HighlightedLabelArgb = 0xFF0078D4 });
 
 // 影の算法を差し替える（ここでは影を描かない）

@@ -84,7 +84,7 @@ var list = new ThumbnailControl
 {
     ImageWidth = 96,
     IsDarkTheme = true,
-    Options = ThumbnailOptions.Default with { ItemSpacing = 4 },
+    Options = ThumbnailOptions.Default with { ColumnSpace = 4 },
 };
 
 list.ItemActivated += (_, e) => Open((string)e.Tag!);

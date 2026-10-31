@@ -123,7 +123,8 @@ classDiagram
     }
     class ThumbnailOptions {
         +ItemPadding double
-        +ItemSpacing double
+        +RowSpace double
+        +ColumnSpace double
         +LabelHeight double
         +LabelHorizontalPadding double
         +SurroundExtent double
@@ -163,14 +164,14 @@ sequenceDiagram
     UI->>Layout: Resolve(availableWidth, imageWidth, imageHeights, options)
     Layout->>Options: SlotInset / MinimumImageWidth / MaximumColumns を読む
     Layout->>Layout: 画像の幅を下限へ引き上げる
-    Layout->>Layout: 外枠の幅（画像 + 余白 × 2）から列数を決める
+    Layout->>Layout: 外枠の幅（画像 + 余白 × 2）と列間から列数を決める
     Layout->>Layout: 行ごとに最大アイテム高さを求める
     Layout->>Layout: 行内で下端揃えの矩形を並べる
     Layout-->>UI: ThumbnailLayoutResult
 ```
 
 1. `imageWidth` を `MinimumImageWidth` 以上へ引き上げます。
-2. 外枠の幅（`imageWidth` + `SlotInset` × 2）と `ItemSpacing` から列数を決めます（`MaximumColumns` で上限を切る）。
+2. 外枠の幅（`imageWidth` + `SlotInset` × 2）と `ColumnSpace` から列数を決めます（`MaximumColumns` で上限を切る）。
 3. 行ごとに「その行の最大アイテム高さ」を求めます。
 4. 各項目を**行内で下端揃え**にし、外枠・画像・名前の矩形を作ります。
 5. 内容の寸法（`ContentSize`）は「列数 × 外枠の幅 + 間隔」と「行の高さの合計」に `ContentPadding` を加えた値です。

@@ -74,11 +74,10 @@ public sealed class MainWindow : Window
         var zoom = 1.0;
 
         var backdrop = TestImageFactory.Create(ImageWidth, ImageHeight);
+        // 大きさは親（surface）に合わせる（ズームで surface を広げると画像も同じ倍率で広がる）
         _image = new Image
         {
             Source = backdrop.ToAvaloniaBitmap(),
-            Width = ImageWidth,
-            Height = ImageHeight,
             Stretch = Stretch.Fill,
         };
 
@@ -165,7 +164,6 @@ public sealed class MainWindow : Window
                     // 倍率は「対象座標 / ローカル DIP」。 ズームは画像を倍率ぶん大きく描くため、1 DIP が覆う対象座標は 1 / ズームになる
                     _marquee.SetCoordTransform(CoordTransform.ClientToSource(() => 1.0 / zoom, () => new EsSize(ImageWidth, ImageHeight)));
                 }),
-                SampleSettings.Slider("表示スケール", 1.0, 0.5, 2.0, 0.1, false, value => _marquee.DisplayScaleScaling = value),
                 SampleSettings.Slider("ハンドル サイズ", 10, 2, 30, 1, true, value => _marquee.Options = _marquee.Options with { HandleSize = value }),
                 SampleSettings.Slider("ハンドル枠の太さ", 1.5, 0.5, 8, 0.5, false, value => _marquee.Options = _marquee.Options with { HandleBorderThickness = value }),
                 SampleSettings.Slider("ヒット半径", 12, 2, 40, 1, true, value => _marquee.Options = _marquee.Options with { HandleHitRadius = value }),
@@ -193,6 +191,7 @@ public sealed class MainWindow : Window
                 ColorChoice("サイズ ラベルの色", 1, index => Apply(appearance with { SizeLabelColor = ResolveColor(index, appearance.SizeLabelColor) })),
                 ColorChoice("サイズ ラベルの背景色", 5, index => Apply(appearance with { SizeLabelBackgroundColor = ResolveColor(index, appearance.SizeLabelBackgroundColor) })),
                 SampleSettings.Slider("サイズ ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { SizeLabelFontSize = value })),
+                SampleSettings.Slider("サイズ ラベルの表示スケール", 0, 0, 2, 0.1, false, value => _marquee.DisplayScaleScaling = value),
                 SampleSettings.Check("座標ラベルを表示", true, value => Apply(appearance with { ShowCoordLabel = value })),
                 ColorChoice("座標ラベルの色", 1, index => Apply(appearance with { CoordLabelColor = ResolveColor(index, appearance.CoordLabelColor) })),
                 ColorChoice("座標ラベルの背景色", 5, index => Apply(appearance with { CoordLabelBackgroundColor = ResolveColor(index, appearance.CoordLabelBackgroundColor) })),
@@ -213,7 +212,7 @@ public sealed class MainWindow : Window
             {
                 new TextBlock
                 {
-                    Text = "ドラッグ: 選択 / 矢印キー: nudge / Enter: 確定 / Escape: キャンセル",
+                    Text = "ドラッグ: 選択 / マウスを押したままの矢印キー: 位置の微調整 / Enter: 確定 / Escape: キャンセル",
                     FontSize = 11,
                     TextWrapping = TextWrapping.Wrap,
                 },

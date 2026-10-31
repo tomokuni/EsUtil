@@ -54,7 +54,11 @@ public sealed class SampleLogPanel : Grid
         this.Columns("*");
         this.Rows("Auto,*");
 
-        _list.FontSize(11);
+        // 文字サイズは設定パネル（SampleSettings.FontSize）へ揃える
+        _list.FontSize(SampleSettings.FontSize);
+
+        // 行の高さは文字が切れない最小の高さにする（既定の行高は余白が大きく、1 画面に入る行数が減る）
+        _list.ItemHeight(SampleSettings.FontSize + 8);
         _list.SelectionMode = ItemsSelectionMode.Multiple;
 
         var header = CreateHeader();
@@ -73,7 +77,7 @@ public sealed class SampleLogPanel : Grid
     private StackPanel CreateHeader()
     {
         var copy = new Button().Content("コピー");
-        copy.FontSize(11);
+        copy.FontSize(SampleSettings.FontSize);
         copy.OnClick(CopySelectionOrAll);
 
         return new StackPanel().Horizontal().Spacing(8).Children(

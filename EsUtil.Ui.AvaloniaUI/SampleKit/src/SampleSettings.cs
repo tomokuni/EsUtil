@@ -115,6 +115,9 @@ public static class SampleSettings
             apply(slider.Value);
         };
 
+        // 初期値を対象へ反映する（対象の既定値とスライダーの初期値が違う場合に表示と状態がずれないようにする）
+        apply(initial);
+
         return Row(label, new StackPanel
         {
             Orientation = Orientation.Horizontal,

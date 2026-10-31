@@ -59,6 +59,26 @@ public class ThumbnailLayoutTests
         Assert.Equal(layout.Label(0).Bottom, layout.Label(1).Bottom, 6);
     }
 
+    /// <summary>行間と列間が互いに独立して効くことを検証する。</summary>
+    [Fact]
+    public void 行間と列間は別々に効く()
+    {
+        // 2 列 × 2 行になる幅。 行間だけを広げても横の間隔は変わらない
+        var options = ThumbnailOptions.Default with { RowSpace = 20, ColumnSpace = 4 };
+        var layout = ThumbnailLayout.Resolve(260, 96, [96, 96, 96, 96], options);
+
+        Assert.Equal(2, layout.Columns);
+
+        // 列間 = 列の間隔（外枠の右端から次の外枠の左端まで）
+        var first = layout.Slot(0);
+        var second = layout.Slot(1);
+        Assert.Equal(4, second.X - first.Right, 6);
+
+        // 行間 = 行の間隔（上の行の外枠の下端から次の行の外枠の下端まで - 行の高さ）
+        var third = layout.Slot(2);
+        Assert.Equal(20, third.Bottom - first.Bottom - first.Height, 6);
+    }
+
     /// <summary>画像と名前の矩形が項目の外枠の内側に置かれることを検証する。</summary>
     [Fact]
     public void 画像と名前の矩形は外枠の内側に置かれる()

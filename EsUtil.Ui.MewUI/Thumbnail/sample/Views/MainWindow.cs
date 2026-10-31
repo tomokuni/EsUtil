@@ -45,6 +45,9 @@ internal static class MainWindow
         thumbnails.SelectionChanged += (_, _) =>
         {
             selectionRow.SetValue(thumbnails.SelectedIndex);
+
+            // クリックした項目を「現在項目」にする（現在項目のラベルが太字になる。 ブラウザでいえば開いている項目）
+            thumbnails.CurrentIndex = thumbnails.SelectedIndex;
             status.Text = $"選択: {thumbnails.SelectedIndex}（{thumbnails.ItemCount} 件中）";
         };
         thumbnails.CurrentIndexChanged += (_, _) => currentRow.SetValue(thumbnails.CurrentIndex);
@@ -66,7 +69,8 @@ internal static class MainWindow
             selectionRow.Element,
             currentRow.Element,
             SampleSettings.Slider("項目の余白", 12, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { ItemPadding = value }),
-            SampleSettings.Slider("項目の間隔", 0, 0, 32, 1, true, value => thumbnails.Options = thumbnails.Options with { ItemSpacing = value }),
+            SampleSettings.Slider("行間", 8, 0, 32, 1, true, value => thumbnails.Options = thumbnails.Options with { RowSpace = value }),
+            SampleSettings.Slider("列間", 8, 0, 32, 1, true, value => thumbnails.Options = thumbnails.Options with { ColumnSpace = value }),
             SampleSettings.Slider("ラベルの高さ", 30, 0, 48, 1, true, value => thumbnails.Options = thumbnails.Options with { LabelHeight = value }),
             SampleSettings.Slider("ラベルの左右の余白", 1, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { LabelHorizontalPadding = value }),
             SampleSettings.Slider("外側の余白の広がり", 10, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { SurroundExtent = value }),

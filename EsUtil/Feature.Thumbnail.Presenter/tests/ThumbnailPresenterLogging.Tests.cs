@@ -51,15 +51,15 @@ public class ThumbnailPresenterLoggingTests
         {
             presenter.LogPrefix = "[Test]";
             logger.Messages.Clear();
-            presenter.Options = presenter.Options with { ItemSpacing = 6 };
+            presenter.Options = presenter.Options with { ColumnSpace = 6 };
         }
         finally
         {
             presenter.LogPrefix = original;
         }
 
-        Assert.Equal(["[Test] Setting: ItemSpacing 0 → 6"], logger.Messages);
-        Assert.Equal(6, presenter.Options.ItemSpacing);
+        Assert.Equal(["[Test] Setting: ColumnSpace 8 → 6"], logger.Messages);
+        Assert.Equal(6, presenter.Options.ColumnSpace);
     }
 
     /// <summary>同じインスタンスの再設定では記録しないことを検証する。</summary>

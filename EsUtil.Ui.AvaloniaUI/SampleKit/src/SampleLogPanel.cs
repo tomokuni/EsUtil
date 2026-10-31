@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Styling;
 using Avalonia.Input.Platform;
 using Avalonia.Threading;
 
@@ -31,7 +33,8 @@ public sealed class SampleLogPanel : DockPanel
     private readonly SampleLogBuffer _buffer;
 
     /// <summary>行を表示する一覧（見えている行だけを実体化する）。</summary>
-    private readonly ListBox _list = new() { FontSize = 11, SelectionMode = SelectionMode.Multiple };
+    // 文字サイズは設定パネル（SampleSettings.FontSize）へ揃える
+    private readonly ListBox _list = new() { FontSize = SampleSettings.FontSize, SelectionMode = SelectionMode.Multiple };
 
     /// <summary>バッファを取り出すための一時領域。</summary>
     private readonly List<string> _pending = [];
@@ -44,7 +47,17 @@ public sealed class SampleLogPanel : DockPanel
         ArgumentNullException.ThrowIfNull(buffer);
         _buffer = buffer;
 
-        var copy = new Button { Content = "コピー", FontSize = 11 };
+        // 行の高さは文字が切れない最小の高さにする（テーマの既定は上下の余白が大きく、1 画面に入る行数が減る）
+        _list.Styles.Add(new Style(x => x.OfType<ListBoxItem>())
+        {
+            Setters =
+            {
+                new Setter(TemplatedControl.PaddingProperty, new Avalonia.Thickness(4, 0)),
+                new Setter(Avalonia.Layout.Layoutable.MinHeightProperty, SampleSettings.FontSize + 8),
+            },
+        });
+
+        var copy = new Button { Content = "コピー", FontSize = SampleSettings.FontSize };
         copy.Click += (_, _) => _ = CopySelectionOrAllAsync();
 
         var header = new StackPanel

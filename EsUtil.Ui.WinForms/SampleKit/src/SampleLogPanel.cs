@@ -18,8 +18,8 @@ public sealed class SampleLogPanel : TableLayoutPanel
     /// <summary>表示の更新間隔（ミリ秒）。</summary>
     private const int RefreshInterval = 200;
 
-    /// <summary>本文の文字サイズ（pt。 11 DIP = 8.25 pt。 他 UI のログと同じ大きさにする）。</summary>
-    private const float LogFontSizePoint = 8.25f;
+    /// <summary>本文の文字サイズ（pt。 12 DIP = 9 pt。 設定パネルの文字サイズと同じ大きさにする）。</summary>
+    private const float LogFontSizePoint = 9f;
 
     /// <summary>表示する行（末尾が最新）。</summary>
     private readonly List<string> _displayed = [];

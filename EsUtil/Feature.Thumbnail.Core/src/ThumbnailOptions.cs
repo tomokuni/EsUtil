@@ -21,7 +21,7 @@ public sealed record ThumbnailOptions
     /// <value>余白（DIP）。 既定は 12。 負の値は 0 として扱う。</value>
     /// <remarks>
     /// <b>ホバー帯の内側の余白である</b>（帯を画像のすぐ外側まで広げる）。 隣り合う項目の帯の間隔は<br/>
-    /// <see cref="ItemSpacing"/> が決める（本値は帯の内側だけに効く）。 画像の影（<see cref="SurroundExtent"/>）が<br/>
+    /// <see cref="RowSpace"/> / <see cref="ColumnSpace"/> が決める（本値は帯の内側だけに効く）。 画像の影（<see cref="SurroundExtent"/>）が<br/>
     /// 本値より広い場合は、影が切れないよう <see cref="SlotInset"/> が広がる。
     /// </remarks>
     public double ItemPadding
@@ -30,13 +30,28 @@ public sealed record ThumbnailOptions
         init => field = CoerceNonNegative(value);
     } = 12;
 
-    /// <summary>隣り合う項目の外枠の間に確保する間隔を取得する。</summary>
-    /// <value>間隔（DIP）。 既定は 0。 負の値は 0 として扱う。</value>
-    public double ItemSpacing
+    /// <summary>隣り合う行の外枠の間に確保する間隔（行間）を取得する。</summary>
+    /// <value>間隔（DIP）。 既定は 8。 負の値は 0 として扱う。</value>
+    /// <remarks>
+    /// <b>列間とは別に定義する</b>（<see cref="ColumnSpace"/>。 複数列の配置を持つ <c>ColumnPacking</c> と同じ考え方）。<br/>
+    /// 外枠（ホバー帯）どうしの間隔であり、帯の内側の余白は <see cref="ItemPadding"/> が決める。
+    /// </remarks>
+    public double RowSpace
     {
         get;
         init => field = CoerceNonNegative(value);
-    }
+    } = 8;
+
+    /// <summary>隣り合う列の外枠の間に確保する間隔（列間）を取得する。</summary>
+    /// <value>間隔（DIP）。 既定は 8。 負の値は 0 として扱う。</value>
+    /// <remarks>
+    /// <b>行間とは別に定義する</b>（<see cref="RowSpace"/>）。 列数の計算にも本値を使う。
+    /// </remarks>
+    public double ColumnSpace
+    {
+        get;
+        init => field = CoerceNonNegative(value);
+    } = 8;
 
     /// <summary>名前の行の高さを取得する。</summary>
     /// <value>高さ（DIP）。 既定は 30。 負の値は 0 として扱う。</value>

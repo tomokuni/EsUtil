@@ -36,7 +36,7 @@ public static class ThumbnailLayout
         var width = Math.Max(settings.MinimumImageWidth, imageWidth);
         var inset = settings.SlotInset;
         var slotWidth = width + (inset * 2);
-        var stride = slotWidth + settings.ItemSpacing;
+        var stride = slotWidth + settings.ColumnSpace;
         var padding = settings.ContentPadding;
 
         var count = imageHeights.Length;
@@ -51,7 +51,7 @@ public static class ThumbnailLayout
         var usable = Math.Max(0, availableWidth - (padding * 2));
         if (usable > 0 && stride > 0)
         {
-            columns = Math.Max(1, (int)Math.Floor((usable + settings.ItemSpacing) / stride));
+            columns = Math.Max(1, (int)Math.Floor((usable + settings.ColumnSpace) / stride));
         }
 
         if (settings.MaximumColumns > 0)
@@ -84,12 +84,17 @@ public static class ThumbnailLayout
         var images = new EsRect[count];
         var labels = new EsRect[count];
 
+        // 行の送り（行間を含む）。 最後の行の後ろには行間を入れない
         var rowTops = new double[rows];
         var y = padding;
         for (var row = 0; row < rows; row++)
         {
             rowTops[row] = y;
             y += rowHeights[row];
+            if (row < rows - 1)
+            {
+                y += settings.RowSpace;
+            }
         }
 
         for (var i = 0; i < count; i++)
@@ -109,7 +114,7 @@ public static class ThumbnailLayout
             labels[i] = new EsRect(slotX + inset, imageY + imageHeight, width, settings.LabelHeight);
         }
 
-        var contentWidth = (padding * 2) + (columns * slotWidth) + ((columns - 1) * settings.ItemSpacing);
+        var contentWidth = (padding * 2) + (columns * slotWidth) + ((columns - 1) * settings.ColumnSpace);
         var contentHeight = y + padding;
 
         return new ThumbnailLayoutResult(

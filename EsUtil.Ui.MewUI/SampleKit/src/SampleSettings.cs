@@ -94,6 +94,8 @@ public static class SampleSettings
             apply(changed);
         };
 
+        // 初期値を対象へ反映する（対象の既定値とスライダーの初期値が違う場合に表示と状態がずれないようにする）
+        apply(initial);
         return Row(label, new StackPanel().Horizontal().Spacing(8).Children(slider, value));
     }
 

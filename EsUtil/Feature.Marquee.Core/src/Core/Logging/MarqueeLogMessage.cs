@@ -61,10 +61,10 @@ internal static partial class MarqueeLogMessage
     /// <param name="handleSize">生成時のハンドルの一辺サイズ（DIP）。</param>
     /// <param name="minSelectionSize">生成時の選択矩形の最小サイズ（対象座標）。</param>
     [LoggerMessage(LogLevel.Information, "{Prefix} Facade created: HandleSize={HandleSize}, MinSelectionSize={MinSelectionSize}")]
-    private static partial void LogFacadeCreatedCore(this ILogger logger, string prefix, double handleSize, double minSelectionSize);
+    private static partial void LogFacadeCreatedCore(this ILogger logger, string prefix, string handleSize, string minSelectionSize);
 
     internal static void LogFacadeCreated(this ILogger logger, double handleSize, double minSelectionSize)
-        => logger.LogFacadeCreatedCore(Prefix, handleSize, minSelectionSize);
+        => logger.LogFacadeCreatedCore(Prefix, NumberText.Format(handleSize), NumberText.Format(minSelectionSize));
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
     /// <remarks>
@@ -88,10 +88,10 @@ internal static partial class MarqueeLogMessage
     /// <param name="clickCount">クリック数（2 = ダブルクリック）。</param>
     /// <param name="hasSelection">選択矩形の有無。</param>
     [LoggerMessage(LogLevel.Debug, "{Prefix} MouseDown: pos=({X}, {Y}) clickCount={ClickCount} hasSelection={HasSelection}")]
-    private static partial void LogMouseDownCore(this ILogger logger, string prefix, double x, double y, int clickCount, bool hasSelection);
+    private static partial void LogMouseDownCore(this ILogger logger, string prefix, string x, string y, int clickCount, bool hasSelection);
 
     internal static void LogMouseDown(this ILogger logger, double x, double y, int clickCount, bool hasSelection)
-        => logger.LogMouseDownCore(Prefix, x, y, clickCount, hasSelection);
+        => logger.LogMouseDownCore(Prefix, NumberText.Format(x), NumberText.Format(y), clickCount, hasSelection);
 
     /// <summary>ポインター解放（マウス Up）のログ。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] MouseUp: pos=({X}, {Y}) wasDragging={WasDragging} hasSelection={HasSelection}</c></remarks>
@@ -102,10 +102,10 @@ internal static partial class MarqueeLogMessage
     /// <param name="wasDragging">ドラッグ中だったかどうか。</param>
     /// <param name="hasSelection">選択矩形の有無。</param>
     [LoggerMessage(LogLevel.Debug, "{Prefix} MouseUp: pos=({X}, {Y}) wasDragging={WasDragging} hasSelection={HasSelection}")]
-    private static partial void LogMouseUpCore(this ILogger logger, string prefix, double x, double y, bool wasDragging, bool hasSelection);
+    private static partial void LogMouseUpCore(this ILogger logger, string prefix, string x, string y, bool wasDragging, bool hasSelection);
 
     internal static void LogMouseUp(this ILogger logger, double x, double y, bool wasDragging, bool hasSelection)
-        => logger.LogMouseUpCore(Prefix, x, y, wasDragging, hasSelection);
+        => logger.LogMouseUpCore(Prefix, NumberText.Format(x), NumberText.Format(y), wasDragging, hasSelection);
 
     /// <summary>ダブルクリックのログ。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] DoubleClick: pos=({X}, {Y}) inside={Inside}</c></remarks>
@@ -115,10 +115,10 @@ internal static partial class MarqueeLogMessage
     /// <param name="y">対象座標 Y。</param>
     /// <param name="inside">選択矩形の内側かどうか。</param>
     [LoggerMessage(LogLevel.Debug, "{Prefix} DoubleClick: pos=({X}, {Y}) inside={Inside}")]
-    private static partial void LogDoubleClickCore(this ILogger logger, string prefix, double x, double y, bool inside);
+    private static partial void LogDoubleClickCore(this ILogger logger, string prefix, string x, string y, bool inside);
 
     internal static void LogDoubleClick(this ILogger logger, double x, double y, bool inside)
-        => logger.LogDoubleClickCore(Prefix, x, y, inside);
+        => logger.LogDoubleClickCore(Prefix, NumberText.Format(x), NumberText.Format(y), inside);
 
     /// <summary>マウス押下直前の位置のログ（移動の高頻度ログは行わない）。</summary>
     /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Marquee] Position before MouseDown: pos=({X}, {Y})</c></remarks>
@@ -127,10 +127,10 @@ internal static partial class MarqueeLogMessage
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
     [LoggerMessage(LogLevel.Trace, "{Prefix} Position before MouseDown: pos=({X}, {Y})")]
-    private static partial void LogPositionBeforeDownCore(this ILogger logger, string prefix, double x, double y);
+    private static partial void LogPositionBeforeDownCore(this ILogger logger, string prefix, string x, string y);
 
     internal static void LogPositionBeforeDown(this ILogger logger, double x, double y)
-        => logger.LogPositionBeforeDownCore(Prefix, x, y);
+        => logger.LogPositionBeforeDownCore(Prefix, NumberText.Format(x), NumberText.Format(y));
 
     /// <summary>マウス解放直後の位置のログ（移動の高頻度ログは行わない）。</summary>
     /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Marquee] Position after MouseUp: pos=({X}, {Y})</c></remarks>
@@ -139,10 +139,10 @@ internal static partial class MarqueeLogMessage
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
     [LoggerMessage(LogLevel.Trace, "{Prefix} Position after MouseUp: pos=({X}, {Y})")]
-    private static partial void LogPositionAfterUpCore(this ILogger logger, string prefix, double x, double y);
+    private static partial void LogPositionAfterUpCore(this ILogger logger, string prefix, string x, string y);
 
     internal static void LogPositionAfterUp(this ILogger logger, double x, double y)
-        => logger.LogPositionAfterUpCore(Prefix, x, y);
+        => logger.LogPositionAfterUpCore(Prefix, NumberText.Format(x), NumberText.Format(y));
 
     /// <summary>マウスドラッグ開始（新規選択・ハンドル操作）のログ。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] DragStart: handle={Handle} pos=({X}, {Y})</c></remarks>
@@ -152,10 +152,10 @@ internal static partial class MarqueeLogMessage
     /// <param name="x">対象座標 X。</param>
     /// <param name="y">対象座標 Y。</param>
     [LoggerMessage(LogLevel.Debug, "{Prefix} DragStart: handle={Handle} pos=({X}, {Y})")]
-    private static partial void LogDragStartCore(this ILogger logger, string prefix, string handle, double x, double y);
+    private static partial void LogDragStartCore(this ILogger logger, string prefix, string handle, string x, string y);
 
     internal static void LogDragStart(this ILogger logger, string handle, double x, double y)
-        => logger.LogDragStartCore(Prefix, handle, x, y);
+        => logger.LogDragStartCore(Prefix, handle, NumberText.Format(x), NumberText.Format(y));
 
     /// <summary>キー入力（矢印キー nudge・Enter 確定・Escape キャンセル）のログ。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] KeyDown: key={Key} handled={Handled}</c></remarks>
@@ -366,7 +366,7 @@ internal static partial class MarqueeLogMessage
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="sourcePosition">移動先（対象座標）。</param>
     internal static void LogCursorMoveFailed(this ILogger logger, EsPoint sourcePosition)
-        => logger.LogCursorMoveFailedCore(Prefix, sourcePosition.X, sourcePosition.Y);
+        => logger.LogCursorMoveFailedCore(Prefix, NumberText.Format(sourcePosition.X), NumberText.Format(sourcePosition.Y));
 
     /// <summary>カーソルの移動に失敗したログ（接頭辞を引数で受ける）。</summary>
     /// <remarks>LogLevel: Warning<br/>出力書式: <c>[Marquee] Cursor move failed: source=({X}, {Y})</c></remarks>
@@ -375,7 +375,7 @@ internal static partial class MarqueeLogMessage
     /// <param name="x">移動先の X 座標（対象座標）。</param>
     /// <param name="y">移動先の Y 座標（対象座標）。</param>
     [LoggerMessage(LogLevel.Warning, "{Prefix} Cursor move failed: source=({X}, {Y})")]
-    private static partial void LogCursorMoveFailedCore(this ILogger logger, string prefix, double x, double y);
+    private static partial void LogCursorMoveFailedCore(this ILogger logger, string prefix, string x, string y);
 
     /// <summary>矩形を <c>(X, Y, W, H)</c> 形式の文字列へ整形する。</summary>
     /// <param name="rect">整形する矩形。 未指定は null。</param>

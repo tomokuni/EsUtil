@@ -27,9 +27,10 @@ public sealed class SampleLogPanel : Grid
     private readonly SampleLogBuffer _buffer;
 
     /// <summary>行を表示する一覧（見えている行だけを実体化する）。</summary>
+    // 文字サイズは設定パネル（SampleSettings.FontSize）へ揃える
     private readonly ListView _list = new()
     {
-        FontSize = 11,
+        FontSize = SampleSettings.FontSize,
         SelectionMode = ListViewSelectionMode.Extended,
     };
 
@@ -47,10 +48,16 @@ public sealed class SampleLogPanel : Grid
         ArgumentNullException.ThrowIfNull(buffer);
         _buffer = buffer;
 
+        // 行の高さは文字が切れない最小の高さにする（テーマの既定は上下の余白が大きく、1 画面に入る行数が減る）
+        var itemStyle = new Style(typeof(ListViewItem));
+        itemStyle.Setters.Add(new Setter(FrameworkElement.MinHeightProperty, SampleSettings.FontSize + 8));
+        itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(4, 0, 4, 0)));
+        _list.ItemContainerStyle = itemStyle;
+
         RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-        var copy = new Button { Content = "コピー", FontSize = 11 };
+        var copy = new Button { Content = "コピー", FontSize = SampleSettings.FontSize };
         copy.Click += (_, _) => CopySelectionOrAll();
 
         var header = new StackPanel

@@ -126,7 +126,8 @@ internal static partial class ThumbnailLogMessage
         ArgumentNullException.ThrowIfNull(newValue);
 
         logger.LogSettingChanged(nameof(ThumbnailOptions.ItemPadding), oldValue.ItemPadding, newValue.ItemPadding);
-        logger.LogSettingChanged(nameof(ThumbnailOptions.ItemSpacing), oldValue.ItemSpacing, newValue.ItemSpacing);
+        logger.LogSettingChanged(nameof(ThumbnailOptions.RowSpace), oldValue.RowSpace, newValue.RowSpace);
+        logger.LogSettingChanged(nameof(ThumbnailOptions.ColumnSpace), oldValue.ColumnSpace, newValue.ColumnSpace);
         logger.LogSettingChanged(nameof(ThumbnailOptions.LabelHeight), oldValue.LabelHeight, newValue.LabelHeight);
         logger.LogSettingChanged(
             nameof(ThumbnailOptions.LabelHorizontalPadding), oldValue.LabelHorizontalPadding, newValue.LabelHorizontalPadding);
