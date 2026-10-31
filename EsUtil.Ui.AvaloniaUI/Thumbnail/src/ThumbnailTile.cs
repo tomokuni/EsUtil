@@ -42,6 +42,12 @@ internal sealed class ThumbnailTile : Panel
     /// <summary>ツールヒントの幅の上限（DIP）。 名前が長い場合はこの幅で折り返す。</summary>
     private const double ToolTipMaxWidth = 280;
 
+    /// <summary>ツールヒントの内容を作る（長い名前は折り返す）。</summary>
+    /// <param name="text">表示する文言。</param>
+    /// <returns>ツールヒントの要素。</returns>
+    private static TextBlock CreateToolTip(string text)
+        => new() { Text = text, MaxWidth = ToolTipMaxWidth, TextWrapping = TextWrapping.Wrap };
+
     /// <summary>表示する画像（高さの計算に使う）。</summary>
     private IImage? _source;
 
@@ -75,9 +81,12 @@ internal sealed class ThumbnailTile : Panel
 
         SetImage(image);
         SetCaption(caption);
-        // ツールヒントには省略していない名前を出す（折り返して全体を読めるようにする）
-        var tip = string.IsNullOrEmpty(toolTip) ? caption : $"{caption}{Environment.NewLine}{toolTip}";
-        ToolTip.SetTip(this, new TextBlock { Text = tip, MaxWidth = ToolTipMaxWidth, TextWrapping = TextWrapping.Wrap });
+        // ツールヒントには省略していない名前を出す（折り返して全体を読めるようにする）。
+        // 子の要素がポインターを受け取るため、子にも同じ内容を設定する（親をたどって解決する実装に依存しない）
+        var tipText = string.IsNullOrEmpty(toolTip) ? caption : $"{caption}{Environment.NewLine}{toolTip}";
+        ToolTip.SetTip(this, CreateToolTip(tipText));
+        ToolTip.SetTip(_image, CreateToolTip(tipText));
+        ToolTip.SetTip(_label, CreateToolTip(tipText));
     }
 
     /// <summary>現在表示中の画像かどうかを取得する。</summary>
@@ -175,6 +184,8 @@ internal sealed class ThumbnailTile : Panel
             _shadowBands.Plan = plan.Shadow is null ? null : plan;
         }
 
+        // 文言は計画が決める（2 行に収まらない名前は拡張子を残して省略済み）
+        _label.Text = plan.Label.Text;
         _label.FontSize = plan.Label.FontSize;
         _label.FontWeight = plan.Label.IsBold ? FontWeight.Bold : FontWeight.Normal;
         _label.Padding = new Thickness(options.LabelHorizontalPadding, plan.Label.VerticalPadding);

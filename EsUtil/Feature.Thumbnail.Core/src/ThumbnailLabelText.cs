@@ -12,9 +12,13 @@ namespace EsUtil.Feature.Thumbnail;
 /// </remarks>
 public static class ThumbnailLabelText
 {
-    /// <summary>1 文字あたりの幅の見積もり（文字サイズに対する倍率）。</summary>
+    /// <summary>1 文字あたりの幅の見積もり（通常の太さ。 文字サイズに対する倍率）。</summary>
     /// <value>0.62（英数字の平均より広めに取り、切り詰めが足りない状態を避ける）。</value>
     public const double AverageCharWidthFactor = 0.62;
+
+    /// <summary>1 文字あたりの幅の見積もり（太字。 文字サイズに対する倍率）。</summary>
+    /// <value>0.68（太字は同じ文字でも幅が広いため、通常より大きい係数を使う）。</value>
+    public const double BoldCharWidthFactor = 0.68;
 
     /// <summary>行送り（文字サイズに対する倍率）。</summary>
     /// <value>1.4（文字が切れない最小の行送り）。</value>
@@ -30,21 +34,24 @@ public static class ThumbnailLabelText
 
     /// <summary>名前行へ収まるよう文言を整える。</summary>
     /// <param name="text">表示する名前（null または空の場合はそのまま返す）。</param>
-    /// <param name="width">名前行の幅（DIP）。</param>
+    /// <param name="width">名前を表示できる幅（DIP。 名前の行の幅から左右の余白を除いた値）。</param>
     /// <param name="fontSize">文字サイズ（DIP）。</param>
     /// <param name="maxLines">折り返して表示する最大行数。</param>
+    /// <param name="isBold">太字で表示するかどうか（太字は幅が広いため、少なめに見積もる）。</param>
     /// <returns>2 行に収まる名前。 収まらない場合は最後のピリオドより前を省略した名前。</returns>
     /// <remarks>
-    /// 幅・文字サイズ・行数が正でない場合は切り詰めない（寸法が未確定の間に文言を変えない）。
+    /// 幅・文字サイズ・行数が正でない場合は切り詰めない（寸法が未確定の間に文言を変えない）。<br/>
+    /// 文字幅は文字サイズから見積もる（描画 API を持たないため）。 実際の折り返し位置とずれないよう、余裕のある係数を使う。
     /// </remarks>
-    public static string Fit(string? text, double width, double fontSize, int maxLines)
+    public static string Fit(string? text, double width, double fontSize, int maxLines, bool isBold = false)
     {
         if (string.IsNullOrEmpty(text) || width <= 0 || fontSize <= 0 || maxLines <= 0)
         {
             return text ?? string.Empty;
         }
 
-        var charsPerLine = Math.Max(1, (int)(width / (fontSize * AverageCharWidthFactor)));
+        var factor = isBold ? BoldCharWidthFactor : AverageCharWidthFactor;
+        var charsPerLine = Math.Max(1, (int)(width / (fontSize * factor)));
         var budget = charsPerLine * maxLines;
         if (text.Length <= budget)
         {

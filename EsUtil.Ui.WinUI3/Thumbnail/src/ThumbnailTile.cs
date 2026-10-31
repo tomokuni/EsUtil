@@ -29,6 +29,12 @@ internal sealed partial class ThumbnailTile : Grid
     /// <summary>ツールヒントの幅の上限（DIP）。 名前が長い場合はこの幅で折り返す。</summary>
     private const double ToolTipMaxWidth = 280;
 
+    /// <summary>ツールヒントの内容を作る（長い名前は折り返す）。</summary>
+    /// <param name="text">表示する文言。</param>
+    /// <returns>ツールヒントの要素。</returns>
+    private static TextBlock CreateToolTip(string text)
+        => new() { Text = text, MaxWidth = ToolTipMaxWidth, TextWrapping = TextWrapping.Wrap };
+
     /// <summary>表示する画像。</summary>
     private EsReadOnlyBitmap? _source;
 
@@ -51,9 +57,12 @@ internal sealed partial class ThumbnailTile : Grid
 
         Children.Add(_viewport);
         Children.Add(_label);
-        // ツールヒントには省略していない名前を出す（折り返して全体を読めるようにする）
-        var tip = string.IsNullOrEmpty(toolTip) ? caption : $"{caption}{Environment.NewLine}{toolTip}";
-        ToolTipService.SetToolTip(this, new TextBlock { Text = tip, MaxWidth = ToolTipMaxWidth, TextWrapping = TextWrapping.Wrap });
+        // ツールヒントには省略していない名前を出す（折り返して全体を読めるようにする）。
+        // 子の要素がポインターを受け取るため、子にも同じ内容を設定する（親をたどって解決する実装に依存しない）
+        var tipText = string.IsNullOrEmpty(toolTip) ? caption : $"{caption}{Environment.NewLine}{toolTip}";
+        ToolTipService.SetToolTip(this, CreateToolTip(tipText));
+        ToolTipService.SetToolTip(_viewport, CreateToolTip(tipText));
+        ToolTipService.SetToolTip(_label, CreateToolTip(tipText));
 
         SetImage(image);
         SetCaption(caption);
@@ -100,6 +109,8 @@ internal sealed partial class ThumbnailTile : Grid
         ApplyVisual();
 
         _label.FontSize = plan.Label.FontSize;
+        // 文言は計画が決める（2 行に収まらない名前は拡張子を残して省略済み）
+        _label.Text = plan.Label.Text;
         _label.TextAlignment = TextAlignment.Center;
         _label.TextWrapping = TextWrapping.Wrap;
         _label.MaxLines = 2;

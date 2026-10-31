@@ -25,6 +25,12 @@ internal sealed class ThumbnailTile : Panel
     /// <summary>ツールヒントの幅の上限（DIP）。 名前が長い場合はこの幅で折り返す。</summary>
     private const double ToolTipMaxWidth = 280;
 
+    /// <summary>ツールヒントの内容を作る（長い名前は折り返す）。</summary>
+    /// <param name="text">表示する文言。</param>
+    /// <returns>ツールヒントの要素。</returns>
+    private static TextBlock CreateToolTip(string text)
+        => new() { Text = text, MaxWidth = ToolTipMaxWidth, TextWrapping = TextWrapping.Wrap };
+
     /// <summary>サムネイル 1 件分の要素を生成する。</summary>
     /// <param name="image">表示する画像。 null の場合は画像を描かない。</param>
     /// <param name="caption">表示する名前。</param>
@@ -39,9 +45,12 @@ internal sealed class ThumbnailTile : Panel
 
         Add(_viewport);
         Add(_label);
-        // ツールヒントには省略していない名前を出す（折り返して全体を読めるようにする）
-        var tip = string.IsNullOrEmpty(toolTip) ? caption : $"{caption}{Environment.NewLine}{toolTip}";
-        ToolTip = new TextBlock { Text = tip, MaxWidth = ToolTipMaxWidth, TextWrapping = TextWrapping.Wrap };
+        // ツールヒントには省略していない名前を出す（折り返して全体を読めるようにする）。
+        // 子の要素がポインターを受け取るため、子にも同じ内容を設定する（親をたどって解決する実装に依存しない）
+        var tipText = string.IsNullOrEmpty(toolTip) ? caption : $"{caption}{Environment.NewLine}{toolTip}";
+        ToolTip = CreateToolTip(tipText);
+        _viewport.ToolTip = CreateToolTip(tipText);
+        _label.ToolTip = CreateToolTip(tipText);
 
         SetImage(image);
         SetCaption(caption);
@@ -55,6 +64,9 @@ internal sealed class ThumbnailTile : Panel
     /// <param name="value">現在表示中の画像の場合は true。</param>
     internal void SetIsCurrent(bool value) => IsCurrent = value;
 
+    /// <summary>実際に表示している名前（描画計画の文言）を取得する。</summary>
+    /// <value>2 行に収まらない名前は省略済みの文言。</value>
+    public string LabelText => _label.Text;
     /// <summary>表示する名前を取得する。</summary>
     public string Caption { get; private set; }
 
@@ -98,6 +110,8 @@ internal sealed class ThumbnailTile : Panel
         _label.TextWrapping = TextWrapping.Wrap;
         _label.Padding = new Thickness(
             options.LabelHorizontalPadding, plan.Label.VerticalPadding, options.LabelHorizontalPadding, plan.Label.VerticalPadding);
+        // 文言は計画が決める（2 行に収まらない名前は拡張子を残して省略済み）
+        _label.Text = plan.Label.Text;
         _label.FontWeight = plan.Label.IsBold ? FontWeight.Bold : FontWeight.Normal;
 
         if (plan.Label.ForegroundArgb != 0)

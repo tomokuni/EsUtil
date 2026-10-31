@@ -229,16 +229,19 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
         var image = layout.Image(index);
         var shadowArea = shadow is null ? image : shadow.Expand(image);
 
-        // 名前行は最大 2 行である（2 行に収まらない名前は拡張子を残して省略する）
+        // 名前行は最大 2 行である（2 行に収まらない名前は拡張子を残して省略する）。
+        // 文字を置ける幅は行の幅から左右の余白を除いた値であり、太字は幅が広いため少なめに見積もる
         var labelBounds = layout.Label(index);
+        var isBoldLabel = isCurrent && _appearance.BoldCurrentLabel;
+        var textWidth = Math.Max(0, labelBounds.Width - (_options.LabelHorizontalPadding * 2));
         var labelText = ThumbnailLabelText.Fit(
-            text, labelBounds.Width, _appearance.LabelFontSize, ThumbnailLabelText.MaxLines);
+            text, textWidth, _appearance.LabelFontSize, ThumbnailLabelText.MaxLines, isBoldLabel);
 
         var label = new ThumbnailLabelPlan(
             labelText,
             labelBounds,
             _appearance.LabelFontSize,
-            isCurrent && _appearance.BoldCurrentLabel,
+            isBoldLabel,
             highlighted ? _appearance.HighlightedLabelArgb : 0,
             _appearance.LabelVerticalPadding);
 

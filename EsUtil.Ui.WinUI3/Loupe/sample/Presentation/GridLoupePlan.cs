@@ -18,8 +18,6 @@ namespace EsUtil.Ui.WinUI3.Loupe.Sample.Presentation;
 /// </remarks>
 internal static class GridLoupePlan
 {
-    /// <summary>格子線の太さ（DIP）。</summary>
-    private const double GridThickness = 1.0;
 
     /// <summary>四隅の鉤の腕の長さ（DIP）。</summary>
     private const double BracketArm = 18.0;
@@ -60,7 +58,8 @@ internal static class GridLoupePlan
 
         return plan with
         {
-            CrosshairPixelRects = CreateCenterGrid(surface, plan.ScaleDipToPixel(GridThickness)),
+            // 線の太さは既定の十字線に合わせる（太さ = 拡大率。 見本へ切り替えても太さが変わらない）
+            CrosshairPixelRects = CreateCenterGrid(surface, ResolveCrosshairThickness(in plan)),
             BorderPixelRects = CreateCornerBrackets(
                 surface, plan.ScaleDipToPixel(BracketArm), plan.ScaleDipToPixel(BracketThickness)),
         };
@@ -88,6 +87,14 @@ internal static class GridLoupePlan
         return read;
     }
 
+    /// <summary>十字線の太さ（物理ピクセル）を既定の計画から求める。</summary>
+    /// <param name="plan">既定の解決結果。</param>
+    /// <returns>十字線の太さ（物理ピクセル）。 十字線が無い場合は 1 DIP を換算した値。</returns>
+    /// <remarks>太さはコアが「1 対象ピクセル = 拡大率」として決めるため、本見本も同じ値を使って太さを揃える。</remarks>
+    private static double ResolveCrosshairThickness(in LoupeDrawPlan plan)
+        => plan.CrosshairPixelRects.Count > 0
+            ? plan.CrosshairPixelRects[0].Width
+            : plan.ScaleDipToPixel(1.0);
     /// <summary>描画面の中心へ十字の格子線を作る。</summary>
     /// <param name="surface">描画面の矩形（物理ピクセル）。</param>
     /// <param name="thickness">線の太さ（物理ピクセル）。</param>

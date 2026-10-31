@@ -234,6 +234,40 @@ public class ThumbnailPresenterTests
             => ThumbnailShadowPlan.Default.BuildDeviceBands(x, y, width, height, scaling);
     }
 
+    /// <summary>2 行に収まらない名前は拡張子を残して省略することを検証する。</summary>
+    /// <remarks>
+    /// 名前を置ける幅は行の幅から左右の余白を除いた値である（余白を引かないと、実際には折り返される文字数より
+    /// 多く残してしまい、省略されずに切れる）。
+    /// </remarks>
+    [Fact]
+    public void 名前が2行に収まらない場合は拡張子を残して省略する()
+    {
+        var presenter = new ThumbnailPresenter(
+            options: ThumbnailOptions.Default with { LabelHorizontalPadding = 24 },
+            appearance: ThumbnailAppearance.Default with { LabelFontSize = 24 });
+        var layout = presenter.ResolveLayout(600, 110, [90]);
+
+        var plan = presenter.ResolveDrawPlan(layout, 0, "capture-0123456789.png", false, -1, -1, false);
+
+        Assert.Contains("...", plan.Label.Text, StringComparison.Ordinal);
+        Assert.EndsWith(".png", plan.Label.Text, StringComparison.Ordinal);
+    }
+
+    /// <summary>太字の項目は幅を広く見積もって、より短く省略することを検証する。</summary>
+    [Fact]
+    public void 太字の項目はより短く省略する()
+    {
+        var presenter = new ThumbnailPresenter(
+            options: ThumbnailOptions.Default with { LabelHorizontalPadding = 24 },
+            appearance: ThumbnailAppearance.Default with { LabelFontSize = 24, BoldCurrentLabel = true });
+        var layout = presenter.ResolveLayout(600, 110, [90]);
+
+        var normal = presenter.ResolveDrawPlan(layout, 0, "capture-0123456789.png", false, -1, -1, false);
+        var bold = presenter.ResolveDrawPlan(layout, 0, "capture-0123456789.png", true, -1, -1, false);
+
+        Assert.True(bold.Label.Text.Length <= normal.Label.Text.Length);
+        Assert.True(bold.Label.IsBold);
+    }
     /// <summary>影を外した計画を返す提示（差し替えの例）。</summary>
     private sealed class OutlineOnlyPresenter() : ThumbnailPresenter
     {

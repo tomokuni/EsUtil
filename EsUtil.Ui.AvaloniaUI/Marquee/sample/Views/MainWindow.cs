@@ -34,10 +34,9 @@ public sealed class MainWindow : Window
     /// <summary>ズームの最大倍率。</summary>
     private const double MaxZoom = 5.0;
 
-    /// <summary>色の選択肢（「なし」は描画しないことを表す）。</summary>
-    private static readonly (string Name, DrawingColor? Color)[] s_colorChoices =
+    /// <summary>色の選択肢（表示の可否は各項目のチェックが持つため、色だけを選ぶ）。</summary>
+    private static readonly (string Name, DrawingColor Color)[] s_colorChoices =
     [
-        ("なし", null),
         ("白", DrawingColor.White),
         ("アンバー", DrawingColor.FromArgb(255, 255, 196, 0)),
         ("赤", DrawingColor.FromArgb(255, 255, 0, 0)),
@@ -170,25 +169,27 @@ public sealed class MainWindow : Window
                 SampleSettings.Slider("最小選択サイズ", 6, 1, 40, 1, true, value => _marquee.Options = _marquee.Options with { MinSelectionSize = value }),
                 SampleSettings.Check("画像内にクリップ", true, value => _marquee.Options = _marquee.Options with { ClampToSourceBounds = value }),
                 SampleSettings.Check("内側マスクを表示", true, value => Apply(appearance with { ShowInnerMask = value })),
+                ColorChoice("内側マスクの色", 0, index => Apply(appearance with { InnerMaskColor = ResolveColor(index) })),
                 SampleSettings.Check("枠線を表示", true, value => Apply(appearance with { ShowBorder = value })),
-                ColorChoice("枠線の色", 2, index => Apply(appearance with { BorderColor = ResolveColor(index, appearance.BorderColor) })),
+                ColorChoice("枠線の色", 4, index => Apply(appearance with { BorderColor = ResolveColor(index) })),
                 SampleSettings.Slider("枠線の太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { BorderThickness = value })),
                 SampleSettings.Check("外側マスクを表示", true, value => Apply(appearance with { ShowOuterMask = value })),
+                ColorChoice("外側マスクの色", 4, index => Apply(appearance with { OuterMaskColor = ResolveColor(index) })),
                 SampleSettings.Check("マーカーを表示", true, value => Apply(appearance with { ShowMarker = value })),
-                ColorChoice("マーカーの色", 4, index => Apply(appearance with { MarkerColor = ResolveColor(index, appearance.MarkerColor) })),
+                ColorChoice("マーカーの色", 2, index => Apply(appearance with { MarkerColor = ResolveColor(index) })),
                 SampleSettings.Slider("マーカーの太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { MarkerThickness = value })),
                 SampleSettings.Slider("マーカーの長さ", 16, 8, 40, 2, true, value => _marquee.Options = _marquee.Options with { MarkerLength = value }),
                 SampleSettings.Check("ハンドルを表示", true, value => Apply(appearance with { ShowHandles = value })),
-                ColorChoice("ハンドルの色", 1, index => Apply(appearance with { HandleColor = ResolveColor(index, appearance.HandleColor) })),
-                ColorChoice("ハンドル枠の色", 2, index => Apply(appearance with { HandleBorderColor = ResolveColor(index, appearance.HandleBorderColor) })),
+                ColorChoice("ハンドルの色", 0, index => Apply(appearance with { HandleColor = ResolveColor(index) })),
+                ColorChoice("ハンドル枠の色", 4, index => Apply(appearance with { HandleBorderColor = ResolveColor(index) })),
                 SampleSettings.Check("サイズ ラベルを表示", true, value => Apply(appearance with { ShowSizeLabel = value })),
-                ColorChoice("サイズ ラベルの色", 1, index => Apply(appearance with { SizeLabelColor = ResolveColor(index, appearance.SizeLabelColor) })),
-                ColorChoice("サイズ ラベルの背景色", 5, index => Apply(appearance with { SizeLabelBackgroundColor = ResolveColor(index, appearance.SizeLabelBackgroundColor) })),
+                ColorChoice("サイズ ラベルの色", 0, index => Apply(appearance with { SizeLabelColor = ResolveColor(index) })),
+                ColorChoice("サイズ ラベルの背景色", 4, index => Apply(appearance with { SizeLabelBackgroundColor = ResolveColor(index) })),
                 SampleSettings.Slider("サイズ ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { SizeLabelFontSize = value })),
                 SampleSettings.Slider("サイズ ラベルの表示スケール", 0, 0, 2, 0.1, false, value => _marquee.DisplayScaleScaling = value),
                 SampleSettings.Check("座標ラベルを表示", true, value => Apply(appearance with { ShowCoordLabel = value })),
-                ColorChoice("座標ラベルの色", 1, index => Apply(appearance with { CoordLabelColor = ResolveColor(index, appearance.CoordLabelColor) })),
-                ColorChoice("座標ラベルの背景色", 5, index => Apply(appearance with { CoordLabelBackgroundColor = ResolveColor(index, appearance.CoordLabelBackgroundColor) })),
+                ColorChoice("座標ラベルの色", 0, index => Apply(appearance with { CoordLabelColor = ResolveColor(index) })),
+                ColorChoice("座標ラベルの背景色", 4, index => Apply(appearance with { CoordLabelBackgroundColor = ResolveColor(index) })),
                 SampleSettings.Slider("座標ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { CoordLabelFontSize = value })),
                 SampleSettings.Slider("座標ラベルの間隔", 4, 0, 24, 1, true, value => Apply(appearance with { CoordLabelOffset = value })),
                 SampleSettings.Slider("ラベルの余白", 4, 0, 24, 1, true, value => Apply(appearance with { LabelPadding = value })),
@@ -256,10 +257,8 @@ public sealed class MainWindow : Window
     private static Control ColorChoice(string label, int selectedIndex, Action<int> apply)
         => SampleSettings.Choice(label, [.. s_colorChoices.Select(static choice => choice.Name)], selectedIndex, apply);
 
-    /// <summary>「なし」を除いた色の選択肢から色を解決する。</summary>
+    /// <summary>色の選択肢から色を解決する。</summary>
     /// <param name="index">選択されたインデックス。</param>
-    /// <param name="fallback">「なし」が選ばれたときに残す色（描画しないため見た目には影響しない）。</param>
     /// <returns>解決した色。</returns>
-    private static DrawingColor ResolveColor(int index, DrawingColor fallback)
-        => s_colorChoices[index].Color ?? fallback;
+    private static DrawingColor ResolveColor(int index) => s_colorChoices[index].Color;
 }

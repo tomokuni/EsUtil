@@ -18,8 +18,6 @@ internal static class GuideMarqueePlan
     /// <summary>破線の間隔（DIP）。</summary>
     private const double DashGap = 6.0;
 
-    /// <summary>破線とガイド線の太さ（DIP）。</summary>
-    private const double LineThickness = 2.0;
 
     /// <summary>三分割の分母（1/3 と 2/3 の位置に引く）。</summary>
     private const int ThirdsDenominator = 3;
@@ -36,21 +34,27 @@ internal static class GuideMarqueePlan
         => plan.FocusDipRect is { } focus
             ? plan with
             {
-                BorderDipRects = [.. CreateDashedFrame(focus), .. CreateThirdsGuides(focus)],
+                // 線の太さは外観の枠線の太さに合わせる（見本へ切り替えても太さの設定が効く）
+                BorderDipRects =
+                [
+                    .. CreateDashedFrame(focus, plan.Appearance.BorderThickness),
+                    .. CreateThirdsGuides(focus, plan.Appearance.BorderThickness),
+                ],
             }
             : plan;
 
     /// <summary>矩形の 4 辺を破線へ分割する。</summary>
     /// <param name="focus">注目矩形（DIP）。</param>
     /// <returns>破線 1 本ずつの矩形（DIP）。</returns>
-    private static List<EsRect> CreateDashedFrame(EsRect focus)
+    /// <param name="thickness">線の太さ（DIP）。</param>
+    private static List<EsRect> CreateDashedFrame(EsRect focus, double thickness)
     {
         var rects = new List<EsRect>();
 
-        AddHorizontalDashes(rects, focus.X, focus.Y, focus.Width);
-        AddHorizontalDashes(rects, focus.X, focus.Bottom - LineThickness, focus.Width);
-        AddVerticalDashes(rects, focus.X, focus.Y, focus.Height);
-        AddVerticalDashes(rects, focus.Right - LineThickness, focus.Y, focus.Height);
+        AddHorizontalDashes(rects, focus.X, focus.Y, focus.Width, thickness);
+        AddHorizontalDashes(rects, focus.X, focus.Bottom - thickness, focus.Width, thickness);
+        AddVerticalDashes(rects, focus.X, focus.Y, focus.Height, thickness);
+        AddVerticalDashes(rects, focus.Right - thickness, focus.Y, focus.Height, thickness);
 
         return rects;
     }
@@ -60,14 +64,16 @@ internal static class GuideMarqueePlan
     /// <param name="left">始点の X 座標（DIP）。</param>
     /// <param name="top">Y 座標（DIP）。</param>
     /// <param name="length">並べる長さ（DIP）。</param>
-    private static void AddHorizontalDashes(List<EsRect> rects, double left, double top, double length)
+    /// <param name="thickness">線の太さ（DIP）。</param>
+    private static void AddHorizontalDashes(
+        List<EsRect> rects, double left, double top, double length, double thickness)
     {
         var pitch = DashLength + DashGap;
 
         for (var offset = 0.0; offset < length; offset += pitch)
         {
             var width = Math.Min(DashLength, length - offset);
-            rects.Add(new EsRect(left + offset, top, width, LineThickness));
+            rects.Add(new EsRect(left + offset, top, width, thickness));
         }
     }
 
@@ -76,31 +82,34 @@ internal static class GuideMarqueePlan
     /// <param name="left">X 座標（DIP）。</param>
     /// <param name="top">始点の Y 座標（DIP）。</param>
     /// <param name="length">並べる長さ（DIP）。</param>
-    private static void AddVerticalDashes(List<EsRect> rects, double left, double top, double length)
+    /// <param name="thickness">線の太さ（DIP）。</param>
+    private static void AddVerticalDashes(
+        List<EsRect> rects, double left, double top, double length, double thickness)
     {
         var pitch = DashLength + DashGap;
 
         for (var offset = 0.0; offset < length; offset += pitch)
         {
             var height = Math.Min(DashLength, length - offset);
-            rects.Add(new EsRect(left, top + offset, LineThickness, height));
+            rects.Add(new EsRect(left, top + offset, thickness, height));
         }
     }
 
     /// <summary>注目矩形の内側へ三分割のガイド線を引く。</summary>
     /// <param name="focus">注目矩形（DIP）。</param>
     /// <returns>ガイド線の矩形（縦 2 本 + 横 2 本。 DIP）。</returns>
-    private static List<EsRect> CreateThirdsGuides(EsRect focus)
+    /// <param name="thickness">線の太さ（DIP）。</param>
+    private static List<EsRect> CreateThirdsGuides(EsRect focus, double thickness)
     {
         var horizontal = focus.Height / ThirdsDenominator;
         var vertical = focus.Width / ThirdsDenominator;
 
         return
         [
-            new EsRect(focus.X + vertical, focus.Y, LineThickness, focus.Height),
-            new EsRect(focus.X + (vertical * 2), focus.Y, LineThickness, focus.Height),
-            new EsRect(focus.X, focus.Y + horizontal, focus.Width, LineThickness),
-            new EsRect(focus.X, focus.Y + (horizontal * 2), focus.Width, LineThickness),
+            new EsRect(focus.X + vertical, focus.Y, thickness, focus.Height),
+            new EsRect(focus.X + (vertical * 2), focus.Y, thickness, focus.Height),
+            new EsRect(focus.X, focus.Y + horizontal, focus.Width, thickness),
+            new EsRect(focus.X, focus.Y + (horizontal * 2), focus.Width, thickness),
         ];
     }
 }
