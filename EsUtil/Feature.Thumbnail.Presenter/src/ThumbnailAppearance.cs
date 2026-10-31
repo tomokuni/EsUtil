@@ -63,7 +63,7 @@ public sealed record ThumbnailAppearance
 
     /// <summary>強調（ホバー・選択）中の項目の影を隠すかどうかを取得する。</summary>
     /// <value>隠す場合は true。 既定は false。</value>
-    public bool HideShadowWhenHighlighted { get; init; }
+    public bool HideShadowWhenSelected { get; init; }
 
     /// <summary>ホバーの背景を描くかどうかを取得する。</summary>
     /// <value>描く場合は true（既定）。</value>
@@ -77,7 +77,7 @@ public sealed record ThumbnailAppearance
     /// <value>影の計画。 既定は <see cref="ThumbnailShadowPlan.Default"/>。 null の場合は影を描かない。</value>
     /// <remarks>
     /// 影の算法を変える場合は <see cref="IThumbnailShadowPlan"/> を実装した値を渡す（差し替え点）。<br/>
-    /// 影の広がり（<see cref="IThumbnailShadowPlan.Insets"/>）が <see cref="ThumbnailOptions.SurroundExtent"/> より<br/>
+    /// 影の広がり（<see cref="IThumbnailShadowPlan.Insets"/>）が <see cref="ThumbnailOptions.ShadowInset"/> より<br/>
     /// 広い場合は、レイアウト側の余白が自動で広がる（影が切れない）。
     /// </remarks>
     public IThumbnailShadowPlan? Shadow { get; init; } = ThumbnailShadowPlan.Default;

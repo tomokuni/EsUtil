@@ -12,7 +12,7 @@ namespace EsUtil.Ui.AvaloniaUI.SampleKit;
 /// ログの書き込み側（コントロール・アプリ）を待たせない。<br/>
 /// <b>一覧で表示する理由</b>: 1 つの折り返しテキストへ全行を入れると、行数に比例して 1 フレームの費用が増える。
 /// 一覧（<see cref="ListBox"/>）は見えている行だけを実体化するため、行数が増えても描画の費用は変わらない。<br/>
-/// <b>選択とコピー</b>: 行を選んで（複数可）見出しの「コピー」を押すと、選んだ行をクリップボードへ写す
+/// <b>選択とコピー</b>: 行を選んで（複数可）Ctrl+C を押すと、選んだ行をクリップボードへ写す
 /// （選んでいないときは表示中のすべての行）。
 /// </remarks>
 public sealed class SampleLogPanel : DockPanel
@@ -57,8 +57,15 @@ public sealed class SampleLogPanel : DockPanel
             },
         });
 
-        var copy = new Button { Content = "コピー", FontSize = SampleSettings.FontSize };
-        copy.Click += (_, _) => _ = CopySelectionOrAllAsync();
+        // 選択した行は Ctrl+C でクリップボードへ写す（コピーのボタンは置かない）
+        _list.KeyDown += (_, e) =>
+        {
+            if (e.Key == Avalonia.Input.Key.C && (e.KeyModifiers & Avalonia.Input.KeyModifiers.Control) != 0)
+            {
+                _ = CopySelectionAsync();
+                e.Handled = true;
+            }
+        };
 
         var header = new StackPanel
         {
@@ -68,7 +75,12 @@ public sealed class SampleLogPanel : DockPanel
             Children =
             {
                 new TextBlock { Text = "ログ", FontWeight = Avalonia.Media.FontWeight.Bold, FontSize = 12 },
-                copy,
+                new TextBlock
+                {
+                    Text = "行を選んで Ctrl+C でコピー",
+                    FontSize = SampleSettings.FontSize,
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                },
             },
         };
         DockPanel.SetDock(header, Dock.Top);
@@ -81,10 +93,14 @@ public sealed class SampleLogPanel : DockPanel
         timer.Start();
     }
 
-    /// <summary>選んだ行（無ければ表示中のすべての行）をクリップボードへ写す。</summary>
+    /// <summary>選んだ行をクリップボードへ写す。</summary>
     /// <returns>完了を待つためのタスク。</returns>
-    /// <remarks>表示の対象は画面に出ている行だけにする（上限で捨てた行は含めない）。 クリップボードが無い環境では何もしない。</remarks>
-    private async Task CopySelectionOrAllAsync()
+    /// <remarks>
+    /// 表示の対象は画面に出ている行だけにする（上限で捨てた行は含めない）。<br/>
+    /// 選んでいないときは何もしない（全行を写すと、見えていない行まで意図せず運ぶ）。<br/>
+    /// クリップボードが無い環境では何もしない。
+    /// </remarks>
+    private async Task CopySelectionAsync()
     {
         if (TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
         {
@@ -92,8 +108,10 @@ public sealed class SampleLogPanel : DockPanel
         }
 
         var selected = _list.SelectedItems?.OfType<string>().ToList() ?? [];
-        var lines = selected.Count > 0 ? selected : _displayed;
-        await clipboard.SetTextAsync(string.Join(Environment.NewLine, lines)).ConfigureAwait(true);
+        if (selected.Count > 0)
+        {
+            await clipboard.SetTextAsync(string.Join(Environment.NewLine, selected)).ConfigureAwait(true);
+        }
     }
 
     /// <summary>バッファから行を取り出して表示を更新する。</summary>

@@ -22,6 +22,9 @@ internal sealed class ThumbnailTile : Panel
     /// <summary>最後に適用した描画計画。</summary>
     private ThumbnailDrawPlan? _plan;
 
+    /// <summary>ツールヒントの幅の上限（DIP）。 名前が長い場合はこの幅で折り返す。</summary>
+    private const double ToolTipMaxWidth = 280;
+
     /// <summary>サムネイル 1 件分の要素を生成する。</summary>
     /// <param name="image">表示する画像。 null の場合は画像を描かない。</param>
     /// <param name="caption">表示する名前。</param>
@@ -36,10 +39,9 @@ internal sealed class ThumbnailTile : Panel
 
         Add(_viewport);
         Add(_label);
-        if (!string.IsNullOrEmpty(toolTip))
-        {
-            ToolTip = new Label { Text = toolTip };
-        }
+        // ツールヒントには省略していない名前を出す（折り返して全体を読めるようにする）
+        var tip = string.IsNullOrEmpty(toolTip) ? caption : $"{caption}{Environment.NewLine}{toolTip}";
+        ToolTip = new TextBlock { Text = tip, MaxWidth = ToolTipMaxWidth, TextWrapping = TextWrapping.Wrap };
 
         SetImage(image);
         SetCaption(caption);

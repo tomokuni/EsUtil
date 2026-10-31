@@ -45,7 +45,7 @@ public class MarqueeDrawPlanTests
     [Fact]
     internal void ResolveDrawPlan_外観をそのまま保持する()
     {
-        var appearance = MarqueeAppearance.Default with { ShowOuterBorder = false, OuterBorderThickness = 3.0 };
+        var appearance = MarqueeAppearance.Default with { ShowBorder = false, BorderThickness = 3.0 };
 
         var plan = ResolvePlan(appearance);
 
@@ -69,13 +69,12 @@ public class MarqueeDrawPlanTests
         Assert.Null(plan.FocusDipRect);
         Assert.Null(plan.Handles);
         Assert.Null(plan.Marker);
-        Assert.Null(plan.InnerFillDipRect);
+        Assert.Null(plan.InnerMaskDipRect);
         // 注目矩形が無い暗転は描画面の全体（1 領域）になる（値は幾何だけで決まる）
-        Assert.Single(plan.OverlayDipRects);
-        Assert.Empty(plan.OuterBorderDipRects);
-        Assert.Empty(plan.InnerBorderDipRects);
-        // 全面暗転は無効（既定）のため、描く装飾は無い（表示可否を適用した述語）
-        Assert.False(plan.HasDecoration);
+        Assert.Single(plan.OuterMaskDipRects);
+        Assert.Empty(plan.BorderDipRects);
+        // 外側マスクは注目矩形が無いとき描画面の全体を塗る（表示可否を適用した述語）
+        Assert.True(plan.HasDecoration);
         Assert.False(plan.HasText);
     }
 
@@ -91,39 +90,38 @@ public class MarqueeDrawPlanTests
         Assert.NotNull(plan.Handles);
         Assert.Equal(8, plan.Handles!.Value.HandleDipRects.Count);
         // 暗転は注目矩形を除いた 4 領域、枠線は 4 辺
-        Assert.Equal(4, plan.OverlayDipRects.Count);
-        Assert.Equal(4, plan.OuterBorderDipRects.Count);
+        Assert.Equal(4, plan.OuterMaskDipRects.Count);
+        Assert.Equal(4, plan.BorderDipRects.Count);
         Assert.True(plan.HasDecoration);
     }
 
     [Fact]
-    internal void ResolveDrawPlan_内側の塗りと枠線は表示可否に従う()
+    internal void ResolveDrawPlan_内側マスクは表示可否に従う()
     {
         var appearance = MarqueeAppearance.Default with
         {
             ShowCoordLabel = false,
-            ShowInnerFill = true,
-            ShowInnerBorder = true,
+            ShowInnerMask = true,
         };
         var presenter = CreatePresenter(appearance);
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
 
         var plan = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
 
-        // 内側の塗りは注目矩形そのもの、内側の枠線は 4 辺
-        Assert.Equal(new EsRect(10, 20, 101, 51), plan.InnerFillDipRect);
-        Assert.Equal(4, plan.InnerBorderDipRects.Count);
+        // 内側マスクは注目矩形そのもの
+        Assert.Equal(new EsRect(10, 20, 101, 51), plan.InnerMaskDipRect);
+        Assert.True(plan.HasDecoration);
     }
 
     [Fact]
-    internal void ResolveDrawPlan_全面暗転は注目矩形が無くても暗転領域を持つ()
+    internal void ResolveDrawPlan_注目矩形が無い場合は外側マスクが描画面の全体になる()
     {
-        var appearance = MarqueeAppearance.Default with { ShowCoordLabel = false, ShowFullOverlay = true };
+        var appearance = MarqueeAppearance.Default with { ShowCoordLabel = false };
 
         var plan = ResolvePlan(appearance);
 
-        // 注目矩形が無い全面暗転では、描画面の全体が 1 領域になる
-        var region = Assert.Single(plan.OverlayDipRects);
+        // 注目矩形が無い外側マスクは描画面の全体（1 領域）になる
+        var region = Assert.Single(plan.OuterMaskDipRects);
         Assert.Equal(new EsRect(0, 0, 200, 100), region);
         Assert.True(plan.HasDecoration);
     }
@@ -150,16 +148,15 @@ public class MarqueeDrawPlanTests
 
         // 既定（暗転と枠線を描く）でも注目矩形が無いため、枠線の層は含まれない（描く値が無い）
         var plan = ResolvePlan(appearance);
-        Assert.Empty(plan.OuterBorderDipRects);
-        Assert.Empty(plan.InnerBorderDipRects);
+        Assert.Empty(plan.BorderDipRects);
 
         // 選択がある場合は表示を止めても層と値を保つ（描くかどうかは描画側が決める）
-        var presenter = CreatePresenter(appearance with { ShowOverlay = false, ShowOuterBorder = false });
+        var presenter = CreatePresenter(appearance with { ShowOuterMask = false, ShowBorder = false });
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
         var stopped = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
 
         Assert.Contains(MarqueeDrawLayer.Decoration, stopped.Layers);
-        Assert.Equal(4, stopped.OverlayDipRects.Count);
+        Assert.Equal(4, stopped.OuterMaskDipRects.Count);
     }
 
     [Fact]
@@ -202,7 +199,7 @@ public class MarqueeDrawPlanTests
 
         // 幾何（コア）と同じ変換結果が注目矩形になる
         Assert.Equal(new EsRect(20, 40, 202, 102), plan.FocusDipRect);
-        Assert.Equal(4, plan.OuterBorderDipRects.Count);
+        Assert.Equal(4, plan.BorderDipRects.Count);
     }
 
     [Fact]

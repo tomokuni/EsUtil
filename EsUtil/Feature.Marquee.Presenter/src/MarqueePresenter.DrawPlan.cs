@@ -36,7 +36,7 @@ public partial class MarqueePresenter
     /// 親座標を混ぜるとマスクが原点分ずれる）。<br/>
     /// 注目矩形が完全に描画面の外の場合は全面を返す（描画漏れを防ぐ）。
     /// </remarks>
-    internal static IReadOnlyList<EsRect> ComputeOverlayDipRects(EsRect surface, EsRect? focus)
+    internal static IReadOnlyList<EsRect> ComputeOuterMaskDipRects(EsRect surface, EsRect? focus)
     {
         if (focus is not { } h)
         {

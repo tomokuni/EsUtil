@@ -83,6 +83,7 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
+                SampleSettings.LogLevel(_logging),
                 SampleSettings.Number("アイテム数", _itemCount, 1, 60, 1, true, value =>
                 {
                     _itemCount = (int)value;

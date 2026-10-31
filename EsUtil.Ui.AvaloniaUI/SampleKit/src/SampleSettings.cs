@@ -216,6 +216,57 @@ public static class SampleSettings
         return Row(label, input);
     }
 
+    /// <summary>文字入力の行を作る（外から値を更新できる）。</summary>
+    /// <param name="label">項目名。</param>
+    /// <param name="initial">初期値。</param>
+    /// <param name="apply">変更の反映先。</param>
+    /// <returns>行の要素と、値を外から更新する関数。</returns>
+    /// <remarks>
+    /// 対象コントロールの状態が利用者の操作で変わるとき（色の選択など）は、本メソッドの戻り値で表示を追随させる。<br/>
+    /// 更新は入力の変更イベントを発火しない（対象を再設定しない）。
+    /// </remarks>
+    public static SampleField TextRow(string label, string initial, Action<string> apply)
+    {
+        var input = new TextBox { Text = initial, Width = EditorWidth, FontSize = FontSize };
+
+        var updating = false;
+        input.TextChanged += (_, _) =>
+        {
+            if (!updating)
+            {
+                apply(input.Text ?? string.Empty);
+            }
+        };
+
+        return new SampleField
+        {
+            Element = Row(label, input),
+            SetValue = _ => { },
+            SetText = text =>
+            {
+                updating = true;
+                try
+                {
+                    input.Text = text;
+                }
+                finally
+                {
+                    updating = false;
+                }
+            },
+        };
+    }
+
+    /// <summary>ログ レベルの行を作る（サンプル共通。 すべてのサンプルが同じ並びで持つ）。</summary>
+    /// <param name="logging">サンプルのログ。</param>
+    /// <param name="selectedIndex">初期の選択インデックス（既定は Debug）。</param>
+    /// <returns>項目名とログ レベルの選択を並べた行。</returns>
+    public static Control LogLevel(SampleLogging logging, int selectedIndex = 1)
+    {
+        ArgumentNullException.ThrowIfNull(logging);
+        return Choice("ログ レベル", [.. SampleLogging.LevelChoices], selectedIndex, logging.SetMinimumLevel);
+    }
+
     /// <summary>ボタンを縦に並べた行を作る。</summary>
     /// <param name="buttons">ボタンの文言と処理。</param>
     /// <returns>ボタンを並べた要素。</returns>

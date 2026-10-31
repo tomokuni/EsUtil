@@ -99,7 +99,7 @@
 - **`EsUtil.Platform.Core` のルート名前空間は機能の窓口だけになりました**。 型は機能フォルダ（`Input` / `Window` / `Capture` / `Common`）へ移りました。 型を名指しする利用側は、その機能の名前空間を `using` してください
   （例: `using EsUtil.Platform.Core.Input;` で `EsKey`。 `EsInput.TryParseKey` などの窓口は `using EsUtil.Platform.Core;` だけで使えます）。
 - `EsUtil.Ui.AvaloniaUI.ColorPicker` を **`EsUtil.Ui.AvaloniaUI.ColorComboBox`** へ改名しました（型名 `ColorPickerControl` → `ColorComboBoxControl`）。
-- **`ColorComboBox`（Avalonia UI 版）のレイアウト用プロパティを改名しました（破壊的）**: `ComboBoxWidth` / `ComboBoxMinWidth` / `ComboBoxMaxWidth` / `ComboBoxPadding` / `ComboBoxMargin` → **`TextWidth` / `TextMinWidth` / `TextMaxWidth` / `TextPadding` / `TextMargin`**（外枠を 1 つにしたため、調整の対象は入力欄であることを名前に表す）。
+- **`ColorComboBox`（Avalonia UI 版）のレイアウト用プロパティを改名しました（破壊的）**: `ComboBoxWidth` / `ComboBoxMinWidth` / `ComboBoxMaxWidth` / `ComboBoxPadding` / `ComboBoxMargin` → **`TextWidth` / `TextMinWidth` / `TextMaxWidth` / `TextPadding` / `TextMargin`**（枠線を 1 つにしたため、調整の対象は入力欄であることを名前に表す）。
 - **`EsUtil.Ui.AvaloniaUI.ColorComboBox` から次の公開型を削除しました（破壊的）**: `ColorDisplayConverter`（表記の変換は `ColorTextFormat` と `ColorString.ToText` がコアで単一所有）と `TextBoxSelectionHelper`（一覧のポップアップを自前で持つため選択解除が不要）。
 - 機能層・アプリ層にあった次の型を `EsUtil.Platform.Core` へ統合しました（利用側の実装は削除できます）。
   - ウィンドウ配置の復元規則 → `Window.EsWindowPlacementMath`
@@ -121,7 +121,7 @@
   濃さの変化は画像の位置・大きさに依存しないため、ブラシは一覧の全項目で共有します
   （`ThumbnailShadowBrushes`）。
 - **WinUI 3 のマーキーが自分の大きさの変化を描き直していなかった**のを修正しました。 描画計画は
-  表示の大きさで解決しますが、**レイアウト前（0×0）に解決した計画を保持**していたため、暗転マスクが
+  表示の大きさで解決しますが、**レイアウト前（0×0）に解決した計画を保持**していたため、外側マスクが
   出ず、ポインターを動かして初めて描き直されていました（実測 2026-10-25）。 表示の大きさが変わった
   時点で計画を解決し直し、描き直します。
 - **マーキー / ルーペの描画が重かった**のを修正しました。 図形の層が矩形ごとに

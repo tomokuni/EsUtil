@@ -51,6 +51,11 @@ internal static class MainWindow
         var error = new TextBlock().Text(string.Empty).FontSize(11);
         error.Foreground = MewColor.FromRgb(0xD0, 0x20, 0x20);
 
+        // 「選択色」は 1 番目のコントロールの状態を映す（利用者がコントロール側で色を変えたら表示も追随する）。
+        // 行から設定した値を書き戻すと入力中の文字が置き換わるため、その往復だけは反映しない
+        var applyingFromRow = false;
+        SampleField? selectedColorRow = null;
+
         var values = new string[s_items.Length];
         var controls = new ColorComboBoxControl[s_items.Length];
         var rows = new StackPanel().Vertical().Spacing(8);
@@ -72,6 +77,11 @@ internal static class MainWindow
             control.SelectedColorChanged += (_, _) =>
             {
                 values[index] = control.SelectedColor;
+                if (index == 0 && !applyingFromRow)
+                {
+                    selectedColorRow?.SetText(control.SelectedColor);
+                }
+
                 UpdateStatus(status, error, values, preview);
             };
 
@@ -79,13 +89,21 @@ internal static class MainWindow
         }
 
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
-        var properties = new StackPanel().Vertical().Spacing(6).Children(
-            SampleSettings.Text("選択色", controls[0].SelectedColor, value =>
+        selectedColorRow = SampleSettings.TextRow("選択色", s_items[0].Initial, value =>
+        {
+            applyingFromRow = true;
+            try
             {
                 controls[0].SelectedColor = value;
-                values[0] = controls[0].SelectedColor;
-                UpdateStatus(status, error, values, preview);
-            }),
+            }
+            finally
+            {
+                applyingFromRow = false;
+            }
+        });
+
+        var properties = new StackPanel().Vertical().Spacing(6).Children(
+            selectedColorRow.Element,
             SampleSettings.Choice(
                 "並び順",
                 ["色相順", "色名順"],
@@ -117,27 +135,6 @@ internal static class MainWindow
                     control.TextFontSize = value;
                 }
             }),
-            SampleSettings.Slider("入力欄の幅", 0, 0, 600, 10, true, value =>
-            {
-                foreach (var control in controls)
-                {
-                    control.TextWidth = value <= 0 ? double.NaN : value;
-                }
-            }),
-            SampleSettings.Slider("入力欄の最小幅", 120, 40, 400, 10, true, value =>
-            {
-                foreach (var control in controls)
-                {
-                    control.TextMinWidth = value;
-                }
-            }),
-            SampleSettings.Slider("入力欄の最大幅", 0, 0, 1200, 20, true, value =>
-            {
-                foreach (var control in controls)
-                {
-                    control.TextMaxWidth = value <= 0 ? double.PositiveInfinity : value;
-                }
-            }),
             SampleSettings.Check("入力が無効なら枠線を赤くする", true, value =>
             {
                 foreach (var control in controls)
@@ -157,6 +154,7 @@ internal static class MainWindow
 
         // ── サンプル設定（サンプル固有の操作） ──
         var samples = new StackPanel().Vertical().Spacing(6).Children(
+            SampleSettings.LogLevel(logging),
             new TextBlock
             {
                 Text = "入力できる形: 色名（Red）/ 16 進（#RRGGBB・#AARRGGBB）/ 不透明度（Red+50%）。 無効な入力はフォーカスを外すと戻ります。",

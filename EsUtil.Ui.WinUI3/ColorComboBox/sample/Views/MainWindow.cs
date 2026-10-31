@@ -64,6 +64,22 @@ public sealed class MainWindow : Window
         var logger = _logging.Logger;
         logger.LogInformation("サンプルを起動しました。");
 
+        // 「選択色」は 1 番目のコントロールの状態を映す（利用者がコントロール側で色を変えたら表示も追随する）。
+        // 行から設定した値を書き戻すと入力中の文字が置き換わるため、その往復だけは反映しない
+        var applyingFromRow = false;
+        var selectedColorRow = SampleSettings.TextRow("選択色", s_items[0].Initial, value =>
+        {
+            applyingFromRow = true;
+            try
+            {
+                _controls[0].SelectedColor = value;
+            }
+            finally
+            {
+                applyingFromRow = false;
+            }
+        });
+
         var rows = new StackPanel { Spacing = 8 };
 
         for (var i = 0; i < s_items.Length; i++)
@@ -81,6 +97,11 @@ public sealed class MainWindow : Window
             control.SelectedColorChanged += (_, _) =>
             {
                 _values[index] = control.SelectedColor;
+                if (index == 0 && !applyingFromRow)
+                {
+                    selectedColorRow.SetText(control.SelectedColor);
+                }
+
                 UpdateStatus();
             };
 
@@ -101,12 +122,7 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
-                SampleSettings.Text("選択色", _controls[0].SelectedColor, value =>
-                {
-                    _controls[0].SelectedColor = value;
-                    _values[0] = _controls[0].SelectedColor;
-                    UpdateStatus();
-                }),
+                selectedColorRow.Element,
                 SampleSettings.Choice("並び順", ["色相順", "色名順"], 0, index =>
                 {
                     var mode = index == 1 ? ColorSortMode.ByName : ColorSortMode.ByHue;
@@ -128,27 +144,6 @@ public sealed class MainWindow : Window
                     foreach (var control in _controls)
                     {
                         control.TextFontSize = value;
-                    }
-                }),
-                SampleSettings.Slider("入力欄の幅", 0, 0, 600, 10, true, value =>
-                {
-                    foreach (var control in _controls)
-                    {
-                        control.TextWidth = value <= 0 ? double.NaN : value;
-                    }
-                }),
-                SampleSettings.Slider("入力欄の最小幅", 120, 40, 400, 10, true, value =>
-                {
-                    foreach (var control in _controls)
-                    {
-                        control.TextMinWidth = value;
-                    }
-                }),
-                SampleSettings.Slider("入力欄の最大幅", 0, 0, 1200, 20, true, value =>
-                {
-                    foreach (var control in _controls)
-                    {
-                        control.TextMaxWidth = value <= 0 ? double.PositiveInfinity : value;
                     }
                 }),
                 SampleSettings.Check("入力が無効なら枠線を赤くする", true, value =>
@@ -175,6 +170,7 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
+                SampleSettings.LogLevel(_logging),
                 new TextBlock
                 {
                     Text = "入力できる形: 色名（Red）/ 16 進（#RRGGBB・#AARRGGBB）/ 不透明度（Red+50%）。 無効な入力はフォーカスを外すと戻ります。",

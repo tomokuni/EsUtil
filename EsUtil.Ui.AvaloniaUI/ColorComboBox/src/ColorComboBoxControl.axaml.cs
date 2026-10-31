@@ -27,8 +27,7 @@ namespace EsUtil.Ui.AvaloniaUI.ColorComboBox;
 /// - コンストラクタ: <see cref="ColorComboBoxControl()"/><br/>
 /// - 値: <see cref="SelectedColor"/> / <see cref="ColorSortMode"/> / <see cref="TextFormat"/><br/>
 /// - 検証: <see cref="HasValidationError"/> / <see cref="ValidationErrorMessage"/> / <see cref="HighlightBorderOnError"/><br/>
-/// - 外観（入力欄のサイズと文字サイズ）: <see cref="TextFontSize"/> / <see cref="TextWidth"/> /<br/>
-///   <see cref="TextMinWidth"/> / <see cref="TextMaxWidth"/><br/>
+/// - 外観（入力欄の文字サイズ）: <see cref="TextFontSize"/><br/>
 /// - ログ: <see cref="Log"/><br/>
 /// - 関連型: <see cref="ColorSortMode"/>（コア）/ <see cref="ColorTextFormat"/>（コア）/ <see cref="StringToBrushConverter"/> /
 ///   <see cref="ColorString"/>（コア）/ <see cref="ColorEntry"/>（コア）
@@ -65,21 +64,12 @@ public sealed partial class ColorComboBoxControl : UserControl
     public static readonly StyledProperty<bool> HighlightBorderOnErrorProperty =
         AvaloniaProperty.Register<ColorComboBoxControl, bool>(nameof(HighlightBorderOnError), defaultValue: false);
 
-    /// <summary><see cref="TextMinWidth"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<double> TextMinWidthProperty =
-        AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(TextMinWidth), defaultValue: 120d);
 
     /// <summary><see cref="TextFontSize"/> 依存関係プロパティ。</summary>
     public static readonly StyledProperty<double> TextFontSizeProperty =
         AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(TextFontSize), defaultValue: double.NaN);
 
-    /// <summary><see cref="TextMaxWidth"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<double> TextMaxWidthProperty =
-        AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(TextMaxWidth), defaultValue: double.PositiveInfinity);
 
-    /// <summary><see cref="TextWidth"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<double> TextWidthProperty =
-        AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(TextWidth), defaultValue: double.NaN);
 
     // ====================================================================
     // 定数
@@ -172,29 +162,6 @@ public sealed partial class ColorComboBoxControl : UserControl
     // 外観
     // ====================================================================
 
-    /// <summary>入力欄の幅を取得または設定する。</summary>
-    /// <value>幅。 <see cref="double.NaN"/>（既定）の場合は親の幅に従う。</value>
-    public double TextWidth
-    {
-        get => GetValue(TextWidthProperty);
-        set => SetValue(TextWidthProperty, value);
-    }
-
-    /// <summary>入力欄の最小幅を取得または設定する。</summary>
-    /// <value>最小幅。 既定は 120。</value>
-    public double TextMinWidth
-    {
-        get => GetValue(TextMinWidthProperty);
-        set => SetValue(TextMinWidthProperty, value);
-    }
-
-    /// <summary>入力欄の最大幅を取得または設定する。</summary>
-    /// <value>最大幅。 既定は無制限。</value>
-    public double TextMaxWidth
-    {
-        get => GetValue(TextMaxWidthProperty);
-        set => SetValue(TextMaxWidthProperty, value);
-    }
 
     /// <summary>入力欄の文字サイズ（DIP）を取得または設定する。</summary>
     /// <value>文字サイズ。 <see cref="double.NaN"/>（既定）の場合は親（テーマ）の値を継承する。</value>
@@ -321,12 +288,7 @@ public sealed partial class ColorComboBoxControl : UserControl
         {
             ApplyTextLayout();
         }
-        else if (change.Property == TextWidthProperty ||
-                 change.Property == TextMinWidthProperty ||
-                 change.Property == TextMaxWidthProperty)
-        {
-            ApplyTextLayout();
-        }
+
     }
 
     /// <summary>入力欄のサイズ・余白の指定を反映する。</summary>
@@ -337,9 +299,6 @@ public sealed partial class ColorComboBoxControl : UserControl
     private void ApplyTextLayout()
     {
         var text = _text;
-        text.MinWidth = TextMinWidth;
-        text.MaxWidth = TextMaxWidth;
-        text.Width = TextWidth;
 
         // 未設定（NaN）は自分の値を持たせず親（テーマ）の値を継承させる
         if (double.IsNaN(TextFontSize))

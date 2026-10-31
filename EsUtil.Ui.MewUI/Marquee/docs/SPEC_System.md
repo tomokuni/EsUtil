@@ -101,7 +101,7 @@ EsUtil.Ui.MewUI/Marquee/
 | `MarqueeControl` | `MewProperty` の定義、入力の対象変換と提示層への通知、`IMarqueeEffects` の実装（効果の適用）、マウスキャプチャの取得/解放、DPI 変更の追従、描画計画の自 UI への写し（`MarqueePainter`）、子要素（図形キャンバス・ラベル要素）の計測と配置、付加情報の描画機会の通知（`Rendered`） |
 | `MarqueePresenter`（提示層） | 幾何（コア）と外観から描画計画（`MarqueeDrawPlan`）を解決する。 継承して `ResolveDrawPlan` を上書きすることで独自の見た目を提供できる |
 | `MarqueeAppearance`（提示層） | 色・ラベルの体裁・枠線の太さ・表示可否の単一所有者 |
-| `MarqueePainter`（本プロジェクト） | 描画計画を層の順に `IGraphicsContext` へ写す。 **選択枠線は描かない**（装飾の外枠が同じ矩形を描くため）。 **サイズ・座標ラベルも描かない**（コントロールがテキスト要素として表示する） |
+| `MarqueePainter`（本プロジェクト） | 描画計画を層の順に `IGraphicsContext` へ写す。 **選択枠線は描かない**（装飾の枠線が同じ矩形を描くため）。 **サイズ・座標ラベルも描かない**（コントロールがテキスト要素として表示する） |
 | UI 層のラベル要素 | 親パネルの子要素（`Border` + `TextBlock`）としてサイズ・座標ラベルを配置する。 文言と基準点は提示層が、色とフォントサイズは `MarqueeAppearance` が単一所有し、実寸から配置矩形を求める写像は `MarqueePresenter`（`LabelPlan` partial）（提示層）が単一所有する |
 | `MarqueePointEventArgs` / `SelectionRectEventArgs` / `MarqueeRenderedEventArgs` | 通知時点の座標（矩形）とスナップショットの組・描画完了（描画先と描画内容の契約） |
 
@@ -194,12 +194,12 @@ classDiagram
         +DrawingColor SizeLabelColor / SizeLabelBackgroundColor
         +DrawingColor CoordLabelColor / CoordLabelBackgroundColor
         +double SizeLabelFontSize / CoordLabelFontSize
-        +DrawingColor OverlayColor / OuterBorderColor
-        +DrawingColor InnerFillColor / InnerBorderColor
-        +double OuterBorderThickness / InnerBorderThickness
+        +DrawingColor OuterMaskColor / BorderColor
+        +DrawingColor InnerMaskColor / InnerBorderColor
+        +double BorderThickness / InnerBorderThickness
         +bool ShowHandles / ShowSizeLabel / ShowCoordLabel
-        +bool ShowOverlay / ShowOuterBorder / ShowFullOverlay
-        +bool ShowInnerFill / ShowInnerBorder
+        +bool ShowOuterMask / ShowBorder / ShowFullOverlay
+        +bool ShowInnerMask / ShowInnerBorder
     }
       class MarqueePainter {
         <<本プロジェクト（UI 層 / internal）>>
@@ -383,14 +383,14 @@ OnPaintSurface(canvas, info)
   ├─ canvas.Clear(透明)                              … 前フレームの描画を残さない
   ├─ MarqueePresenter.ResolveDrawPlan(clientSize, MewUITextMeasure.Measure)  … 描画計画 1 値（幾何はコア、外観と層の順序は提示層）
   └─ MarqueePainter.Paint(canvas, plan)          … Layers の順に描く
-       ├─ 層 Decoration   … 暗転領域・外枠・内側の塗りと内枠（すべて解決済みの矩形）
+       ├─ 層 Decoration   … 暗転領域・枠線・内側マスクと枠線（すべて解決済みの矩形）
        ├─ 層 Handles      … 8 方向の矩形（中心はコアが解決済み）
        └─ 層 Marker       … nudge 中の十字マーカー
   └─ plan.Labels は本パネルの子要素（テキスト要素）が表示する
   └─ Rendered（ホスト）                         … ホストは付加情報（操作・情報ラベル）を描ける
 ```
 
-背景は塗りません（透明のままにして下の画像を透かします）。 **選択枠線は装飾の外枠が描きます**（別々に描くと線幅が二重になるため）。 **サイズ・座標ラベルはコントロールがテキスト要素として表示します**（実寸測定は描画 API 依存のためコントロールが行い、配置指示は `MarqueePresenter`（`LabelPlan` partial）（提示層）が単一所有する）。
+背景は塗りません（透明のままにして下の画像を透かします）。 **選択枠線は装飾の枠線が描きます**（別々に描くと線幅が二重になるため）。 **サイズ・座標ラベルはコントロールがテキスト要素として表示します**（実寸測定は描画 API 依存のためコントロールが行い、配置指示は `MarqueePresenter`（`LabelPlan` partial）（提示層）が単一所有する）。
 
 ## 10. エラー処理ポリシー
 
@@ -413,7 +413,7 @@ OnPaintSurface(canvas, info)
 4. **スナップショットはドラッグ状態の解除前に生成する**。 `EndDrag` の後ではマーカー位置が固定コーナーを返すため、
    nudge 位置は解放処理の冒頭で計算する。
 5. **枠線は 4 辺の塗り（FILL）で描かれる**。 提示層の `MarqueePresenter.ComputeBorderDipRects`（辺の計算は `EsRect.ComputeInnerEdges` が単一所有）が注目矩形の内側に太さ分の帯を 4 本返し、それを塗る（ストロークではないため、太さが半分外側へはみ出さない）。
-   太さの安全域への補正は外観（`MarqueeAppearance.OuterBorderThickness` / `InnerBorderThickness`）の生成時に適用される（本計算は補正を持たない）。
+   太さの安全域への補正は外観（`MarqueeAppearance.BorderThickness` / `InnerBorderThickness`）の生成時に適用される（本計算は補正を持たない）。
    描画テストの期待値はこの前提で書く。
 
 ## 12. 未実装（今後の判断）

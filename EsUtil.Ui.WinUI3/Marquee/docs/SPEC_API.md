@@ -190,13 +190,13 @@ Marquee.CancelRequested += (sender, e) => CancelSelection();
 // 外観（色・太さ・表示可否）は Appearance で与える
 Marquee.Appearance = MarqueeAppearance.Default with
 {
-    OuterBorderColor = System.Drawing.Color.FromArgb(255, 255, 196, 0),
+    BorderColor = System.Drawing.Color.FromArgb(255, 255, 196, 0),
     ShowInnerBorder = true,
 };
 
 // 矩形の並びで表せる装飾とラベルの位置は計画を差し替えて与える（純粋関数にすること）
 Marquee.DrawPlanResolver = plan => plan.FocusDipRect is { } focus
-    ? plan with { OuterBorderDipRects = BuildDashedFrame(focus) }
+    ? plan with { BorderDipRects = BuildDashedFrame(focus) }
     : plan;
 ```
 

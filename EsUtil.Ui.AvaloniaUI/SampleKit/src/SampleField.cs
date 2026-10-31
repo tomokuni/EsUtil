@@ -15,6 +15,10 @@ public sealed class SampleField
     public required Control Element { get; init; }
 
     /// <summary>表示する値を更新する。</summary>
-    /// <value>値を設定する関数（入力の変更イベントは発火しない）。</value>
+    /// <value>値を設定する関数（入力の変更イベントは発火しない）。 文字入力の行では何もしない。</value>
     public required Action<double> SetValue { get; init; }
+
+    /// <summary>表示する文字列を更新する。</summary>
+    /// <value>文字列を設定する関数（入力の変更イベントは発火しない）。 数値の行では何もしない。</value>
+    public Action<string> SetText { get; init; } = _ => { };
 }

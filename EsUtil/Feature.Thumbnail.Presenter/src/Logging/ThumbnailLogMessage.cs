@@ -125,13 +125,11 @@ internal static partial class ThumbnailLogMessage
         ArgumentNullException.ThrowIfNull(oldValue);
         ArgumentNullException.ThrowIfNull(newValue);
 
-        logger.LogSettingChanged(nameof(ThumbnailOptions.ItemPadding), oldValue.ItemPadding, newValue.ItemPadding);
         logger.LogSettingChanged(nameof(ThumbnailOptions.RowSpace), oldValue.RowSpace, newValue.RowSpace);
         logger.LogSettingChanged(nameof(ThumbnailOptions.ColumnSpace), oldValue.ColumnSpace, newValue.ColumnSpace);
         logger.LogSettingChanged(nameof(ThumbnailOptions.LabelHeight), oldValue.LabelHeight, newValue.LabelHeight);
         logger.LogSettingChanged(
             nameof(ThumbnailOptions.LabelHorizontalPadding), oldValue.LabelHorizontalPadding, newValue.LabelHorizontalPadding);
-        logger.LogSettingChanged(nameof(ThumbnailOptions.SurroundExtent), oldValue.SurroundExtent, newValue.SurroundExtent);
         logger.LogSettingChanged(nameof(ThumbnailOptions.ContentPadding), oldValue.ContentPadding, newValue.ContentPadding);
         logger.LogSettingChanged(
             nameof(ThumbnailOptions.MinimumImageWidth), oldValue.MinimumImageWidth, newValue.MinimumImageWidth);
@@ -173,9 +171,9 @@ internal static partial class ThumbnailLogMessage
         logger.LogSettingChanged(
             nameof(ThumbnailAppearance.HighlightedLabelArgb), oldValue.HighlightedLabelArgb, newValue.HighlightedLabelArgb);
         logger.LogSettingChanged(
-            nameof(ThumbnailAppearance.HideShadowWhenHighlighted),
-            oldValue.HideShadowWhenHighlighted,
-            newValue.HideShadowWhenHighlighted);
+            nameof(ThumbnailAppearance.HideShadowWhenSelected),
+            oldValue.HideShadowWhenSelected,
+            newValue.HideShadowWhenSelected);
         logger.LogSettingChanged(
             nameof(ThumbnailAppearance.ShowHoverBackground), oldValue.ShowHoverBackground, newValue.ShowHoverBackground);
         logger.LogSettingChanged(

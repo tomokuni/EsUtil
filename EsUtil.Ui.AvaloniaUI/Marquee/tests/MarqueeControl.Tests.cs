@@ -1395,14 +1395,14 @@ public class MarqueeControlTests
             {
                 HandleColor = color,
                 HandleBorderColor = color,
-                OuterBorderColor = color,
+                BorderColor = color,
             };
             control.InvalidateVisual();
             window.CaptureRenderedFrame();
         }
 
         // クリア後に再描画しても例外なく正しく描画される（キャッシュが再構築される）
-        control.Appearance = control.Appearance with { OuterBorderColor = Colors.Red.ToDrawingColor() };
+        control.Appearance = control.Appearance with { BorderColor = Colors.Red.ToDrawingColor() };
         control.InvalidateVisual();
         window.CaptureRenderedFrame();
 
@@ -1539,7 +1539,7 @@ public class MarqueeControlTests
             Options = TestOptions,
             Appearance = MarqueeAppearance.Default with
             {
-                OuterBorderThickness = thickness,
+                BorderThickness = thickness,
                 ShowCoordLabel = false,
             },
         };

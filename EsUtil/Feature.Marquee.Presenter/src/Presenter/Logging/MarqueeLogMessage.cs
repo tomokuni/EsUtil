@@ -208,10 +208,9 @@ internal static partial class MarqueeLogMessage
         logger.LogSettingChanged(nameof(MarqueeAppearance.CoordLabelColor), oldValue.CoordLabelColor, newValue.CoordLabelColor);
         logger.LogSettingChanged(
             nameof(MarqueeAppearance.CoordLabelBackgroundColor), oldValue.CoordLabelBackgroundColor, newValue.CoordLabelBackgroundColor);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.OverlayColor), oldValue.OverlayColor, newValue.OverlayColor);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.OuterBorderColor), oldValue.OuterBorderColor, newValue.OuterBorderColor);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.InnerFillColor), oldValue.InnerFillColor, newValue.InnerFillColor);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.InnerBorderColor), oldValue.InnerBorderColor, newValue.InnerBorderColor);
+        logger.LogSettingChanged(nameof(MarqueeAppearance.OuterMaskColor), oldValue.OuterMaskColor, newValue.OuterMaskColor);
+        logger.LogSettingChanged(nameof(MarqueeAppearance.BorderColor), oldValue.BorderColor, newValue.BorderColor);
+        logger.LogSettingChanged(nameof(MarqueeAppearance.InnerMaskColor), oldValue.InnerMaskColor, newValue.InnerMaskColor);
         logger.LogSettingChanged(nameof(MarqueeAppearance.SizeLabelFontSize), oldValue.SizeLabelFontSize, newValue.SizeLabelFontSize);
         logger.LogSettingChanged(nameof(MarqueeAppearance.CoordLabelFontSize), oldValue.CoordLabelFontSize, newValue.CoordLabelFontSize);
         logger.LogSettingChanged(nameof(MarqueeAppearance.LabelPadding), oldValue.LabelPadding, newValue.LabelPadding);
@@ -219,15 +218,11 @@ internal static partial class MarqueeLogMessage
         logger.LogSettingChanged(nameof(MarqueeAppearance.ShowMarker), oldValue.ShowMarker, newValue.ShowMarker);
         logger.LogSettingChanged(nameof(MarqueeAppearance.ShowSizeLabel), oldValue.ShowSizeLabel, newValue.ShowSizeLabel);
         logger.LogSettingChanged(nameof(MarqueeAppearance.ShowCoordLabel), oldValue.ShowCoordLabel, newValue.ShowCoordLabel);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowOverlay), oldValue.ShowOverlay, newValue.ShowOverlay);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowOuterBorder), oldValue.ShowOuterBorder, newValue.ShowOuterBorder);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowFullOverlay), oldValue.ShowFullOverlay, newValue.ShowFullOverlay);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowInnerFill), oldValue.ShowInnerFill, newValue.ShowInnerFill);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowInnerBorder), oldValue.ShowInnerBorder, newValue.ShowInnerBorder);
+        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowOuterMask), oldValue.ShowOuterMask, newValue.ShowOuterMask);
+        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowBorder), oldValue.ShowBorder, newValue.ShowBorder);
+        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowInnerMask), oldValue.ShowInnerMask, newValue.ShowInnerMask);
         logger.LogSettingChanged(
-            nameof(MarqueeAppearance.OuterBorderThickness), oldValue.OuterBorderThickness, newValue.OuterBorderThickness);
-        logger.LogSettingChanged(
-            nameof(MarqueeAppearance.InnerBorderThickness), oldValue.InnerBorderThickness, newValue.InnerBorderThickness);
+            nameof(MarqueeAppearance.BorderThickness), oldValue.BorderThickness, newValue.BorderThickness);
     }
 
     /// <summary>数値設定値の変更ログ（同値の再設定では出力しない）の本体。</summary>

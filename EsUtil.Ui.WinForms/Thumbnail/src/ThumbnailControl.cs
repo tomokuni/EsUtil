@@ -677,7 +677,8 @@ public sealed class ThumbnailControl : ScrollableControl
         public string Caption { get; set; } = caption;
 
         /// <summary>ツールヒント。</summary>
-        public string? ToolTip { get; } = toolTip;
+        /// <summary>ツールヒント（省略していない名前 + ホストの付加情報）。</summary>
+        public string ToolTip { get; } = string.IsNullOrEmpty(toolTip) ? caption : $"{caption}{Environment.NewLine}{toolTip}";
 
         /// <summary>現在表示中の画像かどうか。</summary>
         /// <summary>現在表示中の画像かどうかを取得する。</summary>

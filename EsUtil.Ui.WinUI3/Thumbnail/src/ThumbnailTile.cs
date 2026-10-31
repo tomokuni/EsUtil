@@ -26,6 +26,9 @@ internal sealed partial class ThumbnailTile : Grid
     /// <summary>最後に適用した描画計画。</summary>
     private ThumbnailDrawPlan? _plan;
 
+    /// <summary>ツールヒントの幅の上限（DIP）。 名前が長い場合はこの幅で折り返す。</summary>
+    private const double ToolTipMaxWidth = 280;
+
     /// <summary>表示する画像。</summary>
     private EsReadOnlyBitmap? _source;
 
@@ -48,10 +51,9 @@ internal sealed partial class ThumbnailTile : Grid
 
         Children.Add(_viewport);
         Children.Add(_label);
-        if (!string.IsNullOrEmpty(toolTip))
-        {
-            ToolTipService.SetToolTip(this, toolTip);
-        }
+        // ツールヒントには省略していない名前を出す（折り返して全体を読めるようにする）
+        var tip = string.IsNullOrEmpty(toolTip) ? caption : $"{caption}{Environment.NewLine}{toolTip}";
+        ToolTipService.SetToolTip(this, new TextBlock { Text = tip, MaxWidth = ToolTipMaxWidth, TextWrapping = TextWrapping.Wrap });
 
         SetImage(image);
         SetCaption(caption);

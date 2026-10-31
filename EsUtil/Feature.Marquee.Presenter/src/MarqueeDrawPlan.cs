@@ -7,10 +7,9 @@ namespace EsUtil.Feature.Marquee;
 /// <param name="ClientRect">描画面の全体（左上を原点とする矩形・DIP）。</param>
 /// <param name="FocusDipRect">注目矩形（DIP。 閉区間は解決済み）。 選択もハイライトも無い場合は null。</param>
 /// <param name="LabelAnchor">ラベルの基準点（注目矩形の内側へ寄せた左上・DIP）。 注目矩形が無い場合は null。</param>
-/// <param name="OverlayDipRects">暗転して塗る領域（DIP）。 注目矩形が無い場合は描画面の全体（1 領域）。</param>
-/// <param name="OuterBorderDipRects">外枠の矩形（DIP の 4 辺）。 注目矩形が無い場合は空。</param>
-/// <param name="InnerFillDipRect">注目矩形の内側の塗り（DIP）。 注目矩形が無い場合は null。</param>
-/// <param name="InnerBorderDipRects">注目矩形の内側の枠線（DIP の 4 辺）。 注目矩形が無い場合は空。</param>
+/// <param name="OuterMaskDipRects">暗転して塗る領域（DIP）。 注目矩形が無い場合は描画面の全体（1 領域）。</param>
+/// <param name="BorderDipRects">外枠の矩形（DIP の 4 辺）。 注目矩形が無い場合は空。</param>
+/// <param name="InnerMaskDipRect">注目矩形の内側の塗り（DIP）。 注目矩形が無い場合は null。</param>
 /// <param name="Handles">ドラッグハンドルの幾何（DIP の矩形列と枠線の太さ）。 選択が無い場合は null。</param>
 /// <param name="Marker">始点マーカー（DIP）。 nudge 中でない場合は null。</param>
 /// <param name="Layers">描く値のある層とその順序（<b>描画順は描画層が単一所有する</b>）。 先頭から順に処理する。</param>
@@ -31,10 +30,9 @@ public readonly record struct MarqueeDrawPlan(
     EsRect ClientRect,
     EsRect? FocusDipRect,
     EsPoint? LabelAnchor,
-    IReadOnlyList<EsRect> OverlayDipRects,
-    IReadOnlyList<EsRect> OuterBorderDipRects,
-    EsRect? InnerFillDipRect,
-    IReadOnlyList<EsRect> InnerBorderDipRects,
+    IReadOnlyList<EsRect> OuterMaskDipRects,
+    IReadOnlyList<EsRect> BorderDipRects,
+    EsRect? InnerMaskDipRect,
     MarqueeHandles? Handles,
     MarqueeMarker? Marker,
     IReadOnlyList<MarqueeDrawLayer> Layers,
@@ -49,10 +47,9 @@ public readonly record struct MarqueeDrawPlan(
     /// <value>表示が有効な装飾を 1 つ以上持つ場合は true。</value>
     /// <remarks>表示可否（<see cref="MarqueeAppearance"/> の <c>Show*</c>）まで適用した結果を返す（計画は可否で値を消さないため、本値で判定できる）。</remarks>
     public bool HasDecoration
-        => (Appearance.ShowOverlay && Appearance.ShouldDrawOverlay(FocusDipRect is not null) && OverlayDipRects.Count > 0)
-        || (Appearance.ShowOuterBorder && OuterBorderDipRects.Count > 0)
-        || (Appearance.ShowInnerFill && InnerFillDipRect is not null)
-        || (Appearance.ShowInnerBorder && InnerBorderDipRects.Count > 0);
+        => (Appearance.ShowOuterMask && OuterMaskDipRects.Count > 0)
+        || (Appearance.ShowBorder && BorderDipRects.Count > 0)
+        || (Appearance.ShowInnerMask && InnerMaskDipRect is not null);
 
     /// <summary>表示が有効なラベルを持つかを判定する。</summary>
     /// <param name="labels">配置指示の一覧。</param>

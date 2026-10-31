@@ -17,14 +17,14 @@ public class MarqueeLogMessageTests
     {
         var logger = new RecordingLogger();
         var before = MarqueeAppearance.Default;
-        var after = before with { OuterBorderThickness = 5, ShowHandles = false };
+        var after = before with { BorderThickness = 5, ShowHandles = false };
 
         logger.LogAppearanceChanged(before, after);
 
         Assert.Equal(
             [
                 "[Marquee] Setting: ShowHandles True → False",
-                "[Marquee] Setting: OuterBorderThickness 2 → 5",
+                "[Marquee] Setting: BorderThickness 2 → 5",
             ],
             logger.Messages);
     }
@@ -45,12 +45,12 @@ public class MarqueeLogMessageTests
     {
         var logger = new RecordingLogger();
         var before = MarqueeAppearance.Default;
-        var after = before with { OverlayColor = DrawingColor.FromArgb(255, 0, 0, 0) };
+        var after = before with { OuterMaskColor = DrawingColor.FromArgb(255, 0, 0, 0) };
 
         logger.LogAppearanceChanged(before, after);
 
         Assert.Equal(
-            "[Marquee] Setting: OverlayColor #80000000 → #FF000000",
+            "[Marquee] Setting: OuterMaskColor #80000000 → #FF000000",
             Assert.Single(logger.Messages));
     }
 
@@ -69,10 +69,9 @@ public class MarqueeLogMessageTests
             SizeLabelBackgroundColor = DrawingColor.FromArgb(5, 0, 0, 0),
             CoordLabelColor = DrawingColor.FromArgb(6, 0, 0, 0),
             CoordLabelBackgroundColor = DrawingColor.FromArgb(7, 0, 0, 0),
-            OverlayColor = DrawingColor.FromArgb(8, 0, 0, 0),
-            OuterBorderColor = DrawingColor.FromArgb(9, 0, 0, 0),
-            InnerFillColor = DrawingColor.FromArgb(10, 0, 0, 0),
-            InnerBorderColor = DrawingColor.FromArgb(11, 0, 0, 0),
+            OuterMaskColor = DrawingColor.FromArgb(8, 0, 0, 0),
+            BorderColor = DrawingColor.FromArgb(9, 0, 0, 0),
+            InnerMaskColor = DrawingColor.FromArgb(10, 0, 0, 0),
             SizeLabelFontSize = 13.0,
             CoordLabelFontSize = 11.0,
             LabelPadding = 5.0,
@@ -81,18 +80,15 @@ public class MarqueeLogMessageTests
             ShowHandles = false,
             ShowSizeLabel = false,
             ShowCoordLabel = false,
-            ShowOverlay = false,
-            ShowOuterBorder = false,
-            ShowFullOverlay = true,
-            ShowInnerFill = true,
-            ShowInnerBorder = true,
-            OuterBorderThickness = 3.0,
-            InnerBorderThickness = 4.0,
+            ShowOuterMask = false,
+            ShowBorder = false,
+            ShowInnerMask = true,
+            BorderThickness = 3.0,
         };
 
         logger.LogAppearanceChanged(MarqueeAppearance.Default, after);
 
-        Assert.Equal(26, logger.Messages.Count);
+        Assert.Equal(22, logger.Messages.Count);
     }
 
     [Fact]

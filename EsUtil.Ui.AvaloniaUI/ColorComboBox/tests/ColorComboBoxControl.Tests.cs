@@ -96,9 +96,6 @@ public class ColorComboBoxControlTests
         Assert.False(control.HasValidationError);
         Assert.Null(control.ValidationErrorMessage);
         Assert.False(control.HighlightBorderOnError);
-        Assert.Equal(120d, control.TextMinWidth);
-        Assert.Equal(double.PositiveInfinity, control.TextMaxWidth);
-        Assert.Equal(double.NaN, control.TextWidth);
         Assert.Equal(double.NaN, control.TextFontSize);
     }
 
@@ -367,24 +364,6 @@ public class ColorComboBoxControlTests
         Assert.DoesNotContain("validation-error", FrameOf(control).Classes);
     }
 
-    // ====================================================================
-    // 外観（入力欄のサイズ）
-    // ====================================================================
-
-    [AvaloniaFact]
-    internal void 入力欄サイズプロパティを設定すると反映される()
-    {
-        var control = CreateControl();
-
-        control.TextMinWidth = 100;
-        control.TextMaxWidth = 300;
-        control.TextWidth = 200;
-
-        var text = TextOf(control);
-        Assert.Equal(100d, text.MinWidth);
-        Assert.Equal(300d, text.MaxWidth);
-        Assert.Equal(200d, text.Width);
-    }
 
     [AvaloniaFact]
     internal void TextFontSize変更で入力欄の文字サイズが変わる()

@@ -18,7 +18,7 @@ public partial class MarqueePresenter
     /// <summary>ラベルを矩形の枠線から離す余白（DIP）。</summary>
     /// <remarks>
     /// 基準点は注目矩形の左上であり、そのまま置くとラベルの背景が矩形の枠線に重なって文字が読みにくくなる。<br/>
-    /// 枠線は矩形の内側へ <see cref="MarqueeAppearance.OuterBorderThickness"/> の幅で描かれるため、その幅に本値を足した分だけ内側へ寄せる<br/>
+    /// 枠線は矩形の内側へ <see cref="MarqueeAppearance.BorderThickness"/> の幅で描かれるため、その幅に本値を足した分だけ内側へ寄せる<br/>
     /// （線幅ちょうどでは背景が線に接する。 本値は背景と線の間に残す見た目の余白である）。
     /// </remarks>
     private const double LabelInsetMargin = 1.0;
@@ -49,7 +49,7 @@ public partial class MarqueePresenter
     /// （線が無いのに線幅ぶんを足すと、ラベルが理由なく矩形の内側へずれる）。
     /// </remarks>
     private static double ResolveLabelInset(MarqueeAppearance appearance)
-        => (appearance.ShowOuterBorder ? appearance.OuterBorderThickness : 0.0) + LabelInsetMargin;
+        => (appearance.ShowBorder ? appearance.BorderThickness : 0.0) + LabelInsetMargin;
 
     /// <summary>サイズラベルの文言と基準点を解決する。</summary>
     /// <param name="geometry">描画の幾何（注目矩形を持つ）。</param>

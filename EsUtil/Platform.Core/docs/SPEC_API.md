@@ -176,7 +176,7 @@ public sealed record HotKeySetting(HotKeyModifiers Modifiers, EsKey Key)
 - `ToDip(EsSize physicalSize, double scaling)`: 物理ピクセルのサイズを DIP のサイズへ変換する（成分ごとの換算を上記 `ToDip` へ委譲する）。 コア型同士の換算を UI 側で組み立てないための入口。
 - `ToPoint(double dip)`: DIP の長さをポイント（1/72 インチ）へ換算する（`dip × 72 / 96`。 DPI スケーリングは掛けない）。 WinForms（GDI+）のフォント サイズはポイントで指定するため、外観（DIP）との換算比を各所へ書かずに済む。
 - `ResolveClientScale(double clientPixels, double clientDip, double fallback)`: 描画面の実サイズと表示領域（DIP）の比から、描画に使う係数を解決する（表示領域が未確定なら `fallback`）。 各 UI コントロールは `internal` の複製を持たず本メソッドを使う。
-- 表示サイズ・外枠の太さの物理ピクセル換算と、ウィンドウの位置・サイズの換算で共用する。
+- 表示サイズ・枠線の太さの物理ピクセル換算と、ウィンドウの位置・サイズの換算で共用する。
 
 ### 2.10 `Geometry.EsAxis`（enum）
 
@@ -207,7 +207,7 @@ public sealed record HotKeySetting(HotKeyModifiers Modifiers, EsKey Key)
 
 ```csharp
 // ホストの色設定をコアの明示フラグへ写す（色を指定しない = 描かない）
-ShowOverlay = settings.OverlayColor!.Value.IsVisible(),
+ShowOuterMask = settings.OuterMaskColor!.Value.IsVisible(),
 ```
 
 描画の可否は**描画にだけ必要な設定を所有する上位層の外観の明示フラグ**が単一所有します。 本メソッドは「ホストの色設定（省略可能な色）をフラグへ写す」場面で使います（`color.A > 0` を各所に書くと、同じ意味の判定が散らばる）。
@@ -268,7 +268,7 @@ UI フレームワーク非依存のサイズ・ベクター・矩形。 各 UI 
 | `Intersect` | `EsRect Intersect(EsRect other)` | 2 つの矩形の重なり部分を返す（重なりが無い場合は空。 幅・高さは負にならない） |
 
 ```csharp
-// 選択矩形の枠線と拡大表示の外枠が同じ式を共用する
+// 選択矩形の枠線と拡大表示の枠線が同じ式を共用する
 var edges = hole.ComputeInnerEdges(Math.Max(0.5, borderThickness));
 ```
 

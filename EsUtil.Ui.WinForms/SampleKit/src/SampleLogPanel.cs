@@ -6,7 +6,7 @@ namespace EsUtil.Ui.WinForms.SampleKit;
 /// ログの書き込み側（コントロール・アプリ）を待たせない。<br/>
 /// <b>一覧で表示する理由</b>: 1 つの複数行テキストへ全行を入れると、行数に比例して描画の費用が増える。
 /// 一覧（<see cref="ListBox"/>）は見えている行だけを描くため、行数が増えても描画の費用は変わらない。<br/>
-/// <b>選択とコピー</b>: 行を選んで（複数可）見出しの「コピー」を押すと、選んだ行をクリップボードへ写す
+/// <b>選択とコピー</b>: 行を選んで（複数可）Ctrl+C を押すと、選んだ行をクリップボードへ写す
 /// （選んでいないときは表示中のすべての行）。
 /// </remarks>
 public sealed class SampleLogPanel : TableLayoutPanel
@@ -58,8 +58,16 @@ public sealed class SampleLogPanel : TableLayoutPanel
         RowStyles.Add(new RowStyle(SizeType.AutoSize));
         RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
-        var copy = new Button { Text = "コピー", AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink };
-        copy.Click += (_, _) => CopySelectionOrAll();
+        // 選択した行は Ctrl+C でクリップボードへ写す（コピーのボタンは置かない）
+        _list.KeyDown += (_, e) =>
+        {
+            if (e.Control && e.KeyCode == Keys.C)
+            {
+                CopySelection();
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+            }
+        };
 
         var header = new FlowLayoutPanel
         {
@@ -71,7 +79,12 @@ public sealed class SampleLogPanel : TableLayoutPanel
             Margin = Padding.Empty,
         };
         header.Controls.Add(new Label { Text = "ログ", AutoSize = true, Font = new Font(Font, FontStyle.Bold) });
-        header.Controls.Add(copy);
+        header.Controls.Add(new Label
+        {
+            Text = "行を選んで Ctrl+C でコピー",
+            AutoSize = true,
+            Margin = new Padding(8, 0, 0, 0),
+        });
         Controls.Add(header, 0, 0);
         Controls.Add(_list, 0, 1);
 
@@ -79,16 +92,14 @@ public sealed class SampleLogPanel : TableLayoutPanel
         _timer.Start();
     }
 
-    /// <summary>選んだ行（無ければ表示中のすべての行）をクリップボードへ写す。</summary>
-    /// <remarks>表示の対象は画面に出ている行だけにする（上限で捨てた行は含めない）。</remarks>
-    private void CopySelectionOrAll()
+    /// <summary>選んだ行をクリップボードへ写す。</summary>
+    /// <remarks>
+    /// 表示の対象は画面に出ている行だけにする（上限で捨てた行は含めない）。<br/>
+    /// 選んでいないときは何もしない（全行を写すと、見えていない行まで意図せず運ぶ）。
+    /// </remarks>
+    private void CopySelection()
     {
         var lines = _list.SelectedItems.OfType<string>().ToList();
-        if (lines.Count == 0)
-        {
-            lines = _displayed;
-        }
-
         if (lines.Count > 0)
         {
             Clipboard.SetText(string.Join(Environment.NewLine, lines));

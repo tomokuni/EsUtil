@@ -68,12 +68,9 @@ internal static class MainWindow
             SampleSettings.Number("画像の幅", 160, 40, 400, 10, true, value => thumbnails.ImageWidth = value),
             selectionRow.Element,
             currentRow.Element,
-            SampleSettings.Slider("項目の余白", 12, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { ItemPadding = value }),
             SampleSettings.Slider("行間", 8, 0, 32, 1, true, value => thumbnails.Options = thumbnails.Options with { RowSpace = value }),
             SampleSettings.Slider("列間", 8, 0, 32, 1, true, value => thumbnails.Options = thumbnails.Options with { ColumnSpace = value }),
-            SampleSettings.Slider("ラベルの高さ", 30, 0, 48, 1, true, value => thumbnails.Options = thumbnails.Options with { LabelHeight = value }),
             SampleSettings.Slider("ラベルの左右の余白", 1, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { LabelHorizontalPadding = value }),
-            SampleSettings.Slider("外側の余白の広がり", 10, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { SurroundExtent = value }),
             SampleSettings.Slider("内容の余白", 2, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { ContentPadding = value }),
             SampleSettings.Slider("画像の最小幅", 16, 16, 320, 8, true, value => thumbnails.Options = thumbnails.Options with { MinimumImageWidth = value }),
             SampleSettings.Slider("最大の列数", 0, 0, 16, 1, true, value => thumbnails.Options = thumbnails.Options with { MaximumColumns = (int)value }),
@@ -82,11 +79,12 @@ internal static class MainWindow
             SampleSettings.Check("現在項目のラベルを太字にする", true, value => Apply(appearance with { BoldCurrentLabel = value })),
             SampleSettings.Check("ホバーの背景を表示", true, value => Apply(appearance with { ShowHoverBackground = value })),
             SampleSettings.Check("選択の背景を表示", true, value => Apply(appearance with { ShowSelectionBackground = value })),
-            SampleSettings.Check("強調時は影を隠す", false, value => Apply(appearance with { HideShadowWhenHighlighted = value })),
+            SampleSettings.Check("選択時に影を隠す", false, value => Apply(appearance with { HideShadowWhenSelected = value })),
             SampleSettings.Text("ログ接頭辞", "[Thumbnail]", value => thumbnails.LogPrefix = value));
 
         // サンプル設定（サンプル固有の操作。 並びは他 UI と共通）
         var samples = new StackPanel().Vertical().Spacing(6).Children(
+            SampleSettings.LogLevel(logging),
             status,
             SampleSettings.Buttons(
                 ("追加", () => AddItem(thumbnails, status)),

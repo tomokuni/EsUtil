@@ -352,14 +352,11 @@ public sealed partial class MarqueePresenter
 
         // 描く値は表示可否（Appearance の Show*）に依存せず解決する（ホストが計算値を自前の描画へ使えるようにするため）。
         // 描くかどうかの判断は描画側（painter / ホスト）が行う（値の有無は幾何だけで決まる）。
-        var overlayRegions = ComputeOverlayDipRects(surface, focus);
+        var overlayRegions = ComputeOuterMaskDipRects(surface, focus);
         var outerBorders = focus is { } outerFocus
-            ? ComputeBorderDipRects(outerFocus, appearance.OuterBorderThickness)
+            ? ComputeBorderDipRects(outerFocus, appearance.BorderThickness)
             : [];
         var innerFill = focus;
-        var innerBorders = focus is { } innerFocus
-            ? ComputeBorderDipRects(innerFocus, appearance.InnerBorderThickness)
-            : [];
 
         var sizeLabel = ResolveSizeLabelText(
             in geometry, appearance, DisplayScaleScaling, SizeLabelOverrideProvider, SizeLabelDisplayScalingProvider);
@@ -375,18 +372,16 @@ public sealed partial class MarqueePresenter
             overlayRegions,
             outerBorders,
             innerFill,
-            innerBorders,
             handles,
             marker,
-            ResolveLayers(overlayRegions, outerBorders, innerFill, innerBorders, handles, marker, sizeLabel, coordLabel),
+            ResolveLayers(overlayRegions, outerBorders, innerFill, handles, marker, sizeLabel, coordLabel),
             ResolveLabelPlacements(sizeLabel, coordLabel, appearance, measureText));
     }
 
     /// <summary>描く層だけを描画順に並べる。</summary>
     /// <param name="overlayRegions">暗転領域。</param>
-    /// <param name="outerBorderDipRects">外枠の矩形。</param>
+    /// <param name="borderDipRects">枠線の矩形。</param>
     /// <param name="innerFillRect">内側の塗り。</param>
-    /// <param name="innerBorderDipRects">内側の枠線。</param>
     /// <param name="handles">ドラッグハンドル。 null の場合は層を含めない。</param>
     /// <param name="marker">始点マーカー。 null の場合は層を含めない。</param>
     /// <param name="sizeLabel">サイズラベル。 null の場合は数えない。</param>
@@ -399,15 +394,14 @@ public sealed partial class MarqueePresenter
     /// </remarks>
     private static IReadOnlyList<MarqueeDrawLayer> ResolveLayers(
         IReadOnlyList<EsRect> overlayRegions,
-        IReadOnlyList<EsRect> outerBorderDipRects,
+        IReadOnlyList<EsRect> borderDipRects,
         EsRect? innerFillRect,
-        IReadOnlyList<EsRect> innerBorderDipRects,
         MarqueeHandles? handles,
         MarqueeMarker? marker,
         MarqueeTextPlacement? sizeLabel,
         MarqueeTextPlacement? coordLabel)
         => s_layers[
-            (overlayRegions.Count > 0 || outerBorderDipRects.Count > 0 || innerFillRect is not null || innerBorderDipRects.Count > 0 ? DecorationBit : 0)
+            (overlayRegions.Count > 0 || borderDipRects.Count > 0 || innerFillRect is not null ? DecorationBit : 0)
             | (handles is not null ? HandlesBit : 0)
             | (marker is not null ? MarkerBit : 0)
             | (sizeLabel is not null || coordLabel is not null ? TextBit : 0)];

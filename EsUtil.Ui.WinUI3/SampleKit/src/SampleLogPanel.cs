@@ -9,7 +9,7 @@ namespace EsUtil.Ui.WinUI3.SampleKit;
 /// ログの書き込み側（コントロール・アプリ）を待たせない。<br/>
 /// <b>一覧で表示する理由</b>: 1 つの折り返しテキストへ全行を入れると、行数に比例して描画の費用が増える。
 /// 一覧（<see cref="ListView"/>）は見えている行だけを実体化するため、行数が増えても描画の費用は変わらない。<br/>
-/// <b>選択とコピー</b>: 行を選んで（複数可）見出しの「コピー」を押すと、選んだ行をクリップボードへ写す
+/// <b>選択とコピー</b>: 行を選んで（複数可）Ctrl+C を押すと、選んだ行をクリップボードへ写す
 /// （選んでいないときは表示中のすべての行）。
 /// </remarks>
 public sealed class SampleLogPanel : Grid
@@ -57,8 +57,17 @@ public sealed class SampleLogPanel : Grid
         RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-        var copy = new Button { Content = "コピー", FontSize = SampleSettings.FontSize };
-        copy.Click += (_, _) => CopySelectionOrAll();
+        // 選択した行は Ctrl+C でクリップボードへ写す（コピーのボタンは置かない）
+        _list.KeyDown += (_, e) =>
+        {
+            var control = Microsoft.UI.Input.InputKeyboardSource
+                .GetKeyStateForCurrentThread(Windows.System.VirtualKey.Control);
+            if (e.Key == Windows.System.VirtualKey.C && (control & Windows.UI.Core.CoreVirtualKeyStates.Down) != 0)
+            {
+                CopySelection();
+                e.Handled = true;
+            }
+        };
 
         var header = new StackPanel
         {
@@ -73,7 +82,12 @@ public sealed class SampleLogPanel : Grid
                     FontWeight = Microsoft.UI.Text.FontWeights.Bold,
                     FontSize = 12,
                 },
-                copy,
+                new TextBlock
+                {
+                    Text = "行を選んで Ctrl+C でコピー",
+                    FontSize = SampleSettings.FontSize,
+                    VerticalAlignment = VerticalAlignment.Center,
+                },
             },
         };
         Children.Add(header);
@@ -85,14 +99,17 @@ public sealed class SampleLogPanel : Grid
         _timer.Start();
     }
 
-    /// <summary>選んだ行（無ければ表示中のすべての行）をクリップボードへ写す。</summary>
-    /// <remarks>表示の対象は画面に出ている行だけにする（上限で捨てた行は含めない）。</remarks>
-    private void CopySelectionOrAll()
+    /// <summary>選んだ行をクリップボードへ写す。</summary>
+    /// <remarks>
+    /// 表示の対象は画面に出ている行だけにする（上限で捨てた行は含めない）。<br/>
+    /// 選んでいないときは何もしない（全行を写すと、見えていない行まで意図せず運ぶ）。
+    /// </remarks>
+    private void CopySelection()
     {
         var lines = _list.SelectedItems.OfType<string>().ToList();
         if (lines.Count == 0)
         {
-            lines = _displayed;
+            return;
         }
 
         var package = new Windows.ApplicationModel.DataTransfer.DataPackage();

@@ -130,14 +130,14 @@ EsUtil.Ui.AvaloniaUI/Marquee/sample/
 
 `Presentation/` に、描画計画（`DrawPlanResolver`）で見た目を差し替える見本があります（設定パネル上部の見本）。
 
-- `GuideMarqueePlan` — 外観（色・枠線の太さ・表示可否）と、注目矩形の装飾の矩形（破線枠・三分割ガイド・内側の塗り）を与えます。 計画を差し替える純粋関数（`Resolve(in plan)`）として提供します。
+- `GuideMarqueePlan` — 外観（色・枠線の太さ・表示可否）と、注目矩形の装飾の矩形（破線枠・三分割ガイド・内側マスク）を与えます。 計画を差し替える純粋関数（`Resolve(in plan)`）として提供します。
 
 差し替えの入口は次の 3 つです（**派生は不要**。 XAML のコントロールへコードビハインドから設定します）。
 
 | 差し替える対象 | 差し替え方 |
 | --- | --- |
 | 外観（色・枠線の太さ・表示可否） | `Appearance`（`MarqueeAppearance`）を設定する |
-| 装飾（暗転・外枠・内側の塗り）の矩形 / ラベルの文言・位置 | `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）を設定する（計画の値の置き換え） |
+| 装飾（暗転・枠線・内側マスク）の矩形 / ラベルの文言・位置 | `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）を設定する（計画の値の置き換え） |
 | 矩形で表せない描画（円・斜線等） | `Appearance` の `Show*` を false にして `Rendered` の描画先へ自前で描く（必要なら `DrawPlan` で計画どおりの描画も呼べる） |
 
 差し替えは値の置き換えだけで完結するため、UI ごとの描画実装（Avalonia は `MarqueeContextPainter`、MewUI は `MarqueeSkiaPainter`。 いずれも内部）は変更不要です。

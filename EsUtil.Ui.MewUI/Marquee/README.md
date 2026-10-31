@@ -44,7 +44,7 @@
 - **コア共有**: 選択矩形の幾何計算・状態機械・**入力の解釈（nudge セッション・確定/キャンセル・スナップ・クリック検出・最小サイズ判定）**は `EsUtil.Feature.Marquee.Core` が単一所有します（UI 層は公開ファサード `MarqueeCore` だけを参照し、内部の状態機械・フレーム解決には触れません）。
   Avalonia 版と MewUI 版の挙動は同じ計算に基づきます。
 - **直接描画**: 中間ビットマップを経由せず、`描画の層` のキャンバスへ直接描画します。 描画計画（層の順序・装飾矩形・文言・配置）は提示層（`EsUtil.Feature.Marquee.Presenter`）が単一所有し、描画はフレームワーク標準の描画 API で行います。
-- **外観の設定（`Appearance`）**: 色・フォントサイズ・枠線の太さ・表示可否は**描画にだけ必要な設定**のためコアには含めず、外観（`EsUtil.Feature.Marquee.Presenter` の `MarqueeAppearance`）が単一所有します。 `Appearance` プロパティで指定し（既定は `MarqueeAppearance.Default`）、部分変更は `MarqueeAppearance.Default with { ... }` で行います。 **描くかどうかは色のアルファではなく外観の明示フラグ（`ShowOverlay` / `ShowOuterBorder` / `ShowInnerFill` / `ShowInnerBorder` / `ShowFullOverlay`）が決めます**。
+- **外観の設定（`Appearance`）**: 色・フォントサイズ・枠線の太さ・表示可否は**描画にだけ必要な設定**のためコアには含めず、外観（`EsUtil.Feature.Marquee.Presenter` の `MarqueeAppearance`）が単一所有します。 `Appearance` プロパティで指定し（既定は `MarqueeAppearance.Default`）、部分変更は `MarqueeAppearance.Default with { ... }` で行います。 **描くかどうかは色のアルファではなく外観の明示フラグ（`ShowOuterMask` / `ShowBorder` / `ShowInnerMask` / `ShowInnerBorder` / `ShowFullOverlay`）が決めます**。
 - **文字は UI 層が要素として配置する**: サイズラベルとカーソル座標ラベルの**文言と基準点は提示層の `MarqueePresenter`（`LabelTexts` partial） が、色とフォントサイズは外観（`MarqueeAppearance`）が、実寸から配置矩形を求める写像は提示層の `MarqueePresenter`（`LabelPlan` partial） が単一所有**し、UI 層が `Border` + `TextBlock` を子要素として置く（子要素は親の描画より後に描かれるため常に最上位）。 サイズラベルの基準点は注目矩形の左上から**枠線の幅 + 1 DIP 内側**（枠線と背景の重なりを無くす）。 実寸測定は自 UI の API（`MewUITextMeasure.Measure`）で行う。 操作・情報ラベルはアプリ固有の付加情報のため、ホスト（上位のアプリの合成コントロール）が `Rendered` のハンドラで自前で描く（外観はホストのラベル設定が単一所有する）
 - **DPI 追従**: `OnDpiChanged` でスケーリング係数を更新し、DIP 座標で描画します（枠線・ハンドルの画面上の大きさを保ちます）。
 - **コア型のイベント引数**: イベントの座標は UI 非依存のコア型（`EsPoint` / `EsRect`）で公開します（境界変換が不要）。
@@ -90,7 +90,7 @@ var marquee = new MarqueeControl
     Options = MarqueeOptions.Default with { HandleSize = 12.0 },
 
     // 色と表示可否は描画の設定値（外観）が単一所有する（部分変更は with 式で行う）
-    Appearance = MarqueeAppearance.Default with { OuterBorderColor = System.Drawing.Color.White },
+    Appearance = MarqueeAppearance.Default with { BorderColor = System.Drawing.Color.White },
 };
 
 // 2. 座標変換ポートを設定する（ToSource = ローカル DIP → 対象 / SourceArea = 対象の境界）
@@ -221,7 +221,7 @@ dotnet run --project EsUtil.Ui.MewUI/Marquee/sample/EsUtil.Ui.MewUI.Marquee.Samp
 - ドラッグによる選択矩形の作成・移動・リサイズと、矢印キーによる nudge（微調整）
 - ズーム（1〜4 倍）と座標変換ポート（`SetCoordTransform`）
 - 画像内へのクリップ（`Options.ClampToSourceBounds`）
-- 外観（枠線・ハンドル・マーカー・暗転マスク）と寸法・対話パラメータの変更
+- 外観（枠線・ハンドル・マーカー・外側マスク）と寸法・対話パラメータの変更
 - `SetSelection` / `ResetSelection` / `RequestConfirm` / `RequestCancel`
 - 選択・確定・キャンセルのイベントと `Log`（操作ログの出力先 ILogger 設定例）
 - 外観と描画計画の差し替え（見本。 `Appearance` と `DrawPlanResolver`）

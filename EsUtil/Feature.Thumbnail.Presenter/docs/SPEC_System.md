@@ -119,7 +119,7 @@ classDiagram
         +LabelVerticalPadding double
         +BoldCurrentLabel bool
         +HighlightedLabelArgb uint
-        +HideShadowWhenHighlighted bool
+        +HideShadowWhenSelected bool
         +ShowHoverBackground bool
         +ShowSelectionBackground bool
         +Shadow IThumbnailShadowPlan
@@ -170,7 +170,7 @@ sequenceDiagram
     Presenter->>Layout: Slot(index) / Image(index) / Label(index)
     Presenter->>Appearance: ShowSelectionBackground / ShowHoverBackground
     Presenter->>Appearance: SelectionBackground(isDark) / HoverBackground(isDark)
-    Presenter->>Appearance: Shadow / HideShadowWhenHighlighted
+    Presenter->>Appearance: Shadow / HideShadowWhenSelected
     Presenter->>Appearance: LabelFontSize / BoldCurrentLabel / HighlightedLabelArgb
     Presenter->>Presenter: 層の並びを選ぶ（背景と影の有無で 4 通り）
     Presenter-->>UI: ThumbnailDrawPlan

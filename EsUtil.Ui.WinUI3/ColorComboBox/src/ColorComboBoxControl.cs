@@ -258,29 +258,6 @@ public sealed partial class ColorComboBoxControl : Grid
         set => _text.FontSize = value;
     }
 
-    /// <summary>入力欄の幅（DIP）を取得または設定する。</summary>
-    /// <value>幅。 <see cref="double.NaN"/>（既定）の場合は親の幅に従う。</value>
-    public double TextWidth
-    {
-        get => _text.Width;
-        set => _text.Width = value;
-    }
-
-    /// <summary>入力欄の最小幅（DIP）を取得または設定する。</summary>
-    /// <value>最小幅。 既定は 120。</value>
-    public double TextMinWidth
-    {
-        get => _text.MinWidth;
-        set => _text.MinWidth = value;
-    }
-
-    /// <summary>入力欄の最大幅（DIP）を取得または設定する。</summary>
-    /// <value>最大幅。 既定は無制限（<see cref="double.PositiveInfinity"/>）。</value>
-    public double TextMaxWidth
-    {
-        get => _text.MaxWidth;
-        set => _text.MaxWidth = value;
-    }
 
     /// <summary>入力が無効なときに枠線を赤くするかを取得または設定する。</summary>
     /// <value>true の場合は <see cref="HasValidationError"/> が true の間、外周の枠線を赤にする。 既定は false。</value>

@@ -63,7 +63,7 @@
 **`ResolveDrawPlan` が決めること**:
 
 - 背景色 … 選択中かつ `ShowSelectionBackground` なら選択の背景、そうでなくホバー中かつ `ShowHoverBackground` ならホバーの背景、それ以外は 0（描かない）。 **選択はホバーより優先**します。
-- 影 … 強調（ホバー・選択）中かつ `HideShadowWhenHighlighted` なら `null`、それ以外は `Appearance.Shadow`。
+- 影 … 強調（ホバー・選択）中かつ `HideShadowWhenSelected` なら `null`、それ以外は `Appearance.Shadow`。
 - 名前 … `Label` の矩形と `LabelFontSize`。 **現在表示中の項目かつ `BoldCurrentLabel` なら太字**。 強調中は `HighlightedLabelArgb`（0 の場合は UI の標準色）。
 - 層 … 背景と影の有無で 4 通りの並びから選ぶ（§2.6）。
 
@@ -83,7 +83,7 @@
 | `SelectionBackgroundLightArgb` | `uint` | `0x330078D4` | 明色テーマの選択背景（0 は描かない） |
 | `SelectionBackgroundDarkArgb` | `uint` | `0x330078D4` | 暗色テーマの選択背景（0 は描かない） |
 | `HighlightedLabelArgb` | `uint` | `0` | 強調中の名前の色（0 は UI の標準色） |
-| `HideShadowWhenHighlighted` | `bool` | `false` | 強調中は影を描かない |
+| `HideShadowWhenSelected` | `bool` | `false` | 強調中は影を描かない |
 | `ShowHoverBackground` | `bool` | `true` | ホバーの背景を描く |
 | `ShowSelectionBackground` | `bool` | `true` | 選択の背景を描く |
 | `Shadow` | `IThumbnailShadowPlan?` | `ThumbnailShadowPlan.Default` | 影の計画（null は影を描かない） |
@@ -101,7 +101,7 @@
 | メンバー | 型 | 説明 |
 | --- | --- | --- |
 | `Index` | `int` | 項目の添字 |
-| `Slot` | `EsRect` | 項目の外枠（ホバー帯） |
+| `Slot` | `EsRect` | 項目の枠線（ホバー帯） |
 | `Image` | `EsRect` | 画像の矩形 |
 | `ShadowArea` | `EsRect` | 影を含む矩形（画像 + 影の余白） |
 | `Label` | `ThumbnailLabelPlan` | 名前の計画 |

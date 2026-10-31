@@ -102,29 +102,6 @@ public class ColorComboBoxControlTests
         Assert.Equal("#FF008000", control.SelectedColor);
     }
 
-    [Fact]
-    internal void TextWidth_設定すると入力欄の幅が変わる()
-    {
-        var control = new ColorComboBoxControl { TextWidth = 200 };
-
-        Assert.Equal(200d, control.TextWidth);
-    }
-
-    [Fact]
-    internal void TextMinWidth_設定すると入力欄の最小幅が変わる()
-    {
-        var control = new ColorComboBoxControl { TextMinWidth = 90 };
-
-        Assert.Equal(90d, control.TextMinWidth);
-    }
-
-    [Fact]
-    internal void TextMaxWidth_設定すると入力欄の最大幅が変わる()
-    {
-        var control = new ColorComboBoxControl { TextMaxWidth = 400 };
-
-        Assert.Equal(400d, control.TextMaxWidth);
-    }
 
     [Fact]
     internal void TextFontSize_設定すると入力欄の文字サイズが変わる()

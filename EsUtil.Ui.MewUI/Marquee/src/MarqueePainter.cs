@@ -59,25 +59,22 @@ internal static class MarqueePainter
     /// <remarks>暗転は「表示可否」と「注目矩形の有無（全面暗転の可否）」の両方で決まる（判断は外観が単一所有する）。</remarks>
     private static void DrawDecoration(IGraphicsContext context, in MarqueeDrawPlan plan, MarqueeAppearance appearance)
     {
-        if (appearance.ShowOverlay && appearance.ShouldDrawOverlay(plan.FocusDipRect is not null))
+        if (appearance.ShowOuterMask)
         {
-            MewFill.Rects(context, plan.OverlayDipRects, appearance.OverlayColor);
+            MewFill.Rects(context, plan.OuterMaskDipRects, appearance.OuterMaskColor);
         }
 
-        if (appearance.ShowOuterBorder)
+        if (appearance.ShowBorder)
         {
-            MewFill.Rects(context, plan.OuterBorderDipRects, appearance.OuterBorderColor);
+            MewFill.Rects(context, plan.BorderDipRects, appearance.BorderColor);
         }
 
-        if (appearance.ShowInnerFill && plan.InnerFillDipRect is { } fill)
+        if (appearance.ShowInnerMask && plan.InnerMaskDipRect is { } fill)
         {
-            MewFill.Rect(context, fill, appearance.InnerFillColor);
+            MewFill.Rect(context, fill, appearance.InnerMaskColor);
         }
 
-        if (appearance.ShowInnerBorder)
-        {
-            MewFill.Rects(context, plan.InnerBorderDipRects, appearance.InnerBorderColor);
-        }
+
     }
 
     /// <summary>ドラッグハンドル（塗り + 枠線）を描く。</summary>

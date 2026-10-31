@@ -168,17 +168,11 @@ public sealed class MainWindow : Window
                 SampleSettings.Slider("ヒット半径", 12, 2, 40, 1, true, value => _marquee.Options = _marquee.Options with { HandleHitRadius = value }),
                 SampleSettings.Slider("最小選択サイズ", 6, 1, 40, 1, true, value => _marquee.Options = _marquee.Options with { MinSelectionSize = value }),
                 SampleSettings.Check("画像内にクリップ", true, value => _marquee.Options = _marquee.Options with { ClampToSourceBounds = value }),
-                SampleSettings.Check("外枠を表示", true, value => Apply(appearance with { ShowOuterBorder = value })),
-                ColorChoice("外枠の色", 5, index => Apply(appearance with { OuterBorderColor = ResolveColor(index, appearance.OuterBorderColor) })),
-                SampleSettings.Slider("外枠の太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { OuterBorderThickness = value })),
-                SampleSettings.Check("内枠を表示", true, value => Apply(appearance with { ShowInnerBorder = value })),
-                ColorChoice("内枠の色", 5, index => Apply(appearance with { InnerBorderColor = ResolveColor(index, appearance.InnerBorderColor) })),
-                SampleSettings.Slider("内枠の太さ", 1, 0.5, 8, 0.5, false, value => Apply(appearance with { InnerBorderThickness = value })),
-                SampleSettings.Check("内側の塗りを表示", true, value => Apply(appearance with { ShowInnerFill = value })),
-                ColorChoice("内側の塗りの色", 1, index => Apply(appearance with { InnerFillColor = ResolveColor(index, appearance.InnerFillColor) })),
-                SampleSettings.Check("暗転マスクを表示", true, value => Apply(appearance with { ShowOverlay = value })),
-                ColorChoice("暗転マスクの色", 5, index => Apply(appearance with { OverlayColor = ResolveColor(index, appearance.OverlayColor) })),
-                SampleSettings.Check("マスクを全体に敷く", false, value => Apply(appearance with { ShowFullOverlay = value })),
+                SampleSettings.Check("内側マスクを表示", true, value => Apply(appearance with { ShowInnerMask = value })),
+                SampleSettings.Check("枠線を表示", true, value => Apply(appearance with { ShowBorder = value })),
+                ColorChoice("枠線の色", 5, index => Apply(appearance with { BorderColor = ResolveColor(index, appearance.BorderColor) })),
+                SampleSettings.Slider("枠線の太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { BorderThickness = value })),
+                SampleSettings.Check("外側マスクを表示", true, value => Apply(appearance with { ShowOuterMask = value })),
                 SampleSettings.Check("マーカーを表示", true, value => Apply(appearance with { ShowMarker = value })),
                 ColorChoice("マーカーの色", 3, index => Apply(appearance with { MarkerColor = ResolveColor(index, appearance.MarkerColor) })),
                 SampleSettings.Slider("マーカーの太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { MarkerThickness = value })),
@@ -209,6 +203,7 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
+                SampleSettings.LogLevel(_logging),
                 new TextBlock
                 {
                     Text = "ドラッグ: 選択 / マウスを押したままの矢印キー: 位置の微調整 / Enter: 確定 / Escape: キャンセル",

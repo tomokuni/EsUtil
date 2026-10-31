@@ -14,12 +14,12 @@ public class ThumbnailLayoutTests
     [Fact]
     public void 幅に収まる列数で折り返す()
     {
-        // 外枠の幅 = 96 + 12 * 2 = 120（余白は ItemPadding と SurroundExtent の大きい方）。 幅 300 では 2 列（内容の余白 2 を両側に確保する）
+        // 外枠の幅 = 96（影を描かない設定では余白を持たない）。 幅 300 では 2 列（内容の余白 2 と列間 8 を確保する）
         var layout = Arrange([96, 96, 96, 96, 96]);
 
         Assert.Equal(2, layout.Columns);
         Assert.Equal(3, layout.Rows);
-        Assert.Equal(120, layout.SlotWidth, 6);
+        Assert.Equal(96, layout.SlotWidth, 6);
     }
 
     /// <summary>利用可能な幅が項目より狭い場合でも 1 列は並べることを検証する。</summary>
@@ -41,9 +41,9 @@ public class ThumbnailLayoutTests
         var first = layout.Slot(0);
         var second = layout.Slot(1);
 
-        // 外枠の高さ = 画像 + 影の余白（片側 12）+ 名前の行（30）。 項目ごとの高さは自分の画像で決まる
-        Assert.Equal(40 + 24 + 30, first.Height, 6);
-        Assert.Equal(100 + 24 + 30, second.Height, 6);
+        // 外枠の高さ = 画像 + 影の余白（片側 0）+ 名前の行（30）。 項目ごとの高さは自分の画像で決まる
+        Assert.Equal(40 + 30, first.Height, 6);
+        Assert.Equal(100 + 30, second.Height, 6);
 
         // 下端揃えにより、行の下端は行内の最大の画像の高さで決まる
         Assert.Equal(first.Bottom, second.Bottom, 6);

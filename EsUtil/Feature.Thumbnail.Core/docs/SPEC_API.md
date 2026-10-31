@@ -14,6 +14,7 @@
   - [2.5 `ThumbnailSelection`（単一選択）](#25-thumbnailselection単一選択)
   - [2.6 `ThumbnailRange`（項目の範囲）](#26-thumbnailrange項目の範囲)
   - [2.7 `ThumbnailSelectionChangedEventArgs`（選択変更の引数）](#27-thumbnailselectionchangedeventargs選択変更の引数)
+  - [2.8 `ThumbnailLabelText`（名前行に収める計算）](#28-thumbnaillabeltext名前行に収める計算)
 - [3. 使用例](#3-使用例)
 - [4. 座標系](#4-座標系)
 - [5. 制限事項](#5-制限事項)
@@ -35,7 +36,7 @@
 | 型 | 種別 | 説明 |
 | --- | --- | --- |
 | `ThumbnailLayout` | static class | 配置（折り返し・行の高さ・下端揃え）を解決する純粋計算 |
-| `ThumbnailLayoutResult` | sealed class | 配置の結果（項目の外枠・画像・名前の矩形、内容の寸法、当たり判定、可視範囲） |
+| `ThumbnailLayoutResult` | sealed class | 配置の結果（項目の枠線・画像・名前の矩形、内容の寸法、当たり判定、可視範囲） |
 | `ThumbnailOptions` | sealed record | 計算に必要な設定（余白・行の寸法・列数の上限）と既定値・補正 |
 | `ThumbnailSelection` | sealed class | 単一選択の状態（選択・解除・変更通知） |
 | `ThumbnailRange` | readonly record struct | 項目の連続した範囲（両端を含む） |
@@ -60,23 +61,23 @@
 | --- | --- | --- |
 | `Empty` | static property | 項目が無い配置 |
 | `ImageWidth` | property | 画像の幅（DIP） |
-| `SlotWidth` | property | 項目の外枠の幅（DIP） |
+| `SlotWidth` | property | 項目の枠線の幅（DIP） |
 | `Count` | property | 項目数 |
 | `Columns` | property | 列数 |
 | `Rows` | property | 行数（`Count` が 0 の場合は 0） |
 | `ContentSize` | property | 内容の寸法（DIP。 一覧のスクロール範囲を決める） |
-| `Slots` | property | 項目の外枠（ホバー帯）の矩形（並び順） |
+| `Slots` | property | 項目の枠線（ホバー帯）の矩形（並び順） |
 | `Images` | property | 画像の矩形（並び順） |
 | `Labels` | property | 名前の矩形（並び順） |
-| `Slot(int index)` | method | 指定した項目の外枠の矩形。 **範囲外は `EsRect.Empty`** |
+| `Slot(int index)` | method | 指定した項目の枠線の矩形。 **範囲外は `EsRect.Empty`** |
 | `Image(int index)` | method | 指定した項目の画像の矩形。 **範囲外は `EsRect.Empty`** |
 | `Label(int index)` | method | 指定した項目の名前の矩形。 **範囲外は `EsRect.Empty`** |
 | `IndexAt(EsPoint position)` | method | 指定した位置にある項目の添字。 **どの項目にも当たらない場合は -1** |
 | `VisibleRange(double offsetY, double viewportHeight)` | method | 見えている項目の範囲。 **項目が無い場合は `ThumbnailRange.Empty`** |
 
-- `IndexAt` は**外枠（ホバー帯）で判定**します。 外枠は隙間なく並ぶため、`RowSpace` / `ColumnSpace` を空けた場合を除いて「どこにも当たらない」帯は生じません。
+- `IndexAt` は**枠線（ホバー帯）で判定**します。 枠線は隙間なく並ぶため、`RowSpace` / `ColumnSpace` を空けた場合を除いて「どこにも当たらない」帯は生じません。
 - `VisibleRange` は**行の下端で最初の行を決め、行の上端がビューポートの下端に達したら打ち切ります**（行の下端・上端は行の順に増えるため）。 行内は下端を揃えるため上端が揃わず、端の行だけは項目ごとに交差を判定します。
-- `IndexAt` は外枠の下端で行を求め、**その行の列（`Columns` まで）だけ**を調べます。 下端は行の中で同じ値（行の高さ）で行の順に増えるため行を決められますが、**行内で上端は揃わない**（下端を揃える）ため上端では行を決められません。
+- `IndexAt` は枠線の下端で行を求め、**その行の列（`Columns` まで）だけ**を調べます。 下端は行の中で同じ値（行の高さ）で行の順に増えるため行を決められますが、**行内で上端は揃わない**（下端を揃える）ため上端では行を決められません。
 - `VisibleRange` はビューポートと**交差する**項目を返します（一部だけ見えている項目を含む）。 高さが 0 以下の場合は、スクロール位置にある項目 1 件を返します（生成の優先度に使えるようにするため）。
 
 ### 2.4 `ThumbnailOptions`（設定）
@@ -85,16 +86,15 @@
 
 | 項目 | 型 | 既定値 | 補正 |
 | --- | --- | --- | --- |
-| `ItemPadding` | `double` | 12 | 負の値は 0 |
 | `RowSpace` | `double` | 8 | 負の値は 0 |
 | `ColumnSpace` | `double` | 8 | 負の値は 0 |
 | `LabelHeight` | `double` | 30 | 負の値は 0 |
 | `LabelHorizontalPadding` | `double` | 1 | 負の値は 0 |
-| `SurroundExtent` | `double` | 10 | 負の値は 0 |
+| `ShadowInset` | `double` | 0 | 負の値は 0 |
 | `ContentPadding` | `double` | 2 | 負の値は 0 |
 | `MinimumImageWidth` | `double` | 16 | 0 以下は既定値（16） |
 | `MaximumColumns` | `int` | 0（無制限） | 0 以下は無制限 |
-| `SlotInset`（導出） | `double` | — | `ItemPadding` と `SurroundExtent` の大きい方 |
+| `SlotInset`（導出） | `double` | — | `ShadowInset` と同じ値 |
 
 - `Default` は「すべての項目を既定値にした設定」です。
 - **`SurroundExtent` は長さだけを持ちます**（濃さ・色は提示層の外観が単一所有する）。 影が切れない余白を確保するためにだけ使います。
@@ -130,6 +130,21 @@
 | `Index` | property | 変更後の添字（選択が無い場合は -1） |
 
 - **変更前の添字を渡します**: 選択の見た目は選択中の項目にだけ付くため、UI は変更前と変更後の**両方**を描き直す必要があります。 変更前を渡さないと、UI が直前の選択を自前で覚えることになり、一覧の組み直し・項目の削除と組み合わさったときに取りこぼします（前の項目が選択中のまま残る不具合になります）。
+
+### 2.8 `ThumbnailLabelText`（名前行に収める計算）
+
+| メンバー | 種別 | 説明 |
+| --- | --- | --- |
+| `MaxLines` | const | 折り返して表示する最大行数（2） |
+| `LineSpacing` | const | 行送り（文字サイズに対する倍率。 1.4） |
+| `Ellipsis` | const | 省略を表す記号（`...`） |
+| `AverageCharWidthFactor` | const | 1 文字幅の見積もり（文字サイズに対する倍率） |
+| `Fit(text, width, fontSize, maxLines)` | method | 名前行へ収まるよう整える。 収まらない場合は**最後のピリオドより前を「...」で省略し、拡張子を残す** |
+| `ResolveHeight(fontSize, maxLines)` | method | 名前行の高さ（行送り × 行数） |
+
+- **名前の行は 2 行まで**です（`ThumbnailPresenter` が `LabelHeight` を文字サイズから求めます）。 超える場合は拡張子を残して省略します（一覧の中で画像の形式を判別できるようにするため）。
+- 実寸ではなく**文字数で判定**します（本層は描画 API を持たないため）。 多少の余裕を見て切り詰めるため、はみ出しは起きません。
+- 省略した場合でも**ツールヒントには省略していない名前**を出します（UI 層が `Add` の `caption` から作ります）。
 
 ## 3. 使用例
 

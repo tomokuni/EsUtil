@@ -79,18 +79,23 @@ public class ThumbnailPresenterTests
         Assert.Equal(192, large.First(band => band.Y == 0 && band.Height == 1).Width);
     }
 
-    /// <summary>強調中に影を隠す外観で層から影が除かれることを検証する。</summary>
+    /// <summary>選択中だけ影を隠すことを検証する（ホバーでは隠さない）。</summary>
     [Fact]
-    public void 影を描かない場合は層から影が除かれる()
+    public void 選択時に影を隠す設定は選択中だけ影を除く()
     {
-        var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default with { HideShadowWhenHighlighted = true });
+        var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default with { HideShadowWhenSelected = true });
         var layout = presenter.ResolveLayout(300, 96, [96, 96]);
-        var plan = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: -1, hoveredIndex: 0, isDark: false);
 
-        Assert.True(plan.IsHovered);
-        Assert.Null(plan.Shadow);
-        Assert.DoesNotContain(ThumbnailDrawLayer.Shadow, plan.Layers);
-        Assert.Equal(ThumbnailAppearance.Default.HoverBackground(false), plan.BackgroundArgb);
+        // ホバー中でも選択していなければ影を描く（通り過ぎただけで影が消えるとちらつく）
+        var hovered = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: -1, hoveredIndex: 0, isDark: false);
+        Assert.True(hovered.IsHovered);
+        Assert.NotNull(hovered.Shadow);
+        Assert.Contains(ThumbnailDrawLayer.Shadow, hovered.Layers);
+
+        var selected = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: 0, hoveredIndex: -1, isDark: false);
+        Assert.True(selected.IsSelected);
+        Assert.Null(selected.Shadow);
+        Assert.DoesNotContain(ThumbnailDrawLayer.Shadow, selected.Layers);
     }
 
     /// <summary>選択の背景がホバーより優先されることを検証する。</summary>
@@ -176,8 +181,8 @@ public class ThumbnailPresenterTests
         var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default with { Shadow = null });
         var layout = presenter.ResolveLayout(300, 96, [96]);
 
-        // 既定の余白（ItemPadding と SurroundExtent の大きい方 = 12）だけが残る
-        Assert.Equal(96 + (12 * 2), layout.SlotWidth);
+        // 影を描かない設定では余白を持たない（項目の幅 = 画像の幅）
+        Assert.Equal(96, layout.SlotWidth);
 
         var plan = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, -1, false);
         Assert.Null(plan.Shadow);

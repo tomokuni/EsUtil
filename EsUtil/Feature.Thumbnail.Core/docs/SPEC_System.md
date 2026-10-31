@@ -67,7 +67,7 @@ flowchart TD
 ### 3.3 設計判断
 
 - **行の高さを行ごとに決める**: 画像の縦横比で項目の高さが変わっても、行内で下端を揃えれば名前の 1 文字目の位置が揃います。 全体で 1 つの行の高さに揃えると、縦長の画像がある行だけ間延びします。
-- **当たり判定は外枠で行う**: 子要素のヒット テストに依存すると、影や名前の要素の有無で当たり判定が変わります。 入力は位置から添字を求める形に統一します。
+- **当たり判定は枠線で行う**: 子要素のヒット テストに依存すると、影や名前の要素の有無で当たり判定が変わります。 入力は位置から添字を求める形に統一します。
 - **幅が未確定でも結果を返す**: レイアウトの途中（幅が 0）でも呼べるようにし、1 列の暫定結果を返します。 呼び出し側は幅の確定後に呼び直します（例外で止めると、初期化の順序に依存する不具合になります）。
 - **`VisibleRange` は交差で判定する**: 一部だけ見えている項目も含めます（含めないと、スクロールのたびに項目の生成と破棄がちらつきます）。
 - **画像を持たない**: 画像の所有権はホストにあります。 コアが参照を保持すると、一覧の組み直しと画像の解放の順序が問題になります。
@@ -122,12 +122,11 @@ classDiagram
         +VisibleRange(offsetY, viewportHeight) ThumbnailRange
     }
     class ThumbnailOptions {
-        +ItemPadding double
         +RowSpace double
         +ColumnSpace double
         +LabelHeight double
         +LabelHorizontalPadding double
-        +SurroundExtent double
+        +ShadowInset double
         +ContentPadding double
         +MinimumImageWidth double
         +MaximumColumns int
@@ -164,17 +163,17 @@ sequenceDiagram
     UI->>Layout: Resolve(availableWidth, imageWidth, imageHeights, options)
     Layout->>Options: SlotInset / MinimumImageWidth / MaximumColumns を読む
     Layout->>Layout: 画像の幅を下限へ引き上げる
-    Layout->>Layout: 外枠の幅（画像 + 余白 × 2）と列間から列数を決める
+    Layout->>Layout: 枠線の幅（画像 + 余白 × 2）と列間から列数を決める
     Layout->>Layout: 行ごとに最大アイテム高さを求める
     Layout->>Layout: 行内で下端揃えの矩形を並べる
     Layout-->>UI: ThumbnailLayoutResult
 ```
 
 1. `imageWidth` を `MinimumImageWidth` 以上へ引き上げます。
-2. 外枠の幅（`imageWidth` + `SlotInset` × 2）と `ColumnSpace` から列数を決めます（`MaximumColumns` で上限を切る）。
+2. 枠線の幅（`imageWidth` + `SlotInset` × 2）と `ColumnSpace` から列数を決めます（`MaximumColumns` で上限を切る）。
 3. 行ごとに「その行の最大アイテム高さ」を求めます。
-4. 各項目を**行内で下端揃え**にし、外枠・画像・名前の矩形を作ります。
-5. 内容の寸法（`ContentSize`）は「列数 × 外枠の幅 + 間隔」と「行の高さの合計」に `ContentPadding` を加えた値です。
+4. 各項目を**行内で下端揃え**にし、枠線・画像・名前の矩形を作ります。
+5. 内容の寸法（`ContentSize`）は「列数 × 枠線の幅 + 間隔」と「行の高さの合計」に `ContentPadding` を加えた値です。
 
 ## 7. エラー処理ポリシー
 

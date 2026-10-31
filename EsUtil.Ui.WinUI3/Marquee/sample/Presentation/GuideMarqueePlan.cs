@@ -36,8 +36,7 @@ internal static class GuideMarqueePlan
         => plan.FocusDipRect is { } focus
             ? plan with
             {
-                OuterBorderDipRects = CreateDashedFrame(focus),
-                InnerBorderDipRects = CreateThirdsGuides(focus),
+                BorderDipRects = [.. CreateDashedFrame(focus), .. CreateThirdsGuides(focus)],
             }
             : plan;
 

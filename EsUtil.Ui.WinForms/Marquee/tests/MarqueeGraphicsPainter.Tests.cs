@@ -16,7 +16,7 @@ public sealed class MarqueeGraphicsPainterTests
     private static readonly Color s_borderColor = Color.FromArgb(255, 0, 128, 255);
 
     /// <summary>検証に使う内側の塗りの色。</summary>
-    private static readonly Color s_innerFillColor = Color.FromArgb(255, 0, 255, 0);
+    private static readonly Color s_innerMaskColor = Color.FromArgb(255, 0, 255, 0);
 
     /// <summary>検証に使うハンドルの塗りの色。</summary>
     private static readonly Color s_handleColor = Color.Lime;
@@ -60,13 +60,13 @@ public sealed class MarqueeGraphicsPainterTests
     internal void Paint_表示可否がfalseなら描かない()
     {
         var plan = TestHelper.CreatePlan(
-            CreateAppearance(handles: false, marker: false, overlay: false, border: false, innerFill: false),
+            CreateAppearance(handles: false, marker: false, outerMask: false, border: false, innerMask: false),
             new EsSize(60, 60),
             [MarqueeDrawLayer.Decoration, MarqueeDrawLayer.Handles, MarqueeDrawLayer.Marker],
             focus: new EsRect(10, 10, 40, 40),
-            overlay: [new EsRect(0, 0, 60, 10)],
-            outerBorder: [new EsRect(10, 10, 40, 2)],
-            innerFill: new EsRect(10, 10, 40, 40),
+            outerMask: [new EsRect(0, 0, 60, 10)],
+            border: [new EsRect(10, 10, 40, 2)],
+            innerMask: new EsRect(10, 10, 40, 40),
             handles: new MarqueeHandles([new EsRect(10, 10, 10, 10)], 2.0),
             marker: new MarqueeMarker(new EsPoint(30, 30), 8));
 
@@ -85,11 +85,11 @@ public sealed class MarqueeGraphicsPainterTests
     {
         var focus = new EsRect(20, 20, 40, 40);
         var plan = TestHelper.CreatePlan(
-            CreateAppearance(overlay: true),
+            CreateAppearance(outerMask: true),
             new EsSize(100, 100),
             [MarqueeDrawLayer.Decoration],
             focus: focus,
-            overlay: [new EsRect(0, 0, 100, 20), new EsRect(0, 20, 20, 40)]);
+            outerMask: [new EsRect(0, 0, 100, 20), new EsRect(0, 20, 20, 40)]);
 
         using var bitmap = TestHelper.Paint(plan, 100, 100);
 
@@ -106,10 +106,10 @@ public sealed class MarqueeGraphicsPainterTests
     internal void Paint_全面暗転を描く()
     {
         var plan = TestHelper.CreatePlan(
-            CreateAppearance(overlay: true) with { ShowFullOverlay = true },
+            CreateAppearance(outerMask: true),
             new EsSize(50, 50),
             [MarqueeDrawLayer.Decoration],
-            overlay: [new EsRect(0, 0, 50, 50)]);
+            outerMask: [new EsRect(0, 0, 50, 50)]);
 
         using var bitmap = TestHelper.Paint(plan, 50, 50);
 
@@ -125,7 +125,7 @@ public sealed class MarqueeGraphicsPainterTests
             new EsSize(100, 100),
             [MarqueeDrawLayer.Decoration],
             focus: new EsRect(20, 20, 60, 60),
-            outerBorder: [new EsRect(20, 20, 60, 2), new EsRect(20, 78, 60, 2)]);
+            border: [new EsRect(20, 20, 60, 2), new EsRect(20, 78, 60, 2)]);
 
         using var bitmap = TestHelper.Paint(plan, 100, 100);
 
@@ -139,15 +139,15 @@ public sealed class MarqueeGraphicsPainterTests
     internal void Paint_内側の塗りを描く()
     {
         var plan = TestHelper.CreatePlan(
-            CreateAppearance(innerFill: true),
+            CreateAppearance(innerMask: true),
             new EsSize(100, 100),
             [MarqueeDrawLayer.Decoration],
             focus: new EsRect(10, 10, 30, 30),
-            innerFill: new EsRect(10, 10, 30, 30));
+            innerMask: new EsRect(10, 10, 30, 30));
 
         using var bitmap = TestHelper.Paint(plan, 100, 100);
 
-        Assert.Equal(s_innerFillColor.ToArgb(), TestHelper.Pixel(bitmap, 25, 25).ToArgb());
+        Assert.Equal(s_innerMaskColor.ToArgb(), TestHelper.Pixel(bitmap, 25, 25).ToArgb());
         Assert.Equal(Color.White.ToArgb(), TestHelper.Pixel(bitmap, 5, 25).ToArgb());
     }
 
@@ -300,10 +300,10 @@ public sealed class MarqueeGraphicsPainterTests
     internal void Paint_層の順序どおりに上書きする()
     {
         var plan = TestHelper.CreatePlan(
-            CreateAppearance(overlay: true, handles: true) with { ShowFullOverlay = true },
+            CreateAppearance(outerMask: true, handles: true),
             new EsSize(60, 60),
             [MarqueeDrawLayer.Decoration, MarqueeDrawLayer.Handles],
-            overlay: [new EsRect(0, 0, 60, 60)],
+            outerMask: [new EsRect(0, 0, 60, 60)],
             handles: new MarqueeHandles([new EsRect(20, 20, 10, 10)], 1.0));
 
         using var bitmap = TestHelper.Paint(plan, 60, 60);
@@ -319,10 +319,10 @@ public sealed class MarqueeGraphicsPainterTests
     internal void Paint_逆順の層では後の層が優先される()
     {
         var plan = TestHelper.CreatePlan(
-            CreateAppearance(overlay: true, handles: true) with { ShowFullOverlay = true },
+            CreateAppearance(outerMask: true, handles: true),
             new EsSize(60, 60),
             [MarqueeDrawLayer.Handles, MarqueeDrawLayer.Decoration],
-            overlay: [new EsRect(0, 0, 60, 60)],
+            outerMask: [new EsRect(0, 0, 60, 60)],
             handles: new MarqueeHandles([new EsRect(20, 20, 10, 10)], 1.0));
 
         using var bitmap = TestHelper.Paint(plan, 60, 60);
@@ -349,7 +349,7 @@ public sealed class MarqueeGraphicsPainterTests
             {
                 ShowSizeLabel = false,
                 ShowCoordLabel = false,
-                OuterBorderColor = s_borderColor,
+                BorderColor = s_borderColor,
             },
         };
         presenter.SetSelection(new EsRect(40, 30, 60, 50));
@@ -388,27 +388,25 @@ public sealed class MarqueeGraphicsPainterTests
     /// <summary>検証に使う外観を組み立てる（指定した項目だけを表示する）。</summary>
     /// <param name="handles">ドラッグハンドルを表示するかどうか。</param>
     /// <param name="marker">始点マーカーを表示するかどうか。</param>
-    /// <param name="overlay">暗転マスクを表示するかどうか。</param>
+    /// <param name="outerMask">外側マスクを表示するかどうか。</param>
     /// <param name="border">外枠を表示するかどうか。</param>
-    /// <param name="innerFill">内側の塗りを表示するかどうか。</param>
+    /// <param name="innerMask">内側マスクを表示するかどうか。</param>
     /// <param name="labels">テキストを表示するかどうか。</param>
     /// <returns>検証用の外観。</returns>
     private static MarqueeAppearance CreateAppearance(
-        bool handles = false, bool marker = false, bool overlay = false, bool border = false, bool innerFill = false, bool labels = false)
+        bool handles = false, bool marker = false, bool outerMask = false, bool border = false, bool innerMask = false, bool labels = false)
         => MarqueeAppearance.Default with
         {
             ShowHandles = handles,
             ShowMarker = marker,
-            ShowOverlay = overlay,
-            ShowFullOverlay = false,
-            ShowOuterBorder = border,
-            ShowInnerFill = innerFill,
-            ShowInnerBorder = false,
+            ShowOuterMask = outerMask,
+            ShowBorder = border,
+            ShowInnerMask = innerMask,
             ShowSizeLabel = labels,
             ShowCoordLabel = false,
-            OverlayColor = Color.FromArgb(128, 0, 0, 0),
-            OuterBorderColor = s_borderColor,
-            InnerFillColor = s_innerFillColor,
+            OuterMaskColor = Color.FromArgb(128, 0, 0, 0),
+            BorderColor = s_borderColor,
+            InnerMaskColor = s_innerMaskColor,
             HandleColor = s_handleColor,
             HandleBorderColor = s_handleBorderColor,
             MarkerColor = s_markerColor,
