@@ -96,16 +96,13 @@ EsUtil.Ui.WinUI3/Loupe/sample/
 ├── App.xaml.cs                  # エントリ（メイン ウィンドウの生成）
 ├── Imaging/
 │   └── TestImageFactory.cs      # テスト画像生成（グラデーション＋グリッド＋マーカー）
-├── Logging/
-│   └── InMemoryLogger.cs        # 画面のログ欄へ出力する ILogger
 ├── Presentation/
 │   ├── GridLoupePlan.cs         # 外観と描画計画の差し替え（見本）
 │   ├── LoupeSelectionPainter.cs # ルーペ画像上の破線（Rendered の使用例）
 │   ├── SelectionRectPainter.cs  # 破線枠の描画（画像側とルーペ側で共用）
 │   └── SelectionState.cs        # 選択矩形の状態（表示可否と対象座標の矩形）
 └── Views/
-    ├── MainWindow.xaml          # メイン ウィンドウの構成（設定パネル＋テスト画像＋ルーペ）
-    ├── MainWindow.xaml.cs       # 結線（プロパティの設定・配置・入力の受付）
+    ├── MainWindow.cs           # メイン ウィンドウ（設定パネル＋テスト画像＋ルーペ＋ログ）
     └── SourceCanvas.cs          # テスト画像と選択矩形の破線枠を描くキャンバス
 ```
 

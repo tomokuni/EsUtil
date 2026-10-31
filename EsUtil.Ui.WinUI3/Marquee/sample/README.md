@@ -95,10 +95,7 @@ sample/
     app.manifest
     App.xaml
     App.xaml.cs
-    MainWindow.xaml
-    MainWindow.xaml.cs
-    Logging/
-        InMemoryLogger.cs
+    MainWindow.cs                 # メイン ウィンドウ（設定パネル＋画像＋ログ）
     Presentation/
         GuideMarqueePlan.cs
     Views/
@@ -108,11 +105,9 @@ sample/
 | ファイル | 役割 |
 | --- | --- |
 | `EsUtil.Ui.WinUI3/Marquee/sample/App.xaml` / `EsUtil.Ui.WinUI3/Marquee/sample/App.xaml.cs` | アプリケーションのエントリ（ウィンドウの生成と表示） |
-| `EsUtil.Ui.WinUI3/Marquee/sample/MainWindow.xaml` | 操作の配置、背景・コントロール・ルーペの目印の重ね方 |
-| `EsUtil.Ui.WinUI3/Marquee/sample/MainWindow.xaml.cs` | 座標変換ポート・通知の購読・ログ表示・見本の切り替え |
 | `EsUtil.Ui.WinUI3/Marquee/sample/Views/TestPatternCanvas.cs` | 背景のテスト パターン（格子・色見本・中心の十字）を描くキャンバス |
+| `EsUtil.Ui.WinUI3/Marquee/sample/MainWindow.cs` | 座標変換ポート・通知の購読・ログ表示・見本の切り替え |
 | `EsUtil.Ui.WinUI3/Marquee/sample/Presentation/GuideMarqueePlan.cs` | 見本（外観と描画計画の差し替え）の定義 |
-| `EsUtil.Ui.WinUI3/Marquee/sample/Logging/InMemoryLogger.cs` | 画面のログ表示へ出力する `ILogger` 実装 |
 
 ## 6. 使い方（初めての方向け）
 

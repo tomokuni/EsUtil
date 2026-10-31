@@ -86,7 +86,6 @@ EsUtil.Ui.AvaloniaUI/ColorComboBox/sample/
 ├── ViewModels/
 │   └── MainWindowViewModel.cs   # 色の保持（各コントロールへ双方向バインド）
 ├── Views/
-│   └── MainWindow.axaml(.cs)    # メイン画面（3 つの ColorComboBoxControl とバリデーション表示）
 └── RunSample.bat                # リリースビルド＆起動
 ```
 

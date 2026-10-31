@@ -50,6 +50,32 @@ public static class SampleShell
         double width = 1400,
         double height = 900)
     {
+        var window = new Window
+        {
+            Title = title,
+            Content = CreateContent(propertySettings, sampleSettings, content, log),
+        };
+        window.AppWindow.Resize(new Windows.Graphics.SizeInt32((int)width, (int)height));
+        return window;
+    }
+
+    /// <summary>ウィンドウの中身（3 領域のレイアウト）を組み立てる。</summary>
+    /// <param name="propertySettings">プロパティ設定の行。</param>
+    /// <param name="sampleSettings">サンプル設定の行。</param>
+    /// <param name="content">画像と操作（右上の領域）。</param>
+    /// <param name="log">ログ（右下の領域）。</param>
+    /// <returns>組み立てた要素（ウィンドウの <c>Content</c> へ設定する）。</returns>
+    /// <exception cref="ArgumentNullException">必須の引数が null の場合。</exception>
+    /// <remarks>
+    /// <b>ウィンドウを作らない理由</b>: <c>Window.Content</c> の要素は既に親を持つため、別のウィンドウへ
+    /// 移すと例外になる（実測 2026-10-31）。 サンプルは自分のウィンドウの <c>Content</c> へ直接設定する。
+    /// </remarks>
+    public static UIElement CreateContent(
+        UIElement propertySettings,
+        UIElement sampleSettings,
+        UIElement content,
+        SampleLogPanel log)
+    {
         ArgumentNullException.ThrowIfNull(propertySettings);
         ArgumentNullException.ThrowIfNull(sampleSettings);
         ArgumentNullException.ThrowIfNull(content);
@@ -88,16 +114,8 @@ public static class SampleShell
         root.Children.Add(settingsHost);
         Grid.SetColumn(right, 1);
         root.Children.Add(right);
-
-        var window = new Window
-        {
-            Title = title,
-            Content = root,
-        };
-        window.AppWindow.Resize(new Windows.Graphics.SizeInt32((int)width, (int)height));
-        return window;
+        return root;
     }
-
     /// <summary>境界（ドラッグで上下の行の高さを変える要素）を作る。</summary>
     /// <param name="grid">対象のグリッド（3 行: 画像 / 境界 / ログ）。</param>
     /// <returns>境界の要素。</returns>

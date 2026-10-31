@@ -93,7 +93,6 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 | `EsUtil.Ui.WinForms/Loupe/sample/RunSample.bat` | リリースビルド＆起動 |
 | `EsUtil.Ui.WinForms/Loupe/sample/Program.cs` | エントリポイント（高 DPI（PerMonitorV2）の指定と起動） |
 | `EsUtil.Ui.WinForms/Loupe/sample/Imaging/TestImageFactory.cs` | テスト画像生成（グラデーション＋グリッド＋マーカー） |
-| `EsUtil.Ui.WinForms/Loupe/sample/Logging/InMemoryLogger.cs` | 画面のログ欄へ出力する `ILogger` |
 | `EsUtil.Ui.WinForms/Loupe/sample/Presentation/GridLoupePlan.cs` | 外観と描画計画の差し替え（見本） |
 | `EsUtil.Ui.WinForms/Loupe/sample/Views/MainForm.cs` | メイン ウィンドウ（設定パネル＋テスト画像＋ルーペ） |
 | `EsUtil.Ui.WinForms/Loupe/sample/Views/LoupeHostPanel.cs` | 画像・選択矩形・ルーペを重ねるホスト（配置とマウス位置の通知） |

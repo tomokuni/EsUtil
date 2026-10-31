@@ -31,6 +31,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Ui.WinUI3.Loupe.csproj" />
+    <!-- サンプル共通のレイアウトとログ（Serilog） -->
+    <ProjectReference Include="..\..\SampleKit\src\EsUtil.Ui.WinUI3.SampleKit.csproj" />
   </ItemGroup>
 
   <ItemGroup>

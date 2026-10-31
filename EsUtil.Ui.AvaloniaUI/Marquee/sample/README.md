@@ -101,19 +101,14 @@ EsUtil.Ui.AvaloniaUI/Marquee/sample/
 ├── app.manifest                   # Windows DPI 設定（PerMonitorV2）
 ├── Program.cs                     # エントリポイント
 ├── App.axaml / App.axaml.cs       # アプリケーション定義（FluentTheme）
-├── Logging/
-│   └── InMemoryLogger.cs          # MarqueeControl.Log の設定例（メモリ内ログ）
 ├── Internal/                      # このサンプルだけが使う複製（internal。 依存関係.md §4.1。 変換は EsUtil.Ui.AvaloniaUI.Interop を使う）
 │   ├── EsBitmapAvaloniaAdapter.cs # コアの画像を表示面（IImage）として公開し、コアの画像は GetEsBitmap() で取り出すアダプタ
 │   └── EsBitmapAvaloniaExtensions.cs # コアの画像 ⇔ Avalonia の画像の変換
 ├── Presentation/
 │   └── GuideMarqueePlan.cs        # 外観と描画計画（破線枠・三分割ガイド）を与える見本
 ├── ViewModels/
-│   ├── ColorOption.cs             # 色選択肢
-│   ├── ColorOptions.cs            # 色選択肢の一覧
 │   └── MainWindowViewModel.cs     # 選択状態・ステータス表示（CommunityToolkit.Mvvm の ObservableObject）
 └── Views/
-    └── MainWindow.axaml(.cs)      # 選択面 + 操作ガイド + ボタン
 ```
 
 ---
@@ -175,10 +170,12 @@ MarqueeCore.SetCoordTransform(new CoordTransform(
 
 ## 9. ログ表示について
 
-`MarqueeControl.Log` にサンプル用の `InMemoryLogger` を設定し、コントロール内部の操作ログを選択面の下の `ListBox` へ表示します。
+ログは **Serilog** で受け、ロックフリーなバッファから UI が一定間隔でまとめて表示します（書き込み側を待たせません）。 コントロールの `Log` へは `Microsoft.Extensions.Logging.ILogger` を設定します。
 
 ```csharp
-MarqueeCore.Log = new InMemoryLogger(line => Dispatcher.UIThread.Post(() => _vm.AddLog(line)));
+var logging = new SampleLogging();
+Marquee.Log = logging.Logger;
+Marquee.LogPrefix = "[Marquee]";
 ```
 
 ログには時分秒ミリ秒（`HH:mm:ss.fff`）が付与されます。

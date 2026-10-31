@@ -92,8 +92,6 @@ EsUtil.Ui.MewUI/Marquee/sample/
 ├── Program.cs                   # エントリポイント（バックエンドとプラットフォーム ホストの登録）
 ├── Imaging/
 │   └── TestImageFactory.cs      # 背景画像生成（グラデーション＋グリッド＋マーカー）
-├── Logging/
-│   └── InMemoryLogger.cs        # 画面のログ欄へ出力する ILogger
 ├── Presentation/
 │   └── GuideMarqueePlan.cs      # 外観と描画計画の差し替え（見本）
 └── Views/

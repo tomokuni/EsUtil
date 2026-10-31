@@ -79,7 +79,7 @@ EsUtil.Ui.WinUI3/Thumbnail/sample/
 ├── Imaging/
 │   └── TestImageFactory.cs      # テスト画像生成（コアの EsBitmap を返す）
 ├── Views/
-│   └── MainWindow.xaml(.cs)     # メイン画面（ツールバー＋一覧）
+│   └── MainWindow.cs           # メイン画面（ツールバー＋一覧）
 └── RunSample.bat                # リリースビルド＆起動
 ```
 

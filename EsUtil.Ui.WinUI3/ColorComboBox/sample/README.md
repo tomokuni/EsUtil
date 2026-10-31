@@ -65,7 +65,7 @@ EsUtil.Ui.WinUI3/ColorComboBox/sample/
 ├── app.manifest                                   # Windows DPI 設定（PerMonitorV2）
 ├── App.xaml / App.xaml.cs                         # アプリケーション定義
 ├── Views/
-│   └── MainWindow.xaml(.cs)                       # メイン画面（4 行の色とプレビュー）
+│   └── MainWindow.cs                             # メイン画面（4 行の色とプレビュー）
 └── RunSample.bat                                  # リリースビルド＆起動
 ```
 
