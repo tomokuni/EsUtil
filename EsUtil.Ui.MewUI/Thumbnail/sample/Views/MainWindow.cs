@@ -64,7 +64,7 @@ internal static class MainWindow
             SampleSettings.Check("選択の背景を表示", true, value => Apply(appearance with { ShowSelectionBackground = value })),
             SampleSettings.Check("強調時は影を隠す", true, value => Apply(appearance with { HideShadowWhenHighlighted = value })),
             SampleSettings.Text("ログ接頭辞", "[Thumbnail]", value => thumbnails.LogPrefix = value),
-            SampleSettings.Buttons(("ログを 1 行出力", () => logger.LogInformation("テスト ログ（非同期）"))));
+            SampleSettings.Buttons(("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))));
 
         // サンプル設定（サンプル固有の操作。 並びは他 UI と共通）
         var samples = new StackPanel().Vertical().Spacing(6).Children(
