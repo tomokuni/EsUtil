@@ -67,7 +67,7 @@ public sealed class MainWindow : Window
                 // ItemsSource は Native AOT で使えないため、項目は直接の子として並べる（ビルド設定規約 §6.1）
                 SampleSettings.Check("直接の子を後に置く", true, value => _panel.ItemsSourceFirst = value),
                 SampleSettings.Check("デバッグ表示", false, value => _panel.ShowDebugText = value),
-                SampleSettings.Choice("配置の方法", ["貪欲法", "動的計画法", "二分探索"], 0, index =>
+                SampleSettings.Choice("配置の方法", ["貪欲法", "動的計画法", "二分探索"], 2, index =>
                     _panel.Method = index switch
                     {
                         1 => EsUtil.Feature.ColumnPacking.ColumnPacker.Method.DynamicProgramming,

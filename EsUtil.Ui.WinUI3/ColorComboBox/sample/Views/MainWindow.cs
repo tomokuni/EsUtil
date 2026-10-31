@@ -67,18 +67,7 @@ public sealed class MainWindow : Window
         // 「選択色」は 1 番目のコントロールの状態を映す（利用者がコントロール側で色を変えたら表示も追随する）。
         // 行から設定した値を書き戻すと入力中の文字が置き換わるため、その往復だけは反映しない
         var applyingFromRow = false;
-        var selectedColorRow = SampleSettings.TextRow("選択色", s_items[0].Initial, value =>
-        {
-            applyingFromRow = true;
-            try
-            {
-                _controls[0].SelectedColor = value;
-            }
-            finally
-            {
-                applyingFromRow = false;
-            }
-        });
+        SampleField? selectedColorRow = null;
 
         var rows = new StackPanel { Spacing = 8 };
 
@@ -99,7 +88,7 @@ public sealed class MainWindow : Window
                 _values[index] = control.SelectedColor;
                 if (index == 0 && !applyingFromRow)
                 {
-                    selectedColorRow.SetText(control.SelectedColor);
+                    selectedColorRow?.SetText(control.SelectedColor);
                 }
 
                 UpdateStatus();
@@ -116,6 +105,21 @@ public sealed class MainWindow : Window
             rows.Children.Add(row);
         }
 
+        // 「選択色」は 1 番目のコントロールの状態を映す（利用者がコントロール側で色を変えたら表示も追随する）。
+        // 行から設定した値を書き戻すと入力中の文字が置き換わるため、その往復だけは反映しない。
+        // 対象のコントロールを作った後で行を作る（初期値の適用先が存在する状態にする）
+        selectedColorRow = SampleSettings.TextRow("選択色", s_items[0].Initial, value =>
+        {
+            applyingFromRow = true;
+            try
+            {
+                _controls[0].SelectedColor = value;
+            }
+            finally
+            {
+                applyingFromRow = false;
+            }
+        });
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
         var properties = new StackPanel
         {

@@ -197,6 +197,9 @@ public static class SampleSettings
 
         combo.SelectedIndex = selectedIndex;
         combo.SelectionChanged += (_, _) => apply(combo.SelectedIndex);
+
+        // 初期値を対象へ反映する（対象の既定値と選択肢の初期値が違う場合に表示と状態がずれないようにする）
+        apply(selectedIndex);
         return Row(label, combo);
     }
 
@@ -209,6 +212,9 @@ public static class SampleSettings
     {
         var input = new TextBox { Text = initial, Width = EditorWidth, FontSize = FontSize };
         input.TextChanged += (_, _) => apply(input.Text);
+
+        // 初期値を対象へ反映する（対象の既定値と初期値が違う場合に表示と状態がずれないようにする）
+        apply(initial);
         return Row(label, input);
     }
 
@@ -233,6 +239,9 @@ public static class SampleSettings
                 apply(input.Text);
             }
         };
+
+        // 初期値を対象へ反映する（対象の既定値と初期値が違う場合に表示と状態がずれないようにする）
+        apply(initial);
 
         return new SampleField
         {

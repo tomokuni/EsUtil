@@ -6,9 +6,15 @@ namespace EsUtil.Feature.Thumbnail.Tests;
 /// <summary>折り返し配置・行の高さ・下端揃え・可視範囲の単体テスト。</summary>
 public class ThumbnailLayoutTests
 {
+    /// <summary>影を描かない前提の寸法（余白 0・名前の行 30 DIP）。</summary>
+    private static readonly ThumbnailMetrics s_metrics = new(0, 30);
+
     /// <summary>既定の設定（画像の幅 96 DIP）で 4 件を幅 300 DIP へ並べる。</summary>
+    /// <param name="heights">項目ごとの画像の高さ。</param>
+    /// <param name="width">利用可能な幅。</param>
+    /// <returns>配置の結果。</returns>
     private static ThumbnailLayoutResult Arrange(double[] heights, double width = 300)
-        => ThumbnailLayout.Resolve(width, 96, heights);
+        => ThumbnailLayout.Resolve(width, 96, heights, metrics: s_metrics);
 
     /// <summary>利用可能な幅に収まる列数で折り返すことを検証する。</summary>
     [Fact]
@@ -65,7 +71,7 @@ public class ThumbnailLayoutTests
     {
         // 2 列 × 2 行になる幅。 行間だけを広げても横の間隔は変わらない
         var options = ThumbnailOptions.Default with { RowSpace = 20, ColumnSpace = 4 };
-        var layout = ThumbnailLayout.Resolve(260, 96, [96, 96, 96, 96], options);
+        var layout = ThumbnailLayout.Resolve(260, 96, [96, 96, 96, 96], options, s_metrics);
 
         Assert.Equal(2, layout.Columns);
 

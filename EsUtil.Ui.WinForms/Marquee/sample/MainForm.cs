@@ -41,6 +41,8 @@ internal static class MainForm
         ("赤", Color.FromArgb(255, 255, 0, 0)),
         ("緑", Color.FromArgb(255, 0, 200, 83)),
         ("薄灰", Color.FromArgb(255, 0xD3, 0xD3, 0xD3)),
+        ("黒 50%", Color.FromArgb(128, 0, 0, 0)),
+        ("黒 60%", Color.FromArgb(153, 0, 0, 0)),
     ];
 
     /// <summary>サンプル画面を生成する。</summary>
@@ -52,14 +54,8 @@ internal static class MainForm
         var logger = logging.Logger;
         logger.LogInformation("サンプルを起動しました。");
 
-        var appearance = MarqueeAppearance.Default with
-        {
-            BorderColor = Color.FromArgb(255, 255, 214, 96),
-            HandleColor = Color.FromArgb(255, 255, 255, 255),
-            HandleBorderColor = Color.FromArgb(255, 32, 32, 32),
-            InnerMaskColor = Color.FromArgb(32, 255, 255, 255),
-            MarkerColor = Color.FromArgb(255, 255, 96, 96),
-        };
+        // 外観の初期値は設定パネルが持つ（パネルの初期値がそのまま反映されるため、ここでは既定を使う）
+        var appearance = MarqueeAppearance.Default;
 
         // ── 下地の画像とコントロール ──
         // 画像はズーム倍率を掛けた画素サイズで置く（PictureBox の Zoom は画像をその大きさへ拡大する）
@@ -128,15 +124,15 @@ internal static class MainForm
             SampleSettings.Slider("ヒット半径", 12, 2, 40, 1, true, value => marquee.Options = marquee.Options with { HandleHitRadius = value }),
             SampleSettings.Slider("最小選択サイズ", 6, 1, 40, 1, true, value => marquee.Options = marquee.Options with { MinSelectionSize = value }),
             SampleSettings.Check("画像内にクリップ", true, value => marquee.Options = marquee.Options with { ClampToSourceBounds = value }),
-            SampleSettings.Check("内側マスクを表示", true, value => Apply(appearance with { ShowInnerMask = value })),
+            SampleSettings.Check("内側マスクを表示", false, value => Apply(appearance with { ShowInnerMask = value })),
             ColorChoice("内側マスクの色", 0, index => Apply(appearance with { InnerMaskColor = ResolveColor(index) })),
             SampleSettings.Check("枠線を表示", true, value => Apply(appearance with { ShowBorder = value })),
             ColorChoice("枠線の色", 4, index => Apply(appearance with { BorderColor = ResolveColor(index) })),
             SampleSettings.Slider("枠線の太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { BorderThickness = value })),
             SampleSettings.Check("外側マスクを表示", true, value => Apply(appearance with { ShowOuterMask = value })),
-            ColorChoice("外側マスクの色", 4, index => Apply(appearance with { OuterMaskColor = ResolveColor(index) })),
+            ColorChoice("外側マスクの色", 5, index => Apply(appearance with { OuterMaskColor = ResolveColor(index) })),
             SampleSettings.Check("マーカーを表示", true, value => Apply(appearance with { ShowMarker = value })),
-            ColorChoice("マーカーの色", 2, index => Apply(appearance with { MarkerColor = ResolveColor(index) })),
+            ColorChoice("マーカーの色", 0, index => Apply(appearance with { MarkerColor = ResolveColor(index) })),
             SampleSettings.Slider("マーカーの太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { MarkerThickness = value })),
             SampleSettings.Slider("マーカーの長さ", 16, 8, 40, 2, true, value => marquee.Options = marquee.Options with { MarkerLength = value }),
             SampleSettings.Check("ハンドルを表示", true, value => Apply(appearance with { ShowHandles = value })),
@@ -144,12 +140,12 @@ internal static class MainForm
             ColorChoice("ハンドル枠の色", 4, index => Apply(appearance with { HandleBorderColor = ResolveColor(index) })),
             SampleSettings.Check("サイズ ラベルを表示", true, value => Apply(appearance with { ShowSizeLabel = value })),
             ColorChoice("サイズ ラベルの色", 0, index => Apply(appearance with { SizeLabelColor = ResolveColor(index) })),
-            ColorChoice("サイズ ラベルの背景色", 4, index => Apply(appearance with { SizeLabelBackgroundColor = ResolveColor(index) })),
+            ColorChoice("サイズ ラベルの背景色", 6, index => Apply(appearance with { SizeLabelBackgroundColor = ResolveColor(index) })),
             SampleSettings.Slider("サイズ ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { SizeLabelFontSize = value })),
             SampleSettings.Slider("サイズ ラベルの表示スケール", 0, 0, 2, 0.1, false, value => marquee.DisplayScaleScaling = value, 10),
             SampleSettings.Check("座標ラベルを表示", true, value => Apply(appearance with { ShowCoordLabel = value })),
             ColorChoice("座標ラベルの色", 0, index => Apply(appearance with { CoordLabelColor = ResolveColor(index) })),
-            ColorChoice("座標ラベルの背景色", 4, index => Apply(appearance with { CoordLabelBackgroundColor = ResolveColor(index) })),
+            ColorChoice("座標ラベルの背景色", 6, index => Apply(appearance with { CoordLabelBackgroundColor = ResolveColor(index) })),
             SampleSettings.Slider("座標ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { CoordLabelFontSize = value })),
             SampleSettings.Slider("座標ラベルの間隔", 4, 0, 24, 1, true, value => Apply(appearance with { CoordLabelOffset = value })),
             SampleSettings.Slider("ラベルの余白", 4, 0, 24, 1, true, value => Apply(appearance with { LabelPadding = value })),

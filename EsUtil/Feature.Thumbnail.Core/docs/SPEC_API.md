@@ -15,6 +15,7 @@
   - [2.6 `ThumbnailRange`（項目の範囲）](#26-thumbnailrange項目の範囲)
   - [2.7 `ThumbnailSelectionChangedEventArgs`（選択変更の引数）](#27-thumbnailselectionchangedeventargs選択変更の引数)
   - [2.8 `ThumbnailLabelText`（名前行に収める計算）](#28-thumbnaillabeltext名前行に収める計算)
+  - [2.9 `ThumbnailMetrics`（外観から決まる寸法）](#29-thumbnailmetrics外観から決まる寸法)
 - [3. 使用例](#3-使用例)
 - [4. 座標系](#4-座標系)
 - [5. 制限事項](#5-制限事項)
@@ -88,16 +89,13 @@
 | --- | --- | --- | --- |
 | `RowSpace` | `double` | 8 | 負の値は 0 |
 | `ColumnSpace` | `double` | 8 | 負の値は 0 |
-| `LabelHeight` | `double` | 30 | 負の値は 0 |
 | `LabelHorizontalPadding` | `double` | 1 | 負の値は 0 |
-| `ShadowInset` | `double` | 0 | 負の値は 0 |
 | `ContentPadding` | `double` | 2 | 負の値は 0 |
 | `MinimumImageWidth` | `double` | 16 | 0 以下は既定値（16） |
 | `MaximumColumns` | `int` | 0（無制限） | 0 以下は無制限 |
-| `SlotInset`（導出） | `double` | — | `ShadowInset` と同じ値 |
 
 - `Default` は「すべての項目を既定値にした設定」です。
-- **`SurroundExtent` は長さだけを持ちます**（濃さ・色は提示層の外観が単一所有する）。 影が切れない余白を確保するためにだけ使います。
+- **利用者が決める値だけを持ちます**: 影の余白と名前の行の高さは外観（影の算法・文字サイズ）から決まるため、本型ではなく [`ThumbnailMetrics`](#29-thumbnailmetrics外観から決まる寸法) が持ちます（設定に混ぜると「設定したのに効かない項目」が生まれます）。
 
 ### 2.5 `ThumbnailSelection`（単一選択）
 
@@ -142,9 +140,21 @@
 | `Fit(text, width, fontSize, maxLines)` | method | 名前行へ収まるよう整える。 収まらない場合は**最後のピリオドより前を「...」で省略し、拡張子を残す** |
 | `ResolveHeight(fontSize, maxLines)` | method | 名前行の高さ（行送り × 行数） |
 
-- **名前の行は 2 行まで**です（`ThumbnailPresenter` が `LabelHeight` を文字サイズから求めます）。 超える場合は拡張子を残して省略します（一覧の中で画像の形式を判別できるようにするため）。
+- **名前の行は 2 行まで**です（`ThumbnailPresenter.ResolveMetrics` が `ThumbnailMetrics.LabelHeight` を文字サイズから求めます）。 超える場合は拡張子を残して省略します（一覧の中で画像の形式を判別できるようにするため）。
 - 実寸ではなく**文字数で判定**します（本層は描画 API を持たないため）。 多少の余裕を見て切り詰めるため、はみ出しは起きません。
 - 省略した場合でも**ツールヒントには省略していない名前**を出します（UI 層が `Add` の `caption` から作ります）。
+
+### 2.9 `ThumbnailMetrics`（外観から決まる寸法）
+
+| メンバー | 種別 | 説明 |
+| --- | --- | --- |
+| `SlotInset` | property | 画像の外側（外枠の内側）に確保する余白（片側。 影が切れない幅） |
+| `LabelHeight` | property | 名前の行の高さ（2 行ぶん。 行内の下端揃えで名前の位置を揃える） |
+| `Zero` | static property | 余白 0・名前の行 0 の寸法 |
+| `ThumbnailMetrics(slotInset, labelHeight)` | ctor | 寸法を生成する（負の値と非数は 0） |
+
+- **`ThumbnailLayout.Resolve` へ渡します**（`options` の後ろの引数）。 省略すると 0 として扱います。
+- **利用者が設定する値ではありません**: 提示層（`ThumbnailPresenter.ResolveMetrics`）が外観の影の広がりと文字サイズから求めて渡します。 設定（`ThumbnailOptions`）には混ぜません。
 
 ## 3. 使用例
 

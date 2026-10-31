@@ -54,7 +54,8 @@
 | `ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppearance? appearance = null)` | ctor | 生成（省略時は各 `Default`） |
 | `Options` | property | 計算に必要な設定。 null を設定すると `ThumbnailOptions.Default` になる |
 | `Appearance` | property | 外観。 null を設定すると `ThumbnailAppearance.Default` になる |
-| `ResolveLayout(double availableWidth, double imageWidth, ReadOnlySpan<double> imageHeights)` | method | 配置を解決する。 **影の余白（`Insets`）が `SurroundExtent` より広い場合は余白を広げて解く** |
+| `ResolveLayout(double availableWidth, double imageWidth, ReadOnlySpan<double> imageHeights)` | method | 配置を解決する（外観から求めた寸法を `ThumbnailLayout.Resolve` へ渡す） |
+| `ResolveMetrics()` | method | 外観から決まる寸法（影の余白 `ThumbnailMetrics.SlotInset`・名前の行の高さ `ThumbnailMetrics.LabelHeight`）を求める |
 | `ResolveDrawPlan(ThumbnailLayoutResult layout, int index, string text, bool isCurrent, int selectedIndex, int hoveredIndex, bool isDark)` | virtual method | 1 件分の描画計画を解決する。 **添字が範囲外の場合は空の計画** |
 | `ImageHeight(double width, int pixelWidth, int pixelHeight)` | static method | 縦横比を保つ画像の高さ（コアの `ThumbnailLayout.ImageHeight` へ委譲） |
 | `Log` | property | ログの出力先（null は `NullLogger`）。 設定・外観の変更を本クラスが記録する。 初回の設定時に生成を 1 度だけ記録する |

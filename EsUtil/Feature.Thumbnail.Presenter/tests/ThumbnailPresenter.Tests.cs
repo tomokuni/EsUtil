@@ -98,6 +98,33 @@ public class ThumbnailPresenterTests
         Assert.DoesNotContain(ThumbnailDrawLayer.Shadow, selected.Layers);
     }
 
+    /// <summary>外観から決まる寸法を求めることを検証する。</summary>
+    /// <remarks>
+    /// 影の余白と名前の行の高さは利用者の設定ではない（設定に混ぜると「設定したのに効かない項目」が生まれる）。
+    /// 外観の影と文字サイズから求めて配置の計算へ渡す。
+    /// </remarks>
+    [Fact]
+    internal void ResolveMetrics_影の余白と名前の行の高さを外観から求める()
+    {
+        var presenter = new ThumbnailPresenter(
+            appearance: ThumbnailAppearance.Default with { LabelFontSize = 11 });
+
+        var metrics = presenter.ResolveMetrics();
+
+        Assert.Equal(10, metrics.SlotInset, 6);
+        Assert.Equal(
+            ThumbnailLabelText.ResolveHeight(11, ThumbnailLabelText.MaxLines), metrics.LabelHeight, 6);
+    }
+
+    /// <summary>影を描かない外観では余白が 0 になることを検証する。</summary>
+    [Fact]
+    internal void ResolveMetrics_影が無ければ余白は0になる()
+    {
+        var presenter = new ThumbnailPresenter(
+            appearance: ThumbnailAppearance.Default with { Shadow = null });
+
+        Assert.Equal(0, presenter.ResolveMetrics().SlotInset, 6);
+    }
     /// <summary>選択の背景がホバーより優先されることを検証する。</summary>
     [Fact]
     public void 選択の背景はホバーより優先される()

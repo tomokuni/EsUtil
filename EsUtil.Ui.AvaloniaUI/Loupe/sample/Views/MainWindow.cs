@@ -38,6 +38,8 @@ public sealed class MainWindow : Window
         ("白", DrawingColor.White),
         ("薄灰", DrawingColor.FromArgb(255, 0xD3, 0xD3, 0xD3)),
         ("濃灰", DrawingColor.FromArgb(255, 0x53, 0x53, 0x53)),
+        ("半透明の赤", DrawingColor.FromArgb(102, 255, 0, 0)),
+        ("黒 50%", DrawingColor.FromArgb(153, 0, 0, 0)),
         ("黒", DrawingColor.Black),
     ];
 
@@ -165,7 +167,6 @@ public sealed class MainWindow : Window
                 loupeVisible,
                 SampleSettings.Slider("拡大率", 4, 1, 16, 1, true, value => _loupe.Options = _loupe.Options with { ZoomLevel = (int)value }),
                 SampleSettings.Slider("ルーペ サイズ", 240, 80, 480, 10, true, value => _loupe.Options = _loupe.Options with { RequestedSize = (int)value }),
-                SampleSettings.Slider("描画スケール", 1.0, 0.5, 2.0, 0.1, false, value => _loupe.ClientToPixelScaling = value),
                 SampleSettings.Slider("位置オフセット", 24, 0, 64, 4, true, value => _loupe.PositionOffset = value),
                 SampleSettings.Slider("中心 X", 120, 0, ImageWidth, 10, true, value => _loupe.CenterPoint = new Point(value, _loupe.CenterPoint?.Y ?? 0)),
                 SampleSettings.Slider("中心 Y", 120, 0, ImageHeight, 10, true, value => _loupe.CenterPoint = new Point(_loupe.CenterPoint?.X ?? 0, value)),
@@ -180,7 +181,7 @@ public sealed class MainWindow : Window
                 SampleSettings.Text("ログ接頭辞", "[Loupe]", value => _loupe.LogPrefix = value),
                 SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
                     _loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null),
-                ColorChoice("十字線の色", 1, index => Apply(_appearance with
+                ColorChoice("十字線の色", 7, index => Apply(_appearance with
                 {
                     CrossColor = ResolveColor(index, _appearance.CrossColor),
                     ShowCrosshair = s_colorChoices[index].Color is not null,
@@ -197,8 +198,8 @@ public sealed class MainWindow : Window
                 })),
                 SampleSettings.Slider("枠線の太さ", 1, 0, 8, 1, true, value => Apply(_appearance with { BorderThickness = (int)value })),
                 SampleSettings.Check("座標ラベルを表示", true, value => Apply(_appearance with { ShowCoordLabel = value })),
-                ColorChoice("座標ラベルの色", 3, index => Apply(_appearance with { CoordLabelColor = ResolveColor(index, _appearance.CoordLabelColor) })),
-                ColorChoice("座標ラベルの背景色", 7, index => Apply(_appearance with { CoordLabelBackgroundColor = ResolveColor(index, _appearance.CoordLabelBackgroundColor) })),
+                ColorChoice("座標ラベルの色", 4, index => Apply(_appearance with { CoordLabelColor = ResolveColor(index, _appearance.CoordLabelColor) })),
+                ColorChoice("座標ラベルの背景色", 8, index => Apply(_appearance with { CoordLabelBackgroundColor = ResolveColor(index, _appearance.CoordLabelBackgroundColor) })),
                 SampleSettings.Slider("座標ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(_appearance with { CoordLabelFontSize = value })),
                 SampleSettings.Slider("座標ラベルの角丸", 2, 0, 12, 1, true, value => Apply(_appearance with { CoordLabelCornerRadius = (int)value })),
                 SampleSettings.Slider("座標ラベルの間隔", 4, 0, 24, 1, true, value => Apply(_appearance with { CoordLabelOffset = value })),

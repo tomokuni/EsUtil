@@ -77,7 +77,7 @@ public sealed record ThumbnailAppearance
     /// <value>影の計画。 既定は <see cref="ThumbnailShadowPlan.Default"/>。 null の場合は影を描かない。</value>
     /// <remarks>
     /// 影の算法を変える場合は <see cref="IThumbnailShadowPlan"/> を実装した値を渡す（差し替え点）。<br/>
-    /// 影の広がり（<see cref="IThumbnailShadowPlan.Insets"/>）が <see cref="ThumbnailOptions.ShadowInset"/> より<br/>
+    /// 影の広がり（<see cref="IThumbnailShadowPlan.Insets"/>）が、影が切れない余白として配置の計算へ渡される<br/>
     /// 広い場合は、レイアウト側の余白が自動で広がる（影が切れない）。
     /// </remarks>
     public IThumbnailShadowPlan? Shadow { get; init; } = ThumbnailShadowPlan.Default;

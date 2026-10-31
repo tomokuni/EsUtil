@@ -37,6 +37,8 @@ internal static class MainWindow
         ("白", DrawingColor.White),
         ("薄灰", DrawingColor.FromArgb(255, 0xD3, 0xD3, 0xD3)),
         ("濃灰", DrawingColor.FromArgb(255, 0x53, 0x53, 0x53)),
+        ("半透明の赤", DrawingColor.FromArgb(102, 255, 0, 0)),
+        ("黒 50%", DrawingColor.FromArgb(153, 0, 0, 0)),
         ("黒", DrawingColor.Black),
     ];
 
@@ -114,7 +116,6 @@ internal static class MainWindow
             loupeVisible,
             SampleSettings.Slider("拡大率", 4, 1, 16, 1, true, value => loupe.Options = loupe.Options with { ZoomLevel = (int)value }),
             SampleSettings.Slider("ルーペ サイズ", 240, 80, 480, 10, true, value => loupe.Options = loupe.Options with { RequestedSize = (int)value }),
-            SampleSettings.Slider("描画スケール", 1.0, 0.5, 2.0, 0.1, false, value => loupe.ClientToPixelScaling = value),
             SampleSettings.Slider("位置オフセット", 24, 0, 64, 4, true, value => loupe.PositionOffset = value),
             SampleSettings.Slider("中心 X", 120, 0, ImageWidth, 10, true, value => loupe.CenterPoint = new EsPoint(value, loupe.CenterPoint?.Y ?? 0)),
             SampleSettings.Slider("中心 Y", 120, 0, ImageHeight, 10, true, value => loupe.CenterPoint = new EsPoint(loupe.CenterPoint?.X ?? 0, value)),
@@ -130,7 +131,7 @@ internal static class MainWindow
             SampleSettings.Text("ログ接頭辞", "[Loupe]", value => loupe.LogPrefix = value),
             SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
                 loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null),
-            ColorChoice("十字線の色", 1, index =>
+            ColorChoice("十字線の色", 7, index =>
             {
                 appearance = appearance with
                 {
@@ -167,12 +168,12 @@ internal static class MainWindow
                 appearance = appearance with { ShowCoordLabel = value };
                 loupe.Appearance = appearance;
             }),
-            ColorChoice("座標ラベルの色", 3, index =>
+            ColorChoice("座標ラベルの色", 4, index =>
             {
                 appearance = appearance with { CoordLabelColor = ResolveColor(index, appearance.CoordLabelColor) };
                 loupe.Appearance = appearance;
             }),
-            ColorChoice("座標ラベルの背景色", 7, index =>
+            ColorChoice("座標ラベルの背景色", 8, index =>
             {
                 appearance = appearance with { CoordLabelBackgroundColor = ResolveColor(index, appearance.CoordLabelBackgroundColor) };
                 loupe.Appearance = appearance;

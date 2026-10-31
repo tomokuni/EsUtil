@@ -14,7 +14,7 @@ namespace EsUtil.Feature.Thumbnail;
 /// <br/>
 /// <b>座標系</b>: <see cref="BuildDeviceBands"/> の入出力は DIP（入力）と物理ピクセル（出力）である。<br/>
 /// <b>余白</b>: <see cref="Insets"/> は画像の外側へ確保する余白であり、レイアウトの項目の大きさに反映される<br/>
-/// （<see cref="ThumbnailOptions.ShadowInset"/> より広い場合はレイアウト側が広がる）。
+/// （影が切れない余白は提示層が求めて配置の計算へ渡す）。
 /// </remarks>
 public interface IThumbnailShadowPlan
 {

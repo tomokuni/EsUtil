@@ -33,7 +33,7 @@ var index = layout.IndexAt(pointerPosition);
 var visible = layout.VisibleRange(scrollOffset, viewportHeight);
 ```
 
-- 項目の枠線 = 画像 + 影の余地（`SlotInset`） + 名前の行。 枠線の幅で折り返します。
+- 項目の枠線 = 画像 + 影の余地（`ThumbnailMetrics.SlotInset`） + 名前の行（`ThumbnailMetrics.LabelHeight`）。 枠線の幅で折り返します。
 - 行の高さは **その行の最大アイテム高さ** で決め、項目は行内で **下端揃え** にします（名前の位置が揃う）。
 - 利用可能な幅が未確定（0 以下）の場合は 1 列で並べます（幅の確定後に呼び直す）。
 

@@ -30,7 +30,7 @@ namespace EsUtil.Feature.Thumbnail;
 /// このため本クラスは <c>sealed</c> にしない。<br/>
 /// <br/>
 /// <b>影の余白はレイアウトへ反映する</b>: 影の <see cref="IThumbnailShadowPlan.Insets"/> が<br/>
-/// <see cref="ThumbnailOptions.ShadowInset"/> より広い場合は、<see cref="ResolveLayout"/> が余白を広げる。
+/// 影の余白は <see cref="ResolveMetrics"/> が求めて配置の計算へ渡す。
 /// </remarks>
 public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppearance? appearance = null)
 {
@@ -159,29 +159,22 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
     /// <param name="imageHeights">項目ごとの画像の高さ（DIP）。</param>
     /// <returns>配置の結果。</returns>
     /// <remarks>
-    /// <b>影の余白と名前の高さをレイアウトへ反映する</b>: 外観の影（<see cref="IThumbnailShadowPlan.Insets"/>）から<br/>
-    /// 影が切れない余白を求め、名前の行の高さを文字サイズから求める（利用者は設定しない）。<br/>
+    /// <b>外観から決まる寸法を渡す</b>: 影の余白と名前の行の高さは利用者の設定ではなく外観から決まるため、<br/>
+    /// <see cref="ResolveMetrics"/> が求めて <see cref="ThumbnailLayout.Resolve"/> へ渡す。<br/>
     /// 影の算法や文字サイズを差し替えても、項目の大きさが自動で追従する。
     /// </remarks>
     public ThumbnailLayoutResult ResolveLayout(double availableWidth, double imageWidth, ReadOnlySpan<double> imageHeights)
-        => ThumbnailLayout.Resolve(availableWidth, imageWidth, imageHeights, ResolveEffectiveOptions());
+        => ThumbnailLayout.Resolve(availableWidth, imageWidth, imageHeights, _options, ResolveMetrics());
 
-    /// <summary>名前の行の最大行数（折り返して表示する上限）。</summary>
-    /// <value>2。 超える場合は末尾を省略する。</value>
-    public const int MaxLabelLines = 2;
-
-    /// <summary>名前の行の行送り（文字サイズに対する倍率）。</summary>
-    /// <value>1.4（文字が切れない最小の行送り）。</value>
-    public const double LabelLineSpacing = 1.4;
-
-    /// <summary>外観から求めた値を反映した設定を求める。</summary>
-    /// <returns>影の余白と名前の行の高さを反映した設定。</returns>
+    /// <summary>外観から決まる寸法（影の余白・名前の行の高さ）を求める。</summary>
+    /// <returns>配置の計算へ渡す寸法。</returns>
     /// <remarks>
-    /// <b>名前の行の高さは文字サイズから求める</b>（利用者に数値で指定させない）: 2 行ぶんを確保し、<br/>
-    /// 1 行に収まる名前の行は余白だけを残す（行内の下端揃えで位置が揃う）。<br/>
-    /// 影を描かない外観では余白 0（画像のすぐ外側に帯が付く）。
+    /// <b>影の余白</b>: 影の算法（<see cref="IThumbnailShadowPlan.Insets"/>）の最大の辺を使う（影が切れない幅）。<br/>
+    /// 影を描かない外観では 0（画像のすぐ外側に帯が付く）。<br/>
+    /// <b>名前の行の高さ</b>: 文字サイズから 2 行ぶんを確保する（利用者に数値で指定させない）。<br/>
+    /// 1 行に収まる名前でも高さを変えない（行内の下端揃えで名前の位置が揃う）。
     /// </remarks>
-    private ThumbnailOptions ResolveEffectiveOptions()
+    public ThumbnailMetrics ResolveMetrics()
     {
         var shadowInset = 0.0;
         if (_appearance.Shadow is { } shadow)
@@ -190,8 +183,9 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
             shadowInset = Math.Max(Math.Max(insets.Left, insets.Top), Math.Max(insets.Right, insets.Bottom));
         }
 
-        var labelHeight = Math.Ceiling(_appearance.LabelFontSize * LabelLineSpacing) * MaxLabelLines;
-        return _options with { ShadowInset = shadowInset, LabelHeight = labelHeight };
+        return new ThumbnailMetrics(
+            shadowInset,
+            ThumbnailLabelText.ResolveHeight(_appearance.LabelFontSize, ThumbnailLabelText.MaxLines));
     }
 
     /// <summary>1 件分の描画計画を解決する。</summary>

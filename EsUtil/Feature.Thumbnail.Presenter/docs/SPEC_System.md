@@ -72,7 +72,7 @@ flowchart TD
 - **影を「1 画素の帯」で表す**: グラデーション ブラシの端の扱いは描画 API ごとに異なります（実測: GDI+ は軸の外側を繰り返し、影の外側へ最も濃い 1 画素を描く）。 濃さを画素単位で計画すれば、どの UI 版も「単色の矩形を塗る」だけで同じ結果になります。
 - **4 辺を同じ濃さにする**: 影を下方向へずらすと上辺だけが薄くなり、画像との間に白っぽい隙間が見えます（実測）。 4 辺とも画像の端で最も濃く、外側へ同じ割合で薄くします。
 - **4 隅もグラデーションを使わない**: 放射グラデーションは描画 API ごとに半径・中心の解釈が揺れ、隅だけ濃い点や薄い筋として見えました（実測）。 隅の濃さは**画像の隅の頂点からの斜めの距離**で決めます。
-- **影の余白をレイアウトへ反映する**: 影の算法を差し替えて余白が広がったとき、レイアウト側の余白が狭いままだと影が切れます。 `ResolveLayout` が `Insets` を見て `SurroundExtent` を広げます。
+- **影の余白をレイアウトへ反映する**: 影の算法を差し替えて余白が広がったとき、レイアウト側の余白が狭いままだと影が切れます。 `ResolveMetrics` が `Insets` と文字サイズから寸法を求め、`ResolveLayout` が `ThumbnailMetrics` として配置の計算へ渡します（利用者の設定 `ThumbnailOptions` には混ぜません）。
 - **色は `uint` の ARGB で持つ**: UI ごとの色型（`Color` / `SKColor` / `System.Drawing.Color`）を持ち込むと、本層が UI に依存します。
 
 ## 4. コンポーネント構成
@@ -111,6 +111,8 @@ classDiagram
         +Options ThumbnailOptions
         +Appearance ThumbnailAppearance
         +ResolveLayout(availableWidth, imageWidth, imageHeights) ThumbnailLayoutResult
+        +ResolveMetrics() ThumbnailMetrics
+        +ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex, isDark) ThumbnailDrawPlan
         +ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex, isDark) ThumbnailDrawPlan
         +ImageHeight(width, pixelWidth, pixelHeight)$ double
     }
