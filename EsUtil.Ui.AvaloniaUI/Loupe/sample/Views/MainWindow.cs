@@ -130,10 +130,10 @@ public sealed class MainWindow : Window
             PositionOffset = 0,
             Options = LoupeOptions.Default with { ZoomLevel = 6, RequestedSize = 150 },
             Appearance = GridLoupePlan.Appearance,
-            CenterPoint = new Point(120, 80),
+            CenterPoint = new Point(70, 60),
             DrawPlanResolver = static plan => GridLoupePlan.Resolve(in plan),
             Log = logger,
-            LogPrefix = "[Preview]",
+            // 接頭辞はプロセス内の全インスタンスで共有される（設定パネルの「ログ接頭辞」が全ルーペへ効く）
         };
         canvas.Children.Add(_loupe);
         canvas.Children.Add(_preview);
@@ -155,12 +155,14 @@ public sealed class MainWindow : Window
         UpdateSelection();
 
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
+        var loupeVisible = (CheckBox)SampleSettings.Check("ルーペを表示", true, value => _loupe.IsVisible = value);
+
         var properties = new StackPanel
         {
             Spacing = 6,
             Children =
             {
-                SampleSettings.Check("ルーペを表示", true, value => _loupe.IsVisible = value),
+                loupeVisible,
                 SampleSettings.Slider("拡大率", 4, 1, 16, 1, true, value => _loupe.Options = _loupe.Options with { ZoomLevel = (int)value }),
                 SampleSettings.Slider("ルーペ サイズ", 240, 80, 480, 10, true, value => _loupe.Options = _loupe.Options with { RequestedSize = (int)value }),
                 SampleSettings.Slider("描画スケール", 1.0, 0.5, 2.0, 0.1, false, value => _loupe.ClientToPixelScaling = value),
@@ -173,8 +175,8 @@ public sealed class MainWindow : Window
                     {
                         _loupe.Clear();
                         _loupe.Source = null;
-                    }),
-                    ("再描画を要求", () => _loupe.RequestRender())),
+                        loupeVisible.IsChecked = false;
+                    })),
                 SampleSettings.Text("ログ接頭辞", "[Loupe]", value => _loupe.LogPrefix = value),
                 SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
                     _loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null),
@@ -209,7 +211,15 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
-                SampleSettings.Buttons(("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
+                SampleSettings.Buttons(
+                    ("再描画を要求", () => _loupe.RequestRender()),
+                    ("ソースを設定して再表示", () =>
+                    {
+                        _loupe.Source = _source;
+                        loupeVisible.IsChecked = true;
+                        _loupe.IsVisible = true;
+                    }),
+                    ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
                 SampleSettings.Check("選択矩形を表示", true, value =>
                 {
                     _selectionVisible = value;

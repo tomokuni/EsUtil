@@ -15,7 +15,7 @@ namespace EsUtil.Ui.AvaloniaUI.SampleKit;
 public static class SampleShell
 {
     /// <summary>設定パネルの幅（DIP）。</summary>
-    public const double SettingsWidth = 380;
+    public const double SettingsWidth = 420;
 
     /// <summary>ログの初期の高さ（DIP）。</summary>
     private const double LogInitialHeight = 220;

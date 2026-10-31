@@ -22,8 +22,8 @@
 - ルーペの拡大元は**コアの画像（`EsReadOnlyBitmap`）**として渡し、ホストが表示に使っている画像は**表示用の射影（`DisplaySource`）**として渡します（射影は省略可能。 寸法が一致するときだけ使われ、切り出しの複製を作りません）。
 - 外観設定（拡大率・サイズ・十字線・画像外の色・枠線・描画スケール）をスライダー/コンボボックスで変更できます。
 - `LoupeControl` をVisual Treeへ配置し、内部の `Image` 要素で表示します。
-- `Clear()` / `RequestRender()` の API 呼び出しをボタンで確認できます。
-- `LoupeControl.Log` に `ILogger`（デバッグ出力）を設定し、描画エラー通知を確認できます。
+- `Clear()` / `RequestRender()` / `LogPrefix` の API 呼び出しをボタンで確認できます。
+- `LoupeControl.Log` に `ILogger` を設定し、設定の変更ログを画面（右下のログ欄）で確認できます。 ログは **Serilog** で非同期に出力します。
 
 ## 2. 実行方法
 
@@ -60,8 +60,11 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 | 枠線の太さ | `Appearance.BorderThickness` |
 | 描画スケール | `ClientToPixelScaling`（DIP→物理ピクセル変換の確認） |
 | 選択矩形オーバーレイ | `SelectionRectVisible` チェック・選択矩形（`SelectionRectX` / `SelectionRectY` / `SelectionRectWidth` / `SelectionRectHeight`）の編集（対象座標 = 元画像ピクセル）。 テスト画像上に破線の枠＋座標ラベルが表示され、ルーペ内にも破線が描画される |
-| Clear() ボタン | `Clear()` を呼び出し、非表示＋Bitmap 解放 |
-| RequestRender() ボタン | `RequestRender()` を呼び出し、プロパティ変更を伴わない再生成を要求 |
+| 「ソースを設定」ボタン | `Source` を設定し直す |
+| 「ソースを解除（描画資源を解放）」ボタン | `Clear()` を呼び出して非表示にし、`Source` を解放する |
+| 「再描画を要求」ボタン | `RequestRender()` を呼び出し、プロパティ変更を伴わない再描画を要求 |
+| 「ソースを設定して再表示」ボタン | `Source` を設定し、非表示でも再表示する |
+| 「ログ接頭辞」 | `LogPrefix`（全ルーペ共通。 変更すると以降のログの接頭辞が変わる） |
 
 ## 4. 検証項目（動作確認チェックリスト）
 
@@ -113,7 +116,7 @@ EsUtil.Ui.AvaloniaUI/Loupe/sample/
 4. **外観の変更**: ズーム・サイズ・色・タイルサイズ・枠の太さ・描画スケールをスライダー/コンボボックスで変更します（即時反映）。
 5. **基本サイズ（Options.RequestedSize）**: スライダーで基本サイズを変更すると、その値がそのまま表示サイズになります。
 6. **選択矩形オーバーレイ**: 「選択矩形を表示」を ON にすると、選択矩形（対象座標 = 元画像ピクセル）の枠線がルーペ画像上に 2 色破線（色A/色B）で表示されます（ズーム 2 倍以上）。 X / Y / W / H・色A / 色B を変更できます（不透明度は色のアルファに統合）。
-7. **API 呼び出し**: `Clear()` / `RequestRender()` ボタンで各公開 API の動作を確認できます。
+7. **API 呼び出し**: 「再描画を要求」「ソースを設定して再表示」「ソースを解除（描画資源を解放）」の各ボタンで公開 API の動作を確認できます。
 8. **拡張例**: 設定パネル上部の見本は、外観（`Appearance`）と描画計画（`DrawPlanResolver`）で見た目を差し替えた例です（次節）。
 
 ## 7. 拡張例（計画の差し替え）

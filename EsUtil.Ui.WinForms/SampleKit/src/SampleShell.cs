@@ -11,7 +11,7 @@ namespace EsUtil.Ui.WinForms.SampleKit;
 public static class SampleShell
 {
     /// <summary>設定パネルの幅（ピクセル）。</summary>
-    public const int SettingsWidth = 400;
+    public const int SettingsWidth = 420;
 
     /// <summary>ログの初期の高さ（ピクセル）。</summary>
     private const int LogInitialHeight = 220;

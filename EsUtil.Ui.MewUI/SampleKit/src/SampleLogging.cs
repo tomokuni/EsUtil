@@ -32,13 +32,13 @@ public sealed class SampleLogging : IDisposable
     {
         _buffer = new SampleLogBuffer(capacity);
         _serilog = new LoggerConfiguration()
-            .MinimumLevel.Verbose()
+            .MinimumLevel.Debug()
             .WriteTo.Sink(new SampleLogBufferSink(_buffer))
             .CreateLogger();
 
         _factory = LoggerFactory.Create(builder =>
         {
-            builder.SetMinimumLevel(LogLevel.Trace);
+            builder.SetMinimumLevel(LogLevel.Debug);
             builder.AddSerilog(_serilog, dispose: false);
         });
 

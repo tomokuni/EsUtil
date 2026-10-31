@@ -54,6 +54,9 @@ public static class SampleSettings
     {
         var check = new CheckBox().IsChecked(initial).Content(label);
         check.OnCheckedChanged(apply);
+
+        // 初期値を対象へ反映する（対象の既定値とチェックの初期値が違う場合に表示と状態がずれないようにする）
+        apply(initial);
         return check;
     }
 

@@ -75,7 +75,7 @@ internal static class MainForm
             Appearance = GridLoupePlan.Appearance,
             CenterPoint = new EsPoint(70, 60),
             DrawPlanResolver = static plan => GridLoupePlan.Resolve(in plan),
-            LogPrefix = "[Preview]",
+            // 接頭辞はプロセス内の全インスタンスで共有される（設定パネルの「ログ接頭辞」が全ルーペへ効く）
             Log = logger,
         };
 
@@ -94,6 +94,9 @@ internal static class MainForm
             // ルーペ内の破線も描き直す（プロパティに現れない入力のため、再描画を明示的に要求する）
             loupe.Invalidate();
         };
+
+        // 初期状態を反映する（変更イベントは初回に発火しない）
+        host.SetSelectionRect(selection.Rect, selection.IsVisible, selection.Label);
 
         host.PointerMoved += (_, e) =>
         {
@@ -135,7 +138,7 @@ internal static class MainForm
                 requestedSize = (int)value;
                 ApplyOptions();
             }),
-            SampleSettings.Slider("描画スケール", 10, 5, 20, 1, true, value => loupe.ClientToPixelScaling = value / 10.0),
+            SampleSettings.Slider("描画スケール", 1.0, 0.5, 2.0, 0.1, false, value => loupe.ClientToPixelScaling = value, 10),
             SampleSettings.Slider("位置オフセット", 24, 0, 64, 4, true, value =>
             {
                 loupe.PositionOffset = value;
@@ -170,7 +173,7 @@ internal static class MainForm
                 BorderColor = ResolveColor(index, appearance.BorderColor),
                 ShowBorder = s_colorChoices[index].Color is not null,
             })),
-            SampleSettings.Slider("枠線の太さ", 2, 0, 8, 1, true, value => ApplyAppearance(appearance with { BorderThickness = (int)value })),
+            SampleSettings.Slider("枠線の太さ", 1, 0, 8, 1, true, value => ApplyAppearance(appearance with { BorderThickness = (int)value })),
             SampleSettings.Check("座標ラベルを表示", true, value => ApplyAppearance(appearance with { ShowCoordLabel = value })),
             ColorChoice("座標ラベルの色", 3, index => ApplyAppearance(appearance with { CoordLabelColor = ResolveColor(index, appearance.CoordLabelColor) })),
             ColorChoice("座標ラベルの背景色", 7, index => ApplyAppearance(appearance with { CoordLabelBackgroundColor = ResolveColor(index, appearance.CoordLabelBackgroundColor) })),
@@ -191,10 +194,10 @@ internal static class MainForm
         ),
                 ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
             SampleSettings.Check("選択矩形を表示", true, value => selection.IsVisible = value),
-            SampleSettings.Number("選択矩形 X", selection.X, 0, ImageWidth, 0, value => selection.X = value),
-            SampleSettings.Number("選択矩形 Y", selection.Y, 0, ImageHeight, 0, value => selection.Y = value),
-            SampleSettings.Number("選択矩形 W", selection.Width, 0, ImageWidth, 0, value => selection.Width = value),
-            SampleSettings.Number("選択矩形 H", selection.Height, 0, ImageHeight, 0, value => selection.Height = value),
+            SampleSettings.Number("選択矩形 X", selection.X, 0, ImageWidth, 0, value => selection.X = value, 10),
+            SampleSettings.Number("選択矩形 Y", selection.Y, 0, ImageHeight, 0, value => selection.Y = value, 10),
+            SampleSettings.Number("選択矩形 W", selection.Width, 0, ImageWidth, 0, value => selection.Width = value, 10),
+            SampleSettings.Number("選択矩形 H", selection.Height, 0, ImageHeight, 0, value => selection.Height = value, 10),
             SampleSettings.Check("見本（格子線と四隅の鉤）を表示", true, value => preview.Visible = value));
 
         var log = new SampleLogPanel(logging.Buffer);

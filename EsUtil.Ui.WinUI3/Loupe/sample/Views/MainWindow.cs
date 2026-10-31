@@ -93,7 +93,7 @@ public sealed class MainWindow : Window
         _preview.CenterPoint = new EsPoint(70, 60);
         _preview.DrawPlanResolver = static plan => GridLoupePlan.Resolve(in plan);
         _preview.Log = logger;
-        _preview.LogPrefix = "[Preview]";
+        // 接頭辞はプロセス内の全インスタンスで共有される（設定パネルの「ログ接頭辞」が全ルーペへ効く）
 
         var host = new Canvas
         {

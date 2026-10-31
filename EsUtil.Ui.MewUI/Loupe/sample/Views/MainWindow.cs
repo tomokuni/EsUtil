@@ -78,7 +78,7 @@ internal static class MainWindow
             Appearance = GridLoupePlan.Appearance,
             CenterPoint = new EsPoint(70, 60),
             Log = logger,
-            LogPrefix = "[Preview]",
+            // 接頭辞はプロセス内の全インスタンスで共有される（設定パネルの「ログ接頭辞」が全ルーペへ効く）
             DrawPlanResolver = static plan => GridLoupePlan.Resolve(in plan),
         };
 

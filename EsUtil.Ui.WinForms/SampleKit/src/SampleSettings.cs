@@ -64,7 +64,12 @@ public static class SampleSettings
     {
         var check = new CheckBox { Text = label, Checked = initial, AutoSize = true };
         check.CheckedChanged += (_, _) => apply(check.Checked);
-        return BareRow(check);
+
+        // 初期値を対象へ反映する（対象の既定値とチェックの初期値が違う場合に表示と状態がずれないようにする）
+        apply(initial);
+
+        // 行の入れ物で包まずチェック ボックス自身を返す（呼び出し側が状態を操作できるようにする）
+        return check;
     }
 
     /// <summary>スライダーの行を作る（現在値を数値で表示する）。</summary>
@@ -75,9 +80,13 @@ public static class SampleSettings
     /// <param name="step">増減の単位。</param>
     /// <param name="isInteger">整数のみを受け付けるかどうか。</param>
     /// <param name="apply">変更の反映先。</param>
+    /// <param name="scale">
+    /// スライダーの刻みに掛ける倍率（既定は 1）。 <see cref="TrackBar"/> は整数しか扱えないため、
+    /// 小数の項目は 10 を指定して内部値を 10 倍で持ち、表示と反映は元の単位で行う。
+    /// </param>
     /// <returns>項目名・スライダー・現在値を並べた行。</returns>
     public static Control Slider(
-        string label, double initial, double minimum, double maximum, double step, bool isInteger, Action<double> apply)
+        string label, double initial, double minimum, double maximum, double step, bool isInteger, Action<double> apply, double scale = 1.0)
     {
         var value = new Label
         {
@@ -87,22 +96,22 @@ public static class SampleSettings
             Text = Format(initial, isInteger),
         };
 
-        // TrackBar は整数のみのため、小数の項目は 10 倍した値を扱う呼び出し側の判断に任せる
         var slider = new TrackBar
         {
-            Minimum = (int)minimum,
-            Maximum = (int)maximum,
-            Value = (int)initial,
-            SmallChange = Math.Max(1, (int)step),
-            LargeChange = Math.Max(1, (int)((maximum - minimum) / 10)),
-            TickFrequency = Math.Max(1, (int)step),
+            Minimum = (int)Math.Round(minimum * scale),
+            Maximum = (int)Math.Round(maximum * scale),
+            Value = (int)Math.Round(initial * scale),
+            SmallChange = Math.Max(1, (int)Math.Round(step * scale)),
+            LargeChange = Math.Max(1, (int)Math.Round((maximum - minimum) * scale / 10)),
+            TickFrequency = Math.Max(1, (int)Math.Round(step * scale)),
             Width = EditorWidth,
             Height = 28,
         };
         slider.ValueChanged += (_, _) =>
         {
-            value.Text = Format(slider.Value, isInteger);
-            apply(slider.Value);
+            var current = slider.Value / scale;
+            value.Text = Format(current, isInteger);
+            apply(current);
         };
 
         return Row(label, slider, value);
@@ -115,16 +124,19 @@ public static class SampleSettings
     /// <param name="maximum">最大値。</param>
     /// <param name="decimalPlaces">小数の桁数（0 は整数のみ）。</param>
     /// <param name="apply">変更の反映先。</param>
+    /// <param name="step">増減の単位（0 は桁数から決める。 他 UI の数値入力と同じ刻みにする）。</param>
     /// <returns>項目名と数値入力を並べた行。</returns>
     public static Control Number(
-        string label, double initial, double minimum, double maximum, int decimalPlaces, Action<double> apply)
+        string label, double initial, double minimum, double maximum, int decimalPlaces, Action<double> apply, double step = 0)
     {
         var input = new NumericUpDown
         {
             Minimum = (decimal)minimum,
             Maximum = (decimal)maximum,
             DecimalPlaces = decimalPlaces,
-            Increment = decimalPlaces == 0 ? 1m : (decimal)Math.Pow(10, -decimalPlaces),
+            Increment = step > 0
+                ? (decimal)step
+                : decimalPlaces == 0 ? 1m : (decimal)Math.Pow(10, -decimalPlaces),
             Value = (decimal)initial,
             Width = EditorWidth,
         };

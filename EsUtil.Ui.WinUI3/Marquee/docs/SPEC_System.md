@@ -110,12 +110,10 @@ EsUtil.Ui.WinUI3/Marquee/
         SPEC_API.md
         SPEC_System.md
     sample/
+        app.manifest
         App.xaml
         App.xaml.cs
-        MainWindow.xaml
-        MainWindow.xaml.cs
-        Logging/
-            InMemoryLogger.cs
+        MainWindow.cs
         Presentation/
             GuideMarqueePlan.cs
         Views/
