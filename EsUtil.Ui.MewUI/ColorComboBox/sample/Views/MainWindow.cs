@@ -1,6 +1,8 @@
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Palette;
+using EsUtil.Ui.MewUI.SampleKit;
+using Microsoft.Extensions.Logging;
 using DrawingColor = System.Drawing.Color;
 using MewColor = Aprillz.MewUI.Color;
 
@@ -10,7 +12,7 @@ namespace EsUtil.Ui.MewUI.ColorComboBox.Sample.Views;
 /// <remarks>
 /// <b>確認できること</b>: 色名・16 進・不透明度 % の入力、一覧からの選択、カラーピッカー、入力の検証、
 /// 並び順の切り替え、保存値（<c>#AARRGGBB</c>）の受け取り。<br/>
-/// 設定画面と同じ形（ラベルとコントロールを並べる）にしてあるため、そのまま流用の参考になる。
+/// <b>配置</b>: サンプル共通の <see cref="SampleShell"/>（左: 設定 / 右上: 入力欄とプレビュー / 右下: ログ）を使う。
 /// </remarks>
 internal static class MainWindow
 {
@@ -33,13 +35,19 @@ internal static class MainWindow
     /// <returns>生成したウィンドウ。</returns>
     public static Window Create()
     {
+        // ── ログ（Serilog。 非同期に表示する） ──
+        var logging = new SampleLogging();
+        var log = new SampleLogPanel(logging.Buffer);
+        var logger = logging.Logger;
+        logger.LogInformation("サンプルを起動しました。");
+
         var preview = new Border
         {
             Height = 64,
             BorderThickness = 1,
             BorderBrush = MewColor.FromRgb(0x80, 0x80, 0x80),
         };
-        var status = new TextBlock().Text(string.Empty);
+        var status = new TextBlock().Text(string.Empty).FontSize(11);
         var error = new TextBlock().Text(string.Empty).FontSize(11);
         error.Foreground = MewColor.FromRgb(0xD0, 0x20, 0x20);
 
@@ -52,7 +60,13 @@ internal static class MainWindow
             var (label, initial) = s_items[i];
             values[i] = initial;
 
-            var control = new ColorComboBoxControl { SelectedColor = initial, Width = RowWidth };
+            var control = new ColorComboBoxControl
+            {
+                SelectedColor = initial,
+                Width = RowWidth,
+                Log = logger,
+                LogPrefix = "[ColorComboBox]",
+            };
             controls[i] = control;
             var index = i;
             control.SelectedColorChanged += (_, _) =>
@@ -64,41 +78,69 @@ internal static class MainWindow
             rows.Children(LabelRow(label, control));
         }
 
-        var sortMode = new ComboBox().Items(["色相順", "色名順"]);
-        sortMode.SelectedIndex = 0;
-        sortMode.SelectionChanged += _ =>
-        {
-            var mode = sortMode.SelectedIndex == 1 ? ColorSortMode.ByName : ColorSortMode.ByHue;
-            foreach (var control in controls)
+        // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
+        var properties = new StackPanel().Vertical().Spacing(6).Children(
+            SampleSettings.Text("選択色", controls[0].SelectedColor, value =>
             {
-                control.ColorSortMode = mode;
-            }
-        };
-
-        var sortRow = new StackPanel().Horizontal().Spacing(8).Children(
-            new TextBlock().Text("一覧の並び順").Width(LabelWidth),
-            sortMode);
-
-        var textFormat = new ComboBox().Items(["色名 + 不透明度", "#AARRGGBB"]);
-        textFormat.SelectedIndex = 0;
-        textFormat.SelectionChanged += _ =>
-        {
-            var format = textFormat.SelectedIndex == 1 ? ColorTextFormat.HexCode : ColorTextFormat.NameWithAlpha;
-            foreach (var control in controls)
+                controls[0].SelectedColor = value;
+                values[0] = controls[0].SelectedColor;
+                UpdateStatus(status, error, values, preview);
+            }),
+            SampleSettings.Choice(
+                "並び順",
+                ["色相順", "色名順"],
+                0,
+                index =>
+                {
+                    var mode = index == 1 ? ColorSortMode.ByName : ColorSortMode.ByHue;
+                    foreach (var control in controls)
+                    {
+                        control.ColorSortMode = mode;
+                    }
+                }),
+            SampleSettings.Choice(
+                "入力欄の表記",
+                ["色名 + 不透明度", "#AARRGGBB"],
+                0,
+                index =>
+                {
+                    var format = index == 1 ? ColorTextFormat.HexCode : ColorTextFormat.NameWithAlpha;
+                    foreach (var control in controls)
+                    {
+                        control.TextFormat = format;
+                    }
+                }),
+            SampleSettings.Slider("文字サイズ", 12, 8, 24, 1, true, value =>
             {
-                control.TextFormat = format;
-            }
-        };
+                foreach (var control in controls)
+                {
+                    control.TextFontSize = value;
+                }
+            }),
+            SampleSettings.Text("ログ接頭辞", "[ColorComboBox]", value =>
+            {
+                foreach (var control in controls)
+                {
+                    control.LogPrefix = value;
+                }
+            }),
+            SampleSettings.Buttons(
+                ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))));
 
-        var formatRow = new StackPanel().Horizontal().Spacing(8).Children(
-            new TextBlock().Text("入力欄の表記").Width(LabelWidth),
-            textFormat);
+        // ── サンプル設定（サンプル固有の操作） ──
+        var samples = new StackPanel().Vertical().Spacing(6).Children(
+            new TextBlock
+            {
+                Text = "入力できる形: 色名（Red）/ 16 進（#RRGGBB・#AARRGGBB）/ 不透明度（Red+50%）。 無効な入力はフォーカスを外すと戻ります。",
+                FontSize = 11,
+                TextWrapping = TextWrapping.Wrap,
+            },
+            SampleSettings.Buttons(("保存値を初期値へ戻す", ResetValues)),
+            status,
+            error);
 
-        var body = new StackPanel().Vertical().Spacing(12).Children(
+        var content = new StackPanel().Vertical().Spacing(12).Children(
             new TextBlock().Text("色選択コントロール（MewUI）").FontSize(16),
-            new TextBlock()
-                .Text("入力できる形: 色名（Red）/ 16 進（#RRGGBB・#AARRGGBB）/ 不透明度（Red+50%）。 無効な入力はフォーカスを外すと戻ります。")
-                .FontSize(11),
             new Border
             {
                 Child = rows,
@@ -106,20 +148,27 @@ internal static class MainWindow
                 BorderThickness = 1,
                 BorderBrush = MewColor.FromRgb(0x50, 0x50, 0x50),
             },
-            sortRow,
-            formatRow,
             new TextBlock().Text("プレビュー（枠線 = 1 番目 / 背景 = 2 番目の色）").FontSize(11),
-            preview,
-            status,
-            error);
+            preview);
 
-        var window = new Window()
-            .Title("ColorComboBoxControl サンプル（MewUI）")
-            .Resizable(760, 620, minWidth: 640, minHeight: 400);
-        window.Content(new ScrollViewer().Content(new Border { Child = body, Padding = new Thickness(16) }));
+        var window = SampleShell.Create(
+            "ColorComboBoxControl サンプル（MewUI）", properties, samples, new ScrollViewer().Content(content), log);
+        window.Closed += () => logging.Dispose();
 
         UpdateStatus(status, error, values, preview);
         return window;
+
+        // 保存値を初期値へ戻す
+        void ResetValues()
+        {
+            for (var i = 0; i < s_items.Length; i++)
+            {
+                values[i] = s_items[i].Initial;
+                controls[i].SelectedColor = s_items[i].Initial;
+            }
+
+            UpdateStatus(status, error, values, preview);
+        }
     }
 
     /// <summary>ラベルとコントロールを横に並べる。</summary>

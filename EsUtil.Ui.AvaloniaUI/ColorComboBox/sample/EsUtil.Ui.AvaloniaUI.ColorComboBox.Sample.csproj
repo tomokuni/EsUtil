@@ -23,6 +23,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Ui.AvaloniaUI.ColorComboBox.csproj" />
+    <!-- サンプル共通のレイアウトとログ（Serilog） -->
+    <ProjectReference Include="..\..\SampleKit\src\EsUtil.Ui.AvaloniaUI.SampleKit.csproj" />
   </ItemGroup>
 
 </Project>

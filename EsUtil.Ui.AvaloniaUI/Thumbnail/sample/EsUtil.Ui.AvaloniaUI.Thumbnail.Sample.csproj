@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Ui.AvaloniaUI.Thumbnail.csproj" />
+    <!-- サンプル共通のレイアウトとログ（Serilog） -->
+    <ProjectReference Include="..\..\SampleKit\src\EsUtil.Ui.AvaloniaUI.SampleKit.csproj" />
     <!-- 動作確認用の画像はコアの型で作り、変換ブリッジで UI の型へ写す（サンプルは参照してよい）。 -->
     <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.AvaloniaUI.Interop.csproj" />
   </ItemGroup>

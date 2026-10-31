@@ -17,6 +17,8 @@
   <ItemGroup>
     <!-- サンプルの対象（コア・提示層は推移参照で解決する） -->
     <ProjectReference Include="..\src\EsUtil.Ui.WinForms.Marquee.csproj" />
+    <!-- サンプル共通のレイアウトとログ（Serilog） -->
+    <ProjectReference Include="..\..\SampleKit\src\EsUtil.Ui.WinForms.SampleKit.csproj" />
   </ItemGroup>
 
   <ItemGroup>

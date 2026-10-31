@@ -26,24 +26,21 @@ public static class SampleShell
     /// <summary>画像の最小の高さ（DIP）。</summary>
     private const double ContentMinHeight = 120;
 
-    /// <summary>ウィンドウを組み立てる。</summary>
-    /// <param name="title">ウィンドウのタイトル。</param>
+    /// <summary>ウィンドウの最小サイズ（DIP）。</summary>
+    private const double WindowMinWidth = 900;
+
+    /// <summary>ウィンドウの最小の高さ（DIP）。</summary>
+    private const double WindowMinHeight = 600;
+
+    /// <summary>ウィンドウの中身（3 領域のレイアウト）を組み立てる。</summary>
     /// <param name="propertySettings">プロパティ設定の行。</param>
     /// <param name="sampleSettings">サンプル設定の行。</param>
     /// <param name="content">画像と操作（右上の領域）。</param>
     /// <param name="log">ログ（右下の領域）。</param>
-    /// <param name="width">ウィンドウの初期幅（DIP）。</param>
-    /// <param name="height">ウィンドウの初期高さ（DIP）。</param>
-    /// <returns>組み立てたウィンドウ。</returns>
+    /// <returns>組み立てた要素（ウィンドウの <c>Content</c> へ設定する）。</returns>
     /// <exception cref="ArgumentNullException">必須の引数が null の場合。</exception>
-    public static Window Create(
-        string title,
-        Control propertySettings,
-        Control sampleSettings,
-        Control content,
-        SampleLogPanel log,
-        double width = 1400,
-        double height = 900)
+    public static Control CreateContent(
+        Control propertySettings, Control sampleSettings, Control content, SampleLogPanel log)
     {
         ArgumentNullException.ThrowIfNull(propertySettings);
         ArgumentNullException.ThrowIfNull(sampleSettings);
@@ -89,15 +86,34 @@ public static class SampleShell
         root.Children.Add(settingsHost);
         Grid.SetColumn(right, 1);
         root.Children.Add(right);
+        return root;
+    }
 
-        return new Window
+    /// <summary>ウィンドウを組み立てる。</summary>
+    /// <param name="title">ウィンドウのタイトル。</param>
+    /// <param name="propertySettings">プロパティ設定の行。</param>
+    /// <param name="sampleSettings">サンプル設定の行。</param>
+    /// <param name="content">画像と操作（右上の領域）。</param>
+    /// <param name="log">ログ（右下の領域）。</param>
+    /// <param name="width">ウィンドウの初期幅（DIP）。</param>
+    /// <param name="height">ウィンドウの初期高さ（DIP）。</param>
+    /// <returns>組み立てたウィンドウ。</returns>
+    /// <exception cref="ArgumentNullException">必須の引数が null の場合。</exception>
+    public static Window Create(
+        string title,
+        Control propertySettings,
+        Control sampleSettings,
+        Control content,
+        SampleLogPanel log,
+        double width = 1400,
+        double height = 900)
+        => new()
         {
             Title = title,
             Width = width,
             Height = height,
-            MinWidth = 900,
-            MinHeight = 600,
-            Content = root,
+            MinWidth = WindowMinWidth,
+            MinHeight = WindowMinHeight,
+            Content = CreateContent(propertySettings, sampleSettings, content, log),
         };
-    }
 }

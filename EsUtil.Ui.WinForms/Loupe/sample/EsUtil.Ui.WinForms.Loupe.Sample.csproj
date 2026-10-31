@@ -15,6 +15,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Ui.WinForms.Loupe.csproj" />
+    <!-- サンプル共通のレイアウトとログ（Serilog） -->
+    <ProjectReference Include="..\..\SampleKit\src\EsUtil.Ui.WinForms.SampleKit.csproj" />
   </ItemGroup>
 
   <ItemGroup>

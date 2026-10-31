@@ -19,6 +19,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Ui.MewUI.ColorComboBox.csproj" />
+    <!-- サンプル共通のレイアウトとログ（Serilog） -->
+    <ProjectReference Include="..\..\SampleKit\src\EsUtil.Ui.MewUI.SampleKit.csproj" />
   </ItemGroup>
 
 </Project>

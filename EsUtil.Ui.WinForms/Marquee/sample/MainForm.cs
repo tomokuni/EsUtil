@@ -1,6 +1,7 @@
 using EsUtil.Ui.WinForms.Marquee.Sample.Imaging;
-using EsUtil.Ui.WinForms.Marquee.Sample.Logging;
+using EsUtil.Ui.WinForms.SampleKit;
 using EsUtil.Platform.Core.Geometry;
+using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Ui.WinForms.Marquee.Sample;
 
@@ -10,10 +11,10 @@ namespace EsUtil.Ui.WinForms.Marquee.Sample;
 /// コントロールの背景は透明であるため、親（画像）の描画が自分の背景として描かれる（画像が透けて見える）。<br/>
 /// <b>注意</b>: 透明のコントロールは<b>親の描画</b>だけを背景に使う。 兄弟として重ねると画像が隠れるため、<br/>
 /// オーバーレイするコントロールは画像を持つコントロールの子にする。<br/>
-/// <b>本サンプルが示すこと</b>: 設定（<see cref="MarqueeOptions"/>）と外観（<see cref="MarqueeAppearance"/>）の指定、<br/>
-/// 通知（選択・確定・キャンセル・追従位置）の購読、操作ログの表示、<c>Rendered</c> による付加情報の描画。
+/// <b>配置</b>: サンプル共通の <see cref="SampleShell"/>（左: 設定 / 右上: 画像 / 右下: ログ）を使う。<br/>
+/// <b>ログ</b>: Serilog の出力を非同期に表示する（<see cref="SampleLogging"/>）。
 /// </remarks>
-internal sealed class MainForm : Form
+internal static class MainForm
 {
     /// <summary>下地の画像の幅（画素）。</summary>
     private const int ImageWidth = 1600;
@@ -21,186 +22,208 @@ internal sealed class MainForm : Form
     /// <summary>下地の画像の高さ（画素）。</summary>
     private const int ImageHeight = 1000;
 
-    /// <summary>ログ欄の幅（画素）。</summary>
-    private const int LogWidth = 420;
+    /// <summary>色の選択肢（「なし」は描画しないことを表す）。</summary>
+    private static readonly (string Name, Color? Color)[] s_colorChoices =
+    [
+        ("なし", null),
+        ("白", Color.White),
+        ("アンバー", Color.FromArgb(255, 255, 196, 0)),
+        ("赤", Color.FromArgb(255, 255, 0, 0)),
+        ("緑", Color.FromArgb(255, 0, 200, 83)),
+        ("薄灰", Color.FromArgb(255, 0xD3, 0xD3, 0xD3)),
+    ];
 
-    /// <summary>ログを取り出す間隔（ミリ秒）。</summary>
-    private const int LogDrainInterval = 200;
-
-    /// <summary>表示中の選択矩形コントロール。</summary>
-    private readonly MarqueeControl _marquee;
-
-    /// <summary>下地の画像を表示する要素（本コントロールの親）。</summary>
-    private readonly PictureBox _canvas;
-
-    /// <summary>操作とログの表示欄。</summary>
-    private readonly ListBox _log;
-
-    /// <summary>状態を表示する帯。</summary>
-    private readonly ToolStripStatusLabel _status;
-
-    /// <summary>ライブラリが出力したログの受け皿。</summary>
-    private readonly InMemoryLogger _logger = new();
-
-    /// <summary>ログ欄へ未表示のログを流すタイマー。</summary>
-    private readonly System.Windows.Forms.Timer _logTimer = new() { Interval = LogDrainInterval };
-
-    /// <summary>付加情報の描画に使うフォント。</summary>
-    private readonly Font _overlayFont;
-
-    /// <summary>ハイライトの対象（固定の矩形。 対象座標）。</summary>
-    private readonly EsRect _highlightRect = new(120, 120, 400, 300);
-
-    /// <summary>サンプル画面を初期化する。</summary>
-    public MainForm()
+    /// <summary>サンプル画面を生成する。</summary>
+    /// <returns>生成したフォーム。</returns>
+    public static Form Create()
     {
-        Text = "EsUtil.Ui.WinForms.Marquee サンプル";
-        StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(1280, 820);
-        MinimumSize = new Size(900, 600);
+        // ── ログ（Serilog。 非同期に表示する） ──
+        var logging = new SampleLogging();
+        var logger = logging.Logger;
+        logger.LogInformation("サンプルを起動しました。");
 
-        _overlayFont = new Font(Font.FontFamily, 14.0f, FontStyle.Regular, GraphicsUnit.Pixel);
+        var appearance = MarqueeAppearance.Default with
+        {
+            OuterBorderColor = Color.FromArgb(255, 255, 214, 96),
+            HandleColor = Color.FromArgb(255, 255, 255, 255),
+            HandleBorderColor = Color.FromArgb(255, 32, 32, 32),
+            InnerFillColor = Color.FromArgb(32, 255, 255, 255),
+            MarkerColor = Color.FromArgb(255, 255, 96, 96),
+        };
 
-        _canvas = new PictureBox
+        // ── 下地の画像とコントロール ──
+        var canvas = new PictureBox
         {
             Dock = DockStyle.Fill,
             SizeMode = PictureBoxSizeMode.Zoom,
             Image = TestImageFactory.Create(ImageWidth, ImageHeight),
         };
 
-        _marquee = new MarqueeControl
+        var marquee = new MarqueeControl
         {
             Dock = DockStyle.Fill,
-            // 設定は 1 つの不変オブジェクトで与える（指定しない項目は既定値を保つ）
             Options = MarqueeOptions.Default with { HandleSize = 12.0, MinSelectionSize = 8.0 },
-            // 外観（色・ラベル体裁・表示可否）は描画の設定値が単一所有する
-            Appearance = MarqueeAppearance.Default with
-            {
-                OuterBorderColor = Color.FromArgb(255, 255, 214, 96),
-                HandleColor = Color.FromArgb(255, 255, 255, 255),
-                HandleBorderColor = Color.FromArgb(255, 32, 32, 32),
-                InnerFillColor = Color.FromArgb(32, 255, 255, 255),
-                MarkerColor = Color.FromArgb(255, 255, 96, 96),
-            },
-            Log = _logger,
+            Appearance = appearance,
+            Log = logger,
+            LogPrefix = "[Marquee]",
         };
-
-        _log = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false, HorizontalScrollbar = true };
-
-        _status = new ToolStripStatusLabel("左ドラッグで選択 / ハンドルでリサイズ / 矢印キーで微調整 / Enter 確定 / Escape キャンセル")
-        {
-            Spring = true,
-            TextAlign = ContentAlignment.MiddleLeft,
-        };
-
-        _marquee.SelectionStarted += (_, e) => AppendLog($"SelectionStarted: {e.Point}");
-        _marquee.SelectionChanged += (_, e) => AppendLog($"SelectionChanged: {e.Rect}");
-        _marquee.SelectionCompleted += (_, e) => AppendLog($"SelectionCompleted: {e.Rect}");
-        _marquee.SelectionCancelled += (_, _) => AppendLog("SelectionCancelled");
-        _marquee.ConfirmRequested += (_, e) => AppendLog($"ConfirmRequested: {e.Rect}");
-        _marquee.CancelRequested += (_, _) => AppendLog("CancelRequested");
-        _marquee.LoupePositionMoved += (_, e) => _status.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
-        _marquee.Rendered += OnRendered;
-
-        BuildLayout();
 
         // 子（画像の上）へ重ねる（透明のコントロールは親の描画を背景に使う）
-        _canvas.Controls.Add(_marquee);
+        canvas.Controls.Add(marquee);
 
-        _logTimer.Tick += (_, _) => DrainLogger();
-        _logTimer.Start();
-    }
+        var status = new TextBlockLike();
+        var highlightRect = new EsRect(120, 120, 400, 300);
+        var overlayFont = new Font(FontFamily.GenericSansSerif, 14.0f, FontStyle.Regular, GraphicsUnit.Pixel);
 
-    /// <summary>サンプル画面の配置を組み立てる。</summary>
-    private void BuildLayout()
-    {
-        var side = new Panel { Dock = DockStyle.Right, Width = LogWidth, Padding = new Padding(8) };
-        side.Controls.Add(_log);
-        side.Controls.Add(BuildCommandBar());
+        marquee.SelectionStarted += (_, e) => Write($"SelectionStarted: {e.Point}");
+        marquee.SelectionChanged += (_, e) => Write($"SelectionChanged: {e.Rect}");
+        marquee.SelectionCompleted += (_, e) => Write($"SelectionCompleted: {e.Rect}");
+        marquee.SelectionCancelled += (_, _) => Write("SelectionCancelled");
+        marquee.ConfirmRequested += (_, e) => Write($"ConfirmRequested: {e.Rect}");
+        marquee.CancelRequested += (_, _) => Write("CancelRequested");
+        marquee.LoupePositionMoved += (_, e) => status.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
 
-        var status = new StatusStrip();
-        status.Items.Add(_status);
-
-        Controls.Add(_canvas);
-        Controls.Add(side);
-        Controls.Add(status);
-    }
-
-    /// <summary>操作ボタンを並べた帯を組み立てる。</summary>
-    /// <returns>操作ボタンの帯（上端へ配置する）。</returns>
-    private FlowLayoutPanel BuildCommandBar()
-    {
-        var reset = new Button { Text = "選択をクリア", AutoSize = true };
-        reset.Click += (_, _) => _marquee.ResetSelection();
-
-        var highlight = new Button { Text = "ハイライト切替", AutoSize = true };
-        highlight.Click += (_, _) =>
+        // 選択サイズと操作ガイドはアプリ固有の情報のため、コントロールの描画完了後にホストが描く
+        marquee.Rendered += (_, e) =>
         {
-            _marquee.HighlightSourceRect = _marquee.HighlightSourceRect is null ? _highlightRect : null;
-            AppendLog(_marquee.HighlightSourceRect is null ? "ハイライト解除" : $"ハイライト: {_highlightRect}");
+            var content = e.Content;
+            var text = content.FocusDipRect is { } focus
+                ? $"選択 {focus.Width:0} x {focus.Height:0}"
+                : "ドラッグで範囲を選択してください";
+
+            var origin = new PointF((float)content.ClientRect.X + 12.0f, (float)content.ClientRect.Y + 12.0f);
+            using var background = new SolidBrush(Color.FromArgb(160, 0, 0, 0));
+            var size = e.Graphics.MeasureString(text, overlayFont);
+            e.Graphics.FillRectangle(background, origin.X, origin.Y, size.Width + 8.0f, size.Height + 4.0f);
+            e.Graphics.DrawString(text, overlayFont, Brushes.White, origin);
         };
 
-        var clear = new Button { Text = "ログを消去", AutoSize = true };
-        clear.Click += (_, _) => _log.Items.Clear();
+        // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
+        var properties = Column(
+            SampleSettings.Check("画像内にクリップ", true, value => marquee.Options = marquee.Options with { ClampToSourceBounds = value }),
+            SampleSettings.Slider("ハンドル サイズ", 12, 2, 30, 1, true, value => marquee.Options = marquee.Options with { HandleSize = value }),
+            SampleSettings.Slider("ハンドル枠の太さ", 1.5, 0.5, 8, 0.5, false, value => marquee.Options = marquee.Options with { HandleBorderThickness = value }),
+            SampleSettings.Slider("マーカーの長さ", 16, 8, 40, 2, true, value => marquee.Options = marquee.Options with { MarkerLength = value }),
+            SampleSettings.Slider("ヒット半径", 12, 2, 40, 1, true, value => marquee.Options = marquee.Options with { HandleHitRadius = value }),
+            SampleSettings.Slider("最小選択サイズ", 8, 1, 40, 1, true, value => marquee.Options = marquee.Options with { MinSelectionSize = value }),
+            SampleSettings.Text("ログ接頭辞", "[Marquee]", value => marquee.LogPrefix = value),
+            SampleSettings.Check("ハンドルを表示", true, value => Apply(appearance with { ShowHandles = value })),
+            ColorChoice("ハンドルの色", 1, index => Apply(appearance with { HandleColor = ResolveColor(index, appearance.HandleColor) })),
+            ColorChoice("ハンドル枠の色", 2, index => Apply(appearance with { HandleBorderColor = ResolveColor(index, appearance.HandleBorderColor) })),
+            SampleSettings.Check("マーカーを表示", true, value => Apply(appearance with { ShowMarker = value })),
+            ColorChoice("マーカーの色", 3, index => Apply(appearance with { MarkerColor = ResolveColor(index, appearance.MarkerColor) })),
+            SampleSettings.Slider("マーカーの太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { MarkerThickness = value })),
+            SampleSettings.Check("外枠を表示", true, value => Apply(appearance with { ShowOuterBorder = value })),
+            ColorChoice("外枠の色", 2, index => Apply(appearance with { OuterBorderColor = ResolveColor(index, appearance.OuterBorderColor) })),
+            SampleSettings.Slider("外枠の太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { OuterBorderThickness = value })),
+            SampleSettings.Check("内側の塗りを表示", true, value => Apply(appearance with { ShowInnerFill = value })),
+            ColorChoice("内側の塗りの色", 1, index => Apply(appearance with { InnerFillColor = ResolveColor(index, appearance.InnerFillColor) })),
+            SampleSettings.Check("内枠を表示", true, value => Apply(appearance with { ShowInnerBorder = value })),
+            ColorChoice("内枠の色", 5, index => Apply(appearance with { InnerBorderColor = ResolveColor(index, appearance.InnerBorderColor) })),
+            SampleSettings.Slider("内枠の太さ", 1, 0.5, 8, 0.5, false, value => Apply(appearance with { InnerBorderThickness = value })),
+            SampleSettings.Check("暗転マスクを表示", true, value => Apply(appearance with { ShowOverlay = value })),
+            ColorChoice("暗転マスクの色", 5, index => Apply(appearance with { OverlayColor = ResolveColor(index, appearance.OverlayColor) })),
+            SampleSettings.Check("マスクを全体に敷く", false, value => Apply(appearance with { ShowFullOverlay = value })),
+            SampleSettings.Check("サイズ ラベルを表示", true, value => Apply(appearance with { ShowSizeLabel = value })),
+            ColorChoice("サイズ ラベルの色", 1, index => Apply(appearance with { SizeLabelColor = ResolveColor(index, appearance.SizeLabelColor) })),
+            ColorChoice("サイズ ラベルの背景色", 5, index => Apply(appearance with { SizeLabelBackgroundColor = ResolveColor(index, appearance.SizeLabelBackgroundColor) })),
+            SampleSettings.Slider("サイズ ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { SizeLabelFontSize = value })),
+            SampleSettings.Check("座標ラベルを表示", true, value => Apply(appearance with { ShowCoordLabel = value })),
+            ColorChoice("座標ラベルの色", 1, index => Apply(appearance with { CoordLabelColor = ResolveColor(index, appearance.CoordLabelColor) })),
+            ColorChoice("座標ラベルの背景色", 5, index => Apply(appearance with { CoordLabelBackgroundColor = ResolveColor(index, appearance.CoordLabelBackgroundColor) })),
+            SampleSettings.Slider("座標ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { CoordLabelFontSize = value })),
+            SampleSettings.Slider("座標ラベルの間隔", 4, 0, 24, 1, true, value => Apply(appearance with { CoordLabelOffset = value })),
+            SampleSettings.Slider("ラベルの余白", 4, 0, 24, 1, true, value => Apply(appearance with { LabelPadding = value })));
 
-        var bar = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, Height = 40 };
-        bar.Controls.Add(reset);
-        bar.Controls.Add(highlight);
-        bar.Controls.Add(clear);
-        return bar;
-    }
+        // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
+        var samples = Column(
+            new Label
+            {
+                Text = "左ドラッグで選択 / ハンドルでリサイズ / 矢印キーで微調整 / Enter 確定 / Escape キャンセル",
+                AutoSize = true,
+                MaximumSize = new Size(SampleShell.SettingsWidth - 80, 0),
+            },
+            SampleSettings.Buttons(
+                ("選択をクリア", () => marquee.ResetSelection()),
+                ("矩形を設定", () => marquee.SetSelection(new EsRect(250, 180, 300, 200))),
+                ("ハイライト切替", () =>
+                {
+                    marquee.HighlightSourceRect = marquee.HighlightSourceRect is null ? highlightRect : null;
+                    Write(marquee.HighlightSourceRect is null ? "ハイライト解除" : $"ハイライト: {highlightRect}");
+                }
+        ),
+                ("確定を要求", () => marquee.RequestConfirm()),
+                ("キャンセルを要求", () => marquee.RequestCancel()),
+                ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
+            status);
 
-    /// <summary>コントロールが描き終えた後に、ホスト固有の付加情報を描く。</summary>
-    /// <param name="sender">イベントの発生元。</param>
-    /// <param name="e">描画内容（描画面と計画）。</param>
-    /// <remarks>
-    /// 選択サイズと操作ガイドはアプリ固有の情報のため、コントロールは描かない（ホストが描く）。<br/>
-    /// 描画面は DPI の拡大が適用済みであるため、DIP 座標で描ける。
-    /// </remarks>
-    private void OnRendered(object? sender, MarqueeRenderedEventArgs e)
-    {
-        var content = e.Content;
-        var text = content.FocusDipRect is { } focus
-            ? $"選択 {focus.Width:0} x {focus.Height:0}"
-            : "ドラッグで範囲を選択してください";
-
-        var origin = new PointF((float)content.ClientRect.X + 12.0f, (float)content.ClientRect.Y + 12.0f);
-
-        using var background = new SolidBrush(Color.FromArgb(160, 0, 0, 0));
-        var size = e.Graphics.MeasureString(text, _overlayFont);
-        e.Graphics.FillRectangle(background, origin.X, origin.Y, size.Width + 8.0f, size.Height + 4.0f);
-        e.Graphics.DrawString(text, _overlayFont, Brushes.White, origin);
-    }
-
-    /// <summary>ライブラリが出力したログを表示欄へ流す。</summary>
-    private void DrainLogger()
-    {
-        while (_logger.TryDequeue(out var message))
+        var log = new SampleLogPanel(logging.Buffer);
+        var form = SampleShell.Create("MarqueeControl サンプル（WinForms）", properties, samples, canvas, log);
+        form.FormClosed += (_, _) =>
         {
-            AppendLog(message);
+            canvas.Image?.Dispose();
+            overlayFont.Dispose();
+            logging.Dispose();
+        };
+
+        return form;
+
+        // ログを 1 行出力する（書式化は Serilog に任せる）
+        void Write(string line)
+        {
+            // 文字列をそのまま記録する（テンプレート解析も引数の評価もしない）
+            logger.Log(LogLevel.Information, default, line, null, static (state, _) => state);
+        }
+
+        // 外観を更新してコントロールへ反映する
+        void Apply(MarqueeAppearance value)
+        {
+            appearance = value;
+            marquee.Appearance = value;
+            marquee.InvalidateRender();
         }
     }
 
-    /// <summary>表示欄へ 1 行を追加する（追記後は最新行へ移動する）。</summary>
-    /// <param name="message">追加する行。</param>
-    private void AppendLog(string message)
+    /// <summary>設定の行を縦に並べる。</summary>
+    /// <param name="rows">行。</param>
+    /// <returns>縦に並べた要素。</returns>
+    private static Control Column(params Control[] rows)
     {
-        _log.Items.Add(message);
-        _log.TopIndex = _log.Items.Count - 1;
+        var panel = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+        };
+        panel.Controls.AddRange(rows);
+        return panel;
     }
 
-    /// <summary>保持している資源を破棄する。</summary>
-    /// <param name="disposing">マネージド資源を破棄する場合は true。</param>
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            _logTimer.Stop();
-            _logTimer.Dispose();
-            _overlayFont.Dispose();
-            _canvas.Image?.Dispose();
-        }
+    /// <summary>色の選択肢の行を作る。</summary>
+    /// <param name="label">項目名。</param>
+    /// <param name="selectedIndex">初期の選択インデックス。</param>
+    /// <param name="apply">変更の反映先（選択インデックス）。</param>
+    /// <returns>項目名とコンボ ボックスを並べた行。</returns>
+    private static Control ColorChoice(string label, int selectedIndex, Action<int> apply)
+        => SampleSettings.Choice(label, [.. s_colorChoices.Select(static choice => choice.Name)], selectedIndex, apply);
 
-        base.Dispose(disposing);
+    /// <summary>「なし」を除いた色の選択肢から色を解決する。</summary>
+    /// <param name="index">選択されたインデックス。</param>
+    /// <param name="fallback">「なし」が選ばれたときに残す色（描画しないため見た目には影響しない）。</param>
+    /// <returns>解決した色。</returns>
+    private static Color ResolveColor(int index, Color fallback)
+        => s_colorChoices[index].Color ?? fallback;
+
+    /// <summary>状態の 1 行を表示するラベル（読み取り専用）。</summary>
+    private sealed class TextBlockLike : Label
+    {
+        /// <summary>ラベルを初期化する。</summary>
+        public TextBlockLike()
+        {
+            AutoSize = true;
+            MaximumSize = new Size(SampleShell.SettingsWidth - 80, 0);
+            Text = "選択なし";
+        }
     }
 }
