@@ -1,4 +1,4 @@
-using System.Globalization;
+using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
@@ -320,8 +320,8 @@ internal static partial class MarqueeLogMessage
 
         logger.LogSettingChanged(
             name,
-            oldValue.ToString(format: null, CultureInfo.InvariantCulture),
-            newValue.ToString(format: null, CultureInfo.InvariantCulture));
+            NumberText.Format(oldValue),
+            NumberText.Format(newValue));
     }
 
     /// <summary>確定要求（Enter・ダブルクリック・API 呼び出し）のログ（矩形の整形を含む）。</summary>
@@ -389,7 +389,7 @@ internal static partial class MarqueeLogMessage
     /// <returns><c>(X, Y, W, H)</c> 形式の文字列。</returns>
     /// <remarks>数値の書式は現在のカルチャに依存しない（ログを環境非依存にする）。</remarks>
     private static string FormatRect(EsRect rect)
-        => $"({rect.X.ToString(CultureInfo.InvariantCulture)}, {rect.Y.ToString(CultureInfo.InvariantCulture)}, {rect.Width.ToString(CultureInfo.InvariantCulture)}, {rect.Height.ToString(CultureInfo.InvariantCulture)})";
+        => $"({NumberText.Format(rect.X)}, {NumberText.Format(rect.Y)}, {NumberText.Format(rect.Width)}, {NumberText.Format(rect.Height)})";
 
     /// <summary>座標変換ポートを文字列へ整形する。</summary>
     /// <param name="port">整形する座標変換ポート。 未設定は null。</param>

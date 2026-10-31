@@ -22,6 +22,9 @@ public static class SampleSettings
     /// <summary>設定パネルの文字サイズ（DIP。 MewUI のテーマ既定値と同じにして UI 層をまたいで揃える）。</summary>
     public const double FontSize = 12;
 
+    /// <summary>行の高さ（DIP。 編集 UI の高さを揃える）。</summary>
+    public const double RowHeight = 32;
+
     /// <summary>領域の見出しと中身を縦に並べる。</summary>
     /// <param name="title">領域の見出し。</param>
     /// <param name="rows">中身の行。</param>
@@ -96,6 +99,10 @@ public static class SampleSettings
             IsSnapToTickEnabled = true,
             VerticalAlignment = VerticalAlignment.Center,
             FontSize = FontSize,
+
+            // 行の高さを他の編集 UI（コンボ ボックス・数値入力）へ揃える
+            // （テーマの既定ではスライダーだけ高さが大きく、行の間隔が不揃いになる。 実測 2026-10-31: 50.4 対 32）
+            Height = RowHeight,
         };
         slider.PropertyChanged += (_, e) =>
         {

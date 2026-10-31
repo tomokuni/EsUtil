@@ -52,6 +52,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.44 `Palette`（色名と色文字列）](#244-palette色名と色文字列)
   - [2.45 `Native.Win.WinClipboard`（static class）](#245-nativewinwinclipboardstatic-class)
   - [2.46 `Imaging.EsImageFile`（sealed class : `IDisposable`）](#246-imagingesimagefilesealed-class--idisposable)
+  - [2.47 `Common.NumberText`（static class）](#247-commonnumbertextstatic-class)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -67,7 +68,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `.Input` | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser` | キーとホットキー（正規化・文字列の解釈を含む） |
 | `.Window` | `EsPlatformHandle` / `EsWindowState` / `EsWindowPlacementMath` | ネイティブ ハンドル・表示状態・ウィンドウ配置の規則（復元可否・はみ出しの補正・DIP ⇔ 物理ピクセル） |
 | `.Capture` | `CaptureType` | キャプチャ種別 |
-| `.Common` | `BoundaryCatch` / `CallbackList<T>` / `EnumCanonical` | 機能に閉じない小さな基盤（境界の判定・購読の一覧・別名を持つ列挙の解決） |
+| `.Common` | `BoundaryCatch` / `CallbackList<T>` / `EnumCanonical` / `NumberText` | 機能に閉じない小さな基盤（境界の判定・購読の一覧・別名を持つ列挙の解決・数値の自然な表記） |
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` / `EsRectIntJsonConverter` | DIP 相当の幾何値型と領域の規則、整数矩形の JSON の保存形式 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI・ポイント換算の純粋計算（OS を呼ばない） |
 | `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `EsImageScalingMode` / `EsDitherMode` / `EsImageFileExtensions` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、縮小と減色の品質、描画色の判定、一覧に並べる画像の拡張子の判定 |
@@ -1068,6 +1069,19 @@ foreach (var entry in EsColor.GetPalette(ColorSortMode.ByHue)) { /* Name と Col
 
 - **開いたままにしません**: 内容は `Open` でメモリへ取り込むため、ファイルは直ちに解放されます（他のアプリが開いているファイルも読めます）。
 - **破棄後は `ObjectDisposedException`** になります（`GetSize` / `Decode`）。
+
+### 2.47 `Common.NumberText`（static class）
+
+数値を**自然な表記**の文字列へ書式化します（ログ・画面表示用）。 最短往復表記（`double.ToString()`）は 2 進小数の誤差をそのまま出すため（`1.5999999999999996`）、ログや利用者向けの表示には使いません。
+
+| メンバー | 内容 |
+| --- | --- |
+| `Format(double)` → `string` | 実数を 12 桁で丸めて末尾の 0 を落とす（例: `1.5999999999999996` → `1.6`。 **指数表記にしない**。 有限でない値は型の標準表記） |
+| `Format<T>(T)` → `string` | 数値を自然な表記へ（**整数はそのまま**。 実数だけを丸める） |
+
+- **桁数を固定しません**: 丸めた結果だけを出します（`1.6` は `1.6`、`12` は `12`、`1.56` は `1.56`）。
+- **カルチャに依存しません**（`CultureInfo.InvariantCulture` を使う。 小数点は常に `.`）。
+- **使う場所**: ログの定義（`<機能>LogMessage`）が数値・座標・矩形を文字列化するときに使います（各層が個別に `ToString` を書かない）。
 
 ## 3. 使用例
 

@@ -1,4 +1,4 @@
-using System.Globalization;
+using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
@@ -250,13 +250,13 @@ internal static partial class MarqueeLogMessage
 
         logger.LogSettingChanged(
             name,
-            oldValue.ToString(format: null, CultureInfo.InvariantCulture),
-            newValue.ToString(format: null, CultureInfo.InvariantCulture));
+            NumberText.Format(oldValue),
+            NumberText.Format(newValue));
     }
 
     /// <summary>実数値をカルチャに依存しない文字列へ整形する。</summary>
     /// <param name="value">整形する値。</param>
     /// <returns>整形した文字列。</returns>
     /// <remarks>ログの書式を環境非依存にする（小数点の記号がロケールで変わらないようにする）。</remarks>
-    private static string Format(double value) => value.ToString(format: null, CultureInfo.InvariantCulture);
+    private static string Format(double value) => NumberText.Format(value);
 }

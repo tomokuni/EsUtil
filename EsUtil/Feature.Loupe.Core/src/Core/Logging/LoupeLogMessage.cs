@@ -1,4 +1,4 @@
-using System.Globalization;
+using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
@@ -189,8 +189,8 @@ internal static partial class LoupeLogMessage
 
         logger.LogSettingChanged(
             name,
-            oldValue.ToString(format: null, CultureInfo.InvariantCulture),
-            newValue.ToString(format: null, CultureInfo.InvariantCulture));
+            NumberText.Format(oldValue),
+            NumberText.Format(newValue));
     }
 
     /// <summary>拡大中心（対象座標）の変更ログ（同値の再設定では出力しない）。</summary>
@@ -256,7 +256,7 @@ internal static partial class LoupeLogMessage
     /// </remarks>
     private static string FormatPoint(EsPoint? point)
         => point is { } p
-            ? $"({p.X.ToString(CultureInfo.InvariantCulture)}, {p.Y.ToString(CultureInfo.InvariantCulture)})"
+            ? $"({NumberText.Format(p.X)}, {NumberText.Format(p.Y)})"
             : Null;
 
     /// <summary>座標変換ポートを文字列化する。</summary>

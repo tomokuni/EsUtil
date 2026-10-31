@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Common;
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 
@@ -209,8 +210,8 @@ internal static partial class ThumbnailLogMessage
 
         logger.LogSettingChanged(
             name,
-            oldValue.ToString(format: null, CultureInfo.InvariantCulture),
-            newValue.ToString(format: null, CultureInfo.InvariantCulture));
+            NumberText.Format(oldValue),
+            NumberText.Format(newValue));
     }
 
     /// <summary>色（<c>0xAARRGGBB</c>）をログ用の文字列へ整形する。</summary>

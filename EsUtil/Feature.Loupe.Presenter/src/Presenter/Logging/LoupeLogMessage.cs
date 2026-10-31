@@ -1,4 +1,4 @@
-using System.Globalization;
+using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
@@ -101,7 +101,7 @@ internal static partial class LoupeLogMessage
     /// <param name="value">伝搬した実数値。</param>
     /// <remarks>数値の書式は現在のカルチャに依存しない（ログを環境非依存にする）。</remarks>
     internal static void LogForwarded(this ILogger logger, string name, double value)
-        => logger.LogForwarded(name, value.ToString(format: null, CultureInfo.InvariantCulture));
+        => logger.LogForwarded(name, NumberText.Format(value));
 
     /// <summary>拡大中心（対象座標）をコアへ伝搬したことを記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
@@ -109,7 +109,7 @@ internal static partial class LoupeLogMessage
     /// <param name="value">伝搬した拡大中心（未設定は null）。</param>
     internal static void LogForwarded(this ILogger logger, string name, EsPoint? value)
         => logger.LogForwarded(name, value is { } p
-            ? $"({p.X.ToString(CultureInfo.InvariantCulture)}, {p.Y.ToString(CultureInfo.InvariantCulture)})"
+            ? $"({NumberText.Format(p.X)}, {NumberText.Format(p.Y)})"
             : Null);
 
     /// <summary>座標変換ポートをコアへ伝搬したことを記録する。</summary>
@@ -231,7 +231,7 @@ internal static partial class LoupeLogMessage
 
         logger.LogSettingChanged(
             name,
-            oldValue.ToString(format: null, CultureInfo.InvariantCulture),
-            newValue.ToString(format: null, CultureInfo.InvariantCulture));
+            NumberText.Format(oldValue),
+            NumberText.Format(newValue));
     }
 }

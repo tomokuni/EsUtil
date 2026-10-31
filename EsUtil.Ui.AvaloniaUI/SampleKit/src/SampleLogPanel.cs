@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 using Avalonia.Threading;
 
 namespace EsUtil.Ui.AvaloniaUI.SampleKit;
@@ -7,12 +8,18 @@ namespace EsUtil.Ui.AvaloniaUI.SampleKit;
 /// <remarks>
 /// <b>非同期の表示</b>: バッファ（<see cref="SampleLogBuffer"/>）から一定間隔でまとめて取り出して表示する。
 /// ログの書き込み側（コントロール・アプリ）を待たせない。<br/>
-/// <b>追従</b>: パネルの大きさは親のレイアウトに従う（文字の折り返しと縦スクロールで全体を使う）。
+/// <b>一覧で表示する理由</b>: 1 つの折り返しテキストへ全行を入れると、行数に比例して 1 フレームの費用が増える。
+/// 一覧（<see cref="ListBox"/>）は見えている行だけを実体化するため、行数が増えても描画の費用は変わらない。<br/>
+/// <b>選択とコピー</b>: 行を選んで（複数可）見出しの「コピー」を押すと、選んだ行をクリップボードへ写す
+/// （選んでいないときは表示中のすべての行）。
 /// </remarks>
 public sealed class SampleLogPanel : DockPanel
 {
     /// <summary>画面へ出す行の上限（古い行から捨てる）。</summary>
-    private const int MaxDisplayedLines = 500;
+    /// <remarks>
+    /// 画面に出せる行数より十分多い値にする（上限を超えた行は捨て、見えている内容とコピーの対象を一致させる）。
+    /// </remarks>
+    private const int MaxDisplayedLines = 150;
 
     /// <summary>表示の更新間隔。</summary>
     private static readonly TimeSpan s_refreshInterval = TimeSpan.FromMilliseconds(200);
@@ -23,11 +30,8 @@ public sealed class SampleLogPanel : DockPanel
     /// <summary>書き込み側のバッファ。</summary>
     private readonly SampleLogBuffer _buffer;
 
-    /// <summary>ログの本文。</summary>
-    private readonly TextBlock _text = new() { FontSize = 11, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
-
-    /// <summary>本文のスクロール。</summary>
-    private readonly ScrollViewer _scroll = new();
+    /// <summary>行を表示する一覧（見えている行だけを実体化する）。</summary>
+    private readonly ListBox _list = new() { FontSize = 11, SelectionMode = SelectionMode.Multiple };
 
     /// <summary>バッファを取り出すための一時領域。</summary>
     private readonly List<string> _pending = [];
@@ -40,16 +44,43 @@ public sealed class SampleLogPanel : DockPanel
         ArgumentNullException.ThrowIfNull(buffer);
         _buffer = buffer;
 
-        var header = new TextBlock { Text = "ログ", FontWeight = Avalonia.Media.FontWeight.Bold, FontSize = 12 };
+        var copy = new Button { Content = "コピー", FontSize = 11 };
+        copy.Click += (_, _) => _ = CopySelectionOrAllAsync();
+
+        var header = new StackPanel
+        {
+            Orientation = Avalonia.Layout.Orientation.Horizontal,
+            Spacing = 8,
+            Margin = new Avalonia.Thickness(0, 0, 0, 6),
+            Children =
+            {
+                new TextBlock { Text = "ログ", FontWeight = Avalonia.Media.FontWeight.Bold, FontSize = 12 },
+                copy,
+            },
+        };
         DockPanel.SetDock(header, Dock.Top);
         Children.Add(header);
 
-        _scroll.Content = _text;
-        Children.Add(_scroll);
+        Children.Add(_list);
 
         var timer = new DispatcherTimer { Interval = s_refreshInterval };
         timer.Tick += (_, _) => Refresh();
         timer.Start();
+    }
+
+    /// <summary>選んだ行（無ければ表示中のすべての行）をクリップボードへ写す。</summary>
+    /// <returns>完了を待つためのタスク。</returns>
+    /// <remarks>表示の対象は画面に出ている行だけにする（上限で捨てた行は含めない）。 クリップボードが無い環境では何もしない。</remarks>
+    private async Task CopySelectionOrAllAsync()
+    {
+        if (TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard)
+        {
+            return;
+        }
+
+        var selected = _list.SelectedItems?.OfType<string>().ToList() ?? [];
+        var lines = selected.Count > 0 ? selected : _displayed;
+        await clipboard.SetTextAsync(string.Join(Environment.NewLine, lines)).ConfigureAwait(true);
     }
 
     /// <summary>バッファから行を取り出して表示を更新する。</summary>
@@ -67,7 +98,11 @@ public sealed class SampleLogPanel : DockPanel
             _displayed.RemoveRange(0, _displayed.Count - MaxDisplayedLines);
         }
 
-        _text.Text = string.Join(Environment.NewLine, _displayed);
-        _scroll.ScrollToEnd();
+        // 一覧へ入れ直して最新の行までスクロールする（見えている行だけが実体化される）
+        _list.ItemsSource = _displayed.ToArray();
+        if (_displayed.Count > 0)
+        {
+            _list.ScrollIntoView(_displayed.Count - 1);
+        }
     }
 }

@@ -4,12 +4,16 @@ namespace EsUtil.Ui.WinForms.SampleKit;
 /// <remarks>
 /// <b>非同期の表示</b>: バッファ（<see cref="SampleLogBuffer"/>）から一定間隔でまとめて取り出して表示する。
 /// ログの書き込み側（コントロール・アプリ）を待たせない。<br/>
-/// <b>追従</b>: パネルの大きさは親のレイアウトに従う（文字の折り返しと縦スクロールで全体を使う）。
+/// <b>一覧で表示する理由</b>: 1 つの複数行テキストへ全行を入れると、行数に比例して描画の費用が増える。
+/// 一覧（<see cref="ListBox"/>）は見えている行だけを描くため、行数が増えても描画の費用は変わらない。<br/>
+/// <b>選択とコピー</b>: 行を選んで（複数可）見出しの「コピー」を押すと、選んだ行をクリップボードへ写す
+/// （選んでいないときは表示中のすべての行）。
 /// </remarks>
 public sealed class SampleLogPanel : TableLayoutPanel
 {
     /// <summary>画面へ出す行の上限（古い行から捨てる）。</summary>
-    private const int MaxDisplayedLines = 500;
+    /// <remarks>画面に出せる行数より十分多い値にする（上限を超えた行は捨て、見えている内容とコピーの対象を一致させる）。</remarks>
+    private const int MaxDisplayedLines = 150;
 
     /// <summary>表示の更新間隔（ミリ秒）。</summary>
     private const int RefreshInterval = 200;
@@ -23,14 +27,12 @@ public sealed class SampleLogPanel : TableLayoutPanel
     /// <summary>書き込み側のバッファ。</summary>
     private readonly SampleLogBuffer _buffer;
 
-    /// <summary>ログの本文。</summary>
-    private readonly TextBox _text = new()
+    /// <summary>行を表示する一覧（見えている行だけを描く）。</summary>
+    private readonly ListBox _list = new()
     {
-        Multiline = true,
-        ReadOnly = true,
-        ScrollBars = ScrollBars.Vertical,
-        WordWrap = true,
         Dock = DockStyle.Fill,
+        IntegralHeight = false,
+        SelectionMode = SelectionMode.MultiExtended,
         Font = new Font(FontFamily.GenericMonospace, LogFontSizePoint),
         BackColor = SystemColors.Window,
     };
@@ -56,11 +58,41 @@ public sealed class SampleLogPanel : TableLayoutPanel
         RowStyles.Add(new RowStyle(SizeType.AutoSize));
         RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
-        Controls.Add(new Label { Text = "ログ", AutoSize = true, Font = new Font(Font, FontStyle.Bold), Dock = DockStyle.Fill }, 0, 0);
-        Controls.Add(_text, 0, 1);
+        var copy = new Button { Text = "コピー", AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink };
+        copy.Click += (_, _) => CopySelectionOrAll();
+
+        var header = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Dock = DockStyle.Fill,
+            Margin = Padding.Empty,
+        };
+        header.Controls.Add(new Label { Text = "ログ", AutoSize = true, Font = new Font(Font, FontStyle.Bold) });
+        header.Controls.Add(copy);
+        Controls.Add(header, 0, 0);
+        Controls.Add(_list, 0, 1);
 
         _timer.Tick += (_, _) => RefreshFromBuffer();
         _timer.Start();
+    }
+
+    /// <summary>選んだ行（無ければ表示中のすべての行）をクリップボードへ写す。</summary>
+    /// <remarks>表示の対象は画面に出ている行だけにする（上限で捨てた行は含めない）。</remarks>
+    private void CopySelectionOrAll()
+    {
+        var lines = _list.SelectedItems.OfType<string>().ToList();
+        if (lines.Count == 0)
+        {
+            lines = _displayed;
+        }
+
+        if (lines.Count > 0)
+        {
+            Clipboard.SetText(string.Join(Environment.NewLine, lines));
+        }
     }
 
     /// <summary>保持している資源を破棄する。</summary>
@@ -91,10 +123,20 @@ public sealed class SampleLogPanel : TableLayoutPanel
             _displayed.RemoveRange(0, _displayed.Count - MaxDisplayedLines);
         }
 
-        _text.Text = string.Join(Environment.NewLine, _displayed);
-
-        // 最新の行が見える位置までスクロールする
-        _text.SelectionStart = _text.TextLength;
-        _text.ScrollToCaret();
+        // 一覧へ入れ直して最新の行までスクロールする（見えている行だけが描かれる）
+        _list.BeginUpdate();
+        try
+        {
+            _list.Items.Clear();
+            _list.Items.AddRange([.. _displayed]);
+            if (_list.Items.Count > 0)
+            {
+                _list.TopIndex = _list.Items.Count - 1;
+            }
+        }
+        finally
+        {
+            _list.EndUpdate();
+        }
     }
 }

@@ -7,12 +7,15 @@ namespace EsUtil.Ui.WinUI3.SampleKit;
 /// <remarks>
 /// <b>非同期の表示</b>: バッファ（<see cref="SampleLogBuffer"/>）から一定間隔でまとめて取り出して表示する。
 /// ログの書き込み側（コントロール・アプリ）を待たせない。<br/>
-/// <b>追従</b>: パネルの大きさは親のレイアウトに従う（文字の折り返しと縦スクロールで全体を使う）。
+/// <b>一覧で表示する理由</b>: 1 つの折り返しテキストへ全行を入れると、行数に比例して描画の費用が増える。
+/// 一覧（<see cref="ListView"/>）は見えている行だけを実体化するため、行数が増えても描画の費用は変わらない。<br/>
+/// <b>選択とコピー</b>: 行を選んで（複数可）見出しの「コピー」を押すと、選んだ行をクリップボードへ写す
+/// （選んでいないときは表示中のすべての行）。
 /// </remarks>
 public sealed class SampleLogPanel : Grid
 {
     /// <summary>画面へ出す行の上限（古い行から捨てる）。</summary>
-    private const int MaxDisplayedLines = 500;
+    private const int MaxDisplayedLines = 150;
 
     /// <summary>表示の更新間隔。</summary>
     private static readonly TimeSpan s_refreshInterval = TimeSpan.FromMilliseconds(200);
@@ -23,16 +26,12 @@ public sealed class SampleLogPanel : Grid
     /// <summary>書き込み側のバッファ。</summary>
     private readonly SampleLogBuffer _buffer;
 
-    /// <summary>ログの本文。</summary>
-    private readonly TextBlock _text = new()
+    /// <summary>行を表示する一覧（見えている行だけを実体化する）。</summary>
+    private readonly ListView _list = new()
     {
         FontSize = 11,
-        TextWrapping = TextWrapping.Wrap,
-        IsTextSelectionEnabled = true,
+        SelectionMode = ListViewSelectionMode.Extended,
     };
-
-    /// <summary>本文のスクロール。</summary>
-    private readonly ScrollViewer _scroll = new();
 
     /// <summary>バッファから取り出すタイマー。</summary>
     private readonly DispatcherTimer _timer = new() { Interval = s_refreshInterval };
@@ -51,23 +50,47 @@ public sealed class SampleLogPanel : Grid
         RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-        var header = new TextBlock
+        var copy = new Button { Content = "コピー", FontSize = 11 };
+        copy.Click += (_, _) => CopySelectionOrAll();
+
+        var header = new StackPanel
         {
-            Text = "ログ",
-            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-            FontSize = 12,
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
             Margin = new Thickness(0, 0, 0, 6),
+            Children =
+            {
+                new TextBlock
+                {
+                    Text = "ログ",
+                    FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                    FontSize = 12,
+                },
+                copy,
+            },
         };
         Children.Add(header);
 
-        _scroll.Content = _text;
-        _scroll.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
-        _scroll.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
-        SetRow(_scroll, 1);
-        Children.Add(_scroll);
+        SetRow(_list, 1);
+        Children.Add(_list);
 
         _timer.Tick += (_, _) => RefreshFromBuffer();
         _timer.Start();
+    }
+
+    /// <summary>選んだ行（無ければ表示中のすべての行）をクリップボードへ写す。</summary>
+    /// <remarks>表示の対象は画面に出ている行だけにする（上限で捨てた行は含めない）。</remarks>
+    private void CopySelectionOrAll()
+    {
+        var lines = _list.SelectedItems.OfType<string>().ToList();
+        if (lines.Count == 0)
+        {
+            lines = _displayed;
+        }
+
+        var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
+        package.SetText(string.Join(Environment.NewLine, lines));
+        Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
     }
 
     /// <summary>バッファから行を取り出して表示を更新する。</summary>
@@ -85,9 +108,17 @@ public sealed class SampleLogPanel : Grid
             _displayed.RemoveRange(0, _displayed.Count - MaxDisplayedLines);
         }
 
-        _text.Text = string.Join(Environment.NewLine, _displayed);
+        // 一覧へ入れ直して最新の行までスクロールする（見えている行だけが実体化される）。
+        // 項目は直接追加する（ItemsSource への代入は Native AOT の制約に反する。 ビルドの DEP 検査が強制する）
+        _list.Items.Clear();
+        foreach (var line in _displayed)
+        {
+            _list.Items.Add(line);
+        }
 
-        // 最新の行が見える位置までスクロールする（範囲は ChangeView が現在の拡張へ丸める）
-        _scroll.ChangeView(null, double.MaxValue, null);
+        if (_displayed.Count > 0)
+        {
+            _list.ScrollIntoView(_displayed[^1]);
+        }
     }
 }

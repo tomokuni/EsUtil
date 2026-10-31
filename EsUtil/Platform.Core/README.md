@@ -47,7 +47,7 @@ services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKe
 | キーと入力（`Input.*`） | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser`（`"Ctrl + Shift + Q"` の解釈） |
 | ウィンドウ（`Window.*`） | `EsPlatformHandle`（ネイティブ ハンドル） / `EsWindowState` / `EsWindowPlacementMath`（復元可否・はみ出しの補正・DIP ⇔ 物理ピクセル） |
 | キャプチャ（`Capture.*`） | `CaptureType` |
-| 小さな共通基盤（`Common.*`） | `EnumCanonical` / `BoundaryCatch` / `CallbackList<T>` |
+| 小さな共通基盤（`Common.*`） | `EnumCanonical` / `BoundaryCatch` / `CallbackList<T>` / `NumberText` |
 | 幾何 | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` / `EsRectIntJsonConverter`（設定ファイルの保存形式） |
 | 座標変換 | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler`（DIP ⇔ 物理ピクセル・ポイント換算・描画面からの係数解決） |
 | 画像 | **2 型は対称です**（書き込みに関するものだけが `EsBitmap`）。 `EsReadOnlyBitmap`（**読み取り専用**。 受け取る・保持する側）/ `EsBitmap`（**書き換え可能**。 作る・書く側。 `Pixels`・`SetPixel`・`Clear`・`SetReadOnly` が追加）/ `EsPixmap`（一部を指す 0 コピーの読み取りビュー。 切り出しの複製を避け、**縮小・減色の対象にもなる**）。 変換は向きごとに 1 つ（`FromBitmap`（凍結済みなら 0 コピー）/ `FromReadOnlyBitmap`（複製）） |
