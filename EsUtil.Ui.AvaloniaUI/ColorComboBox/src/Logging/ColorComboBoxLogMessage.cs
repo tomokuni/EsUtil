@@ -21,7 +21,7 @@ internal static partial class ColorComboBoxLogMessage
     /// <param name="exception">発生した例外。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix} {Operation} で例外が発生")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} {Operation} で例外が発生")]
     private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>
@@ -40,7 +40,7 @@ internal static partial class ColorComboBoxLogMessage
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="oldValue">変更前の色。</param>
     /// <param name="newValue">変更後の色。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: SelectedColor {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Setting: SelectedColor {OldValue} → {NewValue}")]
     private static partial void LogSelectedColorChangedCore(this ILogger logger, string prefix, string oldValue, string newValue);
 
     public static void LogSelectedColorChanged(this ILogger logger, string oldValue, string newValue)
@@ -54,7 +54,7 @@ internal static partial class ColorComboBoxLogMessage
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="color">現在の選択色。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} OpenFlyout: color={Color}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} OpenFlyout: color={Color}")]
     private static partial void LogOpenFlyoutCore(this ILogger logger, string prefix, string color);
 
     public static void LogOpenFlyout(this ILogger logger, string color)
@@ -68,7 +68,7 @@ internal static partial class ColorComboBoxLogMessage
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="color">確定された色。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Flyout OK: color={Color}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Flyout OK: color={Color}")]
     private static partial void LogFlyoutOkCore(this ILogger logger, string prefix, string color);
 
     public static void LogFlyoutOk(this ILogger logger, string color)
@@ -81,7 +81,7 @@ internal static partial class ColorComboBoxLogMessage
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Flyout Cancel")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Flyout Cancel")]
     private static partial void LogFlyoutCancelCore(this ILogger logger, string prefix);
 
     public static void LogFlyoutCancel(this ILogger logger)
@@ -96,7 +96,7 @@ internal static partial class ColorComboBoxLogMessage
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="color">現在の色。</param>
     /// <param name="valid">色が有効かどうか。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} LostFocus: color={Color} valid={Valid}")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} LostFocus: color={Color} valid={Valid}")]
     private static partial void LogLostFocusCore(this ILogger logger, string prefix, string color, bool valid);
 
     public static void LogLostFocus(this ILogger logger, string color, bool valid)

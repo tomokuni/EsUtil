@@ -23,7 +23,7 @@ internal static partial class MarqueeLogMessage
     /// <param name="exception">発生した例外。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix} {Operation} で例外が発生")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} {Operation} で例外が発生")]
     private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>

@@ -10,7 +10,7 @@ namespace EsUtil.Ui.WinUI3.ColumnPacking.Sample;
 
 /// <summary>サンプルのメイン ウィンドウ（<see cref="ColumnPackingPanel"/> の使い方を示す）。</summary>
 /// <remarks>
-/// <b>示すこと</b>: <see cref="DualSourceItemsPanel.ItemsSource"/>（データ）と直接の子（コードで足した要素）を
+/// <b>示すこと</b>: <see cref="DualSourceItemsPanel.SetItems"/>（データ）と直接の子（コードで足した要素）を
 /// 同時に並べられること、<see cref="ColumnPackingPanel.ColumnLimit"/> と余白で配置が変わること、
 /// レイアウト結果（<see cref="ColumnPackingPanel.LayoutMinHeight"/> など）が依存関係プロパティとして読めること。<br/>
 /// <b>配置</b>: サンプル共通の <see cref="SampleShell"/>（左: 設定 / 右上: パネル / 右下: ログ）を使う。
@@ -35,7 +35,8 @@ public sealed class MainWindow : Window
     /// <summary>レイアウト結果の表示。</summary>
     private readonly TextBlock _status = new() { FontSize = 11, TextWrapping = TextWrapping.Wrap, Text = "待機中..." };
 
-    /// <summary>並べる項目（<see cref="DualSourceItemsPanel.ItemsSource"/> へ渡す）。</summary>
+    /// <summary>並べる項目（<see cref="DualSourceItemsPanel.SetItems"/> へ渡すデータ）。</summary>
+    private readonly ObservableCollection<SampleItem> _items = [];
 
     /// <summary>並べる項目の数。</summary>
     private int _itemCount = 20;
@@ -45,6 +46,12 @@ public sealed class MainWindow : Window
     {
         var logger = _logging.Logger;
         logger.LogInformation("サンプルを起動しました。");
+
+        // 順序が重要: ItemTemplate を先に設定する（この時点の子は再構築で消えるため、直接の子はその後に足す）。
+        // その後に直接の子を足し、SetItems でデータを渡す（初回の再構築で「直接の子」として保存される）
+        _panel.ItemTemplate = (DataTemplate)Application.Current.Resources["SampleItemTemplate"];
+        _panel.Children.Add(CreateDirectChild("直接の子 A", 56));
+        _panel.Children.Add(CreateDirectChild("直接の子 B", 72));
 
         RebuildItems();
 
@@ -64,8 +71,8 @@ public sealed class MainWindow : Window
                 SampleSettings.Slider("列の上限", 10, 1, 8, 1, true, value => _panel.ColumnLimit = (int)value),
                 SampleSettings.Slider("行間", 8, 0, 24, 1, true, value => _panel.RowSpace = value),
                 SampleSettings.Slider("列間", 8, 0, 24, 1, true, value => _panel.ColumnSpace = value),
-                // ItemsSource は Native AOT で使えないため、項目は直接の子として並べる（ビルド設定規約 §6.1）。
-                // そのため並び順（ItemsSourceFirst）は本サンプルでは効果を持たないので項目に出さない（README を参照）。
+                // データから作った子と直接の子（コードで足した要素）の並び順を切り替える
+                SampleSettings.Check("直接の子を後ろに置く", true, value => _panel.ItemsSourceFirst = value),
                 SampleSettings.Check("デバッグ表示", false, value => _panel.ShowDebugText = value),
                 SampleSettings.Choice("配置の方法", ["貪欲法", "動的計画法", "二分探索"], 2, index =>
                     _panel.Method = index switch
@@ -107,26 +114,30 @@ public sealed class MainWindow : Window
 
         return;
 
-        // 項目を作り直す（ItemsSource は使わず直接の子として並べる）
+        // 項目を作り直す（データ側だけを差し替える。 直接の子は初回の SetItems で保存済み）
         void RebuildItems()
         {
-            var items = CreateItems(_itemCount);
-            _panel.Children.Clear();
-            foreach (var item in items)
+            _items.Clear();
+            foreach (var item in CreateItems(_itemCount))
             {
-                _panel.Children.Add(CreateItemChild(item));
+                _items.Add(item);
             }
 
-            _panel.Children.Add(CreateDirectChild("直接の子 A", 56));
-            _panel.Children.Add(CreateDirectChild("直接の子 B", 72));
+            // 依存関係プロパティ（ItemsSource）を介さない入口へ渡す（AOT では ItemsSource に managed コレクションを渡せない。
+            // ビルド設定規約 §6.1）
+            _panel.SetItems(_items);
+
             UpdateStatus();
         }
 
-        // レイアウト結果をログへ出力する
+        // レイアウト結果をログへ出力する（1 行ずつ出す。 まとめると折り返しで読みにくく、1 行だけコピーできない）
         void LogLayout()
         {
-            var text = _panel.GetDebugText();
-            _logging.Logger.Log(LogLevel.Information, default, text, null, static (state, _) => state);
+            foreach (var line in _panel.GetDebugLines())
+            {
+                _logging.Logger.Log(LogLevel.Information, default, line, null, static (state, _) => state);
+            }
+
             UpdateStatus();
         }
 
@@ -157,20 +168,6 @@ public sealed class MainWindow : Window
 
         return items;
     }
-
-    /// <summary>項目 1 件分の要素を作る。</summary>
-    /// <param name="item">作る項目。</param>
-    /// <returns>作った要素。</returns>
-    private static Border CreateItemChild(SampleItem item)
-        => new()
-        {
-            Height = item.Height,
-            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xE8, 0xF0, 0xFE)),
-            BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0x1E, 0x88, 0xE5)),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(4),
-            Child = new TextBlock { Text = item.Label, Margin = new Thickness(8, 4, 8, 4), VerticalAlignment = VerticalAlignment.Center },
-        };
 
     /// <summary>項目と一緒に並べる直接の子を作る。</summary>
     /// <param name="text">表示する文言。</param>

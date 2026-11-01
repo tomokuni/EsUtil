@@ -1,3 +1,5 @@
+using Microsoft.UI.Xaml.Data;
+
 namespace EsUtil.Ui.WinUI3.ColumnPacking.Sample;
 
 /// <summary>一覧に並べる 1 件分の項目。</summary>
@@ -6,6 +8,11 @@ namespace EsUtil.Ui.WinUI3.ColumnPacking.Sample;
 /// <c>record</c> では代入できません（生成コードが setter を要求します）。 サンプルは XAML から
 /// <c>x:Bind</c> で読むだけですが、型情報の生成を通すために setter を持つクラスにしています。
 /// </remarks>
+/// <remarks>
+/// <c>[Bindable]</c> は XAML の <c>{Binding}</c> を Native AOT でも解決できるようにする宣言です
+/// （この属性が無いとリフレクションに頼り、AOT で値が解決されません）。
+/// </remarks>
+[Bindable]
 public sealed class SampleItem
 {
     /// <summary>項目を生成する。</summary>

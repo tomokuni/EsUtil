@@ -25,7 +25,7 @@ internal static partial class ThumbnailLogMessage
     /// <remarks>LogLevel: Information<br/>出力書式: <c>[Thumbnail] Presenter created</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix} Presenter created")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Presenter created")]
     private static partial void LogPresenterCreatedCore(this ILogger logger, string prefix);
 
     /// <summary>提示層の生成を記録する。</summary>
@@ -38,7 +38,7 @@ internal static partial class ThumbnailLogMessage
     /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Thumbnail] Logger attached</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} Logger attached")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Logger attached")]
     private static partial void LogLoggerAttachedCore(this ILogger logger, string prefix);
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
@@ -54,7 +54,7 @@ internal static partial class ThumbnailLogMessage
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Setting: {Name} {OldValue} → {NewValue}")]
     private static partial void LogSettingChangedCore(
         this ILogger logger, string prefix, string name, string oldValue, string newValue);
 

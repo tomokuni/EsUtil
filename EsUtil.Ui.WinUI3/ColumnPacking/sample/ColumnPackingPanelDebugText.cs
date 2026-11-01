@@ -72,6 +72,44 @@ public partial class ColumnPackingPanelDebugText : ColumnPackingPanel
     /// <summary>デバッグ表示の内容を最新のレイアウト結果で更新する。</summary>
     public void UpdateDebugInfo() => _debugText.Text = GetDebugText();
 
+    /// <summary>レイアウト結果を 1 行ずつに分けて返す（ログへ 1 行 = 1 メッセージで出すため）。</summary>
+    /// <returns>行の並び。</returns>
+    /// <remarks>
+    /// 1 つの文字列へ改行を入れて渡すと、ログの 1 行が複数行になり、1 行だけのコピーや絞り込みができない。<br/>
+    /// 表示（<see cref="GetDebugText"/>）は複数行のまま、ログは本メソッドの行を使う。
+    /// </remarks>
+    public IReadOnlyList<string> GetDebugLines()
+    {
+        var lines = new List<string>
+        {
+            string.Create(CultureInfo.InvariantCulture, $"このコントロール: {GetType().Name}"),
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"内側の大きさ（概算）: ({this.GetInnerSize().Format()}) / Margin: ({Margin.Format()}) / Size: ({new Size(Width, Height).Format()}) / ActualSize: ({new Size(ActualWidth, ActualHeight).Format()}) / Padding: ({this.GetPadding().Format()})"),
+        };
+
+        if (LayoutMinHeight is { } minHeight)
+        {
+            lines.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"レイアウト結果: MinHeight={minHeight:F1} UsedWidth={LayoutUsedWidth:F1} 列数={LayoutColumnCount} ColumnSegments={LayoutColumnSegments}"));
+        }
+        else
+        {
+            lines.Add("レイアウト結果: まだ確定していません。");
+        }
+
+        // 項目ごとの配置（Y 座標）は公開プロパティに無いため、派生クラスだけが読める Layout から取得する
+        if (Layout?.GetLastItemLayouts() is { Count: > 0 } items)
+        {
+            lines.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"項目の位置: Y=[{string.Join(", ", items.Select(static item => item.Y.ToString("F1", CultureInfo.InvariantCulture)))}]"));
+        }
+
+        return lines;
+    }
+
     /// <summary>レイアウト結果を含むデバッグ表示の文言を組み立てる。</summary>
     /// <returns>デバッグ表示の文言。</returns>
     public string GetDebugText()

@@ -232,9 +232,9 @@ public sealed class MainWindow : Window
 
         return;
 
-        // ハイライトの対象を切り替える
+        // 検出結果など、ホストが外から与える注目矩形を模す（利用者のドラッグとは独立に「ここを見せたい」を提示できる）。
         // ハイライトは「注目矩形」を上書きする（外側マスク・枠線・サイズ ラベルがハイライトへ移る）。
-        // ハンドルは選択矩形に付くため、選択が無い場合は同じ矩形を選択にも設定して見た目を揃える。
+        // ハンドルは選択矩形に付くため、同じ矩形を選択にも設定して枠とハンドルを一致させる。
         void ToggleHighlight()
         {
             if (_marquee.HighlightSourceRect is not null)
@@ -244,14 +244,10 @@ public sealed class MainWindow : Window
                 return;
             }
 
-            var target = _marquee.HasSelection ? _marquee.SelectionSourceRect : new EsRect(120, 120, 400, 300);
-            if (!_marquee.HasSelection)
-            {
-                _marquee.SetSelection(target);
-            }
-
-            _marquee.HighlightSourceRect = target;
-            Write($"ハイライト設定: {FormatRect(target)}（注目矩形はハイライトを優先する）");
+            var detected = new EsRect(420, 140, 300, 200);
+            _marquee.SetSelection(detected);
+            _marquee.HighlightSourceRect = detected;
+            Write($"検出結果をハイライト: {FormatRect(detected)}（注目矩形はハイライトを優先する）");
         }
 
         // 外観を更新してコントロールへ反映する

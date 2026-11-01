@@ -236,9 +236,9 @@ public sealed class MainWindow : Window
 
         return;
 
-        // ハイライトの対象を切り替える
+        // 検出結果など、ホストが外から与える注目矩形を模す（利用者のドラッグとは独立に「ここを見せたい」を提示できる）。
         // ハイライトは「注目矩形」を上書きする（外側マスク・枠線・サイズ ラベルがハイライトへ移る）。
-        // ハンドルは選択矩形に付くため、選択が無い場合は同じ矩形を選択にも設定して見た目を揃える。
+        // ハンドルは選択矩形に付くため、同じ矩形を選択にも設定して枠とハンドルを一致させる。
         void ToggleHighlight()
         {
             if (_marquee.HighlightSourceRect is not null)
@@ -248,16 +248,12 @@ public sealed class MainWindow : Window
                 return;
             }
 
-            var target = _marquee.HasSelection ? _marquee.SelectionSourceRect : new EsRect(120, 120, 400, 300);
-            if (!_marquee.HasSelection)
-            {
-                _marquee.SetSelection(new Rect(target.X, target.Y, target.Width, target.Height));
-            }
-
-            _marquee.HighlightSourceRect = target;
+            var detected = new EsRect(420, 140, 300, 200);
+            _marquee.SetSelection(new Rect(detected.X, detected.Y, detected.Width, detected.Height));
+            _marquee.HighlightSourceRect = detected;
             Write(string.Create(
                 CultureInfo.InvariantCulture,
-                $"ハイライト設定: ({target.X:0.#}, {target.Y:0.#}) {target.Width:0.#}x{target.Height:0.#}（注目矩形はハイライトを優先する）"));
+                $"検出結果をハイライト: ({detected.X:0.#}, {detected.Y:0.#}) {detected.Width:0.#}x{detected.Height:0.#}（注目矩形はハイライトを優先する）"));
         }
 
         // 外観を更新してコントロールへ反映する

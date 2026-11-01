@@ -27,7 +27,7 @@ internal static partial class ThumbnailLogMessage
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Setting: {Name} {OldValue} → {NewValue}")]
     private static partial void LogSettingChangedCore(
         this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
@@ -38,7 +38,7 @@ internal static partial class ThumbnailLogMessage
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Setting: {Name} {OldValue} → {NewValue}")]
     private static partial void LogSettingChangedTraceCore(
         this ILogger logger, string prefix, string name, string oldValue, string newValue);
 

@@ -41,6 +41,30 @@ public abstract class DualSourceItemsPanel : Panel
     /// <summary>ItemsSource と直接の子を管理する（派生クラスから使う）。</summary>
     protected DualSourceItemsManager ItemsManager { get; } = new();
 
+    /// <summary><see cref="SetItems"/> で渡された項目（null は未設定）。</summary>
+    /// <remarks>
+    /// <b>依存関係プロパティを使わない経路</b>である: WinUI 3 の <c>DependencyProperty</c> は値を WinRT へ渡すため、<br/>
+    /// Native AOT では managed コレクションを保持できず <c>E_INVALIDARG</c> で落ちる（実測 2026-10-24。<c>ビルド設定規約</c> §6.1）。<br/>
+    /// 本フィールドは managed のまま保持するため、AOT でも安全にデータ駆動の子を並べられる。
+    /// </remarks>
+    private IReadOnlyList<object?>? _items;
+
+    /// <summary>データから作る子の元になる項目を設定する（Native AOT でも使える入口）。</summary>
+    /// <param name="items">項目の並び。 null を指定すると <see cref="ItemsSource"/> 経由へ戻す。</param>
+    /// <remarks>
+    /// <b>XAML のバインディングが要らない場合はこちらを使う</b>: <see cref="ItemsSource"/> は依存関係プロパティのため、<br/>
+    /// Native AOT では managed コレクションを渡せない。 本メソッドは managed のリストをそのまま保持する。<br/>
+    /// 要素の生成には <see cref="ItemTemplate"/> を使う（設定順序は問わない）。 呼ぶと子を再構築する<br/>
+    /// （直接の子は初回に保存され、以後 <see cref="ItemsSourceFirst"/> の順序で並ぶ）。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="items"/> の要素がすべて null ではない場合も含め、例外にはならない。</exception>
+    public void SetItems(IEnumerable<object?>? items)
+    {
+        _items = items is null ? null : [.. items];
+        RebuildItems();
+        InvalidateMeasure();
+    }
+
     /// <summary><b>コンストラクター</b></summary>
     protected DualSourceItemsPanel()
     {
@@ -217,9 +241,21 @@ public abstract class DualSourceItemsPanel : Panel
         RebuildItems();
     }
 
-    /// <summary><b>アイテムを再構築します</b></summary>
+    /// <summary>項目を再構築します</summary>
+    /// <remarks>
+    /// <see cref="SetItems"/> で渡された項目がある場合はそちらを使います（AOT でも動く経路）。<br/>
+    /// 無い場合は <c>ItemsSource</c>（依存関係プロパティ）から作ります。
+    /// </remarks>
     protected void RebuildItems()
     {
+        if (_items is { } items)
+        {
+            // 依存関係プロパティを経由せず、managed のリストから要素を作る（Native AOT でも安全）
+            ItemsManager.SaveDirectChildItems(Children);
+            ItemsManager.RebuildChildren(Children, DualSourceItemsManager.GenerateElements(items, ItemTemplate));
+            return;
+        }
+
         // ItemsSource から要素を生成し、直接子要素を結合して子要素を再構築
         ItemsManager.RebuildChildren(Children, ItemsSource, ItemTemplate);
     }

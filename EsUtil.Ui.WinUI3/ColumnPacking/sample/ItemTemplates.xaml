@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    x:Class="EsUtil.Ui.WinUI3.ColumnPacking.Sample.ItemTemplates"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sample="using:EsUtil.Ui.WinUI3.ColumnPacking.Sample">
+
+    <!-- ItemsSource から子を作るときの見た目（データ駆動の子は青、直接の子は橙）。
+         DataContext を外から設定するため、x:Bind ではなく Binding を使う（x:Bind は DataTemplate を ItemsControl が適用する前提） -->
+    <DataTemplate x:Key="SampleItemTemplate" x:DataType="sample:SampleItem">
+        <Border
+            Height="{Binding Height}"
+            Background="#FFE8F0FE"
+            BorderBrush="#FF1E88E5"
+            BorderThickness="1"
+            CornerRadius="4">
+            <TextBlock
+                Margin="8,4,8,4"
+                VerticalAlignment="Center"
+                Text="{Binding Label}" />
+        </Border>
+    </DataTemplate>
+</ResourceDictionary>

@@ -17,9 +17,9 @@
 
 | 示すこと | 内容 |
 | --- | --- |
-| 2 種類の子 | データから作った子（`ItemsSource` は Native AOT で使えないため直接の子として並べる）と、固定の子を同時に並べる |
+| 2 種類の子 | データから作った子（`SetItems` + `ItemTemplate`。 Native AOT でも動く）と、固定の子を同時に並べる |
 | 配置の制御 | 列の上限・行間・列間・項目数をスライダーで変える |
-| 順序の制御 | `ItemsSourceFirst`は**`ItemsSource` と直接の子の間**の並び順を変えるため、`ItemsSource` を使わない本サンプルでは効きません（設定パネルにも置きません） |
+| 順序の制御 | 「直接の子を後ろに置く」（`ItemsSourceFirst`）で、データの子と固定の子の並び順が入れ替わる |
 | 結果の公開 | レイアウト結果（使用幅・最大列高さ・列数・列の区切り）をデバッグ表示で読む |
 | 派生 | `ColumnPackingPanelDebugText`（パネルを継承し、結果を画面へ重ねる） |
 
@@ -44,6 +44,7 @@ dotnet run --project EsUtil.Ui.WinUI3/ColumnPacking/sample/EsUtil.Ui.WinUI3.Colu
 | 「列の上限」を動かす | 列数の上限が変わり、最大列高さが変わる |
 | 「行間」「列間」を動かす | 子の間隔が変わる |
 | 「アイテム数」を動かす | 項目の件数が変わり、子が作り直される |
+| 「直接の子を後ろに置く」を切り替える | データの要素と固定の子の並び順が入れ替わる |
 | 「デバッグ表示」を入れる | パネルの左上にレイアウト結果が重なって表示される |
 
 ## 4. 検証項目（動作確認チェックリスト）
@@ -51,6 +52,7 @@ dotnet run --project EsUtil.Ui.WinUI3/ColumnPacking/sample/EsUtil.Ui.WinUI3.Colu
 - [ ] 起動直後に、データの項目（青い枠）と直接の子（オレンジの枠）が同じパネルに並ぶ。
 - [ ] 「列の上限」を 1 にすると 1 列になる。
 - [ ] 「アイテム数」を増やすと列数が増え、最大列高さが小さくなる（幅の上限に収まる範囲で）。
+- [ ] 「直接の子を後ろに置く」を外すと、オレンジの枠（直接の子）が先頭へ移る。
 - [ ] 「デバッグ表示」を入れると、`MinHeight` / `UsedWidth` / 列数 / 列の区切りが表示される。
 - [ ] ウィンドウを狭くすると列数が減り、1 列に近づく。
 
@@ -60,7 +62,9 @@ dotnet run --project EsUtil.Ui.WinUI3/ColumnPacking/sample/EsUtil.Ui.WinUI3.Colu
 sample/
 ├── App.xaml / App.xaml.cs                  アプリケーションの入口
 ├── MainWindow.cs                           サンプルの画面（設定パネル・パネル・ログ）
-├── SampleItem.cs                           一覧に並べる項目
+├── SampleItem.cs                           一覧に並べる項目（`[Bindable]`）
+├── ItemTemplates.xaml                      データから作る子の DataTemplate
+├── ItemTemplates.xaml.cs                   そのコードビハインド（`{Binding}` を使うため中身は初期化のみ）
 ├── Helper.cs                               デバッグ表示を祖先のパネルへ取り付ける補助
 ├── FrameworkElementExtensions.cs           内側の大きさ・余白の表示用の書式
 ├── ColumnPackingPanelDebugText.cs          パネルを継承したデバッグ表示
@@ -73,7 +77,9 @@ sample/
 2. **アイテム数**を 30 程度に増やすと、列が増えて高さが揃います。
 3. **デバッグ表示**を入れると、`MinHeight` が「最大列高さ」であることが読めます。
 
-**`ItemsSourceFirst` について**: この設定は `ItemsSource` から作った要素と直接の子の**間**の並び順を変えるため、`ItemsSource` を使わない本サンプルでは効果を持ちません（Native AOT では `ItemsSource` へ管理コレクションを渡せないため、本サンプルは直接の子だけで並べています）。
+**AOT でも動くデータ駆動**: Native AOT では `ItemsSource`（依存関係プロパティ）に管理コレクションを渡せません（`E_INVALIDARG`。 [`.github/ビルド設定規約.md`](../../../.github/ビルド設定規約.md) §6.1）。 本サンプルは `SetItems`（managed のリストをそのまま渡す入口）でデータを渡し、要素は `ItemTemplate` から作ります。
+
+**初期化の順序**: `ItemTemplate` → 直接の子の追加 → `SetItems`。 `ItemTemplate` を設定するとその時点で子が再構築されるため、直接の子はその後で足します。
 
 ## 7. 拡張例（派生クラス）
 

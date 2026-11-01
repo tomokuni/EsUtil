@@ -98,7 +98,6 @@ EsUtil.Ui.AvaloniaUI/Loupe/sample/
 ├── app.manifest                 # Windows DPI 設定（PerMonitorV2）
 ├── Program.cs                   # エントリポイント
 ├── App.axaml / App.axaml.cs     # アプリケーション定義（FluentTheme）
-│   └── DebugLogger.cs           # LoupeControl.Log の設定例（デバッグ出力へ転送）
 ├── Imaging/
 │   └── TestImageFactory.cs      # テスト画像生成（グラデーション＋グリッド＋マーカー）
 ├── Internal/                    # Platform.* を使わないための複製（internal。 依存関係.md §4.1）

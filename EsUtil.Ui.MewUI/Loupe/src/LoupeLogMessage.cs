@@ -26,7 +26,7 @@ internal static partial class LoupeLogMessage
     /// <param name="exception">発生した例外。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix} {Operation} で例外が発生")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} {Operation} で例外が発生")]
     private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>
@@ -66,7 +66,7 @@ internal static partial class LoupeLogMessage
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Setting: {Name} {OldValue} → {NewValue}")]
     private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     /// <summary>設定変更のログ（整形済みの値を渡す）。</summary>
@@ -85,7 +85,7 @@ internal static partial class LoupeLogMessage
     /// LogLevel: Error<br/>出力書式: <c>[Loupe] Update exception</c>（例外スタックトレース付き）<br/>
     /// 例外の記録は描画を実行する UI が行う（コアは描画 API を持たず例外を検知しない）。
     /// </remarks>
-    [LoggerMessage(LogLevel.Error, "{Prefix} Update exception")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} Update exception")]
     private static partial void LogUpdateErrorCore(this ILogger logger, string prefix, Exception exception);
 
     public static void LogUpdateError(this ILogger logger, Exception exception)

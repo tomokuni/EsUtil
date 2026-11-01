@@ -37,7 +37,7 @@ internal static partial class MarqueeLogMessage
     /// <param name="exception">発生した例外。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix} {Operation} で例外が発生")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} {Operation} で例外が発生")]
     private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>
@@ -55,7 +55,7 @@ internal static partial class MarqueeLogMessage
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix} Presenter created")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Presenter created")]
     private static partial void LogPresenterCreatedCore(this ILogger logger, string prefix);
 
     internal static void LogPresenterCreated(this ILogger logger)
@@ -68,7 +68,7 @@ internal static partial class MarqueeLogMessage
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} Logger attached")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Logger attached")]
     private static partial void LogLoggerAttachedCore(this ILogger logger, string prefix);
 
     internal static void LogLoggerAttached(this ILogger logger)
@@ -84,7 +84,7 @@ internal static partial class MarqueeLogMessage
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">値の名前（項目名）。</param>
     /// <param name="value">整形済みの値。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} Forwarded: {Name} {Value}")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Forwarded: {Name} {Value}")]
     private static partial void LogForwardedCore(this ILogger logger, string prefix, string name, string value);
 
     internal static void LogForwarded(this ILogger logger, string name, string value)
@@ -129,7 +129,7 @@ internal static partial class MarqueeLogMessage
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Setting: {Name} {OldValue} → {NewValue}")]
     private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     internal static void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue)

@@ -24,7 +24,7 @@ internal static partial class ThumbnailLogMessage
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="oldValue">変更前の添字（選択が無い場合は -1）。</param>
     /// <param name="newValue">変更後の添字（選択が無い場合は -1）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Selection: {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Selection: {OldValue} → {NewValue}")]
     private static partial void LogSelectionChangedCore(this ILogger logger, string prefix, int oldValue, int newValue);
 
     /// <summary>選択の変更を記録する（同値の再設定では出力しない）。</summary>

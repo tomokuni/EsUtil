@@ -24,7 +24,7 @@ internal static partial class LogMessage
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値。</param>
     /// <param name="newValue">変更後の値。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Setting: {Name} {OldValue} → {NewValue}")]
     private static partial void LogSettingChangedCore(
         this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
@@ -48,7 +48,7 @@ internal static partial class LogMessage
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="color">現在の選択色。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} OpenList: color={Color}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} OpenList: color={Color}")]
     private static partial void LogOpenListCore(this ILogger logger, string prefix, string color);
 
     /// <summary>一覧のポップアップを開いたことを記録する（接頭辞を付ける）。</summary>
@@ -63,7 +63,7 @@ internal static partial class LogMessage
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="color">現在の色。</param>
     /// <param name="valid">色が有効かどうか。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} LostFocus: color={Color} valid={Valid}")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} LostFocus: color={Color} valid={Valid}")]
     private static partial void LogLostFocusCore(this ILogger logger, string prefix, string color, bool valid);
 
     /// <summary>フォーカス喪失時の入力を記録する（接頭辞を付ける）。</summary>

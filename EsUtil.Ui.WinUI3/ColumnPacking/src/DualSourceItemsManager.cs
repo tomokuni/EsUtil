@@ -71,6 +71,17 @@ public class DualSourceItemsManager
         }
     }
 
+    /// <summary>項目の並びから要素を生成する（Native AOT でも使える経路）。</summary>
+    /// <param name="items">項目の並び。 null の場合は空。</param>
+    /// <param name="itemTemplate">要素のテンプレート。 null の場合は空。</param>
+    /// <returns>生成した要素。</returns>
+    /// <remarks>
+    /// <see cref="GenerateItemsSourceElements"/> と同じ規則（<c>DataContext</c> に項目を写す）を、<br/>
+    /// WinRT の境界を通さずに適用する（<c>DualSourceItemsPanel.SetItems</c> から使う）。
+    /// </remarks>
+    public static IReadOnlyList<FrameworkElement> GenerateElements(IEnumerable<object?>? items, DataTemplate? itemTemplate)
+        => items is null ? [] : GenerateItemsSourceElements(items, itemTemplate);
+
     /// <summary><b>ItemsSource から要素を生成します</b></summary>
     /// <remarks>
     /// 【処理】<br/>

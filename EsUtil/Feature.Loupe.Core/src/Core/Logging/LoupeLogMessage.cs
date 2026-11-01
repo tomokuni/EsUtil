@@ -40,7 +40,7 @@ internal static partial class LoupeLogMessage
     /// <param name="exception">発生した例外。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix} {Operation} で例外が発生")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} {Operation} で例外が発生")]
     private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>
@@ -63,7 +63,7 @@ internal static partial class LoupeLogMessage
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="requestedSize">生成時の要求サイズ（DIP）。</param>
     /// <param name="zoomLevel">生成時の拡大率。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix} Facade created: RequestedSize={RequestedSize}, ZoomLevel={ZoomLevel}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Facade created: RequestedSize={RequestedSize}, ZoomLevel={ZoomLevel}")]
     private static partial void LogFacadeCreatedCore(this ILogger logger, string prefix, int requestedSize, int zoomLevel);
 
     /// <summary>ファサードの生成（生成時の設定）を記録する。</summary>
@@ -80,7 +80,7 @@ internal static partial class LoupeLogMessage
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Logger attached")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Logger attached")]
     private static partial void LogLoggerAttachedCore(this ILogger logger, string prefix);
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
@@ -94,7 +94,7 @@ internal static partial class LoupeLogMessage
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Setting: {Name} {OldValue} → {NewValue}")]
     private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     /// <summary>設定値変更のログ（変更前後。 整形済みの値を渡す）。</summary>
@@ -117,7 +117,7 @@ internal static partial class LoupeLogMessage
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Setting: {Name} {OldValue} → {NewValue}")]
     private static partial void LogSettingChangedTraceCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     /// <summary>頻度の高い設定値変更のログ（変更前後。 最も低いレベルで出力する）。</summary>
