@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>EsUtil.Ui.MewUI.Marquee.Sample</RootNamespace>
     <!-- MewUI は API が安定化中（0.x）。 破壊的変更を避けるためバージョンを固定する。 -->
-    <MewUIVersion>0.21.1</MewUIVersion>
+    <MewUIVersion>0.22.1</MewUIVersion>
   </PropertyGroup>
 
   <ItemGroup>

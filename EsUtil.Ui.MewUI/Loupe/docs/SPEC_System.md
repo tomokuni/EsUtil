@@ -33,7 +33,7 @@
 | --- | --- |
 | 対象フレームワーク | .NET 10（`net10.0`） |
 | 言語 | C# 14 |
-| UI フレームワーク | MewUI（`Aprillz.MewUI.Core` **0.21.1 固定**） |
+| UI フレームワーク | MewUI（`Aprillz.MewUI.Core` **0.22.1 固定**） |
 | 描画 | MewUI の標準描画（描画実装 `LoupePainter` が `IGraphicsContext` へ描く） |
 | 基底コントロール | `Aprillz.MewUI.Controls.Panel`（図形は子の `描画の層` が描画する） |
 | プロパティシステム | `MewProperty<T>`（`MewPropertyOptions.AffectsRender` / `AffectsLayout`） |

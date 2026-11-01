@@ -35,7 +35,7 @@ nudge セッション・ダブルクリックの確定/キャンセル・ハン�
 | --- | --- |
 | 対象フレームワーク | .NET 10（`net10.0`） |
 | 言語 | C# 14 |
-| UI フレームワーク | MewUI（`Aprillz.MewUI.Core` **0.21.1 固定**） |
+| UI フレームワーク | MewUI（`Aprillz.MewUI.Core` **0.22.1 固定**） |
 | 描画 | MewUI の標準描画（本プロジェクトが自 UI の描画 API で描画計画を写す。 描画の部品は `Internal/` の複製） |
 | 基底コントロール | `Aprillz.MewUI.Core.Controls.描画の層` |
 | プロパティシステム | `MewProperty<T>`（`MewPropertyOptions.AffectsRender`） |

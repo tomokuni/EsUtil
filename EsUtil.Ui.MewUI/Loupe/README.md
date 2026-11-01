@@ -58,7 +58,7 @@
 | --- | --- |
 | 対象フレームワーク | `net10.0` |
 | 対応 OS | 指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**（UI フレームワークの対応 OS に従う。 参照する `EsUtil.Platform.Core` には Windows 専用の型が含まれる） |
-| UI フレームワーク | MewUI 0.21.1（`MewUIVersion` プロパティで固定） |
+| UI フレームワーク | MewUI 0.22.1（`MewUIVersion` プロパティで固定） |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測） |
 
@@ -70,7 +70,7 @@
 <ProjectReference Include="..\EsUtil.Ui.MewUI\Loupe\src\EsUtil.Ui.MewUI.Loupe.csproj" />
 ```
 
-パッケージは `Aprillz.MewUI.Core` を参照します（バージョンは `MewUIVersion` プロパティで 0.21.1 に固定）。
+パッケージは `Aprillz.MewUI.Core` を参照します（バージョンは `MewUIVersion` プロパティで 0.22.1 に固定）。
 
 ---
 
@@ -194,7 +194,7 @@ EsUtil.Ui.MewUI/Loupe/
 ├── docs/                    # SPEC_API.md（API リファレンス）/ SPEC_System.md（システム仕様書）
 ├── sample/                  # 独立サンプルアプリ（sample/README.md 参照）
 ├── src/
-│   ├── EsUtil.Ui.MewUI.Loupe.csproj   # net10.0 / MewUI 0.21.1 固定
+│   ├── EsUtil.Ui.MewUI.Loupe.csproj   # net10.0 / MewUI 0.22.1 固定
 │   ├── LoupeControl.cs             # Panel 派生のコントロール（描画は LoupePainter へ委譲する）
 │   ├── LoupeRenderedEventArgs.cs   # 描画完了の通知（キャンバスと表示情報）
 │   ├── LoupePainter.cs             # 描画計画（LoupeDrawPlan）を IGraphicsContext へ写す描画実装

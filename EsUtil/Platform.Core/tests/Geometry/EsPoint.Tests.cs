@@ -77,10 +77,19 @@ public class EsPointTests
     [InlineData(0, 0, true)]
     [InlineData(0, 1, false)]
     [InlineData(1, 0, false)]
-    [InlineData(-0.0, 0, true)]
     internal void IsEmpty_XとYがともに0の場合のみ真(double x, double y, bool expected)
     {
         Assert.Equal(expected, new EsPoint(x, y).IsEmpty);
+    }
+
+    [Fact]
+    internal void IsEmpty_負のゼロも空として扱う()
+    {
+        var point = new EsPoint(-0.0, 0);
+
+        // 値が本当に負のゼロであることを確かめてから判定する（0 と同じ値であることを前提にしない）
+        Assert.True(double.IsNegative(point.X));
+        Assert.True(point.IsEmpty);
     }
 
     // ====================================================================

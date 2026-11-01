@@ -37,16 +37,16 @@
 
   <ItemGroup Label="MewUI">
     <!-- API が安定化中（0.x）のため、版は固定して手動で更新する（Dependabot の ignore も同じ理由） -->
-    <PackageVersion Include="Aprillz.MewUI.Core" Version="0.21.1" />
-    <PackageVersion Include="Aprillz.MewUI.Backend.Gdi" Version="0.21.1" />
-    <PackageVersion Include="Aprillz.MewUI.Windows" Version="0.21.1" />
+    <PackageVersion Include="Aprillz.MewUI.Core" Version="0.22.1" />
+    <PackageVersion Include="Aprillz.MewUI.Backend.Gdi" Version="0.22.1" />
+    <PackageVersion Include="Aprillz.MewUI.Windows" Version="0.22.1" />
   </ItemGroup>
 
   <ItemGroup Label="WinUI 3（Windows App SDK）">
     <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.6.4" />
     <!-- CsWin32 が wincodec.h などから P/Invoke の宣言を生成する（ビルド時だけ使う） -->
     <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.367" />
-    <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
+    <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2957" />
   </ItemGroup>
 
   <ItemGroup Label="MVVM">
@@ -71,7 +71,7 @@
     <PackageVersion Include="Microsoft.NET.ILLink.Tasks" Version="10.0.14" />
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.12.1" />
-    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.317" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.318" />
   </ItemGroup>
 
 </Project>

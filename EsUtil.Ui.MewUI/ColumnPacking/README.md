@@ -59,7 +59,7 @@ flowchart LR
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0` |
-| UI フレームワーク | MewUI 0.21.1（パッケージ参照 `Aprillz.MewUI.Core`） |
+| UI フレームワーク | MewUI 0.22.1（パッケージ参照 `Aprillz.MewUI.Core`） |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（解析警告 0 件をビルドで検査する） |
 

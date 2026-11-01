@@ -17,7 +17,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0` |
-| UI フレームワーク | MewUI 0.21.1 |
+| UI フレームワーク | MewUI 0.22.1 |
 | 色名と色文字列 | `EsUtil.Platform.Core` の `Palette`（`ColorNames` / `ColorString` / `ColorValidation` / `ColorEntry` / `ColorSortMode` / `ColorTextFormat`） |
 
 ## 2. 公開 API

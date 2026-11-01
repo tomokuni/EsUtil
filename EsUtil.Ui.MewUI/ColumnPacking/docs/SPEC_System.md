@@ -26,7 +26,7 @@ MewUI のパネルとして、複数列の配置を要素へ反映する層の�
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0` |
-| UI フレームワーク | MewUI 0.21.1 |
+| UI フレームワーク | MewUI 0.22.1 |
 | 配置の計算 | `EsUtil.Feature.ColumnPacking.Core`（プロジェクト参照） |
 | テスト | xUnit v3（`tests/`）。 画面のランタイムを要する部分はサンプルで確認する |
 | Native AOT | `IsAotCompatible=true`（解析警告 0 件をビルドで検査） |

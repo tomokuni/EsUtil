@@ -4,9 +4,9 @@
     "net10.0-windows10.0.22621": {
       "Meziantou.Analyzer": {
         "type": "Direct",
-        "requested": "[3.0.317, )",
-        "resolved": "3.0.317",
-        "contentHash": "IC9fCjxniZol2dcdj+hiXjK01a8gBWQproGL/qWjBI7CgB5GeEOD5oGV0PwpQaSr7Aa/RPaM8Ddho3Y1OAZe1Q=="
+        "requested": "[3.0.318, )",
+        "resolved": "3.0.318",
+        "contentHash": "H3nJiK34glwVICWp6EnhQLgftwXvIIMwVFbafG5CXVlnFqXfNN5PToDdNmw7bFzEXfMHE6zwAT8Am89c9W8ThQ=="
       },
       "Microsoft.CodeAnalysis.BannedApiAnalyzers": {
         "type": "Direct",
@@ -191,7 +191,7 @@
         "type": "Project",
         "dependencies": {
           "EsUtil.Platform.Core": "[0.2.0, )",
-          "Microsoft.Windows.SDK.BuildTools": "[10.0.28000.2705, )",
+          "Microsoft.Windows.SDK.BuildTools": "[10.0.28000.2957, )",
           "Microsoft.WindowsAppSDK": "[2.6.4, )"
         }
       },
@@ -211,7 +211,7 @@
           "EsUtil.Platform.Core": "[0.2.0, )",
           "EsUtil.Ui.WinUI3.Interop": "[0.2.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )",
-          "Microsoft.Windows.SDK.BuildTools": "[10.0.28000.2705, )",
+          "Microsoft.Windows.SDK.BuildTools": "[10.0.28000.2957, )",
           "Microsoft.WindowsAppSDK": "[2.6.4, )"
         }
       },
@@ -228,9 +228,9 @@
       },
       "Microsoft.Windows.SDK.BuildTools": {
         "type": "CentralTransitive",
-        "requested": "[10.0.28000.2705, )",
-        "resolved": "10.0.28000.2705",
-        "contentHash": "TZQ96xtu7+fyFsyJCgj6Hazru0H8G1kiE1CeZLGpsqT4xKQmkxWu9yRuxYLeHJECjqEHN7duZUTcdbt8zlQ8OQ=="
+        "requested": "[10.0.28000.2957, )",
+        "resolved": "10.0.28000.2957",
+        "contentHash": "nTsRheC9AO+if3BykWkRJ4QXkIMfkqufnBFPIcSEOj7rnX60fqiGrORnxzVFnIXJvsMIjlDOvs/K5EzMLA2RKQ=="
       },
       "Microsoft.WindowsAppSDK": {
         "type": "CentralTransitive",

@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- MewUI は API が安定化中（0.x）。破壊的変更を避けるためバージョンを固定する。 -->
-    <MewUIVersion>0.21.1</MewUIVersion>
+    <MewUIVersion>0.22.1</MewUIVersion>
     <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する）。 -->
     <IsAotCompatible>true</IsAotCompatible>
     <Description>縦方向のマルチカラム配置を行う MewUI のパネル（最大列高さを最小化するレイアウト計算は EsUtil.Feature.ColumnPacking.Core が単一所有する）。</Description>

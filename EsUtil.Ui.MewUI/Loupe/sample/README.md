@@ -93,7 +93,7 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 
 ```text
 EsUtil.Ui.MewUI/Loupe/sample/
-├── EsUtil.Ui.MewUI.Loupe.Sample.csproj  # サンプルアプリのプロジェクト（net10.0-windows10.0.17763.0 / MewUI 0.21.1）
+├── EsUtil.Ui.MewUI.Loupe.Sample.csproj  # サンプルアプリのプロジェクト（net10.0-windows10.0.17763.0 / MewUI 0.22.1）
 ├── RunSample.bat                # リリースビルド＆起動
 ├── Program.cs                   # エントリポイント（バックエンドとプラットフォーム ホストの登録）
 ├── Imaging/

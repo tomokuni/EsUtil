@@ -58,7 +58,7 @@
 | --- | --- |
 | 対象フレームワーク | `net10.0` |
 | 対応 OS | **引数なしコンストラクター**（`WinCursorService` を使う既定構成）は Windows 10 バージョン 1809（ビルド 17763）以降。 他 OS では `ICursorService` を渡すコンストラクターを使う |
-| UI フレームワーク | MewUI 0.21.1（`MewUIVersion` プロパティで固定） |
+| UI フレームワーク | MewUI 0.22.1（`MewUIVersion` プロパティで固定） |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測） |
 
@@ -67,7 +67,7 @@
 ## 4. インストール
 
 ```xml
-<PackageReference Include="Aprillz.MewUI.Core" Version="0.21.1" />
+<PackageReference Include="Aprillz.MewUI.Core" Version="0.22.1" />
 <ProjectReference Include="..\EsUtil.Ui.MewUI\Marquee\src\EsUtil.Ui.MewUI.Marquee.csproj" />
 ```
 

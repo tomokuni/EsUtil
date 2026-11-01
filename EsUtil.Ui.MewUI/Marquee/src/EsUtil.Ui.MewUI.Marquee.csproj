@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- MewUI は API が安定化中（0.x）。破壊的変更を避けるためバージョンを固定する。 -->
-    <MewUIVersion>0.21.1</MewUIVersion>
+    <MewUIVersion>0.22.1</MewUIVersion>
     <!-- カーソル操作の既定実装（Win32）は Windows 専用だが、このライブラリ自体は可搬（net10.0）。
          Native AOT の解析（トリム/AOT 警告）は有効にする。 -->
     <IsAotCompatible>true</IsAotCompatible>

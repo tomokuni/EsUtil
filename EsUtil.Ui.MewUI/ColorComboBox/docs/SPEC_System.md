@@ -20,7 +20,7 @@ MewUI の要素だけで色選択の UI を組み立て、**色名・色文字�
 | 項目 | 内容 |
 | --- | --- |
 | 言語 | C# 14（.NET 10） |
-| UI | MewUI 0.21.1（`Grid` / `Border` / `TextBox` / `Button` / `ListBox` / `Popup` / `ColorPicker`） |
+| UI | MewUI 0.22.1（`Grid` / `Border` / `TextBox` / `Button` / `ListBox` / `Popup` / `ColorPicker`） |
 | ログ | `Microsoft.Extensions.Logging.Abstractions`（`LoggerMessage` ソース生成） |
 | 色の規則 | `EsUtil.Platform.Core` の `Palette` |
 
