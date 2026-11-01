@@ -411,6 +411,10 @@ public sealed class LoupeControl : Control
         }
 
         var plan = ResolveCurrentPlan();
+        // 割り当て（DIP）と面（物理ピクセル）の対応を、他 UI と同じ書式で 1 行だけ残す
+        var dipSize = DpiScaler.ToDip(
+            new EsSize(ClientSize.Width, ClientSize.Height), plan.ClientToPixelScaling);
+        Log.LogGeometry(dipSize.Width, dipSize.Height, plan.ClientPixelSize, plan.ClientToPixelScaling);
         try
         {
             // 描画の手順（層の順序と描画 API への写し）は LoupeGraphicsPainter が単一所有する

@@ -264,7 +264,7 @@ internal static class MainWindow
 
             var detected = new EsRect(420, 140, 300, 200);
             marquee.HighlightSourceRect = detected;
-            WriteLog($"ハイライト（表示専用の注目）: {FormatRect(detected)} / 選択は {FormatRect(marquee.SelectionSourceRect)} のまま（ハンドルは操作できる）");
+            WriteLog($"ハイライト（表示専用の注目）: {FormatRect(detected)} / 選択は {FormatRect(marquee.SelectionSourceRect)} のまま（ハイライト中は操作できない）");
         }
     }
 

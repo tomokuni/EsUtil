@@ -1,64 +1,98 @@
-using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 
 namespace EsUtil.Ui.WinForms.Marquee.Sample.Imaging;
 
-/// <summary>サンプルで下地として表示する検証用の画像を作る。</summary>
+/// <summary>選択対象（背景）の動作確認用テスト画像を生成する。</summary>
 /// <remarks>
-/// 選択オーバーレイを重ねる対象（画像）を用意するために使う。<br/>
-/// 単色ではなく格子と目印を描くのは、選択矩形の位置ずれ（DPI の換算誤り）を目で見つけられるようにするためである。
+/// <b>4 UI で同じ画素にする</b>: 画像の生成コードは UI 層ごとに書き分けない（同じ画素・同じ位置のマーカー・同じグリッド）。<br/>
+/// 左上から右下へのグラデーションを背景とし、10px グリッド（拡大ピクセル検証用）・50px グリッド（倍率計測用）・<br/>
+/// 色付き円マーカー（ズーム確認用）を描画する。 選択枠・暗転・ラベルはコントロール側が描画する。
 /// </remarks>
 internal static class TestImageFactory
 {
-    /// <summary>格子線の間隔（画素）。</summary>
-    private const int GridStep = 100;
-
-    /// <summary>検証用の画像を作る。</summary>
-    /// <param name="width">幅（画素）。</param>
-    /// <param name="height">高さ（画素）。</param>
-    /// <returns>下地として使う画像。</returns>
+    /// <summary>グラデーション＋グリッド＋マーカー付きのテスト画像を生成する。</summary>
+    /// <param name="width">画像の幅（ピクセル）。</param>
+    /// <param name="height">画像の高さ（ピクセル）。</param>
+    /// <returns>生成した画像（呼び出し側が保持して破棄する）。</returns>
     public static Bitmap Create(int width, int height)
     {
         var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-        using var graphics = Graphics.FromImage(bitmap);
-
-        using (var background = new LinearGradientBrush(
-            new Rectangle(0, 0, width, height),
-            Color.FromArgb(255, 24, 40, 72),
-            Color.FromArgb(255, 16, 96, 96),
-            35.0f))
+        var data = bitmap.LockBits(
+            new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+        try
         {
-            graphics.FillRectangle(background, 0, 0, width, height);
-        }
-
-        using (var grid = new Pen(Color.FromArgb(56, 255, 255, 255)))
-        {
-            for (var x = GridStep; x < width; x += GridStep)
+            var buffer = new byte[data.Stride * height];
+            for (var y = 0; y < height; y++)
             {
-                graphics.DrawLine(grid, x, 0, x, height);
+                for (var x = 0; x < width; x++)
+                {
+                    // 左上から右下へのグラデーション背景
+                    var t = (x + y) / (double)(width + height);
+                    var r = (byte)((t * 200) + 30);
+                    var g = (byte)(((1.0 - ((double)x / width)) * 140) + 50);
+                    var b = (byte)((((double)y / height) * 180) + 40);
+
+                    // 色付きマーカー（円）: ズーム確認用
+                    if (InCircle(x, y, 120, 110, 45))
+                    {
+                        (r, g, b) = (255, 60, 60);
+                    }
+                    else if (InCircle(x, y, 660, 160, 55))
+                    {
+                        (r, g, b) = (80, 255, 80);
+                    }
+                    else if (InCircle(x, y, 400, 430, 75))
+                    {
+                        (r, g, b) = (80, 120, 255);
+                    }
+
+                    // 10px グリッド（薄く明るく）: 拡大ピクセル検証用
+                    if (x % 10 == 0 || y % 10 == 0)
+                    {
+                        r = (byte)Math.Min(255, r + 60);
+                        g = (byte)Math.Min(255, g + 60);
+                        b = (byte)Math.Min(255, b + 60);
+                    }
+
+                    // 50px グリッド（濃く暗く）: 倍率計測用
+                    if (x % 50 == 0 || y % 50 == 0)
+                    {
+                        r = (byte)Math.Max(0, r - 100);
+                        g = (byte)Math.Max(0, g - 100);
+                        b = (byte)Math.Max(0, b - 100);
+                    }
+
+                    // 画素の並びは BGRA（コアの内部表現と同じ）
+                    var index = (y * data.Stride) + (x * 4);
+                    buffer[index] = b;
+                    buffer[index + 1] = g;
+                    buffer[index + 2] = r;
+                    buffer[index + 3] = 255;
+                }
             }
 
-            for (var y = GridStep; y < height; y += GridStep)
-            {
-                graphics.DrawLine(grid, 0, y, width, y);
-            }
+            Marshal.Copy(buffer, 0, data.Scan0, buffer.Length);
         }
-
-        // 目印（位置合わせの基準になる同心円）
-        using (var marker = new Pen(Color.FromArgb(160, 255, 210, 96), 3.0f))
+        finally
         {
-            for (var radius = 60; radius <= 180; radius += 40)
-            {
-                graphics.DrawEllipse(marker, (width / 2) - radius, (height / 2) - radius, radius * 2, radius * 2);
-            }
-        }
-
-        using (var label = new Font(SystemFonts.MessageBoxFont?.FontFamily ?? Control.DefaultFont.FontFamily, 20.0f))
-        using (var foreground = new SolidBrush(Color.FromArgb(200, 255, 255, 255)))
-        {
-            graphics.DrawString("Marquee (WinForms) sample image", label, foreground, 24.0f, 24.0f);
+            bitmap.UnlockBits(data);
         }
 
         return bitmap;
+    }
+
+    /// <summary>指定円の内側かどうかを判定する。</summary>
+    /// <param name="x">X 座標。</param>
+    /// <param name="y">Y 座標。</param>
+    /// <param name="cx">円の中心 X。</param>
+    /// <param name="cy">円の中心 Y。</param>
+    /// <param name="radius">円の半径。</param>
+    /// <returns>円の内側の場合は true。</returns>
+    private static bool InCircle(int x, int y, int cx, int cy, int radius)
+    {
+        var dx = x - cx;
+        var dy = y - cy;
+        return ((dx * dx) + (dy * dy)) <= radius * radius;
     }
 }

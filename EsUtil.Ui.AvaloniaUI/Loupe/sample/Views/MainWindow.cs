@@ -121,7 +121,7 @@ public sealed class MainWindow : Window
             Source = _source,
             DisplaySource = image.Source,
             PositionOffset = 24,
-            Options = LoupeOptions.Default with { ZoomLevel = 4, RequestedSize = 240 },
+            Options = LoupeOptions.Default with { ZoomLevel = 4, RequestedSize = 160 },
             Appearance = _appearance,
             CenterPoint = new Point(120, 120),
             Log = logger,

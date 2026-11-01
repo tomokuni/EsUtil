@@ -97,7 +97,7 @@ sample/
 | --- | --- |
 | `EsUtil.Ui.WinForms/Marquee/sample/Program.cs` | エントリポイント（DPI の有効化とアプリケーションの起動）。 |
 | `EsUtil.Ui.WinForms/Marquee/sample/MainForm.cs` | 画面の組み立て（画像の上へ重ねる・イベントの購読・ログ表示・付加情報の描画）。 |
-| `EsUtil.Ui.WinForms/Marquee/sample/Imaging/TestImageFactory.cs` | 下地の検証用画像の生成（格子と同心円）。 |
+| `EsUtil.Ui.WinForms/Marquee/sample/Imaging/TestImageFactory.cs` | 下地の検証用画像の生成（4 UI 共通の画素。 グラデーション＋10px/50px グリッド＋色付き円マーカー）。 |
 | `EsUtil.Ui.WinForms/Marquee/sample/Presentation/GuideMarqueePlan.cs` | 描画計画の差し替え（破線枠・三分割ガイド）の見本。 |
 
 **重ね方**: 透明なコントロールは親の描画を自分の背景に使うため、下地の画像を表示する `PictureBox` の子としてコントロールを追加しています。

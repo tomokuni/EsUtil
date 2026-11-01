@@ -42,7 +42,7 @@ public class LoupeLogMessageTests
         InvokeAll(logger);
 
         Assert.Equal("[Loupe] Setting: Source 8x6 → null", logger.Messages[0]);
-        Assert.Equal("[Loupe] Update exception", logger.Messages[1]);
+        Assert.Equal("[Loupe] 描画の更新で例外が発生", logger.Messages[1]);
     }
 
     /// <summary>接頭辞を変更すると出力へ反映されることを検証する。</summary>
@@ -59,7 +59,7 @@ public class LoupeLogMessageTests
 
             logger.LogUpdateError(new InvalidOperationException("失敗"));
 
-            Assert.Equal("[Preview] Update exception", Assert.Single(logger.Messages));
+            Assert.Equal("[Preview] 描画の更新で例外が発生", Assert.Single(logger.Messages));
         }
         finally
         {
@@ -111,7 +111,7 @@ public class LoupeLogMessageTests
         logger.LogUpdateError(new InvalidOperationException("失敗"));
 
         // メッセージ本体は例外本文を含まない（例外は構造化ログのフィールドとして渡す）
-        Assert.Equal("[Loupe] Update exception", Assert.Single(logger.Messages));
+        Assert.Equal("[Loupe] 描画の更新で例外が発生", Assert.Single(logger.Messages));
     }
 
     /// <summary>操作例外のログが操作名を出力することを検証する。</summary>

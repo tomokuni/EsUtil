@@ -12,6 +12,25 @@ namespace EsUtil.Ui.MewUI.ColorComboBox.Tests;
 public class ColorComboBoxControlTests
 {
     [Fact]
+    internal void ColorSortMode_並び順を変えても色の変更として扱わない()
+    {
+        var logger = new RecordingLogger();
+        var control = new ColorComboBoxControl { Log = logger, SelectedColor = "Blue" };
+        var raised = 0;
+        control.SelectedColorChanged += (_, _) => raised++;
+
+        // 一覧を作り直すと選択が動く。 これを「利用者の選択」として扱うと、
+        // 並び順を変えただけで色の変更イベントが発火し、Setting の Information が同じ内容で出る
+        logger.Messages.Clear();
+        control.ColorSortMode = ColorSortMode.ByName;
+        control.ColorSortMode = ColorSortMode.ByHue;
+
+        Assert.Equal(0, raised);
+        Assert.Equal("#FF0000FF", control.SelectedColor);
+        Assert.DoesNotContain(logger.Messages, message => message.Contains("Setting:", StringComparison.Ordinal));
+    }
+
+    [Fact]
     internal void 既定の色は白である()
     {
         var control = new ColorComboBoxControl();

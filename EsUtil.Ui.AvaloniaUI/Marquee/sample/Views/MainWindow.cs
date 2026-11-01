@@ -264,7 +264,7 @@ public sealed class MainWindow : Window
             _marquee.HighlightSourceRect = detected;
             Write(string.Create(
                 CultureInfo.InvariantCulture,
-                $"ハイライト（表示専用の注目）: ({detected.X:0.#}, {detected.Y:0.#}) {detected.Width:0.#}x{detected.Height:0.#}（ハイライト中は操作できない）"));
+                $"ハイライト（表示専用の注目）: ({detected.X:0.#}, {detected.Y:0.#}) {detected.Width:0.#}x{detected.Height:0.#} / 選択は {_marquee.SelectionSourceRect.X:0.#}, {_marquee.SelectionSourceRect.Y:0.#} {_marquee.SelectionSourceRect.Width:0.#}x{_marquee.SelectionSourceRect.Height:0.#} のまま（ハイライト中は操作できない）"));
         }
 
         // 外観を更新してコントロールへ反映する

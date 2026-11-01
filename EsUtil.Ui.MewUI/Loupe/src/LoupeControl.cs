@@ -411,6 +411,7 @@ public sealed class LoupeControl : Panel
         // （表示サイズは要素の大きさ（ホストが描画層のレイアウト結果で配置したサイズ）である）
         // 実寸は配置（本ルート）と描画（OnPaintSurface）の両方で同じ値を使う必要があるため、同じ測定関数を渡す
         var plan = ResolvePlan(bounds.Size.Width);
+        Log.LogGeometry(bounds.Size.Width, bounds.Size.Height, plan.ClientPixelSize, plan.ClientToPixelScaling);
         SyncLabels(plan.Labels, bounds);
     }
 

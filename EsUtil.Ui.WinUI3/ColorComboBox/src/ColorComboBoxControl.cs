@@ -299,7 +299,7 @@ public sealed partial class ColorComboBoxControl : Grid
         set
         {
             _logPrefix = value;
-            LogMessage.Prefix = value ?? LogMessage.DefaultPrefix;
+            ColorComboBoxLogMessage.Prefix = value ?? ColorComboBoxLogMessage.DefaultPrefix;
         }
     }
 
@@ -449,7 +449,17 @@ public sealed partial class ColorComboBoxControl : Grid
 
         if (ColorString.TryParse(_selectedColor, out var color, out _))
         {
-            UpdateSelectedIndex(color);
+            // 作り直しの途中で選択が動いても「利用者の選択」として扱わない
+            // （扱うと並び順を変えただけで色の変更イベントと Setting の Information が出る）
+            _applying = true;
+            try
+            {
+                UpdateSelectedIndex(color);
+            }
+            finally
+            {
+                _applying = false;
+            }
         }
     }
 
@@ -505,6 +515,8 @@ public sealed partial class ColorComboBoxControl : Grid
             _picker.Color = ToWinUIColor(color);
         }
 
+        // ピッカーを開いたことを残す（一覧を開いたログと対。 他 UI と同じ書式）
+        _log.LogOpenPicker(_selectedColor);
         _pickerFlyout.ShowAt(_pickerButton);
         _log.LogOpenList(_selectedColor);
     }

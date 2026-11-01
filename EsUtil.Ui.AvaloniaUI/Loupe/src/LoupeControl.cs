@@ -285,6 +285,7 @@ public sealed class LoupeControl : Panel
         // テキストは描画層が文言と基準点を渡し、要素として置くか画像として描くかは本層が決める
         // （実寸は要素の大きさ（親から割り当てられたサイズ）を基準に測る）
         var plan = ResolvePlan(finalSize.Width);
+        Log.LogGeometry(finalSize.Width, finalSize.Height, plan.ClientPixelSize, plan.ClientToPixelScaling);
         SyncLabels(plan.Labels);
 
         return base.ArrangeOverride(finalSize);

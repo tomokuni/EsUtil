@@ -292,7 +292,7 @@ public sealed class ColorComboBoxControl : Grid
         set
         {
             _logPrefix = value;
-            LogMessage.Prefix = value ?? LogMessage.DefaultPrefix;
+            ColorComboBoxLogMessage.Prefix = value ?? ColorComboBoxLogMessage.DefaultPrefix;
         }
     }
 
@@ -394,10 +394,21 @@ public sealed class ColorComboBoxControl : Grid
     private void RefreshList()
     {
         var entries = ColorEntry.GetSorted(_colorSortMode);
-        _list.Items(entries, entry => entry.Name);
-        if (ColorString.TryParse(_selectedColor, out var color, out _))
+
+        // 作り直しの途中で選択が動いても「利用者の選択」として扱わない（他 UI の一覧選択と同じ判定）
+        // 扱うと、並び順を変えただけで色の変更として処理される
+        _applying = true;
+        try
         {
-            UpdateSelectedIndex(color);
+            _list.Items(entries, entry => entry.Name);
+            if (ColorString.TryParse(_selectedColor, out var color, out _))
+            {
+                UpdateSelectedIndex(color);
+            }
+        }
+        finally
+        {
+            _applying = false;
         }
     }
 
@@ -429,9 +440,19 @@ public sealed class ColorComboBoxControl : Grid
     /// <summary>一覧の選択が変わったときに色を反映する。</summary>
     private void ApplyListSelection()
     {
+        // 色を反映すると一覧の選択も同じ色へ更新される。 その往復を「利用者の選択」として扱わない
+        // （他 UI の一覧選択も同じ判定を持つ）
+        if (_applying)
+        {
+            return;
+        }
+
         if (_list.SelectedItem is ColorEntry entry)
         {
             ApplyColor(entry.Name, raiseChanged: true);
+
+            // 選んだら一覧を閉じる（開いたままにすると、選んだ色が一覧の裏に隠れて確認できない。 他 UI も選ぶと閉じる）
+            _listPopup.Close();
         }
     }
 
@@ -471,6 +492,11 @@ public sealed class ColorComboBoxControl : Grid
         }
 
         _picker.IsDropDownOpen = !_picker.IsDropDownOpen;
+        if (_picker.IsDropDownOpen)
+        {
+            // ピッカーを開いたことを残す（一覧を開いたログと対。 他 UI と同じ書式）
+            _log.LogOpenPicker(_selectedColor);
+        }
     }
 
     /// <summary>コアの色を MewUI の色へ写す。</summary>

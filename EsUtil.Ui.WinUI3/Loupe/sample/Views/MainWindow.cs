@@ -83,7 +83,7 @@ public sealed class MainWindow : Window
 
         _loupe.Source = _source;
         _loupe.PositionOffset = 24;
-        _loupe.Options = LoupeOptions.Default with { ZoomLevel = 4, RequestedSize = 240 };
+        _loupe.Options = LoupeOptions.Default with { ZoomLevel = 4, RequestedSize = 160 };
         _loupe.Appearance = _appearance;
         _loupe.CenterPoint = new EsPoint(120, 120);
         _loupe.Log = logger;

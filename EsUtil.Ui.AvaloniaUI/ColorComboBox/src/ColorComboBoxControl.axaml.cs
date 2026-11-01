@@ -402,6 +402,9 @@ public sealed partial class ColorComboBoxControl : UserControl
             return;
         }
 
+        // 一覧を開いたことを残す（ピッカーを開いたログと対。 他 UI と同じ書式）
+        Log.LogOpenList(SelectedColor);
+
         var list = new ListBox
         {
             ItemsSource = ColorEntry.GetSorted(ColorSortMode),
@@ -435,7 +438,7 @@ public sealed partial class ColorComboBoxControl : UserControl
 
         // SelectedColor は 1 回だけ取得してログと Flyout 構築で共有する（二重 getter の排除）
         var color = SelectedColor;
-        Log.LogOpenFlyout(color);
+        Log.LogOpenPicker(color);
         var flyout = ColorComboBoxFlyoutFactory.Create(color, Log, value => SelectedColor = value);
         flyout.ShowAt(button);
     }

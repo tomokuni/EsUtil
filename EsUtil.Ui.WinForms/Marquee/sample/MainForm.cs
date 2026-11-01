@@ -216,7 +216,7 @@ internal static class MainForm
             }
 
             marquee.HighlightSourceRect = highlightRect;
-            Write($"ハイライト（表示専用の注目）: {highlightRect} / 選択は {marquee.SelectionSourceRect} のまま（ハンドルは操作できる）");
+            Write($"ハイライト（表示専用の注目）: {highlightRect} / 選択は {marquee.SelectionSourceRect} のまま（ハイライト中は操作できない）");
         }
 
         // ズームを反映する（画像の表示サイズと、クライアント座標 → 対象座標の変換を揃える）

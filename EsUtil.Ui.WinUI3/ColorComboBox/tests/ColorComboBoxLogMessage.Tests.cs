@@ -3,13 +3,13 @@ using Xunit;
 
 namespace EsUtil.Ui.WinUI3.ColorComboBox.Tests;
 
-/// <summary><see cref="LogMessage"/> の定義（接頭辞・レベル・書式）のテスト。</summary>
+/// <summary><see cref="ColorComboBoxLogMessage"/> の定義（接頭辞・レベル・書式）のテスト。</summary>
 [Collection(ColorComboBoxLogPrefix.Name)]
-public class LogMessageTests
+public class ColorComboBoxLogMessageTests
 {
     [Fact]
     internal void 既定の接頭辞はColorComboBoxである()
-        => Assert.Equal("[ColorComboBox]", LogMessage.DefaultPrefix);
+        => Assert.Equal("[ColorComboBox]", ColorComboBoxLogMessage.DefaultPrefix);
 
     [Fact]
     internal void 同じ値では出力しない()

@@ -1,13 +1,15 @@
+using System.Runtime.InteropServices.WindowsRuntime;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
+using EsUtil.Ui.WinUI3.Marquee.Sample.Imaging;
 using EsUtil.Ui.WinUI3.Marquee.Sample.Presentation;
-using EsUtil.Ui.WinUI3.Marquee.Sample.Views;
 using EsUtil.Ui.WinUI3.SampleKit;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Shapes;
+using Microsoft.UI.Xaml.Media.Imaging;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.WinUI3.Marquee.Sample;
@@ -27,9 +29,6 @@ public sealed class MainWindow : Window
 
     /// <summary>背景（選択対象）の高さ（ピクセル。 座標変換ポートの境界として使う）。</summary>
     private const int SourceHeight = 600;
-
-    /// <summary>ルーペ位置の目印の一辺（DIP）。</summary>
-    private const double LoupeMarkerSize = 24.0;
 
     /// <summary>ズームの最小倍率。</summary>
     private const double MinZoom = 0.1;
@@ -61,18 +60,11 @@ public sealed class MainWindow : Window
     /// <summary>状態の表示。</summary>
     private readonly TextBlock _status = new() { Text = "選択なし", FontSize = 11, TextWrapping = TextWrapping.Wrap };
 
-    /// <summary>ルーペ位置の目印。</summary>
-    private readonly Ellipse _loupeMarker = new()
-    {
-        Width = LoupeMarkerSize,
-        Height = LoupeMarkerSize,
-        Stroke = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xC4, 0x00)),
-        StrokeThickness = 2,
-        Visibility = Visibility.Collapsed,
-    };
-
     /// <summary>現在の表示倍率（座標変換ポートが描画のたびに読む）。</summary>
     private double _zoom = 1.0;
+
+    /// <summary>背景のテスト画像（4 UI 共通の画素）。 ウィンドウと同じ寿命で保持する。</summary>
+    private readonly EsReadOnlyBitmap _backdrop;
 
     /// <summary>メイン ウィンドウを初期化する。</summary>
     public MainWindow()
@@ -83,16 +75,20 @@ public sealed class MainWindow : Window
         _marquee.LogPrefix = "[Marquee]";
 
         // 背景（選択対象）と選択オーバーレイを重ねる
-        var background = new TestPatternCanvas();
-        var markerCanvas = new Canvas { IsHitTestVisible = false };
-        markerCanvas.Children.Add(_loupeMarker);
-
-        // 背景は対象座標の寸法のまま置き、拡大は描画の変換で行う（格子が画像と同じく拡大される）
-        background.Width = SourceWidth;
-        background.Height = SourceHeight;
-        background.HorizontalAlignment = HorizontalAlignment.Left;
-        background.VerticalAlignment = VerticalAlignment.Top;
-        background.RenderTransformOrigin = new Windows.Foundation.Point(0, 0);
+        // 背景は 4 UI 共通のテスト画像を使う（同じ画素・同じ位置のマーカー・同じグリッド）
+        _backdrop = TestImageFactory.Create(SourceWidth, SourceHeight);
+        // 背景は対象座標の寸法のまま置き、拡大は描画の変換で行う（画素が画像と同じく拡大される）
+        var background = new Image
+        {
+            Source = ToBitmap(_backdrop),
+            Stretch = Stretch.Fill,
+            IsHitTestVisible = false,
+            Width = SourceWidth,
+            Height = SourceHeight,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            RenderTransformOrigin = new Windows.Foundation.Point(0, 0),
+        };
 
         var surface = new Grid
         {
@@ -103,7 +99,6 @@ public sealed class MainWindow : Window
         };
         surface.Children.Add(background);
         surface.Children.Add(_marquee);
-        surface.Children.Add(markerCanvas);
 
         // ズームで表示領域より大きくなったときにパンできるようスクロールできる入れ物へ置く
         var scroll = new ScrollViewer
@@ -139,14 +134,7 @@ public sealed class MainWindow : Window
         _marquee.SelectionCancelled += (_, _) => Write("SelectionCancelled");
         _marquee.ConfirmRequested += (_, e) => Write($"ConfirmRequested: {FormatRect(e.Rect)}");
         _marquee.CancelRequested += (_, _) => Write("CancelRequested");
-        _marquee.LoupePositionMoved += (_, e) =>
-        {
-            // 通知は対象座標で届くため、表示 DIP へ戻して目印を置く
-            Canvas.SetLeft(_loupeMarker, e.Point.X * _zoom);
-            Canvas.SetTop(_loupeMarker, e.Point.Y * _zoom);
-            _loupeMarker.Visibility = Visibility.Visible;
-            _status.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
-        };
+        _marquee.LoupePositionMoved += (_, e) => _status.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
 
         // 起動直後に枠線・ハンドル・ラベルが見えるように、選択を 1 つ与えておく
         _marquee.SetSelection(new EsRect(120, 80, 240, 180));
@@ -258,7 +246,7 @@ public sealed class MainWindow : Window
 
             var detected = new EsRect(420, 140, 300, 200);
             _marquee.HighlightSourceRect = detected;
-            Write($"ハイライト（表示専用の注目）: {FormatRect(detected)} / 選択は {FormatRect(_marquee.SelectionSourceRect)} のまま（ハンドルは操作できる）");
+            Write($"ハイライト（表示専用の注目）: {FormatRect(detected)} / 選択は {FormatRect(_marquee.SelectionSourceRect)} のまま（ハイライト中は操作できない）");
         }
 
         // 外観を更新してコントロールへ反映する
@@ -268,6 +256,22 @@ public sealed class MainWindow : Window
             _marquee.Appearance = value;
             _marquee.InvalidateRender();
         }
+    }
+
+    /// <summary>コアの画素バッファを XAML の画像へ変換する。</summary>
+    /// <param name="image">変換する画像。</param>
+    /// <returns>変換した画像。</returns>
+    /// <remarks>画素形式は <see cref="WriteableBitmap"/> が要求する BGRA8888 である（コアの内部表現と同じ）。</remarks>
+    private static WriteableBitmap ToBitmap(EsReadOnlyBitmap image)
+    {
+        var bitmap = new WriteableBitmap(image.Width, image.Height);
+        using (var target = bitmap.PixelBuffer.AsStream())
+        {
+            target.Write(image.ReadOnlyPixels);
+        }
+
+        bitmap.Invalidate();
+        return bitmap;
     }
 
     /// <summary>矩形をログ用の文字列へ整形する。</summary>

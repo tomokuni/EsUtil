@@ -39,7 +39,7 @@ public class ColorComboBoxControlTests
     internal void ログの書式は共通である()
     {
         var logger = new RecordingLogger();
-        LogMessage.Prefix = LogMessage.DefaultPrefix;
+        ColorComboBoxLogMessage.Prefix = ColorComboBoxLogMessage.DefaultPrefix;
 
         logger.LogSettingChanged("SelectedColor", "#FFFFFFFF", "#80FF0000");
 

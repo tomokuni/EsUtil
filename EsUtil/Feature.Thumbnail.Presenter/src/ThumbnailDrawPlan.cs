@@ -23,7 +23,12 @@ namespace EsUtil.Feature.Thumbnail;
 /// <b>差し替え点</b>: 本型は公開の契約であり、ホストは <see cref="ThumbnailPresenter.ResolveDrawPlan"/> を<br/>
 /// 上書きして自前の計画を返せる（背景・層の順序・名前の体裁・影の有無を変える）。 影の算法は<br/>
 /// <see cref="IThumbnailShadowPlan"/> の実装を <see cref="Shadow"/> へ渡して差し替える。 帯を塗る手順は<br/>
-/// UI が持つ（描画 API は UI フレームワーク固有のため、計画は値を渡すに留める）。
+/// UI が持つ（描画 API は UI フレームワーク固有のため、計画は値を渡すに留める）。<br/>
+/// <br/>
+/// <b>層の順序</b>: <see cref="Layers"/> は「描く層」を <c>Background</c> → <c>Shadow</c> → <c>Image</c> → <c>Label</c><br/>
+/// の順で並べる（状態に応じて間引く。 順序は入れ替えない）。 名前（<c>Label</c>）を要素として置く UI でも<br/>
+/// 同じ順序になる（要素は描画面の上に重ねる）。 影を枠のブラシで描く UI は影と画像が同じ要素に載るが、<br/>
+/// どちらも既定の順序（影 → 画像）で描かれる。
 /// </remarks>
 public readonly record struct ThumbnailDrawPlan(
     int Index,

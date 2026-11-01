@@ -15,21 +15,23 @@ internal static partial class ColorComboBoxLogMessage
     /// <summary>適用する接頭辞（ホストが <c>LogPrefix</c> で設定する）。</summary>
     internal static string Prefix { get; set; } = DefaultPrefix;
 
-    /// <summary>公開ファサードの操作で例外が発生したことを記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Error<br/>出力書式: <c>[ColorComboBox] {Operation:l} で例外が発生</c>（例外スタックトレース付き）</remarks>
+    /// <summary>一覧（▼）を開いたログ。</summary>
+    /// <remarks>
+    /// LogLevel: Debug <br/>
+    /// 出力書式: <c>[ColorComboBox] OpenList: color={Color:l}</c><br/>
+    /// 一覧とピッカーは別の操作であるため、開いたことを別のメッセージで残す（他 UI と書式を揃える）。
+    /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    /// <param name="exception">発生した例外。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix:l} {Operation:l} で例外が発生")]
-    private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
+    /// <param name="color">現在の選択色。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} OpenList: color={Color:l}")]
+    private static partial void LogOpenListCore(this ILogger logger, string prefix, string color);
 
-    /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>
+    /// <summary>一覧を開いたことを記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    /// <param name="exception">発生した例外。</param>
-    /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
-    internal static void LogOperationError(this ILogger logger, Exception exception, string operation)
-        => logger.LogOperationErrorCore(exception, Prefix, operation);
+    /// <param name="color">現在の選択色。</param>
+    internal static void LogOpenList(this ILogger logger, string color)
+        => logger.LogOpenListCore(Prefix, color);
 
     /// <summary>選択色変更のログ（変更前後）。</summary>
     /// <remarks>
@@ -49,16 +51,20 @@ internal static partial class ColorComboBoxLogMessage
     /// <summary>カラーピッカー Flyout を開くボタンのクリックログ。</summary>
     /// <remarks>
     /// LogLevel: Debug <br/>
-    /// 出力書式: <c>[ColorComboBox] OpenFlyout: color={Color:l}</c>
+    /// 出力書式: <c>[ColorComboBox] OpenPicker: color={Color:l}</c><br/>
+    /// 一覧とピッカーは別の操作であるため、開いたことを別のメッセージで残す（他 UI と書式を揃える）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="color">現在の選択色。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} OpenFlyout: color={Color:l}")]
-    private static partial void LogOpenFlyoutCore(this ILogger logger, string prefix, string color);
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} OpenPicker: color={Color:l}")]
+    private static partial void LogOpenPickerCore(this ILogger logger, string prefix, string color);
 
-    public static void LogOpenFlyout(this ILogger logger, string color)
-        => logger.LogOpenFlyoutCore(Prefix, color);
+    /// <summary>カラーピッカーを開いたことを記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="color">現在の選択色。</param>
+    internal static void LogOpenPicker(this ILogger logger, string color)
+        => logger.LogOpenPickerCore(Prefix, color);
 
     /// <summary>Flyout の OK ボタンで色が確定されたログ。</summary>
     /// <remarks>

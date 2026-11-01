@@ -97,16 +97,16 @@ sample/
     App.xaml
     App.xaml.cs
     MainWindow.cs                 # メイン ウィンドウ（設定パネル＋画像＋ログ）
+    Imaging/
+        TestImageFactory.cs       # 背景画像生成（4 UI 共通の画素。 グラデーション＋グリッド＋マーカー）
     Presentation/
         GuideMarqueePlan.cs
-    Views/
-        TestPatternCanvas.cs
 ```
 
 | ファイル | 役割 |
 | --- | --- |
 | `EsUtil.Ui.WinUI3/Marquee/sample/App.xaml` / `EsUtil.Ui.WinUI3/Marquee/sample/App.xaml.cs` | アプリケーションのエントリ（ウィンドウの生成と表示） |
-| `EsUtil.Ui.WinUI3/Marquee/sample/Views/TestPatternCanvas.cs` | 背景のテスト パターン（格子・色見本・中心の十字）を描くキャンバス |
+| `EsUtil.Ui.WinUI3/Marquee/sample/Imaging/TestImageFactory.cs` | 背景のテスト画像の生成（4 UI 共通の画素。 グラデーション＋グリッド＋マーカー） |
 | `EsUtil.Ui.WinUI3/Marquee/sample/MainWindow.cs` | 座標変換ポート・通知の購読・ログ表示・見本の切り替え |
 | `EsUtil.Ui.WinUI3/Marquee/sample/Presentation/GuideMarqueePlan.cs` | 見本（描画計画の差し替え）の定義 |
 
@@ -140,9 +140,8 @@ GuideMarqueePlan.Apply(control, show: true);
 | 項目 | 本サンプル（WinUI 3） |
 | --- | --- |
 | 実行形態 | アンパッケージ（MSIX を使わない）。 AnyCPU（自己完結にするときだけ `-r` を渡す） |
-| 設定パネル | 表示倍率・見本・選択操作のボタンに絞っている（色の選択は `Appearance` の差し替えで確認する） |
-| 背景 | 画像ファイルを読み込まず、`TestPatternCanvas`（`SKXamlCanvas`）が格子・色見本・十字を描く |
-| ルーペ | 拡大表示は行わず、`LoupePositionMoved` の位置を円の目印で示す |
+| 背景 | 4 UI 共通のテスト画像（`sample/Imaging/TestImageFactory.cs` の画素）を `WriteableBitmap` にして表示する（他の UI と同じ画素・同じ位置） |
+| ルーペ位置 | `LoupePositionMoved` の位置を状態表示（`追従位置: X=… Y=…`）へ出す（他の UI と同じ） |
 
 ## 9. ドキュメント
 

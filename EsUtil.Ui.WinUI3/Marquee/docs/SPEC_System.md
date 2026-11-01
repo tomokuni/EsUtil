@@ -114,10 +114,10 @@ EsUtil.Ui.WinUI3/Marquee/
         App.xaml
         App.xaml.cs
         MainWindow.cs
+        Imaging/
+            TestImageFactory.cs
         Presentation/
             GuideMarqueePlan.cs
-        Views/
-            TestPatternCanvas.cs
     src/
         EsUtil.Ui.WinUI3.Marquee.csproj
         MarqueeControl.cs
