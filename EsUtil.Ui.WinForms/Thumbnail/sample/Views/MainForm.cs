@@ -87,15 +87,18 @@ internal static class MainForm
             SampleSettings.Check("描画計画を差し替える（強調色）", false, value =>
                 thumbnails.DrawPlanResolver = value ? static plan => GuideThumbnailPlan.Resolve(in plan) : null));
 
-        // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
-        var samples = Column(
-            SampleSettings.LogLevel(logging),
-            status,
+        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        var methods = Column(
             SampleSettings.Buttons(
                 ("追加", () => AddItem()),
                 ("12 件に戻す", ResetItems),
-                ("末尾へスクロール", () => thumbnails.ScrollToIndex(thumbnails.ItemCount - 1)),
-                ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))));
+                ("末尾へスクロール", () => thumbnails.ScrollToIndex(thumbnails.ItemCount - 1))));
+
+        // ── サンプル設定（サンプルアプリの外観と状態） ──
+        var samples = Column(
+            SampleSettings.LogLevel(logging),
+            status,
+            SampleSettings.Buttons(("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))));
 
         for (var i = 0; i < 12; i++)
         {
@@ -106,7 +109,7 @@ internal static class MainForm
         thumbnails.CurrentIndex = 0;
 
         var log = new SampleLogPanel(logging.Buffer);
-        var form = SampleShell.Create("ThumbnailControl サンプル（WinForms）", properties, samples, thumbnails, log);
+        var form = SampleShell.Create("ThumbnailControl サンプル（WinForms）", properties, methods, samples, thumbnails, log);
         form.FormClosed += (_, _) =>
         {
             foreach (var image in images)

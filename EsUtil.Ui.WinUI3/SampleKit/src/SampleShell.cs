@@ -10,8 +10,8 @@ namespace EsUtil.Ui.WinUI3.SampleKit;
 /// <b>配置</b>: 左の設定パネルは固定幅、右は上下 2 段にする。 上段が画像と操作、下段がログであり、
 /// <b>境界はドラッグで上下に動かせる</b>（WinUI 3 は <c>GridSplitter</c> を持たないため、境界の要素が
 /// 行の高さを書き換える）。 ログは下段の領域全体へ広がる。<br/>
-/// <b>設定の分け方</b>: 左は「プロパティ設定」（対象コントロールの公開プロパティ）と「サンプル設定」
-/// （サンプル固有の操作）の 2 つの領域に分ける。<br/>
+/// <b>設定の分け方</b>: 左は「プロパティ設定」（対象コントロールの公開プロパティ）・「メソッド操作」
+/// （対象コントロールのメソッド実行）・「サンプル設定」（サンプルアプリの外観と状態の変更）の 3 つの領域に分ける。<br/>
 /// <b>ログ</b>: Serilog の出力を非同期に表示する（<see cref="SampleLogPanel"/>）。
 /// </remarks>
 public static class SampleShell
@@ -34,28 +34,28 @@ public static class SampleShell
     /// <summary>ウィンドウを組み立てる。</summary>
     /// <param name="title">ウィンドウのタイトル。</param>
     /// <param name="propertySettings">プロパティ設定の行。</param>
+    /// <param name="methodSettings">メソッド操作の行。 null の場合は領域を作らない。</param>
     /// <param name="sampleSettings">サンプル設定の行。</param>
     /// <param name="content">画像と操作（右上の領域）。</param>
     /// <param name="log">ログ（右下の領域）。</param>
     /// <param name="width">ウィンドウの初期幅（DIP）。</param>
     /// <param name="height">ウィンドウの初期高さ（DIP）。</param>
-    /// <param name="themeChanged">表示テーマが切り替わったときの通知先。 null の場合は通知しない。</param>
     /// <returns>組み立てたウィンドウ。</returns>
     /// <exception cref="ArgumentNullException">必須の引数が null の場合。</exception>
     public static Window Create(
         string title,
         UIElement propertySettings,
+        UIElement? methodSettings,
         UIElement sampleSettings,
         UIElement content,
         SampleLogPanel log,
         double width = 1400,
-        double height = 900,
-        Action<bool>? themeChanged = null)
+        double height = 900)
     {
         var window = new Window
         {
             Title = title,
-            Content = CreateContent(propertySettings, sampleSettings, content, log, themeChanged),
+            Content = CreateContent(propertySettings, methodSettings, sampleSettings, content, log),
         };
         window.AppWindow.Resize(new Windows.Graphics.SizeInt32((int)width, (int)height));
         return window;
@@ -63,10 +63,10 @@ public static class SampleShell
 
     /// <summary>ウィンドウの中身（3 領域のレイアウト）を組み立てる。</summary>
     /// <param name="propertySettings">プロパティ設定の行。</param>
+    /// <param name="methodSettings">メソッド操作の行。 null の場合は領域を作らない。</param>
     /// <param name="sampleSettings">サンプル設定の行。</param>
     /// <param name="content">画像と操作（右上の領域）。</param>
     /// <param name="log">ログ（右下の領域）。</param>
-    /// <param name="themeChanged">表示テーマが切り替わったときの通知先。 null の場合は通知しない。</param>
     /// <returns>組み立てた要素（ウィンドウの <c>Content</c> へ設定する）。</returns>
     /// <exception cref="ArgumentNullException">必須の引数が null の場合。</exception>
     /// <remarks>
@@ -75,10 +75,10 @@ public static class SampleShell
     /// </remarks>
     public static UIElement CreateContent(
         UIElement propertySettings,
+        UIElement? methodSettings,
         UIElement sampleSettings,
         UIElement content,
-        SampleLogPanel log,
-        Action<bool>? themeChanged = null)
+        SampleLogPanel log)
     {
         ArgumentNullException.ThrowIfNull(propertySettings);
         ArgumentNullException.ThrowIfNull(sampleSettings);
@@ -100,8 +100,6 @@ public static class SampleShell
                 {
                     SampleTheme.Apply(current, isDark);
                 }
-
-                themeChanged?.Invoke(isDark);
             });
 
         // 表示テーマはサンプル設定の先頭へ置く（サンプル固有の操作より前）
@@ -111,6 +109,14 @@ public static class SampleShell
 
         var settingsBody = new StackPanel { Spacing = 12 };
         settingsBody.Children.Add(SampleSettings.Area("プロパティ設定", propertySettings));
+
+        // メソッド操作は該当するメソッドを持つコントロールだけに出す（無いサンプルは領域ごと作らない）
+        if (methodSettings is not null)
+        {
+            settingsBody.Children.Add(SampleSettings.Separator());
+            settingsBody.Children.Add(SampleSettings.Area("メソッド操作", methodSettings));
+        }
+
         settingsBody.Children.Add(SampleSettings.Separator());
         settingsBody.Children.Add(SampleSettings.Area("サンプル設定", sampleBody));
 

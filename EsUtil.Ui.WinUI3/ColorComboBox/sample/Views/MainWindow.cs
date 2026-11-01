@@ -211,7 +211,7 @@ public sealed class MainWindow : Window
         var log = new SampleLogPanel(_logging.Buffer);
         Title = "ColorComboBoxControl サンプル（WinUI 3）";
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 900));
-        Content = SampleShell.CreateContent(properties, samples, content, log);
+        Content = SampleShell.CreateContent(properties, methodSettings: null, samples, content, log);
         Closed += (_, _) => _logging.Dispose();
 
         UpdateStatus();

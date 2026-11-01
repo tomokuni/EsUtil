@@ -147,6 +147,22 @@ internal static class MainForm
             }),
             SampleSettings.Slider("中心 X", 120, 0, ImageWidth, 10, true, value => SetCenter(value, loupe.CenterPoint?.Y ?? 0)),
             SampleSettings.Slider("中心 Y", 120, 0, ImageHeight, 10, true, value => SetCenter(loupe.CenterPoint?.X ?? 0, value)),
+            SampleSettings.Buttons(
+                ("ソースを設定", () => loupe.Source = source),
+                ("ソースを解除（描画資源を解放）", () =>
+                {
+                    loupe.Visible = false;
+                    loupe.Source = null;
+                    loupeVisible.Checked = false;
+                }
+        ),
+                ("ソースを設定して再表示", () =>
+                {
+                    loupe.Source = source;
+                    loupeVisible.Checked = true;
+                    loupe.Visible = true;
+                }
+        )),
             ColorChoice("十字線の色", 7, index => ApplyAppearance(appearance with
             {
                 CrossColor = ResolveColor(index, appearance.CrossColor),
@@ -176,25 +192,7 @@ internal static class MainForm
         // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
         var samples = Column(
             SampleSettings.LogLevel(logging),
-            SampleSettings.Buttons(
-                ("ソースを設定", () => loupe.Source = source),
-                ("ソースを解除（描画資源を解放）", () =>
-                {
-                    loupe.Visible = false;
-                    loupe.Source = null;
-                    loupeVisible.Checked = false;
-                }
-        )),
-            SampleSettings.Buttons(
-                ("再描画を要求", () => loupe.Invalidate()),
-                ("ソースを設定して再表示", () =>
-                {
-                    loupe.Source = source;
-                    loupeVisible.Checked = true;
-                    loupe.Visible = true;
-                }
-        ),
-                ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
+            SampleSettings.Buttons(("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
             SampleSettings.Check("選択矩形を表示", true, value => selection.IsVisible = value),
             SampleSettings.Number("選択矩形 X", selection.X, 0, ImageWidth, 0, value => selection.X = value, 10),
             SampleSettings.Number("選択矩形 Y", selection.Y, 0, ImageHeight, 0, value => selection.Y = value, 10),
@@ -203,7 +201,11 @@ internal static class MainForm
             SampleSettings.Check("見本（格子線と四隅の鉤）を表示", true, value => preview.Visible = value));
 
         var log = new SampleLogPanel(logging.Buffer);
-        var form = SampleShell.Create("LoupeControl サンプル（WinForms）", properties, samples, host, log);
+        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        var methods = Column(
+            SampleSettings.Buttons(("再描画を要求", () => loupe.Invalidate())));
+
+        var form = SampleShell.Create("LoupeControl サンプル（WinForms）", properties, methods, samples, host, log);
 
         // 実効倍率はハンドル生成時に確定するため、表示後にもう一度配置を解決する
         form.Shown += (_, _) => host.UpdateLoupeBounds();

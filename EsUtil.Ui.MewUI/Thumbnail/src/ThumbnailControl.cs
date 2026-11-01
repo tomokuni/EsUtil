@@ -37,6 +37,12 @@ public sealed class ThumbnailControl : Panel
     /// <summary>ホバー中の添字。</summary>
     private int _hoveredIndex = -1;
 
+    /// <summary>直前の描画で使った明暗（テーマの切り替えを 1 度だけ記録するために持つ）。</summary>
+    private bool _appliedDarkTheme;
+
+    /// <summary>明暗を使った描画がまだ無いかどうか。</summary>
+    private bool _themeApplied;
+
     /// <summary>ログの出力先（未設定は <see cref="NullLogger"/>）。</summary>
     private ILogger _log = NullLogger.Instance;
 
@@ -157,24 +163,15 @@ public sealed class ThumbnailControl : Panel
     /// <summary>描画計画を差し替える関数の保持先。<see cref="DrawPlanResolver"/> が変更時に反映する。</summary>
     private Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? _drawPlanResolver;
 
-    /// <summary>暗色テーマかどうかを取得または設定する。</summary>
-    /// <value>暗色テーマの場合は true。 既定は false。</value>
-    public bool IsDarkTheme
-    {
-        get;
-        set
-        {
-            if (field == value)
-            {
-                return;
-            }
-
-            var previous = field;
-            field = value;
-            _log.LogSettingChanged(nameof(IsDarkTheme), previous.ToString(), value.ToString());
-            Refresh();
-        }
-    }
+    /// <summary>現在のテーマが暗色かどうかを取得する。</summary>
+    /// <value>ダークの場合は true。 アプリの初期化前は false。</value>
+    /// <remarks>
+    /// <b>テーマはフレームワークが決める</b>: <c>Application.Current.Theme</c> をそのまま読む<br/>
+    /// （ホストが明暗を指定する必要はない）。 明暗は描画のたびに読み直すため、<br/>
+    /// テーマが切り替われば配色も追随する（<c>Application.Current</c> は <c>Application.Run</c> より前は例外のため、<br/>
+    /// <c>IsRunning</c> で判定する）。
+    /// </remarks>
+    private static bool IsDarkTheme => Application.IsRunning && Application.Current.Theme.IsDark;
 
     /// <summary>画像の幅（DIP）を取得または設定する。</summary>
     /// <value>表示モードの一辺。 0 以下の指定は既定の下限へ引き上げる。</value>
@@ -393,8 +390,19 @@ public sealed class ThumbnailControl : Panel
         }
 
         var tile = _items[index];
+        var isDark = IsDarkTheme;
+
+        // テーマはフレームワークが切り替える（本コントロールは通知を受けないため、
+        // 明暗を使った描画のたびに比べ、変わったときだけ記録する）
+        if (!_themeApplied || _appliedDarkTheme != isDark)
+        {
+            _themeApplied = true;
+            _appliedDarkTheme = isDark;
+            _log.LogThemeChanged(isDark);
+        }
+
         var plan = Presentation.ResolveDrawPlan(
-            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme, MeasureText);
+            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, isDark, MeasureText);
         plan = DrawPlanResolver?.Invoke(plan) ?? plan;
         tile.Apply(plan, Presentation.Options);
     }

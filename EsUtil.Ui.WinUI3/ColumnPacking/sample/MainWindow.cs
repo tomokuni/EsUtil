@@ -110,7 +110,17 @@ public sealed class MainWindow : Window
         var log = new SampleLogPanel(_logging.Buffer);
         Title = "ColumnPacking パネル サンプル（WinUI 3）";
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 900));
-        Content = SampleShell.CreateContent(properties, samples, contentArea, log);
+        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        var methods = new StackPanel
+        {
+            Spacing = 6,
+            Children =
+            {
+                SampleSettings.Buttons(("項目を再設定（SetItems）", () => RebuildItems())),
+            },
+        };
+
+        Content = SampleShell.CreateContent(properties, methods, samples, contentArea, log);
 
         _panel.SizeChanged += (_, _) => UpdateStatus();
         UpdateStatus();

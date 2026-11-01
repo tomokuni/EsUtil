@@ -115,7 +115,6 @@ classDiagram
         +Presentation ThumbnailPresenter
         +Options ThumbnailOptions
         +Appearance ThumbnailAppearance
-        +IsDarkTheme bool
         +ImageWidth double
         +ItemCount int
         +SelectedIndex int
@@ -186,5 +185,6 @@ sequenceDiagram
 - **コアの画像を保持しない**: コントロールは画像の所有権を持ちません（`ClearItems` でも解放しません）。
 - **子の座標はそのまま使う**: 折り返し・行の高さはコアが決めます（XAML のレイアウトに任せません）。
 - **見た目の適用は計測フェーズで行う**: 配置フェーズで子の計測を無効化すると `LayoutCycleException` になります（実測）。 `ApplyState` は `ThumbnailCanvas.MeasureOverride` で計測の前に呼びます。
-- **`IsDarkTheme` / `ImageWidth` の変更は `Refresh()` を呼ぶ**: `Options` / `Appearance` は setter が配置を解き直すため自動で反映されます。
+- **`ImageWidth` の変更は `Refresh()` を呼ぶ**: `Options` / `Appearance` は setter が配置を解き直すため自動で反映されます。
+- **明暗はフレームワークのテーマから読む**: `ActualTheme` を描画のたびに読み、`ActualThemeChanged` で `Refresh()` を呼びます（ホストの指定は不要）。
 - **ログ**: 画像と項目数の変更は本コントロールが記録します（`Log` / `LogPrefix`。 設定・外観の変更は提示層、選択の変更はコアが記録するため、本コントロールは重複して出力しません）。

@@ -46,7 +46,7 @@
 
 - 折り返し配置（幅に応じて列数が変わる）とスクロール
 - 項目の追加（`Add`）・画像の差し替え（`SetImage`）・名前の変更（`SetCaption`）・全消去（`ClearItems`）
-- ホバー帯・選択・現在項目の強調（`IsDarkTheme` で明暗を切り替える）
+- ホバー帯・選択・現在項目の強調（明暗はフレームワークのテーマ（`ActualThemeVariant`）から自動で読む）
 - 1 回押しの選択（`SelectionChanged`）と 2 回押しの通知（`ItemActivated`）
 - 可視範囲（`VisibleRange`）と項目の矩形（`SlotBounds`）の公開（見えている項目だけを先に作れる）
 - 末尾へのスクロール（`ScrollToIndex`）
@@ -86,7 +86,7 @@ using EsUtil.Ui.AvaloniaUI.Thumbnail;
 ## 5. クイックスタート
 
 ```csharp
-var list = new ThumbnailControl { ImageWidth = iconSize, IsDarkTheme = isDark };
+var list = new ThumbnailControl { ImageWidth = iconSize }; // 明暗はフレームワークのテーマ（`ActualThemeVariant`）から自動
 list.ItemActivated += (_, e) => Open((string)e.Tag!);
 
 list.ClearItems();
@@ -107,7 +107,7 @@ var bounds = list.SlotBounds(index);
   プロファイルの元である）。 `IThumbnailShadowPlan` を差し替えた場合は、計画が返す帯を自前で塗ります
   （`ThumbnailShadowBandsView`）。
 - 入力は一覧が位置から判定します（子要素のヒット テストに依存しない）。
-- `Options` / `Appearance` / `ImageWidth` は設定すると自動で反映されます（`IsDarkTheme` だけは `Refresh()` を呼びます）。
+- `Options` / `Appearance` / `ImageWidth` は設定すると自動で反映されます（明暗はフレームワークのテーマから自動で読みます）。
 
 ---
 
@@ -144,7 +144,7 @@ var bounds = list.SlotBounds(index);
 
 | レベル | 出力例 |
 | --- | --- |
-| Information | `[Thumbnail] Setting: ImageWidth 160 → 110` / `[Thumbnail] Setting: IsDarkTheme False → True` / `[Thumbnail] Setting: Image[0] null → 96x64`（画像の差し替え） / `[Thumbnail] Setting: ItemCount 12 → 0`（クリア） |
+| Information | `[Thumbnail] Setting: ImageWidth 160 → 110` / `[Thumbnail] Setting: Image[0] null → 96x64`（画像の差し替え） / `[Thumbnail] Setting: ItemCount 12 → 0`（クリア） |
 | Trace | `[Thumbnail] Setting: ItemCount 0 → 1`（1 件ずつの追加） |
 
 `Log` へ `ILogger` を設定します（null は `NullLogger`）。 接頭辞は `LogPrefix` で設定し、提示層・コアへ伝搬します（既定 `[Thumbnail]`）。 設定・外観の変更は提示層、選択の変更はコアが記録します。

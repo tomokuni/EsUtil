@@ -47,7 +47,6 @@ MewUI 版のサムネイル一覧コントロールが提供する公開 API の
 | `Presentation` | property（get） | 提示層（設定・外観・描画計画の解決）。 派生した提示を使う場合は `Options` / `Appearance` ではなく本プロパティを設定する |
 | `Options` | property | 計算に必要な設定（既定は `ThumbnailOptions.Default`）。 設定すると自動で配置を解き直す |
 | `Appearance` | property | 外観（既定は `ThumbnailAppearance.Default`）。 設定すると自動で描き直す |
-| `IsDarkTheme` | property | 暗色テーマかどうか（既定は false）。 設定すると自動で描き直す |
 | `ImageWidth` | property | 画像の幅（DIP。既定は 96）。 **0 以下の指定は既定の下限へ引き上げられる**。 設定すると自動で配置を解き直す |
 | `ItemCount` | property（get） | 項目数 |
 | `SelectedIndex` | property | 選択中の添字。 範囲外と -1 は選択の解除 |
@@ -83,7 +82,6 @@ using EsUtil.Ui.MewUI.Thumbnail;
 var list = new ThumbnailControl
 {
     ImageWidth = 96,
-    IsDarkTheme = true,
     Options = ThumbnailOptions.Default with { ColumnSpace = 4 },
 };
 
@@ -114,4 +112,5 @@ var visible = list.VisibleRange;
 - **画像の所有権はホストに残ります**（コントロールはピクセルを複製せず、非所有ビューとして描画します。 コントロールを破棄しても画像は解放されません）。
 - **単体テストは `tests/` にあります**（検証の範囲と手順は [`../../.github/検証手順.md`](../../../.github/検証手順.md) を参照）。
 - **複数選択は提供しません**（単一選択だけです）。
-- **`Options` / `Appearance` / `IsDarkTheme` / `ImageWidth` の変更は自動で反映されます**（各 setter が配置を解き直します）。
+- **`Options` / `Appearance` / `ImageWidth` の変更は自動で反映されます**（各 setter が配置を解き直します）。
+- **明暗（テーマ）はコントロールが自分で読みます**（`Application.Current.Theme`）。 ホストが明暗を指定する必要はなく、切り替わると配色（ホバー・選択の背景）が自動で追随します。

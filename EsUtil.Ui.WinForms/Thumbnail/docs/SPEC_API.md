@@ -43,7 +43,7 @@ WinForms 版のサムネイル一覧コントロールが提供する公開 API 
 | `ItemActivated` | event | 項目が 2 回押されたときに発生する（`ThumbnailActivatedEventArgs`） |
 | `Options` | property | 計算に必要な設定（既定は `ThumbnailOptions.Default`）。 変更すると配置を解き直す |
 | `Appearance` | property | 外観（既定は `ThumbnailAppearance.Default`）。 変更すると描き直す |
-| `IsDarkTheme` | property | 暗色テーマかどうか（既定は false）。 変更すると描き直す |
+| `IsDarkTheme` | property | 暗色テーマかどうか（既定は false）。 変更すると描き直す。 **WinForms はテーマを持たないため、明暗はホストが指定する**（他の UI はフレームワークのテーマから自動で読む） |
 | `ImageWidth` | property | 画像の幅（DIP。既定は 96）。 **0 以下の指定は既定の下限へ引き上げられる** |
 | `ItemCount` | property（get） | 項目数 |
 | `SelectedIndex` | property | 選択中の添字。 範囲外と -1 は選択の解除 |

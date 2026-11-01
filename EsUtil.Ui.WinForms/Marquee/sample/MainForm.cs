@@ -154,6 +154,15 @@ internal static class MainForm
                 marquee.DrawPlanResolver = value ? static plan => GuideMarqueePlan.Resolve(in plan) : null));
 
         // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
+        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        var methods = Column(
+            SampleSettings.Buttons(
+                ("選択をクリア", () => marquee.ResetSelection()),
+                ("矩形を設定", () => marquee.SetSelection(new EsRect(250, 180, 300, 200))),
+                ("確定を要求", () => marquee.RequestConfirm()),
+                ("キャンセルを要求", () => marquee.RequestCancel())));
+
+        // ── サンプル設定（サンプルアプリの外観と状態） ──
         var samples = Column(
             SampleSettings.LogLevel(logging),
             new Label
@@ -163,16 +172,12 @@ internal static class MainForm
                 MaximumSize = new Size(SampleShell.SettingsWidth - 80, 0),
             },
             SampleSettings.Buttons(
-                ("選択をクリア", () => marquee.ResetSelection()),
-                ("矩形を設定", () => marquee.SetSelection(new EsRect(250, 180, 300, 200))),
                 ("ハイライト切替", ToggleHighlight),
-                ("確定を要求", () => marquee.RequestConfirm()),
-                ("キャンセルを要求", () => marquee.RequestCancel()),
                 ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
             status);
 
         var log = new SampleLogPanel(logging.Buffer);
-        var form = SampleShell.Create("MarqueeControl サンプル（WinForms）", properties, samples, surface, log);
+        var form = SampleShell.Create("MarqueeControl サンプル（WinForms）", properties, methods, samples, surface, log);
         form.FormClosed += (_, _) =>
         {
             canvas.Image?.Dispose();

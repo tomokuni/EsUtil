@@ -81,6 +81,9 @@ public sealed partial class ThumbnailControl : Grid
             // 変更前と変更後の両方を描き直す（前の項目に選択の見た目が残らないようにする）
             RefreshStates(e.PreviousIndex, e.Index);
         };
+
+        // テーマはフレームワークが切り替える（明暗で色が変わるため、切り替わったら解決し直す）
+        ActualThemeChanged += (_, _) => OnThemeChanged();
     }
 
     /// <summary>一覧がスクロールされたときに発生する。</summary>
@@ -178,25 +181,14 @@ public sealed partial class ThumbnailControl : Grid
 
     /// <summary>描画計画を差し替える関数の保持先。<see cref="DrawPlanResolver"/> が変更時に反映する。</summary>
     private Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? _drawPlanResolver;
-    /// <summary>暗色テーマかどうかを取得または設定する。</summary>
-    /// <value>暗色テーマの場合は true。 既定は false。</value>
-    /// <remarks>変更すると見た目を解決し直す（背景色のテーマ切り替え）。</remarks>
-    public bool IsDarkTheme
-    {
-        get;
-        set
-        {
-            if (field == value)
-            {
-                return;
-            }
-
-            var previous = field;
-            field = value;
-            _log.LogSettingChanged(nameof(IsDarkTheme), previous.ToString(), value.ToString());
-            Refresh();
-        }
-    }
+    /// <summary>現在のテーマが暗色かどうかを取得する。</summary>
+    /// <value>ダークの場合は true。</value>
+    /// <remarks>
+    /// <b>テーマはフレームワークが決める</b>: <see cref="FrameworkElement.ActualTheme"/> をそのまま読む<br/>
+    /// （ホストが明暗を指定する必要はない）。 テーマが切り替わると <c>ActualThemeChanged</c> が届き、<br/>
+    /// 本コントロールが自動で見た目を解決し直す（<see cref="Refresh"/>）。
+    /// </remarks>
+    private bool IsDarkTheme => ActualTheme == ElementTheme.Dark;
 
     /// <summary>画像の幅（DIP）を取得または設定する。</summary>
     /// <value>表示モードの一辺。 0 以下の指定は既定の下限へ引き上げる。</value>
@@ -461,6 +453,13 @@ public sealed partial class ThumbnailControl : Grid
         {
             ApplyState(second);
         }
+    }
+
+    /// <summary>テーマが切り替わったときに見た目を解決し直す。</summary>
+    private void OnThemeChanged()
+    {
+        _log.LogThemeChanged(IsDarkTheme);
+        Refresh();
     }
 
     /// <summary>項目を置く面（配置はコアの計算に従う）。</summary>

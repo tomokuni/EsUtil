@@ -178,7 +178,12 @@ internal static class MainWindow
             preview);
 
         var window = SampleShell.Create(
-            "ColorComboBoxControl サンプル（MewUI）", properties, samples, new ScrollViewer().Content(content), log);
+            "ColorComboBoxControl サンプル（MewUI）",
+            properties,
+            methodSettings: null,
+            samples,
+            new ScrollViewer().Content(content),
+            log);
         window.Closed += () => logging.Dispose();
 
         UpdateStatus(status, error, values, preview);

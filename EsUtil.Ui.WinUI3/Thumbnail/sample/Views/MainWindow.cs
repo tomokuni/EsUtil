@@ -63,9 +63,6 @@ public sealed class MainWindow : Window
 
         var appearance = ThumbnailAppearance.Default;
 
-        // 表示テーマは下の設定で切り替わるため、初期値をアプリのテーマに合わせる
-        _thumbnails.IsDarkTheme = SampleTheme.IsDark;
-
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
         var properties = new StackPanel
         {
@@ -94,7 +91,20 @@ public sealed class MainWindow : Window
             },
         };
 
-        // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
+        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        var methods = new StackPanel
+        {
+            Spacing = 6,
+            Children =
+            {
+                SampleSettings.Buttons(
+                    ("追加", AddItem),
+                    ("12 件に戻す", ResetItems),
+                    ("末尾へスクロール", () => _thumbnails.ScrollToIndex(_thumbnails.ItemCount - 1))),
+            },
+        };
+
+        // ── サンプル設定（サンプルアプリの外観と状態） ──
         var samples = new StackPanel
         {
             Spacing = 6,
@@ -102,11 +112,7 @@ public sealed class MainWindow : Window
             {
                 SampleSettings.LogLevel(_logging),
                 _status,
-                SampleSettings.Buttons(
-                    ("追加", AddItem),
-                    ("12 件に戻す", ResetItems),
-                    ("末尾へスクロール", () => _thumbnails.ScrollToIndex(_thumbnails.ItemCount - 1)),
-                    ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
+                SampleSettings.Buttons(("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
             },
         };
 
@@ -123,15 +129,10 @@ public sealed class MainWindow : Window
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 900));
         Content = SampleShell.CreateContent(
             properties,
+            methods,
             samples,
             _thumbnails,
-            log,
-            themeChanged: value =>
-            {
-                // コントロールはアプリのテーマを知らないため、切り替わったら伝える
-                _thumbnails.IsDarkTheme = value;
-                _thumbnails.Refresh();
-            });
+            log);
         Closed += (_, _) => _logging.Dispose();
 
         return;

@@ -53,7 +53,7 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 | 「追加」ボタン | 画像を 1 件生成して末尾へ追加（`Add`） |
 | 「12 件に戻す」ボタン | 一覧を空にして 12 件を作り直す（`ClearItems` ＋ `Add`） |
 | 「末尾へスクロール」ボタン | `ScrollToIndex(ItemCount - 1)` |
-| 「暗色テーマ」チェック | `IsDarkTheme` ＋ `Refresh()`（WinForms はテーマを持たないため個別に指定） |
+| 「暗色テーマ」チェック（プロパティ設定） | `IsDarkTheme` ＋ `Refresh()`（WinForms はテーマを持たないため、明暗はホストが指定する） |
 | 項目を 1 回押す | 選択（`SelectedIndex` と `SelectionChanged`） |
 | 項目を 2 回押す | 確定（`ItemActivated`。 状態表示に添字を出す） |
 | 項目へマウスを重ねる | ホバー帯の表示 |

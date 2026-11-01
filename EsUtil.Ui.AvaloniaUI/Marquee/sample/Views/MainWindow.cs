@@ -203,6 +203,21 @@ public sealed class MainWindow : Window
         };
 
         // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
+        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        var methods = new StackPanel
+        {
+            Spacing = 6,
+            Children =
+            {
+                SampleSettings.Buttons(
+                    ("選択をクリア", () => _marquee.ResetSelection()),
+                    ("矩形を設定", () => _marquee.SetSelection(new Rect(250, 180, 300, 200))),
+                    ("確定を要求", () => _marquee.RequestConfirm()),
+                    ("キャンセルを要求", () => _marquee.RequestCancel())),
+            },
+        };
+
+        // ── サンプル設定（サンプルアプリの外観と状態） ──
         var samples = new StackPanel
         {
             Spacing = 6,
@@ -216,18 +231,14 @@ public sealed class MainWindow : Window
                     TextWrapping = TextWrapping.Wrap,
                 },
                 SampleSettings.Buttons(
-                    ("選択をクリア", () => _marquee.ResetSelection()),
-                    ("矩形を設定", () => _marquee.SetSelection(new Rect(250, 180, 300, 200))),
                     ("ハイライト切替", ToggleHighlight),
-                    ("確定を要求", () => _marquee.RequestConfirm()),
-                    ("キャンセルを要求", () => _marquee.RequestCancel()),
                     ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
                 _status,
             },
         };
 
         var log = new SampleLogPanel(_logging.Buffer);
-        Content = SampleShell.CreateContent(properties, samples, scroll, log);
+        Content = SampleShell.CreateContent(properties, methods, samples, scroll, log);
         Closed += (_, _) =>
         {
             _logging.Dispose();

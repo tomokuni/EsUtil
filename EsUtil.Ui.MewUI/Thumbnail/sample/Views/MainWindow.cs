@@ -35,13 +35,11 @@ internal static class MainWindow
         var status = new TextBlock().Text("サムネイルを選択してください。").FontSize(11);
         var appearance = ThumbnailAppearance.Default;
 
-        // 表示テーマは下の設定で切り替わるため、初期値をアプリのテーマに合わせる
         var thumbnails = new ThumbnailControl
         {
             ImageWidth = 160,
             Log = logger,
             LogPrefix = "[Thumbnail]",
-            IsDarkTheme = SampleTheme.IsDark,
         };
 
         // 選択と現在項目は利用者の操作でコントロール側が変えるため、設定パネルの表示を追随させる
@@ -88,10 +86,8 @@ internal static class MainWindow
             SampleSettings.Check("描画計画を差し替える（強調色）", false, value =>
                 thumbnails.DrawPlanResolver = value ? static plan => GuideThumbnailPlan.Resolve(in plan) : null));
 
-        // サンプル設定（サンプル固有の操作。 並びは他 UI と共通）
-        var samples = new StackPanel().Vertical().Spacing(6).Children(
-            SampleSettings.LogLevel(logging),
-            status,
+        // メソッド操作（対象コントロールのメソッド実行）
+        var methods = new StackPanel().Vertical().Spacing(6).Children(
             SampleSettings.Buttons(
                 ("追加", () => AddItem(thumbnails, status)),
                 ("12 件に戻す", () =>
@@ -107,8 +103,13 @@ internal static class MainWindow
                     thumbnails.CurrentIndex = 0;
                 }
         ),
-                ("末尾へスクロール", () => thumbnails.ScrollToIndex(thumbnails.ItemCount - 1)),
-                ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))));
+                ("末尾へスクロール", () => thumbnails.ScrollToIndex(thumbnails.ItemCount - 1))));
+
+        // サンプル設定（サンプルアプリの外観と状態）
+        var samples = new StackPanel().Vertical().Spacing(6).Children(
+            SampleSettings.LogLevel(logging),
+            status,
+            SampleSettings.Buttons(("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))));
 
         for (var i = 0; i < 12; i++)
         {
@@ -121,15 +122,10 @@ internal static class MainWindow
         var window = SampleShell.Create(
             "ThumbnailControl サンプル（MewUI）",
             properties,
+            methods,
             samples,
             thumbnails,
-            log,
-            themeChanged: value =>
-            {
-                // コントロールはアプリのテーマを知らないため、切り替わったら伝える
-                thumbnails.IsDarkTheme = value;
-                thumbnails.Refresh();
-            });
+            log);
         window.Closed += () => logging.Dispose();
         return window;
 

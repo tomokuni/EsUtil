@@ -201,6 +201,15 @@ internal static class MainWindow
                 marquee.DrawPlanResolver = value ? static plan => GuideMarqueePlan.Resolve(in plan) : null));
 
         // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
+        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        var methods = new StackPanel().Vertical().Spacing(6).Children(
+            SampleSettings.Buttons(
+                ("選択をクリア", () => marquee.ResetSelection()),
+                ("矩形を設定", () => marquee.SetSelection(new EsRect(250, 180, 300, 200))),
+                ("確定を要求", () => marquee.RequestConfirm()),
+                ("キャンセルを要求", () => marquee.RequestCancel())));
+
+        // ── サンプル設定（サンプルアプリの外観と状態） ──
         var samples = new StackPanel().Vertical().Spacing(6).Children(
             SampleSettings.LogLevel(logging),
             new TextBlock
@@ -210,15 +219,11 @@ internal static class MainWindow
                 TextWrapping = TextWrapping.Wrap,
             },
             SampleSettings.Buttons(
-                ("選択をクリア", () => marquee.ResetSelection()),
-                ("矩形を設定", () => marquee.SetSelection(new EsRect(250, 180, 300, 200))),
                 ("ハイライト切替", ToggleHighlight),
-                ("確定を要求", () => marquee.RequestConfirm()),
-                ("キャンセルを要求", () => marquee.RequestCancel()),
                 ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
             selectionText);
 
-        var window = SampleShell.Create("MarqueeControl サンプル（MewUI）", properties, samples, scroll, log);
+        var window = SampleShell.Create("MarqueeControl サンプル（MewUI）", properties, methods, samples, scroll, log);
         window.Closed += () =>
         {
             backdrop.Dispose();

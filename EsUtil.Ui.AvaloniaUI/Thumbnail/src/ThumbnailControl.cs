@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Styling;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 using Microsoft.Extensions.Logging;
@@ -65,6 +66,9 @@ public sealed class ThumbnailControl : ScrollViewer
         _panel.PointerExited += OnPointerExited;
         _panel.PointerPressed += OnPointerPressed;
         _panel.DoubleTapped += OnDoubleTapped;
+
+        // テーマはフレームワークが切り替える（明暗で色が変わるため、切り替わったら解決し直す）
+        ActualThemeVariantChanged += (_, _) => OnThemeChanged();
 
         _selection.Changed += (_, e) =>
         {
@@ -169,25 +173,14 @@ public sealed class ThumbnailControl : ScrollViewer
     /// <summary>描画計画を差し替える関数の保持先。<see cref="DrawPlanResolver"/> が変更時に反映する。</summary>
     private Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? _drawPlanResolver;
 
-    /// <summary>暗色テーマかどうかを取得または設定する。</summary>
-    /// <value>暗色テーマの場合は true。 既定は false。</value>
-    /// <remarks>変更すると見た目を解決し直す（背景色のテーマ切り替え）。</remarks>
-    public bool IsDarkTheme
-    {
-        get;
-        set
-        {
-            if (field == value)
-            {
-                return;
-            }
-
-            var previous = field;
-            field = value;
-            _log.LogSettingChanged(nameof(IsDarkTheme), previous.ToString(), value.ToString());
-            Refresh();
-        }
-    }
+    /// <summary>現在のテーマが暗色かどうかを取得する。</summary>
+    /// <value>ダークの場合は true。</value>
+    /// <remarks>
+    /// <b>テーマはフレームワークが決める</b>: <see cref="StyledElement.ActualThemeVariant"/> をそのまま読む<br/>
+    /// （ホストが明暗を指定する必要はない）。 テーマが切り替わると <c>ActualThemeVariantChanged</c> が届き、<br/>
+    /// 本コントロールが自動で見た目を解決し直す（<see cref="Refresh"/>）。
+    /// </remarks>
+    private bool IsDarkTheme => ThemeVariant.Dark.Equals(ActualThemeVariant);
 
     /// <summary>画像の幅（DIP）を取得または設定する。</summary>
     /// <value>表示モードの一辺。 0 以下の指定は既定の下限へ引き上げる。</value>
@@ -461,6 +454,13 @@ public sealed class ThumbnailControl : ScrollViewer
         {
             ApplyState(second);
         }
+    }
+
+    /// <summary>テーマが切り替わったときに見た目を解決し直す。</summary>
+    private void OnThemeChanged()
+    {
+        _log.LogThemeChanged(IsDarkTheme);
+        Refresh();
     }
 
     /// <summary>項目を並べるパネル（配置はコアの計算に従う）。</summary>

@@ -224,7 +224,7 @@ public sealed class MainWindow : Window
         };
 
         var log = new SampleLogPanel(_logging.Buffer);
-        Content = SampleShell.CreateContent(properties, samples, content, log);
+        Content = SampleShell.CreateContent(properties, methodSettings: null, samples, content, log);
         Closed += (_, _) => _logging.Dispose();
 
         UpdateStatus();

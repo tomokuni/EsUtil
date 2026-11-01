@@ -101,6 +101,24 @@ internal static partial class ThumbnailLogMessage
         logger.LogSettingChanged(name, oldText, newText);
     }
 
+    /// <summary>表示テーマの切り替えを記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Thumbnail] Theme changed: dark={IsDark}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="isDark">切り替え後のテーマが暗色かどうか。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Theme changed: dark={IsDark}")]
+    private static partial void LogThemeChangedCore(this ILogger logger, string prefix, bool isDark);
+
+    /// <summary>表示テーマの切り替えを記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="isDark">切り替え後のテーマが暗色かどうか。</param>
+    /// <remarks>
+    /// テーマはコントロールの設定ではなくフレームワークの状態である（<see cref="LogSettingChanged"/> では記録しない）。<br/>
+    /// 明暗が変わると背景・ホバー・選択の色が変わるため、切り替わったことを残す。
+    /// </remarks>
+    internal static void LogThemeChanged(this ILogger logger, bool isDark)
+        => logger.LogThemeChangedCore(Prefix, isDark);
+
     /// <summary>画像をログ用の文字列（<c>幅x高さ</c>）へ整形する。</summary>
     /// <param name="image">対象の画像。 null は「画像なし」。</param>
     /// <returns><c>幅x高さ</c> 形式の文字列。 null は <c>null</c>。</returns>

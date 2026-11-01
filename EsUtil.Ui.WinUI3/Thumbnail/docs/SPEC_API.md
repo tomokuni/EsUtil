@@ -47,7 +47,6 @@ WinUI 3 版のサムネイル一覧コントロールが提供する公開 API �
 | `Presentation` | property（get） | 提示層（設定・外観・描画計画の解決）。 派生した提示を使う場合は `Options` / `Appearance` ではなく本プロパティを設定する |
 | `Options` | property | 計算に必要な設定（既定は `ThumbnailOptions.Default`）。 設定すると自動で配置を解き直す |
 | `Appearance` | property | 外観（既定は `ThumbnailAppearance.Default`）。 設定すると自動で描き直す |
-| `IsDarkTheme` | property | 暗色テーマかどうか（既定は false）。 **変更後は `Refresh()` を呼ぶ** |
 | `ImageWidth` | property | 画像の幅（DIP。既定は 96）。 **0 以下の指定は既定の下限へ引き上げられる**。 **変更後は `Refresh()` を呼ぶ** |
 | `ItemCount` | property（get） | 項目数 |
 | `SelectedIndex` | property | 選択中の添字。 範囲外と -1 は選択の解除 |
@@ -59,7 +58,7 @@ WinUI 3 版のサムネイル一覧コントロールが提供する公開 API �
 | `SetImage(int index, EsReadOnlyBitmap? image)` | method | 項目の画像を差し替える（null は画像を消す）。 範囲外は何もしない |
 | `SetCaption(int index, string caption)` | method | 項目の名前を差し替える |
 | `ScrollToIndex(int index)` | method | 項目を表示領域へスクロールする |
-| `Refresh()` | method | 配置と見た目を解決し直す（`IsDarkTheme` / `ImageWidth` の変更後に呼ぶ） |
+| `Refresh()` | method | 配置と見た目を解決し直す（`ImageWidth` の変更後などに呼ぶ） |
 | `Log` | property | ログの出力先（null は `NullLogger`）。 画像と項目数の変更を本コントロールが記録する。 同じロガーを提示層・コアへ渡す |
 | `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 提示層・コアへ伝搬する |
 
@@ -83,7 +82,6 @@ using EsUtil.Ui.WinUI3.Thumbnail;
 var list = new ThumbnailControl
 {
     ImageWidth = 96,
-    IsDarkTheme = true,
     Options = ThumbnailOptions.Default with { ColumnSpace = 4 },
 };
 
@@ -114,4 +112,5 @@ var visible = list.VisibleRange;
 - **画像の所有権はホストに残ります**（コントロールはピクセルを複製せず、非所有ビューとして描画します）。
 - **単体テストは `tests/` にあります**（検証の範囲と手順は [`../../.github/検証手順.md`](../../../.github/検証手順.md) を参照）。
 - **複数選択は提供しません**（単一選択だけです）。
-- **`Options` / `Appearance` の変更は自動で反映されます**（`IsDarkTheme` / `ImageWidth` は `Refresh()` を呼んでください）。
+- **`Options` / `Appearance` の変更は自動で反映されます**（`ImageWidth` は `Refresh()` を呼んでください）。
+- **明暗（テーマ）はコントロールが自分で読みます**（`ActualTheme`）。 ホストが明暗を指定する必要はなく、切り替わると配色（ホバー・選択の背景）が自動で追随します。

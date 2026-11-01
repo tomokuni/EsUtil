@@ -160,6 +160,22 @@ public sealed class MainWindow : Window
                 }),
                 SampleSettings.Slider("中心 X", 120, 0, ImageWidth, 10, true, value => SetCenter(value, _loupe.CenterPoint?.Y ?? 0)),
                 SampleSettings.Slider("中心 Y", 120, 0, ImageHeight, 10, true, value => SetCenter(_loupe.CenterPoint?.X ?? 0, value)),
+                SampleSettings.Buttons(
+                    ("ソースを設定", () => _loupe.Source = _source),
+                    ("ソースを解除（描画資源を解放）", () =>
+                    {
+                        _loupe.Visibility = Visibility.Collapsed;
+                        _loupe.Source = null;
+                        loupeVisible.IsChecked = false;
+                        UpdatePlacement();
+                    }),
+                    ("ソースを設定して再表示", () =>
+                    {
+                        _loupe.Source = _source;
+                        loupeVisible.IsChecked = true;
+                        _loupe.Visibility = Visibility.Visible;
+                        UpdatePlacement();
+                    })),
                 ColorChoice("十字線の色", 7, index => Apply(_appearance with
                 {
                     CrossColor = ResolveColor(index, _appearance.CrossColor),
@@ -195,25 +211,7 @@ public sealed class MainWindow : Window
             Children =
             {
                 SampleSettings.LogLevel(_logging),
-                SampleSettings.Buttons(
-                    ("ソースを設定", () => _loupe.Source = _source),
-                    ("ソースを解除（描画資源を解放）", () =>
-                    {
-                        _loupe.Visibility = Visibility.Collapsed;
-                        _loupe.Source = null;
-                        loupeVisible.IsChecked = false;
-                        UpdatePlacement();
-                    })),
-                SampleSettings.Buttons(
-                    ("再描画を要求", () => _loupe.RequestRedraw()),
-                    ("ソースを設定して再表示", () =>
-                    {
-                        _loupe.Source = _source;
-                        loupeVisible.IsChecked = true;
-                        _loupe.Visibility = Visibility.Visible;
-                        UpdatePlacement();
-                    }),
-                    ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
+                SampleSettings.Buttons(("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
                 SampleSettings.Check("選択矩形を表示", true, value => _selection.IsVisible = value),
                 SampleSettings.Number("選択矩形 X", _selection.X, 0, ImageWidth, 10, true, value => _selection.X = value),
                 SampleSettings.Number("選択矩形 Y", _selection.Y, 0, ImageHeight, 10, true, value => _selection.Y = value),
@@ -234,7 +232,17 @@ public sealed class MainWindow : Window
         var log = new SampleLogPanel(_logging.Buffer);
         Title = "LoupeControl サンプル（WinUI 3）";
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 900));
-        Content = SampleShell.CreateContent(properties, samples, scroll, log);
+        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        var methods = new StackPanel
+        {
+            Spacing = 6,
+            Children =
+            {
+                SampleSettings.Buttons(("再描画を要求", () => _loupe.RequestRedraw())),
+            },
+        };
+
+        Content = SampleShell.CreateContent(properties, methods, samples, scroll, log);
         Closed += (_, _) =>
         {
             _logging.Dispose();
