@@ -28,6 +28,13 @@ public sealed class MainWindow : Window
         "アスタリスク", "スラッシュ",
     ];
 
+    /// <summary>タイルの文字色。</summary>
+    /// <remarks>
+    /// <b>文字色も固定する理由</b>: タイルの地色は明るい色で固定している。 文字色をテーマの既定（ダークでは白）に任せると、
+    /// 明るい地色の上で読めなくなる（実測 2026-11-01）。
+    /// </remarks>
+    private static readonly SolidColorBrush s_tileTextBrush = new(Color.FromArgb(0xFF, 0x20, 0x20, 0x20));
+
     /// <summary>データから子を作るときの見た目（データ駆動の子は青、直接の子は橙）。</summary>
     /// <remarks>
     /// XAML を使わないサンプルのため、テンプレートはコードで作る（<c>DataContext</c> に項目が入る）。
@@ -43,6 +50,7 @@ public sealed class MainWindow : Window
             Child = new TextBlock
             {
                 Text = item?.Label ?? string.Empty,
+                Foreground = s_tileTextBrush,
                 Margin = new Thickness(8, 4, 8, 4),
                 VerticalAlignment = VerticalAlignment.Center,
             },
@@ -233,6 +241,7 @@ public sealed class MainWindow : Window
             Child = new TextBlock
             {
                 Text = text,
+                Foreground = s_tileTextBrush,
                 Margin = new Thickness(8, 4, 8, 4),
                 VerticalAlignment = VerticalAlignment.Center,
             },

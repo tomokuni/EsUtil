@@ -102,7 +102,9 @@ public sealed class MainWindow : Window
         logger.LogInformation("サンプルを起動しました。");
 
         // ── 画像とルーペを重ねるキャンバス ──
-        var canvas = new Canvas { Background = Brushes.White, ClipToBounds = true };
+        // 地色は固定せず、テーマの地色を透かす（白で固定するとダークで画像の余白が白い帯として残る。 実測 2026-11-01）。
+        // 当たり判定は必要（PointerMoved を受ける）ため、null ではなく透過色を指定する。
+        var canvas = new Canvas { Background = Brushes.Transparent, ClipToBounds = true };
         var image = new Image
         {
             Source = _source.ToAvaloniaBitmap(),

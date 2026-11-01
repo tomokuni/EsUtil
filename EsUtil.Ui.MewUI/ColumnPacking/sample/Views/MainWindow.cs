@@ -179,6 +179,10 @@ internal static class MainWindow
 
     /// <summary>データから作る子の土台（枠だけ）を作る。</summary>
     /// <returns>作った要素。</returns>
+    /// <remarks>
+    /// <b>文字色も固定する理由</b>: タイルの地色は明るい色で固定している。 文字色をテーマの既定（ダークでは白）に任せると、
+    /// 明るい地色の上で読めなくなる（実測 2026-11-01）。
+    /// </remarks>
     private static Border CreateItemBorder()
         => new()
         {
@@ -186,7 +190,12 @@ internal static class MainWindow
             BorderBrush = MewColor.FromRgb(0x1E, 0x88, 0xE5),
             BorderThickness = 1,
             CornerRadius = 4,
-            Child = new TextBlock { Margin = new Thickness(8, 4, 8, 4), VerticalAlignment = VerticalAlignment.Center },
+            Child = new TextBlock
+            {
+                Foreground = MewColor.FromRgb(0x20, 0x20, 0x20),
+                Margin = new Thickness(8, 4, 8, 4),
+                VerticalAlignment = VerticalAlignment.Center,
+            },
         };
 
     /// <summary>データから作る子へ項目の値を写す。</summary>
@@ -221,6 +230,7 @@ internal static class MainWindow
             Child = new TextBlock
             {
                 Text = text,
+                Foreground = MewColor.FromRgb(0x20, 0x20, 0x20),
                 Margin = new Thickness(8, 4, 8, 4),
                 VerticalAlignment = VerticalAlignment.Center,
             },

@@ -52,7 +52,7 @@ public static class SampleShell
         ArgumentNullException.ThrowIfNull(log);
 
         // 表示テーマはサンプル共通の設定（WinForms はテーマを持たないため本クラスを使わない）
-        var themeRow = SampleSettings.Choice(
+        var themeField = SampleSettings.ChoiceRow(
             "表示テーマ",
             [.. SampleTheme.Choices],
             SampleTheme.CurrentIndex(),
@@ -64,7 +64,7 @@ public static class SampleShell
 
         // 表示テーマはサンプル設定の先頭へ置く（サンプル固有の操作より前）
         var sampleBody = new StackPanel().Vertical().Spacing(6);
-        sampleBody.Children(themeRow, sampleSettings);
+        sampleBody.Children(themeField.Element, sampleSettings);
 
         var settingsBody = new StackPanel().Vertical().Spacing(12);
         settingsBody.Children(SampleSettings.Area("プロパティ設定", propertySettings));
@@ -109,6 +109,11 @@ public static class SampleShell
             .Title(title)
             .Resizable(width, height, minWidth: 900, minHeight: 600);
         window.Content(root);
+
+        // MewUI は Application.Run までテーマを読めないため、初期化前の選択はライトになる。
+        // 初期化後（Loaded）とテーマの切り替わり（ThemeChanged）に、表示を実際のテーマへ合わせる。
+        window.Loaded += () => themeField.SetValue(SampleTheme.CurrentIndex());
+        window.ThemeChanged += (_, _) => themeField.SetValue(SampleTheme.CurrentIndex());
         return window;
     }
 }
