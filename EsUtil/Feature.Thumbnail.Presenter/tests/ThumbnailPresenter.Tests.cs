@@ -101,19 +101,20 @@ public class ThumbnailPresenterTests
     /// <summary>外観から決まる寸法を求めることを検証する。</summary>
     /// <remarks>
     /// 影の余白と名前の行の高さは利用者の設定ではない（設定に混ぜると「設定したのに効かない項目」が生まれる）。
-    /// 外観の影と文字サイズから求めて配置の計算へ渡す。
+    /// 外観の影と文字サイズから求めて配置の計算へ渡す。 名前の行の高さは上下の余白を含む
+    /// （含めないと余白を増やした分だけ文字を置ける高さが減り、2 行目が切れる）。
     /// </remarks>
     [Fact]
     internal void ResolveMetrics_影の余白と名前の行の高さを外観から求める()
     {
         var presenter = new ThumbnailPresenter(
-            appearance: ThumbnailAppearance.Default with { LabelFontSize = 11 });
+            appearance: ThumbnailAppearance.Default with { LabelFontSize = 11, LabelVerticalPadding = 3 });
 
         var metrics = presenter.ResolveMetrics();
 
         Assert.Equal(10, metrics.SlotInset, 6);
         Assert.Equal(
-            ThumbnailLabelText.ResolveHeight(11, ThumbnailLabelText.MaxLines), metrics.LabelHeight, 6);
+            ThumbnailLabelText.ResolveHeight(11, ThumbnailLabelText.MaxLines) + 6, metrics.LabelHeight, 6);
     }
 
     /// <summary>影を描かない外観では余白が 0 になることを検証する。</summary>
@@ -124,6 +125,23 @@ public class ThumbnailPresenterTests
             appearance: ThumbnailAppearance.Default with { Shadow = null });
 
         Assert.Equal(0, presenter.ResolveMetrics().SlotInset, 6);
+    }
+
+    /// <summary>影の表示を止めた外観では余白が 0 になり、計画にも影が載らないことを検証する。</summary>
+    /// <remarks>表示可否（<c>ShowShadow</c>）と算法（<c>Shadow</c>）を分けているため、算法を保ったまま止められる。</remarks>
+    [Fact]
+    internal void ShowShadowを止めると余白も影も無くなる()
+    {
+        var presenter = new ThumbnailPresenter(
+            appearance: ThumbnailAppearance.Default with { ShowShadow = false });
+        var layout = presenter.ResolveLayout(600, 110, [90]);
+
+        var plan = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, -1, false);
+
+        Assert.Equal(0, presenter.ResolveMetrics().SlotInset, 6);
+        Assert.Null(plan.Shadow);
+        Assert.DoesNotContain(ThumbnailDrawLayer.Shadow, plan.Layers);
+        Assert.Equal(plan.Image, plan.ShadowArea);
     }
     /// <summary>選択の背景がホバーより優先されることを検証する。</summary>
     [Fact]
@@ -306,9 +324,11 @@ public class ThumbnailPresenterTests
             bool isCurrent,
             int selectedIndex,
             int hoveredIndex,
-            bool isDark)
+            bool isDark,
+            ThumbnailTextMeasure? measureText = null)
         {
-            var plan = base.ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex, isDark);
+            var plan = base.ResolveDrawPlan(
+                layout, index, text, isCurrent, selectedIndex, hoveredIndex, isDark, measureText);
 
             return plan with
             {

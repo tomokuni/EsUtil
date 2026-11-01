@@ -56,7 +56,7 @@ internal static class MainForm
         // ── ルーペ（マウス追従） ──
         var appearance = LoupeAppearance.Default;
         var zoomLevel = 4;
-        var requestedSize = 240;
+        var requestedSize = 160;
         var loupe = new LoupeControl
         {
             Source = source,
@@ -140,7 +140,7 @@ internal static class MainForm
                 requestedSize = (int)value;
                 ApplyOptions();
             }),
-            SampleSettings.Slider("位置オフセット", 24, 0, 64, 4, true, value =>
+            SampleSettings.Slider("位置オフセット", 0, 0, 64, 4, true, value =>
             {
                 loupe.PositionOffset = value;
                 host.UpdateLoupeBounds();
@@ -174,13 +174,13 @@ internal static class MainForm
                 BorderColor = ResolveColor(index, appearance.BorderColor),
                 ShowBorder = s_colorChoices[index].Color is not null,
             })),
-            SampleSettings.Slider("枠線の太さ", 1, 0, 8, 1, true, value => ApplyAppearance(appearance with { BorderThickness = (int)value })),
+            SampleSettings.Slider("枠線の太さ", 2, 1, 8, 1, true, value => ApplyAppearance(appearance with { BorderThickness = (int)value })),
             SampleSettings.Check("座標ラベルを表示", true, value => ApplyAppearance(appearance with { ShowCoordLabel = value })),
             ColorChoice("座標ラベルの色", 4, index => ApplyAppearance(appearance with { CoordLabelColor = ResolveColor(index, appearance.CoordLabelColor) })),
             ColorChoice("座標ラベルの背景色", 8, index => ApplyAppearance(appearance with { CoordLabelBackgroundColor = ResolveColor(index, appearance.CoordLabelBackgroundColor) })),
-            SampleSettings.Slider("座標ラベルの文字サイズ", 11, 6, 24, 1, true, value => ApplyAppearance(appearance with { CoordLabelFontSize = value })),
+            SampleSettings.Slider("座標ラベルの文字サイズ", 12, 6, 24, 1, true, value => ApplyAppearance(appearance with { CoordLabelFontSize = value })),
             SampleSettings.Slider("座標ラベルの角丸", 2, 0, 12, 1, true, value => ApplyAppearance(appearance with { CoordLabelCornerRadius = (int)value })),
-            SampleSettings.Slider("座標ラベルの間隔", 4, 0, 24, 1, true, value => ApplyAppearance(appearance with { CoordLabelOffset = value })));
+            SampleSettings.Slider("座標ラベルの間隔", 2, 0, 24, 1, true, value => ApplyAppearance(appearance with { CoordLabelOffset = value })));
 
         // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
         var samples = Column(

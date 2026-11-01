@@ -170,14 +170,16 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
     /// <returns>配置の計算へ渡す寸法。</returns>
     /// <remarks>
     /// <b>影の余白</b>: 影の算法（<see cref="IThumbnailShadowPlan.Insets"/>）の最大の辺を使う（影が切れない幅）。<br/>
-    /// 影を描かない外観では 0（画像のすぐ外側に帯が付く）。<br/>
-    /// <b>名前の行の高さ</b>: 文字サイズから 2 行ぶんを確保する（利用者に数値で指定させない）。<br/>
+    /// 影を描かない外観（<see cref="ThumbnailAppearance.ShowShadow"/> が false、または影の計画が null）では 0<br/>
+    /// （画像のすぐ外側に帯が付く）。<br/>
+    /// <b>名前の行の高さ</b>: 文字サイズから 2 行ぶんを確保し、上下の余白（<see cref="ThumbnailAppearance.LabelVerticalPadding"/>）を足す<br/>
+    /// （余白を高さへ含めないと、余白を増やした分だけ文字を置ける高さが減り、2 行目が切れる。 実測 2026-11-01）。<br/>
     /// 1 行に収まる名前でも高さを変えない（行内の下端揃えで名前の位置が揃う）。
     /// </remarks>
     public ThumbnailMetrics ResolveMetrics()
     {
         var shadowInset = 0.0;
-        if (_appearance.Shadow is { } shadow)
+        if (_appearance.ShowShadow && _appearance.Shadow is { } shadow)
         {
             var insets = shadow.Insets;
             shadowInset = Math.Max(Math.Max(insets.Left, insets.Top), Math.Max(insets.Right, insets.Bottom));
@@ -185,7 +187,8 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
 
         return new ThumbnailMetrics(
             shadowInset,
-            ThumbnailLabelText.ResolveHeight(_appearance.LabelFontSize, ThumbnailLabelText.MaxLines));
+            ThumbnailLabelText.ResolveHeight(_appearance.LabelFontSize, ThumbnailLabelText.MaxLines)
+                + (_appearance.LabelVerticalPadding * 2));
     }
 
     /// <summary>1 件分の描画計画を解決する。</summary>
@@ -196,7 +199,14 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
     /// <param name="selectedIndex">選択中の添字（無い場合は -1）。</param>
     /// <param name="hoveredIndex">マウスが重なっている添字（無い場合は -1）。</param>
     /// <param name="isDark">暗色テーマかどうか。</param>
+    /// <param name="measureText">折り返した名前の実寸を測る関数。 null の場合は文字数から見積もる。</param>
     /// <returns>1 件分の描画計画。 添字が範囲外の場合は空の計画。</returns>
+    /// <remarks>
+    /// <b>名前の文言は実寸から決める</b>: 名前を置ける幅と高さ（左右・上下の余白を除いた値）へ収まるかを<br/>
+    /// <paramref name="measureText"/> に問い合わせ、収まらない場合だけ拡張子を残して省略する<br/>
+    /// （見積もりだけで決めると、実際の折り返しが想定より多い場合に省略されずに切れる。 実測 2026-11-01）。<br/>
+    /// <b>太字は現在項目のときだけ</b>適用し、測定にも同じ太字を渡す（太字は幅が広いため、通常の太さで測ると収まらない）。
+    /// </remarks>
     public virtual ThumbnailDrawPlan ResolveDrawPlan(
         ThumbnailLayoutResult layout,
         int index,
@@ -204,7 +214,8 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
         bool isCurrent,
         int selectedIndex,
         int hoveredIndex,
-        bool isDark)
+        bool isDark,
+        ThumbnailTextMeasure? measureText = null)
     {
         ArgumentNullException.ThrowIfNull(layout);
 
@@ -219,17 +230,20 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
                 : 0u;
 
         var highlighted = isSelected || isHovered;
-        var shadow = isSelected && _appearance.HideShadowWhenSelected ? null : _appearance.Shadow;
+        var shadow = !_appearance.ShowShadow || (isSelected && _appearance.HideShadowWhenSelected)
+            ? null
+            : _appearance.Shadow;
         var image = layout.Image(index);
         var shadowArea = shadow is null ? image : shadow.Expand(image);
 
         // 名前行は最大 2 行である（2 行に収まらない名前は拡張子を残して省略する）。
-        // 文字を置ける幅は行の幅から左右の余白を除いた値であり、太字は幅が広いため少なめに見積もる
+        // 文字を置ける幅と高さは行の矩形から余白を除いた値であり、太字は幅が広いため測定にも太字を渡す
         var labelBounds = layout.Label(index);
         var isBoldLabel = isCurrent && _appearance.BoldCurrentLabel;
         var textWidth = Math.Max(0, labelBounds.Width - (_options.LabelHorizontalPadding * 2));
+        var textHeight = Math.Max(0, labelBounds.Height - (_appearance.LabelVerticalPadding * 2));
         var labelText = ThumbnailLabelText.Fit(
-            text, textWidth, _appearance.LabelFontSize, ThumbnailLabelText.MaxLines, isBoldLabel);
+            text, textWidth, textHeight, _appearance.LabelFontSize, isBoldLabel, measureText);
 
         var label = new ThumbnailLabelPlan(
             labelText,

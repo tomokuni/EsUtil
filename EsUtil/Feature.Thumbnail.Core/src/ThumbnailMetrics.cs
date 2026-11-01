@@ -30,7 +30,7 @@ public readonly record struct ThumbnailMetrics
     public double SlotInset { get; }
 
     /// <summary>名前の行の高さを取得する。</summary>
-    /// <value>高さ（DIP）。 名前が 2 行でも高さを変えない（行内で項目の下端を揃えるため）。</value>
+    /// <value>高さ（DIP）。 文字が切れない 2 行ぶんに上下の余白を足した値であり、名前が 1 行でも高さを変えない（行内で項目の下端を揃えるため）。</value>
     public double LabelHeight { get; }
 
     /// <summary>負の値と非数を 0 にする。</summary>

@@ -188,12 +188,12 @@ internal static class MainWindow
             SampleSettings.Check("サイズ ラベルを表示", true, value => Apply(appearance with { ShowSizeLabel = value })),
             ColorChoice("サイズ ラベルの色", 0, index => Apply(appearance with { SizeLabelColor = ResolveColor(index) })),
             ColorChoice("サイズ ラベルの背景色", 6, index => Apply(appearance with { SizeLabelBackgroundColor = ResolveColor(index) })),
-            SampleSettings.Slider("サイズ ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { SizeLabelFontSize = value })),
+            SampleSettings.Slider("サイズ ラベルの文字サイズ", 14, 6, 24, 1, true, value => Apply(appearance with { SizeLabelFontSize = value })),
             SampleSettings.Slider("サイズ ラベルの表示スケール", 0, 0, 2, 0.1, false, value => marquee.DisplayScaleScaling = value),
             SampleSettings.Check("座標ラベルを表示", true, value => Apply(appearance with { ShowCoordLabel = value })),
             ColorChoice("座標ラベルの色", 0, index => Apply(appearance with { CoordLabelColor = ResolveColor(index) })),
             ColorChoice("座標ラベルの背景色", 6, index => Apply(appearance with { CoordLabelBackgroundColor = ResolveColor(index) })),
-            SampleSettings.Slider("座標ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { CoordLabelFontSize = value })),
+            SampleSettings.Slider("座標ラベルの文字サイズ", 12, 6, 24, 1, true, value => Apply(appearance with { CoordLabelFontSize = value })),
             SampleSettings.Slider("座標ラベルの間隔", 8, 0, 24, 1, true, value => Apply(appearance with { CoordLabelOffset = value })),
             SampleSettings.Slider("ラベルの余白", 4, 0, 24, 1, true, value => Apply(appearance with { LabelPadding = value })),
             SampleSettings.Text("ログ接頭辞", "[Marquee]", value => marquee.LogPrefix = value),
@@ -245,10 +245,25 @@ internal static class MainWindow
         }
 
         // ハイライトの対象を切り替える
+        // ハイライトは「注目矩形」を上書きする（外側マスク・枠線・サイズ ラベルがハイライトへ移る）。
+        // ハンドルは選択矩形に付くため、選択が無い場合は同じ矩形を選択にも設定して見た目を揃える。
         void ToggleHighlight()
         {
-            marquee.HighlightSourceRect = marquee.HighlightSourceRect is null ? new EsRect(120, 120, 400, 300) : null;
-            WriteLog(marquee.HighlightSourceRect is null ? "ハイライト解除" : "ハイライト設定");
+            if (marquee.HighlightSourceRect is not null)
+            {
+                marquee.HighlightSourceRect = null;
+                WriteLog("ハイライト解除（注目矩形は選択へ戻る）");
+                return;
+            }
+
+            var target = marquee.HasSelection ? marquee.SelectionSourceRect : new EsRect(120, 120, 400, 300);
+            if (!marquee.HasSelection)
+            {
+                marquee.SetSelection(target);
+            }
+
+            marquee.HighlightSourceRect = target;
+            WriteLog($"ハイライト設定: {FormatRect(target)}（注目矩形はハイライトを優先する）");
         }
     }
 

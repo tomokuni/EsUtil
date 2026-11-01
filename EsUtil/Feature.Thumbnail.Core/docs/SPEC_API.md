@@ -16,6 +16,7 @@
   - [2.7 `ThumbnailSelectionChangedEventArgs`（選択変更の引数）](#27-thumbnailselectionchangedeventargs選択変更の引数)
   - [2.8 `ThumbnailLabelText`（名前行に収める計算）](#28-thumbnaillabeltext名前行に収める計算)
   - [2.9 `ThumbnailMetrics`（外観から決まる寸法）](#29-thumbnailmetrics外観から決まる寸法)
+  - [2.10 `ThumbnailTextMeasure`（実寸の測定）](#210-thumbnailtextmeasure実寸の測定)
 - [3. 使用例](#3-使用例)
 - [4. 座標系](#4-座標系)
 - [5. 制限事項](#5-制限事項)
@@ -41,6 +42,7 @@
 | `ThumbnailOptions` | sealed record | 計算に必要な設定（余白・行の寸法・列数の上限）と既定値・補正 |
 | `ThumbnailSelection` | sealed class | 単一選択の状態（選択・解除・変更通知） |
 | `ThumbnailRange` | readonly record struct | 項目の連続した範囲（両端を含む） |
+| `ThumbnailTextMeasure` | delegate | 名前を折り返して描いたときの実寸を測る関数（UI 層が描画 API で実装する） |
 
 ### 2.2 `ThumbnailLayout`（純粋計算）
 
@@ -48,7 +50,7 @@
 
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
-| `Resolve(double availableWidth, double imageWidth, ReadOnlySpan<double> imageHeights, ThumbnailOptions? options = null)` | static method | 一覧の配置を解決する。 `availableWidth` は一覧の幅、`imageWidth` は画像の幅、`imageHeights` は項目ごとの画像の高さ（DIP）。 `options` が null の場合は `ThumbnailOptions.Default` |
+| `Resolve(double availableWidth, double imageWidth, ReadOnlySpan<double> imageHeights, ThumbnailOptions? options = null, ThumbnailMetrics metrics = default)` | static method | 一覧の配置を解決する。 `availableWidth` は一覧の幅、`imageWidth` は画像の幅、`imageHeights` は項目ごとの画像の高さ（DIP）。 `options` が null の場合は `ThumbnailOptions.Default`。 `metrics` は外観から決まる寸法（省略すると影の余白も名前の行も確保しない） |
 | `ImageHeight(double width, int pixelWidth, int pixelHeight)` | static method | 幅を固定して縦横比を保つ画像の高さを求める。 画像の寸法が不正（0 以下）な場合は `width` をそのまま返す（正方形） |
 
 - `Resolve` は **`ArgumentOutOfRangeException`** を送出します（`imageHeights` に負の値が含まれる場合）。
@@ -137,11 +139,14 @@
 | `LineSpacing` | const | 行送り（文字サイズに対する倍率。 1.4） |
 | `Ellipsis` | const | 省略を表す記号（`...`） |
 | `AverageCharWidthFactor` | const | 1 文字幅の見積もり（文字サイズに対する倍率） |
-| `Fit(text, width, fontSize, maxLines)` | method | 名前行へ収まるよう整える。 収まらない場合は**最後のピリオドより前を「...」で省略し、拡張子を残す** |
+| `Fit(text, width, height, fontSize, isBold = false, measure = null)` | method | 名前行へ収まるよう整える。 収まらない場合は**最後のピリオドより前を「...」で省略し、拡張子を残す** |
 | `ResolveHeight(fontSize, maxLines)` | method | 名前行の高さ（行送り × 行数） |
+| `ResolveLineHeight(fontSize)` | method | 1 行の高さ（文字が切れない行送り） |
+| `ResolveMaxLines(height, fontSize)` | method | 高さに収まる行数（最低 1） |
 
-- **名前の行は 2 行まで**です（`ThumbnailPresenter.ResolveMetrics` が `ThumbnailMetrics.LabelHeight` を文字サイズから求めます）。 超える場合は拡張子を残して省略します（一覧の中で画像の形式を判別できるようにするため）。
-- 実寸ではなく**文字数で判定**します（本層は描画 API を持たないため）。 多少の余裕を見て切り詰めるため、はみ出しは起きません。
+- **名前の行は 2 行まで**です（`ThumbnailPresenter.ResolveMetrics` が `ThumbnailMetrics.LabelHeight` を「文字サイズから求めた 2 行ぶん + 上下の余白」で求めます）。 超える場合は拡張子を残して省略します（一覧の中で画像の形式を判別できるようにするため）。
+- **幅と高さの両方で判定**します（`width` は左右の余白を、`height` は上下の余白を除いた値）。 幅だけで判定すると、上下の余白を増やしたときに省略されないまま縦に切れます（実測 2026-11-01）。
+- `measure`（[`ThumbnailTextMeasure`](#210-thumbnailtextmeasure実寸の測定)）を渡した場合は**描画エンジンの実寸**で、渡さない場合は**文字数**で判定します（文字数の見積もりは実際の折り返しと一致しないため、UI 層は必ず実寸を渡します）。
 - 省略した場合でも**ツールヒントには省略していない名前**を出します（UI 層が `Add` の `caption` から作ります）。
 
 ### 2.9 `ThumbnailMetrics`（外観から決まる寸法）
@@ -149,12 +154,33 @@
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
 | `SlotInset` | property | 画像の外側（外枠の内側）に確保する余白（片側。 影が切れない幅） |
-| `LabelHeight` | property | 名前の行の高さ（2 行ぶん。 行内の下端揃えで名前の位置を揃える） |
+| `LabelHeight` | property | 名前の行の高さ（文字が切れない 2 行ぶん + 上下の余白。 行内の下端揃えで名前の位置を揃える） |
 | `Zero` | static property | 余白 0・名前の行 0 の寸法 |
 | `ThumbnailMetrics(slotInset, labelHeight)` | ctor | 寸法を生成する（負の値と非数は 0） |
 
 - **`ThumbnailLayout.Resolve` へ渡します**（`options` の後ろの引数）。 省略すると 0 として扱います。
 - **利用者が設定する値ではありません**: 提示層（`ThumbnailPresenter.ResolveMetrics`）が外観の影の広がりと文字サイズから求めて渡します。 設定（`ThumbnailOptions`）には混ぜません。
+- **上下の余白は行の高さに含めます**: 含めないと、余白を増やした分だけ文字を置ける高さが減り、2 行目が切れます（実測 2026-11-01）。
+- **影を描かない外観**（`ThumbnailAppearance.ShowShadow` が false、または影の計画が null）では `SlotInset` は 0 になります（余白だけが残ると項目の間が不自然に空きます）。
+
+### 2.10 `ThumbnailTextMeasure`（実寸の測定）
+
+名前を折り返して描いたときの実寸を測る関数（デリゲート）です。 本層は描画 API を持たないため、UI 層が実装して渡します。
+
+```csharp
+public delegate EsSize ThumbnailTextMeasure(string text, double maxWidth, double fontSize, bool isBold);
+```
+
+| 引数 | 意味 |
+| --- | --- |
+| `text` | 測る文言 |
+| `maxWidth` | 折り返す幅（DIP） |
+| `fontSize` | 文字サイズ（DIP） |
+| `isBold` | 太字で描くかどうか（幅が広い） |
+
+- **戻り値**は折り返した後の実寸です（高さは全行の合計）。 `ThumbnailLabelText.Fit` は高さだけを見ます。
+- **描画する API と同じ API で測ります**（折り返しの位置は文字の送り幅に依存するため、測る API と描く API が違うと行数が一致しません）。 実装は各 UI の `Interop` の `TextMeasure`（AvaloniaUI / MewUI / WinUI 3）と WinForms 版コントロールが単一所有します。
+- **純粋関数にします**（同じ入力には同じ寸法を返す）。 呼び出しの時点に依存する関数を渡すと、文言の決定が再現しなくなります。
 
 ## 3. 使用例
 

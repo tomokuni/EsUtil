@@ -115,8 +115,8 @@ internal static class MainWindow
         var properties = new StackPanel().Vertical().Spacing(6).Children(
             loupeVisible,
             SampleSettings.Slider("拡大率", 4, 1, 16, 1, true, value => loupe.Options = loupe.Options with { ZoomLevel = (int)value }),
-            SampleSettings.Slider("ルーペ サイズ", 240, 80, 480, 10, true, value => loupe.Options = loupe.Options with { RequestedSize = (int)value }),
-            SampleSettings.Slider("位置オフセット", 24, 0, 64, 4, true, value => loupe.PositionOffset = value),
+            SampleSettings.Slider("ルーペ サイズ", 160, 80, 480, 10, true, value => loupe.Options = loupe.Options with { RequestedSize = (int)value }),
+            SampleSettings.Slider("位置オフセット", 0, 0, 64, 4, true, value => loupe.PositionOffset = value),
             SampleSettings.Slider("中心 X", 120, 0, ImageWidth, 10, true, value => loupe.CenterPoint = new EsPoint(value, loupe.CenterPoint?.Y ?? 0)),
             SampleSettings.Slider("中心 Y", 120, 0, ImageHeight, 10, true, value => loupe.CenterPoint = new EsPoint(loupe.CenterPoint?.X ?? 0, value)),
             SampleSettings.Buttons(
@@ -158,7 +158,7 @@ internal static class MainWindow
                 };
                 loupe.Appearance = appearance;
             }),
-            SampleSettings.Slider("枠線の太さ", 1, 0, 8, 1, true, value =>
+            SampleSettings.Slider("枠線の太さ", 2, 1, 8, 1, true, value =>
             {
                 appearance = appearance with { BorderThickness = (int)value };
                 loupe.Appearance = appearance;
@@ -178,7 +178,7 @@ internal static class MainWindow
                 appearance = appearance with { CoordLabelBackgroundColor = ResolveColor(index, appearance.CoordLabelBackgroundColor) };
                 loupe.Appearance = appearance;
             }),
-            SampleSettings.Slider("座標ラベルの文字サイズ", 11, 6, 24, 1, true, value =>
+            SampleSettings.Slider("座標ラベルの文字サイズ", 12, 6, 24, 1, true, value =>
             {
                 appearance = appearance with { CoordLabelFontSize = value };
                 loupe.Appearance = appearance;
@@ -188,7 +188,7 @@ internal static class MainWindow
                 appearance = appearance with { CoordLabelCornerRadius = (int)value };
                 loupe.Appearance = appearance;
             }),
-            SampleSettings.Slider("座標ラベルの間隔", 4, 0, 24, 1, true, value =>
+            SampleSettings.Slider("座標ラベルの間隔", 2, 0, 24, 1, true, value =>
             {
                 appearance = appearance with { CoordLabelOffset = value };
                 loupe.Appearance = appearance;

@@ -1,5 +1,4 @@
 using Microsoft.UI.Xaml;
-using System.Diagnostics;
 using Windows.Foundation;
 
 using EsUtil.Feature.ColumnPacking;
@@ -342,7 +341,6 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
 
         // ColumnPacking で最適レイアウトを計算
         var (UsedWidth, MinHeight) = Layout.Solve(widthLimit);
-        Debug.WriteLine($"(UsedWidth, MinHeight): ({UsedWidth}, {MinHeight})");
 
         // Layout 計算結果を DependencyProperty に反映
         UpdateLayoutResultProperties();
@@ -370,8 +368,6 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
         // 計算結果から各子要素の座標とサイズを取得
         var childElements = ChildElements;
         var itemLayouts = Layout.GetLastItemLayouts();
-        Debug.WriteLine($"LayoutColumnSegments: {LayoutColumnSegments}");
-        Debug.WriteLine($"Layout.Y: [{string.Join(",", itemLayouts.Select(s => s.Y))}]");
 
         // Arrange() で各要素を配置
         int layoutIndex = 0;

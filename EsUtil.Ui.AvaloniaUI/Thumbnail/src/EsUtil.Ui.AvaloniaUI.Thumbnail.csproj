@@ -18,6 +18,8 @@
     <!-- 配置（コア）と描画計画・外観（提示層）。 コアは提示層の公開面に現れるため推移参照で解決する -->
     <ProjectReference Include="..\..\..\EsUtil\Feature.Thumbnail.Presenter\src\EsUtil.Feature.Thumbnail.Presenter.csproj" />
     <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <!-- 名前の実寸の測定（UI 層で単一所有する描画 API の入口） -->
+    <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.AvaloniaUI.Interop.csproj" />
     <!-- 本コントロールが単一所有する値（画像・項目数）の変更ログ（LoggerMessage ソース生成）を持つ -->
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>

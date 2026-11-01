@@ -83,6 +83,13 @@
       },
       "esutil.platform.core": {
         "type": "Project"
+      },
+      "esutil.ui.avaloniaui.interop": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.4, )",
+          "EsUtil.Platform.Core": "[0.2.0, )"
+        }
       }
     }
   }

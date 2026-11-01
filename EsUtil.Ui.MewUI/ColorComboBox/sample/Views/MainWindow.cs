@@ -135,7 +135,7 @@ internal static class MainWindow
                     control.TextFontSize = value;
                 }
             }),
-            SampleSettings.Check("入力が無効なら枠線を赤くする", true, value =>
+            SampleSettings.Check("入力が無効なら枠線を赤くする", false, value =>
             {
                 foreach (var control in controls)
                 {

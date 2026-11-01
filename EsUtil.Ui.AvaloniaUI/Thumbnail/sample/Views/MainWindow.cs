@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 using EsUtil.Ui.AvaloniaUI.SampleKit;
 using EsUtil.Ui.AvaloniaUI.Thumbnail.Sample.Imaging;
+using EsUtil.Ui.AvaloniaUI.Thumbnail.Sample.Presentation;
 using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
 
@@ -89,8 +90,11 @@ public sealed class MainWindow : Window
                 SampleSettings.Check("現在項目のラベルを太字にする", true, value => Apply(appearance with { BoldCurrentLabel = value })),
                 SampleSettings.Check("ホバーの背景を表示", true, value => Apply(appearance with { ShowHoverBackground = value })),
                 SampleSettings.Check("選択の背景を表示", true, value => Apply(appearance with { ShowSelectionBackground = value })),
+                SampleSettings.Check("影の表示", true, value => Apply(appearance with { ShowShadow = value })),
                 SampleSettings.Check("選択時に影を隠す", false, value => Apply(appearance with { HideShadowWhenSelected = value })),
                 SampleSettings.Text("ログ接頭辞", "[Thumbnail]", value => _thumbnails.LogPrefix = value),
+                SampleSettings.Check("描画計画を差し替える（強調色）", false, value =>
+                    _thumbnails.DrawPlanResolver = value ? static plan => GuideThumbnailPlan.Resolve(in plan) : null),
             },
         };
 

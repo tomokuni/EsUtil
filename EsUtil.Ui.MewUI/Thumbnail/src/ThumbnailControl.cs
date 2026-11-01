@@ -2,6 +2,7 @@ using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.Ui.MewUI.Interop.Imaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -358,10 +359,19 @@ public sealed class ThumbnailControl : Panel
 
         var tile = _items[index];
         var plan = Presentation.ResolveDrawPlan(
-            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme);
+            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme, MeasureText);
         plan = DrawPlanResolver?.Invoke(plan) ?? plan;
         tile.Apply(plan, Presentation.Options);
     }
+
+    /// <summary>折り返した名前の実寸を測る（測定の実装は <see cref="TextMeasure"/> が単一所有する）。</summary>
+    /// <param name="text">測る文言。</param>
+    /// <param name="maxWidth">折り返す幅（DIP）。</param>
+    /// <param name="fontSize">文字サイズ（DIP）。</param>
+    /// <param name="isBold">太字で描くかどうか。</param>
+    /// <returns>折り返した後の実寸（DIP）。</returns>
+    private static EsSize MeasureText(string text, double maxWidth, double fontSize, bool isBold)
+        => TextMeasure.MeasureWrapped(text, fontSize, isBold, maxWidth);
 
     /// <summary>指定した 2 件の見た目を解決し直す（ホバー・選択の切り替え）。</summary>
     /// <param name="first">1 件目の添字。 範囲外は無視する。</param>

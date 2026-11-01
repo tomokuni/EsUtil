@@ -166,8 +166,8 @@ public sealed class MainWindow : Window
             {
                 loupeVisible,
                 SampleSettings.Slider("拡大率", 4, 1, 16, 1, true, value => _loupe.Options = _loupe.Options with { ZoomLevel = (int)value }),
-                SampleSettings.Slider("ルーペ サイズ", 240, 80, 480, 10, true, value => _loupe.Options = _loupe.Options with { RequestedSize = (int)value }),
-                SampleSettings.Slider("位置オフセット", 24, 0, 64, 4, true, value => _loupe.PositionOffset = value),
+                SampleSettings.Slider("ルーペ サイズ", 160, 80, 480, 10, true, value => _loupe.Options = _loupe.Options with { RequestedSize = (int)value }),
+                SampleSettings.Slider("位置オフセット", 0, 0, 64, 4, true, value => _loupe.PositionOffset = value),
                 SampleSettings.Slider("中心 X", 120, 0, ImageWidth, 10, true, value => _loupe.CenterPoint = new Point(value, _loupe.CenterPoint?.Y ?? 0)),
                 SampleSettings.Slider("中心 Y", 120, 0, ImageHeight, 10, true, value => _loupe.CenterPoint = new Point(_loupe.CenterPoint?.X ?? 0, value)),
                 SampleSettings.Buttons(
@@ -196,13 +196,13 @@ public sealed class MainWindow : Window
                     BorderColor = ResolveColor(index, _appearance.BorderColor),
                     ShowBorder = s_colorChoices[index].Color is not null,
                 })),
-                SampleSettings.Slider("枠線の太さ", 1, 0, 8, 1, true, value => Apply(_appearance with { BorderThickness = (int)value })),
+                SampleSettings.Slider("枠線の太さ", 2, 1, 8, 1, true, value => Apply(_appearance with { BorderThickness = (int)value })),
                 SampleSettings.Check("座標ラベルを表示", true, value => Apply(_appearance with { ShowCoordLabel = value })),
                 ColorChoice("座標ラベルの色", 4, index => Apply(_appearance with { CoordLabelColor = ResolveColor(index, _appearance.CoordLabelColor) })),
                 ColorChoice("座標ラベルの背景色", 8, index => Apply(_appearance with { CoordLabelBackgroundColor = ResolveColor(index, _appearance.CoordLabelBackgroundColor) })),
-                SampleSettings.Slider("座標ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(_appearance with { CoordLabelFontSize = value })),
+                SampleSettings.Slider("座標ラベルの文字サイズ", 12, 6, 24, 1, true, value => Apply(_appearance with { CoordLabelFontSize = value })),
                 SampleSettings.Slider("座標ラベルの角丸", 2, 0, 12, 1, true, value => Apply(_appearance with { CoordLabelCornerRadius = (int)value })),
-                SampleSettings.Slider("座標ラベルの間隔", 4, 0, 24, 1, true, value => Apply(_appearance with { CoordLabelOffset = value })),
+                SampleSettings.Slider("座標ラベルの間隔", 2, 0, 24, 1, true, value => Apply(_appearance with { CoordLabelOffset = value })),
             },
         };
 

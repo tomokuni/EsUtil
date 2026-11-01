@@ -31,4 +31,29 @@ public static class TextMeasure
 
         return new EsSize(formatted.Width, formatted.Height);
     }
+
+    /// <summary>折り返したテキストの実寸を測る。</summary>
+    /// <param name="text">測定するテキスト。 null 不可。</param>
+    /// <param name="fontSize">フォントサイズ（DIP）。</param>
+    /// <param name="isBold">太字で測るかどうか。</param>
+    /// <param name="maxWidth">折り返す幅（DIP）。</param>
+    /// <returns>折り返した後の実寸（DIP）。 高さは全行の合計。</returns>
+    /// <remarks>
+    /// <b>折り返しを描画側と同じ規則で測る</b>: <see cref="FormattedText.MaxTextWidth"/> を渡すと、<br/>
+    /// 実際に描くときと同じ折り返しで行数が決まる（文字数からの見積もりでは行数を誤る）。<br/>
+    /// 太字は同じ文字でも幅が広いため、<see cref="Typeface"/> を太字へ切り替えて測る。
+    /// </remarks>
+    public static EsSize MeasureWrapped(string text, double fontSize, bool isBold, double maxWidth)
+    {
+        var face = isBold
+            ? new Typeface(Typeface.Default.FontFamily, Typeface.Default.Style, FontWeight.Bold)
+            : Typeface.Default;
+        var formatted = new FormattedText(
+            text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, face, fontSize, s_brush)
+        {
+            MaxTextWidth = maxWidth,
+        };
+
+        return new EsSize(formatted.Width, formatted.Height);
+    }
 }

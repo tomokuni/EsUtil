@@ -105,7 +105,7 @@ EsUtil.Ui.AvaloniaUI/Loupe/sample/
 │   ├── EsBitmapAvaloniaAdapter.cs   # コアの画像を表示面（IImage）として公開し、コアの画像は GetEsBitmap() で取り出すアダプタ
 │   └── EsBitmapAvaloniaExtensions.cs # コアの画像 ⇔ Avalonia の画像の変換
 ├── Presentation/
-│   ├── GridLoupePlan.cs         # 外観と描画計画（格子線・四隅の鉤）と見本の元画像を与える見本
+│   ├── GridLoupePlan.cs         # 外観と描画計画（十字線の色・四隅の鉤）と見本の元画像を与える見本
 │   └── SelectionRectPainter.cs  # ルーペ画像上の選択矩形の破線（Rendered の使用例）
 ├── ViewModels/
 │   ├── BrushOption.cs           # 色選択肢
@@ -128,7 +128,7 @@ EsUtil.Ui.AvaloniaUI/Loupe/sample/
 
 `Presentation/` に、外観（`Appearance`）と描画計画（`DrawPlanResolver`）で見た目を差し替える見本があります（設定パネル上部の見本）。
 
-- `GridLoupePlan` — 外観（色・枠線の太さ・表示可否）と、装飾の矩形（中心の格子線・四隅の鉤）を与えます。 計画を差し替える純粋関数（`Resolve(in plan)`）として提供します。 見本の元画像（`EsReadOnlyBitmap`）も本クラスが用意します。
+- `GridLoupePlan` — 外観（色・枠線の太さ・表示可否）と、装飾の矩形（十字線の色・四隅の鉤）を与えます。 計画を差し替える純粋関数（`Resolve(in plan)`）として提供します。 見本の元画像（`EsReadOnlyBitmap`）も本クラスが用意します。
 
 差し替えの入口は次の 3 つです（**派生は不要**。 XAML のコントロールへコードビハインドから設定します）。
 

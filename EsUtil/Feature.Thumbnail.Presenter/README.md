@@ -28,12 +28,13 @@
 var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default with
 {
     HighlightedLabelArgb = 0xFF0078D4,
+    ShowShadow = true,
     HideShadowWhenSelected = true,
 });
 
 var layout = presenter.ResolveLayout(availableWidth, imageWidth, imageHeights);
 var plan = presenter.ResolveDrawPlan(
-    layout, index, caption, isCurrent, selectedIndex, hoveredIndex, isDark);
+    layout, index, caption, isCurrent, selectedIndex, hoveredIndex, isDark, measureText);
 
 foreach (var layer in plan.Layers)
 {

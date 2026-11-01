@@ -121,12 +121,14 @@ public abstract class DualSourceItemsPanel : Panel
     /// デフォルト: true (ItemsSource を先に配置)<br/>
     /// <br/>
     /// 【注意】<br/>
-    /// このプロパティは DualSourceItemsManager にプロキシされます。<br/>
+    /// このプロパティは DependencyProperty です（値を保持するのは依存関係プロパティであり、
+    /// <see cref="DualSourceItemsManager"/> へは変更通知で伝搬します）。
+    /// マネージャーを直接書き換えると並び順が再構築されないため、必ず本プロパティを経由してください。<br/>
     /// </remarks>
     public bool ItemsSourceFirst
     {
-        get => ItemsManager.ItemsSourceFirst;
-        set => ItemsManager.ItemsSourceFirst = value;
+        get => (bool)GetValue(ItemsSourceFirstProperty);
+        set => SetValue(ItemsSourceFirstProperty, value);
     }
 
 

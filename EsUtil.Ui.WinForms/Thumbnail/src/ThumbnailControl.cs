@@ -393,7 +393,7 @@ public sealed class ThumbnailControl : ScrollableControl
     {
         var item = _items[index];
         var plan = _presenter.ResolveDrawPlan(
-            layout, index, item.Caption, item.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme);
+            layout, index, item.Caption, item.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme, MeasureText);
         plan = DrawPlanResolver?.Invoke(plan) ?? plan;
 
         foreach (var layer in plan.Layers)
@@ -428,7 +428,7 @@ public sealed class ThumbnailControl : ScrollableControl
                     break;
 
                 case ThumbnailDrawLayer.Label:
-                    DrawLabel(graphics, plan, item.Caption);
+                    DrawLabel(graphics, plan);
                     break;
             }
         }
@@ -455,25 +455,55 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <summary>名前を描画する。</summary>
     /// <param name="graphics">描画先。</param>
     /// <param name="plan">描画計画。</param>
-    /// <param name="caption">表示する名前。</param>
     /// <remarks>
     /// <b>文字サイズは DIP から pt へ換算する</b>: 描画計画の文字サイズは DIP（96 DPI 基準）だが、<br/>
     /// <see cref="Font"/> のコンストラクターは pt を受け取る。 DIP の値をそのまま渡すと 1.33 倍の大きさになり、<br/>
-    /// 他の UI 版（11 DIP）より文字が大きくなる（実測）。
+    /// 他の UI 版（11 DIP）より文字が大きくなる（実測）。<br/>
+    /// <b>文言は計画の値を使う</b>: 省略（拡張子を残す）は提示層が決めるため、ここで独自に省略しない<br/>
+    /// （<see cref="TextFormatFlags.EndEllipsis"/> を併用すると、計画の省略記号のさらに後ろが省略される）。<br/>
+    /// <b>上下の余白は矩形を内側へ縮めて表す</b>: 余白は名前行の内側の余白であるため、文字を置く矩形から除く。
     /// </remarks>
-    private void DrawLabel(Graphics graphics, ThumbnailDrawPlan plan, string caption)
+    private void DrawLabel(Graphics graphics, ThumbnailDrawPlan plan)
     {
         var font = GetFont(plan.Label.FontSize, plan.Label.IsBold);
-
         var color = plan.Label.ForegroundArgb == 0 ? ForeColor : ToColor(plan.Label.ForegroundArgb);
+        var bounds = plan.Label.Bounds;
+        var padding = (int)Math.Ceiling(plan.Label.VerticalPadding);
+        var rect = ToRect(new EsRect(
+            bounds.X,
+            bounds.Y + padding,
+            bounds.Width,
+            Math.Max(0, bounds.Height - (padding * 2))));
+
         TextRenderer.DrawText(
             graphics,
-            caption,
+            plan.Label.Text,
             font,
-            ToRect(plan.Label.Bounds),
+            rect,
             color,
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis
-            | TextFormatFlags.NoPrefix | TextFormatFlags.WordBreak);
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPrefix | TextFormatFlags.WordBreak);
+    }
+
+    /// <summary>折り返した名前の実寸を測る。</summary>
+    /// <param name="text">測る文言。</param>
+    /// <param name="maxWidth">折り返す幅（DIP）。</param>
+    /// <param name="fontSize">文字サイズ（DIP）。</param>
+    /// <param name="isBold">太字で描くかどうか。</param>
+    /// <returns>折り返した後の実寸（DIP）。</returns>
+    /// <remarks>
+    /// <b>描画と同じ API で測る</b>: 名前は <see cref="TextRenderer"/> で描くため、同じ <see cref="TextFormatFlags.WordBreak"/> で測る<br/>
+    /// （測る API と描く API が違うと行数が一致せず、省略した名前がさらに折り返されて切れる）。
+    /// </remarks>
+    private EsSize MeasureText(string text, double maxWidth, double fontSize, bool isBold)
+    {
+        var font = GetFont(fontSize, isBold);
+        var size = TextRenderer.MeasureText(
+            text,
+            font,
+            new Size(Math.Max(1, (int)Math.Ceiling(maxWidth)), int.MaxValue),
+            TextFormatFlags.NoPrefix | TextFormatFlags.WordBreak);
+
+        return new EsSize(size.Width, size.Height);
     }
 
     /// <summary>指定した大きさ・太さのフォントを取得する（同じものは使い回す）。</summary>

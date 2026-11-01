@@ -27,6 +27,10 @@ public sealed record ThumbnailAppearance
 
     /// <summary>名前の行の上下の余白を取得する。</summary>
     /// <value>余白（DIP）。 既定は 1。 負の値は 0 として扱う。</value>
+    /// <remarks>
+    /// <b>名前の行の高さは本値を含む</b>: 提示層が <c>ResolveMetrics</c> で 2 行ぶんの高さへ本値を足すため、<br/>
+    /// 本値を増やしても文字を置ける高さ（2 行ぶん）は変わらない（文字が切れない）。
+    /// </remarks>
     public double LabelVerticalPadding
     {
         get;
@@ -60,6 +64,16 @@ public sealed record ThumbnailAppearance
     /// <value>色（<c>0xAARRGGBB</c>）。 既定は <c>0</c>（UI の標準の文字色を使う）。</value>
     /// <remarks>0 以外を指定すると、ホバー・選択中の名前をこの色で描く（WinForms 版の実測値はアクセント色）。</remarks>
     public uint HighlightedLabelArgb { get; init; }
+
+    /// <summary>項目の影を描くかどうかを取得する。</summary>
+    /// <value>描く場合は true（既定）。 false の場合は <see cref="Shadow"/> の設定によらず影を描かない。</value>
+    /// <remarks>
+    /// <b>影の算法（<see cref="Shadow"/>）と表示可否を分ける</b>: 算法を差し替えたまま表示だけを止められる<br/>
+    /// （算法を null にすると差し替えた設定を失う。 表示可否は本プロパティが単一所有する）。<br/>
+    /// 影の広がり（<see cref="IThumbnailShadowPlan.Insets"/>）は表示しない場合も配置の計算へ渡さない<br/>
+    /// （余白だけが残ると項目の間が不自然に空く）。
+    /// </remarks>
+    public bool ShowShadow { get; init; } = true;
 
     /// <summary>強調（ホバー・選択）中の項目の影を隠すかどうかを取得する。</summary>
     /// <value>隠す場合は true。 既定は false。</value>

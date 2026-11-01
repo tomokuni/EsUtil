@@ -333,12 +333,20 @@
       "esutil.platform.core": {
         "type": "Project"
       },
+      "esutil.ui.avaloniaui.interop": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.4, )",
+          "EsUtil.Platform.Core": "[0.2.0, )"
+        }
+      },
       "esutil.ui.avaloniaui.thumbnail": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
           "EsUtil.Feature.Thumbnail.Presenter": "[0.2.0, )",
           "EsUtil.Platform.Core": "[0.2.0, )",
+          "EsUtil.Ui.AvaloniaUI.Interop": "[0.2.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
