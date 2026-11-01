@@ -227,7 +227,11 @@ public sealed class MainWindow : Window
         Title = "MarqueeControl サンプル（WinUI 3）";
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 900));
         Content = SampleShell.CreateContent(properties, methods, samples, scroll, log);
-        Closed += (_, _) => _logging.Dispose();
+        Closed += (_, _) =>
+        {
+            _backdrop.Dispose();
+            _logging.Dispose();
+        };
 
         return;
 
