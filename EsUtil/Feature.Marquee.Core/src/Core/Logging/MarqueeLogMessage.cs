@@ -397,4 +397,21 @@ internal static partial class MarqueeLogMessage
     /// <returns>ポートの実装型名。 未設定は <c>null</c>。</returns>
     /// <remarks>ポートは値として比較・整形できないため、設定された実装の種別のみを記録する。</remarks>
     private static string FormatPort(ICoordTransform? port) => port?.GetType().Name ?? Null;
+    /// <summary>ハイライト中で入力を無視したことを記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Marquee] Input ignored: {Operation} (highlight active)</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="operation">無視した操作の名前。</param>
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Input ignored: {Operation:l} (highlight active)")]
+    private static partial void LogInputIgnoredCore(this ILogger logger, string prefix, string operation);
+
+    /// <summary>ハイライト中で入力を無視したことを記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="operation">無視した操作の名前。</param>
+    /// <remarks>
+    /// ハイライト中は選択を編集しないため、ポインターの移動ごとに出力される（高頻度。 Trace）。<br/>
+    /// 入力が届かないことを確かめるのに役立つ（不具合の分別に使う）。
+    /// </remarks>
+    internal static void LogInputIgnored(this ILogger logger, string operation)
+        => logger.LogInputIgnoredCore(Prefix, operation);
 }

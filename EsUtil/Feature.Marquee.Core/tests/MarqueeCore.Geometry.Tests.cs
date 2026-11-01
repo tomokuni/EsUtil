@@ -65,7 +65,21 @@ public class MarqueeCoreGeometryTests
 
         // ハイライト矩形は検出結果（全ピクセルを含む）のため半開区間のまま与えられ、+1 しない
         Assert.Equal(new EsRect(1, 2, 3, 4), geometry.FocusDipRect);
-        // ハンドルは選択矩形から解決される（ハイライトはハンドルの対象ではない）
+        // ハイライト中は表示専用（選択を編集できない）ため、ハンドルの幾何を返さない
+        Assert.Null(geometry.Handles);
+    }
+
+    /// <summary>ハイライトを解除するとハンドルの幾何が戻ることを検証する。</summary>
+    [Fact]
+    internal void ResolveGeometry_ハイライトを解除するとハンドルが戻る()
+    {
+        var marquee = CreateMarquee();
+        marquee.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
+        marquee.HighlightSourceRect = new EsRect(1, 2, 3, 4);
+        marquee.HighlightSourceRect = null;
+
+        var geometry = MarqueeCore.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
+
         Assert.NotNull(geometry.Handles);
     }
 

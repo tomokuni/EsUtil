@@ -196,7 +196,8 @@ dotnet test EsUtil/Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Tests.
 | 頻度 | 契機 | レベル |
 | --- | --- | --- |
 | 生成 | コンストラクターでの注入、または `Log` の初回設定 | Information |
-| 低頻度 | ロガーの設定（`Logger attached`）・`Options` の変更（変化した項目だけ）・`ClientToSourceScaling` の変更・`SetCoordTransform` の呼び出し・入力の判断 | Debug |
+| 低頻度 | ロガーの設定（`Logger attached`）・`SetCoordTransform` の呼び出し・入力の判断 | Debug |
+| 設定の変更 | `Options` の変更（変化した項目だけ）・`ClientToSourceScaling` の変更 | Information |
 | 高頻度 | `HighlightSourceRect` の変更（ホバーのたびに変わりうる） | Trace |
 
 **出力しないもの**: 毎フレーム呼ばれる解決メソッド（`CreateRequest` / `ResolveGeometry`）と、マウス移動のたびに呼ばれる入力通知（`Move`）。

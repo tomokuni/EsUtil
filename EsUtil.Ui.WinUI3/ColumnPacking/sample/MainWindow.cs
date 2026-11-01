@@ -30,7 +30,7 @@ public sealed class MainWindow : Window
     private readonly SampleLogging _logging = new();
 
     /// <summary>列を並べるパネル（レイアウト結果の表示付き）。</summary>
-    private readonly ColumnPackingPanelDebugText _panel = new() { ColumnLimit = 10, RowSpace = 8, ColumnSpace = 8 };
+    private readonly ColumnPackingPanel _panel = new() { ColumnLimit = 10, RowSpace = 8, ColumnSpace = 8 };
 
     /// <summary>レイアウト結果の表示。</summary>
     private readonly TextBlock _status = new() { FontSize = 11, TextWrapping = TextWrapping.Wrap, Text = "待機中..." };
@@ -77,7 +77,6 @@ public sealed class MainWindow : Window
                 SampleSettings.Slider("列間", 8, 0, 24, 1, true, value => _panel.ColumnSpace = value),
                 // データから作った子と直接の子（コードで足した要素）の並び順を切り替える
                 SampleSettings.Check("直接の子を後ろに置く", true, value => _panel.ItemsSourceFirst = value),
-                SampleSettings.Check("デバッグ表示", false, value => _panel.ShowDebugText = value),
                 SampleSettings.Choice("配置の方法", ["貪欲法", "動的計画法", "二分探索"], 2, index =>
                     _panel.Method = index switch
                     {
@@ -135,15 +134,22 @@ public sealed class MainWindow : Window
             UpdateStatus();
         }
 
-        // レイアウト結果をログへ出力する（1 行ずつ出す。 まとめると折り返しで読みにくく、1 行だけコピーできない）
+        // レイアウト結果をログへ出力する（公開プロパティの値だけを 1 行で出す）
         void LogLayout()
         {
-            foreach (var line in _panel.GetDebugLines())
+            if (_panel.LayoutMinHeight is not { } minHeight)
             {
-                _logging.Logger.Log(LogLevel.Information, default, line, null, static (state, _) => state);
+                _logging.Logger.LogInformation("レイアウトはまだ確定していません。");
+                return;
             }
 
-            UpdateStatus();
+            var usedWidth = _panel.LayoutUsedWidth ?? 0;
+            var columns = _panel.LayoutColumnCount ?? 0;
+            var segments = _panel.LayoutColumnSegments;
+            var text = string.Create(
+                CultureInfo.InvariantCulture,
+                $"レイアウト結果: MinHeight={minHeight:F1} UsedWidth={usedWidth:F1} 列数={columns} ColumnSegments={segments}");
+            _logging.Logger.Log(LogLevel.Information, default, text, null, static (state, _) => state);
         }
 
         // レイアウト結果を画面へ出す

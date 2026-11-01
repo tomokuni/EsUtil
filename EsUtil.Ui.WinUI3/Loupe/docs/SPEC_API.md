@@ -201,8 +201,8 @@ if (layout.Position is { } position)
 
 | レベル | 出力書式 | 所有者 |
 | --- | --- | --- |
-| Debug | `[Loupe] Setting: Source {前} → {後}` | 本プロジェクトの `LoupeLogMessage`（拡大元画像） |
-| Debug | `[Loupe] Setting: {名前} {前} → {後}` | コア（設定値・環境値・拡大中心）と提示層（外観） |
+| Information | `[Loupe] Setting: Source {前} → {後}` | 本プロジェクトの `LoupeLogMessage`（拡大元画像） |
+| Information | `[Loupe] Setting: {名前} {前} → {後}` | コア（設定値・環境値・拡大中心）と提示層（外観） |
 | Error | `[Loupe] Update exception` | 本プロジェクトの `LoupeLogMessage`（描画の例外） |
 | Error | `[Loupe] {操作} で例外が発生` | 本プロジェクトの `LoupeLogMessage`（公開 API の例外） |
 

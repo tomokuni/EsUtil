@@ -141,7 +141,7 @@ if (layout.Position is { } position)
 
 | レベル | 出力例 |
 | --- | --- |
-| Debug | `[Loupe] Setting: Source 800x600 → null`（拡大元画像。 本プロジェクトのログ定義） / `[Loupe] Setting: ZoomLevel 4 → 8`（コアの設定値。 `RequestedSize` / `ClientToPixelScaling` も同じ書式） / `[Loupe] Setting: ShowCrosshair True → False`（外観。 変化した項目だけを出力する） |
+| Information | `[Loupe] Setting: Source 800x600 → null`（拡大元画像。 本プロジェクトのログ定義） / `[Loupe] Setting: ZoomLevel 4 → 8`（コアの設定値。 `RequestedSize` / `ClientToPixelScaling` も同じ書式） / `[Loupe] Setting: ShowCrosshair True → False`（外観。 変化した項目だけを出力する） |
 | Error | `[Loupe] Update exception`（描画の例外。 アプリは継続する） / `[Loupe] SetCoordTransform で例外が発生`（公開 API の例外。 記録して再送出する） |
 
 変化判定（同一値・同一インスタンスなら出力しない）は出力する主体のログ定義が単一所有するため、ホストは同値判定を持ちません。

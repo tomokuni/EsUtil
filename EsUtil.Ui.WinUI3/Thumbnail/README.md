@@ -145,7 +145,7 @@ SkiaSharp.Views.WinUI。 規則は [`.github/依存関係.md`](../../.github/依
 
 | レベル | 出力例 |
 | --- | --- |
-| Debug | `[Thumbnail] Setting: Image[0] null → 96x64` / `[Thumbnail] Setting: ItemCount 12 → 0`（クリア） |
+| Information | `[Thumbnail] Setting: ImageWidth 160 → 110` / `[Thumbnail] Setting: IsDarkTheme False → True` / `[Thumbnail] Setting: Image[0] null → 96x64`（画像の差し替え） / `[Thumbnail] Setting: ItemCount 12 → 0`（クリア） |
 | Trace | `[Thumbnail] Setting: ItemCount 0 → 1`（1 件ずつの追加） |
 
 `Log` へ `ILogger` を設定します（null は `NullLogger`）。 接頭辞は `LogPrefix` で設定し、提示層・コアへ伝搬します（既定 `[Thumbnail]`）。 設定・外観の変更は提示層、選択の変更はコアが記録します。

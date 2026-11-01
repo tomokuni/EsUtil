@@ -190,7 +190,9 @@ public sealed class ThumbnailControl : ScrollableControl
                 return;
             }
 
+            var previous = field;
             field = value;
+            _log.LogSettingChanged(nameof(IsDarkTheme), previous.ToString(), value.ToString());
             Invalidate();
         }
     }
@@ -208,7 +210,9 @@ public sealed class ThumbnailControl : ScrollableControl
                 return;
             }
 
+            var previous = field;
             field = value;
+            _log.LogSettingChanged(nameof(ImageWidth), previous.ToString(System.Globalization.CultureInfo.InvariantCulture), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
             RefreshLayout();
         }
     } = 96;

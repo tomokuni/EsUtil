@@ -238,7 +238,8 @@ public sealed class MainWindow : Window
 
         // 検出結果など、ホストが外から与える「表示専用の注目矩形」を模す。
         // 選択（SetSelection）とは別で、**ハンドルを出さず、確定・キャンセルの対象にもならない**（利用者に操作させたくない領域を示す）。
-        // 注目矩形はハイライトが優先されるため、外側マスク・枠線・サイズ ラベルはハイライトへ移り、ハンドルは選択に残る（この差が両者の違い）。
+        // ハイライト中は**表示専用**になる（ハンドルを出さず、ドラッグもキー操作も受け付けない）。
+        // これが「選択（SetSelection）との違い」である：選択は利用者が編集でき、ハイライトはホストが与える表示専用の注目である。
         void ToggleHighlight()
         {
             if (_marquee.HighlightSourceRect is not null)
@@ -252,7 +253,7 @@ public sealed class MainWindow : Window
             _marquee.HighlightSourceRect = detected;
             Write(string.Create(
                 CultureInfo.InvariantCulture,
-                $"ハイライト（表示専用の注目）: ({detected.X:0.#}, {detected.Y:0.#}) {detected.Width:0.#}x{detected.Height:0.#} / ハンドルは選択のまま（操作できる）"));
+                $"ハイライト（表示専用の注目）: ({detected.X:0.#}, {detected.Y:0.#}) {detected.Width:0.#}x{detected.Height:0.#}（ハイライト中は操作できない）"));
         }
 
         // 外観を更新してコントロールへ反映する

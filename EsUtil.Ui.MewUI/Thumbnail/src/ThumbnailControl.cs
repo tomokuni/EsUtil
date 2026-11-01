@@ -164,7 +164,14 @@ public sealed class ThumbnailControl : Panel
         get;
         set
         {
+            if (field == value)
+            {
+                return;
+            }
+
+            var previous = field;
             field = value;
+            _log.LogSettingChanged(nameof(IsDarkTheme), previous.ToString(), value.ToString());
             Refresh();
         }
     }
@@ -176,7 +183,14 @@ public sealed class ThumbnailControl : Panel
         get;
         set
         {
+            if (field.Equals(value))
+            {
+                return;
+            }
+
+            var previous = field;
             field = value;
+            _log.LogSettingChanged(nameof(ImageWidth), previous.ToString(System.Globalization.CultureInfo.InvariantCulture), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
             Refresh();
         }
     } = 96;

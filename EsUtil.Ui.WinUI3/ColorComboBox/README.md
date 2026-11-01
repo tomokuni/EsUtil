@@ -116,7 +116,7 @@ Host.Children.Add(color);
 
 | レベル | 出力例 |
 | --- | --- |
-| Debug | `[ColorComboBox] Setting: SelectedColor #FFFFFFFF → #80FF0000` |
+| Information | `[ColorComboBox] Setting: SelectedColor #FFFFFFFF → #80FF0000` |
 
 接頭辞は `LogPrefix` で設定します。 ログ基盤（出力先・レベルの制御）はホストが所有します。
 

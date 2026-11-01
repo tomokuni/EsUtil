@@ -207,6 +207,23 @@ public class MarqueePresenterTests
         Assert.Equal(new EsRect(1, 2, 3, 4), plan.FocusDipRect);
     }
 
+    /// <summary>ハイライト中はハンドルを描かない（表示専用）ことを検証する。</summary>
+    /// <remarks>
+    /// ハイライトはホストが与える表示専用の注目矩形であり、選択を編集できない。<br/>
+    /// ハンドルを残すと「操作できるのに注目は別の場所」という中途半端な状態になるため、幾何を返さない。
+    /// </remarks>
+    [Fact]
+    internal void ResolveDrawPlan_ハイライト中はハンドルを返さない()
+    {
+        var presenter = CreatePresenter(out _);
+        presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
+        presenter.HighlightSourceRect = new EsRect(1, 2, 3, 4);
+
+        var plan = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
+
+        Assert.Null(plan.Handles);
+    }
+
     // ====================================================================
     // 描画計画（1 フレーム分）
     // ====================================================================

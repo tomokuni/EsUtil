@@ -127,7 +127,7 @@ var panel = new ColumnPackingPanel { ColumnLimit = 4, Method = ColumnPacker.Meth
 | --- | --- |
 | 余白・列数・算法を変える | `RowSpace` / `ColumnSpace` / `ColumnLimit` / `Method` を設定します。 |
 | レイアウト結果を表示する | `LayoutMinHeight` / `LayoutUsedWidth` / `LayoutColumnCount` / `LayoutColumnSegments` をバインディングします。 |
-| 独自の表示を足す | `ColumnPackingPanel` を継承し、`Layout` を読んで表示を組み立てます（[サンプル](sample/README.md) の `ColumnPackingPanelDebugText`）。 |
+| 独自の表示を足す | `ColumnPackingPanel` を継承し、`Layout` を読んで表示を組み立てます（`Layout` は派生クラスだけが読める）。 |
 
 ## 9. ログ
 

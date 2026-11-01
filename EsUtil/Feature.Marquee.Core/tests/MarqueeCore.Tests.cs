@@ -328,6 +328,47 @@ public class MarqueeCoreTests
         Assert.False(marquee.HasSelection);
     }
 
+    /// <summary>ハイライト中は選択を編集する入力を受け付けないことを検証する。</summary>
+    /// <remarks>
+    /// ハイライトはホストが与える表示専用の注目矩形である（<c>IsReadOnly</c>）。<br/>
+    /// 操作できるかどうかが選択との違いであるため、ドラッグ・キー操作・nudge を通さない。
+    /// </remarks>
+    [Fact]
+    internal void ハイライト中は入力を無視する()
+    {
+        var marquee = CreateMarquee(null, out _);
+        var notices = new List<MarqueeNotice>();
+        marquee.Subscribe(notice => notices.Add(notice));
+        marquee.HighlightSourceRect = new EsRect(1, 2, 3, 4);
+        notices.Clear();
+
+        marquee.Press(new EsPoint(10, 20), clickCount: 1);
+        marquee.Move(new EsPoint(50, 60));
+        marquee.Release(new EsPoint(50, 60));
+        var handled = marquee.KeyDown(EsKey.Right, cursorPosition: null);
+
+        Assert.True(marquee.IsReadOnly);
+        Assert.False(marquee.HasSelection);
+        Assert.False(handled);
+        Assert.Empty(notices);
+    }
+
+    /// <summary>ハイライトを解除すると入力を受け付けることを検証する。</summary>
+    [Fact]
+    internal void ハイライト解除後は入力を処理する()
+    {
+        var marquee = CreateMarquee(null, out _);
+        marquee.HighlightSourceRect = new EsRect(1, 2, 3, 4);
+        marquee.HighlightSourceRect = null;
+
+        marquee.Press(new EsPoint(10, 20), clickCount: 1);
+        marquee.Move(new EsPoint(50, 60));
+        marquee.Release(new EsPoint(50, 60));
+
+        Assert.False(marquee.IsReadOnly);
+        Assert.True(marquee.HasSelection);
+    }
+
     [Fact]
     internal void RequestConfirm_選択確定を通知する()
     {

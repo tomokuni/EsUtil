@@ -64,7 +64,7 @@
 | `Log` | property | ロガー。 null は `NullLogger` へ吸収される |
 | `Options` | property | 設定。 設定すると対話パラメータを反映し、**変化した項目をログ出力**し、境界外選択の禁止の変化時のみ即時クリップを行う |
 | `ClientToSourceScaling` | property | 座標変換ポート未指定時に適用する倍率。 既定は `Limits.ClientToSourceScalingDefault`（1.0）。 設定時は 0.1〜8.0 へ補正される |
-| `HighlightSourceRect` | property | ハイライト矩形（対象座標）。 null が「ハイライトしない」。 **変更は最も低いレベル（Trace）で記録する**（ホバーのたびに変わりうる最も頻度の高い設定のため）。 **注目矩形（外側マスクを抜く領域・枠線・サイズ ラベルの基準）はハイライトを選択より優先する**ため、ハイライトだけを設定すると装飾はハイライトへ移る（**ハンドルは選択矩形に付いたまま**である。 両者を一致させたいホストは同じ矩形を選択にも設定する） |
+| `HighlightSourceRect` | property | ハイライト矩形（対象座標）。 null が「ハイライトしない」。 **変更は最も低いレベル（Trace）で記録する**（ホバーのたびに変わりうる最も頻度の高い設定のため）。 **ハイライト中は表示専用になる**（`MarqueeCore.IsReadOnly`: ハンドルを出さず、ポインター・キーの入力を受け付けない。 選択は編集できない）。 ハイライトは注目矩形を選択より優先するため、外側マスク・枠線・サイズ ラベルもハイライト一つになる |
 | `HasSelection` / `SelectionSourceRect` | property | 選択の有無と選択矩形（対象座標） |
 | `CreateSnapshot(EsPoint?)` | method | 状態スナップショットの生成 |
 | `SetCoordTransform(ICoordTransform?)` | method | 座標変換ポートの設定（null は等価変換） |

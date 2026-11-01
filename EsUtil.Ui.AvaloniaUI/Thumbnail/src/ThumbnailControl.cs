@@ -182,7 +182,9 @@ public sealed class ThumbnailControl : ScrollViewer
                 return;
             }
 
+            var previous = field;
             field = value;
+            _log.LogSettingChanged(nameof(IsDarkTheme), previous.ToString(), value.ToString());
             Refresh();
         }
     }
@@ -195,7 +197,14 @@ public sealed class ThumbnailControl : ScrollViewer
         get => _panel.ImageWidth;
         set
         {
+            if (_panel.ImageWidth.Equals(value))
+            {
+                return;
+            }
+
+            var previous = _panel.ImageWidth;
             _panel.ImageWidth = value;
+            _log.LogSettingChanged(nameof(ImageWidth), previous.ToString(System.Globalization.CultureInfo.InvariantCulture), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
             _panel.InvalidateMeasure();
         }
     }
