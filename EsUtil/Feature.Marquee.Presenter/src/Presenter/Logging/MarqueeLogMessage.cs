@@ -32,12 +32,12 @@ internal static partial class MarqueeLogMessage
     internal static string Prefix { get; set; } = DefaultPrefix;
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Error<br/>出力書式: <c>[Marquee] {Operation} で例外が発生</c>（例外スタックトレース付き）</remarks>
+    /// <remarks>LogLevel: Error<br/>出力書式: <c>[Marquee] {Operation:l} で例外が発生</c>（例外スタックトレース付き）</remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="exception">発生した例外。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix:l} {Operation} で例外が発生")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} {Operation:l} で例外が発生")]
     private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>
@@ -76,7 +76,7 @@ internal static partial class MarqueeLogMessage
 
     /// <summary>コアへ伝搬した値を記録する（本層を通過した確認用）。</summary>
     /// <remarks>
-    /// LogLevel: Trace<br/>出力書式: <c>[Marquee] Forwarded: {Name} {Value}</c><br/>
+    /// LogLevel: Trace<br/>出力書式: <c>[Marquee] Forwarded: {Name:l} {Value:l}</c><br/>
     /// 値の整形は型ごとのオーバーロードが単一所有する（呼び出し側に整形処理を置かない）。<br/>
     /// 本層が所有する設定（値が変化したときにのみ意味を持つもの）は <see cref="LogAppearanceChanged"/> などが Debug で記録する。
     /// </remarks>
@@ -84,7 +84,7 @@ internal static partial class MarqueeLogMessage
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">値の名前（項目名）。</param>
     /// <param name="value">整形済みの値。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Forwarded: {Name} {Value}")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Forwarded: {Name:l} {Value:l}")]
     private static partial void LogForwardedCore(this ILogger logger, string prefix, string name, string value);
 
     internal static void LogForwarded(this ILogger logger, string name, string value)
