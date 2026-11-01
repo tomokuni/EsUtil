@@ -94,14 +94,15 @@ public class ConvertPairsTests
     }
 
     [Fact]
-    internal void Empty_並行アクセスでも同一インスタンス()
+    internal void Empty_未初期化から並行アクセスしても同一インスタンス()
     {
-        // 遅延初期化は並行アクセスでも 1 つだけ生成する（`??=` だけだと 2 つ作られ、参照が一致しなくなる）
-        var results = new ConvertPairs[16];
+        // 遅延初期化は**未初期化の状態からの初回アクセス**が重なっても 1 つだけ生成する
+        // （`??=` だけだと 2 つ作られ、参照が一致しなくなる）。
+        // 同じ読み込み文脈では既に初期化済みになるため、新しい文脈へ読み込み直して未初期化の状態を作る
+        var mismatches = LazyInitRace.CountMismatches(
+            typeof(ConvertPairs).Assembly.Location, typeof(ConvertPairs).FullName!, nameof(ConvertPairs.Empty));
 
-        Parallel.For(0, results.Length, index => results[index] = ConvertPairs.Empty);
-
-        Assert.All(results, pairs => Assert.Same(results[0], pairs));
+        Assert.Equal(0, mismatches);
     }
 
     [Fact]

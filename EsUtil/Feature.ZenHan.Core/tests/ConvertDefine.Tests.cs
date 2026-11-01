@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Xunit;
 
 
@@ -30,14 +29,15 @@ public class ConvertDefineTests
     }
 
     [Fact]
-    internal void AllList_並行アクセスでも同一インスタンス()
+    internal void AllList_未初期化から並行アクセスしても同一インスタンス()
     {
-        // 遅延初期化は並行アクセスでも 1 つだけ生成する（`??=` だけだと 2 つ作られ、参照が一致しなくなる）
-        var results = new ImmutableList<EntryRecord>[16];
+        // 遅延初期化は**未初期化の状態からの初回アクセス**が重なっても 1 つだけ生成する
+        // （`??=` だけだと 2 つ作られ、参照が一致しなくなる）。
+        // 同じ読み込み文脈では既に初期化済みになるため、新しい文脈へ読み込み直して未初期化の状態を作る
+        var mismatches = LazyInitRace.CountMismatches(
+            typeof(Define).Assembly.Location, typeof(Define).FullName!, nameof(Define.AllList));
 
-        Parallel.For(0, results.Length, index => results[index] = Define.AllList);
-
-        Assert.All(results, list => Assert.Same(results[0], list));
+        Assert.Equal(0, mismatches);
     }
 
     [Fact]
