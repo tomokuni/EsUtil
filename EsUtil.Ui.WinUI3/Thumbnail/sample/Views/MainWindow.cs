@@ -63,24 +63,22 @@ public sealed class MainWindow : Window
 
         var appearance = ThumbnailAppearance.Default;
 
+        // 表示テーマは下の設定で切り替わるため、初期値をアプリのテーマに合わせる
+        _thumbnails.IsDarkTheme = SampleTheme.IsDark;
+
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
         var properties = new StackPanel
         {
             Spacing = 6,
             Children =
             {
-                SampleSettings.Check("暗色テーマ", false, value =>
-                {
-                    _thumbnails.IsDarkTheme = value;
-                    _thumbnails.Refresh();
-                }),
                 SampleSettings.Number("画像の幅", 160, 40, 400, 10, true, value => _thumbnails.ImageWidth = value),
                 selectionRow.Element,
                 currentRow.Element,
                 SampleSettings.Slider("行間", 8, 0, 32, 1, true, value => _thumbnails.Options = _thumbnails.Options with { RowSpace = value }),
                 SampleSettings.Slider("列間", 8, 0, 32, 1, true, value => _thumbnails.Options = _thumbnails.Options with { ColumnSpace = value }),
-                SampleSettings.Slider("ラベルの左右の余白", 1, 0, 24, 1, true, value => _thumbnails.Options = _thumbnails.Options with { LabelHorizontalPadding = value }),
                 SampleSettings.Slider("内容の余白", 2, 0, 24, 1, true, value => _thumbnails.Options = _thumbnails.Options with { ContentPadding = value }),
+                SampleSettings.Slider("ラベルの左右の余白", 1, 0, 24, 1, true, value => _thumbnails.Options = _thumbnails.Options with { LabelHorizontalPadding = value }),
                 SampleSettings.Slider("画像の最小幅", 16, 16, 320, 8, true, value => _thumbnails.Options = _thumbnails.Options with { MinimumImageWidth = value }),
                 SampleSettings.Slider("最大の列数", 0, 0, 16, 1, true, value => _thumbnails.Options = _thumbnails.Options with { MaximumColumns = (int)value }),
                 SampleSettings.Slider("ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { LabelFontSize = value })),
@@ -123,7 +121,17 @@ public sealed class MainWindow : Window
         var log = new SampleLogPanel(_logging.Buffer);
         Title = "ThumbnailControl サンプル（WinUI 3）";
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 900));
-        Content = SampleShell.CreateContent(properties, samples, _thumbnails, log);
+        Content = SampleShell.CreateContent(
+            properties,
+            samples,
+            _thumbnails,
+            log,
+            themeChanged: value =>
+            {
+                // コントロールはアプリのテーマを知らないため、切り替わったら伝える
+                _thumbnails.IsDarkTheme = value;
+                _thumbnails.Refresh();
+            });
         Closed += (_, _) => _logging.Dispose();
 
         return;

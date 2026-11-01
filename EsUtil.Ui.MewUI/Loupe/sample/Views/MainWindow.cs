@@ -119,18 +119,6 @@ internal static class MainWindow
             SampleSettings.Slider("位置オフセット", 0, 0, 64, 4, true, value => loupe.PositionOffset = value),
             SampleSettings.Slider("中心 X", 120, 0, ImageWidth, 10, true, value => loupe.CenterPoint = new EsPoint(value, loupe.CenterPoint?.Y ?? 0)),
             SampleSettings.Slider("中心 Y", 120, 0, ImageHeight, 10, true, value => loupe.CenterPoint = new EsPoint(loupe.CenterPoint?.X ?? 0, value)),
-            SampleSettings.Buttons(
-                ("ソースを設定", () => loupe.Source = source),
-                ("ソースを解除（描画資源を解放）", () =>
-                {
-                    loupe.IsVisible = false;
-                    loupe.Source = null;
-                    loupeVisible.IsChecked = false;
-                }
-        )),
-            SampleSettings.Text("ログ接頭辞", "[Loupe]", value => loupe.LogPrefix = value),
-            SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
-                loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null),
             ColorChoice("十字線の色", 7, index =>
             {
                 appearance = appearance with
@@ -192,11 +180,23 @@ internal static class MainWindow
             {
                 appearance = appearance with { CoordLabelOffset = value };
                 loupe.Appearance = appearance;
-            }));
+            }),
+            SampleSettings.Text("ログ接頭辞", "[Loupe]", value => loupe.LogPrefix = value),
+            SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
+                loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null));
 
         // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
         var samples = new StackPanel().Vertical().Spacing(6).Children(
             SampleSettings.LogLevel(logging),
+            SampleSettings.Buttons(
+                ("ソースを設定", () => loupe.Source = source),
+                ("ソースを解除（描画資源を解放）", () =>
+                {
+                    loupe.IsVisible = false;
+                    loupe.Source = null;
+                    loupeVisible.IsChecked = false;
+                }
+        )),
             SampleSettings.Buttons(
                 ("再描画を要求", () => loupe.InvalidateVisual()),
                 ("ソースを設定して再表示", () =>

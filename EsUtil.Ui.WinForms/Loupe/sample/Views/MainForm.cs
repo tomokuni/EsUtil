@@ -147,18 +147,6 @@ internal static class MainForm
             }),
             SampleSettings.Slider("中心 X", 120, 0, ImageWidth, 10, true, value => SetCenter(value, loupe.CenterPoint?.Y ?? 0)),
             SampleSettings.Slider("中心 Y", 120, 0, ImageHeight, 10, true, value => SetCenter(loupe.CenterPoint?.X ?? 0, value)),
-            SampleSettings.Buttons(
-                ("ソースを設定", () => loupe.Source = source),
-                ("ソースを解除（描画資源を解放）", () =>
-                {
-                    loupe.Visible = false;
-                    loupe.Source = null;
-                    loupeVisible.Checked = false;
-                }
-        )),
-            SampleSettings.Text("ログ接頭辞", "[Loupe]", value => loupe.LogPrefix = value),
-            SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
-                loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null),
             ColorChoice("十字線の色", 7, index => ApplyAppearance(appearance with
             {
                 CrossColor = ResolveColor(index, appearance.CrossColor),
@@ -180,11 +168,23 @@ internal static class MainForm
             ColorChoice("座標ラベルの背景色", 8, index => ApplyAppearance(appearance with { CoordLabelBackgroundColor = ResolveColor(index, appearance.CoordLabelBackgroundColor) })),
             SampleSettings.Slider("座標ラベルの文字サイズ", 12, 6, 24, 1, true, value => ApplyAppearance(appearance with { CoordLabelFontSize = value })),
             SampleSettings.Slider("座標ラベルの角丸", 2, 0, 12, 1, true, value => ApplyAppearance(appearance with { CoordLabelCornerRadius = (int)value })),
-            SampleSettings.Slider("座標ラベルの間隔", 2, 0, 24, 1, true, value => ApplyAppearance(appearance with { CoordLabelOffset = value })));
+            SampleSettings.Slider("座標ラベルの間隔", 2, 0, 24, 1, true, value => ApplyAppearance(appearance with { CoordLabelOffset = value })),
+            SampleSettings.Text("ログ接頭辞", "[Loupe]", value => loupe.LogPrefix = value),
+            SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
+                loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null));
 
         // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
         var samples = Column(
             SampleSettings.LogLevel(logging),
+            SampleSettings.Buttons(
+                ("ソースを設定", () => loupe.Source = source),
+                ("ソースを解除（描画資源を解放）", () =>
+                {
+                    loupe.Visible = false;
+                    loupe.Source = null;
+                    loupeVisible.Checked = false;
+                }
+        )),
             SampleSettings.Buttons(
                 ("再描画を要求", () => loupe.Invalidate()),
                 ("ソースを設定して再表示", () =>

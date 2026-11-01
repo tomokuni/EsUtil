@@ -33,6 +33,7 @@ public static class SampleShell
     /// <param name="log">ログ（右下の領域）。</param>
     /// <param name="width">ウィンドウの初期幅（DIP）。</param>
     /// <param name="height">ウィンドウの初期高さ（DIP）。</param>
+    /// <param name="themeChanged">表示テーマが切り替わったときの通知先。 null の場合は通知しない。</param>
     /// <returns>組み立てたウィンドウ。</returns>
     /// <exception cref="ArgumentNullException">必須の引数が null の場合。</exception>
     public static Window Create(
@@ -42,18 +43,35 @@ public static class SampleShell
         UIElement content,
         SampleLogPanel log,
         double width = 1400,
-        double height = 900)
+        double height = 900,
+        Action<bool>? themeChanged = null)
     {
         ArgumentNullException.ThrowIfNull(propertySettings);
         ArgumentNullException.ThrowIfNull(sampleSettings);
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(log);
 
+        // 表示テーマはサンプル共通の設定（WinForms はテーマを持たないため本クラスを使わない）
+        var themeRow = SampleSettings.Choice(
+            "表示テーマ",
+            [.. SampleTheme.Choices],
+            SampleTheme.CurrentIndex(),
+            index =>
+            {
+                var isDark = SampleTheme.IsDarkAt(index);
+                SampleTheme.Apply(isDark);
+                themeChanged?.Invoke(isDark);
+            });
+
+        // 表示テーマはサンプル設定の先頭へ置く（サンプル固有の操作より前）
+        var sampleBody = new StackPanel().Vertical().Spacing(6);
+        sampleBody.Children(themeRow, sampleSettings);
+
         var settingsBody = new StackPanel().Vertical().Spacing(12);
         settingsBody.Children(
             SampleSettings.Area("プロパティ設定", propertySettings),
             SampleSettings.Separator(),
-            SampleSettings.Area("サンプル設定", sampleSettings));
+            SampleSettings.Area("サンプル設定", sampleBody));
 
         var settingsHost = new Border
         {

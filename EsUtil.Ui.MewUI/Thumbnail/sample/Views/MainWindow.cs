@@ -35,7 +35,14 @@ internal static class MainWindow
         var status = new TextBlock().Text("サムネイルを選択してください。").FontSize(11);
         var appearance = ThumbnailAppearance.Default;
 
-        var thumbnails = new ThumbnailControl { ImageWidth = 160, Log = logger, LogPrefix = "[Thumbnail]" };
+        // 表示テーマは下の設定で切り替わるため、初期値をアプリのテーマに合わせる
+        var thumbnails = new ThumbnailControl
+        {
+            ImageWidth = 160,
+            Log = logger,
+            LogPrefix = "[Thumbnail]",
+            IsDarkTheme = SampleTheme.IsDark,
+        };
 
         // 選択と現在項目は利用者の操作でコントロール側が変えるため、設定パネルの表示を追随させる
         var selectionRow = SampleSettings.NumberRow(
@@ -61,18 +68,13 @@ internal static class MainWindow
 
         // プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通）
         var properties = new StackPanel().Vertical().Spacing(6).Children(
-            SampleSettings.Check("暗色テーマ", false, value =>
-            {
-                thumbnails.IsDarkTheme = value;
-                thumbnails.Refresh();
-            }),
             SampleSettings.Number("画像の幅", 160, 40, 400, 10, true, value => thumbnails.ImageWidth = value),
             selectionRow.Element,
             currentRow.Element,
             SampleSettings.Slider("行間", 8, 0, 32, 1, true, value => thumbnails.Options = thumbnails.Options with { RowSpace = value }),
             SampleSettings.Slider("列間", 8, 0, 32, 1, true, value => thumbnails.Options = thumbnails.Options with { ColumnSpace = value }),
-            SampleSettings.Slider("ラベルの左右の余白", 1, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { LabelHorizontalPadding = value }),
             SampleSettings.Slider("内容の余白", 2, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { ContentPadding = value }),
+            SampleSettings.Slider("ラベルの左右の余白", 1, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { LabelHorizontalPadding = value }),
             SampleSettings.Slider("画像の最小幅", 16, 16, 320, 8, true, value => thumbnails.Options = thumbnails.Options with { MinimumImageWidth = value }),
             SampleSettings.Slider("最大の列数", 0, 0, 16, 1, true, value => thumbnails.Options = thumbnails.Options with { MaximumColumns = (int)value }),
             SampleSettings.Slider("ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { LabelFontSize = value })),
@@ -94,7 +96,7 @@ internal static class MainWindow
                 ("追加", () => AddItem(thumbnails, status)),
                 ("12 件に戻す", () =>
                 {
-                    thumbnails.Clear();
+                    thumbnails.ClearItems();
                     s_count = 0;
                     for (var i = 0; i < 12; i++)
                     {
@@ -116,7 +118,18 @@ internal static class MainWindow
         thumbnails.SelectedIndex = 0;
         thumbnails.CurrentIndex = 0;
 
-        var window = SampleShell.Create("ThumbnailControl サンプル（MewUI）", properties, samples, thumbnails, log);
+        var window = SampleShell.Create(
+            "ThumbnailControl サンプル（MewUI）",
+            properties,
+            samples,
+            thumbnails,
+            log,
+            themeChanged: value =>
+            {
+                // コントロールはアプリのテーマを知らないため、切り替わったら伝える
+                thumbnails.IsDarkTheme = value;
+                thumbnails.Refresh();
+            });
         window.Closed += () => logging.Dispose();
         return window;
 

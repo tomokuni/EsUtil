@@ -160,18 +160,6 @@ public sealed class MainWindow : Window
                 }),
                 SampleSettings.Slider("中心 X", 120, 0, ImageWidth, 10, true, value => SetCenter(value, _loupe.CenterPoint?.Y ?? 0)),
                 SampleSettings.Slider("中心 Y", 120, 0, ImageHeight, 10, true, value => SetCenter(_loupe.CenterPoint?.X ?? 0, value)),
-                SampleSettings.Buttons(
-                    ("ソースを設定", () => _loupe.Source = _source),
-                    ("ソースを解除（描画資源を解放）", () =>
-                    {
-                        _loupe.Visibility = Visibility.Collapsed;
-                        _loupe.Source = null;
-                        loupeVisible.IsChecked = false;
-                        UpdatePlacement();
-                    })),
-                SampleSettings.Text("ログ接頭辞", "[Loupe]", value => _loupe.LogPrefix = value),
-                SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
-                    _loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null),
                 ColorChoice("十字線の色", 7, index => Apply(_appearance with
                 {
                     CrossColor = ResolveColor(index, _appearance.CrossColor),
@@ -194,6 +182,9 @@ public sealed class MainWindow : Window
                 SampleSettings.Slider("座標ラベルの文字サイズ", 12, 6, 24, 1, true, value => Apply(_appearance with { CoordLabelFontSize = value })),
                 SampleSettings.Slider("座標ラベルの角丸", 2, 0, 12, 1, true, value => Apply(_appearance with { CoordLabelCornerRadius = (int)value })),
                 SampleSettings.Slider("座標ラベルの間隔", 2, 0, 24, 1, true, value => Apply(_appearance with { CoordLabelOffset = value })),
+                SampleSettings.Text("ログ接頭辞", "[Loupe]", value => _loupe.LogPrefix = value),
+                SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
+                    _loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null),
             },
         };
 
@@ -204,6 +195,15 @@ public sealed class MainWindow : Window
             Children =
             {
                 SampleSettings.LogLevel(_logging),
+                SampleSettings.Buttons(
+                    ("ソースを設定", () => _loupe.Source = _source),
+                    ("ソースを解除（描画資源を解放）", () =>
+                    {
+                        _loupe.Visibility = Visibility.Collapsed;
+                        _loupe.Source = null;
+                        loupeVisible.IsChecked = false;
+                        UpdatePlacement();
+                    })),
                 SampleSettings.Buttons(
                     ("再描画を要求", () => _loupe.RequestRedraw()),
                     ("ソースを設定して再表示", () =>

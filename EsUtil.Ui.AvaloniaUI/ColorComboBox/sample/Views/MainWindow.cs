@@ -179,7 +179,6 @@ public sealed class MainWindow : Window
                         control.LogPrefix = value;
                     }
                 }),
-                SampleSettings.Buttons(("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
             },
         };
 
@@ -190,6 +189,7 @@ public sealed class MainWindow : Window
             Children =
             {
                 SampleSettings.LogLevel(_logging),
+                SampleSettings.Buttons(("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
                 new TextBlock
                 {
                     Text = "入力できる形: 色名（Red）/ 16 進（#RRGGBB・#AARRGGBB）/ 不透明度（Red+50%）。 無効な入力はフォーカスを外すと戻ります。",

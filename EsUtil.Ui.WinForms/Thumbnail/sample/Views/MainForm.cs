@@ -62,18 +62,13 @@ internal static class MainForm
 
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
         var properties = Column(
-            SampleSettings.Check("暗色テーマ", false, value =>
-            {
-                thumbnails.IsDarkTheme = value;
-                thumbnails.Refresh();
-            }),
             SampleSettings.Number("画像の幅", 160, 40, 400, 0, value => thumbnails.ImageWidth = value),
             selectionRow.Element,
             currentRow.Element,
             SampleSettings.Slider("行間", 8, 0, 32, 1, true, value => thumbnails.Options = thumbnails.Options with { RowSpace = value }),
             SampleSettings.Slider("列間", 8, 0, 32, 1, true, value => thumbnails.Options = thumbnails.Options with { ColumnSpace = value }),
-            SampleSettings.Slider("ラベルの左右の余白", 1, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { LabelHorizontalPadding = value }),
             SampleSettings.Slider("内容の余白", 2, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { ContentPadding = value }),
+            SampleSettings.Slider("ラベルの左右の余白", 1, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { LabelHorizontalPadding = value }),
             SampleSettings.Slider("画像の最小幅", 16, 16, 320, 8, true, value => thumbnails.Options = thumbnails.Options with { MinimumImageWidth = value }),
             SampleSettings.Slider("最大の列数", 0, 0, 16, 1, true, value => thumbnails.Options = thumbnails.Options with { MaximumColumns = (int)value }),
             SampleSettings.Slider("ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { LabelFontSize = value })),
@@ -83,6 +78,11 @@ internal static class MainForm
             SampleSettings.Check("選択の背景を表示", true, value => Apply(appearance with { ShowSelectionBackground = value })),
             SampleSettings.Check("影の表示", true, value => Apply(appearance with { ShowShadow = value })),
             SampleSettings.Check("選択時に影を隠す", false, value => Apply(appearance with { HideShadowWhenSelected = value })),
+            SampleSettings.Check("暗色テーマ（WinForms はテーマを持たないため個別に指定）", false, value =>
+            {
+                thumbnails.IsDarkTheme = value;
+                thumbnails.Refresh();
+            }),
             SampleSettings.Text("ログ接頭辞", "[Thumbnail]", value => thumbnails.LogPrefix = value),
             SampleSettings.Check("描画計画を差し替える（強調色）", false, value =>
                 thumbnails.DrawPlanResolver = value ? static plan => GuideThumbnailPlan.Resolve(in plan) : null));

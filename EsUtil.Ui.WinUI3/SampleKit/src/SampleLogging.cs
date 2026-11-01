@@ -114,7 +114,19 @@ public sealed class SampleLogging : IDisposable
             ArgumentNullException.ThrowIfNull(logEvent);
 
             var timestamp = logEvent.Timestamp.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
-            buffer.Write($"{timestamp} [{logEvent.Level}] {logEvent.RenderMessage(System.Globalization.CultureInfo.InvariantCulture)}");
+            // Serilog のレベル名は Verbose / Fatal であるが、サンプルの表示は
+            // Microsoft.Extensions.Logging の名前（Trace / Critical）に揃える（設定パネルの「ログ レベル」と同じ名前にする）
+            buffer.Write($"{timestamp} [{ToDisplayLevel(logEvent.Level)}] {logEvent.RenderMessage(System.Globalization.CultureInfo.InvariantCulture)}");
         }
+
+        /// <summary>Serilog のレベルを表示用の名前（Microsoft.Extensions.Logging と同じ）へ変換する。</summary>
+        /// <param name="level">Serilog のレベル。</param>
+        /// <returns>表示用の名前。</returns>
+        private static string ToDisplayLevel(LogEventLevel level) => level switch
+        {
+            LogEventLevel.Verbose => "Trace",
+            LogEventLevel.Fatal => "Critical",
+            _ => level.ToString(),
+        };
     }
 }

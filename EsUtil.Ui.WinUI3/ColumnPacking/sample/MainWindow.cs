@@ -72,11 +72,9 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
-                SampleSettings.Slider("列の上限", 10, 1, 8, 1, true, value => _panel.ColumnLimit = (int)value),
+                SampleSettings.Slider("列の上限", 10, 1, 16, 1, true, value => _panel.ColumnLimit = (int)value),
                 SampleSettings.Slider("行間", 8, 0, 24, 1, true, value => _panel.RowSpace = value),
                 SampleSettings.Slider("列間", 8, 0, 24, 1, true, value => _panel.ColumnSpace = value),
-                // データから作った子と直接の子（コードで足した要素）の並び順を切り替える
-                SampleSettings.Check("直接の子を後ろに置く", true, value => _panel.ItemsSourceFirst = value),
                 SampleSettings.Choice("配置の方法", ["貪欲法", "動的計画法", "二分探索"], 2, index =>
                     _panel.Method = index switch
                     {
@@ -84,6 +82,8 @@ public sealed class MainWindow : Window
                         2 => EsUtil.Feature.ColumnPacking.ColumnPacker.Method.BinarySearch,
                         _ => EsUtil.Feature.ColumnPacking.ColumnPacker.Method.Greedy,
                     }),
+                // データから作った子と直接の子（コードで足した要素）の並び順を切り替える
+                SampleSettings.Check("直接の子を後ろに置く", true, value => _panel.ItemsSourceFirst = value),
                 SampleSettings.Text("ログ接頭辞", "[ColumnPacking]", value => _panel.LogPrefix = value),
             },
         };

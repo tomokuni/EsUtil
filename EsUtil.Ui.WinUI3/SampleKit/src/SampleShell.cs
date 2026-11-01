@@ -39,6 +39,7 @@ public static class SampleShell
     /// <param name="log">ログ（右下の領域）。</param>
     /// <param name="width">ウィンドウの初期幅（DIP）。</param>
     /// <param name="height">ウィンドウの初期高さ（DIP）。</param>
+    /// <param name="themeChanged">表示テーマが切り替わったときの通知先。 null の場合は通知しない。</param>
     /// <returns>組み立てたウィンドウ。</returns>
     /// <exception cref="ArgumentNullException">必須の引数が null の場合。</exception>
     public static Window Create(
@@ -48,12 +49,13 @@ public static class SampleShell
         UIElement content,
         SampleLogPanel log,
         double width = 1400,
-        double height = 900)
+        double height = 900,
+        Action<bool>? themeChanged = null)
     {
         var window = new Window
         {
             Title = title,
-            Content = CreateContent(propertySettings, sampleSettings, content, log),
+            Content = CreateContent(propertySettings, sampleSettings, content, log, themeChanged),
         };
         window.AppWindow.Resize(new Windows.Graphics.SizeInt32((int)width, (int)height));
         return window;
@@ -64,6 +66,7 @@ public static class SampleShell
     /// <param name="sampleSettings">サンプル設定の行。</param>
     /// <param name="content">画像と操作（右上の領域）。</param>
     /// <param name="log">ログ（右下の領域）。</param>
+    /// <param name="themeChanged">表示テーマが切り替わったときの通知先。 null の場合は通知しない。</param>
     /// <returns>組み立てた要素（ウィンドウの <c>Content</c> へ設定する）。</returns>
     /// <exception cref="ArgumentNullException">必須の引数が null の場合。</exception>
     /// <remarks>
@@ -74,17 +77,42 @@ public static class SampleShell
         UIElement propertySettings,
         UIElement sampleSettings,
         UIElement content,
-        SampleLogPanel log)
+        SampleLogPanel log,
+        Action<bool>? themeChanged = null)
     {
         ArgumentNullException.ThrowIfNull(propertySettings);
         ArgumentNullException.ThrowIfNull(sampleSettings);
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(log);
 
+        // 表示テーマはサンプル共通の設定（WinUI 3 はルート要素の RequestedTheme で切り替える）。
+        // ルートは後で生成するため、選択を保持して生成後に適用する
+        FrameworkElement? themeRoot = null;
+        var isDark = SampleTheme.IsDark;
+        var themeChooser = SampleSettings.Choice(
+            "表示テーマ",
+            [.. SampleTheme.Choices],
+            SampleTheme.CurrentIndex(),
+            index =>
+            {
+                isDark = SampleTheme.IsDarkAt(index);
+                if (themeRoot is { } current)
+                {
+                    SampleTheme.Apply(current, isDark);
+                }
+
+                themeChanged?.Invoke(isDark);
+            });
+
+        // 表示テーマはサンプル設定の先頭へ置く（サンプル固有の操作より前）
+        var sampleBody = new StackPanel { Spacing = 6 };
+        sampleBody.Children.Add(themeChooser);
+        sampleBody.Children.Add(sampleSettings);
+
         var settingsBody = new StackPanel { Spacing = 12 };
         settingsBody.Children.Add(SampleSettings.Area("プロパティ設定", propertySettings));
         settingsBody.Children.Add(SampleSettings.Separator());
-        settingsBody.Children.Add(SampleSettings.Area("サンプル設定", sampleSettings));
+        settingsBody.Children.Add(SampleSettings.Area("サンプル設定", sampleBody));
 
         var settingsHost = new Border
         {
@@ -114,8 +142,13 @@ public static class SampleShell
         root.Children.Add(settingsHost);
         Grid.SetColumn(right, 1);
         root.Children.Add(right);
+
+        // ルートができたので現在の設定を適用する（初期はアプリのテーマと同じ）
+        themeRoot = root;
+        SampleTheme.Apply(root, isDark);
         return root;
     }
+
     /// <summary>境界（ドラッグで上下の行の高さを変える要素）を作る。</summary>
     /// <param name="grid">対象のグリッド（3 行: 画像 / 境界 / ログ）。</param>
     /// <returns>境界の要素。</returns>

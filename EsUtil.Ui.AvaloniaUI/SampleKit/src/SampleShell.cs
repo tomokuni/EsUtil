@@ -37,10 +37,15 @@ public static class SampleShell
     /// <param name="sampleSettings">サンプル設定の行。</param>
     /// <param name="content">画像と操作（右上の領域）。</param>
     /// <param name="log">ログ（右下の領域）。</param>
+    /// <param name="themeChanged">表示テーマが切り替わったときの通知先。 null の場合は通知しない。</param>
     /// <returns>組み立てた要素（ウィンドウの <c>Content</c> へ設定する）。</returns>
     /// <exception cref="ArgumentNullException">必須の引数が null の場合。</exception>
     public static Control CreateContent(
-        Control propertySettings, Control sampleSettings, Control content, SampleLogPanel log)
+        Control propertySettings,
+        Control sampleSettings,
+        Control content,
+        SampleLogPanel log,
+        Action<bool>? themeChanged = null)
     {
         ArgumentNullException.ThrowIfNull(propertySettings);
         ArgumentNullException.ThrowIfNull(sampleSettings);
@@ -48,9 +53,26 @@ public static class SampleShell
         ArgumentNullException.ThrowIfNull(log);
 
         var settingsBody = new StackPanel { Spacing = 12 };
+        // 表示テーマはサンプル共通の設定（WinForms はテーマを持たないため本クラスを使わない）
+        var themeRow = SampleSettings.Choice(
+            "表示テーマ",
+            [.. SampleTheme.Choices],
+            SampleTheme.CurrentIndex(),
+            index =>
+            {
+                var isDark = SampleTheme.IsDarkAt(index);
+                SampleTheme.Apply(isDark);
+                themeChanged?.Invoke(isDark);
+            });
+
         settingsBody.Children.Add(SampleSettings.Area("プロパティ設定", propertySettings));
         settingsBody.Children.Add(SampleSettings.Separator());
-        settingsBody.Children.Add(SampleSettings.Area("サンプル設定", sampleSettings));
+
+        // 表示テーマはサンプル設定の先頭へ置く（サンプル固有の操作より前）
+        var sampleBody = new StackPanel { Spacing = 6 };
+        sampleBody.Children.Add(themeRow);
+        sampleBody.Children.Add(sampleSettings);
+        settingsBody.Children.Add(SampleSettings.Area("サンプル設定", sampleBody));
 
         var settingsHost = new Border
         {
@@ -97,6 +119,7 @@ public static class SampleShell
     /// <param name="log">ログ（右下の領域）。</param>
     /// <param name="width">ウィンドウの初期幅（DIP）。</param>
     /// <param name="height">ウィンドウの初期高さ（DIP）。</param>
+    /// <param name="themeChanged">表示テーマが切り替わったときの通知先。 null の場合は通知しない。</param>
     /// <returns>組み立てたウィンドウ。</returns>
     /// <exception cref="ArgumentNullException">必須の引数が null の場合。</exception>
     public static Window Create(
@@ -106,7 +129,8 @@ public static class SampleShell
         Control content,
         SampleLogPanel log,
         double width = 1400,
-        double height = 900)
+        double height = 900,
+        Action<bool>? themeChanged = null)
         => new()
         {
             Title = title,
@@ -114,6 +138,6 @@ public static class SampleShell
             Height = height,
             MinWidth = WindowMinWidth,
             MinHeight = WindowMinHeight,
-            Content = CreateContent(propertySettings, sampleSettings, content, log),
+            Content = CreateContent(propertySettings, sampleSettings, content, log, themeChanged),
         };
 }
