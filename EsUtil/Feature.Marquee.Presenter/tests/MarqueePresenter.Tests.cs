@@ -157,7 +157,7 @@ public class MarqueePresenterTests
                 "[Marquee] Forwarded: ClientToSourceScaling 1.25",
             ],
             logger.Messages);
-        Assert.Equal([LogLevel.Debug, LogLevel.Trace], logger.Levels);
+        Assert.Equal([LogLevel.Information, LogLevel.Trace], logger.Levels);
     }
 
     /// <summary>外観の変更が変化した項目として記録されることを検証する。</summary>

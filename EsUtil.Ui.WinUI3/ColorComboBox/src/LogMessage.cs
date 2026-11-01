@@ -18,13 +18,13 @@ internal static partial class LogMessage
     internal static string Prefix { get; set; } = DefaultPrefix;
 
     /// <summary>設定の変更を記録する。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[ColorComboBox] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[ColorComboBox] Setting: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値。</param>
     /// <param name="newValue">変更後の値。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Setting: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(
         this ILogger logger, string prefix, string name, string oldValue, string newValue);
 

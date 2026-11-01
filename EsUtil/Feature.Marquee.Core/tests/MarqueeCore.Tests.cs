@@ -473,7 +473,7 @@ public class MarqueeCoreTests
             ],
             logger.Messages);
         // 低頻度の設定変更は Debug で記録する
-        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Debug, level));
+        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Information, level));
     }
 
     /// <summary>ハイライト矩形の変更が最も低いレベル（Trace）で記録されることを検証する。</summary>
@@ -520,6 +520,6 @@ public class MarqueeCoreTests
         Assert.Equal(2, logger.Messages.Count);
         Assert.StartsWith("[Marquee] Setting: CoordTransform null → ", logger.Messages[0], StringComparison.Ordinal);
         Assert.Equal("[Marquee] Setting: CoordTransform CoordTransform → null", logger.Messages[1]);
-        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Debug, level));
+        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Information, level));
     }
 }

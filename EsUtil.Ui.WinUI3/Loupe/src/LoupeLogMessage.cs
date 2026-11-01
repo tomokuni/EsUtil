@@ -95,8 +95,8 @@ internal static partial class LoupeLogMessage
 
     /// <summary>設定変更のログ（生成メソッド）。</summary>
     /// <remarks>
-    /// LogLevel: Debug<br/>
-    /// 出力書式: <c>[Loupe] Setting: {Name} {OldValue} → {NewValue}</c><br/>
+    /// LogLevel: Information<br/>
+    /// 出力書式: <c>[Loupe] Setting: {Name:l} {OldValue:l} → {NewValue:l}</c><br/>
     /// 接頭辞は既定値が <c>[Loupe]</c> であり、<c>Prefix</c> で設定できる。<br/>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
@@ -104,7 +104,7 @@ internal static partial class LoupeLogMessage
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Setting: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     /// <summary>設定変更のログ（整形済みの値を渡す）。</summary>

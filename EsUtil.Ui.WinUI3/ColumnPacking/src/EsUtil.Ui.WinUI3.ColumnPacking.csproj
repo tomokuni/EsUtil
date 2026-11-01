@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\EsUtil\Feature.ColumnPacking.Core\src\EsUtil.Feature.ColumnPacking.Core.csproj" />
+    <!-- 本コントロールが単一所有する値（プロパティ・レイアウト結果）の変更ログ（LoggerMessage ソース生成） -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

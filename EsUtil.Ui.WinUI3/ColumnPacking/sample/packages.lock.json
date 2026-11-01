@@ -191,6 +191,7 @@
         "type": "Project",
         "dependencies": {
           "EsUtil.Feature.ColumnPacking.Core": "[0.2.0, )",
+          "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )",
           "Microsoft.Windows.SDK.BuildTools": "[10.0.28000.2705, )",
           "Microsoft.WindowsAppSDK": "[2.6.4, )"
         }

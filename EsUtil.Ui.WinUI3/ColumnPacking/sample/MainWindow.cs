@@ -47,6 +47,10 @@ public sealed class MainWindow : Window
         var logger = _logging.Logger;
         logger.LogInformation("サンプルを起動しました。");
 
+        // パネルのログをログ領域へ流す（プロパティ変更は Information、レイアウト結果の変化は Debug）
+        _panel.Log = logger;
+        _panel.LogPrefix = "[ColumnPacking]";
+
         // 順序が重要: ItemTemplate を先に設定する（この時点の子は再構築で消えるため、直接の子はその後に足す）。
         // その後に直接の子を足し、SetItems でデータを渡す（初回の再構築で「直接の子」として保存される）
         _panel.ItemTemplate = (DataTemplate)Application.Current.Resources["SampleItemTemplate"];
@@ -81,6 +85,7 @@ public sealed class MainWindow : Window
                         2 => EsUtil.Feature.ColumnPacking.ColumnPacker.Method.BinarySearch,
                         _ => EsUtil.Feature.ColumnPacking.ColumnPacker.Method.Greedy,
                     }),
+                SampleSettings.Text("ログ接頭辞", "[ColumnPacking]", value => _panel.LogPrefix = value),
             },
         };
 

@@ -373,7 +373,7 @@ public class MarqueeControlTests
                 $"[Marquee] Forwarded: Options HandleSize={options.HandleSize}, MinSelectionSize={options.MinSelectionSize}",
             ],
             logger.Messages);
-        Assert.Equal([LogLevel.Debug, LogLevel.Trace], logger.Levels);
+        Assert.Equal([LogLevel.Information, LogLevel.Trace], logger.Levels);
     }
 
     [Fact]

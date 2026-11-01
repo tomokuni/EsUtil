@@ -197,9 +197,9 @@ internal static class MainForm
             marquee.InvalidateRender();
         }
 
-        // 検出結果など、ホストが外から与える注目矩形を模す（利用者のドラッグとは独立に「ここを見せたい」を提示できる）。
-        // ハイライトは「注目矩形」を上書きする（外側マスク・枠線・サイズ ラベルがハイライトへ移る）。
-        // ハンドルは選択矩形に付くため、同じ矩形を選択にも設定して枠とハンドルを一致させる。
+        // 検出結果など、ホストが外から与える「表示専用の注目矩形」を模す。
+        // 選択（SetSelection）とは別で、**ハンドルを出さず、確定・キャンセルの対象にもならない**（利用者に操作させたくない領域を示す）。
+        // 注目矩形はハイライトが優先されるため、外側マスク・枠線・サイズ ラベルはハイライトへ移り、ハンドルは選択に残る（この差が両者の違い）。
         void ToggleHighlight()
         {
             if (marquee.HighlightSourceRect is not null)
@@ -209,9 +209,8 @@ internal static class MainForm
                 return;
             }
 
-            marquee.SetSelection(highlightRect);
             marquee.HighlightSourceRect = highlightRect;
-            Write($"検出結果をハイライト: {highlightRect}（注目矩形はハイライトを優先する）");
+            Write($"ハイライト（表示専用の注目）: {highlightRect} / 選択は {marquee.SelectionSourceRect} のまま（ハンドルは操作できる）");
         }
 
         // ズームを反映する（画像の表示サイズと、クライアント座標 → 対象座標の変換を揃える）

@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.UI.Xaml;
 using Windows.Foundation;
 
@@ -125,15 +127,128 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
     /// <summary><b>DependencyProperty 変更時のコールバック</b></summary>
     /// <remarks>
     /// レイアウト再計算が必要な場合に InvalidateMeasure() を呼び出す<br/>
+    /// プロパティの変更は Information で記録する（利用者が設定を変える操作であり、結果の解釈に要る）。<br/>
     /// </remarks>
     private static void OnLayoutPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var panel = (ColumnPackingPanel)d;
+        panel.LogSettingChanged(e);
         // レイアウトキャッシュを無効化
         panel.Layout = null;
         // DependencyProperty も null にリセット
         panel.UpdateLayoutResultProperties();
         panel.InvalidateMeasure();
+    }
+
+    /// <summary>プロパティの変更をログへ記録する。</summary>
+    /// <param name="e">変更の内容。</param>
+    /// <remarks>
+    /// WinUI の <see cref="DependencyProperty"/> は名前を持たないため、登録した静的フィールドとの比較で名前を求める<br/>
+    /// （名前を求める処理を 1 か所に閉じ、呼び出し側は変更の内容を渡すだけにする）。<br/>
+    /// 数値は自然な小数表記（<c>0.#</c>）で整形する（同値の再設定では出力しない）。
+    /// </remarks>
+    private void LogSettingChanged(DependencyPropertyChangedEventArgs e)
+    {
+        var name = e.Property == ColumnLimitProperty ? nameof(ColumnLimit)
+            : e.Property == RowSpaceProperty ? nameof(RowSpace)
+            : e.Property == ColumnSpaceProperty ? nameof(ColumnSpace)
+            : e.Property == MethodProperty ? nameof(Method)
+            : "unknown";
+        _log.LogSettingChanged(name, FormatSettingValue(e.OldValue), FormatSettingValue(e.NewValue));
+    }
+
+    /// <summary>プロパティの値をログ用の文字列へ整形する。</summary>
+    /// <param name="value">整形する値。</param>
+    /// <returns>不変カルチャの文字列。</returns>
+    private static string FormatSettingValue(object? value) => value switch
+    {
+        null => "null",
+        double number => ColumnPackingLogMessage.Format(number),
+        IFormattable formattable => formattable.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
+        _ => value.ToString() ?? "null",
+    };
+
+    /// <summary>プロパティの変更を記録するロガー（未設定は <see cref="NullLogger"/>）。</summary>
+    private ILogger _log = NullLogger.Instance;
+
+    /// <summary>ログの接頭辞（未設定は null。 既定値は定義クラスが持つ）。</summary>
+    private string? _logPrefix;
+
+    /// <summary>生成の記録を出力済みかどうか（ロガーの初回設定時に 1 度だけ出力する）。</summary>
+    private bool _createdLogged;
+
+    /// <summary>直近に記録したレイアウト結果の署名（同じ結果を繰り返し記録しないための比較キー）。</summary>
+    private string? _lastLayoutSignature;
+
+    /// <summary>ログの出力先を取得または設定する。</summary>
+    /// <value>ロガー。 null を設定すると <see cref="NullLogger"/> になる（出力なし）。</value>
+    /// <remarks>
+    /// <b>頻度でレベルを分ける</b>: プロパティの変更は <c>Information</c>、レイアウト結果の変化は <c>Debug</c>、<br/>
+    /// 項目ごとの座標は <c>Trace</c> で出力する（<c>.github/ログ規約.md</c> §2）。<br/>
+    /// 初回の設定時に生成（初期設定の値）を 1 度だけ記録する。
+    /// </remarks>
+    public ILogger Log
+    {
+        get => _log;
+        set
+        {
+            _log = value ?? NullLogger.Instance;
+            LogFacadeCreatedOnce();
+        }
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[ColumnPacking]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    /// <remarks>接頭辞は本層のログ定義（<see cref="ColumnPackingLogMessage"/>）が保持する（アセンブリで 1 つ）。</remarks>
+    public string? LogPrefix
+    {
+        get => _logPrefix;
+        set
+        {
+            _logPrefix = value;
+            ColumnPackingLogMessage.Prefix = string.IsNullOrWhiteSpace(value) ? ColumnPackingLogMessage.DefaultPrefix : value;
+        }
+    }
+
+    /// <summary>ロガーが設定された時点で生成を 1 度だけ記録する。</summary>
+    private void LogFacadeCreatedOnce()
+    {
+        if (_createdLogged)
+        {
+            return;
+        }
+
+        _createdLogged = true;
+        _log.LogFacadeCreated(ColumnLimit, RowSpace, ColumnSpace, Method.ToString());
+    }
+
+    /// <summary>レイアウト結果が変化していれば記録する（同じ結果の繰り返しは記録しない）。</summary>
+    /// <param name="itemY">項目ごとの Y 座標（<c>Trace</c> で使う。 整形は定義側で行う）。</param>
+    private void LogLayoutResultIfChanged(IReadOnlyList<double> itemY)
+    {
+        if (Layout is null)
+        {
+            return;
+        }
+
+        var result = Layout.GetLastResult();
+        var segments = Layout.GetLastColumnSegments();
+        var segmentsText = "[" + string.Join(",", segments.Select(static seg => seg.EndIdx)) + "]";
+
+        // 丸めた値で比較する（レイアウトの再計算で同じ結果が繰り返し届くため、変化したときだけ記録する）
+        var signature = string.Join(
+            "/",
+            ColumnPackingLogMessage.Format(result.UsedWidth),
+            ColumnPackingLogMessage.Format(result.MinHeight),
+            segmentsText);
+        if (string.Equals(signature, _lastLayoutSignature, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _lastLayoutSignature = signature;
+        _log.LogLayoutChanged(result.UsedWidth, result.MinHeight, segments.Length, segmentsText);
+        _log.LogLayoutItems(itemY);
     }
 
 
@@ -344,6 +459,9 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
 
         // Layout 計算結果を DependencyProperty に反映
         UpdateLayoutResultProperties();
+
+        // レイアウト結果が変化したときだけ記録する（Debug。 項目ごとの座標は Trace）
+        LogLayoutResultIfChanged([.. Layout.GetLastItemLayouts().Select(static layout => layout.Y)]);
 
         // 必要なサイズを返す
         return new Size(UsedWidth, MinHeight);

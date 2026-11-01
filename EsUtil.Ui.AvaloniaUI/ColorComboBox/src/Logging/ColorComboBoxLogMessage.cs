@@ -33,14 +33,14 @@ internal static partial class ColorComboBoxLogMessage
 
     /// <summary>選択色変更のログ（変更前後）。</summary>
     /// <remarks>
-    /// LogLevel: Debug <br/>
+    /// LogLevel: Information <br/>
     /// 出力書式: <c>[ColorComboBox] Setting: SelectedColor {OldValue} → {NewValue}</c>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="oldValue">変更前の色。</param>
     /// <param name="newValue">変更後の色。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Setting: SelectedColor {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Setting: SelectedColor {OldValue} → {NewValue}")]
     private static partial void LogSelectedColorChangedCore(this ILogger logger, string prefix, string oldValue, string newValue);
 
     public static void LogSelectedColorChanged(this ILogger logger, string oldValue, string newValue)
