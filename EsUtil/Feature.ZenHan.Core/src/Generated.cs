@@ -11,12 +11,13 @@ namespace EsUtil.Feature.ZenHan;
 /// <summary>定義</summary>
 public partial class Define
 {
+    /// <summary>CSV から生成した変換定義の一覧（初回アクセス時に 1 度だけ生成する）。</summary>
+    /// <remarks>並行アクセスでも 1 つだけ生成します（<see cref="Lazy{T}"/> の既定の動作。 <c>??=</c> だけでは 2 つ作られます）。</remarks>
+    private static readonly Lazy<ImmutableList<EntryRecord>> s_allList = new(CreateAllList);
+
     /// <summary>CSV から生成した変換定義の一覧</summary>
-    /// <remarks>初回アクセス時に生成し、以降は同じインスタンスを返します（C# 14 の field による遅延初期化）。<br/></remarks>
-    public static ImmutableList<EntryRecord> AllList
-    {
-        get => field ??= CreateAllList();
-    }
+    /// <remarks>初回アクセス時に生成し、以降は同じインスタンスを返します。<br/></remarks>
+    public static ImmutableList<EntryRecord> AllList => s_allList.Value;
 
     /// <summary>CSV から生成した変換定義の一覧を生成します。</summary>
     /// <returns>CSV の全エントリを含む不変リスト</returns>

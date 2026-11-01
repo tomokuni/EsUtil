@@ -83,12 +83,13 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
     IEnumerator IEnumerable.GetEnumerator() => Values.GetEnumerator();
 
 
+    /// <summary>空の変換リスト（全スレッドで共有する 1 つのインスタンス）。</summary>
+    /// <remarks>遅延して 1 度だけ生成します（並行アクセスでも 1 つだけ生成します。 <c>??=</c> だけでは 2 つ作られます）。</remarks>
+    private static readonly Lazy<ConvertPairs> s_empty = new(static () => new ConvertPairs([]));
+
     /// <summary>空の変換リストを取得します。</summary>
-    /// <remarks>初回アクセス時に生成して共有します（バッキング フィールドを持たない遅延初期化）。<br/></remarks>
-    public static ConvertPairs Empty
-    {
-        get => field ??= new([]);
-    }
+    /// <remarks>初回アクセス時に生成して共有します（常に同じインスタンスを返します）。<br/></remarks>
+    public static ConvertPairs Empty => s_empty.Value;
 
 
     /// <summary>複数のペア集合を平坦化して初期化します。</summary>

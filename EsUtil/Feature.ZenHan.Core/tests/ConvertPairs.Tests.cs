@@ -94,6 +94,18 @@ public class ConvertPairsTests
     }
 
     [Fact]
+    internal void Empty_未初期化から並行アクセスしても同一インスタンス()
+    {
+        // 遅延初期化は**未初期化の状態からの初回アクセス**が重なっても 1 つだけ生成する
+        // （`??=` だけだと 2 つ作られ、参照が一致しなくなる）。
+        // 同じ読み込み文脈では既に初期化済みになるため、新しい文脈へ読み込み直して未初期化の状態を作る
+        var mismatches = LazyInitRace.CountMismatches(
+            typeof(ConvertPairs).Assembly.Location, typeof(ConvertPairs).FullName!, nameof(ConvertPairs.Empty));
+
+        Assert.Equal(0, mismatches);
+    }
+
+    [Fact]
     internal void Func_同一キーはキャッシュ共有()
     {
         var first = ConvertPairs.FromFunc("key", () => new ConvertPairs([("a", "A")]));
