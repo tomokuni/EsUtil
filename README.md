@@ -53,6 +53,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Ui.AvaloniaUI.Loupe`](EsUtil.Ui.AvaloniaUI/Loupe/README.md) | ルーペ（拡大鏡） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Loupe) |
 | [`EsUtil.Ui.AvaloniaUI.Marquee`](EsUtil.Ui.AvaloniaUI/Marquee/README.md) | マーキー（ドラッグ矩形） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Marquee) |
 | [`EsUtil.Ui.AvaloniaUI.Thumbnail`](EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Thumbnail) |
+| [`EsUtil.Ui.AvaloniaUI.ColumnPacking`](EsUtil.Ui.AvaloniaUI/ColumnPacking/README.md) | 複数列の配置（パネル） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.ColumnPacking.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.ColumnPacking) |
 
 ### 1.3 `EsUtil.Ui.MewUI`（MewUI 版）
 
@@ -65,6 +66,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Ui.MewUI.Loupe`](EsUtil.Ui.MewUI/Loupe/README.md) | ルーペ（拡大鏡） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Loupe) |
 | [`EsUtil.Ui.MewUI.Marquee`](EsUtil.Ui.MewUI/Marquee/README.md) | マーキー（ドラッグ矩形） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Marquee) |
 | [`EsUtil.Ui.MewUI.Thumbnail`](EsUtil.Ui.MewUI/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Thumbnail) |
+| [`EsUtil.Ui.MewUI.ColumnPacking`](EsUtil.Ui.MewUI/ColumnPacking/README.md) | 複数列の配置（パネル） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.ColumnPacking.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.ColumnPacking) |
 
 ### 1.4 `EsUtil.Ui.WinUI3`（WinUI 3 版）
 

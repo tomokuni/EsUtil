@@ -180,6 +180,14 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
     /// <summary>直近に記録したレイアウト結果の署名（同じ結果を繰り返し記録しないための比較キー）。</summary>
     private string? _lastLayoutSignature;
 
+    /// <summary>直前に確定した幅の上限（DIP。 0 は未確定）。</summary>
+    /// <remarks>
+    /// <b>幅が確定しないパスがあるため保持する</b>: <c>ScrollViewer</c> は内容を「無限大の幅」と<br/>
+    /// 「表示領域の幅」の両方で測ることがあり、無限大のパスで別の結果を返すと 2 つのレイアウトが交互に現れて確定しない。<br/>
+    /// 無限大・0 以下のときは直前の幅を使う（どの UI でも同じ結果になるようにする）。
+    /// </remarks>
+    private double _lastWidthLimit;
+
     /// <summary>ログの出力先を取得または設定する。</summary>
     /// <value>ロガー。 null を設定すると <see cref="NullLogger"/> になる（出力なし）。</value>
     /// <remarks>
@@ -449,10 +457,19 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
         Layout ??= new ColumnPacker(items, (RowSpace, ColumnSpace), ColumnLimit);
         Layout.CurrentMethod = Method;
 
-        // 利用可能な幅を決定する。
-        double widthLimit = double.IsInfinity(availableSize.Width)
-            ? double.PositiveInfinity
-            : availableSize.Width;
+        // 幅の上限を決める。 無限大・0 以下（幅が未確定のパス）は直前に確定した幅を使う
+        double widthLimit = ResolveWidthLimit(availableSize.Width);
+
+        // 幅がまだ分からない場合は列数の制約が無いため 1 列として扱う（幅の制約が無いホスト向け）
+        if (!(widthLimit > 0.0))
+        {
+            var single = Layout.SolveSingleColumnLayout();
+            UpdateLayoutResultProperties();
+            LogLayoutResultIfChanged([.. Layout.GetLastItemLayouts().Select(static layout => layout.Y)]);
+            return new Size(single.UsedWidth, single.MinHeight);
+        }
+
+        _lastWidthLimit = widthLimit;
 
         // ColumnPacking で最適レイアウトを計算
         var (UsedWidth, MinHeight) = Layout.Solve(widthLimit);
@@ -500,6 +517,12 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
 
         return finalSize;
     }
+
+    /// <summary>幅の上限を決める（確定しないパスでは直前に確定した幅を使う）。</summary>
+    /// <param name="availableWidth">親から提示された幅。</param>
+    /// <returns>幅の上限。 まだ分からない場合は 0。</returns>
+    private double ResolveWidthLimit(double availableWidth)
+        => !double.IsInfinity(availableWidth) && availableWidth > 0.0 ? availableWidth : _lastWidthLimit;
 
     /// <summary><b>子要素を抽出します（LINQ Iterator なし）</b></summary>
     /// <returns>フィルタリングされた FrameworkElement のリスト</returns>

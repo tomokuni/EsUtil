@@ -68,6 +68,13 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "label": "ビルド（AvaloniaUI / ColumnPacking）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.AvaloniaUI/ColumnPacking/sample/EsUtil.Ui.AvaloniaUI.ColumnPacking.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "ビルド（AvaloniaUI / Loupe）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
@@ -94,6 +101,13 @@
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
       "command": "dotnet build EsUtil.Ui.MewUI/ColorComboBox/sample/EsUtil.Ui.MewUI.ColorComboBox.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（MewUI / ColumnPacking）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.MewUI/ColumnPacking/sample/EsUtil.Ui.MewUI.ColumnPacking.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
     {

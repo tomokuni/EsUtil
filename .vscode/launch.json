@@ -1,5 +1,5 @@
 {
-    // サンプル アプリ（各 UI 層の `sample/`）の起動構成。 16 件を UI 層ごとに並べる。
+    // サンプル アプリ（各 UI 層の `sample/`）の起動構成。 18 件を UI 層ごとに並べる。
     // **デバッグ実行**で起動する（`noDebug: false`。 ブレークポイント・ステップ実行が効く）。
     // 種別は coreclr を使う（`dotnet` は不可）。 `dotnet` は読み込み済みソリューションのプロジェクトしか
     // 解決できず、`dotnet.defaultSolution` は共通基盤だけの EsUtil.slnx を指すため、UI 層のサンプルは
@@ -24,6 +24,17 @@
             "preLaunchTask": "ビルド（AvaloniaUI / ColorComboBox）",
             "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColorComboBox/sample/bin/Debug/net10.0/EsUtil.Ui.AvaloniaUI.ColorComboBox.Sample.exe",
             "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColorComboBox/sample"
+        },
+        {
+            "name": "AvaloniaUI / ColumnPacking",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "justMyCode": false,
+            "logging": { "moduleLoad": false },
+            "preLaunchTask": "ビルド（AvaloniaUI / ColumnPacking）",
+            "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColumnPacking/sample/bin/Debug/net10.0/EsUtil.Ui.AvaloniaUI.ColumnPacking.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColumnPacking/sample"
         },
         {
             "name": "AvaloniaUI / Loupe",
@@ -69,6 +80,17 @@
             "preLaunchTask": "ビルド（MewUI / ColorComboBox）",
             "program": "${workspaceFolder}/EsUtil.Ui.MewUI/ColorComboBox/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.ColorComboBox.Sample.exe",
             "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/ColorComboBox/sample"
+        },
+        {
+            "name": "MewUI / ColumnPacking",
+            "type": "coreclr",
+            "request": "launch",
+            "noDebug": false,
+            "justMyCode": false,
+            "logging": { "moduleLoad": false },
+            "preLaunchTask": "ビルド（MewUI / ColumnPacking）",
+            "program": "${workspaceFolder}/EsUtil.Ui.MewUI/ColumnPacking/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.ColumnPacking.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/ColumnPacking/sample"
         },
         {
             "name": "MewUI / Loupe",

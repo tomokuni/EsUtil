@@ -92,13 +92,14 @@ $groupRoots = @(Get-ChildItem -Path $repoRoot -Directory |
 # ============================================================
 # 対象（本体プロジェクト）と依存順
 # ============================================================
-# テスト・サンプルは除く。 **依存順**（ProjectReference の EsUtil.* が先）に並べる。
+# テスト・サンプル・サンプル共通部品（`*.SampleKit`）は除く（いずれも配布しない）。
+# **依存順**（ProjectReference の EsUtil.* が先）に並べる。
 # 並べ替えの根拠は .github/依存関係.md §3。 対象の追加は .csproj を置くだけでよく、本スクリプトの一覧は触らない。
 function Get-PackageProjects {
     $all = @(Get-ChildItem -Path $repoRoot -Directory |
         Where-Object { $_.Name -like 'EsUtil*' } |
         ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -File -Filter '*.csproj' } |
-        Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample)\.csproj$' })
+        Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample|SampleKit)\.csproj$' })
 
     # 各プロジェクトが参照する同一リポジトリのプロジェクト（ファイル名 = プロジェクト名）
     $deps = @{}
