@@ -42,7 +42,7 @@ public class MarqueeLogMessageTests
         InvokeAll(logger);
 
         Assert.Equal("[Marquee] MouseDown: pos=(10, 20) clickCount=1 hasSelection=False", logger.Messages[0]);
-        Assert.Equal("[Marquee] MouseUp: pos=(10, 20) wasDragging=True hasSelection=True", logger.Messages[1]);
+        Assert.Equal("[Marquee] MouseUp: pos=(10, 20) wasDragging=True hasSelection=True rect=(10, 20, 30, 40)", logger.Messages[1]);
         Assert.Equal("[Marquee] DoubleClick: pos=(10, 20) inside=True", logger.Messages[2]);
         Assert.Equal("[Marquee] Position before MouseDown: pos=(10, 20)", logger.Messages[3]);
         Assert.Equal("[Marquee] Position after MouseUp: pos=(10, 20)", logger.Messages[4]);
@@ -108,7 +108,7 @@ public class MarqueeLogMessageTests
     private static void InvokeAll(ILogger logger)
     {
         MarqueeLogMessage.LogMouseDown(logger, 10, 20, 1, false);
-        MarqueeLogMessage.LogMouseUp(logger, 10, 20, true, true);
+        MarqueeLogMessage.LogMouseUp(logger, 10, 20, true, true, new EsRect(10, 20, 30, 40));
         MarqueeLogMessage.LogDoubleClick(logger, 10, 20, true);
         MarqueeLogMessage.LogPositionBeforeDown(logger, 10, 20);
         MarqueeLogMessage.LogPositionAfterUp(logger, 10, 20);

@@ -181,7 +181,11 @@ public sealed partial class ColorComboBoxControl : Grid
         Children.Add(separator1);
 
         StyleSegmentButton(_listButton);
-        _listButton.Click += (_, _) => _listFlyout.ShowAt(_listButton);
+        _listButton.Click += (_, _) =>
+        {
+            _listFlyout.ShowAt(_listButton);
+            _log.LogOpenList(_selectedColor);
+        };
         SetColumn(_listButton, 2);
         Children.Add(_listButton);
 
@@ -467,7 +471,9 @@ public sealed partial class ColorComboBoxControl : Grid
     /// <param name="e">イベント引数。</param>
     private void OnTextLostFocus(object sender, RoutedEventArgs e)
     {
-        if (ColorValidation.ShouldRecover(ColorValidation.IsValid(_text.Text), hasLastValid: true))
+        var valid = ColorValidation.IsValid(_text.Text);
+        _log.LogLostFocus(_selectedColor, valid);
+        if (ColorValidation.ShouldRecover(valid, hasLastValid: true))
         {
             ApplyColor(_selectedColor, raiseChanged: false);
         }
@@ -500,6 +506,7 @@ public sealed partial class ColorComboBoxControl : Grid
         }
 
         _pickerFlyout.ShowAt(_pickerButton);
+        _log.LogOpenList(_selectedColor);
     }
 
     /// <summary>ピッカーを閉じ、必要なら色を反映する。</summary>

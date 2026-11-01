@@ -32,6 +32,25 @@ internal static partial class ThumbnailLogMessage
     private static partial void LogSettingChangedCore(
         this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
+    /// <summary>高頻度の設定変更のログ（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Thumbnail] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="name">設定名。</param>
+    /// <param name="oldValue">変更前の値（整形済み）。</param>
+    /// <param name="newValue">変更後の値（整形済み）。</param>
+    [LoggerMessage(LogLevel.Trace, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    private static partial void LogSettingChangedTraceCore(
+        this ILogger logger, string prefix, string name, string oldValue, string newValue);
+
+    /// <summary>高頻度の設定変更のログ（整形済みの値を渡す）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="name">設定名。</param>
+    /// <param name="oldValue">変更前の値（整形済み）。</param>
+    /// <param name="newValue">変更後の値（整形済み）。</param>
+    internal static void LogSettingChangedTrace(this ILogger logger, string name, string oldValue, string newValue)
+        => logger.LogSettingChangedTraceCore(Prefix, name, oldValue, newValue);
+
     /// <summary>設定変更のログ（整形済みの値を渡す）。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="name">設定名。</param>
@@ -70,7 +89,19 @@ internal static partial class ThumbnailLogMessage
             return;
         }
 
-        logger.LogSettingChanged("ItemCount", oldValue.ToString(CultureInfo.InvariantCulture), newValue.ToString(CultureInfo.InvariantCulture));
+        var name = "ItemCount";
+        var oldText = oldValue.ToString(CultureInfo.InvariantCulture);
+        var newText = newValue.ToString(CultureInfo.InvariantCulture);
+
+        // 1 件ずつの追加は一覧の読み込みで件数分出力される（高頻度）ため Trace へ落とす。
+        // 一括のクリアや差し替え（件数が減る・複数変わる）は低頻度のため Debug のままにする
+        if (newValue == oldValue + 1)
+        {
+            logger.LogSettingChangedTrace(name, oldText, newText);
+            return;
+        }
+
+        logger.LogSettingChanged(name, oldText, newText);
     }
 
     /// <summary>画像をログ用の文字列（<c>幅x高さ</c>）へ整形する。</summary>

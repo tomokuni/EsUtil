@@ -163,16 +163,57 @@ public sealed partial class ThumbnailControl : Grid
     /// 矩形の並びで表せる装飾とラベルの文言・位置は本関数で差し替える（色・表示可否は <see cref="Appearance"/>）。<br/>
     /// 受け取る計画は提示層が解決済みであるため、本関数は値の置き換えだけで完結する<br/>
     /// （<c>plan with { ... }</c>）。 <b>純粋関数（同じ入力に同じ出力）にすること</b>。<br/>
-    /// 他の UI 版（Loupe / Marquee）と同じ入口であり、派生せずに見た目を変えられる。
+    /// 他の UI 版（Loupe / Marquee）と同じ入口であり、派生せずに見た目を変えられる。<br/>
+    /// <b>設定すると即座に反映する</b>（計画を解決し直して描き直す）。 null へ戻すと既定の計画へ戻る。
     /// </remarks>
-    public Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? DrawPlanResolver { get; set; }
+    public Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? DrawPlanResolver
+    {
+        get => _drawPlanResolver;
+        set
+        {
+            _drawPlanResolver = value;
+            Refresh();
+        }
+    }
+
+    /// <summary>描画計画を差し替える関数の保持先。<see cref="DrawPlanResolver"/> が変更時に反映する。</summary>
+    private Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? _drawPlanResolver;
     /// <summary>暗色テーマかどうかを取得または設定する。</summary>
     /// <value>暗色テーマの場合は true。 既定は false。</value>
-    public bool IsDarkTheme { get; set; }
+    /// <remarks>変更すると見た目を解決し直す（背景色のテーマ切り替え）。</remarks>
+    public bool IsDarkTheme
+    {
+        get;
+        set
+        {
+            if (field == value)
+            {
+                return;
+            }
+
+            field = value;
+            Refresh();
+        }
+    }
 
     /// <summary>画像の幅（DIP）を取得または設定する。</summary>
     /// <value>表示モードの一辺。 0 以下の指定は既定の下限へ引き上げる。</value>
-    public double ImageWidth { get; set; } = 96;
+    /// <remarks>変更すると配置を解決し直す（画像の高さと行の高さが変わる）。</remarks>
+    public double ImageWidth
+    {
+        get;
+        set
+        {
+            if (field == value)
+            {
+                return;
+            }
+
+            field = value;
+            InvalidateMeasure();
+            Refresh();
+        }
+    }
 
     /// <summary>項目数を取得する。</summary>
     public int ItemCount => _items.Count;

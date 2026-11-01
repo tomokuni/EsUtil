@@ -101,11 +101,12 @@ internal static partial class MarqueeLogMessage
     /// <param name="y">対象座標 Y。</param>
     /// <param name="wasDragging">ドラッグ中だったかどうか。</param>
     /// <param name="hasSelection">選択矩形の有無。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} MouseUp: pos=({X}, {Y}) wasDragging={WasDragging} hasSelection={HasSelection}")]
-    private static partial void LogMouseUpCore(this ILogger logger, string prefix, string x, string y, bool wasDragging, bool hasSelection);
+    /// <param name="rect">マウスを離した時点の選択矩形（対象座標。 未選択は <c>null</c>）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix} MouseUp: pos=({X}, {Y}) wasDragging={WasDragging} hasSelection={HasSelection} rect={Rect}")]
+    private static partial void LogMouseUpCore(this ILogger logger, string prefix, string x, string y, bool wasDragging, bool hasSelection, string rect);
 
-    internal static void LogMouseUp(this ILogger logger, double x, double y, bool wasDragging, bool hasSelection)
-        => logger.LogMouseUpCore(Prefix, NumberText.Format(x), NumberText.Format(y), wasDragging, hasSelection);
+    internal static void LogMouseUp(this ILogger logger, double x, double y, bool wasDragging, bool hasSelection, EsRect? rect)
+        => logger.LogMouseUpCore(Prefix, NumberText.Format(x), NumberText.Format(y), wasDragging, hasSelection, FormatRect(rect));
 
     /// <summary>ダブルクリックのログ。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] DoubleClick: pos=({X}, {Y}) inside={Inside}</c></remarks>

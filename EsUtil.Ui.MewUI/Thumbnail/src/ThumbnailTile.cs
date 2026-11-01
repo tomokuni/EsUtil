@@ -22,6 +22,13 @@ internal sealed class ThumbnailTile : Panel
     /// <summary>最後に適用した描画計画。</summary>
     private ThumbnailDrawPlan? _plan;
 
+    /// <summary>上書きする前の名前の色（テーマから継承している値）。 外観が色を指定しないときに戻す先。</summary>
+    /// <remarks>
+    /// MewUI には「ローカルに設定した値を消して継承へ戻す」API が無いため、初めて上書きする直前の値を覚えておく<br/>
+    /// （覚えないと、描画計画の差し替えを止めた後も色が残る。 実測 2026-11-01）。
+    /// </remarks>
+    private Color? _inheritedForeground;
+
     /// <summary>ツールヒントの幅の上限（DIP）。 名前が長い場合はこの幅で折り返す。</summary>
     private const double ToolTipMaxWidth = 280;
 
@@ -114,8 +121,18 @@ internal sealed class ThumbnailTile : Panel
         _label.Text = plan.Label.Text;
         _label.FontWeight = plan.Label.IsBold ? FontWeight.Bold : FontWeight.Normal;
 
-        if (plan.Label.ForegroundArgb != 0)
+        if (plan.Label.ForegroundArgb == 0)
         {
+            // 外観が色を指定しない場合はテーマの前色へ戻す（MewUI には設定値を消す API が無いため覚えた値へ戻す）
+            if (_inheritedForeground is { } inherited)
+            {
+                _label.Foreground = inherited;
+            }
+        }
+        else
+        {
+            // 初めて上書きする直前の値（テーマの前色）を覚える
+            _inheritedForeground ??= _label.Foreground;
             _label.Foreground = Color.FromArgb(plan.Label.ForegroundArgb);
         }
     }

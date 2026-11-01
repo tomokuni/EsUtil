@@ -416,7 +416,9 @@ public sealed class ColorComboBoxControl : Grid
     /// <summary>テキスト入力からフォーカスが外れたとき、無効な入力を最後の有効値へ戻す。</summary>
     private void OnTextLostFocus()
     {
-        if (!ColorValidation.ShouldRecover(ColorValidation.IsValid(_text.Text), hasLastValid: true))
+        var valid = ColorValidation.IsValid(_text.Text);
+        _log.LogLostFocus(_selectedColor, valid);
+        if (!ColorValidation.ShouldRecover(valid, hasLastValid: true))
         {
             return;
         }
@@ -457,6 +459,7 @@ public sealed class ColorComboBoxControl : Grid
         // アンカーは**ウィンドウ座標**である（自領域の座標ではない）。 自領域の矩形をそのまま渡すとウィンドウ左上へ出る
         _listPopup.ShowAt(this, Bounds, PopupAnchorSide.Below);
         _listButton.Content("▲");
+        _log.LogOpenList(_selectedColor);
     }
 
     /// <summary>カラーピッカーのドロップダウンを開閉する。</summary>

@@ -139,7 +139,8 @@ public class ThumbnailControlTests
                 "[Test] Setting: ItemCount 2 → 0",
             ],
             logger.Messages);
-        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Debug, level));
+        // 一件ずつの追加は高頻度（読み込みで件数分）のため Trace、一括のクリアは低頻度のため Debug
+        Assert.Equal([LogLevel.Trace, LogLevel.Trace, LogLevel.Debug], logger.Levels);
     }
 
     /// <summary>画像の差し替えがログへ記録されることを検証する。</summary>

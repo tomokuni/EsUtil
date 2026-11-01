@@ -42,4 +42,33 @@ internal static partial class LogMessage
 
         logger.LogSettingChangedCore(Prefix, name, oldValue ?? "null", newValue ?? "null");
     }
+    /// <summary>一覧の Flyout を開いたことを記録する。</summary>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[ColorComboBox] OpenList: color={Color}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="color">現在の選択色。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix} OpenList: color={Color}")]
+    private static partial void LogOpenListCore(this ILogger logger, string prefix, string color);
+
+    /// <summary>一覧の Flyout を開いたことを記録する（接頭辞を付ける）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="color">現在の選択色。</param>
+    internal static void LogOpenList(this ILogger logger, string color)
+        => logger.LogOpenListCore(Prefix, color);
+
+    /// <summary>フォーカス喪失時の入力を記録する。</summary>
+    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[ColorComboBox] LostFocus: color={Color} valid={Valid}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="color">現在の色。</param>
+    /// <param name="valid">色が有効かどうか。</param>
+    [LoggerMessage(LogLevel.Trace, "{Prefix} LostFocus: color={Color} valid={Valid}")]
+    private static partial void LogLostFocusCore(this ILogger logger, string prefix, string color, bool valid);
+
+    /// <summary>フォーカス喪失時の入力を記録する（接頭辞を付ける）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="color">現在の色。</param>
+    /// <param name="valid">色が有効かどうか。</param>
+    internal static void LogLostFocus(this ILogger logger, string color, bool valid)
+        => logger.LogLostFocusCore(Prefix, color, valid);
 }

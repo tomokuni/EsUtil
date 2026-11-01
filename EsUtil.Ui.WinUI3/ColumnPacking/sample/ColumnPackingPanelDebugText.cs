@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -89,6 +90,17 @@ public partial class ColumnPackingPanelDebugText : ColumnPackingPanel
             text += $"   |   UsedWidth: {LayoutUsedWidth:F1}";
             text += $"   |   列数: {LayoutColumnCount}";
             text += $"   |   ColumnSegments(EndIdx): {LayoutColumnSegments}";
+        }
+
+        // 項目ごとの配置（Y 座標）は公開プロパティに無いため、派生クラスだけが読める Layout から取得する
+        if (Layout?.GetLastItemLayouts() is { Count: > 0 } items)
+        {
+            text += "\n\n【項目の位置】\n";
+            text += "    Y: [";
+            text += string.Join(
+                ", ",
+                items.Select(static item => item.Y.ToString("F1", CultureInfo.InvariantCulture)));
+            text += "]";
         }
 
         return text;
