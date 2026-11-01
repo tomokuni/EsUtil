@@ -110,10 +110,21 @@ public static class SampleShell
             .Resizable(width, height, minWidth: 900, minHeight: 600);
         window.Content(root);
 
-        // MewUI は Application.Run までテーマを読めないため、初期化前の選択はライトになる。
-        // 初期化後（Loaded）とテーマの切り替わり（ThemeChanged）に、表示を実際のテーマへ合わせる。
-        window.Loaded += () => themeField.SetValue(SampleTheme.CurrentIndex());
-        window.ThemeChanged += (_, _) => themeField.SetValue(SampleTheme.CurrentIndex());
+        // 地色もテーマへ追随させる。 MewUI の Background は色の値を持ち、テーマを切り替えても自動では変わらない。
+        // 追随させないと、テーマを切り替えたあとも内容領域（子が背景を塗らない領域）がライトのまま残る（実測 2026-11-01）。
+        // 併せて、MewUI は Application.Run までテーマを読めないため初期化前の選択がライトになる点も直す
+        // （初期化後（Loaded）とテーマの切り替わり（ThemeChanged）に、表示を実際のテーマへ合わせる）。
+        void ApplyTheme(Theme theme)
+        {
+            window.Background = theme.Palette.WindowBackground;
+            settingsHost.Background = theme.Palette.ContainerBackground;
+            contentHost.Background = theme.Palette.ContainerBackground;
+            logHost.Background = theme.Palette.ContainerBackground;
+            themeField.SetValue(SampleTheme.CurrentIndex());
+        }
+
+        window.Loaded += () => ApplyTheme(Application.Current.Theme);
+        window.ThemeChanged += (_, newTheme) => ApplyTheme(newTheme);
         return window;
     }
 }
