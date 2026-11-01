@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Xunit;
 
 
@@ -26,6 +27,17 @@ public class ConvertDefineTests
     {
         // 遅延初期化した結果を共有し、アクセスごとの再構築を避ける
         Assert.Same(Define.AllList, Define.AllList);
+    }
+
+    [Fact]
+    internal void AllList_並行アクセスでも同一インスタンス()
+    {
+        // 遅延初期化は並行アクセスでも 1 つだけ生成する（`??=` だけだと 2 つ作られ、参照が一致しなくなる）
+        var results = new ImmutableList<EntryRecord>[16];
+
+        Parallel.For(0, results.Length, index => results[index] = Define.AllList);
+
+        Assert.All(results, list => Assert.Same(results[0], list));
     }
 
     [Fact]

@@ -94,6 +94,17 @@ public class ConvertPairsTests
     }
 
     [Fact]
+    internal void Empty_並行アクセスでも同一インスタンス()
+    {
+        // 遅延初期化は並行アクセスでも 1 つだけ生成する（`??=` だけだと 2 つ作られ、参照が一致しなくなる）
+        var results = new ConvertPairs[16];
+
+        Parallel.For(0, results.Length, index => results[index] = ConvertPairs.Empty);
+
+        Assert.All(results, pairs => Assert.Same(results[0], pairs));
+    }
+
+    [Fact]
     internal void Func_同一キーはキャッシュ共有()
     {
         var first = ConvertPairs.FromFunc("key", () => new ConvertPairs([("a", "A")]));
