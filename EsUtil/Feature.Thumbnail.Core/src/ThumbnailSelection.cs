@@ -27,8 +27,11 @@ public sealed class ThumbnailSelection
     private string? _logPrefix;
 
     /// <summary>選択が変わったときに発生する。</summary>
-    /// <remarks>同じ添字を再設定した場合は発生しない（無駄な再描画を起こさない）。</remarks>
-    public event EventHandler? Changed;
+    /// <remarks>
+    /// 同じ添字を再設定した場合は発生しない（無駄な再描画を起こさない）。<br/>
+    /// 引数は変更前後の添字を持つ（UI が前の項目の見た目も戻せるようにする）。
+    /// </remarks>
+    public event EventHandler<ThumbnailSelectionChangedEventArgs>? Changed;
 
     /// <summary>選択中の添字を取得する。</summary>
     /// <value>項目の添字。 選択が無い場合は -1。</value>
@@ -75,7 +78,7 @@ public sealed class ThumbnailSelection
         var previous = _index;
         _index = next;
         _log.LogSelectionChanged(previous, next);
-        Changed?.Invoke(this, EventArgs.Empty);
+        Changed?.Invoke(this, new ThumbnailSelectionChangedEventArgs(previous, next));
         return true;
     }
 

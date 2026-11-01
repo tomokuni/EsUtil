@@ -8,6 +8,7 @@ using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core;
 using EsUtil.Ui.MewUI.Interop;
 using EsUtil.Ui.MewUI.Interop.Imaging;
+using EsUtil.Ui.MewUI.Loupe.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -176,6 +177,13 @@ public sealed class LoupeControl : Panel
 
     /// <summary>配置中のラベル要素（背景 + テキスト）。 子の末尾側へ置くため常に最上位になる。</summary>
     private readonly List<Border> _labels = [];
+
+    /// <summary>拡大元の画像の変換結果（本コントロールが所有する）。</summary>
+    /// <remarks>
+    /// <b>ルーペ 1 つにつき 1 つ持つ</b>: 描画側で共有すると、ソースの異なるルーペを同じフレームで描くたびに
+    /// 画像（画素数分）を作り直す（実測 2026-10-30）。 変換はソースが変わったときだけになる。
+    /// </remarks>
+    private readonly MewImageBinding _images = new();
 
     /// <summary>拡大元の 100% 画像を取得または設定する。</summary>
     /// <value>拡大元の画像。 null の場合は下地のみを表示する。</value>
@@ -572,7 +580,8 @@ public sealed class LoupeControl : Panel
             try
             {
                 // 描画の手順（層の順序と描画 API への写し）は LoupePainter が単一所有する
-                LoupePainter.Paint(context, Source, in plan);
+                // （画像の結び付けは本コントロールが所有するものを渡す＝変換はソースが変わったときだけ）
+                LoupePainter.Paint(context, Source, in plan, _images);
 
                 // ホストが付加情報（選択矩形の破線等）を描く入口（同じ座標系で描けるよう内側で通知する）
                 Rendered?.Invoke(this, new LoupeRenderedEventArgs(context, plan));

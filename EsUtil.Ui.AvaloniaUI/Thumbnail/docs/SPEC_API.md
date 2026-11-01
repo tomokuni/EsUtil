@@ -39,27 +39,29 @@ Avalonia UI 版のサムネイル一覧コントロールが提供する公開 A
 | --- | --- | --- |
 | `ThumbnailControl()` | ctor | 生成 |
 | `SelectionChanged` | event | 選択中の添字が変わったときに発生する |
+| `CurrentIndexChanged` | event | 現在項目（名前を太字で示す項目）の添字が変わったときに発生する |
 | `ItemActivated` | event | 項目が 2 回押されたときに発生する（`ThumbnailActivatedEventArgs`） |
 | `Presentation` | property（get） | 提示層（設定・外観・描画計画の解決）。 派生した提示を使う場合は `Options` / `Appearance` ではなく本プロパティを設定する |
 | `Options` | property | 計算に必要な設定（既定は `ThumbnailOptions.Default`）。 設定すると自動で配置を解き直す |
 | `Appearance` | property | 外観（既定は `ThumbnailAppearance.Default`）。 設定すると自動で描き直す |
-| `IsDarkTheme` | property | 暗色テーマかどうか（既定は false）。 **変更後は `Refresh()` を呼ぶ** |
 | `ImageWidth` | property | 画像の幅（DIP）。 **0 以下の指定は既定の下限へ引き上げられる**。 変更すると計測が無効化され、配置を解き直す |
 | `ItemCount` | property（get） | 項目数 |
 | `SelectedIndex` | property | 選択中の添字。 範囲外と -1 は選択の解除 |
+| `CurrentIndex` | property | 現在項目（名前を太字で示す項目）の添字。 選択とは別の状態（範囲外と -1 は「現在項目なし」） |
 | `VisibleRange` | property（get） | ビューポートと交差する項目の範囲。 項目が無い場合は空 |
-| `SlotBounds(int index)` | method | 項目の外枠の矩形（内容の座標）。 範囲外は `EsRect.Empty` |
+| `SlotBounds(int index)` | method | 項目の枠線の矩形（内容の座標）。 範囲外は `EsRect.Empty` |
 | `ClearItems()` | method | 一覧を空にする |
 | `Add(IImage? image, string caption, string? toolTip = null, bool isCurrent = false, object? tag = null)` | method | サムネイルを 1 件追加し、追加した添字を返す |
 | `SetImage(int index, IImage? image)` | method | 項目の画像を差し替える（null は画像を消す）。 範囲外は何もしない |
 | `SetCaption(int index, string caption)` | method | 項目の名前を差し替える |
 | `ScrollToIndex(int index)` | method | 項目を表示領域へスクロールする |
-| `Refresh()` | method | 配置と見た目を解決し直す（`IsDarkTheme` の変更後に呼ぶ） |
+| `Refresh()` | method | 配置と見た目を解決し直す（外観の解決に使う値を外部で変えたときに呼ぶ） |
 | `Log` | property | ログの出力先（null は `NullLogger`）。 画像と項目数の変更を本コントロールが記録する。 同じロガーを提示層・コアへ渡す |
 | `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 提示層・コアへ伝搬する |
 
 - **`Add` は項目を末尾へ追加します**（画像が null でも項目は作られ、画像の領域だけが空になります）。
-- **`IsDarkTheme` は背景色の選択にだけ使います**（明色・暗色で色を切り替えるのは提示層です）。
+- **明暗（テーマ）はコントロールが自分で読みます**（`ActualThemeVariant`）。 ホストが明暗を指定する必要はなく、切り替わると配色（ホバー・選択の背景）が自動で追随します。
+- **明暗は背景色の選択にだけ使います**（明色・暗色で色を切り替えるのは提示層です）。
 - **影**: 既定の影の計画（`ThumbnailShadowPlan`）は Avalonia の `BoxShadow` に任せ、それ以外の計画（`IThumbnailShadowPlan` を差し替えたもの）は計画が返す帯を自前で塗ります。
 
 ### 2.3 `ThumbnailActivatedEventArgs`（2 回押しの通知）
@@ -79,8 +81,7 @@ using EsUtil.Ui.AvaloniaUI.Thumbnail;
 var list = new ThumbnailControl
 {
     ImageWidth = 96,
-    IsDarkTheme = true,
-    Options = ThumbnailOptions.Default with { ItemSpacing = 4 },
+    Options = ThumbnailOptions.Default with { ColumnSpace = 4 },
 };
 
 list.ItemActivated += (_, e) => Open((string)e.Tag!);
@@ -114,4 +115,4 @@ for (var i = visible.First; i <= visible.Last; i++)
 - **単体テストは `tests/` にあります**（検証の範囲と手順は [`../../.github/検証手順.md`](../../../.github/検証手順.md) を参照）。
 - **複数選択は提供しません**（単一選択だけです）。
 - **項目の要素（`ThumbnailTile`）は内部型**です（ホストは `Add` / `SetImage` / `SetCaption` を使います）。
-- **`Options` / `Appearance` / `ImageWidth` の変更は自動で反映されます**（`IsDarkTheme` だけは `Refresh()` を呼んでください）。
+- **`Options` / `Appearance` / `ImageWidth` の変更は自動で反映されます**（明暗はフレームワークのテーマから自動で読みます）。

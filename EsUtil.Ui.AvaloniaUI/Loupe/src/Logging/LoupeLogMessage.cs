@@ -24,12 +24,12 @@ internal static partial class LoupeLogMessage
     // ====================================================================
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Error<br/>出力書式: <c>[Loupe] {Operation} で例外が発生</c>（例外スタックトレース付き）</remarks>
+    /// <remarks>LogLevel: Error<br/>出力書式: <c>[Loupe] {Operation:l} で例外が発生</c>（例外スタックトレース付き）</remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="exception">発生した例外。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix} {Operation} で例外が発生")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} {Operation:l} で例外が発生")]
     private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>
@@ -63,13 +63,13 @@ internal static partial class LoupeLogMessage
     }
 
     /// <summary>設定変更のログ（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Loupe] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Loupe] Setting: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Setting: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     /// <summary>設定変更のログ（整形済みの値を渡す）。</summary>
@@ -85,7 +85,7 @@ internal static partial class LoupeLogMessage
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="exception">発生した例外。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix} Update exception")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} Update exception")]
     private static partial void LogUpdateErrorCore(this ILogger logger, Exception exception, string prefix);
 
     /// <summary>ルーペ描画の例外エラーログ。</summary>

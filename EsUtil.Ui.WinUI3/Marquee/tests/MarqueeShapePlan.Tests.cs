@@ -26,10 +26,10 @@ public class MarqueeShapePlanTests
     /// <summary>検証に使う外観（暗転・ハンドル・マーカーを表示する）。</summary>
     private static readonly MarqueeAppearance s_appearance = new()
     {
-        ShowOverlay = true,
+        ShowOuterMask = true,
         ShowHandles = true,
         ShowMarker = true,
-        OverlayColor = s_overlay,
+        OuterMaskColor = s_overlay,
         HandleColor = s_handle,
         HandleBorderColor = DrawingColor.Black,
         MarkerColor = s_marker,
@@ -59,7 +59,7 @@ public class MarqueeShapePlanTests
     [Fact]
     internal void Build_暗転を表示しない外観では暗転を追加しない()
     {
-        var plan = CreatePlan(s_appearance with { ShowOverlay = false }, [MarqueeDrawLayer.Decoration]);
+        var plan = CreatePlan(s_appearance with { ShowOuterMask = false }, [MarqueeDrawLayer.Decoration]);
         var rects = new DrawList();
 
         MarqueeShapePlan.Build(plan, rects, []);
@@ -111,7 +111,6 @@ public class MarqueeShapePlanTests
             [new EsRect(0, 0, 0, 10), new EsRect(0, 90, 200, 10)],
             [],
             null,
-            [],
             new MarqueeHandles([new EsRect(10, 10, 8, 8)], 1),
             new MarqueeMarker(new EsPoint(50, 40), 6),
             layers,

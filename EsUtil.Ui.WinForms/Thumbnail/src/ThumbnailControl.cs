@@ -82,6 +82,8 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <summary>選択中の添字が変わったときに発生する。</summary>
     public event EventHandler? SelectionChanged;
 
+    /// <summary>現在項目（名前を太字で示す項目）の添字が変わったときに発生する。</summary>
+    public event EventHandler? CurrentIndexChanged;
     /// <summary>項目が 2 回押されたときに発生する。</summary>
     public event EventHandler<ThumbnailActivatedEventArgs>? ItemActivated;
 
@@ -158,19 +160,62 @@ public sealed class ThumbnailControl : ScrollableControl
     /// 矩形の並びで表せる装飾とラベルの文言・位置は本関数で差し替える（色・表示可否は <see cref="Appearance"/>）。<br/>
     /// 受け取る計画は提示層が解決済みであるため、本関数は値の置き換えだけで完結する<br/>
     /// （<c>plan with { ... }</c>）。 <b>純粋関数（同じ入力に同じ出力）にすること</b>。<br/>
-    /// 他の UI 版（Loupe / Marquee）と同じ入口であり、派生せずに見た目を変えられる。
+    /// 他の UI 版（Loupe / Marquee）と同じ入口であり、派生せずに見た目を変えられる。<br/>
+    /// <b>設定すると即座に反映する</b>（計画を解決し直して描き直す）。 null へ戻すと既定の計画へ戻る。
     /// </remarks>
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? DrawPlanResolver { get; set; }
+    public Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? DrawPlanResolver
+    {
+        get => _drawPlanResolver;
+        set
+        {
+            _drawPlanResolver = value;
+            Invalidate();
+        }
+    }
+
+    /// <summary>描画計画を差し替える関数の保持先。<see cref="DrawPlanResolver"/> が変更時に反映する。</summary>
+    private Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? _drawPlanResolver;
     /// <summary>暗色テーマかどうかを取得または設定する。</summary>
     /// <value>暗色テーマの場合は true。 既定は false。</value>
+    /// <remarks>変更すると見た目を解決し直す（背景色のテーマ切り替え）。</remarks>
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public bool IsDarkTheme { get; set; }
+    public bool IsDarkTheme
+    {
+        get;
+        set
+        {
+            if (field == value)
+            {
+                return;
+            }
+
+            var previous = field;
+            field = value;
+            _log.LogSettingChanged(nameof(IsDarkTheme), previous.ToString(), value.ToString());
+            Invalidate();
+        }
+    }
 
     /// <summary>画像の幅（DIP）を取得または設定する。</summary>
     /// <value>表示モードの一辺。 0 以下の指定は既定の下限へ引き上げる。</value>
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public double ImageWidth { get; set; } = 96;
+    public double ImageWidth
+    {
+        get;
+        set
+        {
+            if (field == value)
+            {
+                return;
+            }
+
+            var previous = field;
+            field = value;
+            _log.LogSettingChanged(nameof(ImageWidth), previous.ToString(System.Globalization.CultureInfo.InvariantCulture), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            RefreshLayout();
+        }
+    } = 96;
 
     /// <summary>項目数を取得する。</summary>
     [Browsable(false)]
@@ -188,6 +233,52 @@ public sealed class ThumbnailControl : ScrollableControl
         {
             _selection.Select(value, _items.Count);
             Invalidate();
+        }
+    }
+
+    /// <summary>現在項目（名前を太字で示す項目）の添字を取得または設定する。</summary>
+    /// <value>項目の添字。 現在項目が無い場合は -1。</value>
+    /// <remarks>
+    /// <b>選択とは別の状態である</b>: 選択は利用者の操作で移り、現在項目は「いま表示している画像」を表す。<br/>
+    /// 範囲外の添字は「現在項目なし」として扱う（例外にしない）。
+    /// </remarks>
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public int CurrentIndex
+    {
+        get
+        {
+            for (var i = 0; i < _items.Count; i++)
+            {
+                if (_items[i].IsCurrent)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        set
+        {
+            var changed = false;
+            for (var i = 0; i < _items.Count; i++)
+            {
+                var isCurrent = i == value;
+                if (_items[i].IsCurrent == isCurrent)
+                {
+                    continue;
+                }
+
+                _items[i].SetIsCurrent(isCurrent);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                Invalidate();
+                CurrentIndexChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
     }
 
@@ -345,7 +436,7 @@ public sealed class ThumbnailControl : ScrollableControl
     {
         var item = _items[index];
         var plan = _presenter.ResolveDrawPlan(
-            layout, index, item.Caption, item.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme);
+            layout, index, item.Caption, item.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme, MeasureText);
         plan = DrawPlanResolver?.Invoke(plan) ?? plan;
 
         foreach (var layer in plan.Layers)
@@ -380,7 +471,7 @@ public sealed class ThumbnailControl : ScrollableControl
                     break;
 
                 case ThumbnailDrawLayer.Label:
-                    DrawLabel(graphics, plan, item.Caption);
+                    DrawLabel(graphics, plan);
                     break;
             }
         }
@@ -407,25 +498,55 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <summary>名前を描画する。</summary>
     /// <param name="graphics">描画先。</param>
     /// <param name="plan">描画計画。</param>
-    /// <param name="caption">表示する名前。</param>
     /// <remarks>
     /// <b>文字サイズは DIP から pt へ換算する</b>: 描画計画の文字サイズは DIP（96 DPI 基準）だが、<br/>
     /// <see cref="Font"/> のコンストラクターは pt を受け取る。 DIP の値をそのまま渡すと 1.33 倍の大きさになり、<br/>
-    /// 他の UI 版（11 DIP）より文字が大きくなる（実測）。
+    /// 他の UI 版（11 DIP）より文字が大きくなる（実測）。<br/>
+    /// <b>文言は計画の値を使う</b>: 省略（拡張子を残す）は提示層が決めるため、ここで独自に省略しない<br/>
+    /// （<see cref="TextFormatFlags.EndEllipsis"/> を併用すると、計画の省略記号のさらに後ろが省略される）。<br/>
+    /// <b>上下の余白は矩形を内側へ縮めて表す</b>: 余白は名前行の内側の余白であるため、文字を置く矩形から除く。
     /// </remarks>
-    private void DrawLabel(Graphics graphics, ThumbnailDrawPlan plan, string caption)
+    private void DrawLabel(Graphics graphics, ThumbnailDrawPlan plan)
     {
         var font = GetFont(plan.Label.FontSize, plan.Label.IsBold);
-
         var color = plan.Label.ForegroundArgb == 0 ? ForeColor : ToColor(plan.Label.ForegroundArgb);
+        var bounds = plan.Label.Bounds;
+        var padding = (int)Math.Ceiling(plan.Label.VerticalPadding);
+        var rect = ToRect(new EsRect(
+            bounds.X,
+            bounds.Y + padding,
+            bounds.Width,
+            Math.Max(0, bounds.Height - (padding * 2))));
+
         TextRenderer.DrawText(
             graphics,
-            caption,
+            plan.Label.Text,
             font,
-            ToRect(plan.Label.Bounds),
+            rect,
             color,
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis
-            | TextFormatFlags.NoPrefix | TextFormatFlags.WordBreak);
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPrefix | TextFormatFlags.WordBreak);
+    }
+
+    /// <summary>折り返した名前の実寸を測る。</summary>
+    /// <param name="text">測る文言。</param>
+    /// <param name="maxWidth">折り返す幅（DIP）。</param>
+    /// <param name="fontSize">文字サイズ（DIP）。</param>
+    /// <param name="isBold">太字で描くかどうか。</param>
+    /// <returns>折り返した後の実寸（DIP）。</returns>
+    /// <remarks>
+    /// <b>描画と同じ API で測る</b>: 名前は <see cref="TextRenderer"/> で描くため、同じ <see cref="TextFormatFlags.WordBreak"/> で測る<br/>
+    /// （測る API と描く API が違うと行数が一致せず、省略した名前がさらに折り返されて切れる）。
+    /// </remarks>
+    private EsSize MeasureText(string text, double maxWidth, double fontSize, bool isBold)
+    {
+        var font = GetFont(fontSize, isBold);
+        var size = TextRenderer.MeasureText(
+            text,
+            font,
+            new Size(Math.Max(1, (int)Math.Ceiling(maxWidth)), int.MaxValue),
+            TextFormatFlags.NoPrefix | TextFormatFlags.WordBreak);
+
+        return new EsSize(size.Width, size.Height);
     }
 
     /// <summary>指定した大きさ・太さのフォントを取得する（同じものは使い回す）。</summary>
@@ -629,10 +750,17 @@ public sealed class ThumbnailControl : ScrollableControl
         public string Caption { get; set; } = caption;
 
         /// <summary>ツールヒント。</summary>
-        public string? ToolTip { get; } = toolTip;
+        /// <summary>ツールヒント（省略していない名前 + ホストの付加情報）。</summary>
+        public string ToolTip { get; } = string.IsNullOrEmpty(toolTip) ? caption : $"{caption}{Environment.NewLine}{toolTip}";
 
         /// <summary>現在表示中の画像かどうか。</summary>
-        public bool IsCurrent { get; } = isCurrent;
+        /// <summary>現在表示中の画像かどうかを取得する。</summary>
+        /// <remarks>一覧の <c>CurrentIndex</c> が変更したときに切り替える（作成後は一覧だけが変更できる）。</remarks>
+        public bool IsCurrent { get; private set; } = isCurrent;
+
+        /// <summary>現在表示中の画像かどうかを設定する。</summary>
+        /// <param name="value">現在表示中の画像の場合は true。</param>
+        public void SetIsCurrent(bool value) => IsCurrent = value;
 
         /// <summary>2 回押しの通知へ渡す任意の値。</summary>
         public object? Tag { get; } = tag;

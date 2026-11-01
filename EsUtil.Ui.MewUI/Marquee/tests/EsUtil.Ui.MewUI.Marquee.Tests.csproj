@@ -5,7 +5,7 @@
     <RootNamespace>EsUtil.Ui.MewUI.Marquee.Tests</RootNamespace>
     <Nullable>enable</Nullable>
     <!-- テストが使うバックエンドのバージョン（本体と同じ値に固定する） -->
-    <MewUIVersion>0.21.1</MewUIVersion>
+    <MewUIVersion>0.22.1</MewUIVersion>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 

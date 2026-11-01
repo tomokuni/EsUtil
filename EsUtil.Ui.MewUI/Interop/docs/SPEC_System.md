@@ -21,7 +21,7 @@ MewUI の型と EsUtil の型の**境界**を担うアセンブリです。 UI �
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0` |
-| UI フレームワーク | `Aprillz.MewUI.Core`（0.21.1 固定） |
+| UI フレームワーク | `Aprillz.MewUI.Core`（0.22.1 固定） |
 | 共通基盤 | `EsUtil.Platform.Core`（値型・画像・OS の抽象） |
 | テスト | xUnit v3 |
 
@@ -31,7 +31,7 @@ MewUI の型と EsUtil の型の**境界**を担うアセンブリです。 UI �
 graph LR
   APP[アプリ（MewUI）] --> BRIDGE[EsUtil.Ui.MewUI.Interop]
   BRIDGE --> CORE[EsUtil.Platform.Core]
-  BRIDGE --> UI[`Aprillz.MewUI.Core`（0.21.1 固定）]
+  BRIDGE --> UI[`Aprillz.MewUI.Core`（0.22.1 固定）]
 ```
 
 - **依存の向きは 1 方向です**（アプリ → 本アセンブリ → コアと UI フレームワーク）。 本アセンブリからアプリへは参照しません。
@@ -51,7 +51,7 @@ graph LR
 
 ## 5. 依存関係
 
-`EsUtil.Platform.Core` と `Aprillz.MewUI.Core`（0.21.1 固定） を参照します。 参照してよいプロジェクトの規則は [`.github/依存関係.md`](../../../.github/依存関係.md) §3 が定めます。
+`EsUtil.Platform.Core` と `Aprillz.MewUI.Core`（0.22.1 固定） を参照します。 参照してよいプロジェクトの規則は [`.github/依存関係.md`](../../../.github/依存関係.md) §3 が定めます。
 
 ## 6. エラー処理ポリシー
 

@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <PlatformTarget>x64</PlatformTarget>
     <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
@@ -16,6 +15,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Ui.WinForms.Loupe.csproj" />
+    <!-- サンプル共通のレイアウトとログ（Serilog） -->
+    <ProjectReference Include="..\..\SampleKit\src\EsUtil.Ui.WinForms.SampleKit.csproj" />
   </ItemGroup>
 
   <ItemGroup>

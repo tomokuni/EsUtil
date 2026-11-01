@@ -35,7 +35,7 @@ Avalonia 版と同一の挙動になります。
 | `EsUtil.Feature.Marquee.Presenter` | 提示層（描画計画の解決・外観・ラベル計画・組み込み規則）: `MarqueePresenter`（描画計画の解決） / `MarqueeAppearance`（色・体裁・枠線の太さ・表示可否） / `MarqueeDrawPlan`（UI が見る唯一の描画値） / `MarqueePresenter`（`LabelPlan` partial）（実寸 → 配置指示）。 **描画は本 UI がフレームワーク標準の描画 API で行う**（`MarqueePainter`） |
 | `EsUtil.Platform.Core` | コア幾何型（`EsPoint` / `EsRect` / `EsSize`）、`ICoordTransform` / `CoordTransform`、`ICursorService` |
 | `EsUtil.Platform.Core`（`Native.Win`） | カーソルサービスの既定実装（Win32） |
-| `Aprillz.MewUI.Core`（0.21.1 固定） | `描画の層`・`MewProperty`・MewUI の標準描画 描画 |
+| `Aprillz.MewUI.Core`（0.22.1 固定） | `描画の層`・`MewProperty`・MewUI の標準描画 描画 |
 
 ## 3. 座標系
 
@@ -85,8 +85,8 @@ Avalonia 版と同一の挙動になります。
 | `SizeLabelColor` / `SizeLabelBackgroundColor` | `System.Drawing.Color` | 白 / 黒 60% | サイズラベルの文字色と背景色 |
 | `CoordLabelColor` / `CoordLabelBackgroundColor` | `System.Drawing.Color` | 白 / 黒 60% | 座標ラベルの文字色と背景色 |
 | `SizeLabelFontSize` / `CoordLabelFontSize` | `double` | 14.0 / 12.0 | サイズラベル（1 行目）と座標ラベルのフォントサイズ（DIP。 6〜48 に補正。 非数は既定値へ補正） |
-| `OverlayColor` / `OuterBorderColor` | `System.Drawing.Color` | 黒 50% / `#FFA9A9A9` | 暗転マスクと外枠の色 |
-| `InnerFillColor` / `InnerBorderColor` | `System.Drawing.Color` | 透明 / 透明 | 注目矩形の内側の塗り色と枠線色 |
+| `OuterMaskColor` / `BorderColor` | `System.Drawing.Color` | 黒 50% / `#FFA9A9A9` | 外側マスクと枠線の色 |
+| `InnerMaskColor` / `InnerBorderColor` | `System.Drawing.Color` | 透明 / 透明 | 注目矩形の内側マスク色と枠線色 |
 
 ## 5. メソッド
 
@@ -205,11 +205,11 @@ var marquee = new MarqueeControl
     // 外観（色・フォントサイズ・枠線の太さ・表示可否）
     Appearance = MarqueeAppearance.Default with
     {
-        // 選択枠線は装飾（暗転マスクの外枠）が描く
-        OuterBorderColor = System.Drawing.Color.FromArgb(255, 0, 120, 215),
-        OuterBorderThickness = 2.0,
-        ShowOverlay = true,
-        ShowOuterBorder = true,
+        // 選択枠線は装飾（外側マスクの枠線）が描く
+        BorderColor = System.Drawing.Color.FromArgb(255, 0, 120, 215),
+        BorderThickness = 2.0,
+        ShowOuterMask = true,
+        ShowBorder = true,
     },
 };
 

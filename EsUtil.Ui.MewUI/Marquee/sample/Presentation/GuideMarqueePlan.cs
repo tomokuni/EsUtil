@@ -1,18 +1,14 @@
 using EsUtil.Platform.Core.Geometry;
-using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.MewUI.Marquee.Sample.Presentation;
 
-/// <summary>ガイド線付きの見た目を与える見本の定義（外観と描画計画の差し替え）。</summary>
+/// <summary>ガイド線付きの見た目を与える見本の定義（描画計画の差し替え）。</summary>
 /// <remarks>
-/// <b>示すこと</b>: 提示層を派生しなくても、外観（<see cref="MarqueeAppearance"/>）と描画計画（<see cref="MarqueeDrawPlan"/>）で<br/>
-/// 見た目を差し替えられる（<c>MarqueeControl.Appearance</c> と <c>MarqueeControl.DrawPlanResolver</c> へ設定する）。<br/>
-/// 差し替えは公開 API だけで行う（コアの internal 型も描画 API も参照しない）。<br/>
+/// <b>示すこと</b>: 提示層を派生しなくても、描画計画（<see cref="MarqueeDrawPlan"/>）で見た目を差し替えられる<br/>
+/// （<c>MarqueeControl.DrawPlanResolver</c> へ設定する）。 差し替えは公開 API だけで行う（コアの internal 型も描画 API も参照しない）。<br/>
 /// <br/>
 /// <b>見た目</b>: 外枠を破線風に分割し、内側に三分割のガイド線を引く。<br/>
-/// 破線もガイド線も「塗る矩形の列」として計画へ載せるため、描画実装は計画のとおり描く（層の順序は既定の計画から引き継ぐ）。<br/>
-/// <br/>
-/// <b>外観の所有</b>: 外観（色・枠線の太さ・表示可否）も本クラスが与える（計画の解決は外観から導出されるため、表示可否と実際に描く値が食い違わない）。
+/// 破線もガイド線も「塗る矩形の列」として計画へ載せるため、描画実装は計画のとおり描く（層の順序は既定の計画から引き継ぐ）。
 /// </remarks>
 internal static class GuideMarqueePlan
 {
@@ -22,33 +18,9 @@ internal static class GuideMarqueePlan
     /// <summary>破線の間隔（DIP）。</summary>
     private const double DashGap = 6.0;
 
-    /// <summary>破線とガイド線の太さ（DIP）。</summary>
-    private const double LineThickness = 2.0;
-
     /// <summary>三分割の分母（1/3 と 2/3 の位置に引く）。</summary>
     private const int ThirdsDenominator = 3;
 
-    /// <summary>破線とガイド線の色（アンバー）。</summary>
-    private static readonly DrawingColor s_accentColor = DrawingColor.FromArgb(255, 255, 196, 0);
-
-    /// <summary>ガイド線の色（半透明の白）。</summary>
-    private static readonly DrawingColor s_guideColor = DrawingColor.FromArgb(160, 255, 255, 255);
-
-    /// <summary>内側の塗りの色（選択領域をわずかに明るくする）。</summary>
-    private static readonly DrawingColor s_innerFillColor = DrawingColor.FromArgb(28, 255, 255, 255);
-
-    /// <summary>見本の外観を取得する。</summary>
-    /// <value>破線とガイド線の色・表示可否を設定した外観。</value>
-    public static MarqueeAppearance Appearance { get; } = MarqueeAppearance.Default with
-    {
-        OuterBorderColor = s_accentColor,
-        InnerBorderColor = s_guideColor,
-        HandleColor = s_accentColor,
-        MarkerColor = s_accentColor,
-        ShowInnerBorder = true,
-        ShowInnerFill = true,
-        InnerFillColor = s_innerFillColor,
-    };
 
     /// <summary>注目矩形へ破線の枠と三分割のガイド線を載せた描画計画を返す。</summary>
     /// <param name="plan">既定の解決結果（幾何・外観・層の順序・ラベル配置を持つ）。</param>
@@ -62,22 +34,27 @@ internal static class GuideMarqueePlan
         => plan.FocusDipRect is { } focus
             ? plan with
             {
-                OuterBorderDipRects = CreateDashedFrame(focus),
-                InnerBorderDipRects = CreateThirdsGuides(focus),
+                // 線の太さは外観の枠線の太さに合わせる（見本へ切り替えても太さの設定が効く）
+                BorderDipRects =
+                [
+                    .. CreateDashedFrame(focus, plan.Appearance.BorderThickness),
+                    .. CreateThirdsGuides(focus, plan.Appearance.BorderThickness),
+                ],
             }
             : plan;
 
     /// <summary>矩形の 4 辺を破線へ分割する。</summary>
     /// <param name="focus">注目矩形（DIP）。</param>
     /// <returns>破線 1 本ずつの矩形（DIP）。</returns>
-    private static IReadOnlyList<EsRect> CreateDashedFrame(EsRect focus)
+    /// <param name="thickness">線の太さ（DIP）。</param>
+    private static IReadOnlyList<EsRect> CreateDashedFrame(EsRect focus, double thickness)
     {
         var rects = new List<EsRect>();
 
-        AddHorizontalDashes(rects, focus.X, focus.Y, focus.Width);
-        AddHorizontalDashes(rects, focus.X, focus.Bottom - LineThickness, focus.Width);
-        AddVerticalDashes(rects, focus.X, focus.Y, focus.Height);
-        AddVerticalDashes(rects, focus.Right - LineThickness, focus.Y, focus.Height);
+        AddHorizontalDashes(rects, focus.X, focus.Y, focus.Width, thickness);
+        AddHorizontalDashes(rects, focus.X, focus.Bottom - thickness, focus.Width, thickness);
+        AddVerticalDashes(rects, focus.X, focus.Y, focus.Height, thickness);
+        AddVerticalDashes(rects, focus.Right - thickness, focus.Y, focus.Height, thickness);
 
         return rects;
     }
@@ -87,14 +64,16 @@ internal static class GuideMarqueePlan
     /// <param name="left">始点の X 座標（DIP）。</param>
     /// <param name="top">Y 座標（DIP）。</param>
     /// <param name="length">並べる長さ（DIP）。</param>
-    private static void AddHorizontalDashes(List<EsRect> rects, double left, double top, double length)
+    /// <param name="thickness">線の太さ（DIP）。</param>
+    private static void AddHorizontalDashes(
+        List<EsRect> rects, double left, double top, double length, double thickness)
     {
         var pitch = DashLength + DashGap;
 
         for (var offset = 0.0; offset < length; offset += pitch)
         {
             var width = Math.Min(DashLength, length - offset);
-            rects.Add(new EsRect(left + offset, top, width, LineThickness));
+            rects.Add(new EsRect(left + offset, top, width, thickness));
         }
     }
 
@@ -103,31 +82,34 @@ internal static class GuideMarqueePlan
     /// <param name="left">X 座標（DIP）。</param>
     /// <param name="top">始点の Y 座標（DIP）。</param>
     /// <param name="length">並べる長さ（DIP）。</param>
-    private static void AddVerticalDashes(List<EsRect> rects, double left, double top, double length)
+    /// <param name="thickness">線の太さ（DIP）。</param>
+    private static void AddVerticalDashes(
+        List<EsRect> rects, double left, double top, double length, double thickness)
     {
         var pitch = DashLength + DashGap;
 
         for (var offset = 0.0; offset < length; offset += pitch)
         {
             var height = Math.Min(DashLength, length - offset);
-            rects.Add(new EsRect(left, top + offset, LineThickness, height));
+            rects.Add(new EsRect(left, top + offset, thickness, height));
         }
     }
 
     /// <summary>注目矩形の内側へ三分割のガイド線を引く。</summary>
     /// <param name="focus">注目矩形（DIP）。</param>
     /// <returns>ガイド線の矩形（縦 2 本 + 横 2 本。 DIP）。</returns>
-    private static IReadOnlyList<EsRect> CreateThirdsGuides(EsRect focus)
+    /// <param name="thickness">線の太さ（DIP）。</param>
+    private static IReadOnlyList<EsRect> CreateThirdsGuides(EsRect focus, double thickness)
     {
         var horizontal = focus.Height / ThirdsDenominator;
         var vertical = focus.Width / ThirdsDenominator;
 
         return
         [
-            new EsRect(focus.X + vertical, focus.Y, LineThickness, focus.Height),
-            new EsRect(focus.X + (vertical * 2), focus.Y, LineThickness, focus.Height),
-            new EsRect(focus.X, focus.Y + horizontal, focus.Width, LineThickness),
-            new EsRect(focus.X, focus.Y + (horizontal * 2), focus.Width, LineThickness),
+            new EsRect(focus.X + vertical, focus.Y, thickness, focus.Height),
+            new EsRect(focus.X + (vertical * 2), focus.Y, thickness, focus.Height),
+            new EsRect(focus.X, focus.Y + horizontal, focus.Width, thickness),
+            new EsRect(focus.X, focus.Y + (horizontal * 2), focus.Width, thickness),
         ];
     }
 }

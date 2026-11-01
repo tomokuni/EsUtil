@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>EsUtil.Ui.MewUI.ColumnPacking.Sample</RootNamespace>
+    <!-- MewUI は API が安定化中（0.x）。 破壊的変更を避けるためバージョンを固定する。 -->
+    <MewUIVersion>0.22.1</MewUIVersion>
+    <Description>複数列の配置（MewUI 版パネル）の動作確認用サンプル アプリケーション。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Win32 プラットフォームホスト + Windows 向け描画バックエンド -->
+    <PackageReference Include="Aprillz.MewUI.Windows" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- サンプルの対象（配置の計算は推移参照で解決する） -->
+    <ProjectReference Include="..\src\EsUtil.Ui.MewUI.ColumnPacking.csproj" />
+    <!-- サンプル共通のレイアウトとログ（Serilog） -->
+    <ProjectReference Include="..\..\SampleKit\src\EsUtil.Ui.MewUI.SampleKit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 機能のルート名前空間（ファサードの公開面）を取り込む。 -->
+    <Using Include="EsUtil.Feature.ColumnPacking" />
+  </ItemGroup>
+
+</Project>

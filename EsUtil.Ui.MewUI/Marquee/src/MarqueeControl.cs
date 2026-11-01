@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using Aprillz.MewUI.Rendering;
@@ -133,6 +134,12 @@ public sealed class MarqueeControl : Panel
     private readonly ICursorService _cursor;
 
     /// <summary>ドラッグ矩形コントロールを既定構成で初期化する。</summary>
+    /// <remarks>
+    /// カーソル操作は Win32 の既定実装（<see cref="WinCursorService"/>）を生成して動作する（Windows 専用）。<br/>
+    /// 対象フレームワークは <c>net10.0</c>（可搬）であり、<b>Windows 以外ではこのコンストラクターを使えない</b><br/>
+    /// （<see cref="ICursorService"/> を渡すコンストラクターを使う）。
+    /// </remarks>
+    [SupportedOSPlatform("windows10.0.17763")]
     public MarqueeControl()
         : this(new WinCursorService())
     {
@@ -571,7 +578,7 @@ public sealed class MarqueeControl : Panel
     /// <remarks>
     /// <b>矩形の並びで表せる装飾と、ラベルの文言・位置を差し替える入口</b>である（色・太さ・表示可否は <see cref="Appearance"/>）。<br/>
     /// 受け取る計画は提示層が解決済みであるため、本関数は値の置き換えだけで完結する<br/>
-    /// （<c>plan with { OuterBorderDipRects = …, Labels = … }</c>）。<br/>
+    /// （<c>plan with { BorderDipRects = …, Labels = … }</c>）。<br/>
     /// <b>配置と描画の両方に適用される</b>ため、<see cref="MarqueeDrawPlan.Labels"/> を差し替えるとラベル要素も追随する。<br/>
     /// <b>純粋関数（同じ入力に同じ出力）にすること</b>（同じ入力では 1 フレーム 1 回だけ解決されるため、<br/>
     /// 呼び出しの時点に依存する関数を渡すと差し替えが反映されない）。 設定すると保持中の計画を破棄して再解決する。

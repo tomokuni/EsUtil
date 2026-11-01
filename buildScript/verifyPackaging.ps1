@@ -66,11 +66,13 @@ if (Test-Path -LiteralPath $recordPath) {
     }
 }
 
-# パッケージの一覧（テスト・サンプルは作らない）
+# パッケージの一覧（テスト・サンプル・配布しない共通部品は作らない）
+# `.csproj` が `<IsPackable>false</IsPackable>` を宣言している場合も対象外にする
+# （サンプルの共通部品はプロジェクト名が `*.Sample` で終わらないため、名前の判定だけでは漏れる）。
 $packages = @(Get-ChildItem -Path $repoRoot -Directory |
     Where-Object { $_.Name -like 'EsUtil*' } |
     ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -File -Filter '*.csproj' } |
-    Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample)\.csproj$' } |
+    Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample|SampleKit)\.csproj$' } |
     ForEach-Object { [pscustomobject]@{ Name = $_.BaseName; Group = (Get-GroupName $_.BaseName) } } |
     Sort-Object Name)
 

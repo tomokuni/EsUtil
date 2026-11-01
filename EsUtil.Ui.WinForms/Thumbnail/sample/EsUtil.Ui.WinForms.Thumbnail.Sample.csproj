@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <PlatformTarget>x64</PlatformTarget>
     <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
@@ -17,6 +16,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Ui.WinForms.Thumbnail.csproj" />
+    <!-- サンプル共通のレイアウトとログ（Serilog） -->
+    <ProjectReference Include="..\..\SampleKit\src\EsUtil.Ui.WinForms.SampleKit.csproj" />
     <!-- 動作確認用の画像はコアの型で作り、変換ブリッジで GDI+ の型へ写す（サンプルは参照してよい）。 -->
     <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.WinForms.Interop.csproj" />
   </ItemGroup>

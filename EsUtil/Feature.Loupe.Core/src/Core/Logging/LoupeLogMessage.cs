@@ -1,4 +1,4 @@
-using System.Globalization;
+using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
@@ -35,12 +35,12 @@ internal static partial class LoupeLogMessage
     internal static string Prefix { get; set; } = DefaultPrefix;
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Error<br/>出力書式: <c>[Loupe] {Operation} で例外が発生</c>（例外スタックトレース付き）</remarks>
+    /// <remarks>LogLevel: Error<br/>出力書式: <c>[Loupe] {Operation:l} で例外が発生</c>（例外スタックトレース付き）</remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="exception">発生した例外。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix} {Operation} で例外が発生")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} {Operation:l} で例外が発生")]
     private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>
@@ -63,7 +63,7 @@ internal static partial class LoupeLogMessage
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="requestedSize">生成時の要求サイズ（DIP）。</param>
     /// <param name="zoomLevel">生成時の拡大率。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix} Facade created: RequestedSize={RequestedSize}, ZoomLevel={ZoomLevel}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Facade created: RequestedSize={RequestedSize}, ZoomLevel={ZoomLevel}")]
     private static partial void LogFacadeCreatedCore(this ILogger logger, string prefix, int requestedSize, int zoomLevel);
 
     /// <summary>ファサードの生成（生成時の設定）を記録する。</summary>
@@ -80,7 +80,7 @@ internal static partial class LoupeLogMessage
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Logger attached")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Logger attached")]
     private static partial void LogLoggerAttachedCore(this ILogger logger, string prefix);
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
@@ -88,13 +88,13 @@ internal static partial class LoupeLogMessage
     internal static void LogLoggerAttached(this ILogger logger) => logger.LogLoggerAttachedCore(Prefix);
 
     /// <summary>設定値変更のログ（変更前後）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Loupe] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Loupe] Setting: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Setting: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     /// <summary>設定値変更のログ（変更前後。 整形済みの値を渡す）。</summary>
@@ -110,14 +110,14 @@ internal static partial class LoupeLogMessage
     /// LogLevel: Trace（書式は <see cref="LogSettingChanged(ILogger, string, string, string)"/> と同一）<br/>
     /// マウス移動ごとに変わる値（拡大中心）が使う（既定の出力では溢れさせない）。
     /// LogLevel: Trace<br/>
-    /// 出力書式: <c>[Loupe] Setting: {Name} {OldValue} → {NewValue}</c>
+    /// 出力書式: <c>[Loupe] Setting: {Name:l} {OldValue:l} → {NewValue:l}</c>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Setting: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedTraceCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     /// <summary>頻度の高い設定値変更のログ（変更前後。 最も低いレベルで出力する）。</summary>
@@ -189,8 +189,8 @@ internal static partial class LoupeLogMessage
 
         logger.LogSettingChanged(
             name,
-            oldValue.ToString(format: null, CultureInfo.InvariantCulture),
-            newValue.ToString(format: null, CultureInfo.InvariantCulture));
+            NumberText.Format(oldValue),
+            NumberText.Format(newValue));
     }
 
     /// <summary>拡大中心（対象座標）の変更ログ（同値の再設定では出力しない）。</summary>
@@ -256,7 +256,7 @@ internal static partial class LoupeLogMessage
     /// </remarks>
     private static string FormatPoint(EsPoint? point)
         => point is { } p
-            ? $"({p.X.ToString(CultureInfo.InvariantCulture)}, {p.Y.ToString(CultureInfo.InvariantCulture)})"
+            ? $"({NumberText.Format(p.X)}, {NumberText.Format(p.Y)})"
             : Null;
 
     /// <summary>座標変換ポートを文字列化する。</summary>

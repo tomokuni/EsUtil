@@ -56,9 +56,9 @@
       },
       "Meziantou.Analyzer": {
         "type": "Direct",
-        "requested": "[3.0.317, )",
-        "resolved": "3.0.317",
-        "contentHash": "IC9fCjxniZol2dcdj+hiXjK01a8gBWQproGL/qWjBI7CgB5GeEOD5oGV0PwpQaSr7Aa/RPaM8Ddho3Y1OAZe1Q=="
+        "requested": "[3.0.318, )",
+        "resolved": "3.0.318",
+        "contentHash": "H3nJiK34glwVICWp6EnhQLgftwXvIIMwVFbafG5CXVlnFqXfNN5PToDdNmw7bFzEXfMHE6zwAT8Am89c9W8ThQ=="
       },
       "Microsoft.CodeAnalysis.BannedApiAnalyzers": {
         "type": "Direct",
@@ -324,7 +324,7 @@
         "dependencies": {
           "Avalonia": "[12.1.4, )",
           "Avalonia.Controls.ColorPicker": "[12.1.4, )",
-          "EsUtil.Platform.Core": "[0.2.0, )",
+          "EsUtil.Platform.Core": "[0.3.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
@@ -332,7 +332,7 @@
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "EsUtil.Platform.Core": "[0.2.0, )"
+          "EsUtil.Platform.Core": "[0.3.0, )"
         }
       },
       "Avalonia": {

@@ -6,20 +6,26 @@ namespace EsUtil.Feature.Thumbnail.Tests;
 /// <summary>折り返し配置・行の高さ・下端揃え・可視範囲の単体テスト。</summary>
 public class ThumbnailLayoutTests
 {
+    /// <summary>影を描かない前提の寸法（余白 0・名前の行 30 DIP）。</summary>
+    private static readonly ThumbnailMetrics s_metrics = new(0, 30);
+
     /// <summary>既定の設定（画像の幅 96 DIP）で 4 件を幅 300 DIP へ並べる。</summary>
+    /// <param name="heights">項目ごとの画像の高さ。</param>
+    /// <param name="width">利用可能な幅。</param>
+    /// <returns>配置の結果。</returns>
     private static ThumbnailLayoutResult Arrange(double[] heights, double width = 300)
-        => ThumbnailLayout.Resolve(width, 96, heights);
+        => ThumbnailLayout.Resolve(width, 96, heights, metrics: s_metrics);
 
     /// <summary>利用可能な幅に収まる列数で折り返すことを検証する。</summary>
     [Fact]
     public void 幅に収まる列数で折り返す()
     {
-        // 外枠の幅 = 96 + (2 + 12) * 2 = 124。 幅 300 では 2 列（余白 2 を両側に確保する）
+        // 外枠の幅 = 96（影を描かない設定では余白を持たない）。 幅 300 では 2 列（内容の余白 2 と列間 8 を確保する）
         var layout = Arrange([96, 96, 96, 96, 96]);
 
         Assert.Equal(2, layout.Columns);
         Assert.Equal(3, layout.Rows);
-        Assert.Equal(124, layout.SlotWidth, 6);
+        Assert.Equal(96, layout.SlotWidth, 6);
     }
 
     /// <summary>利用可能な幅が項目より狭い場合でも 1 列は並べることを検証する。</summary>
@@ -41,9 +47,9 @@ public class ThumbnailLayoutTests
         var first = layout.Slot(0);
         var second = layout.Slot(1);
 
-        // 外枠の高さ = 画像 + 影の余白（片側 14）+ 名前の行（30）。 項目ごとの高さは自分の画像で決まる
-        Assert.Equal(40 + 28 + 30, first.Height, 6);
-        Assert.Equal(100 + 28 + 30, second.Height, 6);
+        // 外枠の高さ = 画像 + 影の余白（片側 0）+ 名前の行（30）。 項目ごとの高さは自分の画像で決まる
+        Assert.Equal(40 + 30, first.Height, 6);
+        Assert.Equal(100 + 30, second.Height, 6);
 
         // 下端揃えにより、行の下端は行内の最大の画像の高さで決まる
         Assert.Equal(first.Bottom, second.Bottom, 6);
@@ -57,6 +63,26 @@ public class ThumbnailLayoutTests
 
         Assert.Equal(layout.Slot(0).Bottom, layout.Slot(1).Bottom, 6);
         Assert.Equal(layout.Label(0).Bottom, layout.Label(1).Bottom, 6);
+    }
+
+    /// <summary>行間と列間が互いに独立して効くことを検証する。</summary>
+    [Fact]
+    public void 行間と列間は別々に効く()
+    {
+        // 2 列 × 2 行になる幅。 行間だけを広げても横の間隔は変わらない
+        var options = ThumbnailOptions.Default with { RowSpace = 20, ColumnSpace = 4 };
+        var layout = ThumbnailLayout.Resolve(260, 96, [96, 96, 96, 96], options, s_metrics);
+
+        Assert.Equal(2, layout.Columns);
+
+        // 列間 = 列の間隔（外枠の右端から次の外枠の左端まで）
+        var first = layout.Slot(0);
+        var second = layout.Slot(1);
+        Assert.Equal(4, second.X - first.Right, 6);
+
+        // 行間 = 行の間隔（上の行の外枠の下端から次の行の外枠の下端まで - 行の高さ）
+        var third = layout.Slot(2);
+        Assert.Equal(20, third.Bottom - first.Bottom - first.Height, 6);
     }
 
     /// <summary>画像と名前の矩形が項目の外枠の内側に置かれることを検証する。</summary>

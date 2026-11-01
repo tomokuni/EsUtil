@@ -23,6 +23,9 @@ public static class TextMeasure
     /// <summary>測定に使うツリー外の要素（フォントと文字列を写して測る）。</summary>
     private static TextBlock? s_probe;
 
+    /// <summary>折り返しの測定に使うツリー外の要素（単一行の測定と状態を共有しない）。</summary>
+    private static TextBlock? s_wrapProbe;
+
     /// <summary>テキストの実寸を測る。</summary>
     /// <param name="text">測定するテキスト。 null 不可。</param>
     /// <param name="fontSize">フォントサイズ（DIP）。</param>
@@ -38,6 +41,30 @@ public static class TextMeasure
         probe.Text = text;
         probe.FontSize = fontSize;
         probe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+
+        var size = probe.DesiredSize;
+        return new EsSize(size.Width, size.Height);
+    }
+
+    /// <summary>折り返したテキストの実寸を測る。</summary>
+    /// <param name="text">測定するテキスト。 null 不可。</param>
+    /// <param name="fontSize">フォントサイズ（DIP）。</param>
+    /// <param name="isBold">太字で測るかどうか。</param>
+    /// <param name="maxWidth">折り返す幅（DIP）。</param>
+    /// <returns>折り返した後の実寸（DIP）。 高さは全行の合計。</returns>
+    /// <exception cref="InvalidOperationException">グラフィックス バックエンドが登録されていない場合。</exception>
+    /// <remarks>
+    /// <b>表示する要素と同じ規則で測る</b>: ラベルは折り返す <see cref="TextBlock"/> として置くため、<br/>
+    /// 同じ折り返し設定の要素を幅で計測する（文字数からの見積もりでは行数を誤り、省略されないまま切れる）。
+    /// </remarks>
+    public static EsSize MeasureWrapped(string text, double fontSize, bool isBold, double maxWidth)
+    {
+        var probe = s_wrapProbe ??= new TextBlock();
+        probe.Text = text;
+        probe.FontSize = fontSize;
+        probe.FontWeight = isBold ? FontWeight.Bold : FontWeight.Normal;
+        probe.TextWrapping = TextWrapping.Wrap;
+        probe.Measure(new Size(maxWidth, double.PositiveInfinity));
 
         var size = probe.DesiredSize;
         return new EsSize(size.Width, size.Height);

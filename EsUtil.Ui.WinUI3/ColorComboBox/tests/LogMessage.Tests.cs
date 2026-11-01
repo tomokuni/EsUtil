@@ -29,7 +29,7 @@ public class LogMessageTests
         logger.LogSettingChanged("SelectedColor", "#FFFFFFFF", "#FF008000");
 
         Assert.Single(logger.Messages);
-        Assert.Equal(LogLevel.Debug, logger.Levels[0]);
+        Assert.Equal(LogLevel.Information, logger.Levels[0]);
         Assert.Contains("#FFFFFFFF", logger.Messages[0], StringComparison.Ordinal);
         Assert.Contains("#FF008000", logger.Messages[0], StringComparison.Ordinal);
     }

@@ -46,7 +46,7 @@ var key = Aprillz.MewUI.Key.A.ToEsKey();
 
 ## 4. 依存
 
-`EsUtil.Platform.Core` と `Aprillz.MewUI.Core`（0.21.1 固定） を参照します。 規則は [`.github/依存関係.md`](../../.github/依存関係.md)。
+`EsUtil.Platform.Core` と `Aprillz.MewUI.Core`（0.22.1 固定） を参照します。 規則は [`.github/依存関係.md`](../../.github/依存関係.md)。
 
 - 描画バックエンド（Direct2D / GDI）はアプリが選びます。 本アセンブリは `IGraphicsContext` だけを使います。
 - テキスト計測はグラフィックス バックエンドの登録が前提です（未登録では例外）。 テストは GDI バックエンドを登録します。

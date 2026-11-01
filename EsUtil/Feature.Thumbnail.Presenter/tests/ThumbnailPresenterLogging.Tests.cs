@@ -32,11 +32,11 @@ public class ThumbnailPresenterLoggingTests
         var presenter = new ThumbnailPresenter
         {
             Log = null!,
-            Options = ThumbnailOptions.Default with { ItemMargin = 1 },
+            Options = ThumbnailOptions.Default with { RowSpace = 1 },
         };
 
         Assert.NotNull(presenter.Log);
-        Assert.Equal(1, presenter.Options.ItemMargin);
+        Assert.Equal(1, presenter.Options.RowSpace);
     }
 
     /// <summary>設定の変更が変化した項目だけ記録されることを検証する。</summary>
@@ -51,15 +51,15 @@ public class ThumbnailPresenterLoggingTests
         {
             presenter.LogPrefix = "[Test]";
             logger.Messages.Clear();
-            presenter.Options = presenter.Options with { ItemSpacing = 6 };
+            presenter.Options = presenter.Options with { ColumnSpace = 6 };
         }
         finally
         {
             presenter.LogPrefix = original;
         }
 
-        Assert.Equal(["[Test] Setting: ItemSpacing 0 → 6"], logger.Messages);
-        Assert.Equal(6, presenter.Options.ItemSpacing);
+        Assert.Equal(["[Test] Setting: ColumnSpace 8 → 6"], logger.Messages);
+        Assert.Equal(6, presenter.Options.ColumnSpace);
     }
 
     /// <summary>同じインスタンスの再設定では記録しないことを検証する。</summary>

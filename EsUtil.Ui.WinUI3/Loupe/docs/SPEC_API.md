@@ -201,12 +201,12 @@ if (layout.Position is { } position)
 
 | レベル | 出力書式 | 所有者 |
 | --- | --- | --- |
-| Debug | `[Loupe] Setting: Source {前} → {後}` | 本プロジェクトの `LoupeLogMessage`（拡大元画像） |
-| Debug | `[Loupe] Setting: {名前} {前} → {後}` | コア（設定値・環境値・拡大中心）と提示層（外観） |
+| Information | `[Loupe] Setting: Source {前} → {後}` | 本プロジェクトの `LoupeLogMessage`（拡大元画像） |
+| Information | `[Loupe] Setting: {名前} {前} → {後}` | コア（設定値・環境値・拡大中心）と提示層（外観） |
 | Error | `[Loupe] Update exception` | 本プロジェクトの `LoupeLogMessage`（描画の例外） |
 | Error | `[Loupe] {操作} で例外が発生` | 本プロジェクトの `LoupeLogMessage`（公開 API の例外） |
 
-接頭辞は `LogPrefix` で変更でき、提示層・コアへも伝搬します（全層のログが同じ接頭辞になる）。 変化判定（同値・同一インスタンスなら出力しない）は出力する主体が単一所有します。
+接頭辞は `LogPrefix` で変更でき、提示層・コアへも伝搬します（全層のログが同じ接頭辞になる）。 **接頭辞はプロセス（アセンブリ）内の全インスタンスで共有します**（同じ実行で 2 つ目のルーペへ別の接頭辞を設定すると、1 つ目のルーペのログもその接頭辞になります）。 変化判定（同値・同一インスタンスなら出力しない）は出力する主体が単一所有します。
 
 ## 9. 制限事項
 

@@ -31,7 +31,7 @@ public class MarqueeAppearanceTests
     [Fact]
     internal void 既定の暗転マスクは黒50パーセントである()
     {
-        Assert.Equal(DrawingColor.FromArgb(128, 0, 0, 0), new MarqueeAppearance().OverlayColor);
+        Assert.Equal(DrawingColor.FromArgb(128, 0, 0, 0), new MarqueeAppearance().OuterMaskColor);
     }
 
     [Fact]
@@ -40,18 +40,17 @@ public class MarqueeAppearanceTests
         var paint = new MarqueeAppearance();
 
         // 外枠とハンドル枠は同じ矩形に重なるため、既定値を共有する
-        Assert.Equal(MarqueeAppearance.DefaultBorderColor, paint.OuterBorderColor);
-        Assert.Equal(paint.HandleBorderColor, paint.OuterBorderColor);
+        Assert.Equal(MarqueeAppearance.DefaultBorderColor, paint.BorderColor);
+        Assert.Equal(paint.HandleBorderColor, paint.BorderColor);
     }
 
     [Fact]
-    internal void 既定の内側の塗りと枠線は透明である()
+    internal void 既定の内側マスクは透明である()
     {
         var paint = new MarqueeAppearance();
 
         // 描くかどうかは表示可否のフラグが単一所有する（色のアルファを代用にしない）
-        Assert.Equal(DrawingColor.Transparent, paint.InnerFillColor);
-        Assert.Equal(DrawingColor.Transparent, paint.InnerBorderColor);
+        Assert.Equal(DrawingColor.Transparent, paint.InnerMaskColor);
     }
 
     [Fact]
@@ -77,22 +76,22 @@ public class MarqueeAppearanceTests
     {
         var paint = new MarqueeAppearance();
 
-        var changed = paint with { OverlayColor = DrawingColor.Red };
+        var changed = paint with { OuterMaskColor = DrawingColor.Red };
 
-        Assert.Equal(DrawingColor.Red, changed.OverlayColor);
+        Assert.Equal(DrawingColor.Red, changed.OuterMaskColor);
         // 他の項目は維持される
         Assert.Equal(paint.HandleColor, changed.HandleColor);
-        Assert.Equal(paint.OuterBorderColor, changed.OuterBorderColor);
+        Assert.Equal(paint.BorderColor, changed.BorderColor);
     }
 
     [Fact]
     internal void 等価性は値で判定される()
     {
-        var a = new MarqueeAppearance { OverlayColor = DrawingColor.Red, InnerFillColor = DrawingColor.Blue };
-        var b = new MarqueeAppearance { OverlayColor = DrawingColor.Red, InnerFillColor = DrawingColor.Blue };
+        var a = new MarqueeAppearance { OuterMaskColor = DrawingColor.Red, InnerMaskColor = DrawingColor.Blue };
+        var b = new MarqueeAppearance { OuterMaskColor = DrawingColor.Red, InnerMaskColor = DrawingColor.Blue };
 
         Assert.Equal(a, b);
-        Assert.NotEqual(a, a with { InnerFillColor = DrawingColor.Green });
+        Assert.NotEqual(a, a with { InnerMaskColor = DrawingColor.Green });
     }
 
     [Fact]
@@ -132,30 +131,13 @@ public class MarqueeAppearanceTests
         Assert.Equal(expected, appearance.ShouldShowCoordLabel());
     }
 
-    /// <summary>暗転オーバーレイの描画可否が注目矩形の有無と全面暗転の設定で決まることを検証する。</summary>
-    /// <param name="showFullOverlay">全面暗転の設定値。</param>
-    /// <param name="hasFocusRect">注目矩形があるかどうか。</param>
-    /// <param name="expected">描画するかどうか。</param>
-    [Theory]
-    [InlineData(false, true, true)]
-    [InlineData(false, false, false)]
-    [InlineData(true, true, true)]
-    [InlineData(true, false, true)]
-    internal void ShouldDrawOverlay_矩形の有無と全面暗転で決まる(bool showFullOverlay, bool hasFocusRect, bool expected)
-    {
-        var appearance = MarqueeAppearance.Default with { ShowFullOverlay = showFullOverlay };
-
-        Assert.Equal(expected, appearance.ShouldDrawOverlay(hasFocusRect));
-    }
-
     /// <summary>既定の枠線の太さが両 UI の期待値と一致することを検証する。</summary>
     [Fact]
     internal void 既定の枠線の太さは2である()
     {
         var appearance = new MarqueeAppearance();
 
-        Assert.Equal(2.0, appearance.OuterBorderThickness);
-        Assert.Equal(2.0, appearance.InnerBorderThickness);
+        Assert.Equal(2.0, appearance.BorderThickness);
     }
 
     /// <summary>枠線の太さが生成時に安全域（0.5〜64）へ補正されることを検証する。</summary>
@@ -173,15 +155,13 @@ public class MarqueeAppearanceTests
     {
         var appearance = MarqueeAppearance.Default with
         {
-            OuterBorderThickness = value,
-            InnerBorderThickness = value,
+            BorderThickness = value,
         };
 
-        Assert.Equal(expected, appearance.OuterBorderThickness);
-        Assert.Equal(expected, appearance.InnerBorderThickness);
+        Assert.Equal(expected, appearance.BorderThickness);
     }
 
-    /// <summary>既定では表示可否がすべて有効（内側の塗り・枠線だけ無効）であることを検証する。</summary>
+    /// <summary>既定では表示可否がすべて有効（内側マスクだけ無効）であることを検証する。</summary>
     [Fact]
     internal void 既定の表示可否は意図どおりである()
     {
@@ -190,10 +170,8 @@ public class MarqueeAppearanceTests
         Assert.True(appearance.ShowHandles);
         Assert.True(appearance.ShowSizeLabel);
         Assert.True(appearance.ShowCoordLabel);
-        Assert.True(appearance.ShowOverlay);
-        Assert.True(appearance.ShowOuterBorder);
-        Assert.False(appearance.ShowFullOverlay);
-        Assert.False(appearance.ShowInnerFill);
-        Assert.False(appearance.ShowInnerBorder);
+        Assert.True(appearance.ShowOuterMask);
+        Assert.True(appearance.ShowBorder);
+        Assert.False(appearance.ShowInnerMask);
     }
 }

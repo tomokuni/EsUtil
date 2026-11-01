@@ -37,7 +37,7 @@
 | 型 | 種別 | 説明 |
 | --- | --- | --- |
 | `MarqueePresenter` | class（`sealed` でない） | 提示のファサード。 コアを内部に保持し、設定・環境値・入力の転送と、外観の保持、描画計画の解決を行う。 **継承して `ResolveDrawPlan` を上書きできることが役割**（独自の見た目を提供する） |
-| `MarqueeDrawPlan` | readonly record struct | 1 フレーム分の描画計画（外観・描画面・注目矩形・暗転領域・枠線矩形・内側の塗りと枠線・ハンドル・マーカー・層の順序・ラベル配置）。 **UI が見る唯一の描画値** |
+| `MarqueeDrawPlan` | readonly record struct | 1 フレーム分の描画計画（外観・描画面・注目矩形・暗転領域・枠線矩形・内側マスクと枠線・ハンドル・マーカー・層の順序・ラベル配置）。 **UI が見る唯一の描画値** |
 | `MarqueeDrawLayer` | enum | 描画層（`Decoration` / `Handles` / `Marker` / `Label`）。 **層にある ⇔ 描く値がある** |
 | `MarqueeAppearance` | sealed record | **外観の単一所有者**（色・ラベルの体裁・十字マーカーの線の太さ・カーソル座標ラベルのオフセット・枠線の太さ・表示可否）。 `Default` を基点に `with` 式で部分変更する |
 | `MarqueeLabelPlacement` | readonly record struct | ラベル要素の配置指示（背景矩形・内側余白・文言・フォントサイズ・色） |
@@ -72,30 +72,29 @@
 | `ClientRect` | `EsRect` | 描画面の全体（原点 (0, 0)・描画領域のサイズ） |
 | `FocusDipRect` | `EsRect?` | 注目矩形（DIP。 選択もハイライトも無い場合は null） |
 | `LabelAnchor` | `EsPoint?` | ラベルの基準点（注目矩形の左上から**矩形の線幅 + 1 DIP** 内側へ寄せた点。 注目矩形が無い場合は null（サイズラベルと付加情報ラベルが同じ値を使う） |
-| `OverlayDipRects` | `IReadOnlyList<EsRect>` | 暗転して塗る領域。 描かない設定または注目矩形が無い場合は空 |
-| `OuterBorderDipRects` | `IReadOnlyList<EsRect>` | 外枠の矩形（4 辺）。 描かない設定または注目矩形が無い場合は空 |
-| `InnerFillDipRect` | `EsRect?` | 注目矩形の内側の塗り。 塗らない設定または注目矩形が無い場合は null |
-| `InnerBorderDipRects` | `IReadOnlyList<EsRect>` | 注目矩形の内側の枠線（4 辺）。 描かない設定または注目矩形が無い場合は空 |
+| `OuterMaskDipRects` | `IReadOnlyList<EsRect>` | 暗転して塗る領域。 描かない設定または注目矩形が無い場合は空 |
+| `BorderDipRects` | `IReadOnlyList<EsRect>` | 枠線の矩形（4 辺）。 描かない設定または注目矩形が無い場合は空 |
+| `InnerMaskDipRect` | `EsRect?` | 注目矩形の内側マスク。 塗らない設定または注目矩形が無い場合は null |
 | `Handles` | `MarqueeHandles?` | ドラッグハンドル（null は描かない） |
 | `Marker` | `MarqueeMarker?` | 始点マーカー（null は描かない） |
 | `Layers` | `IReadOnlyList<MarqueeDrawLayer>` | 描く層とその順序。 先頭から順に処理する。 テキストの層（`Label`）はラベルがある場合のみ末尾（常に最上位） |
 | `Labels` | `IReadOnlyList<MarqueeLabelPlacement>` | ラベル要素の配置指示（実寸を反映済み）。 位置を持たない場合は空（表示可否は各指示の `IsVisible` が持つ） |
 | `HasText` | `bool` | ラベルを持つ場合は true（`Labels.Count > 0` と同値） |
-| `HasDecoration` | `bool` | 装飾（暗転領域・外枠・内側の塗り・内枠）のいずれかを持つ場合は true |
+| `HasDecoration` | `bool` | 装飾（暗転領域・枠線・内側マスク・枠線）のいずれかを持つ場合は true |
 
 ### 2.4 `MarqueeAppearance` のメンバー（外観の単一値）
 
 | 分類 | メンバー | 型 | 既定値 |
 | --- | --- | --- | --- |
-| 色 | `DefaultBorderColor`（static readonly） | `DrawingColor` | `#FFA9A9A9`（ハンドル枠と外枠が共有する） |
+| 色 | `DefaultBorderColor`（static readonly） | `DrawingColor` | `#FFA9A9A9`（ハンドル枠と枠線が共有する） |
 | 色 | `HandleColor` | `DrawingColor` | 白（全成分 0 を指定した場合は白へ解決される） |
 | 色 | `HandleBorderColor` | `DrawingColor` | `#FFA9A9A9` |
 | 色 | `MarkerColor` | `DrawingColor` | 白 |
 | 色 | `SizeLabelColor` / `SizeLabelBackgroundColor` | `DrawingColor` | 白 / 黒 60% |
 | 色 | `CoordLabelColor` / `CoordLabelBackgroundColor` | `DrawingColor` | 白 / 黒 60% |
-| 色 | `OverlayColor` | `DrawingColor` | 黒 50%（`#80000000`） |
-| 色 | `OuterBorderColor` | `DrawingColor` | `#FFA9A9A9` |
-| 色 | `InnerFillColor` / `InnerBorderColor` | `DrawingColor` | 透明 / 透明 |
+| 色 | `OuterMaskColor` | `DrawingColor` | 黒 50%（`#80000000`） |
+| 色 | `BorderColor` | `DrawingColor` | `#FFA9A9A9` |
+| 色 | `InnerMaskColor` / `InnerBorderColor` | `DrawingColor` | 透明 / 透明 |
 | 体裁 | `SizeLabelFontSizeDefault` / `CoordLabelFontSizeDefault` | `double`（const） | 14.0 / 12.0 |
 | 体裁 | `SizeLabelFontSize` / `CoordLabelFontSize` | `double` | 6〜48 へ補正済み。 非数は既定値 |
 | 体裁 | `LabelFontSizeMin` / `LabelFontSizeMax` | `double`（const） | 6.0 / 48.0 |
@@ -103,10 +102,10 @@
 | 体裁 | `CoordLabelOffset` / `CoordLabelOffsetDefault` | `double` | 8.0（カーソル座標ラベルをカーソルから離すオフセット（DIP）。 0 はカーソルに重なる） |
 | 体裁 | `MarkerThickness` / `MarkerThicknessDefault` | `double` | 2.0（十字マーカーの線の太さ（DIP）。 0.5〜64 へ補正済み） |
 | 表示可否 | `ShowHandles` / `ShowMarker` / `ShowSizeLabel` / `ShowCoordLabel` | `bool` | `true` |
-| 表示可否 | `ShowOverlay` / `ShowOuterBorder` | `bool` | `true` |
+| 表示可否 | `ShowOuterMask` / `ShowBorder` | `bool` | `true` |
 | 表示可否 | `ShowFullOverlay` | `bool` | `false`（注目矩形が無くても全面を暗転する） |
-| 表示可否 | `ShowInnerFill` / `ShowInnerBorder` | `bool` | `false` |
-| 太さ | `OuterBorderThickness` / `InnerBorderThickness` | `double` | 2.0（0.5〜64 へ補正済み。 安全域はコアの `MarqueeCore.Limits` が単一所有する） |
+| 表示可否 | `ShowInnerMask` / `ShowInnerBorder` | `bool` | `false` |
+| 太さ | `BorderThickness` / `InnerBorderThickness` | `double` | 2.0（0.5〜64 へ補正済み。 安全域はコアの `MarqueeCore.Limits` が単一所有する） |
 
 色は UI 非依存の `System.Drawing.Color` です（各 UI の色型への変換は各 UI の描画境界で行う）。
 **描画の可否は色のアルファでは決まりません**（本型の明示フラグが単一所有します）。
@@ -163,8 +162,8 @@ using EsUtil.Feature.Marquee;
 // 外観（色・フォント・枠線の太さ・表示可否）を差し替える
 var appearance = MarqueeAppearance.Default with
 {
-    OuterBorderColor = Color.FromArgb(0xFF, 0x33, 0x99, 0xFF),
-    ShowOverlay = false,
+    BorderColor = Color.FromArgb(0xFF, 0x33, 0x99, 0xFF),
+    ShowOuterMask = false,
 };
 
 var presenter = new MarqueePresenter(new MarqueeCore(effects))

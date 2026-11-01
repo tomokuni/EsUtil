@@ -28,12 +28,13 @@
 var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default with
 {
     HighlightedLabelArgb = 0xFF0078D4,
-    HideShadowWhenHighlighted = true,
+    ShowShadow = true,
+    HideShadowWhenSelected = true,
 });
 
 var layout = presenter.ResolveLayout(availableWidth, imageWidth, imageHeights);
 var plan = presenter.ResolveDrawPlan(
-    layout, index, caption, isCurrent, selectedIndex, hoveredIndex, isDark);
+    layout, index, caption, isCurrent, selectedIndex, hoveredIndex, isDark, measureText);
 
 foreach (var layer in plan.Layers)
 {
@@ -112,7 +113,7 @@ presenter.Appearance = ThumbnailAppearance.Default with { Shadow = new NoShadowP
 | レベル | 出力例 |
 | --- | --- |
 | Information | `[Thumbnail] Presenter created`（ロガーの初回設定時に 1 度だけ） |
-| Debug | `[Thumbnail] Setting: ItemSpacing 0 → 4` / `[Thumbnail] Setting: LabelFontSize 11 → 13`（変化した項目だけ） |
+| Information | `[Thumbnail] Setting: ColumnSpace 8 → 4` / `[Thumbnail] Setting: LabelFontSize 11 → 13`（変化した項目だけ） |
 | Trace | `[Thumbnail] Logger attached` |
 
 `ThumbnailPresenter.Log` へ `ILogger` を設定します（null は `NullLogger`）。 接頭辞は `LogPrefix` で設定します（既定 `[Thumbnail]`）。

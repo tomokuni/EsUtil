@@ -8,8 +8,8 @@ namespace EsUtil.Feature.Thumbnail;
 /// 項目を行内で下端揃えにする（名前の 1 文字目の高さ位置が行内で揃う）。 標準の折り返しパネルは<br/>
 /// 行内で上端揃えのため、高さが異なる項目では名前の位置が揃わない（画像の縦横比によって高さが変わる）。<br/>
 /// <br/>
-/// <b>項目の外枠</b>: 画像 + 影の余地 + 名前の行を、<see cref="ThumbnailOptions.SlotInset"/> と<br/>
-/// <see cref="ThumbnailOptions.LabelHeight"/> で包んだ矩形である。 ホバー帯はこの矩形へ描く。<br/>
+/// <b>項目の外枠</b>: 画像 + 影の余地 + 名前の行を、<see cref="ThumbnailMetrics.SlotInset"/> と<br/>
+/// <see cref="ThumbnailMetrics.LabelHeight"/> で包んだ矩形である。 ホバー帯はこの矩形へ描く。<br/>
 /// <br/>
 /// <b>この計算は UI フレームワークに依存しない</b>: 入力は長さだけで、出力は矩形と添字だけである。
 /// </remarks>
@@ -20,6 +20,7 @@ public static class ThumbnailLayout
     /// <param name="imageWidth">画像の幅（DIP）。 <see cref="ThumbnailOptions.MinimumImageWidth"/> 未満は引き上げる。</param>
     /// <param name="imageHeights">項目ごとの画像の高さ（DIP）。 画像が無い項目は幅と同じ値を渡す（正方形）。</param>
     /// <param name="options">設定。 null の場合は <see cref="ThumbnailOptions.Default"/>。</param>
+    /// <param name="metrics">外観から決まる寸法（影の余白・名前の行の高さ）。 省略すると 0（両方とも確保しない）。</param>
     /// <returns>配置の結果。</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="imageHeights"/> に負の値が含まれる場合。</exception>
     /// <remarks>
@@ -30,13 +31,15 @@ public static class ThumbnailLayout
         double availableWidth,
         double imageWidth,
         ReadOnlySpan<double> imageHeights,
-        ThumbnailOptions? options = null)
+        ThumbnailOptions? options = null,
+        ThumbnailMetrics metrics = default)
     {
         var settings = options ?? ThumbnailOptions.Default;
         var width = Math.Max(settings.MinimumImageWidth, imageWidth);
-        var inset = settings.SlotInset;
+        var inset = metrics.SlotInset;
+        var labelHeight = metrics.LabelHeight;
         var slotWidth = width + (inset * 2);
-        var stride = slotWidth + settings.ItemSpacing;
+        var stride = slotWidth + settings.ColumnSpace;
         var padding = settings.ContentPadding;
 
         var count = imageHeights.Length;
@@ -51,7 +54,7 @@ public static class ThumbnailLayout
         var usable = Math.Max(0, availableWidth - (padding * 2));
         if (usable > 0 && stride > 0)
         {
-            columns = Math.Max(1, (int)Math.Floor((usable + settings.ItemSpacing) / stride));
+            columns = Math.Max(1, (int)Math.Floor((usable + settings.ColumnSpace) / stride));
         }
 
         if (settings.MaximumColumns > 0)
@@ -77,19 +80,24 @@ public static class ThumbnailLayout
 
         for (var row = 0; row < rows; row++)
         {
-            rowHeights[row] += (inset * 2) + settings.LabelHeight;
+            rowHeights[row] += (inset * 2) + labelHeight;
         }
 
         var slots = new EsRect[count];
         var images = new EsRect[count];
         var labels = new EsRect[count];
 
+        // 行の送り（行間を含む）。 最後の行の後ろには行間を入れない
         var rowTops = new double[rows];
         var y = padding;
         for (var row = 0; row < rows; row++)
         {
             rowTops[row] = y;
             y += rowHeights[row];
+            if (row < rows - 1)
+            {
+                y += settings.RowSpace;
+            }
         }
 
         for (var i = 0; i < count; i++)
@@ -97,7 +105,7 @@ public static class ThumbnailLayout
             var row = i / columns;
             var column = i % columns;
             var imageHeight = imageHeights[i];
-            var slotHeight = (inset * 2) + imageHeight + settings.LabelHeight;
+            var slotHeight = (inset * 2) + imageHeight + labelHeight;
             var slotX = padding + (column * stride);
 
             // 行内で下端を揃える（名前の 1 文字目の高さが行内で揃う）
@@ -106,10 +114,10 @@ public static class ThumbnailLayout
 
             var imageY = slotY + inset;
             images[i] = new EsRect(slotX + inset, imageY, width, imageHeight);
-            labels[i] = new EsRect(slotX + inset, imageY + imageHeight, width, settings.LabelHeight);
+            labels[i] = new EsRect(slotX + inset, imageY + imageHeight, width, labelHeight);
         }
 
-        var contentWidth = (padding * 2) + (columns * slotWidth) + ((columns - 1) * settings.ItemSpacing);
+        var contentWidth = (padding * 2) + (columns * slotWidth) + ((columns - 1) * settings.ColumnSpace);
         var contentHeight = y + padding;
 
         return new ThumbnailLayoutResult(

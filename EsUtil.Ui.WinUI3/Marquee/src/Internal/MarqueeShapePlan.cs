@@ -59,25 +59,21 @@ internal static class MarqueeShapePlan
     private static void AddDecoration(
         MarqueeDrawPlan plan, MarqueeAppearance appearance, DrawList rects)
     {
-        if (appearance.ShowOverlay && appearance.ShouldDrawOverlay(plan.FocusDipRect is not null))
+        if (appearance.ShowOuterMask)
         {
-            AddRects(rects, plan.OverlayDipRects, appearance.OverlayColor);
+            AddRects(rects, plan.OuterMaskDipRects, appearance.OuterMaskColor);
         }
 
-        if (appearance.ShowOuterBorder)
+        if (appearance.ShowBorder)
         {
-            AddRects(rects, plan.OuterBorderDipRects, appearance.OuterBorderColor);
+            AddRects(rects, plan.BorderDipRects, appearance.BorderColor);
         }
 
-        if (appearance.ShowInnerFill && plan.InnerFillDipRect is { } fill)
+        if (appearance.ShowInnerMask && plan.InnerMaskDipRect is { } fill)
         {
-            rects.AddRect(fill, appearance.InnerFillColor);
+            rects.AddRect(fill, appearance.InnerMaskColor);
         }
 
-        if (appearance.ShowInnerBorder)
-        {
-            AddRects(rects, plan.InnerBorderDipRects, appearance.InnerBorderColor);
-        }
     }
 
     /// <summary>ドラッグハンドル（塗り + 枠線）を追加する。</summary>

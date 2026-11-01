@@ -75,7 +75,7 @@
 | `double PositionOffset { get; set; }` | `0` | ルーペ中心からの右下オフセット（DIP）。 位置の計算はコアが行います |
 | `Func<LoupeDrawPlan, LoupeDrawPlan>? DrawPlanResolver { get; set; }` | `null` | 描画計画の差し替え（純粋関数）。 設定すると保持中の計画を破棄します |
 | `ILogger Log { get; set; }` | `NullLogger` | ログの出力先（null は `NullLogger`）。 提示層とコアへ伝搬します |
-| `string? LogPrefix { get; set; }` | `[Loupe]` | ログの接頭辞（空白または null は既定値へ戻す）。 提示層とコアへ伝搬します |
+| `string? LogPrefix { get; set; }` | `[Loupe]` | ログの接頭辞（空白または null は既定値へ戻す）。 提示層とコアへ伝搬します。 **プロセス（アセンブリ）内の全インスタンスで共有します**（同じ実行で 2 つ目のルーペへ別の接頭辞を設定すると、1 つ目のルーペのログもその接頭辞になります） |
 
 公開プロパティはいずれもデザイナーのコード生成の対象外です（`DesignerSerializationVisibility.Hidden`。 値が実行時のオブジェクトであるため）。
 

@@ -28,7 +28,7 @@ public class ThumbnailLogMessageTests
             ThumbnailLogMessage.Prefix = "[Test]";
             logger.LogOptionsChanged(
                 ThumbnailOptions.Default,
-                ThumbnailOptions.Default with { ItemMargin = 4, MaximumColumns = 3 });
+                ThumbnailOptions.Default with { RowSpace = 4, MaximumColumns = 3 });
         }
         finally
         {
@@ -36,9 +36,9 @@ public class ThumbnailLogMessageTests
         }
 
         Assert.Equal(
-            ["[Test] Setting: ItemMargin 2 → 4", "[Test] Setting: MaximumColumns 0 → 3"],
+            ["[Test] Setting: RowSpace 8 → 4", "[Test] Setting: MaximumColumns 0 → 3"],
             logger.Messages);
-        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Debug, level));
+        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Information, level));
     }
 
     /// <summary>同値の設定では何も記録しないことを検証する。</summary>

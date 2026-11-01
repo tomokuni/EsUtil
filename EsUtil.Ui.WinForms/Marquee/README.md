@@ -46,7 +46,7 @@
 - **直接描画（GDI+）**: 中間ビットマップを経由せず、`OnPaint` で受け取った `Graphics` へ直接描画します。 描画計画（層の順序・装飾矩形・文言・配置）は提示層（`EsUtil.Feature.Marquee.Presenter`）が単一所有し、描画は自 UI の描画 API で行います。
 - **描画面だけで検証できる**: 描画実装は `Graphics` だけを要求するため、ウィンドウを持たない単体テストでも `Bitmap` 上の実寸の画素を検査できます。
 - **透明な背景**: 下の画像を透かすため、背景を透明にして親の描画（画像を含む）を自分の背景として描きます。 オーバーレイとして画像の上へ重ねられます。
-- **外観の設定（`Appearance`）**: 色・フォントサイズ・枠線の太さ・表示可否は**描画にだけ必要な設定**のためコアには含めず、外観（`EsUtil.Feature.Marquee.Presenter` の `MarqueeAppearance`）が単一所有します。 `Appearance` プロパティで指定し（既定は `MarqueeAppearance.Default`）、部分変更は `MarqueeAppearance.Default with { ... }` で行います。 **描くかどうかは色のアルファではなく外観の明示フラグ（`ShowOverlay` / `ShowOuterBorder` / `ShowInnerFill` / `ShowInnerBorder` / `ShowFullOverlay`）が決めます**。
+- **外観の設定（`Appearance`）**: 色・フォントサイズ・枠線の太さ・表示可否は**描画にだけ必要な設定**のためコアには含めず、外観（`EsUtil.Feature.Marquee.Presenter` の `MarqueeAppearance`）が単一所有します。 `Appearance` プロパティで指定し（既定は `MarqueeAppearance.Default`）、部分変更は `MarqueeAppearance.Default with { ... }` で行います。 **描くかどうかは色のアルファではなく外観の明示フラグ（`ShowOuterMask` / `ShowBorder` / `ShowInnerMask` / `ShowInnerBorder` / `ShowFullOverlay`）が決めます**。
 - **文字は本コントロールが描く**: サイズラベルとカーソル座標ラベルの**文言と基準点は提示層が、色とフォントサイズは外観が、実寸から配置矩形を求める写像も提示層が単一所有**し、本コントロールが描画計画の `Labels` に従って描きます。 実寸の測定は描画と同じ API（`Internal.GraphicsText`）で行います。 操作・情報ラベルはアプリ固有の付加情報のため、ホストが `Rendered` のハンドラーで自前で描きます。
 - **DPI 追従**: 描画面の DPI からスケーリング係数を解決し、DIP 座標で描画します（枠線・ハンドルの画面上の大きさを保ちます）。 DPI の通知（`RescaleConstantsForDpi`）は代替値として使います。
 - **コア型のイベント引数**: イベントの座標は UI 非依存のコア型（`EsPoint` / `EsRect`）で公開します（境界変換が不要）。
@@ -99,7 +99,7 @@ var marquee = new MarqueeControl
     Options = MarqueeOptions.Default with { HandleSize = 12.0 },
 
     // 色と表示可否は描画の設定値（外観）が単一所有する（部分変更は with 式で行う）
-    Appearance = MarqueeAppearance.Default with { OuterBorderColor = System.Drawing.Color.White },
+    Appearance = MarqueeAppearance.Default with { BorderColor = System.Drawing.Color.White },
 };
 
 // 2. 下地の画像の子として重ねる（透明の背景は親の描画を背景に使う）

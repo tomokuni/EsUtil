@@ -34,7 +34,7 @@
     </ItemGroup>
 
     <PropertyGroup>
-      <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample)$'))</_SeIsTestOrSample>
+      <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample|SampleKit)$'))</_SeIsTestOrSample>
       <_SeIsTestProject>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.Tests$'))</_SeIsTestProject>
       <_SeTestRootNamespaceOk>$([System.Text.RegularExpressions.Regex]::IsMatch('$(RootNamespace)', '\.Tests$'))</_SeTestRootNamespaceOk>
 
@@ -120,7 +120,7 @@
   <Target Name="ValidateProjectSettings" BeforeTargets="Build" Condition="'$(MSBuildProjectName)' != ''">
 
     <PropertyGroup>
-      <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample)$'))</_SeIsTestOrSample>
+      <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample|SampleKit)$'))</_SeIsTestOrSample>
       <!-- テスト プロジェクトの RootNamespace が `.Tests` で終わるか（`Condition` へ否定を直接書けないため事前計算する） -->
       <_SeIsTestProject>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.Tests$'))</_SeIsTestProject>
       <_SeTestRootNamespaceOk>$([System.Text.RegularExpressions.Regex]::IsMatch('$(RootNamespace)', '\.Tests$'))</_SeTestRootNamespaceOk>

@@ -73,7 +73,8 @@ public sealed partial class MarqueeCore
     /// </remarks>
     private static MarqueeHandles? ResolveHandles(in MarqueeRenderRequest request, ICoordTransform port)
     {
-        if (request.SelectionSourceRect is not { } rect)
+        // ハイライト中は選択を編集できない（表示専用）ため、ハンドルを出さない
+        if (request.SelectionSourceRect is not { } rect || request.HighlightSourceRect is not null)
         {
             return null;
         }

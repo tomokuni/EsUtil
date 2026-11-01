@@ -58,7 +58,7 @@
 | --- | --- |
 | 対象フレームワーク | `net10.0` |
 | 対応 OS | 指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**（UI フレームワークの対応 OS に従う。 参照する `EsUtil.Platform.Core` には Windows 専用の型が含まれる） |
-| UI フレームワーク | MewUI 0.21.1（`MewUIVersion` プロパティで固定） |
+| UI フレームワーク | MewUI 0.22.1（`MewUIVersion` プロパティで固定） |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`IsAotCompatible=true`。 AOT の解析警告が 0 件であることをビルドで検査する） |
 
@@ -117,7 +117,7 @@ panel.Children(color);
 
 | レベル | 出力例 |
 | --- | --- |
-| Debug | `[ColorComboBox] Setting: SelectedColor #FFFFFFFF → #80FF0000` |
+| Information | `[ColorComboBox] Setting: SelectedColor #FFFFFFFF → #80FF0000` |
 
 接頭辞は `LogPrefix` で設定します。 ログ基盤（出力先・レベルの制御）はホストが所有します。
 

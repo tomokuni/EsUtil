@@ -23,14 +23,14 @@ internal static partial class LoupeLogMessage
     /// <summary>公開ファサードの操作で例外が発生したことを記録する（生成メソッド）。</summary>
     /// <remarks>
     /// LogLevel: Error<br/>
-    /// 出力書式: <c>[Loupe] {Operation} で例外が発生</c>（例外スタックトレース付き）<br/>
+    /// 出力書式: <c>[Loupe] {Operation:l} で例外が発生</c>（例外スタックトレース付き）<br/>
     /// 接頭辞は既定値が <c>[Loupe]</c> であり、<c>Prefix</c> で設定できる。<br/>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="exception">発生した例外。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix} {Operation} で例外が発生")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} {Operation:l} で例外が発生")]
     private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>
@@ -67,7 +67,7 @@ internal static partial class LoupeLogMessage
     /// <param name="displayHeight">割り当てられた高さ（DIP）。</param>
     /// <param name="pixelSize">描画に使う一辺（物理ピクセル）。</param>
     /// <param name="scaling">表示 DIP → 物理ピクセルの倍率。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} Geometry: display={DisplayWidth}x{DisplayHeight} (DIP) / pixel={PixelSize} / scaling={Scaling}")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Geometry: display={DisplayWidth}x{DisplayHeight} (DIP) / pixel={PixelSize} / scaling={Scaling}")]
     private static partial void LogGeometryCore(this ILogger logger, string prefix, double displayWidth, double displayHeight, int pixelSize, double scaling);
 
     /// <summary>拡大元画像の変更ログ（同値の再設定では出力しない）。</summary>
@@ -95,8 +95,8 @@ internal static partial class LoupeLogMessage
 
     /// <summary>設定変更のログ（生成メソッド）。</summary>
     /// <remarks>
-    /// LogLevel: Debug<br/>
-    /// 出力書式: <c>[Loupe] Setting: {Name} {OldValue} → {NewValue}</c><br/>
+    /// LogLevel: Information<br/>
+    /// 出力書式: <c>[Loupe] Setting: {Name:l} {OldValue:l} → {NewValue:l}</c><br/>
     /// 接頭辞は既定値が <c>[Loupe]</c> であり、<c>Prefix</c> で設定できる。<br/>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
@@ -104,7 +104,7 @@ internal static partial class LoupeLogMessage
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Setting: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     /// <summary>設定変更のログ（整形済みの値を渡す）。</summary>
@@ -125,7 +125,7 @@ internal static partial class LoupeLogMessage
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="exception">発生した例外。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix} Update exception")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} Update exception")]
     private static partial void LogUpdateErrorCore(this ILogger logger, string prefix, Exception exception);
 
     /// <summary>ルーペ描画の例外エラーログ。</summary>

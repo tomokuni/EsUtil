@@ -1,5 +1,6 @@
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.Ui.WinUI3.Interop.Imaging;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -73,11 +74,16 @@ public sealed partial class ThumbnailControl : Grid
         _scroll.DoubleTapped += OnDoubleTapped;
         _scroll.ViewChanged += (_, _) => ScrollChanged?.Invoke(this, EventArgs.Empty);
 
-        _selection.Changed += (_, _) =>
+        _selection.Changed += (_, e) =>
         {
             SelectionChanged?.Invoke(this, EventArgs.Empty);
-            RefreshStates(-1, _selection.Index);
+
+            // 変更前と変更後の両方を描き直す（前の項目に選択の見た目が残らないようにする）
+            RefreshStates(e.PreviousIndex, e.Index);
         };
+
+        // テーマはフレームワークが切り替える（明暗で色が変わるため、切り替わったら解決し直す）
+        ActualThemeChanged += (_, _) => OnThemeChanged();
     }
 
     /// <summary>一覧がスクロールされたときに発生する。</summary>
@@ -86,6 +92,8 @@ public sealed partial class ThumbnailControl : Grid
     /// <summary>選択中の添字が変わったときに発生する。</summary>
     public event EventHandler? SelectionChanged;
 
+    /// <summary>現在項目（名前を太字で示す項目）の添字が変わったときに発生する。</summary>
+    public event EventHandler? CurrentIndexChanged;
     /// <summary>項目が 2 回押されたときに発生する。</summary>
     public event EventHandler<ThumbnailActivatedEventArgs>? ItemActivated;
 
@@ -158,16 +166,50 @@ public sealed partial class ThumbnailControl : Grid
     /// 矩形の並びで表せる装飾とラベルの文言・位置は本関数で差し替える（色・表示可否は <see cref="Appearance"/>）。<br/>
     /// 受け取る計画は提示層が解決済みであるため、本関数は値の置き換えだけで完結する<br/>
     /// （<c>plan with { ... }</c>）。 <b>純粋関数（同じ入力に同じ出力）にすること</b>。<br/>
-    /// 他の UI 版（Loupe / Marquee）と同じ入口であり、派生せずに見た目を変えられる。
+    /// 他の UI 版（Loupe / Marquee）と同じ入口であり、派生せずに見た目を変えられる。<br/>
+    /// <b>設定すると即座に反映する</b>（計画を解決し直して描き直す）。 null へ戻すと既定の計画へ戻る。
     /// </remarks>
-    public Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? DrawPlanResolver { get; set; }
-    /// <summary>暗色テーマかどうかを取得または設定する。</summary>
-    /// <value>暗色テーマの場合は true。 既定は false。</value>
-    public bool IsDarkTheme { get; set; }
+    public Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? DrawPlanResolver
+    {
+        get => _drawPlanResolver;
+        set
+        {
+            _drawPlanResolver = value;
+            Refresh();
+        }
+    }
+
+    /// <summary>描画計画を差し替える関数の保持先。<see cref="DrawPlanResolver"/> が変更時に反映する。</summary>
+    private Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? _drawPlanResolver;
+    /// <summary>現在のテーマが暗色かどうかを取得する。</summary>
+    /// <value>ダークの場合は true。</value>
+    /// <remarks>
+    /// <b>テーマはフレームワークが決める</b>: <see cref="FrameworkElement.ActualTheme"/> をそのまま読む<br/>
+    /// （ホストが明暗を指定する必要はない）。 テーマが切り替わると <c>ActualThemeChanged</c> が届き、<br/>
+    /// 本コントロールが自動で見た目を解決し直す（<see cref="Refresh"/>）。
+    /// </remarks>
+    private bool IsDarkTheme => ActualTheme == ElementTheme.Dark;
 
     /// <summary>画像の幅（DIP）を取得または設定する。</summary>
     /// <value>表示モードの一辺。 0 以下の指定は既定の下限へ引き上げる。</value>
-    public double ImageWidth { get; set; } = 96;
+    /// <remarks>変更すると配置を解決し直す（画像の高さと行の高さが変わる）。</remarks>
+    public double ImageWidth
+    {
+        get;
+        set
+        {
+            if (field == value)
+            {
+                return;
+            }
+
+            var previous = field;
+            field = value;
+            _log.LogSettingChanged(nameof(ImageWidth), previous.ToString(System.Globalization.CultureInfo.InvariantCulture), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            InvalidateMeasure();
+            Refresh();
+        }
+    }
 
     /// <summary>項目数を取得する。</summary>
     public int ItemCount => _items.Count;
@@ -178,6 +220,52 @@ public sealed partial class ThumbnailControl : Grid
     {
         get => _selection.Index;
         set => _selection.Select(value, _items.Count);
+    }
+
+    /// <summary>現在項目（名前を太字で示す項目）の添字を取得または設定する。</summary>
+    /// <value>項目の添字。 現在項目が無い場合は -1。</value>
+    /// <remarks>
+    /// <b>選択とは別の状態である</b>: 選択は利用者の操作で移り、現在項目は「いま表示している画像」を表す<br/>
+    /// （ブラウザでいえば、選択＝クリックした項目、現在＝開いている項目）。<br/>
+    /// 範囲外の添字は「現在項目なし」として扱う（例外にしない）。
+    /// </remarks>
+    public int CurrentIndex
+    {
+        get
+        {
+            for (var i = 0; i < _items.Count; i++)
+            {
+                if (_items[i].IsCurrent)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        set
+        {
+            var changed = false;
+            for (var i = 0; i < _items.Count; i++)
+            {
+                var tile = _items[i];
+                var isCurrent = i == value;
+                if (tile.IsCurrent == isCurrent)
+                {
+                    continue;
+                }
+
+                tile.SetIsCurrent(isCurrent);
+                ApplyState(i);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                CurrentIndexChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
     }
 
     /// <summary>見えている項目の範囲を取得する。</summary>
@@ -341,10 +429,19 @@ public sealed partial class ThumbnailControl : Grid
 
         var tile = _items[index];
         var plan = Presentation.ResolveDrawPlan(
-            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme);
+            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme, MeasureText);
         plan = DrawPlanResolver?.Invoke(plan) ?? plan;
         tile.Apply(plan, Presentation.Options);
     }
+
+    /// <summary>折り返した名前の実寸を測る（測定の実装は <see cref="TextMeasure"/> が単一所有する）。</summary>
+    /// <param name="text">測る文言。</param>
+    /// <param name="maxWidth">折り返す幅（DIP）。</param>
+    /// <param name="fontSize">文字サイズ（DIP）。</param>
+    /// <param name="isBold">太字で描くかどうか。</param>
+    /// <returns>折り返した後の実寸（DIP）。</returns>
+    private static EsSize MeasureText(string text, double maxWidth, double fontSize, bool isBold)
+        => TextMeasure.MeasureWrapped(text, fontSize, isBold, maxWidth);
 
     /// <summary>指定した 2 件の見た目を解決し直す（ホバー・選択の切り替え）。</summary>
     /// <param name="first">1 件目の添字。 範囲外は無視する。</param>
@@ -356,6 +453,13 @@ public sealed partial class ThumbnailControl : Grid
         {
             ApplyState(second);
         }
+    }
+
+    /// <summary>テーマが切り替わったときに見た目を解決し直す。</summary>
+    private void OnThemeChanged()
+    {
+        _log.LogThemeChanged(IsDarkTheme);
+        Refresh();
     }
 
     /// <summary>項目を置く面（配置はコアの計算に従う）。</summary>

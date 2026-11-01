@@ -85,7 +85,7 @@ EsUtil.Ui.WinUI3/ColumnPacking/
 | パネル本体 | `EsUtil.Ui.WinUI3/ColumnPacking/src/ColumnPackingPanel.cs` | 配置の計算の呼び出し・結果の公開・子の配置 |
 | ItemsSource の管理 | `EsUtil.Ui.WinUI3/ColumnPacking/src/DualSourceItemsPanel.cs` | 依存関係プロパティと子の作り直し |
 | 子の並べ直し | `EsUtil.Ui.WinUI3/ColumnPacking/src/DualSourceItemsManager.cs` | 直接の子の保存と `ItemsSource` の要素の生成 |
-| サンプル | `EsUtil.Ui.WinUI3/ColumnPacking/sample/` | 列数・余白・項目数を変えて確認するアプリ（デバッグ表示の派生クラスを含む） |
+| サンプル | `EsUtil.Ui.WinUI3/ColumnPacking/sample/` | 列数・余白・項目数を変えて確認するアプリ（データ駆動の子は `SetItems` + `ItemTemplate` で渡す） |
 
 ## 5. 依存関係
 
@@ -97,7 +97,7 @@ EsUtil.Ui.WinUI3/ColumnPacking/
 ## 6. 例外処理ポリシー
 
 - **例外を送出しません**（配置の計算の例外は、入力の検証をパネル側で行うことで防ぎます）。
-- 幅が未確定（0 以下）の間は配置を計算しません（レイアウトの次のパスで計算します）。
+- 幅が未確定（0 以下・無限大）の間は、直前に確定した幅で計算します（`ScrollViewer` が内容を 2 通りの幅で測るため、2 つのレイアウトが交互に現れて確定しないのを防ぎます）。 幅がまだ分からない最初のパスでは 1 列として扱います（実測 2026-11-01）。
 
 ## 7. テスト方針
 
@@ -107,6 +107,6 @@ EsUtil.Ui.WinUI3/ColumnPacking/
 ## 8. 設計判断
 
 - **配置の計算を UI 非依存の層へ置く**: 同じ計算を UI ごとに書き直すと、UI によって並びが変わります。 計算を 1 か所に置き、パネルは写すだけにしています。
-- **結果を依存関係プロパティで公開する**: バインディングで表示でき、派生クラスからも読めます（[サンプル](../sample/README.md) のデバッグ表示）。
+- **結果を依存関係プロパティで公開する**: バインディングで表示でき、派生クラスからも読めます（ログとサンプルの状態表示が使います）。
 - **子の仮想化を行わない**: 配置の計算が「全件の高さ」を必要とするためです（仮想化するには高さの推定が要り、結果が変わります）。
 - **名前空間とアセンブリ名を `EsUtil.Ui.WinUI3.ColumnPacking` に揃える**: 型名（`ColumnPackingPanel`）をそのままパッケージ名にすると名前空間のセグメントと一致し、配下から型を参照できなくなる（`MA0049`。 `CS0118`）。 そのためパッケージ名は機能名、型名は実装の名前にしています。

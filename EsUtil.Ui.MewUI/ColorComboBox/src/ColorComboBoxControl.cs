@@ -48,6 +48,9 @@ public sealed class ColorComboBoxControl : Grid
     /// <summary>区切りの色（枠より薄い）。</summary>
     private static readonly MewColor s_separatorColor = MewColor.FromArgb(0x40, 0x80, 0x80, 0x80);
 
+    /// <summary>検証エラーの枠線の色（他の UI と同じ赤）。</summary>
+    private static readonly MewColor s_errorColor = MewColor.FromRgb(0xFF, 0x00, 0x00);
+
     /// <summary>現在の色を示すスウォッチ。</summary>
     private readonly Border _swatch;
 
@@ -68,6 +71,12 @@ public sealed class ColorComboBoxControl : Grid
 
     /// <summary>カラーピッカー（自身のドロップダウンを開くためのアンカーを兼ねる）。</summary>
     private readonly ColorPicker _picker;
+
+    /// <summary>外周の枠（検証エラーの強調で色を変える）。</summary>
+    private readonly Border _frame;
+
+    /// <summary>入力が無効なときに枠線を赤くするかどうか。</summary>
+    private bool _highlightBorderOnError;
 
     /// <summary>入力の反映中かどうか（入力と状態の往復でイベントが循環するのを防ぐ）。</summary>
     private bool _applying;
@@ -176,13 +185,14 @@ public sealed class ColorComboBoxControl : Grid
         row.Add(CreateSeparator().Column(3));
         row.Add(_pickerButton.Column(4));
 
-        Add(new Border
+        _frame = new Border
         {
             Child = row,
             BorderBrush = s_borderColor,
             BorderThickness = 1,
             CornerRadius = 3,
-        });
+        };
+        Add(_frame);
 
         Add(pickerHost);
 
@@ -243,6 +253,19 @@ public sealed class ColorComboBoxControl : Grid
     {
         get => _text.FontSize;
         set => _text.FontSize(value);
+    }
+
+
+    /// <summary>入力が無効なときに枠線を赤くするかを取得または設定する。</summary>
+    /// <value>true の場合は <see cref="HasValidationError"/> が true の間、外周の枠線を赤にする。 既定は false。</value>
+    public bool HighlightBorderOnError
+    {
+        get => _highlightBorderOnError;
+        set
+        {
+            _highlightBorderOnError = value;
+            UpdateBorderValidationVisual();
+        }
     }
 
     /// <summary>バリデーション エラーがあるかを取得する。</summary>
@@ -326,6 +349,7 @@ public sealed class ColorComboBoxControl : Grid
 
             HasValidationError = state.HasError;
             ValidationErrorMessage = state.Message;
+            UpdateBorderValidationVisual();
         }
         finally
         {
@@ -340,6 +364,10 @@ public sealed class ColorComboBoxControl : Grid
             SelectedColorChanged?.Invoke(this, EventArgs.Empty);
         }
     }
+
+    /// <summary>検証エラーの強調を枠線へ反映する。</summary>
+    private void UpdateBorderValidationVisual()
+        => _frame.BorderBrush = _highlightBorderOnError && HasValidationError ? s_errorColor : s_borderColor;
 
     /// <summary>一覧の選択を現在の色へ合わせる。</summary>
     /// <param name="color">現在の色。</param>
@@ -388,7 +416,9 @@ public sealed class ColorComboBoxControl : Grid
     /// <summary>テキスト入力からフォーカスが外れたとき、無効な入力を最後の有効値へ戻す。</summary>
     private void OnTextLostFocus()
     {
-        if (!ColorValidation.ShouldRecover(ColorValidation.IsValid(_text.Text), hasLastValid: true))
+        var valid = ColorValidation.IsValid(_text.Text);
+        _log.LogLostFocus(_selectedColor, valid);
+        if (!ColorValidation.ShouldRecover(valid, hasLastValid: true))
         {
             return;
         }
@@ -429,6 +459,7 @@ public sealed class ColorComboBoxControl : Grid
         // アンカーは**ウィンドウ座標**である（自領域の座標ではない）。 自領域の矩形をそのまま渡すとウィンドウ左上へ出る
         _listPopup.ShowAt(this, Bounds, PopupAnchorSide.Below);
         _listButton.Content("▲");
+        _log.LogOpenList(_selectedColor);
     }
 
     /// <summary>カラーピッカーのドロップダウンを開閉する。</summary>

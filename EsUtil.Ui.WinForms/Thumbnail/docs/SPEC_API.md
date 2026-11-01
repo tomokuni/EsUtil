@@ -39,15 +39,17 @@ WinForms 版のサムネイル一覧コントロールが提供する公開 API 
 | --- | --- | --- |
 | `ThumbnailControl()` | ctor | 生成 |
 | `SelectionChanged` | event | 選択中の添字が変わったときに発生する |
+| `CurrentIndexChanged` | event | 現在項目（名前を太字で示す項目）の添字が変わったときに発生する |
 | `ItemActivated` | event | 項目が 2 回押されたときに発生する（`ThumbnailActivatedEventArgs`） |
 | `Options` | property | 計算に必要な設定（既定は `ThumbnailOptions.Default`）。 変更すると配置を解き直す |
 | `Appearance` | property | 外観（既定は `ThumbnailAppearance.Default`）。 変更すると描き直す |
-| `IsDarkTheme` | property | 暗色テーマかどうか（既定は false）。 変更すると描き直す |
+| `IsDarkTheme` | property | 暗色テーマかどうか（既定は false）。 変更すると描き直す。 **WinForms はテーマを持たないため、明暗はホストが指定する**（他の UI はフレームワークのテーマから自動で読む） |
 | `ImageWidth` | property | 画像の幅（DIP。既定は 96）。 **0 以下の指定は既定の下限へ引き上げられる** |
 | `ItemCount` | property（get） | 項目数 |
 | `SelectedIndex` | property | 選択中の添字。 範囲外と -1 は選択の解除 |
+| `CurrentIndex` | property | 現在項目（名前を太字で示す項目）の添字。 選択とは別の状態（範囲外と -1 は「現在項目なし」） |
 | `VisibleRange` | property（get） | ビューポートと交差する項目の範囲。 項目が無い場合は空 |
-| `ItemBounds(int index)` | method | 項目の外枠の矩形（内容の座標。 `System.Drawing.Rectangle`）。 範囲外は空の矩形 |
+| `ItemBounds(int index)` | method | 項目の枠線の矩形（内容の座標。 `System.Drawing.Rectangle`）。 範囲外は空の矩形 |
 | `ClearItems()` | method | 一覧を空にする（**保持している画像を解放する**） |
 | `Add(Bitmap? image, string caption, string? toolTip = null, bool isCurrent = false, object? tag = null)` | method | サムネイルを 1 件追加し、追加した添字を返す（**画像の所有権は本コントロールへ移る**） |
 | `SetImage(int index, Bitmap? image)` | method | 項目の画像を差し替える（**所有権は本コントロールへ移り、直前の画像は解放される**）。 範囲外は何もしない |
@@ -81,7 +83,7 @@ var list = new ThumbnailControl
     ImageWidth = 96,
     IsDarkTheme = true,
     Dock = DockStyle.Fill,
-    Options = ThumbnailOptions.Default with { ItemSpacing = 4 },
+    Options = ThumbnailOptions.Default with { ColumnSpace = 4 },
 };
 
 list.ItemActivated += (_, e) => Open((string)e.Tag!);

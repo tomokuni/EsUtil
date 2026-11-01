@@ -59,8 +59,8 @@ public class MarqueePlanCustomizationTests
             Height = 200,
             Appearance = MarqueeAppearance.Default with
             {
-                ShowOverlay = false,
-                ShowOuterBorder = false,
+                ShowOuterMask = false,
+                ShowBorder = false,
                 ShowHandles = false,
                 ShowMarker = false,
             },
@@ -81,7 +81,7 @@ public class MarqueePlanCustomizationTests
         Assert.NotNull(captured);
         Assert.Contains(MarqueeDrawLayer.Decoration, captured!.Value.Layers);
         Assert.Contains(MarqueeDrawLayer.Handles, captured.Value.Layers);
-        Assert.NotEmpty(captured.Value.OverlayDipRects);
+        Assert.NotEmpty(captured.Value.OuterMaskDipRects);
         Assert.NotNull(captured.Value.Handles);
         window.Close();
     }
@@ -116,7 +116,7 @@ public class MarqueePlanCustomizationTests
         Assert.NotNull(captured);
         Assert.Empty(captured!.Value.Layers);
         // 値は残る（ホストは止めた後も計算値を使って自前で描ける）
-        Assert.NotEmpty(captured.Value.OverlayDipRects);
+        Assert.NotEmpty(captured.Value.OuterMaskDipRects);
         window.Close();
     }
 
@@ -129,11 +129,11 @@ public class MarqueePlanCustomizationTests
         {
             Width = 200,
             Height = 200,
-            Appearance = MarqueeAppearance.Default with { ShowOverlay = false, ShowOuterBorder = false },
+            Appearance = MarqueeAppearance.Default with { ShowOuterMask = false, ShowBorder = false },
             DrawPlanResolver = plan =>
             {
                 resolverCalls++;
-                return plan with { OuterBorderDipRects = [new EsRect(1, 2, 3, 4)] };
+                return plan with { BorderDipRects = [new EsRect(1, 2, 3, 4)] };
             },
         };
         var window = new Window { Width = 200, Height = 200, Content = control };

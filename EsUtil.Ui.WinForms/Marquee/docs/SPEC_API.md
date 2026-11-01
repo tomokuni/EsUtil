@@ -254,7 +254,7 @@ var marquee = new MarqueeControl
 {
     Dock = DockStyle.Fill,
     Options = MarqueeOptions.Default with { HandleSize = 12.0 },
-    Appearance = MarqueeAppearance.Default with { OuterBorderColor = Color.White },
+    Appearance = MarqueeAppearance.Default with { BorderColor = Color.White },
 };
 
 // 対象座標 = 画像ピクセル（表示は等倍）

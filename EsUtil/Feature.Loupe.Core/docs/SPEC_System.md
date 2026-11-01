@@ -151,7 +151,7 @@ dotnet test EsUtil/Feature.Loupe.Core/tests/EsUtil.Feature.Loupe.Core.Tests.cspr
 
 ## 9. ログ
 
-ロガーは `LoupeCore.Log` で受け取り、**ファサードの生成・低頻度の設定変更・低頻度のメソッド呼び出し**（`[Loupe] Setting: {名前} {前} → {後}` 等。 Debug）を出力します。 ロガー未設定（null）は出力なしです。
+ロガーは `LoupeCore.Log` で受け取り、**ファサードの生成**（Information）・**設定の変更**（`[Loupe] Setting: {名前} {前} → {後}`。 Information）・**低頻度のメソッド呼び出し**（Debug）を出力します。 ロガー未設定（null）は出力なしです。
 
 **メッセージの接頭辞は、そのログを定義しているアセンブリ名（本コアは `[Loupe]`）とします**（規則は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有する）。
 

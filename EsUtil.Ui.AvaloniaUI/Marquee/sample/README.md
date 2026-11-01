@@ -97,23 +97,18 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 
 ```text
 EsUtil.Ui.AvaloniaUI/Marquee/sample/
-├── EsUtil.Ui.AvaloniaUI.Marquee.Sample.csproj # サンプルアプリのプロジェクト（net10.0 / Avalonia 12.1）
+├── EsUtil.Ui.AvaloniaUI.Marquee.Sample.csproj # サンプルアプリのプロジェクト（net10.0-windows10.0.17763.0 / Avalonia 12.1）
 ├── app.manifest                   # Windows DPI 設定（PerMonitorV2）
 ├── Program.cs                     # エントリポイント
 ├── App.axaml / App.axaml.cs       # アプリケーション定義（FluentTheme）
-├── Logging/
-│   └── InMemoryLogger.cs          # MarqueeControl.Log の設定例（メモリ内ログ）
 ├── Internal/                      # このサンプルだけが使う複製（internal。 依存関係.md §4.1。 変換は EsUtil.Ui.AvaloniaUI.Interop を使う）
 │   ├── EsBitmapAvaloniaAdapter.cs # コアの画像を表示面（IImage）として公開し、コアの画像は GetEsBitmap() で取り出すアダプタ
 │   └── EsBitmapAvaloniaExtensions.cs # コアの画像 ⇔ Avalonia の画像の変換
 ├── Presentation/
-│   └── GuideMarqueePlan.cs        # 外観と描画計画（破線枠・三分割ガイド）を与える見本
+│   └── GuideMarqueePlan.cs        # 描画計画（破線枠・三分割ガイド）を与える見本
 ├── ViewModels/
-│   ├── ColorOption.cs             # 色選択肢
-│   ├── ColorOptions.cs            # 色選択肢の一覧
 │   └── MainWindowViewModel.cs     # 選択状態・ステータス表示（CommunityToolkit.Mvvm の ObservableObject）
 └── Views/
-    └── MainWindow.axaml(.cs)      # 選択面 + 操作ガイド + ボタン
 ```
 
 ---
@@ -126,23 +121,23 @@ EsUtil.Ui.AvaloniaUI/Marquee/sample/
 4. **ズーム・スクロール**: Ctrl+マウスホイールで拡大・縮小、マウスホイール / スクロールバーでスクロールします（ズーム倍率に応じて座標ポートが動的更新）。
 5. **nudge**: 矢印キーで選択矩形を対象 1Pixel 単位で移動します（領域作成後はマウスボタン押下中のみ有効）。
 6. **確定・キャンセル**: Enter で確定（`ConfirmRequested`）、Escape でキャンセル（`CancelRequested`）です。 ダブルクリックは選択内 = 確定 / 選択外 = キャンセルとして扱われます。
-7. **API 呼び出し**: 「選択をクリア」/「固定矩形」/「確定要求」/「キャンセル要求」ボタンで各公開 API の動作を確認できます。
+7. **API 呼び出し**: 「選択をクリア」/「矩形を設定」/「ハイライト切替」/「確定を要求」/「キャンセルを要求」ボタンで各公開 API の動作を確認できます。 「ハイライト切替」は**表示専用の注目矩形**を設定します（`HighlightSourceRect`。 選択とは別で、ハンドルを出さず、**ドラッグやキー操作も受け付けません**）。 注目矩形はハイライトが優先されるため、外側マスク・枠線・サイズ ラベルもハイライト一つになります。
 8. **ログ**: 選択面下のログ表示領域に、`MarqueeControl` 内部の操作ログ（`Log` に設定した `ILogger` 経由）が表示されます。
 
 ---
 
 ## 7. 拡張例（計画の差し替え）
 
-`Presentation/` に、外観（`Appearance`）と描画計画（`DrawPlanResolver`）で見た目を差し替える見本があります（設定パネル上部の見本）。
+`Presentation/` に、描画計画（`DrawPlanResolver`）で見た目を差し替える見本があります（設定パネル上部の見本）。
 
-- `GuideMarqueePlan` — 外観（色・枠線の太さ・表示可否）と、注目矩形の装飾の矩形（破線枠・三分割ガイド・内側の塗り）を与えます。 計画を差し替える純粋関数（`Resolve(in plan)`）として提供します。
+- `GuideMarqueePlan` — 外観（色・枠線の太さ・表示可否）と、注目矩形の装飾の矩形（破線枠・三分割ガイド・内側マスク）を与えます。 計画を差し替える純粋関数（`Resolve(in plan)`）として提供します。
 
 差し替えの入口は次の 3 つです（**派生は不要**。 XAML のコントロールへコードビハインドから設定します）。
 
 | 差し替える対象 | 差し替え方 |
 | --- | --- |
 | 外観（色・枠線の太さ・表示可否） | `Appearance`（`MarqueeAppearance`）を設定する |
-| 装飾（暗転・外枠・内側の塗り）の矩形 / ラベルの文言・位置 | `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）を設定する（計画の値の置き換え） |
+| 装飾（暗転・枠線・内側マスク）の矩形 / ラベルの文言・位置 | `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）を設定する（計画の値の置き換え） |
 | 矩形で表せない描画（円・斜線等） | `Appearance` の `Show*` を false にして `Rendered` の描画先へ自前で描く（必要なら `DrawPlan` で計画どおりの描画も呼べる） |
 
 差し替えは値の置き換えだけで完結するため、UI ごとの描画実装（Avalonia は `MarqueeContextPainter`、MewUI は `MarqueeSkiaPainter`。 いずれも内部）は変更不要です。
@@ -175,10 +170,12 @@ MarqueeCore.SetCoordTransform(new CoordTransform(
 
 ## 9. ログ表示について
 
-`MarqueeControl.Log` にサンプル用の `InMemoryLogger` を設定し、コントロール内部の操作ログを選択面の下の `ListBox` へ表示します。
+ログは **Serilog** で受け、ロックフリーなバッファから UI が一定間隔でまとめて表示します（書き込み側を待たせません）。 コントロールの `Log` へは `Microsoft.Extensions.Logging.ILogger` を設定します。
 
 ```csharp
-MarqueeCore.Log = new InMemoryLogger(line => Dispatcher.UIThread.Post(() => _vm.AddLog(line)));
+var logging = new SampleLogging();
+Marquee.Log = logging.Logger;
+Marquee.LogPrefix = "[Marquee]";
 ```
 
 ログには時分秒ミリ秒（`HH:mm:ss.fff`）が付与されます。

@@ -28,6 +28,11 @@
 | `SelectedColor` | `string` | `#FFFFFFFF` | 選択中の色（保存値）。 色名や `+{n}%` を設定すると正規化される |
 | `ColorSortMode` | `ColorSortMode`（コア） | `ByHue` | 一覧の並び順（`ByName` / `ByHue`） |
 | `TextFormat` | `ColorTextFormat`（コア） | `NameWithAlpha` | 入力欄の表記（`NameWithAlpha` = `{色名}+{%}` / `HexCode` = `#AARRGGBB`）。 設定すると入力欄とツールチップの表記が切り替わる |
+| `TextFontSize` | `double` | `NaN`（テーマの既定） | 入力欄の文字サイズ（DIP） |
+| `TextWidth` | `double` | `NaN`（自動） | 入力欄の明示的な幅（DIP） |
+| `TextMinWidth` | `double` | `120` | 入力欄の最小幅（DIP） |
+| `TextMaxWidth` | `double` | `Infinity` | 入力欄の最大幅（DIP） |
+| `HighlightBorderOnError` | `bool` | `false` | 現在の入力が無効な間、外周の枠線を赤にする（既定は無効） |
 | `HasValidationError` | `bool`（取得のみ） | `false` | 現在の入力が無効か |
 | `ValidationErrorMessage` | `string?`（取得のみ） | `null` | 無効な場合の理由 |
 | `Log` | `ILogger` | `NullLogger` | 変更の記録先 |

@@ -17,7 +17,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0` |
-| UI フレームワーク | MewUI 0.21.1 |
+| UI フレームワーク | MewUI 0.22.1 |
 | 色名と色文字列 | `EsUtil.Platform.Core` の `Palette`（`ColorNames` / `ColorString` / `ColorValidation` / `ColorEntry` / `ColorSortMode` / `ColorTextFormat`） |
 
 ## 2. 公開 API
@@ -32,6 +32,10 @@
 | `ColorSortMode` | `ColorSortMode`（コア） | `ByHue` | 一覧の並び順（`ByName` / `ByHue`） |
 | `TextFormat` | `ColorTextFormat`（コア） | `NameWithAlpha` | 入力欄の表記（`NameWithAlpha` = `{色名}+{%}` / `HexCode` = `#AARRGGBB`）。 設定すると入力欄とツールチップの表記が切り替わる |
 | `TextFontSize` | `double` | テーマの既定（`ThemeMetrics.FontSize`） | 入力欄の文字サイズ（DIP）。 **MewUI の文字サイズは継承されない**ため、周囲の入力欄と同じ大きさにする場合は明示する |
+| `TextWidth` | `double` | `NaN`（自動） | 入力欄の明示的な幅（DIP） |
+| `TextMinWidth` | `double` | `120` | 入力欄の最小幅（DIP） |
+| `TextMaxWidth` | `double` | `Infinity` | 入力欄の最大幅（DIP） |
+| `HighlightBorderOnError` | `bool` | `false` | 現在の入力が無効な間、外周の枠線を赤にする（既定は無効） |
 | `HasValidationError` | `bool`（取得のみ） | `false` | 現在の入力が無効か |
 | `ValidationErrorMessage` | `string?`（取得のみ） | `null` | 無効な場合の理由（`無効な色コードです。`） |
 | `Log` | `ILogger` | `NullLogger` | 変更の記録先（null は `NullLogger` へ） |

@@ -90,9 +90,9 @@ sequenceDiagram
 flowchart TD
     A[ResolveDrawPlan] --> B[幾何の解決<br/>MarqueeCore.ResolveGeometry]
     B --> C{外観の表示可否}
-    C -->|ShowOverlay かつ注目矩形あり| D[暗転領域 = 描画面 − 注目矩形<br/>4 領域]
-    C -->|ShowOuterBorder かつ注目矩形あり| E[外枠 = 4 辺]
-    C -->|ShowInnerFill / ShowInnerBorder かつ注目矩形あり| F[内側の塗り・内枠]
+    C -->|ShowOuterMask かつ注目矩形あり| D[暗転領域 = 描画面 − 注目矩形<br/>4 領域]
+    C -->|ShowBorder かつ注目矩形あり| E[枠線 = 4 辺]
+    C -->|ShowInnerMask / ShowInnerBorder かつ注目矩形あり| F[内側マスク・枠線]
     C -->|ShowHandles かつ選択あり| G[ハンドル]
     B --> H[マーカーはコアが nudge 中のみ返す]
     D --> I[ラベルの文言と配置<br/>MarqueePresenter]

@@ -2,13 +2,12 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <PlatformTarget>x64</PlatformTarget>
     <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>EsUtil.Ui.MewUI.ColorComboBox.Sample</RootNamespace>
     <!-- MewUI は API が安定化中（0.x）。 破壊的変更を避けるためバージョンを固定する。 -->
-    <MewUIVersion>0.21.1</MewUIVersion>
+    <MewUIVersion>0.22.1</MewUIVersion>
     <Description>色選択コントロールの MewUI 版の動作確認用サンプル アプリケーション。</Description>
   </PropertyGroup>
 
@@ -20,6 +19,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\EsUtil.Ui.MewUI.ColorComboBox.csproj" />
+    <!-- サンプル共通のレイアウトとログ（Serilog） -->
+    <ProjectReference Include="..\..\SampleKit\src\EsUtil.Ui.MewUI.SampleKit.csproj" />
   </ItemGroup>
 
 </Project>

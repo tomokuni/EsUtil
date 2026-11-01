@@ -53,9 +53,9 @@ public class MarqueePresenterDrawPlanTests
 
     /// <summary>注目矩形がない場合は全面が暗転領域になることを検証する。</summary>
     [Fact]
-    internal void ComputeOverlayDipRects_注目矩形がなければ全面を返す()
+    internal void ComputeOuterMaskDipRects_注目矩形がなければ全面を返す()
     {
-        var result = MarqueePresenter.ComputeOverlayDipRects(new EsRect(0, 0, 100, 100), null);
+        var result = MarqueePresenter.ComputeOuterMaskDipRects(new EsRect(0, 0, 100, 100), null);
 
         Assert.Single(result);
         Assert.Equal(new EsRect(0, 0, 100, 100), result[0]);
@@ -63,11 +63,11 @@ public class MarqueePresenterDrawPlanTests
 
     /// <summary>注目矩形がある場合は四辺の帯（上・下・左・右）になることを検証する。</summary>
     [Fact]
-    internal void ComputeOverlayDipRects_注目矩形がある場合は四辺の帯になる()
+    internal void ComputeOuterMaskDipRects_注目矩形がある場合は四辺の帯になる()
     {
         var focus = new EsRect(20, 30, 40, 50);
 
-        var result = MarqueePresenter.ComputeOverlayDipRects(new EsRect(0, 0, 100, 100), focus);
+        var result = MarqueePresenter.ComputeOuterMaskDipRects(new EsRect(0, 0, 100, 100), focus);
 
         // 上（全幅・高さ 30）/ 下（全幅・高さ 20）/ 左（高さ 50・幅 20）/ 右（高さ 50・幅 40）
         Assert.Equal(4, result.Count);
@@ -79,11 +79,11 @@ public class MarqueePresenterDrawPlanTests
 
     /// <summary>注目矩形がクライアントと交差しない場合は全面を暗転することを検証する。</summary>
     [Fact]
-    internal void ComputeOverlayDipRects_注目矩形が外側なら全面を返す()
+    internal void ComputeOuterMaskDipRects_注目矩形が外側なら全面を返す()
     {
         var focus = new EsRect(200, 200, 50, 50);
 
-        var result = MarqueePresenter.ComputeOverlayDipRects(new EsRect(0, 0, 100, 100), focus);
+        var result = MarqueePresenter.ComputeOuterMaskDipRects(new EsRect(0, 0, 100, 100), focus);
 
         Assert.Single(result);
         Assert.Equal(new EsRect(0, 0, 100, 100), result[0]);
@@ -91,20 +91,20 @@ public class MarqueePresenterDrawPlanTests
 
     /// <summary>注目矩形がクライアント全体の場合は暗転領域がなくなることを検証する。</summary>
     [Fact]
-    internal void ComputeOverlayDipRects_注目矩形が全面なら暗転なしになる()
+    internal void ComputeOuterMaskDipRects_注目矩形が全面なら暗転なしになる()
     {
-        var result = MarqueePresenter.ComputeOverlayDipRects(new EsRect(0, 0, 100, 100), new EsRect(0, 0, 100, 100));
+        var result = MarqueePresenter.ComputeOuterMaskDipRects(new EsRect(0, 0, 100, 100), new EsRect(0, 0, 100, 100));
 
         Assert.Empty(result);
     }
 
     /// <summary>注目矩形がクライアント端に接する場合はその辺の帯を生成しないことを検証する。</summary>
     [Fact]
-    internal void ComputeOverlayDipRects_注目矩形が上端左端に接する場合は下右のみになる()
+    internal void ComputeOuterMaskDipRects_注目矩形が上端左端に接する場合は下右のみになる()
     {
         var focus = new EsRect(0, 0, 40, 40);
 
-        var result = MarqueePresenter.ComputeOverlayDipRects(new EsRect(0, 0, 100, 100), focus);
+        var result = MarqueePresenter.ComputeOuterMaskDipRects(new EsRect(0, 0, 100, 100), focus);
 
         // 上（Top == 0）と左（Left == 0）は幅・高さが 0 のため生成されない
         Assert.Equal(2, result.Count);
@@ -114,11 +114,11 @@ public class MarqueePresenterDrawPlanTests
 
     /// <summary>注目矩形がサイズ 0 の場合は全面が暗転領域になることを検証する。</summary>
     [Fact]
-    internal void ComputeOverlayDipRects_注目矩形がサイズ0なら全面を返す()
+    internal void ComputeOuterMaskDipRects_注目矩形がサイズ0なら全面を返す()
     {
         var focus = new EsRect(50, 50, 0, 0);
 
-        var result = MarqueePresenter.ComputeOverlayDipRects(new EsRect(0, 0, 100, 100), focus);
+        var result = MarqueePresenter.ComputeOuterMaskDipRects(new EsRect(0, 0, 100, 100), focus);
 
         // 注目矩形が交差しない（幅・高さ 0）ため、暗転の抜けが生じないよう全面を返す
         Assert.Single(result);

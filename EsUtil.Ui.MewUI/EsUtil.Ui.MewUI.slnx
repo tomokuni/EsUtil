@@ -4,6 +4,11 @@
     <Project Path="ColorComboBox/src/EsUtil.Ui.MewUI.ColorComboBox.csproj" />
     <Project Path="ColorComboBox/tests/EsUtil.Ui.MewUI.ColorComboBox.Tests.csproj" />
   </Folder>
+  <Folder Name="/ColumnPacking/">
+    <Project Path="ColumnPacking/sample/EsUtil.Ui.MewUI.ColumnPacking.Sample.csproj" />
+    <Project Path="ColumnPacking/src/EsUtil.Ui.MewUI.ColumnPacking.csproj" />
+    <Project Path="ColumnPacking/tests/EsUtil.Ui.MewUI.ColumnPacking.Tests.csproj" />
+  </Folder>
   <Folder Name="/Loupe/">
     <Project Path="Loupe/sample/EsUtil.Ui.MewUI.Loupe.Sample.csproj" />
     <Project Path="Loupe/src/EsUtil.Ui.MewUI.Loupe.csproj" />
@@ -18,6 +23,9 @@
     <Project Path="Thumbnail/sample/EsUtil.Ui.MewUI.Thumbnail.Sample.csproj" />
     <Project Path="Thumbnail/src/EsUtil.Ui.MewUI.Thumbnail.csproj" />
     <Project Path="Thumbnail/tests/EsUtil.Ui.MewUI.Thumbnail.Tests.csproj" />
+  </Folder>
+  <Folder Name="/SampleKit/">
+    <Project Path="SampleKit/src/EsUtil.Ui.MewUI.SampleKit.csproj" />
   </Folder>
   <Folder Name="/Interop/">
     <Project Path="Interop/src/EsUtil.Ui.MewUI.Interop.csproj" />

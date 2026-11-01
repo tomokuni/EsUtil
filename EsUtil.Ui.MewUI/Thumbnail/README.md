@@ -49,7 +49,7 @@
 
 - 折り返し配置（幅に応じて列数が変わる）とスクロール（`ScrollChanged` で通知）
 - 項目の追加（`Add`）・画像の差し替え（`SetImage`）・名前の変更（`SetCaption`）・全消去（`ClearItems`）
-- ホバー帯・選択・現在項目の強調（`IsDarkTheme` で明暗を切り替える）
+- ホバー帯・選択・現在項目の強調（明暗はフレームワークのテーマ（`Application.Current.Theme`）から自動で読む）
 - 1 回押しの選択（`SelectionChanged`）と 2 回押しの通知（`ItemActivated`）
 - 可視範囲（`VisibleRange`）と項目の矩形（`SlotBounds`）の公開（見えている項目だけを先に作れる）
 - 末尾へのスクロール（`ScrollToIndex`）
@@ -65,7 +65,7 @@
 | --- | --- |
 | 対象フレームワーク | `net10.0` |
 | 対応 OS | 指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**（UI フレームワークの対応 OS に従う。 参照する `EsUtil.Platform.Core` には Windows 専用の型が含まれる） |
-| UI フレームワーク | MewUI 0.21.1（`MewUIVersion` プロパティで固定） |
+| UI フレームワーク | MewUI 0.22.1（`MewUIVersion` プロパティで固定） |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測） |
 
@@ -89,7 +89,7 @@ using EsUtil.Ui.MewUI.Thumbnail;
 ## 5. クイックスタート
 
 ```csharp
-var list = new ThumbnailControl { ImageWidth = iconSize, IsDarkTheme = isDark };
+var list = new ThumbnailControl { ImageWidth = iconSize }; // 明暗はフレームワークのテーマ（`Application.Current.Theme`）から自動
 list.ItemActivated += (_, e) => Open((string)e.Tag!);
 
 list.ClearItems();
@@ -140,11 +140,12 @@ var bounds = list.SlotBounds(index);
 
 ## 9. ログ
 
-画像と項目数の変更を記録します（既定は出力なし）。
+画像と項目数の変更を記録します（既定は出力なし）。 **1 件ずつの追加は一覧の読み込みで件数分出力されるため Trace**、一括のクリア（件数が減る変更）は Debug です。
 
 | レベル | 出力例 |
 | --- | --- |
-| Debug | `[Thumbnail] Setting: Image[0] null → 96x64` / `[Thumbnail] Setting: ItemCount 0 → 12` |
+| Information | `[Thumbnail] Setting: ImageWidth 160 → 110` / `[Thumbnail] Setting: Image[0] null → 96x64`（画像の差し替え） / `[Thumbnail] Setting: ItemCount 12 → 0`（クリア） |
+| Trace | `[Thumbnail] Setting: ItemCount 0 → 1`（1 件ずつの追加） |
 
 `Log` へ `ILogger` を設定します（null は `NullLogger`）。 接頭辞は `LogPrefix` で設定し、提示層・コアへ伝搬します（既定 `[Thumbnail]`）。 設定・外観の変更は提示層、選択の変更はコアが記録します。
 

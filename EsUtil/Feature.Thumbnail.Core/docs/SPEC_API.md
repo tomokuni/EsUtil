@@ -13,6 +13,10 @@
   - [2.4 `ThumbnailOptions`（設定）](#24-thumbnailoptions設定)
   - [2.5 `ThumbnailSelection`（単一選択）](#25-thumbnailselection単一選択)
   - [2.6 `ThumbnailRange`（項目の範囲）](#26-thumbnailrange項目の範囲)
+  - [2.7 `ThumbnailSelectionChangedEventArgs`（選択変更の引数）](#27-thumbnailselectionchangedeventargs選択変更の引数)
+  - [2.8 `ThumbnailLabelText`（名前行に収める計算）](#28-thumbnaillabeltext名前行に収める計算)
+  - [2.9 `ThumbnailMetrics`（外観から決まる寸法）](#29-thumbnailmetrics外観から決まる寸法)
+  - [2.10 `ThumbnailTextMeasure`（実寸の測定）](#210-thumbnailtextmeasure実寸の測定)
 - [3. 使用例](#3-使用例)
 - [4. 座標系](#4-座標系)
 - [5. 制限事項](#5-制限事項)
@@ -34,10 +38,11 @@
 | 型 | 種別 | 説明 |
 | --- | --- | --- |
 | `ThumbnailLayout` | static class | 配置（折り返し・行の高さ・下端揃え）を解決する純粋計算 |
-| `ThumbnailLayoutResult` | sealed class | 配置の結果（項目の外枠・画像・名前の矩形、内容の寸法、当たり判定、可視範囲） |
+| `ThumbnailLayoutResult` | sealed class | 配置の結果（項目の枠線・画像・名前の矩形、内容の寸法、当たり判定、可視範囲） |
 | `ThumbnailOptions` | sealed record | 計算に必要な設定（余白・行の寸法・列数の上限）と既定値・補正 |
 | `ThumbnailSelection` | sealed class | 単一選択の状態（選択・解除・変更通知） |
 | `ThumbnailRange` | readonly record struct | 項目の連続した範囲（両端を含む） |
+| `ThumbnailTextMeasure` | delegate | 名前を折り返して描いたときの実寸を測る関数（UI 層が描画 API で実装する） |
 
 ### 2.2 `ThumbnailLayout`（純粋計算）
 
@@ -45,7 +50,7 @@
 
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
-| `Resolve(double availableWidth, double imageWidth, ReadOnlySpan<double> imageHeights, ThumbnailOptions? options = null)` | static method | 一覧の配置を解決する。 `availableWidth` は一覧の幅、`imageWidth` は画像の幅、`imageHeights` は項目ごとの画像の高さ（DIP）。 `options` が null の場合は `ThumbnailOptions.Default` |
+| `Resolve(double availableWidth, double imageWidth, ReadOnlySpan<double> imageHeights, ThumbnailOptions? options = null, ThumbnailMetrics metrics = default)` | static method | 一覧の配置を解決する。 `availableWidth` は一覧の幅、`imageWidth` は画像の幅、`imageHeights` は項目ごとの画像の高さ（DIP）。 `options` が null の場合は `ThumbnailOptions.Default`。 `metrics` は外観から決まる寸法（省略すると影の余白も名前の行も確保しない） |
 | `ImageHeight(double width, int pixelWidth, int pixelHeight)` | static method | 幅を固定して縦横比を保つ画像の高さを求める。 画像の寸法が不正（0 以下）な場合は `width` をそのまま返す（正方形） |
 
 - `Resolve` は **`ArgumentOutOfRangeException`** を送出します（`imageHeights` に負の値が含まれる場合）。
@@ -59,23 +64,23 @@
 | --- | --- | --- |
 | `Empty` | static property | 項目が無い配置 |
 | `ImageWidth` | property | 画像の幅（DIP） |
-| `SlotWidth` | property | 項目の外枠の幅（DIP） |
+| `SlotWidth` | property | 項目の枠線の幅（DIP） |
 | `Count` | property | 項目数 |
 | `Columns` | property | 列数 |
 | `Rows` | property | 行数（`Count` が 0 の場合は 0） |
 | `ContentSize` | property | 内容の寸法（DIP。 一覧のスクロール範囲を決める） |
-| `Slots` | property | 項目の外枠（ホバー帯）の矩形（並び順） |
+| `Slots` | property | 項目の枠線（ホバー帯）の矩形（並び順） |
 | `Images` | property | 画像の矩形（並び順） |
 | `Labels` | property | 名前の矩形（並び順） |
-| `Slot(int index)` | method | 指定した項目の外枠の矩形。 **範囲外は `EsRect.Empty`** |
+| `Slot(int index)` | method | 指定した項目の枠線の矩形。 **範囲外は `EsRect.Empty`** |
 | `Image(int index)` | method | 指定した項目の画像の矩形。 **範囲外は `EsRect.Empty`** |
 | `Label(int index)` | method | 指定した項目の名前の矩形。 **範囲外は `EsRect.Empty`** |
 | `IndexAt(EsPoint position)` | method | 指定した位置にある項目の添字。 **どの項目にも当たらない場合は -1** |
 | `VisibleRange(double offsetY, double viewportHeight)` | method | 見えている項目の範囲。 **項目が無い場合は `ThumbnailRange.Empty`** |
 
-- `IndexAt` は**外枠（ホバー帯）で判定**します。 外枠は隙間なく並ぶため、`ItemSpacing` を空けた場合を除いて「どこにも当たらない」帯は生じません。
+- `IndexAt` は**枠線（ホバー帯）で判定**します。 枠線は隙間なく並ぶため、`RowSpace` / `ColumnSpace` を空けた場合を除いて「どこにも当たらない」帯は生じません。
 - `VisibleRange` は**行の下端で最初の行を決め、行の上端がビューポートの下端に達したら打ち切ります**（行の下端・上端は行の順に増えるため）。 行内は下端を揃えるため上端が揃わず、端の行だけは項目ごとに交差を判定します。
-- `IndexAt` は外枠の下端で行を求め、**その行の列（`Columns` まで）だけ**を調べます。 下端は行の中で同じ値（行の高さ）で行の順に増えるため行を決められますが、**行内で上端は揃わない**（下端を揃える）ため上端では行を決められません。
+- `IndexAt` は枠線の下端で行を求め、**その行の列（`Columns` まで）だけ**を調べます。 下端は行の中で同じ値（行の高さ）で行の順に増えるため行を決められますが、**行内で上端は揃わない**（下端を揃える）ため上端では行を決められません。
 - `VisibleRange` はビューポートと**交差する**項目を返します（一部だけ見えている項目を含む）。 高さが 0 以下の場合は、スクロール位置にある項目 1 件を返します（生成の優先度に使えるようにするため）。
 
 ### 2.4 `ThumbnailOptions`（設定）
@@ -84,25 +89,21 @@
 
 | 項目 | 型 | 既定値 | 補正 |
 | --- | --- | --- | --- |
-| `ItemMargin` | `double` | 2 | 負の値は 0 |
-| `ItemPadding` | `double` | 12 | 負の値は 0 |
-| `ItemSpacing` | `double` | 0 | 負の値は 0 |
-| `LabelHeight` | `double` | 30 | 負の値は 0 |
+| `RowSpace` | `double` | 8 | 負の値は 0 |
+| `ColumnSpace` | `double` | 8 | 負の値は 0 |
 | `LabelHorizontalPadding` | `double` | 1 | 負の値は 0 |
-| `SurroundExtent` | `double` | 10 | 負の値は 0 |
 | `ContentPadding` | `double` | 2 | 負の値は 0 |
 | `MinimumImageWidth` | `double` | 16 | 0 以下は既定値（16） |
 | `MaximumColumns` | `int` | 0（無制限） | 0 以下は無制限 |
-| `SlotInset`（導出） | `double` | — | `ItemMargin + ItemPadding` と `SurroundExtent` の大きい方 |
 
 - `Default` は「すべての項目を既定値にした設定」です。
-- **`SurroundExtent` は長さだけを持ちます**（濃さ・色は提示層の外観が単一所有する）。 影が切れない余白を確保するためにだけ使います。
+- **利用者が決める値だけを持ちます**: 影の余白と名前の行の高さは外観（影の算法・文字サイズ）から決まるため、本型ではなく [`ThumbnailMetrics`](#29-thumbnailmetrics外観から決まる寸法) が持ちます（設定に混ぜると「設定したのに効かない項目」が生まれます）。
 
 ### 2.5 `ThumbnailSelection`（単一選択）
 
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
-| `Changed` | event | 選択が変わったときに発生する（同じ添字の再設定では発生しない） |
+| `Changed` | event | 選択が変わったときに発生する（同じ添字の再設定では発生しない。 引数は `ThumbnailSelectionChangedEventArgs`） |
 | `Index` | property | 選択中の添字（選択が無い場合は -1） |
 | `HasSelection` | property | 選択があるかどうか |
 | `Select(int index, int count)` | method | 選択を設定する。 負の値と範囲外の添字は**選択の解除**として扱う。 選択が変わった場合は true |
@@ -120,6 +121,66 @@
 | `Last` | property | 末尾の添字（含む） |
 | `IsEmpty` | property | 該当が無いかどうか（`Last < First`） |
 | `Count` | property | 含まれる項目数（該当が無い場合は 0） |
+
+### 2.7 `ThumbnailSelectionChangedEventArgs`（選択変更の引数）
+
+| メンバー | 種別 | 説明 |
+| --- | --- | --- |
+| `PreviousIndex` | property | 変更前の添字（選択が無かった場合は -1） |
+| `Index` | property | 変更後の添字（選択が無い場合は -1） |
+
+- **変更前の添字を渡します**: 選択の見た目は選択中の項目にだけ付くため、UI は変更前と変更後の**両方**を描き直す必要があります。 変更前を渡さないと、UI が直前の選択を自前で覚えることになり、一覧の組み直し・項目の削除と組み合わさったときに取りこぼします（前の項目が選択中のまま残る不具合になります）。
+
+### 2.8 `ThumbnailLabelText`（名前行に収める計算）
+
+| メンバー | 種別 | 説明 |
+| --- | --- | --- |
+| `MaxLines` | const | 折り返して表示する最大行数（2） |
+| `LineSpacing` | const | 行送り（文字サイズに対する倍率。 1.4） |
+| `Ellipsis` | const | 省略を表す記号（`...`） |
+| `AverageCharWidthFactor` | const | 1 文字幅の見積もり（文字サイズに対する倍率） |
+| `Fit(text, width, height, fontSize, isBold = false, measure = null)` | method | 名前行へ収まるよう整える。 収まらない場合は**最後のピリオドより前を「...」で省略し、拡張子を残す** |
+| `ResolveHeight(fontSize, maxLines)` | method | 名前行の高さ（行送り × 行数） |
+| `ResolveLineHeight(fontSize)` | method | 1 行の高さ（文字が切れない行送り） |
+| `ResolveMaxLines(height, fontSize)` | method | 高さに収まる行数（最低 1） |
+
+- **名前の行は 2 行まで**です（`ThumbnailPresenter.ResolveMetrics` が `ThumbnailMetrics.LabelHeight` を「文字サイズから求めた 2 行ぶん + 上下の余白」で求めます）。 超える場合は拡張子を残して省略します（一覧の中で画像の形式を判別できるようにするため）。
+- **幅と高さの両方で判定**します（`width` は左右の余白を、`height` は上下の余白を除いた値）。 幅だけで判定すると、上下の余白を増やしたときに省略されないまま縦に切れます（実測 2026-11-01）。
+- `measure`（[`ThumbnailTextMeasure`](#210-thumbnailtextmeasure実寸の測定)）を渡した場合は**描画エンジンの実寸**で、渡さない場合は**文字数**で判定します（文字数の見積もりは実際の折り返しと一致しないため、UI 層は必ず実寸を渡します）。
+- 省略した場合でも**ツールヒントには省略していない名前**を出します（UI 層が `Add` の `caption` から作ります）。
+
+### 2.9 `ThumbnailMetrics`（外観から決まる寸法）
+
+| メンバー | 種別 | 説明 |
+| --- | --- | --- |
+| `SlotInset` | property | 画像の外側（外枠の内側）に確保する余白（片側。 影が切れない幅） |
+| `LabelHeight` | property | 名前の行の高さ（文字が切れない 2 行ぶん + 上下の余白。 行内の下端揃えで名前の位置を揃える） |
+| `Zero` | static property | 余白 0・名前の行 0 の寸法 |
+| `ThumbnailMetrics(slotInset, labelHeight)` | ctor | 寸法を生成する（負の値と非数は 0） |
+
+- **`ThumbnailLayout.Resolve` へ渡します**（`options` の後ろの引数）。 省略すると 0 として扱います。
+- **利用者が設定する値ではありません**: 提示層（`ThumbnailPresenter.ResolveMetrics`）が外観の影の広がりと文字サイズから求めて渡します。 設定（`ThumbnailOptions`）には混ぜません。
+- **上下の余白は行の高さに含めます**: 含めないと、余白を増やした分だけ文字を置ける高さが減り、2 行目が切れます（実測 2026-11-01）。
+- **影を描かない外観**（`ThumbnailAppearance.ShowShadow` が false、または影の計画が null）では `SlotInset` は 0 になります（余白だけが残ると項目の間が不自然に空きます）。
+
+### 2.10 `ThumbnailTextMeasure`（実寸の測定）
+
+名前を折り返して描いたときの実寸を測る関数（デリゲート）です。 本層は描画 API を持たないため、UI 層が実装して渡します。
+
+```csharp
+public delegate EsSize ThumbnailTextMeasure(string text, double maxWidth, double fontSize, bool isBold);
+```
+
+| 引数 | 意味 |
+| --- | --- |
+| `text` | 測る文言 |
+| `maxWidth` | 折り返す幅（DIP） |
+| `fontSize` | 文字サイズ（DIP） |
+| `isBold` | 太字で描くかどうか（幅が広い） |
+
+- **戻り値**は折り返した後の実寸です（高さは全行の合計）。 `ThumbnailLabelText.Fit` は高さだけを見ます。
+- **描画する API と同じ API で測ります**（折り返しの位置は文字の送り幅に依存するため、測る API と描く API が違うと行数が一致しません）。 実装は各 UI の `Interop` の `TextMeasure`（AvaloniaUI / MewUI / WinUI 3）と WinForms 版コントロールが単一所有します。
+- **純粋関数にします**（同じ入力には同じ寸法を返す）。 呼び出しの時点に依存する関数を渡すと、文言の決定が再現しなくなります。
 
 ## 3. 使用例
 

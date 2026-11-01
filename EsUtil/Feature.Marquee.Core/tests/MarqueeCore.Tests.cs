@@ -328,6 +328,47 @@ public class MarqueeCoreTests
         Assert.False(marquee.HasSelection);
     }
 
+    /// <summary>ハイライト中は選択を編集する入力を受け付けないことを検証する。</summary>
+    /// <remarks>
+    /// ハイライトはホストが与える表示専用の注目矩形である（<c>IsReadOnly</c>）。<br/>
+    /// 操作できるかどうかが選択との違いであるため、ドラッグ・キー操作・nudge を通さない。
+    /// </remarks>
+    [Fact]
+    internal void ハイライト中は入力を無視する()
+    {
+        var marquee = CreateMarquee(null, out _);
+        var notices = new List<MarqueeNotice>();
+        marquee.Subscribe(notice => notices.Add(notice));
+        marquee.HighlightSourceRect = new EsRect(1, 2, 3, 4);
+        notices.Clear();
+
+        marquee.Press(new EsPoint(10, 20), clickCount: 1);
+        marquee.Move(new EsPoint(50, 60));
+        marquee.Release(new EsPoint(50, 60));
+        var handled = marquee.KeyDown(EsKey.Right, cursorPosition: null);
+
+        Assert.True(marquee.IsReadOnly);
+        Assert.False(marquee.HasSelection);
+        Assert.False(handled);
+        Assert.Empty(notices);
+    }
+
+    /// <summary>ハイライトを解除すると入力を受け付けることを検証する。</summary>
+    [Fact]
+    internal void ハイライト解除後は入力を処理する()
+    {
+        var marquee = CreateMarquee(null, out _);
+        marquee.HighlightSourceRect = new EsRect(1, 2, 3, 4);
+        marquee.HighlightSourceRect = null;
+
+        marquee.Press(new EsPoint(10, 20), clickCount: 1);
+        marquee.Move(new EsPoint(50, 60));
+        marquee.Release(new EsPoint(50, 60));
+
+        Assert.False(marquee.IsReadOnly);
+        Assert.True(marquee.HasSelection);
+    }
+
     [Fact]
     internal void RequestConfirm_選択確定を通知する()
     {
@@ -473,7 +514,7 @@ public class MarqueeCoreTests
             ],
             logger.Messages);
         // 低頻度の設定変更は Debug で記録する
-        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Debug, level));
+        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Information, level));
     }
 
     /// <summary>ハイライト矩形の変更が最も低いレベル（Trace）で記録されることを検証する。</summary>
@@ -520,6 +561,6 @@ public class MarqueeCoreTests
         Assert.Equal(2, logger.Messages.Count);
         Assert.StartsWith("[Marquee] Setting: CoordTransform null → ", logger.Messages[0], StringComparison.Ordinal);
         Assert.Equal("[Marquee] Setting: CoordTransform CoordTransform → null", logger.Messages[1]);
-        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Debug, level));
+        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Information, level));
     }
 }

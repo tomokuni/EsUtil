@@ -145,7 +145,19 @@ public sealed partial class LoupeControl : Canvas
     /// <b>純粋関数（同じ入力に同じ出力）にすること</b>（同じ入力では 1 フレーム 1 回だけ解決されるため、<br/>
     /// 呼び出しの時点に依存する関数を渡すと差し替えが反映されない）。 設定すると保持中の計画を破棄して描画をやり直す。
     /// </remarks>
-    public Func<LoupeDrawPlan, LoupeDrawPlan>? DrawPlanResolver { get; set; }
+    public Func<LoupeDrawPlan, LoupeDrawPlan>? DrawPlanResolver
+    {
+        get => _drawPlanResolver;
+        set
+        {
+            _drawPlanResolver = value;
+            InvalidatePlan();
+            ApplyVisual();
+        }
+    }
+
+    /// <summary>描画計画を差し替える関数の保持先。<see cref="DrawPlanResolver"/> が変更時に反映する。</summary>
+    private Func<LoupeDrawPlan, LoupeDrawPlan>? _drawPlanResolver;
 
     /// <summary>拡大元の 100% 画像を取得または設定する。</summary>
     /// <value>拡大元の画像（借用であり破棄しない）。 null の場合は画像外の色のみを表示する。</value>

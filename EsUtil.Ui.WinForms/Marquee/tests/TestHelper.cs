@@ -40,10 +40,9 @@ internal static class TestHelper
     /// <param name="size">描画面のサイズ（DIP）。</param>
     /// <param name="layers">描く層とその順序（提示層が所有する順序をそのまま渡す）。</param>
     /// <param name="focus">注目矩形（DIP）。 null の場合は注目矩形なし。</param>
-    /// <param name="overlay">暗転して塗る領域。</param>
-    /// <param name="outerBorder">外枠の矩形。</param>
-    /// <param name="innerFill">内側の塗り。</param>
-    /// <param name="innerBorder">内側の枠線の矩形。</param>
+    /// <param name="outerMask">外側マスクの領域。</param>
+    /// <param name="border">枠線の矩形。</param>
+    /// <param name="innerMask">内側マスクの矩形。</param>
     /// <param name="handles">ドラッグハンドルの幾何。 null の場合はハンドルなし。</param>
     /// <param name="marker">始点マーカー。 null の場合はマーカーなし。</param>
     /// <param name="labels">ラベルの配置指示。 null の場合はラベルなし。</param>
@@ -53,10 +52,9 @@ internal static class TestHelper
         EsSize size,
         IReadOnlyList<MarqueeDrawLayer> layers,
         EsRect? focus = null,
-        IReadOnlyList<EsRect>? overlay = null,
-        IReadOnlyList<EsRect>? outerBorder = null,
-        EsRect? innerFill = null,
-        IReadOnlyList<EsRect>? innerBorder = null,
+        IReadOnlyList<EsRect>? outerMask = null,
+        IReadOnlyList<EsRect>? border = null,
+        EsRect? innerMask = null,
         MarqueeHandles? handles = null,
         MarqueeMarker? marker = null,
         IReadOnlyList<MarqueeLabelPlacement>? labels = null)
@@ -65,10 +63,9 @@ internal static class TestHelper
             new EsRect(0, 0, size.Width, size.Height),
             focus,
             focus is { } anchor ? new EsPoint(anchor.X, anchor.Y) : null,
-            overlay ?? [],
-            outerBorder ?? [],
-            innerFill,
-            innerBorder ?? [],
+            outerMask ?? [],
+            border ?? [],
+            innerMask,
             handles,
             marker,
             layers,

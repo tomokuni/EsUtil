@@ -2,6 +2,7 @@ using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.Ui.MewUI.Interop.Imaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -36,6 +37,12 @@ public sealed class ThumbnailControl : Panel
     /// <summary>ホバー中の添字。</summary>
     private int _hoveredIndex = -1;
 
+    /// <summary>直前の描画で使った明暗（テーマの切り替えを 1 度だけ記録するために持つ）。</summary>
+    private bool _appliedDarkTheme;
+
+    /// <summary>明暗を使った描画がまだ無いかどうか。</summary>
+    private bool _themeApplied;
+
     /// <summary>ログの出力先（未設定は <see cref="NullLogger"/>）。</summary>
     private ILogger _log = NullLogger.Instance;
 
@@ -51,10 +58,12 @@ public sealed class ThumbnailControl : Panel
         _scroll.ScrollChanged += () => ScrollChanged?.Invoke(this, EventArgs.Empty);
         Add(_scroll);
 
-        _selection.Changed += (_, _) =>
+        _selection.Changed += (_, e) =>
         {
             SelectionChanged?.Invoke(this, EventArgs.Empty);
-            RefreshStates(-1, _selection.Index);
+
+            // 変更前と変更後の両方を描き直す（前の項目に選択の見た目が残らないようにする）
+            RefreshStates(e.PreviousIndex, e.Index);
         };
     }
 
@@ -64,6 +73,8 @@ public sealed class ThumbnailControl : Panel
     /// <summary>選択中の添字が変わったときに発生する。</summary>
     public event EventHandler? SelectionChanged;
 
+    /// <summary>現在項目（名前を太字で示す項目）の添字が変わったときに発生する。</summary>
+    public event EventHandler? CurrentIndexChanged;
     /// <summary>項目が 2 回押されたときに発生する。</summary>
     public event EventHandler<ThumbnailActivatedEventArgs>? ItemActivated;
 
@@ -136,20 +147,31 @@ public sealed class ThumbnailControl : Panel
     /// 矩形の並びで表せる装飾とラベルの文言・位置は本関数で差し替える（色・表示可否は <see cref="Appearance"/>）。<br/>
     /// 受け取る計画は提示層が解決済みであるため、本関数は値の置き換えだけで完結する<br/>
     /// （<c>plan with { ... }</c>）。 <b>純粋関数（同じ入力に同じ出力）にすること</b>。<br/>
-    /// 他の UI 版（Loupe / Marquee）と同じ入口であり、派生せずに見た目を変えられる。
+    /// 他の UI 版（Loupe / Marquee）と同じ入口であり、派生せずに見た目を変えられる。<br/>
+    /// <b>設定すると即座に反映する</b>（計画を解決し直して描き直す）。 null へ戻すと既定の計画へ戻る。
     /// </remarks>
-    public Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? DrawPlanResolver { get; set; }
-    /// <summary>暗色テーマかどうかを取得または設定する。</summary>
-    /// <value>暗色テーマの場合は true。 既定は false。</value>
-    public bool IsDarkTheme
+    public Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? DrawPlanResolver
     {
-        get;
+        get => _drawPlanResolver;
         set
         {
-            field = value;
+            _drawPlanResolver = value;
             Refresh();
         }
     }
+
+    /// <summary>描画計画を差し替える関数の保持先。<see cref="DrawPlanResolver"/> が変更時に反映する。</summary>
+    private Func<ThumbnailDrawPlan, ThumbnailDrawPlan>? _drawPlanResolver;
+
+    /// <summary>現在のテーマが暗色かどうかを取得する。</summary>
+    /// <value>ダークの場合は true。 アプリの初期化前は false。</value>
+    /// <remarks>
+    /// <b>テーマはフレームワークが決める</b>: <c>Application.Current.Theme</c> をそのまま読む<br/>
+    /// （ホストが明暗を指定する必要はない）。 明暗は描画のたびに読み直すため、<br/>
+    /// テーマが切り替われば配色も追随する（<c>Application.Current</c> は <c>Application.Run</c> より前は例外のため、<br/>
+    /// <c>IsRunning</c> で判定する）。
+    /// </remarks>
+    private static bool IsDarkTheme => Application.IsRunning && Application.Current.Theme.IsDark;
 
     /// <summary>画像の幅（DIP）を取得または設定する。</summary>
     /// <value>表示モードの一辺。 0 以下の指定は既定の下限へ引き上げる。</value>
@@ -158,7 +180,14 @@ public sealed class ThumbnailControl : Panel
         get;
         set
         {
+            if (field.Equals(value))
+            {
+                return;
+            }
+
+            var previous = field;
             field = value;
+            _log.LogSettingChanged(nameof(ImageWidth), previous.ToString(System.Globalization.CultureInfo.InvariantCulture), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
             Refresh();
         }
     } = 96;
@@ -172,6 +201,52 @@ public sealed class ThumbnailControl : Panel
     {
         get => _selection.Index;
         set => _selection.Select(value, _items.Count);
+    }
+
+    /// <summary>現在項目（名前を太字で示す項目）の添字を取得または設定する。</summary>
+    /// <value>項目の添字。 現在項目が無い場合は -1。</value>
+    /// <remarks>
+    /// <b>選択とは別の状態である</b>: 選択は利用者の操作で移り、現在項目は「いま表示している画像」を表す<br/>
+    /// （ブラウザでいえば、選択＝クリックした項目、現在＝開いている項目）。<br/>
+    /// 範囲外の添字は「現在項目なし」として扱う（例外にしない）。
+    /// </remarks>
+    public int CurrentIndex
+    {
+        get
+        {
+            for (var i = 0; i < _items.Count; i++)
+            {
+                if (_items[i].IsCurrent)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        set
+        {
+            var changed = false;
+            for (var i = 0; i < _items.Count; i++)
+            {
+                var tile = _items[i];
+                var isCurrent = i == value;
+                if (tile.IsCurrent == isCurrent)
+                {
+                    continue;
+                }
+
+                tile.SetIsCurrent(isCurrent);
+                ApplyState(i);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                CurrentIndexChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
     }
 
     /// <summary>見えている項目の範囲を取得する。</summary>
@@ -195,6 +270,14 @@ public sealed class ThumbnailControl : Panel
         _content.Clear();
         _log.LogItemCountChanged(previous, 0);
     }
+
+    /// <summary>一覧を空にする（子要素の削除ではなく、項目の削除）。</summary>
+    /// <remarks>
+    /// <b>Panel の <c>Clear()</c> を隠す</b>: 基底の <see cref="Panel.Clear"/> は子要素（内部のスクロール）を
+    /// 取り除くるため、呼ぶと画面が空になる（項目は残る）。 利用者が意図する「一覧を空にする」と
+    /// 同じ意味にするため、本メソッドで隠して <see cref="ClearItems"/> へ委仲する。
+    /// </remarks>
+    public new void Clear() => ClearItems();
 
     /// <summary>サムネイルを 1 件追加する。</summary>
     /// <param name="image">表示する画像。 null の場合は画像を描かない（代替画像を渡す）。</param>
@@ -307,11 +390,31 @@ public sealed class ThumbnailControl : Panel
         }
 
         var tile = _items[index];
+        var isDark = IsDarkTheme;
+
+        // テーマはフレームワークが切り替える（本コントロールは通知を受けないため、
+        // 明暗を使った描画のたびに比べ、変わったときだけ記録する）
+        if (!_themeApplied || _appliedDarkTheme != isDark)
+        {
+            _themeApplied = true;
+            _appliedDarkTheme = isDark;
+            _log.LogThemeChanged(isDark);
+        }
+
         var plan = Presentation.ResolveDrawPlan(
-            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme);
+            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, isDark, MeasureText);
         plan = DrawPlanResolver?.Invoke(plan) ?? plan;
         tile.Apply(plan, Presentation.Options);
     }
+
+    /// <summary>折り返した名前の実寸を測る（測定の実装は <see cref="TextMeasure"/> が単一所有する）。</summary>
+    /// <param name="text">測る文言。</param>
+    /// <param name="maxWidth">折り返す幅（DIP）。</param>
+    /// <param name="fontSize">文字サイズ（DIP）。</param>
+    /// <param name="isBold">太字で描くかどうか。</param>
+    /// <returns>折り返した後の実寸（DIP）。</returns>
+    private static EsSize MeasureText(string text, double maxWidth, double fontSize, bool isBold)
+        => TextMeasure.MeasureWrapped(text, fontSize, isBold, maxWidth);
 
     /// <summary>指定した 2 件の見た目を解決し直す（ホバー・選択の切り替え）。</summary>
     /// <param name="first">1 件目の添字。 範囲外は無視する。</param>

@@ -101,4 +101,29 @@ public class ColorComboBoxControlTests
 
         Assert.Equal("#FF008000", control.SelectedColor);
     }
+
+
+    [Fact]
+    internal void TextFontSize_設定すると入力欄の文字サイズが変わる()
+    {
+        var control = new ColorComboBoxControl { TextFontSize = 18 };
+
+        Assert.Equal(18d, control.TextFontSize);
+    }
+
+    [Fact]
+    internal void HighlightBorderOnError_無効な入力でも例外にならない()
+    {
+        var control = new ColorComboBoxControl { HighlightBorderOnError = true, SelectedColor = "not-a-color" };
+
+        Assert.True(control.HasValidationError);
+    }
+
+    [Fact]
+    internal void HighlightBorderOnError_設定した値を保持する()
+    {
+        var control = new ColorComboBoxControl { HighlightBorderOnError = true };
+
+        Assert.True(control.HighlightBorderOnError);
+    }
 }

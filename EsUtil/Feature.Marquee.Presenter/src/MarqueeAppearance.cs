@@ -83,19 +83,16 @@ public sealed record MarqueeAppearance
 
     /// <summary>暗転マスク（オーバーレイ）の色を取得する。</summary>
     /// <value>アルファを含む色。 既定は黒 50%（<c>#80000000</c>）。</value>
-    public DrawingColor OverlayColor { get; init; } = DrawingColor.FromArgb(128, 0, 0, 0);
+    public DrawingColor OuterMaskColor { get; init; } = DrawingColor.FromArgb(128, 0, 0, 0);
 
     /// <summary>外枠（外側の装飾の枠線）の色を取得する。</summary>
     /// <value>アルファを含む色。 既定はダークグレー（<c>#FFA9A9A9</c>。 ハンドル枠と共通）。</value>
-    public DrawingColor OuterBorderColor { get; init; } = DefaultBorderColor;
+    public DrawingColor BorderColor { get; init; } = DefaultBorderColor;
 
     /// <summary>注目矩形の内側の塗り色を取得する。</summary>
-    /// <value>アルファを含む色。 既定は透明（描画の可否は <see cref="ShowInnerFill"/> が決める）。</value>
-    public DrawingColor InnerFillColor { get; init; } = DrawingColor.Transparent;
+    /// <value>アルファを含む色。 既定は透明（描画の可否は <see cref="ShowInnerMask"/> が決める）。</value>
+    public DrawingColor InnerMaskColor { get; init; } = DrawingColor.Transparent;
 
-    /// <summary>注目矩形の内側の枠線色を取得する。</summary>
-    /// <value>アルファを含む色。 既定は透明（描画の可否は <see cref="ShowInnerBorder"/> が決める）。</value>
-    public DrawingColor InnerBorderColor { get; init; } = DrawingColor.Transparent;
 
     // ----------------------------------------------------------------
     // ラベルの体裁
@@ -172,24 +169,17 @@ public sealed record MarqueeAppearance
 
     /// <summary>暗転マスクを描くかどうかを取得する。</summary>
     /// <value>true（既定）の場合は暗転する。 false の場合は暗転を描かない。</value>
-    public bool ShowOverlay { get; init; } = true;
+    public bool ShowOuterMask { get; init; } = true;
 
     /// <summary>外枠（外側の枠線）を描くかどうかを取得する。</summary>
     /// <value>true（既定）の場合は枠線を描く。 false の場合は描かない。</value>
-    public bool ShowOuterBorder { get; init; } = true;
+    public bool ShowBorder { get; init; } = true;
 
-    /// <summary>注目矩形が無くても全面を暗転するかどうかを取得する。</summary>
-    /// <value>true の場合は選択が無くても画面全体を暗転する。 既定は false。</value>
-    /// <remarks>ハイライトのみを表示するモード（全画面の暗転 + ハイライト矩形）で使用する。</remarks>
-    public bool ShowFullOverlay { get; init; }
 
     /// <summary>注目矩形の内側を塗るかどうかを取得する。</summary>
     /// <value>true の場合は塗る。 既定は false（塗らない）。</value>
-    public bool ShowInnerFill { get; init; }
+    public bool ShowInnerMask { get; init; }
 
-    /// <summary>注目矩形の内側の枠線を描くかどうかを取得する。</summary>
-    /// <value>true の場合は描く。 既定は false（描かない）。</value>
-    public bool ShowInnerBorder { get; init; }
 
     /// <summary>外枠（外側の枠線）の太さ（DIP）を取得する。</summary>
     /// <value>枠線の太さ（DIP）。 0.5〜64 へ補正済み。 既定は 2.0。</value>
@@ -197,19 +187,12 @@ public sealed record MarqueeAppearance
     /// 安全域への補正は本型が単一所有する（設定の経路によらず範囲内の値だけが保持される）。<br/>
     /// 数値スキーマ（<c>MarqueeCore.Limits</c>）はコアが単一所有し、本型が参照する。
     /// </remarks>
-    public double OuterBorderThickness
+    public double BorderThickness
     {
         get;
         init => field = CoerceBorderThickness(value);
     } = BorderThicknessDefault;
 
-    /// <summary>注目矩形の内側の枠線の太さ（DIP）を取得する。</summary>
-    /// <value>枠線の太さ（DIP）。 0.5〜64 へ補正済み。 既定は 2.0。</value>
-    public double InnerBorderThickness
-    {
-        get;
-        init => field = CoerceBorderThickness(value);
-    } = BorderThicknessDefault;
 
     /// <summary>十字マーカー（始点マーカー）の線の太さを取得する。</summary>
     /// <value>線の太さ（DIP）。 0.5〜64 へ補正済み。 既定は 2.0。</value>
@@ -264,11 +247,6 @@ public sealed record MarqueeAppearance
     /// <remarks>ラベルの基準点はカーソル位置であり、位置は描画の幾何が常に持つため、矩形の有無のような条件は無い。</remarks>
     public bool ShouldShowCoordLabel() => ShowCoordLabel;
 
-    /// <summary>暗転オーバーレイを描画するかどうかを判定する。</summary>
-    /// <param name="hasFocusRect">注目矩形（選択またはハイライトの領域）があるかどうか。</param>
-    /// <returns>描画する場合は true。</returns>
-    /// <remarks>注目矩形がある場合、または全面暗転表示が有効な場合に描画する。</remarks>
-    public bool ShouldDrawOverlay(bool hasFocusRect) => hasFocusRect || ShowFullOverlay;
 
     /// <summary>指定されたハンドル塗り色を描画に使う色へ解決する。</summary>
     /// <param name="color">設定された塗り色。</param>

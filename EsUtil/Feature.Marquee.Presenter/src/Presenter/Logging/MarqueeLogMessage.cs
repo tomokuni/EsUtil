@@ -1,4 +1,4 @@
-using System.Globalization;
+using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
@@ -32,12 +32,12 @@ internal static partial class MarqueeLogMessage
     internal static string Prefix { get; set; } = DefaultPrefix;
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Error<br/>出力書式: <c>[Marquee] {Operation} で例外が発生</c>（例外スタックトレース付き）</remarks>
+    /// <remarks>LogLevel: Error<br/>出力書式: <c>[Marquee] {Operation:l} で例外が発生</c>（例外スタックトレース付き）</remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="exception">発生した例外。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix} {Operation} で例外が発生")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} {Operation:l} で例外が発生")]
     private static partial void LogOperationErrorCore(this ILogger logger, Exception exception, string prefix, string operation);
 
     /// <summary>公開ファサードの操作で例外が発生したことを記録する。</summary>
@@ -55,7 +55,7 @@ internal static partial class MarqueeLogMessage
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix} Presenter created")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Presenter created")]
     private static partial void LogPresenterCreatedCore(this ILogger logger, string prefix);
 
     internal static void LogPresenterCreated(this ILogger logger)
@@ -68,7 +68,7 @@ internal static partial class MarqueeLogMessage
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} Logger attached")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Logger attached")]
     private static partial void LogLoggerAttachedCore(this ILogger logger, string prefix);
 
     internal static void LogLoggerAttached(this ILogger logger)
@@ -76,7 +76,7 @@ internal static partial class MarqueeLogMessage
 
     /// <summary>コアへ伝搬した値を記録する（本層を通過した確認用）。</summary>
     /// <remarks>
-    /// LogLevel: Trace<br/>出力書式: <c>[Marquee] Forwarded: {Name} {Value}</c><br/>
+    /// LogLevel: Trace<br/>出力書式: <c>[Marquee] Forwarded: {Name:l} {Value:l}</c><br/>
     /// 値の整形は型ごとのオーバーロードが単一所有する（呼び出し側に整形処理を置かない）。<br/>
     /// 本層が所有する設定（値が変化したときにのみ意味を持つもの）は <see cref="LogAppearanceChanged"/> などが Debug で記録する。
     /// </remarks>
@@ -84,7 +84,7 @@ internal static partial class MarqueeLogMessage
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">値の名前（項目名）。</param>
     /// <param name="value">整形済みの値。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} Forwarded: {Name} {Value}")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Forwarded: {Name:l} {Value:l}")]
     private static partial void LogForwardedCore(this ILogger logger, string prefix, string name, string value);
 
     internal static void LogForwarded(this ILogger logger, string name, string value)
@@ -123,13 +123,13 @@ internal static partial class MarqueeLogMessage
         => logger.LogForwarded(name, value?.GetType().Name ?? Null);
 
     /// <summary>設定値変更のログ（変更前後）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Marquee] Setting: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Setting: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     internal static void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue)
@@ -208,10 +208,9 @@ internal static partial class MarqueeLogMessage
         logger.LogSettingChanged(nameof(MarqueeAppearance.CoordLabelColor), oldValue.CoordLabelColor, newValue.CoordLabelColor);
         logger.LogSettingChanged(
             nameof(MarqueeAppearance.CoordLabelBackgroundColor), oldValue.CoordLabelBackgroundColor, newValue.CoordLabelBackgroundColor);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.OverlayColor), oldValue.OverlayColor, newValue.OverlayColor);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.OuterBorderColor), oldValue.OuterBorderColor, newValue.OuterBorderColor);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.InnerFillColor), oldValue.InnerFillColor, newValue.InnerFillColor);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.InnerBorderColor), oldValue.InnerBorderColor, newValue.InnerBorderColor);
+        logger.LogSettingChanged(nameof(MarqueeAppearance.OuterMaskColor), oldValue.OuterMaskColor, newValue.OuterMaskColor);
+        logger.LogSettingChanged(nameof(MarqueeAppearance.BorderColor), oldValue.BorderColor, newValue.BorderColor);
+        logger.LogSettingChanged(nameof(MarqueeAppearance.InnerMaskColor), oldValue.InnerMaskColor, newValue.InnerMaskColor);
         logger.LogSettingChanged(nameof(MarqueeAppearance.SizeLabelFontSize), oldValue.SizeLabelFontSize, newValue.SizeLabelFontSize);
         logger.LogSettingChanged(nameof(MarqueeAppearance.CoordLabelFontSize), oldValue.CoordLabelFontSize, newValue.CoordLabelFontSize);
         logger.LogSettingChanged(nameof(MarqueeAppearance.LabelPadding), oldValue.LabelPadding, newValue.LabelPadding);
@@ -219,15 +218,11 @@ internal static partial class MarqueeLogMessage
         logger.LogSettingChanged(nameof(MarqueeAppearance.ShowMarker), oldValue.ShowMarker, newValue.ShowMarker);
         logger.LogSettingChanged(nameof(MarqueeAppearance.ShowSizeLabel), oldValue.ShowSizeLabel, newValue.ShowSizeLabel);
         logger.LogSettingChanged(nameof(MarqueeAppearance.ShowCoordLabel), oldValue.ShowCoordLabel, newValue.ShowCoordLabel);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowOverlay), oldValue.ShowOverlay, newValue.ShowOverlay);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowOuterBorder), oldValue.ShowOuterBorder, newValue.ShowOuterBorder);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowFullOverlay), oldValue.ShowFullOverlay, newValue.ShowFullOverlay);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowInnerFill), oldValue.ShowInnerFill, newValue.ShowInnerFill);
-        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowInnerBorder), oldValue.ShowInnerBorder, newValue.ShowInnerBorder);
+        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowOuterMask), oldValue.ShowOuterMask, newValue.ShowOuterMask);
+        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowBorder), oldValue.ShowBorder, newValue.ShowBorder);
+        logger.LogSettingChanged(nameof(MarqueeAppearance.ShowInnerMask), oldValue.ShowInnerMask, newValue.ShowInnerMask);
         logger.LogSettingChanged(
-            nameof(MarqueeAppearance.OuterBorderThickness), oldValue.OuterBorderThickness, newValue.OuterBorderThickness);
-        logger.LogSettingChanged(
-            nameof(MarqueeAppearance.InnerBorderThickness), oldValue.InnerBorderThickness, newValue.InnerBorderThickness);
+            nameof(MarqueeAppearance.BorderThickness), oldValue.BorderThickness, newValue.BorderThickness);
     }
 
     /// <summary>数値設定値の変更ログ（同値の再設定では出力しない）の本体。</summary>
@@ -250,13 +245,13 @@ internal static partial class MarqueeLogMessage
 
         logger.LogSettingChanged(
             name,
-            oldValue.ToString(format: null, CultureInfo.InvariantCulture),
-            newValue.ToString(format: null, CultureInfo.InvariantCulture));
+            NumberText.Format(oldValue),
+            NumberText.Format(newValue));
     }
 
     /// <summary>実数値をカルチャに依存しない文字列へ整形する。</summary>
     /// <param name="value">整形する値。</param>
     /// <returns>整形した文字列。</returns>
     /// <remarks>ログの書式を環境非依存にする（小数点の記号がロケールで変わらないようにする）。</remarks>
-    private static string Format(double value) => value.ToString(format: null, CultureInfo.InvariantCulture);
+    private static string Format(double value) => NumberText.Format(value);
 }

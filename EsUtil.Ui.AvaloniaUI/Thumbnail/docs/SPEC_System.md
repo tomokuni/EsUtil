@@ -74,7 +74,7 @@ flowchart TD
 - **影は要素に任せる（既定の算法だけ）**: 既定の `ThumbnailShadowPlan` は Avalonia の `BoxShadow` の実測値から作られており、`BoxShadow` に描かせれば 4 辺・4 隅がそのまま正しく出ます。
 - **差し替えた算法は帯を塗る**: `BoxShadow` は計画の値（色・ぼかし）しか受け取れないため、別の算法の帯は `ThumbnailShadowBandsView` が 1 画素の帯として塗ります（全 UI で同じ結果にするため）。
 - **要素は計算を持たない**: `ThumbnailTile` は計画の矩形をそのまま写します。 計算を要素へ置くと、UI ごとに並びがずれる原因になります。
-- **配置は計測のたびに解く**: `MeasureOverride` が `ResolveLayout` を呼ぶため、幅が確定した後の呼び直しは不要です（`Refresh()` は `IsDarkTheme` の変更など、計測を伴わない変更に使います）。
+- **配置は計測のたびに解く**: `MeasureOverride` が `ResolveLayout` を呼ぶため、幅が確定した後の呼び直しは不要です（`Refresh()` は計測を伴わない変更に使います）。
 
 ## 4. コンポーネント構成
 
@@ -110,7 +110,6 @@ classDiagram
         +Presentation ThumbnailPresenter
         +Options ThumbnailOptions
         +Appearance ThumbnailAppearance
-        +IsDarkTheme bool
         +ImageWidth double
         +ItemCount int
         +SelectedIndex int
@@ -192,5 +191,5 @@ sequenceDiagram
 - **計画は 1 フレーム 1 回だけ解決する**: 描画のたびに解くと、状態の変化と表示がずれます。
 - **要素をヒット テストの対象にしない**: 影と画像の要素は `IsHitTestVisible` を false にし、入力はパネルが受けます。
 - **見た目の適用は計測フェーズで行う**: 配置フェーズで子の計測を無効化するとレイアウト サイクルになります。 項目の見た目は `ThumbnailPanel.MeasureOverride` で計測の前に適用します。
-- **`IsDarkTheme` の変更は `Refresh()` を呼ぶ**: `Options` / `Appearance` / `ImageWidth` は setter が計測を無効化するため自動で反映されます。
+- **明暗はフレームワークのテーマから読む**: `ActualThemeVariant` を描画のたびに読みます（ホストの指定は不要）。 `ActualThemeVariantChanged` で `Refresh()` を呼び、明暗で変わる色（ホバー・選択の背景）を選び直します。
 - **ログ**: 画像と項目数の変更は本コントロールが記録します（`Log` / `LogPrefix`。 設定・外観の変更は提示層、選択の変更はコアが記録するため、本コントロールは重複して出力しません）。

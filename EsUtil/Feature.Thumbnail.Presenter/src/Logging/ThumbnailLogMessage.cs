@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Common;
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 
@@ -24,7 +25,7 @@ internal static partial class ThumbnailLogMessage
     /// <remarks>LogLevel: Information<br/>出力書式: <c>[Thumbnail] Presenter created</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix} Presenter created")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Presenter created")]
     private static partial void LogPresenterCreatedCore(this ILogger logger, string prefix);
 
     /// <summary>提示層の生成を記録する。</summary>
@@ -37,7 +38,7 @@ internal static partial class ThumbnailLogMessage
     /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Thumbnail] Logger attached</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix} Logger attached")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Logger attached")]
     private static partial void LogLoggerAttachedCore(this ILogger logger, string prefix);
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
@@ -47,13 +48,13 @@ internal static partial class ThumbnailLogMessage
         => logger.LogLoggerAttachedCore(Prefix);
 
     /// <summary>設定変更のログ（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Thumbnail] Setting: {Name} {OldValue} → {NewValue}</c></remarks>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Thumbnail] Setting: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix} Setting: {Name} {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} Setting: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(
         this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
@@ -124,13 +125,10 @@ internal static partial class ThumbnailLogMessage
         ArgumentNullException.ThrowIfNull(oldValue);
         ArgumentNullException.ThrowIfNull(newValue);
 
-        logger.LogSettingChanged(nameof(ThumbnailOptions.ItemMargin), oldValue.ItemMargin, newValue.ItemMargin);
-        logger.LogSettingChanged(nameof(ThumbnailOptions.ItemPadding), oldValue.ItemPadding, newValue.ItemPadding);
-        logger.LogSettingChanged(nameof(ThumbnailOptions.ItemSpacing), oldValue.ItemSpacing, newValue.ItemSpacing);
-        logger.LogSettingChanged(nameof(ThumbnailOptions.LabelHeight), oldValue.LabelHeight, newValue.LabelHeight);
+        logger.LogSettingChanged(nameof(ThumbnailOptions.RowSpace), oldValue.RowSpace, newValue.RowSpace);
+        logger.LogSettingChanged(nameof(ThumbnailOptions.ColumnSpace), oldValue.ColumnSpace, newValue.ColumnSpace);
         logger.LogSettingChanged(
             nameof(ThumbnailOptions.LabelHorizontalPadding), oldValue.LabelHorizontalPadding, newValue.LabelHorizontalPadding);
-        logger.LogSettingChanged(nameof(ThumbnailOptions.SurroundExtent), oldValue.SurroundExtent, newValue.SurroundExtent);
         logger.LogSettingChanged(nameof(ThumbnailOptions.ContentPadding), oldValue.ContentPadding, newValue.ContentPadding);
         logger.LogSettingChanged(
             nameof(ThumbnailOptions.MinimumImageWidth), oldValue.MinimumImageWidth, newValue.MinimumImageWidth);
@@ -172,9 +170,9 @@ internal static partial class ThumbnailLogMessage
         logger.LogSettingChanged(
             nameof(ThumbnailAppearance.HighlightedLabelArgb), oldValue.HighlightedLabelArgb, newValue.HighlightedLabelArgb);
         logger.LogSettingChanged(
-            nameof(ThumbnailAppearance.HideShadowWhenHighlighted),
-            oldValue.HideShadowWhenHighlighted,
-            newValue.HideShadowWhenHighlighted);
+            nameof(ThumbnailAppearance.HideShadowWhenSelected),
+            oldValue.HideShadowWhenSelected,
+            newValue.HideShadowWhenSelected);
         logger.LogSettingChanged(
             nameof(ThumbnailAppearance.ShowHoverBackground), oldValue.ShowHoverBackground, newValue.ShowHoverBackground);
         logger.LogSettingChanged(
@@ -209,8 +207,8 @@ internal static partial class ThumbnailLogMessage
 
         logger.LogSettingChanged(
             name,
-            oldValue.ToString(format: null, CultureInfo.InvariantCulture),
-            newValue.ToString(format: null, CultureInfo.InvariantCulture));
+            NumberText.Format(oldValue),
+            NumberText.Format(newValue));
     }
 
     /// <summary>色（<c>0xAARRGGBB</c>）をログ用の文字列へ整形する。</summary>

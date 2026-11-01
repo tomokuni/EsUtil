@@ -81,7 +81,7 @@ public class MarqueeControlTests
 
         // ハンドルの枠線の既定は装飾の枠線と同じ DarkGray（#FFA9A9A9。 設定画面の選択枠の色と一致）
         // 外観の既定は枠線と暗転を描く
-        Assert.Equal(2.0, control.Appearance.OuterBorderThickness);
+        Assert.Equal(2.0, control.Appearance.BorderThickness);
         Assert.True(control.Appearance.ShowHandles);
         Assert.Equal(10.0, options.HandleSize);
         Assert.Equal(12.0, options.HandleHitRadius);
@@ -109,12 +109,12 @@ public class MarqueeControlTests
         {
             ShowHandles = false,
             ShowCoordLabel = false,
-            OuterBorderThickness = 3.0,
+            BorderThickness = 3.0,
         };
         control.HighlightSourceRect = new EsRect(1, 2, 3, 4);
 
         var options = control.Options;
-        Assert.Equal(3.0, control.Appearance.OuterBorderThickness);
+        Assert.Equal(3.0, control.Appearance.BorderThickness);
         Assert.False(control.Appearance.ShowHandles);
         Assert.Equal(14.0, options.HandleSize);
         Assert.Equal(24.0, options.MarkerLength);
@@ -373,7 +373,7 @@ public class MarqueeControlTests
                 $"[Marquee] Forwarded: Options HandleSize={options.HandleSize}, MinSelectionSize={options.MinSelectionSize}",
             ],
             logger.Messages);
-        Assert.Equal([LogLevel.Debug, LogLevel.Trace], logger.Levels);
+        Assert.Equal([LogLevel.Information, LogLevel.Trace], logger.Levels);
     }
 
     [Fact]
@@ -589,13 +589,13 @@ public class MarqueeControlTests
 
 
         // 既定（装飾を描く）: 外枠の色の画素が現れる
-        Assert.Contains(plan.OuterBorderDipRects, rect => surface.IsOpaque((int)rect.X, (int)rect.Y));
+        Assert.Contains(plan.BorderDipRects, rect => surface.IsOpaque((int)rect.X, (int)rect.Y));
 
         // 外観で止める: 層と値は残るが、描画実装はフラグを見て描かない（何も描かれない）
         presenter.Appearance = MarqueeAppearance.Default with
         {
-            ShowOverlay = false,
-            ShowOuterBorder = false,
+            ShowOuterMask = false,
+            ShowBorder = false,
             ShowHandles = false,
             ShowMarker = false,
         };
@@ -627,7 +627,7 @@ public class MarqueeControlTests
 
         Assert.Empty(host.Layers);
         // 値は残る（ホストは計算値を使って自前で描ける）
-        Assert.NotEmpty(host.OverlayDipRects);
+        Assert.NotEmpty(host.OuterMaskDipRects);
         Assert.NotNull(host.Handles);
         Assert.Equal(0, hostSurface.GetAlpha(10, 10));
         Assert.Equal(0, hostSurface.GetAlpha(32, 32));

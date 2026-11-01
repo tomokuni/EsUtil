@@ -20,7 +20,7 @@
 
 - `ColorComboBoxControl`（`EsUtil.Ui.AvaloniaUI.ColorComboBox.ColorComboBoxControl`）を実際に Visual Tree へ配置して動作を確認できます。
 - 色名 / 16進コードのテキスト入力、ドロップダウン選択、カラーピッカー（ColorView Flyout）の動作を確認できます。
-- 公開プロパティ（`SelectedColor` / `ColorSortMode` / `TextFormat` / `HighlightBorderOnError` / `TextMinWidth` / `TextMaxWidth` / `TextWidth` / `TextPadding` / `TextMargin`）のバインドと動的変更を確認できます。
+- 公開プロパティ（`SelectedColor` / `ColorSortMode` / `TextFormat` / `TextFontSize` / `TextMinWidth` / `TextMaxWidth` / `TextWidth` / `HighlightBorderOnError`）のバインドと動的変更を確認できます。
 - バリデーション状態（`HasValidationError` / `ValidationErrorMessage`）の読み取りを確認できます。
 
 ---
@@ -56,7 +56,7 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 | 選択色プレビュー | `SelectedColor` を公開コンバーター（`StringToBrushConverter`）で Brush 化して表示 |
 | 色相順（ByHue）の ColorComboBoxControl | `ColorSortMode="ByHue"` でドロップダウンが色相順 |
 | 色名順（ByName）の ColorComboBoxControl | `ColorSortMode="ByName"` でドロップダウンが色名順 |
-| 入力欄のレイアウト設定 | `TextMinWidth` / `TextMaxWidth` / `TextWidth` / `TextPadding` / `TextMargin` を外部制御 |
+| 入力欄のサイズと文字サイズ | `TextFontSize` / `TextMinWidth` / `TextMaxWidth` / `TextWidth` を外部制御 |
 | バリデーション状態表示 | メインの ColorComboBoxControl から `HasValidationError` / `ValidationErrorMessage` を読み取り表示 |
 | 設定パネル | `ColorSortMode` 切替 / `TextFormat` 切替 / `HighlightBorderOnError` ON/OFF / `TextMinWidth` スライダー / 現在値の表示 |
 | カラーピッカーボタン | 各 ColorComboBoxControl 右側の「…」ボタンから ColorView Flyout を起動 |
@@ -71,7 +71,7 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 - [ ] 「…」ボタンでカラーピッカー（ColorView Flyout）が開き、OK で選択色が反映される
 - [ ] 無効な色を入力してフォーカスを外すと最終有効値へ復帰し、枠線が赤くなる（HighlightBorderOnError 時）
 - [ ] `TextMinWidth` / `TextMaxWidth` / `TextWidth` の変更がレイアウトに反映される
-- [ ] `TextPadding` / `TextMargin` の設定が入力欄に反映される
+- [ ] `TextFontSize` の設定が入力欄へ反映される（未設定は親の文字サイズを継承する）
 
 ---
 
@@ -86,7 +86,6 @@ EsUtil.Ui.AvaloniaUI/ColorComboBox/sample/
 ├── ViewModels/
 │   └── MainWindowViewModel.cs   # 色の保持（各コントロールへ双方向バインド）
 ├── Views/
-│   └── MainWindow.axaml(.cs)    # メイン画面（3 つの ColorComboBoxControl とバリデーション表示）
 └── RunSample.bat                # リリースビルド＆起動
 ```
 

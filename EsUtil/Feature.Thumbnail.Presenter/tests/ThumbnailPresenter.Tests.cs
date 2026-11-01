@@ -79,20 +79,70 @@ public class ThumbnailPresenterTests
         Assert.Equal(192, large.First(band => band.Y == 0 && band.Height == 1).Width);
     }
 
-    /// <summary>強調中に影を隠す外観で層から影が除かれることを検証する。</summary>
+    /// <summary>選択中だけ影を隠すことを検証する（ホバーでは隠さない）。</summary>
     [Fact]
-    public void 影を描かない場合は層から影が除かれる()
+    public void 選択時に影を隠す設定は選択中だけ影を除く()
     {
-        var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default with { HideShadowWhenHighlighted = true });
+        var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default with { HideShadowWhenSelected = true });
         var layout = presenter.ResolveLayout(300, 96, [96, 96]);
-        var plan = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: -1, hoveredIndex: 0, isDark: false);
 
-        Assert.True(plan.IsHovered);
-        Assert.Null(plan.Shadow);
-        Assert.DoesNotContain(ThumbnailDrawLayer.Shadow, plan.Layers);
-        Assert.Equal(ThumbnailAppearance.Default.HoverBackground(false), plan.BackgroundArgb);
+        // ホバー中でも選択していなければ影を描く（通り過ぎただけで影が消えるとちらつく）
+        var hovered = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: -1, hoveredIndex: 0, isDark: false);
+        Assert.True(hovered.IsHovered);
+        Assert.NotNull(hovered.Shadow);
+        Assert.Contains(ThumbnailDrawLayer.Shadow, hovered.Layers);
+
+        var selected = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: 0, hoveredIndex: -1, isDark: false);
+        Assert.True(selected.IsSelected);
+        Assert.Null(selected.Shadow);
+        Assert.DoesNotContain(ThumbnailDrawLayer.Shadow, selected.Layers);
     }
 
+    /// <summary>外観から決まる寸法を求めることを検証する。</summary>
+    /// <remarks>
+    /// 影の余白と名前の行の高さは利用者の設定ではない（設定に混ぜると「設定したのに効かない項目」が生まれる）。
+    /// 外観の影と文字サイズから求めて配置の計算へ渡す。 名前の行の高さは上下の余白を含む
+    /// （含めないと余白を増やした分だけ文字を置ける高さが減り、2 行目が切れる）。
+    /// </remarks>
+    [Fact]
+    internal void ResolveMetrics_影の余白と名前の行の高さを外観から求める()
+    {
+        var presenter = new ThumbnailPresenter(
+            appearance: ThumbnailAppearance.Default with { LabelFontSize = 11, LabelVerticalPadding = 3 });
+
+        var metrics = presenter.ResolveMetrics();
+
+        Assert.Equal(10, metrics.SlotInset, 6);
+        Assert.Equal(
+            ThumbnailLabelText.ResolveHeight(11, ThumbnailLabelText.MaxLines) + 6, metrics.LabelHeight, 6);
+    }
+
+    /// <summary>影を描かない外観では余白が 0 になることを検証する。</summary>
+    [Fact]
+    internal void ResolveMetrics_影が無ければ余白は0になる()
+    {
+        var presenter = new ThumbnailPresenter(
+            appearance: ThumbnailAppearance.Default with { Shadow = null });
+
+        Assert.Equal(0, presenter.ResolveMetrics().SlotInset, 6);
+    }
+
+    /// <summary>影の表示を止めた外観では余白が 0 になり、計画にも影が載らないことを検証する。</summary>
+    /// <remarks>表示可否（<c>ShowShadow</c>）と算法（<c>Shadow</c>）を分けているため、算法を保ったまま止められる。</remarks>
+    [Fact]
+    internal void ShowShadowを止めると余白も影も無くなる()
+    {
+        var presenter = new ThumbnailPresenter(
+            appearance: ThumbnailAppearance.Default with { ShowShadow = false });
+        var layout = presenter.ResolveLayout(600, 110, [90]);
+
+        var plan = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, -1, false);
+
+        Assert.Equal(0, presenter.ResolveMetrics().SlotInset, 6);
+        Assert.Null(plan.Shadow);
+        Assert.DoesNotContain(ThumbnailDrawLayer.Shadow, plan.Layers);
+        Assert.Equal(plan.Image, plan.ShadowArea);
+    }
     /// <summary>選択の背景がホバーより優先されることを検証する。</summary>
     [Fact]
     public void 選択の背景はホバーより優先される()
@@ -176,8 +226,8 @@ public class ThumbnailPresenterTests
         var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default with { Shadow = null });
         var layout = presenter.ResolveLayout(300, 96, [96]);
 
-        // 既定の余白（ItemMargin + ItemPadding = 14）だけが残る
-        Assert.Equal(96 + (14 * 2), layout.SlotWidth);
+        // 影を描かない設定では余白を持たない（項目の幅 = 画像の幅）
+        Assert.Equal(96, layout.SlotWidth);
 
         var plan = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, -1, false);
         Assert.Null(plan.Shadow);
@@ -229,6 +279,40 @@ public class ThumbnailPresenterTests
             => ThumbnailShadowPlan.Default.BuildDeviceBands(x, y, width, height, scaling);
     }
 
+    /// <summary>2 行に収まらない名前は拡張子を残して省略することを検証する。</summary>
+    /// <remarks>
+    /// 名前を置ける幅は行の幅から左右の余白を除いた値である（余白を引かないと、実際には折り返される文字数より
+    /// 多く残してしまい、省略されずに切れる）。
+    /// </remarks>
+    [Fact]
+    public void 名前が2行に収まらない場合は拡張子を残して省略する()
+    {
+        var presenter = new ThumbnailPresenter(
+            options: ThumbnailOptions.Default with { LabelHorizontalPadding = 24 },
+            appearance: ThumbnailAppearance.Default with { LabelFontSize = 24 });
+        var layout = presenter.ResolveLayout(600, 110, [90]);
+
+        var plan = presenter.ResolveDrawPlan(layout, 0, "capture-0123456789.png", false, -1, -1, false);
+
+        Assert.Contains("...", plan.Label.Text, StringComparison.Ordinal);
+        Assert.EndsWith(".png", plan.Label.Text, StringComparison.Ordinal);
+    }
+
+    /// <summary>太字の項目は幅を広く見積もって、より短く省略することを検証する。</summary>
+    [Fact]
+    public void 太字の項目はより短く省略する()
+    {
+        var presenter = new ThumbnailPresenter(
+            options: ThumbnailOptions.Default with { LabelHorizontalPadding = 24 },
+            appearance: ThumbnailAppearance.Default with { LabelFontSize = 24, BoldCurrentLabel = true });
+        var layout = presenter.ResolveLayout(600, 110, [90]);
+
+        var normal = presenter.ResolveDrawPlan(layout, 0, "capture-0123456789.png", false, -1, -1, false);
+        var bold = presenter.ResolveDrawPlan(layout, 0, "capture-0123456789.png", true, -1, -1, false);
+
+        Assert.True(bold.Label.Text.Length <= normal.Label.Text.Length);
+        Assert.True(bold.Label.IsBold);
+    }
     /// <summary>影を外した計画を返す提示（差し替えの例）。</summary>
     private sealed class OutlineOnlyPresenter() : ThumbnailPresenter
     {
@@ -240,9 +324,11 @@ public class ThumbnailPresenterTests
             bool isCurrent,
             int selectedIndex,
             int hoveredIndex,
-            bool isDark)
+            bool isDark,
+            ThumbnailTextMeasure? measureText = null)
         {
-            var plan = base.ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex, isDark);
+            var plan = base.ResolveDrawPlan(
+                layout, index, text, isCurrent, selectedIndex, hoveredIndex, isDark, measureText);
 
             return plan with
             {

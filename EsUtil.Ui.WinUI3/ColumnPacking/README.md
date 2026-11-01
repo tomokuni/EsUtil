@@ -127,11 +127,19 @@ var panel = new ColumnPackingPanel { ColumnLimit = 4, Method = ColumnPacker.Meth
 | --- | --- |
 | 余白・列数・算法を変える | `RowSpace` / `ColumnSpace` / `ColumnLimit` / `Method` を設定します。 |
 | レイアウト結果を表示する | `LayoutMinHeight` / `LayoutUsedWidth` / `LayoutColumnCount` / `LayoutColumnSegments` をバインディングします。 |
-| 独自の表示を足す | `ColumnPackingPanel` を継承し、`Layout` を読んで表示を組み立てます（[サンプル](sample/README.md) の `ColumnPackingPanelDebugText`）。 |
+| 独自の表示を足す | `ColumnPackingPanel` を継承し、`Layout` を読んで表示を組み立てます（`Layout` は派生クラスだけが読める）。 |
 
 ## 9. ログ
 
-出力しません（配置の計算は決定的であり、状態の変化は依存関係プロパティとして読めます）。
+`Log` へ `ILogger` を設定すると、次の内容を出力します（既定は出力なし）。 接頭辞は `LogPrefix` で設定します（既定 `[ColumnPacking]`）。
+
+| レベル | 内容 | 出力例 |
+| --- | --- | --- |
+| Information | 生成（初期設定）と**プロパティの変更**（変化した項目だけ） | `[ColumnPacking] Setting: ColumnLimit 10 → 3` |
+| Debug | **レイアウト結果が変化したとき**（同じ結果の繰り返しは出力しない） | `[ColumnPacking] Layout: UsedWidth=268.8 MinHeight=576 Columns=3 Segments=[6,13,21]` |
+| Trace | 項目ごとの Y 座標（レイアウト結果が変化したときだけ） | `[ColumnPacking] Layout items: Y=[0, 48, 104, …]` |
+
+レベルの決め方は [`.github/ログ規約.md`](../../.github/ログ規約.md) §2（プロパティの変更は `Information`、設定以外の状態変化は `Debug`、高頻度の値は `Trace`）に従います。
 
 ## 10. 未対応
 

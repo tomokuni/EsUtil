@@ -147,11 +147,11 @@
 
 ## 8. ログ
 
-`Log` プロパティへ `ILogger` を設定すると、描画の例外と `Source` の変更を出力します（未設定・null の場合は `NullLogger` になり出力しません）。 設定（`Options`）・環境値（`ClientToPixelScaling`）・拡大中心（`CenterPoint`）の変更ログはコアが出力するため、本コントロールは同じロガーをコアへも渡します。 `LogPrefix` プロパティでログの接頭辞を設定できます（既定 `[Loupe]`。 提示層・コアへ伝搬する）。
+`Log` プロパティへ `ILogger` を設定すると、描画の例外と `Source` の変更を出力します（未設定・null の場合は `NullLogger` になり出力しません）。 設定（`Options`）・環境値（`ClientToPixelScaling`）・拡大中心（`CenterPoint`）の変更ログはコアが出力するため、本コントロールは同じロガーをコアへも渡します。 `LogPrefix` プロパティでログの接頭辞を設定できます（既定 `[Loupe]`。 提示層・コアへ伝搬する）。 **接頭辞はプロセス（アセンブリ）内の全インスタンスで共有されます**（同じ実行で 2 つ目のルーペへ別の接頭辞を設定すると、1 つ目のルーペのログもその接頭辞になります）。
 
 | レベル | 出力内容 |
 | --- | --- |
-| Debug | `[Loupe] Setting: {名前} {前} → {後}`（コアの設定）/ `[Loupe] Setting: Source {前} → {後}`。 補正後の値を渡し、変化判定（同一値・同一インスタンスなら出力しない）は出力する主体のログ定義（Source は `EsUtil.Feature.Loupe.Presenter`、他はコア）が単一所有する。 設定の変更は変化した項目だけを出力する） |
+| Information | `[Loupe] Setting: {名前} {前} → {後}`（コアの設定）/ `[Loupe] Setting: Source {前} → {後}`。 補正後の値を渡し、変化判定（同一値・同一インスタンスなら出力しない）は出力する主体のログ定義（Source は `EsUtil.Feature.Loupe.Presenter`、他はコア）が単一所有する。 設定の変更は変化した項目だけを出力する） |
 | Error | `[Loupe] Update exception`（描画の例外。 スタックトレース付き。 アプリは継続する） |
 
 数値の補正（`coerce`）と変更ログ（`changed`）は**プロパティの登録（`MewProperty.Register`）**へ渡します。 したがって setter を経由しない設定（バインディング・`MewObject.SetValue` 相当）でも安全域が保たれ、変更が記録されます（Avalonia 版の `coerce` コールバック + `Changed` クラスハンドラと同じ契約）。

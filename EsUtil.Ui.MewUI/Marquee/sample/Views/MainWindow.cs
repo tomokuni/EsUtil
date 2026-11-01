@@ -2,25 +2,27 @@ using System.Globalization;
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using EsUtil.Ui.MewUI.Marquee.Sample.Imaging;
-using EsUtil.Ui.MewUI.Marquee.Sample.Logging;
 using EsUtil.Ui.MewUI.Marquee.Sample.Presentation;
+using EsUtil.Ui.MewUI.SampleKit;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
+using Microsoft.Extensions.Logging;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.MewUI.Marquee.Sample.Views;
 
 /// <summary>メイン ウィンドウ（設定パネル + 背景画像 + ドラッグ選択）を組み立てる。</summary>
 /// <remarks>
-/// <b>示すこと</b>: <c>MarqueeControl</c> の公開 API（<c>SetCoordTransform</c> / <c>Options</c> / <c>Appearance</c> /<br/>
-/// <c>SetSelection</c> / <c>ResetSelection</c> / <c>RequestConfirm</c> / <c>RequestCancel</c> / <c>Log</c>）だけで<br/>
+/// <b>示すこと</b>: <c>MarqueeControl</c> の公開 API（<c>SetCoordTransform</c> / <c>Options</c> / <c>Appearance</c> /
+/// <c>SetSelection</c> / <c>ResetSelection</c> / <c>RequestConfirm</c> / <c>RequestCancel</c> / <c>Log</c>）だけで
 /// ドラッグ選択・ズーム表示・外観の変更・確定/キャンセルの流れを組める。<br/>
 /// <br/>
-/// <b>座標系</b>: 選択矩形は対象座標（元画像ピクセル）で扱う。 表示のズームは座標変換ポート<br/>
+/// <b>座標系</b>: 選択矩形は対象座標（元画像ピクセル）で扱う。 表示のズームは座標変換ポート
 /// （<c>CoordTransform.ClientToSource</c>）が担うため、コントロールはズームを知らない。<br/>
 /// <br/>
-/// <b>拡張例</b>: 見本のチェックを入れると、外観と描画計画を差し替えて外枠を破線・内側を三分割のガイド線にする<br/>
-/// （提示層の派生は不要。 <see cref="GuideMarqueePlan"/>）。
+/// <b>配置</b>: サンプル共通の <see cref="SampleShell"/>（左: 設定 / 右上: 画像 / 右下: ログ）を使う。<br/>
+/// <b>ログ</b>: Serilog の出力を非同期に表示する（<see cref="SampleLogging"/>）。<br/>
+/// <b>項目の並び</b>: 同じ機能の他 UI のサンプルと同じ順に並べる。
 /// </remarks>
 internal static class MainWindow
 {
@@ -30,16 +32,6 @@ internal static class MainWindow
     /// <summary>背景画像の高さ（ピクセル）。</summary>
     private const int ImageHeight = 600;
 
-    /// <summary>設定パネルの幅（DIP）。</summary>
-    private const double SettingsWidth = 400;
-
-    /// <summary>スライダーの幅（DIP）。</summary>
-    private const double SliderWidth = 150;
-
-    /// <summary>ログ表示の高さ（DIP）。</summary>
-    private const double LogHeight = 150;
-
-    /// <summary>ズームの選択肢（倍率）。</summary>
     /// <summary>ズームの最小倍率（Avalonia 版サンプルと同じ）。</summary>
     private const double MinZoom = 0.1;
 
@@ -52,15 +44,16 @@ internal static class MainWindow
     /// <summary>通常ホイール 1 行あたりのパン量（DIP）。</summary>
     private const double WheelScrollSensitivity = 48.0;
 
-    /// <summary>色の選択肢（「なし」は描画しないことを表す）。</summary>
-    private static readonly (string Name, DrawingColor? Color)[] s_colorChoices =
+    /// <summary>色の選択肢（表示の可否は各項目のチェックが持つため、色だけを選ぶ）。</summary>
+    private static readonly (string Name, DrawingColor Color)[] s_colorChoices =
     [
-        ("なし", null),
         ("白", DrawingColor.White),
         ("アンバー", DrawingColor.FromArgb(255, 255, 196, 0)),
         ("赤", DrawingColor.FromArgb(255, 255, 0, 0)),
         ("緑", DrawingColor.FromArgb(255, 0, 200, 83)),
         ("薄灰", DrawingColor.FromArgb(255, 0xD3, 0xD3, 0xD3)),
+        ("黒 50%", DrawingColor.FromArgb(128, 0, 0, 0)),
+        ("黒 60%", DrawingColor.FromArgb(153, 0, 0, 0)),
     ];
 
     /// <summary>メイン ウィンドウを生成する。</summary>
@@ -72,21 +65,17 @@ internal static class MainWindow
         var imageSource = ImageSource.FromBgraPixels(backdrop.Width, backdrop.Height, backdrop.ReadOnlyPixels, true);
         var image = new Image { Source = imageSource };
 
-        // ── ログ表示（コントロールの Log と本サンプルの操作ログを同じ領域へ出す） ──
-        var logLines = new List<string>();
-        var logText = new TextBlock().FontSize(11);
+        // ── ログ（Serilog。 非同期に表示する） ──
+        var logging = new SampleLogging();
+        var log = new SampleLogPanel(logging.Buffer);
+        var logger = logging.Logger;
+        logger.LogInformation("サンプルを起動しました。");
+
         void WriteLog(string line)
         {
-            logLines.Add(line);
-            if (logLines.Count > 200)
-            {
-                logLines.RemoveAt(0);
-            }
-
-            logText.Text = string.Join(Environment.NewLine, logLines);
+            // 文字列をそのまま記録する（テンプレート解析も引数の評価もしない）
+            logger.Log(LogLevel.Information, default, line, null, static (state, _) => state);
         }
-
-        var logger = new InMemoryLogger(WriteLog);
 
         // ── 選択情報の表示 ──
         var selectionText = new TextBlock().FontSize(11).Text("選択なし");
@@ -101,35 +90,28 @@ internal static class MainWindow
             Log = logger,
             LogPrefix = "[Marquee]",
         };
-        // 画像とコントロールを同じ領域へ重ねる（コントロールが選択矩形と装飾を描く）
-        var surface = new Grid().Columns("*").Rows("*").Children(image, marquee);
 
-        // 表示領域より大きくなったとき（ズーム時）にパンできるようスクロールビューへ入れる（Avalonia 版と同じ操作）
+        // 画像とコントロールを同じ領域へ重ねる（コントロールが選択矩形と装飾を描く）
+        // 左上へ寄せて指定した大きさを保つ（引き伸ばされると画像と座標がずれる）
+        var surface = new Grid().Columns("*").Rows("*").Children(image, marquee);
+        surface.HorizontalAlignment(HorizontalAlignment.Left);
+        surface.VerticalAlignment(VerticalAlignment.Top);
+
+        // 表示領域より大きくなったとき（ズーム時）にパンできるようスクロールビューへ入れる
         var scroll = new ScrollViewer().Content(surface);
-        // 縦横とも必要になったらスクロール バーを表示する（Avalonia 版サンプルの ScrollBarVisibility="Auto" と同じ）
         scroll.HorizontalScroll = ScrollMode.Auto;
         scroll.VerticalScroll = ScrollMode.Auto;
         scroll.OnScrollChanged(() => WriteLog($"スクロール: X={scroll.HorizontalOffset:0}, Y={scroll.VerticalOffset:0}"));
-        // ズームの現在値（ホイールとスライダーの両方から更新する）
+
         var zoomText = new TextBlock().Width(52).VerticalAlignment(VerticalAlignment.Center).Text(FormatZoom(zoom));
 
-        // ズームのスライダー（ホイールと同じ範囲・刻み。 変更は ApplyZoom が倍率を確定する）
-        var zoomSlider = new Slider
-        {
-            Minimum = MinZoom,
-            Maximum = MaxZoom,
-            Value = zoom,
-            Width = SliderWidth,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        zoomSlider.SmallChange(ZoomStep);
-        zoomSlider.ValueChanged += value =>
-        {
-            ApplyZoom(value);
-            zoomText.Text = FormatZoom(zoom);
-        };
-        ApplyZoom(zoom);
-        marquee.SetCoordTransform(CoordTransform.ClientToSource(() => zoom, () => new EsSize(ImageWidth, ImageHeight)));
+        // 倍率は「対象座標 / ローカル DIP」。 ズームは画像を倍率ぶん大きく描くため、1 DIP が覆う対象座標は 1 / ズームになる
+        marquee.ClientToSourceScaling = 1.0 / zoom;
+        marquee.SetCoordTransform(
+            CoordTransform.ClientToSource(() => 1.0 / zoom, () => new EsSize(ImageWidth, ImageHeight)));
+
+        // 起動直後に枠線・ハンドル・ラベルが見えるように、選択を 1 つ与えておく
+        marquee.SetSelection(new EsRect(120, 80, 240, 180));
 
         void UpdateSelection(MarqueeSnapshot snapshot)
         {
@@ -156,23 +138,19 @@ internal static class MainWindow
         // 矢印キーの nudge はフォーカスを必要とするため、クリックでフォーカスを与える
         marquee.OnMouseDown(_ => marquee.Focus());
 
-        // Ctrl+ホイールでズーム（カーソル位置を固定）、通常ホイールで表示領域のパン（Avalonia 版サンプルと同じ操作）。
-        // 表示倍率だけを変え、選択矩形は対象座標のまま。 ハンドラーは最前面の要素（マーキー）へ付ける
-        // （MewUI の入力はポインター下の要素が受け取るため。 親パネルへ付けても配送されない）。
+        // Ctrl+ホイールでズーム（カーソル位置を固定）、通常ホイールで表示領域のパン
         marquee.OnMouseWheel(e =>
         {
             if (!e.ControlKey)
             {
-                // 通常ホイールは表示領域をスクロールする（拡大した画像のパン）
                 scroll.ScrollBy(-e.Delta.Y * WheelScrollSensitivity);
                 e.Handled = true;
                 return;
             }
 
-            // カーソル下の点が同じ表示位置に残るよう、スクロール オフセットを同じ処理で調整する
             var anchor = e.GetPosition(surface);
             var oldZoom = zoom;
-            zoomSlider.Value = Math.Clamp(zoom + (e.Delta.Y > 0 ? ZoomStep : -ZoomStep), MinZoom, MaxZoom);
+            ApplyZoom(Math.Clamp(zoom + (e.Delta.Y > 0 ? ZoomStep : -ZoomStep), MinZoom, MaxZoom));
 
             if (!zoom.Equals(oldZoom))
             {
@@ -185,101 +163,72 @@ internal static class MainWindow
             e.Handled = true;
         });
 
-        // ── 設定パネル ──
-        var settings = new StackPanel().Vertical().Spacing(12).Children(
+        // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
+        var properties = new StackPanel().Vertical().Spacing(6).Children(
+            SampleSettings.Slider("ズーム", zoom, MinZoom, MaxZoom, ZoomStep, false, value => ApplyZoom(value)),
+            SampleSettings.Check("ハンドルを表示", true, value => Apply(appearance with { ShowHandles = value })),
+            ColorChoice("ハンドルの色", 0, index => Apply(appearance with { HandleColor = ResolveColor(index) })),
+            ColorChoice("ハンドル枠の色", 4, index => Apply(appearance with { HandleBorderColor = ResolveColor(index) })),
+            SampleSettings.Slider("ハンドル サイズ", 10, 2, 30, 1, true, value => marquee.Options = marquee.Options with { HandleSize = value }),
+            SampleSettings.Slider("ハンドル枠の太さ", 1.5, 0.5, 8, 0.5, false, value => marquee.Options = marquee.Options with { HandleBorderThickness = value }),
+            SampleSettings.Slider("ヒット半径", 12, 2, 40, 1, true, value => marquee.Options = marquee.Options with { HandleHitRadius = value }),
+            SampleSettings.Slider("最小選択サイズ", 6, 1, 40, 1, true, value => marquee.Options = marquee.Options with { MinSelectionSize = value }),
+            SampleSettings.Check("画像内にクリップ", true, value => marquee.Options = marquee.Options with { ClampToSourceBounds = value }),
+            SampleSettings.Check("枠線を表示", true, value => Apply(appearance with { ShowBorder = value })),
+            ColorChoice("枠線の色", 4, index => Apply(appearance with { BorderColor = ResolveColor(index) })),
+            SampleSettings.Slider("枠線の太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { BorderThickness = value })),
+            SampleSettings.Check("内側マスクを表示", false, value => Apply(appearance with { ShowInnerMask = value })),
+            ColorChoice("内側マスクの色", 0, index => Apply(appearance with { InnerMaskColor = ResolveColor(index) })),
+            SampleSettings.Check("外側マスクを表示", true, value => Apply(appearance with { ShowOuterMask = value })),
+            ColorChoice("外側マスクの色", 5, index => Apply(appearance with { OuterMaskColor = ResolveColor(index) })),
+            SampleSettings.Check("マーカーを表示", true, value => Apply(appearance with { ShowMarker = value })),
+            ColorChoice("マーカーの色", 0, index => Apply(appearance with { MarkerColor = ResolveColor(index) })),
+            SampleSettings.Slider("マーカーの太さ", 2, 0.5, 8, 0.5, false, value => Apply(appearance with { MarkerThickness = value })),
+            SampleSettings.Slider("マーカーの長さ", 16, 8, 40, 2, true, value => marquee.Options = marquee.Options with { MarkerLength = value }),
+            SampleSettings.Check("サイズ ラベルを表示", true, value => Apply(appearance with { ShowSizeLabel = value })),
+            ColorChoice("サイズ ラベルの色", 0, index => Apply(appearance with { SizeLabelColor = ResolveColor(index) })),
+            ColorChoice("サイズ ラベルの背景色", 6, index => Apply(appearance with { SizeLabelBackgroundColor = ResolveColor(index) })),
+            SampleSettings.Slider("サイズ ラベルの文字サイズ", 14, 6, 24, 1, true, value => Apply(appearance with { SizeLabelFontSize = value })),
+            SampleSettings.Slider("サイズ ラベルの表示スケール", 0, 0, 2, 0.1, false, value => marquee.DisplayScaleScaling = value),
+            SampleSettings.Check("座標ラベルを表示", true, value => Apply(appearance with { ShowCoordLabel = value })),
+            ColorChoice("座標ラベルの色", 0, index => Apply(appearance with { CoordLabelColor = ResolveColor(index) })),
+            ColorChoice("座標ラベルの背景色", 6, index => Apply(appearance with { CoordLabelBackgroundColor = ResolveColor(index) })),
+            SampleSettings.Slider("座標ラベルの文字サイズ", 12, 6, 24, 1, true, value => Apply(appearance with { CoordLabelFontSize = value })),
+            SampleSettings.Slider("座標ラベルの間隔", 8, 0, 24, 1, true, value => Apply(appearance with { CoordLabelOffset = value })),
+            SampleSettings.Slider("ラベルの余白", 4, 0, 24, 1, true, value => Apply(appearance with { LabelPadding = value })),
+            SampleSettings.Text("ログ接頭辞", "[Marquee]", value => marquee.LogPrefix = value),
+            SampleSettings.Check("描画計画を差し替える（破線・ガイド線）", false, value =>
+                marquee.DrawPlanResolver = value ? static plan => GuideMarqueePlan.Resolve(in plan) : null));
+
+        // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
+        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        var methods = new StackPanel().Vertical().Spacing(6).Children(
+            SampleSettings.Buttons(
+                ("選択をクリア", () => marquee.ResetSelection()),
+                ("矩形を設定", () => marquee.SetSelection(new EsRect(250, 180, 300, 200))),
+                ("確定を要求", () => marquee.RequestConfirm()),
+                ("キャンセルを要求", () => marquee.RequestCancel())));
+
+        // ── サンプル設定（サンプルアプリの外観と状態） ──
+        var samples = new StackPanel().Vertical().Spacing(6).Children(
+            SampleSettings.LogLevel(logging),
             new TextBlock
             {
-                Text = "ドラッグ: 選択 / 矢印キー: nudge（ドラッグ中の微調整） / Ctrl+ホイール: ズーム / ホイール: パン / Enter・Escape: 確定・キャンセル",
+                Text = "ドラッグ: 選択 / マウスを押したままの矢印キー: 位置の微調整 / Enter: 確定 / Escape: キャンセル",
                 FontSize = 11,
                 TextWrapping = TextWrapping.Wrap,
             },
-            Section(
-                "表示",
-                Row("ズーム", new StackPanel().Horizontal().Spacing(8).Children(zoomSlider, zoomText)),
-                CheckRow(true, value => marquee.Options = marquee.Options with { ClampToSourceBounds = value }, "画像内にクリップ"),
-                new StackPanel().Horizontal().Spacing(8).Children(
-                    Button("選択をリセット", () => marquee.ResetSelection()),
-                    Button("矩形を設定", () => marquee.SetSelection(new EsRect(250, 180, 300, 200)))),
-                new StackPanel().Horizontal().Spacing(8).Children(
-                    Button("確定を要求", () => marquee.RequestConfirm()),
-                    Button("キャンセルを要求", () => marquee.RequestCancel()))),
-            Section(
-                "外観",
-                ChoiceRow(s_colorChoices, 5, index =>
-                {
-                    appearance = appearance with
-                    {
-                        OuterBorderColor = ResolveColor(index, appearance.OuterBorderColor),
-                        ShowOuterBorder = s_colorChoices[index].Color is not null,
-                    };
-                    marquee.Appearance = appearance;
-                }),
-                SliderRow("枠線の太さ", 2, 0.5, 8, 0.5, false, value =>
-                {
-                    appearance = appearance with { OuterBorderThickness = value };
-                    marquee.Appearance = appearance;
-                }),
-                ChoiceRow(s_colorChoices, 1, index =>
-                {
-                    appearance = appearance with
-                    {
-                        HandleColor = ResolveColor(index, appearance.HandleColor),
-                        ShowHandles = s_colorChoices[index].Color is not null,
-                    };
-                    marquee.Appearance = appearance;
-                }),
-                ChoiceRow(s_colorChoices, 1, index =>
-                {
-                    appearance = appearance with
-                    {
-                        MarkerColor = ResolveColor(index, appearance.MarkerColor),
-                        ShowMarker = s_colorChoices[index].Color is not null,
-                    };
-                    marquee.Appearance = appearance;
-                }),
-                CheckRow(true, value =>
-                {
-                    appearance = appearance with { ShowOverlay = value };
-                    marquee.Appearance = appearance;
-                }, "暗転マスクを表示")),
-            Section(
-                "寸法・対話パラメータ",
-                SliderRow("ハンドル サイズ", 10, 2, 30, 1, true, value => marquee.Options = marquee.Options with { HandleSize = value }),
-                SliderRow("ハンドル枠の太さ", 1.5, 0.5, 8, 0.5, false, value => marquee.Options = marquee.Options with { HandleBorderThickness = value }),
-                SliderRow("マーカーの長さ", 16, 8, 40, 2, true, value => marquee.Options = marquee.Options with { MarkerLength = value }),
-                SliderRow("ヒット半径", 12, 2, 40, 1, true, value => marquee.Options = marquee.Options with { HandleHitRadius = value }),
-                SliderRow("最小選択サイズ", 6, 1, 40, 1, true, value => marquee.Options = marquee.Options with { MinSelectionSize = value })),
-            Section(
-                "拡張例（見本）",
-                CheckRow(false, value =>
-                {
-                    appearance = value ? GuideMarqueePlan.Appearance : MarqueeAppearance.Default;
-                    marquee.Appearance = appearance;
-                    marquee.DrawPlanResolver = value ? static plan => GuideMarqueePlan.Resolve(in plan) : null;
-                }, "外枠を破線・内側を三分割のガイド線にする")),
-            Section(
-                "選択状態",
-                selectionText),
-            Section(
-                "ログ",
-                new Border { Child = new ScrollViewer().Content(logText), Height = LogHeight }));
+            SampleSettings.Buttons(
+                ("ハイライト切替", ToggleHighlight),
+                ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
+            selectionText);
 
-        var settingsHost = new Border
+        var window = SampleShell.Create("MarqueeControl サンプル（MewUI）", properties, methods, samples, scroll, log);
+        window.Closed += () =>
         {
-            Child = new ScrollViewer().Content(settings),
-            Padding = new Thickness(12),
+            backdrop.Dispose();
+            logging.Dispose();
         };
-
-        var root = new Grid().Columns($"{SettingsWidth},*").Rows("*");
-        root.Add(settingsHost.Column(0));
-        root.Add(new Border { Child = scroll, Padding = new Thickness(12) }.Column(1));
-
-        var window = new Window()
-            .Title("MarqueeControl サンプル（MewUI）")
-            .Resizable(1340, 860, minWidth: 1000, minHeight: 640);
-        window.Content(root);
-
-        window.Closed += () => backdrop.Dispose();
 
         return window;
 
@@ -287,8 +236,35 @@ internal static class MainWindow
         void ApplyZoom(double value)
         {
             zoom = value;
+            zoomText.Text = FormatZoom(value);
+            marquee.ClientToSourceScaling = 1.0 / value;
             surface.Width = ImageWidth * value;
             surface.Height = ImageHeight * value;
+        }
+
+        // 外観を更新してコントロールへ反映する（保持値と反映先を 1 か所にまとめる）
+        void Apply(MarqueeAppearance value)
+        {
+            appearance = value;
+            marquee.Appearance = value;
+        }
+
+        // 検出結果など、ホストが外から与える「表示専用の注目矩形」を模す。
+        // 選択（SetSelection）とは別で、**ハンドルを出さず、確定・キャンセルの対象にもならない**（利用者に操作させたくない領域を示す）。
+        // ハイライト中は**表示専用**になる（ハンドルを出さず、ドラッグもキー操作も受け付けない）。
+        // これが「選択（SetSelection）との違い」である：選択は利用者が編集でき、ハイライトはホストが与える表示専用の注目である。
+        void ToggleHighlight()
+        {
+            if (marquee.HighlightSourceRect is not null)
+            {
+                marquee.HighlightSourceRect = null;
+                WriteLog("ハイライト解除（注目矩形は選択へ戻る）");
+                return;
+            }
+
+            var detected = new EsRect(420, 140, 300, 200);
+            marquee.HighlightSourceRect = detected;
+            WriteLog($"ハイライト（表示専用の注目）: {FormatRect(detected)} / 選択は {FormatRect(marquee.SelectionSourceRect)} のまま（ハンドルは操作できる）");
         }
     }
 
@@ -300,121 +276,21 @@ internal static class MainWindow
             CultureInfo.InvariantCulture,
             $"({rect.X:0.#}, {rect.Y:0.#}) {rect.Width:0.#}x{rect.Height:0.#}");
 
-    /// <summary>「なし」を除いた色の選択肢から色を解決する。</summary>
+    /// <summary>色の選択肢の行を作る。</summary>
+    /// <param name="label">項目名。</param>
+    /// <param name="selectedIndex">初期の選択インデックス。</param>
+    /// <param name="apply">変更の反映先（選択インデックス）。</param>
+    /// <returns>項目名とコンボ ボックスを並べた行。</returns>
+    private static FrameworkElement ColorChoice(string label, int selectedIndex, Action<int> apply)
+        => SampleSettings.Choice(label, [.. s_colorChoices.Select(static choice => choice.Name)], selectedIndex, apply);
+
+    /// <summary>色の選択肢から色を解決する。</summary>
     /// <param name="index">選択されたインデックス。</param>
-    /// <param name="fallback">「なし」が選ばれたときに残す色（描画しないため見た目には影響しない）。</param>
     /// <returns>解決した色。</returns>
-    private static DrawingColor ResolveColor(int index, DrawingColor fallback)
-        => s_colorChoices[index].Color ?? fallback;
-
-    /// <summary>セクション（見出し + 項目行）を構築する。</summary>
-    /// <param name="title">見出し。</param>
-    /// <param name="rows">項目行。</param>
-    /// <returns>見出しと項目行を縦に並べた要素。</returns>
-    private static Element Section(string title, params Element[] rows)
-    {
-        var header = new Label().Text(title).Bold().FontSize(12);
-
-        var body = new StackPanel().Vertical().Spacing(6);
-        body.Children(rows);
-
-        return new StackPanel().Vertical().Spacing(6).Children(header, body);
-    }
-
-    /// <summary>項目行（項目名 + 編集 UI）を構築する。</summary>
-    /// <param name="label">項目名。</param>
-    /// <param name="control">編集 UI。</param>
-    /// <returns>項目名と編集 UI を横に並べた要素。</returns>
-    private static Element Row(string label, Element control)
-    {
-        var name = new Label().Text(label).Width(130).VerticalTextAlignment(TextAlignment.Center);
-
-        return new StackPanel().Horizontal().Spacing(8).Children(name, control);
-    }
-
-    /// <summary>ボタンを構築する。</summary>
-    /// <param name="text">ボタンの文言。</param>
-    /// <param name="action">押下時の処理。</param>
-    /// <returns>ボタン。</returns>
-    private static FrameworkElement Button(string text, Action action)
-    {
-        var button = new Button().Content(text).OnClick(action);
-        button.Cursor(CursorType.Hand);
-        return button;
-    }
-
-    /// <summary>チェックボックスの行を構築する。</summary>
-    /// <param name="initial">初期値。</param>
-    /// <param name="apply">変更の反映先。</param>
-    /// <param name="text">チェックボックスのラベル。</param>
-    /// <returns>チェックボックス。</returns>
-    private static FrameworkElement CheckRow(bool initial, Action<bool> apply, string text)
-        => new CheckBox().IsChecked(initial).Content(text).OnCheckedChanged(apply);
-
-    /// <summary>スライダーの行を構築する（現在値を数値で表示する）。</summary>
-    /// <param name="label">項目名。</param>
-    /// <param name="initial">初期値。</param>
-    /// <param name="minimum">最小値。</param>
-    /// <param name="maximum">最大値。</param>
-    /// <param name="step">増減の単位。</param>
-    /// <param name="isInteger">整数のみを受け付けるかどうか。</param>
-    /// <param name="apply">変更の反映先。</param>
-    /// <returns>項目名・スライダー・現在値を並べた要素。</returns>
-    private static Element SliderRow(string label, double initial, double minimum, double maximum, double step, bool isInteger, Action<double> apply)
-    {
-        var value = new TextBlock().Width(52).VerticalAlignment(VerticalAlignment.Center);
-        value.Text = Format(initial, isInteger);
-
-        var slider = new Slider
-        {
-            Minimum = minimum,
-            Maximum = maximum,
-            Value = initial,
-            Width = SliderWidth,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        slider.SmallChange(step);
-        slider.ValueChanged += changed =>
-        {
-            value.Text = Format(changed, isInteger);
-            apply(changed);
-        };
-
-        return Row(label, new StackPanel().Horizontal().Spacing(8).Children(slider, value));
-    }
-
-    /// <summary>色などの選択肢の行を構築する。</summary>
-    /// <param name="choices">選択肢（名前と色）。</param>
-    /// <param name="selectedIndex">初期の選択インデックス。</param>
-    /// <param name="apply">変更の反映先（選択インデックス）。</param>
-    /// <returns>コンボボックス。</returns>
-    private static Element ChoiceRow((string Name, DrawingColor? Color)[] choices, int selectedIndex, Action<int> apply)
-        => ChoiceRow([.. choices.Select(static choice => choice.Name)], selectedIndex, apply);
-
-    /// <summary>文字列の選択肢の行を構築する。</summary>
-    /// <param name="choices">選択肢の表示名。</param>
-    /// <param name="selectedIndex">初期の選択インデックス。</param>
-    /// <param name="apply">変更の反映先（選択インデックス）。</param>
-    /// <returns>コンボボックス。</returns>
-    private static Element ChoiceRow(string[] choices, int selectedIndex, Action<int> apply)
-    {
-        var combo = new ComboBox().Items(choices);
-        combo.SelectedIndex = selectedIndex;
-        combo.OnSelectionChanged(_ => apply(combo.SelectedIndex));
-        return combo;
-    }
+    private static DrawingColor ResolveColor(int index) => s_colorChoices[index].Color;
 
     /// <summary>ズームの倍率を書式化する。</summary>
     /// <param name="value">ズームの倍率。</param>
     /// <returns>表示用の文字列。</returns>
     private static string FormatZoom(double value) => value.ToString("0.0", CultureInfo.InvariantCulture) + "x";
-
-    /// <summary>スライダーの現在値を書式化する。</summary>
-    /// <param name="value">現在値。</param>
-    /// <param name="isInteger">整数のみを受け付けるかどうか。</param>
-    /// <returns>表示用の文字列。</returns>
-    private static string Format(double value, bool isInteger)
-        => isInteger
-            ? ((int)Math.Round(value)).ToString(CultureInfo.InvariantCulture)
-            : value.ToString("0.0", CultureInfo.InvariantCulture);
 }

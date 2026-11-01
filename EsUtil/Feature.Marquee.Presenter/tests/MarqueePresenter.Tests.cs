@@ -76,7 +76,7 @@ public class MarqueePresenterTests
         var presenter = CreatePresenter(out _);
         Assert.Equal(MarqueeAppearance.Default, presenter.Appearance);
 
-        var appearance = MarqueeAppearance.Default with { ShowHandles = false, OverlayColor = System.Drawing.Color.Red };
+        var appearance = MarqueeAppearance.Default with { ShowHandles = false, OuterMaskColor = System.Drawing.Color.Red };
         presenter.Appearance = appearance;
 
         Assert.Equal(appearance, presenter.Appearance);
@@ -157,7 +157,7 @@ public class MarqueePresenterTests
                 "[Marquee] Forwarded: ClientToSourceScaling 1.25",
             ],
             logger.Messages);
-        Assert.Equal([LogLevel.Debug, LogLevel.Trace], logger.Levels);
+        Assert.Equal([LogLevel.Information, LogLevel.Trace], logger.Levels);
     }
 
     /// <summary>外観の変更が変化した項目として記録されることを検証する。</summary>
@@ -205,6 +205,23 @@ public class MarqueePresenterTests
 
         // ハイライト矩形が注目矩形になる（優先順はコアが単一所有する）
         Assert.Equal(new EsRect(1, 2, 3, 4), plan.FocusDipRect);
+    }
+
+    /// <summary>ハイライト中はハンドルを描かない（表示専用）ことを検証する。</summary>
+    /// <remarks>
+    /// ハイライトはホストが与える表示専用の注目矩形であり、選択を編集できない。<br/>
+    /// ハンドルを残すと「操作できるのに注目は別の場所」という中途半端な状態になるため、幾何を返さない。
+    /// </remarks>
+    [Fact]
+    internal void ResolveDrawPlan_ハイライト中はハンドルを返さない()
+    {
+        var presenter = CreatePresenter(out _);
+        presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
+        presenter.HighlightSourceRect = new EsRect(1, 2, 3, 4);
+
+        var plan = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
+
+        Assert.Null(plan.Handles);
     }
 
     // ====================================================================
@@ -316,7 +333,7 @@ public class MarqueePresenterTests
 
     /// <summary>ラベルの基準点が「矩形の線幅 + 1」だけ注目矩形の内側へ寄ることを検証する。</summary>
     /// <remarks>
-    /// 枠線は注目矩形の内側へ <c>OuterBorderThickness</c> の幅で描かれるため、ラベルをその幅の分だけ内側へ寄せる<br/>
+    /// 枠線は注目矩形の内側へ <c>BorderThickness</c> の幅で描かれるため、ラベルをその幅の分だけ内側へ寄せる<br/>
     /// （重なると背景の上に線が乗り、文字が読みにくくなる）。<br/>
     /// ホストの付加情報ラベルが使う基準点（<see cref="MarqueeDrawPlan.LabelAnchor"/>）も同じ値である
     /// （サイズラベルと付加情報ラベルで寄せ幅が異なると縦積みがずれる）。
@@ -327,7 +344,7 @@ public class MarqueePresenterTests
         const double thickness = 5.0;
         var presenter = CreatePresenter(
             out _,
-            appearance: MarqueeAppearance.Default with { OuterBorderThickness = thickness });
+            appearance: MarqueeAppearance.Default with { BorderThickness = thickness });
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
 
         var plan = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
@@ -345,7 +362,7 @@ public class MarqueePresenterTests
     {
         var presenter = CreatePresenter(
             out _,
-            appearance: MarqueeAppearance.Default with { ShowOuterBorder = false, OuterBorderThickness = 5.0 });
+            appearance: MarqueeAppearance.Default with { ShowBorder = false, BorderThickness = 5.0 });
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
 
         var plan = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
@@ -358,14 +375,14 @@ public class MarqueePresenterTests
     [Fact]
     internal void ResolveDrawPlan_装飾は外観の表示可否でも残る()
     {
-        var presenter = CreatePresenter(out _, appearance: MarqueeAppearance.Default with { ShowOverlay = false });
+        var presenter = CreatePresenter(out _, appearance: MarqueeAppearance.Default with { ShowOuterMask = false });
         presenter.SetSelection(new EsRect(10, 20, 100, 50, EsRectInterval.Closed));
 
         var plan = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
 
         // 値は幾何だけで決まる（暗転を止めても領域は残り、描くかどうかは描画側が決める）
-        Assert.NotEmpty(plan.OverlayDipRects);
-        Assert.NotEmpty(plan.OuterBorderDipRects);
+        Assert.NotEmpty(plan.OuterMaskDipRects);
+        Assert.NotEmpty(plan.BorderDipRects);
         // 描く必要があるかの述語は表示可否を適用する（暗転を止めているが外枠は描く）
         Assert.True(plan.HasDecoration);
     }

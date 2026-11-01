@@ -36,7 +36,7 @@ public class MarqueeControlStateTests
 
         // ハンドルの枠線の既定は装飾の枠線と同じ DarkGray（設定画面の選択枠の色と一致）
         // 外観の既定は暗転する（単体の選択矩形コントロールとして暗転マスクを描く）
-        Assert.Equal(2.0, control.Appearance.OuterBorderThickness);
+        Assert.Equal(2.0, control.Appearance.BorderThickness);
         Assert.True(control.Appearance.ShowHandles);
         Assert.Equal(10.0, options.HandleSize);
         Assert.Equal(12.0, options.HandleHitRadius);
@@ -68,12 +68,12 @@ public class MarqueeControlStateTests
             CoordLabelFontSize = 14.0,
             ShowHandles = false,
             ShowCoordLabel = false,
-            OuterBorderThickness = 3.0,
+            BorderThickness = 3.0,
         };
         control.HighlightSourceRect = new EsRect(1, 2, 3, 4);
 
         var options = control.Options;
-        Assert.Equal(3.0, control.Appearance.OuterBorderThickness);
+        Assert.Equal(3.0, control.Appearance.BorderThickness);
         Assert.False(control.Appearance.ShowHandles);
         Assert.Equal(14.0, options.HandleSize);
         Assert.Equal(20.0, options.HandleHitRadius);

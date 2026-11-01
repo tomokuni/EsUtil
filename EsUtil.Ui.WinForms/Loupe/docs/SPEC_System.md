@@ -214,7 +214,7 @@ sequenceDiagram
 
 | レベル | 出力例 |
 | --- | --- |
-| Debug | `[Loupe] Setting: Source 800x600 → null`（拡大元画像。 変化の判定は本プロジェクトのログ定義が行う） |
+| Information | `[Loupe] Setting: Source 800x600 → null`（拡大元画像。 変化の判定は本プロジェクトのログ定義が行う） |
 | Error | `[Loupe] Update exception`（描画の例外）/ `[Loupe] {Operation} で例外が発生`（公開メソッドの例外） |
 | Debug / Trace | 設定（`Options`）・環境値（`ClientToPixelScaling`）・拡大中心（`CenterPoint`）の変更と通過の記録は、コアと提示層のログ定義が出力する |
 

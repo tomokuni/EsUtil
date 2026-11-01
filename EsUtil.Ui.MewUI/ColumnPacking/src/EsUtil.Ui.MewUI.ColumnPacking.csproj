@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>EsUtil.Ui.MewUI.ColumnPacking</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- MewUI は API が安定化中（0.x）。破壊的変更を避けるためバージョンを固定する。 -->
+    <MewUIVersion>0.22.1</MewUIVersion>
+    <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する）。 -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <Description>縦方向のマルチカラム配置を行う MewUI のパネル（最大列高さを最小化するレイアウト計算は EsUtil.Feature.ColumnPacking.Core が単一所有する）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MewUI のコア（型・標準のレイアウトと描画） -->
+    <PackageReference Include="Aprillz.MewUI.Core" />
+    <!-- 本コントロールが単一所有する値（プロパティ・レイアウト結果）の変更ログ（LoggerMessage ソース生成） -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 配置の計算（UI 非依存のコア） -->
+    <ProjectReference Include="..\..\..\EsUtil\Feature.ColumnPacking.Core\src\EsUtil.Feature.ColumnPacking.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Ui.MewUI.ColumnPacking.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 機能のルート名前空間（ファサードの公開面）を取り込む。 -->
+    <Using Include="EsUtil.Feature.ColumnPacking" />
+  </ItemGroup>
+
+</Project>

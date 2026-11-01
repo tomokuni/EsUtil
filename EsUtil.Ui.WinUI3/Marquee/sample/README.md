@@ -20,13 +20,13 @@
 | 示すこと | 内容 |
 | --- | --- |
 | 重ね方 | 背景のテスト パターン（別のキャンバス）の上へコントロールを重ねる（コントロールの背景は透明のまま） |
-| 枠線・ハンドル・ラベル | 起動直後に選択が 1 つあり、外枠・8 方向のハンドル・サイズ ラベル・カーソル座標ラベルが見える |
+| 枠線・ハンドル・ラベル | 起動直後に選択が 1 つあり、枠線・8 方向のハンドル・サイズ ラベル・カーソル座標ラベルが見える |
 | マーカー | 選択の後に矢印キーを押すと nudge（微調整）が始まり、十字マーカーが出る |
 | ドラッグ選択 | 左ドラッグで新規選択、ハンドルのドラッグでリサイズ・移動 |
 | 確定・キャンセル | Enter / Escape と「確定」「キャンセル」ボタン、選択矩形の内側・外側のダブルクリック |
 | 表示倍率 | `CoordTransform.ClientToSource` による倍率の変更（コントロールは倍率を知らない） |
 | ログ表示 | コントロールの `Log` へ設定した `ILogger` の出力と、サンプルが受けた通知 |
-| 見た目の差し替え | 外観（`Appearance`）と描画計画（`DrawPlanResolver`）だけで破線とガイド線へ差し替える |
+| 見た目の差し替え | 描画計画（`DrawPlanResolver`）だけで破線とガイド線へ差し替える |
 
 ## 2. 実行方法
 
@@ -34,7 +34,9 @@
 dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sample.csproj
 ```
 
-**アンパッケージ + 自己完結**で動かすため、対象アーキテクチャを明示しています（既定は `win-x64`。 `-r win-arm64` 等で上書きできます）。
+**アンパッケージ**（MSIX を使わない）で動かします。 プロジェクトは **AnyCPU**（アーキテクチャを固定しない）で、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。
+
+Windows App SDK を同封する（自己完結）ときは `-r` を渡します（`-r` があるときだけ自己完結になります）。
 
 ```powershell
 dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sample.csproj -r win-x64
@@ -46,7 +48,7 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 | --- | --- |
 | OS | Windows 10 ビルド 19041 以降 |
 | .NET | .NET 10 SDK |
-| 実行時の配置 | Windows App SDK は同封（自己完結）。 MSIX でのインストールは不要 |
+| 実行時の配置 | 通常のビルドはインストール済みの Windows App SDK ランタイムを使う（`-r` を渡したときだけ同封。 MSIX でのインストールは不要） |
 
 ## 3. 操作方法
 
@@ -59,9 +61,10 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 | Escape / 「キャンセル」ボタン | キャンセル（`CancelRequested` が発火し、選択が消える） |
 | 選択矩形の内側をダブルクリック | 確定 |
 | 選択矩形の外側をダブルクリック | キャンセル |
-| 「クリア」ボタン | 選択を消す（`ResetSelection()`） |
+| 「選択をクリア」ボタン | 選択を消す（`ResetSelection()`） |
+| 「ハイライト切替」ボタン | **表示専用の注目矩形**を設定する（`HighlightSourceRect`）／解除する。 選択（`SetSelection`）とは別で、**ハンドルを出さず、ドラッグやキー操作も受け付けない**（確定・キャンセルの対象にもならない）。 注目矩形はハイライトが優先されるため、外側マスク・枠線・サイズ ラベルもハイライト一つになる |
 | 「表示倍率」 | 対象座標と表示 DIP の倍率を変える（選択の座標は対象座標のまま） |
-| 「見本（破線・ガイド線）」 | 外観と描画計画を差し替える |
+| 「描画計画を差し替える（破線・ガイド線）」 | 描画計画を差し替える |
 
 **キー入力の前提**: 矢印キー・Enter・Escape はコントロールにフォーカスがある間だけ届きます（ステージを一度クリックしてから押してください）。
 
@@ -77,7 +80,7 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 | Enter | `ConfirmRequested` が出て選択が消える |
 | Escape | ドラッグ中なら `SelectionCancelled`、選択ありなら `CancelRequested` が出る |
 | 表示倍率 | 倍率を変えると選択矩形の表示位置・寸法が追随する（ラベルの数値は対象座標のまま） |
-| 見本 | 外枠が破線、内側に三分割のガイド線が出る（チェックを外すと既定に戻る） |
+| 見本 | 枠線が破線、内側に三分割のガイド線が出る（チェックを外すと既定に戻る） |
 | ログ | コントロール内部のログ（`[Marquee]` の接頭辞）とサンプルの通知が同じ表示に並ぶ |
 
 **自動テストで検証できない理由**: コントロール本体（`SKXamlCanvas` 派生）の生成・入力・描画は、WinUI 3 の XAML ランタイム初期化
@@ -93,10 +96,7 @@ sample/
     app.manifest
     App.xaml
     App.xaml.cs
-    MainWindow.xaml
-    MainWindow.xaml.cs
-    Logging/
-        InMemoryLogger.cs
+    MainWindow.cs                 # メイン ウィンドウ（設定パネル＋画像＋ログ）
     Presentation/
         GuideMarqueePlan.cs
     Views/
@@ -106,11 +106,9 @@ sample/
 | ファイル | 役割 |
 | --- | --- |
 | `EsUtil.Ui.WinUI3/Marquee/sample/App.xaml` / `EsUtil.Ui.WinUI3/Marquee/sample/App.xaml.cs` | アプリケーションのエントリ（ウィンドウの生成と表示） |
-| `EsUtil.Ui.WinUI3/Marquee/sample/MainWindow.xaml` | 操作の配置、背景・コントロール・ルーペの目印の重ね方 |
-| `EsUtil.Ui.WinUI3/Marquee/sample/MainWindow.xaml.cs` | 座標変換ポート・通知の購読・ログ表示・見本の切り替え |
 | `EsUtil.Ui.WinUI3/Marquee/sample/Views/TestPatternCanvas.cs` | 背景のテスト パターン（格子・色見本・中心の十字）を描くキャンバス |
-| `EsUtil.Ui.WinUI3/Marquee/sample/Presentation/GuideMarqueePlan.cs` | 見本（外観と描画計画の差し替え）の定義 |
-| `EsUtil.Ui.WinUI3/Marquee/sample/Logging/InMemoryLogger.cs` | 画面のログ表示へ出力する `ILogger` 実装 |
+| `EsUtil.Ui.WinUI3/Marquee/sample/MainWindow.cs` | 座標変換ポート・通知の購読・ログ表示・見本の切り替え |
+| `EsUtil.Ui.WinUI3/Marquee/sample/Presentation/GuideMarqueePlan.cs` | 見本（描画計画の差し替え）の定義 |
 
 ## 6. 使い方（初めての方向け）
 
@@ -141,7 +139,7 @@ GuideMarqueePlan.Apply(control, show: true);
 
 | 項目 | 本サンプル（WinUI 3） |
 | --- | --- |
-| 実行形態 | アンパッケージ + 自己完結（MSIX を使わない） |
+| 実行形態 | アンパッケージ（MSIX を使わない）。 AnyCPU（自己完結にするときだけ `-r` を渡す） |
 | 設定パネル | 表示倍率・見本・選択操作のボタンに絞っている（色の選択は `Appearance` の差し替えで確認する） |
 | 背景 | 画像ファイルを読み込まず、`TestPatternCanvas`（`SKXamlCanvas`）が格子・色見本・十字を描く |
 | ルーペ | 拡大表示は行わず、`LoupePositionMoved` の位置を円の目印で示す |

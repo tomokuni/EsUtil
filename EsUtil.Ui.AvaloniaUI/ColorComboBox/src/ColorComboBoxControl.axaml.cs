@@ -27,8 +27,7 @@ namespace EsUtil.Ui.AvaloniaUI.ColorComboBox;
 /// - コンストラクタ: <see cref="ColorComboBoxControl()"/><br/>
 /// - 値: <see cref="SelectedColor"/> / <see cref="ColorSortMode"/> / <see cref="TextFormat"/><br/>
 /// - 検証: <see cref="HasValidationError"/> / <see cref="ValidationErrorMessage"/> / <see cref="HighlightBorderOnError"/><br/>
-/// - 外観（入力欄のサイズ）: <see cref="TextWidth"/> / <see cref="TextMinWidth"/> / <see cref="TextMaxWidth"/> /<br/>
-///   <see cref="TextPadding"/> / <see cref="TextMargin"/><br/>
+/// - 外観（入力欄の文字サイズ）: <see cref="TextFontSize"/><br/>
 /// - ログ: <see cref="Log"/><br/>
 /// - 関連型: <see cref="ColorSortMode"/>（コア）/ <see cref="ColorTextFormat"/>（コア）/ <see cref="StringToBrushConverter"/> /
 ///   <see cref="ColorString"/>（コア）/ <see cref="ColorEntry"/>（コア）
@@ -65,25 +64,12 @@ public sealed partial class ColorComboBoxControl : UserControl
     public static readonly StyledProperty<bool> HighlightBorderOnErrorProperty =
         AvaloniaProperty.Register<ColorComboBoxControl, bool>(nameof(HighlightBorderOnError), defaultValue: false);
 
-    /// <summary><see cref="TextMinWidth"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<double> TextMinWidthProperty =
-        AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(TextMinWidth), defaultValue: 120d);
 
-    /// <summary><see cref="TextPadding"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<Thickness?> TextPaddingProperty =
-        AvaloniaProperty.Register<ColorComboBoxControl, Thickness?>(nameof(TextPadding));
+    /// <summary><see cref="TextFontSize"/> 依存関係プロパティ。</summary>
+    public static readonly StyledProperty<double> TextFontSizeProperty =
+        AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(TextFontSize), defaultValue: double.NaN);
 
-    /// <summary><see cref="TextMargin"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<Thickness?> TextMarginProperty =
-        AvaloniaProperty.Register<ColorComboBoxControl, Thickness?>(nameof(TextMargin));
 
-    /// <summary><see cref="TextMaxWidth"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<double> TextMaxWidthProperty =
-        AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(TextMaxWidth), defaultValue: double.PositiveInfinity);
-
-    /// <summary><see cref="TextWidth"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<double> TextWidthProperty =
-        AvaloniaProperty.Register<ColorComboBoxControl, double>(nameof(TextWidth), defaultValue: double.NaN);
 
     // ====================================================================
     // 定数
@@ -176,44 +162,13 @@ public sealed partial class ColorComboBoxControl : UserControl
     // 外観
     // ====================================================================
 
-    /// <summary>入力欄の幅を取得または設定する。</summary>
-    /// <value>幅。 <see cref="double.NaN"/>（既定）の場合は親の幅に従う。</value>
-    public double TextWidth
-    {
-        get => GetValue(TextWidthProperty);
-        set => SetValue(TextWidthProperty, value);
-    }
 
-    /// <summary>入力欄の最小幅を取得または設定する。</summary>
-    /// <value>最小幅。 既定は 120。</value>
-    public double TextMinWidth
+    /// <summary>入力欄の文字サイズ（DIP）を取得または設定する。</summary>
+    /// <value>文字サイズ。 <see cref="double.NaN"/>（既定）の場合は親（テーマ）の値を継承する。</value>
+    public double TextFontSize
     {
-        get => GetValue(TextMinWidthProperty);
-        set => SetValue(TextMinWidthProperty, value);
-    }
-
-    /// <summary>入力欄の最大幅を取得または設定する。</summary>
-    /// <value>最大幅。 既定は無制限。</value>
-    public double TextMaxWidth
-    {
-        get => GetValue(TextMaxWidthProperty);
-        set => SetValue(TextMaxWidthProperty, value);
-    }
-
-    /// <summary>入力欄の余白を取得または設定する。</summary>
-    /// <value>余白。 null の場合はテーマの既定値を使う。</value>
-    public Thickness? TextPadding
-    {
-        get => GetValue(TextPaddingProperty);
-        set => SetValue(TextPaddingProperty, value);
-    }
-
-    /// <summary>入力欄の外側の余白を取得または設定する。</summary>
-    /// <value>余白。 null の場合はテーマの既定値を使う。</value>
-    public Thickness? TextMargin
-    {
-        get => GetValue(TextMarginProperty);
-        set => SetValue(TextMarginProperty, value);
+        get => GetValue(TextFontSizeProperty);
+        set => SetValue(TextFontSizeProperty, value);
     }
 
     // ====================================================================
@@ -329,14 +284,11 @@ public sealed partial class ColorComboBoxControl : UserControl
         {
             UpdateBorderValidationVisual();
         }
-        else if (change.Property == TextPaddingProperty ||
-                 change.Property == TextMarginProperty ||
-                 change.Property == TextWidthProperty ||
-                 change.Property == TextMinWidthProperty ||
-                 change.Property == TextMaxWidthProperty)
+        else if (change.Property == TextFontSizeProperty)
         {
             ApplyTextLayout();
         }
+
     }
 
     /// <summary>入力欄のサイズ・余白の指定を反映する。</summary>
@@ -347,25 +299,20 @@ public sealed partial class ColorComboBoxControl : UserControl
     private void ApplyTextLayout()
     {
         var text = _text;
-        text.MinWidth = TextMinWidth;
-        text.MaxWidth = TextMaxWidth;
-        text.Width = TextWidth;
 
-        if (TextMargin is { } margin)
+        // 未設定（NaN）は自分の値を持たせず親（テーマ）の値を継承させる
+        if (double.IsNaN(TextFontSize))
         {
-            text.Margin = margin;
+            text.ClearValue(Avalonia.Controls.Primitives.TemplatedControl.FontSizeProperty);
         }
         else
         {
-            text.ClearValue(MarginProperty);
+            text.FontSize = TextFontSize;
         }
 
-        var basePadding = TextPadding ?? default;
-        text.Padding = new Thickness(
-            basePadding.Left + (SwatchGap * 2) + SwatchSize,
-            basePadding.Top,
-            basePadding.Right,
-            basePadding.Bottom);
+        // 左の余白はスウォッチの幅と両脇の余白で置き換える（上下・右はテーマの既定値を保つ）
+        var padding = text.Padding;
+        text.Padding = new Thickness((SwatchGap * 2) + SwatchSize, padding.Top, padding.Right, padding.Bottom);
     }
 
     // ====================================================================
@@ -515,8 +462,16 @@ public sealed partial class ColorComboBoxControl : UserControl
     }
 
     /// <summary>検証エラーの強調を枠線へ反映する。</summary>
+    /// <remarks>
+    /// <b>Avalonia の標準の方法に対応する</b>: 検証エラーは <c>:error</c> 疑似クラスで表す<br/>
+    /// （<c>DataValidationErrors</c> と同じ疑似クラスであり、利用側のテーマ・スタイルが <c>Border:error</c> で装飾できる）。<br/>
+    /// <b>強調の可否は <see cref="HighlightBorderOnError"/> が決める</b>: false の間は疑似クラスも付けない<br/>
+    /// （既定は無効。 有効にすると同梱のスタイルが枠線を赤にする）。
+    /// </remarks>
     private void UpdateBorderValidationVisual()
     {
-        Frame.Classes.Set("validation-error", HighlightBorderOnError && HasValidationError);
+        var hasError = HighlightBorderOnError && HasValidationError;
+        Frame.Classes.Set("validation-error", hasError);
+        ((IPseudoClasses)Frame.Classes).Set(":error", hasError);
     }
 }

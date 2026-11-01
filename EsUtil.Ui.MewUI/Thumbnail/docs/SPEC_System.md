@@ -117,7 +117,6 @@ classDiagram
         +Presentation ThumbnailPresenter
         +Options ThumbnailOptions
         +Appearance ThumbnailAppearance
-        +IsDarkTheme bool
         +ImageWidth double
         +ItemCount int
         +SelectedIndex int

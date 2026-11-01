@@ -52,6 +52,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.44 `Palette`（色名と色文字列）](#244-palette色名と色文字列)
   - [2.45 `Native.Win.WinClipboard`（static class）](#245-nativewinwinclipboardstatic-class)
   - [2.46 `Imaging.EsImageFile`（sealed class : `IDisposable`）](#246-imagingesimagefilesealed-class--idisposable)
+  - [2.47 `Common.NumberText`（static class）](#247-commonnumbertextstatic-class)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -67,7 +68,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `.Input` | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser` | キーとホットキー（正規化・文字列の解釈を含む） |
 | `.Window` | `EsPlatformHandle` / `EsWindowState` / `EsWindowPlacementMath` | ネイティブ ハンドル・表示状態・ウィンドウ配置の規則（復元可否・はみ出しの補正・DIP ⇔ 物理ピクセル） |
 | `.Capture` | `CaptureType` | キャプチャ種別 |
-| `.Common` | `BoundaryCatch` / `CallbackList<T>` / `EnumCanonical` | 機能に閉じない小さな基盤（境界の判定・購読の一覧・別名を持つ列挙の解決） |
+| `.Common` | `BoundaryCatch` / `CallbackList<T>` / `EnumCanonical` / `NumberText` | 機能に閉じない小さな基盤（境界の判定・購読の一覧・別名を持つ列挙の解決・数値の自然な表記） |
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` / `EsRectIntJsonConverter` | DIP 相当の幾何値型と領域の規則、整数矩形の JSON の保存形式 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI・ポイント換算の純粋計算（OS を呼ばない） |
 | `.Imaging` | `EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap` / `DrawingColorExtensions` / `EsImageSaveOptions` / `EsImageFileFormat` / `EsImageScalingMode` / `EsDitherMode` / `EsImageFileExtensions` | 読み取り専用・書き換え可能な画像と 0 コピーのビュー、保存の指定、縮小と減色の品質、描画色の判定、一覧に並べる画像の拡張子の判定 |
@@ -175,7 +176,7 @@ public sealed record HotKeySetting(HotKeyModifiers Modifiers, EsKey Key)
 - `ToDip(EsSize physicalSize, double scaling)`: 物理ピクセルのサイズを DIP のサイズへ変換する（成分ごとの換算を上記 `ToDip` へ委譲する）。 コア型同士の換算を UI 側で組み立てないための入口。
 - `ToPoint(double dip)`: DIP の長さをポイント（1/72 インチ）へ換算する（`dip × 72 / 96`。 DPI スケーリングは掛けない）。 WinForms（GDI+）のフォント サイズはポイントで指定するため、外観（DIP）との換算比を各所へ書かずに済む。
 - `ResolveClientScale(double clientPixels, double clientDip, double fallback)`: 描画面の実サイズと表示領域（DIP）の比から、描画に使う係数を解決する（表示領域が未確定なら `fallback`）。 各 UI コントロールは `internal` の複製を持たず本メソッドを使う。
-- 表示サイズ・外枠の太さの物理ピクセル換算と、ウィンドウの位置・サイズの換算で共用する。
+- 表示サイズ・枠線の太さの物理ピクセル換算と、ウィンドウの位置・サイズの換算で共用する。
 
 ### 2.10 `Geometry.EsAxis`（enum）
 
@@ -206,7 +207,7 @@ public sealed record HotKeySetting(HotKeyModifiers Modifiers, EsKey Key)
 
 ```csharp
 // ホストの色設定をコアの明示フラグへ写す（色を指定しない = 描かない）
-ShowOverlay = settings.OverlayColor!.Value.IsVisible(),
+ShowOuterMask = settings.OuterMaskColor!.Value.IsVisible(),
 ```
 
 描画の可否は**描画にだけ必要な設定を所有する上位層の外観の明示フラグ**が単一所有します。 本メソッドは「ホストの色設定（省略可能な色）をフラグへ写す」場面で使います（`color.A > 0` を各所に書くと、同じ意味の判定が散らばる）。
@@ -267,7 +268,7 @@ UI フレームワーク非依存のサイズ・ベクター・矩形。 各 UI 
 | `Intersect` | `EsRect Intersect(EsRect other)` | 2 つの矩形の重なり部分を返す（重なりが無い場合は空。 幅・高さは負にならない） |
 
 ```csharp
-// 選択矩形の枠線と拡大表示の外枠が同じ式を共用する
+// 選択矩形の枠線と拡大表示の枠線が同じ式を共用する
 var edges = hole.ComputeInnerEdges(Math.Max(0.5, borderThickness));
 ```
 
@@ -1068,6 +1069,19 @@ foreach (var entry in EsColor.GetPalette(ColorSortMode.ByHue)) { /* Name と Col
 
 - **開いたままにしません**: 内容は `Open` でメモリへ取り込むため、ファイルは直ちに解放されます（他のアプリが開いているファイルも読めます）。
 - **破棄後は `ObjectDisposedException`** になります（`GetSize` / `Decode`）。
+
+### 2.47 `Common.NumberText`（static class）
+
+数値を**自然な表記**の文字列へ書式化します（ログ・画面表示用）。 最短往復表記（`double.ToString()`）は 2 進小数の誤差をそのまま出すため（`1.5999999999999996`）、ログや利用者向けの表示には使いません。
+
+| メンバー | 内容 |
+| --- | --- |
+| `Format(double)` → `string` | 実数を 12 桁で丸めて末尾の 0 を落とす（例: `1.5999999999999996` → `1.6`。 **指数表記にしない**。 有限でない値は型の標準表記） |
+| `Format<T>(T)` → `string` | 数値を自然な表記へ（**整数はそのまま**。 実数だけを丸める） |
+
+- **桁数を固定しません**: 丸めた結果だけを出します（`1.6` は `1.6`、`12` は `12`、`1.56` は `1.56`）。
+- **カルチャに依存しません**（`CultureInfo.InvariantCulture` を使う。 小数点は常に `.`）。
+- **使う場所**: ログの定義（`<機能>LogMessage`）が数値・座標・矩形を文字列化するときに使います（各層が個別に `ToString` を書かない）。
 
 ## 3. 使用例
 

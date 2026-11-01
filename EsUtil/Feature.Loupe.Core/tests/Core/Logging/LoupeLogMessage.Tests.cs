@@ -63,6 +63,21 @@ public class LoupeLogMessageTests
         Assert.Equal([LogLevel.Information, LogLevel.Debug], logger.Levels);
     }
 
+    /// <summary>実数の誤差がそのままログへ出ないことを検証する。</summary>
+    /// <remarks>
+    /// 座標は DPI の換算で 2 進小数の誤差を持つ（例: 2 画素 / 1.25 = 1.5999999999999996）。
+    /// 最短往復表記をそのまま出すと読めない値になるため、自然な表記へ丸める。
+    /// </remarks>
+    [Fact]
+    internal void 座標の誤差は自然な表記で出力する()
+    {
+        var logger = new RecordingLogger();
+
+        logger.LogCenterPointChanged(new EsPoint(1.5999999999999996, 2.5), new EsPoint(1.5599999999999996, 2.5));
+
+        Assert.Equal("[Loupe] Setting: CenterPoint (1.6, 2.5) → (1.56, 2.5)", Assert.Single(logger.Messages));
+    }
+
     /// <summary>拡大中心の記録が最も低いレベル（Trace）で出力されることを検証する。</summary>
     /// <remarks>中心はマウス移動ごとに変わるため、既定の出力では溢れさせない。</remarks>
     [Fact]

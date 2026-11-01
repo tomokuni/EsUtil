@@ -50,15 +50,15 @@ Avalonia UI 用のリサイズ可能な領域選択コントロールです。 �
 - 矢印キーによる1Pixel単位のキーボード微調整（nudge）
 - 対象座標系で正確な nudge（矢印キー1回 = 対象1Pixel）
 - ドラッグハンドル・始点マーカーの自己描画
-- **選択矩形の外側に描く装飾の描画**: 暗転マスク・外枠・ハイライト・内側の塗り（**表示可否と太さと色**はすべて外観（`EsUtil.Feature.Marquee.Presenter` の `MarqueeAppearance`）が単一所有し、装飾の矩形の導出と描画順は提示層（同層の `MarqueePresenter`）が単一所有する）。 **選択枠線はこの外枠が兼ねる**（別々に描くと線幅が二重になるため）
+- **選択矩形の外側に描く装飾の描画**: 外側マスク・枠線・ハイライト・内側マスク（**表示可否と太さと色**はすべて外観（`EsUtil.Feature.Marquee.Presenter` の `MarqueeAppearance`）が単一所有し、装飾の矩形の導出と描画順は提示層（同層の `MarqueePresenter`）が単一所有する）。 **選択枠線はこの枠線が兼ねる**（別々に描くと線幅が二重になるため）
 - **ハンドル表示の切替**: `Appearance.ShowHandles = false` でハンドルを描かず枠線と外側の装飾だけを表示する（表示可否は描画にだけ必要な設定のため外観が単一所有する）
-- **外観の設定（`Appearance`）**: 色・フォントサイズ・枠線の太さ・表示可否は**描画にだけ必要な設定**のためコアには含めず、提示層（`EsUtil.Feature.Marquee.Presenter` の `MarqueeAppearance`）が単一所有する。 `Appearance` プロパティで指定し（既定は `MarqueeAppearance.Default`）、部分変更は `Appearance = MarqueeAppearance.Default with { ... }` で行う（指定しない項目は既定値を保つ）。 **描くかどうかは色のアルファではなく外観の明示フラグ（`ShowOverlay` / `ShowOuterBorder` / `ShowInnerFill` / `ShowInnerBorder` / `ShowFullOverlay`）が決める**
+- **外観の設定（`Appearance`）**: 色・フォントサイズ・枠線の太さ・表示可否は**描画にだけ必要な設定**のためコアには含めず、提示層（`EsUtil.Feature.Marquee.Presenter` の `MarqueeAppearance`）が単一所有する。 `Appearance` プロパティで指定し（既定は `MarqueeAppearance.Default`）、部分変更は `Appearance = MarqueeAppearance.Default with { ... }` で行う（指定しない項目は既定値を保つ）。 **描くかどうかは色のアルファではなく外観の明示フラグ（`ShowOuterMask` / `ShowBorder` / `ShowInnerMask` / `ShowInnerBorder` / `ShowFullOverlay`）が決める**
 - カーソル座標ラベルの表示（任意設定・`(x, y)` 形式）
 - **文字は UI 層が要素として配置する**: サイズラベルとカーソル座標ラベルの**文言・基準点は提示層（`EsUtil.Feature.Marquee.Presenter` の `MarqueePresenter`（`LabelTexts` partial））が、色とフォントサイズは外観（`MarqueeAppearance`）が、実寸から配置矩形を求める写像は同層の `MarqueePresenter`（`LabelPlan` partial） が単一所有**し、UI 層が `Border` + `TextBlock` を子要素として置く（子要素は親の描画より後に描かれるため常に最上位）。 サイズラベルの基準点は注目矩形の左上から**枠線の幅 + 1 DIP 内側**（枠線と背景の重なりを無くす）。 実寸測定は自 UI の API（`FormattedText`）で行う。 操作・情報ラベルはアプリ固有の付加情報のため、ホスト（上位のアプリの合成コントロール）が `Rendered` のハンドラで自前で描く（外観はホストのラベル設定が単一所有する）
 - ダブルクリックの確定/キャンセル判定（矩形内 = 確定 / 矩形外 = キャンセル）
 - Avalonia Binding 対応の StyledProperty
 - 対象↔DIP 座標変換ポート（`ICoordTransform` 直接注入。 型は `EsUtil.Platform.Core` 提供）
-- **閉区間描画（始点・終点を含む）**: ハンドルと外側の装飾（外枠）は終点（Right/Bottom）に +1 して DIP 変換（キャプチャの閉区間 +1 と一致。 規則はコアの描画入力（`MarqueeRenderRequest.ToDipRect`）が単一所有）
+- **閉区間描画（始点・終点を含む）**: ハンドルと外側の装飾（枠線）は終点（Right/Bottom）に +1 して DIP 変換（キャプチャの閉区間 +1 と一致。 規則はコアの描画入力（`MarqueeRenderRequest.ToDipRect`）が単一所有）
 - **ホイール操作は本コントロールが扱わない（ホストの責務）**: ホイール（ズーム・パン）はコントロール化を前提とした処理であり、**ホストが本コントロールの `PointerWheelChanged` を購読してビューポート（上位のズーム コントロール等）へ転送**します（本コントロールは素通しし、`e.Handled` を立てません）。 表示の変化への追従もホストが `InvalidateRender()` を呼びます
 - **薄い UI 層**: 入力の解釈（nudge セッション・確定/キャンセル・スナップ・クリック検出・最小サイズ判定）はコアの公開ファサード（`MarqueeCore`）が担います。 本コントロールは「入力の受付」「効果の適用」「通知の転送」「描画計画の写し」のみを行います
 - **見た目のカスタマイズ（2 つの入口）**: 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）で差し替えます。 矩形で表せない描画（円・斜線等）は `Appearance` の `Show*` を false にして `Rendered` の描画先へ自前で描き、必要なら `DrawPlan` で計画どおりの描画を行います（派生は不要。 例はサンプルの `sample/Presentation/GuideMarqueePlan`）
@@ -67,8 +67,8 @@ Avalonia UI 用のリサイズ可能な領域選択コントロールです。 �
 
 ## 3. システム要件
 
-- .NET 10
-- **対応 OS**: Windows 10 バージョン 1809（ビルド 17763）以降
+- .NET 10（対象フレームワークは `net10.0`）
+- **対応 OS**: **引数なしコンストラクター**（`WinCursorService` を使う既定構成）は Windows 10 バージョン 1809（ビルド 17763）以降。 他 OS では `ICursorService` を渡すコンストラクターを使う
 - Avalonia 12.1 以降
 - C# 14
 - **Native AOT**: 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測）
@@ -126,11 +126,11 @@ var marquee = new MarqueeControl
     // 外観（色・フォントサイズ・枠線の太さ・表示可否）は提示層の 1 値が単一所有する
     Appearance = MarqueeAppearance.Default with
     {
-        // 選択枠線は装飾（暗転マスクの外枠）が描く（色と太さをここで与える）
-        OuterBorderColor = Colors.White.ToDrawingColor(),
-        OuterBorderThickness = 2.0,
-        ShowOverlay = true,
-        ShowOuterBorder = true,
+        // 選択枠線は装飾（外側マスクの枠線）が描く（色と太さをここで与える）
+        BorderColor = Colors.White.ToDrawingColor(),
+        BorderThickness = 2.0,
+        ShowOuterMask = true,
+        ShowBorder = true,
     },
 };
 
@@ -299,7 +299,7 @@ EsUtil/Feature.Marquee.Core/
 
 ### 14.2 装飾（提示層が単一所有する）
 
-選択矩形の**外側・内側に描く装飾**（暗転マスク・外枠・ハイライト・内側の塗り）は、選択矩形コントロール単体の概念ではない（撮影オーバーレイ等へ組み込むときの表示である）ため、提示層（`EsUtil.Feature.Marquee.Presenter`）が単一所有します。 装飾の矩形は `MarqueePresenter`（`DrawPlan` partial） が計算し、表示可否と太さと色は外観（`MarqueeAppearance`）が持ち、描画順は `MarqueePresenter` が決めます（詳細は同プロジェクトの `README.md`）。
+選択矩形の**外側・内側に描く装飾**（外側マスク・枠線・ハイライト・内側マスク）は、選択矩形コントロール単体の概念ではない（撮影オーバーレイ等へ組み込むときの表示である）ため、提示層（`EsUtil.Feature.Marquee.Presenter`）が単一所有します。 装飾の矩形は `MarqueePresenter`（`DrawPlan` partial） が計算し、表示可否と太さと色は外観（`MarqueeAppearance`）が持ち、描画順は `MarqueePresenter` が決めます（詳細は同プロジェクトの `README.md`）。
 
 ---
 

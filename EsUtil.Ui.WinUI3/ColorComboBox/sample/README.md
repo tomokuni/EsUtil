@@ -56,6 +56,8 @@ dotnet run --project EsUtil.Ui.WinUI3/ColorComboBox/sample/EsUtil.Ui.WinUI3.Colo
 - [ ] 「色名順」へ切り替えると、すべての行の一覧がアルファベット順になる
 - [ ] 「#AARRGGBB」へ切り替えると、すべての行の入力欄が `#AARRGGBB` の表記になる
 - [ ] 1 番目の色を変えるとプレビューの枠、2 番目を変えるとプレビューの背景が変わる
+- [ ] 無効な色を入力してフォーカスを外すと最終有効値へ復帰し、枠線が赤くなる（「入力が無効なら枠線を赤くする」が ON のとき）
+- [ ] 「文字サイズ」「入力欄の幅」「入力欄の最小幅」「入力欄の最大幅」の変更が入力欄の見た目に反映される
 
 ## 5. 構成
 
@@ -65,7 +67,7 @@ EsUtil.Ui.WinUI3/ColorComboBox/sample/
 ├── app.manifest                                   # Windows DPI 設定（PerMonitorV2）
 ├── App.xaml / App.xaml.cs                         # アプリケーション定義
 ├── Views/
-│   └── MainWindow.xaml(.cs)                       # メイン画面（4 行の色とプレビュー）
+│   └── MainWindow.cs                             # メイン画面（4 行の色とプレビュー）
 └── RunSample.bat                                  # リリースビルド＆起動
 ```
 

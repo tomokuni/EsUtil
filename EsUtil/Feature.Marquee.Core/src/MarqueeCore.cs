@@ -194,6 +194,19 @@ public sealed partial class MarqueeCore
         }
     }
 
+    /// <summary>ハイライト中かどうか（＝選択の編集を受け付けない表示専用の状態）を取得する。</summary>
+    /// <value>ハイライト矩形が設定されている場合は true。</value>
+    /// <remarks>
+    /// <b>ハイライトは表示専用である</b>: ホストが与える注目矩形を提示するための状態であり、<br/>
+    /// 利用者に編集させるためのものではない。 そのためハイライト中は
+    /// <list type="bullet">
+    /// <item>ハンドルを描かない（<see cref="MarqueeGeometry.Handles"/> が null になる）</item>
+    /// <item>ポインターとキーの入力を受け付けない（選択の作成・移動・リサイズ・確定・キャンセルを行わない）</item>
+    /// </list>
+    /// とする。 選択とハイライトの違い（操作できるかどうか）を、UI ごとの判断ではなく本コアが単一所有する。
+    /// </remarks>
+    public bool IsReadOnly => HighlightSourceRect is not null;
+
     // ====================================================================
     // 状態（選択の有無・選択矩形・スナップショット）
     // ====================================================================
@@ -261,12 +274,28 @@ public sealed partial class MarqueeCore
     /// 入力の解釈（nudge の終了・ダブルクリックの確定/キャンセル・ハンドルのヒットテストとスナップ・新規選択の開始）は<br/>
     /// セッションが単一所有し、返された効果を本クラスが <see cref="IMarqueeEffects"/> 経由で UI へ適用する。
     /// </remarks>
-    public void Press(EsPoint position, int clickCount) => Apply(_session.Press(position, clickCount));
+    public void Press(EsPoint position, int clickCount)
+    {
+        if (IgnoreInputIfReadOnly(nameof(Press)))
+        {
+            return;
+        }
+
+        Apply(_session.Press(position, clickCount));
+    }
 
     /// <summary>ポインター移動を通知する。</summary>
     /// <param name="position">マウス位置（対象座標）。</param>
     /// <remarks>ドラッグの適用・nudge 中のエコー移動の抑制・カーソル形状の決定はセッションが単一所有する。</remarks>
-    public void Move(EsPoint position) => Apply(_session.Move(position));
+    public void Move(EsPoint position)
+    {
+        if (IgnoreInputIfReadOnly(nameof(Move)))
+        {
+            return;
+        }
+
+        Apply(_session.Move(position));
+    }
 
     /// <summary>ポインター解放（左ボタン）を通知する。</summary>
     /// <param name="position">解放位置（対象座標）。</param>
@@ -274,7 +303,15 @@ public sealed partial class MarqueeCore
     /// 最小サイズによるキャンセル・確定・クリックの検出・nudge の終了はセッションが単一所有する。<br/>
     /// ドラッグの終了に伴うポインターキャプチャの解放もセッションが要求する（取得と解放が同じ経路になる）。
     /// </remarks>
-    public void Release(EsPoint position) => Apply(_session.Release(position));
+    public void Release(EsPoint position)
+    {
+        if (IgnoreInputIfReadOnly(nameof(Release)))
+        {
+            return;
+        }
+
+        Apply(_session.Release(position));
+    }
 
     /// <summary>キー入力を通知する（Escape のキャンセル・Enter の確定・矢印キーの微調整）。</summary>
     /// <param name="key">押下されたキー。</param>
@@ -286,6 +323,11 @@ public sealed partial class MarqueeCore
     /// </remarks>
     public bool KeyDown(EsKey key, EsPoint? cursorPosition)
     {
+        if (IgnoreInputIfReadOnly(nameof(KeyDown)))
+        {
+            return false;
+        }
+
         var feedback = _session.KeyDown(key, cursorPosition);
         Apply(feedback);
         return feedback.IsHandled;
@@ -293,7 +335,15 @@ public sealed partial class MarqueeCore
 
     /// <summary>nudge を終了する（カーソルを再表示する）。</summary>
     /// <remarks>nudge 中の状態破棄（フォーカス喪失）で使用する。</remarks>
-    public void EndNudge() => Apply(_session.EndNudge());
+    public void EndNudge()
+    {
+        if (IgnoreInputIfReadOnly(nameof(EndNudge)))
+        {
+            return;
+        }
+
+        Apply(_session.EndNudge());
+    }
 
     // ====================================================================
     // 外部（ホスト）からの操作
@@ -350,6 +400,24 @@ public sealed partial class MarqueeCore
     // ====================================================================
     // 内部ヘルパー
     // ====================================================================
+
+    /// <summary>ハイライト中（表示専用）なら入力を無視する。</summary>
+    /// <param name="operation">無視した操作の名前（ログ用）。</param>
+    /// <returns>無視した場合は true（呼び出し側は状態を変えずに戻る）。</returns>
+    /// <remarks>
+    /// <b>ハイライトは表示専用である</b>（<see cref="IsReadOnly"/>）ため、選択を編集する入力は受け付けない。<br/>
+    /// 判断を本メソッドへ集約し、UI 層が「ハイライト中か」を自前で判定しないようにする（4 UI で同じ振る舞いになる）。
+    /// </remarks>
+    private bool IgnoreInputIfReadOnly(string operation)
+    {
+        if (!IsReadOnly)
+        {
+            return false;
+        }
+
+        Log.LogInputIgnored(operation);
+        return true;
+    }
 
     /// <summary>コアが返す効果を UI 層へ適用する。</summary>
     /// <param name="feedback">適用する効果（カーソル操作・フォーカス・カーソル形状・再描画・キャプチャ）。</param>

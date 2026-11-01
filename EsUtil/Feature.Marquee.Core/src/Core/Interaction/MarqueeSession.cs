@@ -267,10 +267,13 @@ internal sealed class MarqueeSession
     internal MarqueeFeedback Release(EsPoint position)
     {
         _state.EndPress();
-        Log.LogMouseUp(position.X, position.Y, _state.IsDragging, _state.HasSelection);
+
+        // ドラッグ中かどうかと選択矩形は終了処理の前に読む（終了処理がドラッグ状態を解除するため）
+        var wasDragging = _state.IsDragging;
+        var selection = _state.HasSelection ? _state.SelectionSourceRect : (EsRect?)null;
+        Log.LogMouseUp(position.X, position.Y, wasDragging, _state.HasSelection, selection);
         Log.LogPositionAfterUp(position.X, position.Y);
 
-        var wasDragging = _state.IsDragging;
         var wasNudging = _state.IsNudgeActive;
         var nudgePosition = wasNudging ? _state.GetMarkerPosition() : default;
 

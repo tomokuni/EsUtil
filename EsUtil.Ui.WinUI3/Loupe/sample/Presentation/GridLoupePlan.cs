@@ -10,7 +10,7 @@ namespace EsUtil.Ui.WinUI3.Loupe.Sample.Presentation;
 /// 見た目を差し替えられる（<c>LoupeControl.Appearance</c> と <c>LoupeControl.DrawPlanResolver</c> へ設定する）。<br/>
 /// 差し替えは公開 API だけで行う（コアの internal 型も描画 API も参照しない）。<br/>
 /// <br/>
-/// <b>見た目</b>: 十字線の代わりに中心の格子線、枠線の代わりに四隅の鉤（コーナーブラケット）を描く。<br/>
+/// <b>見た目</b>: 十字線は色だけを差し替え（位置と太さは既定のまま）、枠線の代わりに四隅の鉤（コーナーブラケット）を描く。<br/>
 /// どちらも「塗る矩形の列」として計画へ載せるため、描画実装は計画のとおり描く（層の順序は既定の計画から引き継ぐ）。<br/>
 /// <br/>
 /// <b>寸法の換算</b>: 描画面の矩形は物理ピクセルであるため、DIP の太さは計画が持つ倍率で換算する<br/>
@@ -18,8 +18,6 @@ namespace EsUtil.Ui.WinUI3.Loupe.Sample.Presentation;
 /// </remarks>
 internal static class GridLoupePlan
 {
-    /// <summary>格子線の太さ（DIP）。</summary>
-    private const double GridThickness = 1.0;
 
     /// <summary>四隅の鉤の腕の長さ（DIP）。</summary>
     private const double BracketArm = 18.0;
@@ -44,7 +42,7 @@ internal static class GridLoupePlan
         BorderThickness = BracketThickness,
     };
 
-    /// <summary>中心の格子線と四隅の鉤を載せた描画計画を返す。</summary>
+    /// <summary>十字線の色と四隅の鉤を差し替えた描画計画を返す。</summary>
     /// <param name="plan">既定の解決結果（幾何・外観・層の順序・ラベル配置を持つ）。</param>
     /// <returns>十字線と枠線だけを差し替えた描画計画。</returns>
     /// <remarks>
@@ -60,7 +58,8 @@ internal static class GridLoupePlan
 
         return plan with
         {
-            CrosshairPixelRects = CreateCenterGrid(surface, plan.ScaleDipToPixel(GridThickness)),
+            // 位置と太さは既定の十字線に合わせる（見本へ切り替えても十字線が動かない）
+            CrosshairPixelRects = CreateCenterGrid(in plan),
             BorderPixelRects = CreateCornerBrackets(
                 surface, plan.ScaleDipToPixel(BracketArm), plan.ScaleDipToPixel(BracketThickness)),
         };
@@ -88,12 +87,23 @@ internal static class GridLoupePlan
         return read;
     }
 
-    /// <summary>描画面の中心へ十字の格子線を作る。</summary>
-    /// <param name="surface">描画面の矩形（物理ピクセル）。</param>
-    /// <param name="thickness">線の太さ（物理ピクセル）。</param>
+    /// <summary>既定の十字線と同じ位置・太さの格子線を作る。</summary>
+    /// <param name="plan">既定の解決結果。</param>
     /// <returns>格子線の矩形（縦 1 本 + 横 1 本）。</returns>
-    private static IReadOnlyList<EsRect> CreateCenterGrid(EsRect surface, double thickness)
+    /// <remarks>
+    /// <b>位置と太さは既定の十字線から引き継ぐ</b>: 見本へ切り替えても十字線が動かない。<br/>
+    /// 中心を <see cref="EsRect.Center"/> から求め直すと、線の太さの半分だけ右下へずれる（実測 2026-11-01）。<br/>
+    /// 既定の十字線が無い場合（拡大中心が未設定）だけ、描画面の中心から同じ太さで組み立てる。
+    /// </remarks>
+    private static IReadOnlyList<EsRect> CreateCenterGrid(in LoupeDrawPlan plan)
     {
+        if (plan.CrosshairPixelRects.Count > 0)
+        {
+            return plan.CrosshairPixelRects;
+        }
+
+        var surface = plan.ClientPixelRect;
+        var thickness = plan.ScaleDipToPixel(1.0);
         var half = thickness / 2;
 
         return
