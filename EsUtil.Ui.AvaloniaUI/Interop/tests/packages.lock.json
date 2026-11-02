@@ -308,7 +308,7 @@
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "EsUtil.Platform.Core": "[0.4.0, )"
+          "EsUtil.Platform.Core": "[0.5.0, )"
         }
       },
       "Avalonia": {

@@ -118,7 +118,7 @@ Select-String -Path CHANGELOG.md -Pattern '^## '
 # main の最新を取り、dry-run を実行する（-f version は確認用。 省略可）
 git switch main
 git pull
-gh workflow run release.yml --ref main -f mode=dry-run -f version=0.4.0
+gh workflow run release.yml --ref main -f mode=dry-run
 
 # 実行の完了を待つ（run-name は DryRun main <SHA>）
 gh run list --workflow release.yml --limit 5
@@ -132,7 +132,7 @@ gh run list --workflow release.yml --limit 3
 
 # 結果を確認する（タグ・Release・nuget.org）
 git fetch --tags
-git tag --list 'v0.4.0'
+git tag --list 'v*'
 gh release list --limit 6
 (Invoke-RestMethod 'https://api.nuget.org/v3-flatcontainer/esutil.platform.core/index.json').versions
 ```
