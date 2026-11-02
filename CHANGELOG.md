@@ -5,9 +5,19 @@
 - **公開する版は人が決めます**（グループの `VersionPrefix` を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
-## 未リリース
+## 未リリース（0.4.0）
+
+### 破壊的な変更（`EsUtil` / `EsUtil.Ui.<UI>` の Thumbnail 関連）
+
+- **強調（ホバー・選択）の帯の色を提示層が持つのをやめました**。 明暗 2 つの固定色（`ThumbnailAppearance.HoverBackgroundLightArgb` / `HoverBackgroundDarkArgb` / `SelectionBackgroundLightArgb` / `SelectionBackgroundDarkArgb` と `HoverBackground(isDark)` / `SelectionBackground(isDark)`）を削除し、**描画計画は意味だけを持つ**ようにしました。
+  - `ThumbnailDrawPlan.BackgroundArgb`（`uint`）→ **`Highlight`（`ThumbnailHighlightKind`）**。 帯の色は各 UI が自分のテーマから解決します（AvaloniaUI は実効の文字色と OS のアクセント色、WinUI 3 はテーマの文字色と `SystemAccentColor`、MewUI は `Palette.WindowText` / `Palette.Accent`、WinForms は `ForeColor` / `SystemColors.Highlight`）。
+  - **`ThumbnailPresenter.ResolveDrawPlan` から `isDark` 引数を削除**しました。
+  - 濃さは外観が持ちます（`ThumbnailAppearance.HoverHighlightOpacity` = 0.10 / `SelectionHighlightOpacity` = 0.20）。 色の合成は `ThumbnailAppearance.ResolveHighlightArgb(kind, textArgb, accentArgb)` が行います。
+  - **移行**: `BackgroundArgb` を設定していた差し替え（`DrawPlanResolver`）は、`Highlight` を設定するか、帯の色を UI 側の外観（`Appearance`）で調整してください。 `HoverBackground*Argb` / `SelectionBackground*Argb` を使っていた場合は、`HoverHighlightOpacity` / `SelectionHighlightOpacity` へ置き換えてください。
 
 ### 変更
+
+- **テーマの色に従うようにしました**: 帯の色を UI のテーマから解決するため、テーマの切替と利用者のアクセント色の変更に追随します（明暗で固定の 2 色を持つと、テーマの実際の値と一致しませんでした）。
 
 - **依存パッケージを更新しました**（`Microsoft.WindowsAppSDK` 2.6.4。 `EsUtil.Ui.WinUI3.*` の利用側が要求する Windows App SDK の下限が上がります）。 アナライザーとテスト ランナーの更新は配布物に含まれません（`PrivateAssets=all`）。
 - **`EsUtil.Ui.AvaloniaUI.Marquee` と `EsUtil.Ui.MewUI.Marquee` の対象フレームワークを `net10.0` へ戻しました**（`net10.0-windows10.0.17763.0` をやめます）。 Windows 専用なのは**引数なしコンストラクター**（`WinCursorService` を生成する既定構成）だけで、そこへ `[SupportedOSPlatform("windows10.0.17763")]` を付けます。 Windows 以外では `ICursorService` を渡すコンストラクターを使ってください（テストとサンプルは既定構築を使うため `net10.0-windows10.0.17763.0` のままです）。

@@ -152,21 +152,13 @@ internal static partial class ThumbnailLogMessage
         logger.LogSettingChanged(
             nameof(ThumbnailAppearance.BoldCurrentLabel), oldValue.BoldCurrentLabel, newValue.BoldCurrentLabel);
         logger.LogSettingChanged(
-            nameof(ThumbnailAppearance.HoverBackgroundLightArgb),
-            oldValue.HoverBackgroundLightArgb,
-            newValue.HoverBackgroundLightArgb);
+            nameof(ThumbnailAppearance.HoverHighlightOpacity),
+            oldValue.HoverHighlightOpacity,
+            newValue.HoverHighlightOpacity);
         logger.LogSettingChanged(
-            nameof(ThumbnailAppearance.HoverBackgroundDarkArgb),
-            oldValue.HoverBackgroundDarkArgb,
-            newValue.HoverBackgroundDarkArgb);
-        logger.LogSettingChanged(
-            nameof(ThumbnailAppearance.SelectionBackgroundLightArgb),
-            oldValue.SelectionBackgroundLightArgb,
-            newValue.SelectionBackgroundLightArgb);
-        logger.LogSettingChanged(
-            nameof(ThumbnailAppearance.SelectionBackgroundDarkArgb),
-            oldValue.SelectionBackgroundDarkArgb,
-            newValue.SelectionBackgroundDarkArgb);
+            nameof(ThumbnailAppearance.SelectionHighlightOpacity),
+            oldValue.SelectionHighlightOpacity,
+            newValue.SelectionHighlightOpacity);
         logger.LogSettingChanged(
             nameof(ThumbnailAppearance.HighlightedLabelArgb), oldValue.HighlightedLabelArgb, newValue.HighlightedLabelArgb);
         logger.LogSettingChanged(

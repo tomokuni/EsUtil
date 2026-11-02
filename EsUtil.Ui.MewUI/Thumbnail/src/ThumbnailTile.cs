@@ -104,9 +104,17 @@ internal sealed class ThumbnailTile : Panel
     /// <param name="plan">1 件分の描画計画。</param>
     /// <param name="options">計算に必要な設定（名前の余白）。</param>
     public void Apply(ThumbnailDrawPlan plan, ThumbnailOptions options)
+        => Apply(plan, options, 0);
+
+    /// <summary>描画計画を適用する（強調の帯の色を指定する）。</summary>
+    /// <param name="plan">1 件分の描画計画。</param>
+    /// <param name="options">計算に必要な設定（名前の余白）。</param>
+    /// <param name="highlightArgb">強調の帯の色（<c>0xAARRGGBB</c>。 0 は描かない）。 UI がテーマから解決して渡す。</param>
+    public void Apply(ThumbnailDrawPlan plan, ThumbnailOptions options, uint highlightArgb)
     {
         _plan = plan;
         _viewport.Plan = plan;
+        _viewport.HighlightArgb = highlightArgb;
 
         // 描画面は寸法が変わらなければ再描画されないため、明示的に要求する（背景・影の変化を反映する）
         _viewport.InvalidateVisual();

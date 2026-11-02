@@ -59,15 +59,15 @@
       "esutil.feature.thumbnail.core": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.3.0, )",
+          "EsUtil.Platform.Core": "[0.4.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
       "esutil.feature.thumbnail.presenter": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Feature.Thumbnail.Core": "[0.3.0, )",
-          "EsUtil.Platform.Core": "[0.3.0, )",
+          "EsUtil.Feature.Thumbnail.Core": "[0.4.0, )",
+          "EsUtil.Platform.Core": "[0.4.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
@@ -77,7 +77,7 @@
       "esutil.ui.winforms.interop": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.3.0, )"
+          "EsUtil.Platform.Core": "[0.4.0, )"
         }
       },
       "esutil.ui.winforms.samplekit": {
@@ -91,9 +91,9 @@
       "esutil.ui.winforms.thumbnail": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Feature.Thumbnail.Presenter": "[0.3.0, )",
-          "EsUtil.Platform.Core": "[0.3.0, )",
-          "EsUtil.Ui.WinForms.Interop": "[0.3.0, )",
+          "EsUtil.Feature.Thumbnail.Presenter": "[0.4.0, )",
+          "EsUtil.Platform.Core": "[0.4.0, )",
+          "EsUtil.Ui.WinForms.Interop": "[0.4.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },

@@ -173,6 +173,11 @@ public sealed class ThumbnailControl : Panel
     /// </remarks>
     private static bool IsDarkTheme => Application.IsRunning && Application.Current.Theme.IsDark;
 
+    /// <summary>MewUI の色を <c>0xAARRGGBB</c> にする。</summary>
+    /// <param name="color">色。</param>
+    /// <returns>色（<c>0xAARRGGBB</c>）。</returns>
+    private static uint ToArgb(Color color) => ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
+
     /// <summary>画像の幅（DIP）を取得または設定する。</summary>
     /// <value>表示モードの一辺。 0 以下の指定は既定の下限へ引き上げる。</value>
     public double ImageWidth
@@ -402,9 +407,15 @@ public sealed class ThumbnailControl : Panel
         }
 
         var plan = Presentation.ResolveDrawPlan(
-            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, isDark, MeasureText);
+            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, MeasureText);
         plan = DrawPlanResolver?.Invoke(plan) ?? plan;
-        tile.Apply(plan, Presentation.Options);
+
+        // 帯の色は UI のテーマが決める（文字色・アクセント色は MewUI のパレットから取る）
+        var palette = Application.Current.Theme.Palette;
+        var highlight = Presentation.Appearance.ResolveHighlightArgb(
+            plan.Highlight, ToArgb(palette.WindowText), ToArgb(palette.Accent));
+        tile.Apply(plan, Presentation.Options, highlight);
+
     }
 
     /// <summary>折り返した名前の実寸を測る（測定の実装は <see cref="TextMeasure"/> が単一所有する）。</summary>

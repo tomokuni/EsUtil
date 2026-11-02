@@ -34,7 +34,7 @@ var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default w
 
 var layout = presenter.ResolveLayout(availableWidth, imageWidth, imageHeights);
 var plan = presenter.ResolveDrawPlan(
-    layout, index, caption, isCurrent, selectedIndex, hoveredIndex, isDark, measureText);
+    layout, index, caption, isCurrent, selectedIndex, hoveredIndex, measureText);
 
 foreach (var layer in plan.Layers)
 {
@@ -51,7 +51,7 @@ foreach (var layer in plan.Layers)
 
 差し替え点は 3 つです。
 
-1. **外観の値**（`ThumbnailAppearance`）— 色・名前の体裁・影の有無（`Shadow = null`）と、既定の影の色・濃さ。
+1. **外観の値**（`ThumbnailAppearance`）— 名前の体裁・帯の濃さ（`HoverHighlightOpacity` / `SelectionHighlightOpacity`）・影の有無（`Shadow = null`）と、既定の影の色・濃さ。
 2. **影の算法**（`IThumbnailShadowPlan`）— 帯の作り方そのものを差し替えます。 実装を `ThumbnailAppearance.Shadow`
    へ渡すと、4 UI すべてがその帯を塗ります（AvaloniaUI は既定の実装だけ `BoxShadow` に任せ、それ以外は帯を塗ります）。
    余白（`Insets`）が `ThumbnailOptions.SurroundExtent` より広い場合は、レイアウトの項目の大きさが自動で広がります。
@@ -64,9 +64,9 @@ sealed class OutlineOnlyPresenter(ThumbnailOptions? options = null)
 {
     public override ThumbnailDrawPlan ResolveDrawPlan(
         ThumbnailLayoutResult layout, int index, string text, bool isCurrent,
-        int selectedIndex, int hoveredIndex, bool isDark)
+        int selectedIndex, int hoveredIndex)
     {
-        var plan = base.ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex, isDark);
+        var plan = base.ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex);
 
         // 影を外し、背景と画像と名前だけを描く計画へ差し替える
         return plan with { Shadow = null, Layers = [ThumbnailDrawLayer.Background, ThumbnailDrawLayer.Image, ThumbnailDrawLayer.Label] };

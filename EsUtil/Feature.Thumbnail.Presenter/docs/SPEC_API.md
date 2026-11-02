@@ -56,14 +56,14 @@
 | `Appearance` | property | 外観。 null を設定すると `ThumbnailAppearance.Default` になる |
 | `ResolveLayout(double availableWidth, double imageWidth, ReadOnlySpan<double> imageHeights)` | method | 配置を解決する（外観から求めた寸法を `ThumbnailLayout.Resolve` へ渡す） |
 | `ResolveMetrics()` | method | 外観から決まる寸法（影の余白 `ThumbnailMetrics.SlotInset`・名前の行の高さ `ThumbnailMetrics.LabelHeight`）を求める。 名前の行の高さは**2 行ぶん + 上下の余白**であり、影を描かない外観では `SlotInset` は 0 になる |
-| `ResolveDrawPlan(ThumbnailLayoutResult layout, int index, string text, bool isCurrent, int selectedIndex, int hoveredIndex, bool isDark, ThumbnailTextMeasure? measureText = null)` | virtual method | 1 件分の描画計画を解決する。 `measureText` は名前を折り返した実寸を測る関数（null は文字数からの見積もり）。 **添字が範囲外の場合は空の計画** |
+| `ResolveDrawPlan(ThumbnailLayoutResult layout, int index, string text, bool isCurrent, int selectedIndex, int hoveredIndex, ThumbnailTextMeasure? measureText = null)` | virtual method | 1 件分の描画計画を解決する。 `measureText` は名前を折り返した実寸を測る関数（null は文字数からの見積もり）。 **添字が範囲外の場合は空の計画** |
 | `ImageHeight(double width, int pixelWidth, int pixelHeight)` | static method | 縦横比を保つ画像の高さ（コアの `ThumbnailLayout.ImageHeight` へ委譲） |
 | `Log` | property | ログの出力先（null は `NullLogger`）。 設定・外観の変更を本クラスが記録する。 初回の設定時に生成を 1 度だけ記録する |
 | `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す） |
 
 **`ResolveDrawPlan` が決めること**:
 
-- 背景色 … 選択中かつ `ShowSelectionBackground` なら選択の背景、そうでなくホバー中かつ `ShowHoverBackground` ならホバーの背景、それ以外は 0（描かない）。 **選択はホバーより優先**します。
+- 強調 … 選択中かつ `ShowSelectionBackground` なら `ThumbnailHighlightKind.Selected`、そうでなくホバー中かつ `ShowHoverBackground` なら `Hover`、それ以外は `None`。 **選択はホバーより優先**します。 **色は決めません**（帯の色は UI のテーマが決め、UI が `ThumbnailAppearance.ResolveHighlightArgb` へ文字色とアクセント色を渡します）。
 - 影 … `ShowShadow` が false、または強調（ホバー・選択）中かつ `HideShadowWhenSelected` なら `null`、それ以外は `Appearance.Shadow`。
 - 名前 … `Label` の矩形と `LabelFontSize`。 **現在表示中の項目かつ `BoldCurrentLabel` なら太字**。 強調中は `HighlightedLabelArgb`（0 の場合は UI の標準色）。 **文言は幅と高さ（左右・上下の余白を除いた値）に収まるように `ThumbnailLabelText.Fit` が決め、収まらなければ拡張子を残して省略する**（太字は太字で測る）。
 - 層 … 背景と影の有無で 4 通りの並びから選ぶ（§2.6）。
@@ -79,10 +79,8 @@
 | `LabelFontSize` | `double` | 11 | 0 以下は既定値。 文字サイズ（DIP） |
 | `LabelVerticalPadding` | `double` | 1 | 負の値は 0。 名前の行の上下の余白（DIP）。 名前の行の高さは本値を含むため、増やしても文字を置ける高さ（2 行ぶん）は変わらない |
 | `BoldCurrentLabel` | `bool` | `true` | 現在表示中の項目の名前を太字にする |
-| `HoverBackgroundLightArgb` | `uint` | `0xFFDADADA` | 明色テーマのホバー背景 |
-| `HoverBackgroundDarkArgb` | `uint` | `0xFF303030` | 暗色テーマのホバー背景 |
-| `SelectionBackgroundLightArgb` | `uint` | `0x330078D4` | 明色テーマの選択背景（0 は描かない） |
-| `SelectionBackgroundDarkArgb` | `uint` | `0x330078D4` | 暗色テーマの選択背景（0 は描かない） |
+| `HoverHighlightOpacity` | `double` | `0.10` | 0〜1 へ補正。 ホバーの帯の不透明度（色は UI のテーマの文字色） |
+| `SelectionHighlightOpacity` | `double` | `0.20` | 0〜1 へ補正。 選択の帯の不透明度（色は UI のテーマのアクセント色） |
 | `HighlightedLabelArgb` | `uint` | `0` | 強調中の名前の色（0 は UI の標準色） |
 | `ShowShadow` | `bool` | `true` | 影を描く（算法は `Shadow` が保つため、算法を差し替えたまま表示だけを止められる） |
 | `HideShadowWhenSelected` | `bool` | `false` | 強調中は影を描かない |
@@ -93,8 +91,7 @@
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
 | `Default` | static property | すべての項目を既定値にした外観 |
-| `HoverBackground(bool isDark)` | method | テーマに応じたホバー背景の色 |
-| `SelectionBackground(bool isDark)` | method | テーマに応じた選択背景の色 |
+| `ResolveHighlightArgb(ThumbnailHighlightKind kind, uint textArgb, uint accentArgb)` | method | 帯の色を解決する（`None` は 0。 ホバーは文字色、選択はアクセント色を不透明度で薄くする。 アクセントが 0 の UI は文字色で代用） |
 
 - **等価性**: レコードの値等価性により、同値の外観を再代入しても UI の再描画は発生しません。
 
@@ -108,7 +105,7 @@
 | `ShadowArea` | `EsRect` | 影を含む矩形（画像 + 影の余白） |
 | `Label` | `ThumbnailLabelPlan` | 名前の計画 |
 | `Layers` | `IReadOnlyList<ThumbnailDrawLayer>` | 描く層の順序（状態に応じて間引かれる） |
-| `BackgroundArgb` | `uint` | 背景の色（0 は描かない） |
+| `Highlight` | `ThumbnailHighlightKind` | 強調の種類（`None` は帯を描かない）。 **色は持たない**（UI がテーマから解決する） |
 | `Shadow` | `IThumbnailShadowPlan?` | 影の計画（null は描かない） |
 | `IsHovered` | `bool` | ホバー中かどうか |
 | `IsSelected` | `bool` | 選択中かどうか |
@@ -195,7 +192,7 @@ presenter.Appearance = presenter.Appearance with { Shadow = null };
 var layout = presenter.ResolveLayout(availableWidth, imageWidth, heights);
 var plan = presenter.ResolveDrawPlan(
     layout, index: 3, text: "capture-0003.png", isCurrent: true,
-    selectedIndex: 3, hoveredIndex: 1, isDark: false);
+    selectedIndex: 3, hoveredIndex: 1);
 
 // 層の順に描く（描画 API の呼び出しは UI が持つ）
 foreach (var layer in plan.Layers)
@@ -203,7 +200,7 @@ foreach (var layer in plan.Layers)
     switch (layer)
     {
         case ThumbnailDrawLayer.Background:
-            Fill(plan.Slot, plan.BackgroundArgb);
+            Fill(plan.Slot, appearance.ResolveHighlightArgb(plan.Highlight, textArgb, accentArgb));
             break;
         case ThumbnailDrawLayer.Shadow:
             foreach (var band in plan.Shadow!.BuildDeviceBands(plan.Image.X, plan.Image.Y, plan.Image.Width, plan.Image.Height, scaling))

@@ -87,12 +87,12 @@ public class ThumbnailPresenterTests
         var layout = presenter.ResolveLayout(300, 96, [96, 96]);
 
         // ホバー中でも選択していなければ影を描く（通り過ぎただけで影が消えるとちらつく）
-        var hovered = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: -1, hoveredIndex: 0, isDark: false);
+        var hovered = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: -1, hoveredIndex: 0);
         Assert.True(hovered.IsHovered);
         Assert.NotNull(hovered.Shadow);
         Assert.Contains(ThumbnailDrawLayer.Shadow, hovered.Layers);
 
-        var selected = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: 0, hoveredIndex: -1, isDark: false);
+        var selected = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: 0, hoveredIndex: -1);
         Assert.True(selected.IsSelected);
         Assert.Null(selected.Shadow);
         Assert.DoesNotContain(ThumbnailDrawLayer.Shadow, selected.Layers);
@@ -136,7 +136,7 @@ public class ThumbnailPresenterTests
             appearance: ThumbnailAppearance.Default with { ShowShadow = false });
         var layout = presenter.ResolveLayout(600, 110, [90]);
 
-        var plan = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, -1, false);
+        var plan = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, -1);
 
         Assert.Equal(0, presenter.ResolveMetrics().SlotInset, 6);
         Assert.Null(plan.Shadow);
@@ -149,11 +149,11 @@ public class ThumbnailPresenterTests
     {
         var presenter = new ThumbnailPresenter();
         var layout = presenter.ResolveLayout(300, 96, [96]);
-        var plan = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: 0, hoveredIndex: 0, isDark: false);
+        var plan = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: 0, hoveredIndex: 0);
 
         Assert.True(plan.IsSelected);
         Assert.True(plan.IsHovered);
-        Assert.Equal(ThumbnailAppearance.Default.SelectionBackground(false), plan.BackgroundArgb);
+        Assert.Equal(ThumbnailHighlightKind.Selected, plan.Highlight);
     }
 
     /// <summary>現在表示中の画像の名前が太字になることを検証する。</summary>
@@ -162,7 +162,7 @@ public class ThumbnailPresenterTests
     {
         var presenter = new ThumbnailPresenter();
         var layout = presenter.ResolveLayout(300, 96, [96]);
-        var plan = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: true, selectedIndex: -1, hoveredIndex: -1, isDark: false);
+        var plan = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: true, selectedIndex: -1, hoveredIndex: -1);
 
         Assert.True(plan.Label.IsBold);
         Assert.Equal(ThumbnailAppearance.Default.LabelFontSize, plan.Label.FontSize);
@@ -176,8 +176,8 @@ public class ThumbnailPresenterTests
         var presenter = new ThumbnailPresenter(appearance: appearance);
         var layout = presenter.ResolveLayout(300, 96, [96]);
 
-        var normal = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, -1, false);
-        var hovered = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, 0, false);
+        var normal = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, -1);
+        var hovered = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, 0);
 
         Assert.Equal(0u, normal.Label.ForegroundArgb);
         Assert.Equal(0xFF0078D4u, hovered.Label.ForegroundArgb);
@@ -189,7 +189,7 @@ public class ThumbnailPresenterTests
     {
         var presenter = new ThumbnailPresenter();
         var layout = presenter.ResolveLayout(300, 96, [96, 40]);
-        var plan = presenter.ResolveDrawPlan(layout, 1, "b", false, -1, -1, false);
+        var plan = presenter.ResolveDrawPlan(layout, 1, "b", false, -1, -1);
 
         Assert.Equal(layout.Slot(1), plan.Slot);
         Assert.Equal(layout.Image(1), plan.Image);
@@ -212,10 +212,10 @@ public class ThumbnailPresenterTests
         Assert.Equal(96, layout.ImageWidth);
         Assert.Equal(96 + (40 * 2), layout.SlotWidth);
 
-        var plan = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, -1, false);
+        var plan = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, -1);
         Assert.Same(wide, plan.Shadow);
         Assert.Equal(layout.Image(0).X - 40, plan.ShadowArea.X, 6);
-        Assert.Equal(0u, plan.BackgroundArgb);
+        Assert.Equal(ThumbnailHighlightKind.None, plan.Highlight);
         Assert.Contains(ThumbnailDrawLayer.Shadow, plan.Layers);
     }
 
@@ -229,7 +229,7 @@ public class ThumbnailPresenterTests
         // 影を描かない設定では余白を持たない（項目の幅 = 画像の幅）
         Assert.Equal(96, layout.SlotWidth);
 
-        var plan = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, -1, false);
+        var plan = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, -1);
         Assert.Null(plan.Shadow);
         Assert.Equal(plan.Image, plan.ShadowArea);
         Assert.DoesNotContain(ThumbnailDrawLayer.Shadow, plan.Layers);
@@ -246,7 +246,7 @@ public class ThumbnailPresenterTests
         var presenter = new OutlineOnlyPresenter();
         var layout = presenter.ResolveLayout(300, 96, [96]);
 
-        var plan = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, 0, false);
+        var plan = presenter.ResolveDrawPlan(layout, 0, "a", false, -1, 0);
 
         Assert.Null(plan.Shadow);
         Assert.DoesNotContain(ThumbnailDrawLayer.Shadow, plan.Layers);
@@ -292,7 +292,7 @@ public class ThumbnailPresenterTests
             appearance: ThumbnailAppearance.Default with { LabelFontSize = 24 });
         var layout = presenter.ResolveLayout(600, 110, [90]);
 
-        var plan = presenter.ResolveDrawPlan(layout, 0, "capture-0123456789.png", false, -1, -1, false);
+        var plan = presenter.ResolveDrawPlan(layout, 0, "capture-0123456789.png", false, -1, -1);
 
         Assert.Contains("...", plan.Label.Text, StringComparison.Ordinal);
         Assert.EndsWith(".png", plan.Label.Text, StringComparison.Ordinal);
@@ -307,8 +307,8 @@ public class ThumbnailPresenterTests
             appearance: ThumbnailAppearance.Default with { LabelFontSize = 24, BoldCurrentLabel = true });
         var layout = presenter.ResolveLayout(600, 110, [90]);
 
-        var normal = presenter.ResolveDrawPlan(layout, 0, "capture-0123456789.png", false, -1, -1, false);
-        var bold = presenter.ResolveDrawPlan(layout, 0, "capture-0123456789.png", true, -1, -1, false);
+        var normal = presenter.ResolveDrawPlan(layout, 0, "capture-0123456789.png", false, -1, -1);
+        var bold = presenter.ResolveDrawPlan(layout, 0, "capture-0123456789.png", true, -1, -1);
 
         Assert.True(bold.Label.Text.Length <= normal.Label.Text.Length);
         Assert.True(bold.Label.IsBold);
@@ -324,11 +324,10 @@ public class ThumbnailPresenterTests
             bool isCurrent,
             int selectedIndex,
             int hoveredIndex,
-            bool isDark,
             ThumbnailTextMeasure? measureText = null)
         {
             var plan = base.ResolveDrawPlan(
-                layout, index, text, isCurrent, selectedIndex, hoveredIndex, isDark, measureText);
+                layout, index, text, isCurrent, selectedIndex, hoveredIndex, measureText);
 
             return plan with
             {

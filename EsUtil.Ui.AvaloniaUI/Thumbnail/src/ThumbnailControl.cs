@@ -430,9 +430,51 @@ public sealed class ThumbnailControl : ScrollViewer
 
         var tile = _panel.Items[index];
         var plan = Presentation.ResolveDrawPlan(
-            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme, MeasureText);
+            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, MeasureText);
         plan = DrawPlanResolver?.Invoke(plan) ?? plan;
-        tile.Apply(plan, Presentation.Options);
+
+        // 帯の色は UI のテーマが決める（文字色はラベルが継承している実効値、アクセントはテーマの資源）
+        var highlight = Presentation.Appearance.ResolveHighlightArgb(
+            plan.Highlight, ResolveTextColorArgb(), ResolveAccentColorArgb());
+
+        tile.Apply(plan, Presentation.Options, highlight);
+    }
+
+    /// <summary>テーマが決めた文字色を <c>0xAARRGGBB</c> で取得する。</summary>
+    /// <returns>文字色（解決できない場合は 0）。</returns>
+    /// <remarks>ラベルは文字色を継承しているため、その実効値を読む（テーマの切替に自動で追随する）。</remarks>
+    private uint ResolveTextColorArgb()
+    {
+        if (_panel.Items.Count > 0 && _panel.Items[0].LabelForeground is { } brush)
+        {
+            return ToArgb(brush);
+        }
+
+        return 0u;
+    }
+
+    /// <summary>テーマが決めたアクセント色を <c>0xAARRGGBB</c> で取得する。</summary>
+    /// <returns>アクセント色（解決できない場合は 0）。</returns>
+    /// <remarks>
+    /// 資源の名前はテーマ（Fluent 等）ごとに異なるため、名前で引かずに<b>プラットフォームが解決した値</b>を読む<br/>
+    /// （OS のアクセント色。 利用者がアクセント色を変えれば <c>ColorValuesChanged</c> で再描画される）。
+    /// </remarks>
+    private static uint ResolveAccentColorArgb()
+        => Application.Current?.PlatformSettings?.GetColorValues().AccentColor1 is { } accent ? ToArgb(accent) : 0u;
+
+    /// <summary>色を <c>0xAARRGGBB</c> にする。</summary>
+    /// <param name="color">色。</param>
+    /// <returns>色（<c>0xAARRGGBB</c>）。</returns>
+    private static uint ToArgb(Color color)
+        => ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
+
+    /// <summary>ブラシの色を <c>0xAARRGGBB</c> にする。</summary>
+    /// <param name="brush">ブラシ。</param>
+    /// <returns>色（<c>0xAARRGGBB</c>）。</returns>
+    private static uint ToArgb(IBrush brush)
+    {
+        var color = brush is ISolidColorBrush solid ? solid.Color : Colors.Gray;
+        return ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
     }
 
     /// <summary>折り返した名前の実寸を測る（測定の実装は <see cref="TextMeasure"/> が単一所有する）。</summary>

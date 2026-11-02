@@ -192,7 +192,7 @@
       "esutil.platform.core.windows": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.3.0, )",
+          "EsUtil.Platform.Core": "[0.4.0, )",
           "System.Drawing.Common": "[10.0.14, )"
         }
       },

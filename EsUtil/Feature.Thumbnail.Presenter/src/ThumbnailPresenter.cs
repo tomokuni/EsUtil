@@ -198,7 +198,6 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
     /// <param name="isCurrent">現在表示中の画像かどうか。</param>
     /// <param name="selectedIndex">選択中の添字（無い場合は -1）。</param>
     /// <param name="hoveredIndex">マウスが重なっている添字（無い場合は -1）。</param>
-    /// <param name="isDark">暗色テーマかどうか。</param>
     /// <param name="measureText">折り返した名前の実寸を測る関数。 null の場合は文字数から見積もる。</param>
     /// <returns>1 件分の描画計画。 添字が範囲外の場合は空の計画。</returns>
     /// <remarks>
@@ -214,7 +213,6 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
         bool isCurrent,
         int selectedIndex,
         int hoveredIndex,
-        bool isDark,
         ThumbnailTextMeasure? measureText = null)
     {
         ArgumentNullException.ThrowIfNull(layout);
@@ -222,12 +220,13 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
         var isSelected = index == selectedIndex;
         var isHovered = index == hoveredIndex;
 
-        // 選択の背景をホバーより優先する（選択中の項目へ重ねて 2 色にしない）
-        var background = isSelected && _appearance.ShowSelectionBackground
-            ? _appearance.SelectionBackground(isDark)
+        // 選択の帯をホバーより優先する（選択中の項目へ重ねて 2 色にしない）。
+        // 帯の色は UI のテーマが決めるため、計画は種類だけを運ぶ
+        var highlight = isSelected && _appearance.ShowSelectionBackground
+            ? ThumbnailHighlightKind.Selected
             : isHovered && _appearance.ShowHoverBackground
-                ? _appearance.HoverBackground(isDark)
-                : 0u;
+                ? ThumbnailHighlightKind.Hover
+                : ThumbnailHighlightKind.None;
 
         var highlighted = isSelected || isHovered;
         var shadow = !_appearance.ShowShadow || (isSelected && _appearance.HideShadowWhenSelected)
@@ -253,12 +252,12 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
             highlighted ? _appearance.HighlightedLabelArgb : 0,
             _appearance.LabelVerticalPadding);
 
-        var layers = background != 0
+        var layers = highlight != ThumbnailHighlightKind.None
             ? (shadow is null ? s_backgroundImageAndLabel : s_allLayers)
             : (shadow is null ? s_imageAndLabel : s_shadowImageAndLabel);
 
         return new ThumbnailDrawPlan(
-            index, layout.Slot(index), image, shadowArea, label, layers, background, shadow, isHovered, isSelected, isCurrent);
+            index, layout.Slot(index), image, shadowArea, label, layers, highlight, shadow, isHovered, isSelected, isCurrent);
     }
 
     /// <summary>画像の表示高さを求める（幅を固定し、縦横比を保つ）。</summary>

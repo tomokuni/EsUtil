@@ -436,7 +436,7 @@ public sealed class ThumbnailControl : ScrollableControl
     {
         var item = _items[index];
         var plan = _presenter.ResolveDrawPlan(
-            layout, index, item.Caption, item.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme, MeasureText);
+            layout, index, item.Caption, item.IsCurrent, _selection.Index, _hoveredIndex, MeasureText);
         plan = DrawPlanResolver?.Invoke(plan) ?? plan;
 
         foreach (var layer in plan.Layers)
@@ -444,7 +444,8 @@ public sealed class ThumbnailControl : ScrollableControl
             switch (layer)
             {
                 case ThumbnailDrawLayer.Background:
-                    graphics.FillRectangle(GetBrush(plan.BackgroundArgb), ToRect(plan.Slot));
+                    // 帯の色は UI のテーマが決める（テーマを持たない WinForms はシステムの色を使う）
+                    graphics.FillRectangle(GetBrush(ResolveHighlightArgb(plan)), ToRect(plan.Slot));
                     break;
 
                 case ThumbnailDrawLayer.Shadow:
@@ -526,6 +527,25 @@ public sealed class ThumbnailControl : ScrollableControl
             color,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.Top | TextFormatFlags.NoPrefix | TextFormatFlags.WordBreak);
     }
+
+    /// <summary>強調の帯の色を解決する。</summary>
+    /// <param name="plan">描画計画。</param>
+    /// <returns>帯の色（<c>0xAARRGGBB</c>。 0 は描かない）。</returns>
+    /// <remarks>
+    /// WinForms はテーマを持たないため、文字色はコントロールの <see cref="Control.ForeColor"/>、<br/>
+    /// アクセント色はシステムの選択色（<see cref="SystemColors.Highlight"/>）を使う。
+    /// </remarks>
+    private uint ResolveHighlightArgb(ThumbnailDrawPlan plan)
+    {
+        var text = ToArgb(ForeColor);
+        var accent = ToArgb(SystemColors.Highlight);
+        return _appearance.ResolveHighlightArgb(plan.Highlight, text, accent);
+    }
+
+    /// <summary>色を <c>0xAARRGGBB</c> にする。</summary>
+    /// <param name="color">色。</param>
+    /// <returns>色（<c>0xAARRGGBB</c>）。</returns>
+    private static uint ToArgb(Color color) => ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
 
     /// <summary>折り返した名前の実寸を測る。</summary>
     /// <param name="text">測る文言。</param>

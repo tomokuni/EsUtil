@@ -190,6 +190,23 @@ public sealed partial class ThumbnailControl : Grid
     /// </remarks>
     private bool IsDarkTheme => ActualTheme == ElementTheme.Dark;
 
+    /// <summary>テーマが決めた文字色を <c>0xAARRGGBB</c> で取得する。</summary>
+    /// <param name="tile">対象の項目（名前の要素が実効の文字色を持つ）。</param>
+    /// <returns>文字色（解決できない場合は 0）。</returns>
+    private static uint ResolveTextColorArgb(ThumbnailTile tile)
+        => tile.LabelForeground is SolidColorBrush brush ? ToArgb(brush.Color) : 0u;
+
+    /// <summary>テーマが決めたアクセント色を <c>0xAARRGGBB</c> で取得する。</summary>
+    /// <returns>アクセント色（解決できない場合は 0）。</returns>
+    private static uint ResolveAccentColorArgb()
+        => Application.Current?.Resources["SystemAccentColor"] is Windows.UI.Color accent ? ToArgb(accent) : 0u;
+
+    /// <summary>色を <c>0xAARRGGBB</c> にする。</summary>
+    /// <param name="color">色。</param>
+    /// <returns>色（<c>0xAARRGGBB</c>）。</returns>
+    private static uint ToArgb(Windows.UI.Color color)
+        => ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
+
     /// <summary>画像の幅（DIP）を取得または設定する。</summary>
     /// <value>表示モードの一辺。 0 以下の指定は既定の下限へ引き上げる。</value>
     /// <remarks>変更すると配置を解決し直す（画像の高さと行の高さが変わる）。</remarks>
@@ -429,9 +446,13 @@ public sealed partial class ThumbnailControl : Grid
 
         var tile = _items[index];
         var plan = Presentation.ResolveDrawPlan(
-            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme, MeasureText);
+            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, MeasureText);
         plan = DrawPlanResolver?.Invoke(plan) ?? plan;
-        tile.Apply(plan, Presentation.Options);
+        // 帯の色は UI のテーマが決める（要素が解決した文字色と、テーマのアクセント色を使う）
+        var highlight = Presentation.Appearance.ResolveHighlightArgb(
+            plan.Highlight, ResolveTextColorArgb(tile), ResolveAccentColorArgb());
+        tile.Apply(plan, Presentation.Options, highlight);
+
     }
 
     /// <summary>折り返した名前の実寸を測る（測定の実装は <see cref="TextMeasure"/> が単一所有する）。</summary>

@@ -94,21 +94,23 @@ EsUtil.Ui.WinUI3/Thumbnail/sample/
 
 ## 7. 拡張例（描画計画の差し替え）
 
-`ThumbnailControl.DrawPlanResolver` に `Func<ThumbnailDrawPlan, ThumbnailDrawPlan>` を設定すると、1 件分の描画計画（矩形・層の順序・背景色・影・名前の体裁）を値の置き換えだけで変更できます（**派生は不要**）。
+`ThumbnailControl.DrawPlanResolver` に `Func<ThumbnailDrawPlan, ThumbnailDrawPlan>` を設定すると、1 件分の描画計画（矩形・層の順序・強調の種類・影・名前の体裁）を値の置き換えだけで変更できます（**派生は不要**）。
 
 ```csharp
 list.DrawPlanResolver = plan => plan with
 {
-    BackgroundArgb = plan.IsSelected ? 0x40FF8800u : plan.BackgroundArgb,
+    Highlight = ThumbnailHighlightKind.Selected,
     Label = plan.Label with { FontSize = plan.Label.FontSize + 1, IsBold = true },
 };
 ```
 
 | 差し替える対象 | 差し替え方 |
 | --- | --- |
-| 背景・影・名前の体裁 | `DrawPlanResolver`（計画の値の置き換え） |
-| ホバー・選択の色、影の算法、名前の余白 | `Appearance`（`ThumbnailAppearance`）を設定する |
+| 強調の種類・影の有無・名前の体裁 | `DrawPlanResolver`（計画の値の置き換え） |
+| 強調の帯の濃さ、名前の余白、影の算法 | `Appearance`（`ThumbnailAppearance`）を設定する |
 | 配置（列数・余白・項目の寸法） | `Options`（`ThumbnailOptions`）を設定する |
 | 矩形で表せない描画 | 計画のとおりに描いた後、UI 固有の描画 API で上塗りする（描画 API は UI が持つ） |
+
+帯の色そのものは計画が持たず、UI が自分のテーマ（文字色・アクセント色）から解決します（`ThumbnailAppearance.ResolveHighlightArgb`）。 明暗で固定の 2 色を持たないため、利用者がテーマやアクセント色を変えても追随します。
 
 差し替えは値の置き換えだけで完結するため、UI ごとの描画実装（WinUI 3 は `ThumbnailControl` の内部描画）は変更不要です。

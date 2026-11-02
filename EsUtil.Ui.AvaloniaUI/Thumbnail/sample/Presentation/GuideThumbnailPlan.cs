@@ -4,15 +4,13 @@ namespace EsUtil.Ui.AvaloniaUI.Thumbnail.Sample.Presentation;
 /// <remarks>
 /// <b>示すこと</b>: 提示層を派生しなくても、描画計画（<see cref="ThumbnailDrawPlan"/>）で見た目を差し替えられる<br/>
 /// （<c>ThumbnailControl.DrawPlanResolver</c> へ設定する）。 差し替えは公開 API だけで行う。<br/>
-/// <b>見た目</b>: 強調中の項目の帯をアクセント色の単色にし、名前を白にする（既定は半透明のアクセント色）。<br/>
+/// <b>見た目</b>: 強調中の項目の名前を白にし、ホバーも選択と同じ帯にする（既定はホバーと選択で濃さが違う）。<br/>
+/// <b>帯の色は計画が持たない</b>: 帯の色は UI のテーマが決めるため、計画は <see cref="ThumbnailHighlightKind"/>（意味）だけを持つ。<br/>
 /// <b>文言は変えない</b>: 名前を置ける大きさは提示層が実寸から決めているため、本見本は文字の体裁だけを変える<br/>
 /// （文言を伸ばすと行からはみ出す）。
 /// </remarks>
 internal static class GuideThumbnailPlan
 {
-    /// <summary>強調中の帯の色（アクセント色）。</summary>
-    private const uint AccentArgb = 0xFF0078D4;
-
     /// <summary>強調中の名前の色（白）。</summary>
     private const uint HighlightedLabelArgb = 0xFFFFFFFF;
 
@@ -24,7 +22,7 @@ internal static class GuideThumbnailPlan
         => plan.IsHighlighted
             ? plan with
             {
-                BackgroundArgb = AccentArgb,
+                Highlight = ThumbnailHighlightKind.Selected,
                 Label = plan.Label with { ForegroundArgb = HighlightedLabelArgb },
             }
             : plan;

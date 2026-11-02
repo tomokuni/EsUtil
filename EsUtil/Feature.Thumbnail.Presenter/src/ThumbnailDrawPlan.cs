@@ -9,7 +9,7 @@ namespace EsUtil.Feature.Thumbnail;
 /// <param name="ShadowArea">影を含む矩形（画像 + 影の余白）。</param>
 /// <param name="Label">名前の計画。</param>
 /// <param name="Layers">描く層の順序（状態に応じて間引く）。</param>
-/// <param name="BackgroundArgb">背景の色（<c>0xAARRGGBB</c>。 0 は描かない）。</param>
+/// <param name="Highlight">強調の種類（<see cref="ThumbnailHighlightKind.None"/> は帯を描かない）。</param>
 /// <param name="Shadow">影の計画。 null の場合は影を描かない。</param>
 /// <param name="IsHovered">マウスが重なっているかどうか。</param>
 /// <param name="IsSelected">選択中かどうか。</param>
@@ -37,7 +37,7 @@ public readonly record struct ThumbnailDrawPlan(
     EsRect ShadowArea,
     ThumbnailLabelPlan Label,
     IReadOnlyList<ThumbnailDrawLayer> Layers,
-    uint BackgroundArgb,
+    ThumbnailHighlightKind Highlight,
     IThumbnailShadowPlan? Shadow,
     bool IsHovered,
     bool IsSelected,

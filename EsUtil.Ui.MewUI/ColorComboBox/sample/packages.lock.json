@@ -117,7 +117,7 @@
         "type": "Project",
         "dependencies": {
           "Aprillz.MewUI.Core": "[0.22.1, )",
-          "EsUtil.Platform.Core": "[0.3.0, )",
+          "EsUtil.Platform.Core": "[0.4.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },

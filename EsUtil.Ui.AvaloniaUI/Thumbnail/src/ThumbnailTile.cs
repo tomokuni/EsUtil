@@ -36,8 +36,15 @@ internal sealed class ThumbnailTile : Panel
         VerticalAlignment = VerticalAlignment.Top,
     };
 
+    /// <summary>名前の実効の文字色を取得する（テーマが決めた値。 強調の帯の色を導くのに使う）。</summary>
+    /// <value>解決済みのブラシ。 未解決の場合は null。</value>
+    public IBrush? LabelForeground => _label.Foreground;
+
     /// <summary>最後に適用した描画計画。</summary>
     private ThumbnailDrawPlan? _plan;
+
+    /// <summary>強調の帯の色（UI がテーマから解決した値）。</summary>
+    private uint _highlightArgb;
 
     /// <summary>ツールヒントの幅の上限（DIP）。 名前が長い場合はこの幅で折り返す。</summary>
     private const double ToolTipMaxWidth = 280;
@@ -154,12 +161,20 @@ internal sealed class ThumbnailTile : Panel
     /// <param name="plan">1 件分の描画計画。</param>
     /// <param name="options">計算に必要な設定（名前の余白）。</param>
     public void Apply(ThumbnailDrawPlan plan, ThumbnailOptions options)
+        => Apply(plan, options, 0);
+
+    /// <summary>描画計画を適用する（強調の帯の色を指定する）。</summary>
+    /// <param name="plan">1 件分の描画計画。</param>
+    /// <param name="options">計算に必要な設定（名前の余白）。</param>
+    /// <param name="highlightArgb">強調の帯の色（<c>0xAARRGGBB</c>。 0 は描かない）。 UI がテーマから解決して渡す。</param>
+    public void Apply(ThumbnailDrawPlan plan, ThumbnailOptions options, uint highlightArgb)
     {
         _plan = plan;
+        _highlightArgb = highlightArgb;
 
-        _background.Background = plan.BackgroundArgb == 0
+        _background.Background = plan.Highlight == ThumbnailHighlightKind.None
             ? null
-            : new SolidColorBrush(Color.FromUInt32(plan.BackgroundArgb));
+            : new SolidColorBrush(Color.FromUInt32(_highlightArgb));
 
         // 影の有無は計画が決める（強調中に隠す UI がある）
         if (plan.Shadow is ThumbnailShadowPlan shadow)

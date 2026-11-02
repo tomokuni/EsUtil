@@ -112,8 +112,7 @@ classDiagram
         +Appearance ThumbnailAppearance
         +ResolveLayout(availableWidth, imageWidth, imageHeights) ThumbnailLayoutResult
         +ResolveMetrics() ThumbnailMetrics
-        +ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex, isDark) ThumbnailDrawPlan
-        +ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex, isDark) ThumbnailDrawPlan
+        +ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex) ThumbnailDrawPlan
         +ImageHeight(width, pixelWidth, pixelHeight)$ double
     }
     class ThumbnailAppearance {
@@ -126,8 +125,9 @@ classDiagram
         +ShowHoverBackground bool
         +ShowSelectionBackground bool
         +Shadow IThumbnailShadowPlan
-        +HoverBackground(isDark) uint
-        +SelectionBackground(isDark) uint
+        +HoverHighlightOpacity double
+        +SelectionHighlightOpacity double
+        +ResolveHighlightArgb(kind, textArgb, accentArgb)$ uint
     }
     class ThumbnailDrawPlan {
         +Index int
@@ -136,7 +136,7 @@ classDiagram
         +ShadowArea EsRect
         +Label ThumbnailLabelPlan
         +Layers IReadOnlyList~ThumbnailDrawLayer~
-        +BackgroundArgb uint
+        +Highlight ThumbnailHighlightKind
         +Shadow IThumbnailShadowPlan
         +IsHighlighted bool
     }
@@ -169,10 +169,10 @@ sequenceDiagram
     participant Appearance as ThumbnailAppearance
     participant Layout as ThumbnailLayoutResult
 
-    UI->>Presenter: ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex, isDark)
+    UI->>Presenter: ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex)
     Presenter->>Layout: Slot(index) / Image(index) / Label(index)
     Presenter->>Appearance: ShowSelectionBackground / ShowHoverBackground
-    Presenter->>Appearance: SelectionBackground(isDark) / HoverBackground(isDark)
+    Presenter->>Appearance: ShowSelectionBackground / ShowHoverBackground（強調の種類を決める）
     Presenter->>Appearance: Shadow / ShowShadow / HideShadowWhenSelected
     Presenter->>Appearance: LabelFontSize / BoldCurrentLabel / HighlightedLabelArgb
     Presenter->>Presenter: 層の並びを選ぶ（背景と影の有無で 4 通り）

@@ -5,8 +5,9 @@ namespace EsUtil.Feature.Thumbnail;
 /// <b>描画にだけ必要な設定を単一所有する</b>: 色・フォントサイズ・影の濃さはコアの計算・判断に入らないため、<br/>
 /// 本型が持つ。 コア（<see cref="ThumbnailOptions"/>）が持つのは長さだけである。<br/>
 /// <br/>
-/// <b>テーマ</b>: 明色・暗色の両方の色を持ち、<see cref="HoverBackground"/> / <see cref="SelectionBackground"/> が<br/>
-/// 現在のテーマに応じた値を返す（UI はテーマの判定だけを行う）。<br/>
+/// <b>テーマ</b>: 帯の色そのものは持たない。 計画は <see cref="ThumbnailHighlightKind"/>（意味）だけを運び、<br/>
+/// UI が自分のテーマから解決した文字色・アクセント色を <see cref="ResolveHighlightArgb"/> へ渡す<br/>
+/// （明暗 2 色の固定表を持つとテーマの実際の値と一致せず、利用者のアクセント変更にも追随できない）。<br/>
 /// <br/>
 /// <b>既定値</b>: <see cref="Default"/> を基点に部分変更する（<c>ThumbnailAppearance.Default with { ... }</c>）。<br/>
 /// <br/>
@@ -41,24 +42,23 @@ public sealed record ThumbnailAppearance
     /// <value>太字にする場合は true（既定）。</value>
     public bool BoldCurrentLabel { get; init; } = true;
 
-    /// <summary>マウスが重なった項目の背景色（明色テーマ）を取得する。</summary>
-    /// <value>色（<c>0xAARRGGBB</c>）。 既定は <c>0xFFDADADA</c>。</value>
-    /// <remarks>AvaloniaUI の一覧の項目（<c>ListBoxItem</c>）のホバー背景を実測した値である。</remarks>
-    public uint HoverBackgroundLightArgb { get; init; } = 0xFFDADADA;
+    /// <summary>ホバーの帯の不透明度を取得する。</summary>
+    /// <value>0〜1。 既定は <c>0.10</c>（テーマの文字色を 10% で敷く）。</value>
+    /// <remarks>帯の色そのものは持たない（UI のテーマの文字色を使う。 <see cref="ResolveHighlightArgb"/>）。</remarks>
+    public double HoverHighlightOpacity
+    {
+        get;
+        init => field = Math.Clamp(value, 0, 1);
+    } = 0.10;
 
-    /// <summary>マウスが重なった項目の背景色（暗色テーマ）を取得する。</summary>
-    /// <value>色（<c>0xAARRGGBB</c>）。 既定は <c>0xFF303030</c>。</value>
-    public uint HoverBackgroundDarkArgb { get; init; } = 0xFF303030;
-
-    /// <summary>選択中の項目の背景色（明色テーマ）を取得する。</summary>
-    /// <value>色（<c>0xAARRGGBB</c>）。 既定は <c>0x330078D4</c>（アクセント色の 20%）。</value>
-    /// <remarks>0 の場合は選択の背景を描かない（名前の色だけで示す UI がある）。</remarks>
-    public uint SelectionBackgroundLightArgb { get; init; } = 0x330078D4;
-
-    /// <summary>選択中の項目の背景色（暗色テーマ）を取得する。</summary>
-    /// <value>色（<c>0xAARRGGBB</c>）。 既定は <c>0x330078D4</c>。</value>
-    /// <remarks>0 の場合は選択の背景を描かない（名前の色だけで示す UI がある）。</remarks>
-    public uint SelectionBackgroundDarkArgb { get; init; } = 0x330078D4;
+    /// <summary>選択の帯の不透明度を取得する。</summary>
+    /// <value>0〜1。 既定は <c>0.20</c>（テーマのアクセント色を 20% で敷く）。</value>
+    /// <remarks>帯の色そのものは持たない（UI のテーマのアクセント色を使う。 <see cref="ResolveHighlightArgb"/>）。</remarks>
+    public double SelectionHighlightOpacity
+    {
+        get;
+        init => field = Math.Clamp(value, 0, 1);
+    } = 0.20;
 
     /// <summary>強調（ホバー・選択）中の名前の色を取得する。</summary>
     /// <value>色（<c>0xAARRGGBB</c>）。 既定は <c>0</c>（UI の標準の文字色を使う）。</value>
@@ -96,13 +96,26 @@ public sealed record ThumbnailAppearance
     /// </remarks>
     public IThumbnailShadowPlan? Shadow { get; init; } = ThumbnailShadowPlan.Default;
 
-    /// <summary>ホバーの背景色を取得する。</summary>
-    /// <param name="isDark">暗色テーマかどうか。</param>
-    /// <returns>色（<c>0xAARRGGBB</c>）。</returns>
-    public uint HoverBackground(bool isDark) => isDark ? HoverBackgroundDarkArgb : HoverBackgroundLightArgb;
+    /// <summary>強調の帯の色を解決する。</summary>
+    /// <param name="kind">強調の種類（<see cref="ThumbnailHighlightKind.None"/> の場合は 0）。</param>
+    /// <param name="textArgb">UI のテーマが決めた文字色（<c>0xAARRGGBB</c>）。 ホバーはこの色を薄く敷く。</param>
+    /// <param name="accentArgb">UI のテーマが決めたアクセント色（<c>0xAARRGGBB</c>）。 選択はこの色を薄く敷く。</param>
+    /// <returns>帯の色（<c>0xAARRGGBB</c>）。 0 の場合は帯を描かない。</returns>
+    /// <remarks>
+    /// <b>色は UI のテーマから受け取る</b>: 明暗で固定の 2 色を持つとテーマの実際の値と一致せず、利用者がアクセント色を<br/>
+    /// 変えたときにも追随できない。 本メソッドは「どの色をどの濃さで敷くか」だけを持ち、色そのものは UI が解決する。<br/>
+    /// アクセント色が取れない UI（<paramref name="accentArgb"/> が 0）は文字色で代用する。
+    /// </remarks>
+    public uint ResolveHighlightArgb(ThumbnailHighlightKind kind, uint textArgb, uint accentArgb)
+    {
+        if (kind == ThumbnailHighlightKind.None)
+        {
+            return 0;
+        }
 
-    /// <summary>選択の背景色を取得する。</summary>
-    /// <param name="isDark">暗色テーマかどうか。</param>
-    /// <returns>色（<c>0xAARRGGBB</c>）。</returns>
-    public uint SelectionBackground(bool isDark) => isDark ? SelectionBackgroundDarkArgb : SelectionBackgroundLightArgb;
+        var source = kind == ThumbnailHighlightKind.Selected && accentArgb != 0 ? accentArgb : textArgb;
+        var opacity = kind == ThumbnailHighlightKind.Selected ? SelectionHighlightOpacity : HoverHighlightOpacity;
+        var alpha = (uint)Math.Round(((source >> 24) & 0xFF) * opacity);
+        return alpha == 0 ? 0 : (alpha << 24) | (source & 0x00FFFFFF);
+    }
 }
