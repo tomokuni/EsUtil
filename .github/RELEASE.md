@@ -38,7 +38,7 @@
 
 | 設定 | 内容 |
 | --- | --- |
-| `Protect main`（ブランチ保護） | `main` への直接 push を禁止し、`ci` の成功を必須にする |
+| `Protect main`（ブランチ保護） | `main` への直接 push を禁止し、`ci` の成功を必須にする。 **`strict_required_status_checks_policy` を `true`** にし、Pull Request が最新の `main` に追随していないとマージできないようにする（[`rulesets/protect-main.json`](rulesets/protect-main.json)） |
 | `release`（Environment） | **Required reviewers** を設定する。 公開ジョブはこの環境の承認が無いと動かない |
 | NuGet の Trusted Publishing | ポリシーを「リポジトリ + ワークフロー ファイル（`release.yml`）+ `environment: release`」に紐づける。 **長期の API キーは持たない** |
 | `NUGET_USER`（Secret） | Trusted Publishing のユーザー名 |
@@ -49,17 +49,19 @@
 
 **フル検証は Pull Request の 1 回だけ**です。 `main` へ入るのは Pull Request だけであり（ruleset）、Pull Request の検証は**マージ後に `main` へ載るツリーそのもの**（`refs/pull/<番号>/merge`）を対象にします。 同じツリーをもう一度検証しても結果は変わらないため、**`dev` への push と `main` への push では検証しません**。
 
+**古い `main` に対する検証結果は使いません**。 ruleset の `strict_required_status_checks_policy` が `true` のため、Pull Request が最新の `main` に追随していないとマージできません。 追随すると `refs/pull/<番号>/merge` が作り直され、`ci` がその組み合わせで走り直されます（複数の Pull Request が古い `main` のまま順にマージされ、**実際に載る組み合わせが未検証**になるのを防ぐ）。
+
 | 契機 | 実行する内容 | 理由 |
 | --- | --- | --- |
 | `dev` への push | なし | 手元の `verify.ps1` と、`main` 向け Pull Request の検証で足りる |
-| `main` 向け Pull Request | フル検証（`build.yml`。 必須チェックは `ci`） | **唯一のゲート**。 マージ後に載るツリーを検証する |
-| `main` への push（マージ） | なし | Pull Request と同じツリーのため重複する |
+| `main` 向け Pull Request | フル検証（`build.yml`。 必須チェックは `ci`） | **唯一のゲート**。 最新の `main` とマージしたツリーを検証する |
+| `main` への push（マージ） | なし | Pull Request と同じツリーのため重複する（最新の `main` への追随が前提） |
 | `workflow_dispatch`（`build.yml`） | フル検証 | 任意のブランチを今すぐ確かめたいとき |
 | Release `dry-run` | `pack` と SBOM の作成 | 公開物を 1 度だけ作る |
 | Release `release` | dry-run の成果物の公開とタグ付け | **`pack` と SBOM を作り直さない**（公開するバイト列が dry-run と同じになる） |
 
 - **作業ブランチで早く壊れを見つけたいとき**は、手元の `buildScript/verify.ps1`（[`検証手順.md`](検証手順.md)）か、`build.yml` の `workflow_dispatch` を使います。
-- **README の build バッジ**は `?branch=` を付けません（push では実行しないため、付けると更新されません）。
+- **README の build バッジ**は `?event=pull_request` を指定します（既定は**既定ブランチの最新実行**であり、`main` の push では実行しないため、`dev` の古い push の結果が残って PR の失敗を表示できません）。
 
 ### 4.2 ジョブの流れ
 
@@ -193,7 +195,7 @@ pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output sbom
 - **タグはワークフローだけが作ります**（人が打たない。 グループ別のタグは版の記録であり、リリースの単位）。
 - **SBOM とパッケージは同じコミットから作ります**（`pack` と `sbom` は `dry-run` の同じ `github.sha` を checkout する）。
 - **公開するコミットに `## 未リリース` を残しません**（`verify` が失敗する。 §5.2）。
-- **検証は Pull Request の 1 回だけです**（push では実行しない。 §4.1）。 マージ後に検証をやり直しても、同じツリーの同じ結果になるためです。
+- **検証は Pull Request の 1 回だけです**（push では実行しない。 §4.1）。 マージ後に検証をやり直しても、同じツリーの同じ結果になるためです。 前提として、Pull Request は**最新の `main` に追随**してからマージします（ruleset の `strict_required_status_checks_policy`）。
 
 ## 関連ドキュメント
 

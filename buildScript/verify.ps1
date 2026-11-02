@@ -389,16 +389,41 @@ elseif (-not (Test-Path -LiteralPath $dependabotPath)) {
 }
 else {
     $dependabotText = [IO.File]::ReadAllText($dependabotPath, $enc)
-    # 単数（`directory: "/"`）と複数（`- "/パス"`）の両方の書き方から拾う
-    $listedDirectories = @([regex]::Matches($dependabotText, '(?m)^\s*(?:-\s*|directory:\s*)"(?<path>/[^"]*)"\s*$') |
-            ForEach-Object {
-                $value = $_.Groups['path'].Value
-                if ($value.Length -gt 1) { $value.TrimEnd('/') } else { $value }
-            })
-    $hasPackagesDirectory = $listedDirectories -contains $packagesPropsDirectory
-    Add-Result 'Dependabot の対象' $hasPackagesDirectory "版のフォルダ $packagesPropsDirectory の登録 $([int]$hasPackagesDirectory) 件"
-    if (-not $hasPackagesDirectory) {
-        "      .github/dependabot.yml の directory に版のフォルダが無い: $packagesPropsDirectory（Dependabot は版を更新できない）"
+
+    # **`package-ecosystem: "nuget"` のエントリの中だけを見る**（他のエコシステムの `directory` で
+    # 通してしまわないため。 GitHub Actions の `directory: "/"` と取り違えると、NuGet の設定を
+    # 別のフォルダへ変えても・削除しても検査が通ってしまう）。
+    $dependabotLines = $dependabotText -split "`r?`n"
+    $nugetStart = -1
+    for ($i = 0; $i -lt $dependabotLines.Count; $i++) {
+        if ($dependabotLines[$i] -match '^\s*-\s*package-ecosystem:\s*"nuget"\s*$') { $nugetStart = $i; break }
+    }
+
+    $listedDirectories = @()
+    if ($nugetStart -ge 0) {
+        $block = [System.Collections.Generic.List[string]]::new()
+        for ($i = $nugetStart; $i -lt $dependabotLines.Count; $i++) {
+            # 次の `- package-ecosystem:` で終わる（インデントは問わない）
+            if ($i -gt $nugetStart -and $dependabotLines[$i] -match '^\s*-\s*package-ecosystem:') { break }
+            $block.Add($dependabotLines[$i])
+        }
+
+        # 単数（`directory: "/"`）と複数（`- "/パス"`）の両方の書き方から拾う
+        $listedDirectories = @([regex]::Matches(($block -join "`n"), '(?m)^\s*(?:-\s*|directory:\s*)"(?<path>/[^"]*)"\s*$') |
+                ForEach-Object {
+                    $value = $_.Groups['path'].Value
+                    if ($value.Length -gt 1) { $value.TrimEnd('/') } else { $value }
+                })
+    }
+
+    $hasNugetEcosystem = $nugetStart -ge 0
+    $hasPackagesDirectory = $hasNugetEcosystem -and ($listedDirectories -contains $packagesPropsDirectory)
+    Add-Result 'Dependabot の対象' $hasPackagesDirectory "nuget のエントリ $([int]$hasNugetEcosystem) 件 / 版のフォルダ $packagesPropsDirectory の登録 $([int]$hasPackagesDirectory) 件"
+    if (-not $hasNugetEcosystem) {
+        "      .github/dependabot.yml に package-ecosystem: `"nuget`" のエントリが無い（Dependabot は版を更新できない）"
+    }
+    elseif (-not $hasPackagesDirectory) {
+        "      .github/dependabot.yml の nuget の directory に版のフォルダが無い: $packagesPropsDirectory（Dependabot は版を更新できない）"
     }
 }
 

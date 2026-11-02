@@ -26,8 +26,8 @@
 #
 # Windows 専用（Win32 API の P/Invoke を含む）のため windows-latest で実行する。
 #
-# README の「build」バッジはこのワークフローの**最新の実行結果**を表示する（`?branch=` は付けない。
-# 付けると push の実行だけが対象になり、更新されない）。
+# README の「build」バッジは `?event=pull_request` を指定する（既定は**既定ブランチの最新実行**であり、
+# push では実行しないため、`dev` の古い push の結果が残って Pull Request の失敗を表示できない）。
 name: Build
 
 on:
