@@ -1,31 +1,17 @@
 <Project>
 
   <PropertyGroup>
-    <!-- 版グループごとのバージョン（公開する版の意味を人が決める）。 値を持つのは 5 行だけであり、
-         各 .csproj では指定しない。 規則は .github/ビルド設定規約.md §4。
+    <!-- 公開する版（すべてのパッケージで 1 つ）。 値を書き換えるのは人だけであり、各 .csproj では指定しない。
+         規則は .github/ビルド設定規約.md §4。
 
          ローカル フィードへ出すときだけ buildScript/pack.ps1 が VersionSuffix=local.<n> を付ける
          （公開する版には含めない。 ローカル フィード専用の識別子である）。 -->
-    <EsUtil_VersionPrefix>0.4.0</EsUtil_VersionPrefix>
-    <EsUtil_Ui_AvaloniaUI_VersionPrefix>0.4.0</EsUtil_Ui_AvaloniaUI_VersionPrefix>
-    <EsUtil_Ui_MewUI_VersionPrefix>0.4.0</EsUtil_Ui_MewUI_VersionPrefix>
-    <EsUtil_Ui_WinUI3_VersionPrefix>0.4.0</EsUtil_Ui_WinUI3_VersionPrefix>
-    <EsUtil_Ui_WinForms_VersionPrefix>0.4.0</EsUtil_Ui_WinForms_VersionPrefix>
+    <VersionPrefix>0.4.0</VersionPrefix>
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- 自分の版はグループの値から引く（数値を 2 箇所へ書かない）。
-         グループはプロジェクト名から導出する（30 プロジェクト分の条件を書かない）。
-         テスト・サンプルはパッケージを作らないため版を持たない（SDK 既定のまま）。 -->
+    <!-- テスト・サンプルはパッケージを作らない（判別はプロジェクト名で行い、30 プロジェクト分の条件を書かない）。 -->
     <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample|SampleKit)$'))</_SeIsTestOrSample>
-    <_SeIsCoreGroup>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '^EsUtil\.(Platform|Feature)\.'))</_SeIsCoreGroup>
-    <_SeUiGroup>$([System.Text.RegularExpressions.Regex]::Match('$(MSBuildProjectName)', '^EsUtil\.Ui\.(AvaloniaUI|MewUI|WinUI3|WinForms)\.').Groups[1].Value)</_SeUiGroup>
-
-    <VersionPrefix Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsCoreGroup)' == 'true'">$(EsUtil_VersionPrefix)</VersionPrefix>
-    <VersionPrefix Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeUiGroup)' == 'AvaloniaUI'">$(EsUtil_Ui_AvaloniaUI_VersionPrefix)</VersionPrefix>
-    <VersionPrefix Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeUiGroup)' == 'MewUI'">$(EsUtil_Ui_MewUI_VersionPrefix)</VersionPrefix>
-    <VersionPrefix Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeUiGroup)' == 'WinUI3'">$(EsUtil_Ui_WinUI3_VersionPrefix)</VersionPrefix>
-    <VersionPrefix Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeUiGroup)' == 'WinForms'">$(EsUtil_Ui_WinForms_VersionPrefix)</VersionPrefix>
   </PropertyGroup>
 
   <PropertyGroup>

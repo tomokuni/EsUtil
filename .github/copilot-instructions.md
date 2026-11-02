@@ -72,7 +72,7 @@
 - **本体プロジェクトは同一リポジトリのプロジェクトを `ProjectReference` で参照する**（ビルドの `DEP0001`〜`DEP0006` が参照の向きを強制する）。 **Core と Presenter は 1 つの機能アセンブリ（`EsUtil.Feature.<機能>.Core`）に置き、公開面は `src/` 直下に置き、層の内部は `src/Core/` / `src/Presenter/` のフォルダと名前空間で分ける**（`verify.ps1` がコアから提示層への参照を検査する）。 テスト・サンプルも同じ形で参照する。 パッケージ参照（`PackageReference`）を使うのは本リポジトリの外の利用者だけである。
 - **パッケージは `.nupkg/` へ出力し、リポジトリへコミットしない**（`.gitignore` が無視する）。 ローカル フィードは**未公開の版を試すためだけ**に使い、クローン直後の pack は不要である。
 - **ローカル識別子の記録（`buildScript/local-versions.json`）はコミットする**（グループごとの `local.<n>` とソースの指紋を持つ。 `pack.ps1` が書く）。
-- **バージョンは 5 つの版グループ（`EsUtil` / `EsUtil.Ui.<UI>`）ごとに決まる**。 値は `Directory.Build.props` の **`VersionPrefix` 5 行**が単一所有する。 `pack.ps1` が付けるのは**ローカル フィード専用の `VersionSuffix=local.<n>`** だけである（規則は [`ビルド設定規約.md`](ビルド設定規約.md) §4）。
+- **バージョンはすべてのパッケージで 1 つ**。 値は `Directory.Build.props` の **`VersionPrefix` 1 行**が単一所有する。 `pack.ps1` が付けるのは**ローカル フィード専用の `VersionSuffix=local.<n>`** だけである（規則は [`ビルド設定規約.md`](ビルド設定規約.md) §4）。
 - **文字コードは UTF-8（BOM なし）**で統一する（[`.editorconfig`](../.editorconfig) の `charset = utf-8`）。
 - **作業ツリーの改行コードは CRLF**（[`.editorconfig`](../.editorconfig) の `end_of_line = crlf`。 リポジトリのブロブは [`.gitattributes`](../.gitattributes) が LF へ正規化する）。
 - **生成した XML ドキュメントはパッケージへ同封する**（`CopyDocumentationFileToOutputDirectory` を `false` にすると `pack.ps1` が NU5026 で失敗する。 実測）。

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    版グループ単位でパッケージを作り、ローカル フィード（.nupkg/）へ出力する。
+    ソリューション単位でパッケージを作り、ローカル フィード（.nupkg/）へ出力する。
 
 .DESCRIPTION
     本リポジトリの通常のビルドは ProjectReference であり、pack は要らない
@@ -8,17 +8,17 @@
     パッケージング検証で試すとき**だけ使う。
 
     手順:
-      1. 版グループ（EsUtil / EsUtil.Ui.<UI> の 5 つ）ごとのソースの指紋を
+      1. ソリューション（EsUtil / EsUtil.Ui.<UI> の 5 つ）ごとのソースの指紋を
          前回の記録（buildScript/local-versions.json）と比べる。
-         **変わったグループだけ**ローカル識別子の番号（local.<n>）を +1 する。
+         **変わったソリューションだけ**ローカル識別子の番号（local.<n>）を +1 する。
       2. 依存順に `dotnet pack` する。 ローカル識別子は `-p:VersionSuffix=local.<n>` で渡す
          （**Directory.Build.props の VersionPrefix は書き換えない**。 公開する版は人が決める）。
       3. pack したパッケージの展開済みキャッシュ（グローバル パッケージ フォルダ）を削除する。
          同じ識別子のまま中身を更新しても NuGet はキャッシュを使うため、削除しないと
          後続のプロジェクトが**古い DLL** を参照する（実測で必要と確認した手順）。
       4. 同じパッケージの**古い版の .nupkg を削除する**（.nupkg/ には各パッケージ 1 版だけを置く）。
-      5. **pack に成功したグループだけ**ローカル識別子と指紋を記録する
-         （失敗したグループの番号は消費しない）。
+      5. **pack に成功したソリューションだけ**ローカル識別子と指紋を記録する
+         （失敗したソリューションの番号は消費しない）。
 
     公開する版（VersionPrefix）にローカル識別子は含めない。 公開の手順は
     .github/workflows/release.yml が持つ（`-` を含む版を拒否する）。
@@ -27,7 +27,7 @@
     pack の構成（既定 Release）。
 
 .PARAMETER Only
-    対象の版グループを絞る（例: EsUtil.Ui.AvaloniaUI）。
+    対象のソリューションを絞る（例: EsUtil.Ui.AvaloniaUI）。
 
 .PARAMETER NoClean
     出力先（.nupkg/）の既存パッケージ（古い版）を削除しない（差分の確認用。 通常は指定しない）。
@@ -63,29 +63,28 @@ Set-Location $repoRoot
 . (Join-Path $PSScriptRoot 'VerifyCommon.ps1')
 
 # ============================================================
-# 版グループ（規則の所有者は .github/ビルド設定規約.md §4）
+# ソリューション（規則の所有者は .github/ビルド設定規約.md §4）
 # ============================================================
-# グループはプロジェクト名から導出する（Directory.Build.props の VersionPrefix と同じ規則）。
-function Get-GroupName([string]$projectName) {
+# ソリューションはプロジェクト名から導出する（Directory.Build.props の VersionPrefix と同じ規則）。
+function Get-SolutionName([string]$projectName) {
     if ($projectName -match '^EsUtil\.Ui\.(?<ui>AvaloniaUI|MewUI|WinUI3|WinForms)\.') {
         return "EsUtil.Ui.$($Matches['ui'])"
     }
     if ($projectName -match '^EsUtil\.(Platform|Feature)\.') { return 'EsUtil' }
-    throw "版グループを判定できません: $projectName"
+    throw "ソリューションを判定できません: $projectName"
 }
 
-# グループの VersionPrefix（人が決める公開する版）を Directory.Build.props から読む。
-function Get-VersionPrefix([string]$text, [string]$group) {
-    $key = ($group -replace '\.', '_') + '_VersionPrefix'
-    $m = [regex]::Match($text, ("<{0}>([^<]+)</{0}>" -f [regex]::Escape($key)))
-    if (-not $m.Success) { throw "Directory.Build.props に $key がありません" }
+# 公開する版（人が決める値）を Directory.Build.props から読む（すべてのパッケージで 1 つ）。
+function Get-VersionPrefix([string]$text) {
+    $m = [regex]::Match($text, '<VersionPrefix>([^<]+)</VersionPrefix>')
+    if (-not $m.Success) { throw 'Directory.Build.props に VersionPrefix がありません' }
     $value = $m.Groups[1].Value.Trim()
-    if ($value -notmatch '^\d+\.\d+\.\d+$') { throw "Directory.Build.props の $key が 3 桁の数値ではありません: $value" }
+    if ($value -notmatch '^\d+\.\d+\.\d+$') { throw "Directory.Build.props の VersionPrefix が 3 桁の数値ではありません: $value" }
     return $value
 }
 
-# ソリューション フォルダ（ルート直下の EsUtil*）の名前もグループ名と一致する
-$groupRoots = @(Get-ChildItem -Path $repoRoot -Directory |
+# ソリューション フォルダ（ルート直下の EsUtil*）の名前もソリューション名と一致する
+$solutionRoots = @(Get-ChildItem -Path $repoRoot -Directory |
         Where-Object { $_.Name -like 'EsUtil*' } |
         Select-Object -ExpandProperty Name)
 
@@ -137,20 +136,20 @@ function Get-PackageProjects {
     foreach ($name in $ordered) {
         [pscustomobject]@{
             Name    = $name
-            Group   = Get-GroupName $name
+            Solution   = Get-SolutionName $name
             Project = $byName[$name].FullName
         }
     }
 }
 
 # ============================================================
-# ソースの指紋（グループ単位）
+# ソースの指紋（ソリューション単位）
 # ============================================================
-# グループのソリューション フォルダ配下の全ファイル（生成物を除く）から作る。
-# グループは同時に公開する単位であるため、1 プロジェクトの変更でグループ全体を同じ識別子で作り直す。
-function Get-GroupFingerprint([string]$group) {
-    $root = Join-Path $repoRoot $group
-    if (-not (Test-Path -LiteralPath $root)) { throw "版グループのフォルダがありません: $group" }
+# ソリューションのソリューション フォルダ配下の全ファイル（生成物を除く）から作る。
+# ソリューションは同時に公開する単位であるため、1 プロジェクトの変更でソリューション全体を同じ識別子で作り直す。
+function Get-SolutionFingerprint([string]$solution) {
+    $root = Join-Path $repoRoot $solution
+    if (-not (Test-Path -LiteralPath $root)) { throw "ソリューションのフォルダがありません: $solution" }
     $files = @(Get-ChildItem -Path $root -Recurse -File |
         Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' } |
         Sort-Object FullName)
@@ -170,8 +169,8 @@ $propsPath = Join-Path $repoRoot 'Directory.Build.props'
 $recordPath = Join-Path $PSScriptRoot 'local-versions.json'
 
 $propsText = [IO.File]::ReadAllText($propsPath, $enc)
-# 記録の形: { "suffix": <n>, "fingerprints": { "<グループ>": "<指紋>" } }
-# **ローカル識別子はフィード全体で 1 つ**である。 グループごとに変えると、同じフィードへ入れた
+# 記録の形: { "suffix": <n>, "fingerprints": { "<ソリューション>": "<指紋>" } }
+# **ローカル識別子はフィード全体で 1 つ**である。 ソリューションごとに変えると、同じフィードへ入れた
 # パッケージの依存（ProjectReference の版）と実際のパッケージの版が食い違い、参照側の復元が
 # NU1102 で失敗する（実測 2026-10-26）。
 $previousSuffix = 0
@@ -187,11 +186,11 @@ if (Test-Path -LiteralPath $recordPath) {
 }
 
 $targets = if ($Only) {
-    if ($groupRoots -notcontains $Only) { throw "版グループがありません: $Only（候補: $($groupRoots -join ', ')）" }
+    if ($solutionRoots -notcontains $Only) { throw "ソリューションがありません: $Only（候補: $($solutionRoots -join ', ')）" }
     @($Only)
 }
 else {
-    @($groupRoots | Sort-Object)
+    @($solutionRoots | Sort-Object)
 }
 
 $locals = Invoke-NativeText 'dotnet' @('nuget', 'locals', 'global-packages', '--list')
@@ -199,15 +198,17 @@ $globalPackages = (($locals.Text + $locals.ErrorText) -split "`r?`n" |
         Where-Object { $_ -match 'global-packages:' } |
         Select-Object -First 1) -replace '^global-packages:\s*', ''
 
-# グループごとの指紋と変更の有無を先に求める（識別子は「どれか 1 つでも変わったら」進める）
+# 公開する版は 1 つである（指紋と変更の有無は、pack する単位であるソリューションごとに求める）。
+# 識別子は「どれか 1 つでも変わったら」進める。
+$publishVersion = Get-VersionPrefix $propsText
 $states = [System.Collections.Generic.List[object]]::new()
 $anyChanged = $false
-foreach ($group in $targets) {
-    $fingerprint = Get-GroupFingerprint $group
-    $previous = $recordedFingerprints[$group]
+foreach ($solution in $targets) {
+    $fingerprint = Get-SolutionFingerprint $solution
+    $previous = $recordedFingerprints[$solution]
     $isChanged = (-not $previous) -or ($previous -ne $fingerprint)
     if ($isChanged) { $anyChanged = $true }
-    $states.Add([pscustomobject]@{ Group = $group; Prefix = (Get-VersionPrefix $propsText $group); Changed = $isChanged; Fingerprint = $fingerprint })
+    $states.Add([pscustomobject]@{ Solution = $solution; Prefix = $publishVersion; Changed = $isChanged; Fingerprint = $fingerprint })
 }
 
 $suffix = $previousSuffix
@@ -217,7 +218,7 @@ if ($suffix -lt 1) { $suffix = 1 }
 $plan = [System.Collections.Generic.List[object]]::new()
 foreach ($state in $states) {
     $plan.Add([pscustomobject]@{
-            Group       = $state.Group
+            Solution       = $state.Solution
             Prefix      = $state.Prefix
             Suffix      = $suffix
             Version     = "$($state.Prefix)-local.$suffix"
@@ -232,7 +233,7 @@ Write-Output '===== 判定 ====='
 foreach ($item in $plan) {
     $state = if ($item.Changed) { '変更あり' } else { '変更なし' }
     if ($item.Changed -and $NoBump) { $state = '変更あり（-NoBump のため据え置き）' }
-    Write-Output ("{0,-28} {1,-24} 公開する版 {2} / ローカル {3}" -f $item.Group, $state, $item.Prefix, $item.Version)
+    Write-Output ("{0,-28} {1,-24} 公開する版 {2} / ローカル {3}" -f $item.Solution, $state, $item.Prefix, $item.Version)
 }
 Write-Output ("ローカル識別子（フィード全体で共通）: local.{0}" -f $suffix)
 
@@ -249,22 +250,22 @@ if ($WhatIf) {
 if (-not (Test-Path -LiteralPath $feed)) { [void](New-Item -ItemType Directory -Path $feed) }
 
 $projects = @(Get-PackageProjects)
-$byGroup = @{}
-foreach ($item in $plan) { $byGroup[$item.Group] = $item }
+$bySolution = @{}
+foreach ($item in $plan) { $bySolution[$item.Solution] = $item }
 
 $failedNames = [System.Collections.Generic.HashSet[string]]::new()
 $packed = 0
 
-# **グループごとにソリューションを 1 回 pack する**（プロジェクトごとに `dotnet pack` を起動すると
+# **ソリューションごとにソリューションを 1 回 pack する**（プロジェクトごとに `dotnet pack` を起動すると
 # 30 回のプロセス起動とビルド評価が積み上がる。 実測 2026-10-27: 86 秒 → 23 秒）。
-# グループの全プロジェクトは同じ版（版の所有者は Directory.Build.props）なので、
-# 版の上書きは 1 回で足りる。 MSBuild がグループ内を並列に pack する。
+# ソリューションの全プロジェクトは同じ版（版の所有者は Directory.Build.props）なので、
+# 版の上書きは 1 回で足りる。 MSBuild がソリューション内を並列に pack する。
 foreach ($item in $plan) {
-    $groupProjects = @($projects | Where-Object { $_.Group -eq $item.Group })
-    if ($groupProjects.Count -eq 0) { continue }
+    $solutionProjects = @($projects | Where-Object { $_.Solution -eq $item.Solution })
+    if ($solutionProjects.Count -eq 0) { continue }
 
-    $solution = Join-Path $repoRoot ("{0}/{0}.slnx" -f $item.Group)
-    $targetsToPack = if (Test-Path -LiteralPath $solution) { @($solution) } else { @($groupProjects | ForEach-Object { $_.Project }) }
+    $solution = Join-Path $repoRoot ("{0}/{0}.slnx" -f $item.Solution)
+    $targetsToPack = if (Test-Path -LiteralPath $solution) { @($solution) } else { @($solutionProjects | ForEach-Object { $_.Project }) }
 
     foreach ($target in $targetsToPack) {
         $arguments = @('pack', $target, '-c', $Configuration, '-o', $feed, '--nologo',
@@ -272,12 +273,12 @@ foreach ($item in $plan) {
             ('-p:VersionSuffix=local.{0}' -f $item.Suffix))
         $result = Invoke-NativeText 'dotnet' $arguments
         if ($result.ExitCode -ne 0) {
-            Write-Output ("FAIL  {0} {1}（終了コード {2}）" -f $item.Group, $item.Version, $result.ExitCode)
+            Write-Output ("FAIL  {0} {1}（終了コード {2}）" -f $item.Solution, $item.Version, $result.ExitCode)
             Write-Output ($result.Text + $result.ErrorText)
         }
     }
 
-    foreach ($project in $groupProjects) {
+    foreach ($project in $solutionProjects) {
         $expected = Join-Path $feed ("{0}.{1}.nupkg" -f $project.Name, $item.Version)
         if (-not (Test-Path -LiteralPath $expected)) {
             [void]$failedNames.Add($project.Name)
@@ -297,13 +298,13 @@ foreach ($item in $plan) {
 }
 
 # ============================================================
-# 古い版の削除と記録（成功したグループだけ）
+# 古い版の削除と記録（成功したソリューションだけ）
 # ============================================================
 if (-not $NoClean -and (Test-Path -LiteralPath $feed)) {
     foreach ($project in $projects) {
-        if (-not $byGroup.ContainsKey($project.Group)) { continue }
-        $keep = "{0}.{1}.nupkg" -f $project.Name, $byGroup[$project.Group].Version
-        $keepSymbols = "{0}.{1}.snupkg" -f $project.Name, $byGroup[$project.Group].Version
+        if (-not $bySolution.ContainsKey($project.Solution)) { continue }
+        $keep = "{0}.{1}.nupkg" -f $project.Name, $bySolution[$project.Solution].Version
+        $keepSymbols = "{0}.{1}.snupkg" -f $project.Name, $bySolution[$project.Solution].Version
         $rxOwn = [regex]('^' + [regex]::Escape($project.Name) + '\.\d')
         Get-ChildItem -Path $feed -File |
             Where-Object { $rxOwn.IsMatch($_.Name) -and $_.Name -ne $keep -and $_.Name -ne $keepSymbols } |
@@ -315,15 +316,15 @@ if (-not $NoClean -and (Test-Path -LiteralPath $feed)) {
 }
 
 foreach ($item in $plan) {
-    $groupProjects = @($projects | Where-Object { $_.Group -eq $item.Group })
-    $anyFailed = @($groupProjects | Where-Object { $failedNames.Contains($_.Name) }).Count -gt 0
+    $solutionProjects = @($projects | Where-Object { $_.Solution -eq $item.Solution })
+    $anyFailed = @($solutionProjects | Where-Object { $failedNames.Contains($_.Name) }).Count -gt 0
     if ($anyFailed) { continue }
-    $recordedFingerprints[$item.Group] = $item.Fingerprint
+    $recordedFingerprints[$item.Solution] = $item.Fingerprint
 }
 
 $fingerprints = [ordered]@{}
-foreach ($group in ($recordedFingerprints.Keys | Sort-Object)) {
-    $fingerprints[$group] = $recordedFingerprints[$group]
+foreach ($solution in ($recordedFingerprints.Keys | Sort-Object)) {
+    $fingerprints[$solution] = $recordedFingerprints[$solution]
 }
 $json = ((ConvertTo-Json -InputObject ([ordered]@{ suffix = $suffix; fingerprints = $fingerprints }) -Depth 5) -replace "`r?`n", "`r`n")
 [IO.File]::WriteAllText($recordPath, $json + "`r`n", $enc)
