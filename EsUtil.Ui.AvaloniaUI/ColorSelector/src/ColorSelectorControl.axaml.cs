@@ -49,6 +49,11 @@ public sealed partial class ColorSelectorControl : UserControl
     public static readonly StyledProperty<ColorSortMode> ColorSortModeProperty =
         AvaloniaProperty.Register<ColorSelectorControl, ColorSortMode>(nameof(ColorSortMode), defaultValue: ColorSortMode.ByHue);
 
+    /// <summary><see cref="SelectedThemeColor"/> 依存関係プロパティ。</summary>
+    public static readonly StyledProperty<string?> SelectedThemeColorProperty =
+        AvaloniaProperty.Register<ColorSelectorControl, string?>(
+            nameof(SelectedThemeColor), defaultBindingMode: BindingMode.TwoWay);
+
     /// <summary><see cref="TextFormat"/> 依存関係プロパティ。</summary>
     public static readonly StyledProperty<ColorTextFormat> TextFormatProperty =
         AvaloniaProperty.Register<ColorSelectorControl, ColorTextFormat>(
@@ -96,6 +101,10 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>保存値の正規化中かどうか（正規化の再入を防ぐ）。</summary>
     private bool _normalizing;
 
+    /// <summary>テーマの色を解決して <see cref="SelectedColor"/> へ書いている間かどうか。</summary>
+    /// <remarks>解決の書き込みで「利用者が色を選び直した」と解釈してテーマの識別子を消さないために持つ。</remarks>
+    private bool _resolvingThemeColor;
+
     /// <summary>内部ロガー。</summary>
 
     private ILogger _log = NullLogger.Instance;
@@ -123,6 +132,20 @@ public sealed partial class ColorSelectorControl : UserControl
     {
         get => GetValue(ColorSortModeProperty);
         set => SetValue(ColorSortModeProperty, value);
+    }
+
+    /// <summary>選択中のテーマの色の識別子を取得または設定する（例: <c>背景</c>）。</summary>
+    /// <value>テーマの色を選んでいるときの識別子。 色名・カラーコードを選んでいるときは null。</value>
+    /// <remarks>
+    /// <b>テーマの色は名前で覚える</b>: 選んだ時点の色（<c>#AARRGGBB</c>）を保存すると、明暗の切替やアクセント色の変更へ<br/>
+    /// 追随できない。 本プロパティが識別子を持つ間は、<see cref="SelectedColor"/> を<b>そのときのテーマの色</b>へ<br/>
+    /// 解決し直す（テーマが変わると <see cref="SelectedColor"/> も変わり、変更イベントが届く）。<br/>
+    /// 利用側は本値を保存すれば、次回の起動でもテーマに追随する（テーマの色でないときは null を保存する）。
+    /// </remarks>
+    public string? SelectedThemeColor
+    {
+        get => GetValue(SelectedThemeColorProperty);
+        set => SetValue(SelectedThemeColorProperty, value);
     }
 
     /// <summary>一覧の先頭に UI のテーマの色（背景・文字・アクセント）を並べるかどうかを取得する。</summary>
@@ -237,6 +260,61 @@ public sealed partial class ColorSelectorControl : UserControl
         }
 
         ApplyTextLayout();
+
+        // テーマが変わったら、テーマの色を選んでいる間はその色を解決し直す
+        ActualThemeVariantChanged += (_, _) => ReapplyThemeColor();
+    }
+
+    /// <summary>テーマの色を選んでいる間、そのときのテーマの色へ解決し直す。</summary>
+    private void ReapplyThemeColor()
+    {
+        if (SelectedThemeColor is { } key && TryResolveThemeColor(key, out var hex))
+        {
+            ApplyResolvedThemeColor(hex);
+        }
+    }
+
+    /// <summary>解決したテーマの色を <see cref="SelectedColor"/> へ書く（識別子は消さない）。</summary>
+    /// <param name="hex">解決した色（<c>#AARRGGBB</c>）。</param>
+    private void ApplyResolvedThemeColor(string hex)
+    {
+        if (string.Equals(SelectedColor, hex, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _resolvingThemeColor = true;
+        try
+        {
+            SelectedColor = hex;
+        }
+        finally
+        {
+            _resolvingThemeColor = false;
+        }
+    }
+
+    /// <summary>テーマの色の識別子から、そのときのテーマの色を解決する。</summary>
+    /// <param name="key">識別子（例: <c>背景</c>）。</param>
+    /// <param name="hex">解決した色（<c>#AARRGGBB</c>）。</param>
+    /// <returns>解決できた場合は true（その UI に無い色は false）。</returns>
+    /// <remarks>
+    /// <b>一覧を作る処理と同じ解決を使う</b>: テーマの色の値は一覧を作るたびに UI から読むため、<br/>
+    /// 別の表を持つと一覧の表示と解決した色が食い違う。
+    /// </remarks>
+    internal bool TryResolveThemeColor(string key, out string hex)
+    {
+        foreach (var item in CreateItems())
+        {
+            if (string.Equals(item.ThemeKey, key, StringComparison.Ordinal))
+            {
+                hex = item.Value;
+                return true;
+            }
+        }
+
+        hex = string.Empty;
+        return false;
     }
 
     /// <summary><see cref="_text"/>（入力欄）。</summary>
@@ -277,6 +355,13 @@ public sealed partial class ColorSelectorControl : UserControl
                 return;
             }
 
+            // 色を直接選び直したらテーマの識別子は外す（テーマの解決で書いた場合は除く）。
+            // 利用者が入力欄へ打ち込んだ場合もここへ来る（_applying の間は入力欄と往復しているだけなので外さない）
+            if (!_resolvingThemeColor && !_applying && SelectedThemeColor is not null)
+            {
+                SetCurrentValue(SelectedThemeColorProperty, null);
+            }
+
             Log.LogSelectedColorChanged((string)change.OldValue!, color);
 
             // 解析は 1 回だけ行い、最終有効値の追跡とバリデーション更新で共有する（二重解析の排除）
@@ -292,6 +377,14 @@ public sealed partial class ColorSelectorControl : UserControl
             if (!_applying)
             {
                 UpdateTextAndToolTip(color);
+            }
+        }
+        else if (change.Property == SelectedThemeColorProperty)
+        {
+            // 識別子を設定されたら、そのときのテーマの色へ解決する（テーマが変わると OnThemeChanged が解決し直す）
+            if (change.NewValue is string key && TryResolveThemeColor(key, out var hex))
+            {
+                ApplyResolvedThemeColor(hex);
             }
         }
         else if (change.Property == TextFormatProperty)
@@ -346,7 +439,11 @@ public sealed partial class ColorSelectorControl : UserControl
         try
         {
             var normalized = ColorString.ToArgbHex(color);
-            _text.Text = ColorString.ToText(normalized, TextFormat);
+
+            // テーマの色を選んでいる間は識別子を出す（色を写すと、テーマに追随していることが分からない）
+            _text.Text = SelectedThemeColor is { } key
+                ? ThemeLabelPrefix + key
+                : ColorString.ToText(normalized, TextFormat);
 
             var tooltip = string.Concat(
                 ColorString.ToDisplayText(normalized), Environment.NewLine, ColorString.ToArgbHex(normalized));
@@ -470,7 +567,7 @@ public sealed partial class ColorSelectorControl : UserControl
         };
 
         var themeTab = CreateCategoryTab("テーマカラー");
-        var namedTab = CreateCategoryTab("色名");
+        var namedTab = CreateCategoryTab("標準の色");
         themeTab.Click += (_, _) => ApplyCategory(ColorSelectorCategory.Theme);
         namedTab.Click += (_, _) => ApplyCategory(ColorSelectorCategory.Named);
 
@@ -482,11 +579,14 @@ public sealed partial class ColorSelectorControl : UserControl
         };
         var content = new StackPanel { Spacing = 6, Children = { tabs, list } };
 
-        var flyout = new Flyout { Content = content, Placement = PlacementMode.BottomEdgeAlignedLeft };
+        // ▼ は入力欄の右端にあるため、右端を揃えて左へ開く（左端を揃えると画面の右外へはみ出す）
+        var flyout = new Flyout { Content = content, Placement = PlacementMode.BottomEdgeAlignedRight };
         list.SelectionChanged += (_, _) =>
         {
             if (list.SelectedItem is ColorSelectorItem item)
             {
+                // テーマの色は識別子を覚える（明暗・アクセントの変更へ追随させる）。 色名は値だけを写す
+                SetCurrentValue(SelectedThemeColorProperty, item.ThemeKey);
                 SelectedColor = item.Value;
                 UpdateTextAndToolTip(item.Value);
                 flyout.Hide();
@@ -527,7 +627,9 @@ public sealed partial class ColorSelectorControl : UserControl
 
         foreach (var entry in ColorEntry.GetSorted(ColorSortMode))
         {
-            items.Add(new ColorSelectorItem(entry.Name, entry.Name, ColorSelectorCategory.Named));
+            // 一覧の表記は入力欄の表記に合わせる（16 進の設定なら 16 進で並べる）
+            items.Add(new ColorSelectorItem(
+                ColorString.ToText(entry.Name, TextFormat), entry.Name, ColorSelectorCategory.Named));
         }
 
         return items;
@@ -590,8 +692,16 @@ public sealed partial class ColorSelectorControl : UserControl
 
         var hex = ColorString.ToArgbHex(
             System.Drawing.Color.FromArgb(solid.Color.A, solid.Color.R, solid.Color.G, solid.Color.B));
-        items.Add(new ColorSelectorItem(label, hex, ColorSelectorCategory.Theme));
+
+        // 識別子は表示名から作る（「テーマ: 背景」→「背景」）。 色の識別子を 1 箇所で決める
+        var key = label.StartsWith(ThemeLabelPrefix, StringComparison.Ordinal)
+            ? label[ThemeLabelPrefix.Length..]
+            : label;
+        items.Add(new ColorSelectorItem(label, hex, ColorSelectorCategory.Theme, key));
     }
+
+    /// <summary>テーマの色の表示名の接頭辞。</summary>
+    private const string ThemeLabelPrefix = "テーマ: ";
 
     /// <summary>テーマの資源をブラシとして取得する。</summary>
     /// <param name="key">資源のキー（Fluent テーマの色の資源）。</param>

@@ -111,7 +111,7 @@ public sealed class MainWindow : Window
         _thumbnails.SelectedIndex = 0;
 
         var log = new SampleLogPanel(_logging.Buffer);
-        Title = "ThumbnailControl サンプル（WinUI 3）";
+        Title = "Thumbnail サンプル (WinUI 3)";
         Content = SampleShell.CreateContent(
             properties,
             methods,

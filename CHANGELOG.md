@@ -19,7 +19,8 @@
 
 ### 追加
 
-- **`ColorSelector`（AvaloniaUI / MewUI / WinUI 3）の一覧を「テーマカラー」と「色名」のタブに分けました**。 テーマの色が 26〜33 色あり、色名と同じ一覧へ混ぜると目的の色を探しにくいためです（▼ の上部で切り替えます。 前回のタブから開き、選べる色が無いタブは開きません）。 並び順（`ColorSortMode`）はタブ「色名」の中だけで効きます。
+- **`ColorSelector` に `SelectedThemeColor` を追加しました**（AvaloniaUI / MewUI / WinUI 3）。 一覧で選んだテーマの色を**識別子（例: `背景`）で保持**し、`SelectedColor` をそのときのテーマの色へ解決し直します。 明暗の切替・アクセント色の変更に追随し、入力欄には `テーマ: 背景` と表示します（色名・カラーコードを選ぶと `null` に戻ります）。 利用側は本値を保存すればテーマに追随します。
+- **`ColorSelector`（AvaloniaUI / MewUI / WinUI 3）の一覧を「テーマカラー」と「色名」のタブに分けました**。 テーマの色が 26〜33 色あり、色名と同じ一覧へ混ぜると目的の色を探しにくいためです（▼ の上部で切り替えます。 前回のタブから開き、選べる色が無いタブは開きません。 タブ名は **テーマカラー / 標準の色**）。 **一覧の表記は入力欄の表記（`TextFormat`）に従います**（16 進の設定なら一覧も 16 進で並びます）。 並び順（`ColorSortMode`）はタブ「色名」の中だけで効きます。
 - **`ColorSelector`（AvaloniaUI / MewUI / WinUI 3）の一覧の先頭に UI のテーマの色をすべて並べました**（共通の 20 色を同じ名前・同じ順で並べ、その UI にしか無い色を後ろへ足します。 AvaloniaUI 26 色 / MewUI 26 色 / WinUI 3 33 色）。 値はコアの色名の表ではなく**その UI のテーマから解決**するため、明暗の切替とアクセント色の変更に追随します（`ShowThemeColors` で無効化できます）。
 - **`ThumbnailAppearance.BoldSelectedLabel` を追加しました**（既定 `true`）。 選択中の項目の名前を太字にします。 帯だけでは選択が弱いテーマがあるため、名前の太さでも示します（`false` で従来どおり帯だけになります）。
 - **ホスト固有の付加情報を描く手段を 4 UI に揃えました**（Marquee）。 MewUI は `MarqueeRenderedEventArgs.DrawText`、WinUI 3 は `MarqueeRenderedEventArgs.AddText` を追加しました（AvaloniaUI は `Context`、WinForms は `Graphics` を従来どおり使えます）。 WinUI 3 だけ操作ガイドを出せなかった非対称を解消します。
@@ -29,6 +30,7 @@
 - **テーマの色に従うようにしました**: 帯の色を UI のテーマから解決するため、テーマの切替と利用者のアクセント色の変更に追随します（明暗で固定の 2 色を持つと、テーマの実際の値と一致しませんでした）。
 
 - **依存パッケージを更新しました**（`Microsoft.WindowsAppSDK` 2.6.4。 `EsUtil.Ui.WinUI3.*` の利用側が要求する Windows App SDK の下限が上がります）。 アナライザーとテスト ランナーの更新は配布物に含まれません（`PrivateAssets=all`）。
+- **`ColorSelector` の一覧を ▼ のボタンへ揃えて開くようにしました**（3 UI）。 一覧の左端を ▼ に揃えていたため、画面の右外へはみ出して押し戻され、▼ から離れた位置に開いていました（右端を揃えて左へ開きます）。
 - **`EsUtil.Ui.AvaloniaUI.Marquee` と `EsUtil.Ui.MewUI.Marquee` の対象フレームワークを `net10.0` へ戻しました**（`net10.0-windows10.0.17763.0` をやめます）。 Windows 専用なのは**引数なしコンストラクター**（`WinCursorService` を生成する既定構成）だけで、そこへ `[SupportedOSPlatform("windows10.0.17763")]` を付けます。 Windows 以外では `ICursorService` を渡すコンストラクターを使ってください（テストとサンプルは既定構築を使うため `net10.0-windows10.0.17763.0` のままです）。
 - **Thumbnail の影の色を 50% の灰色（`0xC0808080`）にしました**。 黒（`0x8A000000`）は暗色テーマの地色に埋もれて影が見えませんでした（実測 2026-11-02: コントラスト 1.05）。 灰色は地色へ合成されるため明暗で同じ程度になります（1.21 / 1.27）。
 - **サンプルのログ レベルを修正しました**（Marquee 4 UI）。 ポインター移動のたびに届く「ルーペ位置」とスクロール位置、ドラッグ中の選択矩形（`SelectionChanged`）を `Trace` へ落とし、状態の変化（開始・確定可能・キャンセル・確定要求）を `Debug` にしました（`Information` 固定だったため、既定の表示レベルで高頻度の行が出ていました）。 画面の状態表示（`選択: …` / `追従位置: …`）は従来どおり常に見えます。
@@ -42,6 +44,8 @@
 - **WinUI 3 のサンプルのウィンドウを他の UI と同じ 1400 x 900 DIP にしました**。 `AppWindow.Resize` へ DIP の値をそのまま渡していたため、表示倍率の分だけ小さく（125% では 1120 x 720 DIP）開き、ColumnPacking の内容が切れていました（実測 2026-11-02）。 表示倍率を掛けて渡します。
 - **Loupe サンプルの選択矩形の表示を 4 UI で揃えました**。 座標ラベルがルーペの下に潜って文字が欠けていたため、ラベルをルーペより前面へ置き（4 UI とも白 87% の下地を敷く）、枠の見た目もオレンジの破線 + 半透明のオレンジへ統一しました（WinUI 3 は水色の実線 1px でした。 実測 2026-11-02）。
 - **起動構成を見直しました**（`.vscode/launch.json`）。 **VS Code のデバッグ一覧は階層を持てない**ため（`presentation.group` は区切り線を入れるだけで、グループ名を表示せず、同名の構成には `(1)` `(2)` を付ける）、**名前に UI 層を含め**（`AvaloniaUI / ColorSelector`）、`presentation.group` と `presentation.order` は UI 層ごとの区切りと並び順のためだけに使います。
+- **サンプル アプリのウィンドウ名を `<機能> サンプル (<UI 名>)` に統一しました**（例: `ColorSelector サンプル (AvaloniaUI)`）。 これまでは `ColorSelectorControl サンプル（AvaloniaUI）` のように型名と全角括弧が混ざっていました。
+- **サンプルの `RunSample.bat` を削除しました**（14 ファイル）。 起動は `dotnet run` と VS Code の起動構成（F5）で行います。
 - **サンプルのアーキテクチャ固定をやめ、AnyCPU にしました**（`PlatformTarget` = `x64` と WinUI 3 の `RuntimeIdentifier` = `win-x64` を `.csproj` から外しました）。 WinUI 3 の自己完結配置（`WindowsAppSDKSelfContained`）は `-r` を渡したとき（publish）だけ有効になり、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。
 
 ## 0.2.0（2026-10-28）

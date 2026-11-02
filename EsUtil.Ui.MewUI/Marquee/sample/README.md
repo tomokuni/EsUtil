@@ -4,7 +4,6 @@
 
 - [1. 概要](#1-概要)
 - [2. 実行方法](#2-実行方法)
-  - [2.1 バッチファイル（リリースビルド＆起動）](#21-バッチファイルリリースビルド起動)
 - [3. 操作方法](#3-操作方法)
 - [4. 検証項目（動作確認チェックリスト）](#4-検証項目動作確認チェックリスト)
 - [5. 構成](#5-構成)
@@ -36,16 +35,6 @@ dotnet run --project EsUtil.Ui.MewUI/Marquee/sample/EsUtil.Ui.MewUI.Marquee.Samp
 ```powershell
 dotnet run -c Release --project EsUtil.Ui.MewUI/Marquee/sample/EsUtil.Ui.MewUI.Marquee.Sample.csproj
 ```
-
-### 2.1 バッチファイル（リリースビルド＆起動）
-
-`EsUtil.Ui.MewUI/Marquee/sample/RunSample.bat` をダブルクリックすると、リリースビルドを行った後、サンプルアプリケーションを起動します。
-
-```text
-RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil.Ui.MewUI.Marquee.Sample.exe を起動
-```
-
-> 本サンプルは独立したプロジェクトです（`sample/` はコントロール本体のプロジェクト フォルダの外にあり、本体の `csproj` のコンパイル対象には含まれません）。
 
 ## 3. 操作方法
 
@@ -90,7 +79,6 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 ```text
 EsUtil.Ui.MewUI/Marquee/sample/
 ├── EsUtil.Ui.MewUI.Marquee.Sample.csproj  # サンプルアプリのプロジェクト（net10.0-windows10.0.17763.0 / MewUI 0.22.1）
-├── RunSample.bat                # リリースビルド＆起動
 ├── Program.cs                   # エントリポイント（バックエンドとプラットフォーム ホストの登録）
 ├── Imaging/
 │   └── TestImageFactory.cs      # 背景画像生成（グラデーション＋グリッド＋マーカー）

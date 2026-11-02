@@ -105,7 +105,7 @@ internal static class MainWindow
         thumbnails.SelectedIndex = 0;
 
         var window = SampleShell.Create(
-            "ThumbnailControl サンプル（MewUI）",
+            "Thumbnail サンプル (MewUI)",
             properties,
             methods,
             samples,

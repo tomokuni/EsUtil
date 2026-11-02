@@ -150,7 +150,7 @@ public sealed class MainWindow : Window
 
         var log = new SampleLogPanel(_logging.Buffer);
         var window = SampleShell.Create(
-            "ColumnPacking パネル サンプル（AvaloniaUI）", properties, methods, samples, contentArea, log);
+            "ColumnPacking サンプル (AvaloniaUI)", properties, methods, samples, contentArea, log);
         Content = window.Content;
         Title = window.Title;
         Width = window.Width;

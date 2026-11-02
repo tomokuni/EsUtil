@@ -216,7 +216,7 @@ public sealed class MainWindow : Window
         };
 
         var log = new SampleLogPanel(_logging.Buffer);
-        Title = "ColorSelectorControl サンプル（WinUI 3）";
+        Title = "ColorSelector サンプル (WinUI 3)";
         Content = SampleShell.CreateContent(properties, methodSettings: null, samples, content, log);
 
         // ウィンドウの大きさは DIP で指定する（他の UI と同じ 1400 x 900）

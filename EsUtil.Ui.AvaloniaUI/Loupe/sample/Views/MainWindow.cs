@@ -91,7 +91,7 @@ public sealed class MainWindow : Window
     /// <summary>ウィンドウを初期化する。</summary>
     public MainWindow()
     {
-        Title = "LoupeControl サンプル（AvaloniaUI）";
+        Title = "Loupe サンプル (AvaloniaUI)";
         Width = 1400;
         Height = 900;
         MinWidth = 900;

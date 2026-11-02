@@ -48,6 +48,12 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>一覧の分類を切り替えるタブの幅（DIP）。 2 つを並べたときに一覧の幅と釣り合う値。</summary>
     private const double CategoryTabWidth = 96;
 
+    /// <summary>テーマの色の表示名の接頭辞。</summary>
+    private const string ThemeLabelPrefix = "テーマ: ";
+
+    /// <summary>選択中のテーマの色の識別子（例: <c>背景</c>）。 テーマの色でない場合は null。</summary>
+    private string? _selectedThemeColor;
+
     /// <summary>直近に選んだ一覧の分類（次に開いたときに同じタブから始める）。</summary>
     private ColorSelectorCategory _listCategory = ColorSelectorCategory.Theme;
 
@@ -58,7 +64,7 @@ public sealed class ColorSelectorControl : Grid
     private readonly ToggleButton _themeTab = CreateCategoryTab("テーマカラー");
 
     /// <summary>色名のタブ。</summary>
-    private readonly ToggleButton _namedTab = CreateCategoryTab("色名");
+    private readonly ToggleButton _namedTab = CreateCategoryTab("標準の色");
 
     /// <summary>一覧の幅に足す余白（DIP。 枠と、行の文字が端に接しないための余裕）。</summary>
     /// <remarks>行の実寸と項目の余白は実測値であり、端数だけで足りない分を本値が補う（実測 2026-11-02）。</remarks>
@@ -294,6 +300,35 @@ public sealed class ColorSelectorControl : Grid
     /// <b>並べない場合はコアの色名だけ</b>になる（一覧は次に開くときに作り直す）。
     /// </remarks>
     public bool ShowThemeColors { get; set; } = true;
+    /// <summary>選択中のテーマの色の識別子を取得または設定する（例: <c>背景</c>）。</summary>
+    /// <value>テーマの色を選んでいるときの識別子。 色名・カラーコードを選んでいるときは null。</value>
+    /// <remarks>
+    /// <b>テーマの色は名前で覚える</b>: 選んだ時点の色（<c>#AARRGGBB</c>）を保存すると、明暗の切替やアクセント色の変更へ<br/>
+    /// 追随できない。 本プロパティが識別子を持つ間は <see cref="SelectedColor"/> を<b>そのときのテーマの色</b>へ<br/>
+    /// 解決し直す（テーマが変わると <see cref="SelectedColor"/> も変わり、変更イベントが届く）。
+    /// </remarks>
+    public string? SelectedThemeColor
+    {
+        get => _selectedThemeColor;
+        set
+        {
+            if (string.Equals(_selectedThemeColor, value, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _selectedThemeColor = value;
+            if (value is not null && TryResolveThemeColor(value, out var hex))
+            {
+                ApplyThemeColor(hex);
+            }
+            else
+            {
+                ApplyColor(_selectedColor, raiseChanged: false);
+            }
+        }
+    }
+
     /// <summary>テキスト部の表記を取得または設定する。</summary>
     /// <value>色名 + 不透明度（既定）またはカラーコード。 入力欄は編集できるため、表記と異なる形の入力も受理する。</value>
     public ColorTextFormat TextFormat
@@ -402,7 +437,10 @@ public sealed class ColorSelectorControl : Grid
         _applying = true;
         try
         {
-            _text.Text = ColorString.ToText(normalized, _textFormat);
+            // テーマの色を選んでいる間は識別子を出す（色を写すと、テーマに追随していることが分からない）
+            _text.Text = _selectedThemeColor is { } key
+                ? ThemeLabelPrefix + key
+                : ColorString.ToText(normalized, _textFormat);
 
             // スウォッチとテキスト部のツールチップは 2 行（色名+不透明度 / カラーコード）を出す
             var tooltip = string.Concat(
@@ -432,6 +470,65 @@ public sealed class ColorSelectorControl : Grid
         {
             SelectedColorChanged?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    /// <summary>テーマが変わったときに、テーマの色を選んでいる間はその色を解決し直す。</summary>
+    /// <param name="oldTheme">変更前のテーマ。</param>
+    /// <param name="newTheme">変更後のテーマ。</param>
+    protected override void OnThemeChanged(Theme oldTheme, Theme newTheme)
+    {
+        base.OnThemeChanged(oldTheme, newTheme);
+        ReapplyThemeColor();
+    }
+
+    /// <summary>テーマの色の識別子から、そのときのテーマの色を解決する。</summary>
+    /// <param name="key">識別子（例: <c>背景</c>）。</param>
+    /// <param name="hex">解決した色（<c>#AARRGGBB</c>）。</param>
+    /// <returns>解決できた場合は true（その UI に無い色は false）。</returns>
+    /// <remarks>一覧を作る処理と同じ解決を使う（別の表を持つと一覧の表示と解決した色が食い違う）。</remarks>
+    internal bool TryResolveThemeColor(string key, out string hex)
+    {
+        foreach (var item in CreateItems())
+        {
+            if (string.Equals(item.ThemeKey, key, StringComparison.Ordinal))
+            {
+                hex = item.Value;
+                return true;
+            }
+        }
+
+        hex = string.Empty;
+        return false;
+    }
+
+    /// <summary>テーマの色を選んでいる間、そのときのテーマの色へ解決し直す。</summary>
+    private void ReapplyThemeColor()
+    {
+        if (_selectedThemeColor is { } key && TryResolveThemeColor(key, out var hex))
+        {
+            ApplyThemeColor(hex);
+        }
+        else
+        {
+            ApplyColor(_selectedColor, raiseChanged: false);
+        }
+    }
+
+    /// <summary>解決したテーマの色を <see cref="SelectedColor"/> へ書く（識別子は消さない）。</summary>
+    /// <param name="hex">解決した色（<c>#AARRGGBB</c>）。</param>
+    private void ApplyThemeColor(string hex)
+    {
+        _applying = true;
+        try
+        {
+            _selectedColor = hex;
+        }
+        finally
+        {
+            _applying = false;
+        }
+
+        ApplyColor(hex, raiseChanged: true);
     }
 
     /// <summary>検証エラーの強調を枠線へ反映する。</summary>
@@ -521,7 +618,9 @@ public sealed class ColorSelectorControl : Grid
 
         foreach (var entry in ColorEntry.GetSorted(_colorSortMode))
         {
-            items.Add(new ColorSelectorItem(entry.Name, entry.Name, ColorSelectorCategory.Named));
+            // 一覧の表記は入力欄の表記に合わせる（16 進の設定なら 16 進で並べる）
+            items.Add(new ColorSelectorItem(
+                ColorString.ToText(entry.Name, _textFormat), entry.Name, ColorSelectorCategory.Named));
         }
 
         return items;
@@ -583,7 +682,11 @@ public sealed class ColorSelectorControl : Grid
             return;
         }
 
-        items.Add(new ColorSelectorItem(label, ToHex(color), ColorSelectorCategory.Theme));
+        // 識別子は表示名から作る（「テーマ: 背景」→「背景」）。 色の識別子を 1 箇所で決める
+        var key = label.StartsWith(ThemeLabelPrefix, StringComparison.Ordinal)
+            ? label[ThemeLabelPrefix.Length..]
+            : label;
+        items.Add(new ColorSelectorItem(label, ToHex(color), ColorSelectorCategory.Theme, key));
     }
 
     /// <summary>MewUI の色を保存値（<c>#AARRGGBB</c>）にする。</summary>
@@ -705,6 +808,8 @@ public sealed class ColorSelectorControl : Grid
             return;
         }
 
+        // 直接の入力はテーマの色の選択を解く
+        _selectedThemeColor = null;
         ApplyColor(text, raiseChanged: true);
     }
 
@@ -733,6 +838,8 @@ public sealed class ColorSelectorControl : Grid
 
         if (_list.SelectedItem is ColorSelectorItem item)
         {
+            // テーマの色は識別子を覚える（明暗・アクセントの変更へ追随させる）。 色名は値だけを写す
+            _selectedThemeColor = item.ThemeKey;
             ApplyColor(item.Value, raiseChanged: true);
 
             // 選んだら一覧を閉じる（開いたままにすると、選んだ色が一覧の裏に隠れて確認できない。 他 UI も選ぶと閉じる）
@@ -766,7 +873,8 @@ public sealed class ColorSelectorControl : Grid
         RefreshList();
 
         // アンカーは**ウィンドウ座標**である（自領域の座標ではない）。 自領域の矩形をそのまま渡すとウィンドウ左上へ出る
-        _listPopup.ShowAt(this, Bounds, PopupAnchorSide.Below);
+        // アンカーは ▼ のボタン（自領域だと入力欄の左端から開いてしまう）
+        _listPopup.ShowAt(this, _listButton.Bounds, PopupAnchorSide.Below);
         _listButton.Content("▲");
         _log.LogOpenList(_selectedColor);
     }

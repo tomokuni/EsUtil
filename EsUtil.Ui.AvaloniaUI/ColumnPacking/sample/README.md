@@ -4,7 +4,6 @@
 
 - [1. 概要](#1-概要)
 - [2. 実行方法](#2-実行方法)
-  - [2.1 バッチファイル（リリースビルド＆起動）](#21-バッチファイルリリースビルド起動)
 - [3. 操作方法](#3-操作方法)
 - [4. 検証項目（動作確認チェックリスト）](#4-検証項目動作確認チェックリスト)
 - [5. 構成](#5-構成)
@@ -28,12 +27,6 @@
 ```powershell
 dotnet run --project EsUtil.Ui.AvaloniaUI/ColumnPacking/sample/EsUtil.Ui.AvaloniaUI.ColumnPacking.Sample.csproj
 ```
-
-### 2.1 バッチファイル（リリースビルド＆起動）
-
-`EsUtil.Ui.AvaloniaUI/ColumnPacking/sample/RunSample.bat` をダブルクリックすると、リリースビルドを行った後、サンプルアプリケーションを起動します。
-
-> 本サンプルは独立したプロジェクトです（`sample/` はコントロール本体のプロジェクト フォルダの外にあり、本体の `csproj` のコンパイル対象には含まれません）。
 
 ## 3. 操作方法
 

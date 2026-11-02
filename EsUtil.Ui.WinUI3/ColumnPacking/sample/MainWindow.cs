@@ -108,7 +108,7 @@ public sealed class MainWindow : Window
         };
 
         var log = new SampleLogPanel(_logging.Buffer);
-        Title = "ColumnPacking パネル サンプル（WinUI 3）";
+        Title = "ColumnPacking サンプル (WinUI 3)";
         // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel
         {

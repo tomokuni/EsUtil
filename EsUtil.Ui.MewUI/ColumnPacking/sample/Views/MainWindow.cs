@@ -108,7 +108,7 @@ internal static class MainWindow
             status);
 
         var window = SampleShell.Create(
-            "ColumnPacking パネル サンプル（MewUI）", properties, methods, samples, contentArea, log);
+            "ColumnPacking サンプル (MewUI)", properties, methods, samples, contentArea, log);
         window.Closed += () => logging.Dispose();
 
         // レイアウト結果は配置のたびに変わるため、パネルの大きさが変わったら表示を追随させる

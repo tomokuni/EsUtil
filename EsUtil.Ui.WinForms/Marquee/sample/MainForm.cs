@@ -189,7 +189,7 @@ internal static class MainForm
             status);
 
         var log = new SampleLogPanel(logging.Buffer);
-        var form = SampleShell.Create("MarqueeControl サンプル（WinForms）", properties, methods, samples, surface, log);
+        var form = SampleShell.Create("Marquee サンプル (WinForms)", properties, methods, samples, surface, log);
         form.FormClosed += (_, _) =>
         {
             canvas.Image?.Dispose();

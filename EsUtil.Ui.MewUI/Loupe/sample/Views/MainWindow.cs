@@ -217,7 +217,7 @@ internal static class MainWindow
             SampleSettings.Check("見本（格子線と四隅の鉤）を表示", true, value => preview.IsVisible = value));
 
         var window = SampleShell.Create(
-            "LoupeControl サンプル（MewUI）", properties, methods, samples, host, log);
+            "Loupe サンプル (MewUI)", properties, methods, samples, host, log);
 
         window.Closed += () =>
         {

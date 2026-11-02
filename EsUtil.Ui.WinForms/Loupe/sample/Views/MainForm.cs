@@ -205,7 +205,7 @@ internal static class MainForm
         var methods = Column(
             SampleSettings.Buttons(("再描画を要求", () => loupe.Invalidate())));
 
-        var form = SampleShell.Create("LoupeControl サンプル（WinForms）", properties, methods, samples, host, log);
+        var form = SampleShell.Create("Loupe サンプル (WinForms)", properties, methods, samples, host, log);
 
         // 実効倍率はハンドル生成時に確定するため、表示後にもう一度配置を解決する
         form.Shown += (_, _) => host.UpdateLoupeBounds();

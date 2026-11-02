@@ -146,7 +146,7 @@ public class ColorSelectorControlTests
         var list = Assert.IsType<ListBox>(root.Children[1]);
         Assert.Equal(2, tabs.Children.Count);
         Assert.Equal("テーマカラー", Assert.IsType<ToggleButton>(tabs.Children[0]).Content);
-        Assert.Equal("色名", Assert.IsType<ToggleButton>(tabs.Children[1]).Content);
+        Assert.Equal("標準の色", Assert.IsType<ToggleButton>(tabs.Children[1]).Content);
 
         // 開いた直後はテーマカラー（テーマの色だけが並ぶ）
         var themeItems = Assert.IsAssignableFrom<IEnumerable<ColorSelectorItem>>(list.ItemsSource).ToArray();
@@ -172,6 +172,70 @@ public class ColorSelectorControlTests
         {
             var isThemeLabel = item.Label.StartsWith("テーマ:", StringComparison.Ordinal);
             Assert.Equal(isThemeLabel, item.Category == ColorSelectorCategory.Theme);
+        }
+    }
+
+    /// <summary>一覧は ▼ の右端を揃えて開くことを検証する。</summary>
+    /// <remarks>
+    /// ▼ は入力欄の右端にある。 左端を揃えると一覧が画面の右外へはみ出し、画面内へ押し戻されて ▼ から離れる。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 一覧は右端を揃えて開く()
+    {
+        var control = CreateControl();
+        var flyout = control.CreateListFlyout();
+
+        Assert.Equal(PlacementMode.BottomEdgeAlignedRight, Assert.IsType<Flyout>(flyout).Placement);
+    }
+
+    /// <summary>テーマの色を選ぶと識別子を保持し、そのときのテーマの色へ解決されることを検証する。</summary>
+    /// <remarks>
+    /// 選んだ時点の色を保存すると明暗の切替へ追随できない。 識別子を保持し、必要になるたびに解決する。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void テーマの色の識別子はテーマの色へ解決される()
+    {
+        var control = CreateControl();
+        var window = new Window { Content = control };
+        window.Styles.Add(new FluentTheme());
+
+        control.SelectedThemeColor = "文字";
+
+        Assert.Equal("文字", control.SelectedThemeColor);
+        Assert.True(control.TryResolveThemeColor("文字", out var expected));
+        Assert.Equal(expected, control.SelectedColor);
+        Assert.Matches("^#[0-9A-F]{8}$", control.SelectedColor);
+
+        // 入力欄は識別子を出す（テーマに追随していることが分かる）
+        Assert.Equal("テーマ: 文字", control.FindControl<TextBox>("PART_Text")!.Text);
+    }
+
+    /// <summary>色を直接設定したらテーマの識別子が外れることを検証する。</summary>
+    /// <remarks>テーマの色を選んだあとに色名を選び直したら、テーマの追随をやめる（識別子が残ると上書きされる）。</remarks>
+    [AvaloniaFact]
+    internal void 色を直接設定するとテーマの識別子が外れる()
+    {
+        var control = CreateControl();
+        control.SelectedThemeColor = "文字";
+
+        control.SelectedColor = "Red";
+
+        Assert.Null(control.SelectedThemeColor);
+        Assert.Equal("#FFFF0000", control.SelectedColor);
+    }
+
+    /// <summary>テーマの色の識別子から一覧と同じ色が解決されることを検証する。</summary>
+    /// <remarks>一覧の表示と解決した色が同じ出所であること（別の表を持つと食い違う）。</remarks>
+    [AvaloniaFact]
+    internal void テーマの色の識別子は一覧と同じ色に解決される()
+    {
+        var control = CreateControl();
+
+        foreach (var item in control.CreateItems().Where(item => item.Category == ColorSelectorCategory.Theme))
+        {
+            Assert.NotNull(item.ThemeKey);
+            Assert.True(control.TryResolveThemeColor(item.ThemeKey!, out var hex));
+            Assert.Equal(item.Value, hex);
         }
     }
 

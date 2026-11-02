@@ -4,9 +4,11 @@ namespace EsUtil.Ui.WinUI3.ColorSelector;
 /// <param name="Label">一覧に表示する名前。</param>
 /// <param name="Value">適用する色の文字列（色名または <c>#AARRGGBB</c>）。</param>
 /// <param name="Category">分類（ドロップダウン上部のタブ）。</param>
+/// <param name="ThemeKey">テーマの色のときの識別子（例: <c>背景</c>）。 色名の場合は null。</param>
 /// <remarks>
 /// <b>名前と適用値を分ける理由</b>: テーマの色は「テーマ: 背景」のような読みやすい名前を表示しつつ、<br/>
 /// 適用する値はそのときの色（<c>#AARRGGBB</c>）でなければならない（名前からは色を解決できない）。<br/>
 /// 色名の一覧（<see cref="EsUtil.Platform.Core.Palette.ColorEntry"/>）は名前と値が同じため、両方に名前を入れる。
 /// </remarks>
-internal sealed record ColorSelectorItem(string Label, string Value, ColorSelectorCategory Category);
+internal sealed record ColorSelectorItem(
+    string Label, string Value, ColorSelectorCategory Category, string? ThemeKey = null);

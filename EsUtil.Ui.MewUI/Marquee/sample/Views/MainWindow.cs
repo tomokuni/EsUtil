@@ -242,7 +242,7 @@ internal static class MainWindow
             selectionText,
             loupeText);
 
-        var window = SampleShell.Create("MarqueeControl サンプル（MewUI）", properties, methods, samples, scroll, log);
+        var window = SampleShell.Create("Marquee サンプル (MewUI)", properties, methods, samples, scroll, log);
         window.Closed += () =>
         {
             backdrop.Dispose();

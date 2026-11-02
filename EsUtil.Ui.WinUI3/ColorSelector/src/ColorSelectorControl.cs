@@ -68,7 +68,13 @@ public sealed partial class ColorSelectorControl : Grid
     private readonly ToggleButton _themeTab = CreateCategoryTab("テーマカラー");
 
     /// <summary>色名のタブ。</summary>
-    private readonly ToggleButton _namedTab = CreateCategoryTab("色名");
+    private readonly ToggleButton _namedTab = CreateCategoryTab("標準の色");
+
+    /// <summary>テーマの色の表示名の接頭辞。</summary>
+    private const string ThemeLabelPrefix = "テーマ: ";
+
+    /// <summary>選択中のテーマの色の識別子（例: <c>背景</c>）。 テーマの色でない場合は null。</summary>
+    private string? _selectedThemeColor;
 
     /// <summary>直近に選んだ一覧の分類（次に開いたときに同じタブから始める）。</summary>
     private ColorSelectorCategory _listCategory = ColorSelectorCategory.Theme;
@@ -96,7 +102,8 @@ public sealed partial class ColorSelectorControl : Grid
     /// <summary>一覧のポップアップ（アプリのウィンドウ外へはみ出してよい）。</summary>
     private readonly Flyout _listFlyout = new()
     {
-        Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft,
+        // ▼ は入力欄の右端にあるため、右端を揃えて左へ開く（左端を揃えると画面の右外へはみ出す）
+        Placement = FlyoutPlacementMode.BottomEdgeAlignedRight,
 
         // ウィンドウの内側へ押し戻すと、狭いウィンドウで一覧が極端に短くなる（はみ出してよい）
         ShouldConstrainToRootBounds = false,
@@ -164,6 +171,9 @@ public sealed partial class ColorSelectorControl : Grid
         _text.BorderThickness = new Thickness(0);
         _text.Background = new SolidColorBrush(Colors.Transparent);
         _text.TextChanged += OnTextChanged;
+
+        // テーマが変わったら、テーマの色を選んでいる間はその色を解決し直す
+        ActualThemeChanged += (_, _) => ReapplyThemeColor();
         _text.LostFocus += OnTextLostFocus;
 
         // 入力欄の中で文字が重ならないよう、スウォッチの幅 + 余白だけ左を空ける。
@@ -285,6 +295,35 @@ public sealed partial class ColorSelectorControl : Grid
     /// <b>並べない場合はコアの色名だけ</b>になる（一覧は次に開くときに作り直す）。
     /// </remarks>
     public bool ShowThemeColors { get; set; } = true;
+    /// <summary>選択中のテーマの色の識別子を取得または設定する（例: <c>背景</c>）。</summary>
+    /// <value>テーマの色を選んでいるときの識別子。 色名・カラーコードを選んでいるときは null。</value>
+    /// <remarks>
+    /// <b>テーマの色は名前で覚える</b>: 選んだ時点の色（<c>#AARRGGBB</c>）を保存すると、明暗の切替やアクセント色の変更へ<br/>
+    /// 追随できない。 本プロパティが識別子を持つ間は <see cref="SelectedColor"/> を<b>そのときのテーマの色</b>へ<br/>
+    /// 解決し直す（テーマが変わると <see cref="SelectedColor"/> も変わり、変更イベントが届く）。
+    /// </remarks>
+    public string? SelectedThemeColor
+    {
+        get => _selectedThemeColor;
+        set
+        {
+            if (string.Equals(_selectedThemeColor, value, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _selectedThemeColor = value;
+            if (value is not null && TryResolveThemeColor(value, out var hex))
+            {
+                ApplyThemeColor(hex);
+            }
+            else
+            {
+                ApplyColor(_selectedColor, raiseChanged: false);
+            }
+        }
+    }
+
     /// <summary>テキスト部の表記を取得または設定する。</summary>
     /// <value>色名 + 不透明度（既定）またはカラーコード。 入力欄は編集できるため、表記と異なる形の入力も受理する。</value>
     public ColorTextFormat TextFormat
@@ -423,7 +462,10 @@ public sealed partial class ColorSelectorControl : Grid
         _applying = true;
         try
         {
-            _text.Text = ColorString.ToText(normalized, _textFormat);
+            // テーマの色を選んでいる間は識別子を出す（色を写すと、テーマに追随していることが分からない）
+            _text.Text = _selectedThemeColor is { } key
+                ? ThemeLabelPrefix + key
+                : ColorString.ToText(normalized, _textFormat);
 
             // スウォッチとテキスト部のツールチップは 2 行（色名+不透明度 / カラーコード）を出す
             var tooltip = string.Concat(
@@ -455,6 +497,43 @@ public sealed partial class ColorSelectorControl : Grid
         }
     }
 
+    /// <summary>テーマの色の識別子から、そのときのテーマの色を解決する。</summary>
+    /// <param name="key">識別子（例: <c>背景</c>）。</param>
+    /// <param name="hex">解決した色（<c>#AARRGGBB</c>）。</param>
+    /// <returns>解決できた場合は true（その UI に無い色は false）。</returns>
+    /// <remarks>一覧を作る処理と同じ解決を使う（別の表を持つと一覧の表示と解決した色が食い違う）。</remarks>
+    internal bool TryResolveThemeColor(string key, out string hex)
+    {
+        foreach (var item in CreateItems())
+        {
+            if (string.Equals(item.ThemeKey, key, StringComparison.Ordinal))
+            {
+                hex = item.Value;
+                return true;
+            }
+        }
+
+        hex = string.Empty;
+        return false;
+    }
+
+    /// <summary>テーマの色を選んでいる間、そのときのテーマの色へ解決し直す。</summary>
+    private void ReapplyThemeColor()
+    {
+        if (_selectedThemeColor is { } key && TryResolveThemeColor(key, out var hex))
+        {
+            ApplyThemeColor(hex);
+        }
+        else
+        {
+            ApplyColor(_selectedColor, raiseChanged: false);
+        }
+    }
+
+    /// <summary>解決したテーマの色を <see cref="SelectedColor"/> へ書く（識別子は消さない）。</summary>
+    /// <param name="hex">解決した色（<c>#AARRGGBB</c>）。</param>
+    private void ApplyThemeColor(string hex) => ApplyColor(hex, raiseChanged: true);
+
     /// <summary>検証エラーの強調を枠線へ反映する。</summary>
     private void UpdateBorderValidationVisual()
         => BorderBrush = new SolidColorBrush(_highlightBorderOnError && HasValidationError ? Colors.Red : s_borderColor);
@@ -475,7 +554,9 @@ public sealed partial class ColorSelectorControl : Grid
 
         foreach (var entry in ColorEntry.GetSorted(_colorSortMode))
         {
-            items.Add(new ColorSelectorItem(entry.Name, entry.Name, ColorSelectorCategory.Named));
+            // 一覧の表記は入力欄の表記に合わせる（16 進の設定なら 16 進で並べる）
+            items.Add(new ColorSelectorItem(
+                ColorString.ToText(entry.Name, _textFormat), entry.Name, ColorSelectorCategory.Named));
         }
 
         return items;
@@ -539,10 +620,15 @@ public sealed partial class ColorSelectorControl : Grid
             return;
         }
 
+        // 識別子は表示名から作る（「テーマ: 背景」→「背景」）。 色の識別子を 1 箇所で決める
+        var key = label.StartsWith(ThemeLabelPrefix, StringComparison.Ordinal)
+            ? label[ThemeLabelPrefix.Length..]
+            : label;
         items.Add(new ColorSelectorItem(
             label,
             ColorString.ToArgbHex(DrawingColor.FromArgb(solid.Color.A, solid.Color.R, solid.Color.G, solid.Color.B)),
-            ColorSelectorCategory.Theme));
+            ColorSelectorCategory.Theme,
+            key));
     }
 
     /// <summary>テーマの資源をブラシとして取得する。</summary>
@@ -670,6 +756,8 @@ public sealed partial class ColorSelectorControl : Grid
             return;
         }
 
+        // 直接の入力はテーマの色の選択を解く
+        _selectedThemeColor = null;
         ApplyColor(_text.Text, raiseChanged: true);
     }
 
@@ -699,6 +787,8 @@ public sealed partial class ColorSelectorControl : Grid
         var index = _list.SelectedIndex;
         if (index >= 0 && index < _entries.Count)
         {
+            // テーマの色は識別子を覚える（明暗・アクセントの変更へ追随させる）。 色名は値だけを写す
+            _selectedThemeColor = _entries[index].ThemeKey;
             ApplyColor(_entries[index].Value, raiseChanged: true);
             _listFlyout.Hide();
         }

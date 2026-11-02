@@ -185,7 +185,7 @@ internal static class MainWindow
             preview);
 
         var window = SampleShell.Create(
-            "ColorSelectorControl サンプル（MewUI）",
+            "ColorSelector サンプル (MewUI)",
             properties,
             methodSettings: null,
             samples,

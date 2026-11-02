@@ -259,7 +259,7 @@ public sealed class MainWindow : Window
         };
 
         var log = new SampleLogPanel(_logging.Buffer);
-        Title = "MarqueeControl サンプル（WinUI 3）";
+        Title = "Marquee サンプル (WinUI 3)";
         Content = SampleShell.CreateContent(properties, methods, samples, scroll, log);
 
         // ウィンドウの大きさは DIP で指定する（他の UI と同じ 1400 x 900）

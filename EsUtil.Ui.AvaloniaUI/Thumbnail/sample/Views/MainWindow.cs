@@ -34,7 +34,7 @@ public sealed class MainWindow : Window
     /// <summary>ウィンドウを初期化する。</summary>
     public MainWindow()
     {
-        Title = "ThumbnailControl サンプル（AvaloniaUI）";
+        Title = "Thumbnail サンプル (AvaloniaUI)";
 
         var logger = _logging.Logger;
         logger.LogInformation("サンプルを起動しました。");
@@ -114,7 +114,7 @@ public sealed class MainWindow : Window
 
         var log = new SampleLogPanel(_logging.Buffer);
         var window = SampleShell.Create(
-            "ThumbnailControl サンプル（AvaloniaUI）",
+            "Thumbnail サンプル (AvaloniaUI)",
             properties,
             methods,
             samples,

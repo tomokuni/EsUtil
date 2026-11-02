@@ -95,7 +95,7 @@ internal static class MainForm
         thumbnails.SelectedIndex = 0;
 
         var log = new SampleLogPanel(logging.Buffer);
-        var form = SampleShell.Create("ThumbnailControl サンプル（WinForms）", properties, methods, samples, thumbnails, log);
+        var form = SampleShell.Create("Thumbnail サンプル (WinForms)", properties, methods, samples, thumbnails, log);
         form.FormClosed += (_, _) =>
         {
             foreach (var image in images)

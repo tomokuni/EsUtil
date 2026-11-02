@@ -4,7 +4,6 @@
 
 - [1. 概要](#1-概要)
 - [2. 実行方法](#2-実行方法)
-  - [2.1 バッチファイル（リリースビルド＆起動）](#21-バッチファイルリリースビルド起動)
 - [3. 操作方法](#3-操作方法)
 - [4. 検証項目（動作確認チェックリスト）](#4-検証項目動作確認チェックリスト)
 - [5. 構成](#5-構成)
@@ -33,16 +32,6 @@ dotnet run --project EsUtil.Ui.AvaloniaUI/Thumbnail/sample/EsUtil.Ui.AvaloniaUI.
 ```powershell
 dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Thumbnail/sample/EsUtil.Ui.AvaloniaUI.Thumbnail.Sample.csproj
 ```
-
-### 2.1 バッチファイル（リリースビルド＆起動）
-
-`EsUtil.Ui.AvaloniaUI/Thumbnail/sample/RunSample.bat` をダブルクリックすると、リリースビルドを行った後、サンプルアプリケーションを起動します。
-
-```text
-RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil.Ui.AvaloniaUI.Thumbnail.Sample.exe を起動
-```
-
-> 本サンプルは独立したプロジェクトです（`sample/` はコントロール本体のプロジェクト フォルダの外にあり、本体の `csproj` のコンパイル対象には含まれません）。
 
 ## 3. 操作方法
 
@@ -81,7 +70,6 @@ EsUtil.Ui.AvaloniaUI/Thumbnail/sample/
 ├── Imaging/
 │   └── TestImageFactory.cs      # テスト画像生成（コアの EsBitmap を返す）
 ├── Views/
-└── RunSample.bat                # リリースビルド＆起動
 ```
 
 ## 6. 使い方（初めての方向け）
