@@ -14,15 +14,14 @@
 | ファイル | 内容 |
 | --- | --- |
 | [`release-config.json`](release-config.json) | 製品名、**ソリューション ファイル**（`solutionFile` / `solutions`）、**リリースを許可するブランチ** |
-| [`../Directory.Build.props`](../Directory.Build.props) | **グループ別のバージョン**（`EsUtil_VersionPrefix` / `EsUtil_Ui_<UI>_VersionPrefix`）。 各 `.csproj` では指定しない |
+| [`../Directory.Build.props`](../Directory.Build.props) | **公開する版**（`VersionPrefix` 1 行。 すべてのパッケージが同じ版）。 各 `.csproj` では指定しない |
 | [`../global.json`](../global.json) | .NET SDK のバージョン。 ワークフローでは指定しない |
 | [`../.config/dotnet-tools.json`](../.config/dotnet-tools.json) | SBOM を作るツール（CycloneDX）の版。 CI とローカルで同じものを使う |
 | [`workflows/release.yml`](workflows/release.yml) | dry-run / 公開 / タグ付けの実装 |
 | [`../buildScript/pack.ps1`](../buildScript/pack.ps1) | **ローカル フィード用**のパッケージ作成（未公開の版を試すときだけ使う。 公開はワークフローが行う） |
 | [`../buildScript/generateSbom.ps1`](../buildScript/generateSbom.ps1) | SBOM（CycloneDX）の作成 |
 
-**版は 5 つのグループ**（`EsUtil` / `EsUtil.Ui.AvaloniaUI` / `EsUtil.Ui.MewUI` / `EsUtil.Ui.WinUI3` / `EsUtil.Ui.WinForms`）ごとに 1 つです。
-グループ内の全パッケージが同じ版になり、タグもグループ別（`<グループ>/v<版>`。 例: `EsUtil/v0.2.0`）になります。
+**版はすべてのパッケージで 1 つ**です（`Directory.Build.props` の `VersionPrefix`）。 タグも Release も **1 件**（`v<版>`。 例: `v0.4.0`）になります。
 
 ## 2. 依存関係の更新
 
@@ -67,15 +66,15 @@
 
 ```mermaid
 flowchart LR
-    A["workflow_dispatch<br/>mode=dry-run"] --> B["verify<br/>CHANGELOG・版・対象グループ"]
-    B --> C["pack<br/>グループ別に dotnet pack"]
-    B --> D["sbom<br/>グループ別に CycloneDX"]
+    A["workflow_dispatch<br/>mode=dry-run"] --> B["verify<br/>CHANGELOG・版・タグ"]
+    B --> C["pack<br/>ソリューション別に dotnet pack"]
+    B --> D["sbom<br/>ソリューション別に CycloneDX"]
     C --> E["保管（nupkg / snupkg）"]
     D --> F["保管（SBOM）"]
     E --> G{"mode=release"}
     F --> G
     G -->|"dry-run の成果物を取得<br/>承認（environment: release）"| H["publish<br/>NuGet へ公開"]
-    H --> I["tag<br/>由来の証明 → タグと Release"]
+    H --> I["tag<br/>由来の証明 → タグ 1 本と Release 1 件"]
 ```
 
 **公開が成功した後にだけタグを打ちます**（公開できなかった版にタグを残さないため）。
@@ -86,11 +85,11 @@ flowchart LR
 ### 5.1 手順
 
 1. **CHANGELOG の見出しを確定してコミットする**（`## 未リリース` → `## <版>（<公開日>）`。 §5.2）
-2. **版を上げてコミットする**（`Directory.Build.props` のグループ別 `VersionPrefix`。 §6）。 `dev` で上げ、`main` へ Pull Request で入れる
+2. **版を上げてコミットする**（`Directory.Build.props` の `VersionPrefix`。 §6）。 `dev` で上げ、`main` へ Pull Request で入れる
 3. **Pull Request の `ci` が成功するまで待つ**（検証の合否基準は [`検証手順.md`](検証手順.md)）
 4. `main` で **`dry-run`** を実行する（§5.3）
-   - CHANGELOG・版・ブランチの検証、対象グループの決定、`pack`、**SBOM の作成**まで行う（公開もタグ作成もしない）
-   - 前回のグループ別タグから**変更の無いグループは対象外**になる（`git diff` で判定）
+   - CHANGELOG・版・ブランチの検証、`pack`、**SBOM の作成**まで行う（公開もタグ作成もしない）
+   - 前回のタグから**変更が無ければリリースしない**（`git diff` で判定）
 5. 問題が無ければ、**同じコミット**で **`release`** を実行する（§5.3）
    - **同じコミットの dry-run が成功していないと中止**する
    - `environment: release` の**承認**を経て、NuGet へ公開し、その後にタグと GitHub Release を作成する
@@ -102,7 +101,7 @@ flowchart LR
 **公開するコミットに `## 未リリース` を残しません**。 残っていると `dry-run` と `release` の両方が `verify` で失敗します（`CHANGELOG.md` の検査）。
 
 - 見出しは **`## <版>（<公開日>）`**（例: `## 0.4.0（2026-11-02）`）。 日付は**公開する日**を書く。
-- グループで版が違うときは、見出しにすべての版を書く（例: `## EsUtil 0.4.0 / EsUtil.Ui.* 0.4.1（2026-11-02）`）。 版が含まれていないと**警告**が出る（失敗はしない）。
+- 版が含まれていないと**警告**が出る（失敗はしない）。
 - **`## 未リリース` の節は、次の変更を書き始めるときに作る**（公開のコミットには含めない）。
 - 節の中は `### 破壊的な変更` / `### 追加` / `### 変更` / `### 修正` で分ける（[`../CHANGELOG.md`](../CHANGELOG.md) の既存の並びに合わせる）。
 
@@ -133,7 +132,7 @@ gh run list --workflow release.yml --limit 3
 
 # 結果を確認する（タグ・Release・nuget.org）
 git fetch --tags
-git tag --list '*/v0.4.0'
+git tag --list 'v0.4.0'
 gh release list --limit 6
 (Invoke-RestMethod 'https://api.nuget.org/v3-flatcontainer/esutil.platform.core/index.json').versions
 ```
@@ -147,17 +146,16 @@ gh release list --limit 6
 入力 `version` は確認用であり、ツリーの値と一致しなければ失敗します。
 
 ```xml
-<EsUtil_VersionPrefix>0.2.0</EsUtil_VersionPrefix>
-<EsUtil_Ui_AvaloniaUI_VersionPrefix>0.1.1</EsUtil_Ui_AvaloniaUI_VersionPrefix>
+<VersionPrefix>0.4.1</VersionPrefix>
 ```
 
 - **形式は 3 桁の数値**（`<主>.<副>.<修正>`）。
 - **ローカル識別子（`-`）を含めない**（公開する版にだけ適用する規則。 ローカルで試すときは `buildScript/pack.ps1` が `local.<n>` を付ける）。
-- **グループごとに独立**して上げられる（変更の無いグループはリリースされない）。
+- **すべてのパッケージが同じ版**になる（版グループは持たない）。
 
 ## 7. Release の添付ファイル
 
-各グループの Release には、**そのグループの SBOM**（`<グループ>.<版>.sbom.cdx.json`）が添付されます。
+Release には、**ソリューションごとの SBOM**（`<ソリューション>.<版>.sbom.cdx.json`。 5 件）がまとめて添付されます。
 パッケージ本体は nuget.org が配布元であり、SBOM は「どの依存のどの版を使ったか」を公開物から辿るために付けます。
 
 **公開したパッケージには由来の証明（build provenance）を付けます**（`actions/attest-build-provenance`）。
@@ -192,7 +190,7 @@ pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output sbom
 
 - **公開は取り消せません**（nuget.org の版は不変）。 版を上げる前に `dry-run` で確かめる。
 - **`main` 以外では公開できません**（`releaseBranches`）。 `dry-run` は `dev` でも実行できます。
-- **タグはワークフローだけが作ります**（人が打たない。 グループ別のタグは版の記録であり、リリースの単位）。
+- **タグはワークフローだけが作ります**（人が打たない。 `v<版>` は公開した版の記録であり、リリースの単位）。
 - **SBOM とパッケージは同じコミットから作ります**（`pack` と `sbom` は `dry-run` の同じ `github.sha` を checkout する）。
 - **公開するコミットに `## 未リリース` を残しません**（`verify` が失敗する。 §5.2）。
 - **検証は Pull Request の 1 回だけです**（push では実行しない。 §4.1）。 マージ後に検証をやり直しても、同じツリーの同じ結果になるためです。 前提として、Pull Request は**最新の `main` に追随**してからマージします（ruleset の `strict_required_status_checks_policy`）。

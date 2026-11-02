@@ -4,11 +4,11 @@
 # （.github/依存関係.md §1）。 本スクリプトは**パッケージ参照だけ**を使う検証で、
 # 配布できる状態かを確かめる（規則の所有者は .github/検証手順.md §9）。
 #
-#   1. 5 グループのパッケージが .nupkg/ に揃っているか（無ければ pack.ps1 を実行する）
+#   1. 5 ソリューションのパッケージが .nupkg/ に揃っているか（無ければ pack.ps1 を実行する）
 #   2. 同封物（lib/<tfm>/<名前>.dll・XML ドキュメント・README.md）が入っているか
 #   3. nuspec の依存が最小版（厳密一致ではない）で、公開する版に `-` が無いか
 #   4. パッケージ参照だけの一時プロジェクトが復元・ビルド・起動できるか（共通基盤 + 機能層）
-#   5. UI グループのパッケージ参照が復元できるか（依存の宣言が閉じているか）
+#   5. UI ソリューションのパッケージ参照が復元できるか（依存の宣言が閉じているか）
 #
 # 一時プロジェクトは $env:TEMP へ置く（リポジトリの Directory.Build.* を継承させないため。 片付ける）。
 #
@@ -35,36 +35,26 @@ $feed = Join-Path $repoRoot '.nupkg'
 $propsText = [IO.File]::ReadAllText((Join-Path $repoRoot 'Directory.Build.props'), $enc)
 $recordPath = Join-Path $PSScriptRoot 'local-versions.json'
 
-function Get-GroupName([string]$projectName) {
+function Get-SolutionName([string]$projectName) {
     if ($projectName -match '^EsUtil\.Ui\.(?<ui>AvaloniaUI|MewUI|WinUI3|WinForms)\.') {
         return "EsUtil.Ui.$($Matches['ui'])"
     }
     if ($projectName -match '^EsUtil\.(Platform|Feature)\.') { return 'EsUtil' }
-    throw "版グループを判定できません: $projectName"
+    throw "ソリューションを判定できません: $projectName"
 }
-
-function Get-VersionPrefix([string]$group) {
-    $key = ($group -replace '\.', '_') + '_VersionPrefix'
-    $m = [regex]::Match($propsText, ("<{0}>([^<]+)</{0}>" -f [regex]::Escape($key)))
-    if (-not $m.Success) { throw "Directory.Build.props に $key がありません" }
+function Get-VersionPrefix {
+    $m = [regex]::Match($propsText, '<VersionPrefix>([^<]+)</VersionPrefix>')
+    if (-not $m.Success) { throw 'Directory.Build.props に VersionPrefix がありません' }
     return $m.Groups[1].Value.Trim()
 }
 
-$groups = @(Get-ChildItem -Path $repoRoot -Directory | Where-Object { $_.Name -like 'EsUtil*' } | Select-Object -ExpandProperty Name | Sort-Object)
+$solutions = @(Get-ChildItem -Path $repoRoot -Directory | Where-Object { $_.Name -like 'EsUtil*' } | Select-Object -ExpandProperty Name | Sort-Object)
 
 # ============================================================
-# 1. ローカル識別子（グループごとの local.<n>）
+# 1. ローカル識別子（local.<n>）
 # ============================================================
-$record = @{}
-if (Test-Path -LiteralPath $recordPath) {
-    $loaded = Get-Content -LiteralPath $recordPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    foreach ($property in $loaded.groups.PSObject.Properties) {
-        $record[$property.Name] = [pscustomobject]@{
-            suffix      = [int]$property.Value.suffix
-            fingerprint = [string]$property.Value.fingerprint
-        }
-    }
-}
+# 記録の形は { "suffix": <n>, "fingerprints": { "<ソリューション>": "<指紋>" } }（pack.ps1 が書く）。
+# 本スクリプトが使うのは suffix だけである（識別子はフィード全体で 1 つ）。
 
 # パッケージの一覧（テスト・サンプル・配布しない共通部品は作らない）
 # `.csproj` が `<IsPackable>false</IsPackable>` を宣言している場合も対象外にする
@@ -73,11 +63,11 @@ $packages = @(Get-ChildItem -Path $repoRoot -Directory |
     Where-Object { $_.Name -like 'EsUtil*' } |
     ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -File -Filter '*.csproj' } |
     Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample|SampleKit)\.csproj$' } |
-    ForEach-Object { [pscustomobject]@{ Name = $_.BaseName; Group = (Get-GroupName $_.BaseName) } } |
+    ForEach-Object { [pscustomobject]@{ Name = $_.BaseName; Solution = (Get-SolutionName $_.BaseName) } } |
     Sort-Object Name)
 
-# 記録からグループごとのローカル識別子を求める（pack の後にも呼ぶ）。
-# **識別子はフィード全体で 1 つ**（グループごとに変えると依存の版と実パッケージの版が食い違う）。
+# 記録からソリューションごとのローカル識別子を求める（pack の後にも呼ぶ）。
+# **識別子はフィード全体で 1 つ**（ソリューションごとに変えると依存の版と実パッケージの版が食い違う）。
 function Get-PackageVersions {
     $result = @{}
     $suffix = 0
@@ -86,8 +76,8 @@ function Get-PackageVersions {
         if ($loaded.PSObject.Properties['suffix'] -and $null -ne $loaded.suffix) { $suffix = [int]$loaded.suffix }
     }
     if ($suffix -lt 1) { return $result }
-    foreach ($group in $groups) {
-        $result[$group] = "$(Get-VersionPrefix $group)-local.$suffix"
+    foreach ($solution in $solutions) {
+        $result[$solution] = "$(Get-VersionPrefix)-local.$suffix"
     }
     return $result
 }
@@ -96,9 +86,9 @@ function Get-PackageVersions {
 function Get-MissingPackages([hashtable]$map) {
     $result = [System.Collections.Generic.List[string]]::new()
     foreach ($package in $packages) {
-        if (-not $map.ContainsKey($package.Group)) { $result.Add("$($package.Name)（$($package.Group) のローカル識別子の記録が無い）"); continue }
-        $path = Join-Path $feed ("{0}.{1}.nupkg" -f $package.Name, $map[$package.Group])
-        if (-not (Test-Path -LiteralPath $path)) { $result.Add("$($package.Name)（$($map[$package.Group])）") }
+        if (-not $map.ContainsKey($package.Solution)) { $result.Add("$($package.Name)（$($package.Solution) のローカル識別子の記録が無い）"); continue }
+        $path = Join-Path $feed ("{0}.{1}.nupkg" -f $package.Name, $map[$package.Solution])
+        if (-not (Test-Path -LiteralPath $path)) { $result.Add("$($package.Name)（$($map[$package.Solution])）") }
     }
     return $result
 }
@@ -119,7 +109,7 @@ if ($missing.Count -gt 0 -and -not $SkipPack) {
     $missing = Get-MissingPackages $versions
 }
 
-Add-Result '公開する版' (@($groups | Where-Object { (Get-VersionPrefix $_) -match '-' }).Count -eq 0) 'グループの VersionPrefix に `-` を含まない'
+Add-Result '公開する版' ((Get-VersionPrefix) -notmatch '-') 'VersionPrefix に - を含まない'
 Add-Result 'パッケージの存在' ($missing.Count -eq 0) "不足 $($missing.Count) 件"
 $missing | Select-Object -First 10 | ForEach-Object { "      $_" }
 
@@ -132,8 +122,8 @@ $contentIssues = [System.Collections.Generic.List[string]]::new()
 $dependencyIssues = [System.Collections.Generic.List[string]]::new()
 
 foreach ($package in $packages) {
-    if (-not $versions.ContainsKey($package.Group)) { continue }
-    $path = Join-Path $feed ("{0}.{1}.nupkg" -f $package.Name, $versions[$package.Group])
+    if (-not $versions.ContainsKey($package.Solution)) { continue }
+    $path = Join-Path $feed ("{0}.{1}.nupkg" -f $package.Name, $versions[$package.Solution])
     if (-not (Test-Path -LiteralPath $path)) { continue }
 
     $zip = [IO.Compression.ZipFile]::OpenRead($path)
@@ -201,13 +191,13 @@ try {
     $nugetConfigPath = Join-Path $work 'NuGet.config'
     [IO.File]::WriteAllText($nugetConfigPath, $nugetConfig, $enc)
 
-    $groupByName = @{}
-    foreach ($package in $packages) { $groupByName[$package.Name] = $package.Group }
+    $solutionByName = @{}
+    foreach ($package in $packages) { $solutionByName[$package.Name] = $package.Solution }
 
     function New-ConsumerProject([string]$directory, [string]$name, [string[]]$packageIds, [bool]$isExe) {
         $itemGroup = ($packageIds | ForEach-Object {
                 $id = $_
-                "    <PackageReference Include=`"$id`" Version=`"[$($versions[$groupByName[$id]])]`" />"
+                "    <PackageReference Include=`"$id`" Version=`"[$($versions[$solutionByName[$id]])]`" />"
             }) -join "`n"
 
         $outputType = if ($isExe) { '<OutputType>Exe</OutputType>' } else { '' }
@@ -233,7 +223,7 @@ $itemGroup
     }
 
     # 共通基盤 + 機能層（UI 非依存）は復元・ビルド・起動まで確かめる
-    $corePackages = @($packages | Where-Object { $_.Group -eq 'EsUtil' } | Select-Object -ExpandProperty Name)
+    $corePackages = @($packages | Where-Object { $_.Solution -eq 'EsUtil' } | Select-Object -ExpandProperty Name)
     $coreDir = New-ConsumerProject 'core' 'Consumer' $corePackages $true
     $program = @"
 using EsUtil.Feature.ZenHan;
@@ -263,19 +253,19 @@ Console.WriteLine(`$"OK {han}");
         Add-Result 'パッケージ参照での起動' $false 'ビルドが失敗したため実行しない'
     }
 
-    # UI グループは復元まで確かめる（依存の宣言が閉じているか。 UI のビルドは各 UI の SDK 設定を要する）
+    # UI ソリューションは復元まで確かめる（依存の宣言が閉じているか。 UI のビルドは各 UI の SDK 設定を要する）
     $uiIssues = [System.Collections.Generic.List[string]]::new()
-    foreach ($group in ($groups | Where-Object { $_ -ne 'EsUtil' })) {
-        $ids = @($packages | Where-Object { $_.Group -eq $group } | Select-Object -ExpandProperty Name)
+    foreach ($solution in ($solutions | Where-Object { $_ -ne 'EsUtil' })) {
+        $ids = @($packages | Where-Object { $_.Solution -eq $solution } | Select-Object -ExpandProperty Name)
         if ($ids.Count -eq 0) { continue }
-        $dir = New-ConsumerProject ($group.Replace('.', '-').ToLowerInvariant()) 'Consumer' $ids $false
+        $dir = New-ConsumerProject ($solution.Replace('.', '-').ToLowerInvariant()) 'Consumer' $ids $false
         $build = Invoke-NativeText 'dotnet' @('restore', (Join-Path $dir 'Consumer.csproj'), '--configfile', $nugetConfigPath)
         if ($build.ExitCode -ne 0) {
-            $uiIssues.Add(("{0}（終了コード {1}）" -f $group, $build.ExitCode))
+            $uiIssues.Add(("{0}（終了コード {1}）" -f $solution, $build.ExitCode))
             Write-Output (($build.Text + $build.ErrorText) | Select-Object -First 10)
         }
     }
-    Add-Result 'UI グループの復元' ($uiIssues.Count -eq 0) "失敗 $($uiIssues.Count) 件"
+    Add-Result 'UI ソリューションの復元' ($uiIssues.Count -eq 0) "失敗 $($uiIssues.Count) 件"
     $uiIssues | ForEach-Object { "      $_" }
 }
 finally {

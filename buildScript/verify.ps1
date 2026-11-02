@@ -251,19 +251,15 @@ foreach ($p in 'EnforceCodeStyleInBuild', 'GenerateDocumentationFile', 'Analysis
     # 属性付きの宣言（`<IsPackable Condition="…">`）も「指定がある」と見なす
     if ($propsText -notmatch "<$p(\s|>)") { $missingProps.Add($p) }
 }
-# 本体プロジェクト（パッケージを作る対象）の一覧（§2 の版グループ検査が使う）
+# 本体プロジェクト（パッケージを作る対象）の一覧（§2 の版の検査が使う）
 $packableProjects = @(Get-ChildItem -Path $repoRoot -Directory |
         Where-Object { $_.Name -like 'EsUtil*' } |
         ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -File -Filter '*.csproj' } |
         Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample)\.csproj$' })
-# 版グループ（5 つ）の VersionPrefix が 3 桁の数値か（テスト・サンプルは行を持たない。 規則は
-# .github/ビルド設定規約.md §4。 グループはプロジェクト名から導出する）。
-foreach ($group in @($packableProjects | ForEach-Object {
-            if ($_.BaseName -match '^EsUtil\.Ui\.(?<ui>AvaloniaUI|MewUI|WinUI3|WinForms)\.') { "EsUtil.Ui.$($Matches['ui'])" }
-            elseif ($_.BaseName -match '^EsUtil\.(Platform|Feature)\.') { 'EsUtil' }
-        }) | Sort-Object -Unique) {
-    $key = ($group -replace '\.', '_') + '_VersionPrefix'
-    if ($propsText -notmatch "<$key>\d+\.\d+\.\d+</$key>") { $missingProps.Add("$key（3 桁の数値）") }
+# 公開する版（VersionPrefix）が 3 桁の数値か（すべてのパッケージで 1 つ。 規則は
+# .github/ビルド設定規約.md §4。 各 .csproj は値を持たない）。
+if ($propsText -notmatch '<VersionPrefix>\d+\.\d+\.\d+</VersionPrefix>') {
+    $missingProps.Add('VersionPrefix（3 桁の数値）')
 }
 # 各 .csproj が重複して指定していないか（単一所有の確認）
 $duplicateProps = @(Get-ChildItem -Path $repoRoot -Directory |

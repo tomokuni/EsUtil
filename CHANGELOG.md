@@ -1,6 +1,6 @@
 # 変更履歴
 
-本リポジトリは**5 つの版グループ（`EsUtil` / `EsUtil.Ui.<UI>`）ごとに版が異なります**（値の所有者は [`Directory.Build.props`](Directory.Build.props) の `VersionPrefix`）。 そのため、この文書は**利用者に影響する変更**を時系列で記録し、版番号は各グループのものを併記します。
+本リポジトリは**すべてのパッケージで版が 1 つ**です（値の所有者は [`Directory.Build.props`](Directory.Build.props) の `VersionPrefix`）。 そのため、この文書は**利用者に影響する変更**を時系列で記録します。
 
 - **公開する版は人が決めます**（グループの `VersionPrefix` を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。

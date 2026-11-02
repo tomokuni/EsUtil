@@ -13,12 +13,12 @@
 #     公開した版の変更が「未リリース」のまま残らないようにする。 手順は .github/RELEASE.md）。
 #   - **配布物は dry-run で 1 回だけ作り、release はそれを使う**（同じコミットを 2 回 pack しない）。
 #   - **公開が成功した後にだけタグを打つ**（公開できなかった版にタグを残さない）。
-#   - **タグはグループ別**（`EsUtil/v0.2.0` / `EsUtil.Ui.<UI>/v0.1.0`）。
+#   - **タグは 1 本**（`v<版>`。 すべてのパッケージが同じ版である）。 Release も 1 件にまとめる。
 #   - **公開は Trusted Publishing**（OIDC で短命の API キーを取得する。 長期の API キーを持たない）。
 #     ポリシーは「リポジトリ + ワークフロー ファイル + environment: release」に紐づける。
-#   - **変更のあったグループだけを公開する**（前回のグループ別タグからの差分で決める）。
+#   - **前回のタグから変更が無ければリリースしない**（版を上げていないだけの状態で空振りしない）。
 #   - 公開する版にローカル識別子（`-`）を含めない。
-#   - **配布物には SBOM（CycloneDX）を添付する**（グループごとに 1 ファイル。 使った依存を公開物から辿れる）。
+#   - **配布物には SBOM（CycloneDX）を添付する**（ソリューションごとに 1 ファイル。 使った依存を公開物から辿れる）。
 #   - **公開したパッケージには由来の証明（build provenance）を付ける**（どのワークフロー・どのコミットが
 #     作ったかを後から検証できる。 `actions/attest-build-provenance`）。
 #   - **実行できるブランチはモードで変わる**（dry-run は main / dev、公開は main のみ）。
@@ -64,15 +64,18 @@ jobs:
       # dry-run の実行結果の参照
       actions: read
     outputs:
-      groups: ${{ steps.plan.outputs.groups }}
+      version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
       count: ${{ steps.plan.outputs.count }}
+      # pack / SBOM の対象（ソリューションと、SBOM の製品名）
+      solutions: ${{ steps.plan.outputs.solutions }}
       # dry-run の実行 ID（release はその成果物を使う。 同じコミットを 2 回 pack しない）
       dryRunId: ${{ steps.plan.outputs.dryRunId }}
     steps:
       - name: チェックアウト
         uses: actions/checkout@v7
         with:
-          # グループ別タグとの差分を取るため全履歴を取得する
+          # 前回のタグとの差分を取るため全履歴を取得する
           fetch-depth: 0
 
       # 公開した版の変更が「未リリース」のまま残らないようにする（規則は .github/RELEASE.md）。
@@ -87,14 +90,12 @@ jobs:
             throw "CHANGELOG.md に「$($unreleased[0])」が残っています。 見出しを「## <版>（<公開日>）」へ確定してコミットしてください（手順は .github/RELEASE.md）。"
           }
 
-          # 版との一致は警告に留める（グループごとに版が違い、見出しの書き方は 1 つに決まらない）
+          # 版との一致は警告に留める（見出しの書き方は 1 つに決まらない）
           $first = @($lines | Where-Object { $_ -match '^## ' })[0]
           $props = [IO.File]::ReadAllText('Directory.Build.props', [Text.UTF8Encoding]::new($false))
-          $versions = @([regex]::Matches($props, '<EsUtil(_Ui_[A-Za-z0-9]+)?_VersionPrefix>([^<]+)</') | ForEach-Object { $_.Groups[2].Value.Trim() } | Sort-Object -Unique)
-          foreach ($version in $versions) {
-            if (-not $first.Contains($version)) {
-              Write-Host "::warning::CHANGELOG.md の先頭の見出し（$first）に版 $version が含まれていません。"
-            }
+          $version = [regex]::Match($props, '<VersionPrefix>([^<]+)</VersionPrefix>').Groups[1].Value.Trim()
+          if ($version -and -not $first.Contains($version)) {
+            Write-Host "::warning::CHANGELOG.md の先頭の見出し（$first）に版 $version が含まれていません。"
           }
           Write-Host "CHANGELOG の見出し: $first"
 
@@ -118,7 +119,7 @@ jobs:
 
           Write-Host "実行ブランチ: $($env:BRANCH)（mode=$($env:MODE)）"
 
-      - name: 版と対象グループを決める
+      - name: 版とタグを決める
         id: plan
         shell: pwsh
         env:
@@ -130,64 +131,44 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
 
-          $solutions = [ordered]@{
-            'EsUtil'               = 'EsUtil/EsUtil.slnx'
-            'EsUtil.Ui.AvaloniaUI' = 'EsUtil.Ui.AvaloniaUI/EsUtil.Ui.AvaloniaUI.slnx'
-            'EsUtil.Ui.MewUI'      = 'EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx'
-            'EsUtil.Ui.WinUI3'     = 'EsUtil.Ui.WinUI3/EsUtil.Ui.WinUI3.slnx'
-            'EsUtil.Ui.WinForms'   = 'EsUtil.Ui.WinForms/EsUtil.Ui.WinForms.slnx'
-          }
-
+          # 公開する単位（ソリューション）は .github/release-config.json が単一所有する。
+          # 版はすべてのパッケージで 1 つである（所有者は Directory.Build.props。 規則は .github/ビルド設定規約.md §4）。
+          $config = Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json
+          $list = @($config.solutions | ForEach-Object {
+              [ordered]@{ product = [IO.Path]::GetFileNameWithoutExtension($_); solution = $_ }
+            })
           $props = [IO.File]::ReadAllText('Directory.Build.props', [Text.UTF8Encoding]::new($false))
-
-          function Get-Prefix([string]$group) {
-            $key = ($group -replace '\.', '_') + '_VersionPrefix'
-            $m = [regex]::Match($props, ("<{0}>([^<]+)</{0}>" -f [regex]::Escape($key)))
-            if (-not $m.Success) { throw "Directory.Build.props に $key がありません" }
-            return $m.Groups[1].Value.Trim()
-          }
+          $m = [regex]::Match($props, '<VersionPrefix>([^<]+)</VersionPrefix>')
+          if (-not $m.Success) { throw 'Directory.Build.props に VersionPrefix がありません' }
+          $version = $m.Groups[1].Value.Trim()
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "VersionPrefix が 3 桁の数値ではありません: $version" }
 
           # 公開する版にローカル識別子を含めない（取り消せない公開を守る）
-          $groups = [System.Collections.Generic.List[object]]::new()
-          foreach ($group in $solutions.Keys) {
-            $version = Get-Prefix $group
-            if ($version -match '-') { throw "$group の VersionPrefix にローカル識別子が含まれています: $version" }
-
-            if ($env:INPUT_VERSION -and $env:INPUT_VERSION.Trim() -ne $version) {
-              throw "入力 $($env:INPUT_VERSION) が $group の VersionPrefix $version と一致しません（版はコミット済みの値を使います）"
-            }
-
-            # 前回のグループ別タグから変わったかを差分で決める（タグが無ければ初回＝対象）
-            $tag = "$group/v$version"
-            $lastTag = @(git tag --list "$group/v*" --sort=-v:refname) | Select-Object -First 1
-
-            # 同じ版は再リリースできない（公開済みの版は不変）。 **dry-run では止めない**。
-            # 版を上げていないだけの状態でも「それ以外の条件が通る」ことを確認できるようにする
-            # （その確認が dry-run の役目。 公開（release）では失敗させる）。
-            $alreadyReleased = $lastTag -eq $tag
-            if ($alreadyReleased) {
-              if ($env:MODE -ne 'dry-run') {
-                throw "タグ $tag は既に存在します（同じ版を再リリースできません）。版を上げてコミットしてください。"
-              }
-              Write-Host "::warning::$tag は既に存在します。release モードでは失敗します（版を上げてください）。 dry-run のため続行します。"
-            }
-
-            $changed = if ($lastTag) {
-              @(git diff --name-only "$lastTag...$($env:SHA)" -- $group).Count -gt 0
-            }
-            else { $true }
-
-            if ($changed) {
-              $groups.Add([ordered]@{ group = $group; version = $version; tag = $tag; solution = $solutions[$group] })
-            }
-            elseif ($alreadyReleased) {
-              Write-Host "   $group : 版 $version は公開済みで、タグからの変更もありません（対象外）"
-            }
+          if ($version -match '-') { throw "VersionPrefix にローカル識別子が含まれています: $version" }
+          if ($env:INPUT_VERSION -and $env:INPUT_VERSION.Trim() -ne $version) {
+            throw "入力 $($env:INPUT_VERSION) が VersionPrefix $version と一致しません（版はコミット済みの値を使います）"
           }
 
-          if ($groups.Count -eq 0) {
-            Write-Host 'リリースするグループがありません（前回のタグから変更がありません）。'
+          # タグは 1 本（`v<版>`）。 前回のタグからの変更が無ければリリースしない。
+          $tag = "v$version"
+          $lastTag = @(git tag --list 'v*' --sort=-v:refname) | Select-Object -First 1
+
+          # 同じ版は再リリースできない（公開済みの版は不変）。 **dry-run では止めない**。
+          # 版を上げていないだけの状態でも「それ以外の条件が通る」ことを確認できるようにする
+          # （その確認が dry-run の役目。 公開（release）では失敗させる）。
+          # 移行前の版グループ別タグ（`<グループ>/v<版>`）も「公開済み」と見なす（二重に公開しない）。
+          $legacyTag = @(git tag --list "*/v$version") | Select-Object -First 1
+          $alreadyReleased = ($lastTag -eq $tag) -or [bool]$legacyTag
+          if ($alreadyReleased) {
+            $reason = if ($legacyTag) { "タグ $legacyTag（移行前の版グループ別タグ）" } else { "タグ $tag" }
+            if ($env:MODE -ne 'dry-run') {
+              throw "$reason は既に存在します（同じ版を再リリースできません）。版を上げてコミットしてください。"
+            }
+            Write-Host "::warning::$reason は既に存在します。release モードでは失敗します（版を上げてください）。 dry-run のため続行します。"
           }
+
+          $changed = if ($lastTag) { @(git diff --name-only "$lastTag...$($env:SHA)").Count -gt 0 } else { $true }
+          if (-not $changed) { Write-Host "前回のタグ（$lastTag）から変更がありません（リリースしません）。" }
 
           # release は「同じコミットの dry-run が成功している」ことを前提にする。
           # その実行の成果物をそのまま公開する（同じコミットを 2 回 pack しない）。
@@ -205,11 +186,14 @@ jobs:
             Write-Host "dry-run の実行: $dryRunId（成果物を再利用します）"
           }
 
-          $json = $groups | ConvertTo-Json -Compress -AsArray
-          "groups=$json" >> $env:GITHUB_OUTPUT
-          "count=$($groups.Count)" >> $env:GITHUB_OUTPUT
+          $json = $list | ConvertTo-Json -Compress -AsArray
+          $count = if ($changed) { 1 } else { 0 }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "solutions=$json" >> $env:GITHUB_OUTPUT
+          "count=$count" >> $env:GITHUB_OUTPUT
           "dryRunId=$dryRunId" >> $env:GITHUB_OUTPUT
-          Write-Host "対象: $json"
+          Write-Host "版: $version（タグ $tag、対象 $($list.Count) ソリューション、リリース $count）"
 
   # ────────────────────────────────────────────────────────────
   # 2. 配布物の作成（dry-run だけが作る。 release は dry-run の成果物を使う）
@@ -232,18 +216,18 @@ jobs:
             nuget-${{ runner.os }}-
 
       # 版はコミット済みの VersionPrefix を使う（ワークフローで書き換えない）。
-      # グループ（= ソリューション）ごとに pack する。 公開する版にはローカル識別子を付けない。
+      # ソリューションごとに pack する（1 つの版で全パッケージを作る。 ローカル識別子は付けない）。
       - name: パッケージを作成
         shell: pwsh
         env:
-          GROUPS: ${{ needs.verify.outputs.groups }}
+          SOLUTIONS: ${{ needs.verify.outputs.solutions }}
         run: |
           $ErrorActionPreference = 'Stop'
-          foreach ($item in @(ConvertFrom-Json $env:GROUPS)) {
-            $out = Join-Path 'artifacts' ($item.group -replace '\.', '-')
+          foreach ($item in @(ConvertFrom-Json $env:SOLUTIONS)) {
+            $out = Join-Path 'artifacts' ($item.product -replace '\.', '-')
             # lock どおりに復元する（packages.lock.json と Directory.Packages.props の食い違いを NU1004 で検出する）
             & dotnet pack $item.solution -c Release -o $out --nologo -p:RestoreLockedMode=true
-            if ($LASTEXITCODE -ne 0) { throw "pack が失敗しました: $($item.group)" }
+            if ($LASTEXITCODE -ne 0) { throw "pack が失敗しました: $($item.product)" }
           }
           Get-ChildItem -Path 'artifacts' -Recurse -File | ForEach-Object { $_.FullName }
 
@@ -260,7 +244,7 @@ jobs:
   # 2b. SBOM（CycloneDX）を作る（dry-run だけが作る。 release は dry-run の成果物を使う）
   # ────────────────────────────────────────────────────────────
   # **pack と並列に走らせる**（SBOM は配布物を使わない。 直列にすると作成の待ち時間が毎回乗る）。
-  # グループ（= ソリューション）ごとに 1 ファイル作り、そのグループの Release へ添付する。
+  # ソリューションごとに 1 ファイル作り、1 つの Release へまとめて添付する。
   sbom:
     needs: verify
     if: inputs.mode == 'dry-run' && needs.verify.outputs.count != '0'
@@ -282,13 +266,14 @@ jobs:
       - name: SBOM を作成
         shell: pwsh
         env:
-          GROUPS: ${{ needs.verify.outputs.groups }}
+          SOLUTIONS: ${{ needs.verify.outputs.solutions }}
+          VERSION: ${{ needs.verify.outputs.version }}
         run: |
           $ErrorActionPreference = 'Stop'
           # ツールの版は .config/dotnet-tools.json が単一所有する（CI とローカルで同じものを使う）
-          foreach ($item in @(ConvertFrom-Json $env:GROUPS)) {
-            & pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output 'sbom' -Solution $item.solution -Version $item.version -Product $item.group
-            if ($LASTEXITCODE -ne 0) { throw "SBOM の作成に失敗しました（exit $LASTEXITCODE）: $($item.group)" }
+          foreach ($item in @(ConvertFrom-Json $env:SOLUTIONS)) {
+            & pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output 'sbom' -Solution $item.solution -Version $env:VERSION -Product $item.product
+            if ($LASTEXITCODE -ne 0) { throw "SBOM の作成に失敗しました（exit $LASTEXITCODE）: $($item.product)" }
           }
           Get-ChildItem -Path 'sbom' -File | ForEach-Object { $_.Name }
 
@@ -413,25 +398,33 @@ jobs:
         with:
           subject-path: 'assets/**/*.nupkg'
 
-      # グループ別にタグと Release を作る（タグはワークフローだけが作る）
+      # タグは 1 本（`v<版>`）、Release も 1 件（タグはワークフローだけが作る）
       - name: タグと Release を作成
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GROUPS: ${{ needs.verify.outputs.groups }}
+          SOLUTIONS: ${{ needs.verify.outputs.solutions }}
+          VERSION: ${{ needs.verify.outputs.version }}
+          TAG: ${{ needs.verify.outputs.tag }}
           SHA: ${{ github.sha }}
         run: |
           $ErrorActionPreference = 'Stop'
-          foreach ($item in @(ConvertFrom-Json $env:GROUPS)) {
-            # グループ別の Release にする。 「Latest」は共通基盤（EsUtil）の Release だけに付け、
-            # ほかのグループは付けない（Latest は 1 つしか選べず、UI の版が最新に見えると誤解を招く）。
-            $notes = "公開したパッケージ: $($item.group) v$($item.version)"
-            $latest = if ($item.group -eq 'EsUtil') { '--latest' } else { '--latest=false' }
 
-            # そのグループの SBOM を添付する（グループごとに 1 ファイル。 名前は generateSbom.ps1 が決める）
-            $sbom = Join-Path 'assets' "$($item.group).$($item.version).sbom.cdx.json"
-            if (-not (Test-Path -LiteralPath $sbom)) { throw "SBOM がありません: $sbom" }
-            & gh release create $item.tag --target $env:SHA --title "$($item.group) v$($item.version)" --notes $notes $latest $sbom
-            if ($LASTEXITCODE -ne 0) { throw "タグと Release の作成が失敗しました: $($item.tag)" }
-            Write-Host "作成しました: $($item.tag)（添付: $(Split-Path -Leaf $sbom)）"
-          }
+          # 公開したソリューション（製品名）を列挙する。 パッケージ ID は製品名で始まるため、
+          # どの配布物がこの版に含まれるかが分かる。
+          $products = @(ConvertFrom-Json $env:SOLUTIONS | ForEach-Object { $_.product })
+
+          # ソリューションごとの SBOM をすべて添付する（名前は generateSbom.ps1 が決める）
+          $sboms = @(Get-ChildItem -Path 'assets' -File -Filter '*.sbom.cdx.json')
+          if ($sboms.Count -eq 0) { throw 'SBOM がありません（assets/*.sbom.cdx.json）' }
+
+          $notes = @(
+            "公開したパッケージ（すべて v$($env:VERSION)）:"
+            ($products | ForEach-Object { "- $_" })
+            ''
+            "一覧: https://www.nuget.org/profiles/tomokuni"
+          ) -join "`n"
+
+          & gh release create $env:TAG --target $env:SHA --title "v$($env:VERSION)" --notes $notes --latest @($sboms.FullName)
+          if ($LASTEXITCODE -ne 0) { throw "タグと Release の作成が失敗しました: $($env:TAG)" }
+          Write-Host "作成しました: $($env:TAG)（添付: $($sboms.Count) 件）"
