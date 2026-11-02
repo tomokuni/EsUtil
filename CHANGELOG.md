@@ -14,11 +14,12 @@
   - **`ThumbnailPresenter.ResolveDrawPlan` から `isDark` 引数を削除**しました。
   - 濃さは外観が持ちます（`ThumbnailAppearance.HoverHighlightOpacity` = 0.10 / `SelectionHighlightOpacity` = 0.20）。 色の合成は `ThumbnailAppearance.ResolveHighlightArgb(kind, textArgb, accentArgb)` が行います。
   - **移行**: `BackgroundArgb` を設定していた差し替え（`DrawPlanResolver`）は、`Highlight` を設定するか、帯の色を UI 側の外観（`Appearance`）で調整してください。 `HoverBackground*Argb` / `SelectionBackground*Argb` を使っていた場合は、`HoverHighlightOpacity` / `SelectionHighlightOpacity` へ置き換えてください。
+- **Thumbnail の「現在項目」を削除しました**（`CurrentIndex` / `CurrentIndexChanged` / `Add` の `isCurrent` 引数 / `ThumbnailAppearance.BoldCurrentLabel` / `ThumbnailDrawPlan.IsCurrent` / `ThumbnailPresenter.ResolveDrawPlan` の `isCurrent` 引数）。 一覧の中で「画像を表示している項目」という第 2 の状態は、選択（`SelectedIndex`）と紛らわしく、太字の意味も二重でした。 **選択だけが強調の対象**になります（帯と `BoldSelectedLabel` の太字）。 移行: `control.CurrentIndex = i` は削除し、強調したい項目は `SelectedIndex = i` にしてください。
 - **`ThumbnailAppearance.HideShadowWhenSelected` を削除しました**。 選択は帯と太字（`BoldSelectedLabel`）で十分に分かり、影を消すと項目が沈んで見えるためです。 影は選択中も描きます（`ShowShadow` で全体を止められます）。 設定していた場合は行を削除してください（影は選択しても消えなくなります）。
 
 ### 追加
 
-- **`ColorSelector`（AvaloniaUI / MewUI / WinUI 3）の一覧の先頭に UI のテーマの色を並べました**（**テーマ: 背景 / 文字 / 副次テキスト / 枠線 / アクセント / 選択背景**の 6 色を固定の順で）。 値はコアの色名の表ではなく**その UI のテーマから解決**するため、明暗の切替とアクセント色の変更に追随します（`ShowThemeColors` で無効化できます）。
+- **`ColorSelector`（AvaloniaUI / MewUI / WinUI 3）の一覧の先頭に UI のテーマの色をすべて並べました**（共通の 20 色を同じ名前・同じ順で並べ、その UI にしか無い色を後ろへ足します。 AvaloniaUI 26 色 / MewUI 26 色 / WinUI 3 33 色）。 値はコアの色名の表ではなく**その UI のテーマから解決**するため、明暗の切替とアクセント色の変更に追随します（`ShowThemeColors` で無効化できます）。
 - **`ThumbnailAppearance.BoldSelectedLabel` を追加しました**（既定 `true`）。 選択中の項目の名前を太字にします。 帯だけでは選択が弱いテーマがあるため、名前の太さでも示します（`false` で従来どおり帯だけになります）。
 - **ホスト固有の付加情報を描く手段を 4 UI に揃えました**（Marquee）。 MewUI は `MarqueeRenderedEventArgs.DrawText`、WinUI 3 は `MarqueeRenderedEventArgs.AddText` を追加しました（AvaloniaUI は `Context`、WinForms は `Graphics` を従来どおり使えます）。 WinUI 3 だけ操作ガイドを出せなかった非対称を解消します。
 
@@ -37,6 +38,7 @@
 - **MewUI の `ColorSelector` の一覧の表記を他 UI と揃えました**。 テーマの色だけ表示名ではなく保存値（`#FFF7F8FA`）が並んでいました（行の文字に適用値を書いていた。 実測 2026-11-02）。
 - **カーソル座標ラベルを直しました**（Marquee 4 UI）。 位置を受ける前と、ポインターが領域の外にある間（押下中を除く）は描かず、選択の解除（キャンセル）でも原点へ戻りません（`(0, 0)` が左上へ出ていた。 実測 2026-11-02）。
 - **Marquee のサンプルへ操作ガイドを追加しました**（MewUI / WinUI 3）。 描画部の左上へ「ドラッグで範囲を選択してください」/「選択 W x H」を出す表示が AvaloniaUI / WinForms だけにありました（下地の箱は 4 UI で揃えて廃止）。
+- **起動構成を UI 層の階層に分けました**（`.vscode/launch.json`）。 `presentation.group` に UI 層（`AvaloniaUI` / `MewUI` / `WinUI3` / `WinForms`）を、`name` に機能名（`ColorSelector` など）を書き、デバッグの一覧が「UI 層 ▸ 機能」の 2 階層で表示されます（`presentation.order` で機能の並びを 4 UI で同じにしました）。
 - **サンプルのアーキテクチャ固定をやめ、AnyCPU にしました**（`PlatformTarget` = `x64` と WinUI 3 の `RuntimeIdentifier` = `win-x64` を `.csproj` から外しました）。 WinUI 3 の自己完結配置（`WindowsAppSDKSelfContained`）は `-r` を渡したとき（publish）だけ有効になり、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。
 
 ## 0.2.0（2026-10-28）

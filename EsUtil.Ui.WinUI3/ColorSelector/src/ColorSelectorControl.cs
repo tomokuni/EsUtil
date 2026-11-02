@@ -435,13 +435,7 @@ public sealed partial class ColorSelectorControl : Grid
         var items = new List<ColorSelectorItem>();
         if (ShowThemeColors)
         {
-            AddThemeColor(items, "テーマ: 背景", ResolveThemeResource("ApplicationPageBackgroundThemeBrush"));
-            AddThemeColor(items, "テーマ: 文字", ResolveThemeResource("TextFillColorPrimaryBrush") ?? _text.Foreground);
-            AddThemeColor(items, "テーマ: 副次テキスト", ResolveThemeResource("TextFillColorSecondaryBrush"));
-            AddThemeColor(items, "テーマ: 枠線", ResolveThemeResource("ControlStrokeColorDefaultBrush"));
-            AddThemeColor(items, "テーマ: アクセント", ResolveAccentBrush());
-            AddThemeColor(
-                items, "テーマ: 選択背景", ResolveThemeResource("SystemControlHighlightAccentBrush") ?? ResolveAccentBrush());
+            AddThemeColors(items);
         }
 
         foreach (var entry in ColorEntry.GetSorted(_colorSortMode))
@@ -450,6 +444,53 @@ public sealed partial class ColorSelectorControl : Grid
         }
 
         return items;
+    }
+
+    /// <summary>一覧の先頭へ並べるテーマの色を追加する（WinUI 3 のテーマの色をすべて並べる）。</summary>
+    /// <param name="items">追加先。</param>
+    /// <remarks>
+    /// <b>並び順は 3 UI で共通</b>: 意味の対応する色は同じ名前・同じ順にし、その UI にしか無い色を後ろへ足す<br/>
+    /// （UI を替えても同じ名前の色を選べる）。<br/>
+    /// <b>値は開くたびに解決する</b>: 明暗の切替とアクセント色の変更に追随させる。<br/>
+    /// <b>解決できない色は並べない</b>（テーマに無い資源や透過の色を空欄で出さない）。
+    /// </remarks>
+    private void AddThemeColors(List<ColorSelectorItem> items)
+    {
+        // 3 UI で共通の意味を持つ色（同じ名前・同じ順）
+        AddThemeColor(items, "テーマ: 背景", ResolveThemeResource("ApplicationPageBackgroundThemeBrush"));
+        AddThemeColor(items, "テーマ: レイヤー", ResolveThemeResource("LayerFillColorDefaultBrush"));
+        AddThemeColor(items, "テーマ: カード", ResolveThemeResource("CardBackgroundFillColorDefaultBrush"));
+        AddThemeColor(items, "テーマ: コントロールの背景", ResolveThemeResource("ControlFillColorDefaultBrush"));
+        AddThemeColor(items, "テーマ: コントロールの枠線", ResolveThemeResource("ControlStrokeColorDefaultBrush"));
+        AddThemeColor(items, "テーマ: 区切り線", ResolveThemeResource("DividerStrokeColorDefaultBrush"));
+        AddThemeColor(items, "テーマ: 文字", ResolveThemeResource("TextFillColorPrimaryBrush") ?? _text.Foreground);
+        AddThemeColor(items, "テーマ: 副次テキスト", ResolveThemeResource("TextFillColorSecondaryBrush"));
+        AddThemeColor(items, "テーマ: 無効の文字", ResolveThemeResource("TextFillColorDisabledBrush"));
+        AddThemeColor(items, "テーマ: 無効の背景", ResolveThemeResource("ControlFillColorDisabledBrush"));
+        AddThemeColor(items, "テーマ: アクセント", ResolveAccentBrush());
+        AddThemeColor(items, "テーマ: アクセント（淡）", ResolveThemeResource("SystemAccentColorLight1"));
+        AddThemeColor(items, "テーマ: アクセント（濃）", ResolveThemeResource("SystemAccentColorDark1"));
+        AddThemeColor(items, "テーマ: アクセント文字", ResolveThemeResource("AccentTextFillColorPrimaryBrush"));
+        AddThemeColor(items, "テーマ: アクセント上の文字", ResolveThemeResource("TextOnAccentFillColorPrimaryBrush"));
+        AddThemeColor(items, "テーマ: 選択の背景", ResolveThemeResource("SystemControlHighlightAccentBrush"));
+        AddThemeColor(items, "テーマ: ホバーの背景", ResolveThemeResource("SubtleFillColorSecondaryBrush"));
+        AddThemeColor(items, "テーマ: 押下の背景", ResolveThemeResource("ControlFillColorSecondaryBrush"));
+        AddThemeColor(items, "テーマ: フォーカス", ResolveThemeResource("FocusStrokeColorOuterBrush"));
+        AddThemeColor(items, "テーマ: エラー", ResolveThemeResource("SystemFillColorCriticalBrush"));
+
+        // WinUI 3 にしか無い色
+        AddThemeColor(items, "テーマ: 三次テキスト", ResolveThemeResource("TextFillColorTertiaryBrush"));
+        AddThemeColor(items, "テーマ: 成功", ResolveThemeResource("SystemFillColorSuccessBrush"));
+        AddThemeColor(items, "テーマ: 注意", ResolveThemeResource("SystemFillColorCautionBrush"));
+        AddThemeColor(items, "テーマ: 成功の背景", ResolveThemeResource("SystemFillColorSuccessBackgroundBrush"));
+        AddThemeColor(items, "テーマ: 注意の背景", ResolveThemeResource("SystemFillColorCautionBackgroundBrush"));
+        AddThemeColor(items, "テーマ: 危険の背景", ResolveThemeResource("SystemFillColorCriticalBackgroundBrush"));
+        AddThemeColor(items, "テーマ: スモーク", ResolveThemeResource("SmokeFillColorDefaultBrush"));
+        AddThemeColor(items, "テーマ: 強調の枠線", ResolveThemeResource("ControlStrongStrokeColorDefaultBrush"));
+        AddThemeColor(items, "テーマ: サーフェスの枠線", ResolveThemeResource("SurfaceStrokeColorDefaultBrush"));
+        AddThemeColor(items, "テーマ: アクセント（より淡）", ResolveThemeResource("SystemAccentColorLight2"));
+        AddThemeColor(items, "テーマ: アクセント（より濃）", ResolveThemeResource("SystemAccentColorDark2"));
+        AddThemeColor(items, "テーマ: アプリの背景（濃）", ResolveThemeResource("SolidBackgroundFillColorBaseAltBrush"));
     }
 
     /// <summary>テーマの色を一覧へ追加する（解決できない場合は何もしない）。</summary>
@@ -471,7 +512,19 @@ public sealed partial class ColorSelectorControl : Grid
     /// <param name="key">資源のキー。</param>
     /// <returns>ブラシ。 取得できない場合は null。</returns>
     private static Brush? ResolveThemeResource(string key)
-        => Application.Current?.Resources.TryGetValue(key, out var value) == true ? value as Brush : null;
+    {
+        if (Application.Current?.Resources.TryGetValue(key, out var value) != true)
+        {
+            return null;
+        }
+
+        return value switch
+        {
+            Brush brush => brush,
+            Windows.UI.Color color => new SolidColorBrush(color),
+            _ => null,
+        };
+    }
 
     /// <summary>テーマのアクセント色を取得する。</summary>
     /// <returns>アクセント色のブラシ。 取得できない場合は null。</returns>

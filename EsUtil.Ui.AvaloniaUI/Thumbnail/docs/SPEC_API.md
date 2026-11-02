@@ -39,7 +39,6 @@ Avalonia UI 版のサムネイル一覧コントロールが提供する公開 A
 | --- | --- | --- |
 | `ThumbnailControl()` | ctor | 生成 |
 | `SelectionChanged` | event | 選択中の添字が変わったときに発生する |
-| `CurrentIndexChanged` | event | 現在項目（名前を太字で示す項目）の添字が変わったときに発生する |
 | `ItemActivated` | event | 項目が 2 回押されたときに発生する（`ThumbnailActivatedEventArgs`） |
 | `Presentation` | property（get） | 提示層（設定・外観・描画計画の解決）。 派生した提示を使う場合は `Options` / `Appearance` ではなく本プロパティを設定する |
 | `Options` | property | 計算に必要な設定（既定は `ThumbnailOptions.Default`）。 設定すると自動で配置を解き直す |
@@ -47,11 +46,10 @@ Avalonia UI 版のサムネイル一覧コントロールが提供する公開 A
 | `ImageWidth` | property | 画像の幅（DIP）。 **0 以下の指定は既定の下限へ引き上げられる**。 変更すると計測が無効化され、配置を解き直す |
 | `ItemCount` | property（get） | 項目数 |
 | `SelectedIndex` | property | 選択中の添字。 範囲外と -1 は選択の解除 |
-| `CurrentIndex` | property | 現在項目（名前を太字で示す項目）の添字。 選択とは別の状態（範囲外と -1 は「現在項目なし」） |
 | `VisibleRange` | property（get） | ビューポートと交差する項目の範囲。 項目が無い場合は空 |
 | `SlotBounds(int index)` | method | 項目の枠線の矩形（内容の座標）。 範囲外は `EsRect.Empty` |
 | `ClearItems()` | method | 一覧を空にする |
-| `Add(IImage? image, string caption, string? toolTip = null, bool isCurrent = false, object? tag = null)` | method | サムネイルを 1 件追加し、追加した添字を返す |
+| `Add(IImage? image, string caption, string? toolTip = null, object? tag = null)` | method | サムネイルを 1 件追加し、追加した添字を返す |
 | `SetImage(int index, IImage? image)` | method | 項目の画像を差し替える（null は画像を消す）。 範囲外は何もしない |
 | `SetCaption(int index, string caption)` | method | 項目の名前を差し替える |
 | `ScrollToIndex(int index)` | method | 項目を表示領域へスクロールする |

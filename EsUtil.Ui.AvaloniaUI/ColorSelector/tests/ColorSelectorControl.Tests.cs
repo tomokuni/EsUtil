@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Themes.Fluent;
 using EsUtil.Platform.Core.Palette;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -43,7 +44,9 @@ public class ColorSelectorControlTests
     /// <summary>テーマの色の並び順が決まっていることを検証する。</summary>
     /// <remarks>
     /// 並べる順序は 3 UI で共通である（同じ機能の一覧は UI 層が違っても同じ順に並べる）。<br/>
-    /// 解決できない色（地色・枠線など）は並ばないため、並んだ項目だけで順序を確かめる。
+    /// 解決できない色は並ばないため、並んだ項目だけで順序を確かめる。 ヘッドレス テストはテーマ
+    /// （Fluent テーマ）を読み込まないため資源の大半は解決できず、実際にすべての色が並ぶことは
+    /// サンプル アプリの実行で確かめる（実測 2026-11-02: 26 色）。
     /// </remarks>
     [AvaloniaFact]
     internal void テーマの色は決まった順に並ぶ()
@@ -55,8 +58,33 @@ public class ColorSelectorControlTests
             .Where(label => label.StartsWith("テーマ:", StringComparison.Ordinal))
             .ToArray();
 
-        string[] expected = ["テーマ: 背景", "テーマ: 文字", "テーマ: 副次テキスト", "テーマ: 枠線", "テーマ: アクセント", "テーマ: 選択背景"];
-        Assert.Equal(expected.Where(labels.Contains), labels);
+        string[] expected =
+        [
+            "テーマ: 背景",
+            "テーマ: レイヤー",
+            "テーマ: カード",
+            "テーマ: コントロールの背景",
+            "テーマ: コントロールの枠線",
+            "テーマ: 区切り線",
+            "テーマ: 文字",
+            "テーマ: 副次テキスト",
+            "テーマ: 無効の文字",
+            "テーマ: 無効の背景",
+            "テーマ: アクセント",
+            "テーマ: アクセント（淡）",
+            "テーマ: アクセント（濃）",
+            "テーマ: アクセント文字",
+            "テーマ: アクセント上の文字",
+            "テーマ: 選択の背景",
+            "テーマ: ホバーの背景",
+            "テーマ: 押下の背景",
+            "テーマ: フォーカス",
+            "テーマ: エラー",
+        ];
+
+        // 3 UI で共通の意味を持つ色は同じ順に並ぶ（解決できない色は飛ばす）
+        Assert.Equal(expected.Where(labels.Contains), labels.Take(expected.Length));
+
     }
 
     /// <summary>テーマの色を並べない設定にできることを検証する。</summary>
@@ -71,6 +99,31 @@ public class ColorSelectorControlTests
 
         Assert.DoesNotContain(items, item => item.Label.StartsWith("テーマ:", StringComparison.Ordinal));
         Assert.Contains(items, item => item.Label == item.Value && item.Value == "Red");
+    }
+
+    /// <summary>テーマを読み込んだウィンドウへ置くと、テーマの色がすべて解決されることを検証する。</summary>
+    /// <remarks>
+    /// ヘッドレスのテスト アプリはテーマを読み込まないため、資源の大半は解決できない（並ばない）。<br/>
+    /// 実際のアプリと同じ条件（Fluent テーマを読み込んだウィンドウの下）で、共通の色がすべて並ぶことを確かめる。<br/>
+    /// 3 UI で共通の意味を持つ色は同じ名前で並ぶため、この一覧が 3 UI の下限になる。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void テーマを読み込むと共通の色がすべて並ぶ()
+    {
+        var control = CreateControl();
+        var window = new Window { Content = control };
+        window.Styles.Add(new FluentTheme());
+
+        var labels = control.CreateItems()
+            .Select(item => item.Label)
+            .Where(label => label.StartsWith("テーマ:", StringComparison.Ordinal))
+            .ToArray();
+
+        // 3 UI で共通の意味を持つ 20 色（ヘッドレスでも地色は解決できないため 19 色以上）
+        Assert.True(labels.Length >= 19, $"{labels.Length} 色しか並んでいない: {string.Join(", ", labels)}");
+        Assert.All(
+            control.CreateItems().Where(item => item.Label.StartsWith("テーマ:", StringComparison.Ordinal)),
+            item => Assert.Matches("^#[0-9A-F]{8}$", item.Value));
     }
 
     /// <summary>テスト用の <see cref="ColorSelectorControl"/> を生成する。</summary>

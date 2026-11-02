@@ -20,7 +20,7 @@
 - `ThumbnailControl`（`EsUtil.Ui.AvaloniaUI.Thumbnail`）を実際に配置して動作を確認できます。
 - テスト画像を生成して一覧へ追加します（外部ファイルを必要としません）。
 - 画像は**コアの型（`EsBitmap`）**で作り、コントロールが受け取る型へ変換して渡します。
-- 折り返し配置・可視範囲・選択・現在項目の強調・表示テーマ（ライト / ダーク）・末尾へのスクロールを確認できます。
+- 折り返し配置・可視範囲・選択の強調（帯と太字）・表示テーマ（ライト / ダーク）・末尾へのスクロールを確認できます。
 
 ## 2. 実行方法
 
@@ -88,7 +88,7 @@ EsUtil.Ui.AvaloniaUI/Thumbnail/sample/
 
 1. **起動**: 12 件のサムネイルが折り返して並びます。
 2. **画像の用意**: 画像は `EsUtil.Ui.AvaloniaUI/Thumbnail/sample/Imaging/TestImageFactory.cs` がコアの `EsBitmap` として生成します。 コントロールは Avalonia の画像型（`IImage`）を受け取るため、`EsUtil.Ui.AvaloniaUI.Interop.Imaging` の `EsBitmapAdapter.Adopt` で写しています。
-3. **項目の追加**: `Add(画像, 名前, ツールチップ, isCurrent, tag)` で追加します。 生成に時間がかかる場合は、先に `null` で追加しておき、生成後に `SetImage(添字, 画像)` で差し替えます。
+3. **項目の追加**: `Add(画像, 名前, ツールチップ, tag)` で追加します。 生成に時間がかかる場合は、先に `null` で追加しておき、生成後に `SetImage(添字, 画像)` で差し替えます。
 4. **見えている項目だけを作る**: `VisibleRange`（可視範囲）と `SlotBounds(添字)`（項目の矩形）を使うと、可視範囲の画像だけを遅延生成できます。
 5. **外観**: `Options` / `Appearance` / `ImageWidth` は設定すると自動で反映されます（`IsDarkTheme` だけは `Refresh()` を呼びます）。
 

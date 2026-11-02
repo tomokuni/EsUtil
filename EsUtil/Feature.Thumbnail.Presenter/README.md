@@ -33,7 +33,7 @@ var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default w
 
 var layout = presenter.ResolveLayout(availableWidth, imageWidth, imageHeights);
 var plan = presenter.ResolveDrawPlan(
-    layout, index, caption, isCurrent, selectedIndex, hoveredIndex, measureText);
+    layout, index, caption, selectedIndex, hoveredIndex, measureText);
 
 foreach (var layer in plan.Layers)
 {
@@ -62,10 +62,10 @@ sealed class OutlineOnlyPresenter(ThumbnailOptions? options = null)
     : ThumbnailPresenter(options, ThumbnailAppearance.Default)
 {
     public override ThumbnailDrawPlan ResolveDrawPlan(
-        ThumbnailLayoutResult layout, int index, string text, bool isCurrent,
+        ThumbnailLayoutResult layout, int index, string text,
         int selectedIndex, int hoveredIndex)
     {
-        var plan = base.ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex);
+        var plan = base.ResolveDrawPlan(layout, index, text, selectedIndex, hoveredIndex);
 
         // 影を外し、背景と画像と名前だけを描く計画へ差し替える
         return plan with { Shadow = null, Layers = [ThumbnailDrawLayer.Background, ThumbnailDrawLayer.Image, ThumbnailDrawLayer.Label] };

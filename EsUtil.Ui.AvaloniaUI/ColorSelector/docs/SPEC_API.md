@@ -146,7 +146,7 @@ if (colorPicker.HasValidationError)
 | プロパティ | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
 | `ColorSortMode` | `ColorSortMode` | `ByHue` | 一覧の色の並び順（`ByHue` / `ByName`） |
-| `ShowThemeColors` | `bool` | `true`（取得または設定） | 一覧の先頭に UI のテーマの色（**テーマ: 背景 / 文字 / 副次テキスト / 枠線 / アクセント / 選択背景**の 6 色を固定の順で）を並べる。 値は一覧を開くたびにテーマから解決する（明暗の切替・アクセント色の変更に追随） |
+| `ShowThemeColors` | `bool` | `true`（取得または設定） | 一覧の先頭に **UI のテーマの色をすべて**並べる（共通の 20 色を「テーマ: 背景 / レイヤー / カード / コントロールの背景 / コントロールの枠線 / 区切り線 / 文字 / 副次テキスト / 無効の文字 / 無効の背景 / アクセント / アクセント（淡）/ アクセント（濃）/ アクセント文字 / アクセント上の文字 / 選択の背景 / ホバーの背景 / 押下の背景 / フォーカス / エラー」の順に並べ、その UI にしか無い色（三次テキスト・成功・注意・スクロール バーなど）を後ろへ足す）。 値は一覧を開くたびにテーマから解決する（明暗の切替・アクセント色の変更に追随） |
 | `TextFormat` | `ColorTextFormat` | `NameWithAlpha` | 入力欄の表記（`NameWithAlpha` = 色名+不透明度 / `HexCode` = `#AARRGGBB`） |
 | `HighlightBorderOnError` | `bool` | `false` | バリデーション失敗時に外周の枠線を赤くするか |
 | `Log` | `ILogger` | `NullLogger` | 内部ロガー（null 設定時は `NullLogger` へフォールバック）。 診断ログの出力先 |

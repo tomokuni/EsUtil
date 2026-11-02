@@ -56,7 +56,7 @@
 | `Appearance` | property | 外観。 null を設定すると `ThumbnailAppearance.Default` になる |
 | `ResolveLayout(double availableWidth, double imageWidth, ReadOnlySpan<double> imageHeights)` | method | 配置を解決する（外観から求めた寸法を `ThumbnailLayout.Resolve` へ渡す） |
 | `ResolveMetrics()` | method | 外観から決まる寸法（影の余白 `ThumbnailMetrics.SlotInset`・名前の行の高さ `ThumbnailMetrics.LabelHeight`）を求める。 名前の行の高さは**2 行ぶん + 上下の余白**であり、影を描かない外観では `SlotInset` は 0 になる |
-| `ResolveDrawPlan(ThumbnailLayoutResult layout, int index, string text, bool isCurrent, int selectedIndex, int hoveredIndex, ThumbnailTextMeasure? measureText = null)` | virtual method | 1 件分の描画計画を解決する。 `measureText` は名前を折り返した実寸を測る関数（null は文字数からの見積もり）。 **添字が範囲外の場合は空の計画** |
+| `ResolveDrawPlan(ThumbnailLayoutResult layout, int index, string text, int selectedIndex, int hoveredIndex, ThumbnailTextMeasure? measureText = null)` | virtual method | 1 件分の描画計画を解決する。 `measureText` は名前を折り返した実寸を測る関数（null は文字数からの見積もり）。 **添字が範囲外の場合は空の計画** |
 | `ImageHeight(double width, int pixelWidth, int pixelHeight)` | static method | 縦横比を保つ画像の高さ（コアの `ThumbnailLayout.ImageHeight` へ委譲） |
 | `Log` | property | ログの出力先（null は `NullLogger`）。 設定・外観の変更を本クラスが記録する。 初回の設定時に生成を 1 度だけ記録する |
 | `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す） |
@@ -65,7 +65,7 @@
 
 - 強調 … 選択中かつ `ShowSelectionBackground` なら `ThumbnailHighlightKind.Selected`、そうでなくホバー中かつ `ShowHoverBackground` なら `Hover`、それ以外は `None`。 **選択はホバーより優先**します。 **色は決めません**（帯の色は UI のテーマが決め、UI が `ThumbnailAppearance.ResolveHighlightArgb` へ文字色とアクセント色を渡します）。
 - 影 … `ShowShadow` が false なら `null`、それ以外は `Appearance.Shadow`（強調中も消さない）。
-- 名前 … `Label` の矩形と `LabelFontSize`。 **現在表示中の項目かつ `BoldCurrentLabel`、または選択中の項目かつ `BoldSelectedLabel` なら太字**。 強調中は `HighlightedLabelArgb`（0 の場合は UI の標準色）。 **文言は幅と高さ（左右・上下の余白を除いた値）に収まるように `ThumbnailLabelText.Fit` が決め、収まらなければ拡張子を残して省略する**（太字は太字で測る）。
+- 名前 … `Label` の矩形と `LabelFontSize`。 **選択中の項目かつ `BoldSelectedLabel` なら太字**。 強調中は `HighlightedLabelArgb`（0 の場合は UI の標準色）。 **文言は幅と高さ（左右・上下の余白を除いた値）に収まるように `ThumbnailLabelText.Fit` が決め、収まらなければ拡張子を残して省略する**（太字は太字で測る）。
 - 層 … 背景と影の有無で 4 通りの並びから選ぶ（§2.6）。
 
 `ResolveDrawPlan` は `ArgumentNullException` を送出します（`layout` が null の場合）。
@@ -78,7 +78,6 @@
 | --- | --- | --- | --- |
 | `LabelFontSize` | `double` | 11 | 0 以下は既定値。 文字サイズ（DIP） |
 | `LabelVerticalPadding` | `double` | 1 | 負の値は 0。 名前の行の上下の余白（DIP）。 名前の行の高さは本値を含むため、増やしても文字を置ける高さ（2 行ぶん）は変わらない |
-| `BoldCurrentLabel` | `bool` | `true` | 現在表示中の画像（`CurrentIndex`）の名前を太字にする |
 | `BoldSelectedLabel` | `bool` | `true` | 選択中の項目（`SelectedIndex`）の名前を太字にする（帯だけでは選択が弱いテーマがあるため） |
 | `HoverHighlightOpacity` | `double` | `0.10` | 0〜1 へ補正。 ホバーの帯の不透明度（色は UI のテーマの文字色） |
 | `SelectionHighlightOpacity` | `double` | `0.20` | 0〜1 へ補正。 選択の帯の不透明度（色は UI のテーマのアクセント色） |
@@ -109,7 +108,6 @@
 | `Shadow` | `IThumbnailShadowPlan?` | 影の計画（null は描かない） |
 | `IsHovered` | `bool` | ホバー中かどうか |
 | `IsSelected` | `bool` | 選択中かどうか |
-| `IsCurrent` | `bool` | 現在表示中の画像かどうか |
 | `IsHighlighted`（導出） | `bool` | `IsHovered ‖ IsSelected` |
 
 - **UI は計画のとおりに描きます**（どの矩形へ何をどの順で描くかは計画が単一所有します）。
@@ -191,7 +189,7 @@ presenter.Appearance = presenter.Appearance with { Shadow = null };
 
 var layout = presenter.ResolveLayout(availableWidth, imageWidth, heights);
 var plan = presenter.ResolveDrawPlan(
-    layout, index: 3, text: "capture-0003.png", isCurrent: true,
+    layout, index: 3, text: "capture-0003.png",
     selectedIndex: 3, hoveredIndex: 1);
 
 // 層の順に描く（描画 API の呼び出しは UI が持つ）

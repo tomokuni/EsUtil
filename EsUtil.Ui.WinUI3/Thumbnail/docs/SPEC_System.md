@@ -121,14 +121,13 @@ classDiagram
         +VisibleRange ThumbnailRange
         +SlotBounds(index) EsRect
         +ClearItems()
-        +Add(image, caption, toolTip, isCurrent, tag) int
+        +Add(image, caption, toolTip, tag) int
         +SetImage(index, image)
         +SetCaption(index, caption)
         +ScrollToIndex(index)
         +Refresh()
     }
     class ThumbnailTile {
-        +IsCurrent bool
         +Caption string
         +Source EsReadOnlyBitmap
         +SetImage(image)

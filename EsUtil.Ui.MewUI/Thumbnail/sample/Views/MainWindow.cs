@@ -10,7 +10,7 @@ namespace EsUtil.Ui.MewUI.Thumbnail.Sample.Views;
 
 /// <summary>サムネイル一覧の動作確認ウィンドウ。</summary>
 /// <remarks>
-/// <b>確認できること</b>: 折り返し配置・可視範囲・選択・現在項目の強調・暗色テーマ・末尾へのスクロール。<br/>
+/// <b>確認できること</b>: 折り返し配置・可視範囲・選択の強調（帯と太字）・暗色テーマ・末尾へのスクロール。<br/>
 /// 画像は <see cref="TestImageFactory"/> が生成する（外部ファイルを必要としない）。<br/>
 /// <b>配置</b>: サンプル共通の <see cref="SampleShell"/>（左: 設定 / 右上: 一覧 / 右下: ログ）を使う。
 /// </remarks>
@@ -42,33 +42,21 @@ internal static class MainWindow
             LogPrefix = "[Thumbnail]",
         };
 
-        // 選択と現在項目は利用者の操作でコントロール側が変えるため、設定パネルの表示を追随させる
+        // 選択は利用者の操作でコントロール側が変えるため、設定パネルの表示を追随させる
         var selectionRow = SampleSettings.NumberRow(
             "選択インデックス", -1, -1, 10000, 1, true, value => thumbnails.SelectedIndex = (int)value);
-        var currentRow = SampleSettings.NumberRow(
-            "現在インデックス", -1, -1, 10000, 1, true, value => thumbnails.CurrentIndex = (int)value);
 
         thumbnails.SelectionChanged += (_, _) =>
         {
             selectionRow.SetValue(thumbnails.SelectedIndex);
-
-            // クリックした項目を「現在項目」にする（現在項目のラベルが太字になる。 ブラウザでいえば開いている項目）
-            thumbnails.CurrentIndex = thumbnails.SelectedIndex;
             status.Text = $"選択: {thumbnails.SelectedIndex}（{thumbnails.ItemCount} 件中）";
         };
-        thumbnails.CurrentIndexChanged += (_, _) => currentRow.SetValue(thumbnails.CurrentIndex);
-        thumbnails.ItemActivated += (_, e) =>
-        {
-            // 2 回押しで開いた項目を現在項目にする（現在項目のラベルが太字になる）
-            thumbnails.CurrentIndex = e.Index;
-            status.Text = $"確定: {e.Index}";
-        };
+        thumbnails.ItemActivated += (_, e) => status.Text = $"確定: {e.Index}";
 
         // プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通）
         var properties = new StackPanel().Vertical().Spacing(6).Children(
             SampleSettings.Number("画像の幅", 160, 40, 400, 10, true, value => thumbnails.ImageWidth = value),
             selectionRow.Element,
-            currentRow.Element,
             SampleSettings.Slider("行間", 8, 0, 32, 1, true, value => thumbnails.Options = thumbnails.Options with { RowSpace = value }),
             SampleSettings.Slider("列間", 8, 0, 32, 1, true, value => thumbnails.Options = thumbnails.Options with { ColumnSpace = value }),
             SampleSettings.Slider("内容の余白", 2, 0, 24, 1, true, value => thumbnails.Options = thumbnails.Options with { ContentPadding = value }),
@@ -77,7 +65,6 @@ internal static class MainWindow
             SampleSettings.Slider("最大の列数", 0, 0, 16, 1, true, value => thumbnails.Options = thumbnails.Options with { MaximumColumns = (int)value }),
             SampleSettings.Slider("ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { LabelFontSize = value })),
             SampleSettings.Slider("ラベルの上下の余白", 1, 0, 16, 1, true, value => Apply(appearance with { LabelVerticalPadding = value })),
-            SampleSettings.Check("現在項目（表示中の画像）のラベルを太字にする", true, value => Apply(appearance with { BoldCurrentLabel = value })),
             SampleSettings.Check("選択項目（クリックした項目）のラベルを太字にする", true, value => Apply(appearance with { BoldSelectedLabel = value })),
             SampleSettings.Check("ホバーの背景を表示", true, value => Apply(appearance with { ShowHoverBackground = value })),
             SampleSettings.Check("選択の背景を表示", true, value => Apply(appearance with { ShowSelectionBackground = value })),
@@ -100,7 +87,6 @@ internal static class MainWindow
                     }
 
                     thumbnails.SelectedIndex = 0;
-                    thumbnails.CurrentIndex = 0;
                 }
         ),
                 ("末尾へスクロール", () => thumbnails.ScrollToIndex(thumbnails.ItemCount - 1))));
@@ -117,7 +103,6 @@ internal static class MainWindow
         }
 
         thumbnails.SelectedIndex = 0;
-        thumbnails.CurrentIndex = 0;
 
         var window = SampleShell.Create(
             "ThumbnailControl サンプル（MewUI）",
@@ -149,8 +134,7 @@ internal static class MainWindow
         thumbnails.Add(
             EsReadOnlyBitmap.FromBitmap(image),
             $"capture-{s_count:D4}.png",
-            $"生成した画像 {s_count}",
-            isCurrent: false);
+            $"生成した画像 {s_count}");
 
         s_count++;
         status.Text = $"{s_count} 件を表示しています。";

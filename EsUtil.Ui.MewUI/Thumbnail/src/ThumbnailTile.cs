@@ -43,11 +43,9 @@ internal sealed class ThumbnailTile : Panel
     /// <param name="caption">表示する名前。</param>
     /// <param name="toolTip">ツールヒント。 null または空の場合は表示しない。</param>
     /// <param name="tag">項目へ付ける任意の値。</param>
-    /// <param name="isCurrent">現在表示中の画像かどうか。</param>
-    public ThumbnailTile(EsReadOnlyBitmap? image, string caption, string? toolTip, object? tag, bool isCurrent)
+    public ThumbnailTile(EsReadOnlyBitmap? image, string caption, string? toolTip, object? tag)
     {
         Tag = tag;
-        IsCurrent = isCurrent;
         Caption = caption;
 
         Add(_viewport);
@@ -62,14 +60,6 @@ internal sealed class ThumbnailTile : Panel
         SetImage(image);
         SetCaption(caption);
     }
-
-    /// <summary>現在表示中の画像かどうかを取得する。</summary>
-    /// <remarks>一覧の <c>CurrentIndex</c> が変更したときに切り替える（作成後は一覧だけが変更できる）。</remarks>
-    public bool IsCurrent { get; private set; }
-
-    /// <summary>現在表示中の画像かどうかを設定する。</summary>
-    /// <param name="value">現在表示中の画像の場合は true。</param>
-    internal void SetIsCurrent(bool value) => IsCurrent = value;
 
     /// <summary>実際に表示している名前（描画計画の文言）を取得する。</summary>
     /// <value>2 行に収まらない名前は省略済みの文言。</value>

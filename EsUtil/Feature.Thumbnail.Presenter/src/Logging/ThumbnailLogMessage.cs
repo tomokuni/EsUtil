@@ -150,8 +150,6 @@ internal static partial class ThumbnailLogMessage
         logger.LogSettingChanged(
             nameof(ThumbnailAppearance.LabelVerticalPadding), oldValue.LabelVerticalPadding, newValue.LabelVerticalPadding);
         logger.LogSettingChanged(
-            nameof(ThumbnailAppearance.BoldCurrentLabel), oldValue.BoldCurrentLabel, newValue.BoldCurrentLabel);
-        logger.LogSettingChanged(
             nameof(ThumbnailAppearance.BoldSelectedLabel), oldValue.BoldSelectedLabel, newValue.BoldSelectedLabel);
         logger.LogSettingChanged(
             nameof(ThumbnailAppearance.HoverHighlightOpacity),

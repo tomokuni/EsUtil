@@ -454,13 +454,7 @@ public sealed partial class ColorSelectorControl : UserControl
         var items = new List<ColorSelectorItem>();
         if (ShowThemeColors)
         {
-            AddThemeColor(items, "テーマ: 背景", TopLevel.GetTopLevel(this)?.Background);
-            AddThemeColor(items, "テーマ: 文字", ResolveThemeBrush("SystemControlForegroundBaseHighBrush") ?? Foreground);
-            AddThemeColor(items, "テーマ: 副次テキスト", ResolveThemeBrush("SystemControlForegroundBaseMediumBrush"));
-            AddThemeColor(items, "テーマ: 枠線", ResolveThemeBrush("SystemControlForegroundBaseLowBrush"));
-            AddThemeColor(items, "テーマ: アクセント", ResolveAccentBrush());
-            AddThemeColor(
-                items, "テーマ: 選択背景", ResolveThemeBrush("SystemControlHighlightAccentBrush") ?? ResolveAccentBrush());
+            AddThemeColors(items);
         }
 
         foreach (var entry in ColorEntry.GetSorted(ColorSortMode))
@@ -469,6 +463,50 @@ public sealed partial class ColorSelectorControl : UserControl
         }
 
         return items;
+    }
+
+    /// <summary>一覧の先頭へ並べるテーマの色を追加する（AvaloniaUI のテーマの色をすべて並べる）。</summary>
+    /// <param name="items">追加先。</param>
+    /// <remarks>
+    /// <b>並び順は 3 UI で共通</b>: 意味の対応する色は同じ名前・同じ順にし、その UI にしか無い色を後ろへ足す<br/>
+    /// （UI を替えても同じ名前の色を選べる）。<br/>
+    /// <b>値は開くたびに解決する</b>: 明暗の切替とアクセント色の変更に追随させる（資源はテーマごとに値が変わる）。<br/>
+    /// <b>解決できない色は並べない</b>: Fluent テーマに無い資源や透過の色を空欄で出さない。
+    /// </remarks>
+    private void AddThemeColors(List<ColorSelectorItem> items)
+    {
+        // 3 UI で共通の意味を持つ色（同じ名前・同じ順）
+        AddThemeColor(items, "テーマ: 背景", TopLevel.GetTopLevel(this)?.Background);
+        AddThemeColor(items, "テーマ: レイヤー", ResolveThemeBrush("SystemControlBackgroundAltHighBrush"));
+        AddThemeColor(items, "テーマ: カード", ResolveThemeBrush("SystemControlBackgroundChromeMediumLowBrush"));
+        AddThemeColor(items, "テーマ: コントロールの背景", ResolveThemeBrush("TextControlBackground"));
+        AddThemeColor(items, "テーマ: コントロールの枠線", ResolveThemeBrush("TextControlBorderBrush"));
+        AddThemeColor(items, "テーマ: 区切り線", ResolveThemeBrush("SystemControlForegroundBaseLowBrush"));
+        AddThemeColor(
+            items, "テーマ: 文字", ResolveThemeBrush("SystemControlForegroundBaseHighBrush") ?? Foreground);
+        AddThemeColor(items, "テーマ: 副次テキスト", ResolveThemeBrush("SystemControlForegroundBaseMediumBrush"));
+        AddThemeColor(items, "テーマ: 無効の文字", ResolveThemeBrush("SystemControlDisabledBaseMediumLowBrush"));
+        AddThemeColor(items, "テーマ: 無効の背景", ResolveThemeBrush("SystemControlBackgroundBaseLowBrush"));
+        AddThemeColor(items, "テーマ: アクセント", ResolveAccentBrush());
+        AddThemeColor(items, "テーマ: アクセント（淡）", ResolveThemeBrush("SystemAccentColorLight1"));
+        AddThemeColor(items, "テーマ: アクセント（濃）", ResolveThemeBrush("SystemAccentColorDark1"));
+        AddThemeColor(items, "テーマ: アクセント文字", ResolveThemeBrush("SystemControlForegroundAccentBrush"));
+        AddThemeColor(items, "テーマ: アクセント上の文字", ResolveThemeBrush("SystemControlForegroundChromeWhiteBrush"));
+        AddThemeColor(items, "テーマ: 選択の背景", ResolveThemeBrush("SystemControlHighlightListAccentLowBrush"));
+        AddThemeColor(items, "テーマ: ホバーの背景", ResolveThemeBrush("SystemControlBackgroundListLowBrush"));
+        AddThemeColor(items, "テーマ: 押下の背景", ResolveThemeBrush("SystemControlBackgroundListMediumBrush"));
+        AddThemeColor(items, "テーマ: フォーカス", ResolveThemeBrush("TextControlBorderBrushFocused"));
+        AddThemeColor(items, "テーマ: エラー", ResolveThemeBrush("SystemControlErrorTextForegroundBrush"));
+
+        // AvaloniaUI にしか無い色
+        AddThemeColor(items, "テーマ: 三次テキスト", ResolveThemeBrush("SystemControlForegroundBaseMediumLowBrush"));
+        AddThemeColor(items, "テーマ: アクセント（より淡）", ResolveThemeBrush("SystemAccentColorLight2"));
+        AddThemeColor(items, "テーマ: アクセント（より濃）", ResolveThemeBrush("SystemAccentColorDark2"));
+        AddThemeColor(items, "テーマ: リンク", ResolveThemeBrush("SystemControlHyperlinkTextBrush"));
+        AddThemeColor(items, "テーマ: 領域", ResolveThemeBrush("SystemRegionBrush"));
+        AddThemeColor(items, "テーマ: グレーの文字", ResolveThemeBrush("SystemControlForegroundChromeGrayBrush"));
+        AddThemeColor(items, "テーマ: 入力中の背景", ResolveThemeBrush("TextControlBackgroundPointerOver"));
+        AddThemeColor(items, "テーマ: 枠線（ホバー）", ResolveThemeBrush("TextControlBorderBrushPointerOver"));
     }
 
     /// <summary>テーマの色を一覧へ追加する（解決できない場合は何もしない）。</summary>
@@ -495,7 +533,14 @@ public sealed partial class ColorSelectorControl : UserControl
     /// （一覧を開くたびに解決するので、テーマを切り替えたあとの一覧は新しい値になる）。
     /// </remarks>
     private IBrush? ResolveThemeBrush(string key)
-        => this.TryFindResource(key, out var value) ? value as IBrush : null;
+        => this.TryFindResource(key, out var value)
+            ? value switch
+            {
+                IBrush brush => brush,
+                Color color => new SolidColorBrush(color),
+                _ => null,
+            }
+            : null;
 
     /// <summary>テーマのアクセント色を取得する。</summary>
     /// <returns>アクセント色のブラシ。 取得できない場合は null。</returns>

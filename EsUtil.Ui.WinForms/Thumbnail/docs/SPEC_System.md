@@ -116,7 +116,7 @@ classDiagram
         +VisibleRange ThumbnailRange
         +ItemBounds(index) Rectangle
         +ClearItems()
-        +Add(image, caption, toolTip, isCurrent, tag) int
+        +Add(image, caption, toolTip, tag) int
         +SetImage(index, image)
         +SetCaption(index, caption)
         +ScrollToIndex(index)
@@ -126,7 +126,6 @@ classDiagram
         +Image Bitmap
         +Caption string
         +ToolTip string
-        +IsCurrent bool
         +Tag object
         +ImageHeight double
         +UpdateHeight(imageWidth)

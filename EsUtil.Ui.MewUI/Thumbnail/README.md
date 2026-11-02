@@ -49,7 +49,7 @@
 
 - 折り返し配置（幅に応じて列数が変わる）とスクロール（`ScrollChanged` で通知）
 - 項目の追加（`Add`）・画像の差し替え（`SetImage`）・名前の変更（`SetCaption`）・全消去（`ClearItems`）
-- ホバー帯・選択・現在項目の強調（明暗はフレームワークのテーマ（`Application.Current.Theme`）から自動で読む）
+- ホバー帯・選択の強調（明暗はフレームワークのテーマ（`Application.Current.Theme`）から自動で読む）
 - 1 回押しの選択（`SelectionChanged`）と 2 回押しの通知（`ItemActivated`）
 - 可視範囲（`VisibleRange`）と項目の矩形（`SlotBounds`）の公開（見えている項目だけを先に作れる）
 - 末尾へのスクロール（`ScrollToIndex`）

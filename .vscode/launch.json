@@ -1,5 +1,7 @@
 {
-    // サンプル アプリ（各 UI 層の `sample/`）の起動構成。 18 件を UI 層ごとに並べる。
+    // サンプル アプリ（各 UI 層の `sample/`）の起動構成。 18 件を UI 層で**階層に分ける**
+    // （`presentation.group` が UI 層、`name` は機能名。 一覧は「UI 層 ▸ 機能」の 2 階層で表示される）。
+    // 同じ機能は UI 層が違っても同じ名前で並ぶ（`ColorSelector` / `ColumnPacking` / `Loupe` / `Marquee` / `Thumbnail`）。
     // **デバッグ実行**で起動する（`noDebug: false`。 ブレークポイント・ステップ実行が効く）。
     // 種別は coreclr を使う（`dotnet` は不可）。 `dotnet` は読み込み済みソリューションのプロジェクトしか
     // 解決できず、`dotnet.defaultSolution` は共通基盤だけの EsUtil.slnx を指すため、UI 層のサンプルは
@@ -15,7 +17,8 @@
     "configurations": [
         // AvaloniaUI
         {
-            "name": "AvaloniaUI / ColorSelector",
+            "name": "ColorSelector",
+            "presentation": { "group": "AvaloniaUI", "order": 1 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -26,7 +29,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColorSelector/sample"
         },
         {
-            "name": "AvaloniaUI / ColumnPacking",
+            "name": "ColumnPacking",
+            "presentation": { "group": "AvaloniaUI", "order": 2 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -37,7 +41,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColumnPacking/sample"
         },
         {
-            "name": "AvaloniaUI / Loupe",
+            "name": "Loupe",
+            "presentation": { "group": "AvaloniaUI", "order": 3 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -48,7 +53,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/Loupe/sample"
         },
         {
-            "name": "AvaloniaUI / Marquee",
+            "name": "Marquee",
+            "presentation": { "group": "AvaloniaUI", "order": 4 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -59,7 +65,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/Marquee/sample"
         },
         {
-            "name": "AvaloniaUI / Thumbnail",
+            "name": "Thumbnail",
+            "presentation": { "group": "AvaloniaUI", "order": 5 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -71,7 +78,8 @@
         },
         // MewUI
         {
-            "name": "MewUI / ColorSelector",
+            "name": "ColorSelector",
+            "presentation": { "group": "MewUI", "order": 1 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -82,7 +90,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/ColorSelector/sample"
         },
         {
-            "name": "MewUI / ColumnPacking",
+            "name": "ColumnPacking",
+            "presentation": { "group": "MewUI", "order": 2 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -93,7 +102,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/ColumnPacking/sample"
         },
         {
-            "name": "MewUI / Loupe",
+            "name": "Loupe",
+            "presentation": { "group": "MewUI", "order": 3 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -104,7 +114,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/Loupe/sample"
         },
         {
-            "name": "MewUI / Marquee",
+            "name": "Marquee",
+            "presentation": { "group": "MewUI", "order": 4 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -115,7 +126,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/Marquee/sample"
         },
         {
-            "name": "MewUI / Thumbnail",
+            "name": "Thumbnail",
+            "presentation": { "group": "MewUI", "order": 5 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -127,7 +139,8 @@
         },
         // WinUI3
         {
-            "name": "WinUI3 / ColorSelector",
+            "name": "ColorSelector",
+            "presentation": { "group": "WinUI3", "order": 1 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -138,7 +151,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColorSelector/sample"
         },
         {
-            "name": "WinUI3 / ColumnPacking",
+            "name": "ColumnPacking",
+            "presentation": { "group": "WinUI3", "order": 2 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -149,7 +163,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColumnPacking/sample"
         },
         {
-            "name": "WinUI3 / Loupe",
+            "name": "Loupe",
+            "presentation": { "group": "WinUI3", "order": 3 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -160,7 +175,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/Loupe/sample"
         },
         {
-            "name": "WinUI3 / Marquee",
+            "name": "Marquee",
+            "presentation": { "group": "WinUI3", "order": 4 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -171,7 +187,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/Marquee/sample"
         },
         {
-            "name": "WinUI3 / Thumbnail",
+            "name": "Thumbnail",
+            "presentation": { "group": "WinUI3", "order": 5 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -183,7 +200,8 @@
         },
         // WinForms
         {
-            "name": "WinForms / Loupe",
+            "name": "Loupe",
+            "presentation": { "group": "WinForms", "order": 1 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -194,7 +212,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.WinForms/Loupe/sample"
         },
         {
-            "name": "WinForms / Marquee",
+            "name": "Marquee",
+            "presentation": { "group": "WinForms", "order": 2 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
@@ -205,7 +224,8 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.WinForms/Marquee/sample"
         },
         {
-            "name": "WinForms / Thumbnail",
+            "name": "Thumbnail",
+            "presentation": { "group": "WinForms", "order": 3 },
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,

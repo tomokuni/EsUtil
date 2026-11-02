@@ -16,6 +16,8 @@
     <PackageReference Include="Avalonia.Headless.XUnit" />
     <PackageReference Include="Avalonia.Skia" />
     <PackageReference Include="Avalonia.Controls.ColorPicker" />
+    <!-- テーマの色の解決を検証する（ヘッドレステストの Application はテーマを持たないため、テストが自分で読み込む） -->
+    <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

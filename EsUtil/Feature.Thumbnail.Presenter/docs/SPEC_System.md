@@ -112,13 +112,12 @@ classDiagram
         +Appearance ThumbnailAppearance
         +ResolveLayout(availableWidth, imageWidth, imageHeights) ThumbnailLayoutResult
         +ResolveMetrics() ThumbnailMetrics
-        +ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex) ThumbnailDrawPlan
+        +ResolveDrawPlan(layout, index, text, selectedIndex, hoveredIndex) ThumbnailDrawPlan
         +ImageHeight(width, pixelWidth, pixelHeight)$ double
     }
     class ThumbnailAppearance {
         +LabelFontSize double
         +LabelVerticalPadding double
-        +BoldCurrentLabel bool
         +BoldSelectedLabel bool
         +HighlightedLabelArgb uint
         +ShowShadow bool
@@ -169,12 +168,12 @@ sequenceDiagram
     participant Appearance as ThumbnailAppearance
     participant Layout as ThumbnailLayoutResult
 
-    UI->>Presenter: ResolveDrawPlan(layout, index, text, isCurrent, selectedIndex, hoveredIndex)
+    UI->>Presenter: ResolveDrawPlan(layout, index, text, selectedIndex, hoveredIndex)
     Presenter->>Layout: Slot(index) / Image(index) / Label(index)
     Presenter->>Appearance: ShowSelectionBackground / ShowHoverBackground
     Presenter->>Appearance: ShowSelectionBackground / ShowHoverBackground（強調の種類を決める）
     Presenter->>Appearance: Shadow / ShowShadow
-    Presenter->>Appearance: LabelFontSize / BoldCurrentLabel / BoldSelectedLabel / HighlightedLabelArgb
+    Presenter->>Appearance: LabelFontSize / BoldSelectedLabel / HighlightedLabelArgb
     Presenter->>Presenter: 層の並びを選ぶ（背景と影の有無で 4 通り）
     Presenter-->>UI: ThumbnailDrawPlan
 ```

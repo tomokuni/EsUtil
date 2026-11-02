@@ -73,8 +73,6 @@ public sealed class ThumbnailControl : Panel
     /// <summary>選択中の添字が変わったときに発生する。</summary>
     public event EventHandler? SelectionChanged;
 
-    /// <summary>現在項目（名前を太字で示す項目）の添字が変わったときに発生する。</summary>
-    public event EventHandler? CurrentIndexChanged;
     /// <summary>項目が 2 回押されたときに発生する。</summary>
     public event EventHandler<ThumbnailActivatedEventArgs>? ItemActivated;
 
@@ -208,52 +206,6 @@ public sealed class ThumbnailControl : Panel
         set => _selection.Select(value, _items.Count);
     }
 
-    /// <summary>現在項目（名前を太字で示す項目）の添字を取得または設定する。</summary>
-    /// <value>項目の添字。 現在項目が無い場合は -1。</value>
-    /// <remarks>
-    /// <b>選択とは別の状態である</b>: 選択は利用者の操作で移り、現在項目は「いま表示している画像」を表す<br/>
-    /// （ブラウザでいえば、選択＝クリックした項目、現在＝開いている項目）。<br/>
-    /// 範囲外の添字は「現在項目なし」として扱う（例外にしない）。
-    /// </remarks>
-    public int CurrentIndex
-    {
-        get
-        {
-            for (var i = 0; i < _items.Count; i++)
-            {
-                if (_items[i].IsCurrent)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        set
-        {
-            var changed = false;
-            for (var i = 0; i < _items.Count; i++)
-            {
-                var tile = _items[i];
-                var isCurrent = i == value;
-                if (tile.IsCurrent == isCurrent)
-                {
-                    continue;
-                }
-
-                tile.SetIsCurrent(isCurrent);
-                ApplyState(i);
-                changed = true;
-            }
-
-            if (changed)
-            {
-                CurrentIndexChanged?.Invoke(this, EventArgs.Empty);
-            }
-        }
-    }
-
     /// <summary>見えている項目の範囲を取得する。</summary>
     /// <value>ビューポートと交差する項目の範囲。 項目が無い場合は空。</value>
     public ThumbnailRange VisibleRange
@@ -288,14 +240,13 @@ public sealed class ThumbnailControl : Panel
     /// <param name="image">表示する画像。 null の場合は画像を描かない（代替画像を渡す）。</param>
     /// <param name="caption">サムネイルの下へ表示する名前。</param>
     /// <param name="toolTip">ツールヒント。 null または空の場合は表示しない。</param>
-    /// <param name="isCurrent">現在表示中の画像かどうか（true のとき名前を太字にする）。</param>
     /// <param name="tag">2 回押しの通知へ渡す任意の値。</param>
     /// <returns>追加した項目の添字。</returns>
     public int Add(
-        EsReadOnlyBitmap? image, string caption, string? toolTip = null, bool isCurrent = false, object? tag = null)
+        EsReadOnlyBitmap? image, string caption, string? toolTip = null, object? tag = null)
     {
         var index = _items.Count;
-        var tile = new ThumbnailTile(image, caption, toolTip, tag, isCurrent);
+        var tile = new ThumbnailTile(image, caption, toolTip, tag);
         tile.MouseEnter += () => SetHovered(index);
         tile.MouseLeave += () => SetHovered(-1);
         tile.MouseDown += _ => _selection.Select(index, _items.Count);
@@ -407,7 +358,7 @@ public sealed class ThumbnailControl : Panel
         }
 
         var plan = Presentation.ResolveDrawPlan(
-            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, MeasureText);
+            layout, index, tile.Caption, _selection.Index, _hoveredIndex, MeasureText);
         plan = DrawPlanResolver?.Invoke(plan) ?? plan;
 
         // 帯の色は UI のテーマが決める（文字色・アクセント色は MewUI のパレットから取る）

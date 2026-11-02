@@ -13,7 +13,6 @@ namespace EsUtil.Feature.Thumbnail;
 /// <param name="Shadow">影の計画。 null の場合は影を描かない。</param>
 /// <param name="IsHovered">マウスが重なっているかどうか。</param>
 /// <param name="IsSelected">選択中かどうか。</param>
-/// <param name="IsCurrent">現在表示中の画像かどうか。</param>
 /// <remarks>
 /// <b>UI は本計画のとおりに描く</b>: どの矩形へ何を描くか（背景・影・画像・名前）とその順序は<br/>
 /// 本計画が単一所有する。 UI が持つのは描画 API の呼び出しと入力の受付だけである。<br/>
@@ -40,8 +39,7 @@ public readonly record struct ThumbnailDrawPlan(
     ThumbnailHighlightKind Highlight,
     IThumbnailShadowPlan? Shadow,
     bool IsHovered,
-    bool IsSelected,
-    bool IsCurrent)
+    bool IsSelected)
 {
     /// <summary>強調（ホバーまたは選択）されているかどうかを取得する。</summary>
     /// <value>ホバー中または選択中の場合は true。</value>

@@ -195,7 +195,6 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
     /// <param name="layout">配置の結果。</param>
     /// <param name="index">項目の添字。</param>
     /// <param name="text">表示する名前。</param>
-    /// <param name="isCurrent">現在表示中の画像かどうか。</param>
     /// <param name="selectedIndex">選択中の添字（無い場合は -1）。</param>
     /// <param name="hoveredIndex">マウスが重なっている添字（無い場合は -1）。</param>
     /// <param name="measureText">折り返した名前の実寸を測る関数。 null の場合は文字数から見積もる。</param>
@@ -204,13 +203,12 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
     /// <b>名前の文言は実寸から決める</b>: 名前を置ける幅と高さ（左右・上下の余白を除いた値）へ収まるかを<br/>
     /// <paramref name="measureText"/> に問い合わせ、収まらない場合だけ拡張子を残して省略する<br/>
     /// （見積もりだけで決めると、実際の折り返しが想定より多い場合に省略されずに切れる。 実測 2026-11-01）。<br/>
-    /// <b>太字は現在項目と選択項目のとき</b>適用し、測定にも同じ太字を渡す（太字は幅が広いため、通常の太さで測ると収まらない）。
+    /// <b>太字は選択中の項目のとき</b>適用し、測定にも同じ太字を渡す（太字は幅が広いため、通常の太さで測ると収まらない）。
     /// </remarks>
     public virtual ThumbnailDrawPlan ResolveDrawPlan(
         ThumbnailLayoutResult layout,
         int index,
         string text,
-        bool isCurrent,
         int selectedIndex,
         int hoveredIndex,
         ThumbnailTextMeasure? measureText = null)
@@ -236,7 +234,7 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
         // 名前行は最大 2 行である（2 行に収まらない名前は拡張子を残して省略する）。
         // 文字を置ける幅と高さは行の矩形から余白を除いた値であり、太字は幅が広いため測定にも太字を渡す
         var labelBounds = layout.Label(index);
-        var isBoldLabel = (isCurrent && _appearance.BoldCurrentLabel) || (isSelected && _appearance.BoldSelectedLabel);
+        var isBoldLabel = isSelected && _appearance.BoldSelectedLabel;
         var textWidth = Math.Max(0, labelBounds.Width - (_options.LabelHorizontalPadding * 2));
         var textHeight = Math.Max(0, labelBounds.Height - (_appearance.LabelVerticalPadding * 2));
         var labelText = ThumbnailLabelText.Fit(
@@ -255,7 +253,7 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
             : (shadow is null ? s_imageAndLabel : s_shadowImageAndLabel);
 
         return new ThumbnailDrawPlan(
-            index, layout.Slot(index), image, shadowArea, label, layers, highlight, shadow, isHovered, isSelected, isCurrent);
+            index, layout.Slot(index), image, shadowArea, label, layers, highlight, shadow, isHovered, isSelected);
     }
 
     /// <summary>画像の表示高さを求める（幅を固定し、縦横比を保つ）。</summary>

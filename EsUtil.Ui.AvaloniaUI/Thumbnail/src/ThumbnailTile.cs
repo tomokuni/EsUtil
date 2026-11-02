@@ -66,11 +66,9 @@ internal sealed class ThumbnailTile : Panel
     /// <param name="caption">表示する名前。</param>
     /// <param name="toolTip">ツールヒント。</param>
     /// <param name="tag">項目へ付ける任意の値。</param>
-    /// <param name="isCurrent">現在表示中の画像かどうか。</param>
-    public ThumbnailTile(IImage? image, string caption, string? toolTip, object? tag, bool isCurrent)
+    public ThumbnailTile(IImage? image, string caption, string? toolTip, object? tag)
     {
         Tag = tag;
-        IsCurrent = isCurrent;
         Caption = caption;
 
         Children.Add(_background);
@@ -95,14 +93,6 @@ internal sealed class ThumbnailTile : Panel
         ToolTip.SetTip(_image, CreateToolTip(tipText));
         ToolTip.SetTip(_label, CreateToolTip(tipText));
     }
-
-    /// <summary>現在表示中の画像かどうかを取得する。</summary>
-    /// <remarks>一覧の <c>CurrentIndex</c> が変更したときに切り替える（作成後は一覧だけが変更できる）。</remarks>
-    public bool IsCurrent { get; private set; }
-
-    /// <summary>現在表示中の画像かどうかを設定する。</summary>
-    /// <param name="value">現在表示中の画像の場合は true。</param>
-    internal void SetIsCurrent(bool value) => IsCurrent = value;
 
     /// <summary>表示する名前を取得する。</summary>
     public string Caption { get; private set; }

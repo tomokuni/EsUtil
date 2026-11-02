@@ -491,13 +491,7 @@ public sealed class ColorSelectorControl : Grid
         var items = new List<ColorSelectorItem>();
         if (ShowThemeColors && Application.IsRunning)
         {
-            var palette = Application.Current.Theme.Palette;
-            AddThemeColor(items, "テーマ: 背景", palette.WindowBackground);
-            AddThemeColor(items, "テーマ: 文字", palette.WindowText);
-            AddThemeColor(items, "テーマ: 副次テキスト", palette.PlaceholderText);
-            AddThemeColor(items, "テーマ: 枠線", palette.ControlBorder);
-            AddThemeColor(items, "テーマ: アクセント", palette.Accent);
-            AddThemeColor(items, "テーマ: 選択背景", palette.SelectionBackground);
+            AddThemeColors(items);
         }
 
         foreach (var entry in ColorEntry.GetSorted(_colorSortMode))
@@ -506,6 +500,50 @@ public sealed class ColorSelectorControl : Grid
         }
 
         return items;
+    }
+
+    /// <summary>一覧の先頭へ並べるテーマの色を追加する（MewUI のパレットの色をすべて並べる）。</summary>
+    /// <param name="items">追加先。</param>
+    /// <remarks>
+    /// <b>並び順は 3 UI で共通</b>: 意味の対応する色は同じ名前・同じ順にし、その UI にしか無い色を後ろへ足す<br/>
+    /// （UI を替えても同じ名前の色を選べる）。<br/>
+    /// <b>値は一覧を作り直すたびに解決する</b>（`Application.Run` の前はパレットが無いため、そのときは並ばない）。
+    /// </remarks>
+    private static void AddThemeColors(List<ColorSelectorItem> items)
+    {
+        var palette = Application.Current.Theme.Palette;
+
+        // 3 UI で共通の意味を持つ色（同じ名前・同じ順）
+        AddThemeColor(items, "テーマ: 背景", palette.WindowBackground);
+        AddThemeColor(items, "テーマ: レイヤー", palette.ContainerBackground);
+        AddThemeColor(items, "テーマ: カード", palette.ControlBackground);
+        AddThemeColor(items, "テーマ: コントロールの背景", palette.ButtonFace);
+        AddThemeColor(items, "テーマ: コントロールの枠線", palette.ControlBorder);
+        AddThemeColor(items, "テーマ: 区切り線", palette.DisabledControlBackground);
+        AddThemeColor(items, "テーマ: 文字", palette.WindowText);
+        AddThemeColor(items, "テーマ: 副次テキスト", palette.PlaceholderText);
+        AddThemeColor(items, "テーマ: 無効の文字", palette.DisabledText);
+        AddThemeColor(items, "テーマ: 無効の背景", palette.ButtonDisabledBackground);
+        AddThemeColor(items, "テーマ: アクセント", palette.Accent);
+        AddThemeColor(items, "テーマ: アクセント（淡）", palette.AccentHoverOverlay);
+        AddThemeColor(items, "テーマ: アクセント（濃）", palette.AccentBorderHotOverlay);
+        AddThemeColor(items, "テーマ: アクセント文字", palette.AccentText);
+        AddThemeColor(items, "テーマ: アクセント上の文字", palette.AccentText);
+        AddThemeColor(items, "テーマ: 選択の背景", palette.SelectionBackground);
+        AddThemeColor(items, "テーマ: ホバーの背景", palette.ButtonHoverBackground);
+        AddThemeColor(items, "テーマ: 押下の背景", palette.ButtonPressedBackground);
+        AddThemeColor(items, "テーマ: フォーカス", palette.Focus);
+        AddThemeColor(items, "テーマ: エラー", palette.Error);
+
+        // MewUI にしか無い色
+        AddThemeColor(items, "テーマ: 選択の文字", palette.SelectionText);
+        AddThemeColor(items, "テーマ: 無効のアクセント", palette.DisabledAccent);
+        AddThemeColor(items, "テーマ: アクセントの枠線（ホバー）", palette.AccentBorderHotOverlay);
+        AddThemeColor(items, "テーマ: アクセントの枠線（押下）", palette.AccentBorderActiveOverlay);
+        AddThemeColor(items, "テーマ: アクセントの押下", palette.AccentPressedOverlay);
+        AddThemeColor(items, "テーマ: スクロール バー", palette.ScrollBarThumb);
+        AddThemeColor(items, "テーマ: スクロール バー（ホバー）", palette.ScrollBarThumbHover);
+        AddThemeColor(items, "テーマ: スクロール バー（押下）", palette.ScrollBarThumbActive);
     }
 
     /// <summary>テーマの色を一覧へ追加する（解決できない場合は何もしない）。</summary>
