@@ -185,6 +185,34 @@ public class ThumbnailPresenterTests
         Assert.Equal(ThumbnailAppearance.Default.LabelFontSize, plan.Label.FontSize);
     }
 
+    /// <summary>選択中の項目の名前が既定で太字になることを検証する。</summary>
+    [Fact]
+    public void 選択中の項目の名前は太字になる()
+    {
+        var presenter = new ThumbnailPresenter();
+        var layout = presenter.ResolveLayout(300, 96, [96]);
+
+        var selected = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: 0, hoveredIndex: -1);
+        var plain = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: -1, hoveredIndex: -1);
+
+        Assert.True(selected.Label.IsBold);
+        Assert.False(plain.Label.IsBold);
+    }
+
+    /// <summary>選択中の名前の太字を外観で止められることを検証する。</summary>
+    [Fact]
+    public void 選択中の名前の太字は外観で止められる()
+    {
+        var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default with { BoldSelectedLabel = false });
+        var layout = presenter.ResolveLayout(300, 96, [96]);
+
+        var selected = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: 0, hoveredIndex: -1);
+        var current = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: true, selectedIndex: 0, hoveredIndex: -1);
+
+        Assert.False(selected.Label.IsBold);
+        Assert.True(current.Label.IsBold);
+    }
+
     /// <summary>名前の色が強調中だけ指定されることを検証する。</summary>
     [Fact]
     public void 名前の色は強調中だけ指定される()

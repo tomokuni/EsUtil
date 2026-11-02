@@ -61,10 +61,10 @@
       "problemMatcher": []
     },
     {
-      "label": "ビルド（AvaloniaUI / ColorComboBox）",
+      "label": "ビルド（AvaloniaUI / ColorSelector）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
-      "command": "dotnet build EsUtil.Ui.AvaloniaUI/ColorComboBox/sample/EsUtil.Ui.AvaloniaUI.ColorComboBox.Sample.csproj --nologo",
+      "command": "dotnet build EsUtil.Ui.AvaloniaUI/ColorSelector/sample/EsUtil.Ui.AvaloniaUI.ColorSelector.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
     {
@@ -97,10 +97,10 @@
     },
 
     {
-      "label": "ビルド（MewUI / ColorComboBox）",
+      "label": "ビルド（MewUI / ColorSelector）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
-      "command": "dotnet build EsUtil.Ui.MewUI/ColorComboBox/sample/EsUtil.Ui.MewUI.ColorComboBox.Sample.csproj --nologo",
+      "command": "dotnet build EsUtil.Ui.MewUI/ColorSelector/sample/EsUtil.Ui.MewUI.ColorSelector.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
     {
@@ -133,10 +133,10 @@
     },
 
     {
-      "label": "ビルド（WinUI3 / ColorComboBox）",
+      "label": "ビルド（WinUI3 / ColorSelector）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
-      "command": "dotnet build EsUtil.Ui.WinUI3/ColorComboBox/sample/EsUtil.Ui.WinUI3.ColorComboBox.Sample.csproj --nologo",
+      "command": "dotnet build EsUtil.Ui.WinUI3/ColorSelector/sample/EsUtil.Ui.WinUI3.ColorSelector.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
     {

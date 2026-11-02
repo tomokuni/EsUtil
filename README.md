@@ -49,7 +49,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | プロジェクト | 内容 | 版 |
 | --- | --- | --- |
 | [`EsUtil.Ui.AvaloniaUI.Interop`](EsUtil.Ui.AvaloniaUI/Interop/README.md) | Avalonia UI の型とコアの型の相互変換・描画の補助 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Interop.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Interop) |
-| [`EsUtil.Ui.AvaloniaUI.ColorComboBox`](EsUtil.Ui.AvaloniaUI/ColorComboBox/README.md) | 色選択（色名・16 進・ピッカー） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.ColorComboBox.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.ColorComboBox) |
+| [`EsUtil.Ui.AvaloniaUI.ColorSelector`](EsUtil.Ui.AvaloniaUI/ColorSelector/README.md) | 色選択（色名・16 進・ピッカー） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.ColorSelector.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.ColorSelector) |
 | [`EsUtil.Ui.AvaloniaUI.Loupe`](EsUtil.Ui.AvaloniaUI/Loupe/README.md) | ルーペ（拡大鏡） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Loupe) |
 | [`EsUtil.Ui.AvaloniaUI.Marquee`](EsUtil.Ui.AvaloniaUI/Marquee/README.md) | マーキー（ドラッグ矩形） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Marquee) |
 | [`EsUtil.Ui.AvaloniaUI.Thumbnail`](EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Thumbnail) |
@@ -62,7 +62,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | プロジェクト | 内容 | 版 |
 | --- | --- | --- |
 | [`EsUtil.Ui.MewUI.Interop`](EsUtil.Ui.MewUI/Interop/README.md) | MewUI の型とコアの型の相互変換・描画の補助 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Interop.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Interop) |
-| [`EsUtil.Ui.MewUI.ColorComboBox`](EsUtil.Ui.MewUI/ColorComboBox/README.md) | 色選択（色名・16 進・ピッカー） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.ColorComboBox.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.ColorComboBox) |
+| [`EsUtil.Ui.MewUI.ColorSelector`](EsUtil.Ui.MewUI/ColorSelector/README.md) | 色選択（色名・16 進・ピッカー） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.ColorSelector.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.ColorSelector) |
 | [`EsUtil.Ui.MewUI.Loupe`](EsUtil.Ui.MewUI/Loupe/README.md) | ルーペ（拡大鏡） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Loupe) |
 | [`EsUtil.Ui.MewUI.Marquee`](EsUtil.Ui.MewUI/Marquee/README.md) | マーキー（ドラッグ矩形） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Marquee) |
 | [`EsUtil.Ui.MewUI.Thumbnail`](EsUtil.Ui.MewUI/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Thumbnail) |
@@ -75,7 +75,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | プロジェクト | 内容 | 版 |
 | --- | --- | --- |
 | [`EsUtil.Ui.WinUI3.Interop`](EsUtil.Ui.WinUI3/Interop/README.md) | WinUI 3 の型とコアの型の相互変換・描画の補助 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Interop.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Interop) |
-| [`EsUtil.Ui.WinUI3.ColorComboBox`](EsUtil.Ui.WinUI3/ColorComboBox/README.md) | 色選択（色名・16 進・ピッカー） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.ColorComboBox.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.ColorComboBox) |
+| [`EsUtil.Ui.WinUI3.ColorSelector`](EsUtil.Ui.WinUI3/ColorSelector/README.md) | 色選択（色名・16 進・ピッカー） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.ColorSelector.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.ColorSelector) |
 | [`EsUtil.Ui.WinUI3.Loupe`](EsUtil.Ui.WinUI3/Loupe/README.md) | ルーペ（拡大鏡） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Loupe.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Loupe) |
 | [`EsUtil.Ui.WinUI3.Marquee`](EsUtil.Ui.WinUI3/Marquee/README.md) | マーキー（ドラッグ矩形） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Marquee) |
 | [`EsUtil.Ui.WinUI3.Thumbnail`](EsUtil.Ui.WinUI3/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Thumbnail) |
@@ -92,7 +92,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Ui.WinForms.Marquee`](EsUtil.Ui.WinForms/Marquee/README.md) | マーキー（ドラッグ矩形） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.Marquee) |
 | [`EsUtil.Ui.WinForms.Thumbnail`](EsUtil.Ui.WinForms/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.Thumbnail) |
 
-色選択（`ColorComboBox`）は **WinForms 版だけありません**（WinForms には相当するコントロールが無く、作る予定もありません）。
+色選択（`ColorSelector`）は **WinForms 版だけありません**（WinForms には相当するコントロールが無く、作る予定もありません）。
 
 ## 2. ドキュメント
 

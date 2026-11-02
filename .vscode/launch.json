@@ -15,15 +15,15 @@
     "configurations": [
         // AvaloniaUI
         {
-            "name": "AvaloniaUI / ColorComboBox",
+            "name": "AvaloniaUI / ColorSelector",
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
-            "preLaunchTask": "ビルド（AvaloniaUI / ColorComboBox）",
-            "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColorComboBox/sample/bin/Debug/net10.0/EsUtil.Ui.AvaloniaUI.ColorComboBox.Sample.exe",
-            "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColorComboBox/sample"
+            "preLaunchTask": "ビルド（AvaloniaUI / ColorSelector）",
+            "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColorSelector/sample/bin/Debug/net10.0/EsUtil.Ui.AvaloniaUI.ColorSelector.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColorSelector/sample"
         },
         {
             "name": "AvaloniaUI / ColumnPacking",
@@ -71,15 +71,15 @@
         },
         // MewUI
         {
-            "name": "MewUI / ColorComboBox",
+            "name": "MewUI / ColorSelector",
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
-            "preLaunchTask": "ビルド（MewUI / ColorComboBox）",
-            "program": "${workspaceFolder}/EsUtil.Ui.MewUI/ColorComboBox/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.ColorComboBox.Sample.exe",
-            "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/ColorComboBox/sample"
+            "preLaunchTask": "ビルド（MewUI / ColorSelector）",
+            "program": "${workspaceFolder}/EsUtil.Ui.MewUI/ColorSelector/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.ColorSelector.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/ColorSelector/sample"
         },
         {
             "name": "MewUI / ColumnPacking",
@@ -127,15 +127,15 @@
         },
         // WinUI3
         {
-            "name": "WinUI3 / ColorComboBox",
+            "name": "WinUI3 / ColorSelector",
             "type": "coreclr",
             "request": "launch",
             "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
-            "preLaunchTask": "ビルド（WinUI3 / ColorComboBox）",
-            "program": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColorComboBox/sample/bin/Debug/net10.0-windows10.0.22621.0/EsUtil.Ui.WinUI3.ColorComboBox.Sample.exe",
-            "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColorComboBox/sample"
+            "preLaunchTask": "ビルド（WinUI3 / ColorSelector）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColorSelector/sample/bin/Debug/net10.0-windows10.0.22621.0/EsUtil.Ui.WinUI3.ColorSelector.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColorSelector/sample"
         },
         {
             "name": "WinUI3 / ColumnPacking",

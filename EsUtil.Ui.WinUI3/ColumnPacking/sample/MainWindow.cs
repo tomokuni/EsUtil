@@ -110,7 +110,7 @@ public sealed class MainWindow : Window
         var log = new SampleLogPanel(_logging.Buffer);
         Title = "ColumnPacking パネル サンプル（WinUI 3）";
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 900));
-        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel
         {
             Spacing = 6,

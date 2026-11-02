@@ -42,6 +42,14 @@ public sealed record ThumbnailAppearance
     /// <value>太字にする場合は true（既定）。</value>
     public bool BoldCurrentLabel { get; init; } = true;
 
+    /// <summary>選択中の項目の名前を太字にするかどうかを取得する。</summary>
+    /// <value>太字にする場合は true（既定）。</value>
+    /// <remarks>
+    /// <b>選択の強調は標準の体裁とする</b>: 帯だけでは選択が弱いテーマがあるため、名前の太さでも示す。<br/>
+    /// 太字は幅が広いため、提示層は省略の判定にも同じ太字を渡す（<see cref="ThumbnailPresenter.ResolveDrawPlan"/>）。
+    /// </remarks>
+    public bool BoldSelectedLabel { get; init; } = true;
+
     /// <summary>ホバーの帯の不透明度を取得する。</summary>
     /// <value>0〜1。 既定は <c>0.10</c>（テーマの文字色を 10% で敷く）。</value>
     /// <remarks>帯の色そのものは持たない（UI のテーマの文字色を使う。 <see cref="ResolveHighlightArgb"/>）。</remarks>

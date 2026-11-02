@@ -90,7 +90,7 @@ internal static class MainWindow
             SampleSettings.Check("直接の子を後ろに置く", true, value => panel.ItemsSourceFirst = value),
             SampleSettings.Text("ログ接頭辞", "[ColumnPacking]", value => panel.LogPrefix = value));
 
-        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel().Vertical().Spacing(6).Children(
             SampleSettings.Buttons(("項目を再設定（SetItems）", () => RebuildItems())));
 

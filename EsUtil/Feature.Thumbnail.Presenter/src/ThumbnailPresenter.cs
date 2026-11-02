@@ -204,7 +204,7 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
     /// <b>名前の文言は実寸から決める</b>: 名前を置ける幅と高さ（左右・上下の余白を除いた値）へ収まるかを<br/>
     /// <paramref name="measureText"/> に問い合わせ、収まらない場合だけ拡張子を残して省略する<br/>
     /// （見積もりだけで決めると、実際の折り返しが想定より多い場合に省略されずに切れる。 実測 2026-11-01）。<br/>
-    /// <b>太字は現在項目のときだけ</b>適用し、測定にも同じ太字を渡す（太字は幅が広いため、通常の太さで測ると収まらない）。
+    /// <b>太字は現在項目と選択項目のとき</b>適用し、測定にも同じ太字を渡す（太字は幅が広いため、通常の太さで測ると収まらない）。
     /// </remarks>
     public virtual ThumbnailDrawPlan ResolveDrawPlan(
         ThumbnailLayoutResult layout,
@@ -238,7 +238,7 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
         // 名前行は最大 2 行である（2 行に収まらない名前は拡張子を残して省略する）。
         // 文字を置ける幅と高さは行の矩形から余白を除いた値であり、太字は幅が広いため測定にも太字を渡す
         var labelBounds = layout.Label(index);
-        var isBoldLabel = isCurrent && _appearance.BoldCurrentLabel;
+        var isBoldLabel = (isCurrent && _appearance.BoldCurrentLabel) || (isSelected && _appearance.BoldSelectedLabel);
         var textWidth = Math.Max(0, labelBounds.Width - (_options.LabelHorizontalPadding * 2));
         var textHeight = Math.Max(0, labelBounds.Height - (_appearance.LabelVerticalPadding * 2));
         var labelText = ThumbnailLabelText.Fit(

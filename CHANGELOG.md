@@ -17,7 +17,8 @@
 
 ### 追加
 
-- **`ColorComboBox`（AvaloniaUI / MewUI / WinUI 3）の一覧の先頭に UI のテーマの色を並べました**（`テーマ: 背景` / `テーマ: 文字` / `テーマ: アクセント`）。 値はコアの色名の表ではなく**その UI のテーマから解決**するため、明暗の切替とアクセント色の変更に追随します（`ShowThemeColors` で無効化できます）。
+- **`ColorSelector`（AvaloniaUI / MewUI / WinUI 3）の一覧の先頭に UI のテーマの色を並べました**（`テーマ: 背景` / `テーマ: 文字` / `テーマ: アクセント`）。 値はコアの色名の表ではなく**その UI のテーマから解決**するため、明暗の切替とアクセント色の変更に追随します（`ShowThemeColors` で無効化できます）。
+- **`ThumbnailAppearance.BoldSelectedLabel` を追加しました**（既定 `true`）。 選択中の項目の名前を太字にします。 帯だけでは選択が弱いテーマがあるため、名前の太さでも示します（`false` で従来どおり帯だけになります）。
 
 ### 変更
 
@@ -27,6 +28,9 @@
 - **`EsUtil.Ui.AvaloniaUI.Marquee` と `EsUtil.Ui.MewUI.Marquee` の対象フレームワークを `net10.0` へ戻しました**（`net10.0-windows10.0.17763.0` をやめます）。 Windows 専用なのは**引数なしコンストラクター**（`WinCursorService` を生成する既定構成）だけで、そこへ `[SupportedOSPlatform("windows10.0.17763")]` を付けます。 Windows 以外では `ICursorService` を渡すコンストラクターを使ってください（テストとサンプルは既定構築を使うため `net10.0-windows10.0.17763.0` のままです）。
 - **Thumbnail の影の色を 50% の灰色（`0xC0808080`）にしました**。 黒（`0x8A000000`）は暗色テーマの地色に埋もれて影が見えませんでした（実測 2026-11-02: コントラスト 1.05）。 灰色は地色へ合成されるため明暗で同じ程度になります（1.21 / 1.27）。
 - **サンプルのログ レベルを修正しました**（Marquee 4 UI）。 ポインター移動のたびに届く「ルーペ位置」とスクロール位置、ドラッグ中の選択矩形（`SelectionChanged`）を `Trace` へ落とし、状態の変化（開始・確定可能・キャンセル・確定要求）を `Debug` にしました（`Information` 固定だったため、既定の表示レベルで高頻度の行が出ていました）。 画面の状態表示（`選択: …` / `追従位置: …`）は従来どおり常に見えます。
+- **サンプルの「ハイライト切替」を「サンプル設定」から「プロパティ設定」へ移しました**（Marquee 4 UI）。 切り替えているのはコントロールのプロパティ（`HighlightSourceRect`）であり、メソッドの実行ではないためです（区分の分け方は [`開発手順.md`](.github/開発手順.md) が所有します）。
+- **Thumbnail サンプルの「描画計画を差し替える」見本を、外観では表せない差分だけに絞りました**（4 UI）。 名前の色は外観（`HighlightedLabelArgb`）で表せるため見本から外し、ホバーも選択と同じ帯にする（`Highlight` の差し替え）だけを示します。
+- **`ColorSelector.ShowThemeColors` を 3 UI で同じ形にしました**（MewUI と WinUI 3 にも公開し、取得または設定にしました。 既定は `true`）。
 - **サンプルのアーキテクチャ固定をやめ、AnyCPU にしました**（`PlatformTarget` = `x64` と WinUI 3 の `RuntimeIdentifier` = `win-x64` を `.csproj` から外しました）。 WinUI 3 の自己完結配置（`WindowsAppSDKSelfContained`）は `-r` を渡したとき（publish）だけ有効になり、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。
 
 ## 0.2.0（2026-10-28）
@@ -43,10 +47,10 @@
   - **機能名を `ColumnPacking`、型名を `ColumnPacker` にしました**（旧 `MultiColumn` / `MultiColumnLayoutEngine`）。 「複数列」は並べ方の説明で、解いている問題（最大列高さの最小化）を表さず、`EsUtil.Feature.Thumbnail.Core` の一覧も複数列に並ぶため機能名として弱いという判断です。 語幹を揃え（`ColumnPacking` = 行為 / `ColumnPacker` = 行為者）、規約の接尾辞表へ `Packer` を追加しました。 拡張メンバーのクラスは `ColumnPackerExtensions` です。
   - **UI 層が提示層を持たない機能のコア（`EsUtil.Feature.<機能>.Core`）を参照できる**ようにしました（`DEP0005` の許可を追加）。
   - 変換定義の生成物（`Generated.cs`）は CSV から機械的に作られるため、`CA1052` / `CA1707` / `IDE0055` / `MA0048` をファイル スコープで無効にし、付録 A へ理由付きで載せました。
-- `EsUtil.Ui.AvaloniaUI.ColorComboBox`: 色名・16 進コードの入力とカラーピッカー（`ColorView` の Flyout）を統合した色選択コントロール。
-- **`ColorComboBox`（Avalonia / MewUI / WinUI 3）のスウォッチと入力欄にツールチップを追加しました**
+- `EsUtil.Ui.AvaloniaUI.ColorSelector`: 色名・16 進コードの入力とカラーピッカー（`ColorView` の Flyout）を統合した色選択コントロール。
+- **`ColorSelector`（Avalonia / MewUI / WinUI 3）のスウォッチと入力欄にツールチップを追加しました**
   （「色名 + 不透明度」と「`#AARRGGBB`」の 2 行）。
-- **MewUI の `ColorComboBox` の「…」の上へ折り畳み時の見出し（「︿」）が出ていた**のを修正しました。
+- **MewUI の `ColorSelector` の「…」の上へ折り畳み時の見出し（「︿」）が出ていた**のを修正しました。
   ピッカー（`ColorPicker`）は 1×1 にして右下へ寄せていましたが、折り畳んだ見出しは
   自分の矩形の外へ描かれるため、行の上に見えていました。 1×1 の入れ物で切り取ります
   （ドロップダウン本体は別の面へ出るため、切り取りの影響を受けません。 実測 2026-10-25）。
@@ -56,13 +60,13 @@
   使い回します。 マーキー / ルーペの図形の層は毎フレーム数十個の矩形へ色を設定するため、
   反映のたびに `new SolidColorBrush(...)` で作ると WinRT の割り当てが積み上がり、
   ドラッグ中の描画が目に見えて重くなっていました（実測 2026-10-25）。
-- **MewUI の `ColorComboBox` に入力欄の文字サイズ（`TextFontSize`）を追加しました**。 MewUI の要素は
+- **MewUI の `ColorSelector` に入力欄の文字サイズ（`TextFontSize`）を追加しました**。 MewUI の要素は
   文字サイズを継承しないため、周囲の入力欄より 1 回り小さく表示されていました（他の UI は親の
   `FontSize` を継承するため揃います）。 ホストが同じ値を設定できます。
 - **`EsUtil.Ui.WinUI3.Interop` の `CompositionImageView` に `WaitForSourceReadyAsync()` を追加しました**。
   `LoadedImageSurface` は**段階的に復号する**ため、読み込みの完了前に表示すると縮小された内容が
   1〜2 フレーム見えます（キャプチャのオーバーレイが一瞬だけ小さく出る原因。 実測 2026-10-25）。
-- **入力欄の表記を選べるようになりました**: `EsUtil.Platform.Core.Palette.ColorTextFormat`（`NameWithAlpha` = 色名 + 不透明度 / `HexCode` = `#AARRGGBB`）を追加し、`ColorString.ToText(text, format)` と窓口 `EsColor.ToText` を追加しました。 `ColorComboBox`（Avalonia / MewUI / WinUI 3）の `TextFormat` プロパティから切り替えられます。
+- **入力欄の表記を選べるようになりました**: `EsUtil.Platform.Core.Palette.ColorTextFormat`（`NameWithAlpha` = 色名 + 不透明度 / `HexCode` = `#AARRGGBB`）を追加し、`ColorString.ToText(text, format)` と窓口 `EsColor.ToText` を追加しました。 `ColorSelector`（Avalonia / MewUI / WinUI 3）の `TextFormat` プロパティから切り替えられます。
 - `EsUtil.Ui.*.Interop` に `TextMeasure` / `GdiFill.Rects` / `EsBitmapDrawingInterop.CopyRegion` / `DrawList` / `DrawRect` を追加（UI コントロールが持っていた複製を置き換えるため）。
 - `EsUtil.Platform.Core`:
   - `EsInput` / `EsWindow` / `EsCapture` / `EsErrors` / `EsCallbacks`（機能の窓口）。
@@ -114,9 +118,9 @@
 - **パレットの透過は「透明か不透明か」の 2 値になりました**: WIC のパレットは透明色を 1 つ持てるため、**完全透明はそのまま残り**、半透明は不透明な色へ寄ります（以前は 4 段階のアルファをパレットへ持てました）。
 - **`EsUtil.Platform.Core` のルート名前空間は機能の窓口だけになりました**。 型は機能フォルダ（`Input` / `Window` / `Capture` / `Common`）へ移りました。 型を名指しする利用側は、その機能の名前空間を `using` してください
   （例: `using EsUtil.Platform.Core.Input;` で `EsKey`。 `EsInput.TryParseKey` などの窓口は `using EsUtil.Platform.Core;` だけで使えます）。
-- `EsUtil.Ui.AvaloniaUI.ColorPicker` を **`EsUtil.Ui.AvaloniaUI.ColorComboBox`** へ改名しました（型名 `ColorPickerControl` → `ColorComboBoxControl`）。
-- **`ColorComboBox`（Avalonia UI 版）のレイアウト用プロパティを改名しました（破壊的）**: `ComboBoxWidth` / `ComboBoxMinWidth` / `ComboBoxMaxWidth` / `ComboBoxPadding` / `ComboBoxMargin` → **`TextWidth` / `TextMinWidth` / `TextMaxWidth` / `TextPadding` / `TextMargin`**（枠線を 1 つにしたため、調整の対象は入力欄であることを名前に表す）。
-- **`EsUtil.Ui.AvaloniaUI.ColorComboBox` から次の公開型を削除しました（破壊的）**: `ColorDisplayConverter`（表記の変換は `ColorTextFormat` と `ColorString.ToText` がコアで単一所有）と `TextBoxSelectionHelper`（一覧のポップアップを自前で持つため選択解除が不要）。
+- `EsUtil.Ui.AvaloniaUI.ColorPicker` を **`EsUtil.Ui.AvaloniaUI.ColorSelector`** へ改名しました（型名 `ColorPickerControl` → `ColorSelectorControl`）。
+- **`ColorSelector`（Avalonia UI 版）のレイアウト用プロパティを改名しました（破壊的）**: `ComboBoxWidth` / `ComboBoxMinWidth` / `ComboBoxMaxWidth` / `ComboBoxPadding` / `ComboBoxMargin` → **`TextWidth` / `TextMinWidth` / `TextMaxWidth` / `TextPadding` / `TextMargin`**（枠線を 1 つにしたため、調整の対象は入力欄であることを名前に表す）。
+- **`EsUtil.Ui.AvaloniaUI.ColorSelector` から次の公開型を削除しました（破壊的）**: `ColorDisplayConverter`（表記の変換は `ColorTextFormat` と `ColorString.ToText` がコアで単一所有）と `TextBoxSelectionHelper`（一覧のポップアップを自前で持つため選択解除が不要）。
 - 機能層・アプリ層にあった次の型を `EsUtil.Platform.Core` へ統合しました（利用側の実装は削除できます）。
   - ウィンドウ配置の復元規則 → `Window.EsWindowPlacementMath`
   - ホットキー文字列の解釈 → `Input.HotKeyParser`
@@ -178,7 +182,7 @@
 - **WinUI 3 の Marquee のサンプルが Native AOT で起動しなかった**のを修正しました。 原因は `ItemsSource` へ managed コレクションを渡していたことで（AOT では CsWinRT が COM ラッパーを作れず `E_INVALIDARG`）、`Items.Add` で 1 件ずつ渡すよう変更しました。
 - **MewUI の `Marquee` / `Loupe` が自分の位置を無視して描画していた**のを修正しました。 MewUI の描画コンテキストは**ウィンドウ絶対座標**（要素の左上は (0, 0) ではない）であるため、描画の前に自領域の左上へ原点を移します。 併せて `Clear` の使用をやめました（`Clear` は**描画面全体**を消すため、兄弟の要素まで消えていました。 実測 2026-10-24）。
 - **WinUI 3 の `CompositionImageView` が `SetBounds` を呼ばない使い方で画像を表示しなかった**のを修正しました（スプライトの大きさが 0×0 のままでした。 割り当てられた大きさへ追従させます）。
-- **`ColorComboBox`（Avalonia / MewUI / WinUI 3）の見た目を揃えました**: スウォッチ・入力欄・一覧ボタン・ピッカーボタンの間隔を無くし、スウォッチを入力欄の内側へ入れました。 WinUI 3 版のポップアップは**ウィンドウの外へはみ出せる**ようにし（`ShouldConstrainToRootBounds = false`）、ピッカーのポップアップは高さの上限を外して**スクロールしない**ようにしました。 **枠は外周の 1 つだけ**にし、区画の区切りは枠より薄い 1 ピクセルの垂直線にしました（1 つの入力欄に見えるようにするため）。
+- **`ColorSelector`（Avalonia / MewUI / WinUI 3）の見た目を揃えました**: スウォッチ・入力欄・一覧ボタン・ピッカーボタンの間隔を無くし、スウォッチを入力欄の内側へ入れました。 WinUI 3 版のポップアップは**ウィンドウの外へはみ出せる**ようにし（`ShouldConstrainToRootBounds = false`）、ピッカーのポップアップは高さの上限を外して**スクロールしない**ようにしました。 **枠は外周の 1 つだけ**にし、区画の区切りは枠より薄い 1 ピクセルの垂直線にしました（1 つの入力欄に見えるようにするため）。
 
 - **MewUI の画像描画が拡大・位置ずれしていた**のを修正しました。 `IGraphicsContext.DrawImage` の 3 引数版は
   **`(image, 描画先, 元矩形)`** の順ですが、`ImageRenderer` / `ThumbnailViewport` / `MewImageBinding`（Loupe・
@@ -189,7 +193,7 @@
   メタデータを読むと WIC が毎回 `COMException`（`0x88982F40`）を投げ、デバッガーの出力へ
   「例外がスローされました」が並んでいました。 読み取り器の**先頭の階層を列挙**してから読みに行くように
   変え、BMP / PNG（階層を持たない形式）では例外が出ません（実測: PNG の読み込みで 0 件）。
-- **WinUI 3 の `ColorComboBox` の入力欄の文字が上へ寄っていた**のを修正しました。 スウォッチの分だけ左の
+- **WinUI 3 の `ColorSelector` の入力欄の文字が上へ寄っていた**のを修正しました。 スウォッチの分だけ左の
   余白を足すときに上下の余白まで 0 にしていたためです（テーマの既定値を保つように変更）。
 - **WinUI 3 の Loupe が像を 10 倍に拡大していた**のを修正しました。 `XamlRoot.RasterizationScale`（1.25）を
   `DpiScaler.ResolveClientScale(クライアント画素, クライアント DIP, 既定)` の**第 1 引数**へ渡していたため、
@@ -203,7 +207,7 @@
 - **MewUI の `ThumbnailViewport` がすべてのサムネイルをウィンドウ左上へ描いていた**のを修正しました
   （MewUI の描画コンテキストはウィンドウ絶対座標のため、自領域の左上へ原点を移します）。
 
-- **MewUI の `ColorComboBox` のポップアップがウィンドウ左上へ出ていた**のを修正しました（アンカーは
+- **MewUI の `ColorSelector` のポップアップがウィンドウ左上へ出ていた**のを修正しました（アンカーは
   **ウィンドウ座標**が必要ですが、自領域の矩形を渡していました）。 ピッカーのポップアップは内容の幅を
   明示し、極端に小さくならないようにしました。
 

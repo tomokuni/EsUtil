@@ -251,7 +251,7 @@ public sealed class MainWindow : Window
             },
         };
 
-        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel
         {
             Spacing = 6,

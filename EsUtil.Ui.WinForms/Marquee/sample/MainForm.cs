@@ -132,6 +132,8 @@ internal static class MainForm
 
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
         var properties = Column(
+            // ハイライトはコントロールのプロパティ（HighlightSourceRect）を切り替える操作である
+            SampleSettings.Buttons(("ハイライト切替", ToggleHighlight)),
             SampleSettings.Slider("ズーム", zoom, MinZoom, MaxZoom, ZoomStep, false, value => ApplyZoom(value), 10),
             SampleSettings.Check("ハンドルを表示", true, value => Apply(appearance with { ShowHandles = value })),
             ColorChoice("ハンドルの色", 0, index => Apply(appearance with { HandleColor = ResolveColor(index) })),
@@ -167,8 +169,7 @@ internal static class MainForm
             SampleSettings.Check("描画計画を差し替える（破線・ガイド線）", false, value =>
                 marquee.DrawPlanResolver = value ? static plan => GuideMarqueePlan.Resolve(in plan) : null));
 
-        // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
-        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        // ── API操作（対象コントロールのメソッド実行） ──
         var methods = Column(
             SampleSettings.Buttons(
                 ("選択をクリア", () => marquee.ResetSelection()),
@@ -186,7 +187,6 @@ internal static class MainForm
                 MaximumSize = new Size(SampleShell.SettingsWidth - 80, 0),
             },
             SampleSettings.Buttons(
-                ("ハイライト切替", ToggleHighlight),
                 ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
             status);
 

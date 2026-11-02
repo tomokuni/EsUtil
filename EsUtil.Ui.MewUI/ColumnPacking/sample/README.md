@@ -44,7 +44,7 @@ dotnet run --project EsUtil.Ui.MewUI/ColumnPacking/sample/EsUtil.Ui.MewUI.Column
 | 「アイテム数」を動かす | 項目の件数が変わり、子が作り直される |
 | 「直接の子を後ろに置く」を切り替える | データの要素と固定の子の並び順が入れ替わる |
 | 「ログ接頭辞」を変える | ライブラリのログの接頭辞が変わる（既定 `[ColumnPacking]`） |
-| 「項目を再設定（SetItems）」（メソッド操作） | 現在の「アイテム数」で項目を作り直し、`SetItems` を呼び直す |
+| 「項目を再設定（SetItems）」（API操作） | 現在の「アイテム数」で項目を作り直し、`SetItems` を呼び直す |
 
 ## 4. 検証項目（動作確認チェックリスト）
 

@@ -1,0 +1,205 @@
+# EsUtil.Ui.AvaloniaUI.ColorSelector
+
+![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.ColorSelector.svg)
+![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
+![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
+![Platform](https://img.shields.io/badge/Platform-Portable-6E6E6E)
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
+![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
+![Avalonia](https://img.shields.io/badge/UI-Avalonia-8D46D6)
+![License](https://img.shields.io/badge/License-MIT-3DA639)
+
+> プロジェクト名: `EsUtil.Ui.AvaloniaUI.ColorSelector`（Avalonia UI 版）。 MewUI 版（`EsUtil.Ui.MewUI.ColorSelector`）と WinUI 3 版（`EsUtil.Ui.WinUI3.ColorSelector`）は同じ外観・同じ API を持ちます。
+
+## 目次 <!-- omit from toc -->
+
+- [1. 概要](#1-概要)
+- [2. 機能一覧](#2-機能一覧)
+- [3. システム要件](#3-システム要件)
+- [4. インストール](#4-インストール)
+- [5. クイックスタート](#5-クイックスタート)
+  - [5.1 AXAML](#51-axaml)
+  - [5.2 Code-behind](#52-code-behind)
+- [6. 入力動作](#6-入力動作)
+- [7. ColorView テーマ（ホストが取り込む）](#7-colorview-テーマホストが取り込む)
+- [8. プラットフォーム](#8-プラットフォーム)
+- [9. サンプル](#9-サンプル)
+- [10. ドキュメント](#10-ドキュメント)
+- [11. アーキテクチャ](#11-アーキテクチャ)
+- [12. プロジェクト構成](#12-プロジェクト構成)
+- [13. テスト](#13-テスト)
+- [14. ライセンス](#14-ライセンス)
+
+---
+
+## 1. 概要
+
+Avalonia UI 用の色選択コントロールです。 スウォッチ・色名/16進コードの入力欄・一覧（▼）・カラーピッカー（…）を**1 つの枠に収めた 1 つのコントロール**として提供し、選択色のプレビュー・バリデーションを自己完結します。
+
+色名の表と色文字列の解釈（受理する入力・保存値 `#AARRGGBB`・画面表示 `{色}+{不透明度%}`）は **コア（`EsUtil.Platform.Core` の `Palette`）が単一所有**します。 本コントロールは Avalonia の色型（`Avalonia.Media.Color`）との変換だけを行います（MewUI 版・WinUI 3 版と同じ解釈になります）。
+
+## 2. 機能一覧
+
+- 色名（英名）または16進カラーコードのテキスト入力
+- 一覧（▼）による色選択（色相順 / 色名順）
+- 選択中の色を入力欄の左端にスウォッチ表示
+- カラーピッカー（ColorView）を Flyout で表示（…）
+- 入力バリデーション（無効な色はエラー通知・最終有効値への自動復帰）
+- バリデーション失敗時の枠線強調（オプション）
+- Avalonia Binding 対応の StyledProperty（双方向バインド）
+- 入力欄の表記を切替可能（色名 + 不透明度 / `#AARRGGBB`）
+- スウォッチと入力欄のツールチップ（色名 + 不透明度 / `#AARRGGBB` の 2 行）
+- 入力欄のサイズ・パディング・マージンを外部制御可能
+
+## 3. システム要件
+
+- .NET 10
+- **対応 OS**: 指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**（UI フレームワークの対応 OS に従う。 参照する `EsUtil.Platform.Core` には Windows 専用の型が含まれる）
+- Avalonia 12.1 以降
+- C# 14
+
+## 4. インストール
+
+NuGet パッケージ（`EsUtil.Ui.AvaloniaUI.ColorSelector`）またはプロジェクト参照で利用します。
+
+```xml
+<ProjectReference Include="..\EsUtil.Ui.AvaloniaUI.ColorSelector\src\EsUtil.Ui.AvaloniaUI.ColorSelector.csproj" />
+```
+
+必要な名前空間:
+
+```csharp
+using EsUtil.Ui.AvaloniaUI.ColorSelector;
+```
+
+## 5. クイックスタート
+
+### 5.1 AXAML
+
+```xml
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:cp="clr-namespace:EsUtil.Ui.AvaloniaUI.ColorSelector;assembly=EsUtil.Ui.AvaloniaUI.ColorSelector">
+    <cp:ColorSelectorControl SelectedColor="{Binding BorderColor, Mode=TwoWay}"
+                           ColorSortMode="ByHue"
+                           TextFormat="HexCode"
+                           HighlightBorderOnError="True"
+                           Width="300" />
+</Window>
+```
+
+### 5.2 Code-behind
+
+```csharp
+using EsUtil.Ui.AvaloniaUI.ColorSelector;
+
+var colorPicker = new ColorSelectorControl
+{
+    SelectedColor = "Red",
+    ColorSortMode = ColorSortMode.ByHue,
+    TextFormat = ColorTextFormat.HexCode,
+    HighlightBorderOnError = true,
+    Width = 300,
+};
+
+// 選択色の変更を監視（双方向バインドの代替）
+colorPicker.PropertyChanged += (_, e) =>
+{
+    if (e.Property == ColorSelectorControl.SelectedColorProperty)
+    {
+        UpdatePreview(colorPicker.SelectedColor);
+    }
+};
+
+panel.Children.Add(colorPicker);
+```
+
+## 6. 入力動作
+
+- **テキスト入力**: 色名または16進コードを直接入力できます（表示中の表記と異なる形でも受理します）。
+- **一覧（▼）**: 色の一覧を開き、選ぶと入力欄とスウォッチが更新されます。
+- **無効な入力**: フォーカス喪失時に最終有効値へ自動復帰します。
+- **カラーピッカー**: 右端の「…」ボタンで Flyout 形式の ColorView を開きます。 OK で適用、キャンセルで破棄。
+- **ツールチップ**: スウォッチと入力欄に「色名 + 不透明度」と「`#AARRGGBB`」を 2 行で表示します。
+
+## 7. ColorView テーマ（ホストが取り込む）
+
+**ホストは ColorView テーマをアプリの XAML へ `StyleInclude` で取り込んでください**。
+
+```xml
+<Application.Styles>
+    <FluentTheme />
+    <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
+</Application.Styles>
+```
+
+- Flyout はオーバーレイ レイヤーへ表示されるため、コントロールのローカル Styles では ColorView へ伝播しません。 アプリの `Application.Styles` へ取り込む必要があります。
+- 取り込みを忘れるとカラーピッカーがテーマ未適用（既定の見た目）で表示されます（例外にはなりません）。
+- **本コントロールは実行時の XAML 解決を行いません**（トリミング / Native AOT では失敗するため、自動適用はしません）。
+
+## 8. プラットフォーム
+
+- プラットフォーム非依存（Avalonia のみに依存）。
+- Windows / Linux / macOS で同一の動作を提供します。
+
+## 9. サンプル
+
+`sample/` に動作確認用のサンプルアプリが含まれています。 以下の機能をデモします。
+
+- 色相順（`ByHue`）と色名順（`ByName`）の切替（並び順切替 ComboBox 連動）
+- `HighlightBorderOnError` による枠線強調の有効/無効
+- バリデーション状態（`HasValidationError` / `ValidationErrorMessage`）のライブ表示
+- 入力欄のサイズと文字サイズ（`TextFontSize` / `TextMinWidth` / `TextMaxWidth` / `TextWidth`）
+- 入力欄の表記（`TextFormat`）の切替
+- カラーピッカー（「…」ボタン）の Flyout 表示
+
+```bash
+dotnet run --project sample/EsUtil.Ui.AvaloniaUI.ColorSelector.Sample.csproj
+```
+
+## 10. ドキュメント
+
+- [外部機能仕様書](docs/SPEC_API.md)
+- [システム仕様書](docs/SPEC_System.md)
+
+## 11. アーキテクチャ
+
+公開 API（公開プロパティ・StyledProperty）は `src/ColorSelectorControl.axaml.cs`（XAML コードビハインド）に集約します。
+関心事ごとに専用クラスへ委譲し、単一責任（SRP）と一方向依存を維持します。
+
+- `ColorSelectorControl.axaml.cs`: 公開 API（StyledProperty・公開プロパティ）＋ イベント処理 ＋ バリデーション状態
+- `ColorSelectorControl.axaml`: UI レイアウト（外周の枠 + スウォッチ + 入力欄 + ▼ + …）
+- `ColorSelectorFlyoutFactory.cs`: カラーピッカー Flyout の構築（Simple Factory パターン）
+- `ColorValidator.cs`: 色文字列の妥当性検証
+- `ColorSortMode.cs`: 公開 enum（並び順）
+- `StringToBrushConverter.cs`: 公開コンバーター（色 → Brush）
+- `ColorEntry.cs`: 色一覧データ（internal）
+
+依存方向は**一方向の階層構造**（コントロール → 生成/検証 → 対象（ColorString / ColorEntry / コンバーター））で、双方向依存・内部公開・具象依存を解消します。
+
+## 12. プロジェクト構成
+
+```text
+EsUtil.Ui.AvaloniaUI/ColorSelector/
+├── src/                                          # UI 層（Avalonia の要素と入出力の結び付け）
+│   ├── EsUtil.Ui.AvaloniaUI.ColorSelector.csproj  # 独立プロジェクト（Platform.Core を参照）
+│   ├── ColorSelectorControl.axaml                 # 見た目（外周の枠・スウォッチ・入力欄・▼・…）
+│   ├── ColorSelectorControl.axaml.cs              # 公開 API（StyledProperty・イベント・検証状態）
+│   ├── ColorSelectorFlyoutFactory.cs              # カラーピッカー（ColorView）の Flyout 構築
+│   ├── StringToBrushConverter.cs                  # 色文字列 → ブラシの変換
+│   └── Logging/                                   # ログ定義（LoggerMessage ソース生成）
+├── sample/                                        # サンプルアプリ（sample/README.md 参照）
+└── tests/                                         # 単体テスト（Avalonia ヘッドレス）
+```
+
+## 13. テスト
+
+`tests/` が本プロジェクトのテストを持ちます（xUnit v3）。 実行手順と合否基準は [検証手順.md](../../.github/検証手順.md) が定めます。
+
+```powershell
+dotnet test EsUtil.Ui.AvaloniaUI/ColorSelector/tests/EsUtil.Ui.AvaloniaUI.ColorSelector.Tests.csproj
+```
+
+## 14. ライセンス
+
+[MIT License](LICENSE)

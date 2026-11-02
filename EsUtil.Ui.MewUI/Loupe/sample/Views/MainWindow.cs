@@ -201,7 +201,7 @@ internal static class MainWindow
             SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
                 loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null));
 
-        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel().Vertical().Spacing(6).Children(
             SampleSettings.Buttons(("再描画を要求", () => loupe.InvalidateVisual())));
 

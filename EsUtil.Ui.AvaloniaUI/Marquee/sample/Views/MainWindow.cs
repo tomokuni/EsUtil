@@ -167,6 +167,8 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
+                // ハイライトはコントロールのプロパティ（HighlightSourceRect）を切り替える操作である
+                SampleSettings.Buttons(("ハイライト切替", ToggleHighlight)),
                 SampleSettings.Slider("ズーム", zoom, MinZoom, MaxZoom, 0.1, false, value =>
                 {
                     zoom = value;
@@ -213,8 +215,7 @@ public sealed class MainWindow : Window
             },
         };
 
-        // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
-        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel
         {
             Spacing = 6,
@@ -242,7 +243,6 @@ public sealed class MainWindow : Window
                     TextWrapping = TextWrapping.Wrap,
                 },
                 SampleSettings.Buttons(
-                    ("ハイライト切替", ToggleHighlight),
                     ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
                 _status,
             },
