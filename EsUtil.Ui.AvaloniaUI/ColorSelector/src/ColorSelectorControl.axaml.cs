@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Interactivity;
@@ -409,6 +410,30 @@ public sealed partial class ColorSelectorControl : UserControl
         Log.LogLostFocus(color, valid || hasLastValid);
     }
 
+    /// <summary>一覧の上部に置くタブの幅（DIP）。 2 つを並べたときに一覧の幅と釣り合う値。</summary>
+    private const double CategoryTabWidth = 112;
+
+    /// <summary>一覧の最小幅（DIP）。 タブを切り替えても幅が変わらないようにする。</summary>
+    private const double ListMinWidth = 240;
+
+    /// <summary>一覧の最大の高さ（DIP）。</summary>
+    private const double ListMaxHeight = 360;
+
+    /// <summary>直近に選んだ一覧の分類（次に開いたときに同じタブから始める）。</summary>
+    private ColorSelectorCategory _listCategory = ColorSelectorCategory.Theme;
+
+    /// <summary>一覧の分類を切り替えるタブを作る。</summary>
+    /// <param name="text">タブの文言。</param>
+    /// <returns>タブ（<see cref="ToggleButton"/>）。</returns>
+    /// <remarks>片方だけが選ばれるよう、切り替えは一覧を開く処理の <c>ApplyCategory</c> が両方の状態を書く。</remarks>
+    private static ToggleButton CreateCategoryTab(string text) => new()
+    {
+        Content = text,
+        Width = CategoryTabWidth,
+        HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+        IsChecked = false,
+    };
+
     /// <summary>一覧のポップアップを開く。</summary>
     /// <param name="sender">イベント送信元。</param>
     /// <param name="e">イベント引数。</param>
@@ -422,14 +447,42 @@ public sealed partial class ColorSelectorControl : UserControl
         // 一覧を開いたことを残す（ピッカーを開いたログと対。 他 UI と同じ書式）
         Log.LogOpenList(SelectedColor);
 
+        CreateListFlyout()?.ShowAt(button);
+    }
+
+    /// <summary>一覧のポップアップ（上部のタブ + 分類で絞った一覧）を作る。</summary>
+    /// <returns>作ったポップアップ。 テーマの色を並べない設定で色名も無い場合は null。</returns>
+    /// <remarks>
+    /// <b>タブは分類だけを切り替える</b>: テーマの色が多いため、1 つの一覧へ混ぜると色名を探しにくい。<br/>
+    /// 前回選んだ分類から開く（同じ用途で続けて選ぶときに切り替えの手間を省く）。
+    /// </remarks>
+    internal Flyout? CreateListFlyout()
+    {
+        var items = CreateItems();
         var list = new ListBox
         {
-            ItemsSource = CreateItems(),
             ItemTemplate = (IDataTemplate?)Resources["ColorEntryTemplate"],
-            MaxHeight = 360,
+            MaxHeight = ListMaxHeight,
+            MinWidth = ListMinWidth,
+
+            // 左寄せにすると希望サイズが内容（行の実寸）になり、長い名前が切れない
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
         };
 
-        var flyout = new Flyout { Content = list, Placement = PlacementMode.BottomEdgeAlignedLeft };
+        var themeTab = CreateCategoryTab("テーマカラー");
+        var namedTab = CreateCategoryTab("色名");
+        themeTab.Click += (_, _) => ApplyCategory(ColorSelectorCategory.Theme);
+        namedTab.Click += (_, _) => ApplyCategory(ColorSelectorCategory.Named);
+
+        var tabs = new StackPanel
+        {
+            Orientation = Avalonia.Layout.Orientation.Horizontal,
+            Spacing = 4,
+            Children = { themeTab, namedTab },
+        };
+        var content = new StackPanel { Spacing = 6, Children = { tabs, list } };
+
+        var flyout = new Flyout { Content = content, Placement = PlacementMode.BottomEdgeAlignedLeft };
         list.SelectionChanged += (_, _) =>
         {
             if (list.SelectedItem is ColorSelectorItem item)
@@ -440,7 +493,22 @@ public sealed partial class ColorSelectorControl : UserControl
             }
         };
 
-        flyout.ShowAt(button);
+        // テーマの色を並べない設定ではテーマのタブが空になるため、中身のある分類から開く
+        ApplyCategory(items.Any(item => item.Category == _listCategory)
+            ? _listCategory
+            : items.Any(item => item.Category == ColorSelectorCategory.Theme)
+                ? ColorSelectorCategory.Theme
+                : ColorSelectorCategory.Named);
+        return flyout;
+
+        void ApplyCategory(ColorSelectorCategory category)
+        {
+            _listCategory = category;
+            themeTab.IsChecked = category == ColorSelectorCategory.Theme;
+            namedTab.IsChecked = category == ColorSelectorCategory.Named;
+            list.ItemsSource = items.Where(item => item.Category == category).ToList();
+            list.SelectedIndex = -1;
+        }
     }
 
     /// <summary>一覧に並べる項目を作る（テーマの色を先頭へ置く）。</summary>
@@ -459,7 +527,7 @@ public sealed partial class ColorSelectorControl : UserControl
 
         foreach (var entry in ColorEntry.GetSorted(ColorSortMode))
         {
-            items.Add(new ColorSelectorItem(entry.Name, entry.Name));
+            items.Add(new ColorSelectorItem(entry.Name, entry.Name, ColorSelectorCategory.Named));
         }
 
         return items;
@@ -522,7 +590,7 @@ public sealed partial class ColorSelectorControl : UserControl
 
         var hex = ColorString.ToArgbHex(
             System.Drawing.Color.FromArgb(solid.Color.A, solid.Color.R, solid.Color.G, solid.Color.B));
-        items.Add(new ColorSelectorItem(label, hex));
+        items.Add(new ColorSelectorItem(label, hex, ColorSelectorCategory.Theme));
     }
 
     /// <summary>テーマの資源をブラシとして取得する。</summary>

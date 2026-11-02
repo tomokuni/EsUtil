@@ -19,6 +19,7 @@
 
 ### 追加
 
+- **`ColorSelector`（AvaloniaUI / MewUI / WinUI 3）の一覧を「テーマカラー」と「色名」のタブに分けました**。 テーマの色が 26〜33 色あり、色名と同じ一覧へ混ぜると目的の色を探しにくいためです（▼ の上部で切り替えます。 前回のタブから開き、選べる色が無いタブは開きません）。 並び順（`ColorSortMode`）はタブ「色名」の中だけで効きます。
 - **`ColorSelector`（AvaloniaUI / MewUI / WinUI 3）の一覧の先頭に UI のテーマの色をすべて並べました**（共通の 20 色を同じ名前・同じ順で並べ、その UI にしか無い色を後ろへ足します。 AvaloniaUI 26 色 / MewUI 26 色 / WinUI 3 33 色）。 値はコアの色名の表ではなく**その UI のテーマから解決**するため、明暗の切替とアクセント色の変更に追随します（`ShowThemeColors` で無効化できます）。
 - **`ThumbnailAppearance.BoldSelectedLabel` を追加しました**（既定 `true`）。 選択中の項目の名前を太字にします。 帯だけでは選択が弱いテーマがあるため、名前の太さでも示します（`false` で従来どおり帯だけになります）。
 - **ホスト固有の付加情報を描く手段を 4 UI に揃えました**（Marquee）。 MewUI は `MarqueeRenderedEventArgs.DrawText`、WinUI 3 は `MarqueeRenderedEventArgs.AddText` を追加しました（AvaloniaUI は `Context`、WinForms は `Graphics` を従来どおり使えます）。 WinUI 3 だけ操作ガイドを出せなかった非対称を解消します。
@@ -40,7 +41,7 @@
 - **Marquee のサンプルへ操作ガイドを追加しました**（MewUI / WinUI 3）。 描画部の左上へ「ドラッグで範囲を選択してください」/「選択 W x H」を出す表示が AvaloniaUI / WinForms だけにありました（下地の箱は 4 UI で揃えて廃止）。
 - **WinUI 3 のサンプルのウィンドウを他の UI と同じ 1400 x 900 DIP にしました**。 `AppWindow.Resize` へ DIP の値をそのまま渡していたため、表示倍率の分だけ小さく（125% では 1120 x 720 DIP）開き、ColumnPacking の内容が切れていました（実測 2026-11-02）。 表示倍率を掛けて渡します。
 - **Loupe サンプルの選択矩形の表示を 4 UI で揃えました**。 座標ラベルがルーペの下に潜って文字が欠けていたため、ラベルをルーペより前面へ置き（4 UI とも白 87% の下地を敷く）、枠の見た目もオレンジの破線 + 半透明のオレンジへ統一しました（WinUI 3 は水色の実線 1px でした。 実測 2026-11-02）。
-- **起動構成を UI 層の階層に分けました**（`.vscode/launch.json`）。 `presentation.group` に UI 層（`AvaloniaUI` / `MewUI` / `WinUI3` / `WinForms`）を、`name` に機能名（`ColorSelector` など）を書き、デバッグの一覧が「UI 層 ▸ 機能」の 2 階層で表示されます（`presentation.order` で機能の並びを 4 UI で同じにしました）。
+- **起動構成を見直しました**（`.vscode/launch.json`）。 **VS Code のデバッグ一覧は階層を持てない**ため（`presentation.group` は区切り線を入れるだけで、グループ名を表示せず、同名の構成には `(1)` `(2)` を付ける）、**名前に UI 層を含め**（`AvaloniaUI / ColorSelector`）、`presentation.group` と `presentation.order` は UI 層ごとの区切りと並び順のためだけに使います。
 - **サンプルのアーキテクチャ固定をやめ、AnyCPU にしました**（`PlatformTarget` = `x64` と WinUI 3 の `RuntimeIdentifier` = `win-x64` を `.csproj` から外しました）。 WinUI 3 の自己完結配置（`WindowsAppSDKSelfContained`）は `-r` を渡したとき（publish）だけ有効になり、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。
 
 ## 0.2.0（2026-10-28）

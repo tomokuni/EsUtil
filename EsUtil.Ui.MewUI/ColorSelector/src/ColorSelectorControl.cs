@@ -42,6 +42,24 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>テキスト入力の最小幅（DIP）。</summary>
     private const double TextBoxMinWidth = 120.0;
 
+    /// <summary>一覧の最小幅（DIP）。 タブを切り替えても幅が変わらないようにする。</summary>
+    private const double ListMinWidth = 200;
+
+    /// <summary>一覧の分類を切り替えるタブの幅（DIP）。 2 つを並べたときに一覧の幅と釣り合う値。</summary>
+    private const double CategoryTabWidth = 96;
+
+    /// <summary>直近に選んだ一覧の分類（次に開いたときに同じタブから始める）。</summary>
+    private ColorSelectorCategory _listCategory = ColorSelectorCategory.Theme;
+
+    /// <summary>タブの状態を自分で書いている間かどうか（相手のタブの変化通知で往復しないようにする）。</summary>
+    private bool _switchingCategory;
+
+    /// <summary>一覧の上部のタブ（テーマカラー / 色名）。</summary>
+    private readonly ToggleButton _themeTab = CreateCategoryTab("テーマカラー");
+
+    /// <summary>色名のタブ。</summary>
+    private readonly ToggleButton _namedTab = CreateCategoryTab("色名");
+
     /// <summary>一覧の幅に足す余白（DIP。 枠と、行の文字が端に接しないための余裕）。</summary>
     /// <remarks>行の実寸と項目の余白は実測値であり、端数だけで足りない分を本値が補う（実測 2026-11-02）。</remarks>
     private const double ListWidthAllowance = 8.0;
@@ -173,8 +191,15 @@ public sealed class ColorSelectorControl : Grid
             _ => CreateItemRow(ListFontSize),
             static (view, item, _, _) => ApplyItem(view, item),
             static (_, _, _, _) => { });
+        // 上部のタブ（テーマカラー / 色名）。 分類ごとに一覧を差し替える
+        // （テーマの色が多いため、1 つの一覧へ混ぜると色名を探しにくい）
+        _themeTab.IsChecked(true);
+        _themeTab.OnCheckedChanged(isChecked => OnCategoryTabChanged(ColorSelectorCategory.Theme, isChecked));
+        _namedTab.OnCheckedChanged(isChecked => OnCategoryTabChanged(ColorSelectorCategory.Named, isChecked));
+        var tabStrip = new StackPanel().Horizontal().Spacing(4).Children(_themeTab, _namedTab);
+
         _listPopup = new Popup();
-        _listPopup.Content(_list);
+        _listPopup.Content(new StackPanel().Vertical().Spacing(6).Children(tabStrip, _list));
         _listPopup.Closed += (_, _) => _listButton.Content("▼");
 
         // カラーピッカーは**自身のドロップダウン**を使う（内容を自前のポップアップへ入れると
@@ -486,7 +511,7 @@ public sealed class ColorSelectorControl : Grid
     /// <b>テーマの色は開くたびに解決する</b>: 明暗の切替やアクセント色の変更に追随させるため、値を作り置きしない。<br/>
     /// 解決できない色は並べない。
     /// </remarks>
-    private List<ColorSelectorItem> CreateItems()
+    internal List<ColorSelectorItem> CreateItems()
     {
         var items = new List<ColorSelectorItem>();
         if (ShowThemeColors && Application.IsRunning)
@@ -496,7 +521,7 @@ public sealed class ColorSelectorControl : Grid
 
         foreach (var entry in ColorEntry.GetSorted(_colorSortMode))
         {
-            items.Add(new ColorSelectorItem(entry.Name, entry.Name));
+            items.Add(new ColorSelectorItem(entry.Name, entry.Name, ColorSelectorCategory.Named));
         }
 
         return items;
@@ -558,7 +583,7 @@ public sealed class ColorSelectorControl : Grid
             return;
         }
 
-        items.Add(new ColorSelectorItem(label, ToHex(color)));
+        items.Add(new ColorSelectorItem(label, ToHex(color), ColorSelectorCategory.Theme));
     }
 
     /// <summary>MewUI の色を保存値（<c>#AARRGGBB</c>）にする。</summary>
@@ -576,9 +601,15 @@ public sealed class ColorSelectorControl : Grid
         _applying = true;
         try
         {
-            _list.ItemsSource = ItemsView.Create(entries);
+            var category = entries.Exists(item => item.Category == _listCategory)
+                ? _listCategory
+                : entries.Exists(item => item.Category == ColorSelectorCategory.Theme)
+                    ? ColorSelectorCategory.Theme
+                    : ColorSelectorCategory.Named;
+            var visible = entries.Where(item => item.Category == category).ToList();
+            _list.ItemsSource = ItemsView.Create(visible);
             _list.ItemTemplate = _itemTemplate;
-            ApplyListWidth(entries);
+            ApplyListWidth(visible);
             if (ColorString.TryParse(_selectedColor, out var color, out _))
             {
                 UpdateSelectedIndex(color);
@@ -589,6 +620,50 @@ public sealed class ColorSelectorControl : Grid
             _applying = false;
         }
     }
+
+    /// <summary>一覧の分類（タブ）を切り替える。</summary>
+    /// <param name="category">表示する分類。</param>
+    /// <remarks>
+    /// <b>片方だけが選ばれる</b>: タブは押すたびに状態が反転するため、選ばれた方だけを選んだ状態にし、<br/>
+    /// 一覧は分類で絞り直す（並び順と幅は分類ごとに決まる）。
+    /// </remarks>
+    internal void ApplyCategory(ColorSelectorCategory category)
+    {
+        _listCategory = category;
+
+        // 両方の状態を書くと相手のタブの変化通知も届くため、書き込みの間は通知を無視する
+        _switchingCategory = true;
+        try
+        {
+            _themeTab.IsChecked(category == ColorSelectorCategory.Theme);
+            _namedTab.IsChecked(category == ColorSelectorCategory.Named);
+        }
+        finally
+        {
+            _switchingCategory = false;
+        }
+
+        RefreshList();
+    }
+
+    /// <summary>タブが選ばれたときに分類を切り替える（外れた通知と、自分で書いた通知は無視する）。</summary>
+    /// <param name="category">タブの分類。</param>
+    /// <param name="isChecked">タブが選ばれたかどうか。</param>
+    private void OnCategoryTabChanged(ColorSelectorCategory category, bool isChecked)
+    {
+        if (!isChecked || _switchingCategory || _listCategory == category)
+        {
+            return;
+        }
+
+        ApplyCategory(category);
+    }
+
+    /// <summary>一覧の分類を切り替えるタブを作る。</summary>
+    /// <param name="text">タブの文言。</param>
+    /// <returns>タブ（<see cref="ToggleButton"/>）。</returns>
+    private static ToggleButton CreateCategoryTab(string text)
+        => new ToggleButton { Width = CategoryTabWidth }.Content(text);
 
     /// <summary>一覧の幅を内容（行の実寸）に合わせる。</summary>
     /// <param name="entries">一覧に並べる項目。</param>
@@ -618,7 +693,7 @@ public sealed class ColorSelectorControl : Grid
         }
 
         var padding = _list.ItemPadding;
-        _list.Width = widest + padding.Left + padding.Right + ListWidthAllowance;
+        _list.Width = Math.Max(ListMinWidth, widest + padding.Left + padding.Right + ListWidthAllowance);
     }
 
     /// <summary>テキスト入力が変わったときに色を反映する。</summary>

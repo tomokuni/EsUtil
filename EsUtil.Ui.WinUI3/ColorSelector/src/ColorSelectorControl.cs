@@ -64,6 +64,21 @@ public sealed partial class ColorSelectorControl : Grid
     /// <summary>一覧（ListView）。 項目は 1 件ずつ追加する（AOT の制約）。</summary>
     private readonly ListView _list = new() { SelectionMode = ListViewSelectionMode.Single };
 
+    /// <summary>一覧の上部のタブ（テーマカラー / 色名）。</summary>
+    private readonly ToggleButton _themeTab = CreateCategoryTab("テーマカラー");
+
+    /// <summary>色名のタブ。</summary>
+    private readonly ToggleButton _namedTab = CreateCategoryTab("色名");
+
+    /// <summary>直近に選んだ一覧の分類（次に開いたときに同じタブから始める）。</summary>
+    private ColorSelectorCategory _listCategory = ColorSelectorCategory.Theme;
+
+    /// <summary>一覧の最小幅（DIP）。 タブを切り替えても幅が変わらないようにする。</summary>
+    private const double ListMinWidth = 240;
+
+    /// <summary>一覧の分類を切り替えるタブの幅（DIP）。</summary>
+    private const double CategoryTabWidth = 96;
+
     /// <summary>一覧に並べた色（添字は <see cref="_list"/> の項目と一致する）。</summary>
     /// <summary>一覧の項目（表示名と適用値）。</summary>
     private IReadOnlyList<ColorSelectorItem> _entries = [];
@@ -209,7 +224,27 @@ public sealed partial class ColorSelectorControl : Grid
         CornerRadius = new CornerRadius(4);
 
         _list.SelectionChanged += OnListSelectionChanged;
-        _listFlyout.Content = new ScrollViewer { Content = _list, MaxHeight = 360 };
+        // 上部のタブ（テーマカラー / 色名）。 分類ごとに一覧を差し替える
+        // （テーマの色が多いため、1 つの一覧へ混ぜると色名を探しにくい）
+        _themeTab.IsChecked = true;
+        _themeTab.Click += (_, _) => ApplyCategory(ColorSelectorCategory.Theme);
+        _namedTab.Click += (_, _) => ApplyCategory(ColorSelectorCategory.Named);
+
+        _list.MinWidth = ListMinWidth;
+        _listFlyout.Content = new StackPanel
+        {
+            Spacing = 6,
+            Children =
+            {
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 4,
+                    Children = { _themeTab, _namedTab },
+                },
+                new ScrollViewer { Content = _list, MaxHeight = 360 },
+            },
+        };
 
         BuildPickerFlyout();
 
@@ -430,7 +465,7 @@ public sealed partial class ColorSelectorControl : Grid
     /// <b>テーマの色は開くたびに解決する</b>: 明暗の切替やアクセント色の変更に追随させるため、値を作り置きしない。<br/>
     /// 解決できない色（地色が無い等）は並べない。
     /// </remarks>
-    private List<ColorSelectorItem> CreateItems()
+    internal List<ColorSelectorItem> CreateItems()
     {
         var items = new List<ColorSelectorItem>();
         if (ShowThemeColors)
@@ -440,7 +475,7 @@ public sealed partial class ColorSelectorControl : Grid
 
         foreach (var entry in ColorEntry.GetSorted(_colorSortMode))
         {
-            items.Add(new ColorSelectorItem(entry.Name, entry.Name));
+            items.Add(new ColorSelectorItem(entry.Name, entry.Name, ColorSelectorCategory.Named));
         }
 
         return items;
@@ -505,7 +540,9 @@ public sealed partial class ColorSelectorControl : Grid
         }
 
         items.Add(new ColorSelectorItem(
-            label, ColorString.ToArgbHex(DrawingColor.FromArgb(solid.Color.A, solid.Color.R, solid.Color.G, solid.Color.B))));
+            label,
+            ColorString.ToArgbHex(DrawingColor.FromArgb(solid.Color.A, solid.Color.R, solid.Color.G, solid.Color.B)),
+            ColorSelectorCategory.Theme));
     }
 
     /// <summary>テーマの資源をブラシとして取得する。</summary>
@@ -548,14 +585,51 @@ public sealed partial class ColorSelectorControl : Grid
         }
     }
 
+    /// <summary>一覧の分類（タブ）を切り替える。</summary>
+    /// <param name="category">表示する分類。</param>
+    /// <remarks>
+    /// <b>片方だけが選ばれる</b>: タブは押すたびに状態が反転するため、選ばれた方だけを選んだ状態にしてから<br/>
+    /// 一覧を作り直す（作り直しの前に状態を書くと、相手のタブの通知で往復する）。
+    /// </remarks>
+    internal void ApplyCategory(ColorSelectorCategory category)
+    {
+        _listCategory = category;
+        _themeTab.IsChecked = category == ColorSelectorCategory.Theme;
+        _namedTab.IsChecked = category == ColorSelectorCategory.Named;
+        RefreshList();
+    }
+
+    /// <summary>一覧の分類を切り替えるタブを作る。</summary>
+    /// <param name="text">タブの文言。</param>
+    /// <returns>タブ（<see cref="ToggleButton"/>）。</returns>
+    private static ToggleButton CreateCategoryTab(string text)
+        => new() { Content = text, Width = CategoryTabWidth };
+
     /// <summary>一覧を作り直す（項目は 1 件ずつ追加する）。</summary>
     private void RefreshList()
     {
-        _entries = CreateItems();
+        var items = CreateItems();
+        var category = items.Any(item => item.Category == _listCategory)
+            ? _listCategory
+            : items.Any(item => item.Category == ColorSelectorCategory.Theme)
+                ? ColorSelectorCategory.Theme
+                : ColorSelectorCategory.Named;
+
+        // タブの状態は解決した分類へ合わせる（空のタブを選んだままにしない）
+        _themeTab.IsChecked = category == ColorSelectorCategory.Theme;
+        _namedTab.IsChecked = category == ColorSelectorCategory.Named;
+        _listCategory = category;
+        _entries = [.. items.Where(item => item.Category == category)];
         _list.Items.Clear();
         foreach (var entry in _entries)
         {
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            // 右端に余白を残す（一覧の幅が内容ぴったりになり、長い名前の末尾が切れるため）
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 6,
+                Margin = new Thickness(0, 0, 10, 0),
+            };
             row.Children.Add(new Border
             {
                 Width = 14,

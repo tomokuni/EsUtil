@@ -145,4 +145,24 @@ public class ColorSelectorControlTests
 
         Assert.True(control.HighlightBorderOnError);
     }
+
+    /// <summary>テーマの色と色名が分類で分かれることを検証する。</summary>
+    /// <remarks>
+    /// 一覧は上部のタブ（テーマカラー / 色名）で分類を切り替える。 テーマの色は数が多いため、<br/>
+    /// 色名と同じ一覧へ混ぜると目的の色を探しにくい。 分類と表示名が同じ出所から決まることも確かめる。
+    /// </remarks>
+    [Fact]
+    internal void 一覧の項目はテーマの色と色名に分かれる()
+    {
+        var control = new ColorSelectorControl();
+
+        var items = control.CreateItems();
+
+        Assert.All(
+            items,
+            item => Assert.Equal(
+                item.Label.StartsWith("テーマ:", StringComparison.Ordinal),
+                item.Category == ColorSelectorCategory.Theme));
+        Assert.Contains(items, item => item.Category == ColorSelectorCategory.Named && item.Value == "Red");
+    }
 }

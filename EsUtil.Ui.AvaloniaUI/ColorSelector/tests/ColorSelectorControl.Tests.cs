@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -124,6 +125,54 @@ public class ColorSelectorControlTests
         Assert.All(
             control.CreateItems().Where(item => item.Label.StartsWith("テーマ:", StringComparison.Ordinal)),
             item => Assert.Matches("^#[0-9A-F]{8}$", item.Value));
+    }
+
+    /// <summary>一覧がテーマカラーと色名のタブに分かれることを検証する。</summary>
+    /// <remarks>
+    /// テーマの色は数が多いため、色名と同じ一覧へ混ぜると目的の色を探しにくい。<br/>
+    /// タブで分類を切り替え、一覧はその分類の項目だけを持つ。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 一覧はテーマカラーと色名のタブに分かれる()
+    {
+        var control = CreateControl();
+        var flyout = control.CreateListFlyout();
+
+        Assert.NotNull(flyout);
+        var root = Assert.IsType<StackPanel>(flyout.Content);
+
+        // 1 段目がタブ、2 段目が一覧
+        var tabs = Assert.IsType<StackPanel>(root.Children[0]);
+        var list = Assert.IsType<ListBox>(root.Children[1]);
+        Assert.Equal(2, tabs.Children.Count);
+        Assert.Equal("テーマカラー", Assert.IsType<ToggleButton>(tabs.Children[0]).Content);
+        Assert.Equal("色名", Assert.IsType<ToggleButton>(tabs.Children[1]).Content);
+
+        // 開いた直後はテーマカラー（テーマの色だけが並ぶ）
+        var themeItems = Assert.IsAssignableFrom<IEnumerable<ColorSelectorItem>>(list.ItemsSource).ToArray();
+        Assert.NotEmpty(themeItems);
+        Assert.All(themeItems, item => Assert.Equal(ColorSelectorCategory.Theme, item.Category));
+
+        // 色名のタブへ切り替えると色名だけが並ぶ
+        Assert.IsType<ToggleButton>(tabs.Children[1]).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var namedItems = Assert.IsAssignableFrom<IEnumerable<ColorSelectorItem>>(list.ItemsSource).ToArray();
+        Assert.NotEmpty(namedItems);
+        Assert.All(namedItems, item => Assert.Equal(ColorSelectorCategory.Named, item.Category));
+        Assert.Contains(namedItems, item => item.Value == "Red");
+    }
+
+    /// <summary>項目の分類が名前と食い違わないことを検証する。</summary>
+    /// <remarks>テーマの色だけが「テーマ:」で始まる（タブの分類と表示名が同じ出所から決まる）。</remarks>
+    [AvaloniaFact]
+    internal void テーマの色だけがテーマの接頭辞を持つ()
+    {
+        var control = CreateControl();
+
+        foreach (var item in control.CreateItems())
+        {
+            var isThemeLabel = item.Label.StartsWith("テーマ:", StringComparison.Ordinal);
+            Assert.Equal(isThemeLabel, item.Category == ColorSelectorCategory.Theme);
+        }
     }
 
     /// <summary>テスト用の <see cref="ColorSelectorControl"/> を生成する。</summary>
