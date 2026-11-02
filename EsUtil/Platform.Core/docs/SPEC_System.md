@@ -148,7 +148,7 @@ graph LR
 | キーとウィンドウ状態 | `Avalonia.Input.Key` / `Avalonia.Controls.WindowState` と**メンバー名を一致**させ、名前ベースの変換で相互変換する（既存の設定ファイルをそのまま読み込める） |
 | 座標・寸法 | `Avalonia.Point` / `Size` / `Vector` → `EsPoint` / `EsSize` / `EsVector` へ統一し、UI 境界で 1 行変換する |
 | 色 | `System.Drawing.Color`（共有フレームワーク同梱でクロスプラットフォーム。 `System.Drawing.Common` ではない）を使い、UI の色型への変換は境界で行う |
-| Skia の描画プリミティブ | SkiaSharp は外部パッケージであるため、Skia に依存する型（描画ポートの適合・ビットマップの相互変換・テキスト測定）は Skia を使用する上位層が単一所有する（本プロジェクトは SkiaSharp を参照しない） |
+| Skia の描画プリミティブ | Skia に依存する型（描画ポートの適合・ビットマップの相互変換・テキスト測定）は、Skia を使用する上位層が単一所有する |
 | 描画の契約 | 描画計画を担う上位の層が単一所有する（本プロジェクトは参照される側であり、それらを参照しない） |
 | ロガー | 本プロジェクトはロガーを扱わない（外部パッケージを参照しない）。 ログの取得と記録は呼び出し側の層が所有する |
 
@@ -213,7 +213,7 @@ internal static partial int CreateStreamOnHGlobal(IntPtr memory, int deleteOnRel
 - **`[GeneratedComInterface]` を関数へは付けられない**（実測 2026-10-22: `CS0592: 属性 'GeneratedComInterface' はこの宣言型では無効です。'インターフェイス' 宣言でのみ有効です。`）。 `CoCreateInstance` / `CreateStreamOnHGlobal` は **vtable を持たないエクスポートされた C 関数**であるため、COM インターフェイスの宣言機構（`[GeneratedComInterface]`）の対象外である。 対象になるのは**その `out` が指す先の型**（`IWICImagingFactory` / `IStream`）であり、そこには既に付けてある。
 - **`[GeneratedComInterface]` の型を `[LibraryImport]` の引数にすると、ソース生成された `ComInterfaceMarshaller<T>`（`ComWrappers` ベース）が変換する**（`IStream` は本ライブラリが `[GeneratedComInterface]` で定義済み。 §4）。
   実測 2026-10-21: **JIT と Native AOT の両方で `CoCreateInstance` / `CreateStreamOnHGlobal` が成功し、返った型のメソッド（`Write` / `Stat`）をそのまま呼べた**（AOT は `dotnet publish -p:PublishAot=true -r win-x64` の実行で確認）。
-- **生ポインターを扱わない**: `void**` を受けず、`StrategyBasedComWrappers.GetOrCreateObjectForComInstance` の手動呼び出しもキャストも要らない。 そのため `WinWicFactory` から `Wrappers` を削除した。
+- **生ポインターを扱わない**: `void**` を受けず、`StrategyBasedComWrappers.GetOrCreateObjectForComInstance` の手動呼び出しもキャストも要らない（`WinWicFactory` は `Wrappers` を持たない）。
 - **API 単位の切り替えはできない**: `CoCreateInstance(allowMarshaling=false)` のように行へ書くと `PInvoke001`（「その名前の API は無い」）で拒否される（実測）。 `NativeMethods.json` は 1 プロジェクト 1 つのため、2 件のためだけに全体を切り替えることはしない。
 - **.NET 側に AOT 安全な代替は無い**: `Type.GetTypeFromCLSID` / `Activator.CreateInstance` / `Marshal.GetObjectForIUnknown` はいずれもクラシック相互運用であり AOT で失敗する（実測）。 COM の起動は `CoCreateInstance` を直接呼ぶしかない。
 - **`[LibraryImport]` の宣言だけを書く**ため、`DllImport` の手書きマーシャリング（`MarshalAs` の列など）は発生しない。 文字列・構造体・コールバックの生成は CsWin32 のままである。
@@ -273,4 +273,4 @@ internal static partial int CreateStreamOnHGlobal(IntPtr memory, int deleteOnRel
 
 **画像のファイル入出力（`EsBitmap.Save` / `EsReadOnlyBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`）は Windows 専用のメンバーです**（画像型のメンバーであり、実体は `EsImageCodec` と `EsUtil/Platform.Core/src/Native/Win` の `WinWicImageCodec` が担います）。 型そのものは可搬であり、これらのメンバーだけが `SupportedOSPlatform("windows")` で限定されます（非 Windows では `DllNotFoundException`。 判断の詳細は §7.1）。
 
-**Skia は「外部パッケージ」に該当するため、本プロジェクトは SkiaSharp に依存しません**（Skia への依存は Skia を使用する上位層が単一所有します）。
+**Skia に依存する型（描画ポートの適合・ビットマップの相互変換・テキスト測定）は、Skia を使用する上位層が単一所有します**。

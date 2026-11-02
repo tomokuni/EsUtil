@@ -4,7 +4,6 @@
 
 - [1. 概要](#1-概要)
 - [2. 実行方法](#2-実行方法)
-  - [2.1 バッチファイル（リリースビルド＆起動）](#21-バッチファイルリリースビルド起動)
 - [3. 操作方法](#3-操作方法)
 - [4. 検証項目（動作確認チェックリスト）](#4-検証項目動作確認チェックリスト)
 - [5. 構成](#5-構成)
@@ -37,20 +36,11 @@ dotnet run --project EsUtil.Ui.MewUI/Marquee/sample/EsUtil.Ui.MewUI.Marquee.Samp
 dotnet run -c Release --project EsUtil.Ui.MewUI/Marquee/sample/EsUtil.Ui.MewUI.Marquee.Sample.csproj
 ```
 
-### 2.1 バッチファイル（リリースビルド＆起動）
-
-`EsUtil.Ui.MewUI/Marquee/sample/RunSample.bat` をダブルクリックすると、リリースビルドを行った後、サンプルアプリケーションを起動します。
-
-```text
-RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil.Ui.MewUI.Marquee.Sample.exe を起動
-```
-
-> 本サンプルは独立したプロジェクトです（`sample/` はコントロール本体のプロジェクト フォルダの外にあり、本体の `csproj` のコンパイル対象には含まれません）。
-
 ## 3. 操作方法
 
 | 操作 | 内容 |
 | --- | --- |
+| 「表示テーマ」を切り替える | サンプル共通の設定行（`SampleTheme`）。 コントロールはフレームワークのテーマから明暗を読むため、指定は不要 |
 | 左ドラッグ | 新規選択（ハンドルの上からはリサイズ・移動） |
 | 矢印キー | nudge（対象1Pixel移動。 領域作成前は始点決めとして常に有効、領域作成後は**マウスボタン押下中のみ**有効。 十字マーカーはドラッグ中のハンドル位置に表示） |
 | Enter / Escape | 確定要求 / キャンセル要求（イベントとログで確認できる） |
@@ -90,7 +80,6 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 ```text
 EsUtil.Ui.MewUI/Marquee/sample/
 ├── EsUtil.Ui.MewUI.Marquee.Sample.csproj  # サンプルアプリのプロジェクト（net10.0-windows10.0.17763.0 / MewUI 0.22.1）
-├── RunSample.bat                # リリースビルド＆起動
 ├── Program.cs                   # エントリポイント（バックエンドとプラットフォーム ホストの登録）
 ├── Imaging/
 │   └── TestImageFactory.cs      # 背景画像生成（グラデーション＋グリッド＋マーカー）
@@ -128,11 +117,11 @@ EsUtil.Ui.MewUI/Marquee/sample/
 | ズームの操作 | スライダーと Ctrl+マウス ホイール（0.1〜5.0 倍） | Ctrl+マウス ホイールのみ（0.1〜5.0 倍） |
 | 表示領域のパン | 通常ホイール（`ScrollViewer` へ自分で転送する）とスクロール バー | 通常ホイール（`ScrollViewer` が標準で処理）とスクロール バー |
 | nudge の前提 | クリックでコントロールへフォーカスを与える（フォーカスが必要） | TopLevel の購読によりフォーカス不要 |
-| 選択状態の表示 | 選択矩形の座標を画面に表示する | ログ（`[Event]` 行）に表示する |
+| 選択状態の表示 | 選択矩形の座標を状態表示へ出す（`選択: x=…, y=…, w=…, h=…`） | 同じく状態表示へ出す（`選択 x …`） |
 | 実行ファイルの対象 | `net10.0-windows10.0.17763.0`（Win32 のウィンドウ連携を使う） | `net10.0-windows10.0.17763.0`（`Avalonia.Desktop` を使う） |
 
 **マウス ホイールの配送が両者で異なります**: Avalonia は祖先へバブルするため `ScrollViewer` が標準で処理しますが、MewUI はポインター下の要素（本サンプルではマーキー）が受け取るため、サンプルが `ScrollViewer.ScrollBy` へ転送しています（コントロール本体は、どちらの版もホイールを扱いません）。
 
 nudge（矢印キー）の許可条件（領域作成後は**マウス押下中のみ**）はコアの規則であり、両サンプルで同じです（押下を離した後の矢印キーは効きません）。
 
-`LoupePositionMoved`（ルーペ位置の通知）は両サンプルともログへ出すだけで、ルーペは表示しません（組み込み先のアプリがルーペを追従表示します）。
+`LoupePositionMoved`（ルーペ位置の通知）はどちらのサンプルも表示するだけで、ルーペは描きません（組み込み先のアプリがルーペを追従表示します）。 表示先は UI 層で異なり、本サンプルはログ、Avalonia 版・WinUI 3 版・WinForms 版は状態表示（`追従位置: X=… Y=…`）へ出します。

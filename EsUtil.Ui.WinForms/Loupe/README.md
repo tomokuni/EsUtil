@@ -8,7 +8,7 @@
 ![WinForms](https://img.shields.io/badge/UI-WinForms-512BD4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-他の UI 版と同一の **UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、描画を **System.Drawing（GDI+）** で行うルーペ（拡大鏡）コントロールです。
+他の UI 版と同一の **UI 非依存の機能アセンブリ（`EsUtil.Feature.Loupe.Core`。 コアと提示層）** を使い、描画を **System.Drawing（GDI+）** で行うルーペ（拡大鏡）コントロールです。
 
 ## 目次 <!-- omit from toc -->
 
@@ -30,14 +30,14 @@
 
 ## 1. 概要
 
-ルーペのロジック（数値の安全域補正・切り出し領域の計算・表示レイアウト）は `EsUtil.Feature.Loupe.Core` が、描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（色・枠線の太さ・表示可否）は提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance`）が所有します。
+ルーペのロジック（数値の安全域補正・切り出し領域の計算・表示レイアウト）は `EsUtil.Feature.Loupe.Core` が、描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（色・枠線の太さ・表示可否）は提示層（`EsUtil.Feature.Loupe.Core` の `LoupePresenter` / `LoupeAppearance`）が所有します。
 本プロジェクトはその計画を **GDI+ の描画面へ写すだけ** の層です。 そのため他の UI 版と**同じ設定・同じ見た目**になり、同じ外観の設定を各 UI で共用できます。 層構成（Core / Presenter / UI）の全体像は [`EsUtil/README.md`](../../EsUtil/README.md) を参照してください。
 
 ---
 
 ## 2. 機能一覧
 
-- コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）を他の UI 版と共有する（同じ設定・同じ見た目）
+- 機能アセンブリ（`EsUtil.Feature.Loupe.Core`。 コアと提示層）を他の UI 版と共有する（同じ設定・同じ見た目）
 - 拡大元はコアの画像（`EsReadOnlyBitmap`）を受け取る（GDI+ の `Bitmap` は受け付けない。 変換はホストが行う）
 - 1〜64 倍の拡大表示と、画像外（ペーストボード）の色
 - 十字線・枠線・中心座標ラベルの表示（色・太さ・表示可否は `Appearance`）
@@ -53,11 +53,9 @@
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.17763.0`（`UseWindowsForms`。 Windows 専用） |
 | 対応 OS | Windows 10 バージョン 1809（ビルド 17763）以降 |
-| 描画 API | GDI+（`System.Drawing`。 **SkiaSharp を使わない**） |
+| 描画 API | GDI+（`System.Drawing`） |
 | Native AOT | 非対応（Windows Forms 自体がトリミング/AOT に対応しない。 `PublishAot` は `NETSDK1175` で失敗する） |
-| 評価版の制限 | なし（パッケージは `EsUtil.Feature.Loupe.Presenter` / `EsUtil.Platform.Core` と `Microsoft.Extensions.Logging.Abstractions` のみを参照する） |
-
-**SkiaSharp を使わない理由**: `SkiaSharp.Views.WindowsForms`（4.153.1）は `net10.0-windows10.0.19041` 向けの資産を持ち、`net10.0-windows10.0.17763.0`（= `net10.0-windows7.0`）では .NET Framework 向けの資産へフォールバックして復元に失敗します（実測: `NU1701`）。 対象フレームワークの方針（WinForms は Windows の版を含めない）と併せ、本プロジェクトは WinForms 自身の描画 API（GDI+）で描きます。
+| 評価版の制限 | なし（パッケージは `EsUtil.Feature.Loupe.Core` / `EsUtil.Platform.Core` と `Microsoft.Extensions.Logging.Abstractions` のみを参照する） |
 
 ---
 
@@ -143,7 +141,7 @@ loupe.Rendered += (_, e) =>
 | 矩形で並べられる装飾（十字線・枠線）とラベルの文言・位置 | `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）を設定する（計画の値の置き換え） |
 | 矩形で表せない描画（円・斜線等） | `Appearance` の `Show*` を false にして `Rendered` で受け取る描画面へ自前で描く（`DrawPlan` を持つ UI 版では計画どおりの描画も呼べる） |
 
-描画計画（`LoupeDrawPlan`）と外観（`LoupeAppearance`）は `EsUtil.Feature.Loupe.Presenter` が単一所有し、4 つの UI 版で共通です。 UI が持つのは UI フレームワーク固有の描画 API の呼び出しだけです（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
+描画計画（`LoupeDrawPlan`）と外観（`LoupeAppearance`）は `EsUtil.Feature.Loupe.Core` が単一所有し、4 つの UI 版で共通です。 UI が持つのは UI フレームワーク固有の描画 API の呼び出しだけです（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
 
 ---
 
@@ -194,7 +192,7 @@ dotnet run --project EsUtil.Ui.WinForms/Loupe/sample/EsUtil.Ui.WinForms.Loupe.Sa
 ## 10. ドキュメント
 
 - [共有する UI 非依存ロジック](../../EsUtil/Feature.Loupe.Core/README.md)
-- [共有する UI 非依存の描画層](../../EsUtil/Feature.Loupe.Presenter/README.md)
+- [共有する UI 非依存の描画層](../../EsUtil/Feature.Loupe.Core/README.md)
 - [対になる Avalonia UI 版ルーペ](../../EsUtil.Ui.AvaloniaUI/Loupe/README.md)
 - [対になる MewUI 版ルーペ](../../EsUtil.Ui.MewUI/Loupe/README.md)
 - [サンプルアプリケーション](sample/README.md)

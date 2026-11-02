@@ -18,7 +18,7 @@ public class ThumbnailTileTests
     [AvaloniaFact]
     internal void Apply_名前行の文言を計画の値へ置き換える()
     {
-        var tile = new ThumbnailTile(null, "capture-0123456789.png", null, null, isCurrent: false);
+        var tile = new ThumbnailTile(null, "capture-0123456789.png", null, null);
         var plan = CreatePlan("captu....png");
 
         tile.Apply(plan, ThumbnailOptions.Default);
@@ -30,7 +30,7 @@ public class ThumbnailTileTests
     [AvaloniaFact]
     internal void ツールチップに省略していない名前を設定する()
     {
-        var tile = new ThumbnailTile(null, "capture-0123456789.png", null, null, isCurrent: false);
+        var tile = new ThumbnailTile(null, "capture-0123456789.png", null, null);
 
         var tip = ToolTip.GetTip(tile) as TextBlock;
 
@@ -42,7 +42,7 @@ public class ThumbnailTileTests
     [AvaloniaFact]
     internal void ツールチップに付加情報を併記する()
     {
-        var tile = new ThumbnailTile(null, "capture-0001.png", "生成した画像 1", null, isCurrent: false);
+        var tile = new ThumbnailTile(null, "capture-0001.png", "生成した画像 1", null);
 
         var tip = ToolTip.GetTip(tile) as TextBlock;
 
@@ -78,6 +78,6 @@ public class ThumbnailTileTests
         var label = new ThumbnailLabelPlan(labelText, new EsRect(0, 90, 120, 30), 11, false, 0, 1);
 
         return new ThumbnailDrawPlan(
-            0, slot, image, image, label, [], 0, null, false, false, false);
+            0, slot, image, image, label, [], ThumbnailHighlightKind.None, null, false, false);
     }
 }

@@ -62,7 +62,7 @@ public sealed class MainWindow : Window
     /// <summary>ウィンドウを初期化する。</summary>
     public MainWindow()
     {
-        Title = "MarqueeControl サンプル（AvaloniaUI）";
+        Title = "Marquee サンプル (AvaloniaUI)";
         Width = 1400;
         Height = 900;
         MinWidth = 900;
@@ -107,10 +107,11 @@ public sealed class MainWindow : Window
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
         };
 
-        void Write(string line)
+        void Write(string line, LogLevel level = LogLevel.Debug)
         {
-            // 文字列をそのまま記録する（テンプレート解析も引数の評価もしない）
-            logger.Log(LogLevel.Information, default, line, null, static (state, _) => state);
+            // 文字列をそのまま記録する（テンプレート解析も引数の評価もしない）。
+            // 設定の変更は Information、状態の変化は Debug、高頻度の値は Trace（ログ規約 §2）
+            logger.Log(level, default, line, null, static (state, _) => state);
         }
 
         void UpdateStatus(MarqueeSnapshot snapshot)
@@ -124,7 +125,12 @@ public sealed class MainWindow : Window
         }
 
         _marquee.SelectionStarted += (_, e) => Write($"開始: ({e.Point.X:0.#}, {e.Point.Y:0.#})");
-        _marquee.SelectionChanged += (_, e) => UpdateStatus(e.Snapshot);
+        _marquee.SelectionChanged += (_, e) =>
+        {
+            // ドラッグ中は毎フレーム届くため Trace（既定の表示レベルでは出さない）
+            Write($"選択中: ({e.Rect.X:0.#}, {e.Rect.Y:0.#}) {e.Rect.Width:0.#}x{e.Rect.Height:0.#}", LogLevel.Trace);
+            UpdateStatus(e.Snapshot);
+        };
         _marquee.SelectionCompleted += (_, e) =>
         {
             Write($"確定可能: ({e.Rect.X:0.#}, {e.Rect.Y:0.#}) {e.Rect.Width:0.#}x{e.Rect.Height:0.#}");
@@ -133,7 +139,12 @@ public sealed class MainWindow : Window
         _marquee.SelectionCancelled += (_, _) => Write("キャンセル（選択が解除された）");
         _marquee.ConfirmRequested += (_, e) => Write($"確定要求: ({e.Rect.X:0.#}, {e.Rect.Y:0.#})");
         _marquee.CancelRequested += (_, _) => Write("キャンセル要求");
-        _marquee.LoupePositionMoved += (_, e) => _status.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
+        _marquee.LoupePositionMoved += (_, e) =>
+        {
+            // ポインター移動のたびに届く高頻度の値であるため Trace（トレース有効時だけ記録する）
+            Write($"ルーペ位置: ({e.Point.X:0.#}, {e.Point.Y:0.#})", LogLevel.Trace);
+            _status.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
+        };
         _marquee.Rendered += (_, e) =>
         {
             var content = e.Content;
@@ -156,6 +167,8 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
+                // ハイライトはコントロールのプロパティ（HighlightSourceRect）を切り替える操作である
+                SampleSettings.Buttons(("ハイライト矩形を設定/解除", ToggleHighlight)),
                 SampleSettings.Slider("ズーム", zoom, MinZoom, MaxZoom, 0.1, false, value =>
                 {
                     zoom = value;
@@ -202,8 +215,7 @@ public sealed class MainWindow : Window
             },
         };
 
-        // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
-        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel
         {
             Spacing = 6,
@@ -231,7 +243,6 @@ public sealed class MainWindow : Window
                     TextWrapping = TextWrapping.Wrap,
                 },
                 SampleSettings.Buttons(
-                    ("ハイライト切替", ToggleHighlight),
                     ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
                 _status,
             },
@@ -264,7 +275,7 @@ public sealed class MainWindow : Window
             _marquee.HighlightSourceRect = detected;
             Write(string.Create(
                 CultureInfo.InvariantCulture,
-                $"ハイライト（表示専用の注目）: ({detected.X:0.#}, {detected.Y:0.#}) {detected.Width:0.#}x{detected.Height:0.#}（ハイライト中は操作できない）"));
+                $"ハイライト（表示専用の注目）: ({detected.X:0.#}, {detected.Y:0.#}) {detected.Width:0.#}x{detected.Height:0.#} / 選択は {_marquee.SelectionSourceRect.X:0.#}, {_marquee.SelectionSourceRect.Y:0.#} {_marquee.SelectionSourceRect.Width:0.#}x{_marquee.SelectionSourceRect.Height:0.#} のまま（ハイライト中は操作できない）"));
         }
 
         // 外観を更新してコントロールへ反映する

@@ -108,9 +108,8 @@ public sealed class MainWindow : Window
         };
 
         var log = new SampleLogPanel(_logging.Buffer);
-        Title = "ColumnPacking パネル サンプル（WinUI 3）";
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 900));
-        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        Title = "ColumnPacking サンプル (WinUI 3)";
+        // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel
         {
             Spacing = 6,
@@ -121,6 +120,9 @@ public sealed class MainWindow : Window
         };
 
         Content = SampleShell.CreateContent(properties, methods, samples, contentArea, log);
+
+        // ウィンドウの大きさは DIP で指定する（他の UI と同じ 1400 x 900）
+        SampleShell.ApplyWindowSize(this);
 
         _panel.SizeChanged += (_, _) => UpdateStatus();
         UpdateStatus();
@@ -194,6 +196,10 @@ public sealed class MainWindow : Window
     /// <param name="text">表示する文言。</param>
     /// <param name="height">高さ（DIP）。</param>
     /// <returns>作った要素。</returns>
+    /// <remarks>
+    /// <b>文字色も固定する理由</b>: タイルの地色は明るい色で固定している。 文字色をテーマの既定（ダークでは白）に任せると、
+    /// 明るい地色の上で読めなくなる（実測 2026-11-01）。
+    /// </remarks>
     private static Border CreateDirectChild(string text, double height)
         => new()
         {
@@ -202,6 +208,12 @@ public sealed class MainWindow : Window
             BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xFB, 0x8C, 0x00)),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
-            Child = new TextBlock { Text = text, Margin = new Thickness(8, 4, 8, 4), VerticalAlignment = VerticalAlignment.Center },
+            Child = new TextBlock
+            {
+                Text = text,
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0x20, 0x20, 0x20)),
+                Margin = new Thickness(8, 4, 8, 4),
+                VerticalAlignment = VerticalAlignment.Center,
+            },
         };
 }

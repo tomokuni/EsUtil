@@ -6,7 +6,8 @@
     xmlns:sample="using:EsUtil.Ui.WinUI3.ColumnPacking.Sample">
 
     <!-- ItemsSource から子を作るときの見た目（データ駆動の子は青、直接の子は橙）。
-         DataContext を外から設定するため、x:Bind ではなく Binding を使う（x:Bind は DataTemplate を ItemsControl が適用する前提） -->
+         DataContext を外から設定するため、x:Bind ではなく Binding を使う（x:Bind は DataTemplate を ItemsControl が適用する前提）。
+         地色を明るい色で固定しているため、文字色も固定する（テーマの既定はダークで白になり、明るい地色の上で読めない） -->
     <DataTemplate x:Key="SampleItemTemplate" x:DataType="sample:SampleItem">
         <Border
             Height="{Binding Height}"
@@ -17,6 +18,7 @@
             <TextBlock
                 Margin="8,4,8,4"
                 VerticalAlignment="Center"
+                Foreground="#FF202020"
                 Text="{Binding Label}" />
         </Border>
     </DataTemplate>

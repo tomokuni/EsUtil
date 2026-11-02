@@ -59,4 +59,4 @@ graph LR
 
 ## 7. 実装上の注意
 
-- 描画は Composition を使います（Skia を使いません）。
+- 描画は Composition を使います。

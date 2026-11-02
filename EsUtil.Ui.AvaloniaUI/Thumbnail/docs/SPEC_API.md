@@ -18,7 +18,7 @@ Avalonia UI 版のサムネイル一覧コントロールが提供する公開 A
 
 - 対象フレームワークは `net10.0` で、`Avalonia` を参照します（バージョンの範囲は本体のプロジェクト ファイルが単一所有します）。
 - 画像は **`Avalonia.Media.IImage`** で受け取ります（コアの画像型は受け取りません。 変換はホストが行います）。
-- 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Presenter` が単一所有します。 本コントロールは入力の受付・スクロール・要素の配置だけを行います。
+- 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Core` が単一所有します。 本コントロールは入力の受付・スクロール・要素の配置だけを行います。
 - 単位は **DIP** です。
 
 ## 2. 公開 API
@@ -39,7 +39,6 @@ Avalonia UI 版のサムネイル一覧コントロールが提供する公開 A
 | --- | --- | --- |
 | `ThumbnailControl()` | ctor | 生成 |
 | `SelectionChanged` | event | 選択中の添字が変わったときに発生する |
-| `CurrentIndexChanged` | event | 現在項目（名前を太字で示す項目）の添字が変わったときに発生する |
 | `ItemActivated` | event | 項目が 2 回押されたときに発生する（`ThumbnailActivatedEventArgs`） |
 | `Presentation` | property（get） | 提示層（設定・外観・描画計画の解決）。 派生した提示を使う場合は `Options` / `Appearance` ではなく本プロパティを設定する |
 | `Options` | property | 計算に必要な設定（既定は `ThumbnailOptions.Default`）。 設定すると自動で配置を解き直す |
@@ -47,17 +46,16 @@ Avalonia UI 版のサムネイル一覧コントロールが提供する公開 A
 | `ImageWidth` | property | 画像の幅（DIP）。 **0 以下の指定は既定の下限へ引き上げられる**。 変更すると計測が無効化され、配置を解き直す |
 | `ItemCount` | property（get） | 項目数 |
 | `SelectedIndex` | property | 選択中の添字。 範囲外と -1 は選択の解除 |
-| `CurrentIndex` | property | 現在項目（名前を太字で示す項目）の添字。 選択とは別の状態（範囲外と -1 は「現在項目なし」） |
 | `VisibleRange` | property（get） | ビューポートと交差する項目の範囲。 項目が無い場合は空 |
 | `SlotBounds(int index)` | method | 項目の枠線の矩形（内容の座標）。 範囲外は `EsRect.Empty` |
 | `ClearItems()` | method | 一覧を空にする |
-| `Add(IImage? image, string caption, string? toolTip = null, bool isCurrent = false, object? tag = null)` | method | サムネイルを 1 件追加し、追加した添字を返す |
+| `Add(IImage? image, string caption, string? toolTip = null, object? tag = null)` | method | サムネイルを 1 件追加し、追加した添字を返す |
 | `SetImage(int index, IImage? image)` | method | 項目の画像を差し替える（null は画像を消す）。 範囲外は何もしない |
 | `SetCaption(int index, string caption)` | method | 項目の名前を差し替える |
 | `ScrollToIndex(int index)` | method | 項目を表示領域へスクロールする |
 | `Refresh()` | method | 配置と見た目を解決し直す（外観の解決に使う値を外部で変えたときに呼ぶ） |
 | `Log` | property | ログの出力先（null は `NullLogger`）。 画像と項目数の変更を本コントロールが記録する。 同じロガーを提示層・コアへ渡す |
-| `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 提示層・コアへ伝搬する |
+| `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 コアと提示層のログの両方に適用する |
 
 - **`Add` は項目を末尾へ追加します**（画像が null でも項目は作られ、画像の領域だけが空になります）。
 - **明暗（テーマ）はコントロールが自分で読みます**（`ActualThemeVariant`）。 ホストが明暗を指定する必要はなく、切り替わると配色（ホバー・選択の背景）が自動で追随します。

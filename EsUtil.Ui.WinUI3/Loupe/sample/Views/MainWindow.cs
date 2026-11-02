@@ -60,11 +60,25 @@ public sealed class MainWindow : Window
     private readonly SourceCanvas _canvas = new() { Width = ImageWidth, Height = ImageHeight };
 
     /// <summary>選択矩形の座標ラベル。</summary>
+    /// <remarks>
+    /// <b>文字の下地を敷く</b>: 画像の上へ直接文字を置くと読めない（他 UI と同じ白 87% を敷く）。<br/>
+    /// XAML の <see cref="TextBlock"/> は背景を持たないため、<see cref="Border"/> で包む。
+    /// </remarks>
+    private readonly Border _selectionLabelBox = new()
+    {
+        Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+            Windows.UI.Color.FromArgb(0xDD, 0xFF, 0xFF, 0xFF)),
+        BorderThickness = new Thickness(0),
+        CornerRadius = new CornerRadius(2),
+        Padding = new Thickness(3, 1, 3, 1),
+        Visibility = Visibility.Collapsed,
+    };
+
+    /// <summary>選択矩形の座標ラベルの文字。</summary>
     private readonly TextBlock _selectionLabel = new()
     {
         FontSize = 11,
         Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xFF, 0x8C, 0x00)),
-        Visibility = Visibility.Collapsed,
     };
 
     /// <summary>選択矩形の状態（サンプル固有）。</summary>
@@ -83,7 +97,7 @@ public sealed class MainWindow : Window
 
         _loupe.Source = _source;
         _loupe.PositionOffset = 24;
-        _loupe.Options = LoupeOptions.Default with { ZoomLevel = 4, RequestedSize = 240 };
+        _loupe.Options = LoupeOptions.Default with { ZoomLevel = 4, RequestedSize = 160 };
         _loupe.Appearance = _appearance;
         _loupe.CenterPoint = new EsPoint(120, 120);
         _loupe.Log = logger;
@@ -104,9 +118,12 @@ public sealed class MainWindow : Window
             Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0x20, 0x20, 0x20)),
         };
         host.Children.Add(_canvas);
-        host.Children.Add(_selectionLabel);
         host.Children.Add(_loupe);
         host.Children.Add(_preview);
+
+        // 座標ラベルは**ルーペより前面**に置く（後に足す子ほど前面になる。 ルーペの下だと重なった部分の文字が欠ける。 実測 2026-11-02）
+        _selectionLabelBox.Child = _selectionLabel;
+        host.Children.Add(_selectionLabelBox);
         host.PointerMoved += (_, e) =>
         {
             var position = e.GetCurrentPoint(_canvas).Position;
@@ -230,9 +247,8 @@ public sealed class MainWindow : Window
         };
 
         var log = new SampleLogPanel(_logging.Buffer);
-        Title = "LoupeControl サンプル（WinUI 3）";
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 900));
-        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        Title = "Loupe サンプル (WinUI 3)";
+        // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel
         {
             Spacing = 6,
@@ -243,6 +259,9 @@ public sealed class MainWindow : Window
         };
 
         Content = SampleShell.CreateContent(properties, methods, samples, scroll, log);
+
+        // ウィンドウの大きさは DIP で指定する（他の UI と同じ 1400 x 900）
+        SampleShell.ApplyWindowSize(this);
         Closed += (_, _) =>
         {
             _logging.Dispose();
@@ -271,10 +290,10 @@ public sealed class MainWindow : Window
         {
             _canvas.SetSelection(_selection.Rect, _selection.IsVisible);
 
-            Canvas.SetLeft(_selectionLabel, _selection.X + 4);
-            Canvas.SetTop(_selectionLabel, _selection.Y - 20);
+            Canvas.SetLeft(_selectionLabelBox, _selection.X + 4);
+            Canvas.SetTop(_selectionLabelBox, _selection.Y - 20);
             _selectionLabel.Text = _selection.Label;
-            _selectionLabel.Visibility = _selection.IsVisible ? Visibility.Visible : Visibility.Collapsed;
+            _selectionLabelBox.Visibility = _selection.IsVisible ? Visibility.Visible : Visibility.Collapsed;
 
             _loupe.RequestRedraw();
         }

@@ -1,6 +1,7 @@
 using EsUtil.Ui.WinForms.Loupe.Sample.Internal;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
+using DrawingBrush = System.Drawing.SolidBrush;
 using DrawingColor = System.Drawing.Color;
 using DrawingPen = System.Drawing.Pen;
 using DrawingRectangleF = System.Drawing.RectangleF;
@@ -16,8 +17,8 @@ namespace EsUtil.Ui.WinForms.Loupe.Sample.Views;
 /// パネル内のクライアント座標は元画像ピクセル座標と一致する。<br/>
 /// 表示レイアウトの解決は DIP を要求するため、クライアント領域を <c>LoupeControl.ToDipSize</c> で換算して渡す。<br/>
 /// <br/>
-/// <b>選択矩形の位置</b>: 画像上の選択矩形は破線枠と座標ラベルで示す（ルーペは選択矩形より後に置く子であるため、<br/>
-/// 重なった部分はルーペが上に描かれる）。
+/// <b>選択矩形の位置</b>: 画像上の選択矩形は破線枠と座標ラベルで示す。 <b>破線枠はルーペの下</b>（子の描画が後）だが、<br/>
+/// <b>座標ラベルはルーペの上</b>に置く（<see cref="SelectionLabelOverlay"/>。 ラベルがルーペに隠れると読めない。 実測 2026-11-02）。
 /// </remarks>
 internal sealed class LoupeHostPanel : Control
 {
@@ -42,6 +43,9 @@ internal sealed class LoupeHostPanel : Control
     /// <summary>選択矩形の座標ラベルの文言。 null または空白の場合は描画しない。</summary>
     private string? _selectionLabel;
 
+    /// <summary>選択矩形の座標ラベルをルーペより前面に描く重ね紙。</summary>
+    private readonly SelectionLabelOverlay _labelOverlay = new();
+
     /// <summary>テスト画像とルーペを重ねるホスト パネルを初期化する。</summary>
     /// <param name="source">背景のテスト画像（読み取りの面）。 null 不可。</param>
     /// <remarks>
@@ -59,6 +63,9 @@ internal sealed class LoupeHostPanel : Control
         SetStyle(
             ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw,
             true);
+
+        // 座標ラベルは子として持ち、ルーペより前面に置く（親の描画は子より先のため、描くと潜る）
+        Controls.Add(_labelOverlay);
     }
 
     /// <summary>画像上のマウス移動を通知する（パネル内のクライアント座標 = 元画像ピクセル座標）。</summary>
@@ -66,13 +73,17 @@ internal sealed class LoupeHostPanel : Control
 
     /// <summary>重ねるルーペを追加する。</summary>
     /// <param name="loupe">追加するルーペ。</param>
-    /// <remarks>ルーペは子の末尾へ加える（選択矩形の破線枠より後に描かれる）。</remarks>
+    /// <remarks>
+    /// ルーペは子として加える（選択矩形の破線枠より後に描かれる）。<br/>
+    /// <b>座標ラベルはルーペより前面に置く</b>: 子は追加順に前面になるため、ルーペを足すたびに重ね紙を最前面へ戻す。
+    /// </remarks>
     internal void AddLoupe(LoupeControl loupe)
     {
         ArgumentNullException.ThrowIfNull(loupe);
 
         _loupes.Add(loupe);
         Controls.Add(loupe);
+        _labelOverlay.BringToFront();
         UpdateLoupeBounds();
     }
 
@@ -86,7 +97,34 @@ internal sealed class LoupeHostPanel : Control
         _isSelectionVisible = isVisible && rect.Width > 0 && rect.Height > 0;
         _selectionLabel = label;
 
+        UpdateLabelOverlay();
         Invalidate();
+    }
+
+    /// <summary>座標ラベルの重ね紙の文言と位置を更新する。</summary>
+    /// <remarks>
+    /// 置く位置は選択矩形の左上の少し上（上に余白が無ければ矩形の内側）である（他 UI と同じ規則）。<br/>
+    /// 大きさは文言の実寸から決める（文字が切れない）。
+    /// </remarks>
+    private void UpdateLabelOverlay()
+    {
+        if (!_isSelectionVisible || _selectionRect is not { } rect || string.IsNullOrWhiteSpace(_selectionLabel))
+        {
+            _labelOverlay.SetLabel(null, Rectangle.Empty);
+            return;
+        }
+
+        var size = TextRenderer.MeasureText(_selectionLabel, _labelFont);
+        var width = size.Width + 4;
+        var height = size.Height;
+        var top = (int)rect.Y - height - 1;
+        if (top < 0)
+        {
+            top = (int)rect.Y + 1;
+        }
+
+        _labelOverlay.SetLabel(_selectionLabel, new Rectangle((int)rect.X + 4, top, width, height));
+        _labelOverlay.BringToFront();
     }
 
     /// <summary>ルーペの配置（表示位置・表示サイズ）をコアの解決結果で更新する。</summary>
@@ -159,6 +197,7 @@ internal sealed class LoupeHostPanel : Control
     {
         if (disposing)
         {
+            _labelOverlay.Dispose();
             _labelFont.Dispose();
             _image.Dispose();
         }
@@ -185,16 +224,14 @@ internal sealed class LoupeHostPanel : Control
         }
 
         var bounds = new DrawingRectangleF((float)rect.X, (float)rect.Y, (float)rect.Width, (float)rect.Height);
+
+        // 内側の塗りは他 UI と同じ半透明のオレンジ（枠だけだと選択範囲の広がりが分かりにくい）
+        using var fill = new DrawingBrush(DrawingColor.FromArgb(0x30, 0xFF, 0x8C, 0x00));
+        graphics.FillRectangle(fill, bounds);
+
         using var pen = new DrawingPen(DrawingColor.FromArgb(255, 255, 140, 0), 2f) { DashPattern = [3f, 2f] };
         graphics.DrawRectangle(pen, bounds.X, bounds.Y, bounds.Width, bounds.Height);
 
-        if (string.IsNullOrWhiteSpace(_selectionLabel))
-        {
-            return;
-        }
-
-        using var brush = new SolidBrush(DrawingColor.FromArgb(255, 255, 140, 0));
-        var labelY = Math.Max(0f, bounds.Y - _labelFont.Height - 1f);
-        graphics.DrawString(_selectionLabel, _labelFont, brush, bounds.X + 2f, labelY);
+        // 座標ラベルはここでは描かない（子の重ね紙がルーペより前面に描く）
     }
 }

@@ -12,7 +12,7 @@ public sealed partial class LoupeCore
     /// <b>補正は値の生成時に行う</b>: 設定型（<see cref="LoupeOptions"/>）の <c>init</c> アクセサが本値を参照するため、<br/>
     /// 設定の経路（オブジェクト初期化子・<c>with</c> 式・逆シリアル化）によらず安全域内の値だけが保持される。<br/>
     /// <b>規則の所在</b>: 環境値（<see cref="LoupeCore.ClientToPixelScaling"/>）の補正も本値へ委譲する（補正の規則を二重に持たない）。<br/>
-    /// ラベルのフォントサイズの安全域は、他のコントロールと共通の規則のため描画層の外観（本コアを参照する上位の層）が単一所有する。<br/>
+    /// ラベルのフォントサイズの安全域は、他のコントロールと共通の規則のため提示層の外観（提示層）が単一所有する。<br/>
     /// UI フレームワークに依存しないため、UI 初期化なしの <c>[Fact]</c> で並列検証できる。
     /// </remarks>
     public static class Limits

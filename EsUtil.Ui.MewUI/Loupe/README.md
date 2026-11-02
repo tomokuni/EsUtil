@@ -9,7 +9,7 @@
 ![MewUI](https://img.shields.io/badge/UI-MewUI-00BFFF)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-対になる Avalonia UI 実装と同じ **UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、描画（`SKCanvas`）と入力の受付のみを **MewUI** で実装したルーペ（拡大鏡）コントロールです。
+対になる Avalonia UI 実装と同じ **UI 非依存の機能アセンブリ（`EsUtil.Feature.Loupe.Core`。 コアと提示層）** を使い、描画（`SKCanvas`）と入力の受付のみを **MewUI** で実装したルーペ（拡大鏡）コントロールです。
 
 ## 目次 <!-- omit from toc -->
 
@@ -31,7 +31,7 @@
 
 ## 1. 概要
 
-ルーペのロジック（数値の安全域補正・切り出し領域の計算・表示レイアウト）は `EsUtil.Feature.Loupe.Core` が単一所有し、描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（色・枠線の太さ・表示可否）は UI 非依存の提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance`）が単一所有します。
+ルーペのロジック（数値の安全域補正・切り出し領域の計算・表示レイアウト）は `EsUtil.Feature.Loupe.Core` が単一所有し、描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（色・枠線の太さ・表示可否）は UI 非依存の提示層（`EsUtil.Feature.Loupe.Core` の `LoupePresenter` / `LoupeAppearance`）が単一所有します。
 本プロジェクトはその計画を `IGraphicsContext` へ **フレームワーク標準の描画で写すだけ** の層です。
 そのため Avalonia 版と**同じ設定・同じ見た目**になり、同じ外観の設定を両 UI で共用できます。 層構成（Core / Presenter / UI）の全体像は [`EsUtil/README.md`](../../EsUtil/README.md) を参照してください。
 
@@ -128,7 +128,7 @@ if (layout.Position is { } position)
 | 矩形で並べられる装飾（十字線・枠線）とラベルの文言・位置 | `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）を設定する（計画の値の置き換え） |
 | 矩形で表せない描画（円・斜線等） | `Appearance` の `Show*` を false にして `Rendered` で受け取る描画面へ自前で描く（`DrawPlan` を持つ UI 版では計画どおりの描画も呼べる） |
 
-描画計画（`LoupeDrawPlan`）と外観（`LoupeAppearance`）は `EsUtil.Feature.Loupe.Presenter` が単一所有し、4 つの UI 版で共通です。 UI が持つのは UI フレームワーク固有の描画 API の呼び出しだけです（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
+描画計画（`LoupeDrawPlan`）と外観（`LoupeAppearance`）は `EsUtil.Feature.Loupe.Core` が単一所有し、4 つの UI 版で共通です。 UI が持つのは UI フレームワーク固有の描画 API の呼び出しだけです（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
 
 ---
 
@@ -180,7 +180,7 @@ dotnet run --project EsUtil.Ui.MewUI/Loupe/sample/EsUtil.Ui.MewUI.Loupe.Sample.c
 ## 10. ドキュメント
 
 - [共有する UI 非依存ロジック](../../EsUtil/Feature.Loupe.Core/README.md)
-- [共有する UI 非依存の描画層](../../EsUtil/Feature.Loupe.Presenter/README.md)
+- [共有する UI 非依存の描画層](../../EsUtil/Feature.Loupe.Core/README.md)
 - [対になる Avalonia 版ルーペ](../../EsUtil.Ui.AvaloniaUI/Loupe/README.md)
 - [サンプルアプリケーション](sample/README.md)
 

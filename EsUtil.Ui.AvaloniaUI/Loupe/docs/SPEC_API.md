@@ -276,7 +276,7 @@ PixelSize = ceil(表示サイズ × ClientToPixelScaling)
 
 #### 5.1.6 寸法と外観（Appearance）
 
-ルーペの基本サイズと拡大率は **コアの `LoupeOptions`（`EsUtil.Feature.Loupe`）が単一所有**し、`Options` として指定します（両 UI で既定値・意味が一致します）。 **枠線の太さ・十字線と枠線とラベルの表示可否・色・ラベルのフォントサイズ・角丸は描画にだけ必要な設定**であり、提示層 `EsUtil.Feature.Loupe.Presenter` の `LoupeAppearance`（`EsUtil.Feature.Loupe`） が単一所有し、本コントロールの `Appearance` プロパティとして指定します（コアはこれらの値を決定せず、描画可否の判定にも使いません）。
+ルーペの基本サイズと拡大率は **コアの `LoupeOptions`（`EsUtil.Feature.Loupe`）が単一所有**し、`Options` として指定します（両 UI で既定値・意味が一致します）。 **枠線の太さ・十字線と枠線とラベルの表示可否・色・ラベルのフォントサイズ・角丸は描画にだけ必要な設定**であり、提示層 `EsUtil.Feature.Loupe.Core` の `LoupeAppearance`（`EsUtil.Feature.Loupe`） が単一所有し、本コントロールの `Appearance` プロパティとして指定します（コアはこれらの値を決定せず、描画可否の判定にも使いません）。
 
 | プロパティ | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
@@ -292,7 +292,7 @@ PixelSize = ceil(表示サイズ × ClientToPixelScaling)
 | `RequestedSize` | `int` | `160` | ルーペの基本サイズ（DIP。 1〜4096 に補正） |
 | `ZoomLevel` | `int` | `4` | 拡大率（1〜64 に補正） |
 
-`Appearance`（`LoupeAppearance`。 詳細は `EsUtil.Feature.Loupe.Presenter` の `docs/SPEC_API.md` を参照）の項目:
+`Appearance`（`LoupeAppearance`。 詳細は `EsUtil.Feature.Loupe.Core` の `docs/SPEC_API.md` を参照）の項目:
 
 | 項目 | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
@@ -308,9 +308,9 @@ PixelSize = ceil(表示サイズ × ClientToPixelScaling)
 | `CoordLabelFontSize` | `double` | `12.0` | 座標ラベルのフォントサイズ（DIP。 6〜48 に補正。 非数は既定値へ補正） |
 | `CoordLabelCornerRadius` | `int` | `2` | 座標ラベルの背景の角丸半径（DIP。 0〜64 に補正。 0 は角丸なし） |
 
-座標ラベルは中心座標（対象座標）を `(x, y)` 形式でルーペの左上に表示します。 実寸 → 配置矩形の写像（内側余白 4 / 1 DIP、基準点は左上）は描画層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter`（`LabelPlan` partial））が単一所有し、体裁の値（色・フォントサイズ・角丸）は描画の設定（`Appearance`）が単一所有します。 **表示はコントロールが行います**（`Border` + `TextBlock` の子要素として配置する。 実寸測定は `FormattedText`、描画順はコアの `LoupeDrawLayer` が単一所有するため、UI は実測と要素の配置だけを行います）。
+座標ラベルは中心座標（対象座標）を `(x, y)` 形式でルーペの左上に表示します。 実寸 → 配置矩形の写像（内側余白 4 / 1 DIP、基準点は左上）は描画層（`EsUtil.Feature.Loupe.Core` の `LoupePresenter`（`LabelPlan` partial））が単一所有し、体裁の値（色・フォントサイズ・角丸）は描画の設定（`Appearance`）が単一所有します。 **表示はコントロールが行います**（`Border` + `TextBlock` の子要素として配置する。 実寸測定は `FormattedText`、描画順はコアの `LoupeDrawLayer` が単一所有するため、UI は実測と要素の配置だけを行います）。
 
-寸法項目（`Appearance.BorderThickness`）は DIP の値であり、描画計画の解決時に**物理ピクセルへ換算されます**（`EsUtil.Platform.Core` の `DpiScaler.ScaleToPixel`。 呼び出すのは `EsUtil.Feature.Loupe.Presenter` の `LoupePresenter`。 `ClientToPixelScaling` に追従するため、DPI ≠ 100% でも DIP 基準の見た目になります）。 UI 層は換算式を持ちません。
+寸法項目（`Appearance.BorderThickness`）は DIP の値であり、描画計画の解決時に**物理ピクセルへ換算されます**（`EsUtil.Platform.Core` の `DpiScaler.ScaleToPixel`。 呼び出すのは `EsUtil.Feature.Loupe.Core` の `LoupePresenter`。 `ClientToPixelScaling` に追従するため、DPI ≠ 100% でも DIP 基準の見た目になります）。 UI 層は換算式を持ちません。
 
 #### 5.1.7 IsVisible
 
@@ -335,7 +335,7 @@ Avalonia標準の `Visual.IsVisible` を使用します。 初期値は `false`�
 | --- | --- |
 | 型 | `string?` |
 | 既定値 | `null`（定義クラスの既定は `[Loupe]`） |
-| 用途 | ログの接頭辞（ロガーと一緒に設定する。 null・空白で既定値へ戻す）。 提示層・コアへ伝搬する。 **プロセス（アセンブリ）内の全インスタンスで共有する**（同じ実行で 2 つ目のルーペへ別の接頭辞を設定すると、1 つ目のルーペのログもその接頭辞になる） |
+| 用途 | ログの接頭辞（ロガーと一緒に設定する。 null・空白で既定値へ戻す）。 コアと提示層のログの両方に適用する。 **プロセス（アセンブリ）内の全インスタンスで共有する**（同じ実行で 2 つ目のルーペへ別の接頭辞を設定すると、1 つ目のルーペのログもその接頭辞になる） |
 
 #### 5.1.10 CenterPointProvider（描画の直前の拡大中心の取り直し）
 
@@ -485,7 +485,7 @@ loupe.Rendered += (_, e) =>
 ### 5.5 型
 
 公開型は `LoupeControl` と `LoupeRenderedEventArgs` です。
-描画・画像処理の実装は internal（非公開）です。 UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と描画層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance` / `LoupePresenter`（`LabelPlan` partial））の型は public です（外部が UI アダプタを実装できるようにするため）。 描画の手順と色は描画層が単一所有し、本プロジェクトは描画（`DrawingContext`）とラベル要素の配置を担います。
+描画・画像処理の実装は internal（非公開）です。 UI 非依存の機能アセンブリ（`EsUtil.Feature.Loupe.Core`。 コアと提示層）の型は public です（外部が UI アダプタを実装できるようにするため）。 描画計画と外観は提示層（`LoupePresenter` / `LoupeAppearance`）が単一所有し、本プロジェクトは描画（`DrawingContext`）とラベル要素の配置を担います。
 UI 固有のログ（`LoupeLogMessage`）は本プロジェクトの internal です。
 
 #### 5.5.1 LoupeControl

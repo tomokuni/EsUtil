@@ -45,7 +45,7 @@
 | **ビルドツール** | MSBuild / .NET SDK 10.0 |
 | **ログ** | Microsoft.Extensions.Logging（LoggerMessage ソース生成） |
 | **テスト** | xUnit v3 / Avalonia.Headless.XUnit |
-| **依存プロジェクト** | `EsUtil.Feature.Loupe.Core`（UI 非依存の計算ロジック）/ `EsUtil.Feature.Loupe.Presenter`（描画の手順・ラベル計画）/ `EsUtil.Platform.Core`（コア型）。 製品固有のプラットフォーム層（`Platform.*`）は参照せず、使う変換・描画ヘルパーを `src/Internal/` へ複製して持つ（[`.github/依存関係.md`](../../../.github/依存関係.md) §4.1） |
+| **依存プロジェクト** | `EsUtil.Feature.Loupe.Core`（UI 非依存の計算ロジック）/ `EsUtil.Feature.Loupe.Core`（描画の手順・ラベル計画）/ `EsUtil.Platform.Core`（コア型）。 製品固有のプラットフォーム層（`Platform.*`）は参照せず、使う変換・描画ヘルパーを `src/Internal/` へ複製して持つ（[`.github/依存関係.md`](../../../.github/依存関係.md) §4.1） |
 
 ## 3. アーキテクチャ
 
@@ -53,16 +53,16 @@
 
 ```text
 公開コントロール（LoupeControl）
-  → レンダリング（描画層 EsUtil.Feature.Loupe.Presenter の LoupePresenter。描画先は DrawingContext が適合させる）
+  → レンダリング（描画層 EsUtil.Feature.Loupe.Core の LoupePresenter。描画先は DrawingContext が適合させる）
   → Core（EsUtil.Feature.Loupe.Core: 寸法 / 数値補正 / 表示位置・サイズ / 切り出し領域と可否 / ラベル計画 / 区画数の切り上げ / 描画完了時の表示情報 / ログ定義）
 ```
 
 ### 3.2 依存方向
 
-- 依存は**一方向の階層構造**（LoupeControl → EsUtil.Feature.Loupe.Presenter → EsUtil.Feature.Loupe.Core → EsUtil.Platform.Core）。 双方向依存・具象依存なし。
+- 依存は**一方向の階層構造**（LoupeControl → EsUtil.Feature.Loupe.Core → EsUtil.Feature.Loupe.Core → EsUtil.Platform.Core）。 双方向依存・具象依存なし。
 - LoupeControl は上位 AP に依存しない（再利用可能）。
 - 色の境界変換（設定文字列 → コアの色型）は上位AP 側で行い、LoupeControl 内に文字列解析を持ち込まない（外観は `Appearance`（`LoupeAppearance`）として `System.Drawing.Color` で受け取る）。
-- 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観は提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance`）が単一所有し、本コントロールは描画（`LoupeContextPainter` を `DrawingContext` へ写す）とラベル要素の配置、状態（DP）とライフサイクル（Bitmap 生成 / 解放）を担う。
+- 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観は提示層（`EsUtil.Feature.Loupe.Core` の `LoupePresenter` / `LoupeAppearance`）が単一所有し、本コントロールは描画（`LoupeContextPainter` を `DrawingContext` へ写す）とラベル要素の配置、状態（DP）とライフサイクル（Bitmap 生成 / 解放）を担う。
 - 表示可否（十字線・枠線・ラベル・ペーストボード）と枠線の太さは提示層の外観（`LoupeAppearance`）が、切り出しの可否・表示サイズの決定はコアが判定・所有し、本プロジェクトはその結果で描画する。
 - 拡大元の画像は**コアの具象型（`EsReadOnlyBitmap`）**で受け取り、ホストが持つ表示用の射影は**省略可能な入力**（`DisplaySource`）として受け取る（[`../README.md`](../README.md) §5）。 画像の識別をインターフェースで行わず、未知の型から画素を取り出す仕組み（反射）も持たない。
 - 再描画のバッチ化（保留中のポストを 1 件に結合する `_renderQueued`）は UI 固有の機構のため **本プロジェクトが所有する**（コアにも共有層にも置かない）。
@@ -76,7 +76,7 @@
 
 - ライブラリは例外を原則伝播し、上位 AP（app）で処理する。
 - UI レイヤー（app）ではユーザー操作起因の例外を各ハンドラで catch し、UI の応答性を維持する。
-- ログは LoggerMessage ソース生成で出力する（コアが出力する定義は `EsUtil.Feature.Loupe.Core` の `LoupeLogMessage`、本 UI が出力する定義は本プロジェクトの `LoupeLogMessage`、本 UI 固有の定義は `LoupeLogMessage`）。 設定変更・画像変更は Debug、再描画・位置更新は Trace、例外は Error で記録する。
+- ログは LoggerMessage ソース生成で出力する（機能アセンブリの定義は `EsUtil.Feature.Loupe.Logging.LoupeLogMessage`（コアと提示層で共有）、本 UI の定義は本プロジェクトの `LoupeLogMessage`）。 設定変更は Information、画像変更は Debug、再描画・位置更新は Trace、例外は Error で記録する。
 
 ### 4.2 本プロジェクト固有の例外処理
 
@@ -102,9 +102,9 @@ flowchart TB
         Evt["LoupeRenderedEventArgs<br/>public sealed class<br/>LoupeRenderedEventArgs.cs"]
         RLog["LoupeLogMessage<br/>internal static partial class<br/>（本プロジェクト固有のログ）"]
     end
-    subgraph Pres["EsUtil.Feature.Loupe.Presenter プロジェクト（UI 非依存の提示層）"]
+    subgraph Pres["EsUtil.Feature.Loupe.Core プロジェクト（UI 非依存の提示層）"]
         direction TB
-        Pnt["LoupePresenter<br/>public class（非 sealed）<br/>（描画計画の解決と外観の保持）"]
+        Pnt["LoupePresenter<br/>public sealed class<br/>（描画計画の解決と外観の保持）"]
         App["LoupeAppearance<br/>public sealed record<br/>（色・枠線の太さ・表示可否）"]
         Plan["LoupeDrawPlan<br/>public readonly record struct<br/>（1 フレーム分の描画計画）"]
         Layer["LoupeDrawLayer<br/>（層とその順序）"]
@@ -148,8 +148,8 @@ flowchart TB
 - **分類**: 公開コントロール（`public sealed class LoupeControl : Panel`。 AXAML を持たずコードのみで子要素を構成する）
 - **責務**:
   - 状態管理: 6 個の StyledProperty（`Source: EsReadOnlyBitmap?`（拡大元のコア画像） / `DisplaySource: IImage?`（表示用の射影。 省略可） / `CenterPoint` / 設定 `Options` / 外観 `Appearance` / 環境値 `ClientToPixelScaling`）
-  - 座標ラベル: **コントロールがテキスト要素（`Border` + `TextBlock`）として表示する**。 文言・基準点は提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter`（`LabelTexts` partial））が、表示可否と体裁（フォントサイズ・色・角丸）は外観（`LoupeAppearance`）が、実寸 → 配置矩形の写像は同層の `LoupePresenter`（`LabelPlan` partial） が単一所有する。 コントロールは配置フェーズ（`ArrangeOverride`）で要素を追加・更新する（ラベル要素は子の末尾に置かれ、子は親より後に描かれるため常に最上位）
-    - **実寸測定は UI が行う理由**: テキストの実寸は描画 API（`FormattedText`）でしか測れないため、UI が測って `LoupePresenter`（`LabelPlan` partial）（描画層 `EsUtil.Feature.Loupe.Presenter`）へ渡し、返された配置を要素へ反映する
+  - 座標ラベル: **コントロールがテキスト要素（`Border` + `TextBlock`）として表示する**。 文言・基準点は提示層（`EsUtil.Feature.Loupe.Core` の `LoupePresenter`（`LabelTexts` partial））が、表示可否と体裁（フォントサイズ・色・角丸）は外観（`LoupeAppearance`）が、実寸 → 配置矩形の写像は同層の `LoupePresenter`（`LabelPlan` partial） が単一所有する。 コントロールは配置フェーズ（`ArrangeOverride`）で要素を追加・更新する（ラベル要素は子の末尾に置かれ、子は親より後に描かれるため常に最上位）
+    - **実寸測定は UI が行う理由**: テキストの実寸は描画 API（`FormattedText`）でしか測れないため、UI が測って `LoupePresenter`（`LabelPlan` partial）（描画層 `EsUtil.Feature.Loupe.Core`）へ渡し、返された配置を要素へ反映する
   - 表示制御: 標準プロパティ `IsVisible` で表示・非表示を指示（表示時=再描画の要求、非表示時=保留中の要求の破棄。 解放する中間ビットマップは無い）
     - 描画のモデル: **中間ビットマップを作らず、子の描画層（`RenderLayer`）が窓の描画面へ直接描く**（MewUI 版と同じモデル）。 描画の入口は `DrawLoupe` で、描画計画の解決（1 フレーム 1 回）・切り出し元の解決・`LoupeContextPainter` への委譲・`Rendered` の通知までを担う
     - 再描画のバッチ化: `Dispatcher.UIThread.Post` で複数プロパティ変更を 1 フレーム 1 回のポストへ結合し、そのジョブの先頭で拡大中心を取り直してから描画層を無効化する（描画そのものはフレームの描画フェーズで 1 回行われる）
@@ -160,7 +160,7 @@ flowchart TB
     - 座標単位: `Options.RequestedSize` は DIP、描画計画へ渡す表示サイズと枠線の太さも DIP（物理ピクセルへの換算は提示層が `DpiScaler.ScaleToPixel` へ委譲する）
   - 値の補正: コアの設定値（`LoupeOptions`）は型の生成時に補正される（UI は関与しない）。 環境値の `ClientToPixelScaling` のみ `coerce` コールバックで矯正する
 - **公開API**: 入力（`Source: EsReadOnlyBitmap?`（拡大元のコア画像） / `DisplaySource: IImage?`（表示用の射影。 省略可） / `CenterPoint`）/ 設定（`Options`（コアの `LoupeOptions` が単一所有する基本サイズ・拡大率。 UI は設定値を保持しない）/ 外観（`Appearance`（`LoupeAppearance`。 `System.Drawing.Color` で受け取り描画時にブラシへ変換する）））/ 環境（`ClientToPixelScaling`）/ ログ（`Log`）/ イベント（`Rendered`・`LoupeRenderedEventArgs` で**描画先の `DrawingContext`** と描画計画（切り出し左上・拡大率・描画面のサイズ）を通知。 ホストが付加情報（線分・選択枠等）を描画 API で描ける）/ 操作（`Clear` / `RequestRender` / `SetCoordTransform` / `PositionOffset` / `RefreshPosition`）
-- **依存**: LoupePresenter（描画計画と配置の写像）/ LoupeAppearance（`EsUtil.Feature.Loupe.Presenter`） / LoupeLogMessage（本プロジェクト） / LoupeContextPainter（本プロジェクト） / LoupeOptions / Loupe（`EsUtil.Feature.Loupe.Core`） / EsReadOnlyBitmap（`EsUtil.Platform.Core`） / DrawingContext（Avalonia） / Avalonia / ILogger
+- **依存**: LoupePresenter（描画計画と配置の写像）/ LoupeAppearance（`EsUtil.Feature.Loupe.Core`） / LoupeLogMessage（本プロジェクト） / LoupeContextPainter（本プロジェクト） / LoupeOptions / Loupe（`EsUtil.Feature.Loupe.Core`） / EsReadOnlyBitmap（`EsUtil.Platform.Core`） / DrawingContext（Avalonia） / Avalonia / ILogger
 
 ### 6.2 LoupeContextPainter（描画実装）
 
@@ -169,16 +169,16 @@ flowchart TB
 - **可視性**: internal（描画の実装詳細。 見た目の差し替えは `LoupeControl.Appearance` / `DrawPlanResolver` / `DrawPlan` で行う）
   **描画の入口**: `LoupeContextPainter.Paint(DrawingContext context, in LoupeDrawPlan plan, EsSizeInt? sourceSize, IImage? display, EsReadOnlyBitmap? source)`（図形のみ。 **テキストは描かない**。 中心座標ラベルはコントロールが UI 要素として配置する）
 - **特徴**:  描画の可否は外観（`Appearance` の `Show*`）を見て本クラスが判断する（計画は表示可否で矩形も層も消さない）。 枠線の太さの物理ピクセルへの換算と装飾の矩形の導出は**提示層が解決済み**である（本クラスは計算を持たない）。 色 → ブラシの共有は `SolidColorBrushCache` が
-- **依存**: EsUtil.Feature.Loupe.Presenter（`LoupeDrawPlan` / `LoupeAppearance` / `LoupeDrawLayer`）/ `Internal/`（`SolidColorBrushCache`）/ EsUtil.Platform.Core（画像型 / `System.Drawing.Color`）
+- **依存**: EsUtil.Feature.Loupe.Core（`LoupeDrawPlan` / `LoupeAppearance` / `LoupeDrawLayer`）/ `Internal/`（`SolidColorBrushCache`）/ EsUtil.Platform.Core（画像型 / `System.Drawing.Color`）
 
 ### 6.3 描画責務分割
 
-- 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（色・枠線の太さ・表示可否）は**提示層（`EsUtil.Feature.Loupe.Presenter`）が単一所有**し、Avalonia 版と MewUI 版が同じ計画を共有する。
+- 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（色・枠線の太さ・表示可否）は**提示層（`EsUtil.Feature.Loupe.Core`）が単一所有**し、Avalonia 版と MewUI 版が同じ計画を共有する。
 - 各 UI の描画実装（Avalonia は `LoupeContextPainter`、MewUI は `LoupeSkiaPainter`）は**計画を自 UI の描画 API へ写すだけ**である（順序の判断も描く値の算出も持たない）。
 - 描画 API の抽象は持たない。 UI フレームワークをまたぐ描画の抽象は、フレームワークごとの描画モデルの差を吸収しきれないためである。
 - `SolidColorBrushCache`（`Internal/`）: コアの色型（`System.Drawing.Color`）→ `SolidColorBrush` の変換と容量制限付きキャッシュを単一所有する。 描画実装（`LoupeContextPainter`）とラベル要素の配置（本コントロールとマーキー）が共用する。
 
-> 十字線・枠線の矩形計算、枠線の太さの換算、拡大描画の矩形計算は提示層（`EsUtil.Feature.Loupe.Presenter`）が単一所有します（MewUI 版と共用）。
+> 十字線・枠線の矩形計算、枠線の太さの換算、拡大描画の矩形計算は提示層（`EsUtil.Feature.Loupe.Core`）が単一所有します（MewUI 版と共用）。
 > 本プロジェクトは `DrawingContext` への写しと要素の配置を担います。
 
 > **通知契約**: `LoupeRenderedEventArgs` はホストが付加情報を描くのに必要な値（描画先の `DrawingContext` ・描画計画）を通知します。 描画計画は切り出し領域の左上（`CaptureTopLeft`）・拡大率（`ZoomLevel`）・描画面のサイズを単一所有し、本引数は複製しません。 中心座標ラベルはコントロールがテキスト要素として表示するため含みません。 表示位置・表示サイズは消費側が無いため含みません（必要になればコントロールの公開プロパティから取得できます）。
@@ -206,7 +206,7 @@ flowchart TB
 - **分類**: ログ定義（`LoggerMessage` source generator。 `public static partial class`）
 - **責務**: ログの書式・レベルを UI 間で揃え、定義の所有者を出力の主体ごとに分ける
 - **本 UI が呼ぶ定義**: **本プロジェクトの `LoupeLogMessage`** が単一所有する（`LogSourceChanged`（Debug。 設定名は本 UI が付与）/ `LogUpdateError`（Error））。 拡大元画像はコントロール固有の値であり（コアのファサードは画像を保持しない）、画像の寸法の文字列化は本 UI が行う（拡大元はコアの `EsReadOnlyBitmap` であり、寸法は破棄後も得られる）
-- **コアが出力する定義**: `EsUtil.Feature.Loupe.Core` の `LoupeLogMessage`（internal）が持つ（設定値・拡大中心の変更。 **設定名はコアが付与**し、UI 層は値だけを渡す）
+- **機能アセンブリの定義**: `EsUtil.Feature.Loupe.Logging.LoupeLogMessage`（internal。 コアと提示層で共有する）が持つ（設定値・拡大中心・外観の変更。 **設定名は値を所有する側が付与**し、UI 層は値だけを渡す）
 - **依存**: Microsoft.Extensions.Logging
 
 ### 6.7 上位AP（消費側）
@@ -221,10 +221,10 @@ flowchart TB
 
 ## 7. 依存ルール
 
-- 依存方向は**一方向の階層構造**です（層の全体像は [`../README.md`](../README.md)）。 LoupeControl（UI）→ EsUtil.Feature.Loupe.Presenter（提示層）→ EsUtil.Feature.Loupe.Core（コア）→ EsUtil.Platform.Core。 双方向依存・具象依存なし。
+- 依存方向は**一方向の階層構造**です（層の全体像は [`../README.md`](../README.md)）。 LoupeControl（UI）→ EsUtil.Feature.Loupe.Core（提示層）→ EsUtil.Feature.Loupe.Core（コア）→ EsUtil.Platform.Core。 双方向依存・具象依存なし。
 - LoupeControl は上位AP に**依存しない**（再利用可能）。
 - 色の境界変換（string → IBrush）は上位AP 側で行い、LoupeControl 内に文字列解析を持ち込まない。
-- 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観は提示層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter` / `LoupeAppearance`）が単一所有し、本コントロールは描画（`LoupeContextPainter` の写し）とラベル要素の配置、状態（DP）を担う。
+- 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観は提示層（`EsUtil.Feature.Loupe.Core` の `LoupePresenter` / `LoupeAppearance`）が単一所有し、本コントロールは描画（`LoupeContextPainter` の写し）とラベル要素の配置、状態（DP）を担う。
 - UI 非依存の計算ロジック・設定・寸法・ログ定義は `EsUtil.Feature.Loupe.Core` が単一所有し、UI 側は境界でコア型へ 1 行変換して委譲する。
 - **UI 層は設定値・寸法値を保持しない**（`Options`（コアの `LoupeOptions`）を 1 つ公開し、描画時に読むだけ）。 色は `Appearance`（`LoupeAppearance`）として公開し、描画実装へ渡す。
 - 表示は `RenderLayer`（子要素）が窓の描画面へ直接描く方式に統一し、中間ビットマップ（`RenderTargetBitmap` / `Image.Source`）を持たない（MewUI 版と同じ）。

@@ -250,6 +250,13 @@ public sealed partial class MarqueeControl : Panel
     /// <summary>直近に解決した描画計画の基準サイズ（DIP）。</summary>
     private EsSize _frameSize;
 
+    /// <summary>直近に解決したときポインターが本コントロールの上にあったかどうか（計画の再解決の判定に使う）。</summary>
+    /// <remarks>
+    /// カーソル座標ラベルはポインターが領域の外にある間は描かないため、出入りで計画が変わる<br/>
+    /// （サイズだけを判定にすると、出入りしても古い計画のままラベルが残る）。
+    /// </remarks>
+    private bool _framePointerOver;
+
     /// <summary>1 フレーム分の描画計画を解決して保持する（同じ基準サイズでは再解決しない）。</summary>
     /// <param name="clientSize">描画領域のサイズ（DIP。 UI 実装の描画先のサイズ）。</param>
     /// <returns>そのフレームの描画計画。</returns>
@@ -262,12 +269,15 @@ public sealed partial class MarqueeControl : Panel
     /// </remarks>
     private MarqueeDrawPlan ResolveFrame(EsSize clientSize)
     {
-        if (_frame is not { } cached || _frameSize != clientSize)
+        // 押下中は領域の外へ出ても座標が要る（ドラッグの座標は外でも意味を持つ）
+        var pointerOver = IsPointerOver || CurrentSnapshot.IsMouseDown;
+        if (_frame is not { } cached || _frameSize != clientSize || _framePointerOver != pointerOver)
         {
-            cached = _marquee.ResolveDrawPlan(clientSize, MeasureText);
+            cached = _marquee.ResolveDrawPlan(clientSize, MeasureText, pointerOver);
             cached = DrawPlanResolver?.Invoke(cached) ?? cached;
             _frame = cached;
             _frameSize = clientSize;
+            _framePointerOver = pointerOver;
         }
 
         return cached;
@@ -342,8 +352,8 @@ public sealed partial class MarqueeControl : Panel
     /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
     /// <value>接頭辞（例: <c>[Marquee]</c>）。 null または空白を設定すると既定値へ戻す。</value>
     /// <remarks>
-    /// 本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、提示層・コアへ伝搬する<br/>
-    /// （集約した接頭辞で全層のログを揃える）。
+    /// 本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、機能アセンブリのログ定義（コアと提示層で共有）へ適用する<br/>
+    /// （全層のログが同じ接頭辞になる）。
     /// </remarks>
     public string? LogPrefix
     {
@@ -421,7 +431,7 @@ public sealed partial class MarqueeControl : Panel
     /// <summary><see cref="Appearance"/> 依存関係プロパティ（外観。 描画にだけ必要な設定）。</summary>
     /// <remarks>
     /// 外観（色・ラベル体裁・表示可否）はコアの計算に入らない（描画にだけ必要）ため、コアの設定（<see cref="Options"/>）には含めず、<br/>
-    /// 提示層（<c>EsUtil.Feature.Marquee.Presenter</c>）の <see cref="MarqueeAppearance"/> が単一所有する。
+    /// 提示層（<see cref="MarqueeAppearance"/>） が単一所有する。
     /// </remarks>
     public static readonly StyledProperty<MarqueeAppearance> AppearanceProperty =
         AvaloniaProperty.Register<MarqueeControl, MarqueeAppearance>(nameof(Appearance), defaultValue: MarqueeAppearance.Default);
@@ -818,6 +828,27 @@ public sealed partial class MarqueeControl : Panel
 
         e.Handled = true;
         _marquee.Press(ToSource(e), e.ClickCount);
+    }
+
+    /// <summary>ポインターが本コントロールへ入ったときの処理。</summary>
+    /// <param name="e">ポインターイベント。</param>
+    /// <remarks>カーソル座標ラベルの表示はポインターの有無で変わるため、計画を破棄して描き直す。</remarks>
+    protected override void OnPointerEntered(PointerEventArgs e)
+    {
+        base.OnPointerEntered(e);
+        InvalidateRender();
+    }
+
+    /// <summary>ポインターが本コントロールから出たときの処理。</summary>
+    /// <param name="e">ポインターイベント。</param>
+    /// <remarks>
+    /// カーソル座標ラベルは領域の外では描かない（最後に居た位置へ貼り付くと、カーソルの無い場所に座標が出る）。<br/>
+    /// 表示の切り替えは計画の再解決で行うため、計画を破棄して描き直す。
+    /// </remarks>
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        InvalidateRender();
     }
 
     /// <summary>ポインター移動時の処理。</summary>

@@ -4,7 +4,6 @@
 
 - [1. 概要](#1-概要)
 - [2. 実行方法](#2-実行方法)
-  - [2.1 バッチファイル（リリースビルド＆起動）](#21-バッチファイルリリースビルド起動)
 - [3. 操作方法](#3-操作方法)
 - [4. 検証項目（動作確認チェックリスト）](#4-検証項目動作確認チェックリスト)
 - [5. 構成](#5-構成)
@@ -43,22 +42,13 @@ dotnet run --project EsUtil.Ui.AvaloniaUI/Marquee/sample/EsUtil.Ui.AvaloniaUI.Ma
 dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Marquee/sample/EsUtil.Ui.AvaloniaUI.Marquee.Sample.csproj
 ```
 
-### 2.1 バッチファイル（リリースビルド＆起動）
-
-`EsUtil.Ui.AvaloniaUI/Marquee/sample/RunSample.bat` をダブルクリックすると、リリースビルドを行った後、サンプルアプリケーションを起動します。
-
-```text
-RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil.Ui.AvaloniaUI.Marquee.Sample.exe を起動
-```
-
-> 本サンプルは独立したプロジェクトです（`sample/` はコントロール本体のプロジェクト フォルダの外にあり、本体の `csproj` のコンパイル対象には含まれません）。
-
 ---
 
 ## 3. 操作方法
 
 | 操作 | 内容 |
 | --- | --- |
+| 「表示テーマ」を切り替える | サンプル共通の設定行（`SampleTheme`）。 コントロールはフレームワークのテーマから明暗を読むため、指定は不要 |
 | 選択面をドラッグ | 新規選択の作成（左ボタン） |
 | 選択矩形の枠内をドラッグ | 選択矩形の移動 |
 | ハンドルをドラッグ | 8方向リサイズ |
@@ -115,7 +105,7 @@ EsUtil.Ui.AvaloniaUI/Marquee/sample/
 
 ## 6. 使い方（初めての方向け）
 
-1. **起動**: グリッド画像（1200×800）が選択面に表示されます。
+1. **起動**: グリッド画像（800×600）が選択面に表示されます。
 2. **新規選択**: 選択面上を左ボタンでドラッグすると選択矩形が作成され、枠線・8方向ハンドルが描画されます。
 3. **移動・リサイズ**: 枠内をドラッグで移動、ハンドルをドラッグでリサイズします。
 4. **ズーム・スクロール**: Ctrl+マウスホイールで拡大・縮小、マウスホイール / スクロールバーでスクロールします（ズーム倍率に応じて座標ポートが動的更新）。
@@ -146,7 +136,7 @@ EsUtil.Ui.AvaloniaUI/Marquee/sample/
 
 ## 8. 背景画像のズーム・スクロール
 
-ドラッグ領域の背景にはグリッド画像（1200×800ピクセル）が敷かれています。
+ドラッグ領域の背景にはグリッド画像（800×600ピクセル）が敷かれています。
 
 - **Ctrl+マウスホイール**: ズーム倍率 10%〜500%（0.1〜5.0）で拡大・縮小
 - **マウスホイール / スクロールバー**: ズーム後の画像をスクロール
@@ -156,7 +146,7 @@ EsUtil.Ui.AvaloniaUI/Marquee/sample/
 `MarqueeControl` の座標ポートはズーム倍率に応じて動的に更新されます。
 
 ```csharp
-// 座標ポート: 対象 = 画像ピクセル（800x500）、DIP = 表示座標（ズーム倍率で変換）
+// 座標ポート: 対象 = 画像ピクセル（800x600）、DIP = 表示座標（ズーム倍率で変換）
 // ToSource = DIP→対象（_zoom で除算）、ToDip = 対象→DIP（_zoom で乗算）
 MarqueeCore.SetCoordTransform(new CoordTransform(
     p => new Point(p.X / _zoom, p.Y / _zoom),
@@ -188,10 +178,10 @@ Marquee.LogPrefix = "[Marquee]";
 
 ## 10. 座標ポートについて
 
-対象 ↔ DIP の変換はズーム倍率に応じて動的に更新されます（対象 = 画像ピクセル 1200×800）。
+対象 ↔ DIP の変換はズーム倍率に応じて動的に更新されます（対象 = 画像ピクセル 800×600）。
 
 ```csharp
-// 座標ポート: 対象 = 画像ピクセル（1200x800）、DIP = 表示座標（ズーム倍率で変換）
+// 座標ポート: 対象 = 画像ピクセル（800x600）、DIP = 表示座標（ズーム倍率で変換）
 // ToSource = DIP→対象（_zoom で除算 = 画像ピクセルへ）、ToDip = 対象→DIP（_zoom で乗算）
 MarqueeCore.SetCoordTransform(new CoordTransform(
     p => new Point(p.X / _zoom, p.Y / _zoom),

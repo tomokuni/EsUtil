@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\EsUtil\Feature.Thumbnail.Presenter\src\EsUtil.Feature.Thumbnail.Presenter.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil\Feature.Thumbnail.Core\src\EsUtil.Feature.Thumbnail.Core.csproj" />
     <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
     <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.WinUI3.Interop.csproj" />
     <!-- 本コントロールが単一所有する値（画像・項目数）の変更ログ（LoggerMessage ソース生成）を持つ -->

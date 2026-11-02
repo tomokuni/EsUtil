@@ -171,14 +171,51 @@ public static class SampleSettings
     /// <param name="apply">変更の反映先（選択インデックス）。</param>
     /// <returns>項目名とコンボ ボックスを並べた行。</returns>
     public static FrameworkElement Choice(string label, string[] choices, int selectedIndex, Action<int> apply)
+        => ChoiceRow(label, choices, selectedIndex, apply).Element;
+
+    /// <summary>選択肢の行を作る（外から値を更新できる）。</summary>
+    /// <param name="label">項目名。</param>
+    /// <param name="choices">選択肢の名前。</param>
+    /// <param name="selectedIndex">初期の選択インデックス。</param>
+    /// <param name="apply">変更の反映先（選択インデックス）。</param>
+    /// <returns>行の要素と、値を外から更新する関数。</returns>
+    /// <remarks>
+    /// <b>外から更新する用途</b>: 表示テーマのように、<b>アプリの初期化が終わるまで実際の値が読めない項目</b>で使う
+    /// （MewUI は <c>Application.Run</c> までテーマを読めないため、初期化前はライトとして扱われる）。<br/>
+    /// 初期化後に <see cref="SampleField.SetValue"/> で表示を実際の値へ合わせる（入力の変更イベントは発火しない）。
+    /// </remarks>
+    public static SampleField ChoiceRow(string label, string[] choices, int selectedIndex, Action<int> apply)
     {
         var combo = new ComboBox().Items(choices).FontSize(FontSize);
+        var updating = false;
         combo.SelectedIndex = selectedIndex;
-        combo.OnSelectionChanged(_ => apply(combo.SelectedIndex));
+        combo.OnSelectionChanged(_ =>
+        {
+            if (!updating)
+            {
+                apply(combo.SelectedIndex);
+            }
+        });
 
         // 初期値を対象へ反映する（対象の既定値と選択肢の初期値が違う場合に表示と状態がずれないようにする）
         apply(selectedIndex);
-        return Row(label, combo);
+
+        return new SampleField
+        {
+            Element = Row(label, combo),
+            SetValue = index =>
+            {
+                updating = true;
+                try
+                {
+                    combo.SelectedIndex = (int)index;
+                }
+                finally
+                {
+                    updating = false;
+                }
+            },
+        };
     }
 
     /// <summary>文字入力の行を作る。</summary>

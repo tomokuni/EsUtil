@@ -7,7 +7,7 @@ namespace EsUtil.Feature.Marquee;
 /// UI 層は本通知を自 UI の公開イベント引数へ変換して発火するだけである（判断・状態更新はコアが実施済み）。<br/>
 /// <see cref="Position"/> は点座標を表す通知（<see cref="MarqueeNoticeKind.MarkerPositionMoved"/> 等）で使用する。<br/>
 /// 矩形の通知（SelectionChanged / SelectionCompleted 等）では選択矩形（<see cref="Snapshot"/>）を使用する。<br/>
-/// <b>値型</b>である: ポインター移動のたびに通知するためヒープ確保を避ける（<c>MarqueeCoreTests.Move_ポインター移動はヒープを確保しない</c> が担保する）。<br/>
+/// <b>値型</b>である: 通知は値として渡し、購読側が状態を持たない（<c>MarqueeCore.Subscribe</c> を参照）。<br/>
 /// <b>素のデリゲートで公開する理由</b>: 本層（UI 非依存のコア）の通知は <see cref="Action{T}"/> で公開するため、
 /// <see cref="EventArgs"/> 派生にする必要がない（値型のままとし、公開型を増やさない）。
 /// </remarks>

@@ -1,8 +1,8 @@
 <Solution>
-  <Folder Name="/ColorComboBox/">
-    <Project Path="ColorComboBox/sample/EsUtil.Ui.AvaloniaUI.ColorComboBox.Sample.csproj" />
-    <Project Path="ColorComboBox/src/EsUtil.Ui.AvaloniaUI.ColorComboBox.csproj" />
-    <Project Path="ColorComboBox/tests/EsUtil.Ui.AvaloniaUI.ColorComboBox.Tests.csproj" />
+  <Folder Name="/ColorSelector/">
+    <Project Path="ColorSelector/sample/EsUtil.Ui.AvaloniaUI.ColorSelector.Sample.csproj" />
+    <Project Path="ColorSelector/src/EsUtil.Ui.AvaloniaUI.ColorSelector.csproj" />
+    <Project Path="ColorSelector/tests/EsUtil.Ui.AvaloniaUI.ColorSelector.Tests.csproj" />
   </Folder>
   <Folder Name="/ColumnPacking/">
     <Project Path="ColumnPacking/sample/EsUtil.Ui.AvaloniaUI.ColumnPacking.Sample.csproj" />

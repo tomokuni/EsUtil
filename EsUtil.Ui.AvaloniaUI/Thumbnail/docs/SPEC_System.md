@@ -22,7 +22,7 @@ Avalonia UI 版のサムネイル一覧コントロールの構造・依存・�
 
 本アセンブリは、サムネイル一覧を Avalonia のコントロールとして提供します。
 
-- **配置と見た目は下の層が単一所有します**（`EsUtil.Feature.Thumbnail.Core` が並べ方、`EsUtil.Feature.Thumbnail.Presenter` が描画計画と外観）。
+- **配置と見た目は下の層が単一所有します**（`EsUtil.Feature.Thumbnail.Core` が並べ方、`EsUtil.Feature.Thumbnail.Core` が描画計画と外観）。
 - **本アセンブリが行うのは 4 つだけ**: 入力の受付（ポインター → 添字）、スクロール、計画の適用（要素の配置）、描画計画の自 UI への写像。
 - 対象フレームワークは `net10.0` です。
 
@@ -32,7 +32,7 @@ Avalonia UI 版のサムネイル一覧コントロールの構造・依存・�
 | --- | --- |
 | 言語 / フレームワーク | C# / .NET 10（`net10.0`） |
 | UI フレームワーク | Avalonia（`ScrollViewer` / `Panel` / `Border` / `TextBlock`） |
-| 参照パッケージ | `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core` / `Avalonia` |
+| 参照パッケージ | `EsUtil.Feature.Thumbnail.Core` / `EsUtil.Platform.Core` / `Avalonia` |
 | テスト | xUnit v3 + Avalonia ヘッドレス（`EsUtil.Ui.AvaloniaUI.Thumbnail.Tests`。 公開 API とログを検証する） |
 
 ## 3. アーキテクチャ
@@ -42,7 +42,7 @@ Avalonia UI 版のサムネイル一覧コントロールの構造・依存・�
 ```mermaid
 flowchart TD
     UI["UI 層（本アセンブリ）"]
-    Presenter["提示層（EsUtil.Feature.Thumbnail.Presenter）"]
+    Presenter["提示層（EsUtil.Feature.Thumbnail.Core）"]
     Core["機能コア（EsUtil.Feature.Thumbnail.Core）"]
     Platform["EsUtil.Platform.Core"]
 
@@ -60,7 +60,7 @@ flowchart TD
 | 責務 | 所有者 |
 | --- | --- |
 | 折り返し・行の高さ・当たり判定・可視範囲 | `EsUtil.Feature.Thumbnail.Core` |
-| 背景・影・名前の体裁、層の順序 | `EsUtil.Feature.Thumbnail.Presenter` |
+| 背景・影・名前の体裁、層の順序 | `EsUtil.Feature.Thumbnail.Core` |
 | ポインターの受付・選択の決定・2 回押しの通知 | `ThumbnailControl` |
 | 項目の要素（背景・影・画像・名前）の配置 | `ThumbnailTile`（内部） |
 | 差し替えた影の算法の帯を塗る | `ThumbnailShadowBandsView`（内部） |
@@ -116,7 +116,7 @@ classDiagram
         +VisibleRange ThumbnailRange
         +SlotBounds(index) EsRect
         +ClearItems()
-        +Add(image, caption, toolTip, isCurrent, tag) int
+        +Add(image, caption, toolTip, tag) int
         +SetImage(index, image)
         +SetCaption(index, caption)
         +ScrollToIndex(index)
@@ -127,7 +127,6 @@ classDiagram
         +IndexAt(position) int
     }
     class ThumbnailTile {
-        +IsCurrent bool
         +Caption string
         +ImageWidth double
         +SetImage(image)

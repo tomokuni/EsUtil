@@ -10,7 +10,7 @@ namespace EsUtil.Ui.WinUI3.SampleKit;
 /// <b>配置</b>: 左の設定パネルは固定幅、右は上下 2 段にする。 上段が画像と操作、下段がログであり、
 /// <b>境界はドラッグで上下に動かせる</b>（WinUI 3 は <c>GridSplitter</c> を持たないため、境界の要素が
 /// 行の高さを書き換える）。 ログは下段の領域全体へ広がる。<br/>
-/// <b>設定の分け方</b>: 左は「プロパティ設定」（対象コントロールの公開プロパティ）・「メソッド操作」
+/// <b>設定の分け方</b>: 左は「プロパティ設定」（対象コントロールの公開プロパティ）・「API操作」
 /// （対象コントロールのメソッド実行）・「サンプル設定」（サンプルアプリの外観と状態の変更）の 3 つの領域に分ける。<br/>
 /// <b>ログ</b>: Serilog の出力を非同期に表示する（<see cref="SampleLogPanel"/>）。
 /// </remarks>
@@ -34,7 +34,7 @@ public static class SampleShell
     /// <summary>ウィンドウを組み立てる。</summary>
     /// <param name="title">ウィンドウのタイトル。</param>
     /// <param name="propertySettings">プロパティ設定の行。</param>
-    /// <param name="methodSettings">メソッド操作の行。 null の場合は領域を作らない。</param>
+    /// <param name="methodSettings">API操作の行。 null の場合は領域を作らない。</param>
     /// <param name="sampleSettings">サンプル設定の行。</param>
     /// <param name="content">画像と操作（右上の領域）。</param>
     /// <param name="log">ログ（右下の領域）。</param>
@@ -57,13 +57,42 @@ public static class SampleShell
             Title = title,
             Content = CreateContent(propertySettings, methodSettings, sampleSettings, content, log),
         };
-        window.AppWindow.Resize(new Windows.Graphics.SizeInt32((int)width, (int)height));
+        ApplyWindowSize(window, width, height);
         return window;
+    }
+
+    /// <summary>ウィンドウを指定の大きさ（DIP）へ広げる。</summary>
+    /// <param name="window">対象のウィンドウ。</param>
+    /// <param name="width">幅（DIP）。</param>
+    /// <param name="height">高さ（DIP）。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="window"/> が null の場合。</exception>
+    /// <remarks>
+    /// <b>ウィンドウの API は物理ピクセルを取る</b>: <c>AppWindow.Resize</c> へ DIP の値をそのまま渡すと、<br/>
+    /// 表示倍率の分だけ小さくなる（125% では 1400 DIP が 1120 DIP になる。 実測 2026-11-02）。<br/>
+    /// <b>レイアウトの後に行う</b>: 倍率（<c>XamlRoot.RasterizationScale</c>）は要素が画面へ付いた後でないと読めないため、<br/>
+    /// ルート要素の <c>Loaded</c> で 1 度だけ広げる。
+    /// </remarks>
+    public static void ApplyWindowSize(Window window, double width = 1400, double height = 900)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+
+        if (window.Content is not FrameworkElement root)
+        {
+            return;
+        }
+
+        root.Loaded += (_, _) =>
+        {
+            var scale = root.XamlRoot?.RasterizationScale ?? 1.0;
+            window.AppWindow.Resize(new Windows.Graphics.SizeInt32(
+                (int)Math.Round(width * scale),
+                (int)Math.Round(height * scale)));
+        };
     }
 
     /// <summary>ウィンドウの中身（3 領域のレイアウト）を組み立てる。</summary>
     /// <param name="propertySettings">プロパティ設定の行。</param>
-    /// <param name="methodSettings">メソッド操作の行。 null の場合は領域を作らない。</param>
+    /// <param name="methodSettings">API操作の行。 null の場合は領域を作らない。</param>
     /// <param name="sampleSettings">サンプル設定の行。</param>
     /// <param name="content">画像と操作（右上の領域）。</param>
     /// <param name="log">ログ（右下の領域）。</param>
@@ -110,11 +139,11 @@ public static class SampleShell
         var settingsBody = new StackPanel { Spacing = 12 };
         settingsBody.Children.Add(SampleSettings.Area("プロパティ設定", propertySettings));
 
-        // メソッド操作は該当するメソッドを持つコントロールだけに出す（無いサンプルは領域ごと作らない）
+        // API操作は該当するメソッドを持つコントロールだけに出す（無いサンプルは領域ごと作らない）
         if (methodSettings is not null)
         {
             settingsBody.Children.Add(SampleSettings.Separator());
-            settingsBody.Children.Add(SampleSettings.Area("メソッド操作", methodSettings));
+            settingsBody.Children.Add(SampleSettings.Area("API操作", methodSettings));
         }
 
         settingsBody.Children.Add(SampleSettings.Separator());

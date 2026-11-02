@@ -17,6 +17,7 @@
   - [2.8 `ThumbnailLabelText`（名前行に収める計算）](#28-thumbnaillabeltext名前行に収める計算)
   - [2.9 `ThumbnailMetrics`（外観から決まる寸法）](#29-thumbnailmetrics外観から決まる寸法)
   - [2.10 `ThumbnailTextMeasure`（実寸の測定）](#210-thumbnailtextmeasure実寸の測定)
+  - [2.11 `ThumbnailImageLoader`（画像ファイルの読み込み）](#211-thumbnailimageloader画像ファイルの読み込み)
 - [3. 使用例](#3-使用例)
 - [4. 座標系](#4-座標系)
 - [5. 制限事項](#5-制限事項)
@@ -25,7 +26,7 @@
 
 - 本コアは UI フレームワークに依存しません（依存は `EsUtil.Platform.Core` のみ）。 UI 固有の型は利用者（各 UI のコントロール）が境界で変換します。
 - 座標・寸法は `EsPoint` / `EsSize` / `EsRect`（`EsUtil.Platform.Core`）で扱います。 単位は **DIP**（デバイス非依存ピクセル）です。
-- **色・フォントサイズ・影の濃さは含みません**（描画にだけ必要な設定であり、コアの計算・判断に入らないため）。 これらは提示層（`EsUtil.Feature.Thumbnail.Presenter` の `ThumbnailAppearance`）が単一所有します。
+- **色・フォントサイズ・影の濃さは含みません**（描画にだけ必要な設定であり、コアの計算・判断に入らないため）。 これらは提示層（`ThumbnailAppearance` / `ThumbnailShadowPlan`）が単一所有します。
 - 本コアは**画像を持ちません**。 受け取るのは「画像の高さ（DIP）」だけであり、画素には触れません。
 
 ## 2. 公開 API
@@ -43,6 +44,7 @@
 | `ThumbnailSelection` | sealed class | 単一選択の状態（選択・解除・変更通知） |
 | `ThumbnailRange` | readonly record struct | 項目の連続した範囲（両端を含む） |
 | `ThumbnailTextMeasure` | delegate | 名前を折り返して描いたときの実寸を測る関数（UI 層が描画 API で実装する） |
+| `ThumbnailImageLoader` | static class | 画像ファイルを縮小して読み込み、寸法ごとに共有する（Windows 専用。 WIC） |
 
 ### 2.2 `ThumbnailLayout`（純粋計算）
 
@@ -181,6 +183,18 @@ public delegate EsSize ThumbnailTextMeasure(string text, double maxWidth, double
 - **戻り値**は折り返した後の実寸です（高さは全行の合計）。 `ThumbnailLabelText.Fit` は高さだけを見ます。
 - **描画する API と同じ API で測ります**（折り返しの位置は文字の送り幅に依存するため、測る API と描く API が違うと行数が一致しません）。 実装は各 UI の `Interop` の `TextMeasure`（AvaloniaUI / MewUI / WinUI 3）と WinForms 版コントロールが単一所有します。
 - **純粋関数にします**（同じ入力には同じ寸法を返す）。 呼び出しの時点に依存する関数を渡すと、文言の決定が再現しなくなります。
+
+### 2.11 `ThumbnailImageLoader`（画像ファイルの読み込み）
+
+画像ファイルを縮小して一覧用のサムネイルとして読み込みます（Windows 10 バージョン 1809（ビルド 17763）以降。 WIC）。
+
+| メンバー | 種別 | 説明 |
+| --- | --- | --- |
+| `Load(string filePath, int maxSize, int capacity)` | static method | 長辺が `maxSize` を超えないサムネイルを返す。 `capacity` はキャッシュの最大保持数（一覧が表示する件数）。 読み込めない場合は null |
+
+- **縮小はデコード時に行います**（原寸のバッファーを確保しません）。 補間と EXIF の向きの扱いは `EsReadOnlyBitmap.Load` が単一所有します。
+- **戻り値はキャッシュが所有します**（呼び出し側は破棄しません）。 上限を超えた値はキャッシュが破棄します。
+- **失敗は例外にしません**（一覧を壊さないため null を返します）。
 
 ## 3. 使用例
 

@@ -1,4 +1,4 @@
-using EsUtil.Feature.Marquee.Core.Logging;
+using EsUtil.Feature.Marquee.Logging;
 using EsUtil.Feature.Marquee.Core.Selection;
 using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
@@ -56,9 +56,7 @@ internal sealed class MarqueeSession
     /// <returns>購読を解除する <see cref="IDisposable"/>。</returns>
     /// <remarks>
     /// <b><c>event</c> を使わない理由</b>: <see cref="MarqueeNotice"/> は値型（<c>record struct</c>）であり、
-    /// <see cref="System.EventHandler{T}"/> の <c>T</c>（<see cref="EventArgs"/> 派生）にできない。<br/>
-    /// 値型のまま通知するため、ポインター移動のたびにヒープを確保しない
-    /// （<c>MarqueeCoreTests.Move_ポインター移動はヒープを確保しない</c> が担保する）。
+    /// <see cref="System.EventHandler{T}"/> の <c>T</c>（<see cref="EventArgs"/> 派生）にできない。
     /// </remarks>
     internal IDisposable Subscribe(Action<MarqueeNotice> notify) => _notified.Add(notify);
 
@@ -102,6 +100,10 @@ internal sealed class MarqueeSession
     /// <summary>直近のマウス位置（対象座標。 カーソル座標ラベルの描画に使用する）。</summary>
     /// <value>直近のマウス位置。 未移動時は既定値。</value>
     internal EsPoint LastMousePosition => _state.LastMousePosition;
+
+    /// <summary>マウス位置を 1 度でも受けたかどうかを取得する。</summary>
+    /// <value>受けた場合は true（位置を受ける前は座標ラベルを描かない）。</value>
+    internal bool HasMousePosition => _state.HasMousePosition;
 
     /// <summary>十字マーカーが追従する位置（対象座標）。</summary>
     /// <value>ドラッグ中のハンドル位置・新規選択中の終点・未選択時の始点。</value>

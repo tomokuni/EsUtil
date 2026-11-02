@@ -91,7 +91,7 @@ public sealed class MainWindow : Window
     /// <summary>ウィンドウを初期化する。</summary>
     public MainWindow()
     {
-        Title = "LoupeControl サンプル（AvaloniaUI）";
+        Title = "Loupe サンプル (AvaloniaUI)";
         Width = 1400;
         Height = 900;
         MinWidth = 900;
@@ -102,7 +102,9 @@ public sealed class MainWindow : Window
         logger.LogInformation("サンプルを起動しました。");
 
         // ── 画像とルーペを重ねるキャンバス ──
-        var canvas = new Canvas { Background = Brushes.White, ClipToBounds = true };
+        // 地色は固定せず、テーマの地色を透かす（白で固定するとダークで画像の余白が白い帯として残る。 実測 2026-11-01）。
+        // 当たり判定は必要（PointerMoved を受ける）ため、null ではなく透過色を指定する。
+        var canvas = new Canvas { Background = Brushes.Transparent, ClipToBounds = true };
         var image = new Image
         {
             Source = _source.ToAvaloniaBitmap(),
@@ -112,6 +114,7 @@ public sealed class MainWindow : Window
         };
         canvas.Children.Add(image);
         canvas.Children.Add(_selectionRect);
+        // 座標ラベルは**ルーペより前面**に置く（後に足す子ほど前面になる。 ルーペの下だと重なった部分の文字が欠ける。 実測 2026-11-02）
         canvas.Children.Add(_selectionLabel);
 
         _loupe = new LoupeControl
@@ -119,7 +122,7 @@ public sealed class MainWindow : Window
             Source = _source,
             DisplaySource = image.Source,
             PositionOffset = 24,
-            Options = LoupeOptions.Default with { ZoomLevel = 4, RequestedSize = 240 },
+            Options = LoupeOptions.Default with { ZoomLevel = 4, RequestedSize = 160 },
             Appearance = _appearance,
             CenterPoint = new Point(120, 120),
             Log = logger,
@@ -139,6 +142,10 @@ public sealed class MainWindow : Window
         };
         canvas.Children.Add(_loupe);
         canvas.Children.Add(_preview);
+
+        // ルーペを足した後でラベルを最前面へ戻す（追加順が描画順になるため）
+        canvas.Children.Remove(_selectionLabel);
+        canvas.Children.Add(_selectionLabel);
 
         canvas.PointerMoved += (_, e) => _loupe.CenterPoint = e.GetPosition(image);
 
@@ -249,7 +256,7 @@ public sealed class MainWindow : Window
             },
         };
 
-        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel
         {
             Spacing = 6,

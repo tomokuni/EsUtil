@@ -365,6 +365,22 @@ public class MarqueeStateTests
         Assert.False(state.ConsumeSuppressedEcho(new EsPoint(1, 2), 0.5));
     }
 
+    /// <summary>初期化しても直近のマウス位置は残ることを検証する。</summary>
+    /// <remarks>
+    /// 直近のマウス位置は選択の状態ではなくポインターの状態である。 選択の解除でこれを消すと、
+    /// カーソル座標ラベルが原点 <c>(0, 0)</c> の表示へ飛ぶ（実測 2026-11-02）。
+    /// </remarks>
+    [Fact]
+    internal void Reset_直近のマウス位置は残る()
+    {
+        var state = new MarqueeState();
+        state.SetMousePosition(new EsPoint(120, 80));
+
+        state.Reset();
+
+        Assert.Equal(new EsPoint(120, 80), state.LastMousePosition);
+    }
+
     [Fact]
     internal void Reset_nudge中はnudge状態を終了する()
     {

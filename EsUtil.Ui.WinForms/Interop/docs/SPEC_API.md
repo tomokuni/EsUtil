@@ -44,7 +44,6 @@ Windows Forms と EsUtil の型の相互変換が提供する公開 API です�
 
 ## 3. 制限事項
 
-- **描画は GDI+ の標準 API を使います**（Skia を使いません）。
 - **モニター単位の DPI は WinForms の公開 API に無い**ため、`GetDpiForMonitor` を直接呼びます。
 
 ## 4. 例外

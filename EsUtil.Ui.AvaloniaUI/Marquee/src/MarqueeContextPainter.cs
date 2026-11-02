@@ -103,9 +103,9 @@ internal static class MarqueeContextPainter
         var fill = SolidColorBrushCache.GetOrCreate(appearance.HandleColor);
         var pen = ResolvePen(appearance.HandleBorderColor, handles.BorderThickness);
 
-        foreach (var bounds in handles.HandleDipRects)
+        for (var index = 0; index < MarqueeHandleRects.Count; index++)
         {
-            context.DrawRectangle(fill, pen, bounds.ToAvaloniaRect());
+            context.DrawRectangle(fill, pen, handles.HandleDipRects[index].ToAvaloniaRect());
         }
     }
 
@@ -125,9 +125,9 @@ internal static class MarqueeContextPainter
             pen, new EsPoint(center.X, center.Y - half).ToAvaloniaPoint(), new EsPoint(center.X, center.Y + half).ToAvaloniaPoint());
     }
 
-    /// <summary>同色の矩形の一覧を塗る。</summary>
+    /// <summary>同じ色の矩形を塗る。</summary>
     /// <param name="context">描画先の描画コンテキスト。</param>
-    /// <param name="rects">塗る矩形の一覧（空の場合は何もしない）。</param>
+    /// <param name="rects">塗る矩形（ホストが差し替えられる一覧）。 空の場合は何もしない。</param>
     /// <param name="color">塗り色。</param>
     private static void FillRects(DrawingContext context, IReadOnlyList<EsRect> rects, DrawingColor color)
     {
@@ -137,10 +137,9 @@ internal static class MarqueeContextPainter
         }
 
         var brush = SolidColorBrushCache.GetOrCreate(color);
-
-        foreach (var rect in rects)
+        for (var index = 0; index < rects.Count; index++)
         {
-            context.DrawRectangle(brush, null, rect.ToAvaloniaRect());
+            context.DrawRectangle(brush, null, rects[index].ToAvaloniaRect());
         }
     }
 }

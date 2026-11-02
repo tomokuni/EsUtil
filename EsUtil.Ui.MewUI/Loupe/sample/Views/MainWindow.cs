@@ -63,7 +63,8 @@ internal static class MainWindow
         {
             Source = source,
             PositionOffset = 24,
-            Options = LoupeOptions.Default with { ZoomLevel = 4, RequestedSize = 240 },
+            // ルーペ サイズは設定パネルの初期値（160）に合わせる（既定と違う値で作ると、生成直後に 240 → 160 の変更が走る）
+            Options = LoupeOptions.Default with { ZoomLevel = 4, RequestedSize = 160 },
             Appearance = appearance,
             Log = logger,
             LogPrefix = "[Loupe]",
@@ -109,8 +110,7 @@ internal static class MainWindow
         };
 
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
-        var loupeVisible = new CheckBox().IsChecked(true).Content("ルーペを表示");
-        loupeVisible.OnCheckedChanged(value => loupe.IsVisible = value);
+        var loupeVisible = (CheckBox)SampleSettings.Check("ルーペを表示", true, value => loupe.IsVisible = value);
 
         var properties = new StackPanel().Vertical().Spacing(6).Children(
             loupeVisible,
@@ -201,7 +201,7 @@ internal static class MainWindow
             SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
                 loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null));
 
-        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel().Vertical().Spacing(6).Children(
             SampleSettings.Buttons(("再描画を要求", () => loupe.InvalidateVisual())));
 
@@ -217,7 +217,7 @@ internal static class MainWindow
             SampleSettings.Check("見本（格子線と四隅の鉤）を表示", true, value => preview.IsVisible = value));
 
         var window = SampleShell.Create(
-            "LoupeControl サンプル（MewUI）", properties, methods, samples, host, log);
+            "Loupe サンプル (MewUI)", properties, methods, samples, host, log);
 
         window.Closed += () =>
         {

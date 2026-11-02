@@ -139,12 +139,12 @@ public partial class MarqueeControl
     }
 
     /// <summary>ラベル要素（背景 + テキスト）を配置指示へ同期する。</summary>
-    /// <param name="placements">配置するラベル（描画順に並ぶ）。</param>
+    /// <param name="placements">配置するラベル（サイズラベル → カーソル座標ラベルの順）。</param>
     /// <remarks>
     /// 余分な要素は親から外し、不足分は生成して子の末尾へ追加する（配置のたびに呼ばれる）。<br/>
     /// 各要素は左上寄せと <c>Margin</c> で絶対配置する（配置矩形はコアと描画層が単一所有する）。
     /// </remarks>
-    private void SyncLabels(IReadOnlyList<MarqueeLabelPlacement> placements)
+    private void SyncLabels(in MarqueeLabelPlacements placements)
     {
         while (_labels.Count > placements.Count)
         {

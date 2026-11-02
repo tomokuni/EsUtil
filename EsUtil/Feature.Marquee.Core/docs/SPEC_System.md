@@ -25,7 +25,7 @@
 | 目的 | 選択矩形の幾何計算・状態機械・入力の解釈（判断）を 1 箇所に集約し、UI ごとの実装差から切り離す |
 | 提供形態 | クラスライブラリ（`EsUtil.Feature.Marquee.dll`） |
 | 想定利用者 | UI 実装と、それらを組み込むホストアプリケーション |
-| 汎用性 | 特定のアプリ・UI に依存しない。 他コントロールの語彙を持たない（将来そのまま別プロジェクトへ独立できる） |
+| 汎用性 | 特定のアプリ・UI に依存しない。 他コントロールの語彙を持たない |
 
 ## 2. 技術スタック
 
@@ -47,15 +47,16 @@
 ```text
 UI 実装
   入力の受付・効果の適用・通知の転送・描画先の用意・ラベル要素の配置
-    ├──> 描画層（上位の層）   どう描くか（描画計画の解決と自 UI の描画面への写し）
-    └──> EsUtil.Feature.Marquee.Core ← 本プロジェクト   何を計算するか（状態・判断・幾何）
+
+
+    └──> コア   何を計算するか（状態・判断・幾何）
            └──> EsUtil.Platform.Core（Es* 値型・ICoordTransform・ICursorService）
 ※ 本コアは上位の層を参照しない（上位の層が本コアの幾何を使う向きだけ）。本コアは Platform.* の UI アダプタも参照しない。
 ```
 
 - 上位層は下位層のみを参照します（逆参照なし）。
-- 本コアは UI フレームワークを参照しません。 **描画 API も色も持たず、返すのは幾何だけ**です。 装飾（外側マスク・枠線・内側マスク）は**本コアの概念ではありません**（選択矩形単体の概念ではなく、組み込み先の表示であるため描画層が単一所有します）。
-- **描画計画（外観・文言・層の順序・装飾の矩形）は描画層が単一所有**し、描画層は本コアの幾何（`MarqueeGeometry`）だけを参照します（幾何計算は持ちません。 ハンドル位置の計算は本コアが済ませています）。
+- コアは UI フレームワークを参照しません。 **描画 API も色も持たず、返すのは幾何だけ**です。 装飾（外側マスク・枠線・内側マスク）は**コアの概念ではありません**（選択矩形単体の概念ではなく、組み込み先の表示であるため提示層が単一所有します）。
+- **描画計画（外観・文言・層の順序・装飾の矩形）は提示層が単一所有**し、提示層はコアの幾何（`MarqueeGeometry`）だけを参照します（幾何計算は持ちません。 ハンドル位置の計算は本コアが済ませています）。
 
 ### 3.2 データフロー（入力 → 描画）
 
@@ -107,7 +108,7 @@ stateDiagram-v2
 
 ## 4. コンポーネント構成
 
-**公開面**（ファサード `MarqueeCore.cs` と、ファサードのメンバーの型）は `src/` 直下（ルート名前空間）に属します。 **内部手順**（`internal`）と、ファサードから返らない `MarqueeEffectsBase`（ホストが継承する基底）は層フォルダ（`src/Core/`）の配下へ置き、名前空間に層名を挟みます（`src/Core/Logging/` → `EsUtil.Feature.Marquee.Core.Logging`）。
+**公開面**（ファサード `MarqueeCore.cs` と、ファサードのメンバーの型）は `src/` 直下（ルート名前空間）に属します。 **内部手順**（`internal`）と、ファサードから返らない `MarqueeEffectsBase`（ホストが継承する基底）は層フォルダ（`src/Core/`）の配下へ置き、名前空間に層名を挟みます（ログ定義は `src/Logging/` → `EsUtil.Feature.Marquee.Logging`）。
 
 | ファイル | 型 | 可視性 | 責務 |
 | --- | --- | --- | --- |
@@ -131,7 +132,7 @@ stateDiagram-v2
 | `EsUtil/Feature.Marquee.Core/src/MarqueeHitTarget.cs` | `MarqueeHitTarget` | public | ヒット対象 |
 | `EsUtil/Feature.Marquee.Core/src/MarqueeCursorKind.cs` | `MarqueeCursorKind` | public | カーソル形状の種別 |
 | `EsUtil/Feature.Marquee.Core/src/MarqueeInteractionState.cs` | `MarqueeInteractionState` | public | 対話状態 |
-| `EsUtil/Feature.Marquee.Core/src/Core/Logging/MarqueeLogMessage.cs` | `MarqueeLogMessage` | internal | LoggerMessage 定義（入力の判断・設定変更） |
+| `EsUtil/Feature.Marquee.Core/src/Logging/MarqueeLogMessage.cs` | `MarqueeLogMessage` | internal | LoggerMessage 定義（入力の判断・設定変更） |
 | `EsUtil/Feature.Marquee.Core/src/Core/Selection/MarqueeSelection.cs` | `MarqueeSelection` | internal readonly record struct | 選択矩形の値と、その値だけから決まる純粋な幾何計算（正規化・ハンドル位置・対角・境界クリップ・ドラッグ変形。 状態機械と幾何の解決が使うため internal） |
 
 ## 5. 例外処理ポリシー
@@ -168,7 +169,7 @@ dotnet test EsUtil/Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Tests.
 
 ## 8. 設計判断（UI 非依存の境界）
 
-本プロジェクトの型は、UI フレームワークの型をシグネチャに持たないことを境界の条件としています。
+コアの型は、UI フレームワークの型をシグネチャに持たないことを境界の条件としています。
 
 | 判断 | 内容 |
 | --- | --- |
@@ -196,17 +197,17 @@ dotnet test EsUtil/Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Tests.
 | 頻度 | 契機 | レベル |
 | --- | --- | --- |
 | 生成 | コンストラクターでの注入、または `Log` の初回設定 | Information |
-| 低頻度 | ロガーの設定（`Logger attached`）・`SetCoordTransform` の呼び出し・入力の判断 | Debug |
-| 設定の変更 | `Options` の変更（変化した項目だけ）・`ClientToSourceScaling` の変更 | Information |
+| 低頻度 | ロガーの設定（`Logger attached`）・入力の判断 | Debug |
+| 設定の変更 | `Options` の変更（変化した項目だけ）・`ClientToSourceScaling` の変更・`SetCoordTransform` の呼び出し | Information |
 | 高頻度 | `HighlightSourceRect` の変更（ホバーのたびに変わりうる） | Trace |
 
 **出力しないもの**: 毎フレーム呼ばれる解決メソッド（`CreateRequest` / `ResolveGeometry`）と、マウス移動のたびに呼ばれる入力通知（`Move`）。
 
 `Options` の変更では `HandleSize` / `HandleBorderThickness` / `MarkerLength` / `HandleHitRadius` / `MinSelectionSize` / `ClampToSourceBounds` のうち**変化した項目だけ**を出力します。
 
-**差分検出（変化した項目だけを出力する判断）と「同値なら出力しない」規則は本コアが単一所有します**（UI 層は前後の値を渡さず、変更を通知するだけです）。 ログ基盤（ファイル出力・レベル制御）はホストが所有し、本コアは定義だけを持ちます。 **描画にだけ必要な設定（外観・表示スケーリング係数）の変更ログは描画層が所有します**。
+**差分検出（変化した項目だけを出力する判断）と「同値なら出力しない」規則は本コアが単一所有します**（UI 層は前後の値を渡さず、変更を通知するだけです）。 ログ基盤（ファイル出力・レベル制御）はホストが所有し、本コアは定義だけを持ちます。 **描画にだけ必要な設定（外観・表示スケーリング係数）の変更ログは提示層が所有します**。
 
-**メッセージの接頭辞は、そのログを定義しているアセンブリ名（本コアは `[Marquee]`）とします**（規則は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有する）。
+**メッセージの接頭辞は、その定義を所有するアセンブリの機能名（本アセンブリは `[Marquee]`）とします**（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md) が単一所有する）。 定義はアセンブリに 1 つ（`EsUtil/Feature.Marquee.Core/src/Logging/MarqueeLogMessage.cs`）で、コアと提示層が共有します。
 
 ## 10. 名称（Marquee の由来）
 

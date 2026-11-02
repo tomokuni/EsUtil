@@ -26,6 +26,13 @@ internal sealed partial class ThumbnailTile : Grid
     /// <summary>最後に適用した描画計画。</summary>
     private ThumbnailDrawPlan? _plan;
 
+    /// <summary>強調の帯の色（UI がテーマから解決した値）。</summary>
+    private uint _highlightArgb;
+
+    /// <summary>名前の実効の文字色を取得する（テーマが決めた値。 強調の帯の色を導くのに使う）。</summary>
+    /// <value>解決済みのブラシ。 未解決の場合は null。</value>
+    public Brush? LabelForeground => _label.Foreground;
+
     /// <summary>ツールヒントの幅の上限（DIP）。 名前が長い場合はこの幅で折り返す。</summary>
     private const double ToolTipMaxWidth = 280;
 
@@ -43,11 +50,9 @@ internal sealed partial class ThumbnailTile : Grid
     /// <param name="caption">表示する名前。</param>
     /// <param name="toolTip">ツールヒント。 null または空の場合は表示しない。</param>
     /// <param name="tag">項目へ付ける任意の値。</param>
-    /// <param name="isCurrent">現在表示中の画像かどうか。</param>
-    public ThumbnailTile(EsReadOnlyBitmap? image, string caption, string? toolTip, object? tag, bool isCurrent)
+    public ThumbnailTile(EsReadOnlyBitmap? image, string caption, string? toolTip, object? tag)
     {
         Tag = tag;
-        IsCurrent = isCurrent;
         Caption = caption;
 
         // 入力は一覧が位置から判定する（子要素のヒット テストに依存しない）
@@ -67,14 +72,6 @@ internal sealed partial class ThumbnailTile : Grid
         SetImage(image);
         SetCaption(caption);
     }
-
-    /// <summary>現在表示中の画像かどうかを取得する。</summary>
-    /// <remarks>一覧の <c>CurrentIndex</c> が変更したときに切り替える（作成後は一覧だけが変更できる）。</remarks>
-    public bool IsCurrent { get; private set; }
-
-    /// <summary>現在表示中の画像かどうかを設定する。</summary>
-    /// <param name="value">現在表示中の画像の場合は true。</param>
-    internal void SetIsCurrent(bool value) => IsCurrent = value;
 
     /// <summary>表示する名前を取得する。</summary>
     public string Caption { get; private set; }
@@ -104,8 +101,16 @@ internal sealed partial class ThumbnailTile : Grid
     /// <param name="plan">1 件分の描画計画。</param>
     /// <param name="options">計算に必要な設定（名前の余白）。</param>
     public void Apply(ThumbnailDrawPlan plan, ThumbnailOptions options)
+        => Apply(plan, options, 0);
+
+    /// <summary>描画計画を適用する（強調の帯の色を指定する）。</summary>
+    /// <param name="plan">1 件分の描画計画。</param>
+    /// <param name="options">計算に必要な設定（名前の余白）。</param>
+    /// <param name="highlightArgb">強調の帯の色（<c>0xAARRGGBB</c>。 0 は描かない）。 UI がテーマから解決して渡す。</param>
+    public void Apply(ThumbnailDrawPlan plan, ThumbnailOptions options, uint highlightArgb)
     {
         _plan = plan;
+        _highlightArgb = highlightArgb;
         ApplyVisual();
 
         _label.FontSize = plan.Label.FontSize;
@@ -150,7 +155,7 @@ internal sealed partial class ThumbnailTile : Grid
         }
 
         var scaling = XamlRoot?.RasterizationScale ?? 1;
-        _viewport.Apply(plan, _source, 1 / scaling);
+        _viewport.Apply(plan, _source, 1 / scaling, _highlightArgb);
     }
     /// <summary>子要素を計測する（寸法は描画計画が決める）。</summary>
     /// <param name="availableSize">利用可能なサイズ。</param>

@@ -35,7 +35,24 @@ internal sealed class MarqueeState
     internal EsPoint StartPoint { get; private set; }
 
     /// <summary>直近のマウス位置（対象座標）。</summary>
-    internal EsPoint LastMousePosition { get; private set; }
+    /// <remarks>値を書くと「位置を受けた」ことが記録される（<see cref="HasMousePosition"/>）。</remarks>
+    internal EsPoint LastMousePosition
+    {
+        get => _lastMousePosition;
+        private set
+        {
+            _lastMousePosition = value;
+            HasMousePosition = true;
+        }
+    }
+
+    /// <summary>マウス位置を 1 度でも受けたかどうかを取得する。</summary>
+    /// <value>受けた場合は true。 受ける前の <see cref="LastMousePosition"/> は既定値（原点）である。</value>
+    /// <remarks>
+    /// <b>受ける前の位置（原点）を「カーソルがそこにある」と扱わない</b>: 位置を受ける前から座標ラベルを描くと、<br/>
+    /// カーソルの無い左上へ <c>(0, 0)</c> が出る（実測 2026-11-02）。
+    /// </remarks>
+    internal bool HasMousePosition { get; private set; }
 
     /// <summary>ドラッグ中かどうか（新規選択・移動・リサイズ）。</summary>
     internal bool IsDragging { get; private set; }
@@ -58,6 +75,9 @@ internal sealed class MarqueeState
 
     /// <summary>ドラッグ開始時のマウス位置（移動・リサイズの基準・対象座標）。</summary>
     private EsPoint _dragStartPoint;
+
+    /// <summary>直近のマウス位置の保持先。</summary>
+    private EsPoint _lastMousePosition;
 
     /// <summary>nudge 終了（カーソル位置移動）直後のエコー移動イベントの抑制位置（対象座標）。 null は抑制なし。</summary>
     private EsPoint? _suppressEchoAt;
@@ -113,7 +133,9 @@ internal sealed class MarqueeState
         EndNudge();
         _selection = default;
         StartPoint = default;
-        LastMousePosition = default;
+
+        // 直近のマウス位置は消さない（選択を解除してもポインターはその場にあるため、カーソル座標ラベルが
+        // (0, 0) へ飛ぶ。 実測 2026-11-02: キャンセル後に左上へ (0, 0) が出た）
         IsDragging = false;
         IsMouseDown = false;
         ActiveTarget = MarqueeHitTarget.None;

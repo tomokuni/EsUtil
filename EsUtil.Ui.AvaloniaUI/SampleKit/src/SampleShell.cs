@@ -8,7 +8,7 @@ namespace EsUtil.Ui.AvaloniaUI.SampleKit;
 /// <remarks>
 /// <b>配置</b>: 左の設定パネルは固定幅、右は上下 2 段にする。 上段が画像と操作、下段がログであり、
 /// <b>境界はドラッグで上下に動かせる</b>（<see cref="GridSplitter"/>）。 ログは下段の領域全体へ広がる。<br/>
-/// <b>設定の分け方</b>: 左は「プロパティ設定」（対象コントロールの公開プロパティ）・「メソッド操作」
+/// <b>設定の分け方</b>: 左は「プロパティ設定」（対象コントロールの公開プロパティ）・「API操作」
 /// （対象コントロールのメソッド実行）・「サンプル設定」（サンプルアプリの外観と状態の変更）の 3 つの領域に分ける。<br/>
 /// <b>ログ</b>: Serilog の出力を非同期に表示する（<see cref="SampleLogPanel"/>）。
 /// </remarks>
@@ -34,7 +34,7 @@ public static class SampleShell
 
     /// <summary>ウィンドウの中身（3 領域のレイアウト）を組み立てる。</summary>
     /// <param name="propertySettings">プロパティ設定の行。</param>
-    /// <param name="methodSettings">メソッド操作の行。 null の場合は領域を作らない。</param>
+    /// <param name="methodSettings">API操作の行。 null の場合は領域を作らない。</param>
     /// <param name="sampleSettings">サンプル設定の行。</param>
     /// <param name="content">画像と操作（右上の領域）。</param>
     /// <param name="log">ログ（右下の領域）。</param>
@@ -66,11 +66,11 @@ public static class SampleShell
 
         settingsBody.Children.Add(SampleSettings.Area("プロパティ設定", propertySettings));
 
-        // メソッド操作は該当するメソッドを持つコントロールだけに出す（無いサンプルは領域ごと作らない）
+        // API操作は該当するメソッドを持つコントロールだけに出す（無いサンプルは領域ごと作らない）
         if (methodSettings is not null)
         {
             settingsBody.Children.Add(SampleSettings.Separator());
-            settingsBody.Children.Add(SampleSettings.Area("メソッド操作", methodSettings));
+            settingsBody.Children.Add(SampleSettings.Area("API操作", methodSettings));
         }
 
         settingsBody.Children.Add(SampleSettings.Separator());
@@ -121,7 +121,7 @@ public static class SampleShell
     /// <summary>ウィンドウを組み立てる。</summary>
     /// <param name="title">ウィンドウのタイトル。</param>
     /// <param name="propertySettings">プロパティ設定の行。</param>
-    /// <param name="methodSettings">メソッド操作の行。 null の場合は領域を作らない。</param>
+    /// <param name="methodSettings">API操作の行。 null の場合は領域を作らない。</param>
     /// <param name="sampleSettings">サンプル設定の行。</param>
     /// <param name="content">画像と操作（右上の領域）。</param>
     /// <param name="log">ログ（右下の領域）。</param>

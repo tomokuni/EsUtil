@@ -1,6 +1,11 @@
 {
     // サンプル アプリ（各 UI 層の `sample/`）の起動構成。 18 件を UI 層ごとに並べる。
-    // **デバッグ実行**で起動する（`noDebug: false`。 ブレークポイント・ステップ実行が効く）。
+    // **VS Code のデバッグ一覧は階層を持てない**（`presentation.group` は区切り線を入れるだけで、
+    // グループ名は表示されず、同名の構成には (1)(2) が付く）。 そのため**名前へ UI 層を含める**
+    // （`AvaloniaUI / ColorSelector`）。 `presentation.group` と `presentation.order` は
+    // UI 層ごとの区切りと並び順のためだけに置く（名前と重複するが、区切りが無いと読めない）。
+    // **デバッグ実行**で起動する（`noDebug` は書かない。 coreclr のスキーマに無いプロパティで VS Code が警告を出す。
+    // 既定がデバッグ実行のため、書かなくてもブレークポイント・ステップ実行は効く）。
     // 種別は coreclr を使う（`dotnet` は不可）。 `dotnet` は読み込み済みソリューションのプロジェクトしか
     // 解決できず、`dotnet.defaultSolution` は共通基盤だけの EsUtil.slnx を指すため、UI 層のサンプルは
     // "Unable to determine debug settings for project ..." で起動できない（実測 2026-10-30）。
@@ -15,21 +20,21 @@
     "configurations": [
         // AvaloniaUI
         {
-            "name": "AvaloniaUI / ColorComboBox",
+            "name": "AvaloniaUI / ColorSelector",
+            "presentation": { "group": "AvaloniaUI", "order": 1 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
-            "preLaunchTask": "ビルド（AvaloniaUI / ColorComboBox）",
-            "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColorComboBox/sample/bin/Debug/net10.0/EsUtil.Ui.AvaloniaUI.ColorComboBox.Sample.exe",
-            "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColorComboBox/sample"
+            "preLaunchTask": "ビルド（AvaloniaUI / ColorSelector）",
+            "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColorSelector/sample/bin/Debug/net10.0/EsUtil.Ui.AvaloniaUI.ColorSelector.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/ColorSelector/sample"
         },
         {
             "name": "AvaloniaUI / ColumnPacking",
+            "presentation": { "group": "AvaloniaUI", "order": 2 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（AvaloniaUI / ColumnPacking）",
@@ -38,9 +43,9 @@
         },
         {
             "name": "AvaloniaUI / Loupe",
+            "presentation": { "group": "AvaloniaUI", "order": 3 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（AvaloniaUI / Loupe）",
@@ -49,9 +54,9 @@
         },
         {
             "name": "AvaloniaUI / Marquee",
+            "presentation": { "group": "AvaloniaUI", "order": 4 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（AvaloniaUI / Marquee）",
@@ -60,9 +65,9 @@
         },
         {
             "name": "AvaloniaUI / Thumbnail",
+            "presentation": { "group": "AvaloniaUI", "order": 5 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（AvaloniaUI / Thumbnail）",
@@ -71,21 +76,21 @@
         },
         // MewUI
         {
-            "name": "MewUI / ColorComboBox",
+            "name": "MewUI / ColorSelector",
+            "presentation": { "group": "MewUI", "order": 1 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
-            "preLaunchTask": "ビルド（MewUI / ColorComboBox）",
-            "program": "${workspaceFolder}/EsUtil.Ui.MewUI/ColorComboBox/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.ColorComboBox.Sample.exe",
-            "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/ColorComboBox/sample"
+            "preLaunchTask": "ビルド（MewUI / ColorSelector）",
+            "program": "${workspaceFolder}/EsUtil.Ui.MewUI/ColorSelector/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.ColorSelector.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/ColorSelector/sample"
         },
         {
             "name": "MewUI / ColumnPacking",
+            "presentation": { "group": "MewUI", "order": 2 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（MewUI / ColumnPacking）",
@@ -94,9 +99,9 @@
         },
         {
             "name": "MewUI / Loupe",
+            "presentation": { "group": "MewUI", "order": 3 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（MewUI / Loupe）",
@@ -105,9 +110,9 @@
         },
         {
             "name": "MewUI / Marquee",
+            "presentation": { "group": "MewUI", "order": 4 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（MewUI / Marquee）",
@@ -116,9 +121,9 @@
         },
         {
             "name": "MewUI / Thumbnail",
+            "presentation": { "group": "MewUI", "order": 5 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（MewUI / Thumbnail）",
@@ -127,21 +132,21 @@
         },
         // WinUI3
         {
-            "name": "WinUI3 / ColorComboBox",
+            "name": "WinUI3 / ColorSelector",
+            "presentation": { "group": "WinUI3", "order": 1 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
-            "preLaunchTask": "ビルド（WinUI3 / ColorComboBox）",
-            "program": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColorComboBox/sample/bin/Debug/net10.0-windows10.0.22621.0/EsUtil.Ui.WinUI3.ColorComboBox.Sample.exe",
-            "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColorComboBox/sample"
+            "preLaunchTask": "ビルド（WinUI3 / ColorSelector）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColorSelector/sample/bin/Debug/net10.0-windows10.0.22621.0/EsUtil.Ui.WinUI3.ColorSelector.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/ColorSelector/sample"
         },
         {
             "name": "WinUI3 / ColumnPacking",
+            "presentation": { "group": "WinUI3", "order": 2 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（WinUI3 / ColumnPacking）",
@@ -150,9 +155,9 @@
         },
         {
             "name": "WinUI3 / Loupe",
+            "presentation": { "group": "WinUI3", "order": 3 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（WinUI3 / Loupe）",
@@ -161,9 +166,9 @@
         },
         {
             "name": "WinUI3 / Marquee",
+            "presentation": { "group": "WinUI3", "order": 4 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（WinUI3 / Marquee）",
@@ -172,9 +177,9 @@
         },
         {
             "name": "WinUI3 / Thumbnail",
+            "presentation": { "group": "WinUI3", "order": 5 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（WinUI3 / Thumbnail）",
@@ -184,9 +189,9 @@
         // WinForms
         {
             "name": "WinForms / Loupe",
+            "presentation": { "group": "WinForms", "order": 1 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（WinForms / Loupe）",
@@ -195,9 +200,9 @@
         },
         {
             "name": "WinForms / Marquee",
+            "presentation": { "group": "WinForms", "order": 2 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（WinForms / Marquee）",
@@ -206,9 +211,9 @@
         },
         {
             "name": "WinForms / Thumbnail",
+            "presentation": { "group": "WinForms", "order": 3 },
             "type": "coreclr",
             "request": "launch",
-            "noDebug": false,
             "justMyCode": false,
             "logging": { "moduleLoad": false },
             "preLaunchTask": "ビルド（WinForms / Thumbnail）",

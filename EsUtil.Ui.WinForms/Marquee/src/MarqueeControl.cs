@@ -69,6 +69,13 @@ public sealed class MarqueeControl : Control
     /// <summary>直近に解決した描画計画の基準サイズ（DIP）。</summary>
     private EsSize _frameSize;
 
+    /// <summary>直近に解決したときポインターが本コントロールの上にあったかどうか（計画の再解決の判定に使う）。</summary>
+    /// <remarks>
+    /// カーソル座標ラベルはポインターが領域の外にある間は描かないため、出入りで計画が変わる<br/>
+    /// （サイズだけを判定にすると、出入りしても古い計画のままラベルが残る）。
+    /// </remarks>
+    private bool _framePointerOver;
+
     /// <summary>ログの接頭辞（未設定は null。 既定値は定義クラスが持つ）。</summary>
     private string? _logPrefix;
 
@@ -316,7 +323,7 @@ public sealed class MarqueeControl : Control
 
     /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
     /// <value>接頭辞（例: <c>[Marquee]</c>）。 null または空白を設定すると既定値へ戻す。</value>
-    /// <remarks>本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、提示層・コアへ伝搬する。</remarks>
+    /// <remarks>本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、機能アセンブリのログ定義（コアと提示層で共有）へ適用する。</remarks>
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string? LogPrefix
     {
@@ -591,24 +598,35 @@ public sealed class MarqueeControl : Control
 
     /// <summary>ポインターが本コントロールへ入ったことを記録する。</summary>
     /// <param name="e">イベントの情報。</param>
-    /// <remarks>追従位置（<see cref="TryGetCurrentLoupePosition"/>）を実カーソルから取り直してよいかの判定に使う。</remarks>
+    /// <remarks>
+    /// 追従位置（<see cref="TryGetCurrentLoupePosition"/>）を実カーソルから取り直してよいかの判定に使う。<br/>
+    /// カーソル座標ラベルの表示もポインターの有無で変わるため、計画を破棄して描き直す。
+    /// </remarks>
     protected override void OnMouseEnter(EventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
         base.OnMouseEnter(e);
 
         _isPointerOver = true;
+        InvalidateFrame();
+        Invalidate();
     }
 
     /// <summary>ポインターが本コントロールから出たことを記録する。</summary>
     /// <param name="e">イベントの情報。</param>
-    /// <remarks>コントロールの外では追従位置を進めない（<see cref="TryGetCurrentLoupePosition"/> が false を返す）。</remarks>
+    /// <remarks>
+    /// コントロールの外では追従位置を進めない（<see cref="TryGetCurrentLoupePosition"/> が false を返す）。<br/>
+    /// カーソル座標ラベルは領域の外では描かない（最後に居た位置へ貼り付くと、カーソルの無い場所に座標が出る）ため、<br/>
+    /// 計画を破棄して描き直す。
+    /// </remarks>
     protected override void OnMouseLeave(EventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
         base.OnMouseLeave(e);
 
         _isPointerOver = false;
+        InvalidateFrame();
+        Invalidate();
     }
 
     /// <summary>キーダウン処理（矢印キーの nudge・Escape のキャンセル・Enter の確定）。</summary>
@@ -696,12 +714,15 @@ public sealed class MarqueeControl : Control
     /// </remarks>
     private MarqueeDrawPlan ResolveFrame(EsSize clientSize)
     {
-        if (_frame is not { } cached || _frameSize != clientSize)
+        // 押下中は領域の外へ出ても座標が要る（ドラッグの座標は外でも意味を持つ）
+        var pointerOver = _isPointerOver || CurrentSnapshot.IsMouseDown;
+        if (_frame is not { } cached || _frameSize != clientSize || _framePointerOver != pointerOver)
         {
-            cached = _marquee.ResolveDrawPlan(clientSize, GdiText.Measure);
+            cached = _marquee.ResolveDrawPlan(clientSize, GdiText.Measure, pointerOver);
             cached = DrawPlanResolver?.Invoke(cached) ?? cached;
             _frame = cached;
             _frameSize = clientSize;
+            _framePointerOver = pointerOver;
         }
 
         return cached;

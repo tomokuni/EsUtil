@@ -29,7 +29,7 @@
 | 層 | プロジェクト | 本コントロールとの関係 |
 | --- | --- | --- |
 | 機能コア | `EsUtil.Feature.Marquee.Core` | 選択の状態機械・入力の解釈・注目矩形の決定・幾何の計算（本コントロールは判断を持ちません） |
-| 提示層 | `EsUtil.Feature.Marquee.Presenter` | 外観（色・体裁・表示可否）と描画計画（層の順序・装飾の矩形・ラベル配置）の解決 |
+| 提示層 | `EsUtil.Feature.Marquee.Core` | 外観（色・体裁・表示可否）と描画計画（層の順序・装飾の矩形・ラベル配置）の解決 |
 | 共通基盤 | `EsUtil.Platform.Core` | コア幾何型・座標変換ポート・DPI 換算・カーソル サービス |
 | UI 層 | `EsUtil.Ui.WinUI3.Marquee` | 入力の受付・効果の適用・通知の転送・描画（本プロジェクト） |
 
@@ -61,7 +61,7 @@ flowchart TB
     UB["提示層<br/>MarqueePresenter / MarqueeAppearance"]
     CORE["機能コア<br/>MarqueeCore（状態機械・入力の解釈）"]
     PLAT["共通基盤<br/>EsPoint / EsRect / ICoordTransform / DpiScaler / ICursorService"]
-    SKIA["Microsoft.UI.Xaml.Controls<br/>Canvas"]
+    BASE["Microsoft.UI.Xaml.Controls<br/>Canvas（要素の層）"]
     XAML["WinUI 3<br/>Canvas / ポインター イベント / XamlRoot"]
 
     CTRL --> UB
@@ -69,9 +69,9 @@ flowchart TB
     CTRL --> PLAT
     CTRL --> PAINT
     CTRL --> HELP
-    CTRL --> SKIA
+    CTRL --> BASE
     PAINT --> UB
-    SKIA --> XAML
+    BASE --> XAML
 ```
 
 依存は常に UI 層 → 提示層 → 機能コア → 共通基盤の向きです（[`.github/依存関係.md`](../../../.github/依存関係.md)）。
@@ -82,7 +82,7 @@ flowchart TB
 | 何 | 所有者 |
 | --- | --- |
 | 入力の解釈・状態遷移・ハンドルのヒットテスト・nudge の許可条件・確定/キャンセルの判断 | 機能コア（`EsUtil.Feature.Marquee.Core`） |
-| 外観（色・フォントサイズ・枠線の太さ・表示可否）・描画計画（層の順序・装飾の矩形・ラベル配置） | 提示層（`EsUtil.Feature.Marquee.Presenter`） |
+| 外観（色・フォントサイズ・枠線の太さ・表示可否）・描画計画（層の順序・装飾の矩形・ラベル配置） | 提示層（`EsUtil.Feature.Marquee.Core`） |
 | 入力の受付・効果の適用・通知の転送・描画・カーソル形状の写像・画面座標の変換 | 本コントロール |
 | 描画計画を要素へ写すこと（判断しない） | `MarqueeShapePlan` / `MarqueeVisualLayer` |
 
@@ -95,7 +95,7 @@ flowchart TB
 | --- | --- |
 | `Canvas` を基底クラスにする | 子要素の追加順がそのまま描画順になり、層の順序を計画の順に写せる。 描画ライブラリを持たない |
 | ラベルも要素として置く | 測定と表示を同じエンジン（WinUI 3 のテキスト レイアウト）に揃える。 別のエンジンで測ると背景から文字がはみ出しうる |
-| 描画の倍率を描画面の実寸から求める | XAML のルートが未確定の間は表示倍率が既定値（`1.0`）のため、保持値だけに頼ると図形が 100% で描かれる。 描画面（物理ピクセル）÷ 割り当て領域（DIP）で実測する |
+| 表示倍率を XAML のルートから取る | モニター間の移動で倍率が変わっても枠線・ハンドル・マーカーの画面上の大きさを保つ。 未確定（非数・0 以下）の値は `DpiScaler.NormalizeScaling` で基準値へ寄せる |
 | ダブルクリックを OS の設定値で判定する | WinUI 3 のポインター イベントはクリック数を報告しない。 固定値をコントロールが決めると OS の設定と食い違う |
 | 画面座標の変換だけを Win32 に委ねる | XAML のルートは表示倍率とコンテンツ内の相対座標までしか与えない（nudge でカーソルを動かすには画面物理座標が要る） |
 | `DllImport` を使う（`LibraryImport` ではなく） | `LibraryImport` は安全でないコードの許可（`AllowUnsafeBlocks`）を要求する。 3 つの Win32 API のためにプロジェクト全体で許可しない |
@@ -114,10 +114,10 @@ EsUtil.Ui.WinUI3/Marquee/
         App.xaml
         App.xaml.cs
         MainWindow.cs
+        Imaging/
+            TestImageFactory.cs
         Presentation/
             GuideMarqueePlan.cs
-        Views/
-            TestPatternCanvas.cs
     src/
         EsUtil.Ui.WinUI3.Marquee.csproj
         MarqueeControl.cs

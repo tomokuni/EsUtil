@@ -8,7 +8,7 @@
 ![WinForms](https://img.shields.io/badge/UI-WinForms-512BD4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-`MarqueeControl`（リサイズ可能なドラッグ矩形）の **WinForms 版**です。 他の UI 版と同一の UI 非依存コア（`EsUtil.Feature.Marquee.Core`）と描画層（`EsUtil.Feature.Marquee.Presenter`）を使い、
+`MarqueeControl`（リサイズ可能なドラッグ矩形）の **WinForms 版**です。 他の UI 版と同一の UI 非依存の機能アセンブリ（`EsUtil.Feature.Marquee.Core`。 コアと提示層）を使い、
 入力の受付・効果の適用・カーソル制御と、GDI+ への描画のみを WinForms で実装しています。 層構成（Core / Presenter / UI）の全体像は [`EsUtil/README.md`](../../EsUtil/README.md) を参照してください。
 
 ## 目次 <!-- omit from toc -->
@@ -34,7 +34,7 @@
 
 ## 1. 概要
 
-`MarqueeControl`（リサイズ可能なドラッグ矩形）の **WinForms 版**です。 UI 非依存のコア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）を共有し、**描画と入力の受付だけ**を WinForms で実装します。
+`MarqueeControl`（リサイズ可能なドラッグ矩形）の **WinForms 版**です。 UI 非依存の機能アセンブリ（`EsUtil.Feature.Marquee.Core`。 コアと提示層）を共有し、**描画と入力の受付だけ**を WinForms で実装します。
 
 対象フレームワークは `net10.0-windows10.0.17763.0`（`UseWindowsForms`）です。 描画は GDI+（`System.Drawing`）で行います。
 
@@ -43,10 +43,10 @@
 ## 2. 機能一覧
 
 - **コア共有**: 選択矩形の幾何計算・状態機械・**入力の解釈（nudge セッション・確定/キャンセル・スナップ・クリック検出・最小サイズ判定）** は `EsUtil.Feature.Marquee.Core` が単一所有します（本コントロールは公開ファサード `MarqueePresenter` だけを参照し、内部の状態機械には触れません）。 他の UI 版と挙動は同じ計算に基づきます。
-- **直接描画（GDI+）**: 中間ビットマップを経由せず、`OnPaint` で受け取った `Graphics` へ直接描画します。 描画計画（層の順序・装飾矩形・文言・配置）は提示層（`EsUtil.Feature.Marquee.Presenter`）が単一所有し、描画は自 UI の描画 API で行います。
+- **直接描画（GDI+）**: 中間ビットマップを経由せず、`OnPaint` で受け取った `Graphics` へ直接描画します。 描画計画（層の順序・装飾矩形・文言・配置）は提示層（`EsUtil.Feature.Marquee.Core`）が単一所有し、描画は自 UI の描画 API で行います。
 - **描画面だけで検証できる**: 描画実装は `Graphics` だけを要求するため、ウィンドウを持たない単体テストでも `Bitmap` 上の実寸の画素を検査できます。
 - **透明な背景**: 下の画像を透かすため、背景を透明にして親の描画（画像を含む）を自分の背景として描きます。 オーバーレイとして画像の上へ重ねられます。
-- **外観の設定（`Appearance`）**: 色・フォントサイズ・枠線の太さ・表示可否は**描画にだけ必要な設定**のためコアには含めず、外観（`EsUtil.Feature.Marquee.Presenter` の `MarqueeAppearance`）が単一所有します。 `Appearance` プロパティで指定し（既定は `MarqueeAppearance.Default`）、部分変更は `MarqueeAppearance.Default with { ... }` で行います。 **描くかどうかは色のアルファではなく外観の明示フラグ（`ShowOuterMask` / `ShowBorder` / `ShowInnerMask` / `ShowInnerBorder` / `ShowFullOverlay`）が決めます**。
+- **外観の設定（`Appearance`）**: 色・フォントサイズ・枠線の太さ・表示可否は**描画にだけ必要な設定**のためコアには含めず、外観（`EsUtil.Feature.Marquee.Core` の `MarqueeAppearance`）が単一所有します。 `Appearance` プロパティで指定し（既定は `MarqueeAppearance.Default`）、部分変更は `MarqueeAppearance.Default with { ... }` で行います。 **描くかどうかは色のアルファではなく外観の明示フラグ（`ShowOuterMask` / `ShowBorder` / `ShowInnerMask`）が決めます**。
 - **文字は本コントロールが描く**: サイズラベルとカーソル座標ラベルの**文言と基準点は提示層が、色とフォントサイズは外観が、実寸から配置矩形を求める写像も提示層が単一所有**し、本コントロールが描画計画の `Labels` に従って描きます。 実寸の測定は描画と同じ API（`Internal.GraphicsText`）で行います。 操作・情報ラベルはアプリ固有の付加情報のため、ホストが `Rendered` のハンドラーで自前で描きます。
 - **DPI 追従**: 描画面の DPI からスケーリング係数を解決し、DIP 座標で描画します（枠線・ハンドルの画面上の大きさを保ちます）。 DPI の通知（`RescaleConstantsForDpi`）は代替値として使います。
 - **コア型のイベント引数**: イベントの座標は UI 非依存のコア型（`EsPoint` / `EsRect`）で公開します（境界変換が不要）。
@@ -78,7 +78,7 @@
 <PackageReference Include="EsUtil.Ui.WinForms.Marquee" Version="0.1.0" />
 ```
 
-コア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）は推移参照で解決されるため、明示的に参照する必要はありません。
+機能アセンブリ（`EsUtil.Feature.Marquee.Core`。 コアと提示層）は推移参照で解決されるため、明示的に参照する必要はありません。
 
 ---
 
@@ -167,13 +167,13 @@ MarqueeControl は 3 つの座標系を使い分けます。
 
 | 項目 | Avalonia UI 版 | MewUI 版 | WinUI 3 版 | WinForms 版 |
 | --- | --- | --- | --- | --- |
-| 描画 API | Skia（`DrawingContext`） | Skia（`IGraphicsContext`） | Skia（描画層） | GDI+（`Graphics`） |
+| 描画 API | Skia（`DrawingContext`） | Skia（`IGraphicsContext`） | XAML の要素（`Rectangle`） | GDI+（`Graphics`） |
 | イベント引数の座標 | `Point` / `Rect`（Avalonia の型） | `EsPoint` / `EsRect`（コアの型） | `EsPoint` / `EsRect`（コアの型） | `EsPoint` / `EsRect`（コアの型） |
 | マウスダウン・アップのイベント | 公開しない | 同左 | 同左 | 同左 |
 | ホイール操作 | 扱わない（ホストが購読する） | 同左 | 同左 | 同左 |
 | 矢印キーによる nudge | フォーカスに依存しない（`TopLevel` を購読） | フォーカスが必要 | フォーカスが必要 | フォーカスが必要（`IsInputKey` で入力キーにする） |
-| ラベル（文字）の表示 | UI 要素（`Border` + `TextBlock`） | UI 要素（`Border` + `TextBlock`） | 描画面へ描く | 描画面へ描く（GDI+） |
-| 背景の透かし方 | 描画面を透明で消して下を透かす | 同左 | 同左 | 背景を透明にして親の描画を背景に使う |
+| ラベル（文字）の表示 | UI 要素（`Border` + `TextBlock`） | UI 要素（`Border` + `TextBlock`） | UI 要素（`Border` + `TextBlock`） | 描画面へ描く（GDI+） |
+| 背景の透かし方 | 描画面を透明で消して下を透かす | 同左 | 背景を塗らずに親の画像をそのまま透かす | 背景を透明にして親の描画を背景に使う |
 | ビューポート（スクロール・ズーム）への追従 | ホストが変化を検知して `InvalidateRender()` を呼ぶ | 同左 | 同左 | 同左 |
 
 いずれの UI 版も、選択矩形の計算・入力の解釈・描画計画は同じコアと提示層が所有します（差は UI フレームワーク固有の描画 API と入力の受け取り方だけです）。
@@ -190,7 +190,7 @@ MarqueeControl は 3 つの座標系を使い分けます。
 | 矩形で並べられる装飾（枠・ハンドル・マーカー・破線）とラベルの文言・位置 | `DrawPlanResolver`（`Func<MarqueeDrawPlan, MarqueeDrawPlan>`）を設定する（計画の値の置き換え） |
 | 矩形で表せない描画（円・斜線等） | `Appearance` の `Show*` を false にして `Rendered` で受け取る描画面へ自前で描く（`DrawPlan` を持つ UI 版では計画どおりの描画も呼べる） |
 
-描画計画（`MarqueeDrawPlan`）と外観（`MarqueeAppearance`）は `EsUtil.Feature.Marquee.Presenter` が単一所有し、4 つの UI 版で共通です。 UI が持つのは UI フレームワーク固有の描画 API の呼び出しだけです（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
+描画計画（`MarqueeDrawPlan`）と外観（`MarqueeAppearance`）は `EsUtil.Feature.Marquee.Core` が単一所有し、4 つの UI 版で共通です。 UI が持つのは UI フレームワーク固有の描画 API の呼び出しだけです（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
 
 ---
 
@@ -201,7 +201,7 @@ marquee.Log = loggerFactory.CreateLogger("Marquee");
 marquee.LogPrefix = "[MyApp]";
 ```
 
-本コントロールが記録するのは**委譲した操作の例外**（`Error`）だけです。 設定の変更・入力の判断・描画はコアと提示層が同じロガーへ記録します（接頭辞は `LogPrefix` で全層へ伝搬します）。
+本コントロールが記録するのは**委譲した操作の例外**（`Error`）だけです。 設定の変更・入力の判断・描画はコアと提示層が同じロガーへ記録します（ログ定義は機能アセンブリで共有するため、接頭辞 `LogPrefix` の設定は 1 回で足ります）。
 
 ---
 

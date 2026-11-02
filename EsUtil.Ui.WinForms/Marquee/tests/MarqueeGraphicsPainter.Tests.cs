@@ -67,7 +67,7 @@ public sealed class MarqueeGraphicsPainterTests
             outerMask: [new EsRect(0, 0, 60, 10)],
             border: [new EsRect(10, 10, 40, 2)],
             innerMask: new EsRect(10, 10, 40, 40),
-            handles: new MarqueeHandles([new EsRect(10, 10, 10, 10)], 2.0),
+            handles: new MarqueeHandles(new MarqueeHandleRects(new EsRect(10, 10, 10, 10), default, default, default, default, default, default, default), 2.0),
             marker: new MarqueeMarker(new EsPoint(30, 30), 8));
 
         using var bitmap = TestHelper.Paint(plan, 60, 60);
@@ -163,7 +163,7 @@ public sealed class MarqueeGraphicsPainterTests
             CreateAppearance(handles: true),
             new EsSize(60, 60),
             [MarqueeDrawLayer.Handles],
-            handles: new MarqueeHandles([new EsRect(20, 20, 10, 10)], 2.0));
+            handles: new MarqueeHandles(new MarqueeHandleRects(new EsRect(20, 20, 10, 10), default, default, default, default, default, default, default), 2.0));
 
         using var bitmap = TestHelper.Paint(plan, 60, 60);
 
@@ -240,7 +240,7 @@ public sealed class MarqueeGraphicsPainterTests
             CreateAppearance(labels: true),
             new EsSize(120, 60),
             [MarqueeDrawLayer.Label],
-            labels: [placement]);
+            labels: new MarqueeLabelPlacements(null, placement));
 
         using var bitmap = TestHelper.Paint(plan, 120, 60);
 
@@ -260,7 +260,7 @@ public sealed class MarqueeGraphicsPainterTests
             CreateAppearance(labels: true),
             new EsSize(120, 60),
             [MarqueeDrawLayer.Label],
-            labels: [placement]);
+            labels: new MarqueeLabelPlacements(null, placement));
 
         using var bitmap = TestHelper.Paint(plan, 120, 60);
 
@@ -279,7 +279,7 @@ public sealed class MarqueeGraphicsPainterTests
             CreateAppearance(labels: true),
             new EsSize(60, 60),
             [MarqueeDrawLayer.Label],
-            labels: [first, second]);
+            labels: new MarqueeLabelPlacements(first, second));
 
         using var bitmap = TestHelper.Paint(plan, 60, 60);
 
@@ -304,7 +304,7 @@ public sealed class MarqueeGraphicsPainterTests
             new EsSize(60, 60),
             [MarqueeDrawLayer.Decoration, MarqueeDrawLayer.Handles],
             outerMask: [new EsRect(0, 0, 60, 60)],
-            handles: new MarqueeHandles([new EsRect(20, 20, 10, 10)], 1.0));
+            handles: new MarqueeHandles(new MarqueeHandleRects(new EsRect(20, 20, 10, 10), default, default, default, default, default, default, default), 1.0));
 
         using var bitmap = TestHelper.Paint(plan, 60, 60);
 
@@ -323,7 +323,7 @@ public sealed class MarqueeGraphicsPainterTests
             new EsSize(60, 60),
             [MarqueeDrawLayer.Handles, MarqueeDrawLayer.Decoration],
             outerMask: [new EsRect(0, 0, 60, 60)],
-            handles: new MarqueeHandles([new EsRect(20, 20, 10, 10)], 1.0));
+            handles: new MarqueeHandles(new MarqueeHandleRects(new EsRect(20, 20, 10, 10), default, default, default, default, default, default, default), 1.0));
 
         using var bitmap = TestHelper.Paint(plan, 60, 60);
 

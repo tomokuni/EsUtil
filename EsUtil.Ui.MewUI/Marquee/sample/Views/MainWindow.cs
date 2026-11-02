@@ -71,14 +71,16 @@ internal static class MainWindow
         var logger = logging.Logger;
         logger.LogInformation("サンプルを起動しました。");
 
-        void WriteLog(string line)
+        void WriteLog(string line, LogLevel level = LogLevel.Debug)
         {
-            // 文字列をそのまま記録する（テンプレート解析も引数の評価もしない）
-            logger.Log(LogLevel.Information, default, line, null, static (state, _) => state);
+            // 文字列をそのまま記録する（テンプレート解析も引数の評価もしない）。
+            // 設定の変更は Information、状態の変化は Debug、高頻度の値は Trace（ログ規約 §2）
+            logger.Log(level, default, line, null, static (state, _) => state);
         }
 
         // ── 選択情報の表示 ──
         var selectionText = new TextBlock().FontSize(11).Text("選択なし");
+        var loupeText = new TextBlock().FontSize(11).Text("追従位置: -");
 
         // ── ドラッグ選択コントロール ──
         var zoom = 1.0;
@@ -101,7 +103,8 @@ internal static class MainWindow
         var scroll = new ScrollViewer().Content(surface);
         scroll.HorizontalScroll = ScrollMode.Auto;
         scroll.VerticalScroll = ScrollMode.Auto;
-        scroll.OnScrollChanged(() => WriteLog($"スクロール: X={scroll.HorizontalOffset:0}, Y={scroll.VerticalOffset:0}"));
+        scroll.OnScrollChanged(() =>
+            WriteLog($"スクロール: X={scroll.HorizontalOffset:0}, Y={scroll.VerticalOffset:0}", LogLevel.Trace));
 
         var zoomText = new TextBlock().Width(52).VerticalAlignment(VerticalAlignment.Center).Text(FormatZoom(zoom));
 
@@ -131,9 +134,24 @@ internal static class MainWindow
             UpdateSelection(e.Snapshot);
         };
         marquee.SelectionCancelled += (_, _) => WriteLog("キャンセル（選択が解除された）");
-        marquee.LoupePositionMoved += (_, e) => WriteLog($"ルーペ位置: ({e.Point.X:0.#}, {e.Point.Y:0.#})");
+        // ポインター移動のたびに届く高頻度の値であるため Trace（画面の表示は状態の行が担う）
+        marquee.LoupePositionMoved += (_, e) =>
+        {
+            WriteLog($"ルーペ位置: ({e.Point.X:0.#}, {e.Point.Y:0.#})", LogLevel.Trace);
+            loupeText.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
+        };
         marquee.ConfirmRequested += (_, e) => WriteLog($"確定要求: {FormatRect(e.Rect)}");
         marquee.CancelRequested += (_, _) => WriteLog("キャンセル要求");
+
+        // 選択サイズと操作ガイドはアプリ固有の情報のため、コントロールの描画完了後にホストが描く（他 UI と同じ文言・位置）
+        marquee.Rendered += (_, e) =>
+        {
+            var content = e.Content;
+            var text = content.FocusDipRect is { } focus
+                ? $"選択 {focus.Width:0} x {focus.Height:0}"
+                : "ドラッグで範囲を選択してください";
+            e.DrawText(text, content.ClientRect.X + 12, content.ClientRect.Y + 12, 14, 0xFFFFFFFF);
+        };
 
         // 矢印キーの nudge はフォーカスを必要とするため、クリックでフォーカスを与える
         marquee.OnMouseDown(_ => marquee.Focus());
@@ -165,6 +183,8 @@ internal static class MainWindow
 
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
         var properties = new StackPanel().Vertical().Spacing(6).Children(
+            // ハイライトはコントロールのプロパティ（HighlightSourceRect）を切り替える操作である
+            SampleSettings.Buttons(("ハイライト矩形を設定/解除", ToggleHighlight)),
             SampleSettings.Slider("ズーム", zoom, MinZoom, MaxZoom, ZoomStep, false, value => ApplyZoom(value)),
             SampleSettings.Check("ハンドルを表示", true, value => Apply(appearance with { ShowHandles = value })),
             ColorChoice("ハンドルの色", 0, index => Apply(appearance with { HandleColor = ResolveColor(index) })),
@@ -200,8 +220,7 @@ internal static class MainWindow
             SampleSettings.Check("描画計画を差し替える（破線・ガイド線）", false, value =>
                 marquee.DrawPlanResolver = value ? static plan => GuideMarqueePlan.Resolve(in plan) : null));
 
-        // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
-        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel().Vertical().Spacing(6).Children(
             SampleSettings.Buttons(
                 ("選択をクリア", () => marquee.ResetSelection()),
@@ -219,11 +238,11 @@ internal static class MainWindow
                 TextWrapping = TextWrapping.Wrap,
             },
             SampleSettings.Buttons(
-                ("ハイライト切替", ToggleHighlight),
                 ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
-            selectionText);
+            selectionText,
+            loupeText);
 
-        var window = SampleShell.Create("MarqueeControl サンプル（MewUI）", properties, methods, samples, scroll, log);
+        var window = SampleShell.Create("Marquee サンプル (MewUI)", properties, methods, samples, scroll, log);
         window.Closed += () =>
         {
             backdrop.Dispose();
@@ -264,7 +283,7 @@ internal static class MainWindow
 
             var detected = new EsRect(420, 140, 300, 200);
             marquee.HighlightSourceRect = detected;
-            WriteLog($"ハイライト（表示専用の注目）: {FormatRect(detected)} / 選択は {FormatRect(marquee.SelectionSourceRect)} のまま（ハンドルは操作できる）");
+            WriteLog($"ハイライト（表示専用の注目）: {FormatRect(detected)} / 選択は {FormatRect(marquee.SelectionSourceRect)} のまま（ハイライト中は操作できない）");
         }
     }
 

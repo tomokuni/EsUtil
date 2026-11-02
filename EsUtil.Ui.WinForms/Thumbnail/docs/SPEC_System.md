@@ -22,7 +22,7 @@ WinForms 版のサムネイル一覧コントロールの構造・依存・設�
 
 本アセンブリは、サムネイル一覧を WinForms のコントロールとして提供します。
 
-- **配置と見た目は下の層が単一所有します**（`EsUtil.Feature.Thumbnail.Core` が並べ方、`EsUtil.Feature.Thumbnail.Presenter` が描画計画と外観）。
+- **配置と見た目は下の層が単一所有します**（`EsUtil.Feature.Thumbnail.Core` が並べ方、`EsUtil.Feature.Thumbnail.Core` が描画計画と外観）。
 - **本アセンブリが行うのは 3 つだけ**: 入力の受付、スクロール（`AutoScroll`）、GDI+ による描画。
 - **子コントロールを持ちません**（内容をすべて自分で描きます）。
 - 対象フレームワークは `net10.0-windows10.0.17763.0`（`UseWindowsForms`）です。
@@ -34,7 +34,7 @@ WinForms 版のサムネイル一覧コントロールの構造・依存・設�
 | 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.17763.0`） |
 | UI フレームワーク | WinForms（`ScrollableControl` を継承する） |
 | 描画 | GDI+（`System.Drawing.Graphics`。 `System.Drawing.Common` は WinForms と共に解決される） |
-| 参照パッケージ | `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core` |
+| 参照パッケージ | `EsUtil.Feature.Thumbnail.Core` / `EsUtil.Platform.Core` |
 | テスト | xUnit v3（`EsUtil.Ui.WinForms.Thumbnail.Tests`。 公開 API・ログ・描画（`Bitmap` 上の画素）を検証する） |
 
 ## 3. アーキテクチャ
@@ -44,7 +44,7 @@ WinForms 版のサムネイル一覧コントロールの構造・依存・設�
 ```mermaid
 flowchart TD
     UI["UI 層（本アセンブリ）"]
-    Presenter["提示層（EsUtil.Feature.Thumbnail.Presenter）"]
+    Presenter["提示層（EsUtil.Feature.Thumbnail.Core）"]
     Core["機能コア（EsUtil.Feature.Thumbnail.Core）"]
     Platform["EsUtil.Platform.Core"]
 
@@ -62,7 +62,7 @@ flowchart TD
 | 責務 | 所有者 |
 | --- | --- |
 | 折り返し・行の高さ・当たり判定・可視範囲 | `EsUtil.Feature.Thumbnail.Core` |
-| 背景・影・名前の体裁、層の順序 | `EsUtil.Feature.Thumbnail.Presenter` |
+| 背景・影・名前の体裁、層の順序 | `EsUtil.Feature.Thumbnail.Core` |
 | 入力の受付・選択の決定・2 回押しの通知 | `ThumbnailControl` |
 | スクロール範囲（`AutoScrollMinSize`）の設定 | `ThumbnailControl` |
 | 描画（背景・影・画像・名前。 GDI+） | `ThumbnailControl` |
@@ -116,7 +116,7 @@ classDiagram
         +VisibleRange ThumbnailRange
         +ItemBounds(index) Rectangle
         +ClearItems()
-        +Add(image, caption, toolTip, isCurrent, tag) int
+        +Add(image, caption, toolTip, tag) int
         +SetImage(index, image)
         +SetCaption(index, caption)
         +ScrollToIndex(index)
@@ -126,7 +126,6 @@ classDiagram
         +Image Bitmap
         +Caption string
         +ToolTip string
-        +IsCurrent bool
         +Tag object
         +ImageHeight double
         +UpdateHeight(imageWidth)

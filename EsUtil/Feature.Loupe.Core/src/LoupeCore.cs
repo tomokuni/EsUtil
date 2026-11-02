@@ -1,4 +1,5 @@
-using EsUtil.Feature.Loupe.Core.Logging;
+using EsUtil.Feature.Loupe.Logging;
+using EsUtil.Feature.Loupe.Core.Internal;
 using static EsUtil.Feature.Loupe.LoupeCore.Limits;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
@@ -25,7 +26,7 @@ namespace EsUtil.Feature.Loupe;
 /// <br/>
 /// <b>描画は本コアの関心事ではない</b>: 本コアは描画 API も描画面も知らない<br/>
 /// （<see cref="LoupeGeometry"/> という幾何のデータを返すだけである）。<br/>
-/// 装飾（十字線・枠線）・文言・表示可否・描画順は描画の都合として描画層（本コアを参照する上位の層）が解決し、<br/>
+/// 装飾（十字線・枠線）・文言・表示可否・描画順は描画の都合として提示層が解決し、<br/>
 /// 描画は UI 層が行う（描画 API の抽象化はしない）。<br/>
 /// <br/>
 /// <b>UI 層の責務</b>: 拡大元画像の解決（UI ごとに型が異なる）、描画の実行（ビットマップ合成・キャンバス描画）、<br/>
@@ -98,7 +99,7 @@ public sealed partial class LoupeCore
     /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
     /// <value>接頭辞（例: <c>[Loupe]</c>）。 null または空白を設定すると既定値へ戻す。</value>
     /// <remarks>
-    /// 本コアのログ定義（<see cref="LoupeLogMessage"/>）の接頭辞を設定する（本層は最下層のため伝搬先は無い）。<br/>
+    /// ログ定義（<see cref="LoupeLogMessage"/>）の接頭辞を設定する（Core と Presenter は同じ定義を共有するため、どちらから設定しても全ログに効く）。<br/>
     /// 設定した接頭辞は以降のログの先頭に付く（未設定時は <see cref="LoupeLogMessage.DefaultPrefix"/>）。
     /// </remarks>
     public string? LogPrefix
@@ -129,7 +130,7 @@ public sealed partial class LoupeCore
         {
             ArgumentNullException.ThrowIfNull(value);
 
-            if (SetIfChanged(ref _options, value, out var previous))
+            if (ChangeTracking.SetIfChanged(ref _options, value, out var previous))
             {
                 Log.LogOptionsChanged(previous, value);
             }
@@ -148,7 +149,7 @@ public sealed partial class LoupeCore
         get => _dipToDeviceScaling;
         set
         {
-            if (SetIfChanged(ref _dipToDeviceScaling, CoerceClientToPixelScaling(value), out var previous))
+            if (ChangeTracking.SetIfChanged(ref _dipToDeviceScaling, CoerceClientToPixelScaling(value), out var previous))
             {
                 Log.LogSettingChanged(nameof(ClientToPixelScaling), previous, _dipToDeviceScaling);
             }
@@ -168,7 +169,7 @@ public sealed partial class LoupeCore
         get => _centerPoint;
         set
         {
-            if (SetIfChanged(ref _centerPoint, value, out var previous))
+            if (ChangeTracking.SetIfChanged(ref _centerPoint, value, out var previous))
             {
                 Log.LogCenterPointChanged(previous, value);
             }
@@ -186,7 +187,7 @@ public sealed partial class LoupeCore
         get => _positionOffset;
         set
         {
-            if (SetIfChanged(ref _positionOffset, value, out var previous))
+            if (ChangeTracking.SetIfChanged(ref _positionOffset, value, out var previous))
             {
                 Log.LogSettingChanged(nameof(PositionOffset), previous, _positionOffset);
             }
@@ -237,27 +238,5 @@ public sealed partial class LoupeCore
         Log.LogFacadeCreated(_options.RequestedSize, _options.ZoomLevel);
     }
 
-    /// <summary>新しい値を保持する（同値なら何もしない）。</summary>
-    /// <typeparam name="T">値の型。</typeparam>
-    /// <param name="field">保持先のフィールド。</param>
-    /// <param name="value">設定する値。</param>
-    /// <param name="previous">変更前の値（同値の場合は現在値）。</param>
-    /// <returns>値を変更した場合は true（同値だった場合は false）。</returns>
-    /// <remarks>
-    /// 「同値なら何もしない」という規則を単一所有する<br/>
-    /// （各プロパティが同じ数行を書くと、片方だけ同値判定が抜けて無駄なログ・再評価が溢れる）。<br/>
-    /// 変更前の値も返すため、変更を検出した側（設定の変更ログ）が前後を比較できる。<br/>
-    /// 本クラスは <c>field</c> キーワードを使わず明示的なフィールドを持つ（<c>field</c> は <c>ref</c> 引数へ渡せないため）。
-    /// </remarks>
-    private static bool SetIfChanged<T>(ref T field, T value, out T previous)
-    {
-        previous = field;
-        if (EqualityComparer<T>.Default.Equals(previous, value))
-        {
-            return false;
-        }
 
-        field = value;
-        return true;
-    }
 }

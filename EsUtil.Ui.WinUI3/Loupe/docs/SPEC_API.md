@@ -29,7 +29,7 @@
 
 名前空間 `EsUtil.Ui.WinUI3.Loupe` / クラス `LoupeControl`（`public sealed`、`Microsoft.UI.Xaml.Controls.Canvas` 派生）。
 
-**他の UI 版の `LoupeControl` と同じ UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）を使うため、設定値と見た目は複数の UI で一致します。**
+**他の UI 版の `LoupeControl` と同じ UI 非依存の機能アセンブリ（`EsUtil.Feature.Loupe.Core`。 コアと提示層）を使うため、設定値と見た目は複数の UI で一致します。**
 
 利用の前提:
 
@@ -57,7 +57,7 @@
 | `PositionOffset` | `double` | 0 | — | 拡大中心からの右下方向へのオフセット量（DIP）。 保持と位置の補正はコアが単一所有する |
 | `DrawPlanResolver` | `Func<LoupeDrawPlan, LoupeDrawPlan>?` | `null` | — | **描画計画の差し替え点**（装飾の矩形・ラベルの文言と配置）。 設定すると再描画を要求する（同じ入力では 1 フレーム 1 回だけ解決されるため、呼び出しの時点に依存しない純粋関数にすること） |
 | `Log` | `ILogger` | `NullLogger` | — | 設定変更ログと描画例外の出力先（null を設定した場合は出力なし） |
-| `LogPrefix` | `string?` | `[Loupe]` | — | ログの接頭辞（提示層・コアへも伝搬する。 null または空白を設定すると既定値へ戻す） |
+| `LogPrefix` | `string?` | `[Loupe]` | — | ログの接頭辞（コアと提示層のログの両方に適用する。 null または空白を設定すると既定値へ戻す） |
 
 `CenterPoint` は基底（`UIElement`）の同名プロパティ（描画変換の中心点）を隠します。 名前を揃えて移植しやすくするためで、描画変換の中心点が必要な場合は基底の実装として扱います。
 
@@ -206,7 +206,7 @@ if (layout.Position is { } position)
 | Error | `[Loupe] Update exception` | 本プロジェクトの `LoupeLogMessage`（描画の例外） |
 | Error | `[Loupe] {操作} で例外が発生` | 本プロジェクトの `LoupeLogMessage`（公開 API の例外） |
 
-接頭辞は `LogPrefix` で変更でき、提示層・コアへも伝搬します（全層のログが同じ接頭辞になる）。 **接頭辞はプロセス（アセンブリ）内の全インスタンスで共有します**（同じ実行で 2 つ目のルーペへ別の接頭辞を設定すると、1 つ目のルーペのログもその接頭辞になります）。 変化判定（同値・同一インスタンスなら出力しない）は出力する主体が単一所有します。
+接頭辞は `LogPrefix` で変更でき、コアと提示層のログの両方に適用します（全層のログが同じ接頭辞になる）。 **接頭辞はプロセス（アセンブリ）内の全インスタンスで共有します**（同じ実行で 2 つ目のルーペへ別の接頭辞を設定すると、1 つ目のルーペのログもその接頭辞になります）。 変化判定（同値・同一インスタンスなら出力しない）は出力する主体が単一所有します。
 
 ## 9. 制限事項
 

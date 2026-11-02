@@ -123,34 +123,37 @@ internal sealed partial class LoupeVisualLayer : Canvas
     /// <remarks>表示が有効な指示だけを置く（表示可否は配置指示が持つ）。 文字の実寸は計画が確保済みである。</remarks>
     private void ApplyLabels(LoupeDrawPlan plan)
     {
-        EnsureLabels(plan.Labels.Count);
-
-        for (var i = 0; i < _labelBorders.Count; i++)
+        if (plan.Label is not { IsVisible: true } label)
         {
-            var border = _labelBorders[i];
-            var text = _labelTexts[i];
-
-            if (i >= plan.Labels.Count || !plan.Labels[i].IsVisible)
+            foreach (var hidden in _labelBorders)
             {
-                border.Visibility = Visibility.Collapsed;
-                continue;
+                hidden.Visibility = Visibility.Collapsed;
             }
 
-            var label = plan.Labels[i];
-            SetLeft(border, label.DipRect.X);
-            SetTop(border, label.DipRect.Y);
-            border.Width = label.DipRect.Width;
-            border.Height = label.DipRect.Height;
-            border.CornerRadius = new CornerRadius(Math.Max(0, label.CornerRadius));
-            border.Background = SolidBrushCache.Get(LoupeShapePlan.ToArgb(label.BackgroundColor));
-
-            text.Text = label.Text;
-            text.FontSize = label.FontSize;
-            text.Foreground = SolidBrushCache.Get(LoupeShapePlan.ToArgb(label.TextColor));
-            text.Padding = new Thickness(label.PaddingX, label.PaddingY, label.PaddingX, label.PaddingY);
-
-            border.Visibility = Visibility.Visible;
+            return;
         }
+
+        EnsureLabels(1);
+        for (var i = 1; i < _labelBorders.Count; i++)
+        {
+            _labelBorders[i].Visibility = Visibility.Collapsed;
+        }
+
+        var border = _labelBorders[0];
+        var text = _labelTexts[0];
+        SetLeft(border, label.DipRect.X);
+        SetTop(border, label.DipRect.Y);
+        border.Width = label.DipRect.Width;
+        border.Height = label.DipRect.Height;
+        border.CornerRadius = new CornerRadius(Math.Max(0, label.CornerRadius));
+        border.Background = SolidBrushCache.Get(LoupeShapePlan.ToArgb(label.BackgroundColor));
+
+        text.Text = label.Text;
+        text.FontSize = label.FontSize;
+        text.Foreground = SolidBrushCache.Get(LoupeShapePlan.ToArgb(label.TextColor));
+        text.Padding = new Thickness(label.PaddingX, label.PaddingY, label.PaddingX, label.PaddingY);
+
+        border.Visibility = Visibility.Visible;
     }
 
     /// <summary>ラベルの要素を必要な数まで用意する。</summary>

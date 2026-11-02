@@ -86,9 +86,9 @@ internal static class MarqueePainter
         var fillColor = appearance.HandleColor.ToMewUIColor();
         var borderColor = appearance.HandleBorderColor.ToMewUIColor();
 
-        foreach (var bounds in handles.HandleDipRects)
+        for (var index = 0; index < MarqueeHandleRects.Count; index++)
         {
-            var rect = bounds.ToMewUIRect();
+            var rect = handles.HandleDipRects[index].ToMewUIRect();
             context.FillRectangle(rect, fillColor);
             context.DrawRectangle(rect, borderColor, handles.BorderThickness);
         }

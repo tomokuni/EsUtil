@@ -13,7 +13,7 @@ namespace EsUtil.Ui.MewUI.Interop.Imaging;
 /// <c>MeasureContent</c> を上書きする。<br/>
 /// <b>配置方法</b>: <see cref="UniformDraw"/> が false（既定）の場合は領域全体へ引き伸ばし、
 /// true の場合は縦横比を保って中央へ収める（余白は描画しない）。<br/>
-/// <b>描画</b>: フレームワーク標準の <see cref="Control.OnRender(IGraphicsContext)"/> へ描く（Skia のキャンバスを使わない）。
+/// <b>描画</b>: フレームワーク標準の <see cref="Control.OnRender(IGraphicsContext)"/> へ描く。
 /// 配置の計算は <see cref="ImageRenderPlan"/>、描画手順は <see cref="ImageRenderer"/> が単一所有する
 /// （本クラスはプロパティの配線だけを担う）。
 /// </remarks>

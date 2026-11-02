@@ -27,7 +27,7 @@ namespace EsUtil.Ui.AvaloniaUI.Loupe;
 /// <see cref="DisplaySource"/>（ホストが表示に使っている Avalonia の画像）を渡すと、切り出しの複製を作らずに描ける（省略可）。<br/>
 /// 表示は内部の <see cref="Image"/> 要素へ生成Bitmapを設定する方式に統一する。<br/>
 /// <br/>
-/// <b>描画の委譲</b>: 描画（抽出→拡大→十字線→枠線）の手順は UI 非依存の描画層（<c>EsUtil.Feature.Loupe.Presenter</c>）が<br/>
+/// <b>描画の委譲</b>: 描画（抽出→拡大→十字線→枠線）の手順は UI 非依存の提示層（<c>EsUtil.Feature.Loupe</c> の <see cref="LoupePresenter"/>）が<br/>
 /// 本コントロールは状態（DP）とライフサイクル（ビットマップ生成/解放）に専念する。<br/>
 /// <br/>
 /// <b>再描画のバッチ化</b>: 複数プロパティの連続変更は <see cref="Dispatcher"/> へのポストにより<br/>
@@ -116,7 +116,7 @@ public sealed class LoupeControl : Panel
     /// <b>矩形の並びで表せる装飾と、ラベルの文言・位置を差し替える入口</b>である（色・太さ・表示可否は <see cref="Appearance"/>）。<br/>
     /// 受け取る計画は提示層が解決済みであるため、本関数は値の置き換えだけで完結する<br/>
     /// （<c>plan with { CrosshairPixelRects = …, Labels = … }</c>）。<br/>
-    /// <b>配置と描画の両方に適用される</b>ため、<see cref="LoupeDrawPlan.Labels"/> を差し替えるとラベル要素も追随する。<br/>
+    /// <b>配置と描画の両方に適用される</b>ため、<see cref="LoupeDrawPlan.Label"/> を差し替えるとラベル要素も追随する。<br/>
     /// <b>純粋関数（同じ入力に同じ出力）にすること</b>（同じ入力では 1 フレーム 1 回だけ解決されるため、<br/>
     /// 呼び出しの時点に依存する関数を渡すと差し替えが反映されない）。 設定すると保持中の計画を破棄して再生成を要求する。
     /// </remarks>
@@ -285,7 +285,8 @@ public sealed class LoupeControl : Panel
         // テキストは描画層が文言と基準点を渡し、要素として置くか画像として描くかは本層が決める
         // （実寸は要素の大きさ（親から割り当てられたサイズ）を基準に測る）
         var plan = ResolvePlan(finalSize.Width);
-        SyncLabels(plan.Labels);
+        Log.LogGeometry(finalSize.Width, finalSize.Height, plan.ClientPixelSize, plan.ClientToPixelScaling);
+        SyncLabels(plan.Label);
 
         return base.ArrangeOverride(finalSize);
     }
@@ -333,31 +334,40 @@ public sealed class LoupeControl : Panel
     private void InvalidatePlan() => _plan = null;
 
     /// <summary>ラベル要素（背景 + テキスト）を配置指示へ同期する。</summary>
-    /// <param name="placements">配置するラベル（描画順に並ぶ）。</param>
+    /// <param name="placement">配置するラベル（無い場合は null）。</param>
     /// <remarks>
     /// 余分な要素は親から外し、不足分は生成して子の末尾へ追加する（配置のたびに呼ばれる）。<br/>
     /// 各要素は左上寄せと <c>Margin</c> で絶対配置する（配置矩形はコアと描画層が単一所有する）。
     /// </remarks>
-    private void SyncLabels(IReadOnlyList<LoupeLabelPlacement> placements)
+    private void SyncLabels(LoupeLabelPlacement? placement)
     {
-        while (_labels.Count > placements.Count)
+        if (placement is not { } label)
+        {
+            while (_labels.Count > 0)
+            {
+                var last = _labels[^1];
+                _labels.RemoveAt(_labels.Count - 1);
+                Children.Remove(last);
+            }
+
+            return;
+        }
+
+        while (_labels.Count > 1)
         {
             var last = _labels[^1];
             _labels.RemoveAt(_labels.Count - 1);
             Children.Remove(last);
         }
 
-        while (_labels.Count < placements.Count)
+        if (_labels.Count == 0)
         {
             var border = new Border { Child = new TextBlock { TextWrapping = TextWrapping.NoWrap } };
             _labels.Add(border);
             Children.Add(border);
         }
 
-        for (var i = 0; i < placements.Count; i++)
-        {
-            Apply(_labels[i], placements[i]);
-        }
+        Apply(_labels[0], label);
     }
 
     /// <summary>1 つのラベル要素の内容と配置を配置指示に合わせる。</summary>
@@ -664,7 +674,7 @@ public sealed class LoupeControl : Panel
     /// <value>接頭辞（例: <c>[Loupe]</c>）。 null または空白を設定すると既定値へ戻す。</value>
     /// <remarks>
     /// 本コントロールのログ定義（<see cref="LoupeLogMessage"/>）の接頭辞を設定し、<br/>
-    /// 提示層・コアへ伝搬する（集約した接頭辞で全層のログを揃える）。
+    /// 機能アセンブリのログ定義（コアと提示層で共有）へ適用する（全層のログが同じ接頭辞になる）。
     /// </remarks>
     public string? LogPrefix
     {

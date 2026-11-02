@@ -284,7 +284,7 @@ public class LoupeControlTests
 
         var plan = control.ResolveCurrentPlan();
 
-        var label = Assert.Single(plan.Labels);
+        var label = plan.Label!.Value;
 
         // 文言はコアの値型が単一所有する（本コントロールは描画層へ実寸測定を渡すだけである）
         Assert.Equal("(12, 34)", label.Text);
@@ -303,7 +303,7 @@ public class LoupeControlTests
         using var control = new LoupeControl();
         control.Size = new Size(200, 200);
 
-        Assert.Empty(control.ResolveCurrentPlan().Labels);
+        Assert.Null(control.ResolveCurrentPlan().Label);
     }
 
     /// <summary>同じ入力では描画計画を再解決せず、入力が変わると再解決することを検証する。</summary>
@@ -391,13 +391,13 @@ public class LoupeControlTests
         {
             Options = LoupeOptions.Default with { RequestedSize = 100 },
             CenterPoint = new EsPoint(10, 10),
-            DrawPlanResolver = static plan => plan with { CrosshairPixelRects = [new EsRect(1, 2, 3, 4)] },
+            DrawPlanResolver = static plan => plan with { CrosshairPixelRects = new LoupeCrosshairRects(new EsRect(1, 2, 3, 4), default) },
         };
         control.Size = new Size(100, 100);
 
         var plan = control.ResolveCurrentPlan();
 
-        Assert.Equal(new EsRect(1, 2, 3, 4), Assert.Single(plan.CrosshairPixelRects));
+        Assert.Equal(new EsRect(1, 2, 3, 4), plan.CrosshairPixelRects.Vertical);
     }
 
     /// <summary>静的描画メソッドが描画実装へ委譲することを検証する（公開 API の入口）。</summary>

@@ -22,6 +22,10 @@ internal sealed class ThumbnailViewport : Control
     /// <summary>描画計画。</summary>
     public ThumbnailDrawPlan? Plan { get; set; }
 
+    /// <summary>強調の帯の色を取得または設定する（<c>0xAARRGGBB</c>。 0 は描かない）。</summary>
+    /// <value>UI がテーマから解決した色。</value>
+    public uint HighlightArgb { get; set; }
+
     /// <summary>表示する画像。</summary>
     public EsReadOnlyBitmap? Source { get; set; }
 
@@ -61,11 +65,11 @@ internal sealed class ThumbnailViewport : Control
     private void RenderCore(IGraphicsContext context, ThumbnailDrawPlan plan)
     {
         // 背景（ホバー・選択の帯）
-        if (plan.BackgroundArgb != 0)
+        if (plan.Highlight != ThumbnailHighlightKind.None && HighlightArgb != 0)
         {
             context.FillRectangle(
                 new Rect(0, 0, RenderSize.Width, RenderSize.Height),
-                Color.FromArgb(plan.BackgroundArgb));
+                Color.FromArgb(HighlightArgb));
         }
 
         // 画像の矩形（外枠を原点とする DIP 座標）

@@ -8,19 +8,19 @@
 ```mermaid
 flowchart TB
     CTRL["UI 層<br/>EsUtil.Ui.Xxx（UI ごとに別ソリューション・別アセンブリ）"]
-    UB["提示層<br/>EsUtil.Feature.Xxx.Presenter"]
-    CORE["機能コア<br/>EsUtil.Feature.Xxx.Core"]
+    FEATURE["機能アセンブリ<br/>EsUtil.Feature.Xxx.Core<br/>Core（計算）+ Presenter（提示）"]
     PLAT["共通基盤<br/>EsUtil.Platform.Core（このリポジトリ以外でも使える値型・抽象）<br/>EsUtil.Platform.Core.Windows（Windows 専用の相互変換）"]
-    CTRL --> UB
-    UB --> CORE
-    CORE --> PLAT
+    CTRL --> FEATURE
+    FEATURE --> PLAT
 ```
+
+**Core と Presenter は 1 つのアセンブリ（`EsUtil.Feature.<機能>.Core`）に置きます**（公開面は `src/` 直下に置き、層の内部は `src/Core/` と `src/Presenter/` のフォルダ・名前空間で分けます）。 同一アセンブリ内でも **Core から Presenter への参照は禁止**です（[`.github/依存関係.md`](../.github/依存関係.md) §5）。
 
 依存は常に上から下への一方向です（詳細は [`.github/依存関係.md`](../.github/依存関係.md)）。
 
 ## 2. コントロール層の 3 層
 
-**Core（何を描くか・判断・計算） / Presenter（提示＝描画計画と外観） / UI（フレームワーク固有の描画と配線）** の 3 層です。 UI 層が Presenter と Core の両方を参照し、**Presenter はコアの計算結果を使って描画計画を組み立てる**向きに依存します（コアは Presenter を参照しません）。
+**Core（何を描くか・判断・計算） / Presenter（提示＝描画計画と外観） / UI（フレームワーク固有の描画と配線）** の 3 層です。 UI 層は機能アセンブリ（Core と Presenter）を参照し、**Presenter はコアの計算結果を使って描画計画を組み立てる**向きに依存します（コアは Presenter を参照しません）。
 
 ```mermaid
 flowchart TB
@@ -40,8 +40,8 @@ flowchart TB
 | 層 | 置くもの | 置かないもの | 依存先 | Loupe の例 |
 | --- | --- | --- | --- | --- |
 | **Core** | 「何を描くか」の判断・状態・設定の既定値と補正・純粋計算・**描画の幾何（切り出し領域・描画面）**・**コアが出力するログ定義** | 色・フォントサイズ・表示可否・UI フレームワークの型・**描画 API と描画の抽象**・コントロール化を前提とした処理（組み込み先の概念） | `EsUtil.Platform.Core` | `LoupeCore`（`ResolveLayout` / `ResolveGeometry`）/ `LoupeGeometry` / `LoupeOptions` / `LoupeLayout` |
-| **Presenter** | **提示（`XxxPresenter`：幾何＋外観 → 描画計画（層の順序・装飾矩形・文言・配置））**・**外観（`XxxAppearance`：色・フォント・角丸・枠線の太さ・表示可否）**・**テキストを要素に写す配置計算（`XxxLabelPlan`）**・**本層が所有する設定の変更ログ** | コア単体でも成立する計算（選択・表示レイアウト）・UI フレームワークの型・**描画 API の抽象**・**コントロール化を前提とした処理**（入力の解釈・ビューポート連携・組み込み先の概念） | `Core` / `EsUtil.Platform.Core` | `LoupePresenter` / `LoupeAppearance` / `LoupeDrawPlan` / `LoupeDrawLayer` |
-| **UI** | 入力イベントの受付とコア型への変換・効果の適用・通知の公開イベントへの転送・**描画（自 UI の描画 API で描画計画を描く）**・ラベル要素の配置・**コントロール化を前提とした処理（ホイール操作・ビューポート連携）**・**本 UI が出力するログ定義** | 判断・計算・既定値（コアが単一所有する）・層の順序（Presenter がデータとして単一所有する） | `Core` / `Presenter` / `EsUtil.Platform.Core`（単独配布するため、コピーしたヘルパー以外で本リポジトリ外の層を参照しない。 [`.github/依存関係.md`](../.github/依存関係.md) §4.1） | `LoupeControl` / `LoupeContextPainter` / `LoupeSkiaPainter` |
+| **Presenter** | **提示（`XxxPresenter`：幾何＋外観 → 描画計画（層の順序・装飾矩形・文言・配置））**・**外観（`XxxAppearance`：色・フォント・角丸・枠線の太さ・表示可否）**・**テキストを要素に写す配置計算（`XxxLabelPlan`）**・**本層が所有する設定の変更ログ** | コア単体でも成立する計算（選択・表示レイアウト）・UI フレームワークの型・**描画 API の抽象**・**コントロール化を前提とした処理**（入力の解釈・ビューポート連携・組み込み先の概念） | 同一アセンブリの `Core` / `EsUtil.Platform.Core` | `LoupePresenter` / `LoupeAppearance` / `LoupeDrawPlan` / `LoupeDrawLayer` |
+| **UI** | 入力イベントの受付とコア型への変換・効果の適用・通知の公開イベントへの転送・**描画（自 UI の描画 API で描画計画を描く）**・ラベル要素の配置・**コントロール化を前提とした処理（ホイール操作・ビューポート連携）**・**本 UI が出力するログ定義** | 判断・計算・既定値（コアが単一所有する）・層の順序（Presenter がデータとして単一所有する） | `EsUtil.Feature.<機能>.Core` / `EsUtil.Platform.Core`（単独配布するため、コピーしたヘルパー以外で本リポジトリ外の層を参照しない。 [`.github/依存関係.md`](../.github/依存関係.md) §4.1） | `LoupeControl` / `LoupeContextPainter` / `LoupeSkiaPainter` |
 
 ## 3. どこに置くかを決める 3 つの問い
 
@@ -100,7 +100,9 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | `MarqueeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `ThumbnailControl` | あり（配置・選択・可視範囲） | あり（提示 + 外観 + 影） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `LoupeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
-| `ColorComboBoxControl` | なし（色文字列の解析・検証は UI が持つ） | なし | AvaloniaUI |
+| `ColorSelectorControl` | なし（色名・色文字列の規則は共通基盤の `Palette` が持つ） | なし | AvaloniaUI / MewUI / WinUI3 |
+
+**Core と Presenter の両方を持つ機能でも、プロジェクト（アセンブリ）は 1 つ**です（`EsUtil.Feature.<機能>.Core`。 公開面は `src/` 直下、層の内部は `src/Core/` と `src/Presenter/` で分ける）。
 
 **コアだけを持つ機能**（提示層を必要としないもの）は、`EsUtil.Feature.<機能>.Core` の 1 パッケージだけを持ちます。 UI 層はこれを参照できます（[`.github/依存関係.md`](../.github/依存関係.md) §3）。
 
@@ -113,15 +115,16 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 
 ## 7. 各層のドキュメント
 
-| コントロール | Core | Presenter |
-| --- | --- | --- |
-| Marquee | [`EsUtil.Feature.Marquee.Core`](../EsUtil/Feature.Marquee.Core/README.md) | [`EsUtil.Feature.Marquee.Presenter`](../EsUtil/Feature.Marquee.Presenter/README.md) |
-| Loupe | [`EsUtil.Feature.Loupe.Core`](../EsUtil/Feature.Loupe.Core/README.md) | [`EsUtil.Feature.Loupe.Presenter`](../EsUtil/Feature.Loupe.Presenter/README.md) |
-| Thumbnail | [`EsUtil.Feature.Thumbnail.Core`](../EsUtil/Feature.Thumbnail.Core/README.md) | [`EsUtil.Feature.Thumbnail.Presenter`](../EsUtil/Feature.Thumbnail.Presenter/README.md) |
-| ColumnPacking | [`EsUtil.Feature.ColumnPacking.Core`](../EsUtil/Feature.ColumnPacking.Core/README.md) | なし |
-| ZenHan | [`EsUtil.Feature.ZenHan.Core`](../EsUtil/Feature.ZenHan.Core/README.md) | なし |
+| コントロール | 機能アセンブリ（Core / Presenter） |
+| --- | --- |
+| Marquee | [`EsUtil.Feature.Marquee.Core`](../EsUtil/Feature.Marquee.Core/README.md)（[Core API](../EsUtil/Feature.Marquee.Core/docs/SPEC_API.md) / [Presenter API](../EsUtil/Feature.Marquee.Core/docs/SPEC_Presenter_API.md)） |
+| Loupe | [`EsUtil.Feature.Loupe.Core`](../EsUtil/Feature.Loupe.Core/README.md)（[Core API](../EsUtil/Feature.Loupe.Core/docs/SPEC_API.md) / [Presenter API](../EsUtil/Feature.Loupe.Core/docs/SPEC_Presenter_API.md)） |
+| Thumbnail | [`EsUtil.Feature.Thumbnail.Core`](../EsUtil/Feature.Thumbnail.Core/README.md)（[Core API](../EsUtil/Feature.Thumbnail.Core/docs/SPEC_API.md) / [Presenter API](../EsUtil/Feature.Thumbnail.Core/docs/SPEC_Presenter_API.md)） |
+| ColumnPacking | [`EsUtil.Feature.ColumnPacking.Core`](../EsUtil/Feature.ColumnPacking.Core/README.md)（Core のみ） |
+| ZenHan | [`EsUtil.Feature.ZenHan.Core`](../EsUtil/Feature.ZenHan.Core/README.md)（Core のみ） |
 
-UI 層は [`EsUtil.Ui.AvaloniaUI.ColorComboBox`](../EsUtil.Ui.AvaloniaUI/ColorComboBox/README.md) / [`EsUtil.Ui.AvaloniaUI.Marquee`](../EsUtil.Ui.AvaloniaUI/Marquee/README.md) / [`EsUtil.Ui.MewUI.Marquee`](../EsUtil.Ui.MewUI/Marquee/README.md) / [`EsUtil.Ui.WinUI3.Marquee`](../EsUtil.Ui.WinUI3/Marquee/README.md) / [`EsUtil.Ui.WinForms.Marquee`](../EsUtil.Ui.WinForms/Marquee/README.md) /
+UI 層は [`EsUtil.Ui.AvaloniaUI.ColorSelector`](../EsUtil.Ui.AvaloniaUI/ColorSelector/README.md) / [`EsUtil.Ui.MewUI.ColorSelector`](../EsUtil.Ui.MewUI/ColorSelector/README.md) / [`EsUtil.Ui.WinUI3.ColorSelector`](../EsUtil.Ui.WinUI3/ColorSelector/README.md) /
+[`EsUtil.Ui.AvaloniaUI.Marquee`](../EsUtil.Ui.AvaloniaUI/Marquee/README.md) / [`EsUtil.Ui.MewUI.Marquee`](../EsUtil.Ui.MewUI/Marquee/README.md) / [`EsUtil.Ui.WinUI3.Marquee`](../EsUtil.Ui.WinUI3/Marquee/README.md) / [`EsUtil.Ui.WinForms.Marquee`](../EsUtil.Ui.WinForms/Marquee/README.md) /
 [`EsUtil.Ui.AvaloniaUI.Loupe`](../EsUtil.Ui.AvaloniaUI/Loupe/README.md) / [`EsUtil.Ui.MewUI.Loupe`](../EsUtil.Ui.MewUI/Loupe/README.md) / [`EsUtil.Ui.WinUI3.Loupe`](../EsUtil.Ui.WinUI3/Loupe/README.md) / [`EsUtil.Ui.WinForms.Loupe`](../EsUtil.Ui.WinForms/Loupe/README.md) /
 [`EsUtil.Ui.AvaloniaUI.Thumbnail`](../EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) / [`EsUtil.Ui.MewUI.Thumbnail`](../EsUtil.Ui.MewUI/Thumbnail/README.md) / [`EsUtil.Ui.WinUI3.Thumbnail`](../EsUtil.Ui.WinUI3/Thumbnail/README.md) / [`EsUtil.Ui.WinForms.Thumbnail`](../EsUtil.Ui.WinForms/Thumbnail/README.md)、
 共通基盤は [`EsUtil.Platform.Core`](../EsUtil/Platform.Core/README.md) / [`EsUtil.Platform.Core.Windows`](../EsUtil/Platform.Core.Windows/README.md) を参照してください。

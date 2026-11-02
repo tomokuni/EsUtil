@@ -1467,6 +1467,28 @@ public class MarqueeControlTests
         window.Close();
     }
 
+    /// <summary>ポインターを受ける前は座標ラベルを描かないことを検証する。</summary>
+    /// <remarks>
+    /// 位置を受ける前の既定値（原点）は「カーソルがそこにある」意味ではない。<br/>
+    /// 描くと、カーソルの無い左上へ <c>(0, 0)</c> が出る（実測 2026-11-02）。
+    /// </remarks>
+    [AvaloniaFact]
+    internal async Task 座標ラベルはポインターを受ける前は描かない()
+    {
+        var control = new MarqueeControl
+        {
+            Width = 200,
+            Height = 200,
+            Appearance = MarqueeAppearance.Default with { ShowCoordLabel = true },
+        };
+        var window = Show(control);
+
+        await PumpLayoutAsync();
+
+        Assert.DoesNotContain("(0, 0)", LabelTexts(control));
+        window.Close();
+    }
+
     /// <summary>1 フレーム分の描画内容は 1 回だけ解決されることを検証する。</summary>
     /// <remarks>
     /// 図形の描画（描画フェーズ）とラベルの配置（配置フェーズ）が同じ描画内容を共有しないと、<br/>

@@ -4,7 +4,6 @@
 
 - [1. 概要](#1-概要)
 - [2. 実行方法](#2-実行方法)
-  - [2.1 バッチファイル（リリースビルド＆起動）](#21-バッチファイルリリースビルド起動)
 - [3. 操作方法](#3-操作方法)
 - [4. 検証項目（動作確認チェックリスト）](#4-検証項目動作確認チェックリスト)
 - [5. 構成](#5-構成)
@@ -37,20 +36,11 @@ dotnet run --project EsUtil.Ui.AvaloniaUI/Loupe/sample/EsUtil.Ui.AvaloniaUI.Loup
 dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Loupe/sample/EsUtil.Ui.AvaloniaUI.Loupe.Sample.csproj
 ```
 
-### 2.1 バッチファイル（リリースビルド＆起動）
-
-`EsUtil.Ui.AvaloniaUI/Loupe/sample/RunSample.bat` をダブルクリックすると、リリースビルドを行った後、サンプルアプリケーションを起動します。
-
-```text
-RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil.Ui.AvaloniaUI.Loupe.Sample.exe を起動
-```
-
-> 本サンプルは独立したプロジェクトです（`sample/` はコントロール本体のプロジェクト フォルダの外にあり、本体の `csproj` のコンパイル対象には含まれません）。
-
 ## 3. 操作方法
 
 | 操作 | 内容 |
 | --- | --- |
+| 「表示テーマ」を切り替える | サンプル共通の設定行（`SampleTheme`）。 コントロールはフレームワークのテーマから明暗を読むため、指定は不要 |
 | テスト画像上をマウス移動 | ルーペがカーソルの右下に追従して拡大表示 |
 | 画像の外へマウス移動 | 画像外の領域のみ無地の色（画像外の色。 視野全体が外に出た場合は全面がその色） |
 | 「ルーペを表示」チェック | `IsVisible` の切り替え（非表示時は Bitmap 解放） |

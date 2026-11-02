@@ -24,7 +24,7 @@
 | 目的 | ルーペの表示レイアウトと描画の幾何の解決を 1 箇所に集約し、UI ごとの実装差から切り離す |
 | 提供形態 | クラスライブラリ（`EsUtil.Feature.Loupe.dll`） |
 | 想定利用者 | UI 実装と、それらを組み込むホストアプリケーション |
-| 汎用性 | 特定のアプリ・UI に依存しない。 コントロールを「Core / Presenter / UI」に分ける構成のパイロット実装であり、そのまま別プロジェクトへ独立できる |
+| 汎用性 | 特定のアプリ・UI に依存しない（コアは描画 API も描画の抽象も持たない） |
 
 ## 2. 技術スタック
 
@@ -32,10 +32,10 @@
 | --- | --- |
 | ターゲット | `net10.0` |
 | 言語 | C# 14（`Nullable` 有効・`ImplicitUsings` 有効） |
-| ルート名前空間 | `EsUtil.Feature.Loupe`（**公開面はすべてここに属する**。 ファサードと、ファサードのメンバーの型（`LoupeGeometry` / `LoupeMagnifiedImage` / `LoupeOptions` / `LoupeLayout`））。 `internal` の型だけが層フォルダ `src/Core/` の配下（`EsUtil.Feature.Loupe.Core.Logging`）に残る |
+| ルート名前空間 | `EsUtil.Feature.Loupe`（**公開面はすべてここに属する**。 ファサードと、ファサードのメンバーの型（`LoupeGeometry` / `LoupeMagnifiedImage` / `LoupeOptions` / `LoupeLayout`））。 `internal` の型だけが層フォルダ `src/Core/`（`EsUtil.Feature.Loupe.Core.Internal`）に残り、ログ定義は `src/Logging/`（`EsUtil.Feature.Loupe.Logging`）に置く |
 | ドキュメント生成 | `GenerateDocumentationFile` 有効（XML は配布物へ出さず `cref` の検証のみに使う） |
 | テスト | xUnit v3（UI 初期化不要。 `InternalsVisibleTo` で `internal` を検証する） |
-| 依存 | UI フレームワークを一切参照しない。 直接依存は `EsUtil.Platform.Core` と `Microsoft.Extensions.Logging.Abstractions`（ログ定義のソース生成）のみ（SkiaSharp は参照しない） |
+| 依存 | UI フレームワークを一切参照しない。 直接依存は `EsUtil.Platform.Core` と `Microsoft.Extensions.Logging.Abstractions`（ログ定義のソース生成）のみ |
 
 ## 3. アーキテクチャ
 
@@ -43,14 +43,14 @@
 
 ```mermaid
 graph LR
-  R["描画層（本コアを参照する上位の層）<br/>提示（Presenter）・外観・ラベル計画"] --> B[EsUtil.Feature.Loupe.Core<br/>本プロジェクト]
+  R["提示層<br/>描画計画・外観・ラベル計画"] --> B["コア"]
   B --> D[EsUtil.Platform.Core]
 ```
 
 層の全体像は [`../../README.md`](../../README.md) を参照してください。
 
 - `EsUtil.Feature.Loupe.Core` は UI フレームワークへ依存しません。 依存は `EsUtil.Platform.Core` のみです。
-- **提示（描画計画の解決）と外観は描画層（本コアを参照する上位の層）が単一所有します**（本プロジェクトは描画 API も描画の抽象も色も持ちません）。 **描画は各 UI が自 UI の描画 API で行います**。
+- **提示（描画計画の解決）と外観は提示層（同じアセンブリの `EsUtil.Feature.Loupe` 名前空間）が単一所有します**（コアは描画 API も描画の抽象も色も持ちません）。 **描画は各 UI が自 UI の描画 API で行います**。
 - **コントロール化にだけ必要な処理（再描画要求のバッチ化・世代番号管理）は上位のコントロール実装が所有します**（中間ビットマップを生成する UI にだけ必要な処理であり、同期描画の UI には不要です）。
 - UI 実装は、コア型と自身の型（`Avalonia.Point` / `Size` / `IBrush`、`SKColor`）を相互変換します。 変換は境界（サービス呼び出し・イベント引数の生成・描画）の 1 行に限定し、UI 側の状態・描画は UI の型のまま維持します。
 - 設定（**計算に必要な値**である表示サイズ・拡大率）は `LoupeOptions` が単一所有し、UI 層は本型を 1 プロパティとして公開するだけです（設定の既定値・補正も本型が持つ）。 UI 層は寸法値を保持しません（描画時に読むだけ）。 **色・フォント・枠線の太さ・表示可否はコアの型に含めず、描画層の外観が単一所有します**。
@@ -92,7 +92,7 @@ sequenceDiagram
 
 ## 4. コンポーネント構成
 
-**公開面**（ファサード `LoupeCore.cs` と、ファサードから返る・渡す型（`LoupeGeometry` / `LoupeMagnifiedImage` / `LoupeOptions` / `LoupeLayout`））は `src/` 直下（ルート名前空間）に属します。 **内部手順**（`internal`）は層フォルダ（`src/Core/`）の配下へ置き、名前空間に層名を挟みます（`src/Core/Logging/` → `EsUtil.Feature.Loupe.Core.Logging`）。
+**公開面**（ファサード `LoupeCore.cs` と、ファサードから返る・渡す型（`LoupeGeometry` / `LoupeMagnifiedImage` / `LoupeOptions` / `LoupeLayout`））は `src/` 直下（ルート名前空間）に属します。 **内部手順**（`internal`）は層フォルダ（`src/Core/`）の配下へ置き、名前空間に層名を挟みます（ログ定義は `src/Logging/` → `EsUtil.Feature.Loupe.Logging`）。
 
 | ファイル | 型 | 可視性 | 責務 |
 | --- | --- | --- | --- |
@@ -102,13 +102,13 @@ sequenceDiagram
 | `EsUtil/Feature.Loupe.Core/src/LoupeGeometry.cs` | `LoupeGeometry` | public | 1 フレーム分の描画の幾何（コア⇔UI の契約）。 値の組は `LoupeCore.ResolveGeometry` が 1 箇所に閉じる（UI 層は自分で組み立てない）。 可視域の幾何を導出する（`CaptureSize` / `CaptureTopLeft` / `CaptureCropTopLeft` / `CaptureDrawOffset` / `CaptureCenterOffset` / `MagnifiedImage` / `ClientPixelRect`） |
 | `EsUtil/Feature.Loupe.Core/src/LoupeMagnifiedImage.cs` | `LoupeMagnifiedImage` | public | 拡大画像の切り出しと描画の矩形（切り出し領域・描画先） |
 | `EsUtil/Feature.Loupe.Core/src/LoupeLayout.cs` | `LoupeLayout` | public | 表示レイアウトの値（表示サイズ + 表示位置。 配置しない場合は位置が null） |
-| （本プロジェクトには置かない） | 描画計画と外観 | — | 提示（描画計画の解決）と外観は **描画層（本コアを参照する上位の層）が所有します**（本コアは描画 API も描画の抽象も持たない） |
-| `EsUtil/Feature.Loupe.Core/src/Core/Logging/LoupeLogMessage.cs` | `LoupeLogMessage` | internal | コアが出力するログ定義（`LoggerMessage` ソース生成）の単一所有（**上位層が出力する定義と書式は上位層が単一所有する**） |
+| （コアには置かない。 提示層が持つ） | 描画計画と外観 | — | 提示（描画計画の解決）と外観は **提示層（同じアセンブリの `EsUtil.Feature.Loupe` 名前空間）が所有します**（[`SPEC_Presenter_API.md`](SPEC_Presenter_API.md)） |
+| `EsUtil/Feature.Loupe.Core/src/Logging/LoupeLogMessage.cs` | `LoupeLogMessage` | internal | アセンブリのログ定義（`LoggerMessage` ソース生成）。 コアと提示層で共有する |
 | `EsUtil/Feature.Loupe.Core/src/LoupeCore.Geometry.cs` | `LoupeCore` の partial | public | 幾何の入口（`ResolveLayout` / `ResolveGeometry`）と内部手順（表示位置のオフセット加算と親領域内への補正、領域が正方形を収められるかの判定）。 内部手順は `private static` に閉じる |
 
 ## 5. 例外処理ポリシー
 
-本プロジェクトは純粋計算で構成されます。 例外を送出するのはコアの画像の引数検証（`ArgumentOutOfRangeException`。 例: 切り出しの幅・高さが 0 以下）と破棄後アクセス（`ObjectDisposedException`）のみです。 破棄済みソースの例外の捕捉は描画実装（各 UI の painter）の責務とします。
+コアは純粋計算で構成されます。 例外を送出するのはコアの画像の引数検証（`ArgumentOutOfRangeException`。 例: 切り出しの幅・高さが 0 以下）と破棄後アクセス（`ObjectDisposedException`）のみです。 破棄済みソースの例外の捕捉は描画実装（各 UI の painter）の責務とします。
 
 **領域が表示サイズを収められない場合も例外にしません**（配置しないとして位置を null で返す。 ルーペを縮小してまで描画しないため）。
 
@@ -126,7 +126,7 @@ sequenceDiagram
 | UI 初期化不要 | ヘッドレス実行を必要としないため `[Fact]` / `[Theory]`（UI のテスト属性ではない）で並列実行する |
 | 単位 | ファサード（表示レイアウト・描画の幾何・設定・ログ） |
 | 配置 | **ソースのフォルダを鏡映**する（`tests/Drawing` / `tests/Logging` / `tests/Placement` / `tests/Setting`。 ファサードの partial のテストはルート） |
-| UI 依存の検証 | 上位（UI 側）のテストが担う（コントロール生成・描画・依存プロパティ経由の反映・イベント発火・描画の画素検証。 画素検証はソフトウェア描画の UI 側で行う。 中間ビットマップの画素を読めない UI では不可能なため） |
+
 | 合計 | 102 件（`[Theory]` は展開後のケース数） |
 
 ```powershell
@@ -135,7 +135,7 @@ dotnet test EsUtil/Feature.Loupe.Core/tests/EsUtil.Feature.Loupe.Core.Tests.cspr
 
 ## 8. 設計判断（UI 非依存の境界）
 
-本プロジェクトの型は、UI フレームワークの型をシグネチャに持たないことを境界の条件としています。
+コアの型は、UI フレームワークの型をシグネチャに持たないことを境界の条件としています。
 
 | 判断 | 内容 |
 | --- | --- |
@@ -153,7 +153,7 @@ dotnet test EsUtil/Feature.Loupe.Core/tests/EsUtil.Feature.Loupe.Core.Tests.cspr
 
 ロガーは `LoupeCore.Log` で受け取り、**ファサードの生成**（Information）・**設定の変更**（`[Loupe] Setting: {名前} {前} → {後}`。 Information）・**低頻度のメソッド呼び出し**（Debug）を出力します。 ロガー未設定（null）は出力なしです。
 
-**メッセージの接頭辞は、そのログを定義しているアセンブリ名（本コアは `[Loupe]`）とします**（規則は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有する）。
+**メッセージの接頭辞は、その定義を所有するアセンブリの機能名（本アセンブリは `[Loupe]`）とします**（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md) が単一所有する）。 定義はアセンブリに 1 つ（`src/Logging/LoupeLogMessage.cs`）で、コアと提示層が共有します。
 
 ### 9.1 出力する操作と出力しない操作
 
@@ -162,11 +162,11 @@ dotnet test EsUtil/Feature.Loupe.Core/tests/EsUtil.Feature.Loupe.Core.Tests.cspr
 | 操作 | 頻度 | レベル | 出力 |
 | --- | --- | --- | --- |
 | 生成（コンストラクター注入時、または `Log` の初回設定時） | 1 回 | Information | 生成時の設定（`RequestedSize` / `ZoomLevel`） |
-| `Log` の set | 低頻度（ホストの結線時） | Debug | 出力を開始した契機 |
-| `Options` の set | 低頻度（設定変更時） | Debug | 変化した項目だけ（`RequestedSize` / `ZoomLevel`） |
-| `ClientToPixelScaling` の set | 低頻度（DPI 変更時） | Debug | 変化したときだけ |
-| `PositionOffset` の set | 低頻度（ホストの結線時） | Debug | 変化したときだけ |
-| `SetCoordTransform` | 低頻度（レイアウト変化時） | Debug | 変化したときだけ（未設定 = `null` またはポートの実装型名） |
+| `Log` の set | 低頻度（ホストの結線時） | Debug | 出力を開始した契機（初回のみ） |
+| `Options` の set | 低頻度（設定変更時） | Information | 変化した項目だけ（`RequestedSize` / `ZoomLevel`） |
+| `ClientToPixelScaling` の set | 低頻度（DPI 変更時） | Information | 変化したときだけ |
+| `PositionOffset` の set | 低頻度（ホストの結線時） | Information | 変化したときだけ |
+| `SetCoordTransform` | 低頻度（レイアウト変化時） | Information | 変化したときだけ（未設定 = `null` またはポートの実装型名） |
 | `CenterPoint` の set | 高頻度（マウス移動ごと） | **Trace** | 変化したときだけ |
 | `ResolveLayout` / `ResolveGeometry` | 高頻度（毎フレーム） | — | 出力しない |
 

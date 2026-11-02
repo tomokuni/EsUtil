@@ -10,7 +10,7 @@
 
 **対応 OS**: 指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**（本パッケージは `EsUtil.Platform.Core` を参照し、その中には Windows 専用の型（`Native.Win` 配下・画像の保存/読み込み）が含まれる）
 
-ルーペ（選択範囲の拡大表示）の **UI 非依存のコア**です。 UI 実装が変わっても同じ計算結果を共有します。
+ルーペ（選択範囲の拡大表示）の **UI 非依存の計算層（Core）と提示層（Presenter）**です。 UI 実装が変わっても同じ計算結果と同じ見た目を共有します。 2 つの層は 1 つのパッケージ（`EsUtil.Feature.Loupe.Core`）に含まれます。
 
 ## 1. 概要
 
@@ -59,6 +59,24 @@ var capture = geometry.MagnifiedImage;   // 切り出し領域・描画先
 
 **表示サイズは縮小しません**。 親パネルが表示サイズを収められない場合、`ResolveLayout` は `Position` を null として返します（配置しない = その領域には描画できません）。 描画先の表面も `ClientPixelSize` と同じ大きさで用意します（本コアは描画先を知らないため判定しません）。 拡大中心が端に寄った場合は、表示サイズを変えずに表示位置を領域内へ補正します。
 
+### 2.3 提示層（外観・描画計画）
+
+コントロールへ組み込む場合は **`LoupePresenter`** を使います。 コアの幾何と外観（色・フォント・枠線・表示可否）から **描画 1 フレーム分の計画**を解決します。 描画そのものは行いません（各 UI が自 UI の描画 API で計画を写します）。
+
+```csharp
+var presenter = new LoupePresenter(logger);
+presenter.Options = LoupeOptions.Default with { RequestedSize = 160, ZoomLevel = 4 };
+presenter.Appearance = LoupeAppearance.Default with { ShowCrosshair = true, BorderThickness = 2 };
+presenter.CenterPoint = new EsPoint(1920, 1080);
+
+// 配置（親領域 DIP）と描画計画（描画 API に依存する実寸測定を渡す）
+var layout = presenter.ResolveLayout(parentSize);
+var plan = presenter.ResolveDrawPlan(layout.ClientSize, measureText);
+```
+
+- 外観（`LoupeAppearance`）と描画計画（`LoupeDrawPlan`）は提示層が単一所有します。
+- ログの接頭辞は `LogPrefix` で設定します（Core と Presenter は同じアセンブリのため、1 回の設定で両方に効きます）。
+
 ## 3. 含まれるもの
 
 | グループ | 型 |
@@ -67,13 +85,16 @@ var capture = geometry.MagnifiedImage;   // 切り出し領域・描画先
 | 描画の幾何 | `LoupeGeometry` / `LoupeMagnifiedImage` |
 | 設定 | `LoupeOptions`（表示サイズ・拡大率。 色・フォント・表示可否は持たない） |
 | 表示レイアウト | `LoupeLayout`（表示サイズと表示位置） |
-| ログ | `Logging.LoupeLogMessage`（internal） |
+| 提示（Presenter） | `LoupePresenter` / `LoupeDrawPlan` / `LoupeDrawLayer` / `LoupeCrosshairRects` |
+| 外観 | `LoupeAppearance`（色・フォント・角丸・枠線の太さ・表示可否） |
+| ラベル | `LoupeLabelPlacement`（配置指示） / `Drawing.LoupeTextPlacement`（internal） |
+| ログ | `Logging.LoupeLogMessage`（internal。 アセンブリに 1 つ） |
 
 ## 4. 依存
 
 - 依存は `EsUtil.Platform.Core`（`Es*` 幾何型・`ICoordTransform`）と `Microsoft.Extensions.Logging.Abstractions`（ログ定義のソース生成）のみです。
 - UI フレームワークを参照しません。 UI 固有の型は利用者（UI 実装）が境界で変換します。
-- 依存方向は UI 実装 → 描画層（上位の層） → 本プロジェクト → `EsUtil.Platform.Core` の一方向です（コアは上位の層を参照しません）。
+- **Core と Presenter は同じアセンブリ**にあり、依存方向は「Presenter → Core → `EsUtil.Platform.Core`」の一方向です（コアは提示層を参照しません）。
 
 層の全体像は [`../README.md`](../README.md) を参照してください。
 
@@ -83,8 +104,8 @@ var capture = geometry.MagnifiedImage;   // 切り出し領域・描画先
 | --- | --- |
 | 表示サイズ・拡大率 | `LoupeOptions`（`RequestedSize` / `ZoomLevel`）を変える |
 | 数値の安全域 | `LoupeCore.Limits` の既定値と補正（`CoerceBorderThickness` 等）を使う |
-| 見た目（色・フォント・枠線の太さ・表示可否） | 描画層の外観（上位の層）を変える（本コアは色を持たない） |
-| 描画計画（層・配置） | 描画層の描画計画の解決（上位の層）を上書きする |
+| 見た目（色・フォント・枠線の太さ・表示可否） | `LoupeAppearance` を変える（UI の `Appearance` プロパティへ設定する） |
+| 描画計画（層・配置） | コントロールの `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）で差し替える（`LoupePresenter` は `sealed` のため派生できない） |
 | 描画そのもの | 各 UI の描画実装を差し替える |
 
 ## 6. 座標型
@@ -111,8 +132,10 @@ UI 初期化が不要なため `[Fact]` / `[Theory]` で並列実行され、**�
 
 ## 9. ドキュメント
 
-- [`docs/SPEC_API.md`](docs/SPEC_API.md) — 公開 API のリファレンスと使用例
+- [`docs/SPEC_API.md`](docs/SPEC_API.md) — コアの公開 API のリファレンスと使用例
+- [`docs/SPEC_Presenter_API.md`](docs/SPEC_Presenter_API.md) — 提示層（外観・描画計画）の公開 API
 - [`docs/SPEC_System.md`](docs/SPEC_System.md) — アーキテクチャ・設計判断・ログ
+- [`docs/SPEC_Presenter_System.md`](docs/SPEC_Presenter_System.md) — 提示層の構造・設計判断・ログ
 
 ## 10. ライセンス
 

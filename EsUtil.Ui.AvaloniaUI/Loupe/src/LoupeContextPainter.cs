@@ -79,9 +79,23 @@ internal static class LoupeContextPainter
         }
     }
 
-    /// <summary>同色の矩形の一覧を塗る。</summary>
+    /// <summary>十字線（縦・横）を同じ色で塗る。</summary>
     /// <param name="context">描画先の描画コンテキスト。</param>
-    /// <param name="rects">塗る矩形の一覧（空の場合は何もしない）。</param>
+    /// <param name="rects">塗る矩形（十字線の縦・横）。</param>
+    /// <param name="color">塗り色。</param>
+    private static void FillRects(DrawingContext context, in LoupeCrosshairRects rects, DrawingColor color)
+    {
+        var brush = SolidColorBrushCache.GetOrCreate(color);
+
+        for (var index = 0; index < LoupeCrosshairRects.Count; index++)
+        {
+            context.DrawRectangle(brush, null, rects[index].ToAvaloniaRect());
+        }
+    }
+
+    /// <summary>枠線の矩形を同じ色で塗る。</summary>
+    /// <param name="context">描画先の描画コンテキスト。</param>
+    /// <param name="rects">塗る矩形（ホストが差し替えられる一覧）。</param>
     /// <param name="color">塗り色。</param>
     private static void FillRects(DrawingContext context, IReadOnlyList<EsRect> rects, DrawingColor color)
     {
@@ -91,10 +105,9 @@ internal static class LoupeContextPainter
         }
 
         var brush = SolidColorBrushCache.GetOrCreate(color);
-
-        foreach (var rect in rects)
+        for (var index = 0; index < rects.Count; index++)
         {
-            context.DrawRectangle(brush, null, rect.ToAvaloniaRect());
+            context.DrawRectangle(brush, null, rects[index].ToAvaloniaRect());
         }
     }
 

@@ -106,11 +106,10 @@ internal static class MarqueeGraphicsPainter
     private static void DrawHandles(Graphics graphics, in MarqueeHandles handles, MarqueeAppearance appearance)
     {
         var stroke = ResolveStroke(handles.BorderThickness, appearance.HandleBorderColor);
-        var handleRects = handles.HandleDipRects;
 
-        for (var index = 0; index < handleRects.Count; index++)
+        for (var index = 0; index < MarqueeHandleRects.Count; index++)
         {
-            var rect = handleRects[index];
+            var rect = handles.HandleDipRects[index];
             GdiFill.Rect(graphics, rect, appearance.HandleColor);
             graphics.DrawRectangle(stroke, rect.ToRectangleF());
         }

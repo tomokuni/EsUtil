@@ -22,7 +22,7 @@ MarqueeControl（MewUI 版）のシステム概要・アーキテクチャ・依
 
 ## 1. システム概要
 
-`EsUtil.Ui.MewUI.Marquee` は、Avalonia 版 `MarqueeControl` と**同一の UI 非依存コア（`EsUtil.Feature.Marquee.Core`）と描画層（`EsUtil.Feature.Marquee.Presenter`）**を使い、
+`EsUtil.Ui.MewUI.Marquee` は、Avalonia 版 `MarqueeControl` と**同一の UI 非依存の機能アセンブリ（`EsUtil.Feature.Marquee.Core`。 コアと提示層）**を使い、
 入力の受付・効果の適用・通知の転送・描画ポートの適合のみを MewUI（MewUI の標準描画）で実装したドラッグ矩形コントロールです。
 
 コアが担う範囲（選択矩形の正規化・ハンドル位置・ヒットテスト・ドラッグ変形・nudge・境界クリップ・対話状態の合成に加えて、
@@ -50,7 +50,7 @@ nudge セッション・ダブルクリックの確定/キャンセル・ハン�
 ```text
 UI 層（Avalonia / MewUI の実装）
   入力の受付・効果の適用・通知の転送・描画（自 UI の描画 API）・ラベル要素の配置
-    ├──> EsUtil.Feature.Marquee.Presenter   どう見せるか（描画計画の解決）＋ 外観 ＋ 組み込み先があるときだけ必要な規則
+    ├──> EsUtil.Feature.Marquee.Core   どう見せるか（描画計画の解決）＋ 外観 ＋ 組み込み先があるときだけ必要な規則
     └──> EsUtil.Feature.Marquee.Core   何を計算するか + 判断（状態・値・純粋計算・コア⇔UI の契約）
            └──> EsUtil.Platform.Core（Es* 値型・ICoordTransform・ICursorService）
 ※ Core は提示層を参照しない（提示層がコアの幾何を使う向きだけ）。
@@ -62,7 +62,7 @@ UI 層（Avalonia / MewUI の実装）
 | 層 | 責務 |
 | --- | --- |
 | `EsUtil.Feature.Marquee.Core` | 選択矩形の幾何計算、ヒットテスト、ドラッグ変形、nudge、境界クリップ、対話状態の合成、スナップショット生成、**入力の解釈（nudge セッション・確定/キャンセル・スナップ・クリック検出・最小サイズ判定）と通知・効果の生成（効果の適用順、ログの保持を含む）**。 公開ファサード `MarqueeCore` を唯一の窓口とし、状態機械と幾何の解決は内部契約（`internal`）とする |
-| `EsUtil.Feature.Marquee.Presenter` | 描画計画（層の順序・装飾矩形・文言・配置）と外観（`MarqueeAppearance`）とラベル計画（実寸 → 配置指示）。 UI 非依存であり、UI フレームワークを参照しない |
+| `EsUtil.Feature.Marquee.Core` | 描画計画（層の順序・装飾矩形・文言・配置）と外観（`MarqueeAppearance`）とラベル計画（実寸 → 配置指示）。 UI 非依存であり、UI フレームワークを参照しない |
 | `EsUtil.Ui.MewUI.Marquee` | 入力（マウス・キー）をコア型へ変換して提示層へ通知する、`IMarqueeEffects` を実装して要求された効果（再描画・フォーカス・マウスキャプチャ・カーソル形状/操作）を適用する、通知を公開イベントへ転送する、**描画計画をフレームワーク標準の描画 API で描く**、DPI の追従 |
 | ホスト | 座標変換ポートの設定、選択の復元・確定・キャンセル、重ね順の管理、ビューポート変化の通知 |
 
@@ -183,23 +183,23 @@ classDiagram
         +MarqueeCaptureAction Capture
     }
     class MarqueePresenter {
-        <<EsUtil.Feature.Marquee.Presenter / 提示層>>
+        <<EsUtil.Feature.Marquee.Core / 提示層>>
         +MarqueePresenter(effects, cursor, options) void
         +MarqueeAppearance Appearance
         +ResolveDrawPlan(clientSize, measureText) MarqueeDrawPlan
     }
     class MarqueeAppearance {
-        <<EsUtil.Feature.Marquee.Presenter / 提示層>>
+        <<EsUtil.Feature.Marquee.Core / 提示層>>
         +DrawingColor HandleColor / HandleBorderColor / MarkerColor
         +DrawingColor SizeLabelColor / SizeLabelBackgroundColor
         +DrawingColor CoordLabelColor / CoordLabelBackgroundColor
         +double SizeLabelFontSize / CoordLabelFontSize
         +DrawingColor OuterMaskColor / BorderColor
-        +DrawingColor InnerMaskColor / InnerBorderColor
-        +double BorderThickness / InnerBorderThickness
+        +DrawingColor InnerMaskColor
+        +double BorderThickness
         +bool ShowHandles / ShowSizeLabel / ShowCoordLabel
-        +bool ShowOuterMask / ShowBorder / ShowFullOverlay
-        +bool ShowInnerMask / ShowInnerBorder
+        +bool ShowOuterMask / ShowBorder
+        +bool ShowInnerMask
     }
       class MarqueePainter {
         <<本プロジェクト（UI 層 / internal）>>
@@ -227,7 +227,7 @@ classDiagram
           +CoerceBorderThickness(value)$ double
       }
     class MarqueeLabelPlacement {
-        <<EsUtil.Feature.Marquee.Presenter>>
+        <<EsUtil.Feature.Marquee.Core>>
         +EsRect Bounds
         +double PaddingX / PaddingY
         +string Text
@@ -413,7 +413,7 @@ OnPaintSurface(canvas, info)
 4. **スナップショットはドラッグ状態の解除前に生成する**。 `EndDrag` の後ではマーカー位置が固定コーナーを返すため、
    nudge 位置は解放処理の冒頭で計算する。
 5. **枠線は 4 辺の塗り（FILL）で描かれる**。 提示層の `MarqueePresenter.ComputeBorderDipRects`（辺の計算は `EsRect.ComputeInnerEdges` が単一所有）が注目矩形の内側に太さ分の帯を 4 本返し、それを塗る（ストロークではないため、太さが半分外側へはみ出さない）。
-   太さの安全域への補正は外観（`MarqueeAppearance.BorderThickness` / `InnerBorderThickness`）の生成時に適用される（本計算は補正を持たない）。
+   太さの安全域への補正は外観（`MarqueeAppearance.BorderThickness`）の生成時に適用される（本計算は補正を持たない）。
    描画テストの期待値はこの前提で書く。
 
 ## 12. 未実装（今後の判断）
@@ -422,5 +422,5 @@ OnPaintSurface(canvas, info)
 | --- | --- |
 | `ScrollViewer` の自動購読 | ホストが変化を検知して `InvalidateRender()` を呼ぶ方式で代替 |
 | フォーカス非依存の矢印キー nudge | フォーカス依存で実装（`TopLevel` のキー購読は行わない） |
-| 通常ホイールのスクロールログ | スクロールの実処理はホストが担うため出力しない（操作ログの定義はコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）が所有し、本層が所有する設定（外観・表示スケーリング係数）の変更ログは提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueeLogMessage`）が所有する。 書式・レベルとも Avalonia 版と同じ） |
+| 通常ホイールのスクロールログ | スクロールの実処理はホストが担うため出力しない（操作ログと設定の変更ログは機能アセンブリ（`EsUtil.Feature.Marquee.Logging.MarqueeLogMessage`。 コアと提示層で共有）が所有する。 書式・レベルとも Avalonia 版と同じ） |
 | 実ウィンドウへの組み込み | 上位のホストを経由して配線済み（撮影・切り出しの両方） |

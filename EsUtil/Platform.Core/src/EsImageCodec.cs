@@ -136,8 +136,6 @@ public static class EsImageCodec
             });
 
     /// <summary>ファイルの内容を復号し、呼び出し側の領域へ書く（画素を複製しない）。</summary>
-
-    /// <summary>ファイルの内容を復号し、呼び出し側の領域へ書く（画素を複製しない）。</summary>
     /// <param name="fileBytes">ファイルの内容。</param>
     /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法（拡大はしない）。</param>
     /// <param name="destination">書き込み先（<c>寸法の幅 × 4 × 高さ</c> バイト以上。 行は密に書く）。</param>

@@ -36,7 +36,7 @@
 | `EsUtil.Ui.WinForms.Marquee` | `MarqueeControl` / `MarqueePointEventArgs` / `SelectionRectEventArgs` / `MarqueeRenderedEventArgs` |
 | `EsUtil.Ui.WinForms.Marquee.Internal` | 本アセンブリの実装（内部） |
 
-- **公開面はコントロールとイベント引数の 4 型**です。 幾何型（`EsPoint` / `EsRect` / `EsSize`）・状態（`MarqueeSnapshot`）・設定（`MarqueeOptions`）・外観（`MarqueeAppearance`）・描画計画（`MarqueeDrawPlan`）は、コア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）の型をそのまま使います。
+- **公開面はコントロールとイベント引数の 4 型**です。 幾何型（`EsPoint` / `EsRect` / `EsSize`）・状態（`MarqueeSnapshot`）・設定（`MarqueeOptions`）・外観（`MarqueeAppearance`）・描画計画（`MarqueeDrawPlan`）は、機能アセンブリ（`EsUtil.Feature.Marquee.Core`。 コアと提示層）の型をそのまま使います。
 - **`internal` の実装型は §6 に「（内部）」と明記して示します**（可視性は `internal` であり、利用側から参照できません）。
 
 ## 2. 依存関係
@@ -44,10 +44,10 @@
 | 種別 | 依存 |
 | --- | --- |
 | フレームワーク | `net10.0-windows10.0.17763.0`（`UseWindowsForms`） |
-| パッケージ | `EsUtil.Feature.Marquee.Presenter` / `EsUtil.Platform.Core`（推移参照でコアも解決する） / `Microsoft.Extensions.Logging.Abstractions` |
+| パッケージ | `EsUtil.Feature.Marquee.Core` / `EsUtil.Platform.Core`（推移参照でコアも解決する） / `Microsoft.Extensions.Logging.Abstractions` |
 | 標準ライブラリ | `System.Drawing`（GDI+ による描画） |
 
-コア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）の API は各プロジェクトの API リファレンスを参照してください。
+機能アセンブリ（`EsUtil.Feature.Marquee.Core`。 コアと提示層）の API は各プロジェクトの API リファレンスを参照してください。
 
 ## 3. 座標系と単位
 
@@ -83,7 +83,7 @@
 | `SizeLabelDisplayScalingProvider` | `Func<EsRect, double>?` | null | サイズラベルの表示スケーリングを矩形ごとに解決する関数。 |
 | `DrawPlanResolver` | `Func<MarqueeDrawPlan, MarqueeDrawPlan>?` | null | 描画計画を差し替える関数。 矩形の並びで表せる装飾とラベルの文言・位置を差し替える入口。 |
 | `Log` | `ILogger` | `NullLogger` | 操作ログの出力先。 null を設定すると出力なしへフォールバックする。 |
-| `LogPrefix` | `string?` | null | ログの接頭辞（null または空白の場合は既定値 `[Marquee]`）。 設定するとコアと提示層へ伝搬する。 |
+| `LogPrefix` | `string?` | null | ログの接頭辞（null または空白の場合は既定値 `[Marquee]`）。 設定するとコアと提示層のログの両方に適用される。 |
 | `HasSelection` | `bool` | false | 選択矩形があるかどうか（取得のみ）。 スナップショットの生成を伴わない。 |
 | `SelectionSourceRect` | `EsRect` | 0x0 | 現在の選択矩形（対象座標。 取得のみ）。 未選択時は空の矩形。 |
 | `CurrentSnapshot` | `MarqueeSnapshot` | — | 現在の状態のスナップショット（取得のみ）。 状態・選択矩形・アクティブ ハンドル・マウス位置・操作フラグを含む。 |
@@ -273,7 +273,9 @@ pictureBox.Controls.Add(marquee);
 ```csharp
 marquee.DrawPlanResolver = plan => plan with
 {
-    Labels = [.. plan.Labels.Select(label => label with { Text = $"選択 {label.Text}" })],
+    Labels = new MarqueeLabelPlacements(
+    plan.Labels.SizeLabel is { } size ? size with { Text = $"選択 {size.Text}" } : null,
+    plan.Labels.CoordLabel is { } coord ? coord with { Text = $"選択 {coord.Text}" } : null),
 };
 ```
 

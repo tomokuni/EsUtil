@@ -13,7 +13,7 @@ namespace EsUtil.Ui.MewUI.Loupe.Tests;
 /// <summary><see cref="LoupeControl"/> のプロパティとレイアウトのテスト。</summary>
 /// <remarks>
 /// MewUI の要素生成はプラットフォームホストの登録を必要としないため、UI を表示せずに検証できる。<br/>
-/// 描画結果の検証は <c>EsUtil.Feature.Loupe.Presenter</c> のテストが担う。
+/// 描画結果の検証は <c>EsUtil.Feature.Loupe.Core</c> のテストが担う。
 /// </remarks>
 public class LoupeControlTests
 {
@@ -271,7 +271,7 @@ public class LoupeControlTests
         Assert.Equal("(3, 4)", LabelText(control));
     }
 
-    /// <summary>寸法と色を設定できることを検証する（描画は <c>EsUtil.Feature.Loupe.Presenter</c> のテストが検証する）。</summary>
+    /// <summary>寸法と色を設定できることを検証する（描画は <c>EsUtil.Feature.Loupe.Core</c> のテストが検証する）。</summary>
     [Fact]
     internal void 外観を設定できる()
     {
@@ -395,7 +395,7 @@ public class LoupeControlTests
 
     /// <summary>描画計画の差し替えが配置（ラベル要素）と描画の両方へ効くことを検証する。</summary>
     /// <remarks>
-    /// 差し替えた <see cref="LoupeDrawPlan.Labels"/> は配置フェーズでラベル要素になるため、<br/>
+    /// 差し替えた <see cref="LoupeDrawPlan.Label"/> は配置フェーズでラベル要素になるため、<br/>
     /// 子要素の文言で差し替えが効いたことを確認できる（キャンバスを必要としない）。
     /// </remarks>
     [Fact]
@@ -407,7 +407,7 @@ public class LoupeControlTests
             CenterPoint = new EsPoint(10, 10),
             DrawPlanResolver = static plan => plan with
             {
-                Labels = [new LoupeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black, 2, IsVisible: true)],
+                Label = new LoupeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black, 2, IsVisible: true),
             },
         };
 
@@ -482,7 +482,7 @@ public class LoupeControlTests
         Assert.NotEqual(borderPixel, withoutBorderPixel);
         Assert.Equal(LoupeAppearance.Default.PasteboardColor, withoutBorderPixel);
         // 値は残る（ホストは矩形を使って自前で描ける）
-        Assert.Equal(2, host.CrosshairPixelRects.Count);
+        Assert.Equal(2, LoupeCrosshairRects.Count);
         Assert.Equal(4, host.BorderPixelRects.Count);
     }
 

@@ -67,13 +67,14 @@ internal sealed partial class ThumbnailVisualLayer : Canvas
     /// <param name="plan">反映する計画。</param>
     /// <param name="image">表示する画像。 null の場合は画像を表示しない。</param>
     /// <param name="pixelToDip">物理ピクセル → DIP の係数（1 / スケーリング係数）。</param>
-    public void Apply(ThumbnailDrawPlan plan, EsReadOnlyBitmap? image, double pixelToDip)
+    /// <param name="highlightArgb">強調の帯の色（<c>0xAARRGGBB</c>。 0 は描かない）。 UI がテーマから解決して渡す。</param>
+    public void Apply(ThumbnailDrawPlan plan, EsReadOnlyBitmap? image, double pixelToDip, uint highlightArgb)
     {
         _background.Width = plan.Slot.Width;
         _background.Height = plan.Slot.Height;
-        _background.Fill = plan.BackgroundArgb == 0
+        _background.Fill = plan.Highlight == ThumbnailHighlightKind.None || highlightArgb == 0
             ? null
-            : SolidBrushCache.Get(plan.BackgroundArgb);
+            : SolidBrushCache.Get(highlightArgb);
 
         // 画像の矩形は項目の原点（Slot）からの相対位置で置く
         var imageRect = new Rect(

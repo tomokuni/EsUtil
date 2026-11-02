@@ -26,7 +26,9 @@ public class MarqueePlanCustomizationTests
             Height = 200,
             DrawPlanResolver = static plan => plan with
             {
-                Labels = [new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, System.Drawing.Color.White, System.Drawing.Color.Black, IsVisible: true)],
+                Labels = new MarqueeLabelPlacements(
+                    null,
+                    new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, System.Drawing.Color.White, System.Drawing.Color.Black, IsVisible: true)),
             },
         };
         var window = new Window { Width = 200, Height = 200, Content = control };

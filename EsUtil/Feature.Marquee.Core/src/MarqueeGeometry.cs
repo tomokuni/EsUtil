@@ -10,13 +10,14 @@ namespace EsUtil.Feature.Marquee;
 /// <param name="Marker">始点マーカー（DIP。 nudge 中のみ）。 nudge 中でない場合は null。</param>
 /// <param name="MouseSourcePosition">直近のマウス位置（対象座標。 カーソル座標ラベルの文言の基準）。</param>
 /// <param name="MouseDipPosition">直近のマウス位置（DIP。 カーソル座標ラベルの配置の基準）。</param>
+/// <param name="PointerOver">ポインターが描画領域の上にあるかどうか。</param>
 /// <remarks>
 /// <b>本値がコアの公開する描画の入口である</b>: コアは選択矩形・注目矩形・ハンドル・マーカーの幾何だけを返し、<br/>
-/// 装飾（暗転マスク・枠線・内側の塗り）・文言・表示可否・描画順は描画の都合として描画層（本コアを参照する上位の層）が解決する。<br/>
+/// 装飾（暗転マスク・枠線・内側の塗り）・文言・表示可否・描画順は描画の都合として提示層が解決する。<br/>
 /// <b>注目矩形はコアに残す</b>: 座標変換と終点の加算の解決は選択の対象と同じ規則を共有するため、<br/>
 /// 分離すると矩形がずれる（暗転領域・枠線・内側の塗り・サイズラベルが同じ矩形を使う）。<br/>
 /// <b>マウス位置は対象座標と DIP の両方を渡す</b>: カーソル座標ラベルは文言が対象座標・配置が DIP を必要とするため、<br/>
-/// 描画層が座標変換ポートを持つ必要をなくす（変換はコアが 1 回だけ行う）。<br/>
+/// 提示層が座標変換ポートを持つ必要をなくす（変換はコアが 1 回だけ行う）。<br/>
 /// UI フレームワークに依存しないため、UI 初期化なしの <c>[Fact]</c> で並列検証できる。
 /// </remarks>
 public readonly record struct MarqueeGeometry(
@@ -26,7 +27,8 @@ public readonly record struct MarqueeGeometry(
     MarqueeHandles? Handles,
     MarqueeMarker? Marker,
     EsPoint MouseSourcePosition,
-    EsPoint MouseDipPosition)
+    EsPoint MouseDipPosition,
+    bool PointerOver = true)
 {
     /// <summary>描画面の全体（左上を原点（0, 0）とする矩形）を取得する。</summary>
     /// <value>幅・高さが <see cref="ClientSize"/> の矩形（DIP）。</value>

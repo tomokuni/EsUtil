@@ -40,7 +40,7 @@ namespace EsUtil.Ui.WinUI3.Loupe;
 /// <b>ホスト側の操作</b>: <see cref="Source"/> を設定して <see cref="CenterPoint"/> を現在位置へ更新すると、<br/>
 /// ルーペがその位置を拡大表示する（描画はプロパティ変更で自動的に無効化される）。<br/>
 /// <b>座標ラベル</b>: 表示可否は <see cref="LoupeAppearance.ShouldShowCoordLabel"/>（描画層）が判断し、<br/>
-/// 文言・基準点・配置は描画層（<see cref="LoupePresenter"/>）が実寸（Skia の実測）から単一所有する。<br/>
+/// 文言・基準点・配置は描画層（<see cref="LoupePresenter"/>）が実寸（<c>TextMeasure</c> の測定値）から単一所有する。<br/>
 /// <br/>
 /// <b>見た目のカスタマイズ</b>: 色・太さ・表示可否は <see cref="Appearance"/> で、<br/>
 /// 矩形の並びで表せる装飾とラベルの文言・位置は <see cref="DrawPlanResolver"/> で差し替えられる。<br/>
@@ -313,7 +313,7 @@ public sealed partial class LoupeControl : Canvas
     /// <value>接頭辞（例: <c>[Loupe]</c>）。 null または空白を設定すると既定値へ戻す。</value>
     /// <remarks>
     /// 本コントロールのログ定義（<see cref="LoupeLogMessage"/>）の接頭辞を設定し、<br/>
-    /// 提示層・コアへ伝搬する（集約した接頭辞で全層のログを揃える）。
+    /// 機能アセンブリのログ定義（コアと提示層で共有）へ適用する（全層のログが同じ接頭辞になる）。
     /// </remarks>
     public string? LogPrefix
     {
@@ -325,8 +325,6 @@ public sealed partial class LoupeControl : Canvas
             _presenter.LogPrefix = value;
         }
     }
-
-    /// <summary>描画計画を指定の描画面へ描く（計画どおりに描く）。</summary>
 
     /// <summary>対象 ↔ 親領域 DIP の座標変換ポートを設定する。</summary>
     /// <param name="port">座標変換ポート（ToDip = 対象 → 親領域 DIP）。 null の場合は等価変換。</param>
@@ -469,8 +467,7 @@ public sealed partial class LoupeControl : Canvas
     private double ApplyClientPixelScaling()
     {
         // ルートの拡大率をそのまま使う（DIP → 物理ピクセルの倍率そのものである）。
-        // 以前は ResolveClientScale へ (拡大率, 実際の幅) を渡していたため「拡大率 ÷ 幅」が倍率になり、
-        // 1.25 / 160 = 0.0078 → 下限の 0.1 へ丸められて**拡大画像が 10 倍**に表示されていた（実測 2026-10-25）
+        // 幅で割ると倍率が 1 未満へ潰れ、下限へ丸められて**拡大画像が拡大されすぎる**（実測: 1.25 / 160 = 0.0078）。
         var resolved = DpiScaler.NormalizeScaling(XamlRoot?.RasterizationScale ?? ClientToPixelScaling);
         if (resolved == ClientToPixelScaling)
         {
@@ -480,6 +477,7 @@ public sealed partial class LoupeControl : Canvas
         ClientToPixelScaling = resolved;
         return ClientToPixelScaling;
     }
+
     /// <summary>描画計画を解決し、<see cref="DrawPlanResolver"/> を適用する（同じ入力では再解決しない）。</summary>
     /// <param name="displaySize">ルーペの一辺の表示サイズ（DIP）。</param>
     /// <returns>差し替え後の描画計画。</returns>

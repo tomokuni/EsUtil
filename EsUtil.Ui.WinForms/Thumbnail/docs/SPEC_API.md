@@ -18,7 +18,7 @@ WinForms 版のサムネイル一覧コントロールが提供する公開 API 
 
 - 対象フレームワークは `net10.0-windows10.0.17763.0` で、`UseWindowsForms` を有効にします。
 - 画像は **`System.Drawing.Bitmap`** で受け取ります。 **渡した画像の所有権はコントロールへ移ります**（差し替え時と破棄時に解放します）。
-- 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Presenter` が単一所有します。 本コントロールは入力の受付・スクロール・描画（GDI+）だけを行います。
+- 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Core` が単一所有します。 本コントロールは入力の受付・スクロール・描画（GDI+）だけを行います。
 - 単位は **DIP** です（`AutoScaleMode` は `Dpi` を前提とします）。
 
 ## 2. 公開 API
@@ -39,7 +39,6 @@ WinForms 版のサムネイル一覧コントロールが提供する公開 API 
 | --- | --- | --- |
 | `ThumbnailControl()` | ctor | 生成 |
 | `SelectionChanged` | event | 選択中の添字が変わったときに発生する |
-| `CurrentIndexChanged` | event | 現在項目（名前を太字で示す項目）の添字が変わったときに発生する |
 | `ItemActivated` | event | 項目が 2 回押されたときに発生する（`ThumbnailActivatedEventArgs`） |
 | `Options` | property | 計算に必要な設定（既定は `ThumbnailOptions.Default`）。 変更すると配置を解き直す |
 | `Appearance` | property | 外観（既定は `ThumbnailAppearance.Default`）。 変更すると描き直す |
@@ -47,17 +46,16 @@ WinForms 版のサムネイル一覧コントロールが提供する公開 API 
 | `ImageWidth` | property | 画像の幅（DIP。既定は 96）。 **0 以下の指定は既定の下限へ引き上げられる** |
 | `ItemCount` | property（get） | 項目数 |
 | `SelectedIndex` | property | 選択中の添字。 範囲外と -1 は選択の解除 |
-| `CurrentIndex` | property | 現在項目（名前を太字で示す項目）の添字。 選択とは別の状態（範囲外と -1 は「現在項目なし」） |
 | `VisibleRange` | property（get） | ビューポートと交差する項目の範囲。 項目が無い場合は空 |
 | `ItemBounds(int index)` | method | 項目の枠線の矩形（内容の座標。 `System.Drawing.Rectangle`）。 範囲外は空の矩形 |
 | `ClearItems()` | method | 一覧を空にする（**保持している画像を解放する**） |
-| `Add(Bitmap? image, string caption, string? toolTip = null, bool isCurrent = false, object? tag = null)` | method | サムネイルを 1 件追加し、追加した添字を返す（**画像の所有権は本コントロールへ移る**） |
+| `Add(Bitmap? image, string caption, string? toolTip = null, object? tag = null)` | method | サムネイルを 1 件追加し、追加した添字を返す（**画像の所有権は本コントロールへ移る**） |
 | `SetImage(int index, Bitmap? image)` | method | 項目の画像を差し替える（**所有権は本コントロールへ移り、直前の画像は解放される**）。 範囲外は何もしない |
 | `SetCaption(int index, string caption)` | method | 項目の名前を差し替える |
 | `ScrollToIndex(int index)` | method | 項目を表示領域へスクロールする |
 | `RefreshLayout()` | method | 配置を解き直して描き直す |
 | `Log` | property | ログの出力先（null は `NullLogger`）。 画像と項目数の変更を本コントロールが記録する。 同じロガーを提示層・コアへ渡す |
-| `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 提示層・コアへ伝搬する |
+| `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 コアと提示層のログの両方に適用する |
 
 - **`ItemBounds` は `Rectangle`（整数）を返します**（GDI+ の描画にそのまま渡せるようにするため）。 DIP と物理ピクセルの換算はコントロールが行います。
 - **`Add` は項目を末尾へ追加します**（画像が null でも項目は作られ、画像の領域だけが空になります）。

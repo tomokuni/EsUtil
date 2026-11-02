@@ -92,8 +92,6 @@ public sealed partial class ThumbnailControl : Grid
     /// <summary>選択中の添字が変わったときに発生する。</summary>
     public event EventHandler? SelectionChanged;
 
-    /// <summary>現在項目（名前を太字で示す項目）の添字が変わったときに発生する。</summary>
-    public event EventHandler? CurrentIndexChanged;
     /// <summary>項目が 2 回押されたときに発生する。</summary>
     public event EventHandler<ThumbnailActivatedEventArgs>? ItemActivated;
 
@@ -121,7 +119,7 @@ public sealed partial class ThumbnailControl : Grid
     /// <value>接頭辞（例: <c>[Thumbnail]</c>）。 null または空白を設定すると既定値へ戻す。</value>
     /// <remarks>
     /// 本コントロールのログ定義（<see cref="ThumbnailLogMessage"/>）の接頭辞を設定し、<br/>
-    /// 提示層・コアへ伝搬する（集約した接頭辞で全層のログを揃える）。
+    /// 機能アセンブリのログ定義（コアと提示層で共有）へ適用する（全層のログが同じ接頭辞になる）。
     /// </remarks>
     public string? LogPrefix
     {
@@ -190,6 +188,23 @@ public sealed partial class ThumbnailControl : Grid
     /// </remarks>
     private bool IsDarkTheme => ActualTheme == ElementTheme.Dark;
 
+    /// <summary>テーマが決めた文字色を <c>0xAARRGGBB</c> で取得する。</summary>
+    /// <param name="tile">対象の項目（名前の要素が実効の文字色を持つ）。</param>
+    /// <returns>文字色（解決できない場合は 0）。</returns>
+    private static uint ResolveTextColorArgb(ThumbnailTile tile)
+        => tile.LabelForeground is SolidColorBrush brush ? ToArgb(brush.Color) : 0u;
+
+    /// <summary>テーマが決めたアクセント色を <c>0xAARRGGBB</c> で取得する。</summary>
+    /// <returns>アクセント色（解決できない場合は 0）。</returns>
+    private static uint ResolveAccentColorArgb()
+        => Application.Current?.Resources["SystemAccentColor"] is Windows.UI.Color accent ? ToArgb(accent) : 0u;
+
+    /// <summary>色を <c>0xAARRGGBB</c> にする。</summary>
+    /// <param name="color">色。</param>
+    /// <returns>色（<c>0xAARRGGBB</c>）。</returns>
+    private static uint ToArgb(Windows.UI.Color color)
+        => ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
+
     /// <summary>画像の幅（DIP）を取得または設定する。</summary>
     /// <value>表示モードの一辺。 0 以下の指定は既定の下限へ引き上げる。</value>
     /// <remarks>変更すると配置を解決し直す（画像の高さと行の高さが変わる）。</remarks>
@@ -222,52 +237,6 @@ public sealed partial class ThumbnailControl : Grid
         set => _selection.Select(value, _items.Count);
     }
 
-    /// <summary>現在項目（名前を太字で示す項目）の添字を取得または設定する。</summary>
-    /// <value>項目の添字。 現在項目が無い場合は -1。</value>
-    /// <remarks>
-    /// <b>選択とは別の状態である</b>: 選択は利用者の操作で移り、現在項目は「いま表示している画像」を表す<br/>
-    /// （ブラウザでいえば、選択＝クリックした項目、現在＝開いている項目）。<br/>
-    /// 範囲外の添字は「現在項目なし」として扱う（例外にしない）。
-    /// </remarks>
-    public int CurrentIndex
-    {
-        get
-        {
-            for (var i = 0; i < _items.Count; i++)
-            {
-                if (_items[i].IsCurrent)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        set
-        {
-            var changed = false;
-            for (var i = 0; i < _items.Count; i++)
-            {
-                var tile = _items[i];
-                var isCurrent = i == value;
-                if (tile.IsCurrent == isCurrent)
-                {
-                    continue;
-                }
-
-                tile.SetIsCurrent(isCurrent);
-                ApplyState(i);
-                changed = true;
-            }
-
-            if (changed)
-            {
-                CurrentIndexChanged?.Invoke(this, EventArgs.Empty);
-            }
-        }
-    }
-
     /// <summary>見えている項目の範囲を取得する。</summary>
     /// <value>ビューポートと交差する項目の範囲。 項目が無い場合は空。</value>
     public ThumbnailRange VisibleRange
@@ -294,13 +263,12 @@ public sealed partial class ThumbnailControl : Grid
     /// <param name="image">表示する画像。 null の場合は画像を描かない（代替画像を渡す）。</param>
     /// <param name="caption">サムネイルの下へ表示する名前。</param>
     /// <param name="toolTip">ツールヒント。 null または空の場合は表示しない。</param>
-    /// <param name="isCurrent">現在表示中の画像かどうか（true のとき名前を太字にする）。</param>
     /// <param name="tag">2 回押しの通知へ渡す任意の値。</param>
     /// <returns>追加した項目の添字。</returns>
     public int Add(
-        EsReadOnlyBitmap? image, string caption, string? toolTip = null, bool isCurrent = false, object? tag = null)
+        EsReadOnlyBitmap? image, string caption, string? toolTip = null, object? tag = null)
     {
-        var tile = new ThumbnailTile(image, caption, toolTip, tag, isCurrent);
+        var tile = new ThumbnailTile(image, caption, toolTip, tag);
         var previous = _items.Count;
         _items.Add(tile);
         _canvas.Children.Add(tile);
@@ -429,9 +397,13 @@ public sealed partial class ThumbnailControl : Grid
 
         var tile = _items[index];
         var plan = Presentation.ResolveDrawPlan(
-            layout, index, tile.Caption, tile.IsCurrent, _selection.Index, _hoveredIndex, IsDarkTheme, MeasureText);
+            layout, index, tile.Caption, _selection.Index, _hoveredIndex, MeasureText);
         plan = DrawPlanResolver?.Invoke(plan) ?? plan;
-        tile.Apply(plan, Presentation.Options);
+        // 帯の色は UI のテーマが決める（要素が解決した文字色と、テーマのアクセント色を使う）
+        var highlight = Presentation.Appearance.ResolveHighlightArgb(
+            plan.Highlight, ResolveTextColorArgb(tile), ResolveAccentColorArgb());
+        tile.Apply(plan, Presentation.Options, highlight);
+
     }
 
     /// <summary>折り返した名前の実寸を測る（測定の実装は <see cref="TextMeasure"/> が単一所有する）。</summary>

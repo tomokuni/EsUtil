@@ -1,13 +1,15 @@
+using System.Runtime.InteropServices.WindowsRuntime;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
+using EsUtil.Ui.WinUI3.Marquee.Sample.Imaging;
 using EsUtil.Ui.WinUI3.Marquee.Sample.Presentation;
-using EsUtil.Ui.WinUI3.Marquee.Sample.Views;
 using EsUtil.Ui.WinUI3.SampleKit;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Shapes;
+using Microsoft.UI.Xaml.Media.Imaging;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.WinUI3.Marquee.Sample;
@@ -27,9 +29,6 @@ public sealed class MainWindow : Window
 
     /// <summary>背景（選択対象）の高さ（ピクセル。 座標変換ポートの境界として使う）。</summary>
     private const int SourceHeight = 600;
-
-    /// <summary>ルーペ位置の目印の一辺（DIP）。</summary>
-    private const double LoupeMarkerSize = 24.0;
 
     /// <summary>ズームの最小倍率。</summary>
     private const double MinZoom = 0.1;
@@ -61,18 +60,11 @@ public sealed class MainWindow : Window
     /// <summary>状態の表示。</summary>
     private readonly TextBlock _status = new() { Text = "選択なし", FontSize = 11, TextWrapping = TextWrapping.Wrap };
 
-    /// <summary>ルーペ位置の目印。</summary>
-    private readonly Ellipse _loupeMarker = new()
-    {
-        Width = LoupeMarkerSize,
-        Height = LoupeMarkerSize,
-        Stroke = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xC4, 0x00)),
-        StrokeThickness = 2,
-        Visibility = Visibility.Collapsed,
-    };
-
     /// <summary>現在の表示倍率（座標変換ポートが描画のたびに読む）。</summary>
     private double _zoom = 1.0;
+
+    /// <summary>背景のテスト画像（4 UI 共通の画素）。 ウィンドウと同じ寿命で保持する。</summary>
+    private readonly EsReadOnlyBitmap _backdrop;
 
     /// <summary>メイン ウィンドウを初期化する。</summary>
     public MainWindow()
@@ -83,16 +75,20 @@ public sealed class MainWindow : Window
         _marquee.LogPrefix = "[Marquee]";
 
         // 背景（選択対象）と選択オーバーレイを重ねる
-        var background = new TestPatternCanvas();
-        var markerCanvas = new Canvas { IsHitTestVisible = false };
-        markerCanvas.Children.Add(_loupeMarker);
-
-        // 背景は対象座標の寸法のまま置き、拡大は描画の変換で行う（格子が画像と同じく拡大される）
-        background.Width = SourceWidth;
-        background.Height = SourceHeight;
-        background.HorizontalAlignment = HorizontalAlignment.Left;
-        background.VerticalAlignment = VerticalAlignment.Top;
-        background.RenderTransformOrigin = new Windows.Foundation.Point(0, 0);
+        // 背景は 4 UI 共通のテスト画像を使う（同じ画素・同じ位置のマーカー・同じグリッド）
+        _backdrop = TestImageFactory.Create(SourceWidth, SourceHeight);
+        // 背景は対象座標の寸法のまま置き、拡大は描画の変換で行う（画素が画像と同じく拡大される）
+        var background = new Image
+        {
+            Source = ToBitmap(_backdrop),
+            Stretch = Stretch.Fill,
+            IsHitTestVisible = false,
+            Width = SourceWidth,
+            Height = SourceHeight,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            RenderTransformOrigin = new Windows.Foundation.Point(0, 0),
+        };
 
         var surface = new Grid
         {
@@ -103,7 +99,6 @@ public sealed class MainWindow : Window
         };
         surface.Children.Add(background);
         surface.Children.Add(_marquee);
-        surface.Children.Add(markerCanvas);
 
         // ズームで表示領域より大きくなったときにパンできるようスクロールできる入れ物へ置く
         var scroll = new ScrollViewer
@@ -115,7 +110,12 @@ public sealed class MainWindow : Window
             VerticalScrollMode = ScrollMode.Auto,
         };
 
-        void Write(string line) => logger.Log(LogLevel.Information, default, line, null, static (state, _) => state);
+        void Write(string line, LogLevel level = LogLevel.Debug)
+        {
+            // 文字列をそのまま記録する（テンプレート解析も引数の評価もしない）。
+            // 設定の変更は Information、状態の変化は Debug、高頻度の値は Trace（ログ規約 §2）
+            logger.Log(level, default, line, null, static (state, _) => state);
+        }
 
         // ズームを反映する（背景の拡大率と、クライアント座標 → 対象座標の変換を揃える）
         void ApplyZoom(double value)
@@ -133,18 +133,41 @@ public sealed class MainWindow : Window
             CoordTransform.ClientToSource(() => 1.0 / _zoom, () => new EsSize(SourceWidth, SourceHeight)));
         ApplyZoom(_zoom);
 
-        _marquee.SelectionStarted += (_, e) => Write($"SelectionStarted: ({e.Point.X:0}, {e.Point.Y:0})");
-        _marquee.SelectionChanged += (_, e) => Write($"SelectionChanged: {FormatRect(e.Rect)}");
-        _marquee.SelectionCompleted += (_, e) => Write($"SelectionCompleted: {FormatRect(e.Rect)}");
-        _marquee.SelectionCancelled += (_, _) => Write("SelectionCancelled");
-        _marquee.ConfirmRequested += (_, e) => Write($"ConfirmRequested: {FormatRect(e.Rect)}");
-        _marquee.CancelRequested += (_, _) => Write("CancelRequested");
+        // 選択の状態を画面へ出す（ログとは別に、常に見える形で残す）
+        void UpdateStatus(EsRect rect)
+            => _status.Text = string.Create(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $"選択: x={rect.X:0.#}, y={rect.Y:0.#}, w={rect.Width:0.#}, h={rect.Height:0.#}");
+
+        _marquee.SelectionStarted += (_, e) => Write($"開始: ({e.Point.X:0.#}, {e.Point.Y:0.#})");
+        _marquee.SelectionChanged += (_, e) =>
+        {
+            // ドラッグ中は毎フレーム届くため Trace（既定の表示レベルでは出さない）
+            Write($"選択中: {FormatRect(e.Rect)}", LogLevel.Trace);
+            UpdateStatus(e.Rect);
+        };
+        _marquee.SelectionCompleted += (_, e) =>
+        {
+            Write($"確定可能: {FormatRect(e.Rect)}");
+            UpdateStatus(e.Rect);
+        };
+        _marquee.SelectionCancelled += (_, _) => Write("キャンセル（選択が解除された）");
+        _marquee.ConfirmRequested += (_, e) => Write($"確定要求: {FormatRect(e.Rect)}");
+        _marquee.CancelRequested += (_, _) => Write("キャンセル要求");
+
+        // 選択サイズと操作ガイドはアプリ固有の情報のため、コントロールの描画完了後にホストが置く（他 UI と同じ文言・位置）
+        _marquee.Rendered += (_, e) =>
+        {
+            var content = e.Content;
+            var text = content.FocusDipRect is { } focus
+                ? $"選択 {focus.Width:0} x {focus.Height:0}"
+                : "ドラッグで範囲を選択してください";
+            e.AddText(content.ClientRect.X + 12, content.ClientRect.Y + 12, text, 14, 0xFFFFFFFF);
+        };
         _marquee.LoupePositionMoved += (_, e) =>
         {
-            // 通知は対象座標で届くため、表示 DIP へ戻して目印を置く
-            Canvas.SetLeft(_loupeMarker, e.Point.X * _zoom);
-            Canvas.SetTop(_loupeMarker, e.Point.Y * _zoom);
-            _loupeMarker.Visibility = Visibility.Visible;
+            // ポインター移動のたびに届く高頻度の値であるため Trace（画面の表示は状態の行が担う）
+            Write($"ルーペ位置: ({e.Point.X:0.#}, {e.Point.Y:0.#})", LogLevel.Trace);
             _status.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
         };
 
@@ -159,6 +182,8 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
+                // ハイライトはコントロールのプロパティ（HighlightSourceRect）を切り替える操作である
+                SampleSettings.Buttons(("ハイライト矩形を設定/解除", ToggleHighlight)),
                 SampleSettings.Slider("ズーム", _zoom, MinZoom, MaxZoom, ZoomStep, false, value =>
                 {
                     _zoom = value;
@@ -200,8 +225,7 @@ public sealed class MainWindow : Window
             },
         };
 
-        // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
-        // ── メソッド操作（対象コントロールのメソッド実行） ──
+        // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel
         {
             Spacing = 6,
@@ -229,17 +253,22 @@ public sealed class MainWindow : Window
                     TextWrapping = TextWrapping.Wrap,
                 },
                 SampleSettings.Buttons(
-                    ("ハイライト切替", ToggleHighlight),
                     ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
                 _status,
             },
         };
 
         var log = new SampleLogPanel(_logging.Buffer);
-        Title = "MarqueeControl サンプル（WinUI 3）";
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 900));
+        Title = "Marquee サンプル (WinUI 3)";
         Content = SampleShell.CreateContent(properties, methods, samples, scroll, log);
-        Closed += (_, _) => _logging.Dispose();
+
+        // ウィンドウの大きさは DIP で指定する（他の UI と同じ 1400 x 900）
+        SampleShell.ApplyWindowSize(this);
+        Closed += (_, _) =>
+        {
+            _backdrop.Dispose();
+            _logging.Dispose();
+        };
 
         return;
 
@@ -258,7 +287,7 @@ public sealed class MainWindow : Window
 
             var detected = new EsRect(420, 140, 300, 200);
             _marquee.HighlightSourceRect = detected;
-            Write($"ハイライト（表示専用の注目）: {FormatRect(detected)} / 選択は {FormatRect(_marquee.SelectionSourceRect)} のまま（ハンドルは操作できる）");
+            Write($"ハイライト（表示専用の注目）: {FormatRect(detected)} / 選択は {FormatRect(_marquee.SelectionSourceRect)} のまま（ハイライト中は操作できない）");
         }
 
         // 外観を更新してコントロールへ反映する
@@ -268,6 +297,22 @@ public sealed class MainWindow : Window
             _marquee.Appearance = value;
             _marquee.InvalidateRender();
         }
+    }
+
+    /// <summary>コアの画素バッファを XAML の画像へ変換する。</summary>
+    /// <param name="image">変換する画像。</param>
+    /// <returns>変換した画像。</returns>
+    /// <remarks>画素形式は <see cref="WriteableBitmap"/> が要求する BGRA8888 である（コアの内部表現と同じ）。</remarks>
+    private static WriteableBitmap ToBitmap(EsReadOnlyBitmap image)
+    {
+        var bitmap = new WriteableBitmap(image.Width, image.Height);
+        using (var target = bitmap.PixelBuffer.AsStream())
+        {
+            target.Write(image.ReadOnlyPixels);
+        }
+
+        bitmap.Invalidate();
+        return bitmap;
     }
 
     /// <summary>矩形をログ用の文字列へ整形する。</summary>

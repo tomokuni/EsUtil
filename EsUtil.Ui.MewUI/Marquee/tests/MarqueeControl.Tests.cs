@@ -365,15 +365,11 @@ public class MarqueeControlTests
         var options = control.Options with { ClampToSourceBounds = false };
         control.Options = options;
 
-        // 「値を所有する主体が記録する」規則により、コアが Debug で記録し、提示層を通過したことを Trace で記録する
-        // （どの層まで値が伝搬したかをログの接頭辞から追える）
+        // 「値を所有する主体が記録する」規則により、コアが Debug で記録する（提示層は通過を記録しない）
         Assert.Equal(
-            [
-                "[Marquee] Setting: ClampToSourceBounds True → False",
-                $"[Marquee] Forwarded: Options HandleSize={options.HandleSize}, MinSelectionSize={options.MinSelectionSize}",
-            ],
+            ["[Marquee] Setting: ClampToSourceBounds True → False"],
             logger.Messages);
-        Assert.Equal([LogLevel.Information, LogLevel.Trace], logger.Levels);
+        Assert.Equal([LogLevel.Information], logger.Levels);
     }
 
     [Fact]
@@ -541,7 +537,7 @@ public class MarqueeControlTests
         control.SetSelection(new EsRect(20, 20, 60, 60));
         control.DrawPlanResolver = static plan => plan with
         {
-            Labels = [new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black, IsVisible: true)],
+            Labels = new MarqueeLabelPlacements(null, new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black, IsVisible: true)),
         };
 
         control.Arrange(new Rect(0, 0, 200, 200));
@@ -565,7 +561,7 @@ public class MarqueeControlTests
 
         control.DrawPlanResolver = static plan => plan with
         {
-            Labels = [new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "後から", 12, DrawingColor.White, DrawingColor.Black, IsVisible: true)],
+            Labels = new MarqueeLabelPlacements(null, new MarqueeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "後から", 12, DrawingColor.White, DrawingColor.Black, IsVisible: true)),
         };
         control.Arrange(new Rect(0, 0, 200, 200));
 

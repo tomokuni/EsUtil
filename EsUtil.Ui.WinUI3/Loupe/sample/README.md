@@ -4,7 +4,6 @@
 
 - [1. 概要](#1-概要)
 - [2. 実行方法](#2-実行方法)
-  - [2.1 バッチファイル（リリースビルド＆起動）](#21-バッチファイルリリースビルド起動)
 - [3. 操作方法](#3-操作方法)
 - [4. 検証項目（動作確認チェックリスト）](#4-検証項目動作確認チェックリスト)
 - [5. 構成](#5-構成)
@@ -37,20 +36,11 @@ dotnet run --project EsUtil.Ui.WinUI3/Loupe/sample/EsUtil.Ui.WinUI3.Loupe.Sample
 dotnet run -c Release --project EsUtil.Ui.WinUI3/Loupe/sample/EsUtil.Ui.WinUI3.Loupe.Sample.csproj
 ```
 
-### 2.1 バッチファイル（リリースビルド＆起動）
-
-`EsUtil.Ui.WinUI3/Loupe/sample/RunSample.bat` を実行すると、リリース ビルドを行った後、サンプル アプリケーションを起動します。
-
-```text
-RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil.Ui.WinUI3.Loupe.Sample.exe を起動
-```
-
-> 本サンプルは独立したプロジェクトです（`sample/` はコントロール本体のプロジェクト フォルダの外にあり、本体の `csproj` のコンパイル対象には含まれません）。
-
 ## 3. 操作方法
 
 | 操作 | 内容 |
 | --- | --- |
+| 「表示テーマ」を切り替える | サンプル共通の設定行（`SampleTheme`）。 コントロールはフレームワークのテーマから明暗を読むため、指定は不要 |
 | テスト画像上をマウス移動 | ルーペがカーソルの右下（+24 DIP）に追従して拡大表示（`CenterPoint` の更新とホスト側での再配置） |
 | 画像の外へマウス移動 | 画像外の領域のみ無地の色（画像外の色。 視野全体が外に出た場合は全面がその色） |
 | 「ルーペを表示」チェック | ルーペの表示の切り替え（非表示時は `ResolveLayout` が位置を返さないため描画されない） |
@@ -95,7 +85,6 @@ RunSample.bat  →  リリースビルド（dotnet build -c Release）→ EsUtil
 ```text
 EsUtil.Ui.WinUI3/Loupe/sample/
 ├── EsUtil.Ui.WinUI3.Loupe.Sample.csproj  # サンプル アプリのプロジェクト（WinUI 3・アンパッケージ）
-├── RunSample.bat                # リリース ビルド＆起動
 ├── app.manifest                 # 実行ファイルのマニフェスト（DPI 対応・対応 OS）
 ├── App.xaml                     # アプリケーションのリソース（WinUI 3 のスタイル）
 ├── App.xaml.cs                  # エントリ（メイン ウィンドウの生成）
@@ -140,7 +129,6 @@ Preview.DrawPlanResolver = static plan => GridLoupePlan.Resolve(in plan);
 - **前提**: WinUI 3（Windows App SDK）の `net10.0-windows10.0.22621.0` のプロジェクトです。 ビルドには .NET 10 SDK と Windows App SDK のパッケージ（NuGet）が必要です。
 - **対応 OS**: Windows 10 19041 以降（`SupportedOSPlatformVersion`）です。
 - **実行形式**: **アンパッケージ**（`WindowsPackageType=None`）で実行します。 プロジェクトは **AnyCPU** で、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。 Windows App SDK を同封する（`WindowsAppSDKSelfContained`。 自己完結）のは `-r` を渡したときだけです（RID の無い AnyCPU では自己完結にできないため、`Condition="'$(RuntimeIdentifier)' != ''"` にしてあります）。
-- **起動方法**: `dotnet run --project EsUtil.Ui.WinUI3/Loupe/sample/EsUtil.Ui.WinUI3.Loupe.Sample.csproj` または `RunSample.bat`（リリース ビルド＆起動）です。
 - **サンプルが確認する項目**: [`3. 操作方法`](#3-操作方法)と[`4. 検証項目（動作確認チェックリスト）`](#4-検証項目動作確認チェックリスト)のとおりです（マウス追従・外観・計画の差し替え・描画完了イベント）。
 - **プロジェクト参照**: サンプルは本体（`EsUtil.Ui.WinUI3/Loupe/src/EsUtil.Ui.WinUI3.Loupe.csproj`）を `ProjectReference` で参照します。 コアと提示層は本体のパッケージ参照を通して解決されます。
 - **公開 API と実装の境界**: サンプルが使う本体の公開 API は `LoupeControl`（`Source` / `CenterPoint` / `Options` / `Appearance` / `ClientToPixelScaling` / `Log` / `LogPrefix` / `DrawPlanResolver` / `Rendered` / `ResolveLayout`）です。 本体の `internal`（描画実装と Internal のヘルパー）は参照できないため、**サンプル固有の装飾だけを `sample/Presentation/` に置いています**（`Rendered` へ渡る矩形の並びは、サンプル自身の `EsUtil.Ui.WinUI3/Loupe/sample/Presentation/GridLoupePlan.cs` が組み立てます）。

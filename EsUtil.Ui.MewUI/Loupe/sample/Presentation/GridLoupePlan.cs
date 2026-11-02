@@ -96,23 +96,8 @@ internal static class GridLoupePlan
     /// 中心を <see cref="EsRect.Center"/> から求め直すと、線の太さの半分だけ右下へずれる（実測 2026-11-01）。<br/>
     /// 既定の十字線が無い場合（拡大中心が未設定）だけ、描画面の中心から同じ太さで組み立てる。
     /// </remarks>
-    private static IReadOnlyList<EsRect> CreateCenterGrid(in LoupeDrawPlan plan)
-    {
-        if (plan.CrosshairPixelRects.Count > 0)
-        {
-            return plan.CrosshairPixelRects;
-        }
-
-        var surface = plan.ClientPixelRect;
-        var thickness = plan.ScaleDipToPixel(1.0);
-        var half = thickness / 2;
-
-        return
-        [
-            new EsRect(surface.Center.X - half, surface.Y, thickness, surface.Height),
-            new EsRect(surface.X, surface.Center.Y - half, surface.Width, thickness),
-        ];
-    }
+    private static LoupeCrosshairRects CreateCenterGrid(in LoupeDrawPlan plan)
+        => plan.CrosshairPixelRects;
 
     /// <summary>描画面の四隅へ鉤（コーナーブラケット）を作る。</summary>
     /// <param name="surface">描画面の矩形（物理ピクセル）。</param>

@@ -119,13 +119,13 @@ internal static partial class LoupeLogMessage
     /// <summary>ルーペ描画の例外エラーログ（生成メソッド）。</summary>
     /// <remarks>
     /// LogLevel: Error<br/>
-    /// 出力書式: <c>[Loupe] Update exception</c>（例外スタックトレース付き）<br/>
+    /// 出力書式: <c>[Loupe] 描画の更新で例外が発生</c>（例外スタックトレース付き）<br/>
     /// 接頭辞は既定値が <c>[Loupe]</c> であり、<c>Prefix</c> で設定できる。<br/>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="exception">発生した例外。</param>
-    [LoggerMessage(LogLevel.Error, "{Prefix:l} Update exception")]
+    [LoggerMessage(LogLevel.Error, "{Prefix:l} 描画の更新で例外が発生")]
     private static partial void LogUpdateErrorCore(this ILogger logger, string prefix, Exception exception);
 
     /// <summary>ルーペ描画の例外エラーログ。</summary>
@@ -133,7 +133,7 @@ internal static partial class LoupeLogMessage
     /// <param name="exception">発生した例外。</param>
     /// <remarks>
     /// LogLevel: Error<br/>
-    /// 出力書式: <c>[Loupe] Update exception</c>（例外スタックトレース付き）<br/>
+    /// 出力書式: <c>[Loupe] 描画の更新で例外が発生</c>（例外スタックトレース付き）<br/>
     /// 例外の記録は描画を実行する UI が行う（コアは描画 API を持たず例外を検知しない）。
     /// </remarks>
     public static void LogUpdateError(this ILogger logger, Exception exception)

@@ -41,7 +41,7 @@
 | `IMarqueeEffects` | interface | コアが要求する効果の適用先（UI 実装が実装する） |
 | `MarqueeGeometry` | record struct | 1 フレーム分の幾何（`ClientSize` / `FocusDipRect` / `FocusSourceRect` / `Handles` / `Marker` / `MouseSourcePosition` / `MouseDipPosition` ＋ `ClientRect`）。 **コアが責任を持つ値の全量** |
 | `MarqueeRenderRequest` | record struct | 1 フレーム分の幾何を解決する入力（設定・状態と、描画時に決まる値）。 `MarqueeCore.CreateRequest` が生成し、`MarqueeCore.ResolveGeometry` へ渡す。 値の組は `MarqueeRenderRequest.Create` が 1 箇所に閉じる。 **`Create` を public にする理由**: ファサード（`MarqueeCore.CreateRequest`）と独自 UI が入力を組み立てる唯一の入口である（描画先の領域を知るのは呼び出し側だけである） |
-| `MarqueeHandles` / `MarqueeMarker` | record struct | ハンドル・始点マーカーの幾何（位置と寸法はコアが解決済み。 **色と線の太さは描画層の外観が持つ**） |
+| `MarqueeHandles` / `MarqueeHandleRects` / `MarqueeMarker` | record struct | ハンドル・始点マーカーの幾何（位置と寸法はコアが解決済み。 ハンドルの矩形は `MarqueeHandleRects`（8 方向の固定長）。 **色と線の太さは提示層の外観が持つ**） |
 | `MarqueeSnapshot` | readonly record struct | 通知時点の状態（状態・選択矩形・アクティブターゲット・マウス位置・操作フラグ）。 値型のため通知のたびにヒープを確保しない。 導出プロパティは `HasSelection` / `IsMarkerFollowingPointer`（追従位置が実カーソルを表すか） |
 | `MarqueeNotice` / `MarqueeNoticeKind` | record / enum | 通知（種別・通知座標・スナップショット） |
 | `MarqueeHitTarget` | enum | ヒット対象（8 方向のハンドル + `Move` + `None`） |
@@ -153,6 +153,7 @@
 | `FocusSourceRect` | 注目矩形（対象座標。 選択した矩形をそのまま渡すため `Interval` も保持する）。 ホストが矩形ごとの表示スケールを解決するために使う |
 | `Handles` | ドラッグハンドルの幾何（`HandleDipRects` 8 方向・`BorderThickness`）。 選択が無い場合は null |
 | `Marker` | 始点マーカーの幾何（`Center` / `Size`＝半幅）。 nudge 中でない場合は null。 線の太さは描画層の外観（`MarkerThickness`）が持つ |
+| `PointerOver` | ポインターが描画領域の上にあり、位置を 1 度でも受けたか（カーソル座標ラベルを描くかの判断に使う） |
 | `MouseSourcePosition` | 直近のマウス位置（対象座標）。 カーソル座標ラベルの文言の基準 |
 | `MouseDipPosition` | 直近のマウス位置（DIP。 座標変換済み）。 カーソル座標ラベルの配置の基準 |
 

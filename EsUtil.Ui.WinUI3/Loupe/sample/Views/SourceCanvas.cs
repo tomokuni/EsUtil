@@ -27,13 +27,14 @@ public sealed partial class SourceCanvas : Canvas
     /// <summary>画像を表示する要素。</summary>
     private readonly Image _image = new() { IsHitTestVisible = false, Stretch = Stretch.Fill };
 
-    /// <summary>選択矩形を示す枠。</summary>
+    /// <summary>選択矩形を示す枠（オレンジの破線 + 半透明の塗り。 他 UI と同じ見た目）。</summary>
     private readonly Rectangle _selection = new()
     {
         IsHitTestVisible = false,
-        Stroke = new SolidColorBrush(Microsoft.UI.Colors.DeepSkyBlue),
-        StrokeThickness = 1,
-        Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(0x30, 0x00, 0xB0, 0xFF)),
+        Stroke = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xFF, 0x8C, 0x00)),
+        StrokeThickness = 2,
+        StrokeDashArray = [4, 2],
+        Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(0x30, 0xFF, 0x8C, 0x00)),
         Visibility = Visibility.Collapsed,
     };
 

@@ -44,7 +44,7 @@
 
 - 折り返し配置（幅に応じて列数が変わる）とスクロール
 - 項目の追加（`Add`）・画像の差し替え（`SetImage`）・名前の変更（`SetCaption`）・全消去（`ClearItems`）
-- ホバー帯・選択・現在項目の強調（`IsDarkTheme` で明暗を切り替える）
+- ホバー帯・選択の強調（`IsDarkTheme` で明暗を切り替える）
 - 1 回押しの選択（`SelectionChanged`）と 2 回押しの通知（`ItemActivated`）
 - 可視範囲（`VisibleRange`）と項目の矩形（`ItemBounds`）の公開（見えている項目だけを先に作れる）
 - 末尾へのスクロール（`ScrollToIndex`）と配置のやり直し（`RefreshLayout`）
@@ -110,7 +110,7 @@ list.SetImage(index, bitmap);
 
 ## 7. 依存
 
-`EsUtil.Feature.Thumbnail.Core` / `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core`。
+`EsUtil.Feature.Thumbnail.Core` / `EsUtil.Feature.Thumbnail.Core` / `EsUtil.Platform.Core`。
 規則は [`.github/依存関係.md`](../../.github/依存関係.md)。
 
 ---
@@ -125,7 +125,7 @@ list.SetImage(index, bitmap);
 | 色・名前の体裁・表示可否・影 | `Appearance`（`ThumbnailAppearance`）を設定する（影の算法は `Appearance.Shadow` へ `IThumbnailShadowPlan` を渡して差し替える） |
 | 1 件分の描画（矩形・層の順序・背景色・影・名前） | `DrawPlanResolver`（`Func<ThumbnailDrawPlan, ThumbnailDrawPlan>`）を設定する（計画の値の置き換え） |
 
-描画計画（`ThumbnailDrawPlan`）と外観（`ThumbnailAppearance`）は `EsUtil.Feature.Thumbnail.Presenter` が単一所有し、4 つの UI 版で共通です（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
+描画計画（`ThumbnailDrawPlan`）と外観（`ThumbnailAppearance`）は `EsUtil.Feature.Thumbnail.Core` が単一所有し、4 つの UI 版で共通です（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
 
 ---
 
@@ -138,7 +138,7 @@ list.SetImage(index, bitmap);
 | Information | `[Thumbnail] Setting: ImageWidth 160 → 110` / `[Thumbnail] Setting: IsDarkTheme False → True` / `[Thumbnail] Setting: Image[0] null → 96x64`（画像の差し替え） / `[Thumbnail] Setting: ItemCount 12 → 0`（クリア） |
 | Trace | `[Thumbnail] Setting: ItemCount 0 → 1`（1 件ずつの追加） |
 
-`Log` へ `ILogger` を設定します（null は `NullLogger`）。 接頭辞は `LogPrefix` で設定し、提示層・コアへ伝搬します（既定 `[Thumbnail]`）。 設定・外観の変更は提示層、選択の変更はコアが記録します。
+`Log` へ `ILogger` を設定します（null は `NullLogger`）。 接頭辞は `LogPrefix` で設定し、コアと提示層のログの両方に適用します（既定 `[Thumbnail]`）。 設定・外観の変更は提示層、選択の変更はコアが記録します。
 
 ---
 
