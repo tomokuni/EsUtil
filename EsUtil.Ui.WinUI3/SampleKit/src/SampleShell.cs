@@ -57,8 +57,37 @@ public static class SampleShell
             Title = title,
             Content = CreateContent(propertySettings, methodSettings, sampleSettings, content, log),
         };
-        window.AppWindow.Resize(new Windows.Graphics.SizeInt32((int)width, (int)height));
+        ApplyWindowSize(window, width, height);
         return window;
+    }
+
+    /// <summary>ウィンドウを指定の大きさ（DIP）へ広げる。</summary>
+    /// <param name="window">対象のウィンドウ。</param>
+    /// <param name="width">幅（DIP）。</param>
+    /// <param name="height">高さ（DIP）。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="window"/> が null の場合。</exception>
+    /// <remarks>
+    /// <b>ウィンドウの API は物理ピクセルを取る</b>: <c>AppWindow.Resize</c> へ DIP の値をそのまま渡すと、<br/>
+    /// 表示倍率の分だけ小さくなる（125% では 1400 DIP が 1120 DIP になる。 実測 2026-11-02）。<br/>
+    /// <b>レイアウトの後に行う</b>: 倍率（<c>XamlRoot.RasterizationScale</c>）は要素が画面へ付いた後でないと読めないため、<br/>
+    /// ルート要素の <c>Loaded</c> で 1 度だけ広げる。
+    /// </remarks>
+    public static void ApplyWindowSize(Window window, double width = 1400, double height = 900)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+
+        if (window.Content is not FrameworkElement root)
+        {
+            return;
+        }
+
+        root.Loaded += (_, _) =>
+        {
+            var scale = root.XamlRoot?.RasterizationScale ?? 1.0;
+            window.AppWindow.Resize(new Windows.Graphics.SizeInt32(
+                (int)Math.Round(width * scale),
+                (int)Math.Round(height * scale)));
+        };
     }
 
     /// <summary>ウィンドウの中身（3 領域のレイアウト）を組み立てる。</summary>

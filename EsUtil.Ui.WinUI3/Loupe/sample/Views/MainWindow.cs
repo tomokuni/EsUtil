@@ -248,7 +248,6 @@ public sealed class MainWindow : Window
 
         var log = new SampleLogPanel(_logging.Buffer);
         Title = "LoupeControl サンプル（WinUI 3）";
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 900));
         // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel
         {
@@ -260,6 +259,9 @@ public sealed class MainWindow : Window
         };
 
         Content = SampleShell.CreateContent(properties, methods, samples, scroll, log);
+
+        // ウィンドウの大きさは DIP で指定する（他の UI と同じ 1400 x 900）
+        SampleShell.ApplyWindowSize(this);
         Closed += (_, _) =>
         {
             _logging.Dispose();

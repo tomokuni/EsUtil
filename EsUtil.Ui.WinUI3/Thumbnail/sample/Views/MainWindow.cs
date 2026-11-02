@@ -112,13 +112,15 @@ public sealed class MainWindow : Window
 
         var log = new SampleLogPanel(_logging.Buffer);
         Title = "ThumbnailControl サンプル（WinUI 3）";
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 900));
         Content = SampleShell.CreateContent(
             properties,
             methods,
             samples,
             _thumbnails,
             log);
+
+        // ウィンドウの大きさは DIP で指定する（他の UI と同じ 1400 x 900）
+        SampleShell.ApplyWindowSize(this);
         Closed += (_, _) => _logging.Dispose();
 
         return;

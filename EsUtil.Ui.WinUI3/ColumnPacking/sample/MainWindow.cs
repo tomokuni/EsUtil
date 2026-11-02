@@ -109,7 +109,6 @@ public sealed class MainWindow : Window
 
         var log = new SampleLogPanel(_logging.Buffer);
         Title = "ColumnPacking パネル サンプル（WinUI 3）";
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(1400, 900));
         // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel
         {
@@ -121,6 +120,9 @@ public sealed class MainWindow : Window
         };
 
         Content = SampleShell.CreateContent(properties, methods, samples, contentArea, log);
+
+        // ウィンドウの大きさは DIP で指定する（他の UI と同じ 1400 x 900）
+        SampleShell.ApplyWindowSize(this);
 
         _panel.SizeChanged += (_, _) => UpdateStatus();
         UpdateStatus();
