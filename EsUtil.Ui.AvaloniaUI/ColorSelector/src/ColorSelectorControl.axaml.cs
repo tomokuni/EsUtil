@@ -302,7 +302,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <b>一覧を作る処理と同じ解決を使う</b>: テーマの色の値は一覧を作るたびに UI から読むため、<br/>
     /// 別の表を持つと一覧の表示と解決した色が食い違う。
     /// </remarks>
-    internal bool TryResolveThemeColor(string key, out string hex)
+    public bool TryResolveThemeColor(string key, out string hex)
     {
         foreach (var item in CreateItems())
         {
@@ -513,6 +513,9 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>一覧の最大の高さ（DIP）。</summary>
     private const double ListMaxHeight = 360;
 
+    /// <summary>一覧の幅に足す余白（DIP。 枠・項目の左右の余白・スクロール バー）。</summary>
+    private const double ListChromeWidth = 28;
+
     /// <summary>直近に選んだ一覧の分類（次に開いたときに同じタブから始める）。</summary>
     private ColorSelectorCategory _listCategory = ColorSelectorCategory.Theme;
 
@@ -602,9 +605,60 @@ public sealed partial class ColorSelectorControl : UserControl
             _listCategory = category;
             themeTab.IsChecked = category == ColorSelectorCategory.Theme;
             namedTab.IsChecked = category == ColorSelectorCategory.Named;
-            list.ItemsSource = items.Where(item => item.Category == category).ToList();
+            var visible = items.Where(item => item.Category == category).ToList();
+            list.ItemsSource = visible;
             list.SelectedIndex = -1;
+            ApplyListWidth(list, visible);
         }
+    }
+
+    /// <summary>一覧の幅を枠（入力欄）の幅と内容の幅に合わせる。</summary>
+    /// <param name="list">対象の一覧。</param>
+    /// <param name="entries">一覧に並べる項目。</param>
+    /// <remarks>
+    /// <b>一覧と枠の幅を揃える</b>: 一覧だけが枠より広い（狭い）と、開いたときの見た目が崩れる。<br/>
+    /// 幅は「枠の幅」「内容（行の実寸）＋余白」「タブ 2 つ」の最大にする。 内容のほうが広い場合は<br/>
+    /// <b>枠（本コントロール）の最小幅を広げる</b>（枠と一覧が同じ幅になる）。
+    /// </remarks>
+    internal void ApplyListWidth(ListBox list, IReadOnlyList<ColorSelectorItem> entries)
+    {
+        var frameWidth = Bounds.Width;
+        var contentWidth = MeasureWidestRow(entries) + ListChromeWidth;
+        var tabsWidth = (CategoryTabWidth * 2) + 4;
+        var width = Math.Max(Math.Max(frameWidth, contentWidth), tabsWidth);
+
+        list.Width = width;
+        if (frameWidth > 0 && width > frameWidth)
+        {
+            // 内容のほうが広い場合は枠を広げる（一覧と枠の幅を揃える）
+            MinWidth = width;
+        }
+    }
+
+    /// <summary>行のうち最も広いものの幅（実寸）を測る。</summary>
+    /// <param name="entries">測る項目。</param>
+    /// <returns>最も広い行の幅（DIP）。 測れない場合は 0。</returns>
+    /// <remarks>一覧の項目テンプレートと同じ要素を作って測る（見積もりだと文字の実寸とずれる）。</remarks>
+    private double MeasureWidestRow(IEnumerable<ColorSelectorItem> entries)
+    {
+        if (Resources["ColorEntryTemplate"] is not IDataTemplate template)
+        {
+            return 0;
+        }
+
+        var widest = 0.0;
+        foreach (var entry in entries)
+        {
+            if (template.Build(entry) is not Control row)
+            {
+                continue;
+            }
+
+            row.Measure(Size.Infinity);
+            widest = Math.Max(widest, row.DesiredSize.Width);
+        }
+
+        return widest;
     }
 
     /// <summary>一覧に並べる項目を作る（テーマの色を先頭へ置く）。</summary>

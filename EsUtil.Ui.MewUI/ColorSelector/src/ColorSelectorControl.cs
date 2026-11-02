@@ -483,7 +483,7 @@ public sealed class ColorSelectorControl : Grid
     /// <param name="hex">解決した色（<c>#AARRGGBB</c>）。</param>
     /// <returns>解決できた場合は true（その UI に無い色は false）。</returns>
     /// <remarks>一覧を作る処理と同じ解決を使う（別の表を持つと一覧の表示と解決した色が食い違う）。</remarks>
-    internal bool TryResolveThemeColor(string key, out string hex)
+    public bool TryResolveThemeColor(string key, out string hex)
     {
         foreach (var item in CreateItems())
         {
@@ -786,6 +786,7 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>一覧の幅を内容（行の実寸）に合わせる。</summary>
     /// <param name="entries">一覧に並べる項目。</param>
     /// <remarks>
+    /// <b>一覧と枠の幅を揃える</b>: 内容のほうが広い場合は枠（本コントロール）の最小幅も広げる。<br/>
     /// <b>ListBox の既定の幅は内容と関係なく広い</b>: 行が 2 件でも 237.6 DIP を要求し、行を増やすとさらに広がる<br/>
     /// （実測 2026-11-02）。 そのまま置くと一覧だけが入力欄より大幅に広くなるため、行を実測して幅を決める。<br/>
     /// <b>文字サイズ・文言を変えても追随する</b>: 見積もりではなく実際の行（テンプレートが作る要素）を測るため、<br/>
@@ -810,8 +811,19 @@ public sealed class ColorSelectorControl : Grid
             widest = Math.Max(widest, row.DesiredSize.Width);
         }
 
+        // 一覧と枠（入力欄）の幅を揃える。 幅は「枠の幅」「内容＋余白」「タブ 2 つ」の最大にする
         var padding = _list.ItemPadding;
-        _list.Width = widest + padding.Left + padding.Right + ListWidthAllowance;
+        var contentWidth = widest + padding.Left + padding.Right + ListWidthAllowance;
+        var tabsWidth = (CategoryTabWidth * 2) + 4;
+        var frameWidth = Bounds.Width;
+        var width = Math.Max(Math.Max(frameWidth, contentWidth), tabsWidth);
+
+        _list.Width = width;
+        if (frameWidth > 0 && width > frameWidth)
+        {
+            // 内容のほうが広い場合は枠を広げる（一覧と枠の幅を揃える）
+            MinWidth = width;
+        }
     }
 
     /// <summary>テキスト入力が変わったときに色を反映する。</summary>
@@ -887,7 +899,7 @@ public sealed class ColorSelectorControl : Grid
         // 変更にも追随させる必要があるため、構築時に作った一覧をそのまま使わない）
         RefreshList();
 
-        // アンカーは**ウィンドウ座標**である（自領域の座標ではない）。 自領域の矩形をそのまま渡すとウィンドウ左上へ出る
+        // アンカーは**ウィンドウ座標**である（自領域の座標ではない）。 自領域の矩形をそのまま渡すとウィンドウ左上へ出る。
         // アンカーは ▼ のボタン（自領域だと入力欄の左端から開いてしまう）
         _listPopup.ShowAt(this, _listButton.Bounds, PopupAnchorSide.Below);
         _listButton.Content("▲");

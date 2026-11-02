@@ -82,6 +82,9 @@ public sealed partial class ColorSelectorControl : Grid
     /// <summary>一覧の分類を切り替えるタブの幅（DIP）。</summary>
     private const double CategoryTabWidth = 96;
 
+    /// <summary>一覧の幅に足す余白（DIP。 枠・項目の左右の余白・スクロール バー）。</summary>
+    private const double ListChromeWidth = 28;
+
     /// <summary>一覧に並べた色（添字は <see cref="_list"/> の項目と一致する）。</summary>
     /// <summary>一覧の項目（表示名と適用値）。</summary>
     private IReadOnlyList<ColorSelectorItem> _entries = [];
@@ -210,7 +213,6 @@ public sealed partial class ColorSelectorControl : Grid
             // 開くたびに作り直す（テーマの色はそのときのテーマから解決するため、明暗や
             // アクセント色の変更に追随させる）
             RefreshList();
-            _listFlyout.ShowAt(_listButton);
             _log.LogOpenList(_selectedColor);
         };
         SetColumn(_listButton, 2);
@@ -498,7 +500,7 @@ public sealed partial class ColorSelectorControl : Grid
     /// <param name="hex">解決した色（<c>#AARRGGBB</c>）。</param>
     /// <returns>解決できた場合は true（その UI に無い色は false）。</returns>
     /// <remarks>一覧を作る処理と同じ解決を使う（別の表を持つと一覧の表示と解決した色が食い違う）。</remarks>
-    internal bool TryResolveThemeColor(string key, out string hex)
+    public bool TryResolveThemeColor(string key, out string hex)
     {
         foreach (var item in CreateItems())
         {
@@ -700,6 +702,28 @@ public sealed partial class ColorSelectorControl : Grid
         RefreshList();
     }
 
+    /// <summary>一覧の幅を枠（入力欄）の幅と内容の幅に合わせる。</summary>
+    /// <param name="widest">行のうち最も広いものの幅（DIP）。</param>
+    /// <remarks>
+    /// <b>一覧と枠の幅を揃える</b>: 一覧だけが枠より広い（狭い）と、開いたときの見た目が崩れる。<br/>
+    /// 幅は「枠の幅」「内容＋余白」「タブ 2 つ」の最大にする。 内容のほうが広い場合は<br/>
+    /// <b>枠（本コントロール）の最小幅を広げる</b>（枠と一覧が同じ幅になる）。
+    /// </remarks>
+    private void ApplyListWidth(double widest)
+    {
+        var frameWidth = ActualWidth;
+        var contentWidth = widest + ListChromeWidth;
+        var tabsWidth = (CategoryTabWidth * 2) + 4;
+        var width = Math.Max(Math.Max(frameWidth, contentWidth), tabsWidth);
+
+        _list.Width = width;
+        if (frameWidth > 0 && width > frameWidth)
+        {
+            // 内容のほうが広い場合は枠を広げる（一覧と枠の幅を揃える）
+            MinWidth = width;
+        }
+    }
+
     /// <summary>一覧の分類を切り替えるタブを作る。</summary>
     /// <param name="text">タブの文言。</param>
     /// <returns>タブ（<see cref="ToggleButton"/>）。</returns>
@@ -722,6 +746,7 @@ public sealed partial class ColorSelectorControl : Grid
         _listCategory = category;
         _entries = [.. items.Where(item => item.Category == category)];
         _list.Items.Clear();
+        var widest = 0.0;
         foreach (var entry in _entries)
         {
             // 右端に余白を残す（一覧の幅が内容ぴったりになり、長い名前の末尾が切れるため）
@@ -742,8 +767,14 @@ public sealed partial class ColorSelectorControl : Grid
                     ColorString.TryParse(entry.Value, out var swatch, out _) ? ToWinUIColor(swatch) : Colors.Transparent),
             });
             row.Children.Add(new TextBlock { Text = entry.Label, VerticalAlignment = VerticalAlignment.Center });
+
+            // 一覧と枠（入力欄）の幅を揃えるため、行の実寸を測る（追加前は測れない）
+            row.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+            widest = Math.Max(widest, row.DesiredSize.Width);
             _list.Items.Add(row);
         }
+
+        ApplyListWidth(widest);
 
         if (ColorString.TryParse(_selectedColor, out var color, out _))
         {

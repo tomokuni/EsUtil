@@ -264,6 +264,42 @@ public class ColorSelectorControlTests
         Assert.Contains("アクセント", ColorSelectorControl.ThemeColorKeys);
     }
 
+    /// <summary>一覧の幅が枠（入力欄）の幅と揃うことを検証する。</summary>
+    /// <remarks>
+    /// 一覧だけが枠より広い（狭い）と、開いたときの見た目が崩れる。 幅は「枠の幅」「内容＋余白」「タブ 2 つ」の最大になる。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 一覧の幅は枠の幅と揃う()
+    {
+        var control = CreateControl();
+        var window = new Window { Width = 480, Height = 200, Content = control };
+        window.Show();
+        var flyout = control.CreateListFlyout();
+        var root = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(flyout).Content);
+        var list = Assert.IsType<ListBox>(root.Children[1]);
+
+        // 枠（入力欄）より内容が狭いときは、一覧も枠と同じ幅になる
+        Assert.Equal(control.Bounds.Width, list.Width);
+        window.Close();
+    }
+
+    /// <summary>枠より内容が広いときは枠の最小幅が広がることを検証する。</summary>
+    /// <remarks>一覧が枠より広いままだと、開いたときに入力欄と一覧の幅が食い違う。</remarks>
+    [AvaloniaFact]
+    internal void 内容が広いときは枠の最小幅が広がる()
+    {
+        var control = CreateControl();
+        var window = new Window { Width = 120, Height = 200, Content = control };
+        window.Show();
+        var flyout = control.CreateListFlyout();
+        var root = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(flyout).Content);
+        var list = Assert.IsType<ListBox>(root.Children[1]);
+
+        Assert.True(list.Width > 0);
+        Assert.True(control.MinWidth >= list.Width, "枠の最小幅が一覧の幅より狭い");
+        window.Close();
+    }
+
     /// <summary>テスト用の <see cref="ColorSelectorControl"/> を生成する。</summary>
     /// <returns>生成したコントロール（入力欄の名前解決が済んでいること）。</returns>
     private static ColorSelectorControl CreateControl()
