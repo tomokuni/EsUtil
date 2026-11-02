@@ -492,12 +492,12 @@ public sealed class ColorSelectorControl : Grid
         if (ShowThemeColors && Application.IsRunning)
         {
             var palette = Application.Current.Theme.Palette;
-            items.Add(new ColorSelectorItem("テーマ: 背景", ToHex(palette.WindowBackground)));
-            items.Add(new ColorSelectorItem("テーマ: 文字", ToHex(palette.WindowText)));
-            items.Add(new ColorSelectorItem("テーマ: 副次テキスト", ToHex(palette.PlaceholderText)));
-            items.Add(new ColorSelectorItem("テーマ: 枠線", ToHex(palette.ControlBorder)));
-            items.Add(new ColorSelectorItem("テーマ: アクセント", ToHex(palette.Accent)));
-            items.Add(new ColorSelectorItem("テーマ: 選択背景", ToHex(palette.SelectionBackground)));
+            AddThemeColor(items, "テーマ: 背景", palette.WindowBackground);
+            AddThemeColor(items, "テーマ: 文字", palette.WindowText);
+            AddThemeColor(items, "テーマ: 副次テキスト", palette.PlaceholderText);
+            AddThemeColor(items, "テーマ: 枠線", palette.ControlBorder);
+            AddThemeColor(items, "テーマ: アクセント", palette.Accent);
+            AddThemeColor(items, "テーマ: 選択背景", palette.SelectionBackground);
         }
 
         foreach (var entry in ColorEntry.GetSorted(_colorSortMode))
@@ -506,6 +506,21 @@ public sealed class ColorSelectorControl : Grid
         }
 
         return items;
+    }
+
+    /// <summary>テーマの色を一覧へ追加する（解決できない場合は何もしない）。</summary>
+    /// <param name="items">追加先。</param>
+    /// <param name="label">表示する名前。</param>
+    /// <param name="color">テーマが決めた色。</param>
+    /// <remarks>透過（アルファ 0）の色は選んでも見えないため並べない（他 UI と同じ判定）。</remarks>
+    private static void AddThemeColor(List<ColorSelectorItem> items, string label, MewColor color)
+    {
+        if (color.A == 0)
+        {
+            return;
+        }
+
+        items.Add(new ColorSelectorItem(label, ToHex(color)));
     }
 
     /// <summary>MewUI の色を保存値（<c>#AARRGGBB</c>）にする。</summary>

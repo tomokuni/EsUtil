@@ -20,7 +20,26 @@ public class MarqueeCoreGeometryTests
     private static MarqueeCore CreateMarquee(MarqueeOptions? options = null)
         => new(new EffectsSpy(), cursor: null, options) { Log = NullLogger.Instance };
 
+    /// <summary>位置を受ける前はポインターが領域の上に無いものとして扱うことを検証する。</summary>
+    /// <remarks>
+    /// 位置を受ける前の既定値（原点）を「カーソルがそこにある」と扱うと、カーソルの無い左上へ <c>(0, 0)</c> が出る
+    /// （実測 2026-11-02）。 位置を受けたあとは領域の上にあるかどうかだけに従う。
+    /// </remarks>
+    [Fact]
+    internal void CreateRequest_位置を受ける前はポインターが領域の上に無い()
+    {
+        var marquee = CreateMarquee();
+
+        Assert.False(marquee.CreateRequest(new EsSize(200, 100), pointerOver: true).PointerOver);
+
+        marquee.Move(new EsPoint(30, 40));
+
+        Assert.True(marquee.CreateRequest(new EsSize(200, 100), pointerOver: true).PointerOver);
+        Assert.False(marquee.CreateRequest(new EsSize(200, 100), pointerOver: false).PointerOver);
+    }
+
     /// <summary>選択なしの幾何を解決する。</summary>
+
     [Fact]
     internal void ResolveGeometry_選択なしではハンドルもマーカーも返さない()
     {
