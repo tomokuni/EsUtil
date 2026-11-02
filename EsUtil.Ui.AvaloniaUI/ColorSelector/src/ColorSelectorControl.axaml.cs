@@ -510,9 +510,6 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>一覧の上部に置くタブの幅（DIP）。 2 つを並べたときに一覧の幅と釣り合う値。</summary>
     private const double CategoryTabWidth = 112;
 
-    /// <summary>一覧の最小幅（DIP）。 タブを切り替えても幅が変わらないようにする。</summary>
-    private const double ListMinWidth = 240;
-
     /// <summary>一覧の最大の高さ（DIP）。</summary>
     private const double ListMaxHeight = 360;
 
@@ -560,14 +557,13 @@ public sealed partial class ColorSelectorControl : UserControl
         {
             ItemTemplate = (IDataTemplate?)Resources["ColorEntryTemplate"],
             MaxHeight = ListMaxHeight,
-            MinWidth = ListMinWidth,
 
             // 左寄せにすると希望サイズが内容（行の実寸）になり、長い名前が切れない
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
         };
 
         var themeTab = CreateCategoryTab("テーマカラー");
-        var namedTab = CreateCategoryTab("標準の色");
+        var namedTab = CreateCategoryTab("色名");
         themeTab.Click += (_, _) => ApplyCategory(ColorSelectorCategory.Theme);
         namedTab.Click += (_, _) => ApplyCategory(ColorSelectorCategory.Named);
 
@@ -622,20 +618,67 @@ public sealed partial class ColorSelectorControl : UserControl
         var items = new List<ColorSelectorItem>();
         if (ShowThemeColors)
         {
-            AddThemeColors(items);
+            AddThemeColors(this, items);
         }
 
         foreach (var entry in ColorEntry.GetSorted(ColorSortMode))
         {
-            // 一覧の表記は入力欄の表記に合わせる（16 進の設定なら 16 進で並べる）
-            items.Add(new ColorSelectorItem(
-                ColorString.ToText(entry.Name, TextFormat), entry.Name, ColorSelectorCategory.Named));
+            items.Add(new ColorSelectorItem(entry.Name, entry.Name, ColorSelectorCategory.Named));
         }
 
         return items;
     }
 
+    /// <summary>テーマの色（識別子と、そのときの色を解決する関数）。 並び順がそのまま一覧の順序になる。</summary>
+    /// <remarks>
+    /// <b>識別子と解決を 1 箇所に置く</b>: 一覧の表示と <see cref="SelectedThemeColor"/> の解決が同じ出所になり、<br/>
+    /// 表を 2 つ持って食い違うことがない（<see cref="ThemeColorKeys"/> も本表から作る）。
+    /// </remarks>
+    private static readonly (string Key, Func<ColorSelectorControl, IBrush?> Resolve)[] s_themeColors =
+    [
+        // 3 UI で共通の意味を持つ色（同じ名前・同じ順）
+        ("背景", static control => TopLevel.GetTopLevel(control)?.Background),
+        ("レイヤー", static control => control.ResolveThemeBrush("SystemControlBackgroundAltHighBrush")),
+        ("カード", static control => control.ResolveThemeBrush("SystemControlBackgroundChromeMediumLowBrush")),
+        ("コントロールの背景", static control => control.ResolveThemeBrush("TextControlBackground")),
+        ("コントロールの枠線", static control => control.ResolveThemeBrush("TextControlBorderBrush")),
+        ("区切り線", static control => control.ResolveThemeBrush("SystemControlForegroundBaseLowBrush")),
+        ("文字", static control => control.ResolveThemeBrush("SystemControlForegroundBaseHighBrush") ?? control.Foreground),
+        ("副次テキスト", static control => control.ResolveThemeBrush("SystemControlForegroundBaseMediumBrush")),
+        ("無効の文字", static control => control.ResolveThemeBrush("SystemControlDisabledBaseMediumLowBrush")),
+        ("無効の背景", static control => control.ResolveThemeBrush("SystemControlBackgroundBaseLowBrush")),
+        ("アクセント", static _ => ResolveAccentBrush()),
+        ("アクセント（淡）", static control => control.ResolveThemeBrush("SystemAccentColorLight1")),
+        ("アクセント（濃）", static control => control.ResolveThemeBrush("SystemAccentColorDark1")),
+        ("アクセント文字", static control => control.ResolveThemeBrush("SystemControlForegroundAccentBrush")),
+        ("アクセント上の文字", static control => control.ResolveThemeBrush("SystemControlForegroundChromeWhiteBrush")),
+        ("選択の背景", static control => control.ResolveThemeBrush("SystemControlHighlightListAccentLowBrush")),
+        ("ホバーの背景", static control => control.ResolveThemeBrush("SystemControlBackgroundListLowBrush")),
+        ("押下の背景", static control => control.ResolveThemeBrush("SystemControlBackgroundListMediumBrush")),
+        ("フォーカス", static control => control.ResolveThemeBrush("TextControlBorderBrushFocused")),
+        ("エラー", static control => control.ResolveThemeBrush("SystemControlErrorTextForegroundBrush")),
+
+        // AvaloniaUI にしか無い色
+        ("三次テキスト", static control => control.ResolveThemeBrush("SystemControlForegroundBaseMediumLowBrush")),
+        ("アクセント（より淡）", static control => control.ResolveThemeBrush("SystemAccentColorLight2")),
+        ("アクセント（より濃）", static control => control.ResolveThemeBrush("SystemAccentColorDark2")),
+        ("リンク", static control => control.ResolveThemeBrush("SystemControlHyperlinkTextBrush")),
+        ("領域", static control => control.ResolveThemeBrush("SystemRegionBrush")),
+        ("グレーの文字", static control => control.ResolveThemeBrush("SystemControlForegroundChromeGrayBrush")),
+        ("入力中の背景", static control => control.ResolveThemeBrush("TextControlBackgroundPointerOver")),
+        ("枠線（ホバー）", static control => control.ResolveThemeBrush("TextControlBorderBrushPointerOver")),
+    ];
+
+    /// <summary>テーマの色の識別子の一覧を取得する（<see cref="SelectedThemeColor"/> へ設定できる値）。</summary>
+    /// <value>この UI が並べるテーマの色の識別子（並びは一覧と同じ）。</value>
+    /// <remarks>
+    /// <b>利用側は本値を保存すればテーマに追随できる</b>: 色そのもの（<c>#AARRGGBB</c>）を保存すると明暗の切替に追随できない。<br/>
+    /// 設定画面の選択肢を作るときにも使える（実際に並ぶのは解決できた色だけである）。
+    /// </remarks>
+    public static IReadOnlyList<string> ThemeColorKeys { get; } = [.. s_themeColors.Select(static entry => entry.Key)];
+
     /// <summary>一覧の先頭へ並べるテーマの色を追加する（AvaloniaUI のテーマの色をすべて並べる）。</summary>
+    /// <param name="control">色を解決する対象（テーマの資源を自分のテーマで解決する）。</param>
     /// <param name="items">追加先。</param>
     /// <remarks>
     /// <b>並び順は 3 UI で共通</b>: 意味の対応する色は同じ名前・同じ順にし、その UI にしか無い色を後ろへ足す<br/>
@@ -643,40 +686,12 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <b>値は開くたびに解決する</b>: 明暗の切替とアクセント色の変更に追随させる（資源はテーマごとに値が変わる）。<br/>
     /// <b>解決できない色は並べない</b>: Fluent テーマに無い資源や透過の色を空欄で出さない。
     /// </remarks>
-    private void AddThemeColors(List<ColorSelectorItem> items)
+    private static void AddThemeColors(ColorSelectorControl control, List<ColorSelectorItem> items)
     {
-        // 3 UI で共通の意味を持つ色（同じ名前・同じ順）
-        AddThemeColor(items, "テーマ: 背景", TopLevel.GetTopLevel(this)?.Background);
-        AddThemeColor(items, "テーマ: レイヤー", ResolveThemeBrush("SystemControlBackgroundAltHighBrush"));
-        AddThemeColor(items, "テーマ: カード", ResolveThemeBrush("SystemControlBackgroundChromeMediumLowBrush"));
-        AddThemeColor(items, "テーマ: コントロールの背景", ResolveThemeBrush("TextControlBackground"));
-        AddThemeColor(items, "テーマ: コントロールの枠線", ResolveThemeBrush("TextControlBorderBrush"));
-        AddThemeColor(items, "テーマ: 区切り線", ResolveThemeBrush("SystemControlForegroundBaseLowBrush"));
-        AddThemeColor(
-            items, "テーマ: 文字", ResolveThemeBrush("SystemControlForegroundBaseHighBrush") ?? Foreground);
-        AddThemeColor(items, "テーマ: 副次テキスト", ResolveThemeBrush("SystemControlForegroundBaseMediumBrush"));
-        AddThemeColor(items, "テーマ: 無効の文字", ResolveThemeBrush("SystemControlDisabledBaseMediumLowBrush"));
-        AddThemeColor(items, "テーマ: 無効の背景", ResolveThemeBrush("SystemControlBackgroundBaseLowBrush"));
-        AddThemeColor(items, "テーマ: アクセント", ResolveAccentBrush());
-        AddThemeColor(items, "テーマ: アクセント（淡）", ResolveThemeBrush("SystemAccentColorLight1"));
-        AddThemeColor(items, "テーマ: アクセント（濃）", ResolveThemeBrush("SystemAccentColorDark1"));
-        AddThemeColor(items, "テーマ: アクセント文字", ResolveThemeBrush("SystemControlForegroundAccentBrush"));
-        AddThemeColor(items, "テーマ: アクセント上の文字", ResolveThemeBrush("SystemControlForegroundChromeWhiteBrush"));
-        AddThemeColor(items, "テーマ: 選択の背景", ResolveThemeBrush("SystemControlHighlightListAccentLowBrush"));
-        AddThemeColor(items, "テーマ: ホバーの背景", ResolveThemeBrush("SystemControlBackgroundListLowBrush"));
-        AddThemeColor(items, "テーマ: 押下の背景", ResolveThemeBrush("SystemControlBackgroundListMediumBrush"));
-        AddThemeColor(items, "テーマ: フォーカス", ResolveThemeBrush("TextControlBorderBrushFocused"));
-        AddThemeColor(items, "テーマ: エラー", ResolveThemeBrush("SystemControlErrorTextForegroundBrush"));
-
-        // AvaloniaUI にしか無い色
-        AddThemeColor(items, "テーマ: 三次テキスト", ResolveThemeBrush("SystemControlForegroundBaseMediumLowBrush"));
-        AddThemeColor(items, "テーマ: アクセント（より淡）", ResolveThemeBrush("SystemAccentColorLight2"));
-        AddThemeColor(items, "テーマ: アクセント（より濃）", ResolveThemeBrush("SystemAccentColorDark2"));
-        AddThemeColor(items, "テーマ: リンク", ResolveThemeBrush("SystemControlHyperlinkTextBrush"));
-        AddThemeColor(items, "テーマ: 領域", ResolveThemeBrush("SystemRegionBrush"));
-        AddThemeColor(items, "テーマ: グレーの文字", ResolveThemeBrush("SystemControlForegroundChromeGrayBrush"));
-        AddThemeColor(items, "テーマ: 入力中の背景", ResolveThemeBrush("TextControlBackgroundPointerOver"));
-        AddThemeColor(items, "テーマ: 枠線（ホバー）", ResolveThemeBrush("TextControlBorderBrushPointerOver"));
+        foreach (var (key, resolve) in s_themeColors)
+        {
+            AddThemeColor(items, ThemeLabelPrefix + key, resolve(control));
+        }
     }
 
     /// <summary>テーマの色を一覧へ追加する（解決できない場合は何もしない）。</summary>

@@ -146,7 +146,7 @@ public class ColorSelectorControlTests
         var list = Assert.IsType<ListBox>(root.Children[1]);
         Assert.Equal(2, tabs.Children.Count);
         Assert.Equal("テーマカラー", Assert.IsType<ToggleButton>(tabs.Children[0]).Content);
-        Assert.Equal("標準の色", Assert.IsType<ToggleButton>(tabs.Children[1]).Content);
+        Assert.Equal("色名", Assert.IsType<ToggleButton>(tabs.Children[1]).Content);
 
         // 開いた直後はテーマカラー（テーマの色だけが並ぶ）
         var themeItems = Assert.IsAssignableFrom<IEnumerable<ColorSelectorItem>>(list.ItemsSource).ToArray();
@@ -237,6 +237,31 @@ public class ColorSelectorControlTests
             Assert.True(control.TryResolveThemeColor(item.ThemeKey!, out var hex));
             Assert.Equal(item.Value, hex);
         }
+    }
+
+    /// <summary>テーマの色の識別子の一覧が一覧の項目と一致することを検証する。</summary>
+    /// <remarks>
+    /// 利用側は <see cref="ColorSelectorControl.ThemeColorKeys"/> を設定画面の選択肢や保存値の検証に使う。<br/>
+    /// 一覧に並ぶ色と識別子の一覧が食い違うと、保存した識別子が解決できなくなる。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void テーマの色の識別子の一覧は一覧の項目と一致する()
+    {
+        var control = CreateControl();
+
+        var keys = control.CreateItems()
+            .Where(item => item.Category == ColorSelectorCategory.Theme)
+            .Select(item => item.ThemeKey)
+            .ToArray();
+
+        Assert.NotEmpty(keys);
+        Assert.All(keys, key => Assert.Contains(key, ColorSelectorControl.ThemeColorKeys));
+
+        // ヘッドレスではテーマを読み込まないため解決できる色は一部である（一覧 ⊂ 識別子の一覧）。
+        // 識別子の一覧に重複が無いことと、代表的な識別子を含むことはここで確かめる
+        Assert.Equal(ColorSelectorControl.ThemeColorKeys.Count, ColorSelectorControl.ThemeColorKeys.Distinct().Count());
+        Assert.Contains("背景", ColorSelectorControl.ThemeColorKeys);
+        Assert.Contains("アクセント", ColorSelectorControl.ThemeColorKeys);
     }
 
     /// <summary>テスト用の <see cref="ColorSelectorControl"/> を生成する。</summary>

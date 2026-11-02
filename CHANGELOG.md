@@ -19,8 +19,8 @@
 
 ### 追加
 
-- **`ColorSelector` に `SelectedThemeColor` を追加しました**（AvaloniaUI / MewUI / WinUI 3）。 一覧で選んだテーマの色を**識別子（例: `背景`）で保持**し、`SelectedColor` をそのときのテーマの色へ解決し直します。 明暗の切替・アクセント色の変更に追随し、入力欄には `テーマ: 背景` と表示します（色名・カラーコードを選ぶと `null` に戻ります）。 利用側は本値を保存すればテーマに追随します。
-- **`ColorSelector`（AvaloniaUI / MewUI / WinUI 3）の一覧を「テーマカラー」と「色名」のタブに分けました**。 テーマの色が 26〜33 色あり、色名と同じ一覧へ混ぜると目的の色を探しにくいためです（▼ の上部で切り替えます。 前回のタブから開き、選べる色が無いタブは開きません。 タブ名は **テーマカラー / 標準の色**）。 **一覧の表記は入力欄の表記（`TextFormat`）に従います**（16 進の設定なら一覧も 16 進で並びます）。 並び順（`ColorSortMode`）はタブ「色名」の中だけで効きます。
+- **`ColorSelector` に `SelectedThemeColor` と `ThemeColorKeys` を追加しました**（AvaloniaUI / MewUI / WinUI 3）。 一覧で選んだテーマの色を**識別子（例: `背景`）で保持**し、`SelectedColor` をそのときのテーマの色へ解決し直します。 明暗の切替・アクセント色の変更に追随し、入力欄には `テーマ: 背景` と表示します（色名・カラーコードを選ぶと `null` に戻ります）。 利用側は本値を保存すればテーマに追随します（**利用側のアプリでも同じ公開 API で指定できます**。 `ThemeColorKeys` が設定できる識別子の一覧です）。
+- **`ColorSelector`（AvaloniaUI / MewUI / WinUI 3）の一覧を「テーマカラー」と「色名」のタブに分けました**。 テーマの色が 26〜33 色あり、色名と同じ一覧へ混ぜると目的の色を探しにくいためです（▼ の上部で切り替えます。 前回のタブから開き、選べる色が無いタブは開きません。 タブ名は **テーマカラー / 色名**）。 **一覧の幅は内容（行の実寸）に合わせます**（長い名前が切れず、余白も最小になります）。 並び順（`ColorSortMode`）はタブ「色名」の中だけで効きます。
 - **`ColorSelector`（AvaloniaUI / MewUI / WinUI 3）の一覧の先頭に UI のテーマの色をすべて並べました**（共通の 20 色を同じ名前・同じ順で並べ、その UI にしか無い色を後ろへ足します。 AvaloniaUI 26 色 / MewUI 26 色 / WinUI 3 33 色）。 値はコアの色名の表ではなく**その UI のテーマから解決**するため、明暗の切替とアクセント色の変更に追随します（`ShowThemeColors` で無効化できます）。
 - **`ThumbnailAppearance.BoldSelectedLabel` を追加しました**（既定 `true`）。 選択中の項目の名前を太字にします。 帯だけでは選択が弱いテーマがあるため、名前の太さでも示します（`false` で従来どおり帯だけになります）。
 - **ホスト固有の付加情報を描く手段を 4 UI に揃えました**（Marquee）。 MewUI は `MarqueeRenderedEventArgs.DrawText`、WinUI 3 は `MarqueeRenderedEventArgs.AddText` を追加しました（AvaloniaUI は `Context`、WinForms は `Graphics` を従来どおり使えます）。 WinUI 3 だけ操作ガイドを出せなかった非対称を解消します。

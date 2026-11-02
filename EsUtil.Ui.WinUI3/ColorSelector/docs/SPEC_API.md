@@ -27,10 +27,11 @@
 | --- | --- | --- | --- |
 | `SelectedColor` | `string` | `#FFFFFFFF` | 選択中の色（保存値）。 色名や `+{n}%` を設定すると正規化される |
 | `SelectedThemeColor` | `string?` | `null` | 選択中の**テーマの色の識別子**（例: `背景`）。 値を持つ間は `SelectedColor` をそのときのテーマの色へ解決し直す（明暗・アクセントの変更に追随する）。 色名・カラーコードを選ぶと `null` に戻る |
-| `ColorSortMode` | `ColorSortMode`（コア） | `ByHue` | 一覧（タブ「標準の色」）の並び順（`ByName` / `ByHue`）。 テーマの色は意味の順で固定 |
-| 一覧のタブ | （UI の要素） | テーマカラー / 色名 | 一覧（▼）の上部に **テーマカラー** と **標準の色** のタブを置き、分類を切り替える。 テーマの色は数が多いため、色名と同じ一覧へ混ぜない。 前回選んだタブから開き、選べる項目が無いタブは開かない（`ShowThemeColors` = false のときは色名から開く） |
+| `ThemeColorKeys` | `IReadOnlyList<string>`（static・get） | UI ごとの一覧 | `SelectedThemeColor` へ設定できる識別子の一覧（並びは一覧と同じ）。 設定画面の選択肢と保存値の検証に使う |
+| `ColorSortMode` | `ColorSortMode`（コア） | `ByHue` | 一覧（タブ「色名」）の並び順（`ByName` / `ByHue`）。 テーマの色は意味の順で固定 |
+| 一覧のタブ | （UI の要素） | テーマカラー / 色名 | 一覧（▼）の上部に **テーマカラー** と **色名** のタブを置き、分類を切り替える。 テーマの色は数が多いため、色名と同じ一覧へ混ぜない。 前回選んだタブから開き、選べる項目が無いタブは開かない（`ShowThemeColors` = false のときは色名から開く） |
 | `ShowThemeColors` | `bool` | `true`（取得または設定） | 一覧の先頭に **UI のテーマの色をすべて**並べる（共通の 20 色を「テーマ: 背景 / レイヤー / カード / コントロールの背景 / コントロールの枠線 / 区切り線 / 文字 / 副次テキスト / 無効の文字 / 無効の背景 / アクセント / アクセント（淡）/ アクセント（濃）/ アクセント文字 / アクセント上の文字 / 選択の背景 / ホバーの背景 / 押下の背景 / フォーカス / エラー」の順に並べ、その UI にしか無い色（三次テキスト・成功・注意・スクロール バーなど）を後ろへ足す）。 値は一覧を作り直すたびにテーマ（MewUI はパレット、WinUI 3 はテーマ資源と `SystemAccentColor`）から解決する |
-| `TextFormat` | `ColorTextFormat`（コア） | `NameWithAlpha` | 入力欄と一覧（タブ「標準の色」）の表記（`NameWithAlpha` = `{色名}+{%}` / `HexCode` = `#AARRGGBB`）。 設定すると入力欄とツールチップの表記が切り替わる |
+| `TextFormat` | `ColorTextFormat`（コア） | `NameWithAlpha` | 入力欄と一覧（タブ「色名」）の表記（`NameWithAlpha` = `{色名}+{%}` / `HexCode` = `#AARRGGBB`）。 設定すると入力欄とツールチップの表記が切り替わる |
 | `TextFontSize` | `double` | `NaN`（テーマの既定） | 入力欄の文字サイズ（DIP） |
 | `TextWidth` | `double` | `NaN`（自動） | 入力欄の明示的な幅（DIP） |
 | `TextMinWidth` | `double` | `120` | 入力欄の最小幅（DIP） |

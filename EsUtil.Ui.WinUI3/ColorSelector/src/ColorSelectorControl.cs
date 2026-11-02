@@ -68,7 +68,7 @@ public sealed partial class ColorSelectorControl : Grid
     private readonly ToggleButton _themeTab = CreateCategoryTab("テーマカラー");
 
     /// <summary>色名のタブ。</summary>
-    private readonly ToggleButton _namedTab = CreateCategoryTab("標準の色");
+    private readonly ToggleButton _namedTab = CreateCategoryTab("色名");
 
     /// <summary>テーマの色の表示名の接頭辞。</summary>
     private const string ThemeLabelPrefix = "テーマ: ";
@@ -78,9 +78,6 @@ public sealed partial class ColorSelectorControl : Grid
 
     /// <summary>直近に選んだ一覧の分類（次に開いたときに同じタブから始める）。</summary>
     private ColorSelectorCategory _listCategory = ColorSelectorCategory.Theme;
-
-    /// <summary>一覧の最小幅（DIP）。 タブを切り替えても幅が変わらないようにする。</summary>
-    private const double ListMinWidth = 240;
 
     /// <summary>一覧の分類を切り替えるタブの幅（DIP）。</summary>
     private const double CategoryTabWidth = 96;
@@ -240,7 +237,6 @@ public sealed partial class ColorSelectorControl : Grid
         _themeTab.Click += (_, _) => ApplyCategory(ColorSelectorCategory.Theme);
         _namedTab.Click += (_, _) => ApplyCategory(ColorSelectorCategory.Named);
 
-        _list.MinWidth = ListMinWidth;
         _listFlyout.Content = new StackPanel
         {
             Spacing = 6,
@@ -554,13 +550,63 @@ public sealed partial class ColorSelectorControl : Grid
 
         foreach (var entry in ColorEntry.GetSorted(_colorSortMode))
         {
-            // 一覧の表記は入力欄の表記に合わせる（16 進の設定なら 16 進で並べる）
-            items.Add(new ColorSelectorItem(
-                ColorString.ToText(entry.Name, _textFormat), entry.Name, ColorSelectorCategory.Named));
+            items.Add(new ColorSelectorItem(entry.Name, entry.Name, ColorSelectorCategory.Named));
         }
 
         return items;
     }
+
+    /// <summary>テーマの色（識別子と、そのときの色を解決する関数）。 並び順がそのまま一覧の順序になる。</summary>
+    /// <remarks>
+    /// <b>識別子と解決を 1 箇所に置く</b>: 一覧の表示と <see cref="SelectedThemeColor"/> の解決が同じ出所になり、<br/>
+    /// 表を 2 つ持って食い違うことがない（<see cref="ThemeColorKeys"/> も本表から作る）。
+    /// </remarks>
+    private static readonly (string Key, Func<ColorSelectorControl, Brush?> Resolve)[] s_themeColors =
+    [
+        // 3 UI で共通の意味を持つ色（同じ名前・同じ順）
+        ("背景", static _ => ResolveThemeResource("ApplicationPageBackgroundThemeBrush")),
+        ("レイヤー", static _ => ResolveThemeResource("LayerFillColorDefaultBrush")),
+        ("カード", static _ => ResolveThemeResource("CardBackgroundFillColorDefaultBrush")),
+        ("コントロールの背景", static _ => ResolveThemeResource("ControlFillColorDefaultBrush")),
+        ("コントロールの枠線", static _ => ResolveThemeResource("ControlStrokeColorDefaultBrush")),
+        ("区切り線", static _ => ResolveThemeResource("DividerStrokeColorDefaultBrush")),
+        ("文字", static control => ResolveThemeResource("TextFillColorPrimaryBrush") ?? control._text.Foreground),
+        ("副次テキスト", static _ => ResolveThemeResource("TextFillColorSecondaryBrush")),
+        ("無効の文字", static _ => ResolveThemeResource("TextFillColorDisabledBrush")),
+        ("無効の背景", static _ => ResolveThemeResource("ControlFillColorDisabledBrush")),
+        ("アクセント", static _ => ResolveAccentBrush()),
+        ("アクセント（淡）", static _ => ResolveThemeResource("SystemAccentColorLight1")),
+        ("アクセント（濃）", static _ => ResolveThemeResource("SystemAccentColorDark1")),
+        ("アクセント文字", static _ => ResolveThemeResource("AccentTextFillColorPrimaryBrush")),
+        ("アクセント上の文字", static _ => ResolveThemeResource("TextOnAccentFillColorPrimaryBrush")),
+        ("選択の背景", static _ => ResolveThemeResource("SystemControlHighlightAccentBrush")),
+        ("ホバーの背景", static _ => ResolveThemeResource("SubtleFillColorSecondaryBrush")),
+        ("押下の背景", static _ => ResolveThemeResource("ControlFillColorSecondaryBrush")),
+        ("フォーカス", static _ => ResolveThemeResource("FocusStrokeColorOuterBrush")),
+        ("エラー", static _ => ResolveThemeResource("SystemFillColorCriticalBrush")),
+
+        // WinUI 3 にしか無い色
+        ("三次テキスト", static _ => ResolveThemeResource("TextFillColorTertiaryBrush")),
+        ("成功", static _ => ResolveThemeResource("SystemFillColorSuccessBrush")),
+        ("注意", static _ => ResolveThemeResource("SystemFillColorCautionBrush")),
+        ("成功の背景", static _ => ResolveThemeResource("SystemFillColorSuccessBackgroundBrush")),
+        ("注意の背景", static _ => ResolveThemeResource("SystemFillColorCautionBackgroundBrush")),
+        ("危険の背景", static _ => ResolveThemeResource("SystemFillColorCriticalBackgroundBrush")),
+        ("スモーク", static _ => ResolveThemeResource("SmokeFillColorDefaultBrush")),
+        ("強調の枠線", static _ => ResolveThemeResource("ControlStrongStrokeColorDefaultBrush")),
+        ("サーフェスの枠線", static _ => ResolveThemeResource("SurfaceStrokeColorDefaultBrush")),
+        ("アクセント（より淡）", static _ => ResolveThemeResource("SystemAccentColorLight2")),
+        ("アクセント（より濃）", static _ => ResolveThemeResource("SystemAccentColorDark2")),
+        ("アプリの背景（濃）", static _ => ResolveThemeResource("SolidBackgroundFillColorBaseAltBrush")),
+    ];
+
+    /// <summary>テーマの色の識別子の一覧を取得する（<see cref="SelectedThemeColor"/> へ設定できる値）。</summary>
+    /// <value>この UI が並べるテーマの色の識別子（並びは一覧と同じ）。</value>
+    /// <remarks>
+    /// <b>利用側は本値を保存すればテーマに追随できる</b>: 色そのもの（<c>#AARRGGBB</c>）を保存すると明暗の切替に追随できない。<br/>
+    /// 設定画面の選択肢を作るときにも使える（実際に並ぶのは解決できた色だけである）。
+    /// </remarks>
+    public static IReadOnlyList<string> ThemeColorKeys { get; } = [.. s_themeColors.Select(static entry => entry.Key)];
 
     /// <summary>一覧の先頭へ並べるテーマの色を追加する（WinUI 3 のテーマの色をすべて並べる）。</summary>
     /// <param name="items">追加先。</param>
@@ -572,41 +618,10 @@ public sealed partial class ColorSelectorControl : Grid
     /// </remarks>
     private void AddThemeColors(List<ColorSelectorItem> items)
     {
-        // 3 UI で共通の意味を持つ色（同じ名前・同じ順）
-        AddThemeColor(items, "テーマ: 背景", ResolveThemeResource("ApplicationPageBackgroundThemeBrush"));
-        AddThemeColor(items, "テーマ: レイヤー", ResolveThemeResource("LayerFillColorDefaultBrush"));
-        AddThemeColor(items, "テーマ: カード", ResolveThemeResource("CardBackgroundFillColorDefaultBrush"));
-        AddThemeColor(items, "テーマ: コントロールの背景", ResolveThemeResource("ControlFillColorDefaultBrush"));
-        AddThemeColor(items, "テーマ: コントロールの枠線", ResolveThemeResource("ControlStrokeColorDefaultBrush"));
-        AddThemeColor(items, "テーマ: 区切り線", ResolveThemeResource("DividerStrokeColorDefaultBrush"));
-        AddThemeColor(items, "テーマ: 文字", ResolveThemeResource("TextFillColorPrimaryBrush") ?? _text.Foreground);
-        AddThemeColor(items, "テーマ: 副次テキスト", ResolveThemeResource("TextFillColorSecondaryBrush"));
-        AddThemeColor(items, "テーマ: 無効の文字", ResolveThemeResource("TextFillColorDisabledBrush"));
-        AddThemeColor(items, "テーマ: 無効の背景", ResolveThemeResource("ControlFillColorDisabledBrush"));
-        AddThemeColor(items, "テーマ: アクセント", ResolveAccentBrush());
-        AddThemeColor(items, "テーマ: アクセント（淡）", ResolveThemeResource("SystemAccentColorLight1"));
-        AddThemeColor(items, "テーマ: アクセント（濃）", ResolveThemeResource("SystemAccentColorDark1"));
-        AddThemeColor(items, "テーマ: アクセント文字", ResolveThemeResource("AccentTextFillColorPrimaryBrush"));
-        AddThemeColor(items, "テーマ: アクセント上の文字", ResolveThemeResource("TextOnAccentFillColorPrimaryBrush"));
-        AddThemeColor(items, "テーマ: 選択の背景", ResolveThemeResource("SystemControlHighlightAccentBrush"));
-        AddThemeColor(items, "テーマ: ホバーの背景", ResolveThemeResource("SubtleFillColorSecondaryBrush"));
-        AddThemeColor(items, "テーマ: 押下の背景", ResolveThemeResource("ControlFillColorSecondaryBrush"));
-        AddThemeColor(items, "テーマ: フォーカス", ResolveThemeResource("FocusStrokeColorOuterBrush"));
-        AddThemeColor(items, "テーマ: エラー", ResolveThemeResource("SystemFillColorCriticalBrush"));
-
-        // WinUI 3 にしか無い色
-        AddThemeColor(items, "テーマ: 三次テキスト", ResolveThemeResource("TextFillColorTertiaryBrush"));
-        AddThemeColor(items, "テーマ: 成功", ResolveThemeResource("SystemFillColorSuccessBrush"));
-        AddThemeColor(items, "テーマ: 注意", ResolveThemeResource("SystemFillColorCautionBrush"));
-        AddThemeColor(items, "テーマ: 成功の背景", ResolveThemeResource("SystemFillColorSuccessBackgroundBrush"));
-        AddThemeColor(items, "テーマ: 注意の背景", ResolveThemeResource("SystemFillColorCautionBackgroundBrush"));
-        AddThemeColor(items, "テーマ: 危険の背景", ResolveThemeResource("SystemFillColorCriticalBackgroundBrush"));
-        AddThemeColor(items, "テーマ: スモーク", ResolveThemeResource("SmokeFillColorDefaultBrush"));
-        AddThemeColor(items, "テーマ: 強調の枠線", ResolveThemeResource("ControlStrongStrokeColorDefaultBrush"));
-        AddThemeColor(items, "テーマ: サーフェスの枠線", ResolveThemeResource("SurfaceStrokeColorDefaultBrush"));
-        AddThemeColor(items, "テーマ: アクセント（より淡）", ResolveThemeResource("SystemAccentColorLight2"));
-        AddThemeColor(items, "テーマ: アクセント（より濃）", ResolveThemeResource("SystemAccentColorDark2"));
-        AddThemeColor(items, "テーマ: アプリの背景（濃）", ResolveThemeResource("SolidBackgroundFillColorBaseAltBrush"));
+        foreach (var (key, resolve) in s_themeColors)
+        {
+            AddThemeColor(items, ThemeLabelPrefix + key, resolve(this));
+        }
     }
 
     /// <summary>テーマの色を一覧へ追加する（解決できない場合は何もしない）。</summary>

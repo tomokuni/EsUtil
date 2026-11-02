@@ -141,15 +141,16 @@ if (colorPicker.HasValidationError)
 | --- | --- | --- | --- |
 | `SelectedColor` | `string` | `"White"` | 現在選択されている色。 **保存値は `#AARRGGBB`（アルファ先頭8桁）形式**（双方向バインド）。 色名 / `#RRGGBB` / `#AARRGGBB` / `{色}+{不透明度%}` のいずれを設定しても `#AARRGGBB` へ正規化される |
 | `SelectedThemeColor` | `string?` | `null` | 選択中の**テーマの色の識別子**（例: `背景`）。 値を持つ間は `SelectedColor` をそのときのテーマの色へ解決し直す（明暗・アクセントの変更に追随する）。 色名・カラーコードを選ぶと `null` に戻る |
+| `ThemeColorKeys` | `IReadOnlyList<string>`（static・get） | UI ごとの一覧 | `SelectedThemeColor` へ設定できる識別子の一覧（並びは一覧と同じ）。 設定画面の選択肢と保存値の検証に使う |
 
 #### 5.1.2 表示・動作設定
 
 | プロパティ | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
-| `ColorSortMode` | `ColorSortMode` | `ByHue` | 一覧（タブ「標準の色」）の色の並び順（`ByHue` / `ByName`）。 テーマの色は意味の順で固定 |
-| 一覧のタブ | （UI の要素） | テーマカラー / 色名 | 一覧（▼）の上部に **テーマカラー** と **標準の色** のタブを置き、分類を切り替える。 テーマの色は数が多いため、色名と同じ一覧へ混ぜない。 前回選んだタブから開き、選べる項目が無いタブは開かない（`ShowThemeColors` = false のときは色名から開く） |
+| `ColorSortMode` | `ColorSortMode` | `ByHue` | 一覧（タブ「色名」）の色の並び順（`ByHue` / `ByName`）。 テーマの色は意味の順で固定 |
+| 一覧のタブ | （UI の要素） | テーマカラー / 色名 | 一覧（▼）の上部に **テーマカラー** と **色名** のタブを置き、分類を切り替える。 テーマの色は数が多いため、色名と同じ一覧へ混ぜない。 前回選んだタブから開き、選べる項目が無いタブは開かない（`ShowThemeColors` = false のときは色名から開く） |
 | `ShowThemeColors` | `bool` | `true`（取得または設定） | 一覧の先頭に **UI のテーマの色をすべて**並べる（共通の 20 色を「テーマ: 背景 / レイヤー / カード / コントロールの背景 / コントロールの枠線 / 区切り線 / 文字 / 副次テキスト / 無効の文字 / 無効の背景 / アクセント / アクセント（淡）/ アクセント（濃）/ アクセント文字 / アクセント上の文字 / 選択の背景 / ホバーの背景 / 押下の背景 / フォーカス / エラー」の順に並べ、その UI にしか無い色（三次テキスト・成功・注意・スクロール バーなど）を後ろへ足す）。 値は一覧を開くたびにテーマから解決する（明暗の切替・アクセント色の変更に追随） |
-| `TextFormat` | `ColorTextFormat` | `NameWithAlpha` | 入力欄と一覧（タブ「標準の色」）の表記（`NameWithAlpha` = 色名+不透明度 / `HexCode` = `#AARRGGBB`） |
+| `TextFormat` | `ColorTextFormat` | `NameWithAlpha` | 入力欄と一覧（タブ「色名」）の表記（`NameWithAlpha` = 色名+不透明度 / `HexCode` = `#AARRGGBB`） |
 | `HighlightBorderOnError` | `bool` | `false` | バリデーション失敗時に外周の枠線を赤くするか |
 | `Log` | `ILogger` | `NullLogger` | 内部ロガー（null 設定時は `NullLogger` へフォールバック）。 診断ログの出力先 |
 | `LogPrefix` | `string?` | `null` | ログの接頭辞（ロガーと一緒に設定する。 null・空白で既定値 `[ColorSelector]` へ戻す） |
