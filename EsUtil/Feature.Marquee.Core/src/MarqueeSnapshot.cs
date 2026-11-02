@@ -10,7 +10,7 @@ namespace EsUtil.Feature.Marquee;
 /// ドラッグ中かどうかは <see cref="State"/>（<see cref="MarqueeInteractionState.Dragging"/> / <see cref="MarqueeInteractionState.DraggingNudging"/>）で判定できる（同じ真実を 2 つ持たない）。<br/>
 /// <see cref="IsNudgeActive"/> は nudge（矢印キー微調整）中かどうか。 ホストが nudge 中の表示切替等に使用できる。<br/>
 /// コア型（<see cref="EsRect"/> / <see cref="EsPoint"/>）のみに依存し、UI フレームワークへ依存しない（各 UI 実装の境界で変換する）。<br/>
-/// <b>値型</b>である: ポインター移動のたびに通知するためヒープ確保を避ける（値セマンティクスで比較できる）。<br/>
+/// <b>値型</b>である: 通知時点の状態を値として写すため、以降の状態変化の影響を受けない。<br/>
 /// 項目の並びは「要約 → 主要データ → 位置 → 操作フラグ」の順（可読性のため）。
 /// </remarks>
 /// <param name="State">対話状態（nudge・ドラッグ・選択の合成）。</param>

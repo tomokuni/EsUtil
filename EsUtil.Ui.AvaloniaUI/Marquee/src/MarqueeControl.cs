@@ -352,8 +352,8 @@ public sealed partial class MarqueeControl : Panel
     /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
     /// <value>接頭辞（例: <c>[Marquee]</c>）。 null または空白を設定すると既定値へ戻す。</value>
     /// <remarks>
-    /// 本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、提示層・コアへ伝搬する<br/>
-    /// （集約した接頭辞で全層のログを揃える）。
+    /// 本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、機能アセンブリのログ定義（コアと提示層で共有）へ適用する<br/>
+    /// （全層のログが同じ接頭辞になる）。
     /// </remarks>
     public string? LogPrefix
     {
@@ -431,7 +431,7 @@ public sealed partial class MarqueeControl : Panel
     /// <summary><see cref="Appearance"/> 依存関係プロパティ（外観。 描画にだけ必要な設定）。</summary>
     /// <remarks>
     /// 外観（色・ラベル体裁・表示可否）はコアの計算に入らない（描画にだけ必要）ため、コアの設定（<see cref="Options"/>）には含めず、<br/>
-    /// 提示層（<c>EsUtil.Feature.Marquee.Presenter</c>）の <see cref="MarqueeAppearance"/> が単一所有する。
+    /// 提示層（<see cref="MarqueeAppearance"/>） が単一所有する。
     /// </remarks>
     public static readonly StyledProperty<MarqueeAppearance> AppearanceProperty =
         AvaloniaProperty.Register<MarqueeControl, MarqueeAppearance>(nameof(Appearance), defaultValue: MarqueeAppearance.Default);

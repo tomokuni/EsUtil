@@ -18,7 +18,7 @@ Avalonia UI 版のサムネイル一覧コントロールが提供する公開 A
 
 - 対象フレームワークは `net10.0` で、`Avalonia` を参照します（バージョンの範囲は本体のプロジェクト ファイルが単一所有します）。
 - 画像は **`Avalonia.Media.IImage`** で受け取ります（コアの画像型は受け取りません。 変換はホストが行います）。
-- 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Presenter` が単一所有します。 本コントロールは入力の受付・スクロール・要素の配置だけを行います。
+- 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Core` が単一所有します。 本コントロールは入力の受付・スクロール・要素の配置だけを行います。
 - 単位は **DIP** です。
 
 ## 2. 公開 API
@@ -55,7 +55,7 @@ Avalonia UI 版のサムネイル一覧コントロールが提供する公開 A
 | `ScrollToIndex(int index)` | method | 項目を表示領域へスクロールする |
 | `Refresh()` | method | 配置と見た目を解決し直す（外観の解決に使う値を外部で変えたときに呼ぶ） |
 | `Log` | property | ログの出力先（null は `NullLogger`）。 画像と項目数の変更を本コントロールが記録する。 同じロガーを提示層・コアへ渡す |
-| `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 提示層・コアへ伝搬する |
+| `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 コアと提示層のログの両方に適用する |
 
 - **`Add` は項目を末尾へ追加します**（画像が null でも項目は作られ、画像の領域だけが空になります）。
 - **明暗（テーマ）はコントロールが自分で読みます**（`ActualThemeVariant`）。 ホストが明暗を指定する必要はなく、切り替わると配色（ホバー・選択の背景）が自動で追随します。

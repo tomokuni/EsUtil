@@ -20,7 +20,7 @@
 
 ## 1. システム概要
 
-`EsUtil.Ui.MewUI.Loupe` は、Avalonia 版 `LoupeControl` と**同一の UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と描画層（`EsUtil.Feature.Loupe.Presenter`）** を使い、
+`EsUtil.Ui.MewUI.Loupe` は、Avalonia 版 `LoupeControl` と**同一の UI 非依存の機能アセンブリ（`EsUtil.Feature.Loupe.Core`。 コアと提示層）** を使い、
 描画（`IGraphicsContext`）と入力の受付のみを MewUI（MewUI の標準描画）で実装したルーペコントロールです。
 
 コアが担う範囲（数値の安全域補正・切り出し領域の計算・装飾矩形の計算）は両 UI で完全に共通であり、
@@ -47,7 +47,7 @@
 ```text
 UI 層（Avalonia / MewUI の実装）
   入力の受付・効果の適用・通知の転送・描画先の用意・ラベル要素の配置
-    └──> EsUtil.Feature.Loupe.Presenter   どう描くか（描画計画の解決と外観の単一所有）
+    └──> EsUtil.Feature.Loupe.Core   どう描くか（描画計画の解決と外観の単一所有）
            └──> EsUtil.Feature.Loupe.Core   何を描くか + 判断（状態・値・純粋計算・幾何）
                   └──> EsUtil.Platform.Core（Es* 値型・ICoordTransform）
 ※ Core は Presenter / UI を参照しない（依存は UI → Presenter → Core の一方向）。
@@ -61,7 +61,7 @@ Avalonia 版と MewUI 版の間に依存はありません（互いを参照し�
 | 層 | 責務 |
 | --- | --- |
 | `EsUtil.Feature.Loupe.Core` | 数値の安全域補正、表示レイアウト、切り出し領域の幾何（`LoupeGeometry`）。 設定（`LoupeOptions`）の単一所有 |
-| `EsUtil.Feature.Loupe.Presenter` | 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（`LoupeAppearance`）の単一所有。 UI 非依存であり、UI フレームワークを参照しない |
+| `EsUtil.Feature.Loupe.Core` | 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（`LoupeAppearance`）の単一所有。 UI 非依存であり、UI フレームワークを参照しない |
 | `EsUtil.Ui.MewUI.Loupe` | 提示層が解決した描画計画を `LoupePainter` で `IGraphicsContext` へ写す。 `MewProperty` による入力の受付。 DPI の自動追従 |
 | ホスト（上位のアプリ） | `Source` / `CenterPoint` の設定、表示位置の決定（コアのファサード `ResolveLayout` を利用） |
 
@@ -128,7 +128,7 @@ classDiagram
         +int ZoomLevel
     }
     class LoupeAppearance {
-        <<EsUtil.Feature.Loupe.Presenter>>
+        <<EsUtil.Feature.Loupe.Core>>
         +int BorderThickness
         +bool ShowCrosshair / ShowBorder / ShowCoordLabel / ShowPasteboard
         +ShouldShowCoordLabel(hasCenter) bool
@@ -141,7 +141,7 @@ classDiagram
         +Default LoupeAppearance$
     }
     class LoupePresenter {
-        <<EsUtil.Feature.Loupe.Presenter / 提示層>>
+        <<EsUtil.Feature.Loupe.Core / 提示層>>
         +LoupeAppearance Appearance
         +ResolveDrawPlan(displaySize, measureText) LoupeDrawPlan
     }
@@ -156,7 +156,7 @@ classDiagram
         +CoerceClientToPixelScaling(v) double$
     }
     class LoupeDrawPlan {
-        <<EsUtil.Feature.Loupe.Presenter>>
+        <<EsUtil.Feature.Loupe.Core>>
         +EsRect ClientPixelRect
                 +CrosshairPixelRects / BorderPixelRects
         +Layers
@@ -178,7 +178,7 @@ classDiagram
         +int ClientPixelSize
     }
     class LoupeLabelPlacement {
-        <<EsUtil.Feature.Loupe.Presenter>>
+        <<EsUtil.Feature.Loupe.Core>>
         +EsRect Bounds
         +double PaddingX / PaddingY
         +string Text
@@ -237,7 +237,7 @@ sequenceDiagram
     end
     R->>SK: 十字線（plan.CrosshairPixelRects）を描画
     R->>SK: 枠線（plan.BorderPixelRects）を描画
-    alt plan.Labels が空でない
+    alt plan.Label が null でない
         R-->>R: 座標ラベル層は描画しない（コントロールがテキスト要素として表示する）
     else 表示しない
         R-->>R: 座標ラベルを表示しない
@@ -292,11 +292,11 @@ sequenceDiagram
 
 ## 11. ログ
 
-設定変更を Debug、描画の例外を Error で記録します（Avalonia 版と同一の書式）。
+設定変更を Information、画像変更を Debug、描画の例外を Error で記録します（Avalonia 版と同一の書式）。
 
 | レベル | 出力元 |
 | --- | --- |
-| Debug | `Source` / `CenterPoint` / `RequestedSize` / `ClientToPixelScaling` / `ZoomLevel` の変更（補正後の値を渡す。 変化判定（同一値・同一インスタンスなら出力しない）は出力する主体のログ定義（Source は本プロジェクトの `LoupeLogMessage`、外観は提示層の `LoupeLogMessage`、他はコアの `LoupeLogMessage`）が単一所有し、UI 層は設定の前後を渡すだけ。 設定の変更は変化した項目だけを出力する） |
+| Information | `CenterPoint` / `RequestedSize` / `ClientToPixelScaling` / `ZoomLevel` / 外観の変更（補正後の値を渡す。 変化判定（同一値・同一インスタンスなら出力しない）は値を所有する側のログ定義が単一所有し、UI 層は設定の前後を渡すだけ。 設定の変更は変化した項目だけを出力する） |
 | Error | 描画処理の例外（アプリを落とさずログへ記録して描画を中止する） |
 
 Avalonia 版の Trace ログ（再描画パイプライン）は持ちません（MewUI 版は中間ビットマップを作らず同期描画するため）。  

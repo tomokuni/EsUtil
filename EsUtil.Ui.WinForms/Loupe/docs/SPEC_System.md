@@ -20,7 +20,7 @@
 
 ## 1. システム概要
 
-`EsUtil.Ui.WinForms.Loupe` は、他の UI 版と**同一の UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、
+`EsUtil.Ui.WinForms.Loupe` は、他の UI 版と**同一の UI 非依存の機能アセンブリ（`EsUtil.Feature.Loupe.Core`。 コアと提示層）** を使い、
 描画のみを Windows Forms（GDI+ / `System.Drawing`）で実装したルーペコントロールです。
 
 コアが担う範囲（数値の安全域補正・切り出し領域の計算・表示レイアウト）と、提示層が担う範囲（層の順序・装飾の矩形・ラベルの文言と配置・外観）は各 UI で共通であり、
@@ -35,7 +35,7 @@
 | 言語 | C# 14 |
 | UI フレームワーク | Windows Forms（基底クラスは `System.Windows.Forms.Control`） |
 | 描画 | System.Drawing（GDI+。 描画実装 `LoupeGraphicsPainter` が `Graphics` へ描く） |
-| 依存パッケージ | `EsUtil.Feature.Loupe.Presenter` / `EsUtil.Platform.Core` / `Microsoft.Extensions.Logging.Abstractions` |
+| 依存パッケージ | `EsUtil.Feature.Loupe.Core` / `EsUtil.Platform.Core` / `Microsoft.Extensions.Logging.Abstractions` |
 | 参照しないパッケージ | `EsUtil.Platform.Core.Windows`（UI 層からは参照できないため、必要な画像変換を `Internal` へ複製する） |
 
 ## 3. アーキテクチャ
@@ -47,7 +47,7 @@
 ```text
 UI 層（Avalonia / MewUI / WinUI 3 / WinForms の実装）
   入力の受付・表示位置の決定・描画先の用意・描画計画の解決と描画
-    └──> EsUtil.Feature.Loupe.Presenter   どう描くか（描画計画の解決と外観の保持）
+    └──> EsUtil.Feature.Loupe.Core   どう描くか（描画計画の解決と外観の保持）
            └──> EsUtil.Feature.Loupe.Core   何を描くか + 判断（状態・値・純粋計算・幾何）
                   └──> EsUtil.Platform.Core（Es* 値型・DpiScaler・ICoordTransform）
 ※ Core は Presenter / UI を参照しない（依存は UI → Presenter → Core の一方向）。
@@ -60,7 +60,7 @@ UI 版の間には依存がありません（互いを参照しません）。 �
 | 層 | 責務 |
 | --- | --- |
 | `EsUtil.Feature.Loupe.Core` | 数値の安全域補正、表示レイアウト、切り出し領域の幾何（`LoupeGeometry`）。 設定（`LoupeOptions`）の保持 |
-| `EsUtil.Feature.Loupe.Presenter` | 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（`LoupeAppearance`）の保持。 UI フレームワークを参照しない |
+| `EsUtil.Feature.Loupe.Core` | 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（`LoupeAppearance`）の保持。 UI フレームワークを参照しない |
 | `EsUtil.Ui.WinForms.Loupe` | 提示層が解決した描画計画を `LoupeGraphicsPainter` で `Graphics` へ写す。 プロパティによる入力の受付。 DPI の自動追従。 描画完了の通知 |
 | ホスト（上位のアプリ） | `Source` / `CenterPoint` の設定、表示位置と表示サイズの決定（`ResolveLayout` を利用）、オーバーレイの描画（`Rendered`） |
 
@@ -215,6 +215,6 @@ sequenceDiagram
 | --- | --- |
 | Information | `[Loupe] Setting: Source 800x600 → null`（拡大元画像。 変化の判定は本プロジェクトのログ定義が行う） |
 | Error | `[Loupe] Update exception`（描画の例外）/ `[Loupe] {Operation} で例外が発生`（公開メソッドの例外） |
-| Debug / Trace | 設定（`Options`）・環境値（`ClientToPixelScaling`）・拡大中心（`CenterPoint`）の変更と通過の記録は、コアと提示層のログ定義が出力する |
+| Information / Debug / Trace | 設定（`Options`）・環境値（`ClientToPixelScaling`）・外観は Information、拡大元画像は Debug、拡大中心（`CenterPoint`）は Trace で、機能アセンブリのログ定義（コアと提示層で共有）が出力する |
 
 レベル・接頭辞・書式の規則は [ログ規約.md](../../../.github/ログ規約.md) に従います。

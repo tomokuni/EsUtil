@@ -18,7 +18,7 @@ MewUI 版のサムネイル一覧コントロールが提供する公開 API の
 
 - 対象フレームワークは `net10.0` で、`Aprillz.MewUI.Core` を参照します（MewUI は API が安定化中（0.x）のため、バージョンは本体のプロジェクト ファイルが固定します）。
 - 画像は **`EsReadOnlyBitmap`**（コアの読み取り専用画像型）で受け取ります。 **ピクセルは複製しません**（非所有ビューとして描画します）。
-- 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Presenter` が単一所有します。
+- 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Core` が単一所有します。
 - 単位は **DIP** です。
 
 ## 2. 公開 API
@@ -58,7 +58,7 @@ MewUI 版のサムネイル一覧コントロールが提供する公開 API の
 | `ScrollToIndex(int index)` | method | 項目を表示領域へスクロールする |
 | `Refresh()` | method | 配置と見た目を解決し直す（通常は各 setter が行うため、明示的に解き直したいときに呼ぶ） |
 | `Log` | property | ログの出力先（null は `NullLogger`）。 画像と項目数の変更を本コントロールが記録する。 同じロガーを提示層・コアへ渡す |
-| `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 提示層・コアへ伝搬する |
+| `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 コアと提示層のログの両方に適用する |
 
 - **`Add` は項目を末尾へ追加します**（画像が null でも項目は作られ、画像の領域だけが空になります）。
 - **影は計画の帯を単色で塗ります**（`ThumbnailShadowPlan.BuildDeviceBands` の 1 画素の帯。 グラデーション ブラシの端の扱いに依存しません）。

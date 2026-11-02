@@ -57,7 +57,7 @@ internal static class TestHelper
         EsRect? innerMask = null,
         MarqueeHandles? handles = null,
         MarqueeMarker? marker = null,
-        IReadOnlyList<MarqueeLabelPlacement>? labels = null)
+        MarqueeLabelPlacements? labels = null)
         => new(
             appearance,
             new EsRect(0, 0, size.Width, size.Height),
@@ -69,7 +69,7 @@ internal static class TestHelper
             handles,
             marker,
             layers,
-            labels ?? []);
+            labels ?? default);
 
     /// <summary>描画面の 1 画素を取得する。</summary>
     /// <param name="bitmap">描画面。</param>

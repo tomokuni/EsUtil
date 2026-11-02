@@ -1,5 +1,6 @@
 using EsUtil.Feature.Marquee.Core.Interaction;
-using EsUtil.Feature.Marquee.Core.Logging;
+using EsUtil.Feature.Marquee.Logging;
+using EsUtil.Feature.Marquee.Core.Internal;
 using static EsUtil.Feature.Marquee.MarqueeCore.Limits;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
@@ -29,7 +30,7 @@ namespace EsUtil.Feature.Marquee;
 /// <br/>
 /// <b>描画は本コアの関心事ではない</b>: 本コアは描画 API も描画面も知らない（幾何の値（<c>MarqueeGeometry</c>）と<br/>
 /// その描画順を表す層のデータを返すだけである）。 描画は UI 層が行い、<br/>
-/// 層の順序に従った描画手順は描画層（本コアを参照する上位の層）が単一所有する。<br/>
+/// 層の順序に従った描画手順は提示層が単一所有する。<br/>
 /// <br/>
 /// <b>UI 層の責務</b>: 入力イベントの受付と座標変換（<see cref="ToSource"/> / <see cref="ToDip"/>）、<br/>
 /// <see cref="IMarqueeEffects"/> の実装、通知（<see cref="Subscribe"/>）の公開イベントへの転送、<br/>
@@ -125,7 +126,7 @@ public sealed partial class MarqueeCore
 
     /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
     /// <value>接頭辞（例: <c>[Marquee]</c>）。 null または空白を設定すると既定値へ戻す。</value>
-    /// <remarks>本コアのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定する（本層は最下層のため伝搬先は無い）。</remarks>
+    /// <remarks>ログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定する（Core と Presenter は同じ定義を共有するため、どちらから設定しても全ログに効く）。</remarks>
     public string? LogPrefix
     {
         get;
@@ -165,7 +166,7 @@ public sealed partial class MarqueeCore
         get => _dipToSourceScaling;
         set
         {
-            if (SetIfChanged(ref _dipToSourceScaling, CoerceClientToSourceScaling(value), out var previous))
+            if (ChangeTracking.SetIfChanged(ref _dipToSourceScaling, CoerceClientToSourceScaling(value), out var previous))
             {
                 Log.LogSettingChanged(nameof(ClientToSourceScaling), previous, _dipToSourceScaling);
             }
@@ -187,7 +188,7 @@ public sealed partial class MarqueeCore
         get;
         set
         {
-            if (SetIfChanged(ref field, value, out var previous))
+            if (ChangeTracking.SetIfChanged(ref field, value, out var previous))
             {
                 Log.LogHighlightSourceRectChanged(previous, value);
             }
@@ -467,28 +468,5 @@ public sealed partial class MarqueeCore
         Log.LogFacadeCreated(_session.Options.HandleSize, _session.Options.MinSelectionSize);
     }
 
-    /// <summary>新しい値を保持する（同値なら何もしない）。</summary>
-    /// <typeparam name="T">値の型。</typeparam>
-    /// <param name="field">保持先のフィールド。</param>
-    /// <param name="value">設定する値。</param>
-    /// <param name="previous">変更前の値（同値の場合は現在値）。</param>
-    /// <returns>値を変更した場合は true（同値だった場合は false）。</returns>
-    /// <remarks>
-    /// 「同値なら何もしない」という規則を単一所有する<br/>
-    /// （各プロパティが同じ数行を書くと、片方だけ同値判定が抜けて無駄な再評価が溢れる）。<br/>
-    /// 変更前の値も返すため、変更を検出した側（設定の変更ログ）が前後を比較できる。<br/>
-    /// <b>再描画は要求しない</b>: 設定は UI の公開プロパティ（変更通知を持つ）から渡されるため、<br/>
-    /// 描画の更新は UI が観測して行う（コアは入力に伴う再描画だけを効果として要求する）。
-    /// </remarks>
-    private static bool SetIfChanged<T>(ref T field, T value, out T previous)
-    {
-        previous = field;
-        if (EqualityComparer<T>.Default.Equals(previous, value))
-        {
-            return false;
-        }
 
-        field = value;
-        return true;
-    }
 }

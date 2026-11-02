@@ -3,25 +3,13 @@
     <Project Path="Feature.Loupe.Core/src/EsUtil.Feature.Loupe.Core.csproj" />
     <Project Path="Feature.Loupe.Core/tests/EsUtil.Feature.Loupe.Core.Tests.csproj" />
   </Folder>
-  <Folder Name="/Feature.Loupe.Presenter/">
-    <Project Path="Feature.Loupe.Presenter/src/EsUtil.Feature.Loupe.Presenter.csproj" />
-    <Project Path="Feature.Loupe.Presenter/tests/EsUtil.Feature.Loupe.Presenter.Tests.csproj" />
-  </Folder>
   <Folder Name="/Feature.Marquee.Core/">
     <Project Path="Feature.Marquee.Core/src/EsUtil.Feature.Marquee.Core.csproj" />
     <Project Path="Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Tests.csproj" />
   </Folder>
-  <Folder Name="/Feature.Marquee.Presenter/">
-    <Project Path="Feature.Marquee.Presenter/src/EsUtil.Feature.Marquee.Presenter.csproj" />
-    <Project Path="Feature.Marquee.Presenter/tests/EsUtil.Feature.Marquee.Presenter.Tests.csproj" />
-  </Folder>
   <Folder Name="/Feature.Thumbnail.Core/">
     <Project Path="Feature.Thumbnail.Core/src/EsUtil.Feature.Thumbnail.Core.csproj" />
     <Project Path="Feature.Thumbnail.Core/tests/EsUtil.Feature.Thumbnail.Core.Tests.csproj" />
-  </Folder>
-  <Folder Name="/Feature.Thumbnail.Presenter/">
-    <Project Path="Feature.Thumbnail.Presenter/src/EsUtil.Feature.Thumbnail.Presenter.csproj" />
-    <Project Path="Feature.Thumbnail.Presenter/tests/EsUtil.Feature.Thumbnail.Presenter.Tests.csproj" />
   </Folder>
   <Folder Name="/Platform.Core/">
     <Project Path="Platform.Core/src/EsUtil.Platform.Core.csproj" />

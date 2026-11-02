@@ -23,11 +23,10 @@ internal static class MewFill
         context.FillRectangle(rect.ToMewUIRect(), color.ToMewUIColor());
     }
 
-    /// <summary>複数の矩形を同じ色で塗る。</summary>
+    /// <summary>同じ色の矩形を塗る。</summary>
     /// <param name="context">描画先のコンテキスト。</param>
-    /// <param name="rects">塗る矩形の一覧（コア座標）。 空の場合は何もしない。</param>
+    /// <param name="rects">塗る矩形（ホストが差し替えられる一覧）。 空の場合は何もしない。</param>
     /// <param name="color">塗り色（不透明度はアルファ）。</param>
-    /// <remarks>辺（4 本）のような同色の矩形を列挙する場合にまとめて塗る（描画の呼び出しだけを列挙する）。</remarks>
     public static void Rects(IGraphicsContext context, IReadOnlyList<EsRect> rects, DrawingColor color)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -39,9 +38,9 @@ internal static class MewFill
         }
 
         var mewColor = color.ToMewUIColor();
-        foreach (var rect in rects)
+        for (var index = 0; index < rects.Count; index++)
         {
-            context.FillRectangle(rect.ToMewUIRect(), mewColor);
+            context.FillRectangle(rects[index].ToMewUIRect(), mewColor);
         }
     }
 

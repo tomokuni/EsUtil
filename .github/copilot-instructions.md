@@ -48,9 +48,9 @@
 | --- | --- |
 | 共通基盤 | `EsUtil.Platform.Core` |
 | 共通基盤（Windows 専用） | `EsUtil.Platform.Core.Windows` |
-| ルーペ（コア / 提示層 / UI） | `EsUtil.Feature.Loupe.Core` / `.Presenter` / `EsUtil.Ui.<UI>.Loupe` |
-| マーキー（コア / 提示層 / UI） | `EsUtil.Feature.Marquee.Core` / `.Presenter` / `EsUtil.Ui.<UI>.Marquee` |
-| サムネイル一覧（コア / 提示層 / UI） | `EsUtil.Feature.Thumbnail.Core` / `.Presenter` / `EsUtil.Ui.<UI>.Thumbnail` |
+| ルーペ（コア + 提示層 / UI） | `EsUtil.Feature.Loupe.Core`（1 プロジェクト。 公開面は `src/` 直下、層の内部は `src/Core` / `src/Presenter`）/ `EsUtil.Ui.<UI>.Loupe` |
+| マーキー（コア + 提示層 / UI） | `EsUtil.Feature.Marquee.Core`（1 プロジェクト。 公開面は `src/` 直下、層の内部は `src/Core` / `src/Presenter`）/ `EsUtil.Ui.<UI>.Marquee` |
+| サムネイル一覧（コア + 提示層 / UI） | `EsUtil.Feature.Thumbnail.Core`（1 プロジェクト。 公開面は `src/` 直下、層の内部は `src/Core`）/ `EsUtil.Ui.<UI>.Thumbnail` |
 | 複数列の配置（計算のみ） | `EsUtil.Feature.ColumnPacking.Core` |
 | 複数列の配置（Avalonia UI / MewUI / WinUI 3 のパネル） | `EsUtil.Ui.<UI>.ColumnPacking`（計算は `EsUtil.Feature.ColumnPacking.Core`） |
 | 全角・半角・かなの変換 | `EsUtil.Feature.ZenHan.Core` |
@@ -69,7 +69,7 @@
 
 ### 4.2 事実
 
-- **本体プロジェクトは同一リポジトリのプロジェクトを `ProjectReference` で参照する**（ビルドの `DEP0001`〜`DEP0005` が参照の向きを強制する）。 テスト・サンプルも同じ形で参照する。 パッケージ参照（`PackageReference`）を使うのは本リポジトリの外の利用者だけである。
+- **本体プロジェクトは同一リポジトリのプロジェクトを `ProjectReference` で参照する**（ビルドの `DEP0001`〜`DEP0006` が参照の向きを強制する）。 **Core と Presenter は 1 つの機能アセンブリ（`EsUtil.Feature.<機能>.Core`）に置き、公開面は `src/` 直下に置き、層の内部は `src/Core/` / `src/Presenter/` のフォルダと名前空間で分ける**（`verify.ps1` がコアから提示層への参照を検査する）。 テスト・サンプルも同じ形で参照する。 パッケージ参照（`PackageReference`）を使うのは本リポジトリの外の利用者だけである。
 - **パッケージは `.nupkg/` へ出力し、リポジトリへコミットしない**（`.gitignore` が無視する）。 ローカル フィードは**未公開の版を試すためだけ**に使い、クローン直後の pack は不要である。
 - **ローカル識別子の記録（`buildScript/local-versions.json`）はコミットする**（グループごとの `local.<n>` とソースの指紋を持つ。 `pack.ps1` が書く）。
 - **バージョンは 5 つの版グループ（`EsUtil` / `EsUtil.Ui.<UI>`）ごとに決まる**。 値は `Directory.Build.props` の **`VersionPrefix` 5 行**が単一所有する。 `pack.ps1` が付けるのは**ローカル フィード専用の `VersionSuffix=local.<n>`** だけである（規則は [`ビルド設定規約.md`](ビルド設定規約.md) §4）。

@@ -66,7 +66,7 @@ public sealed class MarqueeControl : Panel
     /// <summary><see cref="Appearance"/> プロパティ（外観。 描画にだけ必要な設定）。</summary>
     /// <remarks>
     /// 外観（色・ラベル体裁・表示可否）はコアの計算に入らない（描画にだけ必要）ため、コアの設定（<see cref="Options"/>）には含めず、<br/>
-    /// 提示層（<c>EsUtil.Feature.Marquee.Presenter</c>）の <see cref="MarqueeAppearance"/> が単一所有する。
+    /// 提示層（<see cref="MarqueeAppearance"/>） が単一所有する。
     /// </remarks>
     public static readonly MewProperty<MarqueeAppearance> AppearanceProperty =
         MewProperty<MarqueeAppearance>.Register<MarqueeControl>(
@@ -404,7 +404,7 @@ public sealed class MarqueeControl : Panel
 
     /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
     /// <value>接頭辞（例: <c>[Marquee]</c>）。 null または空白を設定すると既定値へ戻す。</value>
-    /// <remarks>本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、提示層・コアへ伝搬する。</remarks>
+    /// <remarks>本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、機能アセンブリのログ定義（コアと提示層で共有）へ適用する。</remarks>
     public string? LogPrefix
     {
         get => _logPrefix;
@@ -657,13 +657,13 @@ public sealed class MarqueeControl : Panel
     }
 
     /// <summary>ラベル要素（背景 + テキスト）を配置指示へ同期し、親の絶対座標を基準に配置する。</summary>
-    /// <param name="placements">配置するラベル（描画順に並ぶ）。</param>
+    /// <param name="placements">配置するラベル（サイズラベル → カーソル座標ラベルの順）。</param>
     /// <param name="bounds">本コントロールへ割り当てられた矩形（ウィンドウ絶対座標・DIP）。</param>
     /// <remarks>
     /// 余分な要素は親から外し、不足分は生成して子の末尾へ追加する（配置のたびに呼ばれる）。<br/>
     /// 子の座標はウィンドウ絶対座標のため、親の絶対座標（<paramref name="bounds"/> の左上）を加算する。
     /// </remarks>
-    private void SyncLabels(IReadOnlyList<MarqueeLabelPlacement> placements, Rect bounds)
+    private void SyncLabels(in MarqueeLabelPlacements placements, Rect bounds)
     {
         while (_labels.Count > placements.Count)
         {

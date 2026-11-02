@@ -125,14 +125,37 @@ internal static class LoupeGraphicsPainter
         }
     }
 
-    /// <summary>矩形の一覧を同じ色で塗る（十字線・枠線）。</summary>
+    /// <summary>十字線（縦・横）を同じ色で塗る。</summary>
     /// <param name="graphics">描画先の描画面。</param>
-    /// <param name="rects">塗る矩形の一覧（物理ピクセル）。 空の場合は何もしない。</param>
+    /// <param name="rects">塗る矩形（物理ピクセル。 十字線の縦・横）。</param>
     /// <param name="color">塗り色（アルファを含む）。</param>
-    /// <remarks>
-    /// 矩形は画素境界に沿って塗る（輪郭を滑らかにしない）ため、アンチエイリアスを無効にする<br/>
-    /// （有効にすると矩形の縁が半透明になり、計画どおりの画素にならない）。
-    /// </remarks>
+    private static void PaintRects(DrawingGraphics graphics, in LoupeCrosshairRects rects, DrawingColor color)
+    {
+        if (color.A == 0)
+        {
+            return;
+        }
+
+        using var brush = new DrawingBrush(color);
+        var previous = graphics.SmoothingMode;
+        graphics.SmoothingMode = DrawingSmoothingMode.None;
+        try
+        {
+            for (var index = 0; index < LoupeCrosshairRects.Count; index++)
+            {
+                graphics.FillRectangle(brush, rects[index].ToRectangleF());
+            }
+        }
+        finally
+        {
+            graphics.SmoothingMode = previous;
+        }
+    }
+
+    /// <summary>枠線の矩形を同じ色で塗る。</summary>
+    /// <param name="graphics">描画先の描画面。</param>
+    /// <param name="rects">塗る矩形（物理ピクセル。 ホストが差し替えられる一覧）。</param>
+    /// <param name="color">塗り色（アルファを含む）。</param>
     private static void PaintRects(DrawingGraphics graphics, IReadOnlyList<EsRect> rects, DrawingColor color)
     {
         if (rects.Count == 0 || color.A == 0)
@@ -221,33 +244,24 @@ internal static class LoupeGraphicsPainter
     /// </remarks>
     private static void PaintLabels(DrawingGraphics graphics, in LoupeDrawPlan plan)
     {
-        if (plan.Labels.Count == 0)
+        if (plan.Label is not { IsVisible: true } label)
         {
             return;
         }
 
         var scaling = DpiScaler.NormalizeScaling(plan.ClientToPixelScaling);
-        for (var index = 0; index < plan.Labels.Count; index++)
+        var bounds = ToPixelRect(label.DipRect, scaling);
+        PaintLabelBackground(graphics, bounds, label.CornerRadius * scaling, label.BackgroundColor);
+
+        if (label.Text.Length == 0)
         {
-            var label = plan.Labels[index];
-            if (!label.IsVisible)
-            {
-                continue;
-            }
-
-            var bounds = ToPixelRect(label.DipRect, scaling);
-            PaintLabelBackground(graphics, bounds, label.CornerRadius * scaling, label.BackgroundColor);
-
-            if (label.Text.Length == 0)
-            {
-                continue;
-            }
-
-            var origin = new PointF(
-                bounds.X + (float)(label.PaddingX * scaling),
-                bounds.Y + (float)(label.PaddingY * scaling));
-            DrawingLabelText.Draw(graphics, label.Text, label.FontSize, scaling, origin, label.TextColor);
+            return;
         }
+
+        var origin = new PointF(
+            bounds.X + (float)(label.PaddingX * scaling),
+            bounds.Y + (float)(label.PaddingY * scaling));
+        DrawingLabelText.Draw(graphics, label.Text, label.FontSize, scaling, origin, label.TextColor);
     }
 
     /// <summary>ラベルの背景を描く（色が透明または角丸が 0 の場合は四角形として描く）。</summary>

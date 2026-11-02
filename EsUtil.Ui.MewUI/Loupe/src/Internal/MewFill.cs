@@ -23,11 +23,25 @@ internal static class MewFill
         context.FillRectangle(rect.ToMewUIRect(), color.ToMewUIColor());
     }
 
-    /// <summary>複数の矩形を同じ色で塗る。</summary>
+    /// <summary>十字線（縦・横）を同じ色で塗る。</summary>
     /// <param name="context">描画先のコンテキスト。</param>
-    /// <param name="rects">塗る矩形の一覧（コア座標）。 空の場合は何もしない。</param>
+    /// <param name="rects">塗る矩形（十字線の縦・横）。</param>
     /// <param name="color">塗り色（不透明度はアルファ）。</param>
-    /// <remarks>辺（4 本）のような同色の矩形を列挙する場合にまとめて塗る（描画の呼び出しだけを列挙する）。</remarks>
+    public static void Rects(IGraphicsContext context, in LoupeCrosshairRects rects, DrawingColor color)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        var mewColor = color.ToMewUIColor();
+        for (var index = 0; index < LoupeCrosshairRects.Count; index++)
+        {
+            context.FillRectangle(rects[index].ToMewUIRect(), mewColor);
+        }
+    }
+
+    /// <summary>枠線の矩形を同じ色で塗る。</summary>
+    /// <param name="context">描画先のコンテキスト。</param>
+    /// <param name="rects">塗る矩形（ホストが差し替えられる一覧）。 空の場合は何もしない。</param>
+    /// <param name="color">塗り色（不透明度はアルファ）。</param>
     public static void Rects(IGraphicsContext context, IReadOnlyList<EsRect> rects, DrawingColor color)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -39,9 +53,9 @@ internal static class MewFill
         }
 
         var mewColor = color.ToMewUIColor();
-        foreach (var rect in rects)
+        for (var index = 0; index < rects.Count; index++)
         {
-            context.FillRectangle(rect.ToMewUIRect(), mewColor);
+            context.FillRectangle(rects[index].ToMewUIRect(), mewColor);
         }
     }
 

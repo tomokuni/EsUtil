@@ -37,7 +37,7 @@
 
 | 参照 | 用途 |
 | --- | --- |
-| `EsUtil.Feature.Marquee.Presenter` | 提示層（描画計画の解決・外観・ラベル配置）: `MarqueePresenter`（描画計画の解決）/ `MarqueeAppearance`（外観）/ `MarqueeDrawPlan`（UI が見る唯一の描画値）/ `MarqueeLabelPlacement`（ラベルの配置指示） |
+| `EsUtil.Feature.Marquee.Core` | 提示層（描画計画の解決・外観・ラベル配置）: `MarqueePresenter`（描画計画の解決）/ `MarqueeAppearance`（外観）/ `MarqueeDrawPlan`（UI が見る唯一の描画値）/ `MarqueeLabelPlacement`（ラベルの配置指示） |
 | `EsUtil.Platform.Core` | コア幾何型（`EsPoint` / `EsRect` / `EsSize`）、`ICoordTransform` / `CoordTransform` / `DpiScaler`、`ICursorService`（`Native.Win` の既定実装） |
 | `Microsoft.WindowsAppSDK` | WinUI 3（`Canvas` / XAML の要素 / ポインター イベント / `Microsoft.UI.Input` のカーソル / ウィンドウ ID） |
 | `Microsoft.Extensions.Logging.Abstractions` | ログの出力先（`ILogger`） |
@@ -190,7 +190,7 @@ Marquee.CancelRequested += (sender, e) => CancelSelection();
 Marquee.Appearance = MarqueeAppearance.Default with
 {
     BorderColor = System.Drawing.Color.FromArgb(255, 255, 196, 0),
-    ShowInnerBorder = true,
+    ShowInnerMask = true,
 };
 
 // 矩形の並びで表せる装飾とラベルの位置は計画を差し替えて与える（純粋関数にすること）

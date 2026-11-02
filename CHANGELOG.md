@@ -7,6 +7,13 @@
 
 ## 未リリース（0.4.0）
 
+### 破壊的な変更（`EsUtil` の機能パッケージ）
+
+- **3 つの提示層パッケージ（`EsUtil.Feature.Loupe.Presenter` / `EsUtil.Feature.Marquee.Presenter` / `EsUtil.Feature.Thumbnail.Presenter`）を、それぞれの `.Core` パッケージへ統合しました**。 コアと提示層は 1 つのアセンブリに置き、公開面は `src/` 直下（名前空間 `EsUtil.Feature.<機能>`）、層の内部手順はフォルダ（`src/Core/` / `src/Presenter/`）と名前空間で分けます（コアから提示層への参照は禁止のままです）。
+  - 移行: `.Presenter` パッケージへの参照を `.Core` へ置き換えてください。 公開型の名前空間（`EsUtil.Feature.Loupe` 等）は変わりません。
+  - ログ定義はアセンブリに 1 つ（`EsUtil.Feature.<機能>.Logging.<機能>LogMessage`）になりました。 接頭辞（`LogPrefix`）は 1 回の設定で Core / Presenter の両方へ効きます。
+  - 描画計画の一部のコレクションを値型へ変えました（`LoupeCrosshairRects` / `MarqueeHandleRects` / `MarqueeLabelPlacements`）。 ホストが差し替える `BorderPixelRects` / `BorderDipRects` / `OuterMaskDipRects` は従来どおり `IReadOnlyList<EsRect>` です。
+
 ### 破壊的な変更（`EsUtil` / `EsUtil.Ui.<UI>` の Thumbnail 関連）
 
 - **強調（ホバー・選択）の帯の色を提示層が持つのをやめました**。 明暗 2 つの固定色（`ThumbnailAppearance.HoverBackgroundLightArgb` / `HoverBackgroundDarkArgb` / `SelectionBackgroundLightArgb` / `SelectionBackgroundDarkArgb` と `HoverBackground(isDark)` / `SelectionBackground(isDark)`）を削除し、**描画計画は意味だけを持つ**ようにしました。

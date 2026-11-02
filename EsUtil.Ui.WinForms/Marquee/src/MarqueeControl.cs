@@ -323,7 +323,7 @@ public sealed class MarqueeControl : Control
 
     /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
     /// <value>接頭辞（例: <c>[Marquee]</c>）。 null または空白を設定すると既定値へ戻す。</value>
-    /// <remarks>本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、提示層・コアへ伝搬する。</remarks>
+    /// <remarks>本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、機能アセンブリのログ定義（コアと提示層で共有）へ適用する。</remarks>
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string? LogPrefix
     {

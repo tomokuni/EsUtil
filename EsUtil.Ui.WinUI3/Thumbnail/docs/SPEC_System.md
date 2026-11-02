@@ -22,7 +22,7 @@ WinUI 3 版のサムネイル一覧コントロールの構造・依存・設計
 
 本アセンブリは、サムネイル一覧を WinUI 3（Windows App SDK）のコントロールとして提供します。
 
-- **配置と見た目は下の層が単一所有します**（`EsUtil.Feature.Thumbnail.Core` が並べ方、`EsUtil.Feature.Thumbnail.Presenter` が描画計画と外観）。
+- **配置と見た目は下の層が単一所有します**（`EsUtil.Feature.Thumbnail.Core` が並べ方、`EsUtil.Feature.Thumbnail.Core` が描画計画と外観）。
 - **本アセンブリが行うのは 4 つだけ**: 入力の受付、スクロール、計画の適用（要素への絶対配置）、要素による表示。
 - 対象フレームワークは `net10.0-windows10.0.22621.0`（`UseWinUI`）です。
 
@@ -33,7 +33,7 @@ WinUI 3 版のサムネイル一覧コントロールの構造・依存・設計
 | 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.22621.0`） |
 | UI フレームワーク | WinUI 3（Windows App SDK。 `Grid` / `ScrollViewer` / `Panel`） |
 | 表示 | XAML の要素（`Rectangle` / `Image`） |
-| 参照パッケージ | `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core` / `Microsoft.WindowsAppSDK` |
+| 参照パッケージ | `EsUtil.Feature.Thumbnail.Core` / `EsUtil.Platform.Core` / `Microsoft.WindowsAppSDK` |
 | テスト | xUnit v3（`EsUtil.Ui.WinUI3.Thumbnail.Tests`。 ログ定義と影の描画手順を検証する。 コントロールは XAML の初期化を必要とするため配布物の起動で確認する） |
 
 ## 3. アーキテクチャ
@@ -43,7 +43,7 @@ WinUI 3 版のサムネイル一覧コントロールの構造・依存・設計
 ```mermaid
 flowchart TD
     UI["UI 層（本アセンブリ）"]
-    Presenter["提示層（EsUtil.Feature.Thumbnail.Presenter）"]
+    Presenter["提示層（EsUtil.Feature.Thumbnail.Core）"]
     Core["機能コア（EsUtil.Feature.Thumbnail.Core）"]
     Platform["EsUtil.Platform.Core"]
 
@@ -61,7 +61,7 @@ flowchart TD
 | 責務 | 所有者 |
 | --- | --- |
 | 折り返し・行の高さ・当たり判定・可視範囲 | `EsUtil.Feature.Thumbnail.Core` |
-| 背景・影・名前の体裁、層の順序 | `EsUtil.Feature.Thumbnail.Presenter` |
+| 背景・影・名前の体裁、層の順序 | `EsUtil.Feature.Thumbnail.Core` |
 | ポインターの受付・選択の決定・2 回押しの通知 | `ThumbnailControl` |
 | スクロール（`ScrollViewer` の保持と通知） | `ThumbnailControl` |
 | 項目の描画（背景・影・画像・名前） | `ThumbnailTile`（内部） |

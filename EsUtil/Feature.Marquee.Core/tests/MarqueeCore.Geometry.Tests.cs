@@ -67,7 +67,7 @@ public class MarqueeCoreGeometryTests
         Assert.Equal(new EsRect(10, 20, 101, 51), geometry.FocusDipRect);
         Assert.Equal(EsRectInterval.Closed, geometry.FocusSourceRect!.Value.Interval);
         Assert.NotNull(geometry.Handles);
-        Assert.Equal(8, geometry.Handles!.Value.HandleDipRects.Count);
+        Assert.Equal(8, MarqueeHandleRects.Count);
         // 左上ハンドルは注目矩形の左上を中心に置く（一辺は HandleSize）
         Assert.Equal(new EsRect(5, 15, 10, 10), geometry.Handles!.Value.HandleDipRects[0]);
     }

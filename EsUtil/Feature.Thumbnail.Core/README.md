@@ -12,7 +12,7 @@
 
 ## 1. 概要
 
-サムネイル一覧（折り返し配置・選択・可視範囲）の **UI 非依存の計算層** です。
+サムネイル一覧（折り返し配置・選択・可視範囲）の **UI 非依存の計算層（Core）** と、外観・影・描画計画を解決する **提示層（Presenter）** を 1 つのパッケージ（`EsUtil.Feature.Thumbnail.Core`）にまとめています。
 UI フレームワークごとに「列数・行の高さ・下端揃え・当たり判定」を書き分けると、UI によって並びと操作がずれます。
 本層はその規則を 1 か所に置きます。
 
@@ -37,13 +37,26 @@ var visible = layout.VisibleRange(scrollOffset, viewportHeight);
 - 行の高さは **その行の最大アイテム高さ** で決め、項目は行内で **下端揃え** にします（名前の位置が揃う）。
 - 利用可能な幅が未確定（0 以下）の場合は 1 列で並べます（幅の確定後に呼び直す）。
 
+コントロールへ組み込む場合は **`ThumbnailPresenter`** を使います。
+
+```csharp
+var presenter = new ThumbnailPresenter(options, appearance) { Log = logger };
+var layout = presenter.ResolveLayout(availableWidth, imageWidth, imageHeights);
+var plan = presenter.ResolveDrawPlan(layout, index, text, selectedIndex, hoveredIndex, measureText);
+```
+
+- 外観（`ThumbnailAppearance`）・影の計画（`IThumbnailShadowPlan`）・描画計画（`ThumbnailDrawPlan`）は提示層が単一所有します。
+- 計算（配置・選択・可視範囲）は Core が単一所有します。
+
 ## 3. 含まれるもの
 
-`ThumbnailLayout` / `ThumbnailLayoutResult` / `ThumbnailOptions` / `ThumbnailSelection` / `ThumbnailRange`。
+**Core**: `ThumbnailLayout` / `ThumbnailLayoutResult` / `ThumbnailOptions` / `ThumbnailSelection` / `ThumbnailRange` / `ThumbnailMetrics`。
+
+**Presenter**: `ThumbnailPresenter` / `ThumbnailAppearance` / `ThumbnailDrawPlan` / `ThumbnailDrawLayer` / `ThumbnailHighlightKind` / `ThumbnailLabelPlan` / `IThumbnailShadowPlan` / `ThumbnailShadowPlan`。
 
 ## 4. 依存
 
-`EsUtil.Platform.Core` のみ（`EsRect` / `EsPoint` / `EsSize`）。 規則は [`.github/依存関係.md`](../../.github/依存関係.md)。
+`EsUtil.Platform.Core` のみ（`EsRect` / `EsPoint` / `EsSize`）。 Core と Presenter は同じアセンブリにあり、提示層からコアへの一方向だけを許可します。 規則は [`.github/依存関係.md`](../../.github/依存関係.md)。
 
 ## 5. テスト
 
@@ -64,8 +77,10 @@ var visible = layout.VisibleRange(scrollOffset, viewportHeight);
 
 - 層の帰属 … [`../README.md`](../README.md)
 - 依存の許可範囲 … [`.github/依存関係.md`](../../.github/依存関係.md)
-- API リファレンス … [`docs/SPEC_API.md`](docs/SPEC_API.md)
-- システム仕様書 … [`docs/SPEC_System.md`](docs/SPEC_System.md)
+- API リファレンス（Core） … [`docs/SPEC_API.md`](docs/SPEC_API.md)
+- API リファレンス（Presenter） … [`docs/SPEC_Presenter_API.md`](docs/SPEC_Presenter_API.md)
+- システム仕様書（Core） … [`docs/SPEC_System.md`](docs/SPEC_System.md)
+- システム仕様書（Presenter） … [`docs/SPEC_Presenter_System.md`](docs/SPEC_Presenter_System.md)
 
 ## 8. ライセンス
 

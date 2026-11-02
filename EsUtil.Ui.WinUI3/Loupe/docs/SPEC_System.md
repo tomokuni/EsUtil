@@ -20,7 +20,7 @@
 
 ## 1. システム概要
 
-`EsUtil.Ui.WinUI3.Loupe` は、他の UI 版 `LoupeControl` と**同一の UI 非依存コア（`EsUtil.Feature.Loupe.Core`）と提示層（`EsUtil.Feature.Loupe.Presenter`）** を使い、
+`EsUtil.Ui.WinUI3.Loupe` は、他の UI 版 `LoupeControl` と**同一の UI 非依存の機能アセンブリ（`EsUtil.Feature.Loupe.Core`。 コアと提示層）** を使い、
 表示（XAML の要素）のみを WinUI 3（Windows App SDK）で実装したルーペ コントロールです。
 
 コアが担う範囲（数値の安全域補正・切り出し領域の計算・表示レイアウト）は複数の UI で完全に共通であり、
@@ -55,7 +55,7 @@ WinUI 3 固有の実装は次の 3 点です。
 ```text
 UI 層（WinUI 3 の実装）
 入力の受付・値の補正・通知の転送・表示の更新（XAML）
-    └──> EsUtil.Feature.Loupe.Presenter   どう描くか（描画計画の解決と外観）
+    └──> EsUtil.Feature.Loupe.Core   どう描くか（描画計画の解決と外観）
            └──> EsUtil.Feature.Loupe.Core   何を描くか + 判断（状態・値・純粋計算・幾何）
                   └──> EsUtil.Platform.Core（Es* 値型・ICoordTransform）
 ※ Core は Presenter / UI を参照しない（依存は UI → Presenter → Core の一方向）。
@@ -65,7 +65,7 @@ UI 層（WinUI 3 の実装）
 
 | 依存元 | 依存先 | 依存理由 |
 | --- | --- | --- |
-| `EsUtil.Ui.WinUI3.Loupe` | `EsUtil.Feature.Loupe.Presenter` | 描画計画（層の順序・矩形・ラベルの文言と配置）と外観の解決 |
+| `EsUtil.Ui.WinUI3.Loupe` | `EsUtil.Feature.Loupe.Core` | 描画計画（層の順序・矩形・ラベルの文言と配置）と外観の解決 |
 | `EsUtil.Ui.WinUI3.Loupe` | `EsUtil.Platform.Core` | コア型（`EsReadOnlyBitmap` / `EsPoint` / `EsRect` / `DpiScaler` / `ICoordTransform`） |
 
 ### 3.2 責務の分担
@@ -73,7 +73,7 @@ UI 層（WinUI 3 の実装）
 | 層 | 責務 |
 | --- | --- |
 | `EsUtil.Feature.Loupe.Core` | 数値の安全域補正、表示レイアウト、切り出し領域の幾何（`LoupeGeometry`）、設定（`LoupeOptions`）の保持 |
-| `EsUtil.Feature.Loupe.Presenter` | 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（`LoupeAppearance`）の保持。 UI 非依存であり、UI フレームワークを参照しない |
+| `EsUtil.Feature.Loupe.Core` | 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）と外観（`LoupeAppearance`）の保持。 UI 非依存であり、UI フレームワークを参照しない |
 | `EsUtil.Ui.WinUI3.Loupe` | 提示層が解決した描画計画を `LoupeVisualLayer` で要素へ写す。 公開プロパティの受付（値の補正と変更ログ）。 表示倍率の追従 |
 | ホスト（利用側のアプリ） | `Source` / `CenterPoint` の設定、表示位置の決定（コアのファサード `ResolveLayout` を利用）、入力の受付 |
 
@@ -133,13 +133,13 @@ classDiagram
         -RaiseRendered(args) void
     }
     class LoupePresenter {
-        <<EsUtil.Feature.Loupe.Presenter>>
+        <<EsUtil.Feature.Loupe.Core>>
         +LoupeAppearance Appearance
         +ResolveDrawPlan(clientSize, measureText) LoupeDrawPlan
         +ResolveLayout(parentSize) LoupeLayout
     }
     class LoupeDrawPlan {
-        <<EsUtil.Feature.Loupe.Presenter>>
+        <<EsUtil.Feature.Loupe.Core>>
         +EsRect ClientPixelRect
         +EsRect[] CrosshairPixelRects
         +EsRect[] BorderPixelRects
@@ -260,4 +260,4 @@ sequenceDiagram
 | Error | `[Loupe] Update exception` | 本プロジェクトの `LoupeLogMessage`（描画の例外） |
 | Error | `[Loupe] {操作} で例外が発生` | 本プロジェクトの `LoupeLogMessage`（公開 API の例外） |
 
-接頭辞は `LogPrefix` が提示層・コアへ伝搬し、全層のログが同じ接頭辞になります。 出力先とレベルの制御はホスト（利用側のアプリ）が所有します。
+接頭辞は `LogPrefix` がコアと提示層のログの両方に適用し、全層のログが同じ接頭辞になります。 出力先とレベルの制御はホスト（利用側のアプリ）が所有します。

@@ -86,7 +86,7 @@ internal static class MarqueeShapePlan
         var thickness = Math.Max(0, handles.BorderThickness);
 
 
-        for (var i = 0; i < handles.HandleDipRects.Count; i++)
+        for (var i = 0; i < MarqueeHandleRects.Count; i++)
         {
             var bounds = handles.HandleDipRects[i];
             rects.AddRect(bounds, appearance.HandleColor);
@@ -133,9 +133,9 @@ internal static class MarqueeShapePlan
         }
     }
 
-    /// <summary>矩形の列を追加する。</summary>
+    /// <summary>同じ色の矩形を追加する。</summary>
     /// <param name="rects">追加先。</param>
-    /// <param name="source">追加する矩形（DIP）。</param>
+    /// <param name="source">追加する矩形（DIP。 ホストが差し替えられる一覧）。</param>
     /// <param name="color">塗り色。</param>
     private static void AddRects(DrawList rects, IReadOnlyList<EsRect> source, System.Drawing.Color color)
     {

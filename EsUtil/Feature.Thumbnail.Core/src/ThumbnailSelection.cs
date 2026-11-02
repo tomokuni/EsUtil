@@ -52,7 +52,7 @@ public sealed class ThumbnailSelection
 
     /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
     /// <value>接頭辞（例: <c>[Thumbnail]</c>）。 null または空白を設定すると既定値へ戻す。</value>
-    /// <remarks>本層のログ定義（<see cref="ThumbnailLogMessage"/>）の接頭辞を設定する（本層は最下層のため伝搬先は無い）。</remarks>
+    /// <remarks>ログ定義（<see cref="ThumbnailLogMessage"/>）の接頭辞を設定する（コアと提示層は同じ定義を共有する）。</remarks>
     public string? LogPrefix
     {
         get => _logPrefix;

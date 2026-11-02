@@ -241,7 +241,7 @@ public class LoupeGraphicsPainterTests
         var label = new LoupeLabelPlacement(
             new EsRect(2, 2, 24, 14), 2, 1, "AB", 8, DrawingColor.White, DrawingColor.Black, 0, IsVisible: true);
 
-        PaintPlan(target, CreatePlan(CreateAppearance(pasteboard: s_background), s_center) with { Labels = [label] });
+        PaintPlan(target, CreatePlan(CreateAppearance(pasteboard: s_background), s_center) with { Label = label });
 
         // 文字の無い位置は背景色（黒）
         Assert.Equal(DrawingColor.Black.ToArgb(), target.GetPixel(3, 13).ToArgb());
@@ -259,7 +259,7 @@ public class LoupeGraphicsPainterTests
         var label = new LoupeLabelPlacement(
             new EsRect(2, 2, 24, 14), 2, 1, "AB", 8, DrawingColor.White, DrawingColor.Black, 0, IsVisible: false);
 
-        PaintPlan(target, CreatePlan(CreateAppearance(pasteboard: s_background), s_center) with { Labels = [label] });
+        PaintPlan(target, CreatePlan(CreateAppearance(pasteboard: s_background), s_center) with { Label = label });
 
         Assert.Equal(s_background.ToArgb(), target.GetPixel(3, 13).ToArgb());
     }
@@ -290,7 +290,7 @@ public class LoupeGraphicsPainterTests
         Assert.Equal(s_background.ToArgb(), target.GetPixel(16, 1).ToArgb());
 
         // 値は残る（ホストは矩形を使って自前で描ける）
-        Assert.Equal(2, host.CrosshairPixelRects.Count);
+        Assert.Equal(2, LoupeCrosshairRects.Count);
         Assert.Equal(4, host.BorderPixelRects.Count);
     }
 

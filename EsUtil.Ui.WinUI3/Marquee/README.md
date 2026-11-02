@@ -34,7 +34,7 @@
 
 ## 1. 概要
 
-選択矩形の状態機械・入力の解釈・描画計画の解決は UI 非依存の層（`EsUtil.Feature.Marquee.Core` / `EsUtil.Feature.Marquee.Presenter`）が
+選択矩形の状態機械・入力の解釈・描画計画の解決は UI 非依存の層（`EsUtil.Feature.Marquee.Core` / `EsUtil.Feature.Marquee.Core`）が
 単一所有し、本コントロールは **入力の受付・効果の適用・通知の転送・描画** だけを行います。
 そのため、他の UI 版（`EsUtil.Ui.AvaloniaUI.Marquee` / `EsUtil.Ui.MewUI.Marquee` / `EsUtil.Ui.WinForms.Marquee`）と同じ操作感・同じ計算結果になります。
 
@@ -92,7 +92,7 @@
 </ItemGroup>
 ```
 
-コア（`EsUtil.Feature.Marquee.Core`）と提示層（`EsUtil.Feature.Marquee.Presenter`）は推移参照で解決されるため、明示する必要はありません。
+機能アセンブリ（`EsUtil.Feature.Marquee.Core`。 コアと提示層）は推移参照で解決されるため、明示する必要はありません。
 
 ---
 

@@ -54,17 +54,17 @@ UI 層とホストは本型だけを参照し、配置計算・幾何の計算�
 | --- | --- | --- |
 | `LoupeCore(LoupeOptions? options = null, ILogger? logger = null)` | ctor | 生成（設定を省略した場合は `LoupeOptions.Default`）。 **ロガーを注入した場合は、その場で生成の記録を出力する**（注入しない場合は `Log` の初回設定時に出力する）。 描画実装は受け取らない（描画は UI の関心事であり、本コアは描画 API を持たない） |
 | `Log` | property | ロガー。 null は `NullLogger` へ吸収される。 **コンストラクターで注入されていない場合、初回の設定時に生成の記録を 1 度だけ出力する** |
-| `Options` | property | 設定（表示サイズ・拡大率）。 **変化したときだけ**変更ログ（Debug）を出力する |
-| `ClientToPixelScaling` | property | 表示 DIP → 物理ピクセルのスケーリング係数（環境値。 補正は `LoupeCore.Limits` が単一所有する）。 **変化したときだけ**変更ログ（Debug）を出力する |
+| `Options` | property | 設定（表示サイズ・拡大率）。 **変化したときだけ**変更ログ（Information）を出力する |
+| `ClientToPixelScaling` | property | 表示 DIP → 物理ピクセルのスケーリング係数（環境値。 補正は `LoupeCore.Limits` が単一所有する）。 **変化したときだけ**変更ログ（Information）を出力する |
 | `CenterPoint` | property | 拡大中心（対象座標 = 元画像ピクセル座標）。 未設定（null）は切り出し領域を決められないため、`LoupeGeometry` は拡大画像の幾何（`MagnifiedImage` / `CaptureTopLeft`）を持たず、配置も行わない。 **変更は最も低いレベル（Trace）で出力する**（マウス移動ごとに変わるため） |
-| `PositionOffset` | property | 拡大中心からの右下オフセット（DIP。 既定は 0）。 **変化したときだけ**変更ログ（Debug）を出力する |
-| `SetCoordTransform(ICoordTransform?)` | method | 対象 ↔ 親領域 DIP の座標変換ポートの設定（null は等価変換）。 **変化したときだけ**変更ログ（Debug）を出力する |
+| `PositionOffset` | property | 拡大中心からの右下オフセット（DIP。 既定は 0）。 **変化したときだけ**変更ログ（Information）を出力する |
+| `SetCoordTransform(ICoordTransform?)` | method | 対象 ↔ 親領域 DIP の座標変換ポートの設定（null は等価変換）。 **変化したときだけ**変更ログ（Information）を出力する |
 | `ResolveLayout(EsSize)` | method | **どこへ・どの大きさで置くか**を決める（親領域 DIP の世界）。 親領域サイズから表示レイアウト（`LoupeLayout` = 表示サイズ + 位置）を解決する（拡大中心未設定時と、親領域が収められない場合は位置が null）。 毎フレーム呼ばれるためログは出力しない |
 | `ResolveGeometry(double clientSize)` | method | **何を・何ピクセルで描くか**を決める（物理ピクセルの世界）。 描画 1 フレーム分の幾何（`LoupeGeometry`）の解決（DIP → 物理ピクセルの換算・切り出し領域の算出を含む）。 毎フレーム呼ばれるためログは出力しない |
 
 **本型が単一所有するもの**: 表示レイアウトの解決（表示サイズの決定と表示位置の補正）・描画の幾何の解決・**設定変更の検出とログ出力**。
 
-**ログの出力方針**: 生成（コンストラクター注入時、または `Log` の初回設定時に 1 度だけ。 Information）・低頻度の設定変更とメソッド呼び出し（Debug）・高頻度の設定値（`CenterPoint`。 Trace）を出力します。 毎フレーム呼ばれる解決メソッドは出力しません（詳細は [`SPEC_System.md`](SPEC_System.md) の「ログ」を参照）。
+**ログの出力方針**: 生成（コンストラクター注入時、または `Log` の初回設定時に 1 度だけ。 Information）・設定の変更（Information）・高頻度の設定値（`CenterPoint`。 Trace）を出力します。 毎フレーム呼ばれる解決メソッドは出力しません（詳細は [`SPEC_System.md`](SPEC_System.md) の「ログ」を参照）。
 
 | メソッド | 決めること | 入力 | 出力 |
 | --- | --- | --- | --- |

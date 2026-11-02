@@ -12,7 +12,7 @@ namespace EsUtil.Feature.Marquee.Core.Selection;
 /// 値の振る舞いとして持つ（利用者に矩形を引数で渡させない。 矩形を差し替える操作は新しい値を返す）。<br/>
 /// 状態機械（<see cref="MarqueeState"/>）とコアの幾何の解決（<c>MarqueeCore.ResolveGeometry</c>）が共通利用する（DRY 原則）。<br/>
 /// コア型（<see cref="EsRect"/> / <see cref="EsPoint"/>）のみに依存し、UI フレームワークへ依存しない（UI 型との相互変換は各 UI の Interop 層が担う）。<br/>
-/// <b>可視性</b>: 状態機械の内部手順とコアの幾何の解決だけが使う（描画層は解決済みの矩形を受け取る）ため internal とする。
+/// <b>可視性</b>: 状態機械の内部手順とコアの幾何の解決だけが使う（提示層は解決済みの矩形を受け取る）ため internal とする。
 /// </remarks>
 internal readonly record struct MarqueeSelection(EsRect Rect)
 {

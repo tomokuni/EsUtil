@@ -29,7 +29,7 @@
 | 層 | プロジェクト | 本コントロールとの関係 |
 | --- | --- | --- |
 | 機能コア | `EsUtil.Feature.Marquee.Core` | 選択の状態機械・入力の解釈・注目矩形の決定・幾何の計算（本コントロールは判断を持ちません） |
-| 提示層 | `EsUtil.Feature.Marquee.Presenter` | 外観（色・体裁・表示可否）と描画計画（層の順序・装飾の矩形・ラベル配置）の解決 |
+| 提示層 | `EsUtil.Feature.Marquee.Core` | 外観（色・体裁・表示可否）と描画計画（層の順序・装飾の矩形・ラベル配置）の解決 |
 | 共通基盤 | `EsUtil.Platform.Core` | コア幾何型・座標変換ポート・DPI 換算・カーソル サービス |
 | UI 層 | `EsUtil.Ui.WinUI3.Marquee` | 入力の受付・効果の適用・通知の転送・描画（本プロジェクト） |
 
@@ -82,7 +82,7 @@ flowchart TB
 | 何 | 所有者 |
 | --- | --- |
 | 入力の解釈・状態遷移・ハンドルのヒットテスト・nudge の許可条件・確定/キャンセルの判断 | 機能コア（`EsUtil.Feature.Marquee.Core`） |
-| 外観（色・フォントサイズ・枠線の太さ・表示可否）・描画計画（層の順序・装飾の矩形・ラベル配置） | 提示層（`EsUtil.Feature.Marquee.Presenter`） |
+| 外観（色・フォントサイズ・枠線の太さ・表示可否）・描画計画（層の順序・装飾の矩形・ラベル配置） | 提示層（`EsUtil.Feature.Marquee.Core`） |
 | 入力の受付・効果の適用・通知の転送・描画・カーソル形状の写像・画面座標の変換 | 本コントロール |
 | 描画計画を要素へ写すこと（判断しない） | `MarqueeShapePlan` / `MarqueeVisualLayer` |
 

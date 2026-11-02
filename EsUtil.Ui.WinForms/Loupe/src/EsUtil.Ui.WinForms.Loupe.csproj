@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\EsUtil\Feature.Loupe.Presenter\src\EsUtil.Feature.Loupe.Presenter.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil\Feature.Loupe.Core\src\EsUtil.Feature.Loupe.Core.csproj" />
     <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
     <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.WinForms.Interop.csproj" />
   </ItemGroup>

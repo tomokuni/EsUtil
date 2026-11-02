@@ -1,4 +1,4 @@
-using EsUtil.Feature.Marquee.Core.Logging;
+using EsUtil.Feature.Marquee.Logging;
 using EsUtil.Feature.Marquee.Core.Selection;
 using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Coord;
@@ -56,9 +56,7 @@ internal sealed class MarqueeSession
     /// <returns>購読を解除する <see cref="IDisposable"/>。</returns>
     /// <remarks>
     /// <b><c>event</c> を使わない理由</b>: <see cref="MarqueeNotice"/> は値型（<c>record struct</c>）であり、
-    /// <see cref="System.EventHandler{T}"/> の <c>T</c>（<see cref="EventArgs"/> 派生）にできない。<br/>
-    /// 値型のまま通知するため、ポインター移動のたびにヒープを確保しない
-    /// （<c>MarqueeCoreTests.Move_ポインター移動はヒープを確保しない</c> が担保する）。
+    /// <see cref="System.EventHandler{T}"/> の <c>T</c>（<see cref="EventArgs"/> 派生）にできない。
     /// </remarks>
     internal IDisposable Subscribe(Action<MarqueeNotice> notify) => _notified.Add(notify);
 

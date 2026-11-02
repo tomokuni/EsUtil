@@ -25,7 +25,7 @@ public class LoupePlanCustomizationTests
             CenterPoint = new Avalonia.Point(10, 10),
             DrawPlanResolver = static plan => plan with
             {
-                Labels = [new LoupeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black, 2, IsVisible: true)],
+                Label = new LoupeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black, 2, IsVisible: true),
             },
         };
         var panel = new Panel { Width = 200, Height = 200 };
@@ -66,7 +66,7 @@ public class LoupePlanCustomizationTests
         Assert.Contains(LoupeDrawLayer.Image, captured!.Value.Layers);
         Assert.Contains(LoupeDrawLayer.Crosshair, captured.Value.Layers);
         Assert.Contains(LoupeDrawLayer.Border, captured.Value.Layers);
-        Assert.Equal(2, captured.Value.CrosshairPixelRects.Count);
+        Assert.Equal(2, LoupeCrosshairRects.Count);
         Assert.Equal(4, captured.Value.BorderPixelRects.Count);
         window.Close();
     }

@@ -138,7 +138,7 @@ public sealed class LoupeControl : Panel
     /// <b>矩形の並びで表せる装飾と、ラベルの文言・位置を差し替える入口</b>である（色・太さ・表示可否は <see cref="Appearance"/>）。<br/>
     /// 受け取る計画は提示層が解決済みであるため、本関数は値の置き換えだけで完結する<br/>
     /// （<c>plan with { CrosshairPixelRects = …, Labels = … }</c>）。<br/>
-    /// <b>配置と描画の両方に適用される</b>ため、<see cref="LoupeDrawPlan.Labels"/> を差し替えるとラベル要素も追随する。<br/>
+    /// <b>配置と描画の両方に適用される</b>ため、<see cref="LoupeDrawPlan.Label"/> を差し替えるとラベル要素も追随する。<br/>
     /// <b>純粋関数（同じ入力に同じ出力）にすること</b>（同じ入力では 1 フレーム 1 回だけ解決されるため、<br/>
     /// 呼び出しの時点に依存する関数を渡すと差し替えが反映されない）。 設定すると保持中の計画を破棄して配置と描画をやり直す。
     /// </remarks>
@@ -360,7 +360,7 @@ public sealed class LoupeControl : Panel
     /// <value>接頭辞（例: <c>[Loupe]</c>）。 null または空白を設定すると既定値へ戻す。</value>
     /// <remarks>
     /// 本コントロールのログ定義（<see cref="LoupeLogMessage"/>）の接頭辞を設定し、<br/>
-    /// 提示層・コアへ伝搬する（集約した接頭辞で全層のログを揃える）。
+    /// 機能アセンブリのログ定義（コアと提示層で共有）へ適用する（全層のログが同じ接頭辞になる）。
     /// </remarks>
     public string? LogPrefix
     {
@@ -412,7 +412,7 @@ public sealed class LoupeControl : Panel
         // 実寸は配置（本ルート）と描画（OnPaintSurface）の両方で同じ値を使う必要があるため、同じ測定関数を渡す
         var plan = ResolvePlan(bounds.Size.Width);
         Log.LogGeometry(bounds.Size.Width, bounds.Size.Height, plan.ClientPixelSize, plan.ClientToPixelScaling);
-        SyncLabels(plan.Labels, bounds);
+        SyncLabels(plan.Label, bounds);
     }
 
     // ====================================================================
@@ -459,38 +459,44 @@ public sealed class LoupeControl : Panel
     private void InvalidatePlan() => _plan = null;
 
     /// <summary>ラベル要素（背景 + テキスト）を配置指示へ同期し、親の絶対座標を基準に配置する。</summary>
-    /// <param name="placements">配置するラベル（描画順に並ぶ）。</param>
+    /// <param name="placement">配置するラベル（無い場合は null）。</param>
     /// <param name="bounds">本コントロールへ割り当てられた矩形（ウィンドウ絶対座標・DIP）。</param>
     /// <remarks>
     /// 余分な要素は親から外し、不足分は生成して子の末尾へ追加する（配置のたびに呼ばれる）。<br/>
     /// 子の座標はウィンドウ絶対座標のため、親の絶対座標（<paramref name="bounds"/> の左上）を加算する。
     /// </remarks>
-    private void SyncLabels(IReadOnlyList<LoupeLabelPlacement> placements, Rect bounds)
+    private void SyncLabels(LoupeLabelPlacement? placement, Rect bounds)
     {
-        while (_labels.Count > placements.Count)
+        if (placement is not { } label)
+        {
+            while (_labels.Count > 0)
+            {
+                var last = _labels[^1];
+                _labels.RemoveAt(_labels.Count - 1);
+                Remove(last);
+            }
+
+            return;
+        }
+
+        while (_labels.Count > 1)
         {
             var last = _labels[^1];
             _labels.RemoveAt(_labels.Count - 1);
             Remove(last);
         }
 
-        while (_labels.Count < placements.Count)
+        if (_labels.Count == 0)
         {
             var border = new Border().Child(new TextBlock());
             _labels.Add(border);
             Add(border);
         }
 
-        for (var i = 0; i < placements.Count; i++)
-        {
-            var placement = placements[i];
-            var border = _labels[i];
-
-            Apply(border, placement);
-            border.Arrange(new Rect(
-                bounds.X + placement.DipRect.X, bounds.Y + placement.DipRect.Y,
-                placement.DipRect.Width, placement.DipRect.Height));
-        }
+        Apply(_labels[0], label);
+        _labels[0].Arrange(new Rect(
+            bounds.X + label.DipRect.X, bounds.Y + label.DipRect.Y,
+            label.DipRect.Width, label.DipRect.Height));
     }
 
     /// <summary>1 つのラベル要素の内容と体裁を配置指示に合わせる。</summary>

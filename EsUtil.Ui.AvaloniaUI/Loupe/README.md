@@ -52,14 +52,14 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 - 十字線の色設定（不透明度は色のアルファに統合）
 - 中心座標ラベル表示（`(x, y)` 形式・表示/色/背景/フォントサイズ/角丸設定可能）
 - 枠線の色（`Appearance`）・太さ（`Options`）設定
-- **色と、ラベルのフォントサイズ・角丸は `Appearance` プロパティ（`LoupeAppearance`）、寸法（タイルサイズ・枠線の太さ）は `Options`（`LoupeOptions`）で設定**（コアは寸法・表示可否だけを持ち、描画にだけ必要な設定は描画層（`EsUtil.Feature.Loupe.Presenter`）が単一所有する）
+- **色と、ラベルのフォントサイズ・角丸は `Appearance` プロパティ（`LoupeAppearance`）、寸法（タイルサイズ・枠線の太さ）は `Options`（`LoupeOptions`）で設定**（コアは寸法・表示可否だけを持ち、描画にだけ必要な設定は提示層（`EsUtil.Feature.Loupe.Core`）が単一所有する）
 - DIP と物理ピクセルの分離（`ClientToPixelScaling`）
 - 窓の描画面への直接描画（フレームの描画フェーズで 1 回。 中間 Bitmap の生成も画素の複製もしない）
 - 古い描画結果の自動破棄
 - 非表示時は描画しない（解放する中間 Bitmap は無い）
 - `ILogger` によるエラー通知
 - 描画完了通知イベント（`Rendered`・`LoupeRenderedEventArgs` で描画先の `DrawingContext` と描画計画（切り出し左上・拡大率）を通知。 ホスト側の付加情報の描画用。 線分・選択矩形等の破線はホストが描画 API で描く）
-- 中心座標ラベルはコントロールが **`Border` + `TextBlock` の子要素として配置**します（文言・表示可否はコア、実寸 → 配置矩形の写像は描画層（`EsUtil.Feature.Loupe.Presenter` の `LoupePresenter`（`LabelPlan` partial））、実寸測定は `FormattedText`、描画順はコアの `LoupeDrawLayer` が単一所有）
+- 中心座標ラベルはコントロールが **`Border` + `TextBlock` の子要素として配置**します（文言・表示可否はコア、実寸 → 配置矩形の写像は描画層（`EsUtil.Feature.Loupe.Core` の `LoupePresenter`（`LabelPlan` partial））、実寸測定は `FormattedText`、描画順はコアの `LoupeDrawLayer` が単一所有）
 - **座標変換ポート（`SetCoordTransform(ICoordTransform?)` + `PositionOffset`）**: 対になるコントロールと同方式。 表示位置（`RenderTransform`）と表示サイズ（要求サイズ）をレイアウト時に自己計算（ウィンドウサイズ変更・ズーム・スクロールに追従）
 - **`RefreshPosition()`**: パン・ズーム等のレイアウト非変更なビューポート変化時に、表示位置・サイズを再計算（座標変換ポートは呼び出し毎に最新の表示状態を評価）
 - **見た目のカスタマイズ（2 つの入口）**: 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）で差し替えます。 矩形で表せない描画（円・斜線等）は `Appearance` の `Show*` を false にして `Rendered` のビットマップへ自前で描き、必要なら `DrawPlan` で計画どおりの描画を行います（派生は不要。 例はサンプルの `sample/Presentation/GridLoupePlan`）
@@ -203,7 +203,7 @@ Canvas.SetTop(loupe, 220);
 | 矩形で並べられる装飾（十字線・枠線）とラベルの文言・位置 | `DrawPlanResolver`（`Func<LoupeDrawPlan, LoupeDrawPlan>`）を設定する（計画の値の置き換え） |
 | 矩形で表せない描画（円・斜線等） | `Appearance` の `Show*` を false にして `Rendered` で受け取る描画面へ自前で描く（`DrawPlan` を持つ UI 版では計画どおりの描画も呼べる） |
 
-描画計画（`LoupeDrawPlan`）と外観（`LoupeAppearance`）は `EsUtil.Feature.Loupe.Presenter` が単一所有し、4 つの UI 版で共通です。 UI が持つのは UI フレームワーク固有の描画 API の呼び出しだけです（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
+描画計画（`LoupeDrawPlan`）と外観（`LoupeAppearance`）は `EsUtil.Feature.Loupe.Core` が単一所有し、4 つの UI 版で共通です。 UI が持つのは UI フレームワーク固有の描画 API の呼び出しだけです（仕様は [`docs/SPEC_API.md`](docs/SPEC_API.md)）。
 
 ---
 
@@ -216,7 +216,7 @@ Canvas.SetTop(loupe, 220);
 | Information | `[Loupe] Setting: ZoomLevel 4 → 8`（拡大元の画像・外観の変更も同じ書式） |
 | Error | `[Loupe] Update exception` / `[Loupe] <操作> で例外が発生`（アプリは継続する） |
 
-接頭辞は `LogPrefix` で設定し、提示層・コアへ伝搬します（既定 `[Loupe]`）。 ログ基盤（出力先・レベルの制御）はホストが所有します。
+接頭辞は `LogPrefix` で設定し、コアと提示層のログの両方に適用します（既定 `[Loupe]`）。 ログ基盤（出力先・レベルの制御）はホストが所有します。
 
 ```csharp
 loupe.Log = logger;
@@ -268,7 +268,7 @@ dotnet run --project sample/EsUtil.Ui.AvaloniaUI.Loupe.Sample.csproj
 
 ## 12. プロジェクト構成
 
-本コントロールは、UI フレームワーク非依存のロジックと設定を `EsUtil.Feature.Loupe.Core` へ、描画計画と外観を `EsUtil.Feature.Loupe.Presenter` へ分離しています（マルチ UI 対応）。 層構成（Core / Presenter / UI）の全体像は [`EsUtil/README.md`](../../EsUtil/README.md) を参照してください。
+本コントロールは、UI フレームワーク非依存のロジックと設定を `EsUtil.Feature.Loupe.Core` へ、描画計画と外観を `EsUtil.Feature.Loupe.Core` へ分離しています（マルチ UI 対応）。 層構成（Core / Presenter / UI）の全体像は [`EsUtil/README.md`](../../EsUtil/README.md) を参照してください。
 
 ```text
 EsUtil.Ui.AvaloniaUI/Loupe/
@@ -283,7 +283,7 @@ EsUtil.Ui.AvaloniaUI/Loupe/
 └── docs/                   # SPEC_API.md（API リファレンス）/ SPEC_System.md（システム仕様書）
 
 EsUtil/Feature.Loupe.Core/       # UI フレームワーク非依存の設定・計算・寸法・判断・ログ定義（設定の単一値 / 寸法 / 数値補正 / 表示位置・サイズ / 切り出し領域と可否 / ラベル配置 / 区画数の切り上げ / 描画完了時の表示情報）
-EsUtil/Feature.Loupe.Presenter/     # 描画計画と外観の単一所有（LoupePresenter / LoupeAppearance / LoupeDrawPlan）
+EsUtil/Feature.Loupe.Core/     # 描画計画と外観の単一所有（LoupePresenter / LoupeAppearance / LoupeDrawPlan）
 ```
 
 ---

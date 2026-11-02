@@ -146,7 +146,9 @@ marquee.Options = MarqueeOptions.Default with
 ```csharp
 marquee.DrawPlanResolver = plan => plan with
 {
-    Labels = [.. plan.Labels.Select(label => label with { Text = $"[{label.Text}]" })],
+    Labels = new MarqueeLabelPlacements(
+    plan.Labels.SizeLabel is { } size ? size with { Text = $"[{size.Text}]" } : null,
+    plan.Labels.CoordLabel is { } coord ? coord with { Text = $"[{coord.Text}]" } : null),
 };
 ```
 

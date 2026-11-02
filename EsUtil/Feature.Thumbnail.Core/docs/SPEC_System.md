@@ -19,7 +19,7 @@
 
 ## 1. システム概要
 
-本アセンブリは、サムネイル一覧の**並べ方**（折り返し・行の高さ・下端揃え）と**選択**、**見えている範囲**を決める純粋計算を提供します。
+本アセンブリのコアは、サムネイル一覧の**並べ方**（折り返し・行の高さ・下端揃え）と**選択**、**見えている範囲**を決める純粋計算を提供します。
 
 - **UI ごとに書き分けると並びがずれる**ため、規則を 1 か所に置きます（UI フレームワーク標準の折り返しパネルは行内で上端揃えになり、画像の縦横比で高さが変わると名前の位置が揃いません）。
 - **描画と画像は持ちません**。 入力は長さ（幅・高さ）だけで、出力は矩形と添字です。
@@ -31,7 +31,7 @@
 | --- | --- |
 | 言語 / フレームワーク | C# / .NET 10（`net10.0`） |
 | 参照パッケージ | `EsUtil.Platform.Core`（幾何型 `EsPoint` / `EsSize` / `EsRect`） |
-| テスト | xUnit v3（`EsUtil.Feature.Thumbnail.Tests`。 配置・選択・選択のログを検証する。 `InternalsVisibleTo` で内部手順も検証する） |
+| テスト | xUnit v3（`EsUtil.Feature.Thumbnail.Core.Tests`。 配置・選択・選択のログを検証する。 `InternalsVisibleTo` で内部手順も検証する） |
 
 ## 3. アーキテクチャ
 
@@ -40,8 +40,8 @@
 ```mermaid
 flowchart TD
     UI["UI 層（EsUtil.Ui.<UI>.Thumbnail）"]
-    Presenter["提示層（EsUtil.Feature.Thumbnail.Presenter）"]
-    Core["機能コア（本アセンブリ）"]
+    Presenter["提示層（src/ 直下の公開型と Presenter の内部手順）"]
+    Core["コア（src/ 直下の公開型）"]
     Platform["EsUtil.Platform.Core"]
 
     UI -->|描画計画・設定| Presenter
@@ -51,7 +51,7 @@ flowchart TD
 ```
 
 - **依存は一方向**です（コアは提示層も UI も知りません）。
-- **本体プロジェクトは `ProjectReference` を持ちません**（ローカル フィードのパッケージを参照します）。 テストだけが対象プロジェクトを `ProjectReference` で参照します。
+- **本体プロジェクトは `ProjectReference` で `EsUtil.Platform.Core` を参照します**（同一リポジトリのプロジェクトは `ProjectReference`）。 テストも対象プロジェクトを `ProjectReference` で参照します。
 
 ### 3.2 責務の分担
 
@@ -61,7 +61,7 @@ flowchart TD
 | 設定の既定値と補正（余白・行の寸法・列数の上限） | `ThumbnailOptions` |
 | 単一選択の規則（範囲外は解除・同値は通知しない） | `ThumbnailSelection` |
 | 当たり判定・可視範囲 | `ThumbnailLayoutResult` |
-| 色・フォント・影・層の順序 | 提示層（`EsUtil.Feature.Thumbnail.Presenter`） |
+| 色・フォント・影・層の順序 | 提示層（`ThumbnailAppearance` / `ThumbnailDrawPlan` / `ThumbnailShadowPlan`） |
 | 入力の受付・スクロール・描画 API の呼び出し | UI 層（`EsUtil.Ui.<UI>.Thumbnail`） |
 
 ### 3.3 設計判断

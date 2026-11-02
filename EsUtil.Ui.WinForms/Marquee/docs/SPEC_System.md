@@ -25,7 +25,7 @@ WinForms 版の選択矩形コントロールの構造・依存・設計判断�
 本アセンブリは、リサイズ可能なドラッグ矩形（マーキー）を WinForms のコントロールとして提供します。
 
 - **UI 非依存のコアを共有する**: 選択の状態機械・入力の解釈・注目矩形の決定・ハンドルの位置・設定の既定値と補正は `EsUtil.Feature.Marquee.Core` が単一所有します。
-- **描画計画を提示層から受け取る**: 層の順序・装飾の矩形・ラベルの文言と配置は `EsUtil.Feature.Marquee.Presenter` が単一所有します。
+- **描画計画を提示層から受け取る**: 層の順序・装飾の矩形・ラベルの文言と配置は `EsUtil.Feature.Marquee.Core` が単一所有します。
 - **本アセンブリが行うのは 4 つだけ**: 入力の受付（WinForms のメッセージ → コア型）、効果の適用（フォーカス・再描画・カーソル・キャプチャ・画面座標）、通知の転送（コアの通知 → 公開イベント）、描画（描画計画 → GDI+）。
 
 対象は Windows デスクトップです。 対象フレームワークは `net10.0-windows10.0.17763.0` です。
@@ -37,7 +37,7 @@ WinForms 版の選択矩形コントロールの構造・依存・設計判断�
 | 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.17763.0`） |
 | UI フレームワーク | WinForms（`UseWindowsForms`。 `System.Windows.Forms.Control` を継承する） |
 | 描画 | GDI+（`System.Drawing.Graphics`。 `System.Drawing.Common` は WinForms と共に解決される） |
-| 参照パッケージ | `EsUtil.Feature.Marquee.Presenter` / `EsUtil.Platform.Core` / `Microsoft.Extensions.Logging.Abstractions` |
+| 参照パッケージ | `EsUtil.Feature.Marquee.Core` / `EsUtil.Platform.Core` / `Microsoft.Extensions.Logging.Abstractions` |
 | テスト | xUnit v3（`net10.0-windows10.0.17763.0`。 ウィンドウを作らず `Bitmap` 上で描画を検証する） |
 | サンプル | WinForms アプリケーション（`WinExe`） |
 
@@ -48,7 +48,7 @@ WinForms 版の選択矩形コントロールの構造・依存・設計判断�
 ```mermaid
 flowchart TD
     UI["UI 層（本アセンブリ）"]
-    Presenter["提示層（EsUtil.Feature.Marquee.Presenter）"]
+    Presenter["提示層（EsUtil.Feature.Marquee.Core）"]
     Core["機能コア（EsUtil.Feature.Marquee.Core）"]
     Platform["EsUtil.Platform.Core"]
 
@@ -68,7 +68,7 @@ flowchart TD
 | 責務 | 所有者 |
 | --- | --- |
 | 選択の状態機械・入力の解釈・注目矩形の決定・ハンドルとマーカーの位置・設定の既定値と補正・ログ | `EsUtil.Feature.Marquee.Core` |
-| 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）・外観（色・体裁・表示可否） | `EsUtil.Feature.Marquee.Presenter` |
+| 描画計画（層の順序・装飾の矩形・ラベルの文言と配置）・外観（色・体裁・表示可否） | `EsUtil.Feature.Marquee.Core` |
 | 入力の受付（メッセージ → コア型への変換） / 効果の適用 / 通知の転送 / 描画 | 本アセンブリ（`MarqueeControl`） |
 | 描画計画の GDI+ への写像 | `MarqueeGraphicsPainter`（内部） |
 | コア型と GDI+ の型の変換 | `Internal.EsGeometryWinFormsInterop` / `Internal.EsKeyWinFormsInterop` |

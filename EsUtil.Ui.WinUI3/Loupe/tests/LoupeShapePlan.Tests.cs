@@ -36,7 +36,7 @@ public class LoupeShapePlanTests
 
         var list = LoupeShapePlan.BuildCrosshair(plan);
 
-        Assert.Equal(plan.CrosshairPixelRects.Count, list.RectCount);
+        Assert.Equal(LoupeCrosshairRects.Count, list.RectCount);
         Assert.Equal(plan.CrosshairPixelRects[0].X, list.Rects[0].Bounds.X);
         Assert.Equal(plan.CrosshairPixelRects[0].Width, list.Rects[0].Bounds.Width);
         Assert.Equal(s_cross, list.Rects[0].Color);
@@ -81,7 +81,7 @@ public class LoupeShapePlanTests
         var labels = LoupeShapePlan.VisibleLabels(plan);
 
         Assert.All(labels, label => Assert.True(label.IsVisible));
-        Assert.True(labels.Count <= plan.Labels.Count);
+        Assert.True(labels.Count <= (plan.Label.HasValue ? 1 : 0));
     }
 
     /// <summary>色を <c>0xAARRGGBB</c> へ変換することを検証する。</summary>
@@ -98,10 +98,10 @@ public class LoupeShapePlanTests
             appearance,
             new EsRect(0, 0, 64, 64),
             null,
-            [new EsRect(31, 0, 2, 64)],
+            new LoupeCrosshairRects(new EsRect(31, 0, 2, 64), new EsRect(0, 31, 64, 2)),
             [new EsRect(0, 31, 64, 2)],
             [],
-            [new LoupeLabelPlacement(new EsRect(2, 2, 20, 12), 2, 2, "16,16", 12, DrawingColor.White, DrawingColor.Black, 0, true)],
+            new LoupeLabelPlacement(new EsRect(2, 2, 20, 12), 2, 2, "16,16", 12, DrawingColor.White, DrawingColor.Black, 0, true),
             new EsPoint(8, 8),
             2,
             64,

@@ -44,7 +44,7 @@ public static class GdiFill
     /// <param name="color">塗り色（不透明度はアルファ）。</param>
     /// <exception cref="ArgumentNullException"><paramref name="graphics"/> または <paramref name="rects"/> が null の場合。</exception>
     /// <remarks>
-    /// 辺（4 本）のような同色の矩形を列挙する場合にまとめて塗る（ブラシの解決を 1 回に保つ）。<br/>
+    /// 辺（4 本）のような同色の矩形をまとめて塗る（ブラシの解決を 1 回に保つ）。<br/>
     /// 幅・高さが 0 以下の矩形は塗らない（<see cref="Rect"/> と同じ規則）。
     /// </remarks>
     public static void Rects(Graphics graphics, IReadOnlyList<EsRect> rects, Color color)
@@ -58,8 +58,9 @@ public static class GdiFill
         }
 
         var brush = ResolveFill(color);
-        foreach (var rect in rects)
+        for (var index = 0; index < rects.Count; index++)
         {
+            var rect = rects[index];
             if (rect.Width <= 0 || rect.Height <= 0)
             {
                 continue;

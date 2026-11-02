@@ -313,7 +313,7 @@ public sealed partial class LoupeControl : Canvas
     /// <value>接頭辞（例: <c>[Loupe]</c>）。 null または空白を設定すると既定値へ戻す。</value>
     /// <remarks>
     /// 本コントロールのログ定義（<see cref="LoupeLogMessage"/>）の接頭辞を設定し、<br/>
-    /// 提示層・コアへ伝搬する（集約した接頭辞で全層のログを揃える）。
+    /// 機能アセンブリのログ定義（コアと提示層で共有）へ適用する（全層のログが同じ接頭辞になる）。
     /// </remarks>
     public string? LogPrefix
     {
@@ -467,8 +467,7 @@ public sealed partial class LoupeControl : Canvas
     private double ApplyClientPixelScaling()
     {
         // ルートの拡大率をそのまま使う（DIP → 物理ピクセルの倍率そのものである）。
-        // 以前は ResolveClientScale へ (拡大率, 実際の幅) を渡していたため「拡大率 ÷ 幅」が倍率になり、
-        // 1.25 / 160 = 0.0078 → 下限の 0.1 へ丸められて**拡大画像が 10 倍**に表示されていた（実測 2026-10-25）
+        // 幅で割ると倍率が 1 未満へ潰れ、下限へ丸められて**拡大画像が拡大されすぎる**（実測: 1.25 / 160 = 0.0078）。
         var resolved = DpiScaler.NormalizeScaling(XamlRoot?.RasterizationScale ?? ClientToPixelScaling);
         if (resolved == ClientToPixelScaling)
         {
@@ -478,6 +477,7 @@ public sealed partial class LoupeControl : Canvas
         ClientToPixelScaling = resolved;
         return ClientToPixelScaling;
     }
+
     /// <summary>描画計画を解決し、<see cref="DrawPlanResolver"/> を適用する（同じ入力では再解決しない）。</summary>
     /// <param name="displaySize">ルーペの一辺の表示サイズ（DIP）。</param>
     /// <returns>差し替え後の描画計画。</returns>

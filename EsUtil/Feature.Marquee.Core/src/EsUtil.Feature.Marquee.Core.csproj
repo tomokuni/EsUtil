@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する。 実測 2026-10-23: 警告 0）。 -->
     <IsAotCompatible>true</IsAotCompatible>
-    <Description>マーキー選択（ドラッグ矩形の選択・移動・リサイズ）の UI 非依存の計算層。</Description>
+    <Description>マーキー選択（ドラッグ矩形の選択・移動・リサイズ）の UI 非依存の計算層と提示層（外観・描画計画）。</Description>
   </PropertyGroup>
 
   <ItemGroup>

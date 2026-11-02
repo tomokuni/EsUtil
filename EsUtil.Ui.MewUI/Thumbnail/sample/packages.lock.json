@@ -117,14 +117,6 @@
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
-      "esutil.feature.thumbnail.presenter": {
-        "type": "Project",
-        "dependencies": {
-          "EsUtil.Feature.Thumbnail.Core": "[0.4.0, )",
-          "EsUtil.Platform.Core": "[0.4.0, )",
-          "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
-        }
-      },
       "esutil.platform.core": {
         "type": "Project"
       },
@@ -148,7 +140,7 @@
         "type": "Project",
         "dependencies": {
           "Aprillz.MewUI.Core": "[0.22.1, )",
-          "EsUtil.Feature.Thumbnail.Presenter": "[0.4.0, )",
+          "EsUtil.Feature.Thumbnail.Core": "[0.4.0, )",
           "EsUtil.Platform.Core": "[0.4.0, )",
           "EsUtil.Ui.MewUI.Interop": "[0.4.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"

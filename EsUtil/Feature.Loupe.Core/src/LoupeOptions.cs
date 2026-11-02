@@ -13,7 +13,7 @@ namespace EsUtil.Feature.Loupe;
 /// DPI スケーリング係数（環境値）と表示位置のオフセット（ホスト結線）も含めない。<br/>
 /// <br/>
 /// <b>描画にだけ必要な設定は含めない</b>: 色・フォントサイズ・角丸・枠線の太さ・表示可否は<br/>
-/// コアの計算・判断に入らないため、描画層の外観（本コアを参照する上位の層）が単一所有する。<br/>
+/// コアの計算・判断に入らないため、提示層の外観（提示層）が単一所有する。<br/>
 /// <br/>
 /// <b>既定値</b>: 既定値を持つのは <see cref="Default"/> と <see cref="LoupeOptions()"/> のみである。<br/>
 /// <see cref="Default"/> を基点に部分変更する（<c>LoupeOptions.Default with { ZoomLevel = 8 }</c>）と、<br/>

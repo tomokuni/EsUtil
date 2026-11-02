@@ -12,7 +12,7 @@ namespace EsUtil.Ui.WinForms.Loupe;
 
 /// <summary>拡大鏡（ルーペ）コントロール（WinForms 版）。</summary>
 /// <remarks>
-/// 他の UI 版と同一の UI 非依存コア（<c>EsUtil.Feature.Loupe.Core</c>）と提示層（<c>EsUtil.Feature.Loupe.Presenter</c>）を使い、<br/>
+/// 他の UI 版と同一の UI 非依存の機能アセンブリ（<c>EsUtil.Feature.Loupe</c>。 コアと提示層）を使い、<br/>
 /// 描画だけを GDI+（<see cref="LoupeGraphicsPainter"/>）で行う（同じ設定・同じ見た目になる）。<br/>
 /// <br/>
 /// <b>入力</b>: <see cref="Source"/>（拡大元の 100% 画像）と <see cref="CenterPoint"/>（元画像ピクセル座標）。<br/>
@@ -229,8 +229,8 @@ public sealed class LoupeControl : Control
     /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
     /// <value>接頭辞（例: <c>[Loupe]</c>）。 null または空白を設定すると既定値へ戻す。</value>
     /// <remarks>
-    /// 本コントロールのログ定義（<see cref="LoupeLogMessage"/>）の接頭辞を設定し、提示層・コアへ伝搬する<br/>
-    /// （集約した接頭辞で全層のログを揃える）。
+    /// 本コントロールのログ定義（<see cref="LoupeLogMessage"/>）の接頭辞を設定し、機能アセンブリのログ定義（コアと提示層で共有）へ適用する<br/>
+    /// （全層のログが同じ接頭辞になる）。
     /// </remarks>
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string? LogPrefix

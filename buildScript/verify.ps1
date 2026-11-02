@@ -209,7 +209,7 @@ if (-not $SkipBuild) {
     Write-Output '== 1. ビルド =='
     # 警告のエラー化は Directory.Build.props の TreatWarningsAsErrors が単一所有する（-warnaserror は付けない）。
     # これで素の `dotnet build` でも規約違反が終了コードに出る（スクリプトの引数に依存しない）。
-    # ソリューションは複数ある（Core / Presenter と UI 層を分けている。 規則は .github/ビルド設定規約.md §1）。
+    # ソリューションは複数ある（機能アセンブリと UI 層を分けている。 規則は .github/ビルド設定規約.md §1）。
     $buildWarnings = 0
     $buildErrors = 0
     $buildExit = 0
@@ -395,7 +395,52 @@ else {
     Add-Result 'Dependabot の対象' ($dependabotMissing.Count -eq 0) "未登録 $($dependabotMissing.Count) 件"
     $dependabotMissing | Select-Object -First 8 | ForEach-Object { "      .github/dependabot.yml の directories に無い: $_" }
 }
-# 2f) 実行ファイルのアーキテクチャ（AnyCPU）
+# 2f) 層の参照（Core → Presenter の禁止）
+#     Core と Presenter は 1 つのアセンブリへ統合したため、コアから提示層への参照はビルドの DEP0003
+#     （ProjectReference の検査）では検出できない。 コア側のソースを走査し、提示層の名前空間・型名を
+#     参照していれば不合格にする（規則は .github/依存関係.md §5・.github/検証手順.md §5.3）。
+$presenterTypes = @(
+    'LoupePresenter', 'LoupeAppearance', 'LoupeDrawPlan', 'LoupeDrawLayer', 'LoupeLabelPlacement', 'LoupeTextPlacement',
+    'LoupeCrosshairRects',
+    'MarqueePresenter', 'MarqueeAppearance', 'MarqueeDrawPlan', 'MarqueeDrawLayer', 'MarqueeLabelPlacement',
+    'MarqueeTextPlacement', 'MarqueeLabelPlacements',
+    'ThumbnailPresenter', 'ThumbnailAppearance', 'ThumbnailDrawPlan', 'ThumbnailDrawLayer', 'ThumbnailHighlightKind',
+    'ThumbnailLabelPlan', 'ThumbnailShadowPlan', 'ThumbnailShadowBand', 'ThumbnailShadowEdge', 'ThumbnailShadowSide',
+    'ThumbnailShadowStop', 'IThumbnailShadowPlan')
+$rxPresenterType = [regex]('\b(' + ($presenterTypes -join '|') + ')\b')
+$layerViolations = [System.Collections.Generic.List[string]]::new()
+foreach ($feature in @(
+        @{ Name = 'EsUtil/Feature.Loupe.Core'; Namespace = 'EsUtil.Feature.Loupe.Presenter' },
+        @{ Name = 'EsUtil/Feature.Marquee.Core'; Namespace = 'EsUtil.Feature.Marquee.Presenter' },
+        @{ Name = 'EsUtil/Feature.Thumbnail.Core'; Namespace = 'EsUtil.Feature.Thumbnail.Presenter' })) {
+    $srcRoot = Join-Path $repoRoot ($feature.Name + '/src')
+    if (-not (Test-Path -LiteralPath $srcRoot)) { continue }
+
+    # コア側のファイル = src/Core 配下と、提示層の型を宣言していない src 直下のファイル
+    $coreFiles = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
+    foreach ($file in @(Get-ChildItem -LiteralPath (Join-Path $srcRoot 'Core') -Recurse -File -Filter '*.cs' -ErrorAction SilentlyContinue)) {
+        $coreFiles.Add($file)
+    }
+    foreach ($file in @(Get-ChildItem -LiteralPath $srcRoot -File -Filter '*.cs')) {
+        $declaration = [regex]::Match(
+            [IO.File]::ReadAllText($file.FullName, $enc),
+            '(?m)^\s*(?:(?:public|internal|private|protected|file|static|sealed|abstract|partial|readonly)\s+)*(?:class|struct|interface|enum|record(?:\s+(?:class|struct))?)\s+([A-Za-z_]\w*)')
+        if ($declaration.Success -and $presenterTypes -contains $declaration.Groups[1].Value) { continue }
+        $coreFiles.Add($file)
+    }
+
+    foreach ($file in $coreFiles) {
+        $text = [IO.File]::ReadAllText($file.FullName, $enc)
+        if ($text.Contains($feature.Namespace, [StringComparison]::Ordinal) -or $rxPresenterType.IsMatch($text)) {
+            $layerViolations.Add(("{0}: 提示層（{1}）を参照している" -f
+                    $file.FullName.Substring($repoRoot.Length + 1).Replace('\', '/'), $feature.Namespace))
+        }
+    }
+}
+Add-Result '層の参照（Core → Presenter）' ($layerViolations.Count -eq 0) "違反 $($layerViolations.Count) 件"
+$layerViolations | Select-Object -First 8 | ForEach-Object { "      $_" }
+
+# 2g) 実行ファイルのアーキテクチャ（AnyCPU）
 #     アーキテクチャは固定しない（PlatformTarget / Prefer32Bit / RuntimeIdentifier を .csproj に書かない）。
 #     AnyCPU の exe は apphost をビルドしたマシンの RID で作られる。 RID が要る処理（自己完結の publish、
 #     WinUI 3 の MSIX ツール）はコマンド ラインの -r で渡す（csproj へ書くと復元とロック ファイルが

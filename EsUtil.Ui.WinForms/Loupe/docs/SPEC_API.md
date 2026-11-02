@@ -24,7 +24,7 @@
 ## 1. 概要
 
 `LoupeControl` は `System.Windows.Forms.Control` を継承し、`OnPaint` でルーペを描画します。
-`EsUtil.Platform.Core` の画像（`EsReadOnlyBitmap`）を拡大元として受け取り、`EsUtil.Feature.Loupe.Presenter` が解決した描画計画（`LoupeDrawPlan`）を GDI+ へ写して描きます。
+`EsUtil.Platform.Core` の画像（`EsReadOnlyBitmap`）を拡大元として受け取り、`EsUtil.Feature.Loupe.Core` が解決した描画計画（`LoupeDrawPlan`）を GDI+ へ写して描きます。
 
 ## 2. 名前空間と型
 
@@ -35,7 +35,7 @@
 | `LoupeControl` | `sealed class : Control` | ルーペ本体（設定・描画・DPI 追従・描画完了通知） |
 | `LoupeRenderedEventArgs` | `sealed class : EventArgs` | 描画完了通知の引数（描画面と描画計画） |
 
-`LoupeOptions` / `LoupeAppearance` / `LoupeDrawPlan` / `LoupeLayout` などの公開面は提示層（`EsUtil.Feature.Loupe.Presenter`）が所有します。
+`LoupeOptions` / `LoupeAppearance` / `LoupeDrawPlan` / `LoupeLayout` などの公開面は提示層（`EsUtil.Feature.Loupe.Core`）が所有します。
 
 ### 2.2 内部の型
 
@@ -74,8 +74,8 @@
 | `double ClientToPixelScaling { get; set; }` | `1.0` | DIP → 物理ピクセルの係数。 0.1〜8.0 へ補正（非有限は既定値）。 ハンドルの生成時と DPI の変更時に実測値へ更新されます |
 | `double PositionOffset { get; set; }` | `0` | ルーペ中心からの右下オフセット（DIP）。 位置の計算はコアが行います |
 | `Func<LoupeDrawPlan, LoupeDrawPlan>? DrawPlanResolver { get; set; }` | `null` | 描画計画の差し替え（純粋関数）。 設定すると保持中の計画を破棄します |
-| `ILogger Log { get; set; }` | `NullLogger` | ログの出力先（null は `NullLogger`）。 提示層とコアへ伝搬します |
-| `string? LogPrefix { get; set; }` | `[Loupe]` | ログの接頭辞（空白または null は既定値へ戻す）。 提示層とコアへ伝搬します。 **プロセス（アセンブリ）内の全インスタンスで共有します**（同じ実行で 2 つ目のルーペへ別の接頭辞を設定すると、1 つ目のルーペのログもその接頭辞になります） |
+| `ILogger Log { get; set; }` | `NullLogger` | ログの出力先（null は `NullLogger`）。 コアと提示層のログの両方に適用します |
+| `string? LogPrefix { get; set; }` | `[Loupe]` | ログの接頭辞（空白または null は既定値へ戻す）。 コアと提示層のログの両方に適用します。 **プロセス（アセンブリ）内の全インスタンスで共有します**（同じ実行で 2 つ目のルーペへ別の接頭辞を設定すると、1 つ目のルーペのログもその接頭辞になります） |
 
 公開プロパティはいずれもデザイナーのコード生成の対象外です（`DesignerSerializationVisibility.Hidden`。 値が実行時のオブジェクトであるため）。
 
@@ -158,7 +158,7 @@ loupe.DrawPlanResolver = static plan => plan with { CrosshairPixelRects = [new E
 | `Options.RequestedSize` / `PositionOffset` | DIP | 表示サイズとオフセット。 `ClientToPixelScaling` で物理ピクセルへ換算します |
 | `ResolveLayout` の引数と戻り値 | DIP | 親領域のサイズと表示レイアウト（配置はホストが `ToClientPixel` で換算します） |
 | `LoupeDrawPlan.ClientPixelRect` / `CrosshairPixelRects` / `BorderPixelRects` | 物理ピクセル | 描画面の座標（`ScaleDipToPixel` で DIP から換算できます） |
-| `LoupeDrawPlan.Labels` の `DipRect` | DIP | 描画層が物理ピクセルへ換算して描きます（`ClientToPixelScaling`） |
+| `LoupeDrawPlan.Label` の `DipRect` | DIP | 描画層が物理ピクセルへ換算して描きます（`ClientToPixelScaling`） |
 | `LoupeRenderedEventArgs.Graphics` | 物理ピクセル | 描き込み先の描画面（`1` ピクセル = ルーペ画像の `1` ピクセル） |
 
 ## 7. 制限事項

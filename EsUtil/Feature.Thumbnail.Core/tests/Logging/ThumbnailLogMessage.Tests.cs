@@ -44,4 +44,78 @@ public class ThumbnailLogMessageTests
 
         Assert.Empty(logger.Messages);
     }
+
+    /// <summary>設定の変更が変化した項目だけ記録されることを検証する。</summary>
+    [Fact]
+    internal void LogOptionsChanged_変化した項目だけを記録する()
+    {
+        var logger = new RecordingLogger();
+
+        try
+        {
+            ThumbnailLogMessage.Prefix = "[Test]";
+            logger.LogOptionsChanged(
+                ThumbnailOptions.Default,
+                ThumbnailOptions.Default with { RowSpace = 4, MaximumColumns = 3 });
+        }
+        finally
+        {
+            ThumbnailLogMessage.Prefix = ThumbnailLogMessage.DefaultPrefix;
+        }
+
+        Assert.Equal(
+            ["[Test] Setting: RowSpace 8 → 4", "[Test] Setting: MaximumColumns 0 → 3"],
+            logger.Messages);
+        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Information, level));
+    }
+
+    /// <summary>同値の設定では何も記録しないことを検証する。</summary>
+    [Fact]
+    internal void LogOptionsChanged_同値では記録しない()
+    {
+        var logger = new RecordingLogger();
+
+        logger.LogOptionsChanged(ThumbnailOptions.Default, ThumbnailOptions.Default);
+
+        Assert.Empty(logger.Messages);
+    }
+
+    /// <summary>外観の変更が色・体裁・影を含めて変化した項目だけ記録されることを検証する。</summary>
+    [Fact]
+    internal void LogAppearanceChanged_変化した項目だけを記録する()
+    {
+        var logger = new RecordingLogger();
+        var before = ThumbnailAppearance.Default;
+
+        try
+        {
+            ThumbnailLogMessage.Prefix = "[Test]";
+            logger.LogAppearanceChanged(
+                before,
+                before with { LabelFontSize = 13, HighlightedLabelArgb = 0xFF0078D4, Shadow = null });
+        }
+        finally
+        {
+            ThumbnailLogMessage.Prefix = ThumbnailLogMessage.DefaultPrefix;
+        }
+
+        Assert.Equal(
+            [
+                "[Test] Setting: LabelFontSize 11 → 13",
+                "[Test] Setting: HighlightedLabelArgb 0x00000000 → 0xFF0078D4",
+                "[Test] Setting: Shadow ThumbnailShadowPlan → null",
+            ],
+            logger.Messages);
+    }
+
+    /// <summary>外観が同値の場合は何も記録しないことを検証する。</summary>
+    [Fact]
+    internal void LogAppearanceChanged_同値では記録しない()
+    {
+        var logger = new RecordingLogger();
+
+        logger.LogAppearanceChanged(ThumbnailAppearance.Default, ThumbnailAppearance.Default);
+
+        Assert.Empty(logger.Messages);
+    }
 }

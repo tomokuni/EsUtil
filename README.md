@@ -33,12 +33,9 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | --- | --- | --- |
 | [`EsUtil.Platform.Core`](EsUtil/Platform.Core/README.md) | キーと入力・幾何・座標変換・画像・OS サービス抽象 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Platform.Core.svg)](https://www.nuget.org/packages/EsUtil.Platform.Core) |
 | [`EsUtil.Platform.Core.Windows`](EsUtil/Platform.Core.Windows/README.md) | `System.Drawing.Bitmap` との相互変換（Windows 専用） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Platform.Core.Windows.svg)](https://www.nuget.org/packages/EsUtil.Platform.Core.Windows) |
-| [`EsUtil.Feature.Loupe.Core`](EsUtil/Feature.Loupe.Core/README.md) | 拡大表示の UI 非依存の計算層 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Loupe.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Loupe.Core) |
-| [`EsUtil.Feature.Loupe.Presenter`](EsUtil/Feature.Loupe.Presenter/README.md) | 外観・描画計画・ラベル計画 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Loupe.Presenter.svg)](https://www.nuget.org/packages/EsUtil.Feature.Loupe.Presenter) |
-| [`EsUtil.Feature.Marquee.Core`](EsUtil/Feature.Marquee.Core/README.md) | ドラッグ矩形の選択・移動・リサイズの計算層 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Marquee.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Marquee.Core) |
-| [`EsUtil.Feature.Marquee.Presenter`](EsUtil/Feature.Marquee.Presenter/README.md) | 外観・描画手順 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Marquee.Presenter.svg)](https://www.nuget.org/packages/EsUtil.Feature.Marquee.Presenter) |
-| [`EsUtil.Feature.Thumbnail.Core`](EsUtil/Feature.Thumbnail.Core/README.md) | 折り返し配置・選択・可視範囲の計算層 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Thumbnail.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Thumbnail.Core) |
-| [`EsUtil.Feature.Thumbnail.Presenter`](EsUtil/Feature.Thumbnail.Presenter/README.md) | 外観・影・描画計画 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Thumbnail.Presenter.svg)](https://www.nuget.org/packages/EsUtil.Feature.Thumbnail.Presenter) |
+| [`EsUtil.Feature.Loupe.Core`](EsUtil/Feature.Loupe.Core/README.md) | 拡大表示の計算層（Core）+ 外観・描画計画（Presenter） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Loupe.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Loupe.Core) |
+| [`EsUtil.Feature.Marquee.Core`](EsUtil/Feature.Marquee.Core/README.md) | ドラッグ矩形の計算層（Core）+ 外観・描画計画（Presenter） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Marquee.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Marquee.Core) |
+| [`EsUtil.Feature.Thumbnail.Core`](EsUtil/Feature.Thumbnail.Core/README.md) | 折り返し配置の計算層（Core）+ 外観・影・描画計画（Presenter） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Thumbnail.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Thumbnail.Core) |
 | [`EsUtil.Feature.ColumnPacking.Core`](EsUtil/Feature.ColumnPacking.Core/README.md) | 複数列の配置（最大列高さの最小化）の計算層 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.ColumnPacking.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.ColumnPacking.Core) |
 | [`EsUtil.Feature.ZenHan.Core`](EsUtil/Feature.ZenHan.Core/README.md) | 全角・半角・ひらがな・カタカナ・記号の相互変換 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.ZenHan.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.ZenHan.Core) |
 
@@ -114,7 +111,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | --- | --- | --- |
 | 共通基盤（可搬） | `net10.0` | `EsUtil.Platform.Core` |
 | 共通基盤（Windows 専用） | `net10.0-windows10.0.17763.0` | `EsUtil.Platform.Core.Windows` |
-| 機能層 | `net10.0` | `EsUtil.Feature.Loupe.Core` / `.Presenter` / `EsUtil.Feature.Marquee.Core` / `.Presenter` / `EsUtil.Feature.Thumbnail.Core` / `.Presenter` / `EsUtil.Feature.ColumnPacking.Core` / `EsUtil.Feature.ZenHan.Core` |
+| 機能層 | `net10.0` | `EsUtil.Feature.Loupe.Core` / `EsUtil.Feature.Marquee.Core` / `EsUtil.Feature.Thumbnail.Core` / `EsUtil.Feature.ColumnPacking.Core` / `EsUtil.Feature.ZenHan.Core` |
 | Avalonia UI 層 | `net10.0` | `EsUtil.Ui.AvaloniaUI.*` |
 | MewUI 層 | `net10.0` | `EsUtil.Ui.MewUI.*` |
 | WinUI 3 層 | `net10.0-windows10.0.22621.0`（`SupportedOSPlatformVersion` = `10.0.19041.0`） | `EsUtil.Ui.WinUI3.*` |

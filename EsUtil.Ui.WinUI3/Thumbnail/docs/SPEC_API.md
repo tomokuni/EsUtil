@@ -18,7 +18,7 @@ WinUI 3 版のサムネイル一覧コントロールが提供する公開 API �
 
 - 対象フレームワークは `net10.0-windows10.0.22621.0` で、`UseWinUI` を有効にします（Windows App SDK）。
 - 画像は **`EsReadOnlyBitmap`**（コアの読み取り専用画像型）で受け取ります。 **ピクセルは複製しません**（非所有ビューとして描画します）。
-- 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Presenter` が単一所有します。
+- 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Core` が単一所有します。
 - 単位は **DIP** です。
 
 ## 2. 公開 API
@@ -58,7 +58,7 @@ WinUI 3 版のサムネイル一覧コントロールが提供する公開 API �
 | `ScrollToIndex(int index)` | method | 項目を表示領域へスクロールする |
 | `Refresh()` | method | 配置と見た目を解決し直す（`ImageWidth` の変更後などに呼ぶ） |
 | `Log` | property | ログの出力先（null は `NullLogger`）。 画像と項目数の変更を本コントロールが記録する。 同じロガーを提示層・コアへ渡す |
-| `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 提示層・コアへ伝搬する |
+| `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 コアと提示層のログの両方に適用する |
 
 - **`Add` は項目を末尾へ追加します**（画像が null でも項目は作られ、画像の領域だけが空になります）。
 - **影は計画の停止点をグラデーション ブラシへ写して `Rectangle` 8 個で置きます**（4 辺は `Edges` → `LinearGradientBrush`、4 隅は `CornerStops` → `RadialGradientBrush`）。 1 画素の帯を 1 要素ずつ置くと 1 件あたり数百個になり、一覧の初回描画が待たされます（実測 2026-10-25: 31 件で 258 ms → 8 要素で 44 ms）。

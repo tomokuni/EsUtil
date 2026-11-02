@@ -15,7 +15,7 @@ namespace EsUtil.Ui.WinUI3.Marquee;
 
 /// <summary>リサイズ可能なドラッグ矩形のコントロール（WinUI 3 版）。</summary>
 /// <remarks>
-/// 他の UI 版と同じ UI 非依存のコアのファサード（<c>EsUtil.Feature.Marquee.Presenter</c> の <see cref="MarqueePresenter"/>）を使い、<br/>
+/// 他の UI 版と同じ UI 非依存の提示層のファサード（<c>EsUtil.Feature.Marquee</c> の <see cref="MarqueePresenter"/>）を使い、<br/>
 /// 本コントロールは「入力の受付」「効果の適用」「通知の転送」「描画」のみを行う薄い層である。<br/>
 /// <br/>
 /// <b>基底クラス</b>: 子要素を重ねる <see cref="Canvas"/> を継承し、図形とラベルを要素として置く<br/>
@@ -60,7 +60,7 @@ public sealed partial class MarqueeControl : Canvas
     /// <summary><see cref="Appearance"/> プロパティ（外観。 描画にだけ必要な設定）。</summary>
     /// <remarks>
     /// 外観（色・ラベル体裁・表示可否）はコアの計算に入らない（描画にだけ必要）ため、コアの設定（<see cref="Options"/>）には含めず、<br/>
-    /// 提示層（<c>EsUtil.Feature.Marquee.Presenter</c>）の <see cref="MarqueeAppearance"/> が単一所有する。
+    /// 提示層（<see cref="MarqueeAppearance"/>） が単一所有する。
     /// </remarks>
     public static readonly DependencyProperty AppearanceProperty = DependencyProperty.Register(
         nameof(Appearance),
@@ -322,7 +322,7 @@ public sealed partial class MarqueeControl : Canvas
 
     /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
     /// <value>接頭辞（例: <c>[Marquee]</c>）。 null または空白を設定すると既定値へ戻す。</value>
-    /// <remarks>本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、提示層・コアへ伝搬する。</remarks>
+    /// <remarks>本コントロールのログ定義（<see cref="MarqueeLogMessage"/>）の接頭辞を設定し、機能アセンブリのログ定義（コアと提示層で共有）へ適用する。</remarks>
     public string? LogPrefix
     {
         get => _logPrefix;

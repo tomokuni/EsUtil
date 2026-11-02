@@ -111,11 +111,12 @@ public class MarqueeShapePlanTests
             [new EsRect(0, 0, 0, 10), new EsRect(0, 90, 200, 10)],
             [],
             null,
-            new MarqueeHandles([new EsRect(10, 10, 8, 8)], 1),
+            new MarqueeHandles(
+                new MarqueeHandleRects(new EsRect(10, 10, 8, 8), default, default, default, default, default, default, default),
+                1),
             new MarqueeMarker(new EsPoint(50, 40), 6),
             layers,
-            [
+            new MarqueeLabelPlacements(
                 new MarqueeLabelPlacement(new EsRect(10, 70, 40, 16), 2, 2, "80x60", 11, DrawingColor.White, s_overlay, true),
-                new MarqueeLabelPlacement(new EsRect(60, 70, 30, 16), 2, 2, "50,40", 11, DrawingColor.White, s_overlay, true),
-            ]);
+                new MarqueeLabelPlacement(new EsRect(60, 70, 30, 16), 2, 2, "50,40", 11, DrawingColor.White, s_overlay, true)));
 }

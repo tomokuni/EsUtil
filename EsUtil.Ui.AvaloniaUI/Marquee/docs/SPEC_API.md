@@ -64,7 +64,7 @@
 - ドラッグハンドルによるリサイズ
 - 矢印キーによるキーボード微調整（nudge）
 - ドラッグハンドル・始点マーカー・カーソル座標ラベルの描画
-- 選択矩形の**外側に描く装飾**（外側マスク・枠線・ハイライト・内側マスク）の描画（表示可否・太さ・色は外観（`Appearance`）が、装飾矩形と描画順は提示層（`EsUtil.Feature.Marquee.Presenter`）が単一所有する。 描画は本コントロールが行う）
+- 選択矩形の**外側に描く装飾**（外側マスク・枠線・ハイライト・内側マスク）の描画（表示可否・太さ・色は外観（`Appearance`）が、装飾矩形と描画順は提示層（`EsUtil.Feature.Marquee.Core`）が単一所有する。 描画は本コントロールが行う）
 - ダブルクリックの確定/キャンセル判定（矩形内 = 確定 / 矩形外 = キャンセル）
 - 対象座標系での正確な nudge（矢印キー1回 = 対象1Pixel）
 
@@ -231,7 +231,7 @@ control.ResetSelection();           // 状態と nudge の初期化
 安全域への補正は**コアの設定型の生成時**に適用されます（設定の経路によらず範囲内の値だけが保持され、UI 側に補正の登録は不要です）。
 
 `Options` は変更時に即時反映されます（`AffectsRender` による再描画 + コア（ファサード）への伝搬）。
-色は外観（`Appearance` の `MarqueeAppearance`）が単一所有し、UI 非依存の `System.Drawing.Color` で保持します（Avalonia 型からの変換は `Internal/` の `ToDrawingColor()`。 描画時に Avalonia の色型へ変換します）。 **描くかどうかは色のアルファではなく外観の明示フラグ（`ShowOuterMask` / `ShowBorder` / `ShowInnerMask` / `ShowInnerBorder` / `ShowFullOverlay`）が決めます**。
+色は外観（`Appearance` の `MarqueeAppearance`）が単一所有し、UI 非依存の `System.Drawing.Color` で保持します（Avalonia 型からの変換は `Internal/` の `ToDrawingColor()`。 描画時に Avalonia の色型へ変換します）。 **描くかどうかは色のアルファではなく外観の明示フラグ（`ShowOuterMask` / `ShowBorder` / `ShowInnerMask`）が決めます**。
 一部の項目だけを変える場合は `MarqueeOptions.Default with { ... }` / `MarqueeAppearance.Default with { ... }` で指定します（指定しない項目は既定値を保つ）。 フォントサイズは外観の生成時に 6〜48 へ補正されます。
 
 `MarqueeAppearance` の項目（既定値は本型が単一所有する。 すべて `init` のみで不変）:
@@ -246,12 +246,12 @@ control.ResetSelection();           // 状態と nudge の初期化
 | `CoordLabelColor` / `CoordLabelBackgroundColor` | `Color` | `White` / `#99000000`（黒 60%） | カーソル座標ラベルの文字色と背景色 |
 | `OuterMaskColor` | `Color` | `#80000000`（黒 50%） | 外側マスクの色 |
 | `BorderColor` | `Color` | `#FFA9A9A9` | 枠線（選択枠線）の色 |
-| `InnerMaskColor` / `InnerBorderColor` | `Color` | 透明 / 透明 | 注目矩形の内側マスク色と枠線色 |
-| `BorderThickness` / `InnerBorderThickness` | `double` | `2.0` | 枠線・内側の枠線の太さ（DIP。 0.5〜64 に補正） |
+| `InnerMaskColor` | `Color` | 透明 | 注目矩形の内側マスク色 |
+| `BorderThickness` | `double` | `2.0` | 枠線の太さ（DIP。 0.5〜64 に補正） |
 | `ShowHandles` / `ShowMarker` / `ShowSizeLabel` / `ShowCoordLabel` | `bool` | `true` | ハンドル・始点マーカー・サイズラベル・カーソル座標ラベルを描くかどうか |
 | `ShowOuterMask` / `ShowBorder` | `bool` | `true` | 外側マスク・枠線を描くかどうか |
-| `ShowFullOverlay` | `bool` | `false` | 注目矩形が無くても全面を暗転するかどうか |
-| `ShowInnerMask` / `ShowInnerBorder` | `bool` | `false` | 注目矩形の内側マスク・枠線を描くかどうか |
+
+| `ShowInnerMask` | `bool` | `false` | 注目矩形の内側マスクを描くかどうか |
 | `LabelPadding` | `double` | `4.0` | ラベルの内側余白（DIP。 行送りも本値から導く） |
 
 #### 5.1.2 状態
@@ -268,9 +268,9 @@ control.ResetSelection();           // 状態と nudge の初期化
 | プロパティ | 型 | 説明 |
 | --- | --- | --- |
 | `Log` | `ILogger` | 操作ログ用ロガー（既定は `NullLogger`。 出力先・レベル制御はホストアプリケーションが所有） |
-| `LogPrefix` | `string?` | ログの接頭辞（ロガーと一緒に設定する。 null・空白で既定値 `[Marquee]` へ戻す。 提示層・コアへ伝搬する） |
+| `LogPrefix` | `string?` | ログの接頭辞（ロガーと一緒に設定する。 null・空白で既定値 `[Marquee]` へ戻す。 コアと提示層のログの両方に適用する） |
 
-操作ログの書式・レベルは MewUI 版と同一です。 ログはコア（`EsUtil.Feature.Marquee.Core.Logging.MarqueeLogMessage`）と提示層（`EsUtil.Feature.Marquee.Presenter.Logging.MarqueeLogMessage`）が定義し、ロガーはファサード（`MarqueeCore.Log`）が保持します。 Debug で操作（MouseDown / MouseUp / DoubleClick / DragStart / KeyDown / ConfirmRequested / CancelRequested）と**設定の変更**（`[Marquee] Setting: {名前} {前} → {後}`。 変化した項目だけ）を、Trace で位置の記録を出力します。 本プロジェクト自身は、公開操作を提示層へ委譲した際の例外（`MarqueeLogMessage.LogOperationError`。 Error）だけを定義します。
+操作ログの書式・レベルは MewUI 版と同一です。 ログは機能アセンブリ（`EsUtil.Feature.Marquee.Logging.MarqueeLogMessage`。 コアと提示層で共有）が定義し、ロガーはファサード（`MarqueeCore.Log`）が保持します。 Debug で操作（MouseDown / MouseUp / DoubleClick / DragStart / KeyDown / ConfirmRequested / CancelRequested）を、Information で**設定の変更**（`[Marquee] Setting: {名前} {前} → {後}`。 変化した項目だけ）を、Trace で位置の記録を出力します。 本プロジェクト自身は、公開操作を提示層へ委譲した際の例外（`MarqueeLogMessage.LogOperationError`。 Error）だけを定義します。
 
 #### 5.1.4 描画
 
@@ -326,11 +326,11 @@ marquee.Appearance = MarqueeAppearance.Default with { BorderColor = Colors.White
 - **公開ファサード（操作の唯一の窓口）**: `MarqueeCore`（操作・設定・効果の適用・描画内容の解決）/ `IMarqueeEffects`（効果の適用先）/ `MarqueeEffectsBase`（効果の既定実装。 必要な効果だけを override できる）
 - **UI アダプタ契約**: `MarqueeCursorKind` / `MarqueeNotice` / `MarqueeGeometry` / `MarqueeHandles` / `MarqueeMarker`
 
-**装飾（外側マスク・枠線・ハイライト・内側マスク）は提示層（`EsUtil.Feature.Marquee.Presenter`）が単一所有**します（`MarqueeAppearance`（表示可否・太さ・色）/ `MarqueeDrawPlan`（装飾矩形）/ `MarqueePresenter`（`DrawPlan` partial）（矩形の計算）/ `MarqueePresenter`（描画計画の解決））。 本コントロールは `Appearance` で外観を設定し、`Rendered` で描画計画を受け取ります。 **描画するラベルと描画順も提示層が、実寸 → 配置矩形の写像は同層の `MarqueePresenter`（`LabelPlan` partial） が単一所有し**、実寸測定だけを UI 層が与えます。
+**装飾（外側マスク・枠線・ハイライト・内側マスク）は提示層（`EsUtil.Feature.Marquee.Core`）が単一所有**します（`MarqueeAppearance`（表示可否・太さ・色）/ `MarqueeDrawPlan`（装飾矩形）/ `MarqueePresenter`（`DrawPlan` partial）（矩形の計算）/ `MarqueePresenter`（描画計画の解決））。 本コントロールは `Appearance` で外観を設定し、`Rendered` で描画計画を受け取ります。 **描画するラベルと描画順も提示層が、実寸 → 配置矩形の写像は同層の `MarqueePresenter`（`LabelPlan` partial） が単一所有し**、実寸測定だけを UI 層が与えます。
 
 効果（`MarqueeFeedback` / `MarqueeCursorActions`）とログ定義（`MarqueeLogMessage`）はコアの内部契約（internal）であり、本プロジェクトは参照しません（適用はファサード、記録は状態機械が行います）。
 
-描画計画（層の順序・装飾矩形・文言・配置）と外観（`MarqueeAppearance`）は UI 非依存の提示層（`EsUtil.Feature.Marquee.Presenter` の `MarqueePresenter` / `MarqueeDrawPlan` / `MarqueePresenter`（`LabelPlan` partial））が単一所有し、**描画は本コントロールが自 UI の描画 API（`DrawingContext`）で行います**。 本プロジェクトの内部実装も internal です。
+描画計画（層の順序・装飾矩形・文言・配置）と外観（`MarqueeAppearance`）は UI 非依存の提示層（`EsUtil.Feature.Marquee.Core` の `MarqueePresenter` / `MarqueeDrawPlan` / `MarqueePresenter`（`LabelPlan` partial））が単一所有し、**描画は本コントロールが自 UI の描画 API（`DrawingContext`）で行います**。 本プロジェクトの内部実装も internal です。
 
 #### 5.4.1 MarqueeControl（`MarqueeControl.cs`）
 
