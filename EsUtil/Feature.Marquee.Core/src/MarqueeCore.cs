@@ -379,14 +379,17 @@ public sealed partial class MarqueeCore
 
     /// <summary>現在の状態から描画 1 フレーム分の入力を生成する。</summary>
     /// <param name="clientSize">描画領域のサイズ（DIP。 UI 実装の描画先のサイズ）。</param>
+    /// <param name="pointerOver">ポインターが描画領域の上にあるかどうか（省略時は true）。</param>
     /// <returns>描画の入力（設定・状態と、描画時に決まる値を解決済み）。</returns>
     /// <remarks>
     /// 設定・状態の読み出し（選択矩形・マーカー位置・マウス位置・ハイライト矩形）は本メソッドが単一所有するため、<br/>
     /// UI 層は描画領域のサイズを渡すだけでよい（内部状態の組み立て順を持たない）。<br/>
     /// 描画の幾何の解決と描画計画の解決が同じ入力を使うため、UI 層は本メソッドの結果を <see cref="ResolveGeometry"/> へ渡す。
     /// </remarks>
-    public MarqueeRenderRequest CreateRequest(EsSize clientSize)
-        => MarqueeRenderRequest.Create(
+    public MarqueeRenderRequest CreateRequest(EsSize clientSize, bool pointerOver = true)
+    {
+        // 位置を受ける前の原点は「カーソルがそこにある」意味ではない（座標ラベルを描かない）
+        return MarqueeRenderRequest.Create(
             _session.Options,
             clientSize,
             _session.HasSelection ? _session.SelectionSourceRect : null,
@@ -395,7 +398,9 @@ public sealed partial class MarqueeCore
             _session.LastMousePosition,
             _coordPort,
             _dipToSourceScaling,
-            HighlightSourceRect);
+            HighlightSourceRect,
+            pointerOver && _session.HasMousePosition);
+    }
 
     // ====================================================================
     // 内部ヘルパー

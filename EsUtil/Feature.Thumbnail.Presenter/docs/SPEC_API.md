@@ -64,7 +64,7 @@
 **`ResolveDrawPlan` が決めること**:
 
 - 強調 … 選択中かつ `ShowSelectionBackground` なら `ThumbnailHighlightKind.Selected`、そうでなくホバー中かつ `ShowHoverBackground` なら `Hover`、それ以外は `None`。 **選択はホバーより優先**します。 **色は決めません**（帯の色は UI のテーマが決め、UI が `ThumbnailAppearance.ResolveHighlightArgb` へ文字色とアクセント色を渡します）。
-- 影 … `ShowShadow` が false、または強調（ホバー・選択）中かつ `HideShadowWhenSelected` なら `null`、それ以外は `Appearance.Shadow`。
+- 影 … `ShowShadow` が false なら `null`、それ以外は `Appearance.Shadow`（強調中も消さない）。
 - 名前 … `Label` の矩形と `LabelFontSize`。 **現在表示中の項目かつ `BoldCurrentLabel`、または選択中の項目かつ `BoldSelectedLabel` なら太字**。 強調中は `HighlightedLabelArgb`（0 の場合は UI の標準色）。 **文言は幅と高さ（左右・上下の余白を除いた値）に収まるように `ThumbnailLabelText.Fit` が決め、収まらなければ拡張子を残して省略する**（太字は太字で測る）。
 - 層 … 背景と影の有無で 4 通りの並びから選ぶ（§2.6）。
 
@@ -78,13 +78,12 @@
 | --- | --- | --- | --- |
 | `LabelFontSize` | `double` | 11 | 0 以下は既定値。 文字サイズ（DIP） |
 | `LabelVerticalPadding` | `double` | 1 | 負の値は 0。 名前の行の上下の余白（DIP）。 名前の行の高さは本値を含むため、増やしても文字を置ける高さ（2 行ぶん）は変わらない |
-| `BoldCurrentLabel` | `bool` | `true` | 現在表示中の項目の名前を太字にする |
-| `BoldSelectedLabel` | `bool` | `true` | 選択中の項目の名前を太字にする（帯だけでは選択が弱いテーマがあるため） |
+| `BoldCurrentLabel` | `bool` | `true` | 現在表示中の画像（`CurrentIndex`）の名前を太字にする |
+| `BoldSelectedLabel` | `bool` | `true` | 選択中の項目（`SelectedIndex`）の名前を太字にする（帯だけでは選択が弱いテーマがあるため） |
 | `HoverHighlightOpacity` | `double` | `0.10` | 0〜1 へ補正。 ホバーの帯の不透明度（色は UI のテーマの文字色） |
 | `SelectionHighlightOpacity` | `double` | `0.20` | 0〜1 へ補正。 選択の帯の不透明度（色は UI のテーマのアクセント色） |
 | `HighlightedLabelArgb` | `uint` | `0` | 強調中の名前の色（0 は UI の標準色） |
 | `ShowShadow` | `bool` | `true` | 影を描く（算法は `Shadow` が保つため、算法を差し替えたまま表示だけを止められる） |
-| `HideShadowWhenSelected` | `bool` | `false` | 強調中は影を描かない |
 | `ShowHoverBackground` | `bool` | `true` | ホバーの背景を描く |
 | `ShowSelectionBackground` | `bool` | `true` | 選択の背景を描く |
 | `Shadow` | `IThumbnailShadowPlan?` | `ThumbnailShadowPlan.Default` | 影の計画（null は影を描かない） |

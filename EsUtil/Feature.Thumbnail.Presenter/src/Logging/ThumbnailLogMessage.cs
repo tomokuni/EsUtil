@@ -164,10 +164,6 @@ internal static partial class ThumbnailLogMessage
         logger.LogSettingChanged(
             nameof(ThumbnailAppearance.HighlightedLabelArgb), oldValue.HighlightedLabelArgb, newValue.HighlightedLabelArgb);
         logger.LogSettingChanged(
-            nameof(ThumbnailAppearance.HideShadowWhenSelected),
-            oldValue.HideShadowWhenSelected,
-            newValue.HideShadowWhenSelected);
-        logger.LogSettingChanged(
             nameof(ThumbnailAppearance.ShowHoverBackground), oldValue.ShowHoverBackground, newValue.ShowHoverBackground);
         logger.LogSettingChanged(
             nameof(ThumbnailAppearance.ShowSelectionBackground),

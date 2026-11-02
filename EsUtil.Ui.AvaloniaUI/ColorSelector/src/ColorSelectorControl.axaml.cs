@@ -455,8 +455,12 @@ public sealed partial class ColorSelectorControl : UserControl
         if (ShowThemeColors)
         {
             AddThemeColor(items, "テーマ: 背景", TopLevel.GetTopLevel(this)?.Background);
-            AddThemeColor(items, "テーマ: 文字", Foreground);
+            AddThemeColor(items, "テーマ: 文字", ResolveThemeBrush("SystemControlForegroundBaseHighBrush") ?? Foreground);
+            AddThemeColor(items, "テーマ: 副次テキスト", ResolveThemeBrush("SystemControlForegroundBaseMediumBrush"));
+            AddThemeColor(items, "テーマ: 枠線", ResolveThemeBrush("SystemControlForegroundBaseLowBrush"));
             AddThemeColor(items, "テーマ: アクセント", ResolveAccentBrush());
+            AddThemeColor(
+                items, "テーマ: 選択背景", ResolveThemeBrush("SystemControlHighlightAccentBrush") ?? ResolveAccentBrush());
         }
 
         foreach (var entry in ColorEntry.GetSorted(ColorSortMode))
@@ -482,6 +486,16 @@ public sealed partial class ColorSelectorControl : UserControl
             System.Drawing.Color.FromArgb(solid.Color.A, solid.Color.R, solid.Color.G, solid.Color.B));
         items.Add(new ColorSelectorItem(label, hex));
     }
+
+    /// <summary>テーマの資源をブラシとして取得する。</summary>
+    /// <param name="key">資源のキー（Fluent テーマの色の資源）。</param>
+    /// <returns>ブラシ。 取得できない場合は null。</returns>
+    /// <remarks>
+    /// 資源の値は明暗で切り替わるため、実際のテーマ（<see cref="StyledElement.ActualThemeVariant"/>）で解決する<br/>
+    /// （一覧を開くたびに解決するので、テーマを切り替えたあとの一覧は新しい値になる）。
+    /// </remarks>
+    private IBrush? ResolveThemeBrush(string key)
+        => this.TryFindResource(key, out var value) ? value as IBrush : null;
 
     /// <summary>テーマのアクセント色を取得する。</summary>
     /// <returns>アクセント色のブラシ。 取得できない場合は null。</returns>

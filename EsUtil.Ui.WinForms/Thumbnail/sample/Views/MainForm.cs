@@ -73,12 +73,11 @@ internal static class MainForm
             SampleSettings.Slider("最大の列数", 0, 0, 16, 1, true, value => thumbnails.Options = thumbnails.Options with { MaximumColumns = (int)value }),
             SampleSettings.Slider("ラベルの文字サイズ", 11, 6, 24, 1, true, value => Apply(appearance with { LabelFontSize = value })),
             SampleSettings.Slider("ラベルの上下の余白", 1, 0, 16, 1, true, value => Apply(appearance with { LabelVerticalPadding = value })),
-            SampleSettings.Check("現在項目のラベルを太字にする", true, value => Apply(appearance with { BoldCurrentLabel = value })),
-            SampleSettings.Check("選択項目のラベルを太字にする", true, value => Apply(appearance with { BoldSelectedLabel = value })),
+            SampleSettings.Check("現在項目（表示中の画像）のラベルを太字にする", true, value => Apply(appearance with { BoldCurrentLabel = value })),
+            SampleSettings.Check("選択項目（クリックした項目）のラベルを太字にする", true, value => Apply(appearance with { BoldSelectedLabel = value })),
             SampleSettings.Check("ホバーの背景を表示", true, value => Apply(appearance with { ShowHoverBackground = value })),
             SampleSettings.Check("選択の背景を表示", true, value => Apply(appearance with { ShowSelectionBackground = value })),
             SampleSettings.Check("影の表示", true, value => Apply(appearance with { ShowShadow = value })),
-            SampleSettings.Check("選択時に影を隠す", false, value => Apply(appearance with { HideShadowWhenSelected = value })),
             SampleSettings.Check("暗色テーマ（WinForms はテーマを持たないため個別に指定）", false, value =>
             {
                 thumbnails.IsDarkTheme = value;

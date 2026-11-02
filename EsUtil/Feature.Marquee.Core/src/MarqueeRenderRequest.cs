@@ -10,6 +10,7 @@ namespace EsUtil.Feature.Marquee;
 /// <param name="MarkerActive">始点マーカー（十字線）を描くかどうか（nudge 中かつ十字線が可視の場合に true）。</param>
 /// <param name="MarkerPosition">始点マーカーの中心（対象座標）。</param>
 /// <param name="MouseSourcePosition">直近のマウス位置（対象座標。 カーソル座標ラベルの文言の基準）。</param>
+/// <param name="PointerOver">ポインターが描画領域の上にあるかどうか（カーソル座標ラベルを描くかの判断に使う）。</param>
 /// <param name="Port">対象座標 ↔ ローカル DIP の座標変換ポート。 null の場合は <paramref name="ClientToSourceScaling"/> を倍率として適用する。</param>
 /// <param name="ClientToSourceScaling">ポート未指定の場合に適用する倍率（対象座標 / ローカル DIP。 0 以下・等倍は等価変換）。</param>
 /// <remarks>
@@ -28,7 +29,8 @@ public readonly record struct MarqueeRenderRequest(
     EsPoint MarkerPosition,
     EsPoint MouseSourcePosition,
     ICoordTransform? Port,
-    double ClientToSourceScaling)
+    double ClientToSourceScaling,
+    bool PointerOver = true)
 {
     /// <summary>使用する座標変換ポートを取得する（ポート優先・未指定なら倍率から生成）。</summary>
     /// <value>使用する座標変換ポート。</value>
@@ -74,6 +76,7 @@ public readonly record struct MarqueeRenderRequest(
     /// <param name="port">対象座標 ↔ ローカル DIP の座標変換ポート。 null の場合は倍率を使う。</param>
     /// <param name="dipToSourceScaling">ポート未指定の場合に適用する倍率（対象座標 / ローカル DIP）。</param>
     /// <param name="highlightSourceRect">ハイライト矩形（対象座標）。 null はハイライトなし。</param>
+    /// <param name="pointerOver">ポインターが描画領域の上にあるかどうか（省略時は true）。</param>
     /// <returns>描画の入力。</returns>
     /// <remarks>
     /// セッションの状態を写す組み立て順は <see cref="MarqueeCore.CreateRequest"/> が単一所有し、<br/>
@@ -88,8 +91,18 @@ public readonly record struct MarqueeRenderRequest(
         EsPoint mouseSourcePosition,
         ICoordTransform? port,
         double dipToSourceScaling,
-        EsRect? highlightSourceRect = null)
-        => new(options, clientSize, selectionSourceRect, markerActive, markerPosition, mouseSourcePosition, port, dipToSourceScaling)
+        EsRect? highlightSourceRect = null,
+        bool pointerOver = true)
+        => new(
+            options,
+            clientSize,
+            selectionSourceRect,
+            markerActive,
+            markerPosition,
+            mouseSourcePosition,
+            port,
+            dipToSourceScaling,
+            pointerOver)
         {
             HighlightSourceRect = highlightSourceRect,
         };

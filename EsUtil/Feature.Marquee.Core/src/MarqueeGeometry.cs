@@ -10,6 +10,7 @@ namespace EsUtil.Feature.Marquee;
 /// <param name="Marker">始点マーカー（DIP。 nudge 中のみ）。 nudge 中でない場合は null。</param>
 /// <param name="MouseSourcePosition">直近のマウス位置（対象座標。 カーソル座標ラベルの文言の基準）。</param>
 /// <param name="MouseDipPosition">直近のマウス位置（DIP。 カーソル座標ラベルの配置の基準）。</param>
+/// <param name="PointerOver">ポインターが描画領域の上にあるかどうか。</param>
 /// <remarks>
 /// <b>本値がコアの公開する描画の入口である</b>: コアは選択矩形・注目矩形・ハンドル・マーカーの幾何だけを返し、<br/>
 /// 装飾（暗転マスク・枠線・内側の塗り）・文言・表示可否・描画順は描画の都合として描画層（本コアを参照する上位の層）が解決する。<br/>
@@ -26,7 +27,8 @@ public readonly record struct MarqueeGeometry(
     MarqueeHandles? Handles,
     MarqueeMarker? Marker,
     EsPoint MouseSourcePosition,
-    EsPoint MouseDipPosition)
+    EsPoint MouseDipPosition,
+    bool PointerOver = true)
 {
     /// <summary>描画面の全体（左上を原点（0, 0）とする矩形）を取得する。</summary>
     /// <value>幅・高さが <see cref="ClientSize"/> の矩形（DIP）。</value>

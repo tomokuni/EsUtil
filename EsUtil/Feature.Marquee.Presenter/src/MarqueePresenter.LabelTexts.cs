@@ -92,7 +92,7 @@ public partial class MarqueePresenter
     /// <summary>カーソル座標ラベルの文言と基準点を解決する。</summary>
     /// <param name="geometry">描画の幾何（マウス位置（対象座標と DIP）とクライアントサイズを持つ）。</param>
     /// <param name="appearance">外観（表示可否を持つ）。</param>
-    /// <returns>座標ラベルのテキスト配置。 マウス位置が未確定の場合は null。</returns>
+    /// <returns>座標ラベルのテキスト配置。 ポインターが描画領域の外にある場合は null。</returns>
     /// <remarks>
     /// 文言は対象座標（<see cref="MarqueeGeometry.MouseSourcePosition"/>）を <see cref="EsPoint.Format(int)"/> が文字列化する。<br/>
     /// 基準点は DIP 座標（<see cref="MarqueeGeometry.MouseDipPosition"/>）+ <see cref="MarqueeAppearance.CoordLabelOffset"/> である<br/>
@@ -103,6 +103,13 @@ public partial class MarqueePresenter
     internal static MarqueeTextPlacement? ResolveCoordLabelText(
         in MarqueeGeometry geometry, MarqueeAppearance appearance)
     {
+        // ポインターが領域の外にあるときは描かない（最後に居た位置へ貼り付いたままになり、
+        // カーソルの無い場所に座標が出る。 実測 2026-11-02）
+        if (!geometry.PointerOver)
+        {
+            return null;
+        }
+
         var cursor = geometry.MouseDipPosition;
         var offset = appearance.CoordLabelOffset;
 

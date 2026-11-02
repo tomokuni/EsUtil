@@ -96,14 +96,17 @@ public class ThumbnailPresenterTests
         Assert.Equal(192, large.First(band => band.Y == 0 && band.Height == 1).Width);
     }
 
-    /// <summary>選択中だけ影を隠すことを検証する（ホバーでは隠さない）。</summary>
+    /// <summary>選択しても影は消えないことを検証する。</summary>
+    /// <remarks>
+    /// 影は「項目が面から浮いている」ことを表すため、選択（帯と太字）とは独立である。<br/>
+    /// 選択で影を消す設定は持たない（帯と太字で選択は十分に分かり、影を消すと項目が沈んで見える）。
+    /// </remarks>
     [Fact]
-    public void 選択時に影を隠す設定は選択中だけ影を除く()
+    public void 選択しても影は消えない()
     {
-        var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default with { HideShadowWhenSelected = true });
+        var presenter = new ThumbnailPresenter();
         var layout = presenter.ResolveLayout(300, 96, [96, 96]);
 
-        // ホバー中でも選択していなければ影を描く（通り過ぎただけで影が消えるとちらつく）
         var hovered = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: -1, hoveredIndex: 0);
         Assert.True(hovered.IsHovered);
         Assert.NotNull(hovered.Shadow);
@@ -111,8 +114,8 @@ public class ThumbnailPresenterTests
 
         var selected = presenter.ResolveDrawPlan(layout, 0, "a", isCurrent: false, selectedIndex: 0, hoveredIndex: -1);
         Assert.True(selected.IsSelected);
-        Assert.Null(selected.Shadow);
-        Assert.DoesNotContain(ThumbnailDrawLayer.Shadow, selected.Layers);
+        Assert.NotNull(selected.Shadow);
+        Assert.Contains(ThumbnailDrawLayer.Shadow, selected.Layers);
     }
 
     /// <summary>外観から決まる寸法を求めることを検証する。</summary>

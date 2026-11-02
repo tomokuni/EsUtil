@@ -29,7 +29,6 @@ var presenter = new ThumbnailPresenter(appearance: ThumbnailAppearance.Default w
 {
     HighlightedLabelArgb = 0xFF0078D4,
     ShowShadow = true,
-    HideShadowWhenSelected = true,
 });
 
 var layout = presenter.ResolveLayout(availableWidth, imageWidth, imageHeights);

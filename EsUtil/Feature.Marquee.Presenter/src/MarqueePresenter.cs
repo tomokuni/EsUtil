@@ -323,6 +323,7 @@ public sealed partial class MarqueePresenter
     /// <summary>現在の状態から描画 1 フレーム分の計画を解決する。</summary>
     /// <param name="clientSize">描画領域のサイズ（DIP。 原点は常に 0）。</param>
     /// <param name="measureText">テキストの実寸を測る関数。 null 不可。</param>
+    /// <param name="pointerOver">ポインターが描画領域の上にあるかどうか（省略時は true）。</param>
     /// <returns>描画計画（幾何・外観・層の順序・ラベル配置を解決済み）。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="measureText"/> が null の場合。</exception>
     /// <remarks>
@@ -340,12 +341,13 @@ public sealed partial class MarqueePresenter
     /// 実寸の測定は描画 API に依存するため、UI 層が関数として渡す<br/>
     /// （配置の計算（クランプ）は <see cref="ResolveLabelPlacements"/> が単一所有する）。
     /// </remarks>
-    public MarqueeDrawPlan ResolveDrawPlan(EsSize clientSize, Func<string, double, EsSize> measureText)
+    public MarqueeDrawPlan ResolveDrawPlan(
+        EsSize clientSize, Func<string, double, EsSize> measureText, bool pointerOver = true)
     {
         ArgumentNullException.ThrowIfNull(measureText);
 
         var appearance = Appearance;
-        var request = _core.CreateRequest(clientSize);
+        var request = _core.CreateRequest(clientSize, pointerOver);
         var geometry = MarqueeCore.ResolveGeometry(in request);
         var surface = geometry.ClientRect;
         var focus = geometry.FocusDipRect;

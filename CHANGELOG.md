@@ -14,11 +14,13 @@
   - **`ThumbnailPresenter.ResolveDrawPlan` から `isDark` 引数を削除**しました。
   - 濃さは外観が持ちます（`ThumbnailAppearance.HoverHighlightOpacity` = 0.10 / `SelectionHighlightOpacity` = 0.20）。 色の合成は `ThumbnailAppearance.ResolveHighlightArgb(kind, textArgb, accentArgb)` が行います。
   - **移行**: `BackgroundArgb` を設定していた差し替え（`DrawPlanResolver`）は、`Highlight` を設定するか、帯の色を UI 側の外観（`Appearance`）で調整してください。 `HoverBackground*Argb` / `SelectionBackground*Argb` を使っていた場合は、`HoverHighlightOpacity` / `SelectionHighlightOpacity` へ置き換えてください。
+- **`ThumbnailAppearance.HideShadowWhenSelected` を削除しました**。 選択は帯と太字（`BoldSelectedLabel`）で十分に分かり、影を消すと項目が沈んで見えるためです。 影は選択中も描きます（`ShowShadow` で全体を止められます）。 設定していた場合は行を削除してください（影は選択しても消えなくなります）。
 
 ### 追加
 
-- **`ColorSelector`（AvaloniaUI / MewUI / WinUI 3）の一覧の先頭に UI のテーマの色を並べました**（`テーマ: 背景` / `テーマ: 文字` / `テーマ: アクセント`）。 値はコアの色名の表ではなく**その UI のテーマから解決**するため、明暗の切替とアクセント色の変更に追随します（`ShowThemeColors` で無効化できます）。
+- **`ColorSelector`（AvaloniaUI / MewUI / WinUI 3）の一覧の先頭に UI のテーマの色を並べました**（**テーマ: 背景 / 文字 / 副次テキスト / 枠線 / アクセント / 選択背景**の 6 色を固定の順で）。 値はコアの色名の表ではなく**その UI のテーマから解決**するため、明暗の切替とアクセント色の変更に追随します（`ShowThemeColors` で無効化できます）。
 - **`ThumbnailAppearance.BoldSelectedLabel` を追加しました**（既定 `true`）。 選択中の項目の名前を太字にします。 帯だけでは選択が弱いテーマがあるため、名前の太さでも示します（`false` で従来どおり帯だけになります）。
+- **ホスト固有の付加情報を描く手段を 4 UI に揃えました**（Marquee）。 MewUI は `MarqueeRenderedEventArgs.DrawText`、WinUI 3 は `MarqueeRenderedEventArgs.AddText` を追加しました（AvaloniaUI は `Context`、WinForms は `Graphics` を従来どおり使えます）。 WinUI 3 だけ操作ガイドを出せなかった非対称を解消します。
 
 ### 変更
 
@@ -28,9 +30,13 @@
 - **`EsUtil.Ui.AvaloniaUI.Marquee` と `EsUtil.Ui.MewUI.Marquee` の対象フレームワークを `net10.0` へ戻しました**（`net10.0-windows10.0.17763.0` をやめます）。 Windows 専用なのは**引数なしコンストラクター**（`WinCursorService` を生成する既定構成）だけで、そこへ `[SupportedOSPlatform("windows10.0.17763")]` を付けます。 Windows 以外では `ICursorService` を渡すコンストラクターを使ってください（テストとサンプルは既定構築を使うため `net10.0-windows10.0.17763.0` のままです）。
 - **Thumbnail の影の色を 50% の灰色（`0xC0808080`）にしました**。 黒（`0x8A000000`）は暗色テーマの地色に埋もれて影が見えませんでした（実測 2026-11-02: コントラスト 1.05）。 灰色は地色へ合成されるため明暗で同じ程度になります（1.21 / 1.27）。
 - **サンプルのログ レベルを修正しました**（Marquee 4 UI）。 ポインター移動のたびに届く「ルーペ位置」とスクロール位置、ドラッグ中の選択矩形（`SelectionChanged`）を `Trace` へ落とし、状態の変化（開始・確定可能・キャンセル・確定要求）を `Debug` にしました（`Information` 固定だったため、既定の表示レベルで高頻度の行が出ていました）。 画面の状態表示（`選択: …` / `追従位置: …`）は従来どおり常に見えます。
-- **サンプルの「ハイライト切替」を「サンプル設定」から「プロパティ設定」へ移しました**（Marquee 4 UI）。 切り替えているのはコントロールのプロパティ（`HighlightSourceRect`）であり、メソッドの実行ではないためです（区分の分け方は [`開発手順.md`](.github/開発手順.md) が所有します）。
+- **サンプルの「ハイライト切替」を「サンプル設定」から「プロパティ設定」へ移し、文言を「ハイライト矩形を設定/解除」にしました**（Marquee 4 UI）。 切り替えているのはコントロールのプロパティ（`HighlightSourceRect`）であり、メソッドの実行ではないためです（区分の分け方は [`開発手順.md`](.github/開発手順.md) が所有します）。
 - **Thumbnail サンプルの「描画計画を差し替える」見本を、外観では表せない差分だけに絞りました**（4 UI）。 名前の色は外観（`HighlightedLabelArgb`）で表せるため見本から外し、ホバーも選択と同じ帯にする（`Highlight` の差し替え）だけを示します。
 - **`ColorSelector.ShowThemeColors` を 3 UI で同じ形にしました**（MewUI と WinUI 3 にも公開し、取得または設定にしました。 既定は `true`）。
+- **MewUI の `ColorSelector` の一覧の幅を内容に合わせました**。 一覧（`ListBox`）の既定の幅は内容と関係なく広く（行が 2 件でも 237.6 DIP、20 件では 457.6 DIP。 実測 2026-11-02）、入力欄より大幅に広いポップアップになっていました。 行を実測して幅を決めるため、文字サイズ・文言・テーマの文字サイズが変われば幅も追随します。
+- **MewUI の `ColorSelector` の一覧の表記を他 UI と揃えました**。 テーマの色だけ表示名ではなく保存値（`#FFF7F8FA`）が並んでいました（行の文字に適用値を書いていた。 実測 2026-11-02）。
+- **カーソル座標ラベルを直しました**（Marquee 4 UI）。 位置を受ける前と、ポインターが領域の外にある間（押下中を除く）は描かず、選択の解除（キャンセル）でも原点へ戻りません（`(0, 0)` が左上へ出ていた。 実測 2026-11-02）。
+- **Marquee のサンプルへ操作ガイドを追加しました**（MewUI / WinUI 3）。 描画部の左上へ「ドラッグで範囲を選択してください」/「選択 W x H」を出す表示が AvaloniaUI / WinForms だけにありました（下地の箱は 4 UI で揃えて廃止）。
 - **サンプルのアーキテクチャ固定をやめ、AnyCPU にしました**（`PlatformTarget` = `x64` と WinUI 3 の `RuntimeIdentifier` = `win-x64` を `.csproj` から外しました）。 WinUI 3 の自己完結配置（`WindowsAppSDKSelfContained`）は `-r` を渡したとき（publish）だけ有効になり、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。
 
 ## 0.2.0（2026-10-28）

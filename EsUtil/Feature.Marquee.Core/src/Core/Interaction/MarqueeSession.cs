@@ -103,6 +103,10 @@ internal sealed class MarqueeSession
     /// <value>直近のマウス位置。 未移動時は既定値。</value>
     internal EsPoint LastMousePosition => _state.LastMousePosition;
 
+    /// <summary>マウス位置を 1 度でも受けたかどうかを取得する。</summary>
+    /// <value>受けた場合は true（位置を受ける前は座標ラベルを描かない）。</value>
+    internal bool HasMousePosition => _state.HasMousePosition;
+
     /// <summary>十字マーカーが追従する位置（対象座標）。</summary>
     /// <value>ドラッグ中のハンドル位置・新規選択中の終点・未選択時の始点。</value>
     internal EsPoint MarkerPosition => _state.GetMarkerPosition();

@@ -123,17 +123,15 @@ internal static class MainForm
                 ? $"選択 {focus.Width:0} x {focus.Height:0}"
                 : "ドラッグで範囲を選択してください";
 
+            // 下地は敷かない（他 UI と同じ見た目にする。 文字だけを左上へ置く）
             var origin = new PointF((float)content.ClientRect.X + 12.0f, (float)content.ClientRect.Y + 12.0f);
-            using var background = new SolidBrush(Color.FromArgb(160, 0, 0, 0));
-            var size = e.Graphics.MeasureString(text, overlayFont);
-            e.Graphics.FillRectangle(background, origin.X, origin.Y, size.Width + 8.0f, size.Height + 4.0f);
             e.Graphics.DrawString(text, overlayFont, Brushes.White, origin);
         };
 
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
         var properties = Column(
             // ハイライトはコントロールのプロパティ（HighlightSourceRect）を切り替える操作である
-            SampleSettings.Buttons(("ハイライト切替", ToggleHighlight)),
+            SampleSettings.Buttons(("ハイライト矩形を設定/解除", ToggleHighlight)),
             SampleSettings.Slider("ズーム", zoom, MinZoom, MaxZoom, ZoomStep, false, value => ApplyZoom(value), 10),
             SampleSettings.Check("ハンドルを表示", true, value => Apply(appearance with { ShowHandles = value })),
             ColorChoice("ハンドルの色", 0, index => Apply(appearance with { HandleColor = ResolveColor(index) })),

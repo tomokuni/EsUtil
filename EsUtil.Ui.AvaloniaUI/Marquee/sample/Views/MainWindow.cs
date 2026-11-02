@@ -168,7 +168,7 @@ public sealed class MainWindow : Window
             Children =
             {
                 // ハイライトはコントロールのプロパティ（HighlightSourceRect）を切り替える操作である
-                SampleSettings.Buttons(("ハイライト切替", ToggleHighlight)),
+                SampleSettings.Buttons(("ハイライト矩形を設定/解除", ToggleHighlight)),
                 SampleSettings.Slider("ズーム", zoom, MinZoom, MaxZoom, 0.1, false, value =>
                 {
                     zoom = value;

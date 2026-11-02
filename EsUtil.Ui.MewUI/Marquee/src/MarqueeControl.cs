@@ -172,6 +172,10 @@ public sealed class MarqueeControl : Panel
         // フォーカスを失ったら nudge を終了する（カーソル非表示の残留防止）
         // `this.` は必須である（外すと MewUI の引数なしの OnLostFocus へ解決されて CS1501 になる）
         this.OnLostFocus(EndNudge);
+
+        // ポインターの出入りでカーソル座標ラベルの表示が変わる（領域の外では描かない）
+        MouseEnter += OnPointerPresenceChanged;
+        MouseLeave += OnPointerPresenceChanged;
     }
 
     /// <summary>図形（装飾・ハンドル・始点マーカー）だけを描画する内部の層。</summary>
@@ -533,6 +537,13 @@ public sealed class MarqueeControl : Panel
     /// <summary>直近に解決した描画計画の基準サイズ（DIP）。</summary>
     private EsSize _frameSize;
 
+    /// <summary>直近に解決したときポインターが本コントロールの上にあったかどうか（計画の再解決の判定に使う）。</summary>
+    /// <remarks>
+    /// カーソル座標ラベルはポインターが領域の外にある間は描かないため、出入りで計画が変わる<br/>
+    /// （サイズだけを判定にすると、出入りしても古い計画のままラベルが残る）。
+    /// </remarks>
+    private bool _framePointerOver;
+
     /// <summary>1 フレーム分の描画計画を解決して保持する（同じ基準サイズでは再解決しない）。</summary>
     /// <param name="clientSize">描画領域のサイズ（DIP。 DIP 換算済みの描画先サイズ）。</param>
     /// <returns>そのフレームの描画計画。</returns>
@@ -546,12 +557,15 @@ public sealed class MarqueeControl : Panel
     /// </remarks>
     private MarqueeDrawPlan ResolveFrame(EsSize clientSize)
     {
-        if (_frame is not { } cached || _frameSize != clientSize)
+        // 押下中は領域の外へ出ても座標が要る（ドラッグの座標は外でも意味を持つ）
+        var pointerOver = IsMouseOver || CurrentSnapshot.IsMouseDown;
+        if (_frame is not { } cached || _frameSize != clientSize || _framePointerOver != pointerOver)
         {
-            cached = _marquee.ResolveDrawPlan(clientSize, TextMeasure.Measure);
+            cached = _marquee.ResolveDrawPlan(clientSize, TextMeasure.Measure, pointerOver);
             cached = DrawPlanResolver?.Invoke(cached) ?? cached;
             _frame = cached;
             _frameSize = clientSize;
+            _framePointerOver = pointerOver;
         }
 
         return cached;
@@ -727,6 +741,17 @@ public sealed class MarqueeControl : Panel
 
         e.Handled = true;
         _marquee.Press(ToSource(e.GetPosition(this)), e.ClickCount);
+    }
+
+    /// <summary>ポインターの出入りでカーソル座標ラベルの表示を切り替える。</summary>
+    /// <remarks>
+    /// カーソル座標ラベルは領域の外では描かない（最後に居た位置へ貼り付くと、カーソルの無い場所に座標が出る）。<br/>
+    /// 表示の切り替えは計画の再解決で行うため、出入りのたびに計画を破棄して描き直す。
+    /// </remarks>
+    private void OnPointerPresenceChanged()
+    {
+        InvalidateFrame();
+        InvalidateRender();
     }
 
     /// <summary>ドラッグ中のマウス移動を処理する。</summary>

@@ -437,7 +437,11 @@ public sealed partial class ColorSelectorControl : Grid
         {
             AddThemeColor(items, "テーマ: 背景", ResolveThemeResource("ApplicationPageBackgroundThemeBrush"));
             AddThemeColor(items, "テーマ: 文字", ResolveThemeResource("TextFillColorPrimaryBrush") ?? _text.Foreground);
+            AddThemeColor(items, "テーマ: 副次テキスト", ResolveThemeResource("TextFillColorSecondaryBrush"));
+            AddThemeColor(items, "テーマ: 枠線", ResolveThemeResource("ControlStrokeColorDefaultBrush"));
             AddThemeColor(items, "テーマ: アクセント", ResolveAccentBrush());
+            AddThemeColor(
+                items, "テーマ: 選択背景", ResolveThemeResource("SystemControlHighlightAccentBrush") ?? ResolveAccentBrush());
         }
 
         foreach (var entry in ColorEntry.GetSorted(_colorSortMode))

@@ -1,5 +1,6 @@
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Ui.WinUI3.Interop.Drawing;
+using EsUtil.Ui.WinUI3.Marquee.Internal;
 
 // 本コントロールだけが使う複製（独立パッケージのため。 .github/依存関係.md §4.1）
 namespace EsUtil.Ui.WinUI3.Marquee;
@@ -22,6 +23,32 @@ public sealed class MarqueeRenderedEventArgs(DrawList overlay, MarqueeDrawPlan c
     /// <summary>追加描画を受け取る矩形の列を取得する。</summary>
     /// <value>ホストが <see cref="AddRect"/> で追加した矩形の列。</value>
     internal DrawList Overlay { get; } = overlay;
+
+    /// <summary>ホストが追加した文字の列（DIP）。</summary>
+    internal List<OverlayText> Texts { get; } = [];
+
+    /// <summary>ホスト固有の文字をコントロールの面へ置く。</summary>
+    /// <param name="x">左端（DIP。 コントロールの左上が原点）。</param>
+    /// <param name="y">上端（DIP。 コントロールの左上が原点）。</param>
+    /// <param name="text">置く文字列。 空の場合は何もしない。</param>
+    /// <param name="fontSize">文字サイズ（DIP）。</param>
+    /// <param name="argb">文字色（<c>0xAARRGGBB</c>）。</param>
+    /// <remarks>
+    /// 追加した文字は計画の層（装飾・ハンドル・始点マーカー）と <see cref="AddRect"/> の矩形より前面、<br/>
+    /// コントロールのラベルより背面へ置かれる（文字の後ろへ矩形を敷くときは、先に <see cref="AddRect"/> を呼ぶ）。<br/>
+    /// <b>描画 API を公開しない代わりに文字の手段を用意する</b>: 4 UI のサンプルが同じ付加情報（操作ガイド）を<br/>
+    /// 出せるようにするため（WinUI 3 だけが出せない状態を解消する。 実測 2026-11-02）。
+    /// </remarks>
+    public void AddText(double x, double y, string text, double fontSize, uint argb)
+    {
+        if (text.Length == 0)
+        {
+            return;
+        }
+
+        Texts.Add(new OverlayText(
+            new EsRect(x, y, 0, 0), text, fontSize, System.Drawing.Color.FromArgb((int)argb)));
+    }
 
     /// <summary>1 フレーム分の描画内容（装飾・ハンドル・始点マーカー・ラベル・層の順序）。</summary>
     /// <value>コントロールが実際に描画に使った値（描くものが無い項目は空・null）。</value>

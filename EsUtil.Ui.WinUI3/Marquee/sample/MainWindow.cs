@@ -154,6 +154,16 @@ public sealed class MainWindow : Window
         _marquee.SelectionCancelled += (_, _) => Write("キャンセル（選択が解除された）");
         _marquee.ConfirmRequested += (_, e) => Write($"確定要求: {FormatRect(e.Rect)}");
         _marquee.CancelRequested += (_, _) => Write("キャンセル要求");
+
+        // 選択サイズと操作ガイドはアプリ固有の情報のため、コントロールの描画完了後にホストが置く（他 UI と同じ文言・位置）
+        _marquee.Rendered += (_, e) =>
+        {
+            var content = e.Content;
+            var text = content.FocusDipRect is { } focus
+                ? $"選択 {focus.Width:0} x {focus.Height:0}"
+                : "ドラッグで範囲を選択してください";
+            e.AddText(content.ClientRect.X + 12, content.ClientRect.Y + 12, text, 14, 0xFFFFFFFF);
+        };
         _marquee.LoupePositionMoved += (_, e) =>
         {
             // ポインター移動のたびに届く高頻度の値であるため Trace（画面の表示は状態の行が担う）
@@ -173,7 +183,7 @@ public sealed class MainWindow : Window
             Children =
             {
                 // ハイライトはコントロールのプロパティ（HighlightSourceRect）を切り替える操作である
-                SampleSettings.Buttons(("ハイライト切替", ToggleHighlight)),
+                SampleSettings.Buttons(("ハイライト矩形を設定/解除", ToggleHighlight)),
                 SampleSettings.Slider("ズーム", _zoom, MinZoom, MaxZoom, ZoomStep, false, value =>
                 {
                     _zoom = value;

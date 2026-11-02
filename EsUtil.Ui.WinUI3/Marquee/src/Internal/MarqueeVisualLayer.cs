@@ -25,8 +25,14 @@ internal sealed partial class MarqueeVisualLayer : Canvas
     /// <summary>ホストが追加した矩形の層。</summary>
     private readonly MarqueeShapeLayer _overlay = new() { IsHitTestVisible = false };
 
+    /// <summary>ホストが追加した文字を載せる層。</summary>
+    private readonly Canvas _overlayTexts = new() { IsHitTestVisible = false };
+
     /// <summary>ラベルを載せる層。</summary>
     private readonly Canvas _labels = new() { IsHitTestVisible = false };
+
+    /// <summary>ホストが追加した文字の要素（件数が変わらなければ使い回す）。</summary>
+    private readonly List<TextBlock> _hostTexts = [];
 
     /// <summary>ラベルの要素（件数が変わらなければ使い回す）。</summary>
     private readonly List<Border> _labelBorders = [];
@@ -48,6 +54,7 @@ internal sealed partial class MarqueeVisualLayer : Canvas
 
         Children.Add(_shapes);
         Children.Add(_overlay);
+        Children.Add(_overlayTexts);
         Children.Add(_labels);
     }
 
@@ -74,6 +81,71 @@ internal sealed partial class MarqueeVisualLayer : Canvas
     public void ApplyOverlay(DrawList list)
     {
         _overlay.Apply(list, 1);
+    }
+
+    /// <summary>ホストが追加した文字を反映する。</summary>
+    /// <param name="texts">追加された文字。 null 不可。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="texts"/> が null の場合。</exception>
+    /// <remarks>
+    /// 件数は高々数件（操作ガイドなど）であるため、要素を使い回して値だけを書く<br/>
+    /// （毎フレーム作り直すと XAML の測定・配置が増える）。
+    /// </remarks>
+    public void ApplyOverlayTexts(IReadOnlyList<OverlayText> texts)
+    {
+        ArgumentNullException.ThrowIfNull(texts);
+
+        while (_hostTexts.Count < texts.Count)
+        {
+            var text = new TextBlock { IsHitTestVisible = false };
+            _hostTexts.Add(text);
+            _overlayTexts.Children.Add(text);
+        }
+
+        for (var i = 0; i < _hostTexts.Count; i++)
+        {
+            var element = _hostTexts[i];
+            if (i >= texts.Count)
+            {
+                if (element.Visibility != Visibility.Collapsed)
+                {
+                    element.Visibility = Visibility.Collapsed;
+                }
+
+                continue;
+            }
+
+            var overlay = texts[i];
+            if (GetLeft(element) != overlay.Bounds.X)
+            {
+                SetLeft(element, overlay.Bounds.X);
+            }
+
+            if (GetTop(element) != overlay.Bounds.Y)
+            {
+                SetTop(element, overlay.Bounds.Y);
+            }
+
+            if (!string.Equals(element.Text, overlay.Text, System.StringComparison.Ordinal))
+            {
+                element.Text = overlay.Text;
+            }
+
+            if (element.FontSize != overlay.FontSize)
+            {
+                element.FontSize = overlay.FontSize;
+            }
+
+            var foreground = SolidBrushCache.Get(MarqueeShapePlan.ToArgb(overlay.Color));
+            if (!ReferenceEquals(element.Foreground, foreground))
+            {
+                element.Foreground = foreground;
+            }
+
+            if (element.Visibility != Visibility.Visible)
+            {
+                element.Visibility = Visibility.Visible;
+            }
+        }
     }
 
     /// <summary>ラベルを反映する。</summary>

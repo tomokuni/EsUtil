@@ -24,6 +24,20 @@ public sealed class MarqueeRenderedEventArgs(IGraphicsContext context, MarqueeDr
     /// <value>コントロールの描画面。 ホストはここへ付加情報を描く。</value>
     public IGraphicsContext Context { get; } = context;
 
+    /// <summary>ホスト固有の文字をコントロールの面へ描く。</summary>
+    /// <param name="text">描く文字列。 空の場合は何もしない。</param>
+    /// <param name="x">左端（DIP。 コントロールの左上が原点）。</param>
+    /// <param name="y">上端（DIP。 コントロールの左上が原点）。</param>
+    /// <param name="fontSize">文字サイズ（DIP）。</param>
+    /// <param name="argb">文字色（<c>0xAARRGGBB</c>）。</param>
+    /// <remarks>
+    /// <b>文字の描画手段をコントロールが提供する</b>: 生のコンテキストはレイアウトを自前で作る必要があり、<br/>
+    /// ホスト（サンプル）に同じ手順を書かせない。 本メソッドはコントロールのラベルと同じエンジンで描く<br/>
+    /// （文字の実寸と描画が同じエンジンになる）。
+    /// </remarks>
+    public void DrawText(string text, double x, double y, double fontSize, uint argb)
+        => Internal.MewText.Draw(Context, text, x, y, fontSize, System.Drawing.Color.FromArgb((int)argb));
+
     /// <summary>1 フレーム分の描画内容（装飾・ハンドル・始点マーカー・ラベル・層の順序）。</summary>
     /// <value>コントロールが実際に描画に使った値（描くものが無い項目は空・null）。</value>
     /// <remarks>

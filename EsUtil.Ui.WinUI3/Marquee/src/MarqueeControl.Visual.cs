@@ -26,6 +26,13 @@ public sealed partial class MarqueeControl
     /// <summary>直近に解決した描画計画の基準サイズ（DIP）。</summary>
     private EsSize _frameSize;
 
+    /// <summary>直近に解決したときポインターが本コントロールの上にあったかどうか（計画の再解決の判定に使う）。</summary>
+    /// <remarks>
+    /// カーソル座標ラベルはポインターが領域の外にある間は描かないため、出入りで計画が変わる<br/>
+    /// （サイズだけを判定にすると、出入りしても古い計画のままラベルが残る）。
+    /// </remarks>
+    private bool _framePointerOver;
+
     /// <summary>描画内容の再解決と、描画面の再描画を要求する（描画に関わる変更の唯一の入口）。</summary>
     /// <remarks>
     /// 本 UI の面は <see cref="MarqueeVisualLayer"/> が所有し、要素の更新が描画の要求である<br/>
@@ -62,6 +69,7 @@ public sealed partial class MarqueeControl
             var args = new MarqueeRenderedEventArgs(new DrawList(), plan);
             Raise(Rendered, args);
             _visual.ApplyOverlay(args.Overlay);
+            _visual.ApplyOverlayTexts(args.Texts);
         }
         catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
@@ -82,12 +90,15 @@ public sealed partial class MarqueeControl
     /// </remarks>
     private MarqueeDrawPlan ResolveFrame(EsSize clientSize)
     {
-        if (_frame is not { } cached || _frameSize != clientSize)
+        // 押下中は領域の外へ出ても座標が要る（ドラッグの座標は外でも意味を持つ）
+        var pointerOver = _isPointerOver || CurrentSnapshot.IsMouseDown;
+        if (_frame is not { } cached || _frameSize != clientSize || _framePointerOver != pointerOver)
         {
-            cached = _marquee.ResolveDrawPlan(clientSize, TextMeasure.Measure);
+            cached = _marquee.ResolveDrawPlan(clientSize, TextMeasure.Measure, pointerOver);
             cached = DrawPlanResolver?.Invoke(cached) ?? cached;
             _frame = cached;
             _frameSize = clientSize;
+            _framePointerOver = pointerOver;
         }
 
         return cached;
@@ -102,7 +113,10 @@ public sealed partial class MarqueeControl
     /// （マウスを動かして初めて暗くなる。 実測 2026-10-25）。
     /// </remarks>
     private MarqueeDrawPlan CurrentFrame(EsSize clientSize)
-        => _frame is { } cached && _frameSize == clientSize ? cached : ResolveFrame(clientSize);
+        => _frame is { } cached && _frameSize == clientSize
+            && _framePointerOver == (_isPointerOver || CurrentSnapshot.IsMouseDown)
+            ? cached
+            : ResolveFrame(clientSize);
 
     /// <summary>保持している描画計画を破棄する（次の解決で最新の状態を反映する）。</summary>
     private void InvalidateFrame() => _frame = null;

@@ -113,7 +113,7 @@
 | 述語 | 条件 |
 | --- | --- |
 | `ShouldShowSizeLabel(bool hasFocusRect)` | 表示の設定が有効かつ注目矩形がある（基準点が矩形の左上であり、文言も矩形の寸法から作るため） |
-| `ShouldShowCoordLabel()` | 表示の設定が有効（基準点はカーソル位置であり、位置はコアの幾何が常に持つ） |
+| `ShouldShowCoordLabel()` | 表示の設定が有効（基準点はカーソル位置であり、位置はコアの幾何が常に持つ）。 **これに加えて、ポインターが領域の上にあり位置を受けている間だけ描く**（`MarqueeGeometry.PointerOver`。 位置を受ける前の原点や、領域の外へ出たあとの最後の位置を「カーソルの位置」として描くと、カーソルの無い場所へ座標が出る。 実測 2026-11-02） |
 | `ShouldDrawOverlay(bool hasFocusRect)` | 注目矩形がある、または全面暗転（`ShowFullOverlay`）が有効 |
 
 ### 2.5 ラベル配置の解決（`internal`。 本リファレンスには載せない）

@@ -63,12 +63,25 @@ public sealed partial class MarqueeControl
     /// <summary>ポインターが本コントロールへ入ったことを記録する。</summary>
     /// <param name="sender">イベント送信元（本コントロール）。</param>
     /// <param name="e">ポインターの情報。</param>
-    private void OnPointerEntered(object sender, PointerRoutedEventArgs e) => _isPointerOver = true;
+    /// <remarks>カーソル座標ラベルの表示はポインターの有無で変わるため、計画を破棄して描き直す。</remarks>
+    private void OnPointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        _isPointerOver = true;
+        InvalidateRender();
+    }
 
     /// <summary>ポインターが本コントロールから出たことを記録する。</summary>
     /// <param name="sender">イベント送信元（本コントロール）。</param>
     /// <param name="e">ポインターの情報。</param>
-    private void OnPointerExited(object sender, PointerRoutedEventArgs e) => _isPointerOver = false;
+    /// <remarks>
+    /// カーソル座標ラベルは領域の外では描かない（最後に居た位置へ貼り付くと、カーソルの無い場所に座標が出る）。<br/>
+    /// 表示の切り替えは計画の再解決で行うため、計画を破棄して描き直す。
+    /// </remarks>
+    private void OnPointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        _isPointerOver = false;
+        InvalidateRender();
+    }
 
     /// <summary>左ボタン押下時にドラッグを開始する。</summary>
     /// <param name="sender">イベント送信元（本コントロール）。</param>

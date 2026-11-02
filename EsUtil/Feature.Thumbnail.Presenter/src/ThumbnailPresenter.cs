@@ -229,9 +229,7 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
                 : ThumbnailHighlightKind.None;
 
         var highlighted = isSelected || isHovered;
-        var shadow = !_appearance.ShowShadow || (isSelected && _appearance.HideShadowWhenSelected)
-            ? null
-            : _appearance.Shadow;
+        var shadow = _appearance.ShowShadow ? _appearance.Shadow : null;
         var image = layout.Image(index);
         var shadowArea = shadow is null ? image : shadow.Expand(image);
 

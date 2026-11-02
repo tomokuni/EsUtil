@@ -153,6 +153,7 @@
 | `FocusSourceRect` | 注目矩形（対象座標。 選択した矩形をそのまま渡すため `Interval` も保持する）。 ホストが矩形ごとの表示スケールを解決するために使う |
 | `Handles` | ドラッグハンドルの幾何（`HandleDipRects` 8 方向・`BorderThickness`）。 選択が無い場合は null |
 | `Marker` | 始点マーカーの幾何（`Center` / `Size`＝半幅）。 nudge 中でない場合は null。 線の太さは描画層の外観（`MarkerThickness`）が持つ |
+| `PointerOver` | ポインターが描画領域の上にあり、位置を 1 度でも受けたか（カーソル座標ラベルを描くかの判断に使う） |
 | `MouseSourcePosition` | 直近のマウス位置（対象座標）。 カーソル座標ラベルの文言の基準 |
 | `MouseDipPosition` | 直近のマウス位置（DIP。 座標変換済み）。 カーソル座標ラベルの配置の基準 |
 

@@ -38,11 +38,16 @@ public sealed record ThumbnailAppearance
         init => field = Math.Max(0, value);
     } = 1;
 
-    /// <summary>現在表示中の画像の名前を太字にするかどうかを取得する。</summary>
+    /// <summary>現在表示中の画像（<see cref="ThumbnailPresenter"/> の <c>CurrentIndex</c>）の名前を太字にするかどうかを取得する。</summary>
     /// <value>太字にする場合は true（既定）。</value>
+    /// <remarks>
+    /// <b>「現在項目」は選択とは別である</b>: 現在項目は一覧の中で<b>画像を表示している</b> 1 件（ホストが決める）、<br/>
+    /// 選択は利用者がクリックした 1 件（<c>SelectedIndex</c>）。 両者は別の項目を指せる（表示中は 5 番、選択は 3 番など）。<br/>
+    /// 両方に該当する項目は <see cref="BoldSelectedLabel"/> と合わせて 1 回だけ太字になる。
+    /// </remarks>
     public bool BoldCurrentLabel { get; init; } = true;
 
-    /// <summary>選択中の項目の名前を太字にするかどうかを取得する。</summary>
+    /// <summary>選択中の項目（<c>SelectedIndex</c>）の名前を太字にするかどうかを取得する。</summary>
     /// <value>太字にする場合は true（既定）。</value>
     /// <remarks>
     /// <b>選択の強調は標準の体裁とする</b>: 帯だけでは選択が弱いテーマがあるため、名前の太さでも示す。<br/>
@@ -82,10 +87,6 @@ public sealed record ThumbnailAppearance
     /// （余白だけが残ると項目の間が不自然に空く）。
     /// </remarks>
     public bool ShowShadow { get; init; } = true;
-
-    /// <summary>強調（ホバー・選択）中の項目の影を隠すかどうかを取得する。</summary>
-    /// <value>隠す場合は true。 既定は false。</value>
-    public bool HideShadowWhenSelected { get; init; }
 
     /// <summary>ホバーの背景を描くかどうかを取得する。</summary>
     /// <value>描く場合は true（既定）。</value>

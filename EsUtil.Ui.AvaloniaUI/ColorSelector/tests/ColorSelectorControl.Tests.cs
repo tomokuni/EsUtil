@@ -20,7 +20,8 @@ public class ColorSelectorControlTests
     /// <summary>一覧の先頭にテーマの色が並ぶことを検証する。</summary>
     /// <remarks>
     /// テーマの色は UI ごとに異なるためコアの色名の表には含めず、一覧を作るたびに UI から解決する。<br/>
-    /// 表示名（「テーマ: 背景」等）と適用値（そのときの色の <c>#AARRGGBB</c>）を分けて持つ。
+    /// 表示名（「テーマ: 背景」等）と適用値（そのときの色の <c>#AARRGGBB</c>）を分けて持つ。<br/>
+    /// 並べる順序は UI 層が違っても同じ（背景 → 文字 → 副次テキスト → 枠線 → アクセント → 選択背景）。
     /// </remarks>
     [AvaloniaFact]
     internal void 一覧の先頭にテーマの色が並ぶ()
@@ -37,6 +38,25 @@ public class ColorSelectorControlTests
 
         // 色名の一覧は表示名と適用値が同じ（テーマの色だけが両者で異なる）
         Assert.Contains(items, item => item.Label == item.Value && item.Value == "Red");
+    }
+
+    /// <summary>テーマの色の並び順が決まっていることを検証する。</summary>
+    /// <remarks>
+    /// 並べる順序は 3 UI で共通である（同じ機能の一覧は UI 層が違っても同じ順に並べる）。<br/>
+    /// 解決できない色（地色・枠線など）は並ばないため、並んだ項目だけで順序を確かめる。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void テーマの色は決まった順に並ぶ()
+    {
+        var control = CreateControl();
+
+        var labels = control.CreateItems()
+            .Select(item => item.Label)
+            .Where(label => label.StartsWith("テーマ:", StringComparison.Ordinal))
+            .ToArray();
+
+        string[] expected = ["テーマ: 背景", "テーマ: 文字", "テーマ: 副次テキスト", "テーマ: 枠線", "テーマ: アクセント", "テーマ: 選択背景"];
+        Assert.Equal(expected.Where(labels.Contains), labels);
     }
 
     /// <summary>テーマの色を並べない設定にできることを検証する。</summary>

@@ -42,15 +42,32 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>テキスト入力の最小幅（DIP）。</summary>
     private const double TextBoxMinWidth = 120.0;
 
+    /// <summary>一覧の幅に足す余白（DIP。 枠と、行の文字が端に接しないための余裕）。</summary>
+    /// <remarks>行の実寸と項目の余白は実測値であり、端数だけで足りない分を本値が補う（実測 2026-11-02）。</remarks>
+    private const double ListWidthAllowance = 8.0;
+
     /// <summary>一覧の 1 行（色の四角 + 名前）を作るテンプレート。</summary>
     /// <remarks>
     /// 名前だけを並べると選ぶ色が分からないため、他 UI と同じく色の四角を添える<br/>
-    /// （値は保存値（<c>#AARRGGBB</c> または色名）であり、四角の色はその値から解決する）。
+    /// （値は保存値（<c>#AARRGGBB</c> または色名）であり、四角の色はその値から解決する）。<br/>
+    /// <b>文字サイズを明示する</b>: 画面へ付いていない行を測ると既定の文字サイズで測ってしまい、<br/>
+    /// 実際に並ぶ行より広い幅を要求する（実測 2026-11-02: 96 DIP の行が 137.6 DIP になった）。<br/>
+    /// 実測と表示を同じ大きさにするため、テーマの文字サイズを渡す（他 UI の一覧もテーマの文字サイズで並ぶ）。
     /// </remarks>
-    private static readonly IDataTemplate s_itemTemplate = new DelegateTemplate<ColorSelectorItem>(
-        static _ => CreateItemRow(),
-        static (view, item, _, _) => ApplyItem(view, item.Value),
-        static (_, _, _, _) => { });
+    private readonly IDataTemplate _itemTemplate;
+
+    /// <summary>テーマの文字サイズを解決できない場合に使う文字サイズ（DIP）。</summary>
+    private const double FallbackFontSize = 12.0;
+
+    /// <summary>一覧の行の文字サイズ（DIP）を取得する。</summary>
+    /// <value>テーマの文字サイズ。 テーマを解決できない場合（<c>Application.Run</c> 前）は <see cref="FallbackFontSize"/>。</value>
+    /// <remarks>
+    /// <b>行の実測と表示で同じ値を読む</b>: 行を画面へ付ける前に測ると、既定の文字サイズで測って実際の行と<br/>
+    /// 大きさが食い違う（実測 2026-11-02）。 測る側（<see cref="ApplyListWidth"/>）と作る側（<see cref="CreateItemRow"/>）が<br/>
+    /// 同じ値を読むことで、必要な幅と実際の行が一致する。
+    /// </remarks>
+    private static double ListFontSize
+        => Application.IsRunning ? Application.Current.Theme.Metrics.FontSize : FallbackFontSize;
 
     /// <summary>枠の色（半透明の灰色。 明色・暗色のどちらのテーマでも見える）。</summary>
     private static readonly MewColor s_borderColor = MewColor.FromArgb(0x80, 0x80, 0x80, 0x80);
@@ -146,8 +163,16 @@ public sealed class ColorSelectorControl : Grid
         _pickerButton = CreateSegmentButton("…");
         _pickerButton.Click += TogglePicker;
 
-        _list = new ListBox();
+        // 一覧の幅は**行の内容に合わせる**（既定のまま置くと、ポップアップが使える領域の幅いっぱいへ広がる。
+        // 実測 2026-11-02: 入力欄が 200 DIP でも一覧が 600 DIP 以上になっていた）。
+        // 左寄せにすると希望サイズが内容の実寸になり、文字サイズや行の文言が変われば幅も追随する
+        _list = new ListBox { HorizontalAlignment = HorizontalAlignment.Left };
         _list.SelectionChanged += _ => ApplyListSelection();
+
+        _itemTemplate = new DelegateTemplate<ColorSelectorItem>(
+            _ => CreateItemRow(ListFontSize),
+            static (view, item, _, _) => ApplyItem(view, item),
+            static (_, _, _, _) => { });
         _listPopup = new Popup();
         _listPopup.Content(_list);
         _listPopup.Closed += (_, _) => _listButton.Content("▼");
@@ -389,8 +414,9 @@ public sealed class ColorSelectorControl : Grid
         => _frame.BorderBrush = _highlightBorderOnError && HasValidationError ? s_errorColor : s_borderColor;
 
     /// <summary>一覧の 1 行（色の四角 + 名前）を作る。</summary>
+    /// <param name="fontSize">行の文字サイズ（DIP）。</param>
     /// <returns>作った要素。</returns>
-    private static Border CreateItemRow()
+    private static Border CreateItemRow(double fontSize)
     {
         var swatch = new Border
         {
@@ -408,14 +434,19 @@ public sealed class ColorSelectorControl : Grid
             Child = new StackPanel()
                 .Horizontal()
                 .Spacing(6)
-                .Children(swatch, new TextBlock { VerticalAlignment = VerticalAlignment.Center }),
+                .Children(swatch, new TextBlock { FontSize = fontSize, VerticalAlignment = VerticalAlignment.Center }),
         };
     }
 
     /// <summary>一覧の 1 行へ色と名前を写す。</summary>
     /// <param name="view">テンプレートが作った要素。</param>
-    /// <param name="value">適用する色の文字列。</param>
-    private static void ApplyItem(FrameworkElement view, string value)
+    /// <param name="item">項目（表示名と適用値）。</param>
+    /// <remarks>
+    /// <b>表示名と適用値は別である</b>: テーマの色は表示名（<c>テーマ: 背景</c>）と適用値（<c>#FFF7F8FA</c>）が異なり、<br/>
+    /// 色名は両者が同じである。 行の文字には必ず表示名を書き、四角の色は適用値から解決する<br/>
+    /// （適用値を書くとテーマの色だけ 16 進の文字列が並び、他 UI と表記が変わる。 実測 2026-11-02）。
+    /// </remarks>
+    private static void ApplyItem(FrameworkElement view, ColorSelectorItem item)
     {
         if (view is not Border { Child: StackPanel panel } || panel.Children.Count < 2
             || panel.Children[0] is not Border swatch || panel.Children[1] is not TextBlock text)
@@ -423,8 +454,8 @@ public sealed class ColorSelectorControl : Grid
             return;
         }
 
-        text.Text = value;
-        swatch.Background = ColorString.TryParse(value, out var color, out _)
+        text.Text = item.Label;
+        swatch.Background = ColorString.TryParse(item.Value, out var color, out _)
             ? MewColor.FromArgb(color.A, color.R, color.G, color.B)
             : MewColor.Transparent;
     }
@@ -463,7 +494,10 @@ public sealed class ColorSelectorControl : Grid
             var palette = Application.Current.Theme.Palette;
             items.Add(new ColorSelectorItem("テーマ: 背景", ToHex(palette.WindowBackground)));
             items.Add(new ColorSelectorItem("テーマ: 文字", ToHex(palette.WindowText)));
+            items.Add(new ColorSelectorItem("テーマ: 副次テキスト", ToHex(palette.PlaceholderText)));
+            items.Add(new ColorSelectorItem("テーマ: 枠線", ToHex(palette.ControlBorder)));
             items.Add(new ColorSelectorItem("テーマ: アクセント", ToHex(palette.Accent)));
+            items.Add(new ColorSelectorItem("テーマ: 選択背景", ToHex(palette.SelectionBackground)));
         }
 
         foreach (var entry in ColorEntry.GetSorted(_colorSortMode))
@@ -490,7 +524,8 @@ public sealed class ColorSelectorControl : Grid
         try
         {
             _list.ItemsSource = ItemsView.Create(entries);
-            _list.ItemTemplate = s_itemTemplate;
+            _list.ItemTemplate = _itemTemplate;
+            ApplyListWidth(entries);
             if (ColorString.TryParse(_selectedColor, out var color, out _))
             {
                 UpdateSelectedIndex(color);
@@ -500,6 +535,37 @@ public sealed class ColorSelectorControl : Grid
         {
             _applying = false;
         }
+    }
+
+    /// <summary>一覧の幅を内容（行の実寸）に合わせる。</summary>
+    /// <param name="entries">一覧に並べる項目。</param>
+    /// <remarks>
+    /// <b>ListBox の既定の幅は内容と関係なく広い</b>: 行が 2 件でも 237.6 DIP を要求し、行を増やすとさらに広がる<br/>
+    /// （実測 2026-11-02）。 そのまま置くと一覧だけが入力欄より大幅に広くなるため、行を実測して幅を決める。<br/>
+    /// <b>文字サイズ・文言を変えても追随する</b>: 見積もりではなく実際の行（テンプレートが作る要素）を測るため、<br/>
+    /// テーマの文字サイズが変わっても必要な幅が変わる（固定値を置くと文字が切れるか余りが出る）。
+    /// </remarks>
+    private void ApplyListWidth(List<ColorSelectorItem> entries)
+    {
+        // 画面へ出ていない間（アプリ実行前・ヘッドレス）は測らない。 文字の測定は描画のバックエンドを要求するため、
+        // ここで測ると生成そのものが失敗する（実測 2026-11-02）。 幅は開くたびに作り直すので、実行後に測れば足りる
+        if (!Application.IsRunning)
+        {
+            _list.Width = double.NaN;
+            return;
+        }
+
+        var widest = 0.0;
+        foreach (var entry in entries)
+        {
+            var row = CreateItemRow(ListFontSize);
+            ApplyItem(row, entry);
+            row.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            widest = Math.Max(widest, row.DesiredSize.Width);
+        }
+
+        var padding = _list.ItemPadding;
+        _list.Width = widest + padding.Left + padding.Right + ListWidthAllowance;
     }
 
     /// <summary>テキスト入力が変わったときに色を反映する。</summary>

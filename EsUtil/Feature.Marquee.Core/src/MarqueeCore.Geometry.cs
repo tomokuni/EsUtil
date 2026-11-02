@@ -57,7 +57,8 @@ public sealed partial class MarqueeCore
             ResolveHandles(request, port),
             ResolveMarker(request, port),
             request.MouseSourcePosition,
-            port.ToDip(request.MouseSourcePosition));
+            port.ToDip(request.MouseSourcePosition),
+            request.PointerOver);
     }
 
     /// <summary>ドラッグハンドルの幾何を解決する。</summary>

@@ -14,9 +14,24 @@ public class MarqueePresenterLabelTextsTests
     /// <summary>検証に使う幾何を生成する（マウス位置の 2 表現だけを指定する）。</summary>
     /// <param name="mouseSource">マウス位置（対象座標）。</param>
     /// <param name="mouseDip">マウス位置（DIP。 座標変換後）。</param>
+    /// <param name="pointerOver">ポインターが描画領域の上にあるかどうか（省略時は true）。</param>
     /// <returns>カーソル座標ラベルの検証に必要な値だけを持つ幾何。</returns>
-    private static MarqueeGeometry CreateGeometry(EsPoint mouseSource, EsPoint mouseDip)
-        => new(new EsSize(200, 100), null, null, null, null, mouseSource, mouseDip);
+    private static MarqueeGeometry CreateGeometry(EsPoint mouseSource, EsPoint mouseDip, bool pointerOver = true)
+        => new(new EsSize(200, 100), null, null, null, null, mouseSource, mouseDip, pointerOver);
+
+    /// <summary>ポインターが描画領域の外にあるときは座標ラベルを解決しないことを検証する。</summary>
+    /// <remarks>
+    /// 最後に居た位置へ貼り付いたままにすると、カーソルの無い場所へ座標が出る（実測 2026-11-02）。
+    /// </remarks>
+    [Fact]
+    internal void ResolveCoordLabelText_ポインターが領域の外なら解決しない()
+    {
+        var geometry = CreateGeometry(new EsPoint(30, 40), new EsPoint(15, 20), pointerOver: false);
+
+        var result = MarqueePresenter.ResolveCoordLabelText(geometry, MarqueeAppearance.Default);
+
+        Assert.Null(result);
+    }
 
     /// <summary>表示しない設定でも文言（値）を解決することを検証する。</summary>
     /// <remarks>
