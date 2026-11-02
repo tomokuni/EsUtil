@@ -9,6 +9,9 @@
 # 設計の要点:
 #   - **版は人が Directory.Build.props の VersionPrefix へ書いてコミットしておく**（自動採番しない）。
 #     入力 `version` は確認用であり、ツリーの値と一致しなければ失敗する。
+#   - **CHANGELOG の見出しを公開前に確定させる**（`## 未リリース` が残っていれば失敗する。
+#     公開した版の変更が「未リリース」のまま残らないようにする。 手順は .github/RELEASE.md）。
+#   - **配布物は dry-run で 1 回だけ作り、release はそれを使う**（同じコミットを 2 回 pack しない）。
 #   - **公開が成功した後にだけタグを打つ**（公開できなかった版にタグを残さない）。
 #   - **タグはグループ別**（`EsUtil/v0.2.0` / `EsUtil.Ui.<UI>/v0.1.0`）。
 #   - **公開は Trusted Publishing**（OIDC で短命の API キーを取得する。 長期の API キーを持たない）。
@@ -63,12 +66,37 @@ jobs:
     outputs:
       groups: ${{ steps.plan.outputs.groups }}
       count: ${{ steps.plan.outputs.count }}
+      # dry-run の実行 ID（release はその成果物を使う。 同じコミットを 2 回 pack しない）
+      dryRunId: ${{ steps.plan.outputs.dryRunId }}
     steps:
       - name: チェックアウト
         uses: actions/checkout@v7
         with:
           # グループ別タグとの差分を取るため全履歴を取得する
           fetch-depth: 0
+
+      # 公開した版の変更が「未リリース」のまま残らないようにする（規則は .github/RELEASE.md）。
+      - name: CHANGELOG の見出しを検証する
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $lines = [IO.File]::ReadAllLines('CHANGELOG.md', [Text.UTF8Encoding]::new($false))
+
+          $unreleased = @($lines | Where-Object { $_ -match '^##\s+未リリース' })
+          if ($unreleased.Count -gt 0) {
+            throw "CHANGELOG.md に「$($unreleased[0])」が残っています。 見出しを「## <版>（<公開日>）」へ確定してコミットしてください（手順は .github/RELEASE.md）。"
+          }
+
+          # 版との一致は警告に留める（グループごとに版が違い、見出しの書き方は 1 つに決まらない）
+          $first = @($lines | Where-Object { $_ -match '^## ' })[0]
+          $props = [IO.File]::ReadAllText('Directory.Build.props', [Text.UTF8Encoding]::new($false))
+          $versions = @([regex]::Matches($props, '<EsUtil(_Ui_[A-Za-z0-9]+)?_VersionPrefix>([^<]+)</') | ForEach-Object { $_.Groups[2].Value.Trim() } | Sort-Object -Unique)
+          foreach ($version in $versions) {
+            if (-not $first.Contains($version)) {
+              Write-Host "::warning::CHANGELOG.md の先頭の見出し（$first）に版 $version が含まれていません。"
+            }
+          }
+          Write-Host "CHANGELOG の見出し: $first"
 
       - name: 実行ブランチを検証する
         shell: pwsh
@@ -161,28 +189,34 @@ jobs:
             Write-Host 'リリースするグループがありません（前回のタグから変更がありません）。'
           }
 
-          # release は「同じコミットの dry-run が成功している」ことを前提にする
+          # release は「同じコミットの dry-run が成功している」ことを前提にする。
+          # その実行の成果物をそのまま公開する（同じコミットを 2 回 pack しない）。
+          $dryRunId = ''
           if ($env:MODE -eq 'release') {
             # displayTitle は run-name（`DryRun <ブランチ> <SHA>` / `Release …`）である。
             # name はワークフロー名（Release）なので判定に使えない。
-            $runs = @(gh run list --repo $env:REPO --workflow release.yml --commit $env:SHA --limit 50 --json displayTitle,conclusion,headSha | ConvertFrom-Json)
-            $ok = @($runs | Where-Object { $_.displayTitle -like 'DryRun*' -and $_.conclusion -eq 'success' }).Count -gt 0
-            if (-not $ok) {
+            $runs = @(gh run list --repo $env:REPO --workflow release.yml --commit $env:SHA --limit 50 --json databaseId,displayTitle,conclusion,headSha | ConvertFrom-Json)
+            $dry = @($runs | Where-Object { $_.displayTitle -like 'DryRun*' -and $_.conclusion -eq 'success' })
+            if ($dry.Count -eq 0) {
               throw "このコミット（$env:SHA）の dry-run の成功実行がありません。先に mode=dry-run で実行してください。"
             }
+            # 複数ある場合は最新（gh run list の既定の並びは新しい順）を使う
+            $dryRunId = $dry[0].databaseId
+            Write-Host "dry-run の実行: $dryRunId（成果物を再利用します）"
           }
 
           $json = $groups | ConvertTo-Json -Compress -AsArray
           "groups=$json" >> $env:GITHUB_OUTPUT
           "count=$($groups.Count)" >> $env:GITHUB_OUTPUT
+          "dryRunId=$dryRunId" >> $env:GITHUB_OUTPUT
           Write-Host "対象: $json"
 
   # ────────────────────────────────────────────────────────────
-  # 2. 配布物の作成（dry-run でも release でも実行する）
+  # 2. 配布物の作成（dry-run だけが作る。 release は dry-run の成果物を使う）
   # ────────────────────────────────────────────────────────────
   pack:
     needs: verify
-    if: needs.verify.outputs.count != '0'
+    if: inputs.mode == 'dry-run' && needs.verify.outputs.count != '0'
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
@@ -223,13 +257,13 @@ jobs:
           if-no-files-found: error
 
   # ────────────────────────────────────────────────────────────
-  # 2b. SBOM（CycloneDX）を作る（dry-run でも作って検証する）
+  # 2b. SBOM（CycloneDX）を作る（dry-run だけが作る。 release は dry-run の成果物を使う）
   # ────────────────────────────────────────────────────────────
   # **pack と並列に走らせる**（SBOM は配布物を使わない。 直列にすると作成の待ち時間が毎回乗る）。
   # グループ（= ソリューション）ごとに 1 ファイル作り、そのグループの Release へ添付する。
   sbom:
     needs: verify
-    if: needs.verify.outputs.count != '0'
+    if: inputs.mode == 'dry-run' && needs.verify.outputs.count != '0'
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -269,22 +303,28 @@ jobs:
   # 3. 公開（release のみ。 承認を要求する）
   # ────────────────────────────────────────────────────────────
   publish:
-    needs: [verify, pack]
-    if: inputs.mode == 'release'
+    needs: [verify]
+    if: inputs.mode == 'release' && needs.verify.outputs.count != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # 承認されたジョブだけが公開できる（Trusted Publishing のポリシーもこの環境に紐づける）
     environment: release
     permissions:
       contents: read
+      # dry-run の実行の成果物を取得する
+      actions: read
       # OIDC で短命の NuGet API キーを取得する
       id-token: write
     steps:
-      - name: 配布物を取得
+      # **dry-run が作った配布物をそのまま公開する**（同じコミットを 2 回 pack しない。
+      # 検証したバイト列と公開するバイト列が一致する）。 dry-run の成果物が失効している場合は失敗する。
+      - name: 配布物を取得（dry-run の実行から）
         uses: actions/download-artifact@v8
         with:
           name: nupkg
           path: artifacts
+          run-id: ${{ needs.verify.outputs.dryRunId }}
+          github-token: ${{ github.token }}
 
       # 短命の API キーを取得する（1 時間有効。 1 トークン = 1 キー。 **push の直前に取得する**）
       - name: NuGet の API キーを取得
@@ -340,11 +380,14 @@ jobs:
   # 4. タグと GitHub Release（公開が成功した後にだけ実行する）
   # ────────────────────────────────────────────────────────────
   tag:
-    needs: [verify, publish, sbom]
+    needs: [verify, publish]
+    if: inputs.mode == 'release' && needs.verify.outputs.count != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: write
+      # dry-run の実行の成果物を取得する
+      actions: read
       # 成果物の由来（provenance）を証明する（署名は GitHub の OIDC で行う）
       id-token: write
       attestations: write
@@ -354,12 +397,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 公開したパッケージと SBOM を 1 つのフォルダへ集約する
-      - name: 成果物をダウンロード
+      # 公開したパッケージと SBOM を 1 つのフォルダへ集約する（どちらも dry-run が作った成果物）
+      - name: 成果物をダウンロード（dry-run の実行から）
         uses: actions/download-artifact@v8
         with:
           path: assets
           merge-multiple: true
+          run-id: ${{ needs.verify.outputs.dryRunId }}
+          github-token: ${{ github.token }}
 
       # **由来の証明**（どのワークフロー・どのコミットが作ったかを検証できるようにする）。
       # 公開した版は取り消せないため、後から出所を確かめられる状態にする（規則は .github/RELEASE.md）。

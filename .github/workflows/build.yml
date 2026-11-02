@@ -1,10 +1,14 @@
 # ビルドワークフロー
 #
-# 実行契機は次のとおり。
-#   main への push（マージ含む） … 必ず実行する
-#   main 向け Pull Request       … 必ず実行する
-#   dev への push                … 実行する（作業ブランチの確認）
-#   手動実行（workflow_dispatch）  … 任意のブランチで確認する場合に使用する
+# 実行契機は次のとおり（**フル検証は Pull Request の 1 回だけ**）。
+#   main 向け Pull Request … フル検証（唯一のゲート。 必須チェックは `ci`）
+#   手動実行（workflow_dispatch） … 任意のブランチで確認する場合に使用する
+#
+# **push では実行しない**。 `main` へ入るのは Pull Request だけであり（ruleset）、Pull Request の検証は
+# **マージ後に `main` へ載るツリーそのもの**（`refs/pull/<番号>/merge`）を対象にする。 同じツリーを
+# マージ後にもう一度検証しても結果は変わらないため、`dev` への push と `main` への push では実行しない
+# （実測 2026-11-02: 1 変更あたり最大 3 回、windows ランナー 5 本ずつ走っていた）。
+# 作業ブランチで早く壊れを見つけたいときは、手元の `buildScript/verify.ps1` か workflow_dispatch を使う。
 #
 # **変更のあったソリューションだけを検証する**（paths フィルタ）。
 # 共通基盤（`EsUtil/`）・ビルド設定・スクリプト・文書を変えたときは 5 本すべてを検証する。
@@ -22,12 +26,11 @@
 #
 # Windows 専用（Win32 API の P/Invoke を含む）のため windows-latest で実行する。
 #
-# README の「build」バッジはこのワークフローの status を表示する（badge.svg?branch=main）。
+# README の「build」バッジは `?event=pull_request` を指定する（既定は**既定ブランチの最新実行**であり、
+# push では実行しないため、`dev` の古い push の結果が残って Pull Request の失敗を表示できない）。
 name: Build
 
 on:
-  push:
-    branches: [main, dev]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -58,14 +61,13 @@ jobs:
           fetch-depth: 0
 
       # 変更の判定は git の差分だけを使う（追加のアクションに依存しない）。
-      # 判定できない場合（初回 push・タグ・手動実行）は**すべて**を対象にする（取りこぼしを避ける）。
+      # 判定できない場合（手動実行・base が取れない場合）は**すべて**を対象にする（取りこぼしを避ける）。
       - name: 変更のあったソリューションを決める
         id: plan
         shell: pwsh
         env:
           EVENT_NAME: ${{ github.event_name }}
           BASE_REF: ${{ github.base_ref }}
-          BEFORE_SHA: ${{ github.event.before }}
           HEAD_SHA: ${{ github.sha }}
         run: |
           $ErrorActionPreference = 'Stop'
@@ -74,18 +76,11 @@ jobs:
           # 先頭の .github/ が一致せず、リポジトリ全体の変更を取りこぼす。 実測 2026-10-27）。
           # **取れなければ空を返す**（空は「すべて対象」として扱う。 取りこぼして検証を飛ばすより安全）。
           function Get-ChangedFiles {
-            if ($env:EVENT_NAME -eq 'pull_request' -and $env:BASE_REF) {
-              git fetch --no-tags origin $env:BASE_REF 2>&1 | Out-Null
-              $out = @(git -c core.quotepath=false diff --name-only "origin/$($env:BASE_REF)...$env:HEAD_SHA" 2>&1)
-            }
-            elseif ($env:BEFORE_SHA -and $env:BEFORE_SHA -notmatch '^0+$') {
-              # push は **2 点（A B）** で比べる。 3 点（A...B）は共通の祖先からの差分になるため、履歴を書き換えた push では
-              # before 側だけにあった変更（削除・巻き戻し）を取りこぼす（実測 2026-10-28: レビューで指摘）。
-              $out = @(git -c core.quotepath=false diff --name-only "$($env:BEFORE_SHA)" "$($env:HEAD_SHA)" 2>&1)
-            }
-            else {
-              return @()
-            }
+            # 差分を取るのは Pull Request だけである（手動実行はすべてを対象にする）
+            if ($env:EVENT_NAME -ne 'pull_request' -or -not $env:BASE_REF) { return @() }
+
+            git fetch --no-tags origin $env:BASE_REF 2>&1 | Out-Null
+            $out = @(git -c core.quotepath=false diff --name-only "origin/$($env:BASE_REF)...$env:HEAD_SHA" 2>&1)
 
             if ($LASTEXITCODE -ne 0) {
               Write-Host "git diff が終了コード $LASTEXITCODE で失敗しました（すべてを対象にします）"
@@ -104,7 +99,7 @@ jobs:
 
           $changed = @(Get-ChangedFiles)
 
-          # **文書（.md）だけの変更ではビルドもテストも要らない**（実測 2026-10-27: 文書だけの push に
+          # **文書（.md）だけの変更ではビルドもテストも要らない**（実測 2026-10-27: 文書だけの変更に
           # 8 分かけていた）。 文書の検査は docs ジョブ（verifyDocs.ps1）が持つ。
           $code = @($changed | Where-Object { $_ -notmatch '\.md$' })
           $repoWide = ($changed.Count -eq 0) -or (@($code | Where-Object {

@@ -28,50 +28,118 @@
 
 [`dependabot.yml`](dependabot.yml) が GitHub Actions と NuGet パッケージの更新を Pull Request で通知します。
 
-- **`directories` は `.csproj` を持つ全フォルダを列挙する**（Dependabot は直下しか走査しないため）。 列挙漏れは `verify.ps1` が不合格にします。
+- **NuGet の対象は版の単一所有（`Directory.Packages.props`）のフォルダだけ**（`directory: "/"`）。 版は Central Package Management で 1 ファイルが持つため、プロジェクトごとに列挙する必要はありません。 列挙すると **Dependabot がフォルダごとに依存を解決して実行が長引きます**（実測 2026-11-02: 85 フォルダで 12〜56 分。 時間切れで Pull Request が作られないことがありました）。 登録漏れは `verify.ps1` が不合格にします（規則は [`検証手順.md`](検証手順.md) §8）。
 - **メジャー更新の一部は自動で作らない**（`xunit.v3` / `xunit.analyzers`）: テストの書き方と実行基盤が変わるため、人が判断します。
 - **MewUI（0.x）は固定して手動で更新する**: 破壊的変更でビルドが通らなくなるためです。
-- **Dependabot は `packages.lock.json` を一部のプロジェクトしか更新しない**（直接参照する一部だけ。 実測: アナライザーの更新で 76 個中 3 個）。 そのため Dependabot の Pull Request は、**そのままでは CI が `NU1004`（lock が古い）で失敗します**。
+- **Dependabot は `packages.lock.json` を更新しない**（版は `Directory.Packages.props` だけを書き換える）。 そのため Dependabot の Pull Request は、**そのままでは CI が `NU1004`（lock が古い）で失敗します**。
   ブランチを取得して `buildScript/updateLocks.ps1` を実行し、lock を追加コミットしてからマージします（版の更新自体は PR の内容のままで、変えるのは lock だけです）。
 
 ## 3. リポジトリの設定（初回のみ）
 
 | 設定 | 内容 |
 | --- | --- |
-| `Protect main`（ブランチ保護） | `main` への直接 push を禁止し、`ci` の成功を必須にする |
+| `Protect main`（ブランチ保護） | `main` への直接 push を禁止し、`ci` の成功を必須にする。 **`strict_required_status_checks_policy` を `true`** にし、Pull Request が最新の `main` に追随していないとマージできないようにする（[`rulesets/protect-main.json`](rulesets/protect-main.json)） |
 | `release`（Environment） | **Required reviewers** を設定する。 公開ジョブはこの環境の承認が無いと動かない |
 | NuGet の Trusted Publishing | ポリシーを「リポジトリ + ワークフロー ファイル（`release.yml`）+ `environment: release`」に紐づける。 **長期の API キーは持たない** |
 | `NUGET_USER`（Secret） | Trusted Publishing のユーザー名 |
 
 ## 4. ワークフロー
 
+### 4.1 実行契機とコスト
+
+**フル検証は Pull Request の 1 回だけ**です。 `main` へ入るのは Pull Request だけであり（ruleset）、Pull Request の検証は**マージ後に `main` へ載るツリーそのもの**（`refs/pull/<番号>/merge`）を対象にします。 同じツリーをもう一度検証しても結果は変わらないため、**`dev` への push と `main` への push では検証しません**。
+
+**古い `main` に対する検証結果は使いません**。 ruleset の `strict_required_status_checks_policy` が `true` のため、Pull Request が最新の `main` に追随していないとマージできません。 追随すると `refs/pull/<番号>/merge` が作り直され、`ci` がその組み合わせで走り直されます（複数の Pull Request が古い `main` のまま順にマージされ、**実際に載る組み合わせが未検証**になるのを防ぐ）。
+
+| 契機 | 実行する内容 | 理由 |
+| --- | --- | --- |
+| `dev` への push | なし | 手元の `verify.ps1` と、`main` 向け Pull Request の検証で足りる |
+| `main` 向け Pull Request | フル検証（`build.yml`。 必須チェックは `ci`） | **唯一のゲート**。 最新の `main` とマージしたツリーを検証する |
+| `main` への push（マージ） | なし | Pull Request と同じツリーのため重複する（最新の `main` への追随が前提） |
+| `workflow_dispatch`（`build.yml`） | フル検証 | 任意のブランチを今すぐ確かめたいとき |
+| Release `dry-run` | `pack` と SBOM の作成 | 公開物を 1 度だけ作る |
+| Release `release` | dry-run の成果物の公開とタグ付け | **`pack` と SBOM を作り直さない**（公開するバイト列が dry-run と同じになる） |
+
+- **作業ブランチで早く壊れを見つけたいとき**は、手元の `buildScript/verify.ps1`（[`検証手順.md`](検証手順.md)）か、`build.yml` の `workflow_dispatch` を使います。
+- **README の build バッジ**は `?event=pull_request` を指定します（既定は**既定ブランチの最新実行**であり、`main` の push では実行しないため、`dev` の古い push の結果が残って PR の失敗を表示できません）。
+
+### 4.2 ジョブの流れ
+
 ```mermaid
 flowchart LR
-    A["workflow_dispatch<br/>mode=dry-run"] --> B["verify<br/>版・対象グループ・dry-run の成功"]
+    A["workflow_dispatch<br/>mode=dry-run"] --> B["verify<br/>CHANGELOG・版・対象グループ"]
     B --> C["pack<br/>グループ別に dotnet pack"]
     B --> D["sbom<br/>グループ別に CycloneDX"]
     C --> E["保管（nupkg / snupkg）"]
     D --> F["保管（SBOM）"]
     E --> G{"mode=release"}
     F --> G
-    G -->|"承認（environment: release）"| H["publish<br/>NuGet へ公開"]
+    G -->|"dry-run の成果物を取得<br/>承認（environment: release）"| H["publish<br/>NuGet へ公開"]
     H --> I["tag<br/>由来の証明 → タグと Release"]
 ```
 
 **公開が成功した後にだけタグを打ちます**（公開できなかった版にタグを残さないため）。
+**`pack` と `sbom` は `dry-run` でだけ実行します**（`release` は dry-run の実行 ID から成果物を取得します）。
 
 ## 5. リリース手順
 
-1. **版を上げてコミットする**（`Directory.Build.props` のグループ別 `VersionPrefix`）。 `dev` で上げ、`main` へマージする
-2. `Actions` → **Build** が成功するまで待つ（検証の合否基準は [`検証手順.md`](検証手順.md)）
-3. `Actions` → **Release** → `Run workflow` で **`dry-run`** を選ぶ
-   - 版の検証・対象グループの決定・`pack`・**SBOM の作成**まで行う（公開もタグ作成もしない）
+### 5.1 手順
+
+1. **CHANGELOG の見出しを確定してコミットする**（`## 未リリース` → `## <版>（<公開日>）`。 §5.2）
+2. **版を上げてコミットする**（`Directory.Build.props` のグループ別 `VersionPrefix`。 §6）。 `dev` で上げ、`main` へ Pull Request で入れる
+3. **Pull Request の `ci` が成功するまで待つ**（検証の合否基準は [`検証手順.md`](検証手順.md)）
+4. `main` で **`dry-run`** を実行する（§5.3）
+   - CHANGELOG・版・ブランチの検証、対象グループの決定、`pack`、**SBOM の作成**まで行う（公開もタグ作成もしない）
    - 前回のグループ別タグから**変更の無いグループは対象外**になる（`git diff` で判定）
-4. 問題が無ければ、**同じコミット**で **`release`** を選んで実行する
+5. 問題が無ければ、**同じコミット**で **`release`** を実行する（§5.3）
    - **同じコミットの dry-run が成功していないと中止**する
    - `environment: release` の**承認**を経て、NuGet へ公開し、その後にタグと GitHub Release を作成する
 
 **公開済みの版は不変**です。 同じ版を再公開しようとすると `release` は失敗します（`dry-run` は確認のため続行します）。
+
+### 5.2 CHANGELOG の確定
+
+**公開するコミットに `## 未リリース` を残しません**。 残っていると `dry-run` と `release` の両方が `verify` で失敗します（`CHANGELOG.md` の検査）。
+
+- 見出しは **`## <版>（<公開日>）`**（例: `## 0.4.0（2026-11-02）`）。 日付は**公開する日**を書く。
+- グループで版が違うときは、見出しにすべての版を書く（例: `## EsUtil 0.4.0 / EsUtil.Ui.* 0.4.1（2026-11-02）`）。 版が含まれていないと**警告**が出る（失敗はしない）。
+- **`## 未リリース` の節は、次の変更を書き始めるときに作る**（公開のコミットには含めない）。
+- 節の中は `### 破壊的な変更` / `### 追加` / `### 変更` / `### 修正` で分ける（[`../CHANGELOG.md`](../CHANGELOG.md) の既存の並びに合わせる）。
+
+### 5.3 操作（コマンド）
+
+`gh` はリポジトリの権限で認証済みであることが前提です（`gh auth status`）。
+
+```powershell
+# 版と CHANGELOG を確認する（ワーキング ツリーが汚れていないこと）
+git status --short
+Select-String -Path Directory.Build.props -Pattern 'VersionPrefix>'
+Select-String -Path CHANGELOG.md -Pattern '^## '
+
+# main の最新を取り、dry-run を実行する（-f version は確認用。 省略可）
+git switch main
+git pull
+gh workflow run release.yml --ref main -f mode=dry-run -f version=0.4.0
+
+# 実行の完了を待つ（run-name は DryRun main <SHA>）
+gh run list --workflow release.yml --limit 5
+gh run watch (gh run list --workflow release.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+
+# dry-run が成功したら、同じコミットで release を実行する
+gh workflow run release.yml --ref main -f mode=release
+
+# 承認を待つ（environment: release。 Web か gh で承認する）
+gh run list --workflow release.yml --limit 3
+
+# 結果を確認する（タグ・Release・nuget.org）
+git fetch --tags
+git tag --list '*/v0.4.0'
+gh release list --limit 6
+(Invoke-RestMethod 'https://api.nuget.org/v3-flatcontainer/esutil.platform.core/index.json').versions
+```
+
+- **同じコミットで実行する**こと（`release` は `<SHA>` が一致する dry-run の成功を要求します）。 `main` を進めてから `release` を実行すると中止されます。
+- **`release` は `main` でのみ実行できます**（`releaseBranches`）。 `dry-run` は `dev` でも実行できます（版と CHANGELOG の確認だけを先にしたいとき）。
 
 ## 6. バージョンの指定
 
@@ -99,8 +167,9 @@ flowchart LR
 
 | 失敗した箇所 | 状態 | 復旧 |
 | --- | --- | --- |
-| `verify`（dry-run 失敗） | 何も作っていない | 原因を直して再実行する |
-| `pack` / `sbom` | 成果物が無い（公開していない） | 原因を直して再実行する |
+| `verify`（dry-run 失敗） | 何も作っていない | 原因（版・CHANGELOG・ブランチ）を直して再実行する |
+| `pack` / `sbom`（dry-run 失敗） | 成果物が無い（公開していない） | 原因を直して再実行する |
+| `publish`（dry-run の成果物が失効） | 何も公開していない | dry-run をやり直してから `release` を実行する（成果物の保存期間は既定で 90 日） |
 | `publish`（一部だけ公開） | 公開済みの版は取り消せない | 残りを再実行する（公開済みの版は HEAD で確認して**省略**する） |
 | `tag`（タグ作成の失敗） | 公開済み・タグ無し | `release` を再実行する（公開は省略され、タグだけが作られる） |
 
@@ -124,7 +193,9 @@ pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output sbom
 - **公開は取り消せません**（nuget.org の版は不変）。 版を上げる前に `dry-run` で確かめる。
 - **`main` 以外では公開できません**（`releaseBranches`）。 `dry-run` は `dev` でも実行できます。
 - **タグはワークフローだけが作ります**（人が打たない。 グループ別のタグは版の記録であり、リリースの単位）。
-- **SBOM とパッケージは同じコミットから作ります**（`pack` と `sbom` は同じ `github.sha` を checkout する）。
+- **SBOM とパッケージは同じコミットから作ります**（`pack` と `sbom` は `dry-run` の同じ `github.sha` を checkout する）。
+- **公開するコミットに `## 未リリース` を残しません**（`verify` が失敗する。 §5.2）。
+- **検証は Pull Request の 1 回だけです**（push では実行しない。 §4.1）。 マージ後に検証をやり直しても、同じツリーの同じ結果になるためです。 前提として、Pull Request は**最新の `main` に追随**してからマージします（ruleset の `strict_required_status_checks_policy`）。
 
 ## 関連ドキュメント
 

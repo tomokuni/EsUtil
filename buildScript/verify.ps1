@@ -371,30 +371,62 @@ foreach ($hit in @(git -c core.quotepath=false grep --untracked -n -E '\.ItemsSo
 Add-Result 'WinUI 3 の AOT 制約' ($itemsSourceAssignments.Count -eq 0) "ItemsSource への代入 $($itemsSourceAssignments.Count) 件"
 $itemsSourceAssignments | Select-Object -First 8 | ForEach-Object { "      $_" }
 
-# 2e) Dependabot の対象（.csproj を持つフォルダが全て列挙されているか）
-#     列挙漏れがあると、後から足したプロジェクトの依存だけが更新されない（気付かないまま古くなる）。
-#     規則の所有者は .github/検証手順.md §9。 対象は**リポジトリ内の全プロジェクト**（テスト・サンプルを含む。
-#     どれも依存を持つため）。
+# 2e) Dependabot の対象（版の単一所有である Directory.Packages.props のフォルダが列挙されているか）
+#     版は Central Package Management で 1 ファイルが持つため、依存の置き場所は 1 つである。
+#     プロジェクトのフォルダを列挙すると、Dependabot がフォルダごとに依存を解決して実行が長引き、
+#     時間切れで Pull Request が作られないことがある（実測 2026-11-02: 85 フォルダで 12〜56 分）。
+#     規則の所有者は .github/検証手順.md §8。
 $dependabotPath = Join-Path $repoRoot '.github/dependabot.yml'
-$dependabotMissing = [System.Collections.Generic.List[string]]::new()
-if (-not (Test-Path -LiteralPath $dependabotPath)) {
+$packagesPropsRelative = 'Directory.Packages.props'
+# 版のフォルダ（リポジトリ ルートなら '/'。 TrimEnd で '/' が空にならないよう長さで分ける）
+$packagesPropsDirectory = '/' + ([IO.Path]::GetDirectoryName($packagesPropsRelative) -replace '\\', '/')
+if ($packagesPropsDirectory.Length -gt 1) { $packagesPropsDirectory = $packagesPropsDirectory.TrimEnd('/') }
+if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $packagesPropsRelative))) {
+    Add-Result 'Dependabot の対象' $false "版の単一所有（$packagesPropsRelative）が無い"
+}
+elseif (-not (Test-Path -LiteralPath $dependabotPath)) {
     Add-Result 'Dependabot の対象' $false '.github/dependabot.yml が無い'
 }
 else {
     $dependabotText = [IO.File]::ReadAllText($dependabotPath, $enc)
-    $listedDirectories = @([regex]::Matches($dependabotText, '(?m)^\s*-\s*"(?<path>/[^"]*)"\s*$') |
-            ForEach-Object { $_.Groups['path'].Value.TrimEnd('/') })
-    # **追跡対象と未追跡（無視されない）の `.csproj` だけを見る**: 無視されたフォルダー（`.idea/` 等）の
-    # 生成物を対象にすると、リポジトリの外の事情で不合格になる（実測 2026-10-28）。
-    $projectDirectories = @(git ls-files --cached --others --exclude-standard -- '*.csproj' |
-            ForEach-Object { '/' + ([IO.Path]::GetDirectoryName($_)).Replace('\', '/') } |
-            Sort-Object -Unique)
-    foreach ($directory in $projectDirectories) {
-        if ($listedDirectories -notcontains $directory) { $dependabotMissing.Add($directory) }
+
+    # **`package-ecosystem: "nuget"` のエントリの中だけを見る**（他のエコシステムの `directory` で
+    # 通してしまわないため。 GitHub Actions の `directory: "/"` と取り違えると、NuGet の設定を
+    # 別のフォルダへ変えても・削除しても検査が通ってしまう）。
+    $dependabotLines = $dependabotText -split "`r?`n"
+    $nugetStart = -1
+    for ($i = 0; $i -lt $dependabotLines.Count; $i++) {
+        if ($dependabotLines[$i] -match '^\s*-\s*package-ecosystem:\s*"nuget"\s*$') { $nugetStart = $i; break }
     }
-    Add-Result 'Dependabot の対象' ($dependabotMissing.Count -eq 0) "未登録 $($dependabotMissing.Count) 件"
-    $dependabotMissing | Select-Object -First 8 | ForEach-Object { "      .github/dependabot.yml の directories に無い: $_" }
+
+    $listedDirectories = @()
+    if ($nugetStart -ge 0) {
+        $block = [System.Collections.Generic.List[string]]::new()
+        for ($i = $nugetStart; $i -lt $dependabotLines.Count; $i++) {
+            # 次の `- package-ecosystem:` で終わる（インデントは問わない）
+            if ($i -gt $nugetStart -and $dependabotLines[$i] -match '^\s*-\s*package-ecosystem:') { break }
+            $block.Add($dependabotLines[$i])
+        }
+
+        # 単数（`directory: "/"`）と複数（`- "/パス"`）の両方の書き方から拾う
+        $listedDirectories = @([regex]::Matches(($block -join "`n"), '(?m)^\s*(?:-\s*|directory:\s*)"(?<path>/[^"]*)"\s*$') |
+                ForEach-Object {
+                    $value = $_.Groups['path'].Value
+                    if ($value.Length -gt 1) { $value.TrimEnd('/') } else { $value }
+                })
+    }
+
+    $hasNugetEcosystem = $nugetStart -ge 0
+    $hasPackagesDirectory = $hasNugetEcosystem -and ($listedDirectories -contains $packagesPropsDirectory)
+    Add-Result 'Dependabot の対象' $hasPackagesDirectory "nuget のエントリ $([int]$hasNugetEcosystem) 件 / 版のフォルダ $packagesPropsDirectory の登録 $([int]$hasPackagesDirectory) 件"
+    if (-not $hasNugetEcosystem) {
+        "      .github/dependabot.yml に package-ecosystem: `"nuget`" のエントリが無い（Dependabot は版を更新できない）"
+    }
+    elseif (-not $hasPackagesDirectory) {
+        "      .github/dependabot.yml の nuget の directory に版のフォルダが無い: $packagesPropsDirectory（Dependabot は版を更新できない）"
+    }
 }
+
 # 2f) 層の参照（Core → Presenter の禁止）
 #     Core と Presenter は 1 つのアセンブリへ統合したため、コアから提示層への参照はビルドの DEP0003
 #     （ProjectReference の検査）では検出できない。 コア側のソースを走査し、提示層の名前空間・型名を
