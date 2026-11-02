@@ -91,8 +91,8 @@ public sealed class ThumbnailShadowPlan : IThumbnailShadowPlan
 
     /// <summary>4 隅の放射グラデーションの停止点（隅を 1 つの要素で塗る UI が使う）を取得する。</summary>
     /// <remarks>
-    /// 束ねた帯で隅を塗る UI（Skia / GDI+）は <see cref="BuildDeviceBands"/> を使う。<br/>
-    /// 要素を並べる UI（WinUI 3 の一覧）は本停止点を使う。
+    /// 画素の帯を積んで隅を塗る UI は <see cref="BuildDeviceBands"/> を使う。<br/>
+    /// 要素を並べて隅を塗る UI は本停止点を使う。
     /// </remarks>
     public IReadOnlyList<ThumbnailShadowStop> CornerStops { get; }
 

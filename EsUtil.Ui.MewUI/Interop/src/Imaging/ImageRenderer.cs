@@ -10,7 +10,7 @@ namespace EsUtil.Ui.MewUI.Interop.Imaging;
 /// <b>適用パターン</b>: 描画層（コントロールから描画手順を分離する）。<br/>
 /// <b>手順</b>: 1. 計画（<see cref="ImageRenderPlan"/>）を組み立てる。 2. 描く対象が無ければ何もしない。<br/>
 /// 3. 画像を MewUI の画像へ結び付け（<see cref="ImageBinding"/>）、配置の矩形へ 1 回で描く。<br/>
-/// <b>クリアしない理由</b>: Skia 版はキャンバスを透明でクリアしていたが、MewUI のコンテキストは
+/// <b>クリアしない理由</b>: MewUI のコンテキストは
 /// <b>親の描画結果の上へ重ねて描く</b>ため、クリアすると親の背景まで消える。 背景は各コントロールの
 /// <c>Background</c> が担う。<br/>
 /// <b>画素補間</b>: <see cref="ImageScaleQuality.Fast"/>（最近傍相当）を既定にする。 撮影画像の画素を

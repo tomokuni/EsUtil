@@ -148,7 +148,7 @@ graph LR
 | キーとウィンドウ状態 | `Avalonia.Input.Key` / `Avalonia.Controls.WindowState` と**メンバー名を一致**させ、名前ベースの変換で相互変換する（既存の設定ファイルをそのまま読み込める） |
 | 座標・寸法 | `Avalonia.Point` / `Size` / `Vector` → `EsPoint` / `EsSize` / `EsVector` へ統一し、UI 境界で 1 行変換する |
 | 色 | `System.Drawing.Color`（共有フレームワーク同梱でクロスプラットフォーム。 `System.Drawing.Common` ではない）を使い、UI の色型への変換は境界で行う |
-| Skia の描画プリミティブ | SkiaSharp は外部パッケージであるため、Skia に依存する型（描画ポートの適合・ビットマップの相互変換・テキスト測定）は Skia を使用する上位層が単一所有する（本プロジェクトは SkiaSharp を参照しない） |
+| Skia の描画プリミティブ | Skia に依存する型（描画ポートの適合・ビットマップの相互変換・テキスト測定）は、Skia を使用する上位層が単一所有する |
 | 描画の契約 | 描画計画を担う上位の層が単一所有する（本プロジェクトは参照される側であり、それらを参照しない） |
 | ロガー | 本プロジェクトはロガーを扱わない（外部パッケージを参照しない）。 ログの取得と記録は呼び出し側の層が所有する |
 
@@ -273,4 +273,4 @@ internal static partial int CreateStreamOnHGlobal(IntPtr memory, int deleteOnRel
 
 **画像のファイル入出力（`EsBitmap.Save` / `EsReadOnlyBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`）は Windows 専用のメンバーです**（画像型のメンバーであり、実体は `EsImageCodec` と `EsUtil/Platform.Core/src/Native/Win` の `WinWicImageCodec` が担います）。 型そのものは可搬であり、これらのメンバーだけが `SupportedOSPlatform("windows")` で限定されます（非 Windows では `DllNotFoundException`。 判断の詳細は §7.1）。
 
-**Skia は「外部パッケージ」に該当するため、本プロジェクトは SkiaSharp に依存しません**（Skia への依存は Skia を使用する上位層が単一所有します）。
+**Skia に依存する型（描画ポートの適合・ビットマップの相互変換・テキスト測定）は、Skia を使用する上位層が単一所有します**。

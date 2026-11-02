@@ -48,6 +48,7 @@ dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Marquee/sample/EsUtil.Ui.Av
 
 | 操作 | 内容 |
 | --- | --- |
+| 「表示テーマ」を切り替える | サンプル共通の設定行（`SampleTheme`）。 コントロールはフレームワークのテーマから明暗を読むため、指定は不要 |
 | 選択面をドラッグ | 新規選択の作成（左ボタン） |
 | 選択矩形の枠内をドラッグ | 選択矩形の移動 |
 | ハンドルをドラッグ | 8方向リサイズ |

@@ -31,7 +31,7 @@
 他の UI 版（Avalonia / MewUI）と同一の挙動になります。
 
 基底クラスは `Microsoft.UI.Xaml.Controls.Canvas` で、図形とラベルを要素として置きます。
-サイズラベル・カーソル座標ラベルも同じ描画面へ描きます。
+サイズラベル・カーソル座標ラベルも同じ要素の層へ置きます。
 
 ## 2. 依存関係
 
@@ -39,8 +39,7 @@
 | --- | --- |
 | `EsUtil.Feature.Marquee.Presenter` | 提示層（描画計画の解決・外観・ラベル配置）: `MarqueePresenter`（描画計画の解決）/ `MarqueeAppearance`（外観）/ `MarqueeDrawPlan`（UI が見る唯一の描画値）/ `MarqueeLabelPlacement`（ラベルの配置指示） |
 | `EsUtil.Platform.Core` | コア幾何型（`EsPoint` / `EsRect` / `EsSize`）、`ICoordTransform` / `CoordTransform` / `DpiScaler`、`ICursorService`（`Native.Win` の既定実装） |
-| `Microsoft.WindowsAppSDK` | WinUI 3（`Canvas` / ポインター イベント / `Microsoft.UI.Input` のカーソル / ウィンドウ ID） |
-| `Microsoft.WindowsAppSDK` | WinUI 3 のコントロールと XAML の要素 |
+| `Microsoft.WindowsAppSDK` | WinUI 3（`Canvas` / XAML の要素 / ポインター イベント / `Microsoft.UI.Input` のカーソル / ウィンドウ ID） |
 | `Microsoft.Extensions.Logging.Abstractions` | ログの出力先（`ILogger`） |
 
 コア（`EsUtil.Feature.Marquee.Core`）は提示層の推移参照で解決されます。
@@ -51,7 +50,7 @@
 | --- | --- |
 | 対象座標 | 選択対象の座標（画像ピクセル・仮想スクリーンピクセル等）。 コアの状態機械はこの座標で動作します |
 | ローカル DIP | コントロールのローカル座標（WinUI の DIP）。 入力と描画はこの座標で行います |
-| 物理ピクセル | 描画面の座標。 描画の直前に表示倍率を掛けて DIP から変換します |
+| 物理ピクセル | 画面の座標。 nudge のカーソル移動（`SetCursorPos`）と画面座標の変換で使います |
 
 対象座標とローカル DIP の変換は座標変換ポート（`ICoordTransform`）が担います。 入力（DIP → 対象）と
 描画（対象 → DIP）の境界で適用され、コントロールは倍率を知りません。
@@ -112,7 +111,7 @@
 
 ### 7.1 ラベルの表示
 
-サイズラベルとカーソル座標ラベルは、文言・基準点・配置矩形を提示層が解決し、**コントロールが描画面へ描きます**。
+サイズラベルとカーソル座標ラベルは、文言・基準点・配置矩形を提示層が解決し、**コントロールが要素として置きます**。
 
 | 項目 | 内容 |
 | --- | --- |
@@ -154,7 +153,7 @@
 | 矢印キーの nudge | **フォーカスが必要**です（他 UI 版のフォーカス非依存の TopLevel 購読とは異なります） |
 | ダブルクリック | OS の設定値と押下位置から本 UI が判定します（ポインター イベントがクリック数を報告しないため） |
 | ポインター キャプチャ | コアからの要求で取得・解放します（押下時に記録したポインターを使います） |
-| 描画倍率 | 描画面の実寸 ÷ 割り当て領域で実測し、XAML のルートの変化にも追従します |
+| 描画倍率 | XAML のルート（`XamlRoot.RasterizationScale`）から取得し、その変化にも追従します |
 | `IsPointerOver` | `UIElement` が公開しないため、ポインターの進入・退出からコントロールが保持します（他 UI 版は基底クラスの `IsMouseOver` / `IsPointerOver` を使います） |
 | Native AOT | **対応**です（AOT で発行した配布物が起動することを実測 2026-10-24）。 ただし **AOT では managed コレクションを `ItemsSource` へ渡せません**（CsWinRT が AOT で managed オブジェクトの COM ラッパーを作れず `E_INVALIDARG` になります。 `Items.Add` で 1 件ずつ渡してください） |
 

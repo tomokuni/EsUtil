@@ -85,8 +85,7 @@ public sealed partial class ColorSelectorControl : Grid
     /// <summary>一覧の幅に足す余白（DIP。 枠・項目の左右の余白・スクロール バー）。</summary>
     private const double ListChromeWidth = 28;
 
-    /// <summary>一覧に並べた色（添字は <see cref="_list"/> の項目と一致する）。</summary>
-    /// <summary>一覧の項目（表示名と適用値）。</summary>
+    /// <summary>一覧に並べた項目（添字は <see cref="_list"/> の項目と一致する）。</summary>
     private IReadOnlyList<ColorSelectorItem> _entries = [];
 
 
@@ -388,7 +387,6 @@ public sealed partial class ColorSelectorControl : Grid
         }
     }
 
-    /// <summary>ピッカーのポップアップを組み立てる。</summary>
     /// <summary>区切りの垂直線を生成する。</summary>
     /// <returns>枠より薄い垂直線（上下に余白を取り、枠の内側へ収める）。</returns>
     private static Border CreateSeparator() => new()

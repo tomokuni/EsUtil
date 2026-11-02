@@ -114,14 +114,14 @@ var bounds = list.SlotBounds(index);
 
 ## 6. 含まれるもの
 
-`ThumbnailControl` / `ThumbnailActivatedEventArgs`（項目の要素 `ThumbnailTile` と Skia 相互変換は内部型）。
+`ThumbnailControl` / `ThumbnailActivatedEventArgs`（項目の要素 `ThumbnailTile`、影のブラシ、画像のキャッシュ、描画の層は内部型）。
 
 ---
 
 ## 7. 依存
 
 `EsUtil.Feature.Thumbnail.Core` / `EsUtil.Feature.Thumbnail.Presenter` / `EsUtil.Platform.Core` / Windows App SDK /
-SkiaSharp.Views.WinUI。 規則は [`.github/依存関係.md`](../../.github/依存関係.md)。
+`EsUtil.Ui.WinUI3.Interop`（画像と文字の測定）。 規則は [`.github/依存関係.md`](../../.github/依存関係.md)。
 
 ---
 

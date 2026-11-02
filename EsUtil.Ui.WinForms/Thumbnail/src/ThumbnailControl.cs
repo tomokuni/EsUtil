@@ -720,7 +720,6 @@ public sealed class ThumbnailControl : ScrollableControl
         /// <summary>表示する名前。</summary>
         public string Caption { get; set; } = caption;
 
-        /// <summary>ツールヒント。</summary>
         /// <summary>ツールヒント（省略していない名前 + ホストの付加情報）。</summary>
         public string ToolTip { get; } = string.IsNullOrEmpty(toolTip) ? caption : $"{caption}{Environment.NewLine}{toolTip}";
 

@@ -45,7 +45,6 @@ public sealed partial class MarqueeControl
         ApplyVisual();
     }
 
-    /// <summary>描画計画を自 UI の描画面へ描く（計画どおりに描く）。</summary>
     /// <summary>表示を最新の状態へ反映する（要素の更新の唯一の入口）。</summary>
     /// <remarks>
     /// 描画計画（描画層が解決した幾何・外観・層の順序）を公開プロパティから組み立て、要素へ写す。<br/>

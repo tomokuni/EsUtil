@@ -47,8 +47,6 @@ var key = System.Windows.Forms.Keys.A.ToEsKey();
 
 `EsUtil.Platform.Core` と （`UseWindowsForms`。 追加のパッケージ参照は無し） を参照します。 規則は [`.github/依存関係.md`](../../.github/依存関係.md)。
 
-- 描画は GDI+ の標準 API を使います（Skia を使いません）。
-
 ## 5. テスト
 
 `tests/`（xUnit v3）。 変換の往復・未定義値の扱い・配置の計算・描画の計画を検証します。

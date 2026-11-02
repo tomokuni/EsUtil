@@ -157,13 +157,13 @@ MarqueeControl は 3 つの座標系を使い分けます。
 
 | 項目 | Avalonia UI 版 | MewUI 版 | WinUI 3 版 | WinForms 版 |
 | --- | --- | --- | --- | --- |
-| 描画 API | Skia（`DrawingContext`） | Skia（`IGraphicsContext`） | Skia（描画層） | GDI+（`Graphics`） |
+| 描画 API | Skia（`DrawingContext`） | Skia（`IGraphicsContext`） | XAML の要素（`Rectangle`） | GDI+（`Graphics`） |
 | イベント引数の座標 | `Point` / `Rect`（Avalonia の型） | `EsPoint` / `EsRect`（コアの型） | `EsPoint` / `EsRect`（コアの型） | `EsPoint` / `EsRect`（コアの型） |
 | マウスダウン・アップのイベント | 公開しない | 同左 | 同左 | 同左 |
 | ホイール操作 | 扱わない（ホストが購読する） | 同左 | 同左 | 同左 |
 | 矢印キーによる nudge | フォーカスに依存しない（`TopLevel` を購読） | フォーカスが必要 | フォーカスが必要 | フォーカスが必要（`IsInputKey` で入力キーにする） |
-| ラベル（文字）の表示 | UI 要素（`Border` + `TextBlock`） | UI 要素（`Border` + `TextBlock`） | 描画面へ描く | 描画面へ描く（GDI+） |
-| 背景の透かし方 | 描画面を透明で消して下を透かす | 同左 | 同左 | 背景を透明にして親の描画を背景に使う |
+| ラベル（文字）の表示 | UI 要素（`Border` + `TextBlock`） | UI 要素（`Border` + `TextBlock`） | UI 要素（`Border` + `TextBlock`） | 描画面へ描く（GDI+） |
+| 背景の透かし方 | 描画面を透明で消して下を透かす | 同左 | 背景を塗らずに親の画像をそのまま透かす | 背景を透明にして親の描画を背景に使う |
 | ビューポート（スクロール・ズーム）への追従 | ホストが変化を検知して `InvalidateRender()` を呼ぶ | 同左 | 同左 | 同左 |
 
 いずれの UI 版も、選択矩形の計算・入力の解釈・描画計画は同じコアと提示層が所有します（差は UI フレームワーク固有の描画 API と入力の受け取り方だけです）。

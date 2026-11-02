@@ -30,6 +30,7 @@ dotnet run --project EsUtil.Ui.WinUI3/ColorSelector/sample/EsUtil.Ui.WinUI3.Colo
 
 | 操作 | 内容 |
 | --- | --- |
+| 「表示テーマ」を切り替える | サンプル共通の設定行（`SampleTheme`）。 コントロールはフレームワークのテーマから明暗を読むため、指定は不要 |
 | テキスト欄へ入力 | 色名（`Red`）/ 16 進（`#RRGGBB`・`#AARRGGBB`）/ 不透明度（`Red+50%`）を受け付ける |
 | ▼ ボタン | 色の一覧を開く（クリックで選択し、保存値へ反映） |
 | … ボタン | カラーピッカーを開く（OK で反映、キャンセルで破棄） |

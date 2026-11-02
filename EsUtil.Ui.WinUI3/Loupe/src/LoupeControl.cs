@@ -40,7 +40,7 @@ namespace EsUtil.Ui.WinUI3.Loupe;
 /// <b>ホスト側の操作</b>: <see cref="Source"/> を設定して <see cref="CenterPoint"/> を現在位置へ更新すると、<br/>
 /// ルーペがその位置を拡大表示する（描画はプロパティ変更で自動的に無効化される）。<br/>
 /// <b>座標ラベル</b>: 表示可否は <see cref="LoupeAppearance.ShouldShowCoordLabel"/>（描画層）が判断し、<br/>
-/// 文言・基準点・配置は描画層（<see cref="LoupePresenter"/>）が実寸（Skia の実測）から単一所有する。<br/>
+/// 文言・基準点・配置は描画層（<see cref="LoupePresenter"/>）が実寸（<c>TextMeasure</c> の測定値）から単一所有する。<br/>
 /// <br/>
 /// <b>見た目のカスタマイズ</b>: 色・太さ・表示可否は <see cref="Appearance"/> で、<br/>
 /// 矩形の並びで表せる装飾とラベルの文言・位置は <see cref="DrawPlanResolver"/> で差し替えられる。<br/>
@@ -325,8 +325,6 @@ public sealed partial class LoupeControl : Canvas
             _presenter.LogPrefix = value;
         }
     }
-
-    /// <summary>描画計画を指定の描画面へ描く（計画どおりに描く）。</summary>
 
     /// <summary>対象 ↔ 親領域 DIP の座標変換ポートを設定する。</summary>
     /// <param name="port">座標変換ポート（ToDip = 対象 → 親領域 DIP）。 null の場合は等価変換。</param>

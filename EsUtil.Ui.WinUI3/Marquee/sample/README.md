@@ -54,6 +54,7 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 
 | 操作 | 動作 |
 | --- | --- |
+| 「表示テーマ」を切り替える | サンプル共通の設定行（`SampleTheme`）。 コントロールはフレームワークのテーマから明暗を読むため、指定は不要 |
 | 左ドラッグ（ハンドルの外） | 新しい選択矩形を作る |
 | 左ドラッグ（ハンドルの上） | リサイズ・移動（ハンドルは 8 方向） |
 | 矢印キー | nudge（1 対象ピクセル単位の微調整。 十字マーカーが出る） |
@@ -83,7 +84,7 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 | 見本 | 枠線が破線、内側に三分割のガイド線が出る（チェックを外すと既定に戻る） |
 | ログ | コントロール内部のログ（`[Marquee]` の接頭辞）とサンプルの通知が同じ表示に並ぶ |
 
-**自動テストで検証できない理由**: コントロール本体（`SKXamlCanvas` 派生）の生成・入力・描画は、WinUI 3 の XAML ランタイム初期化
+**自動テストで検証できない理由**: コントロール本体の生成・入力・描画は、WinUI 3 の XAML ランタイム初期化
 （`Application` と `DispatcherQueue`）を必要とするため、テスト ホストでは実行できません。 そのため入力経路（ポインター・キー・カーソル・画面座標）
 は本サンプルでの手動確認に委ねています。 自動テストが検証する範囲は [`../README.md`](../README.md) の「テスト」と
 [`../docs/SPEC_System.md`](../docs/SPEC_System.md) の「未実装（今後の判断）」を参照してください。

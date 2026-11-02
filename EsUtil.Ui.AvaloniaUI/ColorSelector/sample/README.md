@@ -42,6 +42,7 @@ dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/ColorSelector/sample/EsUtil
 
 | 要素 | 内容 |
 | --- | --- |
+| 「表示テーマ」を切り替える | サンプル共通の設定行（`SampleTheme`）。 コントロールはフレームワークのテーマから明暗を読むため、指定は不要 |
 | 選択色プレビュー | `SelectedColor` を公開コンバーター（`StringToBrushConverter`）で Brush 化して表示 |
 | 色相順（ByHue）の ColorSelectorControl | `ColorSortMode="ByHue"` でドロップダウンが色相順 |
 | 色名順（ByName）の ColorSelectorControl | `ColorSortMode="ByName"` でドロップダウンが色名順 |

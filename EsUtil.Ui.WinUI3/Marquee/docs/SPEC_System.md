@@ -61,7 +61,7 @@ flowchart TB
     UB["提示層<br/>MarqueePresenter / MarqueeAppearance"]
     CORE["機能コア<br/>MarqueeCore（状態機械・入力の解釈）"]
     PLAT["共通基盤<br/>EsPoint / EsRect / ICoordTransform / DpiScaler / ICursorService"]
-    SKIA["Microsoft.UI.Xaml.Controls<br/>Canvas"]
+    SKIA["Microsoft.UI.Xaml.Controls<br/>Canvas（要素の層）"]
     XAML["WinUI 3<br/>Canvas / ポインター イベント / XamlRoot"]
 
     CTRL --> UB
@@ -95,7 +95,7 @@ flowchart TB
 | --- | --- |
 | `Canvas` を基底クラスにする | 子要素の追加順がそのまま描画順になり、層の順序を計画の順に写せる。 描画ライブラリを持たない |
 | ラベルも要素として置く | 測定と表示を同じエンジン（WinUI 3 のテキスト レイアウト）に揃える。 別のエンジンで測ると背景から文字がはみ出しうる |
-| 描画の倍率を描画面の実寸から求める | XAML のルートが未確定の間は表示倍率が既定値（`1.0`）のため、保持値だけに頼ると図形が 100% で描かれる。 描画面（物理ピクセル）÷ 割り当て領域（DIP）で実測する |
+| 表示倍率を XAML のルートから取る | モニター間の移動で倍率が変わっても枠線・ハンドル・マーカーの画面上の大きさを保つ。 未確定（非数・0 以下）の値は `DpiScaler.NormalizeScaling` で基準値へ寄せる |
 | ダブルクリックを OS の設定値で判定する | WinUI 3 のポインター イベントはクリック数を報告しない。 固定値をコントロールが決めると OS の設定と食い違う |
 | 画面座標の変換だけを Win32 に委ねる | XAML のルートは表示倍率とコンテンツ内の相対座標までしか与えない（nudge でカーソルを動かすには画面物理座標が要る） |
 | `DllImport` を使う（`LibraryImport` ではなく） | `LibraryImport` は安全でないコードの許可（`AllowUnsafeBlocks`）を要求する。 3 つの Win32 API のためにプロジェクト全体で許可しない |

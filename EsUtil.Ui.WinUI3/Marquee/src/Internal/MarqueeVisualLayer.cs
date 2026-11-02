@@ -71,7 +71,7 @@ internal sealed partial class MarqueeVisualLayer : Canvas
         MarqueeShapePlan.Build(plan, _rects, _visibleLabels);
 
         // 計画の矩形は DIP であるため、要素へはそのまま配置する（換算係数は 1）
-        _shapes.Apply(_rects, 1);
+        _shapes.Apply(_rects);
         ApplyLabels();
     }
 
@@ -80,7 +80,7 @@ internal sealed partial class MarqueeVisualLayer : Canvas
     /// <exception cref="ArgumentNullException"><paramref name="list"/> が null の場合。</exception>
     public void ApplyOverlay(DrawList list)
     {
-        _overlay.Apply(list, 1);
+        _overlay.Apply(list);
     }
 
     /// <summary>ホストが追加した文字を反映する。</summary>

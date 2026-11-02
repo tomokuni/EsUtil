@@ -35,7 +35,7 @@
 | ルート名前空間 | `EsUtil.Feature.Loupe`（**公開面はすべてここに属する**。 ファサードと、ファサードのメンバーの型（`LoupeGeometry` / `LoupeMagnifiedImage` / `LoupeOptions` / `LoupeLayout`））。 `internal` の型だけが層フォルダ `src/Core/` の配下（`EsUtil.Feature.Loupe.Core.Logging`）に残る |
 | ドキュメント生成 | `GenerateDocumentationFile` 有効（XML は配布物へ出さず `cref` の検証のみに使う） |
 | テスト | xUnit v3（UI 初期化不要。 `InternalsVisibleTo` で `internal` を検証する） |
-| 依存 | UI フレームワークを一切参照しない。 直接依存は `EsUtil.Platform.Core` と `Microsoft.Extensions.Logging.Abstractions`（ログ定義のソース生成）のみ（SkiaSharp は参照しない） |
+| 依存 | UI フレームワークを一切参照しない。 直接依存は `EsUtil.Platform.Core` と `Microsoft.Extensions.Logging.Abstractions`（ログ定義のソース生成）のみ |
 
 ## 3. アーキテクチャ
 

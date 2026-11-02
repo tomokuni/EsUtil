@@ -37,7 +37,6 @@ namespace EsUtil.Ui.WinUI3.ColumnPacking;
 /// </remarks>
 public abstract class DualSourceItemsPanel : Panel
 {
-    /// <summary><b>ItemsSource と直接子要素の両方を管理するマネージャー</b></summary>
     /// <summary>ItemsSource と直接の子を管理する（派生クラスから使う）。</summary>
     protected DualSourceItemsManager ItemsManager { get; } = new();
 

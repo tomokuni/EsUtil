@@ -151,7 +151,7 @@ if (colorPicker.HasValidationError)
 | `ColorSortMode` | `ColorSortMode` | `ByHue` | 一覧（タブ「色名」）の色の並び順（`ByHue` / `ByName`）。 テーマの色は意味の順で固定 |
 | 一覧のタブ | （UI の要素） | テーマカラー / 色名 | 一覧（▼）の上部に **テーマカラー** と **色名** のタブを置き、分類を切り替える。 テーマの色は数が多いため、色名と同じ一覧へ混ぜない。 **一覧の幅は枠（入力欄）の幅と揃える**（内容のほうが広い場合は枠の最小幅を広げる）。 前回選んだタブから開き、選べる項目が無いタブは開かない（`ShowThemeColors` = false のときは色名から開く） |
 | `ShowThemeColors` | `bool` | `true`（取得または設定） | 一覧の先頭に **UI のテーマの色をすべて**並べる（共通の 20 色を「テーマ: 背景 / レイヤー / カード / コントロールの背景 / コントロールの枠線 / 区切り線 / 文字 / 副次テキスト / 無効の文字 / 無効の背景 / アクセント / アクセント（淡）/ アクセント（濃）/ アクセント文字 / アクセント上の文字 / 選択の背景 / ホバーの背景 / 押下の背景 / フォーカス / エラー」の順に並べ、その UI にしか無い色（三次テキスト・成功・注意・スクロール バーなど）を後ろへ足す）。 値は一覧を開くたびにテーマから解決する（明暗の切替・アクセント色の変更に追随） |
-| `TextFormat` | `ColorTextFormat` | `NameWithAlpha` | 入力欄と一覧（タブ「色名」）の表記（`NameWithAlpha` = 色名+不透明度 / `HexCode` = `#AARRGGBB`） |
+| `TextFormat` | `ColorTextFormat` | `NameWithAlpha` | **入力欄**の表記（`NameWithAlpha` = 色名+不透明度 / `HexCode` = `#AARRGGBB`）。 一覧の項目は常に色名、ツールチップは常に 2 行（色名+不透明度 / カラーコード）を出す。 テーマの色を選んでいる間は入力欄が `テーマ: <識別子>` になる |
 | `HighlightBorderOnError` | `bool` | `false` | バリデーション失敗時に外周の枠線を赤くするか |
 | `Log` | `ILogger` | `NullLogger` | 内部ロガー（null 設定時は `NullLogger` へフォールバック）。 診断ログの出力先 |
 | `LogPrefix` | `string?` | `null` | ログの接頭辞（ロガーと一緒に設定する。 null・空白で既定値 `[ColorSelector]` へ戻す） |
@@ -266,7 +266,7 @@ if (colorPicker.HasValidationError)
 - 右端の「…」ボタンで Flyout 形式のカラーピッカー（`ColorView`）が開きます。
 - 「OK」で選択色を `#AARRGGBB`（アルファ先頭8桁）の保存値として反映し、「キャンセル」で破棄します。
 - 初期表示色は `SelectedColor` をパースした色（失敗時は白）です。
-- 3 つ目のタブ（Hex 入力）の表示形式は `#AARRGGBB`（アルファ先頭）で、Avalonia 標準の `Color.Parse` と整合します。
+- カラーピッカーの成分タブにある 16 進の入力欄は `#AARRGGBB`（アルファ先頭）で、Avalonia 標準の `Color.Parse` と整合します。
 - 不透明度は ColorView のアルファスライダーで設定でき、保存値のアルファ成分として統合されます（画面表示では `+{不透明度%}`）。
 
 ### 6.5 ColorView テーマ（ホストが取り込む）

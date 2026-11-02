@@ -36,18 +36,18 @@
 
 選択矩形の状態機械・入力の解釈・描画計画の解決は UI 非依存の層（`EsUtil.Feature.Marquee.Core` / `EsUtil.Feature.Marquee.Presenter`）が
 単一所有し、本コントロールは **入力の受付・効果の適用・通知の転送・描画** だけを行います。
-そのため、他の UI 版（`EsUtil.Ui.AvaloniaUI.Marquee` / `EsUtil.Ui.MewUI.Marquee`）と同じ操作感・同じ計算結果になります。
+そのため、他の UI 版（`EsUtil.Ui.AvaloniaUI.Marquee` / `EsUtil.Ui.MewUI.Marquee` / `EsUtil.Ui.WinForms.Marquee`）と同じ操作感・同じ計算結果になります。
 
-描画には SkiaSharp の `SkiaSharp.Views.Windows.SKXamlCanvas`（`Canvas`）を基底クラスとして使い、自前の描画面へ直接描きます
-（中間ビットマップを作りません）。 サイズ ラベル・カーソル座標ラベルも同じ描画面へ描きます。
+描画は WinUI 3 の要素（`Microsoft.UI.Xaml.Shapes.Rectangle`）とラベルの要素（`Border` + `TextBlock`）で行い、
+中間ビットマップを作りません。 サイズ ラベル・カーソル座標ラベルも同じ要素の層へ置きます。
 
 ---
 
 ## 2. 機能一覧
 
 - **UI 非依存コアの共有**: 選択・ハンドルのヒットテスト・nudge・確定/キャンセルの判断はコアが単一所有します（本コントロールは判断を持ちません）。
-- **描画面へ直接描く**: `SKXamlCanvas` の描画面へ Skia で描きます。 描画の倍率は **描画面の実寸 ÷ 割り当て領域** から実測するため、XAML のルートが未確定の間も図形がずれません。
-- **ラベルも同じ描画面へ描く**: サイズラベル・カーソル座標ラベルの実寸測定と描画が同じエンジン（Skia）になるため、背景から文字がはみ出して切れません。
+- **要素へ直接写す**: 描画計画の矩形を XAML の `Rectangle` として置きます。 表示倍率は XAML のルート（`XamlRoot.RasterizationScale`）から取得するため、モニター間を移動しても枠線・ハンドルの画面上の大きさが変わりません。
+- **ラベルも要素として置く**: サイズラベル・カーソル座標ラベルの実寸測定と表示が同じテキスト エンジン（`TextMeasure`）になるため、背景から文字がはみ出して切れません。
 - **入力の内蔵**: 左ドラッグでの新規選択・ハンドルのリサイズ/移動、矢印キーによる nudge（1 対象ピクセル単位の微調整）、Escape/Enter、左ダブルクリックを扱います。
 - **ポインター キャプチャ**: ドラッグ中はポインターをキャプチャするため、コントロールの外へ移動しても選択を続けられます。
 - **外観と描画計画の 2 つの入口**: 色・太さ・表示可否は `Appearance`、矩形の並びで表せる装飾とラベルの文言・位置は `DrawPlanResolver` で差し替えられます（派生は不要です）。
@@ -63,7 +63,7 @@
 | 対象フレームワーク | `net10.0-windows10.0.22621.0` |
 | 対応 OS | Windows 10 バージョン 2004（ビルド 19041）以降（`Microsoft.UI.Input.InputSystemCursor` を使うため） |
 | UI フレームワーク | WinUI 3（Windows App SDK 1.x。 パッケージ参照 `Microsoft.WindowsAppSDK`） |
-| 描画 | WinUI 3 の要素（`Microsoft.UI.Xaml.Shapes.Rectangle`）と Composition の描画面（SkiaSharp を使わない） |
+| 描画 | WinUI 3 の要素（`Microsoft.UI.Xaml.Shapes.Rectangle` と `Border` + `TextBlock`） |
 | プラットフォーム | x64 / x86 / arm64（アンパッケージで自己完結配置する場合は対象アーキテクチャの明示が必要です） |
 | Native AOT | 対応（AOT で発行したサンプルが起動することを実測）。 ただし AOT では managed コレクションを `ItemsSource` へ渡せない（`Items.Add` を使う） |
 
@@ -89,7 +89,6 @@
 <ItemGroup>
   <PackageReference Include="EsUtil.Ui.WinUI3.Marquee" Version="$(EsUtil_Ui_WinUI3_Marquee_Version)" />
   <PackageReference Include="Microsoft.WindowsAppSDK" Version="[1.*,2.0.0)" />
-  <PackageReference Include="SkiaSharp.Views.WinUI" Version="[3.*,4.0.0)" />
 </ItemGroup>
 ```
 
@@ -169,13 +168,13 @@ MarqueeControl は 3 つの座標系を使い分けます。
 
 | 項目 | Avalonia UI 版 | MewUI 版 | WinUI 3 版 | WinForms 版 |
 | --- | --- | --- | --- | --- |
-| 描画 API | Skia（`DrawingContext`） | Skia（`IGraphicsContext`） | Skia（描画層） | GDI+（`Graphics`） |
+| 描画 API | Skia（`DrawingContext`） | Skia（`IGraphicsContext`） | XAML の要素（`Rectangle`） | GDI+（`Graphics`） |
 | イベント引数の座標 | `Point` / `Rect`（Avalonia の型） | `EsPoint` / `EsRect`（コアの型） | `EsPoint` / `EsRect`（コアの型） | `EsPoint` / `EsRect`（コアの型） |
 | マウスダウン・アップのイベント | 公開しない | 同左 | 同左 | 同左 |
 | ホイール操作 | 扱わない（ホストが購読する） | 同左 | 同左 | 同左 |
 | 矢印キーによる nudge | フォーカスに依存しない（`TopLevel` を購読） | フォーカスが必要 | フォーカスが必要 | フォーカスが必要（`IsInputKey` で入力キーにする） |
-| ラベル（文字）の表示 | UI 要素（`Border` + `TextBlock`） | UI 要素（`Border` + `TextBlock`） | 描画面へ描く | 描画面へ描く（GDI+） |
-| 背景の透かし方 | 描画面を透明で消して下を透かす | 同左 | 同左 | 背景を透明にして親の描画を背景に使う |
+| ラベル（文字）の表示 | UI 要素（`Border` + `TextBlock`） | UI 要素（`Border` + `TextBlock`） | UI 要素（`Border` + `TextBlock`） | 描画面へ描く（GDI+） |
+| 背景の透かし方 | 描画面を透明で消して下を透かす | 同左 | 背景を塗らずに親の画像をそのまま透かす | 背景を透明にして親の描画を背景に使う |
 | ビューポート（スクロール・ズーム）への追従 | ホストが変化を検知して `InvalidateRender()` を呼ぶ | 同左 | 同左 | 同左 |
 
 いずれの UI 版も、選択矩形の計算・入力の解釈・描画計画は同じコアと提示層が所有します（差は UI フレームワーク固有の描画 API と入力の受け取り方だけです）。
@@ -190,7 +189,7 @@ MarqueeControl は 3 つの座標系を使い分けます。
 | 矩形の並びで表せる装飾（破線・ガイド線等）とラベルの文言・位置を差し替える | `DrawPlanResolver`（同じ入力に同じ出力を返す純粋関数） |
 | 矩形で表せない描画（円・斜線等）を加える | `Appearance` の `Show*` を `false` にして `Rendered` の `AddRect` で加える |
 
-ラベルはコントロールが描画面へ描くため、`Rendered` でホストが描いた内容はラベルより前面に置かれます。
+ラベルはコントロールが最後に置くため、`Rendered` でホストが描いた内容はラベルより背面に置かれます。
 見本（外観と描画計画の差し替え）はサンプルの `sample/Presentation/GuideMarqueePlan` が参照実装です。
 
 ---
@@ -269,12 +268,12 @@ dotnet test EsUtil.Ui.WinUI3/Marquee/tests/EsUtil.Ui.WinUI3.Marquee.Tests.csproj
 
 **検証する範囲**（XAML の初期化を必要としない範囲）:
 
-- 描画計画の Skia への写し（装飾・ハンドル・マーカー・ラベル。 層の順序と表示可否の両方）
-- 実寸の測定と描画（ASCII・日本語のフォント フォールバック、色、位置）
-- 内部ヘルパー（DIP と物理ピクセルの倍率、コア型と WinUI/Skia 型の相互変換、キーの変換、ダブルクリックの判定）
+- 描画計画の要素の層への写し（装飾・ハンドル・マーカー・ラベル。 層の順序と表示可否の両方）
+- 色の変換（`System.Drawing.Color` → ARGB）
+- 内部ヘルパー（ダブルクリックの判定）
 - ログ定義（接頭辞・レベル・書式）
 
-**検証できない範囲と理由**: `MarqueeControl`（`SKXamlCanvas` 派生）のインスタンス生成・入力・描画は、
+**検証できない範囲と理由**: `MarqueeControl` のインスタンス生成・入力・描画は、
 WinUI 3 の XAML ランタイム（`Application` と `DispatcherQueue`）を必要とするため、テスト ホストでは生成できません。
 そのため、コントロール本体の入力経路はサンプル アプリでの手動確認に委ねています（サンプルの `sample/README.md` に確認項目を並べています）。
 

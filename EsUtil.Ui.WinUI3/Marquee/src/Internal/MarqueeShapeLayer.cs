@@ -10,8 +10,7 @@ namespace EsUtil.Ui.WinUI3.Marquee.Internal;
 /// <b>位置付け</b>: 描く内容（どの矩形をどの色で、どの順に）は呼び出し側が単一所有する。<br/>
 /// 本クラスは受け取った矩形を <see cref="Rectangle"/> として反映するだけで、計算・判断を持たない。<br/>
 /// <br/>
-/// <b>単位</b>: 矩形は<b>物理ピクセル</b>で受け取り、<c>pixelToDip</c> の係数で DIP へ換算して配置する<br/>
-/// （描画計画が物理ピクセルで解決されているため、換算は 1 か所に閉じる）。<br/>
+/// <b>単位</b>: 矩形は計画に DIP で解決済みであるため、要素へはそのままの値で配置する（換算しない）。<br/>
 /// <br/>
 /// <b>要素を使い回す</b>: 反映のたびに要素を作ると、パンのたびに数百の要素が割り当てられる。<br/>
 /// 件数が足りないときだけ追加し、余った要素は隠す。
@@ -29,14 +28,13 @@ internal sealed partial class MarqueeShapeLayer : Canvas
 
     /// <summary><see cref="DrawList"/> の内容を反映する。</summary>
     /// <param name="list">反映する描画リスト。 null 不可。</param>
-    /// <param name="pixelToDip">物理ピクセル → DIP の係数（1 / スケーリング係数）。</param>
     /// <exception cref="ArgumentNullException"><paramref name="list"/> が null の場合。</exception>
     /// <remarks>
     /// <b>値が変わった項目だけを書く</b>: 要素のプロパティを書くたびに XAML の測定・配置が
     /// 無効になり、ドラッグ中は毎フレーム数十個の要素へ 4 つの値を書いていた（実測 2026-10-25）。
     /// 前フレームと同じ値なら書かない（位置だけ動く項目・大きさだけ変わる項目をそれぞれ最小の更新にする）。
     /// </remarks>
-    public void Apply(DrawList list, double pixelToDip)
+    public void Apply(DrawList list)
     {
         ArgumentNullException.ThrowIfNull(list);
 
@@ -63,10 +61,10 @@ internal sealed partial class MarqueeShapeLayer : Canvas
             }
 
             var item = rects[i];
-            var x = item.Bounds.X * pixelToDip;
-            var y = item.Bounds.Y * pixelToDip;
-            var width = item.Bounds.Width * pixelToDip;
-            var height = item.Bounds.Height * pixelToDip;
+            var x = item.Bounds.X;
+            var y = item.Bounds.Y;
+            var width = item.Bounds.Width;
+            var height = item.Bounds.Height;
             if (GetLeft(rectangle) != x)
             {
                 SetLeft(rectangle, x);
