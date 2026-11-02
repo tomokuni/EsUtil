@@ -7,8 +7,8 @@
     このスクリプトで lock を更新し、**コミットする**（更新しないと CI の `-p:RestoreLockedMode=true` が
     `NU1004` で失敗する）。
 
-    Dependabot は `Directory.Packages.props` を書き換えますが、**lock は一部のプロジェクトしか更新しません**
-    （Dependabot の制限。 実測: アナライザーの更新で 76 個中 3 個だけ更新された）。 そのため Dependabot の
+    Dependabot は `Directory.Packages.props` を書き換えますが、**lock は更新しません**（対象は版の単一所有の
+    フォルダだけである。 `.github/検証手順.md` §8）。 そのため Dependabot の
     Pull Request は、そのブランチでこのスクリプトを実行しないと CI が失敗します。
 
     ソリューションの一覧は `.github/release-config.json` の `solutions` が単一所有する（本文へ列挙しない）。

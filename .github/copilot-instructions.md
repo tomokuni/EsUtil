@@ -77,5 +77,5 @@
 - **作業ツリーの改行コードは CRLF**（[`.editorconfig`](../.editorconfig) の `end_of_line = crlf`。 リポジトリのブロブは [`.gitattributes`](../.gitattributes) が LF へ正規化する）。
 - **生成した XML ドキュメントはパッケージへ同封する**（`CopyDocumentationFileToOutputDirectory` を `false` にすると `pack.ps1` が NU5026 で失敗する。 実測）。
 - **`EsUtil.Ui.*.*` は利用側のプラットフォーム層を参照しない**。 使う変換・描画ヘルパーだけを各プロジェクトの `Internal/` へ `internal` でコピーし、複製元を 1 行のコメントへ残す（[`依存関係.md`](依存関係.md) §4.1）。
-- **CI は 5 ソリューションの検証を paths フィルタで回す**（`.github/workflows/build.yml`。 変更のあったソリューションだけを実行し、共通基盤を変えたときは全部を実行する）。
+- **CI は 5 ソリューションの検証を paths フィルタで回す**（`.github/workflows/build.yml`。 変更のあったソリューションだけを実行し、共通基盤を変えたときは全部を実行する）。 **実行契機は `main` 向け Pull Request だけ**である（push では実行しない。 理由と一覧は [`RELEASE.md`](../.github/RELEASE.md) §4.1）。
 - **本リポジトリは利用側のデスクトップ アプリから使われる**（元は利用側アプリと同じリポジトリにあり、履歴を保ったまま切り出して作られた）。

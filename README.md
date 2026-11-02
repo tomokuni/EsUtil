@@ -1,7 +1,7 @@
 # EsUtil
 
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
-![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
+![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)

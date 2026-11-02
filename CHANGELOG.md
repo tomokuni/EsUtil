@@ -5,7 +5,7 @@
 - **公開する版は人が決めます**（グループの `VersionPrefix` を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
-## 未リリース（0.4.0）
+## 0.4.0（2026-11-02）
 
 ### 破壊的な変更（`EsUtil` の機能パッケージ）
 
@@ -35,10 +35,7 @@
 ### 変更
 
 - **テーマの色に従うようにしました**: 帯の色を UI のテーマから解決するため、テーマの切替と利用者のアクセント色の変更に追随します（明暗で固定の 2 色を持つと、テーマの実際の値と一致しませんでした）。
-
-- **依存パッケージを更新しました**（`Microsoft.WindowsAppSDK` 2.6.4。 `EsUtil.Ui.WinUI3.*` の利用側が要求する Windows App SDK の下限が上がります）。 アナライザーとテスト ランナーの更新は配布物に含まれません（`PrivateAssets=all`）。
 - **`ColorSelector` の一覧を ▼ のボタンへ揃えて開くようにしました**（3 UI）。 一覧の左端を ▼ に揃えていたため、画面の右外へはみ出して押し戻され、▼ から離れた位置に開いていました（右端を揃えて左へ開きます）。
-- **`EsUtil.Ui.AvaloniaUI.Marquee` と `EsUtil.Ui.MewUI.Marquee` の対象フレームワークを `net10.0` へ戻しました**（`net10.0-windows10.0.17763.0` をやめます）。 Windows 専用なのは**引数なしコンストラクター**（`WinCursorService` を生成する既定構成）だけで、そこへ `[SupportedOSPlatform("windows10.0.17763")]` を付けます。 Windows 以外では `ICursorService` を渡すコンストラクターを使ってください（テストとサンプルは既定構築を使うため `net10.0-windows10.0.17763.0` のままです）。
 - **Thumbnail の影の色を 50% の灰色（`0xC0808080`）にしました**。 黒（`0x8A000000`）は暗色テーマの地色に埋もれて影が見えませんでした（実測 2026-11-02: コントラスト 1.05）。 灰色は地色へ合成されるため明暗で同じ程度になります（1.21 / 1.27）。
 - **サンプルのログ レベルを修正しました**（Marquee 4 UI）。 ポインター移動のたびに届く「ルーペ位置」とスクロール位置、ドラッグ中の選択矩形（`SelectionChanged`）を `Trace` へ落とし、状態の変化（開始・確定可能・キャンセル・確定要求）を `Debug` にしました（`Information` 固定だったため、既定の表示レベルで高頻度の行が出ていました）。 画面の状態表示（`選択: …` / `追従位置: …`）は従来どおり常に見えます。
 - **サンプルの「ハイライト切替」を「サンプル設定」から「プロパティ設定」へ移し、文言を「ハイライト矩形を設定/解除」にしました**（Marquee 4 UI）。 切り替えているのはコントロールのプロパティ（`HighlightSourceRect`）であり、メソッドの実行ではないためです（区分の分け方は [`開発手順.md`](.github/開発手順.md) が所有します）。
@@ -53,6 +50,13 @@
 - **起動構成を見直しました**（`.vscode/launch.json`）。 **VS Code のデバッグ一覧は階層を持てない**ため（`presentation.group` は区切り線を入れるだけで、グループ名を表示せず、同名の構成には `(1)` `(2)` を付ける）、**名前に UI 層を含め**（`AvaloniaUI / ColorSelector`）、`presentation.group` と `presentation.order` は UI 層ごとの区切りと並び順のためだけに使います。
 - **サンプル アプリのウィンドウ名を `<機能> サンプル (<UI 名>)` に統一しました**（例: `ColorSelector サンプル (AvaloniaUI)`）。 これまでは `ColorSelectorControl サンプル（AvaloniaUI）` のように型名と全角括弧が混ざっていました。
 - **サンプルの `RunSample.bat` を削除しました**（14 ファイル）。 起動は `dotnet run` と VS Code の起動構成（F5）で行います。
+
+## 0.3.0（2026-11-01）
+
+### 変更
+
+- **依存パッケージを更新しました**（`Microsoft.WindowsAppSDK` 2.6.4。 `EsUtil.Ui.WinUI3.*` の利用側が要求する Windows App SDK の下限が上がります）。 アナライザーとテスト ランナーの更新は配布物に含まれません（`PrivateAssets=all`）。
+- **`EsUtil.Ui.AvaloniaUI.Marquee` と `EsUtil.Ui.MewUI.Marquee` の対象フレームワークを `net10.0` へ戻しました**（`net10.0-windows10.0.17763.0` をやめます）。 Windows 専用なのは**引数なしコンストラクター**（`WinCursorService` を生成する既定構成）だけで、そこへ `[SupportedOSPlatform("windows10.0.17763")]` を付けます。 Windows 以外では `ICursorService` を渡すコンストラクターを使ってください（テストとサンプルは既定構築を使うため `net10.0-windows10.0.17763.0` のままです）。
 - **サンプルのアーキテクチャ固定をやめ、AnyCPU にしました**（`PlatformTarget` = `x64` と WinUI 3 の `RuntimeIdentifier` = `win-x64` を `.csproj` から外しました）。 WinUI 3 の自己完結配置（`WindowsAppSDKSelfContained`）は `-r` を渡したとき（publish）だけ有効になり、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。
 
 ## 0.2.0（2026-10-28）
