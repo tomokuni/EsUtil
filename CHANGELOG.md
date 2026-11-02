@@ -38,6 +38,7 @@
 - **MewUI の `ColorSelector` の一覧の表記を他 UI と揃えました**。 テーマの色だけ表示名ではなく保存値（`#FFF7F8FA`）が並んでいました（行の文字に適用値を書いていた。 実測 2026-11-02）。
 - **カーソル座標ラベルを直しました**（Marquee 4 UI）。 位置を受ける前と、ポインターが領域の外にある間（押下中を除く）は描かず、選択の解除（キャンセル）でも原点へ戻りません（`(0, 0)` が左上へ出ていた。 実測 2026-11-02）。
 - **Marquee のサンプルへ操作ガイドを追加しました**（MewUI / WinUI 3）。 描画部の左上へ「ドラッグで範囲を選択してください」/「選択 W x H」を出す表示が AvaloniaUI / WinForms だけにありました（下地の箱は 4 UI で揃えて廃止）。
+- **Loupe サンプルの選択矩形の表示を 4 UI で揃えました**。 座標ラベルがルーペの下に潜って文字が欠けていたため、ラベルをルーペより前面へ置き（4 UI とも白 87% の下地を敷く）、枠の見た目もオレンジの破線 + 半透明のオレンジへ統一しました（WinUI 3 は水色の実線 1px でした。 実測 2026-11-02）。
 - **起動構成を UI 層の階層に分けました**（`.vscode/launch.json`）。 `presentation.group` に UI 層（`AvaloniaUI` / `MewUI` / `WinUI3` / `WinForms`）を、`name` に機能名（`ColorSelector` など）を書き、デバッグの一覧が「UI 層 ▸ 機能」の 2 階層で表示されます（`presentation.order` で機能の並びを 4 UI で同じにしました）。
 - **サンプルのアーキテクチャ固定をやめ、AnyCPU にしました**（`PlatformTarget` = `x64` と WinUI 3 の `RuntimeIdentifier` = `win-x64` を `.csproj` から外しました）。 WinUI 3 の自己完結配置（`WindowsAppSDKSelfContained`）は `-r` を渡したとき（publish）だけ有効になり、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。
 

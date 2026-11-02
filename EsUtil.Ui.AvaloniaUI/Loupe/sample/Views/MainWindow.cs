@@ -114,6 +114,7 @@ public sealed class MainWindow : Window
         };
         canvas.Children.Add(image);
         canvas.Children.Add(_selectionRect);
+        // 座標ラベルは**ルーペより前面**に置く（後に足す子ほど前面になる。 ルーペの下だと重なった部分の文字が欠ける。 実測 2026-11-02）
         canvas.Children.Add(_selectionLabel);
 
         _loupe = new LoupeControl
@@ -141,6 +142,10 @@ public sealed class MainWindow : Window
         };
         canvas.Children.Add(_loupe);
         canvas.Children.Add(_preview);
+
+        // ルーペを足した後でラベルを最前面へ戻す（追加順が描画順になるため）
+        canvas.Children.Remove(_selectionLabel);
+        canvas.Children.Add(_selectionLabel);
 
         canvas.PointerMoved += (_, e) => _loupe.CenterPoint = e.GetPosition(image);
 

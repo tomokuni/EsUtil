@@ -24,6 +24,13 @@ internal sealed class LoupeHostPanel : Panel
     private readonly SelectionRectOverlay _overlay = new();
 
     /// <summary>選択矩形の座標ラベル（破線枠の左上へ重ねる）。</summary>
+    /// <remarks>
+    /// <b>文字の下地を敷く</b>: 画像の上へ直接文字を置くと読めない（他 UI と同じ白 87% を敷く）。<br/>
+    /// MewUI の <see cref="TextBlock"/> は背景を持たないため、<see cref="Border"/> で包む。
+    /// </remarks>
+    private readonly Border _selectionLabelBox = new();
+
+    /// <summary>選択矩形の座標ラベルの文字。</summary>
     private readonly TextBlock _selectionLabel = new();
 
     /// <summary>重ねるルーペ（図形のみ。 入力は受けない）。</summary>
@@ -49,11 +56,15 @@ internal sealed class LoupeHostPanel : Panel
         // ラベルは破線枠の左上へ置く（はみ出しを抑えるため 11 DIP の小さめの文字にする）
         _selectionLabel.FontSize(11);
         _selectionLabel.Foreground(Color.FromRgb(0xFF, 0x8C, 0x00));
-        _selectionLabel.IsVisible = false;
+        _selectionLabelBox.Background(Color.FromArgb(0xDD, 0xFF, 0xFF, 0xFF));
+        _selectionLabelBox.CornerRadius(2);
+        _selectionLabelBox.Padding(new Thickness(3, 1));
+        _selectionLabelBox.Child(_selectionLabel);
+        _selectionLabelBox.IsVisible = false;
 
         Add(image);
         Add(_overlay);
-        Add(_selectionLabel);
+        Add(_selectionLabelBox);
     }
 
     /// <summary>画像上のマウス移動を通知する（パネル内の DIP 座標 = 元画像ピクセル座標）。</summary>
@@ -77,6 +88,10 @@ internal sealed class LoupeHostPanel : Panel
         loupe.IsHitTestVisible = false;
         _loupes.Add(loupe);
         Add(loupe);
+
+        // 座標ラベルは**ルーペより前面**に戻す（後に足す子ほど前面になる。 ルーペの下だと文字が欠ける。 実測 2026-11-02）
+        Remove(_selectionLabelBox);
+        Add(_selectionLabelBox);
     }
 
     /// <summary>画像上へ示す選択矩形を設定する。</summary>
@@ -92,7 +107,7 @@ internal sealed class LoupeHostPanel : Panel
         _overlay.IsVisible = _isSelectionVisible;
 
         _selectionLabel.Text = label ?? string.Empty;
-        _selectionLabel.IsVisible = _isSelectionVisible && !string.IsNullOrWhiteSpace(label);
+        _selectionLabelBox.IsVisible = _isSelectionVisible && !string.IsNullOrWhiteSpace(label);
 
         InvalidateArrange();
     }
@@ -104,7 +119,7 @@ internal sealed class LoupeHostPanel : Panel
     {
         _image.Measure(new Size(_sourceSize.Width, _sourceSize.Height));
         _overlay.Measure(availableSize);
-        _selectionLabel.Measure(availableSize);
+        _selectionLabelBox.Measure(availableSize);
 
         foreach (var loupe in _loupes)
         {
@@ -153,23 +168,23 @@ internal sealed class LoupeHostPanel : Panel
         if (!_isSelectionVisible || _selectionRect is not { } rect)
         {
             _overlay.Arrange(new Rect(bounds.X, bounds.Y, 0, 0));
-            _selectionLabel.Arrange(new Rect(bounds.X, bounds.Y, 0, 0));
+            _selectionLabelBox.Arrange(new Rect(bounds.X, bounds.Y, 0, 0));
             return;
         }
 
         _overlay.Arrange(new Rect(bounds.X + rect.X, bounds.Y + rect.Y, rect.Width, rect.Height));
 
-        var labelHeight = _selectionLabel.DesiredSize.Height;
+        var labelHeight = _selectionLabelBox.DesiredSize.Height;
         var labelTop = rect.Y - labelHeight - 1;
         if (bounds.Y + labelTop < bounds.Y)
         {
             labelTop = rect.Y + 1;
         }
 
-        _selectionLabel.Arrange(new Rect(
+        _selectionLabelBox.Arrange(new Rect(
             bounds.X + rect.X + 4,
             bounds.Y + labelTop,
-            _selectionLabel.DesiredSize.Width,
+            _selectionLabelBox.DesiredSize.Width,
             labelHeight));
     }
 }
