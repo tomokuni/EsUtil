@@ -1,7 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:EsUtil.Ui.AvaloniaUI.ColorComboBox"
-             xmlns:palette="clr-namespace:EsUtil.Platform.Core.Palette;assembly=EsUtil.Platform.Core"
              x:Class="EsUtil.Ui.AvaloniaUI.ColorComboBox.ColorComboBoxControl"
              x:Name="PART_Root"
              x:DataType="local:ColorComboBoxControl"
@@ -9,12 +8,12 @@
     <UserControl.Resources>
         <local:StringToBrushConverter x:Key="StringToBrushConverter"/>
         <!-- 一覧の 1 行（色の四角 + 色名） -->
-        <DataTemplate x:Key="ColorEntryTemplate" x:DataType="palette:ColorEntry">
+        <DataTemplate x:Key="ColorEntryTemplate" x:DataType="local:ColorComboItem">
             <StackPanel Orientation="Horizontal" Spacing="5">
                 <Border Width="14" Height="14" CornerRadius="2"
                         BorderBrush="Gray" BorderThickness="1"
-                        Background="{Binding Name, Converter={StaticResource StringToBrushConverter}}"/>
-                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                        Background="{Binding Value, Converter={StaticResource StringToBrushConverter}}"/>
+                <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
             </StackPanel>
         </DataTemplate>
     </UserControl.Resources>

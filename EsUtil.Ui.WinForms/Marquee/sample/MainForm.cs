@@ -93,13 +93,27 @@ internal static class MainForm
         var highlightRect = new EsRect(120, 120, 400, 300);
         var overlayFont = new Font(FontFamily.GenericSansSerif, 14.0f, FontStyle.Regular, GraphicsUnit.Pixel);
 
-        marquee.SelectionStarted += (_, e) => Write($"SelectionStarted: {e.Point}");
-        marquee.SelectionChanged += (_, e) => Write($"SelectionChanged: {e.Rect}");
-        marquee.SelectionCompleted += (_, e) => Write($"SelectionCompleted: {e.Rect}");
-        marquee.SelectionCancelled += (_, _) => Write("SelectionCancelled");
-        marquee.ConfirmRequested += (_, e) => Write($"ConfirmRequested: {e.Rect}");
-        marquee.CancelRequested += (_, _) => Write("CancelRequested");
-        marquee.LoupePositionMoved += (_, e) => status.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
+        marquee.SelectionStarted += (_, e) => Write($"開始: ({e.Point.X:0.#}, {e.Point.Y:0.#})");
+        marquee.SelectionChanged += (_, e) =>
+        {
+            // ドラッグ中は毎フレーム届くため Trace（既定の表示レベルでは出さない）
+            Write($"選択中: {e.Rect}", LogLevel.Trace);
+            status.Text = $"選択: {e.Rect}";
+        };
+        marquee.SelectionCompleted += (_, e) =>
+        {
+            Write($"確定可能: {e.Rect}");
+            status.Text = $"選択: {e.Rect}";
+        };
+        marquee.SelectionCancelled += (_, _) => Write("キャンセル（選択が解除された）");
+        marquee.ConfirmRequested += (_, e) => Write($"確定要求: {e.Rect}");
+        marquee.CancelRequested += (_, _) => Write("キャンセル要求");
+        marquee.LoupePositionMoved += (_, e) =>
+        {
+            // ポインター移動のたびに届く高頻度の値であるため Trace（画面の表示は状態の行が担う）
+            Write($"ルーペ位置: ({e.Point.X:0.#}, {e.Point.Y:0.#})", LogLevel.Trace);
+            status.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
+        };
 
         // 選択サイズと操作ガイドはアプリ固有の情報のため、コントロールの描画完了後にホストが描く
         marquee.Rendered += (_, e) =>
@@ -188,10 +202,11 @@ internal static class MainForm
         return form;
 
         // ログを 1 行出力する（書式化は Serilog に任せる）
-        void Write(string line)
+        void Write(string line, LogLevel level = LogLevel.Debug)
         {
-            // 文字列をそのまま記録する（テンプレート解析も引数の評価もしない）
-            logger.Log(LogLevel.Information, default, line, null, static (state, _) => state);
+            // 文字列をそのまま記録する（テンプレート解析も引数の評価もしない）。
+            // 設定の変更は Information、状態の変化は Debug、高頻度の値は Trace（ログ規約 §2）
+            logger.Log(level, default, line, null, static (state, _) => state);
         }
 
         // 外観を更新してコントロールへ反映する

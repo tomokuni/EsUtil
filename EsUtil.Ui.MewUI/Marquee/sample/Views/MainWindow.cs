@@ -71,14 +71,16 @@ internal static class MainWindow
         var logger = logging.Logger;
         logger.LogInformation("サンプルを起動しました。");
 
-        void WriteLog(string line)
+        void WriteLog(string line, LogLevel level = LogLevel.Debug)
         {
-            // 文字列をそのまま記録する（テンプレート解析も引数の評価もしない）
-            logger.Log(LogLevel.Information, default, line, null, static (state, _) => state);
+            // 文字列をそのまま記録する（テンプレート解析も引数の評価もしない）。
+            // 設定の変更は Information、状態の変化は Debug、高頻度の値は Trace（ログ規約 §2）
+            logger.Log(level, default, line, null, static (state, _) => state);
         }
 
         // ── 選択情報の表示 ──
         var selectionText = new TextBlock().FontSize(11).Text("選択なし");
+        var loupeText = new TextBlock().FontSize(11).Text("追従位置: -");
 
         // ── ドラッグ選択コントロール ──
         var zoom = 1.0;
@@ -101,7 +103,8 @@ internal static class MainWindow
         var scroll = new ScrollViewer().Content(surface);
         scroll.HorizontalScroll = ScrollMode.Auto;
         scroll.VerticalScroll = ScrollMode.Auto;
-        scroll.OnScrollChanged(() => WriteLog($"スクロール: X={scroll.HorizontalOffset:0}, Y={scroll.VerticalOffset:0}"));
+        scroll.OnScrollChanged(() =>
+            WriteLog($"スクロール: X={scroll.HorizontalOffset:0}, Y={scroll.VerticalOffset:0}", LogLevel.Trace));
 
         var zoomText = new TextBlock().Width(52).VerticalAlignment(VerticalAlignment.Center).Text(FormatZoom(zoom));
 
@@ -131,7 +134,12 @@ internal static class MainWindow
             UpdateSelection(e.Snapshot);
         };
         marquee.SelectionCancelled += (_, _) => WriteLog("キャンセル（選択が解除された）");
-        marquee.LoupePositionMoved += (_, e) => WriteLog($"ルーペ位置: ({e.Point.X:0.#}, {e.Point.Y:0.#})");
+        // ポインター移動のたびに届く高頻度の値であるため Trace（画面の表示は状態の行が担う）
+        marquee.LoupePositionMoved += (_, e) =>
+        {
+            WriteLog($"ルーペ位置: ({e.Point.X:0.#}, {e.Point.Y:0.#})", LogLevel.Trace);
+            loupeText.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
+        };
         marquee.ConfirmRequested += (_, e) => WriteLog($"確定要求: {FormatRect(e.Rect)}");
         marquee.CancelRequested += (_, _) => WriteLog("キャンセル要求");
 
@@ -221,7 +229,8 @@ internal static class MainWindow
             SampleSettings.Buttons(
                 ("ハイライト切替", ToggleHighlight),
                 ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
-            selectionText);
+            selectionText,
+            loupeText);
 
         var window = SampleShell.Create("MarqueeControl サンプル（MewUI）", properties, methods, samples, scroll, log);
         window.Closed += () =>

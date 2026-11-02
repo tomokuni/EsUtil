@@ -155,6 +155,7 @@ EsUtil.Ui.WinUI3/ColorComboBox/
 ├── src/                                            # UI 層（WinUI の要素の組み立てと同期）
 │   ├── EsUtil.Ui.WinUI3.ColorComboBox.csproj        # 独立プロジェクト（Platform.Core を参照）
 │   ├── ColorComboBoxControl.cs                      # 公開 API・入力と状態の同期・一覧とピッカー
+│   ├── ColorComboItem.cs                            # 一覧の 1 件（表示名と適用値）
 │   └── ColorComboBoxLogMessage.cs                                # ログ定義（LoggerMessage ソース生成）
 ├── docs/                                           # SPEC_API.md / SPEC_System.md
 ├── sample/                                         # サンプルアプリ（sample/README.md 参照）

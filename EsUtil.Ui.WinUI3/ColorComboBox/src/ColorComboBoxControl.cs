@@ -65,7 +65,11 @@ public sealed partial class ColorComboBoxControl : Grid
     private readonly ListView _list = new() { SelectionMode = ListViewSelectionMode.Single };
 
     /// <summary>一覧に並べた色（添字は <see cref="_list"/> の項目と一致する）。</summary>
-    private IReadOnlyList<ColorEntry> _entries = [];
+    /// <summary>一覧の項目（表示名と適用値）。</summary>
+    private IReadOnlyList<ColorComboItem> _entries = [];
+
+    /// <summary>一覧の先頭にテーマの色を並べるかどうか。</summary>
+    private readonly bool _showThemeColors = true;
 
     /// <summary>カラーピッカー。</summary>
     private readonly ColorPicker _picker = new()
@@ -411,14 +415,66 @@ public sealed partial class ColorComboBoxControl : Grid
     private void UpdateBorderValidationVisual()
         => BorderBrush = new SolidColorBrush(_highlightBorderOnError && HasValidationError ? Colors.Red : s_borderColor);
 
+    /// <summary>一覧に並べる項目を作る（テーマの色を先頭へ置く）。</summary>
+    /// <returns>表示名と適用値の組。</returns>
+    /// <remarks>
+    /// <b>テーマの色は開くたびに解決する</b>: 明暗の切替やアクセント色の変更に追随させるため、値を作り置きしない。<br/>
+    /// 解決できない色（地色が無い等）は並べない。
+    /// </remarks>
+    private List<ColorComboItem> CreateItems()
+    {
+        var items = new List<ColorComboItem>();
+        if (_showThemeColors)
+        {
+            AddThemeColor(items, "テーマ: 背景", ResolveThemeResource("ApplicationPageBackgroundThemeBrush"));
+            AddThemeColor(items, "テーマ: 文字", ResolveThemeResource("TextFillColorPrimaryBrush") ?? _text.Foreground);
+            AddThemeColor(items, "テーマ: アクセント", ResolveAccentBrush());
+        }
+
+        foreach (var entry in ColorEntry.GetSorted(_colorSortMode))
+        {
+            items.Add(new ColorComboItem(entry.Name, entry.Name));
+        }
+
+        return items;
+    }
+
+    /// <summary>テーマの色を一覧へ追加する（解決できない場合は何もしない）。</summary>
+    /// <param name="items">追加先。</param>
+    /// <param name="label">表示する名前。</param>
+    /// <param name="brush">テーマが決めたブラシ。</param>
+    private static void AddThemeColor(List<ColorComboItem> items, string label, Brush? brush)
+    {
+        if (brush is not SolidColorBrush { Color.A: > 0 } solid)
+        {
+            return;
+        }
+
+        items.Add(new ColorComboItem(
+            label, ColorString.ToArgbHex(DrawingColor.FromArgb(solid.Color.A, solid.Color.R, solid.Color.G, solid.Color.B))));
+    }
+
+    /// <summary>テーマの資源をブラシとして取得する。</summary>
+    /// <param name="key">資源のキー。</param>
+    /// <returns>ブラシ。 取得できない場合は null。</returns>
+    private static Brush? ResolveThemeResource(string key)
+        => Application.Current?.Resources.TryGetValue(key, out var value) == true ? value as Brush : null;
+
+    /// <summary>テーマのアクセント色を取得する。</summary>
+    /// <returns>アクセント色のブラシ。 取得できない場合は null。</returns>
+    private static Brush? ResolveAccentBrush()
+        => Application.Current?.Resources["SystemAccentColor"] is Windows.UI.Color accent
+            ? new SolidColorBrush(accent)
+            : null;
+
     /// <summary>一覧の選択を現在の色へ合わせる。</summary>
     /// <param name="color">現在の色。</param>
     private void UpdateSelectedIndex(DrawingColor color)
     {
         for (var i = 0; i < _entries.Count; i++)
         {
-            var candidate = _entries[i].Color;
-            if (candidate.R == color.R && candidate.G == color.G && candidate.B == color.B)
+            if (ColorString.TryParse(_entries[i].Value, out var candidate, out _)
+                && candidate.R == color.R && candidate.G == color.G && candidate.B == color.B)
             {
                 _list.SelectedIndex = i;
                 return;
@@ -429,7 +485,7 @@ public sealed partial class ColorComboBoxControl : Grid
     /// <summary>一覧を作り直す（項目は 1 件ずつ追加する）。</summary>
     private void RefreshList()
     {
-        _entries = ColorEntry.GetSorted(_colorSortMode);
+        _entries = CreateItems();
         _list.Items.Clear();
         foreach (var entry in _entries)
         {
@@ -441,9 +497,10 @@ public sealed partial class ColorComboBoxControl : Grid
                 CornerRadius = new CornerRadius(2),
                 BorderBrush = new SolidColorBrush(Colors.Gray),
                 BorderThickness = new Thickness(1),
-                Background = new SolidColorBrush(ToWinUIColor(entry.Color)),
+                Background = new SolidColorBrush(
+                    ColorString.TryParse(entry.Value, out var swatch, out _) ? ToWinUIColor(swatch) : Colors.Transparent),
             });
-            row.Children.Add(new TextBlock { Text = entry.Name, VerticalAlignment = VerticalAlignment.Center });
+            row.Children.Add(new TextBlock { Text = entry.Label, VerticalAlignment = VerticalAlignment.Center });
             _list.Items.Add(row);
         }
 
@@ -502,7 +559,7 @@ public sealed partial class ColorComboBoxControl : Grid
         var index = _list.SelectedIndex;
         if (index >= 0 && index < _entries.Count)
         {
-            ApplyColor(_entries[index].Name, raiseChanged: true);
+            ApplyColor(_entries[index].Value, raiseChanged: true);
             _listFlyout.Hide();
         }
     }

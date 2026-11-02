@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Reactive;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Ui.AvaloniaUI.ColorComboBox.Logging;
@@ -95,6 +96,9 @@ public sealed partial class ColorComboBoxControl : UserControl
     private bool _normalizing;
 
     /// <summary>内部ロガー。</summary>
+    /// <summary>一覧の先頭にテーマの色を並べるかどうか。</summary>
+    private readonly bool _showThemeColors = true;
+
     private ILogger _log = NullLogger.Instance;
 
     /// <summary>ログの接頭辞。</summary>
@@ -121,6 +125,14 @@ public sealed partial class ColorComboBoxControl : UserControl
         get => GetValue(ColorSortModeProperty);
         set => SetValue(ColorSortModeProperty, value);
     }
+
+    /// <summary>一覧の先頭に UI のテーマの色（背景・文字・アクセント）を並べるかどうかを取得する。</summary>
+    /// <value>並べる場合は true（既定）。</value>
+    /// <remarks>
+    /// <b>値は UI のテーマから取る</b>: テーマの色は UI ごとに異なるため、コアの色名の表には含めない<br/>
+    /// （一覧を開くたびに解決するため、明暗の切替とアクセント色の変更に追随する）。
+    /// </remarks>
+    public bool ShowThemeColors => _showThemeColors;
 
     /// <summary>入力欄の表記を取得または設定する。</summary>
     /// <value>色名 + 不透明度（既定）またはカラーコード。 入力欄は編集できるため、表記と異なる形の入力も受理する。</value>
@@ -407,7 +419,7 @@ public sealed partial class ColorComboBoxControl : UserControl
 
         var list = new ListBox
         {
-            ItemsSource = ColorEntry.GetSorted(ColorSortMode),
+            ItemsSource = CreateItems(),
             ItemTemplate = (IDataTemplate?)Resources["ColorEntryTemplate"],
             MaxHeight = 360,
         };
@@ -415,16 +427,64 @@ public sealed partial class ColorComboBoxControl : UserControl
         var flyout = new Flyout { Content = list, Placement = PlacementMode.BottomEdgeAlignedLeft };
         list.SelectionChanged += (_, _) =>
         {
-            if (list.SelectedItem is ColorEntry entry)
+            if (list.SelectedItem is ColorComboItem item)
             {
-                SelectedColor = entry.Name;
-                UpdateTextAndToolTip(entry.Name);
+                SelectedColor = item.Value;
+                UpdateTextAndToolTip(item.Value);
                 flyout.Hide();
             }
         };
 
         flyout.ShowAt(button);
     }
+
+    /// <summary>一覧に並べる項目を作る（テーマの色を先頭へ置く）。</summary>
+    /// <returns>表示名と適用値の組。</returns>
+    /// <remarks>
+    /// <b>テーマの色は開くたびに解決する</b>: 明暗の切替やアクセント色の変更に追随させるため、値を作り置きしない<br/>
+    /// （一覧は開くたびに作り直される）。 解決できない色（地色が透明など）は並べない。
+    /// </remarks>
+    internal List<ColorComboItem> CreateItems()
+    {
+        var items = new List<ColorComboItem>();
+        if (_showThemeColors)
+        {
+            AddThemeColor(items, "テーマ: 背景", TopLevel.GetTopLevel(this)?.Background);
+            AddThemeColor(items, "テーマ: 文字", Foreground);
+            AddThemeColor(items, "テーマ: アクセント", ResolveAccentBrush());
+        }
+
+        foreach (var entry in ColorEntry.GetSorted(ColorSortMode))
+        {
+            items.Add(new ColorComboItem(entry.Name, entry.Name));
+        }
+
+        return items;
+    }
+
+    /// <summary>テーマの色を一覧へ追加する（解決できない場合は何もしない）。</summary>
+    /// <param name="items">追加先。</param>
+    /// <param name="label">表示する名前。</param>
+    /// <param name="brush">テーマが決めたブラシ。</param>
+    private static void AddThemeColor(List<ColorComboItem> items, string label, IBrush? brush)
+    {
+        if (brush is not ISolidColorBrush { Color.A: > 0 } solid)
+        {
+            return;
+        }
+
+        var hex = ColorString.ToArgbHex(
+            System.Drawing.Color.FromArgb(solid.Color.A, solid.Color.R, solid.Color.G, solid.Color.B));
+        items.Add(new ColorComboItem(label, hex));
+    }
+
+    /// <summary>テーマのアクセント色を取得する。</summary>
+    /// <returns>アクセント色のブラシ。 取得できない場合は null。</returns>
+    /// <remarks>資源の名前はテーマごとに異なるため、名前で引かずにプラットフォームが解決した値を読む。</remarks>
+    private static IBrush? ResolveAccentBrush()
+        => Application.Current?.PlatformSettings?.GetColorValues().AccentColor1 is { } accent
+            ? new SolidColorBrush(accent)
+            : null;
 
     /// <summary>Flyout 形式のカラーピッカーを開いて選択色を反映する。</summary>
     /// <param name="sender">イベント送信元。</param>

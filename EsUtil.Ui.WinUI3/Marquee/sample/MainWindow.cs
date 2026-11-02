@@ -110,7 +110,12 @@ public sealed class MainWindow : Window
             VerticalScrollMode = ScrollMode.Auto,
         };
 
-        void Write(string line) => logger.Log(LogLevel.Information, default, line, null, static (state, _) => state);
+        void Write(string line, LogLevel level = LogLevel.Debug)
+        {
+            // 文字列をそのまま記録する（テンプレート解析も引数の評価もしない）。
+            // 設定の変更は Information、状態の変化は Debug、高頻度の値は Trace（ログ規約 §2）
+            logger.Log(level, default, line, null, static (state, _) => state);
+        }
 
         // ズームを反映する（背景の拡大率と、クライアント座標 → 対象座標の変換を揃える）
         void ApplyZoom(double value)
@@ -128,13 +133,33 @@ public sealed class MainWindow : Window
             CoordTransform.ClientToSource(() => 1.0 / _zoom, () => new EsSize(SourceWidth, SourceHeight)));
         ApplyZoom(_zoom);
 
-        _marquee.SelectionStarted += (_, e) => Write($"SelectionStarted: ({e.Point.X:0}, {e.Point.Y:0})");
-        _marquee.SelectionChanged += (_, e) => Write($"SelectionChanged: {FormatRect(e.Rect)}");
-        _marquee.SelectionCompleted += (_, e) => Write($"SelectionCompleted: {FormatRect(e.Rect)}");
-        _marquee.SelectionCancelled += (_, _) => Write("SelectionCancelled");
-        _marquee.ConfirmRequested += (_, e) => Write($"ConfirmRequested: {FormatRect(e.Rect)}");
-        _marquee.CancelRequested += (_, _) => Write("CancelRequested");
-        _marquee.LoupePositionMoved += (_, e) => _status.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
+        // 選択の状態を画面へ出す（ログとは別に、常に見える形で残す）
+        void UpdateStatus(EsRect rect)
+            => _status.Text = string.Create(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $"選択: x={rect.X:0.#}, y={rect.Y:0.#}, w={rect.Width:0.#}, h={rect.Height:0.#}");
+
+        _marquee.SelectionStarted += (_, e) => Write($"開始: ({e.Point.X:0.#}, {e.Point.Y:0.#})");
+        _marquee.SelectionChanged += (_, e) =>
+        {
+            // ドラッグ中は毎フレーム届くため Trace（既定の表示レベルでは出さない）
+            Write($"選択中: {FormatRect(e.Rect)}", LogLevel.Trace);
+            UpdateStatus(e.Rect);
+        };
+        _marquee.SelectionCompleted += (_, e) =>
+        {
+            Write($"確定可能: {FormatRect(e.Rect)}");
+            UpdateStatus(e.Rect);
+        };
+        _marquee.SelectionCancelled += (_, _) => Write("キャンセル（選択が解除された）");
+        _marquee.ConfirmRequested += (_, e) => Write($"確定要求: {FormatRect(e.Rect)}");
+        _marquee.CancelRequested += (_, _) => Write("キャンセル要求");
+        _marquee.LoupePositionMoved += (_, e) =>
+        {
+            // ポインター移動のたびに届く高頻度の値であるため Trace（画面の表示は状態の行が担う）
+            Write($"ルーペ位置: ({e.Point.X:0.#}, {e.Point.Y:0.#})", LogLevel.Trace);
+            _status.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
+        };
 
         // 起動直後に枠線・ハンドル・ラベルが見えるように、選択を 1 つ与えておく
         _marquee.SetSelection(new EsRect(120, 80, 240, 180));

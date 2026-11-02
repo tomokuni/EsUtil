@@ -81,6 +81,9 @@ public sealed class ColorComboBoxControl : Grid
     /// <summary>入力の反映中かどうか（入力と状態の往復でイベントが循環するのを防ぐ）。</summary>
     private bool _applying;
 
+    /// <summary>一覧の先頭にテーマの色を並べるかどうか。</summary>
+    private readonly bool _showThemeColors = true;
+
     /// <summary>内部ロガー。</summary>
     private ILogger _log = NullLogger.Instance;
 
@@ -373,16 +376,15 @@ public sealed class ColorComboBoxControl : Grid
     /// <param name="color">現在の色。</param>
     private void UpdateSelectedIndex(DrawingColor color)
     {
-        var entries = _list.ItemsSource as IReadOnlyList<ColorEntry>;
-        if (entries is null)
+        if (_list.ItemsSource is not IReadOnlyList<ColorComboItem> entries)
         {
             return;
         }
 
         for (var i = 0; i < entries.Count; i++)
         {
-            var candidate = entries[i].Color;
-            if (candidate.R == color.R && candidate.G == color.G && candidate.B == color.B)
+            if (ColorString.TryParse(entries[i].Value, out var candidate, out _)
+                && candidate.R == color.R && candidate.G == color.G && candidate.B == color.B)
             {
                 _list.SelectedIndex = i;
                 return;
@@ -390,17 +392,47 @@ public sealed class ColorComboBoxControl : Grid
         }
     }
 
+    /// <summary>一覧に並べる項目を作る（テーマの色を先頭へ置く）。</summary>
+    /// <returns>表示名と適用値の組。</returns>
+    /// <remarks>
+    /// <b>テーマの色は開くたびに解決する</b>: 明暗の切替やアクセント色の変更に追随させるため、値を作り置きしない。<br/>
+    /// 解決できない色は並べない。
+    /// </remarks>
+    private List<ColorComboItem> CreateItems()
+    {
+        var items = new List<ColorComboItem>();
+        if (_showThemeColors && Application.IsRunning)
+        {
+            var palette = Application.Current.Theme.Palette;
+            items.Add(new ColorComboItem("テーマ: 背景", ToHex(palette.WindowBackground)));
+            items.Add(new ColorComboItem("テーマ: 文字", ToHex(palette.WindowText)));
+            items.Add(new ColorComboItem("テーマ: アクセント", ToHex(palette.Accent)));
+        }
+
+        foreach (var entry in ColorEntry.GetSorted(_colorSortMode))
+        {
+            items.Add(new ColorComboItem(entry.Name, entry.Name));
+        }
+
+        return items;
+    }
+
+    /// <summary>MewUI の色を保存値（<c>#AARRGGBB</c>）にする。</summary>
+    /// <param name="color">色。</param>
+    /// <returns><c>#AARRGGBB</c> 形式の文字列。</returns>
+    private static string ToHex(MewColor color) => ColorString.ToArgbHex(DrawingColor.FromArgb(color.A, color.R, color.G, color.B));
+
     /// <summary>一覧を作り直す。</summary>
     private void RefreshList()
     {
-        var entries = ColorEntry.GetSorted(_colorSortMode);
+        var entries = CreateItems();
 
         // 作り直しの途中で選択が動いても「利用者の選択」として扱わない（他 UI の一覧選択と同じ判定）
         // 扱うと、並び順を変えただけで色の変更として処理される
         _applying = true;
         try
         {
-            _list.Items(entries, entry => entry.Name);
+            _list.Items(entries, entry => entry.Label);
             if (ColorString.TryParse(_selectedColor, out var color, out _))
             {
                 UpdateSelectedIndex(color);
@@ -447,9 +479,9 @@ public sealed class ColorComboBoxControl : Grid
             return;
         }
 
-        if (_list.SelectedItem is ColorEntry entry)
+        if (_list.SelectedItem is ColorComboItem item)
         {
-            ApplyColor(entry.Name, raiseChanged: true);
+            ApplyColor(item.Value, raiseChanged: true);
 
             // 選んだら一覧を閉じる（開いたままにすると、選んだ色が一覧の裏に隠れて確認できない。 他 UI も選ぶと閉じる）
             _listPopup.Close();

@@ -15,12 +15,18 @@
   - 濃さは外観が持ちます（`ThumbnailAppearance.HoverHighlightOpacity` = 0.10 / `SelectionHighlightOpacity` = 0.20）。 色の合成は `ThumbnailAppearance.ResolveHighlightArgb(kind, textArgb, accentArgb)` が行います。
   - **移行**: `BackgroundArgb` を設定していた差し替え（`DrawPlanResolver`）は、`Highlight` を設定するか、帯の色を UI 側の外観（`Appearance`）で調整してください。 `HoverBackground*Argb` / `SelectionBackground*Argb` を使っていた場合は、`HoverHighlightOpacity` / `SelectionHighlightOpacity` へ置き換えてください。
 
+### 追加
+
+- **`ColorComboBox`（AvaloniaUI / MewUI / WinUI 3）の一覧の先頭に UI のテーマの色を並べました**（`テーマ: 背景` / `テーマ: 文字` / `テーマ: アクセント`）。 値はコアの色名の表ではなく**その UI のテーマから解決**するため、明暗の切替とアクセント色の変更に追随します（`ShowThemeColors` で無効化できます）。
+
 ### 変更
 
 - **テーマの色に従うようにしました**: 帯の色を UI のテーマから解決するため、テーマの切替と利用者のアクセント色の変更に追随します（明暗で固定の 2 色を持つと、テーマの実際の値と一致しませんでした）。
 
 - **依存パッケージを更新しました**（`Microsoft.WindowsAppSDK` 2.6.4。 `EsUtil.Ui.WinUI3.*` の利用側が要求する Windows App SDK の下限が上がります）。 アナライザーとテスト ランナーの更新は配布物に含まれません（`PrivateAssets=all`）。
 - **`EsUtil.Ui.AvaloniaUI.Marquee` と `EsUtil.Ui.MewUI.Marquee` の対象フレームワークを `net10.0` へ戻しました**（`net10.0-windows10.0.17763.0` をやめます）。 Windows 専用なのは**引数なしコンストラクター**（`WinCursorService` を生成する既定構成）だけで、そこへ `[SupportedOSPlatform("windows10.0.17763")]` を付けます。 Windows 以外では `ICursorService` を渡すコンストラクターを使ってください（テストとサンプルは既定構築を使うため `net10.0-windows10.0.17763.0` のままです）。
+- **Thumbnail の影の色を 50% の灰色（`0xC0808080`）にしました**。 黒（`0x8A000000`）は暗色テーマの地色に埋もれて影が見えませんでした（実測 2026-11-02: コントラスト 1.05）。 灰色は地色へ合成されるため明暗で同じ程度になります（1.21 / 1.27）。
+- **サンプルのログ レベルを修正しました**（Marquee 4 UI）。 ポインター移動のたびに届く「ルーペ位置」とスクロール位置、ドラッグ中の選択矩形（`SelectionChanged`）を `Trace` へ落とし、状態の変化（開始・確定可能・キャンセル・確定要求）を `Debug` にしました（`Information` 固定だったため、既定の表示レベルで高頻度の行が出ていました）。 画面の状態表示（`選択: …` / `追従位置: …`）は従来どおり常に見えます。
 - **サンプルのアーキテクチャ固定をやめ、AnyCPU にしました**（`PlatformTarget` = `x64` と WinUI 3 の `RuntimeIdentifier` = `win-x64` を `.csproj` から外しました）。 WinUI 3 の自己完結配置（`WindowsAppSDKSelfContained`）は `-r` を渡したとき（publish）だけ有効になり、通常のビルドはインストール済みの Windows App SDK ランタイムを使います。
 
 ## 0.2.0（2026-10-28）

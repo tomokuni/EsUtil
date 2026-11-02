@@ -19,6 +19,23 @@ public class ThumbnailPresenterTests
         Assert.Equal(10, shadow.Insets.Left);
     }
 
+    /// <summary>影の色が明暗どちらの地色でも見える 50% の灰色であることを検証する。</summary>
+    /// <remarks>
+    /// 黒の影は暗色テーマの地色に埋もれて見えない（実測 2026-11-02: コントラスト 1.05）。<br/>
+    /// 50% の灰色は地色へ合成されるため明暗で同じ程度になる（1.21 / 1.27）。
+    /// </remarks>
+    [Fact]
+    public void 影の色は明暗どちらでも見える灰色である()
+    {
+        var color = ThumbnailShadowPlan.Default.ColorArgb;
+
+        Assert.Equal(0xC0808080u, color);
+
+        // RGB が 3 成分とも同じ（無彩色）であること（有彩色だと地色によって色味が変わる）
+        Assert.Equal((color >> 16) & 0xFF, (color >> 8) & 0xFF);
+        Assert.Equal((color >> 8) & 0xFF, color & 0xFF);
+    }
+
     /// <summary>影の帯が画像の周囲へ作られることを検証する。</summary>
     [Fact]
     public void 影の帯は画像の周囲へ作られる()

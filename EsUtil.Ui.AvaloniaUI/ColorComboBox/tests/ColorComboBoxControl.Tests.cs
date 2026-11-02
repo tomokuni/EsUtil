@@ -17,6 +17,28 @@ namespace EsUtil.Ui.AvaloniaUI.ColorComboBox.Tests;
 [Collection("AvaloniaHeadless")]
 public class ColorComboBoxControlTests
 {
+    /// <summary>一覧の先頭にテーマの色が並ぶことを検証する。</summary>
+    /// <remarks>
+    /// テーマの色は UI ごとに異なるためコアの色名の表には含めず、一覧を作るたびに UI から解決する。<br/>
+    /// 表示名（「テーマ: 背景」等）と適用値（そのときの色の <c>#AARRGGBB</c>）を分けて持つ。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 一覧の先頭にテーマの色が並ぶ()
+    {
+        var control = CreateControl();
+
+        var items = control.CreateItems();
+
+        Assert.True(items.Count > 3);
+        Assert.Contains(items, item => item.Label == "テーマ: 文字" && item.Value.StartsWith('#'));
+        Assert.Contains(items, item => item.Label == "テーマ: アクセント" && item.Value.StartsWith('#'));
+
+        // 地色はウィンドウの背景から取るため、ウィンドウを持たないヘッドレスでは並ばない（並ばなくても壊れない）
+
+        // 色名の一覧は表示名と適用値が同じ（テーマの色だけが両者で異なる）
+        Assert.Contains(items, item => item.Label == item.Value && item.Value == "Red");
+    }
+
     /// <summary>テスト用の <see cref="ColorComboBoxControl"/> を生成する。</summary>
     /// <returns>生成したコントロール（入力欄の名前解決が済んでいること）。</returns>
     private static ColorComboBoxControl CreateControl()

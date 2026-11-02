@@ -4,7 +4,9 @@ namespace EsUtil.Feature.Thumbnail;
 
 /// <summary>画像の 4 辺と 4 隅へ落とす影の描画計画（全 UI 版で共通の唯一の定義）。</summary>
 /// <remarks>
-/// <b>基準</b>: AvaloniaUI の <c>BoxShadow</c>（<c>0 0 10 0 #8A000000</c>）を実測して写した値である。<br/>
+/// <b>基準</b>: AvaloniaUI の <c>BoxShadow</c>（<c>0 0 10 0 #8A000000</c>）の<b>濃さの変化</b>を実測して写した値である。<br/>
+/// <b>色は明暗で変えない</b>: 黒では暗色テーマの地色に埋もれて影が見えない（実測 2026-11-02: コントラスト 1.05）。<br/>
+/// 50% の灰色にすると地色へ合成された結果が明暗で同じ程度になり、どちらのテーマでも自然に見える（1.21 / 1.27）。<br/>
 /// 画像を並べる一覧とキャプチャのプレビューは、すべてこの計画から影を描く<br/>
 /// （UI 版ごとに影の濃さ・広がりがずれないようにする）。<br/>
 /// <br/>
@@ -23,9 +25,16 @@ namespace EsUtil.Feature.Thumbnail;
 /// </remarks>
 public sealed class ThumbnailShadowPlan : IThumbnailShadowPlan
 {
+    /// <summary>既定の影の色（50% の灰色 75%）。</summary>
+    /// <remarks>
+    /// <b>黒を使わない理由</b>: 黒の影は暗色テーマの地色に埋もれて見えない（実測 2026-11-02: コントラスト 1.05）。<br/>
+    /// 50% の灰色は地色へ合成されるため明暗で同じ程度になり、どちらのテーマでも自然に見える（1.21 / 1.27）。
+    /// </remarks>
+    internal const uint DefaultColorArgb = 0xC0808080;
+
     /// <summary>既定の濃さの実測プロファイル（画像の端からの距離 → 不透明度）。</summary>
     /// <remarks>
-    /// AvaloniaUI の <c>BoxShadow</c>（ぼかし 10 DIP・黒 54%）の明色の画面での実測値。<br/>
+    /// AvaloniaUI の <c>BoxShadow</c>（ぼかし 10 DIP）の明色の画面での実測値（色は除く）。<br/>
     /// 添字 0 は距離 1 DIP、以降 1 DIP 刻みで距離 10 DIP まで（それ以降は 0）。
     /// </remarks>
     private static readonly double[] s_defaultProfile =
@@ -37,7 +46,7 @@ public sealed class ThumbnailShadowPlan : IThumbnailShadowPlan
     /// <summary>すべての既定値で影の計画を生成する（実測値。 4 辺・4 隅・余白も同時に確定する）。</summary>
     /// <remarks>プロファイルの長さがぼかしの広がり（DIP）になる（1 DIP 刻み）。</remarks>
     public ThumbnailShadowPlan()
-        : this(0x8A000000, null)
+        : this(DefaultColorArgb, null)
     {
     }
 
@@ -74,7 +83,7 @@ public sealed class ThumbnailShadowPlan : IThumbnailShadowPlan
     public double BlurRadius { get; }
 
     /// <summary>影の色（<c>0xAARRGGBB</c>）を取得する。</summary>
-    /// <value>既定は黒 54%（<c>0x8A000000</c>）。</value>
+    /// <value>既定は 50% の灰色 75%（<c>0xC0808080</c>）。</value>
     public uint ColorArgb { get; }
 
     /// <summary>4 辺の計画（描画順は上辺・右辺・下辺・左辺）を取得する。</summary>

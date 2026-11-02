@@ -146,6 +146,7 @@ if (colorPicker.HasValidationError)
 | プロパティ | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
 | `ColorSortMode` | `ColorSortMode` | `ByHue` | 一覧の色の並び順（`ByHue` / `ByName`） |
+| `ShowThemeColors` | `bool` | `true`（読み取り専用） | 一覧の先頭に UI のテーマの色（**テーマ: 背景 / 文字 / アクセント**）を並べる。 値は一覧を開くたびにテーマから解決する（明暗の切替・アクセント色の変更に追随） |
 | `TextFormat` | `ColorTextFormat` | `NameWithAlpha` | 入力欄の表記（`NameWithAlpha` = 色名+不透明度 / `HexCode` = `#AARRGGBB`） |
 | `HighlightBorderOnError` | `bool` | `false` | バリデーション失敗時に外周の枠線を赤くするか |
 | `Log` | `ILogger` | `NullLogger` | 内部ロガー（null 設定時は `NullLogger` へフォールバック）。 診断ログの出力先 |

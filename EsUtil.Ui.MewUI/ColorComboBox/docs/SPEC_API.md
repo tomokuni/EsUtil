@@ -30,6 +30,7 @@
 | --- | --- | --- | --- |
 | `SelectedColor` | `string` | `#FFFFFFFF` | 選択中の色（**保存値** `<c>#AARRGGBB</c>`）。 色名や `+{n}%` を設定すると正規化される。 設定すると入力欄・スウォッチ・一覧の選択が追従する |
 | `ColorSortMode` | `ColorSortMode`（コア） | `ByHue` | 一覧の並び順（`ByName` / `ByHue`） |
+| `ShowThemeColors` | `bool` | `true`（読み取り専用） | 一覧の先頭に UI のテーマの色（**テーマ: 背景 / 文字 / アクセント**）を並べる。 値は一覧を作り直すたびにテーマ（MewUI はパレット、WinUI 3 はテーマ資源と `SystemAccentColor`）から解決する |
 | `TextFormat` | `ColorTextFormat`（コア） | `NameWithAlpha` | 入力欄の表記（`NameWithAlpha` = `{色名}+{%}` / `HexCode` = `#AARRGGBB`）。 設定すると入力欄とツールチップの表記が切り替わる |
 | `TextFontSize` | `double` | テーマの既定（`ThemeMetrics.FontSize`） | 入力欄の文字サイズ（DIP）。 **MewUI の文字サイズは継承されない**ため、周囲の入力欄と同じ大きさにする場合は明示する |
 | `TextWidth` | `double` | `NaN`（自動） | 入力欄の明示的な幅（DIP） |
