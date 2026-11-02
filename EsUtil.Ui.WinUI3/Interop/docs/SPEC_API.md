@@ -44,7 +44,7 @@ WinUI 3 と EsUtil の型の相互変換が提供する公開 API です。 使�
 
 ## 3. 制限事項
 
-- **描画は Composition を使います**（Skia を使いません）。
+- **描画は Composition を使います**。
 - **ICO は WIC のエンコーダーで作れません**（WIC に ICO のエンコーダーが無い）。 `BmpStreamBuilder` が BMP を組み立て、複数サイズを 1 ファイルへ詰めます。
 
 ## 4. 例外

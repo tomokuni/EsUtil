@@ -156,7 +156,7 @@ marquee.DrawPlanResolver = plan => plan with
 
 ## 8. 他の UI 版のサンプルとの違い
 
-| 項目 | 他の UI 版（Avalonia / MewUI） | 本サンプル（WinForms） |
+| 項目 | 他の UI 版（Avalonia / MewUI / WinUI 3） | 本サンプル（WinForms） |
 | --- | --- | --- |
 | 起動 | 各フレームワークの初期化を呼ぶ | **`Application.SetHighDpiMode` / `EnableVisualStyles` / `Run` を呼ぶ** |
 | 画像の重ね方 | グリッドへ画像とコントロールを順に追加する | **画像を表示する `PictureBox` の子としてコントロールを追加する** |

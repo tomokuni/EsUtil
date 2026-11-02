@@ -47,7 +47,7 @@ var key = Windows.System.VirtualKey.A.ToEsKey();
 
 `EsUtil.Platform.Core` と `Microsoft.WindowsAppSDK` を参照します。 規則は [`.github/依存関係.md`](../../.github/依存関係.md)。
 
-- 描画は Composition を使います（Skia を使いません）。
+- 描画は Composition を使います。
 
 ## 5. テスト
 

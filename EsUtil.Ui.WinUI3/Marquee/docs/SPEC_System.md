@@ -61,7 +61,7 @@ flowchart TB
     UB["提示層<br/>MarqueePresenter / MarqueeAppearance"]
     CORE["機能コア<br/>MarqueeCore（状態機械・入力の解釈）"]
     PLAT["共通基盤<br/>EsPoint / EsRect / ICoordTransform / DpiScaler / ICursorService"]
-    SKIA["Microsoft.UI.Xaml.Controls<br/>Canvas（要素の層）"]
+    BASE["Microsoft.UI.Xaml.Controls<br/>Canvas（要素の層）"]
     XAML["WinUI 3<br/>Canvas / ポインター イベント / XamlRoot"]
 
     CTRL --> UB
@@ -69,9 +69,9 @@ flowchart TB
     CTRL --> PLAT
     CTRL --> PAINT
     CTRL --> HELP
-    CTRL --> SKIA
+    CTRL --> BASE
     PAINT --> UB
-    SKIA --> XAML
+    BASE --> XAML
 ```
 
 依存は常に UI 層 → 提示層 → 機能コア → 共通基盤の向きです（[`.github/依存関係.md`](../../../.github/依存関係.md)）。

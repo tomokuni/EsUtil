@@ -28,7 +28,7 @@
 マウス ドラッグ・矢印キーで選択矩形を作成・変形します。
 
 選択矩形・ドラッグ・nudge のロジックは UI 非依存コア（`EsUtil.Feature.Marquee.Core`）が単一所有し、
-他の UI 版（Avalonia / MewUI）と同一の挙動になります。
+他の UI 版（Avalonia / MewUI / WinForms）と同一の挙動になります。
 
 基底クラスは `Microsoft.UI.Xaml.Controls.Canvas` で、図形とラベルを要素として置きます。
 サイズラベル・カーソル座標ラベルも同じ要素の層へ置きます。
