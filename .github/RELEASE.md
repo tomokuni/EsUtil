@@ -30,8 +30,9 @@
 - **NuGet の対象は版の単一所有（`Directory.Packages.props`）のフォルダだけ**（`directory: "/"`）。 版は Central Package Management で 1 ファイルが持つため、プロジェクトごとに列挙する必要はありません。 列挙すると **Dependabot がフォルダごとに依存を解決して実行が長引きます**（実測 2026-11-02: 85 フォルダで 12〜56 分。 時間切れで Pull Request が作られないことがありました）。 登録漏れは `verify.ps1` が不合格にします（規則は [`検証手順.md`](検証手順.md) §8）。
 - **メジャー更新の一部は自動で作らない**（`xunit.v3` / `xunit.analyzers`）: テストの書き方と実行基盤が変わるため、人が判断します。
 - **MewUI（0.x）は固定して手動で更新する**: 破壊的変更でビルドが通らなくなるためです。
-- **Dependabot は `packages.lock.json` を更新しない**（版は `Directory.Packages.props` だけを書き換える）。 そのため Dependabot の Pull Request は、**そのままでは CI が `NU1004`（lock が古い）で失敗します**。
-  ブランチを取得して `buildScript/updateLocks.ps1` を実行し、lock を追加コミットしてからマージします（版の更新自体は PR の内容のままで、変えるのは lock だけです）。
+- **lock の更新は CI が行います**（[`workflows/locks.yml`](workflows/locks.yml)）。 `dev` からの Pull Request で `packages.lock.json` が古ければ、bot が `buildScript/updateLocks.ps1` を実行し、**`dev` へ自動でコミット**します（開発者の手作業はありません）。 対象は**配布するプロジェクト（`src`）だけ**です（テスト・サンプルは lock を持たない。 版を上げるたびに 44 ファイルの機械的な差分が出るため。 [`ビルド設定規約.md`](ビルド設定規約.md) §8）。
+  - Dependabot の Pull Request も同じ仕組みで lock が更新されます（版を書き換えるのは `Directory.Packages.props` だけ）。
+  - 手元で先に直したいときは `pwsh -NoProfile -File buildScript/updateLocks.ps1`。
 
 ## 3. リポジトリの設定（初回のみ）
 
@@ -54,11 +55,13 @@
 | --- | --- | --- |
 | `dev` への push | なし | 手元の `verify.ps1` と、`main` 向け Pull Request の検証で足りる |
 | `main` 向け Pull Request | フル検証（`build.yml`。 必須チェックは `ci`） | **唯一のゲート**。 最新の `main` とマージしたツリーを検証する |
+| `main` 向け Pull Request | **`dry-run` を自動実行**（`release.yml`。 `pack` と SBOM の作成） | マージ後に手動で dry-run を回さない。 公開物を 1 度だけ作り、そのまま公開する |
 | `main` への push（マージ） | なし | Pull Request と同じツリーのため重複する（最新の `main` への追随が前提） |
 | `workflow_dispatch`（`build.yml`） | フル検証 | 任意のブランチを今すぐ確かめたいとき |
-| Release `dry-run` | `pack` と SBOM の作成 | 公開物を 1 度だけ作る |
-| Release `release` | dry-run の成果物の公開とタグ付け | **`pack` と SBOM を作り直さない**（公開するバイト列が dry-run と同じになる） |
+| Release `dry-run`（手動） | `pack` と SBOM の作成 | `dev` などで先に確かめたいとき |
+| Release `release`（手動） | dry-run の成果物の公開とタグ付け | **`pack` と SBOM を作り直さない**（公開するバイト列が dry-run と同じになる） |
 
+- **Pull Request の `dry-run` は自動**です（`release.yml` の `pull_request`）。 版・CHANGELOG・タグ・ブランチの検証と `pack`・SBOM までを PR のたびに行うため、**マージ後に dry-run を実行する必要はありません**。
 - **作業ブランチで早く壊れを見つけたいとき**は、手元の `buildScript/verify.ps1`（[`検証手順.md`](検証手順.md)）か、`build.yml` の `workflow_dispatch` を使います。
 - **README の build バッジ**は `?event=pull_request` を指定します（既定は**既定ブランチの最新実行**であり、`main` の push では実行しないため、`dev` の古い push の結果が残って PR の失敗を表示できません）。
 
@@ -66,19 +69,30 @@
 
 ```mermaid
 flowchart LR
-    A["workflow_dispatch<br/>mode=dry-run"] --> B["verify<br/>CHANGELOG・版・タグ"]
+    A["pull_request（自動）<br/>workflow_dispatch（手動）"] --> B["verify<br/>CHANGELOG・版・タグ"]
     B --> C["pack<br/>ソリューション別に dotnet pack"]
     B --> D["sbom<br/>ソリューション別に CycloneDX"]
-    C --> E["保管（nupkg / snupkg）"]
-    D --> F["保管（SBOM）"]
-    E --> G{"mode=release"}
+    C --> E["保管（nupkg-<ツリー>）"]
+    D --> F["保管（sbom-<ツリー>）"]
+    E --> G{"release モードか"}
     F --> G
-    G -->|"dry-run の成果物を取得<br/>承認（environment: release）"| H["publish<br/>NuGet へ公開"]
+    G -->|"同じツリーの成果物を取得<br/>承認（environment: release）"| H["publish<br/>NuGet へ公開"]
     H --> I["tag<br/>由来の証明 → タグ 1 本と Release 1 件"]
 ```
 
 **公開が成功した後にだけタグを打ちます**（公開できなかった版にタグを残さないため）。
-**`pack` と `sbom` は `dry-run` でだけ実行します**（`release` は dry-run の実行 ID から成果物を取得します）。
+**`pack` と `sbom` は `dry-run` でだけ実行します**（`release` は同じツリーの dry-run の実行 ID から成果物を取得します）。 配布物の名前には**ツリー**を埋めてあり（`nupkg-<ツリー>`）、`release` はその名前で「同じ内容の dry-run」を探します（コミットの SHA は PR とマージ後で変わるため）。
+
+**成果物の名前だけを信用しません**。 次の 3 つを確かめてから採用します（[`workflows/release.yml`](workflows/release.yml)）。
+
+| 確認 | 内容 |
+| --- | --- |
+| 実行の出所 | **このリポジトリ**の実行であること（`head_repository`。 fork の Pull Request を除外する） |
+| 実行のブランチ | Pull Request は **`dev`**、手動実行は `dryRunBranches`（`main` / `dev`） |
+| 配布物の中身 | リポジトリの全パッケージが**過不足なく同じ版**で入っていること。 XML ドキュメントと `README.md` が同封されていること（公開の直前に検証する） |
+
+- **成功した実行は全件を走査します**（件数で打ち切らない）。 固定件数にすると、公開後に積み上がった実行のせいで目的の dry-run を見失います。
+- **同じリポジトリの書き込み権限を持つ利用者が PR を偽装することまでは防げません**（成果物は暗号学的にビルドへ結び付いていない）。 公開物の出所を完全に証明する必要が出たら、配布物へ **attestation**（`actions/attest-build-provenance`）を付けて `release` で検証します。
 
 ## 5. リリース手順
 
@@ -86,12 +100,13 @@ flowchart LR
 
 1. **CHANGELOG の見出しを確定してコミットする**（`## 未リリース` → `## <版>（<公開日>）`。 §5.2）
 2. **版を上げてコミットする**（`Directory.Build.props` の `VersionPrefix`。 §6）。 `dev` で上げ、`main` へ Pull Request で入れる
-3. **Pull Request の `ci` が成功するまで待つ**（検証の合否基準は [`検証手順.md`](検証手順.md)）
-4. `main` で **`dry-run`** を実行する（§5.3）
-   - CHANGELOG・版・ブランチの検証、`pack`、**SBOM の作成**まで行う（公開もタグ作成もしない）
+3. **Pull Request の `ci` と `DryRun` が成功するまで待つ**
+   - `ci` は検証のゲート（合否基準は [`検証手順.md`](検証手順.md)）
+   - `DryRun` は **Pull Request で自動実行**され、`pack` と SBOM を作る（公開もタグ作成もしない）
    - 前回のタグから**変更が無ければリリースしない**（`git diff` で判定）
-5. 問題が無ければ、**同じコミット**で **`release`** を実行する（§5.3）
-   - **同じコミットの dry-run が成功していないと中止**する
+4. **Pull Request をマージする**
+5. `main` で **`release`** を実行する（§5.3）
+   - **同じツリーの dry-run が成功していないと中止**する（Pull Request の `DryRun` をそのまま使える）
    - `environment: release` の**承認**を経て、NuGet へ公開し、その後にタグと GitHub Release を作成する
 
 **公開済みの版は不変**です。 同じ版を再公開しようとすると `release` は失敗します（`dry-run` は確認のため続行します）。
@@ -115,16 +130,16 @@ git status --short
 Select-String -Path Directory.Build.props -Pattern 'VersionPrefix>'
 Select-String -Path CHANGELOG.md -Pattern '^## '
 
-# main の最新を取り、dry-run を実行する（-f version は確認用。 省略可）
+# Pull Request を作り、ci と DryRun の両方が成功するまで待つ（DryRun は自動で走る）
+gh pr create --base main --head dev --title "<要約>" --body "<本文>"
+gh pr checks --watch
+
+# マージする（DryRun の成果物が公開に使われる）
+gh pr merge --merge
+
+# main を取り、release を実行する（マージ後の新しいコミットで実行する）
 git switch main
 git pull
-gh workflow run release.yml --ref main -f mode=dry-run
-
-# 実行の完了を待つ（run-name は DryRun main <SHA>）
-gh run list --workflow release.yml --limit 5
-gh run watch (gh run list --workflow release.yml --limit 1 --json databaseId --jq '.[0].databaseId')
-
-# dry-run が成功したら、同じコミットで release を実行する
 gh workflow run release.yml --ref main -f mode=release
 
 # 承認を待つ（environment: release。 Web か gh で承認する）
@@ -137,8 +152,9 @@ gh release list --limit 6
 (Invoke-RestMethod 'https://api.nuget.org/v3-flatcontainer/esutil.platform.core/index.json').versions
 ```
 
-- **同じコミットで実行する**こと（`release` は `<SHA>` が一致する dry-run の成功を要求します）。 `main` を進めてから `release` を実行すると中止されます。
-- **`release` は `main` でのみ実行できます**（`releaseBranches`）。 `dry-run` は `dev` でも実行できます（版と CHANGELOG の確認だけを先にしたいとき）。
+- **dry-run を手で実行する必要はありません**（Pull Request で自動で走ります）。 `dev` などで先に確かめたいときだけ `gh workflow run release.yml --ref dev -f mode=dry-run` を使います。
+- **`release` は「同じツリー」の dry-run を要求します**。 マージで `main` が進んでも、Pull Request の dry-run が検証したツリー（`refs/pull/<番号>/merge`）とマージ後のツリーは同じため、そのまま使えます。 別の Pull Request を先にマージした場合はツリーが変わるので、**最後にマージした Pull Request の `DryRun`**（自動で走っています）が使われます。
+- **`release` は `main` でのみ実行できます**（`releaseBranches`）。
 
 ## 6. バージョンの指定
 
@@ -194,6 +210,8 @@ pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output sbom
 - **SBOM とパッケージは同じコミットから作ります**（`pack` と `sbom` は `dry-run` の同じ `github.sha` を checkout する）。
 - **公開するコミットに `## 未リリース` を残しません**（`verify` が失敗する。 §5.2）。
 - **検証は Pull Request の 1 回だけです**（push では実行しない。 §4.1）。 マージ後に検証をやり直しても、同じツリーの同じ結果になるためです。 前提として、Pull Request は**最新の `main` に追随**してからマージします（ruleset の `strict_required_status_checks_policy`）。
+- **配布物の名前は `nupkg-<ツリー>` / `sbom-<ツリー>`** です（`release` が「同じ内容の dry-run」を探すための識別子）。 Pull Request で自動実行するようになる前の成果物（`nupkg` / `sbom`）は再利用できないため、**この方式へ変えた直後のリリースは Pull Request の `DryRun` を使ってください**。
+- **成果物の名前は「同じ内容か」の手掛かりにすぎません**。 `release` は実行の出所（このリポジトリ・リリース元のブランチ）と、配布物の中身（パッケージの過不足・版・同封物）を確かめてから公開します（§4.2）。
 
 ## 関連ドキュメント
 

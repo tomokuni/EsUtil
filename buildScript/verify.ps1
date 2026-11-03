@@ -301,14 +301,22 @@ foreach ($hit in $versionInReference) { $packageIssues.Add(("Version を書い�
 Add-Result 'パッケージの版' ($packageIssues.Count -eq 0) "違反 $($packageIssues.Count) 件"
 $packageIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
 
-# 2b) 復元結果の固定（packages.lock.json を全プロジェクトが持つこと。 規則は §8）
+# 2b) 復元結果の固定（packages.lock.json は**配布するプロジェクト（src）だけ**が持つ。 規則は §8）
 #     lock が無いと、同じコミットでも復元した時点の依存で中身が変わる。 lock の一致はビルドの
 #     `-p:RestoreLockedMode=true`（§1）が NU1004 で検出する。
-$lockMissing = @(git ls-files --cached --others --exclude-standard -- '*.csproj' |
-        Where-Object { $_ -notmatch '\\(obj|bin)\\' } |
-        Where-Object { -not (Test-Path -LiteralPath (Join-Path $repoRoot (Join-Path (Split-Path $_ -Parent) 'packages.lock.json'))) })
-Add-Result 'ロックファイル' ($lockMissing.Count -eq 0) "未作成 $($lockMissing.Count) 件"
-$lockMissing | Select-Object -First 10 | ForEach-Object { "      packages.lock.json が無い: $_（dotnet restore で作られる）" }
+#     テスト・サンプルは配布しないため対象外（持つと `ProjectReference` の版が書き込まれ、
+#     版を上げるたびに機械的な差分だけが大量に出る。 .github/ビルド設定規約.md §8）。
+$lockIssues = [System.Collections.Generic.List[string]]::new()
+foreach ($csproj in @(git ls-files --cached --others --exclude-standard -- '*.csproj')) {
+    if ($csproj -match '\\(obj|bin)\\') { continue }
+    $isSrc = (Split-Path $csproj -Parent) -match '(^|\\)src$'
+    $lockPath = Join-Path $repoRoot (Join-Path (Split-Path $csproj -Parent) 'packages.lock.json')
+    $hasLock = Test-Path -LiteralPath $lockPath
+    if ($isSrc -and -not $hasLock) { $lockIssues.Add("packages.lock.json が無い: $csproj（dotnet restore で作られる）") }
+    if (-not $isSrc -and $hasLock) { $lockIssues.Add("配布しないプロジェクトが lock を持つ: $lockPath（削除する。 版を上げるたびに機械的な差分が出る）") }
+}
+Add-Result 'ロックファイル' ($lockIssues.Count -eq 0) "不備 $($lockIssues.Count) 件（src のみ必須）"
+$lockIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
 
 # 2b) アナライザー設定が .cs へ適用されているか
 #     `.editorconfig` の `dotnet_diagnostic.*` は「直前のセクション」に属する。 セクションを分け忘れると

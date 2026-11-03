@@ -3,13 +3,15 @@
     すべてのソリューションの `packages.lock.json` を、現在の `Directory.Packages.props` に合わせて作り直す。
 
 .DESCRIPTION
-    `packages.lock.json` は復元結果を固定する（規則は `.github/ビルド設定規約.md` §8）。 版を変えたときは
-    このスクリプトで lock を更新し、**コミットする**（更新しないと CI の `-p:RestoreLockedMode=true` が
-    `NU1004` で失敗する）。
+    `packages.lock.json` は復元結果を固定する（規則は `.github/ビルド設定規約.md` §8）。 lock を持つのは
+    **配布するプロジェクト（`src`）だけ**であり、テスト・サンプルは持たない（版を上げるたびに
+    `ProjectReference` の版だけが変わる機械的な差分が大量に出るため）。
 
-    Dependabot は `Directory.Packages.props` を書き換えますが、**lock は更新しません**（対象は版の単一所有の
-    フォルダだけである。 `.github/検証手順.md` §8）。 そのため Dependabot の
-    Pull Request は、そのブランチでこのスクリプトを実行しないと CI が失敗します。
+    **版を変えたときの更新は CI が行う**（`.github/workflows/locks.yml` が `dev` からの Pull Request で
+    このスクリプトを実行し、差分があれば自動コミットする）。 このスクリプトは、その CI と、
+    手元で先に直したいとき（fork の Pull Request など）が使う。
+
+    更新しないと CI の `-p:RestoreLockedMode=true` が `NU1004` で失敗する。
 
     ソリューションの一覧は `.github/release-config.json` の `solutions` が単一所有する（本文へ列挙しない）。
 
@@ -45,5 +47,5 @@ foreach ($sln in $Solution) {
 }
 
 $changed = @(git status --porcelain -- '*/packages.lock.json' 'packages.lock.json')
-Write-Host "lock を更新しました（変更 $($changed.Count) 件）。 内容を確認してコミットしてください。"
+Write-Host "lock を更新しました（変更 $($changed.Count) 件）。"
 $changed | ForEach-Object { "  $_" }

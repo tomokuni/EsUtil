@@ -6,7 +6,7 @@
 
          ローカル フィードへ出すときだけ buildScript/pack.ps1 が VersionSuffix=local.<n> を付ける
          （公開する版には含めない。 ローカル フィード専用の識別子である）。 -->
-    <VersionPrefix>0.5.0</VersionPrefix>
+    <VersionPrefix>0.5.1</VersionPrefix>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -73,11 +73,16 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- 復元結果を packages.lock.json で固定する（各プロジェクトの直下に置き、**コミットする**）。
-         パッケージの版は Directory.Packages.props が完全一致で持ち、その解決結果を lock が固定するため、
-         同じコミットは常に同じ依存で復元される。 CI は -p:RestoreLockedMode=true で lock どおりに復元し、
-         lock と Directory.Packages.props の食い違いを NU1004 で検出する。 規則は .github/ビルド設定規約.md §4。 -->
-    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- 復元結果を packages.lock.json で固定する（**配布するプロジェクト（src）だけ**が持ち、
+         直下に置いて**コミットする**）。 パッケージの版は Directory.Packages.props が完全一致で持ち、
+         その解決結果を lock が固定するため、同じコミットは常に同じ依存で復元される。 CI は
+         -p:RestoreLockedMode=true で lock どおりに復元し、食い違いを NU1004 で検出する。
+         規則は .github/ビルド設定規約.md §8。
+
+         **テスト・サンプルは lock を持たない**: 配布しないため再現性の対象外であり、lock を持つと
+         `ProjectReference` の版が書き込まれ、版を上げるたびに機械的な差分だけが大量に出る
+         （実測 2026-11-03: 56 ファイル・330 行のうち 44 ファイルがテスト・サンプル）。 -->
+    <RestorePackagesWithLockFile Condition="'$(_SeIsTestOrSample)' != 'true'">true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <ItemGroup>

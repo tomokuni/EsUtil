@@ -11,6 +11,8 @@
 #   フォルダごとに依存を解決して実行が長引く（実測 2026-11-02: 85 フォルダで 12〜56 分。 時間切れで
 #   Pull Request が作られないことがあった）。 登録漏れは verify.ps1 §2e が不合格にする
 #   （規則の所有者は .github/検証手順.md §8）。
+# - **lock（packages.lock.json）の更新は locks.yml が行う**（この Pull Request のブランチへ自動コミットする）。
+#   版を書き換えるのは Directory.Packages.props だけであり、lock はそれに追随して変わるため。
 # - NuGet のメジャー更新（xunit.v3 4 系など、テストの書き方と実行基盤が変わるもの）は自動では作成しない。
 #   ignore の dependency-name は**実際のパッケージ ID と完全一致**させること
 #   （xunit では xunit.v3 / xunit.analyzers に一致しない）。
