@@ -1,9 +1,13 @@
-# リリース ワークフロー（手動実行のみ）
+# リリース ワークフロー
+#
+# 実行契機:
+#   main 向け Pull Request … **dry-run を自動実行する**（配布物の作成と検証だけ。 公開もタグも作らない）
+#   手動実行（workflow_dispatch）… mode=dry-run（作成と検証）または mode=release（公開とタグ付け）
 #
 # 手順の全体:
-#   1. mode=dry-run で実行する（配布物の作成と検証だけ。 タグも公開もしない）
-#   2. 問題が無ければ mode=release で実行する
-#      （**同じコミットの dry-run が成功していることを前提**にし、満たさなければ中止する）
+#   1. Pull Request の時点で dry-run が自動で走る（版・CHANGELOG・タグ・ブランチの検証、pack、SBOM）
+#   2. 問題が無ければ main へマージし、**同じツリー**で mode=release を実行する
+#      （**同じツリーの dry-run が成功していることを前提**にし、満たさなければ中止する）
 #   3. release は「承認（environment: release）」→「公開」→「タグ付け」の順に進む
 #
 # 設計の要点:
@@ -11,7 +15,9 @@
 #     入力 `version` は確認用であり、ツリーの値と一致しなければ失敗する。
 #   - **CHANGELOG の見出しを公開前に確定させる**（`## 未リリース` が残っていれば失敗する。
 #     公開した版の変更が「未リリース」のまま残らないようにする。 手順は .github/RELEASE.md）。
-#   - **配布物は dry-run で 1 回だけ作り、release はそれを使う**（同じコミットを 2 回 pack しない）。
+#   - **配布物は dry-run で 1 回だけ作り、release はそれを使う**（同じ内容を 2 回 pack しない）。
+#     Pull Request の dry-run は**マージ後に main へ載るツリーそのもの**（`refs/pull/<番号>/merge`）を
+#     検証するため、その成果物をそのまま公開できる（**コミットの SHA ではなくツリーで照合する**）。
 #   - **公開が成功した後にだけタグを打つ**（公開できなかった版にタグを残さない）。
 #   - **タグは 1 本**（`v<版>`。 すべてのパッケージが同じ版である）。 Release も 1 件にまとめる。
 #   - **公開は Trusted Publishing**（OIDC で短命の API キーを取得する。 長期の API キーを持たない）。
@@ -21,16 +27,20 @@
 #   - **配布物には SBOM（CycloneDX）を添付する**（ソリューションごとに 1 ファイル。 使った依存を公開物から辿れる）。
 #   - **公開したパッケージには由来の証明（build provenance）を付ける**（どのワークフロー・どのコミットが
 #     作ったかを後から検証できる。 `actions/attest-build-provenance`）。
-#   - **実行できるブランチはモードで変わる**（dry-run は main / dev、公開は main のみ）。
+#   - **実行できるブランチはモードで変わる**（dry-run は main / dev と main 向け Pull Request、公開は main のみ）。
 #     一覧は .github/release-config.json が単一所有する（開発〜dry-run の確認は dev で行う）。
 #
 # **手順の所有者は .github/RELEASE.md**（本ファイルはその実装）。 版の規則は .github/ビルド設定規約.md §4、
 # パッケージの合否基準は .github/検証手順.md §9 が持つ。
 name: Release
 
-run-name: ${{ inputs.mode == 'dry-run' && 'DryRun' || 'Release' }} ${{ github.ref_name }} ${{ github.sha }}
+# Pull Request では常に DryRun にする（`inputs.mode` は workflow_dispatch でしか入らない）
+run-name: ${{ (github.event_name == 'pull_request' || inputs.mode == 'dry-run') && 'DryRun' || 'Release' }} ${{ github.ref_name }} ${{ github.sha }}
 
 on:
+  # **main 向け Pull Request では dry-run を自動実行する**（マージ後に手動で dry-run を回さない）。
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       mode:
@@ -44,17 +54,19 @@ on:
         required: false
         type: string
 
-# リリース処理は同時に 1 つだけ実行する
+# 公開は同時に 1 つだけ、Pull Request の dry-run は PR ごとに並行してよい
+# （`release` で直列にすると、PR の dry-run が公開の待ち行列へ入ってしまう）。
+# Pull Request では、同じ PR へ新しいコミットが載ったら古い dry-run を打ち切る（無駄な pack を残さない）。
 concurrency:
-  group: release
-  cancel-in-progress: false
+  group: release-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
   # ────────────────────────────────────────────────────────────
-  # 1. 前提検証（版・対象グループ・dry-run の成功）
+  # 1. 前提検証（版・タグ・dry-run の成功）
   # ────────────────────────────────────────────────────────────
   verify:
     runs-on: ubuntu-latest
@@ -64,12 +76,16 @@ jobs:
       # dry-run の実行結果の参照
       actions: read
     outputs:
+      # 実行モード（Pull Request は常に dry-run）
+      mode: ${{ steps.mode.outputs.mode }}
       version: ${{ steps.plan.outputs.version }}
       tag: ${{ steps.plan.outputs.tag }}
       count: ${{ steps.plan.outputs.count }}
       # pack / SBOM の対象（ソリューションと、SBOM の製品名）
       solutions: ${{ steps.plan.outputs.solutions }}
-      # dry-run の実行 ID（release はその成果物を使う。 同じコミットを 2 回 pack しない）
+      # 検証した内容の識別子（ツリー）。 配布物の名前と、release の照合に使う
+      tree: ${{ steps.plan.outputs.tree }}
+      # dry-run の実行 ID（release はその成果物を使う。 同じ内容を 2 回 pack しない）
       dryRunId: ${{ steps.plan.outputs.dryRunId }}
     steps:
       - name: チェックアウト
@@ -77,6 +93,21 @@ jobs:
         with:
           # 前回のタグとの差分を取るため全履歴を取得する
           fetch-depth: 0
+
+      # **Pull Request では常に dry-run**（`inputs.mode` は workflow_dispatch でしか入らない）。
+      # これにより、PR の dry-run が公開へ進むことはない（公開は workflow_dispatch の release だけ）。
+      - name: 実行モードを決める
+        id: mode
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_MODE: ${{ inputs.mode }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $mode = if ($env:EVENT_NAME -eq 'pull_request') { 'dry-run' } else { "$($env:INPUT_MODE)".Trim() }
+          if ($mode -notin @('dry-run', 'release')) { throw "mode が不正です: '$mode'" }
+          "mode=$mode" >> $env:GITHUB_OUTPUT
+          Write-Host "実行モード: $mode（イベント: $($env:EVENT_NAME)）"
 
       # 公開した版の変更が「未リリース」のまま残らないようにする（規則は .github/RELEASE.md）。
       - name: CHANGELOG の見出しを検証する
@@ -102,10 +133,15 @@ jobs:
       - name: 実行ブランチを検証する
         shell: pwsh
         env:
-          MODE: ${{ inputs.mode }}
-          BRANCH: ${{ github.ref_name }}
+          MODE: ${{ steps.mode.outputs.mode }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
           $ErrorActionPreference = 'Stop'
+
+          # Pull Request は**マージ先**のブランチで判定する（`github.ref_name` は `19/merge` になる）
+          $branch = if ($env:EVENT_NAME -eq 'pull_request') { $env:BASE_REF } else { $env:REF_NAME }
 
           # 許可ブランチの所有者は .github/release-config.json（ワークフローへ書き写さない）
           $config = Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json
@@ -113,18 +149,18 @@ jobs:
           $allowed = @($config.$key)
 
           if ($allowed.Count -eq 0) { throw ".github/release-config.json の $key が空です" }
-          if ($allowed -notcontains $env:BRANCH) {
-            throw "このブランチ（$($env:BRANCH)）では mode=$($env:MODE) を実行できません（許可: $($allowed -join ', ')。 .github/release-config.json）"
+          if ($allowed -notcontains $branch) {
+            throw "このブランチ（$branch）では mode=$($env:MODE) を実行できません（許可: $($allowed -join ', ')。 .github/release-config.json）"
           }
 
-          Write-Host "実行ブランチ: $($env:BRANCH)（mode=$($env:MODE)）"
+          Write-Host "実行ブランチ: $branch（mode=$($env:MODE)、イベント: $($env:EVENT_NAME)）"
 
       - name: 版とタグを決める
         id: plan
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MODE: ${{ inputs.mode }}
+          MODE: ${{ steps.mode.outputs.mode }}
           INPUT_VERSION: ${{ inputs.version }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
@@ -170,26 +206,35 @@ jobs:
           $changed = if ($lastTag) { @(git diff --name-only "$lastTag...$($env:SHA)").Count -gt 0 } else { $true }
           if (-not $changed) { Write-Host "前回のタグ（$lastTag）から変更がありません（リリースしません）。" }
 
-          # release は「同じコミットの dry-run が成功している」ことを前提にする。
-          # その実行の成果物をそのまま公開する（同じコミットを 2 回 pack しない）。
+          # release は「**同じ内容（ツリー）**の dry-run が成功している」ことを前提にする。
+          # その実行の成果物をそのまま公開する（同じ内容を 2 回 pack しない）。
+          # **コミットの SHA では照合しない**: Pull Request の dry-run は `refs/pull/<番号>/merge`
+          # （＝マージ後に main へ載るツリーそのもの）を検証しており、マージ後のコミットとは SHA が違う。
+          # 実行の `head_sha` も PR の head ブランチであり、マージ コミットではない。
+          # そのため**配布物の名前にツリーを埋め**、その名前の成果物を持つ実行を探す。
+          $tree = (git rev-parse 'HEAD^{tree}').Trim()
+          $nupkgName = "nupkg-$tree"
           $dryRunId = ''
           if ($env:MODE -eq 'release') {
-            # displayTitle は run-name（`DryRun <ブランチ> <SHA>` / `Release …`）である。
+            # displayTitle は run-name（`DryRun …` / `Release …`）である。
             # name はワークフロー名（Release）なので判定に使えない。
-            $runs = @(gh run list --repo $env:REPO --workflow release.yml --commit $env:SHA --limit 50 --json databaseId,displayTitle,conclusion,headSha | ConvertFrom-Json)
-            $dry = @($runs | Where-Object { $_.displayTitle -like 'DryRun*' -and $_.conclusion -eq 'success' })
-            if ($dry.Count -eq 0) {
-              throw "このコミット（$env:SHA）の dry-run の成功実行がありません。先に mode=dry-run で実行してください。"
+            $runs = @(gh run list --repo $env:REPO --workflow release.yml --limit 50 --json databaseId,displayTitle,conclusion | ConvertFrom-Json)
+            foreach ($candidate in @($runs | Where-Object { $_.displayTitle -like 'DryRun*' -and $_.conclusion -eq 'success' } | Select-Object -First 10)) {
+              $names = @(gh api "repos/$($env:REPO)/actions/runs/$($candidate.databaseId)/artifacts" --jq '.artifacts[].name')
+              if ($names -contains $nupkgName) { $dryRunId = $candidate.databaseId; break }
             }
-            # 複数ある場合は最新（gh run list の既定の並びは新しい順）を使う
-            $dryRunId = $dry[0].databaseId
-            Write-Host "dry-run の実行: $dryRunId（成果物を再利用します）"
+
+            if (-not $dryRunId) {
+              throw "この内容（ツリー $tree。 コミット $($env:SHA)）の dry-run の成功実行がありません。 Pull Request の dry-run を待つか、mode=dry-run で実行してください。"
+            }
+            Write-Host "dry-run の実行: $dryRunId（ツリー $tree が一致。 成果物 $nupkgName を再利用します）"
           }
 
           $json = $list | ConvertTo-Json -Compress -AsArray
           $count = if ($changed) { 1 } else { 0 }
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
+          "tree=$tree" >> $env:GITHUB_OUTPUT
           "solutions=$json" >> $env:GITHUB_OUTPUT
           "count=$count" >> $env:GITHUB_OUTPUT
           "dryRunId=$dryRunId" >> $env:GITHUB_OUTPUT
@@ -200,7 +245,7 @@ jobs:
   # ────────────────────────────────────────────────────────────
   pack:
     needs: verify
-    if: inputs.mode == 'dry-run' && needs.verify.outputs.count != '0'
+    if: needs.verify.outputs.mode == 'dry-run' && needs.verify.outputs.count != '0'
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
@@ -234,7 +279,8 @@ jobs:
       - name: 配布物を保管
         uses: actions/upload-artifact@v7
         with:
-          name: nupkg
+          # **名前へツリーを埋める**（release はこの名前で「同じ内容の dry-run」を探す）
+          name: nupkg-${{ needs.verify.outputs.tree }}
           path: |
             artifacts/**/*.nupkg
             artifacts/**/*.snupkg
@@ -247,7 +293,7 @@ jobs:
   # ソリューションごとに 1 ファイル作り、1 つの Release へまとめて添付する。
   sbom:
     needs: verify
-    if: inputs.mode == 'dry-run' && needs.verify.outputs.count != '0'
+    if: needs.verify.outputs.mode == 'dry-run' && needs.verify.outputs.count != '0'
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -280,7 +326,8 @@ jobs:
       - name: SBOM を保管
         uses: actions/upload-artifact@v7
         with:
-          name: sbom
+          # 配布物と同じく、名前へツリーを埋める
+          name: sbom-${{ needs.verify.outputs.tree }}
           path: sbom/*.json
           if-no-files-found: error
 
@@ -289,7 +336,7 @@ jobs:
   # ────────────────────────────────────────────────────────────
   publish:
     needs: [verify]
-    if: inputs.mode == 'release' && needs.verify.outputs.count != '0'
+    if: needs.verify.outputs.mode == 'release' && needs.verify.outputs.count != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # 承認されたジョブだけが公開できる（Trusted Publishing のポリシーもこの環境に紐づける）
@@ -301,12 +348,13 @@ jobs:
       # OIDC で短命の NuGet API キーを取得する
       id-token: write
     steps:
-      # **dry-run が作った配布物をそのまま公開する**（同じコミットを 2 回 pack しない。
-      # 検証したバイト列と公開するバイト列が一致する）。 dry-run の成果物が失効している場合は失敗する。
+      # **dry-run が作った配布物をそのまま公開する**（同じ内容を 2 回 pack しない。
+      # 検証したバイト列と公開するバイト列が一致する）。 Pull Request の dry-run も使える。
+      # 成果物が失効している場合は失敗する。
       - name: 配布物を取得（dry-run の実行から）
         uses: actions/download-artifact@v8
         with:
-          name: nupkg
+          name: nupkg-${{ needs.verify.outputs.tree }}
           path: artifacts
           run-id: ${{ needs.verify.outputs.dryRunId }}
           github-token: ${{ github.token }}
@@ -366,7 +414,7 @@ jobs:
   # ────────────────────────────────────────────────────────────
   tag:
     needs: [verify, publish]
-    if: inputs.mode == 'release' && needs.verify.outputs.count != '0'
+    if: needs.verify.outputs.mode == 'release' && needs.verify.outputs.count != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
