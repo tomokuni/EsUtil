@@ -190,7 +190,7 @@
       "esutil.ui.winui3.columnpacking": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Feature.ColumnPacking.Core": "[0.5.0, )",
+          "EsUtil.Feature.ColumnPacking.Core": "[0.5.1, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )",
           "Microsoft.Windows.SDK.BuildTools": "[10.0.28000.2957, )",
           "Microsoft.WindowsAppSDK": "[2.6.4, )"

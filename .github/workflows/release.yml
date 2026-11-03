@@ -206,26 +206,47 @@ jobs:
           $changed = if ($lastTag) { @(git diff --name-only "$lastTag...$($env:SHA)").Count -gt 0 } else { $true }
           if (-not $changed) { Write-Host "前回のタグ（$lastTag）から変更がありません（リリースしません）。" }
 
-          # release は「**同じ内容（ツリー）**の dry-run が成功している」ことを前提にする。
-          # その実行の成果物をそのまま公開する（同じ内容を 2 回 pack しない）。
-          # **コミットの SHA では照合しない**: Pull Request の dry-run は `refs/pull/<番号>/merge`
-          # （＝マージ後に main へ載るツリーそのもの）を検証しており、マージ後のコミットとは SHA が違う。
-          # 実行の `head_sha` も PR の head ブランチであり、マージ コミットではない。
-          # そのため**配布物の名前にツリーを埋め**、その名前の成果物を持つ実行を探す。
+          # release は「**信頼できる dry-run** が同じ内容（ツリー）を検証している」ことを前提にする。
+          # **成果物の名前だけを信用しない**（PR はワークフローの定義も変更できるため、任意のファイルを
+          # `nupkg-<ツリー>` という名前で持ち込める）。 次の 2 つを満たす実行だけを採用する:
+          #   1. **このリポジトリの実行**であること（`head_repository`。 fork の PR を除外する）
+          #   2. **リリース元のブランチ**であること（Pull Request は `dev`、手動は許可ブランチ）
+          # そのうえで**配布物の名前（ツリー）が一致**することを確かめる。
+          # なお、同じリポジトリの書き込み権限を持つ利用者が PR を偽装することまでは防げない
+          # （公開物の完全な証明が要る場合は配布物へ attestation を付けて検証する。 §10）。
           $tree = (git rev-parse 'HEAD^{tree}').Trim()
           $nupkgName = "nupkg-$tree"
           $dryRunId = ''
           if ($env:MODE -eq 'release') {
-            # displayTitle は run-name（`DryRun …` / `Release …`）である。
-            # name はワークフロー名（Release）なので判定に使えない。
-            $runs = @(gh run list --repo $env:REPO --workflow release.yml --limit 50 --json databaseId,displayTitle,conclusion | ConvertFrom-Json)
-            foreach ($candidate in @($runs | Where-Object { $_.displayTitle -like 'DryRun*' -and $_.conclusion -eq 'success' } | Select-Object -First 10)) {
-              $names = @(gh api "repos/$($env:REPO)/actions/runs/$($candidate.databaseId)/artifacts" --jq '.artifacts[].name')
-              if ($names -contains $nupkgName) { $dryRunId = $candidate.databaseId; break }
+            $config = Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json
+            $manualBranches = @($config.dryRunBranches)
+
+            # **全件を走査する**（固定件数で打ち切らない。 成功した dry-run が積み上がっても見失わない）
+            $runs = @(gh api --paginate "repos/$($env:REPO)/actions/workflows/release.yml/runs?status=success&per_page=100" --jq '.workflow_runs[] | [(.id|tostring), .display_title, .event, .head_branch, (.head_repository.full_name // "")] | @tsv')
+            $scanned = 0
+            foreach ($line in $runs) {
+              $fields = $line -split "`t"
+              if ($fields.Count -lt 5) { continue }
+              $id = $fields[0]; $title = $fields[1]; $event = $fields[2]; $branch = $fields[3]; $repo = $fields[4]
+
+              if ($title -notlike 'DryRun*') { continue }
+              $scanned += 1
+
+              # 1. このリポジトリの実行だけを信頼する（fork の PR は成果物を持ち込める）
+              if ($repo -ne $env:REPO) { continue }
+
+              # 2. リリース元のブランチだけを信頼する
+              $trusted = ($event -eq 'pull_request' -and $branch -eq 'dev') -or
+                         ($event -eq 'workflow_dispatch' -and $manualBranches -contains $branch)
+              if (-not $trusted) { continue }
+
+              # 3. 配布物の名前（ツリー）が一致すること
+              $names = @(gh api "repos/$($env:REPO)/actions/runs/$id/artifacts" --jq '.artifacts[].name')
+              if ($names -contains $nupkgName) { $dryRunId = $id; break }
             }
 
             if (-not $dryRunId) {
-              throw "この内容（ツリー $tree。 コミット $($env:SHA)）の dry-run の成功実行がありません。 Pull Request の dry-run を待つか、mode=dry-run で実行してください。"
+              throw "この内容（ツリー $tree。 コミット $($env:SHA)）を検証した信頼できる dry-run がありません（成功した実行 $scanned 件を確認）。 dev からの Pull Request の DryRun を待つか、main で mode=dry-run を実行してください。"
             }
             Write-Host "dry-run の実行: $dryRunId（ツリー $tree が一致。 成果物 $nupkgName を再利用します）"
           }
@@ -365,6 +386,48 @@ jobs:
         uses: NuGet/login@v1
         with:
           user: ${{ secrets.NUGET_USER }}
+
+      # **配布物の中身を確かめる**（成果物の名前だけを信用しないための多重化）。
+      # リポジトリのパッケージ（テスト・サンプルを除く全プロジェクト）と版が**過不足なく一致**し、
+      # README と XML ドキュメントが同封されていることを確かめてから公開する。
+      - name: 配布物を検証
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $issues = [System.Collections.Generic.List[string]]::new()
+
+          $expected = @(git ls-files --cached --others --exclude-standard -- '*.csproj' |
+              Where-Object { $_ -notmatch '\.(Tests|Sample|SampleKit)\.csproj$' } |
+              ForEach-Object { [IO.Path]::GetFileNameWithoutExtension($_) } |
+              Sort-Object -Unique)
+          $actual = @(Get-ChildItem -Path 'artifacts' -Recurse -File -Filter '*.nupkg' |
+              ForEach-Object {
+                if ($_.BaseName -notmatch '^(?<id>.+?)\.(?<v>\d+\.\d+\.\d+)$') { $issues.Add("名前から版を判定できない: $($_.Name)"); return }
+                if ($Matches['v'] -ne $env:VERSION) { $issues.Add("版が $($env:VERSION) ではない: $($_.Name)"); return }
+                $Matches['id']
+              } | Sort-Object -Unique)
+
+          foreach ($id in $expected) { if ($actual -notcontains $id) { $issues.Add("パッケージが無い: $id") } }
+          foreach ($id in $actual) { if ($expected -notcontains $id) { $issues.Add("想定外のパッケージ: $id") } }
+
+          # 同封物（XML ドキュメント）を確かめる（名前と版だけでは中身を保証できない）
+          foreach ($package in @(Get-ChildItem -Path 'artifacts' -Recurse -File -Filter '*.nupkg')) {
+            $zip = [IO.Compression.ZipFile]::OpenRead($package.FullName)
+            try {
+              $names = @($zip.Entries | ForEach-Object { $_.FullName })
+              if (-not ($names | Where-Object { $_ -like 'lib/*/*.xml' })) { $issues.Add("XML ドキュメントが無い: $($package.Name)") }
+              if (-not ($names | Where-Object { $_ -eq 'README.md' })) { $issues.Add("README.md が無い: $($package.Name)") }
+            }
+            finally { $zip.Dispose() }
+          }
+
+          if ($issues.Count -gt 0) {
+            $issues | Select-Object -First 20 | ForEach-Object { Write-Host "::error::$_" }
+            throw "配布物の検証に失敗しました（$($issues.Count) 件）"
+          }
+          Write-Host "配布物の検証: $($actual.Count) 件（版 $($env:VERSION)）"
 
       # 既に同じ版がある場合は「公開済み」として扱う（nuget.org の版は不変であり、上書きは拒否される）。
       # **シンボル パッケージ（.snupkg）は明示的に送らない**: `dotnet nuget push <nupkg>` が同じフォルダの

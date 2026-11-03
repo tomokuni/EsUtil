@@ -302,7 +302,7 @@
       "esutil.feature.thumbnail.core": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.5.0, )",
+          "EsUtil.Platform.Core": "[0.5.1, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
@@ -312,7 +312,7 @@
       "esutil.ui.winui3.interop": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.5.0, )",
+          "EsUtil.Platform.Core": "[0.5.1, )",
           "Microsoft.Windows.SDK.BuildTools": "[10.0.28000.2957, )",
           "Microsoft.WindowsAppSDK": "[2.6.4, )"
         }
@@ -320,9 +320,9 @@
       "esutil.ui.winui3.thumbnail": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Feature.Thumbnail.Core": "[0.5.0, )",
-          "EsUtil.Platform.Core": "[0.5.0, )",
-          "EsUtil.Ui.WinUI3.Interop": "[0.5.0, )",
+          "EsUtil.Feature.Thumbnail.Core": "[0.5.1, )",
+          "EsUtil.Platform.Core": "[0.5.1, )",
+          "EsUtil.Ui.WinUI3.Interop": "[0.5.1, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )",
           "Microsoft.Windows.SDK.BuildTools": "[10.0.28000.2957, )",
           "Microsoft.WindowsAppSDK": "[2.6.4, )"

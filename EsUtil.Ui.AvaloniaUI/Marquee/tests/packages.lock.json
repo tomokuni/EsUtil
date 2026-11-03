@@ -309,7 +309,7 @@
       "esutil.feature.marquee.core": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.5.0, )",
+          "EsUtil.Platform.Core": "[0.5.1, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
@@ -320,16 +320,16 @@
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "EsUtil.Platform.Core": "[0.5.0, )"
+          "EsUtil.Platform.Core": "[0.5.1, )"
         }
       },
       "esutil.ui.avaloniaui.marquee": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "EsUtil.Feature.Marquee.Core": "[0.5.0, )",
-          "EsUtil.Platform.Core": "[0.5.0, )",
-          "EsUtil.Ui.AvaloniaUI.Interop": "[0.5.0, )",
+          "EsUtil.Feature.Marquee.Core": "[0.5.1, )",
+          "EsUtil.Platform.Core": "[0.5.1, )",
+          "EsUtil.Ui.AvaloniaUI.Interop": "[0.5.1, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
