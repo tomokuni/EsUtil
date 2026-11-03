@@ -30,8 +30,9 @@
 - **NuGet の対象は版の単一所有（`Directory.Packages.props`）のフォルダだけ**（`directory: "/"`）。 版は Central Package Management で 1 ファイルが持つため、プロジェクトごとに列挙する必要はありません。 列挙すると **Dependabot がフォルダごとに依存を解決して実行が長引きます**（実測 2026-11-02: 85 フォルダで 12〜56 分。 時間切れで Pull Request が作られないことがありました）。 登録漏れは `verify.ps1` が不合格にします（規則は [`検証手順.md`](検証手順.md) §8）。
 - **メジャー更新の一部は自動で作らない**（`xunit.v3` / `xunit.analyzers`）: テストの書き方と実行基盤が変わるため、人が判断します。
 - **MewUI（0.x）は固定して手動で更新する**: 破壊的変更でビルドが通らなくなるためです。
-- **Dependabot は `packages.lock.json` を更新しない**（版は `Directory.Packages.props` だけを書き換える）。 そのため Dependabot の Pull Request は、**そのままでは CI が `NU1004`（lock が古い）で失敗します**。
-  ブランチを取得して `buildScript/updateLocks.ps1` を実行し、lock を追加コミットしてからマージします（版の更新自体は PR の内容のままで、変えるのは lock だけです）。
+- **lock の更新は CI が行います**（[`workflows/locks.yml`](workflows/locks.yml)）。 `dev` からの Pull Request で `packages.lock.json` が古ければ、bot が `buildScript/updateLocks.ps1` を実行し、**`dev` へ自動でコミット**します（開発者の手作業はありません）。 対象は**配布するプロジェクト（`src`）だけ**です（テスト・サンプルは lock を持たない。 版を上げるたびに 44 ファイルの機械的な差分が出るため。 [`ビルド設定規約.md`](ビルド設定規約.md) §8）。
+  - Dependabot の Pull Request も同じ仕組みで lock が更新されます（版を書き換えるのは `Directory.Packages.props` だけ）。
+  - 手元で先に直したいときは `pwsh -NoProfile -File buildScript/updateLocks.ps1`。
 
 ## 3. リポジトリの設定（初回のみ）
 
