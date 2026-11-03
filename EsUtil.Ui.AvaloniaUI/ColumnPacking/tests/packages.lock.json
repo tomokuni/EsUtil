@@ -208,7 +208,7 @@
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
-          "EsUtil.Feature.ColumnPacking.Core": "[0.4.0, )",
+          "EsUtil.Feature.ColumnPacking.Core": "[0.5.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
