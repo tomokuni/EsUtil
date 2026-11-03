@@ -369,6 +369,11 @@ jobs:
       # OIDC で短命の NuGet API キーを取得する
       id-token: write
     steps:
+      # 配布物の検証が**リポジトリのプロジェクト一覧**（`git ls-files`）を読むため、チェックアウトする
+      # （成果物の取得だけでは一覧が空になり、全パッケージが「想定外」と誤判定される。 実測 2026-11-03）。
+      - name: チェックアウト
+        uses: actions/checkout@v7
+
       # **dry-run が作った配布物をそのまま公開する**（同じ内容を 2 回 pack しない。
       # 検証したバイト列と公開するバイト列が一致する）。 Pull Request の dry-run も使える。
       # 成果物が失効している場合は失敗する。
@@ -402,6 +407,9 @@ jobs:
               Where-Object { $_ -notmatch '\.(Tests|Sample|SampleKit)\.csproj$' } |
               ForEach-Object { [IO.Path]::GetFileNameWithoutExtension($_) } |
               Sort-Object -Unique)
+          # **一覧が空なら止める**: `git ls-files` はチェックアウトが無いと空を返すため、
+          # そのまま進めると全パッケージを「想定外」と誤判定する（実測 2026-11-03）。
+          if ($expected.Count -eq 0) { throw '検証の対象（*.csproj）を取得できません（チェックアウトを確認してください）。' }
           $actual = @(Get-ChildItem -Path 'artifacts' -Recurse -File -Filter '*.nupkg' |
               ForEach-Object {
                 if ($_.BaseName -notmatch '^(?<id>.+?)\.(?<v>\d+\.\d+\.\d+)$') { $issues.Add("名前から版を判定できない: $($_.Name)"); return }
