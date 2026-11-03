@@ -52,9 +52,13 @@ jobs:
         id: guard
         shell: pwsh
         run: |
-          $subject = (git log -1 --format=%s).Trim()
-          if ($subject -like '*[skip locks]*') {
-            Write-Host "前回のコミットが自動更新のため省略します: $subject"
+          # 印は**本文の 1 行**として入れる（1 行目は日本語の要約にする）。 そのため `%B`（件名 + 本文）で判定する。
+          # **`-like` は使わない**: PowerShell のワイルドカードは `[...]` を文字クラスとして扱うため、
+          # `-like '*[skip locks]*'` は「s/k/i/p/空白/l/o/c のどれか 1 文字」に一致してしまう（実測）。
+          # 行単位で一致を見る（本文中で印に言及しただけのコミットを誤って飛ばさない）。
+          $lines = @((git log -1 --format=%B) -split "`r?`n" | ForEach-Object { $_.Trim() })
+          if ($lines -contains '[skip locks]') {
+            Write-Host "前回のコミットが自動更新のため省略します: $((git log -1 --format=%s).Trim())"
             "skip=true" >> $env:GITHUB_OUTPUT
           }
           else {
