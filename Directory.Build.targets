@@ -23,6 +23,33 @@
     <PackageReference Include="Microsoft.NET.ILLink.Tasks" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- ソリューション経由のビルドでは、**ソリューションの外にあるプロジェクトへ構成が伝わらない**。
+       UI ソリューション（`EsUtil.Ui.<UI>`）は共通基盤（`EsUtil/`）を ProjectReference で参照するが、
+       共通基盤はそのソリューションに含まれないため、`dotnet build <UI>.slnx -c Release` でも
+       **参照先だけが Debug でビルドされる**（実測 2026-11-05: `EsUtil.Feature.*.Core` と
+       `EsUtil.Platform.Core` が `bin/Debug` へ出力され、pack が共有の `obj/Debug` を取り合って失敗した）。
+       理由は 2 つある: (1) ソリューションの構成は **ローカル プロパティ**（`AdditionalProperties`）として
+       渡るため、参照先へは継承されない。 (2) `AssignProjectConfiguration` がソリューション外の参照へ
+       `GlobalPropertiesToRemove=Configuration;Platform` を付け、`SetConfiguration` より後に取り除く。
+       そのため **構成を明示して伝え（`SetConfiguration`）、取り除きを取り消す**（下の target）。
+       規則は .github/ビルド設定規約.md §7。 -->
+  <ItemGroup Condition="'$(Configuration)' != ''">
+    <_SeProjectReferenceWithConfiguration Include="@(ProjectReference)" />
+    <ProjectReference Remove="@(_SeProjectReferenceWithConfiguration)" />
+    <ProjectReference Include="@(_SeProjectReferenceWithConfiguration)"
+                      SetConfiguration="Configuration=$(Configuration)" />
+  </ItemGroup>
+
+  <!-- ソリューション外の参照から `Configuration`/`Platform` を取り除く指定を消す（親の構成を継承させる）。
+       `AssignProjectConfiguration` の後、参照先をビルドする前に適用する。 -->
+  <Target Name="_SeKeepConfigurationForProjectReferences" AfterTargets="AssignProjectConfiguration">
+    <ItemGroup>
+      <_SeAssignedProjectReference Include="@(ProjectReferenceWithConfiguration)" />
+      <ProjectReferenceWithConfiguration Remove="@(_SeAssignedProjectReference)" />
+      <ProjectReferenceWithConfiguration Include="@(_SeAssignedProjectReference)" GlobalPropertiesToRemove="" />
+    </ItemGroup>
+  </Target>
+
   <!-- 上の明示参照は版を固定するためのものである（SDK は「消せ」と警告するが、消すと版が SDK に追従し、
        packages.lock.json が環境ごとに変わる）。 警告だけを止める（規則は .github/ビルド設定規約.md §8）。 -->
   <PropertyGroup Condition="'$(IsAotCompatible)' == 'true' Or '$(PublishAot)' == 'true' Or '$(PublishTrimmed)' == 'true'">
