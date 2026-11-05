@@ -9,6 +9,9 @@
     <RootNamespace>EsUtil.Ui.WinUI3.ColumnPacking.Sample</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- CsWinRT は、WinRT のジェネリック インターフェイスを実装する型（ItemTemplates）に
+         AOT のための生成コード（unsafe）を要求する（CsWinRT1030。 AOT で発行するために必要）。 -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- アンパッケージ（MSIX を使わない）で実行するため、パッケージ化せず Windows App SDK を同封する -->
     <!-- EnableMsixTooling は付けない。 付けると publish は自身の .pri を発行するが、
          ソリューションのビルド順によっては参照側の .pri が未生成のまま PRI252 で失敗する（実測 2026-10-26）。

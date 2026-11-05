@@ -71,4 +71,24 @@ public class BmpStreamBuilderTests
         Assert.Equal(4, BitConverter.ToInt32(data, 18));
         Assert.Equal(-2, BitConverter.ToInt32(data, 22));
     }
+
+    [Fact]
+    internal void Write_ストリームへ書いた内容がBuildと同じ()
+    {
+        using var image = TestHelper.CreateBitmap(3, 2, DrawingColor.Blue);
+        using var stream = new MemoryStream();
+
+        BmpStreamBuilder.Write(stream, image);
+
+        // 配列を組み立てずに書いても、同じ形式のバイト列になる（一時配列を減らす経路）
+        Assert.Equal(BmpStreamBuilder.Build(image), stream.ToArray());
+    }
+
+    [Fact]
+    internal void Write_画素の長さが寸法と合わない場合は例外()
+    {
+        using var stream = new MemoryStream();
+
+        Assert.Throws<ArgumentException>(() => BmpStreamBuilder.Write(stream, 2, 2, new byte[4]));
+    }
 }

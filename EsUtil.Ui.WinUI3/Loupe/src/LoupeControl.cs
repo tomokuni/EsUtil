@@ -390,8 +390,9 @@ public sealed partial class LoupeControl : Canvas
             // 割り当て（DIP）と面（物理ピクセル）の対応を残す（DPI の解釈がずれた場合にログだけで特定できる）
             Log.LogGeometry(ActualWidth, ActualHeight, plan.ClientPixelSize, plan.ClientToPixelScaling);
 
-            // 層の順序と描画内容は LoupeVisualLayer が計画に従って写す
-            Background = new SolidColorBrush(ToColor(plan.Appearance.ResolvePasteboardColor()));
+            // 層の順序と描画内容は LoupeVisualLayer が計画に従って写す。
+            // 下地の色はテーマで決まり有限であるため、同じ色のブラシを使い回す（更新のたびに作らない）
+            Background = SolidBrushCache.Get(plan.Appearance.ResolvePasteboardColor());
             _visual.Image.SetSource(Source);
             _visual.Apply(plan, 1 / scaling);
 
@@ -405,12 +406,6 @@ public sealed partial class LoupeControl : Canvas
             Log.LogUpdateError(ex);
         }
     }
-
-    /// <summary>色を WinUI の色へ変換する。</summary>
-    /// <param name="color">変換する色。</param>
-    /// <returns>変換した色。</returns>
-    private static Windows.UI.Color ToColor(System.Drawing.Color color)
-        => Windows.UI.Color.FromArgb(color.A, color.R, color.G, color.B);
 
     /// <summary><see cref="Rendered"/> イベントを発火する。</summary>
     /// <param name="args">通知する引数（描画先のキャンバスと描画計画）。</param>

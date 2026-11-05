@@ -443,6 +443,9 @@ public sealed partial class ThumbnailControl : Grid
     /// </remarks>
     private sealed partial class ThumbnailCanvas(ThumbnailControl owner) : Panel
     {
+        /// <summary>行の高さの作業領域（計測のたびに確保しない）。</summary>
+        private double[] _heights = [];
+
         /// <summary>最後に解決した配置。</summary>
         public ThumbnailLayoutResult? Layout { get; private set; }
 
@@ -463,7 +466,12 @@ public sealed partial class ThumbnailControl : Grid
                 ? owner.ActualWidth
                 : availableSize.Width;
 
-            var heights = new double[owner._items.Count];
+            if (_heights.Length != owner._items.Count)
+            {
+                _heights = new double[owner._items.Count];
+            }
+
+            var heights = _heights;
             for (var i = 0; i < owner._items.Count; i++)
             {
                 var source = owner._items[i].Source;

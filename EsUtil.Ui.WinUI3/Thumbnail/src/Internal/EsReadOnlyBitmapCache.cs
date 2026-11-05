@@ -17,12 +17,24 @@ namespace EsUtil.Ui.WinUI3.Thumbnail.Internal;
 /// </remarks>
 internal sealed class EsReadOnlyBitmapCache
 {
+    /// <summary>保持する変換結果の上限（件）。</summary>
+    /// <remarks>
+    /// <see cref="WriteableBitmap"/> は画素の複製を保持するため、上限を置かないと
+    /// 同じ項目の画像を差し替えるたびに古い画素が解放されない（4K の画像 1 枚で 33 MB）。
+    /// 1 つの項目が同時に表示する画像は 1 枚であるため、少しの余裕だけを残す。
+    /// </remarks>
+    private const int Capacity = 4;
+
     /// <summary>変換結果のキャッシュ（画像で一意）。</summary>
     private readonly Dictionary<EsReadOnlyBitmap, WriteableBitmap> _cache = [];
+
+    /// <summary>追加順（上限を超えたときに古いものから捨てる）。</summary>
+    private readonly Queue<EsReadOnlyBitmap> _order = [];
 
     /// <summary>画像に対応する表示用の画像を取得する（未変換なら変換する）。</summary>
     /// <param name="image">元の画像。</param>
     /// <returns>表示用の画像。</returns>
+    /// <remarks>UI スレッド専用（<see cref="WriteableBitmap"/> を UI スレッド以外から触れないため）。</remarks>
     public WriteableBitmap Get(EsReadOnlyBitmap image)
     {
         if (_cache.TryGetValue(image, out var cached))
@@ -37,7 +49,14 @@ internal sealed class EsReadOnlyBitmapCache
         }
 
         bitmap.Invalidate();
+
+        if (_cache.Count >= Capacity)
+        {
+            _cache.Remove(_order.Dequeue());
+        }
+
         _cache[image] = bitmap;
+        _order.Enqueue(image);
         return bitmap;
     }
 }

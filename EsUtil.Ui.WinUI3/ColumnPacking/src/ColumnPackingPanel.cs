@@ -32,11 +32,14 @@ namespace EsUtil.Ui.WinUI3.ColumnPacking;
 /// <br/>
 /// 【最適化施策】<br/>
 /// • Layout キャッシュで重複計算を削減し、ArrangeOverride での重複計算を回避<br/>
-/// • ChildElements プロパティで LINQ Iterator なしの直接イテレーションを使用し、オブジェクト割り当てを削減<br/>
+/// • ChildElements で LINQ を使わず、作業領域のリストを詰め直して使う（計測のたびの配列確保を避ける）<br/>
 /// • FrameworkElement のみをフィルタリングして効率的な処理を実現<br/>
 /// </remarks>
 public partial class ColumnPackingPanel : DualSourceItemsPanel
 {
+    /// <summary><b>子要素の作業領域</b>（計測・配置のたびに詰め直す）。</summary>
+    private readonly List<FrameworkElement> _childElements = [];
+
     /// <summary><b>最後に計算したレイアウト結果</b></summary>
     /// <remarks>
     /// デバッグやモニタリング用に保持<br/>
@@ -444,14 +447,18 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
             return new Size(0, 0);
 
         // 子要素を抽出
-        var childElements = ChildElements;
+        var childElements = ChildElements();
         if (childElements.Count == 0)
             return new Size(0, 0);
 
         // アイテムサイズを構築
         var inf = new Size(double.PositiveInfinity, double.PositiveInfinity);
         foreach (var el in childElements) el.Measure(inf);
-        var items = childElements.Select(e => (e.DesiredSize.Width, e.DesiredSize.Height)).ToArray();
+        var items = new (double Width, double Height)[childElements.Count];
+        for (var i = 0; i < items.Length; i++)
+        {
+            items[i] = (childElements[i].DesiredSize.Width, childElements[i].DesiredSize.Height);
+        }
 
         // ColumnPacking インスタンスを作成
         Layout ??= new ColumnPacker(items, (RowSpace, ColumnSpace), ColumnLimit);
@@ -501,7 +508,7 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
             return finalSize;
 
         // 計算結果から各子要素の座標とサイズを取得
-        var childElements = ChildElements;
+        var childElements = ChildElements();
         var itemLayouts = Layout.GetLastItemLayouts();
 
         // Arrange() で各要素を配置
@@ -525,7 +532,23 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
         => !double.IsInfinity(availableWidth) && availableWidth > 0.0 ? availableWidth : _lastWidthLimit;
 
     /// <summary><b>子要素を抽出します（LINQ Iterator なし）</b></summary>
-    /// <returns>フィルタリングされた FrameworkElement のリスト</returns>
-    private List<FrameworkElement> ChildElements => [.. Children.OfType<FrameworkElement>()];
+    /// <returns>フィルタリングされた FrameworkElement のリスト（計測・配置で使い回す作業領域）</returns>
+    /// <remarks>
+    /// 計測のたびに配列を作らないよう、リストを 1 つだけ保持して詰め直す。<br/>
+    /// 返すリストは次の呼び出しで書き換わるため、呼び出し元はその場で使い切ること。
+    /// </remarks>
+    private List<FrameworkElement> ChildElements()
+    {
+        _childElements.Clear();
+        foreach (var child in Children)
+        {
+            if (child is FrameworkElement element)
+            {
+                _childElements.Add(element);
+            }
+        }
+
+        return _childElements;
+    }
 
 }
