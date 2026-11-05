@@ -5,6 +5,24 @@
 - **公開する版は人が決めます**（`VersionPrefix` 1 行を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
+## 0.5.2（2026-11-05）
+
+### 追加
+
+- **`EsUtil.Ui.WinUI3.Interop` に `Bootstrapping.WindowsAppRuntimeBootstrap` を追加しました**。 Windows App Runtime が無い PC でも起動できるよう、Bootstrapper API（`MddBootstrapInitialize2`）で初期化し、見つからない場合は公式インストーラーを取得して黙って導入します。 導入の方法は `WindowsAppRuntimeBootstrapOptions.InstallMode`（`Download`（既定）/ `BootstrapUi` / `None`）で選べます。 初期化に使う版は参照している `Microsoft.WindowsAppSDK` のパッケージが決めます（ライブラリ側に版を書きません）。 自己完結の配置と MSIX では初期化しません。
+- **`EsUtil.Ui.WinUI3.Interop` に `Bootstrapping.WindowsAppRuntimeInventory` を追加しました**。 インストール済みの Windows App Runtime の版（`GetInstalledVersions`。 このプロセスのアーキテクチャのみ、新しい順）と、EsUtil の WinUI 3 版が必要とする版（`RequiredVersion`）を返し、`IsRequiredVersionInstalled` で導入の有無を判定します。 **利用者へ確認してから導入する**場合は、この判定が false のときだけ `TryInstall` / `TryInstallAsync` を呼びます（新しく公開しました）。
+
+### 変更
+
+- **`InstallMode.BootstrapUi` の案内を「3 択のダイアログ」にしました**（Windows App SDK の案内 UI は使いません）。 ダウンロード ページの URL とインストール済みの版を表示し、「自動インストールする」「ダウンロードページを表示する」「インストールせずにアプリを終了する」を選べます。 **本文の URL はクリックでも開けます**（ダイアログは閉じません）。 「ダウンロードページを表示する」はブラウザーでページを開いてから**もう一度案内を出します**。 案内は `WindowsAppRuntimeBootstrapOptions.Prompt` で差し替えられます（自前の UI を使う場合）。 タスク ダイアログを使えないアプリではメッセージ ボックスへ落ちます（`app.manifest` へ `Microsoft.Windows.Common-Controls` を宣言すると 3 択のダイアログになります。 WinUI 3 のサンプルは宣言済みです）。
+- **WinUI 3 層は Windows App Runtime 2.6 以降を要求します**（`Microsoft.WindowsAppSDK` 2.6.4）。 自己完結の配置と MSIX は従来どおりです。
+- **WinUI 3 の描画と画像の受け渡しを最適化しました**（高速化・省メモリ化）。
+  - `BmpStreamBuilder.Write` を追加しました。 BMP をファイル全体の配列へ組み立てず、サーフェスのストリームへ直接書きます（4K の画像 1 枚あたり 33 MB の一時配列が 2 つ減ります）。
+  - 図形の層と下地のブラシを、色ごとに使い回すようにしました（`SolidBrushCache`。 更新のたびに `SolidColorBrush` を作りません）。
+  - ルーペの画素の切り出しで、等倍の行を 1 回の領域コピーで写すようにしました。
+  - サムネイルのツールヒントを項目ごとに 1 つにし（子要素へ 3 重に持たせない）、表示中の画像のキャッシュに上限を設けました（画像を差し替えたときに古い画素が残りません）。
+  - サムネイル一覧の計測で、行の高さの作業領域を毎回確保しないようにしました。
+
 ## 0.5.1（2026-11-03）
 
 ### 変更

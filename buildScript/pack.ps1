@@ -98,7 +98,7 @@ function Get-PackageProjects {
     $all = @(Get-ChildItem -Path $repoRoot -Directory |
         Where-Object { $_.Name -like 'EsUtil*' } |
         ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -File -Filter '*.csproj' } |
-        Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample|SampleKit)\.csproj$' })
+        Where-Object { $_.FullName -notmatch '[\\/](obj|bin)[\\/]' -and $_.Name -notmatch '\.(Tests|Sample|SampleKit)\.csproj$' })
 
     # 各プロジェクトが参照する同一リポジトリのプロジェクト（ファイル名 = プロジェクト名）
     $deps = @{}
@@ -151,7 +151,7 @@ function Get-SolutionFingerprint([string]$solution) {
     $root = Join-Path $repoRoot $solution
     if (-not (Test-Path -LiteralPath $root)) { throw "ソリューションのフォルダがありません: $solution" }
     $files = @(Get-ChildItem -Path $root -Recurse -File |
-        Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' } |
+        Where-Object { $_.FullName -notmatch '[\\/](obj|bin)[\\/]' } |
         Sort-Object FullName)
     $sb = [Text.StringBuilder]::new()
     foreach ($file in $files) {
@@ -256,10 +256,17 @@ foreach ($item in $plan) { $bySolution[$item.Solution] = $item }
 $failedNames = [System.Collections.Generic.HashSet[string]]::new()
 $packed = 0
 
-# **ソリューションごとにソリューションを 1 回 pack する**（プロジェクトごとに `dotnet pack` を起動すると
+# **ソリューションごとに 1 回 pack する**（プロジェクトごとに `dotnet pack` を起動すると
 # 30 回のプロセス起動とビルド評価が積み上がる。 実測 2026-10-27: 86 秒 → 23 秒）。
 # ソリューションの全プロジェクトは同じ版（版の所有者は Directory.Build.props）なので、
 # 版の上書きは 1 回で足りる。 MSBuild がソリューション内を並列に pack する。
+#
+# **ソリューション同士は並列にしない**: UI ソリューションの `ProjectReference` は、ソリューションの
+# 構成の対応付けが無いためか**参照先を Debug で**ビルドする（実測 2026-11-05:
+# `dotnet build EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx -c Release` で `EsUtil.Feature.*.Core` が
+# `bin/Debug` へ出力される）。 そのため 2 つのソリューションを同時に pack すると、共有の
+# `EsUtil/*/obj/Debug` と `bin/Debug` を同時に書き、`GenerateDepsFile` が
+# 「別のプロセスが使用中」で失敗する（実測 2026-11-05: CI で再現）。 直列のままにする。
 foreach ($item in $plan) {
     $solutionProjects = @($projects | Where-Object { $_.Solution -eq $item.Solution })
     if ($solutionProjects.Count -eq 0) { continue }
@@ -272,10 +279,10 @@ foreach ($item in $plan) {
             ('-p:VersionPrefix={0}' -f $item.Prefix),
             ('-p:VersionSuffix=local.{0}' -f $item.Suffix))
         $result = Invoke-NativeText 'dotnet' $arguments
-        if ($result.ExitCode -ne 0) {
-            Write-Output ("FAIL  {0} {1}（終了コード {2}）" -f $item.Solution, $item.Version, $result.ExitCode)
-            Write-Output ($result.Text + $result.ErrorText)
-        }
+        if ($result.ExitCode -eq 0) { continue }
+
+        Write-Output ("FAIL  {0} {1}（終了コード {2}）" -f $item.Solution, $item.Version, $result.ExitCode)
+        Write-Output ($result.Text + $result.ErrorText)
     }
 
     foreach ($project in $solutionProjects) {

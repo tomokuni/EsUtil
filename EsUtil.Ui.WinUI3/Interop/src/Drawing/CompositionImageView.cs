@@ -231,14 +231,16 @@ public sealed partial class CompositionImageView : Grid
         }
 
         var compositor = ElementCompositionPreview.GetElementVisual(this).Compositor;
-        var stream = new InMemoryRandomAccessStream();
-        using (var writer = new DataWriter(stream))
-        {
-            writer.WriteBytes(BmpStreamBuilder.Build(image));
-            writer.StoreAsync().AsTask().GetAwaiter().GetResult();
-            writer.DetachStream();
-        }
 
+        // BMP は画素の大きさの配列へ組み立てず、サーフェスのストリームへ直接書く
+        // （4K では 33 MB の一時配列と、その複製が 1 枚ずつ減る）
+        var stream = new InMemoryRandomAccessStream();
+
+        // **アダプターはバッファリングするため Flush が要る**（Flush しないとストリームの大きさが 0 のまま）。
+        // **破棄しない**: `AsStreamForWrite` のアダプターを破棄すると元のストリームも閉じる（実測 2026-11-06）。
+        var writeStream = stream.AsStreamForWrite();
+        BmpStreamBuilder.Write(writeStream, image);
+        writeStream.Flush();
         stream.Seek(0);
 
         // 以前のサーフェスを破棄してから差し替える（破棄しないと画素が解放されない）

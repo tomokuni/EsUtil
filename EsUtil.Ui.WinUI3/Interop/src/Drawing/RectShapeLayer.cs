@@ -1,9 +1,7 @@
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
-using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.WinUI3.Interop.Drawing;
 
@@ -63,8 +61,8 @@ public sealed partial class RectShapeLayer : Canvas
             rectangle.Width = item.Bounds.Width;
             rectangle.Height = item.Bounds.Height;
 
-            // 色は共有のブラシにしない（要素ごとに色が異なるため）
-            rectangle.Fill = new SolidColorBrush(ToColor(item.Color));
+            // 色は有限（枠・ハンドル・暗転）であるため、同じ色のブラシを使い回す
+            rectangle.Fill = SolidBrushCache.Get(item.Color);
             rectangle.Visibility = Visibility.Visible;
         }
     }
@@ -89,7 +87,7 @@ public sealed partial class RectShapeLayer : Canvas
             border.Width = item.Bounds.Width;
             border.Height = item.Bounds.Height;
             border.CornerRadius = new CornerRadius(Math.Max(0, item.CornerRadius));
-            border.Background = new SolidColorBrush(ToColor(item.Color));
+            border.Background = SolidBrushCache.Get(item.Color);
             border.Visibility = Visibility.Visible;
         }
     }
@@ -127,11 +125,4 @@ public sealed partial class RectShapeLayer : Canvas
         SetLeft(element, bounds.X);
         SetTop(element, bounds.Y);
     }
-
-    /// <summary>UI 非依存の色を WinUI の色へ変換する。</summary>
-    /// <param name="color">変換する色。</param>
-    /// <returns>変換した色。</returns>
-    /// <remarks>コアの <see cref="EsRect"/> と同様、色も UI 非依存の <see cref="DrawingColor"/> で受け取る。</remarks>
-    private static Windows.UI.Color ToColor(DrawingColor color)
-        => Windows.UI.Color.FromArgb(color.A, color.R, color.G, color.B);
 }

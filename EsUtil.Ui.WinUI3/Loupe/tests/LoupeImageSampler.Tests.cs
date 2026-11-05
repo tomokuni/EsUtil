@@ -115,4 +115,54 @@ public class LoupeImageSamplerTests
         Assert.Equal(255, destination[(6 * 4) + 0]);                         // 右端は青（B）
         Assert.Equal(0, destination[(6 * 4) + 2]);                           // 右端は青（R は 0）
     }
+
+    /// <summary>等倍（倍率 1）のときも、拡大と同じ規則で画素が並ぶ。</summary>
+    [Fact]
+    internal void Sample_等倍では画素がそのまま並ぶ()
+    {
+        // 3×3 の画像（位置ごとに違う色）を作る。 行と列で別の成分を変え、
+        // **行・列が入れ替わっても通らない**ようにする（G は x、R は y に比例させる）
+        using var created = EsBitmap.Create(3, 3, s_red);
+        for (var y = 0; y < 3; y++)
+        {
+            for (var x = 0; x < 3; x++)
+            {
+                created.SetPixel(x, y, 255, (byte)(x * 60), (byte)(y * 60), 0);
+            }
+        }
+
+        created.SetReadOnly();
+        using var source = EsReadOnlyBitmap.FromBitmap(created);
+
+        var destination = new byte[SurfaceSize * SurfaceSize * LoupeImageSampler.BytesPerPixel];
+        LoupeImageSampler.Sample(
+            source, new EsRectInt(0, 0, 3, 3), new EsRect(0, 0, 3, 3), SurfaceSize, destination);
+
+        // 行を一続きで写す経路でも、画素ごとの走査と同じ結果になる。
+        // **画素ごとに 4 バイト（BGRA）すべてを比べる**（青だけでは行・列の入れ替わりを検出できない）
+        for (var y = 0; y < 3; y++)
+        {
+            for (var x = 0; x < 3; x++)
+            {
+                var expected = source.ReadOnlyPixels.Slice(((y * 3) + x) * LoupeImageSampler.BytesPerPixel, LoupeImageSampler.BytesPerPixel);
+                var actual = destination.AsSpan(((y * SurfaceSize) + x) * LoupeImageSampler.BytesPerPixel, LoupeImageSampler.BytesPerPixel);
+                Assert.True(expected.SequenceEqual(actual), $"({x}, {y}) の画素が一致しません: {actual[0]},{actual[1]},{actual[2]},{actual[3]}");
+            }
+        }
+    }
+
+    /// <summary>等倍で切り出しが画像の外へ出ても、内側だけを写す。</summary>
+    [Fact]
+    internal void Sample_等倍で画像の外へ出ても内側だけを写す()
+    {
+        using var source = TestHelper.CreateBitmap(4, s_red);
+        var destination = new byte[SurfaceSize * SurfaceSize * LoupeImageSampler.BytesPerPixel];
+
+        // 画像の外（-2, -2）から 4×4 を切り出す（画像の内側は 2×2 だけ）
+        LoupeImageSampler.Sample(
+            source, new EsRectInt(-2, -2, 4, 4), new EsRect(0, 0, 4, 4), SurfaceSize, destination);
+
+        Assert.Equal(0, destination[3]);                                    // (0,0) は画像の外（透明）
+        Assert.Equal(255, destination[((SurfaceSize * 2) + 2) * 4 + 3]);    // (2,2) は画像の内側（不透明）
+    }
 }

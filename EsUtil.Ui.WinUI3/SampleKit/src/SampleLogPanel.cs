@@ -12,7 +12,7 @@ namespace EsUtil.Ui.WinUI3.SampleKit;
 /// <b>選択とコピー</b>: 行を選んで（複数可）Ctrl+C を押すと、選んだ行をクリップボードへ写す
 /// （選んでいないときは表示中のすべての行）。
 /// </remarks>
-public sealed class SampleLogPanel : Grid
+public sealed partial class SampleLogPanel : Grid
 {
     /// <summary>画面へ出す行の上限（古い行から捨てる）。</summary>
     private const int MaxDisplayedLines = 150;

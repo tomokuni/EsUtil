@@ -1,6 +1,6 @@
 using EsUtil.Ui.WinUI3.Thumbnail.Internal;
+using EsUtil.Ui.WinUI3.Interop.Drawing;
 using EsUtil.Platform.Core.Imaging;
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -63,11 +63,10 @@ internal sealed partial class ThumbnailTile : Grid
         Children.Add(_viewport);
         Children.Add(_label);
         // ツールヒントには省略していない名前を出す（折り返して全体を読めるようにする）。
-        // 子の要素がポインターを受け取るため、子にも同じ内容を設定する（親をたどって解決する実装に依存しない）
+        // 子はポインターを受け取らない（IsHitTestVisible = false）ため、項目の親にだけ設定する
+        // （子ごとに持つと、項目数 × 3 個の TextBlock を一覧の分だけ確保することになる）
         var tipText = string.IsNullOrEmpty(toolTip) ? caption : $"{caption}{Environment.NewLine}{toolTip}";
         ToolTipService.SetToolTip(this, CreateToolTip(tipText));
-        ToolTipService.SetToolTip(_viewport, CreateToolTip(tipText));
-        ToolTipService.SetToolTip(_label, CreateToolTip(tipText));
 
         SetImage(image);
         SetCaption(caption);
@@ -133,12 +132,8 @@ internal sealed partial class ThumbnailTile : Grid
         }
         else
         {
-            _label.Foreground = new SolidColorBrush(
-                ColorHelper.FromArgb(
-                    (byte)(plan.Label.ForegroundArgb >> 24),
-                    (byte)(plan.Label.ForegroundArgb >> 16),
-                    (byte)(plan.Label.ForegroundArgb >> 8),
-                    (byte)plan.Label.ForegroundArgb));
+            // 文字色は有限（テーマの前色・強調色）であるため、同じ色のブラシを使い回す
+            _label.Foreground = SolidBrushCache.Get(plan.Label.ForegroundArgb);
         }
     }
 

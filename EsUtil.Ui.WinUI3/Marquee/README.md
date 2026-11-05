@@ -62,7 +62,7 @@
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.22621.0` |
 | 対応 OS | Windows 10 バージョン 2004（ビルド 19041）以降（`Microsoft.UI.Input.InputSystemCursor` を使うため） |
-| UI フレームワーク | WinUI 3（Windows App SDK 1.x。 パッケージ参照 `Microsoft.WindowsAppSDK`） |
+| UI フレームワーク | WinUI 3（Windows App SDK 2.6 以降。 パッケージ参照 `Microsoft.WindowsAppSDK`） |
 | 描画 | WinUI 3 の要素（`Microsoft.UI.Xaml.Shapes.Rectangle` と `Border` + `TextBlock`） |
 | プラットフォーム | x64 / x86 / arm64（アンパッケージで自己完結配置する場合は対象アーキテクチャの明示が必要です） |
 | Native AOT | 対応（AOT で発行したサンプルが起動することを実測）。 ただし AOT では managed コレクションを `ItemsSource` へ渡せない（`Items.Add` を使う） |

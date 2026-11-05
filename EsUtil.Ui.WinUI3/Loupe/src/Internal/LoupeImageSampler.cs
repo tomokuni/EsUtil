@@ -79,6 +79,16 @@ internal static class LoupeImageSampler
             return;
         }
 
+        // 横方向の倍率が 1（等倍）である場合は、行を一続きで写せる。
+        // 画素ごとの境界判定と 4 バイトずつの代入が、1 回の領域コピーになる
+        // （等倍の行は写す位置が 1 画素ずつ連続するため、結果は画素ごとの走査と同一）
+        var isRowCopy = stepX == 1;
+        var runStart = isRowCopy
+            ? cropSourceRect.X + (int)Math.Floor((left - drawClientPixelRect.X) * stepX)
+            : 0;
+        var runLength = right - left;
+        var canCopyRow = isRowCopy && runStart >= 0 && runStart + runLength <= sourceWidth;
+
         for (var y = top; y < bottom; y++)
         {
             var sourceY = cropSourceRect.Y + (int)Math.Floor((y - drawClientPixelRect.Y) * stepY);
@@ -89,6 +99,13 @@ internal static class LoupeImageSampler
 
             var rowOffset = sourceY * sourceStride;
             var destinationRow = y * surfaceSize * BytesPerPixel;
+            if (canCopyRow)
+            {
+                pixels.Slice(rowOffset + (runStart * BytesPerPixel), runLength * BytesPerPixel)
+                    .CopyTo(destination.Slice(destinationRow + (left * BytesPerPixel), runLength * BytesPerPixel));
+                continue;
+            }
+
             for (var x = left; x < right; x++)
             {
                 var sourceX = cropSourceRect.X + (int)Math.Floor((x - drawClientPixelRect.X) * stepX);

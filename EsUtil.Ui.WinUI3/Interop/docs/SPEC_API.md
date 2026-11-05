@@ -40,14 +40,25 @@ WinUI 3 と EsUtil の型の相互変換が提供する公開 API です。 使�
 | `Drawing.CompositionImageView` | コアの画像を Composition で描く表示ビュー。 `WaitForSourceReadyAsync()` は**サーフェスの読み込み完了**を待つ（`LoadedImageSurface` は段階的に復号するため、完了前に表示すると縮小された内容が見える） |
 | `Drawing.RectShapeLayer` | 矩形（角丸を含む）を Composition の図形として描く |
 | `Drawing.DrawList` / `DrawRect` / `DrawRoundRect` | 描く図形の一覧（UI 非依存の値） |
-| `Drawing.BmpStreamBuilder` | BMP をメモリ上で組み立てる（ICO の中身） |
+| `Drawing.BmpStreamBuilder` | BMP を組み立てる（`Write` はファイル全体の配列を作らずにストリームへ書く） |
+| `Bootstrapping.WindowsAppRuntimeBootstrap` | Windows App Runtime の初期化と導入（Bootstrapper API）。 版は参照している `Microsoft.WindowsAppSDK` が決める |
+| `Bootstrapping.WindowsAppRuntimeInventory` | インストール済みの版（`GetInstalledVersions` は新しい順、`TryGetInstalledVersion` は最新。 このプロセスのアーキテクチャのみ）と `RequiredVersion`（必要とする版）を返す。 `IsRequiredVersionInstalled` で導入の有無を判定する |
+| `Bootstrapping.WindowsAppRuntimeBootstrapOptions` / `WindowsAppRuntimeInstallMode` | 導入の方法（`Download`（既定）/ `BootstrapUi`（案内 UI）/ `None`）・取得先・制限時間・案内 UI の差し替え（`Prompt`） |
+| `Bootstrapping.WindowsAppRuntimeInstallPrompt` / `WindowsAppRuntimeInstallPromptRequest` / `WindowsAppRuntimeInstallChoice` | 案内 UI の契約（必要とする版・インストール済みの版・ダウンロード ページを受け取り、自動インストール / ページの表示 / 終了 を返す） |
 
 ## 3. 制限事項
 
 - **描画は Composition を使います**。
 - **ICO は WIC のエンコーダーで作れません**（WIC に ICO のエンコーダーが無い）。 `BmpStreamBuilder` が BMP を組み立て、複数サイズを 1 ファイルへ詰めます。
+- **ランタイムの導入には通信を使います**（`WindowsAppRuntimeInstallMode.Download`）。 通信を使わない場合は `BootstrapUi`（案内 UI を出す）か `None`（初期化だけを試す）を選びます。
+- **`BootstrapUi` の案内は 3 択です**（自動インストール / ダウンロードページを表示 / 終了）。 案内には**ダウンロード ページの URL** と、インストール済みの版を表示します。 **URL はクリックするとブラウザーで開きます**（「ダウンロードページを表示」と同じ動作。 ダイアログは閉じません）。 「ダウンロードページを表示」を選ぶとページを開いて**もう一度案内を出します**（手動で導入したあと選び直せます）。
+- **案内はタスク ダイアログで表示します**（ComCtl32 v6 が必要。 アプリの `app.manifest` で `Microsoft.Windows.Common-Controls` を宣言してください）。 宣言が無いアプリでは**メッセージ ボックス**へ落ち、本文に同じ 3 択（はい / いいえ / キャンセル）を表示します。 自前の UI を使う場合は `WindowsAppRuntimeBootstrapOptions.Prompt` を設定します。
+- **導入を始める前に状態を調べられます**（`WindowsAppRuntimeInventory`）。 利用者へ確認してから導入する場合は、`IsRequiredVersionInstalled` が false のときだけ `TryInstall` / `TryInstallAsync` を呼びます（`TryEnsureAvailable` は `Download` のとき確認なしに、`BootstrapUi` のとき案内の選択に従って導入します）。
+- **`GetInstalledVersions` はパッケージ ID を持たないアプリからも呼べます**が、`Windows.Management.Deployment.PackageManager` を使える環境に限ります（ポリシーで禁止されている場合は空を返します）。
+- **ランタイムの版は参照しているパッケージが決めます**（本アセンブリは `2.6` 以降の `Microsoft.WindowsAppSDK` を参照します。 必要とする版は `WindowsAppRuntimeInventory.RequiredVersion`）。
 
 ## 4. 例外
 
 - 引数の null は `ArgumentNullException`。
 - 未定義のキーは `None` を返します（例外にしません）。
+- **ランタイムを用意できなかった場合は例外にせず `false`** を返します（通信の遮断・ポリシー・時間切れ）。
