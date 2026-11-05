@@ -21,10 +21,11 @@ namespace EsUtil.Ui.WinUI3.Interop.Bootstrapping;
 /// <br/>
 /// <b>自動初期化との関係</b>: プロジェクトが <c>WindowsPackageType=None</c> の実行ファイルである場合、
 /// Windows App SDK は<b>モジュールの読み込み時</b>に Bootstrapper を自動で呼ぶ
-/// （<c>WindowsAppSdkBootstrapInitialize</c>）。 自動初期化に任せる場合は本クラスを呼ばない
-/// （二重に初期化しても参照カウントが増えるだけで害は無いが、導入の判断を本クラスへ寄せるなら
+/// （<c>WindowsAppSdkBootstrapInitialize</c>）。 **自動初期化はこのクラスが呼ばれるより先に走る**ため、
+/// ランタイムが無い PC では自動初期化の時点で失敗し、本クラスの導入へ到達しない。
+/// 導入の判断を本クラスへ寄せる場合は、プロジェクトで
 /// <c>&lt;WindowsAppSdkBootstrapInitialize&gt;false&lt;/WindowsAppSdkBootstrapInitialize&gt;</c> にして
-/// <b>本クラスだけ</b>が初期化する）。<br/>
+/// <b>本クラスだけ</b>が初期化する（止めない場合は本クラスを呼ぶ必要はない）。<br/>
 /// <br/>
 /// <b>版</b>: 初期化に使う版（<c>majorMinor</c>・版タグ・最小版）とインストーラーの版は、
 /// 参照している <c>Microsoft.WindowsAppSDK</c> パッケージの値（<c>Microsoft.WindowsAppSDK.Release</c> /
@@ -113,7 +114,14 @@ public static partial class WindowsAppRuntimeBootstrap
             return false;
         }
 
-        s_initialized = true;
+        // **実際に Bootstrapper を呼んだときだけ**初期化済みにする。 自己完結の配置は同封した
+        // ランタイムを使うため初期化しておらず、<see cref="Shutdown"/> が存在しない
+        // Bootstrap ライブラリ（Microsoft.WindowsAppRuntime.Bootstrap.dll）を呼んでしまう。
+        if (!s_notApplicable)
+        {
+            s_initialized = true;
+        }
+
         return true;
     }
 
@@ -386,7 +394,10 @@ public static partial class WindowsAppRuntimeBootstrap
 
             using var source = response.Content.ReadAsStream(timeout.Token);
             using var target = File.Create(path);
-            source.CopyTo(target);
+
+            // **本文のコピーにも制限時間を効かせる**: `ResponseHeadersRead` はヘッダーを受け取った時点で
+            // 戻るため、本文を止める接続では `CopyTo` が終わらず起動処理が止まり続ける。
+            source.CopyToAsync(target, timeout.Token).GetAwaiter().GetResult();
             return true;
         }
         catch (Exception ex) when (EsErrors.IsRecoverable(ex))

@@ -1,4 +1,5 @@
 using EsUtil.Ui.WinUI3.Interop.Drawing;
+using Windows.Storage.Streams;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
 
@@ -90,5 +91,29 @@ public class BmpStreamBuilderTests
         using var stream = new MemoryStream();
 
         Assert.Throws<ArgumentException>(() => BmpStreamBuilder.Write(stream, 2, 2, new byte[4]));
+    }
+
+    [Fact]
+    internal async Task Write_サーフェスのストリームへ書いた内容を読み戻せる()
+    {
+        // Composition の LoadedImageSurface へ渡す経路（InMemoryRandomAccessStream +
+        // AsStreamForWrite）を再現する。 **アダプターはバッファリングするため Flush が要る**
+        // （Flush しないとストリームの大きさが 0 のままで画像を読み込めない。 実測 2026-11-06）
+        using var image = TestHelper.CreateBitmap(3, 2, DrawingColor.Blue);
+        var expected = BmpStreamBuilder.Build(image);
+
+        var randomAccess = new InMemoryRandomAccessStream();
+        var writeStream = randomAccess.AsStreamForWrite();
+        BmpStreamBuilder.Write(writeStream, image);
+        await writeStream.FlushAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(expected.Length, (int)randomAccess.Size);
+
+        randomAccess.Seek(0);
+        using var reader = new DataReader(randomAccess.GetInputStreamAt(0));
+        await reader.LoadAsync((uint)randomAccess.Size);
+        var actual = new byte[randomAccess.Size];
+        reader.ReadBytes(actual);
+        Assert.Equal(expected, actual);
     }
 }

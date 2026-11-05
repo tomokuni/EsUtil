@@ -49,7 +49,14 @@ var key = Windows.System.VirtualKey.A.ToEsKey();
 
 ### 3.1 Windows App Runtime が無い環境で起動する
 
-**WinUI の型へ触れる前**（`Application` の生成より前）に 1 回呼びます。
+**前提**: 既定のアンパッケージ アプリは、Windows App SDK の**自動初期化**（モジュール読み込み時に動く Bootstrapper）が `Main` より先に走ります。 ランタイムが無い PC では**そこへ到達する前に失敗する**ため、本クラスへ導入を任せる場合は `.csproj` で自動初期化を止めてください。
+
+```xml
+<!-- 導入の判断を EsUtil.Ui.WinUI3.Interop の Bootstrapper へ任せる（既定の自動初期化を止める） -->
+<WindowsAppSdkBootstrapInitialize>false</WindowsAppSdkBootstrapInitialize>
+```
+
+そのうえで、**WinUI の型へ触れる前**（`Application` の生成より前）に 1 回呼びます。
 
 ```csharp
 using EsUtil.Ui.WinUI3.Interop.Bootstrapping;
@@ -60,7 +67,7 @@ if (!await WindowsAppRuntimeBootstrap.TryEnsureAvailableAsync())
     // 導入できなかった（通信の遮断・ポリシー等）。 利用者へ案内する
 }
 
-// 終了時
+// 終了時（実際に初期化したときだけ解除される。 自己完結の配置では何もしない）
 WindowsAppRuntimeBootstrap.Shutdown();
 ```
 
@@ -69,8 +76,8 @@ WindowsAppRuntimeBootstrap.Shutdown();
   - `BootstrapUi` … **案内 UI を出し、選択に従います**（§3.3）。
   - `None` … 初期化だけを試します。
 - **版**は参照している `Microsoft.WindowsAppSDK` のパッケージが決めます（ライブラリ側に版を書きません）。
-- **自己完結の配置**（`WindowsAppSDKSelfContained=true`）と **MSIX** では初期化は不要であり、呼んでも成功します。
-- Windows App SDK の**自動初期化**（`WindowsPackageType=None` の実行ファイルがモジュール読み込み時に呼ぶもの）に任せる場合は、本クラスを呼ぶ必要はありません。
+- **自己完結の配置**（`WindowsAppSDKSelfContained=true`）と **MSIX** では初期化は不要であり、呼んでも成功します（`Shutdown` は何もしません）。
+- 自動初期化を**止めない**場合（既定）は、本クラスを呼ぶ必要はありません（`Main` より前に SDK が初期化します）。
 
 ### 3.2 版を調べてから、利用者へ確認してインストールする
 

@@ -318,7 +318,7 @@ if (-not $SkipRepoChecks) {
     $lockIssues = [System.Collections.Generic.List[string]]::new()
     foreach ($csproj in @(git ls-files --cached --others --exclude-standard -- '*.csproj')) {
         if ($csproj -match '[\\/](obj|bin)[\\/]') { continue }
-        $isSrc = (Split-Path $csproj -Parent) -match '(^|\\)src$'
+        $isSrc = (Split-Path $csproj -Parent) -match '(^|[\\/])src$'
         $lockPath = Join-Path $repoRoot (Join-Path (Split-Path $csproj -Parent) 'packages.lock.json')
         $hasLock = Test-Path -LiteralPath $lockPath
         if ($isSrc -and -not $hasLock) { $lockIssues.Add("packages.lock.json が無い: $csproj（dotnet restore で作られる）") }

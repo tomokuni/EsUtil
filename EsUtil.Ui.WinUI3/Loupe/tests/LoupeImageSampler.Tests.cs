@@ -120,7 +120,8 @@ public class LoupeImageSamplerTests
     [Fact]
     internal void Sample_等倍では画素がそのまま並ぶ()
     {
-        // 3×3 の画像（位置ごとに違う色）を作る
+        // 3×3 の画像（位置ごとに違う色）を作る。 行と列で別の成分を変え、
+        // **行・列が入れ替わっても通らない**ようにする（G は x、R は y に比例させる）
         using var created = EsBitmap.Create(3, 3, s_red);
         for (var y = 0; y < 3; y++)
         {
@@ -137,13 +138,15 @@ public class LoupeImageSamplerTests
         LoupeImageSampler.Sample(
             source, new EsRectInt(0, 0, 3, 3), new EsRect(0, 0, 3, 3), SurfaceSize, destination);
 
-        // 行を一続きで写す経路でも、画素ごとの走査と同じ結果になる
+        // 行を一続きで写す経路でも、画素ごとの走査と同じ結果になる。
+        // **画素ごとに 4 バイト（BGRA）すべてを比べる**（青だけでは行・列の入れ替わりを検出できない）
         for (var y = 0; y < 3; y++)
         {
             for (var x = 0; x < 3; x++)
             {
-                var expected = source.ReadOnlyPixels[((y * 3) + x) * LoupeImageSampler.BytesPerPixel];
-                Assert.Equal(expected, destination[((y * SurfaceSize) + x) * LoupeImageSampler.BytesPerPixel]);
+                var expected = source.ReadOnlyPixels.Slice(((y * 3) + x) * LoupeImageSampler.BytesPerPixel, LoupeImageSampler.BytesPerPixel);
+                var actual = destination.AsSpan(((y * SurfaceSize) + x) * LoupeImageSampler.BytesPerPixel, LoupeImageSampler.BytesPerPixel);
+                Assert.True(expected.SequenceEqual(actual), $"({x}, {y}) の画素が一致しません: {actual[0]},{actual[1]},{actual[2]},{actual[3]}");
             }
         }
     }

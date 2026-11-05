@@ -545,7 +545,7 @@ $boolIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
 #     - 可搬な層のカテゴリ フォルダは単数形（命名規約）
 #     - `async void` はイベント ハンドラーだけ（コーディング規約 §7）
 $codeIssues = [System.Collections.Generic.List[string]]::new()
-foreach ($f in @($allCs | Where-Object { $_.FullName -match '\\tests\\' })) {
+foreach ($f in @($allCs | Where-Object { $_.FullName -match '[\\/]tests[\\/]' })) {
     $rel = $f.FullName.Substring($repoRoot.Length + 1).Replace('\', '/')
     $lines = Get-Lines $f.FullName
     # インターフェースを実装するクラスの行範囲（モック・スパイの public 実装を許すため）
@@ -573,7 +573,7 @@ foreach ($f in @($allCs | Where-Object { $_.FullName -match '\\tests\\' })) {
         }
     }
 }
-foreach ($f in @($allCs | Where-Object { $_.FullName -notmatch '\\(tests|sample)\\' })) {
+foreach ($f in @($allCs | Where-Object { $_.FullName -notmatch '[\\/](tests|sample)[\\/]' })) {
     $rel = $f.FullName.Substring($repoRoot.Length + 1).Replace('\', '/')
     $lines = Get-Lines $f.FullName
     for ($i = 0; $i -lt $lines.Count; $i++) {
