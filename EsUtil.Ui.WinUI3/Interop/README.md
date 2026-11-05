@@ -10,6 +10,7 @@
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
 **対応 OS**: Windows 10 バージョン 2004（ビルド 19041）以降
+**Windows App Runtime**: 2.6 以降（無い場合は Bootstrapper で導入できます。 §3）
 
 ## 1. 概要
 
@@ -31,7 +32,10 @@ UI フレームワーク非依存の値型と抽象は `EsUtil.Platform.Core` �
 | `Drawing.CompositionImageView` | コアの画像を Composition で描く表示ビュー |
 | `Drawing.RectShapeLayer` | 矩形（角丸を含む）を Composition の図形として描く |
 | `Drawing.DrawList` / `DrawRect` / `DrawRoundRect` | 描く図形の一覧（UI 非依存の値） |
-| `Drawing.BmpStreamBuilder` | BMP をメモリ上で組み立てる（ICO の中身） |
+| `Drawing.BmpStreamBuilder` | BMP を組み立てる（`Write` はファイル全体の配列を作らずにストリームへ書く） |
+| `Bootstrapping.WindowsAppRuntimeBootstrap` | Windows App Runtime を用意する（無ければ公式インストーラーで導入し、Bootstrapper で初期化する） |
+| `Bootstrapping.WindowsAppRuntimeInventory` | インストール済みの Windows App Runtime の版と、EsUtil が必要とする版（`RequiredVersion`）を調べる |
+| `Bootstrapping.WindowsAppRuntimeInstallPrompt` ほか | 案内 UI の差し替え（`WindowsAppRuntimeBootstrapOptions.Prompt`）に使う契約（選択肢は自動インストール / ダウンロードページを表示 / 終了） |
 
 一覧は [`docs/SPEC_API.md`](docs/SPEC_API.md) を参照してください。
 
@@ -42,6 +46,99 @@ var view = new CompositionImageView();
 view.Source = EsReadOnlyBitmap.Load(path);
 var key = Windows.System.VirtualKey.A.ToEsKey();
 ```
+
+### 3.1 Windows App Runtime が無い環境で起動する
+
+**WinUI の型へ触れる前**（`Application` の生成より前）に 1 回呼びます。
+
+```csharp
+using EsUtil.Ui.WinUI3.Interop.Bootstrapping;
+
+// 無ければ公式インストーラーを取得して黙って導入し、Bootstrapper で初期化する（既定）
+if (!await WindowsAppRuntimeBootstrap.TryEnsureAvailableAsync())
+{
+    // 導入できなかった（通信の遮断・ポリシー等）。 利用者へ案内する
+}
+
+// 終了時
+WindowsAppRuntimeBootstrap.Shutdown();
+```
+
+- **導入の方法**は `WindowsAppRuntimeBootstrapOptions.InstallMode` で選びます。
+  - `Download`（既定） … 案内を出さずに、公式のインストーラーを取得して黙って実行します。
+  - `BootstrapUi` … **案内 UI を出し、選択に従います**（§3.3）。
+  - `None` … 初期化だけを試します。
+- **版**は参照している `Microsoft.WindowsAppSDK` のパッケージが決めます（ライブラリ側に版を書きません）。
+- **自己完結の配置**（`WindowsAppSDKSelfContained=true`）と **MSIX** では初期化は不要であり、呼んでも成功します。
+- Windows App SDK の**自動初期化**（`WindowsPackageType=None` の実行ファイルがモジュール読み込み時に呼ぶもの）に任せる場合は、本クラスを呼ぶ必要はありません。
+
+### 3.2 版を調べてから、利用者へ確認してインストールする
+
+`WindowsAppRuntimeInventory` で状態を調べ、必要だと分かってから導入します（確認なしにインストールを始めません）。
+
+```csharp
+using EsUtil.Ui.WinUI3.Interop.Bootstrapping;
+
+var required = WindowsAppRuntimeInventory.RequiredVersion;                  // 例: 2.6.4
+var installed = WindowsAppRuntimeInventory.GetInstalledVersions();          // 新しい順（このプロセスのアーキテクチャのみ）
+if (WindowsAppRuntimeInventory.TryGetInstalledVersion(out var latest))     // 最新の 1 件（1 件も無ければ false）
+{
+    ShowInfo($"Windows App Runtime: {latest}（必要: {required} 以降）");    // MessageBox 等（アプリの実装）
+}
+
+if (!WindowsAppRuntimeInventory.IsRequiredVersionInstalled()
+    && ShowConfirm($"Windows App Runtime {required} 以降が必要です。インストールしますか？")) // MessageBox 等（アプリの実装）
+{
+    await WindowsAppRuntimeBootstrap.TryInstallAsync();                     // 導入だけを行う
+}
+
+// 導入後に初期化する（TryEnsureAvailable は「初期化 → 必要なら導入 → 初期化」を 1 回で行う）
+WindowsAppRuntimeBootstrap.TryInitialize(out _);
+```
+
+- `GetInstalledVersions()` は**パッケージ ID を持たないアプリからも**呼べます（`Windows.Management.Deployment.PackageManager` を使う）。
+- 調べられないとき（ポリシー・COM の初期化失敗）は**空**を返します（例外にしません）。
+- `IsRequiredVersionInstalled` が false でも、**自己完結の配置と MSIX** は動作します（判断は `WindowsAppRuntimeBootstrap.IsInitialized` と組み合わせます）。
+
+### 3.3 案内 UI を出して、選択に従わせる（`InstallMode.BootstrapUi`）
+
+`InstallMode = BootstrapUi` にすると、ランタイムが見つからないときに**次の案内**を出し、選ばれたとおりに処理します。
+
+```text
+Windows App Runtime 2.6.4 以降が必要です。          ← 主文
+このアプリは WinUI 3 を使うため、Windows App Runtime が必要です。
+インストール済みの版: 2.5.1.0
+ダウンロード ページ（インストーラー）:
+https://learn.microsoft.com/windows/apps/windows-app-sdk/downloads
+
+[自動インストールする] [ダウンロードページを表示する] [インストールせずにアプリを終了する]
+```
+
+| 選択肢 | 動作 |
+| --- | --- |
+| 自動インストールする | 公式のインストーラーを取得して黙って実行し、初期化し直す（`WindowsAppRuntimeBootstrapOptions.InstallerSource` で取得先を差し替え可） |
+| ダウンロードページを表示する | ダウンロード ページを既定のブラウザーで開き、**もう一度案内を出す**（手動で導入したあと選び直せる） |
+| インストールせずにアプリを終了する | 何もせずに `false` を返す（アプリは終了する） |
+
+本文の URL は**クリックするとブラウザーで開きます**（「ダウンロードページを表示する」と同じ動作。 ダイアログは閉じません）。
+
+```csharp
+var options = WindowsAppRuntimeBootstrapOptions.Default with
+{
+    InstallMode = WindowsAppRuntimeInstallMode.BootstrapUi,
+};
+
+if (!await WindowsAppRuntimeBootstrap.TryEnsureAvailableAsync(options))
+{
+    return; // アプリを終了する
+}
+```
+
+- **案内の実装**は `WindowsAppRuntimeBootstrapOptions.Prompt` で差し替えられます（自前の WinUI ダイアログを使う場合）。
+  既定は Win32 のタスク ダイアログです。
+- **タスク ダイアログ**は ComCtl32 v6 で動くため、アプリの `app.manifest` で **`Microsoft.Windows.Common-Controls` を宣言**してください。
+  宣言が無いアプリでは**メッセージ ボックスへ落ち**、本文に同じ 3 択（はい / いいえ / キャンセル）を表示します。
+  宣言の例は `EsUtil.Ui.WinUI3/*/sample/app.manifest` にあります。
 
 ## 4. 依存
 

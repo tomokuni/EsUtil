@@ -123,7 +123,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | 機能層 | Windows 10 バージョン 1809（ビルド 17763）以降 |
 | Avalonia UI 層 | 指定なし（**Windows 以外での動作は未検証**。 `Marquee` の**引数なしコンストラクター**だけが Windows 10 バージョン 1809（ビルド 17763）以降） |
 | MewUI 層 | 指定なし（**Windows 以外での動作は未検証**。 `Marquee` の**引数なしコンストラクター**だけが Windows 10 バージョン 1809（ビルド 17763）以降） |
-| WinUI 3 層 | **Windows 10 バージョン 2004（ビルド 19041）以降**（Windows App SDK の下限。 対象フレームワークの 22621 は API 面であり、実行の下限ではない） |
+| WinUI 3 層 | **Windows 10 バージョン 2004（ビルド 19041）以降**（Windows App Runtime 2.6 以降。 対象フレームワークの 22621 は API 面であり、実行の下限ではない。 ランタイムが無い場合は `EsUtil.Ui.WinUI3.Interop` の `WindowsAppRuntimeInventory` で判定し、`WindowsAppRuntimeBootstrap` で導入できる） |
 | WinForms 層 | Windows 10 バージョン 1809（ビルド 17763）以降 |
 
 - **検証は Windows でだけ行っています**。 `net10.0`（OS 固有の対象フレームワークを持たない）層も、**Windows 以外での動作は未検証**です（`EsUtil.Platform.Core` には Windows 専用の型（`Native.Win` 配下・画像の保存/読み込み）が含まれます）。
@@ -135,7 +135,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | 共通基盤・機能層 | **互換** | Win32 / WIC の呼び出しを **CsWin32 の生成物**（関数ポインター）だけで行う |
 | Avalonia UI 層 | **互換** | サンプルを AOT で発行し、起動を確認 |
 | MewUI 層 | **互換** | 同上 |
-| WinUI 3 層 | **互換** | 同上（Windows App SDK 1.6 以降が Native AOT に対応） |
+| WinUI 3 層 | **互換** | 同上（Windows App SDK 2.6 以降が Native AOT に対応。 2026-11-05 にサンプルを `-p:PublishAot=true -r win-x64` で発行して確認） |
 | WinForms 層 | **非対応** | **Windows Forms 自体がトリミング/AOT に対応しない**（`PublishAot` は `NETSDK1175` で失敗する） |
 
 - **言語**: C# 14 / .NET 10。

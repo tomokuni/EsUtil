@@ -12,6 +12,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- このライブラリは Windows 専用だが、Native AOT の解析（トリム/AOT 警告）は有効にする。 -->
     <IsAotCompatible>true</IsAotCompatible>
+    <!-- Bootstrapper へ渡す版（majorMinor・版タグ・最小版）は、参照している Microsoft.WindowsAppSDK の
+         パッケージが生成する定数から取る（ライブラリ側に版を書かない。 値の所有者は Directory.Packages.props）。 -->
+    <WindowsAppSdkIncludeVersionInfo>true</WindowsAppSdkIncludeVersionInfo>
     <Description>WinUI 3 と EsUtil の型（キー・幾何・色・ウィンドウ状態・画像）を相互変換するブリッジ。</Description>
   </PropertyGroup>
 
