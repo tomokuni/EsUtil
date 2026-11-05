@@ -31,6 +31,11 @@ dotnet format による検査（警告以上のコード スタイル。 規則�
 .PARAMETER SkipPackage
 NuGet の健全性（既知の脆弱性。 推移的依存を含む）の検査を省略する（ネットワークを使いたくないとき）。
 
+.PARAMETER SkipRepoChecks
+ソリューションに依存しないリポジトリ全体の検査（ビルド設定・パッケージの版・lock・アナライザー設定・
+ログの有効判定・AOT の制約・Dependabot・層の参照・実行ファイルのアーキテクチャ）を省略する。
+**CI の matrix はすべてのジョブで同じ検査を 5 回走らせないよう本スイッチを付け、`repo` ジョブが 1 回だけ実行する**。
+
 .PARAMETER SkipPackaging
 パッケージング（nuget の正しさ。 pack とパッケージ参照での復元・ビルド・起動）の検査を省略する。
 
@@ -70,6 +75,7 @@ param(
     [switch]$FullFormat,
     [switch]$SkipPackage,
     [switch]$SkipPackaging,
+    [switch]$SkipRepoChecks,
     [switch]$Coverage,
     [switch]$SkipDocs,
     [switch]$FullBuild,
@@ -240,264 +246,272 @@ else {
 Add-SectionTiming 'ビルド'
 
 
-# ============================================================
-# 2. ビルド設定（単一所有と配布物へ XML を出さないこと）
-# ============================================================
-Write-Output '== 2. ビルド設定 =='
-$propsPath = Join-Path $repoRoot 'Directory.Build.props'
-$propsText = if (Test-Path -LiteralPath $propsPath) { [IO.File]::ReadAllText($propsPath, $enc) } else { '' }
-$missingProps = [System.Collections.Generic.List[string]]::new()
-foreach ($p in 'EnforceCodeStyleInBuild', 'GenerateDocumentationFile', 'AnalysisLevel', 'AnalysisMode', 'TreatWarningsAsErrors', 'IsPackable') {
-    # 属性付きの宣言（`<IsPackable Condition="…">`）も「指定がある」と見なす
-    if ($propsText -notmatch "<$p(\s|>)") { $missingProps.Add($p) }
-}
-# 本体プロジェクト（パッケージを作る対象）の一覧（§2 の版の検査が使う）
-$packableProjects = @(Get-ChildItem -Path $repoRoot -Directory |
-        Where-Object { $_.Name -like 'EsUtil*' } |
-        ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -File -Filter '*.csproj' } |
-        Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample)\.csproj$' })
-# 公開する版（VersionPrefix）が 3 桁の数値か（すべてのパッケージで 1 つ。 規則は
-# .github/ビルド設定規約.md §4。 各 .csproj は値を持たない）。
-if ($propsText -notmatch '<VersionPrefix>\d+\.\d+\.\d+</VersionPrefix>') {
-    $missingProps.Add('VersionPrefix（3 桁の数値）')
-}
-# 各 .csproj が重複して指定していないか（単一所有の確認）
-$duplicateProps = @(Get-ChildItem -Path $repoRoot -Directory |
-        Where-Object { $_.Name -like 'EsUtil*' } |
-        ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -File -Filter '*.csproj' } |
-        Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' } |
-        Where-Object { [IO.File]::ReadAllText($_.FullName) -match '<EnforceCodeStyleInBuild>|<GenerateDocumentationFile>|<AnalysisLevel>|<AnalysisMode>|<TreatWarningsAsErrors>|<Version>|<IsPackable>' })
-Add-Result 'ビルド設定' ($missingProps.Count -eq 0 -and $duplicateProps.Count -eq 0) "不足 $($missingProps.Count) / 重複 $($duplicateProps.Count)"
-$missingProps | ForEach-Object { "      Directory.Build.props に無い: $_" }
-$duplicateProps | ForEach-Object { "      重複指定: $($_.FullName.Substring($repoRoot.Length + 1))" }
-
-# 2a) パッケージの版の単一所有（Central Package Management）と完全一致
-#     規則の所有者は .github/ビルド設定規約.md §8。
-#       - 版は Directory.Packages.props だけが持ち、各 .csproj は Version を書かない（NU1008）。
-#       - 版は完全一致で書く（範囲・浮動版を書くと、同じコミットでも復元した時点の最新が入る）。
-$packagesPropsPath = Join-Path $repoRoot 'Directory.Packages.props'
-$packagesPropsText = if (Test-Path -LiteralPath $packagesPropsPath) { [IO.File]::ReadAllText($packagesPropsPath, $enc) } else { '' }
-$packageIssues = [System.Collections.Generic.List[string]]::new()
-if ($packagesPropsText -notmatch '<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>') {
-    $packageIssues.Add('Directory.Packages.props に ManagePackageVersionsCentrally=true が無い')
-}
-foreach ($m in [regex]::Matches($packagesPropsText, '<PackageVersion\s+Include="(?<id>[^"]+)"\s+Version="(?<v>[^"]+)"')) {
-    if ($m.Groups['v'].Value -notmatch '^\d+\.\d+\.\d+') {
-        $packageIssues.Add(("{0}: 版が完全一致ではありません（範囲・浮動版は使わない）: {1}" -f $m.Groups['id'].Value, $m.Groups['v'].Value))
+# 2. ビルド設定とリポジトリ全体の走査（ソリューションに依存しない。 CI では 1 ジョブが代表して実行する）
+#    -SkipRepoChecks を付けると省略する（matrix の各ジョブでは省略し、`repo` ジョブが 1 回だけ実行する）
+if (-not $SkipRepoChecks) {
+    # ============================================================
+    # 2. ビルド設定（単一所有と配布物へ XML を出さないこと）
+    # ============================================================
+    Write-Output '== 2. ビルド設定 =='
+    $propsPath = Join-Path $repoRoot 'Directory.Build.props'
+    $propsText = if (Test-Path -LiteralPath $propsPath) { [IO.File]::ReadAllText($propsPath, $enc) } else { '' }
+    $missingProps = [System.Collections.Generic.List[string]]::new()
+    foreach ($p in 'EnforceCodeStyleInBuild', 'GenerateDocumentationFile', 'AnalysisLevel', 'AnalysisMode', 'TreatWarningsAsErrors', 'IsPackable') {
+        # 属性付きの宣言（`<IsPackable Condition="…">`）も「指定がある」と見なす
+        if ($propsText -notmatch "<$p(\s|>)") { $missingProps.Add($p) }
     }
-}
-# .csproj と Directory.Build.props の PackageReference に Version を書いていないか
-$versionInReference = @(git ls-files --cached --others --exclude-standard -- '*.csproj' 'Directory.Build.props' |
-        Where-Object { $_ -notmatch '\\(obj|bin)\\' } |
-        ForEach-Object {
-            $text = [IO.File]::ReadAllText((Join-Path $repoRoot $_), $enc)
-            foreach ($m in [regex]::Matches($text, '<PackageReference(?<attrs>[^>]*)>')) {
-                if ($m.Groups['attrs'].Value -match 'VersionOverride|Include="(?<id>[^"]+)"[^>]*\sVersion=') {
-                    "{0}: {1}" -f $_, $m.Value.Trim()
+    # 本体プロジェクト（パッケージを作る対象）の一覧（§2 の版の検査が使う）
+    $packableProjects = @(Get-ChildItem -Path $repoRoot -Directory |
+            Where-Object { $_.Name -like 'EsUtil*' } |
+            ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -File -Filter '*.csproj' } |
+            Where-Object { $_.FullName -notmatch '[\\/](obj|bin)[\\/]' -and $_.Name -notmatch '\.(Tests|Sample)\.csproj$' })
+    # 公開する版（VersionPrefix）が 3 桁の数値か（すべてのパッケージで 1 つ。 規則は
+    # .github/ビルド設定規約.md §4。 各 .csproj は値を持たない）。
+    if ($propsText -notmatch '<VersionPrefix>\d+\.\d+\.\d+</VersionPrefix>') {
+        $missingProps.Add('VersionPrefix（3 桁の数値）')
+    }
+    # 各 .csproj が重複して指定していないか（単一所有の確認）
+    $duplicateProps = @(Get-ChildItem -Path $repoRoot -Directory |
+            Where-Object { $_.Name -like 'EsUtil*' } |
+            ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -File -Filter '*.csproj' } |
+            Where-Object { $_.FullName -notmatch '[\\/](obj|bin)[\\/]' } |
+            Where-Object { [IO.File]::ReadAllText($_.FullName) -match '<EnforceCodeStyleInBuild>|<GenerateDocumentationFile>|<AnalysisLevel>|<AnalysisMode>|<TreatWarningsAsErrors>|<Version>|<IsPackable>' })
+    Add-Result 'ビルド設定' ($missingProps.Count -eq 0 -and $duplicateProps.Count -eq 0) "不足 $($missingProps.Count) / 重複 $($duplicateProps.Count)"
+    $missingProps | ForEach-Object { "      Directory.Build.props に無い: $_" }
+    $duplicateProps | ForEach-Object { "      重複指定: $($_.FullName.Substring($repoRoot.Length + 1))" }
+
+    # 2a) パッケージの版の単一所有（Central Package Management）と完全一致
+    #     規則の所有者は .github/ビルド設定規約.md §8。
+    #       - 版は Directory.Packages.props だけが持ち、各 .csproj は Version を書かない（NU1008）。
+    #       - 版は完全一致で書く（範囲・浮動版を書くと、同じコミットでも復元した時点の最新が入る）。
+    $packagesPropsPath = Join-Path $repoRoot 'Directory.Packages.props'
+    $packagesPropsText = if (Test-Path -LiteralPath $packagesPropsPath) { [IO.File]::ReadAllText($packagesPropsPath, $enc) } else { '' }
+    $packageIssues = [System.Collections.Generic.List[string]]::new()
+    if ($packagesPropsText -notmatch '<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>') {
+        $packageIssues.Add('Directory.Packages.props に ManagePackageVersionsCentrally=true が無い')
+    }
+    foreach ($m in [regex]::Matches($packagesPropsText, '<PackageVersion\s+Include="(?<id>[^"]+)"\s+Version="(?<v>[^"]+)"')) {
+        if ($m.Groups['v'].Value -notmatch '^\d+\.\d+\.\d+') {
+            $packageIssues.Add(("{0}: 版が完全一致ではありません（範囲・浮動版は使わない）: {1}" -f $m.Groups['id'].Value, $m.Groups['v'].Value))
+        }
+    }
+    # .csproj と Directory.Build.props の PackageReference に Version を書いていないか
+    $versionInReference = @(git ls-files --cached --others --exclude-standard -- '*.csproj' 'Directory.Build.props' |
+            Where-Object { $_ -notmatch '[\\/](obj|bin)[\\/]' } |
+            ForEach-Object {
+                $text = [IO.File]::ReadAllText((Join-Path $repoRoot $_), $enc)
+                foreach ($m in [regex]::Matches($text, '<PackageReference(?<attrs>[^>]*)>')) {
+                    if ($m.Groups['attrs'].Value -match 'VersionOverride|Include="(?<id>[^"]+)"[^>]*\sVersion=') {
+                        "{0}: {1}" -f $_, $m.Value.Trim()
+                    }
+                }
+            })
+    foreach ($hit in $versionInReference) { $packageIssues.Add(("Version を書いている（Directory.Packages.props へ移す）: {0}" -f $hit)) }
+    Add-Result 'パッケージの版' ($packageIssues.Count -eq 0) "違反 $($packageIssues.Count) 件"
+    $packageIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
+
+    # 2b) 復元結果の固定（packages.lock.json は**配布するプロジェクト（src）だけ**が持つ。 規則は §8）
+    #     lock が無いと、同じコミットでも復元した時点の依存で中身が変わる。 lock の一致はビルドの
+    #     `-p:RestoreLockedMode=true`（§1）が NU1004 で検出する。
+    #     テスト・サンプルは配布しないため対象外（持つと `ProjectReference` の版が書き込まれ、
+    #     版を上げるたびに機械的な差分だけが大量に出る。 .github/ビルド設定規約.md §8）。
+    $lockIssues = [System.Collections.Generic.List[string]]::new()
+    foreach ($csproj in @(git ls-files --cached --others --exclude-standard -- '*.csproj')) {
+        if ($csproj -match '[\\/](obj|bin)[\\/]') { continue }
+        $isSrc = (Split-Path $csproj -Parent) -match '(^|\\)src$'
+        $lockPath = Join-Path $repoRoot (Join-Path (Split-Path $csproj -Parent) 'packages.lock.json')
+        $hasLock = Test-Path -LiteralPath $lockPath
+        if ($isSrc -and -not $hasLock) { $lockIssues.Add("packages.lock.json が無い: $csproj（dotnet restore で作られる）") }
+        if (-not $isSrc -and $hasLock) { $lockIssues.Add("配布しないプロジェクトが lock を持つ: $lockPath（削除する。 版を上げるたびに機械的な差分が出る）") }
+    }
+    Add-Result 'ロックファイル' ($lockIssues.Count -eq 0) "不備 $($lockIssues.Count) 件（src のみ必須）"
+    $lockIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
+
+    # 2b) アナライザー設定が .cs へ適用されているか
+    #     `.editorconfig` の `dotnet_diagnostic.*` は「直前のセクション」に属する。 セクションを分け忘れると
+    #     設定が `.cs` 以外（例: `[*.csproj]`）に属し、**設定が無効のまま「0 警告」になる**（実測で発生した）。
+    $editorConfigPath = Join-Path $repoRoot '.editorconfig'
+    $analyzerSectionIssues = [System.Collections.Generic.List[string]]::new()
+    if (Test-Path -LiteralPath $editorConfigPath) {
+        $section = ''
+        $line = 0
+        foreach ($text in [IO.File]::ReadAllLines($editorConfigPath, $enc)) {
+            $line++
+            if ($text -match '^\s*\[(?<pattern>.+)\]\s*$') { $section = $Matches['pattern']; continue }
+            if ($text -match '^\s*dotnet_diagnostic\.[A-Za-z0-9]+\.[a-z_]+\s*=') {
+                # 対象に .cs を含むセクションか。 次のいずれかなら `.cs` へ適用される:
+                #   `*.cs`（ファイル パターン） / `src/X/src/**`（ディレクトリ配下） / `*` や `**`（全ファイル）
+                # `*.csproj` や `*.cs-broken` のような取り違えは、いずれにも当たらず検出される（実測で確認）。
+                $sectionOk = $true
+                foreach ($part in $section.Replace('{', '').Replace('}', '').Split(',')) {
+                    $p = $part.Trim()
+                    if ($p -eq '*' -or $p -eq '**') { continue }
+                    if ($p.EndsWith('.cs') -or $p.EndsWith('/**') -or $p.EndsWith('**')) { continue }
+                    $sectionOk = $false
+                }
+                if (-not $sectionOk) {
+                    $analyzerSectionIssues.Add(("{0}:{1}  {2}（セクション: [{3}]）" -f '.editorconfig', $line, $text.Trim(), $section))
                 }
             }
-        })
-foreach ($hit in $versionInReference) { $packageIssues.Add(("Version を書いている（Directory.Packages.props へ移す）: {0}" -f $hit)) }
-Add-Result 'パッケージの版' ($packageIssues.Count -eq 0) "違反 $($packageIssues.Count) 件"
-$packageIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
+        }
+    }
+    Add-Result 'アナライザー設定' ($analyzerSectionIssues.Count -eq 0) "無効なセクション $($analyzerSectionIssues.Count) 件"
+    $analyzerSectionIssues | Select-Object -First 8 | ForEach-Object { "      $_" }
 
-# 2b) 復元結果の固定（packages.lock.json は**配布するプロジェクト（src）だけ**が持つ。 規則は §8）
-#     lock が無いと、同じコミットでも復元した時点の依存で中身が変わる。 lock の一致はビルドの
-#     `-p:RestoreLockedMode=true`（§1）が NU1004 で検出する。
-#     テスト・サンプルは配布しないため対象外（持つと `ProjectReference` の版が書き込まれ、
-#     版を上げるたびに機械的な差分だけが大量に出る。 .github/ビルド設定規約.md §8）。
-$lockIssues = [System.Collections.Generic.List[string]]::new()
-foreach ($csproj in @(git ls-files --cached --others --exclude-standard -- '*.csproj')) {
-    if ($csproj -match '\\(obj|bin)\\') { continue }
-    $isSrc = (Split-Path $csproj -Parent) -match '(^|\\)src$'
-    $lockPath = Join-Path $repoRoot (Join-Path (Split-Path $csproj -Parent) 'packages.lock.json')
-    $hasLock = Test-Path -LiteralPath $lockPath
-    if ($isSrc -and -not $hasLock) { $lockIssues.Add("packages.lock.json が無い: $csproj（dotnet restore で作られる）") }
-    if (-not $isSrc -and $hasLock) { $lockIssues.Add("配布しないプロジェクトが lock を持つ: $lockPath（削除する。 版を上げるたびに機械的な差分が出る）") }
-}
-Add-Result 'ロックファイル' ($lockIssues.Count -eq 0) "不備 $($lockIssues.Count) 件（src のみ必須）"
-$lockIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
+    # 2c) ログの有効判定を定義側で行っているか（呼び出し側で IsEnabled を書かない）
+    #     判定はログ定義（<対象>LogMessage / AppLog）が単一所有する。 呼び出し側に書くと、レベルを変えるたびに
+    #     全呼び出し元を直すことになり、雑音にもなる（実測: 7 箇所のゲートを定義側へ移した）。
+    #     --untracked: 新規ファイル（未コミット）も対象にする（無視対象の obj / bin は走査されない）。
+    $callSiteGates = [System.Collections.Generic.List[string]]::new()
+    foreach ($hit in @(git -c core.quotepath=false grep --untracked -n -E '\bIsEnabled\s*\(\s*LogLevel\.' -- 'EsUtil*' 2>$null)) {
+        if ($hit -match '\\tests\\' -or $hit -match '/(tests)/') { continue }
+        # ログ定義（*LogMessage.cs / AppLog.cs）と、記録用ロガーの実装は対象外
+        if ($hit -match '(LogMessage|AppLog)\.cs:') { continue }
+        $callSiteGates.Add($hit)
+    }
+    Add-Result 'ログの有効判定' ($callSiteGates.Count -eq 0) "呼び出し側の IsEnabled $($callSiteGates.Count) 件"
+    $callSiteGates | Select-Object -First 8 | ForEach-Object { "      $_" }
 
-# 2b) アナライザー設定が .cs へ適用されているか
-#     `.editorconfig` の `dotnet_diagnostic.*` は「直前のセクション」に属する。 セクションを分け忘れると
-#     設定が `.cs` 以外（例: `[*.csproj]`）に属し、**設定が無効のまま「0 警告」になる**（実測で発生した）。
-$editorConfigPath = Join-Path $repoRoot '.editorconfig'
-$analyzerSectionIssues = [System.Collections.Generic.List[string]]::new()
-if (Test-Path -LiteralPath $editorConfigPath) {
-    $section = ''
-    $line = 0
-    foreach ($text in [IO.File]::ReadAllLines($editorConfigPath, $enc)) {
-        $line++
-        if ($text -match '^\s*\[(?<pattern>.+)\]\s*$') { $section = $Matches['pattern']; continue }
-        if ($text -match '^\s*dotnet_diagnostic\.[A-Za-z0-9]+\.[a-z_]+\s*=') {
-            # 対象に .cs を含むセクションか。 次のいずれかなら `.cs` へ適用される:
-            #   `*.cs`（ファイル パターン） / `src/X/src/**`（ディレクトリ配下） / `*` や `**`（全ファイル）
-            # `*.csproj` や `*.cs-broken` のような取り違えは、いずれにも当たらず検出される（実測で確認）。
-            $sectionOk = $true
-            foreach ($part in $section.Replace('{', '').Replace('}', '').Split(',')) {
-                $p = $part.Trim()
-                if ($p -eq '*' -or $p -eq '**') { continue }
-                if ($p.EndsWith('.cs') -or $p.EndsWith('/**') -or $p.EndsWith('**')) { continue }
-                $sectionOk = $false
+    # 2d) WinUI 3 + Native AOT で起動できる形を保つ（managed コレクションを ItemsSource へ渡さない）
+    #     WinRT へ managed コレクションを渡すと、AOT では CsWinRT が COM ラッパーを作れず
+    #     起動時に `E_INVALIDARG`（0xC000027B）で落ちる（実測 2026-10-24）。 一覧へは `Items.Add` で 1 件ずつ渡す
+    #     （規則の所有者は .github/ビルド設定規約.md §6.1）。
+    $itemsSourceAssignments = [System.Collections.Generic.List[string]]::new()
+    foreach ($hit in @(git -c core.quotepath=false grep --untracked -n -E '\.ItemsSource\s*=' -- 'EsUtil.Ui.WinUI3' 2>$null)) {
+        if ($hit -match '\\tests\\' -or $hit -match '/tests/') { continue }
+        $itemsSourceAssignments.Add($hit)
+    }
+    Add-Result 'WinUI 3 の AOT 制約' ($itemsSourceAssignments.Count -eq 0) "ItemsSource への代入 $($itemsSourceAssignments.Count) 件"
+    $itemsSourceAssignments | Select-Object -First 8 | ForEach-Object { "      $_" }
+
+    # 2e) Dependabot の対象（版の単一所有である Directory.Packages.props のフォルダが列挙されているか）
+    #     版は Central Package Management で 1 ファイルが持つため、依存の置き場所は 1 つである。
+    #     プロジェクトのフォルダを列挙すると、Dependabot がフォルダごとに依存を解決して実行が長引き、
+    #     時間切れで Pull Request が作られないことがある（実測 2026-11-02: 85 フォルダで 12〜56 分）。
+    #     規則の所有者は .github/検証手順.md §8。
+    $dependabotPath = Join-Path $repoRoot '.github/dependabot.yml'
+    $packagesPropsRelative = 'Directory.Packages.props'
+    # 版のフォルダ（リポジトリ ルートなら '/'。 TrimEnd で '/' が空にならないよう長さで分ける）
+    $packagesPropsDirectory = '/' + ([IO.Path]::GetDirectoryName($packagesPropsRelative) -replace '\\', '/')
+    if ($packagesPropsDirectory.Length -gt 1) { $packagesPropsDirectory = $packagesPropsDirectory.TrimEnd('/') }
+    if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $packagesPropsRelative))) {
+        Add-Result 'Dependabot の対象' $false "版の単一所有（$packagesPropsRelative）が無い"
+    }
+    elseif (-not (Test-Path -LiteralPath $dependabotPath)) {
+        Add-Result 'Dependabot の対象' $false '.github/dependabot.yml が無い'
+    }
+    else {
+        $dependabotText = [IO.File]::ReadAllText($dependabotPath, $enc)
+
+        # **`package-ecosystem: "nuget"` のエントリの中だけを見る**（他のエコシステムの `directory` で
+        # 通してしまわないため。 GitHub Actions の `directory: "/"` と取り違えると、NuGet の設定を
+        # 別のフォルダへ変えても・削除しても検査が通ってしまう）。
+        $dependabotLines = $dependabotText -split "`r?`n"
+        $nugetStart = -1
+        for ($i = 0; $i -lt $dependabotLines.Count; $i++) {
+            if ($dependabotLines[$i] -match '^\s*-\s*package-ecosystem:\s*"nuget"\s*$') { $nugetStart = $i; break }
+        }
+
+        $listedDirectories = @()
+        if ($nugetStart -ge 0) {
+            $block = [System.Collections.Generic.List[string]]::new()
+            for ($i = $nugetStart; $i -lt $dependabotLines.Count; $i++) {
+                # 次の `- package-ecosystem:` で終わる（インデントは問わない）
+                if ($i -gt $nugetStart -and $dependabotLines[$i] -match '^\s*-\s*package-ecosystem:') { break }
+                $block.Add($dependabotLines[$i])
             }
-            if (-not $sectionOk) {
-                $analyzerSectionIssues.Add(("{0}:{1}  {2}（セクション: [{3}]）" -f '.editorconfig', $line, $text.Trim(), $section))
+
+            # 単数（`directory: "/"`）と複数（`- "/パス"`）の両方の書き方から拾う
+            $listedDirectories = @([regex]::Matches(($block -join "`n"), '(?m)^\s*(?:-\s*|directory:\s*)"(?<path>/[^"]*)"\s*$') |
+                    ForEach-Object {
+                        $value = $_.Groups['path'].Value
+                        if ($value.Length -gt 1) { $value.TrimEnd('/') } else { $value }
+                    })
+        }
+
+        $hasNugetEcosystem = $nugetStart -ge 0
+        $hasPackagesDirectory = $hasNugetEcosystem -and ($listedDirectories -contains $packagesPropsDirectory)
+        Add-Result 'Dependabot の対象' $hasPackagesDirectory "nuget のエントリ $([int]$hasNugetEcosystem) 件 / 版のフォルダ $packagesPropsDirectory の登録 $([int]$hasPackagesDirectory) 件"
+        if (-not $hasNugetEcosystem) {
+            "      .github/dependabot.yml に package-ecosystem: `"nuget`" のエントリが無い（Dependabot は版を更新できない）"
+        }
+        elseif (-not $hasPackagesDirectory) {
+            "      .github/dependabot.yml の nuget の directory に版のフォルダが無い: $packagesPropsDirectory（Dependabot は版を更新できない）"
+        }
+    }
+
+    # 2f) 層の参照（Core → Presenter の禁止）
+    #     Core と Presenter は 1 つのアセンブリへ統合したため、コアから提示層への参照はビルドの DEP0003
+    #     （ProjectReference の検査）では検出できない。 コア側のソースを走査し、提示層の名前空間・型名を
+    #     参照していれば不合格にする（規則は .github/依存関係.md §5・.github/検証手順.md §5.3）。
+    $presenterTypes = @(
+        'LoupePresenter', 'LoupeAppearance', 'LoupeDrawPlan', 'LoupeDrawLayer', 'LoupeLabelPlacement', 'LoupeTextPlacement',
+        'LoupeCrosshairRects',
+        'MarqueePresenter', 'MarqueeAppearance', 'MarqueeDrawPlan', 'MarqueeDrawLayer', 'MarqueeLabelPlacement',
+        'MarqueeTextPlacement', 'MarqueeLabelPlacements',
+        'ThumbnailPresenter', 'ThumbnailAppearance', 'ThumbnailDrawPlan', 'ThumbnailDrawLayer', 'ThumbnailHighlightKind',
+        'ThumbnailLabelPlan', 'ThumbnailShadowPlan', 'ThumbnailShadowBand', 'ThumbnailShadowEdge', 'ThumbnailShadowSide',
+        'ThumbnailShadowStop', 'IThumbnailShadowPlan')
+    $rxPresenterType = [regex]('\b(' + ($presenterTypes -join '|') + ')\b')
+    $layerViolations = [System.Collections.Generic.List[string]]::new()
+    foreach ($feature in @(
+            @{ Name = 'EsUtil/Feature.Loupe.Core'; Namespace = 'EsUtil.Feature.Loupe.Presenter' },
+            @{ Name = 'EsUtil/Feature.Marquee.Core'; Namespace = 'EsUtil.Feature.Marquee.Presenter' },
+            @{ Name = 'EsUtil/Feature.Thumbnail.Core'; Namespace = 'EsUtil.Feature.Thumbnail.Presenter' })) {
+        $srcRoot = Join-Path $repoRoot ($feature.Name + '/src')
+        if (-not (Test-Path -LiteralPath $srcRoot)) { continue }
+
+        # コア側のファイル = src/Core 配下と、提示層の型を宣言していない src 直下のファイル
+        $coreFiles = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
+        foreach ($file in @(Get-ChildItem -LiteralPath (Join-Path $srcRoot 'Core') -Recurse -File -Filter '*.cs' -ErrorAction SilentlyContinue)) {
+            $coreFiles.Add($file)
+        }
+        foreach ($file in @(Get-ChildItem -LiteralPath $srcRoot -File -Filter '*.cs')) {
+            $declaration = [regex]::Match(
+                [IO.File]::ReadAllText($file.FullName, $enc),
+                '(?m)^\s*(?:(?:public|internal|private|protected|file|static|sealed|abstract|partial|readonly)\s+)*(?:class|struct|interface|enum|record(?:\s+(?:class|struct))?)\s+([A-Za-z_]\w*)')
+            if ($declaration.Success -and $presenterTypes -contains $declaration.Groups[1].Value) { continue }
+            $coreFiles.Add($file)
+        }
+
+        foreach ($file in $coreFiles) {
+            $text = [IO.File]::ReadAllText($file.FullName, $enc)
+            if ($text.Contains($feature.Namespace, [StringComparison]::Ordinal) -or $rxPresenterType.IsMatch($text)) {
+                $layerViolations.Add(("{0}: 提示層（{1}）を参照している" -f
+                        $file.FullName.Substring($repoRoot.Length + 1).Replace('\', '/'), $feature.Namespace))
             }
         }
     }
-}
-Add-Result 'アナライザー設定' ($analyzerSectionIssues.Count -eq 0) "無効なセクション $($analyzerSectionIssues.Count) 件"
-$analyzerSectionIssues | Select-Object -First 8 | ForEach-Object { "      $_" }
+    Add-Result '層の参照（Core → Presenter）' ($layerViolations.Count -eq 0) "違反 $($layerViolations.Count) 件"
+    $layerViolations | Select-Object -First 8 | ForEach-Object { "      $_" }
 
-# 2c) ログの有効判定を定義側で行っているか（呼び出し側で IsEnabled を書かない）
-#     判定はログ定義（<対象>LogMessage / AppLog）が単一所有する。 呼び出し側に書くと、レベルを変えるたびに
-#     全呼び出し元を直すことになり、雑音にもなる（実測: 7 箇所のゲートを定義側へ移した）。
-#     --untracked: 新規ファイル（未コミット）も対象にする（無視対象の obj / bin は走査されない）。
-$callSiteGates = [System.Collections.Generic.List[string]]::new()
-foreach ($hit in @(git -c core.quotepath=false grep --untracked -n -E '\bIsEnabled\s*\(\s*LogLevel\.' -- 'EsUtil*' 2>$null)) {
-    if ($hit -match '\\tests\\' -or $hit -match '/(tests)/') { continue }
-    # ログ定義（*LogMessage.cs / AppLog.cs）と、記録用ロガーの実装は対象外
-    if ($hit -match '(LogMessage|AppLog)\.cs:') { continue }
-    $callSiteGates.Add($hit)
-}
-Add-Result 'ログの有効判定' ($callSiteGates.Count -eq 0) "呼び出し側の IsEnabled $($callSiteGates.Count) 件"
-$callSiteGates | Select-Object -First 8 | ForEach-Object { "      $_" }
-
-# 2d) WinUI 3 + Native AOT で起動できる形を保つ（managed コレクションを ItemsSource へ渡さない）
-#     WinRT へ managed コレクションを渡すと、AOT では CsWinRT が COM ラッパーを作れず
-#     起動時に `E_INVALIDARG`（0xC000027B）で落ちる（実測 2026-10-24）。 一覧へは `Items.Add` で 1 件ずつ渡す
-#     （規則の所有者は .github/ビルド設定規約.md §6.1）。
-$itemsSourceAssignments = [System.Collections.Generic.List[string]]::new()
-foreach ($hit in @(git -c core.quotepath=false grep --untracked -n -E '\.ItemsSource\s*=' -- 'EsUtil.Ui.WinUI3' 2>$null)) {
-    if ($hit -match '\\tests\\' -or $hit -match '/tests/') { continue }
-    $itemsSourceAssignments.Add($hit)
-}
-Add-Result 'WinUI 3 の AOT 制約' ($itemsSourceAssignments.Count -eq 0) "ItemsSource への代入 $($itemsSourceAssignments.Count) 件"
-$itemsSourceAssignments | Select-Object -First 8 | ForEach-Object { "      $_" }
-
-# 2e) Dependabot の対象（版の単一所有である Directory.Packages.props のフォルダが列挙されているか）
-#     版は Central Package Management で 1 ファイルが持つため、依存の置き場所は 1 つである。
-#     プロジェクトのフォルダを列挙すると、Dependabot がフォルダごとに依存を解決して実行が長引き、
-#     時間切れで Pull Request が作られないことがある（実測 2026-11-02: 85 フォルダで 12〜56 分）。
-#     規則の所有者は .github/検証手順.md §8。
-$dependabotPath = Join-Path $repoRoot '.github/dependabot.yml'
-$packagesPropsRelative = 'Directory.Packages.props'
-# 版のフォルダ（リポジトリ ルートなら '/'。 TrimEnd で '/' が空にならないよう長さで分ける）
-$packagesPropsDirectory = '/' + ([IO.Path]::GetDirectoryName($packagesPropsRelative) -replace '\\', '/')
-if ($packagesPropsDirectory.Length -gt 1) { $packagesPropsDirectory = $packagesPropsDirectory.TrimEnd('/') }
-if (-not (Test-Path -LiteralPath (Join-Path $repoRoot $packagesPropsRelative))) {
-    Add-Result 'Dependabot の対象' $false "版の単一所有（$packagesPropsRelative）が無い"
-}
-elseif (-not (Test-Path -LiteralPath $dependabotPath)) {
-    Add-Result 'Dependabot の対象' $false '.github/dependabot.yml が無い'
+    # 2g) 実行ファイルのアーキテクチャ（AnyCPU）
+    #     アーキテクチャは固定しない（PlatformTarget / Prefer32Bit / RuntimeIdentifier を .csproj に書かない）。
+    #     AnyCPU の exe は apphost をビルドしたマシンの RID で作られる。 RID が要る処理（自己完結の publish、
+    #     WinUI 3 の MSIX ツール）はコマンド ラインの -r で渡す（csproj へ書くと復元とロック ファイルが
+    #     RID ごとに分かれ、RID 無しの復元が NU1004 で失敗する）。
+    #     判定は**コメントを除いた XML** で行う（コメントアウトした指定を「指定あり」と誤認しないため）。
+    #     規則は .github/ビルド設定規約.md §5。
+    $archIssues = [System.Collections.Generic.List[string]]::new()
+    $archChecked = 0
+    foreach ($rel in @(git ls-files --cached --others --exclude-standard -- '*/sample/*.csproj')) {
+        $text = [IO.File]::ReadAllText((Join-Path $repoRoot $rel), $enc)
+        $archChecked += 1
+        $xml = [regex]::Replace($text, '(?s)<!--.*?-->', '')
+        if ($xml -match '<Prefer32Bit>\s*true\s*</Prefer32Bit>' -or $xml -match '<PlatformTarget(\s[^>]*)?>') {
+            $archIssues.Add(("{0}: アーキテクチャを固定している（TargetFramework だけで AnyCPU にする）" -f $rel))
+        }
+        elseif ($xml -match '<RuntimeIdentifiers?(\s[^>]*)?>') {
+            $archIssues.Add(("{0}: RuntimeIdentifier を指定している（-r は publish のコマンド ラインで渡す）" -f $rel))
+        }
+    }
+    Add-Result '実行ファイルのアーキテクチャ' ($archIssues.Count -eq 0) "対象 $archChecked 件 / 固定 $($archIssues.Count) 件"
+    $archIssues | Select-Object -First 8 | ForEach-Object { "      $_" }
 }
 else {
-    $dependabotText = [IO.File]::ReadAllText($dependabotPath, $enc)
-
-    # **`package-ecosystem: "nuget"` のエントリの中だけを見る**（他のエコシステムの `directory` で
-    # 通してしまわないため。 GitHub Actions の `directory: "/"` と取り違えると、NuGet の設定を
-    # 別のフォルダへ変えても・削除しても検査が通ってしまう）。
-    $dependabotLines = $dependabotText -split "`r?`n"
-    $nugetStart = -1
-    for ($i = 0; $i -lt $dependabotLines.Count; $i++) {
-        if ($dependabotLines[$i] -match '^\s*-\s*package-ecosystem:\s*"nuget"\s*$') { $nugetStart = $i; break }
-    }
-
-    $listedDirectories = @()
-    if ($nugetStart -ge 0) {
-        $block = [System.Collections.Generic.List[string]]::new()
-        for ($i = $nugetStart; $i -lt $dependabotLines.Count; $i++) {
-            # 次の `- package-ecosystem:` で終わる（インデントは問わない）
-            if ($i -gt $nugetStart -and $dependabotLines[$i] -match '^\s*-\s*package-ecosystem:') { break }
-            $block.Add($dependabotLines[$i])
-        }
-
-        # 単数（`directory: "/"`）と複数（`- "/パス"`）の両方の書き方から拾う
-        $listedDirectories = @([regex]::Matches(($block -join "`n"), '(?m)^\s*(?:-\s*|directory:\s*)"(?<path>/[^"]*)"\s*$') |
-                ForEach-Object {
-                    $value = $_.Groups['path'].Value
-                    if ($value.Length -gt 1) { $value.TrimEnd('/') } else { $value }
-                })
-    }
-
-    $hasNugetEcosystem = $nugetStart -ge 0
-    $hasPackagesDirectory = $hasNugetEcosystem -and ($listedDirectories -contains $packagesPropsDirectory)
-    Add-Result 'Dependabot の対象' $hasPackagesDirectory "nuget のエントリ $([int]$hasNugetEcosystem) 件 / 版のフォルダ $packagesPropsDirectory の登録 $([int]$hasPackagesDirectory) 件"
-    if (-not $hasNugetEcosystem) {
-        "      .github/dependabot.yml に package-ecosystem: `"nuget`" のエントリが無い（Dependabot は版を更新できない）"
-    }
-    elseif (-not $hasPackagesDirectory) {
-        "      .github/dependabot.yml の nuget の directory に版のフォルダが無い: $packagesPropsDirectory（Dependabot は版を更新できない）"
-    }
+    Add-Info 'リポジトリ全体の検査' '省略（-SkipRepoChecks。 CI の repo ジョブが代表して実行する）'
 }
 
-# 2f) 層の参照（Core → Presenter の禁止）
-#     Core と Presenter は 1 つのアセンブリへ統合したため、コアから提示層への参照はビルドの DEP0003
-#     （ProjectReference の検査）では検出できない。 コア側のソースを走査し、提示層の名前空間・型名を
-#     参照していれば不合格にする（規則は .github/依存関係.md §5・.github/検証手順.md §5.3）。
-$presenterTypes = @(
-    'LoupePresenter', 'LoupeAppearance', 'LoupeDrawPlan', 'LoupeDrawLayer', 'LoupeLabelPlacement', 'LoupeTextPlacement',
-    'LoupeCrosshairRects',
-    'MarqueePresenter', 'MarqueeAppearance', 'MarqueeDrawPlan', 'MarqueeDrawLayer', 'MarqueeLabelPlacement',
-    'MarqueeTextPlacement', 'MarqueeLabelPlacements',
-    'ThumbnailPresenter', 'ThumbnailAppearance', 'ThumbnailDrawPlan', 'ThumbnailDrawLayer', 'ThumbnailHighlightKind',
-    'ThumbnailLabelPlan', 'ThumbnailShadowPlan', 'ThumbnailShadowBand', 'ThumbnailShadowEdge', 'ThumbnailShadowSide',
-    'ThumbnailShadowStop', 'IThumbnailShadowPlan')
-$rxPresenterType = [regex]('\b(' + ($presenterTypes -join '|') + ')\b')
-$layerViolations = [System.Collections.Generic.List[string]]::new()
-foreach ($feature in @(
-        @{ Name = 'EsUtil/Feature.Loupe.Core'; Namespace = 'EsUtil.Feature.Loupe.Presenter' },
-        @{ Name = 'EsUtil/Feature.Marquee.Core'; Namespace = 'EsUtil.Feature.Marquee.Presenter' },
-        @{ Name = 'EsUtil/Feature.Thumbnail.Core'; Namespace = 'EsUtil.Feature.Thumbnail.Presenter' })) {
-    $srcRoot = Join-Path $repoRoot ($feature.Name + '/src')
-    if (-not (Test-Path -LiteralPath $srcRoot)) { continue }
-
-    # コア側のファイル = src/Core 配下と、提示層の型を宣言していない src 直下のファイル
-    $coreFiles = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
-    foreach ($file in @(Get-ChildItem -LiteralPath (Join-Path $srcRoot 'Core') -Recurse -File -Filter '*.cs' -ErrorAction SilentlyContinue)) {
-        $coreFiles.Add($file)
-    }
-    foreach ($file in @(Get-ChildItem -LiteralPath $srcRoot -File -Filter '*.cs')) {
-        $declaration = [regex]::Match(
-            [IO.File]::ReadAllText($file.FullName, $enc),
-            '(?m)^\s*(?:(?:public|internal|private|protected|file|static|sealed|abstract|partial|readonly)\s+)*(?:class|struct|interface|enum|record(?:\s+(?:class|struct))?)\s+([A-Za-z_]\w*)')
-        if ($declaration.Success -and $presenterTypes -contains $declaration.Groups[1].Value) { continue }
-        $coreFiles.Add($file)
-    }
-
-    foreach ($file in $coreFiles) {
-        $text = [IO.File]::ReadAllText($file.FullName, $enc)
-        if ($text.Contains($feature.Namespace, [StringComparison]::Ordinal) -or $rxPresenterType.IsMatch($text)) {
-            $layerViolations.Add(("{0}: 提示層（{1}）を参照している" -f
-                    $file.FullName.Substring($repoRoot.Length + 1).Replace('\', '/'), $feature.Namespace))
-        }
-    }
-}
-Add-Result '層の参照（Core → Presenter）' ($layerViolations.Count -eq 0) "違反 $($layerViolations.Count) 件"
-$layerViolations | Select-Object -First 8 | ForEach-Object { "      $_" }
-
-# 2g) 実行ファイルのアーキテクチャ（AnyCPU）
-#     アーキテクチャは固定しない（PlatformTarget / Prefer32Bit / RuntimeIdentifier を .csproj に書かない）。
-#     AnyCPU の exe は apphost をビルドしたマシンの RID で作られる。 RID が要る処理（自己完結の publish、
-#     WinUI 3 の MSIX ツール）はコマンド ラインの -r で渡す（csproj へ書くと復元とロック ファイルが
-#     RID ごとに分かれ、RID 無しの復元が NU1004 で失敗する）。
-#     判定は**コメントを除いた XML** で行う（コメントアウトした指定を「指定あり」と誤認しないため）。
-#     規則は .github/ビルド設定規約.md §5。
-$archIssues = [System.Collections.Generic.List[string]]::new()
-$archChecked = 0
-foreach ($rel in @(git ls-files --cached --others --exclude-standard -- '*/sample/*.csproj')) {
-    $text = [IO.File]::ReadAllText((Join-Path $repoRoot $rel), $enc)
-    $archChecked += 1
-    $xml = [regex]::Replace($text, '(?s)<!--.*?-->', '')
-    if ($xml -match '<Prefer32Bit>\s*true\s*</Prefer32Bit>' -or $xml -match '<PlatformTarget(\s[^>]*)?>') {
-        $archIssues.Add(("{0}: アーキテクチャを固定している（TargetFramework だけで AnyCPU にする）" -f $rel))
-    }
-    elseif ($xml -match '<RuntimeIdentifiers?(\s[^>]*)?>') {
-        $archIssues.Add(("{0}: RuntimeIdentifier を指定している（-r は publish のコマンド ラインで渡す）" -f $rel))
-    }
-}
-Add-Result '実行ファイルのアーキテクチャ' ($archIssues.Count -eq 0) "対象 $archChecked 件 / 固定 $($archIssues.Count) 件"
-$archIssues | Select-Object -First 8 | ForEach-Object { "      $_" }
 
 # ============================================================
 # 3. テスト（全件合格。 -Coverage でカバレッジも集計する）

@@ -14,17 +14,22 @@
 # 共通基盤（`EsUtil/`）・ビルド設定・スクリプト・文書を変えたときは 5 本すべてを検証する。
 # 検証の中身は buildScript/verify.ps1 が単一所有し、合否基準は .github/検証手順.md が定める。
 #
-# **ジョブは 3 つを同時に走らせる**（直列だと 1 ジョブ 8 分だった。 実測 2026-10-26）。
-#   verify    … ソリューションごとに 1 ジョブ（マトリクス）。 ビルドとテスト（走査とパッケージングは除く）
-#   docs      … 文書とコードの走査（復元もビルドも要らない）
-#   packaging … パッケージング（リポジトリ全体の設定を変えたときだけ）
+# **ジョブは同時に走らせる**（直列だと 1 ジョブ 8 分だった。 実測 2026-10-26）。
+#   verify … ソリューションごとに 1 ジョブ（マトリクス）。 ビルドとテスト（走査とリポジトリ全体の検査は除く）
+#   repo   … リポジトリ全体の検査と NuGet の監査（5 ジョブで繰り返さず、ここで 1 回だけ実行する）
+#   docs   … 文書とコードの走査（復元もビルドも要らない。 ubuntu で走らせる）
 # ソリューションは互いに独立しているため、分けても検証の意味は変わらない（壁時計は最も遅い 1 本になる）。
+#
+# **パッケージング（pack とパッケージ参照での消費検証）は本ワークフローでは実行しない**。
+# DryRun（release.yml）の `pack` ジョブが同じツリーの配布物を作り、その場で検証する
+# （2 つのワークフローで同じツリーを 2 回 pack していた。 実測 2026-11-05: pack 1 回 186 秒）。
 #
 # .NET SDK のバージョンはリポジトリルートの global.json が単一所有する（ワークフローでは指定しない）。
 # .NET SDK はランナー イメージに含まれる最新版をそのまま使う（actions/setup-dotnet を使わない）。
 # キャッシュは NuGet の復元と npm（markdownlint）だけを対象にする。
 #
-# Windows 専用（Win32 API の P/Invoke を含む）のため windows-latest で実行する。
+# **ビルドとテスト、リポジトリ全体の検査は windows-latest**（Win32 API の P/Invoke と、Windows 向けの
+# 復元を伴う NuGet の監査を含む）、**文書の走査だけは ubuntu-latest**（OS に依存しない）。
 #
 # README の「build」バッジは `?event=pull_request` を指定する（既定は**既定ブランチの最新実行**であり、
 # push では実行しないため、`dev` の古い push の結果が残って Pull Request の失敗を表示できない）。
@@ -52,7 +57,6 @@ jobs:
     timeout-minutes: 10
     outputs:
       solutions: ${{ steps.plan.outputs.solutions }}
-      packaging: ${{ steps.plan.outputs.packaging }}
     steps:
       - name: チェックアウト
         uses: actions/checkout@v7
@@ -121,10 +125,8 @@ jobs:
           # 空文字は `[]` と一致しないため、下流の if が「対象あり」と誤判定する。 実測 2026-10-27）
           $json = if ($targets.Count -eq 0) { '[]' } else { $targets | ConvertTo-Json -Compress -AsArray }
           "solutions=$json" >> $env:GITHUB_OUTPUT
-          "packaging=$($repoWide.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
 
           Write-Host "対象のソリューション: $($targets -join ', ')"
-          Write-Host "パッケージング検証: $repoWide"
 
   # ────────────────────────────────────────────────────────────
   # 2. 検証（verify.ps1 が単一所有する）
@@ -166,20 +168,51 @@ jobs:
             nuget-${{ runner.os }}-${{ hashFiles(matrix.solution) }}-
 
       # 検証は buildScript/verify.ps1 が単一所有する（合否基準は .github/検証手順.md が所有者）。
-      # 走査（-SkipDocs）とパッケージング（-SkipPackaging）は別ジョブが持つ。
+      # 走査（-SkipDocs）・パッケージング（-SkipPackaging）・リポジトリ全体の検査（-SkipRepoChecks）・
+      # NuGet の監査（-SkipPackage）は別ジョブが代表して 1 回だけ実行する（5 ジョブで同じ検査を
+      # 繰り返さない。 実測 2026-11-05: 1 ジョブあたり 10〜30 秒の重複があった）。
       - name: 検証（Release）
         shell: pwsh
         run: |
           # -FullBuild: ゲートでは警告の取りこぼしを許さない（増分ビルドは前回の生成物を再利用するため、
           # 該当プロジェクトがスキップされて警告が隠れることがある。 規則は .github/検証手順.md §3）
-          & './buildScript/verify.ps1' -Configuration Release -Solution '${{ matrix.solution }}' -SkipDocs -SkipPackaging -FullBuild
+          & './buildScript/verify.ps1' -Configuration Release -Solution '${{ matrix.solution }}' -SkipDocs -SkipPackaging -SkipPackage -SkipRepoChecks -FullBuild
           if ($LASTEXITCODE -ne 0) { throw "検証が失敗しました（exit $LASTEXITCODE）" }
 
   # ────────────────────────────────────────────────────────────
-  # 2b. 文書とコードの走査（ビルドも復元も要らない。 verify と同時に走らせる）
+  # 2b. リポジトリ全体の検査と NuGet の監査（ソリューションに依存しない。 verify と同時に走らせる）
+  # ────────────────────────────────────────────────────────────
+  # 5 本の verify ジョブで同じ検査を繰り返さないよう、ここで 1 回だけ実行する（-SkipRepoChecks で
+  # matrix 側は省略している）。 ビルドとテストは要らないが、**NuGet の監査が復元（Windows 向けの
+  # 参照パックを含む）を伴う**ため windows で走らせる（実測済みの環境だけを使う）。
+  repo:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v7
+
+      # NuGet の監査は復元を伴う（パッケージの取得をキャッシュする）
+      - name: NuGet をキャッシュ
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      # 合否基準は .github/検証手順.md（実装は buildScript/verify.ps1 が単一所有する）
+      - name: 検査と監査
+        shell: pwsh
+        run: |
+          & ./buildScript/verify.ps1 -SkipBuild -SkipTests -SkipDocs -SkipPackaging -SkipFormat
+          if ($LASTEXITCODE -ne 0) { throw "リポジトリ全体の検査が失敗しました（exit $LASTEXITCODE）" }
+
+  # ────────────────────────────────────────────────────────────
+  # 2c. 文書とコードの走査（ビルドも復元も要らない。 verify と同時に走らせる）
   # ────────────────────────────────────────────────────────────
   docs:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: チェックアウト
@@ -189,7 +222,8 @@ jobs:
       - name: npm をキャッシュ
         uses: actions/cache@v6
         with:
-          path: ~\AppData\Local\npm-cache
+          # キャッシュの場所は OS で変わる（ubuntu は `~/.npm`）
+          path: ~/.npm
           # 版は buildScript/verifyDocs.ps1 が単一所有する（版を上げるとキーが変わる）
           key: npm-${{ runner.os }}-${{ hashFiles('buildScript/verifyDocs.ps1', 'buildScript/markdownlint.json') }}
           restore-keys: |
@@ -199,43 +233,21 @@ jobs:
       - name: 走査
         shell: pwsh
         run: |
-          & pwsh -NoProfile -File buildScript/verifyDocs.ps1
+          & ./buildScript/verifyDocs.ps1
           if ($LASTEXITCODE -ne 0) { throw "走査が失敗しました（exit $LASTEXITCODE）" }
 
-  # ────────────────────────────────────────────────────────────
-  # 2c. パッケージング（リポジトリ全体の設定を変えたときだけ。 verify と同時に走らせる）
-  # ────────────────────────────────────────────────────────────
-  packaging:
-    needs: changes
-    if: needs.changes.outputs.packaging == 'true'
-    runs-on: windows-latest
-    timeout-minutes: 60
-    steps:
-      - name: チェックアウト
-        uses: actions/checkout@v7
-
-      - name: NuGet をキャッシュ
-        uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
-
-      # pack → 一時フィード → 一時コンシューマーで復元・ビルド・起動（規則は .github/検証手順.md §9）
-      - name: パッケージング
-        shell: pwsh
-        run: |
-          & pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -Configuration Release
-          if ($LASTEXITCODE -ne 0) { throw "パッケージングの検証が失敗しました（exit $LASTEXITCODE）" }
   # ────────────────────────────────────────────────────────────
   # 3. 必須チェックの受け皿
   # ────────────────────────────────────────────────────────────
   # 必須チェック（ruleset `Protect main`）は**このジョブ名**を要求する。
   # `verify` は条件（`if`）でスキップされ得るため、そのまま必須にするとスキップ時に
   # 「Expected」のまま残ってマージできなくなる。 常に走る集約ジョブで受ける。
+  #
+  # **パッケージング（pack とパッケージ参照での消費検証）は本ワークフローでは実行しない**
+  # （DryRun（release.yml）の `pack` ジョブが同じツリーの配布物を作り、その場で検証する。
+  # 2 つのワークフローで同じツリーを 2 回 pack していた。 実測 2026-11-05: pack 1 回 186 秒）。
   ci:
-    needs: [changes, verify, docs, packaging]
+    needs: [changes, verify, repo, docs]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -245,13 +257,12 @@ jobs:
         env:
           CHANGES: ${{ needs.changes.result }}
           VERIFY: ${{ needs.verify.result }}
+          REPO: ${{ needs.repo.result }}
           DOCS: ${{ needs.docs.result }}
-          PACKAGING: ${{ needs.packaging.result }}
         run: |
-          echo "changes=$CHANGES verify=$VERIFY docs=$DOCS packaging=$PACKAGING"
-          # スキップは「対象が無い」だけなので合格にする
-          # （verify は対象のソリューションが無い / packaging はリポジトリ全体の変更が無い）
-          for result in "$VERIFY" "$DOCS" "$PACKAGING"; do
+          echo "changes=$CHANGES verify=$VERIFY repo=$REPO docs=$DOCS"
+          # スキップは「対象が無い」だけなので合格にする（verify は対象のソリューションが無い）
+          for result in "$VERIFY" "$REPO" "$DOCS"; do
             if [[ "$result" != "success" && "$result" != "skipped" ]]; then
               echo "::error::検証が失敗しました（$result）"; exit 1
             fi

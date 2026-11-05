@@ -16,11 +16,15 @@
 #   pwsh -NoProfile -File buildScript/verifyPackaging.ps1
 #   pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -SkipPack     # pack を省略する
 #   pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -KeepWork     # 一時フォルダを残す
+#   # 公開する版のパッケージ（DryRun が artifacts/ へ作ったもの）を検証する
+#   pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -SkipPack -Feed artifacts-release -Version 0.5.2
 
 [CmdletBinding()]
 param(
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release',
     [switch]$SkipPack,
+    [string]$Feed = '',
+    [string]$Version = '',
     [switch]$KeepWork
 )
 
@@ -31,7 +35,7 @@ Set-Location $repoRoot
 
 . (Join-Path $PSScriptRoot 'VerifyCommon.ps1')
 
-$feed = Join-Path $repoRoot '.nupkg'
+$feed = if ($Feed) { (Resolve-Path -LiteralPath $Feed).Path } else { Join-Path $repoRoot '.nupkg' }
 $propsText = [IO.File]::ReadAllText((Join-Path $repoRoot 'Directory.Build.props'), $enc)
 $recordPath = Join-Path $PSScriptRoot 'local-versions.json'
 
@@ -62,7 +66,7 @@ $solutions = @(Get-ChildItem -Path $repoRoot -Directory | Where-Object { $_.Name
 $packages = @(Get-ChildItem -Path $repoRoot -Directory |
     Where-Object { $_.Name -like 'EsUtil*' } |
     ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse -File -Filter '*.csproj' } |
-    Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' -and $_.Name -notmatch '\.(Tests|Sample|SampleKit)\.csproj$' } |
+    Where-Object { $_.FullName -notmatch '[\\/](obj|bin)[\\/]' -and $_.Name -notmatch '\.(Tests|Sample|SampleKit)\.csproj$' } |
     ForEach-Object { [pscustomobject]@{ Name = $_.BaseName; Solution = (Get-SolutionName $_.BaseName) } } |
     Sort-Object Name)
 
@@ -70,6 +74,12 @@ $packages = @(Get-ChildItem -Path $repoRoot -Directory |
 # **識別子はフィード全体で 1 つ**（ソリューションごとに変えると依存の版と実パッケージの版が食い違う）。
 function Get-PackageVersions {
     $result = @{}
+    # 版を明示された場合はそれを使う（公開する版のパッケージ。 ローカル識別子を持たない）
+    if ($Version) {
+        foreach ($solution in $solutions) { $result[$solution] = $Version }
+        return $result
+    }
+
     $suffix = 0
     if (Test-Path -LiteralPath $recordPath) {
         $loaded = Get-Content -LiteralPath $recordPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -110,6 +120,7 @@ if ($missing.Count -gt 0 -and -not $SkipPack) {
 }
 
 Add-Result '公開する版' ((Get-VersionPrefix) -notmatch '-') 'VersionPrefix に - を含まない'
+if ($Version) { Add-Info '検証するフィード' "$feed（版 $Version）" }
 Add-Result 'パッケージの存在' ($missing.Count -eq 0) "不足 $($missing.Count) 件"
 $missing | Select-Object -First 10 | ForEach-Object { "      $_" }
 

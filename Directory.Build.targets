@@ -15,10 +15,19 @@
        版を固定しないと packages.lock.json の要求範囲が SDK の版で変わり、SDK の版が違う環境で NU1004 になる
        （実測: SDK 10.0.403 で [10.0.14, )、ランナー イメージの SDK で [10.0.13, )）。
        プロジェクトの値（IsAotCompatible）で条件を付けるため、.csproj より後に評価されるこのファイルに置く。
+       **AOT で発行するプロジェクト（`PublishAot` / `PublishTrimmed`。 サンプル等）も対象にする**:
+       暗黙の参照が加わるのに版だけが PackageVersion にあると、中央パッケージ管理が NU1009 で復元を止める
+       （実測 2026-11-05: サンプルを `-p:PublishAot=true` で発行すると NU1009）。
        規則は .github/ビルド設定規約.md §8。 -->
-  <ItemGroup Condition="'$(IsAotCompatible)' == 'true'">
+  <ItemGroup Condition="'$(IsAotCompatible)' == 'true' Or '$(PublishAot)' == 'true' Or '$(PublishTrimmed)' == 'true'">
     <PackageReference Include="Microsoft.NET.ILLink.Tasks" PrivateAssets="all" />
   </ItemGroup>
+
+  <!-- 上の明示参照は版を固定するためのものである（SDK は「消せ」と警告するが、消すと版が SDK に追従し、
+       packages.lock.json が環境ごとに変わる）。 警告だけを止める（規則は .github/ビルド設定規約.md §8）。 -->
+  <PropertyGroup Condition="'$(IsAotCompatible)' == 'true' Or '$(PublishAot)' == 'true' Or '$(PublishTrimmed)' == 'true'">
+    <SuppressILLinkExplicitPackageReferenceWarning>true</SuppressILLinkExplicitPackageReferenceWarning>
+  </PropertyGroup>
 
   <Target Name="ValidatePackageReferences" BeforeTargets="Build" Condition="'$(MSBuildProjectName)' != ''">
 

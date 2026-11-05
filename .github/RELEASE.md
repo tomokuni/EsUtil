@@ -54,8 +54,8 @@
 | 契機 | 実行する内容 | 理由 |
 | --- | --- | --- |
 | `dev` への push | なし | 手元の `verify.ps1` と、`main` 向け Pull Request の検証で足りる |
-| `main` 向け Pull Request | フル検証（`build.yml`。 必須チェックは `ci`） | **唯一のゲート**。 最新の `main` とマージしたツリーを検証する |
-| `main` 向け Pull Request | **`dry-run` を自動実行**（`release.yml`。 `pack` と SBOM の作成） | マージ後に手動で dry-run を回さない。 公開物を 1 度だけ作り、そのまま公開する |
+| `main` 向け Pull Request | フル検証（`build.yml`。 必須チェックは `ci`） | **唯一のゲート**。 最新の `main` とマージしたツリーを検証する（パッケージングは `dry-run` が持つ。 §4.2） |
+| `main` 向け Pull Request | **`dry-run` を自動実行**（`release.yml`。 `pack`・パッケージングの検証・SBOM の作成） | マージ後に手動で dry-run を回さない。 公開物を 1 度だけ作り、そのまま公開する |
 | `main` への push（マージ） | なし | Pull Request と同じツリーのため重複する（最新の `main` への追随が前提） |
 | `workflow_dispatch`（`build.yml`） | フル検証 | 任意のブランチを今すぐ確かめたいとき |
 | Release `dry-run`（手動） | `pack` と SBOM の作成 | `dev` などで先に確かめたいとき |
@@ -70,8 +70,8 @@
 ```mermaid
 flowchart LR
     A["pull_request（自動）<br/>workflow_dispatch（手動）"] --> B["verify<br/>CHANGELOG・版・タグ"]
-    B --> C["pack<br/>ソリューション別に dotnet pack"]
-    B --> D["sbom<br/>ソリューション別に CycloneDX"]
+    B --> C["pack<br/>ソリューション別に dotnet pack（並列）<br/>→ パッケージングの検証"]
+    B --> D["sbom<br/>ソリューション別に CycloneDX（並列）"]
     C --> E["保管（nupkg-<ツリー>）"]
     D --> F["保管（sbom-<ツリー>）"]
     E --> G{"release モードか"}
@@ -82,6 +82,10 @@ flowchart LR
 
 **公開が成功した後にだけタグを打ちます**（公開できなかった版にタグを残さないため）。
 **`pack` と `sbom` は `dry-run` でだけ実行します**（`release` は同じツリーの dry-run の実行 ID から成果物を取得します）。 配布物の名前には**ツリー**を埋めてあり（`nupkg-<ツリー>`）、`release` はその名前で「同じ内容の dry-run」を探します（コミットの SHA は PR とマージ後で変わるため）。
+
+**パッケージング（nuget の正しさ）の検証は `pack` ジョブが持ちます**（`build.yml` では実行しません。 同じツリーを 2 つのワークフローで pack していたため）。 `pack` は**公開する版のパッケージ**を `artifacts/` へ作り、そのまま `verifyPackaging.ps1 -SkipPack -Feed artifacts -Version <版>` で検証します（同封物・nuspec の依存・パッケージ参照での復元/ビルド/起動）。 **パッケージへ影響する変更のときだけ**検証します（workflow や `.editorconfig` の変更では実行しない）。
+
+**`pack` と `sbom` はソリューションごとに並列で作ります**（1 本あたり 20 秒前後 × 5 本を直列に回すと 2 分近くかかるため。 実測 2026-11-05: SBOM は直列 94 秒 → 並列 25 秒、pack は直列 44 秒 → 並列 17 秒）。 どちらも**復元（`dotnet restore` / `dotnet tool restore`）を先に 1 回だけ**行い、各処理へは `--no-restore` / `-SkipToolRestore` を渡します（同じファイルを取り合わないため）。
 
 **成果物の名前だけを信用しません**。 次の 3 つを確かめてから採用します（[`workflows/release.yml`](workflows/release.yml)）。
 
@@ -182,7 +186,7 @@ Release には、**ソリューションごとの SBOM**（`<ソリューショ�
 | 失敗した箇所 | 状態 | 復旧 |
 | --- | --- | --- |
 | `verify`（dry-run 失敗） | 何も作っていない | 原因（版・CHANGELOG・ブランチ）を直して再実行する |
-| `pack` / `sbom`（dry-run 失敗） | 成果物が無い（公開していない） | 原因を直して再実行する |
+| `pack` / `sbom`（dry-run 失敗） | 成果物が無い（公開していない） | 原因を直して再実行する（`pack` は**パッケージングの検証も兼ねる**。 §4.2） |
 | `publish`（dry-run の成果物が失効） | 何も公開していない | dry-run をやり直してから `release` を実行する（成果物の保存期間は既定で 90 日） |
 | `publish`（一部だけ公開） | 公開済みの版は取り消せない | 残りを再実行する（公開済みの版は HEAD で確認して**省略**する） |
 | `tag`（タグ作成の失敗） | 公開済み・タグ無し | `release` を再実行する（公開は省略され、タグだけが作られる） |
