@@ -355,6 +355,9 @@ jobs:
             artifacts/**/*.nupkg
             artifacts/**/*.snupkg
           if-no-files-found: error
+          # **再実行で同じ名前へ上書きする**（既定は `false` で、失敗したジョブの再実行が
+          # 「同じ名前の成果物がある」で失敗し、先へ進めない）。
+          overwrite: true
 
   # ────────────────────────────────────────────────────────────
   # 2b. SBOM（CycloneDX）を作る（dry-run だけが作る。 release は dry-run の成果物を使う）
@@ -433,6 +436,8 @@ jobs:
           name: sbom-${{ needs.verify.outputs.tree }}
           path: sbom/*.json
           if-no-files-found: error
+          # 再実行で同じ名前へ上書きする（配布物と同じ理由）
+          overwrite: true
 
   # ────────────────────────────────────────────────────────────
   # 3. 公開（release のみ。 承認を要求する）
