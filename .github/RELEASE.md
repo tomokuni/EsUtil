@@ -70,7 +70,7 @@
 ```mermaid
 flowchart LR
     A["pull_request（自動）<br/>workflow_dispatch（手動）"] --> B["verify<br/>CHANGELOG・版・タグ"]
-    B --> C["pack<br/>ソリューション別に dotnet pack（並列）<br/>→ パッケージングの検証"]
+    B --> C["pack<br/>ソリューション別に dotnet pack<br/>→ パッケージングの検証"]
     B --> D["sbom<br/>ソリューション別に CycloneDX（並列）"]
     C --> E["保管（nupkg-<ツリー>）"]
     D --> F["保管（sbom-<ツリー>）"]
@@ -85,7 +85,7 @@ flowchart LR
 
 **パッケージング（nuget の正しさ）の検証は `pack` ジョブが持ちます**（`build.yml` では実行しません。 同じツリーを 2 つのワークフローで pack していたため）。 `pack` は**公開する版のパッケージ**を `artifacts/` へ作り、そのまま `verifyPackaging.ps1 -SkipPack -Feed artifacts -Version <版>` で検証します（同封物・nuspec の依存・パッケージ参照での復元/ビルド/起動）。 **パッケージへ影響する変更のときだけ**検証します（workflow や `.editorconfig` の変更では実行しない）。
 
-**`pack` と `sbom` はソリューションごとに並列で作ります**（1 本あたり 20 秒前後 × 5 本を直列に回すと 2 分近くかかるため。 実測 2026-11-05: SBOM は直列 94 秒 → 並列 25 秒、pack は直列 44 秒 → 並列 17 秒）。 どちらも**復元（`dotnet restore` / `dotnet tool restore`）を先に 1 回だけ**行い、各処理へは `--no-restore` / `-SkipToolRestore` を渡します（同じファイルを取り合わないため）。
+**`pack` はソリューションを 1 本ずつ実行します**（UI ソリューションの `ProjectReference` が参照先を Debug でビルドするため、同時に動かすと共有の `obj/Debug` を奪い合って失敗する。 実測 2026-11-05: CI で再現）。 **`sbom` はソリューションごとに並列で作ります**（1 本あたり 20 秒前後 × 5 本を直列に回すと 2 分近くかかるため）。 ツールの復元（`dotnet tool restore`）は**1 回だけ**行い、各スクリプトへは `-SkipToolRestore` を渡します（同じツール フォルダを取り合わないため）。
 
 **成果物の名前だけを信用しません**。 次の 3 つを確かめてから採用します（[`workflows/release.yml`](workflows/release.yml)）。
 

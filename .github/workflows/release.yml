@@ -308,35 +308,22 @@ jobs:
 
       # 版はコミット済みの VersionPrefix を使う（ワークフローで書き換えない）。
       # ソリューションごとに pack する（1 つの版で全パッケージを作る。 ローカル識別子は付けない）。
-      # **ソリューション同士は独立しているため並列に pack する**（直列にすると 5 本 × 20 秒前後。
-      # 実測 2026-11-05: 直列 94 秒 → 並列 25 秒）。 共有する出力へ同時に書き込まないよう、
-      # 復元を先に 1 回ずつ済ませ、pack は `--no-restore` で行う。
+      # **ソリューション同士は並列にしない**: UI ソリューションの ProjectReference は参照先を Debug で
+      # ビルドするため（実測 2026-11-05）、同時に動かすと共有の obj/Debug を奪い合って
+      # `GenerateDepsFile` が失敗する（実測 2026-11-05: CI で再現）。 直列のままにする。
       - name: パッケージを作成
         shell: pwsh
         env:
           SOLUTIONS: ${{ needs.verify.outputs.solutions }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $items = @(ConvertFrom-Json $env:SOLUTIONS)
-          $out = (Join-Path (Get-Location) 'artifacts')
+          $out = Join-Path (Get-Location) 'artifacts'
           [void](New-Item -ItemType Directory -Path $out -Force)
-
-          # lock どおりに復元する（packages.lock.json と Directory.Packages.props の食い違いを NU1004 で検出する）
-          foreach ($item in $items) {
-            & dotnet restore $item.solution -p:RestoreLockedMode=true
-            if ($LASTEXITCODE -ne 0) { throw "復元が失敗しました: $($item.product)" }
+          foreach ($item in @(ConvertFrom-Json $env:SOLUTIONS)) {
+            # lock どおりに復元する（packages.lock.json と Directory.Packages.props の食い違いを NU1004 で検出する）
+            & dotnet pack $item.solution -c Release -o $out --nologo -p:RestoreLockedMode=true
+            if ($LASTEXITCODE -ne 0) { throw "pack が失敗しました: $($item.product)" }
           }
-
-          $results = $items | ForEach-Object -Parallel {
-            $item = $_
-            $text = & dotnet pack $item.solution -c Release -o $using:out --nologo --no-restore -p:RestoreLockedMode=true 2>&1
-            $code = $LASTEXITCODE
-            $text | ForEach-Object { Write-Host $_ }
-            [pscustomobject]@{ Product = $item.product; Exit = $code }
-          } -ThrottleLimit 5
-
-          $failed = @($results | Where-Object { $_.Exit -ne 0 })
-          if ($failed.Count -gt 0) { throw "pack が失敗しました: $($failed.Product -join ', ')" }
 
           $packages = @(Get-ChildItem -Path $out -File -Filter '*.nupkg')
           Write-Host "パッケージ: $($packages.Count) 件"

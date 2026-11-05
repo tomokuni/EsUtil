@@ -35,12 +35,6 @@
 .PARAMETER NoBump
     ローカル識別子を +1 しない（記録の番号のまま pack する。 記録が無ければ 1）。
 
-.PARAMETER Sequential
-    ソリューションを 1 本ずつ pack する（既定は**並列**）。 原因の切り分けや、CPU を 1 つだけ使いたいときに使う。
-
-.PARAMETER ThrottleLimit
-    同時に pack するソリューションの数（既定 4）。 並列化の規則は .github/ビルド設定規約.md §4。
-
 .PARAMETER WhatIf
     何も書き換えず、変更の有無と使う識別子を表示する。
 
@@ -50,8 +44,6 @@
     pwsh -NoProfile -File buildScript/pack.ps1 -WhatIf
 .EXAMPLE
     pwsh -NoProfile -File buildScript/pack.ps1 -Only EsUtil.Ui.AvaloniaUI
-.EXAMPLE
-    pwsh -NoProfile -File buildScript/pack.ps1 -Sequential
 #>
 [CmdletBinding()]
 param(
@@ -59,8 +51,6 @@ param(
     [string]$Only = '',
     [switch]$NoClean,
     [switch]$NoBump,
-    [switch]$Sequential,
-    [ValidateRange(1, 16)][int]$ThrottleLimit = 4,
     [switch]$WhatIf
 )
 
@@ -271,151 +261,46 @@ $packed = 0
 # ソリューションの全プロジェクトは同じ版（版の所有者は Directory.Build.props）なので、
 # 版の上書きは 1 回で足りる。 MSBuild がソリューション内を並列に pack する。
 #
-# **ソリューション同士も並列にする**（UI ソリューションは互いに独立しており、共有するのは
-# 共通基盤（`EsUtil`）の出力だけである。 実測 2026-11-05: 直列 44 秒 → 並列 17 秒）。
-# 共有する出力へ同時に書き込まないよう、次の順で行う:
-#   1. 全ソリューションを 1 回ずつ復元する（pack は `--no-restore` で行う）
-#   2. 共通基盤（`EsUtil`）を**先に** pack する（UI が参照するプロジェクトの出力を作る）
-#   3. 残りのソリューションを並列に pack する（共有プロジェクトは最新のため、読み取りだけになる）
-$packs = [System.Collections.Generic.List[object]]::new()
+# **ソリューション同士は並列にしない**: UI ソリューションの `ProjectReference` は、ソリューションの
+# 構成の対応付けが無いためか**参照先を Debug で**ビルドする（実測 2026-11-05:
+# `dotnet build EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx -c Release` で `EsUtil.Feature.*.Core` が
+# `bin/Debug` へ出力される）。 そのため 2 つのソリューションを同時に pack すると、共有の
+# `EsUtil/*/obj/Debug` と `bin/Debug` を同時に書き、`GenerateDepsFile` が
+# 「別のプロセスが使用中」で失敗する（実測 2026-11-05: CI で再現）。 直列のままにする。
 foreach ($item in $plan) {
     $solutionProjects = @($projects | Where-Object { $_.Solution -eq $item.Solution })
     if ($solutionProjects.Count -eq 0) { continue }
 
     $solution = Join-Path $repoRoot ("{0}/{0}.slnx" -f $item.Solution)
     $targetsToPack = if (Test-Path -LiteralPath $solution) { @($solution) } else { @($solutionProjects | ForEach-Object { $_.Project }) }
-    $packs.Add([pscustomobject]@{
-            Item     = $item
-            Projects = $solutionProjects
-            Targets  = $targetsToPack
-            Failed   = $false
-        })
-}
 
-$useParallel = -not $Sequential -and $packs.Count -gt 1
-
-# 復元を先に済ませる（pack は `--no-restore`。 同じ `project.assets.json` を並列に書かない）
-foreach ($pack in $packs) {
-    foreach ($target in $pack.Targets) {
-        $restore = Invoke-NativeText 'dotnet' @('restore', $target, ('-p:VersionPrefix={0}' -f $pack.Item.Prefix))
-        if ($restore.ExitCode -eq 0) { continue }
-
-        Write-Output ("FAIL  {0}（復元に失敗しました。 終了コード {1}）" -f $pack.Item.Solution, $restore.ExitCode)
-        Write-Output (($restore.Text + $restore.ErrorText) | Select-Object -Last 20)
-        $pack.Failed = $true
-    }
-}
-
-# pack の引数を組み立てる（復元済みのため `--no-restore` を付ける）
-function Get-PackArguments([object]$pack, [string]$target) {
-    return @('pack', $target, '-c', $Configuration, '-o', $feed, '--nologo', '--no-restore',
-        ('-p:VersionPrefix={0}' -f $pack.Item.Prefix),
-        ('-p:VersionSuffix=local.{0}' -f $pack.Item.Suffix))
-}
-
-# 共通基盤を先に pack する（並列のときだけ。 直列では依存順のまま 1 本ずつ流す）
-$queued = @($packs | Where-Object { -not $_.Failed })
-$first = @()
-if ($useParallel) {
-    $first = @($queued | Where-Object { $_.Item.Solution -eq 'EsUtil' })
-    $queued = @($queued | Where-Object { $_.Item.Solution -ne 'EsUtil' })
-}
-
-foreach ($pack in $first) {
-    foreach ($target in $pack.Targets) {
-        $result = Invoke-NativeText 'dotnet' (Get-PackArguments $pack $target)
+    foreach ($target in $targetsToPack) {
+        $arguments = @('pack', $target, '-c', $Configuration, '-o', $feed, '--nologo',
+            ('-p:VersionPrefix={0}' -f $item.Prefix),
+            ('-p:VersionSuffix=local.{0}' -f $item.Suffix))
+        $result = Invoke-NativeText 'dotnet' $arguments
         if ($result.ExitCode -eq 0) { continue }
 
-        Write-Output ("FAIL  {0} {1}（終了コード {2}）" -f $pack.Item.Solution, $pack.Item.Version, $result.ExitCode)
+        Write-Output ("FAIL  {0} {1}（終了コード {2}）" -f $item.Solution, $item.Version, $result.ExitCode)
         Write-Output ($result.Text + $result.ErrorText)
-        $pack.Failed = $true
-        break
-    }
-}
-
-if ($useParallel -and $queued.Count -gt 0) {
-    $inputs = @($queued | Where-Object { -not $_.Failed } | ForEach-Object {
-            [pscustomobject]@{
-                Solution = $_.Item.Solution
-                Prefix   = $_.Item.Prefix
-                Suffix   = $_.Item.Suffix
-                Targets  = $_.Targets
-            }
-        })
-
-    # 子プロセスの出力は戻り値に混ぜず、ログへ出す（混ざると成否の判定が壊れる。 実測 2026-11-05）
-    $parallelResults = $inputs | ForEach-Object -Parallel {
-        $input = $_
-        [Console]::OutputEncoding = [Text.Encoding]::UTF8
-        $log = [System.Collections.Generic.List[string]]::new()
-        $exit = 0
-        foreach ($target in $input.Targets) {
-            $arguments = @('pack', $target, '-c', $using:Configuration, '-o', $using:feed, '--nologo', '--no-restore',
-                ('-p:VersionPrefix={0}' -f $input.Prefix),
-                ('-p:VersionSuffix=local.{0}' -f $input.Suffix))
-            $log.AddRange([string[]]@(& dotnet @arguments 2>&1 | ForEach-Object { "$_" }))
-            $exit = $LASTEXITCODE
-            if ($exit -ne 0) { break }
-        }
-
-        $log | ForEach-Object { Write-Host $_ }
-        [pscustomobject]@{ Solution = $input.Solution; Exit = $exit; Log = ($log -join "`n") }
-    } -ThrottleLimit $ThrottleLimit
-
-    $byName = @{}
-    foreach ($pack in $queued) { $byName[$pack.Item.Solution] = $pack }
-    foreach ($result in $parallelResults) {
-        if ($result.Exit -eq 0) { continue }
-
-        $pack = $byName[$result.Solution]
-        Write-Output ("FAIL  {0} {1}（終了コード {2}）" -f $pack.Item.Solution, $pack.Item.Version, $result.Exit)
-        Write-Output $result.Log
-        $pack.Failed = $true
-    }
-}
-elseif (-not $useParallel) {
-    foreach ($pack in $queued) {
-        foreach ($target in $pack.Targets) {
-            # 直列では pack 自身に復元させる（1 本ずつなので競合しない。 復元の費用も 1 回で済む）
-            $arguments = @('pack', $target, '-c', $Configuration, '-o', $feed, '--nologo',
-                ('-p:VersionPrefix={0}' -f $pack.Item.Prefix),
-                ('-p:VersionSuffix=local.{0}' -f $pack.Item.Suffix))
-            $result = Invoke-NativeText 'dotnet' $arguments
-            if ($result.ExitCode -eq 0) { continue }
-
-            Write-Output ("FAIL  {0} {1}（終了コード {2}）" -f $pack.Item.Solution, $pack.Item.Version, $result.ExitCode)
-            Write-Output ($result.Text + $result.ErrorText)
-            $pack.Failed = $true
-            break
-        }
-    }
-}
-
-# ============================================================
-# 生成物の確認と展開済みキャッシュの削除
-# ============================================================
-foreach ($pack in $packs) {
-    if ($pack.Failed) {
-        foreach ($project in $pack.Projects) { [void]$failedNames.Add($project.Name) }
-        continue
     }
 
-    foreach ($project in $pack.Projects) {
-        $expected = Join-Path $feed ("{0}.{1}.nupkg" -f $project.Name, $pack.Item.Version)
+    foreach ($project in $solutionProjects) {
+        $expected = Join-Path $feed ("{0}.{1}.nupkg" -f $project.Name, $item.Version)
         if (-not (Test-Path -LiteralPath $expected)) {
             [void]$failedNames.Add($project.Name)
-            Write-Output ("FAIL  {0} {1}（パッケージが作られていない）" -f $project.Name, $pack.Item.Version)
+            Write-Output ("FAIL  {0} {1}（パッケージが作られていない）" -f $project.Name, $item.Version)
             continue
         }
 
         # 展開済みキャッシュを削除する（残すと後続が古い DLL を参照する。 実測）
         if ($globalPackages) {
-            $cached = Join-Path $globalPackages ("{0}\{1}" -f $project.Name, $pack.Item.Version)
+            $cached = Join-Path $globalPackages ("{0}\{1}" -f $project.Name, $item.Version)
             if (Test-Path -LiteralPath $cached) { Remove-Item -LiteralPath $cached -Recurse -Force }
         }
 
         $packed += 1
-        Write-Output ("OK    {0} {1}" -f $project.Name, $pack.Item.Version)
+        Write-Output ("OK    {0} {1}" -f $project.Name, $item.Version)
     }
 }
 
