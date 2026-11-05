@@ -159,11 +159,14 @@ jobs:
       # 1 ジョブあたり 43 秒かかり、ディスクも 7 GB を超える。 ソリューションごとに分けると
       # 復元量が必要な分だけになる（キーの識別子は `.slnx` の内容のハッシュ。 変更しても
       # restore-keys で同じソリューションの直前のキャッシュへ戻る）。
+      # **2 つ目の識別子は「取得するパッケージの集合」で決める**（`packages.lock.json` と
+      # `Directory.Packages.props`）。 `**/*.csproj` を混ぜると、パッケージが変わらない変更でも
+      # キーが変わり、キャッシュを保存し直す（実測 2026-11-05: 復元 28〜35 秒）。
       - name: NuGet をキャッシュ
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles(matrix.solution) }}-${{ hashFiles('**/*.csproj') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles(matrix.solution) }}-${{ hashFiles('**/packages.lock.json', 'Directory.Packages.props') }}
           restore-keys: |
             nuget-${{ runner.os }}-${{ hashFiles(matrix.solution) }}-
 
@@ -192,13 +195,14 @@ jobs:
       - name: チェックアウト
         uses: actions/checkout@v7
 
-      # NuGet の監査は復元を伴う（パッケージの取得をキャッシュする）
+      # NuGet の監査は復元を伴う（パッケージの取得をキャッシュする。 キーは取得するパッケージの集合で決める）
       - name: NuGet をキャッシュ
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          key: nuget-${{ runner.os }}-repo-${{ hashFiles('**/packages.lock.json', 'Directory.Packages.props') }}
           restore-keys: |
+            nuget-${{ runner.os }}-repo-
             nuget-${{ runner.os }}-
 
       # 合否基準は .github/検証手順.md（実装は buildScript/verify.ps1 が単一所有する）

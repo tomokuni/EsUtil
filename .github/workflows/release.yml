@@ -7,6 +7,7 @@
 # 手順の全体:
 #   1. Pull Request の時点で dry-run が自動で走る（版・CHANGELOG・タグ・ブランチの検証、pack、SBOM）
 #   2. 問題が無ければ main へマージし、**同じツリー**で mode=release を実行する
+
 #      （**同じツリーの dry-run が成功していることを前提**にし、満たさなければ中止する）
 #   3. release は「承認（environment: release）」→「公開」→「タグ付け」の順に進む
 #
@@ -287,7 +288,7 @@ jobs:
           Write-Host "版: $version（タグ $tag、対象 $($list.Count) ソリューション、リリース $count）"
 
   # ────────────────────────────────────────────────────────────
-  # 2. 配布物の作成（dry-run だけが作る。 release は dry-run の成果物を使う）
+  # 2. 配布物（パッケージと SBOM）の作成（dry-run だけが作る。 release は dry-run の成果物を使う）
   # ────────────────────────────────────────────────────────────
   pack:
     needs: verify
@@ -298,19 +299,23 @@ jobs:
       - name: チェックアウト
         uses: actions/checkout@v7
 
+      # **キーは「取得するパッケージの集合」で決める**（`packages.lock.json` と `Directory.Packages.props`）。
+      # `**/*.csproj` を混ぜると、パッケージが変わらない変更でもキーが変わり、1.45 GB のキャッシュを
+      # 保存し直す（実測 2026-11-05: 復元 50 秒 / 保存 は復元より長い）。
       - name: NuGet をキャッシュ
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', 'Directory.Packages.props') }}
           restore-keys: |
             nuget-${{ runner.os }}-
 
       # 版はコミット済みの VersionPrefix を使う（ワークフローで書き換えない）。
       # ソリューションごとに pack する（1 つの版で全パッケージを作る。 ローカル識別子は付けない）。
-      # **ソリューション同士は並列にしない**: UI ソリューションの ProjectReference は参照先を Debug で
-      # ビルドするため（実測 2026-11-05）、同時に動かすと共有の obj/Debug を奪い合って
-      # `GenerateDepsFile` が失敗する（実測 2026-11-05: CI で再現）。 直列のままにする。
+      # **ソリューション同士は並列にしない**: UI ソリューションの ProjectReference は共通基盤を
+      # 含まないため、同時に動かすと共有の `obj/Release` を奪い合って `GenerateDepsFile` が失敗する
+      # （実測 2026-11-05: CI で再現）。 直列のままにする（手元の実測でも直列 19 秒に対し、
+      # ソリューションごとに出力を隔離した並列は参照先の再ビルドが増えて遅い）。
       - name: パッケージを作成
         shell: pwsh
         env:
@@ -351,29 +356,10 @@ jobs:
             artifacts/**/*.snupkg
           if-no-files-found: error
 
-  # ────────────────────────────────────────────────────────────
-  # 2b. SBOM（CycloneDX）を作る（dry-run だけが作る。 release は dry-run の成果物を使う）
-  # ────────────────────────────────────────────────────────────
-  # **pack と並列に走らせる**（SBOM は配布物を使わない。 直列にすると作成の待ち時間が毎回乗る）。
-  # ソリューションごとに 1 ファイル作り、1 つの Release へまとめて添付する。
-  sbom:
-    needs: verify
-    if: needs.verify.outputs.mode == 'dry-run' && needs.verify.outputs.count != '0'
-    runs-on: windows-latest
-    timeout-minutes: 30
-    steps:
-      - name: チェックアウト
-        uses: actions/checkout@v7
-
-      # ツール（CycloneDX）の取得と復元をキャッシュする
-      - name: NuGet をキャッシュ
-        uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
-
+      # SBOM（CycloneDX）は **pack と同じジョブで作る**: 依存の解析には復元が要り、pack が済ませている
+      # ため追加の復元がほぼ無い（実測 2026-11-05: 別ジョブでは復元（冷えた obj）が支配的で 124 秒、
+      # ジョブの起動とキャッシュの復元を合わせて 199 秒かかっていた。 同じジョブなら 30 秒前後）。
+      # ソリューションごとに 1 ファイル作り、1 つの Release へまとめて添付する。
       - name: SBOM を作成
         shell: pwsh
         env:
