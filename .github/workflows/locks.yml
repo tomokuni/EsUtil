@@ -5,6 +5,11 @@
 #                            古いままだと CI が `NU1004`（lock が古い）で失敗する。 このワークフローが
 #                            `buildScript/updateLocks.ps1` を実行し、**差分があれば Pull Request の
 #                            ブランチ（`dev`）へ自動でコミット**する（開発者の手作業をなくす）。
+#                            **lock が変わりうるファイルを触ったときだけ実行する**（`paths`）。
+#                            以前は文書だけの Pull Request でも毎回 1 分 50 秒を使っていた（実測 2026-11-06:
+#                            ジョブ 110 秒 = チェックアウト 9 / lock の更新 87 / 後処理 8）。
+#                            このジョブは**必須チェックではない**（ruleset が要求するのは `ci` だけ）ため、
+#                            対象外の Pull Request で走らなくてもマージは妨げられない。
 #
 # 設計の要点:
 #   - **同じリポジトリの Pull Request だけ**を対象にする（fork のブランチへは push できない）。
@@ -19,6 +24,19 @@ name: Locks
 on:
   pull_request:
     branches: [main]
+    # **lock が変わりうるファイルだけ**を対象にする（`Directory.Build.props` の版・パッケージの版・
+    # 参照・対象フレームワークが lock の中身を決める。 規則は .github/ビルド設定規約.md §8）。
+    # ここに挙げたファイルを触らない Pull Request では、ジョブを起動しない（実行時間 0 秒）。
+    paths:
+      - 'Directory.Build.props'
+      - 'Directory.Build.targets'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - 'NuGet.config'
+      - '**/*.csproj'
+      - '**/packages.lock.json'
+      - 'buildScript/updateLocks.ps1'
+      - '.github/workflows/locks.yml'
   workflow_dispatch:
 
 permissions:
@@ -64,6 +82,21 @@ jobs:
           else {
             "skip=false" >> $env:GITHUB_OUTPUT
           }
+
+      # 復元済みのパッケージを使い回す（実測 2026-11-06: lock の更新 87 秒の大半が復元）。
+      # **キーに lock を含めない**: 版を上げると lock は必ず変わるため、含めると必ず外れる。
+      # 版を上げただけ（パッケージの集合が同じ）のときは当たる。
+      # 省略する実行（自動コミットの直後）では復元もしないため、印の判定より後に置く。
+      - name: NuGet をキャッシュ
+        if: steps.guard.outputs.skip != 'true'
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-locks-${{ hashFiles('Directory.Packages.props', 'NuGet.config', 'global.json') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-locks-
+            nuget-${{ runner.os }}-repo-
+            nuget-${{ runner.os }}-
 
       - name: lock を更新
         if: steps.guard.outputs.skip != 'true'

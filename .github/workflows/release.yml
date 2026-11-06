@@ -5,7 +5,8 @@
 #   手動実行（workflow_dispatch）… mode=dry-run（作成と検証）または mode=release（公開とタグ付け）
 #
 # 手順の全体:
-#   1. Pull Request の時点で dry-run が自動で走る（版・CHANGELOG・タグ・ブランチの検証、pack、SBOM）
+#   1. Pull Request の時点で dry-run が自動で走る（版・CHANGELOG・タグ・ブランチの検証。
+#      配布物と SBOM は `build.yml` の `package` ジョブが作る。 dry-run はこのツリーを検証した印を残す）
 #   2. 問題が無ければ main へマージし、**同じツリー**で mode=release を実行する
 
 #      （**同じツリーの dry-run が成功していることを前提**にし、満たさなければ中止する）
@@ -16,9 +17,15 @@
 #     入力 `version` は確認用であり、ツリーの値と一致しなければ失敗する。
 #   - **CHANGELOG の見出しを公開前に確定させる**（`## 未リリース` が残っていれば失敗する。
 #     公開した版の変更が「未リリース」のまま残らないようにする。 手順は .github/RELEASE.md）。
-#   - **配布物は dry-run で 1 回だけ作り、release はそれを使う**（同じ内容を 2 回 pack しない）。
-#     Pull Request の dry-run は**マージ後に main へ載るツリーそのもの**（`refs/pull/<番号>/merge`）を
-#     検証するため、その成果物をそのまま公開できる（**コミットの SHA ではなくツリーで照合する**）。
+#   - **配布物は 1 回だけ作り、release はそれを再利用する**（同じ内容を 2 回 pack しない）。
+#     配布物は **`build.yml` の `package` ジョブ**が作る（`verify` の Release ビルドを
+#     `dotnet pack --no-build` で使う。 以前は本ワークフローの `pack` ジョブが全 5 ソリューションを
+#     ビルドし直していた。 実測 2026-11-06: 213 秒 = 復元 42 / 作成 114 / 検証 14 / SBOM 10）。
+#     Pull Request のビルドは**マージ後に main へ載るツリーそのもの**（`refs/pull/<番号>/merge`）を
+#     対象にするため、その成果物をそのまま公開できる（**コミットの SHA ではなくツリーで照合する**）。
+#     **パッケージへ影響しない変更では作らない**（文書・workflow・テストだけの変更）。 そのツリーを
+#     release するときは、同じツリーの dry-run があったことを `tree-<ツリー>` の印で確かめたうえで、
+#     本ワークフローの `pack`（フォールバック）が 1 回だけ作る。
 #   - **公開が成功した後にだけタグを打つ**（公開できなかった版にタグを残さない）。
 #   - **タグは 1 本**（`v<版>`。 すべてのパッケージが同じ版である）。 Release も 1 件にまとめる。
 #   - **公開は Trusted Publishing**（OIDC で短命の API キーを取得する。 長期の API キーを持たない）。
@@ -86,10 +93,8 @@ jobs:
       solutions: ${{ steps.plan.outputs.solutions }}
       # 検証した内容の識別子（ツリー）。 配布物の名前と、release の照合に使う
       tree: ${{ steps.plan.outputs.tree }}
-      # dry-run の実行 ID（release はその成果物を使う。 同じ内容を 2 回 pack しない）
-      dryRunId: ${{ steps.plan.outputs.dryRunId }}
-      # パッケージへ影響する変更があるか（パッケージングの検証を実行するか）
-      packaging: ${{ steps.plan.outputs.packaging }}
+      # 配布物を持つ実行の ID（`build.yml`。 同じ内容を 2 回ビルドしない）
+      pkgRunId: ${{ steps.plan.outputs.pkgRunId }}
     steps:
       - name: チェックアウト
         uses: actions/checkout@v7
@@ -167,8 +172,6 @@ jobs:
           INPUT_VERSION: ${{ inputs.version }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
-          EVENT_NAME: ${{ github.event_name }}
-          BASE_REF: ${{ github.base_ref }}
         run: |
           $ErrorActionPreference = 'Stop'
 
@@ -211,70 +214,72 @@ jobs:
           $changed = if ($lastTag) { @(git diff --name-only "$lastTag...$($env:SHA)").Count -gt 0 } else { $true }
           if (-not $changed) { Write-Host "前回のタグ（$lastTag）から変更がありません（リリースしません）。" }
 
-          # **パッケージへ影響する変更があるか**（パッケージングの検証を実行するかの判定）。
-          # 配布物の中身を変えうるファイルだけを見る（workflow や .editorconfig の変更では検証しない）。
-          # 判定できない場合（差分が取れない）は**実行する**（取りこぼして検証を飛ばすより安全）。
-          $packagingPatterns = '^(Directory\.Packages\.props|Directory\.Build\.(props|targets)|NuGet\.config|global\.json|buildScript/(pack|generateSbom|verifyPackaging)\.ps1|.*\.csproj|.*/packages\.lock\.json|EsUtil[^/]*/.*/src/)'
-          $packaging = $true
-          $diffBase = ''
-          if ($env:EVENT_NAME -eq 'pull_request' -and $env:BASE_REF) {
-            # 比較の基準（base ブランチ）を取得する（checkout は既定で対象の ref だけを取る）
-            git fetch --no-tags origin $env:BASE_REF 2>&1 | Out-Null
-            if ($LASTEXITCODE -eq 0) { $diffBase = "origin/$($env:BASE_REF)" }
-          }
-          elseif ($lastTag) { $diffBase = $lastTag }
-          if ($diffBase) {
-            $files = @(git -c core.quotepath=false diff --name-only "$diffBase...$($env:SHA)" 2>$null | Where-Object { $_ -notmatch '\.md$' })
-            if ($LASTEXITCODE -eq 0) {
-              $packaging = ($files.Count -gt 0) -and (@($files | Where-Object { $_ -match $packagingPatterns }).Count -gt 0)
-            }
-          }
-          Write-Host "パッケージングの検証: $packaging"
-          "packaging=$($packaging.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          # パッケージへ影響する変更かどうかは `build.yml` の `changes` ジョブが判定する
+          # （配布物を作るかはそちらが決める。 ここでは成果物の有無だけを見る）。
 
-          # release は「**信頼できる dry-run** が同じ内容（ツリー）を検証している」ことを前提にする。
           # **成果物の名前だけを信用しない**（PR はワークフローの定義も変更できるため、任意のファイルを
-          # `nupkg-<ツリー>` という名前で持ち込める）。 次の 2 つを満たす実行だけを採用する:
+          # `nupkg-<ツリー>` という名前で持ち込める）。 次の 3 つを満たす実行だけを採用する:
           #   1. **このリポジトリの実行**であること（`head_repository`。 fork の PR を除外する）
           #   2. **リリース元のブランチ**であること（Pull Request は `dev`、手動は許可ブランチ）
-          # そのうえで**配布物の名前（ツリー）が一致**することを確かめる。
+          #   3. 名前（ツリー）が一致すること
           # なお、同じリポジトリの書き込み権限を持つ利用者が PR を偽装することまでは防げない
           # （公開物の完全な証明が要る場合は配布物へ attestation を付けて検証する。 §10）。
           $tree = (git rev-parse 'HEAD^{tree}').Trim()
           $nupkgName = "nupkg-$tree"
-          $dryRunId = ''
+          $treeMarkerName = "tree-$tree"
+          $pkgRunId = ''
+          $treeVerified = $false
           if ($env:MODE -eq 'release') {
             $config = Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json
             $manualBranches = @($config.dryRunBranches)
 
-            # **全件を走査する**（固定件数で打ち切らない。 成功した dry-run が積み上がっても見失わない）
+            # リポジトリとブランチの信頼判定（成果物を持つ実行すべてに同じ規則を課す）
+            function Test-TrustedRun([string]$RunEvent, [string]$RunBranch, [string]$RunRepo) {
+              if ($RunRepo -ne $env:REPO) { return $false }
+              return ($RunEvent -eq 'pull_request' -and $RunBranch -eq 'dev') -or
+                     ($RunEvent -eq 'workflow_dispatch' -and $manualBranches -contains $RunBranch)
+            }
+
+            # 1. **この内容を dry-run したか**。 `release.yml` の `verify` が保管する印 `tree-<ツリー>` で
+            #    確かめる（配布物は `build.yml` が作るため、dry-run 側に配布物は無い）。
+            #    **全件を走査する**（固定件数で打ち切らない。 成功した dry-run が積み上がっても見失わない）
             $runs = @(gh api --paginate "repos/$($env:REPO)/actions/workflows/release.yml/runs?status=success&per_page=100" --jq '.workflow_runs[] | [(.id|tostring), .display_title, .event, .head_branch, (.head_repository.full_name // "")] | @tsv')
             $scanned = 0
             foreach ($line in $runs) {
               $fields = $line -split "`t"
               if ($fields.Count -lt 5) { continue }
-              $id = $fields[0]; $title = $fields[1]; $event = $fields[2]; $branch = $fields[3]; $repo = $fields[4]
+              $id = $fields[0]; $title = $fields[1]
 
               if ($title -notlike 'DryRun*') { continue }
               $scanned += 1
+              if (-not (Test-TrustedRun $fields[2] $fields[3] $fields[4])) { continue }
 
-              # 1. このリポジトリの実行だけを信頼する（fork の PR は成果物を持ち込める）
-              if ($repo -ne $env:REPO) { continue }
-
-              # 2. リリース元のブランチだけを信頼する
-              $trusted = ($event -eq 'pull_request' -and $branch -eq 'dev') -or
-                         ($event -eq 'workflow_dispatch' -and $manualBranches -contains $branch)
-              if (-not $trusted) { continue }
-
-              # 3. 配布物の名前（ツリー）が一致すること
               $names = @(gh api "repos/$($env:REPO)/actions/runs/$id/artifacts" --jq '.artifacts[].name')
-              if ($names -contains $nupkgName) { $dryRunId = $id; break }
+              if ($names -contains $treeMarkerName) { $treeVerified = $true; break }
             }
 
-            if (-not $dryRunId) {
+            if (-not $treeVerified) {
               throw "この内容（ツリー $tree。 コミット $($env:SHA)）を検証した信頼できる dry-run がありません（成功した実行 $scanned 件を確認）。 dev からの Pull Request の DryRun を待つか、main で mode=dry-run を実行してください。"
             }
-            Write-Host "dry-run の実行: $dryRunId（ツリー $tree が一致。 成果物 $nupkgName を再利用します）"
+
+            # 2. **配布物を持つ実行**。 `build.yml` の `package` ジョブが同じツリーのものを保管している
+            #    （パッケージへ影響しない変更では作らないため、無ければこの実行で 1 回だけ作る）。
+            $buildRuns = @(gh api --paginate "repos/$($env:REPO)/actions/workflows/build.yml/runs?status=success&per_page=100" --jq '.workflow_runs[] | [(.id|tostring), .event, .head_branch, (.head_repository.full_name // "")] | @tsv')
+            foreach ($line in $buildRuns) {
+              $fields = $line -split "`t"
+              if ($fields.Count -lt 4) { continue }
+              if (-not (Test-TrustedRun $fields[1] $fields[2] $fields[3])) { continue }
+
+              $names = @(gh api "repos/$($env:REPO)/actions/runs/$($fields[0])/artifacts" --jq '.artifacts[].name')
+              if ($names -contains $nupkgName) { $pkgRunId = $fields[0]; break }
+            }
+
+            if ($pkgRunId) {
+              Write-Host "配布物の実行: $pkgRunId（ツリー $tree が一致。 成果物 $nupkgName を再利用します）"
+            }
+            else {
+              Write-Host "同じツリーの配布物がありません（パッケージへ影響しない変更のため作っていません）。 この実行で 1 回だけ作ります。"
+            }
           }
 
           $json = $list | ConvertTo-Json -Compress -AsArray
@@ -284,15 +289,40 @@ jobs:
           "tree=$tree" >> $env:GITHUB_OUTPUT
           "solutions=$json" >> $env:GITHUB_OUTPUT
           "count=$count" >> $env:GITHUB_OUTPUT
-          "dryRunId=$dryRunId" >> $env:GITHUB_OUTPUT
+          "pkgRunId=$pkgRunId" >> $env:GITHUB_OUTPUT
           Write-Host "版: $version（タグ $tag、対象 $($list.Count) ソリューション、リリース $count）"
 
+      # **このツリーを dry-run した印を残す**（`release` が「同じ内容を検証した dry-run」を探すため）。
+      # 配布物は `build.yml` が作る（本ワークフローには無い）ため、dry-run の有無は配布物の名前では
+      # 判定できない。 印は小さく、配布物が無ければ `release` がその場で 1 回だけ作る。
+      - name: ツリーの印を作る
+        if: steps.mode.outputs.mode == 'dry-run'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          [void](New-Item -ItemType Directory -Path 'tree' -Force)
+          [IO.File]::WriteAllText((Join-Path 'tree' 'tree.txt'), '${{ steps.plan.outputs.tree }}', [Text.UTF8Encoding]::new($false))
+
+      - name: ツリーの印を保管
+        if: steps.mode.outputs.mode == 'dry-run'
+        uses: actions/upload-artifact@v7
+        with:
+          # 配布物と同じく、名前にツリーを埋める（`release` はこの名前で同じ内容の dry-run を探す）
+          name: tree-${{ steps.plan.outputs.tree }}
+          path: tree/tree.txt
+          if-no-files-found: error
+          # 再実行で同じ名前へ上書きする（配布物と同じ理由）
+          overwrite: true
+
   # ────────────────────────────────────────────────────────────
-  # 2. 配布物の作成（dry-run だけが作る。 release は dry-run の成果物を使う）
+  # 2. 配布物の作成（**release のフォールバック専用**）
   # ────────────────────────────────────────────────────────────
+  # 通常の配布物は `build.yml` の `package` ジョブが同じツリーのものを保管している（`pkgRunId`）。
+  # ここは「パッケージへ影響しない変更」のツリーを公開するときだけ走る（build.yml が作っていない）。
+  # dry-run では**走らない**（`build.yml` が作ったものを `release` がそのまま使う）。
   pack:
     needs: verify
-    if: needs.verify.outputs.mode == 'dry-run' && needs.verify.outputs.count != '0'
+    if: needs.verify.outputs.mode == 'release' && needs.verify.outputs.count != '0' && needs.verify.outputs.pkgRunId == ''
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
@@ -335,10 +365,9 @@ jobs:
           if ($packages.Count -eq 0) { throw "パッケージが作られていません: $out" }
 
       # 配布物の正しさ（同封物・nuspec の依存・パッケージ参照での復元/ビルド/起動）を確かめる。
-      # **公開する版のパッケージをそのまま検証する**（build.yml のパッケージングと同じ手順。
-      # パッケージへ影響する変更のときだけ実行する）。
+      # **公開する版のパッケージをそのまま検証する**（`build.yml` の `package` ジョブと同じ手順）。
+      # ここへ来るのは「配布物を作り直した」ときだけなので、常に検証する。
       - name: パッケージングを検証
-        if: needs.verify.outputs.packaging == 'true'
         shell: pwsh
         env:
           VERSION: ${{ needs.verify.outputs.version }}
@@ -419,15 +448,18 @@ jobs:
   # 3. 公開（release のみ。 承認を要求する）
   # ────────────────────────────────────────────────────────────
   publish:
-    needs: [verify]
-    if: needs.verify.outputs.mode == 'release' && needs.verify.outputs.count != '0'
+    # `pack` は「dry-run で作成済み」「release で作成（パッケージへ影響しない変更のツリー）」
+    # 「不要（リリースする変更が無い）」の 3 通りがあるため、スキップでも続行できるようにする
+    # （成果物の有無は取得ステップが決める）。
+    needs: [verify, pack]
+    if: "!cancelled() && needs.verify.outputs.mode == 'release' && needs.verify.outputs.count != '0' && (needs.pack.result == 'success' || needs.pack.result == 'skipped')"
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # 承認されたジョブだけが公開できる（Trusted Publishing のポリシーもこの環境に紐づける）
     environment: release
     permissions:
       contents: read
-      # dry-run の実行の成果物を取得する
+      # `build.yml` の実行の成果物を取得する
       actions: read
       # OIDC で短命の NuGet API キーを取得する
       id-token: write
@@ -437,15 +469,16 @@ jobs:
       - name: チェックアウト
         uses: actions/checkout@v7
 
-      # **dry-run が作った配布物をそのまま公開する**（同じ内容を 2 回 pack しない。
-      # 検証したバイト列と公開するバイト列が一致する）。 Pull Request の dry-run も使える。
-      # 成果物が失効している場合は失敗する。
-      - name: 配布物を取得（dry-run の実行から）
+      # **`build.yml` が作った配布物をそのまま公開する**（同じ内容を 2 回 pack しない。
+      # 検証したバイト列と公開するバイト列が一致する）。 Pull Request のビルドも使える。
+      # 配布物が無いツリー（パッケージへ影響しない変更）は、この実行の `pack` が作ったものを使う
+      # （`pkgRunId` が空ならこの実行）。 成果物が失効している場合は失敗する。
+      - name: 配布物を取得（`build.yml` の実行から。無ければこの実行で作ったもの）
         uses: actions/download-artifact@v8
         with:
           name: nupkg-${{ needs.verify.outputs.tree }}
           path: artifacts
-          run-id: ${{ needs.verify.outputs.dryRunId }}
+          run-id: ${{ needs.verify.outputs.pkgRunId || github.run_id }}
           github-token: ${{ github.token }}
 
       # 短命の API キーを取得する（1 時間有効。 1 トークン = 1 キー。 **push の直前に取得する**）
@@ -553,7 +586,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: write
-      # dry-run の実行の成果物を取得する
+      # `build.yml` の実行の成果物を取得する
       actions: read
       # 成果物の由来（provenance）を証明する（署名は GitHub の OIDC で行う）
       id-token: write
@@ -564,13 +597,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 公開したパッケージと SBOM を 1 つのフォルダへ集約する（どちらも dry-run が作った成果物）
-      - name: 成果物をダウンロード（dry-run の実行から）
+      # 公開したパッケージと SBOM を 1 つのフォルダへ集約する。
+      # 出所は `build.yml` の実行（`pkgRunId`）。 配布物を作り直したツリーはこの実行で作ったもの。
+      # **名前で 2 つだけ取る**（`build.yml` の実行にはソリューション別の成果物（`nupkg-<sha>-<製品名>`）
+      # もあるため、全部を取ると同じパッケージが重複する）。
+      - name: 配布物をダウンロード
         uses: actions/download-artifact@v8
         with:
+          name: nupkg-${{ needs.verify.outputs.tree }}
           path: assets
-          merge-multiple: true
-          run-id: ${{ needs.verify.outputs.dryRunId }}
+          run-id: ${{ needs.verify.outputs.pkgRunId || github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: SBOM をダウンロード
+        uses: actions/download-artifact@v8
+        with:
+          name: sbom-${{ needs.verify.outputs.tree }}
+          path: assets
+          run-id: ${{ needs.verify.outputs.pkgRunId || github.run_id }}
           github-token: ${{ github.token }}
 
       # **由来の証明**（どのワークフロー・どのコミットが作ったかを検証できるようにする）。

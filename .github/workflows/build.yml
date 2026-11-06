@@ -16,13 +16,17 @@
 #
 # **ジョブは同時に走らせる**（直列だと 1 ジョブ 8 分だった。 実測 2026-10-26）。
 #   verify … ソリューションごとに 1 ジョブ（マトリクス）。 ビルドとテスト（走査とリポジトリ全体の検査は除く）
+#   package … 配布物の検証と SBOM（`verify` の後。 パッケージへ影響する変更のときだけ。 `ci` には入れない）
 #   repo   … リポジトリ全体の検査と NuGet の監査（5 ジョブで繰り返さず、ここで 1 回だけ実行する）
 #   docs   … 文書とコードの走査（復元もビルドも要らない。 ubuntu で走らせる）
 # ソリューションは互いに独立しているため、分けても検証の意味は変わらない（壁時計は最も遅い 1 本になる）。
 #
-# **パッケージング（pack とパッケージ参照での消費検証）は本ワークフローでは実行しない**。
-# DryRun（release.yml）の `pack` ジョブが同じツリーの配布物を作り、その場で検証する
-# （2 つのワークフローで同じツリーを 2 回 pack していた。 実測 2026-11-05: pack 1 回 186 秒）。
+# **配布物（パッケージ）は本ワークフローで作る**（`verify` が Release ビルドの出力から
+# `dotnet pack --no-build` で作り、`package` ジョブが集めて検証と SBOM を行う）。
+# 以前は DryRun（release.yml）の `pack` ジョブが同じツリーを全 5 ソリューション分ビルドし直しており、
+# 二重のビルドになっていた（実測 2026-11-06: pack ジョブ 213 秒 = 復元 42 / 作成 114 / 検証 14 / SBOM 10）。
+# **パッケージへ影響しない変更（文書・workflow・テストだけ）では作らない**（`changes` の `packaging`）。
+# `package` ジョブは `ci` の needs に**入れない**（必須チェックを遅らせない。 扱いは .github/RELEASE.md §4.2）。
 #
 # .NET SDK のバージョンはリポジトリルートの global.json が単一所有する（ワークフローでは指定しない）。
 # .NET SDK はランナー イメージに含まれる最新版をそのまま使う（actions/setup-dotnet を使わない）。
@@ -57,6 +61,8 @@ jobs:
     timeout-minutes: 10
     outputs:
       solutions: ${{ steps.plan.outputs.solutions }}
+      # **パッケージへ影響する変更か**（配布物を作るか。 release.yml の `pack` はこの結果に依存する）
+      packaging: ${{ steps.plan.outputs.packaging }}
     steps:
       - name: チェックアウト
         uses: actions/checkout@v7
@@ -79,6 +85,9 @@ jobs:
           # core.quotepath=false: 日本語のファイル名を \342\200\246 の形で引用させない（引用されると
           # 先頭の .github/ が一致せず、リポジトリ全体の変更を取りこぼす。 実測 2026-10-27）。
           # **取れなければ空を返す**（空は「すべて対象」として扱う。 取りこぼして検証を飛ばすより安全）。
+          # 差分が取れたかどうかは $script:diffAvailable で下へ伝える（空と「取れなかった」を区別する。
+          # 区別しないと、文書だけの変更（差分は取れたが対象 0 件）を「すべて対象」と誤判定する）。
+          $script:diffAvailable = $false
           function Get-ChangedFiles {
             # 差分を取るのは Pull Request だけである（手動実行はすべてを対象にする）
             if ($env:EVENT_NAME -ne 'pull_request' -or -not $env:BASE_REF) { return @() }
@@ -90,6 +99,7 @@ jobs:
               Write-Host "git diff が終了コード $LASTEXITCODE で失敗しました（すべてを対象にします）"
               return @()
             }
+            $script:diffAvailable = $true
             return $out
           }
 
@@ -126,7 +136,19 @@ jobs:
           $json = if ($targets.Count -eq 0) { '[]' } else { $targets | ConvertTo-Json -Compress -AsArray }
           "solutions=$json" >> $env:GITHUB_OUTPUT
 
+          # **パッケージへ影響する変更があるか**（配布物を作るか）。 判定できないときは作る（安全側）。
+          # 配布物の中身を変えうるファイルだけを見る（workflow や `.editorconfig` の変更では作らない）。
+          # **判定の所有者はここ**（release.yml はこの結果を使わず、成果物の有無で判断する）。
+          $packagingPatterns = '^(Directory\.Packages\.props|Directory\.Build\.(props|targets)|NuGet\.config|global\.json|buildScript/(pack|generateSbom|verifyPackaging)\.ps1|.*\.csproj|.*/packages\.lock\.json|EsUtil[^/]*/.*/src/)'
+          $packaging = $true
+          if ($script:diffAvailable) {
+            $files = @($changed | Where-Object { $_ -notmatch '\.md$' })
+            $packaging = (@($files | Where-Object { $_ -match $packagingPatterns }).Count -gt 0)
+          }
+          "packaging=$($packaging.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+
           Write-Host "対象のソリューション: $($targets -join ', ')"
+          Write-Host "パッケージへ影響する変更: $packaging"
 
   # ────────────────────────────────────────────────────────────
   # 2. 検証（verify.ps1 が単一所有する）
@@ -181,6 +203,176 @@ jobs:
           # 該当プロジェクトがスキップされて警告が隠れることがある。 規則は .github/検証手順.md §3）
           & './buildScript/verify.ps1' -Configuration Release -Solution '${{ matrix.solution }}' -SkipDocs -SkipPackaging -SkipPackage -SkipRepoChecks -FullBuild
           if ($LASTEXITCODE -ne 0) { throw "検証が失敗しました（exit $LASTEXITCODE）" }
+
+      # **配布物はここ（ビルドしたジョブ）で作る**（同じツリーを 2 回ビルドしない）。
+      # `dotnet pack --no-build` は `--no-restore` を暗黙に含む（lock の一致は直前の検証の
+      # `-p:RestoreLockedMode=true` が確かめている）。 パッケージへ影響しない変更では作らない。
+      - name: パッケージを作成
+        id: pack
+        if: needs.changes.outputs.packaging == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $solution = '${{ matrix.solution }}'
+          $out = Join-Path (Get-Location) 'nupkg'
+          [void](New-Item -ItemType Directory -Path $out -Force)
+
+          & dotnet pack $solution -c Release -o $out --nologo --no-build
+          if ($LASTEXITCODE -ne 0) { throw "pack が失敗しました（$solution。 exit $LASTEXITCODE）" }
+
+          $packages = @(Get-ChildItem -Path $out -File -Filter '*.nupkg')
+          if ($packages.Count -eq 0) { throw "パッケージが作られていません（$solution）" }
+
+          # 成果物の名前に使う製品名（ソリューション名）。 `package` ジョブが同じ名前を組み立てる
+          "product=$([IO.Path]::GetFileNameWithoutExtension($solution))" >> $env:GITHUB_OUTPUT
+          Write-Host "パッケージ: $($packages.Count) 件（$($packages.Name -join ', ')）"
+
+      - name: パッケージを保管
+        if: needs.changes.outputs.packaging == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          # ソリューションごとに 1 つ（matrix の各ジョブが別の名前で上げ、`package` ジョブが集める）
+          name: nupkg-${{ github.sha }}-${{ steps.pack.outputs.product }}
+          path: |
+            nupkg/**/*.nupkg
+            nupkg/**/*.snupkg
+          if-no-files-found: error
+          overwrite: true
+
+  # ────────────────────────────────────────────────────────────
+  # 2a. 配布物の検証と SBOM（verify が作ったパッケージを集めて 1 回だけ実行する）
+  # ────────────────────────────────────────────────────────────
+  # **同じツリーを 2 回ビルドしない**: パッケージは `verify` が Release ビルドの出力から作り
+  # （`dotnet pack --no-build`）、ここは集めて検証するだけである。 以前は `release.yml` の `pack`
+  # ジョブが全 5 ソリューションをビルドし直していた（実測 2026-11-06: 213 秒）。
+  # 検証（`verifyPackaging.ps1`）は**全パッケージが揃ったフィード**を要求するため、変更の無かった
+  # ソリューションのパッケージはここで 1 本ずつ作る（ビルドし直すのはその分だけ）。
+  # **`ci` の needs には入れない**（必須チェックを遅らせない。 パッケージングの扱いは
+  # .github/RELEASE.md §4.2 が定める）。
+  package:
+    needs: [changes, verify]
+    if: needs.changes.outputs.packaging == 'true' && needs.changes.outputs.solutions != '[]'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v7
+
+      # パッケージ参照での復元を確かめるため、NuGet のキャッシュを使う（キーは取得するパッケージの集合）
+      - name: NuGet をキャッシュ
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-repo-${{ hashFiles('**/packages.lock.json', 'Directory.Packages.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-repo-
+            nuget-${{ runner.os }}-
+
+      # 配布物の名前と、`release` が探す名前（`nupkg-<ツリー>`）に使う
+      - name: ツリーを求める
+        id: tree
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          "tree=$((git rev-parse 'HEAD^{tree}').Trim())" >> $env:GITHUB_OUTPUT
+
+      # `verify` の各ジョブが上げたパッケージ（`nupkg-<sha>-<製品名>`）を 1 つのフォルダへ集める
+      - name: パッケージを集める
+        uses: actions/download-artifact@v8
+        with:
+          pattern: nupkg-${{ github.sha }}-*
+          path: artifacts
+          merge-multiple: true
+
+      # 変更の無かったソリューションのパッケージを作る（フィードを全パッケージで揃える）
+      - name: 足りないパッケージを作る
+        shell: pwsh
+        env:
+          BUILT: ${{ needs.changes.outputs.solutions }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $built = @(ConvertFrom-Json $env:BUILT)
+          $solutions = @((Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json).solutions)
+
+          foreach ($sln in $solutions) {
+            if ($built -contains $sln) { continue }
+            Write-Host "パッケージを作ります（この実行ではビルドしていないソリューション）: $sln"
+            & dotnet pack $sln -c Release -o artifacts --nologo
+            if ($LASTEXITCODE -ne 0) { throw "pack が失敗しました: $sln" }
+          }
+
+          $packages = @(Get-ChildItem -Path 'artifacts' -File -Filter '*.nupkg')
+          Write-Host "パッケージ: $($packages.Count) 件"
+          if ($packages.Count -eq 0) { throw "パッケージがありません: artifacts" }
+
+      # 配布物の正しさ（同封物・nuspec の依存・パッケージ参照での復元/ビルド/起動）を確かめる
+      - name: パッケージングを検証
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $props = [IO.File]::ReadAllText('Directory.Build.props', [Text.UTF8Encoding]::new($false))
+          $version = [regex]::Match($props, '<VersionPrefix>([^<]+)</VersionPrefix>').Groups[1].Value.Trim()
+
+          & pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -SkipPack -Feed artifacts -Version $version
+          if ($LASTEXITCODE -ne 0) { throw "パッケージングの検証が失敗しました（exit $LASTEXITCODE）" }
+
+      # SBOM（CycloneDX）はソリューションごとに 1 ファイル。 依存の解析は復元を伴うため、
+      # **並列に走らせる**（ツールの復元は 1 回だけ行い、スクリプトへは -SkipToolRestore を渡す）。
+      - name: SBOM を作成
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & dotnet tool restore
+          if ($LASTEXITCODE -ne 0) { throw "dotnet tool restore に失敗しました（exit $LASTEXITCODE）" }
+
+          $root = (Get-Location).Path
+          $output = Join-Path $root 'sbom'
+          $props = [IO.File]::ReadAllText('Directory.Build.props', [Text.UTF8Encoding]::new($false))
+          $version = [regex]::Match($props, '<VersionPrefix>([^<]+)</VersionPrefix>').Groups[1].Value.Trim()
+          $items = @((Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json).solutions | ForEach-Object {
+              [pscustomobject]@{ product = [IO.Path]::GetFileNameWithoutExtension($_); solution = $_ }
+            })
+
+          # 子プロセスの出力は**戻り値に混ぜず**、ログへ出す（混ざると結果の判定が壊れる）
+          $results = $items | ForEach-Object -Parallel {
+            $item = $_
+            $text = & pwsh -NoProfile -File (Join-Path $using:root 'buildScript/generateSbom.ps1') `
+              -Output $using:output -Solution $item.solution -Version $using:version `
+              -Product $item.product -SkipToolRestore *>&1
+            $code = $LASTEXITCODE
+            $text | ForEach-Object { Write-Host $_ }
+            [pscustomobject]@{ Product = $item.product; Exit = $code }
+          } -ThrottleLimit 5
+
+          $failed = @($results | Where-Object { $_.Exit -ne 0 })
+          if ($failed.Count -gt 0) {
+            throw "SBOM の作成に失敗しました: $($failed.Product -join ', ')"
+          }
+
+          $made = @(Get-ChildItem -Path $output -File)
+          $made | ForEach-Object { $_.Name }
+          if ($made.Count -ne $items.Count) {
+            throw "SBOM の件数がソリューションの数と一致しません（期待 $($items.Count) / 実際 $($made.Count)）"
+          }
+
+      # `release` が探す名前（`nupkg-<ツリー>` / `sbom-<ツリー>`）で保管する
+      - name: 配布物を保管
+        uses: actions/upload-artifact@v7
+        with:
+          name: nupkg-${{ steps.tree.outputs.tree }}
+          path: |
+            artifacts/**/*.nupkg
+            artifacts/**/*.snupkg
+          if-no-files-found: error
+          overwrite: true
+
+      - name: SBOM を保管
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbom-${{ steps.tree.outputs.tree }}
+          path: sbom/*.json
+          if-no-files-found: error
+          overwrite: true
 
   # ────────────────────────────────────────────────────────────
   # 2b. リポジトリ全体の検査と NuGet の監査（ソリューションに依存しない。 verify と同時に走らせる）
@@ -247,9 +439,8 @@ jobs:
   # `verify` は条件（`if`）でスキップされ得るため、そのまま必須にするとスキップ時に
   # 「Expected」のまま残ってマージできなくなる。 常に走る集約ジョブで受ける。
   #
-  # **パッケージング（pack とパッケージ参照での消費検証）は本ワークフローでは実行しない**
-  # （DryRun（release.yml）の `pack` ジョブが同じツリーの配布物を作り、その場で検証する。
-  # 2 つのワークフローで同じツリーを 2 回 pack していた。 実測 2026-11-05: pack 1 回 186 秒）。
+  # **`package`（配布物の検証と SBOM）はここに入れない**。 必須チェックを遅らせないためである
+  # （ruleset が要求するのは `ci` だけ。 パッケージングの失敗はワークフローの失敗として見える）。
   ci:
     needs: [changes, verify, repo, docs]
     if: always()
