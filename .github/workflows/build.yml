@@ -297,7 +297,9 @@ jobs:
           foreach ($sln in $solutions) {
             if ($built -contains $sln) { continue }
             Write-Host "パッケージを作ります（この実行ではビルドしていないソリューション）: $sln"
-            & dotnet pack $sln -c Release -o artifacts --nologo
+            # lock どおりに復元する（`packages.lock.json` と `Directory.Packages.props` の食い違いを
+            # NU1004 で検出する。 `verify` のビルドと同じ条件にする）
+            & dotnet pack $sln -c Release -o artifacts --nologo -p:RestoreLockedMode=true
             if ($LASTEXITCODE -ne 0) { throw "pack が失敗しました: $sln" }
           }
 
