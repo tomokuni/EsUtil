@@ -265,30 +265,40 @@ jobs:
             # 2. **配布物を持つ実行**。 `build.yml` の `package` ジョブが同じツリーのものを保管している
             #    （パッケージへ影響しない変更では作らない）。
             #    **`ci`（必須チェック）は `package` を待たない**ため、マージ直後はまだビルド中のことがある。
-            #    その場合は**成果物を待つ**（作り直すより安い）。 進行中の信頼できるビルドが無く、
-            #    成果物も無ければ、この実行で 1 回だけ作る（`pack` が作り直したうえで検証も行う）。
+            #    その場合は**成果物を待つ**（作り直すより安い）。 **待つのは「同じツリー」の実行だけ**
+            #    （別の Pull Request のビルドを待たない）。 進行中が無く成果物も無ければ、この実行で
+            #    1 回だけ作る（`pack` が作り直したうえで検証も行う）。
+            function Get-CommitTree([string]$Sha) {
+              if (-not $Sha) { return '' }
+              return "$(gh api "repos/$($env:REPO)/commits/$Sha" --jq '.commit.tree.sha' 2>$null)".Trim()
+            }
+
             function Find-PackageRun {
-              $runs = @(gh api --paginate "repos/$($env:REPO)/actions/workflows/build.yml/runs?per_page=50" --jq '.workflow_runs[] | [(.id|tostring), .event, .head_branch, .status, (.conclusion // ""), (.head_repository.full_name // "")] | @tsv')
-              $active = $false
+              $runs = @(gh api --paginate "repos/$($env:REPO)/actions/workflows/build.yml/runs?per_page=50" --jq '.workflow_runs[] | [(.id|tostring), .event, .head_branch, .status, (.conclusion // ""), (.head_repository.full_name // ""), (.head_sha // "")] | @tsv')
+              $pending = $false
               foreach ($line in $runs) {
                 $fields = $line -split "`t"
-                if ($fields.Count -lt 6) { continue }
+                if ($fields.Count -lt 7) { continue }
                 if (-not (Test-TrustedRun $fields[1] $fields[2] $fields[5])) { continue }
-                # 進行中（queued / in_progress など）の実行があれば、成果物が現れる可能性がある
-                if ($fields[3] -ne 'completed') { $active = $true; continue }
+
+                # 進行中（queued / in_progress など）なら、**ツリーが一致するときだけ**待つ
+                if ($fields[3] -ne 'completed') {
+                  if ((Get-CommitTree $fields[6]) -eq $tree) { $pending = $true }
+                  continue
+                }
                 if ($fields[4] -ne 'success') { continue }
 
                 $names = @(gh api "repos/$($env:REPO)/actions/runs/$($fields[0])/artifacts" --jq '.artifacts[].name')
-                if ($names -contains $nupkgName) { return [pscustomobject]@{ Id = $fields[0]; Active = $false } }
+                if ($names -contains $nupkgName) { return [pscustomobject]@{ Id = $fields[0]; Pending = $false } }
               }
-              return [pscustomobject]@{ Id = ''; Active = $active }
+              return [pscustomobject]@{ Id = ''; Pending = $pending }
             }
 
             $deadline = (Get-Date).AddSeconds(300)
             while ($true) {
               $found = Find-PackageRun
               if ($found.Id) { $pkgRunId = $found.Id; break }
-              if (-not $found.Active -or (Get-Date) -ge $deadline) { break }
+              if (-not $found.Pending -or (Get-Date) -ge $deadline) { break }
               Write-Host '同じツリーのビルドが進行中です。 成果物を待ちます（最大 5 分）。'
               Start-Sleep -Seconds 15
             }
@@ -470,8 +480,10 @@ jobs:
     # `pack` は「dry-run で作成済み」「release で作成（パッケージへ影響しない変更のツリー）」
     # 「不要（リリースする変更が無い）」の 3 通りがあるため、スキップでも続行できるようにする
     # （成果物の有無は取得ステップが決める）。
+    # **`verify`（版・タグ・ブランチの検証）が成功したときだけ**承認へ進む。 `!cancelled()` を使うため
+    # 既定の `success()` は効かない。 `needs.verify.result` を明示的に確かめる（検証が落ちた内容を公開しない）。
     needs: [verify, pack]
-    if: "!cancelled() && needs.verify.outputs.mode == 'release' && needs.verify.outputs.count != '0' && (needs.pack.result == 'success' || needs.pack.result == 'skipped')"
+    if: "!cancelled() && needs.verify.result == 'success' && needs.verify.outputs.mode == 'release' && needs.verify.outputs.count != '0' && (needs.pack.result == 'success' || needs.pack.result == 'skipped')"
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # 承認されたジョブだけが公開できる（Trusted Publishing のポリシーもこの環境に紐づける）
@@ -603,7 +615,7 @@ jobs:
     # 既定の `success()` に委ねず、`publish` の結果を明示的に確かめる（再実行・スキップで
     # 「公開したのにタグが無い」状態を作らない）。
     needs: [verify, publish]
-    if: "!cancelled() && needs.verify.outputs.mode == 'release' && needs.verify.outputs.count != '0' && needs.publish.result == 'success'"
+    if: "!cancelled() && needs.verify.result == 'success' && needs.verify.outputs.mode == 'release' && needs.verify.outputs.count != '0' && needs.publish.result == 'success'"
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
