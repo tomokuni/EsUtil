@@ -70,24 +70,21 @@
 ```mermaid
 flowchart LR
     A["pull_request（自動）<br/>workflow_dispatch（手動）"] --> B["verify<br/>CHANGELOG・版・タグ"]
-    B --> C["pack<br/>ソリューション別に dotnet pack<br/>→ パッケージングの検証"]
-    B --> D["sbom<br/>ソリューション別に CycloneDX（並列）"]
-    C --> E["保管（nupkg-<ツリー>）"]
-    D --> F["保管（sbom-<ツリー>）"]
+    B --> C["pack<br/>ソリューション別に dotnet pack<br/>→ パッケージングの検証<br/>→ SBOM（復元を再利用）"]
+    C --> E["保管（nupkg-<ツリー> / sbom-<ツリー>）"]
     E --> G{"release モードか"}
-    F --> G
     G -->|"同じツリーの成果物を取得<br/>承認（environment: release）"| H["publish<br/>NuGet へ公開"]
     H --> I["tag<br/>由来の証明 → タグ 1 本と Release 1 件"]
 ```
 
 **公開が成功した後にだけタグを打ちます**（公開できなかった版にタグを残さないため）。
-**`pack` と `sbom` は `dry-run` でだけ実行します**（`release` は同じツリーの dry-run の実行 ID から成果物を取得します）。 配布物の名前には**ツリー**を埋めてあり（`nupkg-<ツリー>`）、`release` はその名前で「同じ内容の dry-run」を探します（コミットの SHA は PR とマージ後で変わるため）。
+**`pack` は `dry-run` でだけ実行します**（`release` は同じツリーの dry-run の実行 ID から成果物を取得します）。 配布物の名前には**ツリー**を埋めてあり（`nupkg-<ツリー>`）、`release` はその名前で「同じ内容の dry-run」を探します（コミットの SHA は PR とマージ後で変わるため）。
 
 **パッケージング（nuget の正しさ）の検証は `pack` ジョブが持ちます**（`build.yml` では実行しません。 同じツリーを 2 つのワークフローで pack していたため）。 `pack` は**公開する版のパッケージ**を `artifacts/` へ作り、そのまま `verifyPackaging.ps1 -SkipPack -Feed artifacts -Version <版>` で検証します（同封物・nuspec の依存・パッケージ参照での復元/ビルド/起動）。 **パッケージへ影響する変更のときだけ**検証します（workflow や `.editorconfig` の変更では実行しない）。
 
 **`pack` はソリューションを 1 本ずつ実行します**（UI ソリューションは共通基盤を `ProjectReference` で参照するが共通基盤をソリューションへ含まないため、同時に動かすと共有の `obj/Release` を奪い合って `GenerateDepsFile` が失敗する。 実測 2026-11-05: CI で再現）。 手元の実測でも、直列が 19 秒であるのに対し、ソリューションごとに出力を隔離した並列は参照先の再ビルドが増えて遅い。
 
-**`sbom` は `pack` と並列のままにします**。 同じジョブへ統合する案は実測で捨てました（復元は `pack` が済ませているのに作成に 125 秒かかり、直列化でクリティカル パスが 218 秒 → 340 秒へ伸びた。 実測 2026-11-05: 別ジョブは起動とキャッシュの復元 75 秒 + 作成 124 秒 = 199 秒）。 SBOM はソリューションごとに**並列**で作ります（1 本あたり 20 秒前後 × 5 本を直列に回すと 2 分近くかかるため）。 ツールの復元（`dotnet tool restore`）は**1 回だけ**行い、各スクリプトへは `-SkipToolRestore` を渡します（同じツール フォルダを取り合わないため）。
+**SBOM は `pack` と同じジョブで、`pack` が済ませた復元を使って作ります**（`generateSbom.ps1 -SkipPackageRestore` → `dotnet cyclonedx --disable-package-restore`）。 SBOM の費用は**復元がほとんど**であり（実測 2026-11-06: 1 本あたり復元込み 11.8 秒 → 復元なし 1.0 秒）、別ジョブでは 5 本がそれぞれ復元し直して 140 秒かかっていました（実測 2026-11-05）。 同じジョブなら 5 本の並列で **2 秒**です。 **内容は復元ありの実行と同一**であることを 5 本すべてで確認しています（purl と依存グラフが一致）。 前提として `pack` が全ソリューションを復元している必要があり、復元が無いと components が 0 件になって失敗します（`generateSbom.ps1` が 0 件を不合格にする）。
 
 **成果物の名前だけを信用しません**。 次の 3 つを確かめてから採用します（[`workflows/release.yml`](workflows/release.yml)）。
 
@@ -188,7 +185,7 @@ Release には、**ソリューションごとの SBOM**（`<ソリューショ�
 | 失敗した箇所 | 状態 | 復旧 |
 | --- | --- | --- |
 | `verify`（dry-run 失敗） | 何も作っていない | 原因（版・CHANGELOG・ブランチ）を直して再実行する |
-| `pack` / `sbom`（dry-run 失敗） | 成果物が無い（公開していない） | 原因を直して再実行する（`pack` は**パッケージングの検証も兼ねる**。 §4.2） |
+| `pack`（dry-run 失敗） | 成果物が無い（公開していない） | 原因を直して再実行する（`pack` は**パッケージングの検証と SBOM の作成も兼ねる**。 §4.2） |
 | `publish`（dry-run の成果物が失効） | 何も公開していない | dry-run をやり直してから `release` を実行する（成果物の保存期間は既定で 90 日） |
 | `publish`（一部だけ公開） | 公開済みの版は取り消せない | 残りを再実行する（公開済みの版は HEAD で確認して**省略**する） |
 | `tag`（タグ作成の失敗） | 公開済み・タグ無し | `release` を再実行する（公開は省略され、タグだけが作られる） |
@@ -204,8 +201,9 @@ pwsh -NoProfile -File buildScript/verify.ps1
 # 未公開の版をローカル フィード（.nupkg/）へ出す（利用側のアプリで試すとき）
 pwsh -NoProfile -File buildScript/pack.ps1
 
-# SBOM だけを作る
+# SBOM だけを作る（既定は復元から行う。 `pack.ps1` や `verify.ps1` の直後なら解析だけで済む）
 pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output sbom
+pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output sbom -SkipPackageRestore
 ```
 
 ## 10. 注意点
@@ -213,7 +211,7 @@ pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output sbom
 - **公開は取り消せません**（nuget.org の版は不変）。 版を上げる前に `dry-run` で確かめる。
 - **`main` 以外では公開できません**（`releaseBranches`）。 `dry-run` は `dev` でも実行できます。
 - **タグはワークフローだけが作ります**（人が打たない。 `v<版>` は公開した版の記録であり、リリースの単位）。
-- **SBOM とパッケージは同じコミットから作ります**（`pack` と `sbom` は `dry-run` の同じ `github.sha` を checkout する）。
+- **SBOM とパッケージは同じコミットから作ります**（`pack` は `dry-run` の同じ `github.sha` から両方を作る）。
 - **公開するコミットに `## 未リリース` を残しません**（`verify` が失敗する。 §5.2）。
 - **検証は Pull Request の 1 回だけです**（push では実行しない。 §4.1）。 マージ後に検証をやり直しても、同じツリーの同じ結果になるためです。 前提として、Pull Request は**最新の `main` に追随**してからマージします（ruleset の `strict_required_status_checks_policy`）。
 - **配布物の名前は `nupkg-<ツリー>` / `sbom-<ツリー>`** です（`release` が「同じ内容の dry-run」を探すための識別子）。 Pull Request で自動実行するようになる前の成果物（`nupkg` / `sbom`）は再利用できないため、**この方式へ変えた直後のリリースは Pull Request の `DryRun` を使ってください**。

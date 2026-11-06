@@ -261,12 +261,12 @@ $packed = 0
 # ソリューションの全プロジェクトは同じ版（版の所有者は Directory.Build.props）なので、
 # 版の上書きは 1 回で足りる。 MSBuild がソリューション内を並列に pack する。
 #
-# **ソリューション同士は並列にしない**: UI ソリューションの `ProjectReference` は、ソリューションの
-# 構成の対応付けが無いためか**参照先を Debug で**ビルドする（実測 2026-11-05:
-# `dotnet build EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx -c Release` で `EsUtil.Feature.*.Core` が
-# `bin/Debug` へ出力される）。 そのため 2 つのソリューションを同時に pack すると、共有の
-# `EsUtil/*/obj/Debug` と `bin/Debug` を同時に書き、`GenerateDepsFile` が
-# 「別のプロセスが使用中」で失敗する（実測 2026-11-05: CI で再現）。 直列のままにする。
+# **ソリューション同士は並列にしない**: UI ソリューションは共通基盤を `ProjectReference` で参照するが
+# 共通基盤をソリューションへ含まないため、同時に pack すると共有の `EsUtil/*/obj/Release` と
+# `bin/Release` を書き合って `GenerateDepsFile` が「別のプロセスが使用中」で失敗する
+# （実測 2026-11-05: CI で再現）。 出力をソリューションごとに隔離する案も試したが、参照先の
+# 再ビルドが増えて直列より遅かった（実測 2026-11-05: 直列 44.0 秒 / 隔離した並列 41.6 秒 →
+# 構成の伝播を直した後は直列 18.9 秒）。 直列のままにする。
 foreach ($item in $plan) {
     $solutionProjects = @($projects | Where-Object { $_.Solution -eq $item.Solution })
     if ($solutionProjects.Count -eq 0) { continue }
