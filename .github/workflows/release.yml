@@ -268,13 +268,22 @@ jobs:
             #    その場合は**成果物を待つ**（作り直すより安い）。 **待つのは「同じツリー」の実行だけ**
             #    （別の Pull Request のビルドを待たない）。 進行中が無く成果物も無ければ、この実行で
             #    1 回だけ作る（`pack` が作り直したうえで検証も行う）。
+            #
+            #    **待機の費用は履歴の長さに依らせない**: 見るのは直近の実行だけにし、完了した実行は
+            #    1 回だけ調べる（成果物は実行が終われば変わらない。 待つたびに全履歴へ問い合わせない）。
+            $script:treeBySha = @{}
+            $script:checkedRuns = [System.Collections.Generic.HashSet[string]]::new()
+
             function Get-CommitTree([string]$Sha) {
               if (-not $Sha) { return '' }
-              return "$(gh api "repos/$($env:REPO)/commits/$Sha" --jq '.commit.tree.sha' 2>$null)".Trim()
+              if ($script:treeBySha.ContainsKey($Sha)) { return $script:treeBySha[$Sha] }
+              $value = "$(gh api "repos/$($env:REPO)/commits/$Sha" --jq '.commit.tree.sha' 2>$null)".Trim()
+              $script:treeBySha[$Sha] = $value
+              return $value
             }
 
             function Find-PackageRun {
-              $runs = @(gh api --paginate "repos/$($env:REPO)/actions/workflows/build.yml/runs?per_page=50" --jq '.workflow_runs[] | [(.id|tostring), .event, .head_branch, .status, (.conclusion // ""), (.head_repository.full_name // ""), (.head_sha // "")] | @tsv')
+              $runs = @(gh api "repos/$($env:REPO)/actions/workflows/build.yml/runs?per_page=20" --jq '.workflow_runs[] | [(.id|tostring), .event, .head_branch, .status, (.conclusion // ""), (.head_repository.full_name // ""), (.head_sha // "")] | @tsv')
               $pending = $false
               foreach ($line in $runs) {
                 $fields = $line -split "`t"
@@ -287,6 +296,8 @@ jobs:
                   continue
                 }
                 if ($fields[4] -ne 'success') { continue }
+                # 完了した実行は 1 回だけ調べる（待つたびに同じ実行へ問い合わせない）
+                if (-not $script:checkedRuns.Add($fields[0])) { continue }
 
                 $names = @(gh api "repos/$($env:REPO)/actions/runs/$($fields[0])/artifacts" --jq '.artifacts[].name')
                 if ($names -contains $nupkgName) { return [pscustomobject]@{ Id = $fields[0]; Pending = $false } }
