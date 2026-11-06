@@ -201,8 +201,9 @@ pwsh -NoProfile -File buildScript/verify.ps1
 # 未公開の版をローカル フィード（.nupkg/）へ出す（利用側のアプリで試すとき）
 pwsh -NoProfile -File buildScript/pack.ps1
 
-# SBOM だけを作る（**復元が済んでいる前提**。 復元から行うなら -SkipPackageRestore を外す）
+# SBOM だけを作る（既定は復元から行う。 `pack.ps1` や `verify.ps1` の直後なら解析だけで済む）
 pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output sbom
+pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output sbom -SkipPackageRestore
 ```
 
 ## 10. 注意点
