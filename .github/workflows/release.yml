@@ -359,34 +359,11 @@ jobs:
           # 「同じ名前の成果物がある」で失敗し、先へ進めない）。
           overwrite: true
 
-  # ────────────────────────────────────────────────────────────
-  # 2b. SBOM（CycloneDX）を作る（dry-run だけが作る。 release は dry-run の成果物を使う）
-  # ────────────────────────────────────────────────────────────
-  # **pack と並列に走らせる**（SBOM は配布物を使わない。 直列にすると作成の待ち時間が毎回乗る）。
-  # `pack` と同じジョブへ統合する案は実測で捨てた（復元は pack が済ませているのに作成に 125 秒かかり、
-  # 直列化でクリティカル パスが 218 秒 → 340 秒へ伸びた。 実測 2026-11-05）。
-  # ソリューションごとに 1 ファイル作り、1 つの Release へまとめて添付する。
-  sbom:
-    needs: verify
-    if: needs.verify.outputs.mode == 'dry-run' && needs.verify.outputs.count != '0'
-    runs-on: windows-latest
-    timeout-minutes: 30
-    steps:
-      - name: チェックアウト
-        uses: actions/checkout@v7
-
-      # 取得するのは **CycloneDX のツールだけ**（キーは `.config/dotnet-tools.json`）。
-      # プロジェクトのパッケージも `~/.nuget/packages` へ入るが、キーを分けておくと
-      # パッケージを変えていない限りツールの取得でキャッシュが総入れ替えにならない。
-      - name: NuGet をキャッシュ
-        uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-sbom-${{ hashFiles('.config/dotnet-tools.json') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-sbom-
-            nuget-${{ runner.os }}-
-
+      # SBOM（CycloneDX）は **pack と同じジョブで作る**: 費用の大半は復元であり（実測 2026-11-06:
+      # 復元込み 11.8 秒 → 復元なし 1.0 秒/本）、`pack` が全ソリューションを復元済みのため
+      # `--disable-package-restore` で解析だけを行える（実測: 5 本の並列で 2 秒）。
+      # 別ジョブでは 5 本がそれぞれ復元し直して 140 秒かかっていた（実測 2026-11-05）。
+      # 内容は復元ありの実行と**同一**であることを 5 本すべてで確認済み（purl と依存グラフが一致）。
       - name: SBOM を作成
         shell: pwsh
         env:
@@ -405,14 +382,13 @@ jobs:
           $version = $env:VERSION
           $items = @(ConvertFrom-Json $env:SOLUTIONS)
 
-          # ソリューションごとに 1 つの SBOM を作る。 **互いに独立しているため並列に走らせる**
-          # （1 つあたり 20 秒前後 × 5 本を直列に回すと 2 分近くかかっていた）。
+          # ソリューションごとに 1 つの SBOM を作る。 **互いに独立しているため並列に走らせる**。
           # 子プロセスの出力は**戻り値に混ぜず**、ログへ出す（混ざると結果の判定が壊れる）。
           $results = $items | ForEach-Object -Parallel {
             $item = $_
             $text = & pwsh -NoProfile -File (Join-Path $using:root 'buildScript/generateSbom.ps1') `
               -Output $using:output -Solution $item.solution -Version $using:version `
-              -Product $item.product -SkipToolRestore *>&1
+              -Product $item.product -SkipToolRestore -SkipPackageRestore *>&1
             $code = $LASTEXITCODE
             $text | ForEach-Object { Write-Host $_ }
             [pscustomobject]@{ Product = $item.product; Exit = $code }
