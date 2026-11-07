@@ -19,7 +19,7 @@ public class MarqueeDrawPlanTests
     /// <returns>提示層。</returns>
     private static MarqueePresenter CreatePresenter(MarqueeAppearance? appearance = null, MarqueeOptions? options = null)
     {
-        var presenter = new MarqueePresenter(new EffectsSpy(), cursor: null, options) { Log = NullLogger.Instance };
+        var presenter = new MarqueePresenter(new EffectsSpy(), options) { Log = NullLogger.Instance };
 
         if (appearance is not null)
         {

@@ -3,7 +3,6 @@ using EsUtil.Feature.Marquee.Core.Interaction;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Input;
-using EsUtil.Platform.Core.Native;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -19,14 +18,13 @@ namespace EsUtil.Feature.Marquee.Tests;
 public class MarqueeCoreTests
 {
     /// <summary>ファサードと効果のスパイを生成する。</summary>
-    /// <param name="cursor">カーソルサービス。 null 可。</param>
     /// <param name="effects">生成した効果のスパイ。</param>
     /// <param name="options">初期設定。 null の場合は既定値。</param>
     /// <returns>ファサード。</returns>
-    private static MarqueeCore CreateMarquee(ICursorService? cursor, out EffectsSpy effects, MarqueeOptions? options = null)
+    private static MarqueeCore CreateMarquee(out EffectsSpy effects, MarqueeOptions? options = null)
     {
         effects = new EffectsSpy();
-        return new MarqueeCore(effects, cursor, options) { Log = NullLogger.Instance };
+        return new MarqueeCore(effects, options) { Log = NullLogger.Instance };
     }
 
     // ====================================================================
@@ -44,7 +42,7 @@ public class MarqueeCoreTests
     {
         var options = MarqueeOptions.Default with { HandleSize = 20.0 };
 
-        var marquee = CreateMarquee(null, out _, options);
+        var marquee = CreateMarquee(out _, options);
 
         Assert.Same(options, marquee.Options);
     }
@@ -86,7 +84,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void 生成_初期状態は未選択()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
 
         Assert.False(marquee.HasSelection);
         Assert.Equal(default, marquee.SelectionSourceRect);
@@ -100,7 +98,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void Press_フォーカスと再描画とキャプチャを要求する()
     {
-        var marquee = CreateMarquee(null, out var effects);
+        var marquee = CreateMarquee(out var effects);
 
         marquee.Press(new EsPoint(10, 10), clickCount: 1);
 
@@ -111,7 +109,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void Release_ポインターキャプチャを解放する()
     {
-        var marquee = CreateMarquee(null, out var effects);
+        var marquee = CreateMarquee(out var effects);
         marquee.Press(new EsPoint(10, 10), clickCount: 1);
         effects.Calls.Clear();
 
@@ -124,21 +122,20 @@ public class MarqueeCoreTests
     [Fact]
     internal void Press_カーソルをハンドル点へ移動する()
     {
-        var cursor = new CursorServiceSpy();
-        var marquee = CreateMarquee(cursor, out _, MarqueeOptions.Default with { HandleHitRadius = 12.0 });
+        var marquee = CreateMarquee(out var effects, MarqueeOptions.Default with { HandleHitRadius = 12.0 });
         marquee.SetSelection(new EsRect(50, 50, 100, 80));
 
         // 右下ハンドル（150, 130）付近を押下する → ハンドル点へスナップしてカーソルを移動する
         marquee.Press(new EsPoint(148, 128), clickCount: 1);
 
         // 画面物理座標は効果の座標変換（2 倍）で求まる
-        Assert.Equal(new EsPointInt(300, 260), cursor.CursorPoint);
+        Assert.Equal(new EsPointInt(300, 260), effects.MovedPoints[^1]);
     }
 
     [Fact]
     internal void Move_カーソル形状を更新する()
     {
-        var marquee = CreateMarquee(null, out var effects);
+        var marquee = CreateMarquee(out var effects);
         marquee.SetSelection(new EsRect(50, 50, 100, 80));
         effects.Calls.Clear();
 
@@ -148,19 +145,6 @@ public class MarqueeCoreTests
         Assert.Contains("cursor:Horizontal", effects.Calls);
     }
 
-    [Fact]
-    internal void Press_カーソル未指定でも効果を適用する()
-    {
-        var marquee = CreateMarquee(null, out var effects);
-        marquee.SetSelection(new EsRect(50, 50, 100, 80));
-        effects.Calls.Clear();
-
-        // カーソルサービス未指定（null）でも例外にならず、カーソル移動以外の効果は適用される
-        marquee.Press(new EsPoint(148, 128), clickCount: 1);
-
-        Assert.Equal(["focus", "redraw", "capture:True"], effects.Calls);
-    }
-
     // ====================================================================
     // キー入力
     // ====================================================================
@@ -168,7 +152,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void KeyDown_Enterは確定を通知し処理済みを返す()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
         var notices = new List<MarqueeNotice>();
         marquee.Subscribe(notice => notices.Add(notice));
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
@@ -184,7 +168,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void KeyDown_対象外のキーは処理しない()
     {
-        var marquee = CreateMarquee(null, out var effects);
+        var marquee = CreateMarquee(out var effects);
 
         var handled = marquee.KeyDown(EsKey.A, null);
 
@@ -195,7 +179,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void KeyDown_矢印キーはnudgeを開始し始点を移動する()
     {
-        var marquee = CreateMarquee(null, out var effects);
+        var marquee = CreateMarquee(out var effects);
         var notices = new List<MarqueeNotice>();
         marquee.Subscribe(notice => notices.Add(notice));
 
@@ -203,7 +187,7 @@ public class MarqueeCoreTests
 
         // 未選択の nudge は始点を 1 対象ピクセル移動する（カーソルの非表示管理もコアが単一所有する）
         Assert.True(handled);
-        Assert.Equal(["redraw"], effects.Calls);
+        Assert.Equal(["move:202,200", "show:False", "redraw"], effects.Calls);
         Assert.Equal(
             [MarqueeNoticeKind.SelectionChanged, MarqueeNoticeKind.MarkerPositionMoved],
             notices.Select(n => n.Kind));
@@ -218,7 +202,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void Options_境界外選択の禁止を既存の選択矩形へ即時適用する()
     {
-        var marquee = CreateMarquee(null, out _, MarqueeOptions.Default with { ClampToSourceBounds = false });
+        var marquee = CreateMarquee(out _, MarqueeOptions.Default with { ClampToSourceBounds = false });
         marquee.SetCoordTransform(new CoordTransform(p => p, p => p, () => new EsSize(100, 100)));
         marquee.SetSelection(new EsRect(50, 50, 200, 200));
 
@@ -231,7 +215,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void Options_同値の再設定では再描画を要求しない()
     {
-        var marquee = CreateMarquee(null, out var effects);
+        var marquee = CreateMarquee(out var effects);
         effects.Calls.Clear();
 
         marquee.Options = marquee.Options;
@@ -242,7 +226,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void Scaling_変更を保持し再描画は要求しない()
     {
-        var marquee = CreateMarquee(null, out var effects);
+        var marquee = CreateMarquee(out var effects);
 
         marquee.ClientToSourceScaling = 2.0;
         marquee.ClientToSourceScaling = 2.0;
@@ -260,7 +244,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void SetCoordTransform_未設定は等価変換になる()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
 
         marquee.SetCoordTransform(null);
 
@@ -271,7 +255,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void SetCoordTransform_設定したポートで変換する()
     {
-        var marquee = CreateMarquee(null, out var effects);
+        var marquee = CreateMarquee(out var effects);
         effects.Calls.Clear();
 
         // ToSource（DIP → 対象）は 1/2 倍、ToDip（対象 → DIP）は 2 倍
@@ -291,7 +275,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void Notified_購読者がいない場合は何も起きない()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
 
         // 例外なく完了する（通知の発火は null 条件付き）
@@ -307,7 +291,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void SetSelection_選択を設定し通知する()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
         var notices = new List<MarqueeNotice>();
         marquee.Subscribe(notice => notices.Add(notice));
 
@@ -320,7 +304,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void ResetSelection_選択とnudgeを初期化する()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
 
         marquee.ResetSelection();
@@ -336,7 +320,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void ハイライト中は入力を無視する()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
         var notices = new List<MarqueeNotice>();
         marquee.Subscribe(notice => notices.Add(notice));
         marquee.HighlightSourceRect = new EsRect(1, 2, 3, 4);
@@ -357,7 +341,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void ハイライト解除後は入力を処理する()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
         marquee.HighlightSourceRect = new EsRect(1, 2, 3, 4);
         marquee.HighlightSourceRect = null;
 
@@ -372,7 +356,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void RequestConfirm_選択確定を通知する()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
         var notices = new List<MarqueeNotice>();
         marquee.Subscribe(notice => notices.Add(notice));
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
@@ -387,7 +371,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void RequestCancel_選択を破棄して通知する()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
         var notices = new List<MarqueeNotice>();
         marquee.Subscribe(notice => notices.Add(notice));
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
@@ -402,7 +386,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void EndNudge_nudge中でなければ何もしない()
     {
-        var marquee = CreateMarquee(null, out var effects);
+        var marquee = CreateMarquee(out var effects);
 
         marquee.EndNudge();
 
@@ -412,21 +396,20 @@ public class MarqueeCoreTests
     [Fact]
     internal void EndNudge_nudge中はカーソルを再表示する()
     {
-        var cursor = new CursorServiceSpy();
-        var marquee = CreateMarquee(cursor, out _);
+        var marquee = CreateMarquee(out var effects);
         marquee.KeyDown(EsKey.Right, new EsPoint(100, 100));
 
         marquee.EndNudge();
 
         // nudge の開始で非表示にし、終了で再表示する（最初の呼び出しが非表示、最後が再表示）
-        Assert.False(cursor.ShowCalls[0]);
-        Assert.True(cursor.ShowCalls[^1]);
+        Assert.False(effects.ShowCalls[0]);
+        Assert.True(effects.ShowCalls[^1]);
     }
 
     [Fact]
     internal void Log_設定したロガーを保持する()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
         var logger = new RecordingLogger();
 
         marquee.Log = logger;
@@ -437,7 +420,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void Log_nullを設定するとNullLoggerへフォールバックする()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
 
         marquee.Log = null!;
 
@@ -452,7 +435,7 @@ public class MarqueeCoreTests
     internal void Log_生成の記録はロガーの設定時に一度だけ出力する()
     {
         var effects = new EffectsSpy();
-        var marquee = new MarqueeCore(effects, cursor: null, new MarqueeOptions { HandleSize = 14.0, MinSelectionSize = 9.0 });
+        var marquee = new MarqueeCore(effects, new MarqueeOptions { HandleSize = 14.0, MinSelectionSize = 9.0 });
         var logger = new RecordingLogger();
 
         marquee.Log = logger;
@@ -478,7 +461,7 @@ public class MarqueeCoreTests
         var effects = new EffectsSpy();
         var logger = new RecordingLogger();
 
-        var marquee = new MarqueeCore(effects, cursor: null, new MarqueeOptions { HandleSize = 14.0 }, logger);
+        var marquee = new MarqueeCore(effects, new MarqueeOptions { HandleSize = 14.0 }, logger);
 
         Assert.Equal(
             [
@@ -497,7 +480,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void ClientToSourceScaling_変更したときだけ記録する()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
         var logger = new RecordingLogger();
         marquee.Log = logger;
         logger.Messages.Clear();
@@ -522,7 +505,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void HighlightRect_変更を最も低いレベルで記録する()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
         var logger = new RecordingLogger();
         marquee.Log = logger;
         logger.Messages.Clear();
@@ -547,7 +530,7 @@ public class MarqueeCoreTests
     [Fact]
     internal void SetCoordTransform_設定を記録する()
     {
-        var marquee = CreateMarquee(null, out _);
+        var marquee = CreateMarquee(out _);
         var logger = new RecordingLogger();
         marquee.Log = logger;
         logger.Messages.Clear();

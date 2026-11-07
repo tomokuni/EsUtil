@@ -18,7 +18,7 @@ public class MarqueeCoreGeometryTests
     /// <param name="options">初期設定。 null の場合は既定値。</param>
     /// <returns>ファサード。</returns>
     private static MarqueeCore CreateMarquee(MarqueeOptions? options = null)
-        => new(new EffectsSpy(), cursor: null, options) { Log = NullLogger.Instance };
+        => new(new EffectsSpy(), options) { Log = NullLogger.Instance };
 
     /// <summary>位置を受ける前はポインターが領域の上に無いものとして扱うことを検証する。</summary>
     /// <remarks>

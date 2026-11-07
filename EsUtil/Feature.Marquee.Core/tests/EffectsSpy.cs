@@ -33,4 +33,25 @@ internal sealed class EffectsSpy : IMarqueeEffects
     /// <inheritdoc/>
     public EsPointInt ToScreenPoint(EsPoint sourcePoint)
         => new((int)sourcePoint.X * ScreenScale, (int)sourcePoint.Y * ScreenScale);
+
+    /// <summary><see cref="ShowCursor"/> に渡された値の履歴（呼び出し順）。</summary>
+    public List<bool> ShowCalls { get; } = [];
+
+    /// <summary><see cref="TryMoveCursor"/> に渡された移動先の履歴（呼び出し順）。</summary>
+    public List<EsPointInt> MovedPoints { get; } = [];
+
+    /// <inheritdoc/>
+    public bool TryMoveCursor(EsPointInt screenPoint)
+    {
+        MovedPoints.Add(screenPoint);
+        Calls.Add($"move:{screenPoint.X},{screenPoint.Y}");
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public void ShowCursor(bool show)
+    {
+        ShowCalls.Add(show);
+        Calls.Add($"show:{show}");
+    }
 }
