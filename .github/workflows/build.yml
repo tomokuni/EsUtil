@@ -139,8 +139,11 @@ jobs:
 
           # **パッケージへ影響する変更があるか**（配布物を作るか）。 判定できないときは作る（安全側）。
           # 配布物の中身を変えうるファイルだけを見る（workflow や `.editorconfig` の変更では作らない）。
+          # **SBOM の生成に使うツールの版**（`.config/dotnet-tools.json`）と、**配布する単位**
+          # （`.github/release-config.json`）も対象にする（どちらも配布物の検証結果を変える。
+          # ツールの版だけを変えた PR で SBOM の作成が検証されない、という指摘を実測で受けた）。
           # **判定の所有者はここ**（release.yml はこの結果を使わず、成果物の有無で判断する）。
-          $packagingPatterns = '^(Directory\.Packages\.props|Directory\.Build\.(props|targets)|NuGet\.config|global\.json|buildScript/(pack|generateSbom|verifyPackaging)\.ps1|.*\.csproj|.*/packages\.lock\.json|EsUtil[^/]*/.*/src/)'
+          $packagingPatterns = '^(Directory\.Packages\.props|Directory\.Build\.(props|targets)|NuGet\.config|global\.json|\.config/dotnet-tools\.json|\.github/release-config\.json|buildScript/(pack|generateSbom|verifyPackaging)\.ps1|.*\.csproj|.*/packages\.lock\.json|EsUtil[^/]*/.*/src/)'
           $packaging = $true
           if ($script:diffAvailable) {
             $files = @($changed | Where-Object { $_ -notmatch '\.md$' })
@@ -246,14 +249,16 @@ jobs:
   # **同じツリーを 2 回ビルドしない**: パッケージは `verify` が Release ビルドの出力から作り
   # （`dotnet pack --no-build`）、`pack.yml` は集めて検証するだけである。 変更の無かった
   # ソリューションの分だけ `pack.yml` が 1 本ずつ作り足す。
+  # **検証するソリューションが 1 本も無い変更でも走らせる**（SBOM のツールの版や配布する単位だけの
+  # 変更）。 そのときは `pack.yml` が**全ソリューションをこの実行で作る**（`built-solutions` が空）。
   # **`ci` の needs には入れない**（必須チェックを遅らせない。 パッケージングの扱いは
   # .github/RELEASE.md §4.2 が定める）。
   package:
     needs: [changes, verify]
-    if: needs.changes.outputs.packaging == 'true' && needs.changes.outputs.solutions != '[]'
+    if: needs.changes.outputs.packaging == 'true'
     uses: ./.github/workflows/pack.yml
     with:
-      # `verify` が作ったパッケージ（`nupkg-<sha>-<製品名>`）を集め、残りだけを作る
+      # `verify` が作ったパッケージ（`nupkg-<sha>-<製品名>`）を集め、残りだけを作る（空なら全部作る）
       built-solutions: ${{ needs.changes.outputs.solutions }}
 
   # ────────────────────────────────────────────────────────────
