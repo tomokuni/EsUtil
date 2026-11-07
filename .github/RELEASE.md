@@ -85,7 +85,7 @@ flowchart LR
 
 **`ci`（必須チェック）は `package` を待ちません**（`ci` の `needs` に `package` を入れない）。 そのため**マージ直後に `release` を始めても `build.yml` の `package` を待つ必要はありません**（`release` が自分で作る）。
 
-**パッケージング（nuget の正しさ）の検証は `pack.yml` が持ちます**（`build.yml` の `package` ジョブと `release.yml` の `pack` ジョブの両方。 **`ci` の needs には入れません**＝必須チェックを遅らせない）。 検証は**全パッケージが揃ったフィード**を要求するため、変更の無かったソリューションのパッケージはそのジョブで 1 本ずつ作ります（ビルドし直すのはその分だけ）。 検証は `verifyPackaging.ps1 -SkipPack -Feed artifacts -Version <版>`（同封物・nuspec の依存・パッケージ参照での復元/ビルド/起動）。 **パッケージへ影響する変更のときだけ**実行します（workflow や `.editorconfig` の変更では実行しない）。 **SBOM のツールの版（`.config/dotnet-tools.json`）や配布する単位（`.github/release-config.json`）だけの変更でも実行します**（検証するソリューションが無いため、`pack.yml` が全ソリューションをこの実行で作ります）。
+**パッケージング（nuget の正しさ）の検証は `pack.yml` が持ちます**（`build.yml` の `package` ジョブと `release.yml` の `pack` ジョブの両方。 **`ci` の needs には入れません**＝必須チェックを遅らせない）。 検証は**全パッケージが揃ったフィード**を要求するため、変更の無かったソリューションのパッケージはそのジョブで 1 本ずつ作ります（ビルドし直すのはその分だけ）。 検証は `verifyPackaging.ps1 -SkipPack -Feed artifacts -Version <版>`（同封物・nuspec の依存・パッケージ参照での復元/ビルド/起動）。 **パッケージへ影響する変更のときだけ**実行します（workflow や `.editorconfig` の変更では実行しない）。 **SBOM のツールの版（`.config/dotnet-tools.json`）や配布する単位（`.github/release-config.json`）だけの変更でも実行します**（検証するソリューションが無いため、`pack.yml` が全ソリューションをこの実行で作ります。 そのとき `verify` はスキップされるので、`package` の条件は既定の `success()` に任せず「成功またはスキップ」を明示しています）。
 
 **`pack.yml` は NuGet のグローバル パッケージ フォルダをキャッシュしません**（同じ ID・版の EsUtil パッケージが残っていると、検証の復元が**別のビルドのパッケージ**を再利用し、新しい nupkg の欠陥を検出できない。 実測 2026-11-06。 復元は 40 秒程度であり、正しさと引き換えにしない）。
 

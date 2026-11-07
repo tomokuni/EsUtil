@@ -250,12 +250,14 @@ jobs:
   # （`dotnet pack --no-build`）、`pack.yml` は集めて検証するだけである。 変更の無かった
   # ソリューションの分だけ `pack.yml` が 1 本ずつ作り足す。
   # **検証するソリューションが 1 本も無い変更でも走らせる**（SBOM のツールの版や配布する単位だけの
-  # 変更）。 そのときは `pack.yml` が**全ソリューションをこの実行で作る**（`built-solutions` が空）。
+  # 変更）。 そのとき `verify` は**スキップ**されるため、既定の `success()`（スキップを失敗と同じに扱う）
+  # に任せると `package` もスキップされてしまう。 **「成功またはスキップ」を明示**し、失敗・キャンセルの
+  # ときだけ止める。 スキップのときは `pack.yml` が**全ソリューションをこの実行で作る**。
   # **`ci` の needs には入れない**（必須チェックを遅らせない。 パッケージングの扱いは
   # .github/RELEASE.md §4.2 が定める）。
   package:
     needs: [changes, verify]
-    if: needs.changes.outputs.packaging == 'true'
+    if: "!cancelled() && needs.changes.result == 'success' && needs.changes.outputs.packaging == 'true' && (needs.verify.result == 'success' || needs.verify.result == 'skipped')"
     uses: ./.github/workflows/pack.yml
     with:
       # `verify` が作ったパッケージ（`nupkg-<sha>-<製品名>`）を集め、残りだけを作る（空なら全部作る）
