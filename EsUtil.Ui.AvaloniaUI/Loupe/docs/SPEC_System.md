@@ -41,7 +41,7 @@
 | **ルート名前空間** | `EsUtil.Ui.AvaloniaUI.Loupe` |
 | **言語** | C# 14（.NET 10.0） |
 | **UI フレームワーク** | Avalonia UI 12.1（StyledProperty / DrawingContext / Control / IBrush） |
-| **ターゲットフレームワーク** | net10.0 |
+| **ターゲットフレームワーク** | net10.0-windows10.0.17763.0 |
 | **ビルドツール** | MSBuild / .NET SDK 10.0 |
 | **ログ** | Microsoft.Extensions.Logging（LoggerMessage ソース生成） |
 | **テスト** | xUnit v3 / Avalonia.Headless.XUnit |

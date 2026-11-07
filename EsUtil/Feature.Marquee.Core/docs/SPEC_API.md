@@ -24,7 +24,7 @@
 
 - 本コアは UI フレームワークに依存しません。 UI 固有の型は利用者（UI 実装）が境界で変換します。
 - 座標は `EsPoint` / `EsRect` / `EsSize` / `EsKey`（`EsUtil.Platform.Core`）で扱います。
-- カーソル操作は `ICursorService` 抽象にのみ依存します（`null` の場合は何もしません）。
+- カーソル操作は効果（`IMarqueeEffects` の `TryMoveCursor` / `ShowCursor`）越しにだけ要求します（本コアは OS のカーソル API を参照しません）。
 - **本コアが返すのは幾何だけです**。 文言・表示可否・描画順・色は描画層（本コアを参照する上位の層）が単一所有します。 **描画と実寸測定**は利用者（UI 実装）が行います（実寸は描画 API でしか測れないため）。
 - **装飾（外側マスク・枠線・内側マスク）の概念を持ちません**。 装飾は選択矩形単体の概念ではなく、組み込み先の表示であるため、描画層が単一所有します。
 
@@ -59,7 +59,7 @@
 
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
-| `MarqueeCore(IMarqueeEffects, ICursorService?, MarqueeOptions?)` | ctor | `effects` は null 不可。 `cursor` は null 可（カーソル操作を行わない）。 描画実装も外観も受け取らない（描画は UI の関心事であり、本コアは描画 API を持たない） |
+| `MarqueeCore(IMarqueeEffects, MarqueeOptions?)` | ctor | `effects` は null 不可（カーソル操作も効果が担う）。 描画実装も外観も受け取らない（描画は UI の関心事であり、本コアは描画 API を持たない） |
 | `Subscribe` | `IDisposable Subscribe(Action<MarqueeNotice>)` | 通知（`MarqueeNotice`）の購読。 解除は戻り値の `Dispose`（値型の通知は `event` を使わない） |
 | `Log` | property | ロガー。 null は `NullLogger` へ吸収される |
 | `Options` | property | 設定。 設定すると対話パラメータを反映し、**変化した項目をログ出力**し、境界外選択の禁止の変化時のみ即時クリップを行う |
@@ -127,6 +127,8 @@
 | `SetCursorShape(MarqueeCursorKind)` | カーソル形状を設定する（UI が自 UI のカーソル型へ写像する） |
 | `SetPointerCapture(bool)` | ポインターキャプチャを取得/解放する |
 | `ToScreenPoint(EsPoint)` | ローカル DIP を画面座標へ変換する（nudge のカーソル移動にのみ使う） |
+| `TryMoveCursor(EsPointInt)` | 実カーソルを画面座標へ移動する（成功したら `true`。 既定は移動しない） |
+| `ShowCursor(bool)` | 実カーソルの表示/非表示を切り替える（nudge 中は隠す。 既定は何もしない） |
 
 `MarqueeEffectsBase` はこれらの全メンバーを virtual の空実装として提供する `abstract class` です。 独自の UI アダプタは本クラスを継承し、必要な効果（例: `RequestRedraw`）だけを override します（不要なメンバーの空実装を書かなくて済む）。
 

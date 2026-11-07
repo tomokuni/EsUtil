@@ -32,27 +32,38 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.24 `Native.IElementFinder`（interface）](#224-nativeielementfinderinterface)
   - [2.25 `Native.ICursorOverrideGuard`（interface : IDisposable）](#225-nativeicursoroverrideguardinterface--idisposable)
   - [2.26 `Native.IGlobalHotKeyService<T>`（interface : IDisposable）](#226-nativeiglobalhotkeyservicetinterface--idisposable)
-  - [2.27 `Native.ElementFinderResults`（readonly record struct）](#227-nativeelementfinderresultsreadonly-record-struct)
-  - [2.28 `Native.Win.*`（Windows 実装）](#228-nativewinwindows-実装)
-  - [2.29 `Coord.ICoordTransform`（interface）](#229-coordicoordtransforminterface)
-  - [2.30 `Coord.CoordTransform`（sealed class : ICoordTransform）](#230-coordcoordtransformsealed-class--icoordtransform)
-  - [2.31 `Imaging.EsReadOnlyBitmap`（sealed class : IDisposable） / `Imaging.EsBitmap`（sealed class : IDisposable） / `Imaging.EsPixmap`（sealed class : IDisposable）](#231-imagingesreadonlybitmapsealed-class--idisposable--imagingesbitmapsealed-class--idisposable--imagingespixmapsealed-class--idisposable)
-  - [2.32 画像のファイル入出力（`Save` / `Load`）](#232-画像のファイル入出力save--load)
-  - [2.33 画像型の設計上の判断（兄弟と借用を選んだ理由）](#233-画像型の設計上の判断兄弟と借用を選んだ理由)
-  - [2.34 `Native.Win.SystemWindowCommands`（静的クラス）](#234-nativewinsystemwindowcommands静的クラス)
-  - [2.35 `Caching.CapacityLimitedCache<TKey, TValue>`（sealed class）](#235-cachingcapacitylimitedcachetkey-tvaluesealed-class)
-  - [2.36 `Svg.SvgIconSource`（sealed class） / `Svg.SvgIcon`（record struct）](#236-svgsvgiconsourcesealed-class--svgsvgiconrecord-struct)
-  - [2.37 `Imaging.EsImageFileExtensions`（static class）](#237-imagingesimagefileextensionsstatic-class)
-  - [2.38 `EsImageCodec`（static class）](#238-esimagecodecstatic-class)
-  - [2.39 機能の窓口](#239-機能の窓口)
-  - [2.40 `Input.HotKeyParser`（static class）](#240-inputhotkeyparserstatic-class)
-  - [2.41 `Window.EsWindowPlacementMath`（static class）](#241-windoweswindowplacementmathstatic-class)
-  - [2.42 `Geometry.EsRectIntJsonConverter`（sealed class : `JsonConverter<EsRectInt>`）](#242-geometryesrectintjsonconvertersealed-class--jsonconverteresrectint)
-  - [2.43 `Native.Win.WinVirtualScreen`（static class）](#243-nativewinwinvirtualscreenstatic-class)
-  - [2.44 `Palette`（色名と色文字列）](#244-palette色名と色文字列)
-  - [2.45 `Native.Win.WinClipboard`（static class）](#245-nativewinwinclipboardstatic-class)
-  - [2.46 `Imaging.EsImageFile`（sealed class : `IDisposable`）](#246-imagingesimagefilesealed-class--idisposable)
-  - [2.47 `Common.NumberText`（static class）](#247-commonnumbertextstatic-class)
+  - [2.27 `Native.IClipboardService`（interface）](#227-nativeiclipboardserviceinterface)
+  - [2.28 `Native.IMonitorDpi`（interface）](#228-nativeimonitordpiinterface)
+  - [2.29 `Native.IWindowFrameMetrics`（interface）](#229-nativeiwindowframemetricsinterface)
+  - [2.30 `Native.IDialogService`（interface）](#230-nativeidialogserviceinterface)
+  - [2.31 `Native.EsDialogButton`（readonly record struct）](#231-nativeesdialogbuttonreadonly-record-struct)
+  - [2.32 `Native.EsDialogResult`（enum）](#232-nativeesdialogresultenum)
+  - [2.33 `Native.ElementFinderResults`（readonly record struct）](#233-nativeelementfinderresultsreadonly-record-struct)
+  - [2.34 `Native.Win.*`（Windows 実装）](#234-nativewinwindows-実装)
+  - [2.35 `Coord.ICoordTransform`（interface）](#235-coordicoordtransforminterface)
+  - [2.36 `Coord.CoordTransform`（sealed class : ICoordTransform）](#236-coordcoordtransformsealed-class--icoordtransform)
+  - [2.37 `Imaging.EsReadOnlyBitmap`（sealed class : IDisposable） / `Imaging.EsBitmap`（sealed class : IDisposable） / `Imaging.EsPixmap`（sealed class : IDisposable）](#237-imagingesreadonlybitmapsealed-class--idisposable--imagingesbitmapsealed-class--idisposable--imagingespixmapsealed-class--idisposable)
+  - [2.38 画像のファイル入出力（`Save` / `Load`）](#238-画像のファイル入出力save--load)
+  - [2.39 画像型の設計上の判断（兄弟と借用を選んだ理由）](#239-画像型の設計上の判断兄弟と借用を選んだ理由)
+  - [2.40 `Native.Win.SystemWindowCommands`（静的クラス）](#240-nativewinsystemwindowcommands静的クラス)
+  - [2.41 `Caching.CapacityLimitedCache<TKey, TValue>`（sealed class）](#241-cachingcapacitylimitedcachetkey-tvaluesealed-class)
+  - [2.42 `Svg.SvgIconSource`（sealed class） / `Svg.SvgIcon`（record struct）](#242-svgsvgiconsourcesealed-class--svgsvgiconrecord-struct)
+  - [2.43 `Imaging.EsImageFileExtensions`（static class）](#243-imagingesimagefileextensionsstatic-class)
+  - [2.44 `EsImageCodec`（static class）](#244-esimagecodecstatic-class)
+  - [2.45 機能の窓口](#245-機能の窓口)
+  - [2.46 `Input.HotKeyParser`（static class）](#246-inputhotkeyparserstatic-class)
+  - [2.47 `Window.EsWindowPlacementMath`（static class）](#247-windoweswindowplacementmathstatic-class)
+  - [2.48 `Geometry.EsRectIntJsonConverter`（sealed class : `JsonConverter<EsRectInt>`）](#248-geometryesrectintjsonconvertersealed-class--jsonconverteresrectint)
+  - [2.49 `Native.Win.WinVirtualScreen`（static class）](#249-nativewinwinvirtualscreenstatic-class)
+  - [2.50 `Palette`（色名と色文字列）](#250-palette色名と色文字列)
+  - [2.51 `Native.Win.WinClipboard`（sealed class : IClipboardService）](#251-nativewinwinclipboardsealed-class--iclipboardservice)
+  - [2.52 `Imaging.EsImageFile`（sealed class : `IDisposable`）](#252-imagingesimagefilesealed-class--idisposable)
+  - [2.53 `Common.NumberText`（static class）](#253-commonnumbertextstatic-class)
+  - [2.54 `Native.IUserPreferenceService`（interface）](#254-nativeiuserpreferenceserviceinterface)
+  - [2.55 `Native.Win.WinUserPreferenceService`（sealed class : `IUserPreferenceService`）](#255-nativewinwinuserpreferenceservicesealed-class--iuserpreferenceservice)
+  - [2.56 `Native.Win.WinTaskDialog`（static class）](#256-nativewinwintaskdialogstatic-class)
+  - [2.57 `Native.Win.WinDialogService`（sealed class : IDialogService）](#257-nativewinwindialogservicesealed-class--idialogservice)
+  - [2.58 `Native.Win.WinProcessDpi`（static class）](#258-nativewinwinprocessdpistatic-class)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -76,7 +87,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `.Caching` | `CapacityLimitedCache<TKey, TValue>` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（汎用の単一所有者。 UI コントロールは複製せず本型を使う） |
 | `.Svg` | `SvgIconSource` / `SvgIcon` / `SvgPathParser` / `SvgPathFigure` / `SvgPathSegment` / `SvgPathRasterizer` | SVG アイコンの読み込み元・解析結果・パス データの解析・図形の画素への展開 |
 | `.Native.Win.Wic` | `WinWicFactory`（COM の生成・解放・画素の入出力）/ `WinWicFormats`（OS のエンコーダーから作る形式の一覧）/ `WinWicImageCodec`（符号化・復号） | WIC（windowscodecs）の実装 |
-| `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` / `WinWindowFrame` / `WinVirtualScreen` / `WinClipboard` / `WinAppUserModelId` / `WinMessageBox` / `WinMonitorDpi` / `WinVirtualKey` / `SystemWindowCommands` | 上記抽象の Windows 実装（ホストが生成して注入する）と、ウィンドウの標準メニューから実行する操作 |
+| `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` / `WinClipboard` / `WinMonitorDpi` / `WinWindowFrame` / `WinDialogService` / `WinTaskDialog` / `WinMessageBox` / `WinVirtualScreen` / `WinAppUserModelId` / `WinVirtualKey` / `WinUserPreferenceService` / `WinProcessDpi` / `SystemWindowCommands` | 上記抽象の Windows 実装（ホストが生成して注入する）と、ウィンドウの標準メニューから実行する操作・起動前の案内 UI・状態を持たない補助（静的クラス） |
 
 可視性は public のみを記載します（`internal` は [`SPEC_System.md`](SPEC_System.md) の可視性ポリシーを参照）。
 
@@ -424,8 +435,12 @@ OS 依存のカーソル操作を抽象化します（UI フレームワーク�
 | `SetCaptureExclusion` | `bool SetCaptureExclusion(EsPlatformHandle handle, bool exclude)` | キャプチャ除外 / 解除。 **能力の有無**（Windows 10 2004 未満は `false`） |
 | `SetBounds` | `void SetBounds(EsPlatformHandle handle, EsRectInt bounds)` | 位置・サイズを画面物理ピクセルで指定（全モニターを跨ぐ配置に使う）。 設定できなければ `Win32Exception` |
 | `EvacuateWindow` | `void EvacuateWindow(EsPlatformHandle handle)` | 最前面解除・非表示・クローズ（UI ハング時の退避）。 **ベストエフォート**（1 つ失敗しても残りを実行し、失敗を報告しない） |
+| `TryClientToScreen` | `bool TryClientToScreen(EsPlatformHandle handle, EsPointInt clientPoint, out EsPointInt screenPoint)` | クライアント座標 → 画面物理座標。 識別子が未設定・変換できない場合は `false`（`screenPoint` は**入力と同じ値**） |
+| `TryScreenToClient` | `bool TryScreenToClient(EsPlatformHandle handle, EsPointInt screenPoint, out EsPointInt clientPoint)` | 画面物理座標 → クライアント座標。 失敗時の扱いは `TryClientToScreen` と同じ |
 
 **`SetCaptureExclusion` が例外にしない理由**: Windows 10 2004 未満では OS が対応せず**写り込むだけで撮影は成立する**ためです（1 件の非対応で撮影を中止させません）。
+
+**座標変換が本インターフェイスにある理由**: UI フレームワークが画面物理座標を公開しない場合（WinUI 3 の XAML は表示倍率とコンテンツ内の相対座標までしか与えない）に、nudge のカーソル移動で画面座標が必要になるためです。 **失敗を原点で表さない**ために入力値をそのまま返します。
 
 ### 2.24 `Native.IElementFinder`（interface）
 
@@ -459,7 +474,67 @@ OS 依存のカーソル操作を抽象化します（UI フレームワーク�
 | `UnregisterAll` | `void UnregisterAll()` | 全ホットキーを解除（後始末であるため失敗を報告しない） |
 | `Subscribe` | `IDisposable Subscribe(Action<T> onPressed)` | ホットキー押下の購読（値型の通知は `event` を使わない）。 解除は戻り値の `Dispose` |
 
-### 2.27 `Native.ElementFinderResults`（readonly record struct）
+### 2.27 `Native.IClipboardService`（interface）
+
+クリップボードの内容の読み書きを抽象化します。 開く・ロックする・解放する・閉じる順序は実装の内側に閉じ、呼び出し側には可否だけを返します。
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `SequenceNumber` | `uint SequenceNumber { get; }` | 内容が変わるたびに増える番号（変更の検出用。 クリップボードを開かずに取得できる） |
+| `TryReadDib` | `bool TryReadDib(uint format, Action<IntPtr> read)` | DIB（`CF_DIB` = 8 など）の先頭ポインターを処理へ渡す。 戻るまでロックしたままにする |
+| `TryReadText` | `bool TryReadText(out string? text)` | テキスト（`CF_UNICODETEXT`）を読む |
+| `TryWriteText` | `bool TryWriteText(string text)` | 既存の内容を消してからテキストを書く |
+
+**失敗を例外にしない理由**: 他のアプリが使用中で開けない場合・内容が無い場合は `false` を返します（選択操作や監視は続行できます）。 **抽象にする理由**: 「他アプリが使用中」「ロックできない」は実機でしか再現できず、テストでは差し替えが必要です。
+
+### 2.28 `Native.IMonitorDpi`（interface）
+
+指定位置のモニターの実効 DPI の照会を抽象化します。
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `GetEffectiveDpi` | `uint? GetEffectiveDpi(EsPointInt screenPoint)` | 位置を含むモニターの実効 DPI（96 = 100%）。 照会できない場合は `null` |
+
+**抽象にする理由**: DPI はモニター構成に依存し、テストでは 100% と 150% が混在する環境を作れません。 差し替えにより、倍率の換算（最小サイズ・ラベルの表示倍率）を任意の倍率で検証できます。
+
+### 2.29 `Native.IWindowFrameMetrics`（interface）
+
+ウィンドウの外寸とクライアント領域の差（枠の太さ）の計測を抽象化します。
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `GetSize` | `(int Width, int Height) GetSize(EsPlatformHandle handle)` | 枠の幅と高さ（画面物理ピクセル）。 測れない場合は `Win32Exception` |
+
+**抽象にする理由**: 枠の太さはテーマ・DPI で変わるため、値ごとの「外寸へ足す計算」をテストで確かめられるようにします。
+
+### 2.30 `Native.IDialogService`（interface）
+
+OS のダイアログ（案内 UI）を抽象化します。
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `TryShowTaskDialog` | `bool TryShowTaskDialog(string windowTitle, string mainInstruction, string content, IReadOnlyList<EsDialogButton> buttons, int defaultButtonId, Func<string, bool>? hyperlinkHandler, out int selectedButtonId)` | タスク ダイアログを表示。 使えない環境では `false`（`selectedButtonId` は `defaultButtonId`） |
+| `ShowYesNoCancel` | `EsDialogResult ShowYesNoCancel(string caption, string text)` | 警告のメッセージ ボックス（はい / いいえ / キャンセル）。 タスク ダイアログを使えない環境の代替 |
+| `ShowError` | `void ShowError(string caption, string text)` | エラーのメッセージ ボックス（選択では分岐しない） |
+
+**抽象にする理由**: 案内 UI は利用者の選択で分岐するため、抽象がないと**選択の組み合わせを UI なしで検証できません**。 差し替えにより、3 択の写像と「タスク ダイアログを使えない環境」へのフォールバックを両方検証できます。
+
+### 2.31 `Native.EsDialogButton`（readonly record struct）
+
+```csharp
+public readonly record struct EsDialogButton(int Id, string Text);
+```
+
+タスク ダイアログのボタン。 `Id` は押されたときに返す識別子（**0 以外**）、`Text` は表題です。
+
+### 2.32 `Native.EsDialogResult`（enum）
+
+| 値 | 意味 |
+| --- | --- |
+| `Yes` / `No` / `Cancel` | 押されたボタン |
+| `Close` | 閉じられた（×・Esc）。 ボタンは押されていない |
+
+### 2.33 `Native.ElementFinderResults`（readonly record struct）
 
 ```csharp
 public readonly record struct ElementFinderResults(
@@ -472,7 +547,7 @@ public readonly record struct ElementFinderResults(
 
 要素検出の結果。 座標は入力と同じ画面物理座標で統一されます。
 
-### 2.28 `Native.Win.*`（Windows 実装）
+### 2.34 `Native.Win.*`（Windows 実装）
 
 上記抽象の Windows 実装です（`EsUtil.Platform.Core.Native.Win`）。 **実行時のプラットフォーム分岐（ファクトリ）は持たず、ホストが生成して抽象型として注入します**。 テストは同じ抽象を実装したモックを注入するため、Win32 環境を必要としません。
 
@@ -484,10 +559,14 @@ public readonly record struct ElementFinderResults(
 | `WinElementFinder` | `IElementFinder`（ロガーを持たない） |
 | `WinCursorOverrideGuard` | `ICursorOverrideGuard`（ロガーを持たない） |
 | `WinGlobalHotKeyService<T>` | `IGlobalHotKeyService<T>`（`T : notnull`。 ロガーを持たない） |
+| `WinClipboard` | `IClipboardService`（ロガーを持たない） |
+| `WinMonitorDpi` | `IMonitorDpi`（ロガーを持たない） |
+| `WinWindowFrame` | `IWindowFrameMetrics`（ロガーを持たない） |
+| `WinDialogService` | `IDialogService`（ロガーを持たない。 タスク ダイアログとメッセージ ボックスを 1 つの入口にまとめる） |
 
 `Native.Win.Win*`（internal）の実装が OS の API（`user32` / `gdi32` / `dwmapi` / `kernel32` / WIC）の P/Invoke と COM の宣言を集約します。 **本プロジェクトはログを出力しません**（`ILogger` を扱わないため。 失敗は例外または戻り値で返し、記録は呼び出し側が行います）。
 
-### 2.29 `Coord.ICoordTransform`（interface）
+### 2.35 `Coord.ICoordTransform`（interface）
 
 ローカル DIP と対象座標の双方向変換ポート。 座標はコア幾何型で扱います。 軸はこの 1 つだけであり、DIP とデバイスピクセルの換算は `DpiScaler` が単一所有します。
 
@@ -497,7 +576,7 @@ public readonly record struct ElementFinderResults(
 | `ToDip` | `EsPoint ToDip(EsPoint source)` | 対象座標 → ローカル DIP 座標 |
 | `SourceArea` | `EsSize? SourceArea { get; }` | 対象座標の境界（null = 無制限） |
 
-### 2.30 `Coord.CoordTransform`（sealed class : ICoordTransform）
+### 2.36 `Coord.CoordTransform`（sealed class : ICoordTransform）
 
 `Func` 委譲による変換ポートを提供します。 倍率の向きは 1 通り（対象座標 / ローカル DIP）だけです。
 
@@ -507,7 +586,7 @@ public readonly record struct ElementFinderResults(
 | `ClientToSource` | `static ICoordTransform ClientToSource(Func<double> sourcePerDip, Func<EsSize?>? sourceArea = null)` | 対象 = ローカル DIP × `sourcePerDip`（呼び出し毎評価。 倍率は 対象座標 / ローカル DIP。 0 以下は 1.0 扱い。 境界を省略すると無制限） |
 | コンストラクタ | `CoordTransform(Func<EsPoint, EsPoint> toSource, Func<EsPoint, EsPoint> toDip, Func<EsSize?> sourceArea)` | 変換関数を直接注入（軸は利用側が定義） |
 
-### 2.31 `Imaging.EsReadOnlyBitmap`（sealed class : IDisposable） / `Imaging.EsBitmap`（sealed class : IDisposable） / `Imaging.EsPixmap`（sealed class : IDisposable）
+### 2.37 `Imaging.EsReadOnlyBitmap`（sealed class : IDisposable） / `Imaging.EsBitmap`（sealed class : IDisposable） / `Imaging.EsPixmap`（sealed class : IDisposable）
 
 読み取り専用の画像・書き換え可能な画像・**0 コピーの読み取りビュー**の 3 型です。 **読み取り専用と書き換え可能は兄弟**（互いに派生せず、**暗黙の変換もキャストもできません**）。 読み取り専用の型は画素を書き換える入口を持たないため、**受け取った側が誤って書き換えることがコンパイル時に決まります**（実行時の判定に頼りません）。 **外部パッケージへ依存しません**。
 
@@ -536,7 +615,7 @@ public readonly record struct ElementFinderResults(
 | 凍結済み（`IsReadOnly`） | **0 コピーで共有** | 無し（複製しない） | 誰も書けないため内容が変わらない |
 | 未凍結 | **複製** | 画素数に比例 | 元の書き込みが届かない（元は書き換え可能なまま凍結されない) |
 
-- **「その場で読むだけ」なら複製は不要です**: 保存・切り出し・縮小のように**読んでいる間に書き手がいない**用途は、書き換え可能な画像をそのまま渡せます（`Save` / `Crop` / `Resize` / `ReduceColors` は両方の型のオーバーロードを持つため、書き換え可能な画像でも複製も凍結も不要です。 §2.31）。 `FromBitmap` が要るのは**保持する・後で読む**場合です。
+- **「その場で読むだけ」なら複製は不要です**: 保存・切り出し・縮小のように**読んでいる間に書き手がいない**用途は、書き換え可能な画像をそのまま渡せます（`Save` / `Crop` / `Resize` / `ReduceColors` は両方の型のオーバーロードを持つため、書き換え可能な画像でも複製も凍結も不要です。 §2.37）。 `FromBitmap` が要るのは**保持する・後で読む**場合です。
 - **凍結してから渡せば 0 コピーで内容の安定も得られます**: 書き終えた時点で書き換え可能な型の `SetReadOnly` を呼ぶと、`FromBitmap` は共有だけを行います（凍結は画素領域の共有状態に効くため、同じ領域を指す実体はどれも書けなくなります）。
 - **無条件に凍結する入口（読み取り専用として渡すと元が書けなくなる方法）は採用しません**: 渡した先で元の画像が書けなくなると、その後の編集（オーバーレイの追加等）ができません。 凍結は**書き終えた時点**で明示的に行います。
 
@@ -662,11 +741,11 @@ public readonly record struct ElementFinderResults(
 | `Crop` | `EsBitmap Crop(int x, int y, int width, int height)` / `EsBitmap Crop(EsRectInt rect)` | 指定矩形を切り出す（**ソース範囲外は透明で埋める**。 位置関係は保たれる。 0 初期化は行わない） |
 | `Resize` | `EsBitmap Resize(int maxSize, EsImageScalingMode mode = WicFant)` | 長辺を `maxSize` へ収める（**拡大は未サポート**。 速度と画質は `EsImageScalingMode`（WIC 5 種 + 自前 3 種）で選ぶ。 **Windows 専用**） |
 | `ReduceColors` | `EsBitmap ReduceColors(int colorCount, EsDitherMode dither = None)` | 指定の色数へ減色する（パレット化。 **不可逆**。 ディザを選ぶ。 **Windows 専用**） |
-| `Save` | `void Save(string filePath)` / `void Save(string filePath, EsImageSaveOptions options)` | ファイルへ保存する（[2.32](#232-画像のファイル入出力save--load)） |
+| `Save` | `void Save(string filePath)` / `void Save(string filePath, EsImageSaveOptions options)` | ファイルへ保存する（[2.38](#238-画像のファイル入出力save--load)） |
 
-- **同じ実装を 2 型のメンバーとして公開します（拡張メソッドにしません）**: 実装は内部の 1 か所（`EsBitmapBuffer` / `EsBitmapOperations` / `EsImageCodec`）に置き、公開の入口は**両方の型のメンバー**にします。 拡張メソッドにすると、**同じ操作が型の外へ 2 組並び**、型自身の能力（`Copy` / `GetPixel` / `Load` 等）と置き場所が分かれます（IntelliSense でも 1 か所にまとまりません）。 **共通の面（interface）は作りません**（復活させると、書き換え可能な画像を読み取り専用の面として**保持・後読みできる経路**ができ、兄弟にした理由（[2.33](#233-画像型の設計上の判断兄弟と借用を選んだ理由)）が崩れます）。
+- **同じ実装を 2 型のメンバーとして公開します（拡張メソッドにしません）**: 実装は内部の 1 か所（`EsBitmapBuffer` / `EsBitmapOperations` / `EsImageCodec`）に置き、公開の入口は**両方の型のメンバー**にします。 拡張メソッドにすると、**同じ操作が型の外へ 2 組並び**、型自身の能力（`Copy` / `GetPixel` / `Load` 等）と置き場所が分かれます（IntelliSense でも 1 か所にまとまりません）。 **共通の面（interface）は作りません**（復活させると、書き換え可能な画像を読み取り専用の面として**保持・後読みできる経路**ができ、兄弟にした理由（[2.39](#239-画像型の設計上の判断兄弟と借用を選んだ理由)）が崩れます）。
   - **代償**: 宣言が型ごとに必要です（**実装は 1 つのまま**）。 それぞれの型の `Crop` / `Resize` / `ReduceColors` / `Save` は内部の実装へ転送するだけであり、規則の記述（備考）は読み取り専用側（`EsReadOnlyBitmap`）が単一所有します。
-- **縮小の方法は `EsImageScalingMode` が選びます**: `Wic` で始まる 5 つは `IWICBitmapScaler`（WIC）が、`Es` で始まる 3 つは**本ライブラリ**が計算します。 減色は `IWICPalette`（中央値分割）と `IWICFormatConverter`（8bpp）が行い、**本ライブラリは減色の計算を持ちません**（読み込み・保存と同じ実装を使うため、経路によって画素が変わりません）。 減色の比較の記録は §2.32 を参照してください。
+- **縮小の方法は `EsImageScalingMode` が選びます**: `Wic` で始まる 5 つは `IWICBitmapScaler`（WIC）が、`Es` で始まる 3 つは**本ライブラリ**が計算します。 減色は `IWICPalette`（中央値分割）と `IWICFormatConverter`（8bpp）が行い、**本ライブラリは減色の計算を持ちません**（読み込み・保存と同じ実装を使うため、経路によって画素が変わりません）。 減色の比較の記録は §2.38 を参照してください。
 - **減色の所要は元画像の画素数に比例します**: パレットの生成（中央値分割）と画素の割り当ては WIC が行い、**途中で打ち切る入口はありません**（打ち切ると色数が指定どおりになりません）。 所要の実測値は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します。 **縮小にも時間の上限を設けていません**（反復も収束も無い 1 回の走査であり、途中で打ち切ると画像の一部が書かれないまま返るため。 費用は寸法から予測できます）。
 - **書き換え可能な画像を渡しても凍結しません**: 画素を読むだけの操作であるためです（`Save` / `Crop` / `Resize` / `ReduceColors` の後も書き続けられます）。 0 コピーで安定した内容を渡したい場合は、書き終えた時点で `SetReadOnly` を呼びます。
 - **戻り値は書き換え可能な画像**です（生成した側が所有し、破棄します）。 読み取り専用で足りる場合は `Copy`（複製）または `ToPixmap`（0 コピーのビュー）を使います。
@@ -688,8 +767,8 @@ public readonly record struct ElementFinderResults(
 
 - **出典**: SkiaSharp / Avalonia / System.Drawing は各アセンブリで実測（リフレクション＋アドレス比較）。 WinUI 3 / Win2D は Microsoft Learn のクラスリファレンス（`WriteableBitmap` / `SoftwareBitmap` / `CanvasBitmap` / `CanvasRenderTarget`）と Windows App SDK のイメージング解説です。
 - **借用と複製を名前で分ける点は Skia と同じです（優劣ではなく一致）**: `InstallPixels`（借用）/ `FromPixelCopy`（複製）という名前の付け方は Skia に合わせました（**両方の型で同じ名前**にしています）。 **描画を担う上位の層は、読み取り専用の画像を非所有ビュー（複製なし）として描画 API へ渡します**（`ToPixmap` と同じ性質の入口です）。
-- **読み取り専用の表し方は Skia と同じです（兄弟型）**: 本ライブラリも互いに派生しない 2 型にし、変換は `FromBitmap` / `FromReadOnlyBitmap` の 2 つだけにしました（実測: Skia は `SKImage.FromBitmap` / `SKBitmap.FromImage`）。 **兄弟にした理由**は §2.33 を参照（継承だと未凍結の画素を読み取り専用として暗黙に渡せてしまうため）。
-- **遅延コピー（読み取り専用の画像と画素を共有し、最初の書き込みで複製する仕組み）は持ちません**: 調査したどのフレームワークも持たず、本ライブラリでも**本番の呼び出しがありませんでした**（画像から書き換え可能な画像を作る `EsBitmap.FromReadOnlyBitmap` を渡すのはテストだけであり、本番は寸法と色で生成していました）。 0 コピーの共有は凍結と `FromBitmap`（凍結済みなら共有・未凍結なら複製）で得られるため、書き込み可能なビューを渡す入口（`Pixels`）と組み合わせると**いつ複製されたか分からない隠れた確保**になるだけでした（[2.33](#233-画像型の設計上の判断兄弟と借用を選んだ理由)）。
+- **読み取り専用の表し方は Skia と同じです（兄弟型）**: 本ライブラリも互いに派生しない 2 型にし、変換は `FromBitmap` / `FromReadOnlyBitmap` の 2 つだけにしました（実測: Skia は `SKImage.FromBitmap` / `SKBitmap.FromImage`）。 **兄弟にした理由**は §2.39 を参照（継承だと未凍結の画素を読み取り専用として暗黙に渡せてしまうため）。
+- **遅延コピー（読み取り専用の画像と画素を共有し、最初の書き込みで複製する仕組み）は持ちません**: 調査したどのフレームワークも持たず、本ライブラリでも**本番の呼び出しがありませんでした**（画像から書き換え可能な画像を作る `EsBitmap.FromReadOnlyBitmap` を渡すのはテストだけであり、本番は寸法と色で生成していました）。 0 コピーの共有は凍結と `FromBitmap`（凍結済みなら共有・未凍結なら複製）で得られるため、書き込み可能なビューを渡す入口（`Pixels`）と組み合わせると**いつ複製されたか分からない隠れた確保**になるだけでした（[2.39](#239-画像型の設計上の判断兄弟と借用を選んだ理由)）。
 - **凍結は Skia の `SetImmutable` と同じ役割ですが、実行時に強制します**: Skia の凍結は呼び出し側の**宣言**であり（実測: 凍結後も `SetPixel` が例外なく書けて共有先の画素が変わり、`GetPixelSpan` の書き込みも届き、`InstallPixels` はフラグを false に戻す）、守られなければ不変を前提にした画像が静かに壊れます。 本ライブラリは凍結後の**取得**を拒否します（凍結の前に取得したビューは残ります。 これは Skia と同じ原理的な限界です）。
 - **借用の入口を公開する点は WinUI 3 / Win2D と違います**: 借用は**借用先の寿命に依存する契約**を増やします（Avalonia の表示用のビューは元の破棄で無効化されます）が、複製の費用（画素数に比例）を避ける手段として有効なため、**名前で複製と区別したうえで公開します**。
 - **書き込みの期間は型で表しません**: Avalonia の `Lock()` は借用オブジェクトの寿命で「借用している間」を表しますが、本ライブラリは `Pixels`（`Span<byte>`）を返します。 `Span` は `ref struct` のため**フィールドに保持できません**が、ローカルに置いたまま破棄すれば不正な書き込みになる点は Avalonia と同じです（借用中の破棄を型で防ぐ手段は、調査したどのフレームワークにもありません）。
@@ -705,9 +784,9 @@ public readonly record struct ElementFinderResults(
 - **`EsPixmap`（0 コピーのビュー）は、大きな画像の一部だけを対象にする場合に有利**です（**縮小は実体化の複製が費用の大半**であるため差が大きく、**減色は計算が支配的**であるため差は小さい）。 `GetPixel` は行幅を持つ分だけ画像型より遅くなりますが、**切り出しの複製が要りません**。
 - **同じ操作の速さは型で変わりません**（`Crop` / `Resize` / `ReduceColors` / `Save` は同じ内部実装へ転送するため）。 差が出るのは**入口の有無**と**複製するか共有するか**だけです。
 
-### 2.32 画像のファイル入出力（`Save` / `Load`）
+### 2.38 画像のファイル入出力（`Save` / `Load`）
 
-コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー（`Load` は静的・`Save` はインスタンス。 2 型が同じ名前を持ちます）**であり、画像型は画素と寸法を渡して **`EsImageCodec`**（§2.38）へ委譲します。 WIC（`windowscodecs.dll` の COM）を呼ぶ実装は `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicImageCodec.cs` の `internal` クラスが単一所有します。 **Windows 専用**です。
+コアの画像のファイル保存・読み込みです。 **公開面は画像型のメンバー（`Load` は静的・`Save` はインスタンス。 2 型が同じ名前を持ちます）**であり、画像型は画素と寸法を渡して **`EsImageCodec`**（§2.44）へ委譲します。 WIC（`windowscodecs.dll` の COM）を呼ぶ実装は `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicImageCodec.cs` の `internal` クラスが単一所有します。 **Windows 専用**です。
 
 | 型 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- | --- |
@@ -727,12 +806,12 @@ public readonly record struct ElementFinderResults(
 | `EsImageScalingMode` | （enum） | `WicNearestNeighbor` / `WicLinear` / `WicCubic` / `WicFant`（既定）/ `WicHighQualityCubic` / `EsNearestNeighbor` / `EsBilinear` / `EsBox` | **縮小**の方法。 `Wic*` は WIC（読み込み経路と同じ実装）、`Es*` は本ライブラリの計算（速いが読み込み経路とは画素が違う） |
 | `EsDitherMode` | （enum） | `None` / `ErrorDiffusion` | 減色のディザ（誤差拡散。 既定は `None` = ファイルが最も小さい） |
 
-- **`Save` は 2 型のメンバーです（拡張メソッドにしません）**: 保存は**ピクセルを読むだけ**であり、書き換えの権利も要らないため実装は内部の 1 か所に置きますが、公開の入口は**両方の型のメンバー**にします（`Load` と同じ型にファイル入出力が並び、型自身の能力として IntelliSense に現れます。 置き場所の規則は §2.31）。 **保存は凍結しません**（書き換え可能な画像を保存した後も書き続けられます）。
+- **`Save` は 2 型のメンバーです（拡張メソッドにしません）**: 保存は**ピクセルを読むだけ**であり、書き換えの権利も要らないため実装は内部の 1 か所に置きますが、公開の入口は**両方の型のメンバー**にします（`Load` と同じ型にファイル入出力が並び、型自身の能力として IntelliSense に現れます。 置き場所の規則は §2.37）。 **保存は凍結しません**（書き換え可能な画像を保存した後も書き続けられます）。
 - **保存に使える形式の一覧は画像型が公開します**: 形式を決める規則の単一所有は `EsReadOnlyBitmap.SupportedFileExtensions`（`EsBitmap` も同じ値を公開）であり、保存の実装がそこを参照します（一覧は型の能力であり、特定の実体を要さないため）。
 
 - **`Load` は具体型の静的メソッドに置きます**: 戻したい型（読み取り専用 / 書き換え可能）を**呼び出し側が名指す**必要があるためです（静的メソッドは戻り値の型を共変にできないため、`EsReadOnlyBitmap.Load` と `EsBitmap.Load` の 2 つが要ります）。 書き換えが要る場合は `EsBitmap.Load` を使ってください（`EsReadOnlyBitmap.Load` の結果を `EsBitmap.FromReadOnlyBitmap` で複製すると、2 回目の複製が無駄になります）。 つまりファイル入出力の見え方は「**読むときは型を名指す（`Load`）／書くときはどちらの型でも同じ（`Save`）**」です。
 - **`Save` は再び画像型のメンバーになりました**: いったん拡張メソッドへ移しましたが、その理由（読み取り専用の面を実装する外部の画像からもキャストせずに呼べること）は**面（interface）の廃止で消えました**。 いまは実装を内部の 1 か所（`EsBitmapBuffer.SaveToFile`）に置き、公開の入口を両方の型のメンバーにしています（`Load` と同じ型にファイル入出力が並びます）。
-- **`Crop` / `Resize` / `ReduceColors` も同じ形にしました**: 実装は内部の 1 か所（寸法の判断と入口は `EsImageCodec`、縮小の計算は `EsBitmapOperations`、減色は WIC）に置き、公開の入口は両方の型のメンバーです（規則と理由は §2.31）。 これにより型の外に並ぶ操作は無くなり、`Copy` / `ToPixmap` と同じ「型自身の能力」として読めます。
+- **`Crop` / `Resize` / `ReduceColors` も同じ形にしました**: 実装は内部の 1 か所（寸法の判断と入口は `EsImageCodec`、縮小の計算は `EsBitmapOperations`、減色は WIC）に置き、公開の入口は両方の型のメンバーです（規則と理由は §2.37）。 これにより型の外に並ぶ操作は無くなり、`Copy` / `ToPixmap` と同じ「型自身の能力」として読めます。
 - **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・WIC の呼び出し・状態値の例外化は 1 か所（「`WinWicImageCodec`」）が単一所有し、公開面（`EsImageCodec` と画像型の `Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
 - **実装の入出力は画像型を知りません**: 符号化は受け取ったピクセル バイト列を書き（`EncodeToFile`）、復号は**画像の生成処理を受け取ってデコード結果をその領域へ直接書きます**（`DecodeFromFile<T>`）。 コーデックが画像型（`EsBitmap` 等）を名指ししないため、画像型が要るのは公開面だけになります。 **中間バッファも追加のコピーも作りません**（デコード結果を画像の領域へそのまま書きます。 中間バッファを挟む方式に対して**読み込みで有利**であり、保存は両方式とも同じです）。
 - **形式は既定では拡張子が決めます**: `Save` は拡張子から形式を選びます（形式の一覧は `SupportedFileExtensions` と同じく OS から作ります）。 大文字・小文字は区別しません。
@@ -829,14 +908,14 @@ public readonly record struct ElementFinderResults(
 - **制限**: JPEG / BMP / HEIF はアルファ（透明度）を保存できません（形式の仕様、またはエンコーダーがアルファ無しの画素形式を要求するため。 透過を保つ場合は PNG / TIFF / JPEG XR を選ぶこと）。 `Load` は**縮小読み込みをしません**（元の寸法でデコードする）。 小さく表示するだけの用途は **`Load(string, int)`** を使う（WIC のスケーラーでデコードしながら縮小するため、原寸のバッファを確保しない）。 `Resize` は原寸でデコードしてから縮小するため、原寸のバッファが一時的に必要になる。
 - **例外**: `Load` は存在しない・画像として解釈できないファイルで `ArgumentException` を投げます（WIC はどちらも同じ状態値を返すため区別しません）。 エンコード・デコードの失敗は `Win32Exception`（WIC の HRESULT を保持）で通知します。
 
-### 2.33 画像型の設計上の判断（兄弟と借用を選んだ理由）
+### 2.39 画像型の設計上の判断（兄弟と借用を選んだ理由）
 
 画像型の設計上の判断と、その理由です。 **実装を変えるときに同じ検討を繰り返さないため**に残します。
 
 **1. 権利は具象型 2 つで表します（面（interface）を作りません）**: 読み取り専用と書き換え可能の違いは**権利の表明**であり、実装の差し替え点ではないため、一般的なインターフェイスの意味とは役割が違います。
 
 - 境界の受け口を 1 つに見せるためだけに面を作ると、**型の数を増やす利益より、使い分けを覚える費用の方が大きくなります**（画素を自前で持つ実装は想定していません）。
-- 受け取る型を具象型にしても「受け取った側は書けない」は保たれます（読み取り専用の型で受けるため）。 キャストを避ける必要がある場面（保存・切り出し・縮小・減色）は、**両方の型が同じ名前のメンバーを持つ**形で解決しています（実装は内部の 1 か所。 §2.31）。
+- 受け取る型を具象型にしても「受け取った側は書けない」は保たれます（読み取り専用の型で受けるため）。 キャストを避ける必要がある場面（保存・切り出し・縮小・減色）は、**両方の型が同じ名前のメンバーを持つ**形で解決しています（実装は内部の 1 か所。 §2.37）。
 - 破棄状態（`IsDisposed`）の判定も**型ごとに揃います**（コアの実体そのものを見れば足ります）。
 
 **2. `EsBitmap` と `EsReadOnlyBitmap` は互いに派生しません（兄弟）**: 継承にすると**未凍結の画素を読み取り専用として暗黙に渡せます**（upcast が無料のため）。 受け取った側は「内容が変わらない」ことを前提にしますが、渡した側が書き続ければ画素は変わり、**約束が静かに破れます**。 兄弟ならその経路が型で消え、渡すには `FromBitmap`（凍結状態で 0 コピー / 複製を選ぶ）を通すしかありません。 継承を選ぶ理由（切り出し・縮小・保存へ渡すたびに型が合わない）は、この安全性に劣ります（Skia 自身が兄弟型で成立しています。 `SKImage` と `SKBitmap` は兄弟で、共有は `SKImage.FromBitmap` が凍結状態で判断します）。 代償は無料の upcast が無いことです（`FromBitmap` を 1 回呼ぶ）。
@@ -873,7 +952,7 @@ public readonly record struct ElementFinderResults(
 
 **10. 座標が範囲外の場合は `ArgumentOutOfRangeException`** を投げます。 `IndexOutOfRangeException` はランタイムが予約した例外であり、送出を禁じるアナライザー（`CA2201` / `MA0012`）があるため使いません（`System.Drawing.Bitmap.GetPixel` も `ArgumentOutOfRangeException` を投げます）。 **判定を入れる理由**: 境界を跨いだ座標はバッファの内側に落ちるため、判定しないと隣の行の画素が静かに変わります。
 
-### 2.34 `Native.Win.SystemWindowCommands`（静的クラス）
+### 2.40 `Native.Win.SystemWindowCommands`（静的クラス）
 
 ウィンドウの標準メニュー（左上のアイコンの押下で出す）から実行する操作です。 移動・サイズ変更は OS のモードへ入ります（アプリ側でマウス追従を実装しません）。
 
@@ -884,7 +963,7 @@ public readonly record struct ElementFinderResults(
 
 **失敗しても例外にしない**（コマンドを送れなかった場合は `false`）。 操作できない状態でもウィンドウは動作し続けます。
 
-### 2.35 `Caching.CapacityLimitedCache<TKey, TValue>`（sealed class）
+### 2.41 `Caching.CapacityLimitedCache<TKey, TValue>`（sealed class）
 
 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（Flyweight・スレッド安全）です。 **容量管理を本型が単一所有**するため、利用側は同じ処理を書きません。
 
@@ -899,7 +978,7 @@ public readonly record struct ElementFinderResults(
 - **`IDisposable` の値は破棄してから消します**（画素や GDI ハンドルを残さない）。 生成の競合で捨てる値も同様です。
 - **`EsUtil.Platform.Core` に置く理由**: アプリ固有の知識が無く、4 つの UI 版とコントロールから使えるためです（アプリ層に置くとコントロールから参照できません）。
 
-### 2.36 `Svg.SvgIconSource`（sealed class） / `Svg.SvgIcon`（record struct）
+### 2.42 `Svg.SvgIconSource`（sealed class） / `Svg.SvgIcon`（record struct）
 
 SVG アイコンの**読み込み元**を表し、解析結果を共有します。 読み込み元は 3 通りです。
 
@@ -920,7 +999,7 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 - **`SvgPathRasterizer.Rasterize(IReadOnlyList<SvgPathFigure>, int size, uint argb)`** は図形を `size` × `size` の BGRA8888 画素へ展開します（図形の外接矩形を一辺いっぱいへ広げる）。
 - **解析結果を UI 非依存の形で返す理由**: 各 UI 版は自分の描画 API へ写すだけであり、解析を UI 版へ複製すると片方だけ直したときにアイコンの形がずれます。 **SVG のパス構文を解釈する .NET 標準の API は無い**ため、パス データの解析だけは自前で持ちます（`System.Drawing.Drawing2D` は外部パッケージかつ Windows 限定、WPF の `Geometry.Parse` は UI 依存）。
 
-### 2.37 `Imaging.EsImageFileExtensions`（static class）
+### 2.43 `Imaging.EsImageFileExtensions`（static class）
 
 一覧に並べる画像ファイルの拡張子の判定です（**保存できる形式より広い**: `.webp` は一覧に並べるが本ライブラリでは保存しない）。
 
@@ -929,7 +1008,7 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 | `All` | 先頭のドットを含む拡張子の集合（`.png` / `.jpg` / `.jpeg` / `.bmp` / `.gif` / `.tiff` / `.tif` / `.webp` / `.jxr` / `.wdp` / `.heic` / `.heif` / `.jxl`） |
 | `IsImageFile(string path)` | 拡張子だけを見て判定する（大文字・小文字を区別しない） |
 
-### 2.38 `EsImageCodec`（static class）
+### 2.44 `EsImageCodec`（static class）
 
 画像の**符号化・復号と形式の窓口**です（Windows の WIC を汎用に扱います）。 **画像型に依存しません**: 画素は `ReadOnlySpan<byte>`（BGRA8888・アルファ乗算済み）+ 寸法 + 行幅で受け渡すため、`EsBitmap` を作らずに他の UI のビットマップ（`Avalonia.Media.Imaging.WriteableBitmap` など）の画素をそのまま渡せます。 画像型（`EsReadOnlyBitmap` / `EsBitmap` / `EsPixmap`）の `Save` / `Load` / `Resize` / `ReduceColors` / `SupportedFileExtensions` も**本クラスへ委譲**します（同じ実装を 2 つ持たない）。
 
@@ -949,14 +1028,14 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 
 - **画素の形式は 1 つに固定します**（BGRA8888・アルファ乗算済み・行は上が先頭・行幅は `幅 × 4` 以上）: 形式を引数にすると、呼び出し側が変換の有無を毎回判断することになり、取り違えが起きるためです。
 - **画素を複製しません**: 復号は呼び出し側が確保した領域へ直接書きます（寸法は `ReadSize` で先に求めます。 確保を含む `Decode` も確保は 1 回だけです）。 行幅が密でない画素を `Save` へ渡した場合だけ、WIC のエンコーダーへ渡す前に 1 回複製します。
-- **パスから読む場合は `Imaging.EsImageFile`（§2.46）を使います**: 本クラスは**内容（`ReadOnlySpan<byte>`）を受ける面だけ**を持ちます。 パスの面を別に持つと、寸法の取得と復号で**同じファイルを 2 回読む**経路ができます（実測 2026-10-28: 読み込みはファイル全体の複製であるため、2 回読むとファイル サイズの領域を余分に確保します）。
+- **パスから読む場合は `Imaging.EsImageFile`（§2.52）を使います**: 本クラスは**内容（`ReadOnlySpan<byte>`）を受ける面だけ**を持ちます。 パスの面を別に持つと、寸法の取得と復号で**同じファイルを 2 回読む**経路ができます（実測 2026-10-28: 読み込みはファイル全体の複製であるため、2 回読むとファイル サイズの領域を余分に確保します）。
 - **静止画だけを扱います**（アニメーション GIF の各フレーム・メタデータの書き込み・色空間の変換は対象外）。
 - **静的クラスである理由**: 保持する状態が無く（WIC のファクトリは呼び出しごとに生成して解放します）、4 つの UI 版へ DI を持ち込まないためです。
 - **生データの型を作りません**（`EsPixels` のような型を公開しない）: 画素の受け渡しは `ReadOnlySpan<byte>` と寸法・行幅で足り、型を増やすと画像型との変換が増えるためです。
 - **Windows App SDK のクラスを写していません**（`SoftwareBitmap` / `BitmapDecoder` / `BitmapEncoder`）: あちらは WinRT の型を返すため、WIC の結果を WinRT へ包む層が要ります（本ライブラリは 4 UI 共通の基盤であり、WinRT と Avalonia / MewUI のどちらにも依存できません）。
 - **形式の一覧は実行環境から作ります**: `SaveExtensions` は OS のエンコーダーを列挙し、実際に試し書きできた形式だけを返します（コーデック拡張が入っていない環境では `.heic` / `.jxl` が現れません）。
 
-### 2.39 機能の窓口
+### 2.45 機能の窓口
 
 ルート名前空間（`EsUtil.Platform.Core`）が持つ**窓口**です。 実装は持たず、機能フォルダの型へ委譲します（判断の所有者は型の側だけです）。 利用側は `using EsUtil.Platform.Core;` だけでこれらの操作を使えます。
 
@@ -967,13 +1046,13 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 | `EsCapture` | `TryParseType(string, out CaptureType)` | `Capture.CaptureType` / `Common.EnumCanonical` |
 | `EsErrors` | `IsRecoverable(Exception)` | `Common.BoundaryCatch` |
 | `EsCallbacks` | `Create<T>()` | `Common.CallbackList<T>` |
-| `EsImageCodec` | `SaveExtensions` / `Decode` / `Save` / `Resize` / `ReduceColors` / `GetExtension` ほか（詳細は §2.38） | `Native.Win.Wic.WinWicImageCodec` / `Imaging.EsImageFileFormatExtensions` / `Imaging.EsBitmapOperations` |
+| `EsImageCodec` | `SaveExtensions` / `Decode` / `Save` / `Resize` / `ReduceColors` / `GetExtension` ほか（詳細は §2.44） | `Native.Win.Wic.WinWicImageCodec` / `Imaging.EsImageFileFormatExtensions` / `Imaging.EsBitmapOperations` |
 
 `TryParse*` は**数値文字列を受理しません**（列挙に無い値を弾く。 判断は `EnumCanonical` が単一所有し、失敗時は `out` を `default` に戻します）。 型そのものを名指しする利用側は、その機能の名前空間を `using` します。
 
 **窓口は「操作の入口」である**（型そのものではなく、解釈・正規化・生成を行う）。 境界の包括捕捉は `EsErrors.IsRecoverable`、ホットキーの解釈と生成は `EsInput`、購読の一覧は `EsCallbacks` を使います（実測 2026-10-23: 4 UI の設定画面と全境界の 76 箇所が窓口経由になった）。
 
-### 2.40 `Input.HotKeyParser`（static class）
+### 2.46 `Input.HotKeyParser`（static class）
 
 ホットキーの文字列表現（例: `"Ctrl + Shift + Q"`）を解釈します。 設定画面の入力解釈を 4 つの UI 版が共有します。
 
@@ -983,7 +1062,7 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 
 修飾キーの名前は `Ctrl` / `Control` / `Shift` / `Alt` / `Win` / `Windows` です。 未知の修飾キーは無視され、修飾キーが 1 つも残らなければ失敗します。
 
-### 2.41 `Window.EsWindowPlacementMath`（static class）
+### 2.47 `Window.EsWindowPlacementMath`（static class）
 
 ウィンドウの位置・サイズの規則と DIP ⇔ 画面物理ピクセルの換算（**純粋計算**。 OS を呼びません）。 4 つの UI 版と設定の単位（画面物理ピクセル）を単一所有します。
 
@@ -995,15 +1074,15 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 
 **復元しない 3 つの場合**: 幅・高さが 0 以下（壊れた設定）／表示領域との重なりが 64 ピクセル未満（画面外で起動して操作できない）／保存値が最小化（見えないまま起動する）。 仮想スクリーンの照会は `Native.Win.WinVirtualScreen` が担います（本型は OS を呼びません）。
 
-### 2.42 `Geometry.EsRectIntJsonConverter`（sealed class : `JsonConverter<EsRectInt>`）
+### 2.48 `Geometry.EsRectIntJsonConverter`（sealed class : `JsonConverter<EsRectInt>`）
 
 `EsRectInt` の JSON の保存形式（`X` / `Y` / `Width` / `Height` のみ）を単一所有します。 `EsRectInt` は読み取り専用プロパティを持つため既定のシリアライザーでは往復できません。 未知のプロパティは無視し、欠落したプロパティは 0 として読みます（**既存の設定ファイルをそのまま読める**）。 `System.Text.Json` は共有フレームワークに含まれるため外部パッケージは増えません。
 
-### 2.43 `Native.Win.WinVirtualScreen`（static class）
+### 2.49 `Native.Win.WinVirtualScreen`（static class）
 
 全モニターを包含する仮想スクリーンの矩形（画面物理ピクセル）を `GetSystemMetrics` で照会します。 `DisplayArea.FindAll()` を使わないのは、ウィンドウの表示前に列挙すると WinRT の射影で起動できないためです（実測 2026-10-17）。 プライマリ モニタが原点にない場合は負値を返します（仮想スクリーンの座標そのもの）。
 
-### 2.44 `Palette`（色名と色文字列）
+### 2.50 `Palette`（色名と色文字列）
 
 色を選ばせるコントロール（`EsUtil.Ui.*.ColorSelector`）と設定ファイルが共有する、**色名の表**と**色文字列の解釈**です。
 
@@ -1042,22 +1121,15 @@ var hex = EsColor.ToArgbHex("Red+50%");          // "#80FF0000"
 foreach (var entry in EsColor.GetPalette(ColorSortMode.ByHue)) { /* Name と Color */ }
 ```
 
-### 2.45 `Native.Win.WinClipboard`（static class）
+### 2.51 `Native.Win.WinClipboard`（sealed class : IClipboardService）
 
-クリップボードの読み書きを **寿命の管理ごと** 提供します（`OpenClipboard` → ロック → 解放 → `CloseClipboard` の順序を単一所有し、解放漏れを作りません）。 **失敗は例外にしません**（他アプリが使用中・内容が無い場合は `false`）。
-
-| メンバー | 用途 |
-| --- | --- |
-| `TryReadDib(uint format, Action<IntPtr> read)` | DIB（`CF_DIB` = 8 など）の先頭ポインターをコールバックへ渡す。 戻るまでロックしたままにする |
-| `TryReadText(out string? text)` | テキスト（`CF_UNICODETEXT`）を読む |
-| `TryWriteText(string text)` | 既存の内容を消してからテキストを書く（アプリ終了後も内容が残る） |
-| `SequenceNumber` | 内容が変わるたびに増える番号（変更の検出用。 クリップボードを開かずに取得できる） |
+クリップボードの読み書きを **寿命の管理ごと** 提供します（`OpenClipboard` → ロック → 解放 → `CloseClipboard` の順序を単一所有し、解放漏れを作りません）。 **失敗は例外にしません**（他アプリが使用中・内容が無い場合は `false`）。 メンバーは [`IClipboardService`](#227-nativeiclipboardserviceinterface) と同じです。
 
 **書き込みのメモリは `GMEM_MOVEABLE` で確保します**（`SetClipboardData` の要求。 固定メモリを渡すと内容が残らない）。 設定に成功したメモリの所有権はシステムへ移り、失敗した場合だけ解放します。
 
-### 2.46 `Imaging.EsImageFile`（sealed class : `IDisposable`）
+### 2.52 `Imaging.EsImageFile`（sealed class : `IDisposable`）
 
-画像ファイルを **1 回だけ読み込み**、寸法の取得と復号を同じ内容から行います。 パスの面を `EsImageCodec`（§2.38）へ置くと、寸法を先に求めてから復号する呼び出しで**同じファイルを 2 回読む**経路ができるため、パスの読み込みは本条が単一所有します。 **Windows 専用**です。
+画像ファイルを **1 回だけ読み込み**、寸法の取得と復号を同じ内容から行います。 パスの面を `EsImageCodec`（§2.44）へ置くと、寸法を先に求めてから復号する呼び出しで**同じファイルを 2 回読む**経路ができるため、パスの読み込みは本条が単一所有します。 **Windows 専用**です。
 
 | メンバー | 内容 | WIC を使う |
 | --- | --- | --- |
@@ -1070,7 +1142,7 @@ foreach (var entry in EsColor.GetPalette(ColorSortMode.ByHue)) { /* Name と Col
 - **開いたままにしません**: 内容は `Open` でメモリへ取り込むため、ファイルは直ちに解放されます（他のアプリが開いているファイルも読めます）。
 - **破棄後は `ObjectDisposedException`** になります（`GetSize` / `Decode`）。
 
-### 2.47 `Common.NumberText`（static class）
+### 2.53 `Common.NumberText`（static class）
 
 数値を**自然な表記**の文字列へ書式化します（ログ・画面表示用）。 最短往復表記（`double.ToString()`）は 2 進小数の誤差をそのまま出すため（`1.5999999999999996`）、ログや利用者向けの表示には使いません。
 
@@ -1082,6 +1154,43 @@ foreach (var entry in EsColor.GetPalette(ColorSortMode.ByHue)) { /* Name と Col
 - **桁数を固定しません**: 丸めた結果だけを出します（`1.6` は `1.6`、`12` は `12`、`1.56` は `1.56`）。
 - **カルチャに依存しません**（`CultureInfo.InvariantCulture` を使う。 小数点は常に `.`）。
 - **使う場所**: ログの定義（`<機能>LogMessage`）が数値・座標・矩形を文字列化するときに使います（各層が個別に `ToString` を書かない）。
+
+### 2.54 `Native.IUserPreferenceService`（interface）
+
+OS のユーザー設定（操作の感覚に影響する値）を抽象化します。 実装はプラットフォームが提供します（Windows: `GetDoubleClickTime`）。
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `DoubleClickIntervalMilliseconds` | `long DoubleClickIntervalMilliseconds { get; }` | ダブルクリックと見なす時間の上限（ミリ秒。 OS の設定値。 既定は 500） |
+
+**固定値を使わない理由**: コントロールが固定値を決めると、OS の設定を変えた利用者と操作の感覚が食い違うためです（値を照会して使います）。
+
+### 2.55 `Native.Win.WinUserPreferenceService`（sealed class : `IUserPreferenceService`）
+
+`IUserPreferenceService` の Windows 実装です（`GetDoubleClickTime` を呼びます）。 継承不可。
+
+### 2.56 `Native.Win.WinTaskDialog`（static class）
+
+ComCtl32 v6 のタスク ダイアログを表示します（XAML などの初期化前でも使える案内 UI）。
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `TryShow` | `bool TryShow(string windowTitle, string mainInstruction, string content, IReadOnlyList<EsDialogButton> buttons, int defaultButtonId, Func<string, bool>? hyperlinkHandler, out int selectedButtonId)` | 表示できたら `true`。 閉じられた・表示できなかった場合は `selectedButtonId` = `defaultButtonId` |
+
+- **`false` を返す条件**: ComCtl32 の v6 が有効でない（アプリのマニフェストが `Microsoft.Windows.Common-Controls` を宣言していない）環境。 呼び出し側は `WinMessageBox.ShowYesNoCancel` へ落ちます。
+- **リンク**: 本文の `<a href="...">` が押されると `hyperlinkHandler` へ URL を渡します。 **外部から渡された文字列を実行しない**（処理は呼び出し側が自分の URL だけを開きます）。
+
+### 2.57 `Native.Win.WinDialogService`（sealed class : IDialogService）
+
+Win32 のダイアログを [`IDialogService`](#230-nativeidialogserviceinterface) として提供します。 タスク ダイアログの表示は `WinTaskDialog` が、メッセージ ボックスの表示は `WinMessageBox` が担い（本クラスは P/Invoke を持たない）、**「タスク ダイアログを使い、使えなければメッセージ ボックスへ落ちる」対を 1 つの入口にまとめます**。
+
+### 2.58 `Native.Win.WinProcessDpi`（static class）
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `TryEnablePerMonitorV2` | `bool TryEnablePerMonitorV2()` | プロセス全体を Per-Monitor V2 の DPI 対応にする。 既に設定済み・OS が拒否した場合は `false` |
+
+**UI フレームワークを持つアプリは使いません**: WinForms / MewUI / Avalonia はそれぞれの初期化がプロセスの DPI 対応を所有します。 本クラスは UI フレームワークを持たないホスト（サービス・ツール・コンソール アプリ）向けです。
 
 ## 3. 使用例
 
@@ -1106,6 +1215,8 @@ var source = port.ToSource(new EsPoint(100, 100));
 ```csharp
 // 実行時のプラットフォーム分岐を持たないため、ホストが具象を生成して抽象型として注入する
 services.AddSingleton<IGlobalHotKeyService<CaptureType>>(_ => new WinGlobalHotKeyService<CaptureType>());
+services.AddSingleton<ICursorService, WinCursorService>();
+services.AddSingleton<IUserPreferenceService, WinUserPreferenceService>();
 ```
 
 ### 3.3 ログの取得と記録

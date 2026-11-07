@@ -28,7 +28,7 @@ WinUI 3 と EsUtil の型の相互変換が提供する公開 API です。 使�
 | `EsGeometryInterop` | `EsPoint` / `EsSize` / `EsRect` と整数版 ↔ WinRT の幾何型 |
 | `EsWindowStateInterop` | `EsWindowState` ↔ WinUI 3 のウィンドウ状態 |
 | `EsPlatformHandleInterop` | `EsPlatformHandle` ↔ WinUI 3 のウィンドウ ハンドル |
-| `OverlayWindowPlacer` | オーバーレイ ウィンドウを対象の矩形へ配置する |
+| `OverlayWindowPlacer` | オーバーレイ ウィンドウを対象の矩形へ配置する（枠の計測先 `IWindowFrameMetrics` を差し替えられる） |
 | `EsWindowPlacementMath`（コア） | 設定の物理ピクセル ↔ WinUI 3 の DIP の換算 |
 
 ### 2.2 部分名前空間

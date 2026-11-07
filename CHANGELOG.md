@@ -5,6 +5,30 @@
 - **公開する版は人が決めます**（`VersionPrefix` 1 行を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
+## 未リリース
+
+### 破壊的な変更
+
+- **すべてのパッケージの動作 OS を Windows に限定しました**。 対象フレームワークを `net10.0-windows10.0.17763.0`（WinUI 3 層は `net10.0-windows10.0.22621.0`）にし、`[SupportedOSPlatform]` を外しました。 利用側のプロジェクトも Windows 向けの対象フレームワークにしてください（`net10.0` からは参照できません）。
+- **`MarqueePresenter` / `MarqueeCore` から `cursor` 引数を削除しました**。 カーソル操作は効果（`IMarqueeEffects` の `TryMoveCursor` / `ShowCursor`）越しに要求します（UI 層のコントロールのコンストラクターは `ICursorService` を受け取る形のままです）。
+
+### 追加
+
+- **`EsUtil.Platform.Core` に OS 機能を追加しました**（いずれも Windows 専用。 本リポジトリ内に利用者が居ない機能も、利用側のアプリで必要になるため公開します）。
+  - `Native.IDialogService` / `Native.Win.WinDialogService`（タスク ダイアログとメッセージ ボックスを 1 つの入口にまとめた抽象） / `Native.Win.WinTaskDialog`（ComCtl32 v6 のタスク ダイアログ。 使えない環境では `false` を返す）/ `Native.EsDialogButton`
+  - `Native.Win.WinMessageBox.ShowYesNoCancel`（3 択の確認）/ `Native.EsDialogResult`
+  - `Native.Win.WinProcessDpi`（UI フレームワークを持たないホスト向けの Per-Monitor V2 の設定）
+  - `Native.IUserPreferenceService` / `Native.Win.WinUserPreferenceService`（ダブルクリックと見なす時間の照会）
+  - `Native.IClipboardService` / `Native.Win.WinClipboard`（クリップボードの読み書き。 他のアプリが使用中の失敗をテストで再現できる）
+  - `Native.IMonitorDpi` / `Native.Win.WinMonitorDpi`（モニターの実効 DPI の照会。 任意の倍率をテストで再現できる）
+  - `Native.IWindowFrameMetrics` / `Native.Win.WinWindowFrame`（枠の太さの計測。 テーマ・DPI の差をテストで再現できる）
+  - `WinWindowService.TryClientToScreen` / `TryScreenToClient`（`IWindowService` のメンバー。 クライアント座標 ⇔ 画面物理座標）
+
+### 変更
+
+- **UI 層から Win32 の直接呼び出しを無くしました**。 WinUI 3 の `MarqueeControl` と `OverlayWindowPlacer` は `IWindowService`（既定実装は `WinWindowService`）と `IWindowFrameMetrics`（既定実装は `WinWindowFrame`）を、案内 UI は `IDialogService`（既定実装は `WinDialogService`）を使います（WinUI 3 から CsWin32 への依存を削除しました）。
+- **WIC の型がコアの公開面へ漏れないようにしました**。 `EsBitmapOperations` の縮小は `EsImageScalingMode` を受け取り、WIC の型は `WinWicImageCodec` の内側に閉じます。
+
 ## 0.5.3（2026-11-06）
 
 ### 変更

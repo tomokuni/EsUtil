@@ -31,7 +31,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| ターゲット | `net10.0` |
+| ターゲット | `net10.0-windows10.0.17763.0` |
 | 言語 | C# 14（`Nullable` 有効・`ImplicitUsings` 有効） |
 | ルート名前空間 | `EsUtil.Feature.Marquee`（**公開面はすべてここに属する**。 ファサードと、ファサードのメンバーの型（`IMarqueeEffects` / `MarqueeGeometry` / `MarqueeRenderRequest` / `MarqueeHandles` / `MarqueeMarker` / `MarqueeSnapshot` / `MarqueeNotice` / `MarqueeNoticeKind` / `MarqueeHitTarget` / `MarqueeCursorKind` / `MarqueeInteractionState` / `MarqueeOptions`））。 `internal` の型と `MarqueeEffectsBase` だけが層フォルダ `src/Core/` の配下に残る |
 | ドキュメント生成 | `GenerateDocumentationFile` 有効（XML は配布物へ出さず `cref` の検証のみに使う） |
@@ -50,7 +50,7 @@ UI 実装
 
 
     └──> コア   何を計算するか（状態・判断・幾何）
-           └──> EsUtil.Platform.Core（Es* 値型・ICoordTransform・ICursorService）
+           └──> EsUtil.Platform.Core（Es* 値型・ICoordTransform）
 ※ 本コアは上位の層を参照しない（上位の層が本コアの幾何を使う向きだけ）。本コアは Platform.* の UI アダプタも参照しない。
 ```
 
@@ -140,7 +140,7 @@ stateDiagram-v2
 | 状況 | 扱い |
 | --- | --- |
 | `MarqueeCore` の `effects` が null | `ArgumentNullException`（呼び出し側の実装誤り） |
-| カーソルサービス未指定 | 例外にせず、カーソル操作を効果へ載せない（UI 初期化なしの検証を可能にする） |
+| カーソル操作を実行できない | 既定実装（`MarqueeEffectsBase`）が `TryMoveCursor` で `false` を返すだけにして例外にしない（UI 初期化なしの検証を可能にする） |
 | ロガー未設定 | `NullLogger` へ吸収する（呼び出し側は null を設定してよい） |
 | 座標変換ポート未設定 | 等価変換（1 対象ピクセル = 1 DIP・境界なし）として扱う |
 | 未定義の `EsKey` | 何もしない（`default` の効果を返す） |
