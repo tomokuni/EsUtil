@@ -97,8 +97,21 @@ jobs:
           & pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -SkipPack -Feed artifacts -Version $version
           if ($LASTEXITCODE -ne 0) { throw "パッケージングの検証が失敗しました（exit $LASTEXITCODE）" }
 
-      # SBOM（CycloneDX）はソリューションごとに 1 ファイル。 依存の解析は復元を伴うため、
-      # **並列に走らせる**（ツールの復元は 1 回だけ行い、スクリプトへは -SkipToolRestore を渡す）。
+      # SBOM の解析は復元を伴う。 **5 本を並列に走らせたまま復元させない**: 共有プロジェクトの
+      # `obj/` を取り合って失敗する（実測 2026-11-05: 別ジョブで 5 本がそれぞれ復元し直して 140 秒）。
+      # 復元はここで 1 回だけ直列に行い、SBOM は `-SkipPackageRestore` で解析だけを行う。
+      - name: 復元する（SBOM の解析のため）
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($sln in @((Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json).solutions)) {
+            # lock どおりに復元する（`pack` と同じ条件）
+            & dotnet restore $sln --nologo -p:RestoreLockedMode=true
+            if ($LASTEXITCODE -ne 0) { throw "restore が失敗しました: $sln" }
+          }
+
+      # SBOM（CycloneDX）はソリューションごとに 1 ファイル。 依存の解析は**復元済み**のため、
+      # 5 本を並列に走らせて解析だけを行う（ツールの復元も 1 回だけ行う）。
       - name: SBOM を作成
         shell: pwsh
         run: |
@@ -119,7 +132,7 @@ jobs:
             $item = $_
             $text = & pwsh -NoProfile -File (Join-Path $using:root 'buildScript/generateSbom.ps1') `
               -Output $using:output -Solution $item.solution -Version $using:version `
-              -Product $item.product -SkipToolRestore *>&1
+              -Product $item.product -SkipToolRestore -SkipPackageRestore *>&1
             $code = $LASTEXITCODE
             $text | ForEach-Object { Write-Host $_ }
             [pscustomobject]@{ Product = $item.product; Exit = $code }
