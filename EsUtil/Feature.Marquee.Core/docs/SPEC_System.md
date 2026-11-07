@@ -140,7 +140,7 @@ stateDiagram-v2
 | 状況 | 扱い |
 | --- | --- |
 | `MarqueeCore` の `effects` が null | `ArgumentNullException`（呼び出し側の実装誤り） |
-| カーソル操作を実行できない | 既定実装（`MarqueeEffectsBase`）が `TryMoveCursor` で `false` を返すだけにして例外にしない（UI 初期化なしの検証を可能にする） |
+| カーソル操作を実行できない | 既定実装（`MarqueeEffectsBase`）が `TryMoveCursor` で `null`（未対応）を返すだけにして例外にしない（UI 初期化なしの検証を可能にする。 `false` は移動の失敗） |
 | ロガー未設定 | `NullLogger` へ吸収する（呼び出し側は null を設定してよい） |
 | 座標変換ポート未設定 | 等価変換（1 対象ピクセル = 1 DIP・境界なし）として扱う |
 | 未定義の `EsKey` | 何もしない（`default` の効果を返す） |

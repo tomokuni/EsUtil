@@ -42,15 +42,31 @@ internal static unsafe class WinSubclass
     /// <param name="uIdSubclass">サブクラスの識別値（未使用）。</param>
     /// <param name="dwRefData">文脈（<see cref="Context"/> の <c>GCHandle</c>）。</param>
     /// <returns>メッセージの処理結果。</returns>
+    /// <remarks>
+    /// <b>例外をアンマネージド境界の外へ出さない</b>: 処理の中には利用者のコード（ホットキーの購読など）が入る。
+    /// 境界を越えた例外はプロセスを終了させるため、捕捉して既定の処理へ落とす（記録は購読側が行う）。
+    /// </remarks>
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
     private static LRESULT Dispatch(
         HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam, nuint uIdSubclass, nuint dwRefData)
     {
         _ = uIdSubclass;
         var context = dwRefData == 0 ? null : GCHandle.FromIntPtr((nint)dwRefData).Target as Context;
-        return context is null
-            ? PInvoke.DefSubclassProc(hWnd, msg, wParam, lParam)
-            : context.Handler(hWnd, msg, wParam, lParam);
+        if (context is null)
+        {
+            return PInvoke.DefSubclassProc(hWnd, msg, wParam, lParam);
+        }
+
+        try
+        {
+            return context.Handler(hWnd, msg, wParam, lParam);
+        }
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
+        {
+            // アンマウント境界（UnmanagedCallersOnly）を越えて例外を伝播させない（越えるとプロセスが終了する）。
+            // メッセージを既定の処理へ委ね、ウィンドウの操作は継続する（記録は利用者側の処理が行う）。
+            return PInvoke.DefSubclassProc(hWnd, msg, wParam, lParam);
+        }
     }
 
     /// <summary>サブクラス プロシージャへ渡す文脈（インスタンスと処理の組）。</summary>

@@ -525,7 +525,7 @@ OS のダイアログ（案内 UI）を抽象化します。
 public readonly record struct EsDialogButton(int Id, string Text);
 ```
 
-タスク ダイアログのボタン。 `Id` は押されたときに返す識別子（**0 以外**）、`Text` は表題です。
+タスク ダイアログのボタン。 `Id` は押されたときに返す識別子（**0 以外**）、`Text` は表題です。 閉じられた場合は識別子ではなく OS のキャンセル相当の値（`IDCANCEL`）が返るため、呼び出し側は**一覧に無い値を「閉じられた」として扱います**。
 
 ### 2.32 `Native.EsDialogResult`（enum）
 
@@ -1175,7 +1175,7 @@ ComCtl32 v6 のタスク ダイアログを表示します（XAML などの初�
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
-| `TryShow` | `bool TryShow(string windowTitle, string mainInstruction, string content, IReadOnlyList<EsDialogButton> buttons, int defaultButtonId, Func<string, bool>? hyperlinkHandler, out int selectedButtonId)` | 表示できたら `true`。 閉じられた・表示できなかった場合は `selectedButtonId` = `defaultButtonId` |
+| `TryShow` | `bool TryShow(string windowTitle, string mainInstruction, string content, IReadOnlyList<EsDialogButton> buttons, int defaultButtonId, Func<string, bool>? hyperlinkHandler, out int selectedButtonId)` | 表示できたら `true`。 表示できなかった場合は `selectedButtonId` = `defaultButtonId`、**閉じられた場合は `IDCANCEL`**（押されたボタンの識別子ではない値。 呼び出し側は識別子の一覧に無い値を「閉じられた」として扱う） |
 
 - **`false` を返す条件**: ComCtl32 の v6 が有効でない（アプリのマニフェストが `Microsoft.Windows.Common-Controls` を宣言していない）環境。 呼び出し側は `WinMessageBox.ShowYesNoCancel` へ落ちます。
 - **リンク**: 本文の `<a href="...">` が押されると `hyperlinkHandler` へ URL を渡します。 **外部から渡された文字列を実行しない**（処理は呼び出し側が自分の URL だけを開きます）。

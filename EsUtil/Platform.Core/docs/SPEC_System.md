@@ -72,7 +72,7 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/IWindowFrameMetrics.cs` | ウィンドウの枠の太さの計測の抽象 |
 | `EsUtil/Platform.Core/src/Native/IDialogService.cs` | OS のダイアログ（タスク ダイアログ・メッセージ ボックス）の抽象 |
 | `EsUtil/Platform.Core/src/Native/EsDialogButton.cs` | タスク ダイアログのボタン（識別子と表題） |
-| `EsUtil/Platform.Core/src/Native/EsDialogResult.cs` | メッセージ ボックスで押されたボタン（はい / いいえ / キャンセル / 閉じた） |
+| `EsUtil/Platform.Core/src/Native/EsDialogResult.cs` | メッセージ ボックスで押されたボタン（はい / いいえ / キャンセル。 閉じられた場合もキャンセル） |
 | `EsUtil/Platform.Core/src/Native/IUserPreferenceService.cs` | OS のユーザー設定（ダブルクリックと見なす時間）の抽象 |
 | `EsUtil/Platform.Core/src/Native/Win/WinMonitorDpi.cs` | `IMonitorDpi` の Windows 実装（4 つの UI 版が使う単一所有。 WinForms 版の `MonitorDpi` も本クラスへ委譲する） |
 | `EsUtil/Platform.Core/src/Native/Win/WinWindowFrame.cs` | `IWindowFrameMetrics` の Windows 実装（枠の太さの実測。 最小サイズの計算に使う） |
