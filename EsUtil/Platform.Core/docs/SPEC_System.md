@@ -198,8 +198,8 @@ graph LR
 | `LibraryImport` を自作しない | CsWin32 の列挙型を引数に取る `LibraryImport` は `SYSLIB1051` で拒否される。 手書きが必要な場合は引数を `int` / `nint` で受ける |
 | サブクラス化 | **`SetWindowSubclass` / `DefSubclassProc` / `RemoveWindowSubclass`（comctl32）を使う**。 `SetWindowLongPtr(GWLP_WNDPROC)` は元のプロシージャを自前で保存・復元する必要があり、他のサブクラス化（ビジュアル スタイル等）と共存できない |
 | comctl32 v6 の要否 | **実測: アクティベーション コンテキスト（comctl32 v6）が無いプロセスでも動作する**（`SetWindowSubclass` が TRUE を返し、サブクラス プロシージャが実際に呼ばれた）。 そのためライブラリ側でマニフェストを要求しない |
-| デリゲートの保持 | サブクラス プロシージャは**インスタンスごとに 1 回だけ作ってフィールドへ保持**する（`WM_SETCURSOR` はマウス移動のたびに届くため、メッセージごとにデリゲートを作らない）。 識別値（`uIdSubclass`）はクラス内の連番で一意にする |
-| 解除 | 明示的な破棄（`Dispose`）に加え、**`WM_NCDESTROY` でも解除する**（解除しないと comctl32 がサブクラス プロシージャへの参照を保持し続ける） |
+| コールバックの保持 | サブクラス プロシージャは**静的な `[UnmanagedCallersOnly]` の関数ポインター 1 本**（`WinSubclass.Procedure`）に集約し、インスタンスは `dwRefData` の文脈（`GCHandle`）で渡す（メッセージごとにデリゲートを作らない。 同上の理由で使用後に解放する）。 識別値（`uIdSubclass`）はクラス内の連番で一意にする |
+| 解除 | 明示的な破棄（`Dispose`）に加え、**`WM_NCDESTROY` でも解除する**（解除しないと comctl32 がサブクラス プロシージャへの参照を保持し続ける）。 解除と同時に**文脈（`GCHandle`）を解放する**（解放しないとインスタンスが回収されない） |
 
 #### 7.3.1 COM の 2 件だけを手書きする理由（実測 2026-10-21）
 

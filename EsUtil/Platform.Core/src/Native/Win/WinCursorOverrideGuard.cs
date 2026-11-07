@@ -62,24 +62,33 @@ public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
         if (hwnd == IntPtr.Zero) return;
 
         // 文脈は 1 回だけ作る（WM_SETCURSOR はマウス移動のたびに届く）
-        var context = _context ??= WinSubclass.CreateContext(WndProc);
+        var context = _context ?? WinSubclass.CreateContext(WndProc);
         var id = ++s_lastSubclassId;
         if (!PInvoke.SetWindowSubclass((HWND)hwnd, WinSubclass.Procedure, id, context.ReferenceData))
         {
-            // 失敗した状態を残さない（IsAttached を false に戻し、呼び出し側が判別できるようにする）
+            // 失敗した状態を残さない（文脈も解放する。 IsAttached は false のままで呼び出し側が判別できる）
+            context.Release();
+            _context = null;
             return;
         }
 
+        _context = context;
         _hwnd = hwnd;
         _subclassId = id;
     }
 
     /// <summary>サブクラス化を解除する。</summary>
     /// <param name="hwnd">サブクラス化したウィンドウのハンドル。</param>
+    /// <remarks>
+    /// <b>文脈（<c>GCHandle</c>）を解放する</b>: 解放しないと静的ルートから本インスタンスへ到達でき、
+    /// <see cref="Dispose"/> の後も回収されない（<see cref="WinSubclass"/> の契約）。
+    /// </remarks>
     private unsafe void DetachCore(IntPtr hwnd)
     {
         if (_context is null) return;
         _ = PInvoke.RemoveWindowSubclass((HWND)hwnd, WinSubclass.Procedure, _subclassId);
+        _context.Release();
+        _context = null;
     }
 
     /// <summary>サブクラス化を解除する。</summary>
