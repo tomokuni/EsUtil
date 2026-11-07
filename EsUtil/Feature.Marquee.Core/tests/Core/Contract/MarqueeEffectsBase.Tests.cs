@@ -25,7 +25,7 @@ public class MarqueeEffectsBaseTests
         effects.SetCursorShape(MarqueeCursorKind.DiagonalNWSE);
         effects.SetPointerCapture(false);
         Assert.Equal(default, effects.ToScreenPoint(new EsPoint(10, 20)));
-        Assert.False(effects.TryMoveCursor(new EsPointInt(1, 2)));
+        Assert.Null(effects.TryMoveCursor(new EsPointInt(1, 2)));
         effects.ShowCursor(false);
         effects.ShowCursor(true);
     }

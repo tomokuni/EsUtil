@@ -41,7 +41,7 @@ internal sealed class EffectsSpy : IMarqueeEffects
     public List<EsPointInt> MovedPoints { get; } = [];
 
     /// <inheritdoc/>
-    public bool TryMoveCursor(EsPointInt screenPoint)
+    public bool? TryMoveCursor(EsPointInt screenPoint)
     {
         MovedPoints.Add(screenPoint);
         Calls.Add($"move:{screenPoint.X},{screenPoint.Y}");

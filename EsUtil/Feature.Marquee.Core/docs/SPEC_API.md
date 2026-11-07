@@ -127,7 +127,7 @@
 | `SetCursorShape(MarqueeCursorKind)` | カーソル形状を設定する（UI が自 UI のカーソル型へ写像する） |
 | `SetPointerCapture(bool)` | ポインターキャプチャを取得/解放する |
 | `ToScreenPoint(EsPoint)` | ローカル DIP を画面座標へ変換する（nudge のカーソル移動にのみ使う） |
-| `TryMoveCursor(EsPointInt)` | 実カーソルを画面座標へ移動する（成功したら `true`。 既定は移動しない） |
+| `TryMoveCursor(EsPointInt)` | 実カーソルを画面座標へ移動する（成功したら `true`、失敗したら `false`、**カーソルを操作しない実装は `null`（未対応。 失敗として記録しない）**。 既定は `null`） |
 | `ShowCursor(bool)` | 実カーソルの表示/非表示を切り替える（nudge 中は隠す。 既定は何もしない） |
 
 `MarqueeEffectsBase` はこれらの全メンバーを virtual の空実装として提供する `abstract class` です。 独自の UI アダプタは本クラスを継承し、必要な効果（例: `RequestRedraw`）だけを override します（不要なメンバーの空実装を書かなくて済む）。

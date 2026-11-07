@@ -17,9 +17,16 @@ public interface IDialogService
     /// <param name="buttons">ボタン（1 つ以上。 識別子は 0 以外）。 null 不可。</param>
     /// <param name="defaultButtonId">既定のボタンの識別子（<paramref name="buttons"/> のいずれか）。</param>
     /// <param name="hyperlinkHandler">本文のリンクが押されたときに URL を受け取る処理。 null の場合はリンクを有効にしない。</param>
-    /// <param name="selectedButtonId">押されたボタンの識別子。 表示できなかった場合・閉じられた場合は <paramref name="defaultButtonId"/>。</param>
+    /// <param name="selectedButtonId">
+    /// 押されたボタンの識別子。 表示できなかった場合は <paramref name="defaultButtonId"/>、
+    /// <b>閉じられた場合（×・Esc）は押されたボタンの識別子ではない値</b>（OS が返すキャンセル相当の値）。
+    /// </param>
     /// <returns>表示できた場合は <see langword="true"/>。 タスク ダイアログを使えない環境では <see langword="false"/>。</returns>
-    /// <remarks>選択の解釈（識別子から意味への写像）は呼び出し側が行う（ダイアログは特定の業務を知らない）。</remarks>
+    /// <remarks>
+    /// 選択の解釈（識別子から意味への写像）は呼び出し側が行う（ダイアログは特定の業務を知らない）。<br/>
+    /// <b>呼び出し側は <paramref name="buttons"/> に無い識別子を「閉じられた」として扱う</b>
+    /// （既定のボタンへ読み替えない。 既定が破壊的な操作だと、閉じただけで実行されてしまう）。
+    /// </remarks>
     bool TryShowTaskDialog(
         string windowTitle,
         string mainInstruction,

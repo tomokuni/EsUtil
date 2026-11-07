@@ -25,13 +25,17 @@ public static class WinTaskDialog
     /// <param name="buttons">ボタン（1 つ以上。 識別子は 0 以外）。 null 不可。</param>
     /// <param name="defaultButtonId">既定のボタンの識別子（<paramref name="buttons"/> のいずれか）。</param>
     /// <param name="hyperlinkHandler">本文のリンクが押されたときに URL を受け取る処理。<see langword="null"/> の場合はリンクを有効にしない。</param>
-    /// <param name="selectedButtonId">押されたボタンの識別子。 表示できなかった場合・閉じられた場合は <paramref name="defaultButtonId"/>。</param>
+    /// <param name="selectedButtonId">
+    /// 押されたボタンの識別子。 表示できなかった場合は <paramref name="defaultButtonId"/>、
+    /// 閉じられた場合（×・Esc）は押されたボタンの識別子ではない値（<c>IDCANCEL</c>）。
+    /// </param>
     /// <returns>表示できた場合は <see langword="true"/>。 タスク ダイアログを使えない環境では <see langword="false"/>。</returns>
     /// <exception cref="ArgumentNullException">必須の引数が null の場合。</exception>
     /// <exception cref="ArgumentException"><paramref name="buttons"/> が空の場合。</exception>
     /// <remarks>
     /// <b>表示できたかどうかだけを返す</b>: 選択の解釈（識別子から意味への写像）は呼び出し側が行う（ダイアログは
-    /// 特定の業務を知らない）。<br/>
+    /// 特定の業務を知らない）。 <b>閉じられた場合は既定のボタンへ読み替えない</b>（既定が破壊的な操作だと、
+    /// 閉じただけで実行されてしまうため）。 呼び出し側は <paramref name="buttons"/> に無い識別子を「閉じられた」として扱う。<br/>
     /// <b>リンクの処理</b>: 本文の <c>&lt;a href="..."&gt;</c> が押されると <paramref name="hyperlinkHandler"/> へ
     /// URL を渡す。<b>外部から渡された文字列を実行しない</b>（処理は呼び出し側が自分の URL だけを開く）。
     /// </remarks>
@@ -150,7 +154,15 @@ public static class WinTaskDialog
             var url = Marshal.PtrToStringUni((nint)lParam);
             if (handler is not null && !string.IsNullOrEmpty(url))
             {
-                _ = handler(url);
+                try
+                {
+                    _ = handler(url);
+                }
+                catch (Exception ex) when (EsErrors.IsRecoverable(ex))
+                {
+                    // アンマウント境界（UnmanagedCallersOnly）を越えて例外を伝播させない（越えるとプロセスが終了する）。
+                    // リンクを開けなかっただけであり、ダイアログは閉じない（記録はリンクの処理側が行う）。
+                }
             }
         }
 

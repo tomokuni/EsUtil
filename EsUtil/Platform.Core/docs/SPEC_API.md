@@ -513,7 +513,7 @@ OS のダイアログ（案内 UI）を抽象化します。
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
-| `TryShowTaskDialog` | `bool TryShowTaskDialog(string windowTitle, string mainInstruction, string content, IReadOnlyList<EsDialogButton> buttons, int defaultButtonId, Func<string, bool>? hyperlinkHandler, out int selectedButtonId)` | タスク ダイアログを表示。 使えない環境では `false`（`selectedButtonId` は `defaultButtonId`） |
+| `TryShowTaskDialog` | `bool TryShowTaskDialog(string windowTitle, string mainInstruction, string content, IReadOnlyList<EsDialogButton> buttons, int defaultButtonId, Func<string, bool>? hyperlinkHandler, out int selectedButtonId)` | タスク ダイアログを表示。 使えない環境では `false`（`selectedButtonId` は `defaultButtonId`）。 **閉じられた場合（×・Esc）は押されたボタンの識別子ではない値**になるため、呼び出し側は既知の識別子以外を「閉じられた」として扱う（既定のボタンへ読み替えない） |
 | `ShowYesNoCancel` | `EsDialogResult ShowYesNoCancel(string caption, string text)` | 警告のメッセージ ボックス（はい / いいえ / キャンセル）。 タスク ダイアログを使えない環境の代替 |
 | `ShowError` | `void ShowError(string caption, string text)` | エラーのメッセージ ボックス（選択では分岐しない） |
 
@@ -531,8 +531,8 @@ public readonly record struct EsDialogButton(int Id, string Text);
 
 | 値 | 意味 |
 | --- | --- |
-| `Yes` / `No` / `Cancel` | 押されたボタン |
-| `Close` | 閉じられた（×・Esc）。 ボタンは押されていない |
+| `Yes` / `No` | 押されたボタン |
+| `Cancel` | 「キャンセル」を押した場合と、閉じられた場合（×・Esc）。 **メッセージ ボックスは両者を区別しない** |
 
 ### 2.33 `Native.ElementFinderResults`（readonly record struct）
 

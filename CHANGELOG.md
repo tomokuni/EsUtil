@@ -10,7 +10,7 @@
 ### 破壊的な変更
 
 - **すべてのパッケージの動作 OS を Windows に限定しました**。 対象フレームワークを `net10.0-windows10.0.17763.0`（WinUI 3 層は `net10.0-windows10.0.22621.0`）にし、`[SupportedOSPlatform]` を外しました。 利用側のプロジェクトも Windows 向けの対象フレームワークにしてください（`net10.0` からは参照できません）。
-- **`MarqueePresenter` / `MarqueeCore` から `cursor` 引数を削除しました**。 カーソル操作は効果（`IMarqueeEffects` の `TryMoveCursor` / `ShowCursor`）越しに要求します（UI 層のコントロールのコンストラクターは `ICursorService` を受け取る形のままです）。
+- **`MarqueePresenter` / `MarqueeCore` から `cursor` 引数を削除しました**。 カーソル操作は効果（`IMarqueeEffects` の `TryMoveCursor` / `ShowCursor`）越しに要求します（UI 層のコントロールのコンストラクターは `ICursorService` を受け取る形のままです）。 `TryMoveCursor` の戻り値は `bool?` で、**カーソルを操作しない実装は `null`**（未対応。 移動の失敗 `false` と区別します）。
 
 ### 追加
 

@@ -47,7 +47,6 @@ public sealed class WindowsAppRuntimeInstallDialogTests
     [InlineData(EsDialogResult.Yes, WindowsAppRuntimeInstallChoice.Install)]
     [InlineData(EsDialogResult.No, WindowsAppRuntimeInstallChoice.OpenDownloadPage)]
     [InlineData(EsDialogResult.Cancel, WindowsAppRuntimeInstallChoice.Exit)]
-    [InlineData(EsDialogResult.Close, WindowsAppRuntimeInstallChoice.Exit)]
     internal void Ask_タスクダイアログを使えない場合はメッセージボックスへ落ちる(
         EsDialogResult result,
         WindowsAppRuntimeInstallChoice expected)

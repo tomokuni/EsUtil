@@ -424,13 +424,13 @@ public sealed partial class MarqueeCore
     /// <param name="feedback">適用する効果（カーソル操作・フォーカス・カーソル形状・再描画・キャプチャ）。</param>
     /// <remarks>
     /// 適用の順序（カーソル操作 → フォーカス → カーソル形状 → 再描画）はコア（<see cref="MarqueeFeedback"/>）が単一所有する。<br/>
-    /// カーソル操作は効果の実装が担う（操作しない実装では <see cref="IMarqueeEffects.TryMoveCursor"/> が false を返すだけである）。<br/>
+    /// カーソル操作は効果の実装が担う（操作しない実装では <see cref="IMarqueeEffects.TryMoveCursor"/> が null を返すだけで、失敗として記録しない）。<br/>
     /// 効果はデリゲートではなく <see cref="IMarqueeEffects"/> へ直接適用する（入力イベントのたびにデリゲートを生成しない）。
     /// </remarks>
     private void Apply(in MarqueeFeedback feedback)
     {
         // カーソル移動は表示上の追従であり、失敗しても選択操作は続行する（値で返された失敗をここで記録する）
-        if (!feedback.ApplyCursor(_effects))
+        if (feedback.ApplyCursor(_effects) is false)
         {
             Log.LogCursorMoveFailed(feedback.CursorSourcePosition);
         }

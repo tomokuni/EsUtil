@@ -648,7 +648,7 @@ public class MarqueeControlTests
         public EsPointInt ToScreenPoint(EsPoint sourcePoint) => default;
 
         /// <inheritdoc/>
-        public bool TryMoveCursor(EsPointInt screenPoint) => true;
+        public bool? TryMoveCursor(EsPointInt screenPoint) => true;
 
         /// <inheritdoc/>
         public void ShowCursor(bool show) { }

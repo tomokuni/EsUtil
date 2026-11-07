@@ -23,7 +23,7 @@ public static class WinMessageBox
     /// <summary>警告のメッセージ ボックスを表示し、押されたボタンを返す（はい / いいえ / キャンセル）。</summary>
     /// <param name="caption">表題（アプリ名）。</param>
     /// <param name="text">本文。</param>
-    /// <returns>押されたボタン。 閉じられた（×・Esc）場合は <see cref="EsDialogResult.Close"/>。</returns>
+    /// <returns>押されたボタン。 閉じられた（×・Esc）場合は <see cref="EsDialogResult.Cancel"/>（メッセージ ボックスは閉じられたことを区別しない）。</returns>
     /// <remarks>
     /// ボタンの表題は OS が決める（はい / いいえ / キャンセル）ため、<b>本文へ選択肢との対応を書く</b>。<br/>
     /// <b>タスク ダイアログを使えない環境の代替</b>として使う（<see cref="WinTaskDialog"/> が false を返した場合）。
@@ -42,8 +42,8 @@ public static class WinMessageBox
         {
             MESSAGEBOX_RESULT.IDYES => EsDialogResult.Yes,
             MESSAGEBOX_RESULT.IDNO => EsDialogResult.No,
-            MESSAGEBOX_RESULT.IDCANCEL => EsDialogResult.Cancel,
-            _ => EsDialogResult.Close,
+            // 閉じられた場合（×・Esc）も IDCANCEL になるため Cancel として返す
+            _ => EsDialogResult.Cancel,
         };
     }
 }

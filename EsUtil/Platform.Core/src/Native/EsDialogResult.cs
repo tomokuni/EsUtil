@@ -10,9 +10,6 @@ public enum EsDialogResult
     /// <summary>「いいえ」。</summary>
     No,
 
-    /// <summary>「キャンセル」。</summary>
+    /// <summary>「キャンセル」。 閉じられた場合（×・Esc）もこの値になる。</summary>
     Cancel,
-
-    /// <summary>閉じられた（×・Esc）。 ボタンは押されていない。</summary>
-    Close,
 }

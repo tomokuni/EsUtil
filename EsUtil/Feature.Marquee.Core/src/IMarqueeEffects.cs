@@ -34,12 +34,17 @@ public interface IMarqueeEffects
 
     /// <summary>実カーソルを画面物理座標へ移動する（矢印キーの nudge とハンドル押下で使う）。</summary>
     /// <param name="screenPoint">移動先（画面物理座標）。</param>
-    /// <returns>移動できた場合は <see langword="true"/>。 カーソルを操作しない実装は <see langword="false"/>。</returns>
+    /// <returns>
+    /// 移動できた場合は <see langword="true"/>、移動を試みて失敗した場合は <see langword="false"/>、
+    /// <b>カーソルを操作しない実装</b>は <see langword="null"/>（未対応。 失敗ではない）。
+    /// </returns>
     /// <remarks>
     /// <b>失敗しても選択操作は続行する</b>: 移動は表示上の追従であり、失敗は値で返して呼び出し側が記録する。<br/>
-    /// 既定実装（<see cref="Core.Contract.MarqueeEffectsBase"/>）は移動しない（false）。
+    /// <b>「操作しない」を <see langword="false"/> にしない理由</b>: 未対応は正常な状態であり、失敗として記録すると
+    /// 既定実装のまま矢印キーを押すたびに警告が出る。<br/>
+    /// 既定実装（<see cref="Core.Contract.MarqueeEffectsBase"/>）は移動しない（null）。
     /// </remarks>
-    bool TryMoveCursor(EsPointInt screenPoint);
+    bool? TryMoveCursor(EsPointInt screenPoint);
 
     /// <summary>実カーソルの表示/非表示を切り替える（nudge 中は隠す）。</summary>
     /// <param name="show">表示する場合は <see langword="true"/>、隠す場合は <see langword="false"/>。</param>

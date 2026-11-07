@@ -741,7 +741,7 @@ public sealed partial class MarqueeControl : Panel
         /// <summary>実カーソルを画面物理座標へ移動する。</summary>
         /// <param name="screenPoint">移動先（画面物理座標）。</param>
         /// <returns>移動できた場合は true。 失敗しても選択操作は続行する。</returns>
-        public override bool TryMoveCursor(EsPointInt screenPoint) => owner._cursor.TrySetCursorScreenPoint(screenPoint);
+        public override bool? TryMoveCursor(EsPointInt screenPoint) => owner._cursor.TrySetCursorScreenPoint(screenPoint);
 
         /// <summary>実カーソルの表示/非表示を切り替える。</summary>
         /// <param name="show">表示する場合は true。</param>

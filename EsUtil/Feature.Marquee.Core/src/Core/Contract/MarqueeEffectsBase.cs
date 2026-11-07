@@ -58,14 +58,17 @@ public abstract class MarqueeEffectsBase : IMarqueeEffects
     /// <returns>画面物理座標。 既定では <c>default</c>。</returns>
     /// <remarks>
     /// 実カーソルを動かす nudge だけが必要とする（<see cref="TryMoveCursor"/> と併せて実装する）。<br/>
-    /// 変換できない場合は既定値を返し、カーソルは移動しない（<see cref="TryMoveCursor"/> が false を返す）。
+    /// 変換できない場合は既定値を返し、カーソルは移動しない（<see cref="TryMoveCursor"/> が null を返す）。
     /// </remarks>
     public virtual EsPointInt ToScreenPoint(EsPoint sourcePoint) => default;
 
     /// <summary>実カーソルを画面物理座標へ移動する（既定では移動しない）。</summary>
     /// <param name="screenPoint">移動先（画面物理座標）。</param>
-    /// <returns>常に <see langword="false"/>（既定ではカーソルを操作しない）。</returns>
-    public virtual bool TryMoveCursor(EsPointInt screenPoint) => false;
+    /// <returns>
+    /// 常に <see langword="null"/>（既定ではカーソルを操作しない。 <b>「操作しない」は失敗ではない</b>ため、
+    /// <see langword="false"/>（移動の失敗）と区別する）。
+    /// </returns>
+    public virtual bool? TryMoveCursor(EsPointInt screenPoint) => null;
 
     /// <summary>実カーソルの表示/非表示を切り替える（既定では何もしない）。</summary>
     /// <param name="show">表示する場合は <see langword="true"/>。</param>

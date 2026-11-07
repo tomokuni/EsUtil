@@ -87,13 +87,20 @@ public class WinWindowServiceTests : IDisposable
     }
 
     /// <summary>クライアント座標と画面物理座標を往復変換できることを検証する。</summary>
+    /// <remarks>
+    /// <b>ウィンドウを原点から動かす</b>: 原点にあるとクライアント座標と画面座標が一致し、変換の取り違えや
+    /// 変換しない実装でもテストが通ってしまう。
+    /// </remarks>
     [Fact]
     internal void Coordinates_クライアントと画面を往復変換する()
     {
         var handle = CreateHiddenWindow();
         var service = new WinWindowService();
+        service.SetBounds(handle, new EsRectInt(200, 150, 64, 64));
 
         Assert.True(service.TryClientToScreen(handle, new EsPointInt(10, 20), out var screen));
+        Assert.Equal(new EsPointInt(210, 170), screen);
+
         Assert.True(service.TryScreenToClient(handle, screen, out var client));
         Assert.Equal(new EsPointInt(10, 20), client);
     }
