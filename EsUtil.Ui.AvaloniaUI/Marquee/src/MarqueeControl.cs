@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -101,20 +100,19 @@ public sealed partial class MarqueeControl : Panel
 
     /// <summary><see cref="MarqueeControl"/> の新しいインスタンスを初期化します（AXAML および既定構成向け）。</summary>
     /// <remarks>
-    /// カーソル操作は Win32 の既定実装（<see cref="WinCursorService"/>）を生成して動作する（Windows 専用）。<br/>
+    /// カーソル操作は Win32 の既定実装（<see cref="ICursorService"/>）を生成して動作する（Windows 専用）。<br/>
     /// 対象フレームワークは <c>net10.0</c>（可搬）であり、<b>Windows 以外ではこのコンストラクターを使えない</b><br/>
     /// （<see cref="ICursorService"/> を渡すコンストラクターを使う）。<br/>
     /// nudge 後の再描画要求は本コントロール自身の <see cref="Avalonia.Visual.InvalidateVisual"/> に配線し、<br/>
     /// 矢印キーを受け取れるようフォーカス可能にする（自己完結・ホスト依存なし）。<br/>
     /// </remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
     public MarqueeControl()
         : this(new WinCursorService())
     {
     }
 
     /// <summary>カーソルサービスを注入して初期化する。</summary>
-    /// <param name="cursorService">カーソルサービス（Windows の既定実装を使う場合は <see cref="WinCursorService"/> を渡す）。</param>
+    /// <param name="cursorService">カーソルサービス（Windows の既定実装を使う場合は <see cref="ICursorService"/> を渡す）。</param>
     /// <remarks>
     /// カーソルサービスの既定実装（Win32）の解決は UI 側で行い、コア（状態管理クラス）は抽象のみに依存する。<br/>
     /// コアからの通知は公開イベントへ転送し、設定（<see cref="Options"/>）をファサードへ伝搬する。
@@ -129,7 +127,7 @@ public sealed partial class MarqueeControl : Panel
         Background = Brushes.Transparent;
         _cursor = cursorService;
         _effects = new Effects(this);
-        _marquee = new MarqueePresenter(_effects, _cursor, Options);
+        _marquee = new MarqueePresenter(_effects, Options);
         _marquee.Subscribe(OnNotified);
         // 環境値とホストが与える実行時状態は入力であるため、本コントロールの現在値を提示層へ引き継ぐ
         // （外観は提示層が単一所有するため引き継がない: 外観は公開プロパティの設定で伝搬する）
@@ -739,6 +737,15 @@ public sealed partial class MarqueeControl : Panel
         /// <summary>カーソル形状をコアが示す種別に応じて更新する。</summary>
         /// <param name="kind">カーソル形状の種別（コア提供）。</param>
         public override void SetCursorShape(MarqueeCursorKind kind) => owner.ApplyCursorShape(kind);
+
+        /// <summary>実カーソルを画面物理座標へ移動する。</summary>
+        /// <param name="screenPoint">移動先（画面物理座標）。</param>
+        /// <returns>移動できた場合は true。 失敗しても選択操作は続行する。</returns>
+        public override bool TryMoveCursor(EsPointInt screenPoint) => owner._cursor.TrySetCursorScreenPoint(screenPoint);
+
+        /// <summary>実カーソルの表示/非表示を切り替える。</summary>
+        /// <param name="show">表示する場合は true。</param>
+        public override void ShowCursor(bool show) => owner._cursor.ShowCursor(show);
 
         /// <summary>対象座標を画面物理座標へ変換する（カーソル移動用）。</summary>
         /// <param name="sourcePoint">対象座標。</param>

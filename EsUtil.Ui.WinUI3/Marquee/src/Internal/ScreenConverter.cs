@@ -1,5 +1,8 @@
+using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native;
+using EsUtil.Platform.Core.Window;
 using EsUtil.Ui.WinUI3.Interop;
 using Microsoft.UI.Xaml;
 
@@ -12,11 +15,12 @@ namespace EsUtil.Ui.WinUI3.Marquee.Internal;
 /// ビジュアル ツリー未接続（<c>XamlRoot</c> が無い・ウィンドウを特定できない）ときは等価変換する<br/>
 /// （画面座標をそのまま扱う。 例外にしない規則は [`例外処理規約.md`] §3）。<br/>
 /// <br/>
-/// OS 依存の画面物理変換（ウィンドウの位置 / <c>ScreenToClient</c> / <c>ClientToScreen</c>）を集約する唯一の場所である。<br/>
+/// OS 依存の画面物理変換（<c>ScreenToClient</c> / <c>ClientToScreen</c>）は <see cref="IWindowService"/> が担う<br/>
+/// （本 UI 層は Win32 を直接呼ばない。 既定実装の解決は本 UI 層が行う）。<br/>
 /// <b>座標変換ポートは提供しない</b>: ポートの軸は「ローカル DIP ↔ 対象座標」であり、画面物理はその軸に含まれない（別の軸）。<br/>
 /// 向きが名前で分かる <see cref="LocalDipToScreen"/> / <see cref="TryScreenToLocalDip"/> だけを提供する。
 /// </remarks>
-internal static class ScreenConverter
+internal sealed class ScreenConverter(IWindowService windows)
 {
     /// <summary>コントロール ローカル DIP を画面物理座標に変換する。</summary>
     /// <param name="source">変換元のコントロール。</param>
@@ -26,15 +30,17 @@ internal static class ScreenConverter
     /// ローカル DIP → コンテンツ ルートの DIP（<c>TransformToVisual(null)</c>）→ クライアントの物理ピクセル（表示倍率を掛ける）<br/>
     /// → 画面物理座標（<c>ClientToScreen</c>）の順に変換する（境界の 1 行変換）。
     /// </remarks>
-    public static EsPointInt LocalDipToScreen(UIElement source, EsPoint local)
+    public EsPointInt LocalDipToScreen(UIElement source, EsPoint local)
     {
-        if (!TryGetWindowContext(source, out var windowHandle, out var scaling))
+        if (!TryGetWindowContext(source, out var handle, out var scaling))
         {
             return ToScreenPoint(local);
         }
 
         var root = source.TransformToVisual(null).TransformPoint(local.ToWinUIPoint());
-        return Win32Interop.ClientToScreen(windowHandle, ToScreenPoint(new EsPoint(root.X * scaling, root.Y * scaling)));
+        return windows.TryClientToScreen(handle, ToScreenPoint(new EsPoint(root.X * scaling, root.Y * scaling)), out var screen)
+            ? screen
+            : ToScreenPoint(local);
     }
 
     /// <summary>画面物理座標をコントロール ローカル DIP に変換する。</summary>
@@ -47,16 +53,16 @@ internal static class ScreenConverter
     /// → ローカル DIP（<c>TransformToVisual(null)</c> の逆変換）の順に変換する。<br/>
     /// 逆変換できない状態（行列が特異・要素が未接続）は例外にせず false を返す（[`例外処理規約.md`] §3）。
     /// </remarks>
-    public static bool TryScreenToLocalDip(UIElement source, EsPointInt screen, out EsPoint local)
+    public bool TryScreenToLocalDip(UIElement source, EsPointInt screen, out EsPoint local)
     {
         local = default;
 
-        if (!TryGetWindowContext(source, out var windowHandle, out var scaling))
+        if (!TryGetWindowContext(source, out var handle, out var scaling)
+            || !windows.TryScreenToClient(handle, screen, out var client))
         {
             return false;
         }
 
-        var client = Win32Interop.ScreenToClient(windowHandle, screen);
         var root = new EsPoint(client.X / scaling, client.Y / scaling);
         if (source.TransformToVisual(null).Inverse is not { } inverse)
         {
@@ -69,15 +75,15 @@ internal static class ScreenConverter
 
     /// <summary>変換に必要なウィンドウ ハンドルと表示倍率を解決する。</summary>
     /// <param name="source">変換元のコントロール。</param>
-    /// <param name="windowHandle">解決したウィンドウ ハンドル。</param>
+    /// <param name="handle">解決したウィンドウの識別子。</param>
     /// <param name="scaling">解決した表示倍率（物理ピクセル / DIP）。</param>
     /// <returns>両方を解決できた場合は true。</returns>
     /// <remarks>
     /// 表示倍率は XAML のルートが報告する値（<c>RasterizationScale</c>）を使う（描画の倍率とは独立に、ウィンドウの座標変換の倍率として使う）。
     /// </remarks>
-    private static bool TryGetWindowContext(UIElement source, out IntPtr windowHandle, out double scaling)
+    private static bool TryGetWindowContext(UIElement source, out EsPlatformHandle handle, out double scaling)
     {
-        windowHandle = IntPtr.Zero;
+        handle = default;
         scaling = DpiScaler.StandardScaling;
 
         if (source.XamlRoot is not { } xamlRoot)
@@ -86,7 +92,13 @@ internal static class ScreenConverter
         }
 
         scaling = DpiScaler.NormalizeScaling(xamlRoot.RasterizationScale);
-        return Win32Interop.TryGetWindowHandle(xamlRoot.ContentIslandEnvironment.AppWindowId, out windowHandle);
+        if (!Win32Interop.TryGetWindowHandle(xamlRoot.ContentIslandEnvironment.AppWindowId, out var windowHandle))
+        {
+            return false;
+        }
+
+        handle = EsWindow.FromHandle(windowHandle);
+        return true;
     }
 
     /// <summary>DIP 座標を画面物理座標（整数）へ丸める。</summary>

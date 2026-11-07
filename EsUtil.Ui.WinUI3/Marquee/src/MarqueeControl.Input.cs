@@ -1,6 +1,7 @@
 using WinUIPoint = Windows.Foundation.Point;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Input;
+using EsUtil.Platform.Core.Native;
 using EsUtil.Ui.WinUI3.Interop;
 using EsUtil.Ui.WinUI3.Marquee.Internal;
 using Microsoft.UI.Input;
@@ -156,7 +157,7 @@ public sealed partial class MarqueeControl
     /// WinUI 3 のポインター イベントはクリック数を報告しないため本層が数え上げる（判断の材料は本層、<br/>
     /// ダブルクリックの意味付けはコア）。<br/>
     /// ダブルクリックと判定した後は記録を消す（3 回目の押下をさらにダブルクリックとして扱わない）。<br/>
-    /// 時間の上限は OS の設定値を使う（<see cref="Win32Interop.DoubleClickIntervalMilliseconds"/>）。
+    /// 時間の上限は OS の設定値を使う（<see cref="IUserPreferenceService.DoubleClickIntervalMilliseconds"/>）。
     /// </remarks>
     private int ResolveClickCount(EsPoint localDip)
     {
@@ -166,7 +167,7 @@ public sealed partial class MarqueeControl
                 _lastPressPosition,
                 localDip,
                 now - _lastPressMilliseconds,
-                Win32Interop.DoubleClickIntervalMilliseconds());
+                _userPreferences.DoubleClickIntervalMilliseconds);
 
         _hasPreviousPress = !isDoubleClick;
         _lastPressPosition = localDip;
@@ -190,7 +191,7 @@ public sealed partial class MarqueeControl
             return null;
         }
 
-        return ScreenConverter.TryScreenToLocalDip(this, screenPoint, out var localDip)
+        return _screenConverter.TryScreenToLocalDip(this, screenPoint, out var localDip)
             ? _marquee.ToSource(localDip)
             : null;
     }
@@ -202,7 +203,7 @@ public sealed partial class MarqueeControl
     /// カーソルの移動（nudge）に使用する。 変換できない場合は原点へカーソルが飛ぶため、呼び出し側は nudge 中のウィンドウ表示を前提とする。
     /// </remarks>
     private EsPointInt ToScreen(EsPoint sourcePosition)
-        => ScreenConverter.LocalDipToScreen(this, _marquee.ToDip(sourcePosition));
+        => _screenConverter.LocalDipToScreen(this, _marquee.ToDip(sourcePosition));
 
     /// <summary>ローカル DIP 座標を対象座標へ変換する。</summary>
     /// <param name="localDip">ローカル DIP 座標。</param>

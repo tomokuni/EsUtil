@@ -8,7 +8,7 @@ namespace EsUtil.Ui.WinUI3.Marquee.Internal;
 /// コントロールは「直前の押下位置と時刻」を保持し、押下のたびに本クラスへ問い合わせてクリック数を決める<br/>
 /// （コアは 2 以上をダブルクリックとして扱い、選択矩形の内側なら確定・外側ならキャンセルを要求する）。<br/>
 /// <br/>
-/// <b>時間の上限は OS の設定値</b>を使う（<see cref="Win32Interop.DoubleClickIntervalMilliseconds"/>）。<br/>
+/// <b>時間の上限は OS の設定値</b>を使う（<see cref="EsUtil.Platform.Core.Native.IUserPreferenceService.DoubleClickIntervalMilliseconds"/>）。<br/>
 /// <b>距離の上限</b>は本クラスが単一所有する（同じ場所を 2 回押した場合だけダブルクリックと見なす）。<br/>
 /// 時刻と座標を引数で受け取る純粋関数であるため、UI スレッドなしの <c>[Fact]</c> で検証できる。
 /// </remarks>
