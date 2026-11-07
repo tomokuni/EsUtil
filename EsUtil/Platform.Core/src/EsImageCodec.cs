@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core.Native.Win.Wic;
@@ -20,7 +19,7 @@ namespace EsUtil.Platform.Core;
 /// <see cref="Save(ReadOnlySpan{byte}, EsSizeInt, string, EsImageSaveOptions)"/> /
 /// <see cref="Resize(ReadOnlySpan{byte}, EsSizeInt, int, int, EsImageScalingMode)"/> /
 /// <see cref="ReduceColors(ReadOnlySpan{byte}, EsSizeInt, int, int, EsDitherMode)"/> / <see cref="SaveExtensions"/>）、
-/// <see cref="SupportedOSPlatformAttribute"/> で限定します。 <b>形式の対応（<see cref="GetExtension(EsImageFileFormat)"/> など）と
+/// 対象フレームワークが Windows のため限定します。 <b>形式の対応（<see cref="GetExtension(EsImageFileFormat)"/> など）と
 /// <see cref="GetResizedSize(EsSizeInt, int)"/> は可搬</b>です（WIC を呼びません）。<br/>
 /// <b>静的クラスである理由</b>: 保持する状態が無く（WIC のファクトリは呼び出しごとに生成して解放する）、
 /// 4 つの UI 版へ DI を持ち込まないためです。
@@ -33,7 +32,6 @@ public static class EsImageCodec
     /// <b>実行環境で書き出せる形式だけを含みます</b>（コーデック拡張が入っていない形式は含まない）。
     /// 一覧をそのまま保存先の選択肢にできます（一覧の拡張子で保存すれば成功します）。
     /// </remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
     public static IReadOnlyList<string> SaveExtensions => WinWicImageCodec.SupportedExtensions;
 
     /// <summary>一覧に並べる画像ファイルの拡張子（先頭のドットを含む）。</summary>
@@ -123,7 +121,6 @@ public static class EsImageCodec
     /// <b>パスから読み込む場合は <see cref="Imaging.EsImageFile"/> を使います</b>（寸法と画素を同じ内容から求めるため、
     /// ファイルを 2 回読みません）。
     /// </remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
     public static (byte[] Pixels, EsSizeInt Size) Decode(ReadOnlySpan<byte> fileBytes, int maxSize = 0)
         => WinWicImageCodec.DecodeFromFile(
             fileBytes,
@@ -140,7 +137,6 @@ public static class EsImageCodec
     /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法（拡大はしない）。</param>
     /// <param name="destination">書き込み先（<c>寸法の幅 × 4 × 高さ</c> バイト以上。 行は密に書く）。</param>
     /// <exception cref="ArgumentException"><paramref name="destination"/> が足りない場合、または画像として解釈できない場合。</exception>
-    [SupportedOSPlatform("windows10.0.17763")]
     public static unsafe void Decode(ReadOnlySpan<byte> fileBytes, int maxSize, Span<byte> destination)
     {
         var capacity = destination.Length;
@@ -169,7 +165,6 @@ public static class EsImageCodec
     /// <b>画素を複製しません</b>（デコーダーから寸法だけを読みます）。 確保の前に寸法を知りたい場合は
     /// <see cref="Imaging.EsImageFile.GetSize"/> を使うと、続く復号で同じ内容を読み直さずに済みます。
     /// </remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
     public static EsSizeInt ReadSize(ReadOnlySpan<byte> fileBytes, int maxSize = 0)
         => WinWicImageCodec.DecodeFromFile(
             fileBytes, maxSize, (width, height, _) => new EsSizeInt(width, height));
@@ -182,7 +177,6 @@ public static class EsImageCodec
     /// <exception cref="ArgumentException"><paramref name="pixels"/> の長さが寸法と一致しない場合、または拡張子と形式が食い違う場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SaveExtensions"/>）、または設定されたオプションがその形式で使えない場合。</exception>
-    [SupportedOSPlatform("windows10.0.17763")]
     public static void Save(
         ReadOnlySpan<byte> pixels, EsSizeInt size, string filePath, EsImageSaveOptions options = default)
         => Save(pixels, size, size.Width * EsReadOnlyBitmap.BytesPerPixel, filePath, options);
@@ -197,7 +191,6 @@ public static class EsImageCodec
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="options"/> の値が許容範囲外の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SaveExtensions"/>）、または設定されたオプションがその形式で使えない場合。</exception>
     /// <remarks><b>行幅が密でない場合</b>は 1 回だけ複製してから書きます（WIC のエンコーダーへは密な並びで渡します）。</remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
     public static void Save(
         ReadOnlySpan<byte> pixels, EsSizeInt size, int stride, string filePath, EsImageSaveOptions options = default)
     {
@@ -216,7 +209,6 @@ public static class EsImageCodec
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が許容範囲外の場合、または <paramref name="mode"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（拡大が必要な）場合。</exception>
     /// <remarks><b><c>Wic</c> で始まる方法は WIC が計算します</b>（デコード時の縮小と同じ実装。 <see cref="EsImageScalingMode"/> を参照）。 <c>Es</c> で始まる方法は本ライブラリの計算です（速いが WIC とは画素が一致しません）。</remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
     public static (byte[] Pixels, EsSizeInt Size) Resize(
         ReadOnlySpan<byte> pixels, EsSizeInt size, int stride, int maxSize,
         EsImageScalingMode mode = EsImageScalingMode.WicFant)
@@ -239,7 +231,6 @@ public static class EsImageCodec
     /// <param name="destination">書き込み先（<c>target の幅 × 4 × 高さ</c> バイト以上。 行は密に書く）。</param>
     /// <exception cref="ArgumentException"><paramref name="pixels"/> の長さが寸法と一致しない場合、または <paramref name="destination"/> が足りない場合。</exception>
     /// <remarks><b>縮小が不要な場合</b>（<paramref name="target"/> が <paramref name="size"/> と同じ）は行を写すだけです。</remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
     internal static void ScaleInto(
         ReadOnlySpan<byte> pixels, EsSizeInt size, int stride, EsSizeInt target, EsImageScalingMode mode,
         Span<byte> destination)
@@ -275,7 +266,6 @@ public static class EsImageCodec
     /// <b>減色は WIC が行います</b>（パレットは WIC の中央値分割、割り当ては 8bpp へ変換）。 保存の
     /// <see cref="EsImageSaveOptions.ColorCount"/> と同じパレットを使うため、<b>保存したファイルの画素と一致します</b>。
     /// </remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
     public static byte[] ReduceColors(
         ReadOnlySpan<byte> pixels, EsSizeInt size, int stride, int colorCount,
         EsDitherMode dither = EsDitherMode.None)
@@ -307,7 +297,6 @@ public static class EsImageCodec
     /// <exception cref="ArgumentException"><paramref name="pixels"/> の長さが寸法と一致しない場合、または <paramref name="destination"/> が足りない場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> または <paramref name="dither"/> が許容範囲外の場合。</exception>
     /// <remarks><b>画像 1 枚分の複製を作りません</b>（色番号から書き込み先へ直接書きます）。</remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
     internal static void ReduceInto(
         ReadOnlySpan<byte> pixels, EsSizeInt size, int stride, int colorCount, EsDitherMode dither,
         Span<byte> destination)
@@ -336,7 +325,6 @@ public static class EsImageCodec
     /// <param name="maxSize">長辺の上限（ピクセル）。 0 以下の場合は元の寸法。</param>
     /// <param name="create">寸法と充填処理を受け取り、値を生成する処理。</param>
     /// <returns>生成した値。</returns>
-    [SupportedOSPlatform("windows10.0.17763")]
     internal static T Decode<T>(string filePath, int maxSize, Func<int, int, Action<Span<byte>>, T> create)
         => WinWicImageCodec.DecodeFromFile(filePath, maxSize, create);
 

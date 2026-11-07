@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native.Win;
 using Xunit;
@@ -16,7 +15,6 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// **カーソルを動かせない環境**（ロック中・非対話セッション）では、その 1 件をスキップする（環境要因を不合格にしない）。
 /// </remarks>
 [Collection("Win32")]
-[SupportedOSPlatform("windows10.0.17763")]
 public class WinCursorServiceTests
 {
     [Fact]

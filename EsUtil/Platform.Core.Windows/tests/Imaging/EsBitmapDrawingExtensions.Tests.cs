@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core.Windows.Imaging;
 using Xunit;
@@ -11,7 +10,7 @@ namespace EsUtil.Platform.Core.Windows.Tests.Imaging;
 
 /// <summary><see cref="EsBitmapDrawingExtensions"/> の変換テスト（Windows 専用・並列実行）。</summary>
 /// <remarks>
-/// System.Drawing は Windows 専用のため、本クラスは <see cref="SupportedOSPlatformAttribute"/> で Windows に限定する。<br/>
+/// System.Drawing は Windows 専用のため、本クラスは Windows 専用である（対象フレームワークが Windows）。<br/>
 /// 変換は LockBits（ネイティブコピー）ベースのため、UI フレームワークの初期化に依存せず<br/>
 /// <c>[Fact]</c> で並列実行できる（各テストが独立した Bitmap を生成し、静的共有状態を持たない）。
 /// </remarks>

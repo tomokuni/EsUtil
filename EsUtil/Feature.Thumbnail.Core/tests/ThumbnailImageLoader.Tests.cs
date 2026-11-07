@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core;
 using Xunit;
@@ -9,9 +8,8 @@ namespace EsUtil.Feature.Thumbnail.Tests;
 /// <summary><see cref="ThumbnailImageLoader"/> の単体テスト（縮小デコード・キャッシュ・失敗時の扱い）。</summary>
 /// <remarks>
 /// 実ファイルへ書き出した画像を読み込み、寸法・アルファ・同一性（キャッシュ）を検証する。<br/>
-/// 復号は Windows の WIC を使うため、本クラスは <see cref="SupportedOSPlatformAttribute"/> で Windows に限定する。
+/// 復号は Windows の WIC を使うため、本クラスは Windows 専用である（対象フレームワークが Windows）。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public class ThumbnailImageLoaderTests : IDisposable
 {
     /// <summary>キャッシュの最大保持数（一覧が表示する件数を渡す想定。 テストでは十分に大きい値を使う）。</summary>

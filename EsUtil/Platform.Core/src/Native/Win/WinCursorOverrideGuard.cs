@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Window;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -19,7 +18,6 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// ホスト（アプリ）が生成して注入する（テストではモックを注入できる）。<br/>
 /// 継承不可。<br/>
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
 {
     /// <summary>lParam 下位ワード（ヒットテスト結果）を取得するための 16bit マスク。</summary>

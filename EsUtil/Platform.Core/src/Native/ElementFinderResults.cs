@@ -13,7 +13,7 @@ namespace EsUtil.Platform.Core.Native;
 /// 指定された位置（画面物理座標）のスクリーン / 最前面ウィンドウを判定した結果を保持する不変データ。<br/>
 /// 座標系は入力と同じ<b>画面物理座標</b>で統一される（座標変換は呼び出し側の責務）。<br/>
 /// 未検出時は <see cref="Bounds"/> = default、<see cref="IsDetected"/> = false、<see cref="Title"/> / <see cref="Handle"/> / <see cref="ClassName"/> = null。<br/>
-/// <see cref="IElementFinder"/> の実装が返す。
+/// <see cref="Win.WinElementFinder"/> が返す。
 /// </remarks>
 public readonly record struct ElementFinderResults(
     EsRectInt Bounds,

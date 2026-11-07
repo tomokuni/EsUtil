@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Native.Win;
 using Xunit;
 using Windows.Win32;
@@ -16,7 +15,6 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// サブクラス化が効いているかどうかが戻り値に現れる（<c>DefWindowProc</c> は 0 を返す）。<br/>
 /// <b>ウィンドウを作れない環境</b>: <c>CreateWindowEx</c> が失敗する場合は読み飛ばす。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 [Collection("Win32")]
 public class WinGlobalHotKeyServiceTests : IDisposable
 {

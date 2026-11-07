@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 
@@ -16,7 +15,6 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <b>どのインスタンスのメッセージかは <c>GCHandle</c> で渡す</b>（<see cref="Context"/>）。<br/>
 /// <b>解除したら <c>GCHandle</c> を解放する</b>（解放しないとインスタンスが回収されない）。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 internal static unsafe class WinSubclass
 {
     /// <summary>サブクラス プロシージャが受け取るメッセージの処理。</summary>

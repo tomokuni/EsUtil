@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using Windows.Win32;
 using Windows.Win32.UI.WindowsAndMessaging;
@@ -15,7 +14,6 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// ウィンドウに依存せず、画面キャプチャと同じ値の出所になる。<br/>
 /// <b>プライマリ モニタが (0,0) にない場合は負値</b>になる（仮想スクリーンの座標そのものである）。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public static class WinVirtualScreen
 {
     /// <summary>全モニターを包含する仮想スクリーンの矩形（画面物理ピクセル）を取得する。</summary>

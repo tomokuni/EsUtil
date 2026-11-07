@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Window;
 using Windows.Win32;
@@ -20,7 +19,6 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// ホスト（アプリ）が生成して注入する（テストではモックを注入できる）。<br/>
 /// 継承不可。<br/>
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public sealed class WinWindowService : IWindowService
 {
     /// <summary>ウィンドウをタスクバー / Alt+Tab に表示しないよう設定する（選択オーバーレイ用、仕様 2.2）。</summary>
@@ -103,5 +101,43 @@ public sealed class WinWindowService : IWindowService
 
         // 3. WM_CLOSE を送信（UI スレッドが復帰した場合に自動キャンセル処理が走る）
         _ = PInvoke.PostMessage(nativeHwnd, PInvoke.WM_CLOSE, default, default);
+    }
+
+    /// <summary>クライアント座標を画面物理座標へ変換する。</summary>
+    /// <inheritdoc/>
+    public bool TryClientToScreen(EsPlatformHandle handle, EsPointInt clientPoint, out EsPointInt screenPoint)
+    {
+        screenPoint = clientPoint;
+
+        var nativeHwnd = (HWND)handle.Handle;
+        if (nativeHwnd.IsNull) return false;
+
+        var point = new System.Drawing.Point(clientPoint.X, clientPoint.Y);
+        if (!PInvoke.ClientToScreen(nativeHwnd, ref point))
+        {
+            return false;
+        }
+
+        screenPoint = new EsPointInt(point.X, point.Y);
+        return true;
+    }
+
+    /// <summary>画面物理座標をクライアント座標へ変換する。</summary>
+    /// <inheritdoc/>
+    public bool TryScreenToClient(EsPlatformHandle handle, EsPointInt screenPoint, out EsPointInt clientPoint)
+    {
+        clientPoint = screenPoint;
+
+        var nativeHwnd = (HWND)handle.Handle;
+        if (nativeHwnd.IsNull) return false;
+
+        var point = new System.Drawing.Point(screenPoint.X, screenPoint.Y);
+        if (!PInvoke.ScreenToClient(nativeHwnd, ref point))
+        {
+            return false;
+        }
+
+        clientPoint = new EsPointInt(point.X, point.Y);
+        return true;
     }
 }

@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using Windows.Win32;
 using Windows.Win32.Graphics.Gdi;
@@ -16,11 +15,11 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <b>Win32 の宣言は CsWin32 が生成する</b>（<c>src/NativeMethods.txt</c>）。<br/>
 /// <b>DPI 非対応プロセスでの値</b>: プロセスが DPI 非対応の場合、OS はシステム DPI を返す
 /// （モニターごとの実効 DPI にはならない。 DPI 対応の有効化はアプリの実行ファイルが行う）。<br/>
+/// <see cref="IMonitorDpi"/> の実装であり、テストでは差し替えられる。<br/>
 /// <b>失敗を例外にしない</b>: 照会できない場合（モニターが無い・API が失敗した）は <see langword="null"/> を返す。
 /// 呼び出し側が代替値で解決する（撮影は続けられる）。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
-public static class WinMonitorDpi
+public sealed class WinMonitorDpi : IMonitorDpi
 {
     /// <summary>標準の DPI（96 DPI = スケール 1.0）。</summary>
     public const uint StandardDpi = 96;
@@ -29,7 +28,7 @@ public static class WinMonitorDpi
     /// <param name="screenPoint">照会する位置（画面物理座標）。</param>
     /// <returns>実効 DPI（96 = 100%）。 照会できない場合は <see langword="null"/>。</returns>
     /// <remarks>最も近いモニターを対象にする（ウィンドウが複数のモニターに跨っていても座標から一意に決まる）。</remarks>
-    public static uint? GetEffectiveDpi(EsPointInt screenPoint)
+    public uint? GetEffectiveDpi(EsPointInt screenPoint)
     {
         var monitor = PInvoke.MonitorFromPoint(
             new System.Drawing.Point(screenPoint.X, screenPoint.Y), MONITOR_FROM_FLAGS.MONITOR_DEFAULTTONEAREST);

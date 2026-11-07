@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using Windows.Win32;
 
 namespace EsUtil.Platform.Core.Native.Win;
@@ -13,7 +12,6 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <b>Win32 の宣言は CsWin32 が生成する</b>（<c>src/NativeMethods.txt</c>）。<br/>
 /// <b>失敗を例外にしない</b>: AUMID を設定できなくても機能は損なわれない（タスク バーのグループ分けが既定のまま）。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public static class WinAppUserModelId
 {
     /// <summary>プロセスの AUMID を設定する。</summary>

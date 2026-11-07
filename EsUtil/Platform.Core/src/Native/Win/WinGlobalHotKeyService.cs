@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Input;
 using Windows.Win32;
@@ -19,7 +18,6 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// 継承不可。<br/>
 /// </remarks>
 /// <typeparam name="T">ホットキーに割り当てるアクションの識別子。</typeparam>
-[SupportedOSPlatform("windows10.0.17763")]
 public sealed class WinGlobalHotKeyService<T> : IGlobalHotKeyService<T> where T : notnull
 {
     /// <summary><c>SetWindowSubclass</c> に渡すサブクラスの識別値（クラス内で共有する連番）。</summary>

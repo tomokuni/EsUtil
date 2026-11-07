@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Xunit;
@@ -11,7 +10,6 @@ namespace EsUtil.Platform.Core.Tests;
 /// <see cref="byte"/> の配列で受け渡します）。 実装は WIC が単一所有するため、ここでは
 /// <b>往復して同じ画素が戻ること</b>と<b>形式の対応</b>だけを確かめます。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public class EsImageCodecTests
 {
     /// <summary>一時ファイルのパスを作る。</summary>

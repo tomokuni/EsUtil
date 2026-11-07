@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Xunit;
@@ -10,7 +9,6 @@ namespace EsUtil.Platform.Core.Tests;
 /// <b>1 回の読み込みで寸法と画素を求めること</b>を検証します（ファイルの読み込みは WIC が単一所有するため、
 /// ここでは往復して同じ画素が戻ることと、破棄後の扱いだけを確かめます）。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public class EsImageFileTests
 {
     /// <summary>一時ファイルのパスを作る。</summary>

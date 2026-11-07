@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native.Win.Wic;
 
@@ -12,7 +11,6 @@ namespace EsUtil.Platform.Core.Imaging;
 /// （他のアプリが開いているファイルも読めます）。<br/>
 /// <b>復号の結果は呼び出し側のもの</b>です（<see cref="Dispose"/> が手放すのは読み込んだ内容だけです）。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public sealed class EsImageFile : IDisposable
 {
     /// <summary>読み込んだファイルの内容（<see cref="Dispose"/> で手放す）。</summary>

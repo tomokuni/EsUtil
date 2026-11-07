@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Native.Win;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -14,7 +13,6 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// カーソル上書きの抑止だけが静かに効かなくなる（例外にはならない）。<br/>
 /// <b>ウィンドウを作れない環境</b>: <c>CreateWindowEx</c> が失敗する場合は読み飛ばす。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 [Collection("Win32")]
 public class WinCursorOverrideGuardTests : IDisposable
 {

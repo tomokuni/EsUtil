@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Windows.Win32;
@@ -15,10 +14,9 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <see cref="ICaptureService"/> の実装であり、テスト時のモックに備える。<br/>
 /// 公開 API（<see cref="ICaptureService"/>）は UI 非依存の型（<see cref="EsBitmap"/> / <see cref="EsRectInt"/>）のみを使用する。<br/>
 /// ホスト（アプリ）が生成して注入する（Windows のみ。 テストではモックを注入できる）。<br/>
-/// GDI は Windows 専用のため、本クラスは <see cref="SupportedOSPlatformAttribute"/> で Windows に限定する。<br/>
+/// GDI は Windows 専用のため、本クラスは Windows 専用である（対象フレームワークが Windows）。<br/>
 /// 継承不可。<br/>
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public sealed class WinCaptureService : ICaptureService
 {
     // ====================================================================

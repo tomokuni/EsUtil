@@ -71,4 +71,24 @@ public interface IWindowService
     /// 代替手段が無い（失敗しても試せる操作が残っていない）。 各手順は独立に実行し、1 つが失敗しても残りを続行する。
     /// </remarks>
     void EvacuateWindow(EsPlatformHandle handle);
+
+    /// <summary>クライアント座標を画面物理座標へ変換する。</summary>
+    /// <param name="handle">対象ウィンドウの識別子。</param>
+    /// <param name="clientPoint">クライアント座標。</param>
+    /// <param name="screenPoint">変換した画面物理座標。 変換できなかった場合は <paramref name="clientPoint"/> と同じ値。</param>
+    /// <returns>変換できた場合は <see langword="true"/>。 識別子が未設定、または OS が変換を拒否した場合は <see langword="false"/>。</returns>
+    /// <remarks>
+    /// <b>本インターフェイスにある理由</b>: UI フレームワークが画面物理座標を公開しない場合（WinUI 3 の XAML は表示倍率と<br/>
+    /// コンテンツ内の相対座標までしか与えない）に、nudge のカーソル移動で画面座標が必要になるため。<br/>
+    /// <b>失敗を原点で表さない</b>: 原点は有効な座標のため、失敗時は入力をそのまま返す（誤った位置へ移動しない）。
+    /// </remarks>
+    bool TryClientToScreen(EsPlatformHandle handle, EsPointInt clientPoint, out EsPointInt screenPoint);
+
+    /// <summary>画面物理座標をクライアント座標へ変換する。</summary>
+    /// <param name="handle">対象ウィンドウの識別子。</param>
+    /// <param name="screenPoint">画面物理座標。</param>
+    /// <param name="clientPoint">変換したクライアント座標。 変換できなかった場合は <paramref name="screenPoint"/> と同じ値。</param>
+    /// <returns>変換できた場合は <see langword="true"/>。 識別子が未設定、または OS が変換を拒否した場合は <see langword="false"/>。</returns>
+    /// <remarks>失敗の表し方は <see cref="TryClientToScreen"/> と同じ（入力をそのまま返す）。</remarks>
+    bool TryScreenToClient(EsPlatformHandle handle, EsPointInt screenPoint, out EsPointInt clientPoint);
 }

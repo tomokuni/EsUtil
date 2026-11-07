@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using Color = System.Drawing.Color;
 
@@ -88,7 +87,6 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <b>形式ごとの制約</b>: JPEG / BMP / HEIF は透過（アルファ）を保存できない。 品質（JPEG の圧縮率）を
     /// 指定できるのは JPEG と JPEG XR、減色（パレット）を使えるのは BMP / PNG / GIF である。
     /// </remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
     public static IReadOnlyList<string> SupportedFileExtensions => EsImageCodec.SaveExtensions;
 
     /// <summary>ファイルを読み込んで読み取り専用の画像を生成する。</summary>
@@ -101,7 +99,6 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、または画像として解釈できない場合。</exception>
-    [SupportedOSPlatform("windows10.0.17763")]
     public static EsReadOnlyBitmap Load(string filePath)
         => new(EsBitmapBuffer.LoadFromFile(filePath));
 
@@ -120,7 +117,6 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <exception cref="ArgumentNullException"><paramref name="filePath"/> が null の場合。</exception>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合、ファイルが存在しない場合、または画像として解釈できない場合。</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 未満の場合。</exception>
-    [SupportedOSPlatform("windows10.0.17763")]
     public static EsReadOnlyBitmap Load(string filePath, int maxSize)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(maxSize);
@@ -416,7 +412,6 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または <paramref name="mode"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    [SupportedOSPlatform("windows10.0.17763")]
     public EsBitmap Resize(int maxSize, EsImageScalingMode mode = EsImageScalingMode.WicFant)
     {
         ThrowIfDisposed();
@@ -451,7 +446,6 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">減色（WIC）が失敗した場合。</exception>
-    [SupportedOSPlatform("windows10.0.17763")]
     public EsBitmap ReduceColors(int colorCount, EsDitherMode dither = EsDitherMode.None)
     {
         ThrowIfDisposed();
@@ -486,13 +480,12 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <b>画素を読むだけの操作です</b>: 書き換えの権利も実体の指定も要らないため、書き換え可能な画像（<see cref="EsBitmap"/>）も
     /// 同じ名前のメンバーを持ちます。 実装は内部の画素バッファ（<see cref="EsBitmapBuffer"/>）が単一所有します
     /// （<b>ピクセルは複製しません</b>。 一時バッファを確保しません）。<br/>
-    /// <b>Windows 専用</b>: OS の WIC（Windows Imaging Component）を呼ぶため <see cref="SupportedOSPlatformAttribute"/> で限定します。
+    /// <b>Windows 専用</b>: OS の WIC（Windows Imaging Component）を呼ぶため Windows 専用です（対象フレームワークが Windows）。
     /// </remarks>
     /// <exception cref="ArgumentException"><paramref name="filePath"/> が空白の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（WIC）が失敗した場合。</exception>
-    [SupportedOSPlatform("windows10.0.17763")]
     public void Save(string filePath) => _buffer.SaveToFile(filePath);
 
     /// <summary>本画像をファイルへ保存する（形式とオプションを指定できる）。</summary>
@@ -515,7 +508,6 @@ public sealed class EsReadOnlyBitmap : IDisposable
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合（<see cref="SupportedFileExtensions"/>）、または <paramref name="options"/> にその形式で使えない項目が設定されている場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">エンコード（WIC）が失敗した場合。</exception>
-    [SupportedOSPlatform("windows10.0.17763")]
     public void Save(string filePath, EsImageSaveOptions options) => _buffer.SaveToFile(filePath, options);
 
     /// <summary>画像の寸法を「幅x高さ」形式の文字列で返す（ログ等への記録用）。</summary>

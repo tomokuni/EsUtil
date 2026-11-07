@@ -1,7 +1,6 @@
 using System.Buffers;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
 using Windows.Win32;
 using Windows.Win32.Graphics.Imaging;
@@ -24,11 +23,10 @@ namespace EsUtil.Platform.Core.Native.Win.Wic;
 /// <b>形式は拡張子が決める</b>: 保存先の拡張子から形式を選び、<b>未対応の拡張子は例外にする</b>
 /// （PNG 等へ黙って差し替えると、呼び出し側が意図した形式と違うファイルができて気付かない）。
 /// <b>対応形式の単一所有は <see cref="WinWicFormats"/></b> であり、本クラスは固定の一覧を持たない。<br/>
-/// <b>Windows 専用</b>: WIC は Windows でのみ利用可能（<see cref="SupportedOSPlatformAttribute"/> で限定）。<br/>
+/// <b>Windows 専用</b>: WIC は Windows でのみ利用可能（対象フレームワークが Windows のため限定）。<br/>
 /// <b>制限</b>: 透過（アルファ）を保存できない形式がある（JPEG / BMP / HEIF など。 形式の仕様、または
 /// エンコーダーがアルファ無しのピクセル形式を要求するため）。 透過を保つ場合は PNG / TIFF / JPEG XR を選ぶこと。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 internal static unsafe class WinWicImageCodec
 {
     /// <summary>保存に使える拡張子（小文字・先頭のドットを含む）。</summary>
@@ -256,7 +254,7 @@ internal static unsafe class WinWicImageCodec
     /// <param name="stride"><paramref name="pixels"/> の 1 ラインあたりのバイト数。</param>
     /// <param name="targetWidth">縮小後の幅（ピクセル）。 元の幅以下。</param>
     /// <param name="targetHeight">縮小後の高さ（ピクセル）。 元の高さ以下。</param>
-    /// <param name="mode">補間の指定（品質から選ぶ。 呼び出し側が決める）。</param>
+    /// <param name="mode">縮小の方法（<c>Wic</c> で始まる値）。 補間の指定への写像は本クラスが持つ。</param>
     /// <param name="destination">書き込み先（<c>targetWidth × 4 × targetHeight</c> バイト以上。 行は密に書く）。</param>
     /// <exception cref="Win32Exception">WIC の呼び出しが失敗した場合。</exception>
     /// <remarks>
@@ -265,11 +263,13 @@ internal static unsafe class WinWicImageCodec
     /// <b>中間画像を作りません</b>: 元の画素をそのまま WIC のビットマップとして参照させ（<c>fixed</c> の間だけ
     /// 有効）、スケーラーの結果を呼び出し側の領域へ直接コピーします。 参照させるため<b>複製もしません</b>。<br/>
     /// <b>画素形式の変換を挟みません</b>: 元の画素を <c>32bppPBGRA</c> として渡し、<c>IWICBitmapScaler</c> は
-    /// 元の画素形式を保つためです（変換器を挟むと画像 1 枚分の写しが増えます）。
+    /// 元の画素形式を保つためです（変換器を挟むと画像 1 枚分の写しが増えます）。<br/>
+    /// <b>補間の型を公開しない</b>: <see cref="EsImageScalingMode"/> から WIC の指定への写像は本クラスの中だけで行う
+    /// （呼び出し側は WIC の型を知らない）。
     /// </remarks>
     internal static void Resize(
         ReadOnlySpan<byte> pixels, int width, int height, int stride,
-        int targetWidth, int targetHeight, WICBitmapInterpolationMode mode, Span<byte> destination)
+        int targetWidth, int targetHeight, EsImageScalingMode mode, Span<byte> destination)
     {
         var factory = OpenFactory();
         try
@@ -287,7 +287,8 @@ internal static unsafe class WinWicImageCodec
                     factory->CreateBitmapScaler(&scaler);
                     try
                     {
-                        scaler->Initialize((IWICBitmapSource*)bitmap, (uint)targetWidth, (uint)targetHeight, mode);
+                        scaler->Initialize(
+                            (IWICBitmapSource*)bitmap, (uint)targetWidth, (uint)targetHeight, ToInterpolationMode(mode));
                         WinWicFactory.CopyPixels(
                             (IWICBitmapSource*)scaler, targetWidth, targetHeight, destination);
                     }
@@ -307,6 +308,29 @@ internal static unsafe class WinWicImageCodec
             factory->Release();
         }
     }
+
+    /// <summary>縮小の方法を WIC の補間の指定へ写す。</summary>
+    /// <param name="mode">縮小の方法。 <c>Wic</c> で始まる値であること。</param>
+    /// <returns>WIC の補間の指定。</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="mode"/> が WIC の方法でない場合、または定義されていない値の場合。</exception>
+    /// <remarks>
+    /// <b>対応は 1 対 1 です</b>: <see cref="EsImageScalingMode.WicNearestNeighbor"/> =
+    /// <c>WICBitmapInterpolationModeNearestNeighbor</c> / <see cref="EsImageScalingMode.WicLinear"/> =
+    /// <c>WICBitmapInterpolationModeLinear</c> / <see cref="EsImageScalingMode.WicCubic"/> =
+    /// <c>WICBitmapInterpolationModeCubic</c> / <see cref="EsImageScalingMode.WicFant"/> =
+    /// <c>WICBitmapInterpolationModeFant</c> / <see cref="EsImageScalingMode.WicHighQualityCubic"/> =
+    /// <c>WICBitmapInterpolationModeHighQualityCubic</c>。 <b>本ライブラリの計算（<c>Es</c> で始まる方法）は
+    /// 写せません</b>（WIC の補間ではないため例外にします）。
+    /// </remarks>
+    private static WICBitmapInterpolationMode ToInterpolationMode(EsImageScalingMode mode) => mode switch
+    {
+        EsImageScalingMode.WicNearestNeighbor => WICBitmapInterpolationMode.WICBitmapInterpolationModeNearestNeighbor,
+        EsImageScalingMode.WicLinear => WICBitmapInterpolationMode.WICBitmapInterpolationModeLinear,
+        EsImageScalingMode.WicCubic => WICBitmapInterpolationMode.WICBitmapInterpolationModeCubic,
+        EsImageScalingMode.WicFant => WICBitmapInterpolationMode.WICBitmapInterpolationModeFant,
+        EsImageScalingMode.WicHighQualityCubic => WICBitmapInterpolationMode.WICBitmapInterpolationModeHighQualityCubic,
+        _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "WIC の補間へ写せない縮小方法です。"),
+    };
 
     /// <summary>画素を指定の色数へ減色し、画素（BGRA8888・アルファ乗算済み）で返す。</summary>
     /// <param name="pixels">元の画素（BGRA8888・アルファ乗算済み。 行の余白を含んでよい）。</param>

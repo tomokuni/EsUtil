@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using Color = System.Drawing.Color;
 
@@ -156,7 +155,6 @@ public sealed class EsPixmap : IDisposable
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が 0 以下の場合、または <paramref name="mode"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（＝拡大が必要な）場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
-    [SupportedOSPlatform("windows10.0.17763")]
     public EsBitmap Resize(int maxSize, EsImageScalingMode mode = EsImageScalingMode.WicFant)
     {
         ThrowIfDisposed();
@@ -178,7 +176,6 @@ public sealed class EsPixmap : IDisposable
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> が 2〜256 の範囲外の場合、または <paramref name="dither"/> が定義されていない値の場合。</exception>
     /// <exception cref="ObjectDisposedException">破棄済みの場合。</exception>
     /// <exception cref="System.Runtime.InteropServices.ExternalException">減色（WIC）が失敗した場合。</exception>
-    [SupportedOSPlatform("windows10.0.17763")]
     public EsBitmap ReduceColors(int colorCount, EsDitherMode dither = EsDitherMode.None)
     {
         ThrowIfDisposed();

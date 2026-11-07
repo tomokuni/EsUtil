@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Window;
 using Windows.Win32;
@@ -18,7 +17,6 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <b>ログを出力しない</b>: 見つからないこと（該当なし）は空の結果で表し、記録は呼び出し側が行う。<br/>
 /// 継承不可。<br/>
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public sealed class WinElementFinder : IElementFinder
 {
     /// <summary>クラス名取得バッファのサイズ（文字数）。</summary>
@@ -363,5 +361,4 @@ public sealed class WinElementFinder : IElementFinder
         return new string(titleChars, 0, Math.Min(written, len));
     }
 }
-
 

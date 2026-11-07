@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Xunit;
@@ -10,9 +9,8 @@ namespace EsUtil.Platform.Core.Tests.Imaging;
 /// <b>計算は WIC が単一所有します</b>（本ライブラリは減色の計算を持ちません）。 そのため本テストは
 /// <b>「色数へ減らす」という契約</b>だけを検証します（パレットの作り方や距離の測り方は WIC の実装であり、
 /// 本ライブラリの仕様ではありません）。<br/>
-/// WIC は Windows にのみ存在するため、本クラスは <see cref="SupportedOSPlatformAttribute"/> で Windows に限定します。
+/// WIC は Windows にのみ存在するため、本クラスは Windows 専用です（対象フレームワークが Windows）。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public class EsBitmapReduceColorsTests
 {
     /// <summary>一時ファイルのパスを作る（拡張子は呼び出し側が指定する）。</summary>

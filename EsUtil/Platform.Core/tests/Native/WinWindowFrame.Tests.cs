@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Native.Win;
 using Xunit;
 
@@ -12,7 +11,6 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// 実ウィンドウでの値は <see cref="WinWindowServiceTests"/> と同じ方法で作れるが、
 /// 枠の太さはテーマ・DPI で変わるため値そのものは検証しない。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 [Collection("Win32")]
 public class WinWindowFrameTests
 {
@@ -20,7 +18,7 @@ public class WinWindowFrameTests
     [Fact]
     internal void GetSize_ハンドルがゼロなら_Win32Exception_を投げる()
     {
-        var ex = Assert.Throws<Win32Exception>(() => WinWindowFrame.GetSize(EsWindow.FromHandle(IntPtr.Zero)));
+        var ex = Assert.Throws<Win32Exception>(() => new WinWindowFrame().GetSize(EsWindow.FromHandle(IntPtr.Zero)));
 
         Assert.False(string.IsNullOrWhiteSpace(ex.Message));
     }
