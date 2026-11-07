@@ -10,14 +10,18 @@
 #   4. パッケージ参照だけの一時プロジェクトが復元・ビルド・起動できるか（共通基盤 + 機能層）
 #   5. UI ソリューションのパッケージ参照が復元できるか（依存の宣言が閉じているか）
 #
+# **検証する ID・版の展開済みキャッシュ（グローバルの `~/.nuget/packages`）を消してから復元する**。
+# 残っていると、復元が別のビルドの（古い）パッケージを再利用し、新しい nupkg の欠陥を検出できない
+# （実測 2026-11-06: 空のフィードでも `[0.5.3]` の復元が 109 ms で成功した）。
+#
 # 一時プロジェクトは $env:TEMP へ置く（リポジトリの Directory.Build.* を継承させないため。 片付ける）。
 #
 # 使い方:
 #   pwsh -NoProfile -File buildScript/verifyPackaging.ps1
 #   pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -SkipPack     # pack を省略する
 #   pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -KeepWork     # 一時フォルダを残す
-#   # 公開する版のパッケージ（DryRun が artifacts/ へ作ったもの）を検証する
-#   pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -SkipPack -Feed artifacts-release -Version 0.5.2
+#   # 公開する版のパッケージ（CI の build.yml が artifacts/ へ作ったもの）を検証する
+#   pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -SkipPack -Feed artifacts -Version 0.5.3
 
 [CmdletBinding()]
 param(
@@ -201,6 +205,30 @@ try {
 "@
     $nugetConfigPath = Join-Path $work 'NuGet.config'
     [IO.File]::WriteAllText($nugetConfigPath, $nugetConfig, $enc)
+
+    # **検証する ID・版の展開済みキャッシュを消す**: グローバルの `~/.nuget/packages` に同じ ID・版が
+    # 残っていると、復元が**別のビルドの（古い）パッケージ**を再利用し、新しい nupkg の欠陥を検出できない
+    # （実測 2026-11-06: 空のフィードでも `[0.5.3]` の復元が 109 ms で成功した）。
+    # 消すのは**検証する ID・版だけ**であり、第三者パッケージ（nuget.org の不変な版）はキャッシュを使い続ける。
+    # **消せないときは検証を止める**: 消えていないのに先へ進むと、古いパッケージで復元が成功し、
+    # 新しい nupkg の欠陥を見逃す（黙って通る方が、失敗するより危ない）。
+    $locals = Invoke-NativeText 'dotnet' @('nuget', 'locals', 'global-packages', '--list')
+    $line = @(($locals.Text + $locals.ErrorText) -split "`r?`n" | Where-Object { $_ -match ':' } | Select-Object -First 1)
+    if ($locals.ExitCode -ne 0 -or $line.Count -eq 0) {
+        throw "展開済みパッケージの場所を特定できませんでした（キャッシュを消せないため検証を中止します。 exit $($locals.ExitCode)）"
+    }
+    $globalPackages = ($line[0] -split ':', 2)[1].Trim()
+    if (Test-Path -LiteralPath $globalPackages) {
+        foreach ($package in $packages) {
+            if (-not $versions.ContainsKey($package.Solution)) { continue }
+            $cached = Join-Path (Join-Path $globalPackages $package.Name.ToLowerInvariant()) $versions[$package.Solution]
+            if (-not (Test-Path -LiteralPath $cached)) { continue }
+            Remove-Item -LiteralPath $cached -Recurse -Force
+            if (Test-Path -LiteralPath $cached) {
+                throw "展開済みキャッシュを消せませんでした（古いパッケージで検証が通る恐れがあります）: $cached"
+            }
+        }
+    }
 
     $solutionByName = @{}
     foreach ($package in $packages) { $solutionByName[$package.Name] = $package.Solution }

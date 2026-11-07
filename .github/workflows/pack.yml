@@ -1,0 +1,168 @@
+# 配布物（nupkg）と SBOM の作成・検証（再利用可能ワークフロー）
+#
+# 呼び出し元と役割:
+#   build.yml   … Pull Request の検証。 `verify`（matrix）が Release ビルドから作ったパッケージを集め、
+#                 この実行でビルドしていないソリューションの分だけ作り足して、`verifyPackaging.ps1` と
+#                 SBOM を実行する
+#   release.yml … 公開する配布物を作る（`release` のときだけ）。 **この実行で作ったバイト列をそのまま公開する**
+#
+# **検証したバイト列と公開するバイト列を一致させる**ため、公開する側は**別の実行の成果物を探さない**。
+# 自分の実行からこのワークフローを呼び、成果物は同じ実行の中だけで受け渡す
+# （`actions/download-artifact` に `run-id` を渡さない）。
+#
+# **NuGet のグローバル パッケージ フォルダ（`~/.nuget/packages`）はキャッシュしない**: 同じ ID・版の
+# EsUtil パッケージが残っていると、`verifyPackaging.ps1` の復元が**別のビルドのパッケージ**を再利用し、
+# 新しい nupkg の欠陥を検出できない（実測 2026-11-06: 空のフィードでも復元が 109 ms で成功した）。
+# 復元は 40 秒程度であり、検証の正しさと引き換えにする価値はない。
+name: Pack
+
+on:
+  workflow_call:
+    inputs:
+      built-solutions:
+        description: '呼び出し元の実行で既にパッケージを作ったソリューション（`.github/release-config.json` の値。 JSON 配列）'
+        required: false
+        type: string
+        default: '[]'
+    outputs:
+      tree:
+        description: '配布物の名前（`nupkg-<ツリー>` / `sbom-<ツリー>`）に使ったツリー'
+        value: ${{ jobs.pack.outputs.tree }}
+
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    outputs:
+      # ツリーは 1 回だけ求める（呼び出し元はこの値で成果物を取る）
+      tree: ${{ steps.tree.outputs.tree }}
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v7
+
+      # 配布物の名前と、呼び出し元が成果物を取る名前（`nupkg-<ツリー>`）に使う
+      - name: ツリーを求める
+        id: tree
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          "tree=$((git rev-parse 'HEAD^{tree}').Trim())" >> $env:GITHUB_OUTPUT
+
+      # `verify`（matrix）が上げたパッケージ（`nupkg-<sha>-<製品名>`）を 1 つのフォルダへ集める。
+      # 公開用の実行（`built-solutions` が空）では集める対象が無いため実行しない。
+      - name: パッケージを集める
+        if: inputs.built-solutions != '[]'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: nupkg-${{ github.sha }}-*
+          path: artifacts
+          merge-multiple: true
+
+      # 変更の無かったソリューションのパッケージを作る（フィードを全パッケージで揃える）
+      - name: 足りないパッケージを作る
+        shell: pwsh
+        env:
+          BUILT: ${{ inputs.built-solutions }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $built = @(ConvertFrom-Json $env:BUILT)
+          $solutions = @((Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json).solutions)
+          $out = Join-Path (Get-Location) 'artifacts'
+          [void](New-Item -ItemType Directory -Path $out -Force)
+
+          foreach ($sln in $solutions) {
+            if ($built -contains $sln) { continue }
+            Write-Host "パッケージを作ります（この実行ではビルドしていないソリューション）: $sln"
+            # lock どおりに復元する（`packages.lock.json` と `Directory.Packages.props` の食い違いを
+            # NU1004 で検出する。 `verify` のビルドと同じ条件にする）
+            & dotnet pack $sln -c Release -o $out --nologo -p:RestoreLockedMode=true
+            if ($LASTEXITCODE -ne 0) { throw "pack が失敗しました: $sln" }
+          }
+
+          $packages = @(Get-ChildItem -Path $out -File -Filter '*.nupkg')
+          Write-Host "パッケージ: $($packages.Count) 件"
+          if ($packages.Count -eq 0) { throw "パッケージがありません: $out" }
+
+      # 配布物の正しさ（同封物・nuspec の依存・パッケージ参照での復元/ビルド/起動）を確かめる
+      - name: パッケージングを検証
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $props = [IO.File]::ReadAllText('Directory.Build.props', [Text.UTF8Encoding]::new($false))
+          $version = [regex]::Match($props, '<VersionPrefix>([^<]+)</VersionPrefix>').Groups[1].Value.Trim()
+
+          & pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -SkipPack -Feed artifacts -Version $version
+          if ($LASTEXITCODE -ne 0) { throw "パッケージングの検証が失敗しました（exit $LASTEXITCODE）" }
+
+      # SBOM の解析は復元を伴う。 **5 本を並列に走らせたまま復元させない**: 共有プロジェクトの
+      # `obj/` を取り合って失敗する（実測 2026-11-05: 別ジョブで 5 本がそれぞれ復元し直して 140 秒）。
+      # 復元はここで 1 回だけ直列に行い、SBOM は `-SkipPackageRestore` で解析だけを行う。
+      - name: 復元する（SBOM の解析のため）
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($sln in @((Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json).solutions)) {
+            # lock どおりに復元する（`pack` と同じ条件）
+            & dotnet restore $sln --nologo -p:RestoreLockedMode=true
+            if ($LASTEXITCODE -ne 0) { throw "restore が失敗しました: $sln" }
+          }
+
+      # SBOM（CycloneDX）はソリューションごとに 1 ファイル。 依存の解析は**復元済み**のため、
+      # 5 本を並列に走らせて解析だけを行う（ツールの復元も 1 回だけ行う）。
+      - name: SBOM を作成
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & dotnet tool restore
+          if ($LASTEXITCODE -ne 0) { throw "dotnet tool restore に失敗しました（exit $LASTEXITCODE）" }
+
+          $root = (Get-Location).Path
+          $output = Join-Path $root 'sbom'
+          $props = [IO.File]::ReadAllText('Directory.Build.props', [Text.UTF8Encoding]::new($false))
+          $version = [regex]::Match($props, '<VersionPrefix>([^<]+)</VersionPrefix>').Groups[1].Value.Trim()
+          $items = @((Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json).solutions | ForEach-Object {
+              [pscustomobject]@{ product = [IO.Path]::GetFileNameWithoutExtension($_); solution = $_ }
+            })
+
+          # 子プロセスの出力は**戻り値に混ぜず**、ログへ出す（混ざると結果の判定が壊れる）
+          $results = $items | ForEach-Object -Parallel {
+            $item = $_
+            $text = & pwsh -NoProfile -File (Join-Path $using:root 'buildScript/generateSbom.ps1') `
+              -Output $using:output -Solution $item.solution -Version $using:version `
+              -Product $item.product -SkipToolRestore -SkipPackageRestore *>&1
+            $code = $LASTEXITCODE
+            $text | ForEach-Object { Write-Host $_ }
+            [pscustomobject]@{ Product = $item.product; Exit = $code }
+          } -ThrottleLimit 5
+
+          $failed = @($results | Where-Object { $_.Exit -ne 0 })
+          if ($failed.Count -gt 0) {
+            throw "SBOM の作成に失敗しました: $($failed.Product -join ', ')"
+          }
+
+          $made = @(Get-ChildItem -Path $output -File)
+          $made | ForEach-Object { $_.Name }
+          if ($made.Count -ne $items.Count) {
+            throw "SBOM の件数がソリューションの数と一致しません（期待 $($items.Count) / 実際 $($made.Count)）"
+          }
+
+      - name: 配布物を保管
+        uses: actions/upload-artifact@v7
+        with:
+          name: nupkg-${{ steps.tree.outputs.tree }}
+          path: |
+            artifacts/**/*.nupkg
+            artifacts/**/*.snupkg
+          if-no-files-found: error
+          overwrite: true
+
+      - name: SBOM を保管
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbom-${{ steps.tree.outputs.tree }}
+          path: sbom/*.json
+          if-no-files-found: error
+          overwrite: true

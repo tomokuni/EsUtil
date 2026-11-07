@@ -37,7 +37,7 @@
       "esutil.feature.marquee.core": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.5.2, )",
+          "EsUtil.Platform.Core": "[0.5.3, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
@@ -47,7 +47,7 @@
       "esutil.ui.winforms.interop": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.5.2, )"
+          "EsUtil.Platform.Core": "[0.5.3, )"
         }
       }
     }

@@ -1,24 +1,25 @@
 # リリース ワークフロー
 #
 # 実行契機:
-#   main 向け Pull Request … **dry-run を自動実行する**（配布物の作成と検証だけ。 公開もタグも作らない）
-#   手動実行（workflow_dispatch）… mode=dry-run（作成と検証）または mode=release（公開とタグ付け）
+#   main 向け Pull Request … **dry-run を自動実行する**（版・タグ・ブランチ・CHANGELOG の検証だけ。 公開もタグも作らない）
+#   手動実行（workflow_dispatch）… mode=dry-run（検証だけ）または mode=release（作成・公開・タグ付け）
 #
 # 手順の全体:
-#   1. Pull Request の時点で dry-run が自動で走る（版・CHANGELOG・タグ・ブランチの検証、pack、SBOM）
+#   1. Pull Request の時点で dry-run が自動で走る（版・CHANGELOG・タグ・ブランチの検証）
 #   2. 問題が無ければ main へマージし、**同じツリー**で mode=release を実行する
-
-#      （**同じツリーの dry-run が成功していることを前提**にし、満たさなければ中止する）
-#   3. release は「承認（environment: release）」→「公開」→「タグ付け」の順に進む
+#   3. release は「配布物の作成（`pack.yml`）→ 承認（`environment: release`）→ 公開 → タグ付け」の順に進む
 #
 # 設計の要点:
 #   - **版は人が Directory.Build.props の VersionPrefix へ書いてコミットしておく**（自動採番しない）。
 #     入力 `version` は確認用であり、ツリーの値と一致しなければ失敗する。
 #   - **CHANGELOG の見出しを公開前に確定させる**（`## 未リリース` が残っていれば失敗する。
 #     公開した版の変更が「未リリース」のまま残らないようにする。 手順は .github/RELEASE.md）。
-#   - **配布物は dry-run で 1 回だけ作り、release はそれを使う**（同じ内容を 2 回 pack しない）。
-#     Pull Request の dry-run は**マージ後に main へ載るツリーそのもの**（`refs/pull/<番号>/merge`）を
-#     検証するため、その成果物をそのまま公開できる（**コミットの SHA ではなくツリーで照合する**）。
+#   - **配布物は公開する実行の中で 1 回だけ作り、その場で検証したバイト列をそのまま公開する**
+#     （`pack.yml` を `workflow_call` で呼び、成果物は同じ実行の中だけで受け渡す）。
+#     **別の実行の成果物を探さない**: 以前は `build.yml` の実行を API で走査し、同じツリーの配布物を
+#     最大 5 分待ち、無ければフォールバックで作り直していた（条件式の誤りと待機の費用がレビュー指摘の
+#     温床になっていた。 2026-11-07 に撤去）。 配布物の作成は 1 回 3〜4 分であり、
+#     **検証したバイト列と公開するバイト列が一致すること**を優先する。
 #   - **公開が成功した後にだけタグを打つ**（公開できなかった版にタグを残さない）。
 #   - **タグは 1 本**（`v<版>`。 すべてのパッケージが同じ版である）。 Release も 1 件にまとめる。
 #   - **公開は Trusted Publishing**（OIDC で短命の API キーを取得する。 長期の API キーを持たない）。
@@ -30,6 +31,11 @@
 #     作ったかを後から検証できる。 `actions/attest-build-provenance`）。
 #   - **実行できるブランチはモードで変わる**（dry-run は main / dev と main 向け Pull Request、公開は main のみ）。
 #     一覧は .github/release-config.json が単一所有する（開発〜dry-run の確認は dev で行う）。
+#
+# **ジョブの実行条件は既定の `success()` に任せる**（`!cancelled()` や `needs.*.result` を手で書かない）。
+#   `pack` は `release` のときだけ走り、`publish` はその後に、`tag` は `publish` の後に置く。
+#   **スキップされた `needs` を持つジョブは既定でスキップされる**ため、dry-run では公開もタグ付けも走らない
+#   （以前は `!cancelled() && needs.publish.result == 'success'` のような手書きの条件が必要だった）。
 #
 # **手順の所有者は .github/RELEASE.md**（本ファイルはその実装）。 版の規則は .github/ビルド設定規約.md §4、
 # パッケージの合否基準は .github/検証手順.md §9 が持つ。
@@ -45,7 +51,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'dry-run（作成と検証のみ）/ release（公開とタグ付け）'
+        description: 'dry-run（検証のみ）/ release（作成・公開・タグ付け）'
         required: true
         type: choice
         options: [dry-run, release]
@@ -57,7 +63,7 @@ on:
 
 # 公開は同時に 1 つだけ、Pull Request の dry-run は PR ごとに並行してよい
 # （`release` で直列にすると、PR の dry-run が公開の待ち行列へ入ってしまう）。
-# Pull Request では、同じ PR へ新しいコミットが載ったら古い dry-run を打ち切る（無駄な pack を残さない）。
+# Pull Request では、同じ PR へ新しいコミットが載ったら古い dry-run を打ち切る。
 concurrency:
   group: release-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -67,29 +73,20 @@ permissions:
 
 jobs:
   # ────────────────────────────────────────────────────────────
-  # 1. 前提検証（版・タグ・dry-run の成功）
+  # 1. 前提検証（版・タグ・ブランチ・CHANGELOG）
   # ────────────────────────────────────────────────────────────
+  # **API を呼ばない**（他の実行を探さない）。 検証はすべてチェックアウトしたツリーに対して行う。
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      # dry-run の実行結果の参照
-      actions: read
+    timeout-minutes: 10
     outputs:
       # 実行モード（Pull Request は常に dry-run）
       mode: ${{ steps.mode.outputs.mode }}
       version: ${{ steps.plan.outputs.version }}
       tag: ${{ steps.plan.outputs.tag }}
       count: ${{ steps.plan.outputs.count }}
-      # pack / SBOM の対象（ソリューションと、SBOM の製品名）
+      # 公開する単位（Release の本文に製品名を並べるため）
       solutions: ${{ steps.plan.outputs.solutions }}
-      # 検証した内容の識別子（ツリー）。 配布物の名前と、release の照合に使う
-      tree: ${{ steps.plan.outputs.tree }}
-      # dry-run の実行 ID（release はその成果物を使う。 同じ内容を 2 回 pack しない）
-      dryRunId: ${{ steps.plan.outputs.dryRunId }}
-      # パッケージへ影響する変更があるか（パッケージングの検証を実行するか）
-      packaging: ${{ steps.plan.outputs.packaging }}
     steps:
       - name: チェックアウト
         uses: actions/checkout@v7
@@ -162,13 +159,9 @@ jobs:
         id: plan
         shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MODE: ${{ steps.mode.outputs.mode }}
           INPUT_VERSION: ${{ inputs.version }}
-          REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
-          EVENT_NAME: ${{ github.event_name }}
-          BASE_REF: ${{ github.base_ref }}
         run: |
           $ErrorActionPreference = 'Stop'
 
@@ -211,224 +204,37 @@ jobs:
           $changed = if ($lastTag) { @(git diff --name-only "$lastTag...$($env:SHA)").Count -gt 0 } else { $true }
           if (-not $changed) { Write-Host "前回のタグ（$lastTag）から変更がありません（リリースしません）。" }
 
-          # **パッケージへ影響する変更があるか**（パッケージングの検証を実行するかの判定）。
-          # 配布物の中身を変えうるファイルだけを見る（workflow や .editorconfig の変更では検証しない）。
-          # 判定できない場合（差分が取れない）は**実行する**（取りこぼして検証を飛ばすより安全）。
-          $packagingPatterns = '^(Directory\.Packages\.props|Directory\.Build\.(props|targets)|NuGet\.config|global\.json|buildScript/(pack|generateSbom|verifyPackaging)\.ps1|.*\.csproj|.*/packages\.lock\.json|EsUtil[^/]*/.*/src/)'
-          $packaging = $true
-          $diffBase = ''
-          if ($env:EVENT_NAME -eq 'pull_request' -and $env:BASE_REF) {
-            # 比較の基準（base ブランチ）を取得する（checkout は既定で対象の ref だけを取る）
-            git fetch --no-tags origin $env:BASE_REF 2>&1 | Out-Null
-            if ($LASTEXITCODE -eq 0) { $diffBase = "origin/$($env:BASE_REF)" }
-          }
-          elseif ($lastTag) { $diffBase = $lastTag }
-          if ($diffBase) {
-            $files = @(git -c core.quotepath=false diff --name-only "$diffBase...$($env:SHA)" 2>$null | Where-Object { $_ -notmatch '\.md$' })
-            if ($LASTEXITCODE -eq 0) {
-              $packaging = ($files.Count -gt 0) -and (@($files | Where-Object { $_ -match $packagingPatterns }).Count -gt 0)
-            }
-          }
-          Write-Host "パッケージングの検証: $packaging"
-          "packaging=$($packaging.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
-
-          # release は「**信頼できる dry-run** が同じ内容（ツリー）を検証している」ことを前提にする。
-          # **成果物の名前だけを信用しない**（PR はワークフローの定義も変更できるため、任意のファイルを
-          # `nupkg-<ツリー>` という名前で持ち込める）。 次の 2 つを満たす実行だけを採用する:
-          #   1. **このリポジトリの実行**であること（`head_repository`。 fork の PR を除外する）
-          #   2. **リリース元のブランチ**であること（Pull Request は `dev`、手動は許可ブランチ）
-          # そのうえで**配布物の名前（ツリー）が一致**することを確かめる。
-          # なお、同じリポジトリの書き込み権限を持つ利用者が PR を偽装することまでは防げない
-          # （公開物の完全な証明が要る場合は配布物へ attestation を付けて検証する。 §10）。
-          $tree = (git rev-parse 'HEAD^{tree}').Trim()
-          $nupkgName = "nupkg-$tree"
-          $dryRunId = ''
-          if ($env:MODE -eq 'release') {
-            $config = Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json
-            $manualBranches = @($config.dryRunBranches)
-
-            # **全件を走査する**（固定件数で打ち切らない。 成功した dry-run が積み上がっても見失わない）
-            $runs = @(gh api --paginate "repos/$($env:REPO)/actions/workflows/release.yml/runs?status=success&per_page=100" --jq '.workflow_runs[] | [(.id|tostring), .display_title, .event, .head_branch, (.head_repository.full_name // "")] | @tsv')
-            $scanned = 0
-            foreach ($line in $runs) {
-              $fields = $line -split "`t"
-              if ($fields.Count -lt 5) { continue }
-              $id = $fields[0]; $title = $fields[1]; $event = $fields[2]; $branch = $fields[3]; $repo = $fields[4]
-
-              if ($title -notlike 'DryRun*') { continue }
-              $scanned += 1
-
-              # 1. このリポジトリの実行だけを信頼する（fork の PR は成果物を持ち込める）
-              if ($repo -ne $env:REPO) { continue }
-
-              # 2. リリース元のブランチだけを信頼する
-              $trusted = ($event -eq 'pull_request' -and $branch -eq 'dev') -or
-                         ($event -eq 'workflow_dispatch' -and $manualBranches -contains $branch)
-              if (-not $trusted) { continue }
-
-              # 3. 配布物の名前（ツリー）が一致すること
-              $names = @(gh api "repos/$($env:REPO)/actions/runs/$id/artifacts" --jq '.artifacts[].name')
-              if ($names -contains $nupkgName) { $dryRunId = $id; break }
-            }
-
-            if (-not $dryRunId) {
-              throw "この内容（ツリー $tree。 コミット $($env:SHA)）を検証した信頼できる dry-run がありません（成功した実行 $scanned 件を確認）。 dev からの Pull Request の DryRun を待つか、main で mode=dry-run を実行してください。"
-            }
-            Write-Host "dry-run の実行: $dryRunId（ツリー $tree が一致。 成果物 $nupkgName を再利用します）"
-          }
-
           $json = $list | ConvertTo-Json -Compress -AsArray
           $count = if ($changed) { 1 } else { 0 }
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
-          "tree=$tree" >> $env:GITHUB_OUTPUT
           "solutions=$json" >> $env:GITHUB_OUTPUT
           "count=$count" >> $env:GITHUB_OUTPUT
-          "dryRunId=$dryRunId" >> $env:GITHUB_OUTPUT
           Write-Host "版: $version（タグ $tag、対象 $($list.Count) ソリューション、リリース $count）"
 
   # ────────────────────────────────────────────────────────────
-  # 2. 配布物の作成（dry-run だけが作る。 release は dry-run の成果物を使う）
+  # 2. 配布物の作成と検証（release のときだけ。 検証したバイト列をそのまま公開する）
   # ────────────────────────────────────────────────────────────
+  # ここで作った成果物（`nupkg-<ツリー>` / `sbom-<ツリー>`）は**同じ実行の中だけ**で受け渡す
+  # （`publish` / `tag` は `run-id` を渡さずに取得する）。
   pack:
     needs: verify
-    if: needs.verify.outputs.mode == 'dry-run' && needs.verify.outputs.count != '0'
-    runs-on: windows-latest
-    timeout-minutes: 60
-    steps:
-      - name: チェックアウト
-        uses: actions/checkout@v7
-
-      # **キーは「取得するパッケージの集合」で決める**（`packages.lock.json` と `Directory.Packages.props`）。
-      # `**/*.csproj` を混ぜると、パッケージが変わらない変更でもキーが変わり、1.45 GB のキャッシュを
-      # 保存し直す（実測 2026-11-05: 復元 50 秒 / 保存 は復元より長い）。
-      - name: NuGet をキャッシュ
-        uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.lock.json', 'Directory.Packages.props') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
-
-      # 版はコミット済みの VersionPrefix を使う（ワークフローで書き換えない）。
-      # ソリューションごとに pack する（1 つの版で全パッケージを作る。 ローカル識別子は付けない）。
-      # **ソリューション同士は並列にしない**: UI ソリューションの ProjectReference は共通基盤を
-      # 含まないため、同時に動かすと共有の `obj/Release` を奪い合って `GenerateDepsFile` が失敗する
-      # （実測 2026-11-05: CI で再現）。 直列のままにする（手元の実測でも直列 19 秒に対し、
-      # ソリューションごとに出力を隔離した並列は参照先の再ビルドが増えて遅い）。
-      - name: パッケージを作成
-        shell: pwsh
-        env:
-          SOLUTIONS: ${{ needs.verify.outputs.solutions }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $out = Join-Path (Get-Location) 'artifacts'
-          [void](New-Item -ItemType Directory -Path $out -Force)
-          foreach ($item in @(ConvertFrom-Json $env:SOLUTIONS)) {
-            # lock どおりに復元する（packages.lock.json と Directory.Packages.props の食い違いを NU1004 で検出する）
-            & dotnet pack $item.solution -c Release -o $out --nologo -p:RestoreLockedMode=true
-            if ($LASTEXITCODE -ne 0) { throw "pack が失敗しました: $($item.product)" }
-          }
-
-          $packages = @(Get-ChildItem -Path $out -File -Filter '*.nupkg')
-          Write-Host "パッケージ: $($packages.Count) 件"
-          if ($packages.Count -eq 0) { throw "パッケージが作られていません: $out" }
-
-      # 配布物の正しさ（同封物・nuspec の依存・パッケージ参照での復元/ビルド/起動）を確かめる。
-      # **公開する版のパッケージをそのまま検証する**（build.yml のパッケージングと同じ手順。
-      # パッケージへ影響する変更のときだけ実行する）。
-      - name: パッケージングを検証
-        if: needs.verify.outputs.packaging == 'true'
-        shell: pwsh
-        env:
-          VERSION: ${{ needs.verify.outputs.version }}
-        run: |
-          & pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -SkipPack -Feed artifacts -Version $env:VERSION
-          if ($LASTEXITCODE -ne 0) { throw "パッケージングの検証が失敗しました（exit $LASTEXITCODE）" }
-
-      - name: 配布物を保管
-        uses: actions/upload-artifact@v7
-        with:
-          # **名前へツリーを埋める**（release はこの名前で「同じ内容の dry-run」を探す）
-          name: nupkg-${{ needs.verify.outputs.tree }}
-          path: |
-            artifacts/**/*.nupkg
-            artifacts/**/*.snupkg
-          if-no-files-found: error
-          # **再実行で同じ名前へ上書きする**（既定は `false` で、失敗したジョブの再実行が
-          # 「同じ名前の成果物がある」で失敗し、先へ進めない）。
-          overwrite: true
-
-      # SBOM（CycloneDX）は **pack と同じジョブで作る**: 費用の大半は復元であり（実測 2026-11-06:
-      # 復元込み 11.8 秒 → 復元なし 1.0 秒/本）、`pack` が全ソリューションを復元済みのため
-      # `--disable-package-restore` で解析だけを行える（実測: 5 本の並列で 2 秒）。
-      # 別ジョブでは 5 本がそれぞれ復元し直して 140 秒かかっていた（実測 2026-11-05）。
-      # 内容は復元ありの実行と**同一**であることを 5 本すべてで確認済み（purl と依存グラフが一致）。
-      - name: SBOM を作成
-        shell: pwsh
-        env:
-          SOLUTIONS: ${{ needs.verify.outputs.solutions }}
-          VERSION: ${{ needs.verify.outputs.version }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          # ツールの版は .config/dotnet-tools.json が単一所有する（CI とローカルで同じものを使う）。
-          # **復元は 1 回だけ**行う（並列に走らせると同じツール フォルダを取り合うため。 スクリプトへは
-          # -SkipToolRestore を渡す）。
-          & dotnet tool restore
-          if ($LASTEXITCODE -ne 0) { throw "dotnet tool restore に失敗しました（exit $LASTEXITCODE）" }
-
-          $root = (Get-Location).Path
-          $output = Join-Path $root 'sbom'
-          $version = $env:VERSION
-          $items = @(ConvertFrom-Json $env:SOLUTIONS)
-
-          # ソリューションごとに 1 つの SBOM を作る。 **互いに独立しているため並列に走らせる**。
-          # 子プロセスの出力は**戻り値に混ぜず**、ログへ出す（混ざると結果の判定が壊れる）。
-          $results = $items | ForEach-Object -Parallel {
-            $item = $_
-            $text = & pwsh -NoProfile -File (Join-Path $using:root 'buildScript/generateSbom.ps1') `
-              -Output $using:output -Solution $item.solution -Version $using:version `
-              -Product $item.product -SkipToolRestore -SkipPackageRestore *>&1
-            $code = $LASTEXITCODE
-            $text | ForEach-Object { Write-Host $_ }
-            [pscustomobject]@{ Product = $item.product; Exit = $code }
-          } -ThrottleLimit 5
-
-          $failed = @($results | Where-Object { $_.Exit -ne 0 })
-          if ($failed.Count -gt 0) {
-            throw "SBOM の作成に失敗しました: $($failed.Product -join ', ')"
-          }
-
-          $made = @(Get-ChildItem -Path $output -File)
-          $made | ForEach-Object { $_.Name }
-          if ($made.Count -ne $items.Count) {
-            throw "SBOM の件数がソリューションの数と一致しません（期待 $($items.Count) / 実際 $($made.Count)）"
-          }
-
-      - name: SBOM を保管
-        uses: actions/upload-artifact@v7
-        with:
-          # 配布物と同じく、名前へツリーを埋める
-          name: sbom-${{ needs.verify.outputs.tree }}
-          path: sbom/*.json
-          if-no-files-found: error
-          # 再実行で同じ名前へ上書きする（配布物と同じ理由）
-          overwrite: true
-
-  # ────────────────────────────────────────────────────────────
-  # 3. 公開（release のみ。 承認を要求する）
-  # ────────────────────────────────────────────────────────────
-  publish:
-    needs: [verify]
     if: needs.verify.outputs.mode == 'release' && needs.verify.outputs.count != '0'
+    uses: ./.github/workflows/pack.yml
+
+  # ────────────────────────────────────────────────────────────
+  # 3. 公開（承認を要求する）
+  # ────────────────────────────────────────────────────────────
+  # `if` は書かない。 **既定の `success()` が `needs` を要求する**ため、dry-run（`pack` がスキップ）や
+  # 「リリースする変更が無い」（`pack` がスキップ）では自動的にスキップされる。
+  publish:
+    needs: [verify, pack]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # 承認されたジョブだけが公開できる（Trusted Publishing のポリシーもこの環境に紐づける）
     environment: release
     permissions:
       contents: read
-      # dry-run の実行の成果物を取得する
-      actions: read
       # OIDC で短命の NuGet API キーを取得する
       id-token: write
     steps:
@@ -437,16 +243,13 @@ jobs:
       - name: チェックアウト
         uses: actions/checkout@v7
 
-      # **dry-run が作った配布物をそのまま公開する**（同じ内容を 2 回 pack しない。
-      # 検証したバイト列と公開するバイト列が一致する）。 Pull Request の dry-run も使える。
-      # 成果物が失効している場合は失敗する。
-      - name: 配布物を取得（dry-run の実行から）
+      # **この実行で作って検証した配布物をそのまま公開する**（同じ内容を 2 回 pack しない。
+      # 検証したバイト列と公開するバイト列が一致する）。
+      - name: 配布物を取得
         uses: actions/download-artifact@v8
         with:
-          name: nupkg-${{ needs.verify.outputs.tree }}
+          name: nupkg-${{ needs.pack.outputs.tree }}
           path: artifacts
-          run-id: ${{ needs.verify.outputs.dryRunId }}
-          github-token: ${{ github.token }}
 
       # 短命の API キーを取得する（1 時間有効。 1 トークン = 1 キー。 **push の直前に取得する**）
       - name: NuGet の API キーを取得
@@ -546,15 +349,14 @@ jobs:
   # ────────────────────────────────────────────────────────────
   # 4. タグと GitHub Release（公開が成功した後にだけ実行する）
   # ────────────────────────────────────────────────────────────
+  # `if` は書かない。 **既定の `success()` が `publish` の成功を要求する**ため、
+  # 「公開したのにタグが無い」状態も「公開していないのにタグがある」状態も作らない。
   tag:
-    needs: [verify, publish]
-    if: needs.verify.outputs.mode == 'release' && needs.verify.outputs.count != '0'
+    needs: [verify, pack, publish]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: write
-      # dry-run の実行の成果物を取得する
-      actions: read
       # 成果物の由来（provenance）を証明する（署名は GitHub の OIDC で行う）
       id-token: write
       attestations: write
@@ -564,14 +366,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 公開したパッケージと SBOM を 1 つのフォルダへ集約する（どちらも dry-run が作った成果物）
-      - name: 成果物をダウンロード（dry-run の実行から）
+      # 公開したパッケージと SBOM を 1 つのフォルダへ集約する（この実行で作ったもの）。
+      # **名前で 2 つだけ取る**（`pack.yml` はソリューション別の成果物も上げるため、
+      # 全部を取ると同じパッケージが重複する）。
+      - name: 配布物をダウンロード
         uses: actions/download-artifact@v8
         with:
+          name: nupkg-${{ needs.pack.outputs.tree }}
           path: assets
-          merge-multiple: true
-          run-id: ${{ needs.verify.outputs.dryRunId }}
-          github-token: ${{ github.token }}
+
+      - name: SBOM をダウンロード
+        uses: actions/download-artifact@v8
+        with:
+          name: sbom-${{ needs.pack.outputs.tree }}
+          path: assets
 
       # **由来の証明**（どのワークフロー・どのコミットが作ったかを検証できるようにする）。
       # 公開した版は取り消せないため、後から出所を確かめられる状態にする（規則は .github/RELEASE.md）。
