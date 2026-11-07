@@ -71,6 +71,45 @@ public class WinSubclassTests : IDisposable
         }
     }
 
+    /// <summary>同じウィンドウへ 2 つの機能を付けても、両方の登録が残ることを検証する。</summary>
+    /// <remarks>
+    /// 識別値がクラスごとの連番だと、同じウィンドウへ付けた 2 つが同じ <c>(プロシージャ, 識別値)</c> になり、
+    /// 後から付けた側が先の登録を置き換える（先に付けた機能が黙って効かなくなる）。<br/>
+    /// 採番の範囲を <see cref="WinSubclass.NextId"/> で挟み、その範囲の識別値を解除できるかで登録数を確かめる
+    /// （登録が 1 件しか残っていなければ、解除できる識別値も 1 つだけになる）。
+    /// </remarks>
+    [Fact]
+    internal unsafe void NextId_同じウィンドウへ2つの機能を付けても両方の登録が残る()
+    {
+        var hwnd = (HWND)CreateHiddenWindow();
+        var guard = new WinCursorOverrideGuard();
+        var hotKeys = new WinGlobalHotKeyService<string>();
+        var firstId = WinSubclass.NextId();
+        var removed = 0;
+
+        try
+        {
+            guard.Attach(EsWindow.FromHandle((IntPtr)hwnd));
+            hotKeys.Initialize((IntPtr)hwnd);
+            var lastId = WinSubclass.NextId();
+
+            for (var id = firstId; id < lastId; id++)
+            {
+                if (PInvoke.RemoveWindowSubclass(hwnd, WinSubclass.Procedure, id))
+                {
+                    removed++;
+                }
+            }
+
+            Assert.Equal(2, removed);
+        }
+        finally
+        {
+            hotKeys.Dispose();
+            guard.Dispose();
+        }
+    }
+
     /// <summary>メッセージを元のプロシージャへ委譲する処理（登録の成否だけを確かめるための中身）。</summary>
     /// <param name="hWnd">ウィンドウハンドル。</param>
     /// <param name="msg">ウィンドウメッセージ。</param>
