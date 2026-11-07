@@ -953,6 +953,23 @@ foreach ($f in @(Get-ChildItem -Path $projectDirPaths -Recurse -File -Filter 'SP
 Add-Result 'SPEC_API の internal 印' ($internalIssues.Count -eq 0) "$($internalIssues.Count) 件"
 $internalIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
 
+# 8u) ワークフローの失敗の握りつぶし（例外の記録（8p）と同じ考え方。 規則は .github/検証手順.md）
+#     `run:` の中で失敗を無視すると、**検証が通ったように見える**（実測 2026-11-06: 展開済みキャッシュの
+#     削除に失敗しても続行したため、古いパッケージで検証が通った）。 失敗は隠さず、ワークフローを止める。
+$rxSuppress = [regex]'(?i)-ErrorAction\s+(SilentlyContinue|Ignore)|\|\|\s*true(?=\s|$)|2>\s*\$null|continue-on-error:\s*true'
+$workflowIssues = [System.Collections.Generic.List[string]]::new()
+foreach ($f in @(Get-ChildItem -Path (Join-Path $repoRoot '.github/workflows') -File -Filter '*.yml')) {
+    $lines = Get-Lines $f.FullName
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i].TrimStart().StartsWith('#')) { continue }
+        if ($lines[$i] -match $rxSuppress) {
+            $workflowIssues.Add(("{0}:{1}  失敗を握りつぶしている（{2}）。 失敗させて止めるか、理由を書いて別の手段で確かめる" -f $f.Name, ($i + 1), $lines[$i].Trim()))
+        }
+    }
+}
+Add-Result 'ワークフローの失敗の握りつぶし' ($workflowIssues.Count -eq 0) "$($workflowIssues.Count) 件"
+$workflowIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
+
 # ============================================================
 # 9. 改行コード
 # ============================================================

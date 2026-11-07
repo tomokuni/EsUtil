@@ -240,141 +240,20 @@ jobs:
           overwrite: true
 
   # ────────────────────────────────────────────────────────────
-  # 2a. 配布物の検証と SBOM（verify が作ったパッケージを集めて 1 回だけ実行する）
+  # 2a. 配布物の検証と SBOM（再利用可能ワークフロー `pack.yml` が単一所有する）
   # ────────────────────────────────────────────────────────────
   # **同じツリーを 2 回ビルドしない**: パッケージは `verify` が Release ビルドの出力から作り
-  # （`dotnet pack --no-build`）、ここは集めて検証するだけである。 以前は `release.yml` の `pack`
-  # ジョブが全 5 ソリューションをビルドし直していた（実測 2026-11-06: 213 秒）。
-  # 検証（`verifyPackaging.ps1`）は**全パッケージが揃ったフィード**を要求するため、変更の無かった
-  # ソリューションのパッケージはここで 1 本ずつ作る（ビルドし直すのはその分だけ）。
+  # （`dotnet pack --no-build`）、`pack.yml` は集めて検証するだけである。 変更の無かった
+  # ソリューションの分だけ `pack.yml` が 1 本ずつ作り足す。
   # **`ci` の needs には入れない**（必須チェックを遅らせない。 パッケージングの扱いは
   # .github/RELEASE.md §4.2 が定める）。
   package:
     needs: [changes, verify]
     if: needs.changes.outputs.packaging == 'true' && needs.changes.outputs.solutions != '[]'
-    runs-on: windows-latest
-    timeout-minutes: 30
-    steps:
-      - name: チェックアウト
-        uses: actions/checkout@v7
-
-      # パッケージ参照での復元を確かめるため、NuGet のキャッシュを使う（キーは取得するパッケージの集合）
-      - name: NuGet をキャッシュ
-        uses: actions/cache@v6
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-repo-${{ hashFiles('**/packages.lock.json', 'Directory.Packages.props') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-repo-
-            nuget-${{ runner.os }}-
-
-      # 配布物の名前と、`release` が探す名前（`nupkg-<ツリー>`）に使う
-      - name: ツリーを求める
-        id: tree
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          "tree=$((git rev-parse 'HEAD^{tree}').Trim())" >> $env:GITHUB_OUTPUT
-
-      # `verify` の各ジョブが上げたパッケージ（`nupkg-<sha>-<製品名>`）を 1 つのフォルダへ集める
-      - name: パッケージを集める
-        uses: actions/download-artifact@v8
-        with:
-          pattern: nupkg-${{ github.sha }}-*
-          path: artifacts
-          merge-multiple: true
-
-      # 変更の無かったソリューションのパッケージを作る（フィードを全パッケージで揃える）
-      - name: 足りないパッケージを作る
-        shell: pwsh
-        env:
-          BUILT: ${{ needs.changes.outputs.solutions }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $built = @(ConvertFrom-Json $env:BUILT)
-          $solutions = @((Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json).solutions)
-
-          foreach ($sln in $solutions) {
-            if ($built -contains $sln) { continue }
-            Write-Host "パッケージを作ります（この実行ではビルドしていないソリューション）: $sln"
-            # lock どおりに復元する（`packages.lock.json` と `Directory.Packages.props` の食い違いを
-            # NU1004 で検出する。 `verify` のビルドと同じ条件にする）
-            & dotnet pack $sln -c Release -o artifacts --nologo -p:RestoreLockedMode=true
-            if ($LASTEXITCODE -ne 0) { throw "pack が失敗しました: $sln" }
-          }
-
-          $packages = @(Get-ChildItem -Path 'artifacts' -File -Filter '*.nupkg')
-          Write-Host "パッケージ: $($packages.Count) 件"
-          if ($packages.Count -eq 0) { throw "パッケージがありません: artifacts" }
-
-      # 配布物の正しさ（同封物・nuspec の依存・パッケージ参照での復元/ビルド/起動）を確かめる
-      - name: パッケージングを検証
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $props = [IO.File]::ReadAllText('Directory.Build.props', [Text.UTF8Encoding]::new($false))
-          $version = [regex]::Match($props, '<VersionPrefix>([^<]+)</VersionPrefix>').Groups[1].Value.Trim()
-
-          & pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -SkipPack -Feed artifacts -Version $version
-          if ($LASTEXITCODE -ne 0) { throw "パッケージングの検証が失敗しました（exit $LASTEXITCODE）" }
-
-      # SBOM（CycloneDX）はソリューションごとに 1 ファイル。 依存の解析は復元を伴うため、
-      # **並列に走らせる**（ツールの復元は 1 回だけ行い、スクリプトへは -SkipToolRestore を渡す）。
-      - name: SBOM を作成
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          & dotnet tool restore
-          if ($LASTEXITCODE -ne 0) { throw "dotnet tool restore に失敗しました（exit $LASTEXITCODE）" }
-
-          $root = (Get-Location).Path
-          $output = Join-Path $root 'sbom'
-          $props = [IO.File]::ReadAllText('Directory.Build.props', [Text.UTF8Encoding]::new($false))
-          $version = [regex]::Match($props, '<VersionPrefix>([^<]+)</VersionPrefix>').Groups[1].Value.Trim()
-          $items = @((Get-Content '.github/release-config.json' -Raw | ConvertFrom-Json).solutions | ForEach-Object {
-              [pscustomobject]@{ product = [IO.Path]::GetFileNameWithoutExtension($_); solution = $_ }
-            })
-
-          # 子プロセスの出力は**戻り値に混ぜず**、ログへ出す（混ざると結果の判定が壊れる）
-          $results = $items | ForEach-Object -Parallel {
-            $item = $_
-            $text = & pwsh -NoProfile -File (Join-Path $using:root 'buildScript/generateSbom.ps1') `
-              -Output $using:output -Solution $item.solution -Version $using:version `
-              -Product $item.product -SkipToolRestore *>&1
-            $code = $LASTEXITCODE
-            $text | ForEach-Object { Write-Host $_ }
-            [pscustomobject]@{ Product = $item.product; Exit = $code }
-          } -ThrottleLimit 5
-
-          $failed = @($results | Where-Object { $_.Exit -ne 0 })
-          if ($failed.Count -gt 0) {
-            throw "SBOM の作成に失敗しました: $($failed.Product -join ', ')"
-          }
-
-          $made = @(Get-ChildItem -Path $output -File)
-          $made | ForEach-Object { $_.Name }
-          if ($made.Count -ne $items.Count) {
-            throw "SBOM の件数がソリューションの数と一致しません（期待 $($items.Count) / 実際 $($made.Count)）"
-          }
-
-      # `release` が探す名前（`nupkg-<ツリー>` / `sbom-<ツリー>`）で保管する
-      - name: 配布物を保管
-        uses: actions/upload-artifact@v7
-        with:
-          name: nupkg-${{ steps.tree.outputs.tree }}
-          path: |
-            artifacts/**/*.nupkg
-            artifacts/**/*.snupkg
-          if-no-files-found: error
-          overwrite: true
-
-      - name: SBOM を保管
-        uses: actions/upload-artifact@v7
-        with:
-          name: sbom-${{ steps.tree.outputs.tree }}
-          path: sbom/*.json
-          if-no-files-found: error
-          overwrite: true
+    uses: ./.github/workflows/pack.yml
+    with:
+      # `verify` が作ったパッケージ（`nupkg-<sha>-<製品名>`）を集め、残りだけを作る
+      built-solutions: ${{ needs.changes.outputs.solutions }}
 
   # ────────────────────────────────────────────────────────────
   # 2b. リポジトリ全体の検査と NuGet の監査（ソリューションに依存しない。 verify と同時に走らせる）
