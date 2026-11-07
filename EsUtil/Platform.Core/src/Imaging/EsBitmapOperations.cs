@@ -1,8 +1,6 @@
 using System.Buffers;
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native.Win.Wic;
-using Windows.Win32.Graphics.Imaging;
 
 namespace EsUtil.Platform.Core.Imaging;
 
@@ -203,7 +201,6 @@ internal static class EsBitmapOperations
     /// <remarks><b>中間画像を作りません</b>（縮小先の画像が持つ領域へ直接書きます）。</remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxSize"/> が許容範囲外の場合、または <paramref name="mode"/> が定義されていない値の場合。</exception>
     /// <exception cref="NotSupportedException"><paramref name="maxSize"/> が長辺より大きい（拡大が必要な）場合。</exception>
-    [SupportedOSPlatform("windows10.0.17763")]
     internal static EsBitmap CreateScaled(
         ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride, int maxSize, EsImageScalingMode mode)
     {
@@ -223,7 +220,6 @@ internal static class EsBitmapOperations
     /// <param name="dither">ディザの指定。</param>
     /// <returns>減色した新しい画像（寸法は変わらない）。 所有権は呼び出し側へ移る。</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="colorCount"/> または <paramref name="dither"/> が許容範囲外の場合。</exception>
-    [SupportedOSPlatform("windows10.0.17763")]
     internal static EsBitmap CreateReduced(
         ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride, int colorCount, EsDitherMode dither)
     {
@@ -251,7 +247,6 @@ internal static class EsBitmapOperations
     /// <b><see cref="EsImageScalingMode.EsBox"/> など <c>Es</c> で始まる方法は本ライブラリの計算です</b>:
     /// 縮小先に必要な画素だけを読むため、WIC より速い代わりに、読み込み経路（WIC）とは画素が一致しません。
     /// </remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
     internal static unsafe void ScaleInto(
         ReadOnlySpan<byte> pixels, int sourceWidth, int sourceHeight, int stride,
         EsSizeInt target, EsImageScalingMode mode, Span<byte> destination)
@@ -283,34 +278,12 @@ internal static class EsBitmapOperations
                     // WIC の 5 つの補間は、そのまま WIC の指定へ写して任せる
                     WinWicImageCodec.Resize(
                         pixels, sourceWidth, sourceHeight, stride, target.Width, target.Height,
-                        ToInterpolationMode(mode), destination);
+                        mode, destination);
                     break;
             }
         }
     }
 
-    /// <summary>縮小の方法を WIC の補間の指定へ写す。</summary>
-    /// <param name="mode">縮小の方法。 <c>Wic</c> で始まる値であること。</param>
-    /// <returns>WIC の補間の指定。</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="mode"/> が WIC の方法でない場合、または定義されていない値の場合。</exception>
-    /// <remarks>
-    /// <b>対応は 1 対 1 です</b>: <see cref="EsImageScalingMode.WicNearestNeighbor"/> =
-    /// <c>WICBitmapInterpolationModeNearestNeighbor</c> / <see cref="EsImageScalingMode.WicLinear"/> =
-    /// <c>WICBitmapInterpolationModeLinear</c> / <see cref="EsImageScalingMode.WicCubic"/> =
-    /// <c>WICBitmapInterpolationModeCubic</c> / <see cref="EsImageScalingMode.WicFant"/> =
-    /// <c>WICBitmapInterpolationModeFant</c> / <see cref="EsImageScalingMode.WicHighQualityCubic"/> =
-    /// <c>WICBitmapInterpolationModeHighQualityCubic</c>。 <b>本ライブラリの計算（<c>Es</c> で始まる方法）は
-    /// 写せません</b>（WIC の補間ではないため例外にします）。
-    /// </remarks>
-    internal static WICBitmapInterpolationMode ToInterpolationMode(EsImageScalingMode mode) => mode switch
-    {
-        EsImageScalingMode.WicNearestNeighbor => WICBitmapInterpolationMode.WICBitmapInterpolationModeNearestNeighbor,
-        EsImageScalingMode.WicLinear => WICBitmapInterpolationMode.WICBitmapInterpolationModeLinear,
-        EsImageScalingMode.WicCubic => WICBitmapInterpolationMode.WICBitmapInterpolationModeCubic,
-        EsImageScalingMode.WicFant => WICBitmapInterpolationMode.WICBitmapInterpolationModeFant,
-        EsImageScalingMode.WicHighQualityCubic => WICBitmapInterpolationMode.WICBitmapInterpolationModeHighQualityCubic,
-        _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "WIC の補間へ写せない縮小方法です。"),
-    };
     /// <summary>最近傍補間で縮小する（<see cref="EsImageScalingMode.EsNearestNeighbor"/> の実装）。</summary>
     /// <param name="pixels">対象の画素（BGRA8888。 行の余白を含んでよい）。</param>
     /// <param name="sourceWidth">元の幅（ピクセル）。</param>

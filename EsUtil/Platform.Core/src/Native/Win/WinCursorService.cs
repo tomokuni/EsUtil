@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using Windows.Win32;
 using Windows.Win32.UI.WindowsAndMessaging;
@@ -13,11 +12,10 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// カーソル形状（Avalonia の <c>Cursor</c> プロパティで代替）やポインター位置取得
 /// （<c>PointerEventArgs.GetPosition</c> で代替）は扱わない。<br/>
 /// <see cref="ICursorService"/> の Windows 実装。<br/>
-/// 他プラットフォームでは <see cref="ICursorService"/> を注入することで差し替え可能（DIP）。<br/>
+/// テストではスパイへ差し替えられる（DIP）。<br/>
 /// <b>ログを出力しない</b>: 失敗は <c>Try</c> 系の戻り値で呼び出し側へ渡し、記録は呼び出し側が行う。<br/>
 /// 継承不可。<br/>
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public sealed class WinCursorService : ICursorService
 {
     /// <summary>マウスポインターの表示状態（Win32 の表示カウンタとの整合を保つための追跡値）。</summary>

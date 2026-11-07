@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Input;
 using Windows.Win32;
@@ -19,13 +18,10 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// 継承不可。<br/>
 /// </remarks>
 /// <typeparam name="T">ホットキーに割り当てるアクションの識別子。</typeparam>
-[SupportedOSPlatform("windows10.0.17763")]
 public sealed class WinGlobalHotKeyService<T> : IGlobalHotKeyService<T> where T : notnull
 {
-    /// <summary><c>SetWindowSubclass</c> に渡すサブクラスの識別値（クラス内で共有する連番）。</summary>
+    /// <summary><c>SetWindowSubclass</c> に渡すサブクラスの識別値（<see cref="WinSubclass.NextId"/> が採番する）。</summary>
     /// <remarks>識別値は<b>ウィンドウごとに一意</b>であればよい（comctl32 がウィンドウ単位で管理する）。</remarks>
-    private static nuint s_lastSubclassId;
-
     private IntPtr _hWnd;
 
     /// <summary>サブクラス プロシージャへ渡す文脈。 未初期化時は null。</summary>
@@ -54,7 +50,7 @@ public sealed class WinGlobalHotKeyService<T> : IGlobalHotKeyService<T> where T 
         if (_hWnd == IntPtr.Zero) return;
 
         var context = _context ??= WinSubclass.CreateContext(WndProc);
-        var id = ++s_lastSubclassId;
+        var id = WinSubclass.NextId();
         if (!PInvoke.SetWindowSubclass((HWND)hWnd, WinSubclass.Procedure, id, context.ReferenceData))
         {
             // サブクラス化に失敗すると、ホットキーを登録できても押下を検出できない（回復できないため例外にする）

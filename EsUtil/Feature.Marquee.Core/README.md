@@ -8,7 +8,7 @@
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-**対応 OS**: 指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**（本パッケージは `EsUtil.Platform.Core` を参照し、その中には Windows 専用の型（`Native.Win` 配下・画像の保存/読み込み）が含まれる）
+**対応 OS**: Windows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1809（ビルド 17763）以降
 
 マーキー選択（ドラッグで矩形を選び、移動・リサイズできる操作）の **UI 非依存の計算層**です。 UI 実装が変わっても同じ状態管理・判断・幾何を共有します。
 
@@ -91,8 +91,8 @@ var plan = presenter.ResolveDrawPlan(clientSize, measureText, pointerOver: true)
 
 ## 4. 依存
 
-- 直接参照するのは UI 非依存のコア型（`EsUtil.Platform.Core` の `Es*` 幾何型 / `EsKey` / `ICoordTransform` / `ICursorService`）と `Microsoft.Extensions.Logging.Abstractions`（ログ定義のソース生成）のみです。
-- **カーソル操作は `ICursorService` 抽象にのみ依存**し、未指定（`null`）の場合は何もしません（既定実装の解決は UI 側の責務です）。
+- 直接参照するのは UI 非依存のコア型（`EsUtil.Platform.Core` の `Es*` 幾何型 / `EsKey` / `ICoordTransform`）と `Microsoft.Extensions.Logging.Abstractions`（ログ定義のソース生成）のみです。
+- **カーソル操作は効果（`IMarqueeEffects` の `TryMoveCursor` / `ShowCursor`）越しにだけ要求**します（本コアは OS のカーソル API を参照しません。 実行するのは UI 側の責務です）。
 - UI フレームワークを参照しません。
 - **Core と Presenter は同じアセンブリ**にあり、依存方向は「Presenter → Core → `EsUtil.Platform.Core`」の一方向です（コアは提示層を参照しません）。
 

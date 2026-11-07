@@ -1,5 +1,4 @@
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Platform.Core.Native;
 
 namespace EsUtil.Feature.Marquee.Core.Interaction;
 
@@ -7,7 +6,7 @@ namespace EsUtil.Feature.Marquee.Core.Interaction;
 /// <remarks>
 /// コアは状態の更新と通知（<see cref="MarqueeNotice"/>）だけを行い、画面への反映方法（再描画・フォーカス・カーソル）は
 /// 本レコードで UI 層へ指示する。 UI 層は指示に従って適用するだけで、判断を持たない。<br/>
-/// カーソル操作の適用は UI 非依存（<see cref="ICursorService"/> と画面座標の変換関数のみで完結する）ため、
+/// カーソル操作の適用は UI 非依存（<see cref="IMarqueeEffects"/> と画面座標の変換関数のみで完結する）ため、
 /// 本レコードの <see cref="ApplyCursor"/> が単一所有する（両 UI で同一の手順・順序になる）。<br/>
 /// 濃い既定値（<see cref="IsHandled"/> 以外は false）を持つため、効果が無い通知では <c>default</c> を返せる。<br/>
 /// <br/>
@@ -44,31 +43,30 @@ internal readonly record struct MarqueeFeedback
     internal EsPoint CursorSourcePosition { get; init; }
 
     /// <summary>要求されたカーソル操作を適用する。</summary>
-    /// <param name="cursor">カーソルサービス。</param>
-    /// <param name="effects">画面座標への変換を担う効果（UI 層が実装する）。</param>
-    /// <returns>要求された操作をすべて適用できた場合は <see langword="true"/>。 移動に失敗した場合は <see langword="false"/>。</returns>
+    /// <param name="effects">カーソル操作と画面座標への変換を担う効果（UI 層が実装する）。</param>
+    /// <returns>移動できた場合は <see langword="true"/>、移動に失敗した場合は <see langword="false"/>、カーソルを操作しない実装では <see langword="null"/>。</returns>
     /// <remarks>
     /// 適用順は「移動 → 非表示 → 再表示」に固定する（nudge の終了では移動してから再表示する必要がある）。<br/>
     /// 画面座標の変換のみ UI 層に委ね、それ以外（どの操作をどの順で行うか）はコアが単一所有する。<br/>
     /// <b>移動の失敗を値で返す理由</b>: 移動は表示上の追従であり、失敗しても非表示・再表示は続行する必要がある
     /// （例外にすると再表示が行われず、ポインターが非表示のまま残る）。 記録は呼び出し側が行う。
     /// </remarks>
-    internal bool ApplyCursor(ICursorService cursor, IMarqueeEffects effects)
+    internal bool? ApplyCursor(IMarqueeEffects effects)
     {
-        var moved = true;
+        bool? moved = true;
         if ((Cursor & MarqueeCursorActions.MoveTo) != 0)
         {
-            moved = cursor.TrySetCursorScreenPoint(effects.ToScreenPoint(CursorSourcePosition));
+            moved = effects.TryMoveCursor(effects.ToScreenPoint(CursorSourcePosition));
         }
 
         if ((Cursor & MarqueeCursorActions.Hide) != 0)
         {
-            cursor.ShowCursor(false);
+            effects.ShowCursor(false);
         }
 
         if ((Cursor & MarqueeCursorActions.Show) != 0)
         {
-            cursor.ShowCursor(true);
+            effects.ShowCursor(true);
         }
 
         return moved;

@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using Aprillz.MewUI.Rendering;
@@ -135,18 +134,17 @@ public sealed class MarqueeControl : Panel
 
     /// <summary>ドラッグ矩形コントロールを既定構成で初期化する。</summary>
     /// <remarks>
-    /// カーソル操作は Win32 の既定実装（<see cref="WinCursorService"/>）を生成して動作する（Windows 専用）。<br/>
+    /// カーソル操作は Win32 の既定実装（<see cref="ICursorService"/>）を生成して動作する（Windows 専用）。<br/>
     /// 対象フレームワークは <c>net10.0</c>（可搬）であり、<b>Windows 以外ではこのコンストラクターを使えない</b><br/>
     /// （<see cref="ICursorService"/> を渡すコンストラクターを使う）。
     /// </remarks>
-    [SupportedOSPlatform("windows10.0.17763")]
     public MarqueeControl()
         : this(new WinCursorService())
     {
     }
 
     /// <summary>カーソルサービスを注入してドラッグ矩形コントロールを初期化する。</summary>
-    /// <param name="cursorService">カーソルサービス（Windows の既定実装を使う場合は <see cref="WinCursorService"/> を渡す）。</param>
+    /// <param name="cursorService">カーソルサービス（Windows の既定実装を使う場合は <see cref="ICursorService"/> を渡す）。</param>
     /// <remarks>
     /// 静止画として扱い連続再描画を無効化する（選択の変更時のみ再描画する）。<br/>
     /// フォーカスを失った時点で nudge を終了する（カーソルの非表示残留を防ぐ）。<br/>
@@ -158,7 +156,7 @@ public sealed class MarqueeControl : Panel
         Focusable = true;
         _cursor = cursorService;
         _effects = new Effects(this);
-        _marquee = new MarqueePresenter(_effects, _cursor, Options);
+        _marquee = new MarqueePresenter(_effects, Options);
         _marquee.Subscribe(OnNotified);
         // 環境値とホストが与える実行時状態は入力であるため、本コントロールの現在値を提示層へ引き継ぐ
         // （外観は提示層が単一所有するため引き継がない: 外観は公開プロパティの設定で伝搬する）
@@ -849,6 +847,15 @@ public sealed class MarqueeControl : Panel
         /// <summary>カーソル形状をコアが示す種別に応じて更新する。</summary>
         /// <param name="kind">カーソル形状の種別（コア提供）。</param>
         public override void SetCursorShape(MarqueeCursorKind kind) => owner.ApplyCursorShape(kind);
+
+        /// <summary>実カーソルを画面物理座標へ移動する。</summary>
+        /// <param name="screenPoint">移動先（画面物理座標）。</param>
+        /// <returns>移動できた場合は true。 失敗しても選択操作は続行する。</returns>
+        public override bool? TryMoveCursor(EsPointInt screenPoint) => owner._cursor.TrySetCursorScreenPoint(screenPoint);
+
+        /// <summary>実カーソルの表示/非表示を切り替える。</summary>
+        /// <param name="show">表示する場合は true。</param>
+        public override void ShowCursor(bool show) => owner._cursor.ShowCursor(show);
 
         /// <summary>ポインターキャプチャを取得または解放する。</summary>
         /// <param name="capture">true = 取得 / false = 解放。</param>

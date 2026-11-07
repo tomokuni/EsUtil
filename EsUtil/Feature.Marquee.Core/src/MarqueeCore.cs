@@ -5,7 +5,6 @@ using static EsUtil.Feature.Marquee.MarqueeCore.Limits;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Input;
-using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core;
 using Microsoft.Extensions.Logging;
 
@@ -37,7 +36,7 @@ namespace EsUtil.Feature.Marquee;
 /// 返された描画内容の反映（図形は描画実装へ委譲、文字はテキスト要素の配置）。<b>描画順はコアの指示に従う</b>。<br/>
 /// <br/>
 /// <b>依存分離</b>: UI 非依存のコア型（<see cref="EsPoint"/> / <see cref="EsRect"/> / <see cref="EsKey"/>）と<br/>
-/// 抽象（<see cref="ICursorService"/> / <see cref="ICoordTransform"/> / <see cref="IMarqueeEffects"/>）にのみ依存する。<br/>
+/// 抽象（<see cref="IMarqueeEffects"/> / <see cref="ICoordTransform"/>）にのみ依存する。<br/>
 /// UI フレームワークに依存しないため、UI 初期化なしの <c>[Fact]</c> で検証できる。
 /// </remarks>
 public sealed partial class MarqueeCore
@@ -47,9 +46,6 @@ public sealed partial class MarqueeCore
 
     /// <summary>効果（フォーカス・再描画・カーソル操作）の適用先（UI 層が実装する）。</summary>
     private readonly IMarqueeEffects _effects;
-
-    /// <summary>カーソルサービス（nudge のカーソル移動・表示切替）。 null の場合はカーソル操作を行わない。</summary>
-    private readonly ICursorService? _cursor;
 
     /// <summary>外部から指定された座標変換ポート（null = 未指定。 未指定時は <see cref="ClientToSourceScaling"/> を倍率として使う）。</summary>
     /// <remarks>
@@ -66,26 +62,25 @@ public sealed partial class MarqueeCore
     private bool _createdLogged;
 
     /// <summary>ファサードを初期化する。</summary>
-    /// <param name="effects">効果（フォーカス・再描画・カーソル形状・キャプチャ・座標変換）の適用先。 null 不可。</param>
-    /// <param name="cursor">カーソルサービス。 null 可（null の場合はカーソル操作を行わない）。</param>
+    /// <param name="effects">効果（フォーカス・再描画・カーソル形状・カーソル操作・キャプチャ・座標変換）の適用先。 null 不可。</param>
     /// <param name="options">初期設定。 null 可（null の場合は <see cref="MarqueeOptions.Default"/>）。</param>
     /// <param name="logger">ロガー。 null 可（null の場合は出力なし。 後から <see cref="Log"/> でも設定できる）。</param>
     /// <exception cref="ArgumentNullException"><paramref name="effects"/> が null の場合。</exception>
     /// <remarks>
     /// <b>ロガーを注入した場合は、その場で生成の記録を出力する</b>（コンストラクター呼び出しの記録と、<br/>
     /// 生成時の設定を 1 度だけ出力する規則を兼ねる）。 注入しない場合は出力先が未設定のため、<br/>
-    /// <see cref="Log"/> が初めて設定された時点で生成の記録を出力する（<see cref="LogCreatedOnce"/>）。
+    /// <see cref="Log"/> が初めて設定された時点で生成の記録を出力する（<see cref="LogCreatedOnce"/>）。<br/>
+    /// <b>カーソル操作は効果の実装が担う</b>（<see cref="IMarqueeEffects.TryMoveCursor"/> / <see cref="IMarqueeEffects.ShowCursor"/>）。
+    /// 既定実装（<see cref="Core.Contract.MarqueeEffectsBase"/>）は操作しないため、UI 初期化なしの検証ができる。
     /// </remarks>
     public MarqueeCore(
         IMarqueeEffects effects,
-        ICursorService? cursor = null,
         MarqueeOptions? options = null,
         ILogger? logger = null)
     {
         ArgumentNullException.ThrowIfNull(effects);
 
         _effects = effects;
-        _cursor = cursor;
         _session = new MarqueeSession(options ?? MarqueeOptions.Default);
 
         if (logger is not null)
@@ -429,18 +424,15 @@ public sealed partial class MarqueeCore
     /// <param name="feedback">適用する効果（カーソル操作・フォーカス・カーソル形状・再描画・キャプチャ）。</param>
     /// <remarks>
     /// 適用の順序（カーソル操作 → フォーカス → カーソル形状 → 再描画）はコア（<see cref="MarqueeFeedback"/>）が単一所有する。<br/>
-    /// カーソルサービス未指定（null）の場合はカーソル操作を適用しない（UI 初期化なしの検証を可能にする）。<br/>
+    /// カーソル操作は効果の実装が担う（操作しない実装では <see cref="IMarqueeEffects.TryMoveCursor"/> が null を返すだけで、失敗として記録しない）。<br/>
     /// 効果はデリゲートではなく <see cref="IMarqueeEffects"/> へ直接適用する（入力イベントのたびにデリゲートを生成しない）。
     /// </remarks>
     private void Apply(in MarqueeFeedback feedback)
     {
-        if (_cursor is { } cursor)
+        // カーソル移動は表示上の追従であり、失敗しても選択操作は続行する（値で返された失敗をここで記録する）
+        if (feedback.ApplyCursor(_effects) is false)
         {
-            // カーソル移動は表示上の追従であり、失敗しても選択操作は続行する（値で返された失敗をここで記録する）
-            if (!feedback.ApplyCursor(cursor, _effects))
-            {
-                Log.LogCursorMoveFailed(feedback.CursorSourcePosition);
-            }
+            Log.LogCursorMoveFailed(feedback.CursorSourcePosition);
         }
 
         feedback.ApplyVisual(_effects);

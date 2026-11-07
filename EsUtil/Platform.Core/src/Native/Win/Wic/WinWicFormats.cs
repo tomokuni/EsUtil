@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using Windows.Win32.Graphics.Imaging;
 using Windows.Win32.System.Com;
 
@@ -15,7 +14,6 @@ namespace EsUtil.Platform.Core.Native.Win.Wic;
 /// <b>通った形式だけ</b>を残す（結果は保持する）。<br/>
 /// <b>拡張子は小文字に揃える</b>: OS は <c>.JXL</c> のように大文字で申告することがある。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 internal static unsafe class WinWicFormats
 {
     /// <summary>エンコーダーを列挙するときに指定する種別（<c>WICEncoder</c>）。</summary>

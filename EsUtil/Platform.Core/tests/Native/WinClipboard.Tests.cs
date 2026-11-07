@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Native.Win;
 using Xunit;
 
@@ -11,7 +10,6 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// <b>実 OS の状態を操作する</b>: 書き込みのテストは<b>元の内容がテキストのときだけ</b>実行し、終了時に元へ戻す
 /// （画像などテキスト以外の内容を壊さない）。 並列実行すると他のテストと競合するため <c>Win32</c> コレクションで直列化する。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 [Collection("Win32")]
 public class WinClipboardTests
 {
@@ -20,7 +18,8 @@ public class WinClipboardTests
     [Fact]
     internal void TryReadText_例外を投げない()
     {
-        _ = WinClipboard.TryReadText(out _);
+        var clipboard = new WinClipboard();
+        _ = clipboard.TryReadText(out _);
     }
 
     /// <summary>書き込んだテキストをそのまま読み戻せることを検証する。</summary>
@@ -28,7 +27,8 @@ public class WinClipboardTests
     [Fact]
     internal void TryWriteText_書いたテキストを読み戻せる()
     {
-        if (!WinClipboard.TryReadText(out var original) || original is null)
+        var clipboard = new WinClipboard();
+        if (!clipboard.TryReadText(out var original) || original is null)
         {
             // テキスト以外の内容（画像など）は復元できないため、書き込みを行わない
             return;
@@ -37,13 +37,13 @@ public class WinClipboardTests
         var written = $"EsUtil.Platform.Core.Tests {Guid.NewGuid():N}";
         try
         {
-            Assert.True(WinClipboard.TryWriteText(written));
-            Assert.True(WinClipboard.TryReadText(out var read));
+            Assert.True(clipboard.TryWriteText(written));
+            Assert.True(clipboard.TryReadText(out var read));
             Assert.Equal(written, read);
         }
         finally
         {
-            Assert.True(WinClipboard.TryWriteText(original));
+            Assert.True(clipboard.TryWriteText(original));
         }
     }
 
@@ -52,20 +52,21 @@ public class WinClipboardTests
     [Fact]
     internal void SequenceNumber_書き込みで変化する()
     {
-        if (!WinClipboard.TryReadText(out var original) || original is null)
+        var clipboard = new WinClipboard();
+        if (!clipboard.TryReadText(out var original) || original is null)
         {
             return;
         }
 
-        var before = WinClipboard.SequenceNumber;
+        var before = clipboard.SequenceNumber;
         try
         {
-            Assert.True(WinClipboard.TryWriteText($"SequenceNumber {Guid.NewGuid():N}"));
-            Assert.NotEqual(before, WinClipboard.SequenceNumber);
+            Assert.True(clipboard.TryWriteText($"SequenceNumber {Guid.NewGuid():N}"));
+            Assert.NotEqual(before, clipboard.SequenceNumber);
         }
         finally
         {
-            Assert.True(WinClipboard.TryWriteText(original));
+            Assert.True(clipboard.TryWriteText(original));
         }
     }
 }

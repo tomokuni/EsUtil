@@ -22,7 +22,7 @@ public class MarqueePresenterTests
         out EffectsSpy effects, MarqueeOptions? options = null, MarqueeAppearance? appearance = null)
     {
         effects = new EffectsSpy();
-        var presenter = new MarqueePresenter(effects, cursor: null, options) { Log = NullLogger.Instance };
+        var presenter = new MarqueePresenter(effects, options) { Log = NullLogger.Instance };
 
         if (appearance is not null)
         {
@@ -122,7 +122,7 @@ public class MarqueePresenterTests
         var effects = new EffectsSpy();
         var logger = new RecordingLogger();
 
-        var presenter = new MarqueePresenter(effects, cursor: null, options: null, logger);
+        var presenter = new MarqueePresenter(effects, options: null, logger);
 
         Assert.Equal(
             [

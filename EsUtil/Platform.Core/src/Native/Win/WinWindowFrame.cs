@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Window;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -17,16 +16,16 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <b>Win32 の宣言は CsWin32 が生成する</b>（<c>src/NativeMethods.txt</c>。 宣言を手で書かない）。<br/>
 /// <b>失敗時</b>: 測れない場合は <see cref="Win32Exception"/> を投げる（枠を無視した寸法でウィンドウを作ると
 /// 最小サイズが破られるため、呼び出し側が気付けるようにする）。<br/>
+/// <see cref="IWindowFrameMetrics"/> の実装であり、テストでは差し替えられる。<br/>
 /// <b>呼ぶ時機</b>: ウィンドウのハンドルが確定した後（表示前でも測れる）。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
-public static class WinWindowFrame
+public sealed class WinWindowFrame : IWindowFrameMetrics
 {
     /// <summary>ウィンドウの外寸とクライアント領域の差（枠の太さ）を取得する。</summary>
     /// <param name="handle">対象ウィンドウのネイティブ ハンドル。</param>
     /// <returns>枠の幅と高さ（画面物理ピクセル）。</returns>
     /// <exception cref="Win32Exception">外寸またはクライアント領域を取得できなかった場合。</exception>
-    public static (int Width, int Height) GetSize(EsPlatformHandle handle)
+    public (int Width, int Height) GetSize(EsPlatformHandle handle)
     {
         var hwnd = (HWND)handle.Handle;
         if (!PInvoke.GetWindowRect(hwnd, out var windowRect))

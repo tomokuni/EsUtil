@@ -28,7 +28,7 @@ Windows Forms と EsUtil の型の相互変換が提供する公開 API です�
 | `EsGeometryInterop` | `EsPoint` / `EsSize` / `EsRect` と整数版 ↔ `System.Drawing` の幾何型 |
 | `EsWindowStateInterop` | `EsWindowState` ↔ `FormWindowState` |
 | `EsPlatformHandleInterop` | `EsPlatformHandle` ↔ WinForms のウィンドウ ハンドル |
-| `MonitorDpi` | モニター単位の DPI（`GetDpiForMonitor`） |
+| `MonitorDpi` | モニター単位の DPI（`GetDpiForMonitor`）。 照会先（`IMonitorDpi`）を差し替えられる |
 | `EsWindowPlacementMath`（コア） | 設定の物理ピクセル ↔ WinForms の DIP の換算 |
 
 ### 2.2 部分名前空間

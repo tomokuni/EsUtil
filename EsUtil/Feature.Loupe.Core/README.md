@@ -8,7 +8,7 @@
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-**対応 OS**: 指定なし（`net10.0`）。 ただし **Windows 以外での動作は未検証**（本パッケージは `EsUtil.Platform.Core` を参照し、その中には Windows 専用の型（`Native.Win` 配下・画像の保存/読み込み）が含まれる）
+**対応 OS**: Windows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1809（ビルド 17763）以降
 
 ルーペ（選択範囲の拡大表示）の **UI 非依存の計算層（Core）と提示層（Presenter）**です。 UI 実装が変わっても同じ計算結果と同じ見た目を共有します。 2 つの層は 1 つのパッケージ（`EsUtil.Feature.Loupe.Core`）に含まれます。
 

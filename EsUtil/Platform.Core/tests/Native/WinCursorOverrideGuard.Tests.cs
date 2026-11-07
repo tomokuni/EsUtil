@@ -1,5 +1,5 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Native.Win;
+using EsUtil.Platform.Core.Window;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
@@ -14,7 +14,6 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// カーソル上書きの抑止だけが静かに効かなくなる（例外にはならない）。<br/>
 /// <b>ウィンドウを作れない環境</b>: <c>CreateWindowEx</c> が失敗する場合は読み飛ばす。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 [Collection("Win32")]
 public class WinCursorOverrideGuardTests : IDisposable
 {
@@ -70,6 +69,34 @@ public class WinCursorOverrideGuardTests : IDisposable
         guard.Dispose();
 
         Assert.False(guard.IsAttached);
+    }
+
+    /// <summary>破棄したガードが GC で回収されることを検証する。</summary>
+    /// <remarks>
+    /// サブクラス化の文脈（<c>GCHandle</c>）を解放しないと、静的ルートからガードへ到達でき、
+    /// <see cref="WinCursorOverrideGuard.Dispose"/> の後も回収されない（インスタンスの漏れになる）。
+    /// </remarks>
+    [Fact]
+    internal void Dispose_文脈を解放して回収できる()
+    {
+        var handle = EsWindow.FromHandle(CreateHiddenWindow());
+        var reference = AttachAndDispose(handle);
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(reference.IsAlive);
+    }
+
+    /// <summary>アタッチしたガードを破棄し、その弱参照を返す（ローカル変数の参照を残さない）。</summary>
+    /// <param name="handle">アタッチ先のウィンドウ。</param>
+    /// <returns>破棄したガードの弱参照。</returns>
+    private static WeakReference AttachAndDispose(EsPlatformHandle handle)
+    {
+        using var guard = new WinCursorOverrideGuard();
+        guard.Attach(handle);
+        return new WeakReference(guard);
     }
 
     /// <summary>非表示の自前ウィンドウを作る（作れない環境では読み飛ばす）。</summary>

@@ -49,7 +49,7 @@
 
 | メンバー | 説明 |
 | --- | --- |
-| `MarqueePresenter(IMarqueeEffects effects, ICursorService? cursor = null, MarqueeOptions? options = null, ILogger? logger = null)` | コアのファサードを内部に生成する。 `effects` は null 不可（null なら `ArgumentNullException`）。 `cursor` は null 可（カーソル操作を行わない）。 `logger` は null 可（**注入するとその場で本層とコアの生成を記録する**。 後から `Log` でも設定できる） |
+| `MarqueePresenter(IMarqueeEffects effects, MarqueeOptions? options = null, ILogger? logger = null)` | コアのファサードを内部に生成する。 `effects` は null 不可（null なら `ArgumentNullException`。 カーソル操作も効果が担う）。 `logger` は null 可（**注入するとその場で本層とコアの生成を記録する**。 後から `Log` でも設定できる） |
 | `Appearance` | 外観（`MarqueeAppearance`）。 既定は `MarqueeAppearance.Default`。 設定すると次の描画から反映される（`set`） |
 | `ResolveDrawPlan(EsSize clientSize, Func<string, double, EsSize> measureText, bool pointerOver = true)` | 1 フレーム分の描画計画を解決する。 処理は「幾何の解決 → 装飾矩形の導出 → ラベルの文言と配置 → 層の順序」の順。 `measureText` が null なら `ArgumentNullException`。 `pointerOver` はポインターが描画領域の上にあるかどうか（座標ラベルを描くかの判断に使う） |
 | `DisplayScaleScaling` | サイズラベルの DisplayScale 表示に使う係数（0 以下は `ClientToSourceScaling` と同値） |

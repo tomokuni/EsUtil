@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Window;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -12,7 +11,6 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <b>失敗しても例外にしない</b>: 操作できない状態でもウィンドウは動作し続ける（メニューを閉じるだけ）。<br/>
 /// <b>Win32 の宣言は CsWin32 が生成する</b>（<c>src/NativeMethods.txt</c>）。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public static class SystemWindowCommands
 {
     /// <summary>ウィンドウの移動を開始する（マウスで移動するモードへ入る）。</summary>

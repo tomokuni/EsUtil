@@ -25,6 +25,9 @@ public class MarqueeEffectsBaseTests
         effects.SetCursorShape(MarqueeCursorKind.DiagonalNWSE);
         effects.SetPointerCapture(false);
         Assert.Equal(default, effects.ToScreenPoint(new EsPoint(10, 20)));
+        Assert.Null(effects.TryMoveCursor(new EsPointInt(1, 2)));
+        effects.ShowCursor(false);
+        effects.ShowCursor(true);
     }
 
     [Fact]
@@ -46,8 +49,8 @@ public class MarqueeEffectsBaseTests
     [Fact]
     internal void 効果を実装しない場合はカーソル操作も例外にならない()
     {
-        // カーソルサービスを渡した場合でも、画面座標の変換は基底の既定値で完結する（例外を投げない）
-        var marquee = new MarqueeCore(new RedrawOnly(() => { }), new CursorServiceSpy());
+        // カーソル操作を実装しなくても、基底の既定実装（移動しない・何もしない）で完結する（例外を投げない）
+        var marquee = new MarqueeCore(new RedrawOnly(() => { }));
 
         marquee.KeyDown(EsKey.Right, new EsPoint(10, 10));
 

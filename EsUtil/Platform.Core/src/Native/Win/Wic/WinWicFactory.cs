@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -24,7 +23,6 @@ namespace EsUtil.Platform.Core.Native.Win.Wic;
 /// 読み書きは<b>メモリ ストリーム</b>（<c>CreateStreamOnHGlobal</c>）で行い、ファイルは <see cref="File"/> が開いて閉じる。<br/>
 /// <b>COM の初期化はプロセスで 1 回だけ</b>行う（<c>RPC_E_CHANGED_MODE</c> は「初期化済み」として成功に扱う）。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 internal static unsafe class WinWicFactory
 {
     /// <summary>COM を初期化済みかどうか。</summary>

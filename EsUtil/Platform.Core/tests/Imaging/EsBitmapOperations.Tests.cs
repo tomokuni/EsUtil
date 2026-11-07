@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Xunit;
@@ -12,7 +11,6 @@ namespace EsUtil.Platform.Core.Tests.Imaging;
 /// <b>元の画像が変更されないこと・凍結されないこと</b>も確かめる。<br/>
 /// 静的共有状態を持たないため、UI フレームワークの初期化に依存しない（<c>[Fact]</c> で並列実行される）。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public class EsBitmapOperationsTests
 {
     /// <summary>赤で塗りつぶした読み取り専用の画像を生成する（切り出し元）。</summary>
@@ -524,7 +522,6 @@ public class EsBitmapOperationsTests
     }
 
     [Fact]
-    [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.17763")]
     internal void 書き換え可能な画像のメンバーは破棄済みなら例外になる()
     {
         var bitmap = EsBitmap.Create(4, 4);

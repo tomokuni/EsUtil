@@ -141,6 +141,24 @@ HTCLIENT
 // --- ウィンドウ枠（外寸とクライアント領域の差） ---
 GetClientRect
 
+// --- 座標変換（クライアント座標 ↔ 画面物理座標） ---
+ClientToScreen
+ScreenToClient
+
+// --- OS の設定値（ダブルクリックと見なす時間） ---
+GetDoubleClickTime
+
+// --- 起動前の案内 UI（タスク ダイアログ） ---
+TaskDialogIndirect
+TASKDIALOGCONFIG
+TASKDIALOG_BUTTON
+TASKDIALOG_FLAGS
+TASKDIALOG_NOTIFICATIONS
+
+// --- プロセスの DPI 対応（UI フレームワークを持たないホスト向け） ---
+SetProcessDpiAwarenessContext
+DPI_AWARENESS_CONTEXT
+
 // --- タスク バーのグループ分け（アプリ ユーザー モデル ID） ---
 SetCurrentProcessExplicitAppUserModelID
 

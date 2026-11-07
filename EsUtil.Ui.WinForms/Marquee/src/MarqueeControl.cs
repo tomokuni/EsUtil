@@ -96,7 +96,7 @@ public sealed class MarqueeControl : Control
     }
 
     /// <summary>カーソルサービスを注入してドラッグ矩形コントロールを初期化する。</summary>
-    /// <param name="cursorService">カーソルサービス（Windows の既定実装を使う場合は <see cref="WinCursorService"/> を渡す）。</param>
+    /// <param name="cursorService">カーソルサービス（Windows の既定実装を使う場合は <see cref="ICursorService"/> を渡す）。</param>
     /// <remarks>
     /// 描画は自前で行い（<see cref="ControlStyles.UserPaint"/>）、ちらつきを抑えるため二重バッファリングする。<br/>
     /// 背景を透明にして下の画像を透かす（オーバーレイのための必須の設定）。<br/>
@@ -119,7 +119,7 @@ public sealed class MarqueeControl : Control
 
         _cursor = cursorService;
         _effects = new Effects(this);
-        _marquee = new MarqueePresenter(_effects, _cursor, _options);
+        _marquee = new MarqueePresenter(_effects, _options);
         _marquee.Subscribe(OnNotified);
     }
 
@@ -961,6 +961,15 @@ public sealed class MarqueeControl : Control
         /// <summary>カーソル形状をコアが示す種別に応じて更新する。</summary>
         /// <param name="kind">カーソル形状の種別（コア提供）。</param>
         public override void SetCursorShape(MarqueeCursorKind kind) => owner.ApplyCursorShape(kind);
+
+        /// <summary>実カーソルを画面物理座標へ移動する。</summary>
+        /// <param name="screenPoint">移動先（画面物理座標）。</param>
+        /// <returns>移動できた場合は true。 失敗しても選択操作は続行する。</returns>
+        public override bool? TryMoveCursor(EsPointInt screenPoint) => owner._cursor.TrySetCursorScreenPoint(screenPoint);
+
+        /// <summary>実カーソルの表示/非表示を切り替える。</summary>
+        /// <param name="show">表示する場合は true。</param>
+        public override void ShowCursor(bool show) => owner._cursor.ShowCursor(show);
 
         /// <summary>マウス キャプチャを取得または解放する。</summary>
         /// <param name="capture">true = 取得 / false = 解放。</param>

@@ -43,7 +43,7 @@
 | 対象 | `ColorSelectorControl` |
 | プロジェクト | `EsUtil.Ui.AvaloniaUI/ColorSelector/src/EsUtil.Ui.AvaloniaUI.ColorSelector.csproj` |
 | 名前空間 | `EsUtil.Ui.AvaloniaUI.ColorSelector` |
-| 対象フレームワーク | `net10.0` |
+| 対象フレームワーク | `net10.0-windows10.0.17763.0` |
 | UIフレームワーク | Avalonia 12.1 |
 | 主要基底クラス | `Avalonia.Controls.UserControl` |
 | 主な用途 | 色名/16進入力 + ドロップダウン + カラーピッカーを統合した色選択コントロール |

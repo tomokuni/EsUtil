@@ -578,7 +578,7 @@ public class MarqueeControlTests
     [Fact]
     internal void 外観で装飾を止めると装飾が描かれない()
     {
-        var presenter = new MarqueePresenter(new StubEffects(), cursor: null, MarqueeOptions.Default);
+        var presenter = new MarqueePresenter(new StubEffects(), MarqueeOptions.Default);
         presenter.SetSelection(new EsRect(10, 10, 40, 40));
         var plan = presenter.ResolveDrawPlan(new EsSize(64, 64), static (_, _) => default);
         var surface = TestCanvas.Render(64, 64, context => MarqueePainter.Paint(context, in plan));
@@ -612,7 +612,7 @@ public class MarqueeControlTests
     [Fact]
     internal void レイヤーを差し替えると既定の描画を止められる()
     {
-        var presenter = new MarqueePresenter(new StubEffects(), cursor: null, MarqueeOptions.Default);
+        var presenter = new MarqueePresenter(new StubEffects(), MarqueeOptions.Default);
         presenter.SetSelection(new EsRect(10, 10, 40, 40));
         var plan = presenter.ResolveDrawPlan(new EsSize(64, 64), static (_, _) => default);
 
@@ -646,5 +646,11 @@ public class MarqueeControlTests
 
         /// <inheritdoc/>
         public EsPointInt ToScreenPoint(EsPoint sourcePoint) => default;
+
+        /// <inheritdoc/>
+        public bool? TryMoveCursor(EsPointInt screenPoint) => true;
+
+        /// <inheritdoc/>
+        public void ShowCursor(bool show) { }
     }
 }

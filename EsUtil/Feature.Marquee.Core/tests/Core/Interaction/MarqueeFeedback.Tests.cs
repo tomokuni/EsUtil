@@ -7,14 +7,14 @@ namespace EsUtil.Feature.Marquee.Tests.Core.Interaction;
 /// <summary><see cref="MarqueeFeedback"/> の単体テスト（UI 層へ要求する効果の適用）。</summary>
 /// <remarks>
 /// 効果の選択・適用順はコアが単一所有するため、UI 実装に依存せずここで検証する。<br/>
-/// 適用先は <see cref="IMarqueeEffects"/> のスパイ（<see cref="EffectsSpy"/>）とカーソルサービスのスパイに記録し、呼び出し順を検証する。
+/// 適用先は <see cref="IMarqueeEffects"/> のスパイ（<see cref="EffectsSpy"/>）に記録し、呼び出し順を検証する。
 /// </remarks>
 public class MarqueeFeedbackTests
 {
     [Fact]
     internal void ApplyCursor_移動してから表示を切り替える()
     {
-        var cursor = new CursorServiceSpy();
+        var effects = new EffectsSpy();
         // 3 つの操作をまとめて要求する（nudge の終了と同じ組み合わせ）
         var feedback = new MarqueeFeedback
         {
@@ -22,21 +22,21 @@ public class MarqueeFeedbackTests
             CursorSourcePosition = new EsPoint(10, 20),
         };
 
-        feedback.ApplyCursor(cursor, new EffectsSpy());
+        feedback.ApplyCursor(effects);
 
         // 適用順は「移動 → 非表示 → 再表示」（画面座標への変換は効果が担う）
-        Assert.Equal(["move:20,40", "show:False", "show:True"], cursor.Calls);
+        Assert.Equal(["move:20,40", "show:False", "show:True"], effects.Calls);
     }
 
     [Fact]
     internal void ApplyCursor_操作が無ければ何もしない()
     {
-        var cursor = new CursorServiceSpy();
+        var effects = new EffectsSpy();
         var feedback = new MarqueeFeedback();
 
-        feedback.ApplyCursor(cursor, new EffectsSpy());
+        feedback.ApplyCursor(effects);
 
-        Assert.Empty(cursor.Calls);
+        Assert.Empty(effects.Calls);
     }
 
     [Fact]

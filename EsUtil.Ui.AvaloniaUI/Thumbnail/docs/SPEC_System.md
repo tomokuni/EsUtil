@@ -24,13 +24,13 @@ Avalonia UI 版のサムネイル一覧コントロールの構造・依存・�
 
 - **配置と見た目は下の層が単一所有します**（`EsUtil.Feature.Thumbnail.Core` が並べ方、`EsUtil.Feature.Thumbnail.Core` が描画計画と外観）。
 - **本アセンブリが行うのは 4 つだけ**: 入力の受付（ポインター → 添字）、スクロール、計画の適用（要素の配置）、描画計画の自 UI への写像。
-- 対象フレームワークは `net10.0` です。
+- 対象フレームワークは `net10.0-windows10.0.17763.0` です。
 
 ## 2. 技術スタック
 
 | 種別 | 内容 |
 | --- | --- |
-| 言語 / フレームワーク | C# / .NET 10（`net10.0`） |
+| 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.17763.0`） |
 | UI フレームワーク | Avalonia（`ScrollViewer` / `Panel` / `Border` / `TextBlock`） |
 | 参照パッケージ | `EsUtil.Feature.Thumbnail.Core` / `EsUtil.Platform.Core` / `Avalonia` |
 | テスト | xUnit v3 + Avalonia ヘッドレス（`EsUtil.Ui.AvaloniaUI.Thumbnail.Tests`。 公開 API とログを検証する） |

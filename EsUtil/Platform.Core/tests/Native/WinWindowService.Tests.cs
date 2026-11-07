@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native.Win;
 using EsUtil.Platform.Core.Window;
@@ -19,7 +18,6 @@ namespace EsUtil.Platform.Core.Tests.Native;
 /// <b>ウィンドウを作れない環境</b>: 破棄できない・生成できない場合は <see cref="Assert.Skip(string)"/> で読み飛ばす
 /// （ヘッドレスのセッションでは <c>CreateWindowEx</c> が失敗する）。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 [Collection("Win32")]
 public class WinWindowServiceTests : IDisposable
 {
@@ -86,6 +84,39 @@ public class WinWindowServiceTests : IDisposable
         new WinWindowService().EvacuateWindow(handle);
 
         Assert.False(PInvoke.IsWindowVisible((HWND)handle.Handle));
+    }
+
+    /// <summary>クライアント座標と画面物理座標を往復変換できることを検証する。</summary>
+    /// <remarks>
+    /// <b>ウィンドウを原点から動かす</b>: 原点にあるとクライアント座標と画面座標が一致し、変換の取り違えや
+    /// 変換しない実装でもテストが通ってしまう。
+    /// </remarks>
+    [Fact]
+    internal void Coordinates_クライアントと画面を往復変換する()
+    {
+        var handle = CreateHiddenWindow();
+        var service = new WinWindowService();
+        service.SetBounds(handle, new EsRectInt(200, 150, 64, 64));
+
+        Assert.True(service.TryClientToScreen(handle, new EsPointInt(10, 20), out var screen));
+        Assert.Equal(new EsPointInt(210, 170), screen);
+
+        Assert.True(service.TryScreenToClient(handle, screen, out var client));
+        Assert.Equal(new EsPointInt(10, 20), client);
+    }
+
+    /// <summary>識別子が未設定の場合は変換せず、入力をそのまま返すことを検証する。</summary>
+    [Fact]
+    internal void Coordinates_識別子が未設定なら入力を返す()
+    {
+        var handle = default(EsPlatformHandle);
+        var service = new WinWindowService();
+
+        Assert.False(service.TryClientToScreen(handle, new EsPointInt(1, 2), out var screen));
+        Assert.Equal(new EsPointInt(1, 2), screen);
+
+        Assert.False(service.TryScreenToClient(handle, new EsPointInt(3, 4), out var client));
+        Assert.Equal(new EsPointInt(3, 4), client);
     }
 
     /// <summary>非表示の自前ウィンドウを作る（作れない環境では読み飛ばす）。</summary>

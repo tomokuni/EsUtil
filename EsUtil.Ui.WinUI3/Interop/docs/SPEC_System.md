@@ -48,7 +48,7 @@ graph LR
 | `Drawing.BmpStreamBuilder` | BMP を組み立てる（`Write` はファイル全体の配列を作らずにストリームへ書く） |
 | `Bootstrapping.WindowsAppRuntimeBootstrap` | Windows App Runtime の初期化（`MddBootstrapInitialize2`）と、無い場合の導入（公式インストーラー）。 自己完結・MSIX では初期化しない |
 | `Bootstrapping.WindowsAppRuntimeInventory` | インストール済みの版の列挙（`PackageManager.FindPackagesForUser`）と、必要とする版（パッケージのランタイム版）の判定 |
-| `Bootstrapping.WindowsAppRuntimeInstallDialog`（internal） | 案内 UI（タスク ダイアログ。 使えない環境ではメッセージ ボックス）。 ダウンロード ページの URL（クリックで開く）と 3 択を表示する |
+| `Bootstrapping.WindowsAppRuntimeInstallDialog`（internal） | 案内 UI（タスク ダイアログ。 使えない環境ではメッセージ ボックス）。 ダウンロード ページの URL（クリックで開く）と 3 択を表示する。 **表示先（`IDialogService`）を差し替えられる**（テストはダイアログを出さない） |
 | `Bootstrapping.WindowsAppRuntimeDownloadPage`（internal） | ダウンロード ページの URL と、ブラウザーで開く手順（案内 UI と `WindowsAppRuntimeBootstrap` が共用する） |
 
 ## 5. 依存関係

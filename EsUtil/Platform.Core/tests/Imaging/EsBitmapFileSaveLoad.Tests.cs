@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
 using Xunit;
 
@@ -7,11 +6,10 @@ namespace EsUtil.Platform.Core.Tests.Imaging;
 /// <summary>画像のファイル保存・読み込み（<see cref="EsReadOnlyBitmap.Save(string)"/> / <see cref="EsReadOnlyBitmap.Save(string, EsImageSaveOptions)"/> / <see cref="EsBitmap.Save(string)"/> / <see cref="EsReadOnlyBitmap.Load(string)"/> / <see cref="EsBitmap.Load(string)"/>）のテスト（Windows 専用・並列実行）。</summary>
 /// <remarks>
 /// 画像のファイル入出力は OS の WIC を使うため Windows 専用であり、本クラスは
-/// <see cref="SupportedOSPlatformAttribute"/> で Windows に限定する。<br/>
+/// 対象フレームワークが Windows のため Windows 専用である。<br/>
 /// 実ファイルへ書き出して読み戻すため、各テストが独立した一時ファイルを使い（静的共有状態を持たない）、
 /// <c>[Fact]</c> で並列実行できる。
 /// </remarks>
-[SupportedOSPlatform("windows10.0.17763")]
 public class EsBitmapFileSaveLoadTests
 {
     /// <summary>一時ファイルのパスを作る（拡張子は呼び出し側が指定する）。</summary>

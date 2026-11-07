@@ -35,4 +35,28 @@ public sealed class MonitorDpiTests
 
         Assert.True(scale == 0 || DpiScaler.IsValidScaling(scale));
     }
+
+    /// <summary>照会先を差し替えると、その DPI を倍率へ換算することを検証する（150% の環境を再現する）。</summary>
+    [Fact]
+    internal void GetScaleForPoint_差し替えた照会先の倍率を返す()
+    {
+        var spy = new MonitorDpiSpy { Dpi = 144 };
+
+        var scale = MonitorDpi.GetScaleForPoint(new EsPointInt(10, 20), spy);
+
+        Assert.Equal(1.5, scale, precision: 6);
+        Assert.Equal([new EsPointInt(10, 20)], spy.Points);
+    }
+
+    /// <summary>照会できない場合は 0（無効値）を返すことを検証する（96 DPI と区別する）。</summary>
+    [Fact]
+    internal void GetScaleForPoint_照会できない場合は0を返す()
+    {
+        var spy = new MonitorDpiSpy { Dpi = null };
+
+        var scale = MonitorDpi.GetScaleForPoint(new EsPointInt(0, 0), spy);
+
+        Assert.Equal(0, scale);
+        Assert.False(DpiScaler.IsValidScaling(scale));
+    }
 }

@@ -1,18 +1,11 @@
-using System.Drawing;
-using EsUtil.Platform.Core.Geometry;
-using Windows.Win32;
-using Windows.Win32.Foundation;
-
 namespace EsUtil.Ui.WinUI3.Marquee.Internal;
 
-/// <summary>ウィンドウ（<c>HWND</c>）の解決と、画面物理座標 ↔ クライアント座標の変換を行う Win32 の入口。</summary>
+/// <summary>XAML のルートからウィンドウ（<c>HWND</c>）を解決する WinRT の入口。</summary>
 /// <remarks>
-/// <b>位置付け</b>: WinUI 3 の公開 API だけでは「画面物理座標」と「ウィンドウのクライアント座標」を相互変換できない<br/>
-/// （XAML のルートは表示倍率とコンテンツ内の相対座標までしか与えない）ため、必要な Win32 API だけを本クラスが単一所有する。<br/>
-/// <br/>
-/// <b>宣言の仕方</b>: <c>src/NativeMethods.txt</c> に API を列挙し、<b>CsWin32（ソース生成）</b>が生成する
-/// <c>PInvoke</c> を呼ぶ（宣言を手で書かない。 生成物は <c>internal</c> に閉じる）。<br/>
-/// <b>対応 OS</b>: 本プロジェクトの <c>SupportedOSPlatformVersion</c>（10.0.19041.0）で利用できる API だけを使う。<br/>
+/// <b>位置付け</b>: 画面物理座標とクライアント座標の変換はコアの抽象（<see cref="EsUtil.Platform.Core.Native.IWindowService"/>）が
+/// 提供する。 本クラスが持つのは、XAML のルートが属するウィンドウのハンドルを解決する処理だけである
+/// （<c>XamlRoot.ContentIslandEnvironment.AppWindowId</c> → <c>HWND</c>）。<br/>
+/// <b>P/Invoke を持たない</b>: WinRT の <see cref="Microsoft.UI.Win32Interop"/> だけを使う（本 UI 層は Win32 を直接呼ばない）。<br/>
 /// <b>呼び出し</b>: ウィンドウの生成後（XAML のルートが確定した後）に、UI スレッドから呼ぶ。
 /// </remarks>
 internal static class Win32Interop
@@ -30,54 +23,4 @@ internal static class Win32Interop
         windowHandle = Microsoft.UI.Win32Interop.GetWindowFromWindowId(windowId);
         return windowHandle != IntPtr.Zero;
     }
-
-    /// <summary>画面物理座標をクライアント座標（ウィンドウのクライアント領域の左上を原点とする物理ピクセル）へ変換する。</summary>
-    /// <param name="windowHandle">対象のウィンドウ ハンドル。</param>
-    /// <param name="screenPoint">画面物理座標。</param>
-    /// <returns>クライアント座標。 変換できない場合は <paramref name="screenPoint"/> をそのまま返す。</returns>
-    /// <remarks>
-    /// 変換に失敗した場合は入力をそのまま返す（失敗を原点で表さない。 位置がずれるだけで操作は続けられる）。
-    /// </remarks>
-    public static EsPointInt ScreenToClient(IntPtr windowHandle, EsPointInt screenPoint)
-    {
-        var point = new Point(screenPoint.X, screenPoint.Y);
-        return ScreenToClientCore(windowHandle, ref point)
-            ? new EsPointInt(point.X, point.Y)
-            : screenPoint;
-    }
-
-    /// <summary>クライアント座標を画面物理座標へ変換する。</summary>
-    /// <param name="windowHandle">対象のウィンドウ ハンドル。</param>
-    /// <param name="clientPoint">クライアント座標（物理ピクセル）。</param>
-    /// <returns>画面物理座標。 変換できない場合は <paramref name="clientPoint"/> をそのまま返す。</returns>
-    /// <remarks>変換に失敗した場合は入力をそのまま返す（<see cref="ScreenToClient"/> と同じ規則）。</remarks>
-    public static EsPointInt ClientToScreen(IntPtr windowHandle, EsPointInt clientPoint)
-    {
-        var point = new Point(clientPoint.X, clientPoint.Y);
-        return ClientToScreenCore(windowHandle, ref point)
-            ? new EsPointInt(point.X, point.Y)
-            : clientPoint;
-    }
-
-    /// <summary>ダブルクリックと見なす時間の上限（OS の設定値）を取得する。</summary>
-    /// <returns>上限（ミリ秒）。</returns>
-    /// <remarks>
-    /// WinUI 3 のポインター イベントはクリック数を報告しないため、OS の設定値を閾値として使う<br/>
-    /// （コントロールが固定値を決めると、OS の設定を変えた利用者と感覚が食い違う）。
-    /// </remarks>
-    public static long DoubleClickIntervalMilliseconds() => PInvoke.GetDoubleClickTime();
-
-    /// <summary>画面物理座標をクライアント座標へ変換する（Win32 の <c>ScreenToClient</c>）。</summary>
-    /// <param name="windowHandle">対象のウィンドウ ハンドル。</param>
-    /// <param name="point">変換する座標（変換後にクライアント座標へ書き換わる）。</param>
-    /// <returns>成功した場合は true。</returns>
-    private static bool ScreenToClientCore(IntPtr windowHandle, ref Point point)
-        => PInvoke.ScreenToClient((HWND)windowHandle, ref point);
-
-    /// <summary>クライアント座標を画面物理座標へ変換する（Win32 の <c>ClientToScreen</c>）。</summary>
-    /// <param name="windowHandle">対象のウィンドウ ハンドル。</param>
-    /// <param name="point">変換する座標（変換後に画面物理座標へ書き換わる）。</param>
-    /// <returns>成功した場合は true。</returns>
-    private static bool ClientToScreenCore(IntPtr windowHandle, ref Point point)
-        => PInvoke.ClientToScreen((HWND)windowHandle, ref point);
 }

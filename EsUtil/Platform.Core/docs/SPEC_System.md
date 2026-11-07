@@ -44,7 +44,7 @@ graph LR
 
 - `EsUtil.Platform.Core` は他プロジェクトへ依存しない末端の共有ライブラリです。
 - 各 UI 実装は、コア型と自身の型（例: `Avalonia.Input.Key` / `Avalonia.Point` / `IPlatformHandle`）を相互変換する Interop 層を個別に用意します（本プロジェクトは UI 型を参照しません）。
-- サービス抽象（`ICaptureService` 等）とその Windows 実装（Win32）は、本プロジェクトの `EsUtil/Platform.Core/src/Native` 配下が提供します。 **実行時のプラットフォーム分岐（ファクトリ）を持たず、ホストが `EsUtil/Platform.Core/src/Native/Win` の具象を生成して抽象型として注入します**。 テストは抽象を実装したモックを注入するため、Win32 実行環境を必要としません。
+- サービス抽象（`ICaptureService` 等。 `ICursorService` / `IUserPreferenceService` を含む）とその Windows 実装（Win32）は、本プロジェクトの `EsUtil/Platform.Core/src/Native` 配下が提供します。 **実行時のプラットフォーム分岐（ファクトリ）を持たず、ホストが `EsUtil/Platform.Core/src/Native/Win` の具象を生成して抽象型として注入します**。 テストは抽象を実装したモックを注入できるため、失敗系（OS の非対応・競合）を含めて Win32 実行環境を必要としません。
 
 ## 4. コンポーネント構成
 
@@ -63,15 +63,26 @@ graph LR
 | `EsUtil/Platform.Core/src/Common/EnumCanonical.cs` | 同じ値を持つ別名（重複値）を持つ列挙型の代表名による解決（各 Interop が共有する） |
 | `EsUtil/Platform.Core/src/Native/ICaptureService.cs` | 画面領域キャプチャの抽象 |
 | `EsUtil/Platform.Core/src/Native/ICursorService.cs` | OS カーソル操作の抽象 |
-| `EsUtil/Platform.Core/src/Native/IWindowService.cs` | ネイティブウィンドウ操作の抽象 |
+| `EsUtil/Platform.Core/src/Native/IWindowService.cs` | ネイティブウィンドウ操作の抽象（座標変換を含む） |
 | `EsUtil/Platform.Core/src/Native/IElementFinder.cs` | 要素（ウィンドウ・スクリーン）検出の抽象 |
 | `EsUtil/Platform.Core/src/Native/ICursorOverrideGuard.cs` | カーソル上書き抑止の抽象 |
 | `EsUtil/Platform.Core/src/Native/IGlobalHotKeyService.cs` | グローバルホットキー管理の抽象 |
-| `EsUtil/Platform.Core/src/Native/Win/WinMonitorDpi.cs` | 指定位置のモニターの実効 DPI の照会（4 つの UI 版が使う単一所有。 WinForms 版の `MonitorDpi` も本クラスへ委譲する） |
-| `EsUtil/Platform.Core/src/Native/Win/WinWindowFrame.cs` | ウィンドウの外寸とクライアント領域の差（枠の太さ）の実測（最小サイズの計算に使う。 4 つの UI 版が共有） |
+| `EsUtil/Platform.Core/src/Native/IClipboardService.cs` | クリップボードの読み書きの抽象 |
+| `EsUtil/Platform.Core/src/Native/IMonitorDpi.cs` | 指定位置のモニターの実効 DPI 照会の抽象 |
+| `EsUtil/Platform.Core/src/Native/IWindowFrameMetrics.cs` | ウィンドウの枠の太さの計測の抽象 |
+| `EsUtil/Platform.Core/src/Native/IDialogService.cs` | OS のダイアログ（タスク ダイアログ・メッセージ ボックス）の抽象 |
+| `EsUtil/Platform.Core/src/Native/EsDialogButton.cs` | タスク ダイアログのボタン（識別子と表題） |
+| `EsUtil/Platform.Core/src/Native/EsDialogResult.cs` | メッセージ ボックスで押されたボタン（はい / いいえ / キャンセル。 閉じられた場合もキャンセル） |
+| `EsUtil/Platform.Core/src/Native/IUserPreferenceService.cs` | OS のユーザー設定（ダブルクリックと見なす時間）の抽象 |
+| `EsUtil/Platform.Core/src/Native/Win/WinMonitorDpi.cs` | `IMonitorDpi` の Windows 実装（4 つの UI 版が使う単一所有。 WinForms 版の `MonitorDpi` も本クラスへ委譲する） |
+| `EsUtil/Platform.Core/src/Native/Win/WinWindowFrame.cs` | `IWindowFrameMetrics` の Windows 実装（枠の太さの実測。 最小サイズの計算に使う） |
 | `EsUtil/Platform.Core/src/Native/Win/WinAppUserModelId.cs` | プロセスのアプリ ユーザー モデル ID の設定（タスク バーのグループ分け。 値はアプリが決める） |
-| `EsUtil/Platform.Core/src/Native/Win/WinMessageBox.cs` | XAML などの初期化前に使えるエラー表示（起動できない理由を利用者へ示す） |
-| `EsUtil/Platform.Core/src/Native/Win/WinClipboard.cs` | クリップボードの DIB の読み取りとテキストの読み書き、変更の検出（開く・ロック・解放の順序を単一所有し、解放漏れを作らない） |
+| `EsUtil/Platform.Core/src/Native/Win/WinMessageBox.cs` | XAML などの初期化前に使えるエラー表示と、はい / いいえ / キャンセルの確認（起動できない理由・導入手順を利用者へ示す） |
+| `EsUtil/Platform.Core/src/Native/Win/WinTaskDialog.cs` | 起動前の案内 UI（ComCtl32 v6 のタスク ダイアログ。 使えない環境では `false` を返し、呼び出し側がメッセージ ボックスへ落ちる） |
+| `EsUtil/Platform.Core/src/Native/Win/WinDialogService.cs` | `IDialogService` の Windows 実装（タスク ダイアログとメッセージ ボックスを 1 つの入口にまとめる） |
+| `EsUtil/Platform.Core/src/Native/Win/WinUserPreferenceService.cs` | `IUserPreferenceService` の Windows 実装（ダブルクリックと見なす時間の照会） |
+| `EsUtil/Platform.Core/src/Native/Win/WinProcessDpi.cs` | プロセスの DPI 対応（Per-Monitor V2。 UI フレームワークを持たないホスト向け） |
+| `EsUtil/Platform.Core/src/Native/Win/WinClipboard.cs` | `IClipboardService` の Windows 実装（DIB の読み取りとテキストの読み書き、変更の検出。 開く・ロック・解放の順序を単一所有し、解放漏れを作らない） |
 | `EsUtil/Platform.Core/src/Native/Win/WinVirtualKey.cs` | `EsKey` → Win32 仮想キーコードの変換表（`RegisterHotKey` に渡す値。 対応表に無いキーは 0） |
 | `EsUtil/Platform.Core/src/Native/ElementFinderResults.cs` | 要素検出の結果（`readonly record struct`） |
 | `EsUtil/Platform.Core/src/NativeMethods.txt` / `NativeMethods.json` | **CsWin32 が生成する Win32 API・定数の唯一の一覧**と、その設定（**宣言を手で書かない**。 `allowMarshaling: false` で COM を構造体として生成する） |
@@ -79,7 +90,7 @@ graph LR
 | `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFactory.cs` | WIC の COM の生成と解放・COM の起動・画素の入出力・縮小・変換・回転の補助（**宣言は CsWin32 が生成する**） |
 | `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFormats.cs` | 実行環境で書き出せる形式の一覧（OS のエンコーダーを列挙し、試し書きが通った形式だけを残す。 §7.3.1）。 一覧の 1 件は**入れ子の型 `Entry`**（コンテナ GUID・名前・拡張子）である |
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorService.cs` | `ICursorService` の Windows 実装 |
-| `EsUtil/Platform.Core/src/Native/Win/WinWindowService.cs` | `IWindowService` の Windows 実装 |
+| `EsUtil/Platform.Core/src/Native/Win/WinWindowService.cs` | `IWindowService` の Windows 実装（座標変換を含む） |
 | `EsUtil/Platform.Core/src/Native/Win/WinElementFinder.cs` | `IElementFinder` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorOverrideGuard.cs` | `ICursorOverrideGuard` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinGlobalHotKeyService.cs` | `IGlobalHotKeyService<T>` の Windows 実装 |
@@ -187,8 +198,8 @@ graph LR
 | `LibraryImport` を自作しない | CsWin32 の列挙型を引数に取る `LibraryImport` は `SYSLIB1051` で拒否される。 手書きが必要な場合は引数を `int` / `nint` で受ける |
 | サブクラス化 | **`SetWindowSubclass` / `DefSubclassProc` / `RemoveWindowSubclass`（comctl32）を使う**。 `SetWindowLongPtr(GWLP_WNDPROC)` は元のプロシージャを自前で保存・復元する必要があり、他のサブクラス化（ビジュアル スタイル等）と共存できない |
 | comctl32 v6 の要否 | **実測: アクティベーション コンテキスト（comctl32 v6）が無いプロセスでも動作する**（`SetWindowSubclass` が TRUE を返し、サブクラス プロシージャが実際に呼ばれた）。 そのためライブラリ側でマニフェストを要求しない |
-| デリゲートの保持 | サブクラス プロシージャは**インスタンスごとに 1 回だけ作ってフィールドへ保持**する（`WM_SETCURSOR` はマウス移動のたびに届くため、メッセージごとにデリゲートを作らない）。 識別値（`uIdSubclass`）はクラス内の連番で一意にする |
-| 解除 | 明示的な破棄（`Dispose`）に加え、**`WM_NCDESTROY` でも解除する**（解除しないと comctl32 がサブクラス プロシージャへの参照を保持し続ける） |
+| コールバックの保持 | サブクラス プロシージャは**静的な `[UnmanagedCallersOnly]` の関数ポインター 1 本**（`WinSubclass.Procedure`）に集約し、インスタンスは `dwRefData` の文脈（`GCHandle`）で渡す（メッセージごとにデリゲートを作らない。 同上の理由で使用後に解放する）。 識別値（`uIdSubclass`）は **`WinSubclass.NextId()` が採番するプロセス全体の連番**にする（登録キーは「プロシージャと識別値の組」であり、プロシージャを全コンポーネントで共有するため、クラス内の連番では同じウィンドウへの登録が衝突する） |
+| 解除 | 明示的な破棄（`Dispose`）に加え、**`WM_NCDESTROY` でも解除する**（解除しないと comctl32 がサブクラス プロシージャへの参照を保持し続ける）。 解除と同時に**文脈（`GCHandle`）を解放する**（解放しないとインスタンスが回収されない） |
 
 #### 7.3.1 COM の 2 件だけを手書きする理由（実測 2026-10-21）
 

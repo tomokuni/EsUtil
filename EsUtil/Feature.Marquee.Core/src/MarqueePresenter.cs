@@ -4,7 +4,6 @@ using EsUtil.Feature.Marquee.Core.Internal;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Input;
-using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core;
 using Microsoft.Extensions.Logging;
 
@@ -72,7 +71,6 @@ public sealed partial class MarqueePresenter
 
     /// <summary>選択矩形コントロールの提示層を初期化する。</summary>
     /// <param name="effects">効果（フォーカス・再描画・カーソル形状・キャプチャ・座標変換）の適用先。 null 不可。</param>
-    /// <param name="cursor">カーソルサービス。 null 可（null の場合はカーソル操作を行わない）。</param>
     /// <param name="options">初期設定。 null 可（null の場合は <see cref="MarqueeOptions.Default"/>）。</param>
     /// <param name="logger">ロガー。 null 可（null の場合は出力なし。 後から <see cref="Log"/> でも設定できる）。</param>
     /// <exception cref="ArgumentNullException"><paramref name="effects"/> が null の場合。</exception>
@@ -83,11 +81,10 @@ public sealed partial class MarqueePresenter
     /// </remarks>
     public MarqueePresenter(
         IMarqueeEffects effects,
-        ICursorService? cursor = null,
         MarqueeOptions? options = null,
         ILogger? logger = null)
     {
-        _core = new MarqueeCore(effects, cursor, options);
+        _core = new MarqueeCore(effects, options);
 
         if (logger is not null)
         {

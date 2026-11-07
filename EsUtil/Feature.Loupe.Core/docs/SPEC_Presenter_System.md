@@ -29,7 +29,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| ターゲット | `net10.0` |
+| ターゲット | `net10.0-windows10.0.17763.0` |
 | 言語 | C# 14（`Nullable` 有効・`ImplicitUsings` 有効） |
 | ルート名前空間 | `EsUtil.Feature.Loupe`（**公開面はすべてここに属する**。 ファサードと、ファサードのメンバーの型（`LoupeDrawPlan` / `LoupeDrawLayer` / `LoupeAppearance` / `LoupeLabelPlacement`））。 `internal` の型だけが層フォルダ `src/Presenter/` の配下（`EsUtil.Feature.Loupe.Presenter.Drawing`）に残る（ログ定義は `src/Logging/` の `EsUtil.Feature.Loupe.Logging`） |
 | ドキュメント生成 | `GenerateDocumentationFile` 有効（生成した XML はパッケージへ同封する） |

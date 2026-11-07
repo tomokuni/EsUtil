@@ -1,4 +1,3 @@
-using System.Runtime.Versioning;
 using EsUtil.Platform.Core.Imaging;
 using DrawingBitmap = System.Drawing.Bitmap;
 using DrawingBitmapData = System.Drawing.Imaging.BitmapData;
@@ -17,7 +16,7 @@ namespace EsUtil.Platform.Core.Windows.Imaging;
 /// 変換（<see cref="ToDrawingBitmap"/>) は読み取り専用の面（<see cref="EsReadOnlyBitmap"/>）を受け取る（複製を返すため
 /// 入力の書き換え権限は要らない）。<br/>
 /// <b>所有権</b>: 返り値はすべて複製であり、呼び出し側が所有する（引数の所有権は呼び出し側に残る）。<br/>
-/// <b>Windows 専用</b>: System.Drawing は Windows でのみ利用可能（<see cref="SupportedOSPlatformAttribute"/> で限定）。
+/// <b>Windows 専用</b>: System.Drawing は Windows でのみ利用可能（対象フレームワークが Windows のため限定）。
 /// </remarks>
 public static class EsBitmapDrawingExtensions
 {

@@ -5,6 +5,7 @@ using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core.Native.Win;
 using EsUtil.Platform.Core;
+using EsUtil.Ui.WinUI3.Marquee.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.UI.Xaml;
@@ -121,6 +122,13 @@ public sealed partial class MarqueeControl : Canvas
     /// <remarks>既定実装（Win32）の解決は本 UI 層が行う（コアは抽象と <see langword="null"/> のみを扱う）。</remarks>
     private readonly ICursorService _cursor;
 
+    /// <summary>OS のユーザー設定（ダブルクリックと見なす時間）。</summary>
+    /// <remarks>既定実装（Win32）の解決は本 UI 層が行う（コアは抽象のみを扱う）。</remarks>
+    private readonly IUserPreferenceService _userPreferences;
+
+    /// <summary>コントロール ローカル DIP と画面物理座標の変換。</summary>
+    private readonly ScreenConverter _screenConverter;
+
     /// <summary>ドラッグ矩形コントロールを既定構成で初期化する。</summary>
     public MarqueeControl()
         : this(null)
@@ -129,18 +137,23 @@ public sealed partial class MarqueeControl : Canvas
 
     /// <summary>カーソルサービスを注入してドラッグ矩形コントロールを初期化する。</summary>
     /// <param name="cursorService">カーソルサービス。 null の場合は Windows 既定実装を使用する。</param>
+    /// <param name="userPreferences">OS のユーザー設定。 null の場合は Windows 既定実装を使用する。</param>
     /// <remarks>
     /// フォーカスを受けられるようにする（矢印キーの nudge がキー入力を受け取る前提条件）。<br/>
     /// 入力（ポインター・キー・フォーカス）の購読と、読み込み・破棄の購読を行う。<br/>
     /// コアからの通知は公開イベントへ転送し、設定（<see cref="Options"/>）をファサードへ伝搬する。
     /// </remarks>
-    public MarqueeControl(ICursorService? cursorService)
+    public MarqueeControl(
+        ICursorService? cursorService,
+        IUserPreferenceService? userPreferences = null)
     {
         IsTabStop = true;
         Background = s_hitTestBackground;
         _cursor = cursorService ?? new WinCursorService();
+        _userPreferences = userPreferences ?? new WinUserPreferenceService();
+        _screenConverter = new ScreenConverter(new WinWindowService());
         _effects = new Effects(this);
-        _marquee = new MarqueePresenter(_effects, _cursor, Options);
+        _marquee = new MarqueePresenter(_effects, Options);
         _marquee.Subscribe(OnNotified);
         // 環境値とホストが与える実行時状態は入力であるため、本コントロールの現在値を提示層へ引き継ぐ
         // （外観は提示層が単一所有するため引き継がない: 外観は公開プロパティの設定で伝搬する）
@@ -595,6 +608,15 @@ public sealed partial class MarqueeControl : Canvas
         /// <summary>カーソル形状をコアが示す種別に応じて更新する。</summary>
         /// <param name="kind">カーソル形状の種別（コア提供）。</param>
         public override void SetCursorShape(MarqueeCursorKind kind) => owner.ApplyCursorShape(kind);
+
+        /// <summary>実カーソルを画面物理座標へ移動する。</summary>
+        /// <param name="screenPoint">移動先（画面物理座標）。</param>
+        /// <returns>移動できた場合は true。 失敗しても選択操作は続行する。</returns>
+        public override bool? TryMoveCursor(EsPointInt screenPoint) => owner._cursor.TrySetCursorScreenPoint(screenPoint);
+
+        /// <summary>実カーソルの表示/非表示を切り替える。</summary>
+        /// <param name="show">表示する場合は true。</param>
+        public override void ShowCursor(bool show) => owner._cursor.ShowCursor(show);
 
         /// <summary>ポインター キャプチャを取得または解放する。</summary>
         /// <param name="capture">true = 取得 / false = 解放。</param>
