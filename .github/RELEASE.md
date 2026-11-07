@@ -79,7 +79,7 @@ flowchart LR
 
 **公開が成功した後にだけタグを打ちます**（公開できなかった版にタグを残さないため）。 **ジョブの実行条件は既定の `success()` に任せます**（`!cancelled()` も `needs.*.result` の手書きもしません）。 `pack` は `release` モードのときだけ走り、`publish` はその後に、`tag` は `publish` の後に置くため、**スキップされた `needs` を持つジョブは自動的にスキップされます**（dry-run でも、リリースする変更が無いときも、公開もタグ付けも走りません）。
 
-**配布物は [`workflows/pack.yml`](workflows/pack.yml) が単一所有します**（`build.yml` の `package` ジョブも `release.yml` の `pack` ジョブも、このワークフローを `workflow_call` で呼びます）。 作成の手順（`dotnet pack --no-build` で `verify` のビルドを使い、変更の無かったソリューションだけ作り足す）も、パッケージングの検証（`verifyPackaging.ps1 -SkipPack -Feed artifacts -Version <版>`）も、SBOM も 1 か所にあります。
+**配布物は [`workflows/pack.yml`](workflows/pack.yml) が単一所有します**（`build.yml` の `package` ジョブも `release.yml` の `pack` ジョブも、このワークフローを `workflow_call` で呼びます）。 作成の手順（Pull Request では `dotnet pack --no-build` で `verify` のビルドを使い、変更の無かったソリューションだけ作り足す。 公開時は `verify` のビルドが無いため `dotnet pack` がビルドも行う）も、パッケージングの検証（`verifyPackaging.ps1 -SkipPack -Feed artifacts -Version <版>`）も、SBOM も 1 か所にあります。
 
 **`release` は自分の実行で配布物を作ります**（`pack.yml` を呼ぶ）。 以前は `build.yml` の実行を API で走査して同じツリーの成果物を探し、最大 5 分待ち、無ければフォールバックで作り直していました（条件式の誤りと待機の費用がレビュー指摘の温床でした。 2026-11-07 に撤去）。 **別の実行を探さない**ため、**待機・フォールバック・出所の判定という仕組みが丸ごと不要**になり、**検証したバイト列と公開するバイト列が同一**になります。 代償は `release` 1 回あたり 3〜4 分の作成です（Pull Request では `build.yml` が 1 回だけ作り、**2 回 pack しません**）。
 
