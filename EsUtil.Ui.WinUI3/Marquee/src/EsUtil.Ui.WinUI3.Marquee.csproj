@@ -8,8 +8,6 @@
     <RootNamespace>EsUtil.Ui.WinUI3.Marquee</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- ウィンドウ座標の変換（CsWin32 が生成する Win32 の宣言）で unsafe を使う -->
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する。 実測 2026-10-24: 警告 0）。
          本コントロールを AOT で発行したサンプルが起動することを確認済み（失敗していたのはサンプルの
          `ItemsSource` の使い方であり、コントロール側の問題ではなかった）。 -->
@@ -21,12 +19,6 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
-    <!-- Win32 の宣言は CsWin32 が生成する（ソース生成だけを目的とするため実行時依存を持たない。
-         規則は .github/命名規約.md §ルート名前空間）。 生成対象は src/NativeMethods.txt。 -->
-    <PackageReference Include="Microsoft.Windows.CsWin32">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
