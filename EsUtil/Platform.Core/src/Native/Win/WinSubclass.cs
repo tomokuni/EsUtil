@@ -29,6 +29,18 @@ internal static unsafe class WinSubclass
     internal static readonly delegate* unmanaged[Stdcall]<HWND, uint, WPARAM, LPARAM, nuint, nuint, LRESULT> Procedure
         = &Dispatch;
 
+    /// <summary>サブクラス識別値の採番（プロセス全体で一意）。</summary>
+    /// <remarks>
+    /// <c>SetWindowSubclass</c> の登録キーは「サブクラス プロシージャと識別値の組」であり、本クラスの
+    /// プロシージャは全コンポーネントで共有する。 そのため識別値は<b>クラスごとではなくプロセス全体で一意</b>にする
+    /// （クラス内の連番だと、同じウィンドウへ 2 つの機能を付けたときに後から付けた側が先の登録を置き換えてしまう）。
+    /// </remarks>
+    private static long s_lastSubclassId;
+
+    /// <summary>サブクラス識別値を新しく採番する。</summary>
+    /// <returns>0 以外の識別値（プロセス全体で一意）。</returns>
+    internal static nuint NextId() => (nuint)Interlocked.Increment(ref s_lastSubclassId);
+
     /// <summary>インスタンスを指す文脈を生成する（<c>dwRefData</c> へ渡す値を持つ）。</summary>
     /// <param name="handler">メッセージの処理。</param>
     /// <returns>生成した文脈（<c>GCHandle</c> を保持する）。 使い終わったら <see cref="Context.Release"/> を呼ぶ。</returns>

@@ -23,13 +23,11 @@ public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
     /// <summary>lParam 下位ワード（ヒットテスト結果）を取得するための 16bit マスク。</summary>
     private const int LowWordMask = 0xFFFF;
 
-    /// <summary><c>SetWindowSubclass</c> に渡すサブクラスの識別値（クラス内で共有する連番）。</summary>
+    /// <summary><c>SetWindowSubclass</c> に渡すサブクラスの識別値（<see cref="WinSubclass.NextId"/> が採番する）。</summary>
     /// <remarks>
     /// 識別値は<b>ウィンドウごとに一意</b>であればよい（comctl32 がウィンドウ単位で管理する）。
     /// 衝突を避けるため連番にする。
     /// </remarks>
-    private static nuint s_lastSubclassId;
-
     /// <summary>サブクラス化中のウィンドウハンドル。 未アタッチ時は <see cref="IntPtr.Zero"/>。</summary>
     private IntPtr _hwnd;
 
@@ -63,7 +61,7 @@ public sealed class WinCursorOverrideGuard : ICursorOverrideGuard
 
         // 文脈は 1 回だけ作る（WM_SETCURSOR はマウス移動のたびに届く）
         var context = _context ?? WinSubclass.CreateContext(WndProc);
-        var id = ++s_lastSubclassId;
+        var id = WinSubclass.NextId();
         if (!PInvoke.SetWindowSubclass((HWND)hwnd, WinSubclass.Procedure, id, context.ReferenceData))
         {
             // 失敗した状態を残さない（文脈も解放する。 IsAttached は false のままで呼び出し側が判別できる）
