@@ -5,21 +5,20 @@
 .DESCRIPTION
 `verify.ps1`（およびビルド）の合否は「**警告以上 0 件**」であり、規則は `.editorconfig` が単一所有する。
 本スクリプトはその**下の情報レベル（提案）**だけを対象にし、**採用するかどうかを判断するための一覧**を出す
-（合否ゲートではない。 `.github/検証手順.md` §16「情報レベルの提案」が定める）。
+（合否ゲートではない。 `.github/検証手順.md` §4「情報レベルの提案」が定める）。
 
 - 既定は**検出のみ**（`--verify-no-changes`）。 ファイルは変更しない。
 - **`-Fix` を付けると自動修正する**（`dotnet format` の修正を適用する）。
-  - **修正後に必ずビルドと `verify.ps1` を実行する**。 **自動修正が新しい違反を生むことがある**（情報レベルの
-    修正が未使用の変数（`IDE0059`）を生むと、ビルドは警告をエラーにするため失敗する。 `IDE0059` の修正は
-    自動では行われないため手で直す）。
+  - **修正後に必ずビルドと `verify.ps1` を実行する**（自動修正が新しい違反を生むことがある。 実測:
+    情報レベルの修正（`IDE0019` のパターン マッチへの書き換え）が未使用の変数（`IDE0059`）を生み、
+    ビルドがエラーになった）。
   - アナライザーが直せない項目（`CA1305` 等）は手で直す。
 - 対象は種類（`-Kind`）で分ける。 既定は `Style`（`IDExxxx`。 `dotnet format style`）。
   `Analyzer` は `CAxxxx` / `MAxxxx`（`dotnet format analyzers`）で、**採用していない規則の提案が大量に出る**
-  ため、規則の採用を判断するときに使う。
-- **診断行は標準エラーへ出る**ため、本スクリプトは標準出力と標準エラーの両方を読む（`Invoke-NativeText`）。
+  （実測: 881 件）ため、規則の採用を判断するときに使う。
 
 .PARAMETER Solution
-対象のソリューション ファイル（既定: EsUtil.slnx）。
+対象のソリューション ファイル（既定: release-config.json の solutionFile）。
 
 .PARAMETER Fix
 自動修正する（既定は検出のみ）。
@@ -42,7 +41,7 @@ pwsh -NoProfile -File buildScript/verifyInfoStyle.ps1 -Kind Analyzer -MaxDetail 
 #>
 [CmdletBinding()]
 param(
-    [string]$Solution = 'EsUtil.slnx',
+    [string]$Solution = '',
     [switch]$Fix,
     [ValidateSet('Style', 'Analyzer', 'All')][string]$Kind = 'Style',
     [int]$MaxDetail = 5,
@@ -55,8 +54,11 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Set-Location $repoRoot
 
 # `dotnet format` の出力もネイティブ コマンドの出力である（復号は Invoke-NativeText が単一所有する。
-# 文字化けの根拠は .github/検証手順.md §15）。
+# 文字化けの根拠は .github/検証手順.md §19）。
 . (Join-Path $PSScriptRoot 'VerifyCommon.ps1')
+
+# 対象のソリューション ファイルは release-config.json が単一所有する（`solutionFile` / `solutions` のどちらでもよい）
+if (-not $Solution) { $Solution = @(Get-SolutionList (Get-RepoConfig $repoRoot))[0] }
 
 $restoreArgs = if ($NoRestore) { @('--no-restore') } else { @() }
 # 診断行（`<ファイル>(<行>,<列>): <レベル> <規則>: <メッセージ> [<プロジェクト>]`）を分解する
@@ -111,7 +113,7 @@ if ($Fix) { exit 0 }
 
 Write-Output ''
 Write-Output '===== 情報レベルの要約 ====='
-Write-Output ("情報レベルの改善提案 {0} 件（合否ゲートではない。 採用の判断は .github/検証手順.md §16「情報レベルの提案」）" -f $total)
+Write-Output ("情報レベルの改善提案 {0} 件（合否ゲートではない。 採用の判断は .github/検証手順.md §4「情報レベルの提案」）" -f $total)
 if ($total -eq 0) { exit 0 }
 # 提案が残っている場合は終了コード 1（呼び出し側が「検出あり」を判定できるようにする）
 exit 1
