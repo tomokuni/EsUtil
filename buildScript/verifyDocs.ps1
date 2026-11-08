@@ -80,10 +80,52 @@ if ($mdIssues -gt 0) { $mdText -split "`r?`n" | Where-Object { $_ -match 'error|
 Write-Output '== 6. 相対リンク =='
 $brokenLinks = [System.Collections.Generic.List[string]]::new()
 $rxLink = [regex]'\]\((?<t>[^)\s]+)\)'
-$rxCode = [regex]'`[^`]*`'
+# **インライン コードは「同じ長さのバックティックで囲まれた区間」**とする（Markdown の仕様）。
+# コード スパンは行をまたげるため、行単位に区切らずに対応させる。 **終端はバックティック列の長さが
+# 開始と一致する場合だけ**認識する（囲みより長い列を内部に含む正当なコード スパンを除去できるようにするため）。
+$rxCode = [regex]'(?s)(?<!`)(`+)(?!`)(?:(?!(?<!`)\1(?!`)).)*?(?<!`)\1(?!`)'
+
+# **フェンス付きコード ブロック（``` / ~~~）はリンク検査の対象外**にする（中身は例示である）。
+# 先に除去しないと、フェンスのバックティックが本文のバックティックと対になり、対応がずれる。
+# 終了フェンスは**開始と同じ文字で、開始以上の長さ**の列だけを認識する（Markdown の仕様）。
+# 状態遷移で 1 行ずつ見る（正規表現では列の長さの比較ができないため）。
+# 改行は CRLF / LF のどちらでも扱えるよう、行の分割と結合で吸収する。
+function Remove-FencedCode([string]$Text) {
+    $lines = $Text -split "`r?`n"
+    $kept = [System.Collections.Generic.List[string]]::new()
+    $fenceChar = [char]0
+    $fenceLength = 0
+    # 開始フェンスは情報文字列（```` ```powershell ```` など）を持てる
+    $rxOpen = [regex]'^[ \t]*(?<run>`{3,}|~{3,})'
+    # 終了フェンスは**列の後ろが空白だけ**の行に限る（情報文字列を持つ行は本文である）
+    $rxClose = [regex]'^[ \t]*(?<run>`{3,}|~{3,})[ \t]*$'
+    foreach ($line in $lines) {
+        if ($fenceChar -eq [char]0) {
+            $m = $rxOpen.Match($line)
+            if ($m.Success) {
+                $fenceChar = $m.Groups['run'].Value[0]
+                $fenceLength = $m.Groups['run'].Value.Length
+                $kept.Add('')
+                continue
+            }
+            $kept.Add($line)
+            continue
+        }
+        # フェンスの中（リンク検査の対象外）
+        $kept.Add('')
+        $m = $rxClose.Match($line)
+        if ($m.Success -and $m.Groups['run'].Value[0] -eq $fenceChar -and $m.Groups['run'].Value.Length -ge $fenceLength) {
+            $fenceChar = [char]0
+            $fenceLength = 0
+        }
+    }
+    return ($kept -join "`n")
+}
+
 foreach ($f in $docs) {
-    # コード片（`...`）の中のリンク風表記は文書の例示なので対象外にする
-    $text = $rxCode.Replace((Get-Text $f.FullName), '``')
+    # コード片の中のリンク風表記は文書の例示なので対象外にする（置換先にバックティックを使わない）
+    $text = Remove-FencedCode (Get-Text $f.FullName)
+    $text = $rxCode.Replace($text, ' ')
     foreach ($m in $rxLink.Matches($text)) {
         $target = $m.Groups['t'].Value
         if ($target -match '^(https?:|mailto:|\w+:|#)') { continue }
