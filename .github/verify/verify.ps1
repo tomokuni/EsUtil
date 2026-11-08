@@ -57,11 +57,11 @@ NuGet の健全性（既知の脆弱性。 推移的依存を含む）の検査�
 `--no-restore` を付ける（呼び出し側が復元済みのとき。 CI は復元を別ステップで行う）。
 
 .EXAMPLE
-pwsh -NoProfile -File buildScript/verify.ps1
+pwsh -NoProfile -File .github/verify/verify.ps1
 .EXAMPLE
-pwsh -NoProfile -File buildScript/verify.ps1 -Fix
+pwsh -NoProfile -File .github/verify/verify.ps1 -Fix
 .EXAMPLE
-pwsh -NoProfile -File buildScript/verify.ps1 -Configuration Release -Solution EsUtil.slnx -NoRestore
+pwsh -NoProfile -File .github/verify/verify.ps1 -Configuration Release -Solution EsUtil.slnx -NoRestore
 #>
 [CmdletBinding()]
 param(
@@ -84,7 +84,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $enc = [Text.UTF8Encoding]::new($false)
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location $repoRoot
 
 
@@ -114,7 +114,7 @@ function Invoke-DotNet([string[]]$Arguments) {
     return [pscustomobject]@{ Text = $result.Text + $result.ErrorText; ExitCode = $result.ExitCode }
 }
 
-# 文書とコードの走査（5〜10 節）は buildScript/verifyDocs.ps1 が所有する。
+# 文書とコードの走査（5〜10 節）は .github/verify/verifyDocs.ps1 が所有する。
 # 走査は 1 ファイルずつ読む独立した作業であり、ビルド・テストと重ねられる（実測: 全体 47 秒 → 34 秒）。
 # **先に起動してからビルドへ進む**（起動が遅れると重ならない）。
 # 自動修正（-Fix）のときは直列にする（修正と判定の順序が決まっているため。 重ねない）。
@@ -172,7 +172,7 @@ function Receive-DocsVerification($Background) {
     }
 
     if (-not $completed) {
-        Add-Result '文書とコードの走査' $false '走査を完了できなかった（buildScript/verifyDocs.ps1 の起動または実行に失敗した）'
+        Add-Result '文書とコードの走査' $false '走査を完了できなかった（.github/verify/verifyDocs.ps1 の起動または実行に失敗した）'
     }
 }
 # ネットワーク照会や MSBuild の評価は待ち時間が長い（実測: NuGet の照会 35 秒 / dotnet format 20 秒）ため、
@@ -627,7 +627,7 @@ Add-SectionTiming 'NuGet の健全性'
 # ============================================================
 # 通常のビルドは ProjectReference のため、パッケージの誤りはビルドでは検出されない
 # （規則の所有者は .github/依存関係.md §1・§9）。 パッケージ参照だけの一時プロジェクトで
-# 復元・ビルド・起動できるかを buildScript/verifyPackaging.ps1 が確かめる
+# 復元・ビルド・起動できるかを .github/verify/verifyPackaging.ps1 が確かめる
 # （合否基準の所有者は .github/検証手順.md §9）。
 if ($SkipPackaging) {
     Add-Info 'パッケージング' '省略（-SkipPackaging）'
@@ -646,14 +646,14 @@ else {
 }
 Add-SectionTiming 'パッケージング（pack と パッケージ参照での復元・ビルド・起動）'
 # ============================================================
-# 5〜10. 文書とコードの走査（buildScript/verifyDocs.ps1。 上の Start-DocsVerification で起動済み）
+# 5〜10. 文書とコードの走査（.github/verify/verifyDocs.ps1。 上の Start-DocsVerification で起動済み）
 # ============================================================
 if ($docsBackground) {
     Receive-DocsVerification $docsBackground
 }
 elseif ($SkipDocs) {
-    # 別のジョブ（buildScript/verifyDocs.ps1）が実行する。 合否に含めない（二重計上しないため）
-    Add-Info '文書とコードの走査' '省略（-SkipDocs。 CI の docs ジョブが buildScript/verifyDocs.ps1 を実行する）'
+    # 別のジョブ（.github/verify/verifyDocs.ps1）が実行する。 合否に含めない（二重計上しないため）
+    Add-Info '文書とコードの走査' '省略（-SkipDocs。 CI の docs ジョブが .github/verify/verifyDocs.ps1 を実行する）'
 }
 else {
     # -Fix のときは直列で走らせる（修正と判定の順序を保つ）

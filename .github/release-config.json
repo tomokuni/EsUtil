@@ -12,6 +12,7 @@
     "roots": ["EsUtil", "EsUtil.Ui.AvaloniaUI", "EsUtil.Ui.MewUI", "EsUtil.Ui.WinForms", "EsUtil.Ui.WinUI3"],
     "projectTitleStyle": "path",
     "portablePrefixes": ["EsUtil."],
+    "scriptRoots": ["buildScript", ".github"],
     "solutionLabels": [
       "EsUtil.slnx",
       "EsUtil.Ui.AvaloniaUI.slnx",

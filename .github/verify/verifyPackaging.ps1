@@ -17,11 +17,11 @@
 # 一時プロジェクトは $env:TEMP へ置く（リポジトリの Directory.Build.* を継承させないため。 片付ける）。
 #
 # 使い方:
-#   pwsh -NoProfile -File buildScript/verifyPackaging.ps1
-#   pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -SkipPack     # pack を省略する
-#   pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -KeepWork     # 一時フォルダを残す
+#   pwsh -NoProfile -File .github/verify/verifyPackaging.ps1
+#   pwsh -NoProfile -File .github/verify/verifyPackaging.ps1 -SkipPack     # pack を省略する
+#   pwsh -NoProfile -File .github/verify/verifyPackaging.ps1 -KeepWork     # 一時フォルダを残す
 #   # 公開する版のパッケージ（CI の build.yml が artifacts/ へ作ったもの）を検証する
-#   pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -SkipPack -Feed artifacts -Version 0.5.3
+#   pwsh -NoProfile -File .github/verify/verifyPackaging.ps1 -SkipPack -Feed artifacts -Version 0.5.3
 
 [CmdletBinding()]
 param(
@@ -34,14 +34,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $enc = [Text.UTF8Encoding]::new($false)
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location $repoRoot
 
 . (Join-Path $PSScriptRoot 'VerifyCommon.ps1')
 
 $feed = if ($Feed) { (Resolve-Path -LiteralPath $Feed).Path } else { Join-Path $repoRoot '.nupkg' }
 $propsText = [IO.File]::ReadAllText((Join-Path $repoRoot 'Directory.Build.props'), $enc)
-$recordPath = Join-Path $PSScriptRoot 'local-versions.json'
+$recordPath = Join-Path $repoRoot 'buildScript/local-versions.json'
 
 function Get-SolutionName([string]$projectName) {
     if ($projectName -match '^EsUtil\.Ui\.(?<ui>AvaloniaUI|MewUI|WinUI3|WinForms)\.') {
@@ -112,7 +112,7 @@ $missing = Get-MissingPackages $versions
 
 if ($missing.Count -gt 0 -and -not $SkipPack) {
     Write-Output "パッケージが揃っていないため pack.ps1 を実行します: $($missing.Count) 件"
-    $packResult = Invoke-NativeText 'pwsh' @('-NoProfile', '-File', (Join-Path $PSScriptRoot 'pack.ps1'), '-Configuration', $Configuration)
+    $packResult = Invoke-NativeText 'pwsh' @('-NoProfile', '-File', (Join-Path $repoRoot 'buildScript/pack.ps1'), '-Configuration', $Configuration)
     if ($packResult.ExitCode -ne 0) {
         Write-Output ($packResult.Text + $packResult.ErrorText)
         Add-Result 'パッケージの作成' $false "pack.ps1 が失敗しました（終了コード $($packResult.ExitCode)）"

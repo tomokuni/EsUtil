@@ -94,7 +94,7 @@ jobs:
           $props = [IO.File]::ReadAllText('Directory.Build.props', [Text.UTF8Encoding]::new($false))
           $version = [regex]::Match($props, '<VersionPrefix>([^<]+)</VersionPrefix>').Groups[1].Value.Trim()
 
-          & pwsh -NoProfile -File buildScript/verifyPackaging.ps1 -SkipPack -Feed artifacts -Version $version
+          & pwsh -NoProfile -File .github/verify/verifyPackaging.ps1 -SkipPack -Feed artifacts -Version $version
           if ($LASTEXITCODE -ne 0) { throw "パッケージングの検証が失敗しました（exit $LASTEXITCODE）" }
 
       # SBOM の解析は復元を伴う。 **5 本を並列に走らせたまま復元させない**: 共有プロジェクトの
@@ -130,7 +130,7 @@ jobs:
           # 子プロセスの出力は**戻り値に混ぜず**、ログへ出す（混ざると結果の判定が壊れる）
           $results = $items | ForEach-Object -Parallel {
             $item = $_
-            $text = & pwsh -NoProfile -File (Join-Path $using:root 'buildScript/generateSbom.ps1') `
+            $text = & pwsh -NoProfile -File (Join-Path $using:root '.github/scripts/generateSbom.ps1') `
               -Output $using:output -Solution $item.solution -Version $using:version `
               -Product $item.product -SkipToolRestore -SkipPackageRestore *>&1
             $code = $LASTEXITCODE
