@@ -40,3 +40,5 @@ Thumbs.db
 # Project-specific
 *.log
 *.tmp
+# SBOM などの生成物（CI がアップロードする。 コミットしない）
+/artifacts/

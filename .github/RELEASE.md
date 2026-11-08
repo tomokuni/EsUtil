@@ -19,7 +19,7 @@
 | [`../.config/dotnet-tools.json`](../.config/dotnet-tools.json) | SBOM を作るツール（CycloneDX）の版。 CI とローカルで同じものを使う |
 | [`workflows/release.yml`](workflows/release.yml) | dry-run / 公開 / タグ付けの実装 |
 | [`../buildScript/pack.ps1`](../buildScript/pack.ps1) | **ローカル フィード用**のパッケージ作成（未公開の版を試すときだけ使う。 公開はワークフローが行う） |
-| [`../buildScript/generateSbom.ps1`](../buildScript/generateSbom.ps1) | SBOM（CycloneDX）の作成 |
+| [`scripts/generateSbom.ps1`](scripts/generateSbom.ps1) | SBOM（CycloneDX）の作成 |
 
 **版はすべてのパッケージで 1 つ**です（`Directory.Build.props` の `VersionPrefix`）。 タグも Release も **1 件**（`v<版>`。 例: `v0.4.0`）になります。
 
@@ -30,9 +30,9 @@
 - **NuGet の対象は版の単一所有（`Directory.Packages.props`）のフォルダだけ**（`directory: "/"`）。 版は Central Package Management で 1 ファイルが持つため、プロジェクトごとに列挙する必要はありません。 列挙すると **Dependabot がフォルダごとに依存を解決して実行が長引きます**（実測 2026-11-02: 85 フォルダで 12〜56 分。 時間切れで Pull Request が作られないことがありました）。 登録漏れは `verify.ps1` が不合格にします（規則は [`検証手順.md`](検証手順.md) §8）。
 - **メジャー更新の一部は自動で作らない**（`xunit.v3` / `xunit.analyzers`）: テストの書き方と実行基盤が変わるため、人が判断します。
 - **MewUI（0.x）は固定して手動で更新する**: 破壊的変更でビルドが通らなくなるためです。
-- **lock の更新は CI が行います**（[`workflows/locks.yml`](workflows/locks.yml)）。 `dev` からの Pull Request で `packages.lock.json` が古ければ、bot が `buildScript/updateLocks.ps1` を実行し、**`dev` へ自動でコミット**します（開発者の手作業はありません）。 **走るのは lock が変わりうるファイルを触った Pull Request だけ**です（文書だけの Pull Request では走りません）。 対象は**配布するプロジェクト（`src`）だけ**です（テスト・サンプルは lock を持たない。 版を上げるたびに 44 ファイルの機械的な差分が出るため。 [`ビルド設定規約.md`](ビルド設定規約.md) §8）。
+- **lock の更新は CI が行います**（[`workflows/locks.yml`](workflows/locks.yml)）。 `dev` からの Pull Request で `packages.lock.json` が古ければ、bot が `.github/scripts/updateLocks.ps1` を実行し、**`dev` へ自動でコミット**します（開発者の手作業はありません）。 **走るのは lock が変わりうるファイルを触った Pull Request だけ**です（文書だけの Pull Request では走りません）。 対象は**配布するプロジェクト（`src`）だけ**です（テスト・サンプルは lock を持たない。 版を上げるたびに 44 ファイルの機械的な差分が出るため。 [`ビルド設定規約.md`](ビルド設定規約.md) §8）。
   - Dependabot の Pull Request も同じ仕組みで lock が更新されます（版を書き換えるのは `Directory.Packages.props` だけ）。
-  - 手元で先に直したいときは `pwsh -NoProfile -File buildScript/updateLocks.ps1`。
+  - 手元で先に直したいときは `pwsh -NoProfile -File .github/scripts/updateLocks.ps1`。
 
 ## 3. リポジトリの設定（初回のみ）
 
@@ -63,7 +63,7 @@
 | Release `release`（手動） | **この実行で配布物を作り**（`pack.yml`）、検証したバイト列をそのまま公開し、タグ付けする | 検証したバイト列と公開するバイト列を一致させる（別の実行の成果物を探さない） |
 
 - **Pull Request の `dry-run` は自動**です（`release.yml` の `pull_request`）。 版・CHANGELOG・タグ・ブランチの検証を PR のたびに行うため、**マージ後に dry-run を実行する必要はありません**。 配布物と SBOM は `pack.yml` が作り（PR では `build.yml` の `package` ジョブ、公開時は `release` の実行そのもの）、**パッケージへ影響する変更のときだけ**です。
-- **作業ブランチで早く壊れを見つけたいとき**は、手元の `buildScript/verify.ps1`（[`検証手順.md`](検証手順.md)）か、`build.yml` の `workflow_dispatch` を使います。
+- **作業ブランチで早く壊れを見つけたいとき**は、手元の `.github/verify/verify.ps1`（[`検証手順.md`](検証手順.md)）か、`build.yml` の `workflow_dispatch` を使います。
 - **README の build バッジ**は `?event=pull_request` を指定します（既定は**既定ブランチの最新実行**であり、`main` の push では実行しないため、`dev` の古い push の結果が残って PR の失敗を表示できません）。
 
 ### 4.2 ジョブの流れ
@@ -203,14 +203,14 @@ Release には、**ソリューションごとの SBOM**（`<ソリューショ�
 
 ```powershell
 # 検証（ビルド・テスト・パッケージング・走査。 合否基準は .github/検証手順.md）
-pwsh -NoProfile -File buildScript/verify.ps1
+pwsh -NoProfile -File .github/verify/verify.ps1
 
 # 未公開の版をローカル フィード（.nupkg/）へ出す（利用側のアプリで試すとき）
 pwsh -NoProfile -File buildScript/pack.ps1
 
 # SBOM だけを作る（既定は復元から行う。 `pack.ps1` や `verify.ps1` の直後なら解析だけで済む）
-pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output sbom
-pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output sbom -SkipPackageRestore
+pwsh -NoProfile -File .github/scripts/generateSbom.ps1 -Output sbom
+pwsh -NoProfile -File .github/scripts/generateSbom.ps1 -Output sbom -SkipPackageRestore
 ```
 
 ## 10. 注意点

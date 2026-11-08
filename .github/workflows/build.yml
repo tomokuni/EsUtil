@@ -8,11 +8,11 @@
 # **マージ後に `main` へ載るツリーそのもの**（`refs/pull/<番号>/merge`）を対象にする。 同じツリーを
 # マージ後にもう一度検証しても結果は変わらないため、`dev` への push と `main` への push では実行しない
 # （実測 2026-11-02: 1 変更あたり最大 3 回、windows ランナー 5 本ずつ走っていた）。
-# 作業ブランチで早く壊れを見つけたいときは、手元の `buildScript/verify.ps1` か workflow_dispatch を使う。
+# 作業ブランチで早く壊れを見つけたいときは、手元の `.github/verify/verify.ps1` か workflow_dispatch を使う。
 #
 # **変更のあったソリューションだけを検証する**（paths フィルタ）。
 # 共通基盤（`EsUtil/`）・ビルド設定・スクリプト・文書を変えたときは 5 本すべてを検証する。
-# 検証の中身は buildScript/verify.ps1 が単一所有し、合否基準は .github/検証手順.md が定める。
+# 検証の中身は .github/verify/verify.ps1 が単一所有し、合否基準は .github/検証手順.md が定める。
 #
 # **ジョブは同時に走らせる**（直列だと 1 ジョブ 8 分だった。 実測 2026-10-26）。
 #   verify … ソリューションごとに 1 ジョブ（マトリクス）。 ビルドとテスト（走査とリポジトリ全体の検査は除く）
@@ -196,7 +196,7 @@ jobs:
           restore-keys: |
             nuget-${{ runner.os }}-${{ hashFiles(matrix.solution) }}-
 
-      # 検証は buildScript/verify.ps1 が単一所有する（合否基準は .github/検証手順.md が所有者）。
+      # 検証は .github/verify/verify.ps1 が単一所有する（合否基準は .github/検証手順.md が所有者）。
       # 走査（-SkipDocs）・パッケージング（-SkipPackaging）・リポジトリ全体の検査（-SkipRepoChecks）・
       # NuGet の監査（-SkipPackage）は別ジョブが代表して 1 回だけ実行する（5 ジョブで同じ検査を
       # 繰り返さない。 実測 2026-11-05: 1 ジョブあたり 10〜30 秒の重複があった）。
@@ -205,7 +205,7 @@ jobs:
         run: |
           # -FullBuild: ゲートでは警告の取りこぼしを許さない（増分ビルドは前回の生成物を再利用するため、
           # 該当プロジェクトがスキップされて警告が隠れることがある。 規則は .github/検証手順.md §3）
-          & './buildScript/verify.ps1' -Configuration Release -Solution '${{ matrix.solution }}' -SkipDocs -SkipPackaging -SkipPackage -SkipRepoChecks -FullBuild
+          & './.github/verify/verify.ps1' -Configuration Release -Solution '${{ matrix.solution }}' -SkipDocs -SkipPackaging -SkipPackage -SkipRepoChecks -FullBuild
           if ($LASTEXITCODE -ne 0) { throw "検証が失敗しました（exit $LASTEXITCODE）" }
 
       # **配布物はここ（ビルドしたジョブ）で作る**（同じツリーを 2 回ビルドしない）。
@@ -286,11 +286,11 @@ jobs:
             nuget-${{ runner.os }}-repo-
             nuget-${{ runner.os }}-
 
-      # 合否基準は .github/検証手順.md（実装は buildScript/verify.ps1 が単一所有する）
+      # 合否基準は .github/検証手順.md（実装は .github/verify/verify.ps1 が単一所有する）
       - name: 検査と監査
         shell: pwsh
         run: |
-          & ./buildScript/verify.ps1 -SkipBuild -SkipTests -SkipDocs -SkipPackaging -SkipFormat
+          & ./.github/verify/verify.ps1 -SkipBuild -SkipTests -SkipDocs -SkipPackaging -SkipFormat
           if ($LASTEXITCODE -ne 0) { throw "リポジトリ全体の検査が失敗しました（exit $LASTEXITCODE）" }
 
   # ────────────────────────────────────────────────────────────
@@ -309,16 +309,16 @@ jobs:
         with:
           # キャッシュの場所は OS で変わる（ubuntu は `~/.npm`）
           path: ~/.npm
-          # 版は buildScript/verifyDocs.ps1 が単一所有する（版を上げるとキーが変わる）
-          key: npm-${{ runner.os }}-${{ hashFiles('buildScript/verifyDocs.ps1', 'buildScript/markdownlint.json') }}
+          # 版は .github/verify/verifyDocs.ps1 が単一所有する（版を上げるとキーが変わる）
+          key: npm-${{ runner.os }}-${{ hashFiles('.github/verify/verifyDocs.ps1', '.github/verify/markdownlint.json') }}
           restore-keys: |
             npm-${{ runner.os }}-
 
-      # 合否基準は .github/検証手順.md（実装は buildScript/verifyDocs.ps1 が単一所有する）
+      # 合否基準は .github/検証手順.md（実装は .github/verify/verifyDocs.ps1 が単一所有する）
       - name: 走査
         shell: pwsh
         run: |
-          & ./buildScript/verifyDocs.ps1
+          & ./.github/verify/verifyDocs.ps1
           if ($LASTEXITCODE -ne 0) { throw "走査が失敗しました（exit $LASTEXITCODE）" }
 
   # ────────────────────────────────────────────────────────────

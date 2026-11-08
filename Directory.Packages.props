@@ -10,7 +10,7 @@
          「新しい版へ上げる」は Dependabot の Pull Request で行う。
        - 復元結果は packages.lock.json でも固定する（Directory.Build.props の RestorePackagesWithLockFile）。
        - **公開する nuspec の依存は最小版**として書かれる（`PackageReference` の版は nuspec で最小版になる）。
-         利用側の解決幅は狭まらない（規則と検査は buildScript/verifyPackaging.ps1）。
+         利用側の解決幅は狭まらない（規則と検査は .github/verify/verifyPackaging.ps1）。
        ============================================================ -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>

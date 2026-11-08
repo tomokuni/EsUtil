@@ -8,6 +8,34 @@
     "EsUtil.Ui.WinUI3/EsUtil.Ui.WinUI3.slnx",
     "EsUtil.Ui.WinForms/EsUtil.Ui.WinForms.slnx"
   ],
+  "layout": {
+    "roots": ["EsUtil", "EsUtil.Ui.AvaloniaUI", "EsUtil.Ui.MewUI", "EsUtil.Ui.WinForms", "EsUtil.Ui.WinUI3"],
+    "projectTitleStyle": "path",
+    "portablePrefixes": ["EsUtil."],
+    "scriptRoots": ["buildScript", ".github"],
+    "solutionLabels": [
+      "EsUtil.slnx",
+      "EsUtil.Ui.AvaloniaUI.slnx",
+      "EsUtil.Ui.MewUI.slnx",
+      "EsUtil.Ui.WinUI3.slnx",
+      "EsUtil.Ui.WinForms.slnx"
+    ],
+    "externalDocTokens": [
+      "EsUtil.SaveEvidence",
+      "App.Core",
+      "App.AvaloniaUI",
+      "App.MewUI",
+      "Parts.CapturePreview.Core",
+      "Parts.CapturePreview.ControlAvaloniaUI",
+      "Parts.CapturePreview.ControlMewUI",
+      "Parts.LineDetection",
+      "Platform.Skia",
+      "Platform.AvaloniaUI",
+      "Platform.MewUI",
+      "ColorPickerControl.AvaloniaUI",
+      "SaveEvidence"
+    ]
+  },
   "releaseBranches": [
     "main"
   ],

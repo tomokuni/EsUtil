@@ -1,0 +1,17 @@
+# 陳腐化した識別子（改名・削除の残骸）のパターン。 1 行 1 つの正規表現。
+# verifyDocs.ps1 の 8c が全追跡ファイル（文書・スクリプトのコメントを含む）から探す。
+# 対象を追加して育てる。 `#` で始まる行と空行は無視される。
+#
+# 本リポジトリは可搬な層のライブラリであり、旧構成の名前（アプリ側の層・ツール名）が
+# 残っていないことを見る。
+EsUtil\.SaveEvidence
+MarqueeCore\.ResolveContent
+MarqueePresenter\.ResolveContent
+App\.LineDetection
+App\.(Core|AvaloniaUI|MewUI)
+Parts\.(CapturePreview|LineDetection)
+Platform\.(Skia|AvaloniaUI|MewUI)
+ColorPickerControl\.AvaloniaUI
+SaveEvidence
+local-nuget
+verify-ui

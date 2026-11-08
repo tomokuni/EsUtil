@@ -140,7 +140,7 @@
        規則を変えるときは .github/ビルド設定規約.md を先に更新する。
 
        `Directory.Build.props` のテキストは MSBuild から読めないため、ここでは「実効値」を検査する
-       （テキストの重複指定は buildScript/verify.ps1 が検査する）。
+       （テキストの重複指定は .github/verify/verify.ps1 が検査する）。
        ============================================================ -->
   <Target Name="ValidateProjectSettings" BeforeTargets="Build" Condition="'$(MSBuildProjectName)' != ''">
 
