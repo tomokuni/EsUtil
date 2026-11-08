@@ -10,7 +10,7 @@
 #   pwsh -NoProfile -File buildScript/generateSbom.ps1
 #   pwsh -NoProfile -File buildScript/generateSbom.ps1 -Output sbom -Version 0.2.0
 #   # 複数のソリューションを並列に作るとき（復元は呼び出し側で 1 回だけ行う）
-#   pwsh -NoProfile -File buildScript/generateSbom.ps1 -Solution EsUtil/EsUtil.slnx -SkipToolRestore
+#   pwsh -NoProfile -File buildScript/generateSbom.ps1 -Solution <solution>.slnx -SkipToolRestore
 #   # 呼び出し側が既に復元しているとき（pack の直後。 解析だけを行う）
 #   pwsh -NoProfile -File buildScript/generateSbom.ps1 -SkipToolRestore -SkipPackageRestore
 #
@@ -39,14 +39,15 @@ Set-Location $repoRoot
 
 # ソリューション ファイルと製品名は release-config.json が単一所有する
 $config = Get-RepoConfig $repoRoot
-if (-not $Solution) { $Solution = $config.solutionFile }
+if (-not $Solution) { $Solution = @(Get-SolutionList $config)[0] }
 if (-not $Product) { $Product = $config.product }
 
 if (-not $Version) {
-    # 版は Directory.Build.props の VersionPrefix が単一所有する（引数は CI からの上書き用）
+    # 版は Directory.Build.props が単一所有する（VersionPrefix。 無ければ Version。 引数は CI からの上書き用）
     $props = [IO.File]::ReadAllText((Join-Path $repoRoot 'Directory.Build.props'), $enc)
     $m = [regex]::Match($props, '<VersionPrefix>(?<v>[^<]+)</VersionPrefix>')
-    if (-not $m.Success) { throw 'Directory.Build.props に VersionPrefix がありません' }
+    if (-not $m.Success) { $m = [regex]::Match($props, '<Version>(?<v>[^<]+)</Version>') }
+    if (-not $m.Success) { throw 'Directory.Build.props に VersionPrefix / Version がありません' }
     $Version = $m.Groups['v'].Value.Trim()
 }
 

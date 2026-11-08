@@ -1,26 +1,25 @@
 <#
 .SYNOPSIS
-    すべてのソリューションの `packages.lock.json` を、現在の `Directory.Packages.props` に合わせて作り直す。
+    対象のソリューションの `packages.lock.json` を、現在の `Directory.Packages.props` に合わせて作り直す。
 
 .DESCRIPTION
-    `packages.lock.json` は復元結果を固定する（規則は `.github/ビルド設定規約.md` §8）。 lock を持つのは
-    **配布するプロジェクト（`src`）だけ**であり、テスト・サンプルは持たない（版を上げるたびに
-    `ProjectReference` の版だけが変わる機械的な差分が大量に出るため）。
+    `packages.lock.json` は復元結果を固定する（規則は `.github/ビルド設定規約.md` の「パッケージの版と復元」）。
 
-    **版を変えたときの更新は CI が行う**（`.github/workflows/locks.yml` が `dev` からの Pull Request で
+    **版を変えたときの更新は CI が行う**（`.github/workflows/locks.yml` が main 向け Pull Request で
     このスクリプトを実行し、差分があれば自動コミットする）。 このスクリプトは、その CI と、
     手元で先に直したいとき（fork の Pull Request など）が使う。
 
     更新しないと CI の `-p:RestoreLockedMode=true` が `NU1004` で失敗する。
 
-    ソリューションの一覧は `.github/release-config.json` の `solutions` が単一所有する（本文へ列挙しない）。
+    ソリューションの一覧は `.github/release-config.json` が単一所有する（`solutionFile` は 1 本、
+    `solutions` は複数。 本文へ列挙しない）。
 
 .EXAMPLE
     pwsh -NoProfile -File buildScript/updateLocks.ps1
 #>
 [CmdletBinding()]
 param(
-    # 既定は release-config.json の solutions（全ソリューション）
+    # 既定は release-config.json の solutions（無ければ solutionFile）
     [string[]]$Solution = @()
 )
 
@@ -30,8 +29,8 @@ Set-Location $repoRoot
 
 . (Join-Path $PSScriptRoot 'VerifyCommon.ps1')
 
-if (-not $Solution -or $Solution.Count -eq 0) { $Solution = @((Get-RepoConfig $repoRoot).solutions) }
-if ($Solution.Count -eq 0) { throw '.github/release-config.json の solutions が空です' }
+if (-not $Solution -or $Solution.Count -eq 0) { $Solution = @(Get-SolutionList (Get-RepoConfig $repoRoot)) }
+if ($Solution.Count -eq 0) { throw '.github/release-config.json にソリューション（solutionFile / solutions）がありません' }
 
 foreach ($sln in $Solution) {
     Write-Host "lock を更新しています: $sln"
