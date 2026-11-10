@@ -5,7 +5,18 @@
 - **公開する版は人が決めます**（`VersionPrefix` 1 行を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
-## 0.6.1（未公開）
+## 0.6.2（2026-11-10）
+
+### 追加
+
+- **`WindowsAppRuntimeBootstrap.IsRequiredVersionSpecified`**: アプリが `RequiredVersion` を指定したかを返します。 **未指定は本アセンブリの下限へフォールバック**するため、アプリはこれで検出して `[WRN]` を記録できます（ライブラリはロガーを持たないため、記録はアプリが行います）。
+- **`WindowsAppRuntimeInventory.TryGetLoadedVersion`**: このプロセスが**実際に読み込んでいる**ランタイムの版を返します（読み込まれた `Microsoft.UI.Xaml.dll` のパスから解決）。 `GetInstalledVersions`（インストール済みの一覧）とは別であり、**両者が要求版と食い違うと描画の不具合になる**ため、アプリは環境ログへ出します。
+
+### 変更
+
+- **インストーラーの取得先を `<major.minor>/latest/` にしました**（従来は要求版を URL へ固定）。 版を固定すると、その版の配布が終わったときに導入できなくなります（実測 2026-11-10: `2.6/latest/…` は `2.6/2.6.5/…` と同一のファイルへ解決）。 系統（`major.minor`）は要求する版から決めるため、要求と食い違う系統は導入しません。 特定の版を入れたい場合は `WindowsAppRuntimeBootstrapOptions.InstallerSource` で差し替えてください。
+
+## 0.6.1（2026-11-10）
 
 ### 修正
 
