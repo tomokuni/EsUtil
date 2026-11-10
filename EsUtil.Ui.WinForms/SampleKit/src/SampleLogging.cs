@@ -114,19 +114,23 @@ public sealed class SampleLogging : IDisposable
             ArgumentNullException.ThrowIfNull(logEvent);
 
             var timestamp = logEvent.Timestamp.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
-            // Serilog のレベル名は Verbose / Fatal であるが、サンプルの表示は
-            // Microsoft.Extensions.Logging の名前（Trace / Critical）に揃える（設定パネルの「ログ レベル」と同じ名前にする）
+            // レベルは 3 文字の表記（[TRC] 等）で出す。 表記の規則は .github/ログ規約.md §2 が所有する
+            // （Serilog の {Level:u3} は Verbose を VRB と表すため使わない）
             buffer.Write($"{timestamp} [{ToDisplayLevel(logEvent.Level)}] {logEvent.RenderMessage(System.Globalization.CultureInfo.InvariantCulture)}");
         }
 
-        /// <summary>Serilog のレベルを表示用の名前（Microsoft.Extensions.Logging と同じ）へ変換する。</summary>
+        /// <summary>Serilog のレベルを 3 文字の表記（<c>TRC</c> 等）へ変換する。</summary>
         /// <param name="level">Serilog のレベル。</param>
-        /// <returns>表示用の名前。</returns>
+        /// <returns>3 文字の表記（<c>[TRC]</c> の内側）。</returns>
+        /// <remarks>表記の規則は <c>.github/ログ規約.md</c> §2 が所有する（アプリ側のログと同じ表記にする）。</remarks>
         private static string ToDisplayLevel(LogEventLevel level) => level switch
         {
-            LogEventLevel.Verbose => "Trace",
-            LogEventLevel.Fatal => "Critical",
-            _ => level.ToString(),
+            LogEventLevel.Verbose => "TRC",
+            LogEventLevel.Debug => "DBG",
+            LogEventLevel.Information => "INF",
+            LogEventLevel.Warning => "WRN",
+            LogEventLevel.Error => "ERR",
+            _ => "CRT",
         };
     }
 }
