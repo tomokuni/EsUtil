@@ -110,7 +110,7 @@ flowchart LR
 ### 5.1 手順
 
 1. **CHANGELOG の見出しを確定してコミットする**（`## 未リリース` → `## <版>（<公開日>）`。 §5.2）
-2. **版を上げてコミットする**（`Directory.Build.props` の `VersionPrefix`。 §6）。 `dev` で上げ、`main` へ Pull Request で入れる
+2. **版を上げてコミットする**（`Directory.Build.props` の `VersionPrefix`。 §6）。 **桁は [`コミット規約.md`](コミット規約.md) §5 の表で決める**。 `dev` で上げ、`main` へ Pull Request で入れる
 3. **Pull Request の `ci` が成功するまで待つ**（`DryRun` は自動で走るので結果も見る）
    - `ci` は検証のゲートであり**マージの必須チェック**（合否基準は [`検証手順.md`](検証手順.md)）
    - `DryRun` は **Pull Request で自動実行**され、**版・タグ・ブランチ・CHANGELOG を検証**する（公開もタグ作成もしない）。 **必須チェックではない**ため、失敗してもマージは妨げられない。 **公開前に気づくための早期発見**である
