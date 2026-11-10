@@ -60,7 +60,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Set-Location $repoRoot
 
 # ネイティブ コマンド（dotnet）の出力を UTF-8 として読む（規則の所有者は .github/検証手順.md §15）
-. (Join-Path $PSScriptRoot 'VerifyCommon.ps1')
+. (Join-Path $PSScriptRoot '..\.github\verify\VerifyCommon.ps1')
 
 # ============================================================
 # ソリューション（規則の所有者は .github/ビルド設定規約.md §4）
