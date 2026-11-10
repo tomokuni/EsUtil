@@ -2,12 +2,16 @@
 #
 # 実行契機:
 #   main 向け Pull Request … **dry-run を自動実行する**（版・タグ・ブランチ・CHANGELOG の検証だけ。 公開もタグも作らない）
-#   手動実行（workflow_dispatch）… mode=dry-run（検証だけ）または mode=release（作成・公開・タグ付け）
+#   手動実行（workflow_dispatch）… mode で 3 段階から選ぶ
+#     mode=dry-run      … 検証だけ（配布物は作らない。 最も軽い）
+#     mode=dry-run-pack … 検証 + 配布物の作成と検証（`pack.yml`）。 **公開とタグ付けはしない**
+#     mode=release      … 配布物の作成・検証・公開・タグ付け
 #
 # 手順の全体:
 #   1. Pull Request の時点で dry-run が自動で走る（版・CHANGELOG・タグ・ブランチの検証）
 #   2. 問題が無ければ main へマージし、**同じツリー**で mode=release を実行する
-#   3. release は「配布物の作成（`pack.yml`）→ 承認（`environment: release`）→ 公開 → タグ付け」の順に進む
+#      （公開物の中身まで確かめたいときは、マージ前に mode=dry-run-pack を実行する）
+#   3. release は「配布物の作成（`pack.yml`）→ 配布物の検証 → 承認（`environment: release`）→ 公開 → タグ付け」の順に進む
 #
 # 設計の要点:
 #   - **版は人が Directory.Build.props の VersionPrefix へ書いてコミットしておく**（自動採番しない）。
@@ -29,20 +33,22 @@
 #   - **配布物には SBOM（CycloneDX）を添付する**（ソリューションごとに 1 ファイル。 使った依存を公開物から辿れる）。
 #   - **公開したパッケージには由来の証明（build provenance）を付ける**（どのワークフロー・どのコミットが
 #     作ったかを後から検証できる。 `actions/attest-build-provenance`）。
-#   - **実行できるブランチはモードで変わる**（dry-run は main / dev と main 向け Pull Request、公開は main のみ）。
-#     一覧は .github/release-config.json が単一所有する（開発〜dry-run の確認は dev で行う）。
+#   - **実行できるブランチはモードで変わる**（dry-run / dry-run-pack は main / dev と main 向け Pull Request、
+#     公開は main のみ）。 一覧は .github/release-config.json が単一所有する（開発〜dry-run の確認は dev で行う）。
 #
 # **ジョブの実行条件は既定の `success()` に任せる**（`!cancelled()` や `needs.*.result` を手で書かない）。
-#   `pack` は `release` のときだけ走り、`publish` はその後に、`tag` は `publish` の後に置く。
-#   **スキップされた `needs` を持つジョブは既定でスキップされる**ため、dry-run では公開もタグ付けも走らない
-#   （以前は `!cancelled() && needs.publish.result == 'success'` のような手書きの条件が必要だった）。
+#   ただし **`publish` だけは明示の `if` を持つ**: `dry-run-pack` でも `pack` が走るため、
+#   既定の `success()` だけでは **dry-run-pack が公開まで進んでしまう**。
+#   `pack` は `release` / `dry-run-pack` のとき走り、`validate`（配布物の検証）はその後に、
+#   `publish` は `release` のときだけ、`tag` は `publish` の後に置く。
+#   **スキップされた `needs` を持つジョブは既定でスキップされる**ため、dry-run 系では公開もタグ付けも走らない。
 #
 # **手順の所有者は .github/RELEASE.md**（本ファイルはその実装）。 版の規則は .github/ビルド設定規約.md §4、
 # パッケージの合否基準は .github/検証手順.md §9 が持つ。
 name: Release
 
 # Pull Request では常に DryRun にする（`inputs.mode` は workflow_dispatch でしか入らない）
-run-name: ${{ (github.event_name == 'pull_request' || inputs.mode == 'dry-run') && 'DryRun' || 'Release' }} ${{ github.ref_name }} ${{ github.sha }}
+run-name: ${{ (github.event_name == 'pull_request' || inputs.mode == 'dry-run') && 'DryRun' || (inputs.mode == 'dry-run-pack' && 'DryRun+Pack' || 'Release') }} ${{ github.ref_name }} ${{ github.sha }}
 
 on:
   # **main 向け Pull Request では dry-run を自動実行する**（マージ後に手動で dry-run を回さない）。
@@ -51,21 +57,20 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'dry-run（検証のみ）/ release（作成・公開・タグ付け）'
+        description: 'dry-run（検証のみ）/ dry-run-pack（検証 + 配布物の作成と検証）/ release（作成・公開・タグ付け）'
         required: true
         type: choice
-        options: [dry-run, release]
+        options: [dry-run, dry-run-pack, release]
         default: dry-run
       version:
         description: '任意: 公開する版（Directory.Build.props の VersionPrefix と一致しなければ失敗します）'
         required: false
         type: string
 
-# 公開は同時に 1 つだけ、Pull Request の dry-run は PR ごとに並行してよい
-# （`release` で直列にすると、PR の dry-run が公開の待ち行列へ入ってしまう）。
+# 公開は同時に 1 つだけ、dry-run 系は公開の待ち行列へ入れない（モードごとに別のグループ）。
 # Pull Request では、同じ PR へ新しいコミットが載ったら古い dry-run を打ち切る。
 concurrency:
-  group: release-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
+  group: release-${{ github.event_name == 'pull_request' && github.ref || inputs.mode }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -105,7 +110,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $mode = if ($env:EVENT_NAME -eq 'pull_request') { 'dry-run' } else { "$($env:INPUT_MODE)".Trim() }
-          if ($mode -notin @('dry-run', 'release')) { throw "mode が不正です: '$mode'" }
+          if ($mode -notin @('dry-run', 'dry-run-pack', 'release')) { throw "mode が不正です: '$mode'" }
           "mode=$mode" >> $env:GITHUB_OUTPUT
           Write-Host "実行モード: $mode（イベント: $($env:EVENT_NAME)）"
 
@@ -187,7 +192,7 @@ jobs:
           $tag = "v$version"
           $lastTag = @(git tag --list 'v*' --sort=-v:refname) | Select-Object -First 1
 
-          # 同じ版は再リリースできない（公開済みの版は不変）。 **dry-run では止めない**。
+          # 同じ版は再リリースできない（公開済みの版は不変）。 **dry-run 系では止めない**。
           # 版を上げていないだけの状態でも「それ以外の条件が通る」ことを確認できるようにする
           # （その確認が dry-run の役目。 公開（release）では失敗させる）。
           # 移行前の版グループ別タグ（`<グループ>/v<版>`）も「公開済み」と見なす（二重に公開しない）。
@@ -195,10 +200,10 @@ jobs:
           $alreadyReleased = ($lastTag -eq $tag) -or [bool]$legacyTag
           if ($alreadyReleased) {
             $reason = if ($legacyTag) { "タグ $legacyTag（移行前の版グループ別タグ）" } else { "タグ $tag" }
-            if ($env:MODE -ne 'dry-run') {
+            if ($env:MODE -eq 'release') {
               throw "$reason は既に存在します（同じ版を再リリースできません）。版を上げてコミットしてください。"
             }
-            Write-Host "::warning::$reason は既に存在します。release モードでは失敗します（版を上げてください）。 dry-run のため続行します。"
+            Write-Host "::warning::$reason は既に存在します。release モードでは失敗します（版を上げてください）。 dry-run 系のため続行します。"
           }
 
           $changed = if ($lastTag) { @(git diff --name-only "$lastTag...$($env:SHA)").Count -gt 0 } else { $true }
@@ -213,50 +218,39 @@ jobs:
           Write-Host "版: $version（タグ $tag、対象 $($list.Count) ソリューション、リリース $count）"
 
   # ────────────────────────────────────────────────────────────
-  # 2. 配布物の作成と検証（release のときだけ。 検証したバイト列をそのまま公開する）
+  # 2. 配布物の作成と検証（release / dry-run-pack のとき。 検証したバイト列をそのまま公開する）
   # ────────────────────────────────────────────────────────────
   # ここで作った成果物（`nupkg-<ツリー>` / `sbom-<ツリー>`）は**同じ実行の中だけ**で受け渡す
   # （`publish` / `tag` は `run-id` を渡さずに取得する）。
+  # `mode != 'dry-run'` は `release` と `dry-run-pack` を指す（検証だけの dry-run では作らない）。
   pack:
     needs: verify
-    if: needs.verify.outputs.mode == 'release' && needs.verify.outputs.count != '0'
+    if: needs.verify.outputs.mode != 'dry-run' && needs.verify.outputs.count != '0'
     uses: ./.github/workflows/pack.yml
 
   # ────────────────────────────────────────────────────────────
-  # 3. 公開（承認を要求する）
+  # 3. 配布物の検証（公開の直前に必ず通す。 `dry-run-pack` でも実行する）
   # ────────────────────────────────────────────────────────────
-  # `if` は書かない。 **既定の `success()` が `needs` を要求する**ため、dry-run（`pack` がスキップ）や
-  # 「リリースする変更が無い」（`pack` がスキップ）では自動的にスキップされる。
-  publish:
+  # **公開のジョブから切り離す**: 検証は NuGet の承認（`environment: release`）を必要としないため、
+  # `dry-run-pack` でも同じ検証を実行できる（dry-run 系で走らないのは公開とタグ付けだけ）。
+  # `if` は書かない。 **既定の `success()` が `needs` を要求する**ため、`pack` がスキップされたとき
+  # （`dry-run` と「リリースする変更が無い」）は自動的にスキップされる。
+  validate:
     needs: [verify, pack]
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    # 承認されたジョブだけが公開できる（Trusted Publishing のポリシーもこの環境に紐づける）
-    environment: release
-    permissions:
-      contents: read
-      # OIDC で短命の NuGet API キーを取得する
-      id-token: write
+    timeout-minutes: 10
     steps:
-      # 配布物の検証が**リポジトリのプロジェクト一覧**（`git ls-files`）を読むため、チェックアウトする
+      # 検証が**リポジトリのプロジェクト一覧**（`git ls-files`）を読むため、チェックアウトする
       # （成果物の取得だけでは一覧が空になり、全パッケージが「想定外」と誤判定される。 実測 2026-11-03）。
       - name: チェックアウト
         uses: actions/checkout@v7
 
-      # **この実行で作って検証した配布物をそのまま公開する**（同じ内容を 2 回 pack しない。
-      # 検証したバイト列と公開するバイト列が一致する）。
+      # **この実行で作って検証した配布物をそのまま調べる**（同じ内容を 2 回 pack しない）。
       - name: 配布物を取得
         uses: actions/download-artifact@v8
         with:
           name: nupkg-${{ needs.pack.outputs.tree }}
           path: artifacts
-
-      # 短命の API キーを取得する（1 時間有効。 1 トークン = 1 キー。 **push の直前に取得する**）
-      - name: NuGet の API キーを取得
-        id: login
-        uses: NuGet/login@v1
-        with:
-          user: ${{ secrets.NUGET_USER }}
 
       # **配布物の中身を確かめる**（成果物の名前だけを信用しないための多重化）。
       # リポジトリのパッケージ（テスト・サンプルを除く全プロジェクト）と版が**過不足なく一致**し、
@@ -303,6 +297,39 @@ jobs:
           }
           Write-Host "配布物の検証: $($actual.Count) 件（版 $($env:VERSION)）"
 
+  # ────────────────────────────────────────────────────────────
+  # 4. 公開（承認を要求する。 `release` モードのときだけ）
+  # ────────────────────────────────────────────────────────────
+  # **明示の `if` が要る**: `dry-run-pack` でも `pack` と `validate` が走るため、既定の `success()` だけでは
+  # dry-run-pack が公開まで進んでしまう。 公開は `release` モードで、リリースする変更があるときだけ実行する
+  # （`validate` の成功も条件に含める。 明示の `if` では `needs` の失敗が自動では止めない）。
+  publish:
+    needs: [verify, pack, validate]
+    if: needs.verify.outputs.mode == 'release' && needs.verify.outputs.count != '0' && needs.validate.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # 承認されたジョブだけが公開できる（Trusted Publishing のポリシーもこの環境に紐づける）
+    environment: release
+    permissions:
+      contents: read
+      # OIDC で短命の NuGet API キーを取得する
+      id-token: write
+    steps:
+      # **この実行で作って検証した配布物をそのまま公開する**（同じ内容を 2 回 pack しない。
+      # 検証したバイト列と公開するバイト列が一致する）。 中身の検証は `validate` が済ませている。
+      - name: 配布物を取得
+        uses: actions/download-artifact@v8
+        with:
+          name: nupkg-${{ needs.pack.outputs.tree }}
+          path: artifacts
+
+      # 短命の API キーを取得する（1 時間有効。 1 トークン = 1 キー。 **push の直前に取得する**）
+      - name: NuGet の API キーを取得
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       # 既に同じ版がある場合は「公開済み」として扱う（nuget.org の版は不変であり、上書きは拒否される）。
       # **シンボル パッケージ（.snupkg）は明示的に送らない**: `dotnet nuget push <nupkg>` が同じフォルダの
       # `.snupkg` を自動で送るため、送ると 409（既に検証待ちの複製がある）で失敗する（実測 2026-10-26）。
@@ -347,10 +374,11 @@ jobs:
           Write-Host "公開: $published 件 / 公開済みのため省略: $skipped 件"
 
   # ────────────────────────────────────────────────────────────
-  # 4. タグと GitHub Release（公開が成功した後にだけ実行する）
+  # 5. タグと GitHub Release（公開が成功した後にだけ実行する）
   # ────────────────────────────────────────────────────────────
   # `if` は書かない。 **既定の `success()` が `publish` の成功を要求する**ため、
-  # 「公開したのにタグが無い」状態も「公開していないのにタグがある」状態も作らない。
+  # 「公開したのにタグが無い」状態も「公開していないのにタグがある」状態も作らない
+  # （dry-run 系では `publish` がスキップされるため、ここも自動でスキップされる）。
   tag:
     needs: [verify, pack, publish]
     runs-on: ubuntu-latest

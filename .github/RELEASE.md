@@ -59,7 +59,8 @@
 | `main` 向け Pull Request（**lock が変わりうるファイルを触ったときだけ**） | `Locks`（`locks.yml`。 `packages.lock.json` の自動更新と `dev` への自動コミット） | 版やパッケージを変えると lock が古くなり `NU1004` で落ちるため。 文書・コードだけの Pull Request では**ジョブを起動しない**（実測 2026-11-06: 1 回 110 秒） |
 | `main` への push（マージ） | なし | Pull Request と同じツリーのため重複する（最新の `main` への追随が前提） |
 | `workflow_dispatch`（`build.yml`） | フル検証（配布物の作成と検証・SBOM を含む） | 任意のブランチを今すぐ確かめたいとき |
-| Release `dry-run`（手動） | 版・タグ・ブランチ・CHANGELOG の検証 | `dev` などで先に確かめたいとき（配布物は作らない） |
+| Release `dry-run`（手動） | 版・タグ・ブランチ・CHANGELOG の検証 | `dev` などで先に確かめたいとき（配布物は作らない。 最も軽い） |
+| Release `dry-run-pack`（手動） | 上記 + **配布物の作成と検証**（`pack.yml` と `verifyPackaging.ps1`）と配布物の過不足の検証 | **公開以外のすべてを公開前に確かめたいとき**（3〜4 分。 公開とタグ付けはしない） |
 | Release `release`（手動） | **この実行で配布物を作り**（`pack.yml`）、検証したバイト列をそのまま公開し、タグ付けする | 検証したバイト列と公開するバイト列を一致させる（別の実行の成果物を探さない） |
 
 - **Pull Request の `dry-run` は自動**です（`release.yml` の `pull_request`）。 版・CHANGELOG・タグ・ブランチの検証を PR のたびに行うため、**マージ後に dry-run を実行する必要はありません**。 配布物と SBOM は `pack.yml` が作り（PR では `build.yml` の `package` ジョブ、公開時は `release` の実行そのもの）、**パッケージへ影響する変更のときだけ**です。
@@ -71,13 +72,14 @@
 ```mermaid
 flowchart LR
     A["pull_request（自動）<br/>workflow_dispatch（手動）"] --> B["release: verify<br/>CHANGELOG・版・タグ・ブランチ"]
-    B -->|"release モードのみ"| P["pack.yml（workflow_call）<br/>dotnet pack<br/>→ パッケージングの検証<br/>→ SBOM"]
-    P -->|"同じ実行の成果物<br/>承認（environment: release）"| H["publish<br/>NuGet へ公開"]
+    B -->|"release / dry-run-pack"| P["pack.yml（workflow_call）<br/>dotnet pack<br/>→ パッケージングの検証<br/>→ SBOM"]
+    P --> V["validate<br/>配布物の過不足・同封物"]
+    V -->|"release のみ<br/>同じ実行の成果物・承認（environment: release）"| H["publish<br/>NuGet へ公開"]
     H --> T["tag<br/>由来の証明 → タグ 1 本と Release 1 件"]
     W["build: verify<br/>ビルドとテスト（Release）"] -->|"パッケージへ影響する変更のみ"| Q["build: package<br/>→ pack.yml"]
 ```
 
-**公開が成功した後にだけタグを打ちます**（公開できなかった版にタグを残さないため）。 **ジョブの実行条件は既定の `success()` に任せます**（`!cancelled()` も `needs.*.result` の手書きもしません）。 `pack` は `release` モードのときだけ走り、`publish` はその後に、`tag` は `publish` の後に置くため、**スキップされた `needs` を持つジョブは自動的にスキップされます**（dry-run でも、リリースする変更が無いときも、公開もタグ付けも走りません）。
+**公開が成功した後にだけタグを打ちます**（公開できなかった版にタグを残さないため）。 **ジョブの実行条件は既定の `success()` に任せます**（`!cancelled()` も `needs.*.result` の手書きもしません）。 ただし **`publish` だけは明示の `if` を持ちます**: `dry-run-pack` でも `pack` と `validate` が走るため、既定の `success()` だけでは **`dry-run-pack` が公開まで進んでしまう**からです（`mode == 'release'` と `count != '0'` と `validate` の成功を条件にします）。 `pack` は `release` / `dry-run-pack` のとき走り、`validate` はその後に、`publish` は `release` のときだけ、`tag` は `publish` の後に置くため、**スキップされた `needs` を持つジョブは自動的にスキップされます**（`dry-run` でも、リリースする変更が無いときも、公開もタグ付けも走りません）。
 
 **配布物は [`workflows/pack.yml`](workflows/pack.yml) が単一所有します**（`build.yml` の `package` ジョブも `release.yml` の `pack` ジョブも、このワークフローを `workflow_call` で呼びます）。 作成の手順（Pull Request では `dotnet pack --no-build` で `verify` のビルドを使い、変更の無かったソリューションだけ作り足す。 公開時は `verify` のビルドが無いため `dotnet pack` がビルドも行う）も、パッケージングの検証（`verifyPackaging.ps1 -SkipPack -Feed artifacts -Version <版>`）も、SBOM も 1 か所にあります。
 
@@ -109,17 +111,20 @@ flowchart LR
 
 1. **CHANGELOG の見出しを確定してコミットする**（`## 未リリース` → `## <版>（<公開日>）`。 §5.2）
 2. **版を上げてコミットする**（`Directory.Build.props` の `VersionPrefix`。 §6）。 `dev` で上げ、`main` へ Pull Request で入れる
-3. **Pull Request の `ci` と `DryRun` が成功するまで待つ**
-   - `ci` は検証のゲート（合否基準は [`検証手順.md`](検証手順.md)）
-   - `DryRun` は **Pull Request で自動実行**され、**版・タグ・ブランチ・CHANGELOG を検証**する（公開もタグ作成もしない）
+3. **Pull Request の `ci` が成功するまで待つ**（`DryRun` は自動で走るので結果も見る）
+   - `ci` は検証のゲートであり**マージの必須チェック**（合否基準は [`検証手順.md`](検証手順.md)）
+   - `DryRun` は **Pull Request で自動実行**され、**版・タグ・ブランチ・CHANGELOG を検証**する（公開もタグ作成もしない）。 **必須チェックではない**ため、失敗してもマージは妨げられない。 **公開前に気づくための早期発見**である
+   - `release` は `DryRun` の実行を参照しない（同じ検査を `verify` で自分で行う。 失敗するのは公開より前）
+   - **公開物の中身まで確かめたいとき**は、`dev` で `dry-run-pack` を実行する（配布物の作成と検証まで行い、公開とタグ付けはしない。 §5.3）
    - 配布物（パッケージ）と SBOM は **`pack.yml`** が作る（PR では `build.yml` の `package` ジョブ。 パッケージへ影響する変更のときだけ。 §4.2）
    - 前回のタグから**変更が無ければリリースしない**（`git diff` で判定）
 4. **Pull Request をマージする**
 5. `main` で **`release`** を実行する（§5.3）
    - `pack` が**この実行で配布物を作り、その場で検証**する（`pack.yml`。 3〜4 分。 他の実行のビルドは待たない）
+   - `validate` が**配布物の過不足と同封物を確かめる**（公開の直前。 `dry-run-pack` でも同じ検証が走る）
    - `environment: release` の**承認**を経て、NuGet へ公開し、その後にタグと GitHub Release を作成する
 
-**公開済みの版は不変**です。 同じ版を再公開しようとすると `release` は失敗します（`dry-run` は確認のため続行します）。
+**公開済みの版は不変**です。 同じ版を再公開しようとすると `release` は失敗します（`dry-run` / `dry-run-pack` は確認のため続行します）。
 
 ### 5.2 CHANGELOG の確定
 
@@ -144,8 +149,11 @@ Select-String -Path CHANGELOG.md -Pattern '^## '
 gh pr create --base main --head dev --title "<要約>" --body "<本文>"
 gh pr checks --watch
 
-# マージする（DryRun の成果物が公開に使われる）
+# マージする（公開物は release の実行が pack で作る）
 gh pr merge --merge
+
+# 任意: 公開物の中身まで確かめる（検証 + 配布物の作成と検証。 公開とタグ付けはしない）
+gh workflow run release.yml --ref dev -f mode=dry-run-pack
 
 # main を取り、release を実行する（マージ後の新しいコミットで実行する）
 git switch main
@@ -162,9 +170,12 @@ gh release list --limit 6
 (Invoke-RestMethod 'https://api.nuget.org/v3-flatcontainer/esutil.platform.core/index.json').versions
 ```
 
-- **dry-run を手で実行する必要はありません**（Pull Request で自動で走ります）。 `dev` などで先に確かめたいときだけ `gh workflow run release.yml --ref dev -f mode=dry-run` を使います。
-- **`release` は「同じツリー」の dry-run を要求します**。 マージで `main` が進んでも、Pull Request の dry-run が検証したツリー（`refs/pull/<番号>/merge`）とマージ後のツリーは同じため、そのまま使えます。 別の Pull Request を先にマージした場合はツリーが変わるので、**最後にマージした Pull Request の `DryRun`**（自動で走っています）が使われます。
-- **`release` は `main` でのみ実行できます**（`releaseBranches`）。
+- **dry-run は 2 段階**です（どちらも `release` の実行を要求しません）。
+  - `-f mode=dry-run` … 検証だけ（版・タグ・ブランチ・CHANGELOG。 十数秒）
+  - `-f mode=dry-run-pack` … 上記 + **配布物の作成・検証と、配布物の過不足の検証**（`pack` → `validate`。 3〜4 分）。 **公開とタグ付けはしません**
+  - **Pull Request では `dry-run` が自動で走ります**（`dry-run-pack` は走りません）。 手で実行するのは、公開物の中身まで先に確かめたいときだけです
+- **`release` は dry-run の実行を要求しません**（他の実行を照会しない。 `release` の `verify` が同じ検査を自分で行い、配布物もその実行の `pack` が作る）。 dry-run は**公開前に気づくための早期発見**であり、マージ後に別の Pull Request を先にマージした場合も、そのまま `release` を実行できます。
+- **`release` は `main` でのみ実行できます**（`releaseBranches`）。 `dry-run` / `dry-run-pack` は `dryRunBranches`（`main` / `dev`）で実行できます。
 
 ## 6. バージョンの指定
 
@@ -191,9 +202,9 @@ Release には、**ソリューションごとの SBOM**（`<ソリューショ�
 
 | 失敗した箇所 | 状態 | 復旧 |
 | --- | --- | --- |
-| `verify`（dry-run 失敗） | 何も作っていない | 原因（版・CHANGELOG・ブランチ）を直して再実行する |
+| `verify`（dry-run / `dry-run-pack` / `release` の失敗） | 何も作っていない | 原因（版・CHANGELOG・ブランチ）を直して再実行する |
 | `package`（`build.yml` 失敗） | 成果物が無い（公開していない） | 原因を直して再実行する（`package` は**パッケージングの検証と SBOM の作成も兼ねる**。 §4.2）。 `release` は自分の実行で作るため、公開への影響は無い |
-| `pack`（`release` の作成・検証の失敗） | 何も公開していない | 原因を直して `release` を再実行する（作成からやり直す） |
+| `pack` / `validate`（作成・検証の失敗） | 何も公開していない | 原因を直して `release`（または `dry-run-pack`）を再実行する（作成からやり直す） |
 | `publish`（一部だけ公開） | 公開済みの版は取り消せない | 残りを再実行する（公開済みの版は HEAD で確認して**省略**する） |
 | `tag`（タグ作成の失敗） | 公開済み・タグ無し | `release` を再実行する（公開は省略され、タグだけが作られる） |
 
@@ -215,8 +226,8 @@ pwsh -NoProfile -File .github/scripts/generateSbom.ps1 -Output sbom -SkipPackage
 
 ## 10. 注意点
 
-- **公開は取り消せません**（nuget.org の版は不変）。 版を上げる前に `dry-run` で確かめる。
-- **`main` 以外では公開できません**（`releaseBranches`）。 `dry-run` は `dev` でも実行できます。
+- **公開は取り消せません**（nuget.org の版は不変）。 版を上げる前に `dry-run` で**版・CHANGELOG・タグ**を確かめ、**公開物の中身まで確かめたいときは `dry-run-pack`** を使います（`release` と同じ `pack` と `validate` が走ります）。
+- **`main` 以外では公開できません**（`releaseBranches`）。 `dry-run` / `dry-run-pack` は `dev` でも実行できます。
 - **タグはワークフローだけが作ります**（人が打たない。 `v<版>` は公開した版の記録であり、リリースの単位）。
 - **SBOM とパッケージは同じコミットから作ります**（`pack.yml` が同じ実行・同じ `github.sha` から両方を作る）。
 - **公開するコミットに `## 未リリース` を残しません**（`verify` が失敗する。 §5.2）。
