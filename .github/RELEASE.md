@@ -109,9 +109,10 @@ flowchart LR
 
 1. **CHANGELOG の見出しを確定してコミットする**（`## 未リリース` → `## <版>（<公開日>）`。 §5.2）
 2. **版を上げてコミットする**（`Directory.Build.props` の `VersionPrefix`。 §6）。 `dev` で上げ、`main` へ Pull Request で入れる
-3. **Pull Request の `ci` と `DryRun` が成功するまで待つ**
-   - `ci` は検証のゲート（合否基準は [`検証手順.md`](検証手順.md)）
-   - `DryRun` は **Pull Request で自動実行**され、**版・タグ・ブランチ・CHANGELOG を検証**する（公開もタグ作成もしない）
+3. **Pull Request の `ci` が成功するまで待つ**（`DryRun` は自動で走るので結果も見る）
+   - `ci` は検証のゲートであり**マージの必須チェック**（合否基準は [`検証手順.md`](検証手順.md)）
+   - `DryRun` は **Pull Request で自動実行**され、**版・タグ・ブランチ・CHANGELOG を検証**する（公開もタグ作成もしない）。 **必須チェックではない**ため、失敗してもマージは妨げられない。 **公開前に気づくための早期発見**である
+   - `release` は `DryRun` の実行を参照しない（同じ検査を `verify` で自分で行う。 失敗するのは公開より前）
    - 配布物（パッケージ）と SBOM は **`pack.yml`** が作る（PR では `build.yml` の `package` ジョブ。 パッケージへ影響する変更のときだけ。 §4.2）
    - 前回のタグから**変更が無ければリリースしない**（`git diff` で判定）
 4. **Pull Request をマージする**
@@ -144,7 +145,7 @@ Select-String -Path CHANGELOG.md -Pattern '^## '
 gh pr create --base main --head dev --title "<要約>" --body "<本文>"
 gh pr checks --watch
 
-# マージする（DryRun の成果物が公開に使われる）
+# マージする（公開物は release の実行が pack で作る）
 gh pr merge --merge
 
 # main を取り、release を実行する（マージ後の新しいコミットで実行する）
@@ -163,7 +164,7 @@ gh release list --limit 6
 ```
 
 - **dry-run を手で実行する必要はありません**（Pull Request で自動で走ります）。 `dev` などで先に確かめたいときだけ `gh workflow run release.yml --ref dev -f mode=dry-run` を使います。
-- **`release` は「同じツリー」の dry-run を要求します**。 マージで `main` が進んでも、Pull Request の dry-run が検証したツリー（`refs/pull/<番号>/merge`）とマージ後のツリーは同じため、そのまま使えます。 別の Pull Request を先にマージした場合はツリーが変わるので、**最後にマージした Pull Request の `DryRun`**（自動で走っています）が使われます。
+- **`release` は dry-run の実行を要求しません**（他の実行を照会しない。 `release` の `verify` が同じ検査を自分で行い、配布物もその実行の `pack` が作る）。 dry-run は**公開前に気づくための早期発見**であり、マージ後に別の Pull Request を先にマージした場合も、そのまま `release` を実行できます。
 - **`release` は `main` でのみ実行できます**（`releaseBranches`）。
 
 ## 6. バージョンの指定
@@ -191,7 +192,7 @@ Release には、**ソリューションごとの SBOM**（`<ソリューショ�
 
 | 失敗した箇所 | 状態 | 復旧 |
 | --- | --- | --- |
-| `verify`（dry-run 失敗） | 何も作っていない | 原因（版・CHANGELOG・ブランチ）を直して再実行する |
+| `verify`（dry-run / `release` の失敗） | 何も作っていない | 原因（版・CHANGELOG・ブランチ）を直して再実行する |
 | `package`（`build.yml` 失敗） | 成果物が無い（公開していない） | 原因を直して再実行する（`package` は**パッケージングの検証と SBOM の作成も兼ねる**。 §4.2）。 `release` は自分の実行で作るため、公開への影響は無い |
 | `pack`（`release` の作成・検証の失敗） | 何も公開していない | 原因を直して `release` を再実行する（作成からやり直す） |
 | `publish`（一部だけ公開） | 公開済みの版は取り消せない | 残りを再実行する（公開済みの版は HEAD で確認して**省略**する） |
@@ -215,7 +216,7 @@ pwsh -NoProfile -File .github/scripts/generateSbom.ps1 -Output sbom -SkipPackage
 
 ## 10. 注意点
 
-- **公開は取り消せません**（nuget.org の版は不変）。 版を上げる前に `dry-run` で確かめる。
+- **公開は取り消せません**（nuget.org の版は不変）。 版を上げる前に `dry-run` で**版・CHANGELOG・タグ**を確かめる（配布物の中身は `release` の `pack` と `publish` が公開前に検証する）。
 - **`main` 以外では公開できません**（`releaseBranches`）。 `dry-run` は `dev` でも実行できます。
 - **タグはワークフローだけが作ります**（人が打たない。 `v<版>` は公開した版の記録であり、リリースの単位）。
 - **SBOM とパッケージは同じコミットから作ります**（`pack.yml` が同じ実行・同じ `github.sha` から両方を作る）。
