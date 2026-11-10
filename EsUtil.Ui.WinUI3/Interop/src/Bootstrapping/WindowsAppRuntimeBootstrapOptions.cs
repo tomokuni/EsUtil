@@ -17,6 +17,27 @@ public sealed record WindowsAppRuntimeBootstrapOptions
     /// <value>導入方法。 既定は <see cref="WindowsAppRuntimeInstallMode.Download"/>。</value>
     public WindowsAppRuntimeInstallMode InstallMode { get; init; } = WindowsAppRuntimeInstallMode.Download;
 
+    /// <summary>要求する Windows App Runtime の下限の版を取得または設定する。</summary>
+    /// <value>
+    /// 要求する版。 null（既定）の場合は本アセンブリのビルドに使った <c>Microsoft.WindowsAppSDK</c> の版
+    /// （<see cref="WindowsAppRuntimeInventory.RequiredVersion"/>）を使う。
+    /// </value>
+    /// <remarks>
+    /// <b>版数が違うこと自体は問題ではない</b>: 契約は「アプリが要求する版 ≧ 本アセンブリが要求する下限」であり、
+    /// アプリが本アセンブリより新しい <c>Microsoft.WindowsAppSDK</c> を使うことは正常である。
+    /// 指定した版と本アセンブリの下限のうち<b>高い方</b>を使う（<see cref="WindowsAppRuntimeBootstrap.GetRequiredVersion"/>）。<br/>
+    /// <b>アプリは自分のビルド版を必ず指定する</b>: 指定しないと<b>アプリのマネージド アセンブリより古い
+    /// ネイティブ ランタイムで初期化が成功</b>してしまう（実測 2026-11-10: 2.6.5 でビルドしたアプリが
+    /// 2.6.4 のランタイムで初期化を通り、レイアウト・画像・アイコン フォントは正常なまま本文のグリフだけが描かれなかった）。<br/>
+    /// <b>版の取得方法</b>: <c>WindowsAppSdkIncludeVersionInfo</c> を有効にすると
+    /// <c>Microsoft.WindowsAppSDK.Runtime.Version</c>（internal）がそのプロジェクトへ生成されるため、
+    /// そこから組み立てる。<br/>
+    /// 指定した版は Bootstrapper へ渡す最小版・インストーラーの取得先（<c>https://aka.ms/windowsappsdk/&lt;major.minor&gt;/&lt;版&gt;/…</c>）・
+    /// 案内 UI の表示へ一貫して使う。
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">版の Major・Minor・Build が負の場合。</exception>
+    public Version? RequiredVersion { get; init; }
+
     /// <summary>インストーラーの取得先を取得または設定する。</summary>
     /// <value>取得先。 null（既定）の場合は Microsoft の配布 URL を使う。</value>
     /// <remarks>
