@@ -5,6 +5,12 @@
 - **公開する版は人が決めます**（`VersionPrefix` 1 行を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
+## 0.6.1（未公開）
+
+### 修正
+
+- **`WindowsAppRuntimeBootstrap` が要求するランタイムの版を、利用側のアプリが指定できるようにしました**（`WindowsAppRuntimeBootstrapOptions.RequiredVersion` / `WindowsAppRuntimeBootstrap.GetRequiredVersion`）。 本アセンブリへ焼き込まれた版（ビルドに使った `Microsoft.WindowsAppSDK`）だけを使っていたため、**アプリが本アセンブリより新しい `Microsoft.WindowsAppSDK` でビルドすると、アプリのマネージド アセンブリより古いネイティブ ランタイムで初期化が成功**していました（実測 2026-11-10: 2.6.5 でビルドしたアプリが 2.6.4 のランタイムで初期化を通り、レイアウト・画像・アイコン フォントは正常なまま**本文のグリフだけが描かれない**）。 指定した版と本アセンブリの下限のうち**高い方**を、Bootstrapper の最小版・インストーラーの取得先・案内 UI の表示へ一貫して使います（版数が違うこと自体は問題ではなく、契約は「アプリの要求版 ≧ 本アセンブリの下限」です）。
+
 ## 0.6.0（2026-11-07）
 
 ### 破壊的な変更

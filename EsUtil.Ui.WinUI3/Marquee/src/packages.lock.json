@@ -180,7 +180,7 @@
       "esutil.feature.marquee.core": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.6.0, )",
+          "EsUtil.Platform.Core": "[0.6.1, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
@@ -190,7 +190,7 @@
       "esutil.ui.winui3.interop": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.6.0, )",
+          "EsUtil.Platform.Core": "[0.6.1, )",
           "Microsoft.Windows.SDK.BuildTools": "[10.0.28000.2957, )",
           "Microsoft.WindowsAppSDK": "[2.6.4, )"
         }
