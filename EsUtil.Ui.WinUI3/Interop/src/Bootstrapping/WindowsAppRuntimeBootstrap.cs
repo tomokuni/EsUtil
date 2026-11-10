@@ -66,6 +66,19 @@ public static partial class WindowsAppRuntimeBootstrap
             | (uint)revision;
     }
 
+    /// <summary>要求する版がアプリから指定されたかを返します。</summary>
+    /// <param name="options">設定。 null の場合は既定。</param>
+    /// <returns>指定されている場合は true。 未指定（本アセンブリの下限を使う）場合は false。</returns>
+    /// <remarks>
+    /// <b>未指定を検出できるようにする理由</b>: 未指定の場合は本アセンブリのビルド版が下限になる。
+    /// アプリが本アセンブリより新しい <c>Microsoft.WindowsAppSDK</c> でビルドされていると、
+    /// <b>アプリのマネージド アセンブリより古いネイティブ ランタイムで初期化が成功</b>し得る
+    /// （実測 2026-11-10: 2.6.5 のアプリが 2.6.4 のランタイムで動き、本文のグリフだけが描かれなかった）。<br/>
+    /// アプリは本メソッドで未指定を検出し、<c>[WRN]</c> で記録する（ライブラリはロガーを持たない）。
+    /// </remarks>
+    public static bool IsRequiredVersionSpecified(WindowsAppRuntimeBootstrapOptions? options = null)
+        => (options ?? WindowsAppRuntimeBootstrapOptions.Default).RequiredVersion is not null;
+
     /// <summary>要求する版を決める（設定とこのアセンブリの下限のうち高い方）。</summary>
     /// <param name="options">設定。</param>
     /// <returns>要求する版。</returns>
@@ -325,12 +338,17 @@ public static partial class WindowsAppRuntimeBootstrap
     }
 
     /// <summary>インストーラーの配布 URL を組み立てる。</summary>
-    /// <param name="requiredVersion">要求する版。</param>
+    /// <param name="requiredVersion">要求する版（版の系統 <c>major.minor</c> を決めるために使う）。</param>
     /// <returns>取得先。 プロセスのアーキテクチャに対応する配布物が無い場合は null。</returns>
     /// <remarks>
-    /// 形式は Microsoft のダウンロード ページが示す
-    /// <c>https://aka.ms/windowsappsdk/&lt;major.minor&gt;/&lt;version&gt;/windowsappruntimeinstall-&lt;arch&gt;.exe</c> である。<br/>
-    /// 版は要求する版から作る（このアセンブリのビルド版を固定で使うと、アプリ側の版とずれる）。
+    /// 形式は <c>https://aka.ms/windowsappsdk/&lt;major.minor&gt;/latest/windowsappruntimeinstall-&lt;arch&gt;.exe</c> である。<br/>
+    /// <b><c>latest</c> を使う理由</b>: 入手できる最新版を入れれば「要求する版以上」を満たす（実測 2026-11-10:
+    /// <c>2.6/latest/…</c> は <c>2.6/2.6.5/…</c> と同一のファイルへ解決する）。 版を URL へ固定すると、
+    /// その版の配布が終わったときに導入できなくなる。<br/>
+    /// <b>系統は要求する版から決める</b>: 2.x ではブートストラッパーの minor が無視されるため（<c>MddBootstrap.h</c>）、
+    /// 導入する系統が要求と食い違わないようにここで揃える。<br/>
+    /// <b>注意</b>: <c>latest</c> の中身は時とともに変わる（再現性は落ちる）。 特定の版を入れたい場合は
+    /// <see cref="WindowsAppRuntimeBootstrapOptions.InstallerSource"/> で差し替える。
     /// </remarks>
     internal static Uri? CreateInstallerUri(Version requiredVersion)
     {
@@ -346,8 +364,7 @@ public static partial class WindowsAppRuntimeBootstrap
             ? null
             : new Uri(
                 $"https://aka.ms/windowsappsdk/{requiredVersion.Major}.{requiredVersion.Minor}"
-                + $"/{requiredVersion.Major}.{requiredVersion.Minor}.{requiredVersion.Build}"
-                + $"/windowsappruntimeinstall-{architecture}.exe");
+                + $"/latest/windowsappruntimeinstall-{architecture}.exe");
     }
 
     /// <summary>インストーラーの配布 URL を組み立てる（このアセンブリのビルド版を使う）。</summary>

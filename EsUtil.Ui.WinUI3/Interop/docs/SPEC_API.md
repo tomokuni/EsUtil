@@ -42,8 +42,9 @@ WinUI 3 と EsUtil の型の相互変換が提供する公開 API です。 使�
 | `Drawing.DrawList` / `DrawRect` / `DrawRoundRect` | 描く図形の一覧（UI 非依存の値） |
 | `Drawing.BmpStreamBuilder` | BMP を組み立てる（`Write` はファイル全体の配列を作らずにストリームへ書く） |
 | `Bootstrapping.WindowsAppRuntimeBootstrap` | Windows App Runtime の初期化と導入（Bootstrapper API）。 版は参照している `Microsoft.WindowsAppSDK` が決める |
-| `Bootstrapping.WindowsAppRuntimeInventory` | インストール済みの版（`GetInstalledVersions` は新しい順、`TryGetInstalledVersion` は最新。 このプロセスのアーキテクチャのみ）と `RequiredVersion`（必要とする版）を返す。 `IsRequiredVersionInstalled` で導入の有無を判定する |
+| `Bootstrapping.WindowsAppRuntimeInventory` | インストール済みの版（`GetInstalledVersions` は新しい順、`TryGetInstalledVersion` は最新。 このプロセスのアーキテクチャのみ）と `RequiredVersion`（必要とする版）を返す。 `IsRequiredVersionInstalled` で導入の有無を判定する。 **`TryGetLoadedVersion` は「実際に読み込んでいる版」**を返す（インストール済みの一覧とは別。 食い違うと描画の不具合になる） |
 | `Bootstrapping.WindowsAppRuntimeBootstrapOptions` / `WindowsAppRuntimeInstallMode` | 導入の方法（`Download`（既定）/ `BootstrapUi`（案内 UI）/ `None`）・取得先・制限時間・案内 UI の差し替え（`Prompt`）・**要求する版（`RequiredVersion`）** |
+| `Bootstrapping.WindowsAppRuntimeBootstrap` の版の決定 | `GetRequiredVersion` が「アプリが指定した版」と「本アセンブリの下限」の**高い方**を返す。 `IsRequiredVersionSpecified` で**指定の有無**を判定できる（未指定は本アセンブリの版にフォールバックするため、アプリは検出して警告を記録する） |
 | `Bootstrapping.WindowsAppRuntimeInstallPrompt` / `WindowsAppRuntimeInstallPromptRequest` / `WindowsAppRuntimeInstallChoice` | 案内 UI の契約（必要とする版・インストール済みの版・ダウンロード ページを受け取り、自動インストール / ページの表示 / 終了 を返す） |
 
 ## 3. 制限事項
