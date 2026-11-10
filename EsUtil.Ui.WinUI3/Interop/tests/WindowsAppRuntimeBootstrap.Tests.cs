@@ -77,4 +77,55 @@ public class WindowsAppRuntimeBootstrapTests
 
         Assert.Throws<ArgumentOutOfRangeException>(() => WindowsAppRuntimeBootstrap.TryInitialize(options, out _));
     }
+
+    [Fact]
+    internal void GetRequiredVersion_は設定が無ければこのアセンブリの下限を返す()
+    {
+        var floor = WindowsAppRuntimeInventory.RequiredVersion;
+
+        Assert.Equal(floor, WindowsAppRuntimeBootstrap.GetRequiredVersion());
+        Assert.Equal(floor, WindowsAppRuntimeBootstrap.GetRequiredVersion(WindowsAppRuntimeBootstrapOptions.Default));
+    }
+
+    [Fact]
+    internal void GetRequiredVersion_はアプリが指定した高い版を採る()
+    {
+        // アプリが本アセンブリより新しい Windows App SDK でビルドするのは正常である。
+        // 低い方（本アセンブリの下限）で初期化すると、アプリのマネージド アセンブリより古い
+        // ネイティブ ランタイムが読み込まれてしまう（実測 2026-11-10）
+        var floor = WindowsAppRuntimeInventory.RequiredVersion;
+        var newer = new Version(floor.Major, floor.Minor, floor.Build + 1, 0);
+        var options = new WindowsAppRuntimeBootstrapOptions { RequiredVersion = newer };
+
+        Assert.Equal(newer, WindowsAppRuntimeBootstrap.GetRequiredVersion(options));
+    }
+
+    [Fact]
+    internal void GetRequiredVersion_は下限より低い指定を下限へ切り上げる()
+    {
+        // 下限を下回るランタイムでは本アセンブリが動かないため、指定が低くても下限を使う
+        var floor = WindowsAppRuntimeInventory.RequiredVersion;
+        var older = new Version(floor.Major, floor.Minor, Math.Max(floor.Build - 1, 0), 0);
+        var options = new WindowsAppRuntimeBootstrapOptions { RequiredVersion = older };
+
+        Assert.Equal(floor, WindowsAppRuntimeBootstrap.GetRequiredVersion(options));
+    }
+
+    [Fact]
+    internal void GetRequiredVersion_は下限と同じ版をそのまま返す()
+    {
+        var floor = WindowsAppRuntimeInventory.RequiredVersion;
+        var options = new WindowsAppRuntimeBootstrapOptions { RequiredVersion = floor };
+
+        Assert.Equal(floor, WindowsAppRuntimeBootstrap.GetRequiredVersion(options));
+    }
+
+    [Fact]
+    internal void CreateInstallerUri_は指定した版をURLへ入れる()
+    {
+        var uri = WindowsAppRuntimeBootstrap.CreateInstallerUri(new Version(2, 6, 5, 0));
+
+        Assert.NotNull(uri);
+        Assert.Contains("/windowsappsdk/2.6/2.6.5/", uri!.AbsolutePath, StringComparison.Ordinal);
+    }
 }

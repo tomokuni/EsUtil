@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using EsUtil.Platform.Core;
 using SdkRelease = Microsoft.WindowsAppSDK.Release;
-using SdkRuntimeVersion = Microsoft.WindowsAppSDK.Runtime.Version;
 
 namespace EsUtil.Ui.WinUI3.Interop.Bootstrapping;
 
@@ -47,18 +46,46 @@ public static partial class WindowsAppRuntimeBootstrap
     /// <summary>ライブラリが見つからないことを表す HRESULT（<c>HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND)</c>）。</summary>
     private const int ModuleNotFoundResult = unchecked((int)0x8007007E);
 
-    /// <summary>Bootstrapper へ渡す版（パッケージ参照が決める）。</summary>
-    private const uint MajorMinorVersion = SdkRelease.MajorMinor;
-
     /// <summary>Bootstrapper へ渡す版タグ（安定版では空）。</summary>
     private static readonly string s_versionTag = SdkRelease.VersionTag;
 
-    /// <summary>Bootstrapper が要求するランタイムの最小版（パッケージ参照が決める）。</summary>
-    private static readonly ulong s_minimumVersion = SdkRuntimeVersion.UInt64;
+    /// <summary>版から Bootstrapper へ渡す <c>0xMMMMNNNN</c> を組み立てる。</summary>
+    /// <param name="version">版。</param>
+    /// <returns>版（<c>0xMMMMNNNN</c>）。</returns>
+    private static uint ToMajorMinor(Version version) => ((uint)version.Major << 16) | (uint)version.Minor;
 
-    /// <summary>インストーラーの配布 URL に含める版（例: <c>2.6.4</c>）。</summary>
-    private static readonly string s_installerVersion =
-        $"{SdkRuntimeVersion.Major}.{SdkRuntimeVersion.Minor}.{SdkRuntimeVersion.Build}";
+    /// <summary>版から Bootstrapper へ渡す最小版 <c>0xMMMMNNNNBBBBRRRR</c> を組み立てる。</summary>
+    /// <param name="version">版。</param>
+    /// <returns>最小版。 Revision が未指定（負）の場合は 0 とする。</returns>
+    private static ulong ToMinimumVersion(Version version)
+    {
+        var revision = version.Revision < 0 ? 0 : version.Revision;
+        return ((ulong)version.Major << 48)
+            | ((ulong)version.Minor << 32)
+            | ((ulong)version.Build << 16)
+            | (uint)revision;
+    }
+
+    /// <summary>要求する版を決める（設定とこのアセンブリの下限のうち高い方）。</summary>
+    /// <param name="options">設定。</param>
+    /// <returns>要求する版。</returns>
+    /// <remarks>
+    /// <b>版数が違うこと自体は問題ではない</b>: 契約は「アプリが要求する版 ≧ 本アセンブリが要求する下限」であり、
+    /// アプリが本アセンブリより新しい <c>Microsoft.WindowsAppSDK</c> を使うことは正常である。<br/>
+    /// <b>高い方を採る理由</b>: このプロセスには<b>アプリが参照したネイティブ ランタイムが 1 つだけ</b>読み込まれる。
+    /// 本アセンブリへ焼き込まれた下限（ビルド時のパッケージの版）だけで初期化すると、
+    /// <b>アプリのマネージド アセンブリより古いネイティブ ランタイムで初期化が成功</b>してしまう
+    /// （実測 2026-11-10: 2.6.5 でビルドしたアプリが 2.6.4 のランタイムで初期化を通り、
+    /// レイアウト・画像・アイコン フォントは正常なまま本文のグリフだけが描かれなかった）。
+    /// 逆に設定が下限より低い場合も、下限を下回るランタイムでは本アセンブリが動かないため下限を使う。
+    /// </remarks>
+    public static Version GetRequiredVersion(WindowsAppRuntimeBootstrapOptions? options = null)
+    {
+        var floor = WindowsAppRuntimeInventory.RequiredVersion;
+        return (options ?? WindowsAppRuntimeBootstrapOptions.Default).RequiredVersion is { } requested && requested > floor
+            ? requested
+            : floor;
+    }
 
     /// <summary>インストーラーの取得に使う接続（ライブラリで 1 つだけ持つ）。</summary>
     /// <remarks>制限時間は要求ごとに <see cref="CancellationTokenSource"/> で与える（接続の既定値は無期限にする）。</remarks>
@@ -108,7 +135,7 @@ public static partial class WindowsAppRuntimeBootstrap
         // **案内 UI は本ライブラリのダイアログが持つ**ため、Bootstrapper の案内 UI（OnNoMatch_ShowUI）は使わない
         var flags = BootstrapOptions.OnPackageIdentityNoOp;
 
-        errorCode = InitializeCore(flags);
+        errorCode = InitializeCore(effective, flags);
         if (errorCode < 0)
         {
             return false;
@@ -272,7 +299,7 @@ public static partial class WindowsAppRuntimeBootstrap
     {
         var request = new WindowsAppRuntimeInstallPromptRequest
         {
-            RequiredVersion = WindowsAppRuntimeInventory.RequiredVersion,
+            RequiredVersion = GetRequiredVersion(options),
             InstalledVersion = WindowsAppRuntimeInventory.TryGetInstalledVersion(out var installed) ? installed : null,
             DownloadPageUri = DownloadPageUri,
         };
@@ -298,12 +325,14 @@ public static partial class WindowsAppRuntimeBootstrap
     }
 
     /// <summary>インストーラーの配布 URL を組み立てる。</summary>
+    /// <param name="requiredVersion">要求する版。</param>
     /// <returns>取得先。 プロセスのアーキテクチャに対応する配布物が無い場合は null。</returns>
     /// <remarks>
     /// 形式は Microsoft のダウンロード ページが示す
-    /// <c>https://aka.ms/windowsappsdk/&lt;major.minor&gt;/&lt;version&gt;/windowsappruntimeinstall-&lt;arch&gt;.exe</c> である。
+    /// <c>https://aka.ms/windowsappsdk/&lt;major.minor&gt;/&lt;version&gt;/windowsappruntimeinstall-&lt;arch&gt;.exe</c> である。<br/>
+    /// 版は要求する版から作る（このアセンブリのビルド版を固定で使うと、アプリ側の版とずれる）。
     /// </remarks>
-    internal static Uri? CreateInstallerUri()
+    internal static Uri? CreateInstallerUri(Version requiredVersion)
     {
         var architecture = RuntimeInformation.ProcessArchitecture switch
         {
@@ -315,8 +344,15 @@ public static partial class WindowsAppRuntimeBootstrap
 
         return architecture is null
             ? null
-            : new Uri($"https://aka.ms/windowsappsdk/{SdkRelease.Major}.{SdkRelease.Minor}/{s_installerVersion}/windowsappruntimeinstall-{architecture}.exe");
+            : new Uri(
+                $"https://aka.ms/windowsappsdk/{requiredVersion.Major}.{requiredVersion.Minor}"
+                + $"/{requiredVersion.Major}.{requiredVersion.Minor}.{requiredVersion.Build}"
+                + $"/windowsappruntimeinstall-{architecture}.exe");
     }
+
+    /// <summary>インストーラーの配布 URL を組み立てる（このアセンブリのビルド版を使う）。</summary>
+    /// <returns>取得先。 プロセスのアーキテクチャに対応する配布物が無い場合は null。</returns>
+    internal static Uri? CreateInstallerUri() => CreateInstallerUri(WindowsAppRuntimeInventory.RequiredVersion);
 
     /// <summary>ランタイムを導入する（初期化はしない）。</summary>
     /// <param name="options">設定。 null の場合は既定（公式インストーラーを取得して黙って実行する）。</param>
@@ -541,7 +577,7 @@ public static partial class WindowsAppRuntimeBootstrap
     /// <param name="options">設定。</param>
     /// <returns>取得先。 決められない場合は null。</returns>
     private static Uri? ResolveInstallerUri(WindowsAppRuntimeBootstrapOptions options)
-        => options.InstallerSource ?? CreateInstallerUri();
+        => options.InstallerSource ?? CreateInstallerUri(GetRequiredVersion(options));
 
     /// <summary>インストーラーの一時ファイルのパスを作る。</summary>
     /// <returns>他の実行と衝突しないパス。</returns>
@@ -571,14 +607,15 @@ public static partial class WindowsAppRuntimeBootstrap
         => (int)Math.Clamp(timeout.TotalMilliseconds, 1, int.MaxValue);
 
     /// <summary>Bootstrapper を呼ぶ。</summary>
-    /// <param name="options">Bootstrapper の動作。</param>
+    /// <param name="options">設定（要求する版を持つ）。</param>
+    /// <param name="bootstrapOptions">Bootstrapper の動作。</param>
     /// <returns>HRESULT。</returns>
     /// <remarks>
     /// <b>自己完結の配置</b>（<c>WindowsAppSDKSelfContained=true</c>）ではランタイムを同封しているため
     /// 初期化は不要であり、成功として扱う（同封物は <c>Microsoft.WindowsAppRuntime.dll</c> の有無で判定する）。<br/>
     /// <b>ライブラリが無い</b>場合は配置の誤りであるため、成功にしない（後で XAML の初期化に失敗するだけになる）。
     /// </remarks>
-    private static int InitializeCore(BootstrapOptions options)
+    private static int InitializeCore(WindowsAppRuntimeBootstrapOptions options, BootstrapOptions bootstrapOptions)
     {
         if (IsSelfContained())
         {
@@ -586,9 +623,12 @@ public static partial class WindowsAppRuntimeBootstrap
             return 0;
         }
 
+        var required = GetRequiredVersion(options);
+
         try
         {
-            return MddBootstrapInitialize2(MajorMinorVersion, s_versionTag, s_minimumVersion, options);
+            return MddBootstrapInitialize2(
+                ToMajorMinor(required), s_versionTag, ToMinimumVersion(required), bootstrapOptions);
         }
         catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
         {

@@ -6,7 +6,7 @@
 
          ローカル フィードへ出すときだけ buildScript/pack.ps1 が VersionSuffix=local.<n> を付ける
          （公開する版には含めない。 ローカル フィード専用の識別子である）。 -->
-    <VersionPrefix>0.6.0</VersionPrefix>
+    <VersionPrefix>0.6.1</VersionPrefix>
   </PropertyGroup>
 
   <PropertyGroup>

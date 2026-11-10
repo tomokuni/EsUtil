@@ -43,7 +43,7 @@ WinUI 3 と EsUtil の型の相互変換が提供する公開 API です。 使�
 | `Drawing.BmpStreamBuilder` | BMP を組み立てる（`Write` はファイル全体の配列を作らずにストリームへ書く） |
 | `Bootstrapping.WindowsAppRuntimeBootstrap` | Windows App Runtime の初期化と導入（Bootstrapper API）。 版は参照している `Microsoft.WindowsAppSDK` が決める |
 | `Bootstrapping.WindowsAppRuntimeInventory` | インストール済みの版（`GetInstalledVersions` は新しい順、`TryGetInstalledVersion` は最新。 このプロセスのアーキテクチャのみ）と `RequiredVersion`（必要とする版）を返す。 `IsRequiredVersionInstalled` で導入の有無を判定する |
-| `Bootstrapping.WindowsAppRuntimeBootstrapOptions` / `WindowsAppRuntimeInstallMode` | 導入の方法（`Download`（既定）/ `BootstrapUi`（案内 UI）/ `None`）・取得先・制限時間・案内 UI の差し替え（`Prompt`） |
+| `Bootstrapping.WindowsAppRuntimeBootstrapOptions` / `WindowsAppRuntimeInstallMode` | 導入の方法（`Download`（既定）/ `BootstrapUi`（案内 UI）/ `None`）・取得先・制限時間・案内 UI の差し替え（`Prompt`）・**要求する版（`RequiredVersion`）** |
 | `Bootstrapping.WindowsAppRuntimeInstallPrompt` / `WindowsAppRuntimeInstallPromptRequest` / `WindowsAppRuntimeInstallChoice` | 案内 UI の契約（必要とする版・インストール済みの版・ダウンロード ページを受け取り、自動インストール / ページの表示 / 終了 を返す） |
 
 ## 3. 制限事項
@@ -55,7 +55,8 @@ WinUI 3 と EsUtil の型の相互変換が提供する公開 API です。 使�
 - **案内はタスク ダイアログで表示します**（ComCtl32 v6 が必要。 アプリの `app.manifest` で `Microsoft.Windows.Common-Controls` を宣言してください）。 宣言が無いアプリでは**メッセージ ボックス**へ落ち、本文に同じ 3 択（はい / いいえ / キャンセル）を表示します。 自前の UI を使う場合は `WindowsAppRuntimeBootstrapOptions.Prompt` を設定します。
 - **導入を始める前に状態を調べられます**（`WindowsAppRuntimeInventory`）。 利用者へ確認してから導入する場合は、`IsRequiredVersionInstalled` が false のときだけ `TryInstall` / `TryInstallAsync` を呼びます（`TryEnsureAvailable` は `Download` のとき確認なしに、`BootstrapUi` のとき案内の選択に従って導入します）。
 - **`GetInstalledVersions` はパッケージ ID を持たないアプリからも呼べます**が、`Windows.Management.Deployment.PackageManager` を使える環境に限ります（ポリシーで禁止されている場合は空を返します）。
-- **ランタイムの版は参照しているパッケージが決めます**（本アセンブリは `2.6` 以降の `Microsoft.WindowsAppSDK` を参照します。 必要とする版は `WindowsAppRuntimeInventory.RequiredVersion`）。
+- **ランタイムの版は既定では参照しているパッケージが決めます**（本アセンブリは `2.6` 以降の `Microsoft.WindowsAppSDK` を参照します。 必要とする版は `WindowsAppRuntimeInventory.RequiredVersion`）。
+- **アプリが本アセンブリより新しい `Microsoft.WindowsAppSDK` でビルドする場合は `WindowsAppRuntimeBootstrapOptions.RequiredVersion` を必ず指定します**。 本アセンブリへ焼き込まれた版（ビルド時のパッケージの版）はアプリ側の版に追随しないため、指定しないと**アプリのマネージド アセンブリより古いネイティブ ランタイムで初期化が成功**します（実測 2026-11-10: 2.6.5 でビルドしたアプリが 2.6.4 のランタイムで初期化を通り、文字のグリフだけが描かれない。 レイアウト・画像・アイコン フォントは正常であった）。 指定した版は Bootstrapper の最小版・インストーラーの取得先・案内の表示へ一貫して使われます。
 
 ## 4. 例外
 
