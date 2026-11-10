@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using EsUtil.Platform.Core;
@@ -142,4 +143,70 @@ public static class WindowsAppRuntimeInventory
     /// <returns>変換した版。</returns>
     private static Version ToVersion(PackageVersion version)
         => new(version.Major, version.Minor, version.Build, version.Revision);
+
+    /// <summary>このプロセスが<b>実際に読み込んでいる</b> Windows App Runtime の版を取得します。</summary>
+    /// <param name="version">使用中の版。 取得できない場合は <see langword="null"/>。</param>
+    /// <returns>取得できた場合は true。 取得できない（未初期化・自己完結でない配置の誤り等）場合は false。</returns>
+    /// <remarks>
+    /// <b>「入っている版」と「使っている版」は別である</b>: <see cref="GetInstalledVersions"/> はインストール済みの一覧を返すが、
+    /// 実際に読み込まれた版はブートストラッパーが選んだ 1 つである。 両者が要求版と食い違うと、
+    /// レイアウトは正常なのに本文のグリフだけ描かれない等の分かりにくい不具合になる（実測 2026-11-10）。<br/>
+    /// <b>取得方法</b>: 読み込まれた <c>Microsoft.UI.Xaml.dll</c> のパスから求める。 フレームワーク依存の配置では
+    /// <c>%ProgramFiles%\WindowsApps\Microsoft.WindowsAppRuntime.&lt;Major&gt;_&lt;版&gt;_&lt;arch&gt;__&lt;publisherId&gt;\</c>
+    /// から読み込まれるため、フォルダー名に版が含まれる（実測 2026-11-10: <c>…\Microsoft.WindowsAppRuntime.2_2.6.5.0_x64__…</c>）。<br/>
+    /// <b>失敗を例外にしない</b>: 診断のための値であり、取得できなくても描画を妨げない。
+    /// </remarks>
+    public static bool TryGetLoadedVersion([NotNullWhen(true)] out Version? version)
+    {
+        version = null;
+        try
+        {
+            foreach (var module in Process.GetCurrentProcess().Modules.Cast<ProcessModule>())
+            {
+                if (module.FileName is not { } path
+                    || !Path.GetFileName(path).Equals("Microsoft.UI.Xaml.dll", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (TryParseRuntimeVersion(path) is { } parsed)
+                {
+                    version = parsed;
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
+        {
+            // 診断用の値であり、取得できなくても描画を妨げない
+            return false;
+        }
+
+        return false;
+    }
+
+    /// <summary>モジュールのパスに含まれる Windows App Runtime のフォルダー名から版を取り出します。</summary>
+    /// <param name="modulePath">モジュールの絶対パス。</param>
+    /// <returns>版。 形式に一致しない場合は <see langword="null"/>。</returns>
+    /// <remarks>
+    /// 形式は <c>…\WindowsApps\Microsoft.WindowsAppRuntime.&lt;Major&gt;_&lt;版&gt;_&lt;arch&gt;__&lt;publisherId&gt;\…</c>。
+    /// 版は「<c>_</c> で区切った 2 番目」である（正規表現を使わない: 入力はローカルのパスであり、
+    /// 解析器を増やすより文字列操作のほうが読みやすく、ReDoS の検討も要らない）。
+    /// </remarks>
+    private static Version? TryParseRuntimeVersion(string modulePath)
+    {
+        const string Marker = "Microsoft.WindowsAppRuntime.";
+        var markerIndex = modulePath.IndexOf(Marker, StringComparison.OrdinalIgnoreCase);
+        if (markerIndex < 0)
+        {
+            return null;
+        }
+
+        var start = markerIndex + Marker.Length;
+        var end = modulePath.IndexOfAny(['\\', '/'], start);
+        var folder = modulePath[start..(end < 0 ? modulePath.Length : end)];
+
+        var parts = folder.Split('_');
+        return parts.Length >= 2 && Version.TryParse(parts[1], out var parsed) ? parsed : null;
+    }
 }

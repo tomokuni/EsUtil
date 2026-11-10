@@ -121,11 +121,23 @@ public class WindowsAppRuntimeBootstrapTests
     }
 
     [Fact]
-    internal void CreateInstallerUri_は指定した版をURLへ入れる()
+    internal void CreateInstallerUri_は要求した系統の最新を指す()
     {
+        // 版を URL へ固定すると、その版の配布が終わったときに導入できなくなる（実測 2026-11-10:
+        // 2.6/latest は 2.6/2.6.5 と同一のファイルへ解決する）
         var uri = WindowsAppRuntimeBootstrap.CreateInstallerUri(new Version(2, 6, 5, 0));
 
         Assert.NotNull(uri);
-        Assert.Contains("/windowsappsdk/2.6/2.6.5/", uri!.AbsolutePath, StringComparison.Ordinal);
+        Assert.Contains("/windowsappsdk/2.6/latest/", uri!.AbsolutePath, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    internal void IsRequiredVersionSpecified_は指定の有無を返す()
+    {
+        Assert.False(WindowsAppRuntimeBootstrap.IsRequiredVersionSpecified());
+        Assert.False(WindowsAppRuntimeBootstrap.IsRequiredVersionSpecified(WindowsAppRuntimeBootstrapOptions.Default));
+
+        var options = new WindowsAppRuntimeBootstrapOptions { RequiredVersion = new Version(2, 6, 5, 0) };
+        Assert.True(WindowsAppRuntimeBootstrap.IsRequiredVersionSpecified(options));
     }
 }

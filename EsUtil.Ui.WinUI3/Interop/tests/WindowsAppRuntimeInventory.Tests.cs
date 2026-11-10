@@ -68,4 +68,22 @@ public class WindowsAppRuntimeInventoryTests
     {
         Assert.Throws<ArgumentNullException>(() => WindowsAppRuntimeInventory.IsVersionInstalled(null!));
     }
+
+    [Fact]
+    internal void TryGetLoadedVersion_は例外を出さない()
+    {
+        // 使用中の版は「このプロセスが実際に読み込んだランタイム」であり、初期化前は取得できない。
+        // 取得できなくても例外にしない（診断のための値。 .github/例外処理規約.md §3）
+        var found = WindowsAppRuntimeInventory.TryGetLoadedVersion(out var version);
+
+        if (found)
+        {
+            Assert.NotNull(version);
+            Assert.True(version >= new Version(1, 0));
+        }
+        else
+        {
+            Assert.Null(version);
+        }
+    }
 }

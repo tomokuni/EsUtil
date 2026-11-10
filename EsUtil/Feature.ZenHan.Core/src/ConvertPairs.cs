@@ -17,22 +17,31 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
     {
         get
         {
-#pragma warning disable CA1508 // ダブルチェック ロッキング（lock の内側で再確認する）を CA1508 は「常に true」と誤検出する
+            // ダブルチェック ロッキング。 **ロックの内側の再確認は別メソッドへ置く**（同じメソッドに置くと
+            // CA1508 が「外側で null を確認済みだから常に null」と誤検出し、抑止が必要になる）。
             if (_pairs is null)
             {
                 lock (_lock)
                 {
-                    if (_pairs is null)
-                    {
-                        _pairs = [.. _factory!()];
-                        _factory = null;
-                    }
+                    return CreatePairs();
                 }
             }
-#pragma warning restore CA1508
+
             return _pairs;
         }
     }
+
+    /// <summary>遅延初期化をロックの内側で 1 度だけ行います。</summary>
+    /// <returns>初期化済みの一覧。</returns>
+    /// <remarks>ロック待ちの間に他のスレッドが初期化している場合があるため、ここで再確認します。</remarks>
+    private ImmutableList<(string Source, string Target)> CreatePairs()
+    {
+        _pairs ??= [.. _factory!()];
+        _factory = null;
+        return _pairs;
+    }
+
+    private ConvertPlan? _compiled;
     private readonly System.Threading.Lock _lock = new();
 
     /// <summary>即時初期化用コンストラクタ</summary>
@@ -206,31 +215,34 @@ public partial record ConvertPairs : IEnumerable<(string Source, string Target)>
     /// <summary>変換の手順を保持します。</summary>
     /// <returns>変換の手順。 変換元が 1 件もない場合は null</returns>
     /// <remarks>
-    /// C# 14 の <c>field</c> キーワードにより、バッキング フィールドを宣言せずに遅延初期化します。<br/>
     /// 初回アクセス時のみ生成し、以降は同じインスタンスを返して再生成を避けます。<br/>
     /// 生成できない場合は null を返し、次回呼び出しで再試行されます。<br/>
+    /// ダブルチェック ロッキングの内側の再確認は <see cref="CreateCompiled"/> が持ちます（同じメソッドに置くと
+    /// CA1508 が「外側で null を確認済みだから常に null」と誤検出し、抑止が必要になる）。
     /// </remarks>
     private ConvertPlan? Compiled
     {
         get
         {
-#pragma warning disable CA1508 // ダブルチェック ロッキング（lock の内側で再確認する）を CA1508 は「常に true」と誤検出する
-            // ダブルチェックロッキングによる遅延初期化
-            if (field == null)
+            if (_compiled is null)
             {
                 lock (_lock)
                 {
-                    // ロック待ちの間に他スレッドが生成している可能性があるため再確認する
-                    if (field == null)
-                    {
-                        field = ConvertPlan.Create(Values);
-                    }
+                    return CreateCompiled();
                 }
             }
 
-            return field;
-#pragma warning restore CA1508
+            return _compiled;
         }
+    }
+
+    /// <summary>変換の手順をロックの内側で生成します（生成できない場合は null のまま）。</summary>
+    /// <returns>変換の手順。 変換元が 1 件もない場合は null。</returns>
+    /// <remarks>ロック待ちの間に他のスレッドが生成している可能性があるため、ここで再確認します。</remarks>
+    private ConvertPlan? CreateCompiled()
+    {
+        _compiled ??= ConvertPlan.Create(Values);
+        return _compiled;
     }
 
     /// <summary>変換の手順（1 文字ずつの対応表、または正規表現）を表します。</summary>
