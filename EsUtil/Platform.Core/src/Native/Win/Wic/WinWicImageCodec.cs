@@ -434,9 +434,114 @@ internal static unsafe class WinWicImageCodec
     /// <b>列挙に現れることと書けることは違う</b>: 実測では JPEG XL のエンコーダーが一覧に現れるが、
     /// 本ライブラリの画素（BGRA8888）からは書けなかった。 一覧に載せると「一覧の拡張子で保存すれば成功する」
     /// という約束が崩れるため、実際に書いて確かめる。<br/>
-    /// <b>パレットを要求する形式</b>（GIF など）のために、通常の画素で失敗した場合はインデックス カラーでも試す。
+    /// <b>パレットを要求する形式</b>（GIF など）のために、通常の画素で失敗した場合はインデックス カラーでも試す。<br/>
+    /// <b>試す順序はエンコーダーへ問い合わせて決める</b>（パレットが要る形式を固定の一覧で持たない。 形式ごとの
+    /// 対応は OS とコーデック拡張で変わるため）。 パレットを要求する形式は通常の画素を必ず拒否するため、
+    /// 先に通常の画素で試すと<b>毎回 1 回例外を作って捨てる</b>ことになり、デバッガーはそれを
+    /// 「例外がスローされました」として表示する（利用側のアプリの不具合に見える）。 問い合わせで
+    /// 「パレットが要る」と分かった形式はインデックス カラーを先に試す。
     /// </remarks>
     internal static bool CanEncode(Guid container)
+    {
+        if (ProbePixelFormat(container) is Guid requested)
+        {
+            if (requested == PInvoke.GUID_WICPixelFormat8bppIndexed)
+            {
+                // パレットが必須の形式（通常の画素は必ず拒否される）
+                return TryEncode(container, CreateProbeIndices(), indexed: true)
+                    || TryEncode(container, CreateProbePixels(), indexed: false);
+            }
+
+            if (!IsWritableFormat(requested))
+            {
+                // 要求された形式へ並びを直す手段が無い（試し書きをしない。 例外も作らない）
+                return false;
+            }
+        }
+
+        if (TryEncode(container, CreateProbePixels(), indexed: false))
+        {
+            return true;
+        }
+
+        return TryEncode(container, CreateProbeIndices(), indexed: true);
+    }
+
+    /// <summary>エンコーダーが要求する画素形式を問い合わせる（試し書きをせずに済ませるため）。</summary>
+    /// <param name="container">コンテナ形式の GUID。</param>
+    /// <returns>要求された画素形式。 問い合わせできない場合は null。</returns>
+    /// <remarks>
+    /// <b>形式を固定しない</b>: パレットを要求するかどうかは OS とコーデック拡張で変わるため、
+    /// コンテナ GUID の一覧で判定せず、<b>エンコーダー自身に聞く</b>（<c>IWICBitmapFrameEncode::SetPixelFormat</c> は
+    /// 要求を受け付けない場合に<b>対応する形式を返す</b>。 例外は投げない）。 画素は書かないため、
+    /// ここではエンコーダーの初期化と寸法の指定だけを行う。
+    /// </remarks>
+    private static Guid? ProbePixelFormat(Guid container)
+    {
+        var factory = OpenFactory();
+        try
+        {
+            var stream = WinWicFactory.CreateMemoryStream();
+            try
+            {
+                var encoder = CreateEncoder(factory, container);
+                try
+                {
+                    encoder->Initialize(stream, WICBitmapEncoderCacheOption.WICBitmapEncoderNoCache);
+
+                    IPropertyBag2* properties;
+                    var frame = CreateFrame(encoder, &properties);
+                    try
+                    {
+                        frame->Initialize(properties);
+                        frame->SetSize(ProbeSize, ProbeSize);
+
+                        var pixelFormat = PInvoke.GUID_WICPixelFormat32bppPBGRA;
+                        frame->SetPixelFormat(&pixelFormat);
+                        return pixelFormat;
+                    }
+                    finally
+                    {
+                        frame->Release();
+                        properties->Release();
+                    }
+                }
+                finally
+                {
+                    encoder->Release();
+                }
+            }
+            finally
+            {
+                stream->Release();
+            }
+        }
+        catch (Exception ex) when (ex is Win32Exception or COMException or NotSupportedException)
+        {
+            // 問い合わせできない場合は試し書きで判定する（ここでは「分からない」だけを伝える）
+            return null;
+        }
+        finally
+        {
+            factory->Release();
+        }
+    }
+
+    /// <summary>その画素形式へ並びを直して書けるかを求める。</summary>
+    /// <param name="pixelFormat">エンコーダーが要求した画素形式。</param>
+    /// <returns>書ける場合は true。</returns>
+    /// <remarks>直す手段を持つ形式だけを並べる（<see cref="WritePixels"/> の分岐と同じ一覧である）。</remarks>
+    private static bool IsWritableFormat(Guid pixelFormat)
+        => pixelFormat == PInvoke.GUID_WICPixelFormat32bppPBGRA
+            || pixelFormat == PInvoke.GUID_WICPixelFormat32bppBGRA
+            || pixelFormat == PInvoke.GUID_WICPixelFormat32bppBGR
+            || pixelFormat == PInvoke.GUID_WICPixelFormat24bppBGR
+            || pixelFormat == PInvoke.GUID_WICPixelFormat32bppRGBA
+            || pixelFormat == PInvoke.GUID_WICPixelFormat8bppIndexed;
+
+    /// <summary>試し書きに使う画素（BGRA8888）を作る。</summary>
+    /// <returns>画素（<see cref="ProbeSize"/> × <see cref="ProbeSize"/>）。</returns>
+    private static byte[] CreateProbePixels()
     {
         var pixels = new byte[ProbeSize * ProbeSize * EsReadOnlyBitmap.BytesPerPixel];
         for (var i = 0; i < ProbeSize * ProbeSize; i++)
@@ -447,12 +552,7 @@ internal static unsafe class WinWicImageCodec
             pixels[(i * EsReadOnlyBitmap.BytesPerPixel) + 3] = 255;
         }
 
-        if (TryEncode(container, pixels, indexed: false))
-        {
-            return true;
-        }
-
-        return TryEncode(container, CreateProbeIndices(), indexed: true);
+        return pixels;
     }
 
     /// <summary>試し書きを行い、失敗を例外にせず真偽で返す。</summary>

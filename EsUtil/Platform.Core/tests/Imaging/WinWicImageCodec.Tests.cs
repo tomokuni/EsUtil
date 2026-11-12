@@ -1,5 +1,8 @@
 using System.Drawing;
+using System.Runtime.ExceptionServices;
 using EsUtil.Platform.Core.Imaging;
+using EsUtil.Platform.Core.Native.Win.Wic;
+using Windows.Win32;
 using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Imaging;
@@ -118,5 +121,40 @@ public class WinWicImageCodecTests
         segment[3] = (byte)(length & 0xFF);
 
         return [.. jpeg.AsSpan(0, 2), .. segment, .. jpeg.AsSpan(2)];
+    }
+
+    [Fact]
+    internal void CanEncode_パレットを要求する形式でも例外を作らずに判定する()
+    {
+        // パレットを必須とするエンコーダー（GIF）は通常の画素を拒否する。 拒否を例外で受け取ると、
+        // デバッガーが「例外がスローされました」として表示し、利用側のアプリの不具合に見える。
+        // どの形式がパレットを要求するかは OS とコーデック拡張で変わるため、固定の一覧では判定しない
+        // （ここで確かめるのは「問い合わせて判定する」経路そのものであり、Windows 標準の GIF を入力にする）。
+        var raised = new List<Exception>();
+        EventHandler<FirstChanceExceptionEventArgs> handler = (_, e) =>
+        {
+            lock (raised)
+            {
+                raised.Add(e.Exception);
+            }
+        };
+
+        AppDomain.CurrentDomain.FirstChanceException += handler;
+        bool encodable;
+        try
+        {
+            encodable = WinWicImageCodec.CanEncode(PInvoke.GUID_ContainerFormatGif);
+        }
+        finally
+        {
+            AppDomain.CurrentDomain.FirstChanceException -= handler;
+        }
+
+        Assert.True(encodable);
+        lock (raised)
+        {
+            Assert.DoesNotContain(
+                raised, ex => ex.Message.Contains("想定外のピクセル形式", StringComparison.Ordinal));
+        }
     }
 }
