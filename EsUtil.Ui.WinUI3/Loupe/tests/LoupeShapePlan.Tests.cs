@@ -99,7 +99,7 @@ public class LoupeShapePlanTests
             new EsRect(0, 0, 64, 64),
             null,
             new LoupeCrosshairRects(new EsRect(31, 0, 2, 64), new EsRect(0, 31, 64, 2)),
-            [new EsRect(0, 31, 64, 2)],
+            new EsRect[] { new(0, 31, 64, 2) },
             [],
             new LoupeLabelPlacement(new EsRect(2, 2, 20, 12), 2, 2, "16,16", 12, DrawingColor.White, DrawingColor.Black, 0, true),
             new EsPoint(8, 8),

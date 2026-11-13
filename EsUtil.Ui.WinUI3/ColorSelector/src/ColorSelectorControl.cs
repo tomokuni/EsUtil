@@ -606,7 +606,7 @@ public sealed partial class ColorSelectorControl : Grid
     /// <b>利用側は本値を保存すればテーマに追随できる</b>: 色そのもの（<c>#AARRGGBB</c>）を保存すると明暗の切替に追随できない。<br/>
     /// 設定画面の選択肢を作るときにも使える（実際に並ぶのは解決できた色だけである）。
     /// </remarks>
-    public static IReadOnlyList<string> ThemeColorKeys { get; } = [.. s_themeColors.Select(static entry => entry.Key)];
+    public static IReadOnlyList<string> ThemeColorKeys { get; } = (string[])[.. s_themeColors.Select(static entry => entry.Key)];
 
     /// <summary>一覧の先頭へ並べるテーマの色を追加する（WinUI 3 のテーマの色をすべて並べる）。</summary>
     /// <param name="items">追加先。</param>
@@ -742,7 +742,7 @@ public sealed partial class ColorSelectorControl : Grid
         _themeTab.IsChecked = category == ColorSelectorCategory.Theme;
         _namedTab.IsChecked = category == ColorSelectorCategory.Named;
         _listCategory = category;
-        _entries = [.. items.Where(item => item.Category == category)];
+        _entries = (ColorSelectorItem[])[.. items.Where(item => item.Category == category)];
         _list.Items.Clear();
         var widest = 0.0;
         foreach (var entry in _entries)

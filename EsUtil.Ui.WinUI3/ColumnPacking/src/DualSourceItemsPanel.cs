@@ -59,7 +59,7 @@ public abstract class DualSourceItemsPanel : Panel
     /// <exception cref="ArgumentNullException"><paramref name="items"/> の要素がすべて null ではない場合も含め、例外にはならない。</exception>
     public void SetItems(IEnumerable<object?>? items)
     {
-        _items = items is null ? null : [.. items];
+        _items = items?.ToArray();
         RebuildItems();
         InvalidateMeasure();
     }

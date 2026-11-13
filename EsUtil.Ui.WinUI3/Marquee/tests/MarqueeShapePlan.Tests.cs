@@ -108,7 +108,7 @@ public class MarqueeShapePlanTests
             new EsRect(0, 0, 200, 100),
             new EsRect(10, 10, 80, 60),
             new EsPoint(90, 70),
-            [new EsRect(0, 0, 0, 10), new EsRect(0, 90, 200, 10)],
+            new EsRect[] { new(0, 0, 0, 10), new(0, 90, 200, 10) },
             [],
             null,
             new MarqueeHandles(

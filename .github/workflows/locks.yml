@@ -65,6 +65,20 @@ jobs:
           # lock の更新は「前回のコミット」との差分ではないが、通常のチェックアウトで足りる
           fetch-depth: 0
 
+      # .NET SDK は global.json が単一所有する（ランナー イメージには .NET 11 SDK がまだ無い）
+      - name: .NET SDK を導入
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # パッケージの対象は net10.0 のため、apphost / targeting pack を提供する .NET 10 SDK も入れる
+      # （ビルドに使う SDK は global.json の 11.0.100。 実測 2026-11-13: 11 だけでは net10 の apphost が
+      #  見つからず MSB3030 で失敗する）。
+      - name: .NET 10 SDK を導入（net10 の apphost）
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
       # 前回の自動コミットで走った実行は何もしない（無限ループを防ぐ）
       - name: 自動コミットの印を確認する
         id: guard

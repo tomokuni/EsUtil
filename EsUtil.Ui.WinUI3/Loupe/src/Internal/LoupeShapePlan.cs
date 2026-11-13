@@ -47,7 +47,7 @@ internal static class LoupeShapePlan
     /// <param name="plan">描画計画。</param>
     /// <returns>表示が有効な配置指示（順序は計画のまま）。</returns>
     public static IReadOnlyList<LoupeLabelPlacement> VisibleLabels(LoupeDrawPlan plan)
-        => plan.Label is { IsVisible: true } label ? [label] : [];
+        => plan.Label is { IsVisible: true } label ? [label] : Array.Empty<LoupeLabelPlacement>();
 
     /// <summary>十字線の矩形を画素のまま追加する。</summary>
     /// <param name="list">追加先のリスト。</param>

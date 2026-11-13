@@ -49,7 +49,7 @@
       "esutil.feature.thumbnail.core": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.6.3, )",
+          "EsUtil.Platform.Core": "[0.6.4, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.14, )"
         }
       },
@@ -60,7 +60,7 @@
         "type": "Project",
         "dependencies": {
           "Aprillz.MewUI.Core": "[0.22.1, )",
-          "EsUtil.Platform.Core": "[0.6.3, )"
+          "EsUtil.Platform.Core": "[0.6.4, )"
         }
       }
     }
