@@ -16,7 +16,7 @@ namespace EsUtil.Ui.WinUI3.SampleKit;
 public static class SampleTheme
 {
     /// <summary>表示テーマの選択肢（設定パネルの並び）。</summary>
-    public static IReadOnlyList<string> Choices { get; } = ["ライト", "ダーク"];
+    public static IReadOnlyList<string> Choices { get; } = new[] { "ライト", "ダーク" };
 
     /// <summary>現在のテーマがダークかどうかを取得する。</summary>
     /// <value>ダークの場合は true（アプリの <c>RequestedTheme</c> がダークのとき）。</value>

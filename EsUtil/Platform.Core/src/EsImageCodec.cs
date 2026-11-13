@@ -366,7 +366,7 @@ public static class EsImageCodec
     /// <param name="height">高さ（ピクセル）。</param>
     /// <param name="parameterName">例外へ載せる引数名。</param>
     /// <exception cref="ArgumentException"><paramref name="destination"/> が足りない場合。</exception>
-    private static void EnsureCapacity(Span<byte> destination, int width, int height, string parameterName)
+    private static void EnsureCapacity(ReadOnlySpan<byte> destination, int width, int height, string parameterName)
         => EnsureCapacity(destination.Length, width, height, parameterName);
 
     /// <summary>書き込み先が寸法に足りることを長さで確かめる（<c>Span</c> を保持できない場所から呼ぶ）。</summary>

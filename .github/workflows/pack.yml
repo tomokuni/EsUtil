@@ -43,6 +43,12 @@ jobs:
       - name: チェックアウト
         uses: actions/checkout@v7
 
+      # .NET SDK は global.json が単一所有する（ランナー イメージには .NET 11 SDK がまだ無い）
+      - name: .NET SDK を導入
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
       # 配布物の名前と、呼び出し元が成果物を取る名前（`nupkg-<ツリー>`）に使う
       - name: ツリーを求める
         id: tree

@@ -105,7 +105,7 @@ internal static class GridLoupePlan
     /// <returns>鉤の矩形（四隅 × 2 本 = 8 本）。</returns>
     private static IReadOnlyList<EsRect> CreateCornerBrackets(EsRect surface, double arm, double thickness)
         =>
-        [
+        (EsRect[])[
             new EsRect(surface.X, surface.Y, arm, thickness),
             new EsRect(surface.X, surface.Y, thickness, arm),
             new EsRect(surface.Right - arm, surface.Y, arm, thickness),

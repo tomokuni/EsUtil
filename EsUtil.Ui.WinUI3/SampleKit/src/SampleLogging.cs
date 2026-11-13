@@ -49,7 +49,7 @@ public sealed class SampleLogging : IDisposable
     }
 
     /// <summary>選択できるログ レベルの一覧（設定パネルの選択肢）。</summary>
-    public static IReadOnlyList<string> LevelChoices { get; } = ["Trace", "Debug", "Information", "Warning", "Error"];
+    public static IReadOnlyList<string> LevelChoices { get; } = new[] { "Trace", "Debug", "Information", "Warning", "Error" };
 
     /// <summary>表示する最小レベルを取得または設定する（実行中に切り替えられる）。</summary>
     /// <remarks>

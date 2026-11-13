@@ -472,7 +472,7 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
         {
             var single = Layout.SolveSingleColumnLayout();
             UpdateLayoutResultProperties();
-            LogLayoutResultIfChanged([.. Layout.GetLastItemLayouts().Select(static layout => layout.Y)]);
+            LogLayoutResultIfChanged((double[])[.. Layout.GetLastItemLayouts().Select(static layout => layout.Y)]);
             return new Size(single.UsedWidth, single.MinHeight);
         }
 
@@ -485,7 +485,7 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
         UpdateLayoutResultProperties();
 
         // レイアウト結果が変化したときだけ記録する（Debug。 項目ごとの座標は Trace）
-        LogLayoutResultIfChanged([.. Layout.GetLastItemLayouts().Select(static layout => layout.Y)]);
+        LogLayoutResultIfChanged((double[])[.. Layout.GetLastItemLayouts().Select(static layout => layout.Y)]);
 
         // 必要なサイズを返す
         return new Size(UsedWidth, MinHeight);

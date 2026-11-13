@@ -36,6 +36,7 @@ internal static class GuideMarqueePlan
             {
                 // 線の太さは外観の枠線の太さに合わせる（見本へ切り替えても太さの設定が効く）
                 BorderDipRects =
+                (EsRect[])
                 [
                     .. CreateDashedFrame(focus, plan.Appearance.BorderThickness),
                     .. CreateThirdsGuides(focus, plan.Appearance.BorderThickness),

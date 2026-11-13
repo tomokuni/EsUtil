@@ -323,6 +323,12 @@ jobs:
           name: nupkg-${{ needs.pack.outputs.tree }}
           path: artifacts
 
+      # .NET SDK は global.json が単一所有する（`dotnet nuget push` の版をそろえる）
+      - name: .NET SDK を導入
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
       # 短命の API キーを取得する（1 時間有効。 1 トークン = 1 キー。 **push の直前に取得する**）
       - name: NuGet の API キーを取得
         id: login

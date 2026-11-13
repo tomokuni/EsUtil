@@ -30,7 +30,9 @@
 # `package` ジョブは `ci` の needs に**入れない**（必須チェックを遅らせない。 扱いは .github/RELEASE.md §4.2）。
 #
 # .NET SDK のバージョンはリポジトリルートの global.json が単一所有する（ワークフローでは指定しない）。
-# .NET SDK はランナー イメージに含まれる最新版をそのまま使う（actions/setup-dotnet を使わない）。
+# .NET SDK のバージョンはリポジトリルートの global.json が単一所有する（ワークフローでは指定しない）。
+# **ランナー イメージには .NET 11 SDK がまだ含まれないため、actions/setup-dotnet で導入する**
+# （実測 2026-11-13: `windows-2025` のイメージは 10.0.4xx まで。 版は global.json から読む）。
 # キャッシュは NuGet の復元と npm（markdownlint）だけを対象にする。
 #
 # **ビルドとテスト、リポジトリ全体の検査は windows-latest**（Win32 API の P/Invoke と、Windows 向けの
@@ -178,8 +180,12 @@ jobs:
       - name: チェックアウト
         uses: actions/checkout@v7
 
-      # .NET SDK はランナー イメージの最新版を使う（setup-dotnet は不要。イメージが C:\Program Files\dotnet を
-      # PATH へ追加しているため、以降のステップでそのまま dotnet を実行できる）。
+      # .NET SDK は global.json が単一所有する（ランナー イメージには .NET 11 SDK がまだ無い。 パッケージの対象は net10.0 のまま）。
+      - name: .NET SDK を導入
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
       # NuGet のグローバル パッケージ フォルダは**ソリューションごと**にキャッシュする。
       # 5 ジョブが同時に走るため、共通の大きなキャッシュ（実測 1.45 GB）を 5 重に復元すると
       # 1 ジョブあたり 43 秒かかり、ディスクも 7 GB を超える。 ソリューションごとに分けると
@@ -276,6 +282,12 @@ jobs:
       - name: チェックアウト
         uses: actions/checkout@v7
 
+      # .NET SDK は global.json が単一所有する（ランナー イメージには .NET 11 SDK がまだ無い）
+      - name: .NET SDK を導入
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
       # NuGet の監査は復元を伴う（パッケージの取得をキャッシュする。 キーは取得するパッケージの集合で決める）
       - name: NuGet をキャッシュ
         uses: actions/cache@v6
@@ -302,6 +314,12 @@ jobs:
     steps:
       - name: チェックアウト
         uses: actions/checkout@v7
+
+      # .NET SDK は global.json が単一所有する（ランナー イメージには .NET 11 SDK がまだ無い）
+      - name: .NET SDK を導入
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
 
       # markdownlint は npx で取る（毎回ダウンロードすると 2 分近くかかる。 実測 2026-10-26: 走査 125 秒）
       - name: npm をキャッシュ
