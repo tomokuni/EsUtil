@@ -20,7 +20,7 @@
    - **公開物の中身まで確かめたいとき**は、`dev` で `dry-run-pack` を実行する（配布物の作成と検証まで行い、公開とタグ付けはしない。 §1.3）
    - 配布物（パッケージ）と SBOM は **`pack.yml`** が作る（PR では `build.yml` の `package` ジョブ。 パッケージへ影響する変更のときだけ。 §3.2）
    - 前回のタグから**変更が無ければリリースしない**（`git diff` で判定）
-4. **Pull Request をマージする**
+4. **Pull Request を Merge commit でマージする**（検証したマージ結果と同じ親・同じツリーのコミットを `main` の HEAD にするため。 [`コミット規約.md`](コミット規約.md) §3）
 5. `main` で **`release`** を実行する（§1.3）
    - `pack` が**この実行で配布物を作り、その場で検証**する（`pack.yml`。 3〜4 分。 他の実行のビルドは待たない）
    - `validate` が**配布物の過不足と同封物を確かめる**（公開の直前。 `dry-run-pack` でも同じ検証が走る）
@@ -101,7 +101,7 @@ gh release list --limit 6
 
 | 設定 | 内容 |
 | --- | --- |
-| `Protect main`（ブランチ保護） | `main` への直接 push を禁止し、`ci` の成功を必須にする。 **`strict_required_status_checks_policy` を `true`** にし、Pull Request が最新の `main` に追随していないとマージできないようにする（[`rulesets/protect-main.json`](rulesets/protect-main.json)） |
+| `Protect main`（ブランチ保護） | `main` への直接 push を禁止し、`ci` の成功を必須にする。 **`strict_required_status_checks_policy` を `true`** にし、Pull Request が最新の `main` に追随していないとマージできないようにする。 **マージ方式は Merge commit のみ**（Squash / Rebase を許可しない。 検証したマージ結果と同じ親・同じツリーのコミットを `main` の HEAD にするため）（[`rulesets/protect-main.json`](rulesets/protect-main.json)） |
 | `release`（Environment） | **Required reviewers** を設定する。 公開ジョブはこの環境の承認が無いと動かない |
 | NuGet の Trusted Publishing | ポリシーを「リポジトリ + ワークフロー ファイル（`release.yml`）+ `environment: release`」に紐づける。 **長期の API キーは持たない** |
 | `NUGET_USER`（Secret） | Trusted Publishing のユーザー名 |
