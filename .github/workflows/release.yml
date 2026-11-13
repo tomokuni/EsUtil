@@ -329,6 +329,14 @@ jobs:
         with:
           global-json-file: global.json
 
+      # パッケージの対象は net10.0 のため、apphost / targeting pack を提供する .NET 10 SDK も入れる
+      # （ビルドに使う SDK は global.json の 11.0.100。 実測 2026-11-13: 11 だけでは net10 の apphost が
+      #  見つからず MSB3030 で失敗する）。
+      - name: .NET 10 SDK を導入（net10 の apphost）
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
       # 短命の API キーを取得する（1 時間有効。 1 トークン = 1 キー。 **push の直前に取得する**）
       - name: NuGet の API キーを取得
         id: login

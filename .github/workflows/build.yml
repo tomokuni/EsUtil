@@ -186,6 +186,14 @@ jobs:
         with:
           global-json-file: global.json
 
+      # パッケージの対象は net10.0 のため、apphost / targeting pack を提供する .NET 10 SDK も入れる
+      # （ビルドに使う SDK は global.json の 11.0.100。 実測 2026-11-13: 11 だけでは net10 の apphost が
+      #  見つからず MSB3030 で失敗する）。
+      - name: .NET 10 SDK を導入（net10 の apphost）
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
       # NuGet のグローバル パッケージ フォルダは**ソリューションごと**にキャッシュする。
       # 5 ジョブが同時に走るため、共通の大きなキャッシュ（実測 1.45 GB）を 5 重に復元すると
       # 1 ジョブあたり 43 秒かかり、ディスクも 7 GB を超える。 ソリューションごとに分けると
@@ -288,6 +296,14 @@ jobs:
         with:
           global-json-file: global.json
 
+      # パッケージの対象は net10.0 のため、apphost / targeting pack を提供する .NET 10 SDK も入れる
+      # （ビルドに使う SDK は global.json の 11.0.100。 実測 2026-11-13: 11 だけでは net10 の apphost が
+      #  見つからず MSB3030 で失敗する）。
+      - name: .NET 10 SDK を導入（net10 の apphost）
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
       # NuGet の監査は復元を伴う（パッケージの取得をキャッシュする。 キーは取得するパッケージの集合で決める）
       - name: NuGet をキャッシュ
         uses: actions/cache@v6
@@ -320,6 +336,14 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
+
+      # パッケージの対象は net10.0 のため、apphost / targeting pack を提供する .NET 10 SDK も入れる
+      # （ビルドに使う SDK は global.json の 11.0.100。 実測 2026-11-13: 11 だけでは net10 の apphost が
+      #  見つからず MSB3030 で失敗する）。
+      - name: .NET 10 SDK を導入（net10 の apphost）
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
 
       # markdownlint は npx で取る（毎回ダウンロードすると 2 分近くかかる。 実測 2026-10-26: 走査 125 秒）
       - name: npm をキャッシュ

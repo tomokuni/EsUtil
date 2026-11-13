@@ -49,6 +49,14 @@ jobs:
         with:
           global-json-file: global.json
 
+      # パッケージの対象は net10.0 のため、apphost / targeting pack を提供する .NET 10 SDK も入れる
+      # （ビルドに使う SDK は global.json の 11.0.100。 実測 2026-11-13: 11 だけでは net10 の apphost が
+      #  見つからず MSB3030 で失敗する）。
+      - name: .NET 10 SDK を導入（net10 の apphost）
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
       # 配布物の名前と、呼び出し元が成果物を取る名前（`nupkg-<ツリー>`）に使う
       - name: ツリーを求める
         id: tree
