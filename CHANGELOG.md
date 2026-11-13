@@ -5,6 +5,12 @@
 - **公開する版は人が決めます**（`VersionPrefix` 1 行を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
+## 0.6.5（2026-11-13）
+
+### 変更
+
+- 依存パッケージを最新化しました（Avalonia 12.1.6・Microsoft.Extensions 11.0.0・Microsoft.WindowsAppSDK 2.6.5・System.Drawing.Common 11.0.0 ほか）。 API と動作は変わりません。
+
 ## 0.6.4（2026-11-13）
 
 ### 変更
