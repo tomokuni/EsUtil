@@ -18,9 +18,9 @@
 
   <ItemGroup Label="共通基盤">
     <!-- ログの抽象（機能層と UI 層が使う。 実装はホストが持ち込む） -->
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <!-- 色（System.Drawing.Color）の値型だけを使う（描画は OS と UI が行う） -->
-    <PackageVersion Include="System.Drawing.Common" Version="11.0.0" />
+    <PackageVersion Include="System.Drawing.Common" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup Label="Avalonia UI">
@@ -54,7 +54,7 @@
   </ItemGroup>
 
   <ItemGroup Label="ログ（サンプルのみ。 本体は Microsoft.Extensions.Logging.Abstractions だけを使う）">
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.0" />
     <PackageVersion Include="Serilog" Version="4.4.0" />
     <PackageVersion Include="Serilog.Extensions.Logging" Version="10.0.0" />
   </ItemGroup>

@@ -9,7 +9,8 @@
 
 ### 変更
 
-- 依存パッケージを最新化しました（Avalonia 12.1.6・Microsoft.Extensions 11.0.0・Microsoft.WindowsAppSDK 2.6.5・System.Drawing.Common 11.0.0 ほか）。 API と動作は変わりません。
+- 依存パッケージを最新化しました（Avalonia 12.1.6・Microsoft.WindowsAppSDK 2.6.5・Meziantou.Analyzer・Microsoft.NET.Test.Sdk・Microsoft.Windows.CsWin32 ほか）。 API と動作は変わりません。
+- **`Microsoft.Extensions.*` と `System.Drawing.Common` は 10.0.0 のままにしています**。 11.0.0 は `net10.0` のアセンブリを含み .NET 10 でも動作しますが、**nuspec の依存下限が 11.0.0 になり、.NET 10 の利用者へ 11.0.0 を強制**します（10.0.x を固定している利用者は `NU1605` になります）。 本リポジトリは `net10.0-windows10.0.17763.0` を対象にしているため、**公開パッケージの依存下限を 10.0.0** にし、動作に必要な最小の版に留めます（規則は [`.github/ビルド設定規約.md`](.github/ビルド設定規約.md) §8。 対象フレームワークと下限は [`README.md`](README.md) §3.1）。 上位の版を参照するアプリは、NuGet の統合によりその版で動作します（実測 2026-11-13: `.NET 10` / `.NET 11` の両ランタイムで動作）。
 
 ## 0.6.4（2026-11-13）
 
