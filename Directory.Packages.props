@@ -18,21 +18,21 @@
 
   <ItemGroup Label="共通基盤">
     <!-- ログの抽象（機能層と UI 層が使う。 実装はホストが持ち込む） -->
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0" />
     <!-- 色（System.Drawing.Color）の値型だけを使う（描画は OS と UI が行う） -->
-    <PackageVersion Include="System.Drawing.Common" Version="10.0.14" />
+    <PackageVersion Include="System.Drawing.Common" Version="11.0.0" />
   </ItemGroup>
 
   <ItemGroup Label="Avalonia UI">
-    <PackageVersion Include="Avalonia" Version="12.1.4" />
-    <PackageVersion Include="Avalonia.Desktop" Version="12.1.4" />
-    <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.1.4" />
-    <PackageVersion Include="Avalonia.Skia" Version="12.1.4" />
-    <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.4" />
-    <PackageVersion Include="Avalonia.Controls.ColorPicker" Version="12.1.4" />
+    <PackageVersion Include="Avalonia" Version="12.1.6" />
+    <PackageVersion Include="Avalonia.Desktop" Version="12.1.6" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.1.6" />
+    <PackageVersion Include="Avalonia.Skia" Version="12.1.6" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.6" />
+    <PackageVersion Include="Avalonia.Controls.ColorPicker" Version="12.1.6" />
     <!-- テスト（ヘッドレスで描画する） -->
-    <PackageVersion Include="Avalonia.Headless" Version="12.1.4" />
-    <PackageVersion Include="Avalonia.Headless.XUnit" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Headless" Version="12.1.6" />
+    <PackageVersion Include="Avalonia.Headless.XUnit" Version="12.1.6" />
   </ItemGroup>
 
   <ItemGroup Label="MewUI">
@@ -43,9 +43,9 @@
   </ItemGroup>
 
   <ItemGroup Label="WinUI 3（Windows App SDK）">
-    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.6.4" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.6.5" />
     <!-- CsWin32 が wincodec.h などから P/Invoke の宣言を生成する（ビルド時だけ使う） -->
-    <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.367" />
+    <PackageVersion Include="Microsoft.Windows.CsWin32" Version="0.3.371" />
     <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2957" />
   </ItemGroup>
 
@@ -54,13 +54,13 @@
   </ItemGroup>
 
   <ItemGroup Label="ログ（サンプルのみ。 本体は Microsoft.Extensions.Logging.Abstractions だけを使う）">
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="11.0.0" />
     <PackageVersion Include="Serilog" Version="4.4.0" />
     <PackageVersion Include="Serilog.Extensions.Logging" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup Label="テスト">
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
@@ -68,10 +68,10 @@
 
   <ItemGroup Label="アナライザー（全プロジェクトが Directory.Build.props で参照する）">
     <!-- SDK が注入する版に追従させない（packages.lock.json を SDK 非依存に保つ。 ビルド設定規約 §8）。 -->
-    <PackageVersion Include="Microsoft.NET.ILLink.Tasks" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.NET.ILLink.Tasks" Version="11.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.12.1" />
-    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.318" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.339" />
   </ItemGroup>
 
 </Project>
