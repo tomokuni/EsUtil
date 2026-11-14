@@ -18,13 +18,13 @@ internal static partial class ColorSelectorLogMessage
     /// <summary>一覧（▼）を開いたログ。</summary>
     /// <remarks>
     /// LogLevel: Debug <br/>
-    /// 出力書式: <c>[ColorSelector] OpenList: color={Color:l}</c><br/>
+    /// 出力書式: <c>[ColorSelector] 一覧を開きました: 色={Color:l}</c><br/>
     /// 一覧とピッカーは別の操作であるため、開いたことを別のメッセージで残す（他 UI と書式を揃える）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="color">現在の選択色。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} OpenList: color={Color:l}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 一覧を開きました: 色={Color:l}")]
     private static partial void LogOpenListCore(this ILogger logger, string prefix, string color);
 
     /// <summary>一覧を開いたことを記録する。</summary>
@@ -36,13 +36,13 @@ internal static partial class ColorSelectorLogMessage
     /// <summary>選択色変更のログ（変更前後）。</summary>
     /// <remarks>
     /// LogLevel: Information <br/>
-    /// 出力書式: <c>[ColorSelector] Setting: SelectedColor {OldValue} → {NewValue}</c>
+    /// 出力書式: <c>[ColorSelector] 設定: 選択色 {OldValue} → {NewValue}</c>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="oldValue">変更前の色。</param>
     /// <param name="newValue">変更後の色。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} Setting: SelectedColor {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} 設定: 選択色 {OldValue} → {NewValue}")]
     private static partial void LogSelectedColorChangedCore(this ILogger logger, string prefix, string oldValue, string newValue);
 
     public static void LogSelectedColorChanged(this ILogger logger, string oldValue, string newValue)
@@ -51,13 +51,13 @@ internal static partial class ColorSelectorLogMessage
     /// <summary>カラーピッカー Flyout を開くボタンのクリックログ。</summary>
     /// <remarks>
     /// LogLevel: Debug <br/>
-    /// 出力書式: <c>[ColorSelector] OpenPicker: color={Color:l}</c><br/>
+    /// 出力書式: <c>[ColorSelector] 色の選択を開きました: 色={Color:l}</c><br/>
     /// 一覧とピッカーは別の操作であるため、開いたことを別のメッセージで残す（他 UI と書式を揃える）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="color">現在の選択色。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} OpenPicker: color={Color:l}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 色の選択を開きました: 色={Color:l}")]
     private static partial void LogOpenPickerCore(this ILogger logger, string prefix, string color);
 
     /// <summary>カラーピッカーを開いたことを記録する。</summary>
@@ -69,12 +69,12 @@ internal static partial class ColorSelectorLogMessage
     /// <summary>Flyout の OK ボタンで色が確定されたログ。</summary>
     /// <remarks>
     /// LogLevel: Debug <br/>
-    /// 出力書式: <c>[ColorSelector] Flyout OK: color={Color:l}</c>
+    /// 出力書式: <c>[ColorSelector] ポップアップ: 決定: 色={Color:l}</c>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="color">確定された色。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Flyout OK: color={Color:l}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ポップアップ: 決定: 色={Color:l}")]
     private static partial void LogFlyoutOkCore(this ILogger logger, string prefix, string color);
 
     public static void LogFlyoutOk(this ILogger logger, string color)
@@ -83,11 +83,11 @@ internal static partial class ColorSelectorLogMessage
     /// <summary>Flyout のキャンセルボタンでキャンセルされたログ。</summary>
     /// <remarks>
     /// LogLevel: Debug <br/>
-    /// 出力書式: <c>[ColorSelector] Flyout Cancel</c>
+    /// 出力書式: <c>[ColorSelector] ポップアップ: キャンセル</c>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Flyout Cancel")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ポップアップ: キャンセル")]
     private static partial void LogFlyoutCancelCore(this ILogger logger, string prefix);
 
     public static void LogFlyoutCancel(this ILogger logger)
@@ -96,13 +96,13 @@ internal static partial class ColorSelectorLogMessage
     /// <summary>フォーカス喪失時のログ（無効色の復帰等）。</summary>
     /// <remarks>
     /// LogLevel: Trace <br/>
-    /// 出力書式: <c>[ColorSelector] LostFocus: color={Color:l} valid={Valid}</c>
+    /// 出力書式: <c>[ColorSelector] フォーカスを失いました: 色={Color:l} 有効={Valid}</c>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="color">現在の色。</param>
     /// <param name="valid">色が有効かどうか。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix:l} LostFocus: color={Color:l} valid={Valid}")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} フォーカスを失いました: 色={Color:l} 有効={Valid}")]
     private static partial void LogLostFocusCore(this ILogger logger, string prefix, string color, bool valid);
 
     public static void LogLostFocus(this ILogger logger, string color, bool valid)

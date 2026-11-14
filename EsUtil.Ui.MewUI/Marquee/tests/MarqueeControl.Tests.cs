@@ -304,11 +304,11 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    internal void RequestCancel_選択ありなら選択を破棄してCancelRequestedを発火する()
+    internal void RequestCancel_選択ありなら選択を破棄してキャンセルが要求されましたを発火する()
     {
         var control = CreateControl(new CursorServiceSpy());
         var raised = false;
-        control.CancelRequested += (_, _) => raised = true;
+        control.キャンセルが要求されました += (_, _) => raised = true;
 
         control.SetSelection(new EsRect(10, 10, 50, 40));
         control.RequestCancel();
@@ -318,11 +318,11 @@ public class MarqueeControlTests
     }
 
     [Fact]
-    internal void RequestCancel_選択なしでもCancelRequestedを発火する()
+    internal void RequestCancel_選択なしでもキャンセルが要求されましたを発火する()
     {
         var control = CreateControl(new CursorServiceSpy());
         var raised = false;
-        control.CancelRequested += (_, _) => raised = true;
+        control.キャンセルが要求されました += (_, _) => raised = true;
 
         control.RequestCancel();
 
@@ -367,7 +367,7 @@ public class MarqueeControlTests
 
         // 「値を所有する主体が記録する」規則により、コアが Debug で記録する（提示層は通過を記録しない）
         Assert.Equal(
-            ["[Marquee] Setting: ClampToSourceBounds True → False"],
+            ["[Marquee] 設定: ClampToSourceBounds True → False"],
             logger.Messages);
         Assert.Equal([LogLevel.Information], logger.Levels);
     }
@@ -399,7 +399,7 @@ public class MarqueeControlTests
         control.Appearance = control.Appearance with { HandleBorderColor = DrawingColor.Red };
 
         Assert.Equal(
-            "[Marquee] Setting: HandleBorderColor #FFA9A9A9 → #FFFF0000",
+            "[Marquee] 設定: HandleBorderColor #FFA9A9A9 → #FFFF0000",
             Assert.Single(logger.Messages));
     }
 
@@ -426,7 +426,7 @@ public class MarqueeControlTests
 
         control.RequestConfirm();
 
-        Assert.Contains("[Marquee] ConfirmRequested: rect=(10, 10, 50, 40)", logger.Messages);
+        Assert.Contains("[Marquee] 確定が要求されました: 範囲=(10, 10, 50, 40)", logger.Messages);
     }
 
     // ====================================================================

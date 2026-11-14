@@ -138,7 +138,7 @@ public sealed class MainWindow : Window
         };
         _marquee.SelectionCancelled += (_, _) => Write("キャンセル（選択が解除された）");
         _marquee.ConfirmRequested += (_, e) => Write($"確定要求: ({e.Rect.X:0.#}, {e.Rect.Y:0.#})");
-        _marquee.CancelRequested += (_, _) => Write("キャンセル要求");
+        _marquee.キャンセルが要求されました += (_, _) => Write("キャンセル要求");
         _marquee.LoupePositionMoved += (_, e) =>
         {
             // ポインター移動のたびに届く高頻度の値であるため Trace（トレース有効時だけ記録する）

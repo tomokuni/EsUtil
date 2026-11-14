@@ -116,7 +116,7 @@ public class ThumbnailSelectionTests
         }
 
         Assert.Equal(
-            ["[Test] Selection: -1 → 3", "[Test] Selection: 3 → -1"],
+            ["[Test] 選択: -1 → 3", "[Test] 選択: 3 → -1"],
             logger.Messages);
         Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Debug, level));
     }

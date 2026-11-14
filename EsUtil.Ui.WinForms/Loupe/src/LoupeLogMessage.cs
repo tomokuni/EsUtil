@@ -41,7 +41,7 @@ internal static partial class LoupeLogMessage
     /// <param name="oldValue">変更前の拡大元画像（未設定は null）。</param>
     /// <param name="newValue">変更後の拡大元画像（未設定は null）。</param>
     /// <remarks>
-    /// LogLevel: Debug<br/>出力書式: <c>[Loupe] Setting: Source {OldValue} → {NewValue}</c><br/>
+    /// LogLevel: Debug<br/>出力書式: <c>[Loupe] 設定: Source {OldValue} → {NewValue}</c><br/>
     /// 「別のインスタンスに差し替わったか」の判断（参照の同一性）を本メソッドが単一所有する<br/>
     /// （寸法が同じ別画像への差し替えは変更として記録する）。<br/>
     /// 寸法の書式は読み取りの面（<c>EsReadOnlyBitmap.ToSizeText</c>）が単一所有し、<br/>
@@ -59,14 +59,14 @@ internal static partial class LoupeLogMessage
 
     /// <summary>設定変更のログ。</summary>
     /// LogLevel: Information<br/>
-    /// 出力書式: <c>[Loupe] Setting: {Name:l} {OldValue:l} → {NewValue:l}</c>
+    /// 出力書式: <c>[Loupe] 設定: {Name:l} {OldValue:l} → {NewValue:l}</c>
     /// <remarks>本文の書式はコアの設定変更ログと揃える（接頭辞だけが本プロジェクトを表す）。</remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} Setting: {Name:l} {OldValue:l} → {NewValue:l}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} 設定: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     /// <summary>設定変更のログ（整形済みの値を渡す）。</summary>
@@ -85,7 +85,7 @@ internal static partial class LoupeLogMessage
     /// <param name="scaling">表示 DIP → 物理ピクセルの倍率。</param>
     /// <remarks>
     /// LogLevel: Trace<br/>
-    /// 出力書式: <c>[Loupe] Geometry: display={DisplayWidth}x{DisplayHeight} (DIP) / pixel={PixelSize} / scaling={Scaling}</c><br/>
+    /// 出力書式: <c>[Loupe] ジオメトリ: 表示={DisplayWidth}x{DisplayHeight} (DIP) / 画素={PixelSize} / 倍率={Scaling}</c><br/>
     /// 接頭辞は既定値が <c>[Loupe]</c> であり、<c>Prefix</c> で設定できる。<br/>
     /// <b>割り当て（DIP）と面（物理ピクセル）の対応を 1 行で残す</b>ため、DPI の解釈がずれたときに<br/>
     /// ログだけで原因を特定できる（UI 層が違っても同じ書式で残す。 全 UI で同じ意味の値が出る）。
@@ -96,7 +96,7 @@ internal static partial class LoupeLogMessage
     /// <summary>表示の寸法を記録する（生成メソッド）。</summary>
     /// <remarks>
     /// LogLevel: Trace<br/>
-    /// 出力書式: <c>[Loupe] Geometry: display={DisplayWidth}x{DisplayHeight} (DIP) / pixel={PixelSize} / scaling={Scaling}</c><br/>
+    /// 出力書式: <c>[Loupe] ジオメトリ: 表示={DisplayWidth}x{DisplayHeight} (DIP) / 画素={PixelSize} / 倍率={Scaling}</c><br/>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
@@ -104,7 +104,7 @@ internal static partial class LoupeLogMessage
     /// <param name="displayHeight">割り当てられた高さ（DIP）。</param>
     /// <param name="pixelSize">描画に使う一辺（物理ピクセル）。</param>
     /// <param name="scaling">表示 DIP → 物理ピクセルの倍率。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Geometry: display={DisplayWidth}x{DisplayHeight} (DIP) / pixel={PixelSize} / scaling={Scaling}")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} ジオメトリ: 表示={DisplayWidth}x{DisplayHeight} (DIP) / 画素={PixelSize} / 倍率={Scaling}")]
     private static partial void LogGeometryCore(this ILogger logger, string prefix, double displayWidth, double displayHeight, int pixelSize, double scaling);
     /// <summary>ルーペ描画の例外エラーログ。</summary>
     /// <remarks>

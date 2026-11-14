@@ -141,7 +141,7 @@ internal static class MainWindow
             loupeText.Text = $"追従位置: X={e.Point.X:0} Y={e.Point.Y:0}";
         };
         marquee.ConfirmRequested += (_, e) => WriteLog($"確定要求: {FormatRect(e.Rect)}");
-        marquee.CancelRequested += (_, _) => WriteLog("キャンセル要求");
+        marquee.キャンセルが要求されました += (_, _) => WriteLog("キャンセル要求");
 
         // 選択サイズと操作ガイドはアプリ固有の情報のため、コントロールの描画完了後にホストが描く（他 UI と同じ文言・位置）
         marquee.Rendered += (_, e) =>

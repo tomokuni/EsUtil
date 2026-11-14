@@ -379,7 +379,7 @@ public class MarqueeCoreTests
 
         marquee.RequestCancel();
 
-        Assert.Equal([MarqueeNoticeKind.CancelRequested], notices.Select(n => n.Kind));
+        Assert.Equal([MarqueeNoticeKind.キャンセルが要求されました], notices.Select(n => n.Kind));
         Assert.False(marquee.HasSelection);
     }
 
@@ -443,9 +443,9 @@ public class MarqueeCoreTests
 
         Assert.Equal(
             [
-                "[Marquee] Facade created: HandleSize=14, MinSelectionSize=9",
-                "[Marquee] Logger attached",
-                "[Marquee] Logger attached",
+                "[Marquee] ファサードを作成しました: HandleSize=14, MinSelectionSize=9",
+                "[Marquee] ロガーを接続しました",
+                "[Marquee] ロガーを接続しました",
             ],
             logger.Messages);
     }
@@ -465,8 +465,8 @@ public class MarqueeCoreTests
 
         Assert.Equal(
             [
-                "[Marquee] Facade created: HandleSize=14, MinSelectionSize=6",
-                "[Marquee] Logger attached",
+                "[Marquee] ファサードを作成しました: HandleSize=14, MinSelectionSize=6",
+                "[Marquee] ロガーを接続しました",
             ],
             logger.Messages);
 
@@ -492,8 +492,8 @@ public class MarqueeCoreTests
 
         Assert.Equal(
             [
-                "[Marquee] Setting: ClientToSourceScaling 1 → 1.25",
-                "[Marquee] Setting: ClientToSourceScaling 1.25 → 2",
+                "[Marquee] 設定: ClientToSourceScaling 1 → 1.25",
+                "[Marquee] 設定: ClientToSourceScaling 1.25 → 2",
             ],
             logger.Messages);
         // 低頻度の設定変更は Debug で記録する
@@ -518,9 +518,9 @@ public class MarqueeCoreTests
 
         Assert.Equal(
             [
-                "[Marquee] Setting: HighlightSourceRect null → (1, 2, 3, 4)",
-                "[Marquee] Setting: HighlightSourceRect (1, 2, 3, 4) → (5, 6, 7, 8)",
-                "[Marquee] Setting: HighlightSourceRect (5, 6, 7, 8) → null",
+                "[Marquee] 設定: HighlightSourceRect null → (1, 2, 3, 4)",
+                "[Marquee] 設定: HighlightSourceRect (1, 2, 3, 4) → (5, 6, 7, 8)",
+                "[Marquee] 設定: HighlightSourceRect (5, 6, 7, 8) → null",
             ],
             logger.Messages);
         Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Trace, level));
@@ -542,8 +542,8 @@ public class MarqueeCoreTests
 
         // ポートは値として比較・整形できないため、設定の有無と実装型名で記録する
         Assert.Equal(2, logger.Messages.Count);
-        Assert.StartsWith("[Marquee] Setting: CoordTransform null → ", logger.Messages[0], StringComparison.Ordinal);
-        Assert.Equal("[Marquee] Setting: CoordTransform CoordTransform → null", logger.Messages[1]);
+        Assert.StartsWith("[Marquee] 設定: CoordTransform null → ", logger.Messages[0], StringComparison.Ordinal);
+        Assert.Equal("[Marquee] 設定: CoordTransform CoordTransform → null", logger.Messages[1]);
         Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Information, level));
     }
 }

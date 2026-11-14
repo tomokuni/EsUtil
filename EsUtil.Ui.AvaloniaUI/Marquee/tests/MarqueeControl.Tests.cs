@@ -382,7 +382,7 @@ public class MarqueeControlTests
         var pointer = CreatePointer();
         control.SetSelection(new Rect(20, 20, 60, 60));
         var cancelled = false;
-        control.CancelRequested += (_, _) => cancelled = true;
+        control.キャンセルが要求されました += (_, _) => cancelled = true;
 
         // 矩形外のダブルクリック（ClickCount=2）→ キャンセル要求
         control.RaiseEvent(new PointerPressedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(150, 150)), 0UL, LeftPressed(), KeyModifiers.None, 2));
@@ -783,7 +783,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var cancelled = false;
-        control.CancelRequested += (_, _) => cancelled = true;
+        control.キャンセルが要求されました += (_, _) => cancelled = true;
 
         control.RaiseEvent(new KeyEventArgs { Key = Key.Escape, RoutedEvent = InputElement.KeyDownEvent });
 

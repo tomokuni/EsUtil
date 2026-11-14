@@ -112,9 +112,9 @@ public class ThumbnailControlTests
 
         Assert.Equal(
             [
-                "[Test] Setting: ItemCount 0 → 1",
-                "[Test] Setting: ItemCount 1 → 2",
-                "[Test] Setting: ItemCount 2 → 0",
+                "[Test] 設定: ItemCount 0 → 1",
+                "[Test] 設定: ItemCount 1 → 2",
+                "[Test] 設定: ItemCount 2 → 0",
             ],
             logger.Messages);
         // 一件ずつの追加は高頻度（読み込みで件数分）のため Trace、一括のクリアは低頻度のため Debug
@@ -143,7 +143,7 @@ public class ThumbnailControlTests
         }
 
         Assert.Equal(
-            ["[Test] Setting: Image[0] null → 8x6", "[Test] Setting: Image[0] 8x6 → null"],
+            ["[Test] 設定: Image[0] null → 8x6", "[Test] 設定: Image[0] 8x6 → null"],
             logger.Messages);
     }
 

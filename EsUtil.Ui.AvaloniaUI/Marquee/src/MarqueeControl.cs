@@ -36,7 +36,7 @@ namespace EsUtil.Ui.AvaloniaUI.Marquee;
 /// <b>自己完結</b>: 矢印キーの検出・nudge 後の再描画・カーソル表示/非表示・ダブルクリックの確定/キャンセル判定を
 /// コアが担うため、ホスト依存のない動作になっている。 ホストは <see cref="SelectionStarted"/>（始点決定）/
 /// <see cref="SelectionCompleted"/>（終点決定）/ <see cref="SelectionCancelled"/>（領域キャンセル）/
-/// <see cref="ConfirmRequested"/> / <see cref="CancelRequested"/> イベントを購読して利用する。<br/>
+/// <see cref="ConfirmRequested"/> / <see cref="キャンセルが要求されました"/> イベントを購読して利用する。<br/>
 /// <br/>
 /// 寸法・対話パラメータの設定は 1 つの依存関係プロパティ（<see cref="Options"/>）で公開し、外部バインディングで制御できる<br/>
 /// （色の不透明度は色のアルファに統合。 設定値の既定値と範囲補正はコアの <see cref="MarqueeOptions"/> が単一所有する）。<br/>
@@ -402,7 +402,7 @@ public sealed partial class MarqueeControl : Panel
     /// 本コントロールが Escape / Enter キーを自己処理し（確定・キャンセルの基本動作を内包）、<br/>
     /// モード差分（確定/キャンセル後の後始末）は上位が本イベントを購読して行う。<br/>
     /// </remarks>
-    public event EventHandler? CancelRequested;
+    public event EventHandler? キャンセルが要求されました;
 
     /// <summary>描画完了（コントロールが図形を描き終えたこと）を通知するイベント。</summary>
     /// <remarks>
@@ -677,7 +677,7 @@ public sealed partial class MarqueeControl : Panel
     /// <summary>キャンセル要求を処理する（Escape キーと同じ条件）。</summary>
     /// <remarks>
     /// 外部（ホスト）が選択操作をキャンセルする際に呼ぶ。<br/>
-    /// ドラッグ中 / 選択ありの場合は選択破棄を実施した後に <see cref="CancelRequested"/> を発火する。
+    /// ドラッグ中 / 選択ありの場合は選択破棄を実施した後に <see cref="キャンセルが要求されました"/> を発火する。
     /// </remarks>
     public void RequestCancel()
     {
@@ -774,7 +774,7 @@ public sealed partial class MarqueeControl : Panel
             // コアは追従位置を汎用名（MarkerPositionMoved）で通知するため、ホスト向けの名前（ルーペ中心）へ写像する
             case MarqueeNoticeKind.MarkerPositionMoved: LoupePositionMoved?.Invoke(this, ToPointArgs(notice)); break;
             case MarqueeNoticeKind.ConfirmRequested: ConfirmRequested?.Invoke(this, ToRectArgs(notice)); break;
-            case MarqueeNoticeKind.CancelRequested: CancelRequested?.Invoke(this, EventArgs.Empty); break;
+            case MarqueeNoticeKind.キャンセルが要求されました: キャンセルが要求されました?.Invoke(this, EventArgs.Empty); break;
         }
     }
 

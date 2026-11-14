@@ -39,7 +39,7 @@ public class LoupePresenterTests
 
         presenter.Appearance = LoupeAppearance.Default with { ShowCrosshair = false };
 
-        Assert.Equal("[Loupe] Setting: ShowCrosshair True → False", Assert.Single(logger.Messages));
+        Assert.Equal("[Loupe] 設定: ShowCrosshair True → False", Assert.Single(logger.Messages));
     }
 
     /// <summary>同値の再設定では記録しないことを検証する。</summary>
@@ -69,10 +69,10 @@ public class LoupePresenterTests
 
         Assert.Equal(
             [
-                "[Loupe] Facade created: RequestedSize=160, ZoomLevel=4",
-                "[Loupe] Logger attached",
-                "[Loupe] Presenter created",
-                "[Loupe] Logger attached",
+                "[Loupe] ファサードを作成しました: RequestedSize=160, ZoomLevel=4",
+                "[Loupe] ロガーを接続しました",
+                "[Loupe] 提示層を作成しました",
+                "[Loupe] ロガーを接続しました",
             ],
             logger.Messages);
     }
@@ -88,13 +88,13 @@ public class LoupePresenterTests
 
         Assert.Equal(
             [
-                "[Loupe] Facade created: RequestedSize=160, ZoomLevel=4",
-                "[Loupe] Logger attached",
-                "[Loupe] Presenter created",
+                "[Loupe] ファサードを作成しました: RequestedSize=160, ZoomLevel=4",
+                "[Loupe] ロガーを接続しました",
+                "[Loupe] 提示層を作成しました",
             ],
             logger.Messages);
 
-        // 注入後に同じロガーを設定し直しても生成の記録は繰り返さない（Logger attached だけが増える）
+        // 注入後に同じロガーを設定し直しても生成の記録は繰り返さない（ロガーを接続しました だけが増える）
         presenter.Log = logger;
 
         Assert.Equal(4, logger.Messages.Count);
@@ -113,8 +113,8 @@ public class LoupePresenterTests
 
         Assert.Equal(
             [
-                "[Loupe] Setting: ZoomLevel 4 → 8",
-                "[Loupe] Setting: ShowCrosshair True → False",
+                "[Loupe] 設定: ZoomLevel 4 → 8",
+                "[Loupe] 設定: ShowCrosshair True → False",
             ],
             logger.Messages);
     }
@@ -135,7 +135,7 @@ public class LoupePresenterTests
         presenter.Options = LoupeOptions.Default with { ZoomLevel = 8 };
 
         Assert.Equal(
-            ["[Loupe] Setting: ZoomLevel 4 → 8"],
+            ["[Loupe] 設定: ZoomLevel 4 → 8"],
             logger.Messages);
     }
 }
