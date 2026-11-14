@@ -25,9 +25,9 @@ public static class WindowsGraphicsCaptureSupport
     private const string SessionType = "Windows.Graphics.Capture.GraphicsCaptureSession";
 
     /// <summary>画面（モニター）の撮影ができるかを返す。</summary>
-    /// <value>Windows 10 1803（ビルド 17134）以降で、かつ WGC の型が実在する場合は true。</value>
-    /// <remarks>ディスプレイ全体の撮影（<c>CreateFromDisplayMonitor</c>）は 1803 で追加された。</remarks>
-    public static bool IsDisplayCaptureSupported { get; } = Check(10, 0, 17134, () => ApiInformation.IsTypePresent(ItemType));
+    /// <value>Windows 10 1809（ビルド 17763）以降で、かつ WGC の型が実在する場合は true。</value>
+    /// <remarks>API 自体は 1803 で追加されたが、本リポジトリの実装が使うフレーム プール（<c>CreateFreeThreaded</c>）が 1809 のため、1809 を下限にする。</remarks>
+    public static bool IsDisplayCaptureSupported { get; } = Check(10, 0, 17763, () => ApiInformation.IsTypePresent(ItemType));
 
     /// <summary>ウィンドウの撮影ができるかを返す。</summary>
     /// <value>Windows 10 1809（ビルド 17763）以降で、かつ WGC の型が実在する場合は true。</value>
@@ -67,7 +67,7 @@ public static class WindowsGraphicsCaptureSupport
     {
         if (!IsDisplayCaptureSupported)
         {
-            return "この環境では Windows.Graphics.Capture を使えません（Windows 10 1803 以降が必要です）";
+            return "この環境では Windows.Graphics.Capture を使えません（Windows 10 1809 以降が必要です）";
         }
 
         if (!IsWindowCaptureSupported)
