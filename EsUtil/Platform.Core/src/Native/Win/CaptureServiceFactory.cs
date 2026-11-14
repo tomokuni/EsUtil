@@ -15,11 +15,16 @@ public static class CaptureServiceFactory
 {
     /// <summary>指定の方式に対応するキャプチャ サービスを作る。</summary>
     /// <param name="method">設定された方式。</param>
+    /// <param name="includeCursor">撮影にカーソルを含めるか。</param>
+    /// <param name="hideBorder">撮影中の枠を消すか（消せない環境では無視される）。</param>
     /// <returns>キャプチャ サービス。 WGC が使えない環境では GDI の実装。</returns>
-    /// <remarks>返したインスタンスは呼び出し側が所有する（破棄は不要。 どちらも状態を持たない）。</remarks>
-    public static ICaptureService Create(CaptureMethod method)
-        => method == CaptureMethod.WindowsGraphicsCapture && WindowsGraphicsCaptureSupport.IsSupported
-            ? new WinGraphicsCaptureService()
+    /// <remarks>
+    /// 返したインスタンスは呼び出し側が所有する（破棄は不要。 どちらも状態を持たない）。<br/>
+    /// <b>カーソルを写さない設定で 1903 未満の場合</b>は、WGC がカーソルを外せないため GDI を返す（設定に反しない）。
+    /// </remarks>
+    public static ICaptureService Create(CaptureMethod method, bool includeCursor = true, bool hideBorder = true)
+        => Resolve(method) == CaptureMethod.WindowsGraphicsCapture
+            ? new WinGraphicsCaptureService(includeCursor, hideBorder)
             : new WinCaptureService();
 
     /// <summary>実際に使われる方式を返す（設定値が使えない場合は GDI）。</summary>
