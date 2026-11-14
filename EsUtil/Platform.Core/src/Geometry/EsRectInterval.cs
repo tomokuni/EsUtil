@@ -8,7 +8,7 @@ namespace EsUtil.Platform.Core.Geometry;
 /// <b>用途</b>: ドラッグで作る矩形は「始点から終点まで（両端を含む）」を意図するため <see cref="Closed"/>、<br/>
 /// OS の検出結果（<c>RECT</c> 等）は終点を含まないピクセル数のため <see cref="HalfOpen"/> として扱う。<br/>
 /// ピクセル数へ変換するときの <c>+1</c> の判断は本値が単一所有し、下流の層は再判定しない。<br/>
-/// <b>既定</b>: <see cref="HalfOpen"/>（幅 = ピクセル数。 従来の挙動を変えない）。
+/// <b>既定</b>: <see cref="HalfOpen"/>（幅 = ピクセル数）。
 /// </remarks>
 public enum EsRectInterval
 {

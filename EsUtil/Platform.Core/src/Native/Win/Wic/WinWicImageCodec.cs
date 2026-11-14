@@ -1114,7 +1114,7 @@ internal static unsafe class WinWicImageCodec
     /// <exception cref="ArgumentOutOfRangeException">オプションの値が許容範囲外の場合。</exception>
     /// <exception cref="NotSupportedException">拡張子が対応形式でない場合、または設定されたオプションがその形式で使えない場合。</exception>
     /// <remarks>
-    /// <b>形式を指定しない場合は拡張子が形式を決める</b>（従来の挙動を変えない）。
+    /// <b>形式を指定しない場合は拡張子が形式を決める</b>。
     /// <b>形式を指定した場合は形式が優先</b>され、拡張子が無ければ補完し、食い違いは
     /// <see cref="EsImageSaveOptions.IgnoreFormatMismatch"/> で判定する。
     /// </remarks>
@@ -1123,7 +1123,7 @@ internal static unsafe class WinWicImageCodec
         var extension = Path.GetExtension(filePath);
         if (options.Format is not EsImageFileFormat requested)
         {
-            // 形式の指定が無い場合は拡張子が形式を決める（未対応の拡張子は従来どおり拒否する）
+            // 形式の指定が無い場合は拡張子が形式を決める（未対応の拡張子は拒否する）
             return (ResolveExtension(extension, options), filePath);
         }
 

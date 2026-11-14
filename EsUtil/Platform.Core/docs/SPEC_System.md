@@ -15,7 +15,7 @@ UI フレームワーク非依存の共通基盤の型を提供するライブ�
   - [7.2 コア型の命名](#72-コア型の命名)
   - [7.3 Win32 API の宣言と WndProc のサブクラス化](#73-win32-api-の宣言と-wndproc-のサブクラス化)
     - [7.3.1 COM の 2 件だけを手書きする理由（実測 2026-10-21）](#731-com-の-2-件だけを手書きする理由実測-2026-10-21)
-    - [7.3.2 関数の宣言方法の比較（実測 2026-10-22）](#732-関数の宣言方法の比較実測-2026-10-22)
+    - [7.3.2 関数の宣言方法の比較](#732-関数の宣言方法の比較)
   - [7.4 ルート名前空間に置くのは窓口だけにする（実測 2026-10-23）](#74-ルート名前空間に置くのは窓口だけにする実測-2026-10-23)
 - [8. 依存の判定基準（本プロジェクトの存在理由）](#8-依存の判定基準本プロジェクトの存在理由)
 
@@ -234,9 +234,9 @@ internal static partial int CreateStreamOnHGlobal(IntPtr memory, int deleteOnRel
 - **.NET 側に AOT 安全な代替は無い**: `Type.GetTypeFromCLSID` / `Activator.CreateInstance` / `Marshal.GetObjectForIUnknown` はいずれもクラシック相互運用であり AOT で失敗する（実測）。 COM の起動は `CoCreateInstance` を直接呼ぶしかない。
 - **`[LibraryImport]` の宣言だけを書く**ため、`DllImport` の手書きマーシャリング（`MarshalAs` の列など）は発生しない。 文字列・構造体・コールバックの生成は CsWin32 のままである。
 
-#### 7.3.2 関数の宣言方法の比較（実測 2026-10-22）
+#### 7.3.2 関数の宣言方法の比較
 
-`CoCreateInstance` / `CreateStreamOnHGlobal` のような**エクスポートされた C 関数**を宣言する方法は 4 通りあり、実測で次のようになりました。
+`CoCreateInstance` / `CreateStreamOnHGlobal` のような**エクスポートされた C 関数**を宣言する方法は 4 通りあり、実測結果は次のとおりです。
 
 | 方法 | 実測結果 | 判定 |
 | --- | --- | --- |
@@ -249,9 +249,9 @@ internal static partial int CreateStreamOnHGlobal(IntPtr memory, int deleteOnRel
 - **`SYSLIB1054`（`DllImport` を `LibraryImport` へ置き換えよという指摘）は .NET 10 + `IsAotCompatible` では出なかった**（実測）。 Microsoft は強制はしないが、**AOT 互換のためには `LibraryImport` が推奨**である（`DllImport` は実行時マーシャリングに依存する）。
 - **`LibraryImport` を選ぶ決め手**: (1) 宣言が型付きで残る（IntelliSense・XML doc・引数検査）、(2) マーシャリングをソース生成するため AOT で安全、(3) `[GeneratedComInterface]` の型を引数に取れる（`ComInterfaceMarshaller` が変換する）。
 
-**`out` をインターフェイス型にするか、生ポインターにするか（実測 2026-10-22）**
+**`out` をインターフェイス型にするか、生ポインターにするか**
 
-`out` に `[GeneratedComInterface]` の型を書く方法と、`out nint` で受けて `ComInterfaceMarshaller<T>.ConvertToManaged` する方法を実際に両方ビルドして比べました。
+`out` に `[GeneratedComInterface]` の型を書く方法と、`out nint` で受けて `ComInterfaceMarshaller<T>.ConvertToManaged` する方法を比較します。
 
 | 観点 | `out IStream`（**採用**） | `out nint` + `ConvertToManaged` |
 | --- | --- | --- |
