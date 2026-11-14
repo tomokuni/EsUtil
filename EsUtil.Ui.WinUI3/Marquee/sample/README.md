@@ -46,7 +46,7 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 
 | 項目 | 要件 |
 | --- | --- |
-| OS | Windows 10 ビルド 19041 以降 |
+| OS | Windows 10 ビルド 18362 以降 |
 | .NET | .NET 10 SDK |
 | 実行時の配置 | 通常のビルドはインストール済みの Windows App SDK ランタイムを使う（`-r` を渡したときだけ同封。 MSIX でのインストールは不要） |
 
@@ -59,7 +59,7 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 | 左ドラッグ（ハンドルの上） | リサイズ・移動（ハンドルは 8 方向） |
 | 矢印キー | nudge（1 対象ピクセル単位の微調整。 十字マーカーが出る） |
 | Enter / 「確定」ボタン | 確定（`ConfirmRequested` が発火し、選択がクリアされる） |
-| Escape / 「キャンセル」ボタン | キャンセル（`CancelRequested` が発火し、選択が消える） |
+| Escape / 「キャンセル」ボタン | キャンセル（`キャンセルが要求されました` が発火し、選択が消える） |
 | 選択矩形の内側をダブルクリック | 確定 |
 | 選択矩形の外側をダブルクリック | キャンセル |
 | 「選択をクリア」ボタン | 選択を消す（`ResetSelection()`） |
@@ -79,7 +79,7 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 | ハンドルのリサイズ | ハンドルをドラッグすると矩形の辺が動き、カーソル形状が方向に応じて変わる |
 | 矢印キー | nudge が始まり十字マーカーが出る。 フォーカスを外すと nudge が終わりカーソルが戻る |
 | Enter | `ConfirmRequested` が出て選択が消える |
-| Escape | ドラッグ中なら `SelectionCancelled`、選択ありなら `CancelRequested` が出る |
+| Escape | ドラッグ中なら `SelectionCancelled`、選択ありなら `キャンセルが要求されました` が出る |
 | 表示倍率 | 倍率を変えると選択矩形の表示位置・寸法が追随する（ラベルの数値は対象座標のまま） |
 | 見本 | 枠線が破線、内側に三分割のガイド線が出る（チェックを外すと既定に戻る） |
 | ログ | コントロール内部のログ（`[Marquee]` の接頭辞）とサンプルの通知が同じ表示に並ぶ |

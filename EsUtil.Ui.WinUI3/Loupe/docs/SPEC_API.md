@@ -34,7 +34,7 @@
 利用の前提:
 
 - 参照する側は WinUI 3（Windows App SDK）のプロジェクトとする（対象フレームワークは `net10.0-windows10.0.22621.0`、`UseWinUI` を有効にする）。
-- 対応する OS は Windows 10 19041 以降とする（本体のプロジェクト ファイルが `SupportedOSPlatformVersion` を定める）。
+- 対応する OS は Windows 10 18362 以降とする（本体のプロジェクト ファイルが `SupportedOSPlatformVersion` を定める）。
 - 公開プロパティは **CLR プロパティ**であるため、XAML のバインディング（`{x:Bind}` / `{Binding}`）では設定できない。 コードビハインドから設定する（理由は [`SPEC_System.md`](SPEC_System.md) の設計判断を参照）。
 
 ## 2. 公開 API
@@ -201,8 +201,8 @@ if (layout.Position is { } position)
 
 | レベル | 出力書式 | 所有者 |
 | --- | --- | --- |
-| Information | `[Loupe] Setting: Source {前} → {後}` | 本プロジェクトの `LoupeLogMessage`（拡大元画像） |
-| Information | `[Loupe] Setting: {名前} {前} → {後}` | コア（設定値・環境値・拡大中心）と提示層（外観） |
+| Information | `[Loupe] 設定: Source {前} → {後}` | 本プロジェクトの `LoupeLogMessage`（拡大元画像） |
+| Information | `[Loupe] 設定: {名前} {前} → {後}` | コア（設定値・環境値・拡大中心）と提示層（外観） |
 | Error | `[Loupe] Update exception` | 本プロジェクトの `LoupeLogMessage`（描画の例外） |
 | Error | `[Loupe] {操作} で例外が発生` | 本プロジェクトの `LoupeLogMessage`（公開 API の例外） |
 

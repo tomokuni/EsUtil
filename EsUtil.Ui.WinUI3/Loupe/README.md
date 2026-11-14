@@ -3,7 +3,7 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Loupe.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(2004)%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1903)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
@@ -59,7 +59,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.22621.0`（Windows App SDK 2.6 以降） |
-| 対応 OS | Windows 10 バージョン 2004（ビルド 19041）以降 |
+| 対応 OS | Windows 10 バージョン 1903（ビルド 18362）以降 |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測） |
 
@@ -141,7 +141,7 @@ if (layout.Position is { } position)
 
 | レベル | 出力例 |
 | --- | --- |
-| Information | `[Loupe] Setting: Source 800x600 → null`（拡大元画像。 本プロジェクトのログ定義） / `[Loupe] Setting: ZoomLevel 4 → 8`（コアの設定値。 `RequestedSize` / `ClientToPixelScaling` も同じ書式） / `[Loupe] Setting: ShowCrosshair True → False`（外観。 変化した項目だけを出力する） |
+| Information | `[Loupe] 設定: Source 800x600 → null`（拡大元画像。 本プロジェクトのログ定義） / `[Loupe] 設定: ZoomLevel 4 → 8`（コアの設定値。 `RequestedSize` / `ClientToPixelScaling` も同じ書式） / `[Loupe] 設定: ShowCrosshair True → False`（外観。 変化した項目だけを出力する） |
 | Error | `[Loupe] Update exception`（描画の例外。 アプリは継続する） / `[Loupe] SetCoordTransform で例外が発生`（公開 API の例外。 記録して再送出する） |
 
 変化判定（同一値・同一インスタンスなら出力しない）は出力する主体のログ定義が単一所有するため、ホストは同値判定を持ちません。

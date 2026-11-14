@@ -149,10 +149,10 @@ marquee.SelectionCompleted += (_, e) => OnSelectionCompleted(e.Rect);
 marquee.SelectionCancelled += (_, _) => OnSelectionCancelled();
 marquee.LoupePositionMoved += (_, e) => UpdateLoupe(e.Point);
 marquee.ConfirmRequested += (_, e) => ConfirmSelection(e.Rect);
-marquee.CancelRequested += (_, _) => CancelSelection();
+marquee.キャンセルが要求されました += (_, _) => CancelSelection();
 ```
 
-`Escape` / `Enter` キーはコントロールが自己処理し、それぞれ `CancelRequested` / `ConfirmRequested` を発火します。 上位はこのイベントを購読して後始末（確定・キャンセル後の処理）を行います。
+`Escape` / `Enter` キーはコントロールが自己処理し、それぞれ `キャンセルが要求されました` / `ConfirmRequested` を発火します。 上位はこのイベントを購読して後始末（確定・キャンセル後の処理）を行います。
 
 #### 4.2.1 ラベル（文字）の表示
 
@@ -270,7 +270,7 @@ control.ResetSelection();           // 状態と nudge の初期化
 | `Log` | `ILogger` | 操作ログ用ロガー（既定は `NullLogger`。 出力先・レベル制御はホストアプリケーションが所有） |
 | `LogPrefix` | `string?` | ログの接頭辞（ロガーと一緒に設定する。 null・空白で既定値 `[Marquee]` へ戻す。 コアと提示層のログの両方に適用する） |
 
-操作ログの書式・レベルは MewUI 版と同一です。 ログは機能アセンブリ（`EsUtil.Feature.Marquee.Logging.MarqueeLogMessage`。 コアと提示層で共有）が定義し、ロガーはファサード（`MarqueeCore.Log`）が保持します。 Debug で操作（MouseDown / MouseUp / DoubleClick / DragStart / KeyDown / ConfirmRequested / CancelRequested）を、Information で**設定の変更**（`[Marquee] Setting: {名前} {前} → {後}`。 変化した項目だけ）を、Trace で位置の記録を出力します。 本プロジェクト自身は、公開操作を提示層へ委譲した際の例外（`MarqueeLogMessage.LogOperationError`。 Error）だけを定義します。
+操作ログの書式・レベルは MewUI 版と同一です。 ログは機能アセンブリ（`EsUtil.Feature.Marquee.Logging.MarqueeLogMessage`。 コアと提示層で共有）が定義し、ロガーはファサード（`MarqueeCore.Log`）が保持します。 Debug で操作（MouseDown / MouseUp / DoubleClick / DragStart / KeyDown / ConfirmRequested / キャンセルが要求されました）を、Information で**設定の変更**（`[Marquee] 設定: {名前} {前} → {後}`。 変化した項目だけ）を、Trace で位置の記録を出力します。 本プロジェクト自身は、公開操作を提示層へ委譲した際の例外（`MarqueeLogMessage.LogOperationError`。 Error）だけを定義します。
 
 #### 5.1.4 描画
 
@@ -294,7 +294,7 @@ marquee.Appearance = MarqueeAppearance.Default with { BorderColor = Colors.White
 | `SetCoordTransform(ICoordTransform?)` | 対象↔DIP 座標変換ポートを設定する（null = 等価変換） |
 | `InvalidateRender()` | 表示（パン・ズーム・表示サイズ）の変化へ追従する（再描画とルーペ位置の再計算を要求。 選択の状態は変更しない） |
 | `InvalidateRender()` | 描画内容の再解決と、図形・ラベルの再描画を要求する（**描画に関わる変更の唯一の入口**。 図形は子の描画層が描くため、親の無効化だけでは更新されない） |
-| `RequestCancel()` | キャンセル要求を処理する（Escape キーと同じ条件。 選択破棄後に `CancelRequested` を発火） |
+| `RequestCancel()` | キャンセル要求を処理する（Escape キーと同じ条件。 選択破棄後に `キャンセルが要求されました` を発火） |
 | `RequestConfirm()` | 確定要求を処理する（Enter キーと同じ条件。 ドラッグ中は無視し `ConfirmRequested` を発火。 確定後に選択状態をクリアして再選択・再確定を防ぐ） |
 | `DrawPlan(DrawingContext, in MarqueeDrawPlan)`（static） | 描画計画を自 UI の描画面へ描く（計画どおりに描く。 表示を止めた項目はフラグを見て描かないため描かれない） |
 
@@ -311,7 +311,7 @@ marquee.Appearance = MarqueeAppearance.Default with { BorderColor = Colors.White
 | `LoupePositionMoved` | `MarqueePointEventArgs` | ルーペが表示する中心座標（対象座標） |
 | `LoupePositionMoved` | `MarqueePointEventArgs` | ドラッグ・nudge 中のルーペ中心位置（対象座標。 リサイズ: アクティブハンドル点 / 移動: 掴んだマウス位置 / 新規選択・nudge: 終点） |
 | `ConfirmRequested` | `SelectionRectEventArgs` | Enter キーによる確定要求 |
-| `CancelRequested` | `EventArgs` | Escape キーによるキャンセル要求 |
+| `キャンセルが要求されました` | `EventArgs` | Escape キーによるキャンセル要求 |
 | `Rendered` | `MarqueeRenderedEventArgs` | 描画完了の通知（描画のたびに発火）。 `Context`（`DrawingContext`）と描画計画（`Content` = `MarqueeDrawPlan`）を渡す。 **サイズ・カーソル座標ラベルは本コントロールがテキスト要素として表示する**ため、ホストは付加情報（操作・情報ラベル）の描画に使う |
 
 すべての座標イベントは対象座標で通知されます。
@@ -477,7 +477,7 @@ nudge 中は OS カーソルを非表示にし、十字マーカーを追従位�
 ## 9. 制約事項
 
 - 矢印キーによる nudge はフォーカスに依存しません（`TopLevel` のキーイベントを**トンネル**で購読し、フォーカスがどこにあっても 1 回だけ処理します。 コントロール自身のキーハンドラは持たないため、キーが二重に処理されることはありません）。
-- `Escape` / `Enter` はコントロールが自己処理し、`CancelRequested` / `ConfirmRequested` を発火します（上位はイベント購読で後始末を行う）。 プログラムからは `RequestCancel()` / `RequestConfirm()` で同一条件の要求を発行できます。
+- `Escape` / `Enter` はコントロールが自己処理し、`キャンセルが要求されました` / `ConfirmRequested` を発火します（上位はイベント購読で後始末を行う）。 プログラムからは `RequestCancel()` / `RequestConfirm()` で同一条件の要求を発行できます。
 - `Options.HandleHitRadius` の単位は **DIP 座標**、`Options.MinSelectionSize` の単位は対象座標です。
 - 既定のカーソルサービスは Windows 実装（`WinCursorService`）です。 他プラットフォームでは `ICursorService` を注入してください。
 - リサイズハンドル（8 方向）でマウス Down すると、ポインタ（OS カーソル）がハンドル点へスナップされます（ポインタ・矩形の角・ルーペを一体にするため）。 移動（Move）の Down ではスナップされません。

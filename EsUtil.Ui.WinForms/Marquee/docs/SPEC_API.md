@@ -100,7 +100,7 @@
 | `SetSelection(EsRect)` | 選択矩形を外部状態から復元する。 境界がある場合はクリップしてから設定し、`SelectionChanged` を発火する。 |
 | `ResetSelection()` | 選択状態と nudge 状態を初期化する。 nudge 中だった場合はカーソルを再表示する。 |
 | `RequestConfirm()` | 確定要求を処理する（Enter キーと同じ条件）。 選択確定後のみ `ConfirmRequested` を発火し、選択状態をクリアする。 |
-| `RequestCancel()` | キャンセル要求を処理する（Escape キーと同じ条件）。 ドラッグ中 / 選択ありの場合は選択を破棄した後に `CancelRequested` を発火する。 |
+| `RequestCancel()` | キャンセル要求を処理する（Escape キーと同じ条件）。 ドラッグ中 / 選択ありの場合は選択を破棄した後に `キャンセルが要求されました` を発火する。 |
 | `TryGetCurrentLoupePosition(out EsPoint)` | 追従位置（ルーペ中心。 対象座標）を実カーソルから取り直す。 追従していない場合（ドラッグ中・nudge 中・ポインターがコントロールの外）とカーソル位置を取得できない場合は false を返す。 |
 | `InvalidateRender()` | 描画計画の再解決と再描画を要求する（描画に関わる変更の唯一の入口）。 |
 | `DrawPlan(Graphics, in MarqueeDrawPlan)` | 描画計画を描画面へ描く（静的）。 計画どおりに描くため、外観で止めている項目は描かれない。 自前の描画と組み合わせる場合に使う。 |
@@ -128,7 +128,7 @@
 | `SelectionCancelled` | `EventHandler` | 領域のキャンセル（小さすぎる矩形・枠外ダブルクリック等）。 |
 | `LoupePositionMoved` | `EventHandler<MarqueePointEventArgs>` | ルーペが表示する中心座標の移動（通常追従ではポインター位置、ドラッグ・nudge 中は動いている側のハンドル位置）。 |
 | `ConfirmRequested` | `EventHandler<SelectionRectEventArgs>` | 確定要求（Enter・矩形内ダブルクリック・`RequestConfirm`）。 ドラッグ中は発火しない。 |
-| `CancelRequested` | `EventHandler` | キャンセル要求（Escape・枠外ダブルクリック・`RequestCancel`）。 選択の破棄は実施済み。 |
+| `キャンセルが要求されました` | `EventHandler` | キャンセル要求（Escape・枠外ダブルクリック・`RequestCancel`）。 選択の破棄は実施済み。 |
 | `Rendered` | `EventHandler<MarqueeRenderedEventArgs>` | 描画完了。 ホスト固有の付加情報を描く入口。 描画中に発火するため、ハンドラー内で描画を完了させる（描画面を保持しない）。 |
 
 - **生のポインター入力のイベントは持ちません**（押下・解放・移動は自 UI のイベントで観測します）。 押下状態は `MarqueeSnapshot.IsMouseDown` でも取得できます。
@@ -262,7 +262,7 @@ marquee.SetCoordTransform(CoordTransform.ClientToSource(() => 1.0, () => new EsS
 
 marquee.SelectionCompleted += (_, e) => Console.WriteLine($"確定: {e.Rect}");
 marquee.ConfirmRequested += (_, e) => Console.WriteLine($"Enter で確定: {e.Rect}");
-marquee.CancelRequested += (_, _) => Console.WriteLine("キャンセル");
+marquee.キャンセルが要求されました += (_, _) => Console.WriteLine("キャンセル");
 marquee.LoupePositionMoved += (_, e) => UpdateLoupeCenter(e.Point);
 
 pictureBox.Controls.Add(marquee);

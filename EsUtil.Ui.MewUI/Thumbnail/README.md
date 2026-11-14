@@ -64,7 +64,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.17763.0` |
-| 対応 OS | Windows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1809（ビルド 17763）以降。 |
+| 対応 OS | Windows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1703（ビルド 15063）以降。 |
 | UI フレームワーク | MewUI 0.22.1（`MewUIVersion` プロパティで固定） |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測） |
@@ -144,8 +144,8 @@ var bounds = list.SlotBounds(index);
 
 | レベル | 出力例 |
 | --- | --- |
-| Information | `[Thumbnail] Setting: ImageWidth 160 → 110` / `[Thumbnail] Setting: Image[0] null → 96x64`（画像の差し替え） / `[Thumbnail] Setting: ItemCount 12 → 0`（クリア） |
-| Trace | `[Thumbnail] Setting: ItemCount 0 → 1`（1 件ずつの追加） |
+| Information | `[Thumbnail] 設定: ImageWidth 160 → 110` / `[Thumbnail] 設定: Image[0] null → 96x64`（画像の差し替え） / `[Thumbnail] 設定: ItemCount 12 → 0`（クリア） |
+| Trace | `[Thumbnail] 設定: ItemCount 0 → 1`（1 件ずつの追加） |
 
 `Log` へ `ILogger` を設定します（null は `NullLogger`）。 接頭辞は `LogPrefix` で設定し、コアと提示層のログの両方に適用します（既定 `[Thumbnail]`）。 設定・外観の変更は提示層、選択の変更はコアが記録します。
 

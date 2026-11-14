@@ -8,7 +8,7 @@
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-**対応 OS**: Windows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1809（ビルド 17763）以降
+**対応 OS**: Windows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1703（ビルド 15063）以降
 
 複数のアイテムを複数の列へ並べ、**最大列高さを最小化**する UI 非依存のレイアウト計算ライブラリです。
 名前空間は `EsUtil.Feature.ColumnPacking`、アセンブリ名は `EsUtil.Feature.ColumnPacking.Core` です（`EsUtil.Feature.Loupe.Core` などと同じく、**層の接尾辞はアセンブリ名だけに付ける**規則です。 型名 `ColumnPacker` はパッケージ名と一致しません）。

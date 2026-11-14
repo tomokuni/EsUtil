@@ -3,12 +3,12 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Thumbnail.Core.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1809)%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1703)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-**対応 OS**: `ThumbnailImageLoader`（WIC で画像を読む）は Windows 10 バージョン 1809（ビルド 17763）以降。 それ以外はWindows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1809（ビルド 17763）以降。
+**対応 OS**: `ThumbnailImageLoader`（WIC で画像を読む）は Windows 10 バージョン 1703（ビルド 15063）以降。 それ以外はWindows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1703（ビルド 15063）以降。
 
 ## 1. 概要
 

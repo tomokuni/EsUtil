@@ -120,7 +120,7 @@ Avalonia 版と同一の挙動になります。
 | `LoupePositionMoved` | `MarqueePointEventArgs` | ルーペが表示する中心座標 |
 | `LoupePositionMoved` | `MarqueePointEventArgs` | ルーペが表示する中心座標（通常追従はポインタ位置、ドラッグ・nudge 中は動いている側のハンドル位置） |
 | `ConfirmRequested` | `SelectionRectEventArgs` | 矩形内ダブルクリック・Enter |
-| `CancelRequested` | `EventArgs` | 矩形外ダブルクリック・Escape・`RequestCancel()` |
+| `キャンセルが要求されました` | `EventArgs` | 矩形外ダブルクリック・Escape・`RequestCancel()` |
 | `Rendered` | `MarqueeRenderedEventArgs` | 描画完了の通知（描画のたびに発火）。 `Canvas`（DPI スケーリング済み・描画中のみ有効）と描画計画（`Content` = `MarqueeDrawPlan`）を渡す。 **サイズ・座標ラベルはコントロールがテキスト要素として表示する**ため、ホストは付加情報（操作・情報ラベル）の描画に使う |
 
 座標系はすべて対象座標です。
@@ -152,10 +152,10 @@ marquee.Rendered += (_, e) =>
 | 左ドラッグ（ハンドル上） | 8 方向のリサイズ。 ハンドル位置は 1 対象ピクセル精度でカーソルに追従する |
 | 左ドラッグ（矩形内） | 移動（サイズを維持する） |
 | ダブルクリック（矩形内） | `ConfirmRequested` を発火して選択をクリアする |
-| ダブルクリック（矩形外） | `CancelRequested` を発火する（選択は保持する） |
+| ダブルクリック（矩形外） | `キャンセルが要求されました` を発火する（選択は保持する） |
 | 矢印キー | nudge（1 対象ピクセル単位）。 未選択時は始点、選択確定後・ドラッグ中は終点、ハンドル選択中はそのハンドルを動かす |
 | Enter | `ConfirmRequested` を発火して選択をクリアする（ドラッグ中・未選択では何もしない） |
-| Escape | `CancelRequested` を発火する（選択があれば破棄する） |
+| Escape | `キャンセルが要求されました` を発火する（選択があれば破棄する） |
 | ホイール（Ctrl 併用・なしとも） | **本コントロールは扱わない**（素通しする。 ズーム・パンの解釈と実処理はホストが行う） |
 | （解釈の所有者） | ホイール操作はコントロール化を前提とした処理であり、**ホスト**（UI 層）がビューポートへ転送する |
 
@@ -185,7 +185,7 @@ marquee.Rendered += (_, e) =>
 
 | レベル | 出力内容 |
 | --- | --- |
-| Debug | `MouseDown`（位置・クリック数・選択有無）/ `MouseUp`（位置・ドラッグ有無・選択有無）/ `DoubleClick`（矩形内か）/ `DragStart`（ハンドル・位置）/ `KeyDown`（キー・処理有無）/ `ConfirmRequested`（矩形）/ `CancelRequested` / `Setting`（`Options.ClampToSourceBounds` の変更前後）/ 外観・表示スケーリングの変更（提示層の `MarqueeLogMessage`） |
+| Debug | `MouseDown`（位置・クリック数・選択有無）/ `MouseUp`（位置・ドラッグ有無・選択有無）/ `DoubleClick`（矩形内か）/ `DragStart`（ハンドル・位置）/ `KeyDown`（キー・処理有無）/ `ConfirmRequested`（矩形）/ `キャンセルが要求されました` / `Setting`（`Options.ClampToSourceBounds` の変更前後）/ 外観・表示スケーリングの変更（提示層の `MarqueeLogMessage`） |
 | Error | 公開操作を提示層へ委譲した際の例外（本プロジェクトの `MarqueeLogMessage.LogOperationError`） |
 | Trace | `MouseDown 直前の位置` / `MouseUp 直後の位置` |
 

@@ -79,7 +79,7 @@
 | `SetSelection(EsRect)` | 選択矩形を外部状態から復元します。 境界が有効な場合は境界内へクリップしてから設定し、`SelectionChanged` を発火します |
 | `ResetSelection()` | 選択状態と nudge 状態を初期化します。 nudge 中だった場合はカーソルを再表示します |
 | `RequestConfirm()` | 確定要求を処理します（Enter キーと同じ条件。 ドラッグ中は無視し、選択確定後のみ `ConfirmRequested` を発火します） |
-| `RequestCancel()` | キャンセル要求を処理します（Escape キーと同じ条件。 選択を破棄してから `CancelRequested` を発火します） |
+| `RequestCancel()` | キャンセル要求を処理します（Escape キーと同じ条件。 選択を破棄してから `キャンセルが要求されました` を発火します） |
 | `TryGetCurrentLoupePosition(out EsPoint)` | 追従位置（ルーペ中心。 対象座標）を実カーソルから取り直します。 追従していない場合（ドラッグ中・nudge 中）とポインターがコントロールの外にある場合は `false` を返します |
 | `InvalidateRender()` | 描画計画の再解決と再描画を要求します（座標変換ポートが参照するホスト側の状態を変えたときに呼びます） |
 
@@ -102,12 +102,12 @@
 | `SelectionCancelled` | `EventArgs` | 領域がキャンセルされたとき（小さすぎる矩形・選択矩形の外側のダブルクリック） |
 | `LoupePositionMoved` | `MarqueePointEventArgs` | ルーペが表示する中心（対象座標）が動いたとき。 通常追従ではポインター位置、ドラッグ・nudge 中は動いている側のハンドル位置 |
 | `ConfirmRequested` | `SelectionRectEventArgs` | 確定要求（Enter または選択矩形の内側のダブルクリック） |
-| `CancelRequested` | `EventArgs` | キャンセル要求（Escape または選択矩形の外側のダブルクリック） |
+| `キャンセルが要求されました` | `EventArgs` | キャンセル要求（Escape または選択矩形の外側のダブルクリック） |
 | `Rendered` | `MarqueeRenderedEventArgs` | コントロールが図形とラベルを描き終えたとき。 描画中のみ有効なキャンバス（表示倍率を適用済み）と描画内容を渡します |
 
 - `MarqueePointEventArgs.Point` / `SelectionRectEventArgs.Rect` は **対象座標**です。
 - 両方のイベント引数は通知時点のスナップショット（`MarqueeSnapshot`）を持ちます。
-- `SelectionCancelled` / `CancelRequested` は `EventArgs` を使います（矩形が決まらない通知のため）。
+- `SelectionCancelled` / `キャンセルが要求されました` は `EventArgs` を使います（矩形が決まらない通知のため）。
 
 ### 7.1 ラベルの表示
 
@@ -180,7 +180,7 @@ Marquee.SetCoordTransform(CoordTransform.ClientToSource(() => zoom, () => new Es
 Marquee.SetSelection(new EsRect(100, 100, 200, 150));
 Marquee.SelectionCompleted += (sender, e) => ApplySelection(e.Rect);
 Marquee.ConfirmRequested += (sender, e) => ConfirmSelection(e.Rect);
-Marquee.CancelRequested += (sender, e) => CancelSelection();
+Marquee.キャンセルが要求されました += (sender, e) => CancelSelection();
 ```
 
 ### 10.2 見た目の差し替え（外観と描画計画）

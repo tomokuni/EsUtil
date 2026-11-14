@@ -3,7 +3,7 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.ColorSelector.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(2004)%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1903)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
@@ -58,7 +58,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.22621.0`（Windows App SDK 2.6 以降） |
-| 対応 OS | Windows 10 バージョン 2004（ビルド 19041）以降 |
+| 対応 OS | Windows 10 バージョン 1903（ビルド 18362）以降 |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（AOT で発行した配布物が起動することを実測）。 ただし AOT では managed コレクションを `ItemsSource` へ渡せない（`Items.Add` を使う） |
 
@@ -117,7 +117,7 @@ Host.Children.Add(color);
 
 | レベル | 出力例 |
 | --- | --- |
-| Information | `[ColorSelector] Setting: SelectedColor #FFFFFFFF → #80FF0000` |
+| Information | `[ColorSelector] 設定: 選択色 #FFFFFFFF → #80FF0000` |
 
 接頭辞は `LogPrefix` で設定します。 ログ基盤（出力先・レベルの制御）はホストが所有します。
 
