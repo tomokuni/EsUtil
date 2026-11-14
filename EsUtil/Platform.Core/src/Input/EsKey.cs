@@ -8,7 +8,7 @@ namespace EsUtil.Platform.Core.Input;
 /// <b>他のキー体系との関係（実測 2026-10-05）</b>:<br/>
 /// - <c>System.Windows.Input.Key</c>（.NET / WPF。 202 メンバー）… <b>本型が上位互換</b>である（本型のみ 21 件 = <c>Fn*Arrow</c> 4 / <c>Media*</c> 17）。<br/>
 /// - <c>Aprillz.MewUI.Key</c>（MewUI。 91 メンバー）… <b>本型が上位互換</b>である（本型のみ 133 件。 名前が異なる組は <c>Back</c> ⇔ <c>Backspace</c> の 1 組のみ）。<br/>
-/// - <c>Windows.System.VirtualKey</c>（WinUI 3 が使う WinRT 射影。 172 メンバー）… 値は Win32 仮想キーコードそのものだが、<br/>
+/// - <c>Windows.System.VirtualKey</c>（WinUI 3 が使う WinRT 射影。 対象フレームワーク 18362 で 170 メンバー）… 値は Win32 仮想キーコードそのものだが、<br/>
 ///   名前は別体系（88 件が不一致。 例: <c>D0</c> ⇔ <c>Number0</c> / <c>NumLock</c> ⇔ <c>NumberKeyLock</c>）であり、<br/>
 ///   <b>記号キー（<c>Oem*</c>）とメディア キー（<c>Volume*</c> / <c>Media*</c> / <c>Launch*</c>）を持たず</b>、<br/>
 ///   代わりにキー以外の入力（マウス ボタン 5・ゲームパッド 32）が混在するため、本型の基盤にはしない。<br/>

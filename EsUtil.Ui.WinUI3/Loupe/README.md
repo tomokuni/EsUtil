@@ -58,7 +58,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.22621.0`（Windows App SDK 2.6 以降） |
+| 対象フレームワーク | `net10.0-windows10.0.18362.0`（Windows App SDK 2.6 以降） |
 | 対応 OS | Windows 10 バージョン 1903（ビルド 18362）以降 |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測） |
@@ -71,7 +71,7 @@
 <ProjectReference Include="..\EsUtil.Ui.WinUI3\Loupe\src\EsUtil.Ui.WinUI3.Loupe.csproj" />
 ```
 
-参照する側は **WinUI 3（Windows App SDK）** のプロジェクトにします（対象フレームワークは `net10.0-windows10.0.22621.0`、`UseWinUI` を有効にする）。
+参照する側は **WinUI 3（Windows App SDK）** のプロジェクトにします（対象フレームワークは `net10.0-windows10.0.18362.0`、`UseWinUI` を有効にする）。
 パッケージは `Microsoft.WindowsAppSDK` / `Microsoft.Windows.SDK.BuildTools` を参照します（バージョンの範囲は本体のプロジェクト ファイルが単一所有します）。
 
 ---
@@ -202,7 +202,7 @@ EsUtil.Ui.WinUI3/Loupe/
 ├── docs/                      # SPEC_API.md（API リファレンス）/ SPEC_System.md（システム仕様書）
 ├── sample/                    # 独立サンプル アプリ（sample/README.md 参照）
 ├── src/
-│   ├── EsUtil.Ui.WinUI3.Loupe.csproj  # net10.0-windows10.0.22621.0 / WinUI 3
+│   ├── EsUtil.Ui.WinUI3.Loupe.csproj  # net10.0-windows10.0.18362.0 / WinUI 3
 │   ├── LoupeControl.cs             # Canvas 派生のコントロール（計画を要素と画像へ写す）
 │   ├── LoupeRenderedEventArgs.cs   # 描画完了の通知（キャンバスと描画計画）
 │   ├── LoupeLogMessage.cs          # 画像の差し替え・描画例外のログ定義

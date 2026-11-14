@@ -24,13 +24,13 @@ WinUI 3 版のサムネイル一覧コントロールの構造・依存・設計
 
 - **配置と見た目は下の層が単一所有します**（`EsUtil.Feature.Thumbnail.Core` が並べ方、`EsUtil.Feature.Thumbnail.Core` が描画計画と外観）。
 - **本アセンブリが行うのは 4 つだけ**: 入力の受付、スクロール、計画の適用（要素への絶対配置）、要素による表示。
-- 対象フレームワークは `net10.0-windows10.0.22621.0`（`UseWinUI`）です。
+- 対象フレームワークは `net10.0-windows10.0.18362.0`（`UseWinUI`）です。
 
 ## 2. 技術スタック
 
 | 種別 | 内容 |
 | --- | --- |
-| 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.22621.0`） |
+| 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.18362.0`） |
 | UI フレームワーク | WinUI 3（Windows App SDK。 `Grid` / `ScrollViewer` / `Panel`） |
 | 表示 | XAML の要素（`Rectangle` / `Image`） |
 | 参照パッケージ | `EsUtil.Feature.Thumbnail.Core` / `EsUtil.Platform.Core` / `Microsoft.WindowsAppSDK` |

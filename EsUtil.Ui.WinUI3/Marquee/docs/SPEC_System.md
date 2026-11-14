@@ -37,7 +37,7 @@
 
 | 項目 | 値 | 理由 |
 | --- | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.22621.0` | WinUI 3（Windows App SDK）を使う層の割り当て（[`.github/ビルド設定規約.md`](../../../.github/ビルド設定規約.md) §5） |
+| 対象フレームワーク | `net10.0-windows10.0.18362.0` | WinUI 3（Windows App SDK）を使う層の割り当て（[`.github/ビルド設定規約.md`](../../../.github/ビルド設定規約.md) §5） |
 | `UseWinUI` | `true` | XAML のコンパイルと WinUI 3 の参照解決を行う |
 | `SupportedOSPlatformVersion` | `10.0.18362.0` | `Microsoft.UI.Input.InputSystemCursor`（カーソル形状の設定）が使える下限 |
 | UI フレームワーク | Windows App SDK 2.6 以降（`Microsoft.WindowsAppSDK`） | WinUI 3 のコントロール基盤（`Canvas` / ポインター イベント / `XamlRoot`） |

@@ -33,7 +33,7 @@
 
 利用の前提:
 
-- 参照する側は WinUI 3（Windows App SDK）のプロジェクトとする（対象フレームワークは `net10.0-windows10.0.22621.0`、`UseWinUI` を有効にする）。
+- 参照する側は WinUI 3（Windows App SDK）のプロジェクトとする（対象フレームワークは `net10.0-windows10.0.18362.0`、`UseWinUI` を有効にする）。
 - 対応する OS は Windows 10 18362 以降とする（本体のプロジェクト ファイルが `SupportedOSPlatformVersion` を定める）。
 - 公開プロパティは **CLR プロパティ**であるため、XAML のバインディング（`{x:Bind}` / `{Binding}`）では設定できない。 コードビハインドから設定する（理由は [`SPEC_System.md`](SPEC_System.md) の設計判断を参照）。
 

@@ -60,7 +60,7 @@
 
 | 項目 | 要件 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.22621.0` |
+| 対象フレームワーク | `net10.0-windows10.0.18362.0` |
 | 対応 OS | Windows 10 バージョン 1903（ビルド 18362）以降（`Microsoft.UI.Input.InputSystemCursor` を使うため） |
 | UI フレームワーク | WinUI 3（Windows App SDK 2.6 以降。 パッケージ参照 `Microsoft.WindowsAppSDK`） |
 | 描画 | WinUI 3 の要素（`Microsoft.UI.Xaml.Shapes.Rectangle` と `Border` + `TextBlock`） |
@@ -81,7 +81,7 @@
 
 ```xml
 <PropertyGroup>
-  <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+  <TargetFramework>net10.0-windows10.0.18362.0</TargetFramework>
   <UseWinUI>true</UseWinUI>
   <SupportedOSPlatformVersion>10.0.18362.0</SupportedOSPlatformVersion>
 </PropertyGroup>

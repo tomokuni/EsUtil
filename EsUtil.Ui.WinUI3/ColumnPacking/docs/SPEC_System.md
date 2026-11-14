@@ -25,7 +25,7 @@ WinUI 3 のパネルとして、複数列の配置を要素へ反映する層の
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.22621.0` |
+| 対象フレームワーク | `net10.0-windows10.0.18362.0` |
 | 対応 OS | Windows 10 バージョン 1903（ビルド 18362）以降（`SupportedOSPlatformVersion`） |
 | UI フレームワーク | WinUI 3（Windows App SDK 2.6 以降） |
 | 配置の計算 | `EsUtil.Feature.ColumnPacking.Core`（パッケージ参照） |

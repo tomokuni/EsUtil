@@ -131,16 +131,16 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | 機能層 | `net10.0-windows10.0.17763.0` | `EsUtil.Feature.*` |
 | Avalonia UI 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.AvaloniaUI.*` |
 | MewUI 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.MewUI.*` |
-| WinUI 3 層 | `net10.0-windows10.0.22621.0`（`SupportedOSPlatformVersion` = `10.0.18362.0`） | `EsUtil.Ui.WinUI3.*` |
+| WinUI 3 層 | `net10.0-windows10.0.18362.0`（`SupportedOSPlatformVersion` は書きません。 対象フレームワークが下限を宣言します） | `EsUtil.Ui.WinUI3.*` |
 | WinForms 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.WinForms.*` |
 
 | 区分 | Windows の下限 |
 | --- | --- |
 | 共通基盤・機能層 | **Windows 10 バージョン 1703（ビルド 15063）以降** |
 | Avalonia UI 層・MewUI 層・WinForms 層 | Windows 10 バージョン 1703（ビルド 15063）以降 |
-| WinUI 3 層 | **Windows 10 バージョン 1903（ビルド 18362）以降**（このビルドが要求する Windows App Runtime は **2.6.5 以降**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版）。 対象フレームワークの 22621 は API 面であり、実行の下限ではない。 ランタイムが無い場合は `EsUtil.Ui.WinUI3.Interop` の `WindowsAppRuntimeInventory` で判定し、`WindowsAppRuntimeBootstrap` で導入できる） |
+| WinUI 3 層 | **Windows 10 バージョン 1903（ビルド 18362）以降**（このビルドが要求する Windows App Runtime は **2.6.5 以降**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版）。 対象フレームワークと実行の下限はどちらも 18362（`SupportedOSPlatformVersion` を書きません）。 ランタイムが無い場合は `EsUtil.Ui.WinUI3.Interop` の `WindowsAppRuntimeInventory` で判定し、`WindowsAppRuntimeBootstrap` で導入できる） |
 
-- **WinUI 3 層を参照するプロジェクトは、対象フレームワークを `net10.0-windows10.0.22621.0` 以上にする**（NuGet の互換判定は**対象フレームワーク**で行われ、`<SupportedOSPlatformVersion>` は使われない。 実測 2026-11-14: `net10.0-windows10.0.18362.0` のプロジェクトは `NU1201`（互換性なし）で復元できない）。 **実行の下限は 19041 のまま**であり、`SupportedOSPlatformVersion` はパッケージのアセンブリへ `[SupportedOSPlatform("Windows10.0.18362.0")]` として載るため、利用側の `CA1416` は出ない。
+- **WinUI 3 層を参照するプロジェクトは、対象フレームワークを `net10.0-windows10.0.18362.0` 以上にする**（NuGet の互換判定は**対象フレームワーク**で行われ、`<SupportedOSPlatformVersion>` は使われない。 実測 2026-11-14: `net10.0-windows10.0.17763.0` のプロジェクトは `EsUtil.Ui.WinUI3.*` を `NU1201` で復元できない）。 **実行の下限も 18362** であり、`SupportedOSPlatformVersion` は書きません（対象フレームワークが下限を宣言します）。
 
 - **検証は Windows でだけ行っています**。 対象フレームワークが Windows のため、**Windows 以外では動作しません**（実行時にも Win32 / WIC を呼びます）。
 
