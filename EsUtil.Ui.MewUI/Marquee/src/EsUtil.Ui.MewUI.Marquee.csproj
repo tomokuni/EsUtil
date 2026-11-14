@@ -11,6 +11,7 @@
          Native AOT の解析（トリム/AOT 警告）は有効にする。 -->
     <IsAotCompatible>true</IsAotCompatible>
     <Description>マーキーの MewUI 版コントロール。</Description>
+  <SupportedOSPlatformVersion>10.0.15063.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

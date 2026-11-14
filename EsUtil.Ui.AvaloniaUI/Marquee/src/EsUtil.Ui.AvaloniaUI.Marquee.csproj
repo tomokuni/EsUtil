@@ -8,6 +8,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsAotCompatible>true</IsAotCompatible>
     <Description>マーキーの Avalonia UI 版コントロール。</Description>
+  <SupportedOSPlatformVersion>10.0.15063.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

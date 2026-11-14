@@ -7,6 +7,7 @@
     <RootNamespace>EsUtil.Ui.WinForms.Marquee.Sample</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+  <SupportedOSPlatformVersion>10.0.15063.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

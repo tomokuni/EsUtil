@@ -9,6 +9,7 @@
     <!-- MewUI は API が安定化中（0.x）。 破壊的変更を避けるためバージョンを固定する。 -->
     <MewUIVersion>0.22.1</MewUIVersion>
     <Description>サムネイル一覧の MewUI 版コントロールの動作確認用サンプル アプリケーション。</Description>
+  <SupportedOSPlatformVersion>10.0.15063.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

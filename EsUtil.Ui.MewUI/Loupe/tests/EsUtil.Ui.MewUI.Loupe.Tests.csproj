@@ -8,6 +8,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- テストが使うバックエンドのバージョン（本体と同じ値に固定する） -->
     <MewUIVersion>0.22.1</MewUIVersion>
+  <SupportedOSPlatformVersion>10.0.15063.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

@@ -8,6 +8,7 @@
     <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する）。 -->
     <IsAotCompatible>true</IsAotCompatible>
     <Description>複数のアイテムを複数列へ配置し、最大列高さを最小化する UI 非依存のレイアウト計算層（貪欲法・動的計画法・二分探索）。</Description>
+  <SupportedOSPlatformVersion>10.0.15063.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

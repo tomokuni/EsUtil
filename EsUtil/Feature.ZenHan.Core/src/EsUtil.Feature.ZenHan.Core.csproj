@@ -8,6 +8,7 @@
     <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する）。 -->
     <IsAotCompatible>true</IsAotCompatible>
     <Description>全角・半角・ひらがな・カタカナ・記号の相互変換（CSV から生成した定義を不変リストで保持する）。</Description>
+  <SupportedOSPlatformVersion>10.0.15063.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

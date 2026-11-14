@@ -8,6 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>EsUtil.Ui.WinForms.Thumbnail.Sample</RootNamespace>
     <Description>サムネイル一覧の WinForms 版コントロールの動作確認用サンプル アプリケーション。</Description>
+  <SupportedOSPlatformVersion>10.0.15063.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

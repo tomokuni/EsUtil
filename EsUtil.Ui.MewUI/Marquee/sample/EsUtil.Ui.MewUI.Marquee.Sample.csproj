@@ -8,6 +8,7 @@
     <RootNamespace>EsUtil.Ui.MewUI.Marquee.Sample</RootNamespace>
     <!-- MewUI は API が安定化中（0.x）。 破壊的変更を避けるためバージョンを固定する。 -->
     <MewUIVersion>0.22.1</MewUIVersion>
+  <SupportedOSPlatformVersion>10.0.15063.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

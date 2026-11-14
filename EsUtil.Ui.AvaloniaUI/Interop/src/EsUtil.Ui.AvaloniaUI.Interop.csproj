@@ -10,6 +10,7 @@
     <Features>extension</Features>
     <IsAotCompatible>true</IsAotCompatible>
     <Description>Avalonia UI と EsUtil の型（キー・幾何・色・ウィンドウ状態・画像）を相互変換するブリッジ。</Description>
+  <SupportedOSPlatformVersion>10.0.15063.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

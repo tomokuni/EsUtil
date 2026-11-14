@@ -7,6 +7,7 @@
     <RootNamespace>EsUtil.Ui.MewUI.SampleKit</RootNamespace>
     <!-- サンプルの共通部品（レイアウト・ログ）。 `*.SampleKit` は配布しない（ビルド設定規約 §4）。 -->
     <Description>サンプル アプリ共通のレイアウトとログ（Serilog）を提供する（配布しない）。</Description>
+  <SupportedOSPlatformVersion>10.0.15063.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>
