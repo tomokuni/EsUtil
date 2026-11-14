@@ -17,7 +17,7 @@ namespace EsUtil.Platform.Core.Geometry;
 /// <b>Intersect の非交差時</b>は左上座標を保った空の矩形を返す（Avalonia は <c>default</c> を返すため意味が異なる）。<br/>
 /// <b>区間の流儀（<see cref="Interval"/>）</b>: 幅・高さが終点を含むかどうかを値として持つ。<br/>
 /// ピクセル数へ変換するときの <c>+1</c> の判断は本値が単一所有し、下流の層は <see cref="EsRectInterval"/> を再判定しない。<br/>
-/// 既定は <see cref="EsRectInterval.HalfOpen"/>（幅 = ピクセル数）であり、従来の挙動を変えない。
+/// 既定は <see cref="EsRectInterval.HalfOpen"/>（幅 = ピクセル数）。
 /// </remarks>
 /// <param name="X">左上 X 座標（呼び出し側の座標系に従う）。</param>
 /// <param name="Y">左上 Y 座標（呼び出し側の座標系に従う）。</param>
