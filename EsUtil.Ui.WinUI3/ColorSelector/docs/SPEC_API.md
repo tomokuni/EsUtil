@@ -16,7 +16,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.22621.0`（Windows App SDK 2.6 以降） |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0`（Windows App SDK 2.6 以降） |
 | 色名と色文字列 | `EsUtil.Platform.Core` の `Palette`（`ColorNames` / `ColorString` / `ColorValidation` / `ColorEntry` / `ColorSortMode` / `ColorTextFormat`） |
 
 ## 2. 公開 API

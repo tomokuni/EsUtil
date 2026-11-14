@@ -30,7 +30,7 @@
 
 | 種別 | 内容 |
 | --- | --- |
-| 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.17763.0`） |
+| 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.20348.0`） |
 | 依存 | 同一アセンブリのコア / `EsUtil.Platform.Core`（幾何型） |
 | テスト | xUnit v3（`EsUtil.Feature.Thumbnail.Core.Tests`。 描画計画と設定・外観の変更ログを検証する） |
 

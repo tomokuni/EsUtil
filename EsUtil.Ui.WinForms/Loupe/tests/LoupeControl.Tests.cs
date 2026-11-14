@@ -471,7 +471,7 @@ public class LoupeControlTests
         control.Source = source;
 
         // ロガーの設定（生成の記録）など他のメッセージが混じるため、画像の変更の記録だけを数える
-        Assert.Single(logger.Messages, message => message.Contains("Setting: Source", StringComparison.Ordinal));
+        Assert.Single(logger.Messages, message => message.Contains("設定: Source", StringComparison.Ordinal));
     }
 
     /// <summary>変更ログに記録される値が補正後の値であることを検証する。</summary>

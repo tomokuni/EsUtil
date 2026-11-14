@@ -142,7 +142,7 @@ internal sealed class MarqueeSession
     /// 2. ダブルクリックは選択矩形の内側なら確定要求、外側ならキャンセル要求を通知して終了する。<br/>
     /// 3. ハンドルにヒットした場合はリサイズ / 移動を開始する（移動以外はポインターをハンドル点へスナップする）。<br/>
     /// 4. ヒットしない場合は新規選択を開始する。<br/>
-    /// ハンドルが無い場合も <c>DragStart: handle=None</c> として記録する（新規選択のドラッグ開始も同じ経過として扱う）。
+    /// ハンドルが無い場合も <c>ドラッグ開始: ハンドル=None</c> として記録する（新規選択のドラッグ開始も同じ経過として扱う）。
     /// </remarks>
     internal MarqueeFeedback Press(EsPoint position, int clickCount)
     {
@@ -477,7 +477,7 @@ internal sealed class MarqueeSession
     /// <remarks>ドラッグ中または選択ありの場合は選択を破棄した後にキャンセル要求を通知する。</remarks>
     internal MarqueeFeedback RequestCancel()
     {
-        Log.LogCancelRequested();
+        Log.Logキャンセルが要求されました();
         // キャンセルは nudge も終了させる（nudge 位置の十字マーカーとカーソル非表示を残留させない）
         var feedback = WithNudgeEnded(new MarqueeFeedback { ShouldRedraw = false });
         if (_state.IsDragging || _state.HasSelection)
@@ -485,7 +485,7 @@ internal sealed class MarqueeSession
             _state.Reset();
             feedback = feedback with { ShouldRedraw = true };
         }
-        NotifyEmpty(MarqueeNoticeKind.CancelRequested);
+        NotifyEmpty(MarqueeNoticeKind.キャンセルが要求されました);
         return feedback;
     }
 
@@ -568,8 +568,8 @@ internal sealed class MarqueeSession
             return new MarqueeFeedback { ShouldRedraw = true, Cursor = cursor };
         }
 
-        Log.LogCancelRequested();
-        NotifyEmpty(MarqueeNoticeKind.CancelRequested);
+        Log.Logキャンセルが要求されました();
+        NotifyEmpty(MarqueeNoticeKind.キャンセルが要求されました);
         return new MarqueeFeedback { Cursor = cursor };
     }
 

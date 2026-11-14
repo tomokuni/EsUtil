@@ -42,16 +42,16 @@ public class MarqueeLogMessageTests
         var logger = new RecordingLogger();
         InvokeAll(logger);
 
-        Assert.Equal("[Marquee] MouseDown: pos=(10, 20) clickCount=1 hasSelection=False", logger.Messages[0]);
-        Assert.Equal("[Marquee] MouseUp: pos=(10, 20) wasDragging=True hasSelection=True rect=(10, 20, 30, 40)", logger.Messages[1]);
-        Assert.Equal("[Marquee] DoubleClick: pos=(10, 20) inside=True", logger.Messages[2]);
-        Assert.Equal("[Marquee] Position before MouseDown: pos=(10, 20)", logger.Messages[3]);
-        Assert.Equal("[Marquee] Position after MouseUp: pos=(10, 20)", logger.Messages[4]);
-        Assert.Equal("[Marquee] DragStart: handle=Move pos=(10, 20)", logger.Messages[5]);
-        Assert.Equal("[Marquee] KeyDown: key=Left handled=True", logger.Messages[6]);
-        Assert.Equal("[Marquee] ConfirmRequested: rect=(10, 20, 30, 40)", logger.Messages[7]);
-        Assert.Equal("[Marquee] CancelRequested", logger.Messages[8]);
-        Assert.Equal("[Marquee] Setting: MinSelectionSize 3 → 5", logger.Messages[9]);
+        Assert.Equal("[Marquee] マウス押下: 位置=(10, 20) クリック回数=1 選択あり=False", logger.Messages[0]);
+        Assert.Equal("[Marquee] マウス解放: 位置=(10, 20) ドラッグ中=True 選択あり=True 範囲=(10, 20, 30, 40)", logger.Messages[1]);
+        Assert.Equal("[Marquee] ダブルクリック: 位置=(10, 20) 内側=True", logger.Messages[2]);
+        Assert.Equal("[Marquee] マウス押下前の位置: 位置=(10, 20)", logger.Messages[3]);
+        Assert.Equal("[Marquee] マウス解放後の位置: 位置=(10, 20)", logger.Messages[4]);
+        Assert.Equal("[Marquee] ドラッグ開始: ハンドル=Move 位置=(10, 20)", logger.Messages[5]);
+        Assert.Equal("[Marquee] キー押下: キー=Left 処理済み=True", logger.Messages[6]);
+        Assert.Equal("[Marquee] 確定が要求されました: 範囲=(10, 20, 30, 40)", logger.Messages[7]);
+        Assert.Equal("[Marquee] キャンセルが要求されました", logger.Messages[8]);
+        Assert.Equal("[Marquee] 設定: MinSelectionSize 3 → 5", logger.Messages[9]);
     }
 
     /// <summary>設定（MarqueeOptions）の変更ログが変化した項目だけを出力することを検証する。</summary>
@@ -69,8 +69,8 @@ public class MarqueeLogMessageTests
 
         Assert.Equal(
             [
-                "[Marquee] Setting: HandleSize 10 → 20",
-                "[Marquee] Setting: MarkerLength 16 → 24",
+                "[Marquee] 設定: HandleSize 10 → 20",
+                "[Marquee] 設定: MarkerLength 16 → 24",
             ],
             logger.Messages);
     }
@@ -93,8 +93,8 @@ public class MarqueeLogMessageTests
 
             Assert.Equal(
                 [
-                    "[Marquee] Setting: HandleSize 10 → 20",
-                    "[Marquee] Setting: MinSelectionSize 6 → 7",
+                    "[Marquee] 設定: HandleSize 10 → 20",
+                    "[Marquee] 設定: MinSelectionSize 6 → 7",
                 ],
                 logger.Messages);
         }
@@ -115,8 +115,8 @@ public class MarqueeLogMessageTests
 
         Assert.Equal(
             [
-                "[Marquee] Setting: ShowHandles True → False",
-                "[Marquee] Setting: BorderThickness 2 → 5",
+                "[Marquee] 設定: ShowHandles True → False",
+                "[Marquee] 設定: BorderThickness 2 → 5",
             ],
             logger.Messages);
     }
@@ -142,7 +142,7 @@ public class MarqueeLogMessageTests
         logger.LogAppearanceChanged(before, after);
 
         Assert.Equal(
-            "[Marquee] Setting: OuterMaskColor #80000000 → #FF000000",
+            "[Marquee] 設定: OuterMaskColor #80000000 → #FF000000",
             Assert.Single(logger.Messages));
     }
 
@@ -190,7 +190,7 @@ public class MarqueeLogMessageTests
 
         logger.LogSettingChanged("DisplayScaleScaling", 0.0, 1.25);
 
-        Assert.Equal("[Marquee] Setting: DisplayScaleScaling 0 → 1.25", Assert.Single(logger.Messages));
+        Assert.Equal("[Marquee] 設定: DisplayScaleScaling 0 → 1.25", Assert.Single(logger.Messages));
     }
 
     /// <summary>全ログメソッドを指定ロガーで呼び出す。</summary>
@@ -205,7 +205,7 @@ public class MarqueeLogMessageTests
         MarqueeLogMessage.LogDragStart(logger, "Move", 10, 20);
         MarqueeLogMessage.LogKeyDown(logger, "Left", true);
         MarqueeLogMessage.LogConfirmRequested(logger, new EsRect(10, 20, 30, 40));
-        MarqueeLogMessage.LogCancelRequested(logger);
+        MarqueeLogMessage.Logキャンセルが要求されました(logger);
         MarqueeLogMessage.LogSettingChanged(logger, "MinSelectionSize", "3", "5");
     }
 }

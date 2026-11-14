@@ -58,7 +58,7 @@ flowchart LR
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.17763.0` |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0` |
 | UI フレームワーク | Avalonia UI 12.1.4（パッケージ参照 `Avalonia`） |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（解析警告 0 件をビルドで検査する） |
@@ -135,9 +135,9 @@ panel.SetItems(items);
 
 | レベル | 内容 | 出力例 |
 | --- | --- | --- |
-| Information | 生成（初期設定）と**プロパティの変更**（変化した項目だけ） | `[ColumnPacking] Setting: ColumnLimit 10 → 3` |
+| Information | 生成（初期設定）と**プロパティの変更**（変化した項目だけ） | `[ColumnPacking] 設定: ColumnLimit 10 → 3` |
 | Debug | **レイアウト結果が変化したとき**（同じ結果の繰り返しは出力しない） | `[ColumnPacking] Layout: UsedWidth=268.8 MinHeight=576 Columns=3 Segments=[6,13,21]` |
-| Trace | 項目ごとの Y 座標（レイアウト結果が変化したときだけ） | `[ColumnPacking] Layout items: Y=[0, 48, 104]` |
+| Trace | 項目ごとの Y 座標（レイアウト結果が変化したときだけ） | `[ColumnPacking] レイアウト項目: Y=[0, 48, 104]` |
 
 レベルの決め方は [`.github/ログ規約.md`](../../.github/ログ規約.md) §2（プロパティの変更は `Information`、設定以外の状態変化は `Debug`、高頻度の値は `Trace`）に従います。
 

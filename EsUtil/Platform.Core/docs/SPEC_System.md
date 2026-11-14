@@ -122,6 +122,10 @@ graph LR
 | `EsUtil/Platform.Core/src/Geometry/EsMath.cs` | 幾何値の近似比較（`AreClose`）と整数への丸め（`RoundToInt`）の単一所有者（internal） |
 | `EsUtil/Platform.Core/src/Window/EsPlatformHandle.cs` | UI フレームワーク非依存のネイティブウィンドウ識別子（座標・寸法ではないため `Geometry` に置かない） |
 | `EsUtil/Platform.Core/src/Capture/CaptureType.cs` | UI フレームワーク非依存のキャプチャ種別（全画面 / ウィンドウ選択 / 範囲選択）。 ホストではグローバルホットキーのアクション識別子としても使う |
+| `EsUtil/Platform.Core/src/Capture/CaptureMethod.cs` | 画面の取得方式（GDI / Windows.Graphics.Capture）。 既定は GDI |
+| `EsUtil/Platform.Core/src/Capture/WindowsGraphicsCaptureSupport.cs` | 実行中の環境で Windows.Graphics.Capture を使えるかの判定（OS の版と API の実在）。 使えない理由の文言も単一所有する |
+| `EsUtil/Platform.Core/src/Native/Win/WinGraphicsCaptureService.cs` | Windows.Graphics.Capture による画面のキャプチャ（撮影できない場合は GDI へ委譲する） |
+| `EsUtil/Platform.Core/src/Native/Win/CaptureServiceFactory.cs` | 設定された方式に対応する `ICaptureService` の生成（使えない方式は GDI へ落とす） |
 | `EsUtil/Platform.Core/src/Common/BoundaryCatch.cs` | 境界（アプリのイベント ハンドラー・外部 I/O・描画・UI コールバック）での例外捕捉の可否の単一所有者（`catch when` フィルターへ渡す） |
 | `EsUtil/Platform.Core/src/Common/CallbackList.cs` | 値型・`EventArgs` 非派生の値（`record` 等）を通知する購読の一覧（`event` を使わずヒープ確保を避ける。 通知中の購読変更に耐える） |
 | `EsUtil/Platform.Core/src/Imaging/EsBitmap.cs` | **書き換え可能**な画像（`EsReadOnlyBitmap` とは**兄弟**。 BGRA8888・Premul。 外部パッケージに依存しない。 書き込みの入口（`Pixels`・`SetPixel`・`TrySetPixel`・`Clear`・`SetReadOnly`）だけが読み取り専用の型と異なる） |
@@ -146,8 +150,9 @@ graph LR
 | 失敗の種類 | 表し方 | 例 |
 | --- | --- | --- |
 | OS 操作の失敗（回復できない） | `Win32Exception` を投げる（日本語のメッセージに**操作と対象**を含める） | `WinCaptureService.CaptureArea` / `WinWindowService.SetBounds` / `WinGlobalHotKeyService.Initialize` |
-| 能力の有無・正常な入力の変種 | `bool` の戻り値 | `WinWindowService.SetCaptureExclusion`（Windows 10 2004 未満）/ `WinGlobalHotKeyService.RegisterAll`（他のアプリとの競合）/ `ICursorService.TryGetCursorScreenPoint` |
+| 能力の有無・正常な入力の変種 | `bool` の戻り値 | `WinWindowService.SetCaptureExclusion`（Windows 10 2004 未満）/ `WinGlobalHotKeyService.RegisterAll`（他のアプリとの競合）/ `ICursorService.TryGetCursorScreenPoint` / `WindowsGraphicsCaptureSupport`（撮影方式を使えるか） |
 | 該当なし | 空の結果 | `WinElementFinder`（見つからない） |
+| 撮影方式が使えない（回復できる） | **他の方式へ委譲する** | `WinGraphicsCaptureService`（GDI へ委譲） |
 | 取得できない（撮影の前提が欠ける） | `null` | `WinCaptureService.CaptureVirtualScreen`（仮想スクリーンの境界が測れない） |
 
 ## 7. 設計判断（UI 非依存の境界）
@@ -194,7 +199,7 @@ graph LR
 | --- | --- |
 | アーキテクチャ固有の API | `SetWindowLongPtrW` は **`NativeMethods.txt` へ `SetWindowLongPtrW` と書くだけでは生成できない**（実測: `SetWindowLongPtr` は存在せず、`SetWindowLongPtrW` は `PInvoke005`「AnyCPU 不可」）。 csproj の `<CsWin32PlatformTarget>x64</CsWin32PlatformTarget>` で `PInvoke.SetWindowLongPtr`（`nint`）が生成される（本アプリは x64 のみを配布する） |
 | 手書きが残る唯一の箇所 | **`WinWicNative.cs` の `CoCreateInstance` と `CreateStreamOnHGlobal` の 2 件だけ**（理由は §7.3.1）。 どちらも `[LibraryImport]` の宣言だけで、**`out` は `[GeneratedComInterface]` の型**（`ComWrappers` ベースのマーシャリング）なので生ポインターを扱わない |
-| `CA1416` | **抑止しない**。 Windows 専用の型に `[SupportedOSPlatform("windows10.0.17763")]` を書く（本プロジェクトは可搬のため TFM で下限を表せない）。 **版なしの `"windows"` は下限を満たさず警告になる**（実測） |
+| `CA1416` | **抑止しない**。 下限は対象フレームワーク（`net10.0-windows10.0.20348.0`）が宣言する。 **版なしの `"windows"` は下限を満たさず警告になる**（実測） |
 | `LibraryImport` を自作しない | CsWin32 の列挙型を引数に取る `LibraryImport` は `SYSLIB1051` で拒否される。 手書きが必要な場合は引数を `int` / `nint` で受ける |
 | サブクラス化 | **`SetWindowSubclass` / `DefSubclassProc` / `RemoveWindowSubclass`（comctl32）を使う**。 `SetWindowLongPtr(GWLP_WNDPROC)` は元のプロシージャを自前で保存・復元する必要があり、他のサブクラス化（ビジュアル スタイル等）と共存できない |
 | comctl32 v6 の要否 | **実測: アクティベーション コンテキスト（comctl32 v6）が無いプロセスでも動作する**（`SetWindowSubclass` が TRUE を返し、サブクラス プロシージャが実際に呼ばれた）。 そのためライブラリ側でマニフェストを要求しない |

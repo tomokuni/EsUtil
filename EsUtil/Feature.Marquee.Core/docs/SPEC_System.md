@@ -31,7 +31,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| ターゲット | `net10.0-windows10.0.17763.0` |
+| ターゲット | `net10.0-windows10.0.20348.0` |
 | 言語 | C# 14（`Nullable` 有効・`ImplicitUsings` 有効） |
 | ルート名前空間 | `EsUtil.Feature.Marquee`（**公開面はすべてここに属する**。 ファサードと、ファサードのメンバーの型（`IMarqueeEffects` / `MarqueeGeometry` / `MarqueeRenderRequest` / `MarqueeHandles` / `MarqueeMarker` / `MarqueeSnapshot` / `MarqueeNotice` / `MarqueeNoticeKind` / `MarqueeHitTarget` / `MarqueeCursorKind` / `MarqueeInteractionState` / `MarqueeOptions`））。 `internal` の型と `MarqueeEffectsBase` だけが層フォルダ `src/Core/` の配下に残る |
 | ドキュメント生成 | `GenerateDocumentationFile` 有効（XML は配布物へ出さず `cref` の検証のみに使う） |
@@ -190,14 +190,14 @@ dotnet test EsUtil/Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Tests.
 
 ## 9. ログ
 
-ロガーは `MarqueeCore.Log` で受け取り（**コンストラクターからの注入も可能**）、**生成**（`[Marquee] Facade created`。 Information。 生成時の設定を 1 度だけ）・**入力の判断**（`[Marquee] MouseDown` / `MouseUp` / `DoubleClick` / `DragStart` / `KeyDown` / `ConfirmRequested` / `CancelRequested` 等。 Debug。 位置の記録は Trace）・**設定の変更**（`[Marquee] Setting: {名前} {前} → {後}`）を出力します。 ロガー未設定（null）は出力なしです。
+ロガーは `MarqueeCore.Log` で受け取り（**コンストラクターからの注入も可能**）、**生成**（`[Marquee] Facade created`。 Information。 生成時の設定を 1 度だけ）・**入力の判断**（`[Marquee] MouseDown` / `MouseUp` / `DoubleClick` / `DragStart` / `KeyDown` / `ConfirmRequested` / `キャンセルが要求されました` 等。 Debug。 位置の記録は Trace）・**設定の変更**（`[Marquee] 設定: {名前} {前} → {後}`）を出力します。 ロガー未設定（null）は出力なしです。
 
 **出力の方針**（頻度でレベルを分ける）:
 
 | 頻度 | 契機 | レベル |
 | --- | --- | --- |
 | 生成 | コンストラクターでの注入、または `Log` の初回設定 | Information |
-| 低頻度 | ロガーの設定（`Logger attached`）・入力の判断 | Debug |
+| 低頻度 | ロガーの設定（`ロガーを接続しました`）・入力の判断 | Debug |
 | 設定の変更 | `Options` の変更（変化した項目だけ）・`ClientToSourceScaling` の変更・`SetCoordTransform` の呼び出し | Information |
 | 高頻度 | `HighlightSourceRect` の変更（ホバーのたびに変わりうる） | Trace |
 

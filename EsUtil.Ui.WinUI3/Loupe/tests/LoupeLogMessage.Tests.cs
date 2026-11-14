@@ -41,7 +41,7 @@ public class LoupeLogMessageTests
         var logger = new RecordingLogger();
         InvokeAll(logger);
 
-        Assert.Equal("[Loupe] Setting: Source 8x6 → null", logger.Messages[0]);
+        Assert.Equal("[Loupe] 設定: Source 8x6 → null", logger.Messages[0]);
         Assert.Equal("[Loupe] 描画の更新で例外が発生", logger.Messages[1]);
     }
 
@@ -98,8 +98,8 @@ public class LoupeLogMessageTests
         logger.LogSourceChanged(oldRead, null);
 
         Assert.Equal(2, logger.Messages.Count);
-        Assert.Equal("[Loupe] Setting: Source 8x6 → 8x6", logger.Messages[0]);
-        Assert.Equal("[Loupe] Setting: Source 8x6 → null", logger.Messages[1]);
+        Assert.Equal("[Loupe] 設定: Source 8x6 → 8x6", logger.Messages[0]);
+        Assert.Equal("[Loupe] 設定: Source 8x6 → null", logger.Messages[1]);
     }
 
     /// <summary>例外ログに例外が渡されることを検証する。</summary>

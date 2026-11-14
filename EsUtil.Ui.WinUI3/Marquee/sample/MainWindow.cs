@@ -153,7 +153,7 @@ public sealed class MainWindow : Window
         };
         _marquee.SelectionCancelled += (_, _) => Write("キャンセル（選択が解除された）");
         _marquee.ConfirmRequested += (_, e) => Write($"確定要求: {FormatRect(e.Rect)}");
-        _marquee.CancelRequested += (_, _) => Write("キャンセル要求");
+        _marquee.キャンセルが要求されました += (_, _) => Write("キャンセル要求");
 
         // 選択サイズと操作ガイドはアプリ固有の情報のため、コントロールの描画完了後にホストが置く（他 UI と同じ文言・位置）
         _marquee.Rendered += (_, e) =>

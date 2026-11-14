@@ -3,7 +3,7 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Marquee.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(2004)%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%20(20348)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
@@ -60,8 +60,8 @@
 
 | 項目 | 要件 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.22621.0` |
-| 対応 OS | Windows 10 バージョン 2004（ビルド 19041）以降（`Microsoft.UI.Input.InputSystemCursor` を使うため） |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0` |
+| 対応 OS | Windows Server 2022 / Windows 11（ビルド 20348）以降（`Microsoft.UI.Input.InputSystemCursor` を使うため） |
 | UI フレームワーク | WinUI 3（Windows App SDK 2.6 以降。 パッケージ参照 `Microsoft.WindowsAppSDK`） |
 | 描画 | WinUI 3 の要素（`Microsoft.UI.Xaml.Shapes.Rectangle` と `Border` + `TextBlock`） |
 | プラットフォーム | x64 / x86 / arm64（アンパッケージで自己完結配置する場合は対象アーキテクチャの明示が必要です） |
@@ -81,9 +81,9 @@
 
 ```xml
 <PropertyGroup>
-  <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+  <TargetFramework>net10.0-windows10.0.20348.0</TargetFramework>
   <UseWinUI>true</UseWinUI>
-  <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+  <SupportedOSPlatformVersion>10.0.20348.0</SupportedOSPlatformVersion>
 </PropertyGroup>
 
 <ItemGroup>

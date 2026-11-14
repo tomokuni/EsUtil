@@ -8,7 +8,7 @@
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-**対応 OS**: Windows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1809（ビルド 17763）以降
+**対応 OS**: Windows 専用（`net10.0-windows10.0.20348.0`）。 Windows Server 2022 / Windows 11（ビルド 20348）以降
 
 日本語テキストの**全角・半角・ひらがな・カタカナ・記号**の相互変換を提供する UI 非依存のライブラリです。
 名前空間は `EsUtil.Feature.ZenHan`、アセンブリ名は `EsUtil.Feature.ZenHan.Core` です（`EsUtil.Feature.Loupe.Core` などと同じく、**層の接尾辞はアセンブリ名だけに付ける**規則です。 型名 `ZenHanConverter` はパッケージ名と一致しません）。
@@ -67,7 +67,7 @@ var all = Define.AllList;   // CSV から生成した全エントリ
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.17763.0` |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0` |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`IsAotCompatible=true`。 AOT の解析警告が 0 件であることをビルドで検査する） |
 

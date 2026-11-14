@@ -1,7 +1,7 @@
 {
   "version": 2,
   "dependencies": {
-    "net10.0-windows10.0.17763": {
+    "net10.0-windows10.0.20348": {
       "Meziantou.Analyzer": {
         "type": "Direct",
         "requested": "[3.0.339, )",
@@ -37,7 +37,7 @@
       "esutil.feature.loupe.core": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.6.5, )",
+          "EsUtil.Platform.Core": "[0.7.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.0, )"
         }
       },
@@ -47,7 +47,7 @@
       "esutil.ui.winforms.interop": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.6.5, )"
+          "EsUtil.Platform.Core": "[0.7.0, )"
         }
       }
     }

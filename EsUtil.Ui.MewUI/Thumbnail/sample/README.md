@@ -66,7 +66,7 @@ dotnet run -c Release --project EsUtil.Ui.MewUI/Thumbnail/sample/EsUtil.Ui.MewUI
 
 ```text
 EsUtil.Ui.MewUI/Thumbnail/sample/
-├── EsUtil.Ui.MewUI.Thumbnail.Sample.csproj   # サンプルアプリのプロジェクト（net10.0-windows10.0.17763.0）
+├── EsUtil.Ui.MewUI.Thumbnail.Sample.csproj   # サンプルアプリのプロジェクト（net10.0-windows10.0.20348.0）
 ├── Program.cs                   # エントリポイント
 ├── Imaging/
 │   └── TestImageFactory.cs      # テスト画像生成（コアの EsBitmap を返す）

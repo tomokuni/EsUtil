@@ -22,12 +22,12 @@ internal static partial class ThumbnailLogMessage
     internal static string Prefix { get; set; } = DefaultPrefix;
 
     /// <summary>選択の変更を記録する（生成メソッド。 接頭辞は呼び出し側から受け取る）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Thumbnail] Selection: {OldValue} → {NewValue}</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Thumbnail] 選択: {OldValue} → {NewValue}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="oldValue">変更前の添字（選択が無い場合は -1）。</param>
     /// <param name="newValue">変更後の添字（選択が無い場合は -1）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Selection: {OldValue} → {NewValue}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 選択: {OldValue} → {NewValue}")]
     private static partial void LogSelectionChangedCore(this ILogger logger, string prefix, int oldValue, int newValue);
 
     /// <summary>選択の変更を記録する（同値の再設定では出力しない）。</summary>
@@ -46,10 +46,10 @@ internal static partial class ThumbnailLogMessage
     }
 
     /// <summary>提示層の生成を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Thumbnail] Presenter created</c></remarks>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Thumbnail] 提示層を作成しました</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} Presenter created")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} 提示層を作成しました")]
     private static partial void LogPresenterCreatedCore(this ILogger logger, string prefix);
 
     /// <summary>提示層の生成を記録する。</summary>
@@ -59,10 +59,10 @@ internal static partial class ThumbnailLogMessage
         => logger.LogPresenterCreatedCore(Prefix);
 
     /// <summary>出力先（ロガー）の設定を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Thumbnail] Logger attached</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Thumbnail] ロガーを接続しました</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Logger attached")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ロガーを接続しました")]
     private static partial void LogLoggerAttachedCore(this ILogger logger, string prefix);
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
@@ -72,13 +72,13 @@ internal static partial class ThumbnailLogMessage
         => logger.LogLoggerAttachedCore(Prefix);
 
     /// <summary>設定変更のログ（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Thumbnail] Setting: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Thumbnail] 設定: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} Setting: {Name:l} {OldValue:l} → {NewValue:l}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} 設定: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(
         this ILogger logger, string prefix, string name, string oldValue, string newValue);
 

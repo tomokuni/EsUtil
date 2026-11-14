@@ -21,14 +21,14 @@ internal static partial class ColumnPackingLogMessage
     internal static string Prefix { get; set; } = DefaultPrefix;
 
     /// <summary>生成（初期設定）を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Information<br/>出力書式: <c>[ColumnPacking] Facade created: ColumnLimit=4, RowSpace=8, ColumnSpace=8, Method=BinarySearch</c></remarks>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[ColumnPacking] ファサードを作成しました: ColumnLimit=4, RowSpace=8, ColumnSpace=8, Method=BinarySearch</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="columnLimit">列の上限。</param>
     /// <param name="rowSpace">行間（DIP。 整形済み）。</param>
     /// <param name="columnSpace">列間（DIP。 整形済み）。</param>
     /// <param name="method">配置の方法。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} Facade created: ColumnLimit={ColumnLimit}, RowSpace={RowSpace:0.#}, ColumnSpace={ColumnSpace:0.#}, Method={Method:l}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} ファサードを作成しました: ColumnLimit={ColumnLimit}, RowSpace={RowSpace:0.#}, ColumnSpace={ColumnSpace:0.#}, Method={Method:l}")]
     private static partial void LogFacadeCreatedCore(
         this ILogger logger, string prefix, int columnLimit, double rowSpace, double columnSpace, string method);
 
@@ -42,13 +42,13 @@ internal static partial class ColumnPackingLogMessage
         => logger.LogFacadeCreatedCore(Prefix, columnLimit, rowSpace, columnSpace, method);
 
     /// <summary>プロパティの変更を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Information<br/>出力書式: <c>[ColumnPacking] Setting: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[ColumnPacking] 設定: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">プロパティ名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} Setting: {Name:l} {OldValue:l} → {NewValue:l}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} 設定: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(
         this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
@@ -75,7 +75,7 @@ internal static partial class ColumnPackingLogMessage
     /// <param name="minHeight">最小の高さ。</param>
     /// <param name="columns">列数。</param>
     /// <param name="segments">列の区切り。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} Layout: UsedWidth={UsedWidth:0.#} MinHeight={MinHeight:0.#} Columns={Columns} Segments={Segments:l}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} レイアウト: 使用幅={UsedWidth:0.#} 最小高={MinHeight:0.#} 列数={Columns} セグメント={Segments:l}")]
     private static partial void LogLayoutChangedCore(
         this ILogger logger, string prefix, double usedWidth, double minHeight, int columns, string segments);
 
@@ -89,11 +89,11 @@ internal static partial class ColumnPackingLogMessage
         => logger.LogLayoutChangedCore(Prefix, usedWidth, minHeight, columns, segments);
 
     /// <summary>項目ごとの配置を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[ColumnPacking] Layout items: Y=[0, 48, 104]</c></remarks>
+    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[ColumnPacking] レイアウト項目: Y=[0, 48, 104]</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="y">項目ごとの Y 座標（整形済み）。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Layout items: Y={Y:l}")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} レイアウト項目: Y={Y:l}")]
     private static partial void LogLayoutItemsCore(this ILogger logger, string prefix, string y);
 
     /// <summary>項目ごとの配置を記録する（整形は本メソッドが行う）。</summary>

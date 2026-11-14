@@ -3,7 +3,7 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Thumbnail.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(2004)%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%20(20348)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
@@ -63,8 +63,8 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.22621.0`（Windows App SDK 2.6 以降） |
-| 対応 OS | Windows 10 バージョン 2004（ビルド 19041）以降 |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0`（Windows App SDK 2.6 以降） |
+| 対応 OS | Windows Server 2022 / Windows 11（ビルド 20348）以降 |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測） |
 
@@ -145,8 +145,8 @@ var bounds = list.SlotBounds(index);
 
 | レベル | 出力例 |
 | --- | --- |
-| Information | `[Thumbnail] Setting: ImageWidth 160 → 110` / `[Thumbnail] Setting: Image[0] null → 96x64`（画像の差し替え） / `[Thumbnail] Setting: ItemCount 12 → 0`（クリア） |
-| Trace | `[Thumbnail] Setting: ItemCount 0 → 1`（1 件ずつの追加） |
+| Information | `[Thumbnail] 設定: ImageWidth 160 → 110` / `[Thumbnail] 設定: Image[0] null → 96x64`（画像の差し替え） / `[Thumbnail] 設定: ItemCount 12 → 0`（クリア） |
+| Trace | `[Thumbnail] 設定: ItemCount 0 → 1`（1 件ずつの追加） |
 
 `Log` へ `ILogger` を設定します（null は `NullLogger`）。 接頭辞は `LogPrefix` で設定し、コアと提示層のログの両方に適用します（既定 `[Thumbnail]`）。 設定・外観の変更は提示層、選択の変更はコアが記録します。
 

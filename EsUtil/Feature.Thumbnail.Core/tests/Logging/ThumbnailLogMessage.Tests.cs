@@ -31,7 +31,7 @@ public class ThumbnailLogMessageTests
         }
 
         Assert.Equal(LogLevel.Debug, Assert.Single(logger.Levels));
-        Assert.Equal("[Test] Selection: -1 → 2", Assert.Single(logger.Messages));
+        Assert.Equal("[Test] 選択: -1 → 2", Assert.Single(logger.Messages));
     }
 
     /// <summary>同値の再設定では記録しないことを検証する。</summary>
@@ -64,7 +64,7 @@ public class ThumbnailLogMessageTests
         }
 
         Assert.Equal(
-            ["[Test] Setting: RowSpace 8 → 4", "[Test] Setting: MaximumColumns 0 → 3"],
+            ["[Test] 設定: RowSpace 8 → 4", "[Test] 設定: MaximumColumns 0 → 3"],
             logger.Messages);
         Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Information, level));
     }
@@ -101,9 +101,9 @@ public class ThumbnailLogMessageTests
 
         Assert.Equal(
             [
-                "[Test] Setting: LabelFontSize 11 → 13",
-                "[Test] Setting: HighlightedLabelArgb 0x00000000 → 0xFF0078D4",
-                "[Test] Setting: Shadow ThumbnailShadowPlan → null",
+                "[Test] 設定: LabelFontSize 11 → 13",
+                "[Test] 設定: HighlightedLabelArgb 0x00000000 → 0xFF0078D4",
+                "[Test] 設定: Shadow ThumbnailShadowPlan → null",
             ],
             logger.Messages);
     }

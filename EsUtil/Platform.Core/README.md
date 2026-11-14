@@ -3,12 +3,12 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Platform.Core.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1809)%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%20(20348)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-**対応 OS**: Windows 専用です（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1809（ビルド 17763）以降で動作します。 `EsUtil.Platform.Core.Native` の I/F は**差し替え（DIP）とテストのため**にあり、他の OS 向け実装を提供するものではありません。
+**対応 OS**: Windows 専用です（`net10.0-windows10.0.20348.0`）。 Windows Server 2022 / Windows 11（ビルド 20348）以降で動作します。 `EsUtil.Platform.Core.Native` の I/F は**差し替え（DIP）とテストのため**にあり、他の OS 向け実装を提供するものではありません。
 
 UI フレームワーク非依存の **共通基盤の型**（キーと入力・幾何・座標変換・画像・OS サービス抽象）を提供するライブラリです。
 
@@ -48,7 +48,7 @@ services.AddSingleton<IUserPreferenceService, WinUserPreferenceService>();
 | 窓口（ルート名前空間） | `EsInput` / `EsWindow` / `EsCapture` / `EsColor` / `EsErrors` / `EsCallbacks` / `EsImageCodec`（機能の型へ委譲する薄い入口。 `using EsUtil.Platform.Core;` だけで解釈・正規化・生成ができる） |
 | キーと入力（`Input.*`） | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser`（`"Ctrl + Shift + Q"` の解釈） |
 | ウィンドウ（`Window.*`） | `EsPlatformHandle`（ネイティブ ハンドル） / `EsWindowState` / `EsWindowPlacementMath`（復元可否・はみ出しの補正・DIP ⇔ 物理ピクセル） |
-| キャプチャ（`Capture.*`） | `CaptureType` |
+| キャプチャ（`Capture.*`） | `CaptureType` / `CaptureMethod`（GDI / Windows.Graphics.Capture）/ `WindowsGraphicsCaptureSupport`（実行中の環境で WGC の画面撮影・ウィンドウ撮影・カーソル制御・枠の制御が使えるかを返す。 使えない理由の文言も単一所有） |
 | 小さな共通基盤（`Common.*`） | `EnumCanonical` / `BoundaryCatch` / `CallbackList<T>` / `NumberText` |
 | 幾何 | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` / `EsRectIntJsonConverter`（設定ファイルの保存形式） |
 | 座標変換 | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler`（DIP ⇔ 物理ピクセル・ポイント換算・描画面からの係数解決） |
@@ -56,7 +56,7 @@ services.AddSingleton<IUserPreferenceService, WinUserPreferenceService>();
 | 画像の操作 | **両方の画像型が同じ名前のメンバーを持ちます**（切り出し `Crop`・縮小 `Resize`・減色 `ReduceColors`。 実装は内部の 1 か所）。 縮小の方法は `EsImageScalingMode`（WIC の 5 種 + 本ライブラリの 3 種。 既定は `WicFant`）で選びます。 `Wic` の縮小と減色は WIC が行い（`Es` の縮小だけが本ライブラリの計算）、ディザは `EsDitherMode`（`None` / `ErrorDiffusion`）で選びます（**Windows 専用**）。 `Resize` は縮小のみ（拡大は `NotSupportedException`） |
 | 画像のファイル入出力 | `Save` / `Load`（**画像型のメンバー**。 `Load(string, int maxSize)` は **WIC のスケーラーでデコードしながら縮小する**（サムネイル用。 原寸のバッファを確保しない）。 `EsReadOnlyBitmap.Save` / `EsBitmap.Save` / `EsReadOnlyBitmap.Load` / `EsBitmap.Load`。 **形式は既定で拡張子が決め**、`EsImageSaveOptions.Format` で明示もできる（拡張子が無ければ補完する）。 **形式の一覧は OS のエンコーダーから作り**（固定の一覧を持たない）、試し書きが通った形式だけを `SupportedFileExtensions` が返す（この環境では 19 拡張子。 BMP / PNG / JPEG / GIF / TIFF / JPEG XR に加えて DDS / HEIF / JPEG XL など）。 保存のオプションは `EsImageSaveOptions`（**品質（JPEG / JPEG XR）と減色 `ColorCount` / `Dither`**）。 画素を画像型にせずに読み書きする場合は **`EsImageCodec`**（`ReadOnlySpan<byte>` + 寸法 + 行幅で受け渡す窓口。 画像型はここへ委譲する）を使う。 **EXIF の向き（`Orientation`）を適用してから縮小する**（回転した JPEG も正しい向きで読める）。 OS の WIC（`windowscodecs.dll` の COM）を使う Windows 専用で、外部パッケージは参照しない） |
 | OS サービス抽象 | `ICaptureService` / `ICursorService` / `IWindowService` / `IElementFinder` / `ICursorOverrideGuard` / `IGlobalHotKeyService<T>` / `IClipboardService` / `IMonitorDpi` / `IWindowFrameMetrics` / `IDialogService` / `IUserPreferenceService`（差し替えとテストのため） |
-| Windows 実装 | `Native.Win.*`（Win32 / WIC の P/Invoke と COM。 抽象の実装はホストが生成して注入する。 状態を持たない補助（`WinVirtualScreen` / `WinTaskDialog` / `WinMessageBox` / `WinProcessDpi` など）は静的クラス） |
+| Windows 実装 | `Native.Win.*`（Win32 / WIC の P/Invoke と COM。 抽象の実装はホストが生成して注入する。 状態を持たない補助（`WinVirtualScreen` / `WinTaskDialog` / `WinMessageBox` / `WinProcessDpi` など）は静的クラス）。 **`WinCaptureService`（GDI の `BitBlt`）/ `WinGraphicsCaptureService`（Windows.Graphics.Capture）/ `CaptureServiceFactory`（設定値から実装を選ぶ。 使えない環境は GDI）** |
 | クリップボード（Windows 専用） | `IClipboardService`（抽象） / `Native.Win.WinClipboard`（DIB の読み取り・テキストの読み書き・変更の検出。 開閉とロックの順序を単一所有する） / `Native.Win.WinVirtualScreen`（仮想スクリーンの矩形） |
 | 補助 | `DrawingColorExtensions` / `EsImageFileExtensions`（一覧に並べる画像の拡張子の判定） |
 | 色 | `Palette.ColorNames`（Windows 標準の色名の表と色名 ⇔ 色の相互参照） / `Palette.ColorEntry`（一覧と並び順） / `Palette.ColorString`（色名・16 進・不透明度 % の解析と整形） / `Palette.ColorValidation` / `Palette.ColorSortMode`（色名順・色相順）。 色を選ばせるコントロールと設定ファイルが同じ解釈を共有する |

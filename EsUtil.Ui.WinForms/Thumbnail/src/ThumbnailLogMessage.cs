@@ -21,24 +21,24 @@ internal static partial class ThumbnailLogMessage
     internal static string Prefix { get; set; } = DefaultPrefix;
 
     /// <summary>設定変更のログ（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Thumbnail] Setting: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Thumbnail] 設定: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} Setting: {Name:l} {OldValue:l} → {NewValue:l}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} 設定: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(
         this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     /// <summary>高頻度の設定変更のログ（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Thumbnail] Setting: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
+    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Thumbnail] 設定: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Trace, "{Prefix:l} Setting: {Name:l} {OldValue:l} → {NewValue:l}")]
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} 設定: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedTraceCore(
         this ILogger logger, string prefix, string name, string oldValue, string newValue);
 

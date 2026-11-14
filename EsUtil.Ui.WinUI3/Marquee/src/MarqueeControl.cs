@@ -189,7 +189,7 @@ public sealed partial class MarqueeControl : Canvas
     public event EventHandler<SelectionRectEventArgs>? ConfirmRequested;
 
     /// <summary>Escape キーによるキャンセル要求時に発火する（選択の破棄は本コントロールが実施済み）。</summary>
-    public event EventHandler? CancelRequested;
+    public event EventHandler? キャンセルが要求されました;
 
     /// <summary>描画完了（コントロールが図形とラベルを描き終えたこと）を通知するイベント。</summary>
     /// <remarks>
@@ -460,7 +460,7 @@ public sealed partial class MarqueeControl : Canvas
 
     /// <summary>キャンセル要求を処理する（Escape キーと同じ条件）。</summary>
     /// <remarks>
-    /// ドラッグ中 / 選択ありの場合は選択を破棄した後に <see cref="CancelRequested"/> を発火する。<br/>
+    /// ドラッグ中 / 選択ありの場合は選択を破棄した後に <see cref="キャンセルが要求されました"/> を発火する。<br/>
     /// モード差分（キャンセル後の後始末）は上位が本イベントを購読して行う。
     /// </remarks>
     public void RequestCancel()
@@ -514,7 +514,7 @@ public sealed partial class MarqueeControl : Canvas
             // コアは追従位置を汎用名（MarkerPositionMoved）で通知するため、ホスト向けの名前（ルーペ中心）へ写像する
             case MarqueeNoticeKind.MarkerPositionMoved: Raise(LoupePositionMoved, ToPointArgs(notice)); break;
             case MarqueeNoticeKind.ConfirmRequested: Raise(ConfirmRequested, ToRectArgs(notice.Snapshot)); break;
-            case MarqueeNoticeKind.CancelRequested: Raise(CancelRequested, EventArgs.Empty); break;
+            case MarqueeNoticeKind.キャンセルが要求されました: Raise(キャンセルが要求されました, EventArgs.Empty); break;
         }
     }
 

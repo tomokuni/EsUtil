@@ -326,11 +326,11 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    internal void RequestCancel_選択ありならCancelRequestedを発火する()
+    internal void RequestCancel_選択ありならキャンセルが要求されましたを発火する()
     {
         var control = CreateControl();
         var raised = false;
-        control.CancelRequested += (_, _) => raised = true;
+        control.キャンセルが要求されました += (_, _) => raised = true;
 
         control.SetSelection(new Rect(10, 10, 50, 40));
         control.RequestCancel();
@@ -339,11 +339,11 @@ public class MarqueeControlStateTests
     }
 
     [Fact]
-    internal void RequestCancel_選択なしでもCancelRequestedを発火する()
+    internal void RequestCancel_選択なしでもキャンセルが要求されましたを発火する()
     {
         var control = CreateControl();
         var raised = false;
-        control.CancelRequested += (_, _) => raised = true;
+        control.キャンセルが要求されました += (_, _) => raised = true;
 
         control.RequestCancel();
 

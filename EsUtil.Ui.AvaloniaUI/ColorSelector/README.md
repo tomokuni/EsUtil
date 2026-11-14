@@ -55,7 +55,7 @@ Avalonia UI 用の色選択コントロールです。 スウォッチ・色名/
 ## 3. システム要件
 
 - .NET 10
-- **対応 OS**: Windows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1809（ビルド 17763）以降
+- **対応 OS**: Windows 専用（`net10.0-windows10.0.20348.0`）。 Windows Server 2022 / Windows 11（ビルド 20348）以降
 - Avalonia 12.1 以降
 - C# 14
 

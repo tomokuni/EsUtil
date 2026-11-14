@@ -107,7 +107,7 @@ internal static class MainForm
         };
         marquee.SelectionCancelled += (_, _) => Write("キャンセル（選択が解除された）");
         marquee.ConfirmRequested += (_, e) => Write($"確定要求: {e.Rect}");
-        marquee.CancelRequested += (_, _) => Write("キャンセル要求");
+        marquee.キャンセルが要求されました += (_, _) => Write("キャンセル要求");
         marquee.LoupePositionMoved += (_, e) =>
         {
             // ポインター移動のたびに届く高頻度の値であるため Trace（画面の表示は状態の行が担う）

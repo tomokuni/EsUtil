@@ -16,7 +16,7 @@ WinUI 3 版のサムネイル一覧コントロールが提供する公開 API �
 
 ## 1. 前提条件
 
-- 対象フレームワークは `net10.0-windows10.0.22621.0` で、`UseWinUI` を有効にします（Windows App SDK）。
+- 対象フレームワークは `net10.0-windows10.0.20348.0` で、`UseWinUI` を有効にします（Windows App SDK）。
 - 画像は **`EsReadOnlyBitmap`**（コアの読み取り専用画像型）で受け取ります。 **ピクセルは複製しません**（非所有ビューとして描画します）。
 - 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Core` が単一所有します。
 - 単位は **DIP** です。

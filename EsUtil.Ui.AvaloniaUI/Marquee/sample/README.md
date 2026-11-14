@@ -23,7 +23,7 @@
 - マウスドラッグによる新規選択、選択矩形の移動・リサイズ（8方向ハンドル）を確認できます。
 - 矢印キーによる nudge（対象 1Pixel 移動）を確認できます。
 - ダブルクリック検出（選択内=確定 / 外=キャンセル）を確認できます。
-- 公開イベント（`SelectionChanged` / `SelectionCompleted` / `SelectionCancelled` / `LoupePositionMoved` / `ConfirmRequested` / `CancelRequested`）の購読パターンを示します。
+- 公開イベント（`SelectionChanged` / `SelectionCompleted` / `SelectionCancelled` / `LoupePositionMoved` / `ConfirmRequested` / `キャンセルが要求されました`）の購読パターンを示します。
 - `SetSelection` / `ResetSelection` / `RequestConfirm` / `RequestCancel` の API 呼び出しをボタンで確認できます。
 - `MarqueeControl.Log` に `ILogger` を設定し、コントロール内部の操作ログを選択面の下のログ表示領域で確認できます。
 - 左側の設定パネルで、コントロールの外観・動作プロパティ（枠線・ハンドル・判定半径・最小サイズ）をリアルタイムに変更できます。
@@ -55,7 +55,7 @@ dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Marquee/sample/EsUtil.Ui.Av
 | Ctrl+マウスホイール | 背景画像の拡大・縮小（ズーム） |
 | マウスホイール / スクロールバー | 背景画像のスクロール |
 | 矢印キー | nudge（対象1Pixel移動。 領域作成前は始点決めとして常に有効、領域作成後は**マウスボタン押下中のみ**有効。 十字マーカーはドラッグ中のハンドル位置に表示） |
-| Escape | キャンセル要求（選択破棄はコントロールが実施し `CancelRequested` を発火） |
+| Escape | キャンセル要求（選択破棄はコントロールが実施し `キャンセルが要求されました` を発火） |
 | Enter | 確定要求（選択確定後に `ConfirmRequested` を発火） |
 | ダブルクリック（選択内） | 確定扱いのデモ |
 | ダブルクリック（選択外） | キャンセル扱いのデモ |
@@ -75,10 +75,10 @@ dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Marquee/sample/EsUtil.Ui.Av
 - [ ] ドラッグで選択矩形が作成され、枠線・ハンドルが描画される（コントロール自身の描画）
 - [ ] 選択矩形の移動・リサイズが動作する
 - [ ] 選択中に矢印キーを押すと矩形が対象1Pixel単位で移動する
-- [ ] 選択矩形内のダブルクリックで、選択内 = `ConfirmRequested` / 選択外 = `CancelRequested` が Marquee 自身から発火する
+- [ ] 選択矩形内のダブルクリックで、選択内 = `ConfirmRequested` / 選択外 = `キャンセルが要求されました` が Marquee 自身から発火する
 - [ ] 「選択をクリア」で状態が初期化され、`SelectionCancelled` 系の処理が動作する
 - [ ] 「固定矩形を設定」で外部から矩形が復元される
-- [ ] 「確定要求」ボタンで `ConfirmRequested`、「キャンセル要求」ボタンで `CancelRequested` が発火する
+- [ ] 「確定要求」ボタンで `ConfirmRequested`、「キャンセル要求」ボタンで `キャンセルが要求されました` が発火する
 - [ ] ステータステキストに選択矩形の対象座標が表示される
 
 ---
@@ -87,7 +87,7 @@ dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Marquee/sample/EsUtil.Ui.Av
 
 ```text
 EsUtil.Ui.AvaloniaUI/Marquee/sample/
-├── EsUtil.Ui.AvaloniaUI.Marquee.Sample.csproj # サンプルアプリのプロジェクト（net10.0-windows10.0.17763.0 / Avalonia 12.1）
+├── EsUtil.Ui.AvaloniaUI.Marquee.Sample.csproj # サンプルアプリのプロジェクト（net10.0-windows10.0.20348.0 / Avalonia 12.1）
 ├── app.manifest                   # Windows DPI 設定（PerMonitorV2）
 ├── Program.cs                     # エントリポイント
 ├── App.axaml / App.axaml.cs       # アプリケーション定義（FluentTheme）
@@ -110,7 +110,7 @@ EsUtil.Ui.AvaloniaUI/Marquee/sample/
 3. **移動・リサイズ**: 枠内をドラッグで移動、ハンドルをドラッグでリサイズします。
 4. **ズーム・スクロール**: Ctrl+マウスホイールで拡大・縮小、マウスホイール / スクロールバーでスクロールします（ズーム倍率に応じて座標ポートが動的更新）。
 5. **nudge**: 矢印キーで選択矩形を対象 1Pixel 単位で移動します（領域作成後はマウスボタン押下中のみ有効）。
-6. **確定・キャンセル**: Enter で確定（`ConfirmRequested`）、Escape でキャンセル（`CancelRequested`）です。 ダブルクリックは選択内 = 確定 / 選択外 = キャンセルとして扱われます。
+6. **確定・キャンセル**: Enter で確定（`ConfirmRequested`）、Escape でキャンセル（`キャンセルが要求されました`）です。 ダブルクリックは選択内 = 確定 / 選択外 = キャンセルとして扱われます。
 7. **API 呼び出し**: 「選択をクリア」/「矩形を設定」/「ハイライト切替」/「確定を要求」/「キャンセルを要求」ボタンで各公開 API の動作を確認できます。 「ハイライト切替」は**表示専用の注目矩形**を設定します（`HighlightSourceRect`。 選択とは別で、ハンドルを出さず、**ドラッグやキー操作も受け付けません**）。 注目矩形はハイライトが優先されるため、外側マスク・枠線・サイズ ラベルもハイライト一つになります。
 8. **ログ**: 選択面下のログ表示領域に、`MarqueeControl` 内部の操作ログ（`Log` に設定した `ILogger` 経由）が表示されます。
 
@@ -170,7 +170,7 @@ Marquee.LogPrefix = "[Marquee]";
 
 ログには時分秒ミリ秒（`HH:mm:ss.fff`）が付与されます。
 
-コントロールからのイベント（`SelectionChanged` / `SelectionStarted` / `SelectionCompleted` / `SelectionCancelled` / `LoupePositionMoved` / `ConfirmRequested` / `CancelRequested`）を受信した場合も、コードビハインドでログへ出力します。
+コントロールからのイベント（`SelectionChanged` / `SelectionStarted` / `SelectionCompleted` / `SelectionCancelled` / `LoupePositionMoved` / `ConfirmRequested` / `キャンセルが要求されました`）を受信した場合も、コードビハインドでログへ出力します。
 
 実アプリでは `ILogger` を NLog 等へ注入することで、同じログをファイルやコンソールへ出力できます。
 

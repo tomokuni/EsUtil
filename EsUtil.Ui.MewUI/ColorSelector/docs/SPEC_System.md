@@ -47,7 +47,7 @@ graph TD
 | 型 | 役割 |
 | --- | --- |
 | `ColorSelectorControl` | 公開 API。 入力・一覧・ピッカーの 3 経路を `SelectedColor` へ集約する（一覧は `Popup`、ピッカーは `ColorPicker` 自身のドロップダウン。 ピッカーは 1×1 の入れ物で**切り取って**置き、折り畳み時の見出し（「︿」）を行の上へ出さない） |
-| `LogMessage` | 変更の記録（`Setting: SelectedColor <旧> → <新>`） |
+| `LogMessage` | 変更の記録（`設定: 選択色 <旧> → <新>`） |
 
 ## 6. 依存関係
 

@@ -30,5 +30,5 @@ public enum MarqueeNoticeKind
     ConfirmRequested,
 
     /// <summary>キャンセル要求（Escape・枠外ダブルクリック・API 呼び出し）。</summary>
-    CancelRequested,
+    キャンセルが要求されました,
 }

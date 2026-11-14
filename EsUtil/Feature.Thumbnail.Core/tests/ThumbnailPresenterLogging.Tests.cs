@@ -20,9 +20,9 @@ public class ThumbnailPresenterLoggingTests
         presenter.Log = logger;
 
         Assert.Equal(LogLevel.Information, logger.Levels[0]);
-        Assert.Equal("[Thumbnail] Presenter created", logger.Messages[0]);
-        Assert.Equal(1, logger.Messages.Count(message => message.EndsWith("Presenter created", StringComparison.Ordinal)));
-        Assert.Equal(2, logger.Messages.Count(message => message.EndsWith("Logger attached", StringComparison.Ordinal)));
+        Assert.Equal("[Thumbnail] 提示層を作成しました", logger.Messages[0]);
+        Assert.Equal(1, logger.Messages.Count(message => message.EndsWith("提示層を作成しました", StringComparison.Ordinal)));
+        Assert.Equal(2, logger.Messages.Count(message => message.EndsWith("ロガーを接続しました", StringComparison.Ordinal)));
     }
 
     /// <summary>null のロガーを設定しても <see cref="NullLogger"/> へ吸収されることを検証する。</summary>
@@ -58,7 +58,7 @@ public class ThumbnailPresenterLoggingTests
             presenter.LogPrefix = original;
         }
 
-        Assert.Equal(["[Test] Setting: ColumnSpace 8 → 6"], logger.Messages);
+        Assert.Equal(["[Test] 設定: ColumnSpace 8 → 6"], logger.Messages);
         Assert.Equal(6, presenter.Options.ColumnSpace);
     }
 
@@ -86,7 +86,7 @@ public class ThumbnailPresenterLoggingTests
 
         presenter.Appearance = presenter.Appearance with { ShowHoverBackground = false };
 
-        Assert.Equal(["[Thumbnail] Setting: ShowHoverBackground True → False"], logger.Messages);
+        Assert.Equal(["[Thumbnail] 設定: ShowHoverBackground True → False"], logger.Messages);
     }
 
     /// <summary>接頭辞を空白にすると既定値へ戻ることを検証する。</summary>

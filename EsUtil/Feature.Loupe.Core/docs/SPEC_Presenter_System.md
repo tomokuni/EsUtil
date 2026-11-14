@@ -29,7 +29,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| ターゲット | `net10.0-windows10.0.17763.0` |
+| ターゲット | `net10.0-windows10.0.20348.0` |
 | 言語 | C# 14（`Nullable` 有効・`ImplicitUsings` 有効） |
 | ルート名前空間 | `EsUtil.Feature.Loupe`（**公開面はすべてここに属する**。 ファサードと、ファサードのメンバーの型（`LoupeDrawPlan` / `LoupeDrawLayer` / `LoupeAppearance` / `LoupeLabelPlacement`））。 `internal` の型だけが層フォルダ `src/Presenter/` の配下（`EsUtil.Feature.Loupe.Presenter.Drawing`）に残る（ログ定義は `src/Logging/` の `EsUtil.Feature.Loupe.Logging`） |
 | ドキュメント生成 | `GenerateDocumentationFile` 有効（生成した XML はパッケージへ同封する） |
@@ -127,8 +127,8 @@ dotnet test EsUtil/Feature.Loupe.Core/tests/EsUtil.Feature.Loupe.Core.Tests.cspr
 
 | 契機 | 出力 | レベル |
 | --- | --- | --- |
-| 生成（コンストラクター注入時、または `Log` の初回設定時） | `Presenter created` | Information |
-| `Log` の set | `Logger attached`（初回のみ） | Debug |
+| 生成（コンストラクター注入時、または `Log` の初回設定時） | `提示層を作成しました` | Information |
+| `Log` の set | `ロガーを接続しました`（初回のみ） | Debug |
 | `Appearance` の set | 変化した項目だけ（`LogAppearanceChanged`。 書式 `Setting: {Name} {OldValue} → {NewValue}`） | Information |
 | `Options` / `ClientToPixelScaling` / `CenterPoint` / `PositionOffset` / `SetCoordTransform` | コアが記録する（本層は何も出力しない） | — |
 | `ResolveLayout` / `ResolveDrawPlan` | 出力しない（毎フレーム呼ばれる） | — |

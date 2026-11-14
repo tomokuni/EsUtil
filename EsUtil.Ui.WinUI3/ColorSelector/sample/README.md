@@ -57,7 +57,7 @@ dotnet run --project EsUtil.Ui.WinUI3/ColorSelector/sample/EsUtil.Ui.WinUI3.Colo
 
 ```text
 EsUtil.Ui.WinUI3/ColorSelector/sample/
-├── EsUtil.Ui.WinUI3.ColorSelector.Sample.csproj   # サンプルアプリのプロジェクト（net10.0-windows10.0.22621.0）
+├── EsUtil.Ui.WinUI3.ColorSelector.Sample.csproj   # サンプルアプリのプロジェクト（net10.0-windows10.0.20348.0）
 ├── app.manifest                                   # Windows DPI 設定（PerMonitorV2）
 ├── App.xaml / App.xaml.cs                         # アプリケーション定義
 ├── Views/

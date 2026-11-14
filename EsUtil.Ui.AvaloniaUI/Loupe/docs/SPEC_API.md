@@ -54,7 +54,7 @@
 | 対象 | `EsUtil.Ui.AvaloniaUI.Loupe`（公開クラスは `LoupeControl`） |
 | プロジェクト | `EsUtil.Ui.AvaloniaUI/Loupe/src/EsUtil.Ui.AvaloniaUI.Loupe.csproj` |
 | 名前空間 | `EsUtil.Ui.AvaloniaUI.Loupe` |
-| 対象フレームワーク | `net10.0-windows10.0.17763.0` |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0` |
 | UIフレームワーク | Avalonia 12.1 |
 | 主要基底クラス | `Avalonia.Controls.Panel`（コードのみ。 AXAML を持たない） |
 | 表示方式 | 子の描画層（`RenderLayer`）が窓の描画面へ直接描く方式（中間 Bitmap を持たない）と、中心座標ラベルのテキスト要素（`Border` + `TextBlock`） |

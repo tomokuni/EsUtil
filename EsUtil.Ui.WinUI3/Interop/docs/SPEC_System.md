@@ -20,7 +20,7 @@ WinUI 3 の型と EsUtil の型の**境界**を担うアセンブリです。 UI
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.22621.0` |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0` |
 | UI フレームワーク | `Microsoft.WindowsAppSDK`（2.6 以降） |
 | 共通基盤 | `EsUtil.Platform.Core`（値型・画像・OS の抽象） |
 | テスト | xUnit v3 |

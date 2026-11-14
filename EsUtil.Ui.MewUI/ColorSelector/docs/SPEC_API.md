@@ -16,7 +16,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.17763.0` |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0` |
 | UI フレームワーク | MewUI 0.22.1 |
 | 色名と色文字列 | `EsUtil.Platform.Core` の `Palette`（`ColorNames` / `ColorString` / `ColorValidation` / `ColorEntry` / `ColorSortMode` / `ColorTextFormat`） |
 

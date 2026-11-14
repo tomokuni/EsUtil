@@ -3,7 +3,7 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Thumbnail.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1809)%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%20(20348)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![WinForms](https://img.shields.io/badge/UI-WinForms-512BD4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
@@ -58,8 +58,8 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.17763.0`（`UseWindowsForms`。 Windows 専用） |
-| 対応 OS | Windows 10 バージョン 1809（ビルド 17763）以降 |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0`（`UseWindowsForms`。 Windows 専用） |
+| 対応 OS | Windows Server 2022 / Windows 11（ビルド 20348）以降 |
 | Native AOT | 非対応（Windows Forms 自体がトリミング/AOT に対応しない。 `PublishAot` は `NETSDK1175` で失敗する） |
 | 言語 | C# 14（.NET 10） |
 
@@ -135,8 +135,8 @@ list.SetImage(index, bitmap);
 
 | レベル | 出力例 |
 | --- | --- |
-| Information | `[Thumbnail] Setting: ImageWidth 160 → 110` / `[Thumbnail] Setting: IsDarkTheme False → True` / `[Thumbnail] Setting: Image[0] null → 96x64`（画像の差し替え） / `[Thumbnail] Setting: ItemCount 12 → 0`（クリア） |
-| Trace | `[Thumbnail] Setting: ItemCount 0 → 1`（1 件ずつの追加） |
+| Information | `[Thumbnail] 設定: ImageWidth 160 → 110` / `[Thumbnail] 設定: IsDarkTheme False → True` / `[Thumbnail] 設定: Image[0] null → 96x64`（画像の差し替え） / `[Thumbnail] 設定: ItemCount 12 → 0`（クリア） |
+| Trace | `[Thumbnail] 設定: ItemCount 0 → 1`（1 件ずつの追加） |
 
 `Log` へ `ILogger` を設定します（null は `NullLogger`）。 接頭辞は `LogPrefix` で設定し、コアと提示層のログの両方に適用します（既定 `[Thumbnail]`）。 設定・外観の変更は提示層、選択の変更はコアが記録します。
 

@@ -46,7 +46,7 @@ Avalonia UI の色選択コントロールです（.NET 10.0 / C# 14 / MVVM）�
 | **ルート名前空間** | `EsUtil.Ui.AvaloniaUI.ColorSelector` |
 | **言語** | C# 14（.NET 10.0） |
 | **UI フレームワーク** | Avalonia UI 12.1（UserControl / ComboBox / ColorView / Flyout） |
-| **ターゲットフレームワーク** | net10.0-windows10.0.17763.0 |
+| **ターゲットフレームワーク** | net10.0-windows10.0.20348.0 |
 | **ビルドツール** | MSBuild / .NET SDK 10.0 |
 | **ログ** | Microsoft.Extensions.Logging.Abstractions（LoggerMessage ソース生成） |
 | **テスト** | xUnit v3 / Avalonia.Headless.XUnit |

@@ -143,7 +143,7 @@ public sealed class MarqueeControl : Control
     public event EventHandler<SelectionRectEventArgs>? ConfirmRequested;
 
     /// <summary>Escape キーによるキャンセル要求時に発火する（選択の破棄は本コントロールが実施済み）。</summary>
-    public event EventHandler? CancelRequested;
+    public event EventHandler? キャンセルが要求されました;
 
     /// <summary>描画完了（コントロールが図形とラベルを描き終えたこと）を通知するイベント。</summary>
     /// <remarks>
@@ -451,7 +451,7 @@ public sealed class MarqueeControl : Control
 
     /// <summary>キャンセル要求を処理する（Escape キーと同じ条件）。</summary>
     /// <remarks>
-    /// ドラッグ中 / 選択ありの場合は選択を破棄した後に <see cref="CancelRequested"/> を発火する。<br/>
+    /// ドラッグ中 / 選択ありの場合は選択を破棄した後に <see cref="キャンセルが要求されました"/> を発火する。<br/>
     /// モード差分（キャンセル後の後始末）は上位が本イベントを購読して行う。
     /// </remarks>
     public void RequestCancel()
@@ -850,8 +850,8 @@ public sealed class MarqueeControl : Control
                 RaiseConfirmRequested(ToRectArgs(notice));
                 break;
 
-            case MarqueeNoticeKind.CancelRequested:
-                RaiseCancelRequested();
+            case MarqueeNoticeKind.キャンセルが要求されました:
+                Raiseキャンセルが要求されました();
                 break;
         }
     }
@@ -920,9 +920,9 @@ public sealed class MarqueeControl : Control
     }
 
     /// <summary>キャンセル要求の通知を発火する。</summary>
-    private void RaiseCancelRequested()
+    private void Raiseキャンセルが要求されました()
     {
-        var handler = CancelRequested;
+        var handler = キャンセルが要求されました;
         handler?.Invoke(this, EventArgs.Empty);
     }
 

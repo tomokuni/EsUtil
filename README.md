@@ -11,19 +11,37 @@
 ![WinForms](https://img.shields.io/badge/UI-WinForms-512BD4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
+## 1. 概要
+
 複数の Windows デスクトップ アプリで使い回す **UI 非依存の共通基盤** と、**再利用可能な UI コントロール** を提供するライブラリ群です。  
 Avalonia UI / MewUI / WinUI 3 / WinForms の 4 つの UI 実装で、同じ計算結果と同じ見た目のコントロールを共有できます。
 
-各プロジェクトは **NuGet パッケージ**として出力します。 公開済みのパッケージは [nuget.org のプロフィール](https://www.nuget.org/profiles/tomokuni) から一覧できます（各パッケージのリンクは §1 の表にあります）。
+各プロジェクトは **NuGet パッケージ**として出力します。 公開済みのパッケージは [nuget.org のプロフィール](https://www.nuget.org/profiles/tomokuni) から一覧できます（各パッケージのリンクは §3 の表にあります）。
 
-## 1. ソリューションとプロジェクト
+## 2. 使い方
+
+**インストールとクイックスタートは各パッケージの `README.md` が持ちます**（本節は読み始める場所だけを示します。 手順をここへ書くと 2 か所になり、片方だけ直されて食い違います）。
+
+| 使いたいもの | 読み始める場所 |
+| --- | --- |
+| 共通基盤（キーと入力・幾何・座標変換・画像・OS サービス） | [`EsUtil/Platform.Core/README.md`](EsUtil/Platform.Core/README.md) |
+| ルーペ（拡大鏡） | [`EsUtil.Ui.<UI>/Loupe/README.md`](EsUtil.Ui.AvaloniaUI/Loupe/README.md) |
+| マーキー（ドラッグ矩形） | [`EsUtil.Ui.<UI>/Marquee/README.md`](EsUtil.Ui.AvaloniaUI/Marquee/README.md) |
+| サムネイル一覧 | [`EsUtil.Ui.<UI>/Thumbnail/README.md`](EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) |
+| 複数列の配置 | [`EsUtil.Ui.<UI>/ColumnPacking/README.md`](EsUtil.Ui.AvaloniaUI/ColumnPacking/README.md) |
+| 色選択（Avalonia UI / MewUI / WinUI 3） | [`EsUtil.Ui.<UI>/ColorSelector/README.md`](EsUtil.Ui.AvaloniaUI/ColorSelector/README.md) |
+| 全角・半角・かなの変換 | [`EsUtil/Feature.ZenHan.Core/README.md`](EsUtil/Feature.ZenHan.Core/README.md) |
+
+`<UI>` は `AvaloniaUI` / `MewUI` / `WinUI3` / `WinForms` のいずれかです（リンク先は Avalonia UI 版。 色選択に WinForms 版はありません）。
+
+## 3. ソリューションとプロジェクト
 
 リポジトリ直下のフォルダが**ソリューション フォルダ**であり、その直下のフォルダが**プロジェクト フォルダ**です（プロジェクトはソリューションの中にだけ置きます）。  
 **使い方（インストール・クイックスタート）は各プロジェクトの `README.md` が持ちます**（版は nuget.org のバッジで示します。 公開前は「not found」と表示されます）。
 
 **層の帰属（Core / Presenter / UI のどれに置くか）は [`EsUtil/README.md`](EsUtil/README.md) が、参照の許可範囲は [`.github/依存関係.md`](.github/依存関係.md) が単一所有します**（本節は分類だけを示します）。
 
-### 1.1 `EsUtil`（共通基盤・機能層）
+### 3.1 `EsUtil`（共通基盤・機能層）
 
 UI に依存しない層です。 4 つの UI 版が共有します。
 
@@ -39,7 +57,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Feature.ColumnPacking.Core`](EsUtil/Feature.ColumnPacking.Core/README.md) | 複数列の配置（最大列高さの最小化）の計算層 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.ColumnPacking.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.ColumnPacking.Core) |
 | [`EsUtil.Feature.ZenHan.Core`](EsUtil/Feature.ZenHan.Core/README.md) | 全角・半角・ひらがな・カタカナ・記号の相互変換 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.ZenHan.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.ZenHan.Core) |
 
-### 1.2 `EsUtil.Ui.AvaloniaUI`（Avalonia UI 版）
+### 3.2 `EsUtil.Ui.AvaloniaUI`（Avalonia UI 版）
 
 ソリューション: [`EsUtil.Ui.AvaloniaUI.slnx`](EsUtil.Ui.AvaloniaUI/EsUtil.Ui.AvaloniaUI.slnx)
 
@@ -52,7 +70,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Ui.AvaloniaUI.Thumbnail`](EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Thumbnail) |
 | [`EsUtil.Ui.AvaloniaUI.ColumnPacking`](EsUtil.Ui.AvaloniaUI/ColumnPacking/README.md) | 複数列の配置（パネル） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.ColumnPacking.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.ColumnPacking) |
 
-### 1.3 `EsUtil.Ui.MewUI`（MewUI 版）
+### 3.3 `EsUtil.Ui.MewUI`（MewUI 版）
 
 ソリューション: [`EsUtil.Ui.MewUI.slnx`](EsUtil.Ui.MewUI/EsUtil.Ui.MewUI.slnx)
 
@@ -65,7 +83,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Ui.MewUI.Thumbnail`](EsUtil.Ui.MewUI/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Thumbnail) |
 | [`EsUtil.Ui.MewUI.ColumnPacking`](EsUtil.Ui.MewUI/ColumnPacking/README.md) | 複数列の配置（パネル） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.ColumnPacking.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.ColumnPacking) |
 
-### 1.4 `EsUtil.Ui.WinUI3`（WinUI 3 版）
+### 3.4 `EsUtil.Ui.WinUI3`（WinUI 3 版）
 
 ソリューション: [`EsUtil.Ui.WinUI3.slnx`](EsUtil.Ui.WinUI3/EsUtil.Ui.WinUI3.slnx)
 
@@ -78,7 +96,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Ui.WinUI3.Thumbnail`](EsUtil.Ui.WinUI3/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Thumbnail) |
 | [`EsUtil.Ui.WinUI3.ColumnPacking`](EsUtil.Ui.WinUI3/ColumnPacking/README.md) | 複数列の配置（パネル） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.ColumnPacking.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.ColumnPacking) |
 
-### 1.5 `EsUtil.Ui.WinForms`（WinForms 版）
+### 3.5 `EsUtil.Ui.WinForms`（WinForms 版）
 
 ソリューション: [`EsUtil.Ui.WinForms.slnx`](EsUtil.Ui.WinForms/EsUtil.Ui.WinForms.slnx)
 
@@ -91,7 +109,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 
 色選択（`ColorSelector`）は **WinForms 版だけありません**（WinForms には相当するコントロールが無く、作る予定もありません）。
 
-## 2. ドキュメント
+## 4. ドキュメント
 
 | 知りたいこと | 所有者 |
 | --- | --- |
@@ -103,30 +121,30 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | 変更履歴 | [`CHANGELOG.md`](CHANGELOG.md) |
 | 各プロジェクトの仕様 | `<ソリューション フォルダ>/<プロジェクト フォルダ>/docs/SPEC_API.md` / `SPEC_System.md`（例: `EsUtil.Ui.AvaloniaUI/Loupe/docs/SPEC_API.md`） |
 
-## 3. 対応フレームワークと Native AOT
+## 5. 対応フレームワークと Native AOT
 
-**対象フレームワークと、実行に必要な Windows の下限**です（値の所有者は各 `.csproj` の `<TargetFramework>` / `<SupportedOSPlatformVersion>`。 パッケージの `README.md` も同じ値を書きます）。 **本リポジトリの動作 OS は Windows だけです**（すべてのパッケージが Windows 向けの対象フレームワークです）。
+**対象フレームワークと、実行に必要な Windows の下限**です（値の所有者は各 `.csproj` の `<TargetFramework>`。 パッケージの `README.md` も同じ値を書きます）。 **本リポジトリの動作 OS は Windows だけです**（すべてのパッケージが Windows 向けの対象フレームワークです）。 **下限は対象フレームワークが持ちます**（`<SupportedOSPlatformVersion>` は書きません）。
 
 | 区分 | 対象フレームワーク | 対象プロジェクト |
 | --- | --- | --- |
-| 共通基盤 | `net10.0-windows10.0.17763.0` | `EsUtil.Platform.Core` / `EsUtil.Platform.Core.Windows` |
-| 機能層 | `net10.0-windows10.0.17763.0` | `EsUtil.Feature.*` |
-| Avalonia UI 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.AvaloniaUI.*` |
-| MewUI 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.MewUI.*` |
-| WinUI 3 層 | `net10.0-windows10.0.22621.0`（`SupportedOSPlatformVersion` = `10.0.19041.0`） | `EsUtil.Ui.WinUI3.*` |
-| WinForms 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.WinForms.*` |
+| 共通基盤 | `net10.0-windows10.0.20348.0` | `EsUtil.Platform.Core` / `EsUtil.Platform.Core.Windows` |
+| 機能層 | `net10.0-windows10.0.20348.0` | `EsUtil.Feature.*` |
+| Avalonia UI 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.AvaloniaUI.*` |
+| MewUI 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.MewUI.*` |
+| WinUI 3 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.WinUI3.*` |
+| WinForms 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.WinForms.*` |
 
 | 区分 | Windows の下限 |
 | --- | --- |
-| 共通基盤・機能層 | **Windows 10 バージョン 1809（ビルド 17763）以降** |
-| Avalonia UI 層・MewUI 層・WinForms 層 | Windows 10 バージョン 1809（ビルド 17763）以降 |
-| WinUI 3 層 | **Windows 10 バージョン 2004（ビルド 19041）以降**（Windows App Runtime 2.6 以降。 対象フレームワークの 22621 は API 面であり、実行の下限ではない。 ランタイムが無い場合は `EsUtil.Ui.WinUI3.Interop` の `WindowsAppRuntimeInventory` で判定し、`WindowsAppRuntimeBootstrap` で導入できる） |
+| **すべての層** | **Windows Server 2022 / Windows 11（ビルド 20348）以降**。 **Windows 10 は対象外**（クライアントの最新ビルド 19045 が下限に届きません）。 WinUI 3 層が要求する Windows App Runtime は **2.6.5 以降**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版）です |
 
-- **検証は Windows でだけ行っています**。 対象フレームワークが Windows のため、**Windows 以外では動作しません**（実行時にも Win32 / WIC を呼びます）。
+- windows10.0.20348 は Windows Server 2022 以降、または Windows 11 21H2 (GA) 以降。
 
-### 3.1 依存パッケージの下限（.NET 10）
+- **利用側のプロジェクトも `net10.0-windows10.0.20348.0` 以上にする**（NuGet の互換判定は**対象フレームワーク**で行われ、`<SupportedOSPlatformVersion>` は使われません。 実測 2026-11-14: 古い対象フレームワークのプロジェクトは `NU1201` / `NU1202` で復元できません）。
 
-**公開パッケージの依存下限は .NET 10 です**。 利用側に要求する .NET の版は、対象フレームワーク（`net10.0-windows10.0.17763.0`）と nuspec の依存が決めます。
+### 5.1 依存パッケージの下限（.NET 10）
+
+**公開パッケージの依存下限は .NET 10 です**。 利用側に要求する .NET の版は、対象フレームワーク（`net10.0-windows10.0.20348.0`）と nuspec の依存が決めます。
 
 | 依存 | nuspec に書かれる下限 | 理由 |
 | --- | --- | --- |
@@ -137,7 +155,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 - **利用側が新しい版を参照しても問題ありません**。 NuGet の統合により、利用側の版（例: .NET 11 のアプリが参照する 11.0.0）で解決されます。 実測 2026-11-13: `.NET 10` / `.NET 11` の両ランタイムで、ログ出力と `System.Drawing` の利用が動作しました。
 - **ビルドには .NET 11 SDK を使います**（[`global.json`](global.json) が単一所有。 対象フレームワークは `net10.0` のまま）。 利用者の実行環境に要求するのは上の 2 つだけであり、**SDK の版は公開物に影響しません**。
 
-### 3.2 Native AOT
+### 5.2 Native AOT
 
 | 層 | Native AOT | 根拠（実測） |
 | --- | --- | --- |
@@ -150,6 +168,19 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 - **言語**: C# 14 / .NET 10。
 - **プラットフォーム**: Windows のみ（すべてのパッケージが Windows 向けの対象フレームワーク。 `EsUtil.Platform.Core/src/Native/Win` 配下が Win32 / WIC を呼びます）。 `EsUtil.Platform.Core.Native` の I/F は**差し替え（DIP）とテストのため**に残しており、他の OS 向け実装を提供するものではありません。
 
-## 4. ライセンス
+## 6. テストまたは検証
+
+テストは **xUnit v3** で、対象プロジェクトごとの `*.Tests` に置いています。 **変更をコミットする前の検証は `pwsh -NoProfile -File .github/verify/verify.ps1` を 1 回実行**します（ビルド・テスト・文書・規約の走査を含みます）。 手順と合否基準は [`.github/検証手順.md`](.github/検証手順.md)、個別の実行方法は [`.github/開発手順.md`](.github/開発手順.md) が所有します。
+
+## 7. 問い合わせと貢献
+
+| 知りたいこと | 行き先 |
+| --- | --- |
+| 不具合・要望 | [Issues](https://github.com/tomokuni/EsUtil/issues) |
+| 公開パッケージの利用方法 | 各パッケージの `README.md`（`<ソリューション フォルダ>/<プロジェクト フォルダ>/README.md`） |
+| 開発への参加 | [`.github/copilot-instructions.md`](.github/copilot-instructions.md)（規約の索引）・[`.github/開発手順.md`](.github/開発手順.md)・[`.github/検証手順.md`](.github/検証手順.md) |
+| ライセンス | MIT（[`LICENSE`](LICENSE)） |
+
+## 8. ライセンス
 
 [MIT License](LICENSE)

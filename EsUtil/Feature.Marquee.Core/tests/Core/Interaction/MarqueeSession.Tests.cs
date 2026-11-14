@@ -133,7 +133,7 @@ public class MarqueeSessionTests
         var feedback = session.Press(new EsPoint(10, 10), clickCount: 2);
 
         Assert.Equal(
-            [MarqueeNoticeKind.CancelRequested],
+            [MarqueeNoticeKind.キャンセルが要求されました],
             Kinds(notices));
         Assert.True(session.HasSelection);
         Assert.False(feedback.ShouldRedraw);
@@ -304,7 +304,7 @@ public class MarqueeSessionTests
 
         Assert.True(feedback.IsHandled);
         Assert.True(feedback.ShouldRedraw);
-        Assert.Equal([MarqueeNoticeKind.CancelRequested], Kinds(notices));
+        Assert.Equal([MarqueeNoticeKind.キャンセルが要求されました], Kinds(notices));
         Assert.False(session.HasSelection);
     }
 
@@ -616,7 +616,7 @@ public class MarqueeSessionTests
 
         var feedback = session.RequestCancel();
 
-        Assert.Equal([MarqueeNoticeKind.CancelRequested], Kinds(notices));
+        Assert.Equal([MarqueeNoticeKind.キャンセルが要求されました], Kinds(notices));
         Assert.False(session.HasSelection);
         Assert.True(feedback.ShouldRedraw);
     }
@@ -628,7 +628,7 @@ public class MarqueeSessionTests
 
         var feedback = session.RequestCancel();
 
-        Assert.Equal([MarqueeNoticeKind.CancelRequested], Kinds(notices));
+        Assert.Equal([MarqueeNoticeKind.キャンセルが要求されました], Kinds(notices));
         Assert.False(feedback.ShouldRedraw);
     }
 
@@ -712,8 +712,8 @@ public class MarqueeSessionTests
 
         Assert.Equal(
             [
-                "[Marquee] Setting: HandleSize 10 → 20",
-                "[Marquee] Setting: MarkerLength 16 → 40",
+                "[Marquee] 設定: HandleSize 10 → 20",
+                "[Marquee] 設定: MarkerLength 16 → 40",
             ],
             logger.Messages);
     }
@@ -734,7 +734,7 @@ public class MarqueeSessionTests
         // 1 項目だけ変えるとその項目だけが出力される
         session.ApplyOptions(session.Options with { HandleHitRadius = 30.0 });
 
-        Assert.Equal("[Marquee] Setting: HandleHitRadius 12 → 30", Assert.Single(logger.Messages));
+        Assert.Equal("[Marquee] 設定: HandleHitRadius 12 → 30", Assert.Single(logger.Messages));
     }
 
     [Fact]
@@ -754,7 +754,7 @@ public class MarqueeSessionTests
         Assert.Equal(new EsRect(150, 150, 50, 50), session.SelectionSourceRect);
         Assert.Equal([MarqueeNoticeKind.SelectionChanged], Kinds(notices));
         Assert.True(feedback.ShouldRedraw);
-        Assert.Equal("[Marquee] Setting: ClampToSourceBounds False → True", Assert.Single(logger.Messages));
+        Assert.Equal("[Marquee] 設定: ClampToSourceBounds False → True", Assert.Single(logger.Messages));
     }
 
     [Fact]

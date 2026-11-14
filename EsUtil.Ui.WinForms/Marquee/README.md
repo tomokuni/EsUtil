@@ -3,7 +3,7 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Marquee.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1809)%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%20(20348)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![WinForms](https://img.shields.io/badge/UI-WinForms-512BD4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
@@ -36,7 +36,7 @@
 
 `MarqueeControl`（リサイズ可能なドラッグ矩形）の **WinForms 版**です。 UI 非依存の機能アセンブリ（`EsUtil.Feature.Marquee.Core`。 コアと提示層）を共有し、**描画と入力の受付だけ**を WinForms で実装します。
 
-対象フレームワークは `net10.0-windows10.0.17763.0`（`UseWindowsForms`）です。 描画は GDI+（`System.Drawing`）で行います。
+対象フレームワークは `net10.0-windows10.0.20348.0`（`UseWindowsForms`）です。 描画は GDI+（`System.Drawing`）で行います。
 
 ---
 
@@ -58,8 +58,8 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.17763.0`（`UseWindowsForms`。 Windows 専用） |
-| 対応 OS | Windows 10 バージョン 1809（ビルド 17763）以降 |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0`（`UseWindowsForms`。 Windows 専用） |
+| 対応 OS | Windows Server 2022 / Windows 11（ビルド 20348）以降 |
 | 描画 API | GDI+（`System.Drawing`） |
 | Native AOT | 非対応（Windows Forms 自体がトリミング/AOT に対応しない。 `PublishAot` は `NETSDK1175` で失敗する） |
 | 言語 | C# 14（.NET 10） |
@@ -154,10 +154,10 @@ MarqueeControl は 3 つの座標系を使い分けます。
 | 左ドラッグ（ハンドル上） | リサイズ（角・辺の 8 方向） |
 | 左ドラッグ（矩形内） | 移動 |
 | ダブルクリック（矩形内） | 確定要求（`ConfirmRequested`） |
-| ダブルクリック（矩形外） | キャンセル要求（`CancelRequested`） |
+| ダブルクリック（矩形外） | キャンセル要求（`キャンセルが要求されました`） |
 | 矢印キー | nudge（1 対象ピクセル単位の微調整。 カーソルを非表示にして十字マーカーを表示） |
 | Enter | 確定要求（`ConfirmRequested`） |
-| Escape | キャンセル要求（`CancelRequested`） |
+| Escape | キャンセル要求（`キャンセルが要求されました`） |
 
 矢印キーの nudge は本コントロールにフォーカスがある場合のみ動作します（マウス押下時に自動でフォーカスを取得します）。 矢印キーは入力キー（`IsInputKey` が true を返すキー）として扱うため、既定のフォーカス移動（ダイアログ キー）には使われません。
 

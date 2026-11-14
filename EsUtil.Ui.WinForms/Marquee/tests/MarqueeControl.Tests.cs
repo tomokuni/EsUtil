@@ -299,7 +299,7 @@ public sealed class MarqueeControlTests
         using var control = new MarqueeControl();
         control.SetSelection(new EsRect(5, 6, 7, 8));
         var cancelled = false;
-        control.CancelRequested += (_, _) => cancelled = true;
+        control.キャンセルが要求されました += (_, _) => cancelled = true;
 
         control.RequestCancel();
 

@@ -142,7 +142,7 @@
 | `SelectionCancelled` | 選択が破棄された |
 | `MarkerPositionMoved` | 十字マーカーが追従する位置が変化した（汎用名。 ルーペ中心への写像は UI 層が行う） |
 | `ConfirmRequested` | 確定要求を受理した |
-| `CancelRequested` | キャンセル要求を受理した |
+| `キャンセルが要求されました` | キャンセル要求を受理した |
 
 ## 3. 契約（利用者が守る・受け取る値）
 

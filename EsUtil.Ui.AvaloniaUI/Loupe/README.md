@@ -69,7 +69,7 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 ## 3. システム要件
 
 - .NET 10
-- **対応 OS**: Windows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1809（ビルド 17763）以降
+- **対応 OS**: Windows 専用（`net10.0-windows10.0.20348.0`）。 Windows Server 2022 / Windows 11（ビルド 20348）以降
 - Avalonia 12.1 以降
 - C# 14
 - **Native AOT**: 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測）
@@ -213,7 +213,7 @@ Canvas.SetTop(loupe, 220);
 
 | レベル | 出力例 |
 | --- | --- |
-| Information | `[Loupe] Setting: ZoomLevel 4 → 8`（拡大元の画像・外観の変更も同じ書式） |
+| Information | `[Loupe] 設定: ZoomLevel 4 → 8`（拡大元の画像・外観の変更も同じ書式） |
 | Error | `[Loupe] Update exception` / `[Loupe] <操作> で例外が発生`（アプリは継続する） |
 
 接頭辞は `LogPrefix` で設定し、コアと提示層のログの両方に適用します（既定 `[Loupe]`）。 ログ基盤（出力先・レベルの制御）はホストが所有します。

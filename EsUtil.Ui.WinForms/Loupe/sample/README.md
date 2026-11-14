@@ -83,7 +83,7 @@ dotnet run -c Release --project EsUtil.Ui.WinForms/Loupe/sample/EsUtil.Ui.WinFor
 
 | パス | 内容 |
 | --- | --- |
-| `EsUtil.Ui.WinForms/Loupe/sample/EsUtil.Ui.WinForms.Loupe.Sample.csproj` | サンプルアプリのプロジェクト（`net10.0-windows10.0.17763.0` / `UseWindowsForms` / `WinExe`） |
+| `EsUtil.Ui.WinForms/Loupe/sample/EsUtil.Ui.WinForms.Loupe.Sample.csproj` | サンプルアプリのプロジェクト（`net10.0-windows10.0.20348.0` / `UseWindowsForms` / `WinExe`） |
 | `EsUtil.Ui.WinForms/Loupe/sample/Program.cs` | エントリポイント（高 DPI（PerMonitorV2）の指定と起動） |
 | `EsUtil.Ui.WinForms/Loupe/sample/Imaging/TestImageFactory.cs` | テスト画像生成（グラデーション＋グリッド＋マーカー） |
 | `EsUtil.Ui.WinForms/Loupe/sample/Presentation/GridLoupePlan.cs` | 外観と描画計画の差し替え（見本） |

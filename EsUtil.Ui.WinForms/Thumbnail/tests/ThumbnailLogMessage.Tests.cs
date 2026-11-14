@@ -35,7 +35,7 @@ public class ThumbnailLogMessageTests
             ThumbnailLogMessage.Prefix = ThumbnailLogMessage.DefaultPrefix;
         }
 
-        Assert.Equal("[Test] Setting: Image[2] 4x3 → 8x6", Assert.Single(logger.Messages));
+        Assert.Equal("[Test] 設定: Image[2] 4x3 → 8x6", Assert.Single(logger.Messages));
         Assert.Equal(LogLevel.Information, Assert.Single(logger.Levels));
     }
 
@@ -66,7 +66,7 @@ public class ThumbnailLogMessageTests
             ThumbnailLogMessage.Prefix = ThumbnailLogMessage.DefaultPrefix;
         }
 
-        Assert.Equal("[Test] Setting: ItemCount 3 → 4", Assert.Single(logger.Messages));
+        Assert.Equal("[Test] 設定: ItemCount 3 → 4", Assert.Single(logger.Messages));
     }
 
     /// <summary>同数の再設定では記録しないことを検証する。</summary>
