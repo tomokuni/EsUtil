@@ -7,12 +7,13 @@
 
 ## 未リリース（0.6.6）
 
+### 追加
+
+- **Windows.Graphics.Capture で撮影できるようにしました**（`CaptureMethod` で GDI と切り替え。 既定は GDI。 デバイスを使い回すため 2 回目以降は 13〜16ms です。 使えない環境は自動で GDI へ退避し、`WindowsGraphicsCaptureSupport` が実行中の環境で使えるかを返します。 カーソル制御は 1903 以降、枠の制御は Windows 11 以降でのみ有効です）。
+
 ### 変更
 
-- **実行に必要な Windows の下限を下げました**（`<SupportedOSPlatformVersion>` を非 WinUI 3 は **10.0.15063.0**（Windows 10 1703）、WinUI 3 は **10.0.18362.0**（Windows 10 1903）へ。 対象フレームワークは `net10.0-windows10.0.17763.0` / `22621` のままで、17763 未満は Windows SDK の射影が無いため対象フレームワークには指定できません。 コードが実際に要求する下限（`SetProcessDpiAwarenessContext` が 15063、`ProcessorArchitecture.Arm64` の注釈が 18362）に揃えたもので、API と動作は変わりません）
-
-et10.0-windows10.0.17763.0 / 22621 のままです（17763 未満は Windows SDK の射影が無く、対象フレームワークには指定できません）。 コードが実際に要求する下限（SetProcessDpiAwarenessContext が 15063、ProcessorArchitecture.Arm64 の注釈が 18362）に揃えたもので、API と動作は変わりません）。
-
+- **実行に必要な Windows の下限を下げました**（`<SupportedOSPlatformVersion>` を非 WinUI 3 は **10.0.15063.0**（Windows 10 1703）、WinUI 3 は **10.0.18362.0**（Windows 10 1903）へ。 対象フレームワークは `net10.0-windows10.0.17763.0` / `22621` のままで、17763 未満は Windows SDK の射影が無いため対象フレームワークには指定できません。 コードが実際に要求する下限（`SetProcessDpiAwarenessContext` が 15063、`ProcessorArchitecture.Arm64` の注釈が 18362）に揃えたもので、API と動作は変わりません）。
 - **ログの文言を日本語に統一しました**（各 `<対象>LogMessage` の英語の定型文を日本語へ。 ログのレベル・出力書式・項目の並びは変わりません。 ログを読む人が英語の語彙を知らなくても追えるようにするため）。
 
 ## 0.6.5（2026-11-13）
@@ -39,6 +40,7 @@ et10.0-windows10.0.17763.0 / 22621 のままです（17763 未満は Windows SDK
 
 ### 追加
 
+- **Windows.Graphics.Capture で撮影できるようにしました**（`CaptureMethod` で GDI と切り替え。 既定は GDI。 デバイスを使い回すため 2 回目以降は 13〜16ms です。 使えない環境は自動で GDI へ退避し、`WindowsGraphicsCaptureSupport` が実行中の環境で使えるかを返します。 カーソル制御は 1903 以降、枠の制御は Windows 11 以降でのみ有効です）。
 - **`WindowsAppRuntimeBootstrap.IsRequiredVersionSpecified`**: アプリが `RequiredVersion` を指定したかを返します。 **未指定は本アセンブリの下限へフォールバック**するため、アプリはこれで検出して `[WRN]` を記録できます（ライブラリはロガーを持たないため、記録はアプリが行います）。
 - **`WindowsAppRuntimeInventory.TryGetLoadedVersion`**: このプロセスが**実際に読み込んでいる**ランタイムの版を返します（読み込まれた `Microsoft.UI.Xaml.dll` のパスから解決）。 `GetInstalledVersions`（インストール済みの一覧）とは別であり、**両者が要求版と食い違うと描画の不具合になる**ため、アプリは環境ログへ出します。
 
