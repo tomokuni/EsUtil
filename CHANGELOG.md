@@ -15,6 +15,7 @@
 
 - **実行に必要な Windows の下限を **ビルド 20348（Windows Server 2022 / Windows 11）** へ上げ、すべてのプロジェクトの対象フレームワークを `net10.0-windows10.0.20348.0` に統一しました**（下限は対象フレームワークが持ちます。 `<SupportedOSPlatformVersion>` は削除しました）。 **Windows 10 は対象外**になります（クライアントの最新ビルド 19045 が下限に届きません）。 対象フレームワークが 20348 になるため、**利用側のプロジェクトも `net10.0-windows10.0.20348.0` 以上が必要**です。
 - **Windows.Graphics.Capture のカーソルと枠を、型付きのプロパティで設定するようにしました**（対象フレームワークが 20348 になり、射影に `IsCursorCaptureEnabled` と `IsBorderRequired` が含まれるため。 古い OS で実行された場合に備え、実在は `ApiInformation` で確かめます）。
+- **WinUI 3 層が要求する Windows App SDK のサポート下限を 2.0.1 にしました**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` を 2.6.5 から 2.0.1 へ下げました）。 2.0.1 でビルド・テスト・Native AOT 発行が通ることを確認しています。 **本リポジトリが必要とするランタイムの版は、参照しているパッケージの版（2.0.1）になります**（`WindowsAppRuntimeInventory.RequiredVersion`）。 2.0.1 より新しい Windows App SDK でビルドするアプリは `WindowsAppRuntimeBootstrapOptions.RequiredVersion` の指定が必須です（従来どおり）。
 - **ログの文言を日本語に統一しました**（各 `<対象>LogMessage` の英語の定型文を日本語へ。 ログのレベル・出力書式・項目の並びは変わりません。 ログを読む人が英語の語彙を知らなくても追えるようにするため）。
 
 ## 0.6.5（2026-11-13）

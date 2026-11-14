@@ -21,8 +21,8 @@ namespace EsUtil.Ui.WinUI3.Interop.Bootstrapping;
 /// 同じ版が x86 と x64 に入っていても 1 件にしか数えない。<br/>
 /// <br/>
 /// <b>必要とする版</b>: <see cref="RequiredVersion"/> は参照している <c>Microsoft.WindowsAppSDK</c> のパッケージが決める
-/// （ライブラリ側に版を書かない）。 EsUtil の WinUI 3 版は <b>Windows App Runtime 2.6 以降</b>で動作し、
-/// このビルドが要求する下限はそのうち <b>パッケージの版（2.6.4）</b>である
+/// （ライブラリ側に版を書かない）。 EsUtil の WinUI 3 版は <b>Windows App Runtime 2.0.1 以降</b>で動作し、
+/// このビルドが要求する下限はそのうち <b>`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版</b>である
 /// （Bootstrapper の最小版と同じ値であるため、本クラスの判定と <see cref="WindowsAppRuntimeBootstrap.TryInitialize(out int)"/> の結果は一致する）。<br/>
 /// <br/>
 /// <b>自己完結の配置</b>（<c>WindowsAppSDKSelfContained=true</c>）と <b>MSIX</b> はランタイムを同封しているため、
@@ -34,9 +34,9 @@ namespace EsUtil.Ui.WinUI3.Interop.Bootstrapping;
 public static class WindowsAppRuntimeInventory
 {
     /// <summary>このビルドが必要とする Windows App Runtime の版を取得する。</summary>
-    /// <value>必要とする下限の版（参照している <c>Microsoft.WindowsAppSDK</c> のランタイム版。 例: <c>2.6.5.0</c>）。</value>
+    /// <value>必要とする下限の版（参照している <c>Microsoft.WindowsAppSDK</c> のランタイム版。 例: <c>2.0.1.0</c>）。</value>
     /// <remarks>
-    /// <b>定義</b>: Windows App Runtime 2.6 以降のうち、EsUtil の WinUI 3 版が動作する版である。<br/>
+    /// <b>定義</b>: Windows App Runtime 2.0.1 以降のうち、EsUtil の WinUI 3 版が動作する版である。<br/>
     /// 値は <see cref="WindowsAppRuntimeBootstrap"/> が Bootstrapper へ渡す最小版と同じであり、
     /// パッケージの版を上げれば両方が追随する。
     /// </remarks>
