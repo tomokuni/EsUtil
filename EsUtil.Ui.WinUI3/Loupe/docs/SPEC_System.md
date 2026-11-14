@@ -39,7 +39,7 @@ WinUI 3 固有の実装は次の 3 点です。
 | --- | --- |
 | 対象フレームワーク | .NET 10（`net10.0-windows10.0.20348.0`） |
 | 言語 | C# 14 |
-| UI フレームワーク | WinUI 3（Windows App SDK 2.6 以降。 `UseWinUI` を有効にする） |
+| UI フレームワーク | WinUI 3（Windows App SDK 2.0.1 以降。 `UseWinUI` を有効にする） |
 | 表示（図形・ラベル） | XAML の `Rectangle` / `Border` / `TextBlock`（表示の実装 `LoupeVisualLayer` が計画の順に置く） |
 | 表示（拡大画像） | XAML の画像要素（`LoupeImageView`。 面の画素を `LoupeImageSampler` で最近傍のまま切り出し、`WriteableBitmap` へ書く） |
 | プロパティ | CLR プロパティ（依存関係プロパティではない。 §8 を参照） |

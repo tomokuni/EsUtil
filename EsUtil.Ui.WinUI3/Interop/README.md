@@ -10,7 +10,7 @@
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
 **対応 OS**: Windows Server 2022 / Windows 11（ビルド 20348）以降
-**Windows App Runtime**: 2.6 以降（無い場合は Bootstrapper で導入できます。 §3）
+**Windows App Runtime**: 2.0.1 以降（無い場合は Bootstrapper で導入できます。 §3）
 
 ## 1. 概要
 
@@ -112,7 +112,7 @@ WindowsAppRuntimeBootstrap.TryInitialize(out _);
 `InstallMode = BootstrapUi` にすると、ランタイムが見つからないときに**次の案内**を出し、選ばれたとおりに処理します。
 
 ```text
-Windows App Runtime 2.6.4 以降が必要です。          ← 主文
+Windows App Runtime 2.0.1 以降が必要です。          ← 主文
 このアプリは WinUI 3 を使うため、Windows App Runtime が必要です。
 インストール済みの版: 2.5.1.0
 ダウンロード ページ（インストーラー）:

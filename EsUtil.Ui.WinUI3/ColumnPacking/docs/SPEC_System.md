@@ -27,7 +27,7 @@ WinUI 3 のパネルとして、複数列の配置を要素へ反映する層の
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.20348.0` |
 | 対応 OS | Windows Server 2022 / Windows 11（ビルド 20348）以降（`SupportedOSPlatformVersion`） |
-| UI フレームワーク | WinUI 3（Windows App SDK 2.6 以降） |
+| UI フレームワーク | WinUI 3（Windows App SDK 2.0.1 以降） |
 | 配置の計算 | `EsUtil.Feature.ColumnPacking.Core`（パッケージ参照） |
 | テスト | xUnit v3（`tests/`）。 XAML のランタイムを要する部分はサンプルで確認する |
 | Native AOT | `IsAotCompatible=true`（解析警告 0 件をビルドで検査） |

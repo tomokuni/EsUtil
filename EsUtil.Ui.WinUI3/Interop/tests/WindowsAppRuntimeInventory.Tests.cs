@@ -11,13 +11,13 @@ namespace EsUtil.Ui.WinUI3.Interop.Tests;
 public class WindowsAppRuntimeInventoryTests
 {
     [Fact]
-    internal void RequiredVersion_は2_6以降である()
+    internal void RequiredVersion_は2_0_1以降である()
     {
         var required = WindowsAppRuntimeInventory.RequiredVersion;
 
-        // 「Windows App Runtime 2.6 以降で EsUtil の WinUI3 版が動作する版数」という定義
+        // 「Windows App Runtime 2.0.1 以降で EsUtil の WinUI3 版が動作する版数」という定義
         Assert.Equal(2, required.Major);
-        Assert.True(required.Minor >= 6, $"マイナー版が 2.6 以降ではありません: {required}");
+        Assert.True(required >= new Version(2, 0, 1), $"2.0.1 以降ではありません: {required}");
     }
 
     [Fact]

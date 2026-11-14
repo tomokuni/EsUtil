@@ -134,12 +134,8 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | WinUI 3 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.WinUI3.*` |
 | WinForms 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.WinForms.*` |
 
-| 区分 | Windows の下限 |
-| --- | --- |
-| **すべての層** | **Windows Server 2022 / Windows 11（ビルド 20348）以降**。 **Windows 10 は対象外**（クライアントの最新ビルド 19045 が下限に届きません）。 WinUI 3 層が要求する Windows App Runtime は **2.6.5 以降**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版）です |
-
-- windows10.0.20348 は Windows Server 2022 以降、または Windows 11 21H2 (GA) 以降。
-
+- **Windows の下限はビルド 20348**（Windows Server 2022 以降、または Windows 11 21H2 (GA) 以降）です。 **Windows 10 は対象外**（クライアントの最新ビルド 19045 が下限に届きません）。
+- WinUI 3 層が要求する Windows App Runtime は **2.0.1 以降**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版）です。
 - **利用側のプロジェクトも `net10.0-windows10.0.20348.0` 以上にする**（NuGet の互換判定は**対象フレームワーク**で行われ、`<SupportedOSPlatformVersion>` は使われません。 実測 2026-11-14: 古い対象フレームワークのプロジェクトは `NU1201` / `NU1202` で復元できません）。
 
 ### 5.1 依存パッケージの下限（.NET 10）
@@ -162,7 +158,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | 共通基盤・機能層 | **互換** | Win32 / WIC の呼び出しを **CsWin32 の生成物**（関数ポインター）だけで行う |
 | Avalonia UI 層 | **互換** | サンプルを AOT で発行し、起動を確認 |
 | MewUI 層 | **互換** | 同上 |
-| WinUI 3 層 | **互換** | 同上（Windows App SDK 2.6 以降が Native AOT に対応。 2026-11-05 にサンプルを `-p:PublishAot=true -r win-x64` で発行して確認） |
+| WinUI 3 層 | **互換** | 同上（Windows App SDK 2.0.1 以降が Native AOT に対応。 実測 2026-11-14: 2.0.1 でサンプルを `-p:PublishAot=true -r win-x64` により発行し、警告 0 件で成功） |
 | WinForms 層 | **非対応** | **Windows Forms 自体がトリミング/AOT に対応しない**（`PublishAot` は `NETSDK1175` で失敗する） |
 
 - **言語**: C# 14 / .NET 10。

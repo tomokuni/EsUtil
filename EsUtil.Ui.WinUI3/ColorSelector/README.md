@@ -57,7 +57,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.20348.0`（Windows App SDK 2.6 以降） |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0`（Windows App SDK 2.0.1 以降） |
 | 対応 OS | Windows Server 2022 / Windows 11（ビルド 20348）以降 |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（AOT で発行した配布物が起動することを実測）。 ただし AOT では managed コレクションを `ItemsSource` へ渡せない（`Items.Add` を使う） |

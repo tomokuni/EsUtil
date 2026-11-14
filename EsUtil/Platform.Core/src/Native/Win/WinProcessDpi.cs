@@ -23,7 +23,7 @@ public static class WinProcessDpi
     /// <remarks>
     /// <b>失敗を例外にしない</b>: 既に設定済みの状態は正常であり（フレームワークが先に設定した場合）、
     /// 呼び出し側は結果で判断できる（[`.github/例外処理規約.md`](../../../../.github/例外処理規約.md) §3）。<br/>
-    /// Windows 10 バージョン 1703（ビルド 15063）以降で利用できる（本リポジトリの下限 17763 はこれを満たす）。
+    /// Windows 10 バージョン 1703（ビルド 15063）以降で利用できる（本リポジトリの下限 20348 はこれを満たす）。
     /// </remarks>
     public static bool TryEnablePerMonitorV2()
         => PInvoke.SetProcessDpiAwarenessContext(new DPI_AWARENESS_CONTEXT(PerMonitorAwareV2Context));
