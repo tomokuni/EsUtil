@@ -46,7 +46,7 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 
 | 項目 | 要件 |
 | --- | --- |
-| OS | Windows 10 ビルド 18362 以降 |
+| OS | Windows 10 ビルド 20348 以降 |
 | .NET | .NET 10 SDK |
 | 実行時の配置 | 通常のビルドはインストール済みの Windows App SDK ランタイムを使う（`-r` を渡したときだけ同封。 MSIX でのインストールは不要） |
 

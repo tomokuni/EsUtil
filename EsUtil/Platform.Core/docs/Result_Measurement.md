@@ -83,7 +83,7 @@ pwsh -NoProfile -File EsUtil/Platform.Core/docs/Result_Measurement.ps1 -NoWrite
 pwsh -NoProfile -File EsUtil/Platform.Core/docs/Result_Measurement.ps1 -Iterations 50 -Warmup 60
 ```
 
-- 一時プロジェクト（Release / `net10.0-windows10.0.17763.0`）を `%TEMP%` 配下へ生成して実行し、本ドキュメントの「計測開始」マーカーと「計測終了」マーカーの間を差し替えます。
+- 一時プロジェクト（Release / `net10.0-windows10.0.20348.0`）を `%TEMP%` 配下へ生成して実行し、本ドキュメントの「計測開始」マーカーと「計測終了」マーカーの間を差し替えます。
 - 1 回の計測には **5 分半程度**かかります（ウォームアップを厚く取り、減色を全組み合わせで測るため）。
 - プロセッサの名前は `Get-CimInstance Win32_Processor` から取り、計測プログラムへ環境変数で渡します（.NET からは取れないため）。
 - **`-Warmup` は 40 回を下限とします**（それより小さい値を指定しても 40 回で計測します）。 実行時は呼び出しの回数で最適化の段階を上げるため、回数が少ないと**最適化されていないコードの所要**を測ってしまい、測定の順番だけで数倍の差が出ます。

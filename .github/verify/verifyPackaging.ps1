@@ -243,8 +243,7 @@ try {
         $csproj = @"
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
-    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <TargetFramework>net10.0-windows10.0.20348.0</TargetFramework>
     $outputType
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

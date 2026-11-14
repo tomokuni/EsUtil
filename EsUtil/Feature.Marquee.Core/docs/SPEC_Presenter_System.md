@@ -31,7 +31,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| ターゲット | `net10.0-windows10.0.17763.0` |
+| ターゲット | `net10.0-windows10.0.20348.0` |
 | 言語 | C# 14（`Nullable` 有効・`ImplicitUsings` 有効） |
 | ルート名前空間 | `EsUtil.Feature.Marquee`（**公開面はすべてここに属する**。 ファサードと、ファサードのメンバーの型（`MarqueeDrawPlan` / `MarqueeDrawLayer` / `MarqueeAppearance` / `MarqueeLabelPlacement`））。 `internal` の型だけが層フォルダ `src/Presenter/` の配下（`EsUtil.Feature.Marquee.Presenter.Drawing`）に残る（ログ定義は `src/Logging/` の `EsUtil.Feature.Marquee.Logging`） |
 | ドキュメント生成 | `GenerateDocumentationFile` 有効（生成した XML はパッケージへ同封する） |

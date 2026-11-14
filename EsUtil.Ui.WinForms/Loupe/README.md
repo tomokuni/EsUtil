@@ -3,7 +3,7 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Loupe.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1703)%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%20(20348)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![WinForms](https://img.shields.io/badge/UI-WinForms-512BD4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
@@ -51,8 +51,8 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.17763.0`（`UseWindowsForms`。 Windows 専用） |
-| 対応 OS | Windows 10 バージョン 1703（ビルド 15063）以降 |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0`（`UseWindowsForms`。 Windows 専用） |
+| 対応 OS | Windows Server 2022 / Windows 11（ビルド 20348）以降 |
 | 描画 API | GDI+（`System.Drawing`） |
 | Native AOT | 非対応（Windows Forms 自体がトリミング/AOT に対応しない。 `PublishAot` は `NETSDK1175` で失敗する） |
 | 評価版の制限 | なし（パッケージは `EsUtil.Feature.Loupe.Core` / `EsUtil.Platform.Core` と `Microsoft.Extensions.Logging.Abstractions` のみを参照する） |
@@ -206,7 +206,7 @@ dotnet run --project EsUtil.Ui.WinForms/Loupe/sample/EsUtil.Ui.WinForms.Loupe.Sa
 | `EsUtil.Ui.WinForms/Loupe/README.md` | 本ファイル |
 | `EsUtil.Ui.WinForms/Loupe/docs/SPEC_API.md` | API リファレンス |
 | `EsUtil.Ui.WinForms/Loupe/docs/SPEC_System.md` | システム仕様書 |
-| `EsUtil.Ui.WinForms/Loupe/src/EsUtil.Ui.WinForms.Loupe.csproj` | ライブラリ（`net10.0-windows10.0.17763.0` / `UseWindowsForms`） |
+| `EsUtil.Ui.WinForms/Loupe/src/EsUtil.Ui.WinForms.Loupe.csproj` | ライブラリ（`net10.0-windows10.0.20348.0` / `UseWindowsForms`） |
 | `EsUtil.Ui.WinForms/Loupe/src/LoupeControl.cs` | コントロール（プロパティ・描画の入口・DPI 追従） |
 | `EsUtil.Ui.WinForms/Loupe/src/LoupeGraphicsPainter.cs` | 描画計画を GDI+ へ写す描画実装 |
 | `EsUtil.Ui.WinForms/Loupe/src/LoupeRenderedEventArgs.cs` | 描画完了の通知 |

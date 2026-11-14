@@ -69,7 +69,7 @@ Avalonia UI 用の拡大鏡コントロールです。 画像の任意のピク�
 ## 3. システム要件
 
 - .NET 10
-- **対応 OS**: Windows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1703（ビルド 15063）以降
+- **対応 OS**: Windows 専用（`net10.0-windows10.0.20348.0`）。 Windows Server 2022 / Windows 11（ビルド 20348）以降
 - Avalonia 12.1 以降
 - C# 14
 - **Native AOT**: 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測）

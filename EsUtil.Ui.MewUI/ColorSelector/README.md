@@ -57,8 +57,8 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.17763.0` |
-| 対応 OS | Windows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1703（ビルド 15063）以降。 |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0` |
+| 対応 OS | Windows 専用（`net10.0-windows10.0.20348.0`）。 Windows Server 2022 / Windows 11（ビルド 20348）以降。 |
 | UI フレームワーク | MewUI 0.22.1（`MewUIVersion` プロパティで固定） |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`IsAotCompatible=true`。 AOT の解析警告が 0 件であることをビルドで検査する） |

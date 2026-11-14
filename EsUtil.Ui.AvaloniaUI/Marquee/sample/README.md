@@ -87,7 +87,7 @@ dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Marquee/sample/EsUtil.Ui.Av
 
 ```text
 EsUtil.Ui.AvaloniaUI/Marquee/sample/
-├── EsUtil.Ui.AvaloniaUI.Marquee.Sample.csproj # サンプルアプリのプロジェクト（net10.0-windows10.0.17763.0 / Avalonia 12.1）
+├── EsUtil.Ui.AvaloniaUI.Marquee.Sample.csproj # サンプルアプリのプロジェクト（net10.0-windows10.0.20348.0 / Avalonia 12.1）
 ├── app.manifest                   # Windows DPI 設定（PerMonitorV2）
 ├── Program.cs                     # エントリポイント
 ├── App.axaml / App.axaml.cs       # アプリケーション定義（FluentTheme）

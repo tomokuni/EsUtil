@@ -16,7 +16,7 @@ MewUI 版のサムネイル一覧コントロールが提供する公開 API の
 
 ## 1. 前提条件
 
-- 対象フレームワークは `net10.0-windows10.0.17763.0` で、`Aprillz.MewUI.Core` を参照します（MewUI は API が安定化中（0.x）のため、バージョンは本体のプロジェクト ファイルが固定します）。
+- 対象フレームワークは `net10.0-windows10.0.20348.0` で、`Aprillz.MewUI.Core` を参照します（MewUI は API が安定化中（0.x）のため、バージョンは本体のプロジェクト ファイルが固定します）。
 - 画像は **`EsReadOnlyBitmap`**（コアの読み取り専用画像型）で受け取ります。 **ピクセルは複製しません**（非所有ビューとして描画します）。
 - 配置・選択・見た目は `EsUtil.Feature.Thumbnail.Core` と `EsUtil.Feature.Thumbnail.Core` が単一所有します。
 - 単位は **DIP** です。

@@ -43,7 +43,7 @@
 
 | 種別 | 依存 |
 | --- | --- |
-| フレームワーク | `net10.0-windows10.0.17763.0`（`UseWindowsForms`） |
+| フレームワーク | `net10.0-windows10.0.20348.0`（`UseWindowsForms`） |
 | パッケージ | `EsUtil.Feature.Marquee.Core` / `EsUtil.Platform.Core`（推移参照でコアも解決する） / `Microsoft.Extensions.Logging.Abstractions` |
 | 標準ライブラリ | `System.Drawing`（GDI+ による描画） |
 

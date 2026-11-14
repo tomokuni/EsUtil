@@ -31,7 +31,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| ターゲット | `net10.0-windows10.0.17763.0` |
+| ターゲット | `net10.0-windows10.0.20348.0` |
 | 言語 | C# 14（`Nullable` 有効・`ImplicitUsings` 有効） |
 | ルート名前空間 | `EsUtil.Feature.Marquee`（**公開面はすべてここに属する**。 ファサードと、ファサードのメンバーの型（`IMarqueeEffects` / `MarqueeGeometry` / `MarqueeRenderRequest` / `MarqueeHandles` / `MarqueeMarker` / `MarqueeSnapshot` / `MarqueeNotice` / `MarqueeNoticeKind` / `MarqueeHitTarget` / `MarqueeCursorKind` / `MarqueeInteractionState` / `MarqueeOptions`））。 `internal` の型と `MarqueeEffectsBase` だけが層フォルダ `src/Core/` の配下に残る |
 | ドキュメント生成 | `GenerateDocumentationFile` 有効（XML は配布物へ出さず `cref` の検証のみに使う） |

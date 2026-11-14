@@ -7,11 +7,10 @@ namespace EsUtil.Platform.Core.Capture;
 /// <b>何のためか</b>: キャプチャの方式（GDI の <c>BitBlt</c> と WGC）を利用者に選ばせるとき、
 /// <b>使えない環境では選択肢を無効にする</b>必要がある。 本クラスはその判定だけを持ち、撮影そのものは行わない。<br/>
 /// <br/>
-/// <b>OS の版と API の有無を両方見る</b>: WGC の API 面は Windows SDK の射影の版で決まり、
-/// <c>IsCursorCaptureEnabled</c>（1903）と <c>IsBorderRequired</c>（Windows 11）は
-/// <b>対象フレームワーク 17763 の射影には存在しない</b>（実測 2026-11-14: 18362 の射影にも無く、20348 で初めて現れる）。
-/// そのため本クラスは版だけで判断せず、<see cref="ApiInformation"/> で型・プロパティの実在も確かめる
-/// （文字列で問い合わせるため、射影に無い API でも判定できる）。<br/>
+/// <b>OS の版と API の実在を両方見る</b>: 本リポジトリの下限は Windows 10 20348 だが、
+/// <b>下限未満の OS で実行される場合</b>（配布物を古い OS へ持って行った場合）に備え、
+/// <see cref="ApiInformation"/> で型・プロパティの実在も確かめる。 射影（対象フレームワーク）には在っても、
+/// 古い OS には実装が無い API（<c>IsBorderRequired</c> は Windows 11）があるためである。<br/>
 /// <br/>
 /// <b>true は「使える見込み」である</b>: 実際の撮影は GPU とセッションの状態にも依存するため、
 /// 撮影時の失敗に備えて呼び出し側は GDI へ退避できるようにする（判定と撮影の責務を分ける）。
@@ -30,9 +29,9 @@ public static class WindowsGraphicsCaptureSupport
     public static bool IsDisplayCaptureSupported { get; } = Check(10, 0, 17763, () => ApiInformation.IsTypePresent(ItemType));
 
     /// <summary>ウィンドウの撮影ができるかを返す。</summary>
-    /// <value>Windows 10 1809（ビルド 17763）以降で、かつ WGC の型が実在する場合は true。</value>
-    /// <remarks>ウィンドウの撮影（<c>CreateFromWindow</c>）は 1809 で追加された（それ以前は <c>CreateFromVisual</c> だけ）。</remarks>
-    public static bool IsWindowCaptureSupported { get; } = Check(10, 0, 17763, () => ApiInformation.IsTypePresent(ItemType));
+    /// <value>画面の撮影と同じ判定（<see cref="IsDisplayCaptureSupported"/>）。</value>
+    /// <remarks>ウィンドウの撮影（<c>CreateFromWindow</c>）は 1809 で追加された。 画面の撮影と同じフレーム プールを使うため、判定も同じになる。</remarks>
+    public static bool IsWindowCaptureSupported => IsDisplayCaptureSupported;
 
     /// <summary>撮影へカーソルを含めるかを切り替えられるかを返す。</summary>
     /// <value>Windows 10 1903（ビルド 18362）以降で、かつ <c>IsCursorCaptureEnabled</c> が実在する場合は true。</value>
@@ -54,7 +53,7 @@ public static class WindowsGraphicsCaptureSupport
 
     /// <summary>WGC を使えるかを返す（画面の撮影ができるかと同じ判定）。</summary>
     /// <value>WGC を選択肢として提示できる場合は true。</value>
-    /// <remarks>ウィンドウの撮影まで必要なら <see cref="IsWindowCaptureSupported"/> も確かめる。</remarks>
+    /// <remarks>画面とウィンドウの撮影は同じ判定（<see cref="IsWindowCaptureSupported"/>）である。</remarks>
     public static bool IsSupported => IsDisplayCaptureSupported;
 
     /// <summary>撮影の方式を選べない理由を返す。</summary>
@@ -64,19 +63,9 @@ public static class WindowsGraphicsCaptureSupport
     /// 利用者は不具合だと受け取る）。 文言は本メソッドが単一所有する（4 つの UI 版で揃える）。
     /// </remarks>
     public static string DescribeUnsupportedReason()
-    {
-        if (!IsDisplayCaptureSupported)
-        {
-            return "この環境では Windows.Graphics.Capture を使えません（Windows 10 1809 以降が必要です）";
-        }
-
-        if (!IsWindowCaptureSupported)
-        {
-            return "この環境ではウィンドウの撮影に Windows.Graphics.Capture を使えません（Windows 10 1809 以降が必要です）";
-        }
-
-        return string.Empty;
-    }
+        => IsDisplayCaptureSupported
+            ? string.Empty
+            : "この環境では Windows.Graphics.Capture を使えません（Windows 10 1809 以降が必要です）";
 
     /// <summary>OS の版と API の実在を確かめる。</summary>
     /// <param name="major">必要な OS のメジャー バージョン。</param>

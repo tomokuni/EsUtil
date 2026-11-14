@@ -57,7 +57,7 @@ dotnet run --project EsUtil.Ui.MewUI/ColorSelector/sample/EsUtil.Ui.MewUI.ColorS
 
 ```text
 EsUtil.Ui.MewUI/ColorSelector/sample/
-├── EsUtil.Ui.MewUI.ColorSelector.Sample.csproj   # サンプルアプリのプロジェクト（net10.0-windows10.0.17763.0）
+├── EsUtil.Ui.MewUI.ColorSelector.Sample.csproj   # サンプルアプリのプロジェクト（net10.0-windows10.0.20348.0）
 ├── Program.cs                                    # エントリポイント（DPI・描画バックエンドの登録）
 ├── Views/
 │   └── MainWindow.cs                             # メイン画面（4 行の色とプレビュー）

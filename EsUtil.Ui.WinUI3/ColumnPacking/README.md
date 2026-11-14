@@ -3,13 +3,13 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.ColumnPacking.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1903)%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%20(20348)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-**対応 OS**: Windows 10 バージョン 1903（ビルド 18362）以降。
+**対応 OS**: Windows Server 2022 / Windows 11（ビルド 20348）以降。
 
 WinUI 3 のパネルです。 子要素（および `ItemsSource` から作る要素）を**縦方向の複数列**へ並べ、最大列高さを最小化します。
 配置の計算は UI 非依存の [`EsUtil.Feature.ColumnPacking.Core`](../../EsUtil/Feature.ColumnPacking.Core/README.md) が単一所有し、本パネルはその結果を要素の配置へ写すだけです。
@@ -61,8 +61,8 @@ flowchart LR
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.18362.0`（Windows App SDK 2.6 以降） |
-| 対応 OS | Windows 10 バージョン 1903（ビルド 18362）以降 |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0`（Windows App SDK 2.6 以降） |
+| 対応 OS | Windows Server 2022 / Windows 11（ビルド 20348）以降 |
 | UI フレームワーク | WinUI 3（Windows App SDK 2.6 以降。 パッケージ参照 `Microsoft.WindowsAppSDK`） |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（解析警告 0 件をビルドで検査する） |

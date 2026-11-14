@@ -14,7 +14,7 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <summary>Windows.Graphics.Capture（WGC）で画面をキャプチャする <see cref="ICaptureService"/> の実装。</summary>
 /// <remarks>
 /// <b>GDI との違い</b>: GDI の <c>BitBlt</c> は画面へ描かれた結果をコピーするため、他のウィンドウに隠れた領域は写らない。
-/// WGC は合成前の内容を取得できるため、<b>隠れていない状態の画面</b>を撮れる（実測 2026-11-14）。
+/// WGC は合成前の内容を取得できるため、<b>隠れていない状態の画面</b>を撮れる。
 /// HDR の色空間にも追従する。<br/>
 /// <br/>
 /// <b>必ず GDI へ退避できる</b>: WGC は GPU とセッションに依存するため、失敗する状況（リモート セッション・
@@ -22,9 +22,10 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// （利用者の操作を失敗させない）。<br/>
 /// <br/>
 /// <b>カーソルと枠</b>: <c>IsCursorCaptureEnabled</c>（1903）と <c>IsBorderRequired</c>（Windows 11）は
-/// 対象フレームワーク 17763 の射影に無いため、<b>IID を直接問い合わせて</b>呼ぶ（射影の版に依存しない）。
-/// 使えない環境では OS の既定（カーソルを含む・枠を描く）になる。 **カーソルを写さない設定で 1903 未満の場合は GDI へ委譲する**<br/>
-/// （WGC ではカーソルを外せないため、そのまま撮ると設定に反する）。<br/>
+/// 対象フレームワークの射影に在るため、<b>そのまま設定する</b>（古い OS では実装が無いため、
+/// <see cref="WindowsGraphicsCaptureSupport"/> で確かめてから設定する）。
+/// 設定できない環境では OS の既定（カーソルを含む・枠を描く）になる。 **カーソルを写さない設定で
+/// カーソルを制御できない場合は GDI へ委譲する**（WGC ではカーソルを外せないため、そのまま撮ると設定に反する）。<br/>
 /// <br/>
 /// <b>Direct3D の宣言だけは CsWin32 を使わない</b>: <c>d3d11.dll</c> は Win32 メタデータに含まれないため、
 /// 本クラスが <c>[LibraryImport]</c> で宣言する（[`.github/ビルド設定規約.md`](../../../../.github/ビルド設定規約.md) §7 の例外）。
@@ -39,12 +40,6 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
 
     /// <summary><c>IGraphicsCaptureItemInterop</c> の IID（ファクトリからモニター・ウィンドウの項目を作る）。</summary>
     private static readonly Guid s_iidCaptureItemInterop = new("3628e81b-3cac-4c60-b7f4-23ce0e0c3356");
-
-    /// <summary><c>IGraphicsCaptureSession2</c> の IID（<c>IsCursorCaptureEnabled</c> を持つ）。</summary>
-    private static readonly Guid s_iidSession2 = new("2c39ae40-7d2e-5044-804e-8b6799d4cf9e");
-
-    /// <summary><c>IGraphicsCaptureSession3</c> の IID（<c>IsBorderRequired</c> を持つ）。</summary>
-    private static readonly Guid s_iidSession3 = new("f2cdd966-22ae-5ea1-9596-3a289344c3be");
 
     /// <summary><c>ID3D11Device::CreateTexture2D</c> の vtable 位置。</summary>
     private const int CreateTexture2DIndex = 5;
@@ -61,21 +56,18 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <summary>1 枚の取得で待つ最大時間。</summary>
     private const int FrameTimeoutMilliseconds = 2000;
 
-    /// <summary>Direct3D のデバイス（プロセスで 1 つを使い回す）。</summary>
-    /// <remarks>
-    /// <b>使い回す理由</b>: デバイスの作成と WinRT への変換が撮影 1 回の費用の大半を占める
-    /// （実測 2026-11-14: 400x300 の 1 枚で 276ms。 2 回目以降は 30ms 程度になる）。
-    /// D3D11 のデバイスはスレッドセーフ（<c>SINGLETHREADED</c> を付けない）ため、撮影のたびに作り直さない。
-    /// </remarks>
+    /// <summary>GDI へ委譲した回数。</summary>
+    private int _fallbackCount;
+    /// <summary>共有する Direct3D のデバイスの排他。</summary>
     private static readonly Lock s_deviceLock = new();
 
-    /// <summary>キャッシュした Direct3D のデバイス。</summary>
+    /// <summary>共有する Direct3D のデバイス。</summary>
     private static IntPtr s_device;
 
-    /// <summary>キャッシュした Direct3D のデバイス コンテキスト。</summary>
+    /// <summary>共有する Direct3D のデバイス コンテキスト。</summary>
     private static IntPtr s_context;
 
-    /// <summary>キャッシュした WinRT のデバイス（WGC が要求する型）。</summary>
+    /// <summary>共有する WinRT のデバイス（WGC が要求する型）。</summary>
     private static IDirect3DDevice? s_winrtDevice;
 
     /// <summary>撮影できないときに委譲する GDI の実装。</summary>
@@ -91,23 +83,17 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bounds.Width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bounds.Height);
 
-        // CA1416 が理解できる形（単独条件の早期 return）でガードを置く。
-        // WGC のフレーム プール（CreateFreeThreaded）は 1809 以降でのみ呼べる
-        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 17763))
+        // 対応の判定（OS の版と API の実在）は WindowsGraphicsCaptureSupport が単一所有する
+        if (!WindowsGraphicsCaptureSupport.IsDisplayCaptureSupported)
         {
-            return _fallback.CaptureArea(bounds);
+            return CaptureWithFallback(bounds);
         }
 
-        // WGC がカーソルを制御できない環境（1903 未満）で「カーソルを写さない」設定なら、
+        // WGC がカーソルを制御できない環境で「カーソルを写さない」設定なら、
         // カーソルを合成しない GDI で撮る（WGC では常に写るため、設定を無視することになる）
         if (!includeCursor && !WindowsGraphicsCaptureSupport.IsCursorCaptureSupported)
         {
-            return _fallback.CaptureArea(bounds);
-        }
-        // 版に加えて、GPU・セッションの状態も含めた対応を確かめる
-        if (!WindowsGraphicsCaptureSupport.IsDisplayCaptureSupported)
-        {
-            return _fallback.CaptureArea(bounds);
+            return CaptureWithFallback(bounds);
         }
 
         try
@@ -119,9 +105,20 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
         }
         catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
-            // WGC の失敗は利用者の操作を止めない（GDI で取り直す）
+            // WGC の失敗は利用者の操作を止めない（GDI で取り直す）。
+            // 失敗したことは FallbackCount で外から判別できる（記録は呼び出し側の層が行う）
         }
 
+        return CaptureWithFallback(bounds);
+    }
+
+    /// <summary>撮影を GDI で行い、委譲したことを数える。</summary>
+    /// <param name="bounds">撮影する領域（画面物理座標）。</param>
+    /// <returns>GDI で撮影した画像。</returns>
+    /// <remarks>本層はログを出力しないため、委譲の有無は <see cref="FallbackCount"/> で呼び出し側へ伝える。</remarks>
+    private EsBitmap CaptureWithFallback(EsRectInt bounds)
+    {
+        _ = Interlocked.Increment(ref _fallbackCount);
         return _fallback.CaptureArea(bounds);
     }
 
@@ -129,11 +126,20 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <remarks>仮想スクリーンは複数モニターに跨るため GDI へ委譲する（WGC はモニター単位でしか撮れない）。</remarks>
     public EsBitmap? CaptureVirtualScreen(out EsPointInt origin) => _fallback.CaptureVirtualScreen(out origin);
 
+    /// <summary>GDI へ委譲した回数を取得する。</summary>
+    /// <value>このインスタンスが GDI で撮影した回数（0 なら WGC だけで撮れている）。</value>
+    /// <remarks>
+    /// <b>診断のために公開する</b>: 撮影方式に WGC を選んでも、環境や領域によって GDI へ委譲することがある。
+    /// 本層はログを出力しないため（[`.github/ログ規約.md`](../../../../.github/ログ規約.md) §6）、
+    /// 委譲の有無は呼び出し側が本値で判別し、ログへ残す。<br/>
+    /// 値を 0 に戻す手段は用意しない（起動からの累計として読む）。
+    /// </remarks>
+    public int FallbackCount => Volatile.Read(ref _fallbackCount);
+
     /// <summary>指定領域を包含するモニターを WGC で撮り、領域へ切り出す。</summary>
     /// <param name="bounds">撮影する領域（画面物理座標）。</param>
     /// <param name="result">切り出した画像。 撮影できない場合は null。</param>
     /// <returns>WGC で撮影できた場合は true。</returns>
-    [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.17763")]
     private bool TryCaptureMonitor(EsRectInt bounds, out EsBitmap? result)
     {
         result = null;
@@ -191,7 +197,6 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <param name="monitorBounds">モニターの矩形（画像の大きさ）。</param>
     /// <returns>撮影した画像。 撮影できない場合は null。</returns>
     /// <exception cref="Win32Exception">Direct3D の初期化またはフレームの取得に失敗した場合。</exception>
-    [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.17763")]
     private EsBitmap? CaptureMonitorImage(HMONITOR monitor, EsRectInt monitorBounds)
     {
         Direct3D11CaptureFramePool? framePool = null;
@@ -236,7 +241,6 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <b>イベントは 1 回で解除する</b>: 同じフレームを 2 回処理しないよう、最初の 1 枚で購読を外す
     /// （解除しないと次の撮影で古いフレームを受け取る）。
     /// </remarks>
-    [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.17763")]
     private static Direct3D11CaptureFrame? TryGetFrame(Direct3D11CaptureFramePool framePool)
     {
         using var arrived = new ManualResetEventSlim(false);
@@ -269,7 +273,6 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <c>CopyResource</c> し、<c>Map</c> で読み取る。 行の幅（<c>RowPitch</c>）は画像の幅と一致しないことがあるため、
     /// 行ごとにコピーする。
     /// </remarks>
-    [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.17763")]
     private static EsBitmap CopyFrame(Direct3D11CaptureFrame frame, EsRectInt monitorBounds)
     {
         var surface = frame.Surface;
@@ -446,14 +449,10 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
         }
     }
 
-    /// <summary>使い回す WinRT の Direct3D デバイスを取得する（無ければ作る）。</summary>
+    /// <summary>共有する WinRT の Direct3D デバイスを取得する（無ければ作る）。</summary>
     /// <returns>WinRT のデバイス。</returns>
     /// <exception cref="Win32Exception">作成に失敗した場合。</exception>
-    /// <remarks>
-    /// <b>プロセスで 1 つだけ作る</b>: デバイスの作成と WinRT への変換が撮影 1 回の費用の大半を占めるため、
-    /// 2 回目以降は使い回す（実測 2026-11-14: 276ms → 30ms 程度）。
-    /// D3D11 のデバイスはスレッドセーフ（<c>SINGLETHREADED</c> を付けない）なので、撮影スレッドをまたいで共有できる。
-    /// </remarks>
+    /// <remarks>D3D11 のデバイスは <c>SINGLETHREADED</c> を付けないためスレッドセーフであり、撮影スレッドをまたいで共有できる。</remarks>
     private static IDirect3DDevice GetSharedDevice()
     {
         lock (s_deviceLock)
@@ -468,7 +467,7 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
         }
     }
 
-    /// <summary>使い回している D3D11 のデバイスを取得する。</summary>
+    /// <summary>共有する D3D11 のデバイスを取得する。</summary>
     /// <returns>デバイス。</returns>
     private static IntPtr GetSharedDeviceHandle()
     {
@@ -484,7 +483,7 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
         }
     }
 
-    /// <summary>使い回している D3D11 のデバイス コンテキストを取得する。</summary>
+    /// <summary>共有する D3D11 のデバイス コンテキストを取得する。</summary>
     /// <returns>デバイス コンテキスト。</returns>
     private static IntPtr GetSharedContextHandle()
     {
@@ -552,7 +551,6 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <c>GraphicsCaptureItem</c> のファクトリは公開されていないため、<c>IGraphicsCaptureItemInterop</c>
     /// （COM の内部インターフェース）を IID で問い合わせて使う。
     /// </remarks>
-    [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.17763")]
     private static GraphicsCaptureItem CreateItem(HMONITOR monitor)
     {
         var factory = WinRT.ActivationFactory.Get("Windows.Graphics.Capture.GraphicsCaptureItem");
@@ -600,59 +598,20 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <summary>セッションのカーソルと枠の設定を、使える場合だけ適用する。</summary>
     /// <param name="session">撮影セッション。</param>
     /// <remarks>
-    /// <b>射影に無いプロパティを IID で呼ぶ</b>: 対象フレームワーク 17763 の射影には
-    /// <c>IsCursorCaptureEnabled</c>（1903）と <c>IsBorderRequired</c>（Windows 11）が無い。
-    /// 使えない環境では何もしない（OS の既定になる）。
+    /// <b>古い OS では設定できない</b>: <c>IsCursorCaptureEnabled</c>（1903）と <c>IsBorderRequired</c>（Windows 11）は
+    /// 対象フレームワーク（20348）の射影には在るが、古い OS では実装が無いため、
+    /// <see cref="WindowsGraphicsCaptureSupport"/> で確かめてから設定する（設定できない場合は OS の既定になる）。
     /// </remarks>
-    [System.Runtime.Versioning.SupportedOSPlatform("windows10.0.17763")]
     private void ApplySessionFlags(GraphicsCaptureSession session)
     {
-        var inspectable = WinRT.MarshalInspectable<object>.FromManaged(session);
-        try
+        if (WindowsGraphicsCaptureSupport.IsCursorCaptureSupported)
         {
-            if (WindowsGraphicsCaptureSupport.IsCursorCaptureSupported)
-            {
-                SetBoolean(inspectable, s_iidSession2, propertyIndex: 6, includeCursor);
-            }
-
-            if (hideBorder && WindowsGraphicsCaptureSupport.IsBorderControlSupported)
-            {
-                SetBoolean(inspectable, s_iidSession3, propertyIndex: 6, value: false);
-            }
-        }
-        finally
-        {
-            Marshal.Release(inspectable);
-        }
-    }
-
-    /// <summary>IID でインターフェースを問い合わせ、真偽値のプロパティを設定する。</summary>
-    /// <param name="inspectable">対象のオブジェクト。</param>
-    /// <param name="iid">問い合わせるインターフェース。</param>
-    /// <param name="propertyIndex">vtable の位置（<c>put_</c> の位置）。</param>
-    /// <param name="value">設定する値。</param>
-    /// <remarks>
-    /// <c>IGraphicsCaptureSession2</c> / <c>3</c> の vtable は
-    /// <c>QueryInterface</c>・<c>AddRef</c>・<c>Release</c>・<c>get_</c>・<c>put_</c> の順であり、
-    /// <c>put_</c> は 6 番目（0 起点）にある。 設定に失敗しても撮影は続ける（診断ではなく見た目の設定のため）。
-    /// </remarks>
-    private static void SetBoolean(IntPtr inspectable, in Guid iid, int propertyIndex, bool value)
-    {
-        var hr = Marshal.QueryInterface(inspectable, in iid, out var target);
-        if (hr < 0 || target == IntPtr.Zero)
-        {
-            return;
+            session.IsCursorCaptureEnabled = includeCursor;
         }
 
-        try
+        if (hideBorder && WindowsGraphicsCaptureSupport.IsBorderControlSupported)
         {
-            var vtable = *(IntPtr**)target;
-            var put = (delegate* unmanaged[Stdcall]<IntPtr, byte, int>)vtable[propertyIndex];
-            _ = put(target, value ? (byte)1 : (byte)0);
-        }
-        finally
-        {
-            Marshal.Release(target);
+            session.IsBorderRequired = false;
         }
     }
 

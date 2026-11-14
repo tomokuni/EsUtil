@@ -55,7 +55,7 @@ public class CaptureServiceFactoryTests
     [Fact]
     internal void 撮影のたびに作っても_2回目以降は速い()
     {
-        // デバイスを使い回すため、2 回目以降は初回より大幅に速い（実測 205ms → 13ms）
+        // 共有したデバイスを使うため、2 回目以降は初回より大幅に速い
         var bounds = new EsRectInt(0, 0, 64, 64);
         var first = Measure(bounds);
         var second = Measure(bounds);
@@ -71,6 +71,17 @@ public class CaptureServiceFactoryTests
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         using var image = service.CaptureArea(bounds);
         return stopwatch.ElapsedMilliseconds;
+    }
+    [Fact]
+    internal void 委譲した回数を数える()
+    {
+        // WGC で撮れない領域（モニターの外）は GDI へ委譲する。 委譲は本層では記録しないため、
+        // 回数を公開して呼び出し側がログへ残せるようにしている
+        var service = new WinGraphicsCaptureService();
+        var before = service.FallbackCount;
+        using var image = service.CaptureArea(new EsRectInt(-1, -1, 8, 8));
+
+        Assert.True(service.FallbackCount > before, $"委譲回数が増えていない（{before} → {service.FallbackCount}）");
     }
     [Fact]
     internal void WGCの実装は_撮影できない領域をGDIへ退避する()

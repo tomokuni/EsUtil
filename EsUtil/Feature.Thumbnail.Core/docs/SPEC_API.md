@@ -186,7 +186,7 @@ public delegate EsSize ThumbnailTextMeasure(string text, double maxWidth, double
 
 ### 2.11 `ThumbnailImageLoader`（画像ファイルの読み込み）
 
-画像ファイルを縮小して一覧用のサムネイルとして読み込みます（Windows 10 バージョン 1703（ビルド 15063）以降。 WIC）。
+画像ファイルを縮小して一覧用のサムネイルとして読み込みます（Windows Server 2022 / Windows 11（ビルド 20348）以降。 WIC）。
 
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |

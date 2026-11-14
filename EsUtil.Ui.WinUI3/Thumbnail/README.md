@@ -3,7 +3,7 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Thumbnail.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1903)%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%20(20348)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
@@ -63,8 +63,8 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.18362.0`（Windows App SDK 2.6 以降） |
-| 対応 OS | Windows 10 バージョン 1903（ビルド 18362）以降 |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0`（Windows App SDK 2.6 以降） |
+| 対応 OS | Windows Server 2022 / Windows 11（ビルド 20348）以降 |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測） |
 

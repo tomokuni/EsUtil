@@ -7,7 +7,7 @@ namespace EsUtil.Ui.WinUI3.Interop;
 /// <summary>UI フレームワーク非依存の <see cref="EsKey"/> と WinUI 3 の <see cref="VirtualKey"/> を相互変換する。</summary>
 /// <remarks>
 /// <b>対応関係</b>: <see cref="EsKey"/> は Avalonia / Win32 のキー体系（223 メンバー）に合わせているのに対し、<br/>
-/// WinUI 3 の <see cref="VirtualKey"/> は Win32 の仮想キーコードを名前で表した 170 メンバーである（対象フレームワーク 18362 の射影。 20348 以降は ImeOn / ImeOff が加わり 172。<br/>
+/// WinUI 3 の <see cref="VirtualKey"/> は Win32 の仮想キーコードを名前で表した 172 メンバーである（対象フレームワーク 20348 の射影。 ImeOn / ImeOff を含む。<br/>
 /// <b>体系が異なるため値（序数・仮想キーコード）による対応付けはできず</b>、名前で変換する。<br/>
 /// <br/>
 /// <b>名前が異なるキー</b>: <see cref="s_aliases"/> が吸収する（例: <c>Return</c> ⇔ <c>Enter</c>、<c>D0</c> ⇔ <c>Number0</c>）。<br/>

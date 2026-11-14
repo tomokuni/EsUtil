@@ -31,7 +31,7 @@
 
 | 区分 | 採用技術 |
 | --- | --- |
-| 対象フレームワーク | .NET 10（`net10.0-windows10.0.17763.0`） |
+| 対象フレームワーク | .NET 10（`net10.0-windows10.0.20348.0`） |
 | 言語 | C# 14 |
 | UI フレームワーク | MewUI（`Aprillz.MewUI.Core` **0.22.1 固定**） |
 | 描画 | MewUI の標準描画（描画実装 `LoupePainter` が `IGraphicsContext` へ描く） |

@@ -48,7 +48,7 @@
 | 対象 | `MarqueeControl` |
 | プロジェクト | `EsUtil.Ui.AvaloniaUI/Marquee/src/EsUtil.Ui.AvaloniaUI.Marquee.csproj` |
 | 名前空間 | `EsUtil.Ui.AvaloniaUI.Marquee` |
-| 対象フレームワーク | `net10.0-windows10.0.17763.0` |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0` |
 | UIフレームワーク | Avalonia 12.1 |
 | 主要基底クラス | `Avalonia.Controls.Control` |
 | 主な用途 | 領域選択ドラッグ矩形の UI・操作・描画を自己完結するコントロール |

@@ -24,13 +24,13 @@ MewUI 版のサムネイル一覧コントロールの構造・依存・設計�
 
 - **配置と見た目は下の層が単一所有します**（`EsUtil.Feature.Thumbnail.Core` が並べ方、`EsUtil.Feature.Thumbnail.Core` が描画計画と外観）。
 - **本アセンブリが行うのは 4 つだけ**: 入力の受付、スクロール、計画の適用、フレームワーク標準の描画。
-- 対象フレームワークは `net10.0-windows10.0.17763.0` です。
+- 対象フレームワークは `net10.0-windows10.0.20348.0` です。
 
 ## 2. 技術スタック
 
 | 種別 | 内容 |
 | --- | --- |
-| 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.17763.0`） |
+| 言語 / フレームワーク | C# / .NET 10（`net10.0-windows10.0.20348.0`） |
 | UI フレームワーク | MewUI（`Panel` / `ScrollViewer` / `Control.OnRender`）。 **バージョンは固定**（API が安定化中（0.x）のため） |
 | 描画 | フレームワーク標準（`IGraphicsContext`。 `Aprillz.MewUI.Core`） |
 | 参照パッケージ | `EsUtil.Feature.Thumbnail.Core` / `EsUtil.Platform.Core` / `Aprillz.MewUI.Core` |

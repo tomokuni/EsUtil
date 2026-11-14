@@ -123,30 +123,28 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 
 ## 5. 対応フレームワークと Native AOT
 
-**対象フレームワークと、実行に必要な Windows の下限**です（値の所有者は各 `.csproj` の `<TargetFramework>` / `<SupportedOSPlatformVersion>`。 パッケージの `README.md` も同じ値を書きます）。 **本リポジトリの動作 OS は Windows だけです**（すべてのパッケージが Windows 向けの対象フレームワークです）。
+**対象フレームワークと、実行に必要な Windows の下限**です（値の所有者は各 `.csproj` の `<TargetFramework>`。 パッケージの `README.md` も同じ値を書きます）。 **本リポジトリの動作 OS は Windows だけです**（すべてのパッケージが Windows 向けの対象フレームワークです）。 **下限は対象フレームワークが持ちます**（`<SupportedOSPlatformVersion>` は書きません）。
 
 | 区分 | 対象フレームワーク | 対象プロジェクト |
 | --- | --- | --- |
-| 共通基盤 | `net10.0-windows10.0.17763.0` | `EsUtil.Platform.Core` / `EsUtil.Platform.Core.Windows` |
-| 機能層 | `net10.0-windows10.0.17763.0` | `EsUtil.Feature.*` |
-| Avalonia UI 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.AvaloniaUI.*` |
-| MewUI 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.MewUI.*` |
-| WinUI 3 層 | `net10.0-windows10.0.18362.0`（`SupportedOSPlatformVersion` は書きません。 対象フレームワークが下限を宣言します） | `EsUtil.Ui.WinUI3.*` |
-| WinForms 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.WinForms.*` |
+| 共通基盤 | `net10.0-windows10.0.20348.0` | `EsUtil.Platform.Core` / `EsUtil.Platform.Core.Windows` |
+| 機能層 | `net10.0-windows10.0.20348.0` | `EsUtil.Feature.*` |
+| Avalonia UI 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.AvaloniaUI.*` |
+| MewUI 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.MewUI.*` |
+| WinUI 3 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.WinUI3.*` |
+| WinForms 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.WinForms.*` |
 
 | 区分 | Windows の下限 |
 | --- | --- |
-| 共通基盤・機能層 | **Windows 10 バージョン 1703（ビルド 15063）以降** |
-| Avalonia UI 層・MewUI 層・WinForms 層 | Windows 10 バージョン 1703（ビルド 15063）以降 |
-| WinUI 3 層 | **Windows 10 バージョン 1903（ビルド 18362）以降**（このビルドが要求する Windows App Runtime は **2.6.5 以降**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版）。 対象フレームワークと実行の下限はどちらも 18362（`SupportedOSPlatformVersion` を書きません）。 ランタイムが無い場合は `EsUtil.Ui.WinUI3.Interop` の `WindowsAppRuntimeInventory` で判定し、`WindowsAppRuntimeBootstrap` で導入できる） |
+| **すべての層** | **Windows Server 2022 / Windows 11（ビルド 20348）以降**。 **Windows 10 は対象外**（クライアントの最新ビルド 19045 が下限に届きません）。 WinUI 3 層が要求する Windows App Runtime は **2.6.5 以降**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版）です |
 
-- **WinUI 3 層を参照するプロジェクトは、対象フレームワークを `net10.0-windows10.0.18362.0` 以上にする**（NuGet の互換判定は**対象フレームワーク**で行われ、`<SupportedOSPlatformVersion>` は使われない。 実測 2026-11-14: `net10.0-windows10.0.17763.0` のプロジェクトは `EsUtil.Ui.WinUI3.*` を `NU1201` で復元できない）。 **実行の下限も 18362** であり、`SupportedOSPlatformVersion` は書きません（対象フレームワークが下限を宣言します）。
+- windows10.0.20348 は Windows Server 2022 以降、または Windows 11 21H2 (GA) 以降。
 
-- **検証は Windows でだけ行っています**。 対象フレームワークが Windows のため、**Windows 以外では動作しません**（実行時にも Win32 / WIC を呼びます）。
+- **利用側のプロジェクトも `net10.0-windows10.0.20348.0` 以上にする**（NuGet の互換判定は**対象フレームワーク**で行われ、`<SupportedOSPlatformVersion>` は使われません。 実測 2026-11-14: 古い対象フレームワークのプロジェクトは `NU1201` / `NU1202` で復元できません）。
 
 ### 5.1 依存パッケージの下限（.NET 10）
 
-**公開パッケージの依存下限は .NET 10 です**。 利用側に要求する .NET の版は、対象フレームワーク（`net10.0-windows10.0.17763.0`）と nuspec の依存が決めます。
+**公開パッケージの依存下限は .NET 10 です**。 利用側に要求する .NET の版は、対象フレームワーク（`net10.0-windows10.0.20348.0`）と nuspec の依存が決めます。
 
 | 依存 | nuspec に書かれる下限 | 理由 |
 | --- | --- | --- |

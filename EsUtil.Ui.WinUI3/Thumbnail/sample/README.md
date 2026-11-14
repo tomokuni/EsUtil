@@ -63,7 +63,7 @@ dotnet run -c Release --project EsUtil.Ui.WinUI3/Thumbnail/sample/EsUtil.Ui.WinU
 
 ```text
 EsUtil.Ui.WinUI3/Thumbnail/sample/
-├── EsUtil.Ui.WinUI3.Thumbnail.Sample.csproj   # サンプルアプリのプロジェクト（net10.0-windows10.0.18362.0）
+├── EsUtil.Ui.WinUI3.Thumbnail.Sample.csproj   # サンプルアプリのプロジェクト（net10.0-windows10.0.20348.0）
 ├── app.manifest                 # Windows DPI 設定（PerMonitorV2）
 ├── App.xaml / App.xaml.cs       # アプリケーション定義
 ├── Imaging/

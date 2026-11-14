@@ -64,6 +64,10 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.56 `Native.Win.WinTaskDialog`（static class）](#256-nativewinwintaskdialogstatic-class)
   - [2.57 `Native.Win.WinDialogService`（sealed class : IDialogService）](#257-nativewinwindialogservicesealed-class--idialogservice)
   - [2.58 `Native.Win.WinProcessDpi`（static class）](#258-nativewinwinprocessdpistatic-class)
+  - [2.59 `Capture.CaptureMethod`（enum）](#259-capturecapturemethodenum)
+  - [2.60 `Capture.WindowsGraphicsCaptureSupport`（static class）](#260-capturewindowsgraphicscapturesupportstatic-class)
+  - [2.61 `Native.Win.WinGraphicsCaptureService`（sealed class : `ICaptureService`）](#261-nativewinwingraphicscaptureservicesealed-class--icaptureservice)
+  - [2.62 `Native.Win.CaptureServiceFactory`（static class）](#262-nativewincaptureservicefactorystatic-class)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -78,7 +82,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `EsUtil.Platform.Core` | `EsInput` / `EsWindow` / `EsCapture` / `EsColor` / `EsErrors` / `EsCallbacks` / `EsImageCodec` | 機能フォルダの窓口（利用側が `using EsUtil.Platform.Core;` だけで解釈・正規化・生成を行えるようにする。 実装は持たず機能の型へ委譲する） |
 | `.Input` | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser` | キーとホットキー（正規化・文字列の解釈を含む） |
 | `.Window` | `EsPlatformHandle` / `EsWindowState` / `EsWindowPlacementMath` | ネイティブ ハンドル・表示状態・ウィンドウ配置の規則（復元可否・はみ出しの補正・DIP ⇔ 物理ピクセル） |
-| `.Capture` | `CaptureType` | キャプチャ種別 |
+| `.Capture` | `CaptureType` / `CaptureMethod` / `WindowsGraphicsCaptureSupport` | キャプチャ種別・画面の取得方式・Windows.Graphics.Capture を実行中の環境で使えるかの判定 |
 | `.Common` | `BoundaryCatch` / `CallbackList<T>` / `EnumCanonical` / `NumberText` | 機能に閉じない小さな基盤（境界の判定・購読の一覧・別名を持つ列挙の解決・数値の自然な表記） |
 | `.Geometry` | `EsPoint` / `EsSize` / `EsVector` / `EsRect` とその整数版、`EsThickness` / `EsRounding` / `EsRectInterval` / `EsAxis` / `EsRectIntJsonConverter` | DIP 相当の幾何値型と領域の規則、整数矩形の JSON の保存形式 |
 | `.Coord` | `ICoordTransform` / `CoordTransform` / `ScrollMath` / `DpiScaler` / `CoordTransformExtensions` | 座標系の変換ポートとスクロール・DPI・ポイント換算の純粋計算（OS を呼ばない） |
@@ -87,7 +91,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `.Caching` | `CapacityLimitedCache<TKey, TValue>` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（汎用の単一所有者。 UI コントロールは複製せず本型を使う） |
 | `.Svg` | `SvgIconSource` / `SvgIcon` / `SvgPathParser` / `SvgPathFigure` / `SvgPathSegment` / `SvgPathRasterizer` | SVG アイコンの読み込み元・解析結果・パス データの解析・図形の画素への展開 |
 | `.Native.Win.Wic` | `WinWicFactory`（COM の生成・解放・画素の入出力）/ `WinWicFormats`（OS のエンコーダーから作る形式の一覧）/ `WinWicImageCodec`（符号化・復号） | WIC（windowscodecs）の実装 |
-| `.Native.Win` | `WinCaptureService` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` / `WinClipboard` / `WinMonitorDpi` / `WinWindowFrame` / `WinDialogService` / `WinTaskDialog` / `WinMessageBox` / `WinVirtualScreen` / `WinAppUserModelId` / `WinVirtualKey` / `WinUserPreferenceService` / `WinProcessDpi` / `SystemWindowCommands` | 上記抽象の Windows 実装（ホストが生成して注入する）と、ウィンドウの標準メニューから実行する操作・起動前の案内 UI・状態を持たない補助（静的クラス） |
+| `.Native.Win` | `WinCaptureService` / `WinGraphicsCaptureService` / `CaptureServiceFactory` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` / `WinClipboard` / `WinMonitorDpi` / `WinWindowFrame` / `WinDialogService` / `WinTaskDialog` / `WinMessageBox` / `WinVirtualScreen` / `WinAppUserModelId` / `WinVirtualKey` / `WinUserPreferenceService` / `WinProcessDpi` / `SystemWindowCommands` | 上記抽象の Windows 実装（ホストが生成して注入する）と、ウィンドウの標準メニューから実行する操作・起動前の案内 UI・状態を持たない補助（静的クラス） |
 
 可視性は public のみを記載します（`internal` は [`SPEC_System.md`](SPEC_System.md) の可視性ポリシーを参照）。
 
@@ -1191,6 +1195,55 @@ Win32 のダイアログを [`IDialogService`](#230-nativeidialogserviceinterfac
 | `TryEnablePerMonitorV2` | `bool TryEnablePerMonitorV2()` | プロセス全体を Per-Monitor V2 の DPI 対応にする。 既に設定済み・OS が拒否した場合は `false` |
 
 **UI フレームワークを持つアプリは使いません**: WinForms / MewUI / Avalonia はそれぞれの初期化がプロセスの DPI 対応を所有します。 本クラスは UI フレームワークを持たないホスト（サービス・ツール・コンソール アプリ）向けです。
+
+### 2.59 `Capture.CaptureMethod`（enum）
+
+画面の取得方式を表します。
+
+| メンバー | 説明 |
+| --- | --- |
+| `Gdi` | GDI の `BitBlt` で画面へ描かれた結果をコピーする（**既定**）。 単発の取得に向く。 他のウィンドウに隠れた領域は写らない |
+| `WindowsGraphicsCapture` | Windows.Graphics.Capture で合成前の内容を取得する。 隠れた領域も写る。 取得のたびに GPU とセッションの初期化を伴う |
+
+既定は `Gdi` です（単発の取得が中心のアプリでは初期化の費用が見合わず、WGC は環境によって枠が出る・カーソルを外せないため）。 実際に使えるかは `Capture.WindowsGraphicsCaptureSupport` が返します。
+
+### 2.60 `Capture.WindowsGraphicsCaptureSupport`（static class）
+
+実行中の環境で Windows.Graphics.Capture を使えるかを返します。 設定画面の選択肢の有効・無効を決めるために使います。
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `IsDisplayCaptureSupported` | `bool`（取得のみ） | 画面（モニター）を撮影できるか。 **ビルド 17763 以降**で、かつ型が実在する場合に `true`。 本パッケージの下限（20348）では常に `true` |
+| `IsWindowCaptureSupported` | `bool`（取得のみ） | ウィンドウを撮影できるか（`IsDisplayCaptureSupported` と同じ判定） |
+| `IsCursorCaptureSupported` | `bool`（取得のみ） | 撮影へカーソルを含めるかを切り替えられるか。 **ビルド 18362 以降**で `true`。 `false` の環境では WGC で撮影するとカーソルが常に含まれる |
+| `IsBorderControlSupported` | `bool`（取得のみ） | 撮影中の枠を消せるか。 **Windows 11（20348）以降**で `true`。 `false` の環境では WGC で撮影すると対象の周囲に枠が描かれる |
+| `IsSupported` | `bool`（取得のみ） | Windows.Graphics.Capture を選択肢として提示できるか（`IsDisplayCaptureSupported` と同じ） |
+| `DescribeUnsupportedReason` | `string DescribeUnsupportedReason()` | 選択できない理由（利用者へ見せる日本語）。 使える場合は空文字列 |
+
+**判定は OS の版と API の実在の両方で行います**: 本パッケージの下限は 20348 ですが、**下限未満の OS で実行された場合**に備え、`ApiInformation` で型・プロパティの実在も確かめます（`IsBorderRequired` は Windows 11 の API のため、古い OS には実装がありません）。 版で足切りしてから問い合わせ、問い合わせ自体が失敗した場合も `false`（使えない）として扱います。
+
+### 2.61 `Native.Win.WinGraphicsCaptureService`（sealed class : `ICaptureService`）
+
+Windows.Graphics.Capture で画面をキャプチャする `ICaptureService` の実装です。 コンストラクターの引数でカーソルと枠を指定します（既定は `includeCursor: true` / `hideBorder: true`）。
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `CaptureArea` | `EsBitmap CaptureArea(EsRectInt bounds)` | 指定領域を撮影する。 **撮影できない場合は GDI の実装へ委譲**する（例外にしない） |
+| `CaptureVirtualScreen` | `EsBitmap? CaptureVirtualScreen(out EsPointInt origin)` | 仮想スクリーン全体（複数モニターに跨る）は GDI へ委譲する |
+| `FallbackCount` | `int`（取得のみ） | GDI へ委譲した回数。 **撮影方式に WGC を選んでも GDI で撮った**ことを呼び出し側がログへ残せる（本層はログを出力しない） |
+
+**GDI へ委譲する条件**: 型が実在しない・領域がモニターの外へはみ出す・カーソルを写さない設定でカーソルを制御できない・GPU の初期化やフレームの取得に失敗した場合です。 いずれも**利用者の操作を失敗させません**（結果の画像は GDI のものと等価）。
+
+**Direct3D の宣言だけは CsWin32 を使いません**: `d3d11.dll` は Win32 メタデータに含まれないため、`[LibraryImport]` で宣言します。
+
+### 2.62 `Native.Win.CaptureServiceFactory`（static class）
+
+設定された方式に対応する `ICaptureService` を作ります。 **使えない方式は GDI へ落とします**（設定画面の表示と実際の動作を一致させます）。
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `Create` | `ICaptureService Create(CaptureMethod method, bool includeCursor = true, bool hideBorder = true)` | 方式に対応する実装を返す。 WGC が使えない場合は `WinCaptureService` |
+| `Resolve` | `CaptureMethod Resolve(CaptureMethod method)` | 実際に使われる方式を返す（設定が使えない場合は `Gdi`）。 **ログへ「設定は WGC だが GDI で撮った」と残すために使う** |
 
 ## 3. 使用例
 

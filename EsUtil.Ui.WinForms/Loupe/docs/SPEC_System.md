@@ -31,7 +31,7 @@
 
 | 区分 | 採用技術 |
 | --- | --- |
-| 対象フレームワーク | .NET 10（`net10.0-windows10.0.17763.0`。 `UseWindowsForms` により Windows 専用） |
+| 対象フレームワーク | .NET 10（`net10.0-windows10.0.20348.0`。 `UseWindowsForms` により Windows 専用） |
 | 言語 | C# 14 |
 | UI フレームワーク | Windows Forms（基底クラスは `System.Windows.Forms.Control`） |
 | 描画 | System.Drawing（GDI+。 描画実装 `LoupeGraphicsPainter` が `Graphics` へ描く） |

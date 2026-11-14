@@ -1,14 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.20348.0</TargetFramework>
     <RootNamespace>EsUtil.Feature.ZenHan</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Native AOT 互換を宣言する（トリム/AOT の警告をビルドで検出する）。 -->
     <IsAotCompatible>true</IsAotCompatible>
     <Description>全角・半角・ひらがな・カタカナ・記号の相互変換（CSV から生成した定義を不変リストで保持する）。</Description>
-  <SupportedOSPlatformVersion>10.0.15063.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

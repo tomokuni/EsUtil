@@ -9,12 +9,12 @@
 
 ### 追加
 
-- **Windows.Graphics.Capture で撮影できるようにしました**（`CaptureMethod` で GDI と切り替え。 既定は GDI。 デバイスを使い回すため 2 回目以降は 13〜16ms です。 使えない環境は自動で GDI へ退避し、`WindowsGraphicsCaptureSupport` が実行中の環境で使えるかを返します。 カーソル制御は 1903 以降、枠の制御は Windows 11 以降でのみ有効です）。
+- **Windows.Graphics.Capture で撮影できるようにしました**（`CaptureMethod` で GDI と切り替え。 既定は GDI。 使えない環境は自動で GDI へ退避し、`WindowsGraphicsCaptureSupport` が実行中の環境で使えるかを返します。 カーソル制御は 1903 以降、枠の制御は Windows 11 以降でのみ有効です）。
 
 ### 変更
 
-- **実行に必要な Windows の下限を下げました**（非 WinUI 3 は `<SupportedOSPlatformVersion>` を **10.0.15063.0**（Windows 10 1703）へ。 対象フレームワークは `net10.0-windows10.0.17763.0` のままです（17763 未満は Windows SDK の射影が無く、対象フレームワークには指定できません）。 コードが実際に要求する下限（`SetProcessDpiAwarenessContext` が 15063）に揃えたもので、API と動作は変わりません）。
-- **WinUI 3 層の対象フレームワークを `net10.0-windows10.0.18362.0` にしました**（`SupportedOSPlatformVersion` は削除。 対象フレームワークが下限を宣言するため、版を二重に持ちません）。 **WinUI 3 層を参照するプロジェクトは、対象フレームワークを `10.0.18362.0` 以上にする必要があります**（`22621` の要求が無くなり、参照できる範囲が広がります）。
+- **実行に必要な Windows の下限を **ビルド 20348（Windows Server 2022 / Windows 11）** へ上げ、すべてのプロジェクトの対象フレームワークを `net10.0-windows10.0.20348.0` に統一しました**（下限は対象フレームワークが持ちます。 `<SupportedOSPlatformVersion>` は削除しました）。 **Windows 10 は対象外**になります（クライアントの最新ビルド 19045 が下限に届きません）。 対象フレームワークが 20348 になるため、**利用側のプロジェクトも `net10.0-windows10.0.20348.0` 以上が必要**です。
+- **Windows.Graphics.Capture のカーソルと枠を、型付きのプロパティで設定するようにしました**（対象フレームワークが 20348 になり、射影に `IsCursorCaptureEnabled` と `IsBorderRequired` が含まれるため。 古い OS で実行された場合に備え、実在は `ApiInformation` で確かめます）。
 - **ログの文言を日本語に統一しました**（各 `<対象>LogMessage` の英語の定型文を日本語へ。 ログのレベル・出力書式・項目の並びは変わりません。 ログを読む人が英語の語彙を知らなくても追えるようにするため）。
 
 ## 0.6.5（2026-11-13）
@@ -41,7 +41,6 @@
 
 ### 追加
 
-- **Windows.Graphics.Capture で撮影できるようにしました**（`CaptureMethod` で GDI と切り替え。 既定は GDI。 デバイスを使い回すため 2 回目以降は 13〜16ms です。 使えない環境は自動で GDI へ退避し、`WindowsGraphicsCaptureSupport` が実行中の環境で使えるかを返します。 カーソル制御は 1903 以降、枠の制御は Windows 11 以降でのみ有効です）。
 - **`WindowsAppRuntimeBootstrap.IsRequiredVersionSpecified`**: アプリが `RequiredVersion` を指定したかを返します。 **未指定は本アセンブリの下限へフォールバック**するため、アプリはこれで検出して `[WRN]` を記録できます（ライブラリはロガーを持たないため、記録はアプリが行います）。
 - **`WindowsAppRuntimeInventory.TryGetLoadedVersion`**: このプロセスが**実際に読み込んでいる**ランタイムの版を返します（読み込まれた `Microsoft.UI.Xaml.dll` のパスから解決）。 `GetInstalledVersions`（インストール済みの一覧）とは別であり、**両者が要求版と食い違うと描画の不具合になる**ため、アプリは環境ログへ出します。
 

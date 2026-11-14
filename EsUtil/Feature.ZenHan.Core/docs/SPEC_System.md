@@ -25,7 +25,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 対象フレームワーク | `net10.0-windows10.0.17763.0` |
+| 対象フレームワーク | `net10.0-windows10.0.20348.0` |
 | 言語 | C# 14（`extension` ブロック、`field` キーワード、コレクション式） |
 | 生成 | T4（`Generated.tt`）。 生成物 `Generated.cs` はコミットする |
 | データ | `ConvertDefine.csv`（UTF-8） |

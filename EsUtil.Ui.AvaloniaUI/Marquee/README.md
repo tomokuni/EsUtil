@@ -3,7 +3,7 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Marquee.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1703)%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%20(20348)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![Avalonia](https://img.shields.io/badge/UI-Avalonia-8D46D6)
@@ -67,8 +67,8 @@ Avalonia UI 用のリサイズ可能な領域選択コントロールです。 �
 
 ## 3. システム要件
 
-- .NET 10（対象フレームワークは `net10.0-windows10.0.17763.0`）
-- **対応 OS**: **引数なしコンストラクター**（`WinCursorService` を使う既定構成）は Windows 10 バージョン 1703（ビルド 15063）以降。 他 OS では `ICursorService` を渡すコンストラクターを使う
+- .NET 10（対象フレームワークは `net10.0-windows10.0.20348.0`）
+- **対応 OS**: **引数なしコンストラクター**（`WinCursorService` を使う既定構成）は Windows Server 2022 / Windows 11（ビルド 20348）以降。 他 OS では `ICursorService` を渡すコンストラクターを使う
 - Avalonia 12.1 以降
 - C# 14
 - **Native AOT**: 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測）

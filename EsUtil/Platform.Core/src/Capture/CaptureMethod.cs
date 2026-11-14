@@ -6,7 +6,7 @@ namespace EsUtil.Platform.Core.Capture;
 /// <list type="bullet">
 /// <item><see cref="Gdi"/>: 画面へ描かれた結果をコピーする。 単発では速いが、<b>他のウィンドウに隠れた領域は写らない</b>。</item>
 /// <item><see cref="WindowsGraphicsCapture"/>: 合成前の内容を GPU から取得する。 隠れた領域も写るが、
-/// <b>初回に GPU とセッションの初期化を伴う</b>ため単発では遅い（実測 2026-11-14: 400x300 で GDI 12ms / WGC 276ms）。</item>
+/// <b>初回に GPU とセッションの初期化を伴う</b>ため単発では遅い。</item>
 /// </list>
 /// <b>既定は <see cref="Gdi"/></b>: 単発撮影が中心の本アプリでは初期化のコストが見合わず、
 /// また WGC は環境によって枠が出る・カーソルを外せない（<see cref="WindowsGraphicsCaptureSupport"/> を参照）。<br/>
