@@ -139,7 +139,7 @@ marquee.SelectionChanged += (_, e) => UpdatePreview(e.Rect);
 marquee.SelectionCompleted += (_, e) => ConfirmSelection(e.Rect);
 marquee.SelectionCancelled += (_, _) => CancelSelection();
 marquee.ConfirmRequested += (_, e) => ConfirmSelection(e.Rect);
-marquee.キャンセルが要求されました += (_, _) => CancelSelection();
+marquee.CancelRequested += (_, _) => CancelSelection();
 
 // ラベル（サイズ・カーソル座標）はコントロールがテキスト要素として配置する。
 // ホストは描画完了イベントで付加情報（操作・情報ラベル）を描ける（図形はコントロールが描き終えている）。
@@ -180,10 +180,10 @@ MarqueeControl は 3 つの座標系を使い分けます。
 | 左ドラッグ（ハンドル上） | リサイズ（角・辺の 8 方向） |
 | 左ドラッグ（矩形内） | 移動 |
 | ダブルクリック（矩形内） | 確定要求（`ConfirmRequested`） |
-| ダブルクリック（矩形外） | キャンセル要求（`キャンセルが要求されました`） |
+| ダブルクリック（矩形外） | キャンセル要求（`CancelRequested`） |
 | 矢印キー | nudge（1 対象ピクセル単位の微調整。 カーソルを非表示にして十字マーカーを表示） |
 | Enter | 確定要求（`ConfirmRequested`） |
-| Escape | キャンセル要求（`キャンセルが要求されました`） |
+| Escape | キャンセル要求（`CancelRequested`） |
 
 矢印キーの nudge はフォーカスに依存しません（本コントロールが `TopLevel` のキー入力を購読するため、フォーカスの位置に関わらず動作します）。
 

@@ -205,7 +205,7 @@ public class MarqueeLogMessageTests
         MarqueeLogMessage.LogDragStart(logger, "Move", 10, 20);
         MarqueeLogMessage.LogKeyDown(logger, "Left", true);
         MarqueeLogMessage.LogConfirmRequested(logger, new EsRect(10, 20, 30, 40));
-        MarqueeLogMessage.Logキャンセルが要求されました(logger);
+        MarqueeLogMessage.LogCancelRequested(logger);
         MarqueeLogMessage.LogSettingChanged(logger, "MinSelectionSize", "3", "5");
     }
 }

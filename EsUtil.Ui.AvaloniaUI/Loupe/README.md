@@ -214,7 +214,7 @@ Canvas.SetTop(loupe, 220);
 | レベル | 出力例 |
 | --- | --- |
 | Information | `[Loupe] 設定: ZoomLevel 4 → 8`（拡大元の画像・外観の変更も同じ書式） |
-| Error | `[Loupe] Update exception` / `[Loupe] <操作> で例外が発生`（アプリは継続する） |
+| Error | `[Loupe] 描画の更新で例外が発生` / `[Loupe] <操作> で例外が発生`（アプリは継続する） |
 
 接頭辞は `LogPrefix` で設定し、コアと提示層のログの両方に適用します（既定 `[Loupe]`）。 ログ基盤（出力先・レベルの制御）はホストが所有します。
 

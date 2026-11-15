@@ -379,7 +379,7 @@ public class MarqueeCoreTests
 
         marquee.RequestCancel();
 
-        Assert.Equal([MarqueeNoticeKind.キャンセルが要求されました], notices.Select(n => n.Kind));
+        Assert.Equal([MarqueeNoticeKind.CancelRequested], notices.Select(n => n.Kind));
         Assert.False(marquee.HasSelection);
     }
 

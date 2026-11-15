@@ -146,7 +146,7 @@ classDiagram
         +InvalidateRender()
         +DrawPlan(Graphics, MarqueeDrawPlan)
         +event SelectionChanged
-        +event キャンセルが要求されました
+        +event CancelRequested
         +event Rendered
     }
 

@@ -69,7 +69,7 @@ UI 版の間には依存がありません（互いを参照しません）。 �
 | 状況 | 挙動 |
 | --- | --- |
 | 描画中に拡大元が破棄された（`ObjectDisposedException`） | 画像の層を描かずに戻る（描画実装 `LoupeGraphicsPainter` が吸収する。 [例外処理規約.md](../../../.github/例外処理規約.md) §4「破棄済みソースの吸収は描画実装の責務」） |
-| 描画で例外が発生した | 記録してアプリを継続する（`LoupeControl.OnPaint` が `BoundaryCatch` の判定で捕捉し、`[Loupe] Update exception` を出力する） |
+| 描画で例外が発生した | 記録してアプリを継続する（`LoupeControl.OnPaint` が `BoundaryCatch` の判定で捕捉し、`[Loupe] 描画の更新で例外が発生` を出力する） |
 | 公開メソッドで内部の例外が発生した（`SetCoordTransform`） | 記録して呼び出し側へ伝搬する（`[Loupe] {Operation} で例外が発生`） |
 | 描画先または画像の引数が不正 | `ArgumentNullException` / `ArgumentOutOfRangeException` を送出する（描画実装の入口で検証する） |
 
@@ -214,7 +214,7 @@ sequenceDiagram
 | レベル | 出力例 |
 | --- | --- |
 | Information | `[Loupe] 設定: Source 800x600 → null`（拡大元画像。 変化の判定は本プロジェクトのログ定義が行う） |
-| Error | `[Loupe] Update exception`（描画の例外）/ `[Loupe] {Operation} で例外が発生`（公開メソッドの例外） |
+| Error | `[Loupe] 描画の更新で例外が発生`（描画の例外）/ `[Loupe] {Operation} で例外が発生`（公開メソッドの例外） |
 | Information / Debug / Trace | 設定（`Options`）・環境値（`ClientToPixelScaling`）・外観は Information、拡大元画像は Debug、拡大中心（`CenterPoint`）は Trace で、機能アセンブリのログ定義（コアと提示層で共有）が出力する |
 
 レベル・接頭辞・書式の規則は [ログ規約.md](../../../.github/ログ規約.md) に従います。

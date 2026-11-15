@@ -69,7 +69,7 @@ var plan = presenter.ResolveDrawPlan(layout, index, text, selectedIndex, hovered
 
 | レベル | 出力例 |
 | --- | --- |
-| Debug | `[Thumbnail] Selection: -1 → 3`（選択の変更。 同じ添字の再設定では出力しない） |
+| Debug | `[Thumbnail] 選択: -1 → 3`（選択の変更。 同じ添字の再設定では出力しない） |
 
 `ThumbnailSelection.Log` へ `ILogger` を設定します（null は `NullLogger`）。 接頭辞は `LogPrefix` で設定します（既定 `[Thumbnail]`）。
 

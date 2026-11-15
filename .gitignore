@@ -1,6 +1,10 @@
 # Build results
-bin/
-obj/
+[Bb]in/
+[Oo]bj/
+
+# Release artifacts (buildScript の出力先)
+publish/
+*.DotSettings.user
 
 # Visual Studio cache/options
 .vs/
@@ -10,11 +14,14 @@ obj/
 *.ldf
 *.sdf
 
-# NuGet（`.nupkg/` はローカル フィード（パッケージの出力先）であり、リポジトリへコミットしない）
+# NuGet
 packages/
+*.nupkg
 *.snupkg
 .nuget/
-.nupkg/
+
+# publish の RID 付き復元が作る lock（コミットする packages.lock.json とは別。 publish_ui.bat）
+packages.*.lock.json
 
 # BenchmarkDotNet
 BenchmarkDotNet.Artifacts/
@@ -34,11 +41,24 @@ TestResults/
 .DS_Store
 Thumbs.db
 
+# Python
+.venv
+
 # git
 .git
 
 # Project-specific
 *.log
+appsettings.local.json
 *.tmp
+FolderProfile.pubxml.user
+
+# AI モデル（配布も履歴への追加もしない。 GitHub の 100 MB/ファイル制限に抵触する）
+*.onnx
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+**/weights/
 # SBOM などの生成物（CI がアップロードする。 コミットしない）
 /artifacts/

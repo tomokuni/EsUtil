@@ -139,7 +139,7 @@ if (layout.Position is { } position)
 | レベル | 出力例 |
 | --- | --- |
 | Information | `[Loupe] 設定: ZoomLevel 4 → 8`（コアの設定。 Source は `[Loupe] 設定: Source ...`、外観は `[Loupe] 設定: ...`）/ `CenterPoint` / `RequestedSize` / `ClientToPixelScaling` / `ZoomLevel`。 変化判定（同一値・同一インスタンスなら出力しない）は出力する主体のログ定義（Source は本プロジェクトの `LoupeLogMessage`、外観は提示層の `LoupeLogMessage`、他はコアの `LoupeLogMessage`）が単一所有し、UI 層は同値判定を持たない。 設定の変更は変化した項目だけを出力する） |
-| Error | `[Loupe] Update exception`（描画の例外。 アプリは継続する） |
+| Error | `[Loupe] 描画の更新で例外が発生`（描画の例外。 アプリは継続する） |
 
 Avalonia 版の Trace ログ（再描画パイプライン）は持ちません（MewUI 版は中間ビットマップを作らず同期描画するため）。
 
