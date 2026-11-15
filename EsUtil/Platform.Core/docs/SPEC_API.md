@@ -413,9 +413,11 @@ public readonly record struct EsPlatformHandle(nint Handle, string? Descriptor =
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
 | `CaptureArea` | `EsBitmap CaptureArea(EsRectInt bounds)` | 指定画面領域（画面物理座標）をキャプチャ。 幅・高さが 0 以下なら `ArgumentOutOfRangeException`、取得に失敗したら `Win32Exception`（**生成した画像を所有するのは呼び出し側**） |
-| `CaptureVirtualScreen` | `EsBitmap? CaptureVirtualScreen(out EsPointInt origin)` | 仮想スクリーン全体を 1 回でキャプチャ。 **`null` は「仮想スクリーンの境界が取得できない」の 1 つの意味だけを表す** |
+| `CaptureVirtualScreen` | `EsBitmap? CaptureVirtualScreen(out EsPointInt origin)` | 仮想スクリーン全体を、**モニター単位のキャプチャを 1 枚に合成**して取得。 **`null` は「モニターを列挙できない」の 1 つの意味だけを表す** |
 
 **`CaptureArea` が null を返さない理由**: 取得できないと撮影を成立させられないためです。 失敗は例外にして**対象領域**と Win32 のエラー コードを残します（記録は呼び出し側が行います）。
+
+**仮想スクリーンはモニター単位で撮って合成します**: 撮影の実装（GDI / Windows.Graphics.Capture）は `CaptureArea` だけを持ち、`CaptureVirtualScreen` は**モニターごとに撮った画像を貼り付ける**だけです（合成は `Capture.VirtualScreenComposition`（internal）が単一所有する）。 これにより、**撮影方式が変わっても仮想スクリーンの手順は同じ**になり、モニターを跨ぐ領域でも WGC を使えます。 モニターが矩形状に並んでいない場合、モニターの無い領域は透明のままになります。
 
 ### 2.22 `Native.ICursorService`（interface）
 
@@ -1086,6 +1088,11 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 
 全モニターを包含する仮想スクリーンの矩形（画面物理ピクセル）を `GetSystemMetrics` で照会します。 `DisplayArea.FindAll()` を使わないのは、ウィンドウの表示前に列挙すると WinRT の射影で起動できないためです（実測 2026-10-17）。 プライマリ モニタが原点にない場合は負値を返します（仮想スクリーンの座標そのもの）。
 
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `Bounds` | `EsRectInt`（取得のみ） | 全モニターを包含する矩形。 取得できない場合は空の矩形 |
+| `Monitors` | `IReadOnlyList<EsRectInt>`（取得のみ） | **モニターごとの矩形**（`EnumDisplayMonitors`）。 並び順は OS の列挙順。 モニター単位で撮影する実装と要素検出が共有する |
+
 ### 2.50 `Palette`（色名と色文字列）
 
 色を選ばせるコントロール（`EsUtil.Ui.*.ColorSelector`）と設定ファイルが共有する、**色名の表**と**色文字列の解釈**です。
@@ -1231,7 +1238,7 @@ Windows.Graphics.Capture で画面をキャプチャする `ICaptureService` の
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
 | `CaptureArea` | `EsBitmap CaptureArea(EsRectInt bounds)` | 指定領域を撮影する。 **撮影できない場合は GDI の実装へ委譲**する（例外にしない） |
-| `CaptureVirtualScreen` | `EsBitmap? CaptureVirtualScreen(out EsPointInt origin)` | 仮想スクリーン全体（複数モニターに跨る）は GDI へ委譲する |
+| `CaptureVirtualScreen` | `EsBitmap? CaptureVirtualScreen(out EsPointInt origin)` | 仮想スクリーン全体を撮影する。 **モニターごとに `CaptureArea` で撮って 1 枚へ合成**する（複数モニターに跨っていても WGC を使える） |
 | `FallbackCount` | `int`（取得のみ） | GDI へ委譲した回数。 **撮影方式に WGC を選んでも GDI で撮った**ことを呼び出し側がログへ残せる（本層はログを出力しない） |
 
 **GDI へ委譲する条件**: 型が実在しない・領域がモニターの外へはみ出す・**カーソルを写さない設定**（本ビルドの WGC では外せない）・GPU の初期化やフレームの取得に失敗した場合です。 いずれも**利用者の操作を失敗させません**（結果の画像は GDI のものと等価）。

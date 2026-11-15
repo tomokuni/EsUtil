@@ -134,8 +134,14 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     }
 
     /// <inheritdoc/>
-    /// <remarks>仮想スクリーンは複数モニターに跨るため GDI へ委譲する（WGC はモニター単位でしか撮れない）。</remarks>
-    public EsBitmap? CaptureVirtualScreen(out EsPointInt origin) => _fallback.CaptureVirtualScreen(out origin);
+    /// <remarks>
+    /// <b>モニター単位で撮って合成する</b>: WGC はモニター単位でしか撮れないため、モニターごとに
+    /// <see cref="CaptureArea"/> で撮り、<see cref="VirtualScreenComposition"/> が 1 枚へ貼り付ける。
+    /// そのため<b>仮想スクリーンでも WGC が使える</b>（複数モニターに跨っていても、モニターごとなら 1 つに収まる）。
+    /// カーソルを写さない設定では各モニターを GDI で撮る（<see cref="CaptureArea"/> と同じ判定）。
+    /// </remarks>
+    public EsBitmap? CaptureVirtualScreen(out EsPointInt origin)
+        => VirtualScreenComposition.Compose(WinVirtualScreen.Monitors, CaptureArea, out origin);
 
     /// <summary>GDI へ委譲した回数を取得する。</summary>
     /// <value>このインスタンスが GDI で撮影した回数（0 なら WGC だけで撮れている）。</value>

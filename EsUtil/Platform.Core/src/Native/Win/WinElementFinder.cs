@@ -5,7 +5,6 @@ using EsUtil.Platform.Core.Window;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Dwm;
-using Windows.Win32.Graphics.Gdi;
 
 namespace EsUtil.Platform.Core.Native.Win;
 
@@ -31,64 +30,16 @@ public sealed class WinElementFinder : IElementFinder
     [ThreadStatic]
     private static Func<IntPtr, bool>? s_windowCallback;
 
-    /// <summary><c>EnumDisplayMonitors</c> が受け取るモニター矩形の集約先（スレッドごと）。</summary>
-    [ThreadStatic]
-    private static List<EsRectInt>? s_monitorBounds;
-
     private IReadOnlyList<EsRectInt>? _screenBounds;
 
     /// <summary>全ディスプレイモニターの矩形（画面物理座標）を列挙する（自己完結）。</summary>
     /// <returns>各モニターの矩形リスト。</returns>
     /// <remarks>
-    /// Win32 の <c>EnumDisplayMonitors</c> で全モニターを列挙する（Avalonia の TopLevel 非依存）。<br/>
+    /// 列挙は <see cref="WinVirtualScreen.Monitors"/> が単一所有する（撮影の実装も同じ列挙を使う）。<br/>
     /// 列挙に失敗した場合は空リストを返す（モニターが無い状態として扱う）。
     /// </remarks>
     private IReadOnlyList<EsRectInt> EnumerateMonitorBounds()
-        => _screenBounds ??= EnumerateMonitorBoundsCore();
-
-    /// <summary><see cref="EnumerateMonitorBounds"/> の実体。</summary>
-    /// <returns>各モニターの矩形リスト。 列挙できなかった場合は空リスト。</returns>
-    private static IReadOnlyList<EsRectInt> EnumerateMonitorBoundsCore()
-    {
-        var bounds = new List<EsRectInt>();
-        var previous = s_monitorBounds;
-        s_monitorBounds = bounds;
-        try
-        {
-            unsafe
-            {
-                _ = PInvoke.EnumDisplayMonitors(default, null, &MonitorThunk, default);
-            }
-        }
-        finally
-        {
-            s_monitorBounds = previous;
-        }
-
-        return bounds;
-    }
-
-    /// <summary><c>EnumDisplayMonitors</c> のコールバックの実体。</summary>
-    /// <param name="monitor">モニターハンドル（未使用）。</param>
-    /// <param name="hdc">モニターのデバイス コンテキスト（未使用）。</param>
-    /// <param name="bounds">モニターの矩形へのポインター。</param>
-    /// <param name="data">アプリケーション定義の値（未使用）。</param>
-    /// <returns>列挙を継続する場合は true。</returns>
-    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
-    private static unsafe BOOL MonitorThunk(HMONITOR monitor, HDC hdc, RECT* bounds, LPARAM data)
-    {
-        _ = monitor;
-        _ = hdc;
-        _ = data;
-        if (bounds is not null && s_monitorBounds is { } values)
-        {
-            values.Add(new EsRectInt(
-                bounds->left, bounds->top,
-                bounds->right - bounds->left, bounds->bottom - bounds->top));
-        }
-
-        return true;
-    }
+        => _screenBounds ??= WinVirtualScreen.Monitors;
 
     /// <summary>トップレベル ウィンドウを列挙し、コールバックが false を返すまで続ける。</summary>
     /// <param name="callback">各ウィンドウの判定（false を返すと列挙を停止する）。</param>
