@@ -1222,7 +1222,7 @@ Win32 のダイアログを [`IDialogService`](#230-nativeidialogserviceinterfac
 
 **判定は OS の版と API の実在の両方で行います**: 撮影そのものは **Windows 10 バージョン 1809（ビルド 17763）以降**で、かつ型が実在する場合に使えます。 版で足切りしてから `ApiInformation` へ問い合わせ、問い合わせ自体が失敗した場合も `false`（使えない）として扱います。
 
-**カーソルと枠の制御は本ビルドでは使えません**: 対象フレームワーク（17763）の射影に `IsCursorCaptureEnabled`（1903）と `IsBorderRequired`（Windows 11）が無いため、**OS が対応していても設定できません**。 カーソルを写さない設定を要求されたときは GDI へ委譲します（GDI はカーソルを合成しません）。 枠は消せないため、WGC では OS の既定（枠を描く）のままになります。
+**カーソルと枠の制御は本ビルドでは使えません**: 対象フレームワーク（17763）の射影に `IsCursorCaptureEnabled`（Windows 10 バージョン 1903 / ビルド 18362）と `IsBorderRequired`（Windows 11 / ビルド 22000）が無いため、**OS が対応していても設定できません**。 カーソルを写さない設定を要求されたときは GDI へ委譲します（GDI はカーソルを合成しません）。 枠は消せないため、WGC では OS の既定（枠を描く）のままになります。
 
 ### 2.61 `Native.Win.WinGraphicsCaptureService`（sealed class : `ICaptureService`）
 

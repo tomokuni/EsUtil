@@ -136,7 +136,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 
 - **Windows の下限は Windows 10 バージョン 1809（ビルド 17763）**です（Windows Server 2019 も同じビルド 17763）。
 - WinUI 3 層が要求する Windows App Runtime は **2.0.1 以降**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版）です。 **ランタイムの MSIX も 17763 を要求します**（OS の下限とランタイムの下限は同じです）。
-- **17763 の射影に無い API は使いません**。 例: `GraphicsCaptureSession.IsCursorCaptureEnabled`（1903）と `IsBorderRequired`（Windows 11）は、**OS が対応していても本パッケージからは設定できません**（射影に無いため）。 Windows.Graphics.Capture の撮影では、**カーソルを写さない設定を要求されたときに GDI へ委譲**し、**枠は消さず** OS の既定のままにします。
+- **17763 の射影に無い API は使いません**。 例: `GraphicsCaptureSession.IsCursorCaptureEnabled`（1903）と `IsBorderRequired`（Windows 11 / ビルド 22000）は、**OS が対応していても本パッケージからは設定できません**（射影に無いため）。 Windows.Graphics.Capture の撮影では、**カーソルを写さない設定を要求されたときに GDI へ委譲**し、**枠は消さず** OS の既定のままにします。
 - **利用側のプロジェクトも `net10.0-windows10.0.17763.0` 以上にする**（NuGet の互換判定は**対象フレームワーク**で行われ、`<SupportedOSPlatformVersion>` は使われません。 実測 2026-11-14: 古い対象フレームワークのプロジェクトは `NU1201` / `NU1202` で復元できません）。
 
 ### 5.1 依存パッケージの下限（.NET 10）
