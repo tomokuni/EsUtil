@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using EsUtil.Platform.Core.Capture;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Windows.Win32;
@@ -45,28 +46,17 @@ public sealed class WinCaptureService : ICaptureService
         return CaptureScreen(bounds);
     }
 
-    /// <summary>仮想スクリーン（全モニタを包含する領域）全体を 1 回のキャプチャで取得する。</summary>
-    /// <param name="origin">仮想スクリーンの原点（全モニタのバウンディングボックス左上、画面物理座標）。</param>
-    /// <returns>仮想スクリーン全体の画像。 キャプチャ失敗時は null。 破棄は呼び出し側。</returns>
+    /// <summary>仮想スクリーン（全モニターを包含する領域）全体を、モニター単位のキャプチャから 1 枚に合成して取得する。</summary>
+    /// <param name="origin">仮想スクリーンの原点（全モニターのバウンディングボックス左上、画面物理座標）。</param>
+    /// <returns>仮想スクリーン全体の画像。 モニターを列挙できない場合は null。 破棄は呼び出し側。</returns>
     /// <remarks>
-    /// 仮想スクリーン境界は Win32 の <c>GetSystemMetrics</c>（SM_XVIRTUALSCREEN 等）で取得し、<br/>
-    /// 全モニタを包含する矩形を 1 回の <c>BitBlt</c> でキャプチャする。<br/>
-    /// 境界取得とキャプチャはスレッド非依存のため、バックグラウンドスレッドから安全に実行できる。<br/>
+    /// <b>モニター単位で撮って合成する</b>: モニターごとの <c>BitBlt</c> の結果を
+    /// <see cref="VirtualScreenComposition"/> が 1 枚へ貼り付ける（Windows.Graphics.Capture の実装と同じ手順）。
+    /// 1 回の <c>BitBlt</c> で全モニターを撮ると、モニターごとの色空間・DPI の違いを吸収できない。<br/>
+    /// モニターの列挙とキャプチャはスレッド非依存のため、バックグラウンド スレッドから安全に実行できる。<br/>
     /// </remarks>
     public EsBitmap? CaptureVirtualScreen(out EsPointInt origin)
-    {
-        // Win32 の仮想スクリーン境界（全モニタのバウンディングボックス）を取得する
-        // （照会は WinVirtualScreen が単一所有する）
-        var bounds = WinVirtualScreen.Bounds;
-        origin = new EsPointInt(bounds.X, bounds.Y);
-        if (bounds.Width <= 0 || bounds.Height <= 0)
-        {
-            // 境界が取得できない場合はキャプチャできない（null はこの 1 つの意味だけを表す）
-            return null;
-        }
-
-        return CaptureArea(bounds);
-    }
+        => VirtualScreenComposition.Compose(WinVirtualScreen.Monitors, CaptureArea, out origin);
 
     // ====================================================================
     // 内部実装（Win32 の資源を閉じる）

@@ -112,7 +112,8 @@ graph LR
 | `EsUtil/Platform.Core/src/Geometry/EsRectIntJsonConverter.cs` | `EsRectInt` の JSON の保存形式（`X` / `Y` / `Width` / `Height` のみ。 未知のプロパティは無視し、欠落は 0）の単一所有者 |
 | `EsUtil/Platform.Core/src/Input/HotKeyParser.cs` | ホットキーの文字列（`"Ctrl + Shift + Q"`）の解釈（修飾キー 1 つ以上・キー名は `EnumCanonical` で解決） |
 | `EsUtil/Platform.Core/src/Window/EsWindowPlacementMath.cs` | ウィンドウ配置の規則と換算（復元可否・はみ出しの補正・枠の差し引き・DIP ⇔ 画面物理ピクセル）。 **OS を呼ばない** |
-| `EsUtil/Platform.Core/src/Native/Win/WinVirtualScreen.cs` | 全モニターを包含する仮想スクリーンの矩形の照会（`GetSystemMetrics`。 ウィンドウ表示前でも安全） |
+| `EsUtil/Platform.Core/src/Native/Win/WinVirtualScreen.cs` | 全モニターを包含する仮想スクリーンの矩形と、モニターごとの矩形の照会（`GetSystemMetrics` / `EnumDisplayMonitors`。 ウィンドウ表示前でも安全） |
+| `EsUtil/Platform.Core/src/Capture/VirtualScreenComposition.cs` | モニター単位に撮影した画像を仮想スクリーン 1 枚へ合成する（撮影の実装を問わない。 **OS を呼ばない**） |
 | `EsUtil/Platform.Core/src/Geometry/EsRectInt.cs` | UI フレームワーク非依存の整数矩形（`EsRect` の整数版。 `Contains` / `Intersects` / `Intersect` / `Union` / `Center` / `FromEsRect`） |
 | `EsUtil/Platform.Core/src/Geometry/EsAxis.cs` | レイアウト計算で扱う軸（`X` / `Y`）。 軸を `bool` で指定しないための列挙型 |
 | `EsUtil/Platform.Core/src/Geometry/EsRounding.cs` | 小数を整数へ丸める方法（`Truncate` / `Round` / `Ceiling`）。 丸め規則を整数型の変換へ集約するための列挙型 |
@@ -153,7 +154,7 @@ graph LR
 | 能力の有無・正常な入力の変種 | `bool` の戻り値 | `WinWindowService.SetCaptureExclusion`（Windows 10 バージョン 2004（ビルド 19041）未満）/ `WinGlobalHotKeyService.RegisterAll`（他のアプリとの競合）/ `ICursorService.TryGetCursorScreenPoint` / `WindowsGraphicsCaptureSupport`（撮影方式を使えるか） |
 | 該当なし | 空の結果 | `WinElementFinder`（見つからない） |
 | 撮影方式が使えない（回復できる） | **他の方式へ委譲する** | `WinGraphicsCaptureService`（GDI へ委譲） |
-| 取得できない（撮影の前提が欠ける） | `null` | `WinCaptureService.CaptureVirtualScreen`（仮想スクリーンの境界が測れない） |
+| 取得できない（撮影の前提が欠ける） | `null` | `CaptureVirtualScreen`（モニターを列挙できない。 GDI / WGC とも同じ） |
 
 ## 7. 設計判断（UI 非依存の境界）
 

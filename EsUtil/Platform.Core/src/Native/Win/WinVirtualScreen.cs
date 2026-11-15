@@ -1,5 +1,9 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using EsUtil.Platform.Core.Geometry;
 using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.UI.WindowsAndMessaging;
 
 namespace EsUtil.Platform.Core.Native.Win;
@@ -30,5 +34,65 @@ public static class WinVirtualScreen
                 ? new EsRectInt(0, 0, 0, 0)
                 : new EsRectInt(x, y, width, height);
         }
+    }
+
+    /// <summary>全モニターの矩形（画面物理ピクセル）を取得する。</summary>
+    /// <returns>モニターごとの矩形。 列挙できない場合は空のリスト。</returns>
+    /// <remarks>
+    /// <b>モニター単位で撮影するために使う</b>: Windows.Graphics.Capture はモニター単位でしか撮れないため、
+    /// 撮影の実装はモニターごとに撮って 1 枚へ合成する（[`docs/SPEC_API.md`](../../../docs/SPEC_API.md) の
+    /// <c>VirtualScreenComposition</c>）。 矩形は <c>EnumDisplayMonitors</c> から取得する
+    /// （<see cref="Bounds"/> の <c>GetSystemMetrics</c> と違い、モニターの区切りが分かる）。<br/>
+    /// 並び順は OS の列挙順であり、座標順ではない。
+    /// </remarks>
+    public static IReadOnlyList<EsRectInt> Monitors
+    {
+        get
+        {
+            var bounds = new List<EsRectInt>();
+            var previous = s_monitors;
+            s_monitors = bounds;
+            try
+            {
+                unsafe
+                {
+                    _ = PInvoke.EnumDisplayMonitors(default, null, &MonitorThunk, default);
+                }
+            }
+            finally
+            {
+                s_monitors = previous;
+            }
+
+            return bounds;
+        }
+    }
+
+    /// <summary>列挙中のモニター矩形の受け皿（コールバックは静的メソッドから呼ばれるため静的フィールドを使う）。</summary>
+    /// <remarks>
+    /// 入れ子の列挙に備えて、呼び出しごとに以前の値を保存して戻す（スレッド単位で競合しないとは限らないため、
+    /// <see cref="Monitors"/> の読み取り中は他スレッドから列挙しない前提にしない。 収集先は取得のたびに作り直す）。
+    /// </remarks>
+    [ThreadStatic]
+    private static List<EsRectInt>? s_monitors;
+
+    /// <summary><c>EnumDisplayMonitors</c> のコールバックの実体。</summary>
+    /// <param name="monitor">モニター ハンドル（未使用）。</param>
+    /// <param name="hdc">モニターのデバイス コンテキスト（未使用）。</param>
+    /// <param name="bounds">モニターの矩形へのポインター。</param>
+    /// <param name="data">アプリケーション定義の値（未使用）。</param>
+    /// <returns>列挙を継続する場合は true。</returns>
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
+    private static unsafe BOOL MonitorThunk(HMONITOR monitor, HDC hdc, RECT* bounds, LPARAM data)
+    {
+        _ = monitor;
+        _ = hdc;
+        _ = data;
+        s_monitors?.Add(new EsRectInt(
+            bounds->left,
+            bounds->top,
+            bounds->right - bounds->left,
+            bounds->bottom - bounds->top));
+        return true;
     }
 }

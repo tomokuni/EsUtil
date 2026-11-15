@@ -9,7 +9,7 @@
 
 ### 変更
 
-- **`WinGraphicsCaptureService.CaptureVirtualScreen` が、仮想スクリーンが 1 モニターに収まるときに WGC を使うようになりました**（これまでは常に GDI）。 複数モニターに跨る場合と、カーソルを写さない設定の場合は従来どおり GDI です。 撮影方式に WGC を選んだときに、画面全体の取得にもその選択が効きます。
+- **仮想スクリーンの取得を、モニター単位の撮影と 1 枚への合成に変えました**（GDI / Windows.Graphics.Capture の共通手順）。 これまで `CaptureVirtualScreen` は GDI が 1 回の `BitBlt` で全モニターを撮り、WGC はモニターを跨ぐ領域を撮れないため常に GDI でしたが、**モニターごとに `CaptureArea` で撮って貼り付ける**ため、**撮影方式に WGC を選ぶと画面全体の取得にも WGC が効きます**（カーソルを写さない設定は従来どおり GDI）。 モニターが矩形状に並んでいない場合、モニターの無い領域は透明のままになります。 モニターの列挙は `Native.Win.WinVirtualScreen.Monitors` が単一所有します。
 
 ## 0.7.4（2026-11-15）
 
