@@ -127,20 +127,21 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 
 | 区分 | 対象フレームワーク | 対象プロジェクト |
 | --- | --- | --- |
-| 共通基盤 | `net10.0-windows10.0.20348.0` | `EsUtil.Platform.Core` / `EsUtil.Platform.Core.Windows` |
-| 機能層 | `net10.0-windows10.0.20348.0` | `EsUtil.Feature.*` |
-| Avalonia UI 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.AvaloniaUI.*` |
-| MewUI 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.MewUI.*` |
-| WinUI 3 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.WinUI3.*` |
-| WinForms 層 | `net10.0-windows10.0.20348.0` | `EsUtil.Ui.WinForms.*` |
+| 共通基盤 | `net10.0-windows10.0.17763.0` | `EsUtil.Platform.Core` / `EsUtil.Platform.Core.Windows` |
+| 機能層 | `net10.0-windows10.0.17763.0` | `EsUtil.Feature.*` |
+| Avalonia UI 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.AvaloniaUI.*` |
+| MewUI 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.MewUI.*` |
+| WinUI 3 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.WinUI3.*` |
+| WinForms 層 | `net10.0-windows10.0.17763.0` | `EsUtil.Ui.WinForms.*` |
 
-- **Windows の下限はビルド 20348**（Windows Server 2022 以降、または Windows 11 21H2 (GA) 以降）です。 **Windows 10 は対象外**（クライアントの最新ビルド 19045 が下限に届きません）。
-- WinUI 3 層が要求する Windows App Runtime は **2.0.1 以降**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版）です。
-- **利用側のプロジェクトも `net10.0-windows10.0.20348.0` 以上にする**（NuGet の互換判定は**対象フレームワーク**で行われ、`<SupportedOSPlatformVersion>` は使われません。 実測 2026-11-14: 古い対象フレームワークのプロジェクトは `NU1201` / `NU1202` で復元できません）。
+- **Windows の下限はビルド 17763**（Windows 10 バージョン 1809 / Windows Server 2019）です。
+- WinUI 3 層が要求する Windows App Runtime は **2.0.1 以降**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版）です。 **ランタイムの MSIX も 17763 を要求します**（OS の下限とランタイムの下限は同じです）。
+- **17763 の射影に無い API は使いません**。 例: `GraphicsCaptureSession.IsCursorCaptureEnabled`（1903）と `IsBorderRequired`（Windows 11）は、**OS が対応していても本パッケージからは設定できません**（射影に無いため）。 Windows.Graphics.Capture の撮影では、**カーソルを写さない設定を要求されたときに GDI へ委譲**し、**枠は消さず** OS の既定のままにします。
+- **利用側のプロジェクトも `net10.0-windows10.0.17763.0` 以上にする**（NuGet の互換判定は**対象フレームワーク**で行われ、`<SupportedOSPlatformVersion>` は使われません。 実測 2026-11-14: 古い対象フレームワークのプロジェクトは `NU1201` / `NU1202` で復元できません）。
 
 ### 5.1 依存パッケージの下限（.NET 10）
 
-**公開パッケージの依存下限は .NET 10 です**。 利用側に要求する .NET の版は、対象フレームワーク（`net10.0-windows10.0.20348.0`）と nuspec の依存が決めます。
+**公開パッケージの依存下限は .NET 10 です**。 利用側に要求する .NET の版は、対象フレームワーク（`net10.0-windows10.0.17763.0`）と nuspec の依存が決めます。
 
 | 依存 | nuspec に書かれる下限 | 理由 |
 | --- | --- | --- |

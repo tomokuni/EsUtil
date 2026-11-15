@@ -125,18 +125,30 @@ public static class WindowsAppRuntimeInventory
     /// <summary>パッケージのアーキテクチャがこのプロセスで動くかを返す。</summary>
     /// <param name="architecture">パッケージのアーキテクチャ。</param>
     /// <returns>動く場合は true。</returns>
-    /// <remarks>中立のパッケージはどのアーキテクチャでも動く（ランタイムのフレームワーク パッケージは通常は中立ではない）。</remarks>
-    private static bool IsCompatible(ProcessorArchitecture architecture) => architecture switch
+    /// <remarks>
+    /// 中立のパッケージはどのアーキテクチャでも動く（ランタイムのフレームワーク パッケージは通常は中立ではない）。<br/>
+    /// <b>数値で比べる理由</b>: 対象フレームワーク 17763 の射影には <c>ProcessorArchitecture.Arm64</c> と
+    /// <c>X86OnArm64</c> が無い（18362 で追加された）。 ABI の値（<c>Arm64</c> = 12 / <c>X86OnArm64</c> = 13）で比べる。
+    /// </remarks>
+    private static bool IsCompatible(ProcessorArchitecture architecture) => (int)architecture switch
     {
-        ProcessorArchitecture.Neutral => true,
-        ProcessorArchitecture.X86 => RuntimeInformation.ProcessArchitecture == Architecture.X86,
-        ProcessorArchitecture.X64 => RuntimeInformation.ProcessArchitecture == Architecture.X64,
-        ProcessorArchitecture.Arm => RuntimeInformation.ProcessArchitecture == Architecture.Arm,
-        ProcessorArchitecture.Arm64 => RuntimeInformation.ProcessArchitecture == Architecture.Arm64,
+        NeutralArchitecture => true,
+        X86Architecture => RuntimeInformation.ProcessArchitecture == Architecture.X86,
+        X64Architecture => RuntimeInformation.ProcessArchitecture == Architecture.X64,
+        ArmArchitecture => RuntimeInformation.ProcessArchitecture == Architecture.Arm,
+        Arm64Architecture => RuntimeInformation.ProcessArchitecture == Architecture.Arm64,
         // X86OnArm64 は ARM64 上の x86 プロセスで動く（このプロセスのアーキテクチャが x86 のときだけ該当する）
-        ProcessorArchitecture.X86OnArm64 => RuntimeInformation.ProcessArchitecture == Architecture.X86,
+        X86OnArm64Architecture => RuntimeInformation.ProcessArchitecture == Architecture.X86,
         _ => false,
     };
+
+    /// <summary>WinRT の <c>ProcessorArchitecture</c> の値（射影に無いものだけ数値で持つ）。</summary>
+    private const int X86Architecture = 0;
+    private const int ArmArchitecture = 5;
+    private const int X64Architecture = 9;
+    private const int NeutralArchitecture = 11;
+    private const int Arm64Architecture = 12;
+    private const int X86OnArm64Architecture = 13;
 
     /// <summary>パッケージの版を <see cref="Version"/> へ変換する。</summary>
     /// <param name="version">パッケージの版。</param>

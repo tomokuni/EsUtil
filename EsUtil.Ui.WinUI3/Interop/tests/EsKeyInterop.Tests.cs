@@ -166,11 +166,11 @@ public class EsKeyInteropTests
     // ====================================================================
 
     [Fact]
-    internal void WinUI3のキー数は172である()
+    internal void WinUI3のキー数は170である()
     {
         // WinUI 3 のキー集合が変わった場合は別名表・ドキュメントの見直しが必要（破壊的変更の検知）。
-        // 数は**対象フレームワークの射影**で決まる（本プロジェクトは 20348。 ImeOn / ImeOff を含む）
-        Assert.Equal(172, Enum.GetNames<VirtualKey>().Length);
+        // 数は**対象フレームワークの射影**で決まる（本プロジェクトは 17763。 ImeOn / ImeOff を含まない）
+        Assert.Equal(170, Enum.GetNames<VirtualKey>().Length);
     }
 
     [Fact]

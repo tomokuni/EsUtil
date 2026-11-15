@@ -5,6 +5,18 @@
 - **公開する版は人が決めます**（`VersionPrefix` 1 行を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
+## 0.7.2（2026-11-15）
+
+### 変更（破壊的）
+
+- **実行に必要な Windows の下限を **ビルド 17763（Windows 10 バージョン 1809 / Windows Server 2019）** へ下げ、すべてのプロジェクトの対象フレームワークを `net10.0-windows10.0.17763.0` に統一しました**（下限は対象フレームワークが持ちます）。 利用側のプロジェクトも `net10.0-windows10.0.17763.0` 以上が必要です。
+
+### 変更
+
+- **Windows.Graphics.Capture のカーソルと枠は、本ビルドからは設定できません**（17763 の射影に `IsCursorCaptureEnabled` と `IsBorderRequired` が無いため）。 **カーソルを写さない設定を要求されたときは GDI へ委譲**し、**枠は消さず** OS の既定のままにします。 `WindowsGraphicsCaptureSupport.IsCursorCaptureSupported` と `IsBorderControlSupported` は常に `false` を返します。
+- **WinUI 3 のキー数は 170 になりました**（17763 の射影。 `ImeOn` / `ImeOff` を含まない）。
+- `ProcessorArchitecture.Arm64` / `X86OnArm64` は 17763 の射影に無いため、ABI の値で比較するようにしました。
+
 ## 0.7.1（2026-11-15）
 
 ### 修正
