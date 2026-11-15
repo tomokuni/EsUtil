@@ -22,13 +22,7 @@ namespace EsUtil.Feature.ColumnPacking;
 /// 【特徴】<br/>
 /// • 浮動小数点演算に特化（double 型）<br/>
 /// • 入力値と出力値の厳密検証<br/>
-/// • ArrayPool によるメモリ効率化<br/>
-/// • 複雑なアルゴリズムの段階的説明コメント<br/>
 /// • Template Method パターンで前後処理を分離<br/>
-/// <br/>
-/// 【背景説明】<br/>
-/// UIレイアウトや印刷レイアウトでアイテムを効率的に配置するために開発されました。<br/>
-/// 複数のアルゴリズムを提供し、用途に応じて選択可能。<br/>
 /// <br/>
 /// 【実装の詳細】<br/>
 /// LayoutStrategyBase を継承し、Strategy パターンでアルゴリズムを切り替え。<br/>
@@ -46,11 +40,6 @@ namespace EsUtil.Feature.ColumnPacking;
 /// var engine = new ColumnPacker(items, (1.0, 2.0), 10);<br/>
 /// engine.CurrentMethod = Method.BinarySearch;<br/>
 /// var (width, height) = engine.Solve(100.0);<br/>
-/// <br/>
-/// 【最適化手法】<br/>
-/// • ColumnMetricsCache の共有で重複計算回避<br/>
-/// • ArrayPool によるメモリプール化<br/>
-/// • Strategy パターンでアルゴリズム切り替え<br/>
 /// </remarks>
 public partial class ColumnPacker
 {

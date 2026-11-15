@@ -26,9 +26,6 @@ namespace EsUtil.Feature.ColumnPacking;
 /// var engine = new ColumnPacker(items, (1.0, 2.0), 10);<br/>
 /// var (width, height) = engine.Solve(100.0, Method.Greedy); // 1 回だけ Greedy で解く<br/>
 /// int columns = engine.ColumnCount;<br/>
-/// <br/>
-/// 【最適化手法】<br/>
-/// • プロパティは既存の公開 API（GetLastColumnSegments 等）の薄いラッパーとし、追加の計算を行いません。<br/>
 /// </remarks>
 public static class ColumnPackerExtensions
 {

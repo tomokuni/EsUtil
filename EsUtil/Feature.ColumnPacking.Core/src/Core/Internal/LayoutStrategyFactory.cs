@@ -36,11 +36,6 @@ namespace EsUtil.Feature.ColumnPacking.Core.Internal;
 /// var factory = new LayoutStrategyFactory(items, space, columnLimit, cache);<br/>
 /// factory.CurrentMethod = Method.BinarySearch;<br/>
 /// var strategy = factory.GetStrategy();<br/>
-/// <br/>
-/// 【最適化手法】<br/>
-/// • 遅延初期化によるメモリ効率化<br/>
-/// • ColumnMetricsCache の共有で計算コスト削減<br/>
-/// • Strategy インスタンスの再利用<br/>
 /// </remarks>
 /// <param name="items">アイテム配列。</param>
 /// <param name="space">行間・列間スペース。</param>

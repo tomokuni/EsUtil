@@ -20,9 +20,6 @@ namespace EsUtil.Feature.ColumnPacking.Core.Internal;
 /// 【使用例】<br/>
 /// var strategy = factory.GetStrategy();<br/>
 /// var result = strategy.Solve(widthLimit);<br/>
-/// <br/>
-/// 【最適化手法】<br/>
-/// • ColumnMetricsCache の共有で計算コスト削減<br/>
 /// </remarks>
 internal interface ILayoutStrategy
 {

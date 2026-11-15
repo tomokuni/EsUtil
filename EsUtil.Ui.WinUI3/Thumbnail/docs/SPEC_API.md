@@ -61,7 +61,7 @@ WinUI 3 版のサムネイル一覧コントロールが提供する公開 API �
 | `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す）。 コアと提示層のログの両方に適用する |
 
 - **`Add` は項目を末尾へ追加します**（画像が null でも項目は作られ、画像の領域だけが空になります）。
-- **影は計画の停止点をグラデーション ブラシへ写して `Rectangle` 8 個で置きます**（4 辺は `Edges` → `LinearGradientBrush`、4 隅は `CornerStops` → `RadialGradientBrush`）。 1 画素の帯を 1 要素ずつ置くと 1 件あたり数百個になり、一覧の初回描画が待たされます（実測 2026-10-25: 31 件で 258 ms → 8 要素で 44 ms）。
+- **影は計画の停止点をグラデーション ブラシへ写して `Rectangle` 8 個で置きます**（4 辺は `Edges` → `LinearGradientBrush`、4 隅は `CornerStops` → `RadialGradientBrush`）。 1 画素の帯を 1 要素ずつ置くと 1 件あたり数百個になり、一覧の初回描画が待たされます（8 要素にすると短くなります）。
 
 ### 2.3 `ThumbnailActivatedEventArgs`（2 回押しの通知）
 

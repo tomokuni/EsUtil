@@ -22,9 +22,6 @@ namespace EsUtil.Ui.MewUI.ColumnPacking;
 /// 1. MeasureContent：各子要素を測定し、最適レイアウトを計算<br/>
 /// 2. ArrangeContent：計算結果に基づいて各子要素を配置<br/>
 /// <br/>
-/// 【最適化施策】<br/>
-/// • Layout キャッシュで重複計算を削減し、配置のたびの再計算を回避<br/>
-/// • 子要素の一覧を 1 度だけ取り出して反復し、列挙の割り当てを削減
 /// </remarks>
 public class ColumnPackingPanel : DualSourceItemsPanel
 {

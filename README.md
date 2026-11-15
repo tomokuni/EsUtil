@@ -2,7 +2,7 @@
 
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?event=pull_request)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1809%2C%2017763)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![Avalonia](https://img.shields.io/badge/UI-Avalonia-8D46D6)
@@ -136,7 +136,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 
 - **Windows の下限は Windows 10 バージョン 1809（ビルド 17763）**です（Windows Server 2019 も同じビルド 17763）。
 - WinUI 3 層が要求する Windows App Runtime は **2.0.1 以降**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版）です。 **ランタイムの MSIX も 17763 を要求します**（OS の下限とランタイムの下限は同じです）。
-- **17763 の射影に無い API は、そのままでは呼べません**。 例: `GraphicsCaptureSession.IsCursorCaptureEnabled`（Windows 10 バージョン 2004 / ビルド 19041）と `IsBorderRequired`（Windows 11 / ビルド 22000）は**射影にメンバーが無い**ため、内部インターフェースを COM の IID で問い合わせて呼びます（**パッケージの対象フレームワークは 17763 のまま**です。 射影を上げると利用側のプロジェクトも同じ射影を要求するため、この手段を採ります）。 設定できるかは `WindowsGraphicsCaptureSupport.IsCursorCaptureSupported` / `IsBorderControlSupported` が返し、**設定できない環境**ではカーソルを写さない設定は GDI へ委譲し、枠は OS の既定どおり描かれます。
+- **17763 の射影に無い API は、そのままでは呼べません**。 例: `GraphicsCaptureSession.IsCursorCaptureEnabled`（Windows 10 バージョン 2004 / ビルド 19041）と `IsBorderRequired`（Windows 11 / ビルド 22000）は**射影にメンバーが無い**ため、内部インターフェースを COM の IID で問い合わせて呼びます（**パッケージの対象フレームワークは 17763 のまま**です。 射影を上げると利用側のプロジェクトも同じ射影を要求するため、この手段を採ります）。 設定できるかは `WindowsGraphicsCaptureSupport.IsCursorCaptureSupported` / `IsBorderControlSupported` が返し、**設定できない環境**ではカーソルを写さない設定は GDI へ委譲し、枠は OS の既定どおり描かれます。 **ほかの API を含む一覧と手段**は [`.github/ビルド設定規約.md`](.github/ビルド設定規約.md) §5「17763 で使う Windows API と使用可能にした手法」にあります。
 - **利用側のプロジェクトも `net10.0-windows10.0.17763.0` 以上にする**（NuGet の互換判定は**対象フレームワーク**で行われ、`<SupportedOSPlatformVersion>` は使われません。 実測 2026-11-14: 古い対象フレームワークのプロジェクトは `NU1201` / `NU1202` で復元できません）。
 
 ### 5.1 依存パッケージの下限（.NET 10）
@@ -156,7 +156,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 
 | 層 | Native AOT | 根拠（実測） |
 | --- | --- | --- |
-| 共通基盤・機能層 | **互換** | Win32 / WIC の呼び出しを **CsWin32 の生成物**（関数ポインター）だけで行う |
+| 共通基盤・機能層 | **互換** | Win32 / WIC の呼び出しを **CsWin32 の生成物**（関数ポインター）で行い、D3D11 だけを `[LibraryImport]` で宣言する |
 | Avalonia UI 層 | **互換** | サンプルを AOT で発行し、起動を確認 |
 | MewUI 層 | **互換** | 同上 |
 | WinUI 3 層 | **互換** | 同上（Windows App SDK 2.0.1 以降が Native AOT に対応。 実測 2026-11-14: 2.0.1 でサンプルを `-p:PublishAot=true -r win-x64` により発行し、警告 0 件で成功） |

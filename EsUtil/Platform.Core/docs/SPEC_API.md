@@ -271,7 +271,7 @@ UI フレームワーク非依存のサイズ・ベクター・矩形。 各 UI 
 
 `EsRect` は `Right`（`X + Width`）・`Bottom`（`Y + Height`）・`IsEmpty`（幅または高さが 0 以下）に加え、コントロールに依存しない 2 つの規則を単一所有します（各コアが個別に書くと同じ意味の式が散らばり、片方だけ端の扱いを変えると同じ矩形から違う結果になる）。
 
-`EsRect.Interval` は**幅・高さが終点を含むかどうか**（`Geometry.EsRectInterval`）を値として持ちます。 幅の意味は変えず（`Width = |終点 − 始点|`）、ピクセル数へ変換するときの `+1` の判断だけを本値が単一所有します（下流の層は再判定しません）。 既定は `HalfOpen` であり、省略した場合の挙動は従来と同じです。
+`EsRect.Interval` は**幅・高さが終点を含むかどうか**（`Geometry.EsRectInterval`）を値として持ちます。 幅の意味は変えず（`Width = |終点 − 始点|`）、ピクセル数へ変換するときの `+1` の判断だけを本値が単一所有します（下流の層は再判定しません）。 既定は `HalfOpen`（幅 = ピクセル数）です。
 
 **区間の流儀を引き継ぐメソッド**: `WithX` / `WithY` / `WithWidth` / `WithHeight` / `WithPosition` / `WithSize` / `Offset` / `Inflate` / `Deflate` / `Normalize` / `ClampToArea` / `Intersect` / `Union` は `Interval` を保ったまま幾何だけを差し替えます。 `CenterRect(rect)` はサイズを引き継ぐ相手（引数）の流儀を使います。 `FromLTRB` / `FromPoints` / `FromRectInt` / `FromTuple` は流儀を引数に取らないため `HalfOpen` を返します（流儀を指定する場合は `WithInterval` を続けて呼ぶ）。
 
@@ -611,7 +611,7 @@ public readonly record struct ElementFinderResults(
 | **この型では書けない** | 受け取った側（呼び出し先）が画素を書き換えない | **コンパイラ** | 読み取り専用の型に書き込みの入口が無い（`EsReadOnlyBitmap` に `SetPixel` 等が存在しない） |
 | **内容が変わらない** | 受け取った側が読んだ画素が後から変わらない | **実行時** | `EsReadOnlyBitmap.FromBitmap` を通す（**凍結済みなら 0 コピーで共有・未凍結なら複製**） |
 
-- **前者は 1 つの型では得られません**: 型が 1 つだけだと、受け取った側が「書かない」ことを**コンパイラは何も見ていない**ため、守っているかどうかは実装を読むまで分かりません（実行時のフラグで止めても、凍結前に書かれた分は静かに通ります）。 受け取る公開 API が多数あるため、**入口で保証できる**ことの価値が大きいと判断しました。
+- **前者は 1 つの型では得られません**: 型が 1 つだけだと、受け取った側が「書かない」ことを**コンパイラは何も見ていない**ため、守っているかどうかは実装を読むまで分かりません（実行時のフラグで止めても、凍結前に書かれた分は静かに通ります）。 受け取る公開 API が多数あるため、**入口で保証できる**ことの価値が大きいと判断しています。
 - **後者は型では得られません**（C# は upcast を検出できないため）: 書き換え可能な参照を手放していない限り、別の箇所から書けます。 したがって**相手へ渡す入口は `FromBitmap` です**。
 
 **相手へ渡す入口は `EsReadOnlyBitmap.FromBitmap`（Skia の `SKImage.FromBitmap` と同じ規則）**: 元の凍結状態で動作を分けます（実測: 凍結していない `SKBitmap` からは**複製**し、凍結済みなら**共有**します）。
@@ -644,7 +644,7 @@ public readonly record struct ElementFinderResults(
 
 **凍結（`SetReadOnly` / `IsReadOnly`）**: `SetReadOnly` を呼ぶと、以後の書き込みの入口（`Pixels` / `SetPixel` / `TrySetPixel` / `Clear`）が `InvalidOperationException` を投げます。 読み取り専用の型の `IsReadOnly` は常に true（書き込みの入口が無いため）、書き換え可能な型は凍結の状態を返します。
 
-- **凍結後の書き込みを例外にする理由（実測に基づく）**: Skia の `SetImmutable` は**宣言のみで強制しません**。 実測では、凍結した `SKBitmap` から 0 コピーで共有した `SKImage` があるのに `SetPixel` が例外なく書けて**共有先の画素が変わり**、`GetPixelSpan` 経由の書き込みも届き、`InstallPixels` は**フラグ自体を false に戻しました**（不変の約束が守られなければ、不変を前提にした画像が静かに壊れます）。 本ライブラリは型（書き込みの入口が無い）と実行時（凍結後の**取得**を拒否）の二重で守ります。
+- **凍結後の書き込みを例外にする理由（実測に基づく）**: Skia の `SetImmutable` は**宣言のみで強制しません**。 実測では、凍結した `SKBitmap` から 0 コピーで共有した `SKImage` があるのに `SetPixel` が例外なく書けて**共有先の画素が変わり**、`GetPixelSpan` 経由の書き込みも届き、`InstallPixels` は**フラグ自体を false へ戻します**（不変の約束が守られなければ、不変を前提にした画像が静かに壊れます）。 本ライブラリは型（書き込みの入口が無い）と実行時（凍結後の**取得**を拒否）の二重で守ります。
 - **「読み取り専用として渡す」と「凍結する」を分ける理由**: 渡すだけで凍結すると、生成した画像へ切り出し・保存を呼んだ後に書き続けられなくなります。 凍結は**書き終えた時点**で明示的に行います。
 
 **共有と寿命（参照を数える）**: 同じ画素を指す複数の実体は、バッファの `SafeHandle` に参照を 1 つ取って解放します。 したがって**先に元を破棄しても画素は有効なまま**であり、最後の 1 つが解放します（二重 `Dispose` でも 2 回目は解放しません）。
@@ -774,7 +774,7 @@ public readonly record struct ElementFinderResults(
 - **出典**: SkiaSharp / Avalonia / System.Drawing は各アセンブリで実測（リフレクション＋アドレス比較）。 WinUI 3 / Win2D は Microsoft Learn のクラスリファレンス（`WriteableBitmap` / `SoftwareBitmap` / `CanvasBitmap` / `CanvasRenderTarget`）と Windows App SDK のイメージング解説です。
 - **借用と複製を名前で分ける点は Skia と同じです（優劣ではなく一致）**: `InstallPixels`（借用）/ `FromPixelCopy`（複製）という名前にしており（**両方の型で同じ名前**）、Skia の付け方と一致します。 **描画を担う上位の層は、読み取り専用の画像を非所有ビュー（複製なし）として描画 API へ渡します**（`ToPixmap` と同じ性質の入口です）。
 - **読み取り専用の表し方は Skia と同じです（兄弟型）**: 本ライブラリも互いに派生しない 2 型にし、変換は `FromBitmap` / `FromReadOnlyBitmap` の 2 つだけです（Skia は `SKImage.FromBitmap` / `SKBitmap.FromImage`）。 **兄弟にした理由**は §2.39 を参照（継承だと未凍結の画素を読み取り専用として暗黙に渡せてしまうため）。
-- **遅延コピー（読み取り専用の画像と画素を共有し、最初の書き込みで複製する仕組み）は持ちません**: 調査したどのフレームワークも持たず、本ライブラリでも**本番の呼び出しがありませんでした**（画像から書き換え可能な画像を作る `EsBitmap.FromReadOnlyBitmap` を渡すのはテストだけであり、本番は寸法と色で生成していました）。 0 コピーの共有は凍結と `FromBitmap`（凍結済みなら共有・未凍結なら複製）で得られるため、書き込み可能なビューを渡す入口（`Pixels`）と組み合わせると**いつ複製されたか分からない隠れた確保**になるだけでした（[2.39](#239-画像型の設計上の判断兄弟と借用を選んだ理由)）。
+- **遅延コピー（読み取り専用の画像と画素を共有し、最初の書き込みで複製する仕組み）は持ちません**: 本ライブラリの書き換え可能な画像は寸法と色から生成し、`EsBitmap.FromReadOnlyBitmap` は画素を複製します。 0 コピーの共有は凍結と `FromBitmap`（凍結済みなら共有・未凍結なら複製）で得られるため、書き込み可能なビューを渡す入口（`Pixels`）と組み合わせると**いつ複製されたか分からない隠れた確保**になります（[2.39](#239-画像型の設計上の判断兄弟と借用を選んだ理由)）。
 - **凍結は Skia の `SetImmutable` と同じ役割ですが、実行時に強制します**: Skia の凍結は呼び出し側の**宣言**であり（実測: 凍結後も `SetPixel` が例外なく書けて共有先の画素が変わり、`GetPixelSpan` の書き込みも届き、`InstallPixels` はフラグを false に戻す）、守られなければ不変を前提にした画像が静かに壊れます。 本ライブラリは凍結後の**取得**を拒否します（凍結の前に取得したビューは残ります。 これは Skia と同じ原理的な限界です）。
 - **借用の入口を公開する点は WinUI 3 / Win2D と違います**: 借用は**借用先の寿命に依存する契約**を増やします（Avalonia の表示用のビューは元の破棄で無効化されます）が、複製の費用（画素数に比例）を避ける手段として有効なため、**名前で複製と区別したうえで公開します**。
 - **書き込みの期間は型で表しません**: Avalonia の `Lock()` は借用オブジェクトの寿命で「借用している間」を表しますが、本ライブラリは `Pixels`（`Span<byte>`）を返します。 `Span` は `ref struct` のため**フィールドに保持できません**が、ローカルに置いたまま破棄すれば不正な書き込みになる点は Avalonia と同じです（借用中の破棄を型で防ぐ手段は、調査したどのフレームワークにもありません）。
@@ -782,10 +782,10 @@ public readonly record struct ElementFinderResults(
 
 **速度と画質の傾向（数値なしの結論。 実測値は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します）**:
 
-- **切り出しは他フレームワークと同等以上に速く**（**画素を複製しない経路が最速**であり、コアでは `ToPixmap` がこれに当たります。 複製する切り出しは行ごとのコピーだけであり、ネイティブの複製 API と並びます）、**縮小は WIC に任せているため自前実装より遅い**です（4K → 長辺 320 で `Low` 0.09 ms → 6.6 ms、`High` 1.19 ms → 10.1 ms。 §11.3）。
-- **同じ系統の中では `WicHighQualityCubic` が最も遅く**（`WicFant` の 2.4 倍）、`WicNearestNeighbor` と `WicLinear` はほぼ同じです（WIC のスケーラーはどの補間でも元画像を走査するため）。 **`Es` で始まる方法は 3〜340 倍速い**です（縮小先に必要な画素だけを読むため）。 実測は [`Result_Measurement.md`](Result_Measurement.md) §11.3。
-- **`High`（WIC の Fant）は画素の面積平均に最も近く**（最大誤差 1。 実測は [`Result_Measurement.md`](Result_Measurement.md) §11.3）、**読み込み時の縮小と同じ補間**です（経路によって画質が変わりません）。
-- **縮小で `High` より画質が上になる実装を段階へ加えません**: 立方畳み込み（`Cubic` / `HighQualityCubic` 相当）は**元の画素の範囲を外れる値（リンギング）**を生じ、**4 倍以上の縮小では `Mid`（双線形）より誤差が大きくなります**（実測: 画面キャプチャ風の 6 倍縮小で 20.6 dB / 36.4 dB 対 23.2 dB。 §11.3）。 立方畳み込みが意味を持つのは**拡大**であり、`Resize` は拡大を行いません。
+- **切り出しは他フレームワークと同等以上に速く**（**画素を複製しない経路が最速**であり、コアでは `ToPixmap` がこれに当たります。 複製する切り出しは行ごとのコピーだけであり、ネイティブの複製 API と並びます）、**縮小は WIC に任せているため自前実装より遅い**です（所要は [`Result_Measurement.md`](Result_Measurement.md) §11.3）。
+- **同じ系統の中では `WicHighQualityCubic` が最も遅く**（`WicFant` より遅い）、`WicNearestNeighbor` と `WicLinear` はほぼ同じです（WIC のスケーラーはどの補間でも元画像を走査するため）。 **`Es` で始まる方法は速い**です（縮小先に必要な画素だけを読むため）。 実測は [`Result_Measurement.md`](Result_Measurement.md) §11.3。
+- **`High`（WIC の Fant）は画素の面積平均に最も近く**（誤差は最大 1。 実測は [`Result_Measurement.md`](Result_Measurement.md) §11.3）、**読み込み時の縮小と同じ補間**です（経路によって画質が変わりません）。
+- **縮小で `High` より画質が上になる実装を段階へ加えません**: 立方畳み込み（`Cubic` / `HighQualityCubic` 相当）は**元の画素の範囲を外れる値（リンギング）**を生じ、**4 倍以上の縮小では `Mid`（双線形）より誤差が大きくなります**（実測は [`Result_Measurement.md`](Result_Measurement.md) §11.3）。 立方畳み込みが意味を持つのは**拡大**であり、`Resize` は拡大を行いません。
 - **費用の内訳は順に「中間画像を作らないこと」「色形式を変換しないこと」「補間の支持幅」**です。 縮小は WIC のスケーラーへ直接渡すため、コア側では中間画像も画素形式の変換も作りません。
 - **`EsPixmap`（0 コピーのビュー）は、大きな画像の一部だけを対象にする場合に有利**です（**縮小は実体化の複製が費用の大半**であるため差が大きく、**減色は計算が支配的**であるため差は小さい）。 `GetPixel` は行幅を持つ分だけ画像型より遅くなりますが、**切り出しの複製が要りません**。
 - **同じ操作の速さは型で変わりません**（`Crop` / `Resize` / `ReduceColors` / `Save` は同じ内部実装へ転送するため）。 差が出るのは**入口の有無**と**複製するか共有するか**だけです。
@@ -816,17 +816,16 @@ public readonly record struct ElementFinderResults(
 - **保存に使える形式の一覧は画像型が公開します**: 形式を決める規則の単一所有は `EsReadOnlyBitmap.SupportedFileExtensions`（`EsBitmap` も同じ値を公開）であり、保存の実装がそこを参照します（一覧は型の能力であり、特定の実体を要さないため）。
 
 - **`Load` は具体型の静的メソッドに置きます**: 戻したい型（読み取り専用 / 書き換え可能）を**呼び出し側が名指す**必要があるためです（静的メソッドは戻り値の型を共変にできないため、`EsReadOnlyBitmap.Load` と `EsBitmap.Load` の 2 つが要ります）。 書き換えが要る場合は `EsBitmap.Load` を使ってください（`EsReadOnlyBitmap.Load` の結果を `EsBitmap.FromReadOnlyBitmap` で複製すると、2 回目の複製が無駄になります）。 つまりファイル入出力の見え方は「**読むときは型を名指す（`Load`）／書くときはどちらの型でも同じ（`Save`）**」です。
-- **`Save` は再び画像型のメンバーになりました**: いったん拡張メソッドへ移しましたが、その理由（読み取り専用の面を実装する外部の画像からもキャストせずに呼べること）は**面（interface）の廃止で消えました**。 いまは実装を内部の 1 か所（`EsBitmapBuffer.SaveToFile`）に置き、公開の入口を両方の型のメンバーにしています（`Load` と同じ型にファイル入出力が並びます）。
-- **`Crop` / `Resize` / `ReduceColors` も同じ形にしました**: 実装は内部の 1 か所（寸法の判断と入口は `EsImageCodec`、縮小の計算は `EsBitmapOperations`、減色は WIC）に置き、公開の入口は両方の型のメンバーです（規則と理由は §2.37）。 これにより型の外に並ぶ操作は無くなり、`Copy` / `ToPixmap` と同じ「型自身の能力」として読めます。
+- **`Save` / `Crop` / `Resize` / `ReduceColors` は画像型のメンバーです**: 実装は内部の 1 か所（`Save` は `EsBitmapBuffer.SaveToFile`、寸法の判断と入口は `EsImageCodec`、縮小の計算は `EsBitmapOperations`、減色は WIC）に置き、公開の入口は両方の型のメンバーです（規則と理由は §2.37）。 型の外に並ぶ操作は無く、`Copy` / `ToPixmap` と同じ「型自身の能力」として読めます。
 - **実装は `internal` に隠します**: 形式の判別（拡張子 → エンコーダー）・WIC の呼び出し・状態値の例外化は 1 か所（「`WinWicImageCodec`」）が単一所有し、公開面（`EsImageCodec` と画像型の `Save` / `Load` / `SupportedFileExtensions`）はそこへ委譲するだけです。
 - **実装の入出力は画像型を知りません**: 符号化は受け取ったピクセル バイト列を書き（`EncodeToFile`）、復号は**画像の生成処理を受け取ってデコード結果をその領域へ直接書きます**（`DecodeFromFile<T>`）。 コーデックが画像型（`EsBitmap` 等）を名指ししないため、画像型が要るのは公開面だけになります。 **中間バッファも追加のコピーも作りません**（デコード結果を画像の領域へそのまま書きます。 中間バッファを挟む方式に対して**読み込みで有利**であり、保存は両方式とも同じです）。
 - **形式は既定では拡張子が決めます**: `Save` は拡張子から形式を選びます（形式の一覧は `SupportedFileExtensions` と同じく OS から作ります）。 大文字・小文字は区別しません。
-- **形式を明示する入口を持ちます（拡張子の補完を含む）**: `EsImageSaveOptions.Format` を指定すると形式が優先されます。 指定しなかった場合は従来どおり拡張子が形式を決めます（**既存の呼び出しの挙動は変わりません**）。
+- **形式を明示する入口を持ちます（拡張子の補完を含む）**: `EsImageSaveOptions.Format` を指定すると形式が優先されます。 指定しなかった場合は拡張子が形式を決めます。
 
   | `Format` | 拡張子 | `IgnoreFormatMismatch` | 結果 |
   | --- | --- | --- | --- |
-  | 未指定 | 対応形式 | — | 拡張子の形式で保存する（従来どおり） |
-  | 未指定 | 無い・未対応 | — | `NotSupportedException`（従来どおり） |
+  | 未指定 | 対応形式 | — | 拡張子の形式で保存する |
+  | 未指定 | 無い・未対応 | — | `NotSupportedException` |
   | 指定 | 無い | — | **形式の標準拡張子を補完して保存**する（`shot` + `Png` → `shot.png`） |
   | 指定 | 一致 | — | そのまま保存する |
   | 指定 | 不一致 | false | `ArgumentException`（**ファイルは作りません**） |
@@ -857,7 +856,7 @@ public readonly record struct ElementFinderResults(
     パレット画像になります**（実測で確認した 3 形式。 BMP / PNG / GIF）。
   - **BMP の圧縮方式は公開しません**（WIC の BMP エンコーダーへ圧縮の指定を渡していないため、常に無圧縮です）。 減色した BMP も無圧縮のままです。
   - **GIF は指定が無くても常に量子化して書きます**: GIF はパレットが必須の形式です。 自前の量子化は透明な画素を透明なパレットの色へ割り当てるため**透過が保たれ**、副次的に**ファイルも小さく画質も良くなります**（実測値は [`Result_Measurement.md`](Result_Measurement.md) を参照）。
-- **減色を受け付けない形式へ指定すると例外になります**（`NotSupportedException`）。 可否は**エンコーダーの返答で決まります**（8bpp のインデックス カラーを要求して、`SetPixelFormat` が別の形式を返したら書けません）。 実測では **JPEG が受け付けません**（パレットを持てない）。 **TIFF / DDS / BMP / PNG / GIF は受け付けます**（TIFF は以前「未検証」として拒否していましたが、実測でパレット画像として保存できることを確認しました）。
+- **減色を受け付けない形式へ指定すると例外になります**（`NotSupportedException`）。 可否は**エンコーダーの返答で決まります**（8bpp のインデックス カラーを要求して、`SetPixelFormat` が別の形式を返したら書けません）。 実測では **JPEG が受け付けません**（パレットを持てない）。 **TIFF / DDS / BMP / PNG / GIF は受け付けます**（TIFF もパレット画像として保存できます）。
   - **透過の扱い（実測）**: **形式ごとに保存できるアルファが違います**。 減色はアルファも色の一部として扱うため（4 段階に量子化）、**透明な画素は透明なパレットの色へ寄ります**。
 
     | 形式 | 減色しない場合 | 減色した場合 | 理由 |
@@ -875,7 +874,7 @@ public readonly record struct ElementFinderResults(
   - **減色したファイルはどの形式でも 32bpp のままより小さくなります**（**減少量は形式と内容で決まります**: 写真風の PNG で最も大きく減り、次にスクリーンショット風の PNG、無圧縮の BMP、元から量子化されている GIF の順に小さくなります）。 減色した結果も `Load` で読み戻せます（BMP は画素が**完全一致**します）。 実測値は [`Result_Measurement.md`](Result_Measurement.md) を参照してください。
   - **外部ライブラリ・外部ツールとの関係（数値なしの結論）**:
 
-    - **減色は OS の WIC で行います**（外部ツールも外部ライブラリも要しません）。 パレットは中央値分割、割り当ては最近傍（ディザは誤差拡散）です。 実測（960x540・256 色）では写真風 13.6 ms・画面キャプチャ風 7.7 ms で、**画面キャプチャ風は画素が完全に一致**しました（PSNR 99 dB）。 写真風は PSNR 30.6 dB です。
+    - **減色は OS の WIC で行います**（外部ツールも外部ライブラリも要しません）。 パレットは中央値分割、割り当ては最近傍（ディザは誤差拡散）です。 画面キャプチャ風の画像では画素が完全に一致し、写真風の画像でも実用の範囲に収まります（所要と PSNR は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します）。
     - **ファイル サイズが最小なのは OptiPNG**（WIC よりわずかに小さい）であり、**減色の画質が最も良いのは pngquant** です。 どちらも外部実行ファイルを要します。
     - したがって本ライブラリは **「OS の API だけで完結し、サイズと画質が実用の範囲に入る」** 点を採ります。
     - 所要・サイズ・色差の実測値は [`Result_Measurement.md`](Result_Measurement.md) を参照してください。
@@ -890,11 +889,11 @@ public readonly record struct ElementFinderResults(
 - **エンコード・デコードは WIC（`windowscodecs.dll` の COM）を直接呼びます**（宣言は CsWin32 が `wincodec.h` から生成します（`EsUtil/Platform.Core/src/NativeMethods.txt`）。 呼び出しの補助（生成・解放・画素の入出力）は `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFactory.cs`、形式の一覧は `WinWicFormats.cs`、符号化・復号は `WinWicImageCodec.cs` が単一所有し、入口は `EsImageCodec.cs` です）。 **外部パッケージを参照しません**（Windows に標準で入る OS コンポーネントだけを使います）。
 - **本機能は Windows 専用です**: WIC は Windows にのみ存在します。 公開メンバー（`Save` / `Load` / `SupportedFileExtensions`）は `SupportedOSPlatform("windows")` で限定します。 本ソリューションは Windows デスクトップ専用アプリのため実害はありません（コアは可搬な層ですが、`EsUtil/Platform.Core/src/Native` だけが Windows に依存します）。
 - **COM の宣言は CsWin32 が生成します（vtable を手で並べません）**: 生成された型は vtable を**関数ポインターの表**として持つため、**メソッドの位置を数え間違えません**（実測: 手書きの宣言は位置がずれて `0xC0000005` で落ちました）。 生成には `allowMarshaling: false`（`EsUtil/Platform.Core/src/NativeMethods.json`）が必要です（既定のモードでは COM インターフェイスが**マネージド クラス**として生成され、ポインターで扱えません）。 この設定では `string` を受け取る補助が消えるため、`PCWSTR` / `Span<char>` を使います。
-- **COM の初期化は `WinWicFactory` が単一所有します**（プロセスで 1 回だけ `CoInitializeEx` を呼び、`CLSID_WICImagingFactory` を都度生成します）。 **`RPC_E_CHANGED_MODE`（`0x80010106`）は成功として扱います**（既に別のモデルで初期化済みのプロセスでも動くことを実測で確認しました）。 **プロセス全体に及ぶ副作用はありません**（スレッドは増えず、解放されない参照カウントも取りません）。
+- **COM の初期化は `WinWicFactory` が単一所有します**（プロセスで 1 回だけ `CoInitializeEx` を呼び、`CLSID_WICImagingFactory` を都度生成します）。 **`RPC_E_CHANGED_MODE`（`0x80010106`）は成功として扱います**（既に別のモデルで初期化済みのプロセスでも動作することを実測で確認しています）。 **プロセス全体に及ぶ副作用はありません**（スレッドは増えず、解放されない参照カウントも取りません）。
 - **初期化を前倒しする公開 API は持ちません**: 初期化は `WinWicFactory`（`internal`）が単一所有するため、ホストからは呼べません。 初期化のコストは最初の `Save` / `Load` が負担します。
-- **`[ComImport]` も `[GeneratedComInterface]` も使いません**: `[ComImport]` は Native AOT で `NotSupportedException` になります（実測）。 `[GeneratedComInterface]` は動きますが、**vtable の位置を宣言順で決める**ため、使わないメソッドを位置合わせで並べる必要があり、**実際に取り違えて `0xC0000005` になりました**。 CsWin32 の生成物はこの誤りを構造的に防ぎます。
+- **`[ComImport]` も `[GeneratedComInterface]` も使いません**: `[ComImport]` は Native AOT で `NotSupportedException` になります（実測）。 `[GeneratedComInterface]` は動きますが、**vtable の位置を宣言順で決める**ため、使わないメソッドを位置合わせで並べる必要があり、**取り違えると `0xC0000005` になります**。 CsWin32 の生成物はこの誤りを構造的に防ぎます。
 - **COM の解放は明示します（GC に任せません）**: Native AOT では `Marshal.ReleaseComObject` / `Marshal.FinalReleaseComObject` が使えないため、生成された `Release()` を `try/finally` で呼びます（GC 任せにすると解放の時期を読めない）。 **WIC にファイルを開かせません**（`IWICStream::InitializeFromFilename` を使うと解放までファイルが開いたままになり、保存直後の削除が `IOException` になった）。 読み書きは**メモリ ストリーム**（`CreateStreamOnHGlobal`）で行い、ファイルは `System.IO.File` が開いて閉じます（直後から削除も上書きもできることを実測）。
-- **エンコーダーのキャッシュは `NoCache` を使います（実測）**: メモリ ストリームでは `WICBitmapEncoderCacheInMemory`（0）も `WICBitmapEncoderCacheTempFile`（1）も `WINCODEC_ERR_UNSUPPORTEDOPERATION`（`0x88982F81`）で初期化に失敗し、`WICBitmapEncoderNoCache`（2）だけが成功します（列挙値は `wincodec.h` の定義どおり。 以前の記述は値を取り違えていました）。
+- **エンコーダーのキャッシュは `NoCache` を使います（実測）**: メモリ ストリームでは `WICBitmapEncoderCacheInMemory`（0）も `WICBitmapEncoderCacheTempFile`（1）も `WINCODEC_ERR_UNSUPPORTEDOPERATION`（`0x88982F81`）で初期化に失敗し、`WICBitmapEncoderNoCache`（2）だけが成功します（列挙値は `wincodec.h` の定義どおり）。
 - **形式の一覧は OS から取ります（固定の一覧を持ちません）**: `IWICImagingFactory::CreateComponentEnumerator`（`WICEncoder`）で登録済みのエンコーダーを列挙し、**コンテナ GUID と拡張子を OS から受け取ります**。 そのうえで **8x8 の試し書きが通った形式だけ**を一覧へ残します（列挙に現れても、本ライブラリの画素（BGRA8888）から書けない組み合わせがあるため）。 結果は初回のアクセスで 1 度だけ調べます。 この環境では `.bmp` / `.dib` / `.rle` / `.gif` / `.jpeg` / `.jpe` / `.jpg` / `.jfif` / `.exif` / `.png` / `.tiff` / `.tif` / `.wdp` / `.jxr` / `.dds` / `.heic` / `.heif` / `.hif` / `.jxl` の 19 拡張子が並びます。 **パレットを要求する形式は、エンコーダーへの問い合わせ（`IWICBitmapFrameEncode::SetPixelFormat` が返す形式）で見分けてからインデックス カラーで試します**: そのようなエンコーダーは通常の画素を必ず拒否するため、逆の順で試すと**捕捉して捨てる例外が 1 プロセスに 1 回発生**し、デバッガーが利用側のアプリの不具合のように表示します（実測 2026-11-13）。 **形式ごとの対応を固定の一覧で持ちません**（OS とコーデック拡張で変わるため）。
 - **エンコーダーが返した画素形式に合わせて並びを直します（実測）**: アルファ乗算済みの BGRA（`GUID_WICPixelFormat32bppPBGRA`）を要求しても、PNG / TIFF / DDS はアルファ乗算なしの BGRA、JPEG は 24bpp の BGR、HEIF は 32bpp の BGR、JPEG XL は RGBA を返します。 エンコーダーは形式を変換しないため、**返された形式に合わせてから書きます**（BMP だけは要求どおりなのでコピーを作りません）。
 - **本機能はプロセス全体に及ぶ副作用を持ちません**: GDI+ の `GdiplusStartup` が起こしていた「バックグラウンド スレッド +1」「解放されない参照カウント」「初回の遅延」は **WIC では起きません**。 判断の記録は [`SPEC_System.md`](SPEC_System.md) §7.1 を参照してください。

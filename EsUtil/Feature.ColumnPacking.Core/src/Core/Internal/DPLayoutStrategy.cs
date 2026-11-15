@@ -30,11 +30,6 @@ namespace EsUtil.Feature.ColumnPacking.Core.Internal;
 /// 【使用例】<br/>
 /// var strategy = new DPLayoutStrategy(items, space, 10, cache);<br/>
 /// var result = strategy.Solve(100.0);<br/>
-/// <br/>
-/// 【最適化手法】<br/>
-/// • ColumnMetricsCache の共有で重複計算回避<br/>
-/// • ArrayPool によるメモリプール化<br/>
-/// • AggressiveInlining でメソッド最適化<br/>
 /// </remarks>
 /// <param name="items">アイテム配列</param>
 /// <param name="space">行間・列間スペース</param>
@@ -274,9 +269,6 @@ internal sealed class DPLayoutStrategy(
     /// 1. 最適列数を見つける<br/>
     /// 2. バックトレースでセグメント復元<br/>
     /// 3. 結果構築<br/>
-    /// <br/>
-    /// 【注意点】<br/>
-    /// ArrayPool を使用してメモリ効率を高めます。<br/>
     /// </remarks>
     /// <param name="dp">DP テーブル</param>
     /// <param name="n">アイテム数</param>
@@ -335,9 +327,6 @@ internal sealed class DPLayoutStrategy(
     /// <br/>
     /// 【制約】<br/>
     /// Height が正の無限大の場合、無効状態（<see cref="Invalid"/>）。<br/>
-    /// <br/>
-    /// 【最適化手法】<br/>
-    /// • AggressiveInlining でCreateメソッド最適化<br/>
     /// </remarks>
     internal readonly record struct DpState(double Height, double Width, int BreakIdx)
     {
@@ -352,9 +341,6 @@ internal sealed class DPLayoutStrategy(
         /// <remarks>
         /// 【処理フロー】<br/>
         /// 1. パラメータを渡してインスタンス生成<br/>
-        /// <br/>
-        /// 【注意点】<br/>
-        /// AggressiveInlining でインライン化されます。<br/>
         /// </remarks>
         /// <param name="height">最大列高さ。</param>
         /// <param name="width">総幅。</param>

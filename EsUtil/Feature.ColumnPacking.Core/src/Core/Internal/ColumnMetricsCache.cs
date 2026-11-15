@@ -26,11 +26,6 @@ namespace EsUtil.Feature.ColumnPacking.Core.Internal;
 /// 【使用例】<br/>
 /// var cache = new ColumnMetricsCache(items, space, 1000);<br/>
 /// var metrics = cache.GetMetrics(segment);<br/>
-/// <br/>
-/// 【最適化手法】<br/>
-/// • Dictionary を用いた O(1) アクセス時間の実現<br/>
-/// • 遅延計算による初期化コスト削減<br/>
-/// • AggressiveInlining で小規模メソッドの最適化<br/>
 /// </remarks>
 internal sealed class ColumnMetricsCache(Size[] items, Space space, int estimatedCapacity = 1000)
 {
@@ -105,7 +100,6 @@ internal sealed class ColumnMetricsCache(Size[] items, Space space, int estimate
         double totalHeight = (length - 1) * space.Row;
         double maxWidth = 0.0;
 
-        // foreach + Span = JIT 自動展開（ループ最適化）
         foreach (var (Width, Height) in itemsSpan)
         {
             totalHeight += Height;

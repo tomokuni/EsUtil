@@ -9,7 +9,7 @@ namespace EsUtil.Platform.Core.Native;
 /// <see cref="ElementFinderResults"/> として返す。<br/>
 /// 公開 API は UI フレームワーク非依存のコア型（<see cref="EsPointInt"/> / <see cref="EsRectInt"/> /<br/>
 /// <see cref="EsPlatformHandle"/>）のみを使用する。<br/>
-/// 実装は各プラットフォーム（Windows: Win32 API）が提供し、<br/>
+/// 実装は Windows 向けの実装（Win32 API）が提供し、<br/>
 /// 具象実装ではなく本インターフェイスへ依存させることでテスト時のモックを可能にする（DIP）。
 /// </remarks>
 public interface IElementFinder
