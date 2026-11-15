@@ -190,7 +190,7 @@ dotnet test EsUtil/Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Tests.
 
 ## 9. ログ
 
-ロガーは `MarqueeCore.Log` で受け取り（**コンストラクターからの注入も可能**）、**生成**（`[Marquee] Facade created`。 Information。 生成時の設定を 1 度だけ）・**入力の判断**（`[Marquee] MouseDown` / `MouseUp` / `DoubleClick` / `DragStart` / `KeyDown` / `ConfirmRequested` / `キャンセルが要求されました` 等。 Debug。 位置の記録は Trace）・**設定の変更**（`[Marquee] 設定: {名前} {前} → {後}`）を出力します。 ロガー未設定（null）は出力なしです。
+ロガーは `MarqueeCore.Log` で受け取り（**コンストラクターからの注入も可能**）、**生成**（`[Marquee] ファサードを作成しました`。 Information。 生成時の設定を 1 度だけ）・**入力の判断**（`[Marquee] マウス押下` / `マウス解放` / `ダブルクリック` / `ドラッグ開始` / `キー押下` / `確定が要求されました` / `キャンセルが要求されました` 等。 Debug。 位置の記録は Trace）・**設定の変更**（`[Marquee] 設定: {名前} {前} → {後}`）を出力します。 ロガー未設定（null）は出力なしです。
 
 **出力の方針**（頻度でレベルを分ける）:
 

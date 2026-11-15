@@ -179,7 +179,7 @@ if (layout.Position is { } position)
 
 | 状況 | 挙動 |
 | --- | --- |
-| 描画中の例外 | アプリを落とさない。 `Log` へ Error（`[Loupe] Update exception`）を記録し、そのフレームの描画を中断する（次の描画で復帰する） |
+| 描画中の例外 | アプリを落とさない。 `Log` へ Error（`[Loupe] 描画の更新で例外が発生`）を記録し、そのフレームの描画を中断する（次の描画で復帰する） |
 | 描画中に拡大元画像が破棄された場合 | 拡大画像の層だけを描かずに戻る（画像外の色のみが残る） |
 | `SetCoordTransform` の例外 | Error（`[Loupe] SetCoordTransform で例外が発生`）を記録して再送出する |
 
@@ -203,7 +203,7 @@ if (layout.Position is { } position)
 | --- | --- | --- |
 | Information | `[Loupe] 設定: Source {前} → {後}` | 本プロジェクトの `LoupeLogMessage`（拡大元画像） |
 | Information | `[Loupe] 設定: {名前} {前} → {後}` | コア（設定値・環境値・拡大中心）と提示層（外観） |
-| Error | `[Loupe] Update exception` | 本プロジェクトの `LoupeLogMessage`（描画の例外） |
+| Error | `[Loupe] 描画の更新で例外が発生` | 本プロジェクトの `LoupeLogMessage`（描画の例外） |
 | Error | `[Loupe] {操作} で例外が発生` | 本プロジェクトの `LoupeLogMessage`（公開 API の例外） |
 
 接頭辞は `LogPrefix` で変更でき、コアと提示層のログの両方に適用します（全層のログが同じ接頭辞になる）。 **接頭辞はプロセス（アセンブリ）内の全インスタンスで共有します**（同じ実行で 2 つ目のルーペへ別の接頭辞を設定すると、1 つ目のルーペのログもその接頭辞になります）。 変化判定（同値・同一インスタンスなら出力しない）は出力する主体が単一所有します。

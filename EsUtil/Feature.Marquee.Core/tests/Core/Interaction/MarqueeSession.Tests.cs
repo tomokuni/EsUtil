@@ -133,7 +133,7 @@ public class MarqueeSessionTests
         var feedback = session.Press(new EsPoint(10, 10), clickCount: 2);
 
         Assert.Equal(
-            [MarqueeNoticeKind.キャンセルが要求されました],
+            [MarqueeNoticeKind.CancelRequested],
             Kinds(notices));
         Assert.True(session.HasSelection);
         Assert.False(feedback.ShouldRedraw);
@@ -304,7 +304,7 @@ public class MarqueeSessionTests
 
         Assert.True(feedback.IsHandled);
         Assert.True(feedback.ShouldRedraw);
-        Assert.Equal([MarqueeNoticeKind.キャンセルが要求されました], Kinds(notices));
+        Assert.Equal([MarqueeNoticeKind.CancelRequested], Kinds(notices));
         Assert.False(session.HasSelection);
     }
 
@@ -616,7 +616,7 @@ public class MarqueeSessionTests
 
         var feedback = session.RequestCancel();
 
-        Assert.Equal([MarqueeNoticeKind.キャンセルが要求されました], Kinds(notices));
+        Assert.Equal([MarqueeNoticeKind.CancelRequested], Kinds(notices));
         Assert.False(session.HasSelection);
         Assert.True(feedback.ShouldRedraw);
     }
@@ -628,7 +628,7 @@ public class MarqueeSessionTests
 
         var feedback = session.RequestCancel();
 
-        Assert.Equal([MarqueeNoticeKind.キャンセルが要求されました], Kinds(notices));
+        Assert.Equal([MarqueeNoticeKind.CancelRequested], Kinds(notices));
         Assert.False(feedback.ShouldRedraw);
     }
 

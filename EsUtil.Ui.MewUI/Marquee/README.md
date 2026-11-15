@@ -144,10 +144,10 @@ MarqueeControl は 3 つの座標系を使い分けます。
 | 左ドラッグ（ハンドル上） | リサイズ（角・辺の 8 方向） |
 | 左ドラッグ（矩形内） | 移動 |
 | ダブルクリック（矩形内） | 確定要求（`ConfirmRequested`） |
-| ダブルクリック（矩形外） | キャンセル要求（`キャンセルが要求されました`） |
+| ダブルクリック（矩形外） | キャンセル要求（`CancelRequested`） |
 | 矢印キー | nudge（1 対象ピクセル単位の微調整。 カーソルを非表示にして十字マーカーを表示） |
 | Enter | 確定要求（`ConfirmRequested`） |
-| Escape | キャンセル要求（`キャンセルが要求されました`） |
+| Escape | キャンセル要求（`CancelRequested`） |
 
 矢印キーの nudge は本コントロールにフォーカスがある場合のみ動作します（マウス押下時に自動でフォーカスを取得します）。
 
@@ -191,7 +191,7 @@ MarqueeControl は 3 つの座標系を使い分けます。
 
 | レベル | 出力内容 |
 | --- | --- |
-| Debug | MouseDown / MouseUp / DoubleClick / DragStart / KeyDown / ConfirmRequested / キャンセルが要求されました |
+| Debug | マウス押下 / マウス解放 / ダブルクリック / ドラッグ開始 / キー押下 / 確定が要求されました / キャンセルが要求されました |
 | Trace | MouseDown 直前の位置 / MouseUp 直後の位置 |
 | Error | 公開操作（`SetCoordTransform` / `SetSelection` / `ResetSelection` / `RequestCancel` / `RequestConfirm`）を委譲した際の例外（本プロジェクト） |
 

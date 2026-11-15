@@ -152,7 +152,7 @@ loupe.Rendered += (_, e) =>
 | レベル | 出力例 |
 | --- | --- |
 | Information | `[Loupe] 設定: Source 800x600 → null`（拡大元画像）/ `[Loupe] 設定: ZoomLevel 4 → 8`（設定・環境値・拡大中心はコアが出力する） |
-| Error | `[Loupe] Update exception`（描画の例外。 アプリは継続する） |
+| Error | `[Loupe] 描画の更新で例外が発生`（描画の例外。 アプリは継続する） |
 
 ---
 

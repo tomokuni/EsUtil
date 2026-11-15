@@ -199,10 +199,10 @@ internal static partial class MarqueeLogMessage
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     [LoggerMessage(LogLevel.Debug, "{Prefix:l} キャンセルが要求されました")]
-    private static partial void Logキャンセルが要求されましたCore(this ILogger logger, string prefix);
+    private static partial void LogCancelRequestedCore(this ILogger logger, string prefix);
 
-    internal static void Logキャンセルが要求されました(this ILogger logger)
-        => logger.Logキャンセルが要求されましたCore(Prefix);
+    internal static void LogCancelRequested(this ILogger logger)
+        => logger.LogCancelRequestedCore(Prefix);
 
     /// <summary>設定値変更のログ（変更前後）。</summary>
     /// <remarks>LogLevel: Information<br/>出力書式: <c>[Marquee] 設定: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>
