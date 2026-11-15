@@ -22,10 +22,10 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// （利用者の操作を失敗させない）。<br/>
 /// <br/>
 /// <b>カーソルと枠</b>: <c>IsCursorCaptureEnabled</c>（1903）と <c>IsBorderRequired</c>（Windows 11）は
-/// 対象フレームワークの射影に在るため、<b>そのまま設定する</b>（古い OS では実装が無いため、
-/// <see cref="WindowsGraphicsCaptureSupport"/> で確かめてから設定する）。
-/// 設定できない環境では OS の既定（カーソルを含む・枠を描く）になる。 **カーソルを写さない設定で
-/// カーソルを制御できない場合は GDI へ委譲する**（WGC ではカーソルを外せないため、そのまま撮ると設定に反する）。<br/>
+/// <b>対象フレームワーク（17763）の射影に無い</b>ため、本ビルドからは設定できない（OS が対応していても呼べない）。
+/// そのため <b>カーソルを写さない・枠を消す設定を要求されたときは GDI へ委譲する</b>
+/// （GDI はカーソルを合成せず枠も描かないため、どちらの設定も満たせる）。
+/// WGC を使うのは「カーソルを含め、枠を描く」既定の設定のときだけである。<br/>
 /// <br/>
 /// <b>Direct3D の宣言だけは CsWin32 を使わない</b>: <c>d3d11.dll</c> は Win32 メタデータに含まれないため、
 /// 本クラスが <c>[LibraryImport]</c> で宣言する（[`.github/ビルド設定規約.md`](../../../../.github/ビルド設定規約.md) §7 の例外）。
@@ -89,9 +89,9 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
             return CaptureWithFallback(bounds);
         }
 
-        // WGC がカーソルを制御できない環境で「カーソルを写さない」設定なら、
-        // カーソルを合成しない GDI で撮る（WGC では常に写るため、設定を無視することになる）
-        if (!includeCursor && !WindowsGraphicsCaptureSupport.IsCursorCaptureSupported)
+        // WGC ではカーソルを含め枠も描かれる。 「含めない」「枠を消す」を要求されたときは、
+        // どちらも満たせる GDI で撮る（本ビルドの射影 17763 には、この 2 つを設定する API が無い）
+        if (!includeCursor || hideBorder)
         {
             return CaptureWithFallback(bounds);
         }
@@ -140,7 +140,7 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <param name="bounds">撮影する領域（画面物理座標）。</param>
     /// <param name="result">切り出した画像。 撮影できない場合は null。</param>
     /// <returns>WGC で撮影できた場合は true。</returns>
-    private bool TryCaptureMonitor(EsRectInt bounds, out EsBitmap? result)
+    private static bool TryCaptureMonitor(EsRectInt bounds, out EsBitmap? result)
     {
         result = null;
 
@@ -197,7 +197,7 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <param name="monitorBounds">モニターの矩形（画像の大きさ）。</param>
     /// <returns>撮影した画像。 撮影できない場合は null。</returns>
     /// <exception cref="Win32Exception">Direct3D の初期化またはフレームの取得に失敗した場合。</exception>
-    private EsBitmap? CaptureMonitorImage(HMONITOR monitor, EsRectInt monitorBounds)
+    private static EsBitmap? CaptureMonitorImage(HMONITOR monitor, EsRectInt monitorBounds)
     {
         Direct3D11CaptureFramePool? framePool = null;
         GraphicsCaptureSession? session = null;
@@ -213,7 +213,6 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
                 new Windows.Graphics.SizeInt32 { Width = monitorBounds.Width, Height = monitorBounds.Height });
 
             session = framePool.CreateCaptureSession(item);
-            ApplySessionFlags(session);
             session.StartCapture();
 
             var frame = TryGetFrame(framePool);
@@ -592,26 +591,6 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
         finally
         {
             Marshal.Release(inspectable);
-        }
-    }
-
-    /// <summary>セッションのカーソルと枠の設定を、使える場合だけ適用する。</summary>
-    /// <param name="session">撮影セッション。</param>
-    /// <remarks>
-    /// <b>古い OS では設定できない</b>: <c>IsCursorCaptureEnabled</c>（1903）と <c>IsBorderRequired</c>（Windows 11）は
-    /// 対象フレームワーク（20348）の射影には在るが、古い OS では実装が無いため、
-    /// <see cref="WindowsGraphicsCaptureSupport"/> で確かめてから設定する（設定できない場合は OS の既定になる）。
-    /// </remarks>
-    private void ApplySessionFlags(GraphicsCaptureSession session)
-    {
-        if (WindowsGraphicsCaptureSupport.IsCursorCaptureSupported)
-        {
-            session.IsCursorCaptureEnabled = includeCursor;
-        }
-
-        if (hideBorder && WindowsGraphicsCaptureSupport.IsBorderControlSupported)
-        {
-            session.IsBorderRequired = false;
         }
     }
 

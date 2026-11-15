@@ -199,7 +199,7 @@ graph LR
 | --- | --- |
 | アーキテクチャ固有の API | `SetWindowLongPtrW` は **`NativeMethods.txt` へ `SetWindowLongPtrW` と書くだけでは生成できない**（実測: `SetWindowLongPtr` は存在せず、`SetWindowLongPtrW` は `PInvoke005`「AnyCPU 不可」）。 csproj の `<CsWin32PlatformTarget>x64</CsWin32PlatformTarget>` で `PInvoke.SetWindowLongPtr`（`nint`）が生成される（本アプリは x64 のみを配布する） |
 | 手書きが残る唯一の箇所 | **`WinWicNative.cs` の `CoCreateInstance` と `CreateStreamOnHGlobal` の 2 件だけ**（理由は §7.3.1）。 どちらも `[LibraryImport]` の宣言だけで、**`out` は `[GeneratedComInterface]` の型**（`ComWrappers` ベースのマーシャリング）なので生ポインターを扱わない |
-| `CA1416` | **抑止しない**。 下限は対象フレームワーク（`net10.0-windows10.0.20348.0`）が宣言する。 **版なしの `"windows"` は下限を満たさず警告になる**（実測） |
+| `CA1416` | **抑止しない**。 下限は対象フレームワーク（`net10.0-windows10.0.17763.0`）が宣言する。 **版なしの `"windows"` は下限を満たさず警告になる**（実測） |
 | `LibraryImport` を自作しない | CsWin32 の列挙型を引数に取る `LibraryImport` は `SYSLIB1051` で拒否される。 手書きが必要な場合は引数を `int` / `nint` で受ける |
 | サブクラス化 | **`SetWindowSubclass` / `DefSubclassProc` / `RemoveWindowSubclass`（comctl32）を使う**。 `SetWindowLongPtr(GWLP_WNDPROC)` は元のプロシージャを自前で保存・復元する必要があり、他のサブクラス化（ビジュアル スタイル等）と共存できない |
 | comctl32 v6 の要否 | **実測: アクティベーション コンテキスト（comctl32 v6）が無いプロセスでも動作する**（`SetWindowSubclass` が TRUE を返し、サブクラス プロシージャが実際に呼ばれた）。 そのためライブラリ側でマニフェストを要求しない |

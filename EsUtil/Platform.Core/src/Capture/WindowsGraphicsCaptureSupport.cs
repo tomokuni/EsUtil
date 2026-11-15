@@ -7,10 +7,12 @@ namespace EsUtil.Platform.Core.Capture;
 /// <b>何のためか</b>: キャプチャの方式（GDI の <c>BitBlt</c> と WGC）を利用者に選ばせるとき、
 /// <b>使えない環境では選択肢を無効にする</b>必要がある。 本クラスはその判定だけを持ち、撮影そのものは行わない。<br/>
 /// <br/>
-/// <b>OS の版と API の実在を両方見る</b>: 本リポジトリの下限は Windows 10 20348 だが、
-/// <b>下限未満の OS で実行される場合</b>（配布物を古い OS へ持って行った場合）に備え、
-/// <see cref="ApiInformation"/> で型・プロパティの実在も確かめる。 射影（対象フレームワーク）には在っても、
-/// 古い OS には実装が無い API（<c>IsBorderRequired</c> は Windows 11）があるためである。<br/>
+/// <b>OS の版と API の実在を両方見る</b>: 撮影そのものは <b>ビルド 17763 以降</b>で、かつ
+/// <see cref="ApiInformation"/> で型が実在する場合に使える。 版で足切りしてから問い合わせる。<br/>
+/// <br/>
+/// <b>カーソルと枠の制御は本ビルドでは使えない</b>: 対象フレームワーク（17763）の射影に
+/// <c>IsCursorCaptureEnabled</c>（1903）と <c>IsBorderRequired</c>（Windows 11）が無いため、
+/// <b>OS が対応していても設定できない</b>。 撮影側は該当する設定を要求されたときに代替（GDI）へ落とす。<br/>
 /// <br/>
 /// <b>true は「使える見込み」である</b>: 実際の撮影は GPU とセッションの状態にも依存するため、
 /// 撮影時の失敗に備えて呼び出し側は GDI へ退避できるようにする（判定と撮影の責務を分ける）。
@@ -20,8 +22,6 @@ public static class WindowsGraphicsCaptureSupport
     /// <summary>WGC の型名（<c>ApiInformation</c> への問い合わせ用）。</summary>
     private const string ItemType = "Windows.Graphics.Capture.GraphicsCaptureItem";
 
-    /// <summary>セッションの型名（<c>ApiInformation</c> への問い合わせ用）。</summary>
-    private const string SessionType = "Windows.Graphics.Capture.GraphicsCaptureSession";
 
     /// <summary>画面（モニター）の撮影ができるかを返す。</summary>
     /// <value>Windows 10 1809（ビルド 17763）以降で、かつ WGC の型が実在する場合は true。</value>
@@ -34,22 +34,20 @@ public static class WindowsGraphicsCaptureSupport
     public static bool IsWindowCaptureSupported => IsDisplayCaptureSupported;
 
     /// <summary>撮影へカーソルを含めるかを切り替えられるかを返す。</summary>
-    /// <value>Windows 10 1903（ビルド 18362）以降で、かつ <c>IsCursorCaptureEnabled</c> が実在する場合は true。</value>
+    /// <value><b>このビルドでは常に false</b>（対象フレームワーク 17763 の射影に <c>IsCursorCaptureEnabled</c> が無いため）。</value>
     /// <remarks>
-    /// false の場合、WGC で撮影すると<b>カーソルは常に含まれる</b>（切り替えられない）。
-    /// カーソルを外したいときは GDI の <c>BitBlt</c> を使う（自前で合成するため制御できる）。
+    /// OS が対応していても（1903 以降でも）本ビルドからは設定できない。 撮影側は
+    /// <b>カーソルを写さない設定を要求されたときに GDI へ委譲する</b>（GDI はカーソルを合成しない）。
     /// </remarks>
-    public static bool IsCursorCaptureSupported { get; } = Check(
-        10, 0, 18362, () => ApiInformation.IsPropertyPresent(SessionType, "IsCursorCaptureEnabled"));
+    public static bool IsCursorCaptureSupported => false;
 
     /// <summary>撮影中の枠（黄色い枠）の表示を消せるかを返す。</summary>
-    /// <value>Windows 11（ビルド 20348）以降で、かつ <c>IsBorderRequired</c> が実在する場合は true。</value>
+    /// <value><b>このビルドでは常に false</b>（対象フレームワーク 17763 の射影に <c>IsBorderRequired</c> が無いため）。</value>
     /// <remarks>
-    /// false の場合、WGC で撮影すると<b>対象の周囲に枠が描かれる</b>（OS が「撮影中」を示すため）。
-    /// GDI の <c>BitBlt</c> は枠を描かないため、枠を避けたいときは GDI を選ぶ。
+    /// OS が対応していても（Windows 11 でも）本ビルドからは設定できない。 撮影側は
+    /// <b>枠を消す設定を要求されたときに GDI へ委譲する</b>（GDI は枠を描かない）。
     /// </remarks>
-    public static bool IsBorderControlSupported { get; } = Check(
-        10, 0, 20348, () => ApiInformation.IsPropertyPresent(SessionType, "IsBorderRequired"));
+    public static bool IsBorderControlSupported => false;
 
     /// <summary>WGC を使えるかを返す（画面の撮影ができるかと同じ判定）。</summary>
     /// <value>WGC を選択肢として提示できる場合は true。</value>

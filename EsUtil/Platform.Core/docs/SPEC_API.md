@@ -1213,18 +1213,20 @@ Win32 のダイアログを [`IDialogService`](#230-nativeidialogserviceinterfac
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
-| `IsDisplayCaptureSupported` | `bool`（取得のみ） | 画面（モニター）を撮影できるか。 **ビルド 17763 以降**で、かつ型が実在する場合に `true`。 本パッケージの下限（20348）では常に `true` |
+| `IsDisplayCaptureSupported` | `bool`（取得のみ） | 画面（モニター）を撮影できるか。 **ビルド 17763 以降**で、かつ型が実在する場合に `true`。 本パッケージの下限（17763）では型が実在すれば `true` |
 | `IsWindowCaptureSupported` | `bool`（取得のみ） | ウィンドウを撮影できるか（`IsDisplayCaptureSupported` と同じ判定） |
-| `IsCursorCaptureSupported` | `bool`（取得のみ） | 撮影へカーソルを含めるかを切り替えられるか。 **ビルド 18362 以降**で `true`。 `false` の環境では WGC で撮影するとカーソルが常に含まれる |
-| `IsBorderControlSupported` | `bool`（取得のみ） | 撮影中の枠を消せるか。 **Windows 11（20348）以降**で `true`。 `false` の環境では WGC で撮影すると対象の周囲に枠が描かれる |
+| `IsCursorCaptureSupported` | `bool`（取得のみ） | 撮影へカーソルを含めるかを切り替えられるか。 **本ビルドでは常に `false`**（対象フレームワーク 17763 の射影に `IsCursorCaptureEnabled` が無いため）。 WGC ではカーソルが常に含まれる |
+| `IsBorderControlSupported` | `bool`（取得のみ） | 撮影中の枠を消せるか。 **本ビルドでは常に `false`**（射影に `IsBorderRequired` が無いため）。 WGC では対象の周囲に枠が描かれる |
 | `IsSupported` | `bool`（取得のみ） | Windows.Graphics.Capture を選択肢として提示できるか（`IsDisplayCaptureSupported` と同じ） |
 | `DescribeUnsupportedReason` | `string DescribeUnsupportedReason()` | 選択できない理由（利用者へ見せる日本語）。 使える場合は空文字列 |
 
-**判定は OS の版と API の実在の両方で行います**: 本パッケージの下限は 20348 ですが、**下限未満の OS で実行された場合**に備え、`ApiInformation` で型・プロパティの実在も確かめます（`IsBorderRequired` は Windows 11 の API のため、古い OS には実装がありません）。 版で足切りしてから問い合わせ、問い合わせ自体が失敗した場合も `false`（使えない）として扱います。
+**判定は OS の版と API の実在の両方で行います**: 撮影そのものは **ビルド 17763 以降**で、かつ型が実在する場合に使えます。 版で足切りしてから `ApiInformation` へ問い合わせ、問い合わせ自体が失敗した場合も `false`（使えない）として扱います。
+
+**カーソルと枠の制御は本ビルドでは使えません**: 対象フレームワーク（17763）の射影に `IsCursorCaptureEnabled`（1903）と `IsBorderRequired`（Windows 11）が無いため、**OS が対応していても設定できません**。 カーソルを写さない設定を要求されたときは GDI へ委譲します（GDI はカーソルを合成しません）。 枠は消せないため、WGC では OS の既定（枠を描く）のままになります。
 
 ### 2.61 `Native.Win.WinGraphicsCaptureService`（sealed class : `ICaptureService`）
 
-Windows.Graphics.Capture で画面をキャプチャする `ICaptureService` の実装です。 コンストラクターの引数でカーソルと枠を指定します（既定は `includeCursor: true` / `hideBorder: true`）。
+Windows.Graphics.Capture で画面をキャプチャする `ICaptureService` の実装です。 コンストラクターの引数でカーソルと枠を指定します（既定は `includeCursor: true` / `hideBorder: true`）。 **本ビルド（射影 17763）では `hideBorder` を適用できません**（枠は OS の既定どおり描かれます）。
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
@@ -1232,7 +1234,7 @@ Windows.Graphics.Capture で画面をキャプチャする `ICaptureService` の
 | `CaptureVirtualScreen` | `EsBitmap? CaptureVirtualScreen(out EsPointInt origin)` | 仮想スクリーン全体（複数モニターに跨る）は GDI へ委譲する |
 | `FallbackCount` | `int`（取得のみ） | GDI へ委譲した回数。 **撮影方式に WGC を選んでも GDI で撮った**ことを呼び出し側がログへ残せる（本層はログを出力しない） |
 
-**GDI へ委譲する条件**: 型が実在しない・領域がモニターの外へはみ出す・カーソルを写さない設定でカーソルを制御できない・GPU の初期化やフレームの取得に失敗した場合です。 いずれも**利用者の操作を失敗させません**（結果の画像は GDI のものと等価）。
+**GDI へ委譲する条件**: 型が実在しない・領域がモニターの外へはみ出す・**カーソルを写さない設定**（本ビルドの WGC では外せない）・GPU の初期化やフレームの取得に失敗した場合です。 いずれも**利用者の操作を失敗させません**（結果の画像は GDI のものと等価）。
 
 **Direct3D の宣言だけは CsWin32 を使いません**: `d3d11.dll` は Win32 メタデータに含まれないため、`[LibraryImport]` で宣言します。
 

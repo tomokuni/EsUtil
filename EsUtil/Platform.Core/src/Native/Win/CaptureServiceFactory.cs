@@ -20,10 +20,11 @@ public static class CaptureServiceFactory
     /// <returns>キャプチャ サービス。 WGC が使えない環境では GDI の実装。</returns>
     /// <remarks>
     /// 返したインスタンスは呼び出し側が所有する（破棄は不要。 どちらも状態を持たない）。<br/>
-    /// <b>カーソルを写さない設定で 1903 未満の場合</b>は、WGC がカーソルを外せないため GDI を返す（設定に反しない）。
+    /// <b>カーソルを写さない設定</b>では、本ビルドの WGC がカーソルを外せないため GDI を返す（設定に反しない）。
+    /// <b>枠を消す設定は WGC では満たせない</b>ため、WGC を選んだ場合は枠が描かれる（枠を避けるときは GDI を選ぶ）。
     /// </remarks>
     public static ICaptureService Create(CaptureMethod method, bool includeCursor = true, bool hideBorder = true)
-        => Resolve(method) == CaptureMethod.WindowsGraphicsCapture
+        => Resolve(method, includeCursor) == CaptureMethod.WindowsGraphicsCapture
             ? new WinGraphicsCaptureService(includeCursor, hideBorder)
             : new WinCaptureService();
 
@@ -32,7 +33,16 @@ public static class CaptureServiceFactory
     /// <returns>実際に使われる方式。</returns>
     /// <remarks>ログへ「設定は WGC だが GDI で撮った」と残すために使う。</remarks>
     public static CaptureMethod Resolve(CaptureMethod method)
-        => method == CaptureMethod.WindowsGraphicsCapture && WindowsGraphicsCaptureSupport.IsSupported
+        => Resolve(method, includeCursor: true);
+
+    /// <summary>実際に使われる方式を返す（カーソルを写さない設定では WGC を使わない）。</summary>
+    /// <param name="method">設定された方式。</param>
+    /// <param name="includeCursor">撮影にカーソルを含めるか。</param>
+    /// <returns>実際に使われる方式。</returns>
+    public static CaptureMethod Resolve(CaptureMethod method, bool includeCursor)
+        => method == CaptureMethod.WindowsGraphicsCapture
+            && WindowsGraphicsCaptureSupport.IsSupported
+            && includeCursor
             ? CaptureMethod.WindowsGraphicsCapture
             : CaptureMethod.Gdi;
 }
