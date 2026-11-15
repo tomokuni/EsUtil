@@ -128,7 +128,8 @@ public static class WindowsAppRuntimeInventory
     /// <remarks>
     /// 中立のパッケージはどのアーキテクチャでも動く（ランタイムのフレームワーク パッケージは通常は中立ではない）。<br/>
     /// <b>数値で比べる理由</b>: 対象フレームワーク 17763 の射影には <c>ProcessorArchitecture.Arm64</c> と
-    /// <c>X86OnArm64</c> が無い（18362 で追加された）。 ABI の値（<c>Arm64</c> = 12 / <c>X86OnArm64</c> = 13）で比べる。
+    /// <c>X86OnArm64</c> が無い（18362 で追加された）。 WinRT の値（<c>X86</c>=0 / <c>Arm</c>=5 / <c>X64</c>=9 /
+    /// <c>Neutral</c>=11 / <c>Arm64</c>=12 / <c>X86OnArm64</c>=14 / <c>Unknown</c>=65535。 実測 2026-11-15）で比べる。
     /// </remarks>
     private static bool IsCompatible(ProcessorArchitecture architecture) => (int)architecture switch
     {
@@ -148,7 +149,7 @@ public static class WindowsAppRuntimeInventory
     private const int X64Architecture = 9;
     private const int NeutralArchitecture = 11;
     private const int Arm64Architecture = 12;
-    private const int X86OnArm64Architecture = 13;
+    private const int X86OnArm64Architecture = 14;
 
     /// <summary>パッケージの版を <see cref="Version"/> へ変換する。</summary>
     /// <param name="version">パッケージの版。</param>
