@@ -1222,18 +1222,18 @@ Win32 のダイアログを [`IDialogService`](#230-nativeidialogserviceinterfac
 | --- | --- | --- |
 | `IsDisplayCaptureSupported` | `bool`（取得のみ） | 画面（モニター）を撮影できるか。 **Windows 10 バージョン 1809（ビルド 17763）以降**で、かつ型が実在する場合に `true`。 本パッケージの下限（バージョン 1809 / ビルド 17763）では型が実在すれば `true` |
 | `IsWindowCaptureSupported` | `bool`（取得のみ） | ウィンドウを撮影できるか（`IsDisplayCaptureSupported` と同じ判定） |
-| `IsCursorCaptureSupported` | `bool`（取得のみ） | 撮影へカーソルを含めるかを切り替えられるか。 **本ビルドでは常に `false`**（対象フレームワーク 17763 の射影に `IsCursorCaptureEnabled` が無いため）。 WGC ではカーソルが常に含まれる |
-| `IsBorderControlSupported` | `bool`（取得のみ） | 撮影中の枠を消せるか。 **本ビルドでは常に `false`**（射影に `IsBorderRequired` が無いため）。 WGC では対象の周囲に枠が描かれる |
+| `IsCursorCaptureSupported` | `bool`（取得のみ） | 撮影へカーソルを含めるかを切り替えられるか。 **Windows 10 バージョン 2004（ビルド 19041）以降**で `IsCursorCaptureEnabled` が実在する場合は `true` |
+| `IsBorderControlSupported` | `bool`（取得のみ） | 撮影中の枠を消せるか。 **Windows 11（ビルド 22000）以降**で `IsBorderRequired` が実在する場合は `true` |
 | `IsSupported` | `bool`（取得のみ） | Windows.Graphics.Capture を選択肢として提示できるか（`IsDisplayCaptureSupported` と同じ） |
 | `DescribeUnsupportedReason` | `string DescribeUnsupportedReason()` | 選択できない理由（利用者へ見せる日本語）。 使える場合は空文字列 |
 
 **判定は OS の版と API の実在の両方で行います**: 撮影そのものは **Windows 10 バージョン 1809（ビルド 17763）以降**で、かつ型が実在する場合に使えます。 版で足切りしてから `ApiInformation` へ問い合わせ、問い合わせ自体が失敗した場合も `false`（使えない）として扱います。
 
-**カーソルと枠の制御は本ビルドでは使えません**: 対象フレームワーク（17763）の射影に `IsCursorCaptureEnabled`（Windows 10 バージョン 1903 / ビルド 18362）と `IsBorderRequired`（Windows 11 / ビルド 22000）が無いため、**OS が対応していても設定できません**。 カーソルを写さない設定を要求されたときは GDI へ委譲します（GDI はカーソルを合成しません）。 枠は消せないため、WGC では OS の既定（枠を描く）のままになります。
+**カーソルと枠の制御は OS の版で決まります**: `IsCursorCaptureEnabled`（Windows 10 バージョン 2004 / ビルド 19041）と `IsBorderRequired`（Windows 11 / ビルド 22000）は**射影（17763）にメンバーが無い**ため、そのままでは呼べません。 撮影側は内部インターフェース（`IGraphicsCaptureSession2` / `IGraphicsCaptureSession3`）を **COM の IID で問い合わせて呼ぶ**ため、**パッケージの対象フレームワークを上げずに設定できます**（射影を上げると利用側のプロジェクトも同じ射影を要求するため、この手段を採ります）。 設定できない環境では、カーソルを写さない設定は GDI へ委譲し（GDI はカーソルを合成しません）、枠は OS の既定（枠を描く）のままになります。
 
 ### 2.61 `Native.Win.WinGraphicsCaptureService`（sealed class : `ICaptureService`）
 
-Windows.Graphics.Capture で画面をキャプチャする `ICaptureService` の実装です。 コンストラクターの引数でカーソルと枠を指定します（既定は `includeCursor: true` / `hideBorder: true`）。 **本ビルド（射影 17763）では `hideBorder` を適用できません**（枠は OS の既定どおり描かれます）。
+Windows.Graphics.Capture で画面をキャプチャする `ICaptureService` の実装です。 コンストラクターの引数でカーソルと枠を指定します（既定は `includeCursor: true` / `hideBorder: true`）。 指定は**撮影を始める前**にセッションへ適用します（開始後の変更は反映されません）。 **設定できない環境**（`WindowsGraphicsCaptureSupport.IsCursorCaptureSupported` / `IsBorderControlSupported` が `false`）では、カーソルを写さない設定は GDI へ委譲し、枠は OS の既定どおり描かれます。
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
@@ -1241,7 +1241,7 @@ Windows.Graphics.Capture で画面をキャプチャする `ICaptureService` の
 | `CaptureVirtualScreen` | `EsBitmap? CaptureVirtualScreen(out EsPointInt origin)` | 仮想スクリーン全体を撮影する。 **モニターごとに `CaptureArea` で撮って 1 枚へ合成**する（複数モニターに跨っていても WGC を使える） |
 | `FallbackCount` | `int`（取得のみ） | GDI へ委譲した回数。 **撮影方式に WGC を選んでも GDI で撮った**ことを呼び出し側がログへ残せる（本層はログを出力しない） |
 
-**GDI へ委譲する条件**: 型が実在しない・領域がモニターの外へはみ出す・**カーソルを写さない設定**（本ビルドの WGC では外せない）・GPU の初期化やフレームの取得に失敗した場合です。 いずれも**利用者の操作を失敗させません**（結果の画像は GDI のものと等価）。
+**GDI へ委譲する条件**: 型が実在しない・領域がモニターの外へはみ出す・**カーソルを写さない設定を満たせない環境**（ビルド 19041 未満）・GPU の初期化やフレームの取得に失敗した場合です。 いずれも**利用者の操作を失敗させません**（結果の画像は GDI のものと等価）。
 
 **Direct3D の宣言だけは CsWin32 を使いません**: `d3d11.dll` は Win32 メタデータに含まれないため、`[LibraryImport]` で宣言します。
 
@@ -1253,7 +1253,7 @@ Windows.Graphics.Capture で画面をキャプチャする `ICaptureService` の
 | --- | --- | --- |
 | `Create` | `ICaptureService Create(CaptureMethod method, bool includeCursor = true, bool hideBorder = true)` | 方式に対応する実装を返す。 WGC が使えない場合は `WinCaptureService` |
 | `Resolve` | `CaptureMethod Resolve(CaptureMethod method)` | 実際に使われる方式を返す（設定が使えない場合は `Gdi`）。 **ログへ「設定は WGC だが GDI で撮った」と残すために使う** |
-| `Resolve` | `CaptureMethod Resolve(CaptureMethod method, bool includeCursor)` | カーソルを写さない設定では WGC を選ばない（`Gdi` を返す）。 `Create` と同じ判定を使う |
+| `Resolve` | `CaptureMethod Resolve(CaptureMethod method, bool includeCursor)` | **カーソルを写さない設定を満たせない環境**では WGC を選ばない（`Gdi` を返す）。 `Create` と同じ判定を使う |
 
 ## 3. 使用例
 

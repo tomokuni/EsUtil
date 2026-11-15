@@ -136,7 +136,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 
 - **Windows の下限は Windows 10 バージョン 1809（ビルド 17763）**です（Windows Server 2019 も同じビルド 17763）。
 - WinUI 3 層が要求する Windows App Runtime は **2.0.1 以降**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版）です。 **ランタイムの MSIX も 17763 を要求します**（OS の下限とランタイムの下限は同じです）。
-- **17763 の射影に無い API は使いません**。 例: `GraphicsCaptureSession.IsCursorCaptureEnabled`（1903）と `IsBorderRequired`（Windows 11 / ビルド 22000）は、**OS が対応していても本パッケージからは設定できません**（射影に無いため）。 Windows.Graphics.Capture の撮影では、**カーソルを写さない設定を要求されたときに GDI へ委譲**し、**枠は消さず** OS の既定のままにします。
+- **17763 の射影に無い API は、そのままでは呼べません**。 例: `GraphicsCaptureSession.IsCursorCaptureEnabled`（Windows 10 バージョン 2004 / ビルド 19041）と `IsBorderRequired`（Windows 11 / ビルド 22000）は**射影にメンバーが無い**ため、内部インターフェースを COM の IID で問い合わせて呼びます（**パッケージの対象フレームワークは 17763 のまま**です。 射影を上げると利用側のプロジェクトも同じ射影を要求するため、この手段を採ります）。 設定できるかは `WindowsGraphicsCaptureSupport.IsCursorCaptureSupported` / `IsBorderControlSupported` が返し、**設定できない環境**ではカーソルを写さない設定は GDI へ委譲し、枠は OS の既定どおり描かれます。
 - **利用側のプロジェクトも `net10.0-windows10.0.17763.0` 以上にする**（NuGet の互換判定は**対象フレームワーク**で行われ、`<SupportedOSPlatformVersion>` は使われません。 実測 2026-11-14: 古い対象フレームワークのプロジェクトは `NU1201` / `NU1202` で復元できません）。
 
 ### 5.1 依存パッケージの下限（.NET 10）

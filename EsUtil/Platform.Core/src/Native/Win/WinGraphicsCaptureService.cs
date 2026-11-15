@@ -46,6 +46,15 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <summary><c>IGraphicsCaptureItemInterop</c> の IID（ファクトリからモニター・ウィンドウの項目を作る）。</summary>
     private static readonly Guid s_iidCaptureItemInterop = new("3628e81b-3cac-4c60-b7f4-23ce0e0c3356");
 
+    /// <summary><c>IGraphicsCaptureSession2</c> の IID（撮影へカーソルを含めるかを切り替える）。</summary>
+    private static readonly Guid s_iidCaptureSession2 = new("2C39AE40-7D2E-5044-804E-8B6799D4CF9E");
+
+    /// <summary><c>IGraphicsCaptureSession3</c> の IID（撮影中の枠を消す）。</summary>
+    private static readonly Guid s_iidCaptureSession3 = new("F2CDD966-22AE-5EA1-9596-3A289344C3BE");
+
+    /// <summary>プロパティへ書き込む vtable 位置（<c>IInspectable</c> の 6 メンバーと getter の次）。</summary>
+    private const int PropertyPutIndex = 7;
+
     /// <summary><c>IDirect3DDxgiInterfaceAccess::GetInterface</c> の vtable 位置。</summary>
     private const int GetInterfaceIndex = 3;
 
@@ -97,19 +106,17 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
             return CaptureWithFallback(bounds);
         }
 
-        // カーソルを写さない設定は WGC では満たせない（本ビルドの射影 17763 に IsCursorCaptureEnabled が無い）。
+        // カーソルを写さない設定を満たせない環境（Windows 10 バージョン 2004（ビルド 19041）未満）は、
         // カーソルを合成しない GDI で撮る（設定を無視して写すことになるため）。
-        // **枠を消す設定は撮影を止める理由にしない**: 枠は消せないが WGC の撮影自体は成立するため、
-        // WGC のまま撮る（枠は OS の既定どおり描かれる。 設定画面は IsBorderControlSupported で無効にする）
-        _ = hideBorder;
-        if (!includeCursor)
+        // **枠を消す設定は撮影を止める理由にしない**: 消せない環境では枠が写るだけで撮影は成立する
+        if (!includeCursor && !WindowsGraphicsCaptureSupport.IsCursorCaptureSupported)
         {
             return CaptureWithFallback(bounds);
         }
 
         try
         {
-            if (TryCaptureMonitor(bounds, out var captured) && captured is not null)
+            if (TryCaptureMonitor(bounds, includeCursor, hideBorder, out var captured) && captured is not null)
             {
                 return captured;
             }
@@ -155,9 +162,11 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
 
     /// <summary>指定領域を包含するモニターを WGC で撮り、領域へ切り出す。</summary>
     /// <param name="bounds">撮影する領域（画面物理座標）。</param>
+    /// <param name="includeCursor">撮影にカーソルを含めるか。</param>
+    /// <param name="hideBorder">撮影中の枠を消すか。</param>
     /// <param name="result">切り出した画像。 撮影できない場合は null。</param>
     /// <returns>WGC で撮影できた場合は true。</returns>
-    private static bool TryCaptureMonitor(EsRectInt bounds, out EsBitmap? result)
+    private static bool TryCaptureMonitor(EsRectInt bounds, bool includeCursor, bool hideBorder, out EsBitmap? result)
     {
         result = null;
 
@@ -185,7 +194,7 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
             return false;
         }
 
-        using var full = CaptureMonitorImage(monitor, monitorBounds);
+        using var full = CaptureMonitorImage(monitor, monitorBounds, includeCursor, hideBorder);
         if (full is null)
         {
             return false;
@@ -212,9 +221,11 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <summary>モニターを 1 枚撮り、コアの画像として返す。</summary>
     /// <param name="monitor">撮影するモニター。</param>
     /// <param name="monitorBounds">モニターの矩形（画像の大きさ）。</param>
+    /// <param name="includeCursor">撮影にカーソルを含めるか。</param>
+    /// <param name="hideBorder">撮影中の枠を消すか。</param>
     /// <returns>撮影した画像。 撮影できない場合は null。</returns>
     /// <exception cref="Win32Exception">Direct3D の初期化またはフレームの取得に失敗した場合。</exception>
-    private static EsBitmap? CaptureMonitorImage(HMONITOR monitor, EsRectInt monitorBounds)
+    private static EsBitmap? CaptureMonitorImage(HMONITOR monitor, EsRectInt monitorBounds, bool includeCursor, bool hideBorder)
     {
         Direct3D11CaptureFramePool? framePool = null;
         GraphicsCaptureSession? session = null;
@@ -230,6 +241,8 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
                 new Windows.Graphics.SizeInt32 { Width = monitorBounds.Width, Height = monitorBounds.Height });
 
             session = framePool.CreateCaptureSession(item);
+            // 撮影を始める前に設定する（開始後の変更は反映されない）
+            ApplySessionSettings(session, includeCursor, hideBorder);
             session.StartCapture();
 
             var frame = TryGetFrame(framePool);
@@ -569,6 +582,56 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
         finally
         {
             Marshal.Release(dxgi);
+        }
+    }
+
+    /// <summary>撮影の設定（カーソル・枠）をセッションへ適用する。</summary>
+    /// <param name="session">撮影セッション。</param>
+    /// <param name="includeCursor">撮影にカーソルを含めるか。</param>
+    /// <param name="hideBorder">撮影中の枠を消すか。</param>
+    /// <remarks>
+    /// <b>射影に無いプロパティを COM で呼ぶ理由</b>: <c>IsCursorCaptureEnabled</c>（ビルド 19041）と
+    /// <c>IsBorderRequired</c>（ビルド 22000）は<b>本パッケージの射影（17763）に無い</b>ため、そのままでは呼べない。
+    /// 射影を上げると利用側のプロジェクトも同じ射影を要求するため、内部インターフェースの IID を問い合わせて
+    /// <b>vtable を直接呼ぶ</b>（<c>IGraphicsCaptureItemInterop</c> と同じ手段）。 使えない環境では何もしない
+    /// （判定は <see cref="WindowsGraphicsCaptureSupport"/> が単一所有する）。<br/>
+    /// 設定できないことは撮影の失敗にしない（枠は写るだけで撮影は成立する）。
+    /// </remarks>
+    private static void ApplySessionSettings(GraphicsCaptureSession session, bool includeCursor, bool hideBorder)
+    {
+        if (!includeCursor && WindowsGraphicsCaptureSupport.IsCursorCaptureSupported)
+        {
+            SetSessionProperty(session, s_iidCaptureSession2, value: false);
+        }
+
+        if (hideBorder && WindowsGraphicsCaptureSupport.IsBorderControlSupported)
+        {
+            SetSessionProperty(session, s_iidCaptureSession3, value: false);
+        }
+    }
+
+    /// <summary>撮影セッションの真偽値プロパティへ書き込む。</summary>
+    /// <param name="session">撮影セッション。</param>
+    /// <param name="iid">プロパティを持つ内部インターフェースの IID。</param>
+    /// <param name="value">書き込む値。</param>
+    /// <remarks>問い合わせに失敗した場合は何もしない（設定できないだけで撮影は成立する）。 取得したインターフェースは解放する。</remarks>
+    private static unsafe void SetSessionProperty(GraphicsCaptureSession session, in Guid iid, bool value)
+    {
+        // ThisPtr は借用（参照カウントを増やさない）ため、解放しない
+        var native = ((WinRT.IWinRTObject)session).NativeObject.ThisPtr;
+        if (Marshal.QueryInterface(native, in iid, out var target) < 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var put = (delegate* unmanaged[Stdcall]<IntPtr, byte, int>)(*(IntPtr**)target)[PropertyPutIndex];
+            _ = put(target, value ? (byte)1 : (byte)0);
+        }
+        finally
+        {
+            Marshal.Release(target);
         }
     }
 

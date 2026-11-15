@@ -5,6 +5,16 @@
 - **公開する版は人が決めます**（`VersionPrefix` 1 行を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
+## 0.7.6（2026-11-15）
+
+### 追加
+
+- **Windows.Graphics.Capture の撮影で、カーソルを含めるかと枠を消すかを設定できるようになりました**（Windows 10 バージョン 2004（ビルド 19041）以降 / Windows 11（ビルド 22000）以降。 判定は `WindowsGraphicsCaptureSupport.IsCursorCaptureSupported` / `IsBorderControlSupported`）。 これらの API は**パッケージの射影（17763）にメンバーが無い**ため、内部インターフェース（`IGraphicsCaptureSession2` / `IGraphicsCaptureSession3`）を COM の IID で問い合わせて設定します。 **パッケージの対象フレームワークは 17763 のまま**で、利用側のプロジェクトも上げる必要はありません。
+
+### 変更
+
+- **カーソルを写さない設定でも、設定できる環境では WGC を使うようになりました**（これまでは常に GDI へ委譲していました）。 設定できない環境（ビルド 19041 未満）では従来どおり GDI です。 枠を消す設定は、設定できる環境では枠を消し、できない環境では枠を描いたまま撮影します。
+
 ## 0.7.5（2026-11-15）
 
 ### 変更
