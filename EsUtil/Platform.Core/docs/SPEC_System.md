@@ -14,9 +14,9 @@ UI フレームワーク非依存の共通基盤の型を提供するライブ�
   - [7.1 ファイル入出力の実装方式](#71-ファイル入出力の実装方式)
   - [7.2 コア型の命名](#72-コア型の命名)
   - [7.3 Win32 API の宣言と WndProc のサブクラス化](#73-win32-api-の宣言と-wndproc-のサブクラス化)
-    - [7.3.1 COM の 2 件だけを手書きする理由（実測 2026-10-21）](#731-com-の-2-件だけを手書きする理由実測-2026-10-21)
-    - [7.3.2 関数の宣言方法の比較](#732-関数の宣言方法の比較)
-  - [7.4 ルート名前空間に置くのは窓口だけにする（実測 2026-10-23）](#74-ルート名前空間に置くのは窓口だけにする実測-2026-10-23)
+    - [7.3.1 COM を生ポインターで扱う設定](#731-com-を生ポインターで扱う設定)
+    - [7.3.2 D3D11 の 2 件だけを手書きする理由](#732-d3d11-の-2-件だけを手書きする理由)
+  - [7.4 ルート名前空間に置くのは窓口だけにする](#74-ルート名前空間に置くのは窓口だけにする)
 - [8. 依存の判定基準（本プロジェクトの存在理由）](#8-依存の判定基準本プロジェクトの存在理由)
 
 ## 1. システム概要
@@ -88,13 +88,13 @@ graph LR
 | `EsUtil/Platform.Core/src/NativeMethods.txt` / `NativeMethods.json` | **CsWin32 が生成する Win32 API・定数の唯一の一覧**と、その設定（**宣言を手で書かない**。 `allowMarshaling: false` で COM を構造体として生成する） |
 | `EsUtil/Platform.Core/src/AssemblyAttributes.cs` | アセンブリ全体に効く属性だけを持つ（P/Invoke の探索先を `System32` に固定する `DefaultDllImportSearchPaths`。 名前空間を持たないため `src/` 直下） |
 | `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFactory.cs` | WIC の COM の生成と解放・COM の起動・画素の入出力・縮小・変換・回転の補助（**宣言は CsWin32 が生成する**） |
-| `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFormats.cs` | 実行環境で書き出せる形式の一覧（OS のエンコーダーを列挙し、試し書きが通った形式だけを残す。 §7.3.1）。 一覧の 1 件は**入れ子の型 `Entry`**（コンテナ GUID・名前・拡張子）である |
+| `EsUtil/Platform.Core/src/Native/Win/Wic/WinWicFormats.cs` | 実行環境で書き出せる形式の一覧（OS のエンコーダーを列挙し、試し書きが通った形式だけを残す）。 一覧の 1 件は**入れ子の型 `Entry`**（コンテナ GUID・名前・拡張子）である |
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorService.cs` | `ICursorService` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinWindowService.cs` | `IWindowService` の Windows 実装（座標変換を含む） |
 | `EsUtil/Platform.Core/src/Native/Win/WinElementFinder.cs` | `IElementFinder` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinCursorOverrideGuard.cs` | `ICursorOverrideGuard` の Windows 実装 |
 | `EsUtil/Platform.Core/src/Native/Win/WinGlobalHotKeyService.cs` | `IGlobalHotKeyService<T>` の Windows 実装 |
-| `EsUtil/Platform.Core/src/Native/Win/WinSubclass.cs` | ウィンドウ プロシージャのサブクラス化の共通部分（`SUBCLASSPROC` はアンマネージド関数ポインター。 §7.3.1） |
+| `EsUtil/Platform.Core/src/Native/Win/WinSubclass.cs` | ウィンドウ プロシージャのサブクラス化の共通部分（`SUBCLASSPROC` はアンマネージド関数ポインター。 コールバックの渡し方は §7.3.1） |
 | `EsUtil/Platform.Core/src/Caching/CapacityLimitedCache.cs` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（4 つの UI 版とコントロールが使う。 **各コントロールの `Internal/` に複製を置かない**。 破棄できる値は容量超過・`Clear` で破棄する） |
 | `EsUtil/Platform.Core/src/Svg/SvgIconSource.cs` ほか `src/Svg/` | SVG アイコンの読み込み元（埋め込みリソース・フォルダー・テキスト）と解析（`XDocument`）、パス データの解析、図形の画素への展開 |
 | `EsUtil/Platform.Core/src/Imaging/EsImageFileExtensions.cs` | 一覧に並べる画像ファイルの拡張子の判定（保存できる形式より広い） |
@@ -198,80 +198,50 @@ graph LR
 
 | 項目 | 内容 |
 | --- | --- |
-| アーキテクチャ固有の API | `SetWindowLongPtrW` は **`NativeMethods.txt` へ `SetWindowLongPtrW` と書くだけでは生成できない**（実測: `SetWindowLongPtr` は存在せず、`SetWindowLongPtrW` は `PInvoke005`「AnyCPU 不可」）。 csproj の `<CsWin32PlatformTarget>x64</CsWin32PlatformTarget>` で `PInvoke.SetWindowLongPtr`（`nint`）が生成される（本アプリは x64 のみを配布する） |
-| 手書きが残る唯一の箇所 | **`WinWicNative.cs` の `CoCreateInstance` と `CreateStreamOnHGlobal` の 2 件だけ**（理由は §7.3.1）。 どちらも `[LibraryImport]` の宣言だけで、**`out` は `[GeneratedComInterface]` の型**（`ComWrappers` ベースのマーシャリング）なので生ポインターを扱わない |
+| アーキテクチャ固有の API | `SetWindowLongPtrW` は **`NativeMethods.txt` へ `SetWindowLongPtrW` と書くだけでは生成できない**（実測: `SetWindowLongPtr` は存在せず、`SetWindowLongPtrW` は `PInvoke005`「AnyCPU 不可」）。 csproj の `<CsWin32PlatformTarget>x64</CsWin32PlatformTarget>` で `PInvoke.SetWindowLongPtr`（`nint`）が生成される（本ライブラリは IL（AnyCPU）であり、x64 / arm64 のどちらのプロセスでも動く。 生成するのは 64 ビット共通の宣言だけに固定する） |
+| 手書きが残る唯一の箇所 | **`d3d11.dll` の 2 件（`D3D11CreateDevice` / `CreateDirect3D11DeviceFromDXGIDevice`）だけ**（メタデータに DLL が無いため。 §7.3.2）。 それ以外の Win32 / COM は CsWin32 が生成する（§7.3.1） |
 | `CA1416` | **抑止しない**。 下限は対象フレームワーク（`net10.0-windows10.0.17763.0`）が宣言する。 **版なしの `"windows"` は下限を満たさず警告になる**（実測） |
-| `LibraryImport` を自作しない | CsWin32 の列挙型を引数に取る `LibraryImport` は `SYSLIB1051` で拒否される。 手書きが必要な場合は引数を `int` / `nint` で受ける |
+| `LibraryImport` の引数 | CsWin32 の列挙型を引数に取る `LibraryImport` は `SYSLIB1051` で拒否される。 手書きする 2 件（§7.3.2）の引数は `IntPtr` / `int` / `uint` で受ける |
 | サブクラス化 | **`SetWindowSubclass` / `DefSubclassProc` / `RemoveWindowSubclass`（comctl32）を使う**。 `SetWindowLongPtr(GWLP_WNDPROC)` は元のプロシージャを自前で保存・復元する必要があり、他のサブクラス化（ビジュアル スタイル等）と共存できない |
 | comctl32 v6 の要否 | **実測: アクティベーション コンテキスト（comctl32 v6）が無いプロセスでも動作する**（`SetWindowSubclass` が TRUE を返し、サブクラス プロシージャが実際に呼ばれた）。 そのためライブラリ側でマニフェストを要求しない |
 | コールバックの保持 | サブクラス プロシージャは**静的な `[UnmanagedCallersOnly]` の関数ポインター 1 本**（`WinSubclass.Procedure`）に集約し、インスタンスは `dwRefData` の文脈（`GCHandle`）で渡す（メッセージごとにデリゲートを作らない。 同上の理由で使用後に解放する）。 識別値（`uIdSubclass`）は **`WinSubclass.NextId()` が採番するプロセス全体の連番**にする（登録キーは「プロシージャと識別値の組」であり、プロシージャを全コンポーネントで共有するため、クラス内の連番では同じウィンドウへの登録が衝突する） |
 | 解除 | 明示的な破棄（`Dispose`）に加え、**`WM_NCDESTROY` でも解除する**（解除しないと comctl32 がサブクラス プロシージャへの参照を保持し続ける）。 解除と同時に**文脈（`GCHandle`）を解放する**（解放しないとインスタンスが回収されない） |
 
-#### 7.3.1 COM の 2 件だけを手書きする理由（実測 2026-10-21）
+#### 7.3.1 COM を生ポインターで扱う設定
 
-`NativeMethods.txt` に `CoCreateInstance` / `CreateStreamOnHGlobal` を入れて生成した結果は次のとおりです。
+**`NativeMethods.json` へ `"allowMarshaling": false` を必ず指定します**（`EsUtil/Platform.Core/src/NativeMethods.json`）。 既定の `true` では COM インターフェイスが**マネージド クラス**として生成され、生ポインターで扱えません（Native AOT では `NotSupportedException` になります）。
 
-| 設定 | `CoCreateInstance` | `CreateStreamOnHGlobal` | 判定 |
-| --- | --- | --- | --- |
-| 既定（`allowMarshaling: true`） | `HRESULT (Guid*, object, CLSCTX, Guid*, out object)` | `HRESULT (HGLOBAL, BOOL, out IStream)` | **使えない**。 `object` / `out IStream` は RCW（クラシック相互運用）を作る経路であり、Native AOT で `NotSupportedException: COM Interop requires ComWrapper instance registered for marshalling.` になる（実測）。 また生成される `IStream` は `[ComImport]` ベースであり、本ライブラリの `[GeneratedComInterface]` の `IStream` と型が二重になる |
-| `allowMarshaling: false`（`NativeMethods.json`） | `HRESULT (Guid*, IUnknown*, CLSCTX, Guid*, void**)` | `HRESULT (HGLOBAL, BOOL, IStream**)` | 生ポインターで使えるが、**設定はプロジェクト全体に効く**。 切り替えると `WNDENUMPROC` / `MONITORENUMPROC` / `SUBCLASSPROC` が**関数ポインター型**になり、4 ファイル 19 箇所のコールバックを `[UnmanagedCallersOnly]` + `dwRefData`（`GCHandle`）へ書き換える必要がある（実測: CS 14 件 + IDE0060 5 件） |
+この設定の代償として、次の制約がコード全体に及ぶため、**COM とコールバックは次の形で書きます**。
 
-**採った方法: 2 件の宣言だけを手書きし、`out` に `[GeneratedComInterface]` の型を取る。**
+| 項目 | 制約 | 書き方 |
+| --- | --- | --- |
+| `string` を受け取る補助 | 生成されない | `PCWSTR` / `Span<char>` を使う |
+| デリゲートを受け取る補助 | 生成されない | `delegate* unmanaged[Stdcall]<...>` を使う |
+| コールバック（`WNDENUMPROC` / `MONITORENUMPROC` / `SUBCLASSPROC`） | **関数ポインター型**になる | `[UnmanagedCallersOnly]` を付けた**静的メソッド**を渡し、インスタンスは文脈（`GCHandle`）で渡す（`WinSubclass` が代表例） |
+| COM の生成・解放 | 生ポインター | `PInvoke.CoCreateInstance(..., out IWICImagingFactory* factory)` と `Release()` を `try/finally` で呼ぶ（`WinWicFactory`） |
 
-```csharp
-[LibraryImport("ole32.dll")]
-internal static partial int CoCreateInstance(
-    in Guid clsid, IntPtr outer, uint context, in Guid iid, out IWICImagingFactory instance);
+- **設定は API 単位で切り替えられません**（行へ `CoCreateInstance(allowMarshaling=false)` のように書くと `PInvoke001` で拒否される）。 設定は 1 プロジェクトに 1 つのため、**プロジェクト全体の方針として選びます**。
+- **`[ComImport]` も `[GeneratedComInterface]` も使いません**。 `[ComImport]` は Native AOT で `NotSupportedException` になります（実測）。 `[GeneratedComInterface]` は動きますが、**vtable の位置を宣言順で決める**ため、使わないメソッドを位置合わせで並べる必要があり、**取り違えると `0xC0000005` になります**。 CsWin32 の生成物は**関数ポインターの表**を持つため、この誤りを構造的に防ぎます。
 
-[LibraryImport("ole32.dll")]
-internal static partial int CreateStreamOnHGlobal(IntPtr memory, int deleteOnRelease, out IStream stream);
-```
+#### 7.3.2 D3D11 の 2 件だけを手書きする理由
 
-- **`[GeneratedComInterface]` を関数へは付けられない**（実測 2026-10-22: `CS0592: 属性 'GeneratedComInterface' はこの宣言型では無効です。'インターフェイス' 宣言でのみ有効です。`）。 `CoCreateInstance` / `CreateStreamOnHGlobal` は **vtable を持たないエクスポートされた C 関数**であるため、COM インターフェイスの宣言機構（`[GeneratedComInterface]`）の対象外である。 対象になるのは**その `out` が指す先の型**（`IWICImagingFactory` / `IStream`）であり、そこには既に付けてある。
-- **`[GeneratedComInterface]` の型を `[LibraryImport]` の引数にすると、ソース生成された `ComInterfaceMarshaller<T>`（`ComWrappers` ベース）が変換する**（`IStream` は本ライブラリが `[GeneratedComInterface]` で定義済み。 §4）。
-  実測 2026-10-21: **JIT と Native AOT の両方で `CoCreateInstance` / `CreateStreamOnHGlobal` が成功し、返った型のメソッド（`Write` / `Stat`）をそのまま呼べた**（AOT は `dotnet publish -p:PublishAot=true -r win-x64` の実行で確認）。
-- **生ポインターを扱わない**: `void**` を受けず、`StrategyBasedComWrappers.GetOrCreateObjectForComInstance` の手動呼び出しもキャストも要らない（`WinWicFactory` は `Wrappers` を持たない）。
-- **API 単位の切り替えはできない**: `CoCreateInstance(allowMarshaling=false)` のように行へ書くと `PInvoke001`（「その名前の API は無い」）で拒否される（実測）。 `NativeMethods.json` は 1 プロジェクト 1 つのため、2 件のためだけに全体を切り替えることはしない。
-- **.NET 側に AOT 安全な代替は無い**: `Type.GetTypeFromCLSID` / `Activator.CreateInstance` / `Marshal.GetObjectForIUnknown` はいずれもクラシック相互運用であり AOT で失敗する（実測）。 COM の起動は `CoCreateInstance` を直接呼ぶしかない。
-- **`[LibraryImport]` の宣言だけを書く**ため、`DllImport` の手書きマーシャリング（`MarshalAs` の列など）は発生しない。 文字列・構造体・コールバックの生成は CsWin32 のままである。
-
-#### 7.3.2 関数の宣言方法の比較
-
-`CoCreateInstance` / `CreateStreamOnHGlobal` のような**エクスポートされた C 関数**を宣言する方法は 4 通りあり、実測結果は次のとおりです。
+**`d3d11.dll` は Win32 メタデータに含まれない**ため、CsWin32 では生成できません。 この 2 件（`D3D11CreateDevice` / `CreateDirect3D11DeviceFromDXGIDevice`）だけを `EsUtil/Platform.Core/src/Native/Win/WinGraphicsCaptureService.cs` が `[LibraryImport]` で宣言します。
 
 | 方法 | 実測結果 | 判定 |
 | --- | --- | --- |
-| **`[LibraryImport]`**（ソース生成。 採用） | 0x00000000 で成功。 `partial` な型が要る（`SYSLIB1050`） | **採用**。 Microsoft が Native AOT 向けに推奨する方法であり、マーシャリングもソース生成される |
+| **`[LibraryImport]`**（ソース生成） | 0x00000000 で成功。 `partial` な型が要る（`SYSLIB1050`） | **採用**。 宣言が型付きで残り（IntelliSense・XML doc・引数検査）、マーシャリングもソース生成される |
 | `[DllImport]`（実行時マーシャリング） | 動作はするが、**`EntryPoint` を省くとメソッド名で探して `EntryPointNotFoundException`**（実測）。 実行時マーシャリングは AOT で制限がある | 使わない（AOT 互換を保証できない） |
-| `NativeLibrary.GetExport` + **関数ポインター**（属性を一切使わない） | 0x00000000 で成功（`delegate* unmanaged[Stdcall]<...>`） | 可能だが**宣言が型として残らない**（IntelliSense・XML doc・引数検査が無い）。 引数がすべて blittable な場合だけ使える |
-| CsWin32（`allowMarshaling: false`） | 生ポインターで正しく生成されるが、設定が**プロジェクト全体**に効く（§7.3.1） | 2 件のためには使わない |
+| `NativeLibrary.GetExport` + **関数ポインター** | 0x00000000 で成功（`delegate* unmanaged[Stdcall]<...>`） | 可能だが**宣言が型として残らない**（IntelliSense・XML doc・引数検査が無い）。 引数がすべて blittable な場合だけ使える |
 
-- **`[GeneratedComInterface]` は関数に付けられない**: 実測で `CS0592`（「インターフェイス宣言でのみ有効」）。 属性の対象は `out` の先の型（`IWICImagingFactory` / `IStream`）であり、そこには付けてある（§7.3.1）。
-- **`SYSLIB1054`（`DllImport` を `LibraryImport` へ置き換えよという指摘）は .NET 10 + `IsAotCompatible` では出なかった**（実測）。 Microsoft は強制はしないが、**AOT 互換のためには `LibraryImport` が推奨**である（`DllImport` は実行時マーシャリングに依存する）。
-- **`LibraryImport` を選ぶ決め手**: (1) 宣言が型付きで残る（IntelliSense・XML doc・引数検査）、(2) マーシャリングをソース生成するため AOT で安全、(3) `[GeneratedComInterface]` の型を引数に取れる（`ComInterfaceMarshaller` が変換する）。
+- **`SYSLIB1054`（`DllImport` を使うなという指摘）は .NET 10 + `IsAotCompatible` では出ません**（実測）。 それでも **AOT 互換のため `[LibraryImport]`** を使います（`DllImport` は実行時マーシャリングに依存する）。
+- **引数は blittable な型で受けます**（`IntPtr` / `int` / `uint`）。 CsWin32 の列挙型を引数に取る `[LibraryImport]` は `SYSLIB1051` で拒否されるためです。
+- **この 2 件以外に手書きの宣言はありません**。 増やすときは、CsWin32 で生成できない理由（DLL がメタデータに無い等）を確かめてから足します。
 
-**`out` をインターフェイス型にするか、生ポインターにするか**
+### 7.4 ルート名前空間に置くのは窓口だけにする
 
-`out` に `[GeneratedComInterface]` の型を書く方法と、`out nint` で受けて `ComInterfaceMarshaller<T>.ConvertToManaged` する方法を比較します。
+`src/` 直下には**機能の窓口**（`EsInput` / `EsWindow` / `EsCapture` / `EsErrors` / `EsCallbacks`）とアセンブリ属性だけを置きます。 機能の型（`EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `EsPlatformHandle` / `EsWindowState` / `CaptureType` / `BoundaryCatch` / `CallbackList<T>` / `EnumCanonical`）は機能フォルダ（`Input` / `Window` / `Capture` / `Common`）が持ちます（§4 の構成、公開面は [`SPEC_API.md`](SPEC_API.md) §1・§2.38）。 これにより、ルート名前空間の型名から「どの機能の型か」を読めます。
 
-| 観点 | `out IStream`（**採用**） | `out nint` + `ConvertToManaged` |
-| --- | --- | --- |
-| 動作（JIT） | 成功（`0x00000000`、`Write` も成功） | 成功 |
-| 動作（**Native AOT**。 `-p:PublishAot=true -r win-x64`） | **成功** | 成功 |
-| `IsAotCompatible=true` での警告 | **0 件**（`IL2026` / `IL3050` は出ない） | 0 件 |
-| `[MarshalUsing]` の指定 | **不要**（実測: 型を書くだけで生成される） | 不要 |
-| 参照カウント | **生成コードが `ConvertToManaged` の直後に `Free` を呼ぶ**（実測: 生成された `LibraryImports.g.cs` に両方の呼び出しがある） | **呼び出し側が `Free` を書く必要がある**（忘れると参照が 1 つ残る） |
-| 宣言の読みやすさ | 型がそのまま出る（戻り値の意味が自明） | 生ポインターから変換する 2 行が増える |
-
-**結論: 型付きの `out`（現状）を維持する。** 「生ポインターで受けて `ComInterfaceMarshaller` で変換する」方式は、**型付きの `out` が内部で行っていることと同じ処理**（`ConvertToManaged` + `Free`）を手で書くことになり、`Free` の呼び忘れというリスクだけが増えます。 生ポインターが必要になるのは、CsWin32 の既定生成（`out object`）のように**型付きで受けられない API を包む場合**です。
-
-### 7.4 ルート名前空間に置くのは窓口だけにする（実測 2026-10-23）
-
-**背景**: `src/` 直下に 10 型（`EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `EsPlatformHandle` / `EsWindowState` / `CaptureType` / `BoundaryCatch` / `CallbackList<T>` / `EnumCanonical`）とアセンブリ属性が同居し、「どの機能の型か」が名前から読めませんでした（実測: 移設前の `src/` 直下は 11 ファイル）。
-
-**判断**: 型を機能フォルダ（`Input` / `Window` / `Capture` / `Common`）へ移し、`src/` 直下は**機能の窓口**（`EsInput` / `EsWindow` / `EsCapture` / `EsErrors` / `EsCallbacks`）とアセンブリ属性だけにします（§4 の構成、公開面は [`SPEC_API.md`](SPEC_API.md) §1・§2.38）。
-
-**代償と受容**: `using` は名前空間単位であるため、**型を名指しする利用側は機能の名前空間を 1 行 `using` する**必要があります（グローバル using は使いません）。 実測 2026-10-23: 移設に伴い更新した `.cs` ファイルは EsUtil 側 90・隣のリポジトリ側 96 です（大半は `using` 1 行の追加）。 解釈・正規化・生成という**操作**は窓口で足りるため、呼び出し側は窓口へ寄せます。
+**`using` の扱い**: `using` は名前空間単位であるため、**型を名指しする利用側は機能の名前空間を 1 行 `using` する**必要があります（グローバル using は使いません）。 解釈・正規化・生成という**操作**は窓口で足りるため、呼び出し側は窓口へ寄せます。
 
 窓口は**実装を持ちません**（判断の所有者を 2 つにしないため、機能の型へ委譲します）。 配置の規則は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有します。
 

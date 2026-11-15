@@ -6,8 +6,6 @@ namespace EsUtil.Feature.ColumnPacking.Core.Internal;
 /// <remarks>
 /// 【制約】<br/>
 /// Width と Height は正の値。<br/>
-/// 【最適化手法】<br/>
-/// • AggressiveInlining でメソッド最適化<br/>
 /// </remarks>
 internal readonly record struct Size(double Width, double Height)
 {

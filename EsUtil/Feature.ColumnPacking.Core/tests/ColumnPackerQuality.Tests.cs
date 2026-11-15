@@ -238,17 +238,17 @@ public class ColumnPackerQualityTests
         Assert.True(usedWidth <= widthLimit);
     }
 
-    /// <summary>Solve_スタックアロケーション境界テスト_STACKALLOC_THRESHOLD直前</summary>
+    /// <summary>Solve_スタックアロケーション境界テスト_StackAllocThreshold直前</summary>
     /// <param name="method"></param>
     [Theory]
     [InlineData(Method.DynamicProgramming)]
     [InlineData(Method.Greedy)]
     [InlineData(Method.BinarySearch)]
-    internal void Solve_スタックアロケーション境界テスト_STACKALLOC_THRESHOLD直前(Method method)
+    internal void Solve_スタックアロケーション境界テスト_StackAllocThreshold直前(Method method)
     {
         // Arrange
         var items = TestHelper.GenerateTestItems(40);
-        var stackallocThreshold = ColumnPacker.STACKALLOC_THRESHOLD;
+        var stackallocThreshold = ColumnPacker.StackAllocThreshold;
         var layout = new ColumnPacker(items, (0.5, 0.5), columnLimit: stackallocThreshold);
         const double widthLimit = 600.0;
         layout.CurrentMethod = method;
@@ -265,17 +265,17 @@ public class ColumnPackerQualityTests
         Assert.True(columnSegments.Length <= 32);
     }
 
-    /// <summary>Solve_スタックアロケーション境界テスト_STACKALLOC_THRESHOLD超過</summary>
+    /// <summary>Solve_スタックアロケーション境界テスト_StackAllocThreshold超過</summary>
     /// <param name="method"></param>
     [Theory]
     [InlineData(Method.DynamicProgramming)]
     [InlineData(Method.Greedy)]
     [InlineData(Method.BinarySearch)]
-    internal void Solve_スタックアロケーション境界テスト_STACKALLOC_THRESHOLD超過(Method method)
+    internal void Solve_スタックアロケーション境界テスト_StackAllocThreshold超過(Method method)
     {
         // Arrange
         var items = TestHelper.GenerateTestItems(40);
-        var stackallocThreshold = ColumnPacker.STACKALLOC_THRESHOLD;
+        var stackallocThreshold = ColumnPacker.StackAllocThreshold;
         var layout = new ColumnPacker(items, (0.5, 0.5), columnLimit: stackallocThreshold + 1);
         const double widthLimit = 600.0;
         layout.CurrentMethod = method;

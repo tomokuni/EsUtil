@@ -7,7 +7,7 @@ namespace EsUtil.Platform.Core.Native;
 /// <summary>画面のキャプチャ機能を抽象化するインターフェイス。</summary>
 /// <remarks>
 /// 画面領域のキャプチャ（画面コピー）を提供する。<br/>
-/// 実装は各プラットフォーム（Windows: GDI の <c>BitBlt</c>）が提供する。<br/>
+/// 実装は Windows 向けの実装（GDI の <c>BitBlt</c>）が提供する。<br/>
 /// <br/>
 /// 公開 API は UI フレームワーク非依存である:<br/>
 /// - 画像は <see cref="EsBitmap"/>（ピクセルコンテナ）で受け渡しする（Win32 / GDI の型は公開しない）。<br/>

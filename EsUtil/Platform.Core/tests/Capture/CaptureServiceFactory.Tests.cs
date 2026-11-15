@@ -44,7 +44,7 @@ public class CaptureServiceFactoryTests
     [Fact]
     internal void カーソルを写さない設定は_制御できない環境でGDIへ落とす()
     {
-        // 1903 未満の WGC はカーソルを外せない。 そのまま撮ると設定に反するため GDI を返す
+        // Windows 10 2004（ビルド 19041）未満の WGC はカーソルを外せない。 そのまま撮ると設定に反するため GDI を返す
         var expected = WindowsGraphicsCaptureSupport.IsSupported && WindowsGraphicsCaptureSupport.IsCursorCaptureSupported
             ? typeof(WinGraphicsCaptureService)
             : typeof(WinCaptureService);

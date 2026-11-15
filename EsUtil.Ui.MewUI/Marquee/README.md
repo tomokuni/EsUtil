@@ -57,7 +57,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.17763.0` |
-| 対応 OS | **引数なしコンストラクター**（`WinCursorService` を使う既定構成）は Windows 10 バージョン 1809（ビルド 17763）以降。 他 OS では `ICursorService` を渡すコンストラクターを使う |
+| 対応 OS | Windows 専用（`net10.0-windows10.0.17763.0`）。 Windows 10 バージョン 1809（ビルド 17763）以降 |
 | UI フレームワーク | MewUI 0.22.1（`MewUIVersion` プロパティで固定） |
 | 言語 | C# 14（.NET 10） |
 | Native AOT | 対応（`dotnet publish -p:PublishAot=true -r win-x64` で発行したサンプルが起動することを実測） |

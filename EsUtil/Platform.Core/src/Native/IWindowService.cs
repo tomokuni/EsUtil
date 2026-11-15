@@ -8,7 +8,7 @@ namespace EsUtil.Platform.Core.Native;
 /// <remarks>
 /// オーバーレイウィンドウに必要な最小限のネイティブ操作（Alt+Tab 非表示・キャプチャ除外・配置・退避）を定義する。<br/>
 /// ウィンドウの特定は UI フレームワーク非依存の <see cref="EsPlatformHandle"/> で行う。<br/>
-/// 実装は各プラットフォーム（Windows: Win32 API）が提供する。<br/>
+/// 実装は Windows 向けの実装（Win32 API）が提供する。<br/>
 /// 具象実装ではなく本インターフェイスへ依存させることで、テスト時のモックが可能になる（DIP）。<br/>
 /// <br/>
 /// <b>失敗の表し方</b>: 失敗の種類で 2 つに分ける（[`.github/例外処理規約.md`](../../../../.github/例外処理規約.md) §2・§3）。<br/>

@@ -28,9 +28,6 @@ namespace EsUtil.Feature.ColumnPacking.Core.Internal;
 /// 【使用例】<br/>
 /// var strategy = new GreedyLayoutStrategy(items, space, 10, cache);<br/>
 /// var result = strategy.Solve(100.0);<br/>
-/// <br/>
-/// 【最適化手法】<br/>
-/// • ColumnMetricsCache の共有で計算コスト削減<br/>
 /// </remarks>
 /// <param name="items">アイテム配列</param>
 /// <param name="space">行間・列間スペース</param>

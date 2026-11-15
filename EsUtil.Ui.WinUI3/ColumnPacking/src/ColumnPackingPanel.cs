@@ -30,10 +30,6 @@ namespace EsUtil.Ui.WinUI3.ColumnPacking;
 /// 1. MeasureOverride：各子要素を測定し、最適レイアウトを計算<br/>
 /// 2. ArrangeOverride：計算結果に基づいて各子要素を配置<br/>
 /// <br/>
-/// 【最適化施策】<br/>
-/// • Layout キャッシュで重複計算を削減し、ArrangeOverride での重複計算を回避<br/>
-/// • ChildElements で LINQ を使わず、作業領域のリストを詰め直して使う（計測のたびの配列確保を避ける）<br/>
-/// • FrameworkElement のみをフィルタリングして効率的な処理を実現<br/>
 /// </remarks>
 public partial class ColumnPackingPanel : DualSourceItemsPanel
 {
@@ -433,10 +429,6 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
     /// 2. 各子要素を無限サイズで測定（自然サイズ取得）<br/>
     /// 3. ColumnPacking.Solve() で最適レイアウトを計算<br/>
     /// 4. 計算結果から必要なサイズ（MinHeight, UsedWidth）を返す<br/>
-    /// <br/>
-    /// 【統合キャッシング】<br/>
-    /// Layout キャッシュで重複計算を削減<br/>
-    /// ArrangeOverride での重複計算を回避<br/>
     /// </remarks>
     /// <param name="availableSize">利用可能なサイズ</param>
     /// <returns>パネルが必要とするサイズ</returns>

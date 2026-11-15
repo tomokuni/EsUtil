@@ -1,5 +1,8 @@
 # コントロールの層構成（Core / Presenter / UI）
 
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1809%2C%2017763)%2B-0078D6)
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
+
 本リポジトリのコントロールは、**UI 非依存のコアを複数の UI（AvaloniaUI / MewUI / WinUI3 / WinForms）で共有する**ために層を分けています。
 本ドキュメントは「層の依存の向き」と「どこに何を置くか」の単一の説明です。 各層の中身は各プロジェクトの `README.md` / `SPEC_*.md` を参照してください。
 

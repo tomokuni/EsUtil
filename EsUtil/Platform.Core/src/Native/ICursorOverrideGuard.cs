@@ -6,7 +6,7 @@ namespace EsUtil.Platform.Core.Native;
 /// 選択操作（Crop モード等）中に OS がカーソル形状を上書きするのを防ぎ、選択操作のカーソル形状を維持する。<br/>
 /// 対象ウィンドウは UI フレームワーク非依存の <see cref="EsPlatformHandle"/> で受け取るため、<br/>
 /// UI 側はウィンドウオブジェクトからハンドルを取得して渡す（Interop 層の拡張メソッドが仲介する）。<br/>
-/// 実装は各プラットフォーム（Windows: WndProc サブクラス化）が提供する。
+/// 実装は Windows 向けの実装（WndProc サブクラス化）が提供する。
 /// </remarks>
 public interface ICursorOverrideGuard : IDisposable
 {

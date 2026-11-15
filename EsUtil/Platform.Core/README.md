@@ -81,11 +81,11 @@ services.AddSingleton<IUserPreferenceService, WinUserPreferenceService>();
 | --- | --- | --- |
 | 初期化 | 初回に `CoInitializeEx` と `CoCreateInstance`（`CLSID_WICImagingFactory`）を 1 回だけ呼ぶ | **スレッドは増えない**（GDI+ の `GdiplusStartup` が起こす表示設定の通知スレッドに相当するものが無い） |
 | 既に COM が初期化済みのプロセス | `CoInitializeEx` の `RPC_E_CHANGED_MODE`（`0x80010106`）は**成功として続行する** | 変更モードのプロセスでも全形式の保存と読み込みが成功した |
-| Native AOT | `[ComImport]` を使わず、`[GeneratedComInterface]`（ソース生成）で呼ぶ。 「`[LibraryImport]` の `out` にその型を取る」ため、生ポインターも手動ラップも要らない（`CoCreateInstance` も同じ形。 §`docs/SPEC_System.md` 7.3.1） | `[ComImport]` + `Marshal.GetObjectForIUnknown` は `NotSupportedException` になった（実測） |
+| Native AOT | `[ComImport]` も `[GeneratedComInterface]` も使わず、**CsWin32 が `wincodec.h` から生成した型（関数ポインター）**を生ポインターのまま使う（`allowMarshaling: false`。 詳細は [`docs/SPEC_System.md`](docs/SPEC_System.md) の §7.3.1） | `[ComImport]` + `Marshal.GetObjectForIUnknown` は `NotSupportedException` になった（実測） |
 
 **初期化を前倒しする公開 API はありません**（初期化は `WinWicFactory` が単一所有しますが `internal` のため本アセンブリ専用です）。 コストを払うのは最初の `Save` / `Load` です。
 
-**WIC を選んだ理由**は、GDI+ が持っていた副作用（バックグラウンド スレッド +1・解放されない参照カウント・初回の遅延）を**引き受けずに済む**ことです。 代償は実装量です（COM インターフェイスの宣言を自前で持つため、`[ComImport]` を使う場合より宣言が増えます）。 判断の記録は [`docs/SPEC_System.md`](docs/SPEC_System.md) の「ファイル入出力の実装方式」を参照してください。
+**WIC を選んだ理由**は、GDI+ が持っていた副作用（バックグラウンド スレッド +1・解放されない参照カウント・初回の遅延）を**引き受けずに済む**ことです。 代償は **宣言の生成設定にコード全体が従うこと**です（`allowMarshaling: false` のため `string` / デリゲートを受け取る補助が無く、`PCWSTR` / `Span<char>` / 関数ポインターで書きます）。 判断の記録は [`docs/SPEC_System.md`](docs/SPEC_System.md) §7.1・§7.3.1 を参照してください。
 
 ## 5. カスタマイズ
 

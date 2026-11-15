@@ -11,15 +11,8 @@ namespace EsUtil.Feature.ColumnPacking.Core.Internal;
 /// ストリップ梱包問題の近似解をバイナリサーチで求める変形バイナリサーチ法を実装した Strategy クラスです。<br/>
 /// Greedyの結果を初期値として使用し、品質99%+を達成しますが、最適解を保証しません。<br/>
 /// <br/>
-/// 【キャッシュ共有の活用】<br/>
-/// • Greedy 実行時に計算したメトリクスがキャッシュに登録<br/>
-/// • BinarySearch の各反復で TryFitColumns() 実行時に、
-///   同じセグメントのメトリクスはキャッシュから O(1) で返却<br/>
-/// • 結果：Greedy ⇒ BinarySearch で計算量削減<br/>
-/// <br/>
 /// 【実装の詳細】<br/>
-/// 変形バイナリサーチで高さを探索し、TryFitColumnsで配置判定を行います。<br/>
-/// ArrayPoolを使用してメモリ効率を高めます。<br/>
+/// 変形バイナリサーチで高さを探索し、TryFitColumns で配置判定を行います。<br/>
 /// <br/>
 /// 【制約】<br/>
 /// options.MaxIterations で反復回数を制限。<br/>
@@ -32,11 +25,6 @@ namespace EsUtil.Feature.ColumnPacking.Core.Internal;
 /// 【使用例】<br/>
 /// var strategy = new BinarySearchLayoutStrategy(items, space, 10, options, cache);<br/>
 /// var result = strategy.Solve(100.0);<br/>
-/// <br/>
-/// 【最適化手法】<br/>
-/// • ColumnMetricsCache の共有で計算コスト削減<br/>
-/// • ArrayPool によるメモリプール化<br/>
-/// • AggressiveOptimization でTryFitColumns最適化<br/>
 /// </remarks>
 /// <param name="items">アイテム配列</param>
 /// <param name="space">行間・列間スペース</param>
@@ -132,7 +120,7 @@ internal sealed class BinarySearchLayoutStrategy(
 
         // 試行用のバッファは ArrayPool から借りる（探索の反復ごとに確保しない）。 上限が小さい場合はスタックを使う
         ColumnSegment[]? tempArray = null;
-        Span<ColumnSegment> tempBuffer = columnLimit <= ColumnPacker.STACKALLOC_THRESHOLD
+        Span<ColumnSegment> tempBuffer = columnLimit <= ColumnPacker.StackAllocThreshold
             ? stackalloc ColumnSegment[columnLimit]
             : (tempArray = ArrayPool<ColumnSegment>.Shared.Rent(columnLimit)).AsSpan(0, columnLimit);
 
@@ -251,9 +239,6 @@ internal sealed class BinarySearchLayoutStrategy(
     /// 1. 各列を構築しながらアイテムを詰め込む<br/>
     /// 2. 高さ制限を超えたら列を終了<br/>
     /// 3. 全アイテムが配置可能かチェック<br/>
-    /// <br/>
-    /// 【注意点】<br/>
-    /// AggressiveOptimization で最適化されています。<br/>
     /// </remarks>
     /// <param name="widthLimit">幅の制限値。</param>
     /// <param name="heightLimit">各列の高さの制限値。</param>

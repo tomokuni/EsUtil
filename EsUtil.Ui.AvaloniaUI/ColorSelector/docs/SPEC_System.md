@@ -299,7 +299,7 @@ sequenceDiagram
 
 ## 11. テスト
 
-`tests/` プロジェクト（xUnit v3 + Avalonia.Headless）で、行・ブランチカバレッジ 100% を達成しています。
+`tests/` プロジェクト（xUnit v3 + Avalonia.Headless）で検証しています。
 
 - 公開プロパティ・バリデーション・並び順切替
 - イベントハンドラ（SelectionChanged / LostFocus / カラーピッカー）

@@ -6,7 +6,7 @@ namespace EsUtil.Feature.ColumnPacking;
 public partial class ColumnPacker
 {
     /// <summary><b>スタックアロケーションの閾値（この要素以下は stackalloc を使用）</b></summary>
-    internal const int STACKALLOC_THRESHOLD = 32;
+    internal const int StackAllocThreshold = 32;
 
     /// <summary><b>フィールド変数：各アイテムの (幅, 高さ) タプル配列</b></summary>
     internal readonly Size[] _items;
@@ -17,16 +17,7 @@ public partial class ColumnPacker
     /// <summary><b>フィールド変数：使用可能な列数の上限</b></summary>
     internal readonly int _columnLimit;
 
-    /// <summary><b>プロパティ：全アイテムの最大幅（キャッシュ）</b></summary>
-    /// <remarks>
-    /// 【実装の詳細】<br/>
-    /// C# 14 の field キーワードで実装した、バッキング フィールドを宣言しないキャッシュです。<br/>
-    /// 未計算の状態を double.NaN で表し、一度計算した値はプロパティ内に保持されます。<br/>
-    /// <br/>
-    /// 【最適化手法】<br/>
-    /// • 遅延計算により、IsValidWidth が呼ばれるまでアイテムを走査しない<br/>
-    /// • キャッシュにより 2 回目以降の走査コストをゼロにする<br/>
-    /// </remarks>
+    /// <summary>全アイテムの最大幅を取得します。</summary>
     internal double ItemsMaxWidth
     {
         get
@@ -264,7 +255,7 @@ public partial class ColumnPacker
 
         // 【段階 1】各列の幅を計算
         int segmentCount = segments.Length;
-        Span<double> columnWidths = segmentCount <= STACKALLOC_THRESHOLD
+        Span<double> columnWidths = segmentCount <= StackAllocThreshold
             ? stackalloc double[segmentCount]
             : new double[segmentCount];
 
@@ -286,7 +277,7 @@ public partial class ColumnPacker
         }
 
         // 【段階 2】各列の X 座標を計算
-        Span<double> columnXCoordinates = segmentCount <= STACKALLOC_THRESHOLD
+        Span<double> columnXCoordinates = segmentCount <= StackAllocThreshold
             ? stackalloc double[segmentCount]
             : new double[segmentCount];
 
