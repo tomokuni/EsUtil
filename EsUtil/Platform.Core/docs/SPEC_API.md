@@ -436,13 +436,13 @@ OS 依存のカーソル操作を抽象化します（UI フレームワーク�
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
 | `HideFromTaskSwitcher` | `void HideFromTaskSwitcher(EsPlatformHandle handle)` | タスクバー / Alt+Tab 非表示。 取得または設定に失敗したら `Win32Exception` |
-| `SetCaptureExclusion` | `bool SetCaptureExclusion(EsPlatformHandle handle, bool exclude)` | キャプチャ除外 / 解除。 **能力の有無**（Windows 10 2004 未満は `false`） |
+| `SetCaptureExclusion` | `bool SetCaptureExclusion(EsPlatformHandle handle, bool exclude)` | キャプチャ除外 / 解除。 **能力の有無**（Windows 10 バージョン 2004（ビルド 19041）未満は `false`） |
 | `SetBounds` | `void SetBounds(EsPlatformHandle handle, EsRectInt bounds)` | 位置・サイズを画面物理ピクセルで指定（全モニターを跨ぐ配置に使う）。 設定できなければ `Win32Exception` |
 | `EvacuateWindow` | `void EvacuateWindow(EsPlatformHandle handle)` | 最前面解除・非表示・クローズ（UI ハング時の退避）。 **ベストエフォート**（1 つ失敗しても残りを実行し、失敗を報告しない） |
 | `TryClientToScreen` | `bool TryClientToScreen(EsPlatformHandle handle, EsPointInt clientPoint, out EsPointInt screenPoint)` | クライアント座標 → 画面物理座標。 識別子が未設定・変換できない場合は `false`（`screenPoint` は**入力と同じ値**） |
 | `TryScreenToClient` | `bool TryScreenToClient(EsPlatformHandle handle, EsPointInt screenPoint, out EsPointInt clientPoint)` | 画面物理座標 → クライアント座標。 失敗時の扱いは `TryClientToScreen` と同じ |
 
-**`SetCaptureExclusion` が例外にしない理由**: Windows 10 2004 未満では OS が対応せず**写り込むだけで撮影は成立する**ためです（1 件の非対応で撮影を中止させません）。
+**`SetCaptureExclusion` が例外にしない理由**: Windows 10 バージョン 2004（ビルド 19041）未満では OS が対応せず**写り込むだけで撮影は成立する**ためです（1 件の非対応で撮影を中止させません）。
 
 **座標変換が本インターフェイスにある理由**: UI フレームワークが画面物理座標を公開しない場合（WinUI 3 の XAML は表示倍率とコンテンツ内の相対座標までしか与えない）に、nudge のカーソル移動で画面座標が必要になるためです。 **失敗を原点で表さない**ために入力値をそのまま返します。
 
@@ -1213,16 +1213,16 @@ Win32 のダイアログを [`IDialogService`](#230-nativeidialogserviceinterfac
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
-| `IsDisplayCaptureSupported` | `bool`（取得のみ） | 画面（モニター）を撮影できるか。 **ビルド 17763 以降**で、かつ型が実在する場合に `true`。 本パッケージの下限（17763）では型が実在すれば `true` |
+| `IsDisplayCaptureSupported` | `bool`（取得のみ） | 画面（モニター）を撮影できるか。 **Windows 10 バージョン 1809（ビルド 17763）以降**で、かつ型が実在する場合に `true`。 本パッケージの下限（バージョン 1809 / ビルド 17763）では型が実在すれば `true` |
 | `IsWindowCaptureSupported` | `bool`（取得のみ） | ウィンドウを撮影できるか（`IsDisplayCaptureSupported` と同じ判定） |
 | `IsCursorCaptureSupported` | `bool`（取得のみ） | 撮影へカーソルを含めるかを切り替えられるか。 **本ビルドでは常に `false`**（対象フレームワーク 17763 の射影に `IsCursorCaptureEnabled` が無いため）。 WGC ではカーソルが常に含まれる |
 | `IsBorderControlSupported` | `bool`（取得のみ） | 撮影中の枠を消せるか。 **本ビルドでは常に `false`**（射影に `IsBorderRequired` が無いため）。 WGC では対象の周囲に枠が描かれる |
 | `IsSupported` | `bool`（取得のみ） | Windows.Graphics.Capture を選択肢として提示できるか（`IsDisplayCaptureSupported` と同じ） |
 | `DescribeUnsupportedReason` | `string DescribeUnsupportedReason()` | 選択できない理由（利用者へ見せる日本語）。 使える場合は空文字列 |
 
-**判定は OS の版と API の実在の両方で行います**: 撮影そのものは **ビルド 17763 以降**で、かつ型が実在する場合に使えます。 版で足切りしてから `ApiInformation` へ問い合わせ、問い合わせ自体が失敗した場合も `false`（使えない）として扱います。
+**判定は OS の版と API の実在の両方で行います**: 撮影そのものは **Windows 10 バージョン 1809（ビルド 17763）以降**で、かつ型が実在する場合に使えます。 版で足切りしてから `ApiInformation` へ問い合わせ、問い合わせ自体が失敗した場合も `false`（使えない）として扱います。
 
-**カーソルと枠の制御は本ビルドでは使えません**: 対象フレームワーク（17763）の射影に `IsCursorCaptureEnabled`（1903）と `IsBorderRequired`（Windows 11）が無いため、**OS が対応していても設定できません**。 カーソルを写さない設定を要求されたときは GDI へ委譲します（GDI はカーソルを合成しません）。 枠は消せないため、WGC では OS の既定（枠を描く）のままになります。
+**カーソルと枠の制御は本ビルドでは使えません**: 対象フレームワーク（17763）の射影に `IsCursorCaptureEnabled`（Windows 10 バージョン 1903 / ビルド 18362）と `IsBorderRequired`（Windows 11 / ビルド 22000）が無いため、**OS が対応していても設定できません**。 カーソルを写さない設定を要求されたときは GDI へ委譲します（GDI はカーソルを合成しません）。 枠は消せないため、WGC では OS の既定（枠を描く）のままになります。
 
 ### 2.61 `Native.Win.WinGraphicsCaptureService`（sealed class : `ICaptureService`）
 
