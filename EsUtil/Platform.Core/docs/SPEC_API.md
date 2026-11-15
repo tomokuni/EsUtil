@@ -1231,7 +1231,7 @@ Windows.Graphics.Capture で画面をキャプチャする `ICaptureService` の
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
 | `CaptureArea` | `EsBitmap CaptureArea(EsRectInt bounds)` | 指定領域を撮影する。 **撮影できない場合は GDI の実装へ委譲**する（例外にしない） |
-| `CaptureVirtualScreen` | `EsBitmap? CaptureVirtualScreen(out EsPointInt origin)` | 仮想スクリーン全体（複数モニターに跨る）は GDI へ委譲する |
+| `CaptureVirtualScreen` | `EsBitmap? CaptureVirtualScreen(out EsPointInt origin)` | 仮想スクリーン全体を撮影する。 **1 モニターに収まるときは WGC**、複数モニターに跨るとき・カーソルを写さない設定では GDI へ委譲する |
 | `FallbackCount` | `int`（取得のみ） | GDI へ委譲した回数。 **撮影方式に WGC を選んでも GDI で撮った**ことを呼び出し側がログへ残せる（本層はログを出力しない） |
 
 **GDI へ委譲する条件**: 型が実在しない・領域がモニターの外へはみ出す・**カーソルを写さない設定**（本ビルドの WGC では外せない）・GPU の初期化やフレームの取得に失敗した場合です。 いずれも**利用者の操作を失敗させません**（結果の画像は GDI のものと等価）。

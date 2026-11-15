@@ -134,8 +134,38 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     }
 
     /// <inheritdoc/>
-    /// <remarks>仮想スクリーンは複数モニターに跨るため GDI へ委譲する（WGC はモニター単位でしか撮れない）。</remarks>
-    public EsBitmap? CaptureVirtualScreen(out EsPointInt origin) => _fallback.CaptureVirtualScreen(out origin);
+    /// <remarks>
+    /// <b>1 モニターに収まる場合だけ WGC を使う</b>（WGC はモニター単位でしか撮れない）。 複数モニターに跨る
+    /// 仮想スクリーンは GDI へ委譲する。 カーソルを写さない設定も GDI へ委譲する（<see cref="CaptureArea"/> と同じ判定）。
+    /// </remarks>
+    public EsBitmap? CaptureVirtualScreen(out EsPointInt origin)
+    {
+        // 仮想スクリーンの矩形は GDI の実装と同じ照会を使う（境界の所有者は WinVirtualScreen だけにする）
+        var bounds = WinVirtualScreen.Bounds;
+        origin = new EsPointInt(bounds.X, bounds.Y);
+        if (bounds.Width <= 0 || bounds.Height <= 0)
+        {
+            return null;
+        }
+
+        if (WindowsGraphicsCaptureSupport.IsDisplayCaptureSupported && includeCursor)
+        {
+            try
+            {
+                // 全モニターを包含する領域は 1 つのモニターに収まらないため、WGC では撮れず false が返る
+                if (TryCaptureMonitor(bounds, out var captured) && captured is not null)
+                {
+                    return captured;
+                }
+            }
+            catch (Exception ex) when (EsErrors.IsRecoverable(ex))
+            {
+                // WGC の失敗は利用者の操作を止めない（GDI で取り直す）
+            }
+        }
+
+        return CaptureWithFallback(bounds);
+    }
 
     /// <summary>GDI へ委譲した回数を取得する。</summary>
     /// <value>このインスタンスが GDI で撮影した回数（0 なら WGC だけで撮れている）。</value>

@@ -1,104 +1,104 @@
-<Project>
-
-  <PropertyGroup>
-    <!-- 公開する版（すべてのパッケージで 1 つ）。 値を書き換えるのは人だけであり、各 .csproj では指定しない。
-         規則は .github/ビルド設定規約.md §4。
-
-         ローカル フィードへ出すときだけ buildScript/pack.ps1 が VersionSuffix=local.<n> を付ける
-         （公開する版には含めない。 ローカル フィード専用の識別子である）。 -->
-    <VersionPrefix>0.7.4</VersionPrefix>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <!-- テスト・サンプルはパッケージを作らない（判別はプロジェクト名で行い、30 プロジェクト分の条件を書かない）。 -->
-    <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample|SampleKit)$'))</_SeIsTestOrSample>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <!-- パッケージ出力（全プロジェクト共通。 各 .csproj では指定しない）。
-         本体プロジェクトはパッケージを作り、テスト・サンプルは作らない。
-         `PackageId` と `AssemblyName` は省略し、プロジェクト名と一致させる。 -->
-    <IsPackable Condition="'$(_SeIsTestOrSample)' == 'true'">false</IsPackable>
-    <IsPackable Condition="'$(_SeIsTestOrSample)' != 'true'">true</IsPackable>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <!-- パッケージの基本情報（全プロジェクト共通。 各 .csproj では指定しない）。 -->
-    <Authors>tomokuni</Authors>
-    <Company>tomokuni</Company>
-    <Product>EsUtil</Product>
-    <PackageProjectUrl>https://github.com/tomokuni/EsUtil</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/tomokuni/EsUtil.git</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <!-- SourceLink（.NET SDK 同梱）にリポジトリの URL とコミットを埋め込む（nuget.org の [Source] リンクが機能する）。 -->
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageTags>avalonia;mewui;winui;winforms;ui;controls;imaging;geometry;hotkey;windows</PackageTags>
-    <!-- パッケージの説明は各 .csproj の Description が持つ（プロジェクトごとに異なる）。 -->
-    <!-- nuget.org のページに README を出す（`PackageReadmeFile` が指すファイルは
-         Directory.Build.targets が `../README.md` として pack へ含める）。 -->
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <!-- シンボル パッケージ（`.snupkg`）を出力し、nuget.org のスタック トレースからソースへ辿れるようにする。
-         形式は `.snupkg`（レガシーの `.symbols.nupkg` は使わない）。 -->
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <!-- ローカル フィードはプロジェクトごとの 1 ファイルであるため、依存パッケージを同封しない。 -->
-    <SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
-    <!-- API の互換と依存の欠落を dotnet pack が検証する（基準版は初回公開後に設定する。
-         基準が無いあいだは検査されない）。 規則は .github/ビルド設定規約.md §4。 -->
-    <EnablePackageValidation Condition="'$(_SeIsTestOrSample)' != 'true'">true</EnablePackageValidation>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <!-- コード スタイルとドキュメントコメントの検証（全プロジェクト共通。 各 .csproj では指定しない）。
-         目的は「機械的に判定できる規約をビルドの警告にする」こと（0 件が合否。 .github/検証手順.md）。 -->
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <!-- ドキュメント コメントの検証（不足・cref の誤り）を行う。
-         本リポジトリはライブラリであり、生成した XML は**パッケージ同封のドキュメント**として
-         利用側の IntelliSense に使われるため、出力（lib/<tfm>/<name>.xml）へ含める（既定のまま）。
-         そのため `CopyDocumentationFileToOutputDirectory` を false にしない
-         （false にするとパッケージ作成が NU5026 で失敗する。 実測）。 -->
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <!-- アナライザーの解析モード（全プロジェクト共通。 各 .csproj では指定しない）。
-         `Recommended` は SDK が推奨する規則をまとめて有効にする（規則の列挙を .editorconfig へ手書きしない）。
-         無効にする規則だけを .editorconfig に `severity = none` で明示する（opt-out 方式）。 -->
-    <AnalysisLevel>latest</AnalysisLevel>
-    <AnalysisMode>Recommended</AnalysisMode>
-    <!-- 警告をエラーにする（「dotnet build が通れば規約に準拠している」を終了コードで判定できる）。
-         検証スクリプトの `-warnaserror` に依存しない（素の `dotnet build` でも検出できる）。 -->
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <!-- 復元結果を packages.lock.json で固定する（**配布するプロジェクト（src）だけ**が持ち、
-         直下に置いて**コミットする**）。 パッケージの版は Directory.Packages.props が完全一致で持ち、
-         その解決結果を lock が固定するため、同じコミットは常に同じ依存で復元される。 CI は
-         -p:RestoreLockedMode=true で lock どおりに復元し、食い違いを NU1004 で検出する。
-         規則は .github/ビルド設定規約.md §8。
-
-         **テスト・サンプルは lock を持たない**: 配布しないため再現性の対象外であり、lock を持つと
-         `ProjectReference` の版が書き込まれ、版を上げるたびに機械的な差分だけが大量に出る
-         （実測 2026-11-03: 56 ファイル・330 行のうち 44 ファイルがテスト・サンプル）。 -->
-    <RestorePackagesWithLockFile Condition="'$(_SeIsTestOrSample)' != 'true'">true</RestorePackagesWithLockFile>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <!-- 使用を禁止する API（buildScript/BannedSymbols.txt）をコンパイラで検出する。
-         規則の所有者は .github/コーディング規約.md（例: フラグ enum は HasFlag ではなくビット演算を使う）。
-         一覧をルート直下に置かないのは、ルートのファイルを減らすため（規則は .github/ビルド設定規約.md §1）。 -->
-    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
-    <AdditionalFiles Include="$(MSBuildThisFileDirectory)buildScript\BannedSymbols.txt" />
-
-    <!-- 規約のうち、SDK のアナライザー（AnalysisMode=Recommended）が検出しない項目を補うアナライザー。
-         有効にする規則は .editorconfig が単一所有する（既定の重要度のまま使わない）。 -->
-    <!-- 非同期の書き方（`async void` の禁止・`Async` 接尾辞）。 規則は .github/コーディング規約.md §7 / .github/命名規約.md。 -->
-    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="all" />
-    <!-- ファイル名と型名の一致（MA0048）/ 名前空間セグメントと型名の一致の禁止（MA0049）。
-         規則は .github/命名規約.md（「1 ファイル 1 型」「ファイル名は型名と一致」「名前空間セグメントと型名を一致させない」）。 -->
-    <PackageReference Include="Meziantou.Analyzer" PrivateAssets="all" />
-  </ItemGroup>
-
-</Project>
+<Project>
+
+  <PropertyGroup>
+    <!-- 公開する版（すべてのパッケージで 1 つ）。 値を書き換えるのは人だけであり、各 .csproj では指定しない。
+         規則は .github/ビルド設定規約.md §4。
+
+         ローカル フィードへ出すときだけ buildScript/pack.ps1 が VersionSuffix=local.<n> を付ける
+         （公開する版には含めない。 ローカル フィード専用の識別子である）。 -->
+    <VersionPrefix>0.7.5</VersionPrefix>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- テスト・サンプルはパッケージを作らない（判別はプロジェクト名で行い、30 プロジェクト分の条件を書かない）。 -->
+    <_SeIsTestOrSample>$([System.Text.RegularExpressions.Regex]::IsMatch('$(MSBuildProjectName)', '\.(Tests|Sample|SampleKit)$'))</_SeIsTestOrSample>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- パッケージ出力（全プロジェクト共通。 各 .csproj では指定しない）。
+         本体プロジェクトはパッケージを作り、テスト・サンプルは作らない。
+         `PackageId` と `AssemblyName` は省略し、プロジェクト名と一致させる。 -->
+    <IsPackable Condition="'$(_SeIsTestOrSample)' == 'true'">false</IsPackable>
+    <IsPackable Condition="'$(_SeIsTestOrSample)' != 'true'">true</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- パッケージの基本情報（全プロジェクト共通。 各 .csproj では指定しない）。 -->
+    <Authors>tomokuni</Authors>
+    <Company>tomokuni</Company>
+    <Product>EsUtil</Product>
+    <PackageProjectUrl>https://github.com/tomokuni/EsUtil</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/tomokuni/EsUtil.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <!-- SourceLink（.NET SDK 同梱）にリポジトリの URL とコミットを埋め込む（nuget.org の [Source] リンクが機能する）。 -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>avalonia;mewui;winui;winforms;ui;controls;imaging;geometry;hotkey;windows</PackageTags>
+    <!-- パッケージの説明は各 .csproj の Description が持つ（プロジェクトごとに異なる）。 -->
+    <!-- nuget.org のページに README を出す（`PackageReadmeFile` が指すファイルは
+         Directory.Build.targets が `../README.md` として pack へ含める）。 -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- シンボル パッケージ（`.snupkg`）を出力し、nuget.org のスタック トレースからソースへ辿れるようにする。
+         形式は `.snupkg`（レガシーの `.symbols.nupkg` は使わない）。 -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- ローカル フィードはプロジェクトごとの 1 ファイルであるため、依存パッケージを同封しない。 -->
+    <SuppressDependenciesWhenPacking>false</SuppressDependenciesWhenPacking>
+    <!-- API の互換と依存の欠落を dotnet pack が検証する（基準版は初回公開後に設定する。
+         基準が無いあいだは検査されない）。 規則は .github/ビルド設定規約.md §4。 -->
+    <EnablePackageValidation Condition="'$(_SeIsTestOrSample)' != 'true'">true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- コード スタイルとドキュメントコメントの検証（全プロジェクト共通。 各 .csproj では指定しない）。
+         目的は「機械的に判定できる規約をビルドの警告にする」こと（0 件が合否。 .github/検証手順.md）。 -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- ドキュメント コメントの検証（不足・cref の誤り）を行う。
+         本リポジトリはライブラリであり、生成した XML は**パッケージ同封のドキュメント**として
+         利用側の IntelliSense に使われるため、出力（lib/<tfm>/<name>.xml）へ含める（既定のまま）。
+         そのため `CopyDocumentationFileToOutputDirectory` を false にしない
+         （false にするとパッケージ作成が NU5026 で失敗する。 実測）。 -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- アナライザーの解析モード（全プロジェクト共通。 各 .csproj では指定しない）。
+         `Recommended` は SDK が推奨する規則をまとめて有効にする（規則の列挙を .editorconfig へ手書きしない）。
+         無効にする規則だけを .editorconfig に `severity = none` で明示する（opt-out 方式）。 -->
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <!-- 警告をエラーにする（「dotnet build が通れば規約に準拠している」を終了コードで判定できる）。
+         検証スクリプトの `-warnaserror` に依存しない（素の `dotnet build` でも検出できる）。 -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- 復元結果を packages.lock.json で固定する（**配布するプロジェクト（src）だけ**が持ち、
+         直下に置いて**コミットする**）。 パッケージの版は Directory.Packages.props が完全一致で持ち、
+         その解決結果を lock が固定するため、同じコミットは常に同じ依存で復元される。 CI は
+         -p:RestoreLockedMode=true で lock どおりに復元し、食い違いを NU1004 で検出する。
+         規則は .github/ビルド設定規約.md §8。
+
+         **テスト・サンプルは lock を持たない**: 配布しないため再現性の対象外であり、lock を持つと
+         `ProjectReference` の版が書き込まれ、版を上げるたびに機械的な差分だけが大量に出る
+         （実測 2026-11-03: 56 ファイル・330 行のうち 44 ファイルがテスト・サンプル）。 -->
+    <RestorePackagesWithLockFile Condition="'$(_SeIsTestOrSample)' != 'true'">true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 使用を禁止する API（buildScript/BannedSymbols.txt）をコンパイラで検出する。
+         規則の所有者は .github/コーディング規約.md（例: フラグ enum は HasFlag ではなくビット演算を使う）。
+         一覧をルート直下に置かないのは、ルートのファイルを減らすため（規則は .github/ビルド設定規約.md §1）。 -->
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)buildScript\BannedSymbols.txt" />
+
+    <!-- 規約のうち、SDK のアナライザー（AnalysisMode=Recommended）が検出しない項目を補うアナライザー。
+         有効にする規則は .editorconfig が単一所有する（既定の重要度のまま使わない）。 -->
+    <!-- 非同期の書き方（`async void` の禁止・`Async` 接尾辞）。 規則は .github/コーディング規約.md §7 / .github/命名規約.md。 -->
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" PrivateAssets="all" />
+    <!-- ファイル名と型名の一致（MA0048）/ 名前空間セグメントと型名の一致の禁止（MA0049）。
+         規則は .github/命名規約.md（「1 ファイル 1 型」「ファイル名は型名と一致」「名前空間セグメントと型名を一致させない」）。 -->
+    <PackageReference Include="Meziantou.Analyzer" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>
