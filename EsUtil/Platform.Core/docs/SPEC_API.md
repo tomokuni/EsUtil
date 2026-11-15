@@ -1246,6 +1246,7 @@ Windows.Graphics.Capture で画面をキャプチャする `ICaptureService` の
 | --- | --- | --- |
 | `Create` | `ICaptureService Create(CaptureMethod method, bool includeCursor = true, bool hideBorder = true)` | 方式に対応する実装を返す。 WGC が使えない場合は `WinCaptureService` |
 | `Resolve` | `CaptureMethod Resolve(CaptureMethod method)` | 実際に使われる方式を返す（設定が使えない場合は `Gdi`）。 **ログへ「設定は WGC だが GDI で撮った」と残すために使う** |
+| `Resolve` | `CaptureMethod Resolve(CaptureMethod method, bool includeCursor)` | カーソルを写さない設定では WGC を選ばない（`Gdi` を返す）。 `Create` と同じ判定を使う |
 
 ## 3. 使用例
 

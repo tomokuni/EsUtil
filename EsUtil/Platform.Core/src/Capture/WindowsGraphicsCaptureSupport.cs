@@ -12,7 +12,8 @@ namespace EsUtil.Platform.Core.Capture;
 /// <br/>
 /// <b>カーソルと枠の制御は本ビルドでは使えない</b>: 対象フレームワーク（17763）の射影に
 /// <c>IsCursorCaptureEnabled</c>（1903）と <c>IsBorderRequired</c>（Windows 11）が無いため、
-/// <b>OS が対応していても設定できない</b>。 撮影側は該当する設定を要求されたときに代替（GDI）へ落とす。<br/>
+/// <b>OS が対応していても設定できない</b>。 撮影側は<b>カーソルを写さない設定を要求されたときに代替（GDI）へ落とし</b>、
+/// <b>枠を消す設定は満たせないまま撮影を続ける</b>（枠のために WGC の利点を捨てない）。<br/>
 /// <br/>
 /// <b>true は「使える見込み」である</b>: 実際の撮影は GPU とセッションの状態にも依存するため、
 /// 撮影時の失敗に備えて呼び出し側は GDI へ退避できるようにする（判定と撮影の責務を分ける）。
@@ -44,8 +45,8 @@ public static class WindowsGraphicsCaptureSupport
     /// <summary>撮影中の枠（黄色い枠）の表示を消せるかを返す。</summary>
     /// <value><b>このビルドでは常に false</b>（対象フレームワーク 17763 の射影に <c>IsBorderRequired</c> が無いため）。</value>
     /// <remarks>
-    /// OS が対応していても（Windows 11 でも）本ビルドからは設定できない。 撮影側は
-    /// <b>枠を消す設定を要求されたときに GDI へ委譲する</b>（GDI は枠を描かない）。
+    /// OS が対応していても（Windows 11 でも）本ビルドからは設定できない。 撮影側は<b>枠を消さずに撮影を続ける</b>
+    /// （枠が写るだけで撮影は成立するため、枠のために WGC の利点を捨てない）。
     /// </remarks>
     public static bool IsBorderControlSupported => false;
 

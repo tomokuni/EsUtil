@@ -21,11 +21,13 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// 保護コンテンツ・複数モニターに跨る領域）がある。 本クラスは<b>撮影できないと判断したときは GDI の実装へ委譲</b>する
 /// （利用者の操作を失敗させない）。<br/>
 /// <br/>
-/// <b>カーソルと枠</b>: <c>IsCursorCaptureEnabled</c>（1903）と <c>IsBorderRequired</c>（Windows 11）は
-/// <b>対象フレームワーク（17763）の射影に無い</b>ため、本ビルドからは設定できない（OS が対応していても呼べない）。
-/// そのため <b>カーソルを写さない・枠を消す設定を要求されたときは GDI へ委譲する</b>
-/// （GDI はカーソルを合成せず枠も描かないため、どちらの設定も満たせる）。
-/// WGC を使うのは「カーソルを含め、枠を描く」既定の設定のときだけである。<br/>
+/// <b>カーソルは写せない</b>: <c>IsCursorCaptureEnabled</c>（1903）は<b>対象フレームワーク（17763）の射影に無い</b>ため、
+/// 本ビルドからは設定できない（OS が対応していても呼べない）。 そのため
+/// <b>カーソルを写さない設定を要求されたときは GDI へ委譲する</b>（GDI はカーソルを合成しない）。<br/>
+/// <br/>
+/// <b>枠は消せない</b>: <c>IsBorderRequired</c>（Windows 11）も射影に無いため設定できないが、
+/// 枠が写るだけで撮影自体は成立するため GDI へは委譲しない（枠を消すには GDI へ委譲するしかないが、
+/// そのために隠れた領域を撮れるという WGC の利点を捨てることになる）。<br/>
 /// <br/>
 /// <b>Direct3D の宣言だけは CsWin32 を使わない</b>: <c>d3d11.dll</c> は Win32 メタデータに含まれないため、
 /// 本クラスが <c>[LibraryImport]</c> で宣言する（[`.github/ビルド設定規約.md`](../../../../.github/ビルド設定規約.md) §7 の例外）。
@@ -35,11 +37,17 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <summary><c>ID3D11Texture2D</c> の IID（撮影フレームの表面をテクスチャとして読む）。</summary>
     private static readonly Guid s_iidTexture2D = new("6f15aaf2-d208-4e89-9ab4-489535d34f9c");
 
+    /// <summary><c>IDirect3DDxgiInterfaceAccess</c> の IID（表面からテクスチャを取得する入り口）。</summary>
+    private static readonly Guid s_iidDxgiInterfaceAccess = new("a9b3d012-3df2-4ee3-b8d1-8695f457d3c1");
+
     /// <summary><c>IDXGIDevice</c> の IID（D3D11 のデバイスから WinRT のデバイスを作る）。</summary>
     private static readonly Guid s_iidDxgiDevice = new("54ec77fa-1377-44e6-8c32-88fd5f44c84c");
 
     /// <summary><c>IGraphicsCaptureItemInterop</c> の IID（ファクトリからモニター・ウィンドウの項目を作る）。</summary>
     private static readonly Guid s_iidCaptureItemInterop = new("3628e81b-3cac-4c60-b7f4-23ce0e0c3356");
+
+    /// <summary><c>IDirect3DDxgiInterfaceAccess::GetInterface</c> の vtable 位置。</summary>
+    private const int GetInterfaceIndex = 3;
 
     /// <summary><c>ID3D11Device::CreateTexture2D</c> の vtable 位置。</summary>
     private const int CreateTexture2DIndex = 5;
@@ -89,9 +97,12 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
             return CaptureWithFallback(bounds);
         }
 
-        // WGC ではカーソルを含め枠も描かれる。 「含めない」「枠を消す」を要求されたときは、
-        // どちらも満たせる GDI で撮る（本ビルドの射影 17763 には、この 2 つを設定する API が無い）
-        if (!includeCursor || hideBorder)
+        // カーソルを写さない設定は WGC では満たせない（本ビルドの射影 17763 に IsCursorCaptureEnabled が無い）。
+        // カーソルを合成しない GDI で撮る（設定を無視して写すことになるため）。
+        // **枠を消す設定は撮影を止める理由にしない**: 枠は消せないが WGC の撮影自体は成立するため、
+        // WGC のまま撮る（枠は OS の既定どおり描かれる。 設定画面は IsBorderControlSupported で無効にする）
+        _ = hideBorder;
+        if (!includeCursor)
         {
             return CaptureWithFallback(bounds);
         }
@@ -272,46 +283,59 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <c>CopyResource</c> し、<c>Map</c> で読み取る。 行の幅（<c>RowPitch</c>）は画像の幅と一致しないことがあるため、
     /// 行ごとにコピーする。
     /// </remarks>
+    /// <remarks>
+    /// <b>表面からテクスチャへは 2 段で問い合わせる</b>: 射影された表面は <c>ID3D11Texture2D</c> を直接備えず、
+    /// <c>IDirect3DDxgiInterfaceAccess</c> を通して取得する。 マネージド側のラッパー（CCW）からはどちらの問い合わせも
+    /// 失敗するため、射影されたオブジェクトのネイティブの IUnknown（<see cref="WinRT.IWinRTObject"/>）を使う。
+    /// </remarks>
     private static EsBitmap CopyFrame(Direct3D11CaptureFrame frame, EsRectInt monitorBounds)
     {
         var surface = frame.Surface;
-        var inspectable = WinRT.MarshalInterface<IDirect3DSurface>.FromManaged(surface);
+        // ThisPtr は借用（参照カウントを増やさない）ため、解放しない
+        var native = ((WinRT.IWinRTObject)surface).NativeObject.ThisPtr;
+        var hr = Marshal.QueryInterface(native, in s_iidDxgiInterfaceAccess, out var access);
+        if (hr < 0)
+        {
+            throw new Win32Exception(hr, "撮影した表面を DXGI のインターフェースとして取得できませんでした。");
+        }
+
+        var texture = IntPtr.Zero;
+        var staging = IntPtr.Zero;
         try
         {
-            var hr = Marshal.QueryInterface(inspectable, in s_iidTexture2D, out var texture);
+            var getInterface = (delegate* unmanaged[Stdcall]<IntPtr, Guid*, IntPtr*, int>)(*(IntPtr**)access)[GetInterfaceIndex];
+            var iidTexture = s_iidTexture2D;
+            hr = getInterface(access, &iidTexture, &texture);
             if (hr < 0)
             {
                 throw new Win32Exception(hr, "撮影した表面をテクスチャとして取得できませんでした。");
             }
 
-            var staging = IntPtr.Zero;
-            try
+            staging = CreateStagingTexture(monitorBounds.Width, monitorBounds.Height);
+            CopyResource(staging, texture);
+
+            var target = EsBitmap.Create(monitorBounds.Width, monitorBounds.Height);
+            if (!MapAndCopy(staging, target))
             {
-                staging = CreateStagingTexture(monitorBounds.Width, monitorBounds.Height);
-                CopyResource(staging, texture);
-
-                var target = EsBitmap.Create(monitorBounds.Width, monitorBounds.Height);
-                if (!MapAndCopy(staging, target))
-                {
-                    target.Dispose();
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), "撮影した画像を読み出せませんでした。");
-                }
-
-                return target;
+                target.Dispose();
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "撮影した画像を読み出せませんでした。");
             }
-            finally
-            {
-                if (staging != IntPtr.Zero)
-                {
-                    Marshal.Release(staging);
-                }
 
-                Marshal.Release(texture);
-            }
+            return target;
         }
         finally
         {
-            Marshal.Release(inspectable);
+            if (staging != IntPtr.Zero)
+            {
+                Marshal.Release(staging);
+            }
+
+            if (texture != IntPtr.Zero)
+            {
+                Marshal.Release(texture);
+            }
+
+            Marshal.Release(access);
         }
     }
 
@@ -548,49 +572,46 @@ public sealed unsafe partial class WinGraphicsCaptureService(bool includeCursor 
     /// <exception cref="Win32Exception">作成に失敗した場合。</exception>
     /// <remarks>
     /// <c>GraphicsCaptureItem</c> のファクトリは公開されていないため、<c>IGraphicsCaptureItemInterop</c>
-    /// （COM の内部インターフェース）を IID で問い合わせて使う。
+    /// （COM の内部インターフェース）を IID で問い合わせて使う。<br/>
+    /// <b>ネイティブのファクトリを問い合わせる</b>: <c>MarshalInspectable&lt;object&gt;.FromManaged</c> は
+    /// <b>マネージド側のラッパー（CCW）</b>を作るため、内部インターフェースの問い合わせが
+    /// <c>E_NOINTERFACE</c> で失敗する。 <c>ActivationFactory.Get</c> が返す
+    /// <see cref="WinRT.IObjectReference"/> の <c>ThisPtr</c>（ネイティブの IUnknown）から問い合わせる。
     /// </remarks>
     private static GraphicsCaptureItem CreateItem(HMONITOR monitor)
     {
-        var factory = WinRT.ActivationFactory.Get("Windows.Graphics.Capture.GraphicsCaptureItem");
-        var inspectable = WinRT.MarshalInspectable<object>.FromManaged(factory);
+        using var factory = WinRT.ActivationFactory.Get("Windows.Graphics.Capture.GraphicsCaptureItem");
+        // ThisPtr は借用（参照カウントを増やさない）ため、解放しない
+        var hr = Marshal.QueryInterface(factory.ThisPtr, in s_iidCaptureItemInterop, out var interop);
+        if (hr < 0)
+        {
+            throw new Win32Exception(hr, "撮影項目のファクトリを取得できませんでした。");
+        }
+
         try
         {
-            var hr = Marshal.QueryInterface(inspectable, in s_iidCaptureItemInterop, out var interop);
-            if (hr < 0)
+            var vtable = *(IntPtr**)interop;
+            var createForMonitor = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, Guid*, IntPtr*, int>)vtable[4];
+            var iidItem = new Guid("79c3f95b-31f7-4ec2-a464-632ef5d30760");
+            IntPtr item;
+            hr = createForMonitor(interop, (IntPtr)monitor.Value, &iidItem, &item);
+            if (hr < 0 || item == IntPtr.Zero)
             {
-                throw new Win32Exception(hr, "撮影項目のファクトリを取得できませんでした。");
+                throw new Win32Exception(hr, "撮影項目を作成できませんでした。");
             }
 
             try
             {
-                var vtable = *(IntPtr**)interop;
-                var createForMonitor = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, Guid*, IntPtr*, int>)vtable[4];
-                var iidItem = new Guid("79c3f95b-31f7-4ec2-a464-632ef5d30760");
-                IntPtr item;
-                hr = createForMonitor(interop, (IntPtr)monitor.Value, &iidItem, &item);
-                if (hr < 0 || item == IntPtr.Zero)
-                {
-                    throw new Win32Exception(hr, "撮影項目を作成できませんでした。");
-                }
-
-                try
-                {
-                    return WinRT.MarshalInspectable<GraphicsCaptureItem>.FromAbi(item);
-                }
-                finally
-                {
-                    Marshal.Release(item);
-                }
+                return WinRT.MarshalInspectable<GraphicsCaptureItem>.FromAbi(item);
             }
             finally
             {
-                Marshal.Release(interop);
+                Marshal.Release(item);
             }
         }
         finally
         {
-            Marshal.Release(inspectable);
+            Marshal.Release(interop);
         }
     }
 
