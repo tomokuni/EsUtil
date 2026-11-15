@@ -3,7 +3,7 @@
 ![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.ColorSelector.svg)
 ![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
 ![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
-![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1809)%2B-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1809%2C%2017763)%2B-0078D6)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 ![AOT](https://img.shields.io/badge/AOT-Ready-00695C)
 ![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)

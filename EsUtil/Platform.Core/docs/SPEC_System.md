@@ -150,7 +150,7 @@ graph LR
 | 失敗の種類 | 表し方 | 例 |
 | --- | --- | --- |
 | OS 操作の失敗（回復できない） | `Win32Exception` を投げる（日本語のメッセージに**操作と対象**を含める） | `WinCaptureService.CaptureArea` / `WinWindowService.SetBounds` / `WinGlobalHotKeyService.Initialize` |
-| 能力の有無・正常な入力の変種 | `bool` の戻り値 | `WinWindowService.SetCaptureExclusion`（Windows 10 2004 未満）/ `WinGlobalHotKeyService.RegisterAll`（他のアプリとの競合）/ `ICursorService.TryGetCursorScreenPoint` / `WindowsGraphicsCaptureSupport`（撮影方式を使えるか） |
+| 能力の有無・正常な入力の変種 | `bool` の戻り値 | `WinWindowService.SetCaptureExclusion`（Windows 10 バージョン 2004（ビルド 19041）未満）/ `WinGlobalHotKeyService.RegisterAll`（他のアプリとの競合）/ `ICursorService.TryGetCursorScreenPoint` / `WindowsGraphicsCaptureSupport`（撮影方式を使えるか） |
 | 該当なし | 空の結果 | `WinElementFinder`（見つからない） |
 | 撮影方式が使えない（回復できる） | **他の方式へ委譲する** | `WinGraphicsCaptureService`（GDI へ委譲） |
 | 取得できない（撮影の前提が欠ける） | `null` | `WinCaptureService.CaptureVirtualScreen`（仮想スクリーンの境界が測れない） |
