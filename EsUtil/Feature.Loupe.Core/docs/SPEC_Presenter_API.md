@@ -65,7 +65,7 @@
 | `ResolveLayout(EsSize)` | method | コアへ委譲する（表示サイズ + 位置。 毎フレーム呼ばれるためログは出力しない） |
 | `ResolveDrawPlan(double displaySize, Func<string, double, EsSize> measureText)` | method | 描画計画（`LoupeDrawPlan`）を解決する。 `measureText` が null なら `ArgumentNullException`。 毎フレーム呼ばれるためログは出力しない |
 
-**ログの出力方針**: 生成（コンストラクター注入時、または `Log` の初回設定時に 1 度だけ。 Information）と、本層が単一所有する外観の変更（Information）を出力します。 値の保持と変更の記録はコアが行います（詳細は [`SPEC_System.md`](SPEC_System.md) の「ログ」を参照）。
+**ログの出力方針**: 提示層の生成（コンストラクター注入時、または `Log` の初回設定時に 1 度だけ。 **Debug**）と、本層が単一所有する外観の変更（Information）を出力します。 コアの生成（ファサード）は Information です。 値の保持と変更の記録はコアが行います（詳細は [`SPEC_System.md`](SPEC_System.md) の「ログ」を参照）。
 
 ### 2.3 `LoupeAppearance` のメンバー
 

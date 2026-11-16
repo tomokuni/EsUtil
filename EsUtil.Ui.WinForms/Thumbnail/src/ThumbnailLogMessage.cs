@@ -64,6 +64,7 @@ internal static partial class ThumbnailLogMessage
     /// <param name="oldValue">変更前の画像（整形済み。 未設定は null）。</param>
     /// <param name="newValue">変更後の画像（整形済み。 未設定は null）。</param>
     /// <remarks>
+    /// LogLevel: Trace（一覧の項目ごとに繰り返されるため。 規則の所有者は <c>.github/ログ規約.md</c> §2）。<br/>
     /// 本コントロールは直前の画像を解放するため、呼び出し側は<b>解放する前に</b>整形した文字列を渡す<br/>
     /// （解放後の <see cref="Bitmap"/> の幅 は例外になる。 整形は <see cref="Describe"/> が単一所有する）。
     /// </remarks>
@@ -74,7 +75,7 @@ internal static partial class ThumbnailLogMessage
             return;
         }
 
-        logger.LogSettingChanged(name, oldValue ?? "null", newValue ?? "null");
+        logger.LogSettingChangedTrace(name, oldValue ?? "null", newValue ?? "null");
     }
 
     /// <summary>項目数の変更を記録する（同数では出力しない）。</summary>

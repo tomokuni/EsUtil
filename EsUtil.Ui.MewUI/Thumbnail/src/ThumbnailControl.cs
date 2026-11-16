@@ -190,7 +190,7 @@ public sealed class ThumbnailControl : Panel
 
             var previous = field;
             field = value;
-            _log.LogSettingChanged(nameof(ImageWidth), previous.ToString(System.Globalization.CultureInfo.InvariantCulture), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            _log.LogSettingChangedTrace(nameof(ImageWidth), previous.ToString(System.Globalization.CultureInfo.InvariantCulture), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
             Refresh();
         }
     } = 96;

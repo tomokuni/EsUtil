@@ -75,10 +75,11 @@ internal static partial class LoupeLogMessage
         => logger.LogFacadeCreatedCore(Prefix, requestedSize, zoomLevel);
 
     /// <summary>提示層の生成を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Loupe] 提示層を作成しました</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Loupe] 提示層を作成しました</c><br/>
+    /// 撮影のたびに作られるため Debug で記録する（規則の所有者は <c>.github/ログ規約.md</c> §2・§6）。</remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} 提示層を作成しました")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 提示層を作成しました")]
     private static partial void LogPresenterCreatedCore(this ILogger logger, string prefix);
 
     /// <summary>提示層の生成を記録する。</summary>

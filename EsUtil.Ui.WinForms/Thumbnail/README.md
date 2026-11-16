@@ -131,12 +131,12 @@ list.SetImage(index, bitmap);
 
 ## 9. ログ
 
-画像と項目数の変更を記録します（既定は出力なし）。 **1 件ずつの追加は一覧の読み込みで件数分出力されるため Trace**、一括のクリア（件数が減る変更）は Debug です。
+画像と項目数の変更を記録します（既定は出力なし）。 **画像の差し替え（`Image[0]`）と画像の幅（`ImageWidth`）は、一覧を表示するたびに項目数分・ページを開くたびに設定されるため Trace**、項目数の増減（一括のクリアを含む）は Information です。
 
 | レベル | 出力例 |
 | --- | --- |
-| Information | `[Thumbnail] 設定: ImageWidth 160 → 110` / `[Thumbnail] 設定: IsDarkTheme False → True` / `[Thumbnail] 設定: Image[0] null → 96x64`（画像の差し替え） / `[Thumbnail] 設定: ItemCount 12 → 0`（クリア） |
-| Trace | `[Thumbnail] 設定: ItemCount 0 → 1`（1 件ずつの追加） |
+| Information | `[Thumbnail] 設定: IsDarkTheme False → True` / `[Thumbnail] 設定: ItemCount 12 → 0`（クリア） |
+| Trace | `[Thumbnail] 設定: ImageWidth 160 → 110` / `[Thumbnail] 設定: Image[0] null → 96x64`（画像の差し替え） / `[Thumbnail] 設定: ItemCount 0 → 1`（1 件ずつの追加） |
 
 `Log` へ `ILogger` を設定します（null は `NullLogger`）。 接頭辞は `LogPrefix` で設定し、コアと提示層のログの両方に適用します（既定 `[Thumbnail]`）。 設定・外観の変更は提示層、選択の変更はコアが記録します。
 
