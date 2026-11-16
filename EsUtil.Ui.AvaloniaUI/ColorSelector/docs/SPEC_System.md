@@ -14,14 +14,15 @@
 - [6. コンポーネント一覧](#6-コンポーネント一覧)
   - [6.1 ColorSelectorControl](#61-colorselectorcontrol)
   - [6.2 ColorSelectorControl.axaml](#62-colorselectorcontrolaxaml)
-  - [6.3 ColorEntry](#63-colorentry)
-  - [6.4 ColorSortMode](#64-colorsortmode)
-  - [6.5 StringToBrushConverter](#65-stringtobrushconverter)
-  - [6.6 ColorString](#66-colorstring)
-  - [6.7 入力欄の表記（`TextFormat`）](#67-入力欄の表記textformat)
-  - [6.8 ColorValidator](#68-colorvalidator)
-  - [6.9 区画（スウォッチ・入力欄・▼・…）の構成](#69-区画スウォッチ入力欄の構成)
-  - [6.10 ColorSelectorFlyoutFactory](#610-colorselectorflyoutfactory)
+  - [6.3 ColorSelectorCustomTab / ColorSelectorCustomColor / ColorSelectorTabSpec](#63-colorselectorcustomtab--colorselectorcustomcolor--colorselectortabspec)
+  - [6.4 ColorEntry](#64-colorentry)
+  - [6.5 ColorSortMode](#65-colorsortmode)
+  - [6.6 StringToBrushConverter](#66-stringtobrushconverter)
+  - [6.7 ColorString](#67-colorstring)
+  - [6.8 入力欄の表記（`TextFormat`）](#68-入力欄の表記textformat)
+  - [6.9 ColorValidator](#69-colorvalidator)
+  - [6.10 区画（スウォッチ・入力欄・▼・…）の構成](#610-区画スウォッチ入力欄の構成)
+  - [6.11 ColorSelectorFlyoutFactory](#611-colorselectorflyoutfactory)
 - [7. 依存ルール](#7-依存ルール)
 - [8. バリデーション状態遷移](#8-バリデーション状態遷移)
 - [9. ライフサイクル](#9-ライフサイクル)
@@ -121,13 +122,16 @@ flowchart TB
   - `SelectedColor`（色名/16進コード）の双方向バインド対応の保持（公開 API は ColorSelectorControl.axaml.cs に集約）
   - 入力バリデーション状態の管理（`UpdateValidationStatus`。 検証自体は `ColorValidator` に委譲）
   - 一覧のポップアップ（▼）の構築と並び順切替（`ColorSortMode`）
+  - 一覧のタブの構成（`CreateTabs`。 既存タブの表示設定と `CustomTabs` から作り、空のタブは作らない）
+  - 表示の切替（`ShowListButton` / `ShowPickerButton`。 `ApplyViewOptions` がボタンと区切りの線をまとめて切り替える）
+  - 一覧の幅の決定（`ApplyListWidth`。 **コントロールの幅は変えず**、一覧だけを枠と内容の広い方へ合わせる）
   - 入力欄の文字と保存値の同期（`OnTextValueChanged`。 プログラムからの `Text` 変更でも発火させるため、`Text` プロパティの変更を購読する）
   - 無効入力の最終有効値復帰（`OnTextLostFocus`）
   - カラーピッカー Flyout の表示（`OnColorPickerButtonClick` → `ColorSelectorFlyoutFactory.Create`）
   - 入力欄の余白調整（`ApplyTextLayout`。 左へスウォッチ分を確保する）
   - スウォッチと入力欄のツールチップ（色名+不透明度 / `#AARRGGBB` の 2 行）
   - バリデーション失敗時の枠線強調（`UpdateBorderValidationVisual`）
-- **公開API**: `SelectedColor` / `ColorSortMode` / `TextFormat` / `HighlightBorderOnError` / `HasValidationError` / `ValidationErrorMessage` / `TextFontSize` / `TextMinWidth` / `TextMaxWidth` / `TextWidth` / `Log` / `LogPrefix`（StyledProperty も同ファイルに定義）
+- **公開API**: `SelectedColor` / `ColorSortMode` / `TextFormat` / `HighlightBorderOnError` / `HasValidationError` / `ValidationErrorMessage` / `TextFontSize` / `ShowListButton` / `ShowPickerButton` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowTabTitles` / `CustomTabs` / `Log` / `LogPrefix`（StyledProperty も同ファイルに定義）
 - **構成**: 公開 API（StyledProperty・公開プロパティ）とイベント処理・バリデーション状態を保持し、関心事ごとに専用クラスへ委譲（単一責任・疎結合）
 - **内部メソッド（internal）**: `UpdateValidationStatus`（テストからの検証用に公開）
 - **依存**: ColorSelectorFlyoutFactory / ColorValidator / ColorEntry / ColorSortMode / ColorString / ColorTextFormat
@@ -143,7 +147,16 @@ flowchart TB
   - 一覧の行とスウォッチのブラシ（`StringToBrushConverter`）のリソース登録
 - **依存**: ColorSelectorControl / StringToBrushConverter
 
-### 6.3 ColorEntry
+### 6.3 ColorSelectorCustomTab / ColorSelectorCustomColor / ColorSelectorTabSpec
+
+- **分類**: 公開レコード（カスタム タブの定義・1 色）と内部レコード（一覧のタブ 1 つ分の解決結果）
+- **責務**:
+  - `ColorSelectorCustomTab`: タブの題名と並べる色を持つ（利用者が `CustomTabs` へ指定する）
+  - `ColorSelectorCustomColor`: 一覧に表示する名前と、選んだときに適用する色を持つ
+  - `ColorSelectorTabSpec`: 題名・識別子・項目（`CreateTabs` が表示設定と中身から作る。 空のタブは作らない）
+- **依存**: ColorSelectorControl（`CreateTabs` が作る）/ ColorSelectorItem
+
+### 6.4 ColorEntry
 
 - **分類**: 内部レコード（色名 + 色を表す文字列の組。 ドロップダウンの選択肢データ）
 - **可視性**: `internal sealed record`（公開 API ではなく内部型。 外部から直接扱わない）
@@ -154,20 +167,20 @@ flowchart TB
 - **特徴**: 色一覧は `ColorString.ColorNames`（`ColorString` が構築済みの辞書）を再利用する（リフレクション走査の重複排除・単一所有）。 `Value` パラメータには現在の実装では色名（= `Colors` のプロパティ名）が保持される
 - **依存**: ColorString / Avalonia.Media
 
-### 6.4 ColorSortMode
+### 6.5 ColorSortMode
 
 - **分類**: 公開 enum
 - **責務**: ドロップダウンの並び順の指定（`ByName` / `ByHue`）
 - **依存**: なし
 
-### 6.5 StringToBrushConverter
+### 6.6 StringToBrushConverter
 
 - **分類**: 公開 IValueConverter（`public sealed class`）
 - **責務**: 色名/16進コード → `IBrush`（スウォッチ背景）
 - **特徴**: 解釈不能な値は `Brushes.Transparent`。 `ConvertBack` は `NotSupportedException`。 解析済み色のブラシはカラー選択で再利用され、容量管理は `ColorString.AddWithCapacityLimit` に委譲（単一所有）
 - **依存**: Avalonia.Media / Avalonia.Data.Converters / ColorString
 
-### 6.6 ColorString
+### 6.7 ColorString
 
 - **分類**: 公開静的ユーティリティ（`public static class`）
 - **責務**: 色文字列（色名 / #RRGGBB / #AARRGGBB / +% 形式）の解析・整形・正規化
@@ -180,28 +193,28 @@ flowchart TB
   - `Colors` のリフレクション列挙を単一所有し、`ColorEntry` が再利用する
 - **依存**: Avalonia.Media
 
-### 6.7 入力欄の表記（`TextFormat`）
+### 6.8 入力欄の表記（`TextFormat`）
 
 - **分類**: 公開プロパティ（StyledProperty。 値はコアの `ColorTextFormat`）
 - **責務**: 入力欄へ出す文字列の形を決める（色名 + 不透明度 / `#AARRGGBB`）
 - **特徴**: 変換は `ColorString.ToText`（コア）が単一所有する。 保存値は表記に依らず常に `#AARRGGBB`（入力欄は編集できるため、表記と異なる形の入力も受理する）
 - **依存**: EsUtil.Platform.Core.Palette（`ColorTextFormat` / `ColorString`）
 
-### 6.8 ColorValidator
+### 6.9 ColorValidator
 
 - **分類**: 内部静的ユーティリティ（`internal static class`）
 - **責務**: 色文字列（色名 / #RRGGBB / #AARRGGBB / +% 形式）の妥当性検証（`IsValid`）
 - **特徴**: 検証は `ColorString.TryParse` に一元委譲（解析ロジックの二重所有を排除）。 UI 非依存のため他プロジェクトでも流用可能
 - **依存**: ColorString
 
-### 6.9 区画（スウォッチ・入力欄・▼・…）の構成
+### 6.10 区画（スウォッチ・入力欄・▼・…）の構成
 
 - **分類**: XAML のレイアウト
 - **責務**: 4 つの区画を隙間なく並べ、1 つの入力欄に見せる
 - **特徴**: 枠線は外周の 1 つだけが持ち、区画のボタンは枠も背景も持たない（`Button.segment`）。 区切りは枠より薄い 1 ピクセルの垂直線で表す（上下に 5 ピクセルの余白を取る）。 行は `Auto` にして入力欄の高さへ揃える（行を伸ばすとスウォッチだけが下へずれる）
 - **依存**: ColorSelectorControl.axaml.cs
 
-### 6.10 ColorSelectorFlyoutFactory
+### 6.11 ColorSelectorFlyoutFactory
 
 - **分類**: 内部静的ファクトリ（`internal static class`。 Simple Factory パターン）
 - **責務**: カラーピッカー（ColorView）を格納した Flyout の構築（`Create`）と OK / キャンセルイベントの配線

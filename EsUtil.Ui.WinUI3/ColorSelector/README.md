@@ -51,6 +51,11 @@
 - 入力欄の表記を切替可能（`TextFormat`。 色名 + 不透明度 / `#AARRGGBB`）
 - スウォッチと入力欄のツールチップ（色名 + 不透明度 / `#AARRGGBB` の 2 行）
 - 入力の検証（無効な入力はエラー状態になり、フォーカスを外すと最後の有効値へ戻る）
+- 一覧ボタン（▼）・ピッカー ボタン（…）の表示切替（`ShowListButton` / `ShowPickerButton`。 区切りの線も一緒に隠す）
+- 既存タブ（「テーマカラー」/「色名」）の表示切替（`ShowThemeColorTab` / `ShowNamedColorTab`）
+- **カスタム タブの追加**（`CustomTabs`。 題名と色名/色コードを動的に指定。 複数可。 空のタブは表示しない）
+- タブが 1 つだけのときの題名の表示切替（`ShowTabTitles`）
+- 一覧を開いても**コントロールの幅は変わらない**（一覧だけが内容に合わせて広がる）
 - `ILogger` による変更の記録（`Log` / `LogPrefix`）
 
 ## 3. システム要件
@@ -105,6 +110,8 @@ Host.Children.Add(color);
 | 色の一覧の並び順 | `ColorSortMode`（`ByName` / `ByHue`） |
 | 入力欄の表記 | `TextFormat`（`NameWithAlpha` / `HexCode`） |
 | 一覧に出す色 | コアの `ColorNames`（Windows 標準の色名。 システム色は含まない）と、UI が提供するテーマの色（`ShowThemeColors` で一覧から外せる） |
+| 一覧のタブ | `ShowThemeColorTab` / `ShowNamedColorTab` で既存のタブを隠せ、`CustomTabs`（`ColorSelectorCustomTab` の並び）で用途ごとのタブ（例: 代表色）を足せる。 タブが 1 つだけなら `ShowTabTitles` で題名の行を省ける |
+| 一覧・ピッカーのボタン | `ShowListButton` / `ShowPickerButton`（区切りの線も一緒に隠れる） |
 | ログの接頭辞 | `LogPrefix`（既定 `[ColorSelector]`） |
 
 一覧と色文字列の規則はコアが単一所有するため、**本コントロールに派生や差し替え点はありません**（3 つの UI で同じ結果にするため）。
@@ -127,7 +134,7 @@ Host.Children.Add(color);
 
 - **XAML からの配置**: 行わない（コードで生成する。 内包する `ColorPicker` の構成を保つため）。
 - **複数色の同時編集**: 持たない（1 つの色だけを扱う）。
-- **色名の追加・変更**: 持たない（色名は Windows 標準。 追加したい場合はコアの `ColorNames` を拡張する）。
+- **色名の追加・変更**: 持たない（色名は Windows 標準。 追加したい場合はコアの `ColorNames` を拡張する）。 よく使う色は `CustomTabs` でタブとして足せる。
 
 ---
 
@@ -153,14 +160,18 @@ dotnet run --project EsUtil.Ui.WinUI3/ColorSelector/sample/EsUtil.Ui.WinUI3.Colo
 
 ```text
 EsUtil.Ui.WinUI3/ColorSelector/
-├── src/                                            # UI 層（WinUI の要素の組み立てと同期）
-│   ├── EsUtil.Ui.WinUI3.ColorSelector.csproj        # 独立プロジェクト（Platform.Core を参照）
-│   ├── ColorSelectorControl.cs                      # 公開 API・入力と状態の同期・一覧とピッカー
-│   ├── ColorSelectorItem.cs                            # 一覧の 1 件（表示名と適用値）
-│   └── ColorSelectorLogMessage.cs                                # ログ定義（LoggerMessage ソース生成）
-├── docs/                                           # SPEC_API.md / SPEC_System.md
-├── sample/                                         # サンプルアプリ（sample/README.md 参照）
-└── tests/                                          # 単体テスト（XAML ランタイム不要の範囲）
+├── src/                                      # UI 層（WinUI の要素の組み立てと同期）
+│   ├── EsUtil.Ui.WinUI3.ColorSelector.csproj # 独立プロジェクト（Platform.Core を参照）
+│   ├── ColorSelectorControl.cs               # 公開 API・入力と状態の同期・一覧とピッカー
+│   ├── ColorSelectorItem.cs                  # 一覧の 1 件（表示名と適用値）
+│   ├── ColorSelectorCategory.cs              # 一覧の項目の分類（テーマカラー / 色名 / カスタム）
+│   ├── ColorSelectorTabSpec.cs               # 一覧の 1 タブ（題名・識別子・項目）
+│   ├── ColorSelectorCustomTab.cs             # 利用者が追加するタブ（公開型）
+│   ├── ColorSelectorCustomColor.cs           # カスタム タブの 1 色（公開型）
+│   └── ColorSelectorLogMessage.cs            # ログ定義（LoggerMessage ソース生成）
+├── docs/                                     # SPEC_API.md / SPEC_System.md
+├── sample/                                   # サンプルアプリ（sample/README.md 参照）
+└── tests/                                    # 単体テスト（XAML ランタイム不要の範囲）
 ```
 
 ---
@@ -171,7 +182,7 @@ EsUtil.Ui.WinUI3/ColorSelector/
 dotnet test EsUtil.Ui.WinUI3/ColorSelector/tests/EsUtil.Ui.WinUI3.ColorSelector.Tests.csproj
 ```
 
-WinUI のコントロールは XAML ランタイム（`Application`）を必要とするため、テストは**色文字列の規則がコアと一致すること**と**ログ定義**を対象にします。 入力と表示は利用側アプリで確認します。
+WinUI のコントロールは XAML ランタイム（`Application`）を必要とするため、テストは**色文字列の規則がコアと一致すること**、**一覧のタブの決め方**（`CreateTabs` / `ShouldShowTabStrip`）、**一覧の幅の決め方**（`CalculateListWidth`）、**ログ定義**を対象にします。 入力と表示は利用側アプリで確認します。
 
 ---
 

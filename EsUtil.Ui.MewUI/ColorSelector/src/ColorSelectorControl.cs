@@ -20,7 +20,12 @@ namespace EsUtil.Ui.MewUI.ColorSelector;
 /// <b>一覧は自前のポップアップ</b>、<b>カラーピッカーは <see cref="ColorPicker"/> 自身のドロップダウン</b>を使う
 /// （<see cref="ColorPicker"/> はドロップダウン コントロールであり、内容を自前のポップアップへ入れると
 /// 折り畳んだ見出ししか表示されない。 実測 2026-10-25）。<br/>
-/// <b>ツールチップ</b>: スウォッチとテキスト部には「色名+不透明度」と「<c>#AARRGGBB</c>」の 2 行を出す。
+/// <b>ツールチップ</b>: スウォッチとテキスト部には「色名+不透明度」と「<c>#AARRGGBB</c>」の 2 行を出す。<br/>
+/// <b>一覧のタブ</b>: 表示の設定（<see cref="ShowThemeColorTab"/> / <see cref="ShowNamedColorTab"/>）と
+/// <see cref="CustomTabs"/> からタブを作り、開くたびに作り直す（空のタブは作らない）。 タブが 1 つだけのときは
+/// <see cref="ShowTabTitles"/> で題名の行を隠せる。<br/>
+/// <b>表示の切替</b>: <see cref="ShowListButton"/> / <see cref="ShowPickerButton"/> で区画（▼ / …）と区切りの線を
+/// まとめて隠せる。 一覧を開いてもコントロールの幅は変えない（一覧だけを内容に合わせて広げる）。
 /// </remarks>
 public sealed class ColorSelectorControl : Grid
 {
@@ -51,17 +56,26 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>選択中のテーマの色の識別子（例: <c>背景</c>）。 テーマの色でない場合は null。</summary>
     private string? _selectedThemeColor;
 
-    /// <summary>直近に選んだ一覧の分類（次に開いたときに同じタブから始める）。</summary>
-    private ColorSelectorCategory _listCategory = ColorSelectorCategory.Theme;
+    /// <summary>一覧ボタン（▼）を表示するかどうか。</summary>
+    private bool _showListButton = true;
 
-    /// <summary>タブの状態を自分で書いている間かどうか（相手のタブの変化通知で往復しないようにする）。</summary>
-    private bool _switchingCategory;
+    /// <summary>カラーピッカー ボタン（…）を表示するかどうか。</summary>
+    private bool _showPickerButton = true;
 
-    /// <summary>一覧の上部のタブ（テーマカラー / 色名）。</summary>
-    private readonly ToggleButton _themeTab = CreateCategoryTab("テーマカラー");
+    /// <summary>直近に開いた一覧のタブの識別子（次に開いたときに同じタブから始める）。</summary>
+    private string? _listTabKey;
 
-    /// <summary>色名のタブ。</summary>
-    private readonly ToggleButton _namedTab = CreateCategoryTab("色名");
+    /// <summary>タブの状態を自分で書いている間かどうか（自分で書いた通知で往復しないようにする）。</summary>
+    private bool _switchingTabs;
+
+    /// <summary>一覧の上部のタブの入れ物（表示の設定と中身から作り直す）。</summary>
+    private readonly StackPanel _tabStrip;
+
+    /// <summary>一覧の上部のタブのボタン（<see cref="_tabStrip"/> の中身と同じ並び）。</summary>
+    private readonly List<ToggleButton> _tabButtons = [];
+
+    /// <summary>表示中のタブ（<see cref="RefreshList"/> が作り直す）。</summary>
+    private readonly List<ColorSelectorTabSpec> _tabs = [];
 
     /// <summary>一覧の幅に足す余白（DIP。 枠と、行の文字が端に接しないための余裕）。</summary>
     /// <remarks>行の実寸と項目の余白は実測値であり、端数だけで足りない分を本値が補う（実測 2026-11-02）。</remarks>
@@ -108,8 +122,14 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>色の一覧を開くボタン。</summary>
     private readonly Button _listButton;
 
+    /// <summary>一覧ボタンの手前の区切りの垂直線（ボタンと一緒に表示を切り替える）。</summary>
+    private readonly Border _listSeparator;
+
     /// <summary>カラーピッカーを開くボタン。</summary>
     private readonly Button _pickerButton;
+
+    /// <summary>ピッカー ボタンの手前の区切りの垂直線（ボタンと一緒に表示を切り替える）。</summary>
+    private readonly Border _pickerSeparator;
 
     /// <summary>一覧のポップアップ。</summary>
     private readonly Popup _listPopup;
@@ -194,15 +214,13 @@ public sealed class ColorSelectorControl : Grid
             _ => CreateItemRow(ListFontSize),
             static (view, item, _, _) => ApplyItem(view, item),
             static (_, _, _, _) => { });
-        // 上部のタブ（テーマカラー / 色名）。 分類ごとに一覧を差し替える
-        // （テーマの色が多いため、1 つの一覧へ混ぜると色名を探しにくい）
-        _themeTab.IsChecked(true);
-        _themeTab.OnCheckedChanged(isChecked => OnCategoryTabChanged(ColorSelectorCategory.Theme, isChecked));
-        _namedTab.OnCheckedChanged(isChecked => OnCategoryTabChanged(ColorSelectorCategory.Named, isChecked));
-        var tabStrip = new StackPanel().Horizontal().Spacing(4).Children(_themeTab, _namedTab);
+
+        // 上部のタブは表示の設定と中身から作り直す（RefreshList が _tabStrip の中身を入れ替える）。
+        // 分類ごとに一覧を差し替える（テーマの色が多いため、1 つの一覧へ混ぜると色名を探しにくい）
+        _tabStrip = new StackPanel().Horizontal().Spacing(4);
 
         _listPopup = new Popup();
-        _listPopup.Content(new StackPanel().Vertical().Spacing(6).Children(tabStrip, _list));
+        _listPopup.Content(new StackPanel().Vertical().Spacing(6).Children(_tabStrip, _list));
         _listPopup.Closed += (_, _) => _listButton.Content("▼");
 
         // カラーピッカーは**自身のドロップダウン**を使う（内容を自前のポップアップへ入れると
@@ -242,11 +260,14 @@ public sealed class ColorSelectorControl : Grid
         textArea.Add(_swatch);
 
         // テキスト部・▼・… を隙間なく並べ、区切りは薄い垂直線で表す
+        // （区切りの線はボタンと一緒に表示を切り替えるため、フィールドに保持する）
+        _listSeparator = CreateSeparator();
+        _pickerSeparator = CreateSeparator();
         var row = new Grid().Columns("*,Auto,Auto,Auto,Auto");
         row.Add(textArea.Column(0));
-        row.Add(CreateSeparator().Column(1));
+        row.Add(_listSeparator.Column(1));
         row.Add(_listButton.Column(2));
-        row.Add(CreateSeparator().Column(3));
+        row.Add(_pickerSeparator.Column(3));
         row.Add(_pickerButton.Column(4));
 
         _frame = new Border
@@ -260,6 +281,7 @@ public sealed class ColorSelectorControl : Grid
 
         Add(pickerHost);
 
+        ApplyViewOptions();
         RefreshList();
         ApplyColor(_selectedColor, raiseChanged: false);
     }
@@ -297,6 +319,60 @@ public sealed class ColorSelectorControl : Grid
     /// <b>並べない場合はコアの色名だけ</b>になる（一覧は次に開くときに作り直す）。
     /// </remarks>
     public bool ShowThemeColors { get; set; } = true;
+
+    /// <summary>一覧ボタン（▼）を表示するかどうかを取得または設定する。</summary>
+    /// <value>表示する場合は true（既定）。</value>
+    /// <remarks>
+    /// <b>隠すと一覧を開けない</b>: 色名を打ち込むか、カラーピッカーだけを使う場面（狭い場所）で隠す<br/>
+    /// （区切りの線も一緒に隠し、入力欄の見た目を崩さない）。
+    /// </remarks>
+    public bool ShowListButton
+    {
+        get => _showListButton;
+        set
+        {
+            _showListButton = value;
+            ApplyViewOptions();
+        }
+    }
+
+    /// <summary>カラーピッカー ボタン（…）を表示するかどうかを取得または設定する。</summary>
+    /// <value>表示する場合は true（既定）。</value>
+    public bool ShowPickerButton
+    {
+        get => _showPickerButton;
+        set
+        {
+            _showPickerButton = value;
+            ApplyViewOptions();
+        }
+    }
+
+    /// <summary>一覧の「テーマカラー」タブを表示するかどうかを取得または設定する。</summary>
+    /// <value>表示する場合は true（既定）。</value>
+    /// <remarks>テーマの色を使わないアプリでは隠せる（タブが 1 つになれば題名も隠せる）。</remarks>
+    public bool ShowThemeColorTab { get; set; } = true;
+
+    /// <summary>一覧の「色名」タブを表示するかどうかを取得または設定する。</summary>
+    /// <value>表示する場合は true（既定）。</value>
+    public bool ShowNamedColorTab { get; set; } = true;
+
+    /// <summary>一覧のタブの題名を表示するかどうかを取得または設定する。</summary>
+    /// <value>表示する場合は true（既定）。</value>
+    /// <remarks>
+    /// <b>タブが 1 つだけのときに効く</b>: 切り替える相手が無いため、題名を省いて一覧を狭くできる。<br/>
+    /// タブが 2 つ以上あるときは切り替えに必要なので、本値に関わらず表示する。
+    /// </remarks>
+    public bool ShowTabTitles { get; set; } = true;
+
+    /// <summary>一覧へ追加する「カスタム」タブを取得または設定する。</summary>
+    /// <value>追加するタブ。 空（既定）の場合は追加しない。</value>
+    /// <remarks>
+    /// <b>代表色をすぐ選べるようにする</b>: 用途ごとのタブ（例: 枠線の色）を足せる。 空のタブは表示しない。<br/>
+    /// 一覧は開くたびに作るため、設定を差し替えたあとの一覧から反映される。
+    /// </remarks>
+    public IReadOnlyList<ColorSelectorCustomTab> CustomTabs { get; set; } = [];
+
     /// <summary>選択中のテーマの色の識別子を取得または設定する（例: <c>背景</c>）。</summary>
     /// <value>テーマの色を選んでいるときの識別子。 色名・カラーコードを選んでいるときは null。</value>
     /// <remarks>
@@ -395,6 +471,16 @@ public sealed class ColorSelectorControl : Grid
             _logPrefix = value;
             ColorSelectorLogMessage.Prefix = value ?? ColorSelectorLogMessage.DefaultPrefix;
         }
+    }
+
+    /// <summary>表示の切り替え（一覧ボタン・ピッカー ボタン）を反映する。</summary>
+    /// <remarks>ボタンだけでなく区切りの線も隠す（線だけが残ると入力欄の見た目が崩れる）。</remarks>
+    private void ApplyViewOptions()
+    {
+        _listButton.IsVisible = _showListButton;
+        _listSeparator.IsVisible = _showListButton;
+        _pickerButton.IsVisible = _showPickerButton;
+        _pickerSeparator.IsVisible = _showPickerButton;
     }
 
     /// <summary>区画（▼ / …）のボタンを生成する。</summary>
@@ -709,29 +795,24 @@ public sealed class ColorSelectorControl : Grid
     /// <returns><c>#AARRGGBB</c> 形式の文字列。</returns>
     private static string ToHex(MewColor color) => ColorString.ToArgbHex(DrawingColor.FromArgb(color.A, color.R, color.G, color.B));
 
-    /// <summary>一覧を作り直す。</summary>
-    private void RefreshList()
+    /// <summary>一覧のタブと項目を作り直す。</summary>
+    /// <remarks>
+    /// <b>タブも作り直す</b>: タブは表示の設定（<see cref="ShowThemeColorTab"/> など）と <see cref="CustomTabs"/> から<br/>
+    /// 決まるため、項目と同じ機会に作り直す（空のタブを残さない）。<br/>
+    /// <b>作り直しの途中で選択が動いても利用者の選択として扱わない</b>: 扱うと、並び順を変えただけで色の変更として処理される。<br/>
+    /// タブの作り直しは一覧を開くまで起きないため、テストからの検証用に公開する。
+    /// </remarks>
+    internal void RefreshList()
     {
-        var entries = CreateItems();
+        var tabs = CreateTabs();
+        RebuildTabs(tabs);
 
-        // 作り直しの途中で選択が動いても「利用者の選択」として扱わない（他 UI の一覧選択と同じ判定）
-        // 扱うと、並び順を変えただけで色の変更として処理される
         _applying = true;
         try
         {
-            var category = entries.Exists(item => item.Category == _listCategory)
-                ? _listCategory
-                : entries.Exists(item => item.Category == ColorSelectorCategory.Theme)
-                    ? ColorSelectorCategory.Theme
-                    : ColorSelectorCategory.Named;
-            var visible = entries.Where(item => item.Category == category).ToList();
-            _list.ItemsSource = ItemsView.Create(visible);
-            _list.ItemTemplate = _itemTemplate;
-            ApplyListWidth(visible);
-            if (ColorString.TryParse(_selectedColor, out var color, out _))
-            {
-                UpdateSelectedIndex(color);
-            }
+            // 前回のタブが残っていればそこから、無ければ先頭のタブから開く
+            var lastIndex = tabs.FindIndex(tab => string.Equals(tab.Key, _listTabKey, StringComparison.Ordinal));
+            ApplyTab(lastIndex >= 0 ? lastIndex : 0);
         }
         finally
         {
@@ -739,60 +820,155 @@ public sealed class ColorSelectorControl : Grid
         }
     }
 
-    /// <summary>一覧の分類（タブ）を切り替える。</summary>
-    /// <param name="category">表示する分類。</param>
+    /// <summary>一覧に出すタブ（題名・識別子・並べる項目）を作る。</summary>
+    /// <returns>表示するタブ。 中身の無いタブは含めない。</returns>
     /// <remarks>
-    /// <b>片方だけが選ばれる</b>: タブは押すたびに状態が反転するため、選ばれた方だけを選んだ状態にし、<br/>
-    /// 一覧は分類で絞り直す（並び順と幅は分類ごとに決まる）。
+    /// <b>表示の設定と中身を 1 か所で決める</b>: タブの有無と一覧の項目が食い違わない（空のタブを出さない）。
     /// </remarks>
-    internal void ApplyCategory(ColorSelectorCategory category)
+    internal List<ColorSelectorTabSpec> CreateTabs()
     {
-        _listCategory = category;
+        var items = CreateItems();
+        var tabs = new List<ColorSelectorTabSpec>();
 
-        // 両方の状態を書くと相手のタブの変化通知も届くため、書き込みの間は通知を無視する
-        _switchingCategory = true;
+        if (ShowThemeColorTab)
+        {
+            var theme = items.Where(item => item.Category == ColorSelectorCategory.Theme).ToList();
+            if (theme.Count > 0)
+            {
+                tabs.Add(new ColorSelectorTabSpec("テーマカラー", "theme", theme));
+            }
+        }
+
+        if (ShowNamedColorTab)
+        {
+            var named = items.Where(item => item.Category == ColorSelectorCategory.Named).ToList();
+            if (named.Count > 0)
+            {
+                tabs.Add(new ColorSelectorTabSpec("色名", "named", named));
+            }
+        }
+
+        foreach (var custom in CustomTabs)
+        {
+            if (custom is null || custom.Colors.Count == 0)
+            {
+                continue;
+            }
+
+            var entries = custom.Colors
+                .Where(color => !string.IsNullOrWhiteSpace(color.Value))
+                .Select(color => new ColorSelectorItem(color.Name, color.Value, ColorSelectorCategory.Custom))
+                .ToList();
+            if (entries.Count > 0)
+            {
+                tabs.Add(new ColorSelectorTabSpec(custom.Title, "custom:" + custom.Title, entries));
+            }
+        }
+
+        return tabs;
+    }
+
+    /// <summary>一覧の上部のタブを作り直す。</summary>
+    /// <param name="tabs">表示するタブ。</param>
+    /// <remarks>
+    /// <b>タブは動的に作り直す</b>: タブの数と題名は表示の設定と <see cref="CustomTabs"/> で変わるため、<br/>
+    /// 項目と同じ機会にボタンを作り直す（古いタブを残さない）。
+    /// </remarks>
+    private void RebuildTabs(List<ColorSelectorTabSpec> tabs)
+    {
+        _tabStrip.Clear();
+        _tabButtons.Clear();
+        _tabs.Clear();
+        _tabs.AddRange(tabs);
+
+        for (var i = 0; i < tabs.Count; i++)
+        {
+            var index = i;
+            var button = CreateCategoryTab(tabs[i].Title);
+            button.OnCheckedChanged(_ => OnTabChanged(index));
+            _tabButtons.Add(button);
+            _tabStrip.Add(button);
+        }
+
+        // タブが 1 つで題名を隠す設定なら、タブの行そのものを出さない（切り替える相手が無い）
+        _tabStrip.IsVisible = tabs.Count > 1 || ShowTabTitles;
+    }
+
+    /// <summary>一覧のタブを切り替える。</summary>
+    /// <param name="index">表示するタブの索引（範囲外なら一覧を空にする）。</param>
+    /// <remarks>
+    /// <b>1 つだけが選ばれる</b>: タブは押すたびに状態が反転するため、選ばれたものだけを選んだ状態にし、<br/>
+    /// 一覧はタブで絞り直す（並び順と幅はタブごとに決まる）。
+    /// </remarks>
+    internal void ApplyTab(int index)
+    {
+        if (index < 0 || index >= _tabs.Count)
+        {
+            _list.ItemsSource = ItemsView.Create(Array.Empty<ColorSelectorItem>());
+            _list.Width = double.NaN;
+            return;
+        }
+
+        var tab = _tabs[index];
+        _listTabKey = tab.Key;
+
+        // すべてのタブの状態を書くと自分で書いた通知も届くため、書き込みの間は通知を無視する
+        _switchingTabs = true;
         try
         {
-            _themeTab.IsChecked(category == ColorSelectorCategory.Theme);
-            _namedTab.IsChecked(category == ColorSelectorCategory.Named);
+            for (var i = 0; i < _tabButtons.Count; i++)
+            {
+                _tabButtons[i].IsChecked(i == index);
+            }
         }
         finally
         {
-            _switchingCategory = false;
+            _switchingTabs = false;
         }
 
-        RefreshList();
+        var visible = tab.Items;
+        _list.ItemsSource = ItemsView.Create(visible);
+        _list.ItemTemplate = _itemTemplate;
+        ApplyListWidth(visible);
+        if (ColorString.TryParse(_selectedColor, out var color, out _))
+        {
+            UpdateSelectedIndex(color);
+        }
     }
 
-    /// <summary>タブが選ばれたときに分類を切り替える（外れた通知と、自分で書いた通知は無視する）。</summary>
-    /// <param name="category">タブの分類。</param>
-    /// <param name="isChecked">タブが選ばれたかどうか。</param>
-    private void OnCategoryTabChanged(ColorSelectorCategory category, bool isChecked)
+    /// <summary>タブが押されたときに切り替える（自分で書いた通知は無視する）。</summary>
+    /// <param name="index">タブの索引。</param>
+    /// <remarks>
+    /// <b>外れた通知でも切り替える</b>: タブは押すたびに状態が反転するため、選択中のタブを押し直すと外れる。<br/>
+    /// その場合も切り替えを行い、選ばれた状態へ戻す（常に 1 つだけを選んだ状態に保つ）。
+    /// </remarks>
+    private void OnTabChanged(int index)
     {
-        if (!isChecked || _switchingCategory || _listCategory == category)
+        if (_switchingTabs)
         {
             return;
         }
 
-        ApplyCategory(category);
+        ApplyTab(index);
     }
 
-    /// <summary>一覧の分類を切り替えるタブを作る。</summary>
+    /// <summary>一覧のタブを作る。</summary>
     /// <param name="text">タブの文言。</param>
     /// <returns>タブ（<see cref="ToggleButton"/>）。</returns>
     private static ToggleButton CreateCategoryTab(string text)
         => new ToggleButton { Width = CategoryTabWidth }.Content(text);
 
-    /// <summary>一覧の幅を内容（行の実寸）に合わせる。</summary>
+    /// <summary>一覧の幅を枠（入力欄）の幅と内容の幅に合わせる（コントロールの幅は変えない）。</summary>
     /// <param name="entries">一覧に並べる項目。</param>
     /// <remarks>
-    /// <b>一覧と枠の幅を揃える</b>: 内容のほうが広い場合は枠（本コントロール）の最小幅も広げる。<br/>
+    /// <b>枠の幅は変えない</b>: 一覧を開くたびに枠が広がると、開閉のたびに周りのレイアウトが動く。<br/>
+    /// 一覧（ポップアップ）だけを内容に合わせて広げる。<br/>
     /// <b>ListBox の既定の幅は内容と関係なく広い</b>: 行が 2 件でも 237.6 DIP を要求し、行を増やすとさらに広がる<br/>
     /// （実測 2026-11-02）。 そのまま置くと一覧だけが入力欄より大幅に広くなるため、行を実測して幅を決める。<br/>
     /// <b>文字サイズ・文言を変えても追随する</b>: 見積もりではなく実際の行（テンプレートが作る要素）を測るため、<br/>
     /// テーマの文字サイズが変わっても必要な幅が変わる（固定値を置くと文字が切れるか余りが出る）。
     /// </remarks>
-    private void ApplyListWidth(List<ColorSelectorItem> entries)
+    internal void ApplyListWidth(IReadOnlyList<ColorSelectorItem> entries)
     {
         // 画面へ出ていない間（アプリ実行前・ヘッドレス）は測らない。 文字の測定は描画のバックエンドを要求するため、
         // ここで測ると生成そのものが失敗する（実測 2026-11-02）。 幅は開くたびに作り直すので、実行後に測れば足りる
@@ -811,20 +987,18 @@ public sealed class ColorSelectorControl : Grid
             widest = Math.Max(widest, row.DesiredSize.Width);
         }
 
-        // 一覧と枠（入力欄）の幅を揃える。 幅は「枠の幅」「内容＋余白」「タブ 2 つ」の最大にする
         var padding = _list.ItemPadding;
         var contentWidth = widest + padding.Left + padding.Right + ListWidthAllowance;
-        var tabsWidth = (CategoryTabWidth * 2) + 4;
-        var frameWidth = Bounds.Width;
-        var width = Math.Max(Math.Max(frameWidth, contentWidth), tabsWidth);
-
-        _list.Width = width;
-        if (frameWidth > 0 && width > frameWidth)
-        {
-            // 内容のほうが広い場合は枠を広げる（一覧と枠の幅を揃える）
-            MinWidth = width;
-        }
+        _list.Width = ResolveListWidth(Bounds.Width, contentWidth);
     }
+
+    /// <summary>一覧の幅を「枠の幅」と「内容の幅」の大きい方として求める。</summary>
+    /// <param name="frameWidth">枠（入力欄）の幅。</param>
+    /// <param name="contentWidth">一覧の内容（行と余白）の幅。</param>
+    /// <returns>一覧の幅。 コントロール（枠）の幅には使わない。</returns>
+    /// <remarks>枠を広げないことを測れない環境（単体テスト）でも検証できるよう、計算だけを切り出す。</remarks>
+    internal static double ResolveListWidth(double frameWidth, double contentWidth)
+        => Math.Max(frameWidth, contentWidth);
 
     /// <summary>テキスト入力が変わったときに色を反映する。</summary>
     /// <param name="text">入力された文字列。</param>
@@ -887,7 +1061,11 @@ public sealed class ColorSelectorControl : Grid
     }
 
     /// <summary>一覧のポップアップを開閉する。</summary>
-    private void ToggleList()
+    /// <remarks>
+    /// <b>表示できるタブが 1 つも無ければ開かない</b>（空の一覧を見せない）。<br/>
+    /// テストから開閉を検証できるよう公開する（開けない場合は何もしないため、アプリ実行前でも安全である）。
+    /// </remarks>
+    internal void ToggleList()
     {
         if (_listPopup.IsOpen)
         {
@@ -898,6 +1076,10 @@ public sealed class ColorSelectorControl : Grid
         // 開くたびに作り直す（テーマの色は Application.Run 後にしか解決できず、明暗やアクセント色の
         // 変更にも追随させる必要があるため、構築時に作った一覧をそのまま使わない）
         RefreshList();
+        if (_tabs.Count == 0)
+        {
+            return;
+        }
 
         // アンカーは**ウィンドウ座標**である（自領域の座標ではない）。 自領域の矩形をそのまま渡すとウィンドウ左上へ出る。
         // アンカーは ▼ のボタン（自領域だと入力欄の左端から開いてしまう）
@@ -905,6 +1087,24 @@ public sealed class ColorSelectorControl : Grid
         _listButton.Content("▲");
         _log.LogOpenList(_selectedColor);
     }
+
+    /// <summary>一覧のポップアップが開いているかを取得する（テストからの検証用）。</summary>
+    internal bool IsListOpen => _listPopup.IsOpen;
+
+    /// <summary>一覧ボタン（▼）が見えているかを取得する（テストからの検証用）。</summary>
+    internal bool IsListButtonVisible => _listButton.IsVisible;
+
+    /// <summary>一覧ボタンの区切りの線が見えているかを取得する（テストからの検証用）。</summary>
+    internal bool IsListSeparatorVisible => _listSeparator.IsVisible;
+
+    /// <summary>カラーピッカー ボタン（…）が見えているかを取得する（テストからの検証用）。</summary>
+    internal bool IsPickerButtonVisible => _pickerButton.IsVisible;
+
+    /// <summary>ピッカー ボタンの区切りの線が見えているかを取得する（テストからの検証用）。</summary>
+    internal bool IsPickerSeparatorVisible => _pickerSeparator.IsVisible;
+
+    /// <summary>一覧のタブの行が見えているかを取得する（テストからの検証用）。</summary>
+    internal bool IsTabStripVisible => _tabStrip.IsVisible;
 
     /// <summary>カラーピッカーのドロップダウンを開閉する。</summary>
     private void TogglePicker()

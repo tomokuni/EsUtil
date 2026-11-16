@@ -6,6 +6,7 @@
 - [2. 公開 API](#2-公開-api)
   - [2.1 `ColorSelectorControl`](#21-colorselectorcontrol)
   - [2.2 入力の扱い](#22-入力の扱い)
+  - [2.3 型](#23-型)
 - [3. 使用例](#3-使用例)
 - [4. 座標系と単位](#4-座標系と単位)
 - [5. 制限事項](#5-制限事項)
@@ -30,13 +31,16 @@
 | `ThemeColorKeys` | `IReadOnlyList<string>`（static・get） | UI ごとの一覧 | `SelectedThemeColor` へ設定できる識別子の一覧（並びは一覧と同じ）。 設定画面の選択肢と保存値の検証に使う |
 | `TryResolveThemeColor(string key, out string hex)` | method（public） | - | 識別子（`背景` など）から、そのときのテーマの色（`#AARRGGBB`）を解決する。 その UI に無い色は false（一覧と同じ解決を使う） |
 | `ColorSortMode` | `ColorSortMode`（コア） | `ByHue` | 一覧（タブ「色名」）の並び順（`ByName` / `ByHue`）。 テーマの色は意味の順で固定 |
-| 一覧のタブ | （UI の要素） | テーマカラー / 色名 | 一覧（▼）の上部に **テーマカラー** と **色名** のタブを置き、分類を切り替える。 テーマの色は数が多いため、色名と同じ一覧へ混ぜない。 **一覧の幅は枠（入力欄）の幅と揃える**（内容のほうが広い場合は枠の最小幅を広げる）。 前回選んだタブから開き、選べる項目が無いタブは開かない（`ShowThemeColors` = false のときは色名から開く） |
+| 一覧のタブ | （UI の要素） | テーマカラー / 色名 | 一覧（▼）の上部に **テーマカラー** と **色名** のタブを置き、分類を切り替える。 テーマの色は数が多いため、色名と同じ一覧へ混ぜない。 **一覧の幅は枠（入力欄）の幅と揃える**（内容のほうが広い場合は一覧だけを広げ、枠の幅は変えない）。 前回選んだタブから開き、選べる項目が無いタブは開かない（`ShowThemeColors` = false のときは色名から開く）。 表示できるタブが 1 つも無ければ一覧を開かない |
 | `ShowThemeColors` | `bool` | `true`（取得または設定） | 一覧の先頭に **UI のテーマの色をすべて**並べる（共通の 20 色を「テーマ: 背景 / レイヤー / カード / コントロールの背景 / コントロールの枠線 / 区切り線 / 文字 / 副次テキスト / 無効の文字 / 無効の背景 / アクセント / アクセント（淡）/ アクセント（濃）/ アクセント文字 / アクセント上の文字 / 選択の背景 / ホバーの背景 / 押下の背景 / フォーカス / エラー」の順に並べ、その UI にしか無い色（三次テキスト・成功・注意・スクロール バーなど）を後ろへ足す）。 値は一覧を作り直すたびにテーマ（MewUI はパレット、WinUI 3 はテーマ資源と `SystemAccentColor`）から解決する |
+| `ShowListButton` | `bool` | `true` | 一覧ボタン（▼）と隣の区切り線を表示するか（`false` は色名の入力とピッカーだけを見せる） |
+| `ShowPickerButton` | `bool` | `true` | カラーピッカー ボタン（…）と隣の区切り線を表示するか |
+| `ShowThemeColorTab` | `bool` | `true` | 一覧の「テーマカラー」タブを表示するか（中身が無いときは表示しない） |
+| `ShowNamedColorTab` | `bool` | `true` | 一覧の「色名」タブを表示するか |
+| `ShowTabTitles` | `bool` | `true` | タブが **1 つだけ**のときに題名の行を出すか。 2 つ以上あるときは切り替えに必要なので常に出す |
+| `CustomTabs` | `IReadOnlyList<ColorSelectorCustomTab>` | 空 | 一覧へ追加する「カスタム」タブ（題名 + 色名/色コードの並び）。 複数指定できる。 `Colors` が空のタブは表示しない |
 | `TextFormat` | `ColorTextFormat`（コア） | `NameWithAlpha` | **入力欄**の表記（`NameWithAlpha` = `{色名}+{%}` / `HexCode` = `#AARRGGBB`）。 一覧の項目は常に色名、ツールチップは常に 2 行（色名+不透明度 / カラーコード）を出す。 テーマの色を選んでいる間は入力欄が `テーマ: <識別子>` になる |
 | `TextFontSize` | `double` | `NaN`（テーマの既定） | 入力欄の文字サイズ（DIP） |
-| `TextWidth` | `double` | `NaN`（自動） | 入力欄の明示的な幅（DIP） |
-| `TextMinWidth` | `double` | `120` | 入力欄の最小幅（DIP） |
-| `TextMaxWidth` | `double` | `Infinity` | 入力欄の最大幅（DIP） |
 | `HighlightBorderOnError` | `bool` | `false` | 現在の入力が無効な間、外周の枠線を赤にする（既定は無効） |
 | `HasValidationError` | `bool`（取得のみ） | `false` | 現在の入力が無効か |
 | `ValidationErrorMessage` | `string?`（取得のみ） | `null` | 無効な場合の理由 |
@@ -54,6 +58,17 @@
 | 空文字 | エラーなし |
 | それ以外 | エラー（フォーカスを外すと最後の有効値へ戻る） |
 
+### 2.3 型
+
+| 型 | 可視性 | 説明 |
+| --- | --- | --- |
+| `ColorSelectorControl` | public | 色を選ぶコントロール（基底は `Microsoft.UI.Xaml.Controls.Grid`） |
+| `ColorSelectorCustomTab` | public | 一覧へ追加するタブ（`Title` + `Colors`）。 `Colors` が空のタブは表示しない |
+| `ColorSelectorCustomColor` | public | カスタム タブの 1 色（`Name` + `Value`）。 `Value` は色名または `#AARRGGBB` |
+| `ColorSelectorItem` | internal | 一覧の 1 件（表示名・適用値・分類・テーマの色の識別子） |
+| `ColorSelectorCategory` | internal | 一覧の項目の分類（`Theme` / `Named` / `Custom`） |
+| `ColorSelectorTabSpec` | internal | 一覧の 1 タブ（題名・識別子・並べる項目）。 表示の設定と中身から作り、空のタブは作らない |
+
 ## 3. 使用例
 
 ```csharp
@@ -68,11 +83,22 @@ var color = new ColorSelectorControl
     Log = loggerFactory.CreateLogger("ColorSelector"),
 };
 color.SelectedColorChanged += (_, _) => settings.CaptureBorderColor = color.SelectedColor;
+
+// 用途ごとのタブ（「代表色」）を追加する。 空のタブは表示されない
+color.CustomTabs =
+[
+    new ColorSelectorCustomTab("代表色", [
+        new ColorSelectorCustomColor("赤", "#FFDC2626"),
+        new ColorSelectorCustomColor("青", "#FF2563EB"),
+    ]),
+];
 ```
 
 ## 4. 座標系と単位
 
 寸法はすべて DIP です（スウォッチ 16、入力欄の最小幅 120、▼ と … の区画幅 26、区切りの垂直線 1 ピクセル）。 Flyout（一覧・カラーピッカー）の配置は WinUI が決めます。 一覧とカラーピッカーの Flyout は `ShouldConstrainToRootBounds = false` でウィンドウの外へ出られるようにしています。
+
+一覧の幅は `max(枠の幅, 内容の幅)` です（内容のほうが広い場合は一覧だけが広がり、**コントロールの幅と最小幅は変わりません**）。 一覧を開くたびに枠が広がると、開閉のたびに周りのレイアウトが動くためです。
 
 ## 5. 制限事項
 

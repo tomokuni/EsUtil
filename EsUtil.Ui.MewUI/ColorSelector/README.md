@@ -52,6 +52,11 @@
 - スウォッチと入力欄のツールチップ（色名 + 不透明度 / `#AARRGGBB` の 2 行）
 - 入力の検証（無効な入力はエラー状態になり、フォーカスを外すと最後の有効値へ戻る）
 - `ILogger` による変更の記録（`Log` / `LogPrefix`）
+- 一覧ボタン（▼）・ピッカー ボタン（…）の表示切替（`ShowListButton` / `ShowPickerButton`。 区切りの線も一緒に隠す）
+- 既存タブ（「テーマカラー」/「色名」）の表示切替（`ShowThemeColorTab` / `ShowNamedColorTab`）
+- **カスタム タブの追加**（`CustomTabs`。 題名と色名/色コードを動的に指定。 複数可。 空のタブは表示しない）
+- タブが 1 つだけのときの題名の表示切替（`ShowTabTitles`）
+- 一覧を開いても**コントロールの幅は変わらない**（一覧だけが内容に合わせて広がる）
 
 ## 3. システム要件
 
@@ -106,6 +111,8 @@ panel.Children(color);
 | 色の一覧の並び順 | `ColorSortMode`（`ByName` / `ByHue`） |
 | 入力欄の表記 | `TextFormat`（`NameWithAlpha` / `HexCode`） |
 | 一覧に出す色 | コアの `ColorNames`（Windows 標準の色名。 システム色は含まない）と、UI が提供するテーマの色（`ShowThemeColors` で一覧から外せる） |
+| 一覧に出すタブ | `ShowThemeColorTab` / `ShowNamedColorTab`（既存タブを隠す）、`ShowTabTitles`（タブが 1 つだけのときに題名を省く）、`CustomTabs`（用途ごとの代表色を足す。 空のタブは表示しない） |
+| 一覧・ピッカーのボタン | `ShowListButton` / `ShowPickerButton`（区切りの線も一緒に隠れる） |
 | ログの接頭辞 | `LogPrefix`（既定 `[ColorSelector]`） |
 
 一覧と色文字列の規則はコアが単一所有するため、**本コントロールに派生や差し替え点はありません**（3 つの UI で同じ結果にするため）。
@@ -157,8 +164,12 @@ EsUtil.Ui.MewUI/ColorSelector/
 ├── src/                                           # UI 層（MewUI の要素の組み立てと同期）
 │   ├── EsUtil.Ui.MewUI.ColorSelector.csproj        # 独立プロジェクト（Platform.Core を参照）
 │   ├── ColorSelectorControl.cs                     # 公開 API・入力と状態の同期・一覧とピッカー
-│   ├── ColorSelectorItem.cs                            # 一覧の 1 件（表示名と適用値）
-│   └── ColorSelectorLogMessage.cs                               # ログ定義（LoggerMessage ソース生成）
+│   ├── ColorSelectorCategory.cs                    # 一覧の項目の分類（internal）
+│   ├── ColorSelectorItem.cs                        # 一覧の 1 件（表示名と適用値。 internal）
+│   ├── ColorSelectorTabSpec.cs                     # 一覧の 1 タブ（題名・識別子・項目。 internal）
+│   ├── ColorSelectorCustomTab.cs                   # 利用者が追加するタブ
+│   ├── ColorSelectorCustomColor.cs                 # カスタム タブの 1 色
+│   └── ColorSelectorLogMessage.cs                  # ログ定義（LoggerMessage ソース生成）
 ├── docs/                                          # SPEC_API.md / SPEC_System.md
 ├── sample/                                        # サンプルアプリ（sample/README.md 参照）
 └── tests/                                         # 単体テスト（ウィンドウ不要の範囲）
