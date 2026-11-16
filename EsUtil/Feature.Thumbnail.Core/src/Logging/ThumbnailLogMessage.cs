@@ -8,7 +8,8 @@ namespace EsUtil.Feature.Thumbnail.Logging;
 /// <remarks>
 /// <b>値を所有する層が記録する</b>: 選択はコア、計算に必要な設定（<see cref="ThumbnailOptions"/>）と外観（<see cref="ThumbnailAppearance"/>）は提示層が記録する<br/>
 /// （UI 層に同値判定・差分検出を置かない。 [`.github/ログ規約.md`](../../../.github/ログ規約.md) §6）。<br/>
-/// <b>出力の方針</b>: 生成（ロガーの設定時に 1 度だけ Information）・設定と外観の変更（Information）。<br/>
+/// <b>出力の方針</b>: 設定と外観の変更（低頻度。 Information）と、提示層の生成（表示のたびに作られるため Debug）。<br/>
+/// 一覧の項目ごとに繰り返される画像の差し替えは UI 層が Trace で記録する（<c>EsUtil.Ui.*.Thumbnail</c>）。
 /// 毎フレーム呼ばれる解決メソッド（<see cref="ThumbnailPresenter.ResolveLayout"/> / <see cref="ThumbnailPresenter.ResolveDrawPlan"/>）は出力しない。<br/>
 /// ログ基盤（ファイル出力・レベル制御）はホストアプリケーションが所有する（本クラスは定義のみ）。<br/>
 /// 各メソッドは <see cref="ILogger"/> の拡張メソッド（<c>this ILogger</c> 第一引数）として定義し、呼び出し側では logger 引数を省略する。
@@ -46,10 +47,11 @@ internal static partial class ThumbnailLogMessage
     }
 
     /// <summary>提示層の生成を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Thumbnail] 提示層を作成しました</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Thumbnail] 提示層を作成しました</c><br/>
+    /// 一覧のページを開くたびに作られるため Debug で記録する（規則の所有者は <c>.github/ログ規約.md</c> §2・§6）。</remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} 提示層を作成しました")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 提示層を作成しました")]
     private static partial void LogPresenterCreatedCore(this ILogger logger, string prefix);
 
     /// <summary>提示層の生成を記録する。</summary>

@@ -64,7 +64,7 @@ internal static partial class ThumbnailLogMessage
     /// <param name="name">設定名（項目の位置を含む名前）。</param>
     /// <param name="oldValue">変更前の画像（未設定は null）。</param>
     /// <param name="newValue">変更後の画像（未設定は null）。</param>
-    /// <remarks>「別のインスタンスに差し替わったか」の判断（参照の同一性）を本メソッドが単一所有する。</remarks>
+    /// <remarks>LogLevel: Trace（一覧の項目ごとに繰り返されるため。 規則の所有者は <c>.github/ログ規約.md</c> §2）。<br/>「別のインスタンスに差し替わったか」の判断（参照の同一性）を本メソッドが単一所有する。</remarks>
     internal static void LogImageChanged(this ILogger logger, string name, IImage? oldValue, IImage? newValue)
     {
         if (ReferenceEquals(oldValue, newValue))
@@ -72,7 +72,7 @@ internal static partial class ThumbnailLogMessage
             return;
         }
 
-        logger.LogSettingChanged(name, Describe(oldValue), Describe(newValue));
+        logger.LogSettingChangedTrace(name, Describe(oldValue), Describe(newValue));
     }
 
     /// <summary>項目数の変更を記録する（同数では出力しない）。</summary>

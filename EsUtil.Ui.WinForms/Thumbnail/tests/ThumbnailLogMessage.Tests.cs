@@ -36,7 +36,7 @@ public class ThumbnailLogMessageTests
         }
 
         Assert.Equal("[Test] 設定: Image[2] 4x3 → 8x6", Assert.Single(logger.Messages));
-        Assert.Equal(LogLevel.Information, Assert.Single(logger.Levels));
+        Assert.Equal(LogLevel.Trace, Assert.Single(logger.Levels));
     }
 
     /// <summary>同じ画像（同じ記述）では記録しないことを検証する。</summary>

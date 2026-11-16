@@ -19,7 +19,7 @@ public class ThumbnailPresenterLoggingTests
 
         presenter.Log = logger;
 
-        Assert.Equal(LogLevel.Information, logger.Levels[0]);
+        Assert.Equal(LogLevel.Debug, logger.Levels[0]);
         Assert.Equal("[Thumbnail] 提示層を作成しました", logger.Messages[0]);
         Assert.Equal(1, logger.Messages.Count(message => message.EndsWith("提示層を作成しました", StringComparison.Ordinal)));
         Assert.Equal(2, logger.Messages.Count(message => message.EndsWith("ロガーを接続しました", StringComparison.Ordinal)));
