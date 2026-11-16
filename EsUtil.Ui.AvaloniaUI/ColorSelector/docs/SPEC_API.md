@@ -26,6 +26,7 @@
     - [5.4.3 StringToBrushConverter](#543-stringtobrushconverter)
     - [5.4.4 ColorTextFormat（`ColorTextFormat.cs`・コア）](#544-colortextformatcolortextformatcsコア)
     - [5.4.5 ColorString（`ColorString.cs`）](#545-colorstringcolorstringcs)
+    - [5.4.6 ColorSelectorCustomTab・ColorSelectorCustomColor](#546-colorselectorcustomtabcolorselectorcustomcolor)
 - [6. 入力動作](#6-入力動作)
   - [6.1 テキスト入力](#61-テキスト入力)
   - [6.2 ドロップダウン選択](#62-ドロップダウン選択)
@@ -100,7 +101,6 @@ var colorPicker = new ColorSelectorControl
     ColorSortMode = ColorSortMode.ByHue,
     HighlightBorderOnError = true,
     Width = 300,
-    TextMinWidth = 200,
     TextFormat = ColorTextFormat.NameWithAlpha,
 };
 
@@ -148,9 +148,14 @@ if (colorPicker.HasValidationError)
 
 | プロパティ | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
-| `ColorSortMode` | `ColorSortMode` | `ByHue` | 一覧（タブ「色名」）の色の並び順（`ByHue` / `ByName`）。 テーマの色は意味の順で固定 |
-| 一覧のタブ | （UI の要素） | テーマカラー / 色名 | 一覧（▼）の上部に **テーマカラー** と **色名** のタブを置き、分類を切り替える。 テーマの色は数が多いため、色名と同じ一覧へ混ぜない。 **一覧の幅は枠（入力欄）の幅と揃える**（内容のほうが広い場合は枠の最小幅を広げる）。 前回選んだタブから開き、選べる項目が無いタブは開かない（`ShowThemeColors` = false のときは色名から開く） |
+| 一覧のタブ | （UI の要素） | テーマカラー / 色名 | 一覧（▼）の上部にタブを置き、分類を切り替える（`ShowThemeColorTab` / `ShowNamedColorTab` で取捨、`CustomTabs` で追加、1 つだけなら `ShowTabTitles` で題名を隠せる）。 テーマの色は数が多いため、色名と同じ一覧へ混ぜない。 **一覧を開いても枠（入力欄）の幅は変えない**（一覧だけを内容に合わせて広げる）。 前回選んだタブから開く |
 | `ShowThemeColors` | `bool` | `true`（取得または設定） | 一覧の先頭に **UI のテーマの色をすべて**並べる（共通の 20 色を「テーマ: 背景 / レイヤー / カード / コントロールの背景 / コントロールの枠線 / 区切り線 / 文字 / 副次テキスト / 無効の文字 / 無効の背景 / アクセント / アクセント（淡）/ アクセント（濃）/ アクセント文字 / アクセント上の文字 / 選択の背景 / ホバーの背景 / 押下の背景 / フォーカス / エラー」の順に並べ、その UI にしか無い色（三次テキスト・成功・注意・スクロール バーなど）を後ろへ足す）。 値は一覧を開くたびにテーマから解決する（明暗の切替・アクセント色の変更に追随） |
+| `ShowListButton` | `bool` | `true` | 一覧ボタン（▼）と隣の区切り線を表示するか（`false` は色名の入力とピッカーだけを見せる） |
+| `ShowPickerButton` | `bool` | `true` | カラーピッカー ボタン（…）と隣の区切り線を表示するか |
+| `ShowThemeColorTab` | `bool` | `true` | 一覧の「テーマカラー」タブを表示するか（中身が無いときは表示しない） |
+| `ShowNamedColorTab` | `bool` | `true` | 一覧の「色名」タブを表示するか |
+| `ShowTabTitles` | `bool` | `true` | タブが **1 つだけ**のときに題名の行を出すか。 2 つ以上あるときは切り替えに必要なので常に出す |
+| `CustomTabs` | `IReadOnlyList<ColorSelectorCustomTab>` | 空 | 一覧へ追加する「カスタム」タブ（題名 + 色名/色コードの並び）。 複数指定できる。 `Colors` が空のタブは表示しない |
 | `TextFormat` | `ColorTextFormat` | `NameWithAlpha` | **入力欄**の表記（`NameWithAlpha` = 色名+不透明度 / `HexCode` = `#AARRGGBB`）。 一覧の項目は常に色名、ツールチップは常に 2 行（色名+不透明度 / カラーコード）を出す。 テーマの色を選んでいる間は入力欄が `テーマ: <識別子>` になる |
 | `HighlightBorderOnError` | `bool` | `false` | バリデーション失敗時に外周の枠線を赤くするか |
 | `Log` | `ILogger` | `NullLogger` | 内部ロガー（null 設定時は `NullLogger` へフォールバック）。 診断ログの出力先 |
@@ -170,9 +175,6 @@ if (colorPicker.HasValidationError)
 | プロパティ | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
 | `TextFontSize` | `double` | `NaN` | 入力欄の文字サイズ（DIP 座標系。 NaN は親（テーマ）の値を継承） |
-| `TextMinWidth` | `double` | `120` | 入力欄の最小幅（DIP 座標系） |
-| `TextMaxWidth` | `double` | `Infinity` | 入力欄の最大幅（DIP 座標系） |
-| `TextWidth` | `double` | `NaN` | 入力欄の明示的な幅（DIP 座標系。 NaN は自動） |
 
 ### 5.2 メソッド
 
@@ -241,6 +243,29 @@ if (colorPicker.HasValidationError)
   2. RGB のみ一致する色名（同 RGB で複数ある場合は不透明（A=255）の色名を優先。 例: 半透明の白は `White+50%` と表示され `Transparent` は使われない）  
   3. 一致する色名が無い場合は `#RRGGBB`
 
+#### 5.4.6 ColorSelectorCustomTab・ColorSelectorCustomColor
+
+**利用者が一覧へ足すタブ**（`CustomTabs` へ指定する）。
+
+| 型 | メンバー | 説明 |
+| --- | --- | --- |
+| `ColorSelectorCustomTab` | `Title` / `Colors` | タブの題名（1 つだけ表示するときの見出しにも使う）/ 並べる色（並びが一覧の順序） |
+| `ColorSelectorCustomColor` | `Name` / `Value` | 一覧に表示する名前 / 選んだときに適用する色（色名または `#AARRGGBB`） |
+
+```csharp
+control.CustomTabs =
+[
+    new ColorSelectorCustomTab("代表色", [
+        new ColorSelectorCustomColor("赤", "#FFDC2626"),
+        new ColorSelectorCustomColor("青", "#FF2563EB"),
+    ]),
+];
+```
+
+- `Colors` が空のタブは表示しません（設定の途中で空になっても壊れない）。
+- タブは開くたびに作るため、`CustomTabs` の差し替えは次に開いた一覧から反映されます。
+- 題名には `ShowTabTitles` が効きます（タブが 2 つ以上あるときは切り替えに必要なので常に表示）。
+
 ## 6. 入力動作
 
 ### 6.1 テキスト入力
@@ -254,6 +279,9 @@ if (colorPicker.HasValidationError)
 ### 6.2 ドロップダウン選択
 
 - ドロップダウンの各項目は「色スウォッチ + 色名（英語名）」で表示されます。
+- 上部のタブで分類を切り替えます（「テーマカラー」/「色名」/ 追加したカスタム タブ）。 前回開いたタブから始まります。
+- タブが 1 つだけのときは `ShowTabTitles` で題名の行を隠せます（2 つ以上あるときは切り替えに必要なので常に表示）。
+- 一覧を開いても**コントロールの幅は変わりません**（一覧だけが内容に合わせて広がります）。
 - 選択後はテキストの全選択状態が自動解除されます。
 
 ### 6.3 無効な入力の扱い

@@ -92,6 +92,12 @@ public sealed partial class ColorSelectorControl : UserControl
     // 状態
     // ====================================================================
 
+    /// <summary>一覧ボタン（▼）を表示するかどうか。</summary>
+    private bool _showListButton = true;
+
+    /// <summary>カラーピッカー ボタン（…）を表示するかどうか。</summary>
+    private bool _showPickerButton = true;
+
     /// <summary>最後に有効だった色（無効な入力の復帰先）。</summary>
     private string? _lastValidColor;
 
@@ -162,6 +168,59 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <b>並べない場合はコアの色名だけ</b>になる（一覧は次に開くときに作り直す）。
     /// </remarks>
     public bool ShowThemeColors { get; set; } = true;
+
+    /// <summary>一覧ボタン（▼）を表示するかどうかを取得または設定する。</summary>
+    /// <value>表示する場合は true（既定）。</value>
+    /// <remarks>
+    /// <b>隠すと一覧を開けない</b>: 色名を打ち込むか、カラーピッカーだけを使う場面（狭い場所）で隠す<br/>
+    /// （区切りの線も一緒に隠し、入力欄の見た目を崩さない）。
+    /// </remarks>
+    public bool ShowListButton
+    {
+        get => _showListButton;
+        set
+        {
+            _showListButton = value;
+            ApplyViewOptions();
+        }
+    }
+
+    /// <summary>カラーピッカー ボタン（…）を表示するかどうかを取得または設定する。</summary>
+    /// <value>表示する場合は true（既定）。</value>
+    public bool ShowPickerButton
+    {
+        get => _showPickerButton;
+        set
+        {
+            _showPickerButton = value;
+            ApplyViewOptions();
+        }
+    }
+
+    /// <summary>一覧の「テーマカラー」タブを表示するかどうかを取得または設定する。</summary>
+    /// <value>表示する場合は true（既定）。</value>
+    /// <remarks>テーマの色を使わないアプリでは隠せる（タブが 1 つになれば題名も隠せる）。</remarks>
+    public bool ShowThemeColorTab { get; set; } = true;
+
+    /// <summary>一覧の「色名」タブを表示するかどうかを取得または設定する。</summary>
+    /// <value>表示する場合は true（既定）。</value>
+    public bool ShowNamedColorTab { get; set; } = true;
+
+    /// <summary>一覧のタブの題名を表示するかどうかを取得または設定する。</summary>
+    /// <value>表示する場合は true（既定）。</value>
+    /// <remarks>
+    /// <b>タブが 1 つだけのときに効く</b>: 切り替える相手が無いため、題名を省いて一覧を狭くできる。<br/>
+    /// タブが 2 つ以上あるときは切り替えに必要なので、本値に関わらず表示する。
+    /// </remarks>
+    public bool ShowTabTitles { get; set; } = true;
+
+    /// <summary>一覧へ追加する「カスタム」タブを取得または設定する。</summary>
+    /// <value>追加するタブ。 空（既定）の場合は追加しない。</value>
+    /// <remarks>
+    /// <b>代表色をすぐ選べるようにする</b>: 用途ごとのタブ（例: 枠線の色）を足せる。 空のタブは表示しない。<br/>
+    /// 一覧は開くたびに作るため、設定を差し替えたあとの一覧から反映される。
+    /// </remarks>
+    public IReadOnlyList<ColorSelectorCustomTab> CustomTabs { get; set; } = [];
 
     /// <summary>入力欄の表記を取得または設定する。</summary>
     /// <value>色名 + 不透明度（既定）またはカラーコード。 入力欄は編集できるため、表記と異なる形の入力も受理する。</value>
@@ -260,9 +319,20 @@ public sealed partial class ColorSelectorControl : UserControl
         }
 
         ApplyTextLayout();
+        ApplyViewOptions();
 
         // テーマが変わったら、テーマの色を選んでいる間はその色を解決し直す
         ActualThemeVariantChanged += (_, _) => ReapplyThemeColor();
+    }
+
+    /// <summary>表示の切り替え（一覧ボタン・ピッカー ボタン）を反映する。</summary>
+    /// <remarks>ボタンだけでなく区切りの線も隠す（線だけが残ると入力欄の見た目が崩れる）。</remarks>
+    private void ApplyViewOptions()
+    {
+        PART_ListButton.IsVisible = _showListButton;
+        PART_ListSeparator.IsVisible = _showListButton;
+        PART_PickerButton.IsVisible = _showPickerButton;
+        PART_PickerSeparator.IsVisible = _showPickerButton;
     }
 
     /// <summary>テーマの色を選んでいる間、そのときのテーマの色へ解決し直す。</summary>
@@ -516,8 +586,8 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>一覧の幅に足す余白（DIP。 枠・項目の左右の余白・スクロール バー）。</summary>
     private const double ListChromeWidth = 28;
 
-    /// <summary>直近に選んだ一覧の分類（次に開いたときに同じタブから始める）。</summary>
-    private ColorSelectorCategory _listCategory = ColorSelectorCategory.Theme;
+    /// <summary>直近に開いた一覧のタブの識別子（次に開いたときに同じタブから始める）。</summary>
+    private string? _listTabKey;
 
     /// <summary>一覧の分類を切り替えるタブを作る。</summary>
     /// <param name="text">タブの文言。</param>
@@ -548,14 +618,20 @@ public sealed partial class ColorSelectorControl : UserControl
     }
 
     /// <summary>一覧のポップアップ（上部のタブ + 分類で絞った一覧）を作る。</summary>
-    /// <returns>作ったポップアップ。 テーマの色を並べない設定で色名も無い場合は null。</returns>
+    /// <returns>作ったポップアップ。 表示できるタブが 1 つも無い場合は null。</returns>
     /// <remarks>
     /// <b>タブは分類だけを切り替える</b>: テーマの色が多いため、1 つの一覧へ混ぜると色名を探しにくい。<br/>
-    /// 前回選んだ分類から開く（同じ用途で続けて選ぶときに切り替えの手間を省く）。
+    /// 前回選んだ分類から開く（同じ用途で続けて選ぶときに切り替えの手間を省く）。<br/>
+    /// <b>タブが 1 つなら題名を隠せる</b>（<see cref="ShowTabTitles"/>）。 切り替える相手が無いため、一覧を狭くできる。
     /// </remarks>
     internal Flyout? CreateListFlyout()
     {
-        var items = CreateItems();
+        var tabs = CreateTabs();
+        if (tabs.Count == 0)
+        {
+            return null;
+        }
+
         var list = new ListBox
         {
             ItemTemplate = (IDataTemplate?)Resources["ColorEntryTemplate"],
@@ -565,18 +641,30 @@ public sealed partial class ColorSelectorControl : UserControl
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
         };
 
-        var themeTab = CreateCategoryTab("テーマカラー");
-        var namedTab = CreateCategoryTab("色名");
-        themeTab.Click += (_, _) => ApplyCategory(ColorSelectorCategory.Theme);
-        namedTab.Click += (_, _) => ApplyCategory(ColorSelectorCategory.Named);
-
-        var tabs = new StackPanel
+        var tabButtons = new List<ToggleButton>(tabs.Count);
+        var tabPanel = new StackPanel
         {
             Orientation = Avalonia.Layout.Orientation.Horizontal,
             Spacing = 4,
-            Children = { themeTab, namedTab },
         };
-        var content = new StackPanel { Spacing = 6, Children = { tabs, list } };
+        for (var i = 0; i < tabs.Count; i++)
+        {
+            var index = i;
+            var button = CreateCategoryTab(tabs[i].Title);
+            button.Click += (_, _) => ApplyTab(index);
+            tabButtons.Add(button);
+            tabPanel.Children.Add(button);
+        }
+
+        // タブが 1 つで題名を隠す設定なら、タブの行そのものを出さない（切り替える相手が無い）
+        var showTabs = tabs.Count > 1 || ShowTabTitles;
+        var content = new StackPanel { Spacing = 6 };
+        if (showTabs)
+        {
+            content.Children.Add(tabPanel);
+        }
+
+        content.Children.Add(list);
 
         // ▼ は入力欄の右端にあるため、右端を揃えて左へ開く（左端を揃えると画面の右外へはみ出す）
         var flyout = new Flyout { Content = content, Placement = PlacementMode.BottomEdgeAlignedRight };
@@ -592,47 +680,87 @@ public sealed partial class ColorSelectorControl : UserControl
             }
         };
 
-        // テーマの色を並べない設定ではテーマのタブが空になるため、中身のある分類から開く
-        ApplyCategory(items.Any(item => item.Category == _listCategory)
-            ? _listCategory
-            : items.Any(item => item.Category == ColorSelectorCategory.Theme)
-                ? ColorSelectorCategory.Theme
-                : ColorSelectorCategory.Named);
+        // 前回の分類が残っていればそこから、無ければ先頭のタブから開く
+        var lastIndex = tabs.FindIndex(tab => string.Equals(tab.Key, _listTabKey, StringComparison.Ordinal));
+        ApplyTab(lastIndex >= 0 ? lastIndex : 0);
         return flyout;
 
-        void ApplyCategory(ColorSelectorCategory category)
+        void ApplyTab(int index)
         {
-            _listCategory = category;
-            themeTab.IsChecked = category == ColorSelectorCategory.Theme;
-            namedTab.IsChecked = category == ColorSelectorCategory.Named;
-            var visible = items.Where(item => item.Category == category).ToList();
+            var tab = tabs[index];
+            _listTabKey = tab.Key;
+            for (var i = 0; i < tabButtons.Count; i++)
+            {
+                tabButtons[i].IsChecked = i == index;
+            }
+
+            var visible = tab.Items;
             list.ItemsSource = visible;
             list.SelectedIndex = -1;
             ApplyListWidth(list, visible);
         }
     }
 
-    /// <summary>一覧の幅を枠（入力欄）の幅と内容の幅に合わせる。</summary>
+    /// <summary>一覧に出すタブ（題名・識別子・並べる項目）を作る。</summary>
+    /// <returns>表示するタブ。 中身の無いタブは含めない。</returns>
+    /// <remarks>
+    /// <b>表示の設定と中身を 1 か所で決める</b>: タブの有無と一覧の項目が食い違わない（空のタブを出さない）。
+    /// </remarks>
+    internal List<ColorSelectorTabSpec> CreateTabs()
+    {
+        var items = CreateItems();
+        var tabs = new List<ColorSelectorTabSpec>();
+
+        if (ShowThemeColorTab)
+        {
+            var theme = items.Where(item => item.Category == ColorSelectorCategory.Theme).ToList();
+            if (theme.Count > 0)
+            {
+                tabs.Add(new ColorSelectorTabSpec("テーマカラー", "theme", theme));
+            }
+        }
+
+        if (ShowNamedColorTab)
+        {
+            var named = items.Where(item => item.Category == ColorSelectorCategory.Named).ToList();
+            if (named.Count > 0)
+            {
+                tabs.Add(new ColorSelectorTabSpec("色名", "named", named));
+            }
+        }
+
+        foreach (var custom in CustomTabs)
+        {
+            if (custom is null || custom.Colors.Count == 0)
+            {
+                continue;
+            }
+
+            var entries = custom.Colors
+                .Where(color => !string.IsNullOrWhiteSpace(color.Value))
+                .Select(color => new ColorSelectorItem(color.Name, color.Value, ColorSelectorCategory.Custom))
+                .ToList();
+            if (entries.Count > 0)
+            {
+                tabs.Add(new ColorSelectorTabSpec(custom.Title, "custom:" + custom.Title, entries));
+            }
+        }
+
+        return tabs;
+    }
+
+    /// <summary>一覧の幅を枠（入力欄）の幅と内容の幅に合わせる（コントロールの幅は変えない）。</summary>
     /// <param name="list">対象の一覧。</param>
     /// <param name="entries">一覧に並べる項目。</param>
     /// <remarks>
-    /// <b>一覧と枠の幅を揃える</b>: 一覧だけが枠より広い（狭い）と、開いたときの見た目が崩れる。<br/>
-    /// 幅は「枠の幅」「内容（行の実寸）＋余白」「タブ 2 つ」の最大にする。 内容のほうが広い場合は<br/>
-    /// <b>枠（本コントロール）の最小幅を広げる</b>（枠と一覧が同じ幅になる）。
+    /// <b>枠の幅は変えない</b>: 一覧を開くたびに枠が広がると、開閉のたびに周りのレイアウトが動く（実測で指摘）。<br/>
+    /// 一覧（ポップアップ）だけを内容に合わせて広げる。
     /// </remarks>
     internal void ApplyListWidth(ListBox list, IReadOnlyList<ColorSelectorItem> entries)
     {
         var frameWidth = Bounds.Width;
         var contentWidth = MeasureWidestRow(entries) + ListChromeWidth;
-        var tabsWidth = (CategoryTabWidth * 2) + 4;
-        var width = Math.Max(Math.Max(frameWidth, contentWidth), tabsWidth);
-
-        list.Width = width;
-        if (frameWidth > 0 && width > frameWidth)
-        {
-            // 内容のほうが広い場合は枠を広げる（一覧と枠の幅を揃える）
-            MinWidth = width;
-        }
+        list.Width = Math.Max(frameWidth, contentWidth);
     }
 
     /// <summary>行のうち最も広いものの幅（実寸）を測る。</summary>

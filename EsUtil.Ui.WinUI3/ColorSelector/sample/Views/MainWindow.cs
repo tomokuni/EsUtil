@@ -150,6 +150,12 @@ public sealed class MainWindow : Window
                         control.ShowThemeColors = value;
                     }
                 }),
+                SampleSettings.Check("一覧ボタン（▼）を出す", true, value => SetAll(control => control.ShowListButton = value)),
+                SampleSettings.Check("ピッカー（…）を出す", true, value => SetAll(control => control.ShowPickerButton = value)),
+                SampleSettings.Check("テーマカラーのタブを出す", true, value => SetAll(control => control.ShowThemeColorTab = value)),
+                SampleSettings.Check("色名のタブを出す", true, value => SetAll(control => control.ShowNamedColorTab = value)),
+                SampleSettings.Check("タブの題名を出す", true, value => SetAll(control => control.ShowTabTitles = value)),
+                SampleSettings.Check("「代表色」タブを追加", false, value => SetAll(control => control.CustomTabs = value ? s_representativeTabs : [])),
                 SampleSettings.Slider("文字サイズ", 12, 8, 24, 1, true, value =>
                 {
                     foreach (var control in _controls)
@@ -262,4 +268,39 @@ public sealed class MainWindow : Window
     /// <returns>WinUI の色。</returns>
     private static Windows.UI.Color ToWinUI(DrawingColor color)
         => Windows.UI.Color.FromArgb(color.A, color.R, color.G, color.B);
+
+    /// <summary>すべてのコントロールへ同じ設定を書く。</summary>
+    /// <param name="apply">設定する処理。</param>
+    private void SetAll(Action<ColorSelectorControl> apply)
+    {
+        foreach (var control in _controls)
+        {
+            apply(control);
+        }
+    }
+
+    /// <summary>「代表色」タブの定義（よく使う 16 色）。</summary>
+    private static readonly IReadOnlyList<ColorSelectorCustomTab> s_representativeTabs =
+        (ColorSelectorCustomTab[])
+        [
+            new ColorSelectorCustomTab("代表色", (ColorSelectorCustomColor[])
+            [
+                new ColorSelectorCustomColor("黒", "#FF000000"),
+                new ColorSelectorCustomColor("濃い灰色", "#FF404040"),
+                new ColorSelectorCustomColor("灰色", "#FF808080"),
+                new ColorSelectorCustomColor("薄い灰色", "#FFC0C0C0"),
+                new ColorSelectorCustomColor("白", "#FFFFFFFF"),
+                new ColorSelectorCustomColor("赤", "#FFDC2626"),
+                new ColorSelectorCustomColor("橙", "#FFEA580C"),
+                new ColorSelectorCustomColor("黄", "#FFEAB308"),
+                new ColorSelectorCustomColor("黄緑", "#FF65A30D"),
+                new ColorSelectorCustomColor("緑", "#FF16A34A"),
+                new ColorSelectorCustomColor("青緑", "#FF0D9488"),
+                new ColorSelectorCustomColor("水色", "#FF0284C7"),
+                new ColorSelectorCustomColor("青", "#FF2563EB"),
+                new ColorSelectorCustomColor("紫", "#FF7C3AED"),
+                new ColorSelectorCustomColor("桃", "#FFDB2777"),
+                new ColorSelectorCustomColor("茶", "#FF92400E"),
+            ]),
+        ];
 }

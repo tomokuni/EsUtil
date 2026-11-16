@@ -135,6 +135,48 @@ internal static class MainWindow
                     control.ShowThemeColors = value;
                 }
             }),
+            SampleSettings.Check("一覧ボタン（▼）を出す", true, value =>
+            {
+                foreach (var control in controls)
+                {
+                    control.ShowListButton = value;
+                }
+            }),
+            SampleSettings.Check("ピッカー（…）を出す", true, value =>
+            {
+                foreach (var control in controls)
+                {
+                    control.ShowPickerButton = value;
+                }
+            }),
+            SampleSettings.Check("テーマカラーのタブを出す", true, value =>
+            {
+                foreach (var control in controls)
+                {
+                    control.ShowThemeColorTab = value;
+                }
+            }),
+            SampleSettings.Check("色名のタブを出す", true, value =>
+            {
+                foreach (var control in controls)
+                {
+                    control.ShowNamedColorTab = value;
+                }
+            }),
+            SampleSettings.Check("タブの題名を出す", true, value =>
+            {
+                foreach (var control in controls)
+                {
+                    control.ShowTabTitles = value;
+                }
+            }),
+            SampleSettings.Check("「代表色」タブを追加", false, value =>
+            {
+                foreach (var control in controls)
+                {
+                    control.CustomTabs = value ? s_representativeTabs : [];
+                }
+            }),
             SampleSettings.Slider("文字サイズ", 12, 8, 24, 1, true, value =>
             {
                 foreach (var control in controls)
@@ -245,4 +287,27 @@ internal static class MainWindow
     /// <param name="color">コアの色。</param>
     /// <returns>MewUI の色。</returns>
     private static MewColor ToMew(DrawingColor color) => MewColor.FromArgb(color.A, color.R, color.G, color.B);
+
+    /// <summary>「代表色」タブの定義（よく使う 16 色）。</summary>
+    private static readonly IReadOnlyList<ColorSelectorCustomTab> s_representativeTabs =
+    [
+        new ColorSelectorCustomTab("代表色", [
+            new ColorSelectorCustomColor("黒", "#FF000000"),
+            new ColorSelectorCustomColor("濃い灰色", "#FF404040"),
+            new ColorSelectorCustomColor("灰色", "#FF808080"),
+            new ColorSelectorCustomColor("薄い灰色", "#FFC0C0C0"),
+            new ColorSelectorCustomColor("白", "#FFFFFFFF"),
+            new ColorSelectorCustomColor("赤", "#FFDC2626"),
+            new ColorSelectorCustomColor("橙", "#FFEA580C"),
+            new ColorSelectorCustomColor("黄", "#FFEAB308"),
+            new ColorSelectorCustomColor("黄緑", "#FF65A30D"),
+            new ColorSelectorCustomColor("緑", "#FF16A34A"),
+            new ColorSelectorCustomColor("青緑", "#FF0D9488"),
+            new ColorSelectorCustomColor("水色", "#FF0284C7"),
+            new ColorSelectorCustomColor("青", "#FF2563EB"),
+            new ColorSelectorCustomColor("紫", "#FF7C3AED"),
+            new ColorSelectorCustomColor("桃", "#FFDB2777"),
+            new ColorSelectorCustomColor("茶", "#FF92400E"),
+        ]),
+    ];
 }

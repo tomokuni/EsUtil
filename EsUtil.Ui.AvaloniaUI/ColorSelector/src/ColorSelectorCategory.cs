@@ -12,4 +12,7 @@ internal enum ColorSelectorCategory
 
     /// <summary>色名（コアの色の表）。</summary>
     Named,
+
+    /// <summary>利用者が追加したタブ（<see cref="ColorSelectorCustomTab"/>）。</summary>
+    Custom,
 }

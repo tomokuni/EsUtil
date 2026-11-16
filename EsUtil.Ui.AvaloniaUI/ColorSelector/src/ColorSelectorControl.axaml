@@ -56,10 +56,10 @@
                         Background="{Binding SelectedColor, ElementName=PART_Root, Converter={StaticResource StringToBrushConverter}}"/>
             </Grid>
             <!-- 区切り（枠より薄い垂直線） -->
-            <Border Grid.Column="1" Width="1" Margin="0,5" Background="#40808080"/>
+            <Border x:Name="PART_ListSeparator" Grid.Column="1" Width="1" Margin="0,5" Background="#40808080"/>
             <Button x:Name="PART_ListButton" Grid.Column="2" Classes="segment" Width="26"
                     Content="▼" Click="OnListButtonClick" ToolTip.Tip="色の一覧"/>
-            <Border Grid.Column="3" Width="1" Margin="0,5" Background="#40808080"/>
+            <Border x:Name="PART_PickerSeparator" Grid.Column="3" Width="1" Margin="0,5" Background="#40808080"/>
             <Button x:Name="PART_PickerButton" Grid.Column="4" Classes="segment" Width="26"
                     Content="…" Click="OnColorPickerButtonClick" ToolTip.Tip="色選択ダイアログ"/>
         </Grid>

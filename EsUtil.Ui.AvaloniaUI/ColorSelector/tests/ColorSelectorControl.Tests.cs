@@ -283,21 +283,143 @@ public class ColorSelectorControlTests
         window.Close();
     }
 
-    /// <summary>枠より内容が広いときは枠の最小幅が広がることを検証する。</summary>
-    /// <remarks>一覧が枠より広いままだと、開いたときに入力欄と一覧の幅が食い違う。</remarks>
+    /// <summary>枠より内容が広いときも枠（コントロール）の幅が変わらないことを検証する。</summary>
+    /// <remarks>
+    /// 一覧を開くたびに枠が広がると、開閉のたびに周りのレイアウトが動く。 一覧だけを内容に合わせて広げる。
+    /// </remarks>
     [AvaloniaFact]
-    internal void 内容が広いときは枠の最小幅が広がる()
+    internal void 内容が広いときも枠の幅は変わらない()
     {
         var control = CreateControl();
+        control.ShowThemeColorTab = false;
+        control.ShowNamedColorTab = false;
+        control.CustomTabs =
+        [
+            new ColorSelectorCustomTab("長い名前のタブ", [
+                new ColorSelectorCustomColor("とても長い色の名前がここに入ります", "#FFDC2626"),
+            ]),
+        ];
         var window = new Window { Width = 120, Height = 200, Content = control };
         window.Show();
+        var frameWidth = control.Bounds.Width;
+        var minWidth = control.MinWidth;
         var flyout = control.CreateListFlyout();
         var root = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(flyout).Content);
         var list = Assert.IsType<ListBox>(root.Children[1]);
 
-        Assert.True(list.Width > 0);
-        Assert.True(control.MinWidth >= list.Width, "枠の最小幅が一覧の幅より狭い");
+        Assert.True(list.Width >= frameWidth, "一覧が枠より狭い");
+        Assert.Equal(minWidth, control.MinWidth);
+        Assert.Equal(frameWidth, control.Bounds.Width);
         window.Close();
+    }
+
+    /// <summary>一覧ボタン（▼）とピッカー ボタン（…）を個別に隠せることを検証する。</summary>
+    /// <remarks>狭い場所ではボタンを隠し、入力欄とスウォッチだけを見せられる。</remarks>
+    [AvaloniaFact]
+    internal void 一覧とピッカーのボタンは個別に隠せる()
+    {
+        var control = CreateControl();
+
+        control.ShowPickerButton = false;
+
+        Assert.True(control.FindControl<Button>("PART_ListButton")!.IsVisible);
+        Assert.False(control.FindControl<Button>("PART_PickerButton")!.IsVisible);
+        Assert.False(control.FindControl<Border>("PART_PickerSeparator")!.IsVisible);
+
+        control.ShowListButton = false;
+        Assert.False(control.FindControl<Button>("PART_ListButton")!.IsVisible);
+        Assert.False(control.FindControl<Border>("PART_ListSeparator")!.IsVisible);
+    }
+
+    /// <summary>テーマの色と色名のタブを隠すと、カスタム タブだけになることを検証する。</summary>
+    [AvaloniaFact]
+    internal void 既存のタブは隠せる()
+    {
+        var control = CreateControl();
+        control.ShowThemeColorTab = false;
+        control.ShowNamedColorTab = false;
+        control.CustomTabs =
+        [
+            new ColorSelectorCustomTab("代表色", [
+                new ColorSelectorCustomColor("赤", "#FFDC2626"),
+                new ColorSelectorCustomColor("青", "#FF2563EB"),
+            ]),
+        ];
+
+        var only = Assert.Single(control.CreateTabs());
+
+        Assert.Equal("代表色", only.Title);
+        Assert.Equal(["#FFDC2626", "#FF2563EB"], only.Items.Select(item => item.Value));
+        Assert.All(only.Items, item => Assert.Equal(ColorSelectorCategory.Custom, item.Category));
+    }
+
+    /// <summary>カスタム タブを複数追加できることを検証する（題名と色を動的に決められる）。</summary>
+    [AvaloniaFact]
+    internal void カスタムタブは複数追加できる()
+    {
+        var control = CreateControl();
+        control.CustomTabs =
+        [
+            new ColorSelectorCustomTab("枠線", [new ColorSelectorCustomColor("赤", "#FFDC2626")]),
+            new ColorSelectorCustomTab("内側", [new ColorSelectorCustomColor("白", "#FFFFFFFF")]),
+        ];
+
+        var tabs = control.CreateTabs();
+
+        Assert.Equal(4, tabs.Count);
+        Assert.Equal(["テーマカラー", "色名", "枠線", "内側"], tabs.Select(tab => tab.Title));
+    }
+
+    /// <summary>中身の無いカスタム タブは表示しないことを検証する。</summary>
+    [AvaloniaFact]
+    internal void 空のカスタムタブは表示しない()
+    {
+        var control = CreateControl();
+        control.CustomTabs = [new ColorSelectorCustomTab("空", [])];
+
+        Assert.DoesNotContain(control.CreateTabs(), tab => tab.Title == "空");
+    }
+
+    /// <summary>タブが 1 つだけなら題名を隠せることを検証する。</summary>
+    [AvaloniaFact]
+    internal void タブが1つなら題名を隠せる()
+    {
+        var control = CreateControl();
+        control.ShowThemeColorTab = false;
+        control.ShowNamedColorTab = false;
+        control.CustomTabs = [new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("赤", "#FFDC2626")])];
+
+        control.ShowTabTitles = true;
+        var shown = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(control.CreateListFlyout()).Content);
+        Assert.IsType<StackPanel>(shown.Children[0]);
+
+        control.ShowTabTitles = false;
+        var hidden = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(control.CreateListFlyout()).Content);
+        Assert.IsType<ListBox>(hidden.Children[0]);
+    }
+
+    /// <summary>タブが 2 つ以上なら題名の設定に関わらずタブを出すことを検証する。</summary>
+    /// <remarks>切り替える相手があるときはタブが要る（隠すと片方の一覧へ到達できない）。</remarks>
+    [AvaloniaFact]
+    internal void タブが2つ以上なら題名を隠さない()
+    {
+        var control = CreateControl();
+        control.ShowTabTitles = false;
+
+        var root = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(control.CreateListFlyout()).Content);
+
+        Assert.IsType<StackPanel>(root.Children[0]);
+    }
+
+    /// <summary>表示できるタブが 1 つも無ければ一覧を開かないことを検証する。</summary>
+    [AvaloniaFact]
+    internal void タブが1つも無ければ一覧を開かない()
+    {
+        var control = CreateControl();
+        control.ShowThemeColors = false;
+        control.ShowNamedColorTab = false;
+
+        Assert.Null(control.CreateListFlyout());
     }
 
     /// <summary>テスト用の <see cref="ColorSelectorControl"/> を生成する。</summary>
