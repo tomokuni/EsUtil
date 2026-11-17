@@ -59,7 +59,7 @@
 - 入力欄のツールチップ（色名 + 不透明度 / `#AARRGGBB` の 2 行）
 - タブの表示切替（`ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab`）
 - タブが 1 つだけのときの題名の表示切替（`ShowTabTitles`）
-- 一覧を開いても**コントロールの幅は変わらない**（一覧だけが内容に合わせて広がる）
+- 一覧を開いても**コントロールの幅は変わらない**（一覧だけを、枠・タブの行・項目のうち最も広い幅へ広げる。 一覧はその幅いっぱいに置くため、スクロール バーは右端に来る）
 - `ILogger` による変更の記録（`Log` / `LogPrefix`）
 
 ## 3. システム要件
@@ -189,7 +189,7 @@ EsUtil.Ui.WinUI3/ColorSelector/
 dotnet test EsUtil.Ui.WinUI3/ColorSelector/tests/EsUtil.Ui.WinUI3.ColorSelector.Tests.csproj
 ```
 
-WinUI のコントロールは XAML ランタイム（`Application`）を必要とするため、テストは**色文字列の規則がコアと一致すること**、**一覧のタブの決め方**（`CreateTabs` / `ShouldShowTabStrip`）、**格子の行数**（`CalculateSwatchRows`）、**カスタム タブの色名の表示**（`FormatDisplayText` / `ResolveCustomName`）、**入力欄の左の四角の表示**（`TryResolveCurrentColorSwatch` / `TextLeftIndent`）、**確定の通知の扱い**（`PlanItemSelection` / `PlanPickerSelection`）、**一覧の幅の決め方**（`CalculateListWidth`）、**ログ定義**を対象にします。 入力と表示はサンプル アプリと利用側アプリで確認します。
+WinUI のコントロールは XAML ランタイム（`Application`）を必要とするため、テストは**色文字列の規則がコアと一致すること**、**一覧のタブの決め方**（`CreateTabs` / `ShouldShowTabStrip`）、**格子の行数**（`CalculateSwatchRows`）、**カスタム タブの色名の表示**（`FormatDisplayText` / `ResolveCustomName`）、**入力欄の左の四角の表示**（`TryResolveCurrentColorSwatch` / `TextLeftIndent`）、**確定の通知の扱い**（`PlanItemSelection` / `PlanPickerSelection`）、**一覧の幅の決め方**（`ResolveFlyoutWidth` / `CalculateTabRowWidth` / `ResolveTabWidth`）、**ログ定義**を対象にします。 入力と表示はサンプル アプリと利用側アプリで確認します。
 
 ---
 

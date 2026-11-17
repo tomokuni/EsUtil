@@ -329,7 +329,7 @@ public class ColorSelectorControlTests
         Assert.False(control.IsListOpen);
     }
 
-    /// <summary>枠より内容が広いときも枠（コントロール）の幅が変わらないことを検証する。</summary>
+    /// <summary>内容が広いときも枠（コントロール）の幅が変わらないことを検証する。</summary>
     /// <remarks>
     /// 一覧を開くたびに枠が広がると、開閉のたびに周りのレイアウトが動く。 一覧だけを内容に合わせて広げる。<br/>
     /// 行の測定は描画のバックエンドを要求するためアプリ実行前は行わない（幅の計算だけを検証する）。
@@ -351,18 +351,149 @@ public class ColorSelectorControlTests
             ],
         };
         var minWidth = control.MinWidth;
+        var tabs = control.CreateTabs();
 
         control.RefreshList();
-        var list = new ListBox();
-        control.ApplyListWidth(list, Assert.Single(control.CreateTabs()).Items);
 
-        // アプリ実行前は測らない（幅は開くたびに作り直すため、実行後に測れば足りる）
-        Assert.True(double.IsNaN(list.Width));
-
-        // 内容が広いときは一覧だけが広がり、枠が広いときは一覧が枠に揃う
-        Assert.Equal(400d, ColorSelectorControl.ResolveListWidth(120, 400));
-        Assert.Equal(240d, ColorSelectorControl.ResolveListWidth(240, 100));
+        // 枠が広いときは一覧も枠に揃い、枠が狭いときは内容（ここでは測れないため 0）に揃う
+        Assert.Equal(400d, ColorSelectorControl.ResolveFlyoutWidth(400, tabs, double.PositiveInfinity, showTabTitles: false));
+        Assert.Equal(120d, ColorSelectorControl.ResolveFlyoutWidth(120, tabs, double.PositiveInfinity, showTabTitles: false));
         Assert.Equal(minWidth, control.MinWidth);
+    }
+
+    /// <summary>一覧の幅にタブの行の幅を含めることを検証する。</summary>
+    /// <remarks>
+    /// タブの行だけが広いと、一覧（とスクロール バー）がポップアップの途中で切れる（実測 2026-11-17）。<br/>
+    /// 枠（入力欄）よりタブの行（2 つで 96 × 2 + 4）が広い場合は、タブの行の幅を一覧の幅にする。
+    /// </remarks>
+    [Fact]
+    internal void 一覧の幅はタブの行の幅を含める()
+    {
+        var control = new ColorSelectorControl
+        {
+            Width = 120,
+            ShowThemeColorTab = false,
+            ShowNamedColorTab = true,
+            ShowPickerTab = true,
+        };
+
+        var tabs = control.CreateTabs();
+        Assert.Equal(2, tabs.Count);
+
+        var width = ColorSelectorControl.ResolveFlyoutWidth(120, tabs, double.PositiveInfinity, showTabTitles: true);
+
+        Assert.Equal((2 * 96) + 4, width);
+    }
+
+    /// <summary>一覧の幅が決めたポップアップの幅と等しいことを検証する。</summary>
+    /// <remarks>一覧をポップアップの幅いっぱいに置かないと、スクロール バーが右端へ来ない。</remarks>
+    [Fact]
+    internal void 一覧の幅はポップアップの幅に揃う()
+    {
+        var control = new ColorSelectorControl
+        {
+            ShowThemeColorTab = false,
+            ShowNamedColorTab = true,
+            ShowPickerTab = true,
+            CustomTabs = [new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("赤", "#FFDC2626")])],
+        };
+
+        control.RefreshList();
+
+        // タブは 3 つ（代表色 / 色名 / ColorPicker）で、枠（入力欄）よりタブの行（96 × 3 + 4 × 2）が広い
+        var width = control.ResolveFlyoutWidth(control.CreateTabs());
+        Assert.Equal((3 * 96) + (2 * 4), width);
+
+        Grid? slot = null;
+        for (var i = 0; i < control.TabBody.Count; i++)
+        {
+            var candidate = Assert.IsType<Grid>(control.TabBody[i]);
+            if (candidate.Count > 0)
+            {
+                slot = candidate;
+                break;
+            }
+        }
+
+        Assert.NotNull(slot);
+        var list = Assert.IsType<ListBox>(slot[0]);
+        Assert.Equal(width, list.Width);
+        Assert.Equal(width, control.TabBody.Width);
+    }
+
+    /// <summary>タブが多いときは幅に収まるようタブの幅を詰めることを検証する。</summary>
+    /// <remarks>
+    /// タブの幅を 96 のまま並べると、数が多いときにポップアップの右端が切れる（AvaloniaUI 版の実測 2026-11-17）。<br/>
+    /// 幅は上限（ポップアップに使える幅）で止めるため、タブの幅を詰めて収める。
+    /// </remarks>
+    [Fact]
+    internal void タブの幅は数が多いほど詰める()
+    {
+        // 収まるなら既定の幅のまま
+        Assert.Equal(96d, ColorSelectorControl.ResolveTabWidth((4 * 96) + (3 * 4), 4));
+
+        // 収まらないときは詰める（(300 - 3 × 4) / 4 = 72）
+        Assert.Equal(72d, ColorSelectorControl.ResolveTabWidth(300, 4));
+
+        // 詰めても下限（56）を下回らない
+        Assert.Equal(56d, ColorSelectorControl.ResolveTabWidth(100, 8));
+    }
+
+    /// <summary>タブが多いときは最小の幅で並べた行までは広げることを検証する。</summary>
+    /// <remarks>
+    /// 上限で切ると、タブが多いときに最後のタブが欠ける（実測 2026-11-17: 14 個で「ColorPicker」が欠けた）。<br/>
+    /// MewUI のポップアップは中身の幅で測って作業領域へ寄せるため、枠より広くても切れない。
+    /// </remarks>
+    [Fact]
+    internal void タブが多いときは最小の幅で並べた行まで広げる()
+    {
+        var control = new ColorSelectorControl
+        {
+            ShowThemeColorTab = false,
+            ShowNamedColorTab = true,
+            ShowPickerTab = true,
+            CustomTabs =
+            [
+                new ColorSelectorCustomTab("1", [new ColorSelectorCustomColor("赤", "#FFDC2626")]),
+                new ColorSelectorCustomTab("2", [new ColorSelectorCustomColor("青", "#FF2563EB")]),
+                new ColorSelectorCustomTab("3", [new ColorSelectorCustomColor("緑", "#FF16A34A")]),
+                new ColorSelectorCustomTab("4", [new ColorSelectorCustomColor("黄", "#FFEAB308")]),
+                new ColorSelectorCustomTab("5", [new ColorSelectorCustomColor("紫", "#FF7C3AED")]),
+                new ColorSelectorCustomTab("6", [new ColorSelectorCustomColor("桃", "#FFDB2777")]),
+            ],
+        };
+
+        var tabs = control.CreateTabs();
+        Assert.Equal(8, tabs.Count);
+
+        // 使える幅（300）ではタブが収まらないため、最小の幅（56）で並べた行（8 × 56 + 7 × 4 = 476）まで広げる
+        var width = ColorSelectorControl.ResolveFlyoutWidth(0, tabs, maxWidth: 300, showTabTitles: true);
+
+        Assert.Equal((8 * 56) + (7 * 4), width);
+        Assert.Equal(56d, ColorSelectorControl.ResolveTabWidth(width, tabs.Count));
+    }
+
+    /// <summary>タブが多いときはポップアップに使える幅を超えないことを検証する。</summary>
+    /// <remarks>上限を超えるとポップアップが右へはみ出して切れる（MewUI は配置できる領域の幅で測る）。</remarks>
+    [Fact]
+    internal void 一覧の幅はポップアップに使える幅を超えない()
+    {
+        var control = new ColorSelectorControl
+        {
+            ShowThemeColorTab = false,
+            ShowNamedColorTab = true,
+            ShowPickerTab = true,
+            CustomTabs = [new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("赤", "#FFDC2626")])],
+        };
+
+        var tabs = control.CreateTabs();
+        Assert.Equal(3, tabs.Count);
+
+        // タブの行は 96 × 3 + 4 × 2 = 296 だが、使える幅（240）で止める
+        var width = ColorSelectorControl.ResolveFlyoutWidth(0, tabs, maxWidth: 240, showTabTitles: true);
+
+        Assert.Equal(240d, width);
+        Assert.True(ColorSelectorControl.ResolveTabWidth(width, tabs.Count) < 96);
     }
 
     /// <summary>一覧のタブが分類（色名 / カスタム / ColorPicker）に分かれることを検証する。</summary>

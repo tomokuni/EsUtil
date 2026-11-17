@@ -370,7 +370,8 @@ public class ColorSelectorControlTests
     /// <remarks>一覧だけが枠より広い（狭い）と、開いたときの見た目が崩れる。</remarks>
     [Fact]
     internal void 一覧の幅は枠の幅と揃う()
-        => Assert.Equal(480, ColorSelectorControl.CalculateListWidth(frameWidth: 480, widest: 10));
+        => Assert.Equal(320, ColorSelectorControl.ResolveFlyoutWidth(
+            frameWidth: 320, showTabStrip: false, tabCount: 0, contentWidth: 0));
 
     /// <summary>枠より内容が広いときも、決めるのは一覧の幅だけであることを検証する。</summary>
     /// <remarks>
@@ -382,10 +383,63 @@ public class ColorSelectorControlTests
     {
         const double frameWidth = 120;
 
-        var width = ColorSelectorControl.CalculateListWidth(frameWidth, widest: 400);
+        var width = ColorSelectorControl.ResolveFlyoutWidth(
+            frameWidth, showTabStrip: false, tabCount: 0, contentWidth: 400 + 28); // 一覧の余白 28 を足す
 
         Assert.True(width > frameWidth, "一覧が枠より狭い");
-        Assert.Equal(frameWidth, ColorSelectorControl.CalculateListWidth(frameWidth, widest: 0));
+        Assert.Equal(frameWidth, ColorSelectorControl.ResolveFlyoutWidth(
+            frameWidth, showTabStrip: false, tabCount: 0, contentWidth: 0));
+    }
+
+    /// <summary>一覧の幅がタブの行の幅にそろうことを検証する。</summary>
+    /// <remarks>
+    /// タブの行だけが広いと、一覧（とスクロール バー）がフライアウトの途中で切れる（実測 2026-11-17）。<br/>
+    /// 一覧はフライアウトの幅いっぱいに置く。
+    /// </remarks>
+    [Fact]
+    internal void 一覧の幅はタブの行の幅に合わせる()
+    {
+        // 枠（入力欄）も中身もタブの行より狭い
+        var width = ColorSelectorControl.ResolveFlyoutWidth(
+            frameWidth: 120, showTabStrip: true, tabCount: 2, contentWidth: 0);
+
+        Assert.Equal((2 * 112) + 4, width);
+        Assert.Equal(width, ColorSelectorControl.CalculateTabRowWidth(2));
+    }
+
+    /// <summary>タブの幅が一覧の幅に収まることを検証する。</summary>
+    /// <remarks>タブを上限の幅（112）で並べると、数が多いときに右端（最後のタブ）が切れる。</remarks>
+    [Fact]
+    internal void タブの幅は一覧の幅に収まる()
+    {
+        // タブが少ないときは上限の幅のまま
+        Assert.Equal(112, ColorSelectorControl.ResolveTabWidth(440, count: 2));
+
+        // 4 つを上限の幅（4 * 112 + 3 * 4 = 460）で並べると 440 を超えるため、詰められる
+        var four = ColorSelectorControl.ResolveTabWidth(440, count: 4);
+        Assert.Equal((440 - (3 * 4)) / 4.0, four, precision: 6);
+        Assert.True((four * 4) + (3 * 4) <= 440, "タブの行が一覧の幅を超える");
+
+        // 下限（56）より狭くはしない
+        Assert.Equal(56, ColorSelectorControl.ResolveTabWidth(440, count: 20));
+
+        // タブが無い場合は上限の幅
+        Assert.Equal(112, ColorSelectorControl.ResolveTabWidth(440, count: 0));
+    }
+
+    /// <summary>一覧の幅がフライアウトの上限で止まることを検証する。</summary>
+    /// <remarks>上限を超えると右端（最後のタブ）が切れる（実測 2026-11-17）。</remarks>
+    [Fact]
+    internal void 一覧の幅はフライアウトの上限で止まる()
+    {
+        // タブ 5 つを上限の幅（112）で並べると 576 になる
+        Assert.Equal(576, ColorSelectorControl.CalculateTabRowWidth(5));
+        Assert.Equal(440, ColorSelectorControl.ResolveFlyoutWidth(
+            frameWidth: 320, showTabStrip: true, tabCount: 5, contentWidth: 0));
+
+        // 中身（長い色名）が上限を超えても止める
+        Assert.Equal(440, ColorSelectorControl.ResolveFlyoutWidth(
+            frameWidth: 320, showTabStrip: false, tabCount: 0, contentWidth: 900));
     }
 
     /// <summary>ログの書式が共通であることを検証する。</summary>
