@@ -141,8 +141,8 @@ public class ColorSelectorControlTests
 
         var (tabs, body) = GetTabsAndBody(flyout);
         Assert.Equal(2, tabs.Children.Count);
-        Assert.Equal("テーマカラー", Assert.IsType<ToggleButton>(tabs.Children[0]).Content);
-        Assert.Equal("色名", Assert.IsType<ToggleButton>(tabs.Children[1]).Content);
+        Assert.Equal("テーマカラー", TabText(tabs.Children[0]));
+        Assert.Equal("色名", TabText(tabs.Children[1]));
 
         // 開いた直後はテーマカラー（テーマの色だけが並ぶ）
         var themeItems = Assert.IsAssignableFrom<IEnumerable<ColorSelectorItem>>(GetVisibleView<ListBox>(body).ItemsSource).ToArray();
@@ -235,6 +235,52 @@ public class ColorSelectorControlTests
         var (_, body) = GetTabsAndBody(flyout);
         Assert.Equal(width, GetVisibleView<ListBox>(body).Width);
     }
+
+    /// <summary>タブの幅がフライアウトの幅に収まるよう詰められることを検証する。</summary>
+    /// <remarks>
+    /// タブは決まった幅で並ぶため、数が多いとフライアウトの既定の最大幅を超えて右端が切れる
+    /// （実測 2026-11-17）。 幅に収まるようタブの幅を詰める。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void タブの幅はフライアウトの幅に収まるよう詰める()
+    {
+        var control = CreateControl();
+        control.ShowThemeColorTab = false;
+        control.ShowNamedColorTab = true;
+        control.ShowPickerTab = true;
+        control.CustomTabs =
+        [
+            new ColorSelectorCustomTab("代表色１", [new ColorSelectorCustomColor("赤", "#FFDC2626")]),
+            new ColorSelectorCustomTab("代表色２", [new ColorSelectorCustomColor("青", "#FF2563EB")]),
+            new ColorSelectorCustomTab("代表色３", [new ColorSelectorCustomColor("緑", "#FF16A34A")]),
+        ];
+
+        var tabs = control.CreateTabs();
+        Assert.Equal(5, tabs.Count);
+
+        var width = control.ResolveFlyoutWidth(tabs);
+        var tabWidth = ResolveTabWidth(width, tabs.Count);
+
+        // タブの行がフライアウトの幅に収まる（はみ出すと右端のタブが切れる）
+        Assert.True((tabs.Count * tabWidth) + ((tabs.Count - 1) * 4) <= width, $"タブの行が幅 {width} を超える");
+
+        var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
+        var (strip, _) = GetTabsAndBody(flyout);
+        Assert.All(strip.Children, child => Assert.Equal(tabWidth, Assert.IsType<ToggleButton>(child).Width));
+    }
+
+    /// <summary>タブの幅を求める（実装と同じ規則。 幅に収まるよう詰め、下限で止める）。</summary>
+    /// <param name="width">フライアウトの幅。</param>
+    /// <param name="count">タブの数。</param>
+    /// <returns>タブ 1 つの幅。</returns>
+    private static double ResolveTabWidth(double width, int count)
+        => Math.Clamp((width - ((count - 1) * 4)) / count, 56, 112);
+
+    /// <summary>タブの文言を取り出す。</summary>
+    /// <param name="tab">タブ。</param>
+    /// <returns>文言（タブは省略記号付きの <see cref="TextBlock"/> を中身に持つ）。</returns>
+    private static string? TabText(Control tab)
+        => Assert.IsType<TextBlock>(Assert.IsType<ToggleButton>(tab).Content).Text;
 
     /// <summary>カスタム タブの色名が入力欄（テキスト部）に出ることを検証する。</summary>
     /// <remarks>色コードだけを見比べなくても、意図した色かどうかが分かる。</remarks>

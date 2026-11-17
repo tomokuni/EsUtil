@@ -1183,8 +1183,24 @@ public sealed class ColorSelectorControl : Grid
     /// <param name="text">タブの文言。</param>
     /// <param name="width">タブの幅（DIP）。</param>
     /// <returns>タブ（<see cref="ToggleButton"/>）。</returns>
-    private static ToggleButton CreateCategoryTab(string text, double width)
-        => new ToggleButton { Width = width }.Content(text);
+    /// <remarks>
+    /// <b>文言は省略記号で切る</b>: タブが多いと幅を詰めるため、そのままだと文字が途中で切れて読めなくなる
+    /// （実測 2026-11-17: 「ColorPicker」が「ColorPicke」になった）。
+    /// </remarks>
+    private static ToggleButton CreateCategoryTab(string text, double width) => new ToggleButton
+    {
+        Width = width,
+        Padding = new Thickness(4, 2),
+    }.Content(new TextBlock
+    {
+        Text = text,
+        FontSize = CategoryTabFontSize,
+        HorizontalAlignment = HorizontalAlignment.Center,
+        TextTrimming = TextTrimming.CharacterEllipsis,
+    });
+
+    /// <summary>タブの文言の文字サイズ（DIP。 5 つ並べても「ColorPicker」が収まる大きさ）。</summary>
+    private const double CategoryTabFontSize = 11;
 
     /// <summary>一覧（ポップアップ）の幅を求める。</summary>
     /// <param name="tabs">開くタブ。</param>
