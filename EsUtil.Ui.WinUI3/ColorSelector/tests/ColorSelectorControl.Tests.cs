@@ -6,9 +6,10 @@ namespace EsUtil.Ui.WinUI3.ColorSelector.Tests;
 /// <summary>色選択コントロール（WinUI 3 版）のテスト。</summary>
 /// <remarks>
 /// WinUI のコントロールは XAML ランタイム（<c>Application</c>）を必要とするため、コントロールを生成せずに
-/// 検証できる範囲（色文字列の規則がコアと一致すること・一覧のタブの決め方・一覧の幅の決め方・ログ定義）を対象にする。
-/// タブと幅はコントロールが内部で使う純粋関数（<c>internal static</c>）を直接呼ぶ。
-/// 入力と表示はサンプル アプリと利用側アプリで確認する。
+/// 検証できる範囲（色文字列の規則がコアと一致すること・一覧のタブの決め方・格子の行数・入力欄の表示・
+/// 一覧の幅の決め方・ログ定義）を対象にする。
+/// タブ・格子・表示・幅はコントロールが内部で使う純粋関数（<c>internal static</c>）を直接呼ぶ。
+/// 実際の入力と表示はサンプル アプリと利用側アプリで確認する。
 /// </remarks>
 [Collection(ColorSelectorLogPrefix.Name)]
 public class ColorSelectorControlTests
@@ -37,16 +38,96 @@ public class ColorSelectorControlTests
     }
 
     // ====================================================================
-    // 一覧のタブと幅（コントロールを作らずに検証する範囲）
+    // 一覧のタブ（コントロールを作らずに検証する範囲）
     // ====================================================================
+
+    /// <summary>一覧がテーマカラーと色名のタブに分かれることを検証する。</summary>
+    /// <remarks>
+    /// テーマの色は数が多いため、色名と同じ一覧へ混ぜると目的の色を探しにくい。<br/>
+    /// タブで分類を切り替え、一覧はその分類の項目だけを持つ。
+    /// </remarks>
+    [Fact]
+    internal void 一覧はテーマカラーと色名のタブに分かれる()
+    {
+        var tabs = ColorSelectorControl.CreateTabs(
+            showCustomTab: false,
+            showThemeColorTab: true,
+            showNamedColorTab: true,
+            showPickerTab: false,
+            SampleItems(),
+            customTabs: (ColorSelectorCustomTab[])[]);
+
+        Assert.Equal((string[])["テーマカラー", "色名"], tabs.Select(tab => tab.Title));
+        Assert.All(tabs, tab => Assert.Equal(ColorSelectorTabLayout.List, tab.Layout));
+        Assert.All(tabs[0].Items, item => Assert.Equal(ColorSelectorCategory.Theme, item.Category));
+        Assert.All(tabs[1].Items, item => Assert.Equal(ColorSelectorCategory.Named, item.Category));
+        Assert.Contains(tabs[1].Items, item => item.Value == "Red");
+    }
+
+    /// <summary>タブの並びが「カスタム → テーマカラー → 色名 → ColorPicker」であることを検証する。</summary>
+    /// <remarks>利用者が用意した色を先に出す（よく使う色へ素早く届かせる）。</remarks>
+    [Fact]
+    internal void タブの並びはカスタムが先()
+    {
+        var tabs = ColorSelectorControl.CreateTabs(
+            showCustomTab: true,
+            showThemeColorTab: true,
+            showNamedColorTab: true,
+            showPickerTab: true,
+            SampleItems(),
+            (ColorSelectorCustomTab[])
+            [
+                new ColorSelectorCustomTab("枠線", (ColorSelectorCustomColor[])[new ColorSelectorCustomColor("赤", "#FFDC2626")]),
+                new ColorSelectorCustomTab("内側", (ColorSelectorCustomColor[])[new ColorSelectorCustomColor("白", "#FFFFFFFF")]),
+            ]);
+
+        Assert.Equal((string[])["枠線", "内側", "テーマカラー", "色名", "ColorPicker"], tabs.Select(tab => tab.Title));
+        Assert.True(tabs[^1].IsPicker);
+        Assert.Empty(tabs[^1].Items);
+    }
+
+    /// <summary>「カスタム」と「ColorPicker」のタブを個別に隠せることを検証する。</summary>
+    /// <remarks>色名の入力とテーマ・色名の一覧だけを使う場面では、余分なタブを出さない。</remarks>
+    [Fact]
+    internal void カスタムとColorPickerのタブは個別に隠せる()
+    {
+        ColorSelectorCustomTab[] customTabs =
+        [
+            new ColorSelectorCustomTab("代表色", (ColorSelectorCustomColor[])[new ColorSelectorCustomColor("赤", "#FFDC2626")]),
+        ];
+
+        var withoutPicker = ColorSelectorControl.CreateTabs(
+            showCustomTab: true,
+            showThemeColorTab: false,
+            showNamedColorTab: false,
+            showPickerTab: false,
+            SampleItems(),
+            customTabs);
+
+        Assert.DoesNotContain(withoutPicker, tab => tab.IsPicker);
+        Assert.Contains(withoutPicker, tab => tab.Title == "代表色");
+
+        var withoutCustom = ColorSelectorControl.CreateTabs(
+            showCustomTab: false,
+            showThemeColorTab: false,
+            showNamedColorTab: false,
+            showPickerTab: true,
+            SampleItems(),
+            customTabs);
+
+        Assert.DoesNotContain(withoutCustom, tab => tab.Title == "代表色");
+        Assert.Contains(withoutCustom, tab => tab.IsPicker);
+    }
 
     /// <summary>テーマの色と色名のタブを隠すと、カスタム タブだけになることを検証する。</summary>
     [Fact]
     internal void 既存のタブは隠せる()
     {
         var tabs = ColorSelectorControl.CreateTabs(
+            showCustomTab: true,
             showThemeColorTab: false,
             showNamedColorTab: false,
+            showPickerTab: false,
             SampleItems(),
             (ColorSelectorCustomTab[])
             [
@@ -64,32 +145,16 @@ public class ColorSelectorControlTests
         Assert.All(only.Items, item => Assert.Equal(ColorSelectorCategory.Custom, item.Category));
     }
 
-    /// <summary>カスタム タブを複数追加できることを検証する（題名と色を動的に決められる）。</summary>
-    [Fact]
-    internal void カスタムタブは複数追加できる()
-    {
-        var tabs = ColorSelectorControl.CreateTabs(
-            showThemeColorTab: true,
-            showNamedColorTab: true,
-            SampleItems(),
-            (ColorSelectorCustomTab[])
-            [
-                new ColorSelectorCustomTab("枠線", (ColorSelectorCustomColor[])[new ColorSelectorCustomColor("赤", "#FFDC2626")]),
-                new ColorSelectorCustomTab("内側", (ColorSelectorCustomColor[])[new ColorSelectorCustomColor("白", "#FFFFFFFF")]),
-            ]);
-
-        Assert.Equal(4, tabs.Count);
-        Assert.Equal((string[])["テーマカラー", "色名", "枠線", "内側"], tabs.Select(tab => tab.Title));
-    }
-
     /// <summary>中身の無いカスタム タブは表示しないことを検証する。</summary>
     /// <remarks>色の値が空文字のものだけのタブも、選んでも色が変わらないため表示しない。</remarks>
     [Fact]
     internal void 空のカスタムタブは表示しない()
     {
         var tabs = ColorSelectorControl.CreateTabs(
+            showCustomTab: true,
             showThemeColorTab: true,
             showNamedColorTab: true,
+            showPickerTab: false,
             SampleItems(),
             (ColorSelectorCustomTab[])
             [
@@ -108,8 +173,10 @@ public class ColorSelectorControlTests
     internal void タブが1つなら題名を隠せる()
     {
         var tabs = ColorSelectorControl.CreateTabs(
+            showCustomTab: true,
             showThemeColorTab: false,
             showNamedColorTab: false,
+            showPickerTab: false,
             SampleItems(),
             (ColorSelectorCustomTab[])
             [
@@ -127,8 +194,10 @@ public class ColorSelectorControlTests
     internal void タブが2つ以上なら題名を隠さない()
     {
         var tabs = ColorSelectorControl.CreateTabs(
+            showCustomTab: false,
             showThemeColorTab: true,
             showNamedColorTab: true,
+            showPickerTab: false,
             SampleItems(),
             customTabs: (ColorSelectorCustomTab[])[]);
 
@@ -142,13 +211,103 @@ public class ColorSelectorControlTests
     internal void タブが1つも無ければ一覧を開かない()
     {
         var tabs = ColorSelectorControl.CreateTabs(
+            showCustomTab: false,
             showThemeColorTab: false,
             showNamedColorTab: false,
+            showPickerTab: false,
             SampleItems(),
             customTabs: (ColorSelectorCustomTab[])[]);
 
         Assert.Empty(tabs);
     }
+
+    // ====================================================================
+    // 格子（色の四角を 6 列）
+    // ====================================================================
+
+    /// <summary>カスタム タブの並べ方が指定どおりに保たれることを検証する。</summary>
+    /// <remarks>格子を選んだタブだけが <see cref="ColorSelectorTabLayout.Grid"/> になる（一覧は既定のまま）。</remarks>
+    [Fact]
+    internal void カスタムタブは色の四角を6列に並べられる()
+    {
+        var tabs = ColorSelectorControl.CreateTabs(
+            showCustomTab: true,
+            showThemeColorTab: true,
+            showNamedColorTab: false,
+            showPickerTab: false,
+            SampleItems(),
+            (ColorSelectorCustomTab[])
+            [
+                new ColorSelectorCustomTab("代表色", SixteenColors(), ColorSelectorTabLayout.Grid),
+                new ColorSelectorCustomTab("枠線", (ColorSelectorCustomColor[])[new ColorSelectorCustomColor("赤", "#FFDC2626")]),
+            ]);
+
+        Assert.Equal(ColorSelectorTabLayout.Grid, tabs[0].Layout);
+        Assert.Equal(ColorSelectorTabLayout.List, tabs[1].Layout);
+        Assert.Equal(16, tabs[0].Items.Count);
+    }
+
+    /// <summary>格子が 6 列で折り返し、16 色なら 3 行に収まることを検証する。</summary>
+    /// <remarks>スクロールせずに選べることを、必要な行数として確かめる。</remarks>
+    /// <param name="itemCount">並べる色の数。</param>
+    /// <param name="expected">必要な行数。</param>
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 1)]
+    [InlineData(6, 1)]
+    [InlineData(7, 2)]
+    [InlineData(16, 3)]
+    internal void 格子は6列で折り返す(int itemCount, int expected)
+        => Assert.Equal(expected, ColorSelectorControl.CalculateSwatchRows(itemCount));
+
+    // ====================================================================
+    // 入力欄の表示（カスタム タブの色名）
+    // ====================================================================
+
+    /// <summary>カスタム タブの色名が入力欄の表示に使われることを検証する。</summary>
+    /// <remarks>色コードだけを見比べなくても、意図した色かどうかが分かる。</remarks>
+    [Fact]
+    internal void カスタムの色名は入力欄に出る()
+        => Assert.Equal(
+            "枠線の赤",
+            ColorSelectorControl.FormatDisplayText("#FFDC2626", ColorTextFormat.NameWithAlpha, CustomTabs()));
+
+    /// <summary>不透明度があるときは色名へ <c>+{n}%</c> を足すことを検証する。</summary>
+    /// <remarks>
+    /// 不透明度は入力の <c>+{n}%</c> から取る（Avalonia 版と同じ規則）。
+    /// 色名だけでは不透明度が伝わらない。
+    /// </remarks>
+    [Fact]
+    internal void カスタムの色名には不透明度を足す()
+        => Assert.Equal(
+            "枠線の赤+50%",
+            ColorSelectorControl.FormatDisplayText("#80DC2626+50%", ColorTextFormat.NameWithAlpha, CustomTabs()));
+
+    /// <summary>カラーコードの表記では色名を使わないことを検証する。</summary>
+    /// <remarks>表記の設定（<see cref="ColorTextFormat"/>）が優先される。</remarks>
+    [Fact]
+    internal void カラーコードの表記では色名を使わない()
+        => Assert.Equal(
+            "#FFDC2626",
+            ColorSelectorControl.FormatDisplayText("#FFDC2626", ColorTextFormat.HexCode, CustomTabs()));
+
+    /// <summary>色名は文字列ではなく色として比べることを検証する。</summary>
+    /// <remarks>登録が色名（<c>Red</c>）でも、保存値（<c>#FFFF0000</c>）と同じ色なら一致させる。</remarks>
+    [Fact]
+    internal void カスタムの色名は色として一致させる()
+    {
+        ColorSelectorCustomTab[] tabs =
+        [
+            new ColorSelectorCustomTab("代表色", (ColorSelectorCustomColor[])[new ColorSelectorCustomColor("赤", "Red")]),
+        ];
+
+        Assert.Equal("赤", ColorSelectorControl.ResolveCustomName("#FFFF0000", tabs));
+        Assert.Null(ColorSelectorControl.ResolveCustomName("#FF0000FF", tabs));
+    }
+
+    // ====================================================================
+    // 一覧の幅
+    // ====================================================================
 
     /// <summary>一覧の幅が枠（入力欄）の幅と揃うことを検証する。</summary>
     /// <remarks>一覧だけが枠より広い（狭い）と、開いたときの見た目が崩れる。</remarks>
@@ -172,6 +331,18 @@ public class ColorSelectorControlTests
         Assert.Equal(frameWidth, ColorSelectorControl.CalculateListWidth(frameWidth, widest: 0));
     }
 
+    /// <summary>ログの書式が共通であることを検証する。</summary>
+    [Fact]
+    internal void ログの書式は共通である()
+    {
+        var logger = new RecordingLogger();
+        ColorSelectorLogMessage.Prefix = ColorSelectorLogMessage.DefaultPrefix;
+
+        logger.LogSettingChanged("SelectedColor", "#FFFFFFFF", "#80FF0000");
+
+        Assert.Contains(logger.Messages, message => message.StartsWith("[ColorSelector]", StringComparison.Ordinal));
+    }
+
     /// <summary>タブの決定を検証するための項目を作る（テーマの色 1 件 + 色名 2 件）。</summary>
     /// <returns>一覧に並べる項目。</returns>
     private static IReadOnlyList<ColorSelectorItem> SampleItems() =>
@@ -182,14 +353,26 @@ public class ColorSelectorControlTests
             new ColorSelectorItem("Blue", "Blue", ColorSelectorCategory.Named),
         ];
 
-    [Fact]
-    internal void ログの書式は共通である()
+    /// <summary>色名の表示を検証するためのカスタム タブを作る。</summary>
+    /// <returns>「枠線の赤」だけを持つタブ。</returns>
+    private static IReadOnlyList<ColorSelectorCustomTab> CustomTabs() =>
+        (ColorSelectorCustomTab[])
+        [
+            new ColorSelectorCustomTab("枠線", (ColorSelectorCustomColor[])[new ColorSelectorCustomColor("枠線の赤", "#FFDC2626")]),
+        ];
+
+    /// <summary>格子の行数を検証するための 16 色を作る。</summary>
+    /// <returns>16 色（16 進の下 2 桁を 00 から 0F まで変えた色）。</returns>
+    private static ColorSelectorCustomColor[] SixteenColors()
     {
-        var logger = new RecordingLogger();
-        ColorSelectorLogMessage.Prefix = ColorSelectorLogMessage.DefaultPrefix;
+        var colors = new ColorSelectorCustomColor[16];
+        for (var i = 0; i < colors.Length; i++)
+        {
+            colors[i] = new ColorSelectorCustomColor(
+                "色" + i.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                "#FF0000" + i.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+        }
 
-        logger.LogSettingChanged("SelectedColor", "#FFFFFFFF", "#80FF0000");
-
-        Assert.Contains(logger.Messages, message => message.StartsWith("[ColorSelector]", StringComparison.Ordinal));
+        return colors;
     }
 }

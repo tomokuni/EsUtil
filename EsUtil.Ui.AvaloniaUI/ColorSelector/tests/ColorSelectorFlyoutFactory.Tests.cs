@@ -19,15 +19,15 @@ namespace EsUtil.Ui.AvaloniaUI.ColorSelector.Tests;
 public class ColorSelectorFlyoutFactoryTests
 {
     [AvaloniaFact]
-    internal void Create_OKボタンで色が16進に変換されて反映される()
+    internal void CreateContent_OKボタンで色が16進に変換されて反映される()
     {
         string? applied = null;
-        var flyout = ColorSelectorFlyoutFactory.Create("#FF8800", NullLogger.Instance, c => applied = c);
-        var okButton = FindButtonByContent(flyout.Content, "OK");
+        var content = ColorSelectorFlyoutFactory.CreateContent("#FF8800", NullLogger.Instance, c => applied = c, () => { });
+        var okButton = FindButtonByContent(content, "OK");
         Assert.NotNull(okButton);
 
         // ColorView の色を変更してから OK を押す → 保存値（#AARRGGBB）がコールバックへ渡される
-        var colorView = FindColorView(flyout.Content);
+        var colorView = FindColorView(content);
         Assert.NotNull(colorView);
         colorView!.Color = Color.FromRgb(0x12, 0x34, 0x56);
         Dispatcher.UIThread.RunJobs();
@@ -44,12 +44,12 @@ public class ColorSelectorFlyoutFactoryTests
     }
 
     [AvaloniaFact]
-    internal void Create_アルファ付き色は8桁の16進に変換される()
+    internal void CreateContent_アルファ付き色は8桁の16進に変換される()
     {
         string? applied = null;
-        var flyout = ColorSelectorFlyoutFactory.Create("White", NullLogger.Instance, c => applied = c);
-        var okButton = FindButtonByContent(flyout.Content, "OK");
-        var colorView = FindColorView(flyout.Content);
+        var content = ColorSelectorFlyoutFactory.CreateContent("White", NullLogger.Instance, c => applied = c, () => { });
+        var okButton = FindButtonByContent(content, "OK");
+        var colorView = FindColorView(content);
         Assert.NotNull(colorView);
 
         // 半透明（A=128）。 ColorView は HSV(float) 経由で色を保持するため
@@ -69,11 +69,11 @@ public class ColorSelectorFlyoutFactoryTests
     }
 
     [AvaloniaFact]
-    internal void Create_キャンセルボタンでは色が変わらない()
+    internal void CreateContent_キャンセルボタンでは色が変わらない()
     {
         string? applied = null;
-        var flyout = ColorSelectorFlyoutFactory.Create("#FFFF0000", NullLogger.Instance, c => applied = c);
-        var cancelButton = FindButtonByContent(flyout.Content, "キャンセル");
+        var content = ColorSelectorFlyoutFactory.CreateContent("#FFFF0000", NullLogger.Instance, c => applied = c, () => { });
+        var cancelButton = FindButtonByContent(content, "キャンセル");
         Assert.NotNull(cancelButton);
 
         cancelButton!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -84,31 +84,31 @@ public class ColorSelectorFlyoutFactoryTests
     }
 
     [AvaloniaFact]
-    internal void Create_SelectedColorが空でも初期色が白になる()
+    internal void CreateContent_SelectedColorが空でも初期色が白になる()
     {
-        var flyout = ColorSelectorFlyoutFactory.Create("", NullLogger.Instance, _ => { });
-        var colorView = FindColorView(flyout.Content);
+        var content = ColorSelectorFlyoutFactory.CreateContent("", NullLogger.Instance, _ => { }, () => { });
+        var colorView = FindColorView(content);
 
         Assert.NotNull(colorView);
         Assert.Equal(Colors.White, colorView!.Color);
     }
 
     [AvaloniaFact]
-    internal void Create_SelectedColorが無効な場合は初期色が白になる()
+    internal void CreateContent_SelectedColorが無効な場合は初期色が白になる()
     {
-        var flyout = ColorSelectorFlyoutFactory.Create("NotAColor", NullLogger.Instance, _ => { });
-        var colorView = FindColorView(flyout.Content);
+        var content = ColorSelectorFlyoutFactory.CreateContent("NotAColor", NullLogger.Instance, _ => { }, () => { });
+        var colorView = FindColorView(content);
 
         Assert.NotNull(colorView);
         Assert.Equal(Colors.White, colorView!.Color);
     }
 
     [AvaloniaFact]
-    internal void Create_SelectedColorが非空で解析不能な場合も白になる()
+    internal void CreateContent_SelectedColorが非空で解析不能な場合も白になる()
     {
         // 非空だが Color.TryParse に失敗する値（!IsNullOrWhiteSpace=true && TryParse=false の分岐）
-        var flyout = ColorSelectorFlyoutFactory.Create("#GGGGGG", NullLogger.Instance, _ => { });
-        var colorView = FindColorView(flyout.Content);
+        var content = ColorSelectorFlyoutFactory.CreateContent("#GGGGGG", NullLogger.Instance, _ => { }, () => { });
+        var colorView = FindColorView(content);
 
         Assert.NotNull(colorView);
         Assert.Equal(Colors.White, colorView!.Color);

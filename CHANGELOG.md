@@ -5,6 +5,20 @@
 - **公開する版は人が決めます**（`VersionPrefix` 1 行を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
+## 0.8.0（2026-11-17）
+
+### 変更（互換性のない変更）
+
+- **ColorSelector の見た目を標準のコンボボックスへ置き換えました**（AvaloniaUI / MewUI / WinUI 3 の 3 UI で共通）。 自前の枠・▼・… のボタンを作るのをやめ、**コンボボックスをそのまま使います**（展開ボタンを押すと標準の一覧の代わりにタブ付きのフライアウトが出ます）。
+- **`ShowListButton` / `ShowPickerButton` を削除しました**。 代わりに **`ShowCustomTab` / `ShowPickerTab`** を使ってください（`ShowThemeColorTab` / `ShowNamedColorTab` は残ります）。
+- **カラーピッカーは「ColorPicker」タブ**になりました（別のフライアウトを重ねず、一覧の中へ直接表示します）。
+
+### 追加
+
+- **一覧のタブ**は「カスタム → テーマカラー → 色名 → ColorPicker」の順です（`ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab` で表示を選べます）。
+- **カスタム タブの並べ方**を選べるようにしました（`ColorSelectorCustomTab.Layout`。 `List` = 色名付きの一覧 / `Grid` = 色の四角だけを **6 列**に並べる。 16 色なら 3 行に収まり、スクロールせずに選べます）。
+- **カスタム タブの色名を入力欄へ表示**するようにしました（選んだ色がカスタム タブの色と一致したとき。 色コードを見比べなくても意図した色か分かります）。
+
 ## 0.7.9（2026-11-16）
 
 ### 追加

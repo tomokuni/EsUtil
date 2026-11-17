@@ -26,10 +26,10 @@
     - [5.4.3 StringToBrushConverter](#543-stringtobrushconverter)
     - [5.4.4 ColorTextFormat（`ColorTextFormat.cs`・コア）](#544-colortextformatcolortextformatcsコア)
     - [5.4.5 ColorString（`ColorString.cs`）](#545-colorstringcolorstringcs)
-    - [5.4.6 ColorSelectorCustomTab・ColorSelectorCustomColor](#546-colorselectorcustomtabcolorselectorcustomcolor)
+    - [5.4.6 ColorSelectorCustomTab・ColorSelectorCustomColor・ColorSelectorTabLayout](#546-colorselectorcustomtabcolorselectorcustomcolorcolorselectortablayout)
 - [6. 入力動作](#6-入力動作)
   - [6.1 テキスト入力](#61-テキスト入力)
-  - [6.2 ドロップダウン選択](#62-ドロップダウン選択)
+  - [6.2 一覧（タブ）の選択](#62-一覧タブの選択)
   - [6.3 無効な入力の扱い](#63-無効な入力の扱い)
   - [6.4 カラーピッカー](#64-カラーピッカー)
   - [6.5 ColorView テーマ（ホストが取り込む）](#65-colorview-テーマホストが取り込む)
@@ -150,12 +150,12 @@ if (colorPicker.HasValidationError)
 | --- | --- | --- | --- |
 | 一覧のタブ | （UI の要素） | テーマカラー / 色名 | 一覧（▼）の上部にタブを置き、分類を切り替える（`ShowThemeColorTab` / `ShowNamedColorTab` で取捨、`CustomTabs` で追加、1 つだけなら `ShowTabTitles` で題名を隠せる）。 テーマの色は数が多いため、色名と同じ一覧へ混ぜない。 **一覧を開いても枠（入力欄）の幅は変えない**（一覧だけを内容に合わせて広げる）。 前回選んだタブから開く |
 | `ShowThemeColors` | `bool` | `true`（取得または設定） | 一覧の先頭に **UI のテーマの色をすべて**並べる（共通の 20 色を「テーマ: 背景 / レイヤー / カード / コントロールの背景 / コントロールの枠線 / 区切り線 / 文字 / 副次テキスト / 無効の文字 / 無効の背景 / アクセント / アクセント（淡）/ アクセント（濃）/ アクセント文字 / アクセント上の文字 / 選択の背景 / ホバーの背景 / 押下の背景 / フォーカス / エラー」の順に並べ、その UI にしか無い色（三次テキスト・成功・注意・スクロール バーなど）を後ろへ足す）。 値は一覧を開くたびにテーマから解決する（明暗の切替・アクセント色の変更に追随） |
-| `ShowListButton` | `bool` | `true` | 一覧ボタン（▼）と隣の区切り線を表示するか（`false` は色名の入力とピッカーだけを見せる） |
-| `ShowPickerButton` | `bool` | `true` | カラーピッカー ボタン（…）と隣の区切り線を表示するか |
+| `ShowCustomTab` | `bool` | `true` | 一覧の「カスタム」タブを表示するか（`CustomTabs` が空のときは表示しない） |
 | `ShowThemeColorTab` | `bool` | `true` | 一覧の「テーマカラー」タブを表示するか（中身が無いときは表示しない） |
 | `ShowNamedColorTab` | `bool` | `true` | 一覧の「色名」タブを表示するか |
+| `ShowPickerTab` | `bool` | `true` | 一覧の「ColorPicker」タブを表示するか（タブの中でカラーピッカーを直接表示する） |
 | `ShowTabTitles` | `bool` | `true` | タブが **1 つだけ**のときに題名の行を出すか。 2 つ以上あるときは切り替えに必要なので常に出す |
-| `CustomTabs` | `IReadOnlyList<ColorSelectorCustomTab>` | 空 | 一覧へ追加する「カスタム」タブ（題名 + 色名/色コードの並び）。 複数指定できる。 `Colors` が空のタブは表示しない |
+| `CustomTabs` | `IReadOnlyList<ColorSelectorCustomTab>` | 空 | 一覧へ追加する「カスタム」タブ（題名 + 色名/色コードの並び + 並べ方）。 複数指定できる。 `Colors` が空のタブは表示しない。 **並べ方は一覧（`List`）と色の四角 6 列の格子（`Grid`）** |
 | `TextFormat` | `ColorTextFormat` | `NameWithAlpha` | **入力欄**の表記（`NameWithAlpha` = 色名+不透明度 / `HexCode` = `#AARRGGBB`）。 一覧の項目は常に色名、ツールチップは常に 2 行（色名+不透明度 / カラーコード）を出す。 テーマの色を選んでいる間は入力欄が `テーマ: <識別子>` になる |
 | `HighlightBorderOnError` | `bool` | `false` | バリデーション失敗時に外周の枠線を赤くするか |
 | `Log` | `ILogger` | `NullLogger` | 内部ロガー（null 設定時は `NullLogger` へフォールバック）。 診断ログの出力先 |
@@ -243,24 +243,34 @@ if (colorPicker.HasValidationError)
   2. RGB のみ一致する色名（同 RGB で複数ある場合は不透明（A=255）の色名を優先。 例: 半透明の白は `White+50%` と表示され `Transparent` は使われない）  
   3. 一致する色名が無い場合は `#RRGGBB`
 
-#### 5.4.6 ColorSelectorCustomTab・ColorSelectorCustomColor
+#### 5.4.6 ColorSelectorCustomTab・ColorSelectorCustomColor・ColorSelectorTabLayout
 
 **利用者が一覧へ足すタブ**（`CustomTabs` へ指定する）。
 
 | 型 | メンバー | 説明 |
 | --- | --- | --- |
-| `ColorSelectorCustomTab` | `Title` / `Colors` | タブの題名（1 つだけ表示するときの見出しにも使う）/ 並べる色（並びが一覧の順序） |
+| `ColorSelectorCustomTab` | `Title` / `Colors` / `Layout` | タブの題名（1 つだけ表示するときの見出しにも使う）/ 並べる色（並びが一覧の順序）/ 並べ方（既定は `List`） |
 | `ColorSelectorCustomColor` | `Name` / `Value` | 一覧に表示する名前 / 選んだときに適用する色（色名または `#AARRGGBB`） |
+| `ColorSelectorTabLayout` | `List` / `Grid` | 色名付きの一覧（スクロールする）/ 色の四角だけを **6 列**に並べる（名前はツールチップ。 スクロールしない） |
 
 ```csharp
 control.CustomTabs =
 [
-    new ColorSelectorCustomTab("代表色", [
-        new ColorSelectorCustomColor("赤", "#FFDC2626"),
-        new ColorSelectorCustomColor("青", "#FF2563EB"),
+    // 色名付きの一覧
+    new ColorSelectorCustomTab("枠線", [
+        new ColorSelectorCustomColor("枠線の赤", "#FFDC2626"),
     ]),
+
+    // 色の四角を 6 列に並べる（16 色なら 3 行に収まり、スクロールせずに選べる）
+    new ColorSelectorCustomTab("代表色", [
+        new ColorSelectorCustomColor("黒", "#FF000000"),
+        new ColorSelectorCustomColor("赤", "#FFDC2626"),
+        // … 16 色まで
+    ], ColorSelectorTabLayout.Grid),
 ];
 ```
+
+- **色名は入力欄にも出ます**（選んだ色がカスタム タブの色と一致したとき。 不透明度があるときは `+{n}%` を足す）。
 
 - `Colors` が空のタブは表示しません（設定の途中で空になっても壊れない）。
 - タブは開くたびに作るため、`CustomTabs` の差し替えは次に開いた一覧から反映されます。
@@ -276,13 +286,14 @@ control.CustomTabs =
 - `+{n}%` 形式を含まない入力（`#AARRGGBB` 等）はアルファ成分を不透明度として解釈します（例: `#80FF0000` → `Red+50%`）。
 - 不透明度は `0〜100%` の整数へ丸めて表示し、100% の場合は省略します。
 
-### 6.2 ドロップダウン選択
+### 6.2 一覧（タブ）の選択
 
-- ドロップダウンの各項目は「色スウォッチ + 色名（英語名）」で表示されます。
-- 上部のタブで分類を切り替えます（「テーマカラー」/「色名」/ 追加したカスタム タブ）。 前回開いたタブから始まります。
+- 入力欄と展開ボタンは**標準のコンボボックス**です（自前の枠・▼・… を作りません）。 展開ボタンを押すと、標準の一覧の代わりに**タブ付きのフライアウト**が出ます。
+- タブの並びは **カスタム → テーマカラー → 色名 → ColorPicker** です（`ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab` で取捨）。 前回開いたタブから始まります。
+- 一覧のタブは「色スウォッチ + 色名」、格子のタブは**色の四角だけを 6 列**に並べます（名前はツールチップ）。
+- 「ColorPicker」タブは**カラーピッカーをタブの中へ直接表示**します（OK / キャンセル付き。 別のフライアウトを重ねません）。
 - タブが 1 つだけのときは `ShowTabTitles` で題名の行を隠せます（2 つ以上あるときは切り替えに必要なので常に表示）。
 - 一覧を開いても**コントロールの幅は変わりません**（一覧だけが内容に合わせて広がります）。
-- 選択後はテキストの全選択状態が自動解除されます。
 
 ### 6.3 無効な入力の扱い
 

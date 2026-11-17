@@ -165,12 +165,12 @@ public sealed class MainWindow : Window
                         control.ShowThemeColors = value;
                     }
                 }),
-                SampleSettings.Check("一覧ボタン（▼）を出す", true, value => SetAll(control => control.ShowListButton = value)),
-                SampleSettings.Check("ピッカー（…）を出す", true, value => SetAll(control => control.ShowPickerButton = value)),
+                SampleSettings.Check("「カスタム」タブを出す", true, value => SetAll(control => control.ShowCustomTab = value)),
                 SampleSettings.Check("テーマカラーのタブを出す", true, value => SetAll(control => control.ShowThemeColorTab = value)),
                 SampleSettings.Check("色名のタブを出す", true, value => SetAll(control => control.ShowNamedColorTab = value)),
+                SampleSettings.Check("ColorPicker のタブを出す", true, value => SetAll(control => control.ShowPickerTab = value)),
                 SampleSettings.Check("タブの題名を出す", true, value => SetAll(control => control.ShowTabTitles = value)),
-                SampleSettings.Check("「代表色」タブを追加", false, value => SetAll(control => control.CustomTabs = value ? s_representativeTabs : [])),
+                SampleSettings.Check("「代表色」タブを追加（格子）", false, value => SetAll(control => control.CustomTabs = value ? s_representativeTabs : [])),
                 SampleSettings.Slider("文字サイズ", 12, 8, 24, 1, true, value =>
                 {
                     foreach (var control in _controls)
@@ -318,6 +318,6 @@ public sealed class MainWindow : Window
             new ColorSelectorCustomColor("紫", "#FF7C3AED"),
             new ColorSelectorCustomColor("桃", "#FFDB2777"),
             new ColorSelectorCustomColor("茶", "#FF92400E"),
-        ]),
+        ], ColorSelectorTabLayout.Grid),
     ];
 }

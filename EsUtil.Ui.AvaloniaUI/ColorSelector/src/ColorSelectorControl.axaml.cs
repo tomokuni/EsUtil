@@ -82,21 +82,15 @@ public sealed partial class ColorSelectorControl : UserControl
     // 定数
     // ====================================================================
 
-    /// <summary>スウォッチの一辺（ピクセル）。</summary>
-    private const double SwatchSize = 16;
-
-    /// <summary>スウォッチと枠・文字との間の余白（ピクセル）。</summary>
-    private const double SwatchGap = 6;
-
     // ====================================================================
     // 状態
     // ====================================================================
 
-    /// <summary>一覧ボタン（▼）を表示するかどうか。</summary>
-    private bool _showListButton = true;
+    /// <summary>開いている一覧（タブ付きのフライアウト）。 閉じるまで保持する。</summary>
+    private Flyout? _flyout;
 
-    /// <summary>カラーピッカー ボタン（…）を表示するかどうか。</summary>
-    private bool _showPickerButton = true;
+    /// <summary>コンボボックスの標準の一覧を閉じている最中かどうか（開閉の往復を防ぐ）。</summary>
+    private bool _suppressDropDown;
 
     /// <summary>最後に有効だった色（無効な入力の復帰先）。</summary>
     private string? _lastValidColor;
@@ -169,33 +163,15 @@ public sealed partial class ColorSelectorControl : UserControl
     /// </remarks>
     public bool ShowThemeColors { get; set; } = true;
 
-    /// <summary>一覧ボタン（▼）を表示するかどうかを取得または設定する。</summary>
+    /// <summary>一覧の「カスタム」タブを表示するかどうかを取得または設定する。</summary>
     /// <value>表示する場合は true（既定）。</value>
-    /// <remarks>
-    /// <b>隠すと一覧を開けない</b>: 色名を打ち込むか、カラーピッカーだけを使う場面（狭い場所）で隠す<br/>
-    /// （区切りの線も一緒に隠し、入力欄の見た目を崩さない）。
-    /// </remarks>
-    public bool ShowListButton
-    {
-        get => _showListButton;
-        set
-        {
-            _showListButton = value;
-            ApplyViewOptions();
-        }
-    }
+    /// <remarks>中身（<see cref="CustomTabs"/>）が空のときは表示しない（タブだけが出て一覧が空になるのを防ぐ）。</remarks>
+    public bool ShowCustomTab { get; set; } = true;
 
-    /// <summary>カラーピッカー ボタン（…）を表示するかどうかを取得または設定する。</summary>
+    /// <summary>一覧の「ColorPicker」タブを表示するかどうかを取得または設定する。</summary>
     /// <value>表示する場合は true（既定）。</value>
-    public bool ShowPickerButton
-    {
-        get => _showPickerButton;
-        set
-        {
-            _showPickerButton = value;
-            ApplyViewOptions();
-        }
-    }
+    /// <remarks>タブを開くとカラーピッカー（<c>ColorView</c>）を一覧の中へ直接表示する（別のフライアウトを重ねない）。</remarks>
+    public bool ShowPickerTab { get; set; } = true;
 
     /// <summary>一覧の「テーマカラー」タブを表示するかどうかを取得または設定する。</summary>
     /// <value>表示する場合は true（既定）。</value>
@@ -304,10 +280,14 @@ public sealed partial class ColorSelectorControl : UserControl
     {
         InitializeComponent();
 
-        // TextChanged はプログラムからの Text 変更では発火しない（実測 2026-10-25）。
-        // Text プロパティの変更を直接購読し、入力の経路に依らず同期する
-        _text.GetObservable(TextBox.TextProperty).Subscribe(new AnonymousObserver<string?>(OnTextValueChanged));
-        _text.LostFocus += OnTextLostFocus;
+        // 入力はコンボボックスの Text（編集可能）で受ける。 プログラムからの変更も同じ経路で同期する
+        // （TextChanged はプログラムからの変更では発火しないため、Text プロパティの変更を直接購読する）
+        _combo.GetObservable(ComboBox.TextProperty).Subscribe(new AnonymousObserver<string?>(OnTextValueChanged));
+        _combo.LostFocus += OnTextLostFocus;
+
+        // 標準のコンボボックスは自前の一覧を持つため、開いた直後に閉じてタブ付きのフライアウトを出す
+        // （見た目を似せて作らず、コンボボックスをそのまま使う）
+        _combo.DropDownOpened += OnDropDownOpened;
 
         if (!Design.IsDesignMode)
         {
@@ -318,21 +298,59 @@ public sealed partial class ColorSelectorControl : UserControl
             UpdateValidationStatus(initialColor);
         }
 
-        ApplyTextLayout();
-        ApplyViewOptions();
+        ApplyTextSize();
 
         // テーマが変わったら、テーマの色を選んでいる間はその色を解決し直す
         ActualThemeVariantChanged += (_, _) => ReapplyThemeColor();
     }
 
-    /// <summary>表示の切り替え（一覧ボタン・ピッカー ボタン）を反映する。</summary>
-    /// <remarks>ボタンだけでなく区切りの線も隠す（線だけが残ると入力欄の見た目が崩れる）。</remarks>
-    private void ApplyViewOptions()
+    /// <summary>コンボボックスを開いたときに、標準の一覧の代わりにタブ付きのフライアウトを出す。</summary>
+    /// <param name="sender">イベント送信元。</param>
+    /// <param name="e">イベント引数。</param>
+    /// <remarks>
+    /// <b>標準の一覧は使わない</b>: 一覧はタブ（カスタム / テーマカラー / 色名 / ColorPicker）で切り替えるため、
+    /// コンボボックスが持つ一覧は開いた直後に閉じる（開閉の往復を防ぐため <see cref="_suppressDropDown"/> で抑止する）。
+    /// </remarks>
+    private void OnDropDownOpened(object? sender, EventArgs e)
     {
-        PART_ListButton.IsVisible = _showListButton;
-        PART_ListSeparator.IsVisible = _showListButton;
-        PART_PickerButton.IsVisible = _showPickerButton;
-        PART_PickerSeparator.IsVisible = _showPickerButton;
+        if (_suppressDropDown)
+        {
+            return;
+        }
+
+        _suppressDropDown = true;
+        try
+        {
+            _combo.IsDropDownOpen = false;
+        }
+        finally
+        {
+            _suppressDropDown = false;
+        }
+
+        _flyout?.Hide();
+        if (CreateListFlyout() is not { } flyout)
+        {
+            return;
+        }
+
+        _flyout = flyout;
+        Log.LogOpenList(SelectedColor);
+        flyout.ShowAt(_combo);
+    }
+
+    /// <summary>入力欄（コンボボックス）の文字サイズを反映する。</summary>
+    /// <remarks>未設定（NaN）は自分の値を持たせず親（テーマ）の値を継承させる。</remarks>
+    private void ApplyTextSize()
+    {
+        if (double.IsNaN(TextFontSize))
+        {
+            _combo.ClearValue(TemplatedControl.FontSizeProperty);
+        }
+        else
+        {
+            _combo.FontSize = TextFontSize;
+        }
     }
 
     /// <summary>テーマの色を選んでいる間、そのときのテーマの色へ解決し直す。</summary>
@@ -387,11 +405,8 @@ public sealed partial class ColorSelectorControl : UserControl
         return false;
     }
 
-    /// <summary><see cref="_text"/>（入力欄）。</summary>
-    private TextBox _text => PART_Text;
-
-    /// <summary>外周の枠（検証エラーの強調を付ける対象）。</summary>
-    private Border Frame => PART_Frame;
+    /// <summary><see cref="_combo"/>（入力欄を兼ねるコンボボックス）。</summary>
+    private ComboBox _combo => PART_Combo;
 
     // ====================================================================
     // プロパティ変更
@@ -467,33 +482,9 @@ public sealed partial class ColorSelectorControl : UserControl
         }
         else if (change.Property == TextFontSizeProperty)
         {
-            ApplyTextLayout();
+            ApplyTextSize();
         }
 
-    }
-
-    /// <summary>入力欄のサイズ・余白の指定を反映する。</summary>
-    /// <remarks>
-    /// 左の余白にはスウォッチの幅と両脇の余白を必ず足す（文字がスウォッチへ重ならないようにする）。
-    /// 上下の余白はテーマの既定値を使う（0 にすると文字が上端へ寄る）。
-    /// </remarks>
-    private void ApplyTextLayout()
-    {
-        var text = _text;
-
-        // 未設定（NaN）は自分の値を持たせず親（テーマ）の値を継承させる
-        if (double.IsNaN(TextFontSize))
-        {
-            text.ClearValue(Avalonia.Controls.Primitives.TemplatedControl.FontSizeProperty);
-        }
-        else
-        {
-            text.FontSize = TextFontSize;
-        }
-
-        // 左の余白はスウォッチの幅と両脇の余白で置き換える（上下・右はテーマの既定値を保つ）
-        var padding = text.Padding;
-        text.Padding = new Thickness((SwatchGap * 2) + SwatchSize, padding.Top, padding.Right, padding.Bottom);
     }
 
     // ====================================================================
@@ -502,7 +493,11 @@ public sealed partial class ColorSelectorControl : UserControl
 
     /// <summary>入力欄へ色の表記とツールチップを反映する。</summary>
     /// <param name="color">表示する色（保存値）。</param>
-    /// <remarks>ツールチップは 2 行（色名+不透明度 / カラーコード）を出す。</remarks>
+    /// <remarks>
+    /// ツールチップは 2 行（色名+不透明度 / カラーコード）を出す。<br/>
+    /// <b>カスタム タブの色名を優先する</b>: 利用者が付けた名前（例: 枠線の赤）で表示されるため、
+    /// 色コードだけを見比べなくても意図した色かどうかが分かる。
+    /// </remarks>
     private void UpdateTextAndToolTip(string? color)
     {
         _applying = true;
@@ -511,19 +506,73 @@ public sealed partial class ColorSelectorControl : UserControl
             var normalized = ColorString.ToArgbHex(color);
 
             // テーマの色を選んでいる間は識別子を出す（色を写すと、テーマに追随していることが分からない）
-            _text.Text = SelectedThemeColor is { } key
+            _combo.Text = SelectedThemeColor is { } key
                 ? ThemeLabelPrefix + key
-                : ColorString.ToText(normalized, TextFormat);
+                : FormatDisplayText(normalized);
 
             var tooltip = string.Concat(
                 ColorString.ToDisplayText(normalized), Environment.NewLine, ColorString.ToArgbHex(normalized));
-            ToolTip.SetTip(_text, tooltip);
-            ToolTip.SetTip(PART_Swatch, tooltip);
+            ToolTip.SetTip(_combo, tooltip);
         }
         finally
         {
             _applying = false;
         }
+    }
+
+    /// <summary>入力欄へ出す文字列を決める（カスタム タブの色名を優先する）。</summary>
+    /// <param name="normalized">保存値（<c>#AARRGGBB</c>）。</param>
+    /// <returns>表示する文字列。</returns>
+    /// <remarks>不透明度があるときは色名へ <c>+{n}%</c> を足す（色名だけでは不透明度が伝わらない）。</remarks>
+    private string FormatDisplayText(string normalized)
+    {
+        if (TextFormat == ColorTextFormat.NameWithAlpha && ResolveCustomName(normalized) is { } name)
+        {
+            return ColorString.TryParse(normalized, out _, out var opacity) && opacity < 0.999
+                ? string.Concat(name, "+", ((int)Math.Round(opacity * 100)).ToString(System.Globalization.CultureInfo.InvariantCulture), "%")
+                : name;
+        }
+
+        return ColorString.ToText(normalized, TextFormat);
+    }
+
+    /// <summary>色に一致するカスタム タブの色名を探す。</summary>
+    /// <param name="normalized">保存値（<c>#AARRGGBB</c>）。</param>
+    /// <returns>見つかった色名。 無い場合は <see langword="null"/>。</returns>
+    /// <remarks>
+    /// <b>値は色として比べる</b>: 登録が色コードでも色名でも同じ色なら一致させる（文字列の一致では
+    /// <c>Red</c> と <c>#FFFF0000</c> が別物になる）。
+    /// </remarks>
+    private string? ResolveCustomName(string normalized)
+    {
+        if (!ColorString.TryParse(normalized, out var target, out _))
+        {
+            return null;
+        }
+
+        foreach (var tab in CustomTabs)
+        {
+            if (tab is null)
+            {
+                continue;
+            }
+
+            foreach (var entry in tab.Colors)
+            {
+                if (entry is null || string.IsNullOrWhiteSpace(entry.Value))
+                {
+                    continue;
+                }
+
+                if (ColorString.TryParse(entry.Value, out var candidate, out _)
+                    && candidate.R == target.R && candidate.G == target.G && candidate.B == target.B)
+                {
+                    return entry.Name;
+                }
+            }
+        }
+
+        return null;
     }
 
     /// <summary>入力欄の変更を <see cref="SelectedColor"/> へ反映する。</summary>
@@ -601,27 +650,18 @@ public sealed partial class ColorSelectorControl : UserControl
         IsChecked = false,
     };
 
-    /// <summary>一覧のポップアップを開く。</summary>
-    /// <param name="sender">イベント送信元。</param>
-    /// <param name="e">イベント引数。</param>
-    private void OnListButtonClick(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not Button button)
-        {
-            return;
-        }
+    /// <summary>色の四角の一辺（DIP。 格子のセル）。</summary>
+    private const double SwatchCellSize = 32;
 
-        // 一覧を開いたことを残す（ピッカーを開いたログと対。 他 UI と同じ書式）
-        Log.LogOpenList(SelectedColor);
+    /// <summary>格子に並べる列数（16 色なら 3 行に収まり、スクロールせずに選べる）。</summary>
+    private const int SwatchGridColumns = 6;
 
-        CreateListFlyout()?.ShowAt(button);
-    }
-
-    /// <summary>一覧のポップアップ（上部のタブ + 分類で絞った一覧）を作る。</summary>
+    /// <summary>一覧のポップアップ（タブ + 選んだタブの中身）を作る。</summary>
     /// <returns>作ったポップアップ。 表示できるタブが 1 つも無い場合は null。</returns>
     /// <remarks>
     /// <b>タブは分類だけを切り替える</b>: テーマの色が多いため、1 つの一覧へ混ぜると色名を探しにくい。<br/>
-    /// 前回選んだ分類から開く（同じ用途で続けて選ぶときに切り替えの手間を省く）。<br/>
+    /// <b>タブの並びは「カスタム → テーマカラー → 色名 → ColorPicker」</b>である（利用者が用意した色を先に出す）。<br/>
+    /// 前回選んだタブから開く（同じ用途で続けて選ぶときに切り替えの手間を省く）。<br/>
     /// <b>タブが 1 つなら題名を隠せる</b>（<see cref="ShowTabTitles"/>）。 切り替える相手が無いため、一覧を狭くできる。
     /// </remarks>
     internal Flyout? CreateListFlyout()
@@ -632,6 +672,83 @@ public sealed partial class ColorSelectorControl : UserControl
             return null;
         }
 
+        var tabStrip = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 4 };
+        var body = new Panel();
+        var panel = new StackPanel { Spacing = 6 };
+
+        // ▼ はコンボボックスの右端にあるため、左端を揃えて開く（右端を揃えると一覧が左へ大きくずれる）
+        var flyout = new Flyout { Content = panel, Placement = PlacementMode.BottomEdgeAlignedLeft };
+
+        var tabButtons = new List<ToggleButton>(tabs.Count);
+        var views = new List<Control>(tabs.Count);
+        for (var i = 0; i < tabs.Count; i++)
+        {
+            var index = i;
+            var button = CreateCategoryTab(tabs[i].Title);
+            button.Click += (_, _) => ApplyTab(index);
+            tabButtons.Add(button);
+            tabStrip.Children.Add(button);
+
+            var view = CreateTabView(tabs[i], flyout);
+            view.IsVisible = false;
+            views.Add(view);
+            body.Children.Add(view);
+        }
+
+        if (tabs.Count > 1 || ShowTabTitles)
+        {
+            panel.Children.Add(tabStrip);
+        }
+
+        panel.Children.Add(body);
+
+        var lastIndex = tabs.FindIndex(tab => string.Equals(tab.Key, _listTabKey, StringComparison.Ordinal));
+        ApplyTab(lastIndex >= 0 ? lastIndex : 0);
+        return flyout;
+
+        void ApplyTab(int index)
+        {
+            _listTabKey = tabs[index].Key;
+            for (var i = 0; i < tabButtons.Count; i++)
+            {
+                tabButtons[i].IsChecked = i == index;
+                views[i].IsVisible = i == index;
+            }
+        }
+    }
+
+    /// <summary>タブの中身を作る（一覧・格子・カラーピッカー）。</summary>
+    /// <param name="tab">タブの定義。</param>
+    /// <param name="flyout">閉じる対象のポップアップ。</param>
+    /// <returns>タブの中身。</returns>
+    private Control CreateTabView(ColorSelectorTabSpec tab, Flyout flyout)
+    {
+        if (tab.IsPicker)
+        {
+            Log.LogOpenPicker(SelectedColor);
+            return ColorSelectorFlyoutFactory.CreateContent(
+                SelectedColor,
+                Log,
+                value =>
+                {
+                    SelectedColor = value;
+                    UpdateTextAndToolTip(SelectedColor);
+                    flyout.Hide();
+                },
+                flyout.Hide);
+        }
+
+        return tab.Layout == ColorSelectorTabLayout.Grid
+            ? CreateSwatchGrid(tab, flyout)
+            : CreateColorList(tab, flyout);
+    }
+
+    /// <summary>色名付きの一覧（縦に並べてスクロールする）を作る。</summary>
+    /// <param name="tab">タブの定義。</param>
+    /// <param name="flyout">閉じる対象のポップアップ。</param>
+    /// <returns>一覧。</returns>
+    private Control CreateColorList(ColorSelectorTabSpec tab, Flyout flyout)
+    {
         var list = new ListBox
         {
             ItemTemplate = (IDataTemplate?)Resources["ColorEntryTemplate"],
@@ -639,84 +756,125 @@ public sealed partial class ColorSelectorControl : UserControl
 
             // 左寄せにすると希望サイズが内容（行の実寸）になり、長い名前が切れない
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+            ItemsSource = tab.Items,
         };
-
-        var tabButtons = new List<ToggleButton>(tabs.Count);
-        var tabPanel = new StackPanel
-        {
-            Orientation = Avalonia.Layout.Orientation.Horizontal,
-            Spacing = 4,
-        };
-        for (var i = 0; i < tabs.Count; i++)
-        {
-            var index = i;
-            var button = CreateCategoryTab(tabs[i].Title);
-            button.Click += (_, _) => ApplyTab(index);
-            tabButtons.Add(button);
-            tabPanel.Children.Add(button);
-        }
-
-        // タブが 1 つで題名を隠す設定なら、タブの行そのものを出さない（切り替える相手が無い）
-        var showTabs = tabs.Count > 1 || ShowTabTitles;
-        var content = new StackPanel { Spacing = 6 };
-        if (showTabs)
-        {
-            content.Children.Add(tabPanel);
-        }
-
-        content.Children.Add(list);
-
-        // ▼ は入力欄の右端にあるため、右端を揃えて左へ開く（左端を揃えると画面の右外へはみ出す）
-        var flyout = new Flyout { Content = content, Placement = PlacementMode.BottomEdgeAlignedRight };
+        ApplyListWidth(list, tab.Items);
         list.SelectionChanged += (_, _) =>
         {
             if (list.SelectedItem is ColorSelectorItem item)
             {
-                // テーマの色は識別子を覚える（明暗・アクセントの変更へ追随させる）。 色名は値だけを写す
-                SetCurrentValue(SelectedThemeColorProperty, item.ThemeKey);
-                SelectedColor = item.Value;
-                UpdateTextAndToolTip(item.Value);
-                flyout.Hide();
+                ApplyItem(item, flyout);
             }
         };
 
-        // 前回の分類が残っていればそこから、無ければ先頭のタブから開く
-        var lastIndex = tabs.FindIndex(tab => string.Equals(tab.Key, _listTabKey, StringComparison.Ordinal));
-        ApplyTab(lastIndex >= 0 ? lastIndex : 0);
-        return flyout;
-
-        void ApplyTab(int index)
-        {
-            var tab = tabs[index];
-            _listTabKey = tab.Key;
-            for (var i = 0; i < tabButtons.Count; i++)
-            {
-                tabButtons[i].IsChecked = i == index;
-            }
-
-            var visible = tab.Items;
-            list.ItemsSource = visible;
-            list.SelectedIndex = -1;
-            ApplyListWidth(list, visible);
-        }
+        return list;
     }
 
-    /// <summary>一覧に出すタブ（題名・識別子・並べる項目）を作る。</summary>
+    /// <summary>色の四角だけを 6 列に並べた格子を作る（スクロールせずに選べる）。</summary>
+    /// <param name="tab">タブの定義。</param>
+    /// <param name="flyout">閉じる対象のポップアップ。</param>
+    /// <returns>格子。</returns>
+    private Control CreateSwatchGrid(ColorSelectorTabSpec tab, Flyout flyout)
+    {
+        var grid = new WrapPanel
+        {
+            Orientation = Avalonia.Layout.Orientation.Horizontal,
+            ItemWidth = SwatchCellSize,
+            ItemHeight = SwatchCellSize,
+            Width = SwatchCellSize * SwatchGridColumns,
+        };
+
+        foreach (var item in tab.Items)
+        {
+            grid.Children.Add(CreateSwatch(item, flyout));
+        }
+
+        return grid;
+    }
+
+    /// <summary>格子の 1 マス（色の四角）を作る。</summary>
+    /// <param name="item">並べる色。</param>
+    /// <param name="flyout">閉じる対象のポップアップ。</param>
+    /// <returns>色の四角を入れたボタン（名前はツールチップで示す）。</returns>
+    private Control CreateSwatch(ColorSelectorItem item, Flyout flyout)
+    {
+        IBrush brush = ColorString.TryParse(item.Value, out var parsed, out _)
+            ? new SolidColorBrush(Avalonia.Media.Color.FromArgb(parsed.A, parsed.R, parsed.G, parsed.B))
+            : Brushes.Transparent;
+
+        var button = new Button
+        {
+            Width = SwatchCellSize,
+            Height = SwatchCellSize,
+            Padding = new Thickness(2),
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            Content = new Border
+            {
+                Width = 20,
+                Height = 20,
+                CornerRadius = new CornerRadius(3),
+                BorderBrush = new SolidColorBrush(Avalonia.Media.Color.FromArgb(64, 128, 128, 128)),
+                BorderThickness = new Thickness(1),
+                Background = brush,
+            },
+        };
+        ToolTip.SetTip(button, item.Label);
+        button.Click += (_, _) => ApplyItem(item, flyout);
+        return button;
+    }
+
+    /// <summary>選んだ色を反映して一覧を閉じる。</summary>
+    /// <param name="item">選んだ色。</param>
+    /// <param name="flyout">閉じるポップアップ。</param>
+    private void ApplyItem(ColorSelectorItem item, Flyout flyout)
+    {
+        // テーマの色は識別子を覚える（明暗・アクセントの変更へ追随させる）。 色名・カスタムは値だけを写す
+        SetCurrentValue(SelectedThemeColorProperty, item.ThemeKey);
+        SelectedColor = item.Value;
+        UpdateTextAndToolTip(SelectedColor);
+        flyout.Hide();
+    }
+
+    /// <summary>一覧に出すタブ（題名・識別子・並べ方・並べる項目）を作る。</summary>
     /// <returns>表示するタブ。 中身の無いタブは含めない。</returns>
     /// <remarks>
-    /// <b>表示の設定と中身を 1 か所で決める</b>: タブの有無と一覧の項目が食い違わない（空のタブを出さない）。
+    /// <b>表示の設定と中身を 1 か所で決める</b>: タブの有無と一覧の項目が食い違わない（空のタブを出さない）。<br/>
+    /// <b>並びは「カスタム → テーマカラー → 色名 → ColorPicker」</b>である（利用者が用意した色を先に出す）。
     /// </remarks>
     internal List<ColorSelectorTabSpec> CreateTabs()
     {
-        var items = CreateItems();
         var tabs = new List<ColorSelectorTabSpec>();
 
+        if (ShowCustomTab)
+        {
+            foreach (var custom in CustomTabs)
+            {
+                if (custom is null || custom.Colors.Count == 0)
+                {
+                    continue;
+                }
+
+                var entries = custom.Colors
+                    .Where(color => color is not null && !string.IsNullOrWhiteSpace(color.Value))
+                    .Select(color => new ColorSelectorItem(color.Name, color.Value, ColorSelectorCategory.Custom))
+                    .ToList();
+                if (entries.Count > 0)
+                {
+                    tabs.Add(new ColorSelectorTabSpec(custom.Title, "custom:" + custom.Title, custom.Layout, entries));
+                }
+            }
+        }
+
+        var items = CreateItems();
         if (ShowThemeColorTab)
         {
             var theme = items.Where(item => item.Category == ColorSelectorCategory.Theme).ToList();
             if (theme.Count > 0)
             {
-                tabs.Add(new ColorSelectorTabSpec("テーマカラー", "theme", theme));
+                tabs.Add(new ColorSelectorTabSpec("テーマカラー", "theme", ColorSelectorTabLayout.List, theme));
             }
         }
 
@@ -725,25 +883,13 @@ public sealed partial class ColorSelectorControl : UserControl
             var named = items.Where(item => item.Category == ColorSelectorCategory.Named).ToList();
             if (named.Count > 0)
             {
-                tabs.Add(new ColorSelectorTabSpec("色名", "named", named));
+                tabs.Add(new ColorSelectorTabSpec("色名", "named", ColorSelectorTabLayout.List, named));
             }
         }
 
-        foreach (var custom in CustomTabs)
+        if (ShowPickerTab)
         {
-            if (custom is null || custom.Colors.Count == 0)
-            {
-                continue;
-            }
-
-            var entries = custom.Colors
-                .Where(color => !string.IsNullOrWhiteSpace(color.Value))
-                .Select(color => new ColorSelectorItem(color.Name, color.Value, ColorSelectorCategory.Custom))
-                .ToList();
-            if (entries.Count > 0)
-            {
-                tabs.Add(new ColorSelectorTabSpec(custom.Title, "custom:" + custom.Title, entries));
-            }
+            tabs.Add(new ColorSelectorTabSpec("ColorPicker", "picker", ColorSelectorTabLayout.List, [], IsPicker: true));
         }
 
         return tabs;
@@ -925,23 +1071,6 @@ public sealed partial class ColorSelectorControl : UserControl
             ? new SolidColorBrush(accent)
             : null;
 
-    /// <summary>Flyout 形式のカラーピッカーを開いて選択色を反映する。</summary>
-    /// <param name="sender">イベント送信元。</param>
-    /// <param name="e">イベント引数。</param>
-    private void OnColorPickerButtonClick(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not Button button)
-        {
-            return;
-        }
-
-        // SelectedColor は 1 回だけ取得してログと Flyout 構築で共有する（二重 getter の排除）
-        var color = SelectedColor;
-        Log.LogOpenPicker(color);
-        var flyout = ColorSelectorFlyoutFactory.Create(color, Log, value => SelectedColor = value);
-        flyout.ShowAt(button);
-    }
-
     // ====================================================================
     // 検証状態
     // ====================================================================
@@ -973,7 +1102,14 @@ public sealed partial class ColorSelectorControl : UserControl
     private void UpdateBorderValidationVisual()
     {
         var hasError = HighlightBorderOnError && HasValidationError;
-        Frame.Classes.Set("validation-error", hasError);
-        ((IPseudoClasses)Frame.Classes).Set(":error", hasError);
+        ((IPseudoClasses)_combo.Classes).Set(":error", hasError);
+        if (hasError)
+        {
+            _combo.BorderBrush = Brushes.Red;
+        }
+        else
+        {
+            _combo.ClearValue(TemplatedControl.BorderBrushProperty);
+        }
     }
 }

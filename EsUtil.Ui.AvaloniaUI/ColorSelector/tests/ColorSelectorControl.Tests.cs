@@ -1,4 +1,3 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
@@ -136,29 +135,68 @@ public class ColorSelectorControlTests
     internal void 一覧はテーマカラーと色名のタブに分かれる()
     {
         var control = CreateControl();
-        var flyout = control.CreateListFlyout();
+        control.ShowPickerTab = false;
+        var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
 
-        Assert.NotNull(flyout);
-        var root = Assert.IsType<StackPanel>(flyout.Content);
-
-        // 1 段目がタブ、2 段目が一覧
-        var tabs = Assert.IsType<StackPanel>(root.Children[0]);
-        var list = Assert.IsType<ListBox>(root.Children[1]);
+        var (tabs, body) = GetTabsAndBody(flyout);
         Assert.Equal(2, tabs.Children.Count);
         Assert.Equal("テーマカラー", Assert.IsType<ToggleButton>(tabs.Children[0]).Content);
         Assert.Equal("色名", Assert.IsType<ToggleButton>(tabs.Children[1]).Content);
 
         // 開いた直後はテーマカラー（テーマの色だけが並ぶ）
-        var themeItems = Assert.IsAssignableFrom<IEnumerable<ColorSelectorItem>>(list.ItemsSource).ToArray();
+        var themeItems = Assert.IsAssignableFrom<IEnumerable<ColorSelectorItem>>(GetVisibleView<ListBox>(body).ItemsSource).ToArray();
         Assert.NotEmpty(themeItems);
         Assert.All(themeItems, item => Assert.Equal(ColorSelectorCategory.Theme, item.Category));
 
         // 色名のタブへ切り替えると色名だけが並ぶ
         Assert.IsType<ToggleButton>(tabs.Children[1]).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        var namedItems = Assert.IsAssignableFrom<IEnumerable<ColorSelectorItem>>(list.ItemsSource).ToArray();
+        var namedItems = Assert.IsAssignableFrom<IEnumerable<ColorSelectorItem>>(GetVisibleView<ListBox>(body).ItemsSource).ToArray();
         Assert.NotEmpty(namedItems);
         Assert.All(namedItems, item => Assert.Equal(ColorSelectorCategory.Named, item.Category));
         Assert.Contains(namedItems, item => item.Value == "Red");
+    }
+
+    /// <summary>カスタム タブは格子（色の四角を 6 列）でも並べられることを検証する。</summary>
+    /// <remarks>16 色なら 6 列 × 3 行に収まり、スクロールせずに選べる。</remarks>
+    [AvaloniaFact]
+    internal void カスタムタブは色の四角を6列に並べられる()
+    {
+        var control = CreateControl();
+        var colors = new List<ColorSelectorCustomColor>();
+        for (var i = 0; i < 16; i++)
+        {
+            colors.Add(new ColorSelectorCustomColor(
+                "色" + i.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                "#FF0000" + i.ToString("X2", System.Globalization.CultureInfo.InvariantCulture)));
+        }
+
+        control.CustomTabs = [new ColorSelectorCustomTab("代表色", colors, ColorSelectorTabLayout.Grid)];
+        var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
+
+        var (_, body) = GetTabsAndBody(flyout);
+        var grid = Assert.IsType<WrapPanel>(GetVisibleView<WrapPanel>(body));
+
+        Assert.Equal(16, grid.Children.Count);
+        Assert.Equal(6, grid.Width / grid.ItemWidth);
+    }
+
+    /// <summary>カスタム タブの色名が入力欄（テキスト部）に出ることを検証する。</summary>
+    /// <remarks>色コードだけを見比べなくても、意図した色かどうかが分かる。</remarks>
+    [AvaloniaFact]
+    internal void カスタムの色名は入力欄に出る()
+    {
+        var control = CreateControl();
+        control.ShowPickerTab = false;
+        control.ShowThemeColorTab = false;
+        control.ShowNamedColorTab = false;
+        control.CustomTabs =
+        [
+            new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("枠線の赤", "#FFDC2626")]),
+        ];
+
+        control.SelectedColor = "#FFDC2626";
+
+        Assert.Equal("枠線の赤", control.FindControl<ComboBox>("PART_Combo")!.Text);
     }
 
     /// <summary>項目の分類が名前と食い違わないことを検証する。</summary>
@@ -175,17 +213,15 @@ public class ColorSelectorControlTests
         }
     }
 
-    /// <summary>一覧は ▼ の右端を揃えて開くことを検証する。</summary>
-    /// <remarks>
-    /// ▼ は入力欄の右端にある。 左端を揃えると一覧が画面の右外へはみ出し、画面内へ押し戻されて ▼ から離れる。
-    /// </remarks>
+    /// <summary>一覧は入力欄（コンボボックス）の左端を揃えて開くことを検証する。</summary>
+    /// <remarks>右端を揃えると、幅の広い一覧が入力欄より左へ大きくずれて見える。</remarks>
     [AvaloniaFact]
-    internal void 一覧は右端を揃えて開く()
+    internal void 一覧は左端を揃えて開く()
     {
         var control = CreateControl();
         var flyout = control.CreateListFlyout();
 
-        Assert.Equal(PlacementMode.BottomEdgeAlignedRight, Assert.IsType<Flyout>(flyout).Placement);
+        Assert.Equal(PlacementMode.BottomEdgeAlignedLeft, Assert.IsType<Flyout>(flyout).Placement);
     }
 
     /// <summary>テーマの色を選ぶと識別子を保持し、そのときのテーマの色へ解決されることを検証する。</summary>
@@ -207,7 +243,7 @@ public class ColorSelectorControlTests
         Assert.Matches("^#[0-9A-F]{8}$", control.SelectedColor);
 
         // 入力欄は識別子を出す（テーマに追随していることが分かる）
-        Assert.Equal("テーマ: 文字", control.FindControl<TextBox>("PART_Text")!.Text);
+        Assert.Equal("テーマ: 文字", control.FindControl<ComboBox>("PART_Combo")!.Text);
     }
 
     /// <summary>色を直接設定したらテーマの識別子が外れることを検証する。</summary>
@@ -274,9 +310,9 @@ public class ColorSelectorControlTests
         var control = CreateControl();
         var window = new Window { Width = 480, Height = 200, Content = control };
         window.Show();
-        var flyout = control.CreateListFlyout();
-        var root = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(flyout).Content);
-        var list = Assert.IsType<ListBox>(root.Children[1]);
+        var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
+        var (_, body) = GetTabsAndBody(flyout);
+        var list = GetVisibleView<ListBox>(body);
 
         // 枠（入力欄）より内容が狭いときは、一覧も枠と同じ幅になる
         Assert.Equal(control.Bounds.Width, list.Width);
@@ -303,9 +339,9 @@ public class ColorSelectorControlTests
         window.Show();
         var frameWidth = control.Bounds.Width;
         var minWidth = control.MinWidth;
-        var flyout = control.CreateListFlyout();
-        var root = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(flyout).Content);
-        var list = Assert.IsType<ListBox>(root.Children[1]);
+        var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
+        var (_, body) = GetTabsAndBody(flyout);
+        var list = GetVisibleView<ListBox>(body);
 
         Assert.True(list.Width >= frameWidth, "一覧が枠より狭い");
         Assert.Equal(minWidth, control.MinWidth);
@@ -313,22 +349,20 @@ public class ColorSelectorControlTests
         window.Close();
     }
 
-    /// <summary>一覧ボタン（▼）とピッカー ボタン（…）を個別に隠せることを検証する。</summary>
-    /// <remarks>狭い場所ではボタンを隠し、入力欄とスウォッチだけを見せられる。</remarks>
+    /// <summary>「カスタム」と「ColorPicker」のタブを個別に隠せることを検証する。</summary>
+    /// <remarks>色名の入力とテーマ・色名の一覧だけを使う場面では、余分なタブを出さない。</remarks>
     [AvaloniaFact]
-    internal void 一覧とピッカーのボタンは個別に隠せる()
+    internal void カスタムとColorPickerのタブは個別に隠せる()
     {
         var control = CreateControl();
+        control.CustomTabs = [new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("赤", "#FFDC2626")])];
 
-        control.ShowPickerButton = false;
+        control.ShowPickerTab = false;
+        Assert.DoesNotContain(control.CreateTabs(), tab => tab.IsPicker);
+        Assert.Contains(control.CreateTabs(), tab => tab.Title == "代表色");
 
-        Assert.True(control.FindControl<Button>("PART_ListButton")!.IsVisible);
-        Assert.False(control.FindControl<Button>("PART_PickerButton")!.IsVisible);
-        Assert.False(control.FindControl<Border>("PART_PickerSeparator")!.IsVisible);
-
-        control.ShowListButton = false;
-        Assert.False(control.FindControl<Button>("PART_ListButton")!.IsVisible);
-        Assert.False(control.FindControl<Border>("PART_ListSeparator")!.IsVisible);
+        control.ShowCustomTab = false;
+        Assert.DoesNotContain(control.CreateTabs(), tab => tab.Title == "代表色");
     }
 
     /// <summary>テーマの色と色名のタブを隠すと、カスタム タブだけになることを検証する。</summary>
@@ -338,6 +372,7 @@ public class ColorSelectorControlTests
         var control = CreateControl();
         control.ShowThemeColorTab = false;
         control.ShowNamedColorTab = false;
+        control.ShowPickerTab = false;
         control.CustomTabs =
         [
             new ColorSelectorCustomTab("代表色", [
@@ -366,8 +401,9 @@ public class ColorSelectorControlTests
 
         var tabs = control.CreateTabs();
 
-        Assert.Equal(4, tabs.Count);
-        Assert.Equal(["テーマカラー", "色名", "枠線", "内側"], tabs.Select(tab => tab.Title));
+        // 並びは「カスタム → テーマカラー → 色名 → ColorPicker」（利用者が用意した色を先に出す）
+        Assert.Equal(5, tabs.Count);
+        Assert.Equal(["枠線", "内側", "テーマカラー", "色名", "ColorPicker"], tabs.Select(tab => tab.Title));
     }
 
     /// <summary>中身の無いカスタム タブは表示しないことを検証する。</summary>
@@ -389,13 +425,14 @@ public class ColorSelectorControlTests
         control.ShowNamedColorTab = false;
         control.CustomTabs = [new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("赤", "#FFDC2626")])];
 
+        control.ShowPickerTab = false;
         control.ShowTabTitles = true;
         var shown = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(control.CreateListFlyout()).Content);
         Assert.IsType<StackPanel>(shown.Children[0]);
 
         control.ShowTabTitles = false;
         var hidden = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(control.CreateListFlyout()).Content);
-        Assert.IsType<ListBox>(hidden.Children[0]);
+        Assert.IsType<Panel>(hidden.Children[0]);
     }
 
     /// <summary>タブが 2 つ以上なら題名の設定に関わらずタブを出すことを検証する。</summary>
@@ -408,7 +445,9 @@ public class ColorSelectorControlTests
 
         var root = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(control.CreateListFlyout()).Content);
 
+        // 1 段目がタブ、2 段目が中身
         Assert.IsType<StackPanel>(root.Children[0]);
+        Assert.IsType<Panel>(root.Children[1]);
     }
 
     /// <summary>表示できるタブが 1 つも無ければ一覧を開かないことを検証する。</summary>
@@ -418,9 +457,27 @@ public class ColorSelectorControlTests
         var control = CreateControl();
         control.ShowThemeColors = false;
         control.ShowNamedColorTab = false;
+        control.ShowPickerTab = false;
 
         Assert.Null(control.CreateListFlyout());
     }
+
+    /// <summary>一覧のタブ ストリップと中身（タブごとの表示を切り替える入れ物）を取り出す。</summary>
+    /// <param name="flyout">対象の一覧。</param>
+    /// <returns>タブ ストリップと中身。</returns>
+    private static (StackPanel Tabs, Panel Body) GetTabsAndBody(Flyout flyout)
+    {
+        var root = Assert.IsType<StackPanel>(flyout.Content);
+        return (Assert.IsType<StackPanel>(root.Children[0]), Assert.IsType<Panel>(root.Children[1]));
+    }
+
+    /// <summary>表示中のタブの中身を取り出す。</summary>
+    /// <typeparam name="T">中身の型。</typeparam>
+    /// <param name="body">タブの中身を入れた入れ物。</param>
+    /// <returns>表示中のタブの中身。</returns>
+    private static T GetVisibleView<T>(Panel body)
+        where T : Control
+        => Assert.IsType<T>(body.Children.First(child => child.IsVisible));
 
     /// <summary>テスト用の <see cref="ColorSelectorControl"/> を生成する。</summary>
     /// <returns>生成したコントロール（入力欄の名前解決が済んでいること）。</returns>
@@ -431,17 +488,11 @@ public class ColorSelectorControlTests
         return control;
     }
 
-    /// <summary>入力欄（<c>PART_Text</c>）を取り出す。</summary>
+    /// <summary>入力欄（<c>PART_Combo</c>。 編集できるコンボボックス）を取り出す。</summary>
     /// <param name="control">対象のコントロール。</param>
     /// <returns>入力欄。</returns>
-    private static TextBox TextOf(ColorSelectorControl control)
-        => control.FindControl<TextBox>("PART_Text")!;
-
-    /// <summary>外周の枠（<c>PART_Frame</c>）を取り出す。</summary>
-    /// <param name="control">対象のコントロール。</param>
-    /// <returns>外周の枠。</returns>
-    private static Border FrameOf(ColorSelectorControl control)
-        => control.FindControl<Border>("PART_Frame")!;
+    private static ComboBox TextOf(ColorSelectorControl control)
+        => control.FindControl<ComboBox>("PART_Combo")!;
 
     // ====================================================================
     // ログ（Log プロパティ）
@@ -509,48 +560,25 @@ public class ColorSelectorControlTests
     // ====================================================================
 
     [AvaloniaFact]
-    internal void 構造_外周の枠と入力欄と区画がある()
+    internal void 構造_入力欄は編集できるコンボボックス()
     {
         var control = CreateControl();
 
-        Assert.NotNull(control.FindControl<Border>("PART_Frame"));
-        Assert.NotNull(control.FindControl<Border>("PART_Swatch"));
-        Assert.NotNull(control.FindControl<Button>("PART_ListButton"));
-        Assert.NotNull(control.FindControl<Button>("PART_PickerButton"));
+        var combo = TextOf(control);
+
+        // 見た目を似せて作らず、標準のコンボボックスをそのまま使う
+        Assert.NotNull(combo);
+        Assert.True(combo.IsEditable);
     }
 
     [AvaloniaFact]
-    internal void 構造_入力欄は枠を持たない()
+    internal void 構造_展開ボタン以外のボタンを持たない()
     {
         var control = CreateControl();
 
-        // 枠は外周の 1 つだけが持つ（入力欄自身の枠は消す。 1 つの入力欄に見せるため）
-        Assert.Equal(new Thickness(0), TextOf(control).BorderThickness);
-        Assert.Equal(1d, FrameOf(control).BorderThickness.Left);
-    }
-
-    [AvaloniaFact]
-    internal void 構造_入力欄の左余白はスウォッチ分を確保する()
-    {
-        var control = CreateControl();
-
-        // スウォッチ（6 + 16）と文字の間隔（6）の分を左へ確保する
-        Assert.Equal(28d, TextOf(control).Padding.Left);
-    }
-
-    [AvaloniaFact]
-    internal void 構造_区画のボタンは枠と背景を持たない()
-    {
-        var control = CreateControl();
-
-        var list = control.FindControl<Button>("PART_ListButton")!;
-        var picker = control.FindControl<Button>("PART_PickerButton")!;
-
-        // 区画のボタン自身が枠を持つと、外周の枠と二重になる
-        foreach (var button in new[] { list, picker })
-        {
-            Assert.Contains("segment", button.Classes);
-        }
+        // ▼ / … の自前ボタンは無い（展開はコンボボックスの標準のボタンが担う）
+        Assert.Null(control.FindControl<Button>("PART_ListButton"));
+        Assert.Null(control.FindControl<Button>("PART_PickerButton"));
     }
 
     // ====================================================================
@@ -669,14 +697,16 @@ public class ColorSelectorControlTests
     }
 
     [AvaloniaFact]
-    internal void ツールチップ_スウォッチにも同じ内容を出す()
+    internal void ツールチップ_入力欄に色名とカラーコードを出す()
     {
         var control = CreateControl();
 
         control.SelectedColor = "#80FF0000";
 
-        var swatch = control.FindControl<Border>("PART_Swatch")!;
-        Assert.Equal(ToolTip.GetTip(TextOf(control)), ToolTip.GetTip(swatch));
+        var tip = ToolTip.GetTip(TextOf(control)) as string;
+        Assert.NotNull(tip);
+        Assert.Contains("#80FF0000", tip, StringComparison.Ordinal);
+        Assert.Contains("Red+50%", tip, StringComparison.Ordinal);
     }
 
     // ====================================================================
@@ -744,7 +774,7 @@ public class ColorSelectorControlTests
 
         control.SelectedColor = "NotAColor";
 
-        Assert.Contains("validation-error", FrameOf(control).Classes);
+        Assert.Contains(":error", TextOf(control).Classes);
     }
 
     [AvaloniaFact]
@@ -755,7 +785,7 @@ public class ColorSelectorControlTests
 
         control.SelectedColor = "Red";
 
-        Assert.DoesNotContain("validation-error", FrameOf(control).Classes);
+        Assert.DoesNotContain(":error", TextOf(control).Classes);
     }
 
     [AvaloniaFact]
@@ -766,7 +796,7 @@ public class ColorSelectorControlTests
 
         control.SelectedColor = "NotAColor";
 
-        Assert.DoesNotContain("validation-error", FrameOf(control).Classes);
+        Assert.DoesNotContain(":error", TextOf(control).Classes);
     }
 
 
@@ -795,16 +825,4 @@ public class ColorSelectorControlTests
     // カラーピッカー ボタン
     // ====================================================================
 
-    [AvaloniaFact]
-    internal void カラーピッカーボタンクリック_senderがButton以外なら何もしない()
-    {
-        var control = CreateControl();
-
-        var exception = Record.Exception(() =>
-            control.GetType()
-                .GetMethod("OnColorPickerButtonClick", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
-                .Invoke(control, [null, new RoutedEventArgs()]));
-
-        Assert.Null(exception);
-    }
 }

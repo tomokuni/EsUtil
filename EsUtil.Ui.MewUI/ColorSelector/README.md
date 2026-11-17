@@ -33,28 +33,32 @@
 
 ## 1. 概要
 
-`ColorSelectorControl` は 1 行の複合コントロールです。 左から「現在色のスウォッチ」「テキスト入力」「一覧ボタン（▼）」「カラーピッカー ボタン（…）」を並べます。
+`ColorSelectorControl` は 1 行の複合コントロールです。 **標準のコンボボックス**が枠・入力欄・展開ボタンを担い、展開すると**タブ付きの一覧**（カスタム / テーマカラー / 色名 / ColorPicker）が出ます。
 
-- 4 つの区画は**隙間なく並べ、外周の 1 つの枠に収めます**（`Border` は 1 つだけ）。 区切りは枠より薄い 1 ピクセルの垂直線です。
+- **自前の枠・▼・… のボタン・区切りの線は作りません**（標準のコンボボックスをそのまま使います）。
+- MewUI 0.22.1 の `ComboBox` は**編集できる入力欄を持たない**ため、枠も背景も持たないテキスト入力をコンボボックスの文字の位置へ重ね、文字の入力と表示を担わせます（AvaloniaUI 版の `IsEditable` の代替）。
+- 展開時に**標準の一覧は出しません**。 コンボボックスの `MouseDown` を処理して標準の開閉を止め、タブ付きのポップアップを出します。
 - **保存値**は `#AARRGGBB`（アルファが先頭。 例: `#80FF0000`）です（設定ファイルへそのまま保存できます）。
 - **画面表示**は既定で `{色名または #RRGGBB}+{不透明度%}`（100% なら `+…` を省く。 例: `Red+50%`）です。 `TextFormat` で `#AARRGGBB` へ切り替えられます。
+- **カスタム タブの色名を入力欄に出します**（色コードが一致したとき。 不透明度があるときは `+{n}%` を足す）。
 - 入力は色名 / `#RRGGBB` / `#AARRGGBB` / それらに `+{0〜100}%` を付けた形を受け付けます。
-- スウォッチと入力欄のツールチップに「色名 + 不透明度」と「`#AARRGGBB`」を 2 行で表示します。
+- 入力欄のツールチップに「色名 + 不透明度」と「`#AARRGGBB`」を 2 行で表示します。
 
 ## 2. 機能一覧
 
 - 色名・16 進コードのテキスト入力（入力のたびに解析して反映）
+- **標準のコンボボックス**による枠・展開ボタン（自前の枠・▼・… を作らない）
 - 色の一覧からの選択（色名順・色相順を切り替え可能）
 - テーマの色の一覧（タブ「テーマカラー」）からの選択と、テーマの変更への追随（選んだテーマの色は明暗・アクセントの変更に追随）
+- 一覧はタブで切り替える（**カスタム / テーマカラー / 色名 / ColorPicker**。 色名は色相順 / 色名順）
+- **カスタム タブ**（`CustomTabs`。 題名と色名/色コードを動的に指定。 複数可。 **一覧**と**色の四角を 6 列に並べた格子**を選べる）
+- **カスタム タブの色名を入力欄に表示**（色コードが一致したときに日本語の名前を出す。 不透明度があるときは `+{n}%`）
 - ネイティブのカラーピッカー（`ColorPicker`。 色相環とパレットの両方、アルファ編集あり）
-- 現在色のスウォッチ表示
 - 入力欄の表記を切替可能（`TextFormat`。 色名 + 不透明度 / `#AARRGGBB`）
-- スウォッチと入力欄のツールチップ（色名 + 不透明度 / `#AARRGGBB` の 2 行）
+- 入力欄のツールチップ（色名 + 不透明度 / `#AARRGGBB` の 2 行）
 - 入力の検証（無効な入力はエラー状態になり、フォーカスを外すと最後の有効値へ戻る）
 - `ILogger` による変更の記録（`Log` / `LogPrefix`）
-- 一覧ボタン（▼）・ピッカー ボタン（…）の表示切替（`ShowListButton` / `ShowPickerButton`。 区切りの線も一緒に隠す）
-- 既存タブ（「テーマカラー」/「色名」）の表示切替（`ShowThemeColorTab` / `ShowNamedColorTab`）
-- **カスタム タブの追加**（`CustomTabs`。 題名と色名/色コードを動的に指定。 複数可。 空のタブは表示しない）
+- タブの表示切替（`ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab`）
 - タブが 1 つだけのときの題名の表示切替（`ShowTabTitles`）
 - 一覧を開いても**コントロールの幅は変わらない**（一覧だけが内容に合わせて広がる）
 
@@ -111,8 +115,7 @@ panel.Children(color);
 | 色の一覧の並び順 | `ColorSortMode`（`ByName` / `ByHue`） |
 | 入力欄の表記 | `TextFormat`（`NameWithAlpha` / `HexCode`） |
 | 一覧に出す色 | コアの `ColorNames`（Windows 標準の色名。 システム色は含まない）と、UI が提供するテーマの色（`ShowThemeColors` で一覧から外せる） |
-| 一覧に出すタブ | `ShowThemeColorTab` / `ShowNamedColorTab`（既存タブを隠す）、`ShowTabTitles`（タブが 1 つだけのときに題名を省く）、`CustomTabs`（用途ごとの代表色を足す。 空のタブは表示しない） |
-| 一覧・ピッカーのボタン | `ShowListButton` / `ShowPickerButton`（区切りの線も一緒に隠れる） |
+| 一覧に出すタブ | `ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab`（タブを隠す）、`ShowTabTitles`（タブが 1 つだけのときに題名を省く）、`CustomTabs`（用途ごとの代表色を足す。 空のタブは表示しない。 並べ方は一覧 / 色の四角 6 列の格子） |
 | ログの接頭辞 | `LogPrefix`（既定 `[ColorSelector]`） |
 
 一覧と色文字列の規則はコアが単一所有するため、**本コントロールに派生や差し替え点はありません**（3 つの UI で同じ結果にするため）。
@@ -133,7 +136,8 @@ panel.Children(color);
 
 ## 8. 未対応
 
-- **ドロップダウン内での編集**: 行わない（一覧（▼）は選択専用。 文字の編集は常に表示される入力欄が担う）。
+- **ComboBox の編集可**: MewUI 0.22.1 の `ComboBox` に編集できる入力欄はありません。 文字の編集は、コンボボックスの文字の位置へ重ねたテキスト入力が担います（AvaloniaUI 版と同じ操作感）。
+- **カラーピッカーのインライン表示**: MewUI の `ColorPicker` はドロップダウンであり、一覧のポップアップの中へ埋め込めません。 「ColorPicker」タブを選ぶと一覧を閉じてからピッカーのドロップダウンを開きます（2 つのドロップダウンを重ねません）。
 - **複数色の同時編集**: 持たない（1 つの色だけを扱う）。
 - **色名の追加・変更**: 持たない（色名は Windows 標準。 追加したい場合はコアの `ColorNames` を拡張する）。
 
@@ -166,7 +170,8 @@ EsUtil.Ui.MewUI/ColorSelector/
 │   ├── ColorSelectorControl.cs                     # 公開 API・入力と状態の同期・一覧とピッカー
 │   ├── ColorSelectorCategory.cs                    # 一覧の項目の分類（internal）
 │   ├── ColorSelectorItem.cs                        # 一覧の 1 件（表示名と適用値。 internal）
-│   ├── ColorSelectorTabSpec.cs                     # 一覧の 1 タブ（題名・識別子・項目。 internal）
+│   ├── ColorSelectorTabSpec.cs                     # 一覧の 1 タブ（題名・識別子・並べ方・項目。 internal）
+│   ├── ColorSelectorTabLayout.cs                   # カスタム タブの並べ方（一覧 / 格子）
 │   ├── ColorSelectorCustomTab.cs                   # 利用者が追加するタブ
 │   ├── ColorSelectorCustomColor.cs                 # カスタム タブの 1 色
 │   └── ColorSelectorLogMessage.cs                  # ログ定義（LoggerMessage ソース生成）
