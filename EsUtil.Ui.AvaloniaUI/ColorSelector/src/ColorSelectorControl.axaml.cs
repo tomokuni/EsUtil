@@ -719,14 +719,31 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>一覧の分類を切り替えるタブを作る。</summary>
     /// <param name="text">タブの文言。</param>
     /// <returns>タブ（<see cref="ToggleButton"/>）。</returns>
-    /// <remarks>片方だけが選ばれるよう、切り替えは一覧を開く処理の <c>ApplyCategory</c> が両方の状態を書く。</remarks>
+    /// <remarks>
+    /// 片方だけが選ばれるよう、切り替えは一覧を開く処理の <c>ApplyTab</c> が両方の状態を書く。<br/>
+    /// <b>文言は省略記号で切る</b>: タブが多いと幅を詰めるため、そのままだと文字が途中で切れて読めなくなる
+    /// （実測 2026-11-17: 「ColorPicker」が「ColorPicke」になった）。
+    /// </remarks>
     private static ToggleButton CreateCategoryTab(string text) => new()
     {
-        Content = text,
+        Content = new TextBlock
+        {
+            Text = text,
+            FontSize = CategoryTabFontSize,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        },
         Width = CategoryTabWidth,
+        Padding = s_categoryTabPadding,
         HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
         IsChecked = false,
     };
+
+    /// <summary>タブの文言の文字サイズ（DIP。 5 つ並べても「ColorPicker」が収まる大きさ）。</summary>
+    private const double CategoryTabFontSize = 11;
+
+    /// <summary>タブの内側の余白（DIP。 詰めて文字の入る幅を稼ぐ）。</summary>
+    private static readonly Thickness s_categoryTabPadding = new(4, 2);
 
     /// <summary>色の四角の一辺（DIP。 格子のセル）。</summary>
     private const double SwatchCellSize = 32;

@@ -1057,11 +1057,19 @@ public sealed partial class ColorSelectorControl : UserControl
     /// </remarks>
     private static ToggleButton CreateCategoryTab(string text, double width) => new()
     {
-        Content = new TextBlock { Text = text, TextTrimming = TextTrimming.CharacterEllipsis },
+        Content = new TextBlock
+        {
+            Text = text,
+            FontSize = CategoryTabFontSize,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+        },
         Width = width,
-        Padding = new Thickness(6, 5, 6, 5),
+        Padding = new Thickness(4, 2, 4, 2),
         HorizontalContentAlignment = HorizontalAlignment.Center,
     };
+
+    /// <summary>タブの文言の文字サイズ（DIP。 5 つ並べても「ColorPicker」が収まる大きさ）。</summary>
+    private const double CategoryTabFontSize = 11;
 
     /// <summary>一覧のポップアップの表示スタイルを作る（高さの上限を外し、スクロールさせない）。</summary>
     /// <returns>FlyoutPresenter のスタイル。</returns>
