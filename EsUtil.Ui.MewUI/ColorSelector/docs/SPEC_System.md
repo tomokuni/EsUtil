@@ -46,7 +46,7 @@ graph TD
 
 | 型 | 役割 |
 | --- | --- |
-| `ColorSelectorControl` | 公開 API。 入力・一覧・ピッカーの 3 経路を `SelectedColor` へ集約する。 **入力欄は標準の `ComboBox`**（枠と展開ボタン）と、その文字の位置へ重ねた `TextBox`（編集可の代替）で成り、コンボボックスの `MouseDown` を処理して標準の一覧の代わりにタブ付きの `Popup` を出す。 一覧のタブは表示の設定と `CustomTabs` から `CreateTabs` で作り、`RefreshList` のたびに `ToggleButton` と中身を作り直す（MewUI はコードで組み立てるため、タブを静的に持てない）。 タブの中身は「色スウォッチ + 色名」の `ListBox` と、色の四角を 6 列に並べる `UniformGrid`（スクロールしない）。 「ColorPicker」タブは MewUI の `ColorPicker` がドロップダウンのため、一覧を閉じてから 1×1 の入れ物に置いたピッカーを開く（折り畳み時の見出しは切り取って出さない）。 入力欄にはカスタム タブの色名を出す（`FormatDisplayText` / `ResolveCustomName`。 値は色として比べ、不透明度はアルファから求める）。 一覧の幅は `ApplyListWidth` が決め、**コントロールの幅は変えず**一覧だけを枠と内容の広い方へ合わせる |
+| `ColorSelectorControl` | 公開 API。 入力・一覧・ピッカーの 3 経路を `SelectedColor` へ集約する。 **入力欄は標準の `ComboBox`**（枠と展開ボタン）と、その文字の位置へ重ねた `TextBox`（編集可の代替）で成り、**展開ボタン（右端 30 DIP）の押下と Alt+↓ / F4 を自前で受けて**標準の一覧の代わりにタブ付きの `Popup` を出す（表示は入力の処理の後へ回す。 開いてから閉じる方式は開閉が往復する）。 一覧のタブは表示の設定と `CustomTabs` から `CreateTabs` で作り、`RefreshList` のたびに `ToggleButton` と**中身の入れ物**を作り直し、中身は `ApplyTab` が最初に表示するときに作る（開いていないカラーピッカーのタブを生成しない。 MewUI はコードで組み立てるため、タブを静的に持てない）。 タブの中身は「色スウォッチ + 色名」の `ListBox` と、色の四角を 6 列に並べる `UniformGrid`（スクロールしない）。 「ColorPicker」タブは MewUI の `ColorPicker` がドロップダウンのため、一覧を閉じてから 1×1 の入れ物に置いたピッカーを開く（折り畳み時の見出しは切り取って出さない）。 入力欄にはカスタム タブの色名を出す（`FormatDisplayText` / `ResolveCustomName`。 値は色として比べ、不透明度はアルファから求める）。 一覧の幅は `ApplyListWidth` が決め、**コントロールの幅は変えず**一覧だけを枠と内容の広い方へ合わせる |
 | `ColorSelectorCustomTab` | 利用者が追加するタブ（題名・並べる色・並べ方）。 空の `Colors` は表示しない |
 | `ColorSelectorCustomColor` | カスタム タブの 1 色（一覧に表示する名前と、選んだときに適用する色） |
 | `ColorSelectorTabLayout` | カスタム タブの並べ方（`List` = 色名付きの一覧 / `Grid` = 色の四角を 6 列に並べる格子） |

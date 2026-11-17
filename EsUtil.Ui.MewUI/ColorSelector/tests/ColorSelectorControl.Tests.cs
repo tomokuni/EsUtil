@@ -410,12 +410,50 @@ public class ColorSelectorControlTests
         control.RefreshList();
         control.ApplyTab(0);
 
-        var grid = Assert.IsType<UniformGrid>(control.TabBody.Children[0]);
+        // タブの中身は入れ物（枠）の中に作られる（表示するまで作らないため、中身は 1 段深い）
+        var slot = Assert.IsType<Grid>(control.TabBody[0]);
+        var grid = Assert.IsType<UniformGrid>(slot[0]);
         Assert.Equal(6, grid.Columns);
         Assert.Equal(16, grid.Count);
 
         // 格子はスクロールしない（一覧の高さ制限を持たない）
         Assert.Equal(double.PositiveInfinity, grid.MaxHeight);
+    }
+
+    /// <summary>タブの中身を、開いたとき（表示するとき）にだけ作ることを検証する。</summary>
+    /// <remarks>
+    /// 全タブの中身を先に作ると、カラーピッカーのタブを開いていないのにピッカーのログ
+    /// （色の選択を開きました）まで出る。 表示するタブの入れ物だけを作り、中身は最初に表示するときに作る。
+    /// </remarks>
+    [Fact]
+    internal void タブの中身は開いたときに作る()
+    {
+        var logger = new RecordingLogger();
+        var control = new ColorSelectorControl
+        {
+            Log = logger,
+            CustomTabs = [new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("赤", "#FFDC2626")])],
+        };
+
+        control.RefreshList();
+
+        var pickerIndex = control.Tabs.ToList().FindIndex(tab => tab.IsPicker);
+        Assert.True(pickerIndex >= 0);
+
+        // 中身を持つのは表示中のタブだけ（開いていないタブは空のまま）
+        for (var i = 0; i < control.TabBody.Count; i++)
+        {
+            var slot = Assert.IsType<Grid>(control.TabBody[i]);
+            Assert.Equal(slot.IsVisible, slot.Count > 0);
+        }
+
+        // カラーピッカーのタブは開くまで空（ピッカーの生成もログ出力もしない）
+        Assert.Equal(0, Assert.IsType<Grid>(control.TabBody[pickerIndex]).Count);
+        Assert.DoesNotContain(logger.Messages, message => message.Contains("色の選択を開きました", StringComparison.Ordinal));
+
+        // 表示したときに初めて中身が作られる
+        control.ApplyTab(pickerIndex);
+        Assert.Equal(1, Assert.IsType<Grid>(control.TabBody[pickerIndex]).Count);
     }
 
     /// <summary>カスタム タブの色名が入力欄に出ることを検証する。</summary>
