@@ -26,7 +26,7 @@
     - [5.4.3 StringToBrushConverter](#543-stringtobrushconverter)
     - [5.4.4 ColorTextFormat（`ColorTextFormat.cs`・コア）](#544-colortextformatcolortextformatcsコア)
     - [5.4.5 ColorString（`ColorString.cs`）](#545-colorstringcolorstringcs)
-    - [5.4.6 ColorSelectorCustomTab・ColorSelectorCustomColor・ColorSelectorTabLayout](#546-colorselectorcustomtabcolorselectorcustomcolorcolorselectortablayout)
+    - [5.4.6 ColorSelectorCustomTab・ColorSelectorCustomColor](#546-colorselectorcustomtabcolorselectorcustomcolor)
 - [6. 入力動作](#6-入力動作)
   - [6.1 テキスト入力](#61-テキスト入力)
   - [6.2 一覧（タブ）の選択](#62-一覧タブの選択)
@@ -246,7 +246,7 @@ if (colorPicker.HasValidationError)
   2. RGB のみ一致する色名（同 RGB で複数ある場合は不透明（A=255）の色名を優先。 例: 半透明の白は `White+50%` と表示され `Transparent` は使われない）  
   3. 一致する色名が無い場合は `#RRGGBB`
 
-#### 5.4.6 ColorSelectorCustomTab・ColorSelectorCustomColor・ColorSelectorTabLayout
+#### 5.4.6 ColorSelectorCustomTab・ColorSelectorCustomColor
 
 **利用者が一覧へ足すタブ**（`CustomTabs` へ指定する）。
 
@@ -254,7 +254,7 @@ if (colorPicker.HasValidationError)
 | --- | --- | --- |
 | `ColorSelectorCustomTab` | `Title` / `Colors` / `Layout` | タブの題名（1 つだけ表示するときの見出しにも使う）/ 並べる色（並びが一覧の順序）/ 並べ方（既定は `List`） |
 | `ColorSelectorCustomColor` | `Name` / `Value` | 一覧に表示する名前 / 選んだときに適用する色（色名または `#AARRGGBB`） |
-| `ColorSelectorTabLayout` | `List` / `Grid` | 色名付きの一覧（スクロールする）/ 色の四角だけを **6 列**に並べる（名前はツールチップ。 スクロールしない） |
+| `ColorSelectorCustomTab.Columns` | `int` | **■ の列数**。 `0` は色名付きの一覧（スクロールする）、`1` 以上は ■ だけをその列数で並べる格子（名前はツールチップ。 スクロールしない） |
 
 ```csharp
 control.CustomTabs =
@@ -264,12 +264,12 @@ control.CustomTabs =
         new ColorSelectorCustomColor("枠線の赤", "#FFDC2626"),
     ]),
 
-    // 色の四角を 6 列に並べる（16 色なら 3 行に収まり、スクロールせずに選べる）
+    // ■ を 8 列に並べる（40 色なら 5 行に収まり、スクロールせずに選べる）
     new ColorSelectorCustomTab("代表色", [
         new ColorSelectorCustomColor("黒", "#FF000000"),
         new ColorSelectorCustomColor("赤", "#FFDC2626"),
         // … 16 色まで
-    ], ColorSelectorTabLayout.Grid),
+    ], 8),
 ];
 ```
 
@@ -293,7 +293,7 @@ control.CustomTabs =
 
 - 入力欄と展開ボタンは**標準のコンボボックス**です（自前の枠・▼・… を作りません）。 展開ボタンを押すと、標準の一覧の代わりに**タブ付きのフライアウト**が出ます（`Alt+↓` / `F4` でも開きます）。
 - タブの並びは **カスタム → テーマカラー → 色名 → ColorPicker** です（`ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab` で取捨）。 前回開いたタブから始まります。
-- 一覧のタブは「色スウォッチ + 色名」、格子のタブは**色の四角だけを 6 列**に並べます（名前はツールチップ）。
+- 一覧のタブは「色スウォッチ + 色名」、格子のタブは**■ だけを指定した列数**で並べます（名前はツールチップ。 列数 0 は一覧）。
 - 「ColorPicker」タブは**カラーピッカーをタブの中へ直接表示**します（OK / キャンセル付き。 別のフライアウトを重ねません）。
 - タブが 1 つだけのときは `ShowTabTitles` で題名の行を隠せます（2 つ以上あるときは切り替えに必要なので常に表示）。
 - 一覧を開いても**コントロールの幅は変わりません**（一覧だけが**枠・タブの行・内容のうち最も広い幅**へ広がります。 一覧はその幅いっぱいに置くため、**スクロール バーは右端**に出ます。 タブが多いときはタブの幅を詰めて、フライアウトの既定の最大幅に収めます）。

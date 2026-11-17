@@ -79,9 +79,6 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>色の四角の一辺（DIP。 格子のセル）。</summary>
     private const double SwatchCellSize = 32.0;
 
-    /// <summary>格子に並べる列数（16 色なら 3 行に収まり、スクロールせずに選べる）。</summary>
-    private const int SwatchGridColumns = 6;
-
     /// <summary>格子の中の色の四角の一辺（DIP）。</summary>
     private const double SwatchSize = 20.0;
 
@@ -391,7 +388,7 @@ public sealed class ColorSelectorControl : Grid
     /// <remarks>
     /// <b>代表色をすぐ選べるようにする</b>: 用途ごとのタブ（例: 枠線の色）を足せる。 空のタブは表示しない。<br/>
     /// 一覧は開くたびに作るため、設定を差し替えたあとの一覧から反映される。<br/>
-    /// 並べ方は <see cref="ColorSelectorCustomTab.Layout"/> で選ぶ（一覧 / 色の四角を 6 列に並べる格子）。
+    /// 並べ方は <see cref="ColorSelectorCustomTab.Columns"/> で選ぶ（0 は色名付きの一覧 / 1 以上は ■ の格子）。
     /// </remarks>
     public IReadOnlyList<ColorSelectorCustomTab> CustomTabs { get; set; } = [];
 
@@ -947,7 +944,7 @@ public sealed class ColorSelectorControl : Grid
                     .ToList();
                 if (entries.Count > 0)
                 {
-                    tabs.Add(new ColorSelectorTabSpec(custom.Title, "custom:" + custom.Title, custom.Layout, entries));
+                    tabs.Add(new ColorSelectorTabSpec(custom.Title, "custom:" + custom.Title, custom.Columns, entries));
                 }
             }
         }
@@ -958,7 +955,7 @@ public sealed class ColorSelectorControl : Grid
             var theme = items.Where(item => item.Category == ColorSelectorCategory.Theme).ToList();
             if (theme.Count > 0)
             {
-                tabs.Add(new ColorSelectorTabSpec("テーマカラー", "theme", ColorSelectorTabLayout.List, theme));
+                tabs.Add(new ColorSelectorTabSpec("テーマカラー", "theme", 0, theme));
             }
         }
 
@@ -967,13 +964,13 @@ public sealed class ColorSelectorControl : Grid
             var named = items.Where(item => item.Category == ColorSelectorCategory.Named).ToList();
             if (named.Count > 0)
             {
-                tabs.Add(new ColorSelectorTabSpec("色名", "named", ColorSelectorTabLayout.List, named));
+                tabs.Add(new ColorSelectorTabSpec("色名", "named", 0, named));
             }
         }
 
         if (ShowPickerTab)
         {
-            tabs.Add(new ColorSelectorTabSpec("ColorPicker", "picker", ColorSelectorTabLayout.List, [], IsPicker: true));
+            tabs.Add(new ColorSelectorTabSpec("ColorPicker", "picker", 0, [], IsPicker: true));
         }
 
         return tabs;
@@ -996,9 +993,9 @@ public sealed class ColorSelectorControl : Grid
             return new Grid();
         }
 
-        return tab.Layout == ColorSelectorTabLayout.Grid
-            ? CreateSwatchGrid(tab)
-            : CreateColorList(tab, width);
+        return tab.IsList
+            ? CreateColorList(tab, width)
+            : CreateSwatchGrid(tab);
     }
 
     /// <summary>色名付きの一覧（縦に並べてスクロールする）を作る。</summary>
@@ -1023,12 +1020,14 @@ public sealed class ColorSelectorControl : Grid
         return list;
     }
 
-    /// <summary>色の四角だけを 6 列に並べた格子を作る（スクロールせずに選べる）。</summary>
+    /// <summary>色の四角だけを指定した列数に並べた格子を作る（スクロールせずに選べる）。</summary>
     /// <param name="tab">タブの定義。</param>
     /// <returns>格子。</returns>
     private UniformGrid CreateSwatchGrid(ColorSelectorTabSpec tab)
     {
-        var grid = new UniformGrid().Columns(SwatchGridColumns);
+        var columns = Math.Max(1, tab.Columns);
+        var grid = new UniformGrid().Columns(columns);
+        grid.Width = SwatchCellSize * columns;
         foreach (var item in tab.Items)
         {
             grid.Add(CreateSwatch(item));
@@ -1243,9 +1242,9 @@ public sealed class ColorSelectorControl : Grid
                 continue;
             }
 
-            width = tab.Layout == ColorSelectorTabLayout.Grid
-                ? Math.Max(width, SwatchCellSize * SwatchGridColumns)
-                : Math.Max(width, MeasureListContentWidth(tab.Items));
+            width = tab.IsList
+                ? Math.Max(width, MeasureListContentWidth(tab.Items))
+                : Math.Max(width, SwatchCellSize * tab.Columns);
         }
 
         var limit = showTabs ? Math.Max(maxWidth, TabRowWidth(tabs.Count, MinCategoryTabWidth)) : maxWidth;

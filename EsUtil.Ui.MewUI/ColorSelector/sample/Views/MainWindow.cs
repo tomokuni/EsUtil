@@ -308,6 +308,6 @@ internal static class MainWindow
             new ColorSelectorCustomColor("紫", "#FF7C3AED"),
             new ColorSelectorCustomColor("桃", "#FFDB2777"),
             new ColorSelectorCustomColor("茶", "#FF92400E"),
-        ], ColorSelectorTabLayout.Grid),
+        ], 6),
     ];
 }

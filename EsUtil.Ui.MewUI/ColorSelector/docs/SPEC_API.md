@@ -43,7 +43,7 @@
 | `ShowNamedColorTab` | `bool` | `true` | 一覧の「色名」タブを表示するか |
 | `ShowPickerTab` | `bool` | `true` | 一覧の「ColorPicker」タブを表示するか。 タブを選ぶと一覧を閉じてカラーピッカーのドロップダウンを開く（MewUI の `ColorPicker` はインライン表示できない） |
 | `ShowTabTitles` | `bool` | `true` | タブが **1 つだけ**のときに題名の行を出すか。 2 つ以上あるときは切り替えに必要なので常に出す |
-| `CustomTabs` | `IReadOnlyList<ColorSelectorCustomTab>` | 空 | 一覧へ追加する「カスタム」タブ（題名 + 色名/色コードの並び + 並べ方）。 複数指定できる。 `Colors` が空のタブは表示しない。 **並べ方は一覧（`List`）と色の四角 6 列の格子（`Grid`）** |
+| `CustomTabs` | `IReadOnlyList<ColorSelectorCustomTab>` | 空 | 一覧へ追加する「カスタム」タブ（題名 + 色名/色コードの並び + ■ の列数）。 複数指定できる。 `Colors` が空のタブは表示しない。 **列数 0 は色名付きの一覧、1 以上は ■ だけの格子（その列数）** |
 | `TextFormat` | `ColorTextFormat`（コア） | `NameWithAlpha` | **入力欄**の表記（`NameWithAlpha` = `{色名}+{%}` / `HexCode` = `#AARRGGBB`）。 一覧の項目は常に色名、ツールチップは常に 2 行（色名+不透明度 / カラーコード）を出す。 テーマの色を選んでいる間は入力欄が `テーマ: <識別子>` になる。 **カスタム タブの色名が一致するときはその名前**（不透明度があるときは `+{n}%`） |
 | `TextFontSize` | `double` | テーマの既定（`ThemeMetrics.FontSize`） | 入力欄の文字サイズ（DIP）。 **MewUI の文字サイズは継承されない**ため、周囲の入力欄と同じ大きさにする場合は明示する |
 | `HighlightBorderOnError` | `bool` | `false` | 現在の入力が無効な間、入力欄（コンボボックス）の枠線を赤にする（既定は無効） |
@@ -70,9 +70,9 @@
 
 | 型 | メンバー | 説明 |
 | --- | --- | --- |
-| `ColorSelectorCustomTab` | `Title` / `Colors` / `Layout` | タブの題名（1 つだけ表示するときの見出しにも使う）/ 並べる色（並びが一覧の順序）/ 並べ方（既定は `List`） |
+| `ColorSelectorCustomTab` | `Title` / `Colors` / `Columns` | タブの題名（1 つだけ表示するときの見出しにも使う）/ 並べる色（並びが一覧の順序）/ **■ の列数**（既定は 0 = 一覧） |
 | `ColorSelectorCustomColor` | `Name` / `Value` | 一覧に表示する名前 / 選んだときに適用する色（色名または `#AARRGGBB`） |
-| `ColorSelectorTabLayout` | `List` / `Grid` | 色名付きの一覧（スクロールする）/ 色の四角だけを **6 列**に並べる格子（スクロールしない。 名前はツールチップ） |
+| `ColorSelectorCustomTab.Columns` | `int` | **■ の列数**。 `0` は色名付きの一覧（スクロールする）、`1` 以上は ■ だけをその列数で並べる格子（名前はツールチップ。 スクロールしない） |
 
 ```csharp
 color.CustomTabs =
@@ -81,10 +81,11 @@ color.CustomTabs =
         new ColorSelectorCustomColor("赤", "#FFDC2626"),
         new ColorSelectorCustomColor("青", "#FF2563EB"),
     ]),
+    // ■ を 2 列に並べる（少ない色を色で選ぶとき。 名前はツールチップで示す）
     new ColorSelectorCustomTab("パレット", [
         new ColorSelectorCustomColor("黒", "#FF000000"),
         new ColorSelectorCustomColor("白", "#FFFFFFFF"),
-    ], ColorSelectorTabLayout.Grid),
+    ], 2),
 ];
 ```
 
@@ -112,7 +113,7 @@ color.ColorApplied += (_, _) => ApplyToSelection(color.SelectedColor);   // 同�
 
 ## 4. 座標系と単位
 
-寸法はすべて DIP です（入力欄の最小幅 120、現在色の四角 12・左の余白 7・四角と文字の間 5（文字は 24 から始まる）、一覧のタブの幅 96・最小 56・間隔 4、格子のセル 32・色の四角 20・列数 6、一覧の最大の高さ 360）。 一覧のポップアップはコンボボックスの実寸（`Bounds`。 MewUI はウィンドウ基準）を基準に、左端を揃えて置きます。 一覧の幅は**枠の幅・タブの行の幅・内容の幅のうち最も広いもの**（上限はウィンドウのクライアント領域から影の 16 を引いた値。 ただしタブを最小幅で並べた行までは広げる）であり、枠（コントロール）の幅は変えません。 タブの幅は `(幅 - 間隔 × (数 - 1)) / 数` を 96 と 56 の間に収め、数が多くても右端が切れません。 一覧（`ListBox`）はその幅いっぱいに置くため、**スクロール バーはポップアップの右端**に来ます。
+寸法はすべて DIP です（入力欄の最小幅 120、現在色の四角 12・左の余白 7・四角と文字の間 5（文字は 24 から始まる）、一覧のタブの幅 96・最小 56・間隔 4、格子のセル 32・色の四角 20・列数はタブごとの指定（`Columns`。 既定 0 = 一覧）、一覧の最大の高さ 360）。 一覧のポップアップはコンボボックスの実寸（`Bounds`。 MewUI はウィンドウ基準）を基準に、左端を揃えて置きます。 一覧の幅は**枠の幅・タブの行の幅・内容の幅のうち最も広いもの**（上限はウィンドウのクライアント領域から影の 16 を引いた値。 ただしタブを最小幅で並べた行までは広げる）であり、枠（コントロール）の幅は変えません。 タブの幅は `(幅 - 間隔 × (数 - 1)) / 数` を 96 と 56 の間に収め、数が多くても右端が切れません。 一覧（`ListBox`）はその幅いっぱいに置くため、**スクロール バーはポップアップの右端**に来ます。
 
 ## 5. 制限事項
 

@@ -748,9 +748,6 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>色の四角の一辺（DIP。 格子のセル）。</summary>
     private const double SwatchCellSize = 32;
 
-    /// <summary>格子に並べる列数（16 色なら 3 行に収まり、スクロールせずに選べる）。</summary>
-    private const int SwatchGridColumns = 6;
-
     /// <summary>一覧のポップアップ（タブ + 選んだタブの中身）を作る。</summary>
     /// <returns>作ったポップアップ。 表示できるタブが 1 つも無い場合は null。</returns>
     /// <remarks>
@@ -877,9 +874,9 @@ public sealed partial class ColorSelectorControl : UserControl
                 continue;
             }
 
-            width = tab.Layout == ColorSelectorTabLayout.Grid
-                ? Math.Max(width, SwatchCellSize * SwatchGridColumns)
-                : Math.Max(width, MeasureWidestRow(tab.Items) + ListChromeWidth);
+            width = tab.IsList
+                ? Math.Max(width, MeasureWidestRow(tab.Items) + ListChromeWidth)
+                : Math.Max(width, SwatchCellSize * tab.Columns);
         }
 
         return Math.Min(width, FlyoutMaxContentWidth);
@@ -908,9 +905,9 @@ public sealed partial class ColorSelectorControl : UserControl
                 flyout.Hide);
         }
 
-        return tab.Layout == ColorSelectorTabLayout.Grid
-            ? CreateSwatchGrid(tab, flyout)
-            : CreateColorList(tab, flyout, width);
+        return tab.IsList
+            ? CreateColorList(tab, flyout, width)
+            : CreateSwatchGrid(tab, flyout);
     }
 
     /// <summary>色名付きの一覧（縦に並べてスクロールする）を作る。</summary>
@@ -954,7 +951,7 @@ public sealed partial class ColorSelectorControl : UserControl
             Orientation = Avalonia.Layout.Orientation.Horizontal,
             ItemWidth = SwatchCellSize,
             ItemHeight = SwatchCellSize,
-            Width = SwatchCellSize * SwatchGridColumns,
+            Width = SwatchCellSize * Math.Max(1, tab.Columns),
         };
 
         foreach (var item in tab.Items)
@@ -1040,7 +1037,7 @@ public sealed partial class ColorSelectorControl : UserControl
                     .ToList();
                 if (entries.Count > 0)
                 {
-                    tabs.Add(new ColorSelectorTabSpec(custom.Title, "custom:" + custom.Title, custom.Layout, entries));
+                    tabs.Add(new ColorSelectorTabSpec(custom.Title, "custom:" + custom.Title, custom.Columns, entries));
                 }
             }
         }
@@ -1051,7 +1048,7 @@ public sealed partial class ColorSelectorControl : UserControl
             var theme = items.Where(item => item.Category == ColorSelectorCategory.Theme).ToList();
             if (theme.Count > 0)
             {
-                tabs.Add(new ColorSelectorTabSpec("テーマカラー", "theme", ColorSelectorTabLayout.List, theme));
+                tabs.Add(new ColorSelectorTabSpec("テーマカラー", "theme", 0, theme));
             }
         }
 
@@ -1060,13 +1057,13 @@ public sealed partial class ColorSelectorControl : UserControl
             var named = items.Where(item => item.Category == ColorSelectorCategory.Named).ToList();
             if (named.Count > 0)
             {
-                tabs.Add(new ColorSelectorTabSpec("色名", "named", ColorSelectorTabLayout.List, named));
+                tabs.Add(new ColorSelectorTabSpec("色名", "named", 0, named));
             }
         }
 
         if (ShowPickerTab)
         {
-            tabs.Add(new ColorSelectorTabSpec("ColorPicker", "picker", ColorSelectorTabLayout.List, [], IsPicker: true));
+            tabs.Add(new ColorSelectorTabSpec("ColorPicker", "picker", 0, [], IsPicker: true));
         }
 
         return tabs;

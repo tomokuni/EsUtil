@@ -54,7 +54,7 @@
 - 色の一覧からの選択（色名順・色相順を切り替え可能）
 - テーマの色の一覧（タブ「テーマカラー」）からの選択と、テーマの変更への追随（選んだテーマの色は明暗・アクセントの変更に追随）
 - 一覧はタブで切り替える（**カスタム / テーマカラー / 色名 / ColorPicker**。 色名は色相順 / 色名順）
-- **カスタム タブ**（`CustomTabs`。 題名と色名/色コードを動的に指定。 複数可。 **一覧**と**色の四角を 6 列に並べた格子**を選べる）
+- **カスタム タブ**（`CustomTabs`。 題名と色名/色コードを動的に指定。 複数可。 **一覧**と**■ だけを指定した列数で並べた格子**を選べる（列数 0 = 一覧 / 1 以上 = 格子））
 - **カスタム タブの色名を入力欄に表示**（色コードが一致したときに日本語の名前を出す。 不透明度があるときは `+{n}%`）
 - タブの中身は**開いたときに遅延作成**（開いていないカラーピッカーのタブを生成しない）
 - ネイティブのカラーピッカー（`ColorPicker`。 色相環とパレットの両方、アルファ編集あり）
@@ -121,7 +121,7 @@ panel.Children(color);
 | 色の一覧の並び順 | `ColorSortMode`（`ByName` / `ByHue`） |
 | 入力欄の表記 | `TextFormat`（`NameWithAlpha` / `HexCode`） |
 | 一覧に出す色 | コアの `ColorNames`（Windows 標準の色名。 システム色は含まない）と、UI が提供するテーマの色（`ShowThemeColors` で一覧から外せる） |
-| 一覧に出すタブ | `ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab`（タブを隠す）、`ShowTabTitles`（タブが 1 つだけのときに題名を省く）、`CustomTabs`（用途ごとの代表色を足す。 空のタブは表示しない。 並べ方は一覧 / 色の四角 6 列の格子） |
+| 一覧に出すタブ | `ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab`（タブを隠す）、`ShowTabTitles`（タブが 1 つだけのときに題名を省く）、`CustomTabs`（用途ごとの代表色を足す。 空のタブは表示しない。 並べ方は列数で選ぶ（0 = 一覧 / 1 以上 = ■ の格子）） |
 | ログの接頭辞 | `LogPrefix`（既定 `[ColorSelector]`） |
 
 一覧と色文字列の規則はコアが単一所有するため、**本コントロールに派生や差し替え点はありません**（3 つの UI で同じ結果にするため）。
@@ -176,8 +176,7 @@ EsUtil.Ui.MewUI/ColorSelector/
 │   ├── ColorSelectorControl.cs                     # 公開 API・入力と状態の同期・一覧とピッカー
 │   ├── ColorSelectorCategory.cs                    # 一覧の項目の分類（internal）
 │   ├── ColorSelectorItem.cs                        # 一覧の 1 件（表示名と適用値。 internal）
-│   ├── ColorSelectorTabSpec.cs                     # 一覧の 1 タブ（題名・識別子・並べ方・項目。 internal）
-│   ├── ColorSelectorTabLayout.cs                   # カスタム タブの並べ方（一覧 / 格子）
+│   ├── ColorSelectorTabSpec.cs                     # 一覧の 1 タブ（題名・識別子・列数・項目。 internal）
 │   ├── ColorSelectorCustomTab.cs                   # 利用者が追加するタブ
 │   ├── ColorSelectorCustomColor.cs                 # カスタム タブの 1 色
 │   └── ColorSelectorLogMessage.cs                  # ログ定義（LoggerMessage ソース生成）

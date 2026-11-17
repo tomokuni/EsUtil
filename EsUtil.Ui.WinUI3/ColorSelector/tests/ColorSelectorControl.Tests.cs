@@ -58,7 +58,7 @@ public class ColorSelectorControlTests
             customTabs: (ColorSelectorCustomTab[])[]);
 
         Assert.Equal((string[])["テーマカラー", "色名"], tabs.Select(tab => tab.Title));
-        Assert.All(tabs, tab => Assert.Equal(ColorSelectorTabLayout.List, tab.Layout));
+        Assert.All(tabs, tab => Assert.True(tab.IsList));
         Assert.All(tabs[0].Items, item => Assert.Equal(ColorSelectorCategory.Theme, item.Category));
         Assert.All(tabs[1].Items, item => Assert.Equal(ColorSelectorCategory.Named, item.Category));
         Assert.Contains(tabs[1].Items, item => item.Value == "Red");
@@ -222,13 +222,13 @@ public class ColorSelectorControlTests
     }
 
     // ====================================================================
-    // 格子（色の四角を 6 列）
+    // 格子（■ だけを指定した列数）
     // ====================================================================
 
-    /// <summary>カスタム タブの並べ方が指定どおりに保たれることを検証する。</summary>
-    /// <remarks>格子を選んだタブだけが <see cref="ColorSelectorTabLayout.Grid"/> になる（一覧は既定のまま）。</remarks>
+    /// <summary>カスタム タブの列数が指定どおりに保たれることを検証する。</summary>
+    /// <remarks>格子を選んだタブだけが列数 1 以上になり、0 のタブは一覧（<see cref="ColorSelectorTabSpec.IsList"/>）のまま。</remarks>
     [Fact]
-    internal void カスタムタブは色の四角を6列に並べられる()
+    internal void カスタムタブは色の四角を指定した列数に並べられる()
     {
         var tabs = ColorSelectorControl.CreateTabs(
             showCustomTab: true,
@@ -238,27 +238,56 @@ public class ColorSelectorControlTests
             SampleItems(),
             (ColorSelectorCustomTab[])
             [
-                new ColorSelectorCustomTab("代表色", SixteenColors(), ColorSelectorTabLayout.Grid),
+                new ColorSelectorCustomTab("代表色", MakeColors(16), 6),
                 new ColorSelectorCustomTab("枠線", (ColorSelectorCustomColor[])[new ColorSelectorCustomColor("赤", "#FFDC2626")]),
             ]);
 
-        Assert.Equal(ColorSelectorTabLayout.Grid, tabs[0].Layout);
-        Assert.Equal(ColorSelectorTabLayout.List, tabs[1].Layout);
+        Assert.False(tabs[0].IsList);
+        Assert.Equal(6, tabs[0].Columns);
+        Assert.True(tabs[1].IsList);
+        Assert.Equal(0, tabs[1].Columns);
+        Assert.True(tabs[2].IsList);
         Assert.Equal(16, tabs[0].Items.Count);
     }
 
-    /// <summary>格子が 6 列で折り返し、16 色なら 3 行に収まることを検証する。</summary>
-    /// <remarks>スクロールせずに選べることを、必要な行数として確かめる。</remarks>
+    /// <summary>■ の列数を指定できることを検証する（0 は一覧、1 以上はその列数の格子）。</summary>
+    /// <remarks>
+    /// 40 色を 8 列に並べると 5 行に収まり、スクロールせずに選べる。<br/>
+    /// WinUI 3 のコントロールは XAML ランタイムを必要とするため、格子の幅と行数を決める純粋関数で確かめる
+    /// （<see cref="ColorSelectorCustomTab.IsList"/> が一覧かどうかの規則を単一所有する）。
+    /// </remarks>
+    [Fact]
+    internal void カスタムタブの列数を指定できる()
+    {
+        var gridTab = new ColorSelectorCustomTab("代表色パレット", MakeColors(40), 8);
+        var listTab = new ColorSelectorCustomTab("代表色", MakeColors(40));
+
+        Assert.False(gridTab.IsList);
+        Assert.Equal(8, ColorSelectorControl.CalculateSwatchGridWidth(gridTab.Columns) / ColorSelectorControl.SwatchCellSize);
+        Assert.Equal(5, ColorSelectorControl.CalculateSwatchRows(gridTab.Colors.Count, gridTab.Columns));
+
+        Assert.True(listTab.IsList);
+        Assert.Equal(40, listTab.Colors.Count);
+    }
+
+    /// <summary>格子が指定した列数で折り返し、16 色なら 6 列で 3 行に収まることを検証する。</summary>
+    /// <remarks>
+    /// スクロールせずに選べることを、必要な行数として確かめる。<br/>
+    /// 列数 0 以下は格子にしない（1 列へ丸める）ため、1 件 1 行になる。
+    /// </remarks>
     /// <param name="itemCount">並べる色の数。</param>
+    /// <param name="columns">■ を並べる列数。</param>
     /// <param name="expected">必要な行数。</param>
     [Theory]
-    [InlineData(0, 0)]
-    [InlineData(1, 1)]
-    [InlineData(6, 1)]
-    [InlineData(7, 2)]
-    [InlineData(16, 3)]
-    internal void 格子は6列で折り返す(int itemCount, int expected)
-        => Assert.Equal(expected, ColorSelectorControl.CalculateSwatchRows(itemCount));
+    [InlineData(0, 6, 0)]
+    [InlineData(1, 6, 1)]
+    [InlineData(6, 6, 1)]
+    [InlineData(7, 6, 2)]
+    [InlineData(16, 6, 3)]
+    [InlineData(40, 8, 5)]
+    [InlineData(6, 0, 6)]
+    internal void 格子は指定した列数で折り返す(int itemCount, int columns, int expected)
+        => Assert.Equal(expected, ColorSelectorControl.CalculateSwatchRows(itemCount, columns));
 
     // ====================================================================
     // 入力欄の外観（現在色の四角と文字の位置）
@@ -472,11 +501,12 @@ public class ColorSelectorControlTests
             new ColorSelectorCustomTab("枠線", (ColorSelectorCustomColor[])[new ColorSelectorCustomColor("枠線の赤", "#FFDC2626")]),
         ];
 
-    /// <summary>格子の行数を検証するための 16 色を作る。</summary>
-    /// <returns>16 色（16 進の下 2 桁を 00 から 0F まで変えた色）。</returns>
-    private static ColorSelectorCustomColor[] SixteenColors()
+    /// <summary>格子の列数と行数を検証するための色を作る。</summary>
+    /// <param name="count">作る色の数。</param>
+    /// <returns>指定した数の色（16 進の下 2 桁を 00 から順に変えた色）。</returns>
+    private static ColorSelectorCustomColor[] MakeColors(int count)
     {
-        var colors = new ColorSelectorCustomColor[16];
+        var colors = new ColorSelectorCustomColor[count];
         for (var i = 0; i < colors.Length; i++)
         {
             colors[i] = new ColorSelectorCustomColor(
