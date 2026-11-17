@@ -9,7 +9,7 @@
 ![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-色を選ぶ WinUI 3 のコントロールです。 色名・16 進コードの入力、色の一覧からの選択、カラーピッカー（`ColorPicker`）を 1 つにまとめ、選択色の検証まで行います。
+色を選ぶ WinUI 3 のコントロールです。 標準のコンボボックス（編集可）を入力欄に使い、色名・16 進コードの入力、タブ付きの一覧からの選択、カラーピッカー（`ColorPicker`）を 1 つにまとめ、選択色の検証まで行います。
 
 **色名の表と色文字列の解釈はコア（`EsUtil.Platform.Core` の `Palette`）が単一所有**します。 そのため Avalonia UI 版・MewUI 版と**同じ入力・同じ保存値・同じ並び順**になります。
 
@@ -33,27 +33,28 @@
 
 ## 1. 概要
 
-`ColorSelectorControl` は 1 行の複合コントロールです（基底は `Microsoft.UI.Xaml.Controls.Grid`）。 左から「現在色のスウォッチ」「テキスト入力」「一覧ボタン（▼）」「カラーピッカー ボタン（…）」を並べます。
+`ColorSelectorControl` は 1 行の複合コントロールです（基底は `Microsoft.UI.Xaml.Controls.UserControl`）。 中身は標準の **コンボボックス（編集可）** 1 つで、自前の枠・▼・… は作りません。
 
-- 4 つの区画は**隙間なく並べ、外周の 1 つの枠に収めます**（`Border` は 1 つだけ）。 区切りは枠より薄い 1 ピクセルの垂直線です。
+- 展開ボタンを押すと、標準の一覧の代わりに**タブ付きの一覧**（`Flyout`）が出ます。 タブは **カスタム → テーマカラー → 色名 → ColorPicker** の順です。
 - **保存値**は `#AARRGGBB`（アルファが先頭）です。
-- **画面表示**は既定で `{色名または #RRGGBB}+{不透明度%}`（100% なら `+…` を省く）です。 `TextFormat` で `#AARRGGBB` へ切り替えられます。
+- **画面表示**は既定で `{色名または #RRGGBB}+{不透明度%}`（100% なら `+…` を省く）です。 `TextFormat` で `#AARRGGBB` へ切り替えられます。 カスタム タブに登録した色名があるときは、その名前を優先します。
 - 入力は色名 / `#RRGGBB` / `#AARRGGBB` / それらに `+{0〜100}%` を付けた形を受け付けます。
-- スウォッチと入力欄のツールチップ（`ToolTipService`）に「色名 + 不透明度」と「`#AARRGGBB`」を 2 行で表示します。
+- 入力欄のツールチップ（`ToolTipService`）に「色名 + 不透明度」と「`#AARRGGBB`」を 2 行で表示します。
 
 ## 2. 機能一覧
 
 - 色名・16 進コードのテキスト入力（入力のたびに解析して反映）
-- 色の一覧からの選択（色名順・色相順を切り替え可能）
-- テーマの色の一覧（タブ「テーマカラー」）からの選択と、テーマの変更への追随（選んだテーマの色は明暗・アクセントの変更に追随）
-- WinUI のカラーピッカー（色相環またはパレット・アルファ編集あり）
-- 現在色のスウォッチ表示
-- 入力欄の表記を切替可能（`TextFormat`。 色名 + 不透明度 / `#AARRGGBB`）
-- スウォッチと入力欄のツールチップ（色名 + 不透明度 / `#AARRGGBB` の 2 行）
+- **標準のコンボボックス**による入力欄と一覧の表示（自前の枠・▼・… を作らない）
+- 一覧はタブで切り替える（**カスタム / テーマカラー / 色名 / ColorPicker**。 色名は色相順 / 色名順）
+- **カスタム タブ**（`CustomTabs`。 題名と色名/色コードを動的に指定。 複数可。 **一覧**と**色の四角を 6 列に並べた格子**を選べる）
+- **カスタム タブの色名を入力欄に表示**（色コードが一致したときに日本語の名前を出す）
+- ColorPicker タブでカラーピッカー（`ColorPicker`）を一覧の中へ直接表示
+- テーマの色の選択と、テーマの変更への追随（選んだテーマの色は明暗・アクセントの変更に追随）
 - 入力の検証（無効な入力はエラー状態になり、フォーカスを外すと最後の有効値へ戻る）
-- 一覧ボタン（▼）・ピッカー ボタン（…）の表示切替（`ShowListButton` / `ShowPickerButton`。 区切りの線も一緒に隠す）
-- 既存タブ（「テーマカラー」/「色名」）の表示切替（`ShowThemeColorTab` / `ShowNamedColorTab`）
-- **カスタム タブの追加**（`CustomTabs`。 題名と色名/色コードを動的に指定。 複数可。 空のタブは表示しない）
+- バリデーション失敗時の枠線強調（`HighlightBorderOnError`。 既定は無効）
+- 入力欄の表記を切替可能（`TextFormat`。 色名 + 不透明度 / `#AARRGGBB`）
+- 入力欄のツールチップ（色名 + 不透明度 / `#AARRGGBB` の 2 行）
+- タブの表示切替（`ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab`）
 - タブが 1 つだけのときの題名の表示切替（`ShowTabTitles`）
 - 一覧を開いても**コントロールの幅は変わらない**（一覧だけが内容に合わせて広がる）
 - `ILogger` による変更の記録（`Log` / `LogPrefix`）
@@ -110,8 +111,7 @@ Host.Children.Add(color);
 | 色の一覧の並び順 | `ColorSortMode`（`ByName` / `ByHue`） |
 | 入力欄の表記 | `TextFormat`（`NameWithAlpha` / `HexCode`） |
 | 一覧に出す色 | コアの `ColorNames`（Windows 標準の色名。 システム色は含まない）と、UI が提供するテーマの色（`ShowThemeColors` で一覧から外せる） |
-| 一覧のタブ | `ShowThemeColorTab` / `ShowNamedColorTab` で既存のタブを隠せ、`CustomTabs`（`ColorSelectorCustomTab` の並び）で用途ごとのタブ（例: 代表色）を足せる。 タブが 1 つだけなら `ShowTabTitles` で題名の行を省ける |
-| 一覧・ピッカーのボタン | `ShowListButton` / `ShowPickerButton`（区切りの線も一緒に隠れる） |
+| 一覧のタブ | `ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab` で取捨でき、`CustomTabs`（`ColorSelectorCustomTab` の並び）で用途ごとのタブ（例: 代表色）を足せる。 カスタム タブは `ColorSelectorTabLayout` で色名付きの一覧（`List`）と色の四角 6 列の格子（`Grid`）を選べる。 タブが 1 つだけなら `ShowTabTitles` で題名の行を省ける |
 | ログの接頭辞 | `LogPrefix`（既定 `[ColorSelector]`） |
 
 一覧と色文字列の規則はコアが単一所有するため、**本コントロールに派生や差し替え点はありません**（3 つの UI で同じ結果にするため）。
@@ -162,10 +162,11 @@ dotnet run --project EsUtil.Ui.WinUI3/ColorSelector/sample/EsUtil.Ui.WinUI3.Colo
 EsUtil.Ui.WinUI3/ColorSelector/
 ├── src/                                      # UI 層（WinUI の要素の組み立てと同期）
 │   ├── EsUtil.Ui.WinUI3.ColorSelector.csproj # 独立プロジェクト（Platform.Core を参照）
-│   ├── ColorSelectorControl.cs               # 公開 API・入力と状態の同期・一覧とピッカー
+│   ├── ColorSelectorControl.cs               # 公開 API・入力と状態の同期・タブ付き一覧とピッカー
 │   ├── ColorSelectorItem.cs                  # 一覧の 1 件（表示名と適用値）
 │   ├── ColorSelectorCategory.cs              # 一覧の項目の分類（テーマカラー / 色名 / カスタム）
-│   ├── ColorSelectorTabSpec.cs               # 一覧の 1 タブ（題名・識別子・項目）
+│   ├── ColorSelectorTabSpec.cs               # 一覧の 1 タブ（題名・識別子・並べ方・項目）
+│   ├── ColorSelectorTabLayout.cs             # カスタム タブの並べ方（一覧 / 格子。 公開型）
 │   ├── ColorSelectorCustomTab.cs             # 利用者が追加するタブ（公開型）
 │   ├── ColorSelectorCustomColor.cs           # カスタム タブの 1 色（公開型）
 │   └── ColorSelectorLogMessage.cs            # ログ定義（LoggerMessage ソース生成）
@@ -182,7 +183,7 @@ EsUtil.Ui.WinUI3/ColorSelector/
 dotnet test EsUtil.Ui.WinUI3/ColorSelector/tests/EsUtil.Ui.WinUI3.ColorSelector.Tests.csproj
 ```
 
-WinUI のコントロールは XAML ランタイム（`Application`）を必要とするため、テストは**色文字列の規則がコアと一致すること**、**一覧のタブの決め方**（`CreateTabs` / `ShouldShowTabStrip`）、**一覧の幅の決め方**（`CalculateListWidth`）、**ログ定義**を対象にします。 入力と表示は利用側アプリで確認します。
+WinUI のコントロールは XAML ランタイム（`Application`）を必要とするため、テストは**色文字列の規則がコアと一致すること**、**一覧のタブの決め方**（`CreateTabs` / `ShouldShowTabStrip`）、**格子の行数**（`CalculateSwatchRows`）、**カスタム タブの色名の表示**（`FormatDisplayText` / `ResolveCustomName`）、**一覧の幅の決め方**（`CalculateListWidth`）、**ログ定義**を対象にします。 入力と表示は利用側アプリで確認します。
 
 ---
 

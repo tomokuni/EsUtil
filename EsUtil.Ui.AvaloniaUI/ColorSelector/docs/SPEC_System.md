@@ -121,9 +121,11 @@ flowchart TB
 - **責務**:
   - `SelectedColor`（色名/16進コード）の双方向バインド対応の保持（公開 API は ColorSelectorControl.axaml.cs に集約）
   - 入力バリデーション状態の管理（`UpdateValidationStatus`。 検証自体は `ColorValidator` に委譲）
-  - 一覧のポップアップ（▼）の構築と並び順切替（`ColorSortMode`）
+  - **標準のコンボボックス**の入力を扱い、展開時に標準の一覧を閉じてタブ付きのフライアウトを出す
+  - 一覧のポップアップの構築と並び順切替（`ColorSortMode`）
   - 一覧のタブの構成（`CreateTabs`。 既存タブの表示設定と `CustomTabs` から作り、空のタブは作らない）
-  - 表示の切替（`ShowListButton` / `ShowPickerButton`。 `ApplyViewOptions` がボタンと区切りの線をまとめて切り替える）
+  - タブの表示切替（`ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab`）
+  - **カスタム タブの色名を入力欄へ出す**（`FormatDisplayText` / `ResolveCustomName`。 値は色として比べる）
   - 一覧の幅の決定（`ApplyListWidth`。 **コントロールの幅は変えず**、一覧だけを枠と内容の広い方へ合わせる）
   - 入力欄の文字と保存値の同期（`OnTextValueChanged`。 プログラムからの `Text` 変更でも発火させるため、`Text` プロパティの変更を購読する）
   - 無効入力の最終有効値復帰（`OnTextLostFocus`）
@@ -131,7 +133,7 @@ flowchart TB
   - 入力欄の余白調整（`ApplyTextLayout`。 左へスウォッチ分を確保する）
   - スウォッチと入力欄のツールチップ（色名+不透明度 / `#AARRGGBB` の 2 行）
   - バリデーション失敗時の枠線強調（`UpdateBorderValidationVisual`）
-- **公開API**: `SelectedColor` / `ColorSortMode` / `TextFormat` / `HighlightBorderOnError` / `HasValidationError` / `ValidationErrorMessage` / `TextFontSize` / `ShowListButton` / `ShowPickerButton` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowTabTitles` / `CustomTabs` / `Log` / `LogPrefix`（StyledProperty も同ファイルに定義）
+- **公開API**: `SelectedColor` / `ColorSortMode` / `TextFormat` / `HighlightBorderOnError` / `HasValidationError` / `ValidationErrorMessage` / `TextFontSize` / `ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab` / `ShowTabTitles` / `CustomTabs` / `Log` / `LogPrefix`（StyledProperty も同ファイルに定義）
 - **構成**: 公開 API（StyledProperty・公開プロパティ）とイベント処理・バリデーション状態を保持し、関心事ごとに専用クラスへ委譲（単一責任・疎結合）
 - **内部メソッド（internal）**: `UpdateValidationStatus`（テストからの検証用に公開）
 - **依存**: ColorSelectorFlyoutFactory / ColorValidator / ColorEntry / ColorSortMode / ColorString / ColorTextFormat

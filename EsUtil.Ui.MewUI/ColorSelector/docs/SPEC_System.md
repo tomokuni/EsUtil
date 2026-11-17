@@ -20,7 +20,7 @@ MewUI の要素だけで色選択の UI を組み立て、**色名・色文字�
 | 項目 | 内容 |
 | --- | --- |
 | 言語 | C# 14（.NET 10） |
-| UI | MewUI 0.22.1（`Grid` / `Border` / `TextBox` / `Button` / `ListBox` / `Popup` / `ColorPicker`） |
+| UI | MewUI 0.22.1（`Grid` / `ComboBox` / `TextBox` / `Button` / `ToggleButton` / `ListBox` / `UniformGrid` / `Popup` / `ColorPicker`） |
 | ログ | `Microsoft.Extensions.Logging.Abstractions`（`LoggerMessage` ソース生成） |
 | 色の規則 | `EsUtil.Platform.Core` の `Palette` |
 
@@ -29,13 +29,13 @@ MewUI の要素だけで色選択の UI を組み立て、**色名・色文字�
 ```mermaid
 graph TD
   UI["ColorSelectorControl（MewUI）"] --> Core["Palette（Platform.Core）"]
-  UI --> Mew["MewUI の要素（Border / TextBox / Button / ListBox / Popup / ColorPicker）"]
+  UI --> Mew["MewUI の要素（ComboBox / TextBox / ToggleButton / ListBox / UniformGrid / Popup / ColorPicker）"]
   Core --> Names["ColorNames（Windows 標準の色名）"]
   Core --> Str["ColorString（解析・整形）"]
   Core --> Val["ColorValidation（妥当性）"]
 ```
 
-- **UI 層が持つもの**: 要素の組み立て（外周の 1 つの枠・薄い区切り線）、入力と状態の同期、一覧のポップアップとピッカーの開閉、ツールチップ、`SelectedColorChanged` の発火、一覧のタブの構成（表示の設定と `CustomTabs` から作り直す）と幅の決定。
+- **UI 層が持つもの**: 標準のコンボボックス（枠と展開ボタン）と、その文字の位置へ重ねるテキスト入力（編集可の代替）、入力と状態の同期、タブ付きのポップアップ（カスタム / テーマカラー / 色名 / ColorPicker）とピッカーの開閉、ツールチップ、`SelectedColorChanged` の発火、一覧のタブの構成（表示の設定と `CustomTabs` から作り直す）と並べ方（一覧 / 色の四角 6 列の格子）・幅の決定。
 - **コアが持つもの**: 受理する入力、保存値と表示の形式（`ColorTextFormat`）、色名の表、並び順、妥当性の判定。
 
 ## 4. 例外処理ポリシー
@@ -46,12 +46,13 @@ graph TD
 
 | 型 | 役割 |
 | --- | --- |
-| `ColorSelectorControl` | 公開 API。 入力・一覧・ピッカーの 3 経路を `SelectedColor` へ集約する（一覧は `Popup`、ピッカーは `ColorPicker` 自身のドロップダウン。 ピッカーは 1×1 の入れ物で**切り取って**置き、折り畳み時の見出し（「︿」）を行の上へ出さない）。 一覧のタブは表示の設定と `CustomTabs` から `CreateTabs` で作り、`RefreshList` のたびに `RebuildTabs` でボタンを作り直す（MewUI はコードで組み立てるため、タブを静的に持てない）。 表示の切替（`ApplyViewOptions`）は ▼ / … と区切りの線をまとめて切り替える。 一覧の幅は `ApplyListWidth` が決め、**コントロールの幅は変えず**一覧だけを枠と内容の広い方へ合わせる |
-| `ColorSelectorCustomTab` | 利用者が追加するタブ（題名と並べる色）。 空の `Colors` は表示しない |
+| `ColorSelectorControl` | 公開 API。 入力・一覧・ピッカーの 3 経路を `SelectedColor` へ集約する。 **入力欄は標準の `ComboBox`**（枠と展開ボタン）と、その文字の位置へ重ねた `TextBox`（編集可の代替）で成り、コンボボックスの `MouseDown` を処理して標準の一覧の代わりにタブ付きの `Popup` を出す。 一覧のタブは表示の設定と `CustomTabs` から `CreateTabs` で作り、`RefreshList` のたびに `ToggleButton` と中身を作り直す（MewUI はコードで組み立てるため、タブを静的に持てない）。 タブの中身は「色スウォッチ + 色名」の `ListBox` と、色の四角を 6 列に並べる `UniformGrid`（スクロールしない）。 「ColorPicker」タブは MewUI の `ColorPicker` がドロップダウンのため、一覧を閉じてから 1×1 の入れ物に置いたピッカーを開く（折り畳み時の見出しは切り取って出さない）。 入力欄にはカスタム タブの色名を出す（`FormatDisplayText` / `ResolveCustomName`。 値は色として比べ、不透明度はアルファから求める）。 一覧の幅は `ApplyListWidth` が決め、**コントロールの幅は変えず**一覧だけを枠と内容の広い方へ合わせる |
+| `ColorSelectorCustomTab` | 利用者が追加するタブ（題名・並べる色・並べ方）。 空の `Colors` は表示しない |
 | `ColorSelectorCustomColor` | カスタム タブの 1 色（一覧に表示する名前と、選んだときに適用する色） |
+| `ColorSelectorTabLayout` | カスタム タブの並べ方（`List` = 色名付きの一覧 / `Grid` = 色の四角を 6 列に並べる格子） |
 | `ColorSelectorCategory` | 一覧の項目の分類（`Theme` / `Named` / `Custom`。 internal） |
 | `ColorSelectorItem` | 一覧の 1 件（表示名・適用値・分類・テーマの識別子。 internal） |
-| `ColorSelectorTabSpec` | 一覧の 1 タブ（題名・識別子・項目。 internal。 表示の設定と中身から作り、空のタブは作らない） |
+| `ColorSelectorTabSpec` | 一覧の 1 タブ（題名・識別子・並べ方・項目・カラーピッカーか。 internal。 表示の設定と中身から作り、空のタブは作らない） |
 | `LogMessage` | 変更の記録（`設定: 選択色 <旧> → <新>`） |
 
 ## 6. 依存関係

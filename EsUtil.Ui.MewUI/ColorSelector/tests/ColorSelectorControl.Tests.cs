@@ -1,3 +1,4 @@
+using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Palette;
 using Xunit;
 
@@ -166,26 +167,46 @@ public class ColorSelectorControlTests
         Assert.Contains(items, item => item.Category == ColorSelectorCategory.Named && item.Value == "Red");
     }
 
-    /// <summary>一覧ボタン（▼）とピッカー ボタン（…）を個別に隠せることを検証する。</summary>
-    /// <remarks>狭い場所ではボタンを隠し、入力欄とスウォッチだけを見せられる。 区切りの線も一緒に隠す。</remarks>
+    /// <summary>「カスタム」と「ColorPicker」のタブを個別に隠せることを検証する。</summary>
+    /// <remarks>色名の入力とテーマ・色名の一覧だけを使う場面では、余分なタブを出さない。</remarks>
     [Fact]
-    internal void 一覧とピッカーのボタンは個別に隠せる()
+    internal void カスタムとColorPickerのタブは個別に隠せる()
+    {
+        var control = new ColorSelectorControl
+        {
+            ShowPickerTab = false,
+            CustomTabs = [new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("赤", "#FFDC2626")])],
+        };
+
+        Assert.DoesNotContain(control.CreateTabs(), tab => tab.IsPicker);
+        Assert.Contains(control.CreateTabs(), tab => tab.Title == "代表色");
+
+        var withoutCustom = new ColorSelectorControl
+        {
+            ShowCustomTab = false,
+            CustomTabs = [new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("赤", "#FFDC2626")])],
+        };
+
+        Assert.DoesNotContain(withoutCustom.CreateTabs(), tab => tab.Title == "代表色");
+    }
+
+    /// <summary>入力欄が標準のコンボボックスと文字入力の 2 つで成ることを検証する。</summary>
+    /// <remarks>
+    /// MewUI 0.22.1 の ComboBox は編集できる入力欄を持たないため、枠と展開ボタンはコンボボックスが担い、
+    /// 文字の入力と表示はその上へ重ねたテキスト入力が担う（AvaloniaUI 版の <c>IsEditable</c> の代替）。
+    /// </remarks>
+    [Fact]
+    internal void 構造_入力欄は標準のコンボボックスと編集用のテキスト入力()
     {
         var control = new ColorSelectorControl();
 
-        // 既定では両方見えている
-        Assert.True(control.IsListButtonVisible);
-        Assert.True(control.IsPickerButtonVisible);
+        // 見た目を似せて作らず、枠と展開ボタンは標準の ComboBox をそのまま使う
+        Assert.NotNull(control.Combo);
+        Assert.NotNull(control.TextEditor);
 
-        control.ShowPickerButton = false;
-        Assert.True(control.IsListButtonVisible);
-        Assert.True(control.IsListSeparatorVisible);
-        Assert.False(control.IsPickerButtonVisible);
-        Assert.False(control.IsPickerSeparatorVisible);
-
-        control.ShowListButton = false;
-        Assert.False(control.IsListButtonVisible);
-        Assert.False(control.IsListSeparatorVisible);
+        // 文字はテキスト入力が表示する（コンボボックスは項目を持たない）
+        Assert.Equal("White", control.TextEditor.Text);
+        Assert.Equal(0, control.Combo.ItemsSource.Count);
     }
 
     /// <summary>テーマの色と色名のタブを隠すと、カスタム タブだけになることを検証する。</summary>
@@ -196,6 +217,7 @@ public class ColorSelectorControlTests
         {
             ShowThemeColorTab = false,
             ShowNamedColorTab = false,
+            ShowPickerTab = false,
             CustomTabs =
             [
                 new ColorSelectorCustomTab("代表色", [
@@ -231,7 +253,9 @@ public class ColorSelectorControlTests
 
         var tabs = control.CreateTabs();
 
-        Assert.Equal(["色名", "枠線", "内側"], tabs.Select(tab => tab.Title));
+        // 並びは「カスタム → テーマカラー → 色名 → ColorPicker」（利用者が用意した色を先に出す）。
+        // テーマの色はアプリ実行後にしか解決できないため、ここではテーマカラーのタブは無い
+        Assert.Equal(["枠線", "内側", "色名", "ColorPicker"], tabs.Select(tab => tab.Title));
     }
 
     /// <summary>中身の無いカスタム タブは表示しないことを検証する。</summary>
@@ -251,6 +275,7 @@ public class ColorSelectorControlTests
         {
             ShowThemeColorTab = false,
             ShowNamedColorTab = false,
+            ShowPickerTab = false,
             CustomTabs = [new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("赤", "#FFDC2626")])],
         };
 
@@ -262,6 +287,7 @@ public class ColorSelectorControlTests
             ShowTabTitles = false,
             ShowThemeColorTab = false,
             ShowNamedColorTab = false,
+            ShowPickerTab = false,
             CustomTabs = [new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("赤", "#FFDC2626")])],
         };
 
@@ -289,7 +315,12 @@ public class ColorSelectorControlTests
     [Fact]
     internal void タブが1つも無ければ一覧を開かない()
     {
-        var control = new ColorSelectorControl { ShowThemeColors = false, ShowNamedColorTab = false };
+        var control = new ColorSelectorControl
+        {
+            ShowThemeColors = false,
+            ShowNamedColorTab = false,
+            ShowPickerTab = false,
+        };
 
         control.ToggleList();
 
@@ -310,6 +341,7 @@ public class ColorSelectorControlTests
             Width = 120,
             ShowThemeColorTab = false,
             ShowNamedColorTab = false,
+            ShowPickerTab = false,
             CustomTabs =
             [
                 new ColorSelectorCustomTab("長い名前のタブ", [
@@ -320,11 +352,89 @@ public class ColorSelectorControlTests
         var minWidth = control.MinWidth;
 
         control.RefreshList();
-        control.ApplyListWidth(Assert.Single(control.CreateTabs()).Items);
+        var list = new ListBox();
+        control.ApplyListWidth(list, Assert.Single(control.CreateTabs()).Items);
+
+        // アプリ実行前は測らない（幅は開くたびに作り直すため、実行後に測れば足りる）
+        Assert.True(double.IsNaN(list.Width));
 
         // 内容が広いときは一覧だけが広がり、枠が広いときは一覧が枠に揃う
         Assert.Equal(400d, ColorSelectorControl.ResolveListWidth(120, 400));
         Assert.Equal(240d, ColorSelectorControl.ResolveListWidth(240, 100));
         Assert.Equal(minWidth, control.MinWidth);
+    }
+
+    /// <summary>一覧のタブが分類（色名 / カスタム / ColorPicker）に分かれることを検証する。</summary>
+    /// <remarks>
+    /// テーマの色は数が多いため、色名と同じ一覧へ混ぜると目的の色を探しにくい。<br/>
+    /// アプリ実行前はテーマの色を解決できないため、ここでは色名・カスタム・ColorPicker の並びを確かめる。
+    /// </remarks>
+    [Fact]
+    internal void 一覧は色名とColorPickerのタブに分かれる()
+    {
+        var control = new ColorSelectorControl
+        {
+            CustomTabs = [new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("赤", "#FFDC2626")])],
+        };
+
+        control.RefreshList();
+
+        Assert.Equal(["代表色", "色名", "ColorPicker"], control.Tabs.Select(tab => tab.Title));
+        Assert.Contains(control.Tabs, tab => tab.IsPicker && tab.Items.Count == 0);
+        Assert.All(
+            control.Tabs.Where(tab => tab.Title == "色名").SelectMany(tab => tab.Items),
+            item => Assert.Equal(ColorSelectorCategory.Named, item.Category));
+    }
+
+    /// <summary>カスタム タブは格子（色の四角を 6 列）でも並べられることを検証する。</summary>
+    /// <remarks>16 色なら 6 列 × 3 行に収まり、スクロールせずに選べる。</remarks>
+    [Fact]
+    internal void カスタムタブは色の四角を6列に並べられる()
+    {
+        var colors = new List<ColorSelectorCustomColor>();
+        for (var i = 0; i < 16; i++)
+        {
+            colors.Add(new ColorSelectorCustomColor(
+                "色" + i.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                "#FF0000" + i.ToString("X2", System.Globalization.CultureInfo.InvariantCulture)));
+        }
+
+        var control = new ColorSelectorControl
+        {
+            ShowThemeColorTab = false,
+            ShowNamedColorTab = false,
+            ShowPickerTab = false,
+            CustomTabs = [new ColorSelectorCustomTab("代表色", colors, ColorSelectorTabLayout.Grid)],
+        };
+
+        control.RefreshList();
+        control.ApplyTab(0);
+
+        var grid = Assert.IsType<UniformGrid>(control.TabBody.Children[0]);
+        Assert.Equal(6, grid.Columns);
+        Assert.Equal(16, grid.Count);
+
+        // 格子はスクロールしない（一覧の高さ制限を持たない）
+        Assert.Equal(double.PositiveInfinity, grid.MaxHeight);
+    }
+
+    /// <summary>カスタム タブの色名が入力欄に出ることを検証する。</summary>
+    /// <remarks>色コードだけを見比べなくても、意図した色かどうかが分かる。 不透明度があるときは <c>+{n}%</c> を足す。</remarks>
+    [Fact]
+    internal void カスタムの色名は入力欄に出る()
+    {
+        var control = new ColorSelectorControl
+        {
+            ShowPickerTab = false,
+            ShowThemeColorTab = false,
+            ShowNamedColorTab = false,
+            CustomTabs = [new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("枠線の赤", "#FFDC2626")])],
+            SelectedColor = "#FFDC2626",
+        };
+
+        Assert.Equal("枠線の赤", control.TextEditor.Text);
+
+        control.SelectedColor = "#80DC2626";
+        Assert.Equal("枠線の赤+50%", control.TextEditor.Text);
     }
 }

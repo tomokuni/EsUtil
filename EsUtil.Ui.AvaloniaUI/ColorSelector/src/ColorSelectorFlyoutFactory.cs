@@ -30,18 +30,19 @@ namespace EsUtil.Ui.AvaloniaUI.ColorSelector;
 /// </remarks>
 internal static class ColorSelectorFlyoutFactory
 {
-    /// <summary>カラーピッカー Flyout を構築する。</summary>
+    /// <summary>カラーピッカーの中身（OK / キャンセル付き）を構築する。</summary>
     /// <param name="currentColor">現在の選択色（保存値。 例: "#80FF0000"）。 解析失敗時は初期色が白になる。</param>
     /// <param name="log">ログ出力先。 null は許可しない（呼び出し側が <see cref="ColorSelectorControl.Log"/> を渡す）。</param>
     /// <param name="applyColor">OK 確定時に選択色（#AARRGGBB）を反映するコールバック。</param>
-    /// <returns>OK / キャンセル ボタンを含む Flyout。</returns>
+    /// <param name="close">OK / キャンセルの後に一覧を閉じる処理。</param>
+    /// <returns>カラーピッカーと OK / キャンセル ボタンを含む要素。</returns>
     /// <remarks>
     /// 処理フロー:<br/>
     /// 1. 初期色を解析して ColorView を構築する（固定サイズは設定しない。 タブを収めるためテーマの自然なサイズに任せる）。<br/>
     /// 2. OK / キャンセル ボタンを構築し、クリックイベントを配線する。<br/>
-    /// 3. Flyout を構築して返す（表示は呼び出し側が行う）。
+    /// 3. 要素を返す（一覧のタブの中へ直接置く。 別のフライアウトを重ねない）。
     /// </remarks>
-    internal static Flyout Create(string currentColor, ILogger log, Action<string> applyColor)
+    internal static Control CreateContent(string currentColor, ILogger log, Action<string> applyColor, Action close)
     {
         // 初期色をパース（色 + 不透明度の統合形式に対応。 失敗時は白）
         var initColor = Colors.White;
@@ -69,25 +70,20 @@ internal static class ColorSelectorFlyoutFactory
         var okButton = CreateActionButton("OK");
         var cancelButton = CreateActionButton("キャンセル");
 
-        // Flyout コンテンツ
-        var flyout = new Flyout
+        var content = new StackPanel
         {
-            Content = new StackPanel
+            Spacing = 8,
+            Children =
             {
-                Spacing = 8,
-                Children =
+                colorView,
+                new StackPanel
                 {
-                    colorView,
-                    new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        Spacing = 5,
-                        Children = { okButton, cancelButton },
-                    },
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Spacing = 5,
+                    Children = { okButton, cancelButton },
                 },
             },
-            Placement = PlacementMode.BottomEdgeAlignedRight,
         };
 
         // OK: 色を適用して閉じる（SelectedColor = 保存値は #AARRGGBB 形式。 不透明度はアルファへ合成済み）
@@ -97,17 +93,17 @@ internal static class ColorSelectorFlyoutFactory
             var formatted = ColorString.ToArgbHex(System.Drawing.Color.FromArgb(colorView.Color.A, colorView.Color.R, colorView.Color.G, colorView.Color.B));
             log.LogFlyoutOk(formatted);
             applyColor(formatted);
-            flyout.Hide();
+            close();
         };
 
         // キャンセル: 何もせず閉じる
         cancelButton.Click += (_, _) =>
         {
             log.LogFlyoutCancel();
-            flyout.Hide();
+            close();
         };
 
-        return flyout;
+        return content;
     }
 
     /// <summary>Flyout の操作ボタン（OK / キャンセル）を生成する。</summary>
