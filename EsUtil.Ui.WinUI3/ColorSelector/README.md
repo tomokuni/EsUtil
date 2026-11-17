@@ -9,7 +9,7 @@
 ![WinUI3](https://img.shields.io/badge/UI-WinUI%203-0078D4)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-色を選ぶ WinUI 3 のコントロールです。 標準のコンボボックス（編集可）を入力欄に使い、色名・16 進コードの入力、タブ付きの一覧からの選択、カラーピッカー（`ColorPicker`）を 1 つにまとめ、選択色の検証まで行います。
+色を選ぶ WinUI 3 のコントロールです。 標準のコンボボックス（編集可）を入力欄に使い、**その左に現在色の四角を重ねて「■ + 色名」で表示**します。 色名・16 進コードの入力、タブ付きの一覧からの選択、カラーピッカー（`ColorPicker`）を 1 つにまとめ、選択色の検証まで行います。
 
 **色名の表と色文字列の解釈はコア（`EsUtil.Platform.Core` の `Palette`）が単一所有**します。 そのため Avalonia UI 版・MewUI 版と**同じ入力・同じ保存値・同じ並び順**になります。
 
@@ -33,9 +33,10 @@
 
 ## 1. 概要
 
-`ColorSelectorControl` は 1 行の複合コントロールです（基底は `Microsoft.UI.Xaml.Controls.UserControl`）。 中身は標準の **コンボボックス（編集可）** 1 つで、自前の枠・▼・… は作りません。
+`ColorSelectorControl` は 1 行の複合コントロールです（基底は `Microsoft.UI.Xaml.Controls.UserControl`）。 中身は標準の **コンボボックス（編集可）** と、その左へ重ねた**現在色の四角**（「■ + 色名」）です。 自前の枠・▼・… は作りません。
 
 - 展開ボタンを押すと、標準の一覧の代わりに**タブ付きの一覧**（`Flyout`）が出ます。 タブは **カスタム → テーマカラー → 色名 → ColorPicker** の順です。
+- **入力欄の文字は四角の右から始まり、四角と上下の中央でそろいます**（四角は 12 DIP・左の余白 7 DIP、文字は左から 24 DIP）。
 - **保存値**は `#AARRGGBB`（アルファが先頭）です。
 - **画面表示**は既定で `{色名または #RRGGBB}+{不透明度%}`（100% なら `+…` を省く）です。 `TextFormat` で `#AARRGGBB` へ切り替えられます。 カスタム タブに登録した色名があるときは、その名前を優先します。
 - 入力は色名 / `#RRGGBB` / `#AARRGGBB` / それらに `+{0〜100}%` を付けた形を受け付けます。
@@ -45,12 +46,14 @@
 
 - 色名・16 進コードのテキスト入力（入力のたびに解析して反映）
 - **標準のコンボボックス**による入力欄と一覧の表示（自前の枠・▼・… を作らない）
+- **入力欄は「■ + 色名」で表示**（現在色の四角を入力欄の左に重ね、文字はその右から始める。 文字は上下の中央にそろえる）
 - 一覧はタブで切り替える（**カスタム / テーマカラー / 色名 / ColorPicker**。 色名は色相順 / 色名順）
 - **カスタム タブ**（`CustomTabs`。 題名と色名/色コードを動的に指定。 複数可。 **一覧**と**色の四角を 6 列に並べた格子**を選べる）
 - **カスタム タブの色名を入力欄に表示**（色コードが一致したときに日本語の名前を出す）
 - ColorPicker タブでカラーピッカー（`ColorPicker`）を一覧の中へ直接表示
 - テーマの色の選択と、テーマの変更への追随（選んだテーマの色は明暗・アクセントの変更に追随）
-- 入力の検証（無効な入力はエラー状態になり、フォーカスを外すと最後の有効値へ戻る）
+- **色を確定したときの通知**（`ColorApplied`。 一覧・カラーピッカーで**同じ色を選び直したときも**発生する）
+- 入力の検証（無効な入力はエラー状態になり、フォーカスを外すと最後の有効値へ戻る。 無効な間は現在色の四角を隠す）
 - バリデーション失敗時の枠線強調（`HighlightBorderOnError`。 既定は無効）
 - 入力欄の表記を切替可能（`TextFormat`。 色名 + 不透明度 / `#AARRGGBB`）
 - 入力欄のツールチップ（色名 + 不透明度 / `#AARRGGBB` の 2 行）
@@ -95,12 +98,14 @@ var color = new ColorSelectorControl
     TextFormat = ColorTextFormat.HexCode,     // 入力欄を #AARRGGBB で表示する（既定は色名 + 不透明度）
 };
 color.SelectedColorChanged += (_, _) => Save(color.SelectedColor);
+color.ColorApplied += (_, _) => ApplyToSelection(color.SelectedColor); // 一覧・ピッカーで確定するたび（同じ色でも）
 
 Host.Children.Add(color);
 ```
 
 - **XAML からは置けません**（コードで生成します。 WinUI 3 の `ColorPicker` を内包するため、コードビハインドでの組み立てを前提にしています）。
 - `SelectedColor` へ設定した値は**保存値の形へ正規化**されます（`Red` → `#FFFF0000`）。
+- 同じ色を選び直したときは `SelectedColorChanged` が出ません。 確定を伝える必要がある場合は `ColorApplied`（一覧・カラーピッカーで色を確定するたびに発生）を使ってください。
 
 ---
 
@@ -163,6 +168,7 @@ EsUtil.Ui.WinUI3/ColorSelector/
 ├── src/                                      # UI 層（WinUI の要素の組み立てと同期）
 │   ├── EsUtil.Ui.WinUI3.ColorSelector.csproj # 独立プロジェクト（Platform.Core を参照）
 │   ├── ColorSelectorControl.cs               # 公開 API・入力と状態の同期・タブ付き一覧とピッカー
+│   ├── ColorApplyPlan.cs                     # 一覧・カラーピッカーで色を確定したときの適用の計画（内部）
 │   ├── ColorSelectorItem.cs                  # 一覧の 1 件（表示名と適用値）
 │   ├── ColorSelectorCategory.cs              # 一覧の項目の分類（テーマカラー / 色名 / カスタム）
 │   ├── ColorSelectorTabSpec.cs               # 一覧の 1 タブ（題名・識別子・並べ方・項目）
@@ -183,7 +189,7 @@ EsUtil.Ui.WinUI3/ColorSelector/
 dotnet test EsUtil.Ui.WinUI3/ColorSelector/tests/EsUtil.Ui.WinUI3.ColorSelector.Tests.csproj
 ```
 
-WinUI のコントロールは XAML ランタイム（`Application`）を必要とするため、テストは**色文字列の規則がコアと一致すること**、**一覧のタブの決め方**（`CreateTabs` / `ShouldShowTabStrip`）、**格子の行数**（`CalculateSwatchRows`）、**カスタム タブの色名の表示**（`FormatDisplayText` / `ResolveCustomName`）、**一覧の幅の決め方**（`CalculateListWidth`）、**ログ定義**を対象にします。 入力と表示は利用側アプリで確認します。
+WinUI のコントロールは XAML ランタイム（`Application`）を必要とするため、テストは**色文字列の規則がコアと一致すること**、**一覧のタブの決め方**（`CreateTabs` / `ShouldShowTabStrip`）、**格子の行数**（`CalculateSwatchRows`）、**カスタム タブの色名の表示**（`FormatDisplayText` / `ResolveCustomName`）、**入力欄の左の四角の表示**（`TryResolveCurrentColorSwatch` / `TextLeftIndent`）、**確定の通知の扱い**（`PlanItemSelection` / `PlanPickerSelection`）、**一覧の幅の決め方**（`CalculateListWidth`）、**ログ定義**を対象にします。 入力と表示はサンプル アプリと利用側アプリで確認します。
 
 ---
 

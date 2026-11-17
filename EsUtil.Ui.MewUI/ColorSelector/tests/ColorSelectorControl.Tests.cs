@@ -1,6 +1,7 @@
 using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Palette;
 using Xunit;
+using MewColor = Aprillz.MewUI.Color;
 
 namespace EsUtil.Ui.MewUI.ColorSelector.Tests;
 
@@ -474,5 +475,65 @@ public class ColorSelectorControlTests
 
         control.SelectedColor = "#80DC2626";
         Assert.Equal("枠線の赤+50%", control.TextEditor.Text);
+    }
+
+    /// <summary>入力欄の左に現在色の四角を出し、文字をその右から始めることを検証する。</summary>
+    /// <remarks>
+    /// 標準のコンボボックスは文字しか出せないため、四角を重ねて「■ + 色名」に見せる。<br/>
+    /// 文字が四角に重ならないよう、テキスト入力の左の余白を空ける（他 UI と同じ 7 + 12 + 5 = 24 DIP）。
+    /// </remarks>
+    [Fact]
+    internal void 入力欄の左に現在色の四角を出し文字を右へ寄せる()
+    {
+        var control = new ColorSelectorControl { SelectedColor = "#FFDC2626" };
+
+        Assert.True(control.CurrentColorSwatch.IsVisible);
+        Assert.Equal(24d, control.TextEditor.Padding.Left);
+    }
+
+    /// <summary>現在色の四角が選んだ色で塗られ、無効な入力の間は隠れることを検証する。</summary>
+    /// <remarks>無効な入力の間も前の色を出すと、その色が選ばれていると誤解される。</remarks>
+    [Fact]
+    internal void 現在色の四角は選んだ色で塗る()
+    {
+        var control = new ColorSelectorControl();
+        var swatch = control.CurrentColorSwatch;
+
+        control.SelectedColor = "#FFDC2626";
+        Assert.Equal(MewColor.FromArgb(0xFF, 0xDC, 0x26, 0x26), swatch.Background);
+        Assert.True(swatch.IsVisible);
+
+        control.SelectedColor = "not-a-color";
+        Assert.False(swatch.IsVisible);
+    }
+
+    /// <summary>一覧で同じ色を選び直しても <see cref="ColorSelectorControl.ColorApplied"/> が発生することを検証する。</summary>
+    /// <remarks>
+    /// 文字単位で色が混ざった範囲を一律にそろえる用途では、値の変更（同じ値では通知されない）だけでは足りない。
+    /// </remarks>
+    [Fact]
+    internal void 同じ色を選び直しても適用の通知が来る()
+    {
+        var control = new ColorSelectorControl
+        {
+            ShowThemeColorTab = false,
+            ShowNamedColorTab = false,
+            ShowPickerTab = false,
+            CustomTabs = [new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("赤", "#FFDC2626")])],
+            SelectedColor = "#FFDC2626",
+        };
+        control.RefreshList();
+        control.ApplyTab(0);
+
+        var list = Assert.IsType<ListBox>(Assert.IsType<Grid>(control.TabBody[0])[0]);
+        var applied = 0;
+        control.ColorApplied += (_, _) => applied++;
+
+        // 一覧は既に同じ色を選んだ状態である。 選択を外してから選び直しても、色は変わらない
+        list.SelectedIndex = -1;
+        list.SelectedIndex = 0;
+
+        Assert.Equal(1, applied);
+        Assert.Equal("#FFDC2626", control.SelectedColor);
     }
 }

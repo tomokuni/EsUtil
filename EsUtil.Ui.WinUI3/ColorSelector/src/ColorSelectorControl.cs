@@ -14,6 +14,8 @@ namespace EsUtil.Ui.WinUI3.ColorSelector;
 /// <remarks>
 /// <b>1 つの入力欄に見せる</b>: 入力欄と展開ボタンは標準の <see cref="ComboBox"/>（編集可）をそのまま使い、
 /// 自前の枠・▼・… を作らない。 展開ボタンを押すと標準の一覧の代わりにタブ付きの <see cref="Flyout"/> を出す。<br/>
+/// <b>入力欄は「■ + 色名」で見せる</b>: 標準のコンボボックスは文字しか出せないため、現在色の四角を入力欄の左へ
+/// 重ね、文字はその右から始める（文字は上下の中央にそろえる）。 四角は無効な入力の間は隠す。<br/>
 /// <b>規則の所有者はコアである</b>: 受理する入力（色名・16 進・<c>+{n}%</c>）、色名の表、保存値（<c>#AARRGGBB</c>）と
 /// 画面表示（<c>{色}+{不透明度%}</c>）、並び順、入力の妥当性は
 /// <see cref="EsUtil.Platform.Core.Palette"/>（<see cref="ColorString"/> / <see cref="ColorEntry"/> /
@@ -21,7 +23,17 @@ namespace EsUtil.Ui.WinUI3.ColorSelector;
 /// <b>Native AOT の制約</b>: 一覧へは <c>Items.Add</c> で 1 件ずつ渡す（<c>ItemsSource</c> へ managed コレクションを
 /// 渡すと AOT で <c>E_INVALIDARG</c> になる）。<br/>
 /// <b>一覧はタブで切り替える</b>: 並びは「カスタム → テーマカラー → 色名 → ColorPicker」で、カスタム タブは
-/// 色名付きの一覧と 6 列の格子を選べる。 カラーピッカーはタブの中へ直接置く（別のフライアウトを重ねない）。
+/// 色名付きの一覧と 6 列の格子を選べる。 カラーピッカーはタブの中へ直接置く（別のフライアウトを重ねない）。<br/>
+/// <br/>
+/// **公開 API 一覧**:<br/>
+/// - 値: <see cref="SelectedColor"/> / <see cref="ColorSortMode"/> / <see cref="TextFormat"/> /
+///   <see cref="SelectedThemeColor"/> / <see cref="ThemeColorKeys"/> / <see cref="TryResolveThemeColor"/><br/>
+/// - 一覧の構成: <see cref="ShowThemeColors"/> / <see cref="ShowCustomTab"/> / <see cref="ShowThemeColorTab"/> /
+///   <see cref="ShowNamedColorTab"/> / <see cref="ShowPickerTab"/> / <see cref="ShowTabTitles"/> / <see cref="CustomTabs"/><br/>
+/// - 検証: <see cref="HasValidationError"/> / <see cref="ValidationErrorMessage"/> / <see cref="HighlightBorderOnError"/><br/>
+/// - 外観（入力欄の文字サイズ）: <see cref="TextFontSize"/><br/>
+/// - イベント: <see cref="ColorApplied"/>（同じ色を選び直したときも発生する） / <see cref="SelectedColorChanged"/><br/>
+/// - ログ: <see cref="Log"/> / <see cref="LogPrefix"/>
 /// </remarks>
 public sealed partial class ColorSelectorControl : UserControl
 {
@@ -55,6 +67,19 @@ public sealed partial class ColorSelectorControl : UserControl
 
     /// <summary>テーマの色の表示名の接頭辞。</summary>
     private const string ThemeLabelPrefix = "テーマ: ";
+
+    /// <summary>入力欄の左に出す現在色の四角の一辺（DIP）。</summary>
+    private const double CurrentColorSwatchSize = 12;
+
+    /// <summary>現在色の四角の左の余白（DIP）。</summary>
+    private const double CurrentColorSwatchMargin = 7;
+
+    /// <summary>現在色の四角と文字の間の余白（DIP）。</summary>
+    private const double CurrentColorSwatchGap = 5;
+
+    /// <summary>入力欄の文字を右へ寄せる幅（DIP。 四角の分だけ空ける）。</summary>
+    /// <remarks>AvaloniaUI 版・MewUI 版と同じ値である（「■ + 色名」の見た目を 3 UI で揃える）。</remarks>
+    internal const double TextLeftIndent = CurrentColorSwatchMargin + CurrentColorSwatchSize + CurrentColorSwatchGap;
 
     /// <summary>色の四角の枠線の色（半透明の灰色。 明色・暗色のどちらのテーマでも見える）。</summary>
     private static readonly Windows.UI.Color s_swatchBorderColor =
@@ -115,6 +140,23 @@ public sealed partial class ColorSelectorControl : UserControl
         IsTextSearchEnabled = false,
         HorizontalAlignment = HorizontalAlignment.Stretch,
         VerticalAlignment = VerticalAlignment.Center,
+        VerticalContentAlignment = VerticalAlignment.Center,
+    };
+
+    /// <summary>入力欄の左へ重ねる現在色の四角（「■ + 色名」に見せる）。</summary>
+    /// <remarks>押下は通す（入力欄の操作を妨げない）。 色は <see cref="UpdateCurrentColorSwatch"/> が塗る。</remarks>
+    private readonly Border _currentColorSwatch = new()
+    {
+        Width = CurrentColorSwatchSize,
+        Height = CurrentColorSwatchSize,
+        CornerRadius = new CornerRadius(2),
+        BorderBrush = new SolidColorBrush(s_swatchBorderColor),
+        BorderThickness = new Thickness(1),
+        HorizontalAlignment = HorizontalAlignment.Left,
+        VerticalAlignment = VerticalAlignment.Center,
+        Margin = new Thickness(CurrentColorSwatchMargin, 0, 0, 0),
+        IsHitTestVisible = false,
+        Visibility = Visibility.Collapsed,
     };
 
     /// <summary>開いている一覧（タブ付きのフライアウト）。 閉じるまで保持する。</summary>
@@ -134,6 +176,14 @@ public sealed partial class ColorSelectorControl : UserControl
 
     /// <summary>入力と状態の往復でイベントが循環するのを防ぐ。</summary>
     private bool _applying;
+
+    /// <summary>入力欄へ表示のために書いた文字（この文字の通知は利用者の入力として扱わない）。</summary>
+    /// <remarks>
+    /// コンボボックスの <c>Text</c> は編集欄へ遅れて伝わるため、<see cref="_applying"/> の間だけでは
+    /// プログラムからの変更を弾けない（実測 2026-11-17: 起動直後に表示文字が入力として処理され、
+    /// テーマの色の識別子が外れた）。 表示した文字と同じ通知は入力として扱わない。
+    /// </remarks>
+    private string? _displayText;
 
     /// <summary>内部ロガー。</summary>
     private ILogger _log = NullLogger.Instance;
@@ -159,6 +209,14 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>選択中の色（保存値）が変わったときに発生する。</summary>
     public event EventHandler? SelectedColorChanged;
 
+    /// <summary>一覧・カラーピッカーで色を確定したときに発生する。</summary>
+    /// <remarks>
+    /// <b>同じ色を選び直したときも発生する</b>: 文字単位で色が混ざった範囲を一律にそろえる用途では、
+    /// <see cref="SelectedColorChanged"/>（同じ値では通知されない）だけでは足りない。<br/>
+    /// 入力欄へ打ち込んだ場合は発生しない（確定はフォーカスを外したとき。 一覧とカラーピッカーの確定だけが対象）。
+    /// </remarks>
+    public event EventHandler? ColorApplied;
+
     /// <summary>コントロールを生成する。</summary>
     public ColorSelectorControl()
     {
@@ -173,7 +231,15 @@ public sealed partial class ColorSelectorControl : UserControl
         // テーマが変わったら、テーマの色を選んでいる間はその色を解決し直す
         _combo.ActualThemeChanged += (_, _) => ReapplyThemeColor();
 
-        Content = _combo;
+        // 標準のコンボボックスは文字しか出せないため、文字の上へ現在色の四角を重ねて「■ + 色名」に見せる
+        // （文字はコード側で四角の右から始める）
+        var inputArea = new Grid();
+        inputArea.Children.Add(_combo);
+        inputArea.Children.Add(_currentColorSwatch);
+        Content = inputArea;
+
+        // 入力欄の文字を四角の右から始める（内側の入力欄は、テンプレートができた時点でもう一度空ける）
+        ApplyComboLayout();
 
         ApplyColor(_selectedColor, raiseChanged: false);
     }
@@ -777,11 +843,34 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <param name="flyout">閉じるポップアップ。</param>
     private void ApplyItem(ColorSelectorItem item, Flyout flyout)
     {
-        // テーマの色は識別子を覚える（明暗・アクセントの変更へ追随させる）。 色名・カスタムは値だけを写す
-        _selectedThemeColor = item.ThemeKey;
-        ApplyColor(item.Value, raiseChanged: true);
+        ApplyPlan(PlanItemSelection(item));
         flyout.Hide();
     }
+
+    /// <summary>適用の計画どおりに色を反映し、確定の通知を出す。</summary>
+    /// <param name="plan">適用の計画。</param>
+    /// <remarks>テーマの色は識別子を覚える（明暗・アクセントの変更へ追随させる）。 色名・カスタムは値だけを写す。</remarks>
+    private void ApplyPlan(ColorApplyPlan plan)
+    {
+        _selectedThemeColor = plan.ThemeKey;
+        ApplyColor(plan.Value, raiseChanged: true);
+        if (plan.RaiseApplied)
+        {
+            RaiseColorApplied();
+        }
+    }
+
+    /// <summary>一覧の項目を選んだときの適用の計画を作る。</summary>
+    /// <param name="item">選んだ項目。</param>
+    /// <returns>適用の計画（テーマの色の識別子を写し、確定を通知する）。</returns>
+    internal static ColorApplyPlan PlanItemSelection(ColorSelectorItem item)
+        => new(item.Value, item.ThemeKey, RaiseApplied: true);
+
+    /// <summary>カラーピッカーで確定したときの適用の計画を作る。</summary>
+    /// <param name="value">確定した色（<c>#AARRGGBB</c>）。</param>
+    /// <returns>適用の計画（テーマの色ではないため識別子は無く、確定を通知する）。</returns>
+    internal static ColorApplyPlan PlanPickerSelection(string? value)
+        => new(value, ThemeKey: null, RaiseApplied: true);
 
     /// <summary>カラーピッカー（OK / キャンセル付き）をタブの中身として作る。</summary>
     /// <param name="flyout">閉じる対象のポップアップ。</param>
@@ -810,9 +899,8 @@ public sealed partial class ColorSelectorControl : UserControl
         ok.Click += (_, _) =>
         {
             var selected = picker.Color;
-            ApplyColor(
-                ColorString.ToArgbHex(DrawingColor.FromArgb(selected.A, selected.R, selected.G, selected.B)),
-                raiseChanged: true);
+            ApplyPlan(PlanPickerSelection(
+                ColorString.ToArgbHex(DrawingColor.FromArgb(selected.A, selected.R, selected.G, selected.B))));
             flyout.Hide();
         };
 
@@ -952,9 +1040,84 @@ public sealed partial class ColorSelectorControl : UserControl
             return;
         }
 
+        ApplyComboLayout();
         _editableBox.TextChanged += OnTextChanged;
         _editableBox.LostFocus += OnTextLostFocus;
+
+        // テンプレートが作られる前に設定した Text は、フォーカスが無いときの表示（コンボボックスの選択欄）へ
+        // 反映されない（実測 2026-11-17: 初期値の色名が入力欄に出なかった）。 同じ値の再設定では変更通知が
+        // 出ないため、一度空にしてから入れ直す
+        _applying = true;
+        try
+        {
+            var text = _combo.Text;
+            if (!string.IsNullOrEmpty(text))
+            {
+                _combo.Text = string.Empty;
+                _combo.Text = text;
+            }
+
+            UpdateInputText(_selectedColor);
+        }
+        finally
+        {
+            _applying = false;
+        }
     }
+
+    /// <summary>入力欄の文字を、現在色の四角の右から始まるように寄せる。</summary>
+    /// <remarks>
+    /// <b>標準のコンボボックスの余白を借りる</b>: 枠と文字はコンボボックスが描くため、文字の開始位置だけを
+    /// 余白で動かす（見た目を似せて作り直さない）。 WinUI の入力欄は 2 つの描き方を持つ（フォーカスが無いときは
+    /// コンボボックスの選択欄、入力中は内側の入力欄）ため、両方の左を空ける。<br/>
+    /// 文字を打っても余白は保たれる（文字の入る領域が狭くなるだけ）。 文字は上下の中央にそろえる
+    /// （テーマの既定は上寄せで、四角と高さがずれて見える）。
+    /// </remarks>
+    private void ApplyComboLayout()
+    {
+        // フォーカスが無いときの表示は、コンボボックスの選択欄（ContentPresenter）が「コンボボックスの余白」で
+        // 描く。 入力中の文字は内側の入力欄が「入力欄の余白」で描くため、両方の左を空ける
+        var comboPadding = _combo.Padding;
+        _combo.Padding = new Thickness(
+            TextLeftIndent, comboPadding.Top, comboPadding.Right, comboPadding.Bottom);
+        _combo.VerticalContentAlignment = VerticalAlignment.Center;
+
+        if (_editableBox is null)
+        {
+            return;
+        }
+
+        var padding = _editableBox.Padding;
+        _editableBox.Padding = new Thickness(
+            TextLeftIndent, padding.Top, padding.Right, padding.Bottom);
+        _editableBox.VerticalContentAlignment = VerticalAlignment.Center;
+    }
+
+    /// <summary>入力欄の左の四角を現在色で塗る（「■ + 色名」に見せる）。</summary>
+    /// <param name="color">表示する色（保存値）。</param>
+    /// <remarks>無効な入力の間は四角を隠す（前の色を出すと、その色が選ばれていると誤解される）。</remarks>
+    private void UpdateCurrentColorSwatch(string? color)
+    {
+        if (!TryResolveCurrentColorSwatch(color, out var swatchColor))
+        {
+            _currentColorSwatch.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        _currentColorSwatch.Background = new SolidColorBrush(ToWinUIColor(swatchColor));
+        _currentColorSwatch.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>入力欄の左の四角を表示するかを決め、塗る色を返す。</summary>
+    /// <param name="color">表示する色（保存値）。</param>
+    /// <param name="swatchColor">四角に塗る色（表示する場合のみ有効）。</param>
+    /// <returns>四角を表示する場合は true。</returns>
+    /// <remarks>
+    /// <b>表示の可否を 1 箇所で決める</b>: 無効な入力（解析できない文字列）の間は隠す。<br/>
+    /// XAML ランタイムを持たないテストからも検証できるよう、UI を持たない純粋関数にしている。
+    /// </remarks>
+    internal static bool TryResolveCurrentColorSwatch(string? color, out DrawingColor swatchColor)
+        => ColorString.TryParse(color, out swatchColor, out _);
 
     /// <summary>編集欄の <see cref="TextBox"/> を視覚ツリーから探す。</summary>
     /// <param name="root">探す起点。</param>
@@ -989,12 +1152,21 @@ public sealed partial class ColorSelectorControl : UserControl
             return;
         }
 
+        // 表示のために書いた文字は利用者の入力ではない（テーマの色の識別子を外さない）
+        var text = ((TextBox)sender).Text;
+        if (string.Equals(text, _displayText, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _displayText = null;
+
         // 直接の入力はテーマの色の選択を解く
         _selectedThemeColor = null;
         _applying = true;
         try
         {
-            SelectedColor = ((TextBox)sender).Text;
+            SelectedColor = text;
         }
         finally
         {
@@ -1043,6 +1215,9 @@ public sealed partial class ColorSelectorControl : UserControl
             HasValidationError = state.HasError;
             ValidationErrorMessage = state.Message;
             UpdateBorderValidationVisual();
+
+            // 入力欄の左の四角は入力のたびに追随させる（文字を打っている間も現在の色が分かる）
+            UpdateCurrentColorSwatch(normalized);
         }
         finally
         {
@@ -1054,9 +1229,16 @@ public sealed partial class ColorSelectorControl : UserControl
         _selectedColor = normalized;
         if (changed && raiseChanged)
         {
-            SelectedColorChanged?.Invoke(this, EventArgs.Empty);
+            RaiseSelectedColorChanged();
         }
     }
+
+    /// <summary><see cref="SelectedColorChanged"/> を発生させる。</summary>
+    private void RaiseSelectedColorChanged() => SelectedColorChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary><see cref="ColorApplied"/> を発生させる。</summary>
+    /// <remarks>一覧・カラーピッカーで色を確定するたびに呼ぶ（同じ色を選び直したときも含む）。</remarks>
+    private void RaiseColorApplied() => ColorApplied?.Invoke(this, EventArgs.Empty);
 
     /// <summary>入力欄へ色の表記を反映する。</summary>
     /// <param name="normalized">保存値（<c>#AARRGGBB</c>）。</param>
@@ -1071,6 +1253,8 @@ public sealed partial class ColorSelectorControl : UserControl
             ? ThemeLabelPrefix + key
             : FormatDisplayText(normalized, _textFormat, CustomTabs);
 
+        // この文字は表示のためだけのものとして覚える（編集欄からの遅れた通知を入力として扱わない）
+        _displayText = text;
         _combo.Text = text;
 
         // 編集欄が作られている間は、その文字も合わせる（コンボボックスの Text の反映を待たない）

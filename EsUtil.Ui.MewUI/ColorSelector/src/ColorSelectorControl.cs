@@ -16,7 +16,8 @@ namespace EsUtil.Ui.MewUI.ColorSelector;
 /// <see cref="ColorValidation"/>）が単一所有する。 本クラスは MewUI の要素の組み立てと、
 /// 入力と状態の同期だけを行う（AvaloniaUI 版・WinUI 3 版と同じ意味の値になる）。<br/>
 /// <b>入力欄は標準の ComboBox を使う</b>: 自前の枠・▼・… のボタン・区切りの線を作らず、コンボボックスの
-/// 枠と展開ボタンをそのまま使う。 **展開ボタン（右端 30 DIP）の押下を自前で受けて標準の一覧を開かせず**、
+/// 枠と展開ボタンをそのまま使う。 入力欄の左には**現在色の四角**を重ねて「■ + 色名」に見せる
+/// （標準の入力欄は文字しか出せないため。 文字は四角の右から始まるよう左の余白を空ける）。 **展開ボタン（右端 30 DIP）の押下を自前で受けて標準の一覧を開かせず**、
 /// タブ付きのポップアップを出す（開いてから閉じる方式は開閉が往復して一覧が出ない。 AvaloniaUI 版の実測
 /// 2026-11-17 と同じ）。 表示は押下の処理の後（<c>Dispatcher.BeginInvoke</c>）へ回す。 キーボードの
 /// Alt+↓ / F4 でも同じ一覧を出す。<br/>
@@ -43,8 +44,17 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>MewUI の ComboBox の展開ボタンの幅（DIP。 入力欄が矢印へ重ならないように空ける）。</summary>
     private const double ArrowAreaWidth = 22.0;
 
-    /// <summary>テキスト入力の左の余白（DIP。 コンボボックスの枠の内側に文字を置く）。</summary>
-    private const double TextLeftPadding = 6.0;
+    /// <summary>入力欄の左に出す現在色の四角の一辺（DIP）。</summary>
+    private const double CurrentColorSwatchSize = 12.0;
+
+    /// <summary>現在色の四角と文字の間の余白（DIP）。</summary>
+    private const double CurrentColorSwatchGap = 5.0;
+
+    /// <summary>現在色の四角の左の余白（DIP。 コンボボックスの枠の内側に置く）。</summary>
+    private const double CurrentColorSwatchMargin = 7.0;
+
+    /// <summary>入力欄の文字を右へ寄せる幅（DIP。 四角の分だけ空ける）。</summary>
+    private const double TextLeftIndent = CurrentColorSwatchMargin + CurrentColorSwatchSize + CurrentColorSwatchGap;
 
     /// <summary>テキスト入力の最小幅（DIP）。</summary>
     private const double TextBoxMinWidth = 120.0;
@@ -122,6 +132,9 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>色文字列の入力と表示を担うテキスト入力（コンボボックスの文字の位置へ重ねる）。</summary>
     private readonly TextBox _text;
 
+    /// <summary>入力欄の左に出す現在色の四角（「■ + 色名」に見せる）。</summary>
+    private readonly Border _swatch;
+
     /// <summary>カラーピッカー（自身のドロップダウンを開くためのアンカーを兼ねる）。</summary>
     private readonly ColorPicker _picker;
 
@@ -158,6 +171,14 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>選択中の色（保存値の文字列）が変わったときに発生する。</summary>
     public event EventHandler? SelectedColorChanged;
 
+    /// <summary>一覧・カラーピッカーで色を確定したときに発生する。</summary>
+    /// <remarks>
+    /// <b>同じ色を選び直したときも発生する</b>: 文字単位で色が混ざった範囲を一律にそろえる用途では、
+    /// <see cref="SelectedColorChanged"/> の変更（同じ値では通知されない）だけでは足りない。<br/>
+    /// 入力欄へ打ち込んだ場合は発生しない（確定はフォーカスを外したとき）。
+    /// </remarks>
+    public event EventHandler? ColorApplied;
+
     /// <summary>コントロールを生成する。</summary>
     /// <remarks>
     /// <b>入力欄は標準のコンボボックス + 文字入力</b>: コンボボックスが枠と展開ボタンを描き、
@@ -173,8 +194,10 @@ public sealed class ColorSelectorControl : Grid
             BorderThickness = 0,
             CornerRadius = 0,
             Background = MewColor.Transparent,
-            Padding = new Thickness(TextLeftPadding, 0, 0, 0),
-            Margin = new Thickness(0, 0, ArrowAreaWidth, 0),
+            Padding = new Thickness(TextLeftIndent, 0, 0, 0),
+            // MewUI の TextBox は文字を自分の領域の下寄りに描くため、四角の中心と文字の中心が
+            // そろう分だけ上へ寄せる（実測 2026-11-17: 上へ 1 DIP。 負の上余白は半分だけ効く）
+            Margin = new Thickness(0, -2, ArrowAreaWidth, 0),
             VerticalAlignment = VerticalAlignment.Center,
         };
         _text.TextChanged += OnTextChanged;
@@ -197,10 +220,25 @@ public sealed class ColorSelectorControl : Grid
         _combo.Focusable(false);
         _combo.MouseDown += OnComboMouseDown;
 
-        // 入力欄は 1 つの行に見せる（枠はコンボボックス、文字はその内側へ重ねたテキスト入力）
+        // 入力欄は 1 つの行に見せる（枠はコンボボックス、文字はその内側へ重ねたテキスト入力）。
+        // 現在色の四角は**最後に重ねる**（コンボボックスとテキスト入力より手前に描く）。
+        // 文字は四角の分だけ右から始める（テキスト入力の左の余白で空ける）
+        _swatch = new Border
+        {
+            Width = CurrentColorSwatchSize,
+            Height = CurrentColorSwatchSize,
+            CornerRadius = 2,
+            BorderThickness = 1,
+            BorderBrush = MewColor.FromArgb(0x66, 0x80, 0x80, 0x80),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(CurrentColorSwatchMargin, 0, 0, 0),
+            IsHitTestVisible = false,
+        };
         var row = new Grid();
         row.Add(_combo);
         row.Add(_text);
+        row.Add(_swatch);
         Add(row);
 
         // カラーピッカーは**自身のドロップダウン**を使う（内容を自前のポップアップへ入れると
@@ -447,6 +485,10 @@ public sealed class ColorSelectorControl : Grid
     /// <value>コンボボックスの文字の位置へ重ねたテキスト入力。</value>
     internal TextBox TextEditor => _text;
 
+    /// <summary>入力欄の左に出す現在色の四角を取得する（テストからの検証用）。</summary>
+    /// <value>「■ + 色名」に見せるための四角。</value>
+    internal Border CurrentColorSwatch => _swatch;
+
     /// <summary>一覧のタブの行を取得する（テストからの検証用）。</summary>
     /// <value>タブ（<see cref="ToggleButton"/>）を並べた行。</value>
     internal StackPanel TabStrip => _tabStrip;
@@ -511,6 +553,9 @@ public sealed class ColorSelectorControl : Grid
                 ? ThemeLabelPrefix + key
                 : FormatDisplayText(normalized);
 
+            // 入力欄の左の四角は入力のたびに追随させる（文字を打っている間も現在の色が分かる）
+            UpdateCurrentColorSwatch(normalized);
+
             // 入力欄のツールチップは 2 行（色名+不透明度 / カラーコード）を出す
             var tooltip = string.Concat(
                 ColorString.ToDisplayText(normalized), Environment.NewLine, ColorString.ToArgbHex(normalized));
@@ -533,6 +578,21 @@ public sealed class ColorSelectorControl : Grid
         {
             SelectedColorChanged?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    /// <summary>入力欄の左の四角を現在色で塗る（「■ + 色名」に見せる）。</summary>
+    /// <param name="color">表示する色（保存値）。</param>
+    /// <remarks>無効な入力の間は四角を隠す（前の色を出すと、その色が選ばれていると誤解される）。</remarks>
+    private void UpdateCurrentColorSwatch(string? color)
+    {
+        if (ColorString.TryParse(color, out var parsed, out _))
+        {
+            _swatch.Background = ToMewColor(parsed);
+            _swatch.IsVisible = true;
+            return;
+        }
+
+        _swatch.IsVisible = false;
     }
 
     /// <summary>入力欄へ出す文字列を決める（カスタム タブの色名を優先する）。</summary>
@@ -1001,7 +1061,13 @@ public sealed class ColorSelectorControl : Grid
 
         // 選んだら一覧を閉じる（開いたままにすると、選んだ色が一覧の裏に隠れて確認できない。 他 UI も選ぶと閉じる）
         _popup.Close();
+
+        // 同じ色を選び直したときも通知する（値の変更だけでは足りない用途がある）
+        RaiseColorApplied();
     }
+
+    /// <summary><see cref="ColorApplied"/> を発生させる。</summary>
+    private void RaiseColorApplied() => ColorApplied?.Invoke(this, EventArgs.Empty);
 
     /// <summary>一覧のタブを切り替える。</summary>
     /// <param name="index">表示するタブの索引（範囲外なら一覧を空にする）。</param>
@@ -1199,6 +1265,9 @@ public sealed class ColorSelectorControl : Grid
         }
 
         ApplyColor(ColorString.ToArgbHex(DrawingColor.FromArgb(color.A, color.R, color.G, color.B)), raiseChanged: true);
+
+        // ピッカーは同じ色を選び直しても確定として扱う（値の変更だけでは足りない用途がある）
+        RaiseColorApplied();
     }
 
     // ====================================================================

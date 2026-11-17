@@ -34,7 +34,7 @@
 
 ## 1. 概要
 
-Avalonia UI 用の色選択コントロールです。 スウォッチ・色名/16進コードの入力欄・一覧（▼）・カラーピッカー（…）を**1 つの枠に収めた 1 つのコントロール**として提供し、選択色のプレビュー・バリデーションを自己完結します。
+Avalonia UI 用の色選択コントロールです。 **標準のコンボボックス**を入力欄とし、その左に現在色の四角を重ねて「■ + 色名」で表示します。 一覧（展開ボタンを押すと出るタブ付きのフライアウト）とカラーピッカーを持ち、選択色のプレビュー・バリデーションを自己完結します。
 
 色名の表と色文字列の解釈（受理する入力・保存値 `#AARRGGBB`・画面表示 `{色}+{不透明度%}`）は **コア（`EsUtil.Platform.Core` の `Palette`）が単一所有**します。 本コントロールは Avalonia の色型（`Avalonia.Media.Color`）との変換だけを行います（MewUI 版・WinUI 3 版と同じ解釈になります）。
 
@@ -42,13 +42,13 @@ Avalonia UI 用の色選択コントロールです。 スウォッチ・色名/
 
 - 色名（英名）または16進カラーコードのテキスト入力
 - **標準のコンボボックス**による入力欄と一覧の表示（自前の枠・▼・… を作らない。 展開ボタンの押下は自前で受け、タブ付きの一覧を出す）
+- **入力欄は「■ + 色名」で表示**（現在色の四角を入力欄の左に重ね、文字はその右から始める。 文字は上下の中央にそろえる）
 - 一覧はタブで切り替える（**カスタム / テーマカラー / 色名 / ColorPicker**。 色名は色相順 / 色名順）
 - **カスタム タブ**（`CustomTabs`。 題名と色名/色コードを動的に指定。 複数可。 **一覧**と**色の四角を 6 列に並べた格子**を選べる）
 - **カスタム タブの色名を入力欄に表示**（色コードが一致したときに日本語の名前を出す）
 - ColorPicker タブでカラーピッカー（`ColorView`）を一覧の中へ直接表示
 - テーマの色の選択と、テーマの変更への追随（選んだテーマの色は明暗・アクセントの変更に追随）
-- 選択中の色を入力欄の左端にスウォッチ表示
-- カラーピッカーの表示（「ColorPicker」タブ）
+- **色を確定したときの通知**（`ColorApplied`。 一覧・カラーピッカーで**同じ色を選び直したときも**発生する）
 - 入力バリデーション（無効な色はエラー通知・最終有効値への自動復帰）
 - バリデーション失敗時の枠線強調（オプション）
 - Avalonia Binding 対応の StyledProperty（双方向バインド）
@@ -125,10 +125,11 @@ panel.Children.Add(colorPicker);
 ## 6. 入力動作
 
 - **テキスト入力**: 色名または16進コードを直接入力できます（表示中の表記と異なる形でも受理します）。
-- **一覧（▼）**: 一覧を開き、選ぶと入力欄とスウォッチが更新されます。 一覧の上部のタブで「テーマカラー」と「色名」を切り替えます（前回のタブから開きます）。
-- **無効な入力**: フォーカス喪失時に最終有効値へ自動復帰します。
-- **カラーピッカー**: 右端の「…」ボタンで Flyout 形式の ColorView を開きます。 OK で適用、キャンセルで破棄。
-- **ツールチップ**: スウォッチと入力欄に「色名 + 不透明度」と「`#AARRGGBB`」を 2 行で表示します。
+- **一覧**: 展開ボタン（右端）を押すとタブ付きの一覧が開きます（`Alt+↓` / `F4` でも開きます）。 選ぶと入力欄と現在色の四角が更新されます。 一覧の上部のタブで「カスタム」「テーマカラー」「色名」「ColorPicker」を切り替えます（前回のタブから開きます）。
+- **無効な入力**: フォーカス喪失時に最終有効値へ自動復帰します（無効な間は現在色の四角を隠します）。
+- **カラーピッカー**: 「ColorPicker」タブを開くと `ColorView` が一覧の中へ出ます。 OK で適用、キャンセルで破棄。
+- **ツールチップ**: 入力欄に「色名 + 不透明度」と「`#AARRGGBB`」を 2 行で表示します。
+- **同じ色を選び直したとき**: `SelectedColor` は変わらないため変更イベントは出ません。 確定を伝える必要がある場合は `ColorApplied`（一覧・カラーピッカーで色を確定するたびに発生）を使ってください。
 
 ## 7. ColorView テーマ（ホストが取り込む）
 
@@ -159,7 +160,7 @@ panel.Children.Add(colorPicker);
 - バリデーション状態（`HasValidationError` / `ValidationErrorMessage`）のライブ表示
 - 入力欄のサイズと文字サイズ（`TextFontSize` / `TextMinWidth` / `TextMaxWidth` / `TextWidth`）
 - 入力欄の表記（`TextFormat`）の切替
-- カラーピッカー（「…」ボタン）の Flyout 表示
+- カラーピッカー（「ColorPicker」タブ）の表示
 
 ```bash
 dotnet run --project sample/EsUtil.Ui.AvaloniaUI.ColorSelector.Sample.csproj
@@ -175,8 +176,8 @@ dotnet run --project sample/EsUtil.Ui.AvaloniaUI.ColorSelector.Sample.csproj
 公開 API（公開プロパティ・StyledProperty）は `src/ColorSelectorControl.axaml.cs`（XAML コードビハインド）に集約します。
 関心事ごとに専用クラスへ委譲し、単一責任（SRP）と一方向依存を維持します。
 
-- `ColorSelectorControl.axaml.cs`: 公開 API（StyledProperty・公開プロパティ）＋ イベント処理 ＋ バリデーション状態
-- `ColorSelectorControl.axaml`: UI レイアウト（外周の枠 + スウォッチ + 入力欄 + ▼ + …）
+- `ColorSelectorControl.axaml.cs`: 公開 API（StyledProperty・公開プロパティ・イベント）＋ イベント処理 ＋ バリデーション状態
+- `ColorSelectorControl.axaml`: UI レイアウト（標準のコンボボックス + 現在色の四角）
 - `ColorSelectorFlyoutFactory.cs`: カラーピッカー Flyout の構築（Simple Factory パターン）
 - `ColorValidator.cs`: 色文字列の妥当性検証
 - `ColorSortMode.cs`: 公開 enum（並び順）
@@ -191,7 +192,7 @@ dotnet run --project sample/EsUtil.Ui.AvaloniaUI.ColorSelector.Sample.csproj
 EsUtil.Ui.AvaloniaUI/ColorSelector/
 ├── src/                                          # UI 層（Avalonia の要素と入出力の結び付け）
 │   ├── EsUtil.Ui.AvaloniaUI.ColorSelector.csproj  # 独立プロジェクト（Platform.Core を参照）
-│   ├── ColorSelectorControl.axaml                 # 見た目（外周の枠・スウォッチ・入力欄・▼・…）
+│   ├── ColorSelectorControl.axaml                 # 見た目（標準のコンボボックス + 現在色の四角）
 │   ├── ColorSelectorControl.axaml.cs              # 公開 API（StyledProperty・イベント・検証状態）
 │   ├── ColorSelectorFlyoutFactory.cs              # カラーピッカー（ColorView）の Flyout 構築
 │   ├── StringToBrushConverter.cs                  # 色文字列 → ブラシの変換
