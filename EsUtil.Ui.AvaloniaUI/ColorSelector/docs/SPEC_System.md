@@ -21,7 +21,7 @@
   - [6.7 ColorString](#67-colorstring)
   - [6.8 入力欄の表記（`TextFormat`）](#68-入力欄の表記textformat)
   - [6.9 ColorValidator](#69-colorvalidator)
-  - [6.10 区画（スウォッチ・入力欄・▼・…）の構成](#610-区画スウォッチ入力欄の構成)
+  - [6.10 入力欄（標準のコンボボックス + 現在色の四角）の構成](#610-入力欄標準のコンボボックス--現在色の四角の構成)
   - [6.11 ColorSelectorFlyoutFactory](#611-colorselectorflyoutfactory)
 - [7. 依存ルール](#7-依存ルール)
 - [8. バリデーション状態遷移](#8-バリデーション状態遷移)
@@ -100,7 +100,7 @@ flowchart TB
     subgraph CPC["EsUtil.Ui.AvaloniaUI.ColorSelector プロジェクト"]
         direction TB
         Ctl["ColorSelectorControl<br/>public sealed partial : UserControl<br/>（公開 API ＋ イベント処理 ＋ バリデーション状態）"]
-        Xaml["ColorSelectorControl.axaml<br/>外周の枠 + スウォッチ + 入力欄 + ▼ + …"]
+        Xaml["ColorSelectorControl.axaml<br/>標準のコンボボックス + 現在色の四角"]
         Fac["ColorSelectorFlyoutFactory<br/>Simple Factory（カラーピッカー構築）"]
         Impl["内部実装<br/>ColorValidator / ColorEntry / ColorString / ColorTextFormat<br/>StringToBrushConverter / ColorSortMode"]
     end
@@ -121,7 +121,7 @@ flowchart TB
 - **責務**:
   - `SelectedColor`（色名/16進コード）の双方向バインド対応の保持（公開 API は ColorSelectorControl.axaml.cs に集約）
   - 入力バリデーション状態の管理（`UpdateValidationStatus`。 検証自体は `ColorValidator` に委譲）
-  - **標準のコンボボックス**の入力を扱い、展開時に標準の一覧を閉じてタブ付きのフライアウトを出す
+  - **標準のコンボボックス**の入力を扱い、展開ボタンの押下を自前で受けて標準の一覧を出さず、タブ付きのフライアウトを出す
   - 一覧のポップアップの構築と並び順切替（`ColorSortMode`）
   - 一覧のタブの構成（`CreateTabs`。 既存タブの表示設定と `CustomTabs` から作り、空のタブは作らない）
   - タブの表示切替（`ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab`）
@@ -129,11 +129,13 @@ flowchart TB
   - 一覧の幅の決定（`ApplyListWidth`。 **コントロールの幅は変えず**、一覧だけを枠と内容の広い方へ合わせる）
   - 入力欄の文字と保存値の同期（`OnTextValueChanged`。 プログラムからの `Text` 変更でも発火させるため、`Text` プロパティの変更を購読する）
   - 無効入力の最終有効値復帰（`OnTextLostFocus`）
-  - カラーピッカー Flyout の表示（`OnColorPickerButtonClick` → `ColorSelectorFlyoutFactory.Create`）
-  - 入力欄の余白調整（`ApplyTextLayout`。 左へスウォッチ分を確保する）
-  - スウォッチと入力欄のツールチップ（色名+不透明度 / `#AARRGGBB` の 2 行）
+  - カラーピッカーの表示（「ColorPicker」タブ → `ColorSelectorFlyoutFactory.CreateContent`）
+  - 入力欄の余白調整（`ApplyComboLayout`。 左へ現在色の四角の分を確保する）
+  - 入力欄の左の**現在色の四角**（`UpdateCurrentColorSwatch`。 無効な入力の間は隠す）
+  - 入力欄のツールチップ（色名+不透明度 / `#AARRGGBB` の 2 行）
+  - **色を確定したときの通知**（`ColorApplied`。 同じ色を選び直したときも発生させる）
   - バリデーション失敗時の枠線強調（`UpdateBorderValidationVisual`）
-- **公開API**: `SelectedColor` / `ColorSortMode` / `TextFormat` / `HighlightBorderOnError` / `HasValidationError` / `ValidationErrorMessage` / `TextFontSize` / `ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab` / `ShowTabTitles` / `CustomTabs` / `Log` / `LogPrefix`（StyledProperty も同ファイルに定義）
+- **公開API**: `SelectedColor` / `ColorSortMode` / `TextFormat` / `HighlightBorderOnError` / `HasValidationError` / `ValidationErrorMessage` / `TextFontSize` / `ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab` / `ShowTabTitles` / `CustomTabs` / `ColorApplied` / `Log` / `LogPrefix`（StyledProperty も同ファイルに定義）
 - **構成**: 公開 API（StyledProperty・公開プロパティ）とイベント処理・バリデーション状態を保持し、関心事ごとに専用クラスへ委譲（単一責任・疎結合）
 - **内部メソッド（internal）**: `UpdateValidationStatus`（テストからの検証用に公開）
 - **依存**: ColorSelectorFlyoutFactory / ColorValidator / ColorEntry / ColorSortMode / ColorString / ColorTextFormat
@@ -142,11 +144,10 @@ flowchart TB
 
 - **分類**: UI レイアウト（XAML）
 - **責務**:
-  - 全体を覆う 1 つの枠（`PART_Frame`）の配置（検証エラーの強調もここへ付ける）
-  - 色スウォッチ（`PART_Swatch`）を入力欄の内側へ配置
-  - 入力欄（`PART_Text`）の配置
-  - 区切りの垂直線（枠より薄い 1 ピクセル）と区画（`PART_ListButton` / `PART_PickerButton`）の配置
-  - 一覧の行とスウォッチのブラシ（`StringToBrushConverter`）のリソース登録
+  - **標準のコンボボックス**（`PART_Combo`）の配置（枠・入力欄・展開ボタンはコンボボックスが描く）
+  - 入力欄の左の**現在色の四角**（`PART_CurrentColorSwatch`）の配置（入力欄の上へ重ねる。 押下は通す）
+  - 入力欄の文字を上下の中央にそろえるスタイル（テーマの既定は上寄せで、四角と高さがずれて見える）
+  - 一覧の行のブラシ（`StringToBrushConverter`）のリソース登録
 - **依存**: ColorSelectorControl / StringToBrushConverter
 
 ### 6.3 ColorSelectorCustomTab / ColorSelectorCustomColor / ColorSelectorTabSpec
@@ -209,11 +210,11 @@ flowchart TB
 - **特徴**: 検証は `ColorString.TryParse` に一元委譲（解析ロジックの二重所有を排除）。 UI 非依存のため他プロジェクトでも流用可能
 - **依存**: ColorString
 
-### 6.10 区画（スウォッチ・入力欄・▼・…）の構成
+### 6.10 入力欄（標準のコンボボックス + 現在色の四角）の構成
 
 - **分類**: XAML のレイアウト
-- **責務**: 4 つの区画を隙間なく並べ、1 つの入力欄に見せる
-- **特徴**: 枠線は外周の 1 つだけが持ち、区画のボタンは枠も背景も持たない（`Button.segment`）。 区切りは枠より薄い 1 ピクセルの垂直線で表す（上下に 5 ピクセルの余白を取る）。 行は `Auto` にして入力欄の高さへ揃える（行を伸ばすとスウォッチだけが下へずれる）
+- **責務**: 標準のコンボボックス 1 つで入力欄と展開ボタンをまかない、その左に現在色の四角を重ねて「■ + 色名」に見せる
+- **特徴**: 枠・文字・展開ボタンは**コンボボックスのテンプレートが描く**（似せて作り直さない）。 四角は重ねた `Border`（`IsHitTestVisible="False"`）で、入力欄の文字は**コンボボックスの左の余白**（`ApplyComboLayout`）で四角の右から始める。 文字は上下の中央にそろえる（テーマの既定は上寄せで、四角と高さがずれて見える。 XAML のスタイルで内側の `TextBox` の `VerticalContentAlignment` を `Center` にする）
 - **依存**: ColorSelectorControl.axaml.cs
 
 ### 6.11 ColorSelectorFlyoutFactory

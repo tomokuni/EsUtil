@@ -7,7 +7,7 @@
 - [3. アーキテクチャ](#3-アーキテクチャ)
 - [4. 例外処理ポリシー](#4-例外処理ポリシー)
 - [5. コンポーネント構成](#5-コンポーネント構成)
-  - [5.1 入力欄（標準のコンボボックス）](#51-入力欄標準のコンボボックス)
+  - [5.1 入力欄（標準のコンボボックス + 現在色の四角）](#51-入力欄標準のコンボボックス--現在色の四角)
   - [5.2 一覧のタブと幅](#52-一覧のタブと幅)
 - [6. 依存関係](#6-依存関係)
 
@@ -22,7 +22,7 @@ WinUI 3 の要素だけで色選択の UI を組み立て、**色名・色文字
 | 項目 | 内容 |
 | --- | --- |
 | 言語 | C# 14（.NET 10） |
-| UI | WinUI 3（`UserControl` / `ComboBox`（編集可） / `ListView` / `Grid` / `Button` / `Flyout` / `ColorPicker`） |
+| UI | WinUI 3（`UserControl` / `ComboBox`（編集可） / `ListView` / `Grid` / `Border` / `Button` / `Flyout` / `ColorPicker`） |
 | ログ | `Microsoft.Extensions.Logging.Abstractions`（`LoggerMessage` ソース生成） |
 | 色の規則 | `EsUtil.Platform.Core` の `Palette` |
 | AOT | `IsAotCompatible=true`。 一覧へは `Items.Add` で 1 件ずつ渡す |
@@ -38,7 +38,7 @@ graph TD
   Core --> Val["ColorValidation（妥当性）"]
 ```
 
-- **UI 層が持つもの**: 標準のコンボボックスの入力の扱い、タブ付きの Flyout の開閉、タブの構築（一覧 / 格子 / カラーピッカー）、カスタム タブの色名の表示、ツールチップ（`ToolTipService`）、`SelectedColorChanged` の発火。
+- **UI 層が持つもの**: 標準のコンボボックスの入力の扱い、**入力欄の左の現在色の四角**（「■ + 色名」）と文字の位置、タブ付きの Flyout の開閉、タブの構築（一覧 / 格子 / カラーピッカー）、カスタム タブの色名の表示、ツールチップ（`ToolTipService`）、`SelectedColorChanged` / `ColorApplied` の発火。
 - **コアが持つもの**: 受理する入力、保存値と表示の形式（`ColorTextFormat`）、色名の表、並び順、妥当性の判定。
 
 ## 4. 例外処理ポリシー
@@ -49,18 +49,23 @@ graph TD
 
 | 型 | 役割 |
 | --- | --- |
-| `ColorSelectorControl` | 公開 API。 標準のコンボボックス（編集可）の入力・タブ付きの一覧・カラーピッカーの 3 経路を `SelectedColor` へ集約する（一覧は `Flyout`。 `ShouldConstrainToRootBounds = false` でウィンドウの外へ出られる）。 展開時に標準の一覧を閉じてから `CreateTabs` でタブを作り、項目は `Items.Add` で 1 件ずつ渡す |
+| `ColorSelectorControl` | 公開 API。 標準のコンボボックス（編集可）の入力・タブ付きの一覧・カラーピッカーの 3 経路を `SelectedColor` へ集約する（一覧は `Flyout`。 `ShouldConstrainToRootBounds = false` でウィンドウの外へ出られる）。 展開時に標準の一覧を閉じてから `CreateTabs` でタブを作り、項目は `Items.Add` で 1 件ずつ渡す。 入力欄の左には**現在色の四角**を重ね、一覧・カラーピッカーで確定すると `ColorApplied` を発火する |
+| `ColorApplyPlan` | 一覧・カラーピッカーで色を確定したときの適用の計画（適用する値・テーマの色の識別子・確定を通知するか）。 2 経路が同じ計画を使うため、「同じ色を選び直したときも通知する」規則が片方だけ欠けない |
 | `ColorSelectorCustomTab` / `ColorSelectorCustomColor` / `ColorSelectorTabLayout` | 公開の入力型。 利用者が用途ごとのタブ（題名と色の並び、色名付きの一覧 / 6 列の格子）を足すために使う |
 | `ColorSelectorItem` | 一覧の 1 件（表示名・適用値・分類・テーマの色の識別子） |
 | `ColorSelectorCategory` | 一覧の項目の分類（`Theme` / `Named` / `Custom`） |
 | `ColorSelectorTabSpec` | 一覧の 1 タブ（題名・識別子・並べ方・項目・カラーピッカーかどうか）。 表示の設定と中身から作り、空のタブは作らない |
 | `LogMessage` | 変更の記録（`設定: 選択色 <旧> → <新>`） |
 
-### 5.1 入力欄（標準のコンボボックス）
+### 5.1 入力欄（標準のコンボボックス + 現在色の四角）
 
-- **標準の要素をそのまま使う**: 入力欄と展開ボタンは `ComboBox`（`IsEditable = true`）であり、自前の枠・▼・… を持たない。 テンプレートの中の編集用 `TextBox` へ `TextChanged` / `LostFocus` を繋ぎ、入力のたびに色を反映し、フォーカス喪失時に無効な入力を戻す。
+- **標準の要素をそのまま使う**: 入力欄と展開ボタンは `ComboBox`（`IsEditable = true`）であり、自前の枠・▼・… を持たない。 テンプレートの中の編集用 `TextBox`（`EditableText`）へ `TextChanged` / `LostFocus` を繋ぎ、入力のたびに色を反映し、フォーカス喪失時に無効な入力を戻す。
+- **「■ + 色名」に見せる**: 標準のコンボボックスは文字しか出せないため、12 DIP の `Border`（角の丸み 2・半透明の灰色の 1 DIP の枠線・左の余白 7 DIP・上下の中央・押下は通す）を入力欄の上へ重ね、`UpdateCurrentColorSwatch` が現在色で塗る。 無効な入力の間は隠す（`TryResolveCurrentColorSwatch` が表示の可否を決める）。 文字は四角の右（左から 24 DIP）から始め、上下の中央にそろえる（`ApplyComboLayout`）。
+- **文字の余白は 2 か所へ入れる**: WinUI の入力欄はフォーカスの有無で描き手が変わる（フォーカスが無いときはコンボボックスの選択欄、入力中は内側の `EditableText`）。 選択欄は**コンボボックスの余白**、内側の入力欄は**入力欄の余白**で文字の開始位置が決まるため、両方の左を空ける（片方だけでは、フォーカスの有無で文字が四角に重なる。 実測 2026-11-17）。
+- **初期値の文字は読み込み後に入れ直す**: テンプレートが作られる前に設定した `Text` は、フォーカスが無いときの選択欄へ反映されない（実測 2026-11-17: 初期値の色名が入力欄に出なかった）。 編集欄を掴んだ時点で、同じ値の再設定では変更通知が出ないため一度空にしてから入れ直す。
 - **標準の一覧は出さない**: `DropDownOpened` の同じ処理の中で `IsDropDownOpen = false` にして標準の一覧を閉じ（描画される前に閉じるため一瞬も見えない）、タブ付きの Flyout は `DispatcherQueue` の次の処理で出す（同じ入力処理の中で出すと、閉じた標準の一覧の後始末に巻き込まれて閉じられるため。 開閉の往復を防ぐフラグを持つ）。
 - **カスタム タブの色名を入力欄へ出す**: `FormatDisplayText` / `ResolveCustomName`（値は色として比べる）。 不透明度は入力の `+{n}%` から取る。
+- **色を確定したときの通知**: 一覧の項目とカラーピッカーの OK は同じ適用の計画（`PlanItemSelection` / `PlanPickerSelection`）を使い、`ApplyPlan` が値を反映して `ColorApplied` を発火する（**同じ色を選び直したときも発火**。 入力欄への入力では発火しない）。
 - **検証エラーの強調**は入力欄の枠線へ反映する（`HighlightBorderOnError` が true のときだけ赤くし、それ以外はテーマの枠線へ戻す）。
 
 ### 5.2 一覧のタブと幅

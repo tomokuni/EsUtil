@@ -261,6 +261,63 @@ public class ColorSelectorControlTests
         => Assert.Equal(expected, ColorSelectorControl.CalculateSwatchRows(itemCount));
 
     // ====================================================================
+    // 入力欄の外観（現在色の四角と文字の位置）
+    // ====================================================================
+
+    /// <summary>入力欄の左に現在色の四角を出し、文字をその右から始めることを検証する。</summary>
+    /// <remarks>
+    /// 標準のコンボボックスは文字しか出せないため、四角を重ねて「■ + 色名」に見せる。<br/>
+    /// 文字が四角に重ならないよう、内側の入力欄の左の余白を空ける（AvaloniaUI 版と同じ 24 DIP）。
+    /// </remarks>
+    [Fact]
+    internal void 入力欄の左に現在色の四角を出し文字を右へ寄せる()
+    {
+        Assert.True(
+            ColorSelectorControl.TryResolveCurrentColorSwatch("#FFDC2626", out _),
+            "有効な色なのに四角を出さない");
+
+        // 左の余白 7 + 四角 12 + 間隔 5 = 24 で、文字は四角の右端（19）より後ろから始まる
+        Assert.Equal(24.0, ColorSelectorControl.TextLeftIndent);
+    }
+
+    /// <summary>現在色の四角が選んだ色で塗られ、無効な入力の間は隠れることを検証する。</summary>
+    /// <remarks>無効な入力の間も前の色を出すと、その色が選ばれていると誤解される。</remarks>
+    [Fact]
+    internal void 現在色の四角は選んだ色で塗る()
+    {
+        Assert.True(ColorSelectorControl.TryResolveCurrentColorSwatch("#FFDC2626", out var swatchColor));
+        Assert.Equal(0xFF, swatchColor.A);
+        Assert.Equal(0xDC, swatchColor.R);
+        Assert.Equal(0x26, swatchColor.G);
+        Assert.Equal(0x26, swatchColor.B);
+
+        Assert.False(ColorSelectorControl.TryResolveCurrentColorSwatch("not-a-color", out _));
+    }
+
+    /// <summary>一覧で同じ色を選び直しても <see cref="ColorSelectorControl.ColorApplied"/> が発生することを検証する。</summary>
+    /// <remarks>
+    /// 文字単位で色が混ざった範囲を一律にそろえる用途では、値の変更（同じ値では通知されない）だけでは足りない。<br/>
+    /// XAML ランタイムを持たないテストではコントロールを生成できないため、確定の扱いを決める純粋関数
+    /// （<see cref="ColorSelectorControl.PlanItemSelection"/> / <see cref="ColorSelectorControl.PlanPickerSelection"/>）
+    /// が「値が変わらなくても通知する」ことを確かめる。 実際の発火はサンプル アプリで確認する。
+    /// </remarks>
+    [Fact]
+    internal void 同じ色を選び直しても適用の通知が来る()
+    {
+        var item = new ColorSelectorItem("赤", "#FFDC2626", ColorSelectorCategory.Custom);
+
+        var fromList = ColorSelectorControl.PlanItemSelection(item);
+        Assert.True(fromList.RaiseApplied, "一覧で同じ色を選び直すと通知が欠ける");
+        Assert.Equal("#FFDC2626", fromList.Value);
+        Assert.Null(fromList.ThemeKey);
+
+        var fromPicker = ColorSelectorControl.PlanPickerSelection("#FFDC2626");
+        Assert.True(fromPicker.RaiseApplied, "カラーピッカーで同じ色を確定すると通知が欠ける");
+        Assert.Equal("#FFDC2626", fromPicker.Value);
+        Assert.Null(fromPicker.ThemeKey);
+    }
+
+    // ====================================================================
     // 入力欄の表示（カスタム タブの色名）
     // ====================================================================
 

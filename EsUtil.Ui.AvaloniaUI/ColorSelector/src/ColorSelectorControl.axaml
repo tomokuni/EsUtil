@@ -17,11 +17,32 @@
             </StackPanel>
         </DataTemplate>
     </UserControl.Resources>
+    <UserControl.Styles>
+        <!-- 入力欄の文字を上下の中央にそろえる（テーマの既定は上寄せで、四角と高さがずれて見える） -->
+        <Style Selector="ComboBox /template/ TextBox">
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Styles>
     <!-- 入力欄と展開ボタンは標準のコンボボックスを使う（自前の枠・▼・… を作らない）。
-         展開ボタンを押すと標準の一覧の代わりにタブ付きのフライアウトを出す（コード側で差し替える）。 -->
-    <ComboBox x:Name="PART_Combo"
-              IsEditable="True"
-              IsTextSearchEnabled="False"
-              HorizontalAlignment="Stretch"
-              VerticalAlignment="Center"/>
+         展開ボタンを押すと標準の一覧の代わりにタブ付きのフライアウトを出す（コード側で差し替える）。
+         標準のコンボボックスは文字しか出せないため、現在色の四角を重ねて「■ + 色名」に見せる
+         （入力欄の左はコード側で空け、文字が四角に重ならないようにする）。 -->
+    <Grid>
+        <ComboBox x:Name="PART_Combo"
+                  IsEditable="True"
+                  IsTextSearchEnabled="False"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Center"
+                  VerticalContentAlignment="Center"/>
+        <Border x:Name="PART_CurrentColorSwatch"
+                Width="12"
+                Height="12"
+                CornerRadius="2"
+                BorderThickness="1"
+                BorderBrush="#66808080"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Margin="7,0,0,0"
+                IsHitTestVisible="False"/>
+    </Grid>
 </UserControl>

@@ -47,6 +47,8 @@
 | `Log` | `ILogger` | `NullLogger` | 変更の記録先 |
 | `LogPrefix` | `string?` | `null` | ログの接頭辞（null は `[ColorSelector]`） |
 | `SelectedColorChanged` | `event EventHandler?` | — | 保存値が変わったときに発火する |
+| `ColorApplied` | `event EventHandler?` | — | 一覧・カラーピッカーで色を確定したときに発火する（**同じ色を選び直したときも発火**。 `SelectedColor` は変わらないため `SelectedColorChanged` では足りない用途向け）。 入力欄へ打ち込んだ場合は発火しない（確定はフォーカスを外したとき） |
+| 入力欄の左の四角 | （UI の要素） | 現在色（無効な入力の間は非表示） | 入力欄の左へ**現在色の四角**（12 DIP・角の丸み 2・半透明の灰色の 1 DIP の枠線・左の余白 7 DIP・上下の中央）を重ね、文字はその右（左から 24 DIP）から始める。 標準のコンボボックスは文字しか出せないため、「■ + 色名」に見せる。 無効な入力の間は隠す（前の色を出すと、その色が選ばれていると誤解される） |
 
 ### 2.2 入力の扱い
 
@@ -62,13 +64,14 @@
 
 | 型 | 可視性 | 説明 |
 | --- | --- | --- |
-| `ColorSelectorControl` | public | 色を選ぶコントロール（基底は `Microsoft.UI.Xaml.Controls.UserControl`。 中身は標準のコンボボックス） |
+| `ColorSelectorControl` | public | 色を選ぶコントロール（基底は `Microsoft.UI.Xaml.Controls.UserControl`。 中身は標準のコンボボックス + 現在色の四角） |
 | `ColorSelectorCustomTab` | public | 一覧へ追加するタブ（`Title` + `Colors` + `Layout`）。 `Colors` が空のタブは表示しない |
 | `ColorSelectorCustomColor` | public | カスタム タブの 1 色（`Name` + `Value`）。 `Value` は色名または `#AARRGGBB` |
 | `ColorSelectorTabLayout` | public | カスタム タブの並べ方（`List` = 色名付きの一覧 / `Grid` = 色の四角だけを 6 列に並べる格子） |
 | `ColorSelectorItem` | internal | 一覧の 1 件（表示名・適用値・分類・テーマの色の識別子） |
 | `ColorSelectorCategory` | internal | 一覧の項目の分類（`Theme` / `Named` / `Custom`） |
 | `ColorSelectorTabSpec` | internal | 一覧の 1 タブ（題名・識別子・並べ方・並べる項目・カラーピッカーかどうか）。 表示の設定と中身から作り、空のタブは作らない |
+| `ColorApplyPlan` | internal | 一覧・カラーピッカーで色を確定したときの適用の計画（適用する値・テーマの色の識別子・確定を通知するか） |
 
 ## 3. 使用例
 
@@ -105,7 +108,7 @@ color.CustomTabs =
 
 ## 4. 座標系と単位
 
-寸法はすべて DIP です（一覧のタブの幅 112、一覧の最大の高さ 360、格子のセル 32、色の四角 20、ピッカーのタブの幅 320、操作ボタンの幅 70）。 入力欄と展開ボタンは標準の `ComboBox` が持つ寸法に従います。 Flyout（一覧）の配置は WinUI が決めます。 一覧の Flyout は `ShouldConstrainToRootBounds = false` でウィンドウの外へ出られるようにし、外側をスクロールさせません（一覧は自分の高さでスクロールし、格子はスクロールしません）。
+寸法はすべて DIP です（一覧のタブの幅 112、一覧の最大の高さ 360、格子のセル 32、色の四角 20、ピッカーのタブの幅 320、操作ボタンの幅 70、入力欄の左の現在色の四角 12・左の余白 7・文字の開始位置 24）。 入力欄と展開ボタンは標準の `ComboBox` が持つ寸法に従います。 Flyout（一覧）の配置は WinUI が決めます。 一覧の Flyout は `ShouldConstrainToRootBounds = false` でウィンドウの外へ出られるようにし、外側をスクロールさせません（一覧は自分の高さでスクロールし、格子はスクロールしません）。
 
 一覧の幅は `max(枠の幅, 内容の幅)` です（内容のほうが広い場合は一覧だけが広がり、**コントロールの幅と最小幅は変わりません**）。 一覧を開くたびに枠が広がると、開閉のたびに周りのレイアウトが動くためです。
 

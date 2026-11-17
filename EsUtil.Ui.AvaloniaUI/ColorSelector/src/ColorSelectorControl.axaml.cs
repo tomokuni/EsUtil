@@ -17,21 +17,24 @@ namespace EsUtil.Ui.AvaloniaUI.ColorSelector;
 
 /// <summary>色を選ぶコントロール（色名の入力・一覧からの選択・カラーピッカー）。</summary>
 /// <remarks>
-/// <b>1 つの入力欄に見せる</b>: 外周の 1 つの <c>Border</c> の中へ「スウォッチ（現在色）」「テキスト入力」
-/// 「一覧ボタン（▼）」「カラーピッカー ボタン（…）」を隙間なく並べ、区切りは枠より薄い垂直線で表す
-/// （区画のボタン自身は枠も背景も持たない）。<br/>
+/// <b>標準のコンボボックスをそのまま使う</b>: 入力欄と展開ボタンは <see cref="ComboBox"/>（編集可）に任せ、
+/// 展開ボタンを押したときだけ、標準の一覧の代わりにタブ付きのフライアウトを出す。
+/// 入力欄の左には**現在色の四角**を重ねて「■ + 色名」に見せる（標準の入力欄は文字しか出せないため）。<br/>
 /// <b>規則の所有者はコアである</b>: 受理する入力（色名・16 進・<c>+{n}%</c>）、色名の表、保存値（<c>#AARRGGBB</c>）と
 /// 画面表示（<c>{色}+{不透明度%}</c>）、並び順、入力の妥当性は
 /// <see cref="EsUtil.Platform.Core.Palette"/>（<see cref="ColorString"/> / <see cref="ColorEntry"/> /
 /// <see cref="ColorValidation"/>）が単一所有する。 本クラスは要素の組み立てと、入力と状態の同期だけを行う。<br/>
-/// <b>ツールチップ</b>: スウォッチとテキスト部には「色名+不透明度」と「<c>#AARRGGBB</c>」の 2 行を出す。<br/>
-/// <b>カラーピッカー</b>は <see cref="ColorSelectorFlyoutFactory"/> が構築する（OK / キャンセル付き）。<br/>
+/// <b>ツールチップ</b>: 入力欄には「色名+不透明度」と「<c>#AARRGGBB</c>」の 2 行を出す。<br/>
+/// <b>カラーピッカー</b>は「ColorPicker」タブの中へ直接出す（<see cref="ColorSelectorFlyoutFactory"/> が構築する）。<br/>
 /// <br/>
 /// **公開 API 一覧**:<br/>
 /// - コンストラクタ: <see cref="ColorSelectorControl()"/><br/>
-/// - 値: <see cref="SelectedColor"/> / <see cref="ColorSortMode"/> / <see cref="TextFormat"/><br/>
+/// - 値: <see cref="SelectedColor"/> / <see cref="ColorSortMode"/> / <see cref="TextFormat"/> / <see cref="SelectedThemeColor"/><br/>
+/// - 一覧の構成: <see cref="ShowCustomTab"/> / <see cref="ShowThemeColorTab"/> / <see cref="ShowNamedColorTab"/> /
+///   <see cref="ShowPickerTab"/> / <see cref="ShowTabTitles"/> / <see cref="CustomTabs"/><br/>
 /// - 検証: <see cref="HasValidationError"/> / <see cref="ValidationErrorMessage"/> / <see cref="HighlightBorderOnError"/><br/>
 /// - 外観（入力欄の文字サイズ）: <see cref="TextFontSize"/><br/>
+/// - イベント: <see cref="ColorApplied"/>（同じ色を選び直したときも発生する）<br/>
 /// - ログ: <see cref="Log"/><br/>
 /// - 関連型: <see cref="ColorSortMode"/>（コア）/ <see cref="ColorTextFormat"/>（コア）/ <see cref="StringToBrushConverter"/> /
 ///   <see cref="ColorString"/>（コア）/ <see cref="ColorEntry"/>（コア）
@@ -247,6 +250,18 @@ public sealed partial class ColorSelectorControl : UserControl
     }
 
     // ====================================================================
+    // イベント
+    // ====================================================================
+
+    /// <summary>一覧・カラーピッカーで色を確定したときに発生する。</summary>
+    /// <remarks>
+    /// <b>同じ色を選び直したときも発生する</b>: 文字単位で色が混ざった範囲を一律にそろえる用途では、
+    /// <see cref="SelectedColor"/> の変更（同じ値では通知されない）だけでは足りない。
+    /// 入力欄へ打ち込んだ場合は発生しない（確定はフォーカスを外したとき）。
+    /// </remarks>
+    public event EventHandler? ColorApplied;
+
+    // ====================================================================
     // ログ
     // ====================================================================
 
@@ -289,6 +304,9 @@ public sealed partial class ColorSelectorControl : UserControl
         _combo.AddHandler(PointerPressedEvent, OnComboPointerPressed, RoutingStrategies.Tunnel);
         _combo.AddHandler(KeyDownEvent, OnComboKeyDown, RoutingStrategies.Tunnel);
 
+        // 入力欄の左に現在色の四角を出すため、文字を四角の右から始める（内側の入力欄の余白を借りる）
+        ApplyComboLayout();
+
         if (!Design.IsDesignMode)
         {
             // SelectedColor は 1 回だけ取得して初期値とバリデーションで共有する（二重 getter の排除）
@@ -306,6 +324,15 @@ public sealed partial class ColorSelectorControl : UserControl
 
     /// <summary>展開ボタンの幅（DIP。 コンボボックスの右端のこの範囲を自前で扱う）。</summary>
     private const double ToggleAreaWidth = 30;
+
+    /// <summary>入力欄の左に出す現在色の四角の一辺（DIP）。</summary>
+    private const double CurrentColorSwatchSize = 12;
+
+    /// <summary>四角と文字の間の余白（DIP）。</summary>
+    private const double CurrentColorSwatchGap = 5;
+
+    /// <summary>入力欄の文字を右へ寄せる幅（DIP。 四角の分だけ空ける）。</summary>
+    private const double TextLeftIndent = 7 + CurrentColorSwatchSize + CurrentColorSwatchGap;
 
     /// <summary>展開ボタンの押下を検出してタブ付きのフライアウトを出す（標準の一覧は出さない）。</summary>
     /// <param name="sender">イベント送信元。</param>
@@ -368,6 +395,36 @@ public sealed partial class ColorSelectorControl : UserControl
         {
             _combo.FontSize = TextFontSize;
         }
+    }
+
+    /// <summary>入力欄の文字を、現在色の四角の右から始まるように寄せる。</summary>
+    /// <remarks>
+    /// <b>標準のコンボボックスの余白を借りる</b>: 枠と文字はコンボボックスが描くため、文字の開始位置だけを
+    /// コンボボックスの左の余白で動かす（見た目を似せて作り直さない）。<br/>
+    /// 文字を打っても余白は保たれる（文字の入る領域が狭くなるだけ）。
+    /// </remarks>
+    private void ApplyComboLayout()
+        => _combo.Padding = new Thickness(
+            TextLeftIndent, _combo.Padding.Top, _combo.Padding.Right, _combo.Padding.Bottom);
+
+    /// <summary>入力欄の左の四角を現在色で塗る（「■ + 色名」に見せる）。</summary>
+    /// <param name="color">表示する色（保存値）。</param>
+    /// <remarks>無効な入力の間は四角を隠す（前の色を出すと、その色が選ばれていると誤解される）。</remarks>
+    private void UpdateCurrentColorSwatch(string? color)
+    {
+        var swatch = PART_CurrentColorSwatch;
+        swatch.Width = CurrentColorSwatchSize;
+        swatch.Height = CurrentColorSwatchSize;
+
+        if (ColorString.TryParse(color, out var parsed, out _))
+        {
+            swatch.Background = new SolidColorBrush(
+                Avalonia.Media.Color.FromArgb(parsed.A, parsed.R, parsed.G, parsed.B));
+            swatch.IsVisible = true;
+            return;
+        }
+
+        swatch.IsVisible = false;
     }
 
     /// <summary>テーマの色を選んでいる間、そのときのテーマの色へ解決し直す。</summary>
@@ -475,6 +532,9 @@ public sealed partial class ColorSelectorControl : UserControl
 
             UpdateValidationStatusCore(color, valid);
 
+            // 入力欄の左の四角は入力のたびに追随させる（文字を打っている間も現在の色が分かる）
+            UpdateCurrentColorSwatch(color);
+
             // 入力中の文字を打ち消さないよう、入力欄からの反映では書き戻さない
             if (!_applying)
             {
@@ -530,6 +590,7 @@ public sealed partial class ColorSelectorControl : UserControl
             var tooltip = string.Concat(
                 ColorString.ToDisplayText(normalized), Environment.NewLine, ColorString.ToArgbHex(normalized));
             ToolTip.SetTip(_combo, tooltip);
+            UpdateCurrentColorSwatch(normalized);
         }
         finally
         {
@@ -756,6 +817,7 @@ public sealed partial class ColorSelectorControl : UserControl
                     SelectedColor = value;
                     UpdateTextAndToolTip(SelectedColor);
                     flyout.Hide();
+                    RaiseColorApplied();
                 },
                 flyout.Hide);
         }
@@ -858,7 +920,11 @@ public sealed partial class ColorSelectorControl : UserControl
         SelectedColor = item.Value;
         UpdateTextAndToolTip(SelectedColor);
         flyout.Hide();
+        RaiseColorApplied();
     }
+
+    /// <summary><see cref="ColorApplied"/> を発生させる。</summary>
+    private void RaiseColorApplied() => ColorApplied?.Invoke(this, EventArgs.Empty);
 
     /// <summary>一覧に出すタブ（題名・識別子・並べ方・並べる項目）を作る。</summary>
     /// <returns>表示するタブ。 中身の無いタブは含めない。</returns>

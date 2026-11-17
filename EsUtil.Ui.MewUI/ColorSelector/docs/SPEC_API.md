@@ -27,7 +27,7 @@
 
 色を選ぶ複合コントロールです（基底は `Aprillz.MewUI.Controls.Grid`）。
 
-入力欄は**標準のコンボボックス**（枠・展開ボタン）と、その文字の位置へ重ねた**テキスト入力**（文字の表示と編集）で成ります。 MewUI 0.22.1 の `ComboBox` は読み取り専用の選択表示だけであり、AvaloniaUI 版の `IsEditable` に当たる API を持たないための代替です。
+入力欄は**標準のコンボボックス**（枠・展開ボタン）と、その文字の位置へ重ねた**テキスト入力**（文字の表示と編集）で成ります。 MewUI 0.22.1 の `ComboBox` は読み取り専用の選択表示だけであり、AvaloniaUI 版の `IsEditable` に当たる API を持たないための代替です。 入力欄の左には**現在色の四角**を重ねて「■ + 色名」で表示し、文字はその右から始まります（文字は上下の中央にそろえる）。
 
 | メンバー | 型 | 既定値 | 説明 |
 | --- | --- | --- | --- |
@@ -52,6 +52,7 @@
 | `Log` | `ILogger` | `NullLogger` | 変更の記録先（null は `NullLogger` へ） |
 | `LogPrefix` | `string?` | `null` | ログの接頭辞（null は `[ColorSelector]`） |
 | `SelectedColorChanged` | `event EventHandler?` | — | 保存値が変わったときに発火する（同じ値では発火しない） |
+| `ColorApplied` | `event EventHandler?` | — | 一覧・カラーピッカーで色を確定したときに発火する（**同じ色を選び直したときも発火**。 `SelectedColorChanged` は値が変わらないと発火しないため、確定の通知が要る用途で使う）。 入力欄へ打ち込んだ場合は発火しない（確定はフォーカスを外したとき） |
 
 ### 2.2 入力の扱い
 
@@ -106,11 +107,12 @@ var color = new ColorSelectorControl
     Log = loggerFactory.CreateLogger("ColorSelector"),
 };
 color.SelectedColorChanged += (_, _) => settings.CaptureBorderColor = color.SelectedColor;
+color.ColorApplied += (_, _) => ApplyToSelection(color.SelectedColor);   // 同じ色を選び直したときも届く
 ```
 
 ## 4. 座標系と単位
 
-寸法はすべて DIP です（入力欄の最小幅 120、一覧のタブの幅 96、格子のセル 32・色の四角 20・列数 6、一覧の最大の高さ 360）。 一覧のポップアップはコンボボックスの実寸（`Bounds`。 MewUI はウィンドウ基準）を基準に、左端を揃えて置きます。 一覧の幅は**枠の幅と内容の幅の大きい方**であり、枠（コントロール）の幅は変えません。
+寸法はすべて DIP です（入力欄の最小幅 120、現在色の四角 12・左の余白 7・四角と文字の間 5（文字は 24 から始まる）、一覧のタブの幅 96、格子のセル 32・色の四角 20・列数 6、一覧の最大の高さ 360）。 一覧のポップアップはコンボボックスの実寸（`Bounds`。 MewUI はウィンドウ基準）を基準に、左端を揃えて置きます。 一覧の幅は**枠の幅と内容の幅の大きい方**であり、枠（コントロール）の幅は変えません。
 
 ## 5. 制限事項
 
