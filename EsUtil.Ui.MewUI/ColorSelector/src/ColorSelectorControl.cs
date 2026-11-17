@@ -884,7 +884,8 @@ public sealed class ColorSelectorControl : Grid
 
         // タブは決まった幅で並ぶため、数が多いとポップアップの右端が切れる。 幅に収まるようタブの幅を詰める
         var tabWidth = ResolveTabWidth(_listWidth, tabs.Count);
-        _log.LogDebug("[TEMP] width={W} tabs={N} tab={T} max={M}", _listWidth, tabs.Count, tabWidth, PopupMaxWidth); // TEMP
+        _log.LogDebug( // TEMP
+            "[TEMP] width={W} tabs={N} tab={T} max={M}", _listWidth, tabs.Count, tabWidth, PopupMaxWidth);
 
         for (var i = 0; i < tabs.Count; i++)
         {
