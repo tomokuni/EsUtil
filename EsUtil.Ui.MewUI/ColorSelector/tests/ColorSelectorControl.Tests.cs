@@ -1,3 +1,4 @@
+using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Palette;
 using Xunit;
@@ -518,13 +519,13 @@ public class ColorSelectorControlTests
             item => Assert.Equal(ColorSelectorCategory.Named, item.Category));
     }
 
-    /// <summary>カスタム タブは格子（色の四角を 6 列）でも並べられることを検証する。</summary>
-    /// <remarks>16 色なら 6 列 × 3 行に収まり、スクロールせずに選べる。</remarks>
+    /// <summary>■ の列数を指定できることを検証する（0 は一覧、1 以上はその列数の格子）。</summary>
+    /// <remarks>40 色を 8 列に並べると 5 行に収まり、スクロールせずに選べる。</remarks>
     [Fact]
-    internal void カスタムタブは色の四角を6列に並べられる()
+    internal void カスタムタブの列数を指定できる()
     {
         var colors = new List<ColorSelectorCustomColor>();
-        for (var i = 0; i < 16; i++)
+        for (var i = 0; i < 40; i++)
         {
             colors.Add(new ColorSelectorCustomColor(
                 "色" + i.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -536,20 +537,30 @@ public class ColorSelectorControlTests
             ShowThemeColorTab = false,
             ShowNamedColorTab = false,
             ShowPickerTab = false,
-            CustomTabs = [new ColorSelectorCustomTab("代表色", colors, ColorSelectorTabLayout.Grid)],
+            CustomTabs = [new ColorSelectorCustomTab("代表色パレット", colors, 8)],
         };
 
         control.RefreshList();
-        control.ApplyTab(0);
 
-        // タブの中身は入れ物（枠）の中に作られる（表示するまで作らないため、中身は 1 段深い）
+        // 8 列の格子（セルは色の四角の一辺 32 DIP）
+        const double CellSize = 32;
         var slot = Assert.IsType<Grid>(control.TabBody[0]);
         var grid = Assert.IsType<UniformGrid>(slot[0]);
-        Assert.Equal(6, grid.Columns);
-        Assert.Equal(16, grid.Count);
+        Assert.Equal(8, grid.Columns);
+        Assert.Equal(40, grid.Count);
+        Assert.Equal(8, grid.Width / CellSize);
 
-        // 格子はスクロールしない（一覧の高さ制限を持たない）
-        Assert.Equal(double.PositiveInfinity, grid.MaxHeight);
+        // 枠より狭い格子は、指定した幅のまま置く（一覧の幅いっぱいへ引き伸ばさない）
+        slot.Measure(new Size(320, double.PositiveInfinity));
+        slot.Arrange(new Rect(0, 0, 320, slot.DesiredSize.Height));
+        Assert.Equal(8 * CellSize, grid.Bounds.Width);
+
+        // 0 は一覧（色名付き）
+        control.CustomTabs = [new ColorSelectorCustomTab("代表色", colors)];
+        control.RefreshList();
+
+        var list = Assert.IsType<ListBox>(Assert.IsType<Grid>(control.TabBody[0])[0]);
+        Assert.Equal(40, Assert.IsAssignableFrom<IItemsView>(list.ItemsSource).Count);
     }
 
     /// <summary>タブの中身を、開いたとき（表示するとき）にだけ作ることを検証する。</summary>

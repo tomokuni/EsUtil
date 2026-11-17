@@ -171,7 +171,7 @@ public class ColorSelectorControlTests
                 "#FF0000" + i.ToString("X2", System.Globalization.CultureInfo.InvariantCulture)));
         }
 
-        control.CustomTabs = [new ColorSelectorCustomTab("代表色", colors, ColorSelectorTabLayout.Grid)];
+        control.CustomTabs = [new ColorSelectorCustomTab("代表色", colors, 6)];
         var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
 
         var (_, body) = GetTabsAndBody(flyout);
@@ -179,6 +179,36 @@ public class ColorSelectorControlTests
 
         Assert.Equal(16, grid.Children.Count);
         Assert.Equal(6, grid.Width / grid.ItemWidth);
+    }
+
+    /// <summary>■ の列数を指定できることを検証する（0 は一覧、1 以上はその列数の格子）。</summary>
+    /// <remarks>40 色を 8 列に並べると 5 行に収まり、スクロールせずに選べる。</remarks>
+    [AvaloniaFact]
+    internal void カスタムタブの列数を指定できる()
+    {
+        var control = CreateControl();
+        var colors = new List<ColorSelectorCustomColor>();
+        for (var i = 0; i < 40; i++)
+        {
+            colors.Add(new ColorSelectorCustomColor(
+                "色" + i.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                "#FF0000" + i.ToString("X2", System.Globalization.CultureInfo.InvariantCulture)));
+        }
+
+        // 8 列の格子
+        control.CustomTabs = [new ColorSelectorCustomTab("代表色パレット", colors, 8)];
+        var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
+        var (_, body) = GetTabsAndBody(flyout);
+        var grid = Assert.IsType<WrapPanel>(GetVisibleView<WrapPanel>(body));
+        Assert.Equal(40, grid.Children.Count);
+        Assert.Equal(8, grid.Width / grid.ItemWidth);
+
+        // 0 は一覧
+        control.CustomTabs = [new ColorSelectorCustomTab("代表色", colors)];
+        flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
+        var (_, body2) = GetTabsAndBody(flyout);
+        var list = GetVisibleView<ListBox>(body2);
+        Assert.Equal(40, Assert.IsAssignableFrom<IEnumerable<ColorSelectorItem>>(list.ItemsSource).Count());
     }
 
     /// <summary>一覧の幅がタブの行の幅以上になり、スクロール バーが右端へ来ることを検証する。</summary>

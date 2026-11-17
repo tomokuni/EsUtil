@@ -5,6 +5,14 @@
 - **公開する版は人が決めます**（`VersionPrefix` 1 行を書き換える）。
 - **版にローカル識別子（`-`）は含めません**。 ローカル フィードへ試しに出すときだけ [`buildScript/pack.ps1`](buildScript/pack.ps1) が `local.<n>` を付けます（公開物には含まれません）。
 
+## 0.8.5（2026-11-17）
+
+### 変更（互換性のない変更）
+
+- **カスタム タブの並べ方を「列数」で指定するようにしました**（3 UI 共通）。 `ColorSelectorTabLayout`（`List` / `Grid`）を削除し、`ColorSelectorCustomTab.Columns`（`int`）に置き換えました。
+  - `0` は**色名付きの一覧**（スクロールする）、`1` 以上は **■ だけをその列数で並べる格子**です（名前はツールチップ）。 6 列に固定されていたため、40 色を 8 列 × 5 行に並べるといった指定ができませんでした。
+  - 例: `new ColorSelectorCustomTab("代表色パレット", colors, 8)` / `new ColorSelectorCustomTab("代表色", colors)`（一覧）
+
 ## 0.8.4（2026-11-17）
 
 ### 修正

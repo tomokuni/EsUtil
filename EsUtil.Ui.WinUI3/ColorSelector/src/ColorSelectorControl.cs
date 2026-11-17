@@ -23,7 +23,7 @@ namespace EsUtil.Ui.WinUI3.ColorSelector;
 /// <b>Native AOT の制約</b>: 一覧へは <c>Items.Add</c> で 1 件ずつ渡す（<c>ItemsSource</c> へ managed コレクションを
 /// 渡すと AOT で <c>E_INVALIDARG</c> になる）。<br/>
 /// <b>一覧はタブで切り替える</b>: 並びは「カスタム → テーマカラー → 色名 → ColorPicker」で、カスタム タブは
-/// 色名付きの一覧と 6 列の格子を選べる。 カラーピッカーはタブの中へ直接置く（別のフライアウトを重ねない）。<br/>
+/// 色名付きの一覧と、列数を指定した格子（■ だけ）を選べる。 カラーピッカーはタブの中へ直接置く（別のフライアウトを重ねない）。<br/>
 /// <br/>
 /// **公開 API 一覧**:<br/>
 /// - 値: <see cref="SelectedColor"/> / <see cref="ColorSortMode"/> / <see cref="TextFormat"/> /
@@ -40,9 +40,6 @@ public sealed partial class ColorSelectorControl : UserControl
     // ====================================================================
     // 定数（公開 → internal → private）
     // ====================================================================
-
-    /// <summary>一覧に並べる列数（16 色なら 3 行に収まり、スクロールせずに選べる）。</summary>
-    internal const int SwatchGridColumns = 6;
 
     /// <summary>色の四角の一辺（DIP。 格子のセル）。</summary>
     internal const double SwatchCellSize = 32;
@@ -486,7 +483,7 @@ public sealed partial class ColorSelectorControl : UserControl
                     .ToList();
                 if (entries.Count > 0)
                 {
-                    tabs.Add(new ColorSelectorTabSpec(custom.Title, "custom:" + custom.Title, custom.Layout, entries));
+                    tabs.Add(new ColorSelectorTabSpec(custom.Title, "custom:" + custom.Title, custom.Columns, entries));
                 }
             }
         }
@@ -496,7 +493,7 @@ public sealed partial class ColorSelectorControl : UserControl
             var theme = items.Where(item => item.Category == ColorSelectorCategory.Theme).ToList();
             if (theme.Count > 0)
             {
-                tabs.Add(new ColorSelectorTabSpec("テーマカラー", "theme", ColorSelectorTabLayout.List, theme));
+                tabs.Add(new ColorSelectorTabSpec("テーマカラー", "theme", 0, theme));
             }
         }
 
@@ -505,13 +502,13 @@ public sealed partial class ColorSelectorControl : UserControl
             var named = items.Where(item => item.Category == ColorSelectorCategory.Named).ToList();
             if (named.Count > 0)
             {
-                tabs.Add(new ColorSelectorTabSpec("色名", "named", ColorSelectorTabLayout.List, named));
+                tabs.Add(new ColorSelectorTabSpec("色名", "named", 0, named));
             }
         }
 
         if (showPickerTab)
         {
-            tabs.Add(new ColorSelectorTabSpec("ColorPicker", "picker", ColorSelectorTabLayout.List, [], IsPicker: true));
+            tabs.Add(new ColorSelectorTabSpec("ColorPicker", "picker", 0, [], IsPicker: true));
         }
 
         return tabs;
@@ -597,9 +594,9 @@ public sealed partial class ColorSelectorControl : UserControl
 
             widest = Math.Max(
                 widest,
-                tab.Layout == ColorSelectorTabLayout.Grid
-                    ? SwatchCellSize * SwatchGridColumns
-                    : MeasureWidestRow(tab.Items) + ListChromeWidth);
+                tab.IsList
+                    ? MeasureWidestRow(tab.Items) + ListChromeWidth
+                    : CalculateSwatchGridWidth(tab.Columns));
         }
 
         return widest;
@@ -620,12 +617,26 @@ public sealed partial class ColorSelectorControl : UserControl
         return widest;
     }
 
+    /// <summary>格子の幅を決める（セルの大きさ × 列数）。</summary>
+    /// <param name="columns">■ を並べる列数。</param>
+    /// <returns>格子の幅（DIP）。 列数が 1 未満の場合は 1 列分。</returns>
+    /// <remarks>
+    /// <b>列数 0 は格子にしない</b>: 0 は色名付きの一覧を表すため、格子を作るときは 1 列へ丸める
+    /// （<see cref="CreateSwatchGrid"/> と同じ規則を、行を作らずに確かめられる形にする）。
+    /// </remarks>
+    internal static double CalculateSwatchGridWidth(int columns)
+        => SwatchCellSize * Math.Max(1, columns);
+
     /// <summary>格子に必要な行数を決める（スクロールせずに収まるかを確かめられる形にする）。</summary>
     /// <param name="itemCount">並べる色の数。</param>
+    /// <param name="columns">■ を並べる列数。</param>
     /// <returns>必要な行数。 0 件なら 0。</returns>
-    /// <remarks><see cref="SwatchGridColumns"/> 列で折り返す（16 色なら 3 行）。</remarks>
-    internal static int CalculateSwatchRows(int itemCount)
-        => itemCount <= 0 ? 0 : (itemCount + SwatchGridColumns - 1) / SwatchGridColumns;
+    /// <remarks><paramref name="columns"/> 列で折り返す（16 色なら 6 列 × 3 行、40 色なら 8 列 × 5 行）。</remarks>
+    internal static int CalculateSwatchRows(int itemCount, int columns)
+    {
+        var actualColumns = Math.Max(1, columns);
+        return itemCount <= 0 ? 0 : (itemCount + actualColumns - 1) / actualColumns;
+    }
 
     /// <summary>入力欄へ出す文字列を決める（カスタム タブの色名を優先する）。</summary>
     /// <param name="normalized">保存値（<c>#AARRGGBB</c>）。</param>
@@ -689,7 +700,7 @@ public sealed partial class ColorSelectorControl : UserControl
         return null;
     }
 
-    /// <summary>一覧に出すタブ（題名・識別子・並べ方・並べる項目）を作る。</summary>
+    /// <summary>一覧に出すタブ（題名・識別子・■ の列数・並べる項目）を作る。</summary>
     /// <returns>表示するタブ。 中身の無いタブは含めない。</returns>
     /// <remarks>
     /// <b>表示の設定と中身を 1 か所で決める</b>: タブの有無と一覧の項目が食い違わない（空のタブを出さない）。
@@ -814,9 +825,9 @@ public sealed partial class ColorSelectorControl : UserControl
     private FrameworkElement CreateTabView(ColorSelectorTabSpec tab, Flyout flyout, double width)
         => tab.IsPicker
             ? CreatePickerContent(flyout)
-            : tab.Layout == ColorSelectorTabLayout.Grid
-                ? CreateSwatchGrid(tab, flyout)
-                : CreateColorList(tab, flyout, width);
+            : tab.IsList
+                ? CreateColorList(tab, flyout, width)
+                : CreateSwatchGrid(tab, flyout);
 
     /// <summary>色名付きの一覧（縦に並べてスクロールする）を作る。</summary>
     /// <param name="tab">タブの定義。</param>
@@ -879,24 +890,26 @@ public sealed partial class ColorSelectorControl : UserControl
         return row;
     }
 
-    /// <summary>色の四角だけを 6 列に並べた格子を作る（スクロールせずに選べる）。</summary>
+    /// <summary>色の四角だけを指定した列数に並べた格子を作る（スクロールせずに選べる）。</summary>
     /// <param name="tab">タブの定義。</param>
     /// <param name="flyout">閉じる対象のポップアップ。</param>
     /// <returns>格子。</returns>
+    /// <remarks>列数が 1 未満の場合は 1 列に並べる（0 は格子にしないタブのため実際には通らない）。</remarks>
     private FrameworkElement CreateSwatchGrid(ColorSelectorTabSpec tab, Flyout flyout)
     {
+        var columns = Math.Max(1, tab.Columns);
         var grid = new Grid
         {
-            Width = SwatchCellSize * SwatchGridColumns,
+            Width = CalculateSwatchGridWidth(columns),
             HorizontalAlignment = HorizontalAlignment.Left,
         };
 
-        for (var column = 0; column < SwatchGridColumns; column++)
+        for (var column = 0; column < columns; column++)
         {
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(SwatchCellSize) });
         }
 
-        var rows = CalculateSwatchRows(tab.Items.Count);
+        var rows = CalculateSwatchRows(tab.Items.Count, columns);
         for (var row = 0; row < rows; row++)
         {
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(SwatchCellSize) });
@@ -905,8 +918,8 @@ public sealed partial class ColorSelectorControl : UserControl
         for (var i = 0; i < tab.Items.Count; i++)
         {
             var button = CreateSwatch(tab.Items[i], flyout);
-            Grid.SetRow(button, i / SwatchGridColumns);
-            Grid.SetColumn(button, i % SwatchGridColumns);
+            Grid.SetRow(button, i / columns);
+            Grid.SetColumn(button, i % columns);
             grid.Children.Add(button);
         }
 

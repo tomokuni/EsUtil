@@ -48,7 +48,7 @@
 - **標準のコンボボックス**による入力欄と一覧の表示（自前の枠・▼・… を作らない）
 - **入力欄は「■ + 色名」で表示**（現在色の四角を入力欄の左に重ね、文字はその右から始める。 文字は上下の中央にそろえる）
 - 一覧はタブで切り替える（**カスタム / テーマカラー / 色名 / ColorPicker**。 色名は色相順 / 色名順）
-- **カスタム タブ**（`CustomTabs`。 題名と色名/色コードを動的に指定。 複数可。 **一覧**と**色の四角を 6 列に並べた格子**を選べる）
+- **カスタム タブ**（`CustomTabs`。 題名と色名/色コードを動的に指定。 複数可。 **一覧**と**■ だけを指定した列数で並べた格子**を選べる（列数 0 = 一覧 / 1 以上 = 格子））
 - **カスタム タブの色名を入力欄に表示**（色コードが一致したときに日本語の名前を出す）
 - ColorPicker タブでカラーピッカー（`ColorPicker`）を一覧の中へ直接表示
 - テーマの色の選択と、テーマの変更への追随（選んだテーマの色は明暗・アクセントの変更に追随）
@@ -116,7 +116,7 @@ Host.Children.Add(color);
 | 色の一覧の並び順 | `ColorSortMode`（`ByName` / `ByHue`） |
 | 入力欄の表記 | `TextFormat`（`NameWithAlpha` / `HexCode`） |
 | 一覧に出す色 | コアの `ColorNames`（Windows 標準の色名。 システム色は含まない）と、UI が提供するテーマの色（`ShowThemeColors` で一覧から外せる） |
-| 一覧のタブ | `ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab` で取捨でき、`CustomTabs`（`ColorSelectorCustomTab` の並び）で用途ごとのタブ（例: 代表色）を足せる。 カスタム タブは `ColorSelectorTabLayout` で色名付きの一覧（`List`）と色の四角 6 列の格子（`Grid`）を選べる。 タブが 1 つだけなら `ShowTabTitles` で題名の行を省ける |
+| 一覧のタブ | `ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab` で取捨でき、`CustomTabs`（`ColorSelectorCustomTab` の並び）で用途ごとのタブ（例: 代表色）を足せる。 カスタム タブは `Columns` で色名付きの一覧（`0`）と ■ だけの格子（`1` 以上 = その列数）を選べる。 タブが 1 つだけなら `ShowTabTitles` で題名の行を省ける |
 | ログの接頭辞 | `LogPrefix`（既定 `[ColorSelector]`） |
 
 一覧と色文字列の規則はコアが単一所有するため、**本コントロールに派生や差し替え点はありません**（3 つの UI で同じ結果にするため）。
@@ -171,8 +171,7 @@ EsUtil.Ui.WinUI3/ColorSelector/
 │   ├── ColorApplyPlan.cs                     # 一覧・カラーピッカーで色を確定したときの適用の計画（内部）
 │   ├── ColorSelectorItem.cs                  # 一覧の 1 件（表示名と適用値）
 │   ├── ColorSelectorCategory.cs              # 一覧の項目の分類（テーマカラー / 色名 / カスタム）
-│   ├── ColorSelectorTabSpec.cs               # 一覧の 1 タブ（題名・識別子・並べ方・項目）
-│   ├── ColorSelectorTabLayout.cs             # カスタム タブの並べ方（一覧 / 格子。 公開型）
+│   ├── ColorSelectorTabSpec.cs               # 一覧の 1 タブ（題名・識別子・■ の列数・項目）
 │   ├── ColorSelectorCustomTab.cs             # 利用者が追加するタブ（公開型）
 │   ├── ColorSelectorCustomColor.cs           # カスタム タブの 1 色（公開型）
 │   └── ColorSelectorLogMessage.cs            # ログ定義（LoggerMessage ソース生成）
@@ -189,7 +188,7 @@ EsUtil.Ui.WinUI3/ColorSelector/
 dotnet test EsUtil.Ui.WinUI3/ColorSelector/tests/EsUtil.Ui.WinUI3.ColorSelector.Tests.csproj
 ```
 
-WinUI のコントロールは XAML ランタイム（`Application`）を必要とするため、テストは**色文字列の規則がコアと一致すること**、**一覧のタブの決め方**（`CreateTabs` / `ShouldShowTabStrip`）、**格子の行数**（`CalculateSwatchRows`）、**カスタム タブの色名の表示**（`FormatDisplayText` / `ResolveCustomName`）、**入力欄の左の四角の表示**（`TryResolveCurrentColorSwatch` / `TextLeftIndent`）、**確定の通知の扱い**（`PlanItemSelection` / `PlanPickerSelection`）、**一覧の幅の決め方**（`ResolveFlyoutWidth` / `CalculateTabRowWidth` / `ResolveTabWidth`）、**ログ定義**を対象にします。 入力と表示はサンプル アプリと利用側アプリで確認します。
+WinUI のコントロールは XAML ランタイム（`Application`）を必要とするため、テストは**色文字列の規則がコアと一致すること**、**一覧のタブの決め方**（`CreateTabs` / `ShouldShowTabStrip`）、**格子の行数と幅**（`CalculateSwatchRows` / `CalculateSwatchGridWidth`）、**カスタム タブの色名の表示**（`FormatDisplayText` / `ResolveCustomName`）、**入力欄の左の四角の表示**（`TryResolveCurrentColorSwatch` / `TextLeftIndent`）、**確定の通知の扱い**（`PlanItemSelection` / `PlanPickerSelection`）、**一覧の幅の決め方**（`ResolveFlyoutWidth` / `CalculateTabRowWidth` / `ResolveTabWidth`）、**ログ定義**を対象にします。 入力と表示はサンプル アプリと利用側アプリで確認します。
 
 ---
 

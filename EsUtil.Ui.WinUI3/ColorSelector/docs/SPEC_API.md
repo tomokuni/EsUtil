@@ -38,7 +38,7 @@
 | `ShowNamedColorTab` | `bool` | `true` | 一覧の「色名」タブを表示するか |
 | `ShowPickerTab` | `bool` | `true` | 一覧の「ColorPicker」タブを表示するか（タブの中でカラーピッカーを直接表示する） |
 | `ShowTabTitles` | `bool` | `true` | タブが **1 つだけ**のときに題名の行を出すか。 2 つ以上あるときは切り替えに必要なので常に出す |
-| `CustomTabs` | `IReadOnlyList<ColorSelectorCustomTab>` | 空 | 一覧へ追加する「カスタム」タブ（題名 + 色名/色コードの並び + 並べ方）。 複数指定できる。 `Colors` が空のタブは表示しない。 **並べ方は一覧（`List`）と色の四角 6 列の格子（`Grid`）** |
+| `CustomTabs` | `IReadOnlyList<ColorSelectorCustomTab>` | 空 | 一覧へ追加する「カスタム」タブ（題名 + 色名/色コードの並び + ■ の列数）。 複数指定できる。 `Colors` が空のタブは表示しない。 **列数 0 は色名付きの一覧、1 以上は ■ だけをその列数で並べる格子** |
 | `TextFormat` | `ColorTextFormat`（コア） | `NameWithAlpha` | **入力欄**の表記（`NameWithAlpha` = `{色名}+{%}` / `HexCode` = `#AARRGGBB`）。 カスタム タブに登録した色名があるときは、その名前を優先する。 一覧の項目は常に色名、ツールチップは常に 2 行（色名+不透明度 / カラーコード）を出す。 テーマの色を選んでいる間は入力欄が `テーマ: <識別子>` になる |
 | `TextFontSize` | `double` | `NaN`（テーマの既定） | 入力欄の文字サイズ（DIP） |
 | `HighlightBorderOnError` | `bool` | `false` | 現在の入力が無効な間、外周の枠線を赤にする（既定は無効） |
@@ -65,12 +65,11 @@
 | 型 | 可視性 | 説明 |
 | --- | --- | --- |
 | `ColorSelectorControl` | public | 色を選ぶコントロール（基底は `Microsoft.UI.Xaml.Controls.UserControl`。 中身は標準のコンボボックス + 現在色の四角） |
-| `ColorSelectorCustomTab` | public | 一覧へ追加するタブ（`Title` + `Colors` + `Layout`）。 `Colors` が空のタブは表示しない |
+| `ColorSelectorCustomTab` | public | 一覧へ追加するタブ（`Title` + `Colors` + `Columns`。 `IsList` は `Columns <= 0`）。 `Colors` が空のタブは表示しない |
 | `ColorSelectorCustomColor` | public | カスタム タブの 1 色（`Name` + `Value`）。 `Value` は色名または `#AARRGGBB` |
-| `ColorSelectorTabLayout` | public | カスタム タブの並べ方（`List` = 色名付きの一覧 / `Grid` = 色の四角だけを 6 列に並べる格子） |
 | `ColorSelectorItem` | internal | 一覧の 1 件（表示名・適用値・分類・テーマの色の識別子） |
 | `ColorSelectorCategory` | internal | 一覧の項目の分類（`Theme` / `Named` / `Custom`） |
-| `ColorSelectorTabSpec` | internal | 一覧の 1 タブ（題名・識別子・並べ方・並べる項目・カラーピッカーかどうか）。 表示の設定と中身から作り、空のタブは作らない |
+| `ColorSelectorTabSpec` | internal | 一覧の 1 タブ（題名・識別子・■ の列数・並べる項目・カラーピッカーかどうか。 `IsList` は `Columns <= 0`）。 表示の設定と中身から作り、空のタブは作らない |
 | `ColorApplyPlan` | internal | 一覧・カラーピッカーで色を確定したときの適用の計画（適用する値・テーマの色の識別子・確定を通知するか） |
 
 ## 3. 使用例
@@ -97,12 +96,12 @@ color.CustomTabs =
         new ColorSelectorCustomColor("枠線の青", "#FF2563EB"),
     ]),
 
-    // 色の四角を 6 列に並べる（16 色なら 3 行に収まり、スクロールせずに選べる）
+    // ■ を 8 列に並べる（40 色なら 5 行に収まり、スクロールせずに選べる）
     new ColorSelectorCustomTab("代表色", [
         new ColorSelectorCustomColor("黒", "#FF000000"),
         new ColorSelectorCustomColor("赤", "#FFDC2626"),
         // … 16 色まで
-    ], ColorSelectorTabLayout.Grid),
+    ], 8),
 ];
 ```
 
