@@ -170,7 +170,7 @@ internal static class MainWindow
                     control.ShowTabTitles = value;
                 }
             }),
-            SampleSettings.Check("「代表色」タブを追加（格子）", false, value =>
+            SampleSettings.Check("「代表色パレット」「代表色」タブを追加", false, value =>
             {
                 foreach (var control in controls)
                 {
@@ -288,10 +288,14 @@ internal static class MainWindow
     /// <returns>MewUI の色。</returns>
     private static MewColor ToMew(DrawingColor color) => MewColor.FromArgb(color.A, color.R, color.G, color.B);
 
-    /// <summary>「代表色」タブの定義（よく使う 16 色）。</summary>
+    /// <summary>「代表色パレット」（■ を 8 列）と「代表色」（色名の一覧）のタブの定義。</summary>
+    /// <remarks>
+    /// <b>タブが多いときの見た目を確かめる</b>: 標準の 3 つ（テーマカラー・色名・ColorPicker）と合わせて
+    /// 5 つになる（タブの幅が均等に詰まり、ポップアップからはみ出さないことを確かめられる）。
+    /// </remarks>
     private static readonly IReadOnlyList<ColorSelectorCustomTab> s_representativeTabs =
     [
-        new ColorSelectorCustomTab("代表色", [
+        new ColorSelectorCustomTab("代表色パレット", [
             new ColorSelectorCustomColor("黒", "#FF000000"),
             new ColorSelectorCustomColor("濃い灰色", "#FF404040"),
             new ColorSelectorCustomColor("灰色", "#FF808080"),
@@ -308,6 +312,11 @@ internal static class MainWindow
             new ColorSelectorCustomColor("紫", "#FF7C3AED"),
             new ColorSelectorCustomColor("桃", "#FFDB2777"),
             new ColorSelectorCustomColor("茶", "#FF92400E"),
-        ], 6),
+        ], 8),
+        new ColorSelectorCustomTab("代表色", [
+            new ColorSelectorCustomColor("黒", "#FF000000"),
+            new ColorSelectorCustomColor("赤", "#FFDC2626"),
+            new ColorSelectorCustomColor("青", "#FF2563EB"),
+        ]),
     ];
 }

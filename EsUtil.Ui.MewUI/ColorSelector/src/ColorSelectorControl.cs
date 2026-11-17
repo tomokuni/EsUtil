@@ -36,6 +36,7 @@ namespace EsUtil.Ui.MewUI.ColorSelector;
 /// カラーピッカーのタブを作らない）。 タブが 1 つだけのときは <see cref="ShowTabTitles"/> で
 /// 題名の行を隠せる。 一覧を開いてもコントロールの幅は変えない（一覧だけを、枠・タブの行・項目の
 /// うち最も広い幅へ広げる）。 一覧はポップアップの幅いっぱいに置き、**スクロール バーを右端へ**そろえる。
+/// タブの行は**均等な列**へ並べるため、タブが増えても横スクロールは出ない（幅を固定すると出る。 実測 2026-11-17）。
 /// </remarks>
 public sealed class ColorSelectorControl : Grid
 {
@@ -60,7 +61,7 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>テキスト入力の最小幅（DIP）。</summary>
     private const double TextBoxMinWidth = 120.0;
 
-    /// <summary>一覧の分類を切り替えるタブの幅（DIP）。 2 つを並べたときに一覧の幅と釣り合う値。</summary>
+    /// <summary>一覧の分類を切り替えるタブの幅（DIP。 タブが少ないときに広げる上限）。</summary>
     private const double CategoryTabWidth = 96.0;
 
     /// <summary>タブ 1 つの最小幅（DIP。 数を増やしても文言が読める下限）。</summary>
@@ -104,8 +105,8 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>一覧の選択をプログラムから書いている間かどうか（利用者の選択として扱わない）。</summary>
     private bool _selecting;
 
-    /// <summary>一覧の上部のタブの入れ物（開くたびに中身を作り直す）。</summary>
-    private readonly StackPanel _tabStrip;
+    /// <summary>一覧の上部のタブの入れ物（開くたびに中身を作り直す。 タブは均等な列へ並べる）。</summary>
+    private readonly Grid _tabStrip;
 
     /// <summary>一覧の上部のタブのボタン（<see cref="_tabStrip"/> の中身と同じ並び）。</summary>
     private readonly List<ToggleButton> _tabButtons = [];
@@ -293,8 +294,9 @@ public sealed class ColorSelectorControl : Grid
             static (_, _, _, _) => { });
 
         // 上部のタブは表示の設定と中身から作り直す（RefreshList が中身を入れ替える）。
-        // 分類ごとに一覧を差し替える（テーマの色が多いため、1 つの一覧へ混ぜると色名を探しにくい）
-        _tabStrip = new StackPanel().Horizontal().Spacing(TabSpacing);
+        // 分類ごとに一覧を差し替える（テーマの色が多いため、1 つの一覧へ混ぜると色名を探しにくい）。
+        // タブは**均等な列**へ並べる（列が幅を決めるため、数が増えてもポップアップからはみ出さない）
+        _tabStrip = new Grid { Spacing = TabSpacing };
         _body = new Grid();
 
         // 一覧の幅は**行の内容に合わせる**（既定のまま置くと、ポップアップが使える領域の幅いっぱいへ広がる）。
@@ -508,8 +510,8 @@ public sealed class ColorSelectorControl : Grid
     internal Border CurrentColorSwatch => _swatch;
 
     /// <summary>一覧のタブの行を取得する（テストからの検証用）。</summary>
-    /// <value>タブ（<see cref="ToggleButton"/>）を並べた行。</value>
-    internal StackPanel TabStrip => _tabStrip;
+    /// <value>タブ（<see cref="ToggleButton"/>）を均等な列に並べた行。</value>
+    internal Grid TabStrip => _tabStrip;
 
     /// <summary>表示中のタブの中身を入れた入れ物を取得する（テストからの検証用）。</summary>
     /// <value>タブごとの要素を重ね、1 つだけ表示する入れ物。</value>
@@ -879,15 +881,17 @@ public sealed class ColorSelectorControl : Grid
         _listWidth = ResolveFlyoutWidth(tabs);
         _body.Width = tabs.Count == 0 ? double.NaN : _listWidth;
 
-        // タブは決まった幅で並ぶため、数が多いとポップアップの右端が切れる。 幅に収まるようタブの幅を詰める
-        var tabWidth = ResolveTabWidth(_listWidth, tabs.Count);
+        // タブは**均等な列**へ並べる（幅を決めるのは列。 幅を固定すると、数が多いときに
+        // ポップアップからはみ出して横スクロールが出る。 実測 2026-11-17）
+        ConfigureTabStrip(tabs.Count);
 
         for (var i = 0; i < tabs.Count; i++)
         {
             var index = i;
-            var button = CreateCategoryTab(tabs[i].Title, tabWidth);
+            var button = CreateCategoryTab(tabs[i].Title);
             button.OnCheckedChanged(_ => OnTabChanged(index));
             _tabButtons.Add(button);
+            Grid.SetColumn(button, i);
             _tabStrip.Add(button);
 
             // 入れ物だけを作り、中身は表示するときに作る（開いていないタブを作らない）
@@ -917,6 +921,41 @@ public sealed class ColorSelectorControl : Grid
         {
             _applying = false;
         }
+    }
+
+    /// <summary>タブの行をタブの数に合わせて作り直す（タブを均等な列へ並べる）。</summary>
+    /// <param name="count">タブの数。</param>
+    /// <remarks>
+    /// <b>幅は列が決める</b>: 列を等分にすると、タブが増えても行の幅は変わらず、ポップアップからはみ出さない
+    /// （幅を固定すると横スクロールが出る。 実測 2026-11-17）。<br/>
+    /// <b>列の上限は 1 つ分の幅</b>: 文言の実寸は詰めた幅より広くなり得る（MewUI の <see cref="TextBlock"/> は
+    /// 折り返さない文字を実寸で測る）。 上限が無いと、列が文言の幅まで広がって行がポップアップからはみ出す。
+    /// </remarks>
+    private void ConfigureTabStrip(int count)
+    {
+        _tabStrip.Clear();
+        _tabStrip.ColumnDefinitions.Clear();
+        _tabStrip.Width = count == 0 ? double.NaN : _listWidth;
+
+        var share = TabShareWidth(_listWidth, count);
+        for (var i = 0; i < count; i++)
+        {
+            _tabStrip.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star, MaxWidth = share });
+        }
+    }
+
+    /// <summary>タブ 1 つ分の幅を求める（等しい列へ分けたときの 1 つ分）。</summary>
+    /// <param name="width">タブの行の幅（DIP）。</param>
+    /// <param name="count">タブの数。</param>
+    /// <returns>幅（DIP）。 幅が決まっていない場合とタブが無い場合は無制限。</returns>
+    private static double TabShareWidth(double width, int count)
+    {
+        if (count <= 0 || double.IsNaN(width) || double.IsPositiveInfinity(width))
+        {
+            return double.PositiveInfinity;
+        }
+
+        return Math.Max(1.0, (width - ((count - 1) * TabSpacing)) / count);
     }
 
     /// <summary>一覧に出すタブ（題名・識別子・並べ方・並べる項目）を作る。</summary>
@@ -1180,21 +1219,24 @@ public sealed class ColorSelectorControl : Grid
 
     /// <summary>一覧のタブを作る。</summary>
     /// <param name="text">タブの文言。</param>
-    /// <param name="width">タブの幅（DIP）。</param>
     /// <returns>タブ（<see cref="ToggleButton"/>）。</returns>
     /// <remarks>
-    /// <b>文言は省略記号で切る</b>: タブが多いと幅を詰めるため、そのままだと文字が途中で切れて読めなくなる
-    /// （実測 2026-11-17: 「ColorPicker」が「ColorPicke」になった）。
+    /// <b>幅は指定しない</b>: タブの行は均等な列へ並べるため、幅は列が決める（幅を固定すると
+    /// タブが多いときにポップアップからはみ出して横スクロールが出る。 実測 2026-11-17）。<br/>
+    /// <b>文言は省略記号で切る</b>: 詰めたときに文字が途中で切れて読めなくなるのを防ぐ
+    /// （実測 2026-11-17: 「ColorPicker」が「ColorPicke」になった）。 MewUI の <see cref="TextBlock"/> は
+    /// 折り返さない文字を実寸で測るため、**横いっぱいに広げて**切る幅を配置で決めさせ、文字は中央へ寄せる。
     /// </remarks>
-    private static ToggleButton CreateCategoryTab(string text, double width) => new ToggleButton
+    private static ToggleButton CreateCategoryTab(string text) => new ToggleButton
     {
-        Width = width,
         Padding = new Thickness(4, 2),
+        HorizontalAlignment = HorizontalAlignment.Stretch,
     }.Content(new TextBlock
     {
         Text = text,
         FontSize = CategoryTabFontSize,
-        HorizontalAlignment = HorizontalAlignment.Center,
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+        TextAlignment = TextAlignment.Center,
         TextTrimming = TextTrimming.CharacterEllipsis,
     });
 
@@ -1262,6 +1304,10 @@ public sealed class ColorSelectorControl : Grid
     /// <param name="width">一覧（ポップアップ）の幅（DIP）。</param>
     /// <param name="count">タブの数。</param>
     /// <returns>タブ 1 つの幅（DIP）。</returns>
+    /// <remarks>
+    /// <b>幅は列が決める</b>ため、本値は幅の見積もり（テスト）にだけ使う。
+    /// タブの行は等分した列へ並べるので、実際の幅はこの値以上にも以下にもならない範囲で自動的に決まる。
+    /// </remarks>
     internal static double ResolveTabWidth(double width, int count)
     {
         if (count <= 0)

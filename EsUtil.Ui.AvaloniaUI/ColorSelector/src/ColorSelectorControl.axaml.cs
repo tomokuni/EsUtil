@@ -704,7 +704,7 @@ public sealed partial class ColorSelectorControl : UserControl
         Log.LogLostFocus(color, valid || hasLastValid);
     }
 
-    /// <summary>一覧の上部に置くタブの幅（DIP）。 2 つを並べたときに一覧の幅と釣り合う値。</summary>
+    /// <summary>一覧の上部に置くタブの幅（DIP。 タブが少ないときに広げる上限）。</summary>
     private const double CategoryTabWidth = 112;
 
     /// <summary>一覧の最大の高さ（DIP）。</summary>
@@ -716,12 +716,17 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>直近に開いた一覧のタブの識別子（次に開いたときに同じタブから始める）。</summary>
     private string? _listTabKey;
 
+    /// <summary>直近に選んだカラーピッカーのタブ（次に開いたときに同じタブから始める）。</summary>
+    private int _pickerTabIndex;
+
     /// <summary>一覧の分類を切り替えるタブを作る。</summary>
     /// <param name="text">タブの文言。</param>
     /// <returns>タブ（<see cref="ToggleButton"/>）。</returns>
     /// <remarks>
     /// 片方だけが選ばれるよう、切り替えは一覧を開く処理の <c>ApplyTab</c> が両方の状態を書く。<br/>
-    /// <b>文言は省略記号で切る</b>: タブが多いと幅を詰めるため、そのままだと文字が途中で切れて読めなくなる
+    /// <b>幅は指定しない</b>: タブの行は均等な列へ並べるため、幅は列が決める（幅を固定すると
+    /// タブが多いときにフライアウトからはみ出して横スクロールが出る。 実測 2026-11-17）。<br/>
+    /// <b>文言は省略記号で切る</b>: 詰めたときに文字が途中で切れて読めなくなるのを防ぐ
     /// （実測 2026-11-17: 「ColorPicker」が「ColorPicke」になった）。
     /// </remarks>
     private static ToggleButton CreateCategoryTab(string text) => new()
@@ -733,8 +738,8 @@ public sealed partial class ColorSelectorControl : UserControl
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
         },
-        Width = CategoryTabWidth,
         Padding = s_categoryTabPadding,
+        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
         HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
         IsChecked = false,
     };
@@ -744,6 +749,24 @@ public sealed partial class ColorSelectorControl : UserControl
 
     /// <summary>タブの内側の余白（DIP。 詰めて文字の入る幅を稼ぐ）。</summary>
     private static readonly Thickness s_categoryTabPadding = new(4, 2);
+
+    /// <summary>タブの行を作る（タブを均等な列へ並べる）。</summary>
+    /// <param name="count">タブの数。</param>
+    /// <returns>タブの行。</returns>
+    /// <remarks>
+    /// <b>幅は列に任せる</b>: 列を等分にすると、タブが増えても行の幅は変わらず、フライアウトからはみ出さない
+    /// （幅を固定すると横スクロールが出る。 実測 2026-11-17）。
+    /// </remarks>
+    private static Grid CreateTabStrip(int count)
+    {
+        var strip = new Grid { ColumnSpacing = TabSpacing };
+        for (var i = 0; i < count; i++)
+        {
+            strip.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+        }
+
+        return strip;
+    }
 
     /// <summary>色の四角の一辺（DIP。 格子のセル）。</summary>
     private const double SwatchCellSize = 32;
@@ -768,7 +791,7 @@ public sealed partial class ColorSelectorControl : UserControl
         // 決めずに置くとタブの行だけが広がり、スクロール バーがフライアウトの途中に出る（実測 2026-11-17）
         var width = ResolveFlyoutWidth(tabs);
 
-        var tabStrip = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = TabSpacing };
+        var tabStrip = CreateTabStrip(tabs.Count);
         var body = new Panel { MinWidth = width };
         var panel = new StackPanel { Spacing = 6 };
 
@@ -783,20 +806,13 @@ public sealed partial class ColorSelectorControl : UserControl
             var button = CreateCategoryTab(tabs[i].Title);
             button.Click += (_, _) => ApplyTab(index);
             tabButtons.Add(button);
+            Grid.SetColumn(button, i);
             tabStrip.Children.Add(button);
 
             // 中身は開いたときに作る（カラーピッカーを開いていないのに生成しない）
             var slot = new Panel { IsVisible = false };
             slots.Add(slot);
             body.Children.Add(slot);
-        }
-
-        // タブは決まった幅で並ぶため、数が多いとフライアウトの既定の最大幅を超えて右端が切れる
-        // （実測 2026-11-17: 4 つで「ColorPicker」が欠けた）。 幅に収まるようタブの幅を詰める
-        var tabWidth = ResolveTabWidth(width, tabs.Count);
-        foreach (var button in tabButtons)
-        {
-            button.Width = tabWidth;
         }
 
         if (tabs.Count > 1 || ShowTabTitles)
@@ -836,10 +852,17 @@ public sealed partial class ColorSelectorControl : UserControl
     /// </remarks>
     private const double FlyoutMaxContentWidth = 440;
 
+    /// <summary>タブ 1 つ分の最小幅（DIP。 文言が読める下限）。</summary>
+    internal const double MinTabWidth = 56;
+
     /// <summary>タブの幅を求める（数を増やすほど詰める）。</summary>
     /// <param name="width">フライアウトの中身の幅。</param>
     /// <param name="count">タブの数。</param>
     /// <returns>タブ 1 つの幅（DIP）。</returns>
+    /// <remarks>
+    /// <b>幅は列が決める</b>ため、本値は幅の見積もり（テスト）にだけ使う。
+    /// タブの行は等分した列へ並べるので、実際の幅はこの値以上にも以下にもならない範囲で自動的に決まる。
+    /// </remarks>
     internal static double ResolveTabWidth(double width, int count)
     {
         if (count <= 0)
@@ -848,7 +871,7 @@ public sealed partial class ColorSelectorControl : UserControl
         }
 
         var fitting = (width - ((count - 1) * TabSpacing)) / count;
-        return Math.Clamp(fitting, 56, CategoryTabWidth);
+        return Math.Clamp(fitting, MinTabWidth, CategoryTabWidth);
     }
 
     /// <summary>一覧（フライアウト）の幅を求める。</summary>
@@ -902,7 +925,9 @@ public sealed partial class ColorSelectorControl : UserControl
                     flyout.Hide();
                     RaiseColorApplied();
                 },
-                flyout.Hide);
+                flyout.Hide,
+                _pickerTabIndex,
+                index => _pickerTabIndex = index);
         }
 
         return tab.IsList

@@ -436,8 +436,11 @@ public class ColorSelectorControlTests
         Assert.Equal(width, ColorSelectorControl.CalculateTabRowWidth(2));
     }
 
-    /// <summary>タブの幅が一覧の幅に収まることを検証する。</summary>
-    /// <remarks>タブを上限の幅（112）で並べると、数が多いときに右端（最後のタブ）が切れる。</remarks>
+    /// <summary>タブの幅の見積もりが上限と下限の間に収まることを検証する。</summary>
+    /// <remarks>
+    /// 実際のタブの幅は一覧の幅を等分した列が決める（<see cref="ColorSelectorControl.CalculateFitTabWidth"/>）。
+    /// 本値は一覧の幅を広げる判断とテストのための見積もりである。
+    /// </remarks>
     [Fact]
     internal void タブの幅は一覧の幅に収まる()
     {
@@ -454,6 +457,31 @@ public class ColorSelectorControlTests
 
         // タブが無い場合は上限の幅
         Assert.Equal(112, ColorSelectorControl.ResolveTabWidth(440, count: 0));
+    }
+
+    /// <summary>タブが一覧の幅を等分して収まる（横スクロールが出ない）ことを検証する。</summary>
+    /// <remarks>
+    /// タブは一覧の幅を等分した列（星の列）へ並べる。 幅を固定すると、5 つのときに一覧の幅（440）を
+    /// 超えて横スクロールが出る（利用者の報告 2026-11-18）。
+    /// </remarks>
+    [Fact]
+    internal void タブは一覧の幅を等分して収まる()
+    {
+        foreach (var count in (int[])[2, 3, 4, 5, 6])
+        {
+            var width = ColorSelectorControl.ResolveFlyoutWidth(
+                frameWidth: 320, showTabStrip: true, tabCount: count, contentWidth: 0);
+            var tabWidth = ColorSelectorControl.CalculateFitTabWidth(width, count);
+
+            // タブの行の合計は一覧の幅と一致する（はみ出さない）
+            Assert.Equal(width, (count * tabWidth) + ((count - 1) * 4), precision: 6);
+
+            // タブが最も多い 6 つでも、文言の読める幅（56）は確保する
+            Assert.True(tabWidth >= ColorSelectorControl.MinimumTabWidth, $"{count} 個のタブが狭すぎる: {tabWidth}");
+        }
+
+        // タブが無ければ幅は 0
+        Assert.Equal(0, ColorSelectorControl.CalculateFitTabWidth(440, count: 0));
     }
 
     /// <summary>一覧の幅がフライアウトの上限で止まることを検証する。</summary>

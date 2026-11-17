@@ -425,7 +425,8 @@ public class ColorSelectorControlTests
     /// <summary>タブが多いときは幅に収まるようタブの幅を詰めることを検証する。</summary>
     /// <remarks>
     /// タブの幅を 96 のまま並べると、数が多いときにポップアップの右端が切れる（AvaloniaUI 版の実測 2026-11-17）。<br/>
-    /// 幅は上限（ポップアップに使える幅）で止めるため、タブの幅を詰めて収める。
+    /// 幅は上限（ポップアップに使える幅）で止めるため、タブの幅を詰めて収める（本値は見積もりであり、
+    /// 実際の幅はタブの行の等分した列が決める）。
     /// </remarks>
     [Fact]
     internal void タブの幅は数が多いほど詰める()
@@ -438,6 +439,55 @@ public class ColorSelectorControlTests
 
         // 詰めても下限（56）を下回らない
         Assert.Equal(56d, ColorSelectorControl.ResolveTabWidth(100, 8));
+    }
+
+    /// <summary>タブが増えても横スクロールが出ないよう、タブの行を均等な列へ並べることを検証する。</summary>
+    /// <remarks>
+    /// 幅を固定したタブを並べると、端数や余白の分だけ行が広がってポップアップに横スクロールが出る
+    /// （実測 2026-11-17）。 タブは**幅を持たせず**列に幅を決めさせ、列は等分にする。<br/>
+    /// 文言の実寸が列より広くなり得る（MewUI の <see cref="TextBlock"/> は折り返さない文字を実寸で測る）ため、
+    /// 列の上限は 1 つ分の幅にして行が広がらないようにする。
+    /// </remarks>
+    [Fact]
+    internal void タブの行は均等な列へ並べる()
+    {
+        var control = new ColorSelectorControl
+        {
+            ShowThemeColorTab = false,
+            ShowNamedColorTab = true,
+            ShowPickerTab = true,
+            CustomTabs =
+            [
+                new ColorSelectorCustomTab("代表色パレット", [new ColorSelectorCustomColor("赤", "#FFDC2626")], 8),
+                new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("青", "#FF2563EB")]),
+            ],
+        };
+
+        control.RefreshList();
+
+        // 標準の 2 つ（色名・ColorPicker）+ カスタム 2 つで 4 つ
+        Assert.Equal(4, control.Tabs.Count);
+
+        var width = control.ResolveFlyoutWidth(control.CreateTabs());
+        var strip = control.TabStrip;
+
+        // タブの行はポップアップの幅に揃え、等分した列へ並べる
+        Assert.Equal(width, strip.Width);
+        Assert.Equal(4, strip.ColumnDefinitions.Count);
+        Assert.All(strip.ColumnDefinitions, column => Assert.Equal(GridLength.Star, column.Width));
+        Assert.All(strip.ColumnDefinitions, column => Assert.Equal((width - (3 * 4)) / 4, column.MaxWidth, 3));
+
+        // タブは幅を持たない（幅は列が決める）。 列の位置も並びと一致する
+        for (var i = 0; i < strip.Count; i++)
+        {
+            var button = Assert.IsType<ToggleButton>(strip[i]);
+            Assert.True(double.IsNaN(button.Width));
+            Assert.Equal(i, Grid.GetColumn(button));
+        }
+
+        // 列の上限の合計 + 間隔がポップアップの幅に収まる（横スクロールが出ない）
+        var total = strip.ColumnDefinitions.Sum(column => column.MaxWidth) + (3 * 4);
+        Assert.True(total <= width + 0.001, $"タブの行 {total} が幅 {width} を超える");
     }
 
     /// <summary>タブが多いときは最小の幅で並べた行までは広げることを検証する。</summary>

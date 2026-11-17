@@ -44,11 +44,11 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>色の四角の一辺（DIP。 格子のセル）。</summary>
     internal const double SwatchCellSize = 32;
 
-    /// <summary>一覧のタブの幅の上限（DIP）。 2 つを並べたときに一覧の幅と釣り合う値。</summary>
+    /// <summary>タブの幅の上限（DIP。 タブが少ないときに広げる上限）。</summary>
     private const double CategoryTabWidth = 112;
 
-    /// <summary>タブの幅の下限（DIP。 数を増やしても文字が読める幅）。</summary>
-    private const double MinimumTabWidth = 56;
+    /// <summary>タブ 1 つ分の最小幅（DIP。 文言が読める下限）。</summary>
+    internal const double MinimumTabWidth = 56;
 
     /// <summary>タブとタブの間の余白（DIP）。</summary>
     private const double TabSpacing = 4;
@@ -536,7 +536,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <b>枠の幅は変えない</b>: 一覧を開くたびに枠が広がると、開閉のたびに周りのレイアウトが動く。
     /// 一覧（ポップアップ）だけを広げる（コントロールの幅・最小幅は触らない）。<br/>
     /// <b>上限で止める</b>: フライアウトの既定の最大幅を超えると右端（タブ）が切れる。
-    /// 超えた分はタブの幅を詰めて収める（<see cref="FlyoutMaxContentWidth"/>）。
+    /// 超えた分は等分した列が均等に詰めて収める（<see cref="FlyoutMaxContentWidth"/>）。
     /// </remarks>
     internal static double ResolveFlyoutWidth(double frameWidth, bool showTabStrip, int tabCount, double contentWidth)
     {
@@ -549,20 +549,25 @@ public sealed partial class ColorSelectorControl : UserControl
         return Math.Min(width, FlyoutMaxContentWidth);
     }
 
-    /// <summary>タブの行の幅を決める（タブを上限の幅で並べたときの幅）。</summary>
+    /// <summary>タブの行が望む幅を決める（タブを上限の幅で並べたときの幅）。</summary>
     /// <param name="tabCount">タブの数。</param>
     /// <returns>タブの行の幅（DIP）。 タブが無い場合は 0。</returns>
+    /// <remarks>
+    /// <b>一覧の幅を広げるために使う</b>: タブが多いときは、この幅まで一覧を広げて文言の入る幅を稼ぐ
+    /// （上限は <see cref="FlyoutMaxContentWidth"/>）。 実際のタブは一覧の幅を等分した列へ並ぶため、
+    /// この幅を超えることはない（横スクロールは出ない）。
+    /// </remarks>
     internal static double CalculateTabRowWidth(int tabCount)
         => tabCount <= 0 ? 0 : (tabCount * CategoryTabWidth) + ((tabCount - 1) * TabSpacing);
 
-    /// <summary>タブの幅を決める（数を増やすほど詰める）。</summary>
+    /// <summary>タブの幅を見積もる（数を増やすほど詰める）。</summary>
     /// <param name="width">一覧の幅（DIP）。</param>
     /// <param name="count">タブの数。</param>
-    /// <returns>タブ 1 つの幅（DIP）。</returns>
+    /// <returns>タブ 1 つの幅（DIP。 下限 <see cref="MinimumTabWidth"/> から上限
+    /// <see cref="CategoryTabWidth"/> まで）。</returns>
     /// <remarks>
-    /// <b>タブは決まった幅で並ぶ</b>ため、数が多いと右上（最後のタブ）がフライアウトの外へ出て切れる。
-    /// 一覧の幅に収まるよう、タブの幅を詰める（<see cref="MinimumTabWidth"/> から
-    /// <see cref="CategoryTabWidth"/> まで）。
+    /// <b>幅は列が決める</b>: タブの行は一覧の幅を等分した列へ並べるため、本値は幅の見積もり（テスト）に
+    /// だけ使う。 実際の幅は <see cref="CalculateFitTabWidth"/> が返す値になる。
     /// </remarks>
     internal static double ResolveTabWidth(double width, int count)
     {
@@ -575,11 +580,25 @@ public sealed partial class ColorSelectorControl : UserControl
         return Math.Clamp(fitting, MinimumTabWidth, CategoryTabWidth);
     }
 
-    /// <summary>タブの中身のうち最も広いものの幅を測る（カラーピッカーのタブは除く）。</summary>
+    /// <summary>タブの行が実際に割り当てる 1 つ分の幅を決める（一覧の幅を等分した列の幅）。</summary>
+    /// <param name="width">一覧の幅（DIP）。</param>
+    /// <param name="count">タブの数。</param>
+    /// <returns>タブ 1 つの幅（DIP）。 タブが無い場合は 0。</returns>
+    /// <remarks>
+    /// <b>タブは一覧の幅からはみ出さない</b>: 幅を指定せず、等分した列（星の列）へ並べるため、
+    /// <c>count × 本値 + 間隔 × (count - 1)</c> は一覧の幅と一致する（横スクロールは出ない。 幅を固定すると
+    /// 5 つのときに一覧の幅を超える。 利用者の報告 2026-11-18）。 狭くなった分は文言を省略記号で切る。
+    /// </remarks>
+    internal static double CalculateFitTabWidth(double width, int count)
+        => count <= 0 ? 0 : (width - ((count - 1) * TabSpacing)) / count;
+
+    /// <summary>タブの中身のうち最も広いものの幅を測る（カラーピッカーのタブは固定の幅で数える）。</summary>
     /// <param name="tabs">測るタブ。</param>
     /// <returns>最も広い中身の幅（DIP。 一覧は余白を含む）。</returns>
     /// <remarks>
-    /// カラーピッカーのタブは中身が自分の幅を持つため含めない（開いたときに広がる）。<br/>
+    /// カラーピッカーのタブは固定の幅（<see cref="PickerWidth"/>）を持つため、その幅で数える
+    /// （除くと、フライアウトを開いたままタブを切り替えたときに中身が一覧の幅を超える）。
+    /// 外側を横スクロールさせないため、開く前に幅を決めておく。<br/>
     /// 格子は列数とセルの大きさで決まるため、行を作らずに求める。
     /// </remarks>
     private static double MeasureWidestTabContent(IReadOnlyList<ColorSelectorTabSpec> tabs)
@@ -589,6 +608,7 @@ public sealed partial class ColorSelectorControl : UserControl
         {
             if (tab.IsPicker)
             {
+                widest = Math.Max(widest, PickerWidth);
                 continue;
             }
 
@@ -751,10 +771,8 @@ public sealed partial class ColorSelectorControl : UserControl
         // 決めずに置くとタブの行だけが広がり、スクロール バーがフライアウトの途中に出る（実測 2026-11-17）
         var width = ResolveFlyoutWidth(ActualWidth, showTabStrip, tabs.Count, MeasureWidestTabContent(tabs));
 
-        // タブは決まった幅で並ぶため、数が多いとフライアウトの既定の最大幅を超えて右端が切れる。
-        // 一覧の幅に収まるよう、タブの幅を詰める
-        var tabWidth = ResolveTabWidth(width, tabs.Count);
-        var tabStrip = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TabSpacing };
+        // タブは等分した列へ並べる（幅を固定すると、数が多いときに一覧の幅を超えて横スクロールが出る）
+        var tabStrip = CreateTabStrip(tabs.Count);
         var body = new Grid { MinWidth = width };
         var panel = new StackPanel { Spacing = 6 };
 
@@ -776,9 +794,10 @@ public sealed partial class ColorSelectorControl : UserControl
         for (var i = 0; i < tabs.Count; i++)
         {
             var index = i;
-            var button = CreateCategoryTab(tabs[i].Title, tabWidth);
+            var button = CreateCategoryTab(tabs[i].Title);
             button.Click += (_, _) => ApplyTab(index);
             tabButtons.Add(button);
+            Grid.SetColumn(button, i);
             tabStrip.Children.Add(button);
 
             // 中身はそのタブを開いたときに作る（開いていないカラーピッカーを生成しない）。
@@ -1061,14 +1080,15 @@ public sealed partial class ColorSelectorControl : UserControl
 
     /// <summary>一覧のタブを切り替えるタブを作る。</summary>
     /// <param name="text">タブの文言。</param>
-    /// <param name="width">タブの幅（DIP。 一覧の幅に収まるよう詰めた値）。</param>
     /// <returns>タブ（<see cref="ToggleButton"/>）。</returns>
     /// <remarks>
     /// 片方だけが選ばれるよう、切り替えは一覧を開く処理の <c>ApplyTab</c> が両方の状態を書く。<br/>
-    /// 幅を詰めたタブでも文言が収まるよう、左右の余白を小さくして中央にそろえる。 収まらない文言は
-    /// 末尾を省略する（狭いタブで文字が途中で切れるのを避ける）。
+    /// <b>幅は指定しない</b>: タブの行は一覧の幅を等分した列へ並べるため、幅は列が決める（幅を固定すると
+    /// タブが多いときにフライアウトからはみ出して横スクロールが出る。 利用者の報告 2026-11-18）。<br/>
+    /// <b>文言は省略記号で切る</b>: 詰めたときに文字が途中で切れて読めなくなるのを防ぐ。 左右の余白を
+    /// 小さくして、文字の入る幅を稼ぐ。
     /// </remarks>
-    private static ToggleButton CreateCategoryTab(string text, double width) => new()
+    private static ToggleButton CreateCategoryTab(string text) => new()
     {
         Content = new TextBlock
         {
@@ -1076,19 +1096,42 @@ public sealed partial class ColorSelectorControl : UserControl
             FontSize = CategoryTabFontSize,
             TextTrimming = TextTrimming.CharacterEllipsis,
         },
-        Width = width,
         Padding = new Thickness(4, 2, 4, 2),
+        HorizontalAlignment = HorizontalAlignment.Stretch,
         HorizontalContentAlignment = HorizontalAlignment.Center,
     };
+
+    /// <summary>タブの行を作る（タブを一覧の幅の等分した列へ並べる）。</summary>
+    /// <param name="count">タブの数。</param>
+    /// <returns>タブの行。</returns>
+    /// <remarks>
+    /// <b>幅は列に任せる</b>: 列を等分（星の列）にすると、タブが増えても行の幅は一覧の幅のままで、
+    /// 横スクロールが出ない。 幅を固定すると 5 つのときに一覧の幅を超える（利用者の報告 2026-11-18）。<br/>
+    /// 実測 2026-11-18: 5 つ（代表色パレット / 代表色 / テーマカラー / 色名 / ColorPicker）で各 84.8 DIP
+    /// （一覧の幅 440 の等分）になり、横スクロール バーは出なかった。
+    /// </remarks>
+    private static Grid CreateTabStrip(int count)
+    {
+        var strip = new Grid { ColumnSpacing = TabSpacing };
+        for (var i = 0; i < count; i++)
+        {
+            strip.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        }
+
+        return strip;
+    }
 
     /// <summary>タブの文言の文字サイズ（DIP。 5 つ並べても「ColorPicker」が収まる大きさ）。</summary>
     private const double CategoryTabFontSize = 11;
 
-    /// <summary>一覧のポップアップの表示スタイルを作る（高さの上限を外し、スクロールさせない）。</summary>
+    /// <summary>一覧のポップアップの表示スタイルを作る（幅・高さの上限を外し、スクロールさせない）。</summary>
     /// <returns>FlyoutPresenter のスタイル。</returns>
     /// <remarks>
-    /// <see cref="FlyoutPresenter"/> の既定スタイルは高さを制限し、内容を <c>ScrollViewer</c> に入れる。
+    /// <see cref="FlyoutPresenter"/> の既定スタイルは幅と高さを制限し、内容を <c>ScrollViewer</c> に入れる。
     /// 一覧は <see cref="ListMaxHeight"/> で自分がスクロールし、格子はスクロールしないため、外側のスクロールを切る。<br/>
+    /// <b>横にもスクロールさせない</b>: タブは一覧の幅を等分した列へ並ぶため、横スクロールは要らない。
+    /// 既定の <c>HorizontalScrollMode</c> = Auto のままだと、行がわずかでも超えたときに横スクロール バーが
+    /// 出て高さを奪う（利用者の報告 2026-11-18）。<br/>
     /// <b>幅の上限も外す</b>: 既定の <c>FlyoutThemeMaxWidth</c>（456）は、決めた一覧の幅
     /// （<see cref="FlyoutMaxContentWidth"/> = 440）にフライアウトの余白を足すと超えてタブが切れる。
     /// 中身の幅は <see cref="ResolveFlyoutWidth"/> が決めるため、ここでは制限しない。
@@ -1098,6 +1141,8 @@ public sealed partial class ColorSelectorControl : UserControl
         var style = new Style(typeof(FlyoutPresenter));
         style.Setters.Add(new Setter(FrameworkElement.MaxWidthProperty, double.PositiveInfinity));
         style.Setters.Add(new Setter(FrameworkElement.MaxHeightProperty, double.PositiveInfinity));
+        style.Setters.Add(new Setter(ScrollViewer.HorizontalScrollBarVisibilityProperty, ScrollBarVisibility.Disabled));
+        style.Setters.Add(new Setter(ScrollViewer.HorizontalScrollModeProperty, ScrollMode.Disabled));
         style.Setters.Add(new Setter(ScrollViewer.VerticalScrollBarVisibilityProperty, ScrollBarVisibility.Disabled));
         style.Setters.Add(new Setter(ScrollViewer.VerticalScrollModeProperty, ScrollMode.Disabled));
         return style;
