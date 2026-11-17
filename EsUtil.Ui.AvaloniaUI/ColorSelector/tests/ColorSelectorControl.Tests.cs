@@ -477,7 +477,11 @@ public class ColorSelectorControlTests
     /// <returns>表示中のタブの中身。</returns>
     private static T GetVisibleView<T>(Panel body)
         where T : Control
-        => Assert.IsType<T>(body.Children.First(child => child.IsVisible));
+    {
+        // 中身はタブごとの入れ物（Panel）へ遅延作成されるため、表示中の入れ物の中から取り出す
+        var slot = Assert.IsType<Panel>(body.Children.First(child => child.IsVisible));
+        return Assert.IsType<T>(slot.Children[0]);
+    }
 
     /// <summary>テスト用の <see cref="ColorSelectorControl"/> を生成する。</summary>
     /// <returns>生成したコントロール（入力欄の名前解決が済んでいること）。</returns>

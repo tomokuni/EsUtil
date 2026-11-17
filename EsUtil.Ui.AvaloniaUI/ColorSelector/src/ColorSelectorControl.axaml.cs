@@ -3,9 +3,11 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Reactive;
+using Avalonia.Threading;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Ui.AvaloniaUI.ColorSelector.Logging;
 using Microsoft.Extensions.Logging;
@@ -88,9 +90,6 @@ public sealed partial class ColorSelectorControl : UserControl
 
     /// <summary>開いている一覧（タブ付きのフライアウト）。 閉じるまで保持する。</summary>
     private Flyout? _flyout;
-
-    /// <summary>コンボボックスの標準の一覧を閉じている最中かどうか（開閉の往復を防ぐ）。</summary>
-    private bool _suppressDropDown;
 
     /// <summary>最後に有効だった色（無効な入力の復帰先）。</summary>
     private string? _lastValidColor;
@@ -285,9 +284,10 @@ public sealed partial class ColorSelectorControl : UserControl
         _combo.GetObservable(ComboBox.TextProperty).Subscribe(new AnonymousObserver<string?>(OnTextValueChanged));
         _combo.LostFocus += OnTextLostFocus;
 
-        // 標準のコンボボックスは自前の一覧を持つため、開いた直後に閉じてタブ付きのフライアウトを出す
-        // （見た目を似せて作らず、コンボボックスをそのまま使う）
-        _combo.DropDownOpened += OnDropDownOpened;
+        // 展開ボタン（右端）の押下は自前で受ける。 標準の一覧を開かせず、タブ付きのフライアウトだけを出す
+        // （標準の一覧を開いてから閉じる方式は、開閉が往復して一覧が出なかった。 実測 2026-11-17）
+        _combo.AddHandler(PointerPressedEvent, OnComboPointerPressed, RoutingStrategies.Tunnel);
+        _combo.AddHandler(KeyDownEvent, OnComboKeyDown, RoutingStrategies.Tunnel);
 
         if (!Design.IsDesignMode)
         {
@@ -304,30 +304,47 @@ public sealed partial class ColorSelectorControl : UserControl
         ActualThemeVariantChanged += (_, _) => ReapplyThemeColor();
     }
 
-    /// <summary>コンボボックスを開いたときに、標準の一覧の代わりにタブ付きのフライアウトを出す。</summary>
+    /// <summary>展開ボタンの幅（DIP。 コンボボックスの右端のこの範囲を自前で扱う）。</summary>
+    private const double ToggleAreaWidth = 30;
+
+    /// <summary>展開ボタンの押下を検出してタブ付きのフライアウトを出す（標準の一覧は出さない）。</summary>
     /// <param name="sender">イベント送信元。</param>
-    /// <param name="e">イベント引数。</param>
+    /// <param name="e">ポインターの引数。</param>
     /// <remarks>
-    /// <b>標準の一覧は使わない</b>: 一覧はタブ（カスタム / テーマカラー / 色名 / ColorPicker）で切り替えるため、
-    /// コンボボックスが持つ一覧は開いた直後に閉じる（開閉の往復を防ぐため <see cref="_suppressDropDown"/> で抑止する）。
+    /// <b>標準の一覧を開かせない</b>: 開いてから閉じる方式は開閉が往復して一覧が出なかった（実測 2026-11-17）。
+    /// 右端の展開ボタンの範囲だけを自前で扱い、入力欄の文字を扱う左側は標準のまま残す。
     /// </remarks>
-    private void OnDropDownOpened(object? sender, EventArgs e)
+    private void OnComboPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (_suppressDropDown)
+        var point = e.GetCurrentPoint(_combo);
+        if (!point.Properties.IsLeftButtonPressed
+            || point.Position.X < _combo.Bounds.Width - ToggleAreaWidth)
         {
             return;
         }
 
-        _suppressDropDown = true;
-        try
+        e.Handled = true;
+        Dispatcher.UIThread.Post(ShowListFlyout, DispatcherPriority.Background);
+    }
+
+    /// <summary>キーボードの展開操作（Alt+↓ / F4）でタブ付きのフライアウトを出す。</summary>
+    /// <param name="sender">イベント送信元。</param>
+    /// <param name="e">キーの引数。</param>
+    private void OnComboKeyDown(object? sender, KeyEventArgs e)
+    {
+        var altDown = e.Key == Key.Down && (e.KeyModifiers & KeyModifiers.Alt) != 0;
+        if (!altDown && e.Key != Key.F4)
         {
-            _combo.IsDropDownOpen = false;
-        }
-        finally
-        {
-            _suppressDropDown = false;
+            return;
         }
 
+        e.Handled = true;
+        Dispatcher.UIThread.Post(ShowListFlyout, DispatcherPriority.Background);
+    }
+
+    /// <summary>タブ付きの一覧を出す。</summary>
+    private void ShowListFlyout()
+    {
         _flyout?.Hide();
         if (CreateListFlyout() is not { } flyout)
         {
@@ -680,7 +697,7 @@ public sealed partial class ColorSelectorControl : UserControl
         var flyout = new Flyout { Content = panel, Placement = PlacementMode.BottomEdgeAlignedLeft };
 
         var tabButtons = new List<ToggleButton>(tabs.Count);
-        var views = new List<Control>(tabs.Count);
+        var slots = new List<Panel>(tabs.Count);
         for (var i = 0; i < tabs.Count; i++)
         {
             var index = i;
@@ -689,10 +706,10 @@ public sealed partial class ColorSelectorControl : UserControl
             tabButtons.Add(button);
             tabStrip.Children.Add(button);
 
-            var view = CreateTabView(tabs[i], flyout);
-            view.IsVisible = false;
-            views.Add(view);
-            body.Children.Add(view);
+            // 中身は開いたときに作る（カラーピッカーを開いていないのに生成しない）
+            var slot = new Panel { IsVisible = false };
+            slots.Add(slot);
+            body.Children.Add(slot);
         }
 
         if (tabs.Count > 1 || ShowTabTitles)
@@ -709,10 +726,15 @@ public sealed partial class ColorSelectorControl : UserControl
         void ApplyTab(int index)
         {
             _listTabKey = tabs[index].Key;
+            if (slots[index].Children.Count == 0)
+            {
+                slots[index].Children.Add(CreateTabView(tabs[index], flyout));
+            }
+
             for (var i = 0; i < tabButtons.Count; i++)
             {
                 tabButtons[i].IsChecked = i == index;
-                views[i].IsVisible = i == index;
+                slots[i].IsVisible = i == index;
             }
         }
     }

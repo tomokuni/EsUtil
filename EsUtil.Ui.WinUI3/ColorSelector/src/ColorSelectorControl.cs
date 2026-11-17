@@ -126,6 +126,9 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>コンボボックスの標準の一覧を閉じている最中かどうか（開閉の往復を防ぐ）。</summary>
     private bool _suppressDropDown;
 
+    /// <summary>タブ付きの一覧の表示待ちかどうか（同じ展開で二重に予約しない）。</summary>
+    private bool _showPending;
+
     /// <summary>直近に開いた一覧のタブの識別子（次に開いたときに同じタブから始める）。</summary>
     private string? _listTabKey;
 
@@ -585,7 +588,7 @@ public sealed partial class ColorSelectorControl : UserControl
         };
 
         var tabButtons = new List<ToggleButton>(tabs.Count);
-        var views = new List<FrameworkElement>(tabs.Count);
+        var slots = new List<Grid>(tabs.Count);
         for (var i = 0; i < tabs.Count; i++)
         {
             var index = i;
@@ -594,10 +597,11 @@ public sealed partial class ColorSelectorControl : UserControl
             tabButtons.Add(button);
             tabStrip.Children.Add(button);
 
-            var view = CreateTabView(tabs[i], flyout);
-            view.Visibility = Visibility.Collapsed;
-            views.Add(view);
-            body.Children.Add(view);
+            // 中身はそのタブを開いたときに作る（開いていないカラーピッカーを生成しない）。
+            // 入れ物だけを先に置き、タブごとの表示は入れ物の可視性で切り替える
+            var slot = new Grid { Visibility = Visibility.Collapsed };
+            slots.Add(slot);
+            body.Children.Add(slot);
         }
 
         if (ShouldShowTabStrip(tabs.Count, ShowTabTitles))
@@ -614,10 +618,17 @@ public sealed partial class ColorSelectorControl : UserControl
         void ApplyTab(int index)
         {
             _listTabKey = tabs[index].Key;
+
+            // 初めて開いたタブだけ中身を作る（2 回目以降は作り直さない）
+            if (slots[index].Children.Count == 0)
+            {
+                slots[index].Children.Add(CreateTabView(tabs[index], flyout));
+            }
+
             for (var i = 0; i < tabButtons.Count; i++)
             {
                 tabButtons[i].IsChecked = i == index;
-                views[i].Visibility = i == index ? Visibility.Visible : Visibility.Collapsed;
+                slots[i].Visibility = i == index ? Visibility.Visible : Visibility.Collapsed;
             }
         }
     }
@@ -863,8 +874,12 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <param name="sender">イベント送信元。</param>
     /// <param name="e">イベント引数。</param>
     /// <remarks>
-    /// <b>標準の一覧は使わない</b>: 一覧はタブ（カスタム / テーマカラー / 色名 / ColorPicker）で切り替えるため、
-    /// コンボボックスが持つ一覧は開いた直後に閉じる（開閉の往復を防ぐため <see cref="_suppressDropDown"/> で抑止する）。
+    /// <b>標準の一覧は出さない</b>: 一覧はタブ（カスタム / テーマカラー / 色名 / ColorPicker）で切り替えるため、
+    /// コンボボックスが持つ一覧は開いた同じ処理の中で閉じる（処理を抜ける前に閉じるため、標準の一覧は一瞬も見えない）。<br/>
+    /// <b>一覧は次の入力処理で出す</b>: 開いた処理の中でフライアウトを出すと、直後の標準の一覧の後始末に巻き込まれて
+    /// 閉じられることがある（AvaloniaUI 版で開閉が往復して一覧が出なかった。 実測 2026-11-17）。 WinUI 3 の
+    /// <see cref="ComboBox"/> は展開ボタンの押下を確実に止める手段が無いため、開いた直後に閉じ、
+    /// <c>DispatcherQueue</c> で 1 つ後の処理としてフライアウトを出す。
     /// </remarks>
     private void OnDropDownOpened(object? sender, object e)
     {
@@ -873,6 +888,7 @@ public sealed partial class ColorSelectorControl : UserControl
             return;
         }
 
+        // 標準の一覧を閉じる（この処理を抜ける前に閉じるため、標準の一覧は描画されない）
         _suppressDropDown = true;
         try
         {
@@ -882,6 +898,27 @@ public sealed partial class ColorSelectorControl : UserControl
         {
             _suppressDropDown = false;
         }
+
+        // 標準の一覧の後始末が終わってから出す（同じ入力処理の中で出すと、閉じる処理に巻き込まれる）
+        if (_showPending)
+        {
+            return;
+        }
+
+        _showPending = true;
+        if (_combo.DispatcherQueue?.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, ShowListFlyout) != true)
+        {
+            // 予約できない場合（スレッドに DispatcherQueue が無い等）は、閉じたあとに直接出す
+            _showPending = false;
+            ShowListFlyout();
+        }
+    }
+
+    /// <summary>タブ付きの一覧を出す。</summary>
+    /// <remarks>表示待ちの印を落としてから出す（一覧を出せなかった場合も次の展開で出せるようにする）。</remarks>
+    private void ShowListFlyout()
+    {
+        _showPending = false;
 
         _flyout?.Hide();
         if (CreateListFlyout() is not { } flyout)

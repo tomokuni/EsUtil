@@ -36,7 +36,7 @@
 | `ThemeColorKeys` | `IReadOnlyList<string>`（static・get） | UI ごとの一覧 | `SelectedThemeColor` へ設定できる識別子の一覧（並びは一覧と同じ）。 設定画面の選択肢と保存値の検証に使う |
 | `TryResolveThemeColor(string key, out string hex)` | method（public） | - | 識別子（`背景` など）から、そのときのテーマの色（`#AARRGGBB`）を解決する。 その UI に無い色は false（一覧と同じ解決を使う） |
 | `ColorSortMode` | `ColorSortMode`（コア） | `ByHue` | 一覧（タブ「色名」）の並び順（`ByName` / `ByHue`）。 テーマの色は意味の順で固定 |
-| 一覧のタブ | （UI の要素） | 色名 / ColorPicker | 展開するとタブ付きの一覧を出す。 並びは **カスタム → テーマカラー → 色名 → ColorPicker**（`ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab` で取捨、`CustomTabs` で追加、1 つだけなら `ShowTabTitles` で題名を隠せる）。 テーマの色は数が多いため、色名と同じ一覧へ混ぜない。 **一覧を開いても枠（入力欄）の幅は変えない**（一覧だけを内容に合わせて広げる）。 前回選んだタブから開く |
+| 一覧のタブ | （UI の要素） | 色名 / ColorPicker | 展開ボタン（右端 30 DIP）の押下、または Alt+↓ / F4 でタブ付きの一覧を出す（標準の一覧は開かせない）。 並びは **カスタム → テーマカラー → 色名 → ColorPicker**（`ShowCustomTab` / `ShowThemeColorTab` / `ShowNamedColorTab` / `ShowPickerTab` で取捨、`CustomTabs` で追加、1 つだけなら `ShowTabTitles` で題名を隠せる）。 テーマの色は数が多いため、色名と同じ一覧へ混ぜない。 **一覧を開いても枠（入力欄）の幅は変えない**（一覧だけを内容に合わせて広げる）。 前回選んだタブから開く。 タブの中身は選んだものだけを作る（開いていないカラーピッカーのタブを作らない） |
 | `ShowThemeColors` | `bool` | `true`（取得または設定） | 一覧の先頭に **UI のテーマの色をすべて**並べる（共通の 20 色を「テーマ: 背景 / レイヤー / カード / コントロールの背景 / コントロールの枠線 / 区切り線 / 文字 / 副次テキスト / 無効の文字 / 無効の背景 / アクセント / アクセント（淡）/ アクセント（濃）/ アクセント文字 / アクセント上の文字 / 選択の背景 / ホバーの背景 / 押下の背景 / フォーカス / エラー」の順に並べ、その UI にしか無い色（選択の文字・無効のアクセント・スクロール バーなど）を後ろへ足す）。 値は一覧を作り直すたびにテーマ（MewUI はパレット、WinUI 3 はテーマ資源と `SystemAccentColor`）から解決する |
 | `ShowCustomTab` | `bool` | `true` | 一覧の「カスタム」タブを表示するか（`CustomTabs` が空のときは表示しない） |
 | `ShowThemeColorTab` | `bool` | `true` | 一覧の「テーマカラー」タブを表示するか（中身が無いときは表示しない） |

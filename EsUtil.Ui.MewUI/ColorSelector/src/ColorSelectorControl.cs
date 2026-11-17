@@ -16,8 +16,10 @@ namespace EsUtil.Ui.MewUI.ColorSelector;
 /// <see cref="ColorValidation"/>）が単一所有する。 本クラスは MewUI の要素の組み立てと、
 /// 入力と状態の同期だけを行う（AvaloniaUI 版・WinUI 3 版と同じ意味の値になる）。<br/>
 /// <b>入力欄は標準の ComboBox を使う</b>: 自前の枠・▼・… のボタン・区切りの線を作らず、コンボボックスの
-/// 枠と展開ボタンをそのまま使う。 展開時は標準の一覧を出さず、タブ付きのポップアップを出す
-/// （<see cref="_combo"/> の <c>MouseDown</c> を処理して標準の開閉を止める）。<br/>
+/// 枠と展開ボタンをそのまま使う。 **展開ボタン（右端 30 DIP）の押下を自前で受けて標準の一覧を開かせず**、
+/// タブ付きのポップアップを出す（開いてから閉じる方式は開閉が往復して一覧が出ない。 AvaloniaUI 版の実測
+/// 2026-11-17 と同じ）。 表示は押下の処理の後（<c>Dispatcher.BeginInvoke</c>）へ回す。 キーボードの
+/// Alt+↓ / F4 でも同じ一覧を出す。<br/>
 /// <b>編集できる入力欄は MewUI の ComboBox に無い</b>: MewUI 0.22.1 の <c>ComboBox</c> は読み取り専用の
 /// 選択表示だけで、AvaloniaUI 版の <c>IsEditable</c> に当たる API を持たない。 そのため
 /// <b>ComboBox の選択表示の上へ、枠も背景も持たない <see cref="TextBox"/> を重ねて文字の入力と表示を担わせる</b>
@@ -29,11 +31,15 @@ namespace EsUtil.Ui.MewUI.ColorSelector;
 /// <b>ツールチップ</b>: 入力欄には「色名+不透明度」と「<c>#AARRGGBB</c>」の 2 行を出す。<br/>
 /// <b>一覧のタブ</b>: 表示の設定（<see cref="ShowCustomTab"/> / <see cref="ShowThemeColorTab"/> /
 /// <see cref="ShowNamedColorTab"/> / <see cref="ShowPickerTab"/>）と <see cref="CustomTabs"/> からタブを作り、
-/// 開くたびに作り直す（空のタブは作らない）。 タブが 1 つだけのときは <see cref="ShowTabTitles"/> で
+/// 開くたびに作り直す（空のタブは作らない）。 **タブの中身は選んだものだけを作る**（開いていない
+/// カラーピッカーのタブを作らない）。 タブが 1 つだけのときは <see cref="ShowTabTitles"/> で
 /// 題名の行を隠せる。 一覧を開いてもコントロールの幅は変えない（一覧だけを内容に合わせて広げる）。
 /// </remarks>
 public sealed class ColorSelectorControl : Grid
 {
+    /// <summary>標準のコンボボックスの展開ボタンの幅（DIP）。 右端のこの範囲の押下を自前で扱う。</summary>
+    private const double ToggleAreaWidth = 30.0;
+
     /// <summary>MewUI の ComboBox の展開ボタンの幅（DIP。 入力欄が矢印へ重ならないように空ける）。</summary>
     private const double ArrowAreaWidth = 22.0;
 
@@ -86,8 +92,13 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>表示中のタブの中身の入れ物（タブごとの要素を重ね、1 つだけ表示する）。</summary>
     private readonly Grid _body;
 
-    /// <summary>表示中のタブの中身（<see cref="_body"/> の子と同じ並び）。</summary>
-    private readonly List<FrameworkElement> _tabViews = [];
+    /// <summary>表示中のタブの中身の入れ物（タブごとに重ね、1 つだけ表示する）。</summary>
+    /// <remarks>
+    /// <b>中身は開いたときに作る</b>: 全タブの中身を先に作ると、カラーピッカーのタブを開いていないのに
+    /// ピッカーのログ（色の選択を開きました）まで出す。 表示するタブの入れ物だけを作り、中身は
+    /// <see cref="ApplyTab"/> が最初に表示するときに 1 回だけ作る。
+    /// </remarks>
+    private readonly List<Grid> _tabSlots = [];
 
     /// <summary>表示中のタブ（<see cref="RefreshList"/> が作り直す）。</summary>
     private readonly List<ColorSelectorTabSpec> _tabs = [];
@@ -169,8 +180,12 @@ public sealed class ColorSelectorControl : Grid
         _text.TextChanged += OnTextChanged;
         _text.LostFocus += OnTextLostFocus;
 
+        // キーボードの展開操作（Alt+↓ / F4）でも同じ一覧を出す（標準の一覧は開かない）
+        _text.KeyDown += OnTextKeyDown;
+
         // 枠と展開ボタンは標準のコンボボックスが担う（自前の枠・▼・… を作らない）。
-        // 標準の一覧は使わないため項目は持たせず、開閉は MouseDown で差し替える。
+        // 標準の一覧は使わないため項目は持たせず、**展開ボタン（右端）の押下を自前で受けて標準の開閉を止める**
+        // （開いてから閉じる方式は開閉が往復して一覧が出ない。 AvaloniaUI 版の実測 2026-11-17 と同じ）。
         // キーボードの操作は文字入力が受けるため、コンボボックス自身はフォーカスを取らない
         // （取ると Space / ↓ で標準の空の一覧が開く）。
         _combo = new ComboBox
@@ -663,11 +678,14 @@ public sealed class ColorSelectorControl : Grid
     // 一覧（タブ付きのポップアップ）
     // ====================================================================
 
-    /// <summary>コンボボックスが押されたときに、標準の一覧の代わりにタブ付きのポップアップを開閉する。</summary>
+    /// <summary>コンボボックスの展開ボタン（右端）が押されたときに、タブ付きのポップアップを出す。</summary>
     /// <param name="e">マウスのイベント引数。</param>
     /// <remarks>
-    /// <b>標準の一覧は使わない</b>: コンボボックスは入力を処理する前に <c>MouseDown</c> を通知するため、<br/>
-    /// ここで <see cref="MouseEventArgs.Handled"/> を立てると標準の開閉が行われない（開閉の往復を防ぐ）。
+    /// <b>標準の一覧を開かせない</b>: コンボボックスは入力を処理する前に <c>MouseDown</c> を通知するため、<br/>
+    /// ここで <see cref="MouseEventArgs.Handled"/> を立てると標準の開閉が行われない（開いてから閉じる方式は
+    /// 開閉が往復して一覧が出ない。 AvaloniaUI 版の実測 2026-11-17）。<br/>
+    /// <b>右端の展開ボタンの範囲だけを自前で扱う</b>: 文字を扱う左側は標準の入力のまま残す。<br/>
+    /// <b>表示は入力の処理の後へ回す</b>: 押下の処理中に開くと、同じ押下で閉じ直されることがある。
     /// </remarks>
     private void OnComboMouseDown(MouseEventArgs e)
     {
@@ -676,15 +694,53 @@ public sealed class ColorSelectorControl : Grid
             return;
         }
 
+        // 押下位置はコンボボックス自身の座標で受ける（右端 30 DIP が展開ボタン）
+        if (e.GetPosition(_combo).X < _combo.Bounds.Width - ToggleAreaWidth)
+        {
+            return;
+        }
+
         e.Handled = true;
-        ToggleList();
+        ShowListDeferred();
+    }
+
+    /// <summary>キーボードの展開操作（Alt+↓ / F4）でタブ付きのポップアップを出す。</summary>
+    /// <param name="e">キーのイベント引数。</param>
+    /// <remarks>標準の一覧は開かせない（<see cref="OnComboMouseDown"/> と同じ一覧を出す）。</remarks>
+    private void OnTextKeyDown(KeyEventArgs e)
+    {
+        var altDown = e.Key == Key.Down && e.AltKey;
+        if (!altDown && e.Key != Key.F4)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        ShowListDeferred();
+    }
+
+    /// <summary>一覧の表示を入力の処理の後（次の描画の前）へ回す。</summary>
+    /// <remarks>
+    /// <b>押下の処理中に開かない</b>: 押下の処理の途中でポップアップを開くと、同じ押下を「外側の押下」として
+    /// 拾って閉じ直すことがある（AvaloniaUI 版と同じく、入力の処理の後へ回す）。<br/>
+    /// アプリ実行前（単体テスト）はそのまま表示する。
+    /// </remarks>
+    private void ShowListDeferred()
+    {
+        if (Application.IsRunning
+            && Application.Current is { } app
+            && app.Dispatcher is { } dispatcher)
+        {
+            dispatcher.BeginInvoke(DispatcherPriority.Background, ShowList);
+            return;
+        }
+
+        ShowList();
     }
 
     /// <summary>タブ付きの一覧のポップアップを開閉する。</summary>
     /// <remarks>
     /// <b>表示できるタブが 1 つも無ければ開かない</b>（空の一覧を見せない）。<br/>
-    /// 開くたびに作り直す（テーマの色は <c>Application.Run</c> 後にしか解決できず、明暗やアクセント色の
-    /// 変更にも追随させる必要があるため、構築時に作った一覧をそのまま使わない）。<br/>
     /// テストから開閉を検証できるよう公開する（開けない場合は何もしないため、アプリ実行前でも安全である）。
     /// </remarks>
     internal void ToggleList()
@@ -695,6 +751,17 @@ public sealed class ColorSelectorControl : Grid
             return;
         }
 
+        ShowList();
+    }
+
+    /// <summary>タブ付きの一覧を表示する（開くたびに作り直す）。</summary>
+    /// <remarks>
+    /// <b>開くたびに作り直す</b>: テーマの色は <c>Application.Run</c> 後にしか解決できず、明暗やアクセント色の
+    /// 変更にも追随させる必要があるため、構築時に作った一覧をそのまま使わない。<br/>
+    /// <b>タブの中身は選んだものだけを作る</b>: 開いていないタブ（カラーピッカーなど）の内容を作らない。
+    /// </remarks>
+    private void ShowList()
+    {
         RefreshList();
         if (_tabs.Count == 0)
         {
@@ -714,6 +781,8 @@ public sealed class ColorSelectorControl : Grid
     /// <remarks>
     /// <b>タブも作り直す</b>: タブは表示の設定（<see cref="ShowCustomTab"/> など）と <see cref="CustomTabs"/> から<br/>
     /// 決まるため、項目と同じ機会に作り直す（空のタブを残さない）。<br/>
+    /// <b>中身は選んだタブだけを作る</b>: 表示していないタブ（カラーピッカーなど）の内容を作らない
+    /// （開いていないのにピッカーのログを出さない）。<br/>
     /// <b>作り直しの途中で選択が動いても利用者の選択として扱わない</b>: 扱うと、並び順を変えただけで色の変更として処理される。<br/>
     /// タブの作り直しは一覧を開くまで起きないため、テストからの検証用に公開する。
     /// </remarks>
@@ -723,7 +792,7 @@ public sealed class ColorSelectorControl : Grid
         _tabs.Clear();
         _tabs.AddRange(tabs);
         _tabButtons.Clear();
-        _tabViews.Clear();
+        _tabSlots.Clear();
         _tabStrip.Clear();
         _body.Clear();
 
@@ -735,10 +804,11 @@ public sealed class ColorSelectorControl : Grid
             _tabButtons.Add(button);
             _tabStrip.Add(button);
 
-            var view = CreateTabView(tabs[i]);
-            view.IsVisible(false);
-            _tabViews.Add(view);
-            _body.Add(view);
+            // 入れ物だけを作り、中身は表示するときに作る（開いていないタブを作らない）
+            var slot = new Grid();
+            slot.IsVisible(false);
+            _tabSlots.Add(slot);
+            _body.Add(slot);
         }
 
         // タブが 1 つで題名を隠す設定なら、タブの行そのものを出さない（切り替える相手が無い）
@@ -826,7 +896,8 @@ public sealed class ColorSelectorControl : Grid
     /// <remarks>
     /// <b>カラーピッカーのタブは中身を持たない</b>: MewUI の <see cref="ColorPicker"/> はドロップダウンであり、
     /// ポップアップの中へ埋め込めない。 タブを選んだときに一覧を閉じてピッカーのドロップダウンを開くため、
-    /// ここでは空の入れ物だけを返す（タブの索引と中身の並びを一致させる）。
+    /// ここでは空の入れ物だけを返す（開いていない間にピッカーのログを出さない）。
+    /// <b>この処理はタブを最初に表示するときだけ呼ぶ</b>（全タブを先に作らない）。
     /// </remarks>
     private FrameworkElement CreateTabView(ColorSelectorTabSpec tab)
     {
@@ -943,9 +1014,9 @@ public sealed class ColorSelectorControl : Grid
         if (index < 0 || index >= _tabs.Count)
         {
             _listTabKey = null;
-            foreach (var view in _tabViews)
+            foreach (var hidden in _tabSlots)
             {
-                view.IsVisible(false);
+                hidden.IsVisible(false);
             }
 
             return;
@@ -968,12 +1039,19 @@ public sealed class ColorSelectorControl : Grid
             _switchingTabs = false;
         }
 
-        for (var i = 0; i < _tabViews.Count; i++)
+        // 中身は**最初に表示するときだけ**作る（開いていないタブを作らない）
+        var slot = _tabSlots[index];
+        if (slot.Count == 0)
         {
-            _tabViews[i].IsVisible(i == index);
+            slot.Add(CreateTabView(tab));
         }
 
-        if (_tabViews[index] is ListBox list)
+        for (var i = 0; i < _tabSlots.Count; i++)
+        {
+            _tabSlots[i].IsVisible(i == index);
+        }
+
+        if (slot[0] is ListBox list)
         {
             SelectCurrent(list, tab.Items);
         }
