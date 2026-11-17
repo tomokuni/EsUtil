@@ -181,6 +181,61 @@ public class ColorSelectorControlTests
         Assert.Equal(6, grid.Width / grid.ItemWidth);
     }
 
+    /// <summary>一覧の幅がタブの行の幅以上になり、スクロール バーが右端へ来ることを検証する。</summary>
+    /// <remarks>
+    /// タブの行だけが広いと、一覧（とスクロール バー）がフライアウトの途中で切れる（実測 2026-11-17）。<br/>
+    /// 一覧はフライアウトの幅いっぱいに置く。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 一覧の幅はタブの行の幅にそろえる()
+    {
+        var control = CreateControl();
+        control.ShowCustomTab = false;
+        control.ShowThemeColorTab = false;
+        control.ShowNamedColorTab = true;
+        control.ShowPickerTab = true;
+        control.ShowTabTitles = true;
+
+        // 色名の一覧の内容より、タブの行（2 つ）の方が広い
+        var tabs = control.CreateTabs();
+        Assert.Equal(2, tabs.Count);
+
+        var width = control.ResolveFlyoutWidth(tabs);
+        Assert.Equal((2 * 112) + 4, width);
+
+        var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
+        var (_, body) = GetTabsAndBody(flyout);
+        var list = GetVisibleView<ListBox>(body);
+        Assert.Equal(width, list.Width);
+    }
+
+    /// <summary>一覧の幅が内容（長い色名）に合わせて広がることを検証する。</summary>
+    [AvaloniaFact]
+    internal void 一覧の幅は長い色名に合わせて広がる()
+    {
+        var control = CreateControl();
+        var window = new Window { Width = 480, Height = 200, Content = control };
+        window.Styles.Add(new FluentTheme());
+        window.Show();
+
+        control.ShowThemeColorTab = false;
+        control.ShowNamedColorTab = false;
+        control.ShowPickerTab = false;
+        control.CustomTabs =
+        [
+            new ColorSelectorCustomTab(
+                "代表色",
+                [new ColorSelectorCustomColor("とても長い色の名前をつけた色", "#FFDC2626")]),
+        ];
+
+        var width = control.ResolveFlyoutWidth(control.CreateTabs());
+
+        Assert.True(width > 112, $"幅 {width} がタブの幅のまま");
+        var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
+        var (_, body) = GetTabsAndBody(flyout);
+        Assert.Equal(width, GetVisibleView<ListBox>(body).Width);
+    }
+
     /// <summary>カスタム タブの色名が入力欄（テキスト部）に出ることを検証する。</summary>
     /// <remarks>色コードだけを見比べなくても、意図した色かどうかが分かる。</remarks>
     [AvaloniaFact]
@@ -375,13 +430,13 @@ public class ColorSelectorControlTests
     internal void 一覧の幅は枠の幅と揃う()
     {
         var control = CreateControl();
-        var window = new Window { Width = 480, Height = 200, Content = control };
+        var window = new Window { Width = 400, Height = 200, Content = control };
         window.Show();
         var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
         var (_, body) = GetTabsAndBody(flyout);
         var list = GetVisibleView<ListBox>(body);
 
-        // 枠（入力欄）より内容が狭いときは、一覧も枠と同じ幅になる
+        // 枠（入力欄）より内容もタブの行（3 つで 344）も狭いときは、一覧も枠と同じ幅になる
         Assert.Equal(control.Bounds.Width, list.Width);
         window.Close();
     }

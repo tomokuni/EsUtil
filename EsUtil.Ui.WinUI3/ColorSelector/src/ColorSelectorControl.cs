@@ -47,8 +47,24 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>色の四角の一辺（DIP。 格子のセル）。</summary>
     internal const double SwatchCellSize = 32;
 
-    /// <summary>一覧のタブの幅（DIP）。 2 つを並べたときに一覧の幅と釣り合う値。</summary>
+    /// <summary>一覧のタブの幅の上限（DIP）。 2 つを並べたときに一覧の幅と釣り合う値。</summary>
     private const double CategoryTabWidth = 112;
+
+    /// <summary>タブの幅の下限（DIP。 数を増やしても文字が読める幅）。</summary>
+    private const double MinimumTabWidth = 56;
+
+    /// <summary>タブとタブの間の余白（DIP）。</summary>
+    private const double TabSpacing = 4;
+
+    /// <summary>一覧の中身に使える幅の上限（DIP）。</summary>
+    /// <remarks>
+    /// <b>広げすぎないための上限</b>である（AvaloniaUI 版と同じ 440）。 長い色名やタブの数に合わせて
+    /// 一覧が画面いっぱいに広がるのを防ぐ。<br/>
+    /// WinUI のフライアウトの既定の最大幅（<c>FlyoutThemeMaxWidth</c> = 456）は、この幅に余白（24）を
+    /// 足すと超えて右端のタブが切れる。 <see cref="CreateListPresenterStyle"/> が
+    /// <see cref="FlyoutPresenter"/> の幅の上限を外し、この値で止める（実測 2026-11-17）。
+    /// </remarks>
+    private const double FlyoutMaxContentWidth = 440;
 
     /// <summary>一覧の最大の高さ（DIP）。</summary>
     private const double ListMaxHeight = 360;
@@ -511,16 +527,98 @@ public sealed partial class ColorSelectorControl : UserControl
     /// </remarks>
     internal static bool ShouldShowTabStrip(int tabCount, bool showTabTitles) => tabCount > 1 || showTabTitles;
 
-    /// <summary>一覧の幅を決める（枠の幅と内容の幅の大きいほう）。</summary>
+    /// <summary>一覧（フライアウト）の幅を決める（枠・タブの行・中身のうち最も広いもの。 上限あり）。</summary>
     /// <param name="frameWidth">枠（入力欄）の幅（DIP）。</param>
-    /// <param name="widest">行のうち最も広いものの幅（DIP）。</param>
+    /// <param name="showTabStrip">タブの行を出すかどうか。</param>
+    /// <param name="tabCount">タブの数。</param>
+    /// <param name="contentWidth">タブの中身のうち最も広いものの幅（DIP。 余白を含む）。</param>
     /// <returns>一覧の幅（DIP）。</returns>
     /// <remarks>
-    /// <b>枠の幅は変えない</b>: 一覧を開くたびに枠が広がると、開閉のたびに周りのレイアウトが動く。<br/>
-    /// 一覧（ポップアップ）だけを内容に合わせて広げる（コントロールの幅・最小幅は触らない）。
+    /// <b>タブの行も幅に含める</b>: 含めないと、タブの行だけが広がって一覧（とスクロール バー）が
+    /// フライアウトの途中で切れる（実測 2026-11-17）。<br/>
+    /// <b>枠の幅は変えない</b>: 一覧を開くたびに枠が広がると、開閉のたびに周りのレイアウトが動く。
+    /// 一覧（ポップアップ）だけを広げる（コントロールの幅・最小幅は触らない）。<br/>
+    /// <b>上限で止める</b>: フライアウトの既定の最大幅を超えると右端（タブ）が切れる。
+    /// 超えた分はタブの幅を詰めて収める（<see cref="FlyoutMaxContentWidth"/>）。
     /// </remarks>
-    internal static double CalculateListWidth(double frameWidth, double widest)
-        => Math.Max(frameWidth, widest + ListChromeWidth);
+    internal static double ResolveFlyoutWidth(double frameWidth, bool showTabStrip, int tabCount, double contentWidth)
+    {
+        var width = Math.Max(frameWidth, contentWidth);
+        if (showTabStrip)
+        {
+            width = Math.Max(width, CalculateTabRowWidth(tabCount));
+        }
+
+        return Math.Min(width, FlyoutMaxContentWidth);
+    }
+
+    /// <summary>タブの行の幅を決める（タブを上限の幅で並べたときの幅）。</summary>
+    /// <param name="tabCount">タブの数。</param>
+    /// <returns>タブの行の幅（DIP）。 タブが無い場合は 0。</returns>
+    internal static double CalculateTabRowWidth(int tabCount)
+        => tabCount <= 0 ? 0 : (tabCount * CategoryTabWidth) + ((tabCount - 1) * TabSpacing);
+
+    /// <summary>タブの幅を決める（数を増やすほど詰める）。</summary>
+    /// <param name="width">一覧の幅（DIP）。</param>
+    /// <param name="count">タブの数。</param>
+    /// <returns>タブ 1 つの幅（DIP）。</returns>
+    /// <remarks>
+    /// <b>タブは決まった幅で並ぶ</b>ため、数が多いと右上（最後のタブ）がフライアウトの外へ出て切れる。
+    /// 一覧の幅に収まるよう、タブの幅を詰める（<see cref="MinimumTabWidth"/> から
+    /// <see cref="CategoryTabWidth"/> まで）。
+    /// </remarks>
+    internal static double ResolveTabWidth(double width, int count)
+    {
+        if (count <= 0)
+        {
+            return CategoryTabWidth;
+        }
+
+        var fitting = (width - ((count - 1) * TabSpacing)) / count;
+        return Math.Clamp(fitting, MinimumTabWidth, CategoryTabWidth);
+    }
+
+    /// <summary>タブの中身のうち最も広いものの幅を測る（カラーピッカーのタブは除く）。</summary>
+    /// <param name="tabs">測るタブ。</param>
+    /// <returns>最も広い中身の幅（DIP。 一覧は余白を含む）。</returns>
+    /// <remarks>
+    /// カラーピッカーのタブは中身が自分の幅を持つため含めない（開いたときに広がる）。<br/>
+    /// 格子は列数とセルの大きさで決まるため、行を作らずに求める。
+    /// </remarks>
+    private static double MeasureWidestTabContent(IReadOnlyList<ColorSelectorTabSpec> tabs)
+    {
+        var widest = 0.0;
+        foreach (var tab in tabs)
+        {
+            if (tab.IsPicker)
+            {
+                continue;
+            }
+
+            widest = Math.Max(
+                widest,
+                tab.Layout == ColorSelectorTabLayout.Grid
+                    ? SwatchCellSize * SwatchGridColumns
+                    : MeasureWidestRow(tab.Items) + ListChromeWidth);
+        }
+
+        return widest;
+    }
+
+    /// <summary>行のうち最も広いものの幅（実寸）を測る。</summary>
+    /// <param name="entries">測る項目。</param>
+    /// <returns>最も広い行の幅（DIP）。</returns>
+    /// <remarks>一覧に並べる行と同じ要素を作って測る（見積もりだと文字の実寸とずれる）。</remarks>
+    private static double MeasureWidestRow(IReadOnlyList<ColorSelectorItem> entries)
+    {
+        var widest = 0.0;
+        foreach (var entry in entries)
+        {
+            widest = Math.Max(widest, CreateColorRow(entry).DesiredSize.Width);
+        }
+
+        return widest;
+    }
 
     /// <summary>格子に必要な行数を決める（スクロールせずに収まるかを確かめられる形にする）。</summary>
     /// <param name="itemCount">並べる色の数。</param>
@@ -636,8 +734,17 @@ public sealed partial class ColorSelectorControl : UserControl
             return null;
         }
 
-        var tabStrip = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
-        var body = new Grid();
+        var showTabStrip = ShouldShowTabStrip(tabs.Count, ShowTabTitles);
+
+        // 一覧の幅は**開く前に決める**（枠・タブの行・中身のうち最も広いもの）。
+        // 決めずに置くとタブの行だけが広がり、スクロール バーがフライアウトの途中に出る（実測 2026-11-17）
+        var width = ResolveFlyoutWidth(ActualWidth, showTabStrip, tabs.Count, MeasureWidestTabContent(tabs));
+
+        // タブは決まった幅で並ぶため、数が多いとフライアウトの既定の最大幅を超えて右端が切れる。
+        // 一覧の幅に収まるよう、タブの幅を詰める
+        var tabWidth = ResolveTabWidth(width, tabs.Count);
+        var tabStrip = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TabSpacing };
+        var body = new Grid { MinWidth = width };
         var panel = new StackPanel { Spacing = 6 };
 
         // 標準のコンボボックスは左端を揃えて一覧を開く（その位置に合わせると一覧が右へ伸びて収まる）
@@ -658,7 +765,7 @@ public sealed partial class ColorSelectorControl : UserControl
         for (var i = 0; i < tabs.Count; i++)
         {
             var index = i;
-            var button = CreateCategoryTab(tabs[i].Title);
+            var button = CreateCategoryTab(tabs[i].Title, tabWidth);
             button.Click += (_, _) => ApplyTab(index);
             tabButtons.Add(button);
             tabStrip.Children.Add(button);
@@ -670,7 +777,7 @@ public sealed partial class ColorSelectorControl : UserControl
             body.Children.Add(slot);
         }
 
-        if (ShouldShowTabStrip(tabs.Count, ShowTabTitles))
+        if (showTabStrip)
         {
             panel.Children.Add(tabStrip);
         }
@@ -688,7 +795,7 @@ public sealed partial class ColorSelectorControl : UserControl
             // 初めて開いたタブだけ中身を作る（2 回目以降は作り直さない）
             if (slots[index].Children.Count == 0)
             {
-                slots[index].Children.Add(CreateTabView(tabs[index], flyout));
+                slots[index].Children.Add(CreateTabView(tabs[index], flyout, width));
             }
 
             for (var i = 0; i < tabButtons.Count; i++)
@@ -702,35 +809,38 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>タブの中身を作る（一覧・格子・カラーピッカー）。</summary>
     /// <param name="tab">タブの定義。</param>
     /// <param name="flyout">閉じる対象のポップアップ。</param>
+    /// <param name="width">一覧の幅（DIP。 スクロール バーが右端へ来るようにそろえる）。</param>
     /// <returns>タブの中身。</returns>
-    private FrameworkElement CreateTabView(ColorSelectorTabSpec tab, Flyout flyout)
+    private FrameworkElement CreateTabView(ColorSelectorTabSpec tab, Flyout flyout, double width)
         => tab.IsPicker
             ? CreatePickerContent(flyout)
             : tab.Layout == ColorSelectorTabLayout.Grid
                 ? CreateSwatchGrid(tab, flyout)
-                : CreateColorList(tab, flyout);
+                : CreateColorList(tab, flyout, width);
 
     /// <summary>色名付きの一覧（縦に並べてスクロールする）を作る。</summary>
     /// <param name="tab">タブの定義。</param>
     /// <param name="flyout">閉じる対象のポップアップ。</param>
+    /// <param name="width">一覧の幅（DIP）。</param>
     /// <returns>一覧。</returns>
-    private FrameworkElement CreateColorList(ColorSelectorTabSpec tab, Flyout flyout)
+    /// <remarks>
+    /// <b>幅をそろえる</b>: 一覧を内容の幅のまま置くと、スクロール バーがフライアウトの途中に出る
+    /// （タブの行だけが広いとき。 実測 2026-11-17）。 一覧はフライアウトの幅いっぱいにする。
+    /// </remarks>
+    private FrameworkElement CreateColorList(ColorSelectorTabSpec tab, Flyout flyout, double width)
     {
-        // 左寄せにすると希望サイズが内容（行の実寸）になり、長い名前が切れない
         var list = new ListView
         {
             SelectionMode = ListViewSelectionMode.Single,
             MaxHeight = ListMaxHeight,
-            HorizontalAlignment = HorizontalAlignment.Left,
+            Width = width,
         };
 
-        var widest = 0.0;
         foreach (var item in tab.Items)
         {
-            widest = Math.Max(widest, AddColorRow(list, item));
+            AddColorRow(list, item);
         }
 
-        list.Width = CalculateListWidth(ActualWidth, widest);
         list.SelectionChanged += (_, _) =>
         {
             var index = list.SelectedIndex;
@@ -743,11 +853,16 @@ public sealed partial class ColorSelectorControl : UserControl
         return list;
     }
 
-    /// <summary>一覧へ 1 行（色の四角 + 色名）を追加し、その行の幅を返す。</summary>
+    /// <summary>一覧へ 1 行（色の四角 + 色名）を追加する。</summary>
     /// <param name="list">追加先の一覧。</param>
     /// <param name="entry">並べる色。</param>
-    /// <returns>行の幅（DIP。 一覧の幅を内容に合わせるために使う）。</returns>
-    private static double AddColorRow(ListView list, ColorSelectorItem entry)
+    private static void AddColorRow(ListView list, ColorSelectorItem entry)
+        => list.Items.Add(CreateColorRow(entry));
+
+    /// <summary>一覧の 1 行（色の四角 + 色名）を作り、実寸を測る。</summary>
+    /// <param name="entry">並べる色。</param>
+    /// <returns>作った行（測った実寸を <see cref="UIElement.DesiredSize"/> に持つ）。</returns>
+    private static StackPanel CreateColorRow(ColorSelectorItem entry)
     {
         // 右端に余白を残す（一覧の幅が内容ぴったりになり、長い名前の末尾が切れるため）
         var row = new StackPanel
@@ -761,8 +876,7 @@ public sealed partial class ColorSelectorControl : UserControl
 
         // 一覧の幅を内容に合わせるため、行の実寸を測る（追加前は測れない）
         row.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
-        list.Items.Add(row);
-        return row.DesiredSize.Width;
+        return row;
     }
 
     /// <summary>色の四角だけを 6 列に並べた格子を作る（スクロールせずに選べる）。</summary>
@@ -934,20 +1048,34 @@ public sealed partial class ColorSelectorControl : UserControl
 
     /// <summary>一覧のタブを切り替えるタブを作る。</summary>
     /// <param name="text">タブの文言。</param>
+    /// <param name="width">タブの幅（DIP。 一覧の幅に収まるよう詰めた値）。</param>
     /// <returns>タブ（<see cref="ToggleButton"/>）。</returns>
-    /// <remarks>片方だけが選ばれるよう、切り替えは一覧を開く処理の <c>ApplyTab</c> が両方の状態を書く。</remarks>
-    private static ToggleButton CreateCategoryTab(string text)
-        => new() { Content = text, Width = CategoryTabWidth };
+    /// <remarks>
+    /// 片方だけが選ばれるよう、切り替えは一覧を開く処理の <c>ApplyTab</c> が両方の状態を書く。<br/>
+    /// 幅を詰めたタブでも文言が収まるよう、左右の余白を小さくして中央にそろえる。 収まらない文言は
+    /// 末尾を省略する（狭いタブで文字が途中で切れるのを避ける）。
+    /// </remarks>
+    private static ToggleButton CreateCategoryTab(string text, double width) => new()
+    {
+        Content = new TextBlock { Text = text, TextTrimming = TextTrimming.CharacterEllipsis },
+        Width = width,
+        Padding = new Thickness(6, 5, 6, 5),
+        HorizontalContentAlignment = HorizontalAlignment.Center,
+    };
 
     /// <summary>一覧のポップアップの表示スタイルを作る（高さの上限を外し、スクロールさせない）。</summary>
     /// <returns>FlyoutPresenter のスタイル。</returns>
     /// <remarks>
     /// <see cref="FlyoutPresenter"/> の既定スタイルは高さを制限し、内容を <c>ScrollViewer</c> に入れる。
-    /// 一覧は <see cref="ListMaxHeight"/> で自分がスクロールし、格子はスクロールしないため、外側のスクロールを切る。
+    /// 一覧は <see cref="ListMaxHeight"/> で自分がスクロールし、格子はスクロールしないため、外側のスクロールを切る。<br/>
+    /// <b>幅の上限も外す</b>: 既定の <c>FlyoutThemeMaxWidth</c>（456）は、決めた一覧の幅
+    /// （<see cref="FlyoutMaxContentWidth"/> = 440）にフライアウトの余白を足すと超えてタブが切れる。
+    /// 中身の幅は <see cref="ResolveFlyoutWidth"/> が決めるため、ここでは制限しない。
     /// </remarks>
     private static Style CreateListPresenterStyle()
     {
         var style = new Style(typeof(FlyoutPresenter));
+        style.Setters.Add(new Setter(FrameworkElement.MaxWidthProperty, double.PositiveInfinity));
         style.Setters.Add(new Setter(FrameworkElement.MaxHeightProperty, double.PositiveInfinity));
         style.Setters.Add(new Setter(ScrollViewer.VerticalScrollBarVisibilityProperty, ScrollBarVisibility.Disabled));
         style.Setters.Add(new Setter(ScrollViewer.VerticalScrollModeProperty, ScrollMode.Disabled));

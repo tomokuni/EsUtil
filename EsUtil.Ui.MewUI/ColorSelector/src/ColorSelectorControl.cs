@@ -34,7 +34,8 @@ namespace EsUtil.Ui.MewUI.ColorSelector;
 /// <see cref="ShowNamedColorTab"/> / <see cref="ShowPickerTab"/>）と <see cref="CustomTabs"/> からタブを作り、
 /// 開くたびに作り直す（空のタブは作らない）。 **タブの中身は選んだものだけを作る**（開いていない
 /// カラーピッカーのタブを作らない）。 タブが 1 つだけのときは <see cref="ShowTabTitles"/> で
-/// 題名の行を隠せる。 一覧を開いてもコントロールの幅は変えない（一覧だけを内容に合わせて広げる）。
+/// 題名の行を隠せる。 一覧を開いてもコントロールの幅は変えない（一覧だけを、枠・タブの行・項目の
+/// うち最も広い幅へ広げる）。 一覧はポップアップの幅いっぱいに置き、**スクロール バーを右端へ**そろえる。
 /// </remarks>
 public sealed class ColorSelectorControl : Grid
 {
@@ -61,6 +62,19 @@ public sealed class ColorSelectorControl : Grid
 
     /// <summary>一覧の分類を切り替えるタブの幅（DIP）。 2 つを並べたときに一覧の幅と釣り合う値。</summary>
     private const double CategoryTabWidth = 96.0;
+
+    /// <summary>タブ 1 つの最小幅（DIP。 数を増やしても文言が読める下限）。</summary>
+    private const double MinCategoryTabWidth = 56.0;
+
+    /// <summary>タブとタブの間の余白（DIP）。</summary>
+    private const double TabSpacing = 4.0;
+
+    /// <summary>ポップアップの影が左右に取る幅（DIP）。</summary>
+    /// <remarks>
+    /// MewUI のポップアップは影のための余白（左右 8 DIP ずつ）を足して測る。 中身の幅をこの分だけ
+    /// 狭くしないと、ポップアップの全体がウィンドウのクライアント領域からはみ出す。
+    /// </remarks>
+    private const double PopupChromeWidth = 16.0;
 
     /// <summary>色の四角の一辺（DIP。 格子のセル）。</summary>
     private const double SwatchCellSize = 32.0;
@@ -112,6 +126,13 @@ public sealed class ColorSelectorControl : Grid
 
     /// <summary>表示中のタブ（<see cref="RefreshList"/> が作り直す）。</summary>
     private readonly List<ColorSelectorTabSpec> _tabs = [];
+
+    /// <summary>直近に決めた一覧の幅（DIP。 <see cref="RefreshList"/> が決め、タブの中身が使う）。</summary>
+    /// <remarks>
+    /// <b>幅は中身を作る前に決める</b>: 後から広げると、一覧（とスクロール バー）がポップアップの
+    /// 途中に残ったままになる（タブの行だけが広いとき。 実測 2026-11-17）。
+    /// </remarks>
+    private double _listWidth;
 
     /// <summary>一覧の 1 行（色の四角 + 名前）を作るテンプレート。</summary>
     /// <remarks>
@@ -276,7 +297,7 @@ public sealed class ColorSelectorControl : Grid
 
         // 上部のタブは表示の設定と中身から作り直す（RefreshList が中身を入れ替える）。
         // 分類ごとに一覧を差し替える（テーマの色が多いため、1 つの一覧へ混ぜると色名を探しにくい）
-        _tabStrip = new StackPanel().Horizontal().Spacing(4);
+        _tabStrip = new StackPanel().Horizontal().Spacing(TabSpacing);
         _body = new Grid();
 
         // 一覧の幅は**行の内容に合わせる**（既定のまま置くと、ポップアップが使える領域の幅いっぱいへ広がる）。
@@ -294,7 +315,7 @@ public sealed class ColorSelectorControl : Grid
     /// <value>テーマの文字サイズ。 テーマを解決できない場合（<c>Application.Run</c> 前）は <see cref="FallbackFontSize"/>。</value>
     /// <remarks>
     /// <b>行の実測と表示で同じ値を読む</b>: 行を画面へ付ける前に測ると、既定の文字サイズで測って実際の行と<br/>
-    /// 大きさが食い違う（実測 2026-11-02）。 測る側（<see cref="ApplyListWidth"/>）と作る側（<see cref="CreateItemRow"/>）が<br/>
+    /// 大きさが食い違う（実測 2026-11-02）。 測る側（<see cref="MeasureListContentWidth"/>）と作る側（<see cref="CreateItemRow"/>）が<br/>
     /// 同じ値を読むことで、必要な幅と実際の行が一致する。
     /// </remarks>
     private static double ListFontSize
@@ -856,10 +877,18 @@ public sealed class ColorSelectorControl : Grid
         _tabStrip.Clear();
         _body.Clear();
 
+        // 幅は**タブと中身を作る前に決める**（枠・タブの行・一覧の内容のうち最も広いもの）。
+        // 決めずに置くとタブの行だけが広がり、スクロール バーがポップアップの途中に出る（実測 2026-11-17）
+        _listWidth = ResolveFlyoutWidth(tabs);
+        _body.Width = tabs.Count == 0 ? double.NaN : _listWidth;
+
+        // タブは決まった幅で並ぶため、数が多いとポップアップの右端が切れる。 幅に収まるようタブの幅を詰める
+        var tabWidth = ResolveTabWidth(_listWidth, tabs.Count);
+
         for (var i = 0; i < tabs.Count; i++)
         {
             var index = i;
-            var button = CreateCategoryTab(tabs[i].Title);
+            var button = CreateCategoryTab(tabs[i].Title, tabWidth);
             button.OnCheckedChanged(_ => OnTabChanged(index));
             _tabButtons.Add(button);
             _tabStrip.Add(button);
@@ -952,6 +981,7 @@ public sealed class ColorSelectorControl : Grid
 
     /// <summary>タブの中身を作る（色名付きの一覧・色の四角の格子・カラーピッカーのタブ）。</summary>
     /// <param name="tab">タブの定義。</param>
+    /// <param name="width">一覧の幅（DIP。 スクロール バーが右端へ来るようにそろえる）。</param>
     /// <returns>タブの中身。</returns>
     /// <remarks>
     /// <b>カラーピッカーのタブは中身を持たない</b>: MewUI の <see cref="ColorPicker"/> はドロップダウンであり、
@@ -959,7 +989,7 @@ public sealed class ColorSelectorControl : Grid
     /// ここでは空の入れ物だけを返す（開いていない間にピッカーのログを出さない）。
     /// <b>この処理はタブを最初に表示するときだけ呼ぶ</b>（全タブを先に作らない）。
     /// </remarks>
-    private FrameworkElement CreateTabView(ColorSelectorTabSpec tab)
+    internal FrameworkElement CreateTabView(ColorSelectorTabSpec tab, double width)
     {
         if (tab.IsPicker)
         {
@@ -968,24 +998,28 @@ public sealed class ColorSelectorControl : Grid
 
         return tab.Layout == ColorSelectorTabLayout.Grid
             ? CreateSwatchGrid(tab)
-            : CreateColorList(tab);
+            : CreateColorList(tab, width);
     }
 
     /// <summary>色名付きの一覧（縦に並べてスクロールする）を作る。</summary>
     /// <param name="tab">タブの定義。</param>
+    /// <param name="width">一覧の幅（DIP）。</param>
     /// <returns>一覧。</returns>
-    private ListBox CreateColorList(ColorSelectorTabSpec tab)
+    /// <remarks>
+    /// <b>幅をそろえる</b>: 一覧を内容の幅のまま置くと、スクロール バーがポップアップの途中に出る
+    /// （タブの行だけが広いとき。 実測 2026-11-17）。 一覧はポップアップの幅いっぱいにする。
+    /// </remarks>
+    private ListBox CreateColorList(ColorSelectorTabSpec tab, double width)
     {
         var list = new ListBox
         {
-            // 左寄せにすると希望サイズが内容（行の実寸）になり、長い名前が切れない
-            HorizontalAlignment = HorizontalAlignment.Left,
+            Width = width,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
             MaxHeight = ListMaxHeight,
             ItemTemplate = _itemTemplate,
             ItemsSource = ItemsView.Create(tab.Items),
         };
         list.SelectionChanged += _ => ApplyListSelection(list);
-        ApplyListWidth(list, tab.Items);
         return list;
     }
 
@@ -1109,7 +1143,7 @@ public sealed class ColorSelectorControl : Grid
         var slot = _tabSlots[index];
         if (slot.Count == 0)
         {
-            slot.Add(CreateTabView(tab));
+            slot.Add(CreateTabView(tab, _listWidth));
         }
 
         for (var i = 0; i < _tabSlots.Count; i++)
@@ -1147,29 +1181,96 @@ public sealed class ColorSelectorControl : Grid
 
     /// <summary>一覧のタブを作る。</summary>
     /// <param name="text">タブの文言。</param>
+    /// <param name="width">タブの幅（DIP）。</param>
     /// <returns>タブ（<see cref="ToggleButton"/>）。</returns>
-    private static ToggleButton CreateCategoryTab(string text)
-        => new ToggleButton { Width = CategoryTabWidth }.Content(text);
+    private static ToggleButton CreateCategoryTab(string text, double width)
+        => new ToggleButton { Width = width }.Content(text);
 
-    /// <summary>一覧の幅を枠（入力欄）の幅と内容の幅に合わせる（コントロールの幅は変えない）。</summary>
-    /// <param name="list">対象の一覧。</param>
-    /// <param name="entries">一覧に並べる項目。</param>
+    /// <summary>一覧（ポップアップ）の幅を求める。</summary>
+    /// <param name="tabs">開くタブ。</param>
+    /// <returns>幅（DIP）。 枠（入力欄）・タブの行・一覧の内容のうち最も広いもの（ポップアップが収まる幅が上限）。</returns>
+    internal double ResolveFlyoutWidth(IReadOnlyList<ColorSelectorTabSpec> tabs)
+        => ResolveFlyoutWidth(Bounds.Width, tabs, PopupMaxWidth, ShowTabTitles);
+
+    /// <summary>一覧（ポップアップ）の幅を求める。</summary>
+    /// <param name="frameWidth">枠（入力欄）の幅（DIP）。</param>
+    /// <param name="tabs">開くタブ。</param>
+    /// <param name="maxWidth">ポップアップに使える幅の上限（DIP。 無い場合は <see cref="double.PositiveInfinity"/>）。</param>
+    /// <param name="showTabTitles">タブが 1 つでも題名の行を出すかどうか。</param>
+    /// <returns>幅（DIP）。</returns>
     /// <remarks>
-    /// <b>枠の幅は変えない</b>: 一覧を開くたびに枠が広がると、開閉のたびに周りのレイアウトが動く。<br/>
-    /// 一覧（ポップアップ）だけを内容に合わせて広げる。<br/>
-    /// <b>ListBox の既定の幅は内容と関係なく広い</b>: 行が 2 件でも 237.6 DIP を要求し、行を増やすとさらに広がる<br/>
-    /// （実測 2026-11-02）。 そのまま置くと一覧だけが入力欄より大幅に広くなるため、行を実測して幅を決める。<br/>
-    /// <b>文字サイズ・文言を変えても追随する</b>: 見積もりではなく実際の行（テンプレートが作る要素）を測るため、<br/>
-    /// テーマの文字サイズが変わっても必要な幅が変わる（固定値を置くと文字が切れるか余りが出る）。
+    /// <b>タブの行も幅に含める</b>: 含めないと、タブの行だけが広がって一覧（とスクロール バー）が
+    /// ポップアップの途中で切れる（実測 2026-11-17）。<br/>
+    /// カラーピッカーのタブは中身が自分の幅を持つため含めない（開いたときに広がる）。<br/>
+    /// <b>上限は「タブを最小の幅で並べた行」までは広げる</b>: 上限で切ると、タブが多いときに
+    /// 最後のタブが欠ける（実測 2026-11-17: 14 個で「ColorPicker」が欠けた）。 MewUI のポップアップは
+    /// 中身の幅で測って作業領域へ寄せるため、枠より広くても切れない。<br/>
+    /// 測る処理は切り出し、ウィンドウを持たない単体テストでも計算を検証できるようにする。
     /// </remarks>
-    internal void ApplyListWidth(ListBox list, IReadOnlyList<ColorSelectorItem> entries)
+    internal static double ResolveFlyoutWidth(
+        double frameWidth,
+        IReadOnlyList<ColorSelectorTabSpec> tabs,
+        double maxWidth,
+        bool showTabTitles)
     {
-        // 画面へ出ていない間（アプリ実行前・ヘッドレス）は測らない。 文字の測定は描画のバックエンドを要求するため、
-        // ここで測ると生成そのものが失敗する（実測 2026-11-02）。 幅は開くたびに作り直すので、実行後に測れば足りる
+        var showTabs = tabs.Count > 1 || showTabTitles;
+        var width = frameWidth;
+        if (showTabs)
+        {
+            width = Math.Max(width, TabRowWidth(tabs.Count, CategoryTabWidth));
+        }
+
+        foreach (var tab in tabs)
+        {
+            if (tab.IsPicker)
+            {
+                continue;
+            }
+
+            width = tab.Layout == ColorSelectorTabLayout.Grid
+                ? Math.Max(width, SwatchCellSize * SwatchGridColumns)
+                : Math.Max(width, MeasureListContentWidth(tab.Items));
+        }
+
+        var limit = showTabs ? Math.Max(maxWidth, TabRowWidth(tabs.Count, MinCategoryTabWidth)) : maxWidth;
+        return Math.Min(width, limit);
+    }
+
+    /// <summary>タブを横に並べたときの幅を求める。</summary>
+    /// <param name="count">タブの数。</param>
+    /// <param name="tabWidth">タブ 1 つの幅（DIP）。</param>
+    /// <returns>幅（DIP）。 タブが無い場合は 0。</returns>
+    private static double TabRowWidth(int count, double tabWidth)
+        => count <= 0 ? 0 : (count * tabWidth) + ((count - 1) * TabSpacing);
+
+    /// <summary>タブの幅を求める（数を増やすほど詰める）。</summary>
+    /// <param name="width">一覧（ポップアップ）の幅（DIP）。</param>
+    /// <param name="count">タブの数。</param>
+    /// <returns>タブ 1 つの幅（DIP）。</returns>
+    internal static double ResolveTabWidth(double width, int count)
+    {
+        if (count <= 0)
+        {
+            return CategoryTabWidth;
+        }
+
+        var fitting = (width - ((count - 1) * TabSpacing)) / count;
+        return Math.Clamp(fitting, MinCategoryTabWidth, CategoryTabWidth);
+    }
+
+    /// <summary>一覧に並べたときの内容（行と余白）の幅を測る。</summary>
+    /// <param name="entries">一覧に並べる項目。</param>
+    /// <returns>内容の幅（DIP）。 測れない場合は 0。</returns>
+    /// <remarks>
+    /// <b>画面へ出ていない間（アプリ実行前・ヘッドレス）は測らない</b>: 文字の測定は描画のバックエンドを
+    /// 要求するため、ここで測ると生成そのものが失敗する（実測 2026-11-02）。<br/>
+    /// <b>行は実際のテンプレートで測る</b>: 固定値だと文字サイズや文言を変えたときに幅が追随しない。
+    /// </remarks>
+    private static double MeasureListContentWidth(IReadOnlyList<ColorSelectorItem> entries)
+    {
         if (!Application.IsRunning)
         {
-            list.Width = double.NaN;
-            return;
+            return 0;
         }
 
         var widest = 0.0;
@@ -1181,18 +1282,21 @@ public sealed class ColorSelectorControl : Grid
             widest = Math.Max(widest, row.DesiredSize.Width);
         }
 
-        var padding = list.ItemPadding;
-        var contentWidth = widest + padding.Left + padding.Right + ListWidthAllowance;
-        list.Width = ResolveListWidth(Bounds.Width, contentWidth);
+        var padding = Application.Current.Theme.Metrics.ItemPadding;
+        return widest + padding.Left + padding.Right + ListWidthAllowance;
     }
 
-    /// <summary>一覧の幅を「枠の幅」と「内容の幅」の大きい方として求める。</summary>
-    /// <param name="frameWidth">枠（入力欄）の幅。</param>
-    /// <param name="contentWidth">一覧の内容（行と余白）の幅。</param>
-    /// <returns>一覧の幅。 コントロール（枠）の幅には使わない。</returns>
-    /// <remarks>枠を広げないことを測れない環境（単体テスト）でも検証できるよう、計算だけを切り出す。</remarks>
-    internal static double ResolveListWidth(double frameWidth, double contentWidth)
-        => Math.Max(frameWidth, contentWidth);
+    /// <summary>ポップアップに使える中身の幅の上限（DIP）を取得する。</summary>
+    /// <value>ウィンドウのクライアント領域の幅から影の分を引いた値。 ウィンドウが無い場合は無制限。</value>
+    /// <remarks>
+    /// <b>MewUI のポップアップは配置できる領域の幅で測る</b>（クライアント領域。 <c>Popup.Place</c>）。
+    /// 上限が無いと、タブが多いときにポップアップが右へはみ出して切れる（AvaloniaUI のフライアウトは
+    /// 既定の最大幅 480 DIP で切れる。 実測 2026-11-17）。
+    /// </remarks>
+    private double PopupMaxWidth
+        => FindVisualRoot() is Window window
+            ? Math.Max(0.0, window.ClientSize.Width - PopupChromeWidth)
+            : double.PositiveInfinity;
 
     /// <summary>一覧の選択を現在の色へ合わせる。</summary>
     /// <param name="list">対象の一覧。</param>
