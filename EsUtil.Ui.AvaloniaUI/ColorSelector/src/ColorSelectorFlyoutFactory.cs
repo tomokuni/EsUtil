@@ -35,14 +35,24 @@ internal static class ColorSelectorFlyoutFactory
     /// <param name="log">ログ出力先。 null は許可しない（呼び出し側が <see cref="ColorSelectorControl.Log"/> を渡す）。</param>
     /// <param name="applyColor">OK 確定時に選択色（#AARRGGBB）を反映するコールバック。</param>
     /// <param name="close">OK / キャンセルの後に一覧を閉じる処理。</param>
+    /// <param name="initialTabIndex">最初に選ぶカラーピッカーのタブ（前回選んだタブ。 範囲外は先頭）。</param>
+    /// <param name="onTabChanged">カラーピッカーのタブが変わったときに、その索引を知らせる処理。</param>
     /// <returns>カラーピッカーと OK / キャンセル ボタンを含む要素。</returns>
     /// <remarks>
     /// 処理フロー:<br/>
     /// 1. 初期色を解析して ColorView を構築する（固定サイズは設定しない。 タブを収めるためテーマの自然なサイズに任せる）。<br/>
     /// 2. OK / キャンセル ボタンを構築し、クリックイベントを配線する。<br/>
-    /// 3. 要素を返す（一覧のタブの中へ直接置く。 別のフライアウトを重ねない）。
+    /// 3. 要素を返す（一覧のタブの中へ直接置く。 別のフライアウトを重ねない）。<br/>
+    /// <b>タブの選択を覚える</b>: カラーピッカー自身のタブ（スペクトル / パレット / 成分）も前回の位置から開く
+    /// （開くたびに先頭へ戻ると、続けて同じタブを使うときに切り替えの手間がかかる）。
     /// </remarks>
-    internal static Control CreateContent(string currentColor, ILogger log, Action<string> applyColor, Action close)
+    internal static Control CreateContent(
+        string currentColor,
+        ILogger log,
+        Action<string> applyColor,
+        Action close,
+        int initialTabIndex = 0,
+        Action<int>? onTabChanged = null)
     {
         // 初期色をパース（色 + 不透明度の統合形式に対応。 失敗時は白）
         var initColor = Colors.White;
@@ -63,6 +73,24 @@ internal static class ColorSelectorFlyoutFactory
             MinHeight = ColorViewMinHeight,
             HexInputAlphaPosition = AlphaComponentPosition.Leading,
         };
+
+        // 前回選んだタブから開く（範囲外は先頭）
+        if (initialTabIndex >= 0 && initialTabIndex < ColorViewTabCount)
+        {
+            colorView.SelectedIndex = initialTabIndex;
+        }
+
+        // タブの変更を覚える（一覧を閉じた後も次の表示で同じタブから開く）
+        if (onTabChanged is not null)
+        {
+            colorView.PropertyChanged += (_, e) =>
+            {
+                if (e.Property == ColorView.SelectedIndexProperty)
+                {
+                    onTabChanged(colorView.SelectedIndex);
+                }
+            };
+        }
 
         // OK / キャンセル ボタン（共通の外観設定はヘルパーに集約。 重複を排除）
         // 固定 Width を設定した Button は Fluent テーマでコンテンツが左寄せになるため、
@@ -120,9 +148,11 @@ internal static class ColorSelectorFlyoutFactory
         HorizontalContentAlignment = HorizontalAlignment.Center,
     };
 
+    /// <summary>ColorView（カラーピッカー）のタブの数（スペクトル / パレット / 成分）。</summary>
+    private const int ColorViewTabCount = 3;
+
     /// <summary>ColorView（カラーピッカー）の最小幅。</summary>
     private const double ColorViewMinWidth = 280;
-
     /// <summary>ColorView（カラーピッカー）の最小高さ。</summary>
     private const double ColorViewMinHeight = 320;
 

@@ -289,14 +289,16 @@ public class ColorSelectorControlTests
         Assert.Equal(5, tabs.Count);
 
         var width = control.ResolveFlyoutWidth(tabs);
-        var tabWidth = ResolveTabWidth(width, tabs.Count);
 
-        // タブの行がフライアウトの幅に収まる（はみ出すと右端のタブが切れる）
-        Assert.True((tabs.Count * tabWidth) + ((tabs.Count - 1) * 4) <= width, $"タブの行が幅 {width} を超える");
-
+        // タブの行は等分した列へ並べる（幅を固定しないので、フライアウトからはみ出さない）
         var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
         var (strip, _) = GetTabsAndBody(flyout);
-        Assert.All(strip.Children, child => Assert.Equal(tabWidth, Assert.IsType<ToggleButton>(child).Width));
+        Assert.Equal(tabs.Count, strip.ColumnDefinitions.Count);
+        Assert.All(strip.ColumnDefinitions, column => Assert.Equal(GridLength.Star, column.Width));
+        Assert.All(strip.Children, child => Assert.Equal(double.NaN, Assert.IsType<ToggleButton>(child).Width));
+
+        // タブが詰まっても文言が読める幅は確保する（見積もりの下限）
+        Assert.True(ResolveTabWidth(width, tabs.Count) >= 56);
     }
 
     /// <summary>タブの幅を求める（実装と同じ規則。 幅に収まるよう詰め、下限で止める）。</summary>
@@ -305,6 +307,38 @@ public class ColorSelectorControlTests
     /// <returns>タブ 1 つの幅。</returns>
     private static double ResolveTabWidth(double width, int count)
         => Math.Clamp((width - ((count - 1) * 4)) / count, 56, 112);
+
+    /// <summary>カラーピッカーのタブの選択を覚えて、次に開いたときも同じタブから始めることを検証する。</summary>
+    /// <remarks>
+    /// 開くたびに先頭（スペクトル）へ戻ると、続けて同じタブ（例: 成分）を使うときに切り替えの手間がかかる。
+    /// 記憶はコントロール単位（永続化しない）。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void カラーピッカーのタブの選択を覚える()
+    {
+        var control = CreateControl();
+        control.ShowThemeColorTab = false;
+        control.ShowNamedColorTab = false;
+        control.ShowCustomTab = false;
+        control.ShowPickerTab = true;
+        control.ShowTabTitles = true;
+
+        // 1 回目にカラーピッカーのタブを開き、タブを「成分」へ変える
+        var first = Assert.IsType<Flyout>(control.CreateListFlyout());
+        var (_, body) = GetTabsAndBody(first);
+        var slot = Assert.IsType<Panel>(body.Children.First(child => child.IsVisible));
+        var content = Assert.IsType<StackPanel>(Assert.Single(slot.Children));
+        var view = Assert.IsType<ColorView>(content.Children[0]);
+        Assert.Equal(0, view.SelectedIndex);
+        view.SelectedIndex = 2;
+
+        // 2 回目は同じタブ（成分）から開く
+        var second = Assert.IsType<Flyout>(control.CreateListFlyout());
+        var (_, body2) = GetTabsAndBody(second);
+        var slot2 = Assert.IsType<Panel>(body2.Children.First(child => child.IsVisible));
+        var content2 = Assert.IsType<StackPanel>(Assert.Single(slot2.Children));
+        Assert.Equal(2, Assert.IsType<ColorView>(content2.Children[0]).SelectedIndex);
+    }
 
     /// <summary>タブの文言を取り出す。</summary>
     /// <param name="tab">タブ。</param>
@@ -626,7 +660,7 @@ public class ColorSelectorControlTests
         control.ShowPickerTab = false;
         control.ShowTabTitles = true;
         var shown = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(control.CreateListFlyout()).Content);
-        Assert.IsType<StackPanel>(shown.Children[0]);
+        Assert.IsType<Grid>(shown.Children[0]);
 
         control.ShowTabTitles = false;
         var hidden = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(control.CreateListFlyout()).Content);
@@ -644,7 +678,7 @@ public class ColorSelectorControlTests
         var root = Assert.IsType<StackPanel>(Assert.IsType<Flyout>(control.CreateListFlyout()).Content);
 
         // 1 段目がタブ、2 段目が中身
-        Assert.IsType<StackPanel>(root.Children[0]);
+        Assert.IsType<Grid>(root.Children[0]);
         Assert.IsType<Panel>(root.Children[1]);
     }
 
@@ -663,10 +697,10 @@ public class ColorSelectorControlTests
     /// <summary>一覧のタブ ストリップと中身（タブごとの表示を切り替える入れ物）を取り出す。</summary>
     /// <param name="flyout">対象の一覧。</param>
     /// <returns>タブ ストリップと中身。</returns>
-    private static (StackPanel Tabs, Panel Body) GetTabsAndBody(Flyout flyout)
+    private static (Grid Tabs, Panel Body) GetTabsAndBody(Flyout flyout)
     {
         var root = Assert.IsType<StackPanel>(flyout.Content);
-        return (Assert.IsType<StackPanel>(root.Children[0]), Assert.IsType<Panel>(root.Children[1]));
+        return (Assert.IsType<Grid>(root.Children[0]), Assert.IsType<Panel>(root.Children[1]));
     }
 
     /// <summary>表示中のタブの中身を取り出す。</summary>
