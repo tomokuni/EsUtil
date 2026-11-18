@@ -443,6 +443,29 @@ public class ColorSelectorControlTests
         }
     }
 
+    /// <summary>中身の幅の上限がテーマのスタイル資源でも解決できることを検証する。</summary>
+    /// <remarks>
+    /// ホストはテーマ（<c>FluentTheme</c> 等）を <c>Application.Styles</c> へ入れる。 資源はアプリの
+    /// <c>Resources</c> だけでなくスタイル側にもあるため、どちらにある場合も上限が追随する必要がある。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 中身の幅の上限はテーマのスタイル資源でも解決できる()
+    {
+        var application = Application.Current;
+        Assert.NotNull(application);
+
+        application.Styles.Add(new FluentTheme());
+        try
+        {
+            // テーマの既定（456）を資源として読む（固定値へ落ちていないこと）
+            Assert.Equal(456 - 24 - 2, ColorSelectorControl.ResolveMaxContentWidth());
+        }
+        finally
+        {
+            application.Styles.RemoveAt(application.Styles.Count - 1);
+        }
+    }
+
     /// <summary>タブの幅を求める（実装と同じ規則。 幅に収まるよう詰め、下限で止める）。</summary>
     /// <param name="width">フライアウトの幅。</param>
     /// <param name="count">タブの数。</param>
