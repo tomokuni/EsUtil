@@ -787,13 +787,18 @@ public sealed partial class ColorSelectorControl : UserControl
             return null;
         }
 
-        // 一覧の幅は**開く前に決める**（タブの行・一覧の内容・枠のうち最も広いもの）。
-        // 決めずに置くとタブの行だけが広がり、スクロール バーがフライアウトの途中に出る（実測 2026-11-17）
+        // 一覧の幅は**開く前に決める**（タブの行・一覧の内容・枠のうち最も広いもの。 フライアウトが表示できる幅で頭打ち）。
+        // 決めずに置くとタブの行だけが広がり、スクロール バーがフライアウトの途中に出る（実測 2026-11-17）。
+        // 幅は**固定しない**: カスタム タブの数・題名・一覧の内容に応じて変わり、上限だけがフライアウトの実寸になる。
         var width = ResolveFlyoutWidth(tabs);
 
         var tabStrip = CreateTabStrip(tabs.Count);
-        var body = new Panel { MinWidth = width };
-        var panel = new StackPanel { Spacing = 6 };
+
+        // 中身へ**確定した幅**を与える（MinWidth では足りない）: フライアウトの外側の ScrollViewer は
+        // 内容を横方向に無限幅で測るため、幅が確定していないとタブの行が自然幅まで広がり、
+        // フライアウト自身に横スクロール バーが出る（実測 2026-11-18）。
+        var body = new Panel { Width = width };
+        var panel = new StackPanel { Spacing = 6, Width = width };
 
         // ▼ はコンボボックスの右端にあるため、左端を揃えて開く（右端を揃えると一覧が左へ大きくずれる）
         var flyout = new Flyout { Content = panel, Placement = PlacementMode.BottomEdgeAlignedLeft };
@@ -845,12 +850,54 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>タブとタブの間の余白（DIP）。</summary>
     private const double TabSpacing = 4;
 
-    /// <summary>フライアウトの中身に使える幅の上限（DIP）。</summary>
+    /// <summary>フライアウトが中身に使える幅の上限の既定値（DIP。 テーマの資源を解決できないとき）。</summary>
     /// <remarks>
-    /// <b>フライアウトの既定の最大幅（約 480）から余白を引いた値</b>である。 超えると右端が切れる
-    /// （実測 2026-11-17: 4 つのタブで「ColorPicker」が欠けた）。 幅を上限で止め、タブの幅を詰めて収める。
+    /// Avalonia 12.1.6 の Fluent テーマの実寸（<c>FlyoutThemeMaxWidth</c> 456 − 左右の余白 12 × 2 −
+    /// 枠線 1 × 2 = 430）から、端数の丸めで超えないよう 2 DIP を引いた値である。
     /// </remarks>
-    private const double FlyoutMaxContentWidth = 440;
+    private const double DefaultFlyoutMaxContentWidth = 428;
+
+    /// <summary>フライアウトの中身に使える幅の上限（DIP）を求める。</summary>
+    /// <returns>上限の幅（DIP）。</returns>
+    /// <remarks>
+    /// <b>値は固定しない</b>: <see cref="FlyoutPresenter"/> のテーマが使う資源（<c>FlyoutThemeMaxWidth</c> /
+    /// <c>FlyoutContentThemePadding</c> / <c>FlyoutBorderThemeThickness</c>）を実行時に読み、そこから求める。
+    /// ホストが <c>FlyoutThemeMaxWidth</c> を広げれば、そのぶん中身も広げられる。<br/>
+    /// <b>この上限を超えるとフライアウト自身に横スクロール バーが出る</b>（外側の <see cref="ScrollViewer"/> が
+    /// 内容を横方向に無限幅で測るため）ので、中身の幅は必ずこの値で頭打ちにする（実測 2026-11-18）。
+    /// </remarks>
+    internal static double ResolveMaxContentWidth()
+    {
+        var maxWidth = TryFindDoubleResource("FlyoutThemeMaxWidth") ?? 456.0;
+        var padding = TryFindThicknessResource("FlyoutContentThemePadding") ?? new Thickness(12, 11, 12, 12);
+        var border = TryFindThicknessResource("FlyoutBorderThemeThickness") ?? new Thickness(1);
+
+        var available = maxWidth - padding.Left - padding.Right - border.Left - border.Right;
+
+        // 資源が無い・極端に小さい場合は既定値へ落とす（0 幅の一覧を作らない）
+        return available > MinTabWidth ? available : DefaultFlyoutMaxContentWidth;
+    }
+
+    /// <summary>アプリの資源から倍精度値を探す。</summary>
+    /// <param name="key">資源のキー。</param>
+    /// <returns>見つかった値。 無い場合は <see langword="null"/>。</returns>
+    private static double? TryFindDoubleResource(string key)
+        => Application.Current?.TryFindResource(key, out var value) == true
+            ? value switch
+            {
+                double number => number,
+                decimal number => (double)number,
+                _ => null,
+            }
+            : null;
+
+    /// <summary>アプリの資源から余白を探す。</summary>
+    /// <param name="key">資源のキー。</param>
+    /// <returns>見つかった値。 無い場合は <see langword="null"/>。</returns>
+    private static Thickness? TryFindThicknessResource(string key)
+        => Application.Current?.TryFindResource(key, out var value) == true && value is Thickness thickness
+            ? thickness
+            : null;
 
     /// <summary>タブ 1 つ分の最小幅（DIP。 文言が読める下限）。</summary>
     internal const double MinTabWidth = 56;
@@ -876,11 +923,13 @@ public sealed partial class ColorSelectorControl : UserControl
 
     /// <summary>一覧（フライアウト）の幅を求める。</summary>
     /// <param name="tabs">開くタブ。</param>
-    /// <returns>幅（DIP）。 枠（入力欄）・タブの行・一覧の内容のうち最も広いもの（上限あり）。</returns>
+    /// <returns>幅（DIP）。 枠（入力欄）・タブの行・一覧の内容・カラーピッカーの最小幅のうち最も広いもの（上限あり）。</returns>
     /// <remarks>
     /// <b>タブの行も幅に含める</b>: 含めないと、タブの行だけが広がって一覧（とスクロール バー）が
     /// 途中で切れる（実測 2026-11-17）。<br/>
-    /// カラーピッカーのタブは中身が自分の幅を持つため含めない（開いたときに広がる）。
+    /// <b>幅は固定しない</b>: タブの数・題名・一覧の内容に追随する。 上限だけを
+    /// <see cref="ResolveMaxContentWidth"/>（テーマの資源から求める）で止める（超えるとフライアウト自身が
+    /// 横スクロールするため）。
     /// </remarks>
     internal double ResolveFlyoutWidth(IReadOnlyList<ColorSelectorTabSpec> tabs)
     {
@@ -894,6 +943,8 @@ public sealed partial class ColorSelectorControl : UserControl
         {
             if (tab.IsPicker)
             {
+                // カラーピッカーは自分の最小幅を持つ（一覧の幅がそれより狭いと中身がはみ出して横スクロールになる）
+                width = Math.Max(width, ColorSelectorFlyoutFactory.ColorViewMinWidth);
                 continue;
             }
 
@@ -902,7 +953,7 @@ public sealed partial class ColorSelectorControl : UserControl
                 : Math.Max(width, SwatchCellSize * tab.Columns);
         }
 
-        return Math.Min(width, FlyoutMaxContentWidth);
+        return Math.Min(width, ResolveMaxContentWidth());
     }
 
     /// <summary>タブの中身を作る（一覧・格子・カラーピッカー）。</summary>
@@ -932,7 +983,7 @@ public sealed partial class ColorSelectorControl : UserControl
 
         return tab.IsList
             ? CreateColorList(tab, flyout, width)
-            : CreateSwatchGrid(tab, flyout);
+            : CreateSwatchGrid(tab, flyout, width);
     }
 
     /// <summary>色名付きの一覧（縦に並べてスクロールする）を作る。</summary>
@@ -965,18 +1016,23 @@ public sealed partial class ColorSelectorControl : UserControl
         return list;
     }
 
-    /// <summary>色の四角だけを 6 列に並べた格子を作る（スクロールせずに選べる）。</summary>
+    /// <summary>色の四角だけを指定した列数に並べた格子を作る（スクロールせずに選べる）。</summary>
     /// <param name="tab">タブの定義。</param>
     /// <param name="flyout">閉じる対象のポップアップ。</param>
+    /// <param name="width">フライアウトの中身の幅（DIP）。 列数が多くてもこの幅を超えない。</param>
     /// <returns>格子。</returns>
-    private Control CreateSwatchGrid(ColorSelectorTabSpec tab, Flyout flyout)
+    /// <remarks>
+    /// <b>列数は上限ではなく目安</b>である: 指定した列数がフライアウトの幅を超えるときは、収まる列数へ詰める
+    /// （格子が広がるとフライアウトに横スクロール バーが出る）。
+    /// </remarks>
+    private Control CreateSwatchGrid(ColorSelectorTabSpec tab, Flyout flyout, double width)
     {
         var grid = new WrapPanel
         {
             Orientation = Avalonia.Layout.Orientation.Horizontal,
             ItemWidth = SwatchCellSize,
             ItemHeight = SwatchCellSize,
-            Width = SwatchCellSize * Math.Max(1, tab.Columns),
+            Width = Math.Min(SwatchCellSize * Math.Max(1, tab.Columns), width),
         };
 
         foreach (var item in tab.Items)

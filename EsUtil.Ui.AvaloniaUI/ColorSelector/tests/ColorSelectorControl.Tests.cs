@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless.XUnit;
@@ -226,12 +227,12 @@ public class ColorSelectorControlTests
         control.ShowPickerTab = true;
         control.ShowTabTitles = true;
 
-        // 色名の一覧の内容より、タブの行（2 つ）の方が広い
+        // 色名の一覧の内容より、タブの行（2 つ）の方が広い（カラーピッカーの最小幅 280 が下限になる）
         var tabs = control.CreateTabs();
         Assert.Equal(2, tabs.Count);
 
         var width = control.ResolveFlyoutWidth(tabs);
-        Assert.Equal((2 * 112) + 4, width);
+        Assert.Equal(280, width);
 
         var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
         var (_, body) = GetTabsAndBody(flyout);
@@ -299,6 +300,147 @@ public class ColorSelectorControlTests
 
         // タブが詰まっても文言が読める幅は確保する（見積もりの下限）
         Assert.True(ResolveTabWidth(width, tabs.Count) >= 56);
+    }
+
+    /// <summary>タブが 5 つでも一覧の幅がフライアウトの実寸に収まることを検証する。</summary>
+    /// <remarks>
+    /// フライアウトの外側の <see cref="ScrollViewer"/> は内容を横方向に無限幅で測るため、中身の幅が
+    /// 確定していないとタブの行が自然幅まで広がり、フライアウト自身に横スクロール バーが出る
+    /// （実測 2026-11-18: 5 つのタブで 440 のとき 10 DIP はみ出した）。<br/>
+    /// <b>幅は固定しない</b>: 上限はテーマの資源から実行時に求め、実際の幅はタブ・一覧の内容に追随する。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 五つのタブでもフライアウトの実寸に収まる()
+    {
+        var control = CreateControl();
+        control.ShowThemeColorTab = false;
+        control.ShowNamedColorTab = true;
+        control.ShowPickerTab = true;
+        control.CustomTabs =
+        [
+            new ColorSelectorCustomTab("代表色パレット", [new ColorSelectorCustomColor("赤", "#FFDC2626")]),
+            new ColorSelectorCustomTab("代表色", [new ColorSelectorCustomColor("青", "#FF2563EB")]),
+            new ColorSelectorCustomTab("テーマカラー", [new ColorSelectorCustomColor("緑", "#FF16A34A")]),
+        ];
+
+        var tabs = control.CreateTabs();
+        Assert.Equal(5, tabs.Count);
+
+        var width = control.ResolveFlyoutWidth(tabs);
+        Assert.True(width <= ColorSelectorControl.ResolveMaxContentWidth(), $"中身の幅 {width} が上限を超える");
+
+        // 中身には**確定した幅**を与える（確定していないとタブの行が自然幅まで広がる）
+        var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
+        var root = Assert.IsType<StackPanel>(flyout.Content);
+        Assert.Equal(width, root.Width);
+
+        // タブは一覧の幅を等分した列へ並ぶ（幅を固定しない）
+        var strip = Assert.IsType<Grid>(root.Children[0]);
+        Assert.All(strip.ColumnDefinitions, column => Assert.Equal(GridLength.Star, column.Width));
+        Assert.All(strip.Children, child => Assert.Equal(double.NaN, Assert.IsType<ToggleButton>(child).Width));
+    }
+
+    /// <summary>カスタム タブの数が増えても一覧の幅がフライアウトの実寸に収まることを検証する。</summary>
+    /// <remarks>
+    /// カスタム タブは利用者が任意の数だけ足せる（固定ではない）。 数が増えても幅は上限で頭打ちになり、
+    /// タブは等分した列が詰まる（フライアウト自身は横スクロールしない）。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void カスタムタブが増えてもフライアウトの実寸に収まる()
+    {
+        var control = CreateControl();
+        control.ShowThemeColorTab = true;
+        control.ShowNamedColorTab = true;
+        control.ShowPickerTab = true;
+        control.CustomTabs =
+        [
+            .. Enumerable.Range(1, 8).Select(index =>
+                new ColorSelectorCustomTab(
+                    "カスタム" + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    [new ColorSelectorCustomColor("赤", "#FFDC2626")])),
+        ];
+
+        var tabs = control.CreateTabs();
+
+        // ヘッドレスではテーマの色を解決できないため、テーマカラーのタブは並ばない（カスタム 8 + 色名 + ColorPicker）
+        Assert.True(tabs.Count >= 10, $"タブが {tabs.Count} 個しかない");
+
+        var width = control.ResolveFlyoutWidth(tabs);
+        Assert.True(width <= ColorSelectorControl.ResolveMaxContentWidth(), $"中身の幅 {width} が上限を超える");
+
+        var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
+        var root = Assert.IsType<StackPanel>(flyout.Content);
+        Assert.Equal(width, root.Width);
+
+        var strip = Assert.IsType<Grid>(root.Children[0]);
+        Assert.Equal(tabs.Count, strip.ColumnDefinitions.Count);
+        Assert.All(strip.ColumnDefinitions, column => Assert.Equal(GridLength.Star, column.Width));
+    }
+
+    /// <summary>■ の列数が多くても格子はフライアウトの幅に収まることを検証する。</summary>
+    /// <remarks>
+    /// 列数は利用者が指定する目安であり、フライアウトの幅を超えるときは収まる列数へ詰める
+    /// （格子が広がるとフライアウトに横スクロール バーが出る）。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 格子の列数が多くてもフライアウトの幅に収まる()
+    {
+        var control = CreateControl();
+        control.ShowThemeColorTab = false;
+        control.ShowNamedColorTab = false;
+        control.ShowPickerTab = false;
+        var colors = Enumerable.Range(0, 80)
+            .Select(index => new ColorSelectorCustomColor(
+                "色" + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                "#FF0000" + index.ToString("X2", System.Globalization.CultureInfo.InvariantCulture)))
+            .ToList();
+        control.CustomTabs = [new ColorSelectorCustomTab("代表色", colors, 40)];
+
+        var width = control.ResolveFlyoutWidth(control.CreateTabs());
+
+        var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
+        var (_, body) = GetTabsAndBody(flyout);
+        var grid = Assert.IsType<WrapPanel>(GetVisibleView<WrapPanel>(body));
+
+        Assert.True(grid.Width <= width, $"格子の幅 {grid.Width} が一覧の幅 {width} を超える");
+        Assert.True(grid.Width <= ColorSelectorControl.ResolveMaxContentWidth());
+    }
+
+    /// <summary>中身の幅の上限がテーマの資源から求まることを検証する。</summary>
+    /// <remarks>
+    /// 上限を固定値にすると、ホストがフライアウトの幅を変えたとき（<c>FlyoutThemeMaxWidth</c> の上書き）に
+    /// 中身がはみ出して横スクロール バーが出る。 資源を実行時に読むことで、ホストの設定に追随する。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 中身の幅の上限はテーマの資源から求める()
+    {
+        const string key = "FlyoutThemeMaxWidth";
+        var application = Application.Current;
+        Assert.NotNull(application);
+
+        var hadKey = application.Resources.TryGetResource(key, application.ActualThemeVariant, out var original);
+
+        try
+        {
+            // Fluent テーマの既定（456 − 余白 12 × 2 − 枠線 1 × 2）
+            application.Resources[key] = 456.0;
+            Assert.Equal(456 - 24 - 2, ColorSelectorControl.ResolveMaxContentWidth());
+
+            // ホストが広げれば、そのぶん中身も広げられる
+            application.Resources[key] = 640.0;
+            Assert.Equal(640 - 24 - 2, ColorSelectorControl.ResolveMaxContentWidth());
+        }
+        finally
+        {
+            if (hadKey)
+            {
+                application.Resources[key] = original;
+            }
+            else
+            {
+                application.Resources.Remove(key);
+            }
+        }
     }
 
     /// <summary>タブの幅を求める（実装と同じ規則。 幅に収まるよう詰め、下限で止める）。</summary>
