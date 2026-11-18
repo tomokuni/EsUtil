@@ -152,7 +152,7 @@ internal static class ColorSelectorFlyoutFactory
     private const int ColorViewTabCount = 3;
 
     /// <summary>ColorView（カラーピッカー）の最小幅。</summary>
-    private const double ColorViewMinWidth = 280;
+    internal const double ColorViewMinWidth = 280;
     /// <summary>ColorView（カラーピッカー）の最小高さ。</summary>
     private const double ColorViewMinHeight = 320;
 
