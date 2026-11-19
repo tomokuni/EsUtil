@@ -59,7 +59,8 @@ public sealed class ColorSelectorControl : Grid
     private const double TextLeftIndent = CurrentColorSwatchMargin + CurrentColorSwatchSize + CurrentColorSwatchGap;
 
     /// <summary>テキスト入力の最小幅（DIP）。</summary>
-    private const double TextBoxMinWidth = 120.0;
+    /// <summary>テキスト入力の最小幅（DIP）。 指定した幅が小さいときは縮める（書式バーのように狭い欄でも収める）。</summary>
+    private const double TextBoxMinWidth = 40.0;
 
     /// <summary>一覧の分類を切り替えるタブの幅（DIP。 タブが少ないときに広げる上限）。</summary>
     private const double CategoryTabWidth = 96.0;
@@ -159,6 +160,9 @@ public sealed class ColorSelectorControl : Grid
 
     /// <summary>タブ付きの一覧のポップアップ。</summary>
     private readonly Popup _popup;
+
+    /// <summary>ポップアップの下地（テーマの面の色と枠線を開くたびに与える）。</summary>
+    private readonly Border _popupBackground;
 
     /// <summary>ポップアップの中身（タブの行 + 選択中のタブの中身）。</summary>
     private readonly StackPanel _listPanel;
@@ -304,7 +308,11 @@ public sealed class ColorSelectorControl : Grid
         _listPanel = new StackPanel().Vertical().Spacing(6).Children(_tabStrip, _body);
 
         _popup = new Popup();
-        _popup.Content(_listPanel);
+
+        // 一覧の下地を塗る（透明のままだと、代表色パレットの ■ の間から背後の画面が透ける）。
+        // 色はテーマから取るため、開くたびに設定する（テーマ変更へ追随する）
+        _popupBackground = new Border { Child = _listPanel };
+        _popup.Content(_popupBackground);
 
         RefreshList();
         ApplyColor(_selectedColor, raiseChanged: false);
@@ -850,6 +858,13 @@ public sealed class ColorSelectorControl : Grid
 
         // アンカーは**ウィンドウ座標**である（MewUI の Bounds はウィンドウ基準）。 ▼ はコンボボックスの
         // 右端にあるため、左端を揃えて開く（右端を揃えると一覧が左へ大きくずれる）
+        if (Application.IsRunning)
+        {
+            _popupBackground.Background = Application.Current.Theme.Palette.ControlBackground;
+            _popupBackground.BorderBrush = Application.Current.Theme.Palette.ControlBorder;
+            _popupBackground.BorderThickness = 1;
+        }
+
         _popup.ShowAt(this, _combo.Bounds, PopupAnchorSide.Below);
         if (_popup.IsOpen)
         {
