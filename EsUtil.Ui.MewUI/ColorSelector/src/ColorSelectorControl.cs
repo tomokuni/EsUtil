@@ -59,7 +59,8 @@ public sealed class ColorSelectorControl : Grid
     private const double TextLeftIndent = CurrentColorSwatchMargin + CurrentColorSwatchSize + CurrentColorSwatchGap;
 
     /// <summary>テキスト入力の最小幅（DIP）。</summary>
-    private const double TextBoxMinWidth = 120.0;
+    /// <summary>テキスト入力の最小幅（DIP）。 指定した幅が小さいときは縮める（書式バーのように狭い欄でも収める）。</summary>
+    private const double TextBoxMinWidth = 40.0;
 
     /// <summary>一覧の分類を切り替えるタブの幅（DIP。 タブが少ないときに広げる上限）。</summary>
     private const double CategoryTabWidth = 96.0;
