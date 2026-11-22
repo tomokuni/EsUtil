@@ -17,9 +17,20 @@ public static class ColorValidation
     /// <returns>有効な場合は <see langword="true"/>。</returns>
     public static bool IsValid(string? color) => ColorString.TryParse(color, out _, out _);
 
+    /// <summary>色文字列が有効かを調べる（利用者が付けた色名も有効として扱う）。</summary>
+    /// <param name="color">対象の文字列。 null 可。</param>
+    /// <param name="resolveAlias">色名を保存値へ解決する処理。 見つからない場合は null を返す。</param>
+    /// <returns>有効な場合は <see langword="true"/>。</returns>
+    /// <remarks>
+    /// <b>一覧に出す色名も有効にする</b>: 入力欄には利用者が付けた名前（例: <c>黒</c>）が出るため、
+    /// 同じ文字列を貼り付けたときに「無効な色コード」と表示されるのは矛盾します（実測 2026-11-23）。
+    /// </remarks>
+    public static bool IsValid(string? color, Func<string, string?> resolveAlias)
+        => ColorString.TryParseWithAliases(color, resolveAlias, out _, out _);
+
     /// <summary>バリデーション状態を決める。</summary>
     /// <param name="color">対象の文字列。 null 可。</param>
-    /// <param name="isValid">事前に判定した有効性（<see cref="IsValid"/> の結果）。</param>
+    /// <param name="isValid">事前に判定した有効性（<see cref="IsValid(string?)"/> の結果）。</param>
     /// <returns>エラーの有無とメッセージ。</returns>
     /// <remarks>空文字または有効な色はエラーなし（メッセージは null）、それ以外はエラーあり。</remarks>
     public static ColorValidationState Determine(string? color, bool isValid)

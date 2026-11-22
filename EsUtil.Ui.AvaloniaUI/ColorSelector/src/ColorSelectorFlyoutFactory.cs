@@ -151,7 +151,7 @@ internal static class ColorSelectorFlyoutFactory
     private static Button CreateActionButton(string content) => new()
     {
         Content = content,
-        Width = ActionButtonWidth,
+        MinWidth = ActionButtonWidth,
         Margin = new Thickness(3),
         HorizontalContentAlignment = HorizontalAlignment.Center,
     };
@@ -169,6 +169,10 @@ internal static class ColorSelectorFlyoutFactory
     /// <summary>ColorView（カラーピッカー）の最小高さ。</summary>
     private const double ColorViewMinHeight = 320;
 
-    /// <summary>操作ボタン（OK / キャンセル）の幅。</summary>
+    /// <summary>操作ボタン（OK / キャンセル）の最小幅（DIP）。</summary>
+    /// <remarks>
+    /// <b>幅を固定しない</b>: 固定すると「キャンセル」の文字が切れる（実測 2026-11-23）。
+    /// 最小幅だけを決め、文言が長ければボタンが広がるようにします。
+    /// </remarks>
     private const double ActionButtonWidth = 70;
 }

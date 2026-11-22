@@ -72,16 +72,21 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>格子に並べる色の四角の一辺（DIP。 セルの中へ余白を取って置く）。</summary>
     private const double SwatchSize = 20;
 
-    /// <summary>ピッカーのタブの中身の幅（DIP）。</summary>
     /// <summary>カラーピッカーの幅（DIP）。</summary>
     /// <remarks>
-    /// <b>実際に必要な幅に合わせる</b>: 320 DIP では成分の入力欄とスライダーが収まらず、右側が切れる
-    /// （実測 2026-11-22: WinUI 3 版で ColorPicker のタブが見切れた）。
+    /// <b>中身の実寸に合わせる</b>: WinUI 3 の <c>ColorPicker</c> は固定幅の格子で描くため、
+    /// これより広くすると**右側に余白が残り**（380 DIP では 68 DIP、344 DIP でも 32 DIP）、
+    /// 狭くすると成分の入力欄が見切れます（実測 2026-11-22 / 2026-11-23）。
+    /// 実測値（<c>DesiredSize.Width</c>）が 312 DIP です。
     /// </remarks>
-    private const double PickerWidth = 380;
+    private const double PickerWidth = 312;
 
-    /// <summary>操作ボタン（OK / キャンセル）の幅（DIP）。</summary>
-    private const double ActionButtonWidth = 70;
+    /// <summary>操作ボタン（OK / キャンセル）の最小幅（DIP）。</summary>
+    /// <remarks>
+    /// <b>幅を固定しない</b>: 固定すると「キャンセル」の文字が切れる（実測 2026-11-23）。
+    /// 最小幅だけを決め、文言が長ければボタンが広がるようにします。
+    /// </remarks>
+    private const double ActionButtonMinWidth = 70;
 
     /// <summary>テーマの色の表示名の接頭辞。</summary>
     private const string ThemeLabelPrefix = "テーマ: ";
@@ -685,6 +690,45 @@ public sealed partial class ColorSelectorControl : UserControl
         return ColorString.ToText(normalized, format);
     }
 
+    /// <summary>利用者が付けた色名（カスタム タブの名前）を保存値へ解決する。</summary>
+    /// <param name="text">入力された色名。</param>
+    /// <returns>解決した保存値。 見つからない場合は <see langword="null"/>。</returns>
+    /// <remarks>
+    /// <b>名前の照合は大文字小文字を無視する</b>: 手で打ち直しても同じ色として扱います。
+    /// 値は登録された保存値をそのまま返し、解釈はコアへ任せます。
+    /// </remarks>
+    private string? ResolveCustomNameValue(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        var trimmed = text.Trim();
+        foreach (var tab in CustomTabs)
+        {
+            if (tab is null)
+            {
+                continue;
+            }
+
+            foreach (var entry in tab.Colors)
+            {
+                if (string.IsNullOrWhiteSpace(entry.Value))
+                {
+                    continue;
+                }
+
+                if (string.Equals(entry.Name, trimmed, StringComparison.OrdinalIgnoreCase))
+                {
+                    return entry.Value;
+                }
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>色に一致するカスタム タブの色名を探す。</summary>
     /// <param name="normalized">保存値（<c>#AARRGGBB</c>）。</param>
     /// <param name="customTabs">利用者が追加したタブ。</param>
@@ -1075,11 +1119,15 @@ public sealed partial class ColorSelectorControl : UserControl
 
     /// <summary>Flyout の操作ボタン（OK / キャンセル）を作る。</summary>
     /// <param name="text">ボタンの表示テキスト。</param>
-    /// <returns>幅と中央揃えを揃えたボタン。</returns>
+    /// <returns>最小幅と中央揃えを揃えたボタン。</returns>
+    /// <remarks>
+    /// <b>幅を固定しない</b>: 固定すると「キャンセル」の文字が切れる（実測 2026-11-23）。
+    /// 最小幅だけを決め、文字が収まる幅はボタン自身に決めさせます。
+    /// </remarks>
     private static Button CreateActionButton(string text) => new()
     {
         Content = text,
-        Width = ActionButtonWidth,
+        MinWidth = ActionButtonMinWidth,
         HorizontalContentAlignment = HorizontalAlignment.Center,
     };
 
@@ -1378,7 +1426,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <param name="e">イベント引数。</param>
     private void OnTextLostFocus(object sender, RoutedEventArgs e)
     {
-        var valid = ColorValidation.IsValid(_selectedColor);
+        var valid = ColorValidation.IsValid(_selectedColor, ResolveCustomNameValue);
         _log.LogLostFocus(_selectedColor, valid);
         if (ColorValidation.ShouldRecover(valid, hasLastValid: true))
         {
@@ -1394,8 +1442,11 @@ public sealed partial class ColorSelectorControl : UserControl
     /// </remarks>
     private void ApplyColor(string? value, bool raiseChanged)
     {
-        var normalized = ColorString.ToArgbHex(value);
-        var state = ColorValidation.Determine(value, ColorValidation.IsValid(value));
+        // **利用者が付けた色名も入力として受け付ける**: 入力欄にはその名前（例: 「黒」）が出るため、
+        // 貼り付けたときに無効と表示されるのは矛盾する（実測 2026-11-23）。 解決の規則は
+        // コア（ColorString.TryParseWithAliases）が単一所有する。
+        var normalized = ColorString.ToArgbHex(value, ResolveCustomNameValue);
+        var state = ColorValidation.Determine(value, ColorValidation.IsValid(value, ResolveCustomNameValue));
         var updateText = !_applying;
 
         _applying = true;

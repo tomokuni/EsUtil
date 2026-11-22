@@ -569,8 +569,11 @@ public sealed class ColorSelectorControl : Grid
     /// <param name="raiseChanged">変更イベントを発火する場合は true。</param>
     private void ApplyColor(string? value, bool raiseChanged)
     {
-        var normalized = ColorString.ToArgbHex(value);
-        var isValid = ColorValidation.IsValid(value);
+        // **利用者が付けた色名も入力として受け付ける**: 入力欄にはその名前（例: 「黒」）が出るため、
+        // 貼り付けたときに無効と表示されるのは矛盾する（実測 2026-11-23）。 解決の規則は
+        // コア（ColorString.TryParseWithAliases）が単一所有する。
+        var normalized = ColorString.ToArgbHex(value, ResolveCustomNameValue);
+        var isValid = ColorValidation.IsValid(value, ResolveCustomNameValue);
         var state = ColorValidation.Determine(value, isValid);
 
         _applying = true;
@@ -645,6 +648,45 @@ public sealed class ColorSelectorControl : Grid
         }
 
         return ColorString.ToText(normalized, _textFormat);
+    }
+
+    /// <summary>利用者が付けた色名（カスタム タブの名前）を保存値へ解決する。</summary>
+    /// <param name="text">入力された色名。</param>
+    /// <returns>解決した保存値。 見つからない場合は <see langword="null"/>。</returns>
+    /// <remarks>
+    /// <b>名前の照合は大文字小文字を無視する</b>: 手で打ち直しても同じ色として扱います。
+    /// 値は登録された保存値（<c>#AARRGGBB</c> など）をそのまま返し、解釈はコアへ任せます。
+    /// </remarks>
+    private string? ResolveCustomNameValue(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        var trimmed = text.Trim();
+        foreach (var tab in CustomTabs)
+        {
+            if (tab is null)
+            {
+                continue;
+            }
+
+            foreach (var entry in tab.Colors)
+            {
+                if (entry is null || string.IsNullOrWhiteSpace(entry.Value))
+                {
+                    continue;
+                }
+
+                if (string.Equals(entry.Name, trimmed, StringComparison.OrdinalIgnoreCase))
+                {
+                    return entry.Value;
+                }
+            }
+        }
+
+        return null;
     }
 
     /// <summary>色に一致するカスタム タブの色名を探す。</summary>
@@ -1435,10 +1477,10 @@ public sealed class ColorSelectorControl : Grid
             return;
         }
 
-        // **一覧を閉じない**: ピッカーのドロップダウンが開くとフォーカスが移り、ポップアップが
-        // 自動で閉じてしまう（実測 2026-11-22: 代表色のタブが消えた）。 ピッカーの間だけ
-        // 外側の押下で閉じないようにして、代表色のタブを残す。
-        _popup.StaysOpen = true;
+        // **一覧を閉じてからピッカーを開く**: 2 つのポップアップを重ねると、後から開いた側が
+        // 入力を受け取れず**操作できなくなる**（実測 2026-11-23）。 一覧は閉じ、ピッカーを
+        // 閉じたときに代表色のタブで開き直す（<see cref="WatchPickerClosed"/>）。
+        _popup.Close();
         _picker.IsDropDownOpen = true;
 
         // ピッカーを開いたことを残す（一覧を開いたログと対。 他 UI と同じ書式）
@@ -1447,13 +1489,12 @@ public sealed class ColorSelectorControl : Grid
         WatchPickerClosed(pickerTabIndex);
     }
 
-    /// <summary>ピッカーが閉じたら一覧のタブを代表色へ戻す（代表色を選べなくならないようにする）。</summary>
+    /// <summary>ピッカーが閉じたら一覧を代表色のタブで開き直す（代表色を選べなくならないようにする）。</summary>
     /// <param name="pickerTabIndex">開いたカラーピッカーのタブの位置。</param>
     /// <remarks>
-    /// <b>一覧は閉じない</b>: 以前はピッカーを開くときに一覧を閉じていたため、**代表色のタブが消えて
-    /// 代表色を選べなくなりました**（実測 2026-11-22）。 一覧を開いたままピッカーのドロップダウンを出し、
-    /// 閉じたら代表色のタブへ戻します（MewUI の <c>ColorPicker</c> はドロップダウンであり、
-    /// ポップアップの中へ埋め込めないため、この形にする）。<br/>
+    /// <b>一覧はピッカーの間だけ閉じる</b>: 2 つのポップアップを重ねると上のポップアップが入力を奪って
+    /// 操作できなくなるため、重ねません（実測 2026-11-23）。 ピッカーを閉じたら代表色のタブで
+    /// 一覧を開き直すため、**代表色はいつでも選べます**（実測 2026-11-22 の指摘に対する形）。<br/>
     /// 閉じた通知が無いため、短い間隔で状態を見ます（開いている間だけ）。
     /// </remarks>
     private void WatchPickerClosed(int pickerTabIndex)
@@ -1473,15 +1514,10 @@ public sealed class ColorSelectorControl : Grid
                 return;
             }
 
-            // 一覧を通常の閉じ方（外側の押下で閉じる）へ戻す
-            _popup.StaysOpen = false;
-
-            // 代表色（ピッカー以外の先頭のタブ）へ戻す
+            // 代表色（ピッカー以外の先頭のタブ）へ戻してから一覧を開き直す
             var custom = _tabs.FindIndex(static tab => !tab.IsPicker);
-            if (custom >= 0 && custom != pickerTabIndex)
-            {
-                ApplyTab(custom);
-            }
+            ApplyTab(custom >= 0 ? custom : pickerTabIndex);
+            ShowList();
         }
     }
 

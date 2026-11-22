@@ -523,8 +523,10 @@ public sealed partial class ColorSelectorControl : UserControl
 
             Log.LogSelectedColorChanged((string)change.OldValue!, color);
 
-            // 解析は 1 回だけ行い、最終有効値の追跡とバリデーション更新で共有する（二重解析の排除）
-            var valid = ColorValidation.IsValid(color);
+            // 解析は 1 回だけ行い、最終有効値の追跡とバリデーション更新で共有する（二重解析の排除）。
+            // **利用者が付けた色名も有効として扱う**: 入力欄にはその名前（例: 「黒」）が出るため、
+            // 貼り付けたときに無効と表示されるのは矛盾する（実測 2026-11-23）
+            var valid = ColorValidation.IsValid(color, ResolveCustomNameValue);
             if (valid)
             {
                 _lastValidColor = color;
@@ -614,6 +616,45 @@ public sealed partial class ColorSelectorControl : UserControl
         return ColorString.ToText(normalized, TextFormat);
     }
 
+    /// <summary>利用者が付けた色名（カスタム タブの名前）を保存値へ解決する。</summary>
+    /// <param name="text">入力された色名。</param>
+    /// <returns>解決した保存値。 見つからない場合は <see langword="null"/>。</returns>
+    /// <remarks>
+    /// <b>名前の照合は大文字小文字を無視する</b>: 手で打ち直しても同じ色として扱います。
+    /// 値は登録された保存値をそのまま返し、解釈はコアへ任せます。
+    /// </remarks>
+    private string? ResolveCustomNameValue(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        var trimmed = text.Trim();
+        foreach (var tab in CustomTabs)
+        {
+            if (tab is null)
+            {
+                continue;
+            }
+
+            foreach (var entry in tab.Colors)
+            {
+                if (entry is null || string.IsNullOrWhiteSpace(entry.Value))
+                {
+                    continue;
+                }
+
+                if (string.Equals(entry.Name, trimmed, StringComparison.OrdinalIgnoreCase))
+                {
+                    return entry.Value;
+                }
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>色に一致するカスタム タブの色名を探す。</summary>
     /// <param name="normalized">保存値（<c>#AARRGGBB</c>）。</param>
     /// <returns>見つかった色名。 無い場合は <see langword="null"/>。</returns>
@@ -684,7 +725,7 @@ public sealed partial class ColorSelectorControl : UserControl
     private void OnTextLostFocus(object? sender, RoutedEventArgs e)
     {
         var color = SelectedColor;
-        var valid = ColorValidation.IsValid(color);
+        var valid = ColorValidation.IsValid(color, ResolveCustomNameValue);
         var hasLastValid = _lastValidColor is not null;
 
         // 無効な入力を最終有効値へ復帰するかは純粋関数（ColorValidation.ShouldRecover）で判定する

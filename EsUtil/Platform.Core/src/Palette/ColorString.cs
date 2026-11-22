@@ -106,11 +106,60 @@ public static class ColorString
         var other => throw new ArgumentOutOfRangeException(nameof(format), other, "定義されていない表記です。"),
     };
 
+    /// <summary>色文字列を、利用者が付けた色名（別名）を解決してから解析する。</summary>
+    /// <param name="text">解析する文字列（例: <c>黒</c> / <c>#336699</c>）。 null 可。</param>
+    /// <param name="resolveAlias">色名を保存値（<c>#AARRGGBB</c> など）へ解決する処理。 見つからない場合は null を返す。</param>
+    /// <param name="color">解析した色。</param>
+    /// <param name="opacity">解析した不透明度（0.0〜1.0）。</param>
+    /// <returns>解析できた場合は <see langword="true"/>。</returns>
+    /// <remarks>
+    /// <b>一覧に出す色名も入力として受け付ける</b>: 画面には利用者が付けた名前（例: <c>黒</c>）が出るため、
+    /// 同じ文字列を貼り付けたときに「無効な色コード」と表示されるのは矛盾します（実測 2026-11-23）。
+    /// 別名の表は UI（カスタム タブ）が持つため、解決だけを呼び出し側から受け取ります。<br/>
+    /// 別名が解決できない場合は通常の解析（<see cref="TryParse"/>）と同じ結果になります。
+    /// </remarks>
+    public static bool TryParseWithAliases(
+        string? text, Func<string, string?> resolveAlias, out DrawingColor color, out double opacity)
+    {
+        ArgumentNullException.ThrowIfNull(resolveAlias);
+
+        if (TryParse(text, out color, out opacity))
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        var aliased = resolveAlias(text);
+        return !string.IsNullOrWhiteSpace(aliased) && TryParse(aliased, out color, out opacity);
+    }
+
     /// <summary>任意の色文字列を <c>#AARRGGBB</c>（アルファが先頭）へ正規化する。</summary>
     /// <param name="text">入力（例: <c>Red</c> / <c>Red+50%</c> / <c>#FF0000</c>）。 null 可。</param>
     /// <returns><c>#AARRGGBB</c> の保存値（例: <c>#80FF0000</c>）。 解析できない場合は入力をそのまま返す。</returns>
     public static string ToArgbHex(string? text)
         => string.IsNullOrWhiteSpace(text) ? text ?? string.Empty : s_normalizedCache.GetOrAdd(text);
+
+    /// <summary>利用者が付けた色名（別名）を解決してから <c>#AARRGGBB</c> へ正規化する。</summary>
+    /// <param name="text">入力（例: <c>黒</c> / <c>#FF0000</c>）。 null 可。</param>
+    /// <param name="resolveAlias">色名を解決する処理。 見つからない場合は null を返す。</param>
+    /// <returns><c>#AARRGGBB</c> の保存値。 解析できない場合は入力をそのまま返す。</returns>
+    /// <remarks>別名を解決できた場合だけ変換します（解決できない入力は <see cref="ToArgbHex(string?)"/> と同じ）。</remarks>
+    public static string ToArgbHex(string? text, Func<string, string?> resolveAlias)
+    {
+        ArgumentNullException.ThrowIfNull(resolveAlias);
+
+        if (string.IsNullOrWhiteSpace(text) || TryParse(text, out _, out _))
+        {
+            return ToArgbHex(text);
+        }
+
+        var aliased = resolveAlias(text);
+        return string.IsNullOrWhiteSpace(aliased) ? text : ToArgbHex(aliased);
+    }
 
     /// <summary>色を <c>#AARRGGBB</c> の形へ変換する。</summary>
     /// <param name="color">対象の色。</param>
