@@ -84,10 +84,23 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>格子の中の色の四角の一辺（DIP）。</summary>
     private const double SwatchSize = 20.0;
 
-    /// <summary>一覧の最大の高さ（DIP）。 格子のタブには効かない（格子はスクロールしない）。</summary>
     /// <summary>インラインのカラーピッカーの幅（DIP）。</summary>
     private const double PickerInlineWidth = 220;
+
+    /// <summary>インラインのカラーピッカーの題名の列の幅（DIP）。</summary>
+    private const double PickerLabelWidth = 56;
+
+    /// <summary>インラインのカラーピッカーの題名とスライダーの間の余白（DIP）。</summary>
+    private const double PickerRowSpacing = 6;
+
+    /// <summary>一覧の最大の高さ（DIP）。 格子のタブには効かない（格子はスクロールしない）。</summary>
     private const double ListMaxHeight = 360.0;
+
+    /// <summary>一覧（ポップアップ）の中身と枠の間の余白（左右・DIP）。</summary>
+    private const double PopupSidePadding = 10;
+
+    /// <summary>一覧（ポップアップ）の中身と枠の間の余白（上下・DIP）。</summary>
+    private const double PopupEdgePadding = 6;
 
     /// <summary>テーマの色の表示名の接頭辞。</summary>
     private const string ThemeLabelPrefix = "テーマ: ";
@@ -277,6 +290,7 @@ public sealed class ColorSelectorControl : Grid
         // 一覧の幅は**行の内容に合わせる**（既定のまま置くと、ポップアップが使える領域の幅いっぱいへ広がる）。
         // 左寄せにすると希望サイズが内容の実寸になり、文字サイズや行の文言が変われば幅も追随する
         _listPanel = new StackPanel().Vertical().Spacing(6).Children(_tabStrip, _body);
+        _listPanel.Margin = new Thickness(PopupSidePadding, PopupEdgePadding, PopupSidePadding, PopupEdgePadding);
 
         _popup = new Popup();
 
@@ -878,6 +892,10 @@ public sealed class ColorSelectorControl : Grid
             _popupBackground.BorderThickness = 1;
         }
 
+        // 前回のタブで確定した大きさが残っていると、より小さいタブが切れるため戻す
+        _popupBackground.Width = double.NaN;
+        _popupBackground.Height = double.NaN;
+
         _popup.ShowAt(this, _combo.Bounds, PopupAnchorSide.Below);
         if (_popup.IsOpen)
         {
@@ -1048,16 +1066,16 @@ public sealed class ColorSelectorControl : Grid
     /// <param name="width">一覧の幅（DIP。 スクロール バーが右端へ来るようにそろえる）。</param>
     /// <returns>タブの中身。</returns>
     /// <remarks>
-    /// <b>カラーピッカーのタブは中身を持たない</b>: MewUI の <see cref="ColorPicker"/> はドロップダウンであり、
-    /// ポップアップの中へ埋め込めない。 タブを選んだときに一覧を閉じてピッカーのドロップダウンを開くため、
-    /// ここでは空の入れ物だけを返す（開いていない間にピッカーのログを出さない）。
+    /// <b>カラーピッカーのタブはインラインのピッカーを返す</b>: MewUI の <see cref="ColorPicker"/> はドロップダウンであり、
+    /// 一覧のポップアップの上へ重ねると入力が奪われるため、タブの中へそのまま置けるスライダーで作る
+    /// （<see cref="CreateInlinePicker"/>）。 幅は一覧の幅に合わせる（狭い枠でも切れない）。
     /// <b>この処理はタブを最初に表示するときだけ呼ぶ</b>（全タブを先に作らない）。
     /// </remarks>
     internal FrameworkElement CreateTabView(ColorSelectorTabSpec tab, double width)
     {
         if (tab.IsPicker)
         {
-            return CreateInlinePicker();
+            return CreateInlinePicker(width - (PopupSidePadding * 2));
         }
 
         return tab.IsList
@@ -1077,14 +1095,15 @@ public sealed class ColorSelectorControl : Grid
     /// ためです。 タブの中へ**そのまま置く**スライダーで作れば、ポップアップの重なりが無くなり、
     /// どのホスト（一覧・注釈パネル）でも同じように操作できます。
     /// </remarks>
-    private FrameworkElement CreateInlinePicker()
+    private FrameworkElement CreateInlinePicker(double width)
     {
-        var panel = new StackPanel().Vertical().Spacing(6).Width(ListWidthForPicker());
+        var sliderWidth = Math.Max(60, width - PickerLabelWidth - PickerRowSpacing);
+        var panel = new StackPanel().Vertical().Spacing(6).Width(width);
 
         var preview = new Border
         {
             Height = 40,
-            Width = ListWidthForPicker(),
+            Width = width,
         };
         panel.Add(preview);
 
@@ -1112,22 +1131,22 @@ public sealed class ColorSelectorControl : Grid
 
         return panel;
 
-        static Element PickerRow(string label, Slider slider) => new StackPanel().Horizontal().Spacing(6)
+        static Element PickerRow(string label, Slider slider) => new StackPanel().Horizontal().Spacing(PickerRowSpacing)
             .Children(
                 new TextBlock
                 {
                     Text = label,
                     FontSize = ListFontSize,
-                    Width = 56,
+                    Width = PickerLabelWidth,
                     VerticalAlignment = VerticalAlignment.Center,
                 },
                 slider);
 
-        static Slider CreatePickerSlider(double step, double maximum) => new()
+        Slider CreatePickerSlider(double step, double maximum) => new()
         {
             Minimum = 0,
             Maximum = maximum,
-            Width = 150,
+            Width = sliderWidth,
         };
 
         void OnChanged()
@@ -1180,7 +1199,7 @@ public sealed class ColorSelectorControl : Grid
 
     /// <summary>インラインのカラーピッカーの幅（DIP）を求める。</summary>
     /// <returns>幅（DIP）。</returns>
-    private static double ListWidthForPicker() => PickerInlineWidth;
+    private static double ListWidthForPicker() => PickerInlineWidth + (PopupSidePadding * 2);
 
     /// <summary>スライダーの刻み（0〜100 の百分率に対する 1 段階）。</summary>
     /// <param name="maximum">スライダーの上限。</param>
@@ -1373,9 +1392,9 @@ public sealed class ColorSelectorControl : Grid
 
     /// <summary>開いている一覧を測り直して置き直す（中身の大きさが変わったとき）。</summary>
     /// <remarks>
-    /// <b>高さを中身の実寸へ確定する</b>: MewUI の <see cref="Popup"/> は表示した時点の大きさで
-    /// 固定され、中身が後から高くなっても追随しません。 測り直した高さを枠へ与えてから
-    /// 出し直します（実測 2026-11-23: インラインのカラーピッカーの下が切れた）。<br/>
+    /// <b>中身の大きさに追随させる</b>: MewUI の <see cref="Popup"/> は表示した時点の大きさで
+    /// 固定されることがあるため、タブを切り替えたら置き直して測り直させる（<see cref="Popup.MoveTo"/>）。
+    /// 中身より小さいままなら実寸を枠へ与える（実測 2026-11-23: ピッカーの右と下が切れた）。<br/>
     /// 作り直しは次の描画へ回します（押下の処理中に閉じると、同じ押下で閉じ直されることがある）。
     /// </remarks>
     private void RelayoutList()
@@ -1393,14 +1412,34 @@ public sealed class ColorSelectorControl : Grid
             }
 
             _listPanel.Measure(new Size(_listWidth, double.PositiveInfinity));
-            var height = _listPanel.DesiredSize.Height;
-            if (height > 0)
+            var desired = _listPanel.DesiredSize;
+            var border = _popupBackground.BorderThickness;
+
+            // **まず置き直す**: `MoveTo` は中身を測り直して大きさを合わせます（実測 2026-11-23:
+            // 一覧 474 → ピッカー 304 画素へ追随した）。 `Close` して出し直すと、押下の処理中は
+            // 閉じたまま戻らないことがあります（実測 2026-11-23: 設定画面で一覧が消えた）。
+            var rect = _popup.MoveTo(_combo.Bounds, PopupAnchorSide.Below);
+
+            // **追随しない場合だけ大きさを確定する**: 中身より小さいままなら、実寸を枠へ与えて置き直す。
+            // 常に固定すると、小さいタブへ戻したときに余白だけが残る（大きさが縮まない）。
+            var pinned = false;
+            if (desired.Width > 0 && rect.Width + 0.5 < desired.Width + (border * 2))
             {
-                _popupBackground.Height = height + (_popupBackground.BorderThickness * 2);
+                _popupBackground.Width = desired.Width + (border * 2);
+                pinned = true;
             }
 
-            _popup.Close();
-            _popup.ShowAt(this, _combo.Bounds, PopupAnchorSide.Below);
+            if (desired.Height > 0 && rect.Height + 0.5 < desired.Height + (border * 2))
+            {
+                _popupBackground.Height = desired.Height + (border * 2);
+                pinned = true;
+            }
+
+            if (pinned)
+            {
+                _popup.MoveTo(_combo.Bounds, PopupAnchorSide.Below);
+            }
+
         }
 
         if (Application.IsRunning && Application.Current is { } app && app.Dispatcher is { } dispatcher)
@@ -1453,7 +1492,8 @@ public sealed class ColorSelectorControl : Grid
     /// <remarks>
     /// <b>タブの行も幅に含める</b>: 含めないと、タブの行だけが広がって一覧（とスクロール バー）が
     /// ポップアップの途中で切れる（実測 2026-11-17）。<br/>
-    /// カラーピッカーのタブは中身が自分の幅を持つため含めない（開いたときに広がる）。<br/>
+    /// <b>カラーピッカーの幅も含める</b>: ピッカーは自分の幅（<see cref="ListWidthForPicker"/>）を持つため、
+    /// 含めないと枠が狭いときにピッカーの右側が切れる（実測 2026-11-23）。
     /// <b>上限は「タブを最小の幅で並べた行」までは広げる</b>: 上限で切ると、タブが多いときに
     /// 最後のタブが欠ける（実測 2026-11-17: 14 個で「ColorPicker」が欠けた）。 MewUI のポップアップは
     /// 中身の幅で測って作業領域へ寄せるため、枠より広くても切れない。<br/>
@@ -1466,7 +1506,8 @@ public sealed class ColorSelectorControl : Grid
         bool showTabTitles)
     {
         var showTabs = tabs.Count > 1 || showTabTitles;
-        var width = frameWidth;
+        var pickerWidth = tabs.Any(tab => tab.IsPicker) ? ListWidthForPicker() : 0;
+        var width = Math.Max(frameWidth, pickerWidth);
         if (showTabs)
         {
             width = Math.Max(width, TabRowWidth(tabs.Count, CategoryTabWidth));
@@ -1485,6 +1526,7 @@ public sealed class ColorSelectorControl : Grid
         }
 
         var limit = showTabs ? Math.Max(maxWidth, TabRowWidth(tabs.Count, MinCategoryTabWidth)) : maxWidth;
+        limit = Math.Max(limit, pickerWidth);
         return Math.Min(width, limit);
     }
 
