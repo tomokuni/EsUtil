@@ -267,6 +267,10 @@ public sealed class ColorSelectorControl : Grid
         // カラーピッカーは**自身のドロップダウン**を使う（内容を自前のポップアップへ入れると
         // 折り畳んだ見出ししか表示されない。 ColorPicker はドロップダウン コントロールである）。
         // アンカーは 1×1 にして右下へ寄せ、折り畳んだ見出しを描かないよう切り取る
+        // **有効にしたまま 1×1 に切り取る**: `IsHitTestVisible = false` にすると、
+        // この要素を親として開くドロップダウン（ピッカー本体）まで入力を受け取れなくなり、
+        // **ピッカーを表示しても操作できません**（実測 2026-11-23）。 1×1 の右下なので、
+        // 行の操作を妨げることもありません。
         _picker = new ColorPicker
         {
             Kind = ColorPickerKind.Both,
@@ -276,7 +280,6 @@ public sealed class ColorSelectorControl : Grid
             Height = 1,
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Bottom,
-            IsHitTestVisible = false,
         };
         _picker.SelectedColorChanged += OnPickerColorChanged;
 
@@ -286,7 +289,6 @@ public sealed class ColorSelectorControl : Grid
             Height = 1,
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Bottom,
-            IsHitTestVisible = false,
         };
         pickerHost.ClipToBounds(true);
         pickerHost.Add(_picker);
