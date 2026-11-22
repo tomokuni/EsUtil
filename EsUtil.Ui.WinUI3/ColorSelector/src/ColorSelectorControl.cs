@@ -73,7 +73,12 @@ public sealed partial class ColorSelectorControl : UserControl
     private const double SwatchSize = 20;
 
     /// <summary>ピッカーのタブの中身の幅（DIP）。</summary>
-    private const double PickerWidth = 320;
+    /// <summary>カラーピッカーの幅（DIP）。</summary>
+    /// <remarks>
+    /// <b>実際に必要な幅に合わせる</b>: 320 DIP では成分の入力欄とスライダーが収まらず、右側が切れる
+    /// （実測 2026-11-22: WinUI 3 版で ColorPicker のタブが見切れた）。
+    /// </remarks>
+    private const double PickerWidth = 380;
 
     /// <summary>操作ボタン（OK / キャンセル）の幅（DIP）。</summary>
     private const double ActionButtonWidth = 70;

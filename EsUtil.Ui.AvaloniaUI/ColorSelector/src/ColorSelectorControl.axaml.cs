@@ -1018,7 +1018,8 @@ public sealed partial class ColorSelectorControl : UserControl
                 },
                 flyout.Hide,
                 _pickerTabIndex,
-                index => _pickerTabIndex = index);
+                index => _pickerTabIndex = index,
+                width);
         }
 
         return tab.IsList

@@ -37,6 +37,7 @@ internal static class ColorSelectorFlyoutFactory
     /// <param name="close">OK / キャンセルの後に一覧を閉じる処理。</param>
     /// <param name="initialTabIndex">最初に選ぶカラーピッカーのタブ（前回選んだタブ。 範囲外は先頭）。</param>
     /// <param name="onTabChanged">カラーピッカーのタブが変わったときに、その索引を知らせる処理。</param>
+    /// <param name="availableWidth">一覧の中身に使える幅（DIP。 0 以下は既定の最小幅）。</param>
     /// <returns>カラーピッカーと OK / キャンセル ボタンを含む要素。</returns>
     /// <remarks>
     /// 処理フロー:<br/>
@@ -52,7 +53,8 @@ internal static class ColorSelectorFlyoutFactory
         Action<string> applyColor,
         Action close,
         int initialTabIndex = 0,
-        Action<int>? onTabChanged = null)
+        Action<int>? onTabChanged = null,
+        double availableWidth = 0)
     {
         // 初期色をパース（色 + 不透明度の統合形式に対応。 失敗時は白）
         var initColor = Colors.White;
@@ -66,10 +68,16 @@ internal static class ColorSelectorFlyoutFactory
         // タブ（Spectrum / Palette / Components）とスライダーを収めるには高さが必要なため、
         // 固定サイズ（280x240）ではコンテンツが左右下で見切れる。 テーマの自然なサイズに任せる。
         // Hex 入力タブは #AARRGGBB（アルファ先頭）形式で表示する（Avalonia 標準の Color.Parse と整合）。
+        // **一覧の幅へ収める**: 幅を指定しないと ColorView の希望幅が一覧の幅を超え、右側が切れる
+        // （実測 2026-11-22: ColorPicker のタブで成分の入力欄が見切れた）。 渡された幅を上限にする。
+        var width = availableWidth > 0 ? availableWidth : ColorViewMinWidth;
+
         var colorView = new ColorView
         {
             Color = initColor,
-            MinWidth = ColorViewMinWidth,
+            Width = width,
+            MinWidth = Math.Min(ColorViewMinWidth, width),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
             MinHeight = ColorViewMinHeight,
             HexInputAlphaPosition = AlphaComponentPosition.Leading,
         };

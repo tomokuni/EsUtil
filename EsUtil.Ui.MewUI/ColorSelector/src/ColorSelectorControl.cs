@@ -1225,11 +1225,18 @@ public sealed class ColorSelectorControl : Grid
             return;
         }
 
-        ApplyTab(index);
+        // **ピッカーのタブは「一覧を閉じずに候補を開く」ボタンとして扱う**: タブを切り替えると
+        // 代表色が消えて選べなくなるため、**タブは代表色のまま**にしてピッカーの候補だけを開く
+        // （実測 2026-11-22: ColorPicker だけのタブになった、との指摘）。
         if (index >= 0 && index < _tabs.Count && _tabs[index].IsPicker)
         {
+            var custom = _tabs.FindIndex(static tab => !tab.IsPicker);
+            ApplyTab(custom >= 0 ? custom : index);
             OpenPicker(index);
+            return;
         }
+
+        ApplyTab(index);
     }
 
     /// <summary>一覧のタブを作る。</summary>
