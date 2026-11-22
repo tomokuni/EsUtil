@@ -902,6 +902,44 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>タブ 1 つ分の最小幅（DIP。 文言が読める下限）。</summary>
     internal const double MinTabWidth = 56;
 
+    /// <summary>タブの行の幅（DIP）を求める（題名の実寸と余白の合計）。</summary>
+    /// <param name="tabs">開くタブ。</param>
+    /// <returns>幅（DIP）。</returns>
+    /// <remarks>
+    /// <b>題名の実寸から求める</b>: 固定値で見積もると、長い題名（「ColorPicker」）のタブが
+    /// 詰められて省略記号になり、何のタブか読めません（実測 2026-11-22）。
+    /// </remarks>
+    private static double ResolveTabStripWidth(IReadOnlyList<ColorSelectorTabSpec> tabs)
+    {
+        var total = 0.0;
+        foreach (var tab in tabs)
+        {
+            total += Math.Max(CategoryTabWidth, MeasureTabTitle(tab.Title));
+        }
+
+        return total + ((tabs.Count - 1) * TabSpacing);
+    }
+
+    /// <summary>タブの題名に必要な幅（DIP）を求める。</summary>
+    /// <param name="title">題名。</param>
+    /// <returns>幅（DIP。 余白と枠を含む）。</returns>
+    private static double MeasureTabTitle(string title)
+    {
+        var formatted = new FormattedText(
+            title,
+            System.Globalization.CultureInfo.CurrentCulture,
+            FlowDirection.LeftToRight,
+            new Typeface(FontFamily.Default),
+            CategoryTabFontSize,
+            Brushes.Black);
+        return Math.Ceiling(formatted.WidthIncludingTrailingWhitespace)
+            + s_categoryTabPadding.Left + s_categoryTabPadding.Right
+            + TabChromeWidth;
+    }
+
+    /// <summary>タブの枠線と内側の余白の幅（DIP）。</summary>
+    private const double TabChromeWidth = 8;
+
     /// <summary>タブの幅を求める（数を増やすほど詰める）。</summary>
     /// <param name="width">フライアウトの中身の幅。</param>
     /// <param name="count">タブの数。</param>
@@ -936,7 +974,9 @@ public sealed partial class ColorSelectorControl : UserControl
         var width = Bounds.Width;
         if (tabs.Count > 1 || ShowTabTitles)
         {
-            width = Math.Max(width, (tabs.Count * CategoryTabWidth) + ((tabs.Count - 1) * TabSpacing));
+            // **題名の実寸で幅を決める**: 固定の 1 タブ幅（112 DIP）で見積もると、題名が長いタブ
+            // （「ColorPicker」）が詰められて見切れる（実測 2026-11-22）。
+            width = Math.Max(width, ResolveTabStripWidth(tabs));
         }
 
         foreach (var tab in tabs)

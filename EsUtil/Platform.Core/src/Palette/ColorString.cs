@@ -62,15 +62,27 @@ public static class ColorString
         return cached.Success;
     }
 
-    /// <summary>色と不透明度を <c>{色}+{不透明度%}</c> の形へ整形する。</summary>
+    /// <summary>色と不透明度を入力欄の表記へ整形する。</summary>
     /// <param name="color">色（アルファは見ない。 不透明度は <paramref name="opacity"/> が決める）。</param>
-    /// <param name="opacity">不透明度（0.0〜1.0）。 1.0 の場合は <c>+…</c> を省く。</param>
-    /// <returns>整形した文字列（例: <c>Red</c> / <c>Red+50%</c> / <c>#336699+75%</c>）。</returns>
+    /// <param name="opacity">不透明度（0.0〜1.0）。</param>
+    /// <returns>整形した文字列（色名があれば <c>Red</c> / <c>Red+50%</c>、無ければ <c>#80FF0000</c>）。</returns>
+    /// <remarks>
+    /// <b>色名が無い色は常に <c>#AARRGGBB</c>（8 桁）で表す</b>: 6 桁の <c>#RRGGBB</c> に不透明度を
+    /// <c>+{n}%</c> で足す形にすると、<b>同じ色でも色名の有無で桁数と形が変わり</b>、不透明度が見えない
+    /// 表記も生まれます（実測 2026-11-22）。 8 桁にアルファを含めれば、1 つの表記で色も不透明度も分かります。<br/>
+    /// <b>色名がある色は <c>{色名}+{不透明度%}</c></b> のままです（色名のほうが読みやすく、
+    /// 不透明度は色名だけでは表せないため）。 不透明度が 100% のときは <c>+…</c> を省きます。
+    /// </remarks>
     public static string Format(DrawingColor color, double opacity)
     {
-        var colorPart = ColorNames.FindName(color) ?? ToRgbHex(color);
-        var percent = (int)Math.Round(Math.Clamp(opacity, 0.0, 1.0) * 100);
-        return percent >= 100 ? colorPart : $"{colorPart}+{percent}%";
+        if (ColorNames.FindName(color) is { } name)
+        {
+            var percent = (int)Math.Round(Math.Clamp(opacity, 0.0, 1.0) * 100);
+            return percent >= 100 ? name : $"{name}+{percent}%";
+        }
+
+        var alpha = (byte)Math.Round(Math.Clamp(opacity, 0.0, 1.0) * 255.0);
+        return $"#{alpha:X2}{color.R:X2}{color.G:X2}{color.B:X2}";
     }
 
     /// <summary>保存値を画面表示用の文字列へ変換する。</summary>
@@ -168,9 +180,4 @@ public static class ColorString
     /// <returns><c>#AARRGGBB</c>。 解析できない場合は入力そのもの。</returns>
     private static string NormalizeArgbHex(string text)
         => TryParse(text, out var color, out _) ? ToArgbHex(color) : text;
-
-    /// <summary>色を <c>#RRGGBB</c>（アルファなし）へ変換する。</summary>
-    /// <param name="color">対象の色。</param>
-    /// <returns><c>#RRGGBB</c> の文字列。</returns>
-    private static string ToRgbHex(DrawingColor color) => $"#{color.R:X2}{color.G:X2}{color.B:X2}";
 }

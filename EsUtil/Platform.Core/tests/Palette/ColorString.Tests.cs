@@ -60,15 +60,21 @@ public class ColorStringTests
         Assert.Equal("Red+50%", ColorString.Format(DrawingColor.FromArgb(255, 255, 0, 0), 0.5));
     }
 
-    [Fact]
-    internal void Format_色名の無い色は16進で表す()
-        => Assert.Equal("#010203+75%", ColorString.Format(DrawingColor.FromArgb(255, 1, 2, 3), 0.75));
+    [Theory]
+    [InlineData(255, "#FF010203")]
+    [InlineData(191, "#BF010203")]
+    internal void Format_色名の無い色は8桁のカラーコードで表す(byte alpha, string expected)
+    {
+        // **色名の有無で桁数を変えない**: 6 桁 + 不透明度 % の形にすると、同じ色でも表記が変わり
+        // 不透明度が見えない表記も生まれる（実測 2026-11-22）
+        Assert.Equal(expected, ColorString.Format(DrawingColor.FromArgb(255, 1, 2, 3), alpha / 255.0));
+    }
 
     [Theory]
     [InlineData("#80FF0000", "Red+50%")]
     [InlineData("Red", "Red")]
     [InlineData("Red+50%", "Red+50%")]
-    [InlineData("#336699+75%", "#336699+75%")]
+    [InlineData("#336699+75%", "#BF336699")]
     internal void ToDisplayText_保存値を画面表示へ変換する(string text, string expected)
         => Assert.Equal(expected, ColorString.ToDisplayText(text));
 

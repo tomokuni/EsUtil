@@ -1228,7 +1228,7 @@ public sealed class ColorSelectorControl : Grid
         ApplyTab(index);
         if (index >= 0 && index < _tabs.Count && _tabs[index].IsPicker)
         {
-            OpenPicker();
+            OpenPicker(index);
         }
     }
 
@@ -1411,9 +1411,8 @@ public sealed class ColorSelectorControl : Grid
     /// <b>ドロップダウンを重ねない</b>: 一覧のポップアップを閉じてからピッカーのドロップダウンを開く。<br/>
     /// アンカーは 1×1 の入れ物（右下）であり、入力欄の下へ開く。
     /// </remarks>
-    private void OpenPicker()
+    private void OpenPicker(int pickerTabIndex)
     {
-        _popup.Close();
         if (FindVisualRoot() is not Window)
         {
             return;
@@ -1433,6 +1432,43 @@ public sealed class ColorSelectorControl : Grid
 
         // ピッカーを開いたことを残す（一覧を開いたログと対。 他 UI と同じ書式）
         _log.LogOpenPicker(_selectedColor);
+
+        WatchPickerClosed(pickerTabIndex);
+    }
+
+    /// <summary>ピッカーが閉じたら一覧のタブを代表色へ戻す（代表色を選べなくならないようにする）。</summary>
+    /// <param name="pickerTabIndex">開いたカラーピッカーのタブの位置。</param>
+    /// <remarks>
+    /// <b>一覧は閉じない</b>: 以前はピッカーを開くときに一覧を閉じていたため、**代表色のタブが消えて
+    /// 代表色を選べなくなりました**（実測 2026-11-22）。 一覧を開いたままピッカーのドロップダウンを出し、
+    /// 閉じたら代表色のタブへ戻します（MewUI の <c>ColorPicker</c> はドロップダウンであり、
+    /// ポップアップの中へ埋め込めないため、この形にする）。<br/>
+    /// 閉じた通知が無いため、短い間隔で状態を見ます（開いている間だけ）。
+    /// </remarks>
+    private void WatchPickerClosed(int pickerTabIndex)
+    {
+        Poll();
+
+        void Poll()
+        {
+            if (_picker.IsDropDownOpen)
+            {
+                // ディスパッチャが無い（テスト）ときは次の変更まで待つ
+                if (Application.IsRunning && Application.Current is { } app && app.Dispatcher is { } dispatcher)
+                {
+                    dispatcher.BeginInvoke(DispatcherPriority.Background, Poll);
+                }
+
+                return;
+            }
+
+            // 代表色（ピッカー以外の先頭のタブ）へ戻す
+            var custom = _tabs.FindIndex(static tab => !tab.IsPicker);
+            if (custom >= 0 && custom != pickerTabIndex)
+            {
+                ApplyTab(custom);
+            }
+        }
     }
 
     /// <summary>カラーピッカーの色が変わったときに色を反映する（確定操作を持たないため即時に反映する）。</summary>
