@@ -1364,6 +1364,52 @@ public sealed class ColorSelectorControl : Grid
         // （実測 2026-11-23）、タブの中身としてインラインで出します（<see cref="CreateInlinePicker"/>）。
         // タブは切り替わるので、代表色へ戻せば代表色も選べます。
         ApplyTab(index);
+
+        // **中身の高さが変わったらポップアップを測り直す**: ポップアップは開いた時点の大きさで
+        // 固定されるため、背の高いタブ（インラインのカラーピッカー）へ切り替えると
+        // **下が切れます**（実測 2026-11-23: 不透明度の下の Hex が見えない）。
+        RelayoutList();
+    }
+
+    /// <summary>開いている一覧を測り直して置き直す（中身の大きさが変わったとき）。</summary>
+    /// <remarks>
+    /// <b>高さを中身の実寸へ確定する</b>: MewUI の <see cref="Popup"/> は表示した時点の大きさで
+    /// 固定され、中身が後から高くなっても追随しません。 測り直した高さを枠へ与えてから
+    /// 出し直します（実測 2026-11-23: インラインのカラーピッカーの下が切れた）。<br/>
+    /// 作り直しは次の描画へ回します（押下の処理中に閉じると、同じ押下で閉じ直されることがある）。
+    /// </remarks>
+    private void RelayoutList()
+    {
+        if (!_popup.IsOpen)
+        {
+            return;
+        }
+
+        void Relayout()
+        {
+            if (!_popup.IsOpen)
+            {
+                return;
+            }
+
+            _listPanel.Measure(new Size(_listWidth, double.PositiveInfinity));
+            var height = _listPanel.DesiredSize.Height;
+            if (height > 0)
+            {
+                _popupBackground.Height = height + (_popupBackground.BorderThickness * 2);
+            }
+
+            _popup.Close();
+            _popup.ShowAt(this, _combo.Bounds, PopupAnchorSide.Below);
+        }
+
+        if (Application.IsRunning && Application.Current is { } app && app.Dispatcher is { } dispatcher)
+        {
+            dispatcher.BeginInvoke(DispatcherPriority.Background, Relayout);
+            return;
+        }
+
+        Relayout();
     }
 
     /// <summary>一覧のタブを作る。</summary>
