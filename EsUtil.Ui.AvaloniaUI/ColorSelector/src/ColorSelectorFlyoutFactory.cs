@@ -152,7 +152,12 @@ internal static class ColorSelectorFlyoutFactory
     private const int ColorViewTabCount = 3;
 
     /// <summary>ColorView（カラーピッカー）の最小幅。</summary>
-    internal const double ColorViewMinWidth = 280;
+    /// <remarks>
+    /// <b>実際に必要な幅に合わせる</b>: 280 DIP では成分の入力欄とスライダーが収まらず、
+    /// 一覧の幅（フライアウトの上限）を超えて**右側が切れます**（実測 2026-11-22: 成分タブが
+    /// 一覧の外へはみ出しました）。
+    /// </remarks>
+    internal const double ColorViewMinWidth = 380;
     /// <summary>ColorView（カラーピッカー）の最小高さ。</summary>
     private const double ColorViewMinHeight = 320;
 

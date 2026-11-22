@@ -227,12 +227,12 @@ public class ColorSelectorControlTests
         control.ShowPickerTab = true;
         control.ShowTabTitles = true;
 
-        // 色名の一覧の内容より、タブの行（2 つ）の方が広い（カラーピッカーの最小幅 280 が下限になる）
+        // 色名の一覧の内容より、カラーピッカーの最小幅（成分の入力欄とスライダーが収まる幅）が下限になる
         var tabs = control.CreateTabs();
         Assert.Equal(2, tabs.Count);
 
         var width = control.ResolveFlyoutWidth(tabs);
-        Assert.Equal(280, width);
+        Assert.Equal(ColorSelectorFlyoutFactory.ColorViewMinWidth, width);
 
         var flyout = Assert.IsType<Flyout>(control.CreateListFlyout());
         var (_, body) = GetTabsAndBody(flyout);

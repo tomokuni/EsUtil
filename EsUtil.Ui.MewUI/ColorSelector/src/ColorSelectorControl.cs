@@ -1428,6 +1428,10 @@ public sealed class ColorSelectorControl : Grid
             return;
         }
 
+        // **一覧を閉じない**: ピッカーのドロップダウンが開くとフォーカスが移り、ポップアップが
+        // 自動で閉じてしまう（実測 2026-11-22: 代表色のタブが消えた）。 ピッカーの間だけ
+        // 外側の押下で閉じないようにして、代表色のタブを残す。
+        _popup.StaysOpen = true;
         _picker.IsDropDownOpen = true;
 
         // ピッカーを開いたことを残す（一覧を開いたログと対。 他 UI と同じ書式）
@@ -1461,6 +1465,9 @@ public sealed class ColorSelectorControl : Grid
 
                 return;
             }
+
+            // 一覧を通常の閉じ方（外側の押下で閉じる）へ戻す
+            _popup.StaysOpen = false;
 
             // 代表色（ピッカー以外の先頭のタブ）へ戻す
             var custom = _tabs.FindIndex(static tab => !tab.IsPicker);
