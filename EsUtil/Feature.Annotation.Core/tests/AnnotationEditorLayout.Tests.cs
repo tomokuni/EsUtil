@@ -1,4 +1,6 @@
 using Xunit;
+using EsUtil.Feature.Annotation.Presenter.Editor;
+using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 

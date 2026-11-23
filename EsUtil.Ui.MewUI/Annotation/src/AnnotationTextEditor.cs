@@ -4,6 +4,8 @@ using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
 using MewUIColor = Aprillz.MewUI.Color;
+using EsUtil.Feature.Annotation.Core.Contract;
+using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
@@ -60,8 +62,8 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
         _layer = new AnnotationLayerControl();
         _formatBar = new AnnotationFormatBar(_layer);
 
-        _formatBarPanel = new AnnotationPanelController(this, AnnotationPanelAppearance.FormatBar);
-        _stylePanel = new AnnotationPanelController(this, AnnotationPanelAppearance.StyleEditor);
+        _formatBarPanel = new AnnotationPanelController(this, AnnotationPanelAppearance.FormatBar, () => _layer.Log);
+        _stylePanel = new AnnotationPanelController(this, AnnotationPanelAppearance.StyleEditor, () => _layer.Log);
 
         Add(_layer);
 

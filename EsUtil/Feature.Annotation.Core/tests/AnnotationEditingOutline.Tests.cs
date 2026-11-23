@@ -1,5 +1,8 @@
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
+using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Annotation.Core.Geometry;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 

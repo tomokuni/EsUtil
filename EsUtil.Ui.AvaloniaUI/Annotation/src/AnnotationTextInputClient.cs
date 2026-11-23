@@ -46,7 +46,7 @@ internal sealed class AnnotationTextInputClient(AnnotationLayerControl owner) : 
     /// <b>知らせないと IME の変換候補が古い位置に出る</b>: <see cref="Selection"/> と
     /// <see cref="CursorRectangle"/> は IME が問い合わせる値であり、変わったことを通知しないと
     /// キャレットを動かしても候補の位置と選択範囲が取り残されます（実測 2026-11-22: 日本語入力で
-    /// キャレットと既存の入力文字が動かない、と見えました）。
+    /// キャレットと既存の入力文字が動かない、と見える）。
     /// </remarks>
     internal void NotifySelectionChanged()
     {

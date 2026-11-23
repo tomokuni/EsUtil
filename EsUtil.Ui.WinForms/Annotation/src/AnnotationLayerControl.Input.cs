@@ -2,6 +2,11 @@ using System.Drawing.Drawing2D;
 using EsUtil.Feature.Marquee;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Input;
+using EsUtil.Feature.Annotation.Core.Contract;
+using EsUtil.Feature.Annotation.Core.Geometry;
+using EsUtil.Feature.Annotation.Core.Interaction;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Annotation.Logging;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 
@@ -148,6 +153,7 @@ public sealed partial class AnnotationLayerControl
         base.OnMouseDown(e);
 
         var position = new EsPoint(e.X, e.Y);
+        _core.Log.LogPointerPressed(ToSource(position), 1);
 
         // 押下をホストへ知らせる（表示中のメニューを外側の押下で閉じるために使う）
         RaisePreviewGesture(AnnotationPreviewGesture.Press, position, 1, 0);
@@ -341,6 +347,7 @@ public sealed partial class AnnotationLayerControl
         ReleaseTransform();
 
         var source = ToSource(new EsPoint(e.X, e.Y));
+        _core.Log.LogPointerReleased(source, SelectedId is not null);
         if (_isPreviewDragging)
         {
             _isPreviewDragging = false;

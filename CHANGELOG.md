@@ -13,6 +13,7 @@
   - **ファサード**: `AnnotationCore` が文書と注釈の生成・JSON の読み書き・ログを集約し、`AnnotationPresenter` を共有します。 公開面は `EsUtil.Feature.Annotation`（`src/` 直下）です。
   - **ログ**: `Log` / `LogPrefix` で出力先と接頭辞（既定 `[Annotation]`）を設定します。 ファサードの生成・注釈ファイルの読み書き（`Information`）・注釈の追加（`Debug`）を記録します。
   - **サンプル**: 4 つの UI 版すべてに動作確認用のサンプル アプリを用意しました（サンプル共通の `SampleShell` と Serilog のログを使います）。
+  - **構成**: 公開面（ファサードとそのメンバーの型）は `EsUtil.Feature.Annotation`、層の内部は `EsUtil.Feature.Annotation.Core.*` / `.Presenter.*` に分けました（4 つの UI 版が共通で使う判断・外観・編集 UI の部品も層の名前空間に置きます）。 ログは Information（読み書き・生成）/ Debug（選択・編集・書式・パネル・押下）/ Trace（ドラッグ中の文書の変更）/ Error（読み書きの失敗）の 4 段階で、症状の報告時はレベルを上げて原因を切り分けられます。
 
 ### 修正
 

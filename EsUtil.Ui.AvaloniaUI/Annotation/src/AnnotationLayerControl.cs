@@ -9,6 +9,15 @@ using EsUtil.Feature.Marquee;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
+using EsUtil.Feature.Annotation.Core.Contract;
+using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Annotation.Core.Geometry;
+using EsUtil.Feature.Annotation.Core.History;
+using EsUtil.Feature.Annotation.Core.Interaction;
+using EsUtil.Feature.Annotation.Core.Text;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Annotation.Presenter.Selection;
+using EsUtil.Feature.Annotation.Logging;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
 
@@ -206,6 +215,9 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// </remarks>
     public ColorTextFormat ColorTextFormat { get; set; } = ColorTextFormat.NameWithAlpha;
 
+    /// <summary>文書・保存形式・ログの入口（本コントロールが使う唯一のファサード）を取得する。</summary>
+    /// <value>本コントロールとロガーを共有するファサード。</value>
+    public AnnotationCore Core => _core;
     /// <summary>描画計画を解決する提示層を取得する。</summary>
     /// <value>本コントロールが使用する提示層（ロガーと接頭辞を共有する）。</value>
     public AnnotationPresenter Presenter => _presenter;
@@ -495,6 +507,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
         PrepareUndo();
         _document = _document.WithText(bubble, bubble.Text.ApplyStyle(start, length, style));
+        _core.Log.LogTextStyleApplied(start, length);
         RaiseDocumentChanged();
         InvalidateVisual();
         return true;
@@ -537,6 +550,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
         PrepareUndo();
         _document = _document.WithText(bubble, bubble.Text.TransformStyle(start, length, transform));
+        _core.Log.LogTextStyleApplied(start, length);
         RaiseDocumentChanged();
         InvalidateVisual();
         return true;
@@ -947,6 +961,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         base.OnPointerPressed(e);
 
         var point = e.GetCurrentPoint(this);
+        _core.Log.LogPointerPressed(ToSource(point.Position), 1);
 
         // 押下をホストへ知らせる（表示中のメニューを外側の押下で閉じるために使う）
         RaisePreviewGesture(
@@ -1170,6 +1185,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
         // 押下中に固定した変換を解除する
         ReleaseTransform();
+        _core.Log.LogPointerReleased(ToSource(e.GetPosition(this)), SelectedId is not null);
 
         if (_isSelectingText)
         {
@@ -1356,7 +1372,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <remarks>
     /// <b>Marquee と同じ判定にする</b>: ハンドルの中心は <c>MarqueeDrawPlan.Handles</c> の矩形の中心、半径は
     /// <c>MarqueeOptions.HandleHitRadius</c>（DIP）を使う。 中心や半径を自前で計算すると、カーソルが変わる範囲と
-    /// 押して操作できる範囲がずれる（実測: ハンドルの外周を押すと選択が解除されていた）。
+    /// 押して操作できる範囲がずれる（実測: ハンドルの外周を押すと選択が解除される）。
     /// </remarks>
     private bool HitsSelectionHandle(Point dip)
     {
@@ -1472,6 +1488,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             _marquee.SetSelection(item.Bounds);
         }
 
+        _core.Log.LogSelectionChanged(id);
         SelectionChanged?.Invoke(this, EventArgs.Empty);
         InvalidateVisual();
     }
@@ -1653,6 +1670,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             _undoCandidate = null;
         }
 
+        _core.Log.LogDocumentChanged(_document.Items.Length);
         DocumentChanged?.Invoke(this, EventArgs.Empty);
     }
 }

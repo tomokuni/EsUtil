@@ -5,6 +5,7 @@ using EsUtil.Ui.WinUI3.SampleKit;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using EsUtil.Feature.Annotation.Core.Defaults;
 
 namespace EsUtil.Ui.WinUI3.Annotation.Sample.Views;
 
@@ -44,7 +45,7 @@ public sealed class MainWindow : Window
         layer.SourcePixelWidth = _image.Width;
         layer.SourcePixelHeight = _image.Height;
 
-        var core = new AnnotationCore(layer.Presenter) { Log = logger, LogPrefix = "[Annotation]" };
+        var core = layer.Core;
         var document = core.CreateDocument(_image.Width, _image.Height, "sample.png");
         document = document.Add(core.CreateFrame(document, new EsRect(60, 60, 340, 220)));
         document = document.Add(core.CreateBubble(

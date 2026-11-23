@@ -23,7 +23,7 @@ public abstract class AnnotationItem
     /// <remarks>
     /// <b>設定子は Core の内部に閉じる</b>: 画像の外へ出た注釈は掴めなくなるため、変更は
     /// <see cref="AnnotationDocument.SetBounds"/>（画像の内側へ収める）を通す。 UI から直接書き換えると
-    /// 版ごとに収め忘れが起きる（実測 2026-11-21: しっぽの先端と矩形が画像の外へ出た）。
+    /// 版ごとに収め忘れが起きる（実測 2026-11-21: しっぽの先端と矩形が画像の外へ出る）。
     /// </remarks>
     [JsonInclude]
     public EsRect Bounds { get; internal set; }

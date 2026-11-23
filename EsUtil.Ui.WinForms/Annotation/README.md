@@ -40,7 +40,7 @@
 
 - **`AnnotationTextEditor`**: 本文の表示・編集と書式バーを 1 つにまとめたコントロールです（内側の `Layer` で画像・文書・選択を操作します）。
 - **`AnnotationLayerControl`**: 画像の表示・注釈の描画・入力の受付を担います（`AnnotationTextEditor.Layer` として使います）。
-- **判断は `EsUtil.Feature.Annotation.Core` が単一所有**します（当たり判定・折り返し・描画計画）。 本コントロールは GDI+ へ写すだけです。
+- **判断は `EsUtil.Feature.Annotation`（機能アセンブリ）が単一所有**します（当たり判定・折り返し・描画計画。 層の内部は `EsUtil.Feature.Annotation.Core.*` / `.Presenter.*`）。 本コントロールは GDI+ へ写すだけです。
 - **選択枠と 8 方向のハンドルは `EsUtil.Feature.Marquee.Core` の提示層を再利用**します。
 - **本文の編集はその場で行います**: 表示中のレイアウトのままキャレットと選択範囲を描いて入力します。 日本語入力（IME）は `WM_IME_COMPOSITION` から変換中の文字列と確定した文字列を受け取ります。
 - **斜体は行の高さを変えません**（行の高さはフォントの行送りから求め、各 run は行の高さいっぱいの中央へ置く）。
@@ -173,7 +173,18 @@ composed?.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 ## 13. ログ
 
-`Log`（`ILogger`）と `LogPrefix` で出力先と接頭辞を設定します（既定の接頭辞は `[Annotation]`）。 記録するのは、ファサードの生成・注釈ファイルの読み書き（`Information`）と、文書の作成・注釈の追加（`Debug`）です。 描画計画の解決（毎フレーム）と当たり判定は記録しません。 定義はコア（`EsUtil.Feature.Annotation.Core`）の `AnnotationLogMessage` が単一所有し、本コントロールは同じロガーをコアと提示層へ渡します。 規則は [`ログ規約.md`](../../../.github/ログ規約.md) §6。
+`Log`（`ILogger`）と `LogPrefix` で出力先と接頭辞を設定します（既定の接頭辞は `[Annotation]`）。 記録する内容とレベルは頻度で決めます（規則は [`ログ規約.md`](../../../.github/ログ規約.md) §2・§6）。
+
+| レベル | 記録する内容 |
+| --- | --- |
+| `Information` | 注釈ファイルの読み込み・保存、ファサードの生成（プロセスで 1 度） |
+| `Debug` | 選択の変更、本文の編集の開始・終了、書式の適用、パネルの表示・終了、押下と解放、文書の作成、注釈の追加、提示層の生成 |
+| `Trace` | ドラッグ中の文書の変更（マウス移動のたびに届くため既定では出力しない） |
+| `Error` | 公開ファサードの操作で発生した例外（読み込み・保存の失敗） |
+
+**障害の切り分け**: 既定（`Information`）では操作の記録だけが出ます。 症状の報告を受けたら **`Debug`** で「選択・編集・書式・パネル・押下が起きたか」、**`Trace`** で「ドラッグが文書へ反映されているか」を確認できます。 描画計画の解決（毎フレーム）と当たり判定は記録しません。
+
+定義はコア（`EsUtil.Feature.Annotation.Core` の `AnnotationLogMessage`）が単一所有し、本コントロールは同じロガーをコアと提示層へ渡します。
 
 ---
 

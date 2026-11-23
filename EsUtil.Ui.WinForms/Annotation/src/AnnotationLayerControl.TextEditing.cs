@@ -1,6 +1,9 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Annotation.Core.Text;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Annotation.Logging;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 
@@ -159,6 +162,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         _isEditingText = true;
+        _core.Log.LogEditingChanged(true);
         _preeditText = string.Empty;
         _isComposing = false;
         _caretIndex = bubble.Text.PlainText.Length;
@@ -180,6 +184,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         _isEditingText = false;
+        _core.Log.LogEditingChanged(false);
         _preeditText = string.Empty;
         _isComposing = false;
         StopCaretBlink();

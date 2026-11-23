@@ -5,6 +5,8 @@ using Avalonia.Media;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Ui.AvaloniaUI.ColorSelector;
 using DrawingColor = System.Drawing.Color;
+using EsUtil.Feature.Annotation.Presenter.Editor;
+using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
 

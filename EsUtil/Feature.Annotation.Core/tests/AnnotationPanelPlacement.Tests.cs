@@ -1,5 +1,6 @@
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
+using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 

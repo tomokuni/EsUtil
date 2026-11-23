@@ -34,19 +34,22 @@
 ```mermaid
 flowchart TB
     UI["UI 層（EsUtil.Ui.<UI>.Annotation）<br/>描画・入力・本文の編集・合成（保存用）"]
-    F["ファサード（本アセンブリの src/ 直下）<br/>AnnotationCore：文書・JSON・ログ / AnnotationPresenter：折り返し・しっぽの幾何・描画計画"]
-    C["層の内部（本アセンブリの src/Core/Internal/）<br/>JSON の文脈・変換器・折り返しの実装"]
+    F["公開面（src/ 直下）<br/>AnnotationCore（文書・JSON・ログ）/ AnnotationPresenter（描画計画・外観）"]
+    C["Core（src/Core のカテゴリ別）<br/>Contract / Defaults / Geometry / History / Interaction / Text / Internal"]
+    P["Presenter（src/Presenter のカテゴリ別）<br/>Drawing / Editor / Panel / Selection"]
     PC["EsUtil.Platform.Core<br/>EsRect / EsPoint / DrawingColor / ICoordTransform"]
     UI --> F
     F --> C
-    F --> PC
+    F --> P
+    P --> C
     C --> PC
+    P --> PC
 ```
 
 - **Core は Presenter を参照しません**（描画計画を知らない）。
 - **Presenter は描画 API を持ちません**（描画計画というデータを返し、UI が写す）。
 - **折り返しだけは実寸を要する**ため、`Func<string, AnnotationTextStyle, EsSize>` として UI から受け取ります（ルーペの `measureText` と同じ形）。
-- **公開面は `src/` 直下（名前空間 `EsUtil.Feature.Annotation`）に置き、層の内部は `src/Core/Internal/`（`EsUtil.Feature.Annotation.Core.Internal`）へ置きます**（規則は [`.github/命名規約.md`](../../../.github/命名規約.md)）。
+- **公開面は `src/` 直下（名前空間 `EsUtil.Feature.Annotation`）に置き、層の内部は `src/Core/<カテゴリ>` / `src/Presenter/<カテゴリ>` へ置きます**（名前空間は `EsUtil.Feature.Annotation.Core.<カテゴリ>` / `.Presenter.<カテゴリ>`。 規則は [`.github/命名規約.md`](../../../.github/命名規約.md)）。 フォルダと名前空間の一覧は [`../README.md`](../README.md) §3 が持つ。
 
 ## 4. コンポーネント
 
@@ -58,15 +61,15 @@ flowchart TB
 | `BubbleTail` | Core | しっぽ（先端は独立・付け根は本体の辺に追従） |
 | `RichText` / `TextRun` / `AnnotationTextStyle` | Core | 文字単位の書式（run が自分の文字列と解決済みの書式を持つ） |
 | `AnnotationHitTest` | Core | 当たり判定（最前面から・先端は本体より優先） |
-| `AnnotationTextWrap`（内部） | Core（内部） | 折り返し（文字単位・明示改行・行頭禁則） |
-| `AnnotationJson` / `AnnotationJsonContext`（内部） | Core（内部） | JSON の読み書き（ソース生成 + 明示の変換器）と保存パスの解決 |
+| `AnnotationTextWrap`（内部） | Core（`.Core.Internal`） | 折り返し（文字単位・明示改行・行頭禁則） |
+| `AnnotationJson` / `AnnotationJsonContext`（内部） | Core（`.Core.Internal`） | JSON の読み書き（ソース生成 + 明示の変換器）と保存パスの解決 |
 | `AnnotationDefaults` / `AnnotationLimits` | Core | 既定値と安全域（設定・JSON・入力の共通の補正） |
 | `AnnotationPresenter` | Presenter | 描画計画の解決（折り返しの配置・しっぽの多角形・行の配置） |
 | `AnnotationDrawPlan` / `AnnotationShapePlan` / `AnnotationTextLinePlan` / `AnnotationTextSegmentPlan` | Presenter | UI へ渡す 1 フレーム分の描画契約 |
 
 **選択枠（8 方向のハンドル）は本アセンブリの責務ではありません**（Marquee の提示層を再利用する。 枠とハンドルの見た目を 4 つの UI 版で揃えるため）。
 
-**ログ**: 本アセンブリはログの定義（`AnnotationLogMessage`。 接頭辞の既定値は `[Annotation]`）を持ちます。 ファサードの生成・文書の読み書き（`Information`）・文書の作成と注釈の追加（`Debug`）を記録し、毎フレームの描画計画の解決と当たり判定は記録しません（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
+**ログ**: 本アセンブリはログの定義（`AnnotationLogMessage`。 接頭辞の既定値は `[Annotation]`）を持ちます。 レベルは頻度で決めます。 `Information` は利用者の明示的な操作（注釈ファイルの読み込み・保存）とプロセスで 1 度の生成、`Debug` は状態の変化（選択・本文の編集・書式の適用・パネルの表示・押下と解放）と提示層の生成、`Trace` は高頻度の値（ドラッグ中の文書の変更）、`Error` は公開ファサードの操作で発生した例外です。 毎フレームの描画計画の解決と当たり判定は記録しません（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
 
 ## 5. 依存関係
 

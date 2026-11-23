@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Microsoft.Extensions.Logging;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
+using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 
@@ -42,8 +43,8 @@ public sealed class AnnotationTextEditor : UserControl, IAnnotationPanelHost
     {
         _layer = new AnnotationLayerControl { Dock = DockStyle.Fill };
         _formatBar = new AnnotationFormatBar(_layer);
-        _formatBarPanel = new AnnotationPanelController(this, AnnotationPanelAppearance.FormatBar);
-        _stylePanel = new AnnotationPanelController(this, AnnotationPanelAppearance.StyleEditor);
+        _formatBarPanel = new AnnotationPanelController(this, AnnotationPanelAppearance.FormatBar, () => _layer.Log);
+        _stylePanel = new AnnotationPanelController(this, AnnotationPanelAppearance.StyleEditor, () => _layer.Log);
 
         Controls.Add(_layer);
         HookDrag(AnnotationPanelKind.FormatBar, _formatBar);

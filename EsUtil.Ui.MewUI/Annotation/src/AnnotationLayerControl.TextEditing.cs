@@ -2,6 +2,9 @@ using Aprillz.MewUI;
 using Aprillz.MewUI.Text;
 using Aprillz.MewUI.Rendering;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Annotation.Core.Text;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Annotation.Logging;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
@@ -85,6 +88,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         _isEditingText = true;
+        _core.Log.LogEditingChanged(true);
         _preeditText = string.Empty;
         _isSelectingText = false;
         _caretIndex = bubble.Text.PlainText.Length;
@@ -108,6 +112,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         _isEditingText = false;
+        _core.Log.LogEditingChanged(false);
         _preeditText = string.Empty;
         _isSelectingText = false;
         TextSelectionRange = default;

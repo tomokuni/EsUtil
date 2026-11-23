@@ -5,6 +5,7 @@ using EsUtil.Ui.AvaloniaUI.Annotation.Sample.Imaging;
 using EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 using EsUtil.Ui.AvaloniaUI.SampleKit;
 using Microsoft.Extensions.Logging;
+using EsUtil.Feature.Annotation.Core.Defaults;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation.Sample.Views;
 
@@ -44,7 +45,7 @@ public sealed class MainWindow : Window
         layer.SourcePixelWidth = _image.Width;
         layer.SourcePixelHeight = _image.Height;
 
-        var core = new AnnotationCore(layer.Presenter) { Log = logger, LogPrefix = "[Annotation]" };
+        var core = layer.Core;
         var document = core.CreateDocument(_image.Width, _image.Height, "sample.png");
         document = document.Add(core.CreateFrame(document, new EsRect(60, 60, 340, 220)));
         document = document.Add(core.CreateBubble(

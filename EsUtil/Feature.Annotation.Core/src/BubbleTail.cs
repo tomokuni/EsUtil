@@ -1,4 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Annotation.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation;
 
@@ -19,7 +20,7 @@ public sealed record BubbleTail(
     double Width = AnnotationDefaults.TailWidthDefault)
 {
     /// <summary>既定のしっぽ（先端は原点、下辺の中央、既定の幅）を取得する。</summary>
-    /// <remarks>本体の位置は <see cref="AnnotationPresenter"/> が与えるため、作成時は先端だけを決めればよい。</remarks>
+    /// <remarks>本体の位置は本体の矩形が決めるため、作成時は先端だけを決めればよい。</remarks>
     public static BubbleTail Default { get; } = new(new EsPoint(0, 0));
 
     /// <summary>安全域へ補正したしっぽを取得する。</summary>

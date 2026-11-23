@@ -2,6 +2,8 @@ using EsUtil.Platform.Core.Imaging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using DrawingColor = System.Drawing.Color;
+using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Annotation.Presenter.Editor;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 

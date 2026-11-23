@@ -9,6 +9,14 @@ using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core.Palette;
 using System.ComponentModel;
 using EsUtil.Ui.WinForms.Interop.Imaging;
+using EsUtil.Feature.Annotation.Core.Contract;
+using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Annotation.Core.Geometry;
+using EsUtil.Feature.Annotation.Core.History;
+using EsUtil.Feature.Annotation.Core.Interaction;
+using EsUtil.Feature.Annotation.Core.Text;
+using EsUtil.Feature.Annotation.Presenter.Selection;
+using EsUtil.Feature.Annotation.Logging;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 
@@ -226,6 +234,9 @@ public sealed partial class AnnotationLayerControl : Control
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public ColorTextFormat ColorTextFormat { get; set; } = ColorTextFormat.NameWithAlpha;
 
+    /// <summary>文書・保存形式・ログの入口（本コントロールが使う唯一のファサード）を取得する。</summary>
+    /// <value>本コントロールとロガーを共有するファサード。</value>
+    public AnnotationCore Core => _core;
     /// <summary>描画計画を解決する提示層を取得する。</summary>
     /// <value>本コントロールが使用する提示層（ロガーと接頭辞を共有する）。</value>
     public AnnotationPresenter Presenter => _presenter;
@@ -455,6 +466,7 @@ public sealed partial class AnnotationLayerControl : Control
 
         PrepareUndo();
         _document = _document.WithText(bubble, change(bubble.Text));
+        _core.Log.LogTextStyleApplied(TextSelectionStart, TextSelectionLength);
         RaiseDocumentChanged();
         Invalidate();
         return true;
@@ -693,6 +705,7 @@ public sealed partial class AnnotationLayerControl : Control
             _marquee.ResetSelection();
         }
 
+        _core.Log.LogSelectionChanged(id);
         RaiseSelectionChanged();
         Invalidate();
     }
@@ -712,6 +725,7 @@ public sealed partial class AnnotationLayerControl : Control
             _undoCandidate = null;
         }
 
+        _core.Log.LogDocumentChanged(_document.Items.Length);
         DocumentChanged?.Invoke(this, EventArgs.Empty);
     }
 

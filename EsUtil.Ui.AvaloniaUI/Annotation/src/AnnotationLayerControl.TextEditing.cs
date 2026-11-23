@@ -6,6 +6,9 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Annotation.Core.Text;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Annotation.Logging;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
 
@@ -93,6 +96,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         _isEditingText = true;
+        _core.Log.LogEditingChanged(true);
         _preeditText = string.Empty;
         _isSelectingText = false;
         _caretIndex = bubble.Text.PlainText.Length;
@@ -115,6 +119,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         _isEditingText = false;
+        _core.Log.LogEditingChanged(false);
         _preeditText = string.Empty;
         _isSelectingText = false;
         TextSelectionRange = default;
@@ -472,7 +477,7 @@ public sealed partial class AnnotationLayerControl
         RestartCaretBlink();
 
         // **IME へ知らせる**: 知らせないと変換候補が古いキャレット位置に出て、選択範囲も取り残される
-        // （実測 2026-11-22: 日本語入力でキャレットと既存の文字が動かない、と見えました）
+        // （実測 2026-11-22: 日本語入力でキャレットと既存の文字が動かない、と見える）
         if (_isEditingText)
         {
             TextInputClient.NotifySelectionChanged();

@@ -1,4 +1,5 @@
 using DrawingColor = System.Drawing.Color;
+using EsUtil.Feature.Annotation.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation;
 

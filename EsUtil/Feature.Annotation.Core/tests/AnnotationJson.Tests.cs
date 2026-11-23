@@ -1,6 +1,7 @@
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
+using EsUtil.Feature.Annotation.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 

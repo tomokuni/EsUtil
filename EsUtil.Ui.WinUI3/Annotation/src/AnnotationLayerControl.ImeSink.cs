@@ -11,7 +11,7 @@ namespace EsUtil.Ui.WinUI3.Annotation;
 /// <b><c>CoreTextEditContext</c> は使わない</b>: WinUI 3 のデスクトップ アプリでは窓口を作れても
 /// 入力が届かず、変換の開始・更新・確定が一度も呼ばれません（実測 2026-11-23: フォーカスは
 /// 当たっているのに <c>TextUpdating</c> が 0 回、文字は <c>CharacterReceived</c> へ 1 キーずつ届き、
-/// そのまま確定していました）。<br/>
+/// そのまま確定する）。<br/>
 /// <b>実際の <see cref="TextBox"/> を置く</b>: 変換・候補の位置・未確定の下線は OS 側が行います。
 /// 見た目は本レイヤーが書式付きで描くため、受け口は透明・1×1・入力は受け取らない
 /// （フォーカスと IME のためだけに存在する）。<br/>
@@ -118,7 +118,7 @@ public sealed partial class AnnotationLayerControl
         var (scale, _) = ResolveImageTransform();
 
         // **文字の下へ置く**: OS は受け口の中の変換中の範囲を基準に候補を出すため、受け口を文字の
-        // すぐ下へ置くと候補がその下に出ます（実測 2026-11-23: 受け口を文字の位置へ置いていたため
+        // すぐ下へ置くと候補がその下に出ます（実測 2026-11-23: 受け口を文字の位置へ置くと
         // 候補が入力中の文字に近すぎた）。
         sink.Height = Math.Max(1, caret.Height);
         sink.FontSize = Math.Max(1, style.FontSize * scale);

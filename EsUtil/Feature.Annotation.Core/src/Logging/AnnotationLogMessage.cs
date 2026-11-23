@@ -1,15 +1,23 @@
+using EsUtil.Platform.Core.Common;
+using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Feature.Annotation.Logging;
 
-/// <summary>注釈の LoggerMessage 定義（ソース生成ログ。 コアと提示層で共有する）。</summary>
+/// <summary>注釈の LoggerMessage 定義（ソース生成ログ。 コア・提示層・UI で共有する）。</summary>
 /// <remarks>
-/// <b>出力の方針</b>: ファサードの生成（Information）・文書の読み込みと保存（Information）・注釈の追加（Debug）・<br/>
-/// 設定の変更（Information）とする。 毎フレーム呼ばれる描画計画の解決（<c>ResolveDrawPlan</c>）と当たり判定は出力しない。<br/>
+/// <b>レベルは頻度で決める</b>（規則の所有者は <c>.github/ログ規約.md</c> §2）。<br/>
+/// - Information: 利用者の明示的な操作（注釈ファイルの読み込み・保存）と、プロセスで 1 度だけの生成<br/>
+/// - Debug: 状態の変化（選択・本文の編集・書式の適用・パネルの表示・押下と解放）と提示層の生成<br/>
+/// - Trace: 高頻度の値（ドラッグ中の文書の変更）<br/>
+/// - Error: 公開ファサードの操作で発生した例外<br/>
+/// <b>障害の切り分け</b>: 既定（Information）では操作の記録だけが出る。 利用者から症状の報告を受けたら、
+/// Debug で「どの操作が起きたか」、Trace で「ドラッグが文書へ反映されているか」を確認できる。<br/>
+/// 毎フレーム呼ばれる描画計画の解決（<c>ResolveDrawPlan</c>）と当たり判定は出力しない。<br/>
 /// ログ基盤（ファイル出力・レベル制御）はホストが所有する（本クラスは定義のみ）。<br/>
-/// <b>可視性</b>: 本定義を呼ぶのはコアと提示層だけであり、UI 層・ホストはロガーを渡すだけでよいため internal とする。
+/// <b>可視性</b>: UI 層が呼ぶ定義だけ <c>public</c> とし、コアと提示層だけが使う定義は <c>internal</c> とする。
 /// </remarks>
-internal static partial class AnnotationLogMessage
+public static partial class AnnotationLogMessage
 {
     /// <summary>接頭辞の既定値（ホストが設定しない場合に使う）。</summary>
     internal const string DefaultPrefix = "[Annotation]";
@@ -149,4 +157,112 @@ internal static partial class AnnotationLogMessage
     /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
     internal static void LogOperationError(this ILogger logger, Exception exception, string operation)
         => logger.LogOperationErrorCore(exception, Prefix, operation);
+    /// <summary>注釈の選択の変更を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 選択: {Id}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="id">選択した注釈の識別子（解除は <c>none</c>）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 選択: {Id:l}")]
+    private static partial void LogSelectionChangedCore(this ILogger logger, string prefix, string id);
+
+    /// <summary>注釈の選択の変更を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="id">選択した注釈の識別子。 解除は <see langword="null"/>。</param>
+    public static void LogSelectionChanged(this ILogger logger, string? id)
+        => logger.LogSelectionChangedCore(Prefix, id ?? "none");
+
+    /// <summary>本文の編集の開始・終了を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 本文の編集: {State}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="state">状態（<c>開始</c> / <c>終了</c>）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 本文の編集: {State:l}")]
+    private static partial void LogEditingChangedCore(this ILogger logger, string prefix, string state);
+
+    /// <summary>本文の編集の開始・終了を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="editing">編集中の場合は <see langword="true"/>。</param>
+    public static void LogEditingChanged(this ILogger logger, bool editing)
+        => logger.LogEditingChangedCore(Prefix, editing ? "開始" : "終了");
+
+    /// <summary>本文の書式の適用を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 書式を適用: 開始={Start} 長さ={Length}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="start">適用する範囲の開始位置（文字数）。</param>
+    /// <param name="length">適用する範囲の長さ（文字数）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 書式を適用: 開始={Start} 長さ={Length}")]
+    private static partial void LogTextStyleAppliedCore(this ILogger logger, string prefix, int start, int length);
+
+    /// <summary>本文の書式の適用を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="start">適用する範囲の開始位置（文字数）。</param>
+    /// <param name="length">適用する範囲の長さ（文字数）。</param>
+    public static void LogTextStyleApplied(this ILogger logger, int start, int length)
+        => logger.LogTextStyleAppliedCore(Prefix, start, length);
+
+    /// <summary>フローティング パネルの表示・終了を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] パネル: {Kind} {State}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="kind">パネルの種別。</param>
+    /// <param name="state">状態（<c>表示</c> / <c>終了</c>）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} パネル: {Kind:l} {State:l}")]
+    private static partial void LogPanelVisibilityCore(this ILogger logger, string prefix, string kind, string state);
+
+    /// <summary>フローティング パネルの表示・終了を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="kind">パネルの種別（<c>nameof</c> で渡す）。</param>
+    /// <param name="visible">表示した場合は <see langword="true"/>。</param>
+    public static void LogPanelVisibility(this ILogger logger, string kind, bool visible)
+        => logger.LogPanelVisibilityCore(Prefix, kind, visible ? "表示" : "終了");
+
+    /// <summary>注釈への押下を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 押下: 位置=({X}, {Y}) クリック回数={ClickCount}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="x">押下した位置の X（元画像ピクセル。 整形済み）。</param>
+    /// <param name="y">押下した位置の Y（元画像ピクセル。 整形済み）。</param>
+    /// <param name="clickCount">クリック回数。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 押下: 位置=({X:l}, {Y:l}) クリック回数={ClickCount}")]
+    private static partial void LogPointerPressedCore(this ILogger logger, string prefix, string x, string y, int clickCount);
+
+    /// <summary>注釈への押下を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="point">押下した位置（元画像ピクセル）。</param>
+    /// <param name="clickCount">クリック回数。</param>
+    public static void LogPointerPressed(this ILogger logger, EsPoint point, int clickCount)
+        => logger.LogPointerPressedCore(Prefix, NumberText.Format(point.X), NumberText.Format(point.Y), clickCount);
+
+    /// <summary>注釈からの解放を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 解放: 位置=({X}, {Y}) 選択あり={HasSelection}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="x">解放した位置の X（元画像ピクセル。 整形済み）。</param>
+    /// <param name="y">解放した位置の Y（元画像ピクセル。 整形済み）。</param>
+    /// <param name="hasSelection">選択がある場合 <c>true</c>。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 解放: 位置=({X:l}, {Y:l}) 選択あり={HasSelection}")]
+    private static partial void LogPointerReleasedCore(this ILogger logger, string prefix, string x, string y, bool hasSelection);
+
+    /// <summary>注釈からの解放を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="point">解放した位置（元画像ピクセル）。</param>
+    /// <param name="hasSelection">選択がある場合 <see langword="true"/>。</param>
+    public static void LogPointerReleased(this ILogger logger, EsPoint point, bool hasSelection)
+        => logger.LogPointerReleasedCore(Prefix, NumberText.Format(point.X), NumberText.Format(point.Y), hasSelection);
+
+    /// <summary>ドラッグ中の文書の変更を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Annotation] 文書を変更: 注釈={Count} 件</c><br/>
+    /// ドラッグの 1 歩ごとに届くため Trace で記録する（既定では出力しない）。</remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="count">注釈の件数。</param>
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} 文書を変更: 注釈={Count} 件")]
+    private static partial void LogDocumentChangedCore(this ILogger logger, string prefix, int count);
+
+    /// <summary>ドラッグ中の文書の変更を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="count">注釈の件数。</param>
+    public static void LogDocumentChanged(this ILogger logger, int count)
+        => logger.LogDocumentChangedCore(Prefix, count);
 }

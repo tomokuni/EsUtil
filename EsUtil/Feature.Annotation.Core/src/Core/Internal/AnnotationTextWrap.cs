@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Annotation.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Core.Internal;
 

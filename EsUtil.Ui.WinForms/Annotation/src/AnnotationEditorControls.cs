@@ -1,3 +1,6 @@
+using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Annotation.Presenter.Editor;
+
 namespace EsUtil.Ui.WinForms.Annotation;
 
 /// <summary>編集 UI の部品（書式バーと外観パネルが共有する）。</summary>

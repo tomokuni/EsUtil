@@ -10,6 +10,7 @@ using Avalonia.VisualTree;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
 using DrawingColor = System.Drawing.Color;
+using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
 
@@ -68,8 +69,8 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
         // 下地を持たないとパネルが入力の対象にならない（Avalonia は背景が無い面をヒットテストしない）
         Background = Brushes.Transparent;
 
-        _formatBarPanel = new AnnotationPanelController(this, AnnotationPanelAppearance.FormatBar);
-        _stylePanel = new AnnotationPanelController(this, AnnotationPanelAppearance.StyleEditor);
+        _formatBarPanel = new AnnotationPanelController(this, AnnotationPanelAppearance.FormatBar, () => _layer.Log);
+        _stylePanel = new AnnotationPanelController(this, AnnotationPanelAppearance.StyleEditor, () => _layer.Log);
 
         Children.Add(_layer);
 
@@ -264,7 +265,7 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
         root.PointerReleased += (_, e) => EndPanelDrag(kind, e);
 
         // **別ウィンドウへ載せる**: ポップアップ（<see cref="Popup"/>）の子にすると、書式バーの列が
-        // 潰れて中身（色・大きさ・フォント）が欠けました（実測 2026-11-23）。 枠なしのウィンドウなら
+        // 潰れて中身（色・大きさ・フォント）が欠ける（実測 2026-11-23）。 枠なしのウィンドウなら
         // レイアウトは普通のウィンドウと同じで、ウィンドウの外（画面の内側）へも出せます。
         if (!_windows.TryGetValue(kind, out var window))
         {

@@ -5,6 +5,9 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.System;
+using EsUtil.Feature.Annotation.Core.Text;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Annotation.Logging;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 
@@ -149,6 +152,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         _isEditingText = true;
+        _core.Log.LogEditingChanged(true);
         _preeditText = string.Empty;
         _isComposing = false;
         _caretIndex = bubble.Text.PlainText.Length;
@@ -171,6 +175,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         _isEditingText = false;
+        _core.Log.LogEditingChanged(false);
         _preeditText = string.Empty;
         _isComposing = false;
         StopCaretBlink();
@@ -233,7 +238,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         // **変換中かどうかを先に落とす**: 落とさずに本文を書き換えると、変換の途中で「本文が変わった」と
-        // IME へ伝えてしまい、変換が中断されて **1 キーごとに確定**する（実測 2026-11-23: 代入の順序が逆になっていた）。
+        // IME へ伝えてしまい、変換が中断されて **1 キーごとに確定**する（実測 2026-11-23: 代入の順序が逆になる）。
         _isComposing = false;
         _preeditText = string.Empty;
         PrepareUndo();

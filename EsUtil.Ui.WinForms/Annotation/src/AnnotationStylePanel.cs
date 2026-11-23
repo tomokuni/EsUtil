@@ -1,4 +1,8 @@
 
+using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Annotation.Presenter.Editor;
+using EsUtil.Feature.Annotation.Presenter.Panel;
+
 namespace EsUtil.Ui.WinForms.Annotation;
 
 /// <summary>注釈の外観（枠線・内側・角丸・しっぽ・重なり順）を編集するパネル（WinForms 版）。</summary>

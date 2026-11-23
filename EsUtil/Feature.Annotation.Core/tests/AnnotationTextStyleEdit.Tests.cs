@@ -1,4 +1,7 @@
 using Xunit;
+using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Annotation.Core.Text;
+using EsUtil.Feature.Annotation.Presenter.Selection;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 

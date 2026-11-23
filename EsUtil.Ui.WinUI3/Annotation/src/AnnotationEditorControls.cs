@@ -6,6 +6,8 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using DrawingColor = System.Drawing.Color;
+using EsUtil.Feature.Annotation.Presenter.Editor;
+using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 

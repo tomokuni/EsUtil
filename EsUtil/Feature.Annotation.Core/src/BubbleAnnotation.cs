@@ -1,11 +1,12 @@
 using System.Text.Json.Serialization;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Annotation.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation;
 
 /// <summary>吹き出しの注釈（本文 + しっぽ）。</summary>
 /// <remarks>
-/// <b>本文は吹き出し内で折り返す</b>（折り返しの計算は <see cref="AnnotationPresenter"/> が単一所有する）。<br/>
+/// <b>本文は吹き出し内で折り返す</b>（折り返しの行の配置は提示層が解決する）。<br/>
 /// <b>しっぽは本体と独立して動かせる</b>（<see cref="BubbleTail.Tip"/> は絶対座標）。
 /// </remarks>
 public sealed class BubbleAnnotation : AnnotationItem

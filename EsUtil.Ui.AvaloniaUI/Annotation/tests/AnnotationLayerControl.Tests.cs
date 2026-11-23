@@ -4,6 +4,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
+using EsUtil.Feature.Annotation.Core.Geometry;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation.Tests;
 

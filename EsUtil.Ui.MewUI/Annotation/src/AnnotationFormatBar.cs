@@ -4,6 +4,8 @@ using Aprillz.MewUI.Text;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Ui.MewUI.ColorSelector;
+using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Annotation.Presenter.Editor;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 

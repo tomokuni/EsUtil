@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using DrawingColor = System.Drawing.Color;
+using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 
@@ -67,8 +68,8 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
         _layer = new AnnotationLayerControl();
         _formatBar = new AnnotationFormatBar(_layer);
 
-        _formatBarPanel = new AnnotationPanelController(this, AnnotationPanelAppearance.FormatBar);
-        _stylePanel = new AnnotationPanelController(this, AnnotationPanelAppearance.StyleEditor);
+        _formatBarPanel = new AnnotationPanelController(this, AnnotationPanelAppearance.FormatBar, () => _layer.Log);
+        _stylePanel = new AnnotationPanelController(this, AnnotationPanelAppearance.StyleEditor, () => _layer.Log);
 
         Children.Add(_layer);
 

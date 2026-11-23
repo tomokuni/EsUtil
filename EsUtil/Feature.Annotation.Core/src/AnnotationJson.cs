@@ -6,7 +6,7 @@ namespace EsUtil.Feature.Annotation;
 
 /// <summary>注釈の JSON（<c>&lt;name&gt;.annotations.json</c>）の読み書き（単一所有）。</summary>
 /// <remarks>
-/// <b>書式は本クラスが単一所有する</b>: 4 つの UI 版・アプリが同じ書式で保存する
+/// <b>書式は本クラスが単一所有する</b>: 4 つの UI 版・アプリが同じ書式で保存する（ファイル入出力は <see cref="AnnotationCore"/> が記録して行う）
 /// （UI ごとに書くと、片方で保存した注釈が他方で読めない）。<br/>
 /// <b>ソース生成 + 明示の変換器を使う</b>（反射を使わない。 Native AOT / トリミングでも動く）。<br/>
 /// <b>未知の値は落とさない</b>: 解釈できない色は透明、欠落した項目は既定値として読む（1 件の破損で
@@ -16,6 +16,9 @@ public static class AnnotationJson
 {
     /// <summary>注釈ファイルの拡張子（元画像のファイル名へ付ける）を取得する。</summary>
     public const string FileSuffix = ".annotations.json";
+
+    /// <summary>合成画像の名前に挟まる目印（元画像の名と拡張子の間へ入れる）を取得する。</summary>
+    public const string ComposedInfix = ".annotated";
 
     /// <summary>このアプリが読み書きする JSON のオプション（インデントあり・変換器は固定）。</summary>
     private static readonly JsonSerializerOptions s_options = CreateOptions();
@@ -73,7 +76,7 @@ public static class AnnotationJson
         var directory = Path.GetDirectoryName(imagePath);
         var stem = Path.GetFileNameWithoutExtension(imagePath);
         var extension = Path.GetExtension(imagePath);
-        var name = stem + ".annotated" + extension;
+        var name = stem + ComposedInfix + extension;
 
         return string.IsNullOrEmpty(directory) ? name : Path.Combine(directory, name);
     }
@@ -121,20 +124,20 @@ public static class AnnotationJson
         return null;
     }
 
-    /// <summary>注釈ファイルを読み込む。</summary>
+    /// <summary>注釈ファイルを読み込む（ファイル入出力は <see cref="AnnotationCore"/> が公開する）。</summary>
     /// <param name="documentPath">注釈ファイルのパス。</param>
     /// <returns>読み込んだ文書。</returns>
     /// <exception cref="ArgumentException"><paramref name="documentPath"/> が空白の場合。</exception>
     /// <exception cref="IOException">ファイルを読めない場合。</exception>
     /// <exception cref="JsonException">JSON として解釈できない場合。</exception>
     /// <remarks>文字コードは UTF-8（BOM の有無は問わない）。 書式の解釈は <see cref="Deserialize"/> が単一所有する。</remarks>
-    public static AnnotationDocument Load(string documentPath)
+    internal static AnnotationDocument Load(string documentPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(documentPath);
         return Deserialize(File.ReadAllText(documentPath, Encoding.UTF8));
     }
 
-    /// <summary>注釈ファイルを書き出す。</summary>
+    /// <summary>注釈ファイルを書き出す（ファイル入出力は <see cref="AnnotationCore"/> が公開する）。</summary>
     /// <param name="documentPath">注釈ファイルのパス。</param>
     /// <param name="document">書き出す文書。</param>
     /// <exception cref="ArgumentException"><paramref name="documentPath"/> が空白の場合。</exception>
@@ -144,7 +147,7 @@ public static class AnnotationJson
     /// <b>文字コードは UTF-8（BOM なし）</b>である（他のリポジトリの UTF-8 の読み書きと揃える）。<br/>
     /// 書式は <see cref="Serialize"/> が単一所有する（読み手と書き手で書式がずれない）。
     /// </remarks>
-    public static void Save(string documentPath, AnnotationDocument document)
+    internal static void Save(string documentPath, AnnotationDocument document)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(documentPath);
         ArgumentNullException.ThrowIfNull(document);

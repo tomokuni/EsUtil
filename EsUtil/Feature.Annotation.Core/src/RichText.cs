@@ -5,7 +5,7 @@ namespace EsUtil.Feature.Annotation;
 /// <summary>書式付きの文字列（<see cref="TextRun"/> の並び）。</summary>
 /// <remarks>
 /// <b>1 文字だけ書式を変えられる</b>（run を分割して書式を変える）。 空の run は描画されない。<br/>
-/// <b>改行は <c>\n</c> で表す</b>（吹き出し内の明示改行。 折り返しは <see cref="AnnotationPresenter"/> が行う）。
+/// <b>改行は <c>\n</c> で表す</b>（吹き出し内の明示改行。 折り返しの行の配置は提示層が行う）。
 /// </remarks>
 public sealed class RichText
 {

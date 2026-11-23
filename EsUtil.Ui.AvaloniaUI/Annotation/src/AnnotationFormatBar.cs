@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Ui.AvaloniaUI.ColorSelector;
+using EsUtil.Feature.Annotation.Presenter.Editor;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
 

@@ -451,13 +451,22 @@ if (-not $SkipRepoChecks) {
         'MarqueeTextPlacement', 'MarqueeLabelPlacements',
         'ThumbnailPresenter', 'ThumbnailAppearance', 'ThumbnailDrawPlan', 'ThumbnailDrawLayer', 'ThumbnailHighlightKind',
         'ThumbnailLabelPlan', 'ThumbnailShadowPlan', 'ThumbnailShadowBand', 'ThumbnailShadowEdge', 'ThumbnailShadowSide',
-        'ThumbnailShadowStop', 'IThumbnailShadowPlan')
+        'ThumbnailShadowStop', 'IThumbnailShadowPlan',
+        'AnnotationPresenter', 'AnnotationTypingStyle', 'AnnotationPanelAppearance', 'AnnotationPanelController',
+        'AnnotationPanelKind', 'AnnotationPanelMetrics', 'AnnotationPanelPlacement', 'IAnnotationPanelHost',
+        'AnnotationEditorLayout', 'AnnotationEditorText', 'AnnotationFormatBarItem', 'AnnotationFormatBarLayout',
+        'AnnotationFontCatalog', 'AnnotationPaletteCatalog', 'AnnotationPaletteColor', 'AnnotationSelectionPresenter',
+        'AnnotationCaretBlink', 'AnnotationCaretRect', 'AnnotationCompositionPreview', 'AnnotationEditingOutline',
+        'AnnotationMarqueeMetrics', 'AnnotationTextLineIndex', 'AnnotationTextLineLayout', 'AnnotationBubbleEdgeCatalog')
     $rxPresenterType = [regex]('\b(' + ($presenterTypes -join '|') + ')\b')
+    # 公開面のファサードは提示層を成員として持つ（ファサードは層ではなく窓口のため、走査の対象外にする）
+    $facadeTypes = @('AnnotationCore')
     $layerViolations = [System.Collections.Generic.List[string]]::new()
     foreach ($feature in @(
             @{ Name = 'EsUtil/Feature.Loupe.Core'; Namespace = 'EsUtil.Feature.Loupe.Presenter' },
             @{ Name = 'EsUtil/Feature.Marquee.Core'; Namespace = 'EsUtil.Feature.Marquee.Presenter' },
-            @{ Name = 'EsUtil/Feature.Thumbnail.Core'; Namespace = 'EsUtil.Feature.Thumbnail.Presenter' })) {
+            @{ Name = 'EsUtil/Feature.Thumbnail.Core'; Namespace = 'EsUtil.Feature.Thumbnail.Presenter' },
+            @{ Name = 'EsUtil/Feature.Annotation.Core'; Namespace = 'EsUtil.Feature.Annotation.Presenter' })) {
         $srcRoot = Join-Path $repoRoot ($feature.Name + '/src')
         if (-not (Test-Path -LiteralPath $srcRoot)) { continue }
 
@@ -470,7 +479,7 @@ if (-not $SkipRepoChecks) {
             $declaration = [regex]::Match(
                 [IO.File]::ReadAllText($file.FullName, $enc),
                 '(?m)^\s*(?:(?:public|internal|private|protected|file|static|sealed|abstract|partial|readonly)\s+)*(?:class|struct|interface|enum|record(?:\s+(?:class|struct))?)\s+([A-Za-z_]\w*)')
-            if ($declaration.Success -and $presenterTypes -contains $declaration.Groups[1].Value) { continue }
+            if ($declaration.Success -and ($presenterTypes -contains $declaration.Groups[1].Value -or $facadeTypes -contains $declaration.Groups[1].Value)) { continue }
             $coreFiles.Add($file)
         }
 

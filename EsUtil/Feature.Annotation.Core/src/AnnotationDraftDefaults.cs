@@ -1,3 +1,5 @@
+using EsUtil.Feature.Annotation.Core.Defaults;
+
 namespace EsUtil.Feature.Annotation;
 
 /// <summary>新規作成時の既定値（ホストが設定ページで変える値）。</summary>

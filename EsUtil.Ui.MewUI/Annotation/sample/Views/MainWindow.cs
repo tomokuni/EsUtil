@@ -5,6 +5,7 @@ using EsUtil.Platform.Core.Imaging;
 using EsUtil.Ui.MewUI.Annotation.Sample.Imaging;
 using EsUtil.Ui.MewUI.SampleKit;
 using Microsoft.Extensions.Logging;
+using EsUtil.Feature.Annotation.Core.Defaults;
 
 namespace EsUtil.Ui.MewUI.Annotation.Sample.Views;
 
@@ -41,7 +42,7 @@ internal static class MainWindow
         layer.SourcePixelWidth = s_image.Width;
         layer.SourcePixelHeight = s_image.Height;
 
-        var core = new AnnotationCore(layer.Presenter) { Log = logger, LogPrefix = "[Annotation]" };
+        var core = layer.Core;
         var document = core.CreateDocument(s_image.Width, s_image.Height, "sample.png");
         document = document.Add(core.CreateFrame(document, new EsRect(60, 60, 340, 220)));
         document = document.Add(core.CreateBubble(

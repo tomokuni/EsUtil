@@ -20,7 +20,7 @@
 
 ## 1. 公開 API の可視性
 
-公開面（ファサードのメンバーの型と、UI 層が使う型）は名前空間 `EsUtil.Feature.Annotation` に置きます。 層の内部は `EsUtil.Feature.Annotation.Core.Internal`（JSON の文脈・変換器・折り返し）です。
+公開面（ファサードのメンバーに現れる型）は名前空間 `EsUtil.Feature.Annotation` に置きます。 4 つの UI 版が共通で使う型も `public` ですが、層の内部の名前空間（`EsUtil.Feature.Annotation.Core.<カテゴリ>` / `.Presenter.<カテゴリ>`）へ置きます（フォルダと名前空間の一覧は [`../README.md`](../README.md) §3）。
 
 | 型 | 可視性 | 参照可能なアセンブリ |
 | --- | --- | --- |
@@ -130,10 +130,12 @@
 
 | メンバー | 説明 |
 | --- | --- |
-| `Serialize(document)` / `Deserialize(json)` | JSON の読み書き（ソース生成 + 明示の変換器。 反射を使わない） |
+| `Serialize(document)` / `Deserialize(json)` | JSON 文字列への変換（ソース生成 + 明示の変換器。 反射を使わない） |
 | `GetDocumentPath(imagePath)` | `<画像名>.annotations.json` のパス（拡張子を置き換える） |
 | `GetComposedPath(imagePath)` | `<画像名>.annotated.<拡張子>` のパス（拡張子を保つ） |
 | `FileSuffix` | 注釈ファイルの接尾辞（`.annotations.json`） |
+
+- **ファイルの入出力は `AnnotationCore.Load` / `AnnotationCore.Save`** が行います（文字コードは UTF-8・BOM なし。 件数を記録し、失敗は `Error` で記録して再スローする）。 本クラスは変換とパスの解決だけを持ちます。
 
 - **矩形・点は `X` / `Y` / `Width` / `Height` だけ**、色は **`#AARRGGBB`** で保存します。
 - **未知の種別は読み込み時に例外**になります（前方互換はスキーマ版で扱う）。

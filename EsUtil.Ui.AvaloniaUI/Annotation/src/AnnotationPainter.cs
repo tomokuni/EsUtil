@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Media;
 using EsUtil.Platform.Core.Geometry;
 using DrawingColor = System.Drawing.Color;
+using EsUtil.Feature.Annotation.Core.Defaults;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
 

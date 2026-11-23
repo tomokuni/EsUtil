@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Annotation.Core.Geometry;
 
 namespace EsUtil.Feature.Annotation;
 

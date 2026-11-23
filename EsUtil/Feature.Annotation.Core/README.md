@@ -67,11 +67,31 @@ var composedPath = AnnotationJson.GetComposedPath(imagePath);   // <画像名>.a
 | `AnnotationAppearance` | 注釈の外観（枠線の色・太さ・内側の色・角丸） |
 | `AnnotationPresenter` / `AnnotationDrawPlan` / `AnnotationShapePlan` | 折り返しと描画計画の解決 |
 | `AnnotationHitTest` | 選択としっぽの当たり判定（最前面から探す） |
-| `AnnotationJson` | JSON の読み書きとパスの解決 |
+| `AnnotationJson` | JSON 文字列への変換と保存パスの解決（ファイル入出力は `AnnotationCore`） |
 | `AnnotationDefaults` / `AnnotationLimits` | 既定値と安全域（設定・JSON・入力の共通の補正） |
 | `AnnotationHistory` | 変更履歴（元に戻す・やり直す。 文書を複製して積む） |
 
-## 3. テスト
+## 3. 構成（名前空間とフォルダ）
+
+公開面（ファサードとそのメンバーの型）は `src/` 直下の `EsUtil.Feature.Annotation` です。 層の内部は層フォルダへ置き、名前空間に層名を挾みます（規則は [`.github/命名規約.md`](../../../.github/命名規約.md)）。
+
+| フォルダ | 名前空間 | 置く型 |
+| --- | --- | --- |
+| `src/` 直下 | `EsUtil.Feature.Annotation` | ファサード（`AnnotationCore` / `AnnotationPresenter`）と、そのメンバーに現れる型（文書・注釈・書式・外観・描画計画） |
+| `src/Core/Contract` | `.Core.Contract` | 4 つの UI 版と共有する通知（追加メニュー・プレビュー操作・書式編集の要求）と、ポインターの種類 |
+| `src/Core/Defaults` | `.Core.Defaults` | 既定値と安全域（`AnnotationDefaults` / `AnnotationLimits`） |
+| `src/Core/Geometry` | `.Core.Geometry` | 画像内へ収める規則と表示倍率・位置の解決 |
+| `src/Core/History` | `.Core.History` | 変更履歴（元に戻す・やり直す） |
+| `src/Core/Interaction` | `.Core.Interaction` | 当たり判定とポインターの形の判断 |
+| `src/Core/Text` | `.Core.Text` | 本文の書式を適用する範囲の規則 |
+| `src/Core/Internal` | `.Core.Internal` | 折り返しと JSON の読み書き（`internal`） |
+| `src/Presenter/Drawing` | `.Presenter.Drawing` | キャレット・編集中の枠・行と文字位置の対応 |
+| `src/Presenter/Editor` | `.Presenter.Editor` | 編集 UI の文言・寸法・代表色・書式バーの並び |
+| `src/Presenter/Panel` | `.Presenter.Panel` | フローティング パネルの外観・配置・開閉 |
+| `src/Presenter/Selection` | `.Presenter.Selection` | 選択中の注釈の編集入口と、以降の入力へ効かせる書式 |
+| `src/Logging` | `.Logging` | ログ定義（`internal`。 UI が呼ぶ定義だけ `public`） |
+
+## 4. テスト
 
 ```powershell
 dotnet test EsUtil/Feature.Annotation.Core/tests/EsUtil.Feature.Annotation.Core.Tests.csproj
@@ -80,7 +100,7 @@ dotnet test EsUtil/Feature.Annotation.Core/tests/EsUtil.Feature.Annotation.Core.
 折り返し（幅・明示改行・行頭禁則）・しっぽの幾何・当たり判定・JSON の往復と保存形式を検証します。
 手順と合否基準は [`.github/検証手順.md`](../../../.github/検証手順.md) が単一所有します。
 
-## 4. ドキュメント
+## 5. ドキュメント
 
 - API リファレンス … [`docs/SPEC_API.md`](docs/SPEC_API.md)
 - システム仕様書 … [`docs/SPEC_System.md`](docs/SPEC_System.md)
@@ -88,6 +108,6 @@ dotnet test EsUtil/Feature.Annotation.Core/tests/EsUtil.Feature.Annotation.Core.
 - 依存の許可範囲 … [`.github/依存関係.md`](../../../.github/依存関係.md)
 - ログの規則 … [`.github/ログ規約.md`](../../../.github/ログ規約.md)
 
-## 5. ライセンス
+## 6. ライセンス
 
 [MIT License](../../../LICENSE)

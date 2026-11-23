@@ -5,6 +5,11 @@ using EsUtil.Feature.Marquee;
 using EsUtil.Feature.Marquee.Core.Contract;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Input;
+using EsUtil.Feature.Annotation.Core.Contract;
+using EsUtil.Feature.Annotation.Core.Geometry;
+using EsUtil.Feature.Annotation.Core.Interaction;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Annotation.Logging;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
@@ -224,6 +229,7 @@ public sealed partial class AnnotationLayerControl
         base.OnMouseDown(e);
 
         var position = e.GetPosition(this);
+        _core.Log.LogPointerPressed(ToSource(position), 1);
         RaisePreviewGesture(AnnotationPreviewGesture.Press, position, 1, 0, e.ShiftKey, e.ControlKey);
 
         if (e.RightButton)
@@ -489,6 +495,7 @@ public sealed partial class AnnotationLayerControl
 
         // 押下中に固定した変換を解除する（次の押下で最新の表示矩形から取り直す）
         ReleaseTransform();
+        _core.Log.LogPointerReleased(ToSource(e.GetPosition(this)), SelectedId is not null);
 
         if (_isSelectingText)
         {

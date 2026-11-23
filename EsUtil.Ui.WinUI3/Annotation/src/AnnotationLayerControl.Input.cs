@@ -8,6 +8,12 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.System;
+using EsUtil.Feature.Annotation.Core.Contract;
+using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Annotation.Core.Geometry;
+using EsUtil.Feature.Annotation.Core.Interaction;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Annotation.Logging;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 
@@ -36,7 +42,7 @@ public sealed partial class AnnotationLayerControl
     /// <remarks>
     /// <b>変換中の文字列も本文として組む</b>: キャレットの位置へ重ねて描くと既存の文字と重なり、
     /// 折り返しも動かないため読めません（実測 2026-11-23: WinUI 3 版だけこの経路を通っておらず、
-    /// 入力中の文字が既存の文字に被っていました）。 規則はコアの
+    /// 入力中の文字が既存の文字に被る）。 規則はコアの
     /// <see cref="AnnotationCompositionPreview"/> が単一所有します（4 つの UI 版で同じ）。
     /// </remarks>
     private AnnotationDocument RenderDocument
@@ -237,6 +243,7 @@ public sealed partial class AnnotationLayerControl
 
         var point = e.GetCurrentPoint(this);
         var position = new EsPoint(point.Position.X, point.Position.Y);
+        _core.Log.LogPointerPressed(ToSource(position), 1);
 
         // 押下をホストへ知らせる（表示中のメニューを外側の押下で閉じるために使う）
         RaisePreviewGesture(AnnotationPreviewGesture.Press, point.Position, 1, 0);
@@ -445,6 +452,7 @@ public sealed partial class AnnotationLayerControl
 
         var point = e.GetCurrentPoint(this);
         var source = ToSource(new EsPoint(point.Position.X, point.Position.Y));
+        _core.Log.LogPointerReleased(source, SelectedId is not null);
 
         if (_isSelectingText)
         {
