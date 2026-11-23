@@ -85,7 +85,7 @@ var composedPath = AnnotationJson.GetComposedPath(imagePath);   // <画像名>.a
 | `src/Core/Interaction` | `.Core.Interaction` | 当たり判定とポインターの形の判断 |
 | `src/Core/Text` | `.Core.Text` | 本文の書式を適用する範囲の規則 |
 | `src/Core/Internal` | `.Core.Internal` | 折り返しと JSON の読み書き（`internal`） |
-| `src/Presenter/Drawing` | `.Presenter.Drawing` | キャレット・編集中の枠・行と文字位置の対応 |
+| `src/Presenter/Drawing` | `.Presenter.Drawing` | キャレット・編集中の枠・行と文字位置の対応・行の寸法の値 |
 | `src/Presenter/Editor` | `.Presenter.Editor` | 編集 UI の文言・寸法・代表色・書式バーの並び |
 | `src/Presenter/Panel` | `.Presenter.Panel` | フローティング パネルの外観・配置・開閉 |
 | `src/Presenter/Selection` | `.Presenter.Selection` | 選択中の注釈の編集入口と、以降の入力へ効かせる書式 |

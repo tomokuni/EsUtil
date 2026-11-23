@@ -2,6 +2,7 @@ using Aprillz.MewUI;
 using Aprillz.MewUI.Text;
 using EsUtil.Platform.Core.Geometry;
 using DrawingColor = System.Drawing.Color;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
