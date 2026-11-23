@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Annotation/">
+    <Project Path="Annotation/src/EsUtil.Ui.WinForms.Annotation.csproj" />
+    <Project Path="Annotation/tests/EsUtil.Ui.WinForms.Annotation.Tests.csproj" />
+  </Folder>
   <Folder Name="/Loupe/">
     <Project Path="Loupe/sample/EsUtil.Ui.WinForms.Loupe.Sample.csproj" />
     <Project Path="Loupe/src/EsUtil.Ui.WinForms.Loupe.csproj" />

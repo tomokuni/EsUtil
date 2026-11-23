@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <UseWinUI>true</UseWinUI>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RootNamespace>EsUtil.Ui.WinUI3.Annotation</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- このライブラリは Windows 専用だが、Native AOT の解析（トリム/AOT 警告）は有効にする。 -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <Description>注釈（枠線・吹き出し・テキスト）の WinUI 3 版コントロール。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WinUI 3 のコントロール（注釈は XAML の図形と TextBlock で描く） -->
+    <PackageReference Include="Microsoft.WindowsAppSDK" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
+    <!-- 合成画像（注釈を焼き込んだ画像）の書き出しは GDI+ で 1:1 に行う -->
+    <PackageReference Include="System.Drawing.Common" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\EsUtil\Feature.Annotation.Core\src\EsUtil.Feature.Annotation.Core.csproj" />
+    <!-- 選択枠とハンドルは Marquee の提示層を再利用する（枠の見た目を 4 つの UI 版で揃えるため） -->
+    <ProjectReference Include="..\..\..\EsUtil\Feature.Marquee.Core\src\EsUtil.Feature.Marquee.Core.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <!-- 画像の表示・コア型の変換 -->
+    <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.WinUI3.Interop.csproj" />
+    <!-- 色の選択は UI の色選択コントロールを使う -->
+    <ProjectReference Include="..\..\ColorSelector\src\EsUtil.Ui.WinUI3.ColorSelector.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Ui.WinUI3.Annotation.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="EsUtil.Feature.Annotation.Core" />
+    <Using Include="EsUtil.Feature.Annotation.Presenter" />
+  </ItemGroup>
+</Project>

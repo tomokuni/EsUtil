@@ -1,5 +1,5 @@
 {
-    // サンプル アプリ（各 UI 層の `sample/`）の起動構成。 18 件を UI 層ごとに並べる。
+    // サンプル アプリ（各 UI 層の `sample/`）の起動構成。 UI 層ごとに並べる。
     // **VS Code のデバッグ一覧は階層を持てない**（`presentation.group` は区切り線を入れるだけで、
     // グループ名は表示されず、同名の構成には (1)(2) が付く）。 そのため**名前へ UI 層を含める**
     // （`AvaloniaUI / ColorSelector`）。 `presentation.group` と `presentation.order` は
@@ -19,6 +19,17 @@
     "version": "0.2.0",
     "configurations": [
         // AvaloniaUI
+        {
+            "name": "AvaloniaUI / Annotation",
+            "presentation": { "group": "AvaloniaUI", "order": 0 },
+            "type": "coreclr",
+            "request": "launch",
+            "justMyCode": false,
+            "logging": { "moduleLoad": false },
+            "preLaunchTask": "ビルド（AvaloniaUI / Annotation）",
+            "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/Annotation/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.AvaloniaUI.Annotation.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/Annotation/sample"
+        },
         {
             "name": "AvaloniaUI / ColorSelector",
             "presentation": { "group": "AvaloniaUI", "order": 1 },

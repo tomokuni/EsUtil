@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Feature.Annotation.Core/">
+    <Project Path="Feature.Annotation.Core/src/EsUtil.Feature.Annotation.Core.csproj" />
+    <Project Path="Feature.Annotation.Core/tests/EsUtil.Feature.Annotation.Core.Tests.csproj" />
+  </Folder>
   <Folder Name="/Feature.Loupe.Core/">
     <Project Path="Feature.Loupe.Core/src/EsUtil.Feature.Loupe.Core.csproj" />
     <Project Path="Feature.Loupe.Core/tests/EsUtil.Feature.Loupe.Core.Tests.csproj" />

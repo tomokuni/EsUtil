@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <RootNamespace>EsUtil.Ui.MewUI.Annotation</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- MewUI は API が安定化中（0.x）。破壊的変更を避けるためバージョンを固定する。 -->
+    <MewUIVersion>0.22.1</MewUIVersion>
+    <!-- このライブラリは Windows 専用だが、Native AOT の解析（トリム/AOT 警告）は有効にする。 -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <Description>注釈（枠線・吹き出し・テキスト）の MewUI 版コントロール。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aprillz.MewUI.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\EsUtil\Feature.Annotation.Core\src\EsUtil.Feature.Annotation.Core.csproj" />
+    <!-- 選択枠とハンドルは Marquee の提示層を再利用する（枠の見た目を 4 つの UI 版で揃えるため） -->
+    <ProjectReference Include="..\..\..\EsUtil\Feature.Marquee.Core\src\EsUtil.Feature.Marquee.Core.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <!-- 色の選択は UI の色選択コントロールを使う（色名・16 進・ピッカーの解釈を 1 つに集約する） -->
+    <ProjectReference Include="..\..\ColorSelector\src\EsUtil.Ui.MewUI.ColorSelector.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Ui.MewUI.Annotation.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="EsUtil.Feature.Annotation.Core" />
+    <Using Include="EsUtil.Feature.Annotation.Presenter" />
+  </ItemGroup>
+</Project>

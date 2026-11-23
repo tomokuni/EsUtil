@@ -1,0 +1,227 @@
+# EsUtil.Ui.WinForms.Annotation
+
+![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Annotation.svg)
+![Release](https://github.com/tomokuni/EsUtil/actions/workflows/release.yml/badge.svg)
+![Build](https://github.com/tomokuni/EsUtil/actions/workflows/build.yml/badge.svg?branch=main)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%20(1809%2C%2017763)%2B-0078D6)
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
+![WinForms](https://img.shields.io/badge/UI-WinForms-512BD4)
+![License](https://img.shields.io/badge/License-MIT-3DA639)
+
+> プロジェクト名: `EsUtil.Ui.WinForms.Annotation`（WinForms 版）。 UI 非依存のロジックは `EsUtil.Feature.Annotation.Core`、他 UI 版は対になるコントロール（別プロジェクト）にあります。
+
+## 目次 <!-- omit from toc -->
+
+- [1. 概要](#1-概要)
+- [2. 機能一覧](#2-機能一覧)
+- [3. システム要件](#3-システム要件)
+- [4. インストール](#4-インストール)
+- [5. クイックスタート](#5-クイックスタート)
+- [6. 画像の受け渡し](#6-画像の受け渡し)
+- [7. 所有権とライフサイクル](#7-所有権とライフサイクル)
+- [8. 座標系](#8-座標系)
+- [9. 操作](#9-操作)
+- [10. 他の UI 版との違い](#10-他の-ui-版との違い)
+- [11. 含まれるもの](#11-含まれるもの)
+- [12. カスタマイズ](#12-カスタマイズ)
+- [13. ログ](#13-ログ)
+- [14. 未対応](#14-未対応)
+- [15. サンプルアプリケーション](#15-サンプルアプリケーション)
+- [16. ドキュメント](#16-ドキュメント)
+- [17. プロジェクト構成](#17-プロジェクト構成)
+- [18. テスト](#18-テスト)
+- [19. ライセンス](#19-ライセンス)
+
+---
+
+## 1. 概要
+
+画像の上へ注釈（枠線・吹き出し）を重ねる WinForms 版のレイヤー コントロールです。
+
+- **`AnnotationTextEditor`**: 本文の表示・編集と書式バーを 1 つにまとめたコントロールです（内側の `Layer` で画像・文書・選択を操作します）。
+- **`AnnotationLayerControl`**: 画像の表示・注釈の描画・入力の受付を担います（`AnnotationTextEditor.Layer` として使います）。
+- **判断は `EsUtil.Feature.Annotation.Core` が単一所有**します（当たり判定・折り返し・描画計画）。 本コントロールは GDI+ へ写すだけです。
+- **選択枠と 8 方向のハンドルは `EsUtil.Feature.Marquee.Core` の提示層を再利用**します。
+- **本文の編集はその場で行います**: 表示中のレイアウトのままキャレットと選択範囲を描いて入力します。 日本語入力（IME）は `WM_IME_COMPOSITION` から変換中の文字列と確定した文字列を受け取ります。
+- **斜体は行の高さを変えません**（行の高さはフォントの行送りから求め、各 run は行の高さいっぱいの中央へ置く）。
+
+**色の選択は代表色のメニューと色ダイアログで行います**（WinForms には色選択コントロールが無いため）。 代表色は 40 色で、4 つの UI 版と同じ色名・同じ値です（`AnnotationPalette`）。
+
+---
+
+## 2. 機能一覧
+
+- 枠線・吹き出しの追加・移動・サイズ変更・削除
+- しっぽ（吹き出し口）の先端のドラッグ（本体と独立）
+- 本文のその場編集（キャレット・選択範囲・IME 対応）
+- 文字単位の書式（フォント・大きさ・色・太字・斜体・下線・取り消し線）
+- 右クリックによる外観・重なり順の編集
+- 元に戻す・やり直す（ドラッグ 1 回 = 1 手）
+- 保存用の合成画像（元画像ピクセルの 1:1）
+
+---
+
+## 3. システム要件
+
+| 項目 | 要件 |
+| --- | --- |
+| OS | Windows 10 バージョン 1809（ビルド 17763）以降 |
+| .NET | .NET 10（Windows Forms） |
+| 対象フレームワーク | `net10.0-windows10.0.17763.0` |
+| Native AOT | 非対応（Windows Forms がトリミング / AOT に対応しないため） |
+
+---
+
+## 4. インストール
+
+```powershell
+dotnet add package EsUtil.Ui.WinForms.Annotation
+```
+
+---
+
+## 5. クイックスタート
+
+```csharp
+using EsUtil.Feature.Annotation.Core;
+using EsUtil.Feature.Annotation.Presenter;
+using EsUtil.Ui.WinForms.Annotation;
+
+// 本文の表示・編集と書式バーをまとめたコントロール（これ 1 つを置く）
+var editor = new AnnotationTextEditor { Dock = DockStyle.Fill };
+var layer = editor.Layer;
+layer.Source = image;           // EsReadOnlyBitmap
+layer.SourcePixelWidth = 1920;
+layer.SourcePixelHeight = 1080;
+layer.Document = new AnnotationDocument(1920, 1080, "shot.png");
+
+// 追加（既定の外観を使う）
+layer.AddFrame(new EsRect(60, 60, 340, 220));
+layer.AddBubble(new EsRect(900, 120, 380, 170), "ここが重要です。");
+
+// 保存（注釈 JSON と合成画像の書き出し）はホストが行う
+var path = AnnotationJson.GetDocumentPath(imagePath);
+File.WriteAllText(path, AnnotationJson.Serialize(layer.Document), new UTF8Encoding(false));
+
+using var composed = layer.RenderComposedImage();
+composed?.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
+```
+
+---
+
+## 6. 画像の受け渡し
+
+- **表示する画像はコアの具象型（`EsReadOnlyBitmap`）で渡します**（`Source`）。
+- **元画像の画素数を `SourcePixelWidth` / `SourcePixelHeight` で渡します**。
+- **保存用の合成は `RenderComposedImage()`** が GDI+ で元画像ピクセルの 1:1 に焼き込みます。
+
+---
+
+## 7. 所有権とライフサイクル
+
+- **`Source` の画像はホストが所有します**（コントロールは破棄しません）。
+- **`Document` は不変です**（変更は新しい文書を返し、`Document` へ設定し直します）。
+- **`RenderComposedImage()` の戻り値は呼び出し側が破棄します**。
+
+---
+
+## 8. 座標系
+
+- **注釈の座標・文字の大きさ・枠線の太さは元画像ピクセル**です（表示倍率・DPI に依存しません）。
+- 入力はクライアント座標で届くため、コントロールが表示倍率を 1 回だけ掛けて元画像ピクセルへ変換します。
+
+---
+
+## 9. 操作
+
+| 操作 | 動作 |
+| --- | --- |
+| クリック | 選択（**8 方向のハンドル**が Marquee の提示層で描かれる） |
+| 本体をドラッグ | 移動 |
+| ハンドルをドラッグ | サイズ変更 |
+| しっぽの先端（■）をドラッグ | 吹き出し口の移動（本体と独立） |
+| ダブルクリック / Enter | 本文の編集 |
+| 右クリック | 外観・重なり順の編集 |
+| Delete | 選択中の注釈の削除 |
+| 方向キー | nudge |
+| `Ctrl+Z` / `Ctrl+Y` | 元に戻す・やり直す |
+
+---
+
+## 10. 他の UI 版との違い
+
+| 項目 | 本 UI 版 |
+| --- | --- |
+| 描画 | GDI+ |
+| 本文の編集 | 表示中のレイアウトのままキャレットと選択範囲を描く（`WM_IME_COMPOSITION` で IME を受ける） |
+| 色の選択 | 代表色のメニューと色ダイアログ（WinForms に色選択コントロールが無いため） |
+| Native AOT | 非対応（Windows Forms の制約） |
+
+---
+
+## 11. 含まれるもの
+
+`EsUtil.Feature.Annotation.Core`（コアと提示層）、`EsUtil.Feature.Marquee.Core`（選択枠）、`EsUtil.Ui.WinForms.Interop`（画像の変換）、`EsUtil.Platform.Core`。
+
+---
+
+## 12. カスタマイズ
+
+- **色の表記**: `AnnotationTextEditor.TextFormat`（色のメニューは表記を持たないため保持だけする）。
+- **新規作成時の既定値**: `AnnotationLayerControl.DraftDefaults`。
+
+---
+
+## 13. ログ
+
+本コントロールはログを出力しません（操作の記録はホストが行います。 規則は [`ログ規約.md`](../../../.github/ログ規約.md) §6）。
+
+---
+
+## 14. 未対応
+
+- 入れ子の二重枠・破線・楕円・矢印の注釈は持ちません（枠線と吹き出しだけです）。
+- 本文の書式は文字単位であり、段落・行単位の書式は持ちません。
+
+制限事項の詳細は [`docs/SPEC_API.md`](docs/SPEC_API.md) を参照してください。
+
+---
+
+## 15. サンプルアプリケーション
+
+本 UI 版のサンプル アプリは未作成です（[`EsUtil.Ui.AvaloniaUI/Annotation/sample`](../../EsUtil.Ui.AvaloniaUI/Annotation/sample/README.md) を同じ項目・同じ順で写して追加できます）。
+
+---
+
+## 16. ドキュメント
+
+- API リファレンス … [`docs/SPEC_API.md`](docs/SPEC_API.md)
+- システム仕様書 … [`docs/SPEC_System.md`](docs/SPEC_System.md)
+- コア（モデル・描画計画） … [`EsUtil.Feature.Annotation.Core`](../../EsUtil/Feature.Annotation.Core/README.md)
+- Avalonia UI 版 … [`EsUtil.Ui.AvaloniaUI.Annotation`](../../EsUtil.Ui.AvaloniaUI/Annotation/README.md)
+
+---
+
+## 17. プロジェクト構成
+
+| フォルダ | 内容 |
+| --- | --- |
+| `src/` | コントロール本体（`AnnotationLayerControl` / `AnnotationTextEditor` / 書式バー / 描画） |
+| `tests/` | 単体テスト（コントロールとコアの接続・合成画像・実寸の測定） |
+| `docs/` | API リファレンスとシステム仕様書 |
+
+---
+
+## 18. テスト
+
+```powershell
+dotnet test EsUtil.Ui.WinForms/Annotation/tests/EsUtil.Ui.WinForms.Annotation.Tests.csproj
+```
+
+判断（当たり判定・折り返し・JSON）のテストは [`EsUtil.Feature.Annotation.Core`](../../EsUtil/Feature.Annotation.Core/README.md) が持ちます。 手順と合否基準は [`.github/検証手順.md`](../../../.github/検証手順.md) が単一所有します。
+
+---
+
+## 19. ライセンス
+
+[MIT License](../../../LICENSE)

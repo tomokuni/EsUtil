@@ -88,6 +88,8 @@
       <!-- 同一 UI の変換ブリッジ（例: EsUtil.Ui.AvaloniaUI.Marquee → EsUtil.Ui.AvaloniaUI.Interop）。
            ブリッジは EsUtil.Platform.Core と Avalonia だけに依存するため、参照しても配布の独立性は保たれる。 -->
       <_SeUiPlatformInteropName Condition="'$(_SeIsUiControl)' == 'true'">$([System.Text.RegularExpressions.Regex]::Match('$(MSBuildProjectName)', '^EsUtil\.Ui\.[A-Za-z0-9]+').Value).Interop</_SeUiPlatformInteropName>
+      <!-- 同一 UI の接頭辞（例: EsUtil.Ui.AvaloniaUI）。 同一 UI の別コントロールを判定する。 -->
+      <_SeUiPlatformPrefix Condition="'$(_SeIsUiControl)' == 'true'">$([System.Text.RegularExpressions.Regex]::Match('$(MSBuildProjectName)', '^EsUtil\.Ui\.[A-Za-z0-9]+').Value)</_SeUiPlatformPrefix>
     </PropertyGroup>
 
     <!-- R1: 最下層（EsUtil.Platform.Core）は EsUtil のパッケージを参照しない -->
@@ -114,18 +116,21 @@
     <!-- DEP0004 は廃止（欠番）: 提示層のプロジェクトを機能アセンブリへ統合したため対象が無い。
          Core → Presenter の参照は verify.ps1 の層検査が拒否する（.github/依存関係.md §5・§8）。 -->
 
-    <!-- R5: UI 層は EsUtil.Platform.Core・同一機能の機能アセンブリ・同一 UI の変換ブリッジ・
-         層を持たない機能パッケージ（`EsUtil.Feature.<機能>`）だけを参照する -->
+    <!-- R5: UI 層は EsUtil.Platform.Core・機能アセンブリ（EsUtil.Feature.* / EsUtil.Feature.*.Core）・
+         同一 UI の変換ブリッジ・同一 UI の別コントロールだけを参照する -->
     <ItemGroup Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsUiControl)' == 'true'">
       <_SeAllowed5 Include="@(_SeRef)" Condition="'%(Name)' == 'EsUtil.Platform.Core' Or '%(Name)' == '$(_SeUiFeatureCoreName)' Or '%(Name)' == '$(_SeUiPlatformInteropName)'" />
-      <!-- 提示層を持たない機能のコア（例: EsUtil.Feature.ColumnPacking.Core）は UI に依存しない
-           可搬な計算層であり、UI 層が参照しても配布の独立性を損なわない -->
-      <_SeAllowed5 Include="@(_SeRef)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(Name)', '^EsUtil\.Feature\.[A-Za-z][A-Za-z0-9]*$'))" />
+      <!-- 機能アセンブリ（同一機能のコア、提示層を持たない機能のコア、構成部品として使う別機能のコア。
+           例: Annotation は選択枠の描画に Marquee の提示層を使う）は UI に依存しない可搬な層であり、
+           UI 層が参照しても配布の独立性を損なわない -->
+      <_SeAllowed5 Include="@(_SeRef)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(Name)', '^EsUtil\.Feature\.[A-Za-z][A-Za-z0-9]*(\.Core)?$'))" />
+      <!-- 同一 UI の別コントロール（構成部品。 例: Annotation は色の選択に ColorSelector を使う） -->
+      <_SeAllowed5 Include="@(_SeRef)" Condition="$([System.String]::Copy('%(Name)').StartsWith('$(_SeUiPlatformPrefix).')) And $([System.Text.RegularExpressions.Regex]::IsMatch('%(Name)', '^EsUtil\.Ui\.[A-Za-z0-9]+\.[A-Za-z0-9]+$'))" />
       <_SeBad5 Include="@(_SeRef)" Exclude="@(_SeAllowed5)" />
     </ItemGroup>
     <Error Condition="'@(_SeBad5)' != ''"
            Code="DEP0005"
-           Text="依存関係違反: UI 層（EsUtil.Ui.*.*）は EsUtil.Platform.Core・同一機能の機能アセンブリ・同一 UI の変換ブリッジ（$(_SeUiPlatformInteropName)）・層を持たない機能パッケージ（EsUtil.Feature.&lt;機能&gt;）だけを参照できます（違反: @(_SeBad5->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
+           Text="依存関係違反: UI 層（EsUtil.Ui.*.*）は EsUtil.Platform.Core・機能アセンブリ（EsUtil.Feature.*）・同一 UI の変換ブリッジ（$(_SeUiPlatformInteropName)）・同一 UI の別コントロールだけを参照できます（違反: @(_SeBad5->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
 
     <!-- R6: 本体プロジェクトは EsUtil.* をパッケージ参照しない（同一リポジトリは ProjectReference を使う） -->
     <Error Condition="'$(_SeIsTestOrSample)' != 'true' And '@(_SePkgRef)' != ''"

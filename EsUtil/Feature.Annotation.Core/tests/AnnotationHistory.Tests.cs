@@ -1,0 +1,126 @@
+using EsUtil.Platform.Core.Geometry;
+using Xunit;
+
+namespace EsUtil.Feature.Annotation.Core.Tests;
+
+/// <summary><see cref="AnnotationHistory"/> の仕様テスト（元に戻す・やり直す）。</summary>
+/// <remarks>
+/// 注釈の座標・しっぽはドラッグ中に書き換わるため、履歴が<b>複製</b>を持つことを併せて固定する
+/// （複製しないと、記録した過去の状態がその後の編集で書き換わる）。
+/// </remarks>
+public class AnnotationHistoryTests
+{
+    /// <summary>記録した文書へ戻せることを検証する。</summary>
+    [Fact]
+    internal void Undo_記録した文書へ戻る()
+    {
+        var history = new AnnotationHistory();
+        var empty = new AnnotationDocument(100, 100, "a.png");
+        history.Record(empty);
+
+        var withItem = empty.Add(new FrameAnnotation { Bounds = new EsRect(0, 0, 10, 10) });
+        var restored = history.Undo(withItem);
+
+        Assert.NotNull(restored);
+        Assert.Empty(restored.Items);
+        Assert.False(history.CanUndo);
+        Assert.True(history.CanRedo);
+    }
+
+    /// <summary>元に戻した変更をやり直せることを検証する。</summary>
+    [Fact]
+    internal void Redo_元に戻した変更をやり直す()
+    {
+        var history = new AnnotationHistory();
+        var empty = new AnnotationDocument(100, 100, "a.png");
+        history.Record(empty);
+
+        var withItem = empty.Add(new FrameAnnotation { Bounds = new EsRect(0, 0, 10, 10) });
+        var restored = history.Undo(withItem)!;
+        var redone = history.Redo(restored);
+
+        Assert.NotNull(redone);
+        Assert.Single(redone.Items);
+        Assert.True(history.CanUndo);
+        Assert.False(history.CanRedo);
+    }
+
+    /// <summary>新しい変更を記録するとやり直しが消えることを検証する。</summary>
+    [Fact]
+    internal void Record_やり直しを消す()
+    {
+        var history = new AnnotationHistory();
+        var empty = new AnnotationDocument(100, 100, "a.png");
+        history.Record(empty);
+        var withItem = empty.Add(new FrameAnnotation { Bounds = new EsRect(0, 0, 10, 10) });
+        var restored = history.Undo(withItem)!;
+
+        history.Record(restored);
+
+        Assert.False(history.CanRedo);
+    }
+
+    /// <summary>記録した後に元の文書を書き換えても、記録が変わらないことを検証する。</summary>
+    [Fact]
+    internal void Record_記録は複製する()
+    {
+        var history = new AnnotationHistory();
+        var document = new AnnotationDocument(100, 100, "a.png")
+            .Add(new FrameAnnotation { Bounds = new EsRect(0, 0, 10, 10) });
+        history.Record(document);
+
+        // 記録後に元の文書の注釈を書き換える（ドラッグ中の移動と同じ）
+        document.Items[0].Bounds = new EsRect(50, 50, 20, 20);
+
+        var restored = history.Undo(document)!;
+        Assert.Equal(new EsRect(0, 0, 10, 10), restored.Items[0].Bounds);
+    }
+
+    /// <summary>保持数を超えたら古い記録から捨てることを検証する。</summary>
+    [Fact]
+    internal void Record_保持数を超えたら古い記録を捨てる()
+    {
+        var history = new AnnotationHistory(capacity: 2);
+        var document = new AnnotationDocument(100, 100);
+        history.Record(document);
+        history.Record(document);
+        history.Record(document);
+
+        Assert.Equal(2, history.UndoCount);
+    }
+
+    /// <summary>履歴が空のときは何も返さないことを検証する。</summary>
+    [Fact]
+    internal void Undo_履歴が空なら何も返さない()
+    {
+        var history = new AnnotationHistory();
+        var document = new AnnotationDocument(100, 100);
+
+        Assert.Null(history.Undo(document));
+        Assert.Null(history.Redo(document));
+    }
+
+    /// <summary>複製が本文としっぽを共有しないことを検証する。</summary>
+    [Fact]
+    internal void Clone_本文としっぽを複製する()
+    {
+        var bubble = new BubbleAnnotation
+        {
+            Bounds = new EsRect(0, 0, 100, 50),
+            Text = RichText.Create("あい", AnnotationDefaults.TextStyle),
+            Tail = new BubbleTail(new EsPoint(10, 10), BubbleEdge.Top, 0.5, 20),
+        };
+        var document = new AnnotationDocument(100, 100).Add(bubble);
+
+        var clone = document.Clone();
+        var copied = Assert.IsType<BubbleAnnotation>(Assert.Single(clone.Items));
+
+        // 複製元を書き換えても複製は変わらない
+        bubble.Text.Runs = RichText.Create("うえ", AnnotationDefaults.TextStyle).Runs;
+        bubble.Tail = bubble.Tail with { Width = 30 };
+
+        Assert.Equal("あい", copied.Text.PlainText);
+        Assert.Equal(20, copied.Tail.Width);
+        Assert.Equal(bubble.Id, copied.Id);
+    }
+}

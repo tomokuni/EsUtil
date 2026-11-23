@@ -1,0 +1,99 @@
+# EsUtil.Ui.WinUI3.Annotation システム仕様書
+
+WinUI 3 版の注釈レイヤーの構成と、他アセンブリとの関係をまとめます。 操作と描画の規則は Avalonia UI 版と同じで、本アセンブリは**XAML の図形と文字へ写す層**です。
+
+## 目次
+
+- [1. 概要](#1-概要)
+- [2. 技術スタック](#2-技術スタック)
+- [3. アーキテクチャ](#3-アーキテクチャ)
+- [4. コンポーネント](#4-コンポーネント)
+  - [4.1 描画のまとまり](#41-描画のまとまり)
+  - [4.2 本文の編集と書式](#42-本文の編集と書式)
+- [5. 依存関係](#5-依存関係)
+- [6. 例外処理ポリシー](#6-例外処理ポリシー)
+
+## 1. 概要
+
+画像の上へ注釈（枠線・吹き出し）を重ね、本文を編集するためのコントロール群です。 ホストは `AnnotationTextEditor` を 1 つ置くだけで、本文の編集と書式の変更ができます。
+
+- **判断はコアが単一所有**: 当たり判定・折り返し・描画計画・履歴は `EsUtil.Feature.Annotation` が持ちます。
+- **選択枠とハンドルは Marquee の提示層を再利用**: 移動・サイズ変更・nudge が UI 版で揃います。
+- **色の選択は ColorSelector を使う**: 自前の色入力を作りません。
+
+## 2. 技術スタック
+
+| 項目 | 内容 |
+| --- | --- |
+| UI | WinUI 3（`Microsoft.WindowsAppSDK`） |
+| 画像 | `EsUtil.Ui.WinUI3.Interop` の `CompositionImageView` |
+| 選択枠 | `EsUtil.Feature.Marquee.Core` の提示層 |
+| 色の選択 | `EsUtil.Ui.WinUI3.ColorSelector` |
+| 合成画像 | `System.Drawing.Common`（GDI+。 元画像ピクセルの 1:1 で焼き込む） |
+| 対象 | `net10.0-windows10.0.17763.0` |
+
+## 3. アーキテクチャ
+
+```mermaid
+flowchart LR
+    Host["ホスト（App.WinUI3）"] --> Editor["AnnotationTextEditor"]
+    Editor --> Layer["AnnotationLayerControl"]
+    Editor --> Bar["AnnotationFormatBar"]
+    Editor --> Panel["AnnotationStylePanel"]
+    Layer --> Core["EsUtil.Feature.Annotation（判断）"]
+    Layer --> Marquee["EsUtil.Feature.Marquee.Core（選択枠の提示）"]
+    Layer --> Painter["AnnotationPainter（図形と文字）"]
+    Layer --> Editor2["RichEditBox（本文の入力）"]
+    Bar --> Controls["AnnotationEditorControls"]
+    Panel --> Controls
+    Controls --> Selector["EsUtil.Ui.WinUI3.ColorSelector"]
+```
+
+**層の向き**: ホスト → 本アセンブリ → コア（`Feature.Annotation` / `Marquee` / `Platform`）。 逆向きの参照はありません。
+
+## 4. コンポーネント
+
+| 型 | 役割 |
+| --- | --- |
+| `AnnotationTextEditor` | レイヤーと書式バーを重ね、編集の開始・終了でバーを出し入れする |
+| `AnnotationLayerControl` | 画像・注釈の表示と入力の受付（`Input` / `TextEditing` の部分クラスへ分ける） |
+| `AnnotationPainter` | 描画計画を XAML の図形（`Rectangle` / `Polygon`）と `TextBlock` へ写す |
+| `AnnotationComposer` | 保存用の合成画像を GDI+ で描く |
+| `AnnotationTextRunMeasure` | 本文の実寸を WinUI 3 のテキスト エンジンで測る（ホストが `MeasureText` へ設定する） |
+| `AnnotationFormatBar` | 文字単位の書式（B / I / U / S・色・大きさ・フォント）の操作 |
+| `AnnotationStylePanel` | 外観・しっぽ・重なり順の編集 |
+| `AnnotationEditorControls` | 編集 UI の行の部品（書式バーと外観パネルが共有する） |
+| `AnnotationPalette` | 代表色（40 色）と色選択のタブ |
+
+### 4.1 描画のまとまり
+
+注釈は**元画像ピクセルの座標**で保持し、表示のたびに表示倍率と位置を掛けて XAML の要素を並べ直します（画像へ焼き込まない）。
+本文は区間ごとに `TextBlock` を置き、行の高さいっぱいの中央へ配置します（斜体でも行の間隔を変えない）。
+選択枠とハンドルは Marquee の描画計画（DIP）を矩形として重ねます。
+
+### 4.2 本文の編集と書式
+
+本文の編集は**その場で**行います（表示中のレイアウトのままキャレットと選択範囲を描き、入力欄を重ねません）。 入力のたびに本文と文字単位の書式をコアの `RichText`（run の並び）へ写します。 日本語入力は `CoreTextEditContext` を本文へ繋ぎ、変換中の文字列はキャレットの位置へ下線付きで描きます。
+書式バーの操作は本文の選択範囲へ適用し、同じ内容をモデルへ写します（保存・描画・元に戻すは常にコアのモデルを見る）。
+編集中は下の注釈の本文を描きません（本文を二重に表示しない）。
+
+## 5. 依存関係
+
+| 方向 | 内容 |
+| --- | --- |
+| 許可 | 本アセンブリ → `EsUtil.Feature.Annotation.Core` / `EsUtil.Feature.Marquee.Core` / `EsUtil.Platform.Core` / `EsUtil.Ui.WinUI3.ColorSelector` / `EsUtil.Ui.WinUI3.Interop` |
+| 禁止 | 本アセンブリ → ホスト（アプリ。 本アセンブリは上位の層に依存しない） |
+| 禁止 | 本アセンブリ → 本アセンブリの外の層（撮影セッション等。 本アセンブリは可搬でなければならない） |
+
+規則の所有者は [`.github/依存関係.md`](../../../.github/依存関係.md) です。
+
+## 6. 例外処理ポリシー
+
+| 場面 | 扱い |
+| --- | --- |
+| 文書が空・選択が無い | 何もしない（`false` を返す。 例外にしない） |
+| 画像が未設定 | 注釈だけを描く（`Source` が null でも動作する） |
+| XAML のテキスト エンジンを使えない | 実寸は文字数からの見積もりへ落とす（既定の `MeasureText`） |
+| 付随ファイルの削除に失敗 | ホストがログへ記録して続行する（本アセンブリは投げない） |
+
+共通方針は [`.github/例外処理規約.md`](../../../.github/例外処理規約.md) が所有します。

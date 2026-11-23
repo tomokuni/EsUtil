@@ -82,6 +82,13 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "label": "ビルド（AvaloniaUI / Annotation）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.AvaloniaUI/Annotation/sample/EsUtil.Ui.AvaloniaUI.Annotation.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "ビルド（AvaloniaUI / Marquee）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",

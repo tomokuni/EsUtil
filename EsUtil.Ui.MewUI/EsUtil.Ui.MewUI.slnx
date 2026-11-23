@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Annotation/">
+    <Project Path="Annotation/src/EsUtil.Ui.MewUI.Annotation.csproj" />
+    <Project Path="Annotation/tests/EsUtil.Ui.MewUI.Annotation.Tests.csproj" />
+  </Folder>
   <Folder Name="/ColorSelector/">
     <Project Path="ColorSelector/sample/EsUtil.Ui.MewUI.ColorSelector.Sample.csproj" />
     <Project Path="ColorSelector/src/EsUtil.Ui.MewUI.ColorSelector.csproj" />

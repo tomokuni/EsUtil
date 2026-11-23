@@ -7,6 +7,10 @@
 
 ## 未リリース
 
+### 追加
+
+- **注釈（枠線・吹き出し）のコントロールを追加しました**。 `EsUtil.Feature.Annotation.Core`（Core / Presenter）と 4 つの UI 版（`EsUtil.Ui.AvaloniaUI.Annotation` / `EsUtil.Ui.MewUI.Annotation` / `EsUtil.Ui.WinUI3.Annotation` / `EsUtil.Ui.WinForms.Annotation`）です。 注釈は画像へ焼き込まず `*.annotations.json` として保存でき、保存時に `*.annotated.*`（合成画像）を書き出せます。 選択枠とハンドルは Marquee の提示層を、色の選択は ColorSelector を再利用します。
+
 ### 修正
 
 - **MewUI の色選択で、ColorPicker のタブを押すと一覧が閉じて操作できなくなる不具合を修正しました**。 MewUI の `ColorPicker` は中身をポップアップへ埋め込めないため、タブを選んでも一覧は代表色のままにし、一覧を閉じてからピッカーのドロップダウンを開きます。 ピッカーを閉じると代表色のタブで一覧を開き直すため、**代表色はいつでも選べます**。

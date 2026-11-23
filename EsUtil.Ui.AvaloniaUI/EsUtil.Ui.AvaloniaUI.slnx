@@ -1,4 +1,9 @@
 <Solution>
+  <Folder Name="/Annotation/">
+    <Project Path="Annotation/sample/EsUtil.Ui.AvaloniaUI.Annotation.Sample.csproj" />
+    <Project Path="Annotation/src/EsUtil.Ui.AvaloniaUI.Annotation.csproj" />
+    <Project Path="Annotation/tests/EsUtil.Ui.AvaloniaUI.Annotation.Tests.csproj" />
+  </Folder>
   <Folder Name="/ColorSelector/">
     <Project Path="ColorSelector/sample/EsUtil.Ui.AvaloniaUI.ColorSelector.Sample.csproj" />
     <Project Path="ColorSelector/src/EsUtil.Ui.AvaloniaUI.ColorSelector.csproj" />

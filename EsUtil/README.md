@@ -103,6 +103,7 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | `MarqueeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `ThumbnailControl` | あり（配置・選択・可視範囲） | あり（提示 + 外観 + 影） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `LoupeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
+| `AnnotationLayerControl` / `AnnotationTextEditor` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `ColorSelectorControl` | なし（色名・色文字列の規則は共通基盤の `Palette` が持つ） | なし | AvaloniaUI / MewUI / WinUI3 |
 
 **Core と Presenter の両方を持つ機能でも、プロジェクト（アセンブリ）は 1 つ**です（`EsUtil.Feature.<機能>.Core`。 公開面は `src/` 直下、層の内部は `src/Core/` と `src/Presenter/` で分ける）。
@@ -123,13 +124,15 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | Marquee | [`EsUtil.Feature.Marquee.Core`](../EsUtil/Feature.Marquee.Core/README.md)（[Core API](../EsUtil/Feature.Marquee.Core/docs/SPEC_API.md) / [Presenter API](../EsUtil/Feature.Marquee.Core/docs/SPEC_Presenter_API.md)） |
 | Loupe | [`EsUtil.Feature.Loupe.Core`](../EsUtil/Feature.Loupe.Core/README.md)（[Core API](../EsUtil/Feature.Loupe.Core/docs/SPEC_API.md) / [Presenter API](../EsUtil/Feature.Loupe.Core/docs/SPEC_Presenter_API.md)） |
 | Thumbnail | [`EsUtil.Feature.Thumbnail.Core`](../EsUtil/Feature.Thumbnail.Core/README.md)（[Core API](../EsUtil/Feature.Thumbnail.Core/docs/SPEC_API.md) / [Presenter API](../EsUtil/Feature.Thumbnail.Core/docs/SPEC_Presenter_API.md)） |
+| Annotation | [`EsUtil.Feature.Annotation.Core`](../EsUtil/Feature.Annotation.Core/README.md)（[API](../EsUtil/Feature.Annotation.Core/docs/SPEC_API.md) / [System](../EsUtil/Feature.Annotation.Core/docs/SPEC_System.md)） |
 | ColumnPacking | [`EsUtil.Feature.ColumnPacking.Core`](../EsUtil/Feature.ColumnPacking.Core/README.md)（Core のみ） |
 | ZenHan | [`EsUtil.Feature.ZenHan.Core`](../EsUtil/Feature.ZenHan.Core/README.md)（Core のみ） |
 
 UI 層は [`EsUtil.Ui.AvaloniaUI.ColorSelector`](../EsUtil.Ui.AvaloniaUI/ColorSelector/README.md) / [`EsUtil.Ui.MewUI.ColorSelector`](../EsUtil.Ui.MewUI/ColorSelector/README.md) / [`EsUtil.Ui.WinUI3.ColorSelector`](../EsUtil.Ui.WinUI3/ColorSelector/README.md) /
 [`EsUtil.Ui.AvaloniaUI.Marquee`](../EsUtil.Ui.AvaloniaUI/Marquee/README.md) / [`EsUtil.Ui.MewUI.Marquee`](../EsUtil.Ui.MewUI/Marquee/README.md) / [`EsUtil.Ui.WinUI3.Marquee`](../EsUtil.Ui.WinUI3/Marquee/README.md) / [`EsUtil.Ui.WinForms.Marquee`](../EsUtil.Ui.WinForms/Marquee/README.md) /
 [`EsUtil.Ui.AvaloniaUI.Loupe`](../EsUtil.Ui.AvaloniaUI/Loupe/README.md) / [`EsUtil.Ui.MewUI.Loupe`](../EsUtil.Ui.MewUI/Loupe/README.md) / [`EsUtil.Ui.WinUI3.Loupe`](../EsUtil.Ui.WinUI3/Loupe/README.md) / [`EsUtil.Ui.WinForms.Loupe`](../EsUtil.Ui.WinForms/Loupe/README.md) /
-[`EsUtil.Ui.AvaloniaUI.Thumbnail`](../EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) / [`EsUtil.Ui.MewUI.Thumbnail`](../EsUtil.Ui.MewUI/Thumbnail/README.md) / [`EsUtil.Ui.WinUI3.Thumbnail`](../EsUtil.Ui.WinUI3/Thumbnail/README.md) / [`EsUtil.Ui.WinForms.Thumbnail`](../EsUtil.Ui.WinForms/Thumbnail/README.md)、
+[`EsUtil.Ui.AvaloniaUI.Thumbnail`](../EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) / [`EsUtil.Ui.MewUI.Thumbnail`](../EsUtil.Ui.MewUI/Thumbnail/README.md) / [`EsUtil.Ui.WinUI3.Thumbnail`](../EsUtil.Ui.WinUI3/Thumbnail/README.md) / [`EsUtil.Ui.WinForms.Thumbnail`](../EsUtil.Ui.WinForms/Thumbnail/README.md) /
+[`EsUtil.Ui.AvaloniaUI.Annotation`](../EsUtil.Ui.AvaloniaUI/Annotation/README.md) / [`EsUtil.Ui.MewUI.Annotation`](../EsUtil.Ui.MewUI/Annotation/README.md) / [`EsUtil.Ui.WinUI3.Annotation`](../EsUtil.Ui.WinUI3/Annotation/README.md) / [`EsUtil.Ui.WinForms.Annotation`](../EsUtil.Ui.WinForms/Annotation/README.md)、
 共通基盤は [`EsUtil.Platform.Core`](../EsUtil/Platform.Core/README.md) / [`EsUtil.Platform.Core.Windows`](../EsUtil/Platform.Core.Windows/README.md) を参照してください。
 
 ## 8. 名前空間とフォルダ
