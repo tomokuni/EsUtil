@@ -1321,38 +1321,58 @@ public sealed class ColorSelectorControl : Grid
         WatchPickerClosed(pickerTabIndex);
     }
 
+    /// <summary>ピッカーが閉きたかを見る間隔（画面のちらつきを抑える程度に粗くする）。</summary>
+    private static readonly TimeSpan s_pickerWatchInterval = TimeSpan.FromMilliseconds(200);
+
+    /// <summary>ピッカーが閉きたかを見るタイマー（開いている間だけ動かす）。</summary>
+    private DispatcherTimer? _pickerWatch;
+
     /// <summary>ピッカーが閉じたら一覧を代表色のタブで開き直す（代表色を選べなくならないようにする）。</summary>
     /// <param name="pickerTabIndex">開いたカラーピッカーのタブの位置。</param>
     /// <remarks>
     /// <b>一覧はピッカーの間だけ閉じる</b>: 2 つのポップアップを重ねると上のポップアップが入力を奪って
     /// 操作できなくなるため、重ねない（実測 2026-11-23）。 ピッカーを閉じたら代表色のタブで
     /// 一覧を開き直すため、**代表色はいつでも選べます**。<br/>
-    /// 閉じた通知が無いため、短い間隔で状態を見る（開いている間だけ）。
+    /// <b>待つのはタイマーで行う</b>: 閉じた通知が無いため状態を見ますが、`BeginInvoke` の自己再投入で
+    /// 見ると UI スレッドが空かず**アプリが固まります**（実測 2026-11-23: ピッカーを出すと操作できなくなった）。
+    /// タイマーなら待っている間に描画と入力が回ります。
     /// </remarks>
     private void WatchPickerClosed(int pickerTabIndex)
     {
-        Poll();
+        StopPickerWatch();
 
-        void Poll()
+        var timer = new DispatcherTimer(s_pickerWatchInterval);
+        timer.Tick += () =>
         {
             if (_picker.IsDropDownOpen)
             {
-                // ディスパッチャが無い（テスト）ときは次の変更まで待つ
-                if (Application.IsRunning && Application.Current is { } app && app.Dispatcher is { } dispatcher)
-                {
-                    dispatcher.BeginInvoke(DispatcherPriority.Background, Poll);
-                }
-
                 return;
             }
+
+            StopPickerWatch();
 
             // 代表色（ピッカー以外の先頭のタブ）へ戻してから一覧を開き直す
             var custom = _tabs.FindIndex(static tab => !tab.IsPicker);
             ApplyTab(custom >= 0 ? custom : pickerTabIndex);
             ShowList();
-        }
+        };
+
+        _pickerWatch = timer;
+        timer.Start();
     }
 
+    /// <summary>ピッカーの状態を見るタイマーを止める。</summary>
+    private void StopPickerWatch()
+    {
+        if (_pickerWatch is not { } timer)
+        {
+            return;
+        }
+
+        _pickerWatch = null;
+        timer.Stop();
+        timer.Dispose();
+    }
     /// <summary>カラーピッカーの色が変わったときに色を反映する（確定操作を持たないため即時に反映する）。</summary>
     /// <param name="color">選ばれた色。</param>
     private void OnPickerColorChanged(MewColor color)
