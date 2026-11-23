@@ -25,10 +25,10 @@ namespace EsUtil.Ui.MewUI.ColorSelector;
 /// 選択表示だけで、AvaloniaUI 版の <c>IsEditable</c> に当たる API を持たない。 そのため
 /// <b>ComboBox の選択表示の上へ、枠も背景も持たない <see cref="TextBox"/> を重ねて文字の入力と表示を担わせる</b>
 /// （最小限の代替。 コンボボックス側は項目を持たず、枠と展開ボタンだけを描く）。<br/>
-/// <b>一覧はタブ付きのポップアップ</b>（自前の <see cref="Popup"/>）。 <b>カラーピッカーはタブの中へ
-/// インラインで置く</b>（<see cref="CreateInlinePicker"/>）。 MewUI の <see cref="ColorPicker"/> は
-/// ドロップダウンであり、一覧の上へ重ねると入力が奪われて**一覧が操作できなくなる**ため使わない
-/// （実測 2026-11-23）。<br/>
+/// <b>一覧はタブ付きのポップアップ</b>（自前の <see cref="Popup"/>）。 <b>カラーピッカーは
+/// <see cref="ColorPicker"/></b> のドロップダウンを使う。 MewUI の <see cref="ColorPicker"/> は
+/// 中身をポップアップへ埋め込めないため、タブを選ぶと一覧を閉じてからピッカーを開く
+/// （2 つのポップアップを重ねると上のものが入力を奪う。 実測 2026-11-23）。<br/>
 /// <b>ツールチップ</b>: 入力欄には「色名+不透明度」と「<c>#AARRGGBB</c>」の 2 行を出す。<br/>
 /// <b>一覧のタブ</b>: 表示の設定（<see cref="ShowCustomTab"/> / <see cref="ShowThemeColorTab"/> /
 /// <see cref="ShowNamedColorTab"/> / <see cref="ShowPickerTab"/>）と <see cref="CustomTabs"/> からタブを作り、
@@ -83,15 +83,6 @@ public sealed class ColorSelectorControl : Grid
 
     /// <summary>格子の中の色の四角の一辺（DIP）。</summary>
     private const double SwatchSize = 20.0;
-
-    /// <summary>インラインのカラーピッカーの幅（DIP）。</summary>
-    private const double PickerInlineWidth = 220;
-
-    /// <summary>インラインのカラーピッカーの題名の列の幅（DIP）。</summary>
-    private const double PickerLabelWidth = 56;
-
-    /// <summary>インラインのカラーピッカーの題名とスライダーの間の余白（DIP）。</summary>
-    private const double PickerRowSpacing = 6;
 
     /// <summary>一覧の最大の高さ（DIP）。 格子のタブには効かない（格子はスクロールしない）。</summary>
     private const double ListMaxHeight = 360.0;
@@ -169,6 +160,9 @@ public sealed class ColorSelectorControl : Grid
 
     /// <summary>入力欄の左に出す現在色の四角（「■ + 色名」に見せる）。</summary>
     private readonly Border _swatch;
+
+    /// <summary>カラーピッカー（自身のドロップダウンを開くためのアンカーを兼ねる）。</summary>
+    private readonly ColorPicker _picker;
 
     /// <summary>タブ付きの一覧のポップアップ。</summary>
     private readonly Popup _popup;
@@ -275,6 +269,34 @@ public sealed class ColorSelectorControl : Grid
         row.Add(_text);
         row.Add(_swatch);
         Add(row);
+
+        // カラーピッカーは**自身のドロップダウン**を使う（内容を自前のポップアップへ入れると
+        // 折り畳んだ見出ししか表示されない。 ColorPicker はドロップダウン コントロールである）。
+        // アンカーは 1×1 にして右下へ寄せ、折り畳んだ見出しを描かないよう切り取る。
+        // **有効にしたまま 1×1 に切り取る**: `IsHitTestVisible = false` にすると、
+        // この要素を親として開くドロップダウン（ピッカー本体）まで入力を受け取れなくなり、
+        // **ピッカーを表示しても操作できません**（実測 2026-11-23）。 1×1 の右下なので、
+        // 行の操作を妨げることもありません。
+        _picker = new ColorPicker
+        {
+            Kind = ColorPickerKind.Both,
+            ShowAlpha = true,
+            SelectedColor = MewColor.FromArgb(0xFF, 0xFF, 0xFF, 0xFF),
+            Width = 1,
+            Height = 1,
+            VerticalAlignment = VerticalAlignment.Bottom,
+        };
+        _picker.SelectedColorChanged += OnPickerColorChanged;
+
+        var pickerHost = new Grid
+        {
+            Width = 1,
+            Height = 1,
+            VerticalAlignment = VerticalAlignment.Bottom,
+        };
+        pickerHost.ClipToBounds(true);
+        pickerHost.Add(_picker);
+        Add(pickerHost);
 
         _itemTemplate = new DelegateTemplate<ColorSelectorItem>(
             _ => CreateItemRow(ListFontSize),
@@ -868,7 +890,6 @@ public sealed class ColorSelectorControl : Grid
 
         ShowList();
     }
-
     /// <summary>タブ付きの一覧を表示する（開くたびに作り直す）。</summary>
     /// <remarks>
     /// <b>開くたびに作り直す</b>: テーマの色は <c>Application.Run</c> 後にしか解決できず、明暗やアクセント色の
@@ -1061,150 +1082,22 @@ public sealed class ColorSelectorControl : Grid
         return tabs;
     }
 
-    /// <summary>タブの中身を作る（色名付きの一覧・色の四角の格子・カラーピッカーのタブ）。</summary>
+    /// <summary>タブの中身を作る（色名付きの一覧・色の四角の格子）。</summary>
     /// <param name="tab">タブの定義。</param>
     /// <param name="width">一覧の幅（DIP。 スクロール バーが右端へ来るようにそろえる）。</param>
     /// <returns>タブの中身。</returns>
     /// <remarks>
-    /// <b>カラーピッカーのタブはインラインのピッカーを返す</b>: MewUI の <see cref="ColorPicker"/> はドロップダウンであり、
-    /// 一覧のポップアップの上へ重ねると入力が奪われるため、タブの中へそのまま置けるスライダーで作る
-    /// （<see cref="CreateInlinePicker"/>）。 幅は一覧の幅に合わせる（狭い枠でも切れない）。
+    /// <b>カラーピッカーのタブは中身を持たない</b>: MewUI の <see cref="ColorPicker"/> はドロップダウンであり、
+    /// ポップアップの中へ埋め込めない。 タブを選んだときに一覧を閉じてピッカーのドロップダウンを開くため、
+    /// ここでは空の入れ物だけを返す（開いていない間にピッカーのログを出さない）。
     /// <b>この処理はタブを最初に表示するときだけ呼ぶ</b>（全タブを先に作らない）。
     /// </remarks>
     internal FrameworkElement CreateTabView(ColorSelectorTabSpec tab, double width)
     {
-        if (tab.IsPicker)
-        {
-            return CreateInlinePicker(width - (PopupSidePadding * 2));
-        }
-
         return tab.IsList
             ? CreateColorList(tab, width)
             : CreateSwatchGrid(tab);
     }
-
-    /// <summary>カラーピッカーをタブの中身として組み立てる（インライン。 ポップアップを開かない）。</summary>
-    /// <returns>色相・彩度・明度・不透明度のスライダーと現在色の見本。</returns>
-    /// <remarks>
-    /// <b>MewUI の <see cref="ColorPicker"/> を使わない</b>: あれはドロップダウンであり、
-    /// <list type="bullet">
-    /// <item>一覧のポップアップの上に重ねると、後から出した方が入力を奪って**一覧が操作できなくなる**</item>
-    /// <item>注釈パネルのように画面の最上位（<c>OverlayLayer</c>）へ重ねたコントロールから開くと、
-    /// **ピッカー側が入力を受け取れない**（実測 2026-11-23: ホイールも R の増減も反応しない）</item>
-    /// </list>
-    /// ためです。 タブの中へ**そのまま置く**スライダーで作れば、ポップアップの重なりが無くなり、
-    /// どのホスト（一覧・注釈パネル）でも同じように操作できます。
-    /// </remarks>
-    private FrameworkElement CreateInlinePicker(double width)
-    {
-        var sliderWidth = Math.Max(60, width - PickerLabelWidth - PickerRowSpacing);
-        var panel = new StackPanel().Vertical().Spacing(6).Width(width);
-
-        var preview = new Border
-        {
-            Height = 40,
-            Width = width,
-        };
-        panel.Add(preview);
-
-        var hue = CreatePickerSlider(AnnotationSliderStep(360), 360);
-        var saturation = CreatePickerSlider(AnnotationSliderStep(100), 100);
-        var brightness = CreatePickerSlider(AnnotationSliderStep(100), 100);
-        var alpha = CreatePickerSlider(AnnotationSliderStep(100), 100);
-
-        panel.Add(PickerRow("色相", hue));
-        panel.Add(PickerRow("彩度", saturation));
-        panel.Add(PickerRow("明度", brightness));
-        panel.Add(PickerRow("不透明度", alpha));
-
-        var hex = new TextBlock { FontSize = ListFontSize };
-        panel.Add(hex);
-
-        // 現在色をスライダーへ写す（利用者の操作と区別する）
-        var applying = false;
-        ApplyFromText();
-
-        hue.ValueChanged += _ => OnChanged();
-        saturation.ValueChanged += _ => OnChanged();
-        brightness.ValueChanged += _ => OnChanged();
-        alpha.ValueChanged += _ => OnChanged();
-
-        return panel;
-
-        static Element PickerRow(string label, Slider slider) => new StackPanel().Horizontal().Spacing(PickerRowSpacing)
-            .Children(
-                new TextBlock
-                {
-                    Text = label,
-                    FontSize = ListFontSize,
-                    Width = PickerLabelWidth,
-                    VerticalAlignment = VerticalAlignment.Center,
-                },
-                slider);
-
-        Slider CreatePickerSlider(double step, double maximum) => new()
-        {
-            Minimum = 0,
-            Maximum = maximum,
-            Width = sliderWidth,
-        };
-
-        void OnChanged()
-        {
-            if (applying)
-            {
-                return;
-            }
-
-            var hsv = HsvColor.HsvToRgb((float)hue.Value, (float)(saturation.Value / 100), (float)(brightness.Value / 100));
-            var a = (byte)Math.Round(Math.Clamp(alpha.Value, 0, 100) * 255.0 / 100.0);
-            ApplyColor(
-                ColorString.ToArgbHex(DrawingColor.FromArgb(a, hsv.R, hsv.G, hsv.B)), raiseChanged: true);
-            RaiseColorApplied();
-            UpdatePreview();
-        }
-
-        void ApplyFromText()
-        {
-            if (!ColorString.TryParse(_selectedColor, out var color, out _))
-            {
-                return;
-            }
-
-            applying = true;
-            try
-            {
-                var hsv = HsvColor.FromRgb(color.R, color.G, color.B);
-                hue.Value = Math.Clamp(hsv.H, 0, 360);
-                saturation.Value = Math.Clamp(hsv.S * 100.0, 0, 100);
-                brightness.Value = Math.Clamp(hsv.V * 100.0, 0, 100);
-                alpha.Value = Math.Clamp(color.A * 100.0 / 255.0, 0, 100);
-            }
-            finally
-            {
-                applying = false;
-            }
-
-            UpdatePreview();
-        }
-
-        void UpdatePreview()
-        {
-            var hsv = HsvColor.HsvToRgb((float)hue.Value, (float)(saturation.Value / 100), (float)(brightness.Value / 100));
-            var a = (byte)Math.Round(Math.Clamp(alpha.Value, 0, 100) * 255.0 / 100.0);
-            preview.Background = MewColor.FromArgb(a, hsv.R, hsv.G, hsv.B);
-            hex.Text = ColorString.ToArgbHex(DrawingColor.FromArgb(a, hsv.R, hsv.G, hsv.B));
-        }
-    }
-
-    /// <summary>インラインのカラーピッカーの幅（DIP）を求める。</summary>
-    /// <returns>幅（DIP）。</returns>
-    private static double ListWidthForPicker() => PickerInlineWidth + (PopupSidePadding * 2);
-
-    /// <summary>スライダーの刻み（0〜100 の百分率に対する 1 段階）。</summary>
-    /// <param name="maximum">スライダーの上限。</param>
-    /// <returns>刻み。</returns>
-    private static double AnnotationSliderStep(double maximum) => Math.Max(1, Math.Round(maximum / 100.0));
 
     /// <summary>色名付きの一覧（縦に並べてスクロールする）を作る。</summary>
     /// <param name="tab">タブの定義。</param>
@@ -1379,76 +1272,97 @@ public sealed class ColorSelectorControl : Grid
             return;
         }
 
-        // **ピッカーのタブはその場に表示する**: 別のポップアップを重ねると入力が奪われるため
-        // （実測 2026-11-23）、タブの中身としてインラインで出します（<see cref="CreateInlinePicker"/>）。
-        // タブは切り替わるので、代表色へ戻せば代表色も選べます。
-        ApplyTab(index);
+        // **ピッカーのタブは「一覧を閉じずに候補を開く」ボタンとして扱う**: タブを切り替えると
+        // 代表色が消えて選べなくなるため、**タブは代表色のまま**にしてピッカーの候補だけを開く
+        // （実測 2026-11-22: ColorPicker だけのタブになった、との指摘）。
+        if (index >= 0 && index < _tabs.Count && _tabs[index].IsPicker)
+        {
+            var custom = _tabs.FindIndex(static tab => !tab.IsPicker);
+            ApplyTab(custom >= 0 ? custom : index);
+            OpenPicker(index);
+            return;
+        }
 
-        // **中身の高さが変わったらポップアップを測り直す**: ポップアップは開いた時点の大きさで
-        // 固定されるため、背の高いタブ（インラインのカラーピッカー）へ切り替えると
-        // **下が切れます**（実測 2026-11-23: 不透明度の下の Hex が見えない）。
-        RelayoutList();
+        ApplyTab(index);
     }
 
-    /// <summary>開いている一覧を測り直して置き直す（中身の大きさが変わったとき）。</summary>
+    /// <summary>カラーピッカーのドロップダウンを開く（タブ付きの一覧は閉じる）。</summary>
+    /// <param name="pickerTabIndex">開いたカラーピッカーのタブの位置。</param>
     /// <remarks>
-    /// <b>中身の大きさに追随させる</b>: MewUI の <see cref="Popup"/> は表示した時点の大きさで
-    /// 固定されることがあるため、タブを切り替えたら置き直して測り直させる（<see cref="Popup.MoveTo"/>）。
-    /// 中身より小さいままなら実寸を枠へ与える（実測 2026-11-23: ピッカーの右と下が切れた）。<br/>
-    /// 作り直しは次の描画へ回します（押下の処理中に閉じると、同じ押下で閉じ直されることがある）。
+    /// <b>ドロップダウンを重ねない</b>: 一覧のポップアップを閉じてからピッカーのドロップダウンを開く。
+    /// アンカーは 1×1 の入れ物（右下）であり、入力欄の下へ開く。
     /// </remarks>
-    private void RelayoutList()
+    private void OpenPicker(int pickerTabIndex)
     {
-        if (!_popup.IsOpen)
+        if (FindVisualRoot() is not Window)
         {
             return;
         }
 
-        void Relayout()
+        if (ColorString.TryParse(_selectedColor, out var color, out _))
         {
-            if (!_popup.IsOpen)
+            _picker.SelectedColor = ToMewColor(color);
+        }
+
+        if (_picker.IsDropDownOpen)
+        {
+            return;
+        }
+
+        // **一覧を閉じてからピッカーを開く**: 2 つのポップアップを重ねると、後から開いた側が
+        // 入力を受け取れず**操作できなくなる**（実測 2026-11-23）。 一覧は閉じ、ピッカーを
+        // 閉じたときに代表色のタブで開き直す（<see cref="WatchPickerClosed"/>）。
+        _popup.Close();
+        _picker.IsDropDownOpen = true;
+
+        // ピッカーを開いたことを残す（一覧を開いたログと対。 他 UI と同じ書式）
+        _log.LogOpenPicker(_selectedColor);
+
+        WatchPickerClosed(pickerTabIndex);
+    }
+
+    /// <summary>ピッカーが閉じたら一覧を代表色のタブで開き直す（代表色を選べなくならないようにする）。</summary>
+    /// <param name="pickerTabIndex">開いたカラーピッカーのタブの位置。</param>
+    /// <remarks>
+    /// <b>一覧はピッカーの間だけ閉じる</b>: 2 つのポップアップを重ねると上のポップアップが入力を奪って
+    /// 操作できなくなるため、重ねない（実測 2026-11-23）。 ピッカーを閉じたら代表色のタブで
+    /// 一覧を開き直すため、**代表色はいつでも選べます**。<br/>
+    /// 閉じた通知が無いため、短い間隔で状態を見る（開いている間だけ）。
+    /// </remarks>
+    private void WatchPickerClosed(int pickerTabIndex)
+    {
+        Poll();
+
+        void Poll()
+        {
+            if (_picker.IsDropDownOpen)
             {
+                // ディスパッチャが無い（テスト）ときは次の変更まで待つ
+                if (Application.IsRunning && Application.Current is { } app && app.Dispatcher is { } dispatcher)
+                {
+                    dispatcher.BeginInvoke(DispatcherPriority.Background, Poll);
+                }
+
                 return;
             }
 
-            _listPanel.Measure(new Size(_listWidth, double.PositiveInfinity));
-            var desired = _listPanel.DesiredSize;
-            var border = _popupBackground.BorderThickness;
-
-            // **まず置き直す**: `MoveTo` は中身を測り直して大きさを合わせます（実測 2026-11-23:
-            // 一覧 474 → ピッカー 304 画素へ追随した）。 `Close` して出し直すと、押下の処理中は
-            // 閉じたまま戻らないことがあります（実測 2026-11-23: 設定画面で一覧が消えた）。
-            var rect = _popup.MoveTo(_combo.Bounds, PopupAnchorSide.Below);
-
-            // **追随しない場合だけ大きさを確定する**: 中身より小さいままなら、実寸を枠へ与えて置き直す。
-            // 常に固定すると、小さいタブへ戻したときに余白だけが残る（大きさが縮まない）。
-            var pinned = false;
-            if (desired.Width > 0 && rect.Width + 0.5 < desired.Width + (border * 2))
-            {
-                _popupBackground.Width = desired.Width + (border * 2);
-                pinned = true;
-            }
-
-            if (desired.Height > 0 && rect.Height + 0.5 < desired.Height + (border * 2))
-            {
-                _popupBackground.Height = desired.Height + (border * 2);
-                pinned = true;
-            }
-
-            if (pinned)
-            {
-                _popup.MoveTo(_combo.Bounds, PopupAnchorSide.Below);
-            }
-
+            // 代表色（ピッカー以外の先頭のタブ）へ戻してから一覧を開き直す
+            var custom = _tabs.FindIndex(static tab => !tab.IsPicker);
+            ApplyTab(custom >= 0 ? custom : pickerTabIndex);
+            ShowList();
         }
+    }
 
-        if (Application.IsRunning && Application.Current is { } app && app.Dispatcher is { } dispatcher)
+    /// <summary>カラーピッカーの色が変わったときに色を反映する（確定操作を持たないため即時に反映する）。</summary>
+    /// <param name="color">選ばれた色。</param>
+    private void OnPickerColorChanged(MewColor color)
+    {
+        if (_applying)
         {
-            dispatcher.BeginInvoke(DispatcherPriority.Background, Relayout);
             return;
         }
 
-        Relayout();
+        ApplyColor(ColorString.ToArgbHex(DrawingColor.FromArgb(color.A, color.R, color.G, color.B)), raiseChanged: true);
     }
 
     /// <summary>一覧のタブを作る。</summary>
@@ -1492,8 +1406,7 @@ public sealed class ColorSelectorControl : Grid
     /// <remarks>
     /// <b>タブの行も幅に含める</b>: 含めないと、タブの行だけが広がって一覧（とスクロール バー）が
     /// ポップアップの途中で切れる（実測 2026-11-17）。<br/>
-    /// <b>カラーピッカーの幅も含める</b>: ピッカーは自分の幅（<see cref="ListWidthForPicker"/>）を持つため、
-    /// 含めないと枠が狭いときにピッカーの右側が切れる（実測 2026-11-23）。
+    /// <b>カラーピッカーのタブは中身が自分の幅を持つため含めない</b>（開いたときに広がる）。<br/>
     /// <b>上限は「タブを最小の幅で並べた行」までは広げる</b>: 上限で切ると、タブが多いときに
     /// 最後のタブが欠ける（実測 2026-11-17: 14 個で「ColorPicker」が欠けた）。 MewUI のポップアップは
     /// 中身の幅で測って作業領域へ寄せるため、枠より広くても切れない。<br/>
@@ -1506,8 +1419,7 @@ public sealed class ColorSelectorControl : Grid
         bool showTabTitles)
     {
         var showTabs = tabs.Count > 1 || showTabTitles;
-        var pickerWidth = tabs.Any(tab => tab.IsPicker) ? ListWidthForPicker() : 0;
-        var width = Math.Max(frameWidth, pickerWidth);
+        var width = frameWidth;
         if (showTabs)
         {
             width = Math.Max(width, TabRowWidth(tabs.Count, CategoryTabWidth));
@@ -1526,8 +1438,8 @@ public sealed class ColorSelectorControl : Grid
         }
 
         var limit = showTabs ? Math.Max(maxWidth, TabRowWidth(tabs.Count, MinCategoryTabWidth)) : maxWidth;
-        limit = Math.Max(limit, pickerWidth);
         return Math.Min(width, limit);
+
     }
 
     /// <summary>タブを横に並べたときの幅を求める。</summary>

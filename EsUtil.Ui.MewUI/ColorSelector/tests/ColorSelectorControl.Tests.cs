@@ -362,13 +362,13 @@ public class ColorSelectorControlTests
         Assert.Equal(minWidth, control.MinWidth);
     }
 
-    /// <summary>一覧の幅がカラーピッカーの幅を下回らないことを検証する。</summary>
+    /// <summary>一覧の幅にタブの行の幅を含めることを検証する。</summary>
     /// <remarks>
-    /// ピッカーは自分の幅（スライダーの行）を持つため、枠（入力欄）が狭いときに枠へ揃えると
-    /// ピッカーの右側が切れる（実測 2026-11-23）。
+    /// タブの行だけが広いと、一覧（とスクロール バー）がポップアップの途中で切れる（実測 2026-11-17）。<br/>
+    /// 枠（入力欄）よりタブの行（2 つで 96 × 2 + 4）が広い場合は、タブの行の幅を一覧の幅にする。
     /// </remarks>
     [Fact]
-    internal void 一覧の幅はカラーピッカーの幅を下回らない()
+    internal void 一覧の幅はタブの行の幅を含める()
     {
         var control = new ColorSelectorControl
         {
@@ -383,7 +383,7 @@ public class ColorSelectorControlTests
 
         var width = ColorSelectorControl.ResolveFlyoutWidth(120, tabs, double.PositiveInfinity, showTabTitles: true);
 
-        Assert.Equal(240d, width);
+        Assert.Equal((2 * 96) + 4, width);
     }
 
     /// <summary>一覧の幅が決めたポップアップの幅と等しいことを検証する。</summary>
