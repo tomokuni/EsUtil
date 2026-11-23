@@ -18,10 +18,10 @@ internal static partial class AnnotationLogMessage
     internal static string Prefix { get; set; } = DefaultPrefix;
 
     /// <summary>ファサードの生成を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Annotation] ファサードを作成しました</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] ファサードを作成しました</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} ファサードを作成しました")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ファサードを作成しました")]
     private static partial void LogFacadeCreatedCore(this ILogger logger, string prefix);
 
     /// <summary>ファサードの生成を記録する。</summary>
@@ -117,13 +117,13 @@ internal static partial class AnnotationLogMessage
         => logger.LogAnnotationAddedCore(Prefix, kind.ToString(), id);
 
     /// <summary>設定値の変更を記録する（生成メソッド。 整形済みの値を渡す）。</summary>
-    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Annotation] 設定: {Name} {OldValue} → {NewValue}</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 設定: {Name} {OldValue} → {NewValue}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">変更された設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} 設定: {Name:l} {OldValue:l} → {NewValue:l}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 設定: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     /// <summary>設定値の変更を記録する。</summary>
