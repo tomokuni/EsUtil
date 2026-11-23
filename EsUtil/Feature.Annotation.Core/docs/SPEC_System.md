@@ -34,36 +34,39 @@
 ```mermaid
 flowchart TB
     UI["UI 層（EsUtil.Ui.<UI>.Annotation）<br/>描画・入力・本文の編集・合成（保存用）"]
-    P["Presenter（本アセンブリの src/Presenter/）<br/>AnnotationPresenter：折り返し・しっぽの幾何・描画計画"]
-    C["Core（本アセンブリの src/Core/）<br/>文書モデル・JSON・当たり判定・折り返しの実装・既定値・ログ"]
+    F["ファサード（本アセンブリの src/ 直下）<br/>AnnotationCore：文書・JSON・ログ / AnnotationPresenter：折り返し・しっぽの幾何・描画計画"]
+    C["層の内部（本アセンブリの src/Core/Internal/）<br/>JSON の文脈・変換器・折り返しの実装"]
     PC["EsUtil.Platform.Core<br/>EsRect / EsPoint / DrawingColor / ICoordTransform"]
-    UI --> P --> C
+    UI --> F
+    F --> C
+    F --> PC
     C --> PC
-    P --> PC
 ```
 
 - **Core は Presenter を参照しません**（描画計画を知らない）。
 - **Presenter は描画 API を持ちません**（描画計画というデータを返し、UI が写す）。
 - **折り返しだけは実寸を要する**ため、`Func<string, AnnotationTextStyle, EsSize>` として UI から受け取ります（ルーペの `measureText` と同じ形）。
+- **公開面は `src/` 直下（名前空間 `EsUtil.Feature.Annotation`）に置き、層の内部は `src/Core/Internal/`（`EsUtil.Feature.Annotation.Core.Internal`）へ置きます**（規則は [`.github/命名規約.md`](../../../.github/命名規約.md)）。
 
 ## 4. コンポーネント
 
 | コンポーネント | 分類 | 責務 |
 | --- | --- | --- |
+| `AnnotationCore` | ファサード | 文書と注釈の生成・JSON の読み書きと、ログの定義の接頭辞・出力先の所有。 提示層（`Presenter`）を共有する |
 | `AnnotationDocument` | Core | 注釈の集合（並びが重なり順）・画像の寸法・スキーマ版。 変更は新しい文書を返す |
 | `AnnotationItem` / `FrameAnnotation` / `BubbleAnnotation` | Core | 注釈 1 件（`Id` / `Bounds` / `Appearance`）。 JSON は `Kind` で型を判別する |
 | `BubbleTail` | Core | しっぽ（先端は独立・付け根は本体の辺に追従） |
 | `RichText` / `TextRun` / `AnnotationTextStyle` | Core | 文字単位の書式（run が自分の文字列と解決済みの書式を持つ） |
 | `AnnotationHitTest` | Core | 当たり判定（最前面から・先端は本体より優先） |
-| `AnnotationTextWrap`（内部） | Core | 折り返し（文字単位・明示改行・行頭禁則） |
-| `AnnotationJson` / `AnnotationJsonContext`（内部） | Core | JSON の読み書き（ソース生成 + 明示の変換器）と保存パスの解決 |
+| `AnnotationTextWrap`（内部） | Core（内部） | 折り返し（文字単位・明示改行・行頭禁則） |
+| `AnnotationJson` / `AnnotationJsonContext`（内部） | Core（内部） | JSON の読み書き（ソース生成 + 明示の変換器）と保存パスの解決 |
 | `AnnotationDefaults` / `AnnotationLimits` | Core | 既定値と安全域（設定・JSON・入力の共通の補正） |
 | `AnnotationPresenter` | Presenter | 描画計画の解決（折り返しの配置・しっぽの多角形・行の配置） |
 | `AnnotationDrawPlan` / `AnnotationShapePlan` / `AnnotationTextLinePlan` / `AnnotationTextSegmentPlan` | Presenter | UI へ渡す 1 フレーム分の描画契約 |
 
 **選択枠（8 方向のハンドル）は本アセンブリの責務ではありません**（Marquee の提示層を再利用する。 枠とハンドルの見た目を 4 つの UI 版で揃えるため）。
 
-**ログ**: 本アセンブリはログを出力しません（値を所有するホストが記録します。 規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
+**ログ**: 本アセンブリはログの定義（`AnnotationLogMessage`。 接頭辞の既定値は `[Annotation]`）を持ちます。 ファサードの生成・文書の読み書き（`Information`）・文書の作成と注釈の追加（`Debug`）を記録し、毎フレームの描画計画の解決と当たり判定は記録しません（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
 
 ## 5. 依存関係
 

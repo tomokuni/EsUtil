@@ -19,6 +19,9 @@
 | `PaletteColumns` | property | 書式バーの代表色（■ の格子）の列数（1 以上。 既定 8 列） |
 | `ColorWidth` | property | 書式バーの色の選択の幅（「■ + 全角 4 文字 + 100%」と「■ + `#FFFFFFFF`」の広いほう） |
 | `TextFormat` | property | 書式バーと右クリックのフライアウトの色の表記（色名 + 不透明度 / カラーコード）。 カラーコードは `#AARRGGBB` |
+| `Log` / `LogPrefix` | property | ログの出力先と接頭辞（コアと提示層で共有する。 既定 `[Annotation]`） |
+| `Presenter` | property | 描画計画を解決する提示層（ログと接頭辞を共有する） |
+| Presenter | property | 描画計画を解決する提示層（ログと接頭辞を共有する） |
 
 - **書式バーは内側で出し入れします**（`Layer.EditingChanged` を購読する）。 ホストがバーを置く必要はありません。
 - **配置**: レイヤーは与えられた領域いっぱい、書式バーは**本文に被さらない位置**（本文の上・下・左右の外側）へ出す。 バーの大きさは**中身に合わせる**（説明の行と「完了」は置かない）。
@@ -38,6 +41,8 @@
 | `SelectedId` / `Selected` | property | 選択中の注釈（識別子・実体） |
 | `DraftDefaults` | property | 新規作成時の既定値（`AnnotationDraftDefaults`。 既存の注釈は変わらない） |
 | `ColorTextFormat` | property | 色の入力欄へ出す表記（色名 + 不透明度 / カラーコード）。 `AnnotationTextEditor.TextFormat` が同じ値を写す |
+| `Log` / `LogPrefix` | property | ログの出力先と接頭辞（コアと提示層で共有する） |
+| `Presenter` | property | 描画計画を解決する提示層（ログと接頭辞を共有する） |
 | `LineHeightFactor` | property | 行間の倍率（既定 1.25） |
 | `HandleHitRadius` / `HandleSize` | property | ハンドルを掴む半径・見えている一辺の大きさ（DIP。 描画と当たり判定で同じ値を共有する） |
 | `TextSelectionRange` | property | 本文の書式を適用する範囲（開始位置・長さ。 長さ 0 は全体）。 ホストが本文の選択範囲を写す |

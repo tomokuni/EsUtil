@@ -96,8 +96,7 @@ Styles.Add(new StyleInclude(new Uri("avares://Avalonia.Controls.ColorPicker/Them
 ## 5. クイックスタート
 
 ```csharp
-using EsUtil.Feature.Annotation.Core;
-using EsUtil.Feature.Annotation.Presenter;
+using EsUtil.Feature.Annotation;
 using EsUtil.Ui.AvaloniaUI.Annotation;
 
 // 本文の表示・その場編集と書式バーをまとめたコントロール（これ 1 つを置く）
@@ -197,7 +196,7 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 ## 13. ログ
 
-本コントロールはログを出力しません（操作の記録はホストが行います。 規則は [`ログ規約.md`](../../../.github/ログ規約.md) §6）。
+`Log`（`ILogger`）と `LogPrefix` で出力先と接頭辞を設定します（既定の接頭辞は `[Annotation]`）。 記録するのは、ファサードの生成・注釈ファイルの読み書き（`Information`）と、文書の作成・注釈の追加（`Debug`）です。 描画計画の解決（毎フレーム）と当たり判定は記録しません。 定義はコア（`EsUtil.Feature.Annotation.Core`）の `AnnotationLogMessage` が単一所有し、本コントロールは同じロガーをコアと提示層へ渡します。 規則は [`ログ規約.md`](../../../.github/ログ規約.md) §6。
 
 ---
 

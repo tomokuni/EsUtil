@@ -13,6 +13,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- ログの定義（LoggerMessage ソース生成）と、呼び出し側の IsEnabled 判定 -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Aprillz.MewUI.Core" />
   </ItemGroup>
 
@@ -31,7 +33,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="EsUtil.Feature.Annotation.Core" />
-    <Using Include="EsUtil.Feature.Annotation.Presenter" />
+    <Using Include="EsUtil.Feature.Annotation" />
   </ItemGroup>
 </Project>

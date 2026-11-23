@@ -35,7 +35,7 @@ WinForms 版の注釈レイヤーの構成と、他アセンブリとの関係�
 
 ```mermaid
 flowchart LR
-    Host["ホスト（App.WinForms）"] --> Editor["AnnotationTextEditor"]
+    Host["ホスト（上位のアプリ）"] --> Editor["AnnotationTextEditor"]
     Editor --> Layer["AnnotationLayerControl"]
     Editor --> Bar["AnnotationFormatBar"]
     Editor --> Panel["AnnotationStylePanel"]
@@ -73,6 +73,8 @@ flowchart LR
 本文の編集は**その場で**行います（表示中のレイアウトのままキャレットと選択範囲を描き、入力欄を重ねません）。 入力のたびに本文と文字単位の書式をコアの `RichText`（run の並び）へ写します。 日本語入力は `WM_IME_COMPOSITION` から受け取ります。
 書式バーの操作は本文の選択範囲へ適用し、同じ内容をモデルへ写します。
 編集中は下の注釈の本文を描きません（本文を二重に表示しない）。
+
+**ログ**: `AnnotationLayerControl.Log` / `LogPrefix`（`AnnotationTextEditor` も同じプロパティを持つ）で出力先と接頭辞を設定します（既定の接頭辞は `[Annotation]`）。 記録するのは、ファサードの生成・注釈ファイルの読み書き（`Information`）と、文書の作成・注釈の追加（`Debug`）です。 定義はコア（`EsUtil.Feature.Annotation.Core`）の `AnnotationLogMessage` が単一所有し、本アセンブリは同じロガーをコアと提示層へ渡します（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
 
 ## 5. 依存関係
 

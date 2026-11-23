@@ -76,6 +76,8 @@ flowchart LR
 
 幅（折り返し）は指定どおりの書式で測り、行の高さは斜体を外した書式で測り、描画は行のベースラインで揃えます（区間ごとに縦位置を決めると、斜体にした区間だけが上下へずれ、行の間隔が変わります）。
 
+**ログ**: `AnnotationLayerControl.Log` / `LogPrefix`（`AnnotationTextEditor` も同じプロパティを持つ）で出力先と接頭辞を設定します（既定の接頭辞は `[Annotation]`）。 記録するのは、ファサードの生成・注釈ファイルの読み書き（`Information`）と、文書の作成・注釈の追加（`Debug`）です。 定義はコア（`EsUtil.Feature.Annotation.Core`）の `AnnotationLogMessage` が単一所有し、本アセンブリは同じロガーをコアと提示層へ渡します（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
+
 ## 5. 依存関係
 
 | 方向 | 内容 |

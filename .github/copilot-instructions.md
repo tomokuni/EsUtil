@@ -51,7 +51,7 @@
 | ルーペ（コア + 提示層 / UI） | `EsUtil.Feature.Loupe.Core`（1 プロジェクト。 公開面は `src/` 直下、層の内部は `src/Core` / `src/Presenter`）/ `EsUtil.Ui.<UI>.Loupe` |
 | マーキー（コア + 提示層 / UI） | `EsUtil.Feature.Marquee.Core`（1 プロジェクト。 公開面は `src/` 直下、層の内部は `src/Core` / `src/Presenter`）/ `EsUtil.Ui.<UI>.Marquee` |
 | サムネイル一覧（コア + 提示層 / UI） | `EsUtil.Feature.Thumbnail.Core`（1 プロジェクト。 公開面は `src/` 直下、層の内部は `src/Core`）/ `EsUtil.Ui.<UI>.Thumbnail` |
-| 注釈（コア + 提示層 / UI） | `EsUtil.Feature.Annotation.Core`（1 プロジェクト。 公開面は層フォルダの名前空間、層の内部は `src/Core` / `src/Presenter`）/ `EsUtil.Ui.<UI>.Annotation` |
+| 注釈（コア + 提示層 / UI） | `EsUtil.Feature.Annotation.Core`（1 プロジェクト。 公開面は `src/` 直下、層の内部は `src/Core`）/ `EsUtil.Ui.<UI>.Annotation` |
 | 複数列の配置（計算のみ） | `EsUtil.Feature.ColumnPacking.Core` |
 | 複数列の配置（Avalonia UI / MewUI / WinUI 3 のパネル） | `EsUtil.Ui.<UI>.ColumnPacking`（計算は `EsUtil.Feature.ColumnPacking.Core`） |
 | 全角・半角・かなの変換 | `EsUtil.Feature.ZenHan.Core` |

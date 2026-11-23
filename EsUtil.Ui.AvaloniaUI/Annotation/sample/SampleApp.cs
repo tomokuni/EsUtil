@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Themes.Fluent;
+using EsUtil.Ui.AvaloniaUI.Annotation.Sample.Views;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation.Sample;
 

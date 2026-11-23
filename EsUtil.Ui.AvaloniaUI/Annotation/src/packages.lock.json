@@ -25,6 +25,15 @@
         "resolved": "5.6.0",
         "contentHash": "Kcobt3pnOdO0A+6CKiMHZdTEluJpsfxiV20axtZdmfBQnDmiWTKPJADlgAfdTuKNAnVarrkJa0UEGwuOo91muw=="
       },
+      "Microsoft.Extensions.Logging.Abstractions": {
+        "type": "Direct",
+        "requested": "[10.0.0, )",
+        "resolved": "10.0.0",
+        "contentHash": "FU/IfjDfwaMuKr414SSQNTIti/69bHEMb+QKrskRb26oVqpx3lNFXMjs/RC9ZUuhBhcwDM2BwOgoMw+PZ+beqQ==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.0"
+        }
+      },
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
         "requested": "[11.0.0, )",
@@ -60,7 +69,8 @@
       "esutil.feature.annotation.core": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.8.8, )"
+          "EsUtil.Platform.Core": "[0.8.8, )",
+          "Microsoft.Extensions.Logging.Abstractions": "[10.0.0, )"
         }
       },
       "esutil.feature.marquee.core": {
@@ -90,15 +100,6 @@
         "dependencies": {
           "Avalonia": "12.1.6",
           "Avalonia.Remote.Protocol": "12.1.6"
-        }
-      },
-      "Microsoft.Extensions.Logging.Abstractions": {
-        "type": "CentralTransitive",
-        "requested": "[10.0.0, )",
-        "resolved": "10.0.0",
-        "contentHash": "FU/IfjDfwaMuKr414SSQNTIti/69bHEMb+QKrskRb26oVqpx3lNFXMjs/RC9ZUuhBhcwDM2BwOgoMw+PZ+beqQ==",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.0"
         }
       }
     }

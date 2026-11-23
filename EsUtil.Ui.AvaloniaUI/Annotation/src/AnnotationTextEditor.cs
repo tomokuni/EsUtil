@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -120,6 +121,21 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
     /// <value>画像・文書・選択・元に戻すなどを操作する対象。</value>
     public AnnotationLayerControl Layer => _layer;
 
+    /// <summary>ログの出力先を取得または設定する（レイヤーへ委譲する）。</summary>
+    /// <value>ロガー。 null を設定すると出力しない。</value>
+    public ILogger Log
+    {
+        get => _layer.Log;
+        set => _layer.Log = value;
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する（レイヤーへ委譲する）。</summary>
+    /// <value>接頭辞（例: <c>[Annotation]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    public string? LogPrefix
+    {
+        get => _layer.LogPrefix;
+        set => _layer.LogPrefix = value;
+    }
     /// <summary>本文を編集中かどうかを取得する。</summary>
     /// <value>編集中の場合は <see langword="true"/>（書式バーが出ている）。</value>
     public bool IsEditingText => _layer.IsEditingText;

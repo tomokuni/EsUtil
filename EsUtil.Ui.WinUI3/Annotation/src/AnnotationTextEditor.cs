@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
 using Microsoft.UI.Xaml;
@@ -106,6 +107,21 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
     public AnnotationLayerControl Layer => _layer;
 
+    /// <summary>ログの出力先を取得または設定する（レイヤーへ委譲する）。</summary>
+    /// <value>ロガー。 null を設定すると出力しない。</value>
+    public ILogger Log
+    {
+        get => _layer.Log;
+        set => _layer.Log = value;
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する（レイヤーへ委譲する）。</summary>
+    /// <value>接頭辞（例: <c>[Annotation]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    public string? LogPrefix
+    {
+        get => _layer.LogPrefix;
+        set => _layer.LogPrefix = value;
+    }
     /// <summary>本文を編集中かどうかを取得する。</summary>
     public bool IsEditingText => _layer.IsEditingText;
 

@@ -21,10 +21,11 @@
     <ProjectReference Include="..\src\EsUtil.Ui.AvaloniaUI.Annotation.csproj" />
     <!-- コアの画像（EsBitmap）を Avalonia の画像として表示するアダプタ -->
     <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.AvaloniaUI.Interop.csproj" />
+    <!-- サンプル共通のレイアウトとログ（Serilog） -->
+    <ProjectReference Include="..\..\SampleKit\src\EsUtil.Ui.AvaloniaUI.SampleKit.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="EsUtil.Feature.Annotation.Core" />
-    <Using Include="EsUtil.Feature.Annotation.Presenter" />
+    <Using Include="EsUtil.Feature.Annotation" />
   </ItemGroup>
 </Project>

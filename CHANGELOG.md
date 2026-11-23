@@ -10,6 +10,9 @@
 ### 追加
 
 - **注釈（枠線・吹き出し）のコントロールを追加しました**。 `EsUtil.Feature.Annotation.Core`（Core / Presenter）と 4 つの UI 版（`EsUtil.Ui.AvaloniaUI.Annotation` / `EsUtil.Ui.MewUI.Annotation` / `EsUtil.Ui.WinUI3.Annotation` / `EsUtil.Ui.WinForms.Annotation`）です。 注釈は画像へ焼き込まず `*.annotations.json` として保存でき、保存時に `*.annotated.*`（合成画像）を書き出せます。 選択枠とハンドルは Marquee の提示層を、色の選択は ColorSelector を再利用します。
+  - **ファサード**: `AnnotationCore` が文書と注釈の生成・JSON の読み書き・ログを集約し、`AnnotationPresenter` を共有します。 公開面は `EsUtil.Feature.Annotation`（`src/` 直下）です。
+  - **ログ**: `Log` / `LogPrefix` で出力先と接頭辞（既定 `[Annotation]`）を設定します。 ファサードの生成・注釈ファイルの読み書き（`Information`）・注釈の追加（`Debug`）を記録します。
+  - **サンプル**: 4 つの UI 版すべてに動作確認用のサンプル アプリを用意しました（サンプル共通の `SampleShell` と Serilog のログを使います）。
 
 ### 修正
 

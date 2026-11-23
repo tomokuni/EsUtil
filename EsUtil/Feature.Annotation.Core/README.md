@@ -23,31 +23,34 @@ UI 層は 4 つの UI 版（Avalonia UI / MewUI / WinUI 3 / WinForms）が参照
 ## 2. 使い方
 
 ```csharp
-using EsUtil.Feature.Annotation.Core;
-using EsUtil.Feature.Annotation.Presenter;
+using EsUtil.Feature.Annotation;
+
+// 0. ファサードを用意する（ロガーを渡すと生成・読み書き・追加を記録する）
+var core = new AnnotationCore { LogPrefix = "[Annotation]" };
+core.Log = logger;
 
 // 1. 文書を作る（画像の大きさを覚える）
-var document = new AnnotationDocument(1920, 1080, "shot.png")
-    .Add(new FrameAnnotation { Bounds = new EsRect(60, 60, 340, 220), Appearance = AnnotationDefaults.FrameAppearance })
-    .Add(new BubbleAnnotation
-    {
-        Bounds = new EsRect(900, 120, 380, 170),
-        Appearance = AnnotationDefaults.BubbleAppearance,
-        Tail = new BubbleTail(new EsPoint(760, 420), BubbleEdge.Left, 0.5, 26),
-        Text = new RichText([
-            new TextRun("ここが重要です。", AnnotationDefaults.TextStyle),
-            new TextRun("強調", AnnotationDefaults.TextStyle with { IsBold = true }),
-        ]),
-    });
+var document = core.CreateDocument(1920, 1080, "shot.png");
 
-// 2. 描画計画を解決する（実寸の計測だけ UI が渡す）
-var plan = new AnnotationPresenter().ResolveDrawPlan(document, (text, style) => Measure(text, style), selectedId: null);
+// 2. 注釈を追加する（矩形は画像の内側へ収められる）
+document = document.Add(core.CreateFrame(document, new EsRect(60, 60, 340, 220)));
+document = document.Add(core.CreateBubble(
+    document,
+    new EsRect(900, 120, 380, 170),
+    new RichText([
+        new TextRun("ここが重要です。", AnnotationDefaults.TextStyle),
+        new TextRun("強調", AnnotationDefaults.TextStyle with { IsBold = true }),
+    ]),
+    tail: new BubbleTail(new EsPoint(760, 420), BubbleEdge.Left, 0.5, 26)));
 
-// 3. JSON へ保存する / JSON から読み込む
+// 3. 描画計画を解決する（実寸の計測だけ UI が渡す）
+var plan = core.Presenter.ResolveDrawPlan(document, (text, style) => Measure(text, style), selectedId: null);
+
+// 4. JSON へ保存する / JSON から読み込む（文字コードは UTF-8・BOM なし）
 var json = AnnotationJson.Serialize(document);
 var restored = AnnotationJson.Deserialize(json);
 
-// 4. 保存する 3 つのパスのうち、注釈と合成画像のパスを求める
+// 5. 保存する 3 つのパスのうち、注釈と合成画像のパスを求める
 var annotationPath = AnnotationJson.GetDocumentPath(imagePath); // <画像名>.annotations.json
 var composedPath = AnnotationJson.GetComposedPath(imagePath);   // <画像名>.annotated.<拡張子>
 ```
@@ -56,6 +59,7 @@ var composedPath = AnnotationJson.GetComposedPath(imagePath);   // <画像名>.a
 
 | 型 | 役割 |
 | --- | --- |
+| `AnnotationCore` | **ファサード**（文書の生成・注釈の生成・JSON の読み書き・ログ。 提示層を `Presenter` で共有する） |
 | `AnnotationDocument` | 注釈の集合（並び順が重なり順）・画像の寸法・JSON の版 |
 | `FrameAnnotation` / `BubbleAnnotation` | 枠線（矩形 + 角丸）/ 吹き出し（本文 + しっぽ） |
 | `BubbleTail` / `BubbleEdge` | しっぽ（先端は本体と独立・付け根は本体の辺に追従） |

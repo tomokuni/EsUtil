@@ -5,28 +5,48 @@
 ## 目次
 
 - [1. 公開 API の可視性](#1-公開-api-の可視性)
-- [2. `AnnotationDocument`（クラス）](#2-annotationdocumentクラス)
-- [3. `AnnotationItem` / `FrameAnnotation` / `BubbleAnnotation`（クラス）](#3-annotationitem--frameannotation--bubbleannotationクラス)
-- [4. `BubbleTail` / `BubbleEdge`（レコード・列挙型）](#4-bubbletail--bubbleedgeレコード列挙型)
-- [5. `RichText` / `TextRun` / `AnnotationTextStyle`（クラス・レコード）](#5-richtext--textrun--annotationtextstyleクラスレコード)
-- [6. `AnnotationAppearance`（レコード）](#6-annotationappearanceレコード)
-- [7. `AnnotationPresenter` / `AnnotationDrawPlan`（クラス・レコード）](#7-annotationpresenter--annotationdrawplanクラスレコード)
-- [8. `AnnotationHitTest`（静的クラス）](#8-annotationhittest静的クラス)
-- [9. `AnnotationJson`（静的クラス）](#9-annotationjson静的クラス)
-- [10. `AnnotationDefaults` / `AnnotationLimits`（静的クラス）](#10-annotationdefaults--annotationlimits静的クラス)
-- [11. `AnnotationDraftDefaults`（レコード）](#11-annotationdraftdefaultsレコード)
-- [12. `AnnotationHistory`（クラス）](#12-annotationhistoryクラス)
+- [2. `AnnotationCore`（クラス）](#2-annotationcoreクラス)
+- [3. `AnnotationDocument`（クラス）](#3-annotationdocumentクラス)
+- [4. `AnnotationItem` / `FrameAnnotation` / `BubbleAnnotation`（クラス）](#4-annotationitem--frameannotation--bubbleannotationクラス)
+- [5. `BubbleTail` / `BubbleEdge`（レコード・列挙型）](#5-bubbletail--bubbleedgeレコード列挙型)
+- [6. `RichText` / `TextRun` / `AnnotationTextStyle`（クラス・レコード）](#6-richtext--textrun--annotationtextstyleクラスレコード)
+- [7. `AnnotationAppearance`（レコード）](#7-annotationappearanceレコード)
+- [8. `AnnotationPresenter` / `AnnotationDrawPlan`（クラス・レコード）](#8-annotationpresenter--annotationdrawplanクラスレコード)
+- [9. `AnnotationHitTest`（静的クラス）](#9-annotationhittest静的クラス)
+- [10. `AnnotationJson`（静的クラス）](#10-annotationjson静的クラス)
+- [11. `AnnotationDefaults` / `AnnotationLimits`（静的クラス）](#11-annotationdefaults--annotationlimits静的クラス)
+- [12. `AnnotationDraftDefaults`（レコード）](#12-annotationdraftdefaultsレコード)
+- [13. `AnnotationHistory`（クラス）](#13-annotationhistoryクラス)
 
 ## 1. 公開 API の可視性
 
+公開面（ファサードのメンバーの型と、UI 層が使う型）は名前空間 `EsUtil.Feature.Annotation` に置きます。 層の内部は `EsUtil.Feature.Annotation.Core.Internal`（JSON の文脈・変換器・折り返し）です。
+
 | 型 | 可視性 | 参照可能なアセンブリ |
 | --- | --- | --- |
+| ファサード（`AnnotationCore` / `AnnotationPresenter`） | `public` | 任意 |
 | 注釈のモデル（`AnnotationDocument` / `AnnotationItem` / `FrameAnnotation` / `BubbleAnnotation` / `BubbleTail` / `RichText` / `TextRun` / `AnnotationTextStyle` / `AnnotationAppearance`） | `public` | 任意 |
-| 描画計画（`AnnotationPresenter` / `AnnotationDrawPlan` / `AnnotationShapePlan` / `AnnotationTextLinePlan` / `AnnotationTextSegmentPlan` / `AnnotationKind`） | `public` | 任意 |
+| 描画計画（`AnnotationDrawPlan` / `AnnotationShapePlan` / `AnnotationTextLinePlan` / `AnnotationTextSegmentPlan` / `AnnotationKind`） | `public` | 任意 |
 | 判断・保存（`AnnotationHitTest` / `AnnotationJson` / `AnnotationDefaults` / `AnnotationLimits` / `BubbleEdge`） | `public` | 任意 |
 | `AnnotationJsonContext` / 折り返し / JSON 変換器 | `internal` | 同一アセンブリとテスト |
 
-## 2. `AnnotationDocument`（クラス）
+## 2. `AnnotationCore`（クラス）
+
+**注釈の操作を UI 層・ホストへ提供するファサード**です。 文書と注釈の生成・JSON の読み書きを行い、ログの定義（`AnnotationLogMessage`）の接頭辞と出力先を所有します。 描画計画の解決は `Presenter`（`AnnotationPresenter`）が担います。
+
+| メンバー | 説明 |
+| --- | --- |
+| `Presenter` | 描画計画を解決する提示層（アセンブリに 1 つ。 UI と共有する） |
+| `Log` / `LogPrefix` | ログの出力先と接頭辞（コアと提示層で共有する。 既定 `[Annotation]`） |
+| `CreateDocument(width, height, fileName)` | 注釈を持たない文書を作る |
+| `CreateFrame(document, bounds, defaults)` | 枠線の注釈を作る（文書へは追加しない。 矩形は画像の内側へ収める） |
+| `CreateBubble(document, bounds, text, defaults, tail)` | 吹き出しの注釈を作る（文書へは追加しない。 矩形としっぽを画像の内側へ収める） |
+| `Load(documentPath)` / `Save(documentPath, document)` | 注釈ファイルの読み書き（UTF-8・BOM なし。 件数を `Information` で記録する） |
+
+- **文書の値操作（差し替え・削除・並び順・しっぽの移動）は `AnnotationDocument`** が、**当たり判定は `AnnotationHitTest`** が持ちます（ファサードは入口を集約するだけで、値の操作を写し取らない）。
+- **ログ**: 生成（`Information`）・文書の作成（`Debug`）・文書の読み書き（`Information`）・注釈の追加（`Debug`）を記録します。 毎フレームの描画計画の解決と当たり判定は記録しません。
+
+## 3. `AnnotationDocument`（クラス）
 
 注釈の集合です。 **並び順が重なり順**（先頭が最背面、末尾が最前面）です。
 
@@ -41,7 +61,7 @@
 | `WithText(bubble, text)` | 吹き出しの本文だけを差し替える |
 | `Clone()` | 同じ内容の複製を作る（注釈も複製する。 変更履歴に使う） |
 
-## 3. `AnnotationItem` / `FrameAnnotation` / `BubbleAnnotation`（クラス）
+## 4. `AnnotationItem` / `FrameAnnotation` / `BubbleAnnotation`（クラス）
 
 | 型 | 内容 |
 | --- | --- |
@@ -52,7 +72,7 @@
 - **本文の矩形**は枠線の太さの半分と余白を内側へ寄せて求めます（`ResolveBodyRect`）。
 - **型の追加は JSON の `Kind` を増やす**ことになります（保存済みファイルとの互換に注意）。
 
-## 4. `BubbleTail` / `BubbleEdge`（レコード・列挙型）
+## 5. `BubbleTail` / `BubbleEdge`（レコード・列挙型）
 
 | メンバー | 説明 |
 | --- | --- |
@@ -61,7 +81,7 @@
 | `ResolveBase(body)` | 本体の矩形から付け根の 2 点を求める |
 | `Normalized()` | 幅と比率を安全域へ補正する |
 
-## 5. `RichText` / `TextRun` / `AnnotationTextStyle`（クラス・レコード）
+## 6. `RichText` / `TextRun` / `AnnotationTextStyle`（クラス・レコード）
 
 | メンバー | 説明 |
 | --- | --- |
@@ -76,7 +96,7 @@
 | `AnnotationTextStyle` | `FontFamily` / `FontSize`（元画像ピクセル）/ `Color` / `IsBold` / `IsItalic` / `IsUnderline` / `IsStrike` |
 | `AnnotationTextStyle.Default` / `Normalized()` | 既定の書式（`Yu Gothic UI` 優先）/ 安全域への補正 |
 
-## 6. `AnnotationAppearance`（レコード）
+## 7. `AnnotationAppearance`（レコード）
 
 | メンバー | 説明 |
 | --- | --- |
@@ -85,7 +105,7 @@
 | `CornerRadius` | 角丸の半径（元画像ピクセル。 設定可能） |
 | `Default` / `Normalized()` | 既定の外観 / 太さと角丸の補正 |
 
-## 7. `AnnotationPresenter` / `AnnotationDrawPlan`（クラス・レコード）
+## 8. `AnnotationPresenter` / `AnnotationDrawPlan`（クラス・レコード）
 
 | メンバー | 説明 |
 | --- | --- |
@@ -98,7 +118,7 @@
 - **折り返しは本層が単一所有**します（文字単位・明示改行・行頭禁則）。 4 つの UI 版で同じ位置に折り返します。
 - **選択枠（ハンドル）は含みません**（Marquee の提示層が解決する。 選択枠の見た目を 4 つの UI 版で揃えるため）。
 
-## 8. `AnnotationHitTest`（静的クラス）
+## 9. `AnnotationHitTest`（静的クラス）
 
 | メンバー | 説明 |
 | --- | --- |
@@ -106,7 +126,7 @@
 | `HitTestTail(document, point, radius)` | しっぽの先端を持つ吹き出し（**本体より優先**して掴む） |
 | `TailHandleRadiusDefault` | 先端を掴む既定の半径（元画像ピクセル） |
 
-## 9. `AnnotationJson`（静的クラス）
+## 10. `AnnotationJson`（静的クラス）
 
 | メンバー | 説明 |
 | --- | --- |
@@ -118,7 +138,7 @@
 - **矩形・点は `X` / `Y` / `Width` / `Height` だけ**、色は **`#AARRGGBB`** で保存します。
 - **未知の種別は読み込み時に例外**になります（前方互換はスキーマ版で扱う）。
 
-## 10. `AnnotationDefaults` / `AnnotationLimits`（静的クラス）
+## 11. `AnnotationDefaults` / `AnnotationLimits`（静的クラス）
 
 | メンバー | 説明 |
 | --- | --- |
@@ -127,7 +147,7 @@
 | `AnnotationDefaults.*Default` | 文字の大きさ・枠線の太さ・角丸・余白・しっぽの幅の既定値 |
 | `AnnotationLimits` | 各値の安全域と補正（枠線 `1〜64`・角丸 `0〜4096`・文字 `6〜512`） |
 
-## 11. `AnnotationDraftDefaults`（レコード）
+## 12. `AnnotationDraftDefaults`（レコード）
 
 **新規作成時の既定値**（設定ページ・サンプルが変える値）。 既存の注釈には影響しません（各注釈が自分の外観・書式を持ちます）。
 
@@ -138,7 +158,7 @@
 | `BodyPadding` / `TailWidth` / `TailEdge` | 本文の余白・しっぽの幅・しっぽを出す辺 |
 | `Default` | `AnnotationDefaults` と同じ値 |
 
-## 12. `AnnotationHistory`（クラス）
+## 13. `AnnotationHistory`（クラス）
 
 **注釈の変更履歴**（元に戻す・やり直す）。 文書の複製を積むため、ドラッグ中の書き換えで過去の状態が変わりません。
 

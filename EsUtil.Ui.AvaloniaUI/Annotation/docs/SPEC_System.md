@@ -37,7 +37,7 @@
 flowchart TB
     LC["AnnotationLayerControl<br/>描画・入力・選択の同期"]
     MP["MarqueePresenter（EsUtil.Feature.Marquee.Core）<br/>選択枠・ハンドル・nudge"]
-    AP["AnnotationPresenter（EsUtil.Feature.Annotation.Core）<br/>折り返し・しっぽ・描画計画"]
+    AP["AnnotationPresenter（EsUtil.Feature.Annotation）<br/>折り返し・しっぽ・描画計画"]
     PT["AnnotationPainter<br/>描画計画を Avalonia の描画 API へ写す"]
     LC --> MP
     LC --> AP
@@ -88,6 +88,8 @@ flowchart TB
 **適用は 1 文字単位**です（`RichText.ApplyStyle` が run を分割・結合する。 コアが単一所有）。
 ホストは本文の選択範囲をそのまま `TransformTextStyle(start, length, transform)` へ渡せます
 （`ApplyTextStyle` は書式を丸ごと差し替えるため、色や大きさが既定へ戻る。 1 つの属性だけを変えるときは使わない）。
+
+**ログ**: `AnnotationLayerControl.Log` / `LogPrefix`（`AnnotationTextEditor` も同じプロパティを持つ）で出力先と接頭辞を設定します（既定の接頭辞は `[Annotation]`）。 記録するのは、ファサードの生成・注釈ファイルの読み書き（`Information`）と、文書の作成・注釈の追加（`Debug`）です。 定義はコア（`EsUtil.Feature.Annotation.Core`）の `AnnotationLogMessage` が単一所有し、本アセンブリは同じロガーをコアと提示層へ渡します（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
 
 ## 5. 依存関係
 

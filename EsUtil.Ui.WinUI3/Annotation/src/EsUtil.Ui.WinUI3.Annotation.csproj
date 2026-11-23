@@ -16,6 +16,8 @@
     <!-- WinUI 3 のコントロール（注釈は XAML の図形と TextBlock で描く） -->
     <PackageReference Include="Microsoft.WindowsAppSDK" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
+    <!-- ログの出力先（ILogger）を公開する（定義はコアが持つ） -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <!-- 合成画像（注釈を焼き込んだ画像）の書き出しは GDI+ で 1:1 に行う -->
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
@@ -37,7 +39,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="EsUtil.Feature.Annotation.Core" />
-    <Using Include="EsUtil.Feature.Annotation.Presenter" />
+    <Using Include="EsUtil.Feature.Annotation" />
   </ItemGroup>
 </Project>

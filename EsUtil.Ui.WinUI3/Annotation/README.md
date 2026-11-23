@@ -84,8 +84,7 @@ dotnet add package EsUtil.Ui.WinUI3.Annotation
 ## 5. クイックスタート
 
 ```csharp
-using EsUtil.Feature.Annotation.Core;
-using EsUtil.Feature.Annotation.Presenter;
+using EsUtil.Feature.Annotation;
 using EsUtil.Ui.WinUI3.Annotation;
 
 // 本文の表示・編集と書式バーをまとめたコントロール（これ 1 つを置く）
@@ -181,7 +180,7 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 ## 13. ログ
 
-本コントロールはログを出力しません（操作の記録はホストが行います。 規則は [`ログ規約.md`](../../../.github/ログ規約.md) §6）。
+`Log`（`ILogger`）と `LogPrefix` で出力先と接頭辞を設定します（既定の接頭辞は `[Annotation]`）。 記録するのは、ファサードの生成・注釈ファイルの読み書き（`Information`）と、文書の作成・注釈の追加（`Debug`）です。 描画計画の解決（毎フレーム）と当たり判定は記録しません。 定義はコア（`EsUtil.Feature.Annotation.Core`）の `AnnotationLogMessage` が単一所有し、本コントロールは同じロガーをコアと提示層へ渡します。 規則は [`ログ規約.md`](../../../.github/ログ規約.md) §6。
 
 ---
 
@@ -196,7 +195,11 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 ## 15. サンプルアプリケーション
 
-本 UI 版のサンプル アプリは未作成です（[`EsUtil.Ui.AvaloniaUI/Annotation/sample`](../../EsUtil.Ui.AvaloniaUI/Annotation/sample/README.md) を同じ項目・同じ順で写して追加できます）。
+[`sample/`](sample/README.md) に動作を確認するサンプルがあります。
+
+```powershell
+dotnet run --project EsUtil.Ui.WinUI3/Annotation/sample/EsUtil.Ui.WinUI3.Annotation.Sample.csproj
+```
 
 ---
 
@@ -215,6 +218,7 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 | --- | --- |
 | `src/` | コントロール本体（`AnnotationLayerControl` / `AnnotationTextEditor` / 書式バー / 描画） |
 | `tests/` | 単体テスト（色・フォント・実寸の近似） |
+| `sample/` | 動作を確認するサンプル アプリ |
 | `docs/` | API リファレンスとシステム仕様書 |
 
 ---

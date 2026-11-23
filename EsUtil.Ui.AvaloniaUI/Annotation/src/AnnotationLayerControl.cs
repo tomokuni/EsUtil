@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -73,6 +74,9 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>注釈の描画計画を解決する提示層。</summary>
     private readonly AnnotationPresenter _presenter = new();
 
+    /// <summary>文書・保存形式・ログの入口（提示層を共有する）。</summary>
+    private readonly AnnotationCore _core;
+
     /// <summary>選択枠・ハンドルを解決する Marquee の提示層。</summary>
     private readonly MarqueePresenter _marquee;
 
@@ -117,6 +121,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>注釈レイヤーを初期化する。</summary>
     public AnnotationLayerControl()
     {
+        _core = new AnnotationCore(_presenter);
         Focusable = true;
         ClipToBounds = true;
         _marquee = new MarqueePresenter(new AnnotationMarqueeEffects(this))
@@ -201,6 +206,28 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// </remarks>
     public ColorTextFormat ColorTextFormat { get; set; } = ColorTextFormat.NameWithAlpha;
 
+    /// <summary>描画計画を解決する提示層を取得する。</summary>
+    /// <value>本コントロールが使用する提示層（ロガーと接頭辞を共有する）。</value>
+    public AnnotationPresenter Presenter => _presenter;
+    /// <summary>ログの出力先を取得または設定する。</summary>
+    /// <value>ロガー。 null を設定すると出力しない。</value>
+    /// <remarks>
+    /// ログの定義はコアが単一所有する（<c>AnnotationLogMessage</c>）。 本コントロールは同じロガーを<br/>
+    /// コアと提示層へ渡す（生成の記録・文書の読み書き・設定の変更が同じ出力先へ流れる）。
+    /// </remarks>
+    public ILogger Log
+    {
+        get => _core.Log;
+        set => _core.Log = value;
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[Annotation]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    public string? LogPrefix
+    {
+        get => _core.LogPrefix;
+        set => _core.LogPrefix = value;
+    }
     /// <summary>行間の倍率を取得または設定する。</summary>
     /// <value>文字の実寸の高さに対する行の高さの比。 既定は 1.25。</value>
     public double LineHeightFactor
@@ -359,11 +386,11 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>枠線の注釈を追加する。</summary>
     /// <param name="bounds">矩形（元画像ピクセル）。</param>
     /// <returns>追加した注釈の識別子。</returns>
-    /// <remarks>矩形はコア（<see cref="AnnotationGeometry.CreateFrame"/>）が画像の内側へ収める。</remarks>
+    /// <remarks>矩形はコア（<see cref="AnnotationCore.CreateFrame"/>）が画像の内側へ収める。</remarks>
     public string AddFrame(EsRect bounds)
     {
         PrepareUndo();
-        var frame = AnnotationGeometry.CreateFrame(bounds, DraftDefaults.FrameAppearance, _document.ImageSize);
+        var frame = _core.CreateFrame(_document, bounds, DraftDefaults);
         _document = _document.Add(frame);
         RaiseDocumentChanged();
         Select(frame.Id);
@@ -375,15 +402,15 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <param name="text">本文。</param>
     /// <returns>追加した注釈の識別子。</returns>
     /// <remarks>
-    /// 矩形もしっぽの先端もコア（<see cref="AnnotationGeometry.CreateBubble"/>）が画像の内側へ収める
+    /// 矩形もしっぽの先端もコア（<see cref="AnnotationCore.CreateBubble"/>）が画像の内側へ収める
     /// （しっぽが画像の外へ出ると掴めなくなる）。
     /// </remarks>
     public string AddBubble(EsRect bounds, string text)
     {
         PrepareUndo();
         var defaults = DraftDefaults;
-        var bubble = AnnotationGeometry.CreateBubble(
-            bounds, RichText.Create(text, defaults.TextStyle), defaults, _document.ImageSize);
+        var bubble = _core.CreateBubble(
+            _document, bounds, RichText.Create(text, defaults.TextStyle), defaults);
 
         _document = _document.Add(bubble);
         RaiseDocumentChanged();

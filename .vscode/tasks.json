@@ -104,6 +104,12 @@
     },
 
     {
+      "label": "ビルド（MewUI / Annotation）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.MewUI/Annotation/sample/EsUtil.Ui.MewUI.Annotation.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },    {
       "label": "ビルド（MewUI / ColorSelector）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
@@ -140,6 +146,12 @@
     },
 
     {
+      "label": "ビルド（WinUI3 / Annotation）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinUI3/Annotation/sample/EsUtil.Ui.WinUI3.Annotation.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },    {
       "label": "ビルド（WinUI3 / ColorSelector）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
@@ -176,6 +188,12 @@
     },
 
     {
+      "label": "ビルド（WinForms / Annotation）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinForms/Annotation/sample/EsUtil.Ui.WinForms.Annotation.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },    {
       "label": "ビルド（WinForms / Loupe）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",

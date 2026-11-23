@@ -10,6 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- ログの出力先（ILogger）を公開する（定義はコアが持つ） -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\EsUtil\Feature.Annotation.Core\src\EsUtil.Feature.Annotation.Core.csproj" />
     <!-- 選択枠とハンドルは Marquee の提示層を再利用する（枠の見た目を 4 つの UI 版で揃えるため） -->
     <ProjectReference Include="..\..\..\EsUtil\Feature.Marquee.Core\src\EsUtil.Feature.Marquee.Core.csproj" />
@@ -24,7 +29,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="EsUtil.Feature.Annotation.Core" />
-    <Using Include="EsUtil.Feature.Annotation.Presenter" />
+    <Using Include="EsUtil.Feature.Annotation" />
   </ItemGroup>
 </Project>

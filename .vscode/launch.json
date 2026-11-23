@@ -87,6 +87,16 @@
         },
         // MewUI
         {
+            "name": "MewUI / Annotation",
+            "presentation": { "group": "MewUI", "order": 0 },
+            "type": "coreclr",
+            "request": "launch",
+            "justMyCode": false,
+            "logging": { "moduleLoad": false },
+            "preLaunchTask": "ビルド（MewUI / Annotation）",
+            "program": "${workspaceFolder}/EsUtil.Ui.MewUI/Annotation/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.Annotation.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/Annotation/sample"
+        },        {
             "name": "MewUI / ColorSelector",
             "presentation": { "group": "MewUI", "order": 1 },
             "type": "coreclr",
@@ -143,6 +153,16 @@
         },
         // WinUI3
         {
+            "name": "WinUI3 / Annotation",
+            "presentation": { "group": "WinUI3", "order": 0 },
+            "type": "coreclr",
+            "request": "launch",
+            "justMyCode": false,
+            "logging": { "moduleLoad": false },
+            "preLaunchTask": "ビルド（WinUI3 / Annotation）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinUI3/Annotation/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.WinUI3.Annotation.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/Annotation/sample"
+        },        {
             "name": "WinUI3 / ColorSelector",
             "presentation": { "group": "WinUI3", "order": 1 },
             "type": "coreclr",
@@ -199,6 +219,16 @@
         },
         // WinForms
         {
+            "name": "WinForms / Annotation",
+            "presentation": { "group": "WinForms", "order": 0 },
+            "type": "coreclr",
+            "request": "launch",
+            "justMyCode": false,
+            "logging": { "moduleLoad": false },
+            "preLaunchTask": "ビルド（WinForms / Annotation）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinForms/Annotation/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.WinForms.Annotation.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinForms/Annotation/sample"
+        },        {
             "name": "WinForms / Loupe",
             "presentation": { "group": "WinForms", "order": 1 },
             "type": "coreclr",

@@ -15,12 +15,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- 内部手順（折り返し・JSON 変換）は単体テストからのみ参照する -->
-    <InternalsVisibleTo Include="EsUtil.Feature.Annotation.Core.Tests" />
+    <!-- 読み込み・保存・設定の変更のログ定義（LoggerMessage ソース生成）を本コアが所有する -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="EsUtil.Feature.Annotation.Core" />
-    <Using Include="EsUtil.Feature.Annotation.Presenter" />
+    <!-- 内部手順（折り返し・JSON 変換）は単体テストからのみ参照する -->
+    <InternalsVisibleTo Include="EsUtil.Feature.Annotation.Core.Tests" />
   </ItemGroup>
 </Project>
