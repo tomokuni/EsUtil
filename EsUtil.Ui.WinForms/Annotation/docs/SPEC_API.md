@@ -20,6 +20,7 @@ WinForms 版の注釈レイヤーが公開する API の一覧です。 操作�
 | `TextFormat` | `ColorTextFormat` | 書式バーの色の表記（保持だけする） |
 | `Log` / `LogPrefix` | `ILogger` / `string?` | ログの出力先と接頭辞（コアと提示層で共有する） |
 | `Presenter` | `AnnotationPresenter` | 描画計画を解決する提示層（ログと接頭辞を共有する） |
+| `Core` | `AnnotationCore` | 文書・保存形式・ログの入口（ファサード。 アプリは `Core.Load` / `Core.Save` を使う） |
 | `ShowStylePanel()` / `CloseStylePanel()` | `void` | 外観・重なり順の編集パネルの表示と終了（右クリックと同じ） |
 
 ## 2. `AnnotationLayerControl`（クラス）
@@ -34,6 +35,7 @@ WinForms 版の注釈レイヤーが公開する API の一覧です。 操作�
 | `ColorTextFormat` | 書式バーの色の表記 |
 | `Log` / `LogPrefix` | ログの出力先と接頭辞（コアと提示層で共有する） |
 | `Presenter` | 描画計画を解決する提示層（ログと接頭辞を共有する） |
+| `Core` | 文書・保存形式・ログの入口（ファサード。 アプリは `Core.Load` / `Core.Save` を使う） |
 | `AddFrame(bounds)` / `AddBubble(bounds, text)` | 注釈の追加（追加した識別子を返す） |
 | `DeleteSelected()` / `SetSelectedText(text)` | 削除と本文の置き換え |
 | `ApplyTextStyle(...)` / `TransformTextStyle(...)` | 選択範囲の書式の差し替え・属性だけの変更 |
