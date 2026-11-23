@@ -62,14 +62,16 @@ flowchart TB
 | `RichText` / `TextRun` / `AnnotationTextStyle` | Core | 文字単位の書式（run が自分の文字列と解決済みの書式を持つ） |
 | `AnnotationHitTest` | Core | 当たり判定（最前面から・先端は本体より優先） |
 | `AnnotationTextWrap`（内部） | Core（`.Core.Internal`） | 折り返し（文字単位・明示改行・行頭禁則） |
-| `AnnotationJson` / `AnnotationJsonContext`（内部） | Core（`.Core.Internal`） | JSON の読み書き（ソース生成 + 明示の変換器）と保存パスの解決 |
-| `AnnotationDefaults` / `AnnotationLimits` | Core | 既定値と安全域（設定・JSON・入力の共通の補正） |
+| `AnnotationJson` | Core（`src/` 直下・`public`） | JSON 文字列への変換・保存パスの解決・付随ファイルの判定（ファイル入出力は `AnnotationCore`） |
+| `AnnotationJsonContext` / JSON 変換器 / `AnnotationTextWrap`（内部） | Core（`.Core.Internal`） | ソース生成の文脈・値の変換・折り返し |
+| `AnnotationDefaults` / `AnnotationLimits` / `AnnotationDraftDefaultsFactory` | Core | 既定値と安全域（設定・JSON・入力の共通の補正）と、設定の値からの既定値の組み立て |
+| `AnnotationHistory` | Core | 変更履歴（元に戻す・やり直す。 `BeginChange` / `CommitChange` で 1 操作 = 1 手にする） |
 | `AnnotationPresenter` | Presenter | 描画計画の解決（折り返しの配置・しっぽの多角形・行の配置） |
 | `AnnotationDrawPlan` / `AnnotationShapePlan` / `AnnotationTextLinePlan` / `AnnotationTextSegmentPlan` | Presenter | UI へ渡す 1 フレーム分の描画契約 |
 
 **選択枠（8 方向のハンドル）は本アセンブリの責務ではありません**（Marquee の提示層を再利用する。 枠とハンドルの見た目を 4 つの UI 版で揃えるため）。
 
-**ログ**: 本アセンブリはログの定義（`AnnotationLogMessage`。 接頭辞の既定値は `[Annotation]`）を持ちます。 レベルは頻度で決めます。 `Information` は利用者の明示的な操作（注釈ファイルの読み込み・保存）とプロセスで 1 度の生成、`Debug` は状態の変化（選択・本文の編集・書式の適用・パネルの表示・押下と解放）と提示層の生成、`Trace` は高頻度の値（ドラッグ中の文書の変更）、`Error` は公開ファサードの操作で発生した例外です。 毎フレームの描画計画の解決と当たり判定は記録しません（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
+**ログ**: 本アセンブリはログの定義（`AnnotationLogMessage`。 接頭辞の既定値は `[Annotation]`）を持ちます。 レベルは頻度で決めます。 `Information` は利用者の明示的な操作（注釈ファイルの読み込み・保存・付随ファイルの削除）とプロセスで 1 度の生成、`Debug` は状態の変化（選択・本文の編集・書式の適用・パネルの表示・押下と解放）と提示層の生成、`Trace` は高頻度の値（ドラッグ中の文書の変更）、`Error` は公開ファサードの操作で発生した例外です。 毎フレームの描画計画の解決と当たり判定は記録しません（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
 
 ## 5. 依存関係
 
@@ -90,5 +92,6 @@ flowchart TB
 | 未知の注釈種別 | `JsonException`（前方互換はスキーマ版で扱う） |
 | 値が安全域の外 | **例外にしない**。 `AnnotationLimits` / `Normalized()` が補正する（描画を止めない） |
 | 引数が null | `ArgumentNullException`（公開メソッドの入口で 1 回だけ検証する） |
+| 付随ファイルを削除できない | `Error` を記録して再スローする（画像だけの状態と食い違うため、呼び出し側が利用者へ通知する） |
 
 共通方針は [`.github/例外処理規約.md`](../../../.github/例外処理規約.md) が所有します。

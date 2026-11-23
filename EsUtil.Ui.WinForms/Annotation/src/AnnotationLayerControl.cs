@@ -47,14 +47,7 @@ public sealed partial class AnnotationLayerControl : Control
     private (double Scale, EsPoint Offset)? _frozenTransform;
 
     /// <summary>選択枠の外観（暗転・ラベル・マーカーは使わない）。</summary>
-    private static readonly MarqueeAppearance s_marqueeAppearance = MarqueeAppearance.Default with
-    {
-        ShowOuterMask = false,
-        ShowInnerMask = false,
-        ShowMarker = false,
-        ShowSizeLabel = false,
-        ShowCoordLabel = false,
-    };
+    private static readonly MarqueeAppearance s_marqueeAppearance = MarqueeAppearance.OutlineOnly;
 
     /// <summary>注釈の文書。</summary>
     private AnnotationDocument _document = new(1, 1);
@@ -67,9 +60,6 @@ public sealed partial class AnnotationLayerControl : Control
 
     /// <summary>直近に描いた選択枠のハンドル（DIP。 ポインターの形を決めるのに使う）。</summary>
     private IReadOnlyList<EsRect>? _handleDipRects;
-
-    /// <summary>これから記録する変更の直前の文書（変更が起きるまで保持する）。</summary>
-    private AnnotationDocument? _undoCandidate;
 
     /// <summary>しっぽの先端をドラッグ中かどうか。</summary>
     private bool _isDraggingTail;
@@ -197,8 +187,8 @@ public sealed partial class AnnotationLayerControl : Control
     {
         var imageWidth = Math.Max(1, SourcePixelWidth);
         var imageHeight = Math.Max(1, SourcePixelHeight);
-        var width = Math.Min(240, imageWidth);
-        var height = Math.Min(160, imageHeight);
+        var width = Math.Min(AnnotationDefaults.NewItemWidthDefault, imageWidth);
+        var height = Math.Min(AnnotationDefaults.NewItemHeightDefault, imageHeight);
         return new EsRect(
             Math.Clamp(sourcePoint.X, 0, Math.Max(0, imageWidth - width)),
             Math.Clamp(sourcePoint.Y, 0, Math.Max(0, imageHeight - height)),
@@ -297,7 +287,6 @@ public sealed partial class AnnotationLayerControl : Control
             EndTextEditing();
             _document = value;
             _history.Clear();
-            _undoCandidate = null;
             SelectedId = null;
             _marquee.ResetSelection();
             RaiseDocumentChanged();
@@ -568,7 +557,7 @@ public sealed partial class AnnotationLayerControl : Control
         PrepareUndo();
         if (!_document.SetTail(bubble.Id, transform(bubble.Tail)))
         {
-            _undoCandidate = null;
+            _history.CancelChange();
             return false;
         }
 
@@ -714,16 +703,17 @@ public sealed partial class AnnotationLayerControl : Control
     private void RaiseSelectionChanged() => SelectionChanged?.Invoke(this, EventArgs.Empty);
 
     /// <summary>これから変更することを履歴へ準備する（変更の直前に呼ぶ）。</summary>
-    private void PrepareUndo() => _undoCandidate ??= _document.Clone();
+    /// <remarks>
+    /// <b>1 操作 = 1 手</b>: 押しただけで動かなかった操作（選択だけのクリック）で元に戻す手数が増えない
+    /// よう、控えと積みの判定は <see cref="AnnotationHistory.BeginChange"/> / <see cref="AnnotationHistory.CommitChange"/>
+    /// が行う（本コントロールは呼ぶだけ）。
+    /// </remarks>
+    private void PrepareUndo() => _history.BeginChange(_document);
 
-    /// <summary>文書が変わったことを通知する（控えた文書があれば履歴へ積む）。</summary>
+    /// <summary>文書が変わったことを通知する（履歴への積みは <see cref="AnnotationHistory.CommitChange"/> が行う）。</summary>
     private void RaiseDocumentChanged()
     {
-        if (_undoCandidate is { } candidate)
-        {
-            _history.Record(candidate);
-            _undoCandidate = null;
-        }
+        _history.CommitChange(_document);
 
         _core.Log.LogDocumentChanged(_document.Items.Length);
         DocumentChanged?.Invoke(this, EventArgs.Empty);

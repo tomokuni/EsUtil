@@ -20,15 +20,6 @@ namespace EsUtil.Ui.MewUI.Annotation;
 /// </remarks>
 public sealed partial class AnnotationLayerControl
 {
-    /// <summary>キャレットの太さ（DIP）。</summary>
-    private const double CaretThicknessDip = 1.6;
-
-    /// <summary>選択範囲の色（本文の上に薄く重ねる）。</summary>
-    private static readonly Color s_textSelectionColor = new(72, 0, 120, 215);
-
-    /// <summary>キャレットの色。</summary>
-    private static readonly Color s_caretColor = new(255, 20, 20, 20);
-
     /// <summary>本文を編集中かどうか。</summary>
     private bool _isEditingText;
 
@@ -597,7 +588,7 @@ public sealed partial class AnnotationLayerControl
             // **選択範囲も描画と同じ規則で求める**（区間の原点からの距離。 Core が単一所有する）
             var x1 = AnnotationTextLineLayout.ResolveX(line, from - lineStart, PrefixMeasure(layouts));
             var x2 = AnnotationTextLineLayout.ResolveX(line, to - lineStart, PrefixMeasure(layouts));
-            context.FillRectangle(new Rect(x1, line.Bounds.Y, x2 - x1, line.Bounds.Height), s_textSelectionColor);
+            context.FillRectangle(new Rect(x1, line.Bounds.Y, x2 - x1, line.Bounds.Height), AnnotationPainter.ToColor(AnnotationEditorAppearance.SelectionColor));
         }
 
         // **変換中はキャレットを変換中の文字列の末尾へ置く**（規則はコアの AnnotationCompositionPreview）
@@ -610,8 +601,8 @@ public sealed partial class AnnotationLayerControl
         // **キャレットは一般的な速さで点滅させる**（規則はコアの AnnotationCaretBlink が単一所有する）
         if (IsCaretVisible)
         {
-            var thickness = CaretThicknessDip / Math.Max(scale, 0.01);
-            context.FillRectangle(new Rect(caret.X, caret.Y, thickness, caret.Height), s_caretColor);
+            var thickness = AnnotationEditorAppearance.CaretThicknessDip / Math.Max(scale, 0.01);
+            context.FillRectangle(new Rect(caret.X, caret.Y, thickness, caret.Height), AnnotationPainter.ToColor(AnnotationEditorAppearance.CaretColor));
         }
 
         // **変換中の文字列は本文として描く**（RenderDocument が入れている）ため、ここでは重ねて描かない。

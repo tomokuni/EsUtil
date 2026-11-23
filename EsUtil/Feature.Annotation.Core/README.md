@@ -59,7 +59,7 @@ var composedPath = AnnotationJson.GetComposedPath(imagePath);   // <画像名>.a
 
 | 型 | 役割 |
 | --- | --- |
-| `AnnotationCore` | **ファサード**（文書の生成・注釈の生成・JSON の読み書き・ログ。 提示層を `Presenter` で共有する） |
+| `AnnotationCore` | **ファサード**（文書の生成・注釈の生成・JSON の読み書きと付随ファイルの削除・ログ。 提示層を `Presenter` で共有する） |
 | `AnnotationDocument` | 注釈の集合（並び順が重なり順）・画像の寸法・JSON の版 |
 | `FrameAnnotation` / `BubbleAnnotation` | 枠線（矩形 + 角丸）/ 吹き出し（本文 + しっぽ） |
 | `BubbleTail` / `BubbleEdge` | しっぽ（先端は本体と独立・付け根は本体の辺に追従） |
@@ -67,9 +67,10 @@ var composedPath = AnnotationJson.GetComposedPath(imagePath);   // <画像名>.a
 | `AnnotationAppearance` | 注釈の外観（枠線の色・太さ・内側の色・角丸） |
 | `AnnotationPresenter` / `AnnotationDrawPlan` / `AnnotationShapePlan` | 折り返しと描画計画の解決 |
 | `AnnotationHitTest` | 選択としっぽの当たり判定（最前面から探す） |
-| `AnnotationJson` | JSON 文字列への変換と保存パスの解決（ファイル入出力は `AnnotationCore`） |
+| `AnnotationJson` | JSON 文字列への変換・保存パスの解決・付随ファイルの判定（ファイル入出力は `AnnotationCore`） |
 | `AnnotationDefaults` / `AnnotationLimits` | 既定値と安全域（設定・JSON・入力の共通の補正） |
-| `AnnotationHistory` | 変更履歴（元に戻す・やり直す。 文書を複製して積む） |
+| `AnnotationHistory` | 変更履歴（元に戻す・やり直す。 1 操作を `BeginChange` / `CommitChange` で囲むと 1 手にまとまる） |
+| `AnnotationDraftDefaultsFactory` / `AnnotationEditorAppearance` | 層と 4 UI が共有する値（設定からの既定値の組み立て・本文の編集中の見た目） |
 
 ## 3. 構成（名前空間とフォルダ）
 
@@ -79,13 +80,13 @@ var composedPath = AnnotationJson.GetComposedPath(imagePath);   // <画像名>.a
 | --- | --- | --- |
 | `src/` 直下 | `EsUtil.Feature.Annotation` | ファサード（`AnnotationCore` / `AnnotationPresenter`）と、そのメンバーに現れる型（文書・注釈・書式・外観・描画計画） |
 | `src/Core/Contract` | `.Core.Contract` | 4 つの UI 版と共有する通知（追加メニュー・プレビュー操作・書式編集の要求）と、ポインターの種類 |
-| `src/Core/Defaults` | `.Core.Defaults` | 既定値と安全域（`AnnotationDefaults` / `AnnotationLimits`） |
+| `src/Core/Defaults` | `.Core.Defaults` | 既定値と安全域（`AnnotationDefaults` / `AnnotationLimits` / `AnnotationDraftDefaultsFactory`） |
 | `src/Core/Geometry` | `.Core.Geometry` | 画像内へ収める規則と表示倍率・位置の解決 |
 | `src/Core/History` | `.Core.History` | 変更履歴（元に戻す・やり直す） |
 | `src/Core/Interaction` | `.Core.Interaction` | 当たり判定とポインターの形の判断 |
 | `src/Core/Text` | `.Core.Text` | 本文の書式を適用する範囲の規則 |
 | `src/Core/Internal` | `.Core.Internal` | 折り返しと JSON の読み書き（`internal`） |
-| `src/Presenter/Drawing` | `.Presenter.Drawing` | キャレット・編集中の枠・行と文字位置の対応・行の寸法の値 |
+| `src/Presenter/Drawing` | `.Presenter.Drawing` | キャレットと選択範囲の見た目（`AnnotationEditorAppearance`）・編集中の枠・行と文字位置の対応・行の寸法の値 |
 | `src/Presenter/Editor` | `.Presenter.Editor` | 編集 UI の文言・寸法・代表色・書式バーの並び |
 | `src/Presenter/Panel` | `.Presenter.Panel` | フローティング パネルの外観・配置・開閉 |
 | `src/Presenter/Selection` | `.Presenter.Selection` | 選択中の注釈の編集入口と、以降の入力へ効かせる書式 |

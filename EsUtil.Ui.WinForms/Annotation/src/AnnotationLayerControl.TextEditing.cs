@@ -34,15 +34,6 @@ public sealed partial class AnnotationLayerControl
     /// <summary>確定した文字列を求める指定。</summary>
     private const int GcsResultStr = 0x0800;
 
-    /// <summary>キャレットの太さ（DIP）。</summary>
-    private const float CaretThicknessDip = 1.6F;
-
-    /// <summary>選択範囲の色（本文の上に薄く重ねる）。</summary>
-    private static readonly Color s_textSelectionColor = Color.FromArgb(72, 0, 120, 215);
-
-    /// <summary>キャレットの色。</summary>
-    private static readonly Color s_caretColor = Color.FromArgb(255, 20, 20, 20);
-
     /// <summary>本文を編集中かどうか。</summary>
     private bool _isEditingText;
 
@@ -393,7 +384,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         var (scale, offset) = ResolveImageTransform();
-        using var selectionBrush = new SolidBrush(s_textSelectionColor);
+        using var selectionBrush = new SolidBrush(AnnotationEditorAppearance.SelectionColor);
         foreach (var rect in index.ResolveSelectionRects(TextSelectionStart, TextSelectionEnd, AnnotationTextMetrics.Measure))
         {
             graphics.FillRectangle(
@@ -430,9 +421,9 @@ public sealed partial class AnnotationLayerControl
         // **キャレットは一般的な速さで点滅させる**（規則はコアの AnnotationCaretBlink が単一所有する）
         if (IsCaretVisible)
         {
-            using var caretBrush = new SolidBrush(s_caretColor);
+            using var caretBrush = new SolidBrush(AnnotationEditorAppearance.CaretColor);
             graphics.FillRectangle(
-                caretBrush, caretX, (float)caret.Y, CaretThicknessDip, Math.Max(1F, (float)caret.Height));
+                caretBrush, caretX, (float)caret.Y, (float)AnnotationEditorAppearance.CaretThicknessDip, Math.Max(1F, (float)caret.Height));
         }
     }
 

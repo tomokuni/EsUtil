@@ -175,6 +175,60 @@ public sealed class AnnotationCore(AnnotationPresenter? presenter = null)
         }
     }
 
+    /// <summary>元画像のパスを指定して注釈ファイルへ書き出す。</summary>
+    /// <param name="imagePath">元画像のパス（注釈ファイルのパスは本クラスが決める）。</param>
+    /// <param name="document">書き出す文書。</param>
+    /// <exception cref="ArgumentException"><paramref name="imagePath"/> が空白の場合。</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="document"/> が null の場合。</exception>
+    /// <exception cref="IOException">ファイルへ書けない場合。</exception>
+    /// <remarks>
+    /// <b>保存の経路を 1 つにする</b>: ホストがパスを組み立てて書き込むと、記録（件数・失敗）と文字コードの
+    /// 指定がホストごとにずれる。 保存の入口は本メソッドと <see cref="Save"/> に限る。
+    /// </remarks>
+    public void SaveDocument(string imagePath, AnnotationDocument document)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(imagePath);
+        ArgumentNullException.ThrowIfNull(document);
+
+        Save(AnnotationJson.GetDocumentPath(imagePath), document);
+    }
+
+    /// <summary>元画像に付随する注釈ファイルと合成画像を削除する。</summary>
+    /// <param name="imagePath">元画像のパス。</param>
+    /// <returns>1 つ以上を削除した場合は <see langword="true"/>（無かった場合は <see langword="false"/>）。</returns>
+    /// <exception cref="ArgumentException"><paramref name="imagePath"/> が空白の場合。</exception>
+    /// <remarks>
+    /// <b>注釈が 0 件になったときの後始末を単一所有する</b>: 付随ファイルを残すと、画像を開き直したときに
+    /// 存在しない注釈が読み込まれる（画像と食い違う）。 削除の失敗は記録して再スローする。
+    /// </remarks>
+    public bool RemoveCompanionFiles(string imagePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(imagePath);
+
+        var removed = false;
+        foreach (var path in new[] { AnnotationJson.GetDocumentPath(imagePath), AnnotationJson.GetComposedPath(imagePath) })
+        {
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    continue;
+                }
+
+                File.Delete(path);
+                _log.LogCompanionFileRemoved(Path.GetFileName(path));
+                removed = true;
+            }
+            catch (Exception ex) when (EsErrors.IsRecoverable(ex))
+            {
+                _log.LogOperationError(ex, nameof(RemoveCompanionFiles));
+                throw;
+            }
+        }
+
+        return removed;
+    }
+
     /// <summary>ロガーが設定された時点で生成を 1 度だけ出力する。</summary>
     private void LogFacadeCreatedOnce()
     {

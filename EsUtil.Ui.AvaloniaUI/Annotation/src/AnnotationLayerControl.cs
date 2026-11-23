@@ -93,14 +93,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     private (double Scale, Point Offset)? _frozenTransform;
 
     /// <summary>選択枠の外観（暗転・ラベル・マーカーは使わない）。</summary>
-    private static readonly MarqueeAppearance s_marqueeAppearance = MarqueeAppearance.Default with
-    {
-        ShowOuterMask = false,
-        ShowInnerMask = false,
-        ShowMarker = false,
-        ShowSizeLabel = false,
-        ShowCoordLabel = false,
-    };
+    private static readonly MarqueeAppearance s_marqueeAppearance = MarqueeAppearance.OutlineOnly;
 
     /// <summary>注釈の文書。</summary>
     private AnnotationDocument _document = new(1, 1);
@@ -113,9 +106,6 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
     /// <summary>直近に描いた選択枠のハンドル（DIP。 ポインターの形を決めるのに使う）。</summary>
     private IReadOnlyList<EsRect>? _handleDipRects;
-
-    /// <summary>これから記録する変更の直前の文書（変更が起きるまで保持する）。</summary>
-    private AnnotationDocument? _undoCandidate;
 
     /// <summary>しっぽの先端をドラッグ中かどうか。</summary>
     private bool _isDraggingTail;
@@ -192,7 +182,6 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
             _document = value ?? new AnnotationDocument(SourcePixelWidth, SourcePixelHeight);
             _history.Clear();
-            _undoCandidate = null;
             SelectedId = null;
             _marquee.ResetSelection();
             RaiseDocumentChanged();
@@ -357,18 +346,12 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     {
         var imageWidth = Math.Max(1, SourcePixelWidth);
         var imageHeight = Math.Max(1, SourcePixelHeight);
-        var width = Math.Min(DefaultNewWidth, imageWidth);
-        var height = Math.Min(DefaultNewHeight, imageHeight);
+        var width = Math.Min(AnnotationDefaults.NewItemWidthDefault, imageWidth);
+        var height = Math.Min(AnnotationDefaults.NewItemHeightDefault, imageHeight);
         var x = Math.Clamp(sourcePoint.X, 0, Math.Max(0, imageWidth - width));
         var y = Math.Clamp(sourcePoint.Y, 0, Math.Max(0, imageHeight - height));
         return new EsRect(x, y, width, height);
     }
-
-    /// <summary>右クリックのメニューから追加する注釈の既定の幅（元画像ピクセル）。</summary>
-    private const double DefaultNewWidth = 240;
-
-    /// <summary>右クリックのメニューから追加する注釈の既定の高さ（元画像ピクセル）。</summary>
-    private const double DefaultNewHeight = 160;
 
     /// <summary>指定した位置（DIP）に注釈があるかどうかを判定する（プレビューの入力を受け取るかの判断に使う）。</summary>
     /// <param name="dip">位置（ローカル DIP）。</param>
@@ -663,7 +646,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         PrepareUndo();
         if (!_document.SetTail(bubble.Id, transform(bubble.Tail).Normalized()))
         {
-            _undoCandidate = null;
+            _history.CancelChange();
             return false;
         }
 
@@ -730,7 +713,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <returns>適用した場合は <see langword="true"/>。</returns>
     private bool ApplyHistory(AnnotationDocument? document)
     {
-        _undoCandidate = null;
+        _history.CancelChange();
         if (document is null)
         {
             return false;
@@ -996,7 +979,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             if (Selected is BubbleAnnotation editingBubble && editingBubble.Bounds.Contains(source))
             {
                 CapturePointer(e);
-                _undoCandidate = null;
+                _history.CancelChange();
                 _isSelectingText = true;
                 SetCaretFromPoint(source, (e.KeyModifiers & KeyModifiers.Shift) != 0);
                 InvalidateVisual();
@@ -1656,19 +1639,16 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
     /// <summary>これから変更することを履歴へ準備する（変更の直前に呼ぶ）。</summary>
     /// <remarks>
-    /// <b>記録は変更が起きたときだけ行う</b>: 押しただけで動かなかった操作（選択だけのクリック）で
-    /// 元に戻す手数が増えないよう、直前の文書を控えておき、実際に文書が変わった時点で履歴へ積む。
+    /// <b>1 操作 = 1 手</b>: 押しただけで動かなかった操作（選択だけのクリック）で元に戻す手数が増えない
+    /// よう、控えと積みの判定は <see cref="AnnotationHistory.BeginChange"/> / <see cref="AnnotationHistory.CommitChange"/>
+    /// が行う（本コントロールは呼ぶだけ）。
     /// </remarks>
-    private void PrepareUndo() => _undoCandidate ??= _document.Clone();
+    private void PrepareUndo() => _history.BeginChange(_document);
 
-    /// <summary>文書が変わったことを通知する（控えた文書があれば履歴へ積む）。</summary>
+    /// <summary>文書が変わったことを通知する（履歴への積みは <see cref="AnnotationHistory.CommitChange"/> が行う）。</summary>
     private void RaiseDocumentChanged()
     {
-        if (_undoCandidate is { } candidate)
-        {
-            _history.Record(candidate);
-            _undoCandidate = null;
-        }
+        _history.CommitChange(_document);
 
         _core.Log.LogDocumentChanged(_document.Items.Length);
         DocumentChanged?.Invoke(this, EventArgs.Empty);

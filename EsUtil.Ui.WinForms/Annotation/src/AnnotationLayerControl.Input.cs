@@ -190,7 +190,7 @@ public sealed partial class AnnotationLayerControl
             if (Selected is BubbleAnnotation editingBubble && editingBubble.Bounds.Contains(source))
             {
                 Capture = true;
-                _undoCandidate = null;
+                _history.CancelChange();
                 SetCaretFromPoint(source, (ModifierKeys & Keys.Shift) == Keys.Shift);
                 return;
             }

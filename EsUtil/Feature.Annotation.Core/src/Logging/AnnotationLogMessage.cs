@@ -124,6 +124,20 @@ public static partial class AnnotationLogMessage
     internal static void LogAnnotationAdded(this ILogger logger, AnnotationKind kind, string id)
         => logger.LogAnnotationAddedCore(Prefix, kind.ToString(), id);
 
+    /// <summary>付随ファイルを削除したことを記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Annotation] 削除: {FileName}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="fileName">削除したファイルの名前。</param>
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} 削除: {FileName:l}")]
+    private static partial void LogCompanionFileRemovedCore(this ILogger logger, string prefix, string fileName);
+
+    /// <summary>付随ファイルを削除したことを記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="fileName">削除したファイルの名前。</param>
+    internal static void LogCompanionFileRemoved(this ILogger logger, string fileName)
+        => logger.LogCompanionFileRemovedCore(Prefix, fileName);
+
     /// <summary>設定値の変更を記録する（生成メソッド。 整形済みの値を渡す）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 設定: {Name} {OldValue} → {NewValue}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>

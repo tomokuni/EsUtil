@@ -81,6 +81,17 @@ public class AnnotationJsonTests
         Assert.Equal("shot.annotated.png", AnnotationJson.GetComposedPath("shot.png"));
     }
 
+    /// <summary>付随ファイルの判定を検証する。</summary>
+    /// <remarks>一覧から除く対象は注釈ファイルと合成画像だけである（<c>annotated.png</c> のような元画像は残す）。</remarks>
+    [Fact]
+    internal void 付随ファイル_注釈と合成だけを判定する()
+    {
+        Assert.True(AnnotationJson.IsCompanionFile(Path.Combine("C:\\", "shots", "shot.annotations.json")));
+        Assert.True(AnnotationJson.IsCompanionFile(Path.Combine("C:\\", "shots", "shot.annotated.png")));
+        Assert.False(AnnotationJson.IsCompanionFile(Path.Combine("C:\\", "shots", "shot.png")));
+        Assert.False(AnnotationJson.IsCompanionFile(Path.Combine("C:\\", "shots", "annotated.png")));
+    }
+
     /// <summary>未知の種別は読み込み時に例外になることを検証する（前方互換は版で扱う）。</summary>
     [Fact]
     internal void 読み込み_未知の種別は例外になる()

@@ -1,6 +1,7 @@
 using Aprillz.MewUI;
 using Aprillz.MewUI.Input;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
@@ -44,7 +45,7 @@ public sealed partial class AnnotationLayerControl : ITextCompositionClient, ITe
         return new Rect(
             Bounds.X + dip.X,
             Bounds.Y + dip.Y,
-            Math.Max(1.0, CaretThicknessDip),
+            Math.Max(1.0, AnnotationEditorAppearance.CaretThicknessDip),
             Math.Max(1.0, caret.Height * scale));
     }
 

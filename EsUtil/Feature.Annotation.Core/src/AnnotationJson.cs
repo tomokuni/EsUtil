@@ -81,6 +81,24 @@ public static class AnnotationJson
         return string.IsNullOrEmpty(directory) ? name : Path.Combine(directory, name);
     }
 
+    /// <summary>指定したパスが注釈の付随ファイル（注釈ファイルまたは合成画像）かどうかを判定する。</summary>
+    /// <param name="path">判定するパス。</param>
+    /// <returns>付随ファイルの場合は <see langword="true"/>。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="path"/> が null の場合。</exception>
+    /// <remarks>
+    /// <b>元画像の一覧から付随ファイルを除くために使う</b>: 合成画像は画像の拡張子を持つため、そのままでは
+    /// 元画像と並んで一覧に出る（同じ絵が 2 つ見え、選択すると注釈付きの絵を元画像として開いてしまう）。<br/>
+    /// 判定は<b>名前の規則だけ</b>で行う（ファイルの存在は問わない）。
+    /// </remarks>
+    public static bool IsCompanionFile(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        var name = Path.GetFileName(path);
+        return name.EndsWith(FileSuffix, StringComparison.OrdinalIgnoreCase)
+            || name.Contains(ComposedInfix, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>注釈ファイルから元画像のパスを求める。</summary>
     /// <param name="documentPath">注釈ファイルのパス（例: <c>…\screenshot.annotations.json</c>）。</param>
     /// <param name="document">読み込んだ文書（元画像のファイル名を持つ）。</param>

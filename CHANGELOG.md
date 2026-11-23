@@ -11,9 +11,14 @@
 
 - **注釈（枠線・吹き出し）のコントロールを追加しました**。 `EsUtil.Feature.Annotation.Core`（Core / Presenter）と 4 つの UI 版（`EsUtil.Ui.AvaloniaUI.Annotation` / `EsUtil.Ui.MewUI.Annotation` / `EsUtil.Ui.WinUI3.Annotation` / `EsUtil.Ui.WinForms.Annotation`）です。 注釈は画像へ焼き込まず `*.annotations.json` として保存でき、保存時に `*.annotated.*`（合成画像）を書き出せます。 選択枠とハンドルは Marquee の提示層を、色の選択は ColorSelector を再利用します。
   - **ファサード**: `AnnotationCore` が文書と注釈の生成・JSON の読み書き・ログを集約し、`AnnotationPresenter` を共有します。 公開面は `EsUtil.Feature.Annotation`（`src/` 直下）です。
-  - **ログ**: `Log` / `LogPrefix` で出力先と接頭辞（既定 `[Annotation]`）を設定します。 ファサードの生成・注釈ファイルの読み書き（`Information`）・注釈の追加（`Debug`）を記録します。
+  - **ログ**: `Log` / `LogPrefix` で出力先と接頭辞（既定 `[Annotation]`）を設定します。 ファサードの生成・注釈ファイルの読み書きと付随ファイルの削除（`Information`）・注釈の追加（`Debug`）を記録します。
+  - **保存の入口**: `SaveDocument(imagePath, document)` と `RemoveCompanionFiles(imagePath)` を追加しました。 注釈ファイルのパス・書式・文字コード・削除はコアが単一所有し、ホストは合成画像の描画だけを持ちます（ホストごとに保存の作法がずれません）。 `AnnotationJson.IsCompanionFile` は付随ファイルかどうかの判定です（保存フォルダーの一覧から合成画像を除く用途）。
+  - **変更の単位**: `AnnotationHistory.BeginChange` / `CommitChange` で 1 操作 = 1 手を型で表します（変更が無い操作は積みません。 UI は押下から解放までを囲むだけです）。
+  - **共有する値**: `AnnotationDraftDefaultsFactory`（設定の値 → 新規作成時の既定値）と `AnnotationEditorAppearance`（キャレットと選択範囲の色・太さ）を追加しました。 4 つの UI 版が同じ値を使います。
   - **サンプル**: 4 つの UI 版すべてに動作確認用のサンプル アプリを用意しました（サンプル共通の `SampleShell` と Serilog のログを使います）。
   - **構成**: 公開面（ファサードとそのメンバーの型）は `EsUtil.Feature.Annotation`、層の内部は `EsUtil.Feature.Annotation.Core.*` / `.Presenter.*` に分けました（4 つの UI 版が共通で使う判断・外観・編集 UI の部品も層の名前空間に置きます）。 ログは Information（読み書き・生成）/ Debug（選択・編集・書式・パネル・押下）/ Trace（ドラッグ中の文書の変更）/ Error（読み書きの失敗）の 4 段階で、症状の報告時はレベルを上げて原因を切り分けられます。
+
+- **Marquee の `MarqueeAppearance.OutlineOnly` を追加しました**。 枠線だけを描き、外側・内側のマスクと目印・ラベルを出さない外観です（注釈の選択枠のように、対象を隠さず枠だけを示す用途）。
 
 ### 修正
 

@@ -35,6 +35,13 @@ public static class AnnotationDefaults
     /// <summary>しっぽの付け根の位置（辺上の比率）の既定値。</summary>
     public const double TailBaseOffsetDefault = 0.5;
 
+    /// <summary>新規作成する注釈の幅の既定値（元画像ピクセル）。</summary>
+    /// <remarks>追加メニューや本文の無いクリックで作る枠の大きさ。 4 つの UI 版で同じ値にする。</remarks>
+    public const double NewItemWidthDefault = 240.0;
+
+    /// <summary>新規作成する注釈の高さの既定値（元画像ピクセル）。</summary>
+    public const double NewItemHeightDefault = 160.0;
+
     /// <summary>枠線の既定の外観を取得する（赤い枠・内側は透明）。</summary>
     public static AnnotationAppearance FrameAppearance { get; } = new(
         DrawingColor.FromArgb(255, 220, 38, 38),

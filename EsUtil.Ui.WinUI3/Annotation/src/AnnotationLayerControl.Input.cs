@@ -284,7 +284,7 @@ public sealed partial class AnnotationLayerControl
             if (Selected is BubbleAnnotation editingBubble && editingBubble.Bounds.Contains(source))
             {
                 CapturePointerHere(e);
-                _undoCandidate = null;
+                _history.CancelChange();
                 _isSelectingText = true;
                 SetCaretFromPoint(source, IsDown(VirtualKey.Shift));
                 Redraw();

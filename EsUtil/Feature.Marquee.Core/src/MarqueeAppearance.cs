@@ -44,6 +44,21 @@ public sealed record MarqueeAppearance
     /// <value>既定の外観（部分変更の基点として使用する）。</value>
     public static MarqueeAppearance Default { get; } = new();
 
+    /// <summary>枠とハンドルだけを描く外観（外側・内側のマスクとラベル、始点マーカーを出さない）。</summary>
+    /// <value>選択枠の描画だけを借りるホスト（注釈の選択枠）が使う外観。</value>
+    /// <remarks>
+    /// <b>ホストごとに同じ組合せを書かない</b>: マスクとラベルを消す指定は「枠だけを使う」という 1 つの意図であり、
+    /// ホストが項目ごとに書くと、片方だけ内側マスクを消し忘れて見た目が変わる。
+    /// </remarks>
+    public static MarqueeAppearance OutlineOnly { get; } = new MarqueeAppearance
+    {
+        ShowOuterMask = false,
+        ShowInnerMask = false,
+        ShowMarker = false,
+        ShowSizeLabel = false,
+        ShowCoordLabel = false,
+    };
+
     // ----------------------------------------------------------------
     // 色
     // ----------------------------------------------------------------

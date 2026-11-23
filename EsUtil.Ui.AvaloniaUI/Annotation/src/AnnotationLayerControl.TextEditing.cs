@@ -24,14 +24,11 @@ namespace EsUtil.Ui.AvaloniaUI.Annotation;
 /// </remarks>
 public sealed partial class AnnotationLayerControl
 {
-    /// <summary>キャレットの太さ（DIP）。</summary>
-    private const double CaretThicknessDip = 1.6;
+    /// <summary>選択範囲を塗るブラシ（色は提示層が単一所有する）。</summary>
+    private static readonly IBrush s_textSelectionBrush = AnnotationPainter.ToBrush(AnnotationEditorAppearance.SelectionColor);
 
-    /// <summary>選択範囲の色（本文の上に薄く重ねる）。</summary>
-    private static readonly IBrush s_textSelectionBrush = new SolidColorBrush(Color.FromArgb(72, 0, 120, 215));
-
-    /// <summary>キャレットの色。</summary>
-    private static readonly IBrush s_caretBrush = new SolidColorBrush(Color.FromArgb(255, 20, 20, 20));
+    /// <summary>キャレットを塗るブラシ（色は提示層が単一所有する）。</summary>
+    private static readonly IBrush s_caretBrush = AnnotationPainter.ToBrush(AnnotationEditorAppearance.CaretColor);
 
     /// <summary>本文を編集中かどうか。</summary>
     private bool _isEditingText;
@@ -193,7 +190,7 @@ public sealed partial class AnnotationLayerControl
         return new Rect(
             (caret.X * scale) + offset.X,
             (caret.Y * scale) + offset.Y,
-            CaretThicknessDip,
+            AnnotationEditorAppearance.CaretThicknessDip,
             caret.Height * scale);
     }
 
@@ -568,7 +565,7 @@ public sealed partial class AnnotationLayerControl
         // 文字入力・キャレット移動の直後は点灯から始める（消えた瞬間に操作すると入力位置を見失う）。
         if (IsCaretVisible)
         {
-            var thickness = CaretThicknessDip / Math.Max(scale, 0.01);
+            var thickness = AnnotationEditorAppearance.CaretThicknessDip / Math.Max(scale, 0.01);
             context.FillRectangle(s_caretBrush, new Rect(caret.X, caret.Y, thickness, caret.Height));
         }
 

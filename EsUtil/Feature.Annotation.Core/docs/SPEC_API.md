@@ -17,6 +17,7 @@
 - [11. `AnnotationDefaults` / `AnnotationLimits`（静的クラス）](#11-annotationdefaults--annotationlimits静的クラス)
 - [12. `AnnotationDraftDefaults`（レコード）](#12-annotationdraftdefaultsレコード)
 - [13. `AnnotationHistory`（クラス）](#13-annotationhistoryクラス)
+- [14. 層が共有する値（クラス）](#14-層が共有する値クラス)
 
 ## 1. 公開 API の可視性
 
@@ -42,9 +43,11 @@
 | `CreateFrame(document, bounds, defaults)` | 枠線の注釈を作る（文書へは追加しない。 矩形は画像の内側へ収める） |
 | `CreateBubble(document, bounds, text, defaults, tail)` | 吹き出しの注釈を作る（文書へは追加しない。 矩形としっぽを画像の内側へ収める） |
 | `Load(documentPath)` / `Save(documentPath, document)` | 注釈ファイルの読み書き（UTF-8・BOM なし。 件数を `Information` で記録する） |
+| `SaveDocument(imagePath, document)` | 元画像のパスを指定して書き出す（注釈ファイルのパスは本クラスが決める。 ホストはパスを組み立てない） |
+| `RemoveCompanionFiles(imagePath)` | 注釈ファイルと合成画像を削除する（注釈が 0 件になったときの後始末。 1 つでも消した場合は `true`） |
 
 - **文書の値操作（差し替え・削除・並び順・しっぽの移動）は `AnnotationDocument`** が、**当たり判定は `AnnotationHitTest`** が持ちます（ファサードは入口を集約するだけで、値の操作を写し取らない）。
-- **ログ**: 生成（`Information`）・文書の作成（`Debug`）・文書の読み書き（`Information`）・注釈の追加（`Debug`）を記録します。 毎フレームの描画計画の解決と当たり判定は記録しません。
+- **ログ**: 生成（`Information`）・文書の作成（`Debug`）・文書の読み書きと付随ファイルの削除（`Information`）・注釈の追加（`Debug`）を記録します。 毎フレームの描画計画の解決と当たり判定は記録しません。
 
 ## 3. `AnnotationDocument`（クラス）
 
@@ -133,9 +136,10 @@
 | `Serialize(document)` / `Deserialize(json)` | JSON 文字列への変換（ソース生成 + 明示の変換器。 反射を使わない） |
 | `GetDocumentPath(imagePath)` | `<画像名>.annotations.json` のパス（拡張子を置き換える） |
 | `GetComposedPath(imagePath)` | `<画像名>.annotated.<拡張子>` のパス（拡張子を保つ） |
+| `IsCompanionFile(path)` | 注釈の付随ファイル（注釈ファイル・合成画像）かどうか（名前の規則だけで判定する） |
 | `FileSuffix` | 注釈ファイルの接尾辞（`.annotations.json`） |
 
-- **ファイルの入出力は `AnnotationCore.Load` / `AnnotationCore.Save`** が行います（文字コードは UTF-8・BOM なし。 件数を記録し、失敗は `Error` で記録して再スローする）。 本クラスは変換とパスの解決だけを持ちます。
+- **ファイルの入出力は `AnnotationCore.Load` / `AnnotationCore.Save`** が行います（文字コードは UTF-8・BOM なし。 件数を記録し、失敗は `Error` で記録して再スローする）。 本クラスは変換・パスの解決・付随ファイルの判定だけを持ちます（`Load` / `Save` は `internal`）。
 
 - **矩形・点は `X` / `Y` / `Width` / `Height` だけ**、色は **`#AARRGGBB`** で保存します。
 - **未知の種別は読み込み時に例外**になります（前方互換はスキーマ版で扱う）。
@@ -146,7 +150,7 @@
 | --- | --- |
 | `AnnotationDefaults.PreferredFontFamilies` | 使うフォントの優先順（`Yu Gothic UI` → `Segoe UI`） |
 | `AnnotationDefaults.FrameAppearance` / `BubbleAppearance` / `TextStyle` | 新規作成時の既定（設定ページの初期値と同じ値） |
-| `AnnotationDefaults.*Default` | 文字の大きさ・枠線の太さ・角丸・余白・しっぽの幅の既定値 |
+| `AnnotationDefaults.*Default` | 文字の大きさ・枠線の太さ・角丸・余白・しっぽの幅・新規作成する注釈の大きさ（`NewItemWidthDefault` / `NewItemHeightDefault`）の既定値 |
 | `AnnotationLimits` | 各値の安全域と補正（枠線 `1〜64`・角丸 `0〜4096`・文字 `6〜512`） |
 
 ## 12. `AnnotationDraftDefaults`（レコード）
@@ -168,9 +172,23 @@
 | --- | --- |
 | `Capacity` / `UndoCount` / `RedoCount` | 保持数（既定 50）と、戻せる・やり直せる回数 |
 | `CanUndo` / `CanRedo` | 戻せる・やり直せるかどうか |
+| `BeginChange(document)` / `CommitChange(document)` | 操作の開始で直前の文書を控え、終了で 1 手として積む（控え中の再呼び出しは何もしない） |
+| `CancelChange()` | 控えを捨てる（操作を取り消したとき） |
 | `Record(document)` | **変更の直前**の文書を記録する（やり直しは消える） |
 | `Undo(current)` / `Redo(current)` | 戻した・やり直した文書を返す（できない場合は `null`。 現在の文書は反対側へ複製して保持する） |
 | `Clear()` | 履歴を空にする（別の画像を読み込んだとき） |
 
-- **記録の単位は呼び出し側が決めます**（UI は「追加・削除・移動・サイズ変更・しっぽの移動・外観・書式・重なり順」の 1 操作 = 1 手）。
-- 同じ内容の操作（文字を変えずに確定しただけ等）は記録しません。
+- **記録の単位は `BeginChange` 〜 `CommitChange` の 1 組**です（UI は「押下から解放まで」を 1 手として囲む）。 ドラッグ中の細かな書き換えは `Trace` の記録だけを残し、履歴は 1 手にまとまります。
+- 同じ内容の操作（文字を変えずに確定しただけ等）は `CommitChange` が保存形式の比較で判定し、記録しません。
+
+## 14. 層が共有する値（クラス）
+
+**複数の層・4 つの UI 版が同じ値を使うための単一所有**です。 値を UI ごとに書くと、片方だけ色や対応付けがずれます。
+
+| 型 | 層 | 説明 |
+| --- | --- | --- |
+| `AnnotationDraftDefaultsFactory` | Core（`.Core.Defaults`） | 設定の値（色の文字列・数値）から `AnnotationDraftDefaults` を組み立てる（`FromText`）。 解釈できない色は透明として扱う |
+| `AnnotationEditorAppearance` | Presenter（`.Presenter.Drawing`） | 本文の編集中の見た目（`CaretThicknessDip` / `CaretColor` / `SelectionColor`）。 UI は自分の描画 API の色へ変換して使う |
+
+- **`AnnotationDraftDefaultsFactory` は「設定の項目名」を知りません**（`AnnotationFrameBorderColor` のような設定の項目名はホストのもの）。 引数は値だけを受け取り、対応付け（枠線の太さ・角丸を枠線と吹き出しの両方へ使う等）だけを持ちます。
+- **`AnnotationEditorAppearance` の値は元画像ピクセルではありません**（画面の DIP。 倍率は UI が掛ける）。

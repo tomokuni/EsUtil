@@ -2,7 +2,6 @@ using EsUtil.Platform.Core.Geometry;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.System;
 using EsUtil.Feature.Annotation.Core.Text;
@@ -24,15 +23,6 @@ namespace EsUtil.Ui.WinUI3.Annotation;
 /// </remarks>
 public sealed partial class AnnotationLayerControl
 {
-    /// <summary>キャレットの太さ（DIP）。</summary>
-    private const double CaretThicknessDip = 1.6;
-
-    /// <summary>選択範囲の色（本文の上に薄く重ねる）。</summary>
-    private static readonly Windows.UI.Color s_textSelectionColor = Windows.UI.Color.FromArgb(72, 0, 120, 215);
-
-    /// <summary>キャレットの色。</summary>
-    private static readonly Windows.UI.Color s_caretColor = Windows.UI.Color.FromArgb(255, 20, 20, 20);
-
     /// <summary>編集の表示（選択範囲・キャレット・変換中の文字列）を並べる層。</summary>
     private readonly Canvas _editing = new() { IsHitTestVisible = false };
 
@@ -321,7 +311,7 @@ public sealed partial class AnnotationLayerControl
             {
                 Width = Math.Max(1, rect.Width * scale),
                 Height = Math.Max(1, rect.Height * scale),
-                Fill = new SolidColorBrush(s_textSelectionColor),
+                Fill = AnnotationTextMetrics.ToBrush(AnnotationEditorAppearance.SelectionColor),
             };
 
             Canvas.SetLeft(shape, (rect.X * scale) + offset.X);
@@ -344,9 +334,9 @@ public sealed partial class AnnotationLayerControl
 
         var caretShape = new Rectangle
         {
-            Width = CaretThicknessDip,
+            Width = AnnotationEditorAppearance.CaretThicknessDip,
             Height = Math.Max(1, caret.Height),
-            Fill = new SolidColorBrush(s_caretColor),
+            Fill = AnnotationTextMetrics.ToBrush(AnnotationEditorAppearance.CaretColor),
         };
 
         Canvas.SetLeft(caretShape, caretX);
