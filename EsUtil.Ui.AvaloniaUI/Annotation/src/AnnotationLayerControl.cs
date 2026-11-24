@@ -895,7 +895,12 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         var width = Math.Max(1, SourcePixelWidth);
         var height = Math.Max(1, SourcePixelHeight);
 
-        var bitmap = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
+        // DIP を 1:1 で描く（基準 DPI は共通基盤が単一所有する）
+        var bitmap = new RenderTargetBitmap(
+            new PixelSize(width, height),
+            new Vector(
+                EsUtil.Platform.Core.Coord.DpiScaler.StandardDpi,
+                EsUtil.Platform.Core.Coord.DpiScaler.StandardDpi));
         using (var context = bitmap.CreateDrawingContext())
         {
             if (Source is { } image)

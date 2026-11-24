@@ -16,7 +16,8 @@ namespace EsUtil.Ui.MewUI.Annotation;
 internal static class AnnotationTextMetrics
 {
     /// <summary>文字の実寸を測る基準の DPI（画面の倍率を掛けて使う）。</summary>
-    private const uint BaseDpi = 96;
+    /// <remarks>基準値は <see cref="EsUtil.Platform.Core.Coord.DpiScaler.StandardDpi"/> が単一所有する（独自に持たない）。</remarks>
+    private const uint BaseDpi = (uint)EsUtil.Platform.Core.Coord.DpiScaler.StandardDpi;
 
     /// <summary>行の高さとベースラインを測るための文字列。</summary>
     private const string LineMetricsText = "Ag";

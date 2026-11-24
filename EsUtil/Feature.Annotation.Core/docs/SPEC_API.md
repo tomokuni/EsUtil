@@ -29,6 +29,7 @@
 | 注釈のモデル（`AnnotationDocument` / `AnnotationItem` / `FrameAnnotation` / `BubbleAnnotation` / `BubbleTail` / `RichText` / `TextRun` / `AnnotationTextStyle` / `AnnotationAppearance`） | `public` | 任意 |
 | 描画計画（`AnnotationDrawPlan` / `AnnotationShapePlan` / `AnnotationTextLinePlan` / `AnnotationTextSegmentPlan` / `AnnotationKind`） | `public` | 任意 |
 | 判断・保存（`AnnotationHitTest` / `AnnotationJson` / `AnnotationDefaults` / `AnnotationLimits` / `BubbleEdge`） | `public` | 任意 |
+| UI との契約（`AnnotationPreviewGesture` / `AnnotationPreviewGestureEventArgs` / `AnnotationStyleEditorRequestedEventArgs` / `AnnotationAddMenuRequestedEventArgs` / `AnnotationPointerKind`） | `public` | UI 層 |
 | `AnnotationJsonContext` / 折り返し / JSON 変換器 | `internal` | 同一アセンブリとテスト |
 
 ## 2. `AnnotationCore`（クラス）
