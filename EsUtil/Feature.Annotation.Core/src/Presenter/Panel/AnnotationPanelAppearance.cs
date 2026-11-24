@@ -1,6 +1,7 @@
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Feature.Annotation.Presenter.Editor;
 using EsUtil.Feature.StyledText.Presenter.Formatting;
+using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Feature.Annotation.Presenter.Panel;
 
@@ -44,6 +45,15 @@ public sealed record AnnotationPanelAppearance(
     /// 書式バーの高さは 1 か所で固定し、置く位置の計算にも同じ値を使う。
     /// </remarks>
     public double FixedContentHeight { get; init; }
+
+    /// <summary>中身の実寸からパネルの大きさ（DIP）を求める。</summary>
+    /// <param name="measuredContent">測った中身の大きさ（DIP）。</param>
+    /// <returns>幅は左右の余白、高さは上下の余白と枠を足したパネルの大きさ。</returns>
+    /// <remarks>UI ごとに余白と枠を足す計算を書き写さない（片方だけ直すとパネルの大きさが UI 間でずれる）。</remarks>
+    public EsSize ResolvePanelSize(EsSize measuredContent)
+        => new(
+            measuredContent.Width + (Padding * 2) + (BorderThickness * 2),
+            ResolvePanelHeight(measuredContent.Height));
 
     /// <summary>中身の実寸からパネルの高さ（DIP）を求める。</summary>
     /// <param name="measuredContentHeight">測った中身の高さ（DIP）。</param>

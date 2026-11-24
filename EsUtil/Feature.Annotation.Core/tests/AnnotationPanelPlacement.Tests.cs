@@ -135,4 +135,36 @@ public sealed class AnnotationPanelPlacementTests
 
         Assert.Equal(visible, area);
     }
+
+    /// <summary>置ける領域の外にある位置は、パネル全体が入る位置へ寄せる（UI のウィンドウにも使う）。</summary>
+    [Fact]
+    internal void Clamp_パネル全体が入る位置へ寄せる()
+    {
+        var position = AnnotationPanelPlacement.Clamp(new EsPoint(1250, 900), 400, 40, s_available);
+
+        Assert.Equal(1280 - 400, position.X);
+        Assert.Equal(800 - 40, position.Y);
+    }
+
+    /// <summary>領域より大きいパネルは左上へ寄せる（右下へはみ出させない）。</summary>
+    [Fact]
+    internal void Clamp_領域より大きいパネルは左上へ寄せる()
+    {
+        var position = AnnotationPanelPlacement.Clamp(new EsPoint(100, 100), 2000, 1000, s_available);
+
+        Assert.Equal(s_available.X, position.X);
+        Assert.Equal(s_available.Y, position.Y);
+    }
+
+    /// <summary>書式バーの大きさは中身に余白と枠を足し、高さは固定値を使う（UI 間で高さを揃える）。</summary>
+    [Fact]
+    internal void ResolvePanelSize_中身に余白と枠を足し高さを固定する()
+    {
+        var appearance = AnnotationPanelAppearance.FormatBar;
+
+        var size = appearance.ResolvePanelSize(new EsSize(500, 12));
+
+        Assert.Equal(500 + (appearance.Padding * 2) + (appearance.BorderThickness * 2), size.Width);
+        Assert.Equal(appearance.FixedContentHeight + (appearance.VerticalPadding * 2) + (appearance.BorderThickness * 2), size.Height);
+    }
 }

@@ -574,10 +574,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         // それを使うと右端が毎回わずかに切れる（測定と配置が互いを参照して縮む）。
         _formatBar.View.Measure(Size.Infinity);
         var desired = _formatBar.View.DesiredSize;
-        var appearance = AnnotationPanelAppearance.FormatBar;
-        return new EsSize(
-            desired.Width + (appearance.Padding * 2) + (appearance.BorderThickness * 2),
-            appearance.ResolvePanelHeight(desired.Height));
+        return AnnotationPanelAppearance.FormatBar.ResolvePanelSize(new EsSize(desired.Width, desired.Height));
     }
 
     /// <summary>パネルの大きさ（DIP）を測る。</summary>

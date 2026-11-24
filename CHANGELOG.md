@@ -40,6 +40,7 @@
 
 ### 修正
 
+- **書式バーの大きさの計算を提示層の `AnnotationPanelAppearance.ResolvePanelSize` へ集約しました**（4 つの UI 版が余白と枠を足す計算を書き写していました）。 **MewUI / WinUI 3 でも高さの固定値が効く**ため、実測値の揺れでバーが注釈に重なることがなくなります（AvaloniaUI と同じ見た目）。
 - **注釈パネルを画面の作業領域へ収める計算を 4 つの UI 版で共有しました**。 同じ規則を各 UI が `Math.Clamp` で書き写していたため、`AnnotationPanelPlacement.Clamp` へ集約しました。
 - **WinUI 3 の注釈の色の整形とテンキー 5 の判定を単一所有へ揃えました**（色は `DrawingColorExtensions.ToHexText`、キーは名前付きの定数を使います）。
 - **4 つの UI 版で本文編集の挙動を揃えました**。 入力を受け付けない設定では編集を始めない・IME の変換候補の位置を変換中の文字列の末尾にする（MewUI / WinUI 3）・選択が変わったら外観パネルを閉じる（AvaloniaUI / MewUI）・IME の確定文字列の改行を揃える（WinUI 3）・キャレットの点滅の間隔を共有する（WinForms）。

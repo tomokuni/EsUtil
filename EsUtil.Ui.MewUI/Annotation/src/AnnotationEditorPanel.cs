@@ -538,12 +538,9 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             return measured;
         }
 
-        var appearance = AnnotationPanelAppearance.FormatBar;
         _formatBar.View.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         var size = _formatBar.View.DesiredSize;
-        return new EsSize(
-            size.Width + (appearance.Padding * 2) + (appearance.BorderThickness * 2),
-            size.Height + (appearance.VerticalPadding * 2) + (appearance.BorderThickness * 2));
+        return AnnotationPanelAppearance.FormatBar.ResolvePanelSize(new EsSize(size.Width, size.Height));
     }
 
     /// <summary>パネルの大きさ（DIP）を測る。</summary>
