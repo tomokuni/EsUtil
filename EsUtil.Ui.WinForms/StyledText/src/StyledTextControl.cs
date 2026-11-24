@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+using System.Text;
 using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.WinForms.StyledText;
@@ -395,7 +397,9 @@ public sealed class StyledTextControl : Control
     {
         get
         {
-            if (ResolveLineIndex() is not { } index || index.ResolveCaret(_edit.CaretIndex, MeasureText) is not { } caret)
+            // **変換中の文字列の分だけ進めたキャレットを使う**: 変換候補は変換中の文字の末尾へ出す
+            var caretIndex = TextCompositionPreview.ResolveCaret(_edit.CaretIndex, _preeditText);
+            if (ResolveLineIndex() is not { } index || index.ResolveCaret(caretIndex, MeasureText) is not { } caret)
             {
                 return default;
             }
@@ -781,4 +785,200 @@ public sealed class StyledTextControl : Control
         Keys.End => TextEditKey.End,
         _ => TextEditKey.None,
     };
+    /// <summary>IME の変換内容をウィンドウ メッセージから受け取る。</summary>
+    /// <param name="m">メッセージ。</param>
+    /// <remarks>
+    /// <b>変換中の文字列は本文へ入れない</b>: 表示にだけ入れ、確定した文字列だけを本文へ入れる
+    /// （変換を取り消しても本文が変わらない）。 入力欄を重ねないため、変換の窓口は本コントロールが持つ。
+    /// </remarks>
+    protected override void WndProc(ref Message m)
+    {
+        switch (m.Msg)
+        {
+            case WmImeStartComposition:
+                SetPreedit(string.Empty);
+                break;
+            case WmImeEndComposition:
+                SetPreedit(string.Empty);
+                break;
+            case WmImeComposition:
+                HandleImeComposition((int)m.LParam);
+                break;
+            default:
+                break;
+        }
+
+        base.WndProc(ref m);
+    }
+
+    /// <summary>IME の変換内容を本文へ反映する。</summary>
+    /// <param name="flags">変換の指定（<c>GCS_*</c> の組み合わせ）。</param>
+    private void HandleImeComposition(int flags)
+    {
+        if (!_isInputEnabled || !IsEditing)
+        {
+            return;
+        }
+
+        if ((flags & GcsResultStr) != 0)
+        {
+            var committed = ReadCompositionString(GcsResultStr);
+            SetPreedit(string.Empty);
+            if (committed.Length > 0)
+            {
+                ReplaceSelection(NormalizeInput(committed));
+                PositionCompositionWindow();
+                return;
+            }
+        }
+
+        if ((flags & GcsCompStr) != 0)
+        {
+            SetPreedit(ReadCompositionString(GcsCompStr));
+            PositionCompositionWindow();
+        }
+    }
+
+    /// <summary>変換候補のウィンドウをキャレットの位置へ置く。</summary>
+    /// <remarks>
+    /// <b>位置を指定しないと候補が画面の隅に出る</b>: 入力欄を重ねないため、キャレットの位置を IME へ
+    /// 伝えるのは本コントロールの責務である（変換中の文字の末尾へ出す）。
+    /// </remarks>
+    private void PositionCompositionWindow()
+    {
+        var context = ImmGetContext(Handle);
+        if (context == IntPtr.Zero)
+        {
+            return;
+        }
+
+        try
+        {
+            var caret = CaretRect;
+            var form = new CompositionForm
+            {
+                dwStyle = CfsPoint,
+                ptCurrentPos = new NativePoint
+                {
+                    X = (int)Math.Round(caret.X),
+                    Y = (int)Math.Round(caret.Bottom),
+                },
+            };
+
+            _ = ImmSetCompositionWindow(context, ref form);
+        }
+        finally
+        {
+            _ = ImmReleaseContext(Handle, context);
+        }
+    }
+
+    /// <summary>IME の変換文字列を読み取る。</summary>
+    /// <param name="kind">読み取る種類（<c>GCS_COMPSTR</c> / <c>GCS_RESULTSTR</c>）。</param>
+    /// <returns>読み取った文字列（取得できない場合は空）。</returns>
+    private string ReadCompositionString(int kind)
+    {
+        var context = ImmGetContext(Handle);
+        if (context == IntPtr.Zero)
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            var size = ImmGetCompositionStringW(context, kind, null, 0);
+            if (size <= 0)
+            {
+                return string.Empty;
+            }
+
+            var buffer = new byte[size];
+            var read = ImmGetCompositionStringW(context, kind, buffer, size);
+            return read <= 0 ? string.Empty : Encoding.Unicode.GetString(buffer, 0, read);
+        }
+        finally
+        {
+            _ = ImmReleaseContext(Handle, context);
+        }
+    }
+
+    /// <summary>IME の変換中の文字列を設定する（本文へは入れない）。</summary>
+    /// <param name="value">変換中の文字列。</param>
+    private void SetPreedit(string value) => PreeditText = value;
+
+    /// <summary>IME の変換開始（<c>WM_IME_STARTCOMPOSITION</c>）。</summary>
+    private const int WmImeStartComposition = 0x0105;
+
+    /// <summary>IME の変換終了（<c>WM_IME_ENDCOMPOSITION</c>）。</summary>
+    private const int WmImeEndComposition = 0x0106;
+
+    /// <summary>IME の変換内容（<c>WM_IME_COMPOSITION</c>）。</summary>
+    private const int WmImeComposition = 0x010F;
+
+    /// <summary>確定した文字列（<c>GCS_RESULTSTR</c>）。</summary>
+    private const int GcsResultStr = 0x0800;
+
+    /// <summary>変換中の文字列（<c>GCS_COMPSTR</c>）。</summary>
+    private const int GcsCompStr = 0x0008;
+
+    /// <summary>変換候補の位置を指定する（<c>CFS_POINT</c>）。</summary>
+    private const int CfsPoint = 0x0002;
+
+    /// <summary>キャレットの矩形を渡すための引数。</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct CompositionForm
+    {
+        /// <summary>指定の種類（<c>CFS_POINT</c> など）。</summary>
+        public int dwStyle;
+
+        /// <summary>候補の位置。</summary>
+        public NativePoint ptCurrentPos;
+
+        /// <summary>除外する矩形（使わない）。</summary>
+        public NativeRectangle rcArea;
+    }
+
+    /// <summary>整数の点。</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        /// <summary>X 座標。</summary>
+        public int X;
+
+        /// <summary>Y 座標。</summary>
+        public int Y;
+    }
+
+    /// <summary>整数の矩形。</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRectangle
+    {
+        /// <summary>左端。</summary>
+        public int Left;
+
+        /// <summary>上端。</summary>
+        public int Top;
+
+        /// <summary>右端。</summary>
+        public int Right;
+
+        /// <summary>下端。</summary>
+        public int Bottom;
+    }
+
+    [DllImport("imm32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern IntPtr ImmGetContext(IntPtr hWnd);
+
+    [DllImport("imm32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool ImmReleaseContext(IntPtr hWnd, IntPtr hIMC);
+
+    [DllImport("imm32.dll", CharSet = CharSet.Unicode, EntryPoint = "ImmGetCompositionStringW")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern int ImmGetCompositionStringW(IntPtr hIMC, int dwIndex, byte[]? lpBuf, int dwBufLen);
+
+    [DllImport("imm32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool ImmSetCompositionWindow(IntPtr hIMC, ref CompositionForm lpCompositionForm);
 }

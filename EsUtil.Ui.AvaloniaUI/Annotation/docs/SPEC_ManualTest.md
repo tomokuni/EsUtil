@@ -54,9 +54,9 @@ API は `AnnotationEditorPanel` の `Layer`（`AnnotationLayerControl`）を操�
 
 | # | 操作（API / GUI） | 期待結果 | 自動化 |
 | --- | --- | --- | --- |
-| 24 | API: `layer.CopyTextSelection()` / GUI: 文字を選んで Ctrl + C | 選択した文字が貼り付く | 不可（クリップボードは環境依存） |
-| 25 | API: `layer.CutTextSelection()` / GUI: 文字を選んで Ctrl + X | 選択した文字が消え、他へ貼り付くと戻る | 不可 |
-| 26 | API: `layer.PasteText()` / GUI: Ctrl + V | クリップボードの文字がキャレットの位置へ入る（改行は LF に揃う） | 不可 |
+| 24 | API: `editor.CopyAsync()` / GUI: 文字を選んで Ctrl + C | 選択した文字が貼り付く | 不可（クリップボードは環境依存） |
+| 25 | API: `editor.CutAsync()` / GUI: 文字を選んで Ctrl + X | 選択した文字が消え、他へ貼り付くと戻る | 不可 |
+| 26 | API: `editor.PasteAsync()` / GUI: Ctrl + V | クリップボードの文字がキャレットの位置へ入る（改行は LF に揃う） | 不可 |
 
 ## 5. 編集の終了と文書への反映
 

@@ -56,7 +56,7 @@ flowchart LR
 | 型 | 役割 |
 | --- | --- |
 | `AnnotationEditorPanel` | レイヤーと書式バーを重ね、本文編集の開始・終了でバーを出し入れする |
-| `AnnotationLayerControl` | 画像の表示・注釈の描画・入力の受付（`Input` / `TextEditing` の部分クラスへ分ける） |
+| `AnnotationLayerControl` | 画像・注釈の図形の描画・選択と移動の入力（`Input` の部分クラスへ分ける）。 **本文の入力・IME・キャレットは持たない**（`StyledTextControl` が単一所有する） |
 | `AnnotationPainter` | コアの描画計画を MewUI の描画 API へ写す |
 | `AnnotationTextMetrics` | 行の寸法とベースラインの解決（斜体でも行の高さを変えない） |
 | `AnnotationFormatBar` | 文字単位の書式（B / I / U / S・色・大きさ・フォント）の操作 |

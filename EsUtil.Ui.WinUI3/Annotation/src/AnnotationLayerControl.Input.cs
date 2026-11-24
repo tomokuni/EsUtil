@@ -37,17 +37,6 @@ public sealed partial class AnnotationLayerControl
     /// <summary>最後に押下した位置（ダブルクリックの判定）。</summary>
     private EsPoint _lastPressedPoint;
 
-    /// <summary>描画に使う文書を取得する（変換中の文字列を入れた複製を含む）。</summary>
-    /// <value>変換中でなければ本文の文書。 変換中は変換中の文字列を入れた描画用の複製。</value>
-    /// <remarks>
-    /// <b>変換中の文字列も本文として組む</b>: キャレットの位置へ重ねて描くと既存の文字と重なり、
-    /// 折り返しも動かないため読めません。 規則はコアの
-    /// <see cref="AnnotationCompositionPreview"/> が単一所有します（4 つの UI 版で同じ）。
-    /// </remarks>
-    private AnnotationDocument RenderDocument
-        => IsEditingText
-            ? AnnotationCompositionPreview.Apply(_session.Document, _session.SelectedId, _session.CaretIndex, _preeditText)
-            : _session.Document;
 
     /// <summary>再描画する（画像・注釈・選択枠を今の状態へ合わせる）。</summary>
     public void Redraw()
@@ -71,7 +60,8 @@ public sealed partial class AnnotationLayerControl
             _image.Visibility = Visibility.Collapsed;
         }
 
-        var plan = _presenter.ResolveDrawPlan(RenderDocument, MeasureText, _session.SelectedId);
+        // **変換中の文字列はここでは扱わない**: 編集中の本文は本文コントロールが描く
+        var plan = _presenter.ResolveDrawPlan(_session.Document, MeasureText, _session.SelectedId);
 
         // **編集中も本文を描く**: WinUI 3 は本文を別の入力欄で表示しないため、編集中に本文を
         // 描かないと文字が消える。 キャレットと選択範囲は後から重ねる。
@@ -83,8 +73,6 @@ public sealed partial class AnnotationLayerControl
             offset.Y,
             null,
             MeasureText);
-
-        DrawEditing();
 
         DrawSelection();
         Clip = new RectangleGeometry
@@ -168,7 +156,7 @@ public sealed partial class AnnotationLayerControl
             {
                 Width = outline.Width,
                 Height = outline.Height,
-                Stroke = AnnotationTextMetrics.ToBrush(s_marqueeAppearance.BorderColor),
+                Stroke = StyledText.RichTextMetrics.ToBrush(s_marqueeAppearance.BorderColor),
                 StrokeThickness = AnnotationEditingOutline.Thickness,
                 StrokeDashArray = [.. AnnotationEditingOutline.DashPattern],
             };
@@ -211,8 +199,8 @@ public sealed partial class AnnotationLayerControl
         {
             Width = size,
             Height = size,
-            Fill = AnnotationTextMetrics.ToBrush(plan.Appearance.HandleColor),
-            Stroke = AnnotationTextMetrics.ToBrush(plan.Appearance.HandleBorderColor),
+            Fill = StyledText.RichTextMetrics.ToBrush(plan.Appearance.HandleColor),
+            Stroke = StyledText.RichTextMetrics.ToBrush(plan.Appearance.HandleBorderColor),
             StrokeThickness = 1,
         };
 
@@ -277,16 +265,12 @@ public sealed partial class AnnotationLayerControl
 
         if (IsEditingText)
         {
-            // 編集中は本文の内側を押したらキャレットを移す（外側を押したら編集を終える）。
-            // 押したまま動かすと選択範囲を広げる（_isSelectingText）。 矢印キーだけでなく
-            // マウスのドラッグでも選択できるようにする。
-            if (Selected is BubbleAnnotation editingBubble && editingBubble.Bounds.Contains(source))
+            // 本文の編集中は、本文の外側の押下で編集を終える（内側の押下は本文コントロールが受ける）
+            if (Selected is BubbleAnnotation editingBubble
+                && editingBubble.Bounds.Contains(source)
+                && _externalTextId is not null)
             {
-                CapturePointerHere(e);
                 _session.CancelChange();
-                _isSelectingText = true;
-                SetCaretFromPoint(source, IsDown(VirtualKey.Shift));
-                Redraw();
                 e.Handled = true;
                 return;
             }
@@ -372,21 +356,6 @@ public sealed partial class AnnotationLayerControl
         // 押下中だけ動かす。
         var isPressed = point.Properties.IsLeftButtonPressed;
 
-        // 本文を押したまま動かしている間は、選択範囲を広げる（マウスでの選択）
-        if (_isSelectingText)
-        {
-            if (!isPressed)
-            {
-                _isSelectingText = false;
-                ReleasePointerCapture(e.Pointer);
-                Redraw();
-                return;
-            }
-
-            SetCaretFromPoint(source, extend: true);
-            Redraw();
-            return;
-        }
 
         if (_isDraggingTail)
         {
@@ -490,13 +459,9 @@ public sealed partial class AnnotationLayerControl
     {
         _ = sender;
 
+        // 本文の編集中は、キー入力を本文コントロールが受ける（Delete で注釈を消さない）
         if (IsEditingText)
         {
-            if (HandleTextEditingKey(e))
-            {
-                e.Handled = true;
-            }
-
             return;
         }
 

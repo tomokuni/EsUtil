@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using Aprillz.MewUI.Rendering;
+using EsUtil.Feature.StyledText;
 using EsUtil.Feature.Marquee;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
@@ -13,11 +14,7 @@ using EsUtil.Feature.Annotation.Core.Contract;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Geometry;
 using EsUtil.Feature.Annotation.Core.Interaction;
-using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Annotation.Presenter.Selection;
-using EsUtil.Feature.StyledText;
-using EsUtil.Feature.StyledText.Core.Text;
-using EsUtil.Feature.StyledText.Presenter.Editing;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
@@ -353,7 +350,7 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <returns>選択範囲へ適用した場合は <see langword="true"/>。 選択が無く以降の入力へ回した場合は <see langword="false"/>。</returns>
     /// <remarks>
     /// <b>選択が無ければ以降の入力へ回す</b>: 既存の文字は変えず、次に入力する文字へ適用する
-    /// （規則は <see cref="TextStyleEdit"/> と <see cref="TextEditState"/> が単一所有する）。
+    /// （規則は `TextStyleEdit` と `TextEditState` が単一所有する）。
     /// </remarks>
     public bool ApplyTextStyle(TextStyle style) => _session.ApplyTextStyle(style);
 
@@ -551,8 +548,6 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <summary>編集の状態と文書を所有する編集セッションを取得する（本文編集コントロールと共有する）。</summary>
     internal AnnotationEditSession Session => _session;
 
-    /// <summary>IME の変換中の文字列を取得する。</summary>
-    internal string PreeditText => _preeditText;
 
     /// <summary>画像の表示倍率（元画像ピクセル → DIP）を取得する。</summary>
     internal double ViewScale => ResolveImageTransform().Scale;
@@ -590,12 +585,6 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <summary>選択と本文の編集を解除する（注釈の外をクリックしたとき）。</summary>
     public void ClearSelection() => _session.Select(null);
 
-    /// <summary>描画に使う文書を取得する（変換中の文字列を入れた複製を含む）。</summary>
-    /// <value>変換中でなければ本文の文書。 変換中は変換中の文字列を入れた描画用の複製。</value>
-    private AnnotationDocument RenderDocument
-        => IsEditingText
-            ? AnnotationCompositionPreview.Apply(_session.Document, _session.SelectedId, _session.CaretIndex, _preeditText)
-            : _session.Document;
 
     /// <summary>編集セッションの変更をコントロールの状態とイベントへ反映する。</summary>
     /// <param name="change">変更の種類。</param>
@@ -605,10 +594,7 @@ public sealed partial class AnnotationLayerControl : Panel
         {
             if (!_session.IsEditingText)
             {
-                _preeditText = string.Empty;
-                _isSelectingText = false;
-                StopCaretBlink();
-                DetachInputWindow();
+                InvalidateVisual();
             }
             else
             {

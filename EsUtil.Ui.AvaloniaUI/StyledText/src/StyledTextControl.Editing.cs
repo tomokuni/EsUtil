@@ -334,8 +334,10 @@ public sealed partial class StyledTextControl
     {
         get
         {
+            // **変換中の文字列の分だけ進めたキャレットを使う**: 変換候補は変換中の文字の末尾へ出す
+            var caretIndex = TextCompositionPreview.ResolveCaret(_edit.CaretIndex, _preeditText);
             if (ResolveLineIndex() is not { } index
-                || index.ResolveCaret(_edit.CaretIndex, MeasureText) is not { } caret)
+                || index.ResolveCaret(caretIndex, MeasureText) is not { } caret)
             {
                 return default;
             }
@@ -382,79 +384,79 @@ public sealed partial class StyledTextControl
     {
         base.OnKeyDown(e);
 
-        if (!IsInputEnabled || !IsEditing || e.Handled)
+        if (!e.Handled && TryHandleEditingKey(e.Key, e.KeyModifiers))
         {
-            return;
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>キーを本文の編集操作へ適用する（ホストの別要素がフォーカスを持つ場合の転送口）。</summary>
+    /// <param name="key">キー。</param>
+    /// <param name="modifiers">修飾キー。</param>
+    /// <returns>処理した場合は <see langword="true"/>。</returns>
+    /// <remarks>
+    /// <b>割り当ては <see cref="TextEditKeyMap"/> が単一所有する</b>: 本コントロールとホストの
+    /// 書式バーが同じ規則で動くよう、キーの解釈を 2 か所に書かない。
+    /// </remarks>
+    internal bool TryHandleEditingKey(Key key, KeyModifiers modifiers)
+    {
+        if (!IsInputEnabled || !IsEditing)
+        {
+            return false;
         }
 
-        var request = TextEditKeyMap.Resolve(ToTextEditKey(e.Key), ToTextEditModifiers(e.KeyModifiers));
+        var request = TextEditKeyMap.Resolve(ToTextEditKey(key), ToTextEditModifiers(modifiers));
         switch (request.Command)
         {
             case TextEditCommand.ToggleBold:
-                e.Handled = TransformTextStyle(style => style with { IsBold = !style.IsBold });
-                return;
+                return TransformTextStyle(style => style with { IsBold = !style.IsBold });
             case TextEditCommand.ToggleItalic:
-                e.Handled = TransformTextStyle(style => style with { IsItalic = !style.IsItalic });
-                return;
+                return TransformTextStyle(style => style with { IsItalic = !style.IsItalic });
             case TextEditCommand.ToggleUnderline:
-                e.Handled = TransformTextStyle(style => style with { IsUnderline = !style.IsUnderline });
-                return;
+                return TransformTextStyle(style => style with { IsUnderline = !style.IsUnderline });
             case TextEditCommand.ToggleStrike:
-                e.Handled = TransformTextStyle(style => style with { IsStrike = !style.IsStrike });
-                return;
+                return TransformTextStyle(style => style with { IsStrike = !style.IsStrike });
             case TextEditCommand.EndEditing:
                 EndEditing();
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.InsertLineBreak:
-                e.Handled = ReplaceSelection("\n");
-                return;
+                return ReplaceSelection("\n");
             case TextEditCommand.DeleteBackward:
-                e.Handled = DeleteAtCaret(forward: false);
-                return;
+                return DeleteAtCaret(forward: false);
             case TextEditCommand.DeleteForward:
-                e.Handled = DeleteAtCaret(forward: true);
-                return;
+                return DeleteAtCaret(forward: true);
             case TextEditCommand.CaretLeft:
                 MoveCaretByCluster(-1, request.Extend);
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.CaretRight:
                 MoveCaretByCluster(1, request.Extend);
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.CaretUp:
                 MoveCaretByLine(-1, request.Extend);
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.CaretDown:
                 MoveCaretByLine(1, request.Extend);
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.CaretLineStart:
                 MoveCaretToLineEdge(first: true, request.Extend);
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.CaretLineEnd:
                 MoveCaretToLineEdge(first: false, request.Extend);
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.SelectAll:
                 SelectAll();
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.Copy:
                 _ = CopyAsync();
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.Cut:
                 _ = CutAsync();
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.Paste:
                 _ = PasteAsync();
-                e.Handled = true;
-                return;
+                return true;
+            default:
+                return false;
         }
     }
 

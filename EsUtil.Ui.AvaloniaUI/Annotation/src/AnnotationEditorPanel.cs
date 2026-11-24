@@ -104,6 +104,16 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         Children.Add(_textEditor);
 
         // 右クリックの外観フライアウト（位置はレイヤーが知らせる）
+        // **本文のキー操作とフォーカスは本文コントロールが持つ**: 書式バーは操作を転送するだけにする
+        _formatBar.ForwardEditingKey = _textEditor.TryHandleEditingKey;
+        _formatBar.RequestEditorFocus = () =>
+        {
+            if (_layer.IsEditingText)
+            {
+                _textEditor.Focus();
+            }
+        };
+
         _layer.StyleEditorRequested += (_, e) => ShowStylePanel(e.X, e.Y);
 
         // 編集の開始・終了でバーを出し入れする（本文の位置は編集のたびに変わりうる）
@@ -171,8 +181,6 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         _textEditor.TextChanged += (_, _) => OnTextEditorChanged();
         _textEditor.EditingChanged += (_, _) => OnTextEditorEditingChanged();
 
-        // 変換中の文字列は本文コントロールが描くため、変わったら渡し直す
-        _layer.PreeditChanged += (_, _) => SyncTextEditor();
     }
 
     /// <summary>本文の表示と編集を担うコントロールを取得する（テストと差し替えの入口）。</summary>
@@ -825,7 +833,6 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         // **変換中の文字列は本文コントロールが描く**: 本文へ混ぜて渡すと二重になるため、
         // 本文は文書の値のまま渡し、変換中の文字列は PreeditText で別に渡す。
         _textEditor.Text = bubble.Text;
-        _textEditor.PreeditText = _layer.PreeditText;
         _textEditor.RenderScale = _layer.ViewScale;
         _textEditor.IsVisible = true;
         _textEditor.RefreshCaretBlink();

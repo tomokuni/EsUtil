@@ -1,6 +1,4 @@
 using EsUtil.Platform.Core.Geometry;
-using Microsoft.UI.Text;
-using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
@@ -67,8 +65,8 @@ internal static class AnnotationPainter
         Func<string, TextStyle, EsSize> measureText)
     {
         ArgumentNullException.ThrowIfNull(measureText);
-        var stroke = AnnotationTextMetrics.ToBrush(shape.Border);
-        var fill = shape.HasFill ? AnnotationTextMetrics.ToBrush(shape.Fill) : null;
+        var stroke = StyledText.RichTextMetrics.ToBrush(shape.Border);
+        var fill = shape.HasFill ? StyledText.RichTextMetrics.ToBrush(shape.Fill) : null;
         var thickness = Math.Max(0.5, shape.BorderThickness * scale);
 
         // しっぽは本体より先に置く（本体の塗りと枠線が付け根を隠す）
@@ -110,71 +108,18 @@ internal static class AnnotationPainter
             return;
         }
 
+        // **文字の描画は本文コントロールと同じ実装を使う**: 注釈に写しを持つと、行の位置や
+        // 下線の位置が片方だけ直したときに食い違う。
         foreach (var line in shape.Lines)
         {
             foreach (var segment in line.Segments)
             {
-                var text = CreateText(segment, scale);
+                var text = StyledText.RichTextMetrics.CreateText(segment, scale);
                 Canvas.SetLeft(text, (segment.Bounds.X * scale) + offsetX);
-                Canvas.SetTop(text, (ResolveTextTop(line, segment, measureText) * scale) + offsetY);
+                Canvas.SetTop(text, (StyledText.RichTextMetrics.ResolveTextTop(line, segment) * scale) + offsetY);
                 canvas.Children.Add(text);
             }
         }
-    }
-
-    /// <summary>区間の文字を置く要素を作る。</summary>
-    /// <param name="segment">区間。</param>
-    /// <param name="scale">表示倍率。</param>
-    /// <returns>文字の要素。</returns>
-    private static TextBlock CreateText(TextSegmentPlan segment, double scale)
-    {
-        var style = segment.Style;
-        var text = new TextBlock
-        {
-            Text = segment.Text,
-            FontFamily = new FontFamily(style.FontFamily),
-            FontSize = style.FontSize * scale,
-            FontWeight = style.IsBold ? FontWeights.Bold : FontWeights.Normal,
-            FontStyle = style.IsItalic ? Windows.UI.Text.FontStyle.Italic : Windows.UI.Text.FontStyle.Normal,
-            Foreground = AnnotationTextMetrics.ToBrush(style.Color),
-            TextWrapping = TextWrapping.NoWrap,
-            IsHitTestVisible = false,
-        };
-
-        var decorations = Windows.UI.Text.TextDecorations.None;
-        if (style.IsUnderline)
-        {
-            decorations |= Windows.UI.Text.TextDecorations.Underline;
-        }
-
-        if (style.IsStrike)
-        {
-            decorations |= Windows.UI.Text.TextDecorations.Strikethrough;
-        }
-
-        if (decorations != Windows.UI.Text.TextDecorations.None)
-        {
-            text.TextDecorations = decorations;
-        }
-
-        return text;
-    }
-
-    /// <summary>行の中で区間の文字を置く上端（元画像ピクセル）を求める。</summary>
-    /// <param name="line">行。</param>
-    /// <param name="segment">区間。</param>
-    /// <param name="measureText">文字列と書式から実寸を測る関数。</param>
-    /// <returns>上端の Y 座標（行の上端からの中央寄せ）。</returns>
-    /// <remarks>
-    /// 区間ごとの実寸で縦位置を決めず、行の高さいっぱいの中央へ置く（斜体にしても行の間隔が変わらない）。
-    /// </remarks>
-    private static double ResolveTextTop(
-        TextLinePlan line,
-        TextSegmentPlan segment,
-        Func<string, TextStyle, EsSize> measureText)
-    {
-        var runHeight = measureText("Ag", segment.Style with { IsItalic = false }).Height;
-        return line.Bounds.Y + ((line.Bounds.Height - runHeight) / 2);
     }
 
     /// <summary>選択枠（枠とハンドル）を重ねる層へ並べる。</summary>
@@ -197,7 +142,7 @@ internal static class AnnotationPainter
 
         canvas.Children.Clear();
 
-        var border = AnnotationTextMetrics.ToBrush(borderColor);
+        var border = StyledText.RichTextMetrics.ToBrush(borderColor);
         foreach (var rect in borderRects)
         {
             var line = new Rectangle
@@ -216,8 +161,8 @@ internal static class AnnotationPainter
             return;
         }
 
-        var fill = AnnotationTextMetrics.ToBrush(handleColor);
-        var stroke = AnnotationTextMetrics.ToBrush(handleBorderColor);
+        var fill = StyledText.RichTextMetrics.ToBrush(handleColor);
+        var stroke = StyledText.RichTextMetrics.ToBrush(handleBorderColor);
         foreach (var rect in handleRects)
         {
             var handle = new Rectangle

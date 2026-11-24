@@ -90,7 +90,7 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
             Visibility = Visibility.Collapsed,
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
-            MeasureText = AnnotationTextRunMeasure.Measure,
+            MeasureText = StyledText.RichTextMetrics.Measure,
             EditState = _layer.Session.TextEditState,
         };
 
@@ -103,6 +103,19 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
             {
                 _formatBar.Refresh();
                 ShowFormatBar();
+
+                // **入力と IME は本文コントロールが持つ**: 編集を始めたらコントロールへフォーカスを移す
+                if (DispatcherQueue is { } queue)
+                {
+                    queue.TryEnqueue(() =>
+                    {
+                        if (_layer.IsEditingText)
+                        {
+                            _textEditor.Focus(FocusState.Programmatic);
+                        }
+                    });
+                }
+
                 return;
             }
 
@@ -136,8 +149,16 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
         // 選択範囲の変更は本文コントロールが描くため、変わったら渡し直す
         _layer.TextSelectionChanged += (_, _) => SyncTextEditor();
 
-        // 変換中の文字列は本文コントロールが描くため、変わったら渡し直す
-        _layer.PreeditChanged += (_, _) => SyncTextEditor();
+        // **確定した本文はセッション（文書）へ書き戻す**: 書き戻しの経路を 1 本にする
+        _textEditor.TextChanged += (_, _) => OnTextEditorChanged();
+        _textEditor.EditingChanged += (_, _) =>
+        {
+            if (_layer.IsEditingText && !_textEditor.IsEditing)
+            {
+                _layer.Session.EndTextEditing();
+            }
+        };
+
     }
 
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
@@ -738,6 +759,27 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
         return base.ArrangeOverride(finalSize);
     }
 
+    /// <summary>本文コントロールで本文が変わったら、編集セッション（文書）へ書き戻す。</summary>
+    /// <remarks>
+    /// <b>文書は編集セッションが単一所有する</b>: コントロールは入力の入口であり、確定した本文は
+    /// セッションへ渡す（元に戻す・保存・他の表示は文書だけを見る）。 同じ本文なら何もしない
+    /// （<see cref="SyncTextEditor"/> が文書から写した値を書き戻して往復しない）。
+    /// </remarks>
+    private void OnTextEditorChanged()
+    {
+        if (!_layer.IsEditingText || _layer.Session.Selected is not BubbleAnnotation bubble)
+        {
+            return;
+        }
+
+        if (bubble.Text.Equals(_textEditor.Text))
+        {
+            return;
+        }
+
+        _layer.Session.ApplySelectedRichText(_textEditor.Text);
+    }
+
     /// <summary>本文の表示を担うコントロールを取得する（テストと差し替えの入口）。</summary>
     internal StyledText.StyledTextControl TextEditor => _textEditor;
 
@@ -765,9 +807,12 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
         // **変換中の文字列は本文コントロールが描く**: 本文へ混ぜて渡すと二重になるため、
         // 本文は文書の値のまま渡し、変換中の文字列は PreeditText で別に渡す。
         _textEditor.Text = bubble.Text;
-        _textEditor.PreeditText = _layer.PreeditText;
         _textEditor.RenderScale = _layer.ViewScale;
         _textEditor.Visibility = Visibility.Visible;
+
+        // **編集中だけ入力を受ける**: 編集していない間はレイヤーが本文を描き、押下もレイヤーへ渡す
+        _textEditor.IsInputEnabled = _layer.IsEditingText;
+        _textEditor.IsHitTestVisible = _layer.IsEditingText;
         _textEditor.RefreshCaretBlink();
 
         // レイヤーは同じ本文を描かない（二重に描くと縁が太り、位置も二重に見える）
@@ -793,6 +838,8 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
 
         _syncedTextId = null;
         _textEditor.Visibility = Visibility.Collapsed;
+        _textEditor.IsInputEnabled = false;
+        _textEditor.IsHitTestVisible = false;
         _layer.ExternalTextId = null;
     }
 

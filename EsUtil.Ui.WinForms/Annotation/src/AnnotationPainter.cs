@@ -1,6 +1,5 @@
 using System.Drawing.Drawing2D;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Feature.StyledText;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 
@@ -97,12 +96,11 @@ internal static class AnnotationPainter
             return;
         }
 
+        // **文字の描画は本文コントロールと同じ実装を使う**: 注釈に写しを持つと、行のベースラインや
+        // 下線の位置が片方だけ直したときに食い違う。
         foreach (var line in shape.Lines)
         {
-            foreach (var segment in line.Segments)
-            {
-                DrawSegment(graphics, line, segment);
-            }
+            StyledText.RichTextPainter.DrawLine(graphics, line);
         }
     }
 
@@ -126,55 +124,6 @@ internal static class AnnotationPainter
         path.AddArc(bounds.X, bounds.Bottom - diameter, diameter, diameter, 90, 90);
         path.CloseFigure();
         return path;
-    }
-
-    /// <summary>本文の区間を描く。</summary>
-    /// <param name="graphics">描画先。</param>
-    /// <param name="line">区間が属する行。</param>
-    /// <param name="segment">区間。</param>
-    private static void DrawSegment(Graphics graphics, TextLinePlan line, TextSegmentPlan segment)
-    {
-        var style = segment.Style;
-        var runHeight = AnnotationTextMetrics.ResolveLineHeight(style);
-        var top = (float)(line.Bounds.Y + ((line.Bounds.Height - runHeight) / 2));
-
-        using var font = AnnotationTextMetrics.CreateFont(style with { IsUnderline = false, IsStrike = false });
-        using var brush = new SolidBrush(style.Color);
-        using var format = new StringFormat(StringFormat.GenericTypographic)
-        {
-            FormatFlags = StringFormatFlags.NoWrap,
-        };
-
-        graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-        graphics.DrawString(
-            segment.Text,
-            font,
-            brush,
-            new PointF((float)segment.Bounds.X, top),
-            format);
-
-        if (!style.IsUnderline && !style.IsStrike)
-        {
-            return;
-        }
-
-        // 下線・取り消し線は区間の送り幅に合わせて引く（フォントの装飾では行の高さに依らず位置が揃わない）
-        var width = (float)(segment.Bounds.Width > 0
-            ? segment.Bounds.Width
-            : AnnotationTextMetrics.Measure(segment.Text, style).Width);
-        var thickness = (float)Math.Max(1, style.FontSize * 0.06);
-        using var pen = new Pen(style.Color, thickness);
-        if (style.IsUnderline)
-        {
-            var y = top + (float)runHeight - (thickness * 2);
-            graphics.DrawLine(pen, (float)segment.Bounds.X, y, (float)segment.Bounds.X + width, y);
-        }
-
-        if (style.IsStrike)
-        {
-            var y = top + ((float)runHeight / 2);
-            graphics.DrawLine(pen, (float)segment.Bounds.X, y, (float)segment.Bounds.X + width, y);
-        }
     }
 
     /// <summary>選択枠（枠とハンドル）を描く。</summary>

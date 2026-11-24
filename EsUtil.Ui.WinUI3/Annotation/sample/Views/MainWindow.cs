@@ -44,7 +44,7 @@ public sealed class MainWindow : Window
         var layer = editor.Layer;
         layer.Log = logger;
         layer.LogPrefix = "[Annotation]";
-        layer.MeasureText = AnnotationTextRunMeasure.Measure;
+        layer.MeasureText = StyledText.RichTextMetrics.Measure;
 
         // 画像と文書を設定する（注釈の座標は元画像ピクセル）
         layer.Source = EsReadOnlyBitmap.FromBitmap(_image);

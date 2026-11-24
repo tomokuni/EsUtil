@@ -66,7 +66,6 @@ public sealed partial class AnnotationLayerControl : Grid
     private readonly Canvas _selection = new() { IsHitTestVisible = false };
 
     /// <summary>入力の受け口（IME）を置く層。 レイアウトへ影響させないため専用の Canvas に載せる。</summary>
-    private readonly Canvas _imeSinkHost = new() { IsHitTestVisible = false };
 
     /// <summary>押下中に固定した変換（null は固定していない）。 ドラッグ中に表示矩形が変わっても 1:1 で動かす。</summary>
     private AnnotationViewTransform? _frozenTransform;
@@ -110,8 +109,6 @@ public sealed partial class AnnotationLayerControl : Grid
         Children.Add(_image);
         Children.Add(_shapes);
         Children.Add(_selection);
-        Children.Add(_editing);
-        Children.Add(_imeSinkHost);
 
         PointerPressed += OnPointerPressed;
         PointerWheelChanged += OnPointerWheelChanged;
@@ -119,7 +116,6 @@ public sealed partial class AnnotationLayerControl : Grid
         PointerMoved += OnPointerMoved;
         PointerReleased += OnPointerReleased;
         KeyDown += OnKeyDown;
-        CharacterReceived += OnCharacterReceived;
 
         SizeChanged += (_, _) => Redraw();
         Loaded += (_, _) => Redraw();
@@ -240,8 +236,8 @@ public sealed partial class AnnotationLayerControl : Grid
 
     /// <summary>本文の実寸を測る関数を取得または設定する。</summary>
     /// <value>文字列と書式から実寸（元画像ピクセル）を返す関数。 既定は文字数からの見積もり。</value>
-    /// <remarks>実アプリは <see cref="AnnotationTextRunMeasure"/> を設定する（描くエンジンで測る）。</remarks>
-    public Func<string, TextStyle, EsSize> MeasureText { get; set; } = AnnotationTextMetrics.Measure;
+    /// <remarks>既定は XAML のテキスト エンジンで測る（<c>StyledText.RichTextMetrics.Measure</c>）。</remarks>
+    public Func<string, TextStyle, EsSize> MeasureText { get; set; } = StyledText.RichTextMetrics.Measure;
 
     /// <summary>文書・保存形式・ログの入口（本コントロールが使う唯一のファサード）を取得する。</summary>
     /// <value>本コントロールとロガーを共有するファサード。</value>
@@ -558,9 +554,6 @@ public sealed partial class AnnotationLayerControl : Grid
     /// <summary>編集の状態と文書を所有する編集セッションを取得する（本文編集コントロールと共有する）。</summary>
     internal AnnotationEditSession Session => _session;
 
-    /// <summary>IME の変換中の文字列を取得する。</summary>
-    internal string PreeditText => _preeditText;
-
     /// <summary>画像の表示倍率（元画像ピクセル → DIP）を取得する。</summary>
     internal double ViewScale => ResolveImageTransform().Scale;
 
@@ -662,11 +655,8 @@ public sealed partial class AnnotationLayerControl : Grid
         {
             if (!_session.IsEditingText)
             {
-                SetPreedit(string.Empty);
                 _isSelectingText = false;
-                _isComposing = false;
-                StopCaretBlink();
-                ReleaseImeSink();
+                Redraw();
             }
             else
             {

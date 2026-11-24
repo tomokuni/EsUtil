@@ -71,8 +71,8 @@ public sealed partial class AnnotationLayerControl
 
         if (_session.Document.Items.Length > 0)
         {
-            // **変換中の文字列も本文として描く**（規則は提示層の AnnotationCompositionPreview が単一所有する）
-            var plan = _presenter.ResolveDrawPlan(RenderDocument, AnnotationTextMetrics.Measure, _session.SelectedId);
+            // **変換中の文字列はここでは扱わない**: 編集中の本文は本文コントロールが描く
+            var plan = _presenter.ResolveDrawPlan(_session.Document, AnnotationTextMetrics.Measure, _session.SelectedId);
             _selectedBodyRectSource = Selected is BubbleAnnotation bubble
                 ? bubble.ResolveBodyRect()
                 : null;
@@ -96,11 +96,7 @@ public sealed partial class AnnotationLayerControl
                     AnnotationPainter.DrawShape(context, shape, layouts.Create);
                 }
 
-                // **本文を別のコントロールが描く場合はキャレットも描かない**（コントロールが描く）
-                if (ExternalTextId is null)
-                {
-                    DrawTextEditing(context, scale, layouts.Create);
-                }
+
             }
             finally
             {
@@ -254,7 +250,6 @@ public sealed partial class AnnotationLayerControl
         // 扱われて**注釈（枠線・吹き出し）が動かなくなる**。
         _isPreviewDragging = false;
         _isDraggingTail = false;
-        _isSelectingText = false;
 
         // 押下中の座標変換を固定する（ドラッグ中に倍率が変わってもカーソルと 1:1 で動かす）
         FreezeTransform();
@@ -268,15 +263,14 @@ public sealed partial class AnnotationLayerControl
 
         var source = ToSource(position);
 
+        // 本文の編集中は、本文の外側の押下で編集を終える（内側の押下は本文コントロールが受ける）
         if (IsEditingText)
         {
-            if (Selected is BubbleAnnotation editingBubble && editingBubble.Bounds.Contains(source))
+            if (Selected is BubbleAnnotation editingBubble
+                && editingBubble.Bounds.Contains(source)
+                && _externalTextId is not null)
             {
-                CapturePointer();
                 _session.CancelChange();
-                _isSelectingText = true;
-                SetCaretFromPoint(source, e.ShiftKey);
-                InvalidateVisual();
                 return;
             }
 
@@ -385,30 +379,6 @@ public sealed partial class AnnotationLayerControl
             return;
         }
 
-        // 本文を押したまま動かしている間は、選択範囲を広げる（マウスでの選択）。
-        // ダブルクリックで編集を始めた押下は `_isSelectingText` が立たないため、押下中に本文の内側へ
-        // 入った場合も選択を始める。
-        if (!_isSelectingText && IsEditingText && e.LeftButton && !_isDraggingTail && !_isPreviewDragging
-            && Selected is BubbleAnnotation editing && editing.Bounds.Contains(source))
-        {
-            _isSelectingText = true;
-        }
-
-        if (_isSelectingText)
-        {
-            // **ボタンを離した後の移動では選択を広げない**（解放を取りこぼすと、ホバーだけで
-            // 選択範囲が伸び続ける）
-            if (!e.LeftButton)
-            {
-                _isSelectingText = false;
-                ReleasePointer();
-                InvalidateVisual();
-                return;
-            }
-
-            SetCaretFromPoint(source, extend: true);
-            return;
-        }
 
         if (_isDraggingTail)
         {
@@ -489,13 +459,6 @@ public sealed partial class AnnotationLayerControl
         ReleaseTransform();
         _core.Log.LogPointerReleased(ToSource(e.GetPosition(this)), _session.SelectedId is not null);
 
-        if (_isSelectingText)
-        {
-            _isSelectingText = false;
-            ReleasePointer();
-            InvalidateVisual();
-            return;
-        }
 
         if (_isDraggingTail)
         {
@@ -563,9 +526,9 @@ public sealed partial class AnnotationLayerControl
     {
         base.OnKeyDown(e);
 
-        if (IsEditingText && HandleTextEditingKey(e))
+        // 本文の編集中は、キー入力を本文コントロールが受ける（Delete で注釈を消さない）
+        if (IsEditingText)
         {
-            e.Handled = true;
             return;
         }
 

@@ -498,9 +498,6 @@ public sealed partial class AnnotationLayerControl : Control
     /// <summary>編集の状態と文書を所有する編集セッションを取得する（本文編集コントロールと共有する）。</summary>
     internal AnnotationEditSession Session => _session;
 
-    /// <summary>IME の変換中の文字列を取得する。</summary>
-    internal string PreeditText => _preeditText;
-
     /// <summary>画像の表示倍率（元画像ピクセル → DIP）を取得する。</summary>
     internal double ViewScale => ResolveImageTransform().Scale;
 
@@ -560,8 +557,7 @@ public sealed partial class AnnotationLayerControl : Control
         {
             if (!_session.IsEditingText)
             {
-                SetPreedit(string.Empty);
-                StopCaretBlink();
+                Invalidate();
             }
             else
             {

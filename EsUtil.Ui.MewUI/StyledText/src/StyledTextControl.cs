@@ -15,7 +15,7 @@ namespace EsUtil.Ui.MewUI.StyledText;
 /// キーの割り当ては <see cref="TextEditKeyMap"/>、折り返しと行の配置は <see cref="TextLayout"/> が決める。<br/>
 /// <b>座標は元画像ピクセル</b>である: <see cref="RenderScale"/> で画面の DIP へ写す。
 /// </remarks>
-public sealed class StyledTextControl : Panel
+public sealed partial class StyledTextControl : Panel
 {
     /// <summary>キャレットの点滅を進めるタイマー（編集中だけ動かす）。</summary>
     private readonly DispatcherTimer _caretTimer;

@@ -17,6 +17,8 @@
   <ItemGroup>
     <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
     <InternalsVisibleTo Include="EsUtil.Ui.WinForms.StyledText.Tests" />
+    <!-- 注釈は本文の描画を本アセンブリの RichTextPainter へ委ねる（写しを持つと見た目が食い違う） -->
+    <InternalsVisibleTo Include="EsUtil.Ui.WinForms.Annotation" />
   </ItemGroup>
 
   <ItemGroup>

@@ -25,6 +25,9 @@
   <ItemGroup>
     <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
     <InternalsVisibleTo Include="EsUtil.Ui.WinUI3.StyledText.Tests" />
+    <!-- 注釈は本文の描画と実寸を本アセンブリの RichTextMetrics へ委ねる（写しを持つと見た目が食い違う） -->
+    <InternalsVisibleTo Include="EsUtil.Ui.WinUI3.Annotation" />
+    <InternalsVisibleTo Include="EsUtil.Ui.WinUI3.Annotation.Tests" />
   </ItemGroup>
 
   <ItemGroup>

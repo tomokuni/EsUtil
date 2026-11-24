@@ -14,9 +14,6 @@ namespace EsUtil.Ui.MewUI.Annotation;
 /// </remarks>
 internal static class AnnotationPainter
 {
-    /// <summary>下線・取り消し線の太さの比率（文字の大きさに対する比）。</summary>
-    private const double DecorationThicknessRatio = 0.06;
-
     /// <summary>注釈 1 件を描く（元画像ピクセルの座標系で呼ぶ）。</summary>
     /// <param name="context">描画先。</param>
     /// <param name="shape">描画計画。</param>
@@ -46,19 +43,11 @@ internal static class AnnotationPainter
             context.DrawRoundedRectangle(rect, shape.CornerRadius, shape.CornerRadius, border, shape.BorderThickness);
         }
 
+        // **文字の描画は本文コントロールと同じ実装を使う**: 注釈に写しを持つと、行のベースラインや
+        // 下線の位置が片方だけ直したときに食い違う。
         foreach (var line in shape.Lines)
         {
-            // 行のベースラインは 1 本に決める（区間ごとに縦位置を決めると、斜体で実寸が変わったときに
-            // 文字が上下へずれる）
-            var baseline = ResolveLineBaseline(line);
-
-            foreach (var segment in line.Segments)
-            {
-                var layout = layouts(segment.Text, segment.Style);
-                var top = baseline - layout.Lines[0].Baseline;
-                DrawText(context, layout, segment.Bounds.X, top, segment.Style.Color);
-                DrawDecorations(context, segment, layout, top);
-            }
+            StyledText.RichTextPainter.DrawLine(context, line, layouts);
         }
     }
 
@@ -66,33 +55,6 @@ internal static class AnnotationPainter
     /// <param name="color">色。</param>
     /// <returns>MewUI の色。</returns>
     internal static Color ToColor(DrawingColor color) => AnnotationTextMetrics.ToMewColor(color);
-
-    /// <summary>行のベースライン（元画像ピクセル）を求める。</summary>
-    /// <param name="line">行の描画計画。</param>
-    /// <returns>ベースラインの Y 座標。</returns>
-    /// <remarks>
-    /// <b>決め方はコアが単一所有する</b>（<see cref="TextLineLayout.ResolveBaseline"/>）:
-    /// キャレット・選択範囲も同じベースラインを使うため、ここで独自に計算してはいけない。
-    /// </remarks>
-    private static double ResolveLineBaseline(TextLinePlan line)
-        => TextLineLayout.ResolveBaseline(line, AnnotationTextMetrics.MeasureLineMetrics);
-
-    /// <summary>文字列を描画する。</summary>
-    /// <param name="context">描画先。</param>
-    /// <param name="layout">レイアウト。</param>
-    /// <param name="left">左端（元画像ピクセル）。</param>
-    /// <param name="top">上端（元画像ピクセル）。</param>
-    /// <param name="color">文字色。</param>
-    private static void DrawText(IGraphicsContext context, ITextLayout layout, double left, double top, DrawingColor color)
-    {
-        if (layout.MeasuredSize.Width <= 0)
-        {
-            return;
-        }
-
-        var options = new TextDrawOptions { Foreground = AnnotationTextMetrics.ToMewColor(color) };
-        context.Text.Draw(layout, new Point(left, top), in options);
-    }
 
     /// <summary>しっぽ（三角形）を描く。</summary>
     /// <param name="context">描画先。</param>
@@ -124,38 +86,6 @@ internal static class AnnotationPainter
         if (shape.BorderThickness > 0)
         {
             context.DrawPath(path, border, shape.BorderThickness);
-        }
-    }
-
-    /// <summary>下線・取り消し線を描く。</summary>
-    /// <param name="context">描画先。</param>
-    /// <param name="segment">区間。</param>
-    /// <param name="layout">レイアウト（文字の実寸を取るため）。</param>
-    /// <param name="top">文字の上端（ベースラインから求めた描画位置）。</param>
-    private static void DrawDecorations(
-        IGraphicsContext context, TextSegmentPlan segment, ITextLayout layout, double top)
-    {
-        if (!segment.Style.IsUnderline && !segment.Style.IsStrike)
-        {
-            return;
-        }
-
-        var thickness = Math.Max(1.0, segment.Style.FontSize * DecorationThicknessRatio);
-        var color = AnnotationTextMetrics.ToMewColor(segment.Style.Color);
-        var left = segment.Bounds.X;
-        var right = segment.Bounds.X + layout.MeasuredSize.Width;
-        var height = layout.MeasuredSize.Height;
-
-        if (segment.Style.IsUnderline)
-        {
-            var y = top + height - (thickness * 2);
-            context.DrawLine(new Point(left, y), new Point(right, y), color, thickness);
-        }
-
-        if (segment.Style.IsStrike)
-        {
-            var y = top + (height / 2);
-            context.DrawLine(new Point(left, y), new Point(right, y), color, thickness);
         }
     }
 }

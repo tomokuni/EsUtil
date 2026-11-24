@@ -261,6 +261,40 @@ public class StyledTextControlTests
         }
     }
 
+    /// <summary>変換中の文字列があると、変換候補の位置が変換中の文字の末尾になることを検証する。</summary>
+    /// <remarks>
+    /// 候補の位置はキャレットの矩形から決まる。 変換中の文字列を入れない本文で位置を求めると、
+    /// キャレットの位置が本文の範囲の外になって候補が画面の隅へ飛ぶ（入力中の文字の近くに出ない）。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void CaretRect_変換中は変換中の文字の末尾になる()
+    {
+        var editor = CreateEditor("あい");
+        var window = new Window { Content = editor };
+
+        window.Show();
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            editor.BeginEditing();
+            editor.Select(2, 0);
+            var before = editor.CaretRect;
+            Assert.True(before.Width > 0, $"before={before}");
+
+            // 本文の末尾で変換を始める（変換中の文字列の位置は本文の長さを超える）
+            editor.PreeditText = "かき";
+            var after = editor.CaretRect;
+
+            // 変換中の文字（2 文字）の分だけ右へ進む
+            Assert.True(after.X > before.X, $"before={before} after={after}");
+            Assert.InRange(after.Y, before.Y - 1, before.Y + 1);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     /// <summary>本文と大きさを持つコントロールを作る。</summary>
     /// <param name="text">本文。</param>
     /// <returns>コントロール。</returns>

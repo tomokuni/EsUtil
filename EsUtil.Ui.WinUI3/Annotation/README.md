@@ -92,7 +92,7 @@ var editor = new AnnotationEditorPanel();
 var layer = editor.Layer;
 
 // 実寸は描くエンジンで測る（UI スレッドで設定する）
-layer.MeasureText = AnnotationTextRunMeasure.Measure;
+layer.MeasureText = StyledText.RichTextMetrics.Measure;
 
 layer.Source = image;           // EsReadOnlyBitmap
 layer.SourcePixelWidth = 1920;
@@ -117,7 +117,7 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 - **表示する画像はコアの具象型（`EsReadOnlyBitmap`）で渡します**（`Source`）。
 - **元画像の画素数を `SourcePixelWidth` / `SourcePixelHeight` で渡します**。
-- **本文の実寸は `MeasureText` に渡す関数で測ります**（実アプリは `AnnotationTextRunMeasure.Measure`。 描くエンジンの計測を使う）。
+- **本文の実寸は `MeasureText` に渡す関数で測ります**（`StyledText.RichTextMetrics.Measure` を使う。 描くエンジンの計測に揃える）。
 - **保存用の合成は `RenderComposedImage()`** が元画像ピクセルの 1:1 で作ります。
 
 ---

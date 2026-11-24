@@ -310,11 +310,21 @@ internal sealed class AnnotationFormatBar : Border
             return;
         }
 
-        if (_layer.TryHandleEditingKey(e.Key, e.KeyModifiers))
+        // **本文のキー操作は本文コントロールが単一所有する**: バーがフォーカスを持った状態でも、
+        // 矢印・選択・書式の切り替えを同じ規則で適用する。
+        if (ForwardEditingKey?.Invoke(e.Key, e.KeyModifiers) == true)
         {
             e.Handled = true;
         }
     }
+
+    /// <summary>本文のキー操作を本文コントロールへ転送する処理を取得または設定する。</summary>
+    /// <value>転送する処理。 設定しない場合は転送しない。</value>
+    internal Func<Key, KeyModifiers, bool>? ForwardEditingKey { get; set; }
+
+    /// <summary>本文コントロールへフォーカスを戻す処理を取得または設定する。</summary>
+    /// <value>フォーカスを戻す処理。 設定しない場合は何もしない。</value>
+    internal Action? RequestEditorFocus { get; set; }
 
     /// <summary>バーの中で Enter が押されたら、大きさと色を今の値で適用する。</summary>
     /// <param name="sender">送信元。</param>
@@ -412,7 +422,7 @@ internal sealed class AnnotationFormatBar : Border
         Refresh();
 
         // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする
-        _layer.Focus();
+        RequestEditorFocus?.Invoke();
     }
 
     /// <summary>装飾の切り替えボタンを作る。</summary>

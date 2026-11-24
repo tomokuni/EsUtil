@@ -13,7 +13,7 @@ namespace EsUtil.Ui.WinUI3.StyledText;
 /// <b>UI スレッドから呼ぶ</b>: 測定はツリー外の <see cref="TextBlock"/> を作るため、XAML の UI スレッドで行う。<br/>
 /// <b>行の高さは斜体で変えない</b>: 行の高さは斜体を外した書式で測る（UI 版で同じ規則）。
 /// </remarks>
-internal static class RichTextMetrics
+public static class RichTextMetrics
 {
     /// <summary>行の高さを測るための文字列。</summary>
     private const string LineMetricsText = "Ag";
@@ -25,7 +25,11 @@ internal static class RichTextMetrics
     /// <param name="text">文字列。</param>
     /// <param name="style">書式。</param>
     /// <returns>実寸（元画像ピクセル）。 高さは斜体を外した書式で測る。</returns>
-    internal static EsSize Measure(string text, TextStyle style)
+    /// <remarks>
+    /// <b>ホストが自分のコントロールの <c>MeasureText</c> へ渡せる</b>: 注釈などのホストは、本文と同じ
+    /// テキスト エンジンで測る必要がある（測り方が違うと折り返しと文字の位置が食い違う）。
+    /// </remarks>
+    public static EsSize Measure(string text, TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(style);

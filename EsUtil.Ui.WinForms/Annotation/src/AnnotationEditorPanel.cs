@@ -70,6 +70,15 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
             {
                 _formatBar.RefreshState();
                 ShowFormatBar();
+
+                // **入力とフォーカスは本文コントロールが持つ**: 編集を始めたらコントロールへ移す
+                BeginInvoke(() =>
+                {
+                    if (_layer.IsEditingText)
+                    {
+                        _textEditor.Focus();
+                    }
+                });
                 return;
             }
 
@@ -100,6 +109,17 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
 
         _layer.StyleEditorRequested += (_, e) => ShowStylePanel(e.X, e.Y);
 
+        // **入力・編集・IME は本文コントロールが単一所有する**: 確定した本文をセッションへ書き戻し、
+        // コントロールが編集を終えたらセッションも終える（書き戻しの経路を 1 本にする）。
+        _textEditor.RichTextChanged += (_, _) => OnTextEditorChanged();
+        _textEditor.EditingChanged += (_, _) =>
+        {
+            if (_layer.IsEditingText && !_textEditor.IsEditing)
+            {
+                _layer.Session.EndTextEditing();
+            }
+        };
+
         // 文書・選択・編集の状態が変わったら、重ねた本文コントロールの内容と位置を追随させる
         _layer.DocumentChanged += (_, _) => SyncTextEditor();
         _layer.SelectionChanged += (_, _) => SyncTextEditor();
@@ -108,8 +128,6 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         // 選択範囲の変更は本文コントロールが描くため、変わったら渡し直す
         _layer.TextSelectionChanged += (_, _) => SyncTextEditor();
 
-        // 変換中の文字列は本文コントロールが描くため、変わったら渡し直す
-        _layer.PreeditChanged += (_, _) => SyncTextEditor();
     }
 
     /// <summary>本文の表示を担うコントロールを取得する（テストと差し替えの入口）。</summary>
@@ -128,6 +146,7 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         if (_layer.Session.Selected is not BubbleAnnotation bubble)
         {
             _textEditor.Visible = false;
+            _textEditor.IsInputEnabled = false;
             _layer.ExternalTextId = null;
             return;
         }
@@ -135,13 +154,37 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         // **変換中の文字列は本文コントロールが描く**: 本文へ混ぜて渡すと二重になるため、
         // 本文は文書の値のまま渡し、変換中の文字列は PreeditText で別に渡す。
         _textEditor.RichTextValue = bubble.Text;
-        _textEditor.PreeditText = _layer.PreeditText;
         _textEditor.RenderScale = _layer.ViewScale;
+
+        // **編集中だけ入力を受ける**: 編集していない間はレイヤーが本文を描き、押下もレイヤーへ渡す
+        _textEditor.IsInputEnabled = _layer.IsEditingText;
+        _textEditor.TabStop = _layer.IsEditingText;
         _textEditor.Bounds = Rectangle.Round(_layer.GetClientRect(bubble.ResolveBodyRect()));
         _textEditor.Visible = true;
 
         // レイヤーは同じ本文を描かない（二重に描くと縁が太り、位置も二重に見える）
         _layer.ExternalTextId = bubble.Id;
+    }
+
+    /// <summary>本文コントロールで本文が変わったら、編集セッション（文書）へ書き戻す。</summary>
+    /// <remarks>
+    /// <b>文書は編集セッションが単一所有する</b>: コントロールは入力の入口であり、確定した本文は
+    /// セッションへ渡す（元に戻す・保存・他の表示は文書だけを見る）。 同じ本文なら何もしない
+    /// （<see cref="SyncTextEditor"/> が文書から写した値を書き戻して往復しない）。
+    /// </remarks>
+    private void OnTextEditorChanged()
+    {
+        if (!_layer.IsEditingText || _layer.Session.Selected is not BubbleAnnotation bubble)
+        {
+            return;
+        }
+
+        if (bubble.Text.Equals(_textEditor.RichTextValue))
+        {
+            return;
+        }
+
+        _layer.Session.ApplySelectedRichText(_textEditor.RichTextValue);
     }
 
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>

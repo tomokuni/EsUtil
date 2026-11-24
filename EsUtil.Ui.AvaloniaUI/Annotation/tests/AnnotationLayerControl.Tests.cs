@@ -18,28 +18,6 @@ namespace EsUtil.Ui.AvaloniaUI.Annotation.Tests;
 [Collection("AvaloniaHeadless")]
 public class AnnotationLayerControlTests
 {
-    /// <summary>変換中の文字列があると、変換候補の位置が変換中の文字の末尾になることを検証する。</summary>
-    /// <remarks>
-    /// 候補の位置はキャレットの矩形から決まる。 変換中の文字列を本文へ入れた表示を基準にしないと、
-    /// キャレットの位置が本文の範囲の外になって候補が画面の隅へ飛ぶ（入力中の文字の近くに出ない）。
-    /// </remarks>
-    [AvaloniaFact]
-    internal void 変換中の文字列があると候補の位置が変換中の末尾になる()
-    {
-        var layer = CreateLayer(400, 300);
-        layer.AddBubble(new EsRect(10, 10, 240, 80), "あい");
-        Assert.True(layer.BeginTextEditing());
-        layer.Session.MoveCaret(2, extend: false);
-        var before = layer.GetCaretRectForInput();
-
-        // 本文の末尾で変換を始める（変換中の文字列の位置は本文の長さを超える）
-        layer.SetPreeditTextForInput("かき");
-        var after = layer.GetCaretRectForInput();
-
-        // 変換中の文字（2 文字）の分だけ右へ進み、行は変わらない
-        Assert.True(after.X > before.X + 1, $"before={before} after={after}");
-        Assert.InRange(after.Y, before.Y - 1, before.Y + 1);
-    }
 
     /// <summary>画像と注釈を元画像ピクセルの 1:1 で合成できることを検証する。</summary>
     /// <remarks>

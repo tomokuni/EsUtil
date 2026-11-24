@@ -39,16 +39,4 @@ public class AnnotationPaletteTests
         Assert.True(AnnotationFonts.All.Count > TextDefaults.PreferredFontFamilies.Count);
     }
 
-    /// <summary>XAML を使えない環境では文字数と文字サイズから実寸を近似する。</summary>
-    [Fact]
-    internal void 実寸は文字数に比例する()
-    {
-        var style = TextDefaults.DefaultStyle with { FontSize = 20 };
-
-        var shortSize = AnnotationTextMetrics.Measure("あ", style);
-        var longSize = AnnotationTextMetrics.Measure("ああああ", style);
-
-        Assert.True(longSize.Width > shortSize.Width);
-        Assert.True(shortSize.Height >= style.FontSize);
-    }
 }

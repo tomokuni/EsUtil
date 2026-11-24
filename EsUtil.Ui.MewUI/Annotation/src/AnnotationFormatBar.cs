@@ -365,8 +365,12 @@ public sealed class AnnotationFormatBar : ContentControl
         Refresh();
 
         // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする
-        _layer.Focus();
+        RequestEditorFocus?.Invoke();
     }
+
+    /// <summary>本文コントロールへフォーカスを戻す処理を取得または設定する。</summary>
+    /// <value>フォーカスを戻す処理。 設定しない場合は何もしない。</value>
+    internal Action? RequestEditorFocus { get; set; }
 
     /// <summary>装飾を切り替える（適用先の先頭の書式で切り替えの向きを決める）。</summary>
     /// <param name="read">属性を読む関数。</param>

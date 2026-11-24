@@ -49,7 +49,6 @@ public sealed partial class AnnotationLayerControl
         AnnotationPainter.Draw(graphics, plan, scale, offset.X, offset.Y, ExternalTextId);
 
         DrawSelection(graphics);
-        DrawEditing(graphics);
     }
 
     /// <summary>選択枠としっぽのハンドルを描く。</summary>
@@ -184,14 +183,14 @@ public sealed partial class AnnotationLayerControl
         _lastPressedPoint = new Point((int)position.X, (int)position.Y);
         _lastPointerSource = source;
 
+        // 本文の編集中は、本文の外側の押下で編集を終える（内側の押下は本文コントロールが受ける）
         if (IsEditingText)
         {
-            // 編集中は本文の内側を押したらキャレットを移す（外側を押したら編集を終える）
-            if (Selected is BubbleAnnotation editingBubble && editingBubble.Bounds.Contains(source))
+            if (Selected is BubbleAnnotation editingBubble
+                && editingBubble.Bounds.Contains(source)
+                && _externalTextId is not null)
             {
-                Capture = true;
                 _session.CancelChange();
-                SetCaretFromPoint(source, (ModifierKeys & Keys.Shift) == Keys.Shift);
                 return;
             }
 
@@ -366,14 +365,9 @@ public sealed partial class AnnotationLayerControl
         ArgumentNullException.ThrowIfNull(e);
         base.OnKeyDown(e);
 
+        // 本文の編集中は、キー入力を本文コントロールが受ける（Delete で注釈を消さない）
         if (IsEditingText)
         {
-            if (HandleTextEditingKey(e))
-            {
-                e.Handled = true;
-                e.SuppressKeyPress = true;
-            }
-
             return;
         }
 
@@ -410,26 +404,6 @@ public sealed partial class AnnotationLayerControl
         }
     }
 
-    /// <summary>文字入力を受け取る（IME の変換中は受け取らない）。</summary>
-    /// <param name="e">キーの引数。</param>
-    protected override void OnKeyPress(KeyPressEventArgs e)
-    {
-        ArgumentNullException.ThrowIfNull(e);
-        base.OnKeyPress(e);
-
-        if (!IsEditingText || _isComposing || e.Handled)
-        {
-            return;
-        }
-
-        if (char.IsControl(e.KeyChar))
-        {
-            return;
-        }
-
-        ReplaceSelection(e.KeyChar.ToString());
-        e.Handled = true;
-    }
 
     /// <summary>キーをコアのキーへ写す（nudge に使う 4 方向だけ）。</summary>
     /// <param name="key">WinForms のキー。</param>

@@ -6,9 +6,8 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 
 - [1. `AnnotationEditorPanel`（クラス）](#1-annotationeditorpanelクラス)
 - [2. `AnnotationLayerControl`（クラス）](#2-annotationlayercontrolクラス)
-- [3. `AnnotationTextRunMeasure`（静的クラス）](#3-annotationtextrunmeasure静的クラス)
-- [4. `AnnotationPalette`（静的クラス）](#4-annotationpalette静的クラス)
-- [5. `AnnotationFonts`（静的クラス）](#5-annotationfonts静的クラス)
+- [3. `AnnotationPalette`（静的クラス）](#3-annotationpalette静的クラス)
+- [4. `AnnotationFonts`（静的クラス）](#4-annotationfonts静的クラス)
 
 ## 1. `AnnotationEditorPanel`（クラス）
 
@@ -30,7 +29,7 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 
 | メンバー | 説明 |
 | --- | --- |
-| `MeasureText` | 本文の実寸を測る関数（既定は文字数からの見積もり。 実アプリは `AnnotationTextRunMeasure.Measure`） |
+| `MeasureText` | 本文の実寸を測る関数（既定は `StyledText.RichTextMetrics.Measure`。 本文コントロールと同じエンジンで測る） |
 | `Source` / `SourcePixelWidth` / `SourcePixelHeight` | 表示する画像と元画像の画素数 |
 | `Document` / `SelectedId` / `Selected` | 注釈の文書と選択 |
 | `DraftDefaults` | 新規作成時の外観・書式 |
@@ -53,15 +52,7 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 
 **元に戻す・やり直す**: 変更前の文書をそのまま積みます（`AnnotationHistory` が単一所有。 文書は不変）。 ドラッグは押下から離すまでで 1 手です。 本文の編集は入力のたびに 1 手として積みます。
 
-## 3. `AnnotationTextRunMeasure`（静的クラス）
-
-WinUI 3 のテキスト エンジン（`TextBlock`）で本文の実寸を測ります。 ホストが `AnnotationLayerControl.MeasureText` へ設定します（UI スレッドから呼ばれます）。
-
-| メンバー | 説明 |
-| --- | --- |
-| `Measure(text, style)` | 実寸（元画像ピクセル）。 高さは斜体を外した書式で測る |
-
-## 4. `AnnotationPalette`（静的クラス）
+## 3. `AnnotationPalette`（静的クラス）
 
 代表色（40 色）と、色選択コントロールへ渡すタブを用意します。
 
@@ -71,7 +62,7 @@ WinUI 3 のテキスト エンジン（`TextBlock`）で本文の実寸を測り
 | `CreatePaletteTab(columns)` | 書式バー用の「代表色」のタブ（ColorPicker は別のフラグで出す） |
 | `Configure(selector, ...)` / `ConfigureAll(selector, ...)` | 出すタブの選択 |
 
-## 5. `AnnotationFonts`（静的クラス）
+## 4. `AnnotationFonts`（静的クラス）
 
 | メンバー | 説明 |
 | --- | --- |

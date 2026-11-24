@@ -124,11 +124,6 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         _marquee.SetCoordTransform(CoordinateTransform);
         _marquee.Subscribe(OnMarqueeNotice);
 
-        // **本文を重ねている間は IME の窓口を出さない**: 変換中の文字列と候補の位置は本文コントロールが
-        // IME へ答える（同じ変換を 2 か所で扱うと、候補の位置と確定の宛先が食い違う）。 重ねていない間は
-        // レイヤー自身が窓口になる（変換は受け取らないが、フォーカス時に問い合わせが来る）。
-        TextInputMethodClientRequested += (_, e) => e.Client = _externalTextId is null ? TextInputClient : null;
-
         // 方向キーはフォーカス移動より先に受け取る（Avalonia は方向キーを XY ナビゲーションで処理済みにする）。
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
     }
@@ -647,12 +642,6 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         return bitmap;
     }
 
-    /// <summary>描画に使う文書を取得する（変換中の文字列を入れた複製を含む）。</summary>
-    /// <value>変換中でなければ本文の文書。 変換中は変換中の文字列を入れた描画用の複製。</value>
-    private AnnotationDocument RenderDocument
-        => IsEditingText
-            ? AnnotationCompositionPreview.Apply(_session.Document, _session.SelectedId, _session.CaretIndex, _preeditText)
-            : _session.Document;
     /// <summary>本文の描画を別のコントロールへ任せる吹き出しの識別子を取得または設定する。</summary>
     /// <value>本文編集コントロールが描く吹き出しの識別子。 無い場合は <see langword="null"/>。</value>
     /// <remarks>
@@ -679,9 +668,6 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
     /// <summary>編集の状態と文書を所有する編集セッションを取得する（本文編集コントロールと共有する）。</summary>
     internal AnnotationEditSession Session => _session;
-
-    /// <summary>IME の変換中の文字列を取得する（本文編集コントロールの描画へ渡す）。</summary>
-    internal string PreeditText => _preeditText;
 
     /// <summary>画像の表示倍率（元画像ピクセル → DIP）を取得する。</summary>
     internal double ViewScale => ResolveImageTransform().Scale;
@@ -713,9 +699,8 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
         if (_session.Document.Items.Length > 0)
         {
-            // **変換中の文字列も本文として描く**: キャレットの位置へ重ねて描くと既存の文字と重なり、
-            // キャレットも動かないため「入力が反映されていない」ように見える。
-            // 文書は変えず、描画用の複製にだけ入れる（規則は提示層の AnnotationCompositionPreview が単一所有する）。
+            // **変換中の文字列はここでは扱わない**: 編集中の本文（変換中の文字列を含む）は本文コントロールが
+            // 描くため、本レイヤーは文書のまま描く（複製を作らない）。
             var plan = _presenter.ResolveDrawPlan(_session.Document, MeasureText, _session.SelectedId);
 
             // 注釈は元画像座標で描く（枠線の太さ・文字の大きさを保存画像と同じ比率にする）
@@ -902,21 +887,6 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             RaisePreviewGesture(AnnotationPreviewGesture.Hover, position, 1, 0, e.KeyModifiers);
         }
 
-        // 本文の編集中にドラッグしている間は、キャレットを伸ばして選択する
-        if (IsEditingText && _isSelectingText)
-        {
-            if (!isPressed)
-            {
-                _isSelectingText = false;
-                InvalidateVisual();
-                return;
-            }
-
-            SetCaretFromPoint(source, extend: true);
-            InvalidateVisual();
-            return;
-        }
-
         if (_isDraggingTail)
         {
             if (!isPressed)
@@ -987,14 +957,6 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         // 押下中に固定した変換を解除する
         ReleaseTransform();
         _core.Log.LogPointerReleased(ToSource(e.GetPosition(this)), _session.SelectedId is not null);
-
-        if (_isSelectingText)
-        {
-            _isSelectingText = false;
-            e.Pointer.Capture(null);
-            InvalidateVisual();
-            return;
-        }
 
         if (_isDraggingTail)
         {
@@ -1087,10 +1049,10 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// </remarks>
     private bool TryHandleKeyDown(KeyEventArgs e)
     {
-        // 本文の編集中は、キー入力を本文の編集へ渡す（Delete で注釈を消さない）
-        if (IsEditingText && HandleTextEditingKey(e))
+        // 本文の編集中は、キー入力を本文コントロールが受ける（Delete で注釈を消さない）
+        if (IsEditingText)
         {
-            return true;
+            return false;
         }
 
         // Ctrl+Z / Ctrl+Y（元に戻す・やり直す）。 本文の編集中はホストの入力欄が受け取る。
@@ -1400,8 +1362,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         {
             if (!_session.IsEditingText)
             {
-                _preeditText = string.Empty;
-                _isSelectingText = false;
+                InvalidateVisual();
             }
             else
             {
@@ -1434,11 +1395,6 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         if ((change & AnnotationEditChange.TextSelection) != 0)
         {
             RaiseTextSelectionChanged();
-            if (_session.IsEditingText)
-            {
-                TextInputClient.NotifySelectionChanged();
-            }
-
         }
 
         if ((change & AnnotationEditChange.Document) != 0)
