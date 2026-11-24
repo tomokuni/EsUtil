@@ -186,6 +186,18 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <summary>本文の表示と編集を担うコントロールを取得する（テストと差し替えの入口）。</summary>
     internal StyledText.StyledTextControl TextEditor => _textEditor;
 
+    /// <summary>選択中の本文をクリップボードへコピーする。</summary>
+    /// <remarks>
+    /// <b>クリップボードの処理は本文コントロールが単一所有する</b>: 注釈のレイヤーは持ちません
+    /// （キーと API の両方から同じ処理を呼べるよう、入口だけをここに置きます）。
+    /// </remarks>
+    public void CopyTextSelection() => _ = _textEditor.CopyAsync();
+
+    /// <summary>選択中の本文をクリップボードへ切り取る。</summary>
+    public void CutTextSelection() => _ = _textEditor.CutAsync();
+
+    /// <summary>クリップボードの文字列をキャレットの位置へ貼り付ける。</summary>
+    public void PasteText() => _ = _textEditor.PasteAsync();
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
     /// <value>画像・文書・選択・元に戻すなどを操作する対象。</value>
     public AnnotationLayerControl Layer => _layer;

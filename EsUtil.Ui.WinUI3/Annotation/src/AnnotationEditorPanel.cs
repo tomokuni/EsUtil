@@ -161,6 +161,18 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
 
     }
 
+    /// <summary>選択中の本文をクリップボードへコピーする。</summary>
+    /// <remarks>
+    /// <b>クリップボードの処理は本文コントロールが単一所有する</b>: 注釈のレイヤーは持ちません
+    /// （キーと API の両方から同じ処理を呼べるよう、入口だけをここに置きます）。
+    /// </remarks>
+    public void CopyTextSelection() => _ = _textEditor.CopyAsync();
+
+    /// <summary>選択中の本文をクリップボードへ切り取る。</summary>
+    public void CutTextSelection() => _ = _textEditor.CutAsync();
+
+    /// <summary>クリップボードの文字列をキャレットの位置へ貼り付ける。</summary>
+    public void PasteText() => _ = _textEditor.PasteAsync();
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
     public AnnotationLayerControl Layer => _layer;
 

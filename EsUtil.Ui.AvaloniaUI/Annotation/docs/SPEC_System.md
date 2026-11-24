@@ -63,7 +63,6 @@ flowchart TB
 | `AnnotationEditorControls` | `public` | 編集 UI の行の部品（見出し・項目名・色・数値・選択肢・装飾の切り替え）。 フライアウトとホストの設定ペインが共有する |
 | `AnnotationFonts` | `public` | 本文で選べるフォント名の一覧（優先フォントを先頭に置く） |
 | `AnnotationHistory`（コア） | `public` | 変更履歴（元に戻す・やり直す）。 不変の文書をそのまま積む（ドラッグ中の書き換えで過去が変わらない） |
-| `AnnotationTextInputClient`（内部） | `internal` | 本文を**重ねていない**ときの IME の窓口（本文を重ねている間は `StyledTextControl` が IME へ答える） |
 | `AnnotationPainter`（内部） | `internal` | 描画計画の写像（角丸・しっぽ・文字・下線/取り消し線）と文字の実寸計測 |
 | `AnnotationMarqueeEffects`（内部） | `internal` | Marquee が要求する効果（再描画・フォーカス・カーソル・キャプチャ）の写像 |
 
