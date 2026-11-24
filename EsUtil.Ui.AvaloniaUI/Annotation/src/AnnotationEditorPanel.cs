@@ -103,7 +103,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             IsVisible = false,
             MeasureText = AnnotationPainter.Measure,
             LineHeightFactor = _layer.LineHeightFactor,
-            EditState = _layer.Session.TextEditState,
+            Editor = _layer.Session.TextEditor,
         };
 
         Children.Add(_layer);
@@ -663,11 +663,15 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         if (main.Screens.ScreenFromWindow(main) is { } screen)
         {
             // **作業領域はピクセル**であるため、パネルの実寸もピクセルへ写してから挟む
+            // （収める規則は提示層の AnnotationPanelPlacement.Clamp が単一所有する）
             var area = screen.WorkingArea;
-            var width = (int)Math.Round(size.Width * scale);
-            var height = (int)Math.Round(size.Height * scale);
-            x = Math.Clamp(x, area.X, Math.Max(area.X, area.Right - width));
-            y = Math.Clamp(y, area.Y, Math.Max(area.Y, area.Bottom - height));
+            var clamped = AnnotationPanelPlacement.Clamp(
+                new EsPoint(x, y),
+                Math.Round(size.Width * scale),
+                Math.Round(size.Height * scale),
+                new EsRect(area.X, area.Y, area.Width, area.Height));
+            x = (int)Math.Round(clamped.X);
+            y = (int)Math.Round(clamped.Y);
 
             // 実際に置いた位置を控える（外側の押下の判定に使う）
             _positions[kind] = new EsPoint(
@@ -970,7 +974,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// </remarks>
     private void SyncTextEditor()
     {
-        _textEditor.EditState = _layer.Session.TextEditState;
+        _textEditor.Editor = _layer.Session.TextEditor;
         _textEditor.LineHeightFactor = _layer.LineHeightFactor;
 
         if (_layer.Session.Selected is not BubbleAnnotation bubble)

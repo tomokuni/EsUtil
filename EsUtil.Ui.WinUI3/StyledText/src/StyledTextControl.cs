@@ -20,11 +20,15 @@ namespace EsUtil.Ui.WinUI3.StyledText;
 /// </remarks>
 public sealed partial class StyledTextControl : Canvas
 {
+    /// <summary>テンキーの 5（<c>VK_NUMPAD5</c>）のキー値。</summary>
+    /// <remarks><see cref="VirtualKey"/> にテンキーの名前が無いため値をそのまま持つ（<c>VirtualKey.Number5</c> は上段の 5）。</remarks>
+    private const VirtualKey Numpad5 = (VirtualKey)0x65;
+
     /// <summary>キャレットの点滅を進めるタイマー（編集中だけ動かす）。</summary>
     private readonly DispatcherTimer _caretTimer;
 
     /// <summary>本文の値と編集の状態（規則は提示層が単一所有する）。</summary>
-    private readonly TextEditor _editor = new();
+    private TextEditor _editor = new();
 
     /// <summary>キャレットの点滅を始めた時刻。</summary>
     private DateTimeOffset _caretBlinkStart = DateTimeOffset.UtcNow;
@@ -78,14 +82,27 @@ public sealed partial class StyledTextControl : Canvas
     /// <value>既定は XAML のテキスト エンジンで測る関数。</value>
     public Func<string, TextStyle, EsSize> MeasureText { get; set; } = RichTextMetrics.Measure;
 
-    /// <summary>キャレット・選択・書式の状態を取得または設定する。</summary>
-    /// <value>既定は本コントロールが作った状態。 ホストが既に状態を持っている場合はその実体を設定する。</value>
-    public TextEditState EditState
+    /// <summary>本文の値と編集の状態を取得または設定する。</summary>
+    /// <value>既定は本コントロールが作った実体。 ホストが既に編集器を持っている場合はその実体を設定する。</value>
+    /// <remarks>
+    /// <b>編集器を 2 つ持たない</b>: ホスト（注釈の編集セッションなど）が本文と状態を持っている場合は、
+    /// 同じ実体を設定する（別の実体を持つとキャレットと本文が食い違う）。 状態（<see cref="TextEditState"/>）は
+    /// 本プロパティの実体が持つため、個別に設定しない。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">設定する値が <see langword="null"/> の場合。</exception>
+    public TextEditor Editor
     {
-        get => _editor.EditState;
+        get => _editor;
         set
         {
-            _editor.EditState = value;
+            ArgumentNullException.ThrowIfNull(value);
+
+            if (ReferenceEquals(_editor, value))
+            {
+                return;
+            }
+
+            _editor = value;
             Redraw();
         }
     }
@@ -676,8 +693,7 @@ public sealed partial class StyledTextControl : Canvas
         VirtualKey.U => TextEditKey.U,
         VirtualKey.V => TextEditKey.V,
         VirtualKey.X => TextEditKey.X,
-        VirtualKey.Number5 => TextEditKey.Digit5,
-        (VirtualKey)0x65 => TextEditKey.Digit5,
+        VirtualKey.Number5 or Numpad5 => TextEditKey.Digit5,
         VirtualKey.Escape => TextEditKey.Escape,
         VirtualKey.Enter => TextEditKey.Enter,
         VirtualKey.Back => TextEditKey.Back,

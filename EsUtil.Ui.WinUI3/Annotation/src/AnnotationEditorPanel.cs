@@ -97,7 +97,7 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
             MeasureText = StyledText.RichTextMetrics.Measure,
-            EditState = _layer.Session.TextEditState,
+            Editor = _layer.Session.TextEditor,
         };
 
         Children.Add(_layer);
@@ -601,19 +601,17 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
             // **影の余白を差し引く**: WinUI 3 のポップアップのウィンドウは、中身のまわりに影の
             // 透明な余白を含みます。 余白を考えずに挟むと、見えている中身が
             // 画面の端を越えます。
+            // 収める規則は提示層の AnnotationPanelPlacement.Clamp が単一所有します。
             var margin = PopupShadowMargin;
-            x = Math.Clamp(
-                x,
+            var available = new EsRect(
                 (work.X - window.Position.X) / scale,
-                Math.Max(
-                    (work.X - window.Position.X) / scale,
-                    ((work.X + work.Width - window.Position.X) / scale) - width - margin));
-            y = Math.Clamp(
-                y,
                 (work.Y - window.Position.Y) / scale,
-                Math.Max(
-                    (work.Y - window.Position.Y) / scale,
-                    ((work.Y + work.Height - window.Position.Y) / scale) - height - margin));
+                work.Width / scale,
+                work.Height / scale);
+            var clamped = AnnotationPanelPlacement.Clamp(
+                new EsPoint(x, y), width + margin, height + margin, available);
+            x = clamped.X;
+            y = clamped.Y;
         }
 
         popup.HorizontalOffset = x;
@@ -937,7 +935,7 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
     /// </remarks>
     internal void SyncTextEditor()
     {
-        _textEditor.EditState = _layer.Session.TextEditState;
+        _textEditor.Editor = _layer.Session.TextEditor;
         _textEditor.LineHeightFactor = _layer.LineHeightFactor;
 
         if (_layer.Session.Selected is not BubbleAnnotation bubble)

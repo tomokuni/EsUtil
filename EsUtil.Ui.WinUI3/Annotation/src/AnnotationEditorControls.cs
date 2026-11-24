@@ -235,8 +235,8 @@ internal static class AnnotationEditorControls
     /// <summary>色を保存値（<c>#AARRGGBB</c>）へ変換する。</summary>
     /// <param name="color">色。</param>
     /// <returns>保存値の文字列。</returns>
-    internal static string ToHex(DrawingColor color)
-        => $"#{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}";
+    /// <remarks>整形の規則は <see cref="EsUtil.Platform.Core.Imaging.DrawingColorExtensions.ToHexText"/> が単一所有する。</remarks>
+    internal static string ToHex(DrawingColor color) => EsUtil.Platform.Core.Imaging.DrawingColorExtensions.ToHexText(color);
 
     /// <summary>パネルの背景を作る。</summary>
     /// <returns>背景のブラシ。</returns>

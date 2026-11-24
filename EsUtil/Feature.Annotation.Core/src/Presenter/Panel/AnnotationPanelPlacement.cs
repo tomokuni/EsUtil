@@ -96,13 +96,17 @@ public static class AnnotationPanelPlacement
             origin.Y + (cursorCurrent.Y - cursorOrigin.Y));
 
     /// <summary>パネルが置ける領域からはみ出さない位置へ補正する。</summary>
-    /// <param name="position">補正する位置。</param>
+    /// <param name="position">補正する位置（<paramref name="available"/> と同じ座標系）。</param>
     /// <param name="width">パネルの幅。</param>
     /// <param name="height">パネルの高さ。</param>
     /// <param name="available">パネルを置ける領域。</param>
     /// <returns>補正した位置。</returns>
-    /// <remarks>1 軸分の規則（領域より大きい場合は左上へ寄せる）は <see cref="EsSize.ClampOffset"/> が単一所有する。</remarks>
-    internal static EsPoint Clamp(EsPoint position, double width, double height, EsRect available)
+    /// <remarks>
+    /// <b>UI のウィンドウを画面の作業領域へ収めるときにも使う</b>: 位置と寸法を同じ座標系で渡せば、
+    /// ピクセルでも DIP でも同じ規則になる（UI ごとに <c>Math.Clamp</c> を書き写さない）。
+    /// 1 軸分の規則（領域より大きい場合は左上へ寄せる）は <see cref="EsSize.ClampOffset"/> が単一所有する。
+    /// </remarks>
+    public static EsPoint Clamp(EsPoint position, double width, double height, EsRect available)
     {
         var area = new EsSize(available.Width, available.Height);
         return new EsPoint(

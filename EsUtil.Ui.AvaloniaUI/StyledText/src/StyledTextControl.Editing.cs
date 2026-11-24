@@ -16,20 +16,33 @@ namespace EsUtil.Ui.AvaloniaUI.StyledText;
 public sealed partial class StyledTextControl
 {
     /// <summary>本文の値と編集の状態（規則は提示層が単一所有する）。</summary>
-    private readonly TextEditor _editor = new();
+    private TextEditor _editor = new();
 
-    /// <summary>キャレット・選択・書式の状態を取得または設定する。</summary>
-    /// <value>既定は本コントロールが作った状態。 ホストが既に状態を持っている場合はその実体を設定する。</value>
+    /// <summary>本文の値と編集の状態を取得または設定する。</summary>
+    /// <value>既定は本コントロールが作った実体。 ホストが既に編集器を持っている場合はその実体を設定する。</value>
     /// <remarks>
-    /// <b>状態を 2 つ持たない</b>: ホスト（注釈の編集セッションなど）が状態を持っている場合は、
-    /// 同じ実体を設定する（別の状態を持つとキャレットと本文が食い違う）。
+    /// <b>編集器を 2 つ持たない</b>: ホスト（注釈の編集セッションなど）が本文と状態を持っている場合は、
+    /// 同じ実体を設定する（別の実体を持つとキャレットと本文が食い違う）。 状態（<see cref="TextEditState"/>）は
+    /// 本プロパティの実体が持つため、個別に設定しない。
     /// </remarks>
-    public TextEditState EditState
+    /// <exception cref="ArgumentNullException">設定する値が <see langword="null"/> の場合。</exception>
+    public TextEditor Editor
     {
-        get => _editor.EditState;
+        get => _editor;
         set
         {
-            _editor.EditState = value;
+            ArgumentNullException.ThrowIfNull(value);
+
+            if (ReferenceEquals(_editor, value))
+            {
+                return;
+            }
+
+            _editor = value;
+
+            // **本文のプロパティも共有した実体へ揃える**: 表示は本文のプロパティから読むため、
+            // 揃えないと編集器の本文と画面の本文が食い違う。
+            SetCurrentValue(RichTextValueProperty, value.Text);
             InvalidateVisual();
         }
     }

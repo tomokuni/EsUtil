@@ -104,12 +104,13 @@ public sealed class AnnotationEditSessionTests
     {
         var session = CreateSession();
         session.AddBubble(new EsRect(10, 10, 200, 80), "abcd");
-        session.MoveCaret(2, extend: false);
+        session.TextEditor.MoveCaret(2, extend: false);
 
         Assert.False(session.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true }));
         Assert.False(Assert.IsType<BubbleAnnotation>(session.Selected).Text.StyleAt(2).IsBold);
 
-        Assert.True(session.ReplaceSelection("X"));
+        session.TextEditor.ReplaceSelection("X");
+        Assert.True(session.ApplySelectedRichText(session.TextEditor.Text));
         Assert.True(Assert.IsType<BubbleAnnotation>(session.Selected).Text.StyleAt(2).IsBold);
     }
 
@@ -121,14 +122,15 @@ public sealed class AnnotationEditSessionTests
         session.AddBubble(new EsRect(10, 10, 200, 80), "a😀b");
         Assert.True(session.BeginTextEditing());
 
-        session.MoveCaret(0, extend: false);
-        session.MoveCaret(session.CaretIndex + 1, extend: false);
+        session.TextEditor.MoveCaret(0, extend: false);
+        session.TextEditor.MoveCaret(session.CaretIndex + 1, extend: false);
         Assert.Equal(1, session.CaretIndex);
 
-        session.MoveCaret(session.CaretIndex + 1, extend: false);
+        session.TextEditor.MoveCaret(session.CaretIndex + 1, extend: false);
         Assert.Equal(3, session.CaretIndex);
 
-        Assert.True(session.DeleteAtCaret(forward: false));
+        session.TextEditor.DeleteAtCaret(forward: false);
+        Assert.True(session.ApplySelectedRichText(session.TextEditor.Text));
         Assert.Equal("ab", session.SelectedPlainText);
     }
 
@@ -160,9 +162,11 @@ public sealed class AnnotationEditSessionTests
         session.AddBubble(new EsRect(10, 10, 120, 80), "abcd");
 
         Assert.True(session.BeginTextEditing());
-        session.SelectText(0, 2);
+        session.TextEditor.Select(0, 2);
+        session.NotifyTextSelectionChanged();
         session.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
-        session.ReplaceSelection("X");
+        session.TextEditor.ReplaceSelection("X");
+        Assert.True(session.ApplySelectedRichText(session.TextEditor.Text));
 
         Assert.Contains(logger.Messages, message => message.Contains("本文の編集: 開始", StringComparison.Ordinal));
         Assert.Contains(
@@ -189,16 +193,17 @@ public sealed class AnnotationEditSessionTests
         Assert.Equal("c\nd", session.SelectedPlainText);
     }
 
-    /// <summary>本文の置き換えは書式付き文字列の編集層へ委譲し、改行を揃えて文書へ書き戻す。</summary>
+    /// <summary>編集器の置き換えは改行を揃え、書き戻すと文書へ入る。</summary>
     [Fact]
     internal void 本文の置き換えは改行を揃えて文書へ書き戻す()
     {
         var session = CreateSession();
         session.AddBubble(new EsRect(10, 10, 120, 80), "ab");
         Assert.True(session.BeginTextEditing());
-        session.MoveCaret(2, extend: false);
+        session.TextEditor.MoveCaret(2, extend: false);
 
-        Assert.True(session.ReplaceSelection("c\r\nd"));
+        session.TextEditor.ReplaceSelection("c\r\nd");
+        Assert.True(session.ApplySelectedRichText(session.TextEditor.Text));
 
         Assert.Equal("abc\nd", session.SelectedPlainText);
         Assert.Equal(5, session.CaretIndex);
@@ -212,11 +217,12 @@ public sealed class AnnotationEditSessionTests
         var session = CreateSession();
         session.AddBubble(new EsRect(10, 10, 120, 80), "abcdef");
         Assert.True(session.BeginTextEditing());
-        session.SelectText(0, 6);
-        Assert.True(session.ReplaceSelection("ab"));
+        session.TextEditor.Select(0, 6);
+        session.TextEditor.ReplaceSelection("ab");
+        Assert.True(session.ApplySelectedRichText(session.TextEditor.Text));
 
         Assert.True(session.Undo());
-        session.MoveCaret(6, extend: false);
+        session.TextEditor.MoveCaret(6, extend: false);
 
         Assert.Equal("abcdef", session.SelectedPlainText);
         Assert.Equal(6, session.CaretIndex);

@@ -68,6 +68,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.60 `Capture.WindowsGraphicsCaptureSupport`（static class）](#260-capturewindowsgraphicscapturesupportstatic-class)
   - [2.61 `Native.Win.WinGraphicsCaptureService`（sealed class : `ICaptureService`）](#261-nativewinwingraphicscaptureservicesealed-class--icaptureservice)
   - [2.62 `Native.Win.CaptureServiceFactory`（static class）](#262-nativewincaptureservicefactorystatic-class)
+  - [2.63 `Native.Win.WinMonitorWorkArea`（static class）](#263-nativewinwinmonitorworkareastatic-class)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -91,7 +92,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | `.Caching` | `CapacityLimitedCache<TKey, TValue>` | 生成にコストがかかる値をキー単位で共有する容量制限付きのキャッシュ（汎用の単一所有者。 UI コントロールは複製せず本型を使う） |
 | `.Svg` | `SvgIconSource` / `SvgIcon` / `SvgPathParser` / `SvgPathFigure` / `SvgPathSegment` / `SvgPathRasterizer` | SVG アイコンの読み込み元・解析結果・パス データの解析・図形の画素への展開 |
 | `.Native.Win.Wic` | `WinWicFactory`（COM の生成・解放・画素の入出力）/ `WinWicFormats`（OS のエンコーダーから作る形式の一覧）/ `WinWicImageCodec`（符号化・復号） | WIC（windowscodecs）の実装 |
-| `.Native.Win` | `WinCaptureService` / `WinGraphicsCaptureService` / `CaptureServiceFactory` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` / `WinClipboard` / `WinMonitorDpi` / `WinWindowFrame` / `WinDialogService` / `WinTaskDialog` / `WinMessageBox` / `WinVirtualScreen` / `WinAppUserModelId` / `WinVirtualKey` / `WinUserPreferenceService` / `WinProcessDpi` / `SystemWindowCommands` | 上記抽象の Windows 実装（ホストが生成して注入する）と、ウィンドウの標準メニューから実行する操作・起動前の案内 UI・状態を持たない補助（静的クラス） |
+| `.Native.Win` | `WinCaptureService` / `WinGraphicsCaptureService` / `CaptureServiceFactory` / `WinCursorService` / `WinWindowService` / `WinElementFinder` / `WinCursorOverrideGuard` / `WinGlobalHotKeyService<T>` / `WinClipboard` / `WinMonitorDpi` / `WinMonitorWorkArea` / `WinWindowFrame` / `WinDialogService` / `WinTaskDialog` / `WinMessageBox` / `WinVirtualScreen` / `WinAppUserModelId` / `WinVirtualKey` / `WinUserPreferenceService` / `WinProcessDpi` / `SystemWindowCommands` | 上記抽象の Windows 実装（ホストが生成して注入する）と、ウィンドウの標準メニューから実行する操作・起動前の案内 UI・状態を持たない補助（静的クラス） |
 
 可視性は public のみを記載します（`internal` は [`SPEC_System.md`](SPEC_System.md) の可視性ポリシーを参照）。
 
@@ -1253,6 +1254,14 @@ Windows.Graphics.Capture で画面をキャプチャする `ICaptureService` の
 | `Create` | `ICaptureService Create(CaptureMethod method, bool includeCursor = true, bool hideBorder = true)` | 方式に対応する実装を返す。 WGC が使えない場合は `WinCaptureService` |
 | `Resolve` | `CaptureMethod Resolve(CaptureMethod method)` | 実際に使われる方式を返す（設定が使えない場合は `Gdi`）。 **ログへ「設定は WGC だが GDI で撮った」と残すために使う** |
 | `Resolve` | `CaptureMethod Resolve(CaptureMethod method, bool includeCursor)` | **カーソルを写さない設定を満たせない環境**では WGC を選ばない（`Gdi` を返す）。 `Create` と同じ判定を使う |
+
+### 2.63 `Native.Win.WinMonitorWorkArea`（static class）
+
+ウィンドウが載っているモニターの**作業領域**（タスク バーを除いた矩形・画面物理ピクセル）を照会します。 フローティング パネルを画面の外へ出さないための値であり、UI フレームワークごとに異なる API（WinForms の `Screen`・Avalonia の `Screens`・WinUI 3 の `DisplayArea`）を 1 つの形に揃えます。 照会できない場合は `null` を返し、例外にしません。
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `GetWorkArea` | `static EsRectInt? GetWorkArea(IntPtr windowHandle)` | ウィンドウが載っているモニターの作業領域。 ハンドルが 0・照会に失敗した場合は `null` |
 
 ## 3. 使用例
 

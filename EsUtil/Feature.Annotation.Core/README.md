@@ -66,7 +66,7 @@ var composedPath = AnnotationJson.GetComposedPath(imagePath);   // <画像名>.a
 | `RichText` / `TextRun` / `TextStyle` | 文字単位の書式（`EsUtil.Feature.StyledText.Core` が所有する。 フォント・大きさ・色・太字・斜体・下線・取り消し線） |
 | `AnnotationAppearance` | 注釈の外観（枠線の色・太さ・内側の色・角丸） |
 | `AnnotationPresenter` / `AnnotationDrawPlan` / `AnnotationShapePlan` | 折り返しと描画計画の解決 |
-| `TextEditState` | 本文の編集状態（キャレット・選択・入力・削除・書式。 `EsUtil.Feature.StyledText.Core` が所有する）。 4 つの UI 版は入力イベントを渡すだけにし、**書式バーを表示する条件（編集中・1 文字以上を選択）も本型が単一所有する** |
+| `TextEditor` | 本文の値と編集の状態（キャレット・選択・入力・削除・書式。 `EsUtil.Feature.StyledText.Core` が所有する）。 4 つの UI 版は同じ実体を本文コントロールへ渡すだけにし、**書式バーを表示する条件（編集中・1 文字以上を選択）も本型が単一所有する** |
 | `AnnotationEditSession` | 文書・選択・変更履歴・本文の編集状態を単一所有する編集セッション。 4 つの UI 版は本型の操作を呼び、変更を購読する |
 | `AnnotationViewTransform` | 表示倍率・位置と、元画像ピクセルとローカル DIP の相互変換 |
 | `TextLayout` / `TextLineIndex` / `TextCursor` | 折り返しと行の配置・行と文字位置の対応・書記素クラスタ（絵文字・結合文字）の境界（`EsUtil.Feature.StyledText.Core` が所有する） |

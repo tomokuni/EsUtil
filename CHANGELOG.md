@@ -11,9 +11,12 @@
 
 - **`PasteAsync` が貼り付けた文字列を返すようにしました**（`Task<string?>`。 貼り付ける文字列が無い場合は `null`）。 呼び出し側の `_ = PasteAsync()` はそのまま使えます。
 - **WinUI 3 の `AnnotationLayerControl.MeasureText` を削除しました**（本文の実寸は描画に使うテキスト エンジンが決めるため、ホストが差し替える入口を置きません）。
+- **`StyledTextControl.EditState` を `Editor` に置き換えました**（4 つの UI 版）。 状態だけでなく本文も含めて 1 つの `TextEditor` を共有するためです（別の実体を持つと本文とキャレットが食い違います）。 状態だけを差し替えていたホストは `Editor` へ `TextEditor` を渡します。
+- **`AnnotationEditSession.TextEditState` を `TextEditor` に置き換え、本文の操作 API を削除しました**（`SelectText` / `SelectAllText` / `MoveCaret` / `MoveCaretByCluster` / `MoveCaretByLine` / `MoveCaretToLineEdge` / `SetCaretFromPoint` / `ClampCaret` / `DeleteAtCaret` / `ReplaceSelection` / `ReplaceRange` / `SelectedText`）。 本文の操作は `TextEditor` が単一所有し、セッションは選択中の本文を揃えて文書へ書き戻すだけにしました（操作の規則を 2 か所に持たない）。
 
 ### 追加
 
+- **`EsUtil.Platform.Core` に `WinMonitorWorkArea` を追加しました**（ウィンドウが載っているモニターの作業領域を画面物理ピクセルで返す）。 UI フレームワークごとに異なる API を 1 つの形へ揃え、フローティング パネルを画面の外へ出さない判定を共有します。
 - **本文の値と編集の状態を `EsUtil.Feature.StyledText.Core` の `TextEditor` へ集約しました**。 4 つの UI 版の `StyledTextControl` と注釈の `AnnotationEditSession` が同じ操作（入力・削除・キャレット・選択・書式・キーの実行・折り返しとキャレット位置の解決）を 1 つの型へ委ね、UI はフレームワーク固有の描画・入力・IME・クリップボードだけを、注釈は選択中の本文の差し替えと文書への書き戻しだけを持ちます。 改行の正規化は `TextInput.Normalize` が単一所有し、本文へ入れる入口（`ReplaceSelection` / `ReplaceRange`）が 1 回だけ適用します。
 - **書式バーの自動表示を `StyledTextControl.ShowFormatBarWhileEditing` で選べるようにし、表示の条件を「編集中・自動表示が有効・1 文字以上を選択」に揃えました**（`ShouldShowFormatBar` が単一所有する）。 注釈の編集パネルは `ShowFormatBarWhileEditing` を持ち、選択を畳むとバーを閉じます。
 - **本文のコピー・切り取り・貼り付けを `Debug` で記録するようにしました**（操作名・キャレット・選択範囲・本文の先頭 100 文字。 `AnnotationLogMessage.LogTextOperation`）。 書式バーの自動表示の変更は `Information` で記録します。
@@ -37,6 +40,8 @@
 
 ### 修正
 
+- **注釈パネルを画面の作業領域へ収める計算を 4 つの UI 版で共有しました**。 同じ規則を各 UI が `Math.Clamp` で書き写していたため、`AnnotationPanelPlacement.Clamp` へ集約しました。
+- **WinUI 3 の注釈の色の整形とテンキー 5 の判定を単一所有へ揃えました**（色は `DrawingColorExtensions.ToHexText`、キーは名前付きの定数を使います）。
 - **4 つの UI 版で本文編集の挙動を揃えました**。 入力を受け付けない設定では編集を始めない・IME の変換候補の位置を変換中の文字列の末尾にする（MewUI / WinUI 3）・選択が変わったら外観パネルを閉じる（AvaloniaUI / MewUI）・IME の確定文字列の改行を揃える（WinUI 3）・キャレットの点滅の間隔を共有する（WinForms）。
 - **本文の選択の変更がログと購読者へ届くようにしました**（本文コントロールの入力による変更が `Trace` の記録と `TextSelectionChanged` の対象外でした）。
 - **コアの色からブラシへの変換を各 UI の Interop のキャッシュへ揃えました**（AvaloniaUI / WinUI 3 の注釈パネルが独自にブラシを作っていました）。

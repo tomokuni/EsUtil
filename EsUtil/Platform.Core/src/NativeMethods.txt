@@ -87,6 +87,7 @@ ROP_CODE
 // --- モニターの矩形（WGC の撮影対象の決定） ---
 GetMonitorInfo
 MONITORINFO
+MonitorFromWindow
 // --- モニターの DPI（指定位置のモニターの実効 DPI） ---
 MonitorFromPoint
 MONITOR_FROM_FLAGS

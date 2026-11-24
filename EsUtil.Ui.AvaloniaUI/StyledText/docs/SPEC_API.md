@@ -17,7 +17,7 @@
 | `MeasureText` | 文字列と書式から実寸を測る関数（既定は描画と同じエンジンで測る） |
 | `LineHeightFactor` | 行間の倍率（1 未満・非有限は 1） |
 | `RenderScale` | 画面の DIP への倍率（1 未満・非有限は 1） |
-| `EditState` | キャレット・選択・以降の入力へ効かせる書式の状態（`TextEditor` が持つ `TextEditState`。 ホストと共有できる） |
+| `Editor` | 本文の値と編集の状態（`TextEditor`。 キャレット・選択・以降の入力へ効かせる書式を含む）。 ホストと共有できる |
 | `ShowFormatBarWhileEditing` | 編集中に書式バーを自動で表示するか（既定は `true`）。 ホストが独自にバーを出す場合は `false` |
 | `ShouldShowFormatBar` | いま書式バーを表示すべきか（編集中・自動表示が有効・1 文字以上を選択） |
 | `PreeditText` | IME の変換中の文字列（本文へは入れず、キャレットの位置へ描く） |
@@ -26,7 +26,7 @@
 
 - **座標は元画像ピクセル**です。 `RenderScale` を掛けて DIP へ写します。
 - **本文の値と編集の状態は `EsUtil.Feature.StyledText.Core` の `TextEditor` が単一所有**します。 編集は新しい `RichText` を `RichTextValue` へ書き戻し、`RichTextChanged` を発生させます。
-- **状態を 2 つ持たない**ため、ホストが状態を持っている場合は `EditState` に同じ実体を設定します。
+- **編集器を 2 つ持たない**ため、ホストが本文と状態を持っている場合は `Editor` に同じ実体を設定します。
 - **書式バーは 1 文字以上を選んだときだけ出す**（自動表示が有効でも、適用先が決まらない間は出さない）。
 
 ## 2. 編集の API

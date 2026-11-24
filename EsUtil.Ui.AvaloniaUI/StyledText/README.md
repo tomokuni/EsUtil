@@ -87,7 +87,7 @@ editor.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
 | `MeasureText` | 文字列と書式から実寸を測る関数（既定は描画と同じエンジンで測る） |
 | `LineHeightFactor` | 行間の倍率 |
 | `RenderScale` | 画面の DIP への倍率（拡大表示するとき） |
-| `EditState` | キャレット・選択の状態（ホストが既に持っている場合は同じ実体を設定する） |
+| `Editor` | 本文の値と編集の状態（ホストが既に持っている場合は同じ実体を設定する） |
 | `ShowFormatBarWhileEditing` | 編集中に書式バーを自動で表示するか（既定は `true`。 ホストが独自にバーを出す場合は `false`） |
 
 キャレットと選択範囲の色・太さは `EsUtil.Feature.StyledText.Core` の `TextEditorAppearance` が単一所有します（4 つの UI 版で同じ見た目にするため）。

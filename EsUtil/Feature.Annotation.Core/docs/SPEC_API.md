@@ -197,7 +197,7 @@
 | --- | --- | --- |
 | `AnnotationDraftDefaultsFactory` | Core（`.Core.Defaults`） | 設定の値（色の文字列・数値）から `AnnotationDraftDefaults` を組み立てる（`FromText`）。 解釈できない色は透明として扱い、数値は `AnnotationLimits` の安全域へ補正する |
 | `AnnotationEditorAppearance` | Presenter（`.Presenter.Drawing`） | 本文の編集中の見た目（`CaretThicknessDip` / `CaretColor` / `SelectionColor`）。 UI は自分の描画 API の色へ変換して使う |
-| `TextEditState` | `EsUtil.Feature.StyledText.Core`（`.Presenter.Editing`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 UI は入力イベントを渡し、通知と描画だけを行う（注釈の識別子を持たない） |
+| `TextEditor` | `EsUtil.Feature.StyledText.Core`（`.Presenter.Editing`） | 本文の値と編集の状態（キャレット・選択・入力・削除・書式）。 UI は同じ実体を `StyledTextControl.Editor` へ渡し、通知と描画だけを行う（注釈の識別子を持たない） |
 | `AnnotationViewTransform` | Core（`.Core.Geometry`） | 表示倍率・左上の位置と、元画像ピクセルとローカル DIP の相互変換（`ToSourceRadius` で画面上の掴む距離を元画像ピクセルへ換算する）。 UI は点の型へ写すだけにする |
 | `TextCursor` / `TextLayout` / `TextLineIndex` / `TextLineLayout` / `TextStyleEdit` / `TextCompositionPreview` / `TextCaretBlink` | `EsUtil.Feature.StyledText.Core`（`.Core.Text`） | 書記素クラスタの境界・折り返しと行の配置・行と文字位置の対応・入力の挿入・変換中の文字列・点滅。 UI は位置を計算せず、この規則に従う |
 
@@ -207,7 +207,7 @@
 
 ## 15. `AnnotationEditSession` / `AnnotationEditChange`（クラス・列挙型）
 
-**4 つの UI 版が同じ順序で文書を変更するための編集セッション**です。 文書・選択・変更履歴・本文の編集状態を単一所有し、UI は入力の受付と描画だけを行います。
+**4 つの UI 版が同じ順序で文書を変更するための編集セッション**です。 文書・選択・変更履歴を単一所有し、本文の操作は `TextEditor` に委譲します（本型は編集対象の本文を選択中の注釈へ揃え、結果を文書へ書き戻します）。 UI は入力の受付と描画だけを行います。
 
 | メンバー | 説明 |
 | --- | --- |
@@ -223,10 +223,12 @@
 | `BeginChange()` / `SetBounds(bounds)` / `SetTailTip(tip)` / `CommitChange()` | ドラッグ 1 手の記録（押下で控え、移動のたびに反映し、最初の変更で 1 手として積む） |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | 変更履歴（編集中はキャレットを本文の範囲へ収める） |
 | `BeginTextEditing()` / `EndTextEditing()` / `IsEditingText` | 本文の編集の開始・終了 |
-| `MoveCaret(...)` / `MoveCaretByLine(...)` / `MoveCaretToLineEdge(...)` / `SetCaretFromPoint(...)` | キャレットの移動（行の解決は `TextLineIndex` を使う） |
-| `DeleteAtCaret(forward)` / `ReplaceSelection(text)` / `ReplaceRange(start, end, text)` | 本文の削除・置き換え（キャレットを挿入した文字列の末尾へ移す） |
+| `TextEditor` | 本文の値と編集の状態（キャレット・選択・入力・削除・書式）。 UI は同じ実体を本文コントロールへ渡す |
+| `ApplySelectedRichText(text)` | 本文コントロールが編集した本文を文書へ書き戻す（1 手として履歴へ積む） |
+| `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `HasTextSelection` | 本文のキャレットと選択（`TextEditor` の値） |
+| `TextSelectionRange` | 書式の適用先の範囲（文字数）。 ホストが本文の入力欄の選択位置を写すときに使う |
 | `NotifyTextSelectionChanged()` | 本文コントロールが行った選択の変更を記録して購読者へ通知する（同じ範囲では繰り返さない） |
-| `SelectedTextStyle` / `SelectedTextMatches(match)` / `SelectedText()` | 書式バーの表示値・押下状態・選択文字（クリップボード） |
+| `SelectedTextStyle` / `SelectedTextMatches(match)` | 書式バーの表示値・押下状態 |
 
 - **`AnnotationEditChange` はビットフラグ**です（1 回の操作で文書と選択が同時に変わることがあるため、種類ごとに購読を作らない）。
 - **ログ**: 選択・本文の編集・本文の変更・書式の適用・履歴の移動を記録します。 コピー・切り取り・貼り付けは UI 層が `AnnotationLogMessage.LogTextOperation` で記録します（操作名・キャレット・選択・本文の先頭）。 毎フレームの描画計画の解決は記録しません。

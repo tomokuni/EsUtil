@@ -131,6 +131,51 @@ public class StyledTextControlTests
         Assert.False(editor.RichTextValue.StyleAt(3).IsBold);
     }
 
+    /// <summary>書式バーは 1 文字以上を選ぶまで表示せず、自動表示を切ると選んでも表示しないことを検証する。</summary>
+    [Fact]
+    internal void ShouldShowFormatBar_1文字以上を選んだときだけ表示する()
+    {
+        var editor = CreateEditor("あいう");
+        editor.BeginEditing();
+
+        Assert.False(editor.ShouldShowFormatBar);
+
+        editor.Select(0, 1);
+        Assert.True(editor.ShouldShowFormatBar);
+
+        editor.Select(0, 0);
+        Assert.False(editor.ShouldShowFormatBar);
+
+        editor.Select(0, 1);
+        editor.ShowFormatBarWhileEditing = false;
+        Assert.False(editor.ShouldShowFormatBar);
+    }
+
+    /// <summary>共有した編集器の本文と状態がそのままコントロールの値になることを検証する。</summary>
+    /// <remarks>
+    /// ホスト（注釈の編集セッションなど）が本文と状態を持つ場合、同じ実体を渡して 1 つにする
+    /// （別の実体を持つとキャレットと本文が食い違う）。
+    /// </remarks>
+    [Fact]
+    internal void Editor_共有した実体の本文を使う()
+    {
+        var shared = new EsUtil.Feature.StyledText.Presenter.Editing.TextEditor
+        {
+            Text = RichText.Create("共有", TextDefaults.DefaultStyle),
+        };
+        var editor = new StyledTextControl
+        {
+            Editor = shared,
+            MeasureText = FixedTextMetrics.Measure,
+        };
+
+        editor.BeginEditing();
+
+        Assert.Same(shared, editor.Editor);
+        Assert.Equal("共有", editor.RichTextValue.PlainText);
+        Assert.Equal(2, editor.CaretIndex);
+    }
+
     /// <summary>本文と大きさを持つコントロールを作る。</summary>
     /// <param name="text">本文。</param>
     /// <returns>コントロール。</returns>

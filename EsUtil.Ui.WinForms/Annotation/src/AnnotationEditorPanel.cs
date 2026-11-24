@@ -63,7 +63,7 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
             IsInputEnabled = false,
             Visible = false,
             MeasureText = StyledText.RichTextPainter.Measure,
-            EditState = _layer.Session.TextEditState,
+            Editor = _layer.Session.TextEditor,
         };
 
         Controls.Add(_layer);
@@ -147,7 +147,7 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
     /// </remarks>
     internal void SyncTextEditor()
     {
-        _textEditor.EditState = _layer.Session.TextEditState;
+        _textEditor.Editor = _layer.Session.TextEditor;
         _textEditor.LineHeightFactor = _layer.LineHeightFactor;
 
         if (_layer.Session.Selected is not BubbleAnnotation bubble)
@@ -577,13 +577,16 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         var size = GetPanelSize(kind);
         var location = PointToScreen(new Point((int)Math.Round(position.X), (int)Math.Round(position.Y)));
         var area = Screen.FromPoint(location).WorkingArea;
-        var width = Math.Max(0, (int)Math.Round(size.Width));
-        var height = Math.Max(0, (int)Math.Round(size.Height));
-        var x = Math.Clamp(location.X, area.X, Math.Max(area.X, area.Right - width));
-        var y = Math.Clamp(location.Y, area.Y, Math.Max(area.Y, area.Bottom - height));
+        // 収める規則は提示層の AnnotationPanelPlacement.Clamp が単一所有する
+        var clamped = AnnotationPanelPlacement.Clamp(
+            new EsPoint(location.X, location.Y),
+            Math.Max(0, Math.Round(size.Width)),
+            Math.Max(0, Math.Round(size.Height)),
+            new EsRect(area.X, area.Y, area.Width, area.Height));
+        var placed = new Point((int)Math.Round(clamped.X), (int)Math.Round(clamped.Y));
 
-        window.Location = new Point(x, y);
-        _positions[kind] = ToLocal(new Point(x, y));
+        window.Location = placed;
+        _positions[kind] = ToLocal(placed);
     }
 
     /// <summary>画面の座標をこのコントロールの座標（DIP）へ変換する。</summary>

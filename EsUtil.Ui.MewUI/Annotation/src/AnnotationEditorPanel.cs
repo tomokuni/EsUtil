@@ -84,7 +84,7 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             IsHitTestVisible = false,
             IsVisible = false,
             MeasureText = StyledText.RichTextPainter.Measure,
-            EditState = _layer.Session.TextEditState,
+            Editor = _layer.Session.TextEditor,
         };
 
         Add(_layer);
@@ -833,7 +833,7 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// </remarks>
     internal void SyncTextEditor()
     {
-        _textEditor.EditState = _layer.Session.TextEditState;
+        _textEditor.Editor = _layer.Session.TextEditor;
         _textEditor.LineHeightFactor = _layer.LineHeightFactor;
 
         if (_layer.Session.Selected is not BubbleAnnotation bubble)

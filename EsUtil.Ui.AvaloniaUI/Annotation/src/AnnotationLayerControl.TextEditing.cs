@@ -8,7 +8,7 @@ namespace EsUtil.Ui.AvaloniaUI.Annotation;
 /// 編集するか」と「編集を始めた・終えた」の通知だけを持ちます。 キー・変換・キャレット・クリップボードの
 /// 規則をここへ写すと、コントロールと二重に持ち、片方だけ直したときに食い違います。<br/>
 /// <b>編集状態は編集セッションが所有します</b>: コントロールは同じ実体
-/// （`AnnotationEditSession.TextEditState`）を共有するため、状態を 2 つ持ちません。
+/// （`AnnotationEditSession.TextEditor`）を共有するため、本文と状態を 2 つ持ちません。
 /// </remarks>
 public sealed partial class AnnotationLayerControl
 {

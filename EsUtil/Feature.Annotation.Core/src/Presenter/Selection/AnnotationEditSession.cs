@@ -128,13 +128,13 @@ public sealed class AnnotationEditSession
     /// <value>本文。 吹き出しを選んでいない場合は空。</value>
     public string SelectedPlainText => (_document.Find(_selectedId) as BubbleAnnotation)?.Text.PlainText ?? string.Empty;
 
-    /// <summary>本文の編集状態を取得する（UI の本文編集コントロールと共有する）。</summary>
-    /// <value>キャレット・選択・入力・書式の状態。 状態の所有者は本セッションであり、UI は同じ実体を描画に使う。</value>
+    /// <summary>本文の値と編集の状態を取得する（UI の本文編集コントロールと共有する）。</summary>
+    /// <value>編集している本文と、キャレット・選択・入力・書式の状態。 所有者は本セッションであり、UI は同じ実体を描画に使う。</value>
     /// <remarks>
-    /// <b>状態を 2 つ持たない</b>: UI の編集コントロールが自前の状態を持つと、キャレットと選択が
-    /// 文書と食い違う。 UI は本プロパティの実体を渡し、描画と入力の入口としてだけ使う。
+    /// <b>編集器を 2 つ持たない</b>: UI の編集コントロールが自前の編集器を持つと、本文・キャレット・選択が
+    /// 文書と食い違う。 UI は本プロパティの実体を渡し（<c>StyledTextControl.Editor</c>）、描画と入力の入口としてだけ使う。
     /// </remarks>
-    public TextEditState TextEditState => _editor.EditState;
+    public TextEditor TextEditor => _editor;
 
     /// <summary>選択中の吹き出しの本文を丸ごと差し替える（編集コントロールからの書き戻し）。</summary>
     /// <param name="text">新しい本文（書式を含む）。</param>
@@ -268,7 +268,8 @@ public sealed class AnnotationEditSession
             return false;
         }
 
-        _editor.EditState.Clamp(SelectedPlainText.Length);
+        // 差し替えた本文の範囲へキャレットを収める（書記素クラスタの境界へ揃える規則は編集器が持つ）
+        _ = _editor.ClampCaret();
         NotifyTextSelectionChanged();
         return true;
     }
@@ -451,117 +452,6 @@ public sealed class AnnotationEditSession
         NotifyEditEnded();
     }
 
-    /// <summary>本文の選択範囲を指定する（IME から選択範囲を受け取ったとき）。</summary>
-    /// <param name="start">開始位置（文字数）。</param>
-    /// <param name="length">長さ（文字数）。</param>
-    public void SelectText(int start, int length)
-    {
-        _ = _editor.Select(start, length);
-        NotifyTextSelectionChanged();
-    }
-
-    /// <summary>本文全体を選択する。</summary>
-    public void SelectAllText()
-    {
-        _ = _editor.SelectAll();
-        NotifyTextSelectionChanged();
-    }
-
-    /// <summary>キャレットを指定位置へ移す。</summary>
-    /// <param name="index">移動先（文字数。 範囲外は本文の範囲へ丸める）。</param>
-    /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
-    /// <remarks>書記素クラスタの境界へ揃える規則は <see cref="TextEditor"/> が単一所有する。</remarks>
-    public void MoveCaret(int index, bool extend)
-    {
-        _ = _editor.MoveCaret(index, extend);
-        NotifyTextSelectionChanged();
-    }
-
-    /// <summary>キャレットを前後の 1 クラスタへ移す（選択があるときは選択の端へ畳む）。</summary>
-    /// <param name="direction">移動する向き（負は左、正は右）。</param>
-    /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
-    /// <remarks>どこへ向かうかの規則は <see cref="TextEditor"/> が単一所有する（書記素クラスタの境界へ揃える）。</remarks>
-    public void MoveCaretByCluster(int direction, bool extend)
-    {
-        _ = _editor.MoveCaretByCluster(direction, extend);
-        NotifyTextSelectionChanged();
-    }
-
-    /// <summary>キャレットを上下の行の同じ桁へ移す。</summary>
-    /// <param name="lines">本文の行（無い場合は行の移動をしない）。</param>
-    /// <param name="delta">移動する行数。</param>
-    /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
-    public void MoveCaretByLine(TextLineIndex? lines, int delta, bool extend)
-    {
-        _ = _editor.MoveCaretByLine(lines, delta, extend);
-        NotifyTextSelectionChanged();
-    }
-
-    /// <summary>キャレットを行の先頭・末尾へ移す。</summary>
-    /// <param name="lines">本文の行（無い場合は本文の先頭・末尾へ移す）。</param>
-    /// <param name="first">行の先頭へ移す場合は <see langword="true"/>。</param>
-    /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
-    public void MoveCaretToLineEdge(TextLineIndex? lines, bool first, bool extend)
-    {
-        _ = _editor.MoveCaretToLineEdge(lines, first, extend);
-        NotifyTextSelectionChanged();
-    }
-
-    /// <summary>位置（元画像ピクセル）に最も近い文字位置へキャレットを移す。</summary>
-    /// <param name="lines">本文の行。</param>
-    /// <param name="point">位置（元画像ピクセル）。</param>
-    /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
-    /// <param name="measureText">文字列と書式から実寸を測る関数。</param>
-    /// <exception cref="ArgumentNullException"><paramref name="lines"/> または <paramref name="measureText"/> が <see langword="null"/> の場合。</exception>
-    public void SetCaretFromPoint(
-        TextLineIndex lines, EsPoint point, bool extend, Func<string, TextStyle, EsSize> measureText)
-    {
-        _ = _editor.SetCaretFromPoint(lines, point, extend, measureText);
-        NotifyTextSelectionChanged();
-    }
-
-    /// <summary>キャレットと選択の起点を本文の範囲へ収める（履歴から戻したときなど）。</summary>
-    public void ClampCaret()
-    {
-        _ = _editor.ClampCaret();
-        NotifyTextSelectionChanged();
-    }
-
-    /// <summary>選択範囲、またはキャレットの前後の 1 文字を削除する。</summary>
-    /// <param name="forward">キャレットの次の文字を削除する場合は <see langword="true"/>。</param>
-    /// <returns>文書が変わった場合は <see langword="true"/>。</returns>
-    public bool DeleteAtCaret(bool forward)
-    {
-        _editor.DeleteAtCaret(forward);
-        return ReplaceEdit();
-    }
-
-    /// <summary>選択範囲を指定された文字列で置き換える（選択が無ければ挿入）。</summary>
-    /// <param name="text">置き換える文字列（空なら削除。 改行は <c>\n</c> へ揃える）。</param>
-    /// <returns>文書が変わった場合は <see langword="true"/>。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="text"/> が <see langword="null"/> の場合。</exception>
-    public bool ReplaceSelection(string text)
-    {
-        ArgumentNullException.ThrowIfNull(text);
-
-        _editor.ReplaceSelection(text);
-        return ReplaceEdit();
-    }
-
-    /// <summary>指定した範囲を文字列で置き換える（ホストが範囲を指定する場合）。</summary>
-    /// <param name="start">開始位置（文字数）。</param>
-    /// <param name="end">終了位置（文字数）。</param>
-    /// <param name="text">置き換える文字列（空なら削除。 改行は <c>\n</c> へ揃える）。</param>
-    /// <returns>文書が変わった場合は <see langword="true"/>。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="text"/> が <see langword="null"/> の場合。</exception>
-    public bool ReplaceRange(int start, int end, string text)
-    {
-        ArgumentNullException.ThrowIfNull(text);
-
-        _editor.ReplaceRange(start, end, text);
-        return ReplaceEdit();
-    }
-
     /// <summary>選択範囲の文字がすべて条件を満たすかどうかを返す（書式ボタンの押下状態に使う）。</summary>
     /// <param name="match">書式が条件を満たすかどうかを返す関数。</param>
     /// <returns>すべて満たす場合は <see langword="true"/>。 選択が無い場合は表示中の書式で判定する。</returns>
@@ -572,9 +462,8 @@ public sealed class AnnotationEditSession
         return _document.Find(_selectedId) is BubbleAnnotation && _editor.SelectedTextMatches(match);
     }
 
-    /// <summary>選択中の文字を取得する（クリップボードへ渡す）。</summary>
-    /// <returns>選択中の文字列（選択が無い場合は空）。</returns>
-    public string SelectedText() => _editor.SelectedText();
+    /// <summary>キャレットと選択の起点を本文の範囲へ収める（履歴から戻したときなど）。</summary>
+    private void ClampCaret() => _editor.ClampCaret();
 
     /// <summary>このセッションが対象とする画像の大きさを取得する。</summary>
     private EsSize ImageSize => AnnotationGeometry.ResolveImageSize(_document);
