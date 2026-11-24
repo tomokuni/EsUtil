@@ -232,6 +232,64 @@ public static partial class AnnotationLogMessage
     public static void LogPanelVisibility(this ILogger logger, string kind, bool visible)
         => logger.LogPanelVisibilityCore(Prefix, kind, visible ? "表示" : "終了");
 
+    /// <summary>パネルを置いた位置を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] パネル: {Kind} 位置=({X}, {Y}) 大きさ=({Width}, {Height}) 領域=({AreaX}, {AreaY}, {AreaWidth}, {AreaHeight})</c><br/>
+    /// 置ける領域も残す（パネルが切れる・画面の外へ出るといった不具合の切り分けに要る）。</remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="kind">パネルの種別。</param>
+    /// <param name="x">左上の X（整形済み）。</param>
+    /// <param name="y">左上の Y（整形済み）。</param>
+    /// <param name="width">幅（整形済み）。</param>
+    /// <param name="height">高さ（整形済み）。</param>
+    /// <param name="areaX">置ける領域の X（整形済み）。</param>
+    /// <param name="areaY">置ける領域の Y（整形済み）。</param>
+    /// <param name="areaWidth">置ける領域の幅（整形済み）。</param>
+    /// <param name="areaHeight">置ける領域の高さ（整形済み）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} パネル: {Kind:l} 位置=({X:l}, {Y:l}) 大きさ=({Width:l}, {Height:l}) 領域=({AreaX:l}, {AreaY:l}, {AreaWidth:l}, {AreaHeight:l})")]
+    private static partial void LogPanelPlacedCore(
+        this ILogger logger,
+        string prefix,
+        string kind,
+        string x,
+        string y,
+        string width,
+        string height,
+        string areaX,
+        string areaY,
+        string areaWidth,
+        string areaHeight);
+
+    /// <summary>パネルを置いた位置を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="kind">パネルの種別（<c>nameof</c> で渡す）。</param>
+    /// <param name="position">左上の位置（DIP）。</param>
+    /// <param name="size">大きさ（DIP）。</param>
+    /// <param name="available">置ける領域（DIP）。</param>
+    /// <remarks>
+    /// <b>整形の前に有効かどうかを判定する</b>: 座標の整形は文字列を確保するため、無効なレベルでは行わない
+    /// （規則は <c>.github/コーディング規約.md</c> §7）。
+    /// </remarks>
+    public static void LogPanelPlaced(this ILogger logger, string kind, EsPoint position, EsSize size, EsRect available)
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogPanelPlacedCore(
+            Prefix,
+            kind,
+            NumberText.Format(position.X),
+            NumberText.Format(position.Y),
+            NumberText.Format(size.Width),
+            NumberText.Format(size.Height),
+            NumberText.Format(available.X),
+            NumberText.Format(available.Y),
+            NumberText.Format(available.Width),
+            NumberText.Format(available.Height));
+    }
+
     /// <summary>注釈への押下を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 押下: 位置=({X}, {Y}) クリック回数={ClickCount}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
@@ -246,8 +304,19 @@ public static partial class AnnotationLogMessage
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="point">押下した位置（元画像ピクセル）。</param>
     /// <param name="clickCount">クリック回数。</param>
+    /// <remarks>
+    /// <b>整形の前に有効かどうかを判定する</b>: 座標の整形は文字列を確保するため、無効なレベルでは行わない
+    /// （規則は <c>.github/コーディング規約.md</c> §7）。
+    /// </remarks>
     public static void LogPointerPressed(this ILogger logger, EsPoint point, int clickCount)
-        => logger.LogPointerPressedCore(Prefix, NumberText.Format(point.X), NumberText.Format(point.Y), clickCount);
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogPointerPressedCore(Prefix, NumberText.Format(point.X), NumberText.Format(point.Y), clickCount);
+    }
 
     /// <summary>注釈からの解放を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 解放: 位置=({X}, {Y}) 選択あり={HasSelection}</c></remarks>
@@ -263,8 +332,19 @@ public static partial class AnnotationLogMessage
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="point">解放した位置（元画像ピクセル）。</param>
     /// <param name="hasSelection">選択がある場合 <see langword="true"/>。</param>
+    /// <remarks>
+    /// <b>整形の前に有効かどうかを判定する</b>: 座標の整形は文字列を確保するため、無効なレベルでは行わない
+    /// （規則は <c>.github/コーディング規約.md</c> §7）。
+    /// </remarks>
     public static void LogPointerReleased(this ILogger logger, EsPoint point, bool hasSelection)
-        => logger.LogPointerReleasedCore(Prefix, NumberText.Format(point.X), NumberText.Format(point.Y), hasSelection);
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogPointerReleasedCore(Prefix, NumberText.Format(point.X), NumberText.Format(point.Y), hasSelection);
+    }
 
     /// <summary>ドラッグ中の文書の変更を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Annotation] 文書を変更: 注釈={Count} 件</c><br/>

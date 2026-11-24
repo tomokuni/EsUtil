@@ -100,11 +100,8 @@ public sealed class AnnotationPanelController
             return;
         }
 
-        var position = AnnotationPanelPlacement.ResolveOutside(
-            target, size, _host.AvailableArea, gap);
-        _host.MovePanel(kind, position);
-        (_logger?.Invoke() ?? NullLogger.Instance).LogPanelPlaced(
-            kind.ToString(), position, size, _host.AvailableArea);
+        _host.MovePanel(
+            kind, AnnotationPanelPlacement.ResolveOutside(target, size, _host.AvailableArea, gap));
     }
 
     /// <summary>位置を指定してパネルを表示する。</summary>
@@ -120,7 +117,13 @@ public sealed class AnnotationPanelController
         _host.CreatePanel(kind, _appearance, position);
         IsOpen = true;
         Kind = kind;
-        (_logger?.Invoke() ?? NullLogger.Instance).LogPanelVisibility(kind.ToString(), visible: true);
+
+        var logger = _logger?.Invoke() ?? NullLogger.Instance;
+        logger.LogPanelVisibility(kind.ToString(), visible: true);
+
+        // **置いた位置と置ける領域を残す**: パネルが切れる・画面の外へ出るといった不具合は、
+        // 位置と領域の値から切り分けられる（表示のたびの 1 件であり、頻度は低い）。
+        logger.LogPanelPlaced(kind.ToString(), position, _host.GetPanelSize(kind), _host.AvailableArea);
     }
 
     /// <summary>パネルを閉じる（出ていなければ何もしない）。</summary>
@@ -188,8 +191,6 @@ public sealed class AnnotationPanelController
         if (clamped.X != current.X || clamped.Y != current.Y)
         {
             _host.MovePanel(kind, clamped);
-            (_logger?.Invoke() ?? NullLogger.Instance).LogPanelPlaced(
-                kind.ToString(), clamped, panelSize, _host.AvailableArea);
         }
     }
 
