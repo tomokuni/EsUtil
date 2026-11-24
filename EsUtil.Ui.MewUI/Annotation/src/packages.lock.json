@@ -78,7 +78,7 @@
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.0, )"
         }
       },
-      "esutil.ui.mewui.richtexteditor": {
+      "esutil.ui.mewui.styledtext": {
         "type": "Project",
         "dependencies": {
           "Aprillz.MewUI.Core": "[0.22.1, )",

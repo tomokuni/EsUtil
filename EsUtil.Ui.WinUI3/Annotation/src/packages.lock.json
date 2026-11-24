@@ -221,7 +221,7 @@
           "Microsoft.WindowsAppSDK": "[2.0.1, )"
         }
       },
-      "esutil.ui.winui3.richtexteditor": {
+      "esutil.ui.winui3.styledtext": {
         "type": "Project",
         "dependencies": {
           "EsUtil.Feature.StyledText.Core": "[0.8.8, )",

@@ -76,15 +76,15 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/Marquee/sample"
         },
         {
-            "name": "AvaloniaUI / RichTextEditor",
+            "name": "AvaloniaUI / StyledText",
             "presentation": { "group": "AvaloniaUI", "order": 5 },
             "type": "coreclr",
             "request": "launch",
             "justMyCode": false,
             "logging": { "moduleLoad": false },
-            "preLaunchTask": "ビルド（AvaloniaUI / RichTextEditor）",
-            "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/RichTextEditor/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.AvaloniaUI.RichTextEditor.Sample.exe",
-            "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/RichTextEditor/sample"
+            "preLaunchTask": "ビルド（AvaloniaUI / StyledText）",
+            "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/StyledText/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.AvaloniaUI.StyledText.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/StyledText/sample"
         },
         {
             "name": "AvaloniaUI / Thumbnail",
@@ -153,15 +153,15 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/Marquee/sample"
         },
         {
-            "name": "MewUI / RichTextEditor",
+            "name": "MewUI / StyledText",
             "presentation": { "group": "MewUI", "order": 5 },
             "type": "coreclr",
             "request": "launch",
             "justMyCode": false,
             "logging": { "moduleLoad": false },
-            "preLaunchTask": "ビルド（MewUI / RichTextEditor）",
-            "program": "${workspaceFolder}/EsUtil.Ui.MewUI/RichTextEditor/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.RichTextEditor.Sample.exe",
-            "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/RichTextEditor/sample"
+            "preLaunchTask": "ビルド（MewUI / StyledText）",
+            "program": "${workspaceFolder}/EsUtil.Ui.MewUI/StyledText/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.StyledText.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/StyledText/sample"
         },
         {
             "name": "MewUI / Thumbnail",
@@ -230,15 +230,15 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/Marquee/sample"
         },
         {
-            "name": "WinUI3 / RichTextEditor",
+            "name": "WinUI3 / StyledText",
             "presentation": { "group": "WinUI3", "order": 5 },
             "type": "coreclr",
             "request": "launch",
             "justMyCode": false,
             "logging": { "moduleLoad": false },
-            "preLaunchTask": "ビルド（WinUI3 / RichTextEditor）",
-            "program": "${workspaceFolder}/EsUtil.Ui.WinUI3/RichTextEditor/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.WinUI3.RichTextEditor.Sample.exe",
-            "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/RichTextEditor/sample"
+            "preLaunchTask": "ビルド（WinUI3 / StyledText）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinUI3/StyledText/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.WinUI3.StyledText.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/StyledText/sample"
         },
         {
             "name": "WinUI3 / Thumbnail",
@@ -285,15 +285,15 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.WinForms/Marquee/sample"
         },
         {
-            "name": "WinForms / RichTextEditor",
+            "name": "WinForms / StyledText",
             "presentation": { "group": "WinForms", "order": 5 },
             "type": "coreclr",
             "request": "launch",
             "justMyCode": false,
             "logging": { "moduleLoad": false },
-            "preLaunchTask": "ビルド（WinForms / RichTextEditor）",
-            "program": "${workspaceFolder}/EsUtil.Ui.WinForms/RichTextEditor/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.WinForms.RichTextEditor.Sample.exe",
-            "cwd": "${workspaceFolder}/EsUtil.Ui.WinForms/RichTextEditor/sample"
+            "preLaunchTask": "ビルド（WinForms / StyledText）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinForms/StyledText/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.WinForms.StyledText.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinForms/StyledText/sample"
         },
         {
             "name": "WinForms / Thumbnail",

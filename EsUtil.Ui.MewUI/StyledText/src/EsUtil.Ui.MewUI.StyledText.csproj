@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <RootNamespace>EsUtil.Ui.MewUI.StyledText</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- MewUI は API が安定化中（0.x）。破壊的変更を避けるためバージョンを固定する。 -->
+    <MewUIVersion>0.22.1</MewUIVersion>
+    <!-- このライブラリは Windows 専用だが、Native AOT の解析（トリム/AOT 警告）は有効にする。 -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <Description>書式付き文字列（run 単位の書式）を表示・編集する MewUI 版コントロール。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aprillz.MewUI.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\EsUtil\Feature.StyledText.Core\src\EsUtil.Feature.StyledText.Core.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Ui.MewUI.StyledText.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="EsUtil.Feature.StyledText" />
+    <Using Include="EsUtil.Feature.StyledText.Core.Text" />
+    <Using Include="EsUtil.Feature.StyledText.Presenter.Drawing" />
+    <Using Include="EsUtil.Feature.StyledText.Presenter.Editing" />
+    <!-- MewUI も TextLineLayout を持つため、本ライブラリの型を名前で固定する -->
+    <Using Include="EsUtil.Feature.StyledText.Core.Text.TextLineLayout" Alias="TextLineLayout" />
+  </ItemGroup>
+
+</Project>

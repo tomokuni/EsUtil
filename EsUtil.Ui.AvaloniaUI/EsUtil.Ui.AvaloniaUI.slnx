@@ -29,10 +29,10 @@
     <Project Path="Thumbnail/src/EsUtil.Ui.AvaloniaUI.Thumbnail.csproj" />
     <Project Path="Thumbnail/tests/EsUtil.Ui.AvaloniaUI.Thumbnail.Tests.csproj" />
   </Folder>
-  <Folder Name="/RichTextEditor/">
-    <Project Path="RichTextEditor/sample/EsUtil.Ui.AvaloniaUI.RichTextEditor.Sample.csproj" />
-    <Project Path="RichTextEditor/src/EsUtil.Ui.AvaloniaUI.RichTextEditor.csproj" />
-    <Project Path="RichTextEditor/tests/EsUtil.Ui.AvaloniaUI.RichTextEditor.Tests.csproj" />
+  <Folder Name="/StyledText/">
+    <Project Path="StyledText/sample/EsUtil.Ui.AvaloniaUI.StyledText.Sample.csproj" />
+    <Project Path="StyledText/src/EsUtil.Ui.AvaloniaUI.StyledText.csproj" />
+    <Project Path="StyledText/tests/EsUtil.Ui.AvaloniaUI.StyledText.Tests.csproj" />
   </Folder>
   <Folder Name="/SampleKit/">
     <Project Path="SampleKit/src/EsUtil.Ui.AvaloniaUI.SampleKit.csproj" />

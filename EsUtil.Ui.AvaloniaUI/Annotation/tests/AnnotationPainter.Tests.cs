@@ -11,7 +11,7 @@ namespace EsUtil.Ui.AvaloniaUI.Annotation.Tests;
 /// <remarks>
 /// 斜体は字を傾けるだけであり、行の高さ・ベースラインを変えてはいけない。 区間ごとの実寸で縦位置を
 /// 決めると、斜体にした区間だけが上下へずれ、行の高さも増える。 文字の描画と実寸は
-/// <see cref="RichTextEditor.RichTextPainter"/> が単一所有する（注釈は写しを持たない）。
+/// <see cref="StyledText.RichTextPainter"/> が単一所有する（注釈は写しを持たない）。
 /// </remarks>
 [Collection("AvaloniaHeadless")]
 public class AnnotationPainterTests
@@ -19,7 +19,7 @@ public class AnnotationPainterTests
     /// <summary>行の高さを測る書式から斜体が外れることを検証する。</summary>
     /// <remarks>
     /// 幅（折り返しの判定）は指定どおりの書式で測るが、行の高さは斜体を外した書式で測る
-    /// （<see cref="RichTextEditor.RichTextPainter.CreateLineMetrics"/>）。
+    /// （<see cref="StyledText.RichTextPainter.CreateLineMetrics"/>）。
     /// </remarks>
     [AvaloniaFact]
     internal void 行の高さを測る書式から斜体が外れる()
@@ -57,8 +57,8 @@ public class AnnotationPainterTests
         };
 
         Assert.Equal(
-            TextLineLayout.ResolveBaseline(normalOnly, RichTextEditor.RichTextPainter.MeasureLineMetrics),
-            TextLineLayout.ResolveBaseline(line, RichTextEditor.RichTextPainter.MeasureLineMetrics),
+            TextLineLayout.ResolveBaseline(normalOnly, StyledText.RichTextPainter.MeasureLineMetrics),
+            TextLineLayout.ResolveBaseline(line, StyledText.RichTextPainter.MeasureLineMetrics),
             3);
     }
 
@@ -76,7 +76,7 @@ public class AnnotationPainterTests
             new EsRect(0, 0, 200, 30),
             [new TextSegmentPlan("文字", TextDefaults.DefaultStyle, new EsRect(0, 0, 100, 30))]);
 
-        var baseline = TextLineLayout.ResolveBaseline(line, RichTextEditor.RichTextPainter.MeasureLineMetrics);
+        var baseline = TextLineLayout.ResolveBaseline(line, StyledText.RichTextPainter.MeasureLineMetrics);
 
         var normalTop = baseline - normal.Baseline;
         var italicTop = baseline - italic.Baseline;

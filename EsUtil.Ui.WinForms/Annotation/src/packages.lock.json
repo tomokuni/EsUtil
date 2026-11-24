@@ -64,7 +64,7 @@
           "EsUtil.Platform.Core": "[0.8.8, )"
         }
       },
-      "esutil.ui.winforms.richtexteditor": {
+      "esutil.ui.winforms.styledtext": {
         "type": "Project",
         "dependencies": {
           "EsUtil.Feature.StyledText.Core": "[0.8.8, )",

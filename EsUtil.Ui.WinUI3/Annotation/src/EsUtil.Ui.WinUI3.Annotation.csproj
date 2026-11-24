@@ -25,7 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\EsUtil\Feature.Annotation.Core\src\EsUtil.Feature.Annotation.Core.csproj" />
     <!-- 本文の表示と編集は書式付き文字列の編集コントロールを使う（4 つの UI 版で同じ振る舞いにする） -->
-    <ProjectReference Include="..\..\RichTextEditor\src\EsUtil.Ui.WinUI3.RichTextEditor.csproj" />
+    <ProjectReference Include="..\..\StyledText\src\EsUtil.Ui.WinUI3.StyledText.csproj" />
     <!-- 選択枠とハンドルは Marquee の提示層を再利用する（枠の見た目を 4 つの UI 版で揃えるため） -->
     <ProjectReference Include="..\..\..\EsUtil\Feature.Marquee.Core\src\EsUtil.Feature.Marquee.Core.csproj" />
     <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />

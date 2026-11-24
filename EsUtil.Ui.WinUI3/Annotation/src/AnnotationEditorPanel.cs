@@ -66,7 +66,7 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
     private Panel? _hookedRoot;
 
     /// <summary>本文の表示を担うコントロール（選択中の吹き出しの本文の上へ重ねる）。</summary>
-    private readonly RichTextEditor.RichTextEditorControl _textEditor;
+    private readonly StyledText.StyledTextControl _textEditor;
 
     /// <summary>本文コントロールへ写した吹き出しの識別子（変化の検出に使う）。</summary>
     private string? _syncedTextId;
@@ -83,7 +83,7 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
         // **本文の表示は専用のコントロールが担う**: 選択中の吹き出しの本文の上へ重ね、
         // 本文の文字・選択範囲・キャレット・変換中の文字列を描く（レイヤーは本文を描かない）。
         // 入力とフォーカスはレイヤーが持つため、本コントロールは表示専用にする。
-        _textEditor = new RichTextEditor.RichTextEditorControl
+        _textEditor = new StyledText.StyledTextControl
         {
             IsInputEnabled = false,
             IsHitTestVisible = false,
@@ -739,7 +739,7 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
     }
 
     /// <summary>本文の表示を担うコントロールを取得する（テストと差し替えの入口）。</summary>
-    internal RichTextEditor.RichTextEditorControl TextEditor => _textEditor;
+    internal StyledText.StyledTextControl TextEditor => _textEditor;
 
     /// <summary>本文コントロールの内容（本文・変換中の文字列・倍率）と位置を追随させる。</summary>
     /// <remarks>

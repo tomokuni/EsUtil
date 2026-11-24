@@ -96,10 +96,10 @@
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "ビルド（AvaloniaUI / RichTextEditor）",
+      "label": "ビルド（AvaloniaUI / StyledText）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
-      "command": "dotnet build EsUtil.Ui.AvaloniaUI/RichTextEditor/sample/EsUtil.Ui.AvaloniaUI.RichTextEditor.Sample.csproj --nologo",
+      "command": "dotnet build EsUtil.Ui.AvaloniaUI/StyledText/sample/EsUtil.Ui.AvaloniaUI.StyledText.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
     {
@@ -145,10 +145,10 @@
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "ビルド（MewUI / RichTextEditor）",
+      "label": "ビルド（MewUI / StyledText）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
-      "command": "dotnet build EsUtil.Ui.MewUI/RichTextEditor/sample/EsUtil.Ui.MewUI.RichTextEditor.Sample.csproj --nologo",
+      "command": "dotnet build EsUtil.Ui.MewUI/StyledText/sample/EsUtil.Ui.MewUI.StyledText.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
     {
@@ -194,10 +194,10 @@
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "ビルド（WinUI3 / RichTextEditor）",
+      "label": "ビルド（WinUI3 / StyledText）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
-      "command": "dotnet build EsUtil.Ui.WinUI3/RichTextEditor/sample/EsUtil.Ui.WinUI3.RichTextEditor.Sample.csproj --nologo",
+      "command": "dotnet build EsUtil.Ui.WinUI3/StyledText/sample/EsUtil.Ui.WinUI3.StyledText.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
     {
@@ -229,10 +229,10 @@
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "ビルド（WinForms / RichTextEditor）",
+      "label": "ビルド（WinForms / StyledText）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
-      "command": "dotnet build EsUtil.Ui.WinForms/RichTextEditor/sample/EsUtil.Ui.WinForms.RichTextEditor.Sample.csproj --nologo",
+      "command": "dotnet build EsUtil.Ui.WinForms/StyledText/sample/EsUtil.Ui.WinForms.StyledText.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
     {

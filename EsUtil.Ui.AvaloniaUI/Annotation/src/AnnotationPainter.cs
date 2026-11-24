@@ -10,7 +10,7 @@ namespace EsUtil.Ui.AvaloniaUI.Annotation;
 /// <remarks>
 /// <b>計算を持たない</b>: 角丸・塗り・枠線・しっぽの多角形・行の位置は計画が解決済みである
 /// （4 つの UI 版で見た目がずれないよう、判断は Core / Presenter が単一所有する）。<br/>
-/// <b>文字の描画と実寸は <see cref="RichTextEditor.RichTextPainter"/> が単一所有する</b>: 本文の描画は注釈に
+/// <b>文字の描画と実寸は <see cref="StyledText.RichTextPainter"/> が単一所有する</b>: 本文の描画は注釈に
 /// 固有ではなく、書式付き文字列の編集コントロールと同じ見た目でなければならない（写しを持つと、片方だけ
 /// 直したときに文字の位置や行の高さが食い違う）。
 /// </remarks>
@@ -21,20 +21,20 @@ internal static class AnnotationPainter
     /// <param name="style">書式。</param>
     /// <returns>整形済みの文字列（元画像ピクセルの大きさ）。</returns>
     internal static FormattedText CreateText(string text, TextStyle style)
-        => RichTextEditor.RichTextPainter.CreateText(text, style);
+        => StyledText.RichTextPainter.CreateText(text, style);
 
     /// <summary>行の高さを測るための整形（斜体を外した書式）を作る。</summary>
     /// <param name="style">書式。</param>
     /// <returns>整形済みの文字列（<c>Ag</c>）。</returns>
     internal static FormattedText CreateLineMetrics(TextStyle style)
-        => RichTextEditor.RichTextPainter.CreateLineMetrics(style);
+        => StyledText.RichTextPainter.CreateLineMetrics(style);
 
     /// <summary>文字列の実寸を測る（幅と行の高さ）。</summary>
     /// <param name="text">文字列。</param>
     /// <param name="style">書式。</param>
     /// <returns>実寸（元画像ピクセル）。</returns>
     internal static EsSize Measure(string text, TextStyle style)
-        => RichTextEditor.RichTextPainter.Measure(text, style);
+        => StyledText.RichTextPainter.Measure(text, style);
 
     /// <summary>注釈 1 件を描く（元画像ピクセルの座標系で呼ぶ）。</summary>
     /// <param name="context">描画先。</param>
@@ -64,7 +64,7 @@ internal static class AnnotationPainter
 
         foreach (var line in shape.Lines)
         {
-            RichTextEditor.RichTextPainter.DrawLine(context, line);
+            StyledText.RichTextPainter.DrawLine(context, line);
         }
     }
 
@@ -72,7 +72,7 @@ internal static class AnnotationPainter
     /// <param name="color">色。</param>
     /// <returns>単色のブラシ。</returns>
     internal static IBrush ToBrush(DrawingColor color)
-        => RichTextEditor.RichTextPainter.ToBrush(color);
+        => StyledText.RichTextPainter.ToBrush(color);
 
     /// <summary>しっぽ（三角形）を描く。</summary>
     /// <param name="context">描画先。</param>
