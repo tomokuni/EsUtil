@@ -1,5 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Core.Interaction;
 
@@ -51,7 +51,7 @@ public static class AnnotationHitTest
     public static BubbleAnnotation? HitTestTail(AnnotationDocument document, EsPoint point, double radius = TailHandleRadiusDefault)
     {
         ArgumentNullException.ThrowIfNull(document);
-        var effectiveRadius = AnnotationLimits.CoercePositive(radius, TailHandleRadiusDefault);
+        var effectiveRadius = TextLimits.CoercePositive(radius, TailHandleRadiusDefault);
         var squared = effectiveRadius * effectiveRadius;
 
         for (var i = document.Items.Length - 1; i >= 0; i--)

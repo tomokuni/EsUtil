@@ -3,6 +3,8 @@ using Xunit;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Geometry;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 
@@ -49,7 +51,7 @@ public sealed class AnnotationEditingOutlineTests
         var image = new EsSize(400, 300);
         var bubble = AnnotationGeometry.CreateBubble(
             new EsRect(40, 40, 120, 80),
-            RichText.Create("あ", AnnotationDefaults.TextStyle),
+            RichText.Create("あ", TextDefaults.DefaultStyle),
             AnnotationDraftDefaults.Default,
             image);
 

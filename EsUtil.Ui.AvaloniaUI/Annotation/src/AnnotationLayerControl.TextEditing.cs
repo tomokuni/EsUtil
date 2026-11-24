@@ -7,6 +7,8 @@ using Avalonia.Threading;
 using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Text;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
 
@@ -92,7 +94,7 @@ public sealed partial class AnnotationLayerControl
 
     /// <summary>いまキャレットを点灯して描くかどうかを取得する。</summary>
     /// <value>点滅の位相が点灯の間は <see langword="true"/>。</value>
-    private bool IsCaretVisible => AnnotationCaretBlink.IsVisible(DateTimeOffset.UtcNow - _caretBlinkStart);
+    private bool IsCaretVisible => TextCaretBlink.IsVisible(DateTimeOffset.UtcNow - _caretBlinkStart);
 
     /// <summary>キャレットの点滅を点灯から始め直す（文字入力・キャレット移動の直後に呼ぶ）。</summary>
     /// <remarks>
@@ -103,7 +105,7 @@ public sealed partial class AnnotationLayerControl
         _caretBlinkStart = DateTimeOffset.UtcNow;
         if (_caretTimer is null)
         {
-            var timer = new DispatcherTimer { Interval = AnnotationCaretBlink.Interval };
+            var timer = new DispatcherTimer { Interval = TextCaretBlink.Interval };
             timer.Tick += (_, _) =>
             {
                 if (IsEditingText)
@@ -367,8 +369,8 @@ public sealed partial class AnnotationLayerControl
     /// 「付ける／外す」を決め、範囲の全 run へ同じ値を書く（run ごとに反転すると混ざったままになる）。
     /// </remarks>
     private bool ToggleDecoration(
-        Func<AnnotationTextStyle, bool> read,
-        Func<AnnotationTextStyle, bool, AnnotationTextStyle> write)
+        Func<TextStyle, bool> read,
+        Func<TextStyle, bool, TextStyle> write)
         // 適用先（選択範囲・選択が無ければ以降の入力）の決定は Apply/Transform が単一所有する
         => TransformTextStyle(style => write(style, !read(style)));
 
@@ -382,7 +384,7 @@ public sealed partial class AnnotationLayerControl
     /// <b>範囲のすべてで判定する</b>: 一部だけ太字の範囲でボタンが押されて見えないよう、先頭の文字ではなく
     /// 範囲のすべてが同じ属性かで決める。 選択が無い（キャレットだけ）ときは書式バーで選んだ書式で判定する。
     /// </remarks>
-    public bool SelectedTextMatches(Func<AnnotationTextStyle, bool> match) => _session.SelectedTextMatches(match);
+    public bool SelectedTextMatches(Func<TextStyle, bool> match) => _session.SelectedTextMatches(match);
 
     /// <summary>編集の開始・終了を通知する。</summary>
     private void RaiseEditingChanged() => EditingChanged?.Invoke(this, EventArgs.Empty);
@@ -412,7 +414,7 @@ public sealed partial class AnnotationLayerControl
             return;
         }
 
-        // **キャレットは一般的な速さで点滅させる**（規則は提示層の AnnotationCaretBlink が単一所有する）。
+        // **キャレットは一般的な速さで点滅させる**（規則は提示層の TextCaretBlink が単一所有する）。
         // 文字入力・キャレット移動の直後は点灯から始める（消えた瞬間に操作すると入力位置を見失う）。
         if (IsCaretVisible)
         {
@@ -457,8 +459,8 @@ public sealed partial class AnnotationLayerControl
     /// <summary>行の文字数を求める（区間の文字数の合計）。</summary>
     /// <param name="line">行。</param>
     /// <returns>文字数。</returns>
-    /// <remarks>数え方はコアが単一所有する（<see cref="AnnotationTextLineLayout.Length"/>）。</remarks>
-    internal static int LineTextLength(AnnotationTextLinePlan line) => AnnotationTextLineLayout.Length(line);
+    /// <remarks>数え方はコアが単一所有する（<see cref="TextLineLayout.Length"/>）。</remarks>
+    internal static int LineTextLength(TextLinePlan line) => TextLineLayout.Length(line);
 
     /// <summary>選択中の文字をクリップボードへコピーする（ホストのキー処理から呼ぶ入口）。</summary>
     public void CopyTextSelection() => _ = CopySelectionAsync();
@@ -547,7 +549,7 @@ public sealed partial class AnnotationLayerControl
     /// <b>行の開始位置は本文から数え直す</b>: 折り返しは明示改行を区切りとして扱うため、行の文字数を足した後に
     /// 改行 1 文字を進める（この規則を 1 か所に閉じ込める）。
     /// </remarks>
-    private AnnotationTextLineIndex? ResolveLineIndex()
+    private TextLineIndex? ResolveLineIndex()
     {
         if (Selected is not BubbleAnnotation bubble)
         {
@@ -556,7 +558,7 @@ public sealed partial class AnnotationLayerControl
 
         var plan = _presenter.ResolveDrawPlan(RenderDocument, MeasureText, _session.SelectedId);
         var shape = plan.Shapes.FirstOrDefault(candidate => string.Equals(candidate.Id, bubble.Id, StringComparison.Ordinal));
-        return shape is null ? null : AnnotationTextLineIndex.Create(shape, bubble.Text.PlainText);
+        return shape is null ? null : TextLineIndex.Create(shape.Lines, bubble.Text.PlainText);
     }
 }
 

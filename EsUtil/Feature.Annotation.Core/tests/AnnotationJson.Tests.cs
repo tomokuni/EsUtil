@@ -2,6 +2,8 @@ using DrawingColor = System.Drawing.Color;
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
 using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 
@@ -112,7 +114,7 @@ public class AnnotationJsonTests
     /// <returns>枠線 1 件と吹き出し 1 件を持つ文書。</returns>
     internal static AnnotationDocument CreateDocument()
     {
-        var bold = AnnotationTextStyle.Default with { IsBold = true, IsUnderline = true, Color = DrawingColor.FromArgb(255, 200, 0, 0) };
+        var bold = TextStyle.Default with { IsBold = true, IsUnderline = true, Color = DrawingColor.FromArgb(255, 200, 0, 0) };
         var bubble = new BubbleAnnotation
         {
             Id = "bubble-1",
@@ -121,7 +123,7 @@ public class AnnotationJsonTests
             BodyPadding = 10,
             Tail = new BubbleTail(new EsPoint(500, 420), BubbleEdge.Right, 0.4, 24),
             Text = new RichText([
-                new TextRun("ここが", AnnotationDefaults.TextStyle),
+                new TextRun("ここが", TextDefaults.DefaultStyle),
                 new TextRun("重要", bold),
             ]),
         };

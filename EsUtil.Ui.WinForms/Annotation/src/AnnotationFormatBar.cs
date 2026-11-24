@@ -1,6 +1,7 @@
 using EsUtil.Platform.Core.Palette;
-using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Presenter.Editor;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 
@@ -97,10 +98,10 @@ internal sealed class AnnotationFormatBar : Panel
         };
 
         _size = AnnotationEditorControls.NumberBox(
-            AnnotationDefaults.FontSizeDefault, 6, 512,
+            TextDefaults.FontSizeDefault, 6, 512,
             value => ApplyFull(style => style with { FontSize = value }));
         _color = AnnotationEditorControls.ColorButton(
-            AnnotationDefaults.TextStyle.Color, color => ApplyFull(style => style with { Color = color }));
+            TextDefaults.DefaultStyle.Color, color => ApplyFull(style => style with { Color = color }));
 
         // 並び順はコア（AnnotationFormatBarLayout.Order）が単一所有する。
         // ここで順を決めると 4 つの UI 版で操作の位置がずれる。
@@ -143,7 +144,7 @@ internal sealed class AnnotationFormatBar : Panel
 
             var index = AnnotationFonts.All.ToList().IndexOf(style.FontFamily);
             _font.SelectedIndex = index >= 0 ? index : 0;
-            _size.Value = (decimal)AnnotationLimits.CoerceFontSize(style.FontSize);
+            _size.Value = (decimal)TextLimits.CoerceFontSize(style.FontSize);
             _color.BackColor = style.Color;
         }
         finally
@@ -154,7 +155,7 @@ internal sealed class AnnotationFormatBar : Panel
 
     /// <summary>装飾を切り替える。</summary>
     /// <param name="change">書式を変える処理。</param>
-    private void Toggle(Func<AnnotationTextStyle, AnnotationTextStyle> change)
+    private void Toggle(Func<TextStyle, TextStyle> change)
     {
         if (_refreshing)
         {
@@ -167,7 +168,7 @@ internal sealed class AnnotationFormatBar : Panel
 
     /// <summary>書式を丸ごと適用する（色・大きさ・フォント）。</summary>
     /// <param name="change">書式を変える処理。</param>
-    private void ApplyFull(Func<AnnotationTextStyle, AnnotationTextStyle> change)
+    private void ApplyFull(Func<TextStyle, TextStyle> change)
     {
         if (_refreshing)
         {

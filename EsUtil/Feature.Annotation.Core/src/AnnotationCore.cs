@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using EsUtil.Feature.Annotation.Core.Geometry;
 using EsUtil.Feature.Annotation.Core.Interaction;
+using EsUtil.Feature.Text;
 
 namespace EsUtil.Feature.Annotation;
 

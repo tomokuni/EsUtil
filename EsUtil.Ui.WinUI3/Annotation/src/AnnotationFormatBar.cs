@@ -5,8 +5,9 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using DrawingColor = System.Drawing.Color;
-using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Presenter.Editor;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 
@@ -124,10 +125,10 @@ internal sealed partial class AnnotationFormatBar : ContentControl
 
         _size = new NumberBox
         {
-            Minimum = AnnotationLimits.FontSizeMin,
-            Maximum = AnnotationLimits.FontSizeMax,
+            Minimum = TextLimits.FontSizeMin,
+            Maximum = TextLimits.FontSizeMax,
             SmallChange = 1,
-            Value = AnnotationDefaults.FontSizeDefault,
+            Value = TextDefaults.FontSizeDefault,
             Width = AnnotationFormatBarLayout.SizeSelectorWidth,
 
             // **枠は動かさない**: NumberBox 自体を動かすと枠もずれる。
@@ -155,7 +156,7 @@ internal sealed partial class AnnotationFormatBar : ContentControl
         };
 
         _color = AnnotationEditorControls.CreateSelector(
-            AnnotationEditorControls.ToHex(AnnotationDefaults.TextStyle.Color), ColorTextFormat.NameWithAlpha);
+            AnnotationEditorControls.ToHex(TextDefaults.DefaultStyle.Color), ColorTextFormat.NameWithAlpha);
         _color.SelectedColorChanged += (_, _) =>
         {
             if (_refreshing)
@@ -236,7 +237,7 @@ internal sealed partial class AnnotationFormatBar : ContentControl
 
     /// <summary>装飾を切り替える（選択範囲の本文へ適用する）。</summary>
     /// <param name="applyToModel">本文へ適用する処理。</param>
-    private void ApplyDecoration(Func<AnnotationTextStyle, AnnotationTextStyle> applyToModel)
+    private void ApplyDecoration(Func<TextStyle, TextStyle> applyToModel)
     {
         _layer.TransformSelectionStyle(applyToModel);
         Refresh();
@@ -244,7 +245,7 @@ internal sealed partial class AnnotationFormatBar : ContentControl
 
     /// <summary>書式を丸ごと適用する（色・大きさ・フォント）。</summary>
     /// <param name="change">書式を変える処理。</param>
-    private void ApplyFull(Func<AnnotationTextStyle, AnnotationTextStyle> change)
+    private void ApplyFull(Func<TextStyle, TextStyle> change)
     {
         _layer.ApplyFullStyle(change(_layer.SelectedTextStyle));
         Refresh();
@@ -255,7 +256,7 @@ internal sealed partial class AnnotationFormatBar : ContentControl
     /// <returns>色。 解釈できない場合は既定の文字色。</returns>
     /// <remarks>文字列の解釈は <see cref="DrawingColorExtensions.TryParseHexText"/> が単一所有する（自前で桁数を数えない）。</remarks>
     private static DrawingColor ParseColor(string? text)
-        => DrawingColorExtensions.TryParseHexText(text, out var color) ? color : AnnotationDefaults.TextStyle.Color;
+        => DrawingColorExtensions.TryParseHexText(text, out var color) ? color : TextDefaults.DefaultStyle.Color;
 
     /// <summary>要素の内側にある入力欄の文字を上下中央へ置く。</summary>
     /// <param name="root">対象の要素。</param>

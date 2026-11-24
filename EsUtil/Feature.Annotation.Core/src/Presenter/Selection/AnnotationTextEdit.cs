@@ -1,6 +1,6 @@
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Feature.Annotation.Core.Text;
-using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Text;
 
 namespace EsUtil.Feature.Annotation.Presenter.Selection;
 
@@ -9,7 +9,7 @@ namespace EsUtil.Feature.Annotation.Presenter.Selection;
 /// <b>状態の所有者は提示層</b>: 「いまどこを編集しているか（キャレット・選択）」は提示の状態であり、
 /// 4 つの UI 版が同じ規則で扱う。 UI は入力イベントを本クラスへ渡し、通知と描画だけを行う。<br/>
 /// <b>文字の操作は Core が持つ</b>: 文字列の挿入・削除・書式の適用は <see cref="RichText"/> と
-/// <see cref="AnnotationTextStyleEdit"/> が単一所有する。 本クラスは「どの範囲へ・どこへキャレットを置くか」だけを決める。<br/>
+/// <see cref="TextStyleEdit"/> が単一所有する。 本クラスは「どの範囲へ・どこへキャレットを置くか」だけを決める。<br/>
 /// <b>文書は不変</b>であるため、編集は新しい文書を返す（変化が無い場合は同じ実体を返す）。<br/>
 /// <b>選択が無いときの書式変更は以降の入力へ回す</b>（既存の文字は変えない。 入力する文字へだけ適用する）。
 /// </remarks>
@@ -28,7 +28,7 @@ public sealed class AnnotationTextEdit
     private int _anchor;
 
     /// <summary>以降の入力へ効かせる書式（無ければ直前の文字の書式を引き継ぐ）。</summary>
-    private AnnotationTextStyle? _typingStyle;
+    private TextStyle? _typingStyle;
 
     /// <summary>編集しているかどうかを取得する。</summary>
     /// <value>編集中の場合は <see langword="true"/>。</value>
@@ -61,7 +61,7 @@ public sealed class AnnotationTextEdit
 
     /// <summary>以降の入力へ効かせる書式を取得する。</summary>
     /// <value>まだ書式バーを操作していない場合は <see langword="null"/>。</value>
-    public AnnotationTextStyle? TypingStyle => _typingStyle;
+    public TextStyle? TypingStyle => _typingStyle;
 
     /// <summary>本文の編集を始める（キャレットを本文の末尾へ置く）。</summary>
     /// <param name="bubbleId">編集する吹き出しの識別子。</param>
@@ -134,7 +134,7 @@ public sealed class AnnotationTextEdit
     /// <param name="delta">移動する行数。</param>
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
     /// <returns>移動した場合は <see langword="true"/>。</returns>
-    public bool MoveByLine(AnnotationTextLineIndex? lines, int textLength, int delta, bool extend)
+    public bool MoveByLine(TextLineIndex? lines, int textLength, int delta, bool extend)
     {
         if (lines is null || lines.Lines.Count == 0)
         {
@@ -144,7 +144,7 @@ public sealed class AnnotationTextEdit
         var lineIndex = lines.LineIndexOf(_caret);
         var target = Math.Clamp(lineIndex + delta, 0, lines.Lines.Count - 1);
         var column = _caret - lines.LineStart(lineIndex);
-        var length = AnnotationTextLineIndex.LineTextLength(lines.Lines[target]);
+        var length = TextLineIndex.LineTextLength(lines.Lines[target]);
         MoveTo(lines.LineStart(target) + Math.Min(column, length), textLength, extend);
         return true;
     }
@@ -154,7 +154,7 @@ public sealed class AnnotationTextEdit
     /// <param name="textLength">本文の文字数。</param>
     /// <param name="first">行の先頭へ移す場合は <see langword="true"/>。</param>
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
-    public void MoveToLineEdge(AnnotationTextLineIndex? lines, int textLength, bool first, bool extend)
+    public void MoveToLineEdge(TextLineIndex? lines, int textLength, bool first, bool extend)
     {
         if (lines is null || lines.Lines.Count == 0)
         {
@@ -163,7 +163,7 @@ public sealed class AnnotationTextEdit
         }
 
         var lineIndex = lines.LineIndexOf(_caret);
-        var length = AnnotationTextLineIndex.LineTextLength(lines.Lines[lineIndex]);
+        var length = TextLineIndex.LineTextLength(lines.Lines[lineIndex]);
         MoveTo(first ? lines.LineStart(lineIndex) : lines.LineStart(lineIndex) + length, textLength, extend);
     }
 
@@ -174,11 +174,11 @@ public sealed class AnnotationTextEdit
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
     /// <param name="measureText">文字列と書式から実寸を測る関数。</param>
     public void SetCaretFromPoint(
-        AnnotationTextLineIndex lines,
+        TextLineIndex lines,
         EsPoint point,
         int textLength,
         bool extend,
-        Func<string, AnnotationTextStyle, EsSize> measureText)
+        Func<string, TextStyle, EsSize> measureText)
     {
         ArgumentNullException.ThrowIfNull(lines);
         ArgumentNullException.ThrowIfNull(measureText);
@@ -198,203 +198,155 @@ public sealed class AnnotationTextEdit
     /// <summary>以降の入力へ効かせる書式を覚える。</summary>
     /// <param name="style">書式。</param>
     /// <exception cref="ArgumentNullException"><paramref name="style"/> が <see langword="null"/> の場合。</exception>
-    public void Remember(AnnotationTextStyle style)
+    public void Remember(TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(style);
         _typingStyle = style;
     }
 
-    /// <summary>選択範囲を文字列で置き換えた文書を返す（選択が無ければ挿入）。</summary>
-    /// <param name="document">文書。</param>
-    /// <param name="text">挿入する文字列（空なら選択・1 文字の削除）。</param>
-    /// <returns>置き換えた文書（変化が無い場合は同じ実体）。 キャレットは挿入した文字列の末尾へ移る。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="document"/> または <paramref name="text"/> が null の場合。</exception>
-    public AnnotationDocument ReplaceSelection(AnnotationDocument document, string text)
+    /// <summary>選択範囲を文字列で置き換えた本文を返す（選択が無ければ挿入）。</summary>
+    /// <param name="text">本文。</param>
+    /// <param name="inserted">挿入する文字列（空なら選択・1 文字の削除）。</param>
+    /// <returns>置き換えた本文（変化が無い場合は同じ実体）。 キャレットは挿入した文字列の末尾へ移る。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> または <paramref name="inserted"/> が null の場合。</exception>
+    public RichText ReplaceSelection(RichText text, string inserted)
     {
-        ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(text);
-
-        if (FindText(document) is not { } bubble)
-        {
-            return document;
-        }
+        ArgumentNullException.ThrowIfNull(inserted);
 
         var start = SelectionStart;
         var length = SelectionLength;
-        if (length == 0 && text.Length == 0)
+        if (length == 0 && inserted.Length == 0)
         {
-            return document;
+            return text;
         }
 
-        var replaced = document.WithText(
-            bubble.Id, AnnotationTextStyleEdit.Insert(bubble.Text, start, length, text, _typingStyle));
-        if (ReferenceEquals(replaced, document))
+        var replaced = TextStyleEdit.Insert(text, start, length, inserted, _typingStyle);
+        if (ReferenceEquals(replaced, text))
         {
-            return document;
+            return text;
         }
 
-        _caret = start + text.Length;
+        _caret = start + inserted.Length;
         _anchor = _caret;
         return replaced;
     }
 
-    /// <summary>指定した範囲を文字列で置き換えた文書を返す（ホストが範囲を指定する場合）。</summary>
-    /// <param name="document">文書。</param>
+    /// <summary>指定した範囲を文字列で置き換えた本文を返す（ホストが範囲を指定する場合）。</summary>
+    /// <param name="text">本文。</param>
     /// <param name="start">開始位置（文字数）。</param>
     /// <param name="end">終了位置（文字数）。</param>
-    /// <param name="text">置き換える文字列（空なら削除）。</param>
-    /// <returns>置き換えた文書（変化が無い場合は同じ実体）。 キャレットは挿入した文字列の末尾へ移る。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="document"/> または <paramref name="text"/> が null の場合。</exception>
-    public AnnotationDocument ReplaceRange(AnnotationDocument document, int start, int end, string text)
+    /// <param name="inserted">置き換える文字列（空なら削除）。</param>
+    /// <returns>置き換えた本文（変化が無い場合は同じ実体）。 キャレットは挿入した文字列の末尾へ移る。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> または <paramref name="inserted"/> が null の場合。</exception>
+    public RichText ReplaceRange(RichText text, int start, int end, string inserted)
     {
-        ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(inserted);
 
-        if (FindText(document) is not { } bubble)
+        var total = text.PlainText.Length;
+        var from = Math.Clamp(start, 0, total);
+        var to = Math.Clamp(end, from, total);
+        var replaced = TextStyleEdit.Insert(text, from, to - from, inserted, _typingStyle);
+        if (ReferenceEquals(replaced, text))
         {
-            return document;
+            return text;
         }
 
-        var from = Math.Clamp(start, 0, bubble.Text.PlainText.Length);
-        var to = Math.Clamp(end, from, bubble.Text.PlainText.Length);
-        var replaced = document.WithText(
-            bubble.Id, AnnotationTextStyleEdit.Insert(bubble.Text, from, to - from, text, _typingStyle));
-        if (ReferenceEquals(replaced, document))
-        {
-            return document;
-        }
-
-        _caret = from + text.Length;
+        _caret = from + inserted.Length;
         _anchor = _caret;
         return replaced;
     }
 
-    /// <summary>選択範囲、またはキャレットの前後の 1 文字を削除した文書を返す。</summary>
-    /// <param name="document">文書。</param>
+    /// <summary>選択範囲、またはキャレットの前後の 1 クラスタを削除した本文を返す。</summary>
+    /// <param name="text">本文。</param>
     /// <param name="forward">キャレットの次の文字を削除する場合は <see langword="true"/>。</param>
-    /// <returns>削除した文書（変化が無い場合は同じ実体）。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="document"/> が null の場合。</exception>
-    public AnnotationDocument Delete(AnnotationDocument document, bool forward)
+    /// <returns>削除した本文（変化が無い場合は同じ実体）。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> が null の場合。</exception>
+    public RichText Delete(RichText text, bool forward)
     {
-        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(text);
 
         if (HasSelection)
         {
-            return ReplaceSelection(document, string.Empty);
-        }
-
-        if (FindText(document) is not { } bubble)
-        {
-            return document;
+            return ReplaceSelection(text, string.Empty);
         }
 
         // **削除の単位は書記素クラスタ**である: サロゲート ペア・結合文字を半分に割ると文字列が壊れる。
-        var (start, length) = AnnotationTextCursor.ResolveDelete(bubble.Text.PlainText, _caret, forward);
+        var (start, length) = TextCursor.ResolveDelete(text.PlainText, _caret, forward);
         if (length <= 0)
         {
-            return document;
+            return text;
         }
 
         _anchor = start;
         _caret = start + length;
-        return ReplaceSelection(document, string.Empty);
+        return ReplaceSelection(text, string.Empty);
     }
 
-    /// <summary>選択範囲へ書式を丸ごと適用した文書を返す（選択が無ければ以降の入力へ回す）。</summary>
-    /// <param name="document">文書。</param>
+    /// <summary>選択範囲へ書式を丸ごと適用した本文を返す（選択が無ければ以降の入力へ回す）。</summary>
+    /// <param name="text">本文。</param>
     /// <param name="style">適用する書式。</param>
-    /// <returns>適用した文書（選択が無い・同じ値の場合は同じ実体）。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="document"/> または <paramref name="style"/> が null の場合。</exception>
-    public AnnotationDocument ApplyStyle(AnnotationDocument document, AnnotationTextStyle style)
+    /// <returns>適用した本文（選択が無い・同じ値の場合は同じ実体）。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> または <paramref name="style"/> が null の場合。</exception>
+    public RichText ApplyStyle(RichText text, TextStyle style)
     {
-        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(style);
 
         Remember(style);
-        return AnnotationSelectionPresenter.ApplyTextStyle(document, _bubbleId, SelectionRange, style) ?? document;
+        return TextStyleEdit.ResolveRange(SelectionStart, SelectionLength) is { } selection
+            ? text.ApplyStyle(selection.Start, selection.Length, style)
+            : text;
     }
 
-    /// <summary>選択範囲の書式を 1 属性だけ変換した文書を返す（変えない属性を保つ）。</summary>
-    /// <param name="document">文書。</param>
+    /// <summary>選択範囲の書式を 1 属性だけ変換した本文を返す（変えない属性を保つ）。</summary>
+    /// <param name="text">本文。</param>
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数（範囲には 1 度だけ適用する）。</param>
-    /// <returns>変換した文書（選択が無い・同じ値の場合は同じ実体）。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="document"/> または <paramref name="transform"/> が null の場合。</exception>
+    /// <returns>変換した本文（選択が無い・同じ値の場合は同じ実体）。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> または <paramref name="transform"/> が null の場合。</exception>
     /// <remarks>
     /// <b>切り替えの判断は 1 回だけ行う</b>: 範囲の先頭の書式で「太字にする／戻す」を決め、その値を範囲の全 run へ
     /// 書く（run ごとに反転すると、範囲の中で太字と通常が入れ替わる）。
     /// </remarks>
-    public AnnotationDocument TransformStyle(
-        AnnotationDocument document, Func<AnnotationTextStyle, AnnotationTextStyle> transform)
+    public RichText TransformStyle(RichText text, Func<TextStyle, TextStyle> transform)
     {
-        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(transform);
 
-        var next = transform(ResolveDisplayStyle(document));
+        var next = transform(ResolveDisplayStyle(text));
         Remember(next);
-        if (FindText(document) is not { } bubble || !HasSelection)
-        {
-            return document;
-        }
-
-        var start = SelectionStart;
-        var length = SelectionLength;
-        return document.WithText(bubble.Id, bubble.Text.TransformStyle(start, length, _ => next));
-    }
-
-    /// <summary>指定した範囲の書式を 1 属性だけ変換した文書を返す（ホストが範囲を指定する場合）。</summary>
-    /// <param name="document">文書。</param>
-    /// <param name="start">開始位置（文字数）。</param>
-    /// <param name="length">長さ（文字数。 0 以下は本文全体）。</param>
-    /// <param name="transform">現在の書式を受け取って新しい書式を返す関数。</param>
-    /// <returns>変換した文書（変化が無い場合は同じ実体）。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="document"/> または <paramref name="transform"/> が null の場合。</exception>
-    public AnnotationDocument TransformStyleRange(
-        AnnotationDocument document, int start, int length, Func<AnnotationTextStyle, AnnotationTextStyle> transform)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-        ArgumentNullException.ThrowIfNull(transform);
-
-        return FindText(document) is { } bubble
-            ? document.WithText(bubble.Id, bubble.Text.TransformStyle(start, length, transform))
-            : document;
+        return HasSelection ? text.TransformStyle(SelectionStart, SelectionLength, _ => next) : text;
     }
 
     /// <summary>選択範囲の文字がすべて条件を満たすかどうかを返す（書式ボタンの押下状態に使う）。</summary>
-    /// <param name="document">文書。</param>
+    /// <param name="text">本文。</param>
     /// <param name="match">書式が条件を満たすかどうかを返す関数。</param>
     /// <returns>すべて満たす場合は <see langword="true"/>。 選択が無い場合は表示中の書式で判定する。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="document"/> または <paramref name="match"/> が null の場合。</exception>
-    public bool AllMatch(AnnotationDocument document, Func<AnnotationTextStyle, bool> match)
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> または <paramref name="match"/> が null の場合。</exception>
+    public bool AllMatch(RichText text, Func<TextStyle, bool> match)
     {
-        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(match);
 
-        return FindText(document) is not { } bubble
-            ? false
-            : HasSelection
-                ? bubble.Text.AllMatch(SelectionStart, SelectionLength, match)
-                : match(ResolveDisplayStyle(document));
+        return HasSelection
+            ? text.AllMatch(SelectionStart, SelectionLength, match)
+            : match(ResolveDisplayStyle(text));
     }
 
     /// <summary>書式バーへ表示する書式を返す（選択が無い間は覚えた書式）。</summary>
-    /// <param name="document">文書。</param>
+    /// <param name="text">本文。</param>
     /// <returns>表示する書式。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="document"/> が null の場合。</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> が null の場合。</exception>
     /// <remarks>
     /// <b>選んだ書式が表示に残る</b>: 選択が無いときに書式を変えると本文は変わらないため、そのまま
     /// キャレットの位置の書式を表示すると「操作が効いていない」ように見える。
     /// </remarks>
-    public AnnotationTextStyle ResolveDisplayStyle(AnnotationDocument document)
+    public TextStyle ResolveDisplayStyle(RichText text)
     {
-        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(text);
 
-        var resolved = AnnotationSelectionPresenter.ResolveTextStyle(document, _bubbleId, SelectionRange);
+        var resolved = text.StyleAt(Math.Clamp(SelectionStart, 0, text.PlainText.Length));
         return !HasSelection && _typingStyle is { } pending ? pending : resolved;
     }
-
-    /// <summary>編集している吹き出しの本文を取得する。</summary>
-    /// <param name="document">文書。</param>
-    /// <returns>吹き出し。 編集していない・吹き出しが無い場合は <see langword="null"/>。</returns>
-    private BubbleAnnotation? FindText(AnnotationDocument document)
-        => _bubbleId is null ? null : document.Find(_bubbleId) as BubbleAnnotation;
 }

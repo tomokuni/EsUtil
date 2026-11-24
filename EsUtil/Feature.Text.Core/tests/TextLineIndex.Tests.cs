@@ -1,16 +1,15 @@
-using EsUtil.Platform.Core.Geometry;
 using Xunit;
-using EsUtil.Feature.Annotation.Core.Defaults;
-using EsUtil.Feature.Annotation.Presenter.Drawing;
 
-namespace EsUtil.Feature.Annotation.Core.Tests;
+using EsUtil.Platform.Core.Geometry;
 
-/// <summary><see cref="AnnotationTextLineIndex"/> の仕様テスト（キャレット・選択範囲・位置の対応）。</summary>
+namespace EsUtil.Feature.Text.Core.Tests;
+
+/// <summary><see cref="TextLineIndex"/> の仕様テスト（キャレット・選択範囲・位置の対応）。</summary>
 /// <remarks>
 /// 実寸の測定は固定の計測関数（<see cref="FixedTextMetrics"/>。 1 文字 = 文字サイズ × 0.5）で行い、
 /// 位置の計算だけを検証する（フォントの実測値に依存させない）。
 /// </remarks>
-public class AnnotationTextLineIndexTests
+public class TextLineIndexTests
 {
     /// <summary>明示改行を含む本文で、各行の開始位置が改行を 1 文字として進むことを検証する。</summary>
     [Fact]
@@ -75,32 +74,25 @@ public class AnnotationTextLineIndexTests
         Assert.Equal(index.Lines[1].Bounds.Y, rects[1].Y, 3);
     }
 
-    /// <summary>行が無い計画では対応を解決しないことを検証する。</summary>
+    /// <summary>行が無い場合は対応を解決しないことを検証する。</summary>
     [Fact]
-    internal void 行が無い計画では解決しない()
+    internal void 行が無ければ解決しない()
     {
-        var shape = new AnnotationShapePlan(
-            "a", AnnotationKind.Frame, new EsRect(0, 0, 10, 10), 0,
-            System.Drawing.Color.Transparent, System.Drawing.Color.Black, 1, [], []);
-
-        Assert.Null(AnnotationTextLineIndex.Create(shape, string.Empty));
+        Assert.Null(TextLineIndex.Create([], string.Empty));
     }
 
     /// <summary>本文の行を持つ対応を作る。</summary>
     /// <param name="text">本文。</param>
     /// <returns>解決した対応。</returns>
-    private static AnnotationTextLineIndex CreateIndex(string text)
+    private static TextLineIndex CreateIndex(string text)
     {
-        var bubble = new BubbleAnnotation
-        {
-            Bounds = new EsRect(0, 0, 600, 300),
-            Appearance = AnnotationDefaults.BubbleAppearance,
-            BodyPadding = 12,
-            Text = RichText.Create(text, AnnotationDefaults.TextStyle with { FontSize = 20 }),
-        };
+        var style = TextDefaults.DefaultStyle with { FontSize = 20 };
+        var lines = TextLayout.ResolveLines(
+            RichText.Create(text, style),
+            new EsRect(0, 0, 600, 300),
+            FixedTextMetrics.Measure,
+            lineHeightFactor: 1.0);
 
-        var document = new AnnotationDocument(600, 300, "shot.png").Add(bubble);
-        var plan = new AnnotationPresenter().ResolveDrawPlan(document, FixedTextMetrics.Measure);
-        return AnnotationTextLineIndex.Create(Assert.Single(plan.Shapes), text)!;
+        return TextLineIndex.Create(lines, text)!;
     }
 }

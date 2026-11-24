@@ -6,6 +6,7 @@ using EsUtil.Platform.Core.Geometry;
 using Xunit;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Geometry;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation.Tests;
 
@@ -162,7 +163,7 @@ public class AnnotationLayerControlTests
         layer.AddBubble(new EsRect(10, 10, 200, 80), "abcd");
 
         layer.TextSelectionRange = (1, 2);
-        Assert.True(layer.ApplyTextStyle(AnnotationDefaults.TextStyle with { IsBold = true }));
+        Assert.True(layer.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true }));
 
         var text = Assert.IsType<BubbleAnnotation>(layer.Selected).Text;
         Assert.False(text.StyleAt(0).IsBold);

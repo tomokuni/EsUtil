@@ -2,7 +2,7 @@ using Aprillz.MewUI;
 using Aprillz.MewUI.Rendering;
 using Aprillz.MewUI.Text;
 using DrawingColor = System.Drawing.Color;
-using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Text;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
@@ -22,7 +22,7 @@ internal static class AnnotationPainter
     /// <param name="shape">描画計画。</param>
     /// <param name="layouts">文字のレイアウトを取得する関数（同じフレームでは同じ実体を返す）。</param>
     internal static void DrawShape(
-        IGraphicsContext context, AnnotationShapePlan shape, Func<string, AnnotationTextStyle, ITextLayout> layouts)
+        IGraphicsContext context, AnnotationShapePlan shape, Func<string, TextStyle, ITextLayout> layouts)
     {
         ArgumentNullException.ThrowIfNull(layouts);
         var fill = shape.HasFill ? AnnotationTextMetrics.ToMewColor(shape.Fill) : (Color?)null;
@@ -71,11 +71,11 @@ internal static class AnnotationPainter
     /// <param name="line">行の描画計画。</param>
     /// <returns>ベースラインの Y 座標。</returns>
     /// <remarks>
-    /// <b>決め方はコアが単一所有する</b>（<see cref="AnnotationTextLineLayout.ResolveBaseline"/>）:
+    /// <b>決め方はコアが単一所有する</b>（<see cref="TextLineLayout.ResolveBaseline"/>）:
     /// キャレット・選択範囲も同じベースラインを使うため、ここで独自に計算してはいけない。
     /// </remarks>
-    private static double ResolveLineBaseline(AnnotationTextLinePlan line)
-        => AnnotationTextLineLayout.ResolveBaseline(line, AnnotationTextMetrics.MeasureLineMetrics);
+    private static double ResolveLineBaseline(TextLinePlan line)
+        => TextLineLayout.ResolveBaseline(line, AnnotationTextMetrics.MeasureLineMetrics);
 
     /// <summary>文字列を描画する。</summary>
     /// <param name="context">描画先。</param>
@@ -133,7 +133,7 @@ internal static class AnnotationPainter
     /// <param name="layout">レイアウト（文字の実寸を取るため）。</param>
     /// <param name="top">文字の上端（ベースラインから求めた描画位置）。</param>
     private static void DrawDecorations(
-        IGraphicsContext context, AnnotationTextSegmentPlan segment, ITextLayout layout, double top)
+        IGraphicsContext context, TextSegmentPlan segment, ITextLayout layout, double top)
     {
         if (!segment.Style.IsUnderline && !segment.Style.IsStrike)
         {

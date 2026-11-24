@@ -1,4 +1,4 @@
-namespace EsUtil.Feature.Annotation.Presenter.Drawing;
+namespace EsUtil.Feature.Text.Core.Text;
 
 /// <summary>本文の編集中に出すキャレットの点滅（規則は単一所有）。</summary>
 /// <remarks>
@@ -6,10 +6,10 @@ namespace EsUtil.Feature.Annotation.Presenter.Drawing;
 /// 一般的なアプリと同じ速さで点滅させる（Windows の既定は 530 ms。 <c>GetCaretBlinkTime</c> と同じ）。<br/>
 /// <b>止めない場面を作らない</b>: 文字入力・キャレット移動の直後は<b>点灯から</b>始める（消えた瞬間に<br/>
 /// 操作すると、入力位置を見失うため）。<br/>
-/// <b>判断は提示層・時計は UI</b>: 経過時間から「いま点灯か」を決める規則をここへ置き、UI はタイマーで<br/>
+/// <b>判断はライブラリ・時計は UI</b>: 経過時間から「いま点灯か」を決める規則をここへ置き、UI はタイマーで<br/>
 /// 再描画するだけにする（4 つの UI 版で速さと位相がずれない）。
 /// </remarks>
-public static class AnnotationCaretBlink
+public static class TextCaretBlink
 {
     /// <summary>点滅の間隔（ミリ秒。 点灯・消灯それぞれの長さ）。</summary>
     /// <value>530（Windows の既定のカーソル点滅速度）。</value>

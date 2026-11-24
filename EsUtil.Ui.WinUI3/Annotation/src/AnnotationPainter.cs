@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Shapes;
 using DrawingColor = System.Drawing.Color;
 using XamlPoint = Windows.Foundation.Point;
 using XamlRect = Windows.Foundation.Rect;
+using EsUtil.Feature.Text;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 
@@ -35,7 +36,7 @@ internal static class AnnotationPainter
         double offsetX,
         double offsetY,
         string? suppressTextId,
-        Func<string, AnnotationTextStyle, EsSize> measureText)
+        Func<string, TextStyle, EsSize> measureText)
     {
         ArgumentNullException.ThrowIfNull(measureText);
         ArgumentNullException.ThrowIfNull(canvas);
@@ -63,7 +64,7 @@ internal static class AnnotationPainter
         double offsetX,
         double offsetY,
         string? suppressTextId,
-        Func<string, AnnotationTextStyle, EsSize> measureText)
+        Func<string, TextStyle, EsSize> measureText)
     {
         ArgumentNullException.ThrowIfNull(measureText);
         var stroke = AnnotationTextMetrics.ToBrush(shape.Border);
@@ -125,7 +126,7 @@ internal static class AnnotationPainter
     /// <param name="segment">区間。</param>
     /// <param name="scale">表示倍率。</param>
     /// <returns>文字の要素。</returns>
-    private static TextBlock CreateText(AnnotationTextSegmentPlan segment, double scale)
+    private static TextBlock CreateText(TextSegmentPlan segment, double scale)
     {
         var style = segment.Style;
         var text = new TextBlock
@@ -168,9 +169,9 @@ internal static class AnnotationPainter
     /// 区間ごとの実寸で縦位置を決めず、行の高さいっぱいの中央へ置く（斜体にしても行の間隔が変わらない）。
     /// </remarks>
     private static double ResolveTextTop(
-        AnnotationTextLinePlan line,
-        AnnotationTextSegmentPlan segment,
-        Func<string, AnnotationTextStyle, EsSize> measureText)
+        TextLinePlan line,
+        TextSegmentPlan segment,
+        Func<string, TextStyle, EsSize> measureText)
     {
         var runHeight = measureText("Ag", segment.Style with { IsItalic = false }).Height;
         return line.Bounds.Y + ((line.Bounds.Height - runHeight) / 2);

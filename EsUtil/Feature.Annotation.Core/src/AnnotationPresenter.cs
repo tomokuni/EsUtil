@@ -1,11 +1,12 @@
 using System.Collections.Immutable;
-using EsUtil.Feature.Annotation.Core.Internal;
 using EsUtil.Feature.Annotation.Logging;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Geometry;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation;
 
@@ -43,7 +44,7 @@ public sealed class AnnotationPresenter
         get => _lineHeightFactor;
         set
         {
-            var resolved = AnnotationLimits.CoercePositive(value, LineHeightFactorDefault);
+            var resolved = TextLimits.CoercePositive(value, LineHeightFactorDefault);
             if (_lineHeightFactor.Equals(resolved))
             {
                 return;
@@ -106,7 +107,7 @@ public sealed class AnnotationPresenter
     /// <exception cref="ArgumentNullException"><paramref name="document"/> または <paramref name="measureText"/> が null の場合。</exception>
     public AnnotationDrawPlan ResolveDrawPlan(
         AnnotationDocument document,
-        Func<string, AnnotationTextStyle, EsSize> measureText,
+        Func<string, TextStyle, EsSize> measureText,
         string? selectedId = null)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -187,13 +188,13 @@ public sealed class AnnotationPresenter
     /// <param name="lineHeightFactor">行間の倍率。</param>
     /// <returns>描画計画。</returns>
     private static AnnotationShapePlan ResolveBubble(
-        BubbleAnnotation bubble, Func<string, AnnotationTextStyle, EsSize> measureText, double lineHeightFactor)
+        BubbleAnnotation bubble, Func<string, TextStyle, EsSize> measureText, double lineHeightFactor)
     {
         var appearance = bubble.Appearance.Normalized();
         var body = bubble.ResolveBodyRect();
-        var wrapped = AnnotationTextWrap.Wrap(bubble.Text, body.Width, measureText);
 
-        var lines = LayoutLines(wrapped, body, measureText, lineHeightFactor);
+        // 折り返しと行の配置は文字の計算層が単一所有する（4 つの UI 版で同じ位置に折り返す）
+        var lines = TextLayout.ResolveLines(bubble.Text, body, measureText, lineHeightFactor);
         var tail = bubble.Tail.Normalized();
         var (from, to) = tail.ResolveBase(bubble.Bounds);
         var polygon = new List<EsPoint>(3) { tail.Tip, from, to };
@@ -208,100 +209,5 @@ public sealed class AnnotationPresenter
             appearance.BorderThickness,
             polygon,
             lines);
-    }
-
-    /// <summary>折り返した行を本文の矩形へ配置する。</summary>
-    /// <param name="wrapped">折り返した行。</param>
-    /// <param name="body">本文の矩形。</param>
-    /// <param name="measureText">実寸を測る関数。</param>
-    /// <param name="lineHeightFactor">行間の倍率。</param>
-    /// <returns>行の描画計画（左揃え・縦は中央揃え）。</returns>
-    private static ImmutableArray<AnnotationTextLinePlan> LayoutLines(
-        ImmutableArray<ImmutableArray<AnnotationTextWrap.TextSegment>> wrapped,
-        EsRect body,
-        Func<string, AnnotationTextStyle, EsSize> measureText,
-        double lineHeightFactor)
-    {
-        if (wrapped.Length == 0)
-        {
-            return [];
-        }
-
-        // 行の高さは行内で最も大きい文字に合わせる（書式が混ざっても行の間隔が揃う）
-        var heights = new double[wrapped.Length];
-        for (var i = 0; i < wrapped.Length; i++)
-        {
-            var height = 0.0;
-            foreach (var segment in wrapped[i])
-            {
-                height = Math.Max(height, measureText("Ag", segment.Style).Height * lineHeightFactor);
-            }
-
-            heights[i] = height;
-        }
-
-        FillEmptyLineHeights(heights, measureText, lineHeightFactor);
-
-        var totalHeight = 0.0;
-        foreach (var height in heights)
-        {
-            totalHeight += height;
-        }
-
-        // 本文の矩形より縦に大きい場合は上へ詰める（はみ出しは描画側のクリップに任せる）
-        var offsetY = Math.Max(0.0, (body.Height - totalHeight) / 2);
-        var lines = ImmutableArray.CreateBuilder<AnnotationTextLinePlan>(wrapped.Length);
-        var y = body.Y + offsetY;
-        for (var i = 0; i < wrapped.Length; i++)
-        {
-            var segments = ImmutableArray.CreateBuilder<AnnotationTextSegmentPlan>(wrapped[i].Length);
-            var x = body.X;
-            foreach (var segment in wrapped[i])
-            {
-                segments.Add(new AnnotationTextSegmentPlan(
-                    segment.Text, segment.Style, new EsRect(x, y, segment.Width, heights[i])));
-                x += segment.Width;
-            }
-
-            lines.Add(new AnnotationTextLinePlan(new EsRect(body.X, y, body.Width, heights[i]), segments.ToImmutable()));
-            y += heights[i];
-        }
-
-        return lines.ToImmutable();
-    }
-
-    /// <summary>文字を持たない行（空行）にも高さを与える。</summary>
-    /// <param name="heights">行の高さ（空行は 0 で入っている）。 本メソッドが書き換える。</param>
-    /// <param name="measureText">文字列と書式から実寸を測る関数。</param>
-    /// <param name="lineHeightFactor">行間の倍率。</param>
-    /// <remarks>
-    /// <b>空行を 0 にしない</b>: 0 のままだと、明示改行で空けた行が詰まって見え（空行を入れられない）、
-    /// キャレットも高さを持たない。 近い行の高さへ合わせ、前後に行が無ければ既定の文字の高さを使う。
-    /// </remarks>
-    private static void FillEmptyLineHeights(
-        double[] heights, Func<string, AnnotationTextStyle, EsSize> measureText, double lineHeightFactor)
-    {
-        var fallback = measureText("Ag", AnnotationDefaults.TextStyle).Height * lineHeightFactor;
-        for (var i = 0; i < heights.Length; i++)
-        {
-            if (heights[i] > 0)
-            {
-                continue;
-            }
-
-            // 直前の行 → 直後の行 → 既定の高さ の順に使う（書式が大きい本文でも行の間隔が揃う）
-            var height = 0.0;
-            for (var previous = i - 1; previous >= 0 && height <= 0; previous--)
-            {
-                height = heights[previous];
-            }
-
-            for (var next = i + 1; next < heights.Length && height <= 0; next++)
-            {
-                height = heights[next];
-            }
-
-            heights[i] = height > 0 ? height : fallback;
-        }
     }
 }

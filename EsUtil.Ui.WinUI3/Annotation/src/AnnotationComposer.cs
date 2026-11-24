@@ -1,5 +1,6 @@
 using System.Drawing.Drawing2D;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Text;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 
@@ -18,7 +19,7 @@ internal static class AnnotationComposer
     internal static void DrawShape(
         System.Drawing.Graphics graphics,
         AnnotationShapePlan shape,
-        Func<string, AnnotationTextStyle, EsSize> measureText)
+        Func<string, TextStyle, EsSize> measureText)
     {
         ArgumentNullException.ThrowIfNull(measureText);
         ArgumentNullException.ThrowIfNull(graphics);
@@ -94,9 +95,9 @@ internal static class AnnotationComposer
     /// <param name="measureText">文字列と書式から実寸を測る関数。</param>
     private static void DrawSegment(
         System.Drawing.Graphics graphics,
-        AnnotationTextLinePlan line,
-        AnnotationTextSegmentPlan segment,
-        Func<string, AnnotationTextStyle, EsSize> measureText)
+        TextLinePlan line,
+        TextSegmentPlan segment,
+        Func<string, TextStyle, EsSize> measureText)
     {
         var style = segment.Style;
         var runHeight = measureText("Ag", style with { IsItalic = false }).Height;
@@ -127,7 +128,7 @@ internal static class AnnotationComposer
     /// <summary>書式を GDI+ のフォント スタイルへ変換する。</summary>
     /// <param name="style">書式。</param>
     /// <returns>フォント スタイル。</returns>
-    private static System.Drawing.FontStyle ToFontStyle(AnnotationTextStyle style)
+    private static System.Drawing.FontStyle ToFontStyle(TextStyle style)
     {
         var result = System.Drawing.FontStyle.Regular;
         if (style.IsBold)

@@ -1,27 +1,26 @@
-using EsUtil.Feature.Annotation.Core.Text;
 
-namespace EsUtil.Feature.Annotation.Presenter.Drawing;
+namespace EsUtil.Feature.Text.Core.Text;
 
 /// <summary>行の中の文字位置と座標の対応（単一所有。 4 つの UI 版が同じ結果になる）。</summary>
 /// <remarks>
-/// <b>描画と同じ区間の原点を使う</b>: 本文は書式ごとの区間を <see cref="AnnotationTextSegmentPlan.Bounds"/> の
+/// <b>描画と同じ区間の原点を使う</b>: 本文は書式ごとの区間を <see cref="TextSegmentPlan.Bounds"/> の
 /// 位置へ描く。 キャレット・選択範囲・当たり判定も<b>同じ区間の原点からの距離</b>で求めないと、
 /// 行頭から幅を積み上げた値との差（区間の境界・末尾の空白・丸め）だけ文字からずれる。<br/>
 /// <b>文字の実寸だけを UI に委ねる</b>: 実寸は描画 API に依存するため関数で受け取る
 /// （折り返しの <c>measureText</c> と同じ形）。 位置の決め方は本クラスが単一所有する。
 /// </remarks>
-public static class AnnotationTextLineLayout
+public static class TextLineLayout
 {
     /// <summary>区間の先頭から指定した文字数までの幅を測る関数。</summary>
     /// <param name="segment">区間。</param>
     /// <param name="count">文字数（0 以上、区間の文字数以下）。</param>
     /// <returns>幅（元画像ピクセル）。</returns>
-    public delegate double MeasurePrefix(AnnotationTextSegmentPlan segment, int count);
+    public delegate double MeasurePrefix(TextSegmentPlan segment, int count);
 
     /// <summary>行に含まれる文字数を求める。</summary>
     /// <param name="line">行。</param>
     /// <returns>文字数（区間の数ではない）。</returns>
-    public static int Length(AnnotationTextLinePlan line)
+    public static int Length(TextLinePlan line)
     {
         ArgumentNullException.ThrowIfNull(line);
 
@@ -40,10 +39,10 @@ public static class AnnotationTextLineLayout
     /// <returns>区間の位置と区間の先頭からの文字数。</returns>
     /// <remarks>
     /// <b>区間の境界は次の区間へ属させる</b>: 境界の文字位置のキャレットは、次に描かれる文字の左端
-    /// （＝次の区間の <see cref="AnnotationTextSegmentPlan.Bounds"/> の左端）に置くのが正しい。
+    /// （＝次の区間の <see cref="TextSegmentPlan.Bounds"/> の左端）に置くのが正しい。
     /// </remarks>
     public static (int SegmentIndex, int OffsetInSegment) Locate(
-        AnnotationTextLinePlan line, int offsetInLine)
+        TextLinePlan line, int offsetInLine)
     {
         ArgumentNullException.ThrowIfNull(line);
 
@@ -70,7 +69,7 @@ public static class AnnotationTextLineLayout
     /// <returns>X 座標（元画像ピクセル）。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="measurePrefix"/> が null の場合。</exception>
     public static double ResolveX(
-        AnnotationTextLinePlan line, int offsetInLine, MeasurePrefix measurePrefix)
+        TextLinePlan line, int offsetInLine, MeasurePrefix measurePrefix)
     {
         ArgumentNullException.ThrowIfNull(measurePrefix);
 
@@ -88,7 +87,7 @@ public static class AnnotationTextLineLayout
         }
 
         var segment = line.Segments[index];
-        var offsetInSegment = AnnotationTextCursor.SnapBackward(
+        var offsetInSegment = TextCursor.SnapBackward(
             segment.Text, Math.Clamp(offset, 0, segment.Text.Length));
         return segment.Bounds.X + measurePrefix(segment, offsetInSegment);
     }
@@ -99,7 +98,7 @@ public static class AnnotationTextLineLayout
     /// <param name="measurePrefix">区間の先頭から指定した文字数までの幅を測る関数。</param>
     /// <returns>文字位置（行の先頭から数えた文字数）。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="measurePrefix"/> が null の場合。</exception>
-    public static int ResolveOffset(AnnotationTextLinePlan line, double x, MeasurePrefix measurePrefix)
+    public static int ResolveOffset(TextLinePlan line, double x, MeasurePrefix measurePrefix)
     {
         ArgumentNullException.ThrowIfNull(measurePrefix);
 
@@ -128,7 +127,7 @@ public static class AnnotationTextLineLayout
                 }
             }
 
-            var boundaries = AnnotationTextCursor.Boundaries(segment.Text);
+            var boundaries = TextCursor.Boundaries(segment.Text);
             foreach (var count in boundaries)
             {
                 Consider(count);
@@ -157,7 +156,7 @@ public static class AnnotationTextLineLayout
     /// 文字が上下へずれる（斜体で実寸が変わったときも同じ）。 描画もキャレットも同じベースラインを使う。
     /// </remarks>
     public static double ResolveBaseline(
-        AnnotationTextLinePlan line, Func<AnnotationTextStyle, TextLineMetrics> measureMetrics)
+        TextLinePlan line, Func<TextStyle, TextLineMetrics> measureMetrics)
     {
         ArgumentNullException.ThrowIfNull(measureMetrics);
 

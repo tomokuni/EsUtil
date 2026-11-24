@@ -1,8 +1,7 @@
 using DrawingColor = System.Drawing.Color;
 using Xunit;
-using EsUtil.Feature.Annotation.Core.Defaults;
 
-namespace EsUtil.Feature.Annotation.Core.Tests;
+namespace EsUtil.Feature.Text.Core.Tests;
 
 /// <summary><see cref="RichText"/> の仕様テスト（文字単位の書式変更と run の分割）。</summary>
 /// <remarks>
@@ -15,8 +14,8 @@ public class RichTextTests
     [Fact]
     internal void ApplyStyle_範囲の途中はrunを分割する()
     {
-        var red = AnnotationDefaults.TextStyle with { Color = DrawingColor.FromArgb(255, 255, 0, 0) };
-        var text = RichText.Create("あいうえお", AnnotationDefaults.TextStyle);
+        var red = TextDefaults.DefaultStyle with { Color = DrawingColor.FromArgb(255, 255, 0, 0) };
+        var text = RichText.Create("あいうえお", TextDefaults.DefaultStyle);
 
         var updated = text.ApplyStyle(1, 3, red);
 
@@ -32,8 +31,8 @@ public class RichTextTests
     [Fact]
     internal void ApplyStyle_同じ書式はrunを連結する()
     {
-        var bold = AnnotationDefaults.TextStyle with { IsBold = true };
-        var text = RichText.Create("あいう", AnnotationDefaults.TextStyle).ApplyStyle(2, 1, bold);
+        var bold = TextDefaults.DefaultStyle with { IsBold = true };
+        var text = RichText.Create("あいう", TextDefaults.DefaultStyle).ApplyStyle(2, 1, bold);
 
         var updated = text.ApplyStyle(1, 1, bold);
 
@@ -47,8 +46,8 @@ public class RichTextTests
     [Fact]
     internal void ApplyStyle_長さ0は全体へ適用する()
     {
-        var bold = AnnotationDefaults.TextStyle with { IsBold = true };
-        var updated = RichText.Create("あいう", AnnotationDefaults.TextStyle).ApplyStyle(0, 0, bold);
+        var bold = TextDefaults.DefaultStyle with { IsBold = true };
+        var updated = RichText.Create("あいう", TextDefaults.DefaultStyle).ApplyStyle(0, 0, bold);
 
         Assert.Single(updated.Runs);
         Assert.True(updated.Runs[0].Style.IsBold);
@@ -62,8 +61,8 @@ public class RichTextTests
     [Fact]
     internal void AllMatch_範囲のすべてが条件を満たすかで判定する()
     {
-        var bold = AnnotationDefaults.TextStyle with { IsBold = true };
-        var text = RichText.Create("あいうえお", AnnotationDefaults.TextStyle).ApplyStyle(1, 2, bold);
+        var bold = TextDefaults.DefaultStyle with { IsBold = true };
+        var text = RichText.Create("あいうえお", TextDefaults.DefaultStyle).ApplyStyle(1, 2, bold);
 
         Assert.True(text.AllMatch(1, 2, style => style.IsBold));
         Assert.False(text.AllMatch(0, 3, style => style.IsBold));
@@ -75,7 +74,7 @@ public class RichTextTests
     [Fact]
     internal void AllMatch_長さ0は全体で空の範囲はfalse()
     {
-        var bold = AnnotationDefaults.TextStyle with { IsBold = true };
+        var bold = TextDefaults.DefaultStyle with { IsBold = true };
         var text = RichText.Create("あいう", bold);
 
         Assert.True(text.AllMatch(0, 0, style => style.IsBold));
@@ -87,8 +86,8 @@ public class RichTextTests
     [Fact]
     internal void ApplyStyle_範囲外は末尾までへ丸める()
     {
-        var bold = AnnotationDefaults.TextStyle with { IsBold = true };
-        var updated = RichText.Create("あい", AnnotationDefaults.TextStyle).ApplyStyle(1, 100, bold);
+        var bold = TextDefaults.DefaultStyle with { IsBold = true };
+        var updated = RichText.Create("あい", TextDefaults.DefaultStyle).ApplyStyle(1, 100, bold);
 
         Assert.Equal("あい", updated.PlainText);
         Assert.False(updated.Runs[0].Style.IsBold);
@@ -99,8 +98,8 @@ public class RichTextTests
     [Fact]
     internal void StyleAt_位置の書式を返す()
     {
-        var bold = AnnotationDefaults.TextStyle with { IsBold = true };
-        var text = RichText.Create("あい", AnnotationDefaults.TextStyle).ApplyStyle(1, 1, bold);
+        var bold = TextDefaults.DefaultStyle with { IsBold = true };
+        var text = RichText.Create("あい", TextDefaults.DefaultStyle).ApplyStyle(1, 1, bold);
 
         Assert.False(text.StyleAt(0).IsBold);
         Assert.True(text.StyleAt(1).IsBold);
@@ -112,15 +111,15 @@ public class RichTextTests
     [Fact]
     internal void TransformStyle_変えない属性を保つ()
     {
-        var red = AnnotationDefaults.TextStyle with { Color = DrawingColor.FromArgb(255, 255, 0, 0) };
-        var text = RichText.Create("あいう", AnnotationDefaults.TextStyle).ApplyStyle(1, 1, red);
+        var red = TextDefaults.DefaultStyle with { Color = DrawingColor.FromArgb(255, 255, 0, 0) };
+        var text = RichText.Create("あいう", TextDefaults.DefaultStyle).ApplyStyle(1, 1, red);
 
         // 「全体を太字にする」: 赤い run の色はそのまま残る（ApplyStyle なら色が既定へ戻る）
         var updated = text.TransformStyle(0, 0, style => style with { IsBold = true });
 
         Assert.Equal(3, updated.Runs.Length);
         Assert.All(updated.Runs, run => Assert.True(run.Style.IsBold));
-        Assert.Equal(AnnotationDefaults.TextStyle.Color, updated.Runs[0].Style.Color);
+        Assert.Equal(TextDefaults.DefaultStyle.Color, updated.Runs[0].Style.Color);
         Assert.Equal(red.Color, updated.Runs[1].Style.Color);
     }
 
@@ -128,14 +127,14 @@ public class RichTextTests
     [Fact]
     internal void TransformStyle_範囲内のrunごとに属性を保つ()
     {
-        var first = AnnotationDefaults.TextStyle with { FontSize = 30 };
-        var text = RichText.Create("あいう", AnnotationDefaults.TextStyle).ApplyStyle(0, 1, first);
+        var first = TextDefaults.DefaultStyle with { FontSize = 30 };
+        var text = RichText.Create("あいう", TextDefaults.DefaultStyle).ApplyStyle(0, 1, first);
 
         var updated = text.TransformStyle(0, 0, style => style with { Color = DrawingColor.FromArgb(255, 0, 0, 255) });
 
         Assert.Equal(2, updated.Runs.Length);
         Assert.Equal(30, updated.Runs[0].Style.FontSize);
-        Assert.Equal(AnnotationDefaults.TextStyle.FontSize, updated.Runs[1].Style.FontSize);
+        Assert.Equal(TextDefaults.DefaultStyle.FontSize, updated.Runs[1].Style.FontSize);
         Assert.All(updated.Runs, run => Assert.Equal(DrawingColor.FromArgb(255, 0, 0, 255), run.Style.Color));
     }
 
@@ -143,8 +142,8 @@ public class RichTextTests
     [Fact]
     internal void TransformStyle_同じ書式になったrunは連結する()
     {
-        var text = RichText.Create("あいう", AnnotationDefaults.TextStyle)
-            .ApplyStyle(1, 1, AnnotationDefaults.TextStyle with { IsItalic = true });
+        var text = RichText.Create("あいう", TextDefaults.DefaultStyle)
+            .ApplyStyle(1, 1, TextDefaults.DefaultStyle with { IsItalic = true });
 
         var updated = text.TransformStyle(0, 0, style => style with { IsItalic = false });
 
@@ -156,8 +155,8 @@ public class RichTextTests
     [Fact]
     internal void Insert_位置の書式を引き継ぐ()
     {
-        var bold = AnnotationDefaults.TextStyle with { IsBold = true };
-        var text = RichText.Create("あいう", AnnotationDefaults.TextStyle).ApplyStyle(1, 1, bold);
+        var bold = TextDefaults.DefaultStyle with { IsBold = true };
+        var text = RichText.Create("あいう", TextDefaults.DefaultStyle).ApplyStyle(1, 1, bold);
 
         var updated = text.Insert(2, "X");
 
@@ -170,7 +169,7 @@ public class RichTextTests
     [Fact]
     internal void Insert_範囲外は端へ丸める()
     {
-        var text = RichText.Create("あい", AnnotationDefaults.TextStyle);
+        var text = RichText.Create("あい", TextDefaults.DefaultStyle);
 
         Assert.Equal("Xあい", text.Insert(-5, "X").PlainText);
         Assert.Equal("あいX", text.Insert(99, "X").PlainText);
@@ -181,21 +180,21 @@ public class RichTextTests
     [Fact]
     internal void Remove_範囲を削除して書式を保つ()
     {
-        var red = AnnotationDefaults.TextStyle with { Color = DrawingColor.FromArgb(255, 255, 0, 0) };
-        var text = RichText.Create("あいうえ", AnnotationDefaults.TextStyle).ApplyStyle(0, 1, red);
+        var red = TextDefaults.DefaultStyle with { Color = DrawingColor.FromArgb(255, 255, 0, 0) };
+        var text = RichText.Create("あいうえ", TextDefaults.DefaultStyle).ApplyStyle(0, 1, red);
 
         var updated = text.Remove(1, 2);
 
         Assert.Equal("あえ", updated.PlainText);
         Assert.Equal(red.Color, updated.Runs[0].Style.Color);
-        Assert.Equal(AnnotationDefaults.TextStyle.Color, updated.Runs[1].Style.Color);
+        Assert.Equal(TextDefaults.DefaultStyle.Color, updated.Runs[1].Style.Color);
     }
 
     /// <summary>改行を含む文字列の削除で行が詰まることを検証する。</summary>
     [Fact]
     internal void Remove_改行を削除する()
     {
-        var text = RichText.Create("あ\nい", AnnotationDefaults.TextStyle);
+        var text = RichText.Create("あ\nい", TextDefaults.DefaultStyle);
 
         var updated = text.Remove(1, 1);
 
@@ -207,7 +206,7 @@ public class RichTextTests
     [Fact]
     internal void Insert_サロゲートペアを分割しない()
     {
-        var text = RichText.Create("😀あ", AnnotationDefaults.TextStyle);
+        var text = RichText.Create("😀あ", TextDefaults.DefaultStyle);
 
         var updated = text.Insert(1, "X");
 
@@ -222,7 +221,7 @@ public class RichTextTests
     [InlineData(1, 1)]
     internal void Remove_サロゲートペアを丸ごと消す(int start, int length)
     {
-        var text = RichText.Create("😀あ", AnnotationDefaults.TextStyle);
+        var text = RichText.Create("😀あ", TextDefaults.DefaultStyle);
 
         var updated = text.Remove(start, length);
 
@@ -233,7 +232,7 @@ public class RichTextTests
     [Fact]
     internal void WithPlainText_サロゲートペアを保つ()
     {
-        var text = RichText.Create("ab", AnnotationDefaults.TextStyle);
+        var text = RichText.Create("ab", TextDefaults.DefaultStyle);
 
         var updated = text.WithPlainText("😀b");
 

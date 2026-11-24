@@ -4,6 +4,8 @@ using EsUtil.Ui.WinForms.Annotation.Sample.Imaging;
 using EsUtil.Ui.WinForms.SampleKit;
 using Microsoft.Extensions.Logging;
 using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Ui.WinForms.Annotation.Sample.Views;
 
@@ -48,9 +50,9 @@ internal static class MainForm
             document,
             new EsRect(520, 340, 380, 170),
             new RichText([
-                new TextRun("ここが重要です。", AnnotationDefaults.TextStyle),
-                new TextRun("文字単位の書式", AnnotationDefaults.TextStyle with { IsBold = true, Color = System.Drawing.Color.FromArgb(255, 200, 0, 0) }),
-                new TextRun("は右クリックで編集できます。", AnnotationDefaults.TextStyle),
+                new TextRun("ここが重要です。", TextDefaults.DefaultStyle),
+                new TextRun("文字単位の書式", TextDefaults.DefaultStyle with { IsBold = true, Color = System.Drawing.Color.FromArgb(255, 200, 0, 0) }),
+                new TextRun("は右クリックで編集できます。", TextDefaults.DefaultStyle),
             ]),
             tail: new BubbleTail(new EsPoint(430, 200), BubbleEdge.Top, 0.3, 26)));
 

@@ -3,6 +3,8 @@ using Aprillz.MewUI.Text;
 using Aprillz.MewUI.Rendering;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Text;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
@@ -89,7 +91,7 @@ public sealed partial class AnnotationLayerControl
 
     /// <summary>いまキャレットを点灯して描くかどうかを取得する。</summary>
     /// <value>点滅の位相が点灯の間は <see langword="true"/>。</value>
-    private bool IsCaretVisible => AnnotationCaretBlink.IsVisible(DateTimeOffset.UtcNow - _caretBlinkStart);
+    private bool IsCaretVisible => TextCaretBlink.IsVisible(DateTimeOffset.UtcNow - _caretBlinkStart);
 
     /// <summary>キャレットの点滅を点灯から始め直す（文字入力・キャレット移動の直後に呼ぶ）。</summary>
     private void RestartCaretBlink()
@@ -97,7 +99,7 @@ public sealed partial class AnnotationLayerControl
         _caretBlinkStart = DateTimeOffset.UtcNow;
         if (_caretTimer is null)
         {
-            var timer = new DispatcherTimer(AnnotationCaretBlink.Interval);
+            var timer = new DispatcherTimer(TextCaretBlink.Interval);
             timer.Tick += () =>
             {
                 if (IsEditingText)
@@ -413,8 +415,8 @@ public sealed partial class AnnotationLayerControl
     /// <param name="write">属性を書く関数。</param>
     /// <returns>処理した場合は <see langword="true"/>。</returns>
     private bool ToggleDecoration(
-        Func<AnnotationTextStyle, bool> read,
-        Func<AnnotationTextStyle, bool, AnnotationTextStyle> write)
+        Func<TextStyle, bool> read,
+        Func<TextStyle, bool, TextStyle> write)
         // 適用先（選択範囲・選択が無ければ以降の入力）の決定は Apply/Transform が単一所有する
         => TransformTextStyle(style => write(style, !read(style)));
 
@@ -422,7 +424,7 @@ public sealed partial class AnnotationLayerControl
     /// <param name="match">書式が条件を満たすかどうかを返す関数。</param>
     /// <returns>すべて満たす場合は <see langword="true"/>。</returns>
     /// <remarks>選択が無い間は、書式バーで選んだ書式（以降の入力へ効く値）で判定する。</remarks>
-    public bool SelectedTextMatches(Func<AnnotationTextStyle, bool> match) => _session.SelectedTextMatches(match);
+    public bool SelectedTextMatches(Func<TextStyle, bool> match) => _session.SelectedTextMatches(match);
 
     /// <summary>選択中の文字をクリップボードへコピーする。</summary>
     /// <returns>コピーした場合は <see langword="true"/>。</returns>
@@ -433,7 +435,7 @@ public sealed partial class AnnotationLayerControl
     /// <param name="scale">表示倍率（キャレットの太さを DIP 一定にする）。</param>
     /// <param name="layouts">文字のレイアウトを取得する関数（描画と同じ実体を返す）。</param>
     private void DrawTextEditing(
-        IGraphicsContext context, double scale, Func<string, AnnotationTextStyle, ITextLayout> layouts)
+        IGraphicsContext context, double scale, Func<string, TextStyle, ITextLayout> layouts)
     {
         if (!IsEditingText || ResolveLineIndex() is not { } index)
         {
@@ -447,15 +449,15 @@ public sealed partial class AnnotationLayerControl
             var line = index.Lines[i];
             var lineStart = index.LineStart(i);
             var from = Math.Max(start, lineStart);
-            var to = Math.Min(end, lineStart + AnnotationTextLineLayout.Length(line));
+            var to = Math.Min(end, lineStart + TextLineLayout.Length(line));
             if (to <= from)
             {
                 continue;
             }
 
             // **選択範囲も描画と同じ規則で求める**（区間の原点からの距離。 Core が単一所有する）
-            var x1 = AnnotationTextLineLayout.ResolveX(line, from - lineStart, PrefixMeasure(layouts));
-            var x2 = AnnotationTextLineLayout.ResolveX(line, to - lineStart, PrefixMeasure(layouts));
+            var x1 = TextLineLayout.ResolveX(line, from - lineStart, PrefixMeasure(layouts));
+            var x2 = TextLineLayout.ResolveX(line, to - lineStart, PrefixMeasure(layouts));
             context.FillRectangle(new Rect(x1, line.Bounds.Y, x2 - x1, line.Bounds.Height), AnnotationPainter.ToColor(AnnotationEditorAppearance.SelectionColor));
         }
 
@@ -466,7 +468,7 @@ public sealed partial class AnnotationLayerControl
             return;
         }
 
-        // **キャレットは一般的な速さで点滅させる**（規則は提示層の AnnotationCaretBlink が単一所有する）
+        // **キャレットは一般的な速さで点滅させる**（規則は提示層の TextCaretBlink が単一所有する）
         if (IsCaretVisible)
         {
             var thickness = AnnotationEditorAppearance.CaretThicknessDip / Math.Max(scale, 0.01);
@@ -502,7 +504,7 @@ public sealed partial class AnnotationLayerControl
     /// ベースラインから上端と高さを求め、文字の範囲に揃える。
     /// </remarks>
     internal bool TryResolveCaretSource(
-        int index, Func<string, AnnotationTextStyle, ITextLayout> layouts, out (double X, double Y, double Height) caret)
+        int index, Func<string, TextStyle, ITextLayout> layouts, out (double X, double Y, double Height) caret)
     {
         ArgumentNullException.ThrowIfNull(layouts);
         caret = default;
@@ -513,12 +515,12 @@ public sealed partial class AnnotationLayerControl
 
         var lineIndex = source.LineIndexOf(index);
         var line = source.Lines[lineIndex];
-        var offset = Math.Clamp(index - source.LineStart(lineIndex), 0, AnnotationTextLineLayout.Length(line));
+        var offset = Math.Clamp(index - source.LineStart(lineIndex), 0, TextLineLayout.Length(line));
 
         // **位置は描画と同じ規則で求める**: 区間の原点（描画に使う Bounds.X）からの距離で決める
-        // （規則の所有者は Core の AnnotationTextLineLayout。行頭から積み上げると文字からずれる）
+        // （規則の所有者は Core の TextLineLayout。行頭から積み上げると文字からずれる）
         var prefix = PrefixMeasure(layouts);
-        var x = AnnotationTextLineLayout.ResolveX(line, offset, prefix);
+        var x = TextLineLayout.ResolveX(line, offset, prefix);
 
         // **縦位置も描画と同じ区間の書式で決める**: キャレットの位置の書式で測ると、太字や大きさの違う
         // 区間へキャレットが入ったときに上下へずれる。 描画は区間ごとのレイアウトで
@@ -534,23 +536,23 @@ public sealed partial class AnnotationLayerControl
     /// <param name="layouts">文字のレイアウトを取得する関数（描画と同じ実体を返す）。</param>
     /// <returns>上端と高さ。</returns>
     private static (double Top, double Height) ResolveCaretVertical(
-        AnnotationTextLinePlan line, int offset, Func<string, AnnotationTextStyle, ITextLayout> layouts)
+        TextLinePlan line, int offset, Func<string, TextStyle, ITextLayout> layouts)
     {
         if (line.Segments.Count == 0)
         {
             return (line.Bounds.Y, line.Bounds.Height);
         }
 
-        var (segmentIndex, _) = AnnotationTextLineLayout.Locate(line, offset);
+        var (segmentIndex, _) = TextLineLayout.Locate(line, offset);
         var segment = line.Segments[segmentIndex];
         var segmentLayout = layouts(segment.Text, segment.Style);
-        var baseline = AnnotationTextLineLayout.ResolveBaseline(line, AnnotationTextMetrics.MeasureLineMetrics);
+        var baseline = TextLineLayout.ResolveBaseline(line, AnnotationTextMetrics.MeasureLineMetrics);
         var segmentBaseline = segmentLayout.Lines.Count > 0 ? segmentLayout.Lines[0].Baseline : segmentLayout.MeasuredSize.Height;
         return (baseline - segmentBaseline, segmentLayout.MeasuredSize.Height);
     }
 
     /// <summary>1 度だけ使うレイアウトの生成器（当たり判定など、描画と同じフレームに居ない処理で使う）。</summary>
-    private static readonly Func<string, AnnotationTextStyle, ITextLayout> DefaultLayouts =
+    private static readonly Func<string, TextStyle, ITextLayout> DefaultLayouts =
         static (text, style) => AnnotationTextMetrics.CreateLayout(text, style, ignoreItalic: false);
 
     /// <summary>区間の先頭から指定した文字数までの幅を測る関数を作る。</summary>
@@ -561,8 +563,8 @@ public sealed partial class AnnotationLayerControl
     /// レイアウトを区間の原点へ置く。 位置を同じ実体の中で測れば、カーニング・字形・末尾の空白の扱いが
     /// 描画と必ず一致する。
     /// </remarks>
-    private static AnnotationTextLineLayout.MeasurePrefix PrefixMeasure(
-        Func<string, AnnotationTextStyle, ITextLayout> layouts)
+    private static TextLineLayout.MeasurePrefix PrefixMeasure(
+        Func<string, TextStyle, ITextLayout> layouts)
         => (segment, count) =>
         {
             var layout = layouts(segment.Text, segment.Style);
@@ -581,7 +583,7 @@ public sealed partial class AnnotationLayerControl
         };
     /// <summary>選択中の吹き出しの本文の行を解決する。</summary>
     /// <returns>行と文字位置の対応。 解決できない場合は <see langword="null"/>。</returns>
-    private AnnotationTextLineIndex? ResolveLineIndex()
+    private TextLineIndex? ResolveLineIndex()
     {
         if (Selected is not BubbleAnnotation bubble)
         {
@@ -591,7 +593,7 @@ public sealed partial class AnnotationLayerControl
         var plan = _presenter.ResolveDrawPlan(RenderDocument, AnnotationTextMetrics.Measure, SelectedId);
         var shape = plan.Shapes.FirstOrDefault(
             candidate => string.Equals(candidate.Id, bubble.Id, StringComparison.Ordinal));
-        return shape is null ? null : AnnotationTextLineIndex.Create(shape, bubble.Text.PlainText);
+        return shape is null ? null : TextLineIndex.Create(shape.Lines, bubble.Text.PlainText);
     }
 }
 

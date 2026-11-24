@@ -10,12 +10,13 @@ using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Feature.Annotation.Core.Contract;
-using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Geometry;
 using EsUtil.Feature.Annotation.Core.Interaction;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Annotation.Presenter.Selection;
 using EsUtil.Feature.Annotation.Logging;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
 
@@ -235,7 +236,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <value>開始位置と長さ（0 起点）。 長さ 0 は「全体」を表す。</value>
     /// <remarks>
     /// 本文の入力欄はホストが持つため、入力欄の選択範囲をホストがここへ写す。
-    /// 右クリックのフライアウトと <see cref="ApplyTextStyle(AnnotationTextStyle)"/> は本値の範囲へ適用する。
+    /// 右クリックのフライアウトと <see cref="ApplyTextStyle(TextStyle)"/> は本値の範囲へ適用する。
     /// </remarks>
     public (int Start, int Length) TextSelectionRange
     {
@@ -303,9 +304,9 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     public AnnotationItem? Selected => _session.Selected;
 
     /// <summary>選択中の吹き出しの本文の書式（選択範囲の先頭の文字）を取得する。</summary>
-    /// <value>選択が吹き出しでない場合は <see cref="AnnotationDefaults.TextStyle"/>。</value>
+    /// <value>選択が吹き出しでない場合は <see cref="TextDefaults.DefaultStyle"/>。</value>
     /// <remarks>フライアウトの初期表示に使う。 選択が無い間は書式バーで選んだ書式（以降の入力へ効く値）を返す。</remarks>
-    public AnnotationTextStyle SelectedTextStyle
+    public TextStyle SelectedTextStyle
     {
         get => _session.SelectedTextStyle;
         set
@@ -387,7 +388,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// 長さ 0 は「全体」へ適用する。 文字単位の書式は run の分割で表す（コアが単一所有する）。
     /// <b>選択が無ければ以降の入力へ回す</b>: 既存の文字は変えず、次に入力する文字へ適用する。
     /// </remarks>
-    public bool ApplyTextStyle(AnnotationTextStyle style) => _session.ApplyTextStyle(style);
+    public bool ApplyTextStyle(TextStyle style) => _session.ApplyTextStyle(style);
 
     /// <summary>選択中の吹き出しの本文へ、指定した範囲の書式を適用する。</summary>
     /// <param name="start">開始位置（文字数。 0 起点）。</param>
@@ -398,19 +399,19 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <b>範囲は本文の文字数で数える</b>（入力欄の選択位置をそのまま渡せる）。 範囲の解決と run の分割は
     /// コアの <c>RichText.ApplyStyle</c> が単一所有する。
     /// </remarks>
-    public bool ApplyTextStyle(int start, int length, AnnotationTextStyle style)
+    public bool ApplyTextStyle(int start, int length, TextStyle style)
         => _session.ApplyTextStyle(start, length, style);
 
     /// <summary>選択中の吹き出しの本文の書式を 1 文字ずつ変換する（変えない属性を保つ）。</summary>
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数（run ごとに呼ぶ）。</param>
     /// <returns>選択範囲へ適用した場合は <see langword="true"/>。 選択が無く以降の入力へ回した場合は <see langword="false"/>。</returns>
     /// <remarks>
-    /// <b>「太字にする」「色だけ変える」は本メソッドを使う</b>: <see cref="ApplyTextStyle(AnnotationTextStyle)"/> は
+    /// <b>「太字にする」「色だけ変える」は本メソッドを使う</b>: <see cref="ApplyTextStyle(TextStyle)"/> は
     /// 範囲の書式を丸ごと差し替えるため、指定しなかった属性（色・大きさなど）が既定へ戻る。
     /// 切り替えの判断（太字にする／戻す）は呼び出し側で 1 回だけ行い、その値を transform で書く。<br/>
     /// <b>選択が無ければ以降の入力へ回す</b>: 変換の元になる書式は <see cref="SelectedTextStyle"/> である。
     /// </remarks>
-    public bool TransformTextStyle(Func<AnnotationTextStyle, AnnotationTextStyle> transform)
+    public bool TransformTextStyle(Func<TextStyle, TextStyle> transform)
         => _session.TransformTextStyle(transform);
 
     /// <summary>選択中の吹き出しの本文の、指定した範囲の書式を 1 文字ずつ変換する。</summary>
@@ -418,7 +419,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <param name="length">長さ（文字数）。 0 以下は本文全体。</param>
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数（run ごとに呼ぶ）。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
-    public bool TransformTextStyle(int start, int length, Func<AnnotationTextStyle, AnnotationTextStyle> transform)
+    public bool TransformTextStyle(int start, int length, Func<TextStyle, TextStyle> transform)
         => _session.TransformTextStyle(start, length, transform);
 
     /// <summary>選択中の注釈の外観（枠線・内側・角丸）を取得または設定する。</summary>
@@ -1152,7 +1153,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <b>行の高さは斜体で変えない</b>: 幅（折り返しの判定）は指定どおりの書式で測り、高さだけは斜体を外した
     /// 書式で測る。 斜体は字を傾けるだけであり、行の高さを変えると 1 行ごとに間隔が変わる。
     /// </remarks>
-    private static EsSize MeasureText(string text, AnnotationTextStyle style)
+    private static EsSize MeasureText(string text, TextStyle style)
     {
         var formatted = AnnotationPainter.CreateText(text, style);
         var lineHeight = AnnotationPainter.CreateLineMetrics(style).Height;

@@ -3,7 +3,8 @@ using Avalonia;
 using Avalonia.Media;
 using EsUtil.Platform.Core.Geometry;
 using DrawingColor = System.Drawing.Color;
-using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
 
@@ -22,7 +23,7 @@ internal static class AnnotationPainter
     /// <param name="text">文字列。</param>
     /// <param name="style">書式。</param>
     /// <returns>整形済みの文字列（元画像ピクセルの大きさ）。</returns>
-    internal static FormattedText CreateText(string text, AnnotationTextStyle style)
+    internal static FormattedText CreateText(string text, TextStyle style)
         => new(
             text,
             CultureInfo.CurrentCulture,
@@ -38,7 +39,7 @@ internal static class AnnotationPainter
     /// <param name="text">文字列。</param>
     /// <param name="style">書式。</param>
     /// <returns>実寸（元画像ピクセル）。</returns>
-    internal static EsSize Measure(string text, AnnotationTextStyle style)
+    internal static EsSize Measure(string text, TextStyle style)
     {
         var formatted = CreateText(text, style);
         return new EsSize(formatted.WidthIncludingTrailingWhitespace, formatted.Height);
@@ -88,7 +89,7 @@ internal static class AnnotationPainter
     /// <c>Baseline</c>）が変わっても、行のベースラインは動かさない（斜体にすると文字が上へずれ、
     /// 行の高さが増える）
     /// </remarks>
-    private static double ResolveLineBaseline(AnnotationTextLinePlan line)
+    private static double ResolveLineBaseline(TextLinePlan line)
     {
         var height = 0.0;
         double referenceHeight = 0;
@@ -127,7 +128,7 @@ internal static class AnnotationPainter
     /// <b>斜体を外す</b>: 斜体は字を傾けるだけで行の高さを変えない（合成斜体では実寸が変わる環境がある）。
     /// 幅は <see cref="CreateText"/>（指定どおりの書式）で測る（折り返しは実際の送り幅に従う）。
     /// </remarks>
-    internal static FormattedText CreateLineMetrics(AnnotationTextStyle style)
+    internal static FormattedText CreateLineMetrics(TextStyle style)
         => CreateText("Ag", style with { IsItalic = false });
 
     /// <summary>色をブラシへ変換する。</summary>
@@ -168,7 +169,7 @@ internal static class AnnotationPainter
     /// <param name="formatted">整形済みの文字列（文字の実寸を取るため）。</param>
     /// <param name="top">文字の上端（ベースラインから求めた描画位置）。</param>
     private static void DrawDecorations(
-        DrawingContext context, AnnotationTextSegmentPlan segment, FormattedText formatted, double top)
+        DrawingContext context, TextSegmentPlan segment, FormattedText formatted, double top)
     {
         if (!segment.Style.IsUnderline && !segment.Style.IsStrike)
         {
@@ -198,7 +199,7 @@ internal static class AnnotationPainter
     /// <returns>実際に使うフォント ファミリ。</returns>
     /// <remarks>
     /// 既定は <c>Yu Gothic UI</c> であり、無い環境では <c>Segoe UI</c> を使う
-    /// （優先順は <see cref="AnnotationDefaults.PreferredFontFamilies"/> が単一所有する）。
+    /// （優先順は <see cref="TextDefaults.PreferredFontFamilies"/> が単一所有する）。
     /// </remarks>
     private static FontFamily ResolveFontFamily(string fontFamily)
     {
@@ -208,7 +209,7 @@ internal static class AnnotationPainter
             return new FontFamily(fontFamily);
         }
 
-        foreach (var fallback in AnnotationDefaults.PreferredFontFamilies)
+        foreach (var fallback in TextDefaults.PreferredFontFamilies)
         {
             if (installed.Any(font => string.Equals(font.Name, fallback, StringComparison.OrdinalIgnoreCase)))
             {

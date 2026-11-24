@@ -1,4 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Text;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 
@@ -21,7 +22,7 @@ internal static class AnnotationTextMetrics
     /// <param name="style">書式。</param>
     /// <returns>近似の実寸（元画像ピクセル）。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> または <paramref name="style"/> が null の場合。</exception>
-    internal static EsSize Measure(string text, AnnotationTextStyle style)
+    internal static EsSize Measure(string text, TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(style);

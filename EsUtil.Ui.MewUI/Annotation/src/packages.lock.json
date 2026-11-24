@@ -49,6 +49,7 @@
       "esutil.feature.annotation.core": {
         "type": "Project",
         "dependencies": {
+          "EsUtil.Feature.Text.Core": "[0.8.8, )",
           "EsUtil.Platform.Core": "[0.8.8, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.0, )"
         }
@@ -58,6 +59,12 @@
         "dependencies": {
           "EsUtil.Platform.Core": "[0.8.8, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.0, )"
+        }
+      },
+      "esutil.feature.text.core": {
+        "type": "Project",
+        "dependencies": {
+          "EsUtil.Platform.Core": "[0.8.8, )"
         }
       },
       "esutil.platform.core": {

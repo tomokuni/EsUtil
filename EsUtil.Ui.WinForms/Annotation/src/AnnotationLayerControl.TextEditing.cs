@@ -2,6 +2,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Text;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 
@@ -13,7 +15,7 @@ namespace EsUtil.Ui.WinForms.Annotation;
 /// <b>日本語入力（IME）</b>: ウィンドウ メッセージ（<c>WM_IME_COMPOSITION</c>）から変換中の文字列と確定した
 /// 文字列を受け取る。 変換中の文字列は文書へ入れず、キャレットの位置へ下線付きで描く。<br/>
 /// <b>座標の対応</b>: 折り返しは <see cref="AnnotationPresenter"/> が解決した行を
-/// <see cref="AnnotationTextLineIndex"/> で文字位置へ対応させる。
+/// <see cref="TextLineIndex"/> で文字位置へ対応させる。
 /// </remarks>
 public sealed partial class AnnotationLayerControl
 {
@@ -84,7 +86,7 @@ public sealed partial class AnnotationLayerControl
 
     /// <summary>いまキャレットを点灯して描くかどうかを取得する。</summary>
     /// <value>点滅の位相が点灯の間は <see langword="true"/>。</value>
-    private bool IsCaretVisible => AnnotationCaretBlink.IsVisible(DateTimeOffset.UtcNow - _caretBlinkStart);
+    private bool IsCaretVisible => TextCaretBlink.IsVisible(DateTimeOffset.UtcNow - _caretBlinkStart);
 
     /// <summary>キャレットの点滅を点灯から始め直す（文字入力・キャレット移動の直後に呼ぶ）。</summary>
     private void RestartCaretBlink()
@@ -94,7 +96,7 @@ public sealed partial class AnnotationLayerControl
         {
             var timer = new System.Windows.Forms.Timer
             {
-                Interval = AnnotationCaretBlink.IntervalMilliseconds,
+                Interval = TextCaretBlink.IntervalMilliseconds,
             };
             timer.Tick += (_, _) =>
             {
@@ -295,17 +297,17 @@ public sealed partial class AnnotationLayerControl
     /// <param name="match">書式が条件を満たすかどうかを返す関数。</param>
     /// <returns>すべて満たす場合は <see langword="true"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="match"/> が null の場合。</exception>
-    public bool SelectedTextMatches(Func<AnnotationTextStyle, bool> match) => _session.SelectedTextMatches(match);
+    public bool SelectedTextMatches(Func<TextStyle, bool> match) => _session.SelectedTextMatches(match);
 
     /// <summary>選択範囲の書式を変換する（1 つの属性だけ変える）。</summary>
     /// <param name="transform">書式を変える処理。</param>
-    /// <remarks>選択が無ければ以降の入力へ回す（判定は <see cref="TransformTextStyle(Func{AnnotationTextStyle, AnnotationTextStyle})"/> が持つ）。</remarks>
-    internal void TransformSelectionStyle(Func<AnnotationTextStyle, AnnotationTextStyle> transform)
+    /// <remarks>選択が無ければ以降の入力へ回す（判定は <see cref="TransformTextStyle(Func{TextStyle, TextStyle})"/> が持つ）。</remarks>
+    internal void TransformSelectionStyle(Func<TextStyle, TextStyle> transform)
         => _ = TransformTextStyle(transform);
 
     /// <summary>選択範囲へ書式を丸ごと適用する（色・大きさ・フォント）。</summary>
     /// <param name="style">書式。</param>
-    internal void ApplyFullStyle(AnnotationTextStyle style) => ApplyTextStyle(style);
+    internal void ApplyFullStyle(TextStyle style) => ApplyTextStyle(style);
 
     /// <summary>本文の編集（選択範囲・キャレット・変換中の文字列）を描く（DIP）。</summary>
     /// <param name="graphics">描画先（DIP）。</param>
@@ -351,7 +353,7 @@ public sealed partial class AnnotationLayerControl
             caretX += width;
         }
 
-        // **キャレットは一般的な速さで点滅させる**（規則は提示層の AnnotationCaretBlink が単一所有する）
+        // **キャレットは一般的な速さで点滅させる**（規則は提示層の TextCaretBlink が単一所有する）
         if (IsCaretVisible)
         {
             using var caretBrush = new SolidBrush(AnnotationEditorAppearance.CaretColor);
@@ -376,7 +378,7 @@ public sealed partial class AnnotationLayerControl
 
     /// <summary>選択中の吹き出しの行と文字位置の対応を解決する。</summary>
     /// <returns>対応。 解決できない場合は <see langword="null"/>。</returns>
-    private AnnotationTextLineIndex? ResolveLineIndex()
+    private TextLineIndex? ResolveLineIndex()
     {
         if (Selected is not BubbleAnnotation bubble)
         {
@@ -386,7 +388,7 @@ public sealed partial class AnnotationLayerControl
         var plan = _presenter.ResolveDrawPlan(_session.Document, AnnotationTextMetrics.Measure, _session.SelectedId);
         var shape = plan.Shapes.FirstOrDefault(
             candidate => string.Equals(candidate.Id, bubble.Id, StringComparison.Ordinal));
-        return shape is null ? null : AnnotationTextLineIndex.Create(shape, bubble.Text.PlainText);
+        return shape is null ? null : TextLineIndex.Create(shape.Lines, bubble.Text.PlainText);
     }
 
     /// <summary>本文の編集でキーが押されたときの処理。</summary>
@@ -486,7 +488,7 @@ public sealed partial class AnnotationLayerControl
     /// <param name="write">属性を書く関数。</param>
     /// <returns>処理した場合は <see langword="true"/>。</returns>
     private bool ToggleDecoration(
-        Func<AnnotationTextStyle, bool> read, Func<AnnotationTextStyle, bool, AnnotationTextStyle> write)
+        Func<TextStyle, bool> read, Func<TextStyle, bool, TextStyle> write)
         // 適用先（選択範囲・選択が無ければ以降の入力）の決定は Apply/Transform が単一所有する
         => TransformTextStyle(style => write(style, !read(style)));
 

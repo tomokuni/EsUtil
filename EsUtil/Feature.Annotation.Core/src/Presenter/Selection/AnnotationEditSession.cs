@@ -1,12 +1,12 @@
 using EsUtil.Feature.Annotation.Core.Geometry;
 using EsUtil.Feature.Annotation.Core.History;
-using EsUtil.Feature.Annotation.Core.Text;
 using EsUtil.Feature.Annotation.Logging;
-using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Text;
 
 namespace EsUtil.Feature.Annotation.Presenter.Selection;
 
@@ -134,8 +134,8 @@ public sealed class AnnotationEditSession
         set
         {
             var text = SelectedPlainText;
-            var start = AnnotationTextCursor.SnapBackward(text, value.Start);
-            var end = AnnotationTextCursor.SnapForward(
+            var start = TextCursor.SnapBackward(text, value.Start);
+            var end = TextCursor.SnapForward(
                 text, Math.Max(start, value.Start + Math.Max(0, value.Length)));
             _edit.Select(start, end - start, text.Length);
             NotifyTextSelectionIfChanged();
@@ -144,10 +144,10 @@ public sealed class AnnotationEditSession
 
     /// <summary>書式バーへ表示する書式を取得または設定する。</summary>
     /// <value>選択範囲の先頭の書式。 選択が無い間は最後に選んだ書式。</value>
-    /// <remarks>設定すると <see cref="ApplyTextStyle(AnnotationTextStyle)"/> と同じ規則で適用する（選択が無ければ以降の入力へ回す）。</remarks>
-    public AnnotationTextStyle SelectedTextStyle
+    /// <remarks>設定すると <see cref="ApplyTextStyle(TextStyle)"/> と同じ規則で適用する（選択が無ければ以降の入力へ回す）。</remarks>
+    public TextStyle SelectedTextStyle
     {
-        get => _edit.ResolveDisplayStyle(_document);
+        get => _edit.ResolveDisplayStyle(SelectedRichText);
         set => _ = ApplyTextStyle(value);
     }
 
@@ -257,13 +257,12 @@ public sealed class AnnotationEditSession
     /// <param name="style">適用する書式。</param>
     /// <returns>既存の文字へ適用した場合は <see langword="true"/>。 以降の入力へ回した場合は <see langword="false"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="style"/> が <see langword="null"/> の場合。</exception>
-    public bool ApplyTextStyle(AnnotationTextStyle style)
+    public bool ApplyTextStyle(TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(style);
 
-        var before = _document;
-        var after = _edit.ApplyStyle(before, style);
-        return ApplyTextStyleChange(before, after, _edit.SelectionRange);
+        // 本文の操作は文字の計算層が担い、文書への書き戻しだけを本クラスが行う
+        return ApplyTextEdit(_edit.SelectionRange, text => _edit.ApplyStyle(text, style));
     }
 
     /// <summary>指定した範囲の書式を丸ごと適用する（ホストが範囲を指定する場合）。</summary>
@@ -272,26 +271,22 @@ public sealed class AnnotationEditSession
     /// <param name="style">適用する書式。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="style"/> が <see langword="null"/> の場合。</exception>
-    public bool ApplyTextStyle(int start, int length, AnnotationTextStyle style)
+    public bool ApplyTextStyle(int start, int length, TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(style);
 
-        var before = _document;
-        var after = AnnotationSelectionPresenter.ApplyTextStyle(before, _selectedId, (start, length), style);
-        return after is not null && ApplyTextStyleChange(before, after, (start, length));
+        return ApplyTextEdit((start, length), text => text.ApplyStyle(start, length, style));
     }
 
     /// <summary>選択範囲の書式を 1 属性だけ変換する（選択が無ければ以降の入力へ回す）。</summary>
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数（範囲には 1 度だけ適用する）。</param>
     /// <returns>既存の文字へ適用した場合は <see langword="true"/>。 以降の入力へ回した場合は <see langword="false"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="transform"/> が <see langword="null"/> の場合。</exception>
-    public bool TransformTextStyle(Func<AnnotationTextStyle, AnnotationTextStyle> transform)
+    public bool TransformTextStyle(Func<TextStyle, TextStyle> transform)
     {
         ArgumentNullException.ThrowIfNull(transform);
 
-        var before = _document;
-        var after = _edit.TransformStyle(before, transform);
-        return ApplyTextStyleChange(before, after, _edit.SelectionRange);
+        return ApplyTextEdit(_edit.SelectionRange, text => _edit.TransformStyle(text, transform));
     }
 
     /// <summary>指定した範囲の書式を 1 属性だけ変換する（ホストが範囲を指定する場合）。</summary>
@@ -300,18 +295,15 @@ public sealed class AnnotationEditSession
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="transform"/> が <see langword="null"/> の場合。</exception>
-    public bool TransformTextStyle(int start, int length, Func<AnnotationTextStyle, AnnotationTextStyle> transform)
+    public bool TransformTextStyle(int start, int length, Func<TextStyle, TextStyle> transform)
     {
         ArgumentNullException.ThrowIfNull(transform);
 
-        if (_document.Find(_selectedId) is not BubbleAnnotation bubble)
+        return ApplyTextEdit((start, length), text =>
         {
-            return false;
-        }
-
-        var before = _document;
-        var after = before.WithText(bubble.Id, bubble.Text.TransformStyle(start, length, transform));
-        return ApplyTextStyleChange(before, after, (start, length));
+            var next = transform(text.StyleAt(Math.Clamp(start, 0, text.PlainText.Length)));
+            return text.TransformStyle(start, length, _ => next);
+        });
     }
 
     /// <summary>選択中の注釈の外観を差し替える。</summary>
@@ -443,8 +435,8 @@ public sealed class AnnotationEditSession
     public void SelectText(int start, int length)
     {
         var text = SelectedPlainText;
-        var from = AnnotationTextCursor.SnapBackward(text, start);
-        var to = AnnotationTextCursor.SnapForward(text, Math.Max(from, start + Math.Max(0, length)));
+        var from = TextCursor.SnapBackward(text, start);
+        var to = TextCursor.SnapForward(text, Math.Max(from, start + Math.Max(0, length)));
         _edit.Select(from, to - from, text.Length);
         NotifyTextSelectionIfChanged();
     }
@@ -465,8 +457,8 @@ public sealed class AnnotationEditSession
         var text = SelectedPlainText;
         var target = Math.Clamp(index, 0, text.Length);
         target = target < _edit.CaretIndex
-            ? AnnotationTextCursor.SnapBackward(text, target)
-            : AnnotationTextCursor.SnapForward(text, target);
+            ? TextCursor.SnapBackward(text, target)
+            : TextCursor.SnapForward(text, target);
         _edit.MoveTo(target, text.Length, extend);
         NotifyTextSelectionIfChanged();
     }
@@ -475,7 +467,7 @@ public sealed class AnnotationEditSession
     /// <param name="lines">本文の行（無い場合は行の移動をしない）。</param>
     /// <param name="delta">移動する行数。</param>
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
-    public void MoveCaretByLine(AnnotationTextLineIndex? lines, int delta, bool extend)
+    public void MoveCaretByLine(TextLineIndex? lines, int delta, bool extend)
     {
         var text = SelectedPlainText;
         _edit.MoveByLine(lines, text.Length, delta, extend);
@@ -487,7 +479,7 @@ public sealed class AnnotationEditSession
     /// <param name="lines">本文の行（無い場合は本文の先頭・末尾へ移す）。</param>
     /// <param name="first">行の先頭へ移す場合は <see langword="true"/>。</param>
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
-    public void MoveCaretToLineEdge(AnnotationTextLineIndex? lines, bool first, bool extend)
+    public void MoveCaretToLineEdge(TextLineIndex? lines, bool first, bool extend)
     {
         _edit.MoveToLineEdge(lines, SelectedPlainText.Length, first, extend);
         SnapCaretToCluster(extend);
@@ -501,7 +493,7 @@ public sealed class AnnotationEditSession
     /// <param name="measureText">文字列と書式から実寸を測る関数。</param>
     /// <exception cref="ArgumentNullException"><paramref name="lines"/> または <paramref name="measureText"/> が <see langword="null"/> の場合。</exception>
     public void SetCaretFromPoint(
-        AnnotationTextLineIndex lines, EsPoint point, bool extend, Func<string, AnnotationTextStyle, EsSize> measureText)
+        TextLineIndex lines, EsPoint point, bool extend, Func<string, TextStyle, EsSize> measureText)
     {
         ArgumentNullException.ThrowIfNull(lines);
         ArgumentNullException.ThrowIfNull(measureText);
@@ -521,7 +513,7 @@ public sealed class AnnotationEditSession
     /// <summary>選択範囲、またはキャレットの前後の 1 文字を削除する。</summary>
     /// <param name="forward">キャレットの次の文字を削除する場合は <see langword="true"/>。</param>
     /// <returns>文書が変わった場合は <see langword="true"/>。</returns>
-    public bool DeleteAtCaret(bool forward) => ReplaceEdit(_document, _edit.Delete(_document, forward));
+    public bool DeleteAtCaret(bool forward) => ReplaceEdit(text => _edit.Delete(text, forward));
 
     /// <summary>選択範囲を指定された文字列で置き換える（選択が無ければ挿入）。</summary>
     /// <param name="text">置き換える文字列（空なら削除）。</param>
@@ -530,7 +522,7 @@ public sealed class AnnotationEditSession
     public bool ReplaceSelection(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        return ReplaceEdit(_document, _edit.ReplaceSelection(_document, text));
+        return ReplaceEdit(body => _edit.ReplaceSelection(body, text));
     }
 
     /// <summary>指定した範囲を文字列で置き換える（ホストが範囲を指定する場合）。</summary>
@@ -542,17 +534,17 @@ public sealed class AnnotationEditSession
     public bool ReplaceRange(int start, int end, string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        return ReplaceEdit(_document, _edit.ReplaceRange(_document, start, end, text));
+        return ReplaceEdit(body => _edit.ReplaceRange(body, start, end, text));
     }
 
     /// <summary>選択範囲の文字がすべて条件を満たすかどうかを返す（書式ボタンの押下状態に使う）。</summary>
     /// <param name="match">書式が条件を満たすかどうかを返す関数。</param>
     /// <returns>すべて満たす場合は <see langword="true"/>。 選択が無い場合は表示中の書式で判定する。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="match"/> が <see langword="null"/> の場合。</exception>
-    public bool SelectedTextMatches(Func<AnnotationTextStyle, bool> match)
+    public bool SelectedTextMatches(Func<TextStyle, bool> match)
     {
         ArgumentNullException.ThrowIfNull(match);
-        return _edit.AllMatch(_document, match);
+        return _document.Find(_selectedId) is BubbleAnnotation bubble && _edit.AllMatch(bubble.Text, match);
     }
 
     /// <summary>選択中の文字を取得する（クリップボードへ渡す）。</summary>
@@ -606,47 +598,45 @@ public sealed class AnnotationEditSession
         return true;
     }
 
-    /// <summary>書式の適用結果を文書へ反映する（変わらない場合は履歴を残さない）。</summary>
-    /// <param name="before">変更前の文書。</param>
-    /// <param name="after">変更後の文書。</param>
+    /// <summary>本文の操作を実行し、結果を文書へ書き戻す（変わらない場合は履歴を残さない）。</summary>
+    /// <param name="update">本文を受け取り、変更後の本文を返す関数（変更なしは同じ実体を返す）。</param>
+    /// <param name="styleRange">書式を適用した範囲（指定した場合だけログへ記録する）。</param>
+    /// <returns>文書が変わった場合は <see langword="true"/>。</returns>
+    private bool ReplaceEdit(Func<RichText, RichText> update, (int Start, int Length)? styleRange = null)
+    {
+        if (_document.Find(_selectedId) is not BubbleAnnotation bubble)
+        {
+            return false;
+        }
+
+        var before = _document;
+        _history.BeginChange(before);
+        var updated = update(bubble.Text);
+        if (ReferenceEquals(updated, bubble.Text))
+        {
+            _history.CancelChange();
+            return false;
+        }
+
+        var after = before.WithText(bubble.Id, updated);
+        _document = after;
+        _history.CommitChange(after);
+        LogDocumentChanged();
+        if (styleRange is { } range)
+        {
+            (_logger?.Invoke() ?? NullLogger.Instance).LogTextStyleApplied(range.Start, range.Length);
+        }
+
+        Notify(AnnotationEditChange.Document | AnnotationEditChange.TextSelection);
+        return true;
+    }
+
+    /// <summary>書式の操作を実行し、結果を文書へ書き戻す（変わらない場合は履歴を残さない）。</summary>
     /// <param name="range">適用した範囲（ログに使う）。</param>
+    /// <param name="update">本文を受け取り、変更後の本文を返す関数（変更なしは同じ実体を返す）。</param>
     /// <returns>文書が変わった場合は <see langword="true"/>。</returns>
-    private bool ApplyTextStyleChange(AnnotationDocument before, AnnotationDocument after, (int Start, int Length) range)
-    {
-        _history.BeginChange(before);
-        if (ReferenceEquals(before, after))
-        {
-            _history.CancelChange();
-            return false;
-        }
-
-        _document = after;
-        _history.CommitChange(after);
-        LogDocumentChanged();
-        (_logger?.Invoke() ?? NullLogger.Instance).LogTextStyleApplied(range.Start, range.Length);
-        Notify(AnnotationEditChange.Document | AnnotationEditChange.TextSelection);
-        return true;
-    }
-
-    /// <summary>本文の置き換え結果を文書へ反映する。</summary>
-    /// <param name="before">変更前の文書。</param>
-    /// <param name="after">変更後の文書。</param>
-    /// <returns>文書が変わった場合は <see langword="true"/>。</returns>
-    private bool ReplaceEdit(AnnotationDocument before, AnnotationDocument after)
-    {
-        _history.BeginChange(before);
-        if (ReferenceEquals(before, after))
-        {
-            _history.CancelChange();
-            return false;
-        }
-
-        _document = after;
-        _history.CommitChange(after);
-        LogDocumentChanged();
-        Notify(AnnotationEditChange.Document | AnnotationEditChange.TextSelection);
-        return true;
-    }
+    private bool ApplyTextEdit((int Start, int Length) range, Func<RichText, RichText> update)
+        => ReplaceEdit(update, range);
 
     /// <summary>履歴を 1 手動かす。</summary>
     /// <param name="redo">やり直す場合は <see langword="true"/>。</param>
@@ -695,12 +685,16 @@ public sealed class AnnotationEditSession
     private void SnapCaretToCluster(bool extend)
     {
         var text = SelectedPlainText;
-        var snapped = AnnotationTextCursor.SnapBackward(text, _edit.CaretIndex);
+        var snapped = TextCursor.SnapBackward(text, _edit.CaretIndex);
         if (snapped != _edit.CaretIndex)
         {
             _edit.MoveTo(snapped, text.Length, extend);
         }
     }
+
+    /// <summary>選択中の吹き出しの本文を取得する（編集の入口に渡す）。</summary>
+    private RichText SelectedRichText
+        => _document.Find(_selectedId) is BubbleAnnotation bubble ? bubble.Text : RichText.Empty;
 
     /// <summary>本文の選択範囲が変わったときだけ通知する。</summary>
     private void NotifyTextSelectionIfChanged()

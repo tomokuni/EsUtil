@@ -9,6 +9,8 @@ using Avalonia.VisualTree;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Ui.AvaloniaUI.ColorSelector;
 using EsUtil.Feature.Annotation.Presenter.Editor;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
 
@@ -109,8 +111,8 @@ internal sealed class AnnotationFormatBar : Border
         _size = new NumericUpDown
         {
             Width = SizeSelectorWidth,
-            Minimum = AnnotationFontSizeLimits.Min,
-            Maximum = AnnotationFontSizeLimits.Max,
+            Minimum = TextLimits.FontSizeMinDecimal,
+            Maximum = TextLimits.FontSizeMaxDecimal,
             Increment = 1m,
             FormatString = "0.#",
         };
@@ -197,16 +199,6 @@ internal sealed class AnnotationFormatBar : Border
 
     /// <summary>フォントの大きさの入力の幅（DIP。 値はコアが単一所有する）。</summary>
     internal const double SizeSelectorWidth = AnnotationFormatBarLayout.SizeSelectorWidth;
-
-    /// <summary>フォントの大きさの入力の下限・上限（値はコアが単一所有する）。</summary>
-    private static class AnnotationFontSizeLimits
-    {
-        /// <summary>下限（元画像ピクセル）。</summary>
-        internal const decimal Min = 6m;
-
-        /// <summary>上限（元画像ピクセル）。</summary>
-        internal const decimal Max = 512m;
-    }
 
     /// <summary>操作の間の余白（DIP）。</summary>
     private const double ControlSpacing = AnnotationEditorLayout.RowSpacing;
@@ -414,7 +406,7 @@ internal sealed class AnnotationFormatBar : Border
     /// <remarks>
     /// <b>選択が無いときは以降の入力へ回す</b>（判定はレイヤーが単一所有するので、ここでは分けない）。
     /// </remarks>
-    private void Apply(Func<AnnotationTextStyle, AnnotationTextStyle> change)
+    private void Apply(Func<TextStyle, TextStyle> change)
     {
         _layer.TransformTextStyle(change);
         Refresh();
@@ -485,7 +477,7 @@ internal sealed class AnnotationFormatBar : Border
     /// <param name="read">属性を読む関数。</param>
     /// <param name="write">属性を書く関数。</param>
     private void ToggleDecoration(
-        Func<AnnotationTextStyle, bool> read,
-        Func<AnnotationTextStyle, bool, AnnotationTextStyle> write)
+        Func<TextStyle, bool> read,
+        Func<TextStyle, bool, TextStyle> write)
         => Apply(style => write(style, !read(_layer.SelectedTextStyle)));
 }

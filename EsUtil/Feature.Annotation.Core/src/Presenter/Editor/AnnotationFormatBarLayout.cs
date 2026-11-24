@@ -1,5 +1,6 @@
-using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Presenter.Panel;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Presenter.Editor;
 
@@ -52,11 +53,11 @@ public static class AnnotationFormatBarLayout
     /// 四角と展開ボタンの分を足す。 固定値にすると、はっきり余る幅が空いて「不必要に長い」見た目になる。
     /// </remarks>
     public static double ResolveColorSelectorWidth(
-        Func<string, AnnotationTextStyle, EsUtil.Platform.Core.Geometry.EsSize> measureText)
+        Func<string, TextStyle, EsUtil.Platform.Core.Geometry.EsSize> measureText)
     {
         ArgumentNullException.ThrowIfNull(measureText);
 
-        var style = AnnotationDefaults.TextStyle with { FontSize = ColorMeasureFontSize };
+        var style = TextDefaults.DefaultStyle with { FontSize = ColorMeasureFontSize };
         var nameWidth = measureText("薄い灰色+100%", style).Width;
         var hexWidth = measureText(HexTextForMeasure, style).Width;
         return Math.Ceiling(ColorSwatchIndent + Math.Max(nameWidth, hexWidth) + ColorToggleWidth);
@@ -73,11 +74,11 @@ public static class AnnotationFormatBarLayout
     /// <c>#FFFFFFFF</c> は入力欄に出る最も長い表記であるため、これが収まれば足りる。
     /// </remarks>
     public static double ResolveHexColorSelectorWidth(
-        Func<string, AnnotationTextStyle, EsUtil.Platform.Core.Geometry.EsSize> measureText)
+        Func<string, TextStyle, EsUtil.Platform.Core.Geometry.EsSize> measureText)
     {
         ArgumentNullException.ThrowIfNull(measureText);
 
-        var style = AnnotationDefaults.TextStyle with { FontSize = ColorMeasureFontSize };
+        var style = TextDefaults.DefaultStyle with { FontSize = ColorMeasureFontSize };
         var hexWidth = measureText(HexTextForMeasure, style).Width;
         return Math.Ceiling(ColorSwatchIndent + hexWidth + ColorToggleWidth + HexTextSlack);
     }

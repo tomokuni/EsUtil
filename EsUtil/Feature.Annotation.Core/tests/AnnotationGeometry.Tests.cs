@@ -2,6 +2,8 @@ using EsUtil.Platform.Core.Geometry;
 using Xunit;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Geometry;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 
@@ -80,7 +82,7 @@ public sealed class AnnotationGeometryTests
     {
         var bubble = AnnotationGeometry.CreateBubble(
             new EsRect(800, 500, 200, 100),
-            RichText.Create("test", AnnotationDefaults.TextStyle),
+            RichText.Create("test", TextDefaults.DefaultStyle),
             AnnotationDraftDefaults.Default,
             new EsSize(1000, 600));
 
@@ -99,7 +101,7 @@ public sealed class AnnotationGeometryTests
     {
         var bubble = AnnotationGeometry.CreateBubble(
             new EsRect(10, 10, 100, 60),
-            RichText.Create("test", AnnotationDefaults.TextStyle),
+            RichText.Create("test", TextDefaults.DefaultStyle),
             AnnotationDraftDefaults.Default,
             new EsSize(400, 300));
         var document = new AnnotationDocument(400, 300).Add(bubble);
@@ -129,7 +131,7 @@ public sealed class AnnotationGeometryTests
     {
         var bubble = AnnotationGeometry.CreateBubble(
             new EsRect(10, 10, 100, 60),
-            RichText.Create("test", AnnotationDefaults.TextStyle),
+            RichText.Create("test", TextDefaults.DefaultStyle),
             AnnotationDraftDefaults.Default,
             new EsSize(400, 300));
         var document = new AnnotationDocument(400, 300).Add(bubble);
@@ -148,7 +150,7 @@ public sealed class AnnotationGeometryTests
     {
         var bubble = AnnotationGeometry.CreateBubble(
             new EsRect(10, 10, 100, 60),
-            RichText.Create("test", AnnotationDefaults.TextStyle),
+            RichText.Create("test", TextDefaults.DefaultStyle),
             AnnotationDraftDefaults.Default,
             new EsSize(400, 300));
         var frame = AnnotationGeometry.CreateFrame(
@@ -200,7 +202,7 @@ public sealed class AnnotationGeometryTests
     {
         var bubble = AnnotationGeometry.CreateBubble(
             new EsRect(50, 40, 100, 60),
-            RichText.Create("test", AnnotationDefaults.TextStyle),
+            RichText.Create("test", TextDefaults.DefaultStyle),
             AnnotationDraftDefaults.Default,
             new EsSize(400, 300));
         var document = new AnnotationDocument(400, 300).Add(bubble);

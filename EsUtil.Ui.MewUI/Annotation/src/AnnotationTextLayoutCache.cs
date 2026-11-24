@@ -1,4 +1,5 @@
 using Aprillz.MewUI.Text;
+using EsUtil.Feature.Text;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
@@ -12,13 +13,13 @@ namespace EsUtil.Ui.MewUI.Annotation;
 internal sealed class AnnotationTextLayoutCache
 {
     /// <summary>作ったレイアウト（書式と文字列が同じなら同じ実体）。</summary>
-    private readonly Dictionary<(string Text, AnnotationTextStyle Style), ITextLayout> _layouts = [];
+    private readonly Dictionary<(string Text, TextStyle Style), ITextLayout> _layouts = [];
 
     /// <summary>書式と文字列からレイアウトを取得する（無ければ作る）。</summary>
     /// <param name="text">文字列。</param>
     /// <param name="style">書式。</param>
     /// <returns>レイアウト。</returns>
-    internal ITextLayout Create(string text, AnnotationTextStyle style)
+    internal ITextLayout Create(string text, TextStyle style)
     {
         var key = (text, style);
         if (_layouts.TryGetValue(key, out var layout))

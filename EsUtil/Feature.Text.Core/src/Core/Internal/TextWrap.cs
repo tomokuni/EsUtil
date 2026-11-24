@@ -1,20 +1,20 @@
 using System.Collections.Immutable;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Feature.Annotation.Core.Defaults;
-using EsUtil.Feature.Annotation.Core.Text;
+using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.Text.Core.Text;
 
-namespace EsUtil.Feature.Annotation.Core.Internal;
+namespace EsUtil.Feature.Text.Core.Internal;
 
 /// <summary>本文の折り返し（Core が単一所有する）。</summary>
 /// <remarks>
 /// <b>実寸の計測だけを UI に委ねる</b>: 文字の実寸は描画 API に依存するため関数で受け取る
 /// （ルーペの <c>measureText</c> と同じ形）。 折り返しの規則（禁則・明示改行）は本クラスが単一所有するので、
 /// 4 つの UI 版で同じ位置に折り返す。<br/>
-/// <b>折り返しの単位は書記素クラスタ</b>である（<see cref="AnnotationTextCursor"/>）。 サロゲート ペア・結合文字を
+/// <b>折り返しの単位は書記素クラスタ</b>である（<see cref="TextCursor"/>）。 サロゲート ペア・結合文字を
 /// 行の境界で分割すると、行ごとに描く UI で孤立したサロゲートが描画 API へ渡り、文字が壊れる。<br/>
 /// <b>行頭禁則</b>: 句読点・閉じ括弧を行の先頭へ置かない（直前の 1 文字を次の行へ送る）。
 /// </remarks>
-internal static class AnnotationTextWrap
+internal static class TextWrap
 {
     /// <summary>明示改行（行を必ず分ける文字）。</summary>
     private const string NewLine = "\n";
@@ -36,14 +36,14 @@ internal static class AnnotationTextWrap
     /// 3. 行頭に置かない文字が来たら、直前の 1 クラスタを次の行へ送る。
     /// </remarks>
     internal static ImmutableArray<ImmutableArray<TextSegment>> Wrap(
-        RichText text, double maxWidth, Func<string, AnnotationTextStyle, EsSize> measureText)
+        RichText text, double maxWidth, Func<string, TextStyle, EsSize> measureText)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(measureText);
 
         var lines = ImmutableArray.CreateBuilder<ImmutableArray<TextSegment>>();
         var line = ImmutableArray<TextSegment>.Empty;
-        var widthLimit = AnnotationLimits.CoercePositive(maxWidth, 1.0);
+        var widthLimit = TextLimits.CoercePositive(maxWidth, 1.0);
 
         foreach (var run in text.Runs)
         {
@@ -53,7 +53,7 @@ internal static class AnnotationTextWrap
             }
 
             var style = run.Style.Normalized();
-            var starts = AnnotationTextCursor.Boundaries(run.Text);
+            var starts = TextCursor.Boundaries(run.Text);
             for (var i = 0; i < starts.Length; i++)
             {
                 var start = starts[i];
@@ -79,7 +79,7 @@ internal static class AnnotationTextWrap
                     // 句読点を行頭へ置かない（直前の 1 クラスタを次の行へ送る）。
                     // 区間は文字をまとめて持つため、「行のクラスタ数」で判定する（区間の数ではない）。
                     var last = line[^1];
-                    var carried = AnnotationTextCursor.LastCluster(last.Text);
+                    var carried = TextCursor.LastCluster(last.Text);
                     var remaining = last.Text[..^carried.Length];
                     var kept = remaining.Length == 0
                         ? line.RemoveAt(line.Length - 1)
@@ -125,8 +125,8 @@ internal static class AnnotationTextWrap
     private static ImmutableArray<TextSegment> Append(
         ImmutableArray<TextSegment> line,
         string element,
-        AnnotationTextStyle style,
-        Func<string, AnnotationTextStyle, EsSize> measureText)
+        TextStyle style,
+        Func<string, TextStyle, EsSize> measureText)
     {
         if (line.Length > 0 && Equals(line[^1].Style, style))
         {
@@ -146,7 +146,7 @@ internal static class AnnotationTextWrap
         var count = 0;
         foreach (var segment in line)
         {
-            count += AnnotationTextCursor.CountClusters(segment.Text);
+            count += TextCursor.CountClusters(segment.Text);
         }
 
         return count;
@@ -162,5 +162,5 @@ internal static class AnnotationTextWrap
     /// <param name="Text">区間の文字列。</param>
     /// <param name="Style">区間の書式。</param>
     /// <param name="Width">区間の幅（元画像ピクセル）。</param>
-    internal readonly record struct TextSegment(string Text, AnnotationTextStyle Style, double Width);
+    internal readonly record struct TextSegment(string Text, TextStyle Style, double Width);
 }

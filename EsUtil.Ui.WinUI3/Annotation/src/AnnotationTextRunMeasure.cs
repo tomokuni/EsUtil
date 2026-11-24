@@ -2,6 +2,7 @@ using EsUtil.Platform.Core.Geometry;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using EsUtil.Feature.Text;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 
@@ -26,7 +27,7 @@ public static class AnnotationTextRunMeasure
     /// <param name="style">書式。</param>
     /// <returns>実寸（元画像ピクセル）。 高さは斜体を外した書式で測る。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> または <paramref name="style"/> が null の場合。</exception>
-    public static EsSize Measure(string text, AnnotationTextStyle style)
+    public static EsSize Measure(string text, TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(style);
@@ -40,7 +41,7 @@ public static class AnnotationTextRunMeasure
     /// <param name="text">文字列。</param>
     /// <param name="style">書式。</param>
     /// <returns>実寸（元画像ピクセル）。</returns>
-    private static EsSize MeasureSize(string text, AnnotationTextStyle style)
+    private static EsSize MeasureSize(string text, TextStyle style)
     {
         var probe = s_probe ??= new TextBlock
         {

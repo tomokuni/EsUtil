@@ -110,7 +110,7 @@
 
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
-| `All` | property | 本文で選べるフォント名の一覧（`IReadOnlyList<string>`）。 `AnnotationDefaults.PreferredFontFamilies` を先頭に置き、その後にインストール済みのフォントを並べる |
+| `All` | property | 本文で選べるフォント名の一覧（`IReadOnlyList<string>`）。 `TextDefaults.PreferredFontFamilies` を先頭に置き、その後にインストール済みのフォントを並べる |
 
 一覧は起動時に 1 度だけ作ります（フォントの列挙は重い）。
 

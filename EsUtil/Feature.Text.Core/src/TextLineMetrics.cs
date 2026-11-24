@@ -1,4 +1,4 @@
-namespace EsUtil.Feature.Annotation.Presenter.Drawing;
+namespace EsUtil.Feature.Text;
 
 /// <summary>1 つの書式の行の実寸（高さとベースライン）。</summary>
 /// <param name="Height">行の高さ（元画像ピクセル）。</param>

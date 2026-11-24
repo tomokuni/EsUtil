@@ -1,14 +1,16 @@
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
-using EsUtil.Feature.Annotation.Core.Defaults;
-using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.Text.Core.Text;
 using EsUtil.Feature.Annotation.Presenter.Selection;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 
 /// <summary><see cref="AnnotationTextEdit"/> の規則（キャレット・選択・入力・削除・書式）を検証する。</summary>
 /// <remarks>
-/// 4 つの UI 版が共有する状態機械であるため、UI を介さずに規則だけを固定する。
+/// 4 つの UI 版が共有する状態機械であるため、UI を介さずに規則だけを固定する。<br/>
+/// 本文の操作は <see cref="RichText"/> を受け取って返す（文書への書き戻しは <see cref="AnnotationEditSession"/> が行う）。
 /// </remarks>
 public sealed class AnnotationTextEditTests
 {
@@ -44,13 +46,13 @@ public sealed class AnnotationTextEditTests
     [Fact]
     internal void ReplaceSelection_選択を置き換えてキャレットを末尾へ移す()
     {
-        var document = CreateDocument("abcd");
+        var text = CreateText("abcd");
         var edit = CreateEdit("abcd");
         edit.Select(1, 2, 4);
 
-        var updated = edit.ReplaceSelection(document, "X");
+        var updated = edit.ReplaceSelection(text, "X");
 
-        Assert.Equal("aXd", TextOf(updated));
+        Assert.Equal("aXd", updated.PlainText);
         Assert.Equal(2, edit.CaretIndex);
         Assert.False(edit.HasSelection);
     }
@@ -59,16 +61,15 @@ public sealed class AnnotationTextEditTests
     [Fact]
     internal void ReplaceSelection_保留した書式を挿入した文字へ適用する()
     {
-        var bold = AnnotationDefaults.TextStyle with { IsBold = true };
-        var document = CreateDocument("ab");
+        var bold = TextDefaults.DefaultStyle with { IsBold = true };
+        var text = CreateText("ab");
         var edit = CreateEdit("ab");
         edit.Remember(bold);
 
-        var updated = edit.ReplaceSelection(document, "X");
+        var updated = edit.ReplaceSelection(text, "X");
 
-        var text = TextOf(updated, out var rich);
-        Assert.Equal("abX", text);
-        Assert.True(rich.StyleAt(2).IsBold);
+        Assert.Equal("abX", updated.PlainText);
+        Assert.True(updated.StyleAt(2).IsBold);
     }
 
     /// <summary>選択が無いときの削除は前後の 1 文字だけを消す。</summary>
@@ -79,27 +80,27 @@ public sealed class AnnotationTextEditTests
     [InlineData(true, "abd")]
     internal void Delete_前後の1文字を消す(bool forward, string expected)
     {
-        var document = CreateDocument("abcd");
+        var text = CreateText("abcd");
         var edit = CreateEdit("abcd");
         edit.MoveTo(2, 4, extend: false);
 
-        var updated = edit.Delete(document, forward);
+        var updated = edit.Delete(text, forward);
 
-        Assert.Equal(expected, TextOf(updated));
+        Assert.Equal(expected, updated.PlainText);
     }
 
-    /// <summary>本文の先頭・末尾の外を削除しようとしても文書は変わらない。</summary>
+    /// <summary>本文の先頭・末尾の外を削除しようとしても本文は変わらない。</summary>
     [Fact]
     internal void Delete_本文の外は変えない()
     {
-        var document = CreateDocument("abcd");
+        var text = CreateText("abcd");
         var edit = CreateEdit("abcd");
         edit.MoveTo(0, 4, extend: false);
 
-        Assert.Same(document, edit.Delete(document, forward: false));
+        Assert.Same(text, edit.Delete(text, forward: false));
 
         edit.MoveTo(4, 4, extend: false);
-        Assert.Same(document, edit.Delete(document, forward: true));
+        Assert.Same(text, edit.Delete(text, forward: true));
     }
 
     /// <summary>上下の移動は同じ桁を保ち、行の長さを超える場合は行末へ寄せる。</summary>
@@ -139,14 +140,14 @@ public sealed class AnnotationTextEditTests
     [Fact]
     internal void ApplyStyle_選択が無ければ本文を変えない()
     {
-        var bold = AnnotationDefaults.TextStyle with { IsBold = true };
-        var document = CreateDocument("abcd");
+        var bold = TextDefaults.DefaultStyle with { IsBold = true };
+        var text = CreateText("abcd");
         var edit = CreateEdit("abcd");
         edit.MoveTo(4, 4, extend: false);
 
-        var updated = edit.ApplyStyle(document, bold);
+        var updated = edit.ApplyStyle(text, bold);
 
-        Assert.Same(document, updated);
+        Assert.Same(text, updated);
         Assert.Equal(bold, edit.TypingStyle);
     }
 
@@ -154,34 +155,32 @@ public sealed class AnnotationTextEditTests
     [Fact]
     internal void ApplyStyle_選択範囲だけを変える()
     {
-        var bold = AnnotationDefaults.TextStyle with { IsBold = true };
-        var document = CreateDocument("abcd");
+        var bold = TextDefaults.DefaultStyle with { IsBold = true };
+        var text = CreateText("abcd");
         var edit = CreateEdit("abcd");
         edit.Select(1, 2, 4);
 
-        var updated = edit.ApplyStyle(document, bold);
+        var updated = edit.ApplyStyle(text, bold);
 
-        var rich = RichOf(updated);
-        Assert.False(rich.StyleAt(0).IsBold);
-        Assert.True(rich.StyleAt(1).IsBold);
-        Assert.True(rich.StyleAt(2).IsBold);
-        Assert.False(rich.StyleAt(3).IsBold);
+        Assert.False(updated.StyleAt(0).IsBold);
+        Assert.True(updated.StyleAt(1).IsBold);
+        Assert.True(updated.StyleAt(2).IsBold);
+        Assert.False(updated.StyleAt(3).IsBold);
     }
 
     /// <summary>装飾の切り替えは範囲の先頭の状態で 1 度だけ決める。</summary>
     [Fact]
     internal void TransformStyle_切り替えを1度だけ決める()
     {
-        var bold = AnnotationDefaults.TextStyle with { IsBold = true };
-        var document = CreateDocument("abcd", (1, 2, bold));
+        var bold = TextDefaults.DefaultStyle with { IsBold = true };
+        var text = CreateText("abcd", (1, 2, bold));
         var edit = CreateEdit("abcd");
         edit.Select(0, 4, 4);
 
         // 範囲の先頭は通常 → 全体を太字にする
-        var updated = edit.TransformStyle(document, style => style with { IsBold = !style.IsBold });
+        var updated = edit.TransformStyle(text, style => style with { IsBold = !style.IsBold });
 
-        var rich = RichOf(updated);
-        Assert.All(Enumerable.Range(0, 4), index => Assert.True(rich.StyleAt(index).IsBold));
+        Assert.All(Enumerable.Range(0, 4), index => Assert.True(updated.StyleAt(index).IsBold));
     }
 
     /// <summary>編集を終えると状態が初期化される。</summary>
@@ -189,7 +188,7 @@ public sealed class AnnotationTextEditTests
     internal void End_状態を初期化する()
     {
         var edit = CreateEdit("abcd");
-        edit.Remember(AnnotationDefaults.TextStyle);
+        edit.Remember(TextDefaults.DefaultStyle);
 
         edit.End();
 
@@ -198,27 +197,32 @@ public sealed class AnnotationTextEditTests
         Assert.Equal((0, 0), edit.SelectionRange);
     }
 
-    /// <summary>検証用の文書を生成する。</summary>
+    /// <summary>検証用の本文を生成する。</summary>
     /// <param name="text">本文。</param>
     /// <param name="bold">太字にする範囲（開始位置・長さ・書式）。</param>
-    /// <returns>吹き出し 1 件を持つ文書。</returns>
-    private static AnnotationDocument CreateDocument(string text, (int Start, int Length, AnnotationTextStyle Style)? bold = null)
+    /// <returns>書式付きの本文。</returns>
+    private static RichText CreateText(string text, (int Start, int Length, TextStyle Style)? bold = null)
     {
-        var rich = RichText.Create(text, AnnotationDefaults.TextStyle);
-        if (bold is { } range)
-        {
-            rich = rich.ApplyStyle(range.Start, range.Length, range.Style);
-        }
-
-        return new AnnotationDocument(200, 100).Add(new BubbleAnnotation
-        {
-            Id = "bubble",
-            Bounds = new EsRect(0, 0, 200, 100),
-            Text = rich,
-        });
+        var rich = RichText.Create(text, TextDefaults.DefaultStyle);
+        return bold is { } range ? rich.ApplyStyle(range.Start, range.Length, range.Style) : rich;
     }
 
-    /// <summary>文書の吹き出しを編集する状態を作る。</summary>
+    /// <summary>選択が無い間は、覚えた書式を表示に使うことを検証する。</summary>
+    [Fact]
+    internal void ResolveDisplayStyle_選択が無ければ覚えた書式を返す()
+    {
+        var bold = TextDefaults.DefaultStyle with { IsBold = true };
+        var text = RichText.Create("あい", TextDefaults.DefaultStyle);
+        var edit = CreateEdit("あい");
+        edit.Remember(bold);
+
+        Assert.Equal(bold, edit.ResolveDisplayStyle(text));
+
+        edit.Select(0, 1, 2);
+        Assert.Equal(TextDefaults.DefaultStyle, edit.ResolveDisplayStyle(text));
+    }
+
+    /// <summary>本文を編集する状態を作る。</summary>
     /// <param name="text">本文。</param>
     /// <returns>編集の状態。</returns>
     private static AnnotationTextEdit CreateEdit(string text)
@@ -228,50 +232,18 @@ public sealed class AnnotationTextEditTests
         return edit;
     }
 
-    /// <summary>文書の本文を取得する。</summary>
-    /// <param name="document">文書。</param>
-    /// <returns>本文（書式を除く）。</returns>
-    private static string TextOf(AnnotationDocument document)
-        => Assert.IsType<BubbleAnnotation>(Assert.Single(document.Items)).Text.PlainText;
-
-    /// <summary>文書の本文を取得する。</summary>
-    /// <param name="document">文書。</param>
-    /// <param name="rich">本文（書式付き）。</param>
-    /// <returns>本文（書式を除く）。</returns>
-    private static string TextOf(AnnotationDocument document, out RichText rich)
-    {
-        rich = RichOf(document);
-        return rich.PlainText;
-    }
-
-    /// <summary>文書の本文（書式付き）を取得する。</summary>
-    /// <param name="document">文書。</param>
-    /// <returns>本文。</returns>
-    private static RichText RichOf(AnnotationDocument document)
-        => Assert.IsType<BubbleAnnotation>(Assert.Single(document.Items)).Text;
-
     /// <summary>行と文字位置の対応を作る。</summary>
     /// <param name="plain">本文。</param>
     /// <param name="lineTexts">各行の文字列。</param>
     /// <returns>行と文字位置の対応。</returns>
-    private static AnnotationTextLineIndex CreateLines(string plain, params string[] lineTexts)
+    private static TextLineIndex CreateLines(string plain, params string[] lineTexts)
     {
         var lines = lineTexts
-            .Select((text, index) => new AnnotationTextLinePlan(
+            .Select((text, index) => new TextLinePlan(
                 new EsRect(0, index * 20, 100, 20),
-                [new AnnotationTextSegmentPlan(text, AnnotationDefaults.TextStyle, new EsRect(0, index * 20, 100, 20))]))
+                [new TextSegmentPlan(text, TextDefaults.DefaultStyle, new EsRect(0, index * 20, 100, 20))]))
             .ToArray();
-        var shape = new AnnotationShapePlan(
-            "bubble",
-            AnnotationKind.Bubble,
-            new EsRect(0, 0, 100, 100),
-            0,
-            System.Drawing.Color.Transparent,
-            System.Drawing.Color.Black,
-            0,
-            [],
-            lines);
 
-        return Assert.IsType<AnnotationTextLineIndex>(AnnotationTextLineIndex.Create(shape, plain));
+        return Assert.IsType<TextLineIndex>(TextLineIndex.Create(lines, plain));
     }
 }

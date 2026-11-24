@@ -2,14 +2,14 @@ using Aprillz.MewUI;
 using Aprillz.MewUI.Text;
 using EsUtil.Platform.Core.Geometry;
 using DrawingColor = System.Drawing.Color;
-using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Text;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
 /// <summary>本文の実寸の測定と行のベースラインの解決（描画 API に依存する部分だけを担う）。</summary>
 /// <remarks>
 /// <b>折り返しはコアが単一所有する</b>: 本クラスは「1 つの書式の文字列の実寸」と「行のベースライン」だけを返す
-/// （折り返しの判断は <c>AnnotationTextWrap</c>、行の配置は <c>AnnotationPresenter</c> が行う）。<br/>
+/// （折り返しの判断は <c>TextWrap</c>、行の配置は <c>AnnotationPresenter</c> が行う）。<br/>
 /// <b>行の高さは斜体で変えない</b>: 斜体は字を傾けるだけであり、行の高さ・ベースラインを変えると 1 行ごとに
 /// 間隔が変わる（AvaloniaUI 版と同じ規則）。 幅は実際の送り幅で測る（折り返しの判定に使う）。
 /// </remarks>
@@ -37,7 +37,7 @@ internal static class AnnotationTextMetrics
     /// <param name="text">文字列。</param>
     /// <param name="style">書式。</param>
     /// <returns>実寸（元画像ピクセル）。 高さは斜体を外した書式で測る。</returns>
-    internal static EsSize Measure(string text, AnnotationTextStyle style)
+    internal static EsSize Measure(string text, TextStyle style)
     {
         var layout = CreateLayout(text, style, ignoreItalic: false);
         var line = ResolveLineMetrics(style);
@@ -51,7 +51,7 @@ internal static class AnnotationTextMetrics
     /// <b>斜体を外して測る</b>: 斜体にしても行の高さ・ベースラインは変えない。 4 つの UI 版で同じ
     /// 結果になるよう、この規則は本メソッドが単一所有する。
     /// </remarks>
-    internal static TextLineMetrics MeasureLineMetrics(AnnotationTextStyle style)
+    internal static TextLineMetrics MeasureLineMetrics(TextStyle style)
     {
         var (height, baseline) = ResolveLineMetrics(style);
         return new TextLineMetrics(height, baseline);
@@ -61,7 +61,7 @@ internal static class AnnotationTextMetrics
     /// <param name="style">書式。</param>
     /// <returns>行の高さとベースライン。</returns>
     /// <remarks>斜体を外した書式で測る（斜体にしても行の高さ・ベースラインを変えない）。</remarks>
-    internal static (double Height, double Baseline) ResolveLineMetrics(AnnotationTextStyle style)
+    internal static (double Height, double Baseline) ResolveLineMetrics(TextStyle style)
     {
         var layout = CreateLayout(LineMetricsText, style, ignoreItalic: true);
         var lines = layout.Lines;
@@ -89,7 +89,7 @@ internal static class AnnotationTextMetrics
     /// <param name="style">書式。</param>
     /// <param name="ignoreItalic">斜体を外して作る場合は <see langword="true"/>（行の実寸を測るとき）。</param>
     /// <returns>レイアウト。</returns>
-    internal static ITextLayout CreateLayout(string text, AnnotationTextStyle style, bool ignoreItalic)
+    internal static ITextLayout CreateLayout(string text, TextStyle style, bool ignoreItalic)
         => Application.DefaultGraphicsFactory.TextEngine.CreateLayout(new TextLayoutRequest
         {
             Text = text.AsMemory(),

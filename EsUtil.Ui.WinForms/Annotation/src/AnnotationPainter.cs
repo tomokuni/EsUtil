@@ -1,5 +1,6 @@
 using System.Drawing.Drawing2D;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Text;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 
@@ -122,7 +123,7 @@ internal static class AnnotationPainter
     /// <param name="graphics">描画先。</param>
     /// <param name="line">区間が属する行。</param>
     /// <param name="segment">区間。</param>
-    private static void DrawSegment(Graphics graphics, AnnotationTextLinePlan line, AnnotationTextSegmentPlan segment)
+    private static void DrawSegment(Graphics graphics, TextLinePlan line, TextSegmentPlan segment)
     {
         var style = segment.Style;
         var runHeight = AnnotationTextMetrics.ResolveLineHeight(style);

@@ -1,5 +1,5 @@
-using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Presenter.Editor;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 
@@ -19,8 +19,8 @@ internal static class AnnotationEditorControls
     internal const float ToggleFontSize = (float)(AnnotationEditorLayout.ToggleFontSize * 0.75);
 
     /// <summary>編集 UI の文字に使うフォント名を取得する。</summary>
-    /// <remarks>本文の既定フォント（<see cref="AnnotationDefaults.PreferredFontFamilies"/> の先頭）と揃える。</remarks>
-    internal static string UiFontFamily => AnnotationDefaults.PreferredFontFamilies[0];
+    /// <remarks>本文の既定フォント（<see cref="TextDefaults.PreferredFontFamilies"/> の先頭）と揃える。</remarks>
+    internal static string UiFontFamily => TextDefaults.PreferredFontFamilies[0];
 
     /// <summary>項目間の余白（ピクセル）。</summary>
     internal const int Gap = (int)AnnotationEditorLayout.RowSpacing;

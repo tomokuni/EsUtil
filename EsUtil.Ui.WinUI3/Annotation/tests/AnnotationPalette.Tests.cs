@@ -1,5 +1,5 @@
 using Xunit;
-using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Ui.WinUI3.Annotation.Tests;
 
@@ -35,15 +35,15 @@ public class AnnotationPaletteTests
     [Fact]
     internal void フォントの一覧は優先フォントを先頭に置く()
     {
-        Assert.Equal(AnnotationDefaults.PreferredFontFamilies[0], AnnotationFonts.All[0]);
-        Assert.True(AnnotationFonts.All.Count > AnnotationDefaults.PreferredFontFamilies.Count);
+        Assert.Equal(TextDefaults.PreferredFontFamilies[0], AnnotationFonts.All[0]);
+        Assert.True(AnnotationFonts.All.Count > TextDefaults.PreferredFontFamilies.Count);
     }
 
     /// <summary>XAML を使えない環境では文字数と文字サイズから実寸を近似する。</summary>
     [Fact]
     internal void 実寸は文字数に比例する()
     {
-        var style = AnnotationDefaults.TextStyle with { FontSize = 20 };
+        var style = TextDefaults.DefaultStyle with { FontSize = 20 };
 
         var shortSize = AnnotationTextMetrics.Measure("あ", style);
         var longSize = AnnotationTextMetrics.Measure("ああああ", style);

@@ -1,5 +1,6 @@
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Text;
 
 namespace EsUtil.Feature.Annotation;
 
@@ -27,7 +28,7 @@ public sealed record AnnotationShapePlan(
     DrawingColor Border,
     double BorderThickness,
     IReadOnlyList<EsPoint> Tail,
-    IReadOnlyList<AnnotationTextLinePlan> Lines)
+    IReadOnlyList<TextLinePlan> Lines)
 {
     /// <summary>内側を塗るかどうかを取得する。</summary>
     /// <value>塗りの色に不透明度がある場合は <see langword="true"/>。</value>

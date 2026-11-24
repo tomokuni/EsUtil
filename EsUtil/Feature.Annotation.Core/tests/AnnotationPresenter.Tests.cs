@@ -1,6 +1,8 @@
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
 using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 
@@ -15,7 +17,7 @@ public class AnnotationPresenterTests
     [Fact]
     internal void 折り返し_幅を超える位置で行を分ける()
     {
-        var style = AnnotationDefaults.TextStyle with { FontSize = 20 };
+        var style = TextDefaults.DefaultStyle with { FontSize = 20 };
         var bubble = CreateBubble("ああああああ", style, width: 80);
 
         var plan = new AnnotationPresenter().ResolveDrawPlan(CreateDocument(bubble), FixedTextMetrics.Measure);
@@ -31,7 +33,7 @@ public class AnnotationPresenterTests
     [Fact]
     internal void 折り返し_明示改行で行を分ける()
     {
-        var bubble = CreateBubble("1行目\n2行目", AnnotationDefaults.TextStyle, width: 600);
+        var bubble = CreateBubble("1行目\n2行目", TextDefaults.DefaultStyle, width: 600);
 
         var plan = new AnnotationPresenter().ResolveDrawPlan(CreateDocument(bubble), FixedTextMetrics.Measure);
         var shape = Assert.Single(plan.Shapes);
@@ -45,7 +47,7 @@ public class AnnotationPresenterTests
     [Fact]
     internal void 折り返し_句読点を行頭へ置かない()
     {
-        var style = AnnotationDefaults.TextStyle with { FontSize = 20 };
+        var style = TextDefaults.DefaultStyle with { FontSize = 20 };
         var bubble = CreateBubble("あああああ、", style, width: 80);
 
         var plan = new AnnotationPresenter().ResolveDrawPlan(CreateDocument(bubble), FixedTextMetrics.Measure);
@@ -58,7 +60,7 @@ public class AnnotationPresenterTests
     [Fact]
     internal void しっぽ_先端と付け根の3点になる()
     {
-        var bubble = CreateBubble("test", AnnotationDefaults.TextStyle, width: 400);
+        var bubble = CreateBubble("test", TextDefaults.DefaultStyle, width: 400);
         bubble = bubble with { Tail = new BubbleTail(new EsPoint(1000, 800), BubbleEdge.Bottom, 0.5, 20) };
 
         var plan = new AnnotationPresenter().ResolveDrawPlan(CreateDocument(bubble), FixedTextMetrics.Measure);
@@ -74,12 +76,12 @@ public class AnnotationPresenterTests
     [Fact]
     internal void 行の配置_行間は文字の高さより広い()
     {
-        var bubble = CreateBubble("1行目\n2行目", AnnotationDefaults.TextStyle, width: 600);
+        var bubble = CreateBubble("1行目\n2行目", TextDefaults.DefaultStyle, width: 600);
 
         var plan = new AnnotationPresenter().ResolveDrawPlan(CreateDocument(bubble), FixedTextMetrics.Measure);
         var shape = Assert.Single(plan.Shapes);
 
-        Assert.True(shape.Lines[1].Bounds.Y - shape.Lines[0].Bounds.Y > AnnotationDefaults.FontSizeDefault);
+        Assert.True(shape.Lines[1].Bounds.Y - shape.Lines[0].Bounds.Y > TextDefaults.FontSizeDefault);
     }
 
     /// <summary>空行（明示改行だけの行）にも高さが付くことを検証する。</summary>
@@ -90,7 +92,7 @@ public class AnnotationPresenterTests
     [Fact]
     internal void 行の配置_空行にも高さが付く()
     {
-        var style = AnnotationDefaults.TextStyle with { FontSize = 20 };
+        var style = TextDefaults.DefaultStyle with { FontSize = 20 };
         var bubble = CreateBubble("1行目\n\n3行目", style, width: 600);
 
         var plan = new AnnotationPresenter().ResolveDrawPlan(CreateDocument(bubble), FixedTextMetrics.Measure);
@@ -106,7 +108,7 @@ public class AnnotationPresenterTests
     [Fact]
     internal void 行の配置_空行だけでも高さが付く()
     {
-        var bubble = CreateBubble("\n", AnnotationDefaults.TextStyle, width: 600);
+        var bubble = CreateBubble("\n", TextDefaults.DefaultStyle, width: 600);
 
         var plan = new AnnotationPresenter().ResolveDrawPlan(CreateDocument(bubble), FixedTextMetrics.Measure);
         var shape = Assert.Single(plan.Shapes);
@@ -162,7 +164,7 @@ public class AnnotationPresenterTests
     [Fact]
     internal void 折り返し_サロゲートペアを分割しない()
     {
-        var style = AnnotationDefaults.TextStyle with { FontSize = 20 };
+        var style = TextDefaults.DefaultStyle with { FontSize = 20 };
         var bubble = CreateBubble("😀😀😀😀", style, width: 80);
 
         var plan = new AnnotationPresenter().ResolveDrawPlan(CreateDocument(bubble), FixedTextMetrics.Measure);
@@ -181,7 +183,7 @@ public class AnnotationPresenterTests
     [Fact]
     internal void 折り返し_結合文字を分割しない()
     {
-        var style = AnnotationDefaults.TextStyle with { FontSize = 20 };
+        var style = TextDefaults.DefaultStyle with { FontSize = 20 };
         var bubble = CreateBubble("e\u0301e\u0301e\u0301", style, width: 80);
 
         var plan = new AnnotationPresenter().ResolveDrawPlan(CreateDocument(bubble), FixedTextMetrics.Measure);
@@ -196,7 +198,7 @@ public class AnnotationPresenterTests
     /// <param name="style">書式。</param>
     /// <param name="width">本体の幅。</param>
     /// <returns>吹き出し。</returns>
-    private static BubbleAnnotation CreateBubble(string text, AnnotationTextStyle style, double width) => new()
+    private static BubbleAnnotation CreateBubble(string text, TextStyle style, double width) => new()
     {
         Id = "bubble",
         Bounds = new EsRect(0, 0, width, 400),
@@ -214,6 +216,6 @@ public class AnnotationPresenterTests
     /// <summary>行の文字列を連結する。</summary>
     /// <param name="line">行。</param>
     /// <returns>連結した文字列。</returns>
-    private static string Concat(AnnotationTextLinePlan line)
+    private static string Concat(TextLinePlan line)
         => string.Concat(line.Segments.Select(segment => segment.Text));
 }

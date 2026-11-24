@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace EsUtil.Feature.Annotation.Core.Text;
+namespace EsUtil.Feature.Text.Core.Text;
 
 /// <summary>本文の文字位置を書記素クラスタ（利用者が 1 文字として見る単位）で扱う規則（単一所有）。</summary>
 /// <remarks>
@@ -11,7 +11,7 @@ namespace EsUtil.Feature.Annotation.Core.Text;
 /// 一部は .NET が 1 つのクラスタとして扱わないため、その範囲では要素ごとに分かれる（文字列は壊れない）。<br/>
 /// 位置は文字数（<see cref="string.Length"/> と同じ数え方）であり、行・書式の範囲も同じ単位で数える。
 /// </remarks>
-public static class AnnotationTextCursor
+public static class TextCursor
 {
     /// <summary>指定した位置がクラスタの境界かを判定する。</summary>
     /// <param name="text">本文。</param>

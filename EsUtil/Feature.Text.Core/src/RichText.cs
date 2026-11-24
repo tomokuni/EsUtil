@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
-using EsUtil.Feature.Annotation.Core.Defaults;
-using EsUtil.Feature.Annotation.Core.Text;
+using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.Text.Core.Text;
 
-namespace EsUtil.Feature.Annotation;
+namespace EsUtil.Feature.Text;
 
 /// <summary>書式付きの文字列（<see cref="TextRun"/> の並び）。</summary>
 /// <remarks>
@@ -57,7 +57,7 @@ public sealed class RichText
     /// <param name="text">文字列。</param>
     /// <param name="style">書式。</param>
     /// <returns>1 つの run からなる <see cref="RichText"/>。</returns>
-    public static RichText Create(string text, AnnotationTextStyle style)
+    public static RichText Create(string text, TextStyle style)
         => string.IsNullOrEmpty(text) ? Empty : new RichText([new TextRun(text, style)]);
 
     /// <summary>指定された範囲の書式を差し替えた新しい <see cref="RichText"/> を返す（文字単位の書式変更）。</summary>
@@ -70,7 +70,7 @@ public sealed class RichText
     /// 挿入・削除で境界がずれないよう、run が自分の文字列を持つ設計と対になっている。<br/>
     /// 範囲が文字数を超える場合は末尾までに丸める（例外にしない）。
     /// </remarks>
-    public RichText ApplyStyle(int start, int length, AnnotationTextStyle style)
+    public RichText ApplyStyle(int start, int length, TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(style);
         return WriteStyle(start, length, _ => style);
@@ -87,7 +87,7 @@ public sealed class RichText
     /// <b>切り替えの判断は呼び出し側で 1 回だけ行う</b>: 範囲の先頭の書式で「太字にする／戻す」を決め、
     /// その値を transform で全 run へ書く（run ごとに反転すると範囲の中で太字と通常が入れ替わる）。
     /// </remarks>
-    public RichText TransformStyle(int start, int length, Func<AnnotationTextStyle, AnnotationTextStyle> transform)
+    public RichText TransformStyle(int start, int length, Func<TextStyle, TextStyle> transform)
     {
         ArgumentNullException.ThrowIfNull(transform);
         return WriteStyle(start, length, transform);
@@ -98,7 +98,7 @@ public sealed class RichText
     /// <param name="length">範囲の長さ（0 以下は全体）。</param>
     /// <param name="styleFor">現在の書式から新しい書式を作る関数。</param>
     /// <returns>書き換えた新しい値。</returns>
-    private RichText WriteStyle(int start, int length, Func<AnnotationTextStyle, AnnotationTextStyle> styleFor)
+    private RichText WriteStyle(int start, int length, Func<TextStyle, TextStyle> styleFor)
     {
         if (IsEmpty)
         {
@@ -106,10 +106,10 @@ public sealed class RichText
         }
 
         var total = PlainText.Length;
-        var from = AnnotationTextCursor.SnapBackward(PlainText, Math.Clamp(start, 0, total));
+        var from = TextCursor.SnapBackward(PlainText, Math.Clamp(start, 0, total));
         var to = length <= 0
             ? total
-            : AnnotationTextCursor.SnapForward(PlainText, Math.Clamp(from + length, from, total));
+            : TextCursor.SnapForward(PlainText, Math.Clamp(from + length, from, total));
         if (from == to)
         {
             return this;
@@ -130,8 +130,8 @@ public sealed class RichText
             }
 
             // 範囲の手前（書式を変えない部分）
-            var localFrom = AnnotationTextCursor.SnapBackward(run.Text, Math.Max(from, runStart) - runStart);
-            var localTo = AnnotationTextCursor.SnapForward(run.Text, Math.Min(to, runEnd) - runStart);
+            var localFrom = TextCursor.SnapBackward(run.Text, Math.Max(from, runStart) - runStart);
+            var localTo = TextCursor.SnapForward(run.Text, Math.Min(to, runEnd) - runStart);
             if (localFrom > 0)
             {
                 AddMerged(runs, run with { Text = run.Text[..localFrom] });
@@ -152,7 +152,7 @@ public sealed class RichText
     /// <returns>各 run の書式を補正し、同じ書式が続く run を連結した値（空の run は落とす）。</returns>
     /// <remarks>
     /// <b>作成と読み込みの入口で 1 回だけ補正する</b>: 文字の大きさは元画像ピクセルであり、設定・JSON・入力のどの経路から来ても
-    /// 同じ安全域（<see cref="AnnotationLimits"/>）へ収める。 描画のたびに補正すると、保存した値と表示が食い違う。
+    /// 同じ安全域（<see cref="TextLimits"/>）へ収める。 描画のたびに補正すると、保存した値と表示が食い違う。
     /// </remarks>
     public RichText Normalized()
     {
@@ -194,7 +194,7 @@ public sealed class RichText
         var previous = PlainText;
         var last = Math.Max(0, previous.Length - 1);
         var runs = ImmutableArray.CreateBuilder<TextRun>();
-        var starts = AnnotationTextCursor.Boundaries(text);
+        var starts = TextCursor.Boundaries(text);
 
         for (var i = 0; i < starts.Length; i++)
         {
@@ -209,9 +209,9 @@ public sealed class RichText
 
     /// <summary>指定位置の文字の書式を取得する。</summary>
     /// <param name="index">文字の位置（0 起点）。</param>
-    /// <returns>その文字の書式。 範囲外・空の場合は <see cref="AnnotationTextStyle.Default"/>。</returns>
+    /// <returns>その文字の書式。 範囲外・空の場合は <see cref="TextStyle.Default"/>。</returns>
     /// <remarks>書式ツールバーの初期表示（選択位置の現在値）に使う。</remarks>
-    public AnnotationTextStyle StyleAt(int index)
+    public TextStyle StyleAt(int index)
     {
         var position = 0;
         foreach (var run in Runs)
@@ -223,7 +223,7 @@ public sealed class RichText
             }
         }
 
-        return Runs.LastOrDefault()?.Style ?? AnnotationTextStyle.Default;
+        return Runs.LastOrDefault()?.Style ?? TextStyle.Default;
     }
 
     /// <summary>指定された範囲の文字がすべて条件を満たすかどうかを返す。</summary>
@@ -235,15 +235,15 @@ public sealed class RichText
     /// <b>「範囲のすべて」で判定する</b>: 書式ツールバーの押下状態は、範囲の先頭の文字ではなく
     /// <b>範囲のすべてが同じ属性か</b>で決める（一部だけ太字の範囲でボタンが押されて見えるのを防ぐ）。
     /// </remarks>
-    public bool AllMatch(int start, int length, Func<AnnotationTextStyle, bool> match)
+    public bool AllMatch(int start, int length, Func<TextStyle, bool> match)
     {
         ArgumentNullException.ThrowIfNull(match);
 
         var total = PlainText.Length;
-        var from = AnnotationTextCursor.SnapBackward(PlainText, Math.Clamp(start, 0, total));
+        var from = TextCursor.SnapBackward(PlainText, Math.Clamp(start, 0, total));
         var to = length <= 0
             ? total
-            : AnnotationTextCursor.SnapForward(PlainText, Math.Clamp(from + length, from, total));
+            : TextCursor.SnapForward(PlainText, Math.Clamp(from + length, from, total));
         if (from >= to)
         {
             return false;
@@ -287,10 +287,10 @@ public sealed class RichText
         }
 
         var plain = PlainText;
-        var at = AnnotationTextCursor.SnapBackward(plain, Math.Clamp(index, 0, plain.Length));
+        var at = TextCursor.SnapBackward(plain, Math.Clamp(index, 0, plain.Length));
 
         // 挿入する文字は「直前の文字」の書式を引き継ぐ（文末で入力しても直前の書式が続く）
-        var style = StyleAt(at > 0 ? AnnotationTextCursor.Previous(plain, at) : 0);
+        var style = StyleAt(at > 0 ? TextCursor.Previous(plain, at) : 0);
 
         var runs = ImmutableArray.CreateBuilder<TextRun>();
         AddRange(runs, plain, 0, at);
@@ -312,8 +312,8 @@ public sealed class RichText
         }
 
         var plain = PlainText;
-        var from = AnnotationTextCursor.SnapBackward(plain, Math.Clamp(start, 0, plain.Length));
-        var to = AnnotationTextCursor.SnapForward(plain, Math.Clamp(from + length, from, plain.Length));
+        var from = TextCursor.SnapBackward(plain, Math.Clamp(start, 0, plain.Length));
+        var to = TextCursor.SnapForward(plain, Math.Clamp(from + length, from, plain.Length));
         if (from == to)
         {
             return this;
@@ -332,7 +332,7 @@ public sealed class RichText
     /// <param name="to">終了位置（含まない）。</param>
     private void AddRange(ImmutableArray<TextRun>.Builder runs, string plain, int from, int to)
     {
-        var starts = AnnotationTextCursor.Boundaries(plain);
+        var starts = TextCursor.Boundaries(plain);
         for (var i = 0; i < starts.Length; i++)
         {
             var start = starts[i];

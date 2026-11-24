@@ -1,4 +1,4 @@
-namespace EsUtil.Feature.Annotation.Core.Text;
+namespace EsUtil.Feature.Text.Core.Text;
 
 /// <summary>本文の書式を適用する範囲の規則（単一所有）。</summary>
 /// <remarks>
@@ -7,7 +7,7 @@ namespace EsUtil.Feature.Annotation.Core.Text;
 /// <see cref="Insert"/> で入力する文字へ適用する（選択が無い間の保留は UI が文字列の入力へ渡す）。
 /// 本文の書式は「選択した文字」へだけ適用する。 選択の有無は UI が持ち、範囲の決定は本クラスが持つ。
 /// </remarks>
-public static class AnnotationTextStyleEdit
+public static class TextStyleEdit
 {
     /// <summary>書式を適用する範囲を決める。</summary>
     /// <param name="selectionStart">選択の開始位置（文字数）。</param>
@@ -29,7 +29,7 @@ public static class AnnotationTextStyleEdit
     /// 保留した書式があるときだけ上書きする。
     /// </remarks>
     public static RichText Insert(
-        RichText text, int start, int length, string inserted, AnnotationTextStyle? typingStyle)
+        RichText text, int start, int length, string inserted, TextStyle? typingStyle)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(inserted);

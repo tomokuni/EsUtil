@@ -1,5 +1,3 @@
-using EsUtil.Feature.Annotation.Core.Defaults;
-using EsUtil.Feature.Annotation.Core.Text;
 
 namespace EsUtil.Feature.Annotation.Presenter.Selection;
 
@@ -14,25 +12,6 @@ namespace EsUtil.Feature.Annotation.Presenter.Selection;
 /// </remarks>
 public static class AnnotationSelectionPresenter
 {
-    /// <summary>選択中の注釈の文字書式を取得する。</summary>
-    /// <param name="document">文書。</param>
-    /// <param name="selectedId">選択中の注釈の識別子（無い場合は <see langword="null"/>）。</param>
-    /// <param name="range">選択範囲。</param>
-    /// <returns>選択範囲の先頭の書式。 吹き出しを選んでいない場合は既定の文字書式。</returns>
-    public static AnnotationTextStyle ResolveTextStyle(
-        AnnotationDocument document, string? selectedId, (int Start, int Length) range)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-
-        if (FindBubble(document, selectedId) is not { } bubble)
-        {
-            return AnnotationDefaults.TextStyle;
-        }
-
-        var start = Math.Clamp(range.Start, 0, bubble.Text.PlainText.Length);
-        return bubble.Text.StyleAt(start);
-    }
-
     /// <summary>選択中の注釈の外観を取得する。</summary>
     /// <param name="document">文書。</param>
     /// <param name="selectedId">選択中の注釈の識別子（無い場合は <see langword="null"/>）。</param>
@@ -57,32 +36,6 @@ public static class AnnotationSelectionPresenter
         ArgumentNullException.ThrowIfNull(document);
 
         return FindBubble(document, selectedId);
-    }
-
-    /// <summary>選択範囲に文字書式を適用する。</summary>
-    /// <param name="document">文書。</param>
-    /// <param name="selectedId">選択中の注釈の識別子。</param>
-    /// <param name="range">選択範囲。</param>
-    /// <param name="style">書式。</param>
-    /// <returns>変更後の文書。 適用しない場合（選択が無い・吹き出しでない・同じ値）は <see langword="null"/>。</returns>
-    /// <remarks>
-    /// <b>選択が無ければ適用しない</b>（規則は <see cref="AnnotationTextStyleEdit"/> が単一所有する）。
-    /// キャレットだけの状態で書式を変えると、キャレット以降の文字が意図せず変わる。
-    /// </remarks>
-    public static AnnotationDocument? ApplyTextStyle(
-        AnnotationDocument document, string? selectedId, (int Start, int Length) range, AnnotationTextStyle style)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-        ArgumentNullException.ThrowIfNull(style);
-
-        if (FindBubble(document, selectedId) is not { } bubble
-            || AnnotationTextStyleEdit.ResolveRange(range.Start, range.Length) is not { } selection)
-        {
-            return null;
-        }
-
-        return NullIfUnchanged(document, document.WithText(
-            bubble.Id, bubble.Text.ApplyStyle(selection.Start, selection.Length, style)));
     }
 
     /// <summary>選択中の注釈の外観を差し替える。</summary>

@@ -1,5 +1,6 @@
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Text;
 
 namespace EsUtil.Feature.Annotation.Core.Geometry;
 

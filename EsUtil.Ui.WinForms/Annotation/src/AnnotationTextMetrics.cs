@@ -1,4 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Text;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 
@@ -26,7 +27,7 @@ internal static class AnnotationTextMetrics
     /// <param name="style">書式。</param>
     /// <returns>実寸（元画像ピクセル）。 高さは斜体を外した書式で測る。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> または <paramref name="style"/> が null の場合。</exception>
-    internal static EsSize Measure(string text, AnnotationTextStyle style)
+    internal static EsSize Measure(string text, TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(style);
@@ -39,7 +40,7 @@ internal static class AnnotationTextMetrics
     /// <param name="style">書式。</param>
     /// <returns>行の高さ（元画像ピクセル）。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="style"/> が null の場合。</exception>
-    internal static double ResolveLineHeight(AnnotationTextStyle style)
+    internal static double ResolveLineHeight(TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(style);
 
@@ -59,7 +60,7 @@ internal static class AnnotationTextMetrics
     /// <param name="style">書式。</param>
     /// <returns>行の高さとベースライン。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="style"/> が null の場合。</exception>
-    internal static (double Height, double Baseline) ResolveLineMetrics(AnnotationTextStyle style)
+    internal static (double Height, double Baseline) ResolveLineMetrics(TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(style);
 
@@ -81,7 +82,7 @@ internal static class AnnotationTextMetrics
     /// <param name="text">文字列。</param>
     /// <param name="style">書式。</param>
     /// <returns>送り幅（元画像ピクセル）。</returns>
-    private static double MeasureWidth(string text, AnnotationTextStyle style)
+    private static double MeasureWidth(string text, TextStyle style)
     {
         using var font = CreateFont(style);
         return s_graphics.MeasureString(text, font, int.MaxValue, s_format).Width;
@@ -90,7 +91,7 @@ internal static class AnnotationTextMetrics
     /// <summary>書式から GDI+ のフォントを作る。</summary>
     /// <param name="style">書式。</param>
     /// <returns>フォント。 破棄は呼び出し側。</returns>
-    internal static Font CreateFont(AnnotationTextStyle style)
+    internal static Font CreateFont(TextStyle style)
     {
         var fontStyle = FontStyle.Regular;
         if (style.IsBold)

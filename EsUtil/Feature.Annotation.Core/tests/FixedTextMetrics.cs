@@ -1,4 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Text;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 
@@ -16,6 +17,6 @@ internal static class FixedTextMetrics
     /// <param name="text">文字列。</param>
     /// <param name="style">書式。</param>
     /// <returns>実寸（元画像ピクセル）。</returns>
-    internal static EsSize Measure(string text, AnnotationTextStyle style)
+    internal static EsSize Measure(string text, TextStyle style)
         => new(text.Length * style.FontSize * CharacterWidthRatio, style.FontSize);
 }

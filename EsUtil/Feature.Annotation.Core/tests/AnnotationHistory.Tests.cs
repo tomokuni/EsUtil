@@ -1,7 +1,8 @@
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
-using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.History;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 
@@ -109,13 +110,13 @@ public class AnnotationHistoryTests
         var bubble = new BubbleAnnotation
         {
             Bounds = new EsRect(0, 0, 100, 50),
-            Text = RichText.Create("あい", AnnotationDefaults.TextStyle),
+            Text = RichText.Create("あい", TextDefaults.DefaultStyle),
             Tail = new BubbleTail(new EsPoint(10, 10), BubbleEdge.Top, 0.5, 20),
         };
         var document = new AnnotationDocument(100, 100).Add(bubble);
 
         var changed = document
-            .WithText(bubble.Id, RichText.Create("うえ", AnnotationDefaults.TextStyle))
+            .WithText(bubble.Id, RichText.Create("うえ", TextDefaults.DefaultStyle))
             .WithTail(bubble.Id, bubble.Tail with { Width = 30 });
 
         var original = Assert.IsType<BubbleAnnotation>(Assert.Single(document.Items));

@@ -1,5 +1,7 @@
 using EsUtil.Platform.Core.Palette;
 using DrawingColor = System.Drawing.Color;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Core.Defaults;
 
@@ -49,8 +51,8 @@ public static class AnnotationDraftDefaultsFactory
                 borderThickness,
                 Parse(bubbleFillColor),
                 cornerRadius).Normalized(),
-            new AnnotationTextStyle(
-                AnnotationDefaults.PreferredFontFamilies[0],
+            new TextStyle(
+                TextDefaults.PreferredFontFamilies[0],
                 fontSize,
                 Parse(textColor)).Normalized(),
             AnnotationLimits.CoerceBodyPadding(bodyPadding),

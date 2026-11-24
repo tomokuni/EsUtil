@@ -1,6 +1,6 @@
 using Avalonia.Headless.XUnit;
 using Xunit;
-using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation.Tests;
 
@@ -20,7 +20,7 @@ public class AnnotationPainterTests
     [AvaloniaFact]
     internal void 行の高さを測る書式から斜体が外れる()
     {
-        var normal = AnnotationDefaults.TextStyle;
+        var normal = TextDefaults.DefaultStyle;
         var italic = normal with { IsItalic = true };
 
         var normalMetrics = AnnotationPainter.CreateLineMetrics(normal);
@@ -51,7 +51,7 @@ public class AnnotationPainterTests
         Assert.Equal(100 + 3 + 19, baseline, 3);
 
         // 斜体の区間も、このベースラインから自分のベースラインぶん戻した位置に描かれる
-        var italic = AnnotationPainter.CreateText("文字", AnnotationDefaults.TextStyle with { IsItalic = true });
+        var italic = AnnotationPainter.CreateText("文字", TextDefaults.DefaultStyle with { IsItalic = true });
         var top = baseline - italic.Baseline;
         Assert.Equal(baseline, top + italic.Baseline, 3);
     }
@@ -64,8 +64,8 @@ public class AnnotationPainterTests
     [AvaloniaFact]
     internal void 斜体と通常の区間でベースラインが揃う()
     {
-        var normal = AnnotationPainter.CreateText("文字", AnnotationDefaults.TextStyle);
-        var italic = AnnotationPainter.CreateText("文字", AnnotationDefaults.TextStyle with { IsItalic = true });
+        var normal = AnnotationPainter.CreateText("文字", TextDefaults.DefaultStyle);
+        var italic = AnnotationPainter.CreateText("文字", TextDefaults.DefaultStyle with { IsItalic = true });
 
         var baseline = AnnotationPainter.ResolveBaseline(0, 30, 24, 19);
 

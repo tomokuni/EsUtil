@@ -1,7 +1,7 @@
-using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Presenter.Selection;
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 
@@ -106,7 +106,7 @@ public sealed class AnnotationEditSessionTests
         session.AddBubble(new EsRect(10, 10, 200, 80), "abcd");
         session.MoveCaret(2, extend: false);
 
-        Assert.False(session.ApplyTextStyle(AnnotationDefaults.TextStyle with { IsBold = true }));
+        Assert.False(session.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true }));
         Assert.False(Assert.IsType<BubbleAnnotation>(session.Selected).Text.StyleAt(2).IsBold);
 
         Assert.True(session.ReplaceSelection("X"));

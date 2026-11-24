@@ -80,4 +80,4 @@ MewUI 版の注釈レイヤーが公開する API の一覧です。 操作と�
 
 | メンバー | 説明 |
 | --- | --- |
-| `All` | 選べるフォントの一覧（`AnnotationDefaults.PreferredFontFamilies` を先頭に置く） |
+| `All` | 選べるフォントの一覧（`TextDefaults.PreferredFontFamilies` を先頭に置く） |

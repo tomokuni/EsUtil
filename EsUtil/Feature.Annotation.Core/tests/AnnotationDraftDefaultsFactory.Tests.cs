@@ -1,5 +1,6 @@
 using Xunit;
 using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 
@@ -26,7 +27,7 @@ public sealed class AnnotationDraftDefaultsFactoryTests
         Assert.Equal(AnnotationLimits.BorderThicknessMin, defaults.BubbleAppearance.BorderThickness);
         Assert.Equal(0, defaults.FrameAppearance.CornerRadius);
         Assert.Equal(0, defaults.BubbleAppearance.CornerRadius);
-        Assert.Equal(AnnotationLimits.FontSizeMin, defaults.TextStyle.FontSize);
+        Assert.Equal(TextLimits.FontSizeMin, defaults.TextStyle.FontSize);
         Assert.Equal(0, defaults.BodyPadding);
         Assert.Equal(AnnotationLimits.TailWidthMax, defaults.TailWidth);
     }
@@ -43,7 +44,7 @@ public sealed class AnnotationDraftDefaultsFactoryTests
             bubbleBorderColor: null,
             bubbleFillColor: null,
             textColor: null,
-            fontSize: AnnotationDefaults.FontSizeDefault,
+            fontSize: TextDefaults.FontSizeDefault,
             bodyPadding: AnnotationDefaults.BodyPaddingDefault,
             tailWidth: AnnotationDefaults.TailWidthDefault);
 

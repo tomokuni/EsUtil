@@ -13,9 +13,10 @@ using EsUtil.Feature.Annotation.Core.Contract;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Geometry;
 using EsUtil.Feature.Annotation.Core.Interaction;
-using EsUtil.Feature.Annotation.Core.Text;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Annotation.Presenter.Selection;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Text;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
@@ -307,7 +308,7 @@ public sealed partial class AnnotationLayerControl : Panel
 
     /// <summary>選択中の本文の書式を取得する（選択範囲の先頭の書式）。</summary>
     /// <remarks>選択が無い間は、書式バーで選んだ書式（以降の入力へ効く値）を返す。</remarks>
-    public AnnotationTextStyle SelectedTextStyle
+    public TextStyle SelectedTextStyle
     {
         get => _session.SelectedTextStyle;
         set
@@ -351,16 +352,16 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <returns>選択範囲へ適用した場合は <see langword="true"/>。 選択が無く以降の入力へ回した場合は <see langword="false"/>。</returns>
     /// <remarks>
     /// <b>選択が無ければ以降の入力へ回す</b>: 既存の文字は変えず、次に入力する文字へ適用する
-    /// （規則は <see cref="AnnotationTextStyleEdit"/> と <see cref="AnnotationTextEdit"/> が単一所有する）。
+    /// （規則は <see cref="TextStyleEdit"/> と <see cref="AnnotationTextEdit"/> が単一所有する）。
     /// </remarks>
-    public bool ApplyTextStyle(AnnotationTextStyle style) => _session.ApplyTextStyle(style);
+    public bool ApplyTextStyle(TextStyle style) => _session.ApplyTextStyle(style);
 
     /// <summary>選択中の本文へ書式を適用する。</summary>
     /// <param name="start">開始位置（文字数）。</param>
     /// <param name="length">長さ（0 は全体）。</param>
     /// <param name="style">書式。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
-    public bool ApplyTextStyle(int start, int length, AnnotationTextStyle style)
+    public bool ApplyTextStyle(int start, int length, TextStyle style)
         => _session.ApplyTextStyle(start, length, style);
 
     /// <summary>選択中の本文の書式を変換する（<see cref="TextSelectionRange"/> の範囲）。</summary>
@@ -370,7 +371,7 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <b>選択が無ければ以降の入力へ回す</b>: 変換の元になる書式は <see cref="SelectedTextStyle"/>（直前に入力した
     /// 文字の書式、または書式バーで選んだ書式）である。
     /// </remarks>
-    public bool TransformTextStyle(Func<AnnotationTextStyle, AnnotationTextStyle> transform)
+    public bool TransformTextStyle(Func<TextStyle, TextStyle> transform)
         => _session.TransformTextStyle(transform);
 
     /// <summary>選択中の本文の書式を変換する（指定した属性だけ変える）。</summary>
@@ -378,7 +379,7 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <param name="length">長さ（0 は全体）。</param>
     /// <param name="transform">書式を変える処理。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
-    public bool TransformTextStyle(int start, int length, Func<AnnotationTextStyle, AnnotationTextStyle> transform)
+    public bool TransformTextStyle(int start, int length, Func<TextStyle, TextStyle> transform)
         => _session.TransformTextStyle(start, length, transform);
 
     /// <summary>選択中の注釈の外観（枠線・内側・角丸）を取得または設定する。</summary>
@@ -690,7 +691,7 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <summary>行の文字数を求める（区間の文字数の合計）。</summary>
     /// <param name="line">行。</param>
     /// <returns>文字数。</returns>
-    /// <remarks>数え方はコアが単一所有する（<see cref="AnnotationTextLineLayout.Length"/>）。</remarks>
-    internal static int LineTextLength(AnnotationTextLinePlan line) => AnnotationTextLineLayout.Length(line);
+    /// <remarks>数え方はコアが単一所有する（<see cref="TextLineLayout.Length"/>）。</remarks>
+    internal static int LineTextLength(TextLinePlan line) => TextLineLayout.Length(line);
 }
 

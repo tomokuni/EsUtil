@@ -3,6 +3,7 @@ using EsUtil.Platform.Core.Imaging;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Ui.WinForms.Annotation.Tests;
 
@@ -73,7 +74,7 @@ public class AnnotationLayerControlTests
     [Fact]
     internal void 本文の実寸は文字数に比例する()
     {
-        var style = AnnotationDefaults.TextStyle with { FontSize = 20 };
+        var style = TextDefaults.DefaultStyle with { FontSize = 20 };
 
         var shortSize = AnnotationTextMetrics.Measure("あ", style);
         var longSize = AnnotationTextMetrics.Measure("ああああ", style);
@@ -151,7 +152,7 @@ public class AnnotationLayerControlTests
         layer.AddBubble(new EsRect(10, 10, 200, 80), "abcd");
 
         layer.TextSelectionRange = (1, 2);
-        Assert.True(layer.ApplyTextStyle(AnnotationDefaults.TextStyle with { IsBold = true }));
+        Assert.True(layer.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true }));
 
         var text = Assert.IsType<BubbleAnnotation>(layer.Selected).Text;
         Assert.False(text.StyleAt(0).IsBold);

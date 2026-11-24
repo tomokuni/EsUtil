@@ -75,4 +75,4 @@ WinUI 3 のテキスト エンジン（`TextBlock`）で本文の実寸を測り
 
 | メンバー | 説明 |
 | --- | --- |
-| `All` | 選べるフォントの一覧（`AnnotationDefaults.PreferredFontFamilies` を先頭に置く） |
+| `All` | 選べるフォントの一覧（`TextDefaults.PreferredFontFamilies` を先頭に置く） |

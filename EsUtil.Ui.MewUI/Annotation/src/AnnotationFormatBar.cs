@@ -4,8 +4,9 @@ using Aprillz.MewUI.Text;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Ui.MewUI.ColorSelector;
-using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Presenter.Editor;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
@@ -107,9 +108,9 @@ public sealed class AnnotationFormatBar : ContentControl
         _fontCell.Add(_font);
         _fontCell.Add(_fontText);
 
-        _size = new NumericUpDown().Minimum(AnnotationLimits.FontSizeMin).Maximum(AnnotationLimits.FontSizeMax).Step(1);
+        _size = new NumericUpDown().Minimum(TextLimits.FontSizeMin).Maximum(TextLimits.FontSizeMax).Step(1);
         _size.Width = SizeSelectorWidth;
-        _size.Value = AnnotationDefaults.FontSizeDefault;
+        _size.Value = TextDefaults.FontSizeDefault;
         _size.OnValueChanged(_ => ApplySize());
 
         _color = new ColorSelectorControl
@@ -358,7 +359,7 @@ public sealed class AnnotationFormatBar : ContentControl
     /// <remarks>
     /// <b>選択が無いときは以降の入力へ回す</b>（判定はレイヤーが単一所有するので、ここでは分けない）。
     /// </remarks>
-    private void Apply(Func<AnnotationTextStyle, AnnotationTextStyle> change)
+    private void Apply(Func<TextStyle, TextStyle> change)
     {
         _layer.TransformTextStyle(change);
         Refresh();
@@ -371,8 +372,8 @@ public sealed class AnnotationFormatBar : ContentControl
     /// <param name="read">属性を読む関数。</param>
     /// <param name="write">属性を書く関数。</param>
     private void ToggleDecoration(
-        Func<AnnotationTextStyle, bool> read,
-        Func<AnnotationTextStyle, bool, AnnotationTextStyle> write)
+        Func<TextStyle, bool> read,
+        Func<TextStyle, bool, TextStyle> write)
     {
         if (_isRefreshing)
         {

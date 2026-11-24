@@ -40,6 +40,12 @@
         "resolved": "10.0.0",
         "contentHash": "L3AdmZ1WOK4XXT5YFPEwyt0ep6l8lGIPs7F5OOBZc77Zqeo01Of7XXICy47628sdVl0v/owxYJTe86DTgFwKCA=="
       },
+      "esutil.feature.text.core": {
+        "type": "Project",
+        "dependencies": {
+          "EsUtil.Platform.Core": "[0.8.8, )"
+        }
+      },
       "esutil.platform.core": {
         "type": "Project"
       }

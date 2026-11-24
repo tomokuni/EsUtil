@@ -1,3 +1,4 @@
+
 namespace EsUtil.Feature.Annotation.Core.Defaults;
 
 /// <summary>注釈の寸法・書式の既定値と安全域（単一所有）。</summary>

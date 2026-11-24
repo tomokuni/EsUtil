@@ -5,6 +5,8 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.System;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Text;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 
@@ -17,7 +19,7 @@ namespace EsUtil.Ui.WinUI3.Annotation;
 /// 変換中の文字列は文書へ入れず、キャレットの位置へ下線付きで描く（確定した文字列だけを入れる）。
 /// 変換中の文字列は文書へ入れず、キャレットの位置へ下線付きで描く（確定した文字列だけを入れる）。<br/>
 /// <b>座標の対応</b>: 折り返しは <see cref="AnnotationPresenter"/> が解決した行を
-/// <see cref="AnnotationTextLineIndex"/> で文字位置へ対応させる。
+/// <see cref="TextLineIndex"/> で文字位置へ対応させる。
 /// </remarks>
 public sealed partial class AnnotationLayerControl
 {
@@ -76,7 +78,7 @@ public sealed partial class AnnotationLayerControl
 
     /// <summary>いまキャレットを点灯して描くかどうかを取得する。</summary>
     /// <value>点滅の位相が点灯の間は <see langword="true"/>。</value>
-    private bool IsCaretVisible => AnnotationCaretBlink.IsVisible(DateTimeOffset.UtcNow - _caretBlinkStart);
+    private bool IsCaretVisible => TextCaretBlink.IsVisible(DateTimeOffset.UtcNow - _caretBlinkStart);
 
     /// <summary>キャレットの点滅を点灯から始め直す（文字入力・キャレット移動の直後に呼ぶ）。</summary>
     private void RestartCaretBlink()
@@ -84,7 +86,7 @@ public sealed partial class AnnotationLayerControl
         _caretBlinkStart = DateTimeOffset.UtcNow;
         if (_caretTimer is null)
         {
-            var timer = new Microsoft.UI.Xaml.DispatcherTimer { Interval = AnnotationCaretBlink.Interval };
+            var timer = new Microsoft.UI.Xaml.DispatcherTimer { Interval = TextCaretBlink.Interval };
             timer.Tick += (_, _) =>
             {
                 if (IsEditingText)
@@ -201,8 +203,8 @@ public sealed partial class AnnotationLayerControl
     /// <param name="write">属性を書く関数。</param>
     /// <returns>処理した場合は <see langword="true"/>。</returns>
     internal bool ToggleDecoration(
-        Func<AnnotationTextStyle, bool> read,
-        Func<AnnotationTextStyle, bool, AnnotationTextStyle> write)
+        Func<TextStyle, bool> read,
+        Func<TextStyle, bool, TextStyle> write)
         // 適用先（選択範囲・選択が無ければ以降の入力）の決定は Apply/Transform が単一所有する
         => TransformTextStyle(style => write(style, !read(style)));
 
@@ -210,17 +212,17 @@ public sealed partial class AnnotationLayerControl
     /// <param name="match">書式が条件を満たすかどうかを返す関数。</param>
     /// <returns>すべて満たす場合は <see langword="true"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="match"/> が null の場合。</exception>
-    public bool SelectedTextMatches(Func<AnnotationTextStyle, bool> match) => _session.SelectedTextMatches(match);
+    public bool SelectedTextMatches(Func<TextStyle, bool> match) => _session.SelectedTextMatches(match);
 
     /// <summary>選択範囲の書式を変換する（1 つの属性だけ変える）。</summary>
     /// <param name="transform">書式を変える処理。</param>
-    /// <remarks>選択が無ければ以降の入力へ回す（判定は <see cref="TransformTextStyle(Func{AnnotationTextStyle, AnnotationTextStyle})"/> が持つ）。</remarks>
-    internal void TransformSelectionStyle(Func<AnnotationTextStyle, AnnotationTextStyle> transform)
+    /// <remarks>選択が無ければ以降の入力へ回す（判定は <see cref="TransformTextStyle(Func{TextStyle, TextStyle})"/> が持つ）。</remarks>
+    internal void TransformSelectionStyle(Func<TextStyle, TextStyle> transform)
         => _ = TransformTextStyle(transform);
 
     /// <summary>選択範囲へ書式を丸ごと適用する（色・大きさ・フォント）。</summary>
     /// <param name="style">書式。</param>
-    internal void ApplyFullStyle(AnnotationTextStyle style) => ApplyTextStyle(style);
+    internal void ApplyFullStyle(TextStyle style) => ApplyTextStyle(style);
 
     /// <summary>本文の編集（選択範囲・キャレット・変換中の文字列）を描く。</summary>
     private void DrawEditing()
@@ -253,7 +255,7 @@ public sealed partial class AnnotationLayerControl
         // **変換中の文字列はここで描かない**: 描画に使う文書（<see cref="RenderDocument"/>）へ
         // 入れているため、重ねて描くと既存の文字と二重になります。
 
-        // **キャレットは一般的な速さで点滅させる**（規則は提示層の AnnotationCaretBlink が単一所有する）
+        // **キャレットは一般的な速さで点滅させる**（規則は提示層の TextCaretBlink が単一所有する）
         PlaceImeSink();
         if (!IsCaretVisible)
         {
@@ -280,7 +282,7 @@ public sealed partial class AnnotationLayerControl
     /// <b>本文と揃える</b>: <see cref="AnnotationPainter"/> は行の実寸と書式の実寸の差の半分だけ下げて置きます。
     /// 変換中の文字だけ上端へ置くと上へずれて見えます。
     /// </remarks>
-    private double TextTopDip((double X, double Y, double Height) caret, AnnotationTextStyle style)
+    private double TextTopDip((double X, double Y, double Height) caret, TextStyle style)
     {
         var (scale, _) = ResolveImageTransform();
         var runHeight = MeasureText("Ag", style with { IsItalic = false }).Height;
@@ -311,7 +313,7 @@ public sealed partial class AnnotationLayerControl
 
     /// <summary>選択中の吹き出しの行と文字位置の対応を解決する。</summary>
     /// <returns>対応。 解決できない場合は <see langword="null"/>。</returns>
-    private AnnotationTextLineIndex? ResolveLineIndex()
+    private TextLineIndex? ResolveLineIndex()
     {
         if (Selected is not BubbleAnnotation bubble)
         {
@@ -324,7 +326,7 @@ public sealed partial class AnnotationLayerControl
             candidate => string.Equals(candidate.Id, bubble.Id, StringComparison.Ordinal));
         return shape is null
             ? null
-            : AnnotationTextLineIndex.Create(shape, document.Find(bubble.Id) is BubbleAnnotation drawn
+            : TextLineIndex.Create(shape.Lines, document.Find(bubble.Id) is BubbleAnnotation drawn
                 ? drawn.Text.PlainText
                 : bubble.Text.PlainText);
     }

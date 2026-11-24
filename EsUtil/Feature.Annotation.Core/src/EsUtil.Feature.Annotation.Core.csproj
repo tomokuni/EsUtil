@@ -12,6 +12,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <!-- 本文の書式・折り返し・行対応は再利用可能な文字の計算層（EsUtil.Feature.Text.Core）が単一所有する -->
+    <ProjectReference Include="..\..\Feature.Text.Core\src\EsUtil.Feature.Text.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

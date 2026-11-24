@@ -4,6 +4,8 @@ using EsUtil.Feature.Annotation.Core.Contract;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Geometry;
 using EsUtil.Feature.Annotation.Core.Interaction;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 
@@ -87,7 +89,7 @@ public sealed class AnnotationPointerPolicyTests
             new EsRect(0, 0, 100, 60), AnnotationDefaults.FrameAppearance, document.ImageSize);
         var bubble = AnnotationGeometry.CreateBubble(
             new EsRect(150, 100, 120, 80),
-            RichText.Create("あ", AnnotationDefaults.TextStyle),
+            RichText.Create("あ", TextDefaults.DefaultStyle),
             AnnotationDraftDefaults.Default,
             document.ImageSize);
         return document.Add(frame).Add(bubble);

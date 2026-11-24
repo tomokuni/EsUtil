@@ -1,4 +1,6 @@
 using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Text;
+using EsUtil.Feature.Text.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation;
 
@@ -17,7 +19,7 @@ namespace EsUtil.Feature.Annotation;
 public sealed record AnnotationDraftDefaults(
     AnnotationAppearance FrameAppearance,
     AnnotationAppearance BubbleAppearance,
-    AnnotationTextStyle TextStyle,
+    TextStyle TextStyle,
     double BodyPadding,
     double TailWidth,
     BubbleEdge TailEdge)
@@ -26,7 +28,7 @@ public sealed record AnnotationDraftDefaults(
     public static AnnotationDraftDefaults Default { get; } = new(
         AnnotationDefaults.FrameAppearance,
         AnnotationDefaults.BubbleAppearance,
-        AnnotationDefaults.TextStyle,
+        TextDefaults.DefaultStyle,
         AnnotationDefaults.BodyPaddingDefault,
         AnnotationDefaults.TailWidthDefault,
         BubbleEdge.Bottom);
