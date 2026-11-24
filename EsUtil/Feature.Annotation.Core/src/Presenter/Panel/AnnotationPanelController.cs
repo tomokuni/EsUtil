@@ -100,8 +100,11 @@ public sealed class AnnotationPanelController
             return;
         }
 
-        _host.MovePanel(
-            kind, AnnotationPanelPlacement.ResolveOutside(target, size, _host.AvailableArea, gap));
+        var position = AnnotationPanelPlacement.ResolveOutside(
+            target, size, _host.AvailableArea, gap);
+        _host.MovePanel(kind, position);
+        (_logger?.Invoke() ?? NullLogger.Instance).LogPanelPlaced(
+            kind.ToString(), position, size, _host.AvailableArea);
     }
 
     /// <summary>位置を指定してパネルを表示する。</summary>
@@ -185,6 +188,8 @@ public sealed class AnnotationPanelController
         if (clamped.X != current.X || clamped.Y != current.Y)
         {
             _host.MovePanel(kind, clamped);
+            (_logger?.Invoke() ?? NullLogger.Instance).LogPanelPlaced(
+                kind.ToString(), clamped, panelSize, _host.AvailableArea);
         }
     }
 

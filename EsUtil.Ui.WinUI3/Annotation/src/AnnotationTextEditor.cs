@@ -138,11 +138,13 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     }
 
     /// <summary>パネルを置ける領域（DIP）を取得する。</summary>
-    /// <value>注釈レイヤー（画像の表示領域）が占める範囲を、外側へ広げたもの（重ねた先の座標）。</value>
+    /// <value>注釈レイヤーが占める範囲を外側へ広げ、ウィンドウの内側との交わりを取ったもの（重ねた先の座標）。</value>
     /// <remarks>
-    /// <b>ウィンドウの外へも出せる</b>: パネルはウィンドウの外へ出せるポップアップへ載せるため、
-    /// 画像の表示領域へ収める必要はない。 <see cref="AnnotationPanelMetrics.OutsideAllowance"/> だけ
-    /// 外側を許し、画面の外へ出ないことは位置の適用が作業領域で止める（実測 2026-11-23）。
+    /// <b>ウィンドウの内側へ収める</b>: パネルはウィンドウの内側へ切れて見えなくなるため、レイヤーの
+    /// 範囲へ挟まず、外側へ広げた範囲とウィンドウの内側との交わりを使う（規則は
+    /// <see cref="AnnotationPanelPlacement.ResolveAvailableArea"/> が単一所有する）。<br/>
+    /// <b>実寸が取れないときはレイヤーの範囲</b>: レイアウト前は <c>ActualWidth</c> が 0 のため、
+    /// その場合はレイヤーの範囲をそのまま使う。
     /// </remarks>
     public EsRect AvailableArea
     {
@@ -150,13 +152,25 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
         {
             var width = _layer.ActualWidth > 0 ? _layer.ActualWidth : ActualWidth;
             var height = _layer.ActualHeight > 0 ? _layer.ActualHeight : ActualHeight;
+            if (width <= 0 || height <= 0)
+            {
+                return default;
+            }
+
             var origin = ToOverlayPoint(default);
-            var pad = AnnotationPanelMetrics.OutsideAllowance;
-            return width > 0 && height > 0
-                ? new EsRect(origin.X - pad, origin.Y - pad, width + (pad * 2), height + (pad * 2))
-                : default;
+            return AnnotationPanelPlacement.ResolveAvailableArea(
+                new EsRect(origin.X, origin.Y, width, height),
+                VisibleBounds(),
+                AnnotationPanelMetrics.OutsideAllowance);
         }
     }
+
+    /// <summary>アプリのウィンドウの内側（重ねた先の座標）を取得する。</summary>
+    /// <returns>見えている範囲。 取得できない場合は既定値。</returns>
+    private EsRect VisibleBounds()
+        => XamlRoot?.Content is Panel root && root.ActualWidth > 0 && root.ActualHeight > 0
+            ? new EsRect(0, 0, root.ActualWidth, root.ActualHeight)
+            : default;
 
     /// <summary>表示中のパネルの左上（DIP）を取得する。</summary>
     /// <param name="kind">パネルの種別。</param>
@@ -222,9 +236,10 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
         root.PointerMoved += (_, e) => ContinuePanelDrag(kind, root, e);
         root.PointerReleased += (_, e) => EndPanelDrag(kind, root, e);
 
-        // **ポップアップへ載せる**: ウィンドウの中へ重ねるとウィンドウの外へ出せず、**ウィンドウが小さいと
-        // 中身が切れる**。 WinUI 3 の <see cref="Popup"/> は ShouldConstrainToRootBounds を false にすると
-        // ウィンドウの外（画面の作業領域の内側）へも出せる（実測 2026-11-23）。
+        // **ポップアップへ載せる**: ウィンドウの中へ重ねると、ウィンドウが小さいときに中身が切れる。
+        // WinUI 3 の <see cref="Popup"/> は ShouldConstrainToRootBounds を false にすると
+        // ウィンドウの外（画面の作業領域の内側）へも出せる（実測 2026-11-23: 置く位置は
+        // ウィンドウの内側へ収めるため、中身がはみ出すときの逃げ道として使う）。
         if (!_popups.TryGetValue(kind, out var popup))
         {
             popup = new Popup
@@ -295,13 +310,6 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// <summary>外観の編集パネルを閉じる。</summary>
     public void CloseStylePanel() => _stylePanel.Close();
 
-    /// <summary>書式バーを本文の外（本文に被さらない位置）へ出し直す。</summary>
-    /// <remarks>
-    /// <b>本文に被せない</b>: 編集中の文字が隠れて読めない（実測 2026-11-20）。 位置の判断は
-    /// 提示層（<see cref="AnnotationPanelPlacement.ResolveOutside"/>）が単一所有する。<br/>
-    /// <b>大きさは実寸を使う</b>: 中身（フォント名・大きさ・色）で幅が決まるため、固定値だと
-    /// 枠からはみ出す。 一度置いてから実寸で出し直す。
-    /// </remarks>
     /// <summary>書式バーを本文の外（本文に被さらない位置）へ出し直す。</summary>
     /// <remarks>
     /// <b>本文に被せない</b>: 編集中の文字が隠れて読めない（実測 2026-11-20）。 位置の判断は
@@ -393,7 +401,7 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// <remarks>
     /// <b>位置はポップアップのオフセットで与える</b>: 余白（<c>Margin</c>）で与えるとウィンドウの外へ出せません。
     /// <see cref="Popup.ShouldConstrainToRootBounds"/> を <see langword="false"/> にしてあるため、
-    /// ウィンドウの外（画面の作業領域の内側）へも置けます（実測 2026-11-23）。
+    /// 中身がウィンドウより大きいときは外へはみ出して描けます（実測 2026-11-23）。
     /// </remarks>
     private void ApplyPosition(AnnotationPanelKind kind, EsPoint position)
     {
@@ -404,9 +412,9 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
             return;
         }
 
-        // **画面の外へは出さない**: ウィンドウの外へ出せるようにしたため、パネルを置く位置を
-        // アプリのウィンドウがあるモニターの作業領域で挟みます（画面外で見えなくなるのを防ぐ。
-        // 実測 2026-11-23）。
+        // **画面の外へは出さない**: パネルはポップアップとしてウィンドウの外へも描けるため、
+        // 置く位置をアプリのウィンドウがあるモニターの作業領域で挟みます（画面外で見えなくなるのを
+        // 防ぐ。 実測 2026-11-23）。
         // **単位を揃える**: ポップアップの位置（`HorizontalOffset`）はウィンドウの左上を原点とする
         // **DIP**、作業領域は**ピクセル**です。 表示倍率（125% など）を掛けずに挟むと、
         // 画面の外へはみ出します（実測 2026-11-23）。

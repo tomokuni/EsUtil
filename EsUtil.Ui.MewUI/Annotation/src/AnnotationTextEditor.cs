@@ -41,7 +41,7 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
     private readonly Dictionary<AnnotationPanelKind, EsPoint> _positions = [];
 
 
-    /// <summary>パネルを載せる別ウィンドウ（種類ごとに 1 つ。 ウィンドウの外へ出せる）。</summary>
+    /// <summary>パネルを載せる別ウィンドウ（種類ごとに 1 つ。 アプリのウィンドウの内側へ置く）。</summary>
     private readonly Dictionary<AnnotationPanelKind, Window> _windows = [];
 
 
@@ -155,22 +155,42 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
 
     /// <summary>パネルを置ける領域（DIP）を取得する。</summary>
     /// <remarks>
-    /// <b>ウィンドウの外へも出せる</b>: パネルは別ウィンドウへ載せるため、画像の表示領域へ収める必要は
-    /// ありません。 ただし画面の外へは出さないよう、領域は画像の表示領域を基準に左右上下へ
-    /// <see cref="AnnotationPanelMetrics.OutsideAllowance"/> だけ広げます（実測 2026-11-23）。
+    /// <b>ウィンドウの内側へ収める</b>: パネルはアプリの画面へ重ねるため、ウィンドウの外は切れて
+    /// 見えなくなる。 レイヤーの外側へも置けるよう、領域は画像の表示領域を基準に
+    /// <see cref="AnnotationPanelMetrics.OutsideAllowance"/> だけ広げてから、ウィンドウの内側との
+    /// 交わりを取る（規則は <see cref="AnnotationPanelPlacement.ResolveAvailableArea"/> が単一所有する）。
     /// </remarks>
     public EsRect AvailableArea
     {
         get
         {
-            var origin = ToOverlayPoint(default);
-            var pad = AnnotationPanelMetrics.OutsideAllowance;
             var width = _layer.Bounds.Width > 0 ? _layer.Bounds.Width : RenderSize.Width;
             var height = _layer.Bounds.Height > 0 ? _layer.Bounds.Height : RenderSize.Height;
-            return width > 0 && height > 0
-                ? new EsRect(origin.X - pad, origin.Y - pad, width + (pad * 2), height + (pad * 2))
-                : default;
+            if (width <= 0 || height <= 0)
+            {
+                return default;
+            }
+
+            var origin = ToOverlayPoint(default);
+            return AnnotationPanelPlacement.ResolveAvailableArea(
+                new EsRect(origin.X, origin.Y, width, height),
+                VisibleBounds(),
+                AnnotationPanelMetrics.OutsideAllowance);
         }
+    }
+
+    /// <summary>アプリのウィンドウの内側（重ねる先の座標）を取得する。</summary>
+    /// <returns>見えている範囲。 ウィンドウへ繋がっていない場合は既定値。</returns>
+    private EsRect VisibleBounds()
+    {
+        // パネルを重ねる先はウィンドウの中身（ToOverlayPoint と同じ面）
+        if ((FindVisualRoot() as Window)?.Content is { } root
+            && root.RenderSize.Width > 0 && root.RenderSize.Height > 0)
+        {
+            return new EsRect(root.Bounds.X, root.Bounds.Y, root.RenderSize.Width, root.RenderSize.Height);
+        }
+
+        return default;
     }
 
     /// <summary>表示中のパネルの左上（DIP）を取得する。</summary>
@@ -198,9 +218,9 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
             return;
         }
 
-        // **パネルはポップアップへ載せる**: ウィンドウの中へ重ねるとウィンドウの外へ出せず、
-        // **ウィンドウが小さいと中身が切れます**（実測 2026-11-23）。 MewUI の <see cref="Popup"/> は
-        // 別ウィンドウなので、ウィンドウの外（画面の作業領域の内側）へも出せます。
+        // **パネルは別ウィンドウへ載せる**: ウィンドウの中へ重ねると、ウィンドウが小さいときに
+        // 中身が切れます（実測 2026-11-23）。 別ウィンドウなら、置く位置をウィンドウの内側へ
+        // 収めたうえで、中身の実寸どおりに描けます。
         // **実寸が確定したら置き直す**: 置いた時点の見積りより実際の描画が高いことがあり、
         // その差だけ書式バーが注釈へ重なる（実測 2026-11-21）。 描画のたびに実寸で決め直す。
         if (!_frameHook)
@@ -271,7 +291,7 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
         // **別ウィンドウへ載せる**: ポップアップ（<see cref="Popup"/>）へ載せると、その中から開く
         // 色選択やカラーピッカーの**入れ子のポップアップが入力も描画も受け取れません**
         // （実測 2026-11-23: ColorPicker が表示されなくなった）。 枠なしのウィンドウなら、
-        // 中から開くポップアップは普通のウィンドウの子になり、ウィンドウの外へも出せます。
+        // 中から開くポップアップは普通のウィンドウの子になり、色選択も普通に使えます。
         if (!_windows.TryGetValue(kind, out var window))
         {
             window = new Window

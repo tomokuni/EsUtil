@@ -97,4 +97,42 @@ public sealed class AnnotationPanelPlacementTests
 
         Assert.Equal(origin, position);
     }
+
+    /// <summary>レイヤーの外側へ広げた範囲を、見えている範囲との交わりで切る。</summary>
+    [Fact]
+    internal void ResolveAvailableArea_見えている範囲の外へ広げない()
+    {
+        var area = AnnotationPanelPlacement.ResolveAvailableArea(
+            layer: new EsRect(300, 100, 400, 300),
+            visible: new EsRect(0, 0, 800, 600),
+            allowance: 240);
+
+        Assert.Equal(new EsRect(60, 0, 740, 600), area);
+    }
+
+    /// <summary>見えている範囲が分からないときは、レイヤーを広げた範囲をそのまま使う。</summary>
+    [Fact]
+    internal void ResolveAvailableArea_見えている範囲が無ければレイヤーを広げる()
+    {
+        var area = AnnotationPanelPlacement.ResolveAvailableArea(
+            layer: new EsRect(300, 100, 400, 300),
+            visible: default,
+            allowance: 240);
+
+        Assert.Equal(new EsRect(60, -140, 880, 780), area);
+    }
+
+    /// <summary>レイヤーが見えている範囲の外にあるときは、見えている範囲を使う。</summary>
+    [Fact]
+    internal void ResolveAvailableArea_交わりが空なら見えている範囲を使う()
+    {
+        var visible = new EsRect(0, 0, 800, 600);
+
+        var area = AnnotationPanelPlacement.ResolveAvailableArea(
+            layer: new EsRect(2000, 1000, 400, 300),
+            visible: visible,
+            allowance: 240);
+
+        Assert.Equal(visible, area);
+    }
 }

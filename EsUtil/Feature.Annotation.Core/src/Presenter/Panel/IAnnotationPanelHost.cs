@@ -9,13 +9,18 @@ namespace EsUtil.Feature.Annotation.Presenter.Panel;
 /// 単一所有する（4 つの UI 版で動作が食い違わないようにするため）。<br/>
 /// <b>独立したウィンドウを作らない</b>: OS のウィンドウはタスク バーへ出る・アプリの後ろへ回る・
 /// フォーカスを奪うといった問題が版ごとに出るため、アプリの画面の上へ重ねる。<br/>
-/// <b>座標はアプリの画面の左上を原点とする DIP</b>: 画像（プレビュー）の内側で切れないよう、
+/// <b>座標はパネルを描く面の左上を原点とする DIP</b>: 画像（プレビュー）の内側で切れないよう、
 /// 重ねる先はプレビューではなくアプリの画面の最上位にする。
 /// </remarks>
 public interface IAnnotationPanelHost
 {
     /// <summary>パネルを置ける領域（DIP）を取得する。</summary>
-    /// <value>アプリの画面のうちパネルを置ける範囲。 パネルはこの外へは出さない（見えなくなるため）。</value>
+    /// <value>パネルを置ける範囲。 パネルはこの外へは出さない（見えなくなるため）。</value>
+    /// <remarks>
+    /// <b>見えている範囲の内側に限る</b>: 注釈レイヤーの外側へも置けるが、ウィンドウの外は切れて
+    /// 見えなくなる。 領域の求め方は <see cref="AnnotationPanelPlacement.ResolveAvailableArea"/> が
+    /// 単一所有する（4 つの UI 版で同じ位置になる）。
+    /// </remarks>
     EsRect AvailableArea { get; }
 
     /// <summary>表示中のパネルの左上（DIP）を取得する。</summary>

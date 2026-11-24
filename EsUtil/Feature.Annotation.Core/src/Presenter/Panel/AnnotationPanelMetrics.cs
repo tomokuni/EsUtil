@@ -13,9 +13,9 @@ public static class AnnotationPanelMetrics
 
     /// <summary>レイヤーの範囲より外側へパネルを置ける余白（DIP）。</summary>
     /// <remarks>
-    /// <b>ウィンドウの外へ出すための余白</b>: レイヤーの範囲だけで挟むと、ウィンドウの端にある注釈の
-    /// 書式バーが内側へ押し戻され、ウィンドウの外へ出せない（実測 2026-11-23）。 画面の外へ出ない
-    /// ことは各 UI が作業領域で止める。
+    /// <b>レイヤーの端で内側へ押し戻さないための余白</b>: レイヤーの範囲だけで挟むと、端にある注釈の
+    /// 書式バーが内側へ押し戻され、本文に重なる。 広げた範囲は見えている範囲
+    /// （<see cref="AnnotationPanelPlacement.ResolveAvailableArea"/>）との交わりで切られる。
     /// </remarks>
     public const double OutsideAllowance = 240;
 }

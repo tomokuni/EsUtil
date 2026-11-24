@@ -43,7 +43,7 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
     /// <summary>表示中のパネルの根（種別ごとに 1 つ。 使い回す）。</summary>
     private readonly Dictionary<AnnotationPanelKind, Border> _roots = [];
 
-    /// <summary>パネルを載せる別ウィンドウ（種別ごとに 1 つ。 ウィンドウの外へ出せる）。</summary>
+    /// <summary>パネルを載せる別ウィンドウ（種別ごとに 1 つ。 アプリのウィンドウの内側へ置く）。</summary>
     private readonly Dictionary<AnnotationPanelKind, Window> _windows = [];
 
     /// <summary>パネルを置いた位置（種別ごと。 アプリの画面の左上を原点とする DIP）。</summary>
@@ -170,24 +170,36 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
     }
 
     /// <summary>パネルを置ける領域（DIP）を取得する。</summary>
-    /// <value>注釈レイヤー（画像の表示領域）が占める範囲を、外側へ広げたもの（重ねた先の座標）。</value>
+    /// <value>注釈レイヤーが占める範囲を外側へ広げ、重ねる先の見えている範囲との交わりを取ったもの。</value>
     /// <remarks>
-    /// <b>ウィンドウの外へ出せる</b>: パネルは別ウィンドウへ載せるため、レイヤーの範囲に挟めると
-    /// ウィンドウの端で中へ押し戻される（<see cref="AnnotationPanelMetrics.OutsideAllowance"/> だけ
-    /// 外側を許し、画面の作業領域を超えないことは <see cref="ApplyPosition"/> が保証する）。
+    /// <b>ウィンドウの内側へ収める</b>: 重ねる先（<see cref="OverlayLayer"/>）の外は切れて見えなくなる。
+    /// レイヤーの外側へも置けるよう、領域は <see cref="AnnotationPanelMetrics.OutsideAllowance"/> だけ
+    /// 広げてから交わりを取る（規則は <see cref="AnnotationPanelPlacement.ResolveAvailableArea"/> が
+    /// 単一所有する）。
     /// </remarks>
     public EsRect AvailableArea
     {
         get
         {
+            if (Bounds.Width <= 0 || Bounds.Height <= 0)
+            {
+                return default;
+            }
+
             var origin = ToOverlayPoint(default);
-            var pad = AnnotationPanelMetrics.OutsideAllowance;
-            return Bounds.Width > 0 && Bounds.Height > 0
-                ? new EsRect(
-                    origin.X - pad, origin.Y - pad, Bounds.Width + (pad * 2), Bounds.Height + (pad * 2))
-                : default;
+            var layer = new EsRect(origin.X, origin.Y, Bounds.Width, Bounds.Height);
+            return AnnotationPanelPlacement.ResolveAvailableArea(
+                layer, VisibleBounds(), AnnotationPanelMetrics.OutsideAllowance);
         }
     }
+
+    /// <summary>重ねる先の見えている範囲（DIP）を取得する。</summary>
+    /// <returns>重ねる先の範囲。 取得できない場合は既定値。</returns>
+    private EsRect VisibleBounds()
+        => OverlayLayer.GetOverlayLayer(this) is { } overlay
+            && overlay.Bounds.Width > 0 && overlay.Bounds.Height > 0
+                ? new EsRect(0, 0, overlay.Bounds.Width, overlay.Bounds.Height)
+                : default;
 
     /// <summary>表示中のパネルの左上（DIP）を取得する。</summary>
     /// <param name="kind">パネルの種別。</param>

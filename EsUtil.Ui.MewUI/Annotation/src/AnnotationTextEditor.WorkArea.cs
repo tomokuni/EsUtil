@@ -5,8 +5,7 @@ namespace EsUtil.Ui.MewUI.Annotation;
 
 /// <summary>注釈のパネルを画面の作業領域の内側へ収める処理。</summary>
 /// <remarks>
-/// <b>ウィンドウの外へ出せるようにした副作用を打ち消す</b>: パネルは別ウィンドウなので
-/// ウィンドウの外へ出せますが、画面の外へ出ると見えなくなります（実測 2026-11-23）。
+/// <b>画面の外へ出さない</b>: パネルは別ウィンドウなので、画面の外へ出ると見えなくなります。
 /// モニターの作業領域（タスク バーを除いた範囲）で位置を挟みます。
 /// </remarks>
 public sealed partial class AnnotationTextEditor

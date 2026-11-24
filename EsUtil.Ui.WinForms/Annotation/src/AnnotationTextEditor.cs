@@ -125,18 +125,33 @@ public sealed class AnnotationTextEditor : UserControl, IAnnotationPanelHost
     public bool IsStylePanelOpen => _stylePanel.IsOpen;
 
     /// <summary>パネルを置ける領域（DIP）を取得する。</summary>
-    /// <value>このコントロールの範囲を、外側へ <see cref="AnnotationPanelMetrics.OutsideAllowance"/> だけ広げたもの。</value>
+    /// <value>このコントロールの範囲を外側へ広げ、画面の見えている範囲との交わりを取ったもの。</value>
     /// <remarks>
-    /// <b>ウィンドウの外へも出せる</b>: パネルは別のウィンドウへ載せるため、レイヤーの範囲へ挟むと
-    /// ウィンドウの端で中へ押し戻される。 画面の外へ出ないことは <see cref="ApplyPosition"/> が止める。
+    /// <b>レイヤーの外側へも置ける</b>: 範囲だけで挟むと、端にある注釈の書式バーが内側へ押し戻され、
+    /// 本文に重なる。 求めた領域の外へは出さず、画面の外へ出ないことは <see cref="ApplyPosition"/> が
+    /// 重ねて止める。
     /// </remarks>
     public EsRect AvailableArea
     {
         get
         {
-            var pad = AnnotationPanelMetrics.OutsideAllowance;
-            return new EsRect(-pad, -pad, Width + (pad * 2), Height + (pad * 2));
+            var layer = new EsRect(0, 0, Width, Height);
+            return AnnotationPanelPlacement.ResolveAvailableArea(
+                layer, VisibleBounds(), AnnotationPanelMetrics.OutsideAllowance);
         }
+    }
+
+    /// <summary>アプリのウィンドウの内側を、このコントロールの座標（DIP）で取得する。</summary>
+    /// <returns>見えている範囲。 ウィンドウへ繋がっていない場合は既定値。</returns>
+    private EsRect VisibleBounds()
+    {
+        if (FindForm() is not { ClientSize.Width: > 0, ClientSize.Height: > 0 } form)
+        {
+            return default;
+        }
+
+        var local = RectangleToClient(form.RectangleToScreen(form.ClientRectangle));
+        return new EsRect(local.X, local.Y, local.Width, local.Height);
     }
 
     /// <summary>表示中のパネルの左上（DIP）を取得する。</summary>
