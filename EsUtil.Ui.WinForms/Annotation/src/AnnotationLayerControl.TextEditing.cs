@@ -4,6 +4,7 @@ using EsUtil.Platform.Core.Geometry;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Text;
 using EsUtil.Feature.Text.Core.Text;
+using EsUtil.Feature.Text.Presenter.Editing;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 
@@ -394,75 +395,121 @@ public sealed partial class AnnotationLayerControl
     /// <summary>本文の編集でキーが押されたときの処理。</summary>
     /// <param name="e">キーの引数。</param>
     /// <returns>処理した場合は <see langword="true"/>。</returns>
+    /// <remarks>キーの割り当ては <see cref="TextEditKeyMap"/> が単一所有する（本クラスは操作の実行だけを行う）。</remarks>
     private bool HandleTextEditingKey(KeyEventArgs e)
     {
-        if (e.Control && e.KeyCode == Keys.A)
+        var request = TextEditKeyMap.Resolve(ToTextEditKey(e.KeyCode), ToTextEditModifiers(e));
+        switch (request.Command)
         {
-            _session.SelectAllText();
-            Invalidate();
-            return true;
-        }
-
-        if (e.Control && e.KeyCode is Keys.C or Keys.X or Keys.V)
-        {
-            HandleClipboard(e.KeyCode);
-            return true;
-        }
-
-        if (e.Control && e.KeyCode is Keys.B or Keys.I or Keys.U)
-        {
-            return e.KeyCode switch
-            {
-                Keys.B => ToggleDecoration(style => style.IsBold, static (style, value) => style with { IsBold = value }),
-                Keys.I => ToggleDecoration(style => style.IsItalic, static (style, value) => style with { IsItalic = value }),
-                _ => ToggleDecoration(style => style.IsUnderline, static (style, value) => style with { IsUnderline = value }),
-            };
-        }
-
-        switch (e.KeyCode)
-        {
-            case Keys.Escape:
+            case TextEditCommand.ToggleBold:
+                return ToggleDecoration(style => style.IsBold, static (style, value) => style with { IsBold = value });
+            case TextEditCommand.ToggleItalic:
+                return ToggleDecoration(style => style.IsItalic, static (style, value) => style with { IsItalic = value });
+            case TextEditCommand.ToggleUnderline:
+                return ToggleDecoration(style => style.IsUnderline, static (style, value) => style with { IsUnderline = value });
+            case TextEditCommand.ToggleStrike:
+                return ToggleDecoration(style => style.IsStrike, static (style, value) => style with { IsStrike = value });
+            case TextEditCommand.EndEditing:
                 EndTextEditing();
                 return true;
-            case Keys.Enter:
+            case TextEditCommand.InsertLineBreak:
                 ReplaceSelection("\n");
                 return true;
-            case Keys.Back:
+            case TextEditCommand.DeleteBackward:
                 DeleteAtCaret(forward: false);
                 return true;
-            case Keys.Delete:
+            case TextEditCommand.DeleteForward:
                 DeleteAtCaret(forward: true);
                 return true;
-            case Keys.Left:
-                MoveCaret(e.Shift ? _session.CaretIndex - 1 : TextSelectionStart - 1, e.Shift);
+            case TextEditCommand.CaretLeft:
+                MoveCaretByCluster(-1, request.Extend);
                 return true;
-            case Keys.Right:
-                MoveCaret(e.Shift ? _session.CaretIndex + 1 : TextSelectionEnd + 1, e.Shift);
+            case TextEditCommand.CaretRight:
+                MoveCaretByCluster(1, request.Extend);
                 return true;
-            case Keys.Up:
-                MoveCaretToNeighbourLine(-1, e.Shift);
+            case TextEditCommand.CaretUp:
+                MoveCaretToNeighbourLine(-1, request.Extend);
                 return true;
-            case Keys.Down:
-                MoveCaretToNeighbourLine(1, e.Shift);
+            case TextEditCommand.CaretDown:
+                MoveCaretToNeighbourLine(1, request.Extend);
                 return true;
-            case Keys.Home:
-                MoveCaretToLineEdge(first: true, e.Shift);
+            case TextEditCommand.CaretLineStart:
+                MoveCaretToLineEdge(first: true, request.Extend);
                 return true;
-            case Keys.End:
-                MoveCaretToLineEdge(first: false, e.Shift);
+            case TextEditCommand.CaretLineEnd:
+                MoveCaretToLineEdge(first: false, request.Extend);
+                return true;
+            case TextEditCommand.SelectAll:
+                _session.SelectAllText();
+                Invalidate();
+                return true;
+            case TextEditCommand.Copy:
+            case TextEditCommand.Cut:
+            case TextEditCommand.Paste:
+                HandleClipboard(request.Command);
                 return true;
             default:
                 return false;
         }
     }
 
+    /// <summary>UI の修飾キーを本層の修飾キーへ写す。</summary>
+    /// <param name="e">キーの引数。</param>
+    /// <returns>本層の修飾キー。</returns>
+    private static TextEditModifiers ToTextEditModifiers(KeyEventArgs e)
+    {
+        var result = TextEditModifiers.None;
+        if (e.Control)
+        {
+            result |= TextEditModifiers.Control;
+        }
+
+        if (e.Shift)
+        {
+            result |= TextEditModifiers.Shift;
+        }
+
+        if (e.Alt)
+        {
+            result |= TextEditModifiers.Alt;
+        }
+
+        return result;
+    }
+
+    /// <summary>UI のキーを本層のキーへ写す（本層が扱うキーだけ）。</summary>
+    /// <param name="key">UI のキー。</param>
+    /// <returns>本層のキー。 扱わないキーは <see cref="TextEditKey.None"/>。</returns>
+    private static TextEditKey ToTextEditKey(Keys key) => key switch
+    {
+        Keys.A => TextEditKey.A,
+        Keys.B => TextEditKey.B,
+        Keys.C => TextEditKey.C,
+        Keys.I => TextEditKey.I,
+        Keys.U => TextEditKey.U,
+        Keys.V => TextEditKey.V,
+        Keys.X => TextEditKey.X,
+        Keys.D5 or Keys.NumPad5 => TextEditKey.Digit5,
+        Keys.Escape => TextEditKey.Escape,
+        Keys.Enter => TextEditKey.Enter,
+        Keys.Back => TextEditKey.Back,
+        Keys.Delete => TextEditKey.Delete,
+        Keys.Left => TextEditKey.Left,
+        Keys.Right => TextEditKey.Right,
+        Keys.Up => TextEditKey.Up,
+        Keys.Down => TextEditKey.Down,
+        Keys.Home => TextEditKey.Home,
+        Keys.End => TextEditKey.End,
+        _ => TextEditKey.None,
+    };
+
     /// <summary>クリップボードの操作（コピー・切り取り・貼り付け）を行う。</summary>
-    /// <param name="key">押されたキー。</param>
-    private void HandleClipboard(Keys key)
+    /// <param name="command">実行する操作。</param>
+    private void HandleClipboard(TextEditCommand command)
     {
         var start = TextSelectionStart;
         var length = TextSelectionLength;
-        if (key == Keys.V)
+        if (command == TextEditCommand.Paste)
         {
             if (Clipboard.ContainsText())
             {
@@ -477,7 +524,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         Clipboard.SetText(TextForInput.Substring(start, length));
-        if (key == Keys.X)
+        if (command == TextEditCommand.Cut)
         {
             ReplaceSelection(string.Empty);
         }
@@ -492,12 +539,12 @@ public sealed partial class AnnotationLayerControl
         // 適用先（選択範囲・選択が無ければ以降の入力）の決定は Apply/Transform が単一所有する
         => TransformTextStyle(style => write(style, !read(style)));
 
-    /// <summary>キャレットを移動する（<paramref name="extend"/> なら選択を広げる）。</summary>
-    /// <param name="index">移動先（文字数）。</param>
+    /// <summary>キャレットを前後の 1 クラスタへ移す。</summary>
+    /// <param name="direction">移動する向き（負は左、正は右）。</param>
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
-    private void MoveCaret(int index, bool extend)
+    private void MoveCaretByCluster(int direction, bool extend)
     {
-        _session.MoveCaret(index, extend);
+        _session.MoveCaretByCluster(direction, extend);
         Invalidate();
     }
 

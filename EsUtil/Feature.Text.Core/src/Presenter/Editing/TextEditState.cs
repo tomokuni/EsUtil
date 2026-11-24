@@ -1,25 +1,23 @@
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Feature.Text;
 using EsUtil.Feature.Text.Core.Text;
 
-namespace EsUtil.Feature.Annotation.Presenter.Selection;
+namespace EsUtil.Feature.Text.Presenter.Editing;
 
 /// <summary>本文の編集（キャレット・選択・入力・削除・書式）の状態と規則（単一所有）。</summary>
 /// <remarks>
 /// <b>状態の所有者は提示層</b>: 「いまどこを編集しているか（キャレット・選択）」は提示の状態であり、
-/// 4 つの UI 版が同じ規則で扱う。 UI は入力イベントを本クラスへ渡し、通知と描画だけを行う。<br/>
+/// UI 版が同じ規則で扱う。 UI は入力イベントを本クラスへ渡し、通知と描画だけを行う。<br/>
 /// <b>文字の操作は Core が持つ</b>: 文字列の挿入・削除・書式の適用は <see cref="RichText"/> と
 /// <see cref="TextStyleEdit"/> が単一所有する。 本クラスは「どの範囲へ・どこへキャレットを置くか」だけを決める。<br/>
-/// <b>文書は不変</b>であるため、編集は新しい文書を返す（変化が無い場合は同じ実体を返す）。<br/>
+/// <b>編集する対象（文書・識別子）を知らない</b>: 対象の切替は呼び出し側が <see cref="Reset"/> で伝える
+/// （対象の識別子は本クラスの状態ではない）。<br/>
+/// <b>本文は不変</b>であるため、編集は新しい本文を返す（変化が無い場合は同じ実体を返す）。<br/>
 /// <b>選択が無いときの書式変更は以降の入力へ回す</b>（既存の文字は変えない。 入力する文字へだけ適用する）。
 /// </remarks>
-public sealed class AnnotationTextEdit
+public sealed class TextEditState
 {
     /// <summary>本文の編集中かどうか（キャレットと選択が有効か）。</summary>
     private bool _isActive;
-
-    /// <summary>書式の適用先（選択中の吹き出し。 選択していない場合は <see langword="null"/>）。</summary>
-    private string? _bubbleId;
 
     /// <summary>キャレットの位置（文字数）。</summary>
     private int _caret;
@@ -33,10 +31,6 @@ public sealed class AnnotationTextEdit
     /// <summary>編集しているかどうかを取得する。</summary>
     /// <value>編集中の場合は <see langword="true"/>。</value>
     public bool IsActive => _isActive;
-
-    /// <summary>編集している吹き出しの識別子を取得する。</summary>
-    /// <value>編集していない場合は <see langword="null"/>。</value>
-    public string? BubbleId => _bubbleId;
 
     /// <summary>キャレットの位置（文字数）を取得する。</summary>
     public int CaretIndex => _caret;
@@ -60,25 +54,20 @@ public sealed class AnnotationTextEdit
     public bool HasSelection => SelectionLength > 0;
 
     /// <summary>以降の入力へ効かせる書式を取得する。</summary>
-    /// <value>まだ書式バーを操作していない場合は <see langword="null"/>。</value>
+    /// <value>まだ書式を変えていない場合は <see langword="null"/>。</value>
     public TextStyle? TypingStyle => _typingStyle;
 
     /// <summary>本文の編集を始める（キャレットを本文の末尾へ置く）。</summary>
-    /// <param name="bubbleId">編集する吹き出しの識別子。</param>
     /// <param name="textLength">本文の文字数。</param>
-    /// <exception cref="ArgumentException"><paramref name="bubbleId"/> が空白の場合。</exception>
-    public void Begin(string bubbleId, int textLength)
+    public void Begin(int textLength)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(bubbleId);
-
-        Bind(bubbleId);
         _isActive = true;
         _caret = Math.Max(0, textLength);
         _anchor = _caret;
     }
 
     /// <summary>本文の編集を終える（選択の対象は保つ）。</summary>
-    /// <remarks>編集を終えても選択中の吹き出しの書式は変えられるため、対象は解除しない。</remarks>
+    /// <remarks>編集を終えても選択中の対象の書式は変えられるため、対象は解除しない。</remarks>
     public void End()
     {
         _isActive = false;
@@ -87,17 +76,11 @@ public sealed class AnnotationTextEdit
         _typingStyle = null;
     }
 
-    /// <summary>書式・本文の適用先を設定する（UI の選択の変更に追随する）。</summary>
-    /// <param name="bubbleId">選択中の吹き出しの識別子（選択を解除する場合は <see langword="null"/>）。</param>
-    /// <remarks>編集を始めていなくても、選択中の吹き出しへ書式を適用できるようにする。</remarks>
-    public void Bind(string? bubbleId)
+    /// <summary>編集の状態を捨てる（編集する対象が変わったとき）。</summary>
+    /// <remarks>対象の識別子は本クラスが持たないため、切替の判断は呼び出し側が行う。</remarks>
+    public void Reset()
     {
-        if (string.Equals(_bubbleId, bubbleId, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        _bubbleId = bubbleId;
+        _isActive = false;
         _caret = 0;
         _anchor = 0;
         _typingStyle = null;
@@ -128,8 +111,30 @@ public sealed class AnnotationTextEdit
         _caret = to;
     }
 
-    /// <summary>キャレットを上下の行の同じ桁へ移す。</summary>
-    /// <param name="lines">本文の行（無い場合は行の移動をしない）。</param>
+    /// <summary>1 クラスタ分の移動でキャレットが向かう位置を求める。</summary>
+    /// <param name="direction">移動する向き（負は左・上、正は右・下）。</param>
+    /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
+    /// <returns>向かう位置（本文の範囲へ丸めるのは呼び出し側）。</returns>
+    /// <remarks>
+    /// <b>選択を広げない移動は選択を畳む</b>: 選択があるときに矢印キーを押すと、キャレットは選択の端へ移る
+    /// （文字を 1 つ飛び越さない）。 標準的な入力の作法に合わせる。
+    /// </remarks>
+    public int ResolveClusterTarget(int direction, bool extend)
+    {
+        if (direction == 0)
+        {
+            return _caret;
+        }
+
+        if (extend || !HasSelection)
+        {
+            return _caret + direction;
+        }
+
+        return direction < 0 ? SelectionStart : SelectionEnd;
+    }
+
+    /// <summary>キャレットを上下の行の同じ桁へ移す。</summary>    /// <param name="lines">本文の行（無い場合は行の移動をしない）。</param>
     /// <param name="textLength">本文の文字数。</param>
     /// <param name="delta">移動する行数。</param>
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>

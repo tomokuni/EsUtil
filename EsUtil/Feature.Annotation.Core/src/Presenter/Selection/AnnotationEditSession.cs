@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using EsUtil.Feature.Text;
 using EsUtil.Feature.Text.Core.Text;
+using EsUtil.Feature.Text.Presenter.Editing;
 
 namespace EsUtil.Feature.Annotation.Presenter.Selection;
 
@@ -27,7 +28,7 @@ public sealed class AnnotationEditSession
     private readonly AnnotationHistory _history;
 
     /// <summary>本文の編集状態（キャレット・選択・入力・書式）。</summary>
-    private readonly AnnotationTextEdit _edit = new();
+    private readonly TextEditState _edit = new();
 
     /// <summary>変更の購読（通知する側と購読する側を分ける）。</summary>
     private readonly CallbackList<AnnotationEditChange> _notices = new();
@@ -73,7 +74,7 @@ public sealed class AnnotationEditSession
             _document = value;
             _history.Clear();
             _selectedId = null;
-            _edit.Bind(null);
+            _edit.Reset();
             _lastTextSelection = default;
             Notify(AnnotationEditChange.Document | AnnotationEditChange.Selection | AnnotationEditChange.TextSelection);
         }
@@ -172,7 +173,7 @@ public sealed class AnnotationEditSession
 
         EndTextEditing();
         _selectedId = id;
-        _edit.Bind(id);
+        _edit.Reset();
         _lastTextSelection = default;
         (_logger?.Invoke() ?? NullLogger.Instance).LogSelectionChanged(id);
         Notify(AnnotationEditChange.Selection | AnnotationEditChange.TextSelection);
@@ -412,7 +413,7 @@ public sealed class AnnotationEditSession
             return true;
         }
 
-        _edit.Begin(bubble.Id, bubble.Text.PlainText.Length);
+        _edit.Begin(bubble.Text.PlainText.Length);
         NotifyEditStarted();
         return true;
     }
@@ -461,6 +462,15 @@ public sealed class AnnotationEditSession
             : TextCursor.SnapForward(text, target);
         _edit.MoveTo(target, text.Length, extend);
         NotifyTextSelectionIfChanged();
+    }
+
+    /// <summary>キャレットを前後の 1 クラスタへ移す（選択があるときは選択の端へ畳む）。</summary>
+    /// <param name="direction">移動する向き（負は左、正は右）。</param>
+    /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
+    /// <remarks>どこへ向かうかの規則は <see cref="TextEditState"/> が単一所有する（書記素クラスタの境界へ揃える）。</remarks>
+    public void MoveCaretByCluster(int direction, bool extend)
+    {
+        MoveCaret(_edit.ResolveClusterTarget(direction, extend), extend);
     }
 
     /// <summary>キャレットを上下の行の同じ桁へ移す。</summary>
@@ -655,7 +665,7 @@ public sealed class AnnotationEditSession
         {
             EndTextEditing();
             _selectedId = null;
-            _edit.Bind(null);
+            _edit.Reset();
             Notify(AnnotationEditChange.Selection);
         }
         else if (_edit.IsActive)

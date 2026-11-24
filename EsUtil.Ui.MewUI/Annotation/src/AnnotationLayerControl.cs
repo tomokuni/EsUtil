@@ -17,6 +17,7 @@ using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Annotation.Presenter.Selection;
 using EsUtil.Feature.Text;
 using EsUtil.Feature.Text.Core.Text;
+using EsUtil.Feature.Text.Presenter.Editing;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
@@ -352,7 +353,7 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <returns>選択範囲へ適用した場合は <see langword="true"/>。 選択が無く以降の入力へ回した場合は <see langword="false"/>。</returns>
     /// <remarks>
     /// <b>選択が無ければ以降の入力へ回す</b>: 既存の文字は変えず、次に入力する文字へ適用する
-    /// （規則は <see cref="TextStyleEdit"/> と <see cref="AnnotationTextEdit"/> が単一所有する）。
+    /// （規則は <see cref="TextStyleEdit"/> と <see cref="TextEditState"/> が単一所有する）。
     /// </remarks>
     public bool ApplyTextStyle(TextStyle style) => _session.ApplyTextStyle(style);
 

@@ -37,17 +37,22 @@ flowchart TB
     H["利用側（注釈の提示層・UI 層）<br/>入力の受付・描画・実寸の計測"]
     F["公開面（src/ 直下）<br/>RichText / TextRun / TextStyle / 行の値"]
     C["Core（src/Core のカテゴリ別）<br/>Defaults / Text / Internal"]
+    P["Presenter（src/Presenter のカテゴリ別）<br/>Editing（編集の状態・キーの割り当て）"]
     PC["EsUtil.Platform.Core<br/>EsRect / EsPoint / EsSize"]
     H --> F
     H --> C
+    H --> P
     F --> C
     C --> PC
+    P --> C
+    P --> PC
 ```
 
 - **折り返しと行の配置は 1 か所で決めます**（`TextLayout`。 折り返しの位置と行の縦位置は対であり、別々に実装するとキャレットの高さと食い違う）。
 - **文字の実寸だけを UI に委ねます**（描画エンジンによって字幅が違うため。 位置の決め方は本層が単一所有する）。
 - **文字位置の境界は `TextCursor` が単一所有します**（キャレット・選択・削除・折り返し・書式の範囲が同じ境界を使う）。
-- **公開面は `src/` 直下（名前空間 `EsUtil.Feature.Text`）に置き、層の内部は `src/Core/<カテゴリ>` へ置きます**（名前空間は `EsUtil.Feature.Text.Core.<カテゴリ>`。 規則は [`.github/命名規約.md`](../../../.github/命名規約.md)）。 フォルダと名前空間の一覧は [`../README.md`](../README.md) §3 が持つ。
+- **編集の状態（キャレット・選択・以降の入力へ効かせる書式）と、キーの割り当ては提示層が単一所有します**（`TextEditState` / `TextEditKeyMap`）。 UI は自分のキーの型を写して操作を実行するだけです。
+- **公開面は `src/` 直下（名前空間 `EsUtil.Feature.Text`）に置き、層の内部は `src/Core/<カテゴリ>` / `src/Presenter/<カテゴリ>` へ置きます**（名前空間は `EsUtil.Feature.Text.Core.<カテゴリ>` / `.Presenter.<カテゴリ>`。 規則は [`.github/命名規約.md`](../../../.github/命名規約.md)）。 フォルダと名前空間の一覧は [`../README.md`](../README.md) §3 が持つ。
 
 ## 4. コンポーネント
 
@@ -61,6 +66,8 @@ flowchart TB
 | `TextLineIndex` / `TextLineLayout` | Core（`.Core.Text`） | 行と文字位置の対応（区間の原点からの距離で測る。 キャレット・選択範囲・位置から文字の特定） |
 | `TextStyleEdit` | Core（`.Core.Text`） | 入力する文字列の挿入（以降の入力へ効かせる書式の反映）と、書式を適用する範囲の規則 |
 | `TextCompositionPreview` / `TextCaretBlink` | Core（`.Core.Text`） | IME の変換中の文字列を入れた描画用の値・キャレットの点滅の規則 |
+| `TextEditState` | Presenter（`.Presenter.Editing`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 本文を受け取って書き換えた本文を返し、編集する対象（文書・識別子）を知らない |
+| `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand` / `TextEditRequest` | Presenter（`.Presenter.Editing`） | キーの割り当て（どのキーがどの操作になるか）。 修飾キーとキーの組み合わせを 1 か所で決める |
 | `TextDefaults` / `TextLimits` | Core（`.Core.Defaults`） | 既定値（フォントの優先順・大きさ・既定の書式）と安全域（設定・JSON・入力の共通の補正） |
 
 **本アセンブリはログを出力しません**（純粋な計算のみを行うため。 記録は利用側が行う。 規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。

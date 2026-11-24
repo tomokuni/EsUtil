@@ -14,7 +14,9 @@
 - [8. `TextCursor`（静的クラス）](#8-textcursor静的クラス)
 - [9. `TextStyleEdit`（静的クラス）](#9-textstyleedit静的クラス)
 - [10. `TextCompositionPreview` / `TextCaretBlink`（静的クラス）](#10-textcompositionpreview--textcaretblink静的クラス)
-- [11. `TextDefaults` / `TextLimits`（静的クラス）](#11-textdefaults--textlimits静的クラス)
+- [11. `TextEditState`（クラス）](#11-texteditstateクラス)
+- [12. `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand`（静的クラス・列挙型）](#12-texteditkeymap--texteditkey--texteditmodifiers--texteditcommand静的クラス列挙型)
+- [13. `TextDefaults` / `TextLimits`（静的クラス）](#13-textdefaults--textlimits静的クラス)
 
 ## 1. 公開 API の可視性
 
@@ -25,6 +27,7 @@
 | 書式付きの文字列（`RichText` / `TextRun` / `TextStyle`） | `public` | 任意 |
 | 行の値（`TextLinePlan` / `TextSegmentPlan` / `TextLineMetrics` / `TextCaretRect`） | `public` | 任意 |
 | 計算（`TextLayout` / `TextLineIndex` / `TextLineLayout` / `TextCursor` / `TextStyleEdit` / `TextCompositionPreview` / `TextCaretBlink`） | `public` | 任意 |
+| 編集の状態（`TextEditState`）とキーの割り当て（`TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand` / `TextEditRequest`） | `public` | UI 層 |
 | 既定値と安全域（`TextDefaults` / `TextLimits`） | `public` | 任意 |
 | 折り返しの実装（`TextWrap`） | `internal` | 同一アセンブリとテスト |
 
@@ -153,7 +156,57 @@
 | `TextCompositionPreview.ResolveCaret(caret, preedit)` | 変換中の文字列を入れたときのキャレットの位置 |
 | `TextCaretBlink.IntervalMilliseconds` / `IsVisible(elapsed)` | キャレットの点滅の間隔（`530` ms）と、経過時間からの表示の有無 |
 
-## 11. `TextDefaults` / `TextLimits`（静的クラス）
+## 11. `TextEditState`（クラス）
+
+**本文の編集（キャレット・選択・入力・削除・書式）の状態と規則**です。 **編集する対象（文書・識別子）を知りません**。
+
+| メンバー | 説明 |
+| --- | --- |
+| `Begin(textLength)` / `End()` / `Reset()` | 編集の開始（キャレットは本文の末尾）・終了 / 状態の破棄（対象が変わったとき） |
+| `IsActive` | 編集中かどうか |
+| `CaretIndex` / `AnchorIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `SelectionRange` / `HasSelection` | キャレットと選択 |
+| `TypingStyle` | 以降の入力へ効かせる書式（未設定は `null`） |
+| `MoveTo(index, textLength, extend)` | キャレットを移す（`extend` なら選択を広げる） |
+| `ResolveClusterTarget(direction, extend)` | 前後の 1 クラスタへ動くときの移動先（**選択があるときは選択の端へ畳む**） |
+| `MoveByLine(lines, textLength, delta, extend)` | 上下の行の同じ桁へ移す |
+| `MoveToLineEdge(lines, textLength, first, extend)` | 行の先頭・末尾へ移す（行が無ければ本文の先頭・末尾） |
+| `SetCaretFromPoint(lines, point, textLength, extend, measureText)` | 位置に最も近い文字位置へ移す |
+| `Select(start, length, textLength)` / `Clamp(textLength)` | 選択範囲の指定 / 本文の範囲へ収める |
+| `Remember(style)` | 以降の入力へ効かせる書式を覚える |
+| `ReplaceSelection(text, inserted)` / `ReplaceRange(text, start, end, inserted)` | 選択範囲（指定範囲）を文字列で置き換えた本文を返す |
+| `Delete(text, forward)` | 選択範囲、またはキャレットの前後の **1 書記素クラスタ**を削除した本文を返す |
+| `ApplyStyle(text, style)` / `TransformStyle(text, transform)` | 選択範囲の書式を差し替える / 1 属性だけ変換する（選択が無ければ以降の入力へ回す） |
+| `AllMatch(text, match)` / `ResolveDisplayStyle(text)` | 書式ボタンの押下状態 / 書式バーへ表示する書式 |
+
+- **本文は不変**です。 編集は新しい `RichText` を返し、変化が無い場合は**同じ実体**を返します。
+- **選択が無いときの書式変更は以降の入力へ回します**（既存の文字は変えない）。
+- **削除・移動の単位は書記素クラスタ**です（サロゲート ペア・結合文字を半分に割らない）。
+
+## 12. `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand`（静的クラス・列挙型）
+
+**キーの割り当て（どのキーがどの操作になるか）の単一所有**です。 UI は自分のキーの型を `TextEditKey` / `TextEditModifiers` へ写し、`Resolve` が返した操作を実行します。
+
+| メンバー | 説明 |
+| --- | --- |
+| `TextEditKeyMap.Resolve(key, modifiers)` | 押されたキーと修飾キーから `TextEditRequest` を解決する（割り当てが無ければ `None`） |
+| `TextEditRequest.Command` / `Extend` / `IsHandled` | 実行する操作 / 選択を広げるか / 操作があるか |
+| `TextEditKey` | 本層が扱うキー（`A` / `B` / `C` / `I` / `U` / `V` / `X` / `Digit5` / `Escape` / `Enter` / `Back` / `Delete` / `Left` / `Right` / `Up` / `Down` / `Home` / `End`） |
+| `TextEditModifiers` | `Control` / `Shift` / `Alt`（ビットフラグ） |
+| `TextEditCommand` | `SelectAll` / `Copy` / `Cut` / `Paste` / `EndEditing` / `InsertLineBreak` / `DeleteBackward` / `DeleteForward` / `CaretLeft` / `CaretRight` / `CaretUp` / `CaretDown` / `CaretLineStart` / `CaretLineEnd` / `ToggleBold` / `ToggleItalic` / `ToggleUnderline` / `ToggleStrike` |
+
+| キー | 操作 |
+| --- | --- |
+| `Control` + `B` / `I` / `U` | 太字 / 斜体 / 下線の切替（`Shift`・`Alt` を伴うときは割り当てなし） |
+| `Alt` + `Shift` + `5` | 取り消し線の切替 |
+| `Escape` / `Control` + `Enter` | 編集の終了 |
+| `Enter` | 改行の挿入 |
+| `Back` / `Delete` | 前 / 次の 1 クラスタの削除 |
+| 矢印 / `Home` / `End` | キャレットの移動（`Shift` を押すと選択を広げる） |
+| `Control` + `A` / `C` / `X` / `V` | すべて選択 / コピー / 切り取り / 貼り付け |
+
+- **クリップボードと編集の終了は UI が実行します**（UI の仕組みを要するため、本層は要求だけを返す）。
+
+## 13. `TextDefaults` / `TextLimits`（静的クラス）
 
 | メンバー | 説明 |
 | --- | --- |

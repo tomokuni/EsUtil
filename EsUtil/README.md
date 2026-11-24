@@ -114,7 +114,7 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | --- | --- | --- |
 | 複数列の配置（最大列高さの最小化） | `EsUtil.Feature.ColumnPacking.Core` | `EsUtil.Ui.AvaloniaUI.ColumnPacking` / `EsUtil.Ui.MewUI.ColumnPacking` / `EsUtil.Ui.WinUI3.ColumnPacking` |
 | 全角・半角・かなの変換 | `EsUtil.Feature.ZenHan.Core` | なし（UI を持たない） |
-| 書式付きの文字列（書式・折り返し・行と文字位置の対応） | `EsUtil.Feature.Text.Core` | なし（UI を持たない。 注釈の本文が使う） |
+| 書式付きの文字列（書式・折り返し・行と文字位置の対応・本文の編集状態） | `EsUtil.Feature.Text.Core` | なし（UI を持たない。 注釈の本文が使う） |
 
 **コントロール化を前提とした処理は UI が持ちます**: ホイール操作（どの入力がズーム・パンかを決める）・ビューポートの変化の追従・組み込み先の概念は、コントロールを何かへ組み込んで初めて必要になるためです。
 

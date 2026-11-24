@@ -1,29 +1,25 @@
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Defaults;
-using EsUtil.Feature.Text.Core.Text;
-using EsUtil.Feature.Annotation.Presenter.Selection;
+using EsUtil.Feature.Text.Presenter.Editing;
 
-namespace EsUtil.Feature.Annotation.Core.Tests;
+namespace EsUtil.Feature.Text.Core.Tests;
 
-/// <summary><see cref="AnnotationTextEdit"/> の規則（キャレット・選択・入力・削除・書式）を検証する。</summary>
+/// <summary><see cref="TextEditState"/> の規則（キャレット・選択・入力・削除・書式）を検証する。</summary>
 /// <remarks>
-/// 4 つの UI 版が共有する状態機械であるため、UI を介さずに規則だけを固定する。<br/>
-/// 本文の操作は <see cref="RichText"/> を受け取って返す（文書への書き戻しは <see cref="AnnotationEditSession"/> が行う）。
+/// UI を介さずに規則だけを固定する（4 つの UI 版が同じ状態機械を使う）。<br/>
+/// 本文の操作は <see cref="RichText"/> を受け取って返す（文書への書き戻しは呼び出し側が行う）。
 /// </remarks>
-public sealed class AnnotationTextEditTests
+public sealed class TextEditStateTests
 {
     /// <summary>編集を始めるとキャレットが本文の末尾へ置かれる。</summary>
     [Fact]
     internal void Begin_キャレットを末尾へ置く()
     {
-        var edit = new AnnotationTextEdit();
+        var edit = new TextEditState();
 
-        edit.Begin("bubble", 4);
+        edit.Begin(4);
 
         Assert.True(edit.IsActive);
-        Assert.Equal("bubble", edit.BubbleId);
         Assert.Equal(4, edit.CaretIndex);
         Assert.False(edit.HasSelection);
     }
@@ -225,10 +221,10 @@ public sealed class AnnotationTextEditTests
     /// <summary>本文を編集する状態を作る。</summary>
     /// <param name="text">本文。</param>
     /// <returns>編集の状態。</returns>
-    private static AnnotationTextEdit CreateEdit(string text)
+    private static TextEditState CreateEdit(string text)
     {
-        var edit = new AnnotationTextEdit();
-        edit.Begin("bubble", text.Length);
+        var edit = new TextEditState();
+        edit.Begin(text.Length);
         return edit;
     }
 

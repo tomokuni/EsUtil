@@ -7,6 +7,7 @@ using Windows.System;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Text;
 using EsUtil.Feature.Text.Core.Text;
+using EsUtil.Feature.Text.Presenter.Editing;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 
@@ -334,73 +335,117 @@ public sealed partial class AnnotationLayerControl
     /// <summary>本文の編集でキーが押されたときの処理。</summary>
     /// <param name="e">キーの引数。</param>
     /// <returns>処理した場合は <see langword="true"/>。</returns>
+    /// <remarks>キーの割り当ては <see cref="TextEditKeyMap"/> が単一所有する（本クラスは操作の実行だけを行う）。</remarks>
     private bool HandleTextEditingKey(KeyRoutedEventArgs e)
     {
-        var control = IsDown(VirtualKey.Control);
-        var shift = IsDown(VirtualKey.Shift);
-
-        if (control && !shift)
+        var request = TextEditKeyMap.Resolve(ToTextEditKey(e.Key), CurrentModifiers());
+        switch (request.Command)
         {
-            switch (e.Key)
-            {
-                case VirtualKey.B:
-                    return ToggleDecoration(style => style.IsBold, static (style, value) => style with { IsBold = value });
-                case VirtualKey.I:
-                    return ToggleDecoration(style => style.IsItalic, static (style, value) => style with { IsItalic = value });
-                case VirtualKey.U:
-                    return ToggleDecoration(style => style.IsUnderline, static (style, value) => style with { IsUnderline = value });
-                case VirtualKey.C:
-                    _ = CopySelectionAsync();
-                    return true;
-                case VirtualKey.X:
-                    _ = CutSelectionAsync();
-                    return true;
-                case VirtualKey.V:
-                    _ = PasteAsync();
-                    return true;
-                case VirtualKey.A:
-                    _session.SelectAllText();
-                    Redraw();
-                    return true;
-            }
-        }
-
-        switch (e.Key)
-        {
-            case VirtualKey.Escape:
+            case TextEditCommand.ToggleBold:
+                return ToggleDecoration(style => style.IsBold, static (style, value) => style with { IsBold = value });
+            case TextEditCommand.ToggleItalic:
+                return ToggleDecoration(style => style.IsItalic, static (style, value) => style with { IsItalic = value });
+            case TextEditCommand.ToggleUnderline:
+                return ToggleDecoration(style => style.IsUnderline, static (style, value) => style with { IsUnderline = value });
+            case TextEditCommand.ToggleStrike:
+                return ToggleDecoration(style => style.IsStrike, static (style, value) => style with { IsStrike = value });
+            case TextEditCommand.EndEditing:
                 EndTextEditing();
                 return true;
-            case VirtualKey.Enter:
+            case TextEditCommand.InsertLineBreak:
                 ReplaceSelection("\n");
                 return true;
-            case VirtualKey.Back:
+            case TextEditCommand.DeleteBackward:
                 DeleteAtCaret(forward: false);
                 return true;
-            case VirtualKey.Delete:
+            case TextEditCommand.DeleteForward:
                 DeleteAtCaret(forward: true);
                 return true;
-            case VirtualKey.Left:
-                MoveCaret(shift ? _session.CaretIndex - 1 : TextSelectionStart - 1, shift);
+            case TextEditCommand.CaretLeft:
+                MoveCaretByCluster(-1, request.Extend);
                 return true;
-            case VirtualKey.Right:
-                MoveCaret(shift ? _session.CaretIndex + 1 : TextSelectionEnd + 1, shift);
+            case TextEditCommand.CaretRight:
+                MoveCaretByCluster(1, request.Extend);
                 return true;
-            case VirtualKey.Up:
-                MoveCaretToNeighbourLine(-1, shift);
+            case TextEditCommand.CaretUp:
+                MoveCaretToNeighbourLine(-1, request.Extend);
                 return true;
-            case VirtualKey.Down:
-                MoveCaretToNeighbourLine(1, shift);
+            case TextEditCommand.CaretDown:
+                MoveCaretToNeighbourLine(1, request.Extend);
                 return true;
-            case VirtualKey.Home:
-                MoveCaretToLineEdge(first: true, shift);
+            case TextEditCommand.CaretLineStart:
+                MoveCaretToLineEdge(first: true, request.Extend);
                 return true;
-            case VirtualKey.End:
-                MoveCaretToLineEdge(first: false, shift);
+            case TextEditCommand.CaretLineEnd:
+                MoveCaretToLineEdge(first: false, request.Extend);
+                return true;
+            case TextEditCommand.SelectAll:
+                _session.SelectAllText();
+                Redraw();
+                return true;
+            case TextEditCommand.Copy:
+                _ = CopySelectionAsync();
+                return true;
+            case TextEditCommand.Cut:
+                _ = CutSelectionAsync();
+                return true;
+            case TextEditCommand.Paste:
+                _ = PasteAsync();
                 return true;
             default:
                 return false;
         }
     }
+
+    /// <summary>押されている修飾キーを本層の修飾キーへ写す。</summary>
+    /// <returns>本層の修飾キー。</returns>
+    private static TextEditModifiers CurrentModifiers()
+    {
+        var result = TextEditModifiers.None;
+        if (IsDown(VirtualKey.Control))
+        {
+            result |= TextEditModifiers.Control;
+        }
+
+        if (IsDown(VirtualKey.Shift))
+        {
+            result |= TextEditModifiers.Shift;
+        }
+
+        if (IsDown(VirtualKey.Menu))
+        {
+            result |= TextEditModifiers.Alt;
+        }
+
+        return result;
+    }
+
+    /// <summary>UI のキーを本層のキーへ写す（本層が扱うキーだけ）。</summary>
+    /// <param name="key">UI のキー。</param>
+    /// <returns>本層のキー。 扱わないキーは <see cref="TextEditKey.None"/>。</returns>
+    private static TextEditKey ToTextEditKey(VirtualKey key) => key switch
+    {
+        VirtualKey.A => TextEditKey.A,
+        VirtualKey.B => TextEditKey.B,
+        VirtualKey.C => TextEditKey.C,
+        VirtualKey.I => TextEditKey.I,
+        VirtualKey.U => TextEditKey.U,
+        VirtualKey.V => TextEditKey.V,
+        VirtualKey.X => TextEditKey.X,
+        VirtualKey.Number5 => TextEditKey.Digit5,
+        (VirtualKey)0x65 => TextEditKey.Digit5,
+        VirtualKey.Escape => TextEditKey.Escape,
+        VirtualKey.Enter => TextEditKey.Enter,
+        VirtualKey.Back => TextEditKey.Back,
+        VirtualKey.Delete => TextEditKey.Delete,
+        VirtualKey.Left => TextEditKey.Left,
+        VirtualKey.Right => TextEditKey.Right,
+        VirtualKey.Up => TextEditKey.Up,
+        VirtualKey.Down => TextEditKey.Down,
+        VirtualKey.Home => TextEditKey.Home,
+        VirtualKey.End => TextEditKey.End,
+        _ => TextEditKey.None,
+    };
 
     /// <summary>選択中の文字をクリップボードへコピーする。</summary>
     /// <remarks>キー入力が注釈レイヤーへ届かない環境向けの入口（ホストのキー処理から呼ぶ）。</remarks>
@@ -495,12 +540,12 @@ public sealed partial class AnnotationLayerControl
         e.Handled = true;
     }
 
-    /// <summary>キャレットを移動する（<paramref name="extend"/> なら選択を広げる）。</summary>
-    /// <param name="index">移動先（文字数）。</param>
+    /// <summary>キャレットを前後の 1 クラスタへ移す。</summary>
+    /// <param name="direction">移動する向き（負は左、正は右）。</param>
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
-    private void MoveCaret(int index, bool extend)
+    private void MoveCaretByCluster(int direction, bool extend)
     {
-        _session.MoveCaret(index, extend);
+        _session.MoveCaretByCluster(direction, extend);
         Redraw();
     }
 

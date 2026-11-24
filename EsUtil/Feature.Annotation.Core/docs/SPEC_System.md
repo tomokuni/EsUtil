@@ -78,7 +78,7 @@ flowchart TB
 | `AnnotationPanelController` / `AnnotationPanelPlacement` / `AnnotationPanelAppearance` / `AnnotationPanelKind` / `AnnotationPanelMetrics` / `IAnnotationPanelHost` | Presenter | フローティング パネルの開閉・配置・外観（UI は `IAnnotationPanelHost` を実装する） |
 | `AnnotationSelectionPresenter` | Presenter | 選択中の注釈の外観・本文の余白・しっぽの差し替えの入口（文書を受け取り、変更後の文書を返す） |
 | `AnnotationEditSession` / `AnnotationEditChange` | Presenter | 文書・選択・変更履歴・本文の編集状態の単一所有（4 つの UI 版は本型の操作を呼び、変更を購読する） |
-| `AnnotationTextEdit` | Presenter | 本文の編集状態（キャレット・選択・入力・削除・書式）。 文書を知らず、本文（`RichText`）を受け取って書き換えた本文を返す。 4 つの UI 版は入力イベントを渡すだけにする |
+| `TextEditState` | `EsUtil.Feature.Text.Core`（`.Presenter.Editing`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 文書も注釈の識別子も知らず、本文（`RichText`）を受け取って書き換えた本文を返す |
 | `AnnotationViewTransform` | Core（`.Core.Geometry`） | 表示倍率と左上の位置、元画像ピクセルとローカル DIP の相互変換 |
 | `TextCursor` / `TextStyleEdit` / `TextCompositionPreview` / `TextCaretBlink` | `EsUtil.Feature.Text.Core`（`.Core.Text`） | 文字位置を書記素クラスタ（絵文字・結合文字）で扱う規則・入力の挿入・変換中の文字列・点滅 |
 | `AnnotationFormatBarLayout` / `AnnotationFormatBarItem` / `AnnotationEditorLayout` / `AnnotationEditorText` / `AnnotationFontCatalog` / `AnnotationPaletteCatalog` / `AnnotationPaletteColor` / `AnnotationBubbleEdgeCatalog` | Presenter | 編集 UI の並び・寸法・文言・代表色・フォントの並べ方 |

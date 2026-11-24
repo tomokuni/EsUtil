@@ -197,7 +197,7 @@
 | --- | --- | --- |
 | `AnnotationDraftDefaultsFactory` | Core（`.Core.Defaults`） | 設定の値（色の文字列・数値）から `AnnotationDraftDefaults` を組み立てる（`FromText`）。 解釈できない色は透明として扱い、数値は `AnnotationLimits` の安全域へ補正する |
 | `AnnotationEditorAppearance` | Presenter（`.Presenter.Drawing`） | 本文の編集中の見た目（`CaretThicknessDip` / `CaretColor` / `SelectionColor`）。 UI は自分の描画 API の色へ変換して使う |
-| `AnnotationTextEdit` | Presenter（`.Presenter.Selection`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 UI は入力イベントを渡し、通知と描画だけを行う |
+| `TextEditState` | `EsUtil.Feature.Text.Core`（`.Presenter.Editing`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 UI は入力イベントを渡し、通知と描画だけを行う（注釈の識別子を持たない） |
 | `AnnotationViewTransform` | Core（`.Core.Geometry`） | 表示倍率・左上の位置と、元画像ピクセルとローカル DIP の相互変換（`ToSourceRadius` で画面上の掴む距離を元画像ピクセルへ換算する）。 UI は点の型へ写すだけにする |
 | `TextCursor` / `TextLayout` / `TextLineIndex` / `TextLineLayout` / `TextStyleEdit` / `TextCompositionPreview` / `TextCaretBlink` | `EsUtil.Feature.Text.Core`（`.Core.Text`） | 書記素クラスタの境界・折り返しと行の配置・行と文字位置の対応・入力の挿入・変換中の文字列・点滅。 UI は位置を計算せず、この規則に従う |
 
