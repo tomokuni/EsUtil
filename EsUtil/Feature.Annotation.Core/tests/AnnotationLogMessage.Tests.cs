@@ -23,6 +23,20 @@ public sealed class AnnotationLogMessageTests
         Assert.Contains(new string('あ', 100), message, StringComparison.Ordinal);
     }
 
+    /// <summary>書式を適用した範囲だけを出力し、長さ 0 の範囲は本文全体を出力する。</summary>
+    [Fact]
+    internal void LogTextStyleApplied_適用した範囲の文字だけを出力する()
+    {
+        var logger = new RecordingLogger();
+
+        logger.LogTextStyleApplied("abcdef", start: 2, length: 3);
+        logger.LogTextStyleApplied("abcdef", start: 0, length: 0);
+
+        Assert.Equal(2, logger.Messages.Count);
+        Assert.Contains("書式を適用: 開始=2 長さ=3 本文=cde", logger.Messages[0], StringComparison.Ordinal);
+        Assert.Contains("書式を適用: 開始=0 長さ=0 本文=abcdef", logger.Messages[1], StringComparison.Ordinal);
+    }
+
     /// <summary>真偽の設定値は変化したときだけ出力する。</summary>
     [Fact]
     internal void LogSettingChanged_変化したときだけ出力する()

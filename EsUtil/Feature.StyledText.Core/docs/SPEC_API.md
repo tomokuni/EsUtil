@@ -160,7 +160,7 @@
 
 ## 11. `TextInput`（静的クラス）
 
-**本文へ入れる文字列の正規化**（単一所有）です。 本文の改行は `\n` だけであり、折り返し・行の対応・保存する JSON が同じ規則を使います。 入力欄・貼り付け・IME の確定文字列は改行の表し方が異なるため、本文へ入れる前にここで揃えます。
+**本文へ入れる文字列の正規化**（単一所有）です。 本文の改行は `\n` だけであり、折り返し・行の対応・保存する JSON が同じ規則を使います。 入力・貼り付け・IME の確定文字列は改行の表し方が異なるため、本文へ入れる入口（`TextEditor.ReplaceSelection` / `ReplaceRange`）がここで揃えます（呼び出し側は揃えません）。
 
 | メンバー | 説明 |
 | --- | --- |
@@ -215,6 +215,7 @@
 
 - **操作は変わった内容（`TextEditChange`）を返します**（`Text` / `Selection` / `Editing`）。 UI は値に応じて描画の更新と通知を行います。
 - **本文は不変**です。 編集は新しい `RichText` を `Text` へ書き戻し、変化が無ければ同じ実体のままです。
+- **改行の正規化は挿入の入口が行います**（`ReplaceSelection` / `ReplaceRange` が `TextInput.Normalize` を適用する）。 入力・IME・貼り付けのどの経路からも同じ本文になります。
 - **変換中の文字列は本文へ入れません**（`DisplayText` と `DisplayCaretIndex` にだけ反映する）。
 
 ## 14. `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand`（静的クラス・列挙型）

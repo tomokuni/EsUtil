@@ -278,8 +278,6 @@ public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFor
         return false;
     }
 
-
-
     /// <summary>既定の色の選択を作る（標準のタブだけを出す）。</summary>
     /// <param name="color">現在の色（<c>#AARRGGBB</c>）。</param>
     /// <param name="textFormat">入力欄の表記。</param>

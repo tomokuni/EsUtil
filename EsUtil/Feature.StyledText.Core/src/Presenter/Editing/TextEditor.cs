@@ -221,25 +221,26 @@ public sealed class TextEditor
     }
 
     /// <summary>選択範囲を文字列で置き換える（選択が無ければ挿入）。</summary>
-    /// <param name="inserted">挿入する文字列（空なら削除）。</param>
+    /// <param name="inserted">挿入する文字列（空なら削除。 改行は <c>\n</c> へ揃える）。</param>
     /// <returns>変わった内容。 本文が変わらない場合は <see cref="TextEditChange.Selection"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="inserted"/> が null の場合。</exception>
+    /// <remarks><b>改行の正規化は本メソッドが行う</b>（入力・IME・貼り付けのどの経路からも同じ本文になる）。</remarks>
     public TextEditChange ReplaceSelection(string inserted)
     {
         ArgumentNullException.ThrowIfNull(inserted);
-        return Commit(_state.ReplaceSelection(_text, inserted));
+        return Commit(_state.ReplaceSelection(_text, TextInput.Normalize(inserted)));
     }
 
     /// <summary>指定した範囲を文字列で置き換える（ホストが範囲を指定する場合）。</summary>
     /// <param name="start">開始位置（文字数）。</param>
     /// <param name="end">終了位置（文字数）。</param>
-    /// <param name="inserted">置き換える文字列（空なら削除）。</param>
+    /// <param name="inserted">置き換える文字列（空なら削除。 改行は <c>\n</c> へ揃える）。</param>
     /// <returns>変わった内容。 本文が変わらない場合は <see cref="TextEditChange.Selection"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="inserted"/> が null の場合。</exception>
     public TextEditChange ReplaceRange(int start, int end, string inserted)
     {
         ArgumentNullException.ThrowIfNull(inserted);
-        return Commit(_state.ReplaceRange(_text, start, end, inserted));
+        return Commit(_state.ReplaceRange(_text, start, end, TextInput.Normalize(inserted)));
     }
 
     /// <summary>選択範囲、またはキャレットの前後の 1 クラスタを削除する。</summary>

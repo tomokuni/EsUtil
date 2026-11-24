@@ -189,6 +189,39 @@ public sealed class AnnotationEditSessionTests
         Assert.Equal("c\nd", session.SelectedPlainText);
     }
 
+    /// <summary>本文の置き換えは書式付き文字列の編集層へ委譲し、改行を揃えて文書へ書き戻す。</summary>
+    [Fact]
+    internal void 本文の置き換えは改行を揃えて文書へ書き戻す()
+    {
+        var session = CreateSession();
+        session.AddBubble(new EsRect(10, 10, 120, 80), "ab");
+        Assert.True(session.BeginTextEditing());
+        session.MoveCaret(2, extend: false);
+
+        Assert.True(session.ReplaceSelection("c\r\nd"));
+
+        Assert.Equal("abc\nd", session.SelectedPlainText);
+        Assert.Equal(5, session.CaretIndex);
+        Assert.Equal(0, session.SelectionLength);
+    }
+
+    /// <summary>履歴で本文が戻ったら、キャレットを戻った本文の範囲で動かせる。</summary>
+    [Fact]
+    internal void 履歴で本文が戻ったらキャレットを戻った本文で動かせる()
+    {
+        var session = CreateSession();
+        session.AddBubble(new EsRect(10, 10, 120, 80), "abcdef");
+        Assert.True(session.BeginTextEditing());
+        session.SelectText(0, 6);
+        Assert.True(session.ReplaceSelection("ab"));
+
+        Assert.True(session.Undo());
+        session.MoveCaret(6, extend: false);
+
+        Assert.Equal("abcdef", session.SelectedPlainText);
+        Assert.Equal(6, session.CaretIndex);
+    }
+
     /// <summary>編集セッションを作る（画像は 400x300）。</summary>
     /// <returns>作成したセッション。</returns>
     private static AnnotationEditSession CreateSession()

@@ -291,19 +291,36 @@ public static partial class AnnotationLogMessage
     private static partial void LogTextStyleAppliedCore(
         this ILogger logger, string prefix, int start, int length, string preview);
 
-    /// <summary>本文の書式の適用を記録する。</summary>
+    /// <summary>本文の書式の適用を記録する（適用した範囲の文字は本メソッドが切り出す）。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="text">適用後の本文全体。</param>
     /// <param name="start">適用する範囲の開始位置（文字数）。</param>
-    /// <param name="length">適用する範囲の長さ（文字数）。</param>
-    /// <param name="text">適用した範囲の文字（先頭 100 文字だけを記録する）。</param>
-    public static void LogTextStyleApplied(this ILogger logger, int start, int length, string text)
+    /// <param name="length">適用する範囲の長さ（文字数。 0 以下は本文全体）。</param>
+    public static void LogTextStyleApplied(this ILogger logger, string text, int start, int length)
     {
         if (!logger.IsEnabled(LogLevel.Debug))
         {
             return;
         }
 
-        logger.LogTextStyleAppliedCore(Prefix, start, length, ToPreview(text));
+        logger.LogTextStyleAppliedCore(Prefix, start, length, ToPreview(ResolveRangeText(text, start, length)));
+    }
+
+    /// <summary>書式を適用した範囲の文字を切り出す（本文全体を記録しないため）。</summary>
+    /// <param name="text">適用後の本文全体。</param>
+    /// <param name="start">適用する範囲の開始位置（文字数）。</param>
+    /// <param name="length">適用する範囲の長さ（文字数。 0 以下は本文全体）。</param>
+    /// <returns>範囲の文字。 範囲が無い場合は本文全体。</returns>
+    private static string ResolveRangeText(string text, int start, int length)
+    {
+        if (EsUtil.Feature.StyledText.Core.Text.TextStyleEdit.ResolveRange(start, length) is not { } range)
+        {
+            return text;
+        }
+
+        var from = Math.Clamp(range.Start, 0, text.Length);
+        var to = Math.Clamp(from + range.Length, from, text.Length);
+        return text[from..to];
     }
 
     /// <summary>本文の変更を記録する（生成メソッド）。</summary>

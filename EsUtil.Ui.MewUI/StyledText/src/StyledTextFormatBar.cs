@@ -423,8 +423,6 @@ public sealed class StyledTextFormatBar : ContentControl, IStyledTextFormatBar
         _requestFocus?.Invoke();
     }
 
-
-
     /// <summary>装飾を切り替える（適用先の先頭の書式で切り替えの向きを決める）。</summary>
     /// <param name="read">属性を読む関数。</param>
     /// <param name="write">属性を書く関数。</param>

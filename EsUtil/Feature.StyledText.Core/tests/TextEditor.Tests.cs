@@ -95,6 +95,30 @@ public sealed class TextEditorTests
         Assert.Equal("a\nb", TextInput.Normalize("a\nb"));
     }
 
+    /// <summary>挿入の入口が改行を本文の規則へ揃える（呼び出し側で揃えない）。</summary>
+    [Fact]
+    internal void ReplaceSelection_改行をLFへ揃えて挿入する()
+    {
+        var editor = CreateEditor("ab");
+        editor.Begin();
+        editor.Select(2, 0);
+
+        editor.ReplaceSelection("c\r\nd");
+
+        Assert.Equal("abc\nd", editor.Text.PlainText);
+    }
+
+    /// <summary>範囲の置き換えでも改行を本文の規則へ揃える。</summary>
+    [Fact]
+    internal void ReplaceRange_改行をLFへ揃えて置き換える()
+    {
+        var editor = CreateEditor("abcd");
+
+        editor.ReplaceRange(1, 2, "x\r\ny");
+
+        Assert.Equal("ax\nycd", editor.Text.PlainText);
+    }
+
     /// <summary>本文とキャレットを持つエディターを作る。</summary>
     /// <param name="plainText">本文。</param>
     /// <returns>エディター。</returns>

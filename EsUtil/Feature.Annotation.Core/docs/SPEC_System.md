@@ -52,7 +52,7 @@ flowchart TB
 
 - **Core は Presenter を参照しません**（描画計画を知らない）。
 - **Presenter は描画 API を持ちません**（描画計画というデータを返し、UI が写す）。
-- **編集の進行（文書・選択・履歴・本文の編集状態）は `AnnotationEditSession` が単一所有します**（UI は入力の受付と描画だけを行う）。
+- **編集の進行（文書・選択・履歴・本文の編集状態）は `AnnotationEditSession` が単一所有します**（UI は入力の受付と描画だけを行う）。 **本文の操作そのものは `TextEditor` が単一所有します**（本アセンブリは操作の規則を写さず、結果を文書へ書き戻すだけです）。
 - **文字の計算は `EsUtil.Feature.StyledText.Core` が単一所有します**（書式・折り返し・行と文字位置の対応・書記素クラスタ）。 本アセンブリは**文字の実寸を要する**ため、`Func<string, TextStyle, EsSize>` として UI から受け取ります（ルーペの `measureText` と同じ形）。
 - **公開面は `src/` 直下（名前空間 `EsUtil.Feature.Annotation`）に置き、層の内部は `src/Core/<カテゴリ>` / `src/Presenter/<カテゴリ>` へ置きます**（名前空間は `EsUtil.Feature.Annotation.Core.<カテゴリ>` / `.Presenter.<カテゴリ>`。 規則は [`.github/命名規約.md`](../../../.github/命名規約.md)）。 フォルダと名前空間の一覧は [`../README.md`](../README.md) §3 が持つ。
 
@@ -77,7 +77,7 @@ flowchart TB
 | `AnnotationEditingOutline` / `AnnotationEditorAppearance` / `AnnotationMarqueeMetrics` | Presenter | 編集中の枠・キャレットと選択範囲の色・選択枠の実寸近似の見た目と規則 |
 | `AnnotationPanelController` / `AnnotationPanelPlacement` / `AnnotationPanelAppearance` / `AnnotationPanelKind` / `AnnotationPanelMetrics` / `IAnnotationPanelHost` | Presenter | フローティング パネルの開閉・配置・外観（UI は `IAnnotationPanelHost` を実装する） |
 | `AnnotationSelectionPresenter` | Presenter | 選択中の注釈の外観・本文の余白・しっぽの差し替えの入口（文書を受け取り、変更後の文書を返す） |
-| `AnnotationEditSession` / `AnnotationEditChange` | Presenter | 文書・選択・変更履歴・本文の編集状態の単一所有（4 つの UI 版は本型の操作を呼び、変更を購読する） |
+| `AnnotationEditSession` / `AnnotationEditChange` | Presenter | 文書・選択・変更履歴・本文の編集状態の単一所有（4 つの UI 版は本型の操作を呼び、変更を購読する）。 本文のキャレット・選択・入力・書式は `TextEditor` へ委譲し、本型は編集対象の本文を選択中の注釈へ揃えて結果を文書へ書き戻す |
 | `TextEditState` | `EsUtil.Feature.StyledText.Core`（`.Presenter.Editing`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 文書も注釈の識別子も知らず、本文（`RichText`）を受け取って書き換えた本文を返す。 **書式バーを表示する条件（編集中・1 文字以上を選択）も単一所有する** |
 | `AnnotationViewTransform` | Core（`.Core.Geometry`） | 表示倍率と左上の位置、元画像ピクセルとローカル DIP の相互変換 |
 | `TextCursor` / `TextStyleEdit` / `TextCompositionPreview` / `TextCaretBlink` | `EsUtil.Feature.StyledText.Core`（`.Core.Text`） | 文字位置を書記素クラスタ（絵文字・結合文字）で扱う規則・入力の挿入・変換中の文字列・点滅 |

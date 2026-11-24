@@ -370,7 +370,7 @@ public sealed partial class StyledTextControl : Canvas
     }
 
     /// <summary>本文・選択範囲・キャレットを並べ直す（子要素はすべて作り直す）。</summary>
-    public void Redraw()
+    private void Redraw()
     {
         Children.Clear();
         var scale = ResolveScale();

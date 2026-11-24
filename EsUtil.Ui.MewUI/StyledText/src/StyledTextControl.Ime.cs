@@ -88,7 +88,7 @@ public sealed partial class StyledTextControl : ITextCompositionClient, ITextInp
         _compositionStart = CaretIndex;
         if (!string.IsNullOrEmpty(e.Text))
         {
-            ReplaceSelection(EsUtil.Feature.StyledText.Core.Text.TextInput.Normalize(e.Text));
+            ReplaceSelection(e.Text);
         }
         else
         {
@@ -110,7 +110,7 @@ public sealed partial class StyledTextControl : ITextCompositionClient, ITextInp
         // 変換の終了より先にここへ届く。 変換中だからと捨てると、確定した瞬間に文字が消える。
         PreeditText = string.Empty;
         _compositionStart = CaretIndex;
-        ReplaceSelection(EsUtil.Feature.StyledText.Core.Text.TextInput.Normalize(e.Text));
+        ReplaceSelection(e.Text);
         e.Handled = true;
     }
 }

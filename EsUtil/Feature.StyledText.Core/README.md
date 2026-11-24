@@ -81,7 +81,7 @@ if (request.Command == TextEditCommand.CaretLeft)
 | `TextCompositionPreview` / `TextCaretBlink` | IME の変換中文字列を入れた描画用の値・キャレットの点滅 |
 | `TextEditor` | 編集中の本文の値と状態（キャレット・選択・入力・削除・書式・変換中の文字列）。 本文の操作・キーの実行・キャレット位置の解決をまとめ、書式バーを表示する条件（編集中・1 文字以上を選択）も本型が単一所有する |
 | `TextEditState` | 本文の状態（キャレット・選択・以降の入力へ効かせる書式）。 本文を受け取って書き換えた本文を返す（`TextEditor` が本文と組にして公開する） |
-| `TextInput` | 本文へ入れる文字列の正規化（改行を `\n` へ揃える） |
+| `TextInput` | 本文へ入れる文字列の正規化（改行を `\n` へ揃える）。 適用は本文へ入れる入口（`TextEditor.ReplaceSelection` / `ReplaceRange`）が行う |
 | `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand` | キーの割り当て（どのキーがどの操作になるか）。 4 つの UI 版はキーの型を写して本層の解決を呼ぶ |
 | `TextDefaults` / `TextLimits` | 既定値（フォントの優先順・大きさ・既定の書式）と安全域 |
 

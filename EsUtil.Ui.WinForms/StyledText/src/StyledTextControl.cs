@@ -739,7 +739,7 @@ public sealed class StyledTextControl : Control
             SetPreedit(string.Empty);
             if (committed.Length > 0)
             {
-                ReplaceSelection(EsUtil.Feature.StyledText.Core.Text.TextInput.Normalize(committed));
+                ReplaceSelection(committed);
                 PositionCompositionWindow();
                 return;
             }

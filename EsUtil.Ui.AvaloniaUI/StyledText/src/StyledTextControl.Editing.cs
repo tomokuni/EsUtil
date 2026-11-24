@@ -53,6 +53,10 @@ public sealed partial class StyledTextControl
 
     /// <summary>編集中に書式バーを自動で表示するかどうかを取得または設定する。</summary>
     /// <value>自動で表示する場合は <see langword="true"/>（既定）。 ホストが独自にバーを出す場合は <see langword="false"/>。</value>
+    /// <remarks>
+    /// <b>表示の判断は <see cref="ShouldShowFormatBar"/> が持つ</b>: 自動表示が有効でも、1 文字以上を選ぶまでは
+    /// 表示しない（適用先が決まらないため）。 ホスト（注釈のパネルなど）は本プロパティを読んでバーを出し入れする。
+    /// </remarks>
     public bool ShowFormatBarWhileEditing
     {
         get => _editor.ShowFormatBarWhileEditing;
@@ -367,7 +371,7 @@ public sealed partial class StyledTextControl
             return;
         }
 
-        ReplaceSelection(EsUtil.Feature.StyledText.Core.Text.TextInput.Normalize(e.Text));
+        ReplaceSelection(e.Text);
         e.Handled = true;
     }
 

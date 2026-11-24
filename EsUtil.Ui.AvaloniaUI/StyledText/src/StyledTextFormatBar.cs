@@ -349,8 +349,6 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
         }
     }
 
-
-
     /// <summary>バーの中で Enter が押されたら、大きさと色を今の値で適用する。</summary>
     /// <param name="sender">送信元。</param>
     /// <param name="e">キーの引数。</param>
