@@ -24,7 +24,7 @@ public sealed partial class AnnotationLayerControl : ITextCompositionClient, ITe
 
     /// <summary>IME が変換中かどうかを取得する。</summary>
     /// <value>変換中の文字列を持っている場合は <see langword="true"/>。</value>
-    public bool IsComposing => _isEditingText && _preeditText.Length > 0;
+    public bool IsComposing => IsEditingText && _preeditText.Length > 0;
 
     /// <summary>指定した位置の文字の矩形（ウィンドウ座標）を取得する。</summary>
     /// <param name="charIndex">文字位置（文字数）。</param>
@@ -35,7 +35,7 @@ public sealed partial class AnnotationLayerControl : ITextCompositionClient, ITe
     /// </remarks>
     public Rect GetCharRectInWindow(int charIndex)
     {
-        if (!_isEditingText || !TryResolveCaretSource(charIndex, DefaultLayouts, out var caret))
+        if (!IsEditingText || !TryResolveCaretSource(charIndex, DefaultLayouts, out var caret))
         {
             return default;
         }

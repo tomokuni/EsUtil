@@ -1,4 +1,3 @@
-using DrawingColor = System.Drawing.Color;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Text;
 
@@ -6,11 +5,12 @@ namespace EsUtil.Feature.Annotation.Presenter.Selection;
 
 /// <summary>選択中の注釈の「編集の対象」を読み書きする入口（単一所有）。</summary>
 /// <remarks>
-/// <b>値の所有者は Presenter</b>: 選択範囲の文字書式・注釈の外観は「いま何を編集しているか」という
+/// <b>値の所有者は提示層</b>: 選択範囲の文字書式・注釈の外観は「いま何を編集しているか」という
 /// 提示の状態であり、UI が自前で組み立てない。 4 つの UI 版は本クラスを呼ぶだけにして、
-/// 「選択が無ければ適用しない」「選択が無ければ <see langword="null"/>」という規則を 1 か所に置く。<br/>
-/// <b>文書は Core が持つ</b>: 本クラスは文書を書き換える入口（<see cref="AnnotationDocument"/> の
-/// メソッド）を呼ぶだけで、値の検証・画像内への収め方は Core が単一所有する。
+/// 「選択が無ければ適用しない」という規則を 1 か所に置く。<br/>
+/// <b>文書は Core が持つ</b>: 本クラスは文書の変更入口（<see cref="AnnotationDocument"/> の <c>With...</c>）を
+/// 呼ぶだけで、値の検証・画像内への収め方は Core が単一所有する。<br/>
+/// <b>変更が無い場合は <see langword="null"/> を返す</b>（呼び出し側は履歴へ積まない）。
 /// </remarks>
 public static class AnnotationSelectionPresenter
 {
@@ -64,7 +64,7 @@ public static class AnnotationSelectionPresenter
     /// <param name="selectedId">選択中の注釈の識別子。</param>
     /// <param name="range">選択範囲。</param>
     /// <param name="style">書式。</param>
-    /// <returns>変更後の文書。 適用しない場合（選択が無い・吹き出しでない）は <see langword="null"/>。</returns>
+    /// <returns>変更後の文書。 適用しない場合（選択が無い・吹き出しでない・同じ値）は <see langword="null"/>。</returns>
     /// <remarks>
     /// <b>選択が無ければ適用しない</b>（規則は <see cref="AnnotationTextStyleEdit"/> が単一所有する）。
     /// キャレットだけの状態で書式を変えると、キャレット以降の文字が意図せず変わる。
@@ -73,6 +73,7 @@ public static class AnnotationSelectionPresenter
         AnnotationDocument document, string? selectedId, (int Start, int Length) range, AnnotationTextStyle style)
     {
         ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(style);
 
         if (FindBubble(document, selectedId) is not { } bubble
             || AnnotationTextStyleEdit.ResolveRange(range.Start, range.Length) is not { } selection)
@@ -80,8 +81,8 @@ public static class AnnotationSelectionPresenter
             return null;
         }
 
-        var text = bubble.Text.ApplyStyle(selection.Start, selection.Length, style);
-        return text == bubble.Text ? null : document.WithText(bubble, text);
+        return NullIfUnchanged(document, document.WithText(
+            bubble.Id, bubble.Text.ApplyStyle(selection.Start, selection.Length, style)));
     }
 
     /// <summary>選択中の注釈の外観を差し替える。</summary>
@@ -93,29 +94,27 @@ public static class AnnotationSelectionPresenter
         AnnotationDocument document, string? selectedId, AnnotationAppearance appearance)
     {
         ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(appearance);
 
-        if (document.Find(selectedId ?? string.Empty) is not { } item || item.Appearance == appearance)
-        {
-            return null;
-        }
-
-        item.Appearance = appearance;
-        return document;
+        return string.IsNullOrEmpty(selectedId)
+            ? null
+            : NullIfUnchanged(document, document.WithAppearance(selectedId, appearance));
     }
 
-    /// <summary>外観の色を差し替えた外観を作る。</summary>
-    /// <param name="appearance">元の外観。</param>
-    /// <param name="border">枠線の色（変更しない場合は <see langword="null"/>）。</param>
-    /// <param name="fill">内側の色（変更しない場合は <see langword="null"/>）。</param>
-    /// <returns>差し替えた外観。</returns>
-    /// <remarks>右クリックの外観フライアウトの項目を UI が組み立てないように、写像をここへ置く。</remarks>
-    public static AnnotationAppearance WithColors(
-        AnnotationAppearance appearance, DrawingColor? border, DrawingColor? fill)
-        => appearance with
-        {
-            Border = border ?? appearance.Border,
-            Fill = fill ?? appearance.Fill,
-        };
+    /// <summary>選択中の吹き出しの本文の余白を差し替える。</summary>
+    /// <param name="document">文書。</param>
+    /// <param name="selectedId">選択中の注釈の識別子。</param>
+    /// <param name="padding">新しい余白（元画像ピクセル。 安全域へ補正する）。</param>
+    /// <returns>変更後の文書。 変更しない場合（選択が無い・吹き出しでない・同じ値）は <see langword="null"/>。</returns>
+    public static AnnotationDocument? SetBodyPadding(
+        AnnotationDocument document, string? selectedId, double padding)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+
+        return selectedId is null || FindBubble(document, selectedId) is null
+            ? null
+            : NullIfUnchanged(document, document.WithBodyPadding(selectedId, padding));
+    }
 
     /// <summary>選択中の吹き出しを取得する。</summary>
     /// <param name="document">文書。</param>
@@ -123,4 +122,11 @@ public static class AnnotationSelectionPresenter
     /// <returns>吹き出し。 選んでいない・吹き出しでない場合は <see langword="null"/>。</returns>
     private static BubbleAnnotation? FindBubble(AnnotationDocument document, string? selectedId)
         => string.IsNullOrEmpty(selectedId) ? null : document.Find(selectedId) as BubbleAnnotation;
+
+    /// <summary>変更が無い（同じ実体の）場合は <see langword="null"/> を返す。</summary>
+    /// <param name="before">変更前の文書。</param>
+    /// <param name="after">変更後の文書。</param>
+    /// <returns>変更後の文書。 変更が無い場合は <see langword="null"/>。</returns>
+    private static AnnotationDocument? NullIfUnchanged(AnnotationDocument before, AnnotationDocument after)
+        => ReferenceEquals(before, after) ? null : after;
 }

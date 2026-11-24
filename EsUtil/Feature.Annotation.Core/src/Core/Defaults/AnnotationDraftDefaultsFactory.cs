@@ -43,18 +43,18 @@ public static class AnnotationDraftDefaultsFactory
                 Parse(frameBorderColor),
                 borderThickness,
                 Parse(frameFillColor),
-                cornerRadius),
+                cornerRadius).Normalized(),
             new AnnotationAppearance(
                 Parse(bubbleBorderColor),
                 borderThickness,
                 Parse(bubbleFillColor),
-                cornerRadius),
+                cornerRadius).Normalized(),
             new AnnotationTextStyle(
                 AnnotationDefaults.PreferredFontFamilies[0],
                 fontSize,
-                Parse(textColor)),
-            bodyPadding,
-            tailWidth,
+                Parse(textColor)).Normalized(),
+            AnnotationLimits.CoerceBodyPadding(bodyPadding),
+            AnnotationLimits.CoerceTailWidth(tailWidth),
             tailEdge);
 
     /// <summary>色の文字列を色へ変換する（解釈できない場合は透明）。</summary>

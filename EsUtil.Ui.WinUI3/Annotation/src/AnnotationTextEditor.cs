@@ -298,14 +298,14 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// <summary>書式バーを本文の外（本文に被さらない位置）へ出し直す。</summary>
     /// <remarks>
     /// <b>本文に被せない</b>: 編集中の文字が隠れて読めない（実測 2026-11-20）。 位置の判断は
-    /// コア（<see cref="AnnotationPanelPlacement.ResolveOutside"/>）が単一所有する。<br/>
+    /// 提示層（<see cref="AnnotationPanelPlacement.ResolveOutside"/>）が単一所有する。<br/>
     /// <b>大きさは実寸を使う</b>: 中身（フォント名・大きさ・色）で幅が決まるため、固定値だと
     /// 枠からはみ出す。 一度置いてから実寸で出し直す。
     /// </remarks>
     /// <summary>書式バーを本文の外（本文に被さらない位置）へ出し直す。</summary>
     /// <remarks>
     /// <b>本文に被せない</b>: 編集中の文字が隠れて読めない（実測 2026-11-20）。 位置の判断は
-    /// コア（<see cref="AnnotationPanelPlacement.ResolveOutside"/>）が単一所有する。<br/>
+    /// 提示層（<see cref="AnnotationPanelPlacement.ResolveOutside"/>）が単一所有する。<br/>
     /// <b>実寸で置き直す</b>: レイアウト前の測定は高さを正しく返さないことがあるため、一度置いて
     /// レイアウトを確定させてからコアに実寸で決め直させる。
     /// </remarks>

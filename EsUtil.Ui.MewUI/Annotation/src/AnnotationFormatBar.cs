@@ -168,7 +168,7 @@ public sealed class AnnotationFormatBar : ContentControl
         foreach (var item in AnnotationFormatBarLayout.Order)
         {
             // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる
-            // （実測 2026-11-21）。 値はコアの AnnotationFormatBarLayout.ItemHeight が単一所有する
+            // （実測 2026-11-21）。 値は提示層の AnnotationFormatBarLayout.ItemHeight が単一所有する
             var element = (FrameworkElement)items[item];
             element.Height = AnnotationFormatBarLayout.ItemHeight;
             element.MinHeight = AnnotationFormatBarLayout.ItemHeight;
@@ -283,7 +283,7 @@ public sealed class AnnotationFormatBar : ContentControl
             // MewUI の負の上余白は半分だけ効くため、倍の値を与える。
             Margin = new Thickness(0, -2, 0, 0),
 
-            // **記号は行の文字より一回り大きくする**（値はコアの AnnotationEditorLayout が単一所有する）
+            // **記号は行の文字より一回り大きくする**（値は提示層の AnnotationEditorLayout が単一所有する）
             FontSize = AnnotationEditorLayout.ToggleFontSize,
             FontFamily = AnnotationEditorLayout.ToggleFontFamily,
             TextAlignment = TextAlignment.Center,

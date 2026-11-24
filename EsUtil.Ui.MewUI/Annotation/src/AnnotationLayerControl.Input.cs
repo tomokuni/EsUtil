@@ -48,7 +48,7 @@ public sealed partial class AnnotationLayerControl
 
             // **選択枠は編集中も描く**: 描く中身は DrawSelection が決める（編集中は破線だけを描き、
             // ハンドルは出さない）。 ここで止めると「どの注釈を編集中か」が分からなくなる（実測 2026-11-22）
-            DrawAll(context, includeSelection: true, scale, offset);
+            DrawAll(context, includeSelection: true, scale, new Point(offset.X, offset.Y));
         }
         finally
         {
@@ -72,7 +72,7 @@ public sealed partial class AnnotationLayerControl
 
         if (_document.Items.Length > 0)
         {
-            // **変換中の文字列も本文として描く**（規則はコアの AnnotationCompositionPreview が単一所有する）
+            // **変換中の文字列も本文として描く**（規則は提示層の AnnotationCompositionPreview が単一所有する）
             var plan = _presenter.ResolveDrawPlan(RenderDocument, AnnotationTextMetrics.Measure, SelectedId);
             _selectedBodyRectSource = Selected is BubbleAnnotation bubble
                 ? bubble.ResolveBodyRect()
@@ -134,7 +134,7 @@ public sealed partial class AnnotationLayerControl
             false);
 
         // **本文を編集中は破線だけを描く**: ハンドルは動かせないため出さない。 代わりに「どの注釈を
-        // 編集中か」を破線で示す（規則はコアの AnnotationEditingOutline が単一所有する）。
+        // 編集中か」を破線で示す（規則は提示層の AnnotationEditingOutline が単一所有する）。
         // 編集中はマーキーの選択を解除している（枠を出さない）ため、矩形は文書と表示倍率から求める。
         if (IsEditingText && Selected is { } editingItem)
         {
@@ -266,7 +266,7 @@ public sealed partial class AnnotationLayerControl
 
         var source = ToSource(position);
 
-        if (_isEditingText)
+        if (IsEditingText)
         {
             if (Selected is BubbleAnnotation editingBubble && editingBubble.Bounds.Contains(source))
             {
@@ -388,7 +388,7 @@ public sealed partial class AnnotationLayerControl
         // 本文を押したまま動かしている間は、選択範囲を広げる（マウスでの選択）。
         // ダブルクリックで編集を始めた押下は `_isSelectingText` が立たないため、押下中に本文の内側へ
         // 入った場合も選択を始める（実測 2026-11-21: 矢印キーでは選べるがマウスでは選べなかった）。
-        if (!_isSelectingText && _isEditingText && e.LeftButton && !_isDraggingTail && !_isPreviewDragging
+        if (!_isSelectingText && IsEditingText && e.LeftButton && !_isDraggingTail && !_isPreviewDragging
             && Selected is BubbleAnnotation editing && editing.Bounds.Contains(source))
         {
             _isSelectingText = true;
@@ -420,10 +420,15 @@ public sealed partial class AnnotationLayerControl
                 return;
             }
 
-            if (Selected is BubbleAnnotation bubble && _document.SetTailTip(bubble.Id, source))
+            if (Selected is BubbleAnnotation bubble)
             {
-                RaiseDocumentChanged();
-                InvalidateVisual();
+                var next = _document.WithTailTip(bubble.Id, source);
+                if (!ReferenceEquals(next, _document))
+                {
+                    _document = next;
+                    RaiseDocumentChanged();
+                    InvalidateVisual();
+                }
             }
 
             return;
@@ -545,7 +550,7 @@ public sealed partial class AnnotationLayerControl
         // 外へ出たら既定の形へ戻す（戻さないと移動の合図が残る）
         Cursor = CursorType.Arrow;
 
-        if (!_isPreviewDragging && !_isEditingText)
+        if (!_isPreviewDragging && !IsEditingText)
         {
             RaisePreviewGesture(AnnotationPreviewGesture.Leave, default, 1, 0, false, false);
         }
@@ -570,7 +575,7 @@ public sealed partial class AnnotationLayerControl
     {
         base.OnKeyDown(e);
 
-        if (_isEditingText && HandleTextEditingKey(e))
+        if (IsEditingText && HandleTextEditingKey(e))
         {
             e.Handled = true;
             return;
@@ -724,8 +729,10 @@ public sealed partial class AnnotationLayerControl
         try
         {
             // 画像の外へは出さない（収める規則はコアが単一所有する）
-            if (_document.SetBounds(item.Id, rect))
+            var next = _document.WithBounds(item.Id, rect);
+            if (!ReferenceEquals(next, _document))
             {
+                _document = next;
                 RaiseDocumentChanged();
             }
         }
@@ -846,3 +853,4 @@ public sealed partial class AnnotationLayerControl
         }
     }
 }
+

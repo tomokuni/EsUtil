@@ -38,24 +38,25 @@ public sealed class AnnotationPresenter
     private bool _createdLogged;
 
     /// <summary>行間の倍率を取得または設定する。</summary>
-    /// <value>文字の実寸の高さに対する行の高さの比。 既定は <see cref="LineHeightFactorDefault"/>。</value>
+    /// <value>文字の実寸の高さに対する行の高さの比。 既定は <see cref="LineHeightFactorDefault"/>。 0 以下・非有限は既定値へ補正する。</value>
     /// <remarks>変化したときだけ <c>Information</c> で記録する（本層が単一所有する設定のため）。</remarks>
     public double LineHeightFactor
     {
         get => _lineHeightFactor;
         set
         {
-            if (_lineHeightFactor.Equals(value))
+            var resolved = AnnotationLimits.CoercePositive(value, LineHeightFactorDefault);
+            if (_lineHeightFactor.Equals(resolved))
             {
                 return;
             }
 
             var previous = _lineHeightFactor;
-            _lineHeightFactor = value;
+            _lineHeightFactor = resolved;
             _log.LogSettingChanged(
                 nameof(LineHeightFactor),
                 NumberText.Format(previous),
-                NumberText.Format(value));
+                NumberText.Format(resolved));
         }
     }
 
@@ -70,9 +71,10 @@ public sealed class AnnotationPresenter
         get => _log;
         set
         {
+            // 出力先を所有するのはファサードである（本層は「接続した」を記録しない。 同じ 1 回の設定で
+            // 2 行出ると、どの層の設定か読み分けられない。 Loupe / Marquee と同じ分担にする）。
             _log = value ?? NullLogger.Instance;
             LogPresenterCreatedOnce();
-            _log.LogLoggerAttached();
         }
     }
 
@@ -143,24 +145,17 @@ public sealed class AnnotationPresenter
             shapes.ToImmutable());
     }
 
-    /// <summary>枠線の注釈を画像の内側へ収めた複製を返す。</summary>
+    /// <summary>枠線の注釈を画像の内側へ収めた値を返す。</summary>
     /// <param name="item">対象の注釈。</param>
     /// <param name="imageSize">画像の大きさ。</param>
     /// <returns>収めた注釈（収まっている場合は元の注釈）。</returns>
     private static AnnotationItem ClampFrame(AnnotationItem item, EsSize imageSize)
     {
         var bounds = AnnotationGeometry.ClampRect(item.Bounds, imageSize);
-        if (bounds.NearlyEquals(item.Bounds))
-        {
-            return item;
-        }
-
-        var copy = item.Clone();
-        copy.Bounds = bounds;
-        return copy;
+        return bounds.NearlyEquals(item.Bounds) ? item : item with { Bounds = bounds };
     }
 
-    /// <summary>吹き出しの注釈を画像の内側へ収めた複製を返す。</summary>
+    /// <summary>吹き出しの注釈を画像の内側へ収めた値を返す。</summary>
     /// <param name="bubble">対象の吹き出し。</param>
     /// <param name="imageSize">画像の大きさ。</param>
     /// <returns>収めた吹き出し（収まっている場合は元の吹き出し）。</returns>
@@ -168,15 +163,9 @@ public sealed class AnnotationPresenter
     {
         var bounds = AnnotationGeometry.ClampRect(bubble.Bounds, imageSize);
         var tip = AnnotationGeometry.ClampTailTip(bubble.Tail.Tip, imageSize);
-        if (bounds.NearlyEquals(bubble.Bounds) && tip.NearlyEquals(bubble.Tail.Tip))
-        {
-            return bubble;
-        }
-
-        var copy = (BubbleAnnotation)bubble.Clone();
-        copy.Bounds = bounds;
-        copy.Tail = bubble.Tail with { Tip = tip };
-        return copy;
+        return bounds.NearlyEquals(bubble.Bounds) && tip.NearlyEquals(bubble.Tail.Tip)
+            ? bubble
+            : bubble with { Bounds = bounds, Tail = bubble.Tail with { Tip = tip } };
     }
 
     /// <summary>枠線の注釈の計画を解決する。</summary>

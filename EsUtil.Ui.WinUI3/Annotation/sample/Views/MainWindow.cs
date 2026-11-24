@@ -111,8 +111,11 @@ public sealed class MainWindow : Window
         layer.DocumentChanged += (_, _) => _status.Text = $"{layer.Document.Items.Length} 件の注釈";
 
         var content = new ScrollViewer { Content = editor };
-        var window = SampleShell.Create(Title, properties, methods, samples, content, new SampleLogPanel(_logging.Buffer));
-        Content = window.Content;
+        Content = SampleShell.CreateContent(
+            properties, methods, samples, content, new SampleLogPanel(_logging.Buffer));
+
+        // ウィンドウの大きさは DIP で指定する（他の UI と同じ 1400 x 900）
+        SampleShell.ApplyWindowSize(this);
         Closed += (_, _) =>
         {
             _logging.Dispose();

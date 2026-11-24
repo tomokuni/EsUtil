@@ -46,8 +46,8 @@ public sealed partial class AnnotationLayerControl
     /// <see cref="AnnotationCompositionPreview"/> が単一所有します（4 つの UI 版で同じ）。
     /// </remarks>
     private AnnotationDocument RenderDocument
-        => _isEditingText
-            ? AnnotationCompositionPreview.Apply(_document, SelectedId, _caretIndex, _preeditText)
+        => IsEditingText
+            ? AnnotationCompositionPreview.Apply(_document, SelectedId, _edit.CaretIndex, _preeditText)
             : _document;
 
     /// <summary>再描画する（画像・注釈・選択枠を今の状態へ合わせる）。</summary>
@@ -155,7 +155,7 @@ public sealed partial class AnnotationLayerControl
             false);
 
         // **本文を編集中は破線だけを描く**: ハンドルは動かせないため出さない。 代わりに「どの注釈を
-        // 編集中か」を破線で示す（規則はコアの AnnotationEditingOutline が単一所有する）。
+        // 編集中か」を破線で示す（規則は提示層の AnnotationEditingOutline が単一所有する）。
         // 編集中はマーキーの選択を解除している（枠を出さない）ため、矩形は文書と表示倍率から求める。
         if (IsEditingText && Selected is { } editingItem)
         {
@@ -399,10 +399,15 @@ public sealed partial class AnnotationLayerControl
                 return;
             }
 
-            if (Selected is BubbleAnnotation bubble && _document.SetTailTip(bubble.Id, source))
+            if (Selected is BubbleAnnotation bubble)
             {
-                RaiseDocumentChanged();
-                Redraw();
+                var next = _document.WithTailTip(bubble.Id, source);
+                if (!ReferenceEquals(next, _document))
+                {
+                    _document = next;
+                    RaiseDocumentChanged();
+                    Redraw();
+                }
             }
 
             return;
@@ -717,8 +722,10 @@ public sealed partial class AnnotationLayerControl
         try
         {
             // 画像の外へは出さない（収める規則はコアが単一所有する）
-            if (_document.SetBounds(item.Id, rect))
+            var next = _document.WithBounds(item.Id, rect);
+            if (!ReferenceEquals(next, _document))
             {
+                _document = next;
                 RaiseDocumentChanged();
             }
         }
@@ -743,3 +750,4 @@ public sealed partial class AnnotationLayerControl
         return (dx * dx) + (dy * dy) <= radius * radius;
     }
 }
+

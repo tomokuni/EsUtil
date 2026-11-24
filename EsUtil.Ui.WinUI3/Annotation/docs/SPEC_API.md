@@ -51,7 +51,7 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 | `RenderComposedImage()` | 画像と注釈を 1:1 で合成した画像（保存用。 GDI+ で焼き込む） |
 | `DocumentChanged` / `SelectionChanged` / `EditingChanged` / `TextSelectionChanged` / `StyleEditorRequested` | 変更・選択・編集開始終了・編集パネルの要求の通知 |
 
-**元に戻す・やり直す**: 文書を複製して積みます（`AnnotationHistory` が単一所有）。 ドラッグは押下から離すまでで 1 手です。 本文の編集は入力のたびに 1 手として積みます。
+**元に戻す・やり直す**: 変更前の文書をそのまま積みます（`AnnotationHistory` が単一所有。 文書は不変）。 ドラッグは押下から離すまでで 1 手です。 本文の編集は入力のたびに 1 手として積みます。
 
 ## 3. `AnnotationTextRunMeasure`（静的クラス）
 

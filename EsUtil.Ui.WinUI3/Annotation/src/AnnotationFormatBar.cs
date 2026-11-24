@@ -183,7 +183,7 @@ internal sealed partial class AnnotationFormatBar : ContentControl
         foreach (var item in AnnotationFormatBarLayout.Order)
         {
             // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる
-            // （実測 2026-11-21）。 値はコアの AnnotationFormatBarLayout.ItemHeight が単一所有する
+            // （実測 2026-11-21）。 値は提示層の AnnotationFormatBarLayout.ItemHeight が単一所有する
             var element = (FrameworkElement)items[item];
             element.Height = AnnotationFormatBarLayout.ItemHeight;
             element.MinHeight = AnnotationFormatBarLayout.ItemHeight;

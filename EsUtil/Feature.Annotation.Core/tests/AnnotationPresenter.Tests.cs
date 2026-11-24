@@ -59,7 +59,7 @@ public class AnnotationPresenterTests
     internal void しっぽ_先端と付け根の3点になる()
     {
         var bubble = CreateBubble("test", AnnotationDefaults.TextStyle, width: 400);
-        bubble.Tail = new BubbleTail(new EsPoint(1000, 800), BubbleEdge.Bottom, 0.5, 20);
+        bubble = bubble with { Tail = new BubbleTail(new EsPoint(1000, 800), BubbleEdge.Bottom, 0.5, 20) };
 
         var plan = new AnnotationPresenter().ResolveDrawPlan(CreateDocument(bubble), FixedTextMetrics.Measure);
         var shape = Assert.Single(plan.Shapes);
@@ -112,6 +112,20 @@ public class AnnotationPresenterTests
         var shape = Assert.Single(plan.Shapes);
 
         Assert.All(shape.Lines, line => Assert.True(line.Bounds.Height > 0, "空行の高さが 0"));
+    }
+
+    /// <summary>行間の倍率は 0 以下・非有限を受け付けない（既定値へ補正する）。</summary>
+    /// <param name="value">設定する値。</param>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    internal void 行間の倍率_無効な値は既定値へ補正する(double value)
+    {
+        var presenter = new AnnotationPresenter { LineHeightFactor = value };
+
+        Assert.Equal(AnnotationPresenter.LineHeightFactorDefault, presenter.LineHeightFactor);
     }
 
     /// <summary>検証用の吹き出しを生成する。</summary>

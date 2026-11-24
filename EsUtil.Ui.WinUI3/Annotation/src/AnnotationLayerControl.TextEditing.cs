@@ -4,8 +4,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.System;
-using EsUtil.Feature.Annotation.Core.Text;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
+using EsUtil.Feature.Annotation.Presenter.Selection;
 using EsUtil.Feature.Annotation.Logging;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
@@ -23,17 +23,11 @@ namespace EsUtil.Ui.WinUI3.Annotation;
 /// </remarks>
 public sealed partial class AnnotationLayerControl
 {
+    /// <summary>本文の編集状態（キャレット・選択・入力の規則は提示層が単一所有する）。</summary>
+    private readonly AnnotationTextEdit _edit = new();
+
     /// <summary>編集の表示（選択範囲・キャレット・変換中の文字列）を並べる層。</summary>
     private readonly Canvas _editing = new() { IsHitTestVisible = false };
-
-    /// <summary>本文を編集中かどうか。</summary>
-    private bool _isEditingText;
-
-    /// <summary>キャレットの位置（文字数。 0 は先頭）。</summary>
-    private int _caretIndex;
-
-    /// <summary>選択の起点（<see cref="_caretIndex"/> と同じなら選択なし）。</summary>
-    private int _selectionAnchor;
 
     /// <summary>IME の変換中文字列（文書へは入れない）。</summary>
     private string _preeditText = string.Empty;
@@ -50,19 +44,19 @@ public sealed partial class AnnotationLayerControl
     public event EventHandler? TextSelectionChanged;
 
     /// <summary>本文を編集中かどうかを取得する。</summary>
-    public bool IsEditingText => _isEditingText;
+    public bool IsEditingText => _edit.IsActive;
 
     /// <summary>キャレットの位置（文字数）を取得する。</summary>
-    public int CaretIndex => _caretIndex;
+    public int CaretIndex => _edit.CaretIndex;
 
     /// <summary>本文の文字を選んでいるかどうかを取得する（書式の適用先があるか）。</summary>
-    public bool HasTextSelection => _isEditingText && TextSelectionLength > 0;
+    public bool HasTextSelection => IsEditingText && TextSelectionLength > 0;
 
     /// <summary>選択範囲の開始位置（文字数）を取得する。</summary>
-    public int TextSelectionStart => Math.Min(_selectionAnchor, _caretIndex);
+    public int TextSelectionStart => Math.Min(_edit.AnchorIndex, _edit.CaretIndex);
 
     /// <summary>選択範囲の終了位置（文字数）を取得する。</summary>
-    public int TextSelectionEnd => Math.Max(_selectionAnchor, _caretIndex);
+    public int TextSelectionEnd => Math.Max(_edit.AnchorIndex, _edit.CaretIndex);
 
     /// <summary>選択範囲の長さ（文字数）を取得する。</summary>
     public int TextSelectionLength => TextSelectionEnd - TextSelectionStart;
@@ -73,12 +67,7 @@ public sealed partial class AnnotationLayerControl
         get => (TextSelectionStart, TextSelectionLength);
         set
         {
-            // 範囲はキャレットと選択の起点で表す（範囲から位置を戻す規則はここ 1 か所）
-            var length = TextForInput.Length;
-            var start = Math.Clamp(value.Start, 0, length);
-            var end = Math.Clamp(start + Math.Max(0, value.Length), start, length);
-            _selectionAnchor = start;
-            _caretIndex = end;
+            _edit.Select(value.Start, value.Length, TextForInput.Length);
             SyncTextSelectionRange();
             Redraw();
         }
@@ -103,7 +92,7 @@ public sealed partial class AnnotationLayerControl
             var timer = new Microsoft.UI.Xaml.DispatcherTimer { Interval = AnnotationCaretBlink.Interval };
             timer.Tick += (_, _) =>
             {
-                if (_isEditingText)
+                if (IsEditingText)
                 {
                     Redraw();
                 }
@@ -136,17 +125,14 @@ public sealed partial class AnnotationLayerControl
             return false;
         }
 
-        if (_isEditingText)
+        if (IsEditingText)
         {
             return true;
         }
-
-        _isEditingText = true;
+        _edit.Begin(bubble.Id, bubble.Text.PlainText.Length);
         _core.Log.LogEditingChanged(true);
         _preeditText = string.Empty;
         _isComposing = false;
-        _caretIndex = bubble.Text.PlainText.Length;
-        _selectionAnchor = _caretIndex;
         _marquee.ResetSelection();
         _ = Focus(FocusState.Programmatic);
         FocusImeSink();
@@ -159,15 +145,15 @@ public sealed partial class AnnotationLayerControl
     /// <summary>本文の編集を終える（内容は既に文書へ入っている）。</summary>
     public void EndTextEditing()
     {
-        if (!_isEditingText)
+        if (!IsEditingText)
         {
             return;
         }
-
-        _isEditingText = false;
+        _edit.End();
         _core.Log.LogEditingChanged(false);
         _preeditText = string.Empty;
         _isComposing = false;
+        SyncTextSelectionRange();
         StopCaretBlink();
         ReleaseImeSink();
 
@@ -190,7 +176,7 @@ public sealed partial class AnnotationLayerControl
             return;
         }
 
-        var index = forward ? _caretIndex : _caretIndex - 1;
+        var index = forward ? _edit.CaretIndex : _edit.CaretIndex - 1;
         if (index < 0 || index >= TextForInput.Length)
         {
             return;
@@ -222,7 +208,7 @@ public sealed partial class AnnotationLayerControl
     /// <returns>文書を変えた場合は <see langword="true"/>。</returns>
     private bool ReplaceRange(int start, int end, string text)
     {
-        if (Selected is not BubbleAnnotation bubble)
+        if (Selected is not BubbleAnnotation)
         {
             return false;
         }
@@ -232,14 +218,16 @@ public sealed partial class AnnotationLayerControl
         _isComposing = false;
         _preeditText = string.Empty;
         PrepareUndo();
-        // 挿入した文字へ保留している書式を反映する（規則はコアが単一所有する）
-        _document = _document.WithText(
-            bubble,
-            AnnotationTextStyleEdit.Insert(bubble.Text, start, end - start, text, _typingStyle.Value));
-        RaiseDocumentChanged();
+        // 挿入した文字へ保留している書式を反映する（規則はコアと提示層が単一所有する）
+        var next = _edit.ReplaceRange(_document, start, end, text);
+        if (ReferenceEquals(next, _document))
+        {
+            _history.CancelChange();
+            return false;
+        }
 
-        _caretIndex = start + text.Length;
-        _selectionAnchor = _caretIndex;
+        _document = next;
+        RaiseDocumentChanged();
         SyncTextSelectionRange();
         Redraw();
         return true;
@@ -298,7 +286,7 @@ public sealed partial class AnnotationLayerControl
     private void DrawEditing()
     {
         _editing.Children.Clear();
-        if (!_isEditingText || ResolveLineIndex() is not { } index)
+        if (!IsEditingText || ResolveLineIndex() is not { } index)
         {
             return;
         }
@@ -325,7 +313,7 @@ public sealed partial class AnnotationLayerControl
         // **変換中の文字列はここで描かない**: 描画に使う文書（<see cref="RenderDocument"/>）へ
         // 入れているため、重ねて描くと既存の文字と二重になります（実測 2026-11-23）。
 
-        // **キャレットは一般的な速さで点滅させる**（規則はコアの AnnotationCaretBlink が単一所有する）
+        // **キャレットは一般的な速さで点滅させる**（規則は提示層の AnnotationCaretBlink が単一所有する）
         PlaceImeSink();
         if (!IsCaretVisible)
         {
@@ -368,7 +356,7 @@ public sealed partial class AnnotationLayerControl
     private (double X, double Y, double Height) ResolveCaretDip()
     {
         var index = ResolveLineIndex();
-        var caretIndex = AnnotationCompositionPreview.ResolveCaret(_caretIndex, _preeditText);
+        var caretIndex = AnnotationCompositionPreview.ResolveCaret(_edit.CaretIndex, _preeditText);
         if (index is null || index.ResolveCaret(caretIndex, MeasureText) is not { } caret)
         {
             return default;
@@ -429,8 +417,7 @@ public sealed partial class AnnotationLayerControl
                     _ = PasteAsync();
                     return true;
                 case VirtualKey.A:
-                    _selectionAnchor = 0;
-                    _caretIndex = TextForInput.Length;
+                    _edit.Select(0, TextForInput.Length, TextForInput.Length);
                     SyncTextSelectionRange();
                     Redraw();
                     return true;
@@ -452,10 +439,10 @@ public sealed partial class AnnotationLayerControl
                 DeleteAtCaret(forward: true);
                 return true;
             case VirtualKey.Left:
-                MoveCaret(shift ? _caretIndex - 1 : TextSelectionStart - 1, shift);
+                MoveCaret(shift ? _edit.CaretIndex - 1 : TextSelectionStart - 1, shift);
                 return true;
             case VirtualKey.Right:
-                MoveCaret(shift ? _caretIndex + 1 : TextSelectionEnd + 1, shift);
+                MoveCaret(shift ? _edit.CaretIndex + 1 : TextSelectionEnd + 1, shift);
                 return true;
             case VirtualKey.Up:
                 MoveCaretToNeighbourLine(-1, shift);
@@ -552,7 +539,7 @@ public sealed partial class AnnotationLayerControl
 
         // **入力は受け口（_imeSink）が担う**: 受け口がある間はここへ入れない（二重に入る）。
         // 受け口を用意できない環境（ウィンドウを持たない検証）だけ、そのまま入れる。
-        if (!_isEditingText || _isComposing || _imeSink is not null)
+        if (!IsEditingText || _isComposing || _imeSink is not null)
         {
             return;
         }
@@ -572,12 +559,7 @@ public sealed partial class AnnotationLayerControl
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
     private void MoveCaret(int index, bool extend)
     {
-        _caretIndex = Math.Clamp(index, 0, TextForInput.Length);
-        if (!extend)
-        {
-            _selectionAnchor = _caretIndex;
-        }
-
+        _edit.MoveTo(index, TextForInput.Length, extend);
         SyncTextSelectionRange();
         Redraw();
     }
@@ -587,16 +569,9 @@ public sealed partial class AnnotationLayerControl
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
     private void MoveCaretToNeighbourLine(int delta, bool extend)
     {
-        if (ResolveLineIndex() is not { } index || index.Lines.Count == 0)
-        {
-            return;
-        }
-
-        var lineIndex = index.LineIndexOf(_caretIndex);
-        var target = Math.Clamp(lineIndex + delta, 0, index.Lines.Count - 1);
-        var column = _caretIndex - index.LineStart(lineIndex);
-        var length = AnnotationTextLineIndex.LineTextLength(index.Lines[target]);
-        MoveCaret(index.LineStart(target) + Math.Min(column, length), extend);
+        _edit.MoveByLine(ResolveLineIndex(), TextForInput.Length, delta, extend);
+        SyncTextSelectionRange();
+        Redraw();
     }
 
     /// <summary>キャレットを行の先頭・末尾へ移す。</summary>
@@ -604,15 +579,9 @@ public sealed partial class AnnotationLayerControl
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
     private void MoveCaretToLineEdge(bool first, bool extend)
     {
-        if (ResolveLineIndex() is not { } index || index.Lines.Count == 0)
-        {
-            MoveCaret(first ? 0 : TextForInput.Length, extend);
-            return;
-        }
-
-        var lineIndex = index.LineIndexOf(_caretIndex);
-        var length = AnnotationTextLineIndex.LineTextLength(index.Lines[lineIndex]);
-        MoveCaret(first ? index.LineStart(lineIndex) : index.LineStart(lineIndex) + length, extend);
+        _edit.MoveToLineEdge(ResolveLineIndex(), TextForInput.Length, first, extend);
+        SyncTextSelectionRange();
+        Redraw();
     }
 
     /// <summary>点（元画像ピクセル）の位置へキャレットを移す。</summary>
@@ -625,13 +594,9 @@ public sealed partial class AnnotationLayerControl
             return;
         }
 
-        _caretIndex = Math.Clamp(index.IndexAt(point, MeasureText), 0, TextForInput.Length);
-        if (!extend)
-        {
-            _selectionAnchor = _caretIndex;
-        }
-
+        _edit.SetCaretFromPoint(index, point, TextForInput.Length, extend, MeasureText);
         SyncTextSelectionRange();
         Redraw();
     }
 }
+

@@ -84,7 +84,7 @@ internal static class AnnotationEditorControls
         {
             Text = text,
 
-            // **記号は行の文字より一回り大きくする**（値はコアの AnnotationEditorLayout が単一所有する）
+            // **記号は行の文字より一回り大きくする**（値は提示層の AnnotationEditorLayout が単一所有する）
             FontSize = AnnotationEditorLayout.ToggleFontSize,
             FontFamily = new Microsoft.UI.Xaml.Media.FontFamily(AnnotationEditorLayout.ToggleFontFamily),
             FontWeight = bold ? Microsoft.UI.Text.FontWeights.Bold : Microsoft.UI.Text.FontWeights.Normal,

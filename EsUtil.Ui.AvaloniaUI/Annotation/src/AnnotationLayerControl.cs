@@ -14,7 +14,6 @@ using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Geometry;
 using EsUtil.Feature.Annotation.Core.History;
 using EsUtil.Feature.Annotation.Core.Interaction;
-using EsUtil.Feature.Annotation.Core.Text;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Annotation.Presenter.Selection;
 using EsUtil.Feature.Annotation.Logging;
@@ -90,7 +89,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     private readonly MarqueePresenter _marquee;
 
     /// <summary>押下中に固定した変換（null は固定していない）。 ドラッグ中に表示矩形が変わっても 1:1 で動かす。</summary>
-    private (double Scale, Point Offset)? _frozenTransform;
+    private AnnotationViewTransform? _frozenTransform;
 
     /// <summary>選択枠の外観（暗転・ラベル・マーカーは使わない）。</summary>
     private static readonly MarqueeAppearance s_marqueeAppearance = MarqueeAppearance.OutlineOnly;
@@ -100,9 +99,6 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
     /// <summary>変更履歴（元に戻す・やり直す）。</summary>
     private readonly AnnotationHistory _history = new();
-
-    /// <summary>以降の入力へ効かせる書式（選択が無いときの書式変更の行き先）。</summary>
-    private readonly AnnotationTypingStyle _typingStyle = new();
 
     /// <summary>直近に描いた選択枠のハンドル（DIP。 ポインターの形を決めるのに使う）。</summary>
     private IReadOnlyList<EsRect>? _handleDipRects;
@@ -175,7 +171,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         get => _document;
         set
         {
-            if (_isEditingText)
+            if (IsEditingText)
             {
                 EndTextEditing();
             }
@@ -183,6 +179,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             _document = value ?? new AnnotationDocument(SourcePixelWidth, SourcePixelHeight);
             _history.Clear();
             SelectedId = null;
+            _edit.Bind(null);
             _marquee.ResetSelection();
             RaiseDocumentChanged();
             InvalidateVisual();
@@ -247,7 +244,16 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// 本文の入力欄はホストが持つため、入力欄の選択範囲をホストがここへ写す。
     /// 右クリックのフライアウトと <see cref="ApplyTextStyle(AnnotationTextStyle)"/> は本値の範囲へ適用する。
     /// </remarks>
-    public (int Start, int Length) TextSelectionRange { get; set; }
+    public (int Start, int Length) TextSelectionRange
+    {
+        get => _edit.SelectionRange;
+        set
+        {
+            _edit.Select(value.Start, value.Length, TextForInput.Length);
+            SyncTextSelectionRange();
+            InvalidateVisual();
+        }
+    }
 
     /// <summary>選択枠のハンドルを掴む半径（DIP）を取得または設定する。</summary>
     /// <value>ハンドルの中心からの距離。 既定は 12。</value>
@@ -309,9 +315,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <remarks>フライアウトの初期表示に使う。 選択が無い間は書式バーで選んだ書式（以降の入力へ効く値）を返す。</remarks>
     public AnnotationTextStyle SelectedTextStyle
     {
-        get => _typingStyle.ResolveDisplay(
-            AnnotationSelectionPresenter.ResolveTextStyle(_document, SelectedId, TextSelectionRange),
-            HasTextSelection);
+        get => _edit.ResolveDisplayStyle(_document);
         set
         {
             // 適用先の規則（選択が無ければ以降の入力へ回す）はコアが単一所有する
@@ -343,15 +347,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <param name="sourcePoint">左上の位置（元画像ピクセル）。</param>
     /// <returns>画像の内側へ収めた矩形。</returns>
     private EsRect ResolveDefaultBounds(EsPoint sourcePoint)
-    {
-        var imageWidth = Math.Max(1, SourcePixelWidth);
-        var imageHeight = Math.Max(1, SourcePixelHeight);
-        var width = Math.Min(AnnotationDefaults.NewItemWidthDefault, imageWidth);
-        var height = Math.Min(AnnotationDefaults.NewItemHeightDefault, imageHeight);
-        var x = Math.Clamp(sourcePoint.X, 0, Math.Max(0, imageWidth - width));
-        var y = Math.Clamp(sourcePoint.Y, 0, Math.Max(0, imageHeight - height));
-        return new EsRect(x, y, width, height);
-    }
+        => AnnotationGeometry.ResolveDraftBounds(sourcePoint, new EsSize(SourcePixelWidth, SourcePixelHeight));
 
     /// <summary>指定した位置（DIP）に注釈があるかどうかを判定する（プレビューの入力を受け取るかの判断に使う）。</summary>
     /// <param name="dip">位置（ローカル DIP）。</param>
@@ -450,7 +446,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         }
 
         PrepareUndo();
-        _document = _document.WithText(bubble, bubble.Text.WithPlainText(text));
+        _document = _document.WithText(bubble.Id, bubble.Text.WithPlainText(text));
         RaiseDocumentChanged();
         InvalidateVisual();
         return true;
@@ -467,9 +463,19 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     {
         ArgumentNullException.ThrowIfNull(style);
 
-        _typingStyle.Remember(style);
-        var range = AnnotationTextStyleEdit.ResolveRange(TextSelectionRange.Start, TextSelectionRange.Length);
-        return range is { } selection && ApplyTextStyle(selection.Start, selection.Length, style);
+        PrepareUndo();
+        var next = _edit.ApplyStyle(_document, style);
+        if (ReferenceEquals(next, _document))
+        {
+            _history.CancelChange();
+            return false;
+        }
+
+        _document = next;
+        _core.Log.LogTextStyleApplied(TextSelectionRange.Start, TextSelectionRange.Length);
+        RaiseDocumentChanged();
+        InvalidateVisual();
+        return true;
     }
 
     /// <summary>選択中の吹き出しの本文へ、指定した範囲の書式を適用する。</summary>
@@ -489,7 +495,15 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         }
 
         PrepareUndo();
-        _document = _document.WithText(bubble, bubble.Text.ApplyStyle(start, length, style));
+        var next = AnnotationSelectionPresenter.ApplyTextStyle(
+            _document, bubble.Id, (start, length), style);
+        if (next is null)
+        {
+            _history.CancelChange();
+            return false;
+        }
+
+        _document = next;
         _core.Log.LogTextStyleApplied(start, length);
         RaiseDocumentChanged();
         InvalidateVisual();
@@ -509,12 +523,19 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     {
         ArgumentNullException.ThrowIfNull(transform);
 
-        // 変換は「表示している書式」に対して行う（選択が無い間は書式バーで選んだ値を起点にする）
-        var next = transform(SelectedTextStyle);
-        _typingStyle.Remember(next);
+        PrepareUndo();
+        var next = _edit.TransformStyle(_document, transform);
+        if (ReferenceEquals(next, _document))
+        {
+            _history.CancelChange();
+            return false;
+        }
 
-        var range = AnnotationTextStyleEdit.ResolveRange(TextSelectionRange.Start, TextSelectionRange.Length);
-        return range is { } selection && TransformTextStyle(selection.Start, selection.Length, _ => next);
+        _document = next;
+        _core.Log.LogTextStyleApplied(TextSelectionRange.Start, TextSelectionRange.Length);
+        RaiseDocumentChanged();
+        InvalidateVisual();
+        return true;
     }
 
     /// <summary>選択中の吹き出しの本文の、指定した範囲の書式を 1 文字ずつ変換する。</summary>
@@ -532,7 +553,14 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         }
 
         PrepareUndo();
-        _document = _document.WithText(bubble, bubble.Text.TransformStyle(start, length, transform));
+        var next = _edit.TransformStyleRange(_document, start, length, transform);
+        if (ReferenceEquals(next, _document))
+        {
+            _history.CancelChange();
+            return false;
+        }
+
+        _document = next;
         _core.Log.LogTextStyleApplied(start, length);
         RaiseDocumentChanged();
         InvalidateVisual();
@@ -566,7 +594,15 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         }
 
         PrepareUndo();
-        item.Appearance = transform(item.Appearance).Normalized();
+        var next = AnnotationSelectionPresenter.ApplyAppearance(_document, item.Id, transform(item.Appearance));
+        if (next is null)
+        {
+            _history.CancelChange();
+            return false;
+        }
+
+        _document = next;
+
         RaiseDocumentChanged();
         InvalidateVisual();
         return true;
@@ -625,7 +661,15 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         }
 
         PrepareUndo();
-        bubble.BodyPadding = AnnotationLimits.CoerceBodyPadding(padding);
+        var next = AnnotationSelectionPresenter.SetBodyPadding(_document, bubble.Id, padding);
+        if (next is null)
+        {
+            _history.CancelChange();
+            return false;
+        }
+
+        _document = next;
+
         RaiseDocumentChanged();
         InvalidateVisual();
         return true;
@@ -644,11 +688,14 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         }
 
         PrepareUndo();
-        if (!_document.SetTail(bubble.Id, transform(bubble.Tail).Normalized()))
+        var next = _document.WithTail(bubble.Id, transform(bubble.Tail));
+        if (ReferenceEquals(next, _document))
         {
             _history.CancelChange();
             return false;
         }
+
+        _document = next;
 
         RaiseDocumentChanged();
         InvalidateVisual();
@@ -726,7 +773,9 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         if (id is not null && _document.Find(id) is { } item)
         {
             SelectedId = id;
-            if (_isEditingText)
+            _edit.Bind(id);
+            SyncTextSelectionRange();
+            if (IsEditingText)
             {
                 // 編集中は選択枠を出さない（本文の見た目を優先する）
                 _marquee.ResetSelection();
@@ -739,6 +788,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         else
         {
             SelectedId = null;
+            _edit.Bind(null);
             _marquee.ResetSelection();
         }
 
@@ -869,8 +919,8 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>描画に使う文書を取得する（変換中の文字列を入れた複製を含む）。</summary>
     /// <value>変換中でなければ本文の文書。 変換中は変換中の文字列を入れた描画用の複製。</value>
     private AnnotationDocument RenderDocument
-        => _isEditingText
-            ? AnnotationCompositionPreview.Apply(_document, SelectedId, _caretIndex, _preeditText)
+        => IsEditingText
+            ? AnnotationCompositionPreview.Apply(_document, SelectedId, _edit.CaretIndex, _preeditText)
             : _document;
     /// <summary>描画する（画像 → 注釈 → 選択枠 → しっぽのハンドルの順）。</summary>
     /// <param name="context">描画先。</param>
@@ -888,7 +938,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         {
             // **変換中の文字列も本文として描く**: キャレットの位置へ重ねて描くと既存の文字と重なり、
             // キャレットも動かないため「入力が反映されていない」ように見える（実測 2026-11-22）。
-            // 文書は変えず、描画用の複製にだけ入れる（規則はコアの AnnotationCompositionPreview が単一所有する）。
+            // 文書は変えず、描画用の複製にだけ入れる（規則は提示層の AnnotationCompositionPreview が単一所有する）。
             var plan = _presenter.ResolveDrawPlan(RenderDocument, MeasureText, SelectedId);
 
             // 注釈は元画像座標で描く（枠線の太さ・文字の大きさを保存画像と同じ比率にする）
@@ -974,7 +1024,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         var source = ToSource(point.Position);
 
         // 本文の編集中は、本文の内側の押下をキャレットの移動・選択に使う（外側なら編集を終える）
-        if (_isEditingText)
+        if (IsEditingText)
         {
             if (Selected is BubbleAnnotation editingBubble && editingBubble.Bounds.Contains(source))
             {
@@ -1076,7 +1126,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         }
 
         // 本文の編集中にドラッグしている間は、キャレットを伸ばして選択する
-        if (_isEditingText && _isSelectingText)
+        if (IsEditingText && _isSelectingText)
         {
             if (!isPressed)
             {
@@ -1100,11 +1150,15 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
                 return;
             }
 
-            if (Selected is BubbleAnnotation bubble
-                && _document.SetTailTip(bubble.Id, source))
+            if (Selected is BubbleAnnotation bubble)
             {
-                RaiseDocumentChanged();
-                InvalidateVisual();
+                var next = _document.WithTailTip(bubble.Id, source);
+                if (!ReferenceEquals(next, _document))
+                {
+                    _document = next;
+                    RaiseDocumentChanged();
+                    InvalidateVisual();
+                }
             }
 
             return;
@@ -1218,7 +1272,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         // 外へ出たら既定の形へ戻す（戻さないと移動の合図が残る）
         Cursor = new Cursor(StandardCursorType.Arrow);
 
-        if (!_isPreviewDragging && !_isEditingText)
+        if (!_isPreviewDragging && !IsEditingText)
         {
             RaisePreviewGesture(AnnotationPreviewGesture.Leave, e.GetPosition(this), 1, 0, e.KeyModifiers);
         }
@@ -1270,7 +1324,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     private bool TryHandleKeyDown(KeyEventArgs e)
     {
         // 本文の編集中は、キー入力を本文の編集へ渡す（Delete で注釈を消さない）
-        if (_isEditingText && HandleTextEditingKey(e))
+        if (IsEditingText && HandleTextEditingKey(e))
         {
             return true;
         }
@@ -1406,27 +1460,20 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// そのまま使う。 ズーム・パンで画像の位置が変わっても注釈の座標がずれない。<br/>
     /// 未設定（サンプルが単体で置く場合）だけ、自分の領域へ画像を収めた倍率で代用する。
     /// </remarks>
-    private (double Scale, Point Offset) ResolveImageTransform()
-    {
-        // 表示矩形の検証（縦横比・レイヤー内か）はコアが単一所有する（4 つの UI 版で同じ結果にする）
-        var (scale, offset) = AnnotationImageLayout.Resolve(
+    private AnnotationViewTransform ResolveImageTransform()
+        // 表示矩形の検証と変換の式はコアが単一所有する（4 つの UI 版で同じ結果にする）
+        => AnnotationViewTransform.Resolve(
             new EsSize(Bounds.Width, Bounds.Height),
             new EsSize(SourcePixelWidth, SourcePixelHeight),
             PreviewImageRect is { Width: > 0, Height: > 0 } preview
                 ? new EsRect(preview.X, preview.Y, preview.Width, preview.Height)
                 : null);
 
-        return (scale, new Point(offset.X, offset.Y));
-    }
-
     /// <summary>ローカル DIP を元画像ピクセルへ変換する。</summary>
     /// <param name="dip">ローカル DIP の座標。</param>
     /// <returns>元画像ピクセルの座標。</returns>
     private EsPoint ToSource(Point dip)
-    {
-        var (scale, offset) = _frozenTransform ?? ResolveImageTransform();
-        return new EsPoint((dip.X - offset.X) / scale, (dip.Y - offset.Y) / scale);
-    }
+        => (_frozenTransform ?? ResolveImageTransform()).ToSource(new EsPoint(dip.X, dip.Y));
 
     /// <summary>押下中の座標変換を固定する（ドラッグ中に倍率が変わってもカーソルと 1:1 で動かす）。</summary>
     private void FreezeTransform() => _frozenTransform = ResolveImageTransform();
@@ -1437,11 +1484,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>元画像ピクセルをローカル DIP へ変換する。</summary>
     /// <param name="source">元画像ピクセルの座標。</param>
     /// <returns>ローカル DIP の座標。</returns>
-    private EsPoint ToClientDip(EsPoint source)
-    {
-        var (scale, offset) = ResolveImageTransform();
-        return new EsPoint(offset.X + (source.X * scale), offset.Y + (source.Y * scale));
-    }
+    private EsPoint ToClientDip(EsPoint source) => ResolveImageTransform().ToClient(source);
 
     /// <summary>Marquee へ渡す座標変換ポートを生成する。</summary>
     /// <returns>双方向の変換ポート。</returns>
@@ -1455,13 +1498,14 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     private void Select(string? id)
     {
         // 別の注釈を選んだら本文の編集を終える（編集中の本文を見失わないようにする）
-        if (_isEditingText && !string.Equals(SelectedId, id, StringComparison.Ordinal))
+        if (IsEditingText && !string.Equals(SelectedId, id, StringComparison.Ordinal))
         {
             EndTextEditing();
         }
 
         SelectedId = id;
-        TextSelectionRange = default;
+        _edit.Bind(id);
+        SyncTextSelectionRange();
         if (id is null || _document.Find(id) is not { } item)
         {
             _marquee.ResetSelection();
@@ -1500,8 +1544,10 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         try
         {
             // 画像の外へは出さない（収める規則はコアが単一所有する）
-            if (_document.SetBounds(item.Id, rect))
+            var next = _document.WithBounds(item.Id, rect);
+            if (!ReferenceEquals(next, _document))
             {
+                _document = next;
                 RaiseDocumentChanged();
             }
         }
@@ -1526,7 +1572,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             new EsSize(Bounds.Width, Bounds.Height), AnnotationMarqueeMetrics.MeasureText);
 
         // **本文を編集中は破線だけを描く**: ハンドルは動かせないため出さない。 代わりに「どの注釈を
-        // 編集中か」を破線で示す（規則はコアの AnnotationEditingOutline が単一所有する）。
+        // 編集中か」を破線で示す（規則は提示層の AnnotationEditingOutline が単一所有する）。
         // 編集中はマーキーの選択を解除している（枠を出さない）ため、矩形は文書と表示倍率から求める。
         if (IsEditingText && Selected is { } editingItem)
         {
@@ -1654,3 +1700,4 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         DocumentChanged?.Invoke(this, EventArgs.Empty);
     }
 }
+

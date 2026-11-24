@@ -70,7 +70,7 @@ flowchart LR
 
 ### 4.2 元に戻す・やり直す（操作の単位）
 
-変更の直前に `AnnotationHistory.BeginChange` で文書を控え、通知時に `CommitChange` で積みます。 ドラッグは押下から離すまでで 1 手です。 複製しないと記録した過去の状態が変わります。
+変更の直前に `AnnotationHistory.BeginChange` で文書を控え、通知時に `CommitChange` で積みます。 ドラッグは押下から離すまでで 1 手です。 変更前の文書を書き換えないため、記録した過去の状態が変わりません。
 
 ### 4.3 斜体の行高
 

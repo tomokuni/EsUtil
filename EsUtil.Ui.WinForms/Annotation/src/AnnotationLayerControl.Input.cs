@@ -46,7 +46,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         var plan = _presenter.ResolveDrawPlan(_document, AnnotationTextMetrics.Measure, SelectedId);
-        AnnotationPainter.Draw(graphics, plan, scale, offset.X, offset.Y, IsEditingText ? SelectedId : null);
+        AnnotationPainter.Draw(graphics, plan, scale, offset.X, offset.Y);
 
         DrawSelection(graphics);
         DrawEditing(graphics);
@@ -67,7 +67,7 @@ public sealed partial class AnnotationLayerControl
             false);
 
         // **本文を編集中は破線だけを描く**: ハンドルは動かせないため出さない。 代わりに「どの注釈を
-        // 編集中か」を破線で示す（規則はコアの AnnotationEditingOutline が単一所有する）。
+        // 編集中か」を破線で示す（規則は提示層の AnnotationEditingOutline が単一所有する）。
         // 編集中はマーキーの選択を解除している（枠を出さない）ため、矩形は文書と表示倍率から求める。
         if (IsEditingText && Selected is { } editingItem)
         {
@@ -276,10 +276,15 @@ public sealed partial class AnnotationLayerControl
                 return;
             }
 
-            if (Selected is BubbleAnnotation bubble && _document.SetTailTip(bubble.Id, source))
+            if (Selected is BubbleAnnotation bubble)
             {
-                RaiseDocumentChanged();
-                Invalidate();
+                var next = _document.WithTailTip(bubble.Id, source);
+                if (!ReferenceEquals(next, _document))
+                {
+                    _document = next;
+                    RaiseDocumentChanged();
+                    Invalidate();
+                }
             }
 
             return;
@@ -586,8 +591,10 @@ public sealed partial class AnnotationLayerControl
         try
         {
             // 画像の外へは出さない（収める規則はコアが単一所有する）
-            if (_document.SetBounds(item.Id, rect))
+            var next = _document.WithBounds(item.Id, rect);
+            if (!ReferenceEquals(next, _document))
             {
+                _document = next;
                 RaiseDocumentChanged();
             }
         }
@@ -612,3 +619,4 @@ public sealed partial class AnnotationLayerControl
         return (dx * dx) + (dy * dy) <= radius * radius;
     }
 }
+

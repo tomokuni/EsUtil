@@ -36,11 +36,11 @@ public sealed record AnnotationPanelAppearance(
     double MinContentHeight)
 {
     /// <summary>書式バーの中身の高さ（DIP）。 0 は中身に合わせる。</summary>
-    /// <value>書式バーは 26 DIP、右クリックの外観フライアウトは 0（中身に合わせる）。</value>
+    /// <value>書式バーは <see cref="AnnotationFormatBarLayout.ItemHeight"/> と同じ値、右クリックの外観フライアウトは 0（中身に合わせる）。</value>
     /// <remarks>
     /// <b>高さを固定する理由</b>: 書式バーの中身（コンボボックス・数値入力・色選択）の希望寸法は UI ごとに
     /// 実際の描画サイズとずれる。 実寸で位置を決めると「上へ置いたつもりが注釈に重なる」ことが起きるため、
-    /// 書式バーの高さは 1 か所で固定し、置く位置の計算にも同じ値を使う（実測 2026-11-21）。
+    /// 書式バーの高さは 1 か所で固定し、置く位置の計算にも同じ値を使う。
     /// </remarks>
     public double FixedContentHeight { get; init; }
 
@@ -62,18 +62,18 @@ public sealed record AnnotationPanelAppearance(
         => FixedContentHeight > 0 ? FixedContentHeight : measuredContentHeight;
 
     /// <summary>右クリックの外観フライアウトの外観を取得する。</summary>
-    /// <value>下地 <c>#FFFFFF</c> / 枠 <c>#999999</c> / 枠 1 DIP / 角丸 4 DIP / 余白 10 DIP / 中身の幅 340 DIP / 幅の上限 640 DIP / 高さの上限 460 DIP。</value>
+    /// <value>下地 <c>#FFFFFF</c> / 枠 <c>#999999</c> / 枠 1 DIP / 角丸 4 DIP / 余白 10 DIP / 中身の幅 290 DIP / 幅の上限 640 DIP / 高さの上限 720 DIP。</value>
     /// <remarks>
     /// <b>AvaloniaUI 版の見た目に合わせる</b>: 4 つの UI 版の基準は AvaloniaUI 版である。
-    /// 下地は白、枠は <c>#999999</c> の 1 DIP、内側の余白は 10 DIP（実測 2026-11-20 の画面から採寸）。
+    /// 下地は白、枠は <c>#999999</c> の 1 DIP、内側の余白は 10 DIP。
     /// </remarks>
     public static AnnotationPanelAppearance StyleEditor { get; } = new(
         Background: DrawingColor.FromArgb(255, 255, 255, 255),
         Border: DrawingColor.FromArgb(255, 153, 153, 153),
-        BorderThickness: 1,
+        BorderThickness: StyleEditorBorder,
         CornerRadius: 4,
-        Padding: 10,
-        VerticalPadding: 10,
+        Padding: StyleEditorPadding,
+        VerticalPadding: StyleEditorPadding,
         ContentWidth: ResolveStyleEditorContentWidth(),
         MaxWidth: 640,
         MaxContentHeight: 720,
@@ -82,19 +82,24 @@ public sealed record AnnotationPanelAppearance(
         FixedContentHeight = 0,
     };
 
+    /// <summary>外観フライアウトの内側の余白（DIP）。</summary>
+    private const double StyleEditorPadding = 10;
+
+    /// <summary>外観フライアウトの枠の太さ（DIP）。</summary>
+    private const double StyleEditorBorder = 1;
+
     /// <summary>右クリックの外観フライアウトの中身の幅（DIP）を求める。</summary>
     /// <returns>幅（DIP）。</returns>
     /// <remarks>
-    /// <b>項目名と入力欄から決める</b>: 入力欄の幅を揃えたうえで、その合計に余白と枠を足します。
-    /// 固定値（340 DIP）にすると、入力欄の右側に使わない幅が空いて「間延びした」見た目になります
-    /// （実測 2026-11-22）。
+    /// <b>項目名と入力欄から決める</b>: 入力欄の幅を揃えたうえで、その合計に余白と枠を足す。
+    /// 固定値にすると、入力欄の右側に使わない幅が空いて「間延びした」見た目になる。
     /// </remarks>
     private static double ResolveStyleEditorContentWidth()
         => AnnotationEditorLayout.LabelWidth
             + AnnotationEditorLayout.RowSpacing
             + AnnotationEditorLayout.FieldWidth
-            + (10 * 2)   // 左右の余白（Padding）
-            + (1 * 2);   // 左右の枠
+            + (StyleEditorPadding * 2)
+            + (StyleEditorBorder * 2);
 
     /// <summary>書式バーの外観を取得する。</summary>
     /// <value>下地 <c>#FFFFFF</c> / 枠 <c>#999999</c> / 枠 1 DIP / 角丸 0 DIP / 余白 6,3 DIP / 幅は中身に合わせる / 幅の上限 2400 DIP / 高さの上限 200 DIP。</value>
@@ -104,8 +109,7 @@ public sealed record AnnotationPanelAppearance(
     /// <b>角を丸めない</b>: 高さが低いため、丸めると項目の角が欠けて見える。<br/>
     /// <b>中身の高さは項目の高さと同じにする</b>: 項目の高さは
     /// <see cref="AnnotationFormatBarLayout.ItemHeight"/> が単一所有する。 これより低いと中身が
-    /// 枠からはみ出して上下の枠線が切れ、高いと余白が空く（実測 2026-11-21: 26 DIP の項目に対して
-    /// 34 DIP の固定値を与えたため、色の入力欄の上下の枠線が切れた）。
+    /// 枠からはみ出して上下の枠線が切れ、高いと余白が空く。 固定値も同じ値に揃える。
     /// </remarks>
     public static AnnotationPanelAppearance FormatBar { get; } = new(
         Background: DrawingColor.FromArgb(255, 255, 255, 255),

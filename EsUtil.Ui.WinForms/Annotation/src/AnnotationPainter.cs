@@ -17,14 +17,16 @@ internal static class AnnotationPainter
     /// <param name="scale">表示倍率。</param>
     /// <param name="offsetX">画像の左上 X 座標（DIP）。</param>
     /// <param name="offsetY">画像の左上 Y 座標（DIP）。</param>
-    /// <param name="suppressTextId">本文を描かない注釈の識別子（編集中はレイヤーが本文とキャレットを描く）。</param>
+    /// <remarks>
+    /// <b>編集中も本文を描く</b>: 本 UI は本文を別の入力欄で表示しないため、編集中に本文を描かないと
+    /// 文字が消える。 キャレットと選択範囲は後から重ねる。
+    /// </remarks>
     internal static void Draw(
         Graphics graphics,
         AnnotationDrawPlan plan,
         double scale,
         double offsetX,
-        double offsetY,
-        string? suppressTextId = null)
+        double offsetY)
     {
         ArgumentNullException.ThrowIfNull(graphics);
         ArgumentNullException.ThrowIfNull(plan);
@@ -36,7 +38,7 @@ internal static class AnnotationPainter
             graphics.ScaleTransform((float)scale, (float)scale);
             foreach (var shape in plan.Shapes)
             {
-                DrawShape(graphics, shape, suppressTextId);
+                DrawShape(graphics, shape);
             }
         }
         finally
@@ -48,8 +50,7 @@ internal static class AnnotationPainter
     /// <summary>注釈 1 件を描く。</summary>
     /// <param name="graphics">描画先（元画像ピクセルの座標系）。</param>
     /// <param name="shape">描画計画。</param>
-    /// <param name="suppressTextId">本文を描かない注釈の識別子。</param>
-    internal static void DrawShape(Graphics graphics, AnnotationShapePlan shape, string? suppressTextId)
+    internal static void DrawShape(Graphics graphics, AnnotationShapePlan shape)
     {
         ArgumentNullException.ThrowIfNull(graphics);
         ArgumentNullException.ThrowIfNull(shape);
@@ -85,11 +86,6 @@ internal static class AnnotationPainter
         }
 
         graphics.DrawPath(border, body);
-
-        if (string.Equals(shape.Id, suppressTextId, StringComparison.Ordinal))
-        {
-            return;
-        }
 
         foreach (var line in shape.Lines)
         {

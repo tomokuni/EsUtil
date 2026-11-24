@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Feature.Annotation.Core.Defaults;
 
@@ -7,35 +6,20 @@ namespace EsUtil.Feature.Annotation;
 /// <summary>吹き出しの注釈（本文 + しっぽ）。</summary>
 /// <remarks>
 /// <b>本文は吹き出し内で折り返す</b>（折り返しの行の配置は提示層が解決する）。<br/>
-/// <b>しっぽは本体と独立して動かせる</b>（<see cref="BubbleTail.Tip"/> は絶対座標）。
+/// <b>しっぽは本体と独立して動かせる</b>（<see cref="BubbleTail.Tip"/> は絶対座標）。<br/>
+/// <b>不変である</b>: 本文・しっぽ・余白の変更は <see cref="AnnotationDocument"/> の <c>With...</c> が返す。
 /// </remarks>
-public sealed class BubbleAnnotation : AnnotationItem
+public sealed record BubbleAnnotation : AnnotationItem
 {
-    /// <summary>本文（書式付きの文字列）を取得または設定する。</summary>
-    public RichText Text { get; set; } = RichText.Empty;
+    /// <summary>本文（書式付きの文字列）を取得する。</summary>
+    public RichText Text { get; init; } = RichText.Empty;
 
     /// <summary>しっぽ（吹き出し口）を取得する。</summary>
-    /// <remarks>
-    /// <b>設定子は Core の内部に閉じる</b>: 先端が画像の外へ出ると掴めなくなるため、変更は
-    /// <see cref="AnnotationDocument.SetTailTip"/>（画像の内側へ収める）を通す。
-    /// </remarks>
-    [JsonInclude]
-    public BubbleTail Tail { get; internal set; } = BubbleTail.Default;
+    /// <remarks>先端が画像の外へ出ると掴めないため、変更は <see cref="AnnotationDocument.WithTail"/> を通す。</remarks>
+    public BubbleTail Tail { get; init; } = BubbleTail.Default;
 
-    /// <summary>本文と枠線の間の余白（元画像ピクセル）を取得または設定する。</summary>
-    public double BodyPadding { get; set; } = AnnotationDefaults.BodyPaddingDefault;
-
-    /// <summary>同じ内容の複製を作る（本文も複製する）。</summary>
-    /// <returns>複製。</returns>
-    public override AnnotationItem Clone() => new BubbleAnnotation
-    {
-        Id = Id,
-        Bounds = Bounds,
-        Appearance = Appearance,
-        Text = new RichText(Text.Runs),
-        Tail = Tail,
-        BodyPadding = BodyPadding,
-    };
+    /// <summary>本文と枠線の間の余白（元画像ピクセル）を取得する。</summary>
+    public double BodyPadding { get; init; } = AnnotationDefaults.BodyPaddingDefault;
 
     /// <summary>本文を置く矩形（枠線の内側・余白を除いた領域）を求める。</summary>
     /// <returns>本文の矩形（元画像ピクセル）。</returns>

@@ -34,6 +34,35 @@ public sealed class AnnotationGeometryTests
         Assert.Equal(new EsRect(expectedX, expectedY, expectedWidth, expectedHeight), actual);
     }
 
+    /// <summary>新規作成する注釈の矩形は既定の大きさで、位置は画像の内側へ収める。</summary>
+    /// <param name="x">指定した左上の X。</param>
+    /// <param name="y">指定した左上の Y。</param>
+    /// <param name="expectedX">期待する X。</param>
+    /// <param name="expectedY">期待する Y。</param>
+    [Theory]
+    [InlineData(0, 0, 0, 0)]
+    [InlineData(100, 100, 100, 100)]
+    [InlineData(-50, -20, 0, 0)]
+    [InlineData(950, 550, 760, 440)]
+    internal void ResolveDraftBounds_画像の内側へ収める(
+        double x, double y, double expectedX, double expectedY)
+    {
+        var actual = AnnotationGeometry.ResolveDraftBounds(new EsPoint(x, y), new EsSize(1000, 600));
+
+        Assert.Equal(
+            new EsRect(expectedX, expectedY, AnnotationDefaults.NewItemWidthDefault, AnnotationDefaults.NewItemHeightDefault),
+            actual);
+    }
+
+    /// <summary>画像が既定の大きさより小さい場合は画像の大きさにする。</summary>
+    [Fact]
+    internal void ResolveDraftBounds_画像が小さい場合は画像の大きさにする()
+    {
+        var actual = AnnotationGeometry.ResolveDraftBounds(new EsPoint(50, 50), new EsSize(100, 80));
+
+        Assert.Equal(new EsRect(0, 0, 100, 80), actual);
+    }
+
     /// <summary>しっぽの先端は画像の内側へ収める（辺の上は内側として扱う）。</summary>
     [Fact]
     internal void ClampPoint_画像の外を内側へ収める()
@@ -61,7 +90,7 @@ public sealed class AnnotationGeometryTests
 
     /// <summary>文書経由の変更でも矩形としっぽの先端は画像の外へ出ない。</summary>
     [Fact]
-    internal void SetBoundsとSetTailTip_画像の外を内側へ収める()
+    internal void WithBoundsとWithTailTip_画像の外を内側へ収める()
     {
         var bubble = AnnotationGeometry.CreateBubble(
             new EsRect(10, 10, 100, 60),
@@ -70,27 +99,83 @@ public sealed class AnnotationGeometryTests
             new EsSize(400, 300));
         var document = new AnnotationDocument(400, 300).Add(bubble);
 
-        Assert.True(document.SetBounds(bubble.Id, new EsRect(380, 280, 100, 60)));
-        Assert.Equal(new EsRect(300, 240, 100, 60), document.Find(bubble.Id)!.Bounds);
+        var moved = document.WithBounds(bubble.Id, new EsRect(380, 280, 100, 60));
+        Assert.Equal(new EsRect(300, 240, 100, 60), moved.Find(bubble.Id)!.Bounds);
 
-        Assert.True(document.SetTailTip(bubble.Id, new EsPoint(999, 999)));
-        var tip = Assert.IsType<BubbleAnnotation>(document.Find(bubble.Id)).Tail.Tip;
+        var tailed = moved.WithTailTip(bubble.Id, new EsPoint(999, 999));
+        var tip = Assert.IsType<BubbleAnnotation>(tailed.Find(bubble.Id)).Tail.Tip;
 
         // 端ちょうどではなく、ハンドルを掴める余白を残した内側へ収める
         Assert.True(tip.X <= 400 - 10 && tip.Y <= 300 - 10);
         Assert.True(tip.X >= 10 && tip.Y >= 10);
     }
 
-    /// <summary>同じ値なら変更しない（履歴に同じ手が積まれない）。</summary>
+    /// <summary>しっぽの幅と付け根の比率も安全域へ補正する。</summary>
     [Fact]
-    internal void SetBounds_同じ値なら変更しない()
+    internal void WithTail_幅と比率を安全域へ補正する()
+    {
+        var bubble = AnnotationGeometry.CreateBubble(
+            new EsRect(10, 10, 100, 60),
+            RichText.Create("test", AnnotationDefaults.TextStyle),
+            AnnotationDraftDefaults.Default,
+            new EsSize(400, 300));
+        var document = new AnnotationDocument(400, 300).Add(bubble);
+
+        var changed = document.WithTail(
+            bubble.Id, new BubbleTail(new EsPoint(50, 50), BubbleEdge.Bottom, 5, 0));
+
+        var tail = Assert.IsType<BubbleAnnotation>(changed.Find(bubble.Id)).Tail;
+        Assert.Equal(1.0, tail.BaseOffset);
+        Assert.Equal(AnnotationLimits.TailWidthMin, tail.Width);
+    }
+
+    /// <summary>本文の余白は安全域へ補正し、吹き出し以外は変更しない。</summary>
+    [Fact]
+    internal void WithBodyPadding_安全域へ補正する()
+    {
+        var bubble = AnnotationGeometry.CreateBubble(
+            new EsRect(10, 10, 100, 60),
+            RichText.Create("test", AnnotationDefaults.TextStyle),
+            AnnotationDraftDefaults.Default,
+            new EsSize(400, 300));
+        var frame = AnnotationGeometry.CreateFrame(
+            new EsRect(10, 10, 100, 60), AnnotationDefaults.FrameAppearance, new EsSize(400, 300));
+        var document = new AnnotationDocument(400, 300).Add(bubble).Add(frame);
+
+        var padded = document.WithBodyPadding(bubble.Id, 9999);
+        Assert.Equal(AnnotationLimits.BodyPaddingMax, Assert.IsType<BubbleAnnotation>(padded.Find(bubble.Id)).BodyPadding);
+        Assert.Same(padded, padded.WithBodyPadding(bubble.Id, 9999));
+        Assert.Same(padded, padded.WithBodyPadding(frame.Id, 10));
+    }
+
+    /// <summary>外観は安全域へ補正する。</summary>
+    [Fact]
+    internal void WithAppearance_安全域へ補正する()
     {
         var frame = AnnotationGeometry.CreateFrame(
             new EsRect(10, 10, 100, 60), AnnotationDefaults.FrameAppearance, new EsSize(400, 300));
         var document = new AnnotationDocument(400, 300).Add(frame);
 
-        Assert.False(document.SetBounds(frame.Id, new EsRect(10, 10, 100, 60)));
-        Assert.False(document.SetTailTip(frame.Id, new EsPoint(10, 10)));
+        var appearance = new AnnotationAppearance(
+            frame.Appearance.Border, 0, frame.Appearance.Fill, double.NaN);
+        var changed = document.WithAppearance(frame.Id, appearance);
+
+        var updated = changed.Find(frame.Id)!;
+        Assert.Equal(AnnotationLimits.BorderThicknessMin, updated.Appearance.BorderThickness);
+        Assert.Equal(0, updated.Appearance.CornerRadius);
+        Assert.Same(changed, changed.WithAppearance(frame.Id, appearance));
+    }
+
+    /// <summary>同じ値なら変更しない（履歴に同じ手が積まれない）。</summary>
+    [Fact]
+    internal void WithBounds_同じ値なら変更しない()
+    {
+        var frame = AnnotationGeometry.CreateFrame(
+            new EsRect(10, 10, 100, 60), AnnotationDefaults.FrameAppearance, new EsSize(400, 300));
+        var document = new AnnotationDocument(400, 300).Add(frame);
+
+        Assert.Same(document, document.WithBounds(frame.Id, new EsRect(10, 10, 100, 60)));
+        Assert.Same(document, document.WithTailTip(frame.Id, new EsPoint(10, 10)));
     }
 
     /// <summary>本体を動かすとしっぽも同じだけ動く（しっぽが取り残されない）。</summary>
@@ -99,7 +184,7 @@ public sealed class AnnotationGeometryTests
     /// （実測 2026-11-21: 吹き出しを移動したら、しっぽだけが数百ピクセル離れた場所へ描かれた）。
     /// </remarks>
     [Fact]
-    internal void SetBounds_しっぽも本体に付いて動く()
+    internal void WithBounds_しっぽも本体に付いて動く()
     {
         var bubble = AnnotationGeometry.CreateBubble(
             new EsRect(50, 40, 100, 60),
@@ -109,8 +194,8 @@ public sealed class AnnotationGeometryTests
         var document = new AnnotationDocument(400, 300).Add(bubble);
         var before = Assert.IsType<BubbleAnnotation>(document.Find(bubble.Id)).Tail.Tip;
 
-        Assert.True(document.SetBounds(bubble.Id, new EsRect(150, 130, 100, 60)));
-        var after = Assert.IsType<BubbleAnnotation>(document.Find(bubble.Id)).Tail.Tip;
+        var moved = document.WithBounds(bubble.Id, new EsRect(150, 130, 100, 60));
+        var after = Assert.IsType<BubbleAnnotation>(moved.Find(bubble.Id)).Tail.Tip;
 
         Assert.Equal(before.X + 100, after.X, 3);
         Assert.Equal(before.Y + 90, after.Y, 3);

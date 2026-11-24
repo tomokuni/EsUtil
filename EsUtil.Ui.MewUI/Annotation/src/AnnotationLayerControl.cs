@@ -56,9 +56,6 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <summary>変更履歴（元に戻す・やり直す）。</summary>
     private readonly AnnotationHistory _history = new();
 
-    /// <summary>以降の入力へ効かせる書式（選択が無いときの書式変更の行き先）。</summary>
-    private readonly AnnotationTypingStyle _typingStyle = new();
-
     /// <summary>直近に描いた選択枠のハンドル（DIP。 ポインターの形を決めるのに使う）。</summary>
     private IReadOnlyList<EsRect>? _handleDipRects;
 
@@ -69,7 +66,7 @@ public sealed partial class AnnotationLayerControl : Panel
     private bool _isApplyingMarquee;
 
     /// <summary>押下中に固定した変換（null は固定していない）。</summary>
-    private (double Scale, Point Offset)? _frozenTransform;
+    private AnnotationViewTransform? _frozenTransform;
 
     /// <summary>最後に観測したポインター位置（元画像ピクセル。 nudge の起点に使う）。</summary>
     private EsPoint _lastPointerSource;
@@ -189,15 +186,7 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <param name="sourcePoint">左上の位置（元画像ピクセル）。</param>
     /// <returns>画像の内側へ収めた矩形。</returns>
     private EsRect ResolveDefaultBounds(EsPoint sourcePoint)
-    {
-        var imageWidth = Math.Max(1, SourcePixelWidth);
-        var imageHeight = Math.Max(1, SourcePixelHeight);
-        var width = Math.Min(AnnotationDefaults.NewItemWidthDefault, imageWidth);
-        var height = Math.Min(AnnotationDefaults.NewItemHeightDefault, imageHeight);
-        var x = Math.Clamp(sourcePoint.X, 0, Math.Max(0, imageWidth - width));
-        var y = Math.Clamp(sourcePoint.Y, 0, Math.Max(0, imageHeight - height));
-        return new EsRect(x, y, width, height);
-    }
+        => AnnotationGeometry.ResolveDraftBounds(sourcePoint, new EsSize(SourcePixelWidth, SourcePixelHeight));
 
     /// <summary>注釈の無い場所でドラッグしている間かどうか（プレビューのパンへ渡す）。</summary>
     private bool _isPreviewDragging;
@@ -272,7 +261,16 @@ public sealed partial class AnnotationLayerControl : Panel
 
     /// <summary>本文の書式を適用する範囲（文字数）を取得または設定する。</summary>
     /// <value>開始位置と長さ（0 起点）。 長さ 0 は「全体」を表す。</value>
-    public (int Start, int Length) TextSelectionRange { get; set; }
+    public (int Start, int Length) TextSelectionRange
+    {
+        get => _edit.SelectionRange;
+        set
+        {
+            _edit.Select(value.Start, value.Length, TextForInput.Length);
+            SyncTextSelectionRange();
+            InvalidateVisual();
+        }
+    }
 
     /// <summary>選択枠のハンドルを掴む半径（DIP）を取得または設定する。</summary>
     public double HandleHitRadius
@@ -308,6 +306,7 @@ public sealed partial class AnnotationLayerControl : Panel
             _document = value;
             _history.Clear();
             SelectedId = null;
+            _edit.Bind(null);
             _marquee.ResetSelection();
             RaiseDocumentChanged();
             InvalidateVisual();
@@ -321,9 +320,7 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <remarks>選択が無い間は、書式バーで選んだ書式（以降の入力へ効く値）を返す。</remarks>
     public AnnotationTextStyle SelectedTextStyle
     {
-        get => _typingStyle.ResolveDisplay(
-            AnnotationSelectionPresenter.ResolveTextStyle(_document, SelectedId, TextSelectionRange),
-            HasTextSelection);
+        get => _edit.ResolveDisplayStyle(_document);
         set
         {
             // 適用先の規則（選択が無ければ以降の入力へ回す）はコアが単一所有する
@@ -385,6 +382,7 @@ public sealed partial class AnnotationLayerControl : Panel
         PrepareUndo();
         _document = _document.Remove(id);
         SelectedId = null;
+        _edit.Bind(null);
         _marquee.ResetSelection();
         RaiseSelectionChanged();
         RaiseDocumentChanged();
@@ -403,7 +401,7 @@ public sealed partial class AnnotationLayerControl : Panel
         }
 
         PrepareUndo();
-        _document = _document.WithText(bubble, bubble.Text.WithPlainText(text));
+        _document = _document.WithText(bubble.Id, bubble.Text.WithPlainText(text));
         ClampCaretToText();
         RaiseDocumentChanged();
         InvalidateVisual();
@@ -415,15 +413,25 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <returns>選択範囲へ適用した場合は <see langword="true"/>。 選択が無く以降の入力へ回した場合は <see langword="false"/>。</returns>
     /// <remarks>
     /// <b>選択が無ければ以降の入力へ回す</b>: 既存の文字は変えず、次に入力する文字へ適用する
-    /// （規則は <see cref="AnnotationTextStyleEdit"/> と <see cref="AnnotationTypingStyle"/> が単一所有する）。
+    /// （規則は <see cref="AnnotationTextStyleEdit"/> と <see cref="AnnotationTextEdit"/> が単一所有する）。
     /// </remarks>
     public bool ApplyTextStyle(AnnotationTextStyle style)
     {
         ArgumentNullException.ThrowIfNull(style);
 
-        _typingStyle.Remember(style);
-        var range = AnnotationTextStyleEdit.ResolveRange(TextSelectionRange.Start, TextSelectionRange.Length);
-        return range is { } selection && ApplyTextStyle(selection.Start, selection.Length, style);
+        PrepareUndo();
+        var next = _edit.ApplyStyle(_document, style);
+        if (ReferenceEquals(next, _document))
+        {
+            _history.CancelChange();
+            return false;
+        }
+
+        _document = next;
+        _core.Log.LogTextStyleApplied(TextSelectionRange.Start, TextSelectionRange.Length);
+        RaiseDocumentChanged();
+        InvalidateVisual();
+        return true;
     }
 
     /// <summary>選択中の本文へ書式を適用する。</summary>
@@ -443,12 +451,21 @@ public sealed partial class AnnotationLayerControl : Panel
     /// </remarks>
     public bool TransformTextStyle(Func<AnnotationTextStyle, AnnotationTextStyle> transform)
     {
-        // 変換は「表示している書式」に対して行う（選択が無い間は書式バーで選んだ値を起点にする）
-        var next = transform(SelectedTextStyle);
-        _typingStyle.Remember(next);
+        ArgumentNullException.ThrowIfNull(transform);
 
-        var range = AnnotationTextStyleEdit.ResolveRange(TextSelectionRange.Start, TextSelectionRange.Length);
-        return range is { } selection && TransformTextStyle(selection.Start, selection.Length, _ => next);
+        PrepareUndo();
+        var next = _edit.TransformStyle(_document, transform);
+        if (ReferenceEquals(next, _document))
+        {
+            _history.CancelChange();
+            return false;
+        }
+
+        _document = next;
+        _core.Log.LogTextStyleApplied(TextSelectionRange.Start, TextSelectionRange.Length);
+        RaiseDocumentChanged();
+        InvalidateVisual();
+        return true;
     }
 
     /// <summary>選択中の本文の書式を変換する（指定した属性だけ変える）。</summary>
@@ -470,8 +487,7 @@ public sealed partial class AnnotationLayerControl : Panel
         }
 
         PrepareUndo();
-        _document = _document.WithText(bubble, change(bubble.Text));
-        _core.Log.LogTextStyleApplied(TextSelectionRange.Start, TextSelectionRange.Length);
+        _document = _document.WithText(bubble.Id, change(bubble.Text));
         RaiseDocumentChanged();
         InvalidateVisual();
         return true;
@@ -495,7 +511,28 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <param name="transform">外観を変える処理。</param>
     /// <returns>変えた場合は <see langword="true"/>。</returns>
     public bool UpdateSelectedAppearance(Func<AnnotationAppearance, AnnotationAppearance> transform)
-        => UpdateSelected(item => item.Appearance = transform(item.Appearance));
+    {
+        ArgumentNullException.ThrowIfNull(transform);
+
+        if (Selected is not { } item)
+        {
+            return false;
+        }
+
+        PrepareUndo();
+        var next = AnnotationSelectionPresenter.ApplyAppearance(_document, item.Id, transform(item.Appearance));
+        if (next is null)
+        {
+            _history.CancelChange();
+            return false;
+        }
+
+        _document = next;
+
+        RaiseDocumentChanged();
+        InvalidateVisual();
+        return true;
+    }
 
     /// <summary>選択中の吹き出しの本文の余白を取得または設定する（元画像ピクセル）。</summary>
     /// <value>余白。 吹き出しを選んでいない場合は ``null``。 設定するとその吹き出しの余白を変える。</value>
@@ -543,18 +580,31 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <param name="padding">余白（元画像ピクセル）。</param>
     /// <returns>変えた場合は <see langword="true"/>。</returns>
     public bool SetSelectedBodyPadding(double padding)
-        => UpdateSelected(item =>
+    {
+        if (Selected is not BubbleAnnotation bubble)
         {
-            if (item is BubbleAnnotation bubble)
-            {
-                bubble.BodyPadding = padding;
-            }
-        });
+            return false;
+        }
+
+        PrepareUndo();
+        var next = AnnotationSelectionPresenter.SetBodyPadding(_document, bubble.Id, padding);
+        if (next is null)
+        {
+            _history.CancelChange();
+            return false;
+        }
+
+        _document = next;
+
+        RaiseDocumentChanged();
+        InvalidateVisual();
+        return true;
+    }
 
     /// <summary>選択中の吹き出しのしっぽを差し替える。</summary>
     /// <param name="transform">しっぽを変える処理。</param>
     /// <returns>変えた場合は <see langword="true"/>。</returns>
-    /// <remarks>先端はコア（<see cref="AnnotationDocument.SetTail"/>）が画像の内側へ収める。</remarks>
+    /// <remarks>先端はコア（<see cref="AnnotationDocument.WithTail"/>）が画像の内側へ収める。</remarks>
     public bool UpdateSelectedTail(Func<BubbleTail, BubbleTail> transform)
     {
         if (Selected is not BubbleAnnotation bubble)
@@ -563,11 +613,14 @@ public sealed partial class AnnotationLayerControl : Panel
         }
 
         PrepareUndo();
-        if (!_document.SetTail(bubble.Id, transform(bubble.Tail)))
+        var next = _document.WithTail(bubble.Id, transform(bubble.Tail));
+        if (ReferenceEquals(next, _document))
         {
             _history.CancelChange();
             return false;
         }
+
+        _document = next;
 
         RaiseDocumentChanged();
         InvalidateVisual();
@@ -629,6 +682,7 @@ public sealed partial class AnnotationLayerControl : Panel
         if (SelectedId is { } id && _document.Find(id) is null)
         {
             SelectedId = null;
+            _edit.Bind(null);
         }
 
         _marquee.ResetSelection();
@@ -737,7 +791,7 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <param name="id">選択する注釈の識別子（解除は <see langword="null"/>）。</param>
     private void Select(string? id)
     {
-        if (_isEditingText && !string.Equals(SelectedId, id, StringComparison.Ordinal))
+        if (IsEditingText && !string.Equals(SelectedId, id, StringComparison.Ordinal))
         {
             EndTextEditing();
         }
@@ -748,6 +802,8 @@ public sealed partial class AnnotationLayerControl : Panel
         }
 
         SelectedId = id;
+        _edit.Bind(id);
+        SyncTextSelectionRange();
         if (Selected is { } item)
         {
             _marquee.SetSelection(item.Bounds);
@@ -768,8 +824,8 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <summary>描画に使う文書を取得する（変換中の文字列を入れた複製を含む）。</summary>
     /// <value>変換中でなければ本文の文書。 変換中は変換中の文字列を入れた描画用の複製。</value>
     private AnnotationDocument RenderDocument
-        => _isEditingText
-            ? AnnotationCompositionPreview.Apply(_document, SelectedId, _caretIndex, _preeditText)
+        => IsEditingText
+            ? AnnotationCompositionPreview.Apply(_document, SelectedId, _edit.CaretIndex, _preeditText)
             : _document;
     /// <summary>これから変更することを履歴へ準備する（変更の直前に呼ぶ）。</summary>
     /// <remarks>
@@ -786,23 +842,6 @@ public sealed partial class AnnotationLayerControl : Panel
 
         _core.Log.LogDocumentChanged(_document.Items.Length);
         DocumentChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    /// <summary>選択中の注釈を 1 か所だけ変更する。</summary>
-    /// <param name="change">変更する処理。</param>
-    /// <returns>変えた場合は <see langword="true"/>。</returns>
-    private bool UpdateSelected(Action<AnnotationItem> change)
-    {
-        if (Selected is not { } item)
-        {
-            return false;
-        }
-
-        PrepareUndo();
-        change(item);
-        RaiseDocumentChanged();
-        InvalidateVisual();
-        return true;
     }
 
     /// <summary>変換した画像を解放する。</summary>
@@ -836,18 +875,14 @@ public sealed partial class AnnotationLayerControl : Panel
 
     /// <summary>画像の表示倍率と位置を求める（縦横比を保って中央に置く）。</summary>
     /// <returns>倍率と左上の位置（DIP）。</returns>
-    private (double Scale, Point Offset) ResolveImageTransform()
-    {
-        // 表示矩形の検証（縦横比・レイヤー内か）はコアが単一所有する（4 つの UI 版で同じ結果にする）
-        var (scale, offset) = AnnotationImageLayout.Resolve(
+    private AnnotationViewTransform ResolveImageTransform()
+        // 表示矩形の検証と変換の式はコアが単一所有する（4 つの UI 版で同じ結果にする）
+        => AnnotationViewTransform.Resolve(
             new EsSize(RenderSize.Width, RenderSize.Height),
             new EsSize(SourcePixelWidth, SourcePixelHeight),
             PreviewImageRect is { Width: > 0, Height: > 0 } preview
                 ? new EsRect(preview.X, preview.Y, preview.Width, preview.Height)
                 : null);
-
-        return (scale, new Point(offset.X, offset.Y));
-    }
     /// <summary>ローカル DIP を元画像ピクセルへ変換する。</summary>
     /// <param name="dip">ローカル DIP の座標。</param>
     /// <returns>元画像ピクセルの座標。</returns>
@@ -857,10 +892,7 @@ public sealed partial class AnnotationLayerControl : Panel
     /// 押下時に決めた変換を解放まで使い続ける。
     /// </remarks>
     private EsPoint ToSource(Point dip)
-    {
-        var (scale, offset) = _frozenTransform ?? ResolveImageTransform();
-        return new EsPoint((dip.X - offset.X) / scale, (dip.Y - offset.Y) / scale);
-    }
+        => (_frozenTransform ?? ResolveImageTransform()).ToSource(new EsPoint(dip.X, dip.Y));
 
     /// <summary>押下中に使う変換を固定する（押下のたびに呼ぶ）。</summary>
     private void FreezeTransform() => _frozenTransform = ResolveImageTransform();
@@ -875,8 +907,7 @@ public sealed partial class AnnotationLayerControl : Panel
     {
         // **押下中は描画も固定した変換を使う**: 変換が途中で変わると、枠と注釈がカーソルからずれ、
         // ヒット判定とも食い違う（実測 2026-11-21: 右上方向へずれた）。
-        var (scale, offset) = _frozenTransform ?? ResolveImageTransform();
-        return new EsPoint(offset.X + (source.X * scale), offset.Y + (source.Y * scale));
+        return (_frozenTransform ?? ResolveImageTransform()).ToClient(source);
     }
 
     /// <summary>Marquee へ渡す座標変換ポートを生成する。</summary>
@@ -891,3 +922,4 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <remarks>数え方はコアが単一所有する（<see cref="AnnotationTextLineLayout.Length"/>）。</remarks>
     internal static int LineTextLength(AnnotationTextLinePlan line) => AnnotationTextLineLayout.Length(line);
 }
+

@@ -7,8 +7,8 @@ namespace EsUtil.Feature.Annotation.Core.Tests;
 
 /// <summary><see cref="AnnotationHistory"/> の仕様テスト（元に戻す・やり直す）。</summary>
 /// <remarks>
-/// 注釈の座標・しっぽはドラッグ中に書き換わるため、履歴が<b>複製</b>を持つことを併せて固定する
-/// （複製しないと、記録した過去の状態がその後の編集で書き換わる）。
+/// 文書は不変であるため、履歴は記録した文書をそのまま保持できる（記録した過去の状態が
+/// その後の編集で書き換わらない）。
 /// </remarks>
 public class AnnotationHistoryTests
 {
@@ -62,19 +62,19 @@ public class AnnotationHistoryTests
         Assert.False(history.CanRedo);
     }
 
-    /// <summary>記録した後に元の文書を書き換えても、記録が変わらないことを検証する。</summary>
+    /// <summary>記録した後に文書を変更しても、記録が変わらないことを検証する。</summary>
     [Fact]
-    internal void Record_記録は複製する()
+    internal void Record_記録は変更の影響を受けない()
     {
         var history = new AnnotationHistory();
         var document = new AnnotationDocument(100, 100, "a.png")
             .Add(new FrameAnnotation { Bounds = new EsRect(0, 0, 10, 10) });
         history.Record(document);
 
-        // 記録後に元の文書の注釈を書き換える（ドラッグ中の移動と同じ）
-        document.Items[0].Bounds = new EsRect(50, 50, 20, 20);
+        // 記録後に文書を変更する（ドラッグ中の移動と同じ）
+        var changed = document.WithBounds(document.Items[0].Id, new EsRect(50, 50, 20, 20));
 
-        var restored = history.Undo(document)!;
+        var restored = history.Undo(changed)!;
         Assert.Equal(new EsRect(0, 0, 10, 10), restored.Items[0].Bounds);
     }
 
@@ -102,9 +102,9 @@ public class AnnotationHistoryTests
         Assert.Null(history.Redo(document));
     }
 
-    /// <summary>複製が本文としっぽを共有しないことを検証する。</summary>
+    /// <summary>注釈を変更しても、変更前の文書は変わらないことを検証する。</summary>
     [Fact]
-    internal void Clone_本文としっぽを複製する()
+    internal void With_変更前の文書を変えない()
     {
         var bubble = new BubbleAnnotation
         {
@@ -114,15 +114,16 @@ public class AnnotationHistoryTests
         };
         var document = new AnnotationDocument(100, 100).Add(bubble);
 
-        var clone = document.Clone();
-        var copied = Assert.IsType<BubbleAnnotation>(Assert.Single(clone.Items));
+        var changed = document
+            .WithText(bubble.Id, RichText.Create("うえ", AnnotationDefaults.TextStyle))
+            .WithTail(bubble.Id, bubble.Tail with { Width = 30 });
 
-        // 複製元を書き換えても複製は変わらない
-        bubble.Text.Runs = RichText.Create("うえ", AnnotationDefaults.TextStyle).Runs;
-        bubble.Tail = bubble.Tail with { Width = 30 };
-
-        Assert.Equal("あい", copied.Text.PlainText);
-        Assert.Equal(20, copied.Tail.Width);
-        Assert.Equal(bubble.Id, copied.Id);
+        var original = Assert.IsType<BubbleAnnotation>(Assert.Single(document.Items));
+        var updated = Assert.IsType<BubbleAnnotation>(Assert.Single(changed.Items));
+        Assert.Equal("あい", original.Text.PlainText);
+        Assert.Equal(20, original.Tail.Width);
+        Assert.Equal("うえ", updated.Text.PlainText);
+        Assert.Equal(30, updated.Tail.Width);
+        Assert.Equal(bubble.Id, updated.Id);
     }
 }

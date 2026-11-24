@@ -4,8 +4,8 @@ namespace EsUtil.Feature.Annotation.Core.Contract;
 
 /// <summary>注釈レイヤーの上でポインターが示す操作の種類。</summary>
 /// <remarks>
-/// <b>UI は形への写像だけを行う</b>: 「どこで何ができるか」を UI ごとに書くと、版によって
-/// ポインターの形（＝ドラッグできる合図）が変わります。 判断は <see cref="AnnotationPointerPolicy"/> が単一所有します。
+/// <b>UI は形への写像だけを行う</b>: 「どこで何ができるか」を UI ごとに書くと、版によって<br/>
+/// ポインターの形（＝ドラッグできる合図）が変わる。 判断は <see cref="AnnotationPointerPolicy"/> が単一所有する。
 /// </remarks>
 public enum AnnotationPointerKind
 {

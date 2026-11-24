@@ -124,7 +124,7 @@ internal sealed class AnnotationFormatBar : Border
             HighlightBorderOnError = true,
         };
 
-        // **タブは「代表色」と「ColorPicker」の 2 つ**（規則はコアの AnnotationPaletteCatalog が単一所有する）
+        // **タブは「代表色」と「ColorPicker」の 2 つ**（規則は提示層の AnnotationPaletteCatalog が単一所有する）
         ConfigurePalette();
         _color.PropertyChanged += (_, e) =>
         {
@@ -176,7 +176,7 @@ internal sealed class AnnotationFormatBar : Border
         foreach (var item in AnnotationFormatBarLayout.Order)
         {
             // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる
-            // （実測 2026-11-21）。 値はコアの AnnotationFormatBarLayout.ItemHeight が単一所有する
+            // （実測 2026-11-21）。 値は提示層の AnnotationFormatBarLayout.ItemHeight が単一所有する
             var control = items[item];
             control.Height = AnnotationFormatBarLayout.ItemHeight;
             control.MinHeight = AnnotationFormatBarLayout.ItemHeight;

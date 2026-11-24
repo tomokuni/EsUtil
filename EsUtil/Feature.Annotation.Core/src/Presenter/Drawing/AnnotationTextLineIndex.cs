@@ -70,18 +70,7 @@ public sealed class AnnotationTextLineIndex
     /// <param name="line">行。</param>
     /// <returns>文字数。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="line"/> が null の場合。</exception>
-    public static int LineTextLength(AnnotationTextLinePlan line)
-    {
-        ArgumentNullException.ThrowIfNull(line);
-
-        var length = 0;
-        foreach (var segment in line.Segments)
-        {
-            length += segment.Text.Length;
-        }
-
-        return length;
-    }
+    public static int LineTextLength(AnnotationTextLinePlan line) => AnnotationTextLineLayout.Length(line);
 
     /// <summary>行の開始位置（文字数）を求める。</summary>
     /// <param name="lineIndex">行の位置。</param>

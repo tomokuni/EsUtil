@@ -7,10 +7,9 @@ namespace EsUtil.Feature.Annotation.Core.Geometry;
 /// <remarks>
 /// <b>注釈は元画像の外へ出さない</b>: 画像の外へ出た部分は表示されず、掴めない（移動できない・
 /// しっぽを掴めない）注釈になる。 追加・移動・サイズ変更・しっぽの移動のすべてが本クラスを通る。<br/>
-/// <b>UI は座標を書き換えられない</b>: <see cref="AnnotationItem.Bounds"/> と
-/// <see cref="BubbleAnnotation.Tail"/> の設定子は Core の内部に閉じてあるため、UI は
-/// <see cref="AnnotationDocument.SetBounds"/> / <see cref="AnnotationDocument.SetTailTip"/> か
-/// 本条の生成メソッドを使うしかない（規則の適用漏れが構造的に起きない）。<br/>
+/// <b>UI は座標を書き換えられない</b>: 注釈は不変であり、変更は
+/// <see cref="AnnotationDocument.WithBounds"/> / <see cref="AnnotationDocument.WithTail"/> か
+/// 本条の生成メソッドを通すしかない（規則の適用漏れが構造的に起きない）。<br/>
 /// <b>位置は動かし、大きさも収める</b>: 画像より大きい矩形は画像の大きさへ縮める（はみ出したまま
 /// 置くと、どこを掴んでも画像の外になる）。
 /// </remarks>
@@ -79,6 +78,30 @@ public static class AnnotationGeometry
         return new EsPoint(
             Math.Clamp(point.X, Math.Min(margin, maxX), maxX),
             Math.Clamp(point.Y, Math.Min(margin, maxY), maxY));
+    }
+
+    /// <summary>新規作成する注釈の矩形を求める（左上を指定位置へ寄せ、画像の内側へ収める）。</summary>
+    /// <param name="anchor">左上にしたい位置（元画像ピクセル）。</param>
+    /// <param name="imageSize">画像の大きさ（元画像ピクセル）。</param>
+    /// <returns>新規作成する注釈の矩形（既定の大きさ。 画像が小さい場合は画像の大きさ）。</returns>
+    /// <remarks>
+    /// <b>追加位置の規則は Core が単一所有する</b>: 追加メニュー・サンプル・アプリが同じ位置へ同じ大きさで
+    /// 注釈を作る（UI ごとに計算すると、画像の端でだけはみ出す）。<br/>
+    /// 大きさは <see cref="AnnotationDefaults.NewItemWidthDefault"/> / <see cref="AnnotationDefaults.NewItemHeightDefault"/>
+    /// と画像の小さいほうを使い、位置は画像の内側へ収める。
+    /// </remarks>
+    public static EsRect ResolveDraftBounds(EsPoint anchor, EsSize imageSize)
+    {
+        var imageWidth = Math.Max(1, imageSize.Width);
+        var imageHeight = Math.Max(1, imageSize.Height);
+        var width = Math.Min(AnnotationDefaults.NewItemWidthDefault, imageWidth);
+        var height = Math.Min(AnnotationDefaults.NewItemHeightDefault, imageHeight);
+
+        return new EsRect(
+            Math.Clamp(anchor.X, 0, Math.Max(0, imageWidth - width)),
+            Math.Clamp(anchor.Y, 0, Math.Max(0, imageHeight - height)),
+            width,
+            height);
     }
 
     /// <summary>しっぽの先端を画像の端から離しておく距離（元画像ピクセル）。</summary>

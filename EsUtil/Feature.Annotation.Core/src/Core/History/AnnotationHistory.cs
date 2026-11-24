@@ -2,8 +2,8 @@ namespace EsUtil.Feature.Annotation.Core.History;
 
 /// <summary>注釈の変更履歴（元に戻す・やり直す）。</summary>
 /// <remarks>
-/// <b>文書の複製を積む</b>: 注釈の座標・しっぽはドラッグ中に書き換わるため、文書そのものを持つと
-/// 過去の状態が書き換わる（<see cref="AnnotationDocument.Clone"/> で複製する）。<br/>
+/// <b>文書をそのまま積む</b>: <see cref="AnnotationDocument"/> は不変であるため、複製せずに参照を保持できる
+/// （記録した文書が後から書き換わらない）。<br/>
 /// <b>変更の前に記録する</b>: 変更後の文書を記録すると 1 手戻りがずれる。 呼び出し側は変更の直前に
 /// <see cref="BeginChange"/> を呼び、変更し終えたら <see cref="CommitChange"/> を呼ぶ（ドラッグのように
 /// 何度も書き換える操作は 1 手にまとまる）。<br/>
@@ -49,7 +49,7 @@ public sealed class AnnotationHistory(int capacity = AnnotationHistory.DefaultCa
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        _pending ??= document.Clone();
+        _pending ??= document;
     }
 
     /// <summary>操作の終了を記録する（控えた文書が実際に変更されていれば積む）。</summary>
@@ -68,7 +68,7 @@ public sealed class AnnotationHistory(int capacity = AnnotationHistory.DefaultCa
         }
 
         _pending = null;
-        if (string.Equals(
+        if (ReferenceEquals(candidate, document) || string.Equals(
             AnnotationJson.Serialize(candidate),
             AnnotationJson.Serialize(document),
             StringComparison.Ordinal))
@@ -88,7 +88,7 @@ public sealed class AnnotationHistory(int capacity = AnnotationHistory.DefaultCa
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        _undo.Add(document.Clone());
+        _undo.Add(document);
         if (_undo.Count > Capacity)
         {
             _undo.RemoveAt(0);
@@ -98,7 +98,7 @@ public sealed class AnnotationHistory(int capacity = AnnotationHistory.DefaultCa
     }
 
     /// <summary>1 手戻した文書を返す。</summary>
-    /// <param name="current">現在の文書（やり直しのために複製して保持する）。</param>
+    /// <param name="current">現在の文書（やり直しのために保持する）。</param>
     /// <returns>戻した文書。 戻せない場合は <see langword="null"/>。</returns>
     public AnnotationDocument? Undo(AnnotationDocument current)
     {
@@ -111,12 +111,12 @@ public sealed class AnnotationHistory(int capacity = AnnotationHistory.DefaultCa
 
         var previous = _undo[^1];
         _undo.RemoveAt(_undo.Count - 1);
-        _redo.Add(current.Clone());
+        _redo.Add(current);
         return previous;
     }
 
     /// <summary>1 手やり直した文書を返す。</summary>
-    /// <param name="current">現在の文書（元に戻すために複製して保持する）。</param>
+    /// <param name="current">現在の文書（元に戻すために保持する）。</param>
     /// <returns>やり直した文書。 やり直せない場合は <see langword="null"/>。</returns>
     public AnnotationDocument? Redo(AnnotationDocument current)
     {
@@ -129,7 +129,7 @@ public sealed class AnnotationHistory(int capacity = AnnotationHistory.DefaultCa
 
         var next = _redo[^1];
         _redo.RemoveAt(_redo.Count - 1);
-        _undo.Add(current.Clone());
+        _undo.Add(current);
         return next;
     }
 

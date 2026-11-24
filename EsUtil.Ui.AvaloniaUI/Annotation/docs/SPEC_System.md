@@ -61,7 +61,7 @@ flowchart TB
 | `AnnotationStyleFlyout`（内部） | `internal` | 右クリックの編集 UI（外観・吹き出し・本文の書式・重なり順）。 `AnnotationEditorControls` の部品で組み立てる |
 | `AnnotationEditorControls` | `public` | 編集 UI の行の部品（見出し・項目名・色・数値・選択肢・装飾の切り替え）。 フライアウトとホストの設定ペインが共有する |
 | `AnnotationFonts` | `public` | 本文で選べるフォント名の一覧（優先フォントを先頭に置く） |
-| `AnnotationHistory`（コア） | `public` | 変更履歴（元に戻す・やり直す）。 文書を複製して積む（ドラッグ中の書き換えで過去が変わらない） |
+| `AnnotationHistory`（コア） | `public` | 変更履歴（元に戻す・やり直す）。 不変の文書をそのまま積む（ドラッグ中の書き換えで過去が変わらない） |
 | `AnnotationTextInputClient`（内部） | `internal` | 本文の編集で IME（日本語入力）とやり取りする（変換候補の位置・選択範囲・変換中の文字列） |
 | `AnnotationPainter`（内部） | `internal` | 描画計画の写像（角丸・しっぽ・文字・下線/取り消し線）と文字の実寸計測 |
 | `AnnotationMarqueeEffects`（内部） | `internal` | Marquee が要求する効果（再描画・フォーカス・カーソル・キャプチャ）の写像 |
@@ -82,8 +82,8 @@ flowchart TB
 | 移動・サイズ変更・しっぽの移動 | 押下から離すまで = 1 手（`AnnotationHistory.BeginChange` で控え、`CommitChange` で積む） |
 | 本文の確定 | 文字が変わったときだけ 1 手（同じ文字列なら記録しない） |
 
-**履歴は文書の複製を持ちます**（`AnnotationDocument.Clone`）。 注釈の座標・しっぽはドラッグ中に書き換わるため、
-複製しないと記録した過去の状態が変わります。 元に戻した後も**選択は識別子で引き継ぎます**（続けて操作できるようにする）。
+**履歴は変更前の文書をそのまま持ちます**（文書は不変）。 注釈の座標・しっぽはドラッグ中に変わるため、
+変更前の文書を書き換えないため、記録した過去の状態が変わりません。 元に戻した後も**選択は識別子で引き継ぎます**（続けて操作できるようにする）。
 
 **適用は 1 文字単位**です（`RichText.ApplyStyle` が run を分割・結合する。 コアが単一所有）。
 ホストは本文の選択範囲をそのまま `TransformTextStyle(start, length, transform)` へ渡せます

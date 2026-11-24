@@ -8,7 +8,7 @@ namespace EsUtil.Feature.Annotation.Core.Tests;
 /// <summary>書式バーの変更を「選択範囲」と「以降の入力」のどちらへ回すかの仕様テスト。</summary>
 /// <remarks>
 /// 選択が無いときに書式を変えると、既存の文字は変えず、次に入力する文字へだけ効く（実測 2026-11-22）。
-/// 規則の所有者は <see cref="AnnotationTextStyleEdit"/> と <see cref="AnnotationTypingStyle"/> である。
+/// 規則の所有者は <see cref="AnnotationTextStyleEdit"/> と <see cref="AnnotationTextEdit"/> である。
 /// </remarks>
 public class AnnotationTextStyleEditTests
 {
@@ -58,12 +58,20 @@ public class AnnotationTextStyleEditTests
     [Fact]
     internal void ResolveDisplay_選択が無ければ覚えた書式を返す()
     {
-        var typing = new AnnotationTypingStyle();
         var bold = AnnotationDefaults.TextStyle with { IsBold = true };
+        var document = new AnnotationDocument(100, 100).Add(new BubbleAnnotation
+        {
+            Id = "bubble",
+            Bounds = new EsUtil.Platform.Core.Geometry.EsRect(0, 0, 100, 50),
+            Text = RichText.Create("あい", AnnotationDefaults.TextStyle),
+        });
+        var edit = new AnnotationTextEdit();
+        edit.Begin("bubble", 2);
+        edit.Remember(bold);
 
-        typing.Remember(bold);
+        Assert.Equal(bold, edit.ResolveDisplayStyle(document));
 
-        Assert.Equal(bold, typing.ResolveDisplay(AnnotationDefaults.TextStyle, hasSelection: false));
-        Assert.Equal(AnnotationDefaults.TextStyle, typing.ResolveDisplay(AnnotationDefaults.TextStyle, hasSelection: true));
+        edit.Select(0, 1, 2);
+        Assert.Equal(AnnotationDefaults.TextStyle, edit.ResolveDisplayStyle(document));
     }
 }

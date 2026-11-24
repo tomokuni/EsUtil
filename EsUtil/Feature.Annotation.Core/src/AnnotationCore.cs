@@ -13,7 +13,7 @@ namespace EsUtil.Feature.Annotation;
 /// <b>適用パターン</b>: Facade（コアの操作と提示層の入口を 1 つの窓口へ集約する）。<br/>
 /// <b>責務</b>: 文書の生成、注釈の生成と追加、JSON の読み書きを行う。<br/>
 /// 描画計画の解決は <see cref="Presenter"/>（<see cref="AnnotationPresenter"/>）が担う。 文書の値操作（差し替え・削除・並び順・<br/>
-/// しっぽの移動）は <see cref="AnnotationDocument"/> が持ち、当たり判定は <see cref="AnnotationHitTest"/> が持つ<br/>
+/// 矩形・しっぽ・外観・余白の変更）は <see cref="AnnotationDocument"/> が持ち、当たり判定は <see cref="AnnotationHitTest"/> が持つ<br/>
 /// （ファサードは入口を集約するだけで、値の操作を写し取らない）。<br/>
 /// <b>ログ</b>: 本クラスが定義（<c>AnnotationLogMessage</c>）の接頭辞と出力先を所有する。 定義はアセンブリに 1 つであり、<br/>
 /// 提示層と共有する（層ごとに定義を持たない）。<br/>
@@ -95,7 +95,7 @@ public sealed class AnnotationCore(AnnotationPresenter? presenter = null)
 
         var resolved = defaults ?? AnnotationDraftDefaults.Default;
         var frame = AnnotationGeometry.CreateFrame(bounds, resolved.FrameAppearance, document.ImageSize);
-        _log.LogAnnotationAdded(AnnotationKind.Frame, frame.Id);
+        _log.LogAnnotationCreated(AnnotationKind.Frame, frame.Id);
         return frame;
     }
 
@@ -123,7 +123,7 @@ public sealed class AnnotationCore(AnnotationPresenter? presenter = null)
 
         var resolved = defaults ?? AnnotationDraftDefaults.Default;
         var bubble = AnnotationGeometry.CreateBubble(bounds, text, resolved, document.ImageSize, tail);
-        _log.LogAnnotationAdded(AnnotationKind.Bubble, bubble.Id);
+        _log.LogAnnotationCreated(AnnotationKind.Bubble, bubble.Id);
         return bubble;
     }
 
@@ -191,6 +191,46 @@ public sealed class AnnotationCore(AnnotationPresenter? presenter = null)
         ArgumentNullException.ThrowIfNull(document);
 
         Save(AnnotationJson.GetDocumentPath(imagePath), document);
+    }
+
+    /// <summary>注釈の付随ファイルを書き出す（注釈が 0 件なら削除する）。</summary>
+    /// <param name="imagePath">元画像のパス（付随ファイルの名前の基になる）。</param>
+    /// <param name="document">書き出す文書。</param>
+    /// <param name="saveComposedImage">合成画像を書き出す処理（描画は UI が行う）。</param>
+    /// <exception cref="ArgumentException"><paramref name="imagePath"/> が空白の場合。</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="document"/> または <paramref name="saveComposedImage"/> が null の場合。</exception>
+    /// <exception cref="IOException">ファイルへ書けない・削除できない場合。</exception>
+    /// <remarks>
+    /// <b>書き出すか削除するかの判断を単一所有する</b>: 注釈が 0 件のときは注釈ファイルも合成画像も残さない<br/>
+    /// （残すと、画像を開き直したときに存在しない注釈が読み込まれる）。 ホストは合成画像の描画だけを渡す<br/>
+    /// （描画 API は UI ごとに異なるため）。
+    /// </remarks>
+    public void SaveOrRemoveCompanionFiles(
+        string imagePath,
+        AnnotationDocument document,
+        Action saveComposedImage)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(imagePath);
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(saveComposedImage);
+
+        if (document.Items.Length == 0)
+        {
+            RemoveCompanionFiles(imagePath);
+            return;
+        }
+
+        SaveDocument(imagePath, document);
+
+        try
+        {
+            saveComposedImage();
+        }
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
+        {
+            _log.LogOperationError(ex, nameof(SaveOrRemoveCompanionFiles));
+            throw;
+        }
     }
 
     /// <summary>元画像に付随する注釈ファイルと合成画像を削除する。</summary>

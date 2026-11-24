@@ -55,8 +55,8 @@ flowchart TB
 
 | コンポーネント | 分類 | 責務 |
 | --- | --- | --- |
-| `AnnotationCore` | ファサード | 文書と注釈の生成・JSON の読み書きと、ログの定義の接頭辞・出力先の所有。 提示層（`Presenter`）を共有する |
-| `AnnotationDocument` | Core | 注釈の集合（並びが重なり順）・画像の寸法・スキーマ版。 変更は新しい文書を返す |
+| `AnnotationCore` | ファサード | 文書と注釈の生成・JSON の読み書き・付随ファイルの保存と削除・ログの定義の接頭辞と出力先の所有。 提示層（`Presenter`）を共有する |
+| `AnnotationDocument` | Core | 注釈の集合（並びが重なり順）・画像の寸法・スキーマ版。 不変であり、すべての変更は新しい文書を返す（変化が無い場合は同じ実体。 収める・補正する規則は Core が単一所有する） |
 | `AnnotationItem` / `FrameAnnotation` / `BubbleAnnotation` | Core | 注釈 1 件（`Id` / `Bounds` / `Appearance`）。 JSON は `Kind` で型を判別する |
 | `BubbleTail` | Core | しっぽ（先端は独立・付け根は本体の辺に追従） |
 | `RichText` / `TextRun` / `AnnotationTextStyle` | Core | 文字単位の書式（run が自分の文字列と解決済みの書式を持つ） |
@@ -68,10 +68,18 @@ flowchart TB
 | `AnnotationHistory` | Core | 変更履歴（元に戻す・やり直す。 `BeginChange` / `CommitChange` で 1 操作 = 1 手にする） |
 | `AnnotationPresenter` | Presenter | 描画計画の解決（折り返しの配置・しっぽの多角形・行の配置） |
 | `AnnotationDrawPlan` / `AnnotationShapePlan` / `AnnotationTextLinePlan` / `AnnotationTextSegmentPlan` | Presenter | UI へ渡す 1 フレーム分の描画契約 |
+| `AnnotationTextLineIndex` / `AnnotationTextLineLayout` | Presenter | 行と文字位置の対応（キャレット・選択範囲・位置から文字の特定） |
+| `AnnotationEditingOutline` / `AnnotationEditorAppearance` / `AnnotationCaretBlink` / `AnnotationCaretRect` / `AnnotationMarqueeMetrics` | Presenter | 編集中の枠・キャレット・選択範囲・点滅・選択枠の実寸近似の見た目と規則 |
+| `AnnotationPanelController` / `AnnotationPanelPlacement` / `AnnotationPanelAppearance` / `AnnotationPanelKind` / `AnnotationPanelMetrics` / `IAnnotationPanelHost` | Presenter | フローティング パネルの開閉・配置・外観（UI は `IAnnotationPanelHost` を実装する） |
+| `AnnotationSelectionPresenter` | Presenter | 選択中の注釈の書式・外観と、以降の入力へ効かせる書式 |
+| `AnnotationTextEdit` | Presenter | 本文の編集状態（キャレット・選択・入力・削除・書式）。 4 つの UI 版は入力イベントを渡すだけにする |
+| `AnnotationViewTransform` | Core（`.Core.Geometry`） | 表示倍率と左上の位置、元画像ピクセルとローカル DIP の相互変換 |
+| `AnnotationFormatBarLayout` / `AnnotationFormatBarItem` / `AnnotationEditorLayout` / `AnnotationEditorText` / `AnnotationFontCatalog` / `AnnotationPaletteCatalog` / `AnnotationPaletteColor` / `AnnotationBubbleEdgeCatalog` | Presenter | 編集 UI の並び・寸法・文言・代表色・フォントの並べ方 |
+| `AnnotationCompositionPreview` | Presenter | IME の変換中の文字列を本文へ入れた描画用の文書 |
 
 **選択枠（8 方向のハンドル）は本アセンブリの責務ではありません**（Marquee の提示層を再利用する。 枠とハンドルの見た目を 4 つの UI 版で揃えるため）。
 
-**ログ**: 本アセンブリはログの定義（`AnnotationLogMessage`。 接頭辞の既定値は `[Annotation]`）を持ちます。 レベルは頻度で決めます。 `Information` は利用者の明示的な操作（注釈ファイルの読み込み・保存・付随ファイルの削除）とプロセスで 1 度の生成、`Debug` は状態の変化（選択・本文の編集・書式の適用・パネルの表示・押下と解放）と提示層の生成、`Trace` は高頻度の値（ドラッグ中の文書の変更）、`Error` は公開ファサードの操作で発生した例外です。 毎フレームの描画計画の解決と当たり判定は記録しません（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
+**ログ**: 本アセンブリはログの定義（`AnnotationLogMessage`。 接頭辞の既定値は `[Annotation]`）を持ちます。 レベルは頻度で決めます。 `Information` は利用者の明示的な操作（注釈ファイルの読み込み・保存・付随ファイルの削除）・プロセスで 1 度の生成・設定（行間）の変更、`Debug` は状態の変化（選択・本文の編集・書式の適用・パネルの表示・押下と解放）と提示層の生成、`Trace` は高頻度の値（ドラッグ中の文書の変更）、`Error` は公開ファサードの操作で発生した例外です。 毎フレームの描画計画の解決と当たり判定は記録しません（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
 
 ## 5. 依存関係
 

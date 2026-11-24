@@ -20,7 +20,7 @@ public static class AnnotationJson
     /// <summary>合成画像の名前に挟まる目印（元画像の名と拡張子の間へ入れる）を取得する。</summary>
     public const string ComposedInfix = ".annotated";
 
-    /// <summary>このアプリが読み書きする JSON のオプション（インデントあり・変換器は固定）。</summary>
+    /// <summary>本ライブラリが読み書きする JSON のオプション（インデントあり・変換器は固定）。</summary>
     private static readonly JsonSerializerOptions s_options = CreateOptions();
 
     /// <summary>注釈を JSON 文字列へ変換する。</summary>

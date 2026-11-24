@@ -7,7 +7,7 @@ namespace EsUtil.Feature.Annotation.Logging;
 /// <summary>注釈の LoggerMessage 定義（ソース生成ログ。 コア・提示層・UI で共有する）。</summary>
 /// <remarks>
 /// <b>レベルは頻度で決める</b>（規則の所有者は <c>.github/ログ規約.md</c> §2）。<br/>
-/// - Information: 利用者の明示的な操作（注釈ファイルの読み込み・保存）と、プロセスで 1 度だけの生成<br/>
+/// - Information: 利用者の明示的な操作（注釈ファイルの読み込み・保存）・プロセスで 1 度だけの生成・設定（行間）の変更<br/>
 /// - Debug: 状態の変化（選択・本文の編集・書式の適用・パネルの表示・押下と解放）と提示層の生成<br/>
 /// - Trace: 高頻度の値（ドラッグ中の文書の変更）<br/>
 /// - Error: 公開ファサードの操作で発生した例外<br/>
@@ -77,7 +77,8 @@ public static partial class AnnotationLogMessage
     internal static void LogDocumentCreated(this ILogger logger, int width, int height)
         => logger.LogDocumentCreatedCore(Prefix, width, height);
 
-    /// <summary>注釈ファイルの読み込みを記録する（生成メソッド）。</summary>    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Annotation] 読み込み: {FileName} 注釈={Count} 件</c></remarks>
+    /// <summary>注釈ファイルの読み込みを記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Annotation] 読み込み: {FileName} 注釈={Count} 件</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="fileName">読み込んだファイルの名前。</param>
@@ -108,21 +109,21 @@ public static partial class AnnotationLogMessage
     internal static void LogDocumentSaved(this ILogger logger, string fileName, int count)
         => logger.LogDocumentSavedCore(Prefix, fileName, count);
 
-    /// <summary>注釈の追加を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 注釈を追加: 種別={Kind} 識別子={Id}</c></remarks>
+    /// <summary>注釈の生成を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 注釈を作成: 種別={Kind} 識別子={Id}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="kind">注釈の種別。</param>
-    /// <param name="id">追加した注釈の識別子。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 注釈を追加: 種別={Kind:l} 識別子={Id:l}")]
-    private static partial void LogAnnotationAddedCore(this ILogger logger, string prefix, string kind, string id);
+    /// <param name="id">生成した注釈の識別子。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 注釈を作成: 種別={Kind:l} 識別子={Id:l}")]
+    private static partial void LogAnnotationCreatedCore(this ILogger logger, string prefix, string kind, string id);
 
-    /// <summary>注釈の追加を記録する。</summary>
+    /// <summary>注釈の生成を記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="kind">注釈の種別。</param>
-    /// <param name="id">追加した注釈の識別子。</param>
-    internal static void LogAnnotationAdded(this ILogger logger, AnnotationKind kind, string id)
-        => logger.LogAnnotationAddedCore(Prefix, kind.ToString(), id);
+    /// <param name="id">生成した注釈の識別子。</param>
+    internal static void LogAnnotationCreated(this ILogger logger, AnnotationKind kind, string id)
+        => logger.LogAnnotationCreatedCore(Prefix, kind.ToString(), id);
 
     /// <summary>付随ファイルを削除したことを記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Information<br/>出力書式: <c>[Annotation] 削除: {FileName}</c></remarks>
@@ -139,13 +140,13 @@ public static partial class AnnotationLogMessage
         => logger.LogCompanionFileRemovedCore(Prefix, fileName);
 
     /// <summary>設定値の変更を記録する（生成メソッド。 整形済みの値を渡す）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 設定: {Name} {OldValue} → {NewValue}</c></remarks>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Annotation] 設定: {Name} {OldValue} → {NewValue}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="name">変更された設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 設定: {Name:l} {OldValue:l} → {NewValue:l}")]
+    [LoggerMessage(LogLevel.Information, "{Prefix:l} 設定: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
     /// <summary>設定値の変更を記録する。</summary>
