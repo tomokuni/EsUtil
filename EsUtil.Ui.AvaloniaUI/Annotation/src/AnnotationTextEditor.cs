@@ -10,6 +10,7 @@ using Avalonia.VisualTree;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
 using DrawingColor = System.Drawing.Color;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
@@ -60,6 +61,9 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
     /// <summary>外側の押下を監視している最上位（繋ぎ直しの判定に使う）。</summary>
     private TopLevel? _hookedTop;
 
+    /// <summary>本文の表示と編集を担うコントロール（選択中の吹き出しの本文の上へ重ねる）。</summary>
+    private readonly RichTextEditor.RichTextEditorControl _textEditor;
+
     /// <summary>注釈の本文編集と書式バーをまとめたコントロールを初期化する。</summary>
     public AnnotationTextEditor()
     {
@@ -72,7 +76,20 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
         _formatBarPanel = new AnnotationPanelController(this, AnnotationPanelAppearance.FormatBar, () => _layer.Log);
         _stylePanel = new AnnotationPanelController(this, AnnotationPanelAppearance.StyleEditor, () => _layer.Log);
 
+        // **本文の表示と編集は専用のコントロールが担う**: 選択中の吹き出しの本文の上へ重ね、
+        // 本文の文字・選択範囲・キャレット・変換中の文字列を描く（レイヤーは本文を描かない）。
+        _textEditor = new RichTextEditor.RichTextEditorControl
+        {
+            IsHitTestVisible = false,
+            Focusable = false,
+            IsVisible = false,
+            MeasureText = AnnotationPainter.Measure,
+            LineHeightFactor = _layer.LineHeightFactor,
+            EditState = _layer.Session.TextEditState,
+        };
+
         Children.Add(_layer);
+        Children.Add(_textEditor);
 
         // 右クリックの外観フライアウト（位置はレイヤーが知らせる）
         _layer.StyleEditorRequested += (_, e) => ShowStylePanel(e.X, e.Y);
@@ -97,6 +114,8 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
             {
                 _formatBar.Refresh();
             }
+
+            SyncTextEditor();
         };
 
         // 移動・サイズ変更で本文の位置が変わるため、バーの位置を追随させる
@@ -106,6 +125,8 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
             {
                 ShowFormatBar();
             }
+
+            SyncTextEditor();
         };
 
         // 選択範囲の変更で、書式バーの押下状態（太字・斜体・下線・取り消し線）を追随させる
@@ -115,8 +136,16 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
             {
                 _formatBar.Refresh();
             }
+
+            SyncTextEditor();
         };
+
+        // 編集の開始・終了でも本文の描画先を切り替える
+        _layer.EditingChanged += (_, _) => SyncTextEditor();
     }
+
+    /// <summary>本文の表示と編集を担うコントロールを取得する（テストと差し替えの入口）。</summary>
+    internal RichTextEditor.RichTextEditorControl TextEditor => _textEditor;
 
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
     /// <value>画像・文書・選択・元に戻すなどを操作する対象。</value>
@@ -664,21 +693,71 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
     private static IBrush ToBrush(DrawingColor color)
         => new SolidColorBrush(Color.FromArgb(color.A, color.R, color.G, color.B));
 
-    /// <summary>子要素の寸法を測る（レイヤーのみ）。</summary>
+    /// <summary>子要素の寸法を測る（レイヤーは全面、本文コントロールは本文の矩形）。</summary>
     /// <param name="availableSize">使える領域。</param>
     /// <returns>必要な寸法（レイヤーの希望寸法）。</returns>
     protected override Size MeasureOverride(Size availableSize)
     {
         _layer.Measure(availableSize);
+        _layer.Arrange(new Rect(availableSize));
+        SyncTextEditor();
+        _textEditor.Measure(ResolveTextEditorRect().Size);
         return _layer.DesiredSize;
     }
 
-    /// <summary>子要素を配置する（レイヤーは全面）。</summary>
+    /// <summary>子要素を配置する（レイヤーは全面、本文コントロールは本文の矩形）。</summary>
     /// <param name="finalSize">最終的な領域。</param>
     /// <returns>配置した寸法。</returns>
     protected override Size ArrangeOverride(Size finalSize)
     {
         _layer.Arrange(new Rect(finalSize));
+        SyncTextEditor();
+        _textEditor.Arrange(ResolveTextEditorRect());
         return finalSize;
+    }
+
+    /// <summary>本文コントロールの内容（本文・変換中の文字列・倍率）を追随させる。</summary>
+    /// <remarks>
+    /// <b>本文はレイヤーが単一所有する</b>: コントロールは描画と入力の入口であり、本文の値は
+    /// 編集セッションから写す（同じ本文を 2 か所に持たない）。
+    /// </remarks>
+    private void SyncTextEditor()
+    {
+        _textEditor.EditState = _layer.Session.TextEditState;
+        _textEditor.LineHeightFactor = _layer.LineHeightFactor;
+
+        if (_layer.Session.Selected is not BubbleAnnotation bubble)
+        {
+            _textEditor.IsVisible = false;
+            _layer.ExternalTextId = null;
+            return;
+        }
+
+        // **変換中の文字列も本文として描く**: 重ねて描くと既存の文字と二重になる
+        _textEditor.Text = AnnotationCompositionPreview.Apply(
+            _layer.Session.Document, _layer.Session.SelectedId, _layer.Session.CaretIndex, _layer.PreeditText)
+            .Find(bubble.Id) is BubbleAnnotation drawn
+                ? drawn.Text
+                : bubble.Text;
+        _textEditor.PreeditText = _layer.PreeditText;
+        _textEditor.RenderScale = _layer.ViewScale;
+        _textEditor.IsVisible = true;
+        _textEditor.RefreshCaretBlink();
+        _textEditor.InvalidateVisual();
+
+        // レイヤーは同じ本文を描かない（二重に描くと縁が太り、位置も二重に見える）
+        _layer.ExternalTextId = bubble.Id;
+    }
+
+    /// <summary>本文コントロールを置く矩形（このコントロールの座標）を求める。</summary>
+    /// <returns>本文の矩形。 選択中の吹き出しが無い場合は空。</returns>
+    private Rect ResolveTextEditorRect()
+    {
+        if (_layer.Session.Selected is not BubbleAnnotation bubble)
+        {
+            return default;
+        }
+
+        return _layer.GetClientRect(bubble.ResolveBodyRect());
     }
 }

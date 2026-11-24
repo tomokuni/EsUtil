@@ -2,8 +2,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
-using Avalonia.Media;
-using Avalonia.Threading;
 using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
@@ -25,12 +23,6 @@ namespace EsUtil.Ui.AvaloniaUI.Annotation;
 /// </remarks>
 public sealed partial class AnnotationLayerControl
 {
-    /// <summary>選択範囲を塗るブラシ（色は提示層が単一所有する）。</summary>
-    private static readonly IBrush s_textSelectionBrush = AnnotationPainter.ToBrush(AnnotationEditorAppearance.SelectionColor);
-
-    /// <summary>キャレットを塗るブラシ（色は提示層が単一所有する）。</summary>
-    private static readonly IBrush s_caretBrush = AnnotationPainter.ToBrush(AnnotationEditorAppearance.CaretColor);
-
     /// <summary>IME の変換中文字列（文書へは入れない）。</summary>
     private string _preeditText = string.Empty;
 
@@ -80,56 +72,14 @@ public sealed partial class AnnotationLayerControl
         }
 
         Focus();
-        RestartCaretBlink();
         return true;
     }
 
     /// <summary>本文の編集を終える（内容は既に文書へ入っている）。</summary>
     public void EndTextEditing() => _session.EndTextEditing();
 
-    /// <summary>キャレットの点滅を始めた時刻。</summary>
-    private DateTimeOffset _caretBlinkStart = DateTimeOffset.UtcNow;
 
-    /// <summary>キャレットの点滅を進めるタイマー（編集中だけ動かす）。</summary>
-    private DispatcherTimer? _caretTimer;
 
-    /// <summary>いまキャレットを点灯して描くかどうかを取得する。</summary>
-    /// <value>点滅の位相が点灯の間は <see langword="true"/>。</value>
-    private bool IsCaretVisible => TextCaretBlink.IsVisible(DateTimeOffset.UtcNow - _caretBlinkStart);
-
-    /// <summary>キャレットの点滅を点灯から始め直す（文字入力・キャレット移動の直後に呼ぶ）。</summary>
-    /// <remarks>
-    /// <b>点灯から始める</b>: 消えた瞬間に操作すると入力位置を見失うため、操作の直後は必ず点灯にします。
-    /// </remarks>
-    private void RestartCaretBlink()
-    {
-        _caretBlinkStart = DateTimeOffset.UtcNow;
-        if (_caretTimer is null)
-        {
-            var timer = new DispatcherTimer { Interval = TextCaretBlink.Interval };
-            timer.Tick += (_, _) =>
-            {
-                if (IsEditingText)
-                {
-                    InvalidateVisual();
-                }
-                else
-                {
-                    timer.Stop();
-                }
-            };
-
-            _caretTimer = timer;
-        }
-
-        if (!_caretTimer.IsEnabled)
-        {
-            _caretTimer.Start();
-        }
-    }
-
-    /// <summary>キャレットの点滅を止める（編集を終えたとき）。</summary>
-    private void StopCaretBlink() => _caretTimer?.Stop();
     /// <summary>本文の文字列（IME へ渡す）。</summary>
     internal string TextForInput => _session.SelectedPlainText;
 
@@ -349,7 +299,6 @@ public sealed partial class AnnotationLayerControl
 
         // **本文が変わったことを IME へ知らせる**（周囲の文字列を渡し直し、変換の基準を最新にする）
         TextInputClient.NotifyTextChanged();
-        RestartCaretBlink();
         InvalidateVisual();
         return true;
     }
@@ -364,7 +313,6 @@ public sealed partial class AnnotationLayerControl
         }
 
         TextInputClient.NotifyTextChanged();
-        RestartCaretBlink();
         InvalidateVisual();
     }
 
@@ -423,43 +371,6 @@ public sealed partial class AnnotationLayerControl
 
     /// <summary>編集の開始・終了を通知する。</summary>
     private void RaiseEditingChanged() => EditingChanged?.Invoke(this, EventArgs.Empty);
-
-    /// <summary>本文の編集（選択範囲・キャレット・変換中の文字列）を描く（元画像座標）。</summary>
-    /// <param name="context">描画先。</param>
-    /// <param name="scale">表示倍率（キャレットの太さを DIP 一定にする）。</param>
-    private void DrawTextEditing(DrawingContext context, double scale)
-    {
-        if (!IsEditingText || ResolveLineIndex() is not { } lines)
-        {
-            return;
-        }
-
-        // 選択範囲も描画と同じ規則で求める（区間の原点からの距離。 規則は提示層が単一所有する）
-        foreach (var rect in lines.ResolveSelectionRects(SelectionStart, SelectionEnd, MeasureText))
-        {
-            context.FillRectangle(
-                s_textSelectionBrush, new Rect(rect.X, rect.Y, rect.Width, rect.Height));
-        }
-
-        // **変換中はキャレットを変換中の文字列の末尾へ置く**: 末尾へ置かないと、変換中の文字が
-        // キャレットの位置に重なって見える。
-        if (!TryResolveCaretSource(
-            AnnotationCompositionPreview.ResolveCaret(_session.CaretIndex, _preeditText), out var caret))
-        {
-            return;
-        }
-
-        // **キャレットは一般的な速さで点滅させる**（規則は提示層の TextCaretBlink が単一所有する）。
-        // 文字入力・キャレット移動の直後は点灯から始める（消えた瞬間に操作すると入力位置を見失う）。
-        if (IsCaretVisible)
-        {
-            var thickness = AnnotationEditorAppearance.CaretThicknessDip / Math.Max(scale, 0.01);
-            context.FillRectangle(s_caretBrush, new Rect(caret.X, caret.Y, thickness, caret.Height));
-        }
-
-        // **変換中の文字列は本文として描く**（RenderDocument が入れている）ため、ここでは重ねて描かない。
-        // 重ねて描くと既存の文字と二重になり、確定した文字と位置が食い違って見える。
-    }
 
     /// <summary>キャレットを点（元画像ピクセル）の位置へ移す（選択の起点は現在の位置に保つ）。</summary>
     /// <param name="point">位置（元画像ピクセル）。</param>

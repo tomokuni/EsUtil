@@ -105,6 +105,7 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | `LoupeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `AnnotationLayerControl` / `AnnotationTextEditor` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `ColorSelectorControl` | なし（色名・色文字列の規則は共通基盤の `Palette` が持つ） | なし | AvaloniaUI / MewUI / WinUI3 |
+| `RichTextEditorControl` | `EsUtil.Feature.Text.Core`（書式・折り返し・行対応・編集状態。 提示層は同アセンブリの `.Presenter.Editing`） | あり（提示は同アセンブリ） | AvaloniaUI |
 
 **Core と Presenter の両方を持つ機能でも、プロジェクト（アセンブリ）は 1 つ**です（`EsUtil.Feature.<機能>.Core`。 公開面は `src/` 直下、層の内部は `src/Core/` と `src/Presenter/` で分ける）。
 
@@ -134,7 +135,7 @@ UI 層は [`EsUtil.Ui.AvaloniaUI.ColorSelector`](../EsUtil.Ui.AvaloniaUI/ColorSe
 [`EsUtil.Ui.AvaloniaUI.Marquee`](../EsUtil.Ui.AvaloniaUI/Marquee/README.md) / [`EsUtil.Ui.MewUI.Marquee`](../EsUtil.Ui.MewUI/Marquee/README.md) / [`EsUtil.Ui.WinUI3.Marquee`](../EsUtil.Ui.WinUI3/Marquee/README.md) / [`EsUtil.Ui.WinForms.Marquee`](../EsUtil.Ui.WinForms/Marquee/README.md) /
 [`EsUtil.Ui.AvaloniaUI.Loupe`](../EsUtil.Ui.AvaloniaUI/Loupe/README.md) / [`EsUtil.Ui.MewUI.Loupe`](../EsUtil.Ui.MewUI/Loupe/README.md) / [`EsUtil.Ui.WinUI3.Loupe`](../EsUtil.Ui.WinUI3/Loupe/README.md) / [`EsUtil.Ui.WinForms.Loupe`](../EsUtil.Ui.WinForms/Loupe/README.md) /
 [`EsUtil.Ui.AvaloniaUI.Thumbnail`](../EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) / [`EsUtil.Ui.MewUI.Thumbnail`](../EsUtil.Ui.MewUI/Thumbnail/README.md) / [`EsUtil.Ui.WinUI3.Thumbnail`](../EsUtil.Ui.WinUI3/Thumbnail/README.md) / [`EsUtil.Ui.WinForms.Thumbnail`](../EsUtil.Ui.WinForms/Thumbnail/README.md) /
-[`EsUtil.Ui.AvaloniaUI.Annotation`](../EsUtil.Ui.AvaloniaUI/Annotation/README.md) / [`EsUtil.Ui.MewUI.Annotation`](../EsUtil.Ui.MewUI/Annotation/README.md) / [`EsUtil.Ui.WinUI3.Annotation`](../EsUtil.Ui.WinUI3/Annotation/README.md) / [`EsUtil.Ui.WinForms.Annotation`](../EsUtil.Ui.WinForms/Annotation/README.md)、
+[`EsUtil.Ui.AvaloniaUI.RichTextEditor`](../EsUtil.Ui.AvaloniaUI/RichTextEditor/README.md) / [`EsUtil.Ui.AvaloniaUI.Annotation`](../EsUtil.Ui.AvaloniaUI/Annotation/README.md) / [`EsUtil.Ui.MewUI.Annotation`](../EsUtil.Ui.MewUI/Annotation/README.md) / [`EsUtil.Ui.WinUI3.Annotation`](../EsUtil.Ui.WinUI3/Annotation/README.md) / [`EsUtil.Ui.WinForms.Annotation`](../EsUtil.Ui.WinForms/Annotation/README.md)、
 共通基盤は [`EsUtil.Platform.Core`](../EsUtil/Platform.Core/README.md) / [`EsUtil.Platform.Core.Windows`](../EsUtil/Platform.Core.Windows/README.md) を参照してください。
 
 ## 8. 名前空間とフォルダ

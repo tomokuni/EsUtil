@@ -48,7 +48,8 @@ internal static class AnnotationPainter
     /// <summary>注釈 1 件を描く（元画像ピクセルの座標系で呼ぶ）。</summary>
     /// <param name="context">描画先。</param>
     /// <param name="shape">描画計画。</param>
-    internal static void DrawShape(DrawingContext context, AnnotationShapePlan shape)
+    /// <param name="suppressText">本文を描かない場合は <see langword="true"/>（本文を別のコントロールが描く）。</param>
+    internal static void DrawShape(DrawingContext context, AnnotationShapePlan shape, bool suppressText = false)
     {
         var brush = shape.HasFill ? ToBrush(shape.Fill) : null;
         var pen = new Pen(ToBrush(shape.Border), shape.BorderThickness);
@@ -64,6 +65,11 @@ internal static class AnnotationPainter
             new Rect(shape.Bounds.X, shape.Bounds.Y, shape.Bounds.Width, shape.Bounds.Height),
             shape.CornerRadius,
             shape.CornerRadius);
+
+        if (suppressText)
+        {
+            return;
+        }
 
         foreach (var line in shape.Lines)
         {

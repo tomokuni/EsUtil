@@ -653,6 +653,36 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         => IsEditingText
             ? AnnotationCompositionPreview.Apply(_session.Document, _session.SelectedId, _session.CaretIndex, _preeditText)
             : _session.Document;
+    /// <summary>本文の描画を別のコントロールへ任せる吹き出しの識別子を取得または設定する。</summary>
+    /// <value>本文編集コントロールが描く吹き出しの識別子。 無い場合は <see langword="null"/>。</value>
+    /// <remarks>
+    /// <b>本文の描画を 2 か所に持たない</b>: 本文編集コントロールを重ねている間は、本レイヤーは本文を描かない
+    /// （同じ文字を二重に描くと、縁が太り位置も二重に見える）。
+    /// </remarks>
+    public string? ExternalTextId { get; set; }
+
+    /// <summary>編集の状態と文書を所有する編集セッションを取得する（本文編集コントロールと共有する）。</summary>
+    internal AnnotationEditSession Session => _session;
+
+    /// <summary>IME の変換中の文字列を取得する（本文編集コントロールの描画へ渡す）。</summary>
+    internal string PreeditText => _preeditText;
+
+    /// <summary>画像の表示倍率（元画像ピクセル → DIP）を取得する。</summary>
+    internal double ViewScale => ResolveImageTransform().Scale;
+
+    /// <summary>元画像ピクセルの矩形を、このコントロールの座標（DIP）の矩形へ変換する。</summary>
+    /// <param name="source">矩形（元画像ピクセル）。</param>
+    /// <returns>矩形（このコントロールの座標の DIP）。</returns>
+    public Rect GetClientRect(EsRect source)
+    {
+        var (scale, offset) = ResolveImageTransform();
+        return new Rect(
+            offset.X + (source.X * scale),
+            offset.Y + (source.Y * scale),
+            source.Width * scale,
+            source.Height * scale);
+    }
+
     /// <summary>描画する（画像 → 注釈 → 選択枠 → しっぽのハンドルの順）。</summary>
     /// <param name="context">描画先。</param>
     public override void Render(DrawingContext context)
@@ -670,7 +700,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             // **変換中の文字列も本文として描く**: キャレットの位置へ重ねて描くと既存の文字と重なり、
             // キャレットも動かないため「入力が反映されていない」ように見える。
             // 文書は変えず、描画用の複製にだけ入れる（規則は提示層の AnnotationCompositionPreview が単一所有する）。
-            var plan = _presenter.ResolveDrawPlan(RenderDocument, MeasureText, _session.SelectedId);
+            var plan = _presenter.ResolveDrawPlan(_session.Document, MeasureText, _session.SelectedId);
 
             // 注釈は元画像座標で描く（枠線の太さ・文字の大きさを保存画像と同じ比率にする）
             using (context.PushTransform(
@@ -678,11 +708,10 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             {
                 foreach (var shape in plan.Shapes)
                 {
-                    AnnotationPainter.DrawShape(context, shape);
+                    // **本文を別のコントロールが描く場合は描かない**（同じ文字を二重に描かない）
+                    AnnotationPainter.DrawShape(
+                        context, shape, suppressText: string.Equals(shape.Id, ExternalTextId, StringComparison.Ordinal));
                 }
-
-                // 本文の編集中は、選択範囲とキャレットを注釈と同じ座標系で描く（表示中のレイアウトのまま編集する）
-                DrawTextEditing(context, scale);
             }
         }
 
@@ -1354,7 +1383,6 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             {
                 _preeditText = string.Empty;
                 _isSelectingText = false;
-                StopCaretBlink();
             }
             else
             {
@@ -1392,7 +1420,6 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
                 TextInputClient.NotifySelectionChanged();
             }
 
-            RestartCaretBlink();
         }
 
         if ((change & AnnotationEditChange.Document) != 0)

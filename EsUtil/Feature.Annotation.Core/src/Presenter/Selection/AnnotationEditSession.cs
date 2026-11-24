@@ -126,6 +126,25 @@ public sealed class AnnotationEditSession
     /// <value>本文。 吹き出しを選んでいない場合は空。</value>
     public string SelectedPlainText => (_document.Find(_selectedId) as BubbleAnnotation)?.Text.PlainText ?? string.Empty;
 
+    /// <summary>本文の編集状態を取得する（UI の本文編集コントロールと共有する）。</summary>
+    /// <value>キャレット・選択・入力・書式の状態。 状態の所有者は本セッションであり、UI は同じ実体を描画に使う。</value>
+    /// <remarks>
+    /// <b>状態を 2 つ持たない</b>: UI の編集コントロールが自前の状態を持つと、キャレットと選択が
+    /// 文書と食い違う。 UI は本プロパティの実体を渡し、描画と入力の入口としてだけ使う。
+    /// </remarks>
+    public TextEditState TextEditState => _edit;
+
+    /// <summary>選択中の吹き出しの本文を丸ごと差し替える（編集コントロールからの書き戻し）。</summary>
+    /// <param name="text">新しい本文（書式を含む）。</param>
+    /// <returns>文書が変わった場合は <see langword="true"/>。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> が <see langword="null"/> の場合。</exception>
+    /// <remarks>本文の計算は編集コントロールが行うため、本メソッドは履歴への記録と通知だけを行う。</remarks>
+    public bool ApplySelectedRichText(RichText text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        return ReplaceEdit(current => text);
+    }
+
     /// <summary>書式の適用先の範囲（文字数）を取得または設定する。</summary>
     /// <value>開始位置と長さ（0 起点）。 長さ 0 は選択なし。</value>
     /// <remarks>ホストが本文の入力欄の選択位置を写すときに使う（編集を始めていなくても書式を適用できる）。</remarks>
