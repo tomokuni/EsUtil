@@ -112,7 +112,7 @@ internal static class AnnotationEditorControls
             MinWidth = AnnotationEditorLayout.ToggleMinWidth,
 
             // **高さを明示する**: 既定の高さでは 12 DIP の文字の上が欠ける。
-            // 高さはコア（AnnotationFormatBarLayout）が単一所有する
+            // 高さは計算層（TextFormatBarLayout）が単一所有する
             MinHeight = TextFormatBarLayout.ItemHeight,
             Height = TextFormatBarLayout.ItemHeight,
             Padding = new Thickness(4, 0, 4, 0),

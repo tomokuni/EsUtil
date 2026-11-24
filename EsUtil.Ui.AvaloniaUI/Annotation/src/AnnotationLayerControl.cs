@@ -186,7 +186,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <value>色名 + 不透明度（既定）またはカラーコード（<c>#AARRGGBB</c>）。</value>
     /// <remarks>
     /// <b>保存値は表記に依らず <c>#AARRGGBB</c></b>である。 右クリックのフライアウトの色は本表記で表示する
-    /// （書式バーの色は <c>AnnotationFormatBar.TextFormat</c> が同じ値を受ける）。
+    /// （書式バーの色は <c>StyledTextFormatBar.TextFormat</c> が同じ値を受ける）。
     /// </remarks>
     public ColorTextFormat ColorTextFormat { get; set; } = ColorTextFormat.NameWithAlpha;
 
