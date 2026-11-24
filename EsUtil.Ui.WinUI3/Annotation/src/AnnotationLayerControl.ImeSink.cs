@@ -9,9 +9,7 @@ namespace EsUtil.Ui.WinUI3.Annotation;
 /// <summary>注釈レイヤーの IME 連携（OS の入力欄へ変換を任せる）。</summary>
 /// <remarks>
 /// <b><c>CoreTextEditContext</c> は使わない</b>: WinUI 3 のデスクトップ アプリでは窓口を作れても
-/// 入力が届かず、変換の開始・更新・確定が一度も呼ばれません（実測 2026-11-23: フォーカスは
-/// 当たっているのに <c>TextUpdating</c> が 0 回、文字は <c>CharacterReceived</c> へ 1 キーずつ届き、
-/// そのまま確定する）。<br/>
+/// 入力が届かず、変換の開始・更新・確定が一度も呼ばれません。<br/>
 /// <b>実際の <see cref="TextBox"/> を置く</b>: 変換・候補の位置・未確定の下線は OS 側が行います。
 /// 見た目は本レイヤーが書式付きで描くため、受け口は透明・1×1・入力は受け取らない
 /// （フォーカスと IME のためだけに存在する）。<br/>
@@ -27,8 +25,7 @@ public sealed partial class AnnotationLayerControl
     /// <summary>変換候補のフライアウトと入力中の文字の間の距離（DIP）。</summary>
     /// <remarks>
     /// <b>受け口を文字の下へずらす</b>: OS は受け口（入力欄）の中の変換中の範囲を基準に候補を出すため、
-    /// 受け口の高さを変えても候補の位置は変わりません。 受け口そのものを文字の下へ置くと候補が下がります
-    /// （実測 2026-11-23: 高さだけを変えても候補が入力中の文字に近すぎた）。
+    /// 受け口の高さを変えても候補の位置は変わりません。 受け口そのものを文字の下へ置くと候補が下がります。
     /// </remarks>
     private const double PickerCandidateOffset = 12;
 
@@ -54,7 +51,7 @@ public sealed partial class AnnotationLayerControl
             AcceptsReturn = true,
             TextWrapping = TextWrapping.NoWrap,
             IsSpellCheckEnabled = false,
-            // **タブ移動の対象にする**: `IsTabStop = false` だと `Focus` が失敗し、IME が使えません（実測 2026-11-23）
+            // **タブ移動の対象にする**: `IsTabStop = false` だと `Focus` が失敗し、IME が使えません
             IsTabStop = true,
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
@@ -118,8 +115,7 @@ public sealed partial class AnnotationLayerControl
         var (scale, _) = ResolveImageTransform();
 
         // **文字の下へ置く**: OS は受け口の中の変換中の範囲を基準に候補を出すため、受け口を文字の
-        // すぐ下へ置くと候補がその下に出ます（実測 2026-11-23: 受け口を文字の位置へ置くと
-        // 候補が入力中の文字に近すぎた）。
+        // すぐ下へ置くと候補がその下に出ます。
         sink.Height = Math.Max(1, caret.Height);
         sink.FontSize = Math.Max(1, style.FontSize * scale);
         Canvas.SetLeft(sink, Math.Max(0, caret.X));
@@ -170,7 +166,7 @@ public sealed partial class AnnotationLayerControl
     /// <remarks>
     /// <b>確定は次の描画へ回す</b>: <c>TextChanged</c> は変換の通知（<c>TextCompositionChanged</c>）より
     /// **先に**届くことがあります。 その場で確定すると変換中の文字まで本文へ入り、
-    /// 変換中の表示と二重になります（実測 2026-11-23: 入力中の文字が既存文字に重なった）。
+    /// 変換中の表示と二重になります。
     /// 1 度待ってから「変換中か」を見直し、変換中なら確定しません。
     /// </remarks>
     private void OnImeSinkTextChanged(object sender, TextChangedEventArgs e)
@@ -228,7 +224,7 @@ public sealed partial class AnnotationLayerControl
         _ = sender;
 
         // **変換中として扱う**: `TextCompositionStarted` が来ない IME があるため、
-        // ここでも立てる（立てないと確定して文字が二重になる。 実測 2026-11-23）。
+        // ここでも立てる（立てないと確定して文字が二重になる）
         _isComposing = true;
 
         var text = _imeSink?.Text ?? string.Empty;

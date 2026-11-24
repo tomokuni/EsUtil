@@ -158,6 +158,39 @@ public class AnnotationPresenterTests
         Assert.DoesNotContain(logger.Messages, m => m.Contains("設定:", StringComparison.Ordinal));
     }
 
+    /// <summary>折り返しは書記素クラスタを分割しない（孤立したサロゲートを作らない）。</summary>
+    [Fact]
+    internal void 折り返し_サロゲートペアを分割しない()
+    {
+        var style = AnnotationDefaults.TextStyle with { FontSize = 20 };
+        var bubble = CreateBubble("😀😀😀😀", style, width: 80);
+
+        var plan = new AnnotationPresenter().ResolveDrawPlan(CreateDocument(bubble), FixedTextMetrics.Measure);
+        var shape = Assert.Single(plan.Shapes);
+
+        Assert.All(shape.Lines, line =>
+        {
+            var text = Concat(line);
+            Assert.False(text.Length > 0 && char.IsHighSurrogate(text[^1]), "行の末尾が孤立したサロゲート");
+            Assert.False(text.Length > 0 && char.IsLowSurrogate(text[0]), "行の先頭が孤立したサロゲート");
+        });
+        Assert.Equal("😀😀😀😀", string.Concat(shape.Lines.Select(Concat)));
+    }
+
+    /// <summary>折り返しは結合文字（基底文字 + 結合記号）を分割しない。</summary>
+    [Fact]
+    internal void 折り返し_結合文字を分割しない()
+    {
+        var style = AnnotationDefaults.TextStyle with { FontSize = 20 };
+        var bubble = CreateBubble("e\u0301e\u0301e\u0301", style, width: 80);
+
+        var plan = new AnnotationPresenter().ResolveDrawPlan(CreateDocument(bubble), FixedTextMetrics.Measure);
+        var shape = Assert.Single(plan.Shapes);
+
+        Assert.All(shape.Lines, line => Assert.False(Concat(line).StartsWith('\u0301'), "行の先頭が結合記号"));
+        Assert.Equal("e\u0301e\u0301e\u0301", string.Concat(shape.Lines.Select(Concat)));
+    }
+
     /// <summary>検証用の吹き出しを生成する。</summary>
     /// <param name="text">本文。</param>
     /// <param name="style">書式。</param>

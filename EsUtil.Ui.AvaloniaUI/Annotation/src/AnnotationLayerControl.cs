@@ -12,7 +12,6 @@ using EsUtil.Platform.Core.Palette;
 using EsUtil.Feature.Annotation.Core.Contract;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Geometry;
-using EsUtil.Feature.Annotation.Core.History;
 using EsUtil.Feature.Annotation.Core.Interaction;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Annotation.Presenter.Selection;
@@ -54,7 +53,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <remarks>
     /// <b>毎回ホストへ問い合わせる</b>: レイアウトの途中で取得した値は古くなる（レイアウト確定前に
     /// 取得すると、その後ウィンドウやツール バーの寸法が変わって画像の位置がずれる）。 値を持ち回すと
-    /// 注釈だけが画像からずれるため（実測 2026-11-21）、使うたびに取り直す。
+    /// 注釈だけが画像からずれるため、使うたびに取り直す。
     /// </remarks>
     public Func<EsRect?>? ImageRectProvider { get; set; }
 
@@ -85,6 +84,9 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>文書・保存形式・ログの入口（提示層を共有する）。</summary>
     private readonly AnnotationCore _core;
 
+    /// <summary>文書・選択・変更履歴・本文の編集状態を単一所有する編集セッション。</summary>
+    private readonly AnnotationEditSession _session;
+
     /// <summary>選択枠・ハンドルを解決する Marquee の提示層。</summary>
     private readonly MarqueePresenter _marquee;
 
@@ -93,12 +95,6 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
     /// <summary>選択枠の外観（暗転・ラベル・マーカーは使わない）。</summary>
     private static readonly MarqueeAppearance s_marqueeAppearance = MarqueeAppearance.OutlineOnly;
-
-    /// <summary>注釈の文書。</summary>
-    private AnnotationDocument _document = new(1, 1);
-
-    /// <summary>変更履歴（元に戻す・やり直す）。</summary>
-    private readonly AnnotationHistory _history = new();
 
     /// <summary>直近に描いた選択枠のハンドル（DIP。 ポインターの形を決めるのに使う）。</summary>
     private IReadOnlyList<EsRect>? _handleDipRects;
@@ -112,11 +108,12 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>最後に観測したポインター位置（元画像ピクセル。 nudge の起点に使う）。</summary>
     private EsPoint _lastPointerSource;
 
-    /// <summary>外観・書式の編集フライアウト（開いている間だけ保持する）。</summary>
     /// <summary>注釈レイヤーを初期化する。</summary>
     public AnnotationLayerControl()
     {
         _core = new AnnotationCore(_presenter);
+        _session = new AnnotationEditSession(new AnnotationDocument(1, 1), () => _core.Log);
+        _session.Subscribe(OnSessionChanged);
         Focusable = true;
         ClipToBounds = true;
         _marquee = new MarqueePresenter(new AnnotationMarqueeEffects(this))
@@ -157,6 +154,8 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     }
 
     /// <summary>選択中の注釈の識別子を取得または設定する。</summary>
+    /// <value>選択中の注釈の識別子。 解除は <see langword="null"/>。</value>
+    /// <remarks>設定すると本文の編集を終え、選択枠と書式の適用先を切り替える（規則は編集セッションが単一所有する）。</remarks>
     public string? SelectedId
     {
         get => GetValue(SelectedIdProperty);
@@ -165,23 +164,13 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
     /// <summary>注釈の文書を取得または設定する。</summary>
     /// <value>表示・編集する文書。 null は空の文書として扱う。</value>
-    /// <remarks>差し替えると選択を解除する（別の画像の注釈を編集しないため）。</remarks>
+    /// <remarks>差し替えると選択と変更履歴を解除する（別の画像の注釈を編集しないため）。</remarks>
     public AnnotationDocument Document
     {
-        get => _document;
+        get => _session.Document;
         set
         {
-            if (IsEditingText)
-            {
-                EndTextEditing();
-            }
-
-            _document = value ?? new AnnotationDocument(SourcePixelWidth, SourcePixelHeight);
-            _history.Clear();
-            SelectedId = null;
-            _edit.Bind(null);
-            _marquee.ResetSelection();
-            RaiseDocumentChanged();
+            _session.Document = value ?? new AnnotationDocument(SourcePixelWidth, SourcePixelHeight);
             InvalidateVisual();
         }
     }
@@ -191,7 +180,11 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <remarks>
     /// <b>既存の注釈には影響しない</b>（各注釈が自分の外観・書式を持つ）。 設定ページやサンプルの設定ペインから変える。
     /// </remarks>
-    public AnnotationDraftDefaults DraftDefaults { get; set; } = AnnotationDraftDefaults.Default;
+    public AnnotationDraftDefaults DraftDefaults
+    {
+        get => _session.DraftDefaults;
+        set => _session.DraftDefaults = value;
+    }
 
     /// <summary>色の入力欄へ出す表記を取得または設定する。</summary>
     /// <value>色名 + 不透明度（既定）またはカラーコード（<c>#AARRGGBB</c>）。</value>
@@ -246,11 +239,10 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// </remarks>
     public (int Start, int Length) TextSelectionRange
     {
-        get => _edit.SelectionRange;
+        get => _session.TextSelectionRange;
         set
         {
-            _edit.Select(value.Start, value.Length, TextForInput.Length);
-            SyncTextSelectionRange();
+            _session.TextSelectionRange = value;
             InvalidateVisual();
         }
     }
@@ -294,7 +286,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <remarks>
     /// <b>入力の所有者は本レイヤー</b>である: 注釈の無い場所の押下・ドラッグ・ホイールは、本イベントで
     /// ホストへ知らせ、ホストがプレビュー（ズーム・パン・自動切り出し）へ渡す。 入力を「どの要素が受け取るか」で
-    /// 切り替えると、受け取らなかった側が次の操作を受け取れなくなる（実測 2026-11-20）。
+    /// 切り替えると、受け取らなかった側が次の操作を受け取れなくなる。
     /// </remarks>
     public event EventHandler<AnnotationPreviewGestureEventArgs>? PreviewGestureRequested;
 
@@ -308,18 +300,19 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
     /// <summary>選択中の注釈を取得する。</summary>
     /// <value>選択が無い場合は <see langword="null"/>。</value>
-    public AnnotationItem? Selected => SelectedId is null ? null : _document.Find(SelectedId);
+    public AnnotationItem? Selected => _session.Selected;
 
     /// <summary>選択中の吹き出しの本文の書式（選択範囲の先頭の文字）を取得する。</summary>
     /// <value>選択が吹き出しでない場合は <see cref="AnnotationDefaults.TextStyle"/>。</value>
     /// <remarks>フライアウトの初期表示に使う。 選択が無い間は書式バーで選んだ書式（以降の入力へ効く値）を返す。</remarks>
     public AnnotationTextStyle SelectedTextStyle
     {
-        get => _edit.ResolveDisplayStyle(_document);
+        get => _session.SelectedTextStyle;
         set
         {
-            // 適用先の規則（選択が無ければ以降の入力へ回す）はコアが単一所有する
-            _ = ApplyTextStyle(value);
+            // 適用先の規則（選択が無ければ以降の入力へ回す）は編集セッションが単一所有する
+            _session.SelectedTextStyle = value;
+            InvalidateVisual();
         }
     }
 
@@ -352,78 +345,31 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>指定した位置（DIP）に注釈があるかどうかを判定する（プレビューの入力を受け取るかの判断に使う）。</summary>
     /// <param name="dip">位置（ローカル DIP）。</param>
     /// <returns>注釈・ハンドル・しっぽの近くにある場合は <see langword="true"/>。</returns>
-    public bool HitTestAt(Point dip)
-    {
-        var source = ToSource(dip);
-        if (AnnotationHitTest.HitTest(_document, source) is not null)
-        {
-            return true;
-        }
-
-        if (Selected is BubbleAnnotation bubble && IsNearTailTip(bubble, source))
-        {
-            return true;
-        }
-
-        return HitsSelectionHandle(dip);
-    }
+    /// <remarks>しっぽ → ハンドル → 本体の優先順は <see cref="AnnotationPointerPolicy"/> が単一所有する。</remarks>
+    public bool HitTestAt(Point dip) => ResolvePointerKind(dip) != AnnotationPointerKind.None;
 
     /// <summary>選択と本文の編集を解除する（注釈の外をクリックしたとき）。</summary>
-    public void ClearSelection()
-    {
-        EndTextEditing();
-        Select(null);
-    }
+    public void ClearSelection() => _session.Select(null);
+
     /// <summary>枠線の注釈を追加する。</summary>
     /// <param name="bounds">矩形（元画像ピクセル）。</param>
     /// <returns>追加した注釈の識別子。</returns>
-    /// <remarks>矩形はコア（<see cref="AnnotationCore.CreateFrame"/>）が画像の内側へ収める。</remarks>
-    public string AddFrame(EsRect bounds)
-    {
-        PrepareUndo();
-        var frame = _core.CreateFrame(_document, bounds, DraftDefaults);
-        _document = _document.Add(frame);
-        RaiseDocumentChanged();
-        Select(frame.Id);
-        return frame.Id;
-    }
+    /// <remarks>矩形はコア（<see cref="AnnotationGeometry.CreateFrame"/>）が画像の内側へ収める。</remarks>
+    public string AddFrame(EsRect bounds) => _session.AddFrame(bounds);
 
     /// <summary>吹き出しの注釈を追加する。</summary>
     /// <param name="bounds">本体の矩形（元画像ピクセル）。</param>
     /// <param name="text">本文。</param>
     /// <returns>追加した注釈の識別子。</returns>
     /// <remarks>
-    /// 矩形もしっぽの先端もコア（<see cref="AnnotationCore.CreateBubble"/>）が画像の内側へ収める
+    /// 矩形もしっぽの先端もコア（<see cref="AnnotationGeometry.CreateBubble"/>）が画像の内側へ収める
     /// （しっぽが画像の外へ出ると掴めなくなる）。
     /// </remarks>
-    public string AddBubble(EsRect bounds, string text)
-    {
-        PrepareUndo();
-        var defaults = DraftDefaults;
-        var bubble = _core.CreateBubble(
-            _document, bounds, RichText.Create(text, defaults.TextStyle), defaults);
-
-        _document = _document.Add(bubble);
-        RaiseDocumentChanged();
-        Select(bubble.Id);
-        return bubble.Id;
-    }
+    public string AddBubble(EsRect bounds, string text) => _session.AddBubble(bounds, text);
 
     /// <summary>選択中の注釈を削除する。</summary>
     /// <returns>削除した場合は <see langword="true"/>。</returns>
-    public bool DeleteSelected()
-    {
-        if (SelectedId is not { } id)
-        {
-            return false;
-        }
-
-        PrepareUndo();
-        _document = _document.Remove(id);
-        Select(null);
-        RaiseDocumentChanged();
-        return true;
-    }
+    public bool DeleteSelected() => _session.DeleteSelected();
 
     /// <summary>選択中の吹き出しの本文を置き換える。</summary>
     /// <param name="text">新しい本文（明示改行は <c>\n</c>）。</param>
@@ -432,25 +378,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <b>書式は文字位置で引き継ぐ</b>: 先頭から同じ長さの範囲は元の run の書式を保ち、増えた部分は先頭 run の書式にする
     /// （編集のたびにすべての書式が消えないようにする）。
     /// </remarks>
-    public bool SetSelectedText(string text)
-    {
-        if (Selected is not BubbleAnnotation bubble)
-        {
-            return false;
-        }
-
-        // 同じ文字列なら何もしない（履歴に同じ内容の手が増えないようにする）
-        if (string.Equals(bubble.Text.PlainText, text, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        PrepareUndo();
-        _document = _document.WithText(bubble.Id, bubble.Text.WithPlainText(text));
-        RaiseDocumentChanged();
-        InvalidateVisual();
-        return true;
-    }
+    public bool SetSelectedText(string text) => _session.SetSelectedText(text);
 
     /// <summary>選択中の吹き出しの本文へ書式を適用する（<see cref="TextSelectionRange"/> の範囲）。</summary>
     /// <param name="style">適用する書式。</param>
@@ -459,24 +387,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// 長さ 0 は「全体」へ適用する。 文字単位の書式は run の分割で表す（コアが単一所有する）。
     /// <b>選択が無ければ以降の入力へ回す</b>: 既存の文字は変えず、次に入力する文字へ適用する。
     /// </remarks>
-    public bool ApplyTextStyle(AnnotationTextStyle style)
-    {
-        ArgumentNullException.ThrowIfNull(style);
-
-        PrepareUndo();
-        var next = _edit.ApplyStyle(_document, style);
-        if (ReferenceEquals(next, _document))
-        {
-            _history.CancelChange();
-            return false;
-        }
-
-        _document = next;
-        _core.Log.LogTextStyleApplied(TextSelectionRange.Start, TextSelectionRange.Length);
-        RaiseDocumentChanged();
-        InvalidateVisual();
-        return true;
-    }
+    public bool ApplyTextStyle(AnnotationTextStyle style) => _session.ApplyTextStyle(style);
 
     /// <summary>選択中の吹き出しの本文へ、指定した範囲の書式を適用する。</summary>
     /// <param name="start">開始位置（文字数。 0 起点）。</param>
@@ -488,27 +399,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// コアの <c>RichText.ApplyStyle</c> が単一所有する。
     /// </remarks>
     public bool ApplyTextStyle(int start, int length, AnnotationTextStyle style)
-    {
-        if (Selected is not BubbleAnnotation bubble)
-        {
-            return false;
-        }
-
-        PrepareUndo();
-        var next = AnnotationSelectionPresenter.ApplyTextStyle(
-            _document, bubble.Id, (start, length), style);
-        if (next is null)
-        {
-            _history.CancelChange();
-            return false;
-        }
-
-        _document = next;
-        _core.Log.LogTextStyleApplied(start, length);
-        RaiseDocumentChanged();
-        InvalidateVisual();
-        return true;
-    }
+        => _session.ApplyTextStyle(start, length, style);
 
     /// <summary>選択中の吹き出しの本文の書式を 1 文字ずつ変換する（変えない属性を保つ）。</summary>
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数（run ごとに呼ぶ）。</param>
@@ -520,23 +411,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <b>選択が無ければ以降の入力へ回す</b>: 変換の元になる書式は <see cref="SelectedTextStyle"/> である。
     /// </remarks>
     public bool TransformTextStyle(Func<AnnotationTextStyle, AnnotationTextStyle> transform)
-    {
-        ArgumentNullException.ThrowIfNull(transform);
-
-        PrepareUndo();
-        var next = _edit.TransformStyle(_document, transform);
-        if (ReferenceEquals(next, _document))
-        {
-            _history.CancelChange();
-            return false;
-        }
-
-        _document = next;
-        _core.Log.LogTextStyleApplied(TextSelectionRange.Start, TextSelectionRange.Length);
-        RaiseDocumentChanged();
-        InvalidateVisual();
-        return true;
-    }
+        => _session.TransformTextStyle(transform);
 
     /// <summary>選択中の吹き出しの本文の、指定した範囲の書式を 1 文字ずつ変換する。</summary>
     /// <param name="start">開始位置（文字数。 0 起点）。</param>
@@ -544,35 +419,14 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数（run ごとに呼ぶ）。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
     public bool TransformTextStyle(int start, int length, Func<AnnotationTextStyle, AnnotationTextStyle> transform)
-    {
-        ArgumentNullException.ThrowIfNull(transform);
-
-        if (Selected is not BubbleAnnotation bubble)
-        {
-            return false;
-        }
-
-        PrepareUndo();
-        var next = _edit.TransformStyleRange(_document, start, length, transform);
-        if (ReferenceEquals(next, _document))
-        {
-            _history.CancelChange();
-            return false;
-        }
-
-        _document = next;
-        _core.Log.LogTextStyleApplied(start, length);
-        RaiseDocumentChanged();
-        InvalidateVisual();
-        return true;
-    }
+        => _session.TransformTextStyle(start, length, transform);
 
     /// <summary>選択中の注釈の外観（枠線・内側・角丸）を取得または設定する。</summary>
     /// <value>外観。 何も選んでいない場合は `null`。 設定するとその注釈の外観を差し替える。</value>
     /// <remarks>値の解決と適用の規則はコア（`AnnotationSelectionPresenter`）が単一所有する。</remarks>
     public AnnotationAppearance? SelectedAppearance
     {
-        get => AnnotationSelectionPresenter.ResolveAppearance(_document, SelectedId);
+        get => AnnotationSelectionPresenter.ResolveAppearance(_session.Document, _session.SelectedId);
         set
         {
             if (value is { } appearance)
@@ -585,34 +439,13 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <param name="transform">現在の外観を受け取って新しい外観を返す関数。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
     public bool UpdateSelectedAppearance(Func<AnnotationAppearance, AnnotationAppearance> transform)
-    {
-        ArgumentNullException.ThrowIfNull(transform);
-
-        if (Selected is not { } item)
-        {
-            return false;
-        }
-
-        PrepareUndo();
-        var next = AnnotationSelectionPresenter.ApplyAppearance(_document, item.Id, transform(item.Appearance));
-        if (next is null)
-        {
-            _history.CancelChange();
-            return false;
-        }
-
-        _document = next;
-
-        RaiseDocumentChanged();
-        InvalidateVisual();
-        return true;
-    }
+        => _session.UpdateSelectedAppearance(transform);
 
     /// <summary>選択中の吹き出しの本文の余白を取得または設定する（元画像ピクセル）。</summary>
     /// <value>余白。 吹き出しを選んでいない場合は <see langword="null"/>。 設定するとその吹き出しの余白を変える。</value>
     public double? SelectedBodyPadding
     {
-        get => AnnotationSelectionPresenter.ResolveBubble(_document, SelectedId)?.BodyPadding;
+        get => AnnotationSelectionPresenter.ResolveBubble(_session.Document, _session.SelectedId)?.BodyPadding;
         set
         {
             if (value is { } padding)
@@ -626,7 +459,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <value>幅。 吹き出しを選んでいない場合は <see langword="null"/>。 設定するとその吹き出しのしっぽの幅を変える。</value>
     public double? SelectedTailWidth
     {
-        get => AnnotationSelectionPresenter.ResolveBubble(_document, SelectedId)?.Tail.Width;
+        get => AnnotationSelectionPresenter.ResolveBubble(_session.Document, _session.SelectedId)?.Tail.Width;
         set
         {
             if (value is { } width)
@@ -640,7 +473,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <value>辺。 吹き出しを選んでいない場合は <see langword="null"/>。 設定するとその吹き出しのしっぽの辺を変える。</value>
     public BubbleEdge? SelectedTailBaseEdge
     {
-        get => AnnotationSelectionPresenter.ResolveBubble(_document, SelectedId)?.Tail.BaseEdge;
+        get => AnnotationSelectionPresenter.ResolveBubble(_session.Document, _session.SelectedId)?.Tail.BaseEdge;
         set
         {
             if (value is { } edge)
@@ -653,94 +486,29 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>選択中の吹き出しの本文の余白を差し替える。</summary>
     /// <param name="padding">本文の余白（元画像ピクセル）。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
-    public bool SetSelectedBodyPadding(double padding)
-    {
-        if (Selected is not BubbleAnnotation bubble)
-        {
-            return false;
-        }
-
-        PrepareUndo();
-        var next = AnnotationSelectionPresenter.SetBodyPadding(_document, bubble.Id, padding);
-        if (next is null)
-        {
-            _history.CancelChange();
-            return false;
-        }
-
-        _document = next;
-
-        RaiseDocumentChanged();
-        InvalidateVisual();
-        return true;
-    }
+    public bool SetSelectedBodyPadding(double padding) => _session.SetSelectedBodyPadding(padding);
 
     /// <summary>選択中の吹き出しのしっぽの太さ・辺を差し替える。</summary>
     /// <param name="transform">現在のしっぽを受け取って新しいしっぽを返す関数。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
     public bool UpdateSelectedTail(Func<BubbleTail, BubbleTail> transform)
-    {
-        ArgumentNullException.ThrowIfNull(transform);
-
-        if (Selected is not BubbleAnnotation bubble)
-        {
-            return false;
-        }
-
-        PrepareUndo();
-        var next = _document.WithTail(bubble.Id, transform(bubble.Tail));
-        if (ReferenceEquals(next, _document))
-        {
-            _history.CancelChange();
-            return false;
-        }
-
-        _document = next;
-
-        RaiseDocumentChanged();
-        InvalidateVisual();
-        return true;
-    }
+        => _session.UpdateSelectedTail(transform);
 
     /// <summary>選択中の注釈を最前面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool MoveSelectedToFront()
-    {
-        if (SelectedId is not { } id)
-        {
-            return false;
-        }
-
-        PrepareUndo();
-        _document = _document.BringToFront(id);
-        RaiseDocumentChanged();
-        InvalidateVisual();
-        return true;
-    }
+    public bool MoveSelectedToFront() => _session.MoveSelectedToFront();
 
     /// <summary>選択中の注釈を最背面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool MoveSelectedToBack()
-    {
-        if (SelectedId is not { } id)
-        {
-            return false;
-        }
-
-        PrepareUndo();
-        _document = _document.SendToBack(id);
-        RaiseDocumentChanged();
-        InvalidateVisual();
-        return true;
-    }
+    public bool MoveSelectedToBack() => _session.MoveSelectedToBack();
 
     /// <summary>元に戻せるかどうかを取得する。</summary>
     /// <value>変更履歴に戻せる状態がある場合は <see langword="true"/>。</value>
-    public bool CanUndo => _history.CanUndo;
+    public bool CanUndo => _session.CanUndo;
 
     /// <summary>やり直せるかどうかを取得する。</summary>
     /// <value>元に戻した変更が残っている場合は <see langword="true"/>。</value>
-    public bool CanRedo => _history.CanRedo;
+    public bool CanRedo => _session.CanRedo;
 
     /// <summary>直前の変更を元に戻す。</summary>
     /// <returns>戻した場合は <see langword="true"/>。</returns>
@@ -749,54 +517,11 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// 変更の単位は「追加・削除・移動・サイズ変更・しっぽの移動・外観・書式・重なり順」である
     /// （ドラッグは押下から離すまでで 1 手）。
     /// </remarks>
-    public bool Undo() => ApplyHistory(_history.Undo(_document));
+    public bool Undo() => _session.Undo();
 
     /// <summary>元に戻した変更をやり直す。</summary>
     /// <returns>やり直した場合は <see langword="true"/>。</returns>
-    public bool Redo() => ApplyHistory(_history.Redo(_document));
-
-    /// <summary>履歴から取り出した文書を現在の文書にする（選択を引き継ぐ）。</summary>
-    /// <param name="document">適用する文書（<see langword="null"/> は何もしない）。</param>
-    /// <returns>適用した場合は <see langword="true"/>。</returns>
-    private bool ApplyHistory(AnnotationDocument? document)
-    {
-        _history.CancelChange();
-        if (document is null)
-        {
-            return false;
-        }
-
-        var id = SelectedId;
-        _document = document;
-        ClampCaretToText();
-
-        if (id is not null && _document.Find(id) is { } item)
-        {
-            SelectedId = id;
-            _edit.Bind(id);
-            SyncTextSelectionRange();
-            if (IsEditingText)
-            {
-                // 編集中は選択枠を出さない（本文の見た目を優先する）
-                _marquee.ResetSelection();
-            }
-            else
-            {
-                _marquee.SetSelection(item.Bounds);
-            }
-        }
-        else
-        {
-            SelectedId = null;
-            _edit.Bind(null);
-            _marquee.ResetSelection();
-        }
-
-        // 履歴の操作自体は記録しない（RaiseDocumentChanged を経由しない）
-        DocumentChanged?.Invoke(this, EventArgs.Empty);
-        InvalidateVisual();
-        return true;
-    }
+    public bool Redo() => _session.Redo();
 
     /// <summary>外観と書式の編集フライアウトを表示する（右クリック）。</summary>
     /// <remarks>選択中の注釈を編集する。 項目は枠線・吹き出しの外観、本文の書式、重なり順である。</remarks>
@@ -825,7 +550,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <returns>矩形（DIP）。 選択していない場合は空。</returns>
     /// <remarks>
     /// <b>書式バーを注釈に被せないための対象矩形</b>である。 本文の矩形ではなく枠線を含む矩形を使う
-    /// （本文で判定するとバーが枠線の上へ数ピクセル重なる。 実測 2026-11-22）。
+    /// （本文で判定するとバーが枠線の上へ数ピクセル重なる）。
     /// </remarks>
     public Rect GetSelectedBoundsRect()
     {
@@ -861,7 +586,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <param name="e">押下の引数。</param>
     /// <remarks>
     /// <b>注釈の無い場所ではキャプチャしない</b>: プレビューのパンはキャプチャ不要であり、
-    /// キャプチャが残るとカーソルがウィンドウへ掴まれたままになる（実測 2026-11-20）。
+    /// キャプチャが残るとカーソルがウィンドウへ掴まれたままになる。
     /// </remarks>
     private void CapturePointer(PointerPressedEventArgs e) => e.Pointer.Capture(this);
 
@@ -871,7 +596,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>文書が変わったことを通知する（フライアウトの編集結果もホストへ伝える）。</summary>
     internal void NotifyDocumentChanged()
     {
-        RaiseDocumentChanged();
+        _session.CommitChange();
         InvalidateVisual();
     }
 
@@ -908,9 +633,9 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
                 context.DrawImage(image, new Rect(0, 0, width, height));
             }
 
-            if (_document.Items.Length > 0)
+            if (_session.Document.Items.Length > 0)
             {
-                var plan = _presenter.ResolveDrawPlan(_document, MeasureText, selectedId: null);
+                var plan = _presenter.ResolveDrawPlan(_session.Document, MeasureText, selectedId: null);
                 foreach (var shape in plan.Shapes)
                 {
                     AnnotationPainter.DrawShape(context, shape);
@@ -925,8 +650,8 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <value>変換中でなければ本文の文書。 変換中は変換中の文字列を入れた描画用の複製。</value>
     private AnnotationDocument RenderDocument
         => IsEditingText
-            ? AnnotationCompositionPreview.Apply(_document, SelectedId, _edit.CaretIndex, _preeditText)
-            : _document;
+            ? AnnotationCompositionPreview.Apply(_session.Document, _session.SelectedId, _session.CaretIndex, _preeditText)
+            : _session.Document;
     /// <summary>描画する（画像 → 注釈 → 選択枠 → しっぽのハンドルの順）。</summary>
     /// <param name="context">描画先。</param>
     public override void Render(DrawingContext context)
@@ -939,12 +664,12 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             context.DrawImage(image, new Rect(offset.X, offset.Y, SourcePixelWidth * scale, SourcePixelHeight * scale));
         }
 
-        if (_document.Items.Length > 0)
+        if (_session.Document.Items.Length > 0)
         {
             // **変換中の文字列も本文として描く**: キャレットの位置へ重ねて描くと既存の文字と重なり、
-            // キャレットも動かないため「入力が反映されていない」ように見える（実測 2026-11-22）。
+            // キャレットも動かないため「入力が反映されていない」ように見える。
             // 文書は変えず、描画用の複製にだけ入れる（規則は提示層の AnnotationCompositionPreview が単一所有する）。
-            var plan = _presenter.ResolveDrawPlan(RenderDocument, MeasureText, SelectedId);
+            var plan = _presenter.ResolveDrawPlan(RenderDocument, MeasureText, _session.SelectedId);
 
             // 注釈は元画像座標で描く（枠線の太さ・文字の大きさを保存画像と同じ比率にする）
             using (context.PushTransform(
@@ -984,7 +709,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <remarks>
     /// <b>下地を描かない面でも入力を受ける</b>: 画像の上へ重ねるため背景を塗らないが、Avalonia の既定の
     /// ヒットテストは背景の無い面を対象にしない。 注釈レイヤーはプレビュー領域の入力を単一所有するため、
-    /// 常に対象とする（実測 2026-11-20）。
+    /// 常に対象とする。
     /// </remarks>
     public bool HitTest(Point point)
         => IsVisible && IsHitTestVisible && new Rect(Bounds.Size).Contains(point);
@@ -992,7 +717,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <param name="e">ポインターの引数。</param>
     /// <remarks>
     /// <b>注釈の無い場所も本レイヤーが受け取る</b>: 選択の解除と、プレビューへの操作の引き渡しを行う。
-    /// 入力を要素の切り替えで振り分けると、切り替えた側が次の押下を受け取れない（実測 2026-11-20）。
+    /// 入力を要素の切り替えで振り分けると、切り替えた側が次の押下を受け取れない。
     /// </remarks>
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
@@ -1024,7 +749,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
         // 押下から始まる操作（移動・サイズ変更・しっぽの移動）を 1 手として記録する。
         // 実際に文書が変わらなければ履歴へは積まれない（選択だけのクリックで手数が増えない）。
-        PrepareUndo();
+        _session.BeginChange();
 
         var source = ToSource(point.Position);
 
@@ -1034,7 +759,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             if (Selected is BubbleAnnotation editingBubble && editingBubble.Bounds.Contains(source))
             {
                 CapturePointer(e);
-                _history.CancelChange();
+                _session.CancelChange();
                 _isSelectingText = true;
                 SetCaretFromPoint(source, (e.KeyModifiers & KeyModifiers.Shift) != 0);
                 InvalidateVisual();
@@ -1044,32 +769,30 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             EndTextEditing();
         }
 
-        if (Selected is not null)
-        {
-            if (Selected is BubbleAnnotation selectedBubble && IsNearTailTip(selectedBubble, source))
-            {
-                CapturePointer(e);
-                _isDraggingTail = true;
-                InvalidateVisual();
-                return;
-            }
+        // **しっぽ → ハンドル → 本体の優先順は 1 か所で決める**（ポインターの形と同じ判定を使う）
+        var kind = ResolvePointerKind(point.Position);
 
-            // ハンドルの当たり判定（カーソルが変わる範囲と同じ判定）を注釈の当たり判定より先に見る。
-            // ここを飛ばすと、ハンドルの外周を押したときに「注釈の外側」と判定されて選択が解除される。
-            if (HitsSelectionHandle(point.Position))
-            {
-                CapturePointer(e);
-                _marquee.Press(source, e.ClickCount);
-                InvalidateVisual();
-                return;
-            }
+        if (kind == AnnotationPointerKind.Tail)
+        {
+            CapturePointer(e);
+            _isDraggingTail = true;
+            InvalidateVisual();
+            return;
         }
 
-        if (AnnotationHitTest.HitTest(_document, source) is { } hit)
+        if (AnnotationPointerPolicy.IsResize(kind))
         {
-            if (!string.Equals(SelectedId, hit.Id, StringComparison.Ordinal))
+            CapturePointer(e);
+            _marquee.Press(source, e.ClickCount);
+            InvalidateVisual();
+            return;
+        }
+
+        if (AnnotationHitTest.HitTest(_session.Document, source) is { } hit)
+        {
+            if (!string.Equals(_session.SelectedId, hit.Id, StringComparison.Ordinal))
             {
-                Select(hit.Id);
+                _session.Select(hit.Id);
             }
 
             if (e.ClickCount >= 2 && hit is BubbleAnnotation)
@@ -1085,7 +808,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         }
         else
         {
-            Select(null);
+            _session.Select(null);
 
             // 注釈の無い場所はプレビューの操作（パン）へ渡す（ダブルクリックは自動切り出しの確定に使う）
             if (e.ClickCount >= 2)
@@ -1114,7 +837,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
         // **ボタンを押していない移動では何も動かさない**: 捕捉の解放や Up の取りこぼしで
         // 「押していないのにドラッグ中」の状態が残ると、ホバーだけで枠線や注釈が動き続ける
-        // （実測 2026-11-22: MewUI 版・WinUI 3 版で再現）。 押下中だけ動かす（4 つの UI 版で同じ規則）。
+        // 押下中だけ動かす（4 つの UI 版で同じ規則）。
         var isPressed = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed;
 
         // 注釈の無い場所を押したまま動かしたら、プレビューのパンへ渡す
@@ -1150,20 +873,15 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             if (!isPressed)
             {
                 _isDraggingTail = false;
-                RaiseDocumentChanged();
+                _session.CommitChange();
                 InvalidateVisual();
                 return;
             }
 
-            if (Selected is BubbleAnnotation bubble)
+            if (Selected is BubbleAnnotation)
             {
-                var next = _document.WithTailTip(bubble.Id, source);
-                if (!ReferenceEquals(next, _document))
-                {
-                    _document = next;
-                    RaiseDocumentChanged();
-                    InvalidateVisual();
-                }
+                _session.SetTailTip(source, TailGrabMarginSource());
+                InvalidateVisual();
             }
 
             return;
@@ -1183,25 +901,17 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         // 押下中は Marquee が操作に合った形を設定するため、ホバーのときだけ決める。
         if (!isPressed)
         {
-            ApplyHoverCursor(source, position);
+            ApplyHoverCursor(position);
         }
 
         InvalidateVisual();
     }
 
     /// <summary>ホバー中のポインターの形を決めて適用する。</summary>
-    /// <param name="source">位置（元画像ピクセル）。</param>
     /// <param name="position">位置（ローカル DIP）。</param>
-    private void ApplyHoverCursor(EsPoint source, Point position)
+    private void ApplyHoverCursor(Point position)
     {
-        var (scale, _) = ResolveImageTransform();
-        var kind = AnnotationPointerPolicy.Resolve(
-            _document,
-            SelectedId,
-            source,
-            new EsPoint(position.X, position.Y),
-            _handleDipRects,
-            TailHandleRadiusDip / (scale > 0 ? scale : 1.0));
+        var kind = ResolvePointerKind(position);
 
         Cursor = kind switch
         {
@@ -1227,7 +937,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
         // 押下中に固定した変換を解除する
         ReleaseTransform();
-        _core.Log.LogPointerReleased(ToSource(e.GetPosition(this)), SelectedId is not null);
+        _core.Log.LogPointerReleased(ToSource(e.GetPosition(this)), _session.SelectedId is not null);
 
         if (_isSelectingText)
         {
@@ -1324,7 +1034,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <remarks>
     /// <b>方向キーはトンネル段階でも渡す</b>: Avalonia は方向キーをフォーカス移動（XY ナビゲーション）へ使い、
     /// トンネル段階でイベントを処理済みにする。 そのままだと本文のキャレット移動・Shift+矢印の選択・
-    /// 枠線の nudge が効かない（実測 2026-11-21: 修飾キーだけが届き、方向キーは届かなかった）。
+    /// 枠線の nudge が効かない（修飾キーだけが届く）。
     /// </remarks>
     private bool TryHandleKeyDown(KeyEventArgs e)
     {
@@ -1353,8 +1063,9 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
         if (e.Key is Key.Left or Key.Right or Key.Up or Key.Down)
         {
-            PrepareUndo();
+            _session.BeginChange();
             var handled = _marquee.KeyDown(ToEsKey(e.Key), _lastPointerSource);
+            _session.CommitChange();
             InvalidateVisual();
             return handled;
         }
@@ -1385,10 +1096,10 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         // 外観フライアウトは注釈（枠線・吹き出し）の上を右クリックしたときだけ出す。
         // 注釈の外は「枠線・吹き出しを追加」のメニューにする（選択も解除する）。
         // 追加できるのは画像の内側だけである（規則はコアが単一所有する）
-        if (AnnotationHitTest.HitTest(_document, source) is not { } hit)
+        if (AnnotationHitTest.HitTest(_session.Document, source) is not { } hit)
         {
-            Select(null);
-            if (AnnotationGeometry.Contains(source, _document.ImageSize))
+            _session.Select(null);
+            if (AnnotationGeometry.Contains(source, _session.Document.ImageSize))
             {
                 AddMenuRequested?.Invoke(
                     this, new AnnotationAddMenuRequestedEventArgs(position.X, position.Y));
@@ -1397,9 +1108,9 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             return;
         }
 
-        if (!string.Equals(SelectedId, hit.Id, StringComparison.Ordinal))
+        if (!string.Equals(_session.SelectedId, hit.Id, StringComparison.Ordinal))
         {
-            Select(hit.Id);
+            _session.Select(hit.Id);
         }
 
         _styleEditorX = position.X;
@@ -1408,40 +1119,30 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         ShowStyleEditor();
     }
 
-    /// <summary>選択中の注釈のいずれかのハンドル（8 方向）の当たり判定に含まれるかどうかを判定する。</summary>
-    /// <param name="dip">位置（DIP）。</param>
-    /// <returns>ハンドルの範囲内の場合は <see langword="true"/>。</returns>
+    /// <summary>位置（DIP）で示される操作の種類を求める（しっぽ → ハンドル → 本体の優先順）。</summary>
+    /// <param name="dip">位置（ローカル DIP）。</param>
+    /// <returns>操作の種類。 注釈の上でない場合は <see cref="AnnotationPointerKind.None"/>。</returns>
     /// <remarks>
-    /// <b>Marquee と同じ判定にする</b>: ハンドルの中心は <c>MarqueeDrawPlan.Handles</c> の矩形の中心、半径は
-    /// <c>MarqueeOptions.HandleHitRadius</c>（DIP）を使う。 中心や半径を自前で計算すると、カーソルが変わる範囲と
-    /// 押して操作できる範囲がずれる（実測: ハンドルの外周を押すと選択が解除される）。
+    /// <b>ポインターの形と押下の判定を同じ値にする</b>: 形が変わる範囲と押して操作できる範囲がずれないよう、
+    /// 両方を本メソッドの結果で決める（規則は <see cref="AnnotationPointerPolicy"/> が単一所有する）。
     /// </remarks>
-    private bool HitsSelectionHandle(Point dip)
+    private AnnotationPointerKind ResolvePointerKind(Point dip)
     {
-        var plan = _marquee.ResolveDrawPlan(
-            new EsSize(Bounds.Width, Bounds.Height), AnnotationMarqueeMetrics.MeasureText);
-        if (plan.Handles is not { } handles)
-        {
-            return false;
-        }
-
-        var radius = _marquee.Options.HandleHitRadius;
-        var squared = radius * radius;
-        for (var i = 0; i < MarqueeHandleRects.Count; i++)
-        {
-            var rect = handles.HandleDipRects[i];
-            var centerX = rect.X + (rect.Width / 2);
-            var centerY = rect.Y + (rect.Height / 2);
-            var dx = centerX - dip.X;
-            var dy = centerY - dip.Y;
-            if ((dx * dx) + (dy * dy) <= squared)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        var transform = _frozenTransform ?? ResolveImageTransform();
+        return AnnotationPointerPolicy.Resolve(
+            _session.Document,
+            _session.SelectedId,
+            transform.ToSource(new EsPoint(dip.X, dip.Y)),
+            new EsPoint(dip.X, dip.Y),
+            _handleDipRects,
+            transform.ToSourceRadius(TailHandleRadiusDip));
     }
+
+    /// <summary>しっぽの先端を掴む距離を元画像ピクセルで求める（画面の DIP で一定の大きさを保つ）。</summary>
+    /// <returns>掴む距離（元画像ピクセル）。</returns>
+    /// <remarks>端の余白はドラッグの目標にだけ使い、保存する値へ UI の都合を持ち込まない。</remarks>
+    private double TailGrabMarginSource()
+        => (_frozenTransform ?? ResolveImageTransform()).ToSourceRadius(TailHandleRadiusDip);
 
     /// <summary>本文の実寸を測る（フォントの実寸に依存する部分だけを UI が担う）。</summary>
     /// <param name="text">文字列。</param>
@@ -1449,7 +1150,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <returns>実寸（元画像ピクセル）。</returns>
     /// <remarks>
     /// <b>行の高さは斜体で変えない</b>: 幅（折り返しの判定）は指定どおりの書式で測り、高さだけは斜体を外した
-    /// 書式で測る。 斜体は字を傾けるだけであり、行の高さを変えると 1 行ごとに間隔が変わる（実測 2026-11-18）。
+    /// 書式で測る。 斜体は字を傾けるだけであり、行の高さを変えると 1 行ごとに間隔が変わる。
     /// </remarks>
     private static EsSize MeasureText(string text, AnnotationTextStyle style)
     {
@@ -1498,38 +1199,11 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         ToClientDip,
         () => new EsSize(SourcePixelWidth, SourcePixelHeight));
 
-    /// <summary>注釈を選択する。</summary>
-    /// <param name="id">選択する注釈の識別子（解除は null）。</param>
-    private void Select(string? id)
-    {
-        // 別の注釈を選んだら本文の編集を終える（編集中の本文を見失わないようにする）
-        if (IsEditingText && !string.Equals(SelectedId, id, StringComparison.Ordinal))
-        {
-            EndTextEditing();
-        }
-
-        SelectedId = id;
-        _edit.Bind(id);
-        SyncTextSelectionRange();
-        if (id is null || _document.Find(id) is not { } item)
-        {
-            _marquee.ResetSelection();
-        }
-        else
-        {
-            _marquee.SetSelection(item.Bounds);
-        }
-
-        _core.Log.LogSelectionChanged(id);
-        SelectionChanged?.Invoke(this, EventArgs.Empty);
-        InvalidateVisual();
-    }
-
     /// <summary>Marquee からの通知を文書へ反映する（移動・サイズ変更）。</summary>
     /// <param name="notice">通知。</param>
     private void OnMarqueeNotice(MarqueeNotice notice)
     {
-        if (_isApplyingMarquee || SelectedId is null)
+        if (_isApplyingMarquee || _session.SelectedId is null)
         {
             return;
         }
@@ -1540,7 +1214,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         }
 
         var rect = notice.Snapshot.SelectionSourceRect;
-        if (rect.IsEmpty || _document.Find(SelectedId) is not { } item)
+        if (rect.IsEmpty)
         {
             return;
         }
@@ -1549,12 +1223,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         try
         {
             // 画像の外へは出さない（収める規則はコアが単一所有する）
-            var next = _document.WithBounds(item.Id, rect);
-            if (!ReferenceEquals(next, _document))
-            {
-                _document = next;
-                RaiseDocumentChanged();
-            }
+            _session.SetBounds(rect);
         }
         finally
         {
@@ -1568,7 +1237,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <param name="context">描画先。</param>
     private void DrawSelection(DrawingContext context)
     {
-        if (SelectedId is null)
+        if (_session.SelectedId is null)
         {
             return;
         }
@@ -1674,35 +1343,75 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         _ => EsUtil.Platform.Core.Input.EsKey.None,
     };
 
-    /// <summary>しっぽの先端の近くかどうかを判定する（描画したハンドルと同じ半径）。</summary>
-    /// <param name="bubble">対象の吹き出し。</param>
-    /// <param name="source">位置（元画像ピクセル）。</param>
-    /// <returns>近くの場合は <see langword="true"/>。</returns>
-    /// <remarks>半径は画面上で一定（DIP）にするため、表示倍率で割った値を対象座標の半径として使う。</remarks>
-    private bool IsNearTailTip(BubbleAnnotation bubble, EsPoint source)
+    /// <summary>編集セッションの変更をコントロールの状態とイベントへ反映する。</summary>
+    /// <param name="change">変更の種類。</param>
+    private void OnSessionChanged(AnnotationEditChange change)
     {
-        var (scale, _) = ResolveImageTransform();
-        var radius = TailHandleRadiusDip / Math.Max(scale, 0.0001);
-        var dx = bubble.Tail.Tip.X - source.X;
-        var dy = bubble.Tail.Tip.Y - source.Y;
-        return (dx * dx) + (dy * dy) <= radius * radius;
+        if ((change & AnnotationEditChange.Editing) != 0)
+        {
+            if (!_session.IsEditingText)
+            {
+                _preeditText = string.Empty;
+                _isSelectingText = false;
+                StopCaretBlink();
+            }
+            else
+            {
+                // 編集中は選択枠を出さない（本文の見た目を優先する）
+                _marquee.ResetSelection();
+            }
+
+            RaiseEditingChanged();
+        }
+
+        if ((change & AnnotationEditChange.Selection) != 0)
+        {
+            SetCurrentValue(SelectedIdProperty, _session.SelectedId);
+            if (_session.IsEditingText)
+            {
+                _marquee.ResetSelection();
+            }
+            else if (_session.Selected is { } item)
+            {
+                _marquee.SetSelection(item.Bounds);
+            }
+            else
+            {
+                _marquee.ResetSelection();
+            }
+
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        if ((change & AnnotationEditChange.TextSelection) != 0)
+        {
+            RaiseTextSelectionChanged();
+            if (_session.IsEditingText)
+            {
+                TextInputClient.NotifySelectionChanged();
+            }
+
+            RestartCaretBlink();
+        }
+
+        if ((change & AnnotationEditChange.Document) != 0)
+        {
+            DocumentChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        InvalidateVisual();
     }
 
-    /// <summary>これから変更することを履歴へ準備する（変更の直前に呼ぶ）。</summary>
-    /// <remarks>
-    /// <b>1 操作 = 1 手</b>: 押しただけで動かなかった操作（選択だけのクリック）で元に戻す手数が増えない
-    /// よう、控えと積みの判定は <see cref="AnnotationHistory.BeginChange"/> / <see cref="AnnotationHistory.CommitChange"/>
-    /// が行う（本コントロールは呼ぶだけ）。
-    /// </remarks>
-    private void PrepareUndo() => _history.BeginChange(_document);
-
-    /// <summary>文書が変わったことを通知する（履歴への積みは <see cref="AnnotationHistory.CommitChange"/> が行う）。</summary>
-    private void RaiseDocumentChanged()
+    /// <summary>選択中の注釈の識別子が外から変わったら編集セッションへ反映する。</summary>
+    /// <param name="change">変更されたプロパティ。</param>
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
-        _history.CommitChange(_document);
+        base.OnPropertyChanged(change);
 
-        _core.Log.LogDocumentChanged(_document.Items.Length);
-        DocumentChanged?.Invoke(this, EventArgs.Empty);
+        if (change.Property == SelectedIdProperty)
+        {
+            _session.SelectedId = change.GetNewValue<string?>();
+        }
     }
 }
 

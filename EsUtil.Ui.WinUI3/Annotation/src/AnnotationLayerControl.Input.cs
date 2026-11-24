@@ -41,14 +41,13 @@ public sealed partial class AnnotationLayerControl
     /// <value>変換中でなければ本文の文書。 変換中は変換中の文字列を入れた描画用の複製。</value>
     /// <remarks>
     /// <b>変換中の文字列も本文として組む</b>: キャレットの位置へ重ねて描くと既存の文字と重なり、
-    /// 折り返しも動かないため読めません（実測 2026-11-23: WinUI 3 版だけこの経路を通っておらず、
-    /// 入力中の文字が既存の文字に被る）。 規則はコアの
+    /// 折り返しも動かないため読めません。 規則はコアの
     /// <see cref="AnnotationCompositionPreview"/> が単一所有します（4 つの UI 版で同じ）。
     /// </remarks>
     private AnnotationDocument RenderDocument
         => IsEditingText
-            ? AnnotationCompositionPreview.Apply(_document, SelectedId, _edit.CaretIndex, _preeditText)
-            : _document;
+            ? AnnotationCompositionPreview.Apply(_session.Document, _session.SelectedId, _session.CaretIndex, _preeditText)
+            : _session.Document;
 
     /// <summary>再描画する（画像・注釈・選択枠を今の状態へ合わせる）。</summary>
     public void Redraw()
@@ -72,10 +71,10 @@ public sealed partial class AnnotationLayerControl
             _image.Visibility = Visibility.Collapsed;
         }
 
-        var plan = _presenter.ResolveDrawPlan(RenderDocument, MeasureText, SelectedId);
+        var plan = _presenter.ResolveDrawPlan(RenderDocument, MeasureText, _session.SelectedId);
 
         // **編集中も本文を描く**: WinUI 3 は本文を別の入力欄で表示しないため、編集中に本文を
-        // 描かないと文字が消える（実測 2026-11-20）。 キャレットと選択範囲は後から重ねる。
+        // 描かないと文字が消える。 キャレットと選択範囲は後から重ねる。
         AnnotationPainter.Draw(
             _shapes,
             plan,
@@ -141,7 +140,7 @@ public sealed partial class AnnotationLayerControl
     /// <summary>選択枠としっぽのハンドルを描く。</summary>
     private void DrawSelection()
     {
-        if (SelectedId is null)
+        if (_session.SelectedId is null)
         {
             AnnotationPainter.DrawSelection(
                 _selection, [], AnnotationDefaults.FrameAppearance.Border, null, AnnotationDefaults.FrameAppearance.Border,
@@ -266,7 +265,7 @@ public sealed partial class AnnotationLayerControl
         FreezeTransform();
 
         // 押下から始まる操作（移動・サイズ変更・しっぽの移動）を 1 手として記録する
-        PrepareUndo();
+        _session.BeginChange();
 
         var source = ToSource(position);
         var now = DateTimeOffset.UtcNow;
@@ -280,11 +279,11 @@ public sealed partial class AnnotationLayerControl
         {
             // 編集中は本文の内側を押したらキャレットを移す（外側を押したら編集を終える）。
             // 押したまま動かすと選択範囲を広げる（_isSelectingText）。 矢印キーだけでなく
-            // マウスのドラッグでも選択できるようにする（実測 2026-11-21: マウスで選択できなかった）。
+            // マウスのドラッグでも選択できるようにする。
             if (Selected is BubbleAnnotation editingBubble && editingBubble.Bounds.Contains(source))
             {
                 CapturePointerHere(e);
-                _history.CancelChange();
+                _session.CancelChange();
                 _isSelectingText = true;
                 SetCaretFromPoint(source, IsDown(VirtualKey.Shift));
                 Redraw();
@@ -295,28 +294,28 @@ public sealed partial class AnnotationLayerControl
             EndTextEditing();
         }
 
-        if (Selected is { } selected)
-        {
-            if (selected is BubbleAnnotation bubble && IsNearTailTip(bubble, source))
-            {
-                CapturePointerHere(e);
-                _isDraggingTail = true;
-                e.Handled = true;
-                return;
-            }
+        // **しっぽ → ハンドル → 本体の優先順は 1 か所で決める**（ポインターの形と同じ判定を使う）
+        var kind = ResolvePointerKind(new Windows.Foundation.Point(position.X, position.Y));
 
-            if (HitsSelectionHandle(position))
-            {
-                CapturePointerHere(e);
-                _marquee.Press(source, 1);
-                e.Handled = true;
-                return;
-            }
+        if (kind == AnnotationPointerKind.Tail)
+        {
+            CapturePointerHere(e);
+            _isDraggingTail = true;
+            e.Handled = true;
+            return;
         }
 
-        if (AnnotationHitTest.HitTest(_document, source) is not { } hit)
+        if (AnnotationPointerPolicy.IsResize(kind))
         {
-            Select(null);
+            CapturePointerHere(e);
+            _marquee.Press(source, 1);
+            e.Handled = true;
+            return;
+        }
+
+        if (AnnotationHitTest.HitTest(_session.Document, source) is not { } hit)
+        {
+            _session.Select(null);
 
             // 注釈の無い場所はプレビューの操作（パン・ダブルクリック）へ渡す
             if (isDoubleClick)
@@ -331,7 +330,7 @@ public sealed partial class AnnotationLayerControl
             return;
         }
 
-        Select(hit.Id);
+        _session.Select(hit.Id);
         if (isDoubleClick && hit is BubbleAnnotation)
         {
             CapturePointerHere(e);
@@ -349,7 +348,7 @@ public sealed partial class AnnotationLayerControl
     /// <param name="e">押下の引数。</param>
     /// <remarks>
     /// <b>注釈の無い場所ではキャプチャしない</b>: プレビューのパンはキャプチャ不要であり、
-    /// キャプチャが残るとカーソルがウィンドウへ掴まれたままになる（実測 2026-11-20）。
+    /// キャプチャが残るとカーソルがウィンドウへ掴まれたままになる。
     /// </remarks>
     private void CapturePointerHere(PointerRoutedEventArgs e)
     {
@@ -369,8 +368,8 @@ public sealed partial class AnnotationLayerControl
         _lastPointerSource = source;
 
         // **ボタンを押していない移動では何も動かさない**: 捕捉の解放や Up の取りこぼしで
-        // 「押していないのにドラッグ中」の状態が残ると、ホバーだけで枠線や注釈が動き続ける
-        // （実測 2026-11-22: MewUI 版で再現）。 押下中だけ動かす。
+        // 「押していないのにドラッグ中」の状態が残ると、ホバーだけで枠線や注釈が動き続ける。
+        // 押下中だけ動かす。
         var isPressed = point.Properties.IsLeftButtonPressed;
 
         // 本文を押したまま動かしている間は、選択範囲を広げる（マウスでの選択）
@@ -394,20 +393,15 @@ public sealed partial class AnnotationLayerControl
             if (!isPressed)
             {
                 _isDraggingTail = false;
-                RaiseDocumentChanged();
+                _session.CommitChange();
                 Redraw();
                 return;
             }
 
-            if (Selected is BubbleAnnotation bubble)
+            if (Selected is BubbleAnnotation)
             {
-                var next = _document.WithTailTip(bubble.Id, source);
-                if (!ReferenceEquals(next, _document))
-                {
-                    _document = next;
-                    RaiseDocumentChanged();
-                    Redraw();
-                }
+                _session.SetTailTip(source, TailGrabMarginSource());
+                Redraw();
             }
 
             return;
@@ -439,7 +433,7 @@ public sealed partial class AnnotationLayerControl
         // **ポインターの形で「何ができるか」を示す**（規則はコアの AnnotationPointerPolicy が単一所有する）
         if (!isPressed)
         {
-            ApplyHoverCursor(source, point.Position);
+            ApplyHoverCursor(point.Position);
         }
 
         Redraw();
@@ -457,7 +451,7 @@ public sealed partial class AnnotationLayerControl
 
         var point = e.GetCurrentPoint(this);
         var source = ToSource(new EsPoint(point.Position.X, point.Position.Y));
-        _core.Log.LogPointerReleased(source, SelectedId is not null);
+        _core.Log.LogPointerReleased(source, _session.SelectedId is not null);
 
         if (_isSelectingText)
         {
@@ -472,7 +466,7 @@ public sealed partial class AnnotationLayerControl
         else if (_isDraggingTail)
         {
             _isDraggingTail = false;
-            RaiseDocumentChanged();
+            _session.CommitChange();
             Redraw();
         }
         else
@@ -526,7 +520,7 @@ public sealed partial class AnnotationLayerControl
             case VirtualKey.Right:
             case VirtualKey.Up:
             case VirtualKey.Down:
-                PrepareUndo();
+                _session.BeginChange();
                 e.Handled = _marquee.KeyDown(ToEsKey(e.Key), _lastPointerSource);
                 Redraw();
                 return;
@@ -563,10 +557,10 @@ public sealed partial class AnnotationLayerControl
         // 外観フライアウトは注釈（枠線・吹き出し）の上を右クリックしたときだけ出す。
         // 注釈の外は「枠線・吹き出しを追加」のメニューにする（選択も解除する）。
         // 追加できるのは画像の内側だけである（規則はコアが単一所有する）
-        if (AnnotationHitTest.HitTest(_document, source) is not { } hit)
+        if (AnnotationHitTest.HitTest(_session.Document, source) is not { } hit)
         {
-            Select(null);
-            if (AnnotationGeometry.Contains(source, _document.ImageSize))
+            _session.Select(null);
+            if (AnnotationGeometry.Contains(source, _session.Document.ImageSize))
             {
                 AddMenuRequested?.Invoke(this, new AnnotationAddMenuRequestedEventArgs(position.X, position.Y));
             }
@@ -574,7 +568,7 @@ public sealed partial class AnnotationLayerControl
             return;
         }
 
-        Select(hit.Id);
+        _session.Select(hit.Id);
         _styleEditorX = position.X;
         _styleEditorY = position.Y;
 
@@ -618,18 +612,10 @@ public sealed partial class AnnotationLayerControl
     }
 
     /// <summary>ホバー中のポインターの形を決めて適用する。</summary>
-    /// <param name="source">位置（元画像ピクセル）。</param>
     /// <param name="position">位置（ローカル DIP）。</param>
-    private void ApplyHoverCursor(EsPoint source, Windows.Foundation.Point position)
+    private void ApplyHoverCursor(Windows.Foundation.Point position)
     {
-        var (scale, _) = ResolveImageTransform();
-        var kind = AnnotationPointerPolicy.Resolve(
-            _document,
-            SelectedId,
-            source,
-            new EsPoint(position.X, position.Y),
-            _handleDipRects,
-            TailHandleRadiusDip / (scale > 0 ? scale : 1.0));
+        var kind = ResolvePointerKind(new Windows.Foundation.Point(position.X, position.Y));
 
         ProtectedCursor = Microsoft.UI.Input.InputSystemCursor.Create(kind switch
         {
@@ -663,46 +649,33 @@ public sealed partial class AnnotationLayerControl
         }
     }
 
-    /// <summary>選択中の注釈のハンドルを押したかどうかを判定する。</summary>
-    /// <param name="position">位置（DIP）。</param>
-    /// <returns>ハンドルの上なら <see langword="true"/>。</returns>
-    private bool HitsSelectionHandle(EsPoint position)
+    /// <summary>位置（DIP）で示される操作の種類を求める（しっぽ → ハンドル → 本体の優先順）。</summary>
+    /// <param name="position">位置（ローカル DIP）。</param>
+    /// <returns>操作の種類。 注釈の上でない場合は <see cref="AnnotationPointerKind.None"/>。</returns>
+    private AnnotationPointerKind ResolvePointerKind(Windows.Foundation.Point position)
     {
-        if (SelectedId is null)
-        {
-            return false;
-        }
-
-        var plan = _marquee.ResolveDrawPlan(
-            new EsSize(Math.Max(0, ActualWidth), Math.Max(0, ActualHeight)),
-            AnnotationMarqueeMetrics.MeasureText,
-            false);
-        if (plan.Handles is not { } handles)
-        {
-            return false;
-        }
-
-        var radius = HandleHitRadius;
-        var squared = radius * radius;
-        for (var i = 0; i < 8; i++)
-        {
-            var rect = handles.HandleDipRects[i];
-            var dx = (rect.X + (rect.Width / 2)) - position.X;
-            var dy = (rect.Y + (rect.Height / 2)) - position.Y;
-            if ((dx * dx) + (dy * dy) <= squared)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        var transform = _frozenTransform ?? ResolveImageTransform();
+        var dip = new EsPoint(position.X, position.Y);
+        return AnnotationPointerPolicy.Resolve(
+            _session.Document,
+            _session.SelectedId,
+            transform.ToSource(dip),
+            dip,
+            _handleDipRects,
+            transform.ToSourceRadius(TailHandleRadiusDip));
     }
+
+    /// <summary>しっぽの先端を掴む距離を元画像ピクセルで求める（画面の DIP で一定の大きさを保つ）。</summary>
+    /// <returns>掴む距離（元画像ピクセル）。</returns>
+    /// <remarks>端の余白はドラッグの目標にだけ使い、保存する値へ UI の都合を持ち込まない。</remarks>
+    private double TailGrabMarginSource()
+        => (_frozenTransform ?? ResolveImageTransform()).ToSourceRadius(TailHandleRadiusDip);
 
     /// <summary>Marquee からの通知を文書へ反映する（移動・サイズ変更）。</summary>
     /// <param name="notice">通知。</param>
     private void OnMarqueeNotice(MarqueeNotice notice)
     {
-        if (_isApplyingMarquee || SelectedId is null)
+        if (_isApplyingMarquee || _session.SelectedId is null)
         {
             return;
         }
@@ -713,7 +686,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         var rect = notice.Snapshot.SelectionSourceRect;
-        if (rect.IsEmpty || _document.Find(SelectedId) is not { } item)
+        if (rect.IsEmpty)
         {
             return;
         }
@@ -722,12 +695,7 @@ public sealed partial class AnnotationLayerControl
         try
         {
             // 画像の外へは出さない（収める規則はコアが単一所有する）
-            var next = _document.WithBounds(item.Id, rect);
-            if (!ReferenceEquals(next, _document))
-            {
-                _document = next;
-                RaiseDocumentChanged();
-            }
+            _session.SetBounds(rect);
         }
         finally
         {
@@ -735,19 +703,6 @@ public sealed partial class AnnotationLayerControl
         }
 
         Redraw();
-    }
-
-    /// <summary>しっぽの先端の近くかどうかを判定する（描画したハンドルと同じ半径）。</summary>
-    /// <param name="bubble">対象の吹き出し。</param>
-    /// <param name="source">位置（元画像ピクセル）。</param>
-    /// <returns>近くの場合は <see langword="true"/>。</returns>
-    private bool IsNearTailTip(BubbleAnnotation bubble, EsPoint source)
-    {
-        var (scale, _) = ResolveImageTransform();
-        var radius = TailHandleRadiusDip / Math.Max(scale, 0.0001);
-        var dx = bubble.Tail.Tip.X - source.X;
-        var dy = bubble.Tail.Tip.Y - source.Y;
-        return (dx * dx) + (dy * dy) <= radius * radius;
     }
 }
 

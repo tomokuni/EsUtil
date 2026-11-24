@@ -72,6 +72,16 @@ public readonly record struct AnnotationViewTransform(double Scale, EsPoint Offs
     public EsPoint ToClient(EsPoint source)
         => new(Offset.X + (source.X * Scale), Offset.Y + (source.Y * Scale));
 
+    /// <summary>画面上の距離（DIP）を元画像ピクセルの距離へ変換する。</summary>
+    /// <param name="dipRadius">画面上の距離（DIP）。</param>
+    /// <returns>元画像ピクセルの距離。</returns>
+    /// <remarks>
+    /// <b>掴む範囲は画面上で一定にする</b>: しっぽのハンドルは表示倍率によらず同じ大きさで掴むため、
+    /// 当たり判定へ渡す半径は倍率で割った値にする（倍率 0 以下は等倍として扱う）。
+    /// </remarks>
+    public double ToSourceRadius(double dipRadius)
+        => Scale > 0 ? dipRadius / Scale : dipRadius;
+
     /// <summary>元画像ピクセルの矩形をローカル DIP へ変換する。</summary>
     /// <param name="source">元画像ピクセルの矩形。</param>
     /// <returns>ローカル DIP の矩形。</returns>

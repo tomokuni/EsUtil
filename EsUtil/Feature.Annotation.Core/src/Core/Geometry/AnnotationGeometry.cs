@@ -56,28 +56,35 @@ public static class AnnotationGeometry
     /// <returns>内側の場合は <see langword="true"/>（右端・下端の辺は外側）。</returns>
     /// <remarks>
     /// <b>画像の外の操作は注釈の対象外</b>にする（プレビューの余白を右クリックしても追加メニューを出さない）。
-    /// 判定を UI ごとに書くと、片方だけ座標系を取り違えて「メニューが出ない」不具合になる（実測 2026-11-21）。
+    /// 判定を UI ごとに書くと、片方だけ座標系を取り違えて「メニューが出ない」不具合になる。
     /// </remarks>
     public static bool Contains(EsPoint point, EsSize imageSize)
         => point.X >= 0 && point.Y >= 0 && point.X < imageSize.Width && point.Y < imageSize.Height;
 
-    /// <summary>しっぽの先端を画像の内側へ収める（掴める余白を残す）。</summary>
+    /// <summary>しっぽの先端を画像の内側へ収める。</summary>
     /// <param name="point">収める点（元画像ピクセル）。</param>
     /// <param name="imageSize">画像の大きさ（元画像ピクセル）。</param>
+    /// <param name="margin">画像の端から残す距離（元画像ピクセル。 0 は端まで許す）。</param>
     /// <returns>画像の内側に収まった点。</returns>
     /// <remarks>
-    /// <b>辺の上には置かない</b>: 先端が画像の端ちょうどにあると、ハンドルが画像の外へはみ出して
-    /// 切られ、掴めない（移動できない）。 ハンドルの半径ぶんの余白（<see cref="TailGrabMargin"/>）を
-    /// 残した内側へ収める（実測 2026-11-21）。
+    /// <b>画像の外へは出さない</b>: 先端が画像の外にあると、しっぽが表示されず掴めない。<br/>
+    /// <b>端の余白は UI の都合である</b>: 画面の DIP で一定の大きさのハンドルを掴めるようにする距離は、
+    /// 注釈の値ではなく表示の都合であり、ズーム率で変わる。 保存する値へ持ち込まないよう、注釈の文書は
+    /// <paramref name="margin"/> を 0 として扱い、UI が自分の表示倍率で DIP の距離を元画像ピクセルへ換算して
+    /// （<see cref="AnnotationViewTransform.ToSourceRadius"/>）渡す。
     /// </remarks>
-    public static EsPoint ClampTailTip(EsPoint point, EsSize imageSize)
+    public static EsPoint ClampTailTip(EsPoint point, EsSize imageSize, double margin = 0)
     {
-        var margin = TailGrabMargin;
-        var maxX = Math.Max(margin, imageSize.Width - margin);
-        var maxY = Math.Max(margin, imageSize.Height - margin);
+        var width = Math.Max(1, imageSize.Width);
+        var height = Math.Max(1, imageSize.Height);
+        var inset = double.IsFinite(margin) && margin > 0 ? margin : 0;
+        var minX = Math.Min(inset, width);
+        var minY = Math.Min(inset, height);
+        var maxX = Math.Max(minX, width - inset);
+        var maxY = Math.Max(minY, height - inset);
         return new EsPoint(
-            Math.Clamp(point.X, Math.Min(margin, maxX), maxX),
-            Math.Clamp(point.Y, Math.Min(margin, maxY), maxY));
+            Math.Clamp(point.X, minX, maxX),
+            Math.Clamp(point.Y, minY, maxY));
     }
 
     /// <summary>新規作成する注釈の矩形を求める（左上を指定位置へ寄せ、画像の内側へ収める）。</summary>
@@ -104,17 +111,13 @@ public static class AnnotationGeometry
             height);
     }
 
-    /// <summary>しっぽの先端を画像の端から離しておく距離（元画像ピクセル）。</summary>
-    /// <remarks>しっぽのハンドル（半径 5〜6 DIP）が画像の内側に収まる大きさ。</remarks>
-    internal const double TailGrabMargin = 10;
-
     /// <summary>枠線の注釈を作る（矩形を画像の内側へ収める）。</summary>
     /// <param name="bounds">矩形（元画像ピクセル）。</param>
     /// <param name="appearance">外観。</param>
     /// <param name="imageSize">画像の大きさ（元画像ピクセル）。</param>
     /// <returns>画像の内側に収まった枠線。</returns>
     public static FrameAnnotation CreateFrame(EsRect bounds, AnnotationAppearance appearance, EsSize imageSize)
-        => new() { Bounds = ClampRect(bounds, imageSize), Appearance = appearance };
+        => new() { Bounds = ClampRect(bounds, imageSize), Appearance = appearance.Normalized() };
 
     /// <summary>吹き出しの注釈を作る（本文の矩形もしっぽの先端も画像の内側へ収める）。</summary>
     /// <param name="bounds">本文の矩形（元画像ピクセル）。</param>
@@ -125,7 +128,7 @@ public static class AnnotationGeometry
     /// <returns>画像の内側に収まった吹き出し。</returns>
     /// <remarks>
     /// <b>しっぽの先端も収める</b>: 本文の下 40 px を既定にすると、本文が画像の下端にある場合に
-    /// 先端が画像の外へ出る（表示されず掴めない。 実測 2026-11-21）。
+    /// 先端が画像の外へ出る（表示されず掴めない）。
     /// </remarks>
     public static BubbleAnnotation CreateBubble(
         EsRect bounds,
@@ -147,10 +150,10 @@ public static class AnnotationGeometry
         return new BubbleAnnotation
         {
             Bounds = clamped,
-            Appearance = defaults.BubbleAppearance,
-            BodyPadding = defaults.BodyPadding,
-            Text = text,
-            Tail = resolved with { Tip = ClampTailTip(resolved.Tip, imageSize) },
+            Appearance = defaults.BubbleAppearance.Normalized(),
+            BodyPadding = AnnotationLimits.CoerceBodyPadding(defaults.BodyPadding),
+            Text = text.Normalized(),
+            Tail = (resolved with { Tip = ClampTailTip(resolved.Tip, imageSize) }).Normalized(),
         };
     }
 

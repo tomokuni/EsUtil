@@ -180,7 +180,7 @@ public static class AnnotationJson
     /// <returns>読み書きに使うオプション（読み取り専用）。</returns>
     /// <remarks>
     /// <b>変換器はインスタンスで渡す</b>: 属性で型を指定する方式は、変換器の生成に反射を使うため
-    /// Native AOT で警告になる（実測ではなく設計上の理由。 設定ファイルと同じ方針）。
+    /// Native AOT で警告になる（設定ファイルと同じ方針）。
     /// </remarks>
     private static JsonSerializerOptions CreateOptions()
     {

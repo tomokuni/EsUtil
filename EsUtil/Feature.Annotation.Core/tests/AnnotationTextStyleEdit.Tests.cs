@@ -7,7 +7,7 @@ namespace EsUtil.Feature.Annotation.Core.Tests;
 
 /// <summary>書式バーの変更を「選択範囲」と「以降の入力」のどちらへ回すかの仕様テスト。</summary>
 /// <remarks>
-/// 選択が無いときに書式を変えると、既存の文字は変えず、次に入力する文字へだけ効く（実測 2026-11-22）。
+/// 選択が無いときに書式を変えると、既存の文字は変えず、次に入力する文字へだけ効く。
 /// 規則の所有者は <see cref="AnnotationTextStyleEdit"/> と <see cref="AnnotationTextEdit"/> である。
 /// </remarks>
 public class AnnotationTextStyleEditTests

@@ -207,8 +207,7 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
     /// <remarks>
     /// <b>置いた位置を控えて返す</b>: パネルの根は <see cref="Canvas"/> ではなくウィンドウの中にあり、
     /// <see cref="Canvas.GetLeft"/> は常に <see cref="double.NaN"/> です。 根から読むと常に原点になり、
-    /// 外側の押下の判定が「内側」と誤って閉じなくなります（実測 2026-11-23: 他の場所を押しても
-    /// フライアウトが消えない場合があった）。
+    /// 外側の押下の判定が「内側」と誤って閉じなくなります。
     /// </remarks>
     public EsPoint GetPanelPosition(AnnotationPanelKind kind)
         => _positions.TryGetValue(kind, out var position) ? position : default;
@@ -236,8 +235,7 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
         }
 
         // **根は種別ごとに 1 度だけ作って使い回す**: 書式バーは作り直さない（購読が増えるため）。
-        // 根を作り直すと、前の根が書式バーを子として保持したままになり、付け替えに失敗する
-        // （実測 2026-11-20: WinUI 3 版で E_INVALIDARG になった）。
+        // 根を作り直すと、前の根が書式バーを子として保持したままになり、付け替えに失敗する。
         if (!_roots.TryGetValue(kind, out var root))
         {
             root = new Border
@@ -251,7 +249,7 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
         }
 
         // **中身は表示のたびに作り直す**: 吹き出しの設定は「吹き出しを選んでいるとき」だけ出す。
-        // 一度作った中身を使い回すと、最初に枠線を右クリックした後は吹き出しの設定が出ない（実測 2026-11-21）。
+        // 一度作った中身を使い回すと、最初に枠線を右クリックした後は吹き出しの設定が出ない。
         if (kind != AnnotationPanelKind.FormatBar)
         {
             root.Child = AnnotationStyleFlyout.BuildContent(_layer, appearance);
@@ -277,7 +275,7 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
         root.PointerReleased += (_, e) => EndPanelDrag(kind, e);
 
         // **別ウィンドウへ載せる**: ポップアップ（<see cref="Popup"/>）の子にすると、書式バーの列が
-        // 潰れて中身（色・大きさ・フォント）が欠ける（実測 2026-11-23）。 枠なしのウィンドウなら
+        // 潰れて中身（色・大きさ・フォント）が欠ける。 枠なしのウィンドウなら
         // レイアウトは普通のウィンドウと同じで、ウィンドウの外（画面の内側）へも出せます。
         if (!_windows.TryGetValue(kind, out var window))
         {
@@ -295,15 +293,14 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
             _windows[kind] = window;
 
             // **フォーカスが外れたら閉じる**: アプリの外（他のアプリ）や別ウィンドウを押した場合、
-            // アプリの画面の押下は届かないため、外側の押下の監視だけでは閉じられません
-            // （実測 2026-11-23: 他の場所を押しても消えない場合があった）。
+            // アプリの画面の押下は届かないため、外側の押下の監視だけでは閉じられません。
             window.Deactivated += (_, _) => CloseOnFocusLost(kind);
             window.Show(top as Window ?? (Window)top);
         }
 
         // **隠したウィンドウは出し直す**: いったん閉じた（<c>Hide</c> した）ウィンドウは、
         // そのままでは二度と表示されない（外側を押して書式バーを消した後、注釈を
-        // ダブルクリックしても出なくなった。実測 2026-11-23）。
+        // ダブルクリックしても出なくなった）
         if (!window.IsVisible)
         {
             window.Show(top as Window ?? (Window)top);
@@ -312,8 +309,7 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
         ApplyPosition(kind, position);
 
         // **レイアウトが確定してから置き直す**: 出した直後の位置指定は、ウィンドウが自分の寸法を
-        // 確定する際に捨てられることがある（実測 2026-11-23: 最初の右クリックだけ画面の左上 (0,0) に
-        // 出た。 2 回目以降は正しい位置に出た）。 次の描画で置き直す。
+        // 確定する際に捨てられることがある。 次の描画で置き直す。
         Dispatcher.UIThread.Post(
             () => ApplyPosition(kind, position), DispatcherPriority.Loaded);
     }
@@ -348,7 +344,7 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
 
     /// <summary>書式バーを本文の外（本文に被さらない位置）へ出し直す。</summary>
     /// <remarks>
-    /// <b>本文に被せない</b>: 編集中の文字が隠れて読めない（実測 2026-11-20）。 位置の判断は
+    /// <b>本文に被せない</b>: 編集中の文字が隠れて読めない。 位置の判断は
     /// 提示層（<see cref="AnnotationPanelPlacement.ResolveOutside"/>）が単一所有する。
     /// <b>大きさは実寸を使う</b>: 中身（フォント名・大きさ・色）で幅が決まるため、固定値だと
     /// 枠からはみ出す。 一度置いてから実寸で出し直す。
@@ -458,8 +454,7 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
         _positions[kind] = position;
 
         // **位置はアプリの画面（ウィンドウの中）の DIP**: 画面のピクセルへ写すときに、ウィンドウの
-        // 位置（ピクセル）を足します。 足さないと、ウィンドウを動かした分だけパネルがずれます
-        // （実測 2026-11-23: ウィンドウを (200, 100) へ動かすと、パネルが左上へ 200 px・100 px ずれた）。
+        // 位置（ピクセル）を足します。 足さないと、ウィンドウを動かした分だけパネルがずれます。
         var scale = main.RenderScaling > 0 ? main.RenderScaling : 1;
         var size = ResolvePanelSize(kind);
         var x = main.Position.X + (int)Math.Round(position.X * scale);
@@ -488,7 +483,7 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
     /// <remarks>
     /// <b><c>Width</c> は使わない</b>: ウィンドウは中身に合わせて大きさを決めるため
     /// （<see cref="SizeToContent.WidthAndHeight"/>）、<c>Width</c> は <see cref="double.NaN"/> であり、
-    /// ピクセルへ写すと 0 になって画面の外への判定が効きません（実測 2026-11-23: 画面からはみ出た）。
+    /// ピクセルへ写すと 0 になって画面の外への判定が効きません。
     /// </remarks>
     private EsSize ResolvePanelSize(AnnotationPanelKind kind)
     {
@@ -505,7 +500,7 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
     /// <returns>重ねた先の座標。 取得できない場合はそのまま返す。</returns>
     /// <remarks>
     /// <b>変換は視覚ツリーに任せる</b>: 画面座標を経由すると点の基準が呼び出し元とずれ、
-    /// フライアウトが右クリック位置から離れた場所へ出る（実測 2026-11-21）。
+    /// フライアウトが右クリック位置から離れた場所へ出る。
     /// </remarks>
     private EsPoint ToOverlayPoint(Point point)
     {
@@ -581,7 +576,7 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
     /// <summary>パネルの外側の押下を監視する（まだ監視していない場合だけ繋ぐ）。</summary>
     /// <remarks>
     /// <b>外側の押下で閉じる</b>: 重ねた先はアプリの画面の最上位のため、外側の押下は他の要素へ届く。
-    /// ここで拾ってコアへ知らせないと、フライアウトが開いたまま残る（実測 2026-11-21）。
+    /// ここで拾ってコアへ知らせないと、フライアウトが開いたまま残る。
     /// </remarks>
     private void EnsureOutsidePressHook()
     {

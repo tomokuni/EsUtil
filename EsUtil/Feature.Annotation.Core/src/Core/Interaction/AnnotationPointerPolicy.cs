@@ -72,6 +72,13 @@ public static class AnnotationPointerPolicy
         _ => throw new ArgumentOutOfRangeException(nameof(index), index, "ハンドルの位置は 0〜7 である必要があります。"),
     };
 
+    /// <summary>サイズ変更のハンドルを示す操作かどうかを判定する。</summary>
+    /// <param name="kind">操作の種類。</param>
+    /// <returns>サイズ変更のハンドルの場合は <see langword="true"/>。</returns>
+    /// <remarks>UI は押下をサイズ変更（Marquee へ渡す）と移動・しっぽで分けるため、判定を本クラスへ集約する。</remarks>
+    public static bool IsResize(AnnotationPointerKind kind)
+        => kind is >= AnnotationPointerKind.ResizeTopLeft and <= AnnotationPointerKind.ResizeBottomRight;
+
     /// <summary>矩形の内側に点があるかどうかを判定する（境界を含む）。</summary>
     /// <param name="rect">矩形。</param>
     /// <param name="point">点。</param>

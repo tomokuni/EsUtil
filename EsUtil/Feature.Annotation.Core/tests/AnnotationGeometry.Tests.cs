@@ -74,7 +74,7 @@ public sealed class AnnotationGeometryTests
         Assert.Equal(new EsPoint(500, 300), AnnotationGeometry.ClampPoint(new EsPoint(500, 300), image));
     }
 
-    /// <summary>吹き出しのしっぽの先端が画像の外へ出ない（本文が画像の下端にあっても掴める）。</summary>
+    /// <summary>吹き出しのしっぽの先端が画像の外へ出ない。</summary>
     [Fact]
     internal void CreateBubble_しっぽの先端を画像の内側へ収める()
     {
@@ -85,10 +85,15 @@ public sealed class AnnotationGeometryTests
             new EsSize(1000, 600));
 
         Assert.True(bubble.Bounds.Right <= 1000 && bubble.Bounds.Bottom <= 600);
-        Assert.True(bubble.Tail.Tip.X <= 1000 - 10 && bubble.Tail.Tip.Y <= 600 - 10);
+        Assert.InRange(bubble.Tail.Tip.X, 0, 1000);
+        Assert.InRange(bubble.Tail.Tip.Y, 0, 600);
     }
 
     /// <summary>文書経由の変更でも矩形としっぽの先端は画像の外へ出ない。</summary>
+    /// <remarks>
+    /// <b>端の余白は注釈の値ではない</b>: ハンドルを掴めるようにする距離は画面の DIP に由来し、
+    /// 表示倍率で変わる。 文書は画像の内側へ収めるだけにし、余白は UI がドラッグの目標へ適用する。
+    /// </remarks>
     [Fact]
     internal void WithBoundsとWithTailTip_画像の外を内側へ収める()
     {
@@ -105,9 +110,17 @@ public sealed class AnnotationGeometryTests
         var tailed = moved.WithTailTip(bubble.Id, new EsPoint(999, 999));
         var tip = Assert.IsType<BubbleAnnotation>(tailed.Find(bubble.Id)).Tail.Tip;
 
-        // 端ちょうどではなく、ハンドルを掴める余白を残した内側へ収める
-        Assert.True(tip.X <= 400 - 10 && tip.Y <= 300 - 10);
-        Assert.True(tip.X >= 10 && tip.Y >= 10);
+        // 画像の端まで許す（端ちょうどでもしっぽは内側に描かれる）
+        Assert.Equal(new EsPoint(400, 300), tip);
+    }
+
+    /// <summary>端から残す距離を指定すると、その距離だけ内側へ収める。</summary>
+    [Fact]
+    internal void ClampTailTip_余白を指定すると内側へ収める()
+    {
+        var tip = AnnotationGeometry.ClampTailTip(new EsPoint(999, 999), new EsSize(400, 300), margin: 12);
+
+        Assert.Equal(new EsPoint(388, 288), tip);
     }
 
     /// <summary>しっぽの幅と付け根の比率も安全域へ補正する。</summary>
@@ -180,8 +193,7 @@ public sealed class AnnotationGeometryTests
 
     /// <summary>本体を動かすとしっぽも同じだけ動く（しっぽが取り残されない）。</summary>
     /// <remarks>
-    /// 本体だけ動かすと、しっぽが元の位置に残って本体から離れた細い三角形になる
-    /// （実測 2026-11-21: 吹き出しを移動したら、しっぽだけが数百ピクセル離れた場所へ描かれた）。
+    /// 本体だけ動かすと、しっぽが元の位置に残って本体から離れた細い三角形になる。
     /// </remarks>
     [Fact]
     internal void WithBounds_しっぽも本体に付いて動く()

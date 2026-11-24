@@ -63,7 +63,7 @@ public sealed class AnnotationFormatBar : ContentControl
 
         // **フォント名は直接入力できる**: MewUI の ComboBox は読み取り専用のため、
         // コンボボックスが枠と展開ボタンを描き、その文字の位置へ**枠も背景も持たない文字入力**を重ねる
-        // （EsUtil の色選択と同じ作り。 実測 2026-11-22: MewUI 版だけ直接入力できなかった）。
+        // （EsUtil の色選択と同じ作り）
         // 標準のテキスト入力を使うため、Ctrl+C / Ctrl+V もそのまま使える。
         _font = new ComboBox().Items([.. AnnotationFonts.All]);
         _font.Width = FontSelectorWidth;
@@ -126,7 +126,7 @@ public sealed class AnnotationFormatBar : ContentControl
         _color.Height = AnnotationFormatBarLayout.ItemHeight;
 
         // **中の入力欄も同じ高さにする**: 色の選択の中の ComboBox は自分の高さを持ち、外側の高さでは
-        // 伸びない。 揃えないと色の入力欄だけが低く見える（実測 2026-11-22）
+        // 伸びない。 揃えないと色の入力欄だけが低く見える
         AnnotationEditorControls.AlignInputHeight(_color, AnnotationFormatBarLayout.ItemHeight);
 
         _bold = CreateToggle("B", bold: true);
@@ -153,7 +153,7 @@ public sealed class AnnotationFormatBar : ContentControl
         };
 
         // 並び順はコア（AnnotationFormatBarLayout.Order）が単一所有する。
-        // ここで順を決めると 4 つの UI 版で操作の位置がずれる（実測 2026-11-20）。
+        // ここで順を決めると 4 つの UI 版で操作の位置がずれる。
         var items = new Dictionary<AnnotationFormatBarItem, Element>
         {
             [AnnotationFormatBarItem.Bold] = _bold,
@@ -167,8 +167,8 @@ public sealed class AnnotationFormatBar : ContentControl
 
         foreach (var item in AnnotationFormatBarLayout.Order)
         {
-            // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる
-            // （実測 2026-11-21）。 値は提示層の AnnotationFormatBarLayout.ItemHeight が単一所有する
+            // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる。
+            // 値は提示層の AnnotationFormatBarLayout.ItemHeight が単一所有する
             var element = (FrameworkElement)items[item];
             element.Height = AnnotationFormatBarLayout.ItemHeight;
             element.MinHeight = AnnotationFormatBarLayout.ItemHeight;
@@ -216,7 +216,7 @@ public sealed class AnnotationFormatBar : ContentControl
     /// <summary>色の入力欄へ出す表記を取得または設定する。</summary>
     /// <value>色名 + 不透明度（<see cref="ColorTextFormat.NameWithAlpha"/>）。</value>
     /// <remarks>
-    /// <b>代表色を選んだら色名で出す</b>: 色名のほうが「どの色を選んだか」を読み取りやすい（実測 2026-11-22）。
+    /// <b>代表色を選んだら色名で出す</b>: 色名のほうが「どの色を選んだか」を読み取りやすい。
     /// 色名の無い色は <c>#AARRGGBB</c>（8 桁）で出るため、表記によって不透明度が見えなくなることはない
     /// （規則は <c>ColorString.Format</c> が単一所有する）。
     /// </remarks>
@@ -229,7 +229,7 @@ public sealed class AnnotationFormatBar : ContentControl
     /// <summary>現在の書式を表示へ反映する（選択範囲の先頭の書式）。</summary>
     /// <remarks>
     /// <b>文字を選んでいなくても操作できる</b>: 選択が無いときに選んだ書式は、以降の入力へ効く
-    /// （無効にすると「書式を変えられない」と見える。 実測 2026-11-22）。
+    /// （無効にすると「書式を変えられない」と見える）
     /// </remarks>
     public void Refresh()
     {
@@ -270,16 +270,16 @@ public sealed class AnnotationFormatBar : ContentControl
     {
         const double height = AnnotationFormatBarLayout.ItemHeight;
 
-        // **記号自体にも装飾を描く**: 「U」「S」の文字だけでは意味が伝わらない（実測 2026-11-21）。
+        // **記号自体にも装飾を描く**: 「U」「S」の文字だけでは意味が伝わらない。
         // 線は文字へ持たせる（MewUI の TextBlock は文字単位の装飾を Run で持てる）。 図形を重ねると
-        // 文字との位置がずれ、線だけが別の場所に見える（実測 2026-11-21）。
+        // 文字との位置がずれ、線だけが別の場所に見える。
         var label = new TextBlock
         {
             Width = ToggleWidth,
             Height = height,
 
             // **上下中央へ寄せる**: 記号は字面の上下に余白を持たない（Consolas の "B" "I" は行の
-            // 上寄りに描かれる）ため、そのままでは下へ 4 DIP ずれて見える（実測 2026-11-22）。
+            // 上寄りに描かれる）ため、そのままでは下へ 4 DIP ずれて見える。
             // MewUI の負の上余白は半分だけ効くため、倍の値を与える。
             Margin = new Thickness(0, -2, 0, 0),
 

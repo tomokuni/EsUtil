@@ -23,8 +23,8 @@ public static class AnnotationEditorControls
 
     /// <summary>行の入力欄の幅（DIP。 値はコアが単一所有する）。</summary>
     /// <remarks>
-    /// <b>数値・選択肢・色を同じ幅にする</b>: 幅が違うと行の右端が揃わず、入力部がばらばらに見える
-    /// （実測 2026-11-22）。 フライアウトの幅もこの値から決まる（<see cref="AnnotationPanelAppearance.StyleEditor"/>）。
+    /// <b>数値・選択肢・色を同じ幅にする</b>: 幅が違うと行の右端が揃わず、入力部がばらばらに見える。
+    /// フライアウトの幅もこの値から決まる（<see cref="AnnotationPanelAppearance.StyleEditor"/>）。
     /// </remarks>
     public const double FieldWidth = AnnotationEditorLayout.FieldWidth;
 
@@ -126,7 +126,7 @@ public static class AnnotationEditorControls
     /// <summary>入力欄の背景（有効時の色）を取得する。</summary>
     /// <value>テーマの入力欄の色。 テーマを解決できない場合（<c>Application.Run</c> 前）は白。</value>
     /// <remarks>
-    /// <b>MewUI の ComboBox は既定で灰色</b>である（実測 2026-11-22: <c>#E8E8E8</c>）。 白い数値の入力と
+    /// <b>MewUI の ComboBox は既定で灰色</b>である。 白い数値の入力と
     /// 並ぶと無効に見えるため、有効時の入力欄の色（数値の入力と同じ色）で塗る。
     /// </remarks>
     private static Color InputBackground
@@ -230,8 +230,8 @@ public static class AnnotationEditorControls
     /// <param name="height">高さ（DIP）。</param>
     /// <remarks>
     /// <b>外側の高さだけでは中の入力欄が伸びない</b>: MewUI の <see cref="ComboBox"/> は自分の高さを持ち、
-    /// 親の高さへ合わせて伸びません。 数値の入力と並べると<b>色の入力欄だけが低く</b>見えます
-    /// （実測 2026-11-22: 書式バーで色の入力欄だけ 4 DIP 低い）。 高さの規則（書式バーの項目の高さ）は
+    /// 親の高さへ合わせて伸びません。 数値の入力と並べると<b>色の入力欄だけが低く</b>見えます。
+    /// 高さの規則（書式バーの項目の高さ）は
     /// コアが単一所有するため、ここでは受け取った値を中の入力欄へも与えます。
     /// </remarks>
     public static void AlignInputHeight(ColorSelectorControl selector, double height)

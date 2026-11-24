@@ -202,4 +202,42 @@ public class RichTextTests
         Assert.Equal("あい", updated.PlainText);
         Assert.Single(updated.Runs);
     }
+
+    /// <summary>サロゲート ペアの途中へ挿入しても文字列が壊れないことを検証する。</summary>
+    [Fact]
+    internal void Insert_サロゲートペアを分割しない()
+    {
+        var text = RichText.Create("😀あ", AnnotationDefaults.TextStyle);
+
+        var updated = text.Insert(1, "X");
+
+        // ペアの内側へは入らず、クラスタの先頭へ入る
+        Assert.Equal("X😀あ", updated.PlainText);
+        Assert.True(char.IsSurrogatePair(updated.PlainText, 1));
+    }
+
+    /// <summary>サロゲート ペアの片方だけを削除しても文字列が壊れないことを検証する。</summary>
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(1, 1)]
+    internal void Remove_サロゲートペアを丸ごと消す(int start, int length)
+    {
+        var text = RichText.Create("😀あ", AnnotationDefaults.TextStyle);
+
+        var updated = text.Remove(start, length);
+
+        Assert.Equal("あ", updated.PlainText);
+    }
+
+    /// <summary>本文の置き換えでもサロゲート ペアを分割しないことを検証する。</summary>
+    [Fact]
+    internal void WithPlainText_サロゲートペアを保つ()
+    {
+        var text = RichText.Create("ab", AnnotationDefaults.TextStyle);
+
+        var updated = text.WithPlainText("😀b");
+
+        Assert.Equal("😀b", updated.PlainText);
+        Assert.True(char.IsSurrogatePair(updated.PlainText, 0));
+    }
 }

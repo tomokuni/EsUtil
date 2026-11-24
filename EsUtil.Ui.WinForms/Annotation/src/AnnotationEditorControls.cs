@@ -13,7 +13,7 @@ internal static class AnnotationEditorControls
     /// <summary>装飾の切り替え（B / I / U / S）の文字サイズ（ポイント）。</summary>
     /// <remarks>
     /// <b>行の文字より一回り大きくする</b>: 記号 1 文字だけのボタンは、行の文字と同じ大きさだと
-    /// 線（下線・取り消し線）と字面が小さく、押せる場所としても見えにくい（実測 2026-11-22）。
+    /// 線（下線・取り消し線）と字面が小さく、押せる場所としても見えにくい。
     /// コアの値（14 DIP）をポイントへ換算します（1 DIP = 0.75 pt）。
     /// </remarks>
     internal const float ToggleFontSize = (float)(AnnotationEditorLayout.ToggleFontSize * 0.75);

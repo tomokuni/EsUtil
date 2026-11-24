@@ -2,8 +2,7 @@ namespace EsUtil.Feature.Annotation.Presenter.Editor;
 
 /// <summary>注釈の編集 UI（右クリックのフライアウト・書式バー）へ出す文言（単一所有）。</summary>
 /// <remarks>
-/// <b>文面は UI に書きません</b>: 同じ項目名を 4 つの UI 版がそれぞれ持つと、版ごとに言い回しが変わります
-/// （実測 2026-11-22: 同じ項目が「しっぽの向き」と「しっぽの辺」に分かれる）。<br/>
+/// <b>文面は UI に書きません</b>: 同じ項目名を 4 つの UI 版がそれぞれ持つと、版ごとに言い回しが変わります。<br/>
 /// <b>訳す場合はここを差し替える</b>: 表示の文言を 1 か所に集めることで、翻訳や表記の統一が 1 回で済みます。
 /// </remarks>
 public static class AnnotationEditorText

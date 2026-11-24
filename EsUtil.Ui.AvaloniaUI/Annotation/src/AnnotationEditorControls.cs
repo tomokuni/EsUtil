@@ -24,8 +24,8 @@ public static class AnnotationEditorControls
 
     /// <summary>行の入力欄の幅（DIP。 値はコアが単一所有する）。</summary>
     /// <remarks>
-    /// <b>数値・選択肢・色を同じ幅にする</b>: 幅が違うと行の右端が揃わず、入力部がばらばらに見える
-    /// （実測 2026-11-22）。 フライアウトの幅もこの値から決まる（<see cref="AnnotationPanelAppearance.StyleEditor"/>）。
+    /// <b>数値・選択肢・色を同じ幅にする</b>: 幅が違うと行の右端が揃わず、入力部がばらばらに見える。
+    /// フライアウトの幅もこの値から決まる（<see cref="AnnotationPanelAppearance.StyleEditor"/>）。
     /// </remarks>
     public const double FieldWidth = AnnotationEditorLayout.FieldWidth;
 
@@ -58,7 +58,7 @@ public static class AnnotationEditorControls
     /// <param name="textFormat">入力欄へ出す表記（色名 + 不透明度 / カラーコード）。</param>
     /// <returns>色の選択。</returns>
     /// <remarks>
-    /// <b>他の項目と同じ横並びにする</b>: 項目名を上へ置くと 1 行を使い、選択の列が縦に間延びする（実測で指摘）。<br/>
+    /// <b>他の項目と同じ横並びにする</b>: 項目名を上へ置くと 1 行を使い、選択の列が縦に間延びする。<br/>
     /// <b>注釈向けの構成にする</b>: テーマの色・色名のタブと ColorPicker タブを隠し、代表色 40 色のタブだけを出す
     /// （<see cref="AnnotationPalette.Configure"/>）。
     /// </remarks>

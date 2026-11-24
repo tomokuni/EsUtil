@@ -105,7 +105,7 @@ public sealed record AnnotationPanelAppearance(
     /// <value>下地 <c>#FFFFFF</c> / 枠 <c>#999999</c> / 枠 1 DIP / 角丸 0 DIP / 余白 6,3 DIP / 幅は中身に合わせる / 幅の上限 2400 DIP / 高さの上限 200 DIP。</value>
     /// <remarks>
     /// <b>幅を固定しない</b>: 中身（フォント名・大きさ・色）で幅が決まる。 固定すると項目が枠から
-    /// はみ出す（実測 2026-11-20）。<br/>
+    /// はみ出す。<br/>
     /// <b>角を丸めない</b>: 高さが低いため、丸めると項目の角が欠けて見える。<br/>
     /// <b>中身の高さは項目の高さと同じにする</b>: 項目の高さは
     /// <see cref="AnnotationFormatBarLayout.ItemHeight"/> が単一所有する。 これより低いと中身が

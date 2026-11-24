@@ -18,6 +18,7 @@
 - [12. `AnnotationDraftDefaults`（レコード）](#12-annotationdraftdefaultsレコード)
 - [13. `AnnotationHistory`（クラス）](#13-annotationhistoryクラス)
 - [14. 層が共有する値（クラス）](#14-層が共有する値クラス)
+- [15. `AnnotationEditSession` / `AnnotationEditChange`（クラス・列挙型）](#15-annotationeditsession--annotationeditchangeクラス列挙型)
 
 ## 1. 公開 API の可視性
 
@@ -30,6 +31,7 @@
 | 描画計画（`AnnotationDrawPlan` / `AnnotationShapePlan` / `AnnotationTextLinePlan` / `AnnotationTextSegmentPlan` / `AnnotationKind`） | `public` | 任意 |
 | 判断・保存（`AnnotationHitTest` / `AnnotationJson` / `AnnotationDefaults` / `AnnotationLimits` / `BubbleEdge`） | `public` | 任意 |
 | UI との契約（`AnnotationPreviewGesture` / `AnnotationPreviewGestureEventArgs` / `AnnotationStyleEditorRequestedEventArgs` / `AnnotationAddMenuRequestedEventArgs` / `AnnotationPointerKind`） | `public` | UI 層 |
+| 編集セッション（`AnnotationEditSession` / `AnnotationEditChange`） | `public` | UI 層 |
 | `AnnotationJsonContext` / 折り返し / JSON 変換器 | `internal` | 同一アセンブリとテスト |
 
 ## 2. `AnnotationCore`（クラス）
@@ -65,11 +67,10 @@
 | `Add(item)` / `Replace(item)` / `Remove(id)` | 追加・差し替え・削除（**元の文書は変更しない**） |
 | `Find(id)` / `IndexOf(id)` | 識別子からの取得（無い場合は null / -1） |
 | `BringToFront(id)` / `SendToBack(id)` | 重なり順の変更（最前面・最背面へ移す。 新しい文書を返す） |
-| `WithText(bubble, text)` | 吹き出しの本文だけを差し替える（新しい文書を返す） |
+| `WithText(bubbleId, text)` | 吹き出しの本文だけを差し替える（新しい文書を返す） |
 | `WithBounds(id, bounds)` | 矩形を画像の内側へ収めた文書を返す（しっぽも同じ移動量だけ追従する） |
 | `WithTailTip(id, tip)` / `WithTail(id, tail)` | しっぽの先端・しっぽ全体を画像の内側へ収めた文書を返す（幅と付け根の比率も安全域へ補正する） |
 | `WithAppearance(id, appearance)` / `WithBodyPadding(id, padding)` | 外観・本文の余白を安全域へ補正した文書を返す |
-| `WithText(bubbleId, text)` | 吹き出しの本文を差し替えた文書を返す |
 
 - **文書は不変です**。 すべての変更は新しい文書を返し、変化が無い場合は**同じ実体**を返します（`ReferenceEquals` で変更の有無を判定できる）。 矩形・しっぽ・外観・余白の検証（画像の内側へ収める・安全域へ補正する）は `WithBounds` / `WithTail` / `WithAppearance` / `WithBodyPadding` が単一所有します。
 
@@ -105,6 +106,7 @@
 | `RichText.WithPlainText(text)` | 書式を**文字位置で引き継いで**文字列だけを差し替える（本文の編集に使う） |
 | `RichText.Insert(index, text)` | 指定位置へ文字列を挿入する（**直前の文字**の書式を引き継ぐ） |
 | `RichText.Remove(start, length)` | 指定範囲の文字を除く（残りの書式は保つ） |
+| `RichText.Normalized()` | 各 run の書式を安全域へ補正し、同じ書式の run を連結する（作成・読み込みの入口で 1 回だけ使う） |
 | `AnnotationTextStyle` | `FontFamily` / `FontSize`（元画像ピクセル）/ `Color` / `IsBold` / `IsItalic` / `IsUnderline` / `IsStrike` |
 | `AnnotationTextStyle.Default` / `Normalized()` | 既定の書式（`Yu Gothic UI` 優先）/ 安全域への補正 |
 
@@ -146,9 +148,11 @@
 | `GetDocumentPath(imagePath)` | `<画像名>.annotations.json` のパス（拡張子を置き換える） |
 | `GetComposedPath(imagePath)` | `<画像名>.annotated.<拡張子>` のパス（拡張子を保つ） |
 | `IsCompanionFile(path)` | 注釈の付随ファイル（注釈ファイル・合成画像）かどうか（名前の規則だけで判定する） |
-| `FileSuffix` | 注釈ファイルの接尾辞（`.annotations.json`） |
+| `ResolveImagePath(documentPath, document)` | 注釈ファイルから元画像のパスを求める（同じフォルダの `ImageFileName` → 注釈ファイルの名前から逆算。 見つからない場合は `null`） |
+| `FileSuffix` / `ComposedInfix` | 注釈ファイルの接尾辞（`.annotations.json`）/ 合成画像へ挟む目印（`.annotated`） |
 
 - **ファイルの入出力は `AnnotationCore.Load` / `AnnotationCore.Save`** が行います（文字コードは UTF-8・BOM なし。 件数を記録し、失敗は `Error` で記録して再スローする）。 本クラスは変換・パスの解決・付随ファイルの判定だけを持ちます（`Load` / `Save` は `internal`）。
+- **`ResolveImagePath` だけはファイルの存在を確かめます**（元画像が無ければ注釈を表示できないため、候補を順に試す必要がある）。 書き込みは行いません。
 
 - **矩形・点は `X` / `Y` / `Width` / `Height` だけ**、色は **`#AARRGGBB`** で保存します。
 - **未知の種別は読み込み時に例外**になります（前方互換はスキーマ版で扱う）。
@@ -199,7 +203,34 @@
 | `AnnotationDraftDefaultsFactory` | Core（`.Core.Defaults`） | 設定の値（色の文字列・数値）から `AnnotationDraftDefaults` を組み立てる（`FromText`）。 解釈できない色は透明として扱い、数値は `AnnotationLimits` の安全域へ補正する |
 | `AnnotationEditorAppearance` | Presenter（`.Presenter.Drawing`） | 本文の編集中の見た目（`CaretThicknessDip` / `CaretColor` / `SelectionColor`）。 UI は自分の描画 API の色へ変換して使う |
 | `AnnotationTextEdit` | Presenter（`.Presenter.Selection`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 UI は入力イベントを渡し、通知と描画だけを行う |
-| `AnnotationViewTransform` | Core（`.Core.Geometry`） | 表示倍率・左上の位置と、元画像ピクセルとローカル DIP の相互変換。 UI は点の型へ写すだけにする |
+| `AnnotationViewTransform` | Core（`.Core.Geometry`） | 表示倍率・左上の位置と、元画像ピクセルとローカル DIP の相互変換（`ToSourceRadius` で画面上の掴む距離を元画像ピクセルへ換算する）。 UI は点の型へ写すだけにする |
+| `AnnotationTextCursor` | Core（`.Core.Text`） | 本文の文字位置を書記素クラスタ（絵文字・結合文字）で扱う規則（キャレット・選択・削除・折り返しの境界）。 UI は位置を計算せず、この境界に従う |
 
 - **`AnnotationDraftDefaultsFactory` は「設定の項目名」を知りません**（`AnnotationFrameBorderColor` のような設定の項目名はホストのもの）。 引数は値だけを受け取り、対応付け（枠線の太さ・角丸を枠線と吹き出しの両方へ使う等）だけを持ちます。
 - **`AnnotationEditorAppearance` の値は元画像ピクセルではありません**（画面の DIP。 倍率は UI が掛ける）。
+- **文字位置は書記素クラスタの境界で扱います**（`AnnotationTextCursor`）。 サロゲート ペア（絵文字）と結合文字を半分に割ると文字列が壊れるため、キャレットの移動・選択・削除・折り返し・書式の範囲はすべて同じ境界に揃えます。
+
+## 15. `AnnotationEditSession` / `AnnotationEditChange`（クラス・列挙型）
+
+**4 つの UI 版が同じ順序で文書を変更するための編集セッション**です。 文書・選択・変更履歴・本文の編集状態を単一所有し、UI は入力の受付と描画だけを行います。
+
+| メンバー | 説明 |
+| --- | --- |
+| `Document` | 表示・編集する文書。 差し替えると選択・編集・履歴を解除する |
+| `SelectedId` / `Selected` | 選択中の注釈（設定すると本文の編集を終え、書式の適用先を切り替える） |
+| `DraftDefaults` | 新規作成時の既定値（既存の注釈には影響しない） |
+| `Subscribe(notify)` | 変更（`Document` / `Selection` / `Editing` / `TextSelection`）の購読。 戻り値の破棄で解除する |
+| `AddFrame(bounds)` / `AddBubble(bounds, text)` | 注釈の追加（画像の内側へ収め、追加した注釈を選択する） |
+| `DeleteSelected()` / `SetSelectedText(text)` | 選択中の注釈の削除・本文の差し替え |
+| `ApplyTextStyle(...)` / `TransformTextStyle(...)` | 選択範囲の書式の差し替え・変換（選択が無ければ以降の入力へ回す） |
+| `UpdateSelectedAppearance(transform)` / `SetSelectedBodyPadding(padding)` / `UpdateSelectedTail(transform)` | 選択中の注釈の外観・余白・しっぽの変更 |
+| `MoveSelectedToFront()` / `MoveSelectedToBack()` | 重なり順の変更（変わらない場合は `false` を返し、履歴に積まない） |
+| `BeginChange()` / `SetBounds(bounds)` / `SetTailTip(tip)` / `CommitChange()` | ドラッグ 1 手の記録（押下で控え、移動のたびに反映し、最初の変更で 1 手として積む） |
+| `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | 変更履歴（編集中はキャレットを本文の範囲へ収める） |
+| `BeginTextEditing()` / `EndTextEditing()` / `IsEditingText` | 本文の編集の開始・終了 |
+| `MoveCaret(...)` / `MoveCaretByLine(...)` / `MoveCaretToLineEdge(...)` / `SetCaretFromPoint(...)` | キャレットの移動（行の解決は `AnnotationTextLineIndex` を使う） |
+| `DeleteAtCaret(forward)` / `ReplaceSelection(text)` / `ReplaceRange(start, end, text)` | 本文の削除・置き換え（キャレットを挿入した文字列の末尾へ移す） |
+| `SelectedTextStyle` / `SelectedTextMatches(match)` / `SelectedText()` | 書式バーの表示値・押下状態・選択文字（クリップボード） |
+
+- **`AnnotationEditChange` はビットフラグ**です（1 回の操作で文書と選択が同時に変わることがあるため、種類ごとに購読を作らない）。
+- **ログ**: 選択・本文の編集・書式の適用・履歴の移動を記録します。 毎フレームの描画計画の解決は記録しません。

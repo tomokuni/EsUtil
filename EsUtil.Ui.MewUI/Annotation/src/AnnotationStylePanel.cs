@@ -47,7 +47,7 @@ public sealed class AnnotationStylePanel : ContentControl
         // ここで持つと、ウィンドウの枠と二重になって「余計な辺枠」に見える。
         // **スクロールさせない**: `ScrollViewer` で包むと、中身が収まっていてもバーが出る
         // （MewUI の既定は `ScrollMode.Visible`。 `Auto` にしてもパネルの領域が窓の残り高さに
-        // 切り取られてバーが残った。 実測 2026-11-23）。 置く位置はホストが
+        // 切り取られてバーが残った） 置く位置はホストが
         // `AnnotationPanelPlacement`（コア）で窓の内側へ収めるため、ここでは中身をそのまま置く。
         Content = content;
     }

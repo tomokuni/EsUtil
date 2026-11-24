@@ -67,7 +67,7 @@ internal static class AnnotationPainter
         foreach (var line in shape.Lines)
         {
             // 行のベースラインは 1 本に決める（区間ごとに縦位置を決めると、斜体で実寸が変わったときに
-            // 文字が上下へずれる。 実測 2026-11-18）
+            // 文字が上下へずれる）
             var baseline = ResolveLineBaseline(line);
 
             foreach (var segment in line.Segments)
@@ -86,7 +86,7 @@ internal static class AnnotationPainter
     /// <remarks>
     /// <b>斜体・太字を外した実寸で決める</b>: 装飾によって実寸（<c>FormattedText.Height</c> /
     /// <c>Baseline</c>）が変わっても、行のベースラインは動かさない（斜体にすると文字が上へずれ、
-    /// 行の高さが増える。 実測 2026-11-18）。
+    /// 行の高さが増える）
     /// </remarks>
     private static double ResolveLineBaseline(AnnotationTextLinePlan line)
     {

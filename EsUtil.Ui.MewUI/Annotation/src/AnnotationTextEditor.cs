@@ -219,10 +219,10 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
         }
 
         // **パネルは別ウィンドウへ載せる**: ウィンドウの中へ重ねると、ウィンドウが小さいときに
-        // 中身が切れます（実測 2026-11-23）。 別ウィンドウなら、置く位置をウィンドウの内側へ
+        // 中身が切れます。 別ウィンドウなら、置く位置をウィンドウの内側へ
         // 収めたうえで、中身の実寸どおりに描けます。
         // **実寸が確定したら置き直す**: 置いた時点の見積りより実際の描画が高いことがあり、
-        // その差だけ書式バーが注釈へ重なる（実測 2026-11-21）。 描画のたびに実寸で決め直す。
+        // その差だけ書式バーが注釈へ重なる。 描画のたびに実寸で決め直す。
         if (!_frameHook)
         {
             _frameHook = true;
@@ -251,7 +251,7 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
         }
 
         // **中身は表示のたびに作り直す**: 吹き出しの設定は「吹き出しを選んでいるとき」だけ出す。
-        // 一度作った中身を使い回すと、最初に枠線を右クリックした後は吹き出しの設定が出ない（実測 2026-11-21）。
+        // 一度作った中身を使い回すと、最初に枠線を右クリックした後は吹き出しの設定が出ない。
         if (kind != AnnotationPanelKind.FormatBar)
         {
             root.Child = new AnnotationStylePanel(_layer, appearance);
@@ -266,8 +266,7 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
             appearance.Padding, appearance.VerticalPadding);
 
         // **大きさを中身に合わせて確定する**: ポップアップは中身の実寸で開くため、
-        // 配置するため、大きさを指定しないとパネルが縦に伸び、中身が上下の中央へ寄る（実測 2026-11-22:
-        // 書式バーが注釈に重なった）。 中身を左上へ寄せ、根の大きさを実寸にする。
+        // 配置するため、大きさを指定しないとパネルが縦に伸び、中身が上下の中央へ寄る。 中身を左上へ寄せ、根の大きさを実寸にする。
         if (root.Child is Control content)
         {
             content.HorizontalAlignment = HorizontalAlignment.Left;
@@ -277,7 +276,7 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
         var size = MeasureContentSize(kind, appearance);
         root.Width = size.Width;
         // **高さはコアの固定値をそのまま使う**: 中身の希望寸法と実際の描画高さがずれると、
-        // 置いた位置と実寸が食い違って書式バーが注釈に重なる（実測 2026-11-21）。
+        // 置いた位置と実寸が食い違って書式バーが注釈に重なる。
         root.Height = appearance.FixedContentHeight > 0
             ? appearance.ResolvePanelHeight(appearance.FixedContentHeight)
             : size.Height;
@@ -289,8 +288,8 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
         root.OnMouseUp(_ => EndPanelDrag(kind));
 
         // **別ウィンドウへ載せる**: ポップアップ（<see cref="Popup"/>）へ載せると、その中から開く
-        // 色選択やカラーピッカーの**入れ子のポップアップが入力も描画も受け取れません**
-        // （実測 2026-11-23: ColorPicker が表示されなくなった）。 枠なしのウィンドウなら、
+        // 色選択やカラーピッカーの**入れ子のポップアップが入力も描画も受け取れません**。
+        // 枠なしのウィンドウなら、
         // 中から開くポップアップは普通のウィンドウの子になり、色選択も普通に使えます。
         if (!_windows.TryGetValue(kind, out var window))
         {
@@ -305,7 +304,7 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
         }
 
         // **枠を描かせない**: テーマの既定の枠（太い灰色）がパネルの外側に残り、中身が
-        // ずれて見えます（実測 2026-11-23: 添付のとおり左と上に太い枠が出た）。
+        // ずれて見えます。
         window.BorderThickness = 0;
         window.BorderBrush = Aprillz.MewUI.Color.Transparent;
         window.Padding = Thickness.Zero;
@@ -350,7 +349,7 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
         var y = (int)(main.Position.Y + position.Y);
         (x, y) = ClampToWorkArea(main, x, y, window.WindowSize.Width, window.WindowSize.Height);
 
-        // **先に出す**: 表示していないウィンドウへの移動は無視される（実測 2026-11-23）。
+        // **先に出す**: 表示していないウィンドウへの移動は無視される。
         if (_shown.Add(kind))
         {
             window.Show(main);
@@ -374,7 +373,7 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
 
     /// <summary>書式バーを本文の外（本文に被さらない位置）へ出し直す。</summary>
     /// <remarks>
-    /// <b>本文に被せない</b>: 編集中の文字が隠れて読めない（実測 2026-11-20）。 位置の判断は
+    /// <b>本文に被せない</b>: 編集中の文字が隠れて読めない。 位置の判断は
     /// 提示層（<see cref="AnnotationPanelPlacement.ResolveOutside"/>）が単一所有する。<br/>
     /// <b>大きさは実寸を使う</b>: 中身（フォント名・大きさ・色）で幅が決まるため、固定値だと
     /// 枠からはみ出す。 一度置いてから実寸で出し直す。
@@ -425,7 +424,7 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
     /// <returns>パネルの大きさ（DIP）。 中身が無い場合は原点。</returns>
     /// <remarks>
     /// <b>根ではなく中身を測る</b>: ポップアップの中身は希望寸法で測るため、
-    /// 根の実寸は画面の大きさになる（実測 2026-11-22）。
+    /// 根の実寸は画面の大きさになる。
     /// </remarks>
     private EsSize MeasureContentSize(AnnotationPanelKind kind, AnnotationPanelAppearance appearance)
     {
@@ -435,7 +434,7 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
         }
 
         // レイアウト済みなら実寸（中身の RenderSize）を使う。 未レイアウトの中身は希望寸法が
-        // 実際より小さく出ることがあり、その値で位置を決めると注釈に重なる（実測 2026-11-21）。
+        // 実際より小さく出ることがあり、その値で位置を決めると注釈に重なる。
         var measured = content.RenderSize.Width > 0 && content.RenderSize.Height > 0
             ? new Size(content.RenderSize.Width, content.RenderSize.Height)
             : MeasureContent(content);
@@ -460,7 +459,7 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
     /// <remarks>
     /// <b><c>Close</c> ではなく <c>Hide</c> を使う</b>: MewUI の <see cref="Window.Show(Window)"/> は
     /// 1 度しか呼べず、<c>Close</c> した窓は出し直せない。 非表示にしておけば、次に必要になったとき
-    /// そのまま出せる（実測 2026-11-23: 書式バーを消した後に注釈をダブルクリックしても出なかった）。
+    /// そのまま出せる。
     /// </remarks>
     private void RemovePanel(AnnotationPanelKind kind)
     {
@@ -478,12 +477,12 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
     /// <b>MewUI の <c>Bounds</c> はウィンドウの絶対座標</b>である（親からの相対ではない）。 したがって
     /// レイヤーの左上を足すだけでウィンドウ座標になる。
     /// <b><c>TranslatePoint</c> は使わない</b>: ウィンドウやその内容の根を渡すと変換せず (0,0) を返すことがあり、
-    /// パネルがアプリの左上へずれる（実測 2026-11-22: 書式バーがウィンドウの左上へ出た）。
+    /// パネルがアプリの左上へずれる。
     /// </remarks>
     private EsPoint ToOverlayPoint(Point point)
     {
         // **毎回ウィンドウ座標へ写す**: <c>Bounds</c> を足すだけだと、ツール バーの高さが変わった直後など
-        // レイアウトが確定する前の値を使ったときにずれる（実測 2026-11-21: 約 28 DIP 下へずれた）。
+        // レイアウトが確定する前の値を使ったときにずれる。
         if ((FindVisualRoot() as Window)?.Content is { } root)
         {
             var local = _layer.TranslatePoint(point, root);
@@ -574,7 +573,7 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
     /// <remarks>
     /// <b>絶対座標のまま渡す</b>: MewUI の <c>Bounds</c> はウィンドウの絶対座標であり、
     /// 親は子へ絶対座標の矩形を渡して配置する。 0 起点で渡すとレイヤーの <c>Bounds</c> が (0,0) になり、
-    /// 注釈の位置をウィンドウ座標へ写せない（実測 2026-11-22: 書式バーがアプリの左上へ出た）。
+    /// 注釈の位置をウィンドウ座標へ写せない。
     /// </remarks>
     protected override void ArrangeContent(Rect bounds) => _layer.Arrange(bounds);
 }

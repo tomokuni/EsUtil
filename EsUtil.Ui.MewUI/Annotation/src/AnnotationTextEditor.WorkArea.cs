@@ -19,7 +19,7 @@ public sealed partial class AnnotationTextEditor
     /// <returns>収めた位置（DIP）。</returns>
     /// <remarks>
     /// <b>作業領域はピクセル、位置は DIP</b>です。 表示倍率（125% など）を掛けずに挟むと、
-    /// 画面の外へはみ出します（実測 2026-11-23）。
+    /// 画面の外へはみ出します。
     /// </remarks>
     private static (int X, int Y) ClampToWorkArea(Window reference, int x, int y, double width, double height)
     {

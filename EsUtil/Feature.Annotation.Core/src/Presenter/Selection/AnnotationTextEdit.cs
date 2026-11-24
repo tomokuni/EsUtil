@@ -283,14 +283,20 @@ public sealed class AnnotationTextEdit
             return ReplaceSelection(document, string.Empty);
         }
 
-        var index = forward ? _caret : _caret - 1;
-        if (FindText(document) is not { } bubble || index < 0 || index >= bubble.Text.PlainText.Length)
+        if (FindText(document) is not { } bubble)
         {
             return document;
         }
 
-        _anchor = index;
-        _caret = index + 1;
+        // **削除の単位は書記素クラスタ**である: サロゲート ペア・結合文字を半分に割ると文字列が壊れる。
+        var (start, length) = AnnotationTextCursor.ResolveDelete(bubble.Text.PlainText, _caret, forward);
+        if (length <= 0)
+        {
+            return document;
+        }
+
+        _anchor = start;
+        _caret = start + length;
         return ReplaceSelection(document, string.Empty);
     }
 

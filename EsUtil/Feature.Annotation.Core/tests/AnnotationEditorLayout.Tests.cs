@@ -7,7 +7,7 @@ namespace EsUtil.Feature.Annotation.Core.Tests;
 /// <summary>右クリックの外観フライアウトの寸法（<see cref="AnnotationPanelAppearance.StyleEditor"/>）の規則を検証する。</summary>
 /// <remarks>
 /// <b>行の入力欄はすべて同じ幅</b>であること、<b>フライアウトの幅がその合計から決まる</b>ことを固定します。
-/// 幅が揃っていないと行の右端がばらばらに見え、固定値にすると右側に使わない幅が空きます（実測 2026-11-22）。
+/// 幅が揃っていないと行の右端がばらばらに見え、固定値にすると右側に使わない幅が空きます。
 /// </remarks>
 public sealed class AnnotationEditorLayoutTests
 {

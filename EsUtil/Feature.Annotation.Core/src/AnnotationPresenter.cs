@@ -1,4 +1,3 @@
-using DrawingColor = System.Drawing.Color;
 using System.Collections.Immutable;
 using EsUtil.Feature.Annotation.Core.Internal;
 using EsUtil.Feature.Annotation.Logging;
@@ -118,7 +117,7 @@ public sealed class AnnotationPresenter
         foreach (var item in document.Items)
         {
             // **描画の直前に画像の内側へ収める**: 画像の外へ出た注釈は見えず掴めない。
-            // 追加・移動の経路が増えても、描画の入口で必ず収まるようにする（実測 2026-11-22）。
+            // 追加・移動の経路が増えても、描画の入口で必ず収まるようにする。
             //
             // **種類ごとの描き方は 1 か所で決める**: 選択・移動・当たり判定・ポインターの形は
             // すべて `Bounds` を使うため、種類を増やすときに触るのはここだけである
@@ -305,21 +304,4 @@ public sealed class AnnotationPresenter
             heights[i] = height > 0 ? height : fallback;
         }
     }
-
-    /// <summary>外観の既定値（枠線）を取得する。</summary>
-    /// <returns>枠線の既定の外観。</returns>
-    /// <remarks>設定ページの初期値と新規作成時の値が同じになるよう、既定値は <see cref="AnnotationDefaults"/> が単一所有する。</remarks>
-    public static AnnotationAppearance DefaultFrameAppearance => AnnotationDefaults.FrameAppearance;
-
-    /// <summary>外観の既定値（吹き出し）を取得する。</summary>
-    /// <returns>吹き出しの既定の外観。</returns>
-    public static AnnotationAppearance DefaultBubbleAppearance => AnnotationDefaults.BubbleAppearance;
-
-    /// <summary>文字の既定の書式を取得する。</summary>
-    /// <returns>既定の書式。</returns>
-    public static AnnotationTextStyle DefaultTextStyle => AnnotationDefaults.TextStyle;
-
-    /// <summary>透明な色を取得する（内側を塗らない指定に使う）。</summary>
-    /// <returns>透明。</returns>
-    public static DrawingColor Transparent => DrawingColor.Transparent;
 }

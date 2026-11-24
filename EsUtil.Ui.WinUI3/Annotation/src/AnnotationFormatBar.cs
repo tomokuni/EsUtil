@@ -44,8 +44,8 @@ internal sealed partial class AnnotationFormatBar : ContentControl
 
     /// <summary>サイズの入力欄を上下中央へ寄せるために内側の入力欄で調整する量（DIP）。</summary>
     /// <remarks>
-    /// <b>NumberBox は内側の文字を上寄りに描く</b>（実測 2026-11-23: 他の項目の文字の中心より 2.4 DIP 上）。
-    /// <b>枠は内側の入力欄が描く</b>ため、入力欄そのものを動かすと枠もずれる（実測 2026-11-23）。
+    /// <b>NumberBox は内側の文字を上寄りに描く</b>。
+    /// <b>枠は内側の入力欄が描く</b>ため、入力欄そのものを動かすと枠もずれる。
     /// 枠を他の項目と揃えたまま文字だけを中央へ寄せるには、内側の余白と縦の寄せで調整します。
     /// </remarks>
     private const double NumberBoxTextTrim = 2.4;
@@ -88,7 +88,7 @@ internal sealed partial class AnnotationFormatBar : ContentControl
             IsEditable = true,
             IsTextSearchEnabled = true,
 
-            // **高さを明示する**: 既定の高さでは文字の上が欠ける（実測 2026-11-20）
+            // **高さを明示する**: 既定の高さでは文字の上が欠ける
             MinHeight = AnnotationFormatBarLayout.ItemHeight,
             Height = AnnotationFormatBarLayout.ItemHeight,
             FontSize = AnnotationEditorControls.FontSize,
@@ -130,13 +130,13 @@ internal sealed partial class AnnotationFormatBar : ContentControl
             Value = AnnotationDefaults.FontSizeDefault,
             Width = AnnotationFormatBarLayout.SizeSelectorWidth,
 
-            // **枠は動かさない**: NumberBox 自体を動かすと枠もずれる（実測 2026-11-23）。
+            // **枠は動かさない**: NumberBox 自体を動かすと枠もずれる。
             // 内側の文字は Loaded 後に `ShiftInnerText` で下げる。
             MinHeight = AnnotationFormatBarLayout.ItemHeight,
             Height = AnnotationFormatBarLayout.ItemHeight,
 
             // **数字は上下中央へ置く**: NumberBox は内側の入力欄を上寄りに描き、`VerticalContentAlignment`
-            // を受け付けない（実測 2026-11-22）。 枠は他の項目と同じ高さにし、内側の入力欄だけを下げる。
+            // を受け付けない。 枠は他の項目と同じ高さにし、内側の入力欄だけを下げる。
             VerticalAlignment = VerticalAlignment.Center,
             FontSize = AnnotationEditorControls.FontSize,
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact,
@@ -168,7 +168,7 @@ internal sealed partial class AnnotationFormatBar : ContentControl
         };
 
         // 並び順はコア（AnnotationFormatBarLayout.Order）が単一所有する。
-        // ここで順を決めると 4 つの UI 版で操作の位置がずれる（実測 2026-11-20）。
+        // ここで順を決めると 4 つの UI 版で操作の位置がずれる。
         var items = new Dictionary<AnnotationFormatBarItem, UIElement>
         {
             [AnnotationFormatBarItem.Bold] = _bold,
@@ -182,8 +182,8 @@ internal sealed partial class AnnotationFormatBar : ContentControl
 
         foreach (var item in AnnotationFormatBarLayout.Order)
         {
-            // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる
-            // （実測 2026-11-21）。 値は提示層の AnnotationFormatBarLayout.ItemHeight が単一所有する
+            // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる。
+            // 値は提示層の AnnotationFormatBarLayout.ItemHeight が単一所有する
             var element = (FrameworkElement)items[item];
             element.Height = AnnotationFormatBarLayout.ItemHeight;
             element.MinHeight = AnnotationFormatBarLayout.ItemHeight;
@@ -201,7 +201,7 @@ internal sealed partial class AnnotationFormatBar : ContentControl
     /// <summary>書式バーの色の入力欄へ出す表記を取得または設定する。</summary>
     /// <value>色名 + 不透明度（<see cref="ColorTextFormat.NameWithAlpha"/>）。</value>
     /// <remarks>
-    /// <b>代表色を選んだら色名で出す</b>: 色名のほうが「どの色を選んだか」を読み取りやすい（実測 2026-11-22）。
+    /// <b>代表色を選んだら色名で出す</b>: 色名のほうが「どの色を選んだか」を読み取りやすい。
     /// 色名の無い色は <c>#AARRGGBB</c>（8 桁）で出るため、表記によって不透明度が見えなくなることはない
     /// （規則は <c>ColorString.Format</c> が単一所有する）。
     /// </remarks>
@@ -261,8 +261,8 @@ internal sealed partial class AnnotationFormatBar : ContentControl
     /// <param name="root">対象の要素。</param>
     /// <param name="trim">文字を下げる量（DIP）。</param>
     /// <remarks>
-    /// <b>枠は内側の入力欄（<see cref="TextBox"/>）が描く</b>ため、入力欄を動かすと枠も一緒にずれる
-    /// （実測 2026-11-23）。 枠を他の項目と揃えたまま文字だけを下げるには、内側の余白を増やします。
+    /// <b>枠は内側の入力欄（<see cref="TextBox"/>）が描く</b>ため、入力欄を動かすと枠も一緒にずれる。
+    /// 枠を他の項目と揃えたまま文字だけを下げるには、内側の余白を増やします。
     /// </remarks>
     private static void ShiftInnerText(DependencyObject root, double trim)
     {

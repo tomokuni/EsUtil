@@ -185,7 +185,7 @@ public sealed class AnnotationTextEditor : UserControl, IAnnotationPanelHost
             _windows[kind] = window;
 
             // **フォーカスが外れたら閉じる**: 他のアプリを押した場合、このコントロールへ押下は
-            // 届かないため、外側の押下の監視だけでは閉じられない（実測 2026-11-23）。
+            // 届かないため、外側の押下の監視だけでは閉じられない。
             window.Deactivate += (_, _) => CloseOnFocusLost(kind);
         }
 

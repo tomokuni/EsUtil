@@ -48,6 +48,7 @@ flowchart TB
 
 - **Core は Presenter を参照しません**（描画計画を知らない）。
 - **Presenter は描画 API を持ちません**（描画計画というデータを返し、UI が写す）。
+- **編集の進行（文書・選択・履歴・本文の編集状態）は `AnnotationEditSession` が単一所有します**（UI は入力の受付と描画だけを行う）。
 - **折り返しだけは実寸を要する**ため、`Func<string, AnnotationTextStyle, EsSize>` として UI から受け取ります（ルーペの `measureText` と同じ形）。
 - **公開面は `src/` 直下（名前空間 `EsUtil.Feature.Annotation`）に置き、層の内部は `src/Core/<カテゴリ>` / `src/Presenter/<カテゴリ>` へ置きます**（名前空間は `EsUtil.Feature.Annotation.Core.<カテゴリ>` / `.Presenter.<カテゴリ>`。 規則は [`.github/命名規約.md`](../../../.github/命名規約.md)）。 フォルダと名前空間の一覧は [`../README.md`](../README.md) §3 が持つ。
 
@@ -72,14 +73,16 @@ flowchart TB
 | `AnnotationEditingOutline` / `AnnotationEditorAppearance` / `AnnotationCaretBlink` / `AnnotationCaretRect` / `AnnotationMarqueeMetrics` | Presenter | 編集中の枠・キャレット・選択範囲・点滅・選択枠の実寸近似の見た目と規則 |
 | `AnnotationPanelController` / `AnnotationPanelPlacement` / `AnnotationPanelAppearance` / `AnnotationPanelKind` / `AnnotationPanelMetrics` / `IAnnotationPanelHost` | Presenter | フローティング パネルの開閉・配置・外観（UI は `IAnnotationPanelHost` を実装する） |
 | `AnnotationSelectionPresenter` | Presenter | 選択中の注釈の書式・外観と、以降の入力へ効かせる書式 |
+| `AnnotationEditSession` / `AnnotationEditChange` | Presenter | 文書・選択・変更履歴・本文の編集状態の単一所有（4 つの UI 版は本型の操作を呼び、変更を購読する） |
 | `AnnotationTextEdit` | Presenter | 本文の編集状態（キャレット・選択・入力・削除・書式）。 4 つの UI 版は入力イベントを渡すだけにする |
 | `AnnotationViewTransform` | Core（`.Core.Geometry`） | 表示倍率と左上の位置、元画像ピクセルとローカル DIP の相互変換 |
+| `AnnotationTextCursor` | Core（`.Core.Text`） | 文字位置を書記素クラスタ（絵文字・結合文字）で扱う規則（キャレット・選択・削除・折り返しの境界） |
 | `AnnotationFormatBarLayout` / `AnnotationFormatBarItem` / `AnnotationEditorLayout` / `AnnotationEditorText` / `AnnotationFontCatalog` / `AnnotationPaletteCatalog` / `AnnotationPaletteColor` / `AnnotationBubbleEdgeCatalog` | Presenter | 編集 UI の並び・寸法・文言・代表色・フォントの並べ方 |
 | `AnnotationCompositionPreview` | Presenter | IME の変換中の文字列を本文へ入れた描画用の文書 |
 
 **選択枠（8 方向のハンドル）は本アセンブリの責務ではありません**（Marquee の提示層を再利用する。 枠とハンドルの見た目を 4 つの UI 版で揃えるため）。
 
-**ログ**: 本アセンブリはログの定義（`AnnotationLogMessage`。 接頭辞の既定値は `[Annotation]`）を持ちます。 レベルは頻度で決めます。 `Information` は利用者の明示的な操作（注釈ファイルの読み込み・保存・付随ファイルの削除）・プロセスで 1 度の生成・設定（行間）の変更、`Debug` は状態の変化（選択・本文の編集・書式の適用・パネルの表示と位置・押下と解放）と提示層の生成、`Trace` は高頻度の値（ドラッグ中の文書の変更）、`Error` は公開ファサードの操作で発生した例外です。 毎フレームの描画計画の解決と当たり判定は記録しません（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
+**ログ**: 本アセンブリはログの定義（`AnnotationLogMessage`。 接頭辞の既定値は `[Annotation]`）を持ちます。 レベルは頻度で決めます。 `Information` は利用者の明示的な操作（注釈ファイルの読み込み・保存・付随ファイルの削除）・プロセスで 1 度の生成・設定（行間）の変更、`Debug` は状態の変化（選択・本文の編集・書式の適用・履歴の移動・パネルの表示と位置・押下と解放）と提示層の生成、`Trace` は高頻度の値（ドラッグ中の文書の変更）、`Error` は公開ファサードの操作で発生した例外です。 毎フレームの描画計画の解決と当たり判定は記録しません（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
 
 ## 5. 依存関係
 

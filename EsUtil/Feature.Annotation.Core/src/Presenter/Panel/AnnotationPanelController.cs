@@ -71,7 +71,7 @@ public sealed class AnnotationPanelController
     /// <param name="panelSize">パネルの大きさ（DIP）。</param>
     /// <param name="gap">対象とパネルの間の余白（DIP）。</param>
     /// <remarks>
-    /// <b>書式バーはこれを使う</b>: 編集中の本文の上へ重ねると文字が隠れて読めない（実測 2026-11-20）。
+    /// <b>書式バーはこれを使う</b>: 編集中の本文の上へ重ねると文字が隠れて読めない。
     /// 位置の判断は <see cref="AnnotationPanelPlacement.ResolveOutside"/> が単一所有する。
     /// </remarks>
     public void ShowOutside(AnnotationPanelKind kind, EsRect target, EsSize panelSize, double gap)
@@ -83,8 +83,8 @@ public sealed class AnnotationPanelController
     /// <param name="target">被せたくない矩形（DIP）。</param>
     /// <param name="gap">対象とパネルの間の余白（DIP）。</param>
     /// <remarks>
-    /// <b>実寸はレイアウト後にしか分からない</b>: レイアウト前の測定は枠の高さを正しく返さないことがある
-    /// （実測 2026-11-22: WinUI 3 版で高さ 16040 DIP と測定され、パネルが左上へ寄る）。 UI は
+    /// <b>実寸はレイアウト後にしか分からない</b>: レイアウト前の測定は枠の高さを正しく返さず、極端に大きい値で
+    /// パネルが左上へ寄ることがある。 UI は
     /// <see cref="ShowOutside"/> で仮に置いた後、レイアウトを確定させてから本メソッドを呼ぶ。
     /// </remarks>
     public void RepositionOutside(EsRect target, double gap)

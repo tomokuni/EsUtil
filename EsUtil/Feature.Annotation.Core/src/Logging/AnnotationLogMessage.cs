@@ -8,7 +8,7 @@ namespace EsUtil.Feature.Annotation.Logging;
 /// <remarks>
 /// <b>レベルは頻度で決める</b>（規則の所有者は <c>.github/ログ規約.md</c> §2）。<br/>
 /// - Information: 利用者の明示的な操作（注釈ファイルの読み込み・保存）・プロセスで 1 度だけの生成・設定（行間）の変更<br/>
-/// - Debug: 状態の変化（選択・本文の編集・書式の適用・パネルの表示・押下と解放）と提示層の生成<br/>
+/// - Debug: 状態の変化（選択・本文の編集・書式の適用・履歴の移動・パネルの表示・押下と解放）と提示層の生成<br/>
 /// - Trace: 高頻度の値（ドラッグ中の文書の変更）<br/>
 /// - Error: 公開ファサードの操作で発生した例外<br/>
 /// <b>障害の切り分け</b>: 既定（Information）では操作の記録だけが出る。 利用者から症状の報告を受けたら、
@@ -219,6 +219,25 @@ public static partial class AnnotationLogMessage
     /// <param name="editing">編集中の場合は <see langword="true"/>。</param>
     public static void LogEditingChanged(this ILogger logger, bool editing)
         => logger.LogEditingChangedCore(Prefix, editing ? "開始" : "終了");
+
+    /// <summary>履歴の移動（元に戻す・やり直す）を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 履歴: {Action} 戻せる={UndoCount} やり直せる={RedoCount}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="action">移動の向き（<c>元に戻す</c> / <c>やり直す</c>）。</param>
+    /// <param name="undoCount">移動後に戻せる回数。</param>
+    /// <param name="redoCount">移動後にやり直せる回数。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 履歴: {Action:l} 戻せる={UndoCount} やり直せる={RedoCount}")]
+    private static partial void LogHistoryMovedCore(
+        this ILogger logger, string prefix, string action, int undoCount, int redoCount);
+
+    /// <summary>履歴の移動（元に戻す・やり直す）を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="redo">やり直した場合は <see langword="true"/>。</param>
+    /// <param name="undoCount">移動後に戻せる回数。</param>
+    /// <param name="redoCount">移動後にやり直せる回数。</param>
+    internal static void LogHistoryMoved(this ILogger logger, bool redo, int undoCount, int redoCount)
+        => logger.LogHistoryMovedCore(Prefix, redo ? "やり直す" : "元に戻す", undoCount, redoCount);
 
     /// <summary>本文の書式の適用を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 書式を適用: 開始={Start} 長さ={Length}</c></remarks>

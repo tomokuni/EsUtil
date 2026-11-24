@@ -17,7 +17,7 @@ public static class AnnotationEditorLayout
     /// <summary>入力欄の幅（DIP。 右クリックのフライアウトの行で使う）。</summary>
     /// <remarks>
     /// <b>行の入力欄はすべて同じ幅にする</b>: 数値・選択肢・色で幅が違うと、行の右端が揃わず
-    /// 「入力部がばらばら」に見えます（実測 2026-11-22）。 フライアウトの幅もこの値から決めます
+    /// 「入力部がばらばら」に見えます。 フライアウトの幅もこの値から決めます
     /// （<see cref="AnnotationPanelAppearance.StyleEditor"/>）。
     /// </remarks>
     public const double FieldWidth = 160;
@@ -40,7 +40,7 @@ public static class AnnotationEditorLayout
     /// <summary>装飾の切り替え（B / I / U / S）の文字サイズ（DIP）。</summary>
     /// <remarks>
     /// <b>編集 UI の文字より一回り大きくする</b>: 記号 1 文字だけのボタンは、行の他の文字と同じ大きさだと
-    /// 線（下線・取り消し線）と字面が小さく、押せる場所としても見えにくい（実測 2026-11-22）。
+    /// 線（下線・取り消し線）と字面が小さく、押せる場所としても見えにくい。
     /// UI の既定の文字サイズ（12 DIP）より 1 段大きい 14 DIP にします。
     /// </remarks>
     public const double ToggleFontSize = 14;
@@ -50,7 +50,7 @@ public static class AnnotationEditorLayout
     /// <b>「I」を見分けられるフォントにする</b>: UI の既定フォント（<c>Yu Gothic UI</c> / <c>Segoe UI</c>）の
     /// 斜体の「I」は単なる斜線に見え、太字の「B」とも形が近く、押す意味が伝わりません。
     /// <c>Consolas</c> は Windows に標準で入っており（環境が変わっても解決できる）、
-    /// <b>「I」の上下にセリフ</b>が付くため、記号として読めます（実測 2026-11-22）。
+    /// <b>「I」の上下にセリフ</b>が付くため、記号として読めます。
     /// 斜体の「I」が読めるかを優先し、欧文の記号用フォントとして選びます。
     /// </remarks>
     public const string ToggleFontFamily = "Consolas";

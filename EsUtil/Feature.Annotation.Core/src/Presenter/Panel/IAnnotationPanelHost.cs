@@ -28,7 +28,7 @@ public interface IAnnotationPanelHost
     /// <returns>左上の位置。 表示していない場合は原点。</returns>
     /// <remarks>
     /// <b>種別ごとに答える</b>: 書式バーと外観フライアウトは同時に出るため、
-    /// 「どちらか 1 つ」を返すと外側押下の判定とドラッグの起点が食い違う（実測 2026-11-21）。
+    /// 「どちらか 1 つ」を返すと外側押下の判定とドラッグの起点が食い違う。
     /// </remarks>
     EsPoint GetPanelPosition(AnnotationPanelKind kind);
 

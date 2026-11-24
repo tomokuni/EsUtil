@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using EsUtil.Feature.Annotation.Core.Defaults;
+using EsUtil.Feature.Annotation.Core.Text;
 
 namespace EsUtil.Feature.Annotation;
 
@@ -104,8 +106,10 @@ public sealed class RichText
         }
 
         var total = PlainText.Length;
-        var from = Math.Clamp(start, 0, total);
-        var to = length <= 0 ? total : Math.Clamp(from + length, from, total);
+        var from = AnnotationTextCursor.SnapBackward(PlainText, Math.Clamp(start, 0, total));
+        var to = length <= 0
+            ? total
+            : AnnotationTextCursor.SnapForward(PlainText, Math.Clamp(from + length, from, total));
         if (from == to)
         {
             return this;
@@ -126,8 +130,8 @@ public sealed class RichText
             }
 
             // 範囲の手前（書式を変えない部分）
-            var localFrom = Math.Max(from, runStart) - runStart;
-            var localTo = Math.Min(to, runEnd) - runStart;
+            var localFrom = AnnotationTextCursor.SnapBackward(run.Text, Math.Max(from, runStart) - runStart);
+            var localTo = AnnotationTextCursor.SnapForward(run.Text, Math.Min(to, runEnd) - runStart);
             if (localFrom > 0)
             {
                 AddMerged(runs, run with { Text = run.Text[..localFrom] });
@@ -142,6 +146,33 @@ public sealed class RichText
         }
 
         return new RichText(runs.ToImmutable());
+    }
+
+    /// <summary>書式を安全域へ補正した新しい <see cref="RichText"/> を返す。</summary>
+    /// <returns>各 run の書式を補正し、同じ書式が続く run を連結した値（空の run は落とす）。</returns>
+    /// <remarks>
+    /// <b>作成と読み込みの入口で 1 回だけ補正する</b>: 文字の大きさは元画像ピクセルであり、設定・JSON・入力のどの経路から来ても
+    /// 同じ安全域（<see cref="AnnotationLimits"/>）へ収める。 描画のたびに補正すると、保存した値と表示が食い違う。
+    /// </remarks>
+    public RichText Normalized()
+    {
+        var runs = ImmutableArray.CreateBuilder<TextRun>();
+        foreach (var run in Runs)
+        {
+            var style = run.Style.Normalized();
+            if (runs.Count > 0 && Equals(runs[^1].Style, style))
+            {
+                runs[^1] = runs[^1] with { Text = runs[^1].Text + run.Text };
+                continue;
+            }
+
+            if (!string.IsNullOrEmpty(run.Text))
+            {
+                runs.Add(new TextRun(run.Text, style));
+            }
+        }
+
+        return runs.Count == 0 ? Empty : new RichText(runs.ToImmutable());
     }
 
     /// <summary>書式を位置で引き継いで本文を置き換えた新しい <see cref="RichText"/> を返す。</summary>
@@ -163,17 +194,14 @@ public sealed class RichText
         var previous = PlainText;
         var last = Math.Max(0, previous.Length - 1);
         var runs = ImmutableArray.CreateBuilder<TextRun>();
+        var starts = AnnotationTextCursor.Boundaries(text);
 
-        for (var i = 0; i < text.Length; i++)
+        for (var i = 0; i < starts.Length; i++)
         {
-            var style = StyleAt(Math.Min(i, last));
-            if (runs.Count > 0 && Equals(runs[^1].Style, style))
-            {
-                runs[^1] = runs[^1] with { Text = runs[^1].Text + text[i] };
-                continue;
-            }
-
-            runs.Add(new TextRun(text[i].ToString(), style));
+            var start = starts[i];
+            var end = i + 1 < starts.Length ? starts[i + 1] : text.Length;
+            var style = StyleAt(Math.Min(start, last));
+            AddMerged(runs, new TextRun(text[start..end], style));
         }
 
         return new RichText(runs.ToImmutable());
@@ -212,8 +240,10 @@ public sealed class RichText
         ArgumentNullException.ThrowIfNull(match);
 
         var total = PlainText.Length;
-        var from = Math.Clamp(start, 0, total);
-        var to = length <= 0 ? total : Math.Clamp(from + length, from, total);
+        var from = AnnotationTextCursor.SnapBackward(PlainText, Math.Clamp(start, 0, total));
+        var to = length <= 0
+            ? total
+            : AnnotationTextCursor.SnapForward(PlainText, Math.Clamp(from + length, from, total));
         if (from >= to)
         {
             return false;
@@ -257,10 +287,10 @@ public sealed class RichText
         }
 
         var plain = PlainText;
-        var at = Math.Clamp(index, 0, plain.Length);
+        var at = AnnotationTextCursor.SnapBackward(plain, Math.Clamp(index, 0, plain.Length));
 
         // 挿入する文字は「直前の文字」の書式を引き継ぐ（文末で入力しても直前の書式が続く）
-        var style = StyleAt(at > 0 ? at - 1 : 0);
+        var style = StyleAt(at > 0 ? AnnotationTextCursor.Previous(plain, at) : 0);
 
         var runs = ImmutableArray.CreateBuilder<TextRun>();
         AddRange(runs, plain, 0, at);
@@ -282,8 +312,8 @@ public sealed class RichText
         }
 
         var plain = PlainText;
-        var from = Math.Clamp(start, 0, plain.Length);
-        var to = Math.Clamp(from + length, from, plain.Length);
+        var from = AnnotationTextCursor.SnapBackward(plain, Math.Clamp(start, 0, plain.Length));
+        var to = AnnotationTextCursor.SnapForward(plain, Math.Clamp(from + length, from, plain.Length));
         if (from == to)
         {
             return this;
@@ -302,9 +332,22 @@ public sealed class RichText
     /// <param name="to">終了位置（含まない）。</param>
     private void AddRange(ImmutableArray<TextRun>.Builder runs, string plain, int from, int to)
     {
-        for (var i = from; i < to; i++)
+        var starts = AnnotationTextCursor.Boundaries(plain);
+        for (var i = 0; i < starts.Length; i++)
         {
-            AddMerged(runs, new TextRun(plain[i].ToString(), StyleAt(i)));
+            var start = starts[i];
+            if (start < from)
+            {
+                continue;
+            }
+
+            if (start >= to)
+            {
+                break;
+            }
+
+            var end = i + 1 < starts.Length ? starts[i + 1] : plain.Length;
+            AddMerged(runs, new TextRun(plain[start..Math.Min(end, to)], StyleAt(start)));
         }
     }
 

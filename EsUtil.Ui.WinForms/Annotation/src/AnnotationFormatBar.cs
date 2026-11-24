@@ -103,7 +103,7 @@ internal sealed class AnnotationFormatBar : Panel
             AnnotationDefaults.TextStyle.Color, color => ApplyFull(style => style with { Color = color }));
 
         // 並び順はコア（AnnotationFormatBarLayout.Order）が単一所有する。
-        // ここで順を決めると 4 つの UI 版で操作の位置がずれる（実測 2026-11-20）。
+        // ここで順を決めると 4 つの UI 版で操作の位置がずれる。
         var items = new Dictionary<AnnotationFormatBarItem, Control>
         {
             [AnnotationFormatBarItem.Bold] = _bold,

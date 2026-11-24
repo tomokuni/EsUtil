@@ -7,7 +7,7 @@ namespace EsUtil.Ui.AvaloniaUI.Annotation.Tests;
 /// <summary>本文の行の高さとベースラインが装飾（斜体）で変わらないことを検証する。</summary>
 /// <remarks>
 /// 斜体は字を傾けるだけであり、行の高さ・ベースラインを変えてはいけない。
-/// 区間ごとの実寸で縦位置を決めると、斜体にした区間だけが上下へずれ、行の高さも増える（実測 2026-11-18）。
+/// 区間ごとの実寸で縦位置を決めると、斜体にした区間だけが上下へずれ、行の高さも増える。
 /// </remarks>
 [Collection("AvaloniaHeadless")]
 public class AnnotationPainterTests

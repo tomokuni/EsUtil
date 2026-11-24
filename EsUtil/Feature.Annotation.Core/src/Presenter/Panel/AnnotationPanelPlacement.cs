@@ -7,7 +7,7 @@ namespace EsUtil.Feature.Annotation.Presenter.Panel;
 /// <b>座標はパネルを描く面の左上を原点とする DIP</b>。<br/>
 /// <b>見えている範囲の外へは出さない</b>: 切れて見えなくなる（掴めなくなる）ため、置ける領域へ収める
 /// （<see cref="ResolveAvailableArea"/> が領域を決める）。<br/>
-/// <b>編集対象に被せない</b>: 書式バーを本文の上へ重ねると、編集中の文字が隠れて読めない（実測 2026-11-20）。
+/// <b>編集対象に被せない</b>: 書式バーを本文の上へ重ねると、編集中の文字が隠れて読めない。
 /// 本文の外（上・下・右・左の順）で置ける領域に収まる場所へ置く。
 /// </remarks>
 public static class AnnotationPanelPlacement

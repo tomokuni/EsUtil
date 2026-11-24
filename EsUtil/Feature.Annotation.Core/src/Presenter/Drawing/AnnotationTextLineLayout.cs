@@ -1,11 +1,12 @@
+using EsUtil.Feature.Annotation.Core.Text;
+
 namespace EsUtil.Feature.Annotation.Presenter.Drawing;
 
 /// <summary>行の中の文字位置と座標の対応（単一所有。 4 つの UI 版が同じ結果になる）。</summary>
 /// <remarks>
 /// <b>描画と同じ区間の原点を使う</b>: 本文は書式ごとの区間を <see cref="AnnotationTextSegmentPlan.Bounds"/> の
 /// 位置へ描く。 キャレット・選択範囲・当たり判定も<b>同じ区間の原点からの距離</b>で求めないと、
-/// 行頭から幅を積み上げた値との差（区間の境界・末尾の空白・丸め）だけ文字からずれる
-/// （実測 2026-11-21: MewUI 版で文字とキャレットが一致しない）。<br/>
+/// 行頭から幅を積み上げた値との差（区間の境界・末尾の空白・丸め）だけ文字からずれる。<br/>
 /// <b>文字の実寸だけを UI に委ねる</b>: 実寸は描画 API に依存するため関数で受け取る
 /// （折り返しの <c>measureText</c> と同じ形）。 位置の決め方は本クラスが単一所有する。
 /// </remarks>
@@ -87,7 +88,9 @@ public static class AnnotationTextLineLayout
         }
 
         var segment = line.Segments[index];
-        return segment.Bounds.X + measurePrefix(segment, Math.Clamp(offset, 0, segment.Text.Length));
+        var offsetInSegment = AnnotationTextCursor.SnapBackward(
+            segment.Text, Math.Clamp(offset, 0, segment.Text.Length));
+        return segment.Bounds.X + measurePrefix(segment, offsetInSegment);
     }
 
     /// <summary>X 座標に最も近い文字位置（行の先頭から数えた文字数）を求める。</summary>
@@ -114,7 +117,8 @@ public static class AnnotationTextLineLayout
             // **この区間の中**で最も近い文字位置を選ぶ（区間の外の幅を混ぜない）
             var best = 0;
             var bestDistance = double.MaxValue;
-            for (var count = 0; count <= segment.Text.Length; count++)
+
+            void Consider(int count)
             {
                 var distance = Math.Abs(segment.Bounds.X + measurePrefix(segment, count) - x);
                 if (distance < bestDistance)
@@ -122,6 +126,19 @@ public static class AnnotationTextLineLayout
                     bestDistance = distance;
                     best = count;
                 }
+            }
+
+            var boundaries = AnnotationTextCursor.Boundaries(segment.Text);
+            foreach (var count in boundaries)
+            {
+                Consider(count);
+            }
+
+            // **末尾も候補にする**: クラスタの開始位置だけでは、行の末尾（最後のクラスタの次）へ
+            // キャレットを置けない。
+            if (boundaries.Length == 0 || boundaries[^1] != segment.Text.Length)
+            {
+                Consider(segment.Text.Length);
             }
 
             return consumed + best;

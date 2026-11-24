@@ -18,7 +18,7 @@ namespace EsUtil.Ui.AvaloniaUI.Annotation;
 /// 適用しても編集は続き、結果はその場で本文へ反映される。<br/>
 /// <b>項目名は出さない</b>: 幅が限られるため、意味はツールチップで示す（フォント名・大きさ・装飾名とショートカット）。<br/>
 /// <b>同じ値でも適用できる</b>: 文字単位で書式が混ざっている範囲を一律に揃えるため、選び直しただけでも適用する。<br/>
-/// <b>文字を選んでいない間は操作できない</b>: 適用先が決まらないため、書式の操作をすべて無効にする（実測で指摘）。<br/>
+/// <b>文字を選んでいない間は操作できない</b>: 適用先が決まらないため、書式の操作をすべて無効にする。<br/>
 /// <b>大きさは中身に合わせる</b>: 説明の行と「完了」は置かず、書式の操作だけを 1 行に並べる（編集の邪魔をしない）。
 /// </remarks>
 internal sealed class AnnotationFormatBar : Border
@@ -81,7 +81,7 @@ internal sealed class AnnotationFormatBar : Border
 
         // **フォント名は直接入力できる**（一覧に無いフォントも指定できる。 入力した文字は
         // そのままフォント名として適用する）。 入力欄は標準の編集可のコンボボックスであるため、
-        // Ctrl+C / Ctrl+V もそのまま使える（実測 2026-11-22）。
+        // Ctrl+C / Ctrl+V もそのまま使える。
         _font = new ComboBox
         {
             Width = FontSelectorWidth,
@@ -161,7 +161,7 @@ internal sealed class AnnotationFormatBar : Border
         };
 
         // 並び順はコア（AnnotationFormatBarLayout.Order）が単一所有する。
-        // ここで順を決めると 4 つの UI 版で操作の位置がずれる（実測 2026-11-20）。
+        // ここで順を決めると 4 つの UI 版で操作の位置がずれる。
         var items = new Dictionary<AnnotationFormatBarItem, Control>
         {
             [AnnotationFormatBarItem.Bold] = _bold,
@@ -175,8 +175,8 @@ internal sealed class AnnotationFormatBar : Border
 
         foreach (var item in AnnotationFormatBarLayout.Order)
         {
-            // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる
-            // （実測 2026-11-21）。 値は提示層の AnnotationFormatBarLayout.ItemHeight が単一所有する
+            // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる。
+            // 値は提示層の AnnotationFormatBarLayout.ItemHeight が単一所有する
             var control = items[item];
             control.Height = AnnotationFormatBarLayout.ItemHeight;
             control.MinHeight = AnnotationFormatBarLayout.ItemHeight;
@@ -232,7 +232,7 @@ internal sealed class AnnotationFormatBar : Border
     /// <summary>色の入力欄へ出す表記を取得または設定する。</summary>
     /// <value>色名 + 不透明度（<see cref="ColorTextFormat.NameWithAlpha"/>）。</value>
     /// <remarks>
-    /// <b>代表色を選んだら色名で出す</b>: 色名のほうが「どの色を選んだか」を読み取りやすい（実測 2026-11-22）。
+    /// <b>代表色を選んだら色名で出す</b>: 色名のほうが「どの色を選んだか」を読み取りやすい。
     /// 色名の無い色は <c>#AARRGGBB</c>（8 桁）で出るため、表記によって不透明度が見えなくなることはない
     /// （規則は <c>ColorString.Format</c> が単一所有する）。
     /// </remarks>
@@ -256,7 +256,7 @@ internal sealed class AnnotationFormatBar : Border
     internal static double ResolveColorSelectorWidth()
     {
         // **幅の規則はコアが単一所有する**: UI ごとに四角の余白・展開ボタンの幅を決めると、
-        // 同じ表記でも幅が変わり、はっきり余る幅が空く（実測 2026-11-22）
+        // 同じ表記でも幅が変わり、はっきり余る幅が空く
         var width = AnnotationFormatBarLayout.ResolveColorSelectorWidth(AnnotationPainter.Measure);
         return width > 0 ? width : ColorSelectorWidthFallback;
     }
@@ -267,7 +267,7 @@ internal sealed class AnnotationFormatBar : Border
     /// <summary>現在の書式を表示へ反映する（選択範囲の先頭の書式）。</summary>
     /// <remarks>
     /// <b>文字を選んでいなくても操作できる</b>: 選択が無いときに選んだ書式は、以降の入力へ効く
-    /// （無効にすると「書式を変えられない」と見える。 実測 2026-11-22）。
+    /// （無効にすると「書式を変えられない」と見える）
     /// </remarks>
     public void Refresh()
     {
@@ -306,7 +306,7 @@ internal sealed class AnnotationFormatBar : Border
     /// <remarks>
     /// <b>入力欄の中では転送しない</b>: 色の入力欄やフォント名の入力欄にフォーカスがあるときは、
     /// <c>Ctrl+C</c> / <c>Ctrl+V</c> や文字入力をその入力欄へ渡します。 転送すると本文のコピー・貼り付けが
-    /// 走り、入力欄へ貼り付けられません（実測 2026-11-22）。
+    /// 走り、入力欄へ貼り付けられません。
     /// </remarks>
     private void OnFormatBarKeyForward(object? sender, KeyEventArgs e)
     {
@@ -439,7 +439,7 @@ internal sealed class AnnotationFormatBar : Border
             Text = text,
 
             // **記号は行の文字より一回り大きくする**: 記号 1 文字だけのボタンは、行の他の文字と同じ
-            // 大きさだと線（下線・取り消し線）と字面が小さく、押せる場所としても見えにくい（実測 2026-11-22）
+            // 大きさだと線（下線・取り消し線）と字面が小さく、押せる場所としても見えにくい
             FontSize = AnnotationEditorLayout.ToggleFontSize,
             FontFamily = new FontFamily(AnnotationEditorLayout.ToggleFontFamily),
             FontWeight = bold ? FontWeight.Bold : FontWeight.Normal,
@@ -448,7 +448,7 @@ internal sealed class AnnotationFormatBar : Border
             VerticalAlignment = VerticalAlignment.Center,
 
             // **上下中央へ寄せる**: Consolas の記号は行の下寄りに描かれるため、そのままでは
-            // 上へ 2 DIP ずれて見える（実測 2026-11-22）。 位置は描画だけを動かす（レイアウトは変えない）。
+            // 上へ 2 DIP ずれて見える。 位置は描画だけを動かす（レイアウトは変えない）。
             RenderTransform = new TranslateTransform(0, 2),
         };
 

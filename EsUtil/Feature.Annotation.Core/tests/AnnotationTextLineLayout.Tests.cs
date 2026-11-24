@@ -10,7 +10,7 @@ namespace EsUtil.Feature.Annotation.Core.Tests;
 /// </summary>
 /// <remarks>
 /// <b>キャレット・選択範囲・当たり判定は描画と一致しなければならない</b>。 行頭から幅を積み上げる
-/// 計算と、区間ごとに描く描画とで基準が違うと、文字とキャレットがずれる（実測 2026-11-21）。
+/// 計算と、区間ごとに描く描画とで基準が違うと、文字とキャレットがずれる。
 /// </remarks>
 public sealed class AnnotationTextLineLayoutTests
 {

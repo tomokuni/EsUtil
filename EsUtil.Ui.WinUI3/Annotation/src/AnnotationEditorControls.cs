@@ -19,8 +19,8 @@ internal static class AnnotationEditorControls
 {
     /// <summary>行の入力欄の幅（DIP。 値はコアが単一所有する）。</summary>
     /// <remarks>
-    /// <b>数値・選択肢・色を同じ幅にする</b>: 幅が違うと行の右端が揃わず、入力部がばらばらに見える
-    /// （実測 2026-11-22）。 フライアウトの幅もこの値から決まる（<see cref="AnnotationPanelAppearance.StyleEditor"/>）。
+    /// <b>数値・選択肢・色を同じ幅にする</b>: 幅が違うと行の右端が揃わず、入力部がばらばらに見える。
+    /// フライアウトの幅もこの値から決まる（<see cref="AnnotationPanelAppearance.StyleEditor"/>）。
     /// </remarks>
     internal const double FieldWidth = AnnotationEditorLayout.FieldWidth;
     /// <summary>行の文字サイズ（DIP）。</summary>
@@ -90,12 +90,12 @@ internal static class AnnotationEditorControls
             FontWeight = bold ? Microsoft.UI.Text.FontWeights.Bold : Microsoft.UI.Text.FontWeights.Normal,
             FontStyle = italic ? Windows.UI.Text.FontStyle.Italic : Windows.UI.Text.FontStyle.Normal,
 
-            // **記号自体にも装飾を描く**: 「U」「S」の文字だけでは意味が伝わらない（実測 2026-11-21）
+            // **記号自体にも装飾を描く**: 「U」「S」の文字だけでは意味が伝わらない
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center,
 
             // **上下中央へ寄せる**: Consolas の記号は行の上寄りに描かれるため、そのままでは
-            // 下へ 2 DIP ずれて見える（実測 2026-11-22）。 描画だけを動かす（レイアウトは変えない）。
+            // 下へ 2 DIP ずれて見える。 描画だけを動かす（レイアウトは変えない）。
             RenderTransform = new Microsoft.UI.Xaml.Media.TranslateTransform { Y = -1 },
         };
 
@@ -110,7 +110,7 @@ internal static class AnnotationEditorControls
             IsChecked = isChecked,
             MinWidth = AnnotationEditorLayout.ToggleMinWidth,
 
-            // **高さを明示する**: 既定の高さでは 12 DIP の文字の上が欠ける（実測 2026-11-20）。
+            // **高さを明示する**: 既定の高さでは 12 DIP の文字の上が欠ける。
             // 高さはコア（AnnotationFormatBarLayout）が単一所有する
             MinHeight = AnnotationFormatBarLayout.ItemHeight,
             Height = AnnotationFormatBarLayout.ItemHeight,
@@ -151,7 +151,7 @@ internal static class AnnotationEditorControls
             TextFormat = textFormat,
 
             // **幅はカラーコードから決める（規則はコアが単一所有する）**: 固定の 240 DIP では、はっきり余る幅が
-            // 空いて「不必要に長い」見た目になる（実測 2026-11-22）。 行の他の入力欄と同じ幅に揃える。
+            // 空いて「不必要に長い」見た目になる。 行の他の入力欄と同じ幅に揃える。
             Width = FieldWidth,
             FontSize = FontSize,
         };

@@ -67,7 +67,9 @@ var composedPath = AnnotationJson.GetComposedPath(imagePath);   // <画像名>.a
 | `AnnotationAppearance` | 注釈の外観（枠線の色・太さ・内側の色・角丸） |
 | `AnnotationPresenter` / `AnnotationDrawPlan` / `AnnotationShapePlan` | 折り返しと描画計画の解決 |
 | `AnnotationTextEdit` | 本文の編集状態（キャレット・選択・入力・削除・書式）。 4 つの UI 版は入力イベントを渡すだけにする |
+| `AnnotationEditSession` | 文書・選択・変更履歴・本文の編集状態を単一所有する編集セッション。 4 つの UI 版は本型の操作を呼び、変更を購読する |
 | `AnnotationViewTransform` | 表示倍率・位置と、元画像ピクセルとローカル DIP の相互変換 |
+| `AnnotationTextCursor` | 本文の文字位置を書記素クラスタ（絵文字・結合文字）で扱う規則（キャレット・選択・削除・折り返しの境界） |
 | `AnnotationHitTest` | 選択としっぽの当たり判定（最前面から探す） |
 | `AnnotationJson` | JSON 文字列への変換・保存パスの解決・付随ファイルの判定（ファイル入出力は `AnnotationCore`） |
 | `AnnotationDefaults` / `AnnotationLimits` | 既定値と安全域（設定・JSON・入力の共通の補正） |
@@ -86,12 +88,12 @@ var composedPath = AnnotationJson.GetComposedPath(imagePath);   // <画像名>.a
 | `src/Core/Geometry` | `.Core.Geometry` | 画像内へ収める規則と、表示倍率・位置・座標変換（`AnnotationViewTransform`） |
 | `src/Core/History` | `.Core.History` | 変更履歴（元に戻す・やり直す） |
 | `src/Core/Interaction` | `.Core.Interaction` | 当たり判定とポインターの形の判断 |
-| `src/Core/Text` | `.Core.Text` | 本文の書式を適用する範囲の規則 |
+| `src/Core/Text` | `.Core.Text` | 本文の書式を適用する範囲の規則と、文字位置を書記素クラスタで扱う規則（`AnnotationTextCursor`） |
 | `src/Core/Internal` | `.Core.Internal` | 折り返しと JSON の読み書き（`internal`） |
 | `src/Presenter/Drawing` | `.Presenter.Drawing` | キャレットと選択範囲の見た目（`AnnotationEditorAppearance`）・編集中の枠・行と文字位置の対応・行の寸法の値 |
 | `src/Presenter/Editor` | `.Presenter.Editor` | 編集 UI の文言・寸法・代表色・書式バーの並び |
 | `src/Presenter/Panel` | `.Presenter.Panel` | フローティング パネルの外観・配置・開閉 |
-| `src/Presenter/Selection` | `.Presenter.Selection` | 選択中の注釈の編集入口と、本文の編集状態（キャレット・選択・入力・書式） |
+| `src/Presenter/Selection` | `.Presenter.Selection` | 選択中の注釈の編集入口と、本文の編集状態（キャレット・選択・入力・書式）・編集セッション（文書・選択・履歴の単一所有） |
 | `src/Logging` | `.Logging` | ログ定義（`internal`。 UI が呼ぶ定義だけ `public`） |
 
 ## 4. テスト

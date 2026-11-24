@@ -1,4 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Feature.Annotation.Core.Text;
 
 namespace EsUtil.Feature.Annotation.Presenter.Drawing;
 
@@ -120,9 +121,14 @@ public sealed class AnnotationTextLineIndex
     /// <returns>区間と文字数から幅を返す関数。</returns>
     private static AnnotationTextLineLayout.MeasurePrefix MakePrefixMeasure(
         Func<string, AnnotationTextStyle, EsSize> measureText)
-        => (segment, count) => count <= 0
-            ? 0
-            : measureText(count >= segment.Text.Length ? segment.Text : segment.Text[..count], segment.Style).Width;
+        => (segment, count) =>
+        {
+            var length = AnnotationTextCursor.SnapBackward(
+                segment.Text, Math.Clamp(count, 0, segment.Text.Length));
+            return length <= 0
+                ? 0
+                : measureText(length >= segment.Text.Length ? segment.Text : segment.Text[..length], segment.Style).Width;
+        };
 
     /// <summary>点に最も近い文字位置を求める。</summary>
     /// <param name="point">位置（元画像ピクセル）。</param>

@@ -21,7 +21,7 @@ namespace EsUtil.Ui.WinUI3.Annotation;
 /// <b>独立したウィンドウを作らない</b>: ウィンドウはタスク バーへ出る・アプリの後ろへ回る・フォーカスを
 /// 奪うといった問題が版ごとに出るため、アプリの画面の最上位（<c>XamlRoot</c> の根）へ重ねる。<br/>
 /// <b>全面を覆う要素を挟まない</b>: 挟むとパネルの外側の押下を吸ってしまい、注釈も書式バーも
-/// 操作できなくなる（実測 2026-11-21）。 位置は余白（<c>Margin</c>）で与える。
+/// 操作できなくなる。 位置は余白（<c>Margin</c>）で与える。
 /// </remarks>
 public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
 {
@@ -222,7 +222,7 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
         }
 
         // **中身は表示のたびに作り直す**: 吹き出しの設定は「吹き出しを選んでいるとき」だけ出す。
-        // 一度作った中身を使い回すと、最初に枠線を右クリックした後は吹き出しの設定が出ない（実測 2026-11-21）。
+        // 一度作った中身を使い回すと、最初に枠線を右クリックした後は吹き出しの設定が出ない。
         if (kind != AnnotationPanelKind.FormatBar)
         {
             root.Child = new AnnotationStylePanel(_layer);
@@ -247,8 +247,7 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
 
         // **ポップアップへ載せる**: ウィンドウの中へ重ねると、ウィンドウが小さいときに中身が切れる。
         // WinUI 3 の <see cref="Popup"/> は ShouldConstrainToRootBounds を false にすると
-        // ウィンドウの外（画面の作業領域の内側）へも出せる（実測 2026-11-23: 置く位置は
-        // ウィンドウの内側へ収めるため、中身がはみ出すときの逃げ道として使う）。
+        // ウィンドウの外（画面の作業領域の内側）へも出せる。
         if (!_popups.TryGetValue(kind, out var popup))
         {
             popup = new Popup
@@ -267,12 +266,12 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
 
         ApplyPosition(kind, position);
 
-        // **実寸を確定させる**: レイアウト前の測定は高さを正しく返さない（実測 2026-11-22: 16040 DIP）。
+        // **実寸を確定させる**: レイアウト前の測定は高さを正しく返さない。
         // ここでレイアウトを走らせると、ホストが実寸を報告でき、コアが位置を決め直せる。
         root.UpdateLayout();
 
         // **実寸が決まってから収め直す**: 出した直後の `ActualWidth` は 0 のため、最初の収め方では
-        // 画面の外へはみ出します（実測 2026-11-23: 画面の右下で開くと右下へ 22 px はみ出した）。
+        // 画面の外へはみ出します。
         if (DispatcherQueue is { } queue)
         {
             queue.TryEnqueue(() => ApplyPosition(kind, position));
@@ -331,7 +330,7 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
 
     /// <summary>書式バーを本文の外（本文に被さらない位置）へ出し直す。</summary>
     /// <remarks>
-    /// <b>本文に被せない</b>: 編集中の文字が隠れて読めない（実測 2026-11-20）。 位置の判断は
+    /// <b>本文に被せない</b>: 編集中の文字が隠れて読めない。 位置の判断は
     /// 提示層（<see cref="AnnotationPanelPlacement.ResolveOutside"/>）が単一所有する。<br/>
     /// <b>実寸で置き直す</b>: レイアウト前の測定は高さを正しく返さないことがあるため、一度置いて
     /// レイアウトを確定させてからコアに実寸で決め直させる。
@@ -348,7 +347,7 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// <returns>実寸。 測れない場合は希望寸法。</returns>
     /// <remarks>
     /// <b>置ける幅を上限にして測る</b>: 幅を無限にして測ると中身（フォント名・色）が伸びきった寸法が返り、
-    /// その寸法で位置を決めると置ける領域の外へ出る（実測 2026-11-22: WinUI 3 版で書式バーが左上へ寄った）。
+    /// その寸法で位置を決めると置ける領域の外へ出る。
     /// </remarks>
     private EsSize MeasureFormatBar()
     {
@@ -373,7 +372,7 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// <returns>実寸。 まだ置いていない場合は希望寸法。</returns>
     /// <remarks>
     /// <b>根ではなく中身を測る</b>: 根はレイアウトのたびに引き伸ばされることがあり、実寸が画面の
-    /// 大きさになる（実測 2026-11-22: WinUI 3 版で高さ 16040 DIP と測定された）。
+    /// 大きさになる。
     /// </remarks>
     private EsSize MeasurePanel(AnnotationPanelKind kind)
     {
@@ -420,7 +419,7 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// <remarks>
     /// <b>位置はポップアップのオフセットで与える</b>: 余白（<c>Margin</c>）で与えるとウィンドウの外へ出せません。
     /// <see cref="Popup.ShouldConstrainToRootBounds"/> を <see langword="false"/> にしてあるため、
-    /// 中身がウィンドウより大きいときは外へはみ出して描けます（実測 2026-11-23）。
+    /// 中身がウィンドウより大きいときは外へはみ出して描けます。
     /// </remarks>
     private void ApplyPosition(AnnotationPanelKind kind, EsPoint position)
     {
@@ -433,13 +432,12 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
 
         // **画面の外へは出さない**: パネルはポップアップとしてウィンドウの外へも描けるため、
         // 置く位置をアプリのウィンドウがあるモニターの作業領域で挟みます（画面外で見えなくなるのを
-        // 防ぐ。 実測 2026-11-23）。
+        // 防ぐ）
         // **単位を揃える**: ポップアップの位置（`HorizontalOffset`）はウィンドウの左上を原点とする
         // **DIP**、作業領域は**ピクセル**です。 表示倍率（125% など）を掛けずに挟むと、
-        // 画面の外へはみ出します（実測 2026-11-23）。
+        // 画面の外へはみ出します。
         // **ウィンドウのハンドルは XamlRoot から取る**: このコントロール自身を渡すと
-        // `WinRT.Interop.WindowNative.GetWindowHandle` が InvalidCastException で落ちます
-        // （実測 2026-11-23: ダブルクリックで例外になり入力できなくなった）。
+        // `WinRT.Interop.WindowNative.GetWindowHandle` が InvalidCastException で落ちます。
         var x = position.X;
         var y = position.Y;
         if (MainWindowHandle() is { } handle && handle != IntPtr.Zero
@@ -454,14 +452,14 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
             var scale = root.RasterizationScale > 0 ? root.RasterizationScale : 1;
 
             // **実寸が取れないときは中身を測る**: 出した直後の `ActualWidth` は 0 のため、それだけで
-            // 挟むと画面の外へ出ます（実測 2026-11-23: 画面の右下で開くと右下へはみ出した）。
+            // 挟むと画面の外へ出ます。
             var measured = GetPanelSize(kind);
             var width = popup.ActualWidth > 0 ? popup.ActualWidth : measured.Width;
             var height = popup.ActualHeight > 0 ? popup.ActualHeight : measured.Height;
 
             // **影の余白を差し引く**: WinUI 3 のポップアップのウィンドウは、中身のまわりに影の
-            // 透明な余白（実測 約 11 px）を含みます。 余白を考えずに挟むと、見えている中身が
-            // 画面の端を越えます（実測 2026-11-23: 右下で 22 px はみ出した）。
+            // 透明な余白を含みます。 余白を考えずに挟むと、見えている中身が
+            // 画面の端を越えます。
             var margin = PopupShadowMargin;
             x = Math.Clamp(
                 x,
@@ -498,7 +496,7 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// <returns>重ねる先。 取得できない場合は <see langword="null"/>。</returns>
     /// <remarks>
     /// <b>根の <c>Panel</c> へ直接足す</b>: 全面を覆う <c>Canvas</c> を挟むと、パネルの外側の押下を
-    /// 吸ってしまい注釈も書式バーも操作できなくなる（実測 2026-11-21）。 位置は余白で与える。
+    /// 吸ってしまい注釈も書式バーも操作できなくなる。 位置は余白で与える。
     /// </remarks>
     private Panel? ResolveOverlay()
     {
