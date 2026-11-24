@@ -659,7 +659,23 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <b>本文の描画を 2 か所に持たない</b>: 本文編集コントロールを重ねている間は、本レイヤーは本文を描かない
     /// （同じ文字を二重に描くと、縁が太り位置も二重に見える）。
     /// </remarks>
-    public string? ExternalTextId { get; set; }
+    public string? ExternalTextId
+    {
+        get => _externalTextId;
+        set
+        {
+            if (string.Equals(_externalTextId, value, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _externalTextId = value;
+            InvalidateVisual();
+        }
+    }
+
+    /// <summary>本文の描画を別のコントロールへ任せる吹き出しの識別子（保持する値）。</summary>
+    private string? _externalTextId;
 
     /// <summary>編集の状態と文書を所有する編集セッションを取得する（本文編集コントロールと共有する）。</summary>
     internal AnnotationEditSession Session => _session;

@@ -20,6 +20,7 @@
     <Project Path="Thumbnail/tests/EsUtil.Ui.WinForms.Thumbnail.Tests.csproj" />
   </Folder>
   <Folder Name="/RichTextEditor/">
+    <Project Path="RichTextEditor/sample/EsUtil.Ui.WinForms.RichTextEditor.Sample.csproj" />
     <Project Path="RichTextEditor/src/EsUtil.Ui.WinForms.RichTextEditor.csproj" />
     <Project Path="RichTextEditor/tests/EsUtil.Ui.WinForms.RichTextEditor.Tests.csproj" />
   </Folder>

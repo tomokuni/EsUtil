@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>EsUtil.Ui.WinForms.RichTextEditor.Sample</RootNamespace>
+    <Description>書式付き文字列の編集（WinForms 版コントロール）の動作確認用サンプル アプリケーション。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\EsUtil.Ui.WinForms.RichTextEditor.csproj" />
+    <!-- サンプル共通のレイアウトとログ（Serilog） -->
+    <ProjectReference Include="..\..\SampleKit\src\EsUtil.Ui.WinForms.SampleKit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="EsUtil.Feature.Text" />
+    <Using Include="EsUtil.Feature.Text.Core.Defaults" />
+  </ItemGroup>
+
+</Project>

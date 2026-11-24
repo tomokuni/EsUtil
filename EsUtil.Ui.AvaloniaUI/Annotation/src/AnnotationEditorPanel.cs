@@ -64,6 +64,9 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <summary>本文の表示と編集を担うコントロール（選択中の吹き出しの本文の上へ重ねる）。</summary>
     private readonly RichTextEditor.RichTextEditorControl _textEditor;
 
+    /// <summary>本文コントロールを合わせている吹き出しの識別子（無い場合は <see langword="null"/>）。</summary>
+    private string? _syncedTextId;
+
     /// <summary>注釈の本文編集と書式バーをまとめたコントロールを初期化する。</summary>
     public AnnotationEditorPanel()
     {
@@ -728,9 +731,16 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 
         if (_layer.Session.Selected is not BubbleAnnotation bubble)
         {
-            _textEditor.IsVisible = false;
-            _layer.ExternalTextId = null;
+            HideTextEditor();
             return;
+        }
+
+        // **置く位置は選択に依存する**: 選択が変わったら測り直す（測り直さないと前の吹き出しの位置に残り、
+        // 別の吹き出しの本文がそこへ描かれる）。
+        if (!string.Equals(_syncedTextId, bubble.Id, StringComparison.Ordinal))
+        {
+            _syncedTextId = bubble.Id;
+            InvalidateMeasure();
         }
 
         // **変換中の文字列も本文として描く**: 重ねて描くと既存の文字と二重になる
@@ -747,6 +757,21 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 
         // レイヤーは同じ本文を描かない（二重に描くと縁が太り、位置も二重に見える）
         _layer.ExternalTextId = bubble.Id;
+    }
+
+    /// <summary>本文コントロールを隠し、レイヤーが本文を描く状態へ戻す。</summary>
+    private void HideTextEditor()
+    {
+        if (_syncedTextId is null && !_textEditor.IsVisible)
+        {
+            _layer.ExternalTextId = null;
+            return;
+        }
+
+        _syncedTextId = null;
+        _textEditor.IsVisible = false;
+        _layer.ExternalTextId = null;
+        InvalidateMeasure();
     }
 
     /// <summary>本文コントロールを置く矩形（このコントロールの座標）を求める。</summary>

@@ -30,6 +30,7 @@
     <Project Path="Thumbnail/tests/EsUtil.Ui.MewUI.Thumbnail.Tests.csproj" />
   </Folder>
   <Folder Name="/RichTextEditor/">
+    <Project Path="RichTextEditor/sample/EsUtil.Ui.MewUI.RichTextEditor.Sample.csproj" />
     <Project Path="RichTextEditor/src/EsUtil.Ui.MewUI.RichTextEditor.csproj" />
     <Project Path="RichTextEditor/tests/EsUtil.Ui.MewUI.RichTextEditor.Tests.csproj" />
   </Folder>
