@@ -26,6 +26,10 @@ public sealed class MainWindow : Window
     /// <summary>状態の表示。</summary>
     private readonly TextBlock _status = new() { Text = "枠線か吹き出しをクリックして選択します。" };
 
+    /// <summary>注釈ファイルを書き出す元画像のパス（保存と読み込みで同じパスを使う）。</summary>
+    private static readonly string s_imagePath =
+        Path.Combine(Path.GetTempPath(), "esutil-annotation-sample.png");
+
     /// <summary>ウィンドウを初期化する。</summary>
     public MainWindow()
     {
@@ -109,6 +113,10 @@ public sealed class MainWindow : Window
                     ("やり直す", () => layer.Redo()),
                     ("最前面へ", () => layer.MoveSelectedToFront()),
                     ("最背面へ", () => layer.MoveSelectedToBack()),
+                    ("本文を差し替える", () => layer.SetSelectedText("差し替えた本文")),
+                    ("選択を解除", () => layer.ClearSelection()),
+                    ("注釈を保存", () => SaveAnnotations()),
+                    ("注釈を読み込む", () => LoadAnnotations()),
                     ("削除", () => layer.DeleteSelected())),
             },
         };
@@ -126,10 +134,9 @@ public sealed class MainWindow : Window
             },
         };
 
-        layer.SelectionChanged += (_, _) => _status.Text = layer.Selected is { } selected
-            ? $"選択: {selected.Id}"
-            : "選択なし";
-        layer.DocumentChanged += (_, _) => _status.Text = $"{layer.Document.Items.Length} 件の注釈";
+        layer.SelectionChanged += (_, _) => UpdateStatus();
+        layer.DocumentChanged += (_, _) => UpdateStatus();
+        UpdateStatus();
 
         var content = new ScrollViewer
         {
@@ -165,5 +172,34 @@ public sealed class MainWindow : Window
 
         void AddFrame() => layer.AddFrame(new EsRect(120, 320, 300, 200));
         void AddBubble() => layer.AddBubble(new EsRect(300, 80, 320, 140), "新しい吹き出し");
+
+        // 件数・選択・履歴の状態をまとめて出す（どの操作が効いたかを 1 行で確かめられる）
+        void UpdateStatus() => _status.Text =
+            $"{layer.Document.Items.Length} 件 / 選択: {ShortId(layer.Selected?.Id)}\n" +
+            $"元に戻せる: {layer.CanUndo} / やり直せる: {layer.CanRedo}";
+
+        void SaveAnnotations()
+        {
+            core.SaveDocument(s_imagePath, layer.Document);
+            _status.Text = $"保存: {AnnotationJson.GetDocumentPath(s_imagePath)}";
+        }
+
+        void LoadAnnotations()
+        {
+            var path = AnnotationJson.GetDocumentPath(s_imagePath);
+            if (!File.Exists(path))
+            {
+                _status.Text = $"注釈ファイルがありません: {path}";
+                return;
+            }
+
+            layer.Document = core.Load(path);
+            UpdateStatus();
+        }
     }
+
+    /// <summary>識別子を状態の表示用に短くする。</summary>
+    /// <param name="id">識別子（未選択は null）。</param>
+    /// <returns>先頭 8 文字（未選択は <c>なし</c>）。</returns>
+    private static string ShortId(string? id) => id is null ? "なし" : id[..Math.Min(8, id.Length)];
 }
