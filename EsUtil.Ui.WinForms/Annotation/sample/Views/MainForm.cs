@@ -96,7 +96,7 @@ internal static class MainForm
         // ── サンプル設定（サンプルアプリの外観と状態） ──
         var samples = Column(
             SampleSettings.LogLevel(logging),
-            new Label { AutoSize = true, Text = "ダブルクリック: 本文 / 右クリック: 外観 / 四隅と辺: サイズ変更 / しっぽの先端: ドラッグ" },
+            new Label { AutoSize = true, Text = "ダブルクリック: 本文の編集 / 右クリック: 外観と重なり順\n四隅と辺: サイズ変更 / しっぽの先端: 移動" },
             status,
             SampleSettings.Buttons(("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))));
 
