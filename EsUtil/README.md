@@ -103,9 +103,9 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | `MarqueeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `ThumbnailControl` | あり（配置・選択・可視範囲） | あり（提示 + 外観 + 影） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `LoupeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
-| `AnnotationLayerControl` / `AnnotationTextEditor` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
+| `AnnotationLayerControl` / `AnnotationEditorPanel` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `ColorSelectorControl` | なし（色名・色文字列の規則は共通基盤の `Palette` が持つ） | なし | AvaloniaUI / MewUI / WinUI3 |
-| `RichTextEditorControl` | `EsUtil.Feature.Text.Core`（書式・折り返し・行対応・編集状態。 提示層は同アセンブリの `.Presenter.Editing`） | あり（提示は同アセンブリ） | AvaloniaUI |
+| `RichTextEditorControl` | `EsUtil.Feature.Text.Core`（書式・折り返し・行対応・編集状態。 提示層は同アセンブリの `.Presenter.Editing`） | あり（提示は同アセンブリ） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 
 **Core と Presenter の両方を持つ機能でも、プロジェクト（アセンブリ）は 1 つ**です（`EsUtil.Feature.<機能>.Core`。 公開面は `src/` 直下、層の内部は `src/Core/` と `src/Presenter/` で分ける）。
 
@@ -135,7 +135,7 @@ UI 層は [`EsUtil.Ui.AvaloniaUI.ColorSelector`](../EsUtil.Ui.AvaloniaUI/ColorSe
 [`EsUtil.Ui.AvaloniaUI.Marquee`](../EsUtil.Ui.AvaloniaUI/Marquee/README.md) / [`EsUtil.Ui.MewUI.Marquee`](../EsUtil.Ui.MewUI/Marquee/README.md) / [`EsUtil.Ui.WinUI3.Marquee`](../EsUtil.Ui.WinUI3/Marquee/README.md) / [`EsUtil.Ui.WinForms.Marquee`](../EsUtil.Ui.WinForms/Marquee/README.md) /
 [`EsUtil.Ui.AvaloniaUI.Loupe`](../EsUtil.Ui.AvaloniaUI/Loupe/README.md) / [`EsUtil.Ui.MewUI.Loupe`](../EsUtil.Ui.MewUI/Loupe/README.md) / [`EsUtil.Ui.WinUI3.Loupe`](../EsUtil.Ui.WinUI3/Loupe/README.md) / [`EsUtil.Ui.WinForms.Loupe`](../EsUtil.Ui.WinForms/Loupe/README.md) /
 [`EsUtil.Ui.AvaloniaUI.Thumbnail`](../EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) / [`EsUtil.Ui.MewUI.Thumbnail`](../EsUtil.Ui.MewUI/Thumbnail/README.md) / [`EsUtil.Ui.WinUI3.Thumbnail`](../EsUtil.Ui.WinUI3/Thumbnail/README.md) / [`EsUtil.Ui.WinForms.Thumbnail`](../EsUtil.Ui.WinForms/Thumbnail/README.md) /
-[`EsUtil.Ui.AvaloniaUI.RichTextEditor`](../EsUtil.Ui.AvaloniaUI/RichTextEditor/README.md) / [`EsUtil.Ui.AvaloniaUI.Annotation`](../EsUtil.Ui.AvaloniaUI/Annotation/README.md) / [`EsUtil.Ui.MewUI.Annotation`](../EsUtil.Ui.MewUI/Annotation/README.md) / [`EsUtil.Ui.WinUI3.Annotation`](../EsUtil.Ui.WinUI3/Annotation/README.md) / [`EsUtil.Ui.WinForms.Annotation`](../EsUtil.Ui.WinForms/Annotation/README.md)、
+[`EsUtil.Ui.AvaloniaUI.RichTextEditor`](../EsUtil.Ui.AvaloniaUI/RichTextEditor/README.md) / [`EsUtil.Ui.MewUI.RichTextEditor`](../EsUtil.Ui.MewUI/RichTextEditor/README.md) / [`EsUtil.Ui.WinUI3.RichTextEditor`](../EsUtil.Ui.WinUI3/RichTextEditor/README.md) / [`EsUtil.Ui.WinForms.RichTextEditor`](../EsUtil.Ui.WinForms/RichTextEditor/README.md) / [`EsUtil.Ui.AvaloniaUI.Annotation`](../EsUtil.Ui.AvaloniaUI/Annotation/README.md) / [`EsUtil.Ui.MewUI.Annotation`](../EsUtil.Ui.MewUI/Annotation/README.md) / [`EsUtil.Ui.WinUI3.Annotation`](../EsUtil.Ui.WinUI3/Annotation/README.md) / [`EsUtil.Ui.WinForms.Annotation`](../EsUtil.Ui.WinForms/Annotation/README.md)、
 共通基盤は [`EsUtil.Platform.Core`](../EsUtil/Platform.Core/README.md) / [`EsUtil.Platform.Core.Windows`](../EsUtil/Platform.Core.Windows/README.md) を参照してください。
 
 ## 8. 名前空間とフォルダ
@@ -164,7 +164,7 @@ UI 層は [`EsUtil.Ui.AvaloniaUI.ColorSelector`](../EsUtil.Ui.AvaloniaUI/ColorSe
 | `MarqueeControl` | `MarqueeSession` / `MarqueeState`（対話の進行・選択矩形・スナップショット） | ポインター キャプチャ・カーソルの実体・再描画の予約（入力機構と描画資源のため） |
 | `ThumbnailControl` | 選択（`ThumbnailSelection`）・配置と可視範囲（`ThumbnailLayout`）・外観 | ホバー中の項目（ポインターの位置そのもの）・スクロール位置（スクロール バーの機構） |
 | `LoupeControl` | 拡大中心・倍率・種類・余白（`LoupeCore` / `LoupeOptions`）・外観 | 描画面・表示用の射影（ホストが渡す画像と描画資源） |
-| `AnnotationLayerControl` / `AnnotationTextEditor` | 文書・選択・変更履歴・本文の編集状態・既定値（`AnnotationEditSession`）・外観 | ポインター キャプチャ・ドラッグ中フラグ・IME の変換中文字列・キャレット点滅タイマー |
+| `AnnotationLayerControl` / `AnnotationEditorPanel` | 文書・選択・変更履歴・本文の編集状態・既定値（`AnnotationEditSession`）・外観 | ポインター キャプチャ・ドラッグ中フラグ・IME の変換中文字列・キャレット点滅タイマー |
 | `ColorSelectorControl` | 選択中の色・直近に使ったタブ（分類タブ・カラーピッカーのタブ） | 一覧の開閉・入力途中のテキスト（コントロール化を前提とした処理と入力機構） |
 
 **判定の補足**:

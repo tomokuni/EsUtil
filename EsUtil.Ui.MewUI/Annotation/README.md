@@ -39,8 +39,8 @@
 
 画像の上へ注釈（枠線・吹き出し）を重ねる MewUI 版のレイヤー コントロールです。
 
-- **`AnnotationTextEditor`**: 本文の表示・その場編集と書式バーを 1 つにまとめたコントロールです（内側の `Layer` で画像・文書・選択を操作します）。
-- **`AnnotationLayerControl`**: 画像の表示・注釈の描画・入力の受付を担います（`AnnotationTextEditor.Layer` として使います）。
+- **`AnnotationEditorPanel`**: 本文の表示・その場編集と書式バーを 1 つにまとめたコントロールです（内側の `Layer` で画像・文書・選択を操作します）。
+- **`AnnotationLayerControl`**: 画像の表示・注釈の描画・入力の受付を担います（`AnnotationEditorPanel.Layer` として使います）。
 - **判断は `EsUtil.Feature.Annotation`（機能アセンブリ）が単一所有**します（当たり判定・折り返し・描画計画。 層の内部は `EsUtil.Feature.Annotation.Core.*` / `.Presenter.*`）。 本コントロールは自 UI の描画 API へ写すだけです。
 - **選択枠と 8 方向のハンドルは `EsUtil.Feature.Marquee.Core` の提示層を再利用**します。
 - **本文はその場で編集します**（表示中のレイアウトのままキャレットを立ち、入力できます）。 IME（日本語入力）にも対応します。
@@ -90,7 +90,7 @@ using EsUtil.Feature.Annotation;
 using EsUtil.Ui.MewUI.Annotation;
 
 // 本文の表示・その場編集と書式バーをまとめたコントロール（これ 1 つを置く）
-var editor = new AnnotationTextEditor { Width = 1920, Height = 1080 };
+var editor = new AnnotationEditorPanel { Width = 1920, Height = 1080 };
 var layer = editor.Layer;
 layer.Source = image;           // EsReadOnlyBitmap
 layer.SourcePixelWidth = 1920;
@@ -168,7 +168,7 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 ## 12. カスタマイズ
 
-- **色の表記**: `AnnotationTextEditor.TextFormat`（色名 + 不透明度 / カラーコード）。
+- **色の表記**: `AnnotationEditorPanel.TextFormat`（色名 + 不透明度 / カラーコード）。
 - **新規作成時の既定値**: `AnnotationLayerControl.DraftDefaults`。
 - **代表色のタブ**: `AnnotationPalette.Configure`（代表色 + ColorPicker）と `AnnotationPalette.ConfigureAll`（標準のタブも出す）。
 - **編集 UI の部品**: `AnnotationEditorControls` はフライアウトとホストの設定ペインが共有します。
@@ -224,7 +224,7 @@ dotnet run --project EsUtil.Ui.MewUI/Annotation/sample/EsUtil.Ui.MewUI.Annotatio
 
 | フォルダ | 内容 |
 | --- | --- |
-| `src/` | コントロール本体（`AnnotationLayerControl` / `AnnotationTextEditor` / 書式バー / 描画） |
+| `src/` | コントロール本体（`AnnotationLayerControl` / `AnnotationEditorPanel` / 書式バー / 描画） |
 | `tests/` | 単体テスト |
 | `sample/` | 動作を確認するサンプル アプリ |
 | `docs/` | API リファレンスとシステム仕様書 |

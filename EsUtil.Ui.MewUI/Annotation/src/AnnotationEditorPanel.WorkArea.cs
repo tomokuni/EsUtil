@@ -8,7 +8,7 @@ namespace EsUtil.Ui.MewUI.Annotation;
 /// <b>画面の外へ出さない</b>: パネルは別ウィンドウなので、画面の外へ出ると見えなくなります。
 /// モニターの作業領域（タスク バーを除いた範囲）で位置を挟みます。
 /// </remarks>
-public sealed partial class AnnotationTextEditor
+public sealed partial class AnnotationEditorPanel
 {
     /// <summary>指定した位置をモニターの作業領域の内側へ収める。</summary>
     /// <param name="reference">基準にするウィンドウ（モニターと表示倍率を決める）。</param>

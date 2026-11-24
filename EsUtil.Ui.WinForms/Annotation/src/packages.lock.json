@@ -63,6 +63,13 @@
         "dependencies": {
           "EsUtil.Platform.Core": "[0.8.8, )"
         }
+      },
+      "esutil.ui.winforms.richtexteditor": {
+        "type": "Project",
+        "dependencies": {
+          "EsUtil.Feature.Text.Core": "[0.8.8, )",
+          "EsUtil.Platform.Core": "[0.8.8, )"
+        }
       }
     }
   }

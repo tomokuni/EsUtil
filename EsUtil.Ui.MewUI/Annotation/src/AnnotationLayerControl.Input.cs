@@ -96,7 +96,11 @@ public sealed partial class AnnotationLayerControl
                     AnnotationPainter.DrawShape(context, shape, layouts.Create);
                 }
 
-                DrawTextEditing(context, scale, layouts.Create);
+                // **本文を別のコントロールが描く場合はキャレットも描かない**（コントロールが描く）
+                if (ExternalTextId is null)
+                {
+                    DrawTextEditing(context, scale, layouts.Create);
+                }
             }
             finally
             {

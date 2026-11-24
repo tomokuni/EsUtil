@@ -4,13 +4,13 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 
 ## 目次
 
-- [1. `AnnotationTextEditor`（クラス）](#1-annotationtexteditorクラス)
+- [1. `AnnotationEditorPanel`（クラス）](#1-annotationeditorpanelクラス)
 - [2. `AnnotationLayerControl`（クラス）](#2-annotationlayercontrolクラス)
 - [3. `AnnotationTextRunMeasure`（静的クラス）](#3-annotationtextrunmeasure静的クラス)
 - [4. `AnnotationPalette`（静的クラス）](#4-annotationpalette静的クラス)
 - [5. `AnnotationFonts`（静的クラス）](#5-annotationfonts静的クラス)
 
-## 1. `AnnotationTextEditor`（クラス）
+## 1. `AnnotationEditorPanel`（クラス）
 
 本文の表示・編集と書式バーを 1 つにまとめた `Grid` です。 ホストはこれ 1 つを置きます。
 

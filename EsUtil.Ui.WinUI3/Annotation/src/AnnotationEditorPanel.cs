@@ -23,7 +23,7 @@ namespace EsUtil.Ui.WinUI3.Annotation;
 /// <b>全面を覆う要素を挟まない</b>: 挟むとパネルの外側の押下を吸ってしまい、注釈も書式バーも
 /// 操作できなくなる。 位置は余白（<c>Margin</c>）で与える。
 /// </remarks>
-public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
+public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
 {
     /// <summary>注釈の表示と編集を担うレイヤー。</summary>
     private readonly AnnotationLayerControl _layer;
@@ -65,8 +65,11 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// <summary>外側の押下を監視している根（二重に繋がないための目印）。</summary>
     private Panel? _hookedRoot;
 
+    /// <summary>本文の表示を担うコントロール（選択中の吹き出しの本文の上へ重ねる）。</summary>
+    private readonly RichTextEditor.RichTextEditorControl _textEditor;
+
     /// <summary>注釈の本文編集と書式バーをまとめたコントロールを初期化する。</summary>
-    public AnnotationTextEditor()
+    public AnnotationEditorPanel()
     {
         _layer = new AnnotationLayerControl();
         _formatBar = new AnnotationFormatBar(_layer);
@@ -74,7 +77,20 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
         _formatBarPanel = new AnnotationPanelController(this, AnnotationPanelAppearance.FormatBar, () => _layer.Log);
         _stylePanel = new AnnotationPanelController(this, AnnotationPanelAppearance.StyleEditor, () => _layer.Log);
 
+        // **本文の表示は専用のコントロールが担う**: 選択中の吹き出しの本文の上へ重ね、
+        // 本文の文字・選択範囲・キャレット・変換中の文字列を描く（レイヤーは本文を描かない）。
+        // 入力とフォーカスはレイヤーが持つため、本コントロールは表示専用にする。
+        _textEditor = new RichTextEditor.RichTextEditorControl
+        {
+            IsInputEnabled = false,
+            IsHitTestVisible = false,
+            Visibility = Visibility.Collapsed,
+            MeasureText = AnnotationTextRunMeasure.Measure,
+            EditState = _layer.Session.TextEditState,
+        };
+
         Children.Add(_layer);
+        Children.Add(_textEditor);
 
         _layer.EditingChanged += (_, _) =>
         {

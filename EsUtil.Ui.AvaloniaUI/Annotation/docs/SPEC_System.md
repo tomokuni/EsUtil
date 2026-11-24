@@ -55,7 +55,7 @@ flowchart TB
 | コンポーネント | 分類 | 責務 |
 | --- | --- | --- |
 | `AnnotationLayerControl` | `public` | 画像の表示・注釈の描画・入力の受付・選択の同期・文書の変更通知・保存用の合成（`RenderComposedImage`） |
-| `AnnotationTextEditor` | `public` | 本文の表示・その場編集と書式バーを 1 つにまとめたコントロール（`Layer` を内側で持ち、編集の開始・終了と本文の位置に合わせてバーを配置する） |
+| `AnnotationEditorPanel` | `public` | 本文の表示・その場編集と書式バーを 1 つにまとめたコントロール（`Layer` を内側で持ち、編集の開始・終了と本文の位置に合わせてバーを配置する） |
 | `AnnotationFormatBar`（内部） | `internal` | 本文の上に出す書式バー（フォント・大きさ・色・B / I / U / S。 項目名は出さずツールチップで示す） |
 | `AnnotationPalette` | `public` | 注釈の色選択で使う代表色 40 色（色名付き）と、色の選択をその構成にする処理 |
 | `AnnotationStyleFlyout`（内部） | `internal` | 右クリックの編集 UI（外観・吹き出し・本文の書式・重なり順）。 `AnnotationEditorControls` の部品で組み立てる |
@@ -89,7 +89,7 @@ flowchart TB
 ホストは本文の選択範囲をそのまま `TransformTextStyle(start, length, transform)` へ渡せます
 （`ApplyTextStyle` は書式を丸ごと差し替えるため、色や大きさが既定へ戻る。 1 つの属性だけを変えるときは使わない）。
 
-**ログ**: `AnnotationLayerControl.Log` / `LogPrefix`（`AnnotationTextEditor` も同じプロパティを持つ）で出力先と接頭辞を設定します（既定の接頭辞は `[Annotation]`）。 レベルは頻度で決めます。 `Information` は注釈ファイルの読み書きとファサードの生成、`Debug` は選択・本文の編集・書式の適用・パネルの表示と位置・押下と解放・注釈の追加、`Trace` はドラッグ中の文書の変更、`Error` は公開ファサードの例外です。 定義は `EsUtil.Feature.Annotation.Core` の `AnnotationLogMessage` が単一所有し、本アセンブリは同じロガーをコアと提示層へ渡します（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
+**ログ**: `AnnotationLayerControl.Log` / `LogPrefix`（`AnnotationEditorPanel` も同じプロパティを持つ）で出力先と接頭辞を設定します（既定の接頭辞は `[Annotation]`）。 レベルは頻度で決めます。 `Information` は注釈ファイルの読み書きとファサードの生成、`Debug` は選択・本文の編集・書式の適用・パネルの表示と位置・押下と解放・注釈の追加、`Trace` はドラッグ中の文書の変更、`Error` は公開ファサードの例外です。 定義は `EsUtil.Feature.Annotation.Core` の `AnnotationLogMessage` が単一所有し、本アセンブリは同じロガーをコアと提示層へ渡します（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
 
 ## 5. 依存関係
 

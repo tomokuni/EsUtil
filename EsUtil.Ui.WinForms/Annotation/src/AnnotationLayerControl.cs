@@ -471,6 +471,36 @@ public sealed partial class AnnotationLayerControl : Control
         StyleEditorRequested?.Invoke(this, new AnnotationStyleEditorRequestedEventArgs(_styleEditorX, _styleEditorY));
     }
 
+    /// <summary>本文の描画を別のコントロールへ任せる吹き出しの識別子を取得または設定する。</summary>
+    /// <value>本文編集コントロールが描く吹き出しの識別子。 無い場合は <see langword="null"/>。</value>
+    /// <remarks>
+    /// <b>本文の描画を 2 か所に持たない</b>: 本文編集コントロールを重ねている間は、本レイヤーは本文を描かない。
+    /// </remarks>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public string? ExternalTextId { get; set; }
+
+    /// <summary>編集の状態と文書を所有する編集セッションを取得する（本文編集コントロールと共有する）。</summary>
+    internal AnnotationEditSession Session => _session;
+
+    /// <summary>IME の変換中の文字列を取得する。</summary>
+    internal string PreeditText => _preeditText;
+
+    /// <summary>画像の表示倍率（元画像ピクセル → DIP）を取得する。</summary>
+    internal double ViewScale => ResolveImageTransform().Scale;
+
+    /// <summary>元画像ピクセルの矩形を、このコントロールの座標（DIP）の矩形へ変換する。</summary>
+    /// <param name="source">矩形（元画像ピクセル）。</param>
+    /// <returns>矩形（このコントロールの座標の DIP）。</returns>
+    public RectangleF GetClientRect(EsRect source)
+    {
+        var (scale, offset) = ResolveImageTransform();
+        return new RectangleF(
+            (float)(offset.X + (source.X * scale)),
+            (float)(offset.Y + (source.Y * scale)),
+            (float)(source.Width * scale),
+            (float)(source.Height * scale));
+    }
+
     /// <summary>画像と注釈を元画像ピクセルの 1:1 で合成した画像を作る（保存用）。</summary>
     /// <returns>合成した画像。 破棄は呼び出し側。 作れない場合は <see langword="null"/>。</returns>
     /// <remarks>選択枠・ハンドル・キャレットは描かない（編集中の一時的な表示であり、保存する絵ではない）。</remarks>

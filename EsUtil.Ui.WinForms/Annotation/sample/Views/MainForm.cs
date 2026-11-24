@@ -33,7 +33,7 @@ internal static class MainForm
         var image = TestImageFactory.Create();
         var status = new Label { AutoSize = true, Text = "枠線か吹き出しをクリックして選択します。" };
 
-        var editor = new AnnotationTextEditor { Width = image.Width, Height = image.Height };
+        var editor = new AnnotationEditorPanel { Width = image.Width, Height = image.Height };
         var layer = editor.Layer;
         layer.Log = logger;
         layer.LogPrefix = "[Annotation]";

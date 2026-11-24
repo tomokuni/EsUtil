@@ -5,6 +5,7 @@ using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
 using MewUIColor = Aprillz.MewUI.Color;
 using EsUtil.Feature.Annotation.Core.Contract;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Ui.MewUI.Annotation;
@@ -20,7 +21,7 @@ namespace EsUtil.Ui.MewUI.Annotation;
 /// <b>パネルは枠なしのウィンドウへ載せる</b>: アプリの画面へ重ねるとウィンドウの外へ出られない。
 /// ウィンドウなら画面の内側まで自由に置け、はみ出さないことは位置の適用が保証する。
 /// </remarks>
-public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
+public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 {
     /// <summary>書式バー（編集中だけ表示する）。</summary>
     private readonly AnnotationFormatBar _formatBar;
@@ -56,8 +57,11 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
     /// <summary>ドラッグ中のパネルの根（押下を受けた要素）。</summary>
     private UIElement? _draggingRoot;
 
+    /// <summary>本文の表示を担うコントロール（選択中の吹き出しの本文の上へ重ねる）。</summary>
+    private readonly RichTextEditor.RichTextEditorControl _textEditor;
+
     /// <summary>注釈の本文編集と書式バーをまとめたコントロールを初期化する。</summary>
-    public AnnotationTextEditor()
+    public AnnotationEditorPanel()
     {
         _layer = new AnnotationLayerControl();
         _formatBar = new AnnotationFormatBar(_layer);
@@ -65,7 +69,20 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
         _formatBarPanel = new AnnotationPanelController(this, AnnotationPanelAppearance.FormatBar, () => _layer.Log);
         _stylePanel = new AnnotationPanelController(this, AnnotationPanelAppearance.StyleEditor, () => _layer.Log);
 
+        // **本文の表示は専用のコントロールが担う**: 選択中の吹き出しの本文の上へ重ね、
+        // 本文の文字・選択範囲・キャレット・変換中の文字列を描く（レイヤーは本文を描かない）。
+        // 入力とフォーカスはレイヤーが持つため、本コントロールは表示専用にする。
+        _textEditor = new RichTextEditor.RichTextEditorControl
+        {
+            IsInputEnabled = false,
+            IsHitTestVisible = false,
+            IsVisible = false,
+            MeasureText = AnnotationTextMetrics.Measure,
+            EditState = _layer.Session.TextEditState,
+        };
+
         Add(_layer);
+        Add(_textEditor);
 
         // 編集の開始・終了でバーを出し入れする（本文の位置は編集のたびに変わりうる）
         _layer.EditingChanged += (_, _) =>
@@ -109,6 +126,11 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
 
         // 右クリックの編集パネル（外観・吹き出し・重なり順）
         _layer.StyleEditorRequested += (_, e) => ShowStylePanel(e.X, e.Y);
+
+        // 文書・選択・編集の状態が変わったら、重ねた本文コントロールの内容と位置を追随させる
+        _layer.DocumentChanged += (_, _) => SyncTextEditor();
+        _layer.SelectionChanged += (_, _) => SyncTextEditor();
+        _layer.EditingChanged += (_, _) => SyncTextEditor();
 
         // パネルの外側の押下で閉じる（MewUI のイベントは子から親へ伝播しないため、
         // プレビューの押下をレイヤーから受け取ってコアへ知らせる）
@@ -575,5 +597,59 @@ public sealed partial class AnnotationTextEditor : Panel, IAnnotationPanelHost
     /// 親は子へ絶対座標の矩形を渡して配置する。 0 起点で渡すとレイヤーの <c>Bounds</c> が (0,0) になり、
     /// 注釈の位置をウィンドウ座標へ写せない。
     /// </remarks>
-    protected override void ArrangeContent(Rect bounds) => _layer.Arrange(bounds);
+    protected override void ArrangeContent(Rect bounds)
+    {
+        _layer.Arrange(bounds);
+        SyncTextEditor();
+
+        if (!_textEditor.IsVisible)
+        {
+            _textEditor.Arrange(new Rect(bounds.X, bounds.Y, 0, 0));
+            return;
+        }
+
+        // **本文の矩形はレイヤーのローカル DIP**であるため、レイヤーの左上（絶対座標）を足す
+        var body = _layer.GetSelectedBodyRect();
+        _textEditor.Arrange(new Rect(
+            _layer.Bounds.X + body.X,
+            _layer.Bounds.Y + body.Y,
+            body.Width,
+            body.Height));
+    }
+
+    /// <summary>本文の表示を担うコントロールを取得する（テストと差し替えの入口）。</summary>
+    internal RichTextEditor.RichTextEditorControl TextEditor => _textEditor;
+
+    /// <summary>本文コントロールの内容（本文・変換中の文字列・倍率）を追随させる。</summary>
+    /// <remarks>
+    /// <b>本文はレイヤーが単一所有する</b>: コントロールは描画の入口であり、本文の値は編集セッションから写す。
+    /// </remarks>
+    internal void SyncTextEditor()
+    {
+        _textEditor.EditState = _layer.Session.TextEditState;
+        _textEditor.LineHeightFactor = _layer.LineHeightFactor;
+
+        if (_layer.Session.Selected is not BubbleAnnotation bubble)
+        {
+            _textEditor.IsVisible = false;
+            _layer.ExternalTextId = null;
+            InvalidateArrange();
+            return;
+        }
+
+        // **変換中の文字列も本文として描く**: 重ねて描くと既存の文字と二重になる
+        _textEditor.Text = AnnotationCompositionPreview.Apply(
+            _layer.Session.Document, _layer.Session.SelectedId, _layer.Session.CaretIndex, _layer.PreeditText)
+            .Find(bubble.Id) is BubbleAnnotation drawn
+                ? drawn.Text
+                : bubble.Text;
+        _textEditor.PreeditText = _layer.PreeditText;
+        _textEditor.RenderScale = _layer.ViewScale;
+        _textEditor.IsVisible = true;
+        _textEditor.RefreshCaretBlink();
+
+        // レイヤーは同じ本文を描かない（二重に描くと縁が太り、位置も二重に見える）
+        _layer.ExternalTextId = bubble.Id;
+        InvalidateArrange();
+    }
 }

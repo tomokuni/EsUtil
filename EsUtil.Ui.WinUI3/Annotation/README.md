@@ -39,8 +39,8 @@
 
 画像の上へ注釈（枠線・吹き出し）を重ねる WinUI 3 版のレイヤー コントロールです。
 
-- **`AnnotationTextEditor`**: 本文の表示・その場編集と書式バーを 1 つにまとめたコントロールです（内側の `Layer` で画像・文書・選択を操作します）。
-- **`AnnotationLayerControl`**: 画像の表示・注釈の描画・入力の受付を担います（`AnnotationTextEditor.Layer` として使います）。
+- **`AnnotationEditorPanel`**: 本文の表示・その場編集と書式バーを 1 つにまとめたコントロールです（内側の `Layer` で画像・文書・選択を操作します）。
+- **`AnnotationLayerControl`**: 画像の表示・注釈の描画・入力の受付を担います（`AnnotationEditorPanel.Layer` として使います）。
 - **判断は `EsUtil.Feature.Annotation`（機能アセンブリ）が単一所有**します（当たり判定・折り返し・描画計画。 層の内部は `EsUtil.Feature.Annotation.Core.*` / `.Presenter.*`）。 本コントロールは XAML の図形と文字へ写すだけです。
 - **選択枠と 8 方向のハンドルは `EsUtil.Feature.Marquee.Core` の提示層を再利用**します。
 - **本文はその場で編集します**（表示中のレイアウトのままキャレットを描く）。 日本語入力（IME）は `CoreTextEditContext` を本文へ繋ぎ、変換中の文字列は文書へ入れずキャレットの位置へ下線付きで描きます。
@@ -88,7 +88,7 @@ using EsUtil.Feature.Annotation;
 using EsUtil.Ui.WinUI3.Annotation;
 
 // 本文の表示・編集と書式バーをまとめたコントロール（これ 1 つを置く）
-var editor = new AnnotationTextEditor();
+var editor = new AnnotationEditorPanel();
 var layer = editor.Layer;
 
 // 実寸は描くエンジンで測る（UI スレッドで設定する）
@@ -173,7 +173,7 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 ## 12. カスタマイズ
 
 - **実寸の計測**: `AnnotationLayerControl.MeasureText`（UI スレッドで設定する）。
-- **色の表記**: `AnnotationTextEditor.TextFormat`。
+- **色の表記**: `AnnotationEditorPanel.TextFormat`。
 - **新規作成時の既定値**: `AnnotationLayerControl.DraftDefaults`。
 
 ---
@@ -227,7 +227,7 @@ dotnet run --project EsUtil.Ui.WinUI3/Annotation/sample/EsUtil.Ui.WinUI3.Annotat
 
 | フォルダ | 内容 |
 | --- | --- |
-| `src/` | コントロール本体（`AnnotationLayerControl` / `AnnotationTextEditor` / 書式バー / 描画） |
+| `src/` | コントロール本体（`AnnotationLayerControl` / `AnnotationEditorPanel` / 書式バー / 描画） |
 | `tests/` | 単体テスト（色・フォント・実寸の近似） |
 | `sample/` | 動作を確認するサンプル アプリ |
 | `docs/` | API リファレンスとシステム仕様書 |

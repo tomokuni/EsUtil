@@ -19,6 +19,8 @@
     <!-- 選択枠とハンドルは Marquee の提示層を再利用する（枠の見た目を 4 つの UI 版で揃えるため） -->
     <ProjectReference Include="..\..\..\EsUtil\Feature.Marquee.Core\src\EsUtil.Feature.Marquee.Core.csproj" />
     <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <!-- 本文の表示と編集は書式付き文字列の編集コントロールを使う（4 つの UI 版で同じ振る舞いにする） -->
+    <ProjectReference Include="..\..\RichTextEditor\src\EsUtil.Ui.WinForms.RichTextEditor.csproj" />
     <!-- コア型 ⇔ GDI+ 型・画像の変換 -->
     <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.WinForms.Interop.csproj" />
   </ItemGroup>

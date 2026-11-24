@@ -77,6 +77,14 @@
           "EsUtil.Platform.Core": "[0.8.8, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.0, )"
         }
+      },
+      "esutil.ui.mewui.richtexteditor": {
+        "type": "Project",
+        "dependencies": {
+          "Aprillz.MewUI.Core": "[0.22.1, )",
+          "EsUtil.Feature.Text.Core": "[0.8.8, )",
+          "EsUtil.Platform.Core": "[0.8.8, )"
+        }
       }
     }
   }

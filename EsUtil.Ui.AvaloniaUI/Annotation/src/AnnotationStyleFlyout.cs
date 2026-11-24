@@ -22,7 +22,7 @@ internal static class AnnotationStyleFlyout
     /// <returns>表示用の内容（パネルはホストが置く）。</returns>
     /// <remarks>
     /// <b>位置と移動はホストが担う</b>: 表示位置（右クリックした位置）とドラッグでの移動は
-    /// <c>AnnotationTextEditor</c> が持つ。 本クラスは中身だけを返す。
+    /// <c>AnnotationEditorPanel</c> が持つ。 本クラスは中身だけを返す。
     /// </remarks>
     internal static Control BuildContent(AnnotationLayerControl owner, AnnotationPanelAppearance appearance)
     {

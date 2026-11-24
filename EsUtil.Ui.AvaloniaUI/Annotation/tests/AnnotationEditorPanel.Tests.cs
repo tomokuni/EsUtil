@@ -15,7 +15,7 @@ namespace EsUtil.Ui.AvaloniaUI.Annotation.Tests;
 /// 本テストは「選択すると委譲が始まる」「本文の値が同じ」「置く矩形が本文の矩形と一致する」ことを固定する。
 /// </remarks>
 [Collection("AvaloniaHeadless")]
-public class AnnotationTextEditorTests
+public class AnnotationEditorPanelTests
 {
     /// <summary>吹き出しを選ぶと本文の描画が編集コントロールへ委譲されることを検証する。</summary>
     [AvaloniaFact]
@@ -88,9 +88,9 @@ public class AnnotationTextEditorTests
     /// <param name="bubbleId">吹き出しの識別子。</param>
     /// <returns>ウィンドウ。</returns>
     private static Window CreateEditor(
-        out AnnotationTextEditor editor, out AnnotationDocument document, out string bubbleId)
+        out AnnotationEditorPanel editor, out AnnotationDocument document, out string bubbleId)
     {
-        editor = new AnnotationTextEditor { Width = 400, Height = 300 };
+        editor = new AnnotationEditorPanel { Width = 400, Height = 300 };
         var bubble = new BubbleAnnotation
         {
             Id = "bubble",
@@ -113,7 +113,7 @@ public class AnnotationTextEditorTests
 
     /// <summary>レイアウトを流す（ウィンドウのレイアウト パスに依存せず、明示的に測って配置する）。</summary>
     /// <param name="editor">コントロール。</param>
-    private static void PumpLayout(AnnotationTextEditor editor)
+    private static void PumpLayout(AnnotationEditorPanel editor)
     {
         Dispatcher.UIThread.RunJobs();
         editor.Measure(new Avalonia.Size(400, 300));

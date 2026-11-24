@@ -15,7 +15,7 @@ WinUI 3 版の注釈レイヤーの構成と、他アセンブリとの関係を
 
 ## 1. 概要
 
-画像の上へ注釈（枠線・吹き出し）を重ね、本文を編集するためのコントロール群です。 ホストは `AnnotationTextEditor` を 1 つ置くだけで、本文の編集と書式の変更ができます。
+画像の上へ注釈（枠線・吹き出し）を重ね、本文を編集するためのコントロール群です。 ホストは `AnnotationEditorPanel` を 1 つ置くだけで、本文の編集と書式の変更ができます。
 
 - **判断はコアが単一所有**: 当たり判定・折り返し・描画計画・履歴は `EsUtil.Feature.Annotation` が持ちます。
 - **選択枠とハンドルは Marquee の提示層を再利用**: 移動・サイズ変更・nudge が UI 版で揃います。
@@ -36,7 +36,7 @@ WinUI 3 版の注釈レイヤーの構成と、他アセンブリとの関係を
 
 ```mermaid
 flowchart LR
-    Host["ホスト（上位のアプリ）"] --> Editor["AnnotationTextEditor"]
+    Host["ホスト（上位のアプリ）"] --> Editor["AnnotationEditorPanel"]
     Editor --> Layer["AnnotationLayerControl"]
     Editor --> Bar["AnnotationFormatBar"]
     Editor --> Panel["AnnotationStylePanel"]
@@ -55,7 +55,7 @@ flowchart LR
 
 | 型 | 役割 |
 | --- | --- |
-| `AnnotationTextEditor` | レイヤーと書式バーを重ね、編集の開始・終了でバーを出し入れする |
+| `AnnotationEditorPanel` | レイヤーと書式バーを重ね、編集の開始・終了でバーを出し入れする |
 | `AnnotationLayerControl` | 画像・注釈の表示と入力の受付（`Input` / `TextEditing` の部分クラスへ分ける） |
 | `AnnotationPainter` | 描画計画を XAML の図形（`Rectangle` / `Polygon`）と `TextBlock` へ写す |
 | `AnnotationComposer` | 保存用の合成画像を GDI+ で描く |
@@ -77,7 +77,7 @@ flowchart LR
 書式バーの操作は本文の選択範囲へ適用し、同じ内容をモデルへ写します（保存・描画・元に戻すは常にコアのモデルを見る）。
 編集中は下の注釈の本文を描きません（本文を二重に表示しない）。
 
-**ログ**: `AnnotationLayerControl.Log` / `LogPrefix`（`AnnotationTextEditor` も同じプロパティを持つ）で出力先と接頭辞を設定します（既定の接頭辞は `[Annotation]`）。 レベルは頻度で決めます。 `Information` は注釈ファイルの読み書きとファサードの生成、`Debug` は選択・本文の編集・書式の適用・パネルの表示と位置・押下と解放・注釈の追加、`Trace` はドラッグ中の文書の変更、`Error` は公開ファサードの例外です。 定義は `EsUtil.Feature.Annotation.Core` の `AnnotationLogMessage` が単一所有し、本アセンブリは同じロガーをコアと提示層へ渡します（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
+**ログ**: `AnnotationLayerControl.Log` / `LogPrefix`（`AnnotationEditorPanel` も同じプロパティを持つ）で出力先と接頭辞を設定します（既定の接頭辞は `[Annotation]`）。 レベルは頻度で決めます。 `Information` は注釈ファイルの読み書きとファサードの生成、`Debug` は選択・本文の編集・書式の適用・パネルの表示と位置・押下と解放・注釈の追加、`Trace` はドラッグ中の文書の変更、`Error` は公開ファサードの例外です。 定義は `EsUtil.Feature.Annotation.Core` の `AnnotationLogMessage` が単一所有し、本アセンブリは同じロガーをコアと提示層へ渡します（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
 
 ## 5. 依存関係
 

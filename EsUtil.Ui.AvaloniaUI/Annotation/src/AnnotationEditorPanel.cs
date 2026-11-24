@@ -27,7 +27,7 @@ namespace EsUtil.Ui.AvaloniaUI.Annotation;
 /// ウィンドウなら画面の内側まで自由に置け、はみ出さないことは <see cref="ApplyPosition"/> が保証する。<br/>
 /// <b>状態は Panel ではなくこの型が持つ</b>: <see cref="AnnotationLayerControl"/> は画像と注釈だけを扱う。
 /// </remarks>
-public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
+public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 {
     /// <summary>書式バー（編集中だけ表示する）。</summary>
     private readonly AnnotationFormatBar _formatBar;
@@ -65,7 +65,7 @@ public sealed class AnnotationTextEditor : Panel, IAnnotationPanelHost
     private readonly RichTextEditor.RichTextEditorControl _textEditor;
 
     /// <summary>注釈の本文編集と書式バーをまとめたコントロールを初期化する。</summary>
-    public AnnotationTextEditor()
+    public AnnotationEditorPanel()
     {
         _layer = new AnnotationLayerControl();
         _formatBar = new AnnotationFormatBar(_layer);

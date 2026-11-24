@@ -40,7 +40,7 @@ public sealed class MainWindow : Window
         var logger = _logging.Logger;
         logger.LogInformation("サンプルを起動しました。");
 
-        var editor = new AnnotationTextEditor { Width = _image.Width, Height = _image.Height };
+        var editor = new AnnotationEditorPanel { Width = _image.Width, Height = _image.Height };
         var layer = editor.Layer;
         layer.Log = logger;
         layer.LogPrefix = "[Annotation]";

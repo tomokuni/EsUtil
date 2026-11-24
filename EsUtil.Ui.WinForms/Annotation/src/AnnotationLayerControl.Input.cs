@@ -46,7 +46,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         var plan = _presenter.ResolveDrawPlan(_session.Document, AnnotationTextMetrics.Measure, _session.SelectedId);
-        AnnotationPainter.Draw(graphics, plan, scale, offset.X, offset.Y);
+        AnnotationPainter.Draw(graphics, plan, scale, offset.X, offset.Y, ExternalTextId);
 
         DrawSelection(graphics);
         DrawEditing(graphics);

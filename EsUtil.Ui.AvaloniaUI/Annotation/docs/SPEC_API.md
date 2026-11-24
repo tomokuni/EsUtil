@@ -2,13 +2,13 @@
 
 ## 目次
 
-- [1. `AnnotationTextEditor`（クラス）](#1-annotationtexteditorクラス)
+- [1. `AnnotationEditorPanel`（クラス）](#1-annotationeditorpanelクラス)
 - [2. `AnnotationLayerControl`（クラス）](#2-annotationlayercontrolクラス)
 - [3. `AnnotationEditorControls`（クラス）](#3-annotationeditorcontrolsクラス)
 - [4. `AnnotationFonts`（クラス）](#4-annotationfontsクラス)
 - [5. `AnnotationPalette`（静的クラス）](#5-annotationpalette静的クラス)
 
-## 1. `AnnotationTextEditor`（クラス）
+## 1. `AnnotationEditorPanel`（クラス）
 
 **本文の表示・その場編集と書式バーを 1 つにまとめたコントロール**です（`Panel` の派生）。 ホストはこれを 1 つ置けば、本文の編集と文字単位の書式変更ができます。
 
@@ -40,7 +40,7 @@
 | `Document` | property | 注釈の文書。 差し替えると選択を解除する |
 | `SelectedId` / `Selected` | property | 選択中の注釈（識別子・実体） |
 | `DraftDefaults` | property | 新規作成時の既定値（`AnnotationDraftDefaults`。 既存の注釈は変わらない） |
-| `ColorTextFormat` | property | 色の入力欄へ出す表記（色名 + 不透明度 / カラーコード）。 `AnnotationTextEditor.TextFormat` が同じ値を写す |
+| `ColorTextFormat` | property | 色の入力欄へ出す表記（色名 + 不透明度 / カラーコード）。 `AnnotationEditorPanel.TextFormat` が同じ値を写す |
 | `Log` / `LogPrefix` | property | ログの出力先と接頭辞（コアと提示層で共有する） |
 | `Presenter` | property | 描画計画を解決する提示層（ログと接頭辞を共有する） |
 | `Core` | property | 文書・保存形式・ログの入口（ファサード。 アプリは `Core.Load` / `Core.Save` を使う） |
@@ -130,5 +130,5 @@
 - **書式バー・右クリックのフライアウト・設定ペインが同じ並びを使います**（画面ごとに色が違わない）。
 - 色の選択の入力欄は**「■ + 色名」**（現在色の四角 + 色名）で表示します。
 - タブは**「代表色」（■ の格子）と「ColorPicker」の 2 つ**を出し、テーマ・色名のタブは隠します。 設定ペインはテーマカラー・色名のタブも出します。
-- 代表色の列数は `AnnotationTextEditor.PaletteColumns`（既定 8 列）で変えられます。
+- 代表色の列数は `AnnotationEditorPanel.PaletteColumns`（既定 8 列）で変えられます。
 - 16 進や色名を直接打ち込む入力欄は残します（代表色に無い色を指定できる）。

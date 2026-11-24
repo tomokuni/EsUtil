@@ -29,6 +29,9 @@
     <Project Path="Thumbnail/src/EsUtil.Ui.WinUI3.Thumbnail.csproj" />
     <Project Path="Thumbnail/tests/EsUtil.Ui.WinUI3.Thumbnail.Tests.csproj" />
   </Folder>
+  <Folder Name="/RichTextEditor/">
+    <Project Path="RichTextEditor/src/EsUtil.Ui.WinUI3.RichTextEditor.csproj" />
+  </Folder>
   <Folder Name="/SampleKit/">
     <Project Path="SampleKit/src/EsUtil.Ui.WinUI3.SampleKit.csproj" />
   </Folder>

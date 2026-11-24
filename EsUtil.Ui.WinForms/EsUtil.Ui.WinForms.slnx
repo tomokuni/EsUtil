@@ -19,6 +19,10 @@
     <Project Path="Thumbnail/src/EsUtil.Ui.WinForms.Thumbnail.csproj" />
     <Project Path="Thumbnail/tests/EsUtil.Ui.WinForms.Thumbnail.Tests.csproj" />
   </Folder>
+  <Folder Name="/RichTextEditor/">
+    <Project Path="RichTextEditor/src/EsUtil.Ui.WinForms.RichTextEditor.csproj" />
+    <Project Path="RichTextEditor/tests/EsUtil.Ui.WinForms.RichTextEditor.Tests.csproj" />
+  </Folder>
   <Folder Name="/SampleKit/">
     <Project Path="SampleKit/src/EsUtil.Ui.WinForms.SampleKit.csproj" />
   </Folder>

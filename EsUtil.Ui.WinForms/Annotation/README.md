@@ -38,8 +38,8 @@
 
 画像の上へ注釈（枠線・吹き出し）を重ねる WinForms 版のレイヤー コントロールです。
 
-- **`AnnotationTextEditor`**: 本文の表示・編集と書式バーを 1 つにまとめたコントロールです（内側の `Layer` で画像・文書・選択を操作します）。
-- **`AnnotationLayerControl`**: 画像の表示・注釈の描画・入力の受付を担います（`AnnotationTextEditor.Layer` として使います）。
+- **`AnnotationEditorPanel`**: 本文の表示・編集と書式バーを 1 つにまとめたコントロールです（内側の `Layer` で画像・文書・選択を操作します）。
+- **`AnnotationLayerControl`**: 画像の表示・注釈の描画・入力の受付を担います（`AnnotationEditorPanel.Layer` として使います）。
 - **判断は `EsUtil.Feature.Annotation`（機能アセンブリ）が単一所有**します（当たり判定・折り返し・描画計画。 層の内部は `EsUtil.Feature.Annotation.Core.*` / `.Presenter.*`）。 本コントロールは GDI+ へ写すだけです。
 - **選択枠と 8 方向のハンドルは `EsUtil.Feature.Marquee.Core` の提示層を再利用**します。
 - **本文の編集はその場で行います**: 表示中のレイアウトのままキャレットと選択範囲を描いて入力します。 日本語入力（IME）は `WM_IME_COMPOSITION` から変換中の文字列と確定した文字列を受け取ります。
@@ -87,7 +87,7 @@ using EsUtil.Feature.Annotation;
 using EsUtil.Ui.WinForms.Annotation;
 
 // 本文の表示・編集と書式バーをまとめたコントロール（これ 1 つを置く）
-var editor = new AnnotationTextEditor { Dock = DockStyle.Fill };
+var editor = new AnnotationEditorPanel { Dock = DockStyle.Fill };
 var layer = editor.Layer;
 layer.Source = image;           // EsReadOnlyBitmap
 layer.SourcePixelWidth = 1920;
@@ -166,7 +166,7 @@ composed?.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 ## 12. カスタマイズ
 
-- **色の表記**: `AnnotationTextEditor.TextFormat`（色のメニューは表記を持たないため保持だけする）。
+- **色の表記**: `AnnotationEditorPanel.TextFormat`（色のメニューは表記を持たないため保持だけする）。
 - **新規作成時の既定値**: `AnnotationLayerControl.DraftDefaults`。
 
 ---
@@ -220,7 +220,7 @@ dotnet run --project EsUtil.Ui.WinForms/Annotation/sample/EsUtil.Ui.WinForms.Ann
 
 | フォルダ | 内容 |
 | --- | --- |
-| `src/` | コントロール本体（`AnnotationLayerControl` / `AnnotationTextEditor` / 書式バー / 描画） |
+| `src/` | コントロール本体（`AnnotationLayerControl` / `AnnotationEditorPanel` / 書式バー / 描画） |
 | `tests/` | 単体テスト（コントロールとコアの接続・合成画像・実寸の測定） |
 | `sample/` | 動作を確認するサンプル アプリ |
 | `docs/` | API リファレンスとシステム仕様書 |

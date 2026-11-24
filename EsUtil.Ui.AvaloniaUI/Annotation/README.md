@@ -39,13 +39,13 @@
 
 画像の上へ注釈（枠線・吹き出し）を重ねる Avalonia UI 版のレイヤー コントロールです。
 
-- **`AnnotationTextEditor`**: 本文の表示・その場編集と書式バーを 1 つにまとめたコントロールです（内側の `Layer` で画像・文書・選択を操作します）。 ホストはこれ 1 つを置けば、本文の編集と書式の変更ができます。
-- **`AnnotationLayerControl`**: 画像の表示・注釈の描画・入力の受付を担います（`AnnotationTextEditor.Layer` として使います）。
+- **`AnnotationEditorPanel`**: 本文の表示・その場編集と書式バーを 1 つにまとめたコントロールです（内側の `Layer` で画像・文書・選択を操作します）。 ホストはこれ 1 つを置けば、本文の編集と書式の変更ができます。
+- **`AnnotationLayerControl`**: 画像の表示・注釈の描画・入力の受付を担います（`AnnotationEditorPanel.Layer` として使います）。
 - **判断は `EsUtil.Feature.Annotation`（機能アセンブリ）が単一所有**します（当たり判定・折り返し・描画計画。 層の内部は `EsUtil.Feature.Annotation.Core.*` / `.Presenter.*`）。 本コントロールは自 UI の描画 API へ写すだけです。
 - **選択枠と 8 方向のハンドルは `EsUtil.Feature.Marquee.Core` の提示層を再利用**します（移動・サイズ変更・方向キーの nudge・カーソル形状が 4 つの UI 版で同じになる）。
 - **本文はその場で編集します**（ダブルクリックまたは Enter でキャレットが立ち、表示中のレイアウトのまま入力できます）。 IME（日本語入力）にも対応します。
 
-**書式（文字単位）は選択範囲への適用**で変わり、**適用するとその場で反映**されます（右クリックのフライアウト、`AnnotationTextEditor` が出す書式バー）。
+**書式（文字単位）は選択範囲への適用**で変わり、**適用するとその場で反映**されます（右クリックのフライアウト、`AnnotationEditorPanel` が出す書式バー）。
 描画は run ごとの書式（太字・斜体・下線・取り消し線・色・大きさ・フォント）に対応しています。
 
 **色の選択は `EsUtil.Ui.AvaloniaUI.ColorSelector` を使います**（自前の色入力を作らない）。 代表色は 40 色で、書式バーと右クリックのフライアウトは「代表色」と「ColorPicker」のタブを出します。 テーマ・色名のタブは隠します。
@@ -100,7 +100,7 @@ using EsUtil.Feature.Annotation;
 using EsUtil.Ui.AvaloniaUI.Annotation;
 
 // 本文の表示・その場編集と書式バーをまとめたコントロール（これ 1 つを置く）
-var editor = new AnnotationTextEditor { Width = 1920, Height = 1080 };
+var editor = new AnnotationEditorPanel { Width = 1920, Height = 1080 };
 var layer = editor.Layer;
 layer.Source = image;           // IImage（例: EsBitmapAdapter）
 layer.SourcePixelWidth = 1920;
@@ -111,7 +111,7 @@ layer.Document = new AnnotationDocument(1920, 1080, "shot.png");
 layer.AddFrame(new EsRect(60, 60, 340, 220));
 layer.AddBubble(new EsRect(900, 120, 380, 170), "ここが重要です。");
 
-// 本文の編集（書式バーは AnnotationTextEditor が出し入れする）
+// 本文の編集（書式バーは AnnotationEditorPanel が出し入れする）
 layer.BeginTextEditing();
 layer.EndTextEditing();
 
@@ -185,9 +185,9 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 ## 12. カスタマイズ
 
-- **代表色の列数**: `AnnotationTextEditor.PaletteColumns`（既定 8 列。 40 色なら 8 列 × 5 行）。
-- **書式バーの色の幅**: `AnnotationTextEditor.ColorWidth`。
-- **色の表記**: `AnnotationTextEditor.TextFormat`（色名 + 不透明度 / カラーコード `#AARRGGBB`）。
+- **代表色の列数**: `AnnotationEditorPanel.PaletteColumns`（既定 8 列。 40 色なら 8 列 × 5 行）。
+- **書式バーの色の幅**: `AnnotationEditorPanel.ColorWidth`。
+- **色の表記**: `AnnotationEditorPanel.TextFormat`（色名 + 不透明度 / カラーコード `#AARRGGBB`）。
 - **任意の色を選ばせる**: `AnnotationPalette.ConfigureAll`（代表色 + 標準のタブ）。
 - **新規作成時の既定値**: `AnnotationLayerControl.DraftDefaults`（枠線・吹き出し・本文）。 既存の注釈は各注釈が持つ外観・書式で描きます。
 - **編集 UI の部品**: `AnnotationEditorControls`（見出し・項目名・色・数値・選択肢・装飾の切り替え）はフライアウトとホストの設定ペインが共有します。 `AnnotationFonts.All` は選べるフォントの一覧です。
@@ -243,7 +243,7 @@ dotnet run --project EsUtil.Ui.AvaloniaUI/Annotation/sample/EsUtil.Ui.AvaloniaUI
 
 | フォルダ | 内容 |
 | --- | --- |
-| `src/` | コントロール本体（`AnnotationLayerControl` / `AnnotationTextEditor` / 書式バー / 描画） |
+| `src/` | コントロール本体（`AnnotationLayerControl` / `AnnotationEditorPanel` / 書式バー / 描画） |
 | `tests/` | 単体テスト（コントロールの組立てと描画の写像） |
 | `sample/` | 動作を確認するサンプル アプリ |
 | `docs/` | API リファレンスとシステム仕様書 |

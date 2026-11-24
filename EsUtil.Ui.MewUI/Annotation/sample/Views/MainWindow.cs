@@ -38,7 +38,7 @@ internal static class MainWindow
 
         var status = new TextBlock().Text("枠線か吹き出しをクリックして選択します。").FontSize(11);
 
-        var editor = new AnnotationTextEditor { Width = s_image.Width, Height = s_image.Height };
+        var editor = new AnnotationEditorPanel { Width = s_image.Width, Height = s_image.Height };
         var layer = editor.Layer;
         layer.Log = logger;
         layer.LogPrefix = "[Annotation]";

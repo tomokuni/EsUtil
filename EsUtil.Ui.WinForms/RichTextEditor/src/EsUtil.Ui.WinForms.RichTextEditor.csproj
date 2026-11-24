@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>EsUtil.Ui.WinForms.RichTextEditor</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Description>書式付き文字列（run 単位の書式）を表示・編集する WinForms 版コントロール。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\EsUtil\Feature.Text.Core\src\EsUtil.Feature.Text.Core.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
+    <InternalsVisibleTo Include="EsUtil.Ui.WinForms.RichTextEditor.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="EsUtil.Feature.Text" />
+    <Using Include="EsUtil.Feature.Text.Core.Text" />
+    <Using Include="EsUtil.Feature.Text.Presenter.Drawing" />
+    <Using Include="EsUtil.Feature.Text.Presenter.Editing" />
+  </ItemGroup>
+
+</Project>

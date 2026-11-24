@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Microsoft.Extensions.Logging;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
+using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Ui.WinForms.Annotation;
@@ -18,7 +19,7 @@ namespace EsUtil.Ui.WinForms.Annotation;
 /// <b>パネルは枠なしのウィンドウへ載せる</b>: アプリの子にするとウィンドウの外へ出せない。 枠なしの
 /// ウィンドウなら画面の内側まで置ける（はみ出さないことは位置の適用が作業領域で止める）。
 /// </remarks>
-public sealed class AnnotationTextEditor : UserControl, IAnnotationPanelHost
+public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
 {
     /// <summary>注釈の表示と編集を担うレイヤー。</summary>
     private readonly AnnotationLayerControl _layer;
@@ -32,6 +33,9 @@ public sealed class AnnotationTextEditor : UserControl, IAnnotationPanelHost
     /// <summary>右クリックの外観パネルを出すコントローラー。</summary>
     private readonly AnnotationPanelController _stylePanel;
 
+    /// <summary>本文の表示を担うコントロール（選択中の吹き出しの本文の上へ重ねる）。</summary>
+    private readonly RichTextEditor.RichTextEditorControl _textEditor;
+
     /// <summary>パネルを載せる枠なしウィンドウ（種別ごとに 1 つ。 使い回す）。</summary>
     private readonly Dictionary<AnnotationPanelKind, Form> _windows = [];
 
@@ -39,14 +43,26 @@ public sealed class AnnotationTextEditor : UserControl, IAnnotationPanelHost
     private readonly Dictionary<AnnotationPanelKind, EsPoint> _positions = [];
 
     /// <summary>注釈の本文編集と書式バーをまとめたコントロールを初期化する。</summary>
-    public AnnotationTextEditor()
+    public AnnotationEditorPanel()
     {
         _layer = new AnnotationLayerControl { Dock = DockStyle.Fill };
         _formatBar = new AnnotationFormatBar(_layer);
         _formatBarPanel = new AnnotationPanelController(this, AnnotationPanelAppearance.FormatBar, () => _layer.Log);
         _stylePanel = new AnnotationPanelController(this, AnnotationPanelAppearance.StyleEditor, () => _layer.Log);
 
+        // **本文の表示は専用のコントロールが担う**: 選択中の吹き出しの本文の上へ重ね、
+        // 本文の文字・選択範囲・キャレット・変換中の文字列を描く（レイヤーは本文を描かない）。
+        // 入力とフォーカスはレイヤーが持つため、本コントロールは表示専用にする（キーと IME の宛先を変えない）。
+        _textEditor = new RichTextEditor.RichTextEditorControl
+        {
+            IsInputEnabled = false,
+            Visible = false,
+            MeasureText = AnnotationTextMetrics.Measure,
+            EditState = _layer.Session.TextEditState,
+        };
+
         Controls.Add(_layer);
+        Controls.Add(_textEditor);
         HookDrag(AnnotationPanelKind.FormatBar, _formatBar);
 
         _layer.EditingChanged += (_, _) =>
@@ -84,6 +100,41 @@ public sealed class AnnotationTextEditor : UserControl, IAnnotationPanelHost
         };
 
         _layer.StyleEditorRequested += (_, e) => ShowStylePanel(e.X, e.Y);
+    }
+
+    /// <summary>本文の表示を担うコントロールを取得する（テストと差し替えの入口）。</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    internal RichTextEditor.RichTextEditorControl TextEditor => _textEditor;
+
+    /// <summary>本文コントロールの内容（本文・変換中の文字列・倍率）と位置を追随させる。</summary>
+    /// <remarks>
+    /// <b>本文はレイヤーが単一所有する</b>: コントロールは描画の入口であり、本文の値は編集セッションから写す。
+    /// </remarks>
+    internal void SyncTextEditor()
+    {
+        _textEditor.EditState = _layer.Session.TextEditState;
+        _textEditor.LineHeightFactor = _layer.LineHeightFactor;
+
+        if (_layer.Session.Selected is not BubbleAnnotation bubble)
+        {
+            _textEditor.Visible = false;
+            _layer.ExternalTextId = null;
+            return;
+        }
+
+        // **変換中の文字列も本文として描く**: 重ねて描くと既存の文字と二重になる
+        _textEditor.RichTextValue = AnnotationCompositionPreview.Apply(
+            _layer.Session.Document, _layer.Session.SelectedId, _layer.Session.CaretIndex, _layer.PreeditText)
+            .Find(bubble.Id) is BubbleAnnotation drawn
+                ? drawn.Text
+                : bubble.Text;
+        _textEditor.PreeditText = _layer.PreeditText;
+        _textEditor.RenderScale = _layer.ViewScale;
+        _textEditor.Bounds = Rectangle.Round(_layer.GetClientRect(bubble.ResolveBodyRect()));
+        _textEditor.Visible = true;
+
+        // レイヤーは同じ本文を描かない（二重に描くと縁が太り、位置も二重に見える）
+        _layer.ExternalTextId = bubble.Id;
     }
 
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
