@@ -240,6 +240,16 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
     private IStyledTextFormatBar CreateFormatBar()
     {
         var bar = _formatBarFactory.Create(new LayerFormatBarContext(_layer), FormatBarOptions);
+
+        // **キーとフォーカスは本文コントロールが持つ**: バーは操作を転送し、適用後に本文へ戻すだけにする
+        bar.SetKeyHandler(_textEditor.TryHandleEditingKey);
+        bar.SetFocusRequest(() =>
+        {
+            if (_layer.IsEditingText)
+            {
+                _textEditor.Focus();
+            }
+        });
         bar.TextFormat = FormatBarOptions.TextFormat;
         return bar;
     }

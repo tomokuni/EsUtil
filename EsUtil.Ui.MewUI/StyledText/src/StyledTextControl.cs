@@ -470,79 +470,78 @@ public sealed partial class StyledTextControl : Panel
     {
         base.OnKeyDown(e);
 
+        if (TryHandleEditingKey(e))
+        {
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>キーを本文の編集操作へ適用する（ホストの別要素がフォーカスを持つ場合の転送口）。</summary>
+    /// <param name="e">キーの引数。</param>
+    /// <returns>処理した場合は <see langword="true"/>。</returns>
+    /// <remarks>
+    /// <b>割り当ては <see cref="TextEditKeyMap"/> が単一所有する</b>: 本コントロールとホストの
+    /// 書式バーが同じ規則で動くよう、キーの解釈を 2 か所に書かない。
+    /// </remarks>
+    internal bool TryHandleEditingKey(KeyEventArgs e)
+    {
         if (!IsInputEnabled || !IsEditing)
         {
-            return;
+            return false;
         }
 
         var request = TextEditKeyMap.Resolve(ToTextEditKey(e.Key), ToTextEditModifiers(e));
         switch (request.Command)
         {
             case TextEditCommand.ToggleBold:
-                e.Handled = TransformTextStyle(static style => style with { IsBold = !style.IsBold });
-                return;
+                return TransformTextStyle(static style => style with { IsBold = !style.IsBold });
             case TextEditCommand.ToggleItalic:
-                e.Handled = TransformTextStyle(static style => style with { IsItalic = !style.IsItalic });
-                return;
+                return TransformTextStyle(static style => style with { IsItalic = !style.IsItalic });
             case TextEditCommand.ToggleUnderline:
-                e.Handled = TransformTextStyle(static style => style with { IsUnderline = !style.IsUnderline });
-                return;
+                return TransformTextStyle(static style => style with { IsUnderline = !style.IsUnderline });
             case TextEditCommand.ToggleStrike:
-                e.Handled = TransformTextStyle(static style => style with { IsStrike = !style.IsStrike });
-                return;
+                return TransformTextStyle(static style => style with { IsStrike = !style.IsStrike });
             case TextEditCommand.EndEditing:
                 EndEditing();
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.InsertLineBreak:
-                e.Handled = ReplaceSelection("\n");
-                return;
+                return ReplaceSelection("\n");
             case TextEditCommand.DeleteBackward:
-                e.Handled = DeleteAtCaret(forward: false);
-                return;
+                return DeleteAtCaret(forward: false);
             case TextEditCommand.DeleteForward:
-                e.Handled = DeleteAtCaret(forward: true);
-                return;
+                return DeleteAtCaret(forward: true);
             case TextEditCommand.CaretLeft:
                 MoveCaretByCluster(-1, request.Extend);
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.CaretRight:
                 MoveCaretByCluster(1, request.Extend);
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.CaretUp:
                 MoveCaretByLine(-1, request.Extend);
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.CaretDown:
                 MoveCaretByLine(1, request.Extend);
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.CaretLineStart:
                 MoveCaretToLineEdge(first: true, request.Extend);
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.CaretLineEnd:
                 MoveCaretToLineEdge(first: false, request.Extend);
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.SelectAll:
                 SelectAll();
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.Copy:
                 Copy();
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.Cut:
                 Cut();
-                e.Handled = true;
-                return;
+                return true;
             case TextEditCommand.Paste:
                 Paste();
-                e.Handled = true;
-                return;
+                return true;
+            default:
+                return false;
         }
     }
 

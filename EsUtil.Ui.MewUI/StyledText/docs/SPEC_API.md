@@ -62,7 +62,7 @@
 | `View` / `PreferredWidth` | バーの画面要素と幅（DIP。 置く位置の計算に使う） |
 | `TextFormat` | 色の入力欄へ出す表記（色名 + 不透明度 / カラーコード） |
 | `Refresh()` | 現在の選択範囲の書式を表示へ反映する |
-| `SetKeyHandler(forward)` / `SetFocusRequest(request)` | バーがフォーカスを持つ間のキー転送と、操作後に本文へフォーカスを戻す処理 |
+| `SetKeyHandler(forward)` / `SetFocusRequest(request)` | バーがフォーカスを持つ間のキー転送と、操作後に本文へフォーカスを戻す処理（**4 つの UI 版で同じ挙動**。 バー内の入力欄では転送しない） |
 | `ITextFormatBarContext`（計算層） | バーが書式を読み書きする相手（`SelectedTextStyle` / `SelectedTextMatches` / `Transform` / `Apply` / `HasTextSelection`）。 ホストが自分の編集状態へつなぐ |
 | `StyledTextFormatBarOptions` | フォントの一覧・色の選択（`ConfigureColorSelector` / `CreateColorButton` / `CreateColorSelector`）・色の表記 |
 

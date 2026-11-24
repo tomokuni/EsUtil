@@ -1,6 +1,6 @@
 using EsUtil.Platform.Core.Palette;
 using Microsoft.UI.Xaml;
-using Windows.System;
+using Microsoft.UI.Xaml.Input;
 
 namespace EsUtil.Ui.WinUI3.StyledText;
 
@@ -24,8 +24,8 @@ public interface IStyledTextFormatBar
     void Refresh();
 
     /// <summary>本文のキー操作を転送する処理を設定する。</summary>
-    /// <param name="forward">転送する処理（<see langword="null"/> は転送しない）。</param>
-    void SetKeyHandler(Func<VirtualKey, bool>? forward);
+    /// <param name="forward">転送する処理（キーの引数を受け取る。<see langword="null"/> は転送しない）。</param>
+    void SetKeyHandler(Func<KeyRoutedEventArgs, bool>? forward);
 
     /// <summary>本文へフォーカスを戻す処理を設定する。</summary>
     /// <param name="request">フォーカスを戻す処理（<see langword="null"/> は何もしない）。</param>

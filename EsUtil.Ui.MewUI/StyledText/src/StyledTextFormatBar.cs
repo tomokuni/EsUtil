@@ -142,6 +142,12 @@ public sealed class StyledTextFormatBar : ContentControl, IStyledTextFormatBar
         _underline = CreateToggle("U", underline: true);
         _strike = CreateToggle("S", strike: true);
 
+        // **キーは装飾の切り替えから集める**: MewUI のイベントは子から親へ伝播しない
+        foreach (var toggle in new[] { _bold, _italic, _underline, _strike })
+        {
+            toggle.KeyDown += OnBarKeyDown;
+        }
+
         _bold.OnCheckedChanged(_ => ToggleDecoration(
             style => style.IsBold, static (style, value) => style with { IsBold = value }));
         _italic.OnCheckedChanged(_ => ToggleDecoration(
@@ -229,9 +235,32 @@ public sealed class StyledTextFormatBar : ContentControl, IStyledTextFormatBar
         + TextFormatBarLayout.SizeSelectorWidth
         + (TextEditorLayout.ToggleWidth * 4);
 
-    /// <summary>本文のキー操作を転送する処理を設定する（MewUI 版は転送しない）。</summary>
-    /// <param name="forward">転送する処理（使わない）。</param>
-    public void SetKeyHandler(Func<Key, bool>? forward) => _ = forward;
+    /// <summary>本文のキー操作を転送する処理を設定する。</summary>
+    /// <param name="forward">転送する処理（キーの引数を受け取る。<see langword="null"/> は転送しない）。</param>
+    public void SetKeyHandler(Func<KeyEventArgs, bool>? forward) => _forwardKey = forward;
+
+    /// <summary>本文のキー操作を転送する処理（ホストが設定する）。</summary>
+    private Func<KeyEventArgs, bool>? _forwardKey;
+
+    /// <summary>バーへ届いたキーを本文へ転送する（入力欄の内側では転送しない）。</summary>
+    /// <param name="e">キーの引数。</param>
+    /// <remarks>
+    /// <b>装飾の切り替えへ個別に繋ぐ</b>: MewUI のイベントは子から親へ伝播しないため、
+    /// バーの根へ繋いでもボタンのキーは届かない。 入力欄（数値・フォント名・色）は自分のキーを使うため
+    /// 繋がない（転送すると入力欄の編集が壊れる）。
+    /// </remarks>
+    private void OnBarKeyDown(KeyEventArgs e)
+    {
+        if (e.Handled || _forwardKey is not { } forward)
+        {
+            return;
+        }
+
+        if (forward(e))
+        {
+            e.Handled = true;
+        }
+    }
 
     /// <summary>本文へフォーカスを戻す処理を設定する。</summary>
     /// <param name="request">フォーカスを戻す処理（<see langword="null"/> は何もしない）。</param>

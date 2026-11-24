@@ -149,13 +149,40 @@ public sealed class StyledTextFormatBar : Panel, IStyledTextFormatBar
         + TextFormatBarLayout.SizeSelectorWidth
         + TextEditorLayout.ToggleWidth * 4;
 
-    /// <summary>本文のキー操作を転送する処理を設定する（WinForms 版は転送しない）。</summary>
-    /// <param name="forward">転送する処理（使わない）。</param>
-    public void SetKeyHandler(Func<Keys, bool>? forward) => _ = forward;
+    /// <summary>本文のキー操作を転送する処理を設定する。</summary>
+    /// <param name="forward">転送する処理（<see langword="null"/> は転送しない）。</param>
+    public void SetKeyHandler(Func<Keys, bool>? forward) => _forwardKey = forward;
 
-    /// <summary>本文へフォーカスを戻す処理を設定する（WinForms 版はバーへフォーカスを残す）。</summary>
-    /// <param name="request">フォーカスを戻す処理（使わない）。</param>
-    public void SetFocusRequest(Action? request) => _ = request;
+    /// <summary>本文へフォーカスを戻す処理を設定する。</summary>
+    /// <param name="request">フォーカスを戻す処理（<see langword="null"/> は何もしない）。</param>
+    public void SetFocusRequest(Action? request) => _requestFocus = request;
+
+    /// <summary>本文のキー操作を転送する処理（ホストが設定する）。</summary>
+    private Func<Keys, bool>? _forwardKey;
+
+    /// <summary>本文へフォーカスを戻す処理（ホストが設定する）。</summary>
+    private Action? _requestFocus;
+
+    /// <summary>バーへ届いたキーを本文へ転送する（入力欄の内側では転送しない）。</summary>
+    /// <param name="msg">ウィンドウ メッセージ。</param>
+    /// <param name="keyData">キーと修飾キー。</param>
+    /// <returns>転送して処理した場合は <see langword="true"/>。</returns>
+    /// <remarks>
+    /// <b>入力欄の内側では転送しない</b>: 数値・フォント名の入力欄は自分のキー（矢印・文字）を使う。
+    /// 転送すると入力欄の編集が壊れる。<br/>
+    /// <b>方向キーも先に受け取る</b>: WinForms は方向キーをフォーカス移動として扱うため、
+    /// <see cref="ProcessCmdKey"/> で本文へ渡す（渡さないと選択の拡張が効かない）。
+    /// </remarks>
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        if (_forwardKey is { } forward && !_size.ContainsFocus && !_font.ContainsFocus
+            && forward(keyData))
+        {
+            return true;
+        }
+
+        return base.ProcessCmdKey(ref msg, keyData);
+    }
 
     /// <summary>既定の色のボタンを作る（色ダイアログだけを使う）。</summary>
     /// <param name="color">現在の色。</param>
@@ -221,6 +248,9 @@ public sealed class StyledTextFormatBar : Panel, IStyledTextFormatBar
 
         _context.Transform(change);
         RefreshState();
+
+        // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする
+        _requestFocus?.Invoke();
     }
 
     /// <summary>書式を丸ごと適用する（色・大きさ・フォント）。</summary>
@@ -234,6 +264,9 @@ public sealed class StyledTextFormatBar : Panel, IStyledTextFormatBar
 
         _context.Apply(change(_context.SelectedTextStyle));
         RefreshState();
+
+        // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする
+        _requestFocus?.Invoke();
     }
 
     /// <summary>子要素を左から順に並べる。</summary>

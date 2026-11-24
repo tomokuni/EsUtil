@@ -3,6 +3,7 @@ using EsUtil.Platform.Core.Palette;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Feature.StyledText.Core.Defaults;
@@ -204,6 +205,9 @@ public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFor
         // ここで持つと、パネルの枠と二重になって「余計な辺枠」に見える。
         Content = panel;
 
+        // **キーはバーへ集める**: バーへフォーカスが移っても本文のキー操作（矢印・書式の切り替え）を保つ
+        KeyDown += OnBarKeyDown;
+
         Refresh();
     }
 
@@ -215,13 +219,64 @@ public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFor
         + TextFormatBarLayout.SizeSelectorWidth
         + (TextEditorLayout.ToggleWidth * 4);
 
-    /// <summary>本文のキー操作を転送する処理を設定する（WinUI 3 版は転送しない）。</summary>
-    /// <param name="forward">転送する処理（使わない）。</param>
-    public void SetKeyHandler(Func<Windows.System.VirtualKey, bool>? forward) => _ = forward;
+    /// <summary>本文のキー操作を転送する処理を設定する。</summary>
+    /// <param name="forward">転送する処理（キーの引数を受け取る。<see langword="null"/> は転送しない）。</param>
+    public void SetKeyHandler(Func<KeyRoutedEventArgs, bool>? forward) => _forwardKey = forward;
 
     /// <summary>本文へフォーカスを戻す処理を設定する。</summary>
     /// <param name="request">フォーカスを戻す処理（<see langword="null"/> は何もしない）。</param>
-    public void SetFocusRequest(Action? request) => _ = request;
+    public void SetFocusRequest(Action? request) => _requestFocus = request;
+
+    /// <summary>本文のキー操作を転送する処理（ホストが設定する）。</summary>
+    private Func<KeyRoutedEventArgs, bool>? _forwardKey;
+
+    /// <summary>本文へフォーカスを戻す処理（ホストが設定する）。</summary>
+    private Action? _requestFocus;
+
+    /// <summary>バーへ届いたキーを本文へ転送する（入力欄の内側では転送しない）。</summary>
+    /// <param name="sender">送信元。</param>
+    /// <param name="e">キーの引数。</param>
+    /// <remarks>
+    /// <b>入力欄の内側では転送しない</b>: 数値・色の入力欄は自分のキー（矢印・文字）を使う。
+    /// 転送すると入力欄の編集が壊れる。
+    /// </remarks>
+    private void OnBarKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        _ = sender;
+
+        if (e.Handled || _forwardKey is not { } forward)
+        {
+            return;
+        }
+
+        if (e.OriginalSource is DependencyObject source
+            && (IsInside(source, _size) || IsInside(source, _font) || IsInside(source, _color)))
+        {
+            return;
+        }
+
+        if (forward(e))
+        {
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>要素が指定した祖先の内側にあるかどうかを判定する。</summary>
+    /// <param name="element">判定する要素。</param>
+    /// <param name="ancestor">祖先。</param>
+    /// <returns>内側にある場合は <see langword="true"/>。</returns>
+    private static bool IsInside(DependencyObject element, DependencyObject ancestor)
+    {
+        for (var current = element; current is not null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (ReferenceEquals(current, ancestor))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
 
 
@@ -281,6 +336,9 @@ public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFor
     {
         _context.Transform(applyToModel);
         Refresh();
+
+        // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする
+        _requestFocus?.Invoke();
     }
 
     /// <summary>書式を丸ごと適用する（色・大きさ・フォント）。</summary>
@@ -289,6 +347,9 @@ public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFor
     {
         _context.Apply(change(_context.SelectedTextStyle));
         Refresh();
+
+        // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする
+        _requestFocus?.Invoke();
     }
 
     /// <summary>保存値（<c>#AARRGGBB</c>）を色へ変換する。</summary>
