@@ -42,7 +42,9 @@ internal static class AnnotationPainter
     internal static EsSize Measure(string text, TextStyle style)
     {
         var formatted = CreateText(text, style);
-        return new EsSize(formatted.WidthIncludingTrailingWhitespace, formatted.Height);
+
+        // **行の高さは斜体で変えない**: 斜体は字を傾けるだけであり、実寸の高さを使うと行の間隔が変わる
+        return new EsSize(formatted.WidthIncludingTrailingWhitespace, CreateLineMetrics(style).Height);
     }
 
     /// <summary>注釈 1 件を描く（元画像ピクセルの座標系で呼ぶ）。</summary>

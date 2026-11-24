@@ -74,4 +74,21 @@ public class AnnotationPainterTests
 
         Assert.Equal(normalTop + normal.Baseline, italicTop + italic.Baseline, 3);
     }
+
+    /// <summary>斜体にしても行の高さ（実寸の高さ）が変わらないことを検証する。</summary>
+    /// <remarks>
+    /// 斜体は字を傾けるだけであり、行の間隔を変えてはいけない。 実寸の高さに斜体の字の高さを使うと、
+    /// 斜体を設定した行だけ背が高くなり、行の間隔が変わる。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 斜体にしても行の高さが変わらない()
+    {
+        var normal = TextDefaults.DefaultStyle;
+        var italic = normal with { IsItalic = true };
+
+        Assert.Equal(
+            AnnotationPainter.Measure("文字", normal).Height,
+            AnnotationPainter.Measure("文字", italic).Height,
+            3);
+    }
 }
