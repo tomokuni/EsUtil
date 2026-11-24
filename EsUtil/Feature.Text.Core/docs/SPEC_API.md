@@ -212,7 +212,7 @@
 | --- | --- |
 | `TextDefaults.PreferredFontFamilies` | 使うフォントの優先順（`Yu Gothic UI` → `Segoe UI`） |
 | `TextDefaults.FontSizeDefault` / `DefaultStyle` | 文字の大きさの既定値（20 px）・既定の書式 |
-| `TextLimits.FontSizeMin` / `FontSizeMax` / `CoerceFontSize(value)` | 文字の大きさの安全域（`6〜512`）と補正 |
+| `TextLimits.FontSizeMin` / `FontSizeMax` / `CoerceFontSize(value)` | 文字の大きさの安全域（`6〜512`）と補正。 数値入力コントロールへ渡す値のために `FontSizeMinDecimal` / `FontSizeMaxDecimal`（`decimal`）も持つ |
 | `TextLimits.CoercePositive(value, fallback)` | 正の大きさを返す（0 以下・非有限は `fallback`） |
 
 - **値は元画像ピクセル**です（画面の DIP ではない）。

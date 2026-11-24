@@ -10,28 +10,41 @@ namespace EsUtil.Feature.Annotation.Core.Defaults;
 public static class AnnotationLimits
 {
     /// <summary>枠線の太さの下限（元画像ピクセル）。</summary>
-    public const double BorderThicknessMin = 1.0;
+    /// <remarks>入力欄が小数を扱う UI（数値入力コントロール）のために、10 進の値も同じ箇所で所有する。</remarks>
+    public const decimal BorderThicknessMinDecimal = 1m;
 
     /// <summary>枠線の太さの上限（元画像ピクセル）。</summary>
-    public const double BorderThicknessMax = 64.0;
+    public const decimal BorderThicknessMaxDecimal = 64m;
 
     /// <summary>角丸の半径の上限（元画像ピクセル）。</summary>
-    public const double CornerRadiusMax = 4096.0;
-
-    /// <summary>文字の大きさの下限（元画像ピクセル）。</summary>
-    public const double FontSizeMin = 6.0;
-
-    /// <summary>文字の大きさの上限（元画像ピクセル）。</summary>
-    public const double FontSizeMax = 512.0;
+    public const decimal CornerRadiusMaxDecimal = 4096m;
 
     /// <summary>本文の余白の上限（元画像ピクセル）。</summary>
-    public const double BodyPaddingMax = 256.0;
+    public const decimal BodyPaddingMaxDecimal = 256m;
 
     /// <summary>しっぽの幅の下限（元画像ピクセル）。</summary>
-    public const double TailWidthMin = 2.0;
+    public const decimal TailWidthMinDecimal = 2m;
 
     /// <summary>しっぽの幅の上限（元画像ピクセル）。</summary>
-    public const double TailWidthMax = 512.0;
+    public const decimal TailWidthMaxDecimal = 512m;
+
+    /// <summary>枠線の太さの下限（元画像ピクセル）。</summary>
+    public const double BorderThicknessMin = (double)BorderThicknessMinDecimal;
+
+    /// <summary>枠線の太さの上限（元画像ピクセル）。</summary>
+    public const double BorderThicknessMax = (double)BorderThicknessMaxDecimal;
+
+    /// <summary>角丸の半径の上限（元画像ピクセル）。</summary>
+    public const double CornerRadiusMax = (double)CornerRadiusMaxDecimal;
+
+    /// <summary>本文の余白の上限（元画像ピクセル）。</summary>
+    public const double BodyPaddingMax = (double)BodyPaddingMaxDecimal;
+
+    /// <summary>しっぽの幅の下限（元画像ピクセル）。</summary>
+    public const double TailWidthMin = (double)TailWidthMinDecimal;
+
+    /// <summary>しっぽの幅の上限（元画像ピクセル）。</summary>
+    public const double TailWidthMax = (double)TailWidthMaxDecimal;
 
     /// <summary>枠線の太さを安全域へ補正する。</summary>
     /// <param name="value">補正する値。</param>
@@ -45,11 +58,6 @@ public static class AnnotationLimits
     public static double CoerceCornerRadius(double value)
         => double.IsFinite(value) ? Math.Clamp(value, 0.0, CornerRadiusMax) : 0.0;
 
-    /// <summary>文字の大きさを安全域へ補正する。</summary>
-    /// <param name="value">補正する値。</param>
-    /// <returns><see cref="FontSizeMin"/>〜<see cref="FontSizeMax"/> の値（非有限は下限）。</returns>
-    public static double CoerceFontSize(double value)
-        => double.IsFinite(value) ? Math.Clamp(value, FontSizeMin, FontSizeMax) : FontSizeMin;
 
     /// <summary>本文の余白を安全域へ補正する。</summary>
     /// <param name="value">補正する値。</param>

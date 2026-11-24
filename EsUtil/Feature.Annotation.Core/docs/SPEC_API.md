@@ -159,7 +159,7 @@
 | --- | --- |
 | `AnnotationDefaults.FrameAppearance` / `BubbleAppearance` | 新規作成時の既定の外観（設定ページの初期値と同じ値） |
 | `AnnotationDefaults.*Default` | 枠線の太さ・角丸・余白・しっぽの幅・新規作成する注釈の大きさ（`NewItemWidthDefault` / `NewItemHeightDefault`）の既定値（文字は `TextDefaults` が所有する） |
-| `AnnotationLimits` | 各値の安全域と補正（枠線 `1〜64`・角丸 `0〜4096`）。 文字の安全域は `TextLimits`（`6〜512`）が所有する |
+| `AnnotationLimits` | 各値の安全域と補正（枠線 `1〜64`・角丸 `0〜4096`・余白 `0〜256`・しっぽの幅 `2〜512`）。 文字の安全域は `TextLimits`（`6〜512`）が所有する。 数値入力コントロールへ渡す値のために `…Decimal`（`double` と同じ値）も持つ |
 
 ## 12. `AnnotationDraftDefaults`（レコード）
 
