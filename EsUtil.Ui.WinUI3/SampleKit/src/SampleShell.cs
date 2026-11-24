@@ -12,7 +12,10 @@ namespace EsUtil.Ui.WinUI3.SampleKit;
 /// 行の高さを書き換える）。 ログは下段の領域全体へ広がる。<br/>
 /// <b>設定の分け方</b>: 左は「プロパティ設定」（対象コントロールの公開プロパティ）・「API操作」
 /// （対象コントロールのメソッド実行）・「サンプル設定」（サンプルアプリの外観と状態の変更）の 3 つの領域に分ける。<br/>
-/// <b>ログ</b>: Serilog の出力を非同期に表示する（<see cref="SampleLogPanel"/>）。
+/// <b>ログ</b>: Serilog の出力を非同期に表示する（<see cref="SampleLogPanel"/>）。<br/>
+/// <b>ウィンドウを組み立てるヘルパーは置かない</b>: ウィンドウを先に作り、その <c>Content</c> を別の
+/// ウィンドウへ移すと <c>Element is already the child of another element</c>（<c>0xC000027B</c>）で落ちる。
+/// サンプルは <see cref="CreateContent"/> の結果を自分のウィンドウの <c>Content</c> へ 1 度だけ設定する。
 /// </remarks>
 public static class SampleShell
 {
@@ -30,36 +33,6 @@ public static class SampleShell
 
     /// <summary>境界の太さ（DIP）。</summary>
     private const double SplitterThickness = 6;
-
-    /// <summary>ウィンドウを組み立てる。</summary>
-    /// <param name="title">ウィンドウのタイトル。</param>
-    /// <param name="propertySettings">プロパティ設定の行。</param>
-    /// <param name="methodSettings">API操作の行。 null の場合は領域を作らない。</param>
-    /// <param name="sampleSettings">サンプル設定の行。</param>
-    /// <param name="content">画像と操作（右上の領域）。</param>
-    /// <param name="log">ログ（右下の領域）。</param>
-    /// <param name="width">ウィンドウの初期幅（DIP）。</param>
-    /// <param name="height">ウィンドウの初期高さ（DIP）。</param>
-    /// <returns>組み立てたウィンドウ。</returns>
-    /// <exception cref="ArgumentNullException">必須の引数が null の場合。</exception>
-    public static Window Create(
-        string title,
-        UIElement propertySettings,
-        UIElement? methodSettings,
-        UIElement sampleSettings,
-        UIElement content,
-        SampleLogPanel log,
-        double width = 1400,
-        double height = 900)
-    {
-        var window = new Window
-        {
-            Title = title,
-            Content = CreateContent(propertySettings, methodSettings, sampleSettings, content, log),
-        };
-        ApplyWindowSize(window, width, height);
-        return window;
-    }
 
     /// <summary>ウィンドウを指定の大きさ（DIP）へ広げる。</summary>
     /// <param name="window">対象のウィンドウ。</param>
