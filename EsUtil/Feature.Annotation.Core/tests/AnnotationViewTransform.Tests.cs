@@ -80,4 +80,21 @@ public sealed class AnnotationViewTransformTests
 
         Assert.Equal(new EsRect(30, 60, 40, 20), transform.ToClient(new EsRect(10, 20, 20, 10)));
     }
+
+    /// <summary>単精度の座標から変換しても、元画像ピクセルは 1/100 までに丸まる。</summary>
+    /// <remarks>
+    /// WinUI 3 の <c>Point</c> は単精度であり、そのまま変換すると <c>120.79998779292969</c> のような
+    /// 誤差がログ・保存した注釈・当たり判定へ広がる。
+    /// </remarks>
+    [Fact]
+    internal void ToSource_単精度の誤差を残さない()
+    {
+        var transform = AnnotationViewTransform.Identity;
+        var noisy = new EsPoint((float)120.8, (float)277.6);
+
+        var source = transform.ToSource(noisy);
+
+        Assert.Equal(120.8, source.X);
+        Assert.Equal(277.6, source.Y);
+    }
 }

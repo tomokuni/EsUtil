@@ -18,6 +18,9 @@ public readonly record struct AnnotationViewTransform(double Scale, EsPoint Offs
     /// <summary>縦横比の許容差（比の相対誤差）。</summary>
     private const double AspectTolerance = 0.02;
 
+    /// <summary>元画像ピクセルの座標の分解能（小数点以下の桁数）。</summary>
+    private const int SourceDigits = 2;
+
     /// <summary>等倍・原点の変換を取得する。</summary>
     public static AnnotationViewTransform Identity { get; } = new(1, default);
 
@@ -53,8 +56,15 @@ public readonly record struct AnnotationViewTransform(double Scale, EsPoint Offs
     /// <summary>ローカル DIP の点を元画像ピクセルへ変換する。</summary>
     /// <param name="dip">ローカル DIP の座標。</param>
     /// <returns>元画像ピクセルの座標。</returns>
+    /// <remarks>
+    /// <b>1/100 ピクセルまでに丸める</b>: 単精度で座標を持つ UI（WinUI 3）から来た値は、変換すると
+    /// <c>120.79998779292969</c> のような誤差を含む。 画素より細かい値に意味はなく、そのままではログ・
+    /// 保存した注釈・当たり判定の比較へ誤差が広がる。
+    /// </remarks>
     public EsPoint ToSource(EsPoint dip)
-        => new((dip.X - Offset.X) / Scale, (dip.Y - Offset.Y) / Scale);
+        => new(
+            RoundSource((dip.X - Offset.X) / Scale),
+            RoundSource((dip.Y - Offset.Y) / Scale));
 
     /// <summary>元画像ピクセルの点をローカル DIP へ変換する。</summary>
     /// <param name="source">元画像ピクセルの座標。</param>
@@ -70,6 +80,14 @@ public readonly record struct AnnotationViewTransform(double Scale, EsPoint Offs
         var topLeft = ToClient(new EsPoint(source.X, source.Y));
         return new EsRect(topLeft.X, topLeft.Y, source.Width * Scale, source.Height * Scale);
     }
+
+    /// <summary>元画像ピクセルの座標を分解能までに丸める。</summary>
+    /// <param name="value">丸める値。</param>
+    /// <returns>丸めた値。</returns>
+    private static double RoundSource(double value)
+        => double.IsFinite(value)
+            ? Math.Round(value, SourceDigits, MidpointRounding.AwayFromZero)
+            : value;
 
     /// <summary>受け取った表示矩形を使ってよいかどうかを判定する。</summary>
     /// <param name="rect">表示矩形（ローカル DIP）。</param>
