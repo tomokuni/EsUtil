@@ -57,11 +57,11 @@ public sealed partial class StyledTextControl : Panel
     }
 
     /// <summary>画面の DIP への倍率を取得または設定する。</summary>
-    /// <value>1 以上で拡大。 1 未満・非有限は 1 として扱う。</value>
+    /// <value>元画像ピクセルから画面の DIP への倍率。 0 以下・非有限は 1 として扱う。</value>
     public double RenderScale { get; set; } = 1.0;
 
     /// <summary>行間の倍率を取得または設定する。</summary>
-    /// <value>1 未満・非有限は 1 として扱う。</value>
+    /// <value>行間の倍率。 0 以下・非有限は 1 として扱う。</value>
     public double LineHeightFactor { get; set; } = 1.0;
 
     /// <summary>文字列と書式から実寸を測る関数を取得または設定する。</summary>

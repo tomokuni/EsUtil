@@ -17,7 +17,7 @@ public static class TextLayout
     /// <param name="text">本文。</param>
     /// <param name="body">本文を置く矩形（元画像ピクセル）。</param>
     /// <param name="measureText">文字列と書式から実寸を測る関数。</param>
-    /// <param name="lineHeightFactor">行間の倍率（1 未満・非有限は 1）。</param>
+    /// <param name="lineHeightFactor">行間の倍率（0 以下・非有限は 1）。</param>
     /// <returns>行の並び（左揃え・縦は中央揃え）。 本文が空の場合は空。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> または <paramref name="measureText"/> が null の場合。</exception>
     public static ImmutableArray<TextLinePlan> ResolveLines(

@@ -62,14 +62,15 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
             nameof(IsEditing), control => control.IsEditing);
 
     /// <summary>表示する本文を取得または設定する。</summary>
+    /// <value>表示・編集する本文。 <see langword="null"/> は空の本文として扱う。</value>
     public RichText RichTextValue
     {
         get => GetValue(RichTextValueProperty);
-        set => SetValue(RichTextValueProperty, value);
+        set => SetValue(RichTextValueProperty, value ?? RichText.Empty);
     }
 
     /// <summary>画面の DIP への倍率を取得または設定する。</summary>
-    /// <value>1 以上で拡大。 1 未満・非有限は 1 として扱う。</value>
+    /// <value>元画像ピクセルから画面の DIP への倍率。 0 以下・非有限は 1 として扱う。</value>
     public double RenderScale
     {
         get => GetValue(RenderScaleProperty);
@@ -77,7 +78,7 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     }
 
     /// <summary>行間の倍率を取得または設定する。</summary>
-    /// <value>1 未満・非有限は 1 として扱う。</value>
+    /// <value>行間の倍率。 0 以下・非有限は 1 として扱う。</value>
     public double LineHeightFactor
     {
         get => GetValue(LineHeightFactorProperty);
@@ -204,7 +205,7 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
             // **本文が外から変わったら編集位置を本文の範囲へ収める**（差し替えで範囲外に残さない）
             if (change.Property == RichTextValueProperty)
             {
-                _editor.Text = RichTextValue;
+                _editor.Text = RichTextValue ?? RichText.Empty;
             }
 
             InvalidateVisual();

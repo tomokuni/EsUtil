@@ -15,8 +15,8 @@
 | --- | --- |
 | `RichTextValue` | 表示・編集する本文（`RichText`。 run 単位の書式） |
 | `MeasureText` | 文字列と書式から実寸を測る関数（既定は描画と同じエンジンで測る） |
-| `LineHeightFactor` | 行間の倍率（1 未満・非有限は 1） |
-| `RenderScale` | 画面の DIP への倍率（1 未満・非有限は 1） |
+| `LineHeightFactor` | 行間の倍率（0 以下・非有限は 1） |
+| `RenderScale` | 元画像ピクセルから画面の DIP への倍率（0 以下・非有限は 1） |
 | `Editor` | 本文の値と編集の状態（`TextEditor`。 キャレット・選択・以降の入力へ効かせる書式を含む）。 ホストと共有できる |
 | `ShowFormatBarWhileEditing` | 編集中に書式バーを自動で表示するか（既定は `true`）。 ホストが独自にバーを出す場合は `false` |
 | `ShouldShowFormatBar` | いま書式バーを表示すべきか（編集中・自動表示が有効・1 文字以上を選択） |
