@@ -180,7 +180,7 @@ dotnet test EsUtil/Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Tests.
 
 | 頻度 | 契機 | レベル |
 | --- | --- | --- |
-| 生成（ファサード） | コンストラクターでの注入、または `Log` の初回設定（コアの生成を 1 度だけ） | Information |
+| 生成（ファサード） | コンストラクターでの注入、または `Log` の初回設定（コアの生成を 1 度だけ） | Debug |
 | 生成（提示層） | コンストラクターでの注入、または `Log` の初回設定（本層の生成を 1 度だけ） | Debug |
 | 低頻度 | 本層が所有する設定の変更（外観・表示スケーリング係数。 **変化した項目だけ**） | Information |
 

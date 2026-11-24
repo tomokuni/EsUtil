@@ -51,7 +51,7 @@ public class LoupeLogMessageTests
         Assert.Equal("[Loupe] 設定: ZoomLevel 4 → 8", logger.Messages[5]);
     }
 
-    /// <summary>生成の記録が Information、ロガー設定の記録が Debug で出力されることを検証する。</summary>
+    /// <summary>生成の記録とロガー設定の記録が Debug で出力されることを検証する。</summary>
     /// <remarks>生成はホストがログを設定した時点で 1 度だけ記録する（構築時は出力先が未設定のため）。</remarks>
     [Fact]
     internal void 生成とロガー設定の記録レベルが期待どおりである()
@@ -61,7 +61,7 @@ public class LoupeLogMessageTests
         logger.LogFacadeCreated(160, 4);
         logger.LogLoggerAttached();
 
-        Assert.Equal([LogLevel.Information, LogLevel.Debug], logger.Levels);
+        Assert.Equal([LogLevel.Debug, LogLevel.Debug], logger.Levels);
     }
 
     /// <summary>実数の誤差がそのままログへ出ないことを検証する。</summary>

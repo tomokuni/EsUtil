@@ -53,7 +53,7 @@ internal static partial class MarqueeLogMessage
 
     /// <summary>ファサードの生成（生成時の設定）を記録する。</summary>
     /// <remarks>
-    /// LogLevel: Information<br/>
+    /// LogLevel: Debug<br/>
     /// 出力書式: <c>[Marquee] ファサードを作成しました: HandleSize={HandleSize}, MinSelectionSize={MinSelectionSize}</c><br/>
     /// <b>コンストラクタでロガーが注入された場合はその時点で出力し</b>、注入されなかった場合はロガーが初めて<br/>
     /// 設定された時点で 1 度だけ出力する（生成時点では出力先が未設定のため、その場では記録できない。 どちらの経路でも<br/>
@@ -63,7 +63,7 @@ internal static partial class MarqueeLogMessage
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="handleSize">生成時のハンドルの一辺サイズ（DIP）。</param>
     /// <param name="minSelectionSize">生成時の選択矩形の最小サイズ（対象座標）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} ファサードを作成しました: HandleSize={HandleSize}, MinSelectionSize={MinSelectionSize}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ファサードを作成しました: HandleSize={HandleSize}, MinSelectionSize={MinSelectionSize}")]
     private static partial void LogFacadeCreatedCore(this ILogger logger, string prefix, string handleSize, string minSelectionSize);
 
     internal static void LogFacadeCreated(this ILogger logger, double handleSize, double minSelectionSize)
@@ -310,7 +310,7 @@ internal static partial class MarqueeLogMessage
 
     /// <summary>座標変換ポートの設定変更を記録する（同値の再設定では出力しない）。</summary>
     /// <remarks>
-    /// LogLevel: Information<br/>出力書式: <c>[Marquee] 設定: CoordTransform {OldValue} → {NewValue}</c><br/>
+    /// LogLevel: Debug<br/>出力書式: <c>[Marquee] 設定: CoordTransform {OldValue} → {NewValue}</c><br/>
     /// 値は未設定（<c>null</c> = 等価変換）またはポートの実装型名で表す（ポートは値として比較・整形できないため）。<br/>
     /// 低頻度のメソッド呼び出しのため Debug で記録する。
     /// </remarks>

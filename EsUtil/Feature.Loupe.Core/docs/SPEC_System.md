@@ -151,7 +151,7 @@ dotnet test EsUtil/Feature.Loupe.Core/tests/EsUtil.Feature.Loupe.Core.Tests.cspr
 
 ## 9. ログ
 
-ロガーは `LoupeCore.Log` で受け取り、**ファサードの生成**（Information）・**設定の変更**（`[Loupe] 設定: {名前} {前} → {後}`。 Information）・**低頻度のメソッド呼び出し**（Debug）を出力します。 ロガー未設定（null）は出力なしです。
+ロガーは `LoupeCore.Log` で受け取り、**ファサードの生成**（Debug）・**設定の変更**（`[Loupe] 設定: {名前} {前} → {後}`。 Information）・**低頻度のメソッド呼び出し**（Debug）を出力します。 ロガー未設定（null）は出力なしです。
 
 **メッセージの接頭辞は、その定義を所有するアセンブリの機能名（本アセンブリは `[Loupe]`）とします**（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md) が単一所有する）。 定義はアセンブリに 1 つ（`src/Logging/LoupeLogMessage.cs`）で、コアと提示層が共有します。
 
@@ -161,7 +161,7 @@ dotnet test EsUtil/Feature.Loupe.Core/tests/EsUtil.Feature.Loupe.Core.Tests.cspr
 
 | 操作 | 頻度 | レベル | 出力 |
 | --- | --- | --- | --- |
-| 生成（コンストラクター注入時、または `Log` の初回設定時） | 1 回 | Information | 生成時の設定（`RequestedSize` / `ZoomLevel`） |
+| 生成（コンストラクター注入時、または `Log` の初回設定時） | 1 回 | Debug | 生成時の設定（`RequestedSize` / `ZoomLevel`） |
 | `Log` の set | 低頻度（ホストの結線時） | Debug | 出力を開始した契機（初回のみ） |
 | `Options` の set | 低頻度（設定変更時） | Information | 変化した項目だけ（`RequestedSize` / `ZoomLevel`） |
 | `ClientToPixelScaling` の set | 低頻度（DPI 変更時） | Information | 変化したときだけ |

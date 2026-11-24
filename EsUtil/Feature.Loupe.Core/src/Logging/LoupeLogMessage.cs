@@ -56,7 +56,7 @@ internal static partial class LoupeLogMessage
 
     /// <summary>ファサードの生成（生成時の設定）を記録する。</summary>
     /// <remarks>
-    /// LogLevel: Information<br/>
+    /// LogLevel: Debug<br/>
     /// 出力書式: <c>[Loupe] ファサードを作成しました: RequestedSize={RequestedSize}, ZoomLevel={ZoomLevel}</c><br/>
     /// <b>コンストラクタでロガーが注入された場合はその時点で出力し</b>、注入されなかった場合はロガーが初めて<br/>
     /// 設定された時点で 1 度だけ出力する（生成時点では出力先が未設定のため、その場では記録できない。
@@ -66,7 +66,7 @@ internal static partial class LoupeLogMessage
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="requestedSize">生成時の要求サイズ（DIP）。</param>
     /// <param name="zoomLevel">生成時の拡大率。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} ファサードを作成しました: RequestedSize={RequestedSize}, ZoomLevel={ZoomLevel}")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ファサードを作成しました: RequestedSize={RequestedSize}, ZoomLevel={ZoomLevel}")]
     private static partial void LogFacadeCreatedCore(this ILogger logger, string prefix, int requestedSize, int zoomLevel);
 
     /// <summary>ファサードの生成（生成時の設定）を記録する。</summary>
@@ -277,7 +277,7 @@ internal static partial class LoupeLogMessage
 
     /// <summary>座標変換ポートの設定変更を記録する（同値の再設定では出力しない）。</summary>
     /// <remarks>
-    /// LogLevel: Information<br/>出力書式: <c>[Loupe] 設定: CoordTransform {OldValue} → {NewValue}</c><br/>
+    /// LogLevel: Debug<br/>出力書式: <c>[Loupe] 設定: CoordTransform {OldValue} → {NewValue}</c><br/>
     /// 値は未設定（<c>null</c> = 等価変換）またはポートの実装型名で表す（ポートは値として比較・整形できないため）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>

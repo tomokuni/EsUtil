@@ -26,10 +26,10 @@ public static partial class AnnotationLogMessage
     internal static string Prefix { get; set; } = DefaultPrefix;
 
     /// <summary>ファサードの生成を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Information<br/>出力書式: <c>[Annotation] ファサードを作成しました</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] ファサードを作成しました</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Information, "{Prefix:l} ファサードを作成しました")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ファサードを作成しました")]
     private static partial void LogFacadeCreatedCore(this ILogger logger, string prefix);
 
     /// <summary>ファサードの生成を記録する。</summary>
