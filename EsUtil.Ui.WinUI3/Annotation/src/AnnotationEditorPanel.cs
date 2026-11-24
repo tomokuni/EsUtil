@@ -68,6 +68,9 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
     /// <summary>本文の表示を担うコントロール（選択中の吹き出しの本文の上へ重ねる）。</summary>
     private readonly RichTextEditor.RichTextEditorControl _textEditor;
 
+    /// <summary>本文コントロールへ写した吹き出しの識別子（変化の検出に使う）。</summary>
+    private string? _syncedTextId;
+
     /// <summary>注釈の本文編集と書式バーをまとめたコントロールを初期化する。</summary>
     public AnnotationEditorPanel()
     {
@@ -85,6 +88,8 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
             IsInputEnabled = false,
             IsHitTestVisible = false,
             Visibility = Visibility.Collapsed,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
             MeasureText = AnnotationTextRunMeasure.Measure,
             EditState = _layer.Session.TextEditState,
         };
@@ -122,6 +127,17 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
         };
 
         _layer.StyleEditorRequested += (_, e) => ShowStylePanel(e.X, e.Y, e.IsFromPointer);
+
+        // 文書・選択・編集の状態が変わったら、重ねた本文コントロールの内容と位置を追随させる
+        _layer.DocumentChanged += (_, _) => SyncTextEditor();
+        _layer.SelectionChanged += (_, _) => SyncTextEditor();
+        _layer.EditingChanged += (_, _) => SyncTextEditor();
+
+        // 選択範囲の変更は本文コントロールが描くため、変わったら渡し直す
+        _layer.TextSelectionChanged += (_, _) => SyncTextEditor();
+
+        // 変換中の文字列は本文コントロールが描くため、変わったら渡し直す
+        _layer.PreeditChanged += (_, _) => SyncTextEditor();
     }
 
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
@@ -696,4 +712,97 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
     /// <returns>不透明な塗りつぶしのブラシ。</returns>
     private static SolidColorBrush ToBrush(DrawingColor color)
         => new(Windows.UI.Color.FromArgb(color.A, color.R, color.G, color.B));
+
+    /// <summary>子要素の寸法を測る（レイヤーは全面、本文コントロールは本文の矩形）。</summary>
+    /// <param name="availableSize">使える領域。</param>
+    /// <returns>必要な寸法（レイヤーの希望寸法）。</returns>
+    protected override Windows.Foundation.Size MeasureOverride(Windows.Foundation.Size availableSize)
+    {
+        _layer.Measure(availableSize);
+        _textEditor.Measure(availableSize);
+        return _layer.DesiredSize;
+    }
+
+    /// <summary>子要素を配置する（レイヤーは全面、本文コントロールは本文の矩形）。</summary>
+    /// <param name="finalSize">最終的な領域。</param>
+    /// <returns>配置した寸法。</returns>
+    /// <remarks>
+    /// <b>本文コントロールの位置は選択に依存する</b>: レイヤーを配置してから本文の矩形を問い合わせ、
+    /// 最後に本文コントロールを置く（選択が変わったら <see cref="SyncTextEditor"/> が配置し直す）。
+    /// </remarks>
+    protected override Windows.Foundation.Size ArrangeOverride(Windows.Foundation.Size finalSize)
+    {
+        // 本文の矩形はレイヤーの実寸から決まるため、レイヤーを先に置いてから本文コントロールを置く
+        _layer.Arrange(new Windows.Foundation.Rect(0, 0, finalSize.Width, finalSize.Height));
+        SyncTextEditor();
+        return base.ArrangeOverride(finalSize);
+    }
+
+    /// <summary>本文の表示を担うコントロールを取得する（テストと差し替えの入口）。</summary>
+    internal RichTextEditor.RichTextEditorControl TextEditor => _textEditor;
+
+    /// <summary>本文コントロールの内容（本文・変換中の文字列・倍率）と位置を追随させる。</summary>
+    /// <remarks>
+    /// <b>本文はレイヤーが単一所有する</b>: コントロールは描画の入口であり、本文の値は編集セッションから
+    /// 写す（同じ本文を 2 か所に持たない）。
+    /// </remarks>
+    internal void SyncTextEditor()
+    {
+        _textEditor.EditState = _layer.Session.TextEditState;
+        _textEditor.LineHeightFactor = _layer.LineHeightFactor;
+
+        if (_layer.Session.Selected is not BubbleAnnotation bubble)
+        {
+            HideTextEditor();
+            return;
+        }
+
+        // **置く位置は選択に依存する**: 選択が変わったら配置し直す（し直さないと前の吹き出しの位置に残り、
+        // 別の吹き出しの本文がそこへ描かれる）。
+        var moved = !string.Equals(_syncedTextId, bubble.Id, StringComparison.Ordinal);
+        _syncedTextId = bubble.Id;
+
+        // **変換中の文字列は本文コントロールが描く**: 本文へ混ぜて渡すと二重になるため、
+        // 本文は文書の値のまま渡し、変換中の文字列は PreeditText で別に渡す。
+        _textEditor.Text = bubble.Text;
+        _textEditor.PreeditText = _layer.PreeditText;
+        _textEditor.RenderScale = _layer.ViewScale;
+        _textEditor.Visibility = Visibility.Visible;
+        _textEditor.RefreshCaretBlink();
+
+        // レイヤーは同じ本文を描かない（二重に描くと縁が太り、位置も二重に見える）
+        _layer.ExternalTextId = bubble.Id;
+
+        // 内容が同じでも位置がずれ得るため、選択が変わったときは必ず置き直す
+        if (moved || _textEditor.ActualWidth <= 0)
+        {
+            _textEditor.InvalidateMeasure();
+        }
+
+        ArrangeTextEditor(bubble);
+    }
+
+    /// <summary>本文コントロールを隠し、レイヤーが本文を描く状態へ戻す。</summary>
+    private void HideTextEditor()
+    {
+        if (_syncedTextId is null && _textEditor.Visibility == Visibility.Collapsed)
+        {
+            _layer.ExternalTextId = null;
+            return;
+        }
+
+        _syncedTextId = null;
+        _textEditor.Visibility = Visibility.Collapsed;
+        _layer.ExternalTextId = null;
+    }
+
+    /// <summary>本文コントロールを本文の矩形へ置く。</summary>
+    /// <param name="bubble">選択中の吹き出し。</param>
+    private void ArrangeTextEditor(BubbleAnnotation bubble)
+    {
+        var body = _layer.GetClientRect(bubble.ResolveBodyRect());
+        _textEditor.Width = Math.Max(0, body.Width);
+        _textEditor.Height = Math.Max(0, body.Height);
+        _textEditor.Margin = new Thickness(body.X, body.Y, 0, 0);
+    }
 }

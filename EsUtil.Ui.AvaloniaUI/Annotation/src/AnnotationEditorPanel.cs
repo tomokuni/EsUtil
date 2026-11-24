@@ -10,7 +10,6 @@ using Avalonia.VisualTree;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
 using DrawingColor = System.Drawing.Color;
-using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
@@ -60,6 +59,9 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 
     /// <summary>外側の押下を監視している最上位（繋ぎ直しの判定に使う）。</summary>
     private TopLevel? _hookedTop;
+
+    /// <summary>移動を監視しているアプリのウィンドウ（繋ぎ直しの判定に使う）。</summary>
+    private Window? _hookedWindow;
 
     /// <summary>本文の表示と編集を担うコントロール（選択中の吹き出しの本文の上へ重ねる）。</summary>
     private readonly RichTextEditor.RichTextEditorControl _textEditor;
@@ -145,6 +147,9 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 
         // 編集の開始・終了でも本文の描画先を切り替える
         _layer.EditingChanged += (_, _) => SyncTextEditor();
+
+        // 変換中の文字列は本文コントロールが描くため、変わったら渡し直す
+        _layer.PreeditChanged += (_, _) => SyncTextEditor();
     }
 
     /// <summary>本文の表示と編集を担うコントロールを取得する（テストと差し替えの入口）。</summary>
@@ -396,19 +401,14 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <returns>実寸。 測れない場合は希望寸法。</returns>
     private EsSize MeasureFormatBar()
     {
-        var measured = MeasurePanel(AnnotationPanelKind.FormatBar);
-        if (measured.Width > 0 && measured.Height > 0)
-        {
-            return measured;
-        }
-
+        // **中身の希望寸法から求める**: パネルの実寸（Bounds）は置いた幅へ切り詰められているため、
+        // それを使うと右端が毎回わずかに切れる（測定と配置が互いを参照して縮む）。
         _formatBar.Measure(Size.Infinity);
-        var bounds = _formatBar.Bounds.Size;
-        var size = bounds.Width > 0 ? bounds : _formatBar.DesiredSize;
+        var desired = _formatBar.DesiredSize;
         var appearance = AnnotationPanelAppearance.FormatBar;
         return new EsSize(
-            size.Width + (appearance.Padding * 2) + (appearance.BorderThickness * 2),
-            appearance.ResolvePanelHeight(size.Height));
+            desired.Width + (appearance.Padding * 2) + (appearance.BorderThickness * 2),
+            appearance.ResolvePanelHeight(desired.Height));
     }
 
     /// <summary>パネルの大きさ（DIP）を測る。</summary>
@@ -633,6 +633,45 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         }
     }
 
+    /// <summary>アプリのウィンドウが動いたらパネルを閉じる（位置は画面の絶対座標で決めるため追随しない）。</summary>
+    /// <remarks>
+    /// <b>追随せず閉じる</b>: 書式バーと外観フライアウトは枠なしウィンドウとして画面の絶対座標へ置く。
+    /// アプリのウィンドウを動かすと、置いた位置だけが取り残されて注釈から離れる。
+    /// 動いたら閉じる（右クリックのフライアウトと同じ扱い）。
+    /// </remarks>
+    private void EnsureWindowMoveHook()
+    {
+        if (TopLevel.GetTopLevel(this) is not Window window || ReferenceEquals(window, _hookedWindow))
+        {
+            return;
+        }
+
+        UnhookWindowMove();
+        _hookedWindow = window;
+        window.PositionChanged += OnWindowPositionChanged;
+    }
+
+    /// <summary>ウィンドウの移動の監視を外す。</summary>
+    private void UnhookWindowMove()
+    {
+        if (_hookedWindow is { } window)
+        {
+            window.PositionChanged -= OnWindowPositionChanged;
+            _hookedWindow = null;
+        }
+    }
+
+    /// <summary>アプリのウィンドウが動いたときにパネルを閉じる。</summary>
+    /// <param name="sender">送信元。</param>
+    /// <param name="e">引数。</param>
+    private void OnWindowPositionChanged(object? sender, PixelPointEventArgs e)
+    {
+        _ = sender;
+        _ = e;
+        _formatBarPanel.Close();
+        _stylePanel.Close();
+    }
+
     /// <summary>アプリの画面の押下をコアへ知らせ、パネルの外側なら閉じる。</summary>
     /// <param name="sender">送信元。</param>
     /// <param name="e">押下の引数。</param>
@@ -648,6 +687,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     {
         base.OnAttachedToVisualTree(e);
         EnsureOutsidePressHook();
+        EnsureWindowMoveHook();
     }
 
     /// <summary>視覚ツリーから外れたときに外側の押下の監視を止める。</summary>
@@ -655,6 +695,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         UnhookOutsidePress();
+        UnhookWindowMove();
         base.OnDetachedFromVisualTree(e);
     }
 
@@ -743,12 +784,9 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             InvalidateMeasure();
         }
 
-        // **変換中の文字列も本文として描く**: 重ねて描くと既存の文字と二重になる
-        _textEditor.Text = AnnotationCompositionPreview.Apply(
-            _layer.Session.Document, _layer.Session.SelectedId, _layer.Session.CaretIndex, _layer.PreeditText)
-            .Find(bubble.Id) is BubbleAnnotation drawn
-                ? drawn.Text
-                : bubble.Text;
+        // **変換中の文字列は本文コントロールが描く**: 本文へ混ぜて渡すと二重になるため、
+        // 本文は文書の値のまま渡し、変換中の文字列は PreeditText で別に渡す。
+        _textEditor.Text = bubble.Text;
         _textEditor.PreeditText = _layer.PreeditText;
         _textEditor.RenderScale = _layer.ViewScale;
         _textEditor.IsVisible = true;

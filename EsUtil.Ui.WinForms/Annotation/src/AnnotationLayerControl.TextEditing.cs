@@ -39,6 +39,22 @@ public sealed partial class AnnotationLayerControl
     /// <summary>IME の変換中文字列（文書へは入れない）。</summary>
     private string _preeditText = string.Empty;
 
+    /// <summary>IME の変換中の文字列が変わったときに発生する（本文の描画を受け持つコントロールを追随させる）。</summary>
+    internal event EventHandler? PreeditChanged;
+
+    /// <summary>変換中の文字列を設定し、変わっていれば通知する。</summary>
+    /// <param name="value">変換中の文字列（空で変換の終了）。</param>
+    private void SetPreedit(string value)
+    {
+        if (string.Equals(_preeditText, value, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _preeditText = value;
+        PreeditChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>IME の変換中かどうか。</summary>
     private bool _isComposing;
 
@@ -163,12 +179,12 @@ public sealed partial class AnnotationLayerControl
             {
                 case WmImeStartComposition:
                     _isComposing = true;
-                    _preeditText = string.Empty;
+                    SetPreedit(string.Empty);
                     Invalidate();
                     break;
                 case WmImeEndComposition:
                     _isComposing = false;
-                    _preeditText = string.Empty;
+                    SetPreedit(string.Empty);
                     Invalidate();
                     break;
                 case WmImeComposition:
@@ -190,7 +206,7 @@ public sealed partial class AnnotationLayerControl
         {
             var committed = ReadCompositionString(GcsResultStr);
             _isComposing = false;
-            _preeditText = string.Empty;
+            SetPreedit(string.Empty);
             if (committed.Length > 0)
             {
                 ReplaceSelection(committed);
@@ -201,7 +217,7 @@ public sealed partial class AnnotationLayerControl
         if ((flags & GcsCompStr) != 0)
         {
             _isComposing = true;
-            _preeditText = ReadCompositionString(GcsCompStr);
+            SetPreedit(ReadCompositionString(GcsCompStr));
         }
 
         Invalidate();
@@ -283,7 +299,7 @@ public sealed partial class AnnotationLayerControl
         }
 
         _isComposing = false;
-        _preeditText = string.Empty;
+        SetPreedit(string.Empty);
         // 挿入した文字へ保留している書式を反映する（規則はコアと提示層が単一所有する）
         if (!_session.ReplaceRange(start, end, text))
         {

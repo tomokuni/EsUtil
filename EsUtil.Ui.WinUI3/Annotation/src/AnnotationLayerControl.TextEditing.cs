@@ -31,6 +31,22 @@ public sealed partial class AnnotationLayerControl
     /// <summary>IME の変換中文字列（文書へは入れない）。</summary>
     private string _preeditText = string.Empty;
 
+    /// <summary>IME の変換中の文字列が変わったときに発生する（本文の描画を受け持つコントロールを追随させる）。</summary>
+    internal event EventHandler? PreeditChanged;
+
+    /// <summary>変換中の文字列を設定し、変わっていれば通知する。</summary>
+    /// <param name="value">変換中の文字列（空で変換の終了）。</param>
+    private void SetPreedit(string value)
+    {
+        if (string.Equals(_preeditText, value, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _preeditText = value;
+        PreeditChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>IME の変換中かどうか。</summary>
     private bool _isComposing;
 
@@ -188,7 +204,7 @@ public sealed partial class AnnotationLayerControl
         // **変換中かどうかを先に落とす**: 落とさずに本文を書き換えると、変換の途中で「本文が変わった」と
         // IME へ伝えてしまい、変換が中断されて **1 キーごとに確定**する。
         _isComposing = false;
-        _preeditText = string.Empty;
+        SetPreedit(string.Empty);
         // 挿入した文字へ保留している書式を反映する（規則はコアと提示層が単一所有する）
         if (!_session.ReplaceRange(start, end, text))
         {

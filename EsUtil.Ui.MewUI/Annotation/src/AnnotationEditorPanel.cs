@@ -5,7 +5,6 @@ using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
 using MewUIColor = Aprillz.MewUI.Color;
 using EsUtil.Feature.Annotation.Core.Contract;
-using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Ui.MewUI.Annotation;
@@ -131,6 +130,12 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         _layer.DocumentChanged += (_, _) => SyncTextEditor();
         _layer.SelectionChanged += (_, _) => SyncTextEditor();
         _layer.EditingChanged += (_, _) => SyncTextEditor();
+
+        // 選択範囲の変更は本文コントロールが描くため、変わったら渡し直す
+        _layer.TextSelectionChanged += (_, _) => SyncTextEditor();
+
+        // 変換中の文字列は本文コントロールが描くため、変わったら渡し直す
+        _layer.PreeditChanged += (_, _) => SyncTextEditor();
 
         // パネルの外側の押下で閉じる（MewUI のイベントは子から親へ伝播しないため、
         // プレビューの押下をレイヤーから受け取ってコアへ知らせる）
@@ -637,12 +642,9 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             return;
         }
 
-        // **変換中の文字列も本文として描く**: 重ねて描くと既存の文字と二重になる
-        _textEditor.Text = AnnotationCompositionPreview.Apply(
-            _layer.Session.Document, _layer.Session.SelectedId, _layer.Session.CaretIndex, _layer.PreeditText)
-            .Find(bubble.Id) is BubbleAnnotation drawn
-                ? drawn.Text
-                : bubble.Text;
+        // **変換中の文字列は本文コントロールが描く**: 本文へ混ぜて渡すと二重になるため、
+        // 本文は文書の値のまま渡し、変換中の文字列は PreeditText で別に渡す。
+        _textEditor.Text = bubble.Text;
         _textEditor.PreeditText = _layer.PreeditText;
         _textEditor.RenderScale = _layer.ViewScale;
         _textEditor.IsVisible = true;

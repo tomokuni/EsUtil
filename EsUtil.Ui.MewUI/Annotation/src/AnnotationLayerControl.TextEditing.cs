@@ -45,6 +45,10 @@ public sealed partial class AnnotationLayerControl
     /// <summary>本文の選択範囲（キャレットの位置）が変わったときに発生する。</summary>
     public event EventHandler? TextSelectionChanged;
 
+    /// <summary>IME の変換中の文字列が変わったときに発生する。</summary>
+    /// <remarks>ホストは重ねた本文コントロールへ変換中の文字列を渡し直す（本レイヤーは本文を描かない）。</remarks>
+    internal event EventHandler? PreeditChanged;
+
     /// <summary>本文を編集中かどうかを取得する。</summary>
     public bool IsEditingText => _session.IsEditingText;
 
@@ -149,7 +153,14 @@ public sealed partial class AnnotationLayerControl
     /// </remarks>
     internal void SetPreeditTextForInput(string? preeditText)
     {
-        _preeditText = preeditText ?? string.Empty;
+        var next = preeditText ?? string.Empty;
+        if (string.Equals(_preeditText, next, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _preeditText = next;
+        PreeditChanged?.Invoke(this, EventArgs.Empty);
         InvalidateVisual();
     }
 

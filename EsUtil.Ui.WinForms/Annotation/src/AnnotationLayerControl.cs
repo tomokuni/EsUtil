@@ -560,7 +560,7 @@ public sealed partial class AnnotationLayerControl : Control
         {
             if (!_session.IsEditingText)
             {
-                _preeditText = string.Empty;
+                SetPreedit(string.Empty);
                 StopCaretBlink();
             }
             else

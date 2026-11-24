@@ -82,9 +82,18 @@ public sealed partial class RichTextEditorControl : Control
     /// <summary>編集の開始・終了で発生する。</summary>
     public event EventHandler? EditingChanged;
 
+    /// <summary>描画に使う本文を取得する（変換中の文字列を含む）。</summary>
+    /// <value>変換中でなければ <see cref="Text"/>。 変換中は変換中の文字列を入れた描画用の値。</value>
+    /// <remarks>
+    /// <b>変換中の文字列は本文へ入れない</b>: 表示だけに入れる（確定したときだけ本文が変わる）。
+    /// 入れないと、入力中の文字が表示されず「入力が反映されていない」ように見える。
+    /// </remarks>
+    internal RichText DisplayText => TextCompositionPreview.Apply(Text, _edit.CaretIndex, _preeditText);
+
     /// <summary>本文を折り返して行へ配置する（表示と編集で同じ結果を使う）。</summary>
+    /// <param name="text">折り返す本文（変換中の文字列を含む表示用の値）。</param>
     /// <returns>行の並び（本文が空・大きさが 0 の場合は空）。</returns>
-    private IReadOnlyList<TextLinePlan> ResolveLines()
+    private IReadOnlyList<TextLinePlan> ResolveLines(RichText text)
     {
         var scale = ResolveScale();
         var width = Bounds.Width / scale;
@@ -95,7 +104,7 @@ public sealed partial class RichTextEditorControl : Control
         }
 
         return TextLayout.ResolveLines(
-            Text,
+            text,
             new EsUtil.Platform.Core.Geometry.EsRect(0, 0, width, height),
             MeasureText,
             LineHeightFactor);
@@ -103,7 +112,15 @@ public sealed partial class RichTextEditorControl : Control
 
     /// <summary>行と文字位置の対応を作る。</summary>
     /// <returns>対応。 行が無い場合は <see langword="null"/>。</returns>
-    private TextLineIndex? ResolveLineIndex() => TextLineIndex.Create(ResolveLines(), Text.PlainText);
+    /// <remarks>
+    /// <b>表示と同じ本文で作る</b>: 変換中の文字列を入れないと、キャレットと変換候補の位置が
+    /// 確定後の位置と食い違う（入力位置から遠い場所に候補が出る）。
+    /// </remarks>
+    private TextLineIndex? ResolveLineIndex()
+    {
+        var displayed = DisplayText;
+        return TextLineIndex.Create(ResolveLines(displayed), displayed.PlainText);
+    }
 
     /// <summary>表示倍率を取得する（1 未満・非有限は 1）。</summary>
     /// <returns>表示倍率。</returns>
@@ -122,7 +139,9 @@ public sealed partial class RichTextEditorControl : Control
         var scale = ResolveScale();
         using var transform = context.PushTransform(Matrix.CreateScale(scale, scale));
 
-        var lines = ResolveLines();
+        // **変換中の文字列も本文として描く**（重ねて描くと既存の文字と二重になる）
+        var displayed = DisplayText;
+        var lines = ResolveLines(displayed);
         foreach (var line in lines)
         {
             RichTextPainter.DrawLine(context, line);
@@ -133,7 +152,7 @@ public sealed partial class RichTextEditorControl : Control
             return;
         }
 
-        var index = TextLineIndex.Create(lines, Text.PlainText);
+        var index = TextLineIndex.Create(lines, displayed.PlainText);
         if (index is null)
         {
             return;

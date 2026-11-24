@@ -148,6 +148,42 @@ public class RichTextEditorControlTests
         Assert.False(editor.Text.StyleAt(3).IsBold);
     }
 
+    /// <summary>変換中の文字列が描画用の本文にだけ入り、本文へは入らないことを検証する。</summary>
+    /// <remarks>
+    /// 変換中の文字列を本文へ混ぜて表示すると、確定前に本文が変わってしまう。 表示用の値だけに入れ、
+    /// キャレットも変換中の文字列の末尾へ置く。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void PreeditText_変換中の文字列は表示にだけ入る()
+    {
+        var editor = CreateEditor("あいう");
+        editor.BeginEditing();
+        editor.Select(1, 0);
+
+        editor.PreeditText = "かき";
+
+        // 本文は変わらず、表示用の値にだけ変換中の文字列が入る
+        Assert.Equal("あいう", editor.Text.PlainText);
+        Assert.Equal("あかきいう", editor.DisplayText.PlainText);
+
+        // 編集のキャレットは入力位置のまま（描画のキャレットだけ変換中の文字列の末尾へ進む）
+        Assert.Equal(1, editor.CaretIndex);
+    }
+
+    /// <summary>斜体にしても行の高さ（実寸の高さ）が変わらないことを検証する。</summary>
+    /// <remarks>斜体は字を傾けるだけであり、行の間隔を変えてはいけない。</remarks>
+    [AvaloniaFact]
+    internal void 斜体にしても行の高さが変わらない()
+    {
+        var normal = TextDefaults.DefaultStyle;
+        var italic = normal with { IsItalic = true };
+
+        Assert.Equal(
+            RichTextPainter.Measure("文字", normal).Height,
+            RichTextPainter.Measure("文字", italic).Height,
+            3);
+    }
+
     /// <summary>本文と大きさを持つコントロールを作る。</summary>
     /// <param name="text">本文。</param>
     /// <returns>コントロール。</returns>

@@ -83,11 +83,16 @@ public sealed partial class AnnotationLayerControl
     /// <summary>本文の文字列（IME へ渡す）。</summary>
     internal string TextForInput => _session.SelectedPlainText;
 
+    /// <summary>IME の変換中の文字列が変わったときに発生する（本文の描画を受け持つコントロールを追随させる）。</summary>
+    internal event EventHandler? PreeditChanged;
+
     /// <summary>キャレットの矩形（コントロール座標の DIP。 IME の変換候補の位置に使う）。</summary>
     /// <returns>キャレットの矩形。 解決できない場合は空の矩形。</returns>
     internal Rect GetCaretRectForInput()
     {
-        if (!TryResolveCaretSource(_session.CaretIndex, out var caret))
+        // **変換中の文字列の分だけ進めたキャレットを使う**: 変換中の文字の末尾に候補を出す
+        var caretIndex = AnnotationCompositionPreview.ResolveCaret(_session.CaretIndex, _preeditText);
+        if (!TryResolveCaretSource(caretIndex, out var caret))
         {
             return default;
         }
@@ -116,11 +121,18 @@ public sealed partial class AnnotationLayerControl
     /// <param name="preeditText">変換中の文字列（<see langword="null"/> は変換の終了）。</param>
     internal void SetPreeditTextForInput(string? preeditText)
     {
-        _preeditText = preeditText ?? string.Empty;
+        var next = preeditText ?? string.Empty;
+        if (string.Equals(_preeditText, next, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _preeditText = next;
 
         // **変換中の文字列の長さの分だけキャレットを進めて見せる**: 進めないと、変換中の文字が
         // キャレットの位置へ重なって描かれ、確定した文字と位置が食い違って見える。
         TextInputClient.NotifySelectionChanged();
+        PreeditChanged?.Invoke(this, EventArgs.Empty);
         InvalidateVisual();
     }
 

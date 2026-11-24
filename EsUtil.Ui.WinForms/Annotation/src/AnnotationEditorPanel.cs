@@ -2,7 +2,6 @@ using System.ComponentModel;
 using Microsoft.Extensions.Logging;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
-using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Ui.WinForms.Annotation;
@@ -100,6 +99,17 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         };
 
         _layer.StyleEditorRequested += (_, e) => ShowStylePanel(e.X, e.Y);
+
+        // 文書・選択・編集の状態が変わったら、重ねた本文コントロールの内容と位置を追随させる
+        _layer.DocumentChanged += (_, _) => SyncTextEditor();
+        _layer.SelectionChanged += (_, _) => SyncTextEditor();
+        _layer.EditingChanged += (_, _) => SyncTextEditor();
+
+        // 選択範囲の変更は本文コントロールが描くため、変わったら渡し直す
+        _layer.TextSelectionChanged += (_, _) => SyncTextEditor();
+
+        // 変換中の文字列は本文コントロールが描くため、変わったら渡し直す
+        _layer.PreeditChanged += (_, _) => SyncTextEditor();
     }
 
     /// <summary>本文の表示を担うコントロールを取得する（テストと差し替えの入口）。</summary>
@@ -122,12 +132,9 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
             return;
         }
 
-        // **変換中の文字列も本文として描く**: 重ねて描くと既存の文字と二重になる
-        _textEditor.RichTextValue = AnnotationCompositionPreview.Apply(
-            _layer.Session.Document, _layer.Session.SelectedId, _layer.Session.CaretIndex, _layer.PreeditText)
-            .Find(bubble.Id) is BubbleAnnotation drawn
-                ? drawn.Text
-                : bubble.Text;
+        // **変換中の文字列は本文コントロールが描く**: 本文へ混ぜて渡すと二重になるため、
+        // 本文は文書の値のまま渡し、変換中の文字列は PreeditText で別に渡す。
+        _textEditor.RichTextValue = bubble.Text;
         _textEditor.PreeditText = _layer.PreeditText;
         _textEditor.RenderScale = _layer.ViewScale;
         _textEditor.Bounds = Rectangle.Round(_layer.GetClientRect(bubble.ResolveBodyRect()));

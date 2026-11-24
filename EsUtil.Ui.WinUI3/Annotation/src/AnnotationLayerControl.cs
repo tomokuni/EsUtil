@@ -662,7 +662,7 @@ public sealed partial class AnnotationLayerControl : Grid
         {
             if (!_session.IsEditingText)
             {
-                _preeditText = string.Empty;
+                SetPreedit(string.Empty);
                 _isSelectingText = false;
                 _isComposing = false;
                 StopCaretBlink();

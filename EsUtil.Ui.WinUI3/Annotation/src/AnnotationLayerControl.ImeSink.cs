@@ -84,7 +84,7 @@ public sealed partial class AnnotationLayerControl
     private void ReleaseImeSink()
     {
         _isComposing = false;
-        _preeditText = string.Empty;
+        SetPreedit(string.Empty);
         ClearImeSink();
 
         if (_imeSink is not { } sink)
@@ -212,7 +212,7 @@ public sealed partial class AnnotationLayerControl
         _ = sender;
         _ = e;
         _isComposing = true;
-        _preeditText = string.Empty;
+        SetPreedit(string.Empty);
         Redraw();
     }
 
@@ -230,7 +230,7 @@ public sealed partial class AnnotationLayerControl
         var text = _imeSink?.Text ?? string.Empty;
         var start = Math.Clamp(e.StartIndex, 0, text.Length);
         var end = Math.Clamp(e.StartIndex + e.Length, start, text.Length);
-        _preeditText = text[start..end];
+        SetPreedit(text[start..end]);
         Redraw();
     }
 
@@ -243,7 +243,7 @@ public sealed partial class AnnotationLayerControl
         _ = e;
 
         _isComposing = false;
-        _preeditText = string.Empty;
+        SetPreedit(string.Empty);
 
         // 受け口には変換の結果だけが残る（確定のたびに空へ戻しているため）
         var committed = _imeSink?.Text ?? string.Empty;

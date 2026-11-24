@@ -433,13 +433,15 @@ public sealed class RichTextEditorControl : Control
         {
             graphics.ScaleTransform((float)scale, (float)scale);
 
-            var lines = ResolveLines();
+            // **変換中の文字列も本文として描く**（重ねて描くと既存の文字と二重になる）
+            var displayed = DisplayText;
+            var lines = ResolveLines(displayed);
             foreach (var line in lines)
             {
                 RichTextPainter.DrawLine(graphics, line);
             }
 
-            if (!IsEditing || TextLineIndex.Create(lines, RichTextValue.PlainText) is not { } index)
+            if (!IsEditing || TextLineIndex.Create(lines, displayed.PlainText) is not { } index)
             {
                 return;
             }
@@ -620,7 +622,18 @@ public sealed class RichTextEditorControl : Control
 
     /// <summary>本文を折り返して行へ配置する（表示と編集で同じ結果を使う）。</summary>
     /// <returns>行の並び（大きさが 0 の場合は空）。</returns>
-    private IReadOnlyList<TextLinePlan> ResolveLines()
+    /// <summary>描画に使う本文を取得する（変換中の文字列を含む）。</summary>
+    /// <value>変換中でなければ <see cref="RichTextValue"/>。 変換中は変換中の文字列を入れた描画用の値。</value>
+    /// <remarks>
+    /// <b>変換中の文字列は本文へ入れない</b>: 表示だけに入れる（確定したときだけ本文が変わる）。
+    /// 入れないと、入力中の文字が表示されず「入力が反映されていない」ように見える。
+    /// </remarks>
+    internal RichText DisplayText => TextCompositionPreview.Apply(RichTextValue, _edit.CaretIndex, _preeditText);
+
+    /// <summary>本文を折り返して行へ配置する（表示と編集で同じ結果を使う）。</summary>
+    /// <param name="text">折り返す本文（変換中の文字列を含む表示用の値）。</param>
+    /// <returns>行の並び。</returns>
+    private IReadOnlyList<TextLinePlan> ResolveLines(RichText text)
     {
         var scale = ResolveScale();
         var width = Width / scale;
@@ -630,12 +643,19 @@ public sealed class RichTextEditorControl : Control
             return [];
         }
 
-        return TextLayout.ResolveLines(RichTextValue, new EsRect(0, 0, width, height), MeasureText, LineHeightFactor);
+        return TextLayout.ResolveLines(text, new EsRect(0, 0, width, height), MeasureText, LineHeightFactor);
     }
 
     /// <summary>行と文字位置の対応を作る。</summary>
     /// <returns>対応。 行が無い場合は <see langword="null"/>。</returns>
-    private TextLineIndex? ResolveLineIndex() => TextLineIndex.Create(ResolveLines(), RichTextValue.PlainText);
+    /// <remarks>
+    /// <b>表示と同じ本文で作る</b>: 変換中の文字列を入れないと、キャレットの位置が確定後の位置と食い違う。
+    /// </remarks>
+    private TextLineIndex? ResolveLineIndex()
+    {
+        var displayed = DisplayText;
+        return TextLineIndex.Create(ResolveLines(displayed), displayed.PlainText);
+    }
 
     /// <summary>表示倍率を取得する（1 未満・非有限は 1）。</summary>
     /// <returns>表示倍率。</returns>
