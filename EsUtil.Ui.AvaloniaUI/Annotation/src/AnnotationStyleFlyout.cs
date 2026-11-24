@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Layout;
-using Avalonia.Media;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Presenter.Editor;
 using EsUtil.Feature.Annotation.Presenter.Panel;
@@ -49,7 +48,8 @@ internal static class AnnotationStyleFlyout
     private static Control Separator() => new Border
     {
         Height = 1,
-        Background = new SolidColorBrush(Color.FromArgb(64, 128, 128, 128)),
+        Background = EsUtil.Ui.AvaloniaUI.Interop.Imaging.SolidColorBrushCache.GetOrCreate(
+            System.Drawing.Color.FromArgb(64, 128, 128, 128)),
     };
 
     /// <summary>外観（枠線・内側・角丸）の編集を作る。</summary>

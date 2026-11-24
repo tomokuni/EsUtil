@@ -240,15 +240,14 @@ internal static class AnnotationEditorControls
 
     /// <summary>パネルの背景を作る。</summary>
     /// <returns>背景のブラシ。</returns>
-    internal static Brush PanelBackground()
-        => new SolidColorBrush(Windows.UI.Color.FromArgb(242, 250, 250, 250));
+    internal static Brush PanelBackground() => EsUtil.Ui.WinUI3.Interop.Drawing.SolidBrushCache.Get(0xF2FAFAFAu);
 
     /// <summary>区切り線を作る。</summary>
     /// <returns>区切り線の要素。</returns>
     internal static Rectangle Divider() => new()
     {
         Height = 1,
-        Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(60, 0, 0, 0)),
+        Fill = EsUtil.Ui.WinUI3.Interop.Drawing.SolidBrushCache.Get(0x3C000000u),
         Margin = new Thickness(0, 3, 0, 3),
     };
 }
