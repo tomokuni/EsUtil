@@ -96,6 +96,13 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "label": "ビルド（AvaloniaUI / RichTextEditor）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.AvaloniaUI/RichTextEditor/sample/EsUtil.Ui.AvaloniaUI.RichTextEditor.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "ビルド（AvaloniaUI / Thumbnail）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
@@ -135,6 +142,13 @@
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
       "command": "dotnet build EsUtil.Ui.MewUI/Marquee/sample/EsUtil.Ui.MewUI.Marquee.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（MewUI / RichTextEditor）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.MewUI/RichTextEditor/sample/EsUtil.Ui.MewUI.RichTextEditor.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
     {
@@ -180,6 +194,13 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "label": "ビルド（WinUI3 / RichTextEditor）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinUI3/RichTextEditor/sample/EsUtil.Ui.WinUI3.RichTextEditor.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "ビルド（WinUI3 / Thumbnail）",
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
@@ -205,6 +226,13 @@
       "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
       "type": "shell",
       "command": "dotnet build EsUtil.Ui.WinForms/Marquee/sample/EsUtil.Ui.WinForms.Marquee.Sample.csproj --nologo",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ビルド（WinForms / RichTextEditor）",
+      "detail": "サンプルの起動構成（launch.json）の preLaunchTask。 変更のあったプロジェクトだけを増分ビルドする",
+      "type": "shell",
+      "command": "dotnet build EsUtil.Ui.WinForms/RichTextEditor/sample/EsUtil.Ui.WinForms.RichTextEditor.Sample.csproj --nologo",
       "problemMatcher": "$msCompile"
     },
     {

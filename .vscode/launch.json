@@ -18,6 +18,7 @@
     // 根拠は .github/検証手順.md §14。
     "version": "0.2.0",
     "configurations": [
+
         // AvaloniaUI
         {
             "name": "AvaloniaUI / Annotation",
@@ -75,8 +76,19 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/Marquee/sample"
         },
         {
-            "name": "AvaloniaUI / Thumbnail",
+            "name": "AvaloniaUI / RichTextEditor",
             "presentation": { "group": "AvaloniaUI", "order": 5 },
+            "type": "coreclr",
+            "request": "launch",
+            "justMyCode": false,
+            "logging": { "moduleLoad": false },
+            "preLaunchTask": "ビルド（AvaloniaUI / RichTextEditor）",
+            "program": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/RichTextEditor/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.AvaloniaUI.RichTextEditor.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.AvaloniaUI/RichTextEditor/sample"
+        },
+        {
+            "name": "AvaloniaUI / Thumbnail",
+            "presentation": { "group": "AvaloniaUI", "order": 6 },
             "type": "coreclr",
             "request": "launch",
             "justMyCode": false,
@@ -141,8 +153,19 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/Marquee/sample"
         },
         {
-            "name": "MewUI / Thumbnail",
+            "name": "MewUI / RichTextEditor",
             "presentation": { "group": "MewUI", "order": 5 },
+            "type": "coreclr",
+            "request": "launch",
+            "justMyCode": false,
+            "logging": { "moduleLoad": false },
+            "preLaunchTask": "ビルド（MewUI / RichTextEditor）",
+            "program": "${workspaceFolder}/EsUtil.Ui.MewUI/RichTextEditor/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.MewUI.RichTextEditor.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.MewUI/RichTextEditor/sample"
+        },
+        {
+            "name": "MewUI / Thumbnail",
+            "presentation": { "group": "MewUI", "order": 6 },
             "type": "coreclr",
             "request": "launch",
             "justMyCode": false,
@@ -207,8 +230,19 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/Marquee/sample"
         },
         {
-            "name": "WinUI3 / Thumbnail",
+            "name": "WinUI3 / RichTextEditor",
             "presentation": { "group": "WinUI3", "order": 5 },
+            "type": "coreclr",
+            "request": "launch",
+            "justMyCode": false,
+            "logging": { "moduleLoad": false },
+            "preLaunchTask": "ビルド（WinUI3 / RichTextEditor）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinUI3/RichTextEditor/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.WinUI3.RichTextEditor.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinUI3/RichTextEditor/sample"
+        },
+        {
+            "name": "WinUI3 / Thumbnail",
+            "presentation": { "group": "WinUI3", "order": 6 },
             "type": "coreclr",
             "request": "launch",
             "justMyCode": false,
@@ -251,8 +285,19 @@
             "cwd": "${workspaceFolder}/EsUtil.Ui.WinForms/Marquee/sample"
         },
         {
+            "name": "WinForms / RichTextEditor",
+            "presentation": { "group": "WinForms", "order": 5 },
+            "type": "coreclr",
+            "request": "launch",
+            "justMyCode": false,
+            "logging": { "moduleLoad": false },
+            "preLaunchTask": "ビルド（WinForms / RichTextEditor）",
+            "program": "${workspaceFolder}/EsUtil.Ui.WinForms/RichTextEditor/sample/bin/Debug/net10.0-windows10.0.17763.0/EsUtil.Ui.WinForms.RichTextEditor.Sample.exe",
+            "cwd": "${workspaceFolder}/EsUtil.Ui.WinForms/RichTextEditor/sample"
+        },
+        {
             "name": "WinForms / Thumbnail",
-            "presentation": { "group": "WinForms", "order": 3 },
+            "presentation": { "group": "WinForms", "order": 4 },
             "type": "coreclr",
             "request": "launch",
             "justMyCode": false,
