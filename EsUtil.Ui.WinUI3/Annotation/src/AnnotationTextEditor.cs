@@ -105,7 +105,7 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
             }
         };
 
-        _layer.StyleEditorRequested += (_, e) => ShowStylePanel(e.X, e.Y, e.FromPointer);
+        _layer.StyleEditorRequested += (_, e) => ShowStylePanel(e.X, e.Y, e.IsFromPointer);
     }
 
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
@@ -306,17 +306,17 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// （<see cref="AnnotationPanelController.Constrain"/>）。 レイアウト前の測定ではなく、レイアウト後の
     /// 実寸で収める（<see cref="CreatePanel"/> がレイアウトを確定させる）。
     /// </remarks>
-    public void ShowStylePanel(double x, double y) => ShowStylePanel(x, y, fromPointer: false);
+    public void ShowStylePanel(double x, double y) => ShowStylePanel(x, y, isFromPointer: false);
 
     /// <summary>右クリック位置へ外観の編集パネルを表示する。</summary>
     /// <param name="x">位置（このコントロールの座標）。</param>
     /// <param name="y">位置（このコントロールの座標）。</param>
-    /// <param name="fromPointer">ポインターの押下から出した要求かどうか（その押下では閉じない）。</param>
-    private void ShowStylePanel(double x, double y, bool fromPointer)
+    /// <param name="isFromPointer">ポインターの押下から出した要求かどうか（その押下では閉じない）。</param>
+    private void ShowStylePanel(double x, double y, bool isFromPointer)
     {
         // **開いた押下では閉じない**: この押下は根の「外側を押したら閉じる」判定にも届くため、
         // 1 回だけ判定を飛ばす（飛ばさないとパネルが開いた直後に閉じる）。
-        _swallowNextOutsidePress = fromPointer;
+        _swallowNextOutsidePress = isFromPointer;
 
         _stylePanel.Show(
             AnnotationPanelKind.StyleEditor, ToOverlayPoint(new Windows.Foundation.Point(x, y)));
