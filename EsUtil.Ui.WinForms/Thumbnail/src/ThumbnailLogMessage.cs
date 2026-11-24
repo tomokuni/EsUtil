@@ -58,6 +58,25 @@ internal static partial class ThumbnailLogMessage
     internal static void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue)
         => logger.LogSettingChangedCore(Prefix, name, oldValue, newValue);
 
+    /// <summary>真偽設定値の変更ログ（同値の再設定では出力しない）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="name">設定名。</param>
+    /// <param name="oldValue">変更前の値。</param>
+    /// <param name="newValue">変更後の値。</param>
+    /// <remarks>
+    /// <b>整形は本メソッドが行う</b>: 呼び出し側（UI）に整形と無効なレベルの判定を書かせない
+    /// （規則は <c>.github/ログ規約.md</c> §5）。
+    /// </remarks>
+    internal static void LogSettingChanged(this ILogger logger, string name, bool oldValue, bool newValue)
+    {
+        if (oldValue == newValue || !logger.IsEnabled(LogLevel.Information))
+        {
+            return;
+        }
+
+        logger.LogSettingChangedCore(Prefix, name, oldValue.ToString(), newValue.ToString());
+    }
+
     /// <summary>画像の差し替えを記録する（同じインスタンスの再設定では出力しない）。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="name">設定名（項目の位置を含む名前）。</param>

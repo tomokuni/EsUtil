@@ -128,6 +128,36 @@ public class AnnotationPresenterTests
         Assert.Equal(AnnotationPresenter.LineHeightFactorDefault, presenter.LineHeightFactor);
     }
 
+    /// <summary>行間の倍率を変えると、変化後の値を 1 件だけ記録する。</summary>
+    [Fact]
+    internal void 行間の倍率_変更を設定のログへ記録する()
+    {
+        var logger = new RecordingLogger();
+        _ = new AnnotationPresenter { Log = logger, LineHeightFactor = 1.5 };
+
+        // Log の設定でも 1 件（提示層の生成）が出るため、設定変更の行だけを見る
+        var settings = logger.Messages.Where(m => m.Contains("設定:", StringComparison.Ordinal)).ToArray();
+        Assert.Single(settings);
+        Assert.Equal("[Annotation] 設定: LineHeightFactor 1.25 → 1.5", settings[0]);
+
+        // 設定変更は Information（生成の記録は Debug のため、最後の 1 件だけを見る）
+        Assert.Equal(Microsoft.Extensions.Logging.LogLevel.Information, logger.Levels[^1]);
+    }
+
+    /// <summary>同じ値の再設定では記録しない。</summary>
+    [Fact]
+    internal void 行間の倍率_同じ値では記録しない()
+    {
+        var logger = new RecordingLogger();
+        _ = new AnnotationPresenter
+        {
+            Log = logger,
+            LineHeightFactor = AnnotationPresenter.LineHeightFactorDefault,
+        };
+
+        Assert.DoesNotContain(logger.Messages, m => m.Contains("設定:", StringComparison.Ordinal));
+    }
+
     /// <summary>検証用の吹き出しを生成する。</summary>
     /// <param name="text">本文。</param>
     /// <param name="style">書式。</param>

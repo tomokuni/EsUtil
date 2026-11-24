@@ -157,6 +157,26 @@ public static partial class AnnotationLogMessage
     internal static void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue)
         => logger.LogSettingChangedCore(Prefix, name, oldValue, newValue);
 
+    /// <summary>実数設定値の変更を記録する（同値の再設定では出力しない）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="name">変更された設定名。</param>
+    /// <param name="oldValue">変更前の値。</param>
+    /// <param name="newValue">変更後の値。</param>
+    /// <remarks>
+    /// 書式は <see cref="LogSettingChanged(ILogger, string, string, string)"/> と同一であり、
+    /// 「変化したときだけ出力する」判定と数値の整形を本メソッドが単一所有する
+    /// （呼び出し側に整形と無効なレベルの判定を書かせない。 規則は <c>.github/ログ規約.md</c> §5）。
+    /// </remarks>
+    internal static void LogSettingChanged(this ILogger logger, string name, double oldValue, double newValue)
+    {
+        if (oldValue.Equals(newValue) || !logger.IsEnabled(LogLevel.Information))
+        {
+            return;
+        }
+
+        logger.LogSettingChangedCore(Prefix, name, NumberText.Format(oldValue), NumberText.Format(newValue));
+    }
+
     /// <summary>公開ファサードの操作で例外が発生したことを記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Error<br/>出力書式: <c>[Annotation] {Operation} で例外が発生</c>（例外スタックトレース付き）</remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>

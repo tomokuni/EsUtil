@@ -385,7 +385,7 @@ public class ColumnPackingPanel : DualSourceItemsPanel
     /// </remarks>
     private void OnLayoutPropertyChanged(string name, object? oldValue, object? newValue)
     {
-        _log.LogSettingChanged(name, FormatSettingValue(oldValue), FormatSettingValue(newValue));
+        _log.LogSettingChanged(name, oldValue, newValue);
 
         // レイアウト キャッシュを無効化し、公開している結果も戻してから測り直す
         Layout = null;
@@ -393,16 +393,6 @@ public class ColumnPackingPanel : DualSourceItemsPanel
         InvalidateMeasure();
     }
 
-    /// <summary>プロパティの値をログ用の文字列へ整形する。</summary>
-    /// <param name="value">整形する値。</param>
-    /// <returns>不変カルチャの文字列。</returns>
-    private static string FormatSettingValue(object? value) => value switch
-    {
-        null => "null",
-        double number => ColumnPackingLogMessage.Format(number),
-        IFormattable formattable => formattable.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
-        _ => value.ToString() ?? "null",
-    };
 
     /// <summary>幅の上限を決める（確定しないパスでは直前に確定した幅を使う）。</summary>
     /// <param name="availableWidth">親から提示された幅。</param>

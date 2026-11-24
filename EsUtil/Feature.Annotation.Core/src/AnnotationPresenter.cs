@@ -2,7 +2,6 @@ using DrawingColor = System.Drawing.Color;
 using System.Collections.Immutable;
 using EsUtil.Feature.Annotation.Core.Internal;
 using EsUtil.Feature.Annotation.Logging;
-using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -53,10 +52,7 @@ public sealed class AnnotationPresenter
 
             var previous = _lineHeightFactor;
             _lineHeightFactor = resolved;
-            _log.LogSettingChanged(
-                nameof(LineHeightFactor),
-                NumberText.Format(previous),
-                NumberText.Format(resolved));
+            _log.LogSettingChanged(nameof(LineHeightFactor), previous, resolved);
         }
     }
 

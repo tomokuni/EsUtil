@@ -67,6 +67,36 @@ internal static partial class ColumnPackingLogMessage
         logger.LogSettingChangedCore(Prefix, name, oldValue, newValue);
     }
 
+    /// <summary>プロパティの変更を記録する（同値では出力しない。 値の型は問わない）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="name">プロパティ名。</param>
+    /// <param name="oldValue">変更前の値。</param>
+    /// <param name="newValue">変更後の値。</param>
+    /// <remarks>
+    /// <b>整形は本メソッドが行う</b>: 呼び出し側（UI）に整形と無効なレベルの判定を書かせない
+    /// （規則は <c>.github/ログ規約.md</c> §5）。 同値の判定は値の <c>Equals</c> で行う。
+    /// </remarks>
+    internal static void LogSettingChanged(this ILogger logger, string name, object? oldValue, object? newValue)
+    {
+        if (Equals(oldValue, newValue) || !logger.IsEnabled(LogLevel.Information))
+        {
+            return;
+        }
+
+        logger.LogSettingChangedCore(Prefix, name, FormatSettingValue(oldValue), FormatSettingValue(newValue));
+    }
+
+    /// <summary>プロパティの値をログ用の文字列へ整形する。</summary>
+    /// <param name="value">整形する値。</param>
+    /// <returns>不変カルチャの文字列。</returns>
+    private static string FormatSettingValue(object? value) => value switch
+    {
+        null => "null",
+        double number => Format(number),
+        IFormattable formattable => formattable.ToString(format: null, CultureInfo.InvariantCulture),
+        _ => value.ToString() ?? "null",
+    };
+
     /// <summary>レイアウト結果の変化を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[ColumnPacking] レイアウト: 使用幅={UsedWidth:0.#} 最小高={MinHeight:0.#} 列数={Columns} セグメント={Segments:l}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>

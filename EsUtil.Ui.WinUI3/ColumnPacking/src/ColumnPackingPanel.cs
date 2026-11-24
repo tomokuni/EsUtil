@@ -153,19 +153,8 @@ public partial class ColumnPackingPanel : DualSourceItemsPanel
             : e.Property == ColumnSpaceProperty ? nameof(ColumnSpace)
             : e.Property == MethodProperty ? nameof(Method)
             : "unknown";
-        _log.LogSettingChanged(name, FormatSettingValue(e.OldValue), FormatSettingValue(e.NewValue));
+        _log.LogSettingChanged(name, e.OldValue, e.NewValue);
     }
-
-    /// <summary>プロパティの値をログ用の文字列へ整形する。</summary>
-    /// <param name="value">整形する値。</param>
-    /// <returns>不変カルチャの文字列。</returns>
-    private static string FormatSettingValue(object? value) => value switch
-    {
-        null => "null",
-        double number => ColumnPackingLogMessage.Format(number),
-        IFormattable formattable => formattable.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
-        _ => value.ToString() ?? "null",
-    };
 
     /// <summary>プロパティの変更を記録するロガー（未設定は <see cref="NullLogger"/>）。</summary>
     private ILogger _log = NullLogger.Instance;

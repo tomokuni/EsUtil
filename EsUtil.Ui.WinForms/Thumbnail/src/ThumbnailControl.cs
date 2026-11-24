@@ -190,7 +190,7 @@ public sealed class ThumbnailControl : ScrollableControl
 
             var previous = field;
             field = value;
-            _log.LogSettingChanged(nameof(IsDarkTheme), previous.ToString(), value.ToString());
+            _log.LogSettingChanged(nameof(IsDarkTheme), previous, value);
             Invalidate();
         }
     }
