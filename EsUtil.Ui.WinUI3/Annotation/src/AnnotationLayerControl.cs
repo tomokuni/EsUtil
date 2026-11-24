@@ -699,7 +699,11 @@ public sealed partial class AnnotationLayerControl : Grid
     }
 
     /// <summary>外観・書式の編集パネルを表示する（右クリックと同じ）。</summary>
-    public void ShowStyleEditor()
+    public void ShowStyleEditor() => ShowStyleEditor(fromPointer: false);
+
+    /// <summary>外観・書式の編集パネルを表示する。</summary>
+    /// <param name="fromPointer">ポインターの押下から出した要求かどうか。</param>
+    private void ShowStyleEditor(bool fromPointer)
     {
         if (Selected is null)
         {
@@ -707,7 +711,8 @@ public sealed partial class AnnotationLayerControl : Grid
         }
 
         _ = Focus(FocusState.Programmatic);
-        StyleEditorRequested?.Invoke(this, new AnnotationStyleEditorRequestedEventArgs(_styleEditorX, _styleEditorY));
+        StyleEditorRequested?.Invoke(
+            this, new AnnotationStyleEditorRequestedEventArgs(_styleEditorX, _styleEditorY, fromPointer));
     }
 
     /// <summary>選択中の注釈の矩形（このコントロールの座標）を取得する。</summary>

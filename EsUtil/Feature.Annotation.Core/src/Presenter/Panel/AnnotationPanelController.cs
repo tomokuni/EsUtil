@@ -114,16 +114,16 @@ public sealed class AnnotationPanelController
             Close();
         }
 
-        _host.CreatePanel(kind, _appearance, position);
-        IsOpen = true;
-        Kind = kind;
-
         var logger = _logger?.Invoke() ?? NullLogger.Instance;
-        logger.LogPanelVisibility(kind.ToString(), visible: true);
 
         // **置いた位置と置ける領域を残す**: パネルが切れる・画面の外へ出るといった不具合は、
         // 位置と領域の値から切り分けられる（表示のたびの 1 件であり、頻度は低い）。
-        logger.LogPanelPlaced(kind.ToString(), position, _host.GetPanelSize(kind), _host.AvailableArea);
+        logger.LogPanelPlaced(kind.ToString(), position, _host.AvailableArea);
+
+        _host.CreatePanel(kind, _appearance, position);
+        IsOpen = true;
+        Kind = kind;
+        logger.LogPanelVisibility(kind.ToString(), visible: true);
     }
 
     /// <summary>パネルを閉じる（出ていなければ何もしない）。</summary>

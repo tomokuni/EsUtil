@@ -578,7 +578,7 @@ public sealed partial class AnnotationLayerControl
         _styleEditorX = position.X;
         _styleEditorY = position.Y;
 
-        ShowStyleEditor();
+        ShowStyleEditor(fromPointer: true);
     }
 
     /// <summary>プレビューへ操作を渡す。</summary>

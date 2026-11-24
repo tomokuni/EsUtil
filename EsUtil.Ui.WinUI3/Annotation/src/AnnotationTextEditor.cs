@@ -59,6 +59,9 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// <summary>ドラッグ中のパネルの根（押下を受けた要素）。</summary>
     private Border? _draggingRoot;
 
+    /// <summary>外観パネルを開いた押下で「外側を押したら閉じる」判定を飛ばすかどうか。</summary>
+    private bool _swallowNextOutsidePress;
+
     /// <summary>外側の押下を監視している根（二重に繋がないための目印）。</summary>
     private Panel? _hookedRoot;
 
@@ -102,7 +105,7 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
             }
         };
 
-        _layer.StyleEditorRequested += (_, e) => ShowStylePanel(e.X, e.Y);
+        _layer.StyleEditorRequested += (_, e) => ShowStylePanel(e.X, e.Y, e.FromPointer);
     }
 
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
@@ -158,12 +161,18 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
             }
 
             var origin = ToOverlayPoint(default);
-            return AnnotationPanelPlacement.ResolveAvailableArea(
+            return Round(AnnotationPanelPlacement.ResolveAvailableArea(
                 new EsRect(origin.X, origin.Y, width, height),
                 VisibleBounds(),
-                AnnotationPanelMetrics.OutsideAllowance);
+                AnnotationPanelMetrics.OutsideAllowance));
         }
     }
+
+    /// <summary>単精度の変換で生じた誤差を落とす。</summary>
+    /// <param name="rect">変換した矩形。</param>
+    /// <returns>1/100 DIP へ丸めた矩形。</returns>
+    private static EsRect Round(EsRect rect)
+        => new(Math.Round(rect.X, 2), Math.Round(rect.Y, 2), Math.Round(rect.Width, 2), Math.Round(rect.Height, 2));
 
     /// <summary>アプリのウィンドウの内側（重ねた先の座標）を取得する。</summary>
     /// <returns>見えている範囲。 取得できない場合は既定値。</returns>
@@ -297,8 +306,18 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// （<see cref="AnnotationPanelController.Constrain"/>）。 レイアウト前の測定ではなく、レイアウト後の
     /// 実寸で収める（<see cref="CreatePanel"/> がレイアウトを確定させる）。
     /// </remarks>
-    public void ShowStylePanel(double x, double y)
+    public void ShowStylePanel(double x, double y) => ShowStylePanel(x, y, fromPointer: false);
+
+    /// <summary>右クリック位置へ外観の編集パネルを表示する。</summary>
+    /// <param name="x">位置（このコントロールの座標）。</param>
+    /// <param name="y">位置（このコントロールの座標）。</param>
+    /// <param name="fromPointer">ポインターの押下から出した要求かどうか（その押下では閉じない）。</param>
+    private void ShowStylePanel(double x, double y, bool fromPointer)
     {
+        // **開いた押下では閉じない**: この押下は根の「外側を押したら閉じる」判定にも届くため、
+        // 1 回だけ判定を飛ばす（飛ばさないとパネルが開いた直後に閉じる）。
+        _swallowNextOutsidePress = fromPointer;
+
         _stylePanel.Show(
             AnnotationPanelKind.StyleEditor, ToOverlayPoint(new Windows.Foundation.Point(x, y)));
         _stylePanel.Constrain(MeasurePanel(AnnotationPanelKind.StyleEditor));
@@ -514,6 +533,12 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// <param name="e">押下の引数。</param>
     private void OnRootPointerPressed(object sender, PointerRoutedEventArgs e)
     {
+        if (_swallowNextOutsidePress)
+        {
+            _swallowNextOutsidePress = false;
+            return;
+        }
+
         if (_overlay is not { } overlay)
         {
             return;
@@ -527,6 +552,10 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
     /// <summary>このコントロールの座標（DIP）を重ねた先の座標（DIP）へ変換する。</summary>
     /// <param name="point">このコントロールの座標。</param>
     /// <returns>重ねた先の座標。 取得できない場合はそのまま返す。</returns>
+    /// <remarks>
+    /// <b>1/100 DIP までに丸める</b>: WinUI 3 の <c>Point</c> は単精度であり、変換すると
+    /// <c>761.599975585938</c> のような誤差を含む。 そのままではログ・パネルの位置へ誤差が広がる。
+    /// </remarks>
     private EsPoint ToOverlayPoint(Windows.Foundation.Point point)
     {
         // 置ける領域はパネルを置く前に問い合わせられるため、重ねる先は都度解決する
@@ -537,20 +566,26 @@ public sealed partial class AnnotationTextEditor : Grid, IAnnotationPanelHost
 
         if (_overlay is not { } overlay)
         {
-            return new EsPoint(point.X, point.Y);
+            return Round(new EsPoint(point.X, point.Y));
         }
 
         try
         {
             var local = TransformToVisual(overlay).TransformPoint(point);
-            return new EsPoint(local.X, local.Y);
+            return Round(new EsPoint(local.X, local.Y));
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
             // ツリーへ繋がっていない間は変換できない。 位置はそのまま使う（見えないより出すほうがよい）
-            return new EsPoint(point.X, point.Y);
+            return Round(new EsPoint(point.X, point.Y));
         }
     }
+
+    /// <summary>単精度の変換で生じた誤差を落とす。</summary>
+    /// <param name="point">変換した座標。</param>
+    /// <returns>1/100 DIP へ丸めた座標。</returns>
+    private static EsPoint Round(EsPoint point)
+        => new(Math.Round(point.X, 2), Math.Round(point.Y, 2));
 
     /// <summary>このコントロールの矩形（DIP）を重ねた先の座標（DIP）へ変換する。</summary>
     /// <param name="rect">このコントロールの矩形。</param>

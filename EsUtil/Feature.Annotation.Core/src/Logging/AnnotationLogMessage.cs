@@ -233,28 +233,24 @@ public static partial class AnnotationLogMessage
         => logger.LogPanelVisibilityCore(Prefix, kind, visible ? "表示" : "終了");
 
     /// <summary>パネルを置いた位置を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] パネル: {Kind} 位置=({X}, {Y}) 大きさ=({Width}, {Height}) 領域=({AreaX}, {AreaY}, {AreaWidth}, {AreaHeight})</c><br/>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] パネル: {Kind} 位置=({X}, {Y}) 領域=({AreaX}, {AreaY}, {AreaWidth}, {AreaHeight})</c><br/>
     /// 置ける領域も残す（パネルが切れる・画面の外へ出るといった不具合の切り分けに要る）。</remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="kind">パネルの種別。</param>
     /// <param name="x">左上の X（整形済み）。</param>
     /// <param name="y">左上の Y（整形済み）。</param>
-    /// <param name="width">幅（整形済み）。</param>
-    /// <param name="height">高さ（整形済み）。</param>
     /// <param name="areaX">置ける領域の X（整形済み）。</param>
     /// <param name="areaY">置ける領域の Y（整形済み）。</param>
     /// <param name="areaWidth">置ける領域の幅（整形済み）。</param>
     /// <param name="areaHeight">置ける領域の高さ（整形済み）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} パネル: {Kind:l} 位置=({X:l}, {Y:l}) 大きさ=({Width:l}, {Height:l}) 領域=({AreaX:l}, {AreaY:l}, {AreaWidth:l}, {AreaHeight:l})")]
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} パネル: {Kind:l} 位置=({X:l}, {Y:l}) 領域=({AreaX:l}, {AreaY:l}, {AreaWidth:l}, {AreaHeight:l})")]
     private static partial void LogPanelPlacedCore(
         this ILogger logger,
         string prefix,
         string kind,
         string x,
         string y,
-        string width,
-        string height,
         string areaX,
         string areaY,
         string areaWidth,
@@ -264,13 +260,13 @@ public static partial class AnnotationLogMessage
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="kind">パネルの種別（<c>nameof</c> で渡す）。</param>
     /// <param name="position">左上の位置（DIP）。</param>
-    /// <param name="size">大きさ（DIP）。</param>
     /// <param name="available">置ける領域（DIP）。</param>
     /// <remarks>
+    /// <b>大きさは記録しない</b>: レイアウトの確定前は実寸と違う値が返り、不具合の切り分けを誤らせる。<br/>
     /// <b>整形の前に有効かどうかを判定する</b>: 座標の整形は文字列を確保するため、無効なレベルでは行わない
     /// （規則は <c>.github/コーディング規約.md</c> §7）。
     /// </remarks>
-    public static void LogPanelPlaced(this ILogger logger, string kind, EsPoint position, EsSize size, EsRect available)
+    public static void LogPanelPlaced(this ILogger logger, string kind, EsPoint position, EsRect available)
     {
         if (!logger.IsEnabled(LogLevel.Debug))
         {
@@ -282,8 +278,6 @@ public static partial class AnnotationLogMessage
             kind,
             NumberText.Format(position.X),
             NumberText.Format(position.Y),
-            NumberText.Format(size.Width),
-            NumberText.Format(size.Height),
             NumberText.Format(available.X),
             NumberText.Format(available.Y),
             NumberText.Format(available.Width),
