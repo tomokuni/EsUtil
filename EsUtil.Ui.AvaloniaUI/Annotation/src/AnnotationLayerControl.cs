@@ -15,8 +15,8 @@ using EsUtil.Feature.Annotation.Core.Interaction;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
 using EsUtil.Feature.Annotation.Presenter.Selection;
 using EsUtil.Feature.Annotation.Logging;
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Defaults;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
 

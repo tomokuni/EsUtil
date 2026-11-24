@@ -105,14 +105,14 @@
            Code="DEP0002"
            Text="依存関係違反: EsUtil.Platform.Core.Windows は EsUtil.Platform.Core だけを参照できます（違反: @(_SeBad2->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
 
-    <!-- R3: 機能アセンブリは EsUtil.Platform.Core と、再利用可能な文字の計算層（EsUtil.Feature.Text.Core）だけを参照する -->
+    <!-- R3: 機能アセンブリは EsUtil.Platform.Core と、再利用可能な文字の計算層（EsUtil.Feature.StyledText.Core）だけを参照する -->
     <ItemGroup Condition="'$(_SeIsTestOrSample)' != 'true' And '$(_SeIsFeatureCore)' == 'true'">
       <_SeBad3 Include="@(_SeRef)"
-               Exclude="@(_SeRef->WithMetadataValue('Name', 'EsUtil.Platform.Core'));@(_SeRef->WithMetadataValue('Name', 'EsUtil.Feature.Text.Core'))" />
+               Exclude="@(_SeRef->WithMetadataValue('Name', 'EsUtil.Platform.Core'));@(_SeRef->WithMetadataValue('Name', 'EsUtil.Feature.StyledText.Core'))" />
     </ItemGroup>
     <Error Condition="'@(_SeBad3)' != ''"
            Code="DEP0003"
-           Text="依存関係違反: 機能アセンブリ（EsUtil.Feature.*.Core）は EsUtil.Platform.Core と EsUtil.Feature.Text.Core だけを参照できます（違反: @(_SeBad3->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
+           Text="依存関係違反: 機能アセンブリ（EsUtil.Feature.*.Core）は EsUtil.Platform.Core と EsUtil.Feature.StyledText.Core だけを参照できます（違反: @(_SeBad3->'%(Name)', ', ')）。 規則は .github/依存関係.md §3。" />
 
     <!-- DEP0004 は廃止（欠番）: 提示層のプロジェクトを機能アセンブリへ統合したため対象が無い。
          Core → Presenter の参照は verify.ps1 の層検査が拒否する（.github/依存関係.md §5・§8）。 -->

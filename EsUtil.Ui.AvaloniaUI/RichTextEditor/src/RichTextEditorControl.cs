@@ -17,8 +17,31 @@ namespace EsUtil.Ui.AvaloniaUI.RichTextEditor;
 /// <b>座標は元画像ピクセル</b>である: <see cref="RenderScale"/> で画面の DIP へ写すため、拡大しても
 /// 保存画像と同じ比率で文字が並ぶ。
 /// </remarks>
-public sealed partial class RichTextEditorControl : Control
+public sealed partial class RichTextEditorControl : Control, Avalonia.Rendering.ICustomHitTest
 {
+    /// <summary>本文の編集と表示を担うコントロールを初期化する。</summary>
+    public RichTextEditorControl()
+    {
+        // **入力を受けるにはフォーカスが要る**: Avalonia の <see cref="Control"/> は既定でフォーカスを
+        // 持てず、キーと IME の宛先にならない（Focus() が失敗し、文字を入力できない）。
+        Focusable = true;
+        IsTabStop = true;
+
+        // **IME の窓口を自分で出す**: 入力欄を重ねないため、変換候補の位置と変換中の文字列は
+        // 本コントロールが IME へ答える（要求に応じてクライアントを返す）。
+        TextInputMethodClientRequested += (_, e) => e.Client = InputClient;
+    }
+
+    /// <summary>本文の範囲を押下の対象にする。</summary>
+    /// <param name="point">コントロールの座標。</param>
+    /// <returns>押下を受け付ける場合は <see langword="true"/>。</returns>
+    /// <remarks>
+    /// <b>自前で描く面は押下の対象にならない</b>: Avalonia は背景を持つ面だけをヒットテストするため、
+    /// 何も描いていない範囲を押しても本コントロールへ届かない（描いた文字の上でしか反応しない）。
+    /// 範囲全体を押下の対象にして、本文の余白を押しても編集を始められるようにする。
+    /// </remarks>
+    public bool HitTest(Point point)
+        => IsVisible && IsHitTestVisible && new Rect(Bounds.Size).Contains(point);
     /// <summary>表示する本文。</summary>
     public static readonly StyledProperty<RichText> TextProperty =
         AvaloniaProperty.Register<RichTextEditorControl, RichText>(

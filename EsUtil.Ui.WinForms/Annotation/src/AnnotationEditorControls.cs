@@ -1,5 +1,5 @@
 using EsUtil.Feature.Annotation.Presenter.Editor;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText.Core.Defaults;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 

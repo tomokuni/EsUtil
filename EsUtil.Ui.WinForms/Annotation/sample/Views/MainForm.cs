@@ -4,8 +4,8 @@ using EsUtil.Ui.WinForms.Annotation.Sample.Imaging;
 using EsUtil.Ui.WinForms.SampleKit;
 using Microsoft.Extensions.Logging;
 using EsUtil.Feature.Annotation.Core.Defaults;
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Defaults;
 
 namespace EsUtil.Ui.WinForms.Annotation.Sample.Views;
 

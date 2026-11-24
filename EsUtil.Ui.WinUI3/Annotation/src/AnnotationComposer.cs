@@ -1,6 +1,6 @@
 using System.Drawing.Drawing2D;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Feature.Text;
+using EsUtil.Feature.StyledText;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 

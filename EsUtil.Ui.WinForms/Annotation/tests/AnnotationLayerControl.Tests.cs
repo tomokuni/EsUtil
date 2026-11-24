@@ -3,7 +3,7 @@ using EsUtil.Platform.Core.Imaging;
 using Xunit;
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Feature.Annotation.Core.Defaults;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText.Core.Defaults;
 
 namespace EsUtil.Ui.WinForms.Annotation.Tests;
 

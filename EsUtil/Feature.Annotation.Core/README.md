@@ -63,13 +63,13 @@ var composedPath = AnnotationJson.GetComposedPath(imagePath);   // <画像名>.a
 | `AnnotationDocument` | 注釈の集合（並び順が重なり順）・画像の寸法・JSON の版。 不変（変更は `With...` が新しい文書を返す） |
 | `FrameAnnotation` / `BubbleAnnotation` | 枠線（矩形 + 角丸）/ 吹き出し（本文 + しっぽ） |
 | `BubbleTail` / `BubbleEdge` | しっぽ（先端は本体と独立・付け根は本体の辺に追従） |
-| `RichText` / `TextRun` / `TextStyle` | 文字単位の書式（`EsUtil.Feature.Text.Core` が所有する。 フォント・大きさ・色・太字・斜体・下線・取り消し線） |
+| `RichText` / `TextRun` / `TextStyle` | 文字単位の書式（`EsUtil.Feature.StyledText.Core` が所有する。 フォント・大きさ・色・太字・斜体・下線・取り消し線） |
 | `AnnotationAppearance` | 注釈の外観（枠線の色・太さ・内側の色・角丸） |
 | `AnnotationPresenter` / `AnnotationDrawPlan` / `AnnotationShapePlan` | 折り返しと描画計画の解決 |
-| `TextEditState` | 本文の編集状態（キャレット・選択・入力・削除・書式。 `EsUtil.Feature.Text.Core` が所有する）。 4 つの UI 版は入力イベントを渡すだけにする |
+| `TextEditState` | 本文の編集状態（キャレット・選択・入力・削除・書式。 `EsUtil.Feature.StyledText.Core` が所有する）。 4 つの UI 版は入力イベントを渡すだけにする |
 | `AnnotationEditSession` | 文書・選択・変更履歴・本文の編集状態を単一所有する編集セッション。 4 つの UI 版は本型の操作を呼び、変更を購読する |
 | `AnnotationViewTransform` | 表示倍率・位置と、元画像ピクセルとローカル DIP の相互変換 |
-| `TextLayout` / `TextLineIndex` / `TextCursor` | 折り返しと行の配置・行と文字位置の対応・書記素クラスタ（絵文字・結合文字）の境界（`EsUtil.Feature.Text.Core` が所有する） |
+| `TextLayout` / `TextLineIndex` / `TextCursor` | 折り返しと行の配置・行と文字位置の対応・書記素クラスタ（絵文字・結合文字）の境界（`EsUtil.Feature.StyledText.Core` が所有する） |
 | `AnnotationHitTest` | 選択としっぽの当たり判定（最前面から探す） |
 | `AnnotationJson` | JSON 文字列への変換・保存パスの解決・付随ファイルの判定（ファイル入出力は `AnnotationCore`） |
 | `AnnotationDefaults` / `AnnotationLimits` | 既定値と安全域（設定・JSON・入力の共通の補正） |
@@ -95,7 +95,7 @@ var composedPath = AnnotationJson.GetComposedPath(imagePath);   // <画像名>.a
 | `src/Presenter/Selection` | `.Presenter.Selection` | 選択中の注釈の編集入口と、本文の編集状態（キャレット・選択・入力・書式）・編集セッション（文書・選択・履歴の単一所有） |
 | `src/Logging` | `.Logging` | ログ定義（`internal`。 UI が呼ぶ定義だけ `public`） |
 
-文字の書式・折り返し・行と文字位置の対応は `EsUtil.Feature.Text.Core`（名前空間 `EsUtil.Feature.Text`）が単一所有します。 本アセンブリは `EsUtil.Platform.Core` と `EsUtil.Feature.Text.Core` だけを参照します（UI フレームワークに依存しない）。
+文字の書式・折り返し・行と文字位置の対応は `EsUtil.Feature.StyledText.Core`（名前空間 `EsUtil.Feature.StyledText`）が単一所有します。 本アセンブリは `EsUtil.Platform.Core` と `EsUtil.Feature.StyledText.Core` だけを参照します（UI フレームワークに依存しない）。
 
 ## 4. テスト
 

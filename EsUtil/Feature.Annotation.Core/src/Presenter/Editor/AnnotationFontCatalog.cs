@@ -1,4 +1,4 @@
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Presenter.Editor;
 

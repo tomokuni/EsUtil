@@ -1,7 +1,7 @@
 using System.Globalization;
 using Avalonia;
 using Avalonia.Media;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText.Core.Defaults;
 using DrawingColor = System.Drawing.Color;
 
 namespace EsUtil.Ui.AvaloniaUI.RichTextEditor;
@@ -18,6 +18,10 @@ internal static class RichTextPainter
 {
     /// <summary>下線・取り消し線の太さの比率（文字の大きさに対する比）。</summary>
     private const double DecorationThicknessRatio = 0.06;
+
+    /// <summary>行の高さを測るための文字列（上端と下端が揃った字）。</summary>
+    /// <remarks>行の高さは文字によらず書式で決まるため、代表の 2 文字で測る（全文字を測る必要はない）。</remarks>
+    private const string LineMetricsText = "Ag";
 
     /// <summary>文字列を描画できる形へ変換する。</summary>
     /// <param name="text">文字列。</param>
@@ -42,16 +46,27 @@ internal static class RichTextPainter
     internal static EsUtil.Platform.Core.Geometry.EsSize Measure(string text, TextStyle style)
     {
         var formatted = CreateText(text, style);
+
+        // **行の高さは斜体で変えない**: 斜体は字を傾けるだけであり、実寸の高さを使うと行の間隔が変わる
         return new EsUtil.Platform.Core.Geometry.EsSize(
-            formatted.WidthIncludingTrailingWhitespace, formatted.Height);
+            formatted.WidthIncludingTrailingWhitespace, MeasureLineMetrics(style).Height);
     }
+
+    /// <summary>行の高さとベースラインを測るための整形（斜体を外した書式）を作る。</summary>
+    /// <param name="style">書式。</param>
+    /// <returns>整形済みの文字列（<c>Ag</c>）。</returns>
+    /// <remarks>
+    /// <b>斜体を外す</b>: 斜体は字を傾けるだけで行の高さを変えない（合成斜体では実寸が変わる環境がある）。
+    /// </remarks>
+    internal static FormattedText CreateLineMetrics(TextStyle style)
+        => CreateText(LineMetricsText, style with { IsItalic = false });
 
     /// <summary>行の実寸（高さとベースライン）を測る（斜体を外した書式で測る）。</summary>
     /// <param name="style">書式。</param>
     /// <returns>行の実寸。</returns>
     internal static TextLineMetrics MeasureLineMetrics(TextStyle style)
     {
-        var formatted = CreateText("Ag", style with { IsItalic = false });
+        var formatted = CreateLineMetrics(style);
         return new TextLineMetrics(formatted.Height, formatted.Baseline);
     }
 

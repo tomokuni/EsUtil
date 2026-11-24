@@ -2,7 +2,7 @@ using EsUtil.Platform.Core.Geometry;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using EsUtil.Feature.Text;
+using EsUtil.Feature.StyledText;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 

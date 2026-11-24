@@ -56,6 +56,14 @@ public sealed partial class RichTextEditorControl
     /// <summary>IME の変換中の文字列（本文へは入れない）。</summary>
     private string _preeditText = string.Empty;
 
+    /// <summary>入力を受け付けるかどうかを取得または設定する。</summary>
+    /// <value>入力を受け付ける場合は <see langword="true"/>（既定）。 表示専用にする場合は <see langword="false"/>。</value>
+    /// <remarks>
+    /// <b>ホストが入力を所有する場合に使う</b>: 注釈のレイヤーのように入力とフォーカスを自分で持つホストへ
+    /// 重ねるとき、本コントロールがフォーカスや編集状態を持つとキーと IME の宛先が変わってしまう。
+    /// </remarks>
+    public bool IsInputEnabled { get; set; } = true;
+
     /// <summary>ポインターで文字を選んでいる最中かどうか。</summary>
     private bool _isSelectingText;
 
@@ -87,8 +95,14 @@ public sealed partial class RichTextEditorControl
     /// <remarks>フォーカスを移し、キャレットの点滅を点灯から始める。</remarks>
     public void BeginEditing()
     {
+        if (!IsInputEnabled)
+        {
+            return;
+        }
+
         if (_edit.IsActive)
         {
+            Focus();
             return;
         }
 
@@ -368,7 +382,7 @@ public sealed partial class RichTextEditorControl
     {
         base.OnKeyDown(e);
 
-        if (!IsEditing || e.Handled)
+        if (!IsInputEnabled || !IsEditing || e.Handled)
         {
             return;
         }
@@ -450,7 +464,7 @@ public sealed partial class RichTextEditorControl
     {
         base.OnTextInput(e);
 
-        if (!IsEditing || string.IsNullOrEmpty(e.Text))
+        if (!IsInputEnabled || !IsEditing || string.IsNullOrEmpty(e.Text))
         {
             return;
         }
@@ -459,16 +473,24 @@ public sealed partial class RichTextEditorControl
         e.Handled = true;
     }
 
-    /// <summary>ポインターが押されたときの処理（キャレットの移動・選択の開始）。</summary>
+    /// <summary>ポインターが押されたときの処理（編集の開始・キャレットの移動・選択の開始）。</summary>
     /// <param name="e">ポインターの引数。</param>
+    /// <remarks>
+    /// <b>押下で編集を始める</b>: 表示専用でない限り、本文を押したらその位置から編集できる（利用者は
+    /// 「編集を開始」を押さずに書き始められる）。 既に編集中ならフォーカスを取り戻してキャレットを移す
+    /// （書式バーなど別の要素を触った後に、本文へ戻ってそのまま入力できる）。
+    /// </remarks>
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
 
-        if (!IsEditing || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        if (!IsInputEnabled || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
             return;
         }
+
+        BeginEditing();
+        Focus();
 
         var extend = (e.KeyModifiers & KeyModifiers.Shift) != 0;
         SetCaretFromPoint(ToSource(e.GetPosition(this)), extend);

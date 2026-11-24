@@ -14,9 +14,9 @@ using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Geometry;
 using EsUtil.Feature.Annotation.Core.Interaction;
 using EsUtil.Feature.Annotation.Presenter.Selection;
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Text;
-using EsUtil.Feature.Text.Presenter.Editing;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Text;
+using EsUtil.Feature.StyledText.Presenter.Editing;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 

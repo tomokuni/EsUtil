@@ -1,6 +1,6 @@
 using Xunit;
 using EsUtil.Feature.Annotation.Core.Defaults;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation.Core.Tests;
 

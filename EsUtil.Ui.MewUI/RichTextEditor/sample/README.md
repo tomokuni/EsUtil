@@ -56,6 +56,9 @@ dotnet run --project EsUtil.Ui.MewUI/RichTextEditor/sample/EsUtil.Ui.MewUI.RichT
 | 8 | 日本語入力で変換する | 変換候補がキャレットの近くに出る（画面の隅に出ない） |
 | 9 | 絵文字を入力して Backspace を押す | 絵文字が 1 文字として削除される（半分に割れない） |
 | 10 | 「選択をコピー」して「貼り付け」を押す | 選択した文字がキャレットの位置に入る |
+| 11 | 本文に「斜体の切替」を適用する | 行の高さが変わらない（行の間隔が広がらない） |
+| 12 | 本文の途中にキャレットを置いて日本語入力し、変換する | 変換候補が変換中の文字の近くに出る（画面の隅や離れた行に出ない） |
+| 13 | 本文の余白をクリックする | 編集が始まり、キャレットが表示される |
 
 ## 5. 構成
 
@@ -68,8 +71,8 @@ dotnet run --project EsUtil.Ui.MewUI/RichTextEditor/sample/EsUtil.Ui.MewUI.RichT
 ## 6. 使い方（初めての方向け）
 
 ```csharp
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Defaults;
 using EsUtil.Ui.MewUI.RichTextEditor;
 
 var editor = new RichTextEditorControl

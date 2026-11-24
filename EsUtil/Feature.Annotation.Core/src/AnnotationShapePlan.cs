@@ -1,6 +1,6 @@
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Feature.Text;
+using EsUtil.Feature.StyledText;
 
 namespace EsUtil.Feature.Annotation;
 

@@ -7,7 +7,7 @@ using Microsoft.UI.Xaml.Shapes;
 using DrawingColor = System.Drawing.Color;
 using XamlPoint = Windows.Foundation.Point;
 using XamlRect = Windows.Foundation.Rect;
-using EsUtil.Feature.Text;
+using EsUtil.Feature.StyledText;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 

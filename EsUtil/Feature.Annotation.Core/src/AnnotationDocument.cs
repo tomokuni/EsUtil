@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Geometry;
-using EsUtil.Feature.Text;
+using EsUtil.Feature.StyledText;
 
 namespace EsUtil.Feature.Annotation;
 

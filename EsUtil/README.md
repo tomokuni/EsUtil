@@ -105,7 +105,7 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | `LoupeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `AnnotationLayerControl` / `AnnotationEditorPanel` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `ColorSelectorControl` | なし（色名・色文字列の規則は共通基盤の `Palette` が持つ） | なし | AvaloniaUI / MewUI / WinUI3 |
-| `RichTextEditorControl` | `EsUtil.Feature.Text.Core`（書式・折り返し・行対応・編集状態。 提示層は同アセンブリの `.Presenter.Editing`） | あり（提示は同アセンブリ） | AvaloniaUI / MewUI / WinUI3 / WinForms |
+| `RichTextEditorControl` | `EsUtil.Feature.StyledText.Core`（書式・折り返し・行対応・編集状態。 提示層は同アセンブリの `.Presenter.Editing`） | あり（提示は同アセンブリ） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 
 **Core と Presenter の両方を持つ機能でも、プロジェクト（アセンブリ）は 1 つ**です（`EsUtil.Feature.<機能>.Core`。 公開面は `src/` 直下、層の内部は `src/Core/` と `src/Presenter/` で分ける）。
 
@@ -115,7 +115,7 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | --- | --- | --- |
 | 複数列の配置（最大列高さの最小化） | `EsUtil.Feature.ColumnPacking.Core` | `EsUtil.Ui.AvaloniaUI.ColumnPacking` / `EsUtil.Ui.MewUI.ColumnPacking` / `EsUtil.Ui.WinUI3.ColumnPacking` |
 | 全角・半角・かなの変換 | `EsUtil.Feature.ZenHan.Core` | なし（UI を持たない） |
-| 書式付きの文字列（書式・折り返し・行と文字位置の対応・本文の編集状態） | `EsUtil.Feature.Text.Core` | なし（UI を持たない。 注釈の本文が使う） |
+| 書式付きの文字列（書式・折り返し・行と文字位置の対応・本文の編集状態） | `EsUtil.Feature.StyledText.Core` | なし（UI を持たない。 注釈の本文が使う） |
 
 **コントロール化を前提とした処理は UI が持ちます**: ホイール操作（どの入力がズーム・パンかを決める）・ビューポートの変化の追従・組み込み先の概念は、コントロールを何かへ組み込んで初めて必要になるためです。
 
@@ -129,7 +129,7 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | Annotation | [`EsUtil.Feature.Annotation.Core`](../EsUtil/Feature.Annotation.Core/README.md)（[API](../EsUtil/Feature.Annotation.Core/docs/SPEC_API.md) / [System](../EsUtil/Feature.Annotation.Core/docs/SPEC_System.md)） |
 | ColumnPacking | [`EsUtil.Feature.ColumnPacking.Core`](../EsUtil/Feature.ColumnPacking.Core/README.md)（Core のみ） |
 | ZenHan | [`EsUtil.Feature.ZenHan.Core`](../EsUtil/Feature.ZenHan.Core/README.md)（Core のみ） |
-| Text | [`EsUtil.Feature.Text.Core`](../EsUtil/Feature.Text.Core/README.md)（Core のみ） |
+| Text | [`EsUtil.Feature.StyledText.Core`](../EsUtil/Feature.StyledText.Core/README.md)（Core のみ） |
 
 UI 層は [`EsUtil.Ui.AvaloniaUI.ColorSelector`](../EsUtil.Ui.AvaloniaUI/ColorSelector/README.md) / [`EsUtil.Ui.MewUI.ColorSelector`](../EsUtil.Ui.MewUI/ColorSelector/README.md) / [`EsUtil.Ui.WinUI3.ColorSelector`](../EsUtil.Ui.WinUI3/ColorSelector/README.md) /
 [`EsUtil.Ui.AvaloniaUI.Marquee`](../EsUtil.Ui.AvaloniaUI/Marquee/README.md) / [`EsUtil.Ui.MewUI.Marquee`](../EsUtil.Ui.MewUI/Marquee/README.md) / [`EsUtil.Ui.WinUI3.Marquee`](../EsUtil.Ui.WinUI3/Marquee/README.md) / [`EsUtil.Ui.WinForms.Marquee`](../EsUtil.Ui.WinForms/Marquee/README.md) /

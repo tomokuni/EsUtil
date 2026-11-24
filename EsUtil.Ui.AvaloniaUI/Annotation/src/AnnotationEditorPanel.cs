@@ -69,6 +69,12 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <summary>本文コントロールを合わせている吹き出しの識別子（無い場合は <see langword="null"/>）。</summary>
     private string? _syncedTextId;
 
+    /// <summary>本文コントロールを最後に置いた矩形（移動の検出に使う）。</summary>
+    private Rect _syncedTextRect;
+
+    /// <summary>レイアウトの処理中かどうか（処理中は無効化を要求しない）。</summary>
+    private bool _isInLayout;
+
     /// <summary>注釈の本文編集と書式バーをまとめたコントロールを初期化する。</summary>
     public AnnotationEditorPanel()
     {
@@ -85,6 +91,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         // 本文の文字・選択範囲・キャレット・変換中の文字列を描く（レイヤーは本文を描かない）。
         _textEditor = new RichTextEditor.RichTextEditorControl
         {
+            IsInputEnabled = false,
             IsHitTestVisible = false,
             Focusable = false,
             IsVisible = false,
@@ -742,10 +749,19 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <returns>必要な寸法（レイヤーの希望寸法）。</returns>
     protected override Size MeasureOverride(Size availableSize)
     {
-        _layer.Measure(availableSize);
-        _layer.Arrange(new Rect(availableSize));
-        SyncTextEditor();
-        _textEditor.Measure(ResolveTextEditorRect().Size);
+        _isInLayout = true;
+        try
+        {
+            _layer.Measure(availableSize);
+            _layer.Arrange(new Rect(availableSize));
+            SyncTextEditor();
+            _textEditor.Measure(ResolveTextEditorRect().Size);
+        }
+        finally
+        {
+            _isInLayout = false;
+        }
+
         return _layer.DesiredSize;
     }
 
@@ -754,16 +770,30 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <returns>配置した寸法。</returns>
     protected override Size ArrangeOverride(Size finalSize)
     {
-        _layer.Arrange(new Rect(finalSize));
-        SyncTextEditor();
-        _textEditor.Arrange(ResolveTextEditorRect());
+        _isInLayout = true;
+        try
+        {
+            _layer.Arrange(new Rect(finalSize));
+            SyncTextEditor();
+
+            var rect = ResolveTextEditorRect();
+            _syncedTextRect = rect;
+            _textEditor.Arrange(rect);
+        }
+        finally
+        {
+            _isInLayout = false;
+        }
+
         return finalSize;
     }
 
-    /// <summary>本文コントロールの内容（本文・変換中の文字列・倍率）を追随させる。</summary>
+    /// <summary>本文コントロールの内容（本文・変換中の文字列・倍率）と位置を追随させる。</summary>
     /// <remarks>
     /// <b>本文はレイヤーが単一所有する</b>: コントロールは描画と入力の入口であり、本文の値は
-    /// 編集セッションから写す（同じ本文を 2 か所に持たない）。
+    /// 編集セッションから写す（同じ本文を 2 か所に持たない）。<br/>
+    /// <b>位置は本文の矩形ごとに追随させる</b>: 同じ吹き出しを動かしたときも置き直す（識別子だけで
+    /// 比べると、動かした本文が元の位置に取り残される）。
     /// </remarks>
     private void SyncTextEditor()
     {
@@ -774,14 +804,6 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         {
             HideTextEditor();
             return;
-        }
-
-        // **置く位置は選択に依存する**: 選択が変わったら測り直す（測り直さないと前の吹き出しの位置に残り、
-        // 別の吹き出しの本文がそこへ描かれる）。
-        if (!string.Equals(_syncedTextId, bubble.Id, StringComparison.Ordinal))
-        {
-            _syncedTextId = bubble.Id;
-            InvalidateMeasure();
         }
 
         // **変換中の文字列は本文コントロールが描く**: 本文へ混ぜて渡すと二重になるため、
@@ -795,6 +817,14 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 
         // レイヤーは同じ本文を描かない（二重に描くと縁が太り、位置も二重に見える）
         _layer.ExternalTextId = bubble.Id;
+        _syncedTextId = bubble.Id;
+
+        // **動いたら測り直す**: レイアウトの途中で呼ばれた場合はその回の配置が正しい矩形を使うため、
+        // ここでは要求しない（要求すると配置と要求が互いを呼び続ける）。
+        if (!_isInLayout && ResolveTextEditorRect() != _syncedTextRect)
+        {
+            InvalidateMeasure();
+        }
     }
 
     /// <summary>本文コントロールを隠し、レイヤーが本文を描く状態へ戻す。</summary>
@@ -809,7 +839,11 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         _syncedTextId = null;
         _textEditor.IsVisible = false;
         _layer.ExternalTextId = null;
-        InvalidateMeasure();
+
+        if (!_isInLayout)
+        {
+            InvalidateMeasure();
+        }
     }
 
     /// <summary>本文コントロールを置く矩形（このコントロールの座標）を求める。</summary>

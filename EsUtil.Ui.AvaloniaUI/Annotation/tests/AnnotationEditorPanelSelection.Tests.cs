@@ -4,8 +4,8 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using Xunit;
 using EsUtil.Feature.Annotation.Core.Defaults;
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Defaults;
 using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation.Tests;
@@ -43,6 +43,31 @@ public class AnnotationEditorPanelSelectionTests
         AssertBounds(secondRect, editor.TextEditor.Bounds);
         Assert.NotEqual(secondRect.X, firstRect.X);
 
+        GC.KeepAlive(window);
+    }
+
+    /// <summary>選択中の吹き出しを動かすと、本文コントロールが新しい位置へ追随することを検証する。</summary>
+    /// <remarks>
+    /// 選択が変わらなくても本文の矩形は動く。 識別子だけで比べると置き直しが要求されず、動かした本文が
+    /// 元の位置に取り残される（別の場所を押して再描画されるまで直らない）。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 選択中の吹き出しを動かすと本文コントロールが追随する()
+    {
+        var window = CreateEditor(out var editor, out var document, out var first, out _);
+        editor.Layer.Session.SelectedId = first;
+        Dispatcher.UIThread.RunJobs();
+        PumpLayout(editor);
+        AssertBounds(BodyRect(editor, document, first), editor.TextEditor.Bounds);
+
+        // 同じ吹き出しを動かす（選択は変わらない）
+        editor.Layer.Session.SetBounds(new EsRect(60, 90, 180, 80));
+        Assert.False(editor.IsMeasureValid);
+        Dispatcher.UIThread.RunJobs();
+        PumpLayout(editor);
+
+        AssertBounds(BodyRect(editor, editor.Layer.Document, first), editor.TextEditor.Bounds);
+        Assert.Equal(first, editor.Layer.ExternalTextId);
         GC.KeepAlive(window);
     }
 

@@ -26,9 +26,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="EsUtil.Feature.Text" />
-    <Using Include="EsUtil.Feature.Text.Core.Defaults" />
-    <Using Include="EsUtil.Feature.Text.Core.Text" />
+    <Using Include="EsUtil.Feature.StyledText" />
+    <Using Include="EsUtil.Feature.StyledText.Core.Defaults" />
+    <Using Include="EsUtil.Feature.StyledText.Core.Text" />
   </ItemGroup>
 
 </Project>

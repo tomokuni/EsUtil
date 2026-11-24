@@ -1,9 +1,9 @@
 // Auto-generated from Genetated.tt, ConvertDefine.csv
 using System.Collections.Immutable;
 
-using static EsUtil.Feature.Text.Define;
+using static EsUtil.Feature.ZenHan.Define;
 
-namespace EsUtil.Feature.Text;
+namespace EsUtil.Feature.ZenHan;
 #pragma warning disable IDE1006 // 命名スタイル
 
 <#

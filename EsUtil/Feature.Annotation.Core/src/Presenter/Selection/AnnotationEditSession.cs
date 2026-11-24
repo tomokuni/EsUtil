@@ -5,9 +5,9 @@ using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Text;
-using EsUtil.Feature.Text.Presenter.Editing;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Text;
+using EsUtil.Feature.StyledText.Presenter.Editing;
 
 namespace EsUtil.Feature.Annotation.Presenter.Selection;
 

@@ -6,8 +6,8 @@ using EsUtil.Ui.MewUI.Annotation.Sample.Imaging;
 using EsUtil.Ui.MewUI.SampleKit;
 using Microsoft.Extensions.Logging;
 using EsUtil.Feature.Annotation.Core.Defaults;
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Defaults;
 
 namespace EsUtil.Ui.MewUI.Annotation.Sample.Views;
 

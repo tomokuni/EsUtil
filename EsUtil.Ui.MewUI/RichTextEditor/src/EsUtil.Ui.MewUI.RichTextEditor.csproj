@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\EsUtil\Feature.Text.Core\src\EsUtil.Feature.Text.Core.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil\Feature.StyledText.Core\src\EsUtil.Feature.StyledText.Core.csproj" />
     <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
   </ItemGroup>
 
@@ -27,12 +27,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="EsUtil.Feature.Text" />
-    <Using Include="EsUtil.Feature.Text.Core.Text" />
-    <Using Include="EsUtil.Feature.Text.Presenter.Drawing" />
-    <Using Include="EsUtil.Feature.Text.Presenter.Editing" />
+    <Using Include="EsUtil.Feature.StyledText" />
+    <Using Include="EsUtil.Feature.StyledText.Core.Text" />
+    <Using Include="EsUtil.Feature.StyledText.Presenter.Drawing" />
+    <Using Include="EsUtil.Feature.StyledText.Presenter.Editing" />
     <!-- MewUI も TextLineLayout を持つため、本ライブラリの型を名前で固定する -->
-    <Using Include="EsUtil.Feature.Text.Core.Text.TextLineLayout" Alias="TextLineLayout" />
+    <Using Include="EsUtil.Feature.StyledText.Core.Text.TextLineLayout" Alias="TextLineLayout" />
   </ItemGroup>
 
 </Project>

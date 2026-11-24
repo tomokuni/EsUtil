@@ -1,4 +1,4 @@
-using EsUtil.Feature.Text.Core.Text;
+using EsUtil.Feature.StyledText.Core.Text;
 
 namespace EsUtil.Feature.Annotation.Presenter.Drawing;
 

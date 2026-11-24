@@ -1,5 +1,5 @@
 using Xunit;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText.Core.Defaults;
 
 namespace EsUtil.Ui.WinUI3.Annotation.Tests;
 

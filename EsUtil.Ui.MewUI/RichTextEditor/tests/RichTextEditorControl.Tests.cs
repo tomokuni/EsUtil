@@ -1,12 +1,12 @@
 using Xunit;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText.Core.Defaults;
 using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.MewUI.RichTextEditor.Tests;
 
 /// <summary>本文の編集 API の仕様テスト（表示と編集の状態の連携）。</summary>
 /// <remarks>
-/// 状態と規則は <c>TextEditState</c>（EsUtil.Feature.Text.Core）が単一所有するため、ここでは
+/// 状態と規則は <c>TextEditState</c>（EsUtil.Feature.StyledText.Core）が単一所有するため、ここでは
 /// 「コントロールの API がその規則へ正しくつながっているか」と「本文の書き戻しと通知」を検証する。
 /// </remarks>
 public class RichTextEditorControlTests

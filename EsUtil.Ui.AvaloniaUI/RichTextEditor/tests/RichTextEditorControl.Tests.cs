@@ -1,14 +1,19 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Threading;
 using Xunit;
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Defaults;
 using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.AvaloniaUI.RichTextEditor.Tests;
 
 /// <summary>本文の編集 API の仕様テスト（表示と編集の状態の連携）。</summary>
 /// <remarks>
-/// 状態と規則は <c>TextEditState</c>（EsUtil.Feature.Text.Core）が単一所有するため、ここでは「コントロールの API が
+/// 状態と規則は <c>TextEditState</c>（EsUtil.Feature.StyledText.Core）が単一所有するため、ここでは「コントロールの API が
 /// その規則へ正しくつながっているか」と「本文の書き戻しと通知」を検証する。
 /// </remarks>
 [Collection("AvaloniaHeadless")]
@@ -182,6 +187,78 @@ public class RichTextEditorControlTests
             RichTextPainter.Measure("文字", normal).Height,
             RichTextPainter.Measure("文字", italic).Height,
             3);
+    }
+
+    /// <summary>編集を始めるとフォーカスを持ち、キー入力の宛先になることを検証する。</summary>
+    /// <remarks>
+    /// Avalonia の <see cref="Control"/> は既定でフォーカスを持てない。 フォーカスを持てないと
+    /// <c>Focus()</c> が失敗し、キー入力も IME も本コントロールへ届かない（編集を開始しても文字を入力できない）。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void BeginEditing_フォーカスを持つ()
+    {
+        var editor = CreateEditor("あいう");
+        var window = new Window { Content = editor };
+
+        window.Show();
+        try
+        {
+            editor.BeginEditing();
+
+            Assert.True(editor.IsEditing);
+            Assert.True(editor.IsFocused);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>本文を押すと編集が始まり、フォーカスが本文へ移ることを検証する。</summary>
+    /// <remarks>編集の入口は API だけではない（利用者は本文を押して書き始める）。</remarks>
+    [AvaloniaFact]
+    internal void 本文の押下で編集が始まる()
+    {
+        var editor = CreateEditor("あいう");
+        var window = new Window { Content = editor };
+
+        window.Show();
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+
+            // 位置はウィンドウの座標で渡す（本文は中央に置かれる）
+            window.MouseDown(editor.TranslatePoint(new Point(10, 10), window)!.Value, MouseButton.Left);
+
+            Assert.True(editor.IsEditing);
+            Assert.True(editor.IsFocused);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>入力を受け付けない設定では編集を始めないことを検証する（表示専用で使う場合）。</summary>
+    [AvaloniaFact]
+    internal void 入力を受け付けない設定では編集を始めない()
+    {
+        var editor = CreateEditor("あいう");
+        editor.IsInputEnabled = false;
+        var window = new Window { Content = editor };
+
+        window.Show();
+        try
+        {
+            editor.BeginEditing();
+            window.MouseDown(editor.TranslatePoint(new Point(10, 10), window)!.Value, MouseButton.Left);
+
+            Assert.False(editor.IsEditing);
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     /// <summary>本文と大きさを持つコントロールを作る。</summary>

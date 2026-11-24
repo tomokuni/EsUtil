@@ -6,8 +6,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using EsUtil.Feature.Annotation.Core.Defaults;
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Defaults;
 
 namespace EsUtil.Ui.WinUI3.Annotation.Sample.Views;
 

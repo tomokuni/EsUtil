@@ -9,7 +9,7 @@
 - [3. `AnnotationDocument`（クラス）](#3-annotationdocumentクラス)
 - [4. `AnnotationItem` / `FrameAnnotation` / `BubbleAnnotation`（クラス）](#4-annotationitem--frameannotation--bubbleannotationクラス)
 - [5. `BubbleTail` / `BubbleEdge`（レコード・列挙型）](#5-bubbletail--bubbleedgeレコード列挙型)
-- [6. 文字の書式（`EsUtil.Feature.Text`）](#6-文字の書式esutilfeaturetext)
+- [6. 文字の書式（`EsUtil.Feature.StyledText`）](#6-文字の書式esutilfeaturestyledtext)
 - [7. `AnnotationAppearance`（レコード）](#7-annotationappearanceレコード)
 - [8. `AnnotationPresenter` / `AnnotationDrawPlan`（クラス・レコード）](#8-annotationpresenter--annotationdrawplanクラスレコード)
 - [9. `AnnotationHitTest`（静的クラス）](#9-annotationhittest静的クラス)
@@ -94,16 +94,16 @@
 | `ResolveBase(body)` | 本体の矩形から付け根の 2 点を求める |
 | `Normalized()` | 幅と比率を安全域へ補正する |
 
-## 6. 文字の書式（`EsUtil.Feature.Text`）
+## 6. 文字の書式（`EsUtil.Feature.StyledText`）
 
-**本文の文字は `EsUtil.Feature.Text.Core`（名前空間 `EsUtil.Feature.Text`）が単一所有します**。 本アセンブリは型を写さず、そのまま公開面に載せます。
+**本文の文字は `EsUtil.Feature.StyledText.Core`（名前空間 `EsUtil.Feature.StyledText`）が単一所有します**。 本アセンブリは型を写さず、そのまま公開面に載せます。
 
 | 型 | 内容 |
 | --- | --- |
 | `RichText` / `TextRun` / `TextStyle` | 書式付きの文字列（run 単位の書式）・書式そのもの |
 | `TextLinePlan` / `TextSegmentPlan` | 行の矩形と書式ごとの区間（`AnnotationShapePlan.Lines` の要素） |
 
-- メンバー単位の仕様は [`../../Feature.Text.Core/docs/SPEC_API.md`](../../Feature.Text.Core/docs/SPEC_API.md) が所有します。
+- メンバー単位の仕様は [`../../Feature.StyledText.Core/docs/SPEC_API.md`](../../Feature.StyledText.Core/docs/SPEC_API.md) が所有します。
 - **本アセンブリの値（本文・描画計画）に現れる型は上表の 5 つだけ**です（書記素クラスタ・折り返し・行の対応は提示層が呼びます）。
 
 ## 7. `AnnotationAppearance`（レコード）
@@ -123,9 +123,9 @@
 | `LineHeightFactor` | 行間の倍率（既定 `LineHeightFactorDefault`。 0 以下・非有限は既定値へ補正する） |
 | `AnnotationDrawPlan` | `ImageSize` / `SelectedId` / `Shapes`（先頭が最背面） |
 | `AnnotationShapePlan` | 角丸・塗り・枠線・しっぽの多角形・本文の行（すべて解決済み） |
-| `TextLinePlan` / `TextSegmentPlan` | 行の矩形と、書式ごとの区間（`EsUtil.Feature.Text.Core` が所有する。 下線・取り消し線は書式のフラグから UI が描く） |
+| `TextLinePlan` / `TextSegmentPlan` | 行の矩形と、書式ごとの区間（`EsUtil.Feature.StyledText.Core` が所有する。 下線・取り消し線は書式のフラグから UI が描く） |
 
-- **折り返しは `EsUtil.Feature.Text.Core` の `TextLayout` が単一所有**します（文字単位・明示改行・行頭禁則）。 4 つの UI 版で同じ位置に折り返します。
+- **折り返しは `EsUtil.Feature.StyledText.Core` の `TextLayout` が単一所有**します（文字単位・明示改行・行頭禁則）。 4 つの UI 版で同じ位置に折り返します。
 - **選択枠（ハンドル）は含みません**（Marquee の提示層が解決する。 選択枠の見た目を 4 つの UI 版で揃えるため）。
 
 ## 9. `AnnotationHitTest`（静的クラス）
@@ -197,9 +197,9 @@
 | --- | --- | --- |
 | `AnnotationDraftDefaultsFactory` | Core（`.Core.Defaults`） | 設定の値（色の文字列・数値）から `AnnotationDraftDefaults` を組み立てる（`FromText`）。 解釈できない色は透明として扱い、数値は `AnnotationLimits` の安全域へ補正する |
 | `AnnotationEditorAppearance` | Presenter（`.Presenter.Drawing`） | 本文の編集中の見た目（`CaretThicknessDip` / `CaretColor` / `SelectionColor`）。 UI は自分の描画 API の色へ変換して使う |
-| `TextEditState` | `EsUtil.Feature.Text.Core`（`.Presenter.Editing`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 UI は入力イベントを渡し、通知と描画だけを行う（注釈の識別子を持たない） |
+| `TextEditState` | `EsUtil.Feature.StyledText.Core`（`.Presenter.Editing`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 UI は入力イベントを渡し、通知と描画だけを行う（注釈の識別子を持たない） |
 | `AnnotationViewTransform` | Core（`.Core.Geometry`） | 表示倍率・左上の位置と、元画像ピクセルとローカル DIP の相互変換（`ToSourceRadius` で画面上の掴む距離を元画像ピクセルへ換算する）。 UI は点の型へ写すだけにする |
-| `TextCursor` / `TextLayout` / `TextLineIndex` / `TextLineLayout` / `TextStyleEdit` / `TextCompositionPreview` / `TextCaretBlink` | `EsUtil.Feature.Text.Core`（`.Core.Text`） | 書記素クラスタの境界・折り返しと行の配置・行と文字位置の対応・入力の挿入・変換中の文字列・点滅。 UI は位置を計算せず、この規則に従う |
+| `TextCursor` / `TextLayout` / `TextLineIndex` / `TextLineLayout` / `TextStyleEdit` / `TextCompositionPreview` / `TextCaretBlink` | `EsUtil.Feature.StyledText.Core`（`.Core.Text`） | 書記素クラスタの境界・折り返しと行の配置・行と文字位置の対応・入力の挿入・変換中の文字列・点滅。 UI は位置を計算せず、この規則に従う |
 
 - **`AnnotationDraftDefaultsFactory` は「設定の項目名」を知りません**（`AnnotationFrameBorderColor` のような設定の項目名はホストのもの）。 引数は値だけを受け取り、対応付け（枠線の太さ・角丸を枠線と吹き出しの両方へ使う等）だけを持ちます。
 - **`AnnotationEditorAppearance` の値は元画像ピクセルではありません**（画面の DIP。 倍率は UI が掛ける）。

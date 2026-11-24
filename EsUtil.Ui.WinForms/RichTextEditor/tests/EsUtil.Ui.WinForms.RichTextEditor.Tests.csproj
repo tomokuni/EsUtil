@@ -23,6 +23,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="EsUtil.Feature.Text" />
+    <Using Include="EsUtil.Feature.StyledText" />
   </ItemGroup>
 </Project>

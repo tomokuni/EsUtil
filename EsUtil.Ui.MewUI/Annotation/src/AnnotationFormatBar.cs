@@ -5,8 +5,8 @@ using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Ui.MewUI.ColorSelector;
 using EsUtil.Feature.Annotation.Presenter.Editor;
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Defaults;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 

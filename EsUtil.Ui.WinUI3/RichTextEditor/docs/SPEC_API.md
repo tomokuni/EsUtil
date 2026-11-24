@@ -1,6 +1,6 @@
 # EsUtil.Ui.WinUI3.RichTextEditor API リファレンス
 
-書式付き文字列を表示し、その場で編集する コントロールです。 折り返し・行の配置・キャレットの位置・削除の単位は `EsUtil.Feature.Text.Core` が単一所有します。
+書式付き文字列を表示し、その場で編集する コントロールです。 折り返し・行の配置・キャレットの位置・削除の単位は `EsUtil.Feature.StyledText.Core` が単一所有します。
 
 ## 目次
 
@@ -28,7 +28,7 @@
 
 | メンバー | 説明 |
 | --- | --- |
-| `IsEditing` / `BeginEditing()` / `EndEditing()` | 編集の状態（開始時のキャレットは本文の末尾） |
+| `IsEditing` / `BeginEditing()` / `EndEditing()` | 編集の状態（開始時のキャレットは本文の末尾）。 本文を押すと編集が始まり、押した位置へキャレットを置く |
 | `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `HasSelection` | キャレットと選択 |
 | `Select(start, length)` / `SelectAll()` | 選択範囲の指定 |
 | `MoveCaret(index, extend)` | キャレットの移動（書記素クラスタの境界へ丸める） |
@@ -44,10 +44,10 @@
 | `CaretRect` | キャレットの矩形（DIP。 IME の変換候補の位置） |
 
 - **選択が無いときの書式変更は以降の入力へ回します**（既存の文字は変えない）。
-- **キー入力は同じ API を呼びます**（キーの割り当ては `EsUtil.Feature.Text.Core` の `TextEditKeyMap` が単一所有する）。
+- **キー入力は同じ API を呼びます**（キーの割り当ては `EsUtil.Feature.StyledText.Core` の `TextEditKeyMap` が単一所有する）。
 
 ## 3. 制限事項
 
 - **IME は制御できません**（変換候補の表示位置と内容は OS と入力方式が決める）。 本コントロールは位置と文字列を渡すだけです。
-- **キャレットと選択範囲の色・太さは変更できません**（`EsUtil.Feature.Text.Core` の `TextEditorAppearance` が単一所有する。 4 つの UI 版で同じ見た目にするため）。
+- **キャレットと選択範囲の色・太さは変更できません**（`EsUtil.Feature.StyledText.Core` の `TextEditorAppearance` が単一所有する。 4 つの UI 版で同じ見た目にするため）。
 - **書式は run 単位**です（文字単位の任意の属性は持たない）。

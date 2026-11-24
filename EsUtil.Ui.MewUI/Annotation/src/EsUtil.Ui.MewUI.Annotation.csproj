@@ -37,6 +37,6 @@
   <ItemGroup>
     <Using Include="EsUtil.Feature.Annotation" />
     <!-- MewUI も TextLineLayout を持つため、本ライブラリの型を名前で固定する -->
-    <Using Include="EsUtil.Feature.Text.Core.Text.TextLineLayout" Alias="TextLineLayout" />
+    <Using Include="EsUtil.Feature.StyledText.Core.Text.TextLineLayout" Alias="TextLineLayout" />
   </ItemGroup>
 </Project>

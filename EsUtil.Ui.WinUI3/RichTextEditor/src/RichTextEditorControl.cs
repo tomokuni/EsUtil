@@ -688,11 +688,13 @@ public sealed partial class RichTextEditorControl : Canvas
     /// <param name="e">ポインターの引数。</param>
     private void OnEditorPointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        if (!IsInputEnabled || !IsEditing)
+        if (!IsInputEnabled)
         {
             return;
         }
 
+        // **押下で編集を始める**: 利用者は「編集を開始」を押さずに本文へ書き始められる
+        BeginEditing();
         Focus(FocusState.Pointer);
         SetCaretFromPoint(ToSource(e.GetCurrentPoint(this).Position), (CurrentModifiers() & TextEditModifiers.Shift) != 0);
         CapturePointer(e.Pointer);

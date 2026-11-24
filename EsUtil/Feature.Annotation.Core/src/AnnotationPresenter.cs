@@ -4,9 +4,9 @@ using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using EsUtil.Feature.Annotation.Core.Geometry;
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Text;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Text;
+using EsUtil.Feature.StyledText.Core.Defaults;
 
 namespace EsUtil.Feature.Annotation;
 

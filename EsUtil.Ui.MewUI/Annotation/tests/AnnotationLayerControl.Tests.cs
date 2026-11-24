@@ -4,7 +4,7 @@ using Xunit;
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Presenter.Editor;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText.Core.Defaults;
 
 namespace EsUtil.Ui.MewUI.Annotation.Tests;
 

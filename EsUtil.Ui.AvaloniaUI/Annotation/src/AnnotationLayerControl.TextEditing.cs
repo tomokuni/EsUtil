@@ -5,9 +5,9 @@ using Avalonia.Input.Platform;
 using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Text;
-using EsUtil.Feature.Text.Presenter.Editing;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Text;
+using EsUtil.Feature.StyledText.Presenter.Editing;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
 
@@ -514,9 +514,14 @@ public sealed partial class AnnotationLayerControl
             return null;
         }
 
-        var plan = _presenter.ResolveDrawPlan(RenderDocument, MeasureText, _session.SelectedId);
+        // **行と文字数を同じ本文から作る**: 行は変換中の文字列を含む表示用の本文から作られるため、
+        // 文字数の基準も同じ本文でなければ、変換中のキャレットが本文の範囲外になって位置を解決できない
+        // （変換候補が画面の隅に飛ぶ）。
+        var rendered = RenderDocument;
+        var plan = _presenter.ResolveDrawPlan(rendered, MeasureText, _session.SelectedId);
         var shape = plan.Shapes.FirstOrDefault(candidate => string.Equals(candidate.Id, bubble.Id, StringComparison.Ordinal));
-        return shape is null ? null : TextLineIndex.Create(shape.Lines, bubble.Text.PlainText);
+        var text = (rendered.Find(bubble.Id) as BubbleAnnotation)?.Text.PlainText ?? bubble.Text.PlainText;
+        return shape is null ? null : TextLineIndex.Create(shape.Lines, text);
     }
 }
 

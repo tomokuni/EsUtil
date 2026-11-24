@@ -23,7 +23,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.17763.0` |
-| 参照 | `EsUtil.Feature.Text.Core` / `EsUtil.Platform.Core` |
+| 参照 | `EsUtil.Feature.StyledText.Core` / `EsUtil.Platform.Core` |
 | 描画 | GDI+ |
 | テスト | xUnit v3（Avalonia ヘッドレス） |
 
@@ -47,7 +47,7 @@
 
 | 方向 | 内容 |
 | --- | --- |
-| 許可 | 本アセンブリ → `EsUtil.Feature.Text.Core` / `EsUtil.Platform.Core` |
+| 許可 | 本アセンブリ → `EsUtil.Feature.StyledText.Core` / `EsUtil.Platform.Core` |
 | 許可 | 注釈の UI 層（同一 UI の別コントロール）→ 本アセンブリ |
 | 禁止 | 本アセンブリ → 注釈の機能（特定の機能の語彙に依存しない） |
 

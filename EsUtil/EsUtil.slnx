@@ -11,9 +11,9 @@
     <Project Path="Feature.Marquee.Core/src/EsUtil.Feature.Marquee.Core.csproj" />
     <Project Path="Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Tests.csproj" />
   </Folder>
-  <Folder Name="/Feature.Text.Core/">
-    <Project Path="Feature.Text.Core/src/EsUtil.Feature.Text.Core.csproj" />
-    <Project Path="Feature.Text.Core/tests/EsUtil.Feature.Text.Core.Tests.csproj" />
+  <Folder Name="/Feature.StyledText.Core/">
+    <Project Path="Feature.StyledText.Core/src/EsUtil.Feature.StyledText.Core.csproj" />
+    <Project Path="Feature.StyledText.Core/tests/EsUtil.Feature.StyledText.Core.Tests.csproj" />
   </Folder>
   <Folder Name="/Feature.Thumbnail.Core/">
     <Project Path="Feature.Thumbnail.Core/src/EsUtil.Feature.Thumbnail.Core.csproj" />

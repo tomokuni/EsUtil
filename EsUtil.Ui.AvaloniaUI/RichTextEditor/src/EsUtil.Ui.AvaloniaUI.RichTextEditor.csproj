@@ -16,20 +16,23 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\EsUtil\Feature.Text.Core\src\EsUtil.Feature.Text.Core.csproj" />
+    <ProjectReference Include="..\..\..\EsUtil\Feature.StyledText.Core\src\EsUtil.Feature.StyledText.Core.csproj" />
     <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- 単体テスト（tests/）からのみ internal 型へアクセスできるようにする -->
     <InternalsVisibleTo Include="EsUtil.Ui.AvaloniaUI.RichTextEditor.Tests" />
+    <!-- 注釈は本文の描画と実寸を本アセンブリの RichTextPainter へ委ねる（写しを持つと見た目が食い違う） -->
+    <InternalsVisibleTo Include="EsUtil.Ui.AvaloniaUI.Annotation" />
+    <InternalsVisibleTo Include="EsUtil.Ui.AvaloniaUI.Annotation.Tests" />
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="EsUtil.Feature.Text" />
-    <Using Include="EsUtil.Feature.Text.Core.Text" />
-    <Using Include="EsUtil.Feature.Text.Presenter.Drawing" />
-    <Using Include="EsUtil.Feature.Text.Presenter.Editing" />
+    <Using Include="EsUtil.Feature.StyledText" />
+    <Using Include="EsUtil.Feature.StyledText.Core.Text" />
+    <Using Include="EsUtil.Feature.StyledText.Presenter.Drawing" />
+    <Using Include="EsUtil.Feature.StyledText.Presenter.Editing" />
   </ItemGroup>
 
 </Project>

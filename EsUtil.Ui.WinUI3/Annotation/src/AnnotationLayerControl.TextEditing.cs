@@ -5,9 +5,9 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.System;
 using EsUtil.Feature.Annotation.Presenter.Drawing;
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Text;
-using EsUtil.Feature.Text.Presenter.Editing;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Text;
+using EsUtil.Feature.StyledText.Presenter.Editing;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 

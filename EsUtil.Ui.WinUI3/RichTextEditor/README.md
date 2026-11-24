@@ -16,7 +16,7 @@
 
 - **本文は `RichText`**（run 単位の書式）で受け渡しします。
 - **座標と文字の大きさは元画像ピクセル**です（`RenderScale` で画面の DIP へ写す）。
-- **折り返し・行の配置・キャレットの位置・削除の単位は `EsUtil.Feature.Text.Core` が単一所有**します（本コントロールは描画・入力・IME・クリップボードの配線だけを行います）。
+- **折り返し・行の配置・キャレットの位置・削除の単位は `EsUtil.Feature.StyledText.Core` が単一所有**します（本コントロールは描画・入力・IME・クリップボードの配線だけを行います）。
 - **すべての操作を API で行えます**（キー入力は同じ API を呼びます）。 IME だけは例外です（変換候補の表示は OS が決めるため）。
 
 ## 2. 機能一覧
@@ -28,7 +28,7 @@
 | 書式 | 選択範囲への適用と 1 属性だけの切り替え（選択が無ければ以降の入力へ回す） |
 | クリップボード | コピー・切り取り・貼り付け |
 | 日本語入力 | IME の変換中の文字列をキャレットの位置へ描く（本文へは入れない） |
-| 状態 | キャレットと選択は `EsUtil.Feature.Text.Core` の `TextEditState` が所有する |
+| 状態 | キャレットと選択は `EsUtil.Feature.StyledText.Core` の `TextEditState` が所有する |
 
 ## 3. システム要件
 
@@ -46,8 +46,8 @@ dotnet add package EsUtil.Ui.WinUI3.RichTextEditor
 ## 5. クイックスタート
 
 ```csharp
-using EsUtil.Feature.Text;
-using EsUtil.Feature.Text.Core.Defaults;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Core.Defaults;
 using EsUtil.Ui.WinUI3.RichTextEditor;
 
 var editor = new RichTextEditorControl
@@ -89,7 +89,7 @@ editor.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
 | `RenderScale` | 画面の DIP への倍率（拡大表示するとき） |
 | `EditState` | キャレット・選択の状態（ホストが既に持っている場合は同じ実体を設定する） |
 
-キャレットと選択範囲の色・太さは `EsUtil.Feature.Text.Core` の `TextEditorAppearance` が単一所有します（4 つの UI 版で同じ見た目にするため）。
+キャレットと選択範囲の色・太さは `EsUtil.Feature.StyledText.Core` の `TextEditorAppearance` が単一所有します（4 つの UI 版で同じ見た目にするため）。
 
 ## 8. ログ
 
@@ -119,7 +119,7 @@ editor.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
 
 ## 13. テスト
 
-本プロジェクトは単体テストを持ちません（WinUI 3 のコントロールは XAML の実行環境を要するため、ヘッドレスで生成できません）。 編集の規則は `EsUtil.Feature.Text.Core` のテストが固定し、外観と入力は [docs/SPEC_ManualTest.md](../Annotation/docs/SPEC_ManualTest.md) で確認します。 手順と合否基準は [`.github/検証手順.md`](../../../.github/検証手順.md) が単一所有します。
+本プロジェクトは単体テストを持ちません（WinUI 3 のコントロールは XAML の実行環境を要するため、ヘッドレスで生成できません）。 編集の規則は `EsUtil.Feature.StyledText.Core` のテストが固定し、外観と入力は [docs/SPEC_ManualTest.md](../Annotation/docs/SPEC_ManualTest.md) で確認します。 手順と合否基準は [`.github/検証手順.md`](../../../.github/検証手順.md) が単一所有します。
 
 ## 14. ライセンス
 

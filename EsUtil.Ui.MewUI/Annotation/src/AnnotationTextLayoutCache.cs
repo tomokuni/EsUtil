@@ -1,5 +1,5 @@
 using Aprillz.MewUI.Text;
-using EsUtil.Feature.Text;
+using EsUtil.Feature.StyledText;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 

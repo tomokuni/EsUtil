@@ -1,5 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
-using EsUtil.Feature.Text;
+using EsUtil.Feature.StyledText;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 

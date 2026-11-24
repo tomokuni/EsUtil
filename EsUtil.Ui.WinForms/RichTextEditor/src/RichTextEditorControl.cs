@@ -583,11 +583,13 @@ public sealed class RichTextEditorControl : Control
     {
         base.OnMouseDown(e);
 
-        if (!_isInputEnabled || !IsEditing || e.Button != MouseButtons.Left)
+        if (!_isInputEnabled || e.Button != MouseButtons.Left)
         {
             return;
         }
 
+        // **押下で編集を始める**: 利用者は「編集を開始」を押さずに本文へ書き始められる
+        BeginEditing();
         Focus();
         var extend = (ModifierKeys & Keys.Shift) != 0;
         SetCaretFromPoint(ToSource(e.Location), extend);
