@@ -50,7 +50,7 @@ internal sealed class MarqueeState
     /// <value>受けた場合は true。 受ける前の <see cref="LastMousePosition"/> は既定値（原点）である。</value>
     /// <remarks>
     /// <b>受ける前の位置（原点）を「カーソルがそこにある」と扱わない</b>: 位置を受ける前から座標ラベルを描くと、<br/>
-    /// カーソルの無い左上へ <c>(0, 0)</c> が出る（実測 2026-11-02）。
+    /// カーソルの無い左上へ <c>(0, 0)</c> が出る。
     /// </remarks>
     internal bool HasMousePosition { get; private set; }
 
@@ -135,7 +135,7 @@ internal sealed class MarqueeState
         StartPoint = default;
 
         // 直近のマウス位置は消さない（選択を解除してもポインターはその場にあるため、カーソル座標ラベルが
-        // (0, 0) へ飛ぶ。 実測 2026-11-02: キャンセル後に左上へ (0, 0) が出た）
+        // (0, 0) へ飛ぶ）
         IsDragging = false;
         IsMouseDown = false;
         ActiveTarget = MarqueeHitTarget.None;

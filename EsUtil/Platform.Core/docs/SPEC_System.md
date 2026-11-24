@@ -200,7 +200,7 @@ graph LR
 | --- | --- |
 | アーキテクチャ固有の API | `SetWindowLongPtrW` は **`NativeMethods.txt` へ `SetWindowLongPtrW` と書くだけでは生成できない**（実測: `SetWindowLongPtr` は存在せず、`SetWindowLongPtrW` は `PInvoke005`「AnyCPU 不可」）。 csproj の `<CsWin32PlatformTarget>x64</CsWin32PlatformTarget>` で `PInvoke.SetWindowLongPtr`（`nint`）が生成される（本ライブラリは IL（AnyCPU）であり、x64 / arm64 のどちらのプロセスでも動く。 生成するのは 64 ビット共通の宣言だけに固定する） |
 | 手書きが残る唯一の箇所 | **`d3d11.dll` の 2 件（`D3D11CreateDevice` / `CreateDirect3D11DeviceFromDXGIDevice`）だけ**（メタデータに DLL が無いため。 §7.3.2）。 それ以外の Win32 / COM は CsWin32 が生成する（§7.3.1） |
-| `CA1416` | **抑止しない**。 下限は対象フレームワーク（`net10.0-windows10.0.17763.0`）が宣言する。 **版なしの `"windows"` は下限を満たさず警告になる**（実測） |
+| `CA1416` | **抑止しない**。 下限は対象フレームワーク（`net10.0-windows10.0.17763.0`）が宣言する。 **版なしの `"windows"` は下限を満たさず警告になる** |
 | `LibraryImport` の引数 | CsWin32 の列挙型を引数に取る `LibraryImport` は `SYSLIB1051` で拒否される。 手書きする 2 件（§7.3.2）の引数は `IntPtr` / `int` / `uint` で受ける |
 | サブクラス化 | **`SetWindowSubclass` / `DefSubclassProc` / `RemoveWindowSubclass`（comctl32）を使う**。 `SetWindowLongPtr(GWLP_WNDPROC)` は元のプロシージャを自前で保存・復元する必要があり、他のサブクラス化（ビジュアル スタイル等）と共存できない |
 | comctl32 v6 の要否 | **実測: アクティベーション コンテキスト（comctl32 v6）が無いプロセスでも動作する**（`SetWindowSubclass` が TRUE を返し、サブクラス プロシージャが実際に呼ばれた）。 そのためライブラリ側でマニフェストを要求しない |
@@ -221,7 +221,7 @@ graph LR
 | COM の生成・解放 | 生ポインター | `PInvoke.CoCreateInstance(..., out IWICImagingFactory* factory)` と `Release()` を `try/finally` で呼ぶ（`WinWicFactory`） |
 
 - **設定は API 単位で切り替えられません**（行へ `CoCreateInstance(allowMarshaling=false)` のように書くと `PInvoke001` で拒否される）。 設定は 1 プロジェクトに 1 つのため、**プロジェクト全体の方針として選びます**。
-- **`[ComImport]` も `[GeneratedComInterface]` も使いません**。 `[ComImport]` は Native AOT で `NotSupportedException` になります（実測）。 `[GeneratedComInterface]` は動きますが、**vtable の位置を宣言順で決める**ため、使わないメソッドを位置合わせで並べる必要があり、**取り違えると `0xC0000005` になります**。 CsWin32 の生成物は**関数ポインターの表**を持つため、この誤りを構造的に防ぎます。
+- **`[ComImport]` も `[GeneratedComInterface]` も使いません**。 `[ComImport]` は Native AOT で `NotSupportedException` になります。 `[GeneratedComInterface]` は動きますが、**vtable の位置を宣言順で決める**ため、使わないメソッドを位置合わせで並べる必要があり、**取り違えると `0xC0000005` になります**。 CsWin32 の生成物は**関数ポインターの表**を持つため、この誤りを構造的に防ぎます。
 
 #### 7.3.2 D3D11 の 2 件だけを手書きする理由
 
@@ -230,10 +230,10 @@ graph LR
 | 方法 | 実測結果 | 判定 |
 | --- | --- | --- |
 | **`[LibraryImport]`**（ソース生成） | 0x00000000 で成功。 `partial` な型が要る（`SYSLIB1050`） | **採用**。 宣言が型付きで残り（IntelliSense・XML doc・引数検査）、マーシャリングもソース生成される |
-| `[DllImport]`（実行時マーシャリング） | 動作はするが、**`EntryPoint` を省くとメソッド名で探して `EntryPointNotFoundException`**（実測）。 実行時マーシャリングは AOT で制限がある | 使わない（AOT 互換を保証できない） |
+| `[DllImport]`（実行時マーシャリング） | 動作はするが、**`EntryPoint` を省くとメソッド名で探して `EntryPointNotFoundException`**。 実行時マーシャリングは AOT で制限がある | 使わない（AOT 互換を保証できない） |
 | `NativeLibrary.GetExport` + **関数ポインター** | 0x00000000 で成功（`delegate* unmanaged[Stdcall]<...>`） | 可能だが**宣言が型として残らない**（IntelliSense・XML doc・引数検査が無い）。 引数がすべて blittable な場合だけ使える |
 
-- **`SYSLIB1054`（`DllImport` を使うなという指摘）は .NET 10 + `IsAotCompatible` では出ません**（実測）。 それでも **AOT 互換のため `[LibraryImport]`** を使います（`DllImport` は実行時マーシャリングに依存する）。
+- **`SYSLIB1054`（`DllImport` を使うなという指摘）は .NET 10 + `IsAotCompatible` では出ません**。 それでも **AOT 互換のため `[LibraryImport]`** を使います（`DllImport` は実行時マーシャリングに依存する）。
 - **引数は blittable な型で受けます**（`IntPtr` / `int` / `uint`）。 CsWin32 の列挙型を引数に取る `[LibraryImport]` は `SYSLIB1051` で拒否されるためです。
 - **この 2 件以外に手書きの宣言はありません**。 増やすときは、CsWin32 で生成できない理由（DLL がメタデータに無い等）を確かめてから足します。
 

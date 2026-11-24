@@ -152,7 +152,7 @@ internal sealed partial class MarqueeVisualLayer : Canvas
     /// <remarks>
     /// <b>値が変わった項目だけを書く</b>: 要素のプロパティを書くたびに XAML の測定・配置が無効になる。
     /// ドラッグ中はラベルの文字（寸法・座標）が毎フレーム変わるため、変わらない書式（色・余白・文字サイズ）は
-    /// 書かない（実測 2026-10-25）。
+    /// 書かない。
     /// </remarks>
     private void ApplyLabels()
     {

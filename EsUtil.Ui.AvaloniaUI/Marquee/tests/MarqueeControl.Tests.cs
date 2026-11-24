@@ -1470,7 +1470,7 @@ public class MarqueeControlTests
     /// <summary>ポインターを受ける前は座標ラベルを描かないことを検証する。</summary>
     /// <remarks>
     /// 位置を受ける前の既定値（原点）は「カーソルがそこにある」意味ではない。<br/>
-    /// 描くと、カーソルの無い左上へ <c>(0, 0)</c> が出る（実測 2026-11-02）。
+    /// 描くと、カーソルの無い左上へ <c>(0, 0)</c> が出る。
     /// </remarks>
     [AvaloniaFact]
     internal async Task 座標ラベルはポインターを受ける前は描かない()

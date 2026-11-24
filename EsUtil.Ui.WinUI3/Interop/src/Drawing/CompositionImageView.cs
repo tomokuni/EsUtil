@@ -40,7 +40,7 @@ public sealed partial class CompositionImageView : Grid
     /// <summary>サーフェスの読み込み完了を通知する（読み込み前は完了しない）。</summary>
     /// <remarks>
     /// <c>LoadedImageSurface</c> は**段階的に復号する**ため、読み込みの途中は縮小された内容が見える<br/>
-    /// （オーバーレイを表示した直後に「画面が小さく出る」のはこのため。 実測 2026-10-25）。<br/>
+    /// （オーバーレイを表示した直後に「画面が小さく出る」のはこのため）。<br/>
     /// ホストは本タスクを待ってから画面内へ移す（途中の内容を見せない）。
     /// </remarks>
     private TaskCompletionSource? _sourceReady;
@@ -68,7 +68,7 @@ public sealed partial class CompositionImageView : Grid
         SizeChanged += (_, e) => ApplySize(e.NewSize.Width, e.NewSize.Height);
 
         // スプライトは XAML のツリーへ載る前でも設定できるが、**載る前の子ビジュアルは合成されない**
-        // ことがあるため、読み込み時にも大きさを設定し直す（実測 2026-10-25: オーバーレイの背景画像が出なかった）
+        // ことがあるため、読み込み時にも大きさを設定し直す
         Loaded += (_, _) => ApplySize(ActualWidth, ActualHeight);
     }
 
@@ -237,7 +237,7 @@ public sealed partial class CompositionImageView : Grid
         var stream = new InMemoryRandomAccessStream();
 
         // **アダプターはバッファリングするため Flush が要る**（Flush しないとストリームの大きさが 0 のまま）。
-        // **破棄しない**: `AsStreamForWrite` のアダプターを破棄すると元のストリームも閉じる（実測 2026-11-06）。
+        // **破棄しない**: `AsStreamForWrite` のアダプターを破棄すると元のストリームも閉じる。
         var writeStream = stream.AsStreamForWrite();
         BmpStreamBuilder.Write(writeStream, image);
         writeStream.Flush();

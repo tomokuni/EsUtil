@@ -7,7 +7,7 @@ namespace EsUtil.Feature.ColumnPacking.Tests;
 
 /// <summary>
 /// ColumnPacking 詳細ベンチマーク<br/>
-/// 
+///
 /// 【計測項目】<br/>
 /// - double型対応<br/>
 /// - アイテム数: 10, 30, 60, 100, 500, 1000<br/>
@@ -16,7 +16,7 @@ namespace EsUtil.Feature.ColumnPacking.Tests;
 /// - タイムアウト検出（2秒）<br/>
 /// - 詳細統計出力<br/>
 /// - CPU情報の記載<br/>
-/// 
+///
 /// 【計測精度】<br/>
 /// - ミリ秒単位で小数第3位まで表示<br/>
 /// - 複数回計測による中央値<br/>

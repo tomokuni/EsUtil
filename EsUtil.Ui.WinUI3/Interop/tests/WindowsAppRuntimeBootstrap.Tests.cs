@@ -92,7 +92,7 @@ public class WindowsAppRuntimeBootstrapTests
     {
         // アプリが本アセンブリより新しい Windows App SDK でビルドするのは正常である。
         // 低い方（本アセンブリの下限）で初期化すると、アプリのマネージド アセンブリより古い
-        // ネイティブ ランタイムが読み込まれてしまう（実測 2026-11-10）
+        // ネイティブ ランタイムが読み込まれてしまう
         var floor = WindowsAppRuntimeInventory.RequiredVersion;
         var newer = new Version(floor.Major, floor.Minor, floor.Build + 1, 0);
         var options = new WindowsAppRuntimeBootstrapOptions { RequiredVersion = newer };
@@ -123,8 +123,7 @@ public class WindowsAppRuntimeBootstrapTests
     [Fact]
     internal void CreateInstallerUri_は要求した系統の最新を指す()
     {
-        // 版を URL へ固定すると、その版の配布が終わったときに導入できなくなる（実測 2026-11-10:
-        // 2.6/latest は 2.6/2.6.5 と同一のファイルへ解決する）
+        // 版を URL へ固定すると、その版の配布が終わったときに導入できなくなる
         var uri = WindowsAppRuntimeBootstrap.CreateInstallerUri(new Version(2, 6, 5, 0));
 
         Assert.NotNull(uri);

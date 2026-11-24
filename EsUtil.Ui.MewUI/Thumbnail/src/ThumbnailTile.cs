@@ -25,7 +25,7 @@ internal sealed class ThumbnailTile : Panel
     /// <summary>上書きする前の名前の色（テーマから継承している値）。 外観が色を指定しないときに戻す先。</summary>
     /// <remarks>
     /// MewUI には「ローカルに設定した値を消して継承へ戻す」API が無いため、初めて上書きする直前の値を覚えておく<br/>
-    /// （覚えないと、描画計画の差し替えを止めた後も色が残る。 実測 2026-11-01）。
+    /// （覚えないと、描画計画の差し替えを止めた後も色が残る）。
     /// </remarks>
     private Color? _inheritedForeground;
 

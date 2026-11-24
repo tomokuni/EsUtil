@@ -6,7 +6,7 @@ namespace EsUtil.Feature.Thumbnail;
 /// <remarks>
 /// <b>変更前の添字を渡す理由</b>: 選択の見た目は「選択中の項目」にだけ付くため、UI は<b>変更前と変更後の両方</b>を<br/>
 /// 描き直す必要がある。 変更前を渡さないと、UI は直前の選択を自前で覚えることになり、<br/>
-/// 一覧の組み直し・項目の削除と組み合わさったときに取りこぼす（実際に「前の項目が選択中のまま残る」不具合になった。 実測 2026-10-31）。
+/// 一覧の組み直し・項目の削除と組み合わさったときに取りこぼす（実際に「前の項目が選択中のまま残る」不具合になった）。
 /// </remarks>
 public sealed class ThumbnailSelectionChangedEventArgs(int previousIndex, int index) : EventArgs
 {

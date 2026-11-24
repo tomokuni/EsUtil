@@ -98,7 +98,7 @@ public class BmpStreamBuilderTests
     {
         // Composition の LoadedImageSurface へ渡す経路（InMemoryRandomAccessStream +
         // AsStreamForWrite）を再現する。 **アダプターはバッファリングするため Flush が要る**
-        // （Flush しないとストリームの大きさが 0 のままで画像を読み込めない。 実測 2026-11-06）
+        // （Flush しないとストリームの大きさが 0 のままで画像を読み込めない）
         using var image = TestHelper.CreateBitmap(3, 2, DrawingColor.Blue);
         var expected = BmpStreamBuilder.Build(image);
 

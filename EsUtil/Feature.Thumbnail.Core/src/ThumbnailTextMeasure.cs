@@ -12,7 +12,7 @@ namespace EsUtil.Feature.Thumbnail;
 /// <b>描画 API を持つ UI 層が渡す</b>: コアは描画 API を持たないため、実寸の測定だけを関数として受け取る。<br/>
 /// <b>折り返しの判定を UI 層へ任せる理由</b>: 折り返しの位置は文字の送り幅（フォント・DPI）に依存し、<br/>
 /// 文字数からの見積もりでは実際の行数と一致しない（見積もりより実際の行数が多いと、<br/>
-/// 省略したはずの名前がさらに折り返されて切れる。 実測 2026-11-01）。<br/>
+/// 省略したはずの名前がさらに折り返されて切れる）。<br/>
 /// <b>純粋関数にすること</b>: 同じ入力には同じ寸法を返す（名前の文言の決定が呼び出しの時点に依存しない）。
 /// </remarks>
 public delegate EsSize ThumbnailTextMeasure(string text, double maxWidth, double fontSize, bool isBold);

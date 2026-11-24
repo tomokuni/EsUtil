@@ -102,7 +102,7 @@ public sealed class MainWindow : Window
         logger.LogInformation("サンプルを起動しました。");
 
         // ── 画像とルーペを重ねるキャンバス ──
-        // 地色は固定せず、テーマの地色を透かす（白で固定するとダークで画像の余白が白い帯として残る。 実測 2026-11-01）。
+        // 地色は固定せず、テーマの地色を透かす（白で固定するとダークで画像の余白が白い帯として残る）。
         // 当たり判定は必要（PointerMoved を受ける）ため、null ではなく透過色を指定する。
         var canvas = new Canvas { Background = Brushes.Transparent, ClipToBounds = true };
         var image = new Image
@@ -114,7 +114,7 @@ public sealed class MainWindow : Window
         };
         canvas.Children.Add(image);
         canvas.Children.Add(_selectionRect);
-        // 座標ラベルは**ルーペより前面**に置く（後に足す子ほど前面になる。 ルーペの下だと重なった部分の文字が欠ける。 実測 2026-11-02）
+        // 座標ラベルは**ルーペより前面**に置く（後に足す子ほど前面になる。 ルーペの下だと重なった部分の文字が欠ける）
         canvas.Children.Add(_selectionLabel);
 
         _loupe = new LoupeControl

@@ -14,7 +14,7 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// <see cref="EsUtil.Platform.Core.Window.EsWindowPlacementMath"/> が持ち、<b>OS を呼ぶ照会だけ</b>を本層へ置く
 /// （<c>Coord</c> / <c>Window</c> の型が Win32 を呼ぶと「OS 依存は <c>Native</c>」の規則から外れる）。<br/>
 /// <b><c>DisplayArea.FindAll()</c> を使わない理由</b>: ウィンドウの表示前に列挙すると、WinRT の射影で
-/// <c>InvalidCastException</c> になり起動できない（実測 2026-10-17）。 <c>GetSystemMetrics</c> は
+/// <c>InvalidCastException</c> になり起動できない。 <c>GetSystemMetrics</c> は
 /// ウィンドウに依存せず、画面キャプチャと同じ値の出所になる。<br/>
 /// <b>プライマリ モニタが (0,0) にない場合は負値</b>になる（仮想スクリーンの座標そのものである）。
 /// </remarks>

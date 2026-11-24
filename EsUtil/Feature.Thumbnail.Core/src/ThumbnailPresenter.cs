@@ -173,7 +173,7 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
     /// 影を描かない外観（<see cref="ThumbnailAppearance.ShowShadow"/> が false、または影の計画が null）では 0<br/>
     /// （画像のすぐ外側に帯が付く）。<br/>
     /// <b>名前の行の高さ</b>: 文字サイズから 2 行ぶんを確保し、上下の余白（<see cref="ThumbnailAppearance.LabelVerticalPadding"/>）を足す<br/>
-    /// （余白を高さへ含めないと、余白を増やした分だけ文字を置ける高さが減り、2 行目が切れる。 実測 2026-11-01）。<br/>
+    /// （余白を高さへ含めないと、余白を増やした分だけ文字を置ける高さが減り、2 行目が切れる）。<br/>
     /// 1 行に収まる名前でも高さを変えない（行内の下端揃えで名前の位置が揃う）。
     /// </remarks>
     public ThumbnailMetrics ResolveMetrics()
@@ -202,7 +202,7 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
     /// <remarks>
     /// <b>名前の文言は実寸から決める</b>: 名前を置ける幅と高さ（左右・上下の余白を除いた値）へ収まるかを<br/>
     /// <paramref name="measureText"/> に問い合わせ、収まらない場合だけ拡張子を残して省略する<br/>
-    /// （見積もりだけで決めると、実際の折り返しが想定より多い場合に省略されずに切れる。 実測 2026-11-01）。<br/>
+    /// （見積もりだけで決めると、実際の折り返しが想定より多い場合に省略されずに切れる）。<br/>
     /// <b>太字は選択中の項目のとき</b>適用し、測定にも同じ太字を渡す（太字は幅が広いため、通常の太さで測ると収まらない）。
     /// </remarks>
     public virtual ThumbnailDrawPlan ResolveDrawPlan(

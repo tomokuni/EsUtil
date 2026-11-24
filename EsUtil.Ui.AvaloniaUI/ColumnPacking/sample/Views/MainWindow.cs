@@ -31,7 +31,7 @@ public sealed class MainWindow : Window
     /// <summary>タイルの文字色。</summary>
     /// <remarks>
     /// <b>文字色も固定する理由</b>: タイルの地色は明るい色で固定している。 文字色をテーマの既定（ダークでは白）に任せると、
-    /// 明るい地色の上で読めなくなる（実測 2026-11-01）。
+    /// 明るい地色の上で読めなくなる。
     /// </remarks>
     private static readonly SolidColorBrush s_tileTextBrush = new(Color.FromArgb(0xFF, 0x20, 0x20, 0x20));
 

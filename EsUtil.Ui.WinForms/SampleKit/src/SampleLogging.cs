@@ -54,7 +54,7 @@ public sealed class SampleLogging : IDisposable
     /// <summary>表示する最小レベルを取得または設定する（実行中に切り替えられる）。</summary>
     /// <remarks>
     /// <b>Trace は入力のたびに出力される</b>ため、既定の Debug のままにするとログ欄が溢れて<br/>
-    /// ポインターの追従が落ちる（実測 2026-10-31）。 表示レベルはサンプルの設定パネルから切り替える。
+    /// ポインターの追従が落ちる。 表示レベルはサンプルの設定パネルから切り替える。
     /// </remarks>
     public LogLevel MinimumLevel
     {

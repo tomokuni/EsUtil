@@ -629,7 +629,7 @@ public readonly record struct ElementFinderResults(
 
 **読み取り専用であって不変ではない**: 本型が保証するのは「**この実体からは書けない**」ことであり、「内容が決して変わらない」ことではありません（上記「型が保証すること／保証しないこと」）。 書き換え可能な画像を**暗黙に**読み取り専用として渡すことはできません（兄弟のため型が違います）が、**借用した画素**（`InstallPixels`）は所有者が書き換えれば変わります。 **内容を固定したい場合は `EsReadOnlyBitmap.FromBitmap` / `ToPixmap` を使います**（`FromBitmap` は凍結済みなら 0 コピーで共有、未凍結なら複製）。
 
-**凍結（`SetReadOnly` / `IsReadOnly`）が覆う範囲（実測）**: 凍結は「**その実体の画素領域**」に効きます。 覆う範囲と覆わない範囲を分けて整理します（覆わない範囲は**呼び出し側の責務**です）。
+**凍結（`SetReadOnly` / `IsReadOnly`）が覆う範囲**: 凍結は「**その実体の画素領域**」に効きます。 覆う範囲と覆わない範囲を分けて整理します（覆わない範囲は**呼び出し側の責務**です）。
 
 | 操作 | 凍結後の可否 | 備考 |
 | --- | --- | --- |
@@ -851,13 +851,13 @@ public readonly record struct ElementFinderResults(
 - **減色（パレット化）を指定できます**: `EsImageSaveOptions.ColorCount` を指定すると、保存の前に
   `EsReadOnlyBitmap.ReduceColors`（`ReduceColors(int, EsDitherMode)`。 両方の型が同じ名前のメンバーを持ちます）と同じ計算で減色し、**8bpp のインデックス カラー（パレット付き）として**書きます。 **`Dither` はこの計算へそのまま渡します**（段階の意味は `EsImageQuality` / `EsDitherMode` の備考が単一所有します。 減色しない保存へ指定すると `InvalidOperationException` です）。
 
-  - **32bpp のまま減色しても意味がありません（実測）**: WIC のエンコーダーは 32bpp の入力をパレット画像にしません
+  - **32bpp のまま減色しても意味がありません**: WIC のエンコーダーは 32bpp の入力をパレット画像にしません
     （減色の効果は圧縮率の向上だけであり、BMP では 1 バイトも減りません）。 **8bpp のインデックス カラーとして渡すと
     パレット画像になります**（実測で確認した 3 形式。 BMP / PNG / GIF）。
   - **BMP の圧縮方式は公開しません**（WIC の BMP エンコーダーへ圧縮の指定を渡していないため、常に無圧縮です）。 減色した BMP も無圧縮のままです。
   - **GIF は指定が無くても常に量子化して書きます**: GIF はパレットが必須の形式です。 自前の量子化は透明な画素を透明なパレットの色へ割り当てるため**透過が保たれ**、副次的に**ファイルも小さく画質も良くなります**（実測値は [`Result_Measurement.md`](Result_Measurement.md) を参照）。
 - **減色を受け付けない形式へ指定すると例外になります**（`NotSupportedException`）。 可否は**エンコーダーの返答で決まります**（8bpp のインデックス カラーを要求して、`SetPixelFormat` が別の形式を返したら書けません）。 実測では **JPEG が受け付けません**（パレットを持てない）。 **TIFF / DDS / BMP / PNG / GIF は受け付けます**（TIFF もパレット画像として保存できます）。
-  - **透過の扱い（実測）**: **形式ごとに保存できるアルファが違います**。 減色はアルファも色の一部として扱うため（4 段階に量子化）、**透明な画素は透明なパレットの色へ寄ります**。
+  - **透過の扱い**: **形式ごとに保存できるアルファが違います**。 減色はアルファも色の一部として扱うため（4 段階に量子化）、**透明な画素は透明なパレットの色へ寄ります**。
 
     | 形式 | 減色しない場合 | 減色した場合 | 理由 |
     | --- | --- | --- | --- |
@@ -891,14 +891,14 @@ public readonly record struct ElementFinderResults(
 - **COM の宣言は CsWin32 が生成します（vtable を手で並べません）**: 生成された型は vtable を**関数ポインターの表**として持つため、**メソッドの位置を数え間違えません**（実測: 手書きの宣言は位置がずれて `0xC0000005` で落ちました）。 生成には `allowMarshaling: false`（`EsUtil/Platform.Core/src/NativeMethods.json`）が必要です（既定のモードでは COM インターフェイスが**マネージド クラス**として生成され、ポインターで扱えません）。 この設定では `string` を受け取る補助が消えるため、`PCWSTR` / `Span<char>` を使います。
 - **COM の初期化は `WinWicFactory` が単一所有します**（プロセスで 1 回だけ `CoInitializeEx` を呼び、`CLSID_WICImagingFactory` を都度生成します）。 **`RPC_E_CHANGED_MODE`（`0x80010106`）は成功として扱います**（既に別のモデルで初期化済みのプロセスでも動作することを実測で確認しています）。 **プロセス全体に及ぶ副作用はありません**（スレッドは増えず、解放されない参照カウントも取りません）。
 - **初期化を前倒しする公開 API は持ちません**: 初期化は `WinWicFactory`（`internal`）が単一所有するため、ホストからは呼べません。 初期化のコストは最初の `Save` / `Load` が負担します。
-- **`[ComImport]` も `[GeneratedComInterface]` も使いません**: `[ComImport]` は Native AOT で `NotSupportedException` になります（実測）。 `[GeneratedComInterface]` は動きますが、**vtable の位置を宣言順で決める**ため、使わないメソッドを位置合わせで並べる必要があり、**取り違えると `0xC0000005` になります**。 CsWin32 の生成物はこの誤りを構造的に防ぎます。
+- **`[ComImport]` も `[GeneratedComInterface]` も使いません**: `[ComImport]` は Native AOT で `NotSupportedException` になります。 `[GeneratedComInterface]` は動きますが、**vtable の位置を宣言順で決める**ため、使わないメソッドを位置合わせで並べる必要があり、**取り違えると `0xC0000005` になります**。 CsWin32 の生成物はこの誤りを構造的に防ぎます。
 - **COM の解放は明示します（GC に任せません）**: Native AOT では `Marshal.ReleaseComObject` / `Marshal.FinalReleaseComObject` が使えないため、生成された `Release()` を `try/finally` で呼びます（GC 任せにすると解放の時期を読めない）。 **WIC にファイルを開かせません**（`IWICStream::InitializeFromFilename` を使うと解放までファイルが開いたままになり、保存直後の削除が `IOException` になった）。 読み書きは**メモリ ストリーム**（`CreateStreamOnHGlobal`）で行い、ファイルは `System.IO.File` が開いて閉じます（直後から削除も上書きもできることを実測）。
-- **エンコーダーのキャッシュは `NoCache` を使います（実測）**: メモリ ストリームでは `WICBitmapEncoderCacheInMemory`（0）も `WICBitmapEncoderCacheTempFile`（1）も `WINCODEC_ERR_UNSUPPORTEDOPERATION`（`0x88982F81`）で初期化に失敗し、`WICBitmapEncoderNoCache`（2）だけが成功します（列挙値は `wincodec.h` の定義どおり）。
-- **形式の一覧は OS から取ります（固定の一覧を持ちません）**: `IWICImagingFactory::CreateComponentEnumerator`（`WICEncoder`）で登録済みのエンコーダーを列挙し、**コンテナ GUID と拡張子を OS から受け取ります**。 そのうえで **8x8 の試し書きが通った形式だけ**を一覧へ残します（列挙に現れても、本ライブラリの画素（BGRA8888）から書けない組み合わせがあるため）。 結果は初回のアクセスで 1 度だけ調べます。 この環境では `.bmp` / `.dib` / `.rle` / `.gif` / `.jpeg` / `.jpe` / `.jpg` / `.jfif` / `.exif` / `.png` / `.tiff` / `.tif` / `.wdp` / `.jxr` / `.dds` / `.heic` / `.heif` / `.hif` / `.jxl` の 19 拡張子が並びます。 **パレットを要求する形式は、エンコーダーへの問い合わせ（`IWICBitmapFrameEncode::SetPixelFormat` が返す形式）で見分けてからインデックス カラーで試します**: そのようなエンコーダーは通常の画素を必ず拒否するため、逆の順で試すと**捕捉して捨てる例外が 1 プロセスに 1 回発生**し、デバッガーが利用側のアプリの不具合のように表示します（実測 2026-11-13）。 **形式ごとの対応を固定の一覧で持ちません**（OS とコーデック拡張で変わるため）。
-- **エンコーダーが返した画素形式に合わせて並びを直します（実測）**: アルファ乗算済みの BGRA（`GUID_WICPixelFormat32bppPBGRA`）を要求しても、PNG / TIFF / DDS はアルファ乗算なしの BGRA、JPEG は 24bpp の BGR、HEIF は 32bpp の BGR、JPEG XL は RGBA を返します。 エンコーダーは形式を変換しないため、**返された形式に合わせてから書きます**（BMP だけは要求どおりなのでコピーを作りません）。
+- **エンコーダーのキャッシュは `NoCache` を使います**: メモリ ストリームでは `WICBitmapEncoderCacheInMemory`（0）も `WICBitmapEncoderCacheTempFile`（1）も `WINCODEC_ERR_UNSUPPORTEDOPERATION`（`0x88982F81`）で初期化に失敗し、`WICBitmapEncoderNoCache`（2）だけが成功します（列挙値は `wincodec.h` の定義どおり）。
+- **形式の一覧は OS から取ります（固定の一覧を持ちません）**: `IWICImagingFactory::CreateComponentEnumerator`（`WICEncoder`）で登録済みのエンコーダーを列挙し、**コンテナ GUID と拡張子を OS から受け取ります**。 そのうえで **8x8 の試し書きが通った形式だけ**を一覧へ残します（列挙に現れても、本ライブラリの画素（BGRA8888）から書けない組み合わせがあるため）。 結果は初回のアクセスで 1 度だけ調べます。 この環境では `.bmp` / `.dib` / `.rle` / `.gif` / `.jpeg` / `.jpe` / `.jpg` / `.jfif` / `.exif` / `.png` / `.tiff` / `.tif` / `.wdp` / `.jxr` / `.dds` / `.heic` / `.heif` / `.hif` / `.jxl` の 19 拡張子が並びます。 **パレットを要求する形式は、エンコーダーへの問い合わせ（`IWICBitmapFrameEncode::SetPixelFormat` が返す形式）で見分けてからインデックス カラーで試します**: そのようなエンコーダーは通常の画素を必ず拒否するため、逆の順で試すと**捕捉して捨てる例外が 1 プロセスに 1 回発生**し、デバッガーが利用側のアプリの不具合のように表示します。 **形式ごとの対応を固定の一覧で持ちません**（OS とコーデック拡張で変わるため）。
+- **エンコーダーが返した画素形式に合わせて並びを直します**: アルファ乗算済みの BGRA（`GUID_WICPixelFormat32bppPBGRA`）を要求しても、PNG / TIFF / DDS はアルファ乗算なしの BGRA、JPEG は 24bpp の BGR、HEIF は 32bpp の BGR、JPEG XL は RGBA を返します。 エンコーダーは形式を変換しないため、**返された形式に合わせてから書きます**（BMP だけは要求どおりなのでコピーを作りません）。
 - **本機能はプロセス全体に及ぶ副作用を持ちません**: GDI+ の `GdiplusStartup` が起こしていた「バックグラウンド スレッド +1」「解放されない参照カウント」「初回の遅延」は **WIC では起きません**。 判断の記録は [`SPEC_System.md`](SPEC_System.md) §7.1 を参照してください。
-- **Native AOT（実測）**: 本機能は CsWin32 の生成物（関数ポインター）だけを使い、**実行時マーシャリングを使いません**（`IWICImagingFactory::CreateBitmapFromMemory` と `IWICPalette` / `IWICFormatConverter` の減色も AOT で動作することを実測）。
-- **HEIF は 8x8 未満の画像を書けません（実測）**: 8x8 以上は往復できますが、8x7 / 8x6 / 4x4 は保存自体は成功するものの**読み戻すと `0x80070057`** になります（HEVC の最小の符号化単位）。 読めないファイルを作らないため、保存の前に `NotSupportedException` にします。
+- **Native AOT**: 本機能は CsWin32 の生成物（関数ポインター）だけを使い、**実行時マーシャリングを使いません**（`IWICImagingFactory::CreateBitmapFromMemory` と `IWICPalette` / `IWICFormatConverter` の減色も AOT で動作することを実測）。
+- **HEIF は 8x8 未満の画像を書けません**: 8x8 以上は往復できますが、8x7 / 8x6 / 4x4 は保存自体は成功するものの**読み戻すと `0x80070057`** になります（HEVC の最小の符号化単位）。 読めないファイルを作らないため、保存の前に `NotSupportedException` にします。
 - **JPEG XR と HEIF のピクセル形式は実測で決めています**: JPEG XR は `32bppPBGRA` をそのまま受け付けます（往復の誤差は非可逆の範囲。 可逆の指定は公開していません）。 HEIF のエンコーダーは `32bppBGR`（アルファ無し）を要求するため、**透過は失われます**（`32bppPBGRA` を要求すると `SetPixelFormat` が `32bppBGR` を返す）。 並びの変換は自前の 1 パスで行います（画素の複製を WIC の変換器へ回すと 1 枚分の `IWICBitmap` が余計に要るため）。
 
 - **速度**: 本ライブラリは WIC だけを使います（読み込み・保存の所要は [`Result_Measurement.md`](Result_Measurement.md) が単一所有します）。
@@ -1033,7 +1033,7 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 
 - **画素の形式は 1 つに固定します**（BGRA8888・アルファ乗算済み・行は上が先頭・行幅は `幅 × 4` 以上）: 形式を引数にすると、呼び出し側が変換の有無を毎回判断することになり、取り違えが起きるためです。
 - **画素を複製しません**: 復号は呼び出し側が確保した領域へ直接書きます（寸法は `ReadSize` で先に求めます。 確保を含む `Decode` も確保は 1 回だけです）。 行幅が密でない画素を `Save` へ渡した場合だけ、WIC のエンコーダーへ渡す前に 1 回複製します。
-- **パスから読む場合は `Imaging.EsImageFile`（§2.52）を使います**: 本クラスは**内容（`ReadOnlySpan<byte>`）を受ける面だけ**を持ちます。 パスの面を別に持つと、寸法の取得と復号で**同じファイルを 2 回読む**経路ができます（実測 2026-10-28: 読み込みはファイル全体の複製であるため、2 回読むとファイル サイズの領域を余分に確保します）。
+- **パスから読む場合は `Imaging.EsImageFile`（§2.52）を使います**: 本クラスは**内容（`ReadOnlySpan<byte>`）を受ける面だけ**を持ちます。 パスの面を別に持つと、寸法の取得と復号で**同じファイルを 2 回読む**経路ができます。
 - **静止画だけを扱います**（アニメーション GIF の各フレーム・メタデータの書き込み・色空間の変換は対象外）。
 - **静的クラスである理由**: 保持する状態が無く（WIC のファクトリは呼び出しごとに生成して解放します）、4 つの UI 版へ DI を持ち込まないためです。
 - **生データの型を作りません**（`EsPixels` のような型を公開しない）: 画素の受け渡しは `ReadOnlySpan<byte>` と寸法・行幅で足り、型を増やすと画像型との変換が増えるためです。
@@ -1055,7 +1055,7 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 
 `TryParse*` は**数値文字列を受理しません**（列挙に無い値を弾く。 判断は `EnumCanonical` が単一所有し、失敗時は `out` を `default` に戻します）。 型そのものを名指しする利用側は、その機能の名前空間を `using` します。
 
-**窓口は「操作の入口」である**（型そのものではなく、解釈・正規化・生成を行う）。 境界の包括捕捉は `EsErrors.IsRecoverable`、ホットキーの解釈と生成は `EsInput`、購読の一覧は `EsCallbacks` を使います（実測 2026-10-23: 4 UI の設定画面と全境界の 76 箇所が窓口経由になった）。
+**窓口は「操作の入口」である**（型そのものではなく、解釈・正規化・生成を行う）。 境界の包括捕捉は `EsErrors.IsRecoverable`、ホットキーの解釈と生成は `EsInput`、購読の一覧は `EsCallbacks` を使います。
 
 ### 2.46 `Input.HotKeyParser`（static class）
 
@@ -1085,7 +1085,7 @@ SVG アイコンの**読み込み元**を表し、解析結果を共有します
 
 ### 2.49 `Native.Win.WinVirtualScreen`（static class）
 
-全モニターを包含する仮想スクリーンの矩形（画面物理ピクセル）を `GetSystemMetrics` で照会します。 `DisplayArea.FindAll()` を使わないのは、ウィンドウの表示前に列挙すると WinRT の射影で起動できないためです（実測 2026-10-17）。 プライマリ モニタが原点にない場合は負値を返します（仮想スクリーンの座標そのもの）。
+全モニターを包含する仮想スクリーンの矩形（画面物理ピクセル）を `GetSystemMetrics` で照会します。 `DisplayArea.FindAll()` を使わないのは、ウィンドウの表示前に列挙すると WinRT の射影で起動できないためです。 プライマリ モニタが原点にない場合は負値を返します（仮想スクリーンの座標そのもの）。
 
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |

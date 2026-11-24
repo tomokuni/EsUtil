@@ -104,7 +104,7 @@ public sealed partial class MarqueePresenter
         in MarqueeGeometry geometry, MarqueeAppearance appearance)
     {
         // ポインターが領域の外にあるときは描かない（最後に居た位置へ貼り付いたままになり、
-        // カーソルの無い場所に座標が出る。 実測 2026-11-02）
+        // カーソルの無い場所に座標が出る）
         if (!geometry.PointerOver)
         {
             return null;

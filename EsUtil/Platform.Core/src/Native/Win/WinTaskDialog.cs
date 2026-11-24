@@ -115,7 +115,7 @@ public static class WinTaskDialog
                 }
                 catch (Exception ex) when (ex is EntryPointNotFoundException or DllNotFoundException or NotSupportedException)
                 {
-                    // ComCtl32 の v5（Common-Controls を宣言していないアプリ）には TaskDialogIndirect が無い（実測 2026-11-05）
+                    // ComCtl32 の v5（Common-Controls を宣言していないアプリ）には TaskDialogIndirect が無い
                     return false;
                 }
             }

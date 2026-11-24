@@ -56,9 +56,9 @@ graph LR
 `EsUtil.Platform.Core` と `Microsoft.WindowsAppSDK` を参照します。 参照してよいプロジェクトの規則は [`.github/依存関係.md`](../../../.github/依存関係.md) §3 が定めます。
 
 - **ランタイムの版は参照しているパッケージから取ります**（`Microsoft.WindowsAppSDK.Release` / `Runtime.Version` の定数を `WindowsAppSdkIncludeVersionInfo` で取り込む）。 ライブラリ側に版や配布 URL の版を書きません（パッケージを上げれば追随する）。
-- **インストール済みの版は OS のパッケージ マネージャーから列挙します**（`Windows.Management.Deployment.PackageManager.FindPackagesForUser`。 パッケージ ID を持たないアプリからも呼べることを実測 2026-11-05）。 フレームワーク パッケージのファミリ名はパッケージの定数（`Runtime.Packages.Framework.PackageFamilyName`）から取ります。
-- **案内 UI は Win32 のタスク ダイアログ**（`TaskDialogIndirect`。 CsWin32 が生成）で出します。 WinUI の初期化前でも表示できるようにするため XAML を使いません。 `TaskDialogIndirect` は ComCtl32 v6（`app.manifest` の `Microsoft.Windows.Common-Controls` の宣言）でしか解決できないため（実測 2026-11-05: 宣言が無いと `EntryPointNotFoundException`）、**使えない場合はメッセージ ボックスへ落とします**（3 択の意味は本文に書く）。
-- **Bootstrapper の呼び出しはソース生成の P/Invoke**（`LibraryImport`）です。 探索先はアプリのフォルダーに限り（`DefaultDllImportSearchPaths(SafeDirectories)`）、インストーラーの取得は `HttpClient` と `Process` だけで行います（リフレクションを使わないため Native AOT で動作する。 WinRT の列挙も AOT で発行したアプリから動作することを実測 2026-11-05）。
+- **インストール済みの版は OS のパッケージ マネージャーから列挙します**（`Windows.Management.Deployment.PackageManager.FindPackagesForUser`。 パッケージ ID を持たないアプリからも呼べることを）。 フレームワーク パッケージのファミリ名はパッケージの定数（`Runtime.Packages.Framework.PackageFamilyName`）から取ります。
+- **案内 UI は Win32 のタスク ダイアログ**（`TaskDialogIndirect`。 CsWin32 が生成）で出します。 WinUI の初期化前でも表示できるようにするため XAML を使いません。 `TaskDialogIndirect` は ComCtl32 v6（`app.manifest` の `Microsoft.Windows.Common-Controls` の宣言）でしか解決できないため、**使えない場合はメッセージ ボックスへ落とします**（3 択の意味は本文に書く）。
+- **Bootstrapper の呼び出しはソース生成の P/Invoke**（`LibraryImport`）です。 探索先はアプリのフォルダーに限り（`DefaultDllImportSearchPaths(SafeDirectories)`）、インストーラーの取得は `HttpClient` と `Process` だけで行います（リフレクションを使わないため Native AOT で動作する。 WinRT の列挙も AOT で発行したアプリから動作することを）。
 
 ## 6. エラー処理ポリシー
 

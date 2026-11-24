@@ -111,7 +111,7 @@ public static class SampleShell
         window.Content(root);
 
         // 地色もテーマへ追随させる。 MewUI の Background は色の値を持ち、テーマを切り替えても自動では変わらない。
-        // 追随させないと、テーマを切り替えたあとも内容領域（子が背景を塗らない領域）がライトのまま残る（実測 2026-11-01）。
+        // 追随させないと、テーマを切り替えたあとも内容領域（子が背景を塗らない領域）がライトのまま残る。
         // 併せて、MewUI は Application.Run までテーマを読めないため初期化前の選択がライトになる点も直す
         // （初期化後（Loaded）とテーマの切り替わり（ThemeChanged）に、表示を実際のテーマへ合わせる）。
         void ApplyTheme(Theme theme)

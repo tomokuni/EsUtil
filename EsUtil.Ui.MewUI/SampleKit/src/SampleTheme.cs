@@ -17,7 +17,7 @@ public static class SampleTheme
     /// <value>ダークの場合は true（<c>Application.Theme.IsDark</c>）。 アプリの初期化前は false。</value>
     /// <remarks>
     /// <b>初期化前は例外になる</b>: MewUI の <c>Application.Current</c> は <c>Application.Run</c> まで実行されないと
-    /// <c>InvalidOperationException</c> を送出する（ウィンドウの生成時はまだ初期化されていない。 実測 2026-11-01）。<br/>
+    /// <c>InvalidOperationException</c> を送出する（ウィンドウの生成時はまだ初期化されていない）。<br/>
     /// サンプルはウィンドウを先に作るため、初期化前はライトとして扱う。
     /// </remarks>
     public static bool IsDark => Application.IsRunning && Application.Current.Theme.IsDark;

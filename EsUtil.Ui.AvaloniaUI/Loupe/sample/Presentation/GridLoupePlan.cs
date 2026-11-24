@@ -92,7 +92,7 @@ internal static class GridLoupePlan
     /// <returns>格子線の矩形（縦 1 本 + 横 1 本）。</returns>
     /// <remarks>
     /// <b>位置と太さは既定の十字線から引き継ぐ</b>: 見本へ切り替えても十字線が動かない。<br/>
-    /// 中心を <see cref="EsRect.Center"/> から求め直すと、線の太さの半分だけ右下へずれる（実測 2026-11-01）。<br/>
+    /// 中心を <see cref="EsRect.Center"/> から求め直すと、線の太さの半分だけ右下へずれる。<br/>
     /// 既定の十字線が無い場合（拡大中心が未設定）だけ、描画面の中心から同じ太さで組み立てる。
     /// </remarks>
     private static LoupeCrosshairRects CreateCenterGrid(in LoupeDrawPlan plan)

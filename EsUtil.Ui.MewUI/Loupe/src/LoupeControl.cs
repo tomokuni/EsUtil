@@ -181,7 +181,7 @@ public sealed class LoupeControl : Panel
     /// <summary>拡大元の画像の変換結果（本コントロールが所有する）。</summary>
     /// <remarks>
     /// <b>ルーペ 1 つにつき 1 つ持つ</b>: 描画側で共有すると、ソースの異なるルーペを同じフレームで描くたびに
-    /// 画像（画素数分）を作り直す（実測 2026-10-30）。 変換はソースが変わったときだけになる。
+    /// 画像（画素数分）を作り直す。 変換はソースが変わったときだけになる。
     /// </remarks>
     private readonly MewImageBinding _images = new();
 
@@ -564,7 +564,7 @@ public sealed class LoupeControl : Panel
     /// （DIP → 物理ピクセルの換算は描画層が単一所有する）。<br/>
     /// <b>描く層とその順序は描画層が単一所有する</b>（<see cref="LoupeDrawPlan.Layers"/> の順に処理する）。<br/>
     /// <b>計画の座標は物理ピクセルである</b>: コンテキストの座標は DIP のため、計画をそのまま描くと<br/>
-    /// 125% の環境では 1.25 倍の大きさになり、ルーペの矩形からはみ出す（実測 2026-10-25）。<br/>
+    /// 125% の環境では 1.25 倍の大きさになり、ルーペの矩形からはみ出す。<br/>
     /// そのため <c>1 / ClientToPixelScaling</c> の倍率を掛けてから描く（Avalonia 版の <c>PushTransform</c> と同じ規則）。<br/>
     /// 中心座標ラベルはテキストの実寸測定が必要なため本手順では描かず、<br/>
     /// 親パネルのラベル要素（<c>Border</c> + <c>TextBlock</c>）が表示する（要素は DIP で配置する）。

@@ -121,7 +121,7 @@ public class ColumnPackingPanel : DualSourceItemsPanel
     /// <remarks>
     /// <b>幅が確定しないパスがあるため保持する</b>: MewUI の <c>ScrollViewer</c> は内容を<br/>
     /// 「無限大の幅」と「表示領域の幅」の両方で測ることがあり、無限大のパスで別の結果を返すと<br/>
-    /// 2 つのレイアウトが交互に現れて確定しない（実測 2026-11-01）。 無限大のときは直前の幅を使う。
+    /// 2 つのレイアウトが交互に現れて確定しない。 無限大のときは直前の幅を使う。
     /// </remarks>
     private double _lastWidthLimit;
 

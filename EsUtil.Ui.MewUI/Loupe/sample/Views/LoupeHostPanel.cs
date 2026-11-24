@@ -89,7 +89,7 @@ internal sealed class LoupeHostPanel : Panel
         _loupes.Add(loupe);
         Add(loupe);
 
-        // 座標ラベルは**ルーペより前面**に戻す（後に足す子ほど前面になる。 ルーペの下だと文字が欠ける。 実測 2026-11-02）
+        // 座標ラベルは**ルーペより前面**に戻す（後に足す子ほど前面になる。 ルーペの下だと文字が欠ける）
         Remove(_selectionLabelBox);
         Add(_selectionLabelBox);
     }

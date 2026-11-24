@@ -41,7 +41,7 @@ public static class SampleShell
     /// <exception cref="ArgumentNullException"><paramref name="window"/> が null の場合。</exception>
     /// <remarks>
     /// <b>ウィンドウの API は物理ピクセルを取る</b>: <c>AppWindow.Resize</c> へ DIP の値をそのまま渡すと、<br/>
-    /// 表示倍率の分だけ小さくなる（125% では 1400 DIP が 1120 DIP になる。 実測 2026-11-02）。<br/>
+    /// 表示倍率の分だけ小さくなる（125% では 1400 DIP が 1120 DIP になる）。<br/>
     /// <b>レイアウトの後に行う</b>: 倍率（<c>XamlRoot.RasterizationScale</c>）は要素が画面へ付いた後でないと読めないため、<br/>
     /// ルート要素の <c>Loaded</c> で 1 度だけ広げる。
     /// </remarks>
@@ -73,7 +73,7 @@ public static class SampleShell
     /// <exception cref="ArgumentNullException">必須の引数が null の場合。</exception>
     /// <remarks>
     /// <b>ウィンドウを作らない理由</b>: <c>Window.Content</c> の要素は既に親を持つため、別のウィンドウへ
-    /// 移すと例外になる（実測 2026-10-31）。 サンプルは自分のウィンドウの <c>Content</c> へ直接設定する。
+    /// 移すと例外になる。 サンプルは自分のウィンドウの <c>Content</c> へ直接設定する。
     /// </remarks>
     public static UIElement CreateContent(
         UIElement propertySettings,

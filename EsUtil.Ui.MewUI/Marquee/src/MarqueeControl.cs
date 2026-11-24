@@ -975,7 +975,7 @@ public sealed class MarqueeControl : Panel
         var scaling = DpiScaler.NormalizeScaling(context.DpiScale);
 
         // 前フレームの描画は残らない（MewUI はフレームごとに要素を描き直す）。
-        // Clear は描画面全体（ウィンドウ）を消すため使わない（兄弟の要素まで消える。 実測 2026-10-24）。
+        // Clear は描画面全体（ウィンドウ）を消すため使わない（兄弟の要素まで消える）。
 
         // 描画計画は配置フェーズ（ArrangeContent）が解決した値を共有する（未解決の場合のみ本メソッドが解決する）
         var plan = CurrentFrame(new EsSize(Bounds.Width > 0 ? Bounds.Width : RenderSize.Width, Bounds.Height > 0 ? Bounds.Height : RenderSize.Height));

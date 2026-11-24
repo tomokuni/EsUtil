@@ -18,7 +18,7 @@ namespace EsUtil.Ui.WinForms.Loupe.Sample.Views;
 /// 表示レイアウトの解決は DIP を要求するため、クライアント領域を <c>LoupeControl.ToDipSize</c> で換算して渡す。<br/>
 /// <br/>
 /// <b>選択矩形の位置</b>: 画像上の選択矩形は破線枠と座標ラベルで示す。 <b>破線枠はルーペの下</b>（子の描画が後）だが、<br/>
-/// <b>座標ラベルはルーペの上</b>に置く（<see cref="SelectionLabelOverlay"/>。 ラベルがルーペに隠れると読めない。 実測 2026-11-02）。
+/// <b>座標ラベルはルーペの上</b>に置く（<see cref="SelectionLabelOverlay"/>。 ラベルがルーペに隠れると読めない）。
 /// </remarks>
 internal sealed class LoupeHostPanel : Control
 {

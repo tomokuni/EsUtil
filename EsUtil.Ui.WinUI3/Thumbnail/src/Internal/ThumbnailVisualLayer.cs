@@ -16,8 +16,7 @@ namespace EsUtil.Ui.WinUI3.Thumbnail.Internal;
 /// <b>影はグラデーションで塗る</b>: 影の計画（<see cref="IThumbnailShadowPlan.Edges"/> /
 /// <see cref="IThumbnailShadowPlan.CornerStops"/>）を<br/>
 /// 4 辺の線形グラデーションと 4 隅の放射グラデーションへ写す（<see cref="ThumbnailShadowBrushes"/>）。<br/>
-/// 1 画素の帯を要素にすると 1 件あたり数百個になり、一覧の初回描画が待たされる（実測 2026-10-25:<br/>
-/// 31 件で 258 ms → 8 要素に減らして 36 ms）。<br/>
+/// 1 画素の帯を要素にすると 1 件あたり数百個になり、一覧の初回描画が待たされる。<br/>
 /// <br/>
 /// <b>要素を使い回す</b>: 一覧は項目ごとに本クラスを持ち、スクロールのたびに作り直されるため、<br/>
 /// 反映のたびに要素を作らない（背景 1 個・影 8 個・画像 1 個を固定で持つ）。

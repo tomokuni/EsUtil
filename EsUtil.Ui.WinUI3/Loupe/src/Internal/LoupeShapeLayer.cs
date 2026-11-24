@@ -55,7 +55,7 @@ internal sealed partial class LoupeShapeLayer : Canvas
             SetTop(rectangle, item.Bounds.Y * pixelToDip);
             rectangle.Width = item.Bounds.Width * pixelToDip;
             rectangle.Height = item.Bounds.Height * pixelToDip;
-            // 色は ARGB ごとに 1 つだけ作る（毎フレーム作ると WinRT の割り当てが積み上がる。 実測 2026-10-25）
+            // 色は ARGB ごとに 1 つだけ作る（毎フレーム作ると WinRT の割り当てが積み上がる）
             var brush = SolidBrushCache.Get(item.Color);
             if (!ReferenceEquals(rectangle.Fill, brush))
             {

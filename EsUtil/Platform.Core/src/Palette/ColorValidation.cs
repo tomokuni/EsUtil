@@ -23,7 +23,7 @@ public static class ColorValidation
     /// <returns>有効な場合は <see langword="true"/>。</returns>
     /// <remarks>
     /// <b>一覧に出す色名も有効にする</b>: 入力欄には利用者が付けた名前（例: <c>黒</c>）が出るため、
-    /// 同じ文字列を貼り付けたときに「無効な色コード」と表示されるのは矛盾します（実測 2026-11-23）。
+    /// 同じ文字列を貼り付けたときに「無効な色コード」と表示されるのは矛盾します。
     /// </remarks>
     public static bool IsValid(string? color, Func<string, string?> resolveAlias)
         => ColorString.TryParseWithAliases(color, resolveAlias, out _, out _);

@@ -155,7 +155,7 @@
 | ポインター キャプチャ | コアからの要求で取得・解放します（押下時に記録したポインターを使います） |
 | 描画倍率 | XAML のルート（`XamlRoot.RasterizationScale`）から取得し、その変化にも追従します |
 | `IsPointerOver` | `UIElement` が公開しないため、ポインターの進入・退出からコントロールが保持します（他 UI 版は基底クラスの `IsMouseOver` / `IsPointerOver` を使います） |
-| Native AOT | **対応**です（AOT で発行した配布物が起動することを実測 2026-10-24）。 ただし **AOT では managed コレクションを `ItemsSource` へ渡せません**（CsWinRT が AOT で managed オブジェクトの COM ラッパーを作れず `E_INVALIDARG` になります。 `Items.Add` で 1 件ずつ渡してください） |
+| Native AOT | **対応**です（AOT で発行した配布物が起動することを）。 ただし **AOT では managed コレクションを `ItemsSource` へ渡せません**（CsWinRT が AOT で managed オブジェクトの COM ラッパーを作れず `E_INVALIDARG` になります。 `Items.Add` で 1 件ずつ渡してください） |
 
 ## 10. 使用例
 

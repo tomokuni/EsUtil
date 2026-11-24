@@ -59,7 +59,7 @@ public class LoupePainterTests
     /// <summary>ペーストボードが非表示なら、ペーストボードの色で塗らないことを検証する。</summary>
     /// <remarks>
     /// <b>描画コンテキスト全体を消す <c>Clear</c> は使わない</b>: <c>Clear</c> はウィンドウの描画面全体を消すため、
-    /// 背後の撮影画像まで消える（実測 2026-10-25）。 本 UI の描画面はフレームごとに構築されるため、
+    /// 背後の撮影画像まで消える。 本 UI の描画面はフレームごとに構築されるため、
     /// 消さなくても前フレームは残らない（<see cref="LoupeAppearance.ResolvePasteboardColor"/> が透明を返す）。
     /// </remarks>
     [Fact]
@@ -82,7 +82,7 @@ public class LoupePainterTests
     /// <summary>画像の層は切り出しの矩形を計画から受け取る（画素の比較はしない）。</summary>
     /// <remarks>
     /// <b>画素で検証しない理由</b>: 画素を読み戻せる GDI バックエンドは、元矩形つきの画像描画
-    /// （<c>DrawImage(IImage, Rect destRect, Rect sourceRect)</c>）を描かない（実測）。 実際の見た目は Direct2D の
+    /// （<c>DrawImage(IImage, Rect destRect, Rect sourceRect)</c>）を描かない。 実際の見た目は Direct2D の
     /// アプリで確認する。 ここでは「層が計画の矩形を受け取って例外なく描ける」ことを固定する。
     /// </remarks>
     [Fact]

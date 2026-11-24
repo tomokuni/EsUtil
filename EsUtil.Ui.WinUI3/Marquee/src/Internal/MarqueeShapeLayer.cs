@@ -31,7 +31,7 @@ internal sealed partial class MarqueeShapeLayer : Canvas
     /// <exception cref="ArgumentNullException"><paramref name="list"/> が null の場合。</exception>
     /// <remarks>
     /// <b>値が変わった項目だけを書く</b>: 要素のプロパティを書くたびに XAML の測定・配置が
-    /// 無効になり、ドラッグ中は毎フレーム数十個の要素へ 4 つの値を書いていた（実測 2026-10-25）。
+    /// 無効になり、ドラッグ中は毎フレーム数十個の要素へ 4 つの値を書いていた。
     /// 前フレームと同じ値なら書かない（位置だけ動く項目・大きさだけ変わる項目をそれぞれ最小の更新にする）。
     /// </remarks>
     public void Apply(DrawList list)
@@ -86,7 +86,7 @@ internal sealed partial class MarqueeShapeLayer : Canvas
             }
 
             // 色は ARGB ごとに 1 つだけ作る（毎フレーム作ると WinRT の割り当てが積み上がり、
-            // ドラッグ中の描画が重くなる。 実測 2026-10-25）
+            // ドラッグ中の描画が重くなる）
             var brush = SolidBrushCache.Get(item.Color);
             if (!ReferenceEquals(rectangle.Fill, brush))
             {

@@ -68,8 +68,8 @@ internal static class ColorSelectorFlyoutFactory
         // タブ（Spectrum / Palette / Components）とスライダーを収めるには高さが必要なため、
         // 固定サイズ（280x240）ではコンテンツが左右下で見切れる。 テーマの自然なサイズに任せる。
         // Hex 入力タブは #AARRGGBB（アルファ先頭）形式で表示する（Avalonia 標準の Color.Parse と整合）。
-        // **一覧の幅へ収める**: 幅を指定しないと ColorView の希望幅が一覧の幅を超え、右側が切れる
-        // （実測 2026-11-22: ColorPicker のタブで成分の入力欄が見切れた）。 渡された幅を上限にする。
+        // **一覧の幅へ収める**: 幅を指定しないと ColorView の希望幅が一覧の幅を超え、右側が切れる。
+        // 渡された幅を上限にする。
         var width = availableWidth > 0 ? availableWidth : ColorViewMinWidth;
 
         var colorView = new ColorView
@@ -162,8 +162,7 @@ internal static class ColorSelectorFlyoutFactory
     /// <summary>ColorView（カラーピッカー）の最小幅。</summary>
     /// <remarks>
     /// <b>実際に必要な幅に合わせる</b>: 280 DIP では成分の入力欄とスライダーが収まらず、
-    /// 一覧の幅（フライアウトの上限）を超えて**右側が切れます**（実測 2026-11-22: 成分タブが
-    /// 一覧の外へはみ出しました）。
+    /// 一覧の幅（フライアウトの上限）を超えて**右側が切れます**。
     /// </remarks>
     internal const double ColorViewMinWidth = 380;
     /// <summary>ColorView（カラーピッカー）の最小高さ。</summary>
@@ -171,7 +170,7 @@ internal static class ColorSelectorFlyoutFactory
 
     /// <summary>操作ボタン（OK / キャンセル）の最小幅（DIP）。</summary>
     /// <remarks>
-    /// <b>幅を固定しない</b>: 固定すると「キャンセル」の文字が切れる（実測 2026-11-23）。
+    /// <b>幅を固定しない</b>: 固定すると「キャンセル」の文字が切れる。
     /// 最小幅だけを決め、文言が長ければボタンが広がるようにします。
     /// </remarks>
     private const double ActionButtonWidth = 70;

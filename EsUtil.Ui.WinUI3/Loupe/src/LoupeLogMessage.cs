@@ -51,7 +51,7 @@ internal static partial class LoupeLogMessage
     /// 出力書式: <c>[Loupe] ジオメトリ: 表示={DisplayWidth}x{DisplayHeight} (DIP) / 画素={PixelSize} / 倍率={Scaling}</c><br/>
     /// 接頭辞は既定値が <c>[Loupe]</c> であり、<c>Prefix</c> で設定できる。<br/>
     /// <b>割り当て（DIP）と面（物理ピクセル）の対応を 1 行で残す</b>ため、DPI の解釈がずれたときに<br/>
-    /// ログだけで原因を特定できる（実測 2026-10-25: ルーペだけが実寸の 0.8 倍で表示される事象の調査用）。
+    /// ログだけで原因を特定できる。
     /// </remarks>
     public static void LogGeometry(this ILogger logger, double displayWidth, double displayHeight, int pixelSize, double scaling)
         => logger.LogGeometryCore(Prefix, displayWidth, displayHeight, pixelSize, scaling);

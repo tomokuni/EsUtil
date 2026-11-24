@@ -66,7 +66,7 @@ public class ColorStringTests
     internal void Format_色名の無い色は8桁のカラーコードで表す(byte alpha, string expected)
     {
         // **色名の有無で桁数を変えない**: 6 桁 + 不透明度 % の形にすると、同じ色でも表記が変わり
-        // 不透明度が見えない表記も生まれる（実測 2026-11-22）
+        // 不透明度が見えない表記も生まれる
         Assert.Equal(expected, ColorString.Format(DrawingColor.FromArgb(255, 1, 2, 3), alpha / 255.0));
     }
 

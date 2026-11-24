@@ -143,7 +143,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 - **Windows の下限は Windows 10 バージョン 1809（ビルド 17763）**です（Windows Server 2019 も同じビルド 17763）。
 - WinUI 3 層が要求する Windows App Runtime は **2.0.1 以降**（`Directory.Packages.props` の `Microsoft.WindowsAppSDK` の版）です。 **ランタイムの MSIX も 17763 を要求します**（OS の下限とランタイムの下限は同じです）。
 - **17763 の射影に無い API は、そのままでは呼べません**。 例: `GraphicsCaptureSession.IsCursorCaptureEnabled`（Windows 10 バージョン 2004 / ビルド 19041）と `IsBorderRequired`（Windows 11 / ビルド 22000）は**射影にメンバーが無い**ため、内部インターフェースを COM の IID で問い合わせて呼びます（**パッケージの対象フレームワークは 17763 のまま**です。 射影を上げると利用側のプロジェクトも同じ射影を要求するため、この手段を採ります）。 設定できるかは `WindowsGraphicsCaptureSupport.IsCursorCaptureSupported` / `IsBorderControlSupported` が返し、**設定できない環境**ではカーソルを写さない設定は GDI へ委譲し、枠は OS の既定どおり描かれます。 **ほかの API を含む一覧と手段**は [`.github/ビルド設定規約.md`](.github/ビルド設定規約.md) §5「17763 で使う Windows API と使用可能にした手法」にあります。
-- **利用側のプロジェクトも `net10.0-windows10.0.17763.0` 以上にする**（NuGet の互換判定は**対象フレームワーク**で行われ、`<SupportedOSPlatformVersion>` は使われません。 実測 2026-11-14: 古い対象フレームワークのプロジェクトは `NU1201` / `NU1202` で復元できません）。
+- **利用側のプロジェクトも `net10.0-windows10.0.17763.0` 以上にする**（NuGet の互換判定は**対象フレームワーク**で行われ、`<SupportedOSPlatformVersion>` は使われません）。
 
 ### 5.1 依存パッケージの下限（.NET 10）
 
@@ -155,17 +155,16 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | `System.Drawing.Common` | **10.0.0** | 同上（本リポジトリは色の値型だけを使う） |
 
 - **`PackageReference` の版は nuspec の依存下限になります**（範囲指定にしないため。 [`ビルド設定規約.md`](.github/ビルド設定規約.md) §4）。 したがって**ビルドに使う版も 10.0.0** にしています。 .NET 10 より新しい版へ上げると、**.NET 10 の利用者が `NU1605`（ダウングレード）で復元できなくなります**（機能上は新しい版でも動きますが、要求する版を上げない方針です）。
-- **利用側が新しい版を参照しても問題ありません**。 NuGet の統合により、利用側の版（例: .NET 11 のアプリが参照する 11.0.0）で解決されます。 実測 2026-11-13: `.NET 10` / `.NET 11` の両ランタイムで、ログ出力と `System.Drawing` の利用が動作しました。
-- **ビルドには .NET 11 SDK を使います**（[`global.json`](global.json) が単一所有。 対象フレームワークは `net10.0` のまま）。 利用者の実行環境に要求するのは上の 2 つだけであり、**SDK の版は公開物に影響しません**。
+- **利用側が新しい版を参照しても問題ありません**。 NuGet の統合により、利用側の版（例: .NET 11 のアプリが参照する 11.0.0）で解決されます。 利用者の実行環境に要求するのは上の 2 つだけであり、**SDK の版は公開物に影響しません**。
 
 ### 5.2 Native AOT
 
-| 層 | Native AOT | 根拠（実測） |
+| 層 | Native AOT | 根拠 |
 | --- | --- | --- |
 | 共通基盤・機能層 | **互換** | Win32 / WIC の呼び出しを **CsWin32 の生成物**（関数ポインター）で行い、D3D11 だけを `[LibraryImport]` で宣言する |
 | Avalonia UI 層 | **互換** | サンプルを AOT で発行し、起動を確認 |
 | MewUI 層 | **互換** | 同上 |
-| WinUI 3 層 | **互換** | 同上（Windows App SDK 2.0.1 以降が Native AOT に対応。 実測 2026-11-14: 2.0.1 でサンプルを `-p:PublishAot=true -r win-x64` により発行し、警告 0 件で成功） |
+| WinUI 3 層 | **互換** | 同上（Windows App SDK 2.0.1 以降が Native AOT に対応） |
 | WinForms 層 | **非対応** | **Windows Forms 自体がトリミング/AOT に対応しない**（`PublishAot` は `NETSDK1175` で失敗する） |
 
 - **言語**: C# 14 / .NET 10。

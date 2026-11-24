@@ -300,7 +300,7 @@ public sealed partial class ColorSelectorControl : UserControl
         _combo.LostFocus += OnTextLostFocus;
 
         // 展開ボタン（右端）の押下は自前で受ける。 標準の一覧を開かせず、タブ付きのフライアウトだけを出す
-        // （標準の一覧を開いてから閉じる方式は、開閉が往復して一覧が出なかった。 実測 2026-11-17）
+        // （標準の一覧を開いてから閉じる方式は、開閉が往復して一覧が出なかった）
         _combo.AddHandler(PointerPressedEvent, OnComboPointerPressed, RoutingStrategies.Tunnel);
         _combo.AddHandler(KeyDownEvent, OnComboKeyDown, RoutingStrategies.Tunnel);
 
@@ -338,7 +338,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <param name="sender">イベント送信元。</param>
     /// <param name="e">ポインターの引数。</param>
     /// <remarks>
-    /// <b>標準の一覧を開かせない</b>: 開いてから閉じる方式は開閉が往復して一覧が出なかった（実測 2026-11-17）。
+    /// <b>標準の一覧を開かせない</b>: 開いてから閉じる方式は開閉が往復して一覧が出なかった。
     /// 右端の展開ボタンの範囲だけを自前で扱い、入力欄の文字を扱う左側は標準のまま残す。
     /// </remarks>
     private void OnComboPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -525,7 +525,7 @@ public sealed partial class ColorSelectorControl : UserControl
 
             // 解析は 1 回だけ行い、最終有効値の追跡とバリデーション更新で共有する（二重解析の排除）。
             // **利用者が付けた色名も有効として扱う**: 入力欄にはその名前（例: 「黒」）が出るため、
-            // 貼り付けたときに無効と表示されるのは矛盾する（実測 2026-11-23）
+            // 貼り付けたときに無効と表示されるのは矛盾する
             var valid = ColorValidation.IsValid(color, ResolveCustomNameValue);
             if (valid)
             {
@@ -766,9 +766,8 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <remarks>
     /// 片方だけが選ばれるよう、切り替えは一覧を開く処理の <c>ApplyTab</c> が両方の状態を書く。<br/>
     /// <b>幅は指定しない</b>: タブの行は均等な列へ並べるため、幅は列が決める（幅を固定すると
-    /// タブが多いときにフライアウトからはみ出して横スクロールが出る。 実測 2026-11-17）。<br/>
-    /// <b>文言は省略記号で切る</b>: 詰めたときに文字が途中で切れて読めなくなるのを防ぐ
-    /// （実測 2026-11-17: 「ColorPicker」が「ColorPicke」になった）。
+    /// タブが多いときにフライアウトからはみ出して横スクロールが出る）。<br/>
+    /// <b>文言は省略記号で切る</b>: 詰めたときに文字が途中で切れて読めなくなるのを防ぐ。
     /// </remarks>
     private static ToggleButton CreateCategoryTab(string text) => new()
     {
@@ -796,7 +795,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <returns>タブの行。</returns>
     /// <remarks>
     /// <b>幅は列に任せる</b>: 列を等分にすると、タブが増えても行の幅は変わらず、フライアウトからはみ出さない
-    /// （幅を固定すると横スクロールが出る。 実測 2026-11-17）。
+    /// （幅を固定すると横スクロールが出る）。
     /// </remarks>
     private static Grid CreateTabStrip(int count)
     {
@@ -829,7 +828,7 @@ public sealed partial class ColorSelectorControl : UserControl
         }
 
         // 一覧の幅は**開く前に決める**（タブの行・一覧の内容・枠のうち最も広いもの。 フライアウトが表示できる幅で頭打ち）。
-        // 決めずに置くとタブの行だけが広がり、スクロール バーがフライアウトの途中に出る（実測 2026-11-17）。
+        // 決めずに置くとタブの行だけが広がり、スクロール バーがフライアウトの途中に出る。
         // 幅は**固定しない**: カスタム タブの数・題名・一覧の内容に応じて変わり、上限だけがフライアウトの実寸になる。
         var width = ResolveFlyoutWidth(tabs);
 
@@ -837,7 +836,7 @@ public sealed partial class ColorSelectorControl : UserControl
 
         // 中身へ**確定した幅**を与える（MinWidth では足りない）: フライアウトの外側の ScrollViewer は
         // 内容を横方向に無限幅で測るため、幅が確定していないとタブの行が自然幅まで広がり、
-        // フライアウト自身に横スクロール バーが出る（実測 2026-11-18）。
+        // フライアウト自身に横スクロール バーが出る。
         var body = new Panel { Width = width };
         var panel = new StackPanel { Spacing = 6, Width = width };
 
@@ -905,7 +904,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <c>FlyoutContentThemePadding</c> / <c>FlyoutBorderThemeThickness</c>）を実行時に読み、そこから求める。
     /// ホストが <c>FlyoutThemeMaxWidth</c> を広げれば、そのぶん中身も広げられる。<br/>
     /// <b>この上限を超えるとフライアウト自身に横スクロール バーが出る</b>（外側の <see cref="ScrollViewer"/> が
-    /// 内容を横方向に無限幅で測るため）ので、中身の幅は必ずこの値で頭打ちにする（実測 2026-11-18）。
+    /// 内容を横方向に無限幅で測るため）ので、中身の幅は必ずこの値で頭打ちにする。
     /// </remarks>
     internal static double ResolveMaxContentWidth()
     {
@@ -948,7 +947,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <returns>幅（DIP）。</returns>
     /// <remarks>
     /// <b>題名の実寸から求める</b>: 固定値で見積もると、長い題名（「ColorPicker」）のタブが
-    /// 詰められて省略記号になり、何のタブか読めません（実測 2026-11-22）。
+    /// 詰められて省略記号になり、何のタブか読めません。
     /// </remarks>
     private static double ResolveTabStripWidth(IReadOnlyList<ColorSelectorTabSpec> tabs)
     {
@@ -1005,7 +1004,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <returns>幅（DIP）。 枠（入力欄）・タブの行・一覧の内容・カラーピッカーの最小幅のうち最も広いもの（上限あり）。</returns>
     /// <remarks>
     /// <b>タブの行も幅に含める</b>: 含めないと、タブの行だけが広がって一覧（とスクロール バー）が
-    /// 途中で切れる（実測 2026-11-17）。<br/>
+    /// 途中で切れる。<br/>
     /// <b>幅は固定しない</b>: タブの数・題名・一覧の内容に追随する。 上限だけを
     /// <see cref="ResolveMaxContentWidth"/>（テーマの資源から求める）で止める（超えるとフライアウト自身が
     /// 横スクロールするため）。
@@ -1016,7 +1015,7 @@ public sealed partial class ColorSelectorControl : UserControl
         if (tabs.Count > 1 || ShowTabTitles)
         {
             // **題名の実寸で幅を決める**: 固定の 1 タブ幅（112 DIP）で見積もると、題名が長いタブ
-            // （「ColorPicker」）が詰められて見切れる（実測 2026-11-22）。
+            // （「ColorPicker」）が詰められて見切れる。
             width = Math.Max(width, ResolveTabStripWidth(tabs));
         }
 
@@ -1075,7 +1074,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <returns>一覧。</returns>
     /// <remarks>
     /// <b>幅をそろえる</b>: 一覧を内容の幅のまま置くと、スクロール バーがフライアウトの途中に出る
-    /// （タブの行だけが広いとき。 実測 2026-11-17）。 一覧はフライアウトの幅いっぱいにする。
+    /// （タブの行だけが広いとき）。 一覧はフライアウトの幅いっぱいにする。
     /// </remarks>
     private Control CreateColorList(ColorSelectorTabSpec tab, Flyout flyout, double width)
     {

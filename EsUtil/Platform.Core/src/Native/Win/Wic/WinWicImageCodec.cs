@@ -61,7 +61,7 @@ internal static unsafe class WinWicImageCodec
 
     /// <summary>HEIF が書ける最小の寸法（ピクセル）。</summary>
     /// <remarks>
-    /// <b>8x8 未満は書けない（実測）</b>: 保存自体は成功するが、書き出したファイルを読み戻すと
+    /// <b>8x8 未満は書けない</b>: 保存自体は成功するが、書き出したファイルを読み戻すと
     /// <c>WINCODEC_ERR_INVALIDPARAMETER</c>（<c>0x80070057</c>）になる（HEVC の最小の符号化単位）。
     /// </remarks>
     private const int HeifMinimumSize = 8;
@@ -777,7 +777,7 @@ internal static unsafe class WinWicImageCodec
     /// <b>メモリ ストリームへ書いてからファイルへ書く理由</b>: COM の解放は明示するが、
     /// WIC にファイルを開かせると解放までファイルが開いたままになる（実測: 直後の削除が共有違反で失敗した）。
     /// メモリ ストリームならファイルは呼び出し側が開いて閉じるため、直後から削除も上書きもできる。<br/>
-    /// <b>エンコーダーのキャッシュは <c>NoCache</c> を使う（実測）</b>: メモリ ストリームでは
+    /// <b>エンコーダーのキャッシュは <c>NoCache</c> を使う</b>: メモリ ストリームでは
     /// <c>CacheInMemory</c>（0）も <c>CacheTempFile</c>（1）も <c>WINCODEC_ERR_UNSUPPORTEDOPERATION</c>
     /// （<c>0x88982F81</c>）で初期化に失敗し、<c>NoCache</c>（2）だけが成功した。<br/>
     /// <b>エンコーダーの初期化は 1 回だけ</b>である（<c>IWICBitmapFrameEncode::Initialize</c> を 2 回呼ぶと失敗する）。
@@ -936,7 +936,7 @@ internal static unsafe class WinWicImageCodec
     /// <param name="container">保存する形式（例外メッセージ用）。</param>
     /// <exception cref="NotSupportedException">エンコーダーが想定外のピクセル形式を要求した場合。</exception>
     /// <remarks>
-    /// <b>要求と返答が違う（実測）</b>: アルファ乗算済みの BGRA を要求しても、PNG / TIFF は
+    /// <b>要求と返答が違う</b>: アルファ乗算済みの BGRA を要求しても、PNG / TIFF は
     /// アルファ乗算なしの BGRA、JPEG は 24bpp の BGR、HEIF は 32bpp の BGR、JPEG XL は RGBA を返す
     /// （エンコーダーは形式の変換をしない）。 そのため<b>返された形式に合わせて並びを直してから書く</b>。<br/>
     /// <b>変換器（<c>IWICFormatConverter</c>）で並びを直さない理由</b>: 画素の源を
@@ -1090,7 +1090,7 @@ internal static unsafe class WinWicImageCodec
     /// <param name="height">高さ（ピクセル）。</param>
     /// <exception cref="NotSupportedException">その形式で書けない寸法の場合。</exception>
     /// <remarks>
-    /// <b>HEIF は 8x8 未満を書けません（実測）</b>: 8x8 以上は往復できるが、8x7 / 8x6 / 4x4 は
+    /// <b>HEIF は 8x8 未満を書けません</b>: 8x8 以上は往復できるが、8x7 / 8x6 / 4x4 は
     /// <b>保存自体は成功する</b>ものの、書き出したファイルを読み戻すと
     /// <c>WINCODEC_ERR_INVALIDPARAMETER</c>（<c>0x80070057</c>）になります（HEVC の最小の符号化単位）。
     /// 読めないファイルを作らないため、保存の前に断ります。

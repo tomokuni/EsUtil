@@ -390,7 +390,7 @@ internal static unsafe class WinWicFactory
         try
         {
             // 先頭の階層（/app1 ・ /ifd など）を先に読む。 無い階層を辿ると WIC は毎回
-            // COMException を投げ、デバッガーに「例外がスローされました」が並ぶ（実測 2026-10-24）
+            // COMException を投げ、デバッガーに「例外がスローされました」が並ぶ
             var topLevel = ListTopLevelNames(reader);
 
             foreach (var name in s_orientationNames)

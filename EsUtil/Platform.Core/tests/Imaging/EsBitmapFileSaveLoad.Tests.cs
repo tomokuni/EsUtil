@@ -485,7 +485,7 @@ public class EsBitmapFileSaveLoadTests
     [Fact]
     internal void Save_TIFFへ減色を指定するとパレット画像として保存される()
     {
-        // TIFF のエンコーダーは 8bpp のインデックス カラーを受け付ける（実測）。
+        // TIFF のエンコーダーは 8bpp のインデックス カラーを受け付ける。
         // 形式ごとの可否は固定の一覧ではなく、エンコーダーの返答で決まる。
         using var source = CreateNoisy(32, 32, levels: 32);
         var path = TempPath(".tiff");

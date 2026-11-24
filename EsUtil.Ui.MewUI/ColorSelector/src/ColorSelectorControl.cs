@@ -18,8 +18,8 @@ namespace EsUtil.Ui.MewUI.ColorSelector;
 /// <b>入力欄は標準の ComboBox を使う</b>: 自前の枠・▼・… のボタン・区切りの線を作らず、コンボボックスの
 /// 枠と展開ボタンをそのまま使う。 入力欄の左には**現在色の四角**を重ねて「■ + 色名」に見せる
 /// （標準の入力欄は文字しか出せないため。 文字は四角の右から始まるよう左の余白を空ける）。 **展開ボタン（右端 30 DIP）の押下を自前で受けて標準の一覧を開かせず**、
-/// タブ付きのポップアップを出す（開いてから閉じる方式は開閉が往復して一覧が出ない。 AvaloniaUI 版の実測
-/// 2026-11-17 と同じ）。 表示は押下の処理の後（<c>Dispatcher.BeginInvoke</c>）へ回す。 キーボードの
+/// タブ付きのポップアップを出す（開いてから閉じる方式は開閉が往復して一覧が出ない。 AvaloniaUI 版と同じ）。
+/// 表示は押下の処理の後（<c>Dispatcher.BeginInvoke</c>）へ回す。 キーボードの
 /// Alt+↓ / F4 でも同じ一覧を出す。<br/>
 /// <b>編集できる入力欄は MewUI の ComboBox に無い</b>: MewUI 0.22.1 の <c>ComboBox</c> は読み取り専用の
 /// 選択表示だけで、AvaloniaUI 版の <c>IsEditable</c> に当たる API を持たない。 そのため
@@ -28,7 +28,7 @@ namespace EsUtil.Ui.MewUI.ColorSelector;
 /// <b>一覧はタブ付きのポップアップ</b>（自前の <see cref="Popup"/>）。 <b>カラーピッカーは
 /// <see cref="ColorPicker"/></b> のドロップダウンを使う。 MewUI の <see cref="ColorPicker"/> は
 /// 中身をポップアップへ埋め込めないため、タブを選ぶと一覧を閉じてからピッカーを開く
-/// （2 つのポップアップを重ねると上のものが入力を奪う。 実測 2026-11-23）。<br/>
+/// （2 つのポップアップを重ねると上のものが入力を奪う）。<br/>
 /// <b>ツールチップ</b>: 入力欄には「色名+不透明度」と「<c>#AARRGGBB</c>」の 2 行を出す。<br/>
 /// <b>一覧のタブ</b>: 表示の設定（<see cref="ShowCustomTab"/> / <see cref="ShowThemeColorTab"/> /
 /// <see cref="ShowNamedColorTab"/> / <see cref="ShowPickerTab"/>）と <see cref="CustomTabs"/> からタブを作り、
@@ -36,7 +36,7 @@ namespace EsUtil.Ui.MewUI.ColorSelector;
 /// カラーピッカーのタブを作らない）。 タブが 1 つだけのときは <see cref="ShowTabTitles"/> で
 /// 題名の行を隠せる。 一覧を開いてもコントロールの幅は変えない（一覧だけを、枠・タブの行・項目の
 /// うち最も広い幅へ広げる）。 一覧はポップアップの幅いっぱいに置き、**スクロール バーを右端へ**そろえる。
-/// タブの行は**均等な列**へ並べるため、タブが増えても横スクロールは出ない（幅を固定すると出る。 実測 2026-11-17）。
+/// タブの行は**均等な列**へ並べるため、タブが増えても横スクロールは出ない（幅を固定すると出る）。
 /// </remarks>
 public sealed class ColorSelectorControl : Grid
 {
@@ -97,7 +97,7 @@ public sealed class ColorSelectorControl : Grid
     private const string ThemeLabelPrefix = "テーマ: ";
 
     /// <summary>一覧の幅に足す余白（DIP。 枠と、行の文字が端に接しないための余裕）。</summary>
-    /// <remarks>行の実寸と項目の余白は実測値であり、端数だけで足りない分を本値が補う（実測 2026-11-02）。</remarks>
+    /// <remarks>行の実寸と項目の余白は実測値であり、端数だけで足りない分を本値が補う。</remarks>
     private const double ListWidthAllowance = 8.0;
 
     /// <summary>テーマの文字サイズを解決できない場合に使う文字サイズ（DIP）。</summary>
@@ -135,7 +135,7 @@ public sealed class ColorSelectorControl : Grid
     /// <summary>直近に決めた一覧の幅（DIP。 <see cref="RefreshList"/> が決め、タブの中身が使う）。</summary>
     /// <remarks>
     /// <b>幅は中身を作る前に決める</b>: 後から広げると、一覧（とスクロール バー）がポップアップの
-    /// 途中に残ったままになる（タブの行だけが広いとき。 実測 2026-11-17）。
+    /// 途中に残ったままになる（タブの行だけが広いとき）。
     /// </remarks>
     private double _listWidth;
 
@@ -144,7 +144,7 @@ public sealed class ColorSelectorControl : Grid
     /// 名前だけを並べると選ぶ色が分からないため、他 UI と同じく色の四角を添える<br/>
     /// （値は保存値（<c>#AARRGGBB</c> または色名）であり、四角の色はその値から解決する）。<br/>
     /// <b>文字サイズを明示する</b>: 画面へ付いていない行を測ると既定の文字サイズで測ってしまい、<br/>
-    /// 実際に並ぶ行より広い幅を要求する（実測 2026-11-02: 96 DIP の行が 137.6 DIP になった）。<br/>
+    /// 実際に並ぶ行より広い幅を要求する。<br/>
     /// 実測と表示を同じ大きさにするため、テーマの文字サイズを渡す（他 UI の一覧もテーマの文字サイズで並ぶ）。
     /// </remarks>
     private readonly IDataTemplate _itemTemplate;
@@ -225,7 +225,7 @@ public sealed class ColorSelectorControl : Grid
             Background = MewColor.Transparent,
             Padding = new Thickness(TextLeftIndent, 0, 0, 0),
             // MewUI の TextBox は文字を自分の領域の下寄りに描くため、四角の中心と文字の中心が
-            // そろう分だけ上へ寄せる（実測 2026-11-17: 上へ 1 DIP。 負の上余白は半分だけ効く）
+            // そろう分だけ上へ寄せる
             Margin = new Thickness(0, -2, ArrowAreaWidth, 0),
             VerticalAlignment = VerticalAlignment.Center,
         };
@@ -237,7 +237,7 @@ public sealed class ColorSelectorControl : Grid
 
         // 枠と展開ボタンは標準のコンボボックスが担う（自前の枠・▼・… を作らない）。
         // 標準の一覧は使わないため項目は持たせず、**展開ボタン（右端）の押下を自前で受けて標準の開閉を止める**
-        // （開いてから閉じる方式は開閉が往復して一覧が出ない。 AvaloniaUI 版の実測 2026-11-17 と同じ）。
+        // （開いてから閉じる方式は開閉が往復して一覧が出ない。 AvaloniaUI 版の と同じ）。
         // キーボードの操作は文字入力が受けるため、コンボボックス自身はフォーカスを取らない
         // （取ると Space / ↓ で標準の空の一覧が開く）。
         _combo = new ComboBox
@@ -275,7 +275,7 @@ public sealed class ColorSelectorControl : Grid
         // アンカーは 1×1 にして右下へ寄せ、折り畳んだ見出しを描かないよう切り取る。
         // **有効にしたまま 1×1 に切り取る**: `IsHitTestVisible = false` にすると、
         // この要素を親として開くドロップダウン（ピッカー本体）まで入力を受け取れなくなり、
-        // **ピッカーを表示しても操作できません**（実測 2026-11-23）。 1×1 の右下なので、
+        // **ピッカーを表示しても操作できません**。 1×1 の右下なので、
         // 行の操作を妨げることもありません。
         _picker = new ColorPicker
         {
@@ -329,7 +329,7 @@ public sealed class ColorSelectorControl : Grid
     /// <value>テーマの文字サイズ。 テーマを解決できない場合（<c>Application.Run</c> 前）は <see cref="FallbackFontSize"/>。</value>
     /// <remarks>
     /// <b>行の実測と表示で同じ値を読む</b>: 行を画面へ付ける前に測ると、既定の文字サイズで測って実際の行と<br/>
-    /// 大きさが食い違う（実測 2026-11-02）。 測る側（<see cref="MeasureListContentWidth"/>）と作る側（<see cref="CreateItemRow"/>）が<br/>
+    /// 大きさが食い違う。 測る側（<see cref="MeasureListContentWidth"/>）と作る側（<see cref="CreateItemRow"/>）が<br/>
     /// 同じ値を読むことで、必要な幅と実際の行が一致する。
     /// </remarks>
     private static double ListFontSize
@@ -460,7 +460,7 @@ public sealed class ColorSelectorControl : Grid
     /// <remarks>
     /// <b>MewUI の文字サイズは継承されない</b>: 他の UI（Avalonia / WinUI 3）は親の <c>FontSize</c> を継承するため
     /// 周囲の入力欄と同じ大きさになるが、MewUI の要素は自分の値だけを使う。 設定画面のように周囲の入力欄より
-    /// 小さい文字で表示されるのを避けるため、ホストが同じ値を設定できるようにする（実測 2026-10-25）。
+    /// 小さい文字で表示されるのを避けるため、ホストが同じ値を設定できるようにする。
     /// </remarks>
     public double TextFontSize
     {
@@ -577,7 +577,7 @@ public sealed class ColorSelectorControl : Grid
     private void ApplyColor(string? value, bool raiseChanged)
     {
         // **利用者が付けた色名も入力として受け付ける**: 入力欄にはその名前（例: 「黒」）が出るため、
-        // 貼り付けたときに無効と表示されるのは矛盾する（実測 2026-11-23）。 解決の規則は
+        // 貼り付けたときに無効と表示されるのは矛盾する。 解決の規則は
         // コア（ColorString.TryParseWithAliases）が単一所有する。
         var normalized = ColorString.ToArgbHex(value, ResolveCustomNameValue);
         var isValid = ColorValidation.IsValid(value, ResolveCustomNameValue);
@@ -820,7 +820,7 @@ public sealed class ColorSelectorControl : Grid
     /// <remarks>
     /// <b>標準の一覧を開かせない</b>: コンボボックスは入力を処理する前に <c>MouseDown</c> を通知するため、<br/>
     /// ここで <see cref="MouseEventArgs.Handled"/> を立てると標準の開閉が行われない（開いてから閉じる方式は
-    /// 開閉が往復して一覧が出ない。 AvaloniaUI 版の実測 2026-11-17）。<br/>
+    /// 開閉が往復して一覧が出ない。 AvaloniaUI 版の）。<br/>
     /// <b>右端の展開ボタンの範囲だけを自前で扱う</b>: 文字を扱う左側は標準の入力のまま残す。<br/>
     /// <b>表示は入力の処理の後へ回す</b>: 押下の処理中に開くと、同じ押下で閉じ直されることがある。
     /// </remarks>
@@ -944,12 +944,12 @@ public sealed class ColorSelectorControl : Grid
         _body.Clear();
 
         // 幅は**タブと中身を作る前に決める**（枠・タブの行・一覧の内容のうち最も広いもの）。
-        // 決めずに置くとタブの行だけが広がり、スクロール バーがポップアップの途中に出る（実測 2026-11-17）
+        // 決めずに置くとタブの行だけが広がり、スクロール バーがポップアップの途中に出る
         _listWidth = ResolveFlyoutWidth(tabs);
         _body.Width = tabs.Count == 0 ? double.NaN : _listWidth;
 
         // タブは**均等な列**へ並べる（幅を決めるのは列。 幅を固定すると、数が多いときに
-        // ポップアップからはみ出して横スクロールが出る。 実測 2026-11-17）
+        // ポップアップからはみ出して横スクロールが出る）
         ConfigureTabStrip(tabs.Count);
 
         for (var i = 0; i < tabs.Count; i++)
@@ -994,7 +994,7 @@ public sealed class ColorSelectorControl : Grid
     /// <param name="count">タブの数。</param>
     /// <remarks>
     /// <b>幅は列が決める</b>: 列を等分にすると、タブが増えても行の幅は変わらず、ポップアップからはみ出さない
-    /// （幅を固定すると横スクロールが出る。 実測 2026-11-17）。<br/>
+    /// （幅を固定すると横スクロールが出る）。<br/>
     /// <b>列の上限は 1 つ分の幅</b>: 文言の実寸は詰めた幅より広くなり得る（MewUI の <see cref="TextBlock"/> は
     /// 折り返さない文字を実寸で測る）。 上限が無いと、列が文言の幅まで広がって行がポップアップからはみ出す。
     /// </remarks>
@@ -1105,7 +1105,7 @@ public sealed class ColorSelectorControl : Grid
     /// <returns>一覧。</returns>
     /// <remarks>
     /// <b>幅をそろえる</b>: 一覧を内容の幅のまま置くと、スクロール バーがポップアップの途中に出る
-    /// （タブの行だけが広いとき。 実測 2026-11-17）。 一覧はポップアップの幅いっぱいにする。
+    /// （タブの行だけが広いとき）。 一覧はポップアップの幅いっぱいにする。
     /// </remarks>
     private ListBox CreateColorList(ColorSelectorTabSpec tab, double width)
     {
@@ -1273,8 +1273,7 @@ public sealed class ColorSelectorControl : Grid
         }
 
         // **ピッカーのタブは「一覧を閉じずに候補を開く」ボタンとして扱う**: タブを切り替えると
-        // 代表色が消えて選べなくなるため、**タブは代表色のまま**にしてピッカーの候補だけを開く
-        // （実測 2026-11-22: ColorPicker だけのタブになった、との指摘）。
+        // 代表色が消えて選べなくなるため、**タブは代表色のまま**にしてピッカーの候補だけを開く。
         if (index >= 0 && index < _tabs.Count && _tabs[index].IsPicker)
         {
             var custom = _tabs.FindIndex(static tab => !tab.IsPicker);
@@ -1310,7 +1309,7 @@ public sealed class ColorSelectorControl : Grid
         }
 
         // **一覧を閉じてからピッカーを開く**: 2 つのポップアップを重ねると、後から開いた側が
-        // 入力を受け取れず**操作できなくなる**（実測 2026-11-23）。 一覧は閉じ、ピッカーを
+        // 入力を受け取れず**操作できなくなる**。 一覧は閉じ、ピッカーを
         // 閉じたときに代表色のタブで開き直す（<see cref="WatchPickerClosed"/>）。
         _popup.Close();
         _picker.IsDropDownOpen = true;
@@ -1331,10 +1330,10 @@ public sealed class ColorSelectorControl : Grid
     /// <param name="pickerTabIndex">開いたカラーピッカーのタブの位置。</param>
     /// <remarks>
     /// <b>一覧はピッカーの間だけ閉じる</b>: 2 つのポップアップを重ねると上のポップアップが入力を奪って
-    /// 操作できなくなるため、重ねない（実測 2026-11-23）。 ピッカーを閉じたら代表色のタブで
+    /// 操作できなくなるため、重ねない。 ピッカーを閉じたら代表色のタブで
     /// 一覧を開き直すため、**代表色はいつでも選べます**。<br/>
     /// <b>待つのはタイマーで行う</b>: 閉じた通知が無いため状態を見ますが、`BeginInvoke` の自己再投入で
-    /// 見ると UI スレッドが空かず**アプリが固まります**（実測 2026-11-23: ピッカーを出すと操作できなくなった）。
+    /// 見ると UI スレッドが空かず**アプリが固まります**。
     /// タイマーなら待っている間に描画と入力が回ります。
     /// </remarks>
     private void WatchPickerClosed(int pickerTabIndex)
@@ -1390,9 +1389,9 @@ public sealed class ColorSelectorControl : Grid
     /// <returns>タブ（<see cref="ToggleButton"/>）。</returns>
     /// <remarks>
     /// <b>幅は指定しない</b>: タブの行は均等な列へ並べるため、幅は列が決める（幅を固定すると
-    /// タブが多いときにポップアップからはみ出して横スクロールが出る。 実測 2026-11-17）。<br/>
-    /// <b>文言は省略記号で切る</b>: 詰めたときに文字が途中で切れて読めなくなるのを防ぐ
-    /// （実測 2026-11-17: 「ColorPicker」が「ColorPicke」になった）。 MewUI の <see cref="TextBlock"/> は
+    /// タブが多いときにポップアップからはみ出して横スクロールが出る）。<br/>
+    /// <b>文言は省略記号で切る</b>: 詰めたときに文字が途中で切れて読めなくなるのを防ぐ。
+    /// MewUI の <see cref="TextBlock"/> は
     /// 折り返さない文字を実寸で測るため、**横いっぱいに広げて**切る幅を配置で決めさせ、文字は中央へ寄せる。
     /// </remarks>
     private static ToggleButton CreateCategoryTab(string text) => new ToggleButton
@@ -1425,10 +1424,10 @@ public sealed class ColorSelectorControl : Grid
     /// <returns>幅（DIP）。</returns>
     /// <remarks>
     /// <b>タブの行も幅に含める</b>: 含めないと、タブの行だけが広がって一覧（とスクロール バー）が
-    /// ポップアップの途中で切れる（実測 2026-11-17）。<br/>
+    /// ポップアップの途中で切れる。<br/>
     /// <b>カラーピッカーのタブは中身が自分の幅を持つため含めない</b>（開いたときに広がる）。<br/>
     /// <b>上限は「タブを最小の幅で並べた行」までは広げる</b>: 上限で切ると、タブが多いときに
-    /// 最後のタブが欠ける（実測 2026-11-17: 14 個で「ColorPicker」が欠けた）。 MewUI のポップアップは
+    /// 最後のタブが欠ける。 MewUI のポップアップは
     /// 中身の幅で測って作業領域へ寄せるため、枠より広くても切れない。<br/>
     /// 測る処理は切り出し、ウィンドウを持たない単体テストでも計算を検証できるようにする。
     /// </remarks>
@@ -1493,7 +1492,7 @@ public sealed class ColorSelectorControl : Grid
     /// <returns>内容の幅（DIP）。 測れない場合は 0。</returns>
     /// <remarks>
     /// <b>画面へ出ていない間（アプリ実行前・ヘッドレス）は測らない</b>: 文字の測定は描画のバックエンドを
-    /// 要求するため、ここで測ると生成そのものが失敗する（実測 2026-11-02）。<br/>
+    /// 要求するため、ここで測ると生成そのものが失敗する。<br/>
     /// <b>行は実際のテンプレートで測る</b>: 固定値だと文字サイズや文言を変えたときに幅が追随しない。
     /// </remarks>
     private static double MeasureListContentWidth(IReadOnlyList<ColorSelectorItem> entries)
@@ -1521,7 +1520,7 @@ public sealed class ColorSelectorControl : Grid
     /// <remarks>
     /// <b>MewUI のポップアップは配置できる領域の幅で測る</b>（クライアント領域。 <c>Popup.Place</c>）。
     /// 上限が無いと、タブが多いときにポップアップが右へはみ出して切れる（AvaloniaUI のフライアウトは
-    /// 既定の最大幅 480 DIP で切れる。 実測 2026-11-17）。
+    /// 既定の最大幅 480 DIP で切れる）。
     /// </remarks>
     private double PopupMaxWidth
         => FindVisualRoot() is Window window
@@ -1711,7 +1710,7 @@ public sealed class ColorSelectorControl : Grid
     /// <remarks>
     /// <b>表示名と適用値は別である</b>: テーマの色は表示名（<c>テーマ: 背景</c>）と適用値（<c>#FFF7F8FA</c>）が異なり、<br/>
     /// 色名は両者が同じである。 行の文字には必ず表示名を書き、四角の色は適用値から解決する<br/>
-    /// （適用値を書くとテーマの色だけ 16 進の文字列が並び、他 UI と表記が変わる。 実測 2026-11-02）。
+    /// （適用値を書くとテーマの色だけ 16 進の文字列が並び、他 UI と表記が変わる）。
     /// </remarks>
     private static void ApplyItemToRow(FrameworkElement view, ColorSelectorItem item)
     {

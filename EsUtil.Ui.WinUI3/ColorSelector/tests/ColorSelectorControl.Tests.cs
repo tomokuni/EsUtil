@@ -422,7 +422,7 @@ public class ColorSelectorControlTests
 
     /// <summary>一覧の幅がタブの行の幅にそろうことを検証する。</summary>
     /// <remarks>
-    /// タブの行だけが広いと、一覧（とスクロール バー）がフライアウトの途中で切れる（実測 2026-11-17）。<br/>
+    /// タブの行だけが広いと、一覧（とスクロール バー）がフライアウトの途中で切れる。<br/>
     /// 一覧はフライアウトの幅いっぱいに置く。
     /// </remarks>
     [Fact]
@@ -462,7 +462,7 @@ public class ColorSelectorControlTests
     /// <summary>タブが一覧の幅を等分して収まる（横スクロールが出ない）ことを検証する。</summary>
     /// <remarks>
     /// タブは一覧の幅を等分した列（星の列）へ並べる。 幅を固定すると、5 つのときに一覧の幅（440）を
-    /// 超えて横スクロールが出る（利用者の報告 2026-11-18）。
+    /// 超えて横スクロールが出る。
     /// </remarks>
     [Fact]
     internal void タブは一覧の幅を等分して収まる()
@@ -485,7 +485,7 @@ public class ColorSelectorControlTests
     }
 
     /// <summary>一覧の幅がフライアウトの上限で止まることを検証する。</summary>
-    /// <remarks>上限を超えると右端（最後のタブ）が切れる（実測 2026-11-17）。</remarks>
+    /// <remarks>上限を超えると右端（最後のタブ）が切れる。</remarks>
     [Fact]
     internal void 一覧の幅はフライアウトの上限で止まる()
     {

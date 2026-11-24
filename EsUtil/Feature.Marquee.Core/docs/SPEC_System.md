@@ -213,4 +213,4 @@ dotnet test EsUtil/Feature.Marquee.Core/tests/EsUtil.Feature.Marquee.Core.Tests.
 
 `MarqueeCore` は**マーキー選択**（ドラッグで矩形の範囲を指定する操作）の標準語に由来する名前です（Photoshop の矩形マーキー、Qt の `QRubberBand`、Windows Explorer のラバーバンド選択が同じ操作）。
 
-用語の由来と型名の衝突確認の規則は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有します。 本コアの型は WinForms / WinUI3 / Avalonia / MewUI / .NET 10 BCL のいずれとも型名が衝突しません（実測）。 UI を追加するときに注意するのは型名ではなく、色型とコントロール基底の境界変換です。
+用語の由来と型名の衝突確認の規則は [`.github/命名規約.md`](../../../.github/命名規約.md) が単一所有します。 本コアの型は WinForms / WinUI3 / Avalonia / MewUI / .NET 10 BCL のいずれとも型名が衝突しません。 UI を追加するときに注意するのは型名ではなく、色型とコントロール基底の境界変換です。

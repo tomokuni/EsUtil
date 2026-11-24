@@ -119,7 +119,7 @@ gh release list --limit 6
 | `dev` への push | なし | 手元の `verify.ps1` と、`main` 向け Pull Request の検証で足りる |
 | `main` 向け Pull Request | フル検証（`build.yml`。 必須チェックは `ci`） | **唯一のゲート**。 最新の `main` とマージしたツリーを検証する（配布物・パッケージングの検証・SBOM は `pack.yml` が持つ。 §3.2） |
 | `main` 向け Pull Request | **`dry-run` を自動実行**（`release.yml`。 版・タグ・ブランチ・CHANGELOG の検証だけ） | マージ後に手動で dry-run を回さない（公開物は `release` の実行で作り、そのまま公開する） |
-| `main` 向け Pull Request（**lock が変わりうるファイルを触ったときだけ**） | `Locks`（`locks.yml`。 `packages.lock.json` の自動更新と `dev` への自動コミット） | 版やパッケージを変えると lock が古くなり `NU1004` で落ちるため。 文書・コードだけの Pull Request では**ジョブを起動しない**（実測 2026-11-06: 1 回 110 秒） |
+| `main` 向け Pull Request（**lock が変わりうるファイルを触ったときだけ**） | `Locks`（`locks.yml`。 `packages.lock.json` の自動更新と `dev` への自動コミット） | 版やパッケージを変えると lock が古くなり `NU1004` で落ちるため。 文書・コードだけの Pull Request では**ジョブを起動しない** |
 | `main` への push（マージ） | なし | Pull Request と同じツリーのため重複する（最新の `main` への追随が前提） |
 | `workflow_dispatch`（`build.yml`） | フル検証（配布物の作成と検証・SBOM を含む） | 任意のブランチを今すぐ確かめたいとき |
 | Release `dry-run`（手動） | 版・タグ・ブランチ・CHANGELOG の検証 | `dev` などで先に確かめたいとき（配布物は作らない。 最も軽い） |
@@ -152,11 +152,11 @@ flowchart LR
 
 **パッケージング（nuget の正しさ）の検証は `pack.yml` が持ちます**（`build.yml` の `package` ジョブと `release.yml` の `pack` ジョブの両方。 **`ci` の needs には入れません**＝必須チェックを遅らせない）。 検証は**全パッケージが揃ったフィード**を要求するため、変更の無かったソリューションのパッケージはそのジョブで 1 本ずつ作ります（ビルドし直すのはその分だけ）。 検証は `verifyPackaging.ps1 -SkipPack -Feed artifacts -Version <版>`（同封物・nuspec の依存・パッケージ参照での復元/ビルド/起動）。 **パッケージへ影響する変更のときだけ**実行します（workflow や `.editorconfig` の変更では実行しない）。 **SBOM のツールの版（`.config/dotnet-tools.json`）や配布する単位（`.github/release-config.json`）だけの変更でも実行します**（検証するソリューションが無いため、`pack.yml` が全ソリューションをこの実行で作ります。 そのとき `verify` はスキップされるので、`package` の条件は既定の `success()` に任せず「成功またはスキップ」を明示しています）。
 
-**`pack.yml` は NuGet のグローバル パッケージ フォルダをキャッシュしません**（同じ ID・版の EsUtil パッケージが残っていると、検証の復元が**別のビルドのパッケージ**を再利用し、新しい nupkg の欠陥を検出できない。 実測 2026-11-06。 復元は 40 秒程度であり、正しさと引き換えにしない）。
+**`pack.yml` は NuGet のグローバル パッケージ フォルダをキャッシュしません**（同じ ID・版の EsUtil パッケージが残っていると、検証の復元が**別のビルドのパッケージ**を再利用し、新しい nupkg の欠陥を検出できない。 復元は 40 秒程度であり、正しさと引き換えにしない）。
 
-**`pack` はソリューションを 1 本ずつ実行します**（UI ソリューションは共通基盤を `ProjectReference` で参照するが共通基盤をソリューションへ含まないため、同時に動かすと共有の `obj/Release` を奪い合って `GenerateDepsFile` が失敗する。 実測 2026-11-05: CI で再現）。 手元の実測でも、直列が 19 秒であるのに対し、ソリューションごとに出力を隔離した並列は参照先の再ビルドが増えて遅い。 `build.yml` の `verify` はマトリクスで分かれているため、**この制約は `pack.yml` の `pack` ジョブに当てはまります**。
+**`pack` はソリューションを 1 本ずつ実行します**（UI ソリューションは共通基盤を `ProjectReference` で参照するが共通基盤をソリューションへ含まないため、同時に動かすと共有の `obj/Release` を奪い合って `GenerateDepsFile` が失敗する）。 手元の実測でも、直列が 19 秒であるのに対し、ソリューションごとに出力を隔離した並列は参照先の再ビルドが増えて遅い。 `build.yml` の `verify` はマトリクスで分かれているため、**この制約は `pack.yml` の `pack` ジョブに当てはまります**。
 
-**SBOM は `pack.yml` がソリューションごとに 1 ファイル作ります**（`generateSbom.ps1`）。 **復元は 1 回だけ直列に行い、解析は 5 本を並列に**走らせます（ツールの復元も 1 回だけ）。 **並列のまま復元させません**: 共有プロジェクトの `obj/` を取り合って失敗し、復元の費用も増えます（実測 2026-11-05: 5 本がそれぞれ復元し直して 140 秒）。 解析は `-SkipPackageRestore`（`--disable-package-restore`）で行います（実測 2026-11-06: 1 本あたり復元込み 11.8 秒 → 復元なし 1.0 秒）。 復元が無いと components が 0 件になって失敗します（`generateSbom.ps1` が 0 件を不合格にする）。
+**SBOM は `pack.yml` がソリューションごとに 1 ファイル作ります**（`generateSbom.ps1`）。 **復元は 1 回だけ直列に行い、解析は 5 本を並列に**走らせます（ツールの復元も 1 回だけ）。 **並列のまま復元させません**: 共有プロジェクトの `obj/` を取り合って失敗し、復元の費用も増えます。 解析は `-SkipPackageRestore`（`--disable-package-restore`）で行います。 復元が無いと components が 0 件になって失敗します（`generateSbom.ps1` が 0 件を不合格にする）。
 
 **公開するバイト列は、その実行で作って検証したものだけです**（別の実行の成果物を探しません）。 公開の直前に次を確かめます（[`workflows/release.yml`](workflows/release.yml)）。
 
@@ -221,7 +221,7 @@ pwsh -NoProfile -File .github/scripts/generateSbom.ps1 -Output sbom -SkipPackage
 
 [`dependabot.yml`](dependabot.yml) が GitHub Actions と NuGet パッケージの更新を Pull Request で通知します。
 
-- **NuGet の対象は版の単一所有（`Directory.Packages.props`）のフォルダだけ**（`directory: "/"`）。 版は Central Package Management で 1 ファイルが持つため、プロジェクトごとに列挙する必要はありません。 列挙すると **Dependabot がフォルダごとに依存を解決して実行が長引きます**（実測 2026-11-02: 85 フォルダで 12〜56 分。 時間切れで Pull Request が作られないことがありました）。 登録漏れは `verify.ps1` が不合格にします（規則は [`検証手順.md`](検証手順.md) §8）。
+- **NuGet の対象は版の単一所有（`Directory.Packages.props`）のフォルダだけ**（`directory: "/"`）。 版は Central Package Management で 1 ファイルが持つため、プロジェクトごとに列挙する必要はありません。 列挙すると **Dependabot がフォルダごとに依存を解決して実行が長引きます**。 登録漏れは `verify.ps1` が不合格にします（規則は [`検証手順.md`](検証手順.md) §8）。
 - **メジャー更新の一部は自動で作らない**（`xunit.v3` / `xunit.analyzers`）: テストの書き方と実行基盤が変わるため、人が判断します。
 - **MewUI（0.x）は固定して手動で更新する**: 破壊的変更でビルドが通らなくなるためです。
 - **lock の更新は CI が行います**（[`workflows/locks.yml`](workflows/locks.yml)）。 `dev` からの Pull Request で `packages.lock.json` が古ければ、bot が `.github/scripts/updateLocks.ps1` を実行し、**`dev` へ自動でコミット**します（開発者の手作業はありません）。 **走るのは lock が変わりうるファイルを触った Pull Request だけ**です（文書だけの Pull Request では走りません）。 対象は**配布するプロジェクト（`src`）だけ**です（テスト・サンプルは lock を持たない。 版を上げるたびに 44 ファイルの機械的な差分が出るため。 [`ビルド設定規約.md`](ビルド設定規約.md) §8）。

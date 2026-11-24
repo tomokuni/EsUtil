@@ -37,7 +37,7 @@ public sealed class MarqueeRenderedEventArgs(DrawList overlay, MarqueeDrawPlan c
     /// 追加した文字は計画の層（装飾・ハンドル・始点マーカー）と <see cref="AddRect"/> の矩形より前面、<br/>
     /// コントロールのラベルより背面へ置かれる（文字の後ろへ矩形を敷くときは、先に <see cref="AddRect"/> を呼ぶ）。<br/>
     /// <b>描画 API を公開しない代わりに文字の手段を用意する</b>: 4 UI のサンプルが同じ付加情報（操作ガイド）を<br/>
-    /// 出せるようにするため（WinUI 3 だけが出せない状態を解消する。 実測 2026-11-02）。
+    /// 出せるようにするため（WinUI 3 だけが出せない状態を解消する）。
     /// </remarks>
     public void AddText(double x, double y, string text, double fontSize, uint argb)
     {

@@ -182,7 +182,7 @@ public partial class MarqueeControl
 
         // 寸法は「計画の実寸以上・文字に合わせて伸びる」にする
         // （計画の実寸は測定 API の値であり、TextBlock が実際に描く幅・高さより小さいことがある。
-        //  固定すると文字の右端・下端が欠ける。 実測 2026-10-31）
+        //  固定すると文字の右端・下端が欠ける）
         border.Width = double.NaN;
         border.Height = double.NaN;
         border.MinWidth = placement.DipRect.Width;

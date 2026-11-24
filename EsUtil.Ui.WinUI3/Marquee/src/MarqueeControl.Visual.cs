@@ -109,7 +109,7 @@ public sealed partial class MarqueeControl
     /// <remarks>
     /// <b>サイズが変わったら解決し直す</b>: レイアウト前（<c>ActualWidth</c> = 0）に解決した計画は
     /// 幅・高さが 0 であり、それを保持したままだと**暗転も枠も描かれない**
-    /// （マウスを動かして初めて暗くなる。 実測 2026-10-25）。
+    /// （マウスを動かして初めて暗くなる）。
     /// </remarks>
     private MarqueeDrawPlan CurrentFrame(EsSize clientSize)
         => _frame is { } cached && _frameSize == clientSize

@@ -101,7 +101,7 @@ public static class SampleSettings
             FontSize = FontSize,
 
             // 行の高さを他の編集 UI（コンボ ボックス・数値入力）へ揃える
-            // （テーマの既定ではスライダーだけ高さが大きく、行の間隔が不揃いになる。 実測 2026-10-31: 50.4 対 32）
+            // （テーマの既定ではスライダーだけ高さが大きく、行の間隔が不揃いになる）
             Height = RowHeight,
         };
         slider.PropertyChanged += (_, e) =>

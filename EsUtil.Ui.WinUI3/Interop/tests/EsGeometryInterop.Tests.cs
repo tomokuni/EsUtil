@@ -31,7 +31,7 @@ public class EsGeometryInteropTests
     [Fact]
     internal void EsPoint_内部の記憶域はfloatのため小数は丸められる()
     {
-        // WinUI 3 の Point は公開プロパティが double だが、記憶域は float である（実測）。
+        // WinUI 3 の Point は公開プロパティが double だが、記憶域は float である。
         // 往復では float の有効桁までしか戻らない（利用側はこの前提で座標を扱う）。
         var back = new EsPoint(0.1, 0.2).ToWinUIPoint().ToEsPoint();
 

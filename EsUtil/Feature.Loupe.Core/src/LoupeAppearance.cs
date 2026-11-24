@@ -148,7 +148,7 @@ public sealed record LoupeAppearance
     /// <value>枠線の太さ（DIP）。 既定は 2。 設定時は 1〜64 へ補正される。</value>
     /// <remarks>
     /// 安全域への補正は本型が単一所有する（設定の経路によらず範囲内の値だけが保持される）。<br/>
-    /// 数値スキーマ（ <c>LoupeCore.Limits</c>）はコアが単一所有し、本型が参照する。<br/>
+    /// 数値スキーマ（<c>LoupeCore.Limits</c>）はコアが単一所有し、本型が参照する。<br/>
     /// 物理ピクセルへの換算は <see cref="LoupePresenter.ResolveDrawPlan"/> が <c>DpiScaler.ScaleToPixel</c> へ委譲する。
     /// </remarks>
     public int BorderThickness

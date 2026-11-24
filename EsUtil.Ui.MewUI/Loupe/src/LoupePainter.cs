@@ -36,8 +36,7 @@ internal static class LoupePainter
     /// 描くかどうかの判断は本クラス（描画側）が行う（色のアルファを「描かない」の代用にしない）。<br/>
     /// ペーストボード（描画面の消去）と拡大画像は表示可否を持たず、常に描く。<br/>
     /// <b>結び付けを呼び出し元から受け取る理由</b>: 共有の結び付けは最後に変換した 1 枚しか保持しないため、
-    /// ソースの異なるルーペを同じフレームで描くと<b>毎フレーム両方の画像を作り直す</b>（実測 2026-10-30: ポインターを
-    /// 動かすと 1 移動あたり約 1.7 回の全面変換が走り、追従が引っかかった）。
+    /// ソースの異なるルーペを同じフレームで描くと<b>毎フレーム両方の画像を作り直す</b>。
     /// </remarks>
     public static void Paint(
         IGraphicsContext context, EsReadOnlyBitmap? source, in LoupeDrawPlan plan, MewImageBinding? binding = null)
@@ -54,7 +53,7 @@ internal static class LoupePainter
             {
                 case LoupeDrawLayer.Pasteboard:
                     // 描画面（ルーペの矩形）だけを塗る。 コンテキスト全体を消す Clear は使わない
-                    // （Clear はウィンドウの描画面全体を消すため、背後の撮影画像まで消える。 実測 2026-10-25）
+                    // （Clear はウィンドウの描画面全体を消すため、背後の撮影画像まで消える）
                     MewFill.Rect(context, plan.ClientPixelRect, appearance.ResolvePasteboardColor());
                     break;
 

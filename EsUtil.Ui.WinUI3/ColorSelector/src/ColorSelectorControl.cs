@@ -59,7 +59,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// 一覧が画面いっぱいに広がるのを防ぐ。<br/>
     /// WinUI のフライアウトの既定の最大幅（<c>FlyoutThemeMaxWidth</c> = 456）は、この幅に余白（24）を
     /// 足すと超えて右端のタブが切れる。 <see cref="CreateListPresenterStyle"/> が
-    /// <see cref="FlyoutPresenter"/> の幅の上限を外し、この値で止める（実測 2026-11-17）。
+    /// <see cref="FlyoutPresenter"/> の幅の上限を外し、この値で止める。
     /// </remarks>
     private const double FlyoutMaxContentWidth = 440;
 
@@ -76,14 +76,14 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <remarks>
     /// <b>中身の実寸に合わせる</b>: WinUI 3 の <c>ColorPicker</c> は固定幅の格子で描くため、
     /// これより広くすると**右側に余白が残り**（380 DIP では 68 DIP、344 DIP でも 32 DIP）、
-    /// 狭くすると成分の入力欄が見切れます（実測 2026-11-22 / 2026-11-23）。
+    /// 狭くすると成分の入力欄が見切れます。
     /// 実測値（<c>DesiredSize.Width</c>）が 312 DIP です。
     /// </remarks>
     private const double PickerWidth = 312;
 
     /// <summary>操作ボタン（OK / キャンセル）の最小幅（DIP）。</summary>
     /// <remarks>
-    /// <b>幅を固定しない</b>: 固定すると「キャンセル」の文字が切れる（実測 2026-11-23）。
+    /// <b>幅を固定しない</b>: 固定すると「キャンセル」の文字が切れる。
     /// 最小幅だけを決め、文言が長ければボタンが広がるようにします。
     /// </remarks>
     private const double ActionButtonMinWidth = 70;
@@ -203,8 +203,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <summary>入力欄へ表示のために書いた文字（この文字の通知は利用者の入力として扱わない）。</summary>
     /// <remarks>
     /// コンボボックスの <c>Text</c> は編集欄へ遅れて伝わるため、<see cref="_applying"/> の間だけでは
-    /// プログラムからの変更を弾けない（実測 2026-11-17: 起動直後に表示文字が入力として処理され、
-    /// テーマの色の識別子が外れた）。 表示した文字と同じ通知は入力として扱わない。
+    /// プログラムからの変更を弾けない。 表示した文字と同じ通知は入力として扱わない。
     /// </remarks>
     private string? _displayText;
 
@@ -542,7 +541,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <returns>一覧の幅（DIP）。</returns>
     /// <remarks>
     /// <b>タブの行も幅に含める</b>: 含めないと、タブの行だけが広がって一覧（とスクロール バー）が
-    /// フライアウトの途中で切れる（実測 2026-11-17）。<br/>
+    /// フライアウトの途中で切れる。<br/>
     /// <b>枠の幅は変えない</b>: 一覧を開くたびに枠が広がると、開閉のたびに周りのレイアウトが動く。
     /// 一覧（ポップアップ）だけを広げる（コントロールの幅・最小幅は触らない）。<br/>
     /// <b>上限で止める</b>: フライアウトの既定の最大幅を超えると右端（タブ）が切れる。
@@ -597,7 +596,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <remarks>
     /// <b>タブは一覧の幅からはみ出さない</b>: 幅を指定せず、等分した列（星の列）へ並べるため、
     /// <c>count × 本値 + 間隔 × (count - 1)</c> は一覧の幅と一致する（横スクロールは出ない。 幅を固定すると
-    /// 5 つのときに一覧の幅を超える。 利用者の報告 2026-11-18）。 狭くなった分は文言を省略記号で切る。
+    /// 5 つのときに一覧の幅を超える）。 狭くなった分は文言を省略記号で切る。
     /// </remarks>
     internal static double CalculateFitTabWidth(double width, int count)
         => count <= 0 ? 0 : (width - ((count - 1) * TabSpacing)) / count;
@@ -817,7 +816,7 @@ public sealed partial class ColorSelectorControl : UserControl
         var showTabStrip = ShouldShowTabStrip(tabs.Count, ShowTabTitles);
 
         // 一覧の幅は**開く前に決める**（枠・タブの行・中身のうち最も広いもの）。
-        // 決めずに置くとタブの行だけが広がり、スクロール バーがフライアウトの途中に出る（実測 2026-11-17）
+        // 決めずに置くとタブの行だけが広がり、スクロール バーがフライアウトの途中に出る
         var width = ResolveFlyoutWidth(ActualWidth, showTabStrip, tabs.Count, MeasureWidestTabContent(tabs));
 
         // タブは等分した列へ並べる（幅を固定すると、数が多いときに一覧の幅を超えて横スクロールが出る）
@@ -904,7 +903,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <returns>一覧。</returns>
     /// <remarks>
     /// <b>幅をそろえる</b>: 一覧を内容の幅のまま置くと、スクロール バーがフライアウトの途中に出る
-    /// （タブの行だけが広いとき。 実測 2026-11-17）。 一覧はフライアウトの幅いっぱいにする。
+    /// （タブの行だけが広いとき）。 一覧はフライアウトの幅いっぱいにする。
     /// </remarks>
     private FrameworkElement CreateColorList(ColorSelectorTabSpec tab, Flyout flyout, double width)
     {
@@ -1121,7 +1120,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <param name="text">ボタンの表示テキスト。</param>
     /// <returns>最小幅と中央揃えを揃えたボタン。</returns>
     /// <remarks>
-    /// <b>幅を固定しない</b>: 固定すると「キャンセル」の文字が切れる（実測 2026-11-23）。
+    /// <b>幅を固定しない</b>: 固定すると「キャンセル」の文字が切れる。
     /// 最小幅だけを決め、文字が収まる幅はボタン自身に決めさせます。
     /// </remarks>
     private static Button CreateActionButton(string text) => new()
@@ -1137,7 +1136,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <remarks>
     /// 片方だけが選ばれるよう、切り替えは一覧を開く処理の <c>ApplyTab</c> が両方の状態を書く。<br/>
     /// <b>幅は指定しない</b>: タブの行は一覧の幅を等分した列へ並べるため、幅は列が決める（幅を固定すると
-    /// タブが多いときにフライアウトからはみ出して横スクロールが出る。 利用者の報告 2026-11-18）。<br/>
+    /// タブが多いときにフライアウトからはみ出して横スクロールが出る）。<br/>
     /// <b>文言は省略記号で切る</b>: 詰めたときに文字が途中で切れて読めなくなるのを防ぐ。 左右の余白を
     /// 小さくして、文字の入る幅を稼ぐ。
     /// </remarks>
@@ -1159,9 +1158,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <returns>タブの行。</returns>
     /// <remarks>
     /// <b>幅は列に任せる</b>: 列を等分（星の列）にすると、タブが増えても行の幅は一覧の幅のままで、
-    /// 横スクロールが出ない。 幅を固定すると 5 つのときに一覧の幅を超える（利用者の報告 2026-11-18）。<br/>
-    /// 実測 2026-11-18: 5 つ（代表色パレット / 代表色 / テーマカラー / 色名 / ColorPicker）で各 84.8 DIP
-    /// （一覧の幅 440 の等分）になり、横スクロール バーは出なかった。
+    /// 横スクロールが出ない。 幅を固定すると 5 つのときに一覧の幅を超える。<br/>
     /// </remarks>
     private static Grid CreateTabStrip(int count)
     {
@@ -1184,7 +1181,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// 一覧は <see cref="ListMaxHeight"/> で自分がスクロールし、格子はスクロールしないため、外側のスクロールを切る。<br/>
     /// <b>横にもスクロールさせない</b>: タブは一覧の幅を等分した列へ並ぶため、横スクロールは要らない。
     /// 既定の <c>HorizontalScrollMode</c> = Auto のままだと、行がわずかでも超えたときに横スクロール バーが
-    /// 出て高さを奪う（利用者の報告 2026-11-18）。<br/>
+    /// 出て高さを奪う。<br/>
     /// <b>幅の上限も外す</b>: 既定の <c>FlyoutThemeMaxWidth</c>（456）は、決めた一覧の幅
     /// （<see cref="FlyoutMaxContentWidth"/> = 440）にフライアウトの余白を足すと超えてタブが切れる。
     /// 中身の幅は <see cref="ResolveFlyoutWidth"/> が決めるため、ここでは制限しない。
@@ -1212,7 +1209,7 @@ public sealed partial class ColorSelectorControl : UserControl
     /// <b>標準の一覧は出さない</b>: 一覧はタブ（カスタム / テーマカラー / 色名 / ColorPicker）で切り替えるため、
     /// コンボボックスが持つ一覧は開いた同じ処理の中で閉じる（処理を抜ける前に閉じるため、標準の一覧は一瞬も見えない）。<br/>
     /// <b>一覧は次の入力処理で出す</b>: 開いた処理の中でフライアウトを出すと、直後の標準の一覧の後始末に巻き込まれて
-    /// 閉じられることがある（AvaloniaUI 版で開閉が往復して一覧が出なかった。 実測 2026-11-17）。 WinUI 3 の
+    /// 閉じられることがある（AvaloniaUI 版で開閉が往復して一覧が出なかった）。 WinUI 3 の
     /// <see cref="ComboBox"/> は展開ボタンの押下を確実に止める手段が無いため、開いた直後に閉じ、
     /// <c>DispatcherQueue</c> で 1 つ後の処理としてフライアウトを出す。
     /// </remarks>
@@ -1292,7 +1289,7 @@ public sealed partial class ColorSelectorControl : UserControl
         _editableBox.LostFocus += OnTextLostFocus;
 
         // テンプレートが作られる前に設定した Text は、フォーカスが無いときの表示（コンボボックスの選択欄）へ
-        // 反映されない（実測 2026-11-17: 初期値の色名が入力欄に出なかった）。 同じ値の再設定では変更通知が
+        // 反映されない。 同じ値の再設定では変更通知が
         // 出ないため、一度空にしてから入れ直す
         _applying = true;
         try
@@ -1443,7 +1440,7 @@ public sealed partial class ColorSelectorControl : UserControl
     private void ApplyColor(string? value, bool raiseChanged)
     {
         // **利用者が付けた色名も入力として受け付ける**: 入力欄にはその名前（例: 「黒」）が出るため、
-        // 貼り付けたときに無効と表示されるのは矛盾する（実測 2026-11-23）。 解決の規則は
+        // 貼り付けたときに無効と表示されるのは矛盾する。 解決の規則は
         // コア（ColorString.TryParseWithAliases）が単一所有する。
         var normalized = ColorString.ToArgbHex(value, ResolveCustomNameValue);
         var state = ColorValidation.Determine(value, ColorValidation.IsValid(value, ResolveCustomNameValue));

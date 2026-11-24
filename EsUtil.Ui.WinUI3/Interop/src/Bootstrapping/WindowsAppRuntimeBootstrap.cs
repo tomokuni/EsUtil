@@ -32,7 +32,7 @@ namespace EsUtil.Ui.WinUI3.Interop.Bootstrapping;
 /// <br/>
 /// <b>Native AOT</b>: Bootstrapper は <c>LibraryImport</c>（ソース生成の P/Invoke）、案内 UI は CsWin32 が生成する
 /// <c>TaskDialogIndirect</c> / <c>MessageBox</c> で呼び、インストーラーの取得は <see cref="HttpClient"/> と
-/// <see cref="Process"/> だけで行う（リフレクションを使わないため、AOT で発行しても動作する。 実測 2026-11-05）。<br/>
+/// <see cref="Process"/> だけで行う（リフレクションを使わないため、AOT で発行しても動作する）。<br/>
 /// <br/>
 /// <b>UI スレッド</b>: 同期版は処理が終わるまで呼び出し元を止める。 UI を表示する前の起動処理で呼ぶか、
 /// 非同期版（<see cref="TryEnsureAvailableAsync"/>）を使う。
@@ -72,8 +72,8 @@ public static partial class WindowsAppRuntimeBootstrap
     /// <remarks>
     /// <b>未指定を検出できるようにする理由</b>: 未指定の場合は本アセンブリのビルド版が下限になる。
     /// アプリが本アセンブリより新しい <c>Microsoft.WindowsAppSDK</c> でビルドされていると、
-    /// <b>アプリのマネージド アセンブリより古いネイティブ ランタイムで初期化が成功</b>し得る
-    /// （実測 2026-11-10: 2.6.5 のアプリが 2.6.4 のランタイムで動き、本文のグリフだけが描かれなかった）。<br/>
+    /// <b>アプリのマネージド アセンブリより古いネイティブ ランタイムで初期化が成功</b>し得る。
+    /// <br/>
     /// アプリは本メソッドで未指定を検出し、<c>[WRN]</c> で記録する（ライブラリはロガーを持たない）。
     /// </remarks>
     public static bool IsRequiredVersionSpecified(WindowsAppRuntimeBootstrapOptions? options = null)
@@ -87,9 +87,7 @@ public static partial class WindowsAppRuntimeBootstrap
     /// アプリが本アセンブリより新しい <c>Microsoft.WindowsAppSDK</c> を使うことは正常である。<br/>
     /// <b>高い方を採る理由</b>: このプロセスには<b>アプリが参照したネイティブ ランタイムが 1 つだけ</b>読み込まれる。
     /// 本アセンブリへ焼き込まれた下限（ビルド時のパッケージの版）だけで初期化すると、
-    /// <b>アプリのマネージド アセンブリより古いネイティブ ランタイムで初期化が成功</b>してしまう
-    /// （実測 2026-11-10: 2.6.5 でビルドしたアプリが 2.6.4 のランタイムで初期化を通り、
-    /// レイアウト・画像・アイコン フォントは正常なまま本文のグリフだけが描かれなかった）。
+    /// <b>アプリのマネージド アセンブリより古いネイティブ ランタイムで初期化が成功</b>してしまう。
     /// 逆に設定が下限より低い場合も、下限を下回るランタイムでは本アセンブリが動かないため下限を使う。
     /// </remarks>
     public static Version GetRequiredVersion(WindowsAppRuntimeBootstrapOptions? options = null)
@@ -342,8 +340,7 @@ public static partial class WindowsAppRuntimeBootstrap
     /// <returns>取得先。 プロセスのアーキテクチャに対応する配布物が無い場合は null。</returns>
     /// <remarks>
     /// 形式は <c>https://aka.ms/windowsappsdk/&lt;major.minor&gt;/latest/windowsappruntimeinstall-&lt;arch&gt;.exe</c> である。<br/>
-    /// <b><c>latest</c> を使う理由</b>: 入手できる最新版を入れれば「要求する版以上」を満たす（実測 2026-11-10:
-    /// <c>2.6/latest/…</c> は <c>2.6/2.6.5/…</c> と同一のファイルへ解決する）。 版を URL へ固定すると、
+    /// <b><c>latest</c> を使う理由</b>: 入手できる最新版を入れれば「要求する版以上」を満たす。 版を URL へ固定すると、
     /// その版の配布が終わったときに導入できなくなる。<br/>
     /// <b>系統は要求する版から決める</b>: 2.x ではブートストラッパーの minor が無視されるため（<c>MddBootstrap.h</c>）、
     /// 導入する系統が要求と食い違わないようにここで揃える。<br/>
@@ -658,7 +655,7 @@ public static partial class WindowsAppRuntimeBootstrap
     /// <returns>ランタイムを同封している場合は true。</returns>
     /// <remarks>
     /// 自己完結の配置はランタイムの本体（<c>Microsoft.WindowsAppRuntime.dll</c>）をアプリのフォルダーへ
-    /// 複製する（フレームワーク依存の配置は複製しない。 実測 2026-11-05）。
+    /// 複製する（フレームワーク依存の配置は複製しない）。
     /// </remarks>
     private static bool IsSelfContained()
         => File.Exists(Path.Combine(AppContext.BaseDirectory, "Microsoft.WindowsAppRuntime.dll"));

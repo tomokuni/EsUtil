@@ -7,7 +7,7 @@ namespace EsUtil.Ui.WinUI3.Thumbnail.Internal;
 /// <summary>影を「4 辺の線形グラデーション」と「4 隅の放射グラデーション」で塗るブラシ一式。</summary>
 /// <remarks>
 /// <b>要素を 8 個にするため</b>: 影の計画は 1 画素の帯（<see cref="IThumbnailShadowPlan.BuildDeviceBands"/>）も<br/>
-/// 返すが、帯を 1 要素ずつ置くと 1 件あたり数百個になる（実測 2026-10-25: 125% の画面で 532 個）。<br/>
+/// 返すが、帯を 1 要素ずつ置くと 1 件あたり数百個になる。<br/>
 /// 31 件の一覧では 16,000 個を超え、初回の描画に 258 ms かかった。 計画が持つ停止点<br/>
 /// （<see cref="IThumbnailShadowPlan.Edges"/> と <see cref="IThumbnailShadowPlan.CornerStops"/>）を<br/>
 /// グラデーション ブラシへ写すと、要素 8 個で同じ濃さの変化になる（実測: 36 ms）。<br/>

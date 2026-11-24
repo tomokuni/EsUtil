@@ -43,7 +43,7 @@ public abstract class DualSourceItemsPanel : Panel
     /// <summary><see cref="SetItems"/> で渡された項目（null は未設定）。</summary>
     /// <remarks>
     /// <b>依存関係プロパティを使わない経路</b>である: WinUI 3 の <c>DependencyProperty</c> は値を WinRT へ渡すため、<br/>
-    /// Native AOT では managed コレクションを保持できず <c>E_INVALIDARG</c> で落ちる（実測 2026-10-24。<c>ビルド設定規約</c> §6.1）。<br/>
+    /// Native AOT では managed コレクションを保持できず <c>E_INVALIDARG</c> で落ちる（<c>ビルド設定規約</c> §6.1）。<br/>
     /// 本フィールドは managed のまま保持するため、AOT でも安全にデータ駆動の子を並べられる。
     /// </remarks>
     private IReadOnlyList<object?>? _items;

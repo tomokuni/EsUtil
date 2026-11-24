@@ -84,7 +84,7 @@ internal sealed partial class LoupeVisualLayer : Canvas
     /// <remarks>
     /// <b>拡大画像の層は自身の大きさで切り取る</b>（<see cref="LoupeImageView"/> が <c>Clip</c> を自分の矩形へ設定する）。<br/>
     /// <c>Canvas</c> の子は既定で要求サイズ 0×0 のため、大きさを与えないと切り取りが常に空になり<br/>
-    /// <b>拡大画像が 1 枚も描かれない</b>（下地の色だけが見える。 実測 2026-10-25）。<br/>
+    /// <b>拡大画像が 1 枚も描かれない</b>（下地の色だけが見える）。<br/>
     /// 図形・追加描画は切り取りを持たないため表示は変わらないが、当たり判定と切り取りの基準を揃えるために同じ大きさを与える。
     /// </remarks>
     private void ApplyLayerSize(double size)

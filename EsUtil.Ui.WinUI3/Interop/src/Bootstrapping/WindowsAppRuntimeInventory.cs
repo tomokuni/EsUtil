@@ -47,7 +47,7 @@ public static class WindowsAppRuntimeInventory
     /// <returns>このプロセスのアーキテクチャで動く版。 1 件も無い（または調べられない）場合は空。</returns>
     /// <remarks>
     /// 列挙は <see cref="PackageManager.FindPackagesForUser(string, string)"/> を使う（パッケージ ID を持たない
-    /// アプリからも実行できる。 実測 2026-11-05）。 版は同じ版が複数あっても 1 件にまとめる。<br/>
+    /// アプリからも実行できる）。 版は同じ版が複数あっても 1 件にまとめる。<br/>
     /// 調べるたびに OS へ問い合わせる（アプリの起動時に 1 回呼ぶ用途を想定し、結果を保持しない）。
     /// </remarks>
     public static IReadOnlyList<Version> GetInstalledVersions()
@@ -129,7 +129,7 @@ public static class WindowsAppRuntimeInventory
     /// 中立のパッケージはどのアーキテクチャでも動く（ランタイムのフレームワーク パッケージは通常は中立ではない）。<br/>
     /// <b>数値で比べる理由</b>: 対象フレームワーク 17763 の射影には <c>ProcessorArchitecture.Arm64</c> と
     /// <c>X86OnArm64</c> が無い（18362 で追加された）。 WinRT の値（<c>X86</c>=0 / <c>Arm</c>=5 / <c>X64</c>=9 /
-    /// <c>Neutral</c>=11 / <c>Arm64</c>=12 / <c>X86OnArm64</c>=14 / <c>Unknown</c>=65535。 実測 2026-11-15）で比べる。
+    /// <c>Neutral</c>=11 / <c>Arm64</c>=12 / <c>X86OnArm64</c>=14 / <c>Unknown</c>=65535）で比べる。
     /// </remarks>
     private static bool IsCompatible(ProcessorArchitecture architecture) => (int)architecture switch
     {
@@ -163,10 +163,10 @@ public static class WindowsAppRuntimeInventory
     /// <remarks>
     /// <b>「入っている版」と「使っている版」は別である</b>: <see cref="GetInstalledVersions"/> はインストール済みの一覧を返すが、
     /// 実際に読み込まれた版はブートストラッパーが選んだ 1 つである。 両者が要求版と食い違うと、
-    /// レイアウトは正常なのに本文のグリフだけ描かれない等の分かりにくい不具合になる（実測 2026-11-10）。<br/>
+    /// レイアウトは正常なのに本文のグリフだけ描かれない等の分かりにくい不具合になる。<br/>
     /// <b>取得方法</b>: 読み込まれた <c>Microsoft.UI.Xaml.dll</c> のパスから求める。 フレームワーク依存の配置では
     /// <c>%ProgramFiles%\WindowsApps\Microsoft.WindowsAppRuntime.&lt;Major&gt;_&lt;版&gt;_&lt;arch&gt;__&lt;publisherId&gt;\</c>
-    /// から読み込まれるため、フォルダー名に版が含まれる（実測 2026-11-10: <c>…\Microsoft.WindowsAppRuntime.2_2.6.5.0_x64__…</c>）。<br/>
+    /// から読み込まれるため、フォルダー名に版が含まれる。<br/>
     /// <b>失敗を例外にしない</b>: 診断のための値であり、取得できなくても描画を妨げない。
     /// </remarks>
     public static bool TryGetLoadedVersion([NotNullWhen(true)] out Version? version)

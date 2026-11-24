@@ -121,7 +121,7 @@ public sealed class MainWindow : Window
         host.Children.Add(_loupe);
         host.Children.Add(_preview);
 
-        // 座標ラベルは**ルーペより前面**に置く（後に足す子ほど前面になる。 ルーペの下だと重なった部分の文字が欠ける。 実測 2026-11-02）
+        // 座標ラベルは**ルーペより前面**に置く（後に足す子ほど前面になる。 ルーペの下だと重なった部分の文字が欠ける）
         _selectionLabelBox.Child = _selectionLabel;
         host.Children.Add(_selectionLabelBox);
         host.PointerMoved += (_, e) =>

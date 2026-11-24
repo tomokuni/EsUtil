@@ -21,7 +21,7 @@ public class MarqueePresenterLabelTextsTests
 
     /// <summary>ポインターが描画領域の外にあるときは座標ラベルを解決しないことを検証する。</summary>
     /// <remarks>
-    /// 最後に居た位置へ貼り付いたままにすると、カーソルの無い場所へ座標が出る（実測 2026-11-02）。
+    /// 最後に居た位置へ貼り付いたままにすると、カーソルの無い場所へ座標が出る。
     /// </remarks>
     [Fact]
     internal void ResolveCoordLabelText_ポインターが領域の外なら解決しない()

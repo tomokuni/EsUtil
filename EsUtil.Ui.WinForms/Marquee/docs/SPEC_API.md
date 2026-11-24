@@ -190,7 +190,7 @@
 ### 6.3 描画に使うスケーリング係数の解決（コア）
 
 描画面（物理ピクセル）と表示領域（DIP）から描画に使う倍率を求める処理は
-**`EsUtil.Platform.Core.Coord.DpiScaler.ResolveClientScale` が単一所有**します（2026-10-23 に各 UI が持っていた `internal` の複製を削除）。
+**`EsUtil.Platform.Core.Coord.DpiScaler.ResolveClientScale` が単一所有**します。
 
 | メソッド | 説明 |
 | --- | --- |

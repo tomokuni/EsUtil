@@ -7,11 +7,11 @@ namespace EsUtil.Platform.Core.Svg;
 /// <b>なぜ自前で解析するか</b>: Fluent System Icons の SVG は 4 つの UI 版が共有するが、WinUI 3 には<br/>
 /// SVG を読む API が無く、XAML の型変換（文字列 → <c>Geometry</c>）はリフレクション経路のため AOT で使えない。<br/>
 /// 本クラスは<b>共有する SVG ファイルを唯一の出所にする</b>ために最小限の部分集合だけを解析する<br/>
-/// （アイコンは <c>M</c> / <c>L</c> / <c>H</c> / <c>V</c> / <c>C</c> / <c>Z</c> だけで構成される。 実測 2026-10-20）。<br/>
+/// （アイコンは <c>M</c> / <c>L</c> / <c>H</c> / <c>V</c> / <c>C</c> / <c>Z</c> だけで構成される）。<br/>
 /// <br/>
 /// <b>UI に依存しない形で返す理由</b>: 画素への展開（<see cref="SvgPathRasterizer"/>）と WinUI 3 の<br/>
 /// 形状への変換（<see cref="SvgIconSource"/> と各 UI の <c>IconLoader</c>）が同じ解析結果を使う。 WinUI 3 の <c>PathGeometry</c> の<br/>
-/// コレクションは<b>列挙できない</b>（<c>IList</c> の列挙子の取得が実行時に失敗する。 実測 2026-10-20）ため、<br/>
+/// コレクションは<b>列挙できない</b>（<c>IList</c> の列挙子の取得が実行時に失敗する）ため、<br/>
 /// 図形は<b>追加するだけ</b>にする。<br/>
 /// <br/>
 /// <b>未対応のコマンド</b>（円弧 <c>A</c> 等）が現れた場合は解析を失敗させ、呼び出し側は空の形状で代替する<br/>

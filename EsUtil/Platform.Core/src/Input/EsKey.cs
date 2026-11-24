@@ -2,10 +2,10 @@ namespace EsUtil.Platform.Core.Input;
 
 /// <summary>UI フレームワーク非依存のキー識別子。</summary>
 /// <remarks>
-/// メンバー集合と名前は <c>Avalonia.Input.Key</c> と<b>完全に一致</b>する（実測 2026-10-05: 両者とも 223 メンバー・差分 0）。<br/>
+/// メンバー集合と名前は <c>Avalonia.Input.Key</c> と<b>完全に一致</b>する。<br/>
 /// 値は列挙の序数であり、<b>順序に意味を持たせない</b>（キー体系をまたぐ数値の対応は保証されない）。 対応付けは名前で行う。<br/>
 /// <br/>
-/// <b>他のキー体系との関係（実測 2026-10-05）</b>:<br/>
+/// <b>他のキー体系との関係</b>:<br/>
 /// - <c>System.Windows.Input.Key</c>（.NET / WPF。 202 メンバー）… <b>本型が上位互換</b>である（本型のみ 21 件 = <c>Fn*Arrow</c> 4 / <c>Media*</c> 17）。<br/>
 /// - <c>Aprillz.MewUI.Key</c>（MewUI。 91 メンバー）… <b>本型が上位互換</b>である（本型のみ 133 件。 名前が異なる組は <c>Back</c> ⇔ <c>Backspace</c> の 1 組のみ）。<br/>
 /// - <c>Windows.System.VirtualKey</c>（WinUI 3 が使う WinRT 射影。 17763 の射影で 170 メンバー）… 値は Win32 仮想キーコードそのものだが、<br/>

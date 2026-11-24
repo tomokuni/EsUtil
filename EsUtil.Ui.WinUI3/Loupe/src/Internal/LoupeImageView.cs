@@ -14,7 +14,7 @@ namespace EsUtil.Ui.WinUI3.Loupe.Internal;
 /// <see cref="LoupeImageSampler"/> で切り出して <see cref="WriteableBitmap"/> へ書き、画像要素へ貼る。<br/>
 /// 走査する画素は 4 万件ほどであり、GPU（Composition のスプライト）へ任せるより<b>確実である</b>
 /// （スプライトは <c>LoadedImageSurface</c> の非同期読み込みに依存し、読み込みが終わらない間は
-/// 何も表示されない。 実測 2026-10-25: 撮影画像の 51 MB の BMP を作っても表示されなかった）。<br/>
+/// 何も表示されない）。<br/>
 /// <br/>
 /// <b>最近傍で拡大する</b>: ルーペは撮影画像の画素を確認する用途であるため、補間で色を混ぜない。<br/>
 /// <b>画像の大きさは表示の実寸と一致させる</b>: 書き込む画像の寸法 = 画像の画素サイズであるため、
@@ -43,7 +43,7 @@ internal sealed partial class LoupeImageView : Grid
     /// <summary>画像の画素へ書き込むストリーム（画像の寸法が変わったときだけ作り直す）。</summary>
     /// <remarks>
     /// <c>PixelBuffer.AsStream()</c> は呼ぶたびに新しいストリームを作る。 ルーペはポインター移動のたびに
-    /// 書き込むため、ストリームを保持して先頭へ戻して使い回す（実測 2026-10-25）。
+    /// 書き込むため、ストリームを保持して先頭へ戻して使い回す。
     /// </remarks>
     private Stream? _pixelStream;
 

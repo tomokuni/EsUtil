@@ -54,8 +54,8 @@ public static class EnumCanonical
     /// 解釈の直後に <see cref="Enum.IsDefined{T}(T)"/> で検査して列挙に無い値（<c>"999"</c>・負値）を拒否する。<br/>
     /// 文字列を受け取る入口（設定ファイル・ユーザー入力の解釈）は本メソッドを使う。<br/>
     /// <b>失敗した場合は <paramref name="target"/> を <c>default</c> に戻す</b>: <see cref="Enum.TryParse{T}(string, out T)"/> が
-    /// 書き込んだ未定義値（例: <c>"999"</c> → <c>(EsKey)999</c>）を残すと、呼び出し側の「失敗なら既定値」という前提が崩れる
-    /// （実測 2026-10-23）。<br/>
+    /// 書き込んだ未定義値（例: <c>"999"</c> → <c>(EsKey)999</c>）を残すと、呼び出し側の「失敗なら既定値」という前提が崩れる。
+    /// <br/>
     /// <b>別名（同じ値の複数の名前）の解決</b>は本メソッドの対象外である（名前で値を引くだけであり正規化しない）。<br/>
     /// 代表名への正規化が必要な場合は列挙値を受ける方の <see cref="TryParse{TSource, TTarget}(TSource, out TTarget)"/> を使う。
     /// </remarks>

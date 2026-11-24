@@ -342,7 +342,7 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <remarks>
     /// <b>見えている項目だけを描く</b>: 全件を描くと、フォルダーのファイル数に比例して
     /// GDI+ のオブジェクト（<see cref="Font"/> / <see cref="SolidBrush"/>）を作ることになり、
-    /// スクロールのたびにその費用がかかる（実測 2026-10-27）。 範囲は
+    /// スクロールのたびにその費用がかかる。 範囲は
     /// <see cref="ThumbnailLayoutResult.VisibleRange"/> が持つ（判定を 2 か所に書かない）。
     /// </remarks>
     protected override void OnPaint(PaintEventArgs e)
@@ -453,7 +453,7 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <remarks>
     /// <b>文字サイズは DIP から pt へ換算する</b>: 描画計画の文字サイズは DIP（96 DPI 基準）だが、<br/>
     /// <see cref="Font"/> のコンストラクターは pt を受け取る。 DIP の値をそのまま渡すと 1.33 倍の大きさになり、<br/>
-    /// 他の UI 版（11 DIP）より文字が大きくなる（実測）。<br/>
+    /// 他の UI 版（11 DIP）より文字が大きくなる。<br/>
     /// <b>文言は計画の値を使う</b>: 省略（拡張子を残す）は提示層が決めるため、ここで独自に省略しない<br/>
     /// （<see cref="TextFormatFlags.EndEllipsis"/> を併用すると、計画の省略記号のさらに後ろが省略される）。<br/>
     /// <b>上下の余白は矩形を内側へ縮めて表す</b>: 余白は名前行の内側の余白であるため、文字を置く矩形から除く。
