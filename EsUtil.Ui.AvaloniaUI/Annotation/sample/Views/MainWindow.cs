@@ -57,6 +57,24 @@ public sealed class MainWindow : Window
                 new TextRun("は右クリックで編集できます。", AnnotationDefaults.TextStyle),
             ]),
             tail: new BubbleTail(new EsPoint(430, 200), BubbleEdge.Top, 0.3, 26)));
+
+        // 見た目の確認用（角丸・塗り・しっぽの辺が注釈ごとに保たれること）
+        var accent = AnnotationDraftDefaults.Default with
+        {
+            BubbleAppearance = AnnotationDefaults.BubbleAppearance with
+            {
+                Border = System.Drawing.Color.FromArgb(255, 30, 90, 200),
+                BorderThickness = 2,
+                Fill = System.Drawing.Color.FromArgb(255, 235, 245, 255),
+                CornerRadius = 18,
+            },
+        };
+        document = document.Add(core.CreateBubble(
+            document,
+            new EsRect(80, 420, 300, 150),
+            new RichText([new TextRun("角丸・塗り・しっぽ（右辺）", accent.TextStyle)]),
+            accent,
+            tail: new BubbleTail(new EsPoint(430, 495), BubbleEdge.Right, 0.5, 20)));
         layer.Document = document;
 
         var defaults = layer.DraftDefaults;
@@ -89,6 +107,8 @@ public sealed class MainWindow : Window
                     ("本文を編集", () => layer.BeginTextEditing()),
                     ("元に戻す", () => layer.Undo()),
                     ("やり直す", () => layer.Redo()),
+                    ("最前面へ", () => layer.MoveSelectedToFront()),
+                    ("最背面へ", () => layer.MoveSelectedToBack()),
                     ("削除", () => layer.DeleteSelected())),
             },
         };
@@ -100,6 +120,7 @@ public sealed class MainWindow : Window
             Children =
             {
                 SampleSettings.LogLevel(_logging),
+                new TextBlock { Text = "ダブルクリック: 本文 / 右クリック: 外観 / 四隅と辺: サイズ変更 / しっぽの先端: ドラッグ" },
                 _status,
                 SampleSettings.Buttons(("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
             },
