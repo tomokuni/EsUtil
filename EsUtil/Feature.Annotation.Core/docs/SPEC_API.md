@@ -9,7 +9,7 @@
 - [3. `AnnotationDocument`（クラス）](#3-annotationdocumentクラス)
 - [4. `AnnotationItem` / `FrameAnnotation` / `BubbleAnnotation`（クラス）](#4-annotationitem--frameannotation--bubbleannotationクラス)
 - [5. `BubbleTail` / `BubbleEdge`（レコード・列挙型）](#5-bubbletail--bubbleedgeレコード列挙型)
-- [6. `RichText` / `TextRun` / `AnnotationTextStyle`（クラス・レコード）](#6-richtext--textrun--annotationtextstyleクラスレコード)
+- [6. 文字の書式（`EsUtil.Feature.Text`）](#6-文字の書式esutilfeaturetext)
 - [7. `AnnotationAppearance`（レコード）](#7-annotationappearanceレコード)
 - [8. `AnnotationPresenter` / `AnnotationDrawPlan`（クラス・レコード）](#8-annotationpresenter--annotationdrawplanクラスレコード)
 - [9. `AnnotationHitTest`（静的クラス）](#9-annotationhittest静的クラス)
@@ -27,8 +27,8 @@
 | 型 | 可視性 | 参照可能なアセンブリ |
 | --- | --- | --- |
 | ファサード（`AnnotationCore` / `AnnotationPresenter`） | `public` | 任意 |
-| 注釈のモデル（`AnnotationDocument` / `AnnotationItem` / `FrameAnnotation` / `BubbleAnnotation` / `BubbleTail` / `RichText` / `TextRun` / `AnnotationTextStyle` / `AnnotationAppearance`） | `public` | 任意 |
-| 描画計画（`AnnotationDrawPlan` / `AnnotationShapePlan` / `AnnotationTextLinePlan` / `AnnotationTextSegmentPlan` / `AnnotationKind`） | `public` | 任意 |
+| 注釈のモデル（`AnnotationDocument` / `AnnotationItem` / `FrameAnnotation` / `BubbleAnnotation` / `BubbleTail` / `AnnotationAppearance`） | `public` | 任意 |
+| 描画計画（`AnnotationDrawPlan` / `AnnotationShapePlan` / `AnnotationKind`） | `public` | 任意 |
 | 判断・保存（`AnnotationHitTest` / `AnnotationJson` / `AnnotationDefaults` / `AnnotationLimits` / `BubbleEdge`） | `public` | 任意 |
 | UI との契約（`AnnotationPreviewGesture` / `AnnotationPreviewGestureEventArgs` / `AnnotationStyleEditorRequestedEventArgs` / `AnnotationAddMenuRequestedEventArgs` / `AnnotationPointerKind`） | `public` | UI 層 |
 | 編集セッション（`AnnotationEditSession` / `AnnotationEditChange`） | `public` | UI 層 |
@@ -94,21 +94,17 @@
 | `ResolveBase(body)` | 本体の矩形から付け根の 2 点を求める |
 | `Normalized()` | 幅と比率を安全域へ補正する |
 
-## 6. `RichText` / `TextRun` / `AnnotationTextStyle`（クラス・レコード）
+## 6. 文字の書式（`EsUtil.Feature.Text`）
 
-| メンバー | 説明 |
+**本文の文字は `EsUtil.Feature.Text.Core`（名前空間 `EsUtil.Feature.Text`）が単一所有します**。 本アセンブリは型を写さず、そのまま公開面に載せます。
+
+| 型 | 内容 |
 | --- | --- |
-| `RichText.Runs` | `TextRun` の並び（**run が自分の文字列を持つ**。 文字の挿入・削除が他の書式へ影響しない） |
-| `RichText.PlainText` / `IsEmpty` / `Create(text, style)` | 書式を除いた文字列・空判定・単一書式からの生成 |
-| `RichText.ApplyStyle(start, length, style)` | **指定範囲の書式を差し替える**（run を境界で分割し、同じ書式は連結する。 長さ 0 は全体） |
-| `RichText.TransformStyle(start, length, transform)` | **指定範囲の書式を 1 文字ずつ変換する**（変えない属性を保つ。 「太字にする」「色だけ変える」はこちら） |
-| `RichText.StyleAt(index)` | 指定位置の文字の書式（範囲外は末尾へフォールバック。 書式ツールバーの初期表示に使う） |
-| `RichText.WithPlainText(text)` | 書式を**文字位置で引き継いで**文字列だけを差し替える（本文の編集に使う） |
-| `RichText.Insert(index, text)` | 指定位置へ文字列を挿入する（**直前の文字**の書式を引き継ぐ） |
-| `RichText.Remove(start, length)` | 指定範囲の文字を除く（残りの書式は保つ） |
-| `RichText.Normalized()` | 各 run の書式を安全域へ補正し、同じ書式の run を連結する（作成・読み込みの入口で 1 回だけ使う） |
-| `AnnotationTextStyle` | `FontFamily` / `FontSize`（元画像ピクセル）/ `Color` / `IsBold` / `IsItalic` / `IsUnderline` / `IsStrike` |
-| `AnnotationTextStyle.Default` / `Normalized()` | 既定の書式（`Yu Gothic UI` 優先）/ 安全域への補正 |
+| `RichText` / `TextRun` / `TextStyle` | 書式付きの文字列（run 単位の書式）・書式そのもの |
+| `TextLinePlan` / `TextSegmentPlan` | 行の矩形と書式ごとの区間（`AnnotationShapePlan.Lines` の要素） |
+
+- メンバー単位の仕様は [`../../Feature.Text.Core/docs/SPEC_API.md`](../../Feature.Text.Core/docs/SPEC_API.md) が所有します。
+- **本アセンブリの値（本文・描画計画）に現れる型は上表の 5 つだけ**です（書記素クラスタ・折り返し・行の対応は提示層が呼びます）。
 
 ## 7. `AnnotationAppearance`（レコード）
 
@@ -127,9 +123,9 @@
 | `LineHeightFactor` | 行間の倍率（既定 `LineHeightFactorDefault`。 0 以下・非有限は既定値へ補正する） |
 | `AnnotationDrawPlan` | `ImageSize` / `SelectedId` / `Shapes`（先頭が最背面） |
 | `AnnotationShapePlan` | 角丸・塗り・枠線・しっぽの多角形・本文の行（すべて解決済み） |
-| `AnnotationTextLinePlan` / `AnnotationTextSegmentPlan` | 行の矩形と、書式ごとの区間（下線・取り消し線は書式のフラグから UI が描く） |
+| `TextLinePlan` / `TextSegmentPlan` | 行の矩形と、書式ごとの区間（`EsUtil.Feature.Text.Core` が所有する。 下線・取り消し線は書式のフラグから UI が描く） |
 
-- **折り返しは本層が単一所有**します（文字単位・明示改行・行頭禁則）。 4 つの UI 版で同じ位置に折り返します。
+- **折り返しは `EsUtil.Feature.Text.Core` の `TextLayout` が単一所有**します（文字単位・明示改行・行頭禁則）。 4 つの UI 版で同じ位置に折り返します。
 - **選択枠（ハンドル）は含みません**（Marquee の提示層が解決する。 選択枠の見た目を 4 つの UI 版で揃えるため）。
 
 ## 9. `AnnotationHitTest`（静的クラス）
@@ -161,10 +157,9 @@
 
 | メンバー | 説明 |
 | --- | --- |
-| `AnnotationDefaults.PreferredFontFamilies` | 使うフォントの優先順（`Yu Gothic UI` → `Segoe UI`） |
-| `AnnotationDefaults.FrameAppearance` / `BubbleAppearance` / `TextStyle` | 新規作成時の既定（設定ページの初期値と同じ値） |
-| `AnnotationDefaults.*Default` | 文字の大きさ・枠線の太さ・角丸・余白・しっぽの幅・新規作成する注釈の大きさ（`NewItemWidthDefault` / `NewItemHeightDefault`）の既定値 |
-| `AnnotationLimits` | 各値の安全域と補正（枠線 `1〜64`・角丸 `0〜4096`・文字 `6〜512`） |
+| `AnnotationDefaults.FrameAppearance` / `BubbleAppearance` | 新規作成時の既定の外観（設定ページの初期値と同じ値） |
+| `AnnotationDefaults.*Default` | 枠線の太さ・角丸・余白・しっぽの幅・新規作成する注釈の大きさ（`NewItemWidthDefault` / `NewItemHeightDefault`）の既定値（文字は `TextDefaults` が所有する） |
+| `AnnotationLimits` | 各値の安全域と補正（枠線 `1〜64`・角丸 `0〜4096`）。 文字の安全域は `TextLimits`（`6〜512`）が所有する |
 
 ## 12. `AnnotationDraftDefaults`（レコード）
 
@@ -204,11 +199,11 @@
 | `AnnotationEditorAppearance` | Presenter（`.Presenter.Drawing`） | 本文の編集中の見た目（`CaretThicknessDip` / `CaretColor` / `SelectionColor`）。 UI は自分の描画 API の色へ変換して使う |
 | `AnnotationTextEdit` | Presenter（`.Presenter.Selection`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 UI は入力イベントを渡し、通知と描画だけを行う |
 | `AnnotationViewTransform` | Core（`.Core.Geometry`） | 表示倍率・左上の位置と、元画像ピクセルとローカル DIP の相互変換（`ToSourceRadius` で画面上の掴む距離を元画像ピクセルへ換算する）。 UI は点の型へ写すだけにする |
-| `AnnotationTextCursor` | Core（`.Core.Text`） | 本文の文字位置を書記素クラスタ（絵文字・結合文字）で扱う規則（キャレット・選択・削除・折り返しの境界）。 UI は位置を計算せず、この境界に従う |
+| `TextCursor` / `TextLayout` / `TextLineIndex` / `TextLineLayout` / `TextStyleEdit` / `TextCompositionPreview` / `TextCaretBlink` | `EsUtil.Feature.Text.Core`（`.Core.Text`） | 書記素クラスタの境界・折り返しと行の配置・行と文字位置の対応・入力の挿入・変換中の文字列・点滅。 UI は位置を計算せず、この規則に従う |
 
 - **`AnnotationDraftDefaultsFactory` は「設定の項目名」を知りません**（`AnnotationFrameBorderColor` のような設定の項目名はホストのもの）。 引数は値だけを受け取り、対応付け（枠線の太さ・角丸を枠線と吹き出しの両方へ使う等）だけを持ちます。
 - **`AnnotationEditorAppearance` の値は元画像ピクセルではありません**（画面の DIP。 倍率は UI が掛ける）。
-- **文字位置は書記素クラスタの境界で扱います**（`AnnotationTextCursor`）。 サロゲート ペア（絵文字）と結合文字を半分に割ると文字列が壊れるため、キャレットの移動・選択・削除・折り返し・書式の範囲はすべて同じ境界に揃えます。
+- **文字位置は書記素クラスタの境界で扱います**（`TextCursor`）。 サロゲート ペア（絵文字）と結合文字を半分に割ると文字列が壊れるため、キャレットの移動・選択・削除・折り返し・書式の範囲はすべて同じ境界に揃えます。
 
 ## 15. `AnnotationEditSession` / `AnnotationEditChange`（クラス・列挙型）
 
@@ -228,7 +223,7 @@
 | `BeginChange()` / `SetBounds(bounds)` / `SetTailTip(tip)` / `CommitChange()` | ドラッグ 1 手の記録（押下で控え、移動のたびに反映し、最初の変更で 1 手として積む） |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | 変更履歴（編集中はキャレットを本文の範囲へ収める） |
 | `BeginTextEditing()` / `EndTextEditing()` / `IsEditingText` | 本文の編集の開始・終了 |
-| `MoveCaret(...)` / `MoveCaretByLine(...)` / `MoveCaretToLineEdge(...)` / `SetCaretFromPoint(...)` | キャレットの移動（行の解決は `AnnotationTextLineIndex` を使う） |
+| `MoveCaret(...)` / `MoveCaretByLine(...)` / `MoveCaretToLineEdge(...)` / `SetCaretFromPoint(...)` | キャレットの移動（行の解決は `TextLineIndex` を使う） |
 | `DeleteAtCaret(forward)` / `ReplaceSelection(text)` / `ReplaceRange(start, end, text)` | 本文の削除・置き換え（キャレットを挿入した文字列の末尾へ移す） |
 | `SelectedTextStyle` / `SelectedTextMatches(match)` / `SelectedText()` | 書式バーの表示値・押下状態・選択文字（クリップボード） |
 

@@ -25,7 +25,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.17763.0` |
-| 参照 | `EsUtil.Platform.Core` のみ（値型とエラー境界）。 UI フレームワークには依存しない |
+| 参照 | `EsUtil.Platform.Core`（値型とエラー境界）と `EsUtil.Feature.Text.Core`（文字の書式と行の計算）。 UI フレームワークには依存しない |
 | シリアル化 | `System.Text.Json` のソース生成（Native AOT / トリミング対応）。 反射を使わない |
 | テスト | xUnit v3（`EsUtil.Feature.Annotation.Core.Tests`） |
 
@@ -35,21 +35,25 @@
 flowchart TB
     UI["UI 層（EsUtil.Ui.<UI>.Annotation）<br/>描画・入力・本文の編集・合成（保存用）"]
     F["公開面（src/ 直下）<br/>AnnotationCore（文書・JSON・ログ）/ AnnotationPresenter（描画計画・外観）"]
-    C["Core（src/Core のカテゴリ別）<br/>Contract / Defaults / Geometry / History / Interaction / Text / Internal"]
+    C["Core（src/Core のカテゴリ別）<br/>Contract / Defaults / Geometry / History / Interaction / Internal"]
     P["Presenter（src/Presenter のカテゴリ別）<br/>Drawing / Editor / Panel / Selection"]
+    T["EsUtil.Feature.Text.Core<br/>RichText / TextStyle / TextLayout / TextLineIndex / TextCursor"]
     PC["EsUtil.Platform.Core<br/>EsRect / EsPoint / DrawingColor / ICoordTransform"]
     UI --> F
     F --> C
     F --> P
     P --> C
+    C --> T
+    F --> T
     C --> PC
     P --> PC
+    T --> PC
 ```
 
 - **Core は Presenter を参照しません**（描画計画を知らない）。
 - **Presenter は描画 API を持ちません**（描画計画というデータを返し、UI が写す）。
 - **編集の進行（文書・選択・履歴・本文の編集状態）は `AnnotationEditSession` が単一所有します**（UI は入力の受付と描画だけを行う）。
-- **折り返しだけは実寸を要する**ため、`Func<string, AnnotationTextStyle, EsSize>` として UI から受け取ります（ルーペの `measureText` と同じ形）。
+- **文字の計算は `EsUtil.Feature.Text.Core` が単一所有します**（書式・折り返し・行と文字位置の対応・書記素クラスタ）。 本アセンブリは**文字の実寸を要する**ため、`Func<string, TextStyle, EsSize>` として UI から受け取ります（ルーペの `measureText` と同じ形）。
 - **公開面は `src/` 直下（名前空間 `EsUtil.Feature.Annotation`）に置き、層の内部は `src/Core/<カテゴリ>` / `src/Presenter/<カテゴリ>` へ置きます**（名前空間は `EsUtil.Feature.Annotation.Core.<カテゴリ>` / `.Presenter.<カテゴリ>`。 規則は [`.github/命名規約.md`](../../../.github/命名規約.md)）。 フォルダと名前空間の一覧は [`../README.md`](../README.md) §3 が持つ。
 
 ## 4. コンポーネント
@@ -60,25 +64,25 @@ flowchart TB
 | `AnnotationDocument` | Core | 注釈の集合（並びが重なり順）・画像の寸法・スキーマ版。 不変であり、すべての変更は新しい文書を返す（変化が無い場合は同じ実体。 収める・補正する規則は Core が単一所有する） |
 | `AnnotationItem` / `FrameAnnotation` / `BubbleAnnotation` | Core | 注釈 1 件（`Id` / `Bounds` / `Appearance`）。 JSON は `Kind` で型を判別する |
 | `BubbleTail` | Core | しっぽ（先端は独立・付け根は本体の辺に追従） |
-| `RichText` / `TextRun` / `AnnotationTextStyle` | Core | 文字単位の書式（run が自分の文字列と解決済みの書式を持つ） |
+| `RichText` / `TextRun` / `TextStyle` | `EsUtil.Feature.Text.Core` | 文字単位の書式（run が自分の文字列と解決済みの書式を持つ）。 本アセンブリは型を写さず、そのまま公開面に載せる |
 | `AnnotationHitTest` | Core | 当たり判定（最前面から・先端は本体より優先） |
-| `AnnotationTextWrap`（内部） | Core（`.Core.Internal`） | 折り返し（文字単位・明示改行・行頭禁則） |
+| `TextLayout` / `TextWrap`（内部） | `EsUtil.Feature.Text.Core`（`.Core.Text` / `.Core.Internal`） | 折り返しと行の配置（クラスタ単位・明示改行・行頭禁則。 行の高さは行内で最も大きい文字に合わせる） |
 | `AnnotationJson` | Core（`src/` 直下・`public`） | JSON 文字列への変換・保存パスの解決・付随ファイルの判定（ファイル入出力は `AnnotationCore`） |
-| `AnnotationJsonContext` / JSON 変換器 / `AnnotationTextWrap`（内部） | Core（`.Core.Internal`） | ソース生成の文脈・値の変換・折り返し |
+| `AnnotationJsonContext` / JSON 変換器（内部） | Core（`.Core.Internal`） | ソース生成の文脈・値の変換 |
 | `AnnotationDefaults` / `AnnotationLimits` / `AnnotationDraftDefaultsFactory` | Core | 既定値と安全域（設定・JSON・入力の共通の補正）と、設定の値からの既定値の組み立て |
 | `AnnotationHistory` | Core | 変更履歴（元に戻す・やり直す。 `BeginChange` / `CommitChange` で 1 操作 = 1 手にする） |
 | `AnnotationPresenter` | Presenter | 描画計画の解決（折り返しの配置・しっぽの多角形・行の配置） |
-| `AnnotationDrawPlan` / `AnnotationShapePlan` / `AnnotationTextLinePlan` / `AnnotationTextSegmentPlan` | Presenter | UI へ渡す 1 フレーム分の描画契約 |
-| `AnnotationTextLineIndex` / `AnnotationTextLineLayout` | Presenter | 行と文字位置の対応（キャレット・選択範囲・位置から文字の特定） |
-| `AnnotationEditingOutline` / `AnnotationEditorAppearance` / `AnnotationCaretBlink` / `AnnotationCaretRect` / `AnnotationMarqueeMetrics` | Presenter | 編集中の枠・キャレット・選択範囲・点滅・選択枠の実寸近似の見た目と規則 |
+| `AnnotationDrawPlan` / `AnnotationShapePlan` | Presenter | UI へ渡す 1 フレーム分の描画契約（行は `TextLinePlan` / `TextSegmentPlan`。 `EsUtil.Feature.Text.Core` が所有する） |
+| `TextLineIndex` / `TextLineLayout` | `EsUtil.Feature.Text.Core`（`.Core.Text`） | 行と文字位置の対応（キャレット・選択範囲・位置から文字の特定） |
+| `AnnotationEditingOutline` / `AnnotationEditorAppearance` / `AnnotationMarqueeMetrics` | Presenter | 編集中の枠・キャレットと選択範囲の色・選択枠の実寸近似の見た目と規則 |
 | `AnnotationPanelController` / `AnnotationPanelPlacement` / `AnnotationPanelAppearance` / `AnnotationPanelKind` / `AnnotationPanelMetrics` / `IAnnotationPanelHost` | Presenter | フローティング パネルの開閉・配置・外観（UI は `IAnnotationPanelHost` を実装する） |
-| `AnnotationSelectionPresenter` | Presenter | 選択中の注釈の書式・外観と、以降の入力へ効かせる書式 |
+| `AnnotationSelectionPresenter` | Presenter | 選択中の注釈の外観・本文の余白・しっぽの差し替えの入口（文書を受け取り、変更後の文書を返す） |
 | `AnnotationEditSession` / `AnnotationEditChange` | Presenter | 文書・選択・変更履歴・本文の編集状態の単一所有（4 つの UI 版は本型の操作を呼び、変更を購読する） |
-| `AnnotationTextEdit` | Presenter | 本文の編集状態（キャレット・選択・入力・削除・書式）。 4 つの UI 版は入力イベントを渡すだけにする |
+| `AnnotationTextEdit` | Presenter | 本文の編集状態（キャレット・選択・入力・削除・書式）。 文書を知らず、本文（`RichText`）を受け取って書き換えた本文を返す。 4 つの UI 版は入力イベントを渡すだけにする |
 | `AnnotationViewTransform` | Core（`.Core.Geometry`） | 表示倍率と左上の位置、元画像ピクセルとローカル DIP の相互変換 |
-| `AnnotationTextCursor` | Core（`.Core.Text`） | 文字位置を書記素クラスタ（絵文字・結合文字）で扱う規則（キャレット・選択・削除・折り返しの境界） |
+| `TextCursor` / `TextStyleEdit` / `TextCompositionPreview` / `TextCaretBlink` | `EsUtil.Feature.Text.Core`（`.Core.Text`） | 文字位置を書記素クラスタ（絵文字・結合文字）で扱う規則・入力の挿入・変換中の文字列・点滅 |
 | `AnnotationFormatBarLayout` / `AnnotationFormatBarItem` / `AnnotationEditorLayout` / `AnnotationEditorText` / `AnnotationFontCatalog` / `AnnotationPaletteCatalog` / `AnnotationPaletteColor` / `AnnotationBubbleEdgeCatalog` | Presenter | 編集 UI の並び・寸法・文言・代表色・フォントの並べ方 |
-| `AnnotationCompositionPreview` | Presenter | IME の変換中の文字列を本文へ入れた描画用の文書 |
+| `AnnotationCompositionPreview` | Presenter | IME の変換中の文字列を本文へ入れた描画用の文書（計算は `TextCompositionPreview` が持つ） |
 
 **選択枠（8 方向のハンドル）は本アセンブリの責務ではありません**（Marquee の提示層を再利用する。 枠とハンドルの見た目を 4 つの UI 版で揃えるため）。
 
@@ -88,7 +92,7 @@ flowchart TB
 
 | 方向 | 内容 |
 | --- | --- |
-| 許可 | 本アセンブリ → `EsUtil.Platform.Core` |
+| 許可 | 本アセンブリ → `EsUtil.Platform.Core` / `EsUtil.Feature.Text.Core` |
 | 許可 | UI 層（`EsUtil.Ui.<UI>.Annotation`）→ 本アセンブリ |
 | 禁止 | 本アセンブリ → UI 層（フレームワークに依存しない） |
 | 禁止 | 本アセンブリ → ホスト（アプリ。 本アセンブリは上位の層に依存しない） |

@@ -9,6 +9,8 @@
 
 ### 追加
 
+- **文字の書式と行の計算を `EsUtil.Feature.Text.Core` として分離しました**。 書式付きの文字列（`RichText` / `TextRun` / `TextStyle`）・折り返しと行の配置（`TextLayout`）・行と文字位置の対応（`TextLineIndex` / `TextLineLayout`）・書記素クラスタの境界（`TextCursor`）・入力の挿入（`TextStyleEdit`）を UI にも特定の機能にも依存しない層へ移しました。 名前空間は `EsUtil.Feature.Text` です。 注釈の本文はこの層を使うため、**注釈の機能から文字の型（`AnnotationTextStyle` / `AnnotationTextCursor` / `AnnotationTextLayout` 等）は無くなりました**（同じ型が接頭辞なしで `EsUtil.Feature.Text` にあります）。 文字の実寸の計測だけは UI が渡します（描画エンジンによって字幅が違うため）。 折り返し・行の配置・削除の単位を 1 か所で決めるため、4 つの UI 版で同じ位置に折り返し、絵文字（サロゲート ペア）と結合文字を半分に割りません。
+- **注釈の編集状態の入口を `AnnotationEditSession` に集約しました**。 `AnnotationTextEdit` は文書を知らず、本文を受け取って書き換えた本文を返す状態機械になりました（文書への書き戻しは編集セッションが担います）。 文字の書式の適用は 1 経路になり、文書を受け取る `AnnotationSelectionPresenter.ApplyTextStyle` / `ResolveTextStyle` は削除しました（書式は `AnnotationEditSession.ApplyTextStyle` / `TransformTextStyle` で変えます）。
 - **注釈（枠線・吹き出し）のコントロールを追加しました**。 `EsUtil.Feature.Annotation.Core`（Core / Presenter）と 4 つの UI 版（`EsUtil.Ui.AvaloniaUI.Annotation` / `EsUtil.Ui.MewUI.Annotation` / `EsUtil.Ui.WinUI3.Annotation` / `EsUtil.Ui.WinForms.Annotation`）です。 注釈は画像へ焼き込まず `*.annotations.json` として保存でき、保存時に `*.annotated.*`（合成画像）を書き出せます。 選択枠とハンドルは Marquee の提示層を、色の選択は ColorSelector を再利用します。
   - **ファサード**: `AnnotationCore` が文書と注釈の生成・JSON の読み書き・ログを集約し、`AnnotationPresenter` を共有します。 公開面は `EsUtil.Feature.Annotation`（`src/` 直下）です。
   - **ログ**: `Log` / `LogPrefix` で出力先と接頭辞（既定 `[Annotation]`）を設定します。 ファサードの生成・注釈ファイルの読み書きと付随ファイルの削除（`Information`）・注釈の追加（`Debug`）を記録します。
