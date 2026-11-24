@@ -557,17 +557,18 @@ public sealed partial class AnnotationLayerControl
     }
 
     /// <summary>この位置が入力の対象かどうかを判定する。</summary>
-    /// <param name="point">位置（このコントロールの座標）。</param>
+    /// <param name="point">位置（ウィンドウの座標）。</param>
     /// <returns>このレイヤー（注釈レイヤーがプレビュー領域の入力を単一所有する）。</returns>
     /// <remarks>
     /// <b>下地を描かない面でも入力を受ける</b>: 画像の上へ重ねるため背景を塗らないが、MewUI の
-    /// パネルは背景の無い面をヒットテストの対象にしない。 常に対象とする（実測 2026-11-20）。
+    /// パネルは背景の無い面をヒットテストの対象にしない。 常に対象とする。<br/>
+    /// <b><paramref name="point"/> は要素の座標ではなくウィンドウの座標である</b>: MewUI は
+    /// 子へ座標を変換せずに渡すため、判定は <c>Bounds</c> で行う
+    /// （<c>RenderSize</c> で判定すると、左上から 1 画面分を超えた位置で
+    /// 入力が届かなくなる）。
     /// </remarks>
     protected override UIElement OnHitTest(Point point)
-        => IsVisible && IsHitTestVisible
-            && point.X >= 0 && point.Y >= 0 && point.X < RenderSize.Width && point.Y < RenderSize.Height
-                ? this
-                : null!;
+        => IsVisible && IsHitTestVisible && Bounds.Contains(point) ? this : null!;
 
     /// <summary>キーが押されたときの処理（本文の編集・削除・nudge）。</summary>
     /// <param name="e">キーの引数。</param>
