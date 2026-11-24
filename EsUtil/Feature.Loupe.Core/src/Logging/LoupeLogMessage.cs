@@ -19,6 +19,8 @@ namespace EsUtil.Feature.Loupe.Logging;
 /// ログ基盤（ファイル出力・レベル制御）はホストアプリケーションが所有する（本クラスは定義のみ）。<br/>
 /// 各メソッドは <see cref="ILogger"/> の拡張メソッド（<c>this ILogger</c> 第一引数）として定義し、呼び出し側では logger 引数を省略する。<br/>
 /// <b>可視性</b>: 値を所有する層だけが呼ぶため <c>internal</c> とする（ホストはロガーを設定するだけである）。<br/>
+/// <b>整形を伴う定義は、整形の前に <see cref="ILogger.IsEnabled"/> で有効かどうかを判定する</b>: 引数は呼び出し前に評価されるため、
+/// 生成コードの判定では整形を省けない（規則は <c>.github/ログ規約.md</c> §5）。<br/>
 /// <b>UI が出力する定義は各 UI が持つ</b>（拡大元画像の変更・描画の例外）。
 /// </remarks>
 internal static partial class LoupeLogMessage
@@ -175,7 +177,7 @@ internal static partial class LoupeLogMessage
     /// <param name="newValue">変更後の値。</param>
     internal static void LogSettingChanged(this ILogger logger, string name, bool oldValue, bool newValue)
     {
-        if (oldValue == newValue)
+        if (oldValue == newValue || !logger.IsEnabled(LogLevel.Information))
         {
             return;
         }
@@ -194,7 +196,7 @@ internal static partial class LoupeLogMessage
     /// </remarks>
     internal static void LogSettingChanged(this ILogger logger, string name, DrawingColor oldValue, DrawingColor newValue)
     {
-        if (oldValue.ToArgb() == newValue.ToArgb())
+        if (oldValue.ToArgb() == newValue.ToArgb() || !logger.IsEnabled(LogLevel.Information))
         {
             return;
         }
@@ -242,7 +244,7 @@ internal static partial class LoupeLogMessage
     private static void LogSettingChangedIfChanged<T>(this ILogger logger, string name, T oldValue, T newValue)
         where T : struct, IEquatable<T>, IFormattable
     {
-        if (oldValue.Equals(newValue))
+        if (oldValue.Equals(newValue) || !logger.IsEnabled(LogLevel.Information))
         {
             return;
         }
@@ -265,7 +267,7 @@ internal static partial class LoupeLogMessage
     /// <param name="newValue">変更後の拡大中心（未設定は null）。</param>
     internal static void LogCenterPointChanged(this ILogger logger, EsPoint? oldValue, EsPoint? newValue)
     {
-        if (oldValue == newValue)
+        if (oldValue == newValue || !logger.IsEnabled(LogLevel.Trace))
         {
             return;
         }
@@ -283,7 +285,7 @@ internal static partial class LoupeLogMessage
     /// <param name="newValue">変更後の座標変換ポート（未設定は null）。</param>
     internal static void LogCoordTransformChanged(this ILogger logger, ICoordTransform? oldValue, ICoordTransform? newValue)
     {
-        if (ReferenceEquals(oldValue, newValue))
+        if (ReferenceEquals(oldValue, newValue) || !logger.IsEnabled(LogLevel.Information))
         {
             return;
         }

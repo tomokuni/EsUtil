@@ -41,7 +41,7 @@ internal static partial class LoupeLogMessage
     /// <param name="oldValue">変更前の拡大元画像（未設定は null）。</param>
     /// <param name="newValue">変更後の拡大元画像（未設定は null）。</param>
     /// <remarks>
-    /// LogLevel: Debug<br/>出力書式: <c>[Loupe] 設定: Source {OldValue} → {NewValue}</c><br/>
+    /// LogLevel: Information<br/>出力書式: <c>[Loupe] 設定: Source {OldValue} → {NewValue}</c><br/>
     /// 「別のインスタンスに差し替わったか」の判断（参照の同一性）を本メソッドが単一所有する<br/>
     /// （寸法が同じ別画像への差し替えは変更として記録する）。<br/>
     /// 寸法の書式は読み取りの面（<c>EsReadOnlyBitmap.ToSizeText</c>）が単一所有し、<br/>
@@ -50,6 +50,11 @@ internal static partial class LoupeLogMessage
     public static void LogSourceChanged(this ILogger logger, EsReadOnlyBitmap? oldValue, EsReadOnlyBitmap? newValue)
     {
         if (ReferenceEquals(oldValue, newValue))
+        {
+            return;
+        }
+
+        if (!logger.IsEnabled(LogLevel.Information))
         {
             return;
         }

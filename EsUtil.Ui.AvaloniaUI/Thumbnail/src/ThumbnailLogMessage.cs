@@ -67,7 +67,7 @@ internal static partial class ThumbnailLogMessage
     /// <remarks>LogLevel: Trace（一覧の項目ごとに繰り返されるため。 規則の所有者は <c>.github/ログ規約.md</c> §2）。<br/>「別のインスタンスに差し替わったか」の判断（参照の同一性）を本メソッドが単一所有する。</remarks>
     internal static void LogImageChanged(this ILogger logger, string name, IImage? oldValue, IImage? newValue)
     {
-        if (ReferenceEquals(oldValue, newValue))
+        if (ReferenceEquals(oldValue, newValue) || !logger.IsEnabled(LogLevel.Trace))
         {
             return;
         }
@@ -86,13 +86,18 @@ internal static partial class ThumbnailLogMessage
             return;
         }
 
+        // 1 件ずつの追加は一覧の読み込みで件数分出力される（高頻度）ため Trace へ落とす。
+        // 一括のクリアや差し替え（件数が減る・複数変わる）は低頻度のため Debug のままにする
+        var level = newValue == oldValue + 1 ? LogLevel.Trace : LogLevel.Debug;
+        if (!logger.IsEnabled(level))
+        {
+            return;
+        }
+
         var name = "ItemCount";
         var oldText = oldValue.ToString(CultureInfo.InvariantCulture);
         var newText = newValue.ToString(CultureInfo.InvariantCulture);
-
-        // 1 件ずつの追加は一覧の読み込みで件数分出力される（高頻度）ため Trace へ落とす。
-        // 一括のクリアや差し替え（件数が減る・複数変わる）は低頻度のため Debug のままにする
-        if (newValue == oldValue + 1)
+        if (level == LogLevel.Trace)
         {
             logger.LogSettingChangedTrace(name, oldText, newText);
             return;

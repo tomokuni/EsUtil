@@ -21,7 +21,7 @@ internal static partial class ColumnPackingLogMessage
     internal static string Prefix { get; set; } = DefaultPrefix;
 
     /// <summary>生成（初期設定）を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Information<br/>出力書式: <c>[ColumnPacking] ファサードを作成しました: ColumnLimit=4, RowSpace=8, ColumnSpace=8, Method=BinarySearch</c></remarks>
+    /// <remarks>LogLevel: Information<br/>出力書式: <c>[ColumnPacking] ファサードを作成しました: ColumnLimit={ColumnLimit}, RowSpace={RowSpace:0.#}, ColumnSpace={ColumnSpace:0.#}, Method={Method:l}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="columnLimit">列の上限。</param>
@@ -68,7 +68,7 @@ internal static partial class ColumnPackingLogMessage
     }
 
     /// <summary>レイアウト結果の変化を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[ColumnPacking] Layout: UsedWidth=620.8 MinHeight=264.0 Columns=7 Segments=[3,6,…]</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[ColumnPacking] レイアウト: 使用幅={UsedWidth:0.#} 最小高={MinHeight:0.#} 列数={Columns} セグメント={Segments:l}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="usedWidth">使用幅（整形済み）。</param>
@@ -89,7 +89,7 @@ internal static partial class ColumnPackingLogMessage
         => logger.LogLayoutChangedCore(Prefix, usedWidth, minHeight, columns, segments);
 
     /// <summary>項目ごとの配置を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[ColumnPacking] レイアウト項目: Y=[0.0, 48.0, …]</c></remarks>
+    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[ColumnPacking] レイアウト項目: Y={Y:l}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="y">項目ごとの Y 座標（整形済み）。</param>

@@ -89,13 +89,18 @@ internal static partial class ThumbnailLogMessage
             return;
         }
 
+        // 1 件ずつの追加は一覧の読み込みで件数分出力される（高頻度）ため Trace へ落とす。
+        // 一括のクリアや差し替え（件数が減る・複数変わる）は低頻度のため Debug のままにする
+        var level = newValue == oldValue + 1 ? LogLevel.Trace : LogLevel.Debug;
+        if (!logger.IsEnabled(level))
+        {
+            return;
+        }
+
         var name = "ItemCount";
         var oldText = oldValue.ToString(CultureInfo.InvariantCulture);
         var newText = newValue.ToString(CultureInfo.InvariantCulture);
-
-        // 1 件ずつの追加は一覧の読み込みで件数分出力される（高頻度）ため Trace へ落とす。
-        // 一括のクリアや差し替え（件数が減る・複数変わる）は低頻度のため Debug のままにする
-        if (newValue == oldValue + 1)
+        if (level == LogLevel.Trace)
         {
             logger.LogSettingChangedTrace(name, oldText, newText);
             return;

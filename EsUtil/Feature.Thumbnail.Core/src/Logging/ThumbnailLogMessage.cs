@@ -12,7 +12,9 @@ namespace EsUtil.Feature.Thumbnail.Logging;
 /// 一覧の項目ごとに繰り返される画像の差し替えは UI 層が Trace で記録する（<c>EsUtil.Ui.*.Thumbnail</c>）。
 /// 毎フレーム呼ばれる解決メソッド（<see cref="ThumbnailPresenter.ResolveLayout"/> / <see cref="ThumbnailPresenter.ResolveDrawPlan"/>）は出力しない。<br/>
 /// ログ基盤（ファイル出力・レベル制御）はホストアプリケーションが所有する（本クラスは定義のみ）。<br/>
-/// 各メソッドは <see cref="ILogger"/> の拡張メソッド（<c>this ILogger</c> 第一引数）として定義し、呼び出し側では logger 引数を省略する。
+/// 各メソッドは <see cref="ILogger"/> の拡張メソッド（<c>this ILogger</c> 第一引数）として定義し、呼び出し側では logger 引数を省略する。<br/>
+/// <b>整形を伴う定義は、整形の前に <see cref="ILogger.IsEnabled"/> で有効かどうかを判定する</b>: 引数は呼び出し前に評価されるため、
+/// 生成コードの判定では整形を省けない（規則は <c>.github/ログ規約.md</c> §5）。
 /// </remarks>
 internal static partial class ThumbnailLogMessage
 {
@@ -115,7 +117,7 @@ internal static partial class ThumbnailLogMessage
     /// <param name="newValue">変更後の値。</param>
     internal static void LogSettingChanged(this ILogger logger, string name, bool oldValue, bool newValue)
     {
-        if (oldValue == newValue)
+        if (oldValue == newValue || !logger.IsEnabled(LogLevel.Information))
         {
             return;
         }
@@ -130,7 +132,7 @@ internal static partial class ThumbnailLogMessage
     /// <param name="newValue">変更後の色。</param>
     internal static void LogSettingChanged(this ILogger logger, string name, uint oldValue, uint newValue)
     {
-        if (oldValue == newValue)
+        if (oldValue == newValue || !logger.IsEnabled(LogLevel.Information))
         {
             return;
         }
@@ -193,11 +195,14 @@ internal static partial class ThumbnailLogMessage
             nameof(ThumbnailAppearance.ShowSelectionBackground),
             oldValue.ShowSelectionBackground,
             newValue.ShowSelectionBackground);
-        var oldShadow = Describe(oldValue.Shadow);
-        var newShadow = Describe(newValue.Shadow);
-        if (!string.Equals(oldShadow, newShadow, StringComparison.Ordinal))
+        if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogSettingChanged(nameof(ThumbnailAppearance.Shadow), oldShadow, newShadow);
+            var oldShadow = Describe(oldValue.Shadow);
+            var newShadow = Describe(newValue.Shadow);
+            if (!string.Equals(oldShadow, newShadow, StringComparison.Ordinal))
+            {
+                logger.LogSettingChanged(nameof(ThumbnailAppearance.Shadow), oldShadow, newShadow);
+            }
         }
     }
 
@@ -214,7 +219,7 @@ internal static partial class ThumbnailLogMessage
     private static void LogSettingChangedIfChanged<T>(this ILogger logger, string name, T oldValue, T newValue)
         where T : struct, IEquatable<T>, IFormattable
     {
-        if (oldValue.Equals(newValue))
+        if (oldValue.Equals(newValue) || !logger.IsEnabled(LogLevel.Information))
         {
             return;
         }
