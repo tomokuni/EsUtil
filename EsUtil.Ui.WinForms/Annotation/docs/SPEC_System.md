@@ -37,7 +37,7 @@ WinForms 版の注釈レイヤーの構成と、他アセンブリとの関係�
 flowchart LR
     Host["ホスト（上位のアプリ）"] --> Editor["AnnotationEditorPanel"]
     Editor --> Layer["AnnotationLayerControl"]
-    Editor --> Bar["AnnotationFormatBar"]
+    Editor --> Bar["StyledTextFormatBar（EsUtil.Ui.WinForms.StyledText）"]
     Editor --> Panel["AnnotationStylePanel"]
     Layer --> Core["EsUtil.Feature.Annotation（判断）"]
     Layer --> Marquee["EsUtil.Feature.Marquee.Core（選択枠の提示）"]
@@ -57,7 +57,7 @@ flowchart LR
 | `AnnotationLayerControl` | 画像・注釈の図形の表示と選択・移動の入力（`Input` の部分クラスへ分ける）。 **本文の入力・IME・キャレットは持たない**（`StyledTextControl` が単一所有する） |
 | `AnnotationPainter` | 描画計画を GDI+ の図形と文字へ写す（画面と保存で共有する） |
 | `AnnotationTextMetrics` | 本文の実寸（送り幅・行の高さ）を GDI+ で測る |
-| `AnnotationFormatBar` | 文字単位の書式（B / I / U / S・色・大きさ・フォント）の操作 |
+| `StyledTextFormatBar`（`EsUtil.Ui.WinForms.StyledText`） | 文字単位の書式（B / I / U / S・色・大きさ・フォント）の操作。 ホストは `FormatBarFactory` で独自の GUI へ差し替えられる |
 | `AnnotationStylePanel` | 外観・しっぽ・重なり順の編集 |
 | `AnnotationEditorControls` | 編集 UI の部品（書式バーと外観パネルが共有する） |
 | `AnnotationPalette` | 代表色（40 色） |

@@ -6,6 +6,9 @@ using EsUtil.Platform.Core.Palette;
 using MewUIColor = Aprillz.MewUI.Color;
 using EsUtil.Feature.Annotation.Core.Contract;
 using EsUtil.Feature.Annotation.Presenter.Panel;
+using EsUtil.Feature.StyledText;
+using EsUtil.Feature.StyledText.Presenter.Formatting;
+using EsUtil.Ui.MewUI.StyledText;
 
 namespace EsUtil.Ui.MewUI.Annotation;
 
@@ -23,7 +26,11 @@ namespace EsUtil.Ui.MewUI.Annotation;
 public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 {
     /// <summary>書式バー（編集中だけ表示する）。</summary>
-    private readonly AnnotationFormatBar _formatBar;
+    /// <summary>書式バー（編集中だけ表示する）。 独自の GUI へ差し替えられる。</summary>
+    private IStyledTextFormatBar _formatBar;
+
+    /// <summary>書式バーを作る処理（差し替えの入口）。</summary>
+    private IStyledTextFormatBarFactory _formatBarFactory = new StyledTextFormatBarFactory();
 
     /// <summary>注釈の表示と編集を担うレイヤー。</summary>
     private readonly AnnotationLayerControl _layer;
@@ -63,7 +70,6 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     public AnnotationEditorPanel()
     {
         _layer = new AnnotationLayerControl();
-        _formatBar = new AnnotationFormatBar(_layer);
 
         _formatBarPanel = new AnnotationPanelController(this, AnnotationPanelAppearance.FormatBar, () => _layer.Log);
         _stylePanel = new AnnotationPanelController(this, AnnotationPanelAppearance.StyleEditor, () => _layer.Log);
@@ -82,6 +88,9 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 
         Add(_layer);
         Add(_textEditor);
+
+        // **書式バーは本文コントロールの後に作る**: バーは本文へのフォーカスとキー転送を受け取る
+        _formatBar = CreateFormatBar();
 
         // 編集の開始・終了でバーを出し入れする（本文の位置は編集のたびに変わりうる）
         _layer.EditingChanged += (_, _) =>
@@ -138,13 +147,7 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         };
 
         // **本文のフォーカスは本文コントロールが持つ**: 書式バーは操作後に本文へ戻すだけにする
-        _formatBar.RequestEditorFocus = () =>
-        {
-            if (_layer.IsEditingText)
-            {
-                _textEditor.Focus();
-            }
-        };
+
 
         // 右クリックの編集パネル（外観・吹き出し・重なり順）
         _layer.StyleEditorRequested += (_, e) => ShowStylePanel(e.X, e.Y);
@@ -311,7 +314,7 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             root = new Border
             {
                 Child = kind == AnnotationPanelKind.FormatBar
-                    ? _formatBar
+                    ? _formatBar.View
                     : new AnnotationStylePanel(_layer, appearance),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top,
@@ -467,8 +470,8 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         }
 
         var appearance = AnnotationPanelAppearance.FormatBar;
-        _formatBar.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        var size = _formatBar.DesiredSize;
+        _formatBar.View.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var size = _formatBar.View.DesiredSize;
         return new EsSize(
             size.Width + (appearance.Padding * 2) + (appearance.BorderThickness * 2),
             size.Height + (appearance.VerticalPadding * 2) + (appearance.BorderThickness * 2));
@@ -684,6 +687,69 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         }
 
         _layer.Session.ApplySelectedRichText(_textEditor.Text);
+    }
+
+    /// <summary>書式バーを作る処理を取得または設定する（独自の GUI へ差し替える入口）。</summary>
+    /// <value>既定は組み込みの書式バー（<see cref="StyledTextFormatBarFactory"/>）。</value>
+    /// <remarks>差し替えはバーを出す前に行う（表示中のバーを入れ替えると位置と操作の対象が食い違う）。</remarks>
+    public IStyledTextFormatBarFactory FormatBarFactory
+    {
+        get => _formatBarFactory;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (_formatBarPanel.IsOpen)
+            {
+                throw new InvalidOperationException("書式バーを表示中は差し替えできません。");
+            }
+
+            _formatBarFactory = value;
+            _formatBar = CreateFormatBar();
+        }
+    }
+
+    /// <summary>書式バーの構成（フォントの一覧・色のタブ）を取得する。</summary>
+    /// <value>注釈の代表色を書式バーの色の選択へ渡す構成。</value>
+    public StyledTextFormatBarOptions FormatBarOptions { get; } = new()
+    {
+        ConfigureColorSelector = (selector, columns) => AnnotationPalette.Configure(selector, columns, showPicker: true),
+        PaletteColumns = AnnotationPalette.DefaultPaletteColumns,
+    };
+
+    /// <summary>書式バーを作り、本文へのフォーカスの戻し先を配線する。</summary>
+    /// <returns>書式バー。</returns>
+    private IStyledTextFormatBar CreateFormatBar()
+    {
+        var bar = _formatBarFactory.Create(new LayerFormatBarContext(_layer), FormatBarOptions);
+        bar.SetFocusRequest(() =>
+        {
+            if (_layer.IsEditingText)
+            {
+                _textEditor.Focus();
+            }
+        });
+        bar.TextFormat = FormatBarOptions.TextFormat;
+        return bar;
+    }
+
+    /// <summary>書式バーが書式を読み書きする相手（注釈の編集セッションへつなぐ）。</summary>
+    /// <param name="layer">注釈のレイヤー。</param>
+    private sealed class LayerFormatBarContext(AnnotationLayerControl layer) : ITextFormatBarContext
+    {
+        /// <inheritdoc/>
+        public TextStyle SelectedTextStyle => layer.Session.SelectedTextStyle;
+
+        /// <inheritdoc/>
+        public bool HasTextSelection => layer.HasTextSelection;
+
+        /// <inheritdoc/>
+        public bool SelectedTextMatches(Func<TextStyle, bool> match) => layer.Session.SelectedTextMatches(match);
+
+        /// <inheritdoc/>
+        public bool Transform(Func<TextStyle, TextStyle> transform) => layer.Session.TransformTextStyle(transform);
+
+        /// <inheritdoc/>
+        public bool Apply(TextStyle style) => layer.Session.ApplyTextStyle(style);
     }
 
     /// <summary>本文の表示を担うコントロールを取得する（テストと差し替えの入口）。</summary>

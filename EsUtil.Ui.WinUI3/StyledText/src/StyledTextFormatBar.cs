@@ -5,11 +5,9 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using DrawingColor = System.Drawing.Color;
-using EsUtil.Feature.Annotation.Presenter.Editor;
-using EsUtil.Feature.StyledText;
 using EsUtil.Feature.StyledText.Core.Defaults;
 
-namespace EsUtil.Ui.WinUI3.Annotation;
+namespace EsUtil.Ui.WinUI3.StyledText;
 
 /// <summary>本文の書式（文字単位）を操作するバー（WinUI 3 版）。</summary>
 /// <remarks>
@@ -17,10 +15,16 @@ namespace EsUtil.Ui.WinUI3.Annotation;
 /// （既存の文字は変えない。 判定はレイヤーが単一所有する）。<br/>
 /// <b>色は色選択コントロールを使う</b>: 代表色と ColorPicker から選ぶ（自前の色入力を作らない）。
 /// </remarks>
-internal sealed partial class AnnotationFormatBar : ContentControl
+public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFormatBar
 {
     /// <summary>適用先のレイヤー。</summary>
-    private readonly AnnotationLayerControl _layer;
+    private readonly ITextFormatBarContext _context;
+
+    /// <summary>バーの構成（フォントの一覧・色の選択）。</summary>
+    private readonly StyledTextFormatBarOptions _options;
+
+    /// <summary>選べるフォント名の一覧。</summary>
+    private readonly IReadOnlyList<string> _fonts;
 
     /// <summary>太字の切り替え。</summary>
     private readonly ToggleButton _bold;
@@ -55,10 +59,14 @@ internal sealed partial class AnnotationFormatBar : ContentControl
     private bool _refreshing;
 
     /// <summary>書式バーを初期化する。</summary>
-    /// <param name="layer">適用先のレイヤー。</param>
-    internal AnnotationFormatBar(AnnotationLayerControl layer)
+    /// <param name="context">書式を読み書きする相手（ホストが実装する）。</param>
+    /// <param name="options">バーの構成（フォントの一覧・色の選択）。 省略すると既定の構成を使う。</param>
+    public StyledTextFormatBar(ITextFormatBarContext context, StyledTextFormatBarOptions? options = null)
     {
-        _layer = layer;
+        ArgumentNullException.ThrowIfNull(context);
+        _context = context;
+        _options = options ?? new StyledTextFormatBarOptions();
+        _fonts = _options.Fonts;
 
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
@@ -71,18 +79,18 @@ internal sealed partial class AnnotationFormatBar : ContentControl
             // 高さの違う項目が混ざっても縦位置を揃える（規則の所有者はコアの ItemHeight）
             VerticalAlignment = VerticalAlignment.Center,
         };
-        _bold = AnnotationEditorControls.Toggle("B", false, value => ApplyDecoration(style => style with { IsBold = value }), bold: true);
-        _italic = AnnotationEditorControls.Toggle("I", false, value => ApplyDecoration(style => style with { IsItalic = value }), italic: true);
-        _underline = AnnotationEditorControls.Toggle(
+        _bold = StyledTextFormatBarControls.Toggle("B", false, value => ApplyDecoration(style => style with { IsBold = value }), bold: true);
+        _italic = StyledTextFormatBarControls.Toggle("I", false, value => ApplyDecoration(style => style with { IsItalic = value }), italic: true);
+        _underline = StyledTextFormatBarControls.Toggle(
             "U", false, value => ApplyDecoration(style => style with { IsUnderline = value }), underline: true);
-        _strike = AnnotationEditorControls.Toggle(
+        _strike = StyledTextFormatBarControls.Toggle(
             "S", false, value => ApplyDecoration(style => style with { IsStrike = value }), strike: true);
 
         _font = new ComboBox
         {
-            ItemsSource = AnnotationFonts.All,
+            ItemsSource = _fonts,
             SelectedIndex = 0,
-            Width = AnnotationFormatBarLayout.FontSelectorWidth,
+            Width = TextFormatBarLayout.FontSelectorWidth,
 
             // **フォント名は直接入力できる**（一覧に無いフォントも指定できる。 標準の編集可の
             // コンボボックスであるため Ctrl+C / Ctrl+V もそのまま使える）
@@ -90,9 +98,9 @@ internal sealed partial class AnnotationFormatBar : ContentControl
             IsTextSearchEnabled = true,
 
             // **高さを明示する**: 既定の高さでは文字の上が欠ける
-            MinHeight = AnnotationFormatBarLayout.ItemHeight,
-            Height = AnnotationFormatBarLayout.ItemHeight,
-            FontSize = AnnotationEditorControls.FontSize,
+            MinHeight = TextFormatBarLayout.ItemHeight,
+            Height = TextFormatBarLayout.ItemHeight,
+            FontSize = StyledTextFormatBarControls.FontSize,
             VerticalContentAlignment = VerticalAlignment.Center,
         };
 
@@ -129,17 +137,17 @@ internal sealed partial class AnnotationFormatBar : ContentControl
             Maximum = TextLimits.FontSizeMax,
             SmallChange = 1,
             Value = TextDefaults.FontSizeDefault,
-            Width = AnnotationFormatBarLayout.SizeSelectorWidth,
+            Width = TextFormatBarLayout.SizeSelectorWidth,
 
             // **枠は動かさない**: NumberBox 自体を動かすと枠もずれる。
             // 内側の文字は Loaded 後に `ShiftInnerText` で下げる。
-            MinHeight = AnnotationFormatBarLayout.ItemHeight,
-            Height = AnnotationFormatBarLayout.ItemHeight,
+            MinHeight = TextFormatBarLayout.ItemHeight,
+            Height = TextFormatBarLayout.ItemHeight,
 
             // **数字は上下中央へ置く**: NumberBox は内側の入力欄を上寄りに描き、`VerticalContentAlignment`
             // を受け付けない。 枠は他の項目と同じ高さにし、内側の入力欄だけを下げる。
             VerticalAlignment = VerticalAlignment.Center,
-            FontSize = AnnotationEditorControls.FontSize,
+            FontSize = StyledTextFormatBarControls.FontSize,
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact,
         };
 
@@ -155,8 +163,8 @@ internal sealed partial class AnnotationFormatBar : ContentControl
             ApplyFull(style => style with { FontSize = e.NewValue });
         };
 
-        _color = AnnotationEditorControls.CreateSelector(
-            AnnotationEditorControls.ToHex(TextDefaults.DefaultStyle.Color), ColorTextFormat.NameWithAlpha);
+        _color = (_options.CreateColorSelector ?? CreateDefaultSelector)(
+            TextDefaults.DefaultStyle.Color.ToHexText(), ColorTextFormat.NameWithAlpha);
         _color.SelectedColorChanged += (_, _) =>
         {
             if (_refreshing)
@@ -168,26 +176,26 @@ internal sealed partial class AnnotationFormatBar : ContentControl
             ApplyFull(style => style with { Color = color });
         };
 
-        // 並び順はコア（AnnotationFormatBarLayout.Order）が単一所有する。
+        // 並び順はコア（TextFormatBarLayout.Order）が単一所有する。
         // ここで順を決めると 4 つの UI 版で操作の位置がずれる。
-        var items = new Dictionary<AnnotationFormatBarItem, UIElement>
+        var items = new Dictionary<TextFormatBarItem, UIElement>
         {
-            [AnnotationFormatBarItem.Bold] = _bold,
-            [AnnotationFormatBarItem.Italic] = _italic,
-            [AnnotationFormatBarItem.Underline] = _underline,
-            [AnnotationFormatBarItem.Strike] = _strike,
-            [AnnotationFormatBarItem.Font] = _font,
-            [AnnotationFormatBarItem.Size] = _size,
-            [AnnotationFormatBarItem.Color] = _color,
+            [TextFormatBarItem.Bold] = _bold,
+            [TextFormatBarItem.Italic] = _italic,
+            [TextFormatBarItem.Underline] = _underline,
+            [TextFormatBarItem.Strike] = _strike,
+            [TextFormatBarItem.Font] = _font,
+            [TextFormatBarItem.Size] = _size,
+            [TextFormatBarItem.Color] = _color,
         };
 
-        foreach (var item in AnnotationFormatBarLayout.Order)
+        foreach (var item in TextFormatBarLayout.Order)
         {
             // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる。
-            // 値は提示層の AnnotationFormatBarLayout.ItemHeight が単一所有する
+            // 値は提示層の TextFormatBarLayout.ItemHeight が単一所有する
             var element = (FrameworkElement)items[item];
-            element.Height = AnnotationFormatBarLayout.ItemHeight;
-            element.MinHeight = AnnotationFormatBarLayout.ItemHeight;
+            element.Height = TextFormatBarLayout.ItemHeight;
+            element.MinHeight = TextFormatBarLayout.ItemHeight;
             element.VerticalAlignment = VerticalAlignment.Center;
             panel.Children.Add(element);
         }
@@ -199,6 +207,38 @@ internal sealed partial class AnnotationFormatBar : ContentControl
         Refresh();
     }
 
+    /// <summary>バーの画面要素を取得する（ホストはこれをパネルへ載せる）。</summary>
+    public FrameworkElement View => this;
+
+    /// <summary>バーの幅（DIP）を取得する。</summary>
+    public double PreferredWidth => TextFormatBarLayout.FontSelectorWidth
+        + TextFormatBarLayout.SizeSelectorWidth
+        + (TextEditorLayout.ToggleWidth * 4);
+
+    /// <summary>本文のキー操作を転送する処理を設定する（WinUI 3 版は転送しない）。</summary>
+    /// <param name="forward">転送する処理（使わない）。</param>
+    public void SetKeyHandler(Func<Windows.System.VirtualKey, bool>? forward) => _ = forward;
+
+    /// <summary>本文へフォーカスを戻す処理を設定する。</summary>
+    /// <param name="request">フォーカスを戻す処理（<see langword="null"/> は何もしない）。</param>
+    public void SetFocusRequest(Action? request) => _ = request;
+
+
+
+    /// <summary>既定の色の選択を作る（標準のタブだけを出す）。</summary>
+    /// <param name="color">現在の色（<c>#AARRGGBB</c>）。</param>
+    /// <param name="textFormat">入力欄の表記。</param>
+    /// <returns>色の選択。</returns>
+    private static EsUtil.Ui.WinUI3.ColorSelector.ColorSelectorControl CreateDefaultSelector(
+        string color, EsUtil.Platform.Core.Palette.ColorTextFormat textFormat)
+        => new()
+        {
+            SelectedColor = color,
+            TextFormat = textFormat,
+            Width = 240,
+            FontSize = StyledTextFormatBarControls.FontSize,
+        };
+
     /// <summary>書式バーの色の入力欄へ出す表記を取得または設定する。</summary>
     /// <value>色名 + 不透明度（<see cref="ColorTextFormat.NameWithAlpha"/>）。</value>
     /// <remarks>
@@ -206,28 +246,28 @@ internal sealed partial class AnnotationFormatBar : ContentControl
     /// 色名の無い色は <c>#AARRGGBB</c>（8 桁）で出るため、表記によって不透明度が見えなくなることはない
     /// （規則は <c>ColorString.Format</c> が単一所有する）。
     /// </remarks>
-    internal ColorTextFormat TextFormat
+    public ColorTextFormat TextFormat
     {
         get => ColorTextFormat.NameWithAlpha;
         set => _color.TextFormat = value;
     }
 
     /// <summary>現在の選択範囲の書式を各操作へ反映する。</summary>
-    internal void Refresh()
+    public void Refresh()
     {
         _refreshing = true;
         try
         {
-            var style = _layer.SelectedTextStyle;
-            _bold.IsChecked = _layer.SelectedTextMatches(static candidate => candidate.IsBold);
-            _italic.IsChecked = _layer.SelectedTextMatches(static candidate => candidate.IsItalic);
-            _underline.IsChecked = _layer.SelectedTextMatches(static candidate => candidate.IsUnderline);
-            _strike.IsChecked = _layer.SelectedTextMatches(static candidate => candidate.IsStrike);
+            var style = _context.SelectedTextStyle;
+            _bold.IsChecked = _context.SelectedTextMatches(static candidate => candidate.IsBold);
+            _italic.IsChecked = _context.SelectedTextMatches(static candidate => candidate.IsItalic);
+            _underline.IsChecked = _context.SelectedTextMatches(static candidate => candidate.IsUnderline);
+            _strike.IsChecked = _context.SelectedTextMatches(static candidate => candidate.IsStrike);
 
-            var index = AnnotationFonts.All.ToList().IndexOf(style.FontFamily);
+            var index = _fonts.ToList().IndexOf(style.FontFamily);
             _font.SelectedIndex = index >= 0 ? index : 0;
             _size.Value = style.FontSize;
-            _color.SelectedColor = AnnotationEditorControls.ToHex(style.Color);
+            _color.SelectedColor = style.Color.ToHexText();
         }
         finally
         {
@@ -239,7 +279,7 @@ internal sealed partial class AnnotationFormatBar : ContentControl
     /// <param name="applyToModel">本文へ適用する処理。</param>
     private void ApplyDecoration(Func<TextStyle, TextStyle> applyToModel)
     {
-        _layer.TransformSelectionStyle(applyToModel);
+        _context.Transform(applyToModel);
         Refresh();
     }
 
@@ -247,7 +287,7 @@ internal sealed partial class AnnotationFormatBar : ContentControl
     /// <param name="change">書式を変える処理。</param>
     private void ApplyFull(Func<TextStyle, TextStyle> change)
     {
-        _layer.ApplyFullStyle(change(_layer.SelectedTextStyle));
+        _context.Apply(change(_context.SelectedTextStyle));
         Refresh();
     }
 

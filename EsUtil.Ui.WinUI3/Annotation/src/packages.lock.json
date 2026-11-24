@@ -226,6 +226,7 @@
         "dependencies": {
           "EsUtil.Feature.StyledText.Core": "[0.8.8, )",
           "EsUtil.Platform.Core": "[0.8.8, )",
+          "EsUtil.Ui.WinUI3.ColorSelector": "[0.8.8, )",
           "Microsoft.Windows.SDK.BuildTools": "[10.0.28000.2957, )",
           "Microsoft.WindowsAppSDK": "[2.0.1, )"
         }

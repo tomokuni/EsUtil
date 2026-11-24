@@ -1,4 +1,5 @@
 using EsUtil.Feature.Annotation.Presenter.Panel;
+using EsUtil.Feature.StyledText.Presenter.Formatting;
 
 namespace EsUtil.Feature.Annotation.Presenter.Editor;
 
@@ -23,19 +24,21 @@ public static class AnnotationEditorLayout
     public const double FieldWidth = 160;
 
     /// <summary>行の中の項目の間隔（DIP）。</summary>
-    public const double RowSpacing = 4;
+    /// <remarks>値の所有者は書式付き文字列の編集層（<see cref="TextEditorLayout.ControlSpacing"/>）である。</remarks>
+    public const double RowSpacing = TextEditorLayout.ControlSpacing;
 
     /// <summary>行と行の間隔（DIP）。</summary>
     public const double GroupSpacing = 6;
 
     /// <summary>装飾の切り替えボタンの幅（DIP）。</summary>
-    public const double ToggleWidth = 34;
+    /// <remarks>値の所有者は書式付き文字列の編集層（<see cref="TextEditorLayout.ToggleWidth"/>）である。</remarks>
+    public const double ToggleWidth = TextEditorLayout.ToggleWidth;
 
     /// <summary>装飾の切り替えボタンの最小の幅（DIP。 幅を指定しない UI 用）。</summary>
-    public const double ToggleMinWidth = 28;
+    public const double ToggleMinWidth = TextEditorLayout.ToggleMinWidth;
 
     /// <summary>本文の文字サイズ（DIP。 編集 UI の文字）。</summary>
-    public const double FontSizeDip = 12;
+    public const double FontSizeDip = TextEditorLayout.FontSizeDip;
 
     /// <summary>装飾の切り替え（B / I / U / S）の文字サイズ（DIP）。</summary>
     /// <remarks>
@@ -43,7 +46,7 @@ public static class AnnotationEditorLayout
     /// 線（下線・取り消し線）と字面が小さく、押せる場所としても見えにくい。
     /// UI の既定の文字サイズ（12 DIP）より 1 段大きい 14 DIP にします。
     /// </remarks>
-    public const double ToggleFontSize = 14;
+    public const double ToggleFontSize = TextEditorLayout.ToggleFontSize;
 
     /// <summary>装飾の切り替え（B / I / U / S）のフォント名。</summary>
     /// <remarks>
@@ -53,5 +56,5 @@ public static class AnnotationEditorLayout
     /// <b>「I」の上下にセリフ</b>が付くため、記号として読めます。
     /// 斜体の「I」が読めるかを優先し、欧文の記号用フォントとして選びます。
     /// </remarks>
-    public const string ToggleFontFamily = "Consolas";
+    public const string ToggleFontFamily = TextEditorLayout.ToggleFontFamily;
 }

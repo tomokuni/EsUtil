@@ -1,39 +1,49 @@
-using EsUtil.Feature.Annotation.Presenter.Panel;
-using EsUtil.Feature.StyledText;
 using EsUtil.Feature.StyledText.Core.Defaults;
 
-namespace EsUtil.Feature.Annotation.Presenter.Editor;
+namespace EsUtil.Feature.StyledText.Presenter.Formatting;
 
 /// <summary>書式バーの項目の並び順と寸法（単一所有）。</summary>
 /// <remarks>
-/// <b>装飾を先・値を後</b>: 太字・斜体・下線・取り消し線（押すだけの操作）を先に置き、<br/>
+/// <b>装飾を先・値を後</b>: 太字・斜体・下線・取り消し線（押すだけの操作）を先に置き、
 /// 色・大きさ・フォント名（選ぶ操作）を後に置く。 操作の種類がまとまり、視線の移動が少なくなる。<br/>
 /// <b>項目の高さは揃える</b>: 高さが違うと縦位置が不揃いになり、押す位置もずれる。<br/>
+/// <b>高さはパネルの高さにも使う</b>: 書式バーを載せるパネルの高さと置く位置もこの値から決まる。
 /// </remarks>
-public static class AnnotationFormatBarLayout
+public static class TextFormatBarLayout
 {
     /// <summary>項目の並び順を取得する。</summary>
     /// <value>太字・斜体・下線・取り消し線・色・フォントの大きさ・フォント名 の順。</value>
-    public static IReadOnlyList<AnnotationFormatBarItem> Order { get; } =
+    public static IReadOnlyList<TextFormatBarItem> Order { get; } =
     [
-        AnnotationFormatBarItem.Bold,
-        AnnotationFormatBarItem.Italic,
-        AnnotationFormatBarItem.Underline,
-        AnnotationFormatBarItem.Strike,
-        AnnotationFormatBarItem.Color,
-        AnnotationFormatBarItem.Size,
-        AnnotationFormatBarItem.Font,
+        TextFormatBarItem.Bold,
+        TextFormatBarItem.Italic,
+        TextFormatBarItem.Underline,
+        TextFormatBarItem.Strike,
+        TextFormatBarItem.Color,
+        TextFormatBarItem.Size,
+        TextFormatBarItem.Font,
     ];
 
     /// <summary>フォント名の選択の幅（DIP）。</summary>
     /// <remarks>
-    /// <b>幅は 4 つの UI 版で同じにする</b>: UI ごとに違うと、同じ内容でも書式バーの長さが変わり、<br/>
+    /// <b>幅は 4 つの UI 版で同じにする</b>: UI ごとに違うと、同じ内容でも書式バーの長さが変わり、
     /// 置ける幅を超えて項目が切れる。
     /// </remarks>
     public const double FontSelectorWidth = 210;
 
     /// <summary>フォントの大きさの入力の幅（DIP）。</summary>
     public const double SizeSelectorWidth = 104;
+
+    /// <summary>項目の高さ（DIP）を取得する。</summary>
+    /// <value>32 DIP。</value>
+    /// <remarks>
+    /// <b>すべての項目で同じ高さにする</b>: ボタン・入力欄・一覧で高さが違うと、書式バーの縦位置が
+    /// 揃わず押しにくい。 UI はこの値を各項目の高さに与え、縦方向の中央へ寄せる。<br/>
+    /// <b>32 DIP を下回る値にしてはいけない</b>: AvaloniaUI の <c>ComboBox</c> と WinUI 3 の
+    /// <c>ToggleButton</c> の最小の高さは 32 DIP である。 これより低いと、内側の入力欄だけが
+    /// 元の高さを保ち、色の入力欄の上下の枠線が切れる。
+    /// </remarks>
+    public const double ItemHeight = 32;
 
     /// <summary>色の入力欄で「現在色の四角」に空ける左の余白（DIP）。</summary>
     private const double ColorSwatchIndent = 24;
@@ -44,12 +54,22 @@ public static class AnnotationFormatBarLayout
     /// <summary>色の幅を測る文字サイズ（DIP）。</summary>
     private const double ColorMeasureFontSize = 12;
 
+    /// <summary>色の入力欄の幅を測るための最も長い表記（<c>#AARRGGBB</c>）。</summary>
+    private const string HexTextForMeasure = "#FFFFFFFF";
+
+    /// <summary>色の入力欄の内側の余白の見込み（DIP）。</summary>
+    /// <remarks>
+    /// <b>文字の実寸だけでは足りない</b>: 入力欄は文字の左右に内側の余白を持ち、文字の実寸は
+    /// その外側の幅である。 余白を見込まないと、<c>#FFFFFFFF</c> の末尾が切れる。
+    /// </remarks>
+    private const double HexTextSlack = 14;
+
     /// <summary>色の入力欄の幅（DIP）を求める。</summary>
     /// <param name="measureText">文字列と書式から実寸を測る関数（UI が渡す）。</param>
     /// <returns>幅（DIP）。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="measureText"/> が null の場合。</exception>
     /// <remarks>
-    /// <b>必要な幅は表記から決める</b>: 「■ + 色名 + 100%」と「■ + <c>#FFFFFFFF</c>」の広いほうへ<br/>
+    /// <b>必要な幅は表記から決める</b>: 「■ + 色名 + 100%」と「■ + <c>#FFFFFFFF</c>」の広いほうへ
     /// 四角と展開ボタンの分を足す。 固定値にすると、はっきり余る幅が空いて「不必要に長い」見た目になる。
     /// </remarks>
     public static double ResolveColorSelectorWidth(
@@ -68,10 +88,8 @@ public static class AnnotationFormatBarLayout
     /// <returns>幅（DIP）。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="measureText"/> が null の場合。</exception>
     /// <remarks>
-    /// <b>フライアウトの行はカラーコードの幅で足りる</b>: 行の他の入力欄（数値・選択肢）と同じ幅に揃えると<br/>
-    /// 1 列の見た目が整う。 色名まで収める幅にすると、色名は数文字しかないのに<br/>
-    /// <b>右側が大きく空く</b>。<br/>
-    /// <c>#FFFFFFFF</c> は入力欄に出る最も長い表記であるため、これが収まれば足りる。
+    /// <b>フライアウトの行はカラーコードの幅で足りる</b>: 行の他の入力欄（数値・選択肢）と同じ幅に揃えると
+    /// 1 列の見た目が整う。 色名まで収める幅にすると、右側が大きく空く。
     /// </remarks>
     public static double ResolveHexColorSelectorWidth(
         Func<string, TextStyle, EsUtil.Platform.Core.Geometry.EsSize> measureText)
@@ -82,29 +100,4 @@ public static class AnnotationFormatBarLayout
         var hexWidth = measureText(HexTextForMeasure, style).Width;
         return Math.Ceiling(ColorSwatchIndent + hexWidth + ColorToggleWidth + HexTextSlack);
     }
-
-    /// <summary>色の入力欄の幅を測るための最も長い表記（<c>#AARRGGBB</c>）。</summary>
-    private const string HexTextForMeasure = "#FFFFFFFF";
-
-    /// <summary>色の入力欄の内側の余白の見込み（DIP）。</summary>
-    /// <remarks>
-    /// <b>文字の実寸だけでは足りない</b>: 入力欄は文字の左右に内側の余白を持ち、文字の実寸は<br/>
-    /// その外側の幅である。 余白を見込まないと、<c>#FFFFFFFF</c> の末尾が切れる。<br/>
-    /// 近似（<c>文字数 × サイズ × 0.5</c>）を使う UI もあるため、余裕を持たせる。
-    /// </remarks>
-    private const double HexTextSlack = 14;
-
-    /// <summary>項目の高さ（DIP）を取得する。</summary>
-    /// <value>32 DIP。</value>
-    /// <remarks>
-    /// <b>すべての項目で同じ高さにする</b>: ボタン・入力欄・一覧で高さが違うと、書式バーの縦位置が<br/>
-    /// 揃わず押しにくい。 UI はこの値を各項目の高さに与え、縦方向の中央へ寄せる。<br/>
-    /// <b>32 DIP を下回る値にしてはいけない</b>: AvaloniaUI の <c>ComboBox</c> と WinUI 3 の<br/>
-    /// <c>ToggleButton</c> の最小の高さは 32 DIP である。 これより低いと、内側の入力欄だけが<br/>
-    /// 元の高さを保ち、<b>色の入力欄の上下の枠線が切れる</b>。<br/>
-    /// <b>この値はパネルの高さにも使う</b>（<see cref="AnnotationPanelAppearance.FormatBar"/> の<br/>
-    /// <c>FixedContentHeight</c>）。 変えるとパネルの高さと置く位置も一緒に変わる。
-    /// </remarks>
-    public const double ItemHeight = 32;
 }
-

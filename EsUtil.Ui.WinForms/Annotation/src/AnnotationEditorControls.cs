@@ -1,6 +1,8 @@
 using EsUtil.Feature.Annotation.Presenter.Editor;
 using EsUtil.Feature.StyledText.Core.Defaults;
 
+using EsUtil.Ui.WinForms.StyledText;
+
 namespace EsUtil.Ui.WinForms.Annotation;
 
 /// <summary>編集 UI の部品（書式バーと外観パネルが共有する）。</summary>
@@ -56,26 +58,7 @@ internal static class AnnotationEditorControls
     /// <param name="italic">斜体で表示する場合は <see langword="true"/>。</param>
     /// <returns>切り替えボタン。</returns>
     internal static CheckBox Toggle(string text, bool isChecked, Action<bool> apply, bool bold = false, bool italic = false)
-    {
-        var button = new CheckBox
-        {
-            Text = text,
-            Appearance = Appearance.Button,
-            TextAlign = ContentAlignment.MiddleCenter,
-            AutoSize = false,
-            Size = new Size(28, 24),
-            Checked = isChecked,
-            Font = new Font(
-                AnnotationEditorLayout.ToggleFontFamily,
-                ToggleFontSize,
-                bold ? FontStyle.Bold : italic ? FontStyle.Italic : FontStyle.Regular),
-            Margin = new Padding(1),
-        };
-
-        button.CheckedChanged += (_, _) => apply(button.Checked);
-        return button;
-    }
-
+        => StyledTextFormatBarControls.Toggle(text, isChecked, apply, bold, italic);
     /// <summary>色のボタンを作る（押すと代表色のメニューが開く）。</summary>
     /// <param name="color">現在の色。</param>
     /// <param name="apply">色が選ばれたときに呼ぶ処理。</param>
@@ -138,20 +121,5 @@ internal static class AnnotationEditorControls
     /// <param name="apply">値が変わったときに呼ぶ処理。</param>
     /// <returns>数値の入力。</returns>
     internal static NumericUpDown NumberBox(double value, double minimum, double maximum, Action<double> apply)
-    {
-        var box = new NumericUpDown
-        {
-            Minimum = (decimal)minimum,
-            Maximum = (decimal)maximum,
-            DecimalPlaces = 1,
-            Increment = 1,
-            Value = (decimal)Math.Clamp(value, minimum, maximum),
-            Width = (int)Math.Round(AnnotationEditorLayout.FieldWidth),
-            Font = new Font(UiFontFamily, FontSize),
-            Margin = new Padding(1),
-        };
-
-        box.ValueChanged += (_, _) => apply((double)box.Value);
-        return box;
-    }
+        => StyledTextFormatBarControls.NumberBox(value, minimum, maximum, apply);
 }

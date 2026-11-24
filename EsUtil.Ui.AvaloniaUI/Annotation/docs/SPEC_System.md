@@ -57,11 +57,11 @@ flowchart TB
 | --- | --- | --- |
 | `AnnotationLayerControl` | `public` | 画像の表示・注釈の図形の描画・選択と移動の受付・文書の変更通知・保存用の合成（`RenderComposedImage`）。 **本文の入力・IME・キャレットは持たない**（`StyledTextControl` が単一所有する） |
 | `AnnotationEditorPanel` | `public` | 本文の表示・その場編集と書式バーを 1 つにまとめたコントロール（`Layer` を内側で持ち、編集の開始・終了と本文の位置に合わせてバーを配置する） |
-| `AnnotationFormatBar`（内部） | `internal` | 本文の上に出す書式バー（フォント・大きさ・色・B / I / U / S。 項目名は出さずツールチップで示す） |
+| `StyledTextFormatBar`（`EsUtil.Ui.AvaloniaUI.StyledText`） | `public` | 本文の上に出す書式バー（フォント・大きさ・色・B / I / U / S）。 ホストは `FormatBarFactory` で独自の GUI へ差し替えられる |
 | `AnnotationPalette` | `public` | 注釈の色選択で使う代表色 40 色（色名付き）と、色の選択をその構成にする処理 |
 | `AnnotationStyleFlyout`（内部） | `internal` | 右クリックの編集 UI（外観・吹き出し・本文の書式・重なり順）。 `AnnotationEditorControls` の部品で組み立てる |
 | `AnnotationEditorControls` | `public` | 編集 UI の行の部品（見出し・項目名・色・数値・選択肢・装飾の切り替え）。 フライアウトとホストの設定ペインが共有する |
-| `AnnotationFonts` | `public` | 本文で選べるフォント名の一覧（優先フォントを先頭に置く） |
+| `StyledTextFonts`（`EsUtil.Ui.AvaloniaUI.StyledText`） | `public` | 本文で選べるフォント名の一覧（優先フォントを先頭に置く） |
 | `AnnotationHistory`（コア） | `public` | 変更履歴（元に戻す・やり直す）。 不変の文書をそのまま積む（ドラッグ中の書き換えで過去が変わらない） |
 | `AnnotationPainter`（内部） | `internal` | 描画計画の写像（角丸・しっぽ・文字・下線/取り消し線）と文字の実寸計測 |
 | `AnnotationMarqueeEffects`（内部） | `internal` | Marquee が要求する効果（再描画・フォーカス・カーソル・キャプチャ）の写像 |

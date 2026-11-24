@@ -11,6 +11,9 @@ using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Feature.Annotation.Presenter.Panel;
+using EsUtil.Feature.StyledText;
+using EsUtil.Ui.AvaloniaUI.StyledText;
+using EsUtil.Feature.StyledText.Presenter.Formatting;
 
 namespace EsUtil.Ui.AvaloniaUI.Annotation;
 
@@ -28,8 +31,11 @@ namespace EsUtil.Ui.AvaloniaUI.Annotation;
 /// </remarks>
 public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 {
-    /// <summary>書式バー（編集中だけ表示する）。</summary>
-    private readonly AnnotationFormatBar _formatBar;
+    /// <summary>書式バー（編集中だけ表示する）。 独自の GUI へ差し替えられる。</summary>
+    private IStyledTextFormatBar _formatBar;
+
+    /// <summary>書式バーを作る処理（差し替えの入口）。</summary>
+    private IStyledTextFormatBarFactory _formatBarFactory = new StyledTextFormatBarFactory();
 
     /// <summary>注釈の表示と編集を担うレイヤー。</summary>
     private readonly AnnotationLayerControl _layer;
@@ -79,7 +85,6 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     public AnnotationEditorPanel()
     {
         _layer = new AnnotationLayerControl();
-        _formatBar = new AnnotationFormatBar(_layer);
 
         // 下地を持たないとパネルが入力の対象にならない（Avalonia は背景が無い面をヒットテストしない）
         Background = Brushes.Transparent;
@@ -103,17 +108,10 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         Children.Add(_layer);
         Children.Add(_textEditor);
 
-        // 右クリックの外観フライアウト（位置はレイヤーが知らせる）
-        // **本文のキー操作とフォーカスは本文コントロールが持つ**: 書式バーは操作を転送するだけにする
-        _formatBar.ForwardEditingKey = _textEditor.TryHandleEditingKey;
-        _formatBar.RequestEditorFocus = () =>
-        {
-            if (_layer.IsEditingText)
-            {
-                _textEditor.Focus();
-            }
-        };
+        // **書式バーは本文コントロールの後に作る**: バーは本文へのフォーカスとキー転送を受け取る
+        _formatBar = CreateFormatBar();
 
+        // 右クリックの外観フライアウト（位置はレイヤーが知らせる）
         _layer.StyleEditorRequested += (_, e) => ShowStylePanel(e.X, e.Y);
 
         // 編集の開始・終了でバーを出し入れする（本文の位置は編集のたびに変わりうる）
@@ -221,17 +219,58 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <value>編集中の場合は <see langword="true"/>（書式バーが出ている）。</value>
     public bool IsEditingText => _layer.IsEditingText;
 
+    /// <summary>書式バーを作る処理を取得または設定する（独自の GUI へ差し替える入口）。</summary>
+    /// <value>既定は組み込みの書式バー（<see cref="StyledTextFormatBarFactory"/>）。</value>
+    /// <remarks>
+    /// <b>差し替えはバーを出す前に行う</b>: 表示中のバーを入れ替えると、位置と操作の対象が食い違うため、
+    /// 表示中は <see cref="InvalidOperationException"/> になる。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><see langword="null"/> を設定した場合。</exception>
+    /// <exception cref="InvalidOperationException">書式バーを表示中に設定した場合。</exception>
+    public IStyledTextFormatBarFactory FormatBarFactory
+    {
+        get => _formatBarFactory;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (_formatBarPanel.IsOpen)
+            {
+                throw new InvalidOperationException("書式バーを表示中は差し替えできません。");
+            }
+
+            _formatBarFactory = value;
+            _roots.Remove(AnnotationPanelKind.FormatBar);
+            _formatBar = CreateFormatBar();
+        }
+    }
+
+    /// <summary>書式バーの構成（フォントの一覧・色のタブ・色の表記）を取得する。</summary>
+    /// <value>注釈の代表色を書式バーの色の選択へ渡す構成。</value>
+    public StyledTextFormatBarOptions FormatBarOptions { get; } = new()
+    {
+        ConfigureColorSelector = (selector, columns) => AnnotationPalette.Configure(selector, columns, showPicker: true),
+        PaletteColumns = AnnotationPalette.DefaultPaletteColumns,
+        MeasureText = AnnotationPainter.Measure,
+    };
+
     /// <summary>書式バーの代表色（■ を並べる格子）の列数を取得または設定する。</summary>
     /// <value>1 以上の列数。 既定は <see cref="AnnotationPalette.DefaultPaletteColumns"/>（8 列）。</value>
+    /// <remarks>組み込みの書式バーだけに効く（差し替えたバーは独自の設定に従う）。</remarks>
     public int PaletteColumns
     {
-        get => _formatBar.PaletteColumns;
-        set => _formatBar.PaletteColumns = value;
+        get => (_formatBar as StyledTextFormatBar)?.PaletteColumns ?? FormatBarOptions.PaletteColumns;
+        set
+        {
+            if (_formatBar is StyledTextFormatBar bar)
+            {
+                bar.PaletteColumns = value;
+            }
+        }
     }
 
     /// <summary>書式バーの色の選択の幅（DIP）を取得する。</summary>
     /// <value>「■ + 全角 4 文字 + 100%」と「■ + <c>#FFFFFFFF</c>」の広いほうの幅。</value>
-    public double ColorWidth => _formatBar.ColorWidth;
+    public double ColorWidth => (_formatBar as StyledTextFormatBar)?.ColorWidth ?? _formatBar.PreferredWidth;
 
     /// <summary>書式バーの色の入力欄へ出す表記を取得または設定する。</summary>
     /// <value>色名 + 不透明度（既定）またはカラーコード（<c>#AARRGGBB</c>）。</value>
@@ -321,7 +360,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             root = new Border
             {
                 Child = kind == AnnotationPanelKind.FormatBar
-                    ? _formatBar
+                    ? _formatBar.View
                     : AnnotationStyleFlyout.BuildContent(_layer, appearance),
             };
 
@@ -440,14 +479,33 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         _formatBarPanel.RepositionOutside(body, AnnotationPanelMetrics.FormatBarGap);
     }
 
+    /// <summary>書式バーを作り、キーとフォーカスの転送先を配線する。</summary>
+    /// <returns>書式バー。</returns>
+    private IStyledTextFormatBar CreateFormatBar()
+    {
+        var bar = _formatBarFactory.Create(new LayerFormatBarContext(_layer), FormatBarOptions);
+
+        // **本文のキー操作とフォーカスは本文コントロールが持つ**: 書式バーは操作を転送するだけにする
+        bar.SetKeyHandler(_textEditor.TryHandleEditingKey);
+        bar.SetFocusRequest(() =>
+        {
+            if (_layer.IsEditingText)
+            {
+                _textEditor.Focus();
+            }
+        });
+        bar.TextFormat = FormatBarOptions.TextFormat;
+        return bar;
+    }
+
     /// <summary>書式バーの大きさ（DIP）を測る。</summary>
     /// <returns>実寸。 測れない場合は希望寸法。</returns>
     private EsSize MeasureFormatBar()
     {
         // **中身の希望寸法から求める**: パネルの実寸（Bounds）は置いた幅へ切り詰められているため、
         // それを使うと右端が毎回わずかに切れる（測定と配置が互いを参照して縮む）。
-        _formatBar.Measure(Size.Infinity);
-        var desired = _formatBar.DesiredSize;
+        _formatBar.View.Measure(Size.Infinity);
+        var desired = _formatBar.View.DesiredSize;
         var appearance = AnnotationPanelAppearance.FormatBar;
         return new EsSize(
             desired.Width + (appearance.Padding * 2) + (appearance.BorderThickness * 2),
@@ -740,6 +798,26 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         UnhookOutsidePress();
         UnhookWindowMove();
         base.OnDetachedFromVisualTree(e);
+    }
+
+    /// <summary>書式バーが書式を読み書きする相手（注釈の編集セッションへつなぐ）。</summary>
+    /// <param name="layer">注釈のレイヤー。</param>
+    private sealed class LayerFormatBarContext(AnnotationLayerControl layer) : ITextFormatBarContext
+    {
+        /// <inheritdoc/>
+        public TextStyle SelectedTextStyle => layer.Session.SelectedTextStyle;
+
+        /// <inheritdoc/>
+        public bool HasTextSelection => layer.HasTextSelection;
+
+        /// <inheritdoc/>
+        public bool SelectedTextMatches(Func<TextStyle, bool> match) => layer.Session.SelectedTextMatches(match);
+
+        /// <inheritdoc/>
+        public bool Transform(Func<TextStyle, TextStyle> transform) => layer.Session.TransformTextStyle(transform);
+
+        /// <inheritdoc/>
+        public bool Apply(TextStyle style) => layer.Session.ApplyTextStyle(style);
     }
 
     /// <summary>パネルをドラッグして動かす。</summary>

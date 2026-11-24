@@ -83,7 +83,8 @@
         "dependencies": {
           "Aprillz.MewUI.Core": "[0.22.1, )",
           "EsUtil.Feature.StyledText.Core": "[0.8.8, )",
-          "EsUtil.Platform.Core": "[0.8.8, )"
+          "EsUtil.Platform.Core": "[0.8.8, )",
+          "EsUtil.Ui.MewUI.ColorSelector": "[0.8.8, )"
         }
       }
     }

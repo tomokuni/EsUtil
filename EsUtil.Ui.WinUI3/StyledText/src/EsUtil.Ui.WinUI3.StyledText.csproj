@@ -20,6 +20,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\EsUtil\Feature.StyledText.Core\src\EsUtil.Feature.StyledText.Core.csproj" />
     <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <!-- 書式バーの色の選択は UI の色選択コントロールを使う -->
+    <ProjectReference Include="..\..\ColorSelector\src\EsUtil.Ui.WinUI3.ColorSelector.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -35,6 +37,7 @@
     <Using Include="EsUtil.Feature.StyledText.Core.Text" />
     <Using Include="EsUtil.Feature.StyledText.Presenter.Drawing" />
     <Using Include="EsUtil.Feature.StyledText.Presenter.Editing" />
+    <Using Include="EsUtil.Feature.StyledText.Presenter.Formatting" />
   </ItemGroup>
 
 </Project>

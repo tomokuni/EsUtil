@@ -6,13 +6,12 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Ui.AvaloniaUI.ColorSelector;
-using EsUtil.Feature.Annotation.Presenter.Editor;
-using EsUtil.Feature.StyledText;
 using EsUtil.Feature.StyledText.Core.Defaults;
 
-namespace EsUtil.Ui.AvaloniaUI.Annotation;
+namespace EsUtil.Ui.AvaloniaUI.StyledText;
 
 /// <summary>本文を編集中に本文の上へ出す書式バー（文字単位の書式）。</summary>
 /// <remarks>
@@ -23,7 +22,7 @@ namespace EsUtil.Ui.AvaloniaUI.Annotation;
 /// <b>文字を選んでいない間は操作できない</b>: 適用先が決まらないため、書式の操作をすべて無効にする。<br/>
 /// <b>大きさは中身に合わせる</b>: 説明の行と「完了」は置かず、書式の操作だけを 1 行に並べる（編集の邪魔をしない）。
 /// </remarks>
-internal sealed class AnnotationFormatBar : Border
+public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
 {
     /// <summary>バーの幅（DIP。画像の内側へ収める計算に使う）。</summary>
     internal const double BarWidth = 720;
@@ -37,8 +36,14 @@ internal sealed class AnnotationFormatBar : Border
     /// <summary>色の幅を測れなかったときの幅（DIP。 実測値の近似）。</summary>
     private const double ColorSelectorWidthFallback = 96;
 
-    /// <summary>編集対象のコントロール。</summary>
-    private readonly AnnotationLayerControl _layer;
+    /// <summary>書式を読み書きする相手（ホストが渡す）。</summary>
+    private readonly ITextFormatBarContext _context;
+
+    /// <summary>バーの構成（フォントの一覧・色のタブ・色の表記）。</summary>
+    private readonly StyledTextFormatBarOptions _options;
+
+    /// <summary>選べるフォント名の一覧。</summary>
+    private readonly IReadOnlyList<string> _fonts;
 
     /// <summary>フォントの選択。</summary>
     private readonly ComboBox _font;
@@ -65,21 +70,48 @@ internal sealed class AnnotationFormatBar : Border
     private bool _isRefreshing;
 
     /// <summary>代表色の列数（■ を何列で並べるか）。</summary>
-    private int _paletteColumns = AnnotationPalette.DefaultPaletteColumns;
+    private int _paletteColumns = 8;
 
     /// <summary>色の選択の幅（DIP。 <see cref="ResolveColorSelectorWidth"/> が決める）。</summary>
     private readonly double _colorWidth;
 
+    /// <summary>バーの画面要素を取得する（ホストはこれをパネルへ載せる）。</summary>
+    public Control View => this;
+
+    /// <summary>バーの幅（DIP。 置く位置の計算に使う）。</summary>
+    public double PreferredWidth => BarWidth;
+
+    /// <summary>本文のキー操作を転送する処理を取得または設定する。</summary>
+    private Func<Key, KeyModifiers, bool>? _forwardKey;
+
+    /// <summary>本文へフォーカスを戻す処理を取得または設定する。</summary>
+    private Action? _requestFocus;
+
+    /// <summary>本文のキー操作を転送する処理を設定する。</summary>
+    /// <param name="forward">転送する処理（<see langword="null"/> は転送しない）。</param>
+    public void SetKeyHandler(Func<Key, KeyModifiers, bool>? forward) => _forwardKey = forward;
+
+    /// <summary>本文へフォーカスを戻す処理を設定する。</summary>
+    /// <param name="request">フォーカスを戻す処理（<see langword="null"/> は何もしない）。</param>
+    public void SetFocusRequest(Action? request) => _requestFocus = request;
+
     /// <summary>書式バーを初期化する。</summary>
-    /// <param name="layer">編集対象のコントロール。</param>
-    public AnnotationFormatBar(AnnotationLayerControl layer)
+    /// <param name="context">書式を読み書きする相手（ホストが実装する）。</param>
+    /// <param name="options">バーの構成（フォントの一覧・色のタブ）。 省略すると既定の構成を使う。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="context"/> が null の場合。</exception>
+    public StyledTextFormatBar(ITextFormatBarContext context, StyledTextFormatBarOptions? options = null)
     {
-        _layer = layer;
+        ArgumentNullException.ThrowIfNull(context);
+        _context = context;
+        _options = options ?? new StyledTextFormatBarOptions();
+        _fonts = _options.Fonts;
+        _paletteColumns = _options.PaletteColumns;
+        _colorWidth = ResolveColorSelectorWidth(_options.MeasureText);
         // バーは本文と同じ画面の子として重ねるが、バーへフォーカスが移ると本文のキー操作が止まる。
         // 本文の編集キー（カーソル移動・Shift+矢印の選択など）は本文へ転送する。
         AddHandler(KeyDownEvent, OnFormatBarKeyForward, RoutingStrategies.Tunnel);
 
-        var fonts = AnnotationFonts.All;
+        var fonts = _fonts;
 
         // **フォント名は直接入力できる**（一覧に無いフォントも指定できる。 入力した文字は
         // そのままフォント名として適用する）。 入力欄は標準の編集可のコンボボックスであるため、
@@ -119,7 +151,6 @@ internal sealed class AnnotationFormatBar : Border
         _size.ValueChanged += (_, _) => ApplySize();
         ToolTip.SetTip(_size, "大きさ");
 
-        _colorWidth = ResolveColorSelectorWidth();
         _color = new ColorSelectorControl
         {
             Width = _colorWidth,
@@ -162,26 +193,26 @@ internal sealed class AnnotationFormatBar : Border
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        // 並び順はコア（AnnotationFormatBarLayout.Order）が単一所有する。
+        // 並び順はコア（TextFormatBarLayout.Order）が単一所有する。
         // ここで順を決めると 4 つの UI 版で操作の位置がずれる。
-        var items = new Dictionary<AnnotationFormatBarItem, Control>
+        var items = new Dictionary<TextFormatBarItem, Control>
         {
-            [AnnotationFormatBarItem.Bold] = _bold,
-            [AnnotationFormatBarItem.Italic] = _italic,
-            [AnnotationFormatBarItem.Underline] = _underline,
-            [AnnotationFormatBarItem.Strike] = _strike,
-            [AnnotationFormatBarItem.Font] = _font,
-            [AnnotationFormatBarItem.Size] = _size,
-            [AnnotationFormatBarItem.Color] = _color,
+            [TextFormatBarItem.Bold] = _bold,
+            [TextFormatBarItem.Italic] = _italic,
+            [TextFormatBarItem.Underline] = _underline,
+            [TextFormatBarItem.Strike] = _strike,
+            [TextFormatBarItem.Font] = _font,
+            [TextFormatBarItem.Size] = _size,
+            [TextFormatBarItem.Color] = _color,
         };
 
-        foreach (var item in AnnotationFormatBarLayout.Order)
+        foreach (var item in TextFormatBarLayout.Order)
         {
             // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる。
-            // 値は提示層の AnnotationFormatBarLayout.ItemHeight が単一所有する
+            // 値は提示層の TextFormatBarLayout.ItemHeight が単一所有する
             var control = items[item];
-            control.Height = AnnotationFormatBarLayout.ItemHeight;
-            control.MinHeight = AnnotationFormatBarLayout.ItemHeight;
+            control.Height = TextFormatBarLayout.ItemHeight;
+            control.MinHeight = TextFormatBarLayout.ItemHeight;
             control.VerticalAlignment = VerticalAlignment.Center;
             controls.Children.Add(control);
         }
@@ -195,16 +226,16 @@ internal sealed class AnnotationFormatBar : Border
     }
 
     /// <summary>フォント名の選択の幅（DIP。 値はコアが単一所有する）。</summary>
-    internal const double FontSelectorWidth = AnnotationFormatBarLayout.FontSelectorWidth;
+    internal const double FontSelectorWidth = TextFormatBarLayout.FontSelectorWidth;
 
     /// <summary>フォントの大きさの入力の幅（DIP。 値はコアが単一所有する）。</summary>
-    internal const double SizeSelectorWidth = AnnotationFormatBarLayout.SizeSelectorWidth;
+    internal const double SizeSelectorWidth = TextFormatBarLayout.SizeSelectorWidth;
 
     /// <summary>操作の間の余白（DIP）。</summary>
-    private const double ControlSpacing = AnnotationEditorLayout.RowSpacing;
+    private const double ControlSpacing = TextEditorLayout.ControlSpacing;
 
     /// <summary>代表色の列数を取得または設定する（■ を何列で並べるか）。</summary>
-    /// <value>1 以上の列数。 既定は <see cref="AnnotationPalette.DefaultPaletteColumns"/>。</value>
+    /// <value>1 以上の列数。 既定は構成（<see cref="StyledTextFormatBarOptions.PaletteColumns"/>）の値。</value>
     public int PaletteColumns
     {
         get => _paletteColumns;
@@ -245,16 +276,16 @@ internal sealed class AnnotationFormatBar : Border
     /// <c>+100%</c> が加わる。 16 進の入力（<c>#FFFFFFFF</c>）はさらに長いため、
     /// 両方の実寸を測って広いほうへ合わせる（どちらの表記でも文字が切れない）。
     /// </remarks>
-    internal static double ResolveColorSelectorWidth()
+    internal static double ResolveColorSelectorWidth(Func<string, TextStyle, EsUtil.Platform.Core.Geometry.EsSize>? measureText)
     {
         // **幅の規則はコアが単一所有する**: UI ごとに四角の余白・展開ボタンの幅を決めると、
         // 同じ表記でも幅が変わり、はっきり余る幅が空く
-        var width = AnnotationFormatBarLayout.ResolveColorSelectorWidth(AnnotationPainter.Measure);
+        var width = TextFormatBarLayout.ResolveColorSelectorWidth(measureText ?? RichTextPainter.Measure);
         return width > 0 ? width : ColorSelectorWidthFallback;
     }
 
     /// <summary>代表色のタブを色の選択へ反映する。</summary>
-    private void ConfigurePalette() => AnnotationPalette.Configure(_color, _paletteColumns, showPicker: true);
+    private void ConfigurePalette() => _options.ConfigureColorSelector?.Invoke(_color, _paletteColumns);
 
     /// <summary>現在の書式を表示へ反映する（選択範囲の先頭の書式）。</summary>
     /// <remarks>
@@ -263,22 +294,22 @@ internal sealed class AnnotationFormatBar : Border
     /// </remarks>
     public void Refresh()
     {
-        var style = _layer.SelectedTextStyle;
+        var style = _context.SelectedTextStyle;
 
         _isRefreshing = true;
         try
         {
-            var index = AnnotationFonts.All.ToList().IndexOf(style.FontFamily);
+            var index = _fonts.ToList().IndexOf(style.FontFamily);
             _font.SelectedIndex = index >= 0 ? index : -1;
             _font.Text = style.FontFamily;
             _size.Value = (decimal)style.FontSize;
-            _color.SelectedColor = AnnotationEditorControls.ToHex(style.Color);
+            _color.SelectedColor = style.Color.ToHexText();
 
             // 装飾は「選択範囲のすべてが同じ属性か」で押下状態を決める（一部だけ太字の範囲で押されて見えないように）
-            _bold.IsChecked = _layer.SelectedTextMatches(textStyle => textStyle.IsBold);
-            _italic.IsChecked = _layer.SelectedTextMatches(textStyle => textStyle.IsItalic);
-            _underline.IsChecked = _layer.SelectedTextMatches(textStyle => textStyle.IsUnderline);
-            _strike.IsChecked = _layer.SelectedTextMatches(textStyle => textStyle.IsStrike);
+            _bold.IsChecked = _context.SelectedTextMatches(textStyle => textStyle.IsBold);
+            _italic.IsChecked = _context.SelectedTextMatches(textStyle => textStyle.IsItalic);
+            _underline.IsChecked = _context.SelectedTextMatches(textStyle => textStyle.IsUnderline);
+            _strike.IsChecked = _context.SelectedTextMatches(textStyle => textStyle.IsStrike);
 
             // 幅が狭いとフォント名・大きさが読めないため、現在値をツールチップにも出す
             ToolTip.SetTip(_font, style.FontFamily);
@@ -312,26 +343,20 @@ internal sealed class AnnotationFormatBar : Border
 
         // **本文のキー操作は本文コントロールが単一所有する**: バーがフォーカスを持った状態でも、
         // 矢印・選択・書式の切り替えを同じ規則で適用する。
-        if (ForwardEditingKey?.Invoke(e.Key, e.KeyModifiers) == true)
+        if (_forwardKey?.Invoke(e.Key, e.KeyModifiers) == true)
         {
             e.Handled = true;
         }
     }
 
-    /// <summary>本文のキー操作を本文コントロールへ転送する処理を取得または設定する。</summary>
-    /// <value>転送する処理。 設定しない場合は転送しない。</value>
-    internal Func<Key, KeyModifiers, bool>? ForwardEditingKey { get; set; }
 
-    /// <summary>本文コントロールへフォーカスを戻す処理を取得または設定する。</summary>
-    /// <value>フォーカスを戻す処理。 設定しない場合は何もしない。</value>
-    internal Action? RequestEditorFocus { get; set; }
 
     /// <summary>バーの中で Enter が押されたら、大きさと色を今の値で適用する。</summary>
     /// <param name="sender">送信元。</param>
     /// <param name="e">キーの引数。</param>
     private void OnBarKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter || e.Source is not Visual source || !_layer.HasTextSelection)
+        if (e.Key != Key.Enter || e.Source is not Visual source || !_context.HasTextSelection)
         {
             return;
         }
@@ -375,7 +400,7 @@ internal sealed class AnnotationFormatBar : Border
 
         // 一覧から選んだ値でも、直接入力した値でも同じように適用する
         var family = string.IsNullOrWhiteSpace(_font.Text)
-            ? _font.SelectedIndex >= 0 ? AnnotationFonts.All[_font.SelectedIndex] : null
+            ? _font.SelectedIndex >= 0 ? _fonts[_font.SelectedIndex] : null
             : _font.Text;
 
         if (string.IsNullOrWhiteSpace(family))
@@ -418,11 +443,11 @@ internal sealed class AnnotationFormatBar : Border
     /// </remarks>
     private void Apply(Func<TextStyle, TextStyle> change)
     {
-        _layer.TransformTextStyle(change);
+        _context.Transform(change);
         Refresh();
 
         // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする
-        RequestEditorFocus?.Invoke();
+        _requestFocus?.Invoke();
     }
 
     /// <summary>装飾の切り替えボタンを作る。</summary>
@@ -442,8 +467,8 @@ internal sealed class AnnotationFormatBar : Border
 
             // **記号は行の文字より一回り大きくする**: 記号 1 文字だけのボタンは、行の他の文字と同じ
             // 大きさだと線（下線・取り消し線）と字面が小さく、押せる場所としても見えにくい
-            FontSize = AnnotationEditorLayout.ToggleFontSize,
-            FontFamily = new FontFamily(AnnotationEditorLayout.ToggleFontFamily),
+            FontSize = TextEditorLayout.ToggleFontSize,
+            FontFamily = new FontFamily(TextEditorLayout.ToggleFontFamily),
             FontWeight = bold ? FontWeight.Bold : FontWeight.Normal,
             FontStyle = italic ? FontStyle.Italic : FontStyle.Normal,
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -469,9 +494,9 @@ internal sealed class AnnotationFormatBar : Border
             Content = content,
             Width = ToggleWidth,
 
-            // 高さはコア（AnnotationFormatBarLayout）が単一所有する。 項目ごとに高さが違うと縦位置が揃わない
-            Height = AnnotationFormatBarLayout.ItemHeight,
-            MinHeight = AnnotationFormatBarLayout.ItemHeight,
+            // 高さはコア（TextFormatBarLayout）が単一所有する。 項目ごとに高さが違うと縦位置が揃わない
+            Height = TextFormatBarLayout.ItemHeight,
+            MinHeight = TextFormatBarLayout.ItemHeight,
             Padding = new Avalonia.Thickness(0),
             HorizontalContentAlignment = HorizontalAlignment.Center,
             VerticalContentAlignment = VerticalAlignment.Center,
@@ -481,7 +506,7 @@ internal sealed class AnnotationFormatBar : Border
     }
 
     /// <summary>装飾の切り替えボタンの幅（DIP）。</summary>
-    private const double ToggleWidth = AnnotationEditorLayout.ToggleWidth;
+    private const double ToggleWidth = TextEditorLayout.ToggleWidth;
 
     /// <summary>装飾を切り替える（適用先の先頭の書式で切り替えの向きを決める）。</summary>
     /// <param name="read">属性を読む関数。</param>
@@ -489,5 +514,5 @@ internal sealed class AnnotationFormatBar : Border
     private void ToggleDecoration(
         Func<TextStyle, bool> read,
         Func<TextStyle, bool, TextStyle> write)
-        => Apply(style => write(style, !read(_layer.SelectedTextStyle)));
+        => Apply(style => write(style, !read(_context.SelectedTextStyle)));
 }

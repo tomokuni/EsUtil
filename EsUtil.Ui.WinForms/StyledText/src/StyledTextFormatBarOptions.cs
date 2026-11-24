@@ -1,0 +1,22 @@
+using EsUtil.Platform.Core.Palette;
+
+namespace EsUtil.Ui.WinForms.StyledText;
+
+/// <summary>書式バーの構成（フォントの一覧・色の選び方）。</summary>
+/// <remarks>
+/// <b>ホストが自分の色の選び方を渡せる</b>: WinForms には色選択コントロールが無いため、色のボタンは
+/// ホストが用意する（注釈は代表色のメニュー、他のアプリは色ダイアログなど）。
+/// </remarks>
+public sealed class StyledTextFormatBarOptions
+{
+    /// <summary>選べるフォント名の一覧を取得または設定する。</summary>
+    /// <value>既定は環境のフォント（<see cref="StyledTextFonts.All"/>）。</value>
+    public IReadOnlyList<string> Fonts { get; init; } = StyledTextFonts.All;
+
+    /// <summary>色のボタンを作る処理を取得または設定する。</summary>
+    /// <value>現在の色と、色が選ばれたときに呼ぶ処理を受け取る処理。 設定しない場合は色ダイアログを使う。</value>
+    public Func<Color, Action<Color>, Button>? CreateColorButton { get; init; }
+
+    /// <summary>色の入力欄へ出す表記を取得または設定する。</summary>
+    public ColorTextFormat TextFormat { get; init; } = ColorTextFormat.NameWithAlpha;
+}

@@ -454,8 +454,7 @@ if (-not $SkipRepoChecks) {
         'ThumbnailShadowStop', 'IThumbnailShadowPlan',
         'AnnotationPresenter', 'AnnotationTypingStyle', 'AnnotationPanelAppearance', 'AnnotationPanelController',
         'AnnotationPanelKind', 'AnnotationPanelMetrics', 'AnnotationPanelPlacement', 'IAnnotationPanelHost',
-        'AnnotationEditorLayout', 'AnnotationEditorText', 'AnnotationFormatBarItem', 'AnnotationFormatBarLayout',
-        'AnnotationFontCatalog', 'AnnotationPaletteCatalog', 'AnnotationPaletteColor', 'AnnotationSelectionPresenter',
+        'AnnotationEditorLayout', 'AnnotationEditorText', 'AnnotationPaletteCatalog', 'AnnotationPaletteColor', 'AnnotationSelectionPresenter',
         'AnnotationCaretBlink', 'AnnotationCaretRect', 'AnnotationCompositionPreview', 'AnnotationEditingOutline',
         'AnnotationMarqueeMetrics', 'AnnotationTextLineIndex', 'AnnotationTextLineLayout', 'AnnotationBubbleEdgeCatalog')
     $rxPresenterType = [regex]('\b(' + ($presenterTypes -join '|') + ')\b')

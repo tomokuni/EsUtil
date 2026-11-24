@@ -190,7 +190,7 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 - **色の表記**: `AnnotationEditorPanel.TextFormat`（色名 + 不透明度 / カラーコード `#AARRGGBB`）。
 - **任意の色を選ばせる**: `AnnotationPalette.ConfigureAll`（代表色 + 標準のタブ）。
 - **新規作成時の既定値**: `AnnotationLayerControl.DraftDefaults`（枠線・吹き出し・本文）。 既存の注釈は各注釈が持つ外観・書式で描きます。
-- **編集 UI の部品**: `AnnotationEditorControls`（見出し・項目名・色・数値・選択肢・装飾の切り替え）はフライアウトとホストの設定ペインが共有します。 `AnnotationFonts.All` は選べるフォントの一覧です。
+- **編集 UI の部品**: `AnnotationEditorControls`（見出し・項目名・色・数値・選択肢・装飾の切り替え）はフライアウトとホストの設定ペインが共有します。 **書式バーは `EsUtil.Ui.AvaloniaUI.StyledText`（`StyledTextFormatBar`）が提供**し、注釈は代表色の並びを渡すだけです（`FormatBarFactory` で独自の GUI へ差し替えられます）。
 
 ---
 

@@ -39,7 +39,7 @@ MewUI 版の注釈レイヤーの構成と、他アセンブリとの関係を�
 flowchart LR
     Host["ホスト（上位のアプリ）"] --> Editor["AnnotationEditorPanel"]
     Editor --> Layer["AnnotationLayerControl"]
-    Editor --> Bar["AnnotationFormatBar"]
+    Editor --> Bar["StyledTextFormatBar（EsUtil.Ui.MewUI.StyledText）"]
     Editor --> Panel["AnnotationStylePanel"]
     Layer --> Core["EsUtil.Feature.Annotation（判断）"]
     Layer --> Marquee["EsUtil.Feature.Marquee.Core（選択枠の提示）"]
@@ -59,7 +59,7 @@ flowchart LR
 | `AnnotationLayerControl` | 画像・注釈の図形の描画・選択と移動の入力（`Input` の部分クラスへ分ける）。 **本文の入力・IME・キャレットは持たない**（`StyledTextControl` が単一所有する） |
 | `AnnotationPainter` | コアの描画計画を MewUI の描画 API へ写す |
 | `AnnotationTextMetrics` | 行の寸法とベースラインの解決（斜体でも行の高さを変えない） |
-| `AnnotationFormatBar` | 文字単位の書式（B / I / U / S・色・大きさ・フォント）の操作 |
+| `StyledTextFormatBar`（`EsUtil.Ui.MewUI.StyledText`） | 文字単位の書式（B / I / U / S・色・大きさ・フォント）の操作。 ホストは `FormatBarFactory` で独自の GUI へ差し替えられる |
 | `AnnotationStylePanel` | 外観・しっぽ・重なり順の編集 |
 | `AnnotationEditorControls` | 編集 UI の行の部品（書式バーと外観パネルが共有する） |
 | `AnnotationPalette` | 代表色（40 色）と色選択のタブ |

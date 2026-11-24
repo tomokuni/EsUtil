@@ -7,6 +7,7 @@
 - [1. `StyledTextControl`（クラス）](#1-styledtextcontrolクラス)
 - [2. 編集の API](#2-編集の-api)
 - [3. 制限事項](#3-制限事項)
+- [4. 書式バー（`StyledTextFormatBar`）](#4-書式バーstyledtextformatbar)
 
 ## 1. `StyledTextControl`（クラス）
 
@@ -51,3 +52,18 @@
 - **IME は制御できません**（変換候補の表示位置と内容は OS と入力方式が決める）。 本コントロールは位置と文字列を渡すだけです。
 - **キャレットと選択範囲の色・太さは変更できません**（`EsUtil.Feature.StyledText.Core` の `TextEditorAppearance` が単一所有する。 4 つの UI 版で同じ見た目にするため）。
 - **書式は run 単位**です（文字単位の任意の属性は持たない）。
+
+## 4. 書式バー（`StyledTextFormatBar`）
+
+本文を編集中に本文の上へ出す**文字単位の書式**のバーです。 ホストは `View` をパネルへ載せ、本文の選択が変わったら `Refresh()` を呼びます。
+
+| メンバー | 説明 |
+| --- | --- |
+| `View` / `PreferredWidth` | バーの画面要素と幅（DIP。 置く位置の計算に使う） |
+| `TextFormat` | 色の入力欄へ出す表記（色名 + 不透明度 / カラーコード） |
+| `Refresh()` | 現在の選択範囲の書式を表示へ反映する |
+| `SetKeyHandler(forward)` / `SetFocusRequest(request)` | バーがフォーカスを持つ間のキー転送と、操作後に本文へフォーカスを戻す処理 |
+| `ITextFormatBarContext`（計算層） | バーが書式を読み書きする相手（`SelectedTextStyle` / `SelectedTextMatches` / `Transform` / `Apply` / `HasTextSelection`）。 ホストが自分の編集状態へつなぐ |
+| `StyledTextFormatBarOptions` | フォントの一覧・色の選択（`ConfigureColorSelector` / `CreateColorButton` / `CreateColorSelector`）・色の表記 |
+
+**差し替えの入口**: ホストは `IStyledTextFormatBarFactory` を実装し、`IStyledTextFormatBar`（`View` / `Refresh` / `TextFormat` / キーとフォーカスの設定）を返します。 既定は `StyledTextFormatBarFactory`（組み込みのバー）です。 差し替えはバーを出す前に行います（表示中の入れ替えは位置と操作の対象が食い違うため）。

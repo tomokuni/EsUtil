@@ -9,6 +9,7 @@
 
 ### 追加
 
+- **本文の書式バー（文字単位の書式）を書式付き文字列の編集層へ移しました**。 `EsUtil.Ui.<UI>.StyledText` の `StyledTextFormatBar` が提供し、注釈は代表色の並びを渡して使います（注釈はバーを持ちません）。 **独自の GUI へ差し替えられます**: ホストは `IStyledTextFormatBarFactory` を実装して `FormatBarFactory` へ設定します（差し替えはバーを出す前に行います）。 並び順・寸法・フォントの並べ方も同層の `TextFormatBarLayout` / `TextEditorLayout` / `TextFontCatalog` が単一所有します。
 - **書式付き文字列の編集コントロール（`StyledTextControl`）を 4 つの UI 版へ追加しました**。 `EsUtil.Ui.AvaloniaUI.StyledText` / `EsUtil.Ui.MewUI.StyledText` / `EsUtil.Ui.WinUI3.StyledText` / `EsUtil.Ui.WinForms.StyledText` です。 本文を入力欄で覆わず自分で描き、その場で編集します（run 単位の書式が反映され、書式バーを操作してもフォーカスと選択が外れません）。 すべての操作（キャレット・選択・入力・削除・書式・クリップボード）を API で行えます。 折り返し・行の配置・キャレット・削除の単位・キーの割り当ては `EsUtil.Feature.StyledText.Core` が単一所有します。 IME だけは例外です（変換候補の表示は OS と入力方式が決めるため、位置と文字列を渡すだけにします）。
   - **注釈の本文の描画と編集はこのコントロールが担います**: 選択中の吹き出しの本文の上へ重ね、注釈のレイヤーは本文を描きません（同じ文字を二重に描かない）。 キャレットの点滅と変換中の文字列の描画もコントロールが持ちます。
   - **`AnnotationTextEditor` を `AnnotationEditorPanel` へ改名しました**（本文の編集コントロールと名前が紛らわしいため。 役割は変わりません）。

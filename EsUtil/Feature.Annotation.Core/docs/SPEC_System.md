@@ -81,7 +81,7 @@ flowchart TB
 | `TextEditState` | `EsUtil.Feature.StyledText.Core`（`.Presenter.Editing`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 文書も注釈の識別子も知らず、本文（`RichText`）を受け取って書き換えた本文を返す |
 | `AnnotationViewTransform` | Core（`.Core.Geometry`） | 表示倍率と左上の位置、元画像ピクセルとローカル DIP の相互変換 |
 | `TextCursor` / `TextStyleEdit` / `TextCompositionPreview` / `TextCaretBlink` | `EsUtil.Feature.StyledText.Core`（`.Core.Text`） | 文字位置を書記素クラスタ（絵文字・結合文字）で扱う規則・入力の挿入・変換中の文字列・点滅 |
-| `AnnotationFormatBarLayout` / `AnnotationFormatBarItem` / `AnnotationEditorLayout` / `AnnotationEditorText` / `AnnotationFontCatalog` / `AnnotationPaletteCatalog` / `AnnotationPaletteColor` / `AnnotationBubbleEdgeCatalog` | Presenter | 編集 UI の並び・寸法・文言・代表色・フォントの並べ方 |
+| `AnnotationEditorLayout` / `AnnotationEditorText` / `AnnotationPaletteCatalog` / `AnnotationPaletteColor` / `AnnotationBubbleEdgeCatalog` | Presenter | 編集 UI の寸法・文言・代表色。 書式バーの並びと寸法・フォントの並べ方は書式付き文字列の編集層（`EsUtil.Feature.StyledText` の `Presenter.Formatting`）が所有する |
 | `AnnotationCompositionPreview` | Presenter | IME の変換中の文字列を本文へ入れた描画用の文書（計算は `TextCompositionPreview` が持つ） |
 
 **選択枠（8 方向のハンドル）は本アセンブリの責務ではありません**（Marquee の提示層を再利用する。 枠とハンドルの見た目を 4 つの UI 版で揃えるため）。

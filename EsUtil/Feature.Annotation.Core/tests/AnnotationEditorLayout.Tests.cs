@@ -1,3 +1,4 @@
+using EsUtil.Feature.StyledText.Presenter.Formatting;
 using Xunit;
 using EsUtil.Feature.Annotation.Presenter.Editor;
 using EsUtil.Feature.Annotation.Presenter.Panel;
@@ -41,5 +42,5 @@ public sealed class AnnotationEditorLayoutTests
     /// <summary>書式バーの項目の高さは装飾ボタンの文字サイズより高い。</summary>
     [Fact]
     internal void 装飾ボタンの文字は項目の高さに収まる()
-        => Assert.True(AnnotationEditorLayout.ToggleFontSize < AnnotationFormatBarLayout.ItemHeight);
+        => Assert.True(AnnotationEditorLayout.ToggleFontSize < TextFormatBarLayout.ItemHeight);
 }

@@ -5,7 +5,7 @@
 - [1. `AnnotationEditorPanel`（クラス）](#1-annotationeditorpanelクラス)
 - [2. `AnnotationLayerControl`（クラス）](#2-annotationlayercontrolクラス)
 - [3. `AnnotationEditorControls`（クラス）](#3-annotationeditorcontrolsクラス)
-- [4. `AnnotationFonts`（クラス）](#4-annotationfontsクラス)
+- [4. 書式バー（`StyledTextFormatBar`）](#4-書式バーstyledtextformatbar)
 - [5. `AnnotationPalette`（静的クラス）](#5-annotationpalette静的クラス)
 
 ## 1. `AnnotationEditorPanel`（クラス）
@@ -106,13 +106,16 @@
 **前提**: `ColorRow` は `Avalonia.Controls.ColorPicker` のテーマを要求します（ホストが
 `avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml` を読み込む）。
 
-## 4. `AnnotationFonts`（クラス）
+## 4. 書式バー（`StyledTextFormatBar`）
+
+本文を編集中に本文の上へ出す書式バーは **`EsUtil.Ui.AvaloniaUI.StyledText` の `StyledTextFormatBar`** が提供します（文字単位の書式）。 注釈はバーを持たず、代表色の並びを渡して使います。
 
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
-| `All` | property | 本文で選べるフォント名の一覧（`IReadOnlyList<string>`）。 `TextDefaults.PreferredFontFamilies` を先頭に置き、その後にインストール済みのフォントを並べる |
+| `FormatBarFactory` | property | 書式バーを作る処理（`IStyledTextFormatBarFactory`）。 **独自の GUI へ差し替える入口**である |
+| `FormatBarOptions` | property | バーの構成（フォントの一覧・色の選択・色の表記） |
 
-一覧は起動時に 1 度だけ作ります（フォントの列挙は重い）。
+バーの API と差し替えの規則は [`../../StyledText/docs/SPEC_API.md`](../../StyledText/docs/SPEC_API.md) が所有します。
 
 ## 5. `AnnotationPalette`（静的クラス）
 

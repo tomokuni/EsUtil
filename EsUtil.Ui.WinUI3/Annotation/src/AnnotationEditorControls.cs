@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Feature.Annotation.Presenter.Editor;
+using EsUtil.Feature.StyledText.Presenter.Formatting;
 using EsUtil.Feature.Annotation.Presenter.Panel;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
@@ -112,8 +113,8 @@ internal static class AnnotationEditorControls
 
             // **高さを明示する**: 既定の高さでは 12 DIP の文字の上が欠ける。
             // 高さはコア（AnnotationFormatBarLayout）が単一所有する
-            MinHeight = AnnotationFormatBarLayout.ItemHeight,
-            Height = AnnotationFormatBarLayout.ItemHeight,
+            MinHeight = TextFormatBarLayout.ItemHeight,
+            Height = TextFormatBarLayout.ItemHeight,
             Padding = new Thickness(4, 0, 4, 0),
             FontSize = FontSize,
             VerticalContentAlignment = VerticalAlignment.Center,

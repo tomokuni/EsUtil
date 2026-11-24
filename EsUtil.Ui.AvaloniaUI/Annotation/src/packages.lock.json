@@ -104,7 +104,8 @@
         "dependencies": {
           "Avalonia": "[12.1.6, )",
           "EsUtil.Feature.StyledText.Core": "[0.8.8, )",
-          "EsUtil.Platform.Core": "[0.8.8, )"
+          "EsUtil.Platform.Core": "[0.8.8, )",
+          "EsUtil.Ui.AvaloniaUI.ColorSelector": "[0.8.8, )"
         }
       },
       "Avalonia.Controls.ColorPicker": {

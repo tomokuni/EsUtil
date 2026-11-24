@@ -1,5 +1,6 @@
 using DrawingColor = System.Drawing.Color;
 using EsUtil.Feature.Annotation.Presenter.Editor;
+using EsUtil.Feature.StyledText.Presenter.Formatting;
 
 namespace EsUtil.Feature.Annotation.Presenter.Panel;
 
@@ -36,7 +37,7 @@ public sealed record AnnotationPanelAppearance(
     double MinContentHeight)
 {
     /// <summary>書式バーの中身の高さ（DIP）。 0 は中身に合わせる。</summary>
-    /// <value>書式バーは <see cref="AnnotationFormatBarLayout.ItemHeight"/> と同じ値、右クリックの外観フライアウトは 0（中身に合わせる）。</value>
+    /// <value>書式バーは <see cref="TextFormatBarLayout.ItemHeight"/> と同じ値、右クリックの外観フライアウトは 0（中身に合わせる）。</value>
     /// <remarks>
     /// <b>高さを固定する理由</b>: 書式バーの中身（コンボボックス・数値入力・色選択）の希望寸法は UI ごとに
     /// 実際の描画サイズとずれる。 実寸で位置を決めると「上へ置いたつもりが注釈に重なる」ことが起きるため、
@@ -108,7 +109,7 @@ public sealed record AnnotationPanelAppearance(
     /// はみ出す。<br/>
     /// <b>角を丸めない</b>: 高さが低いため、丸めると項目の角が欠けて見える。<br/>
     /// <b>中身の高さは項目の高さと同じにする</b>: 項目の高さは
-    /// <see cref="AnnotationFormatBarLayout.ItemHeight"/> が単一所有する。 これより低いと中身が
+    /// <see cref="TextFormatBarLayout.ItemHeight"/> が単一所有する。 これより低いと中身が
     /// 枠からはみ出して上下の枠線が切れ、高いと余白が空く。 固定値も同じ値に揃える。
     /// </remarks>
     public static AnnotationPanelAppearance FormatBar { get; } = new(
@@ -121,8 +122,8 @@ public sealed record AnnotationPanelAppearance(
         ContentWidth: 0,
         MaxWidth: 2400,
         MaxContentHeight: 200,
-        MinContentHeight: AnnotationFormatBarLayout.ItemHeight)
+        MinContentHeight: TextFormatBarLayout.ItemHeight)
     {
-        FixedContentHeight = AnnotationFormatBarLayout.ItemHeight,
+        FixedContentHeight = TextFormatBarLayout.ItemHeight,
     };
 }

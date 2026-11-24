@@ -1,12 +1,11 @@
 using Xunit;
-using EsUtil.Feature.StyledText.Core.Defaults;
 
 namespace EsUtil.Ui.WinUI3.Annotation.Tests;
 
 /// <summary>WinUI 3 版の注釈が公開する値のテスト（XAML のランタイムを必要としない範囲）。</summary>
 /// <remarks>
-/// コントロールの生成は XAML のランタイムを必要とするため、ここでは<b>色の並び・フォントの並び・
-/// 実寸の近似</b>だけを確かめる（要素の描画はアプリで確認する）。
+/// コントロールの生成は XAML のランタイムを必要とするため、ここでは<b>色の並び</b>だけを確かめる
+/// （要素の描画とフォントの一覧は StyledText 側のテストが担う）。
 /// </remarks>
 public class AnnotationPaletteTests
 {
@@ -31,12 +30,5 @@ public class AnnotationPaletteTests
         Assert.Equal(40, tab.Colors.Count);
     }
 
-    /// <summary>フォントの一覧は優先フォントを先頭に置く。</summary>
-    [Fact]
-    internal void フォントの一覧は優先フォントを先頭に置く()
-    {
-        Assert.Equal(TextDefaults.PreferredFontFamilies[0], AnnotationFonts.All[0]);
-        Assert.True(AnnotationFonts.All.Count > TextDefaults.PreferredFontFamilies.Count);
-    }
 
 }

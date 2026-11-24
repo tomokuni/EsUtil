@@ -8,7 +8,7 @@ MewUI 版の注釈レイヤーが公開する API の一覧です。 操作と�
 - [2. `AnnotationLayerControl`（クラス）](#2-annotationlayercontrolクラス)
 - [3. `AnnotationEditorControls`（クラス）](#3-annotationeditorcontrolsクラス)
 - [4. `AnnotationPalette`（静的クラス）](#4-annotationpalette静的クラス)
-- [5. `AnnotationFonts`（静的クラス）](#5-annotationfonts静的クラス)
+- [5. 書式バー（`StyledTextFormatBar`）](#5-書式バーstyledtextformatbar)
 
 ## 1. `AnnotationEditorPanel`（クラス）
 
@@ -76,8 +76,13 @@ MewUI 版の注釈レイヤーが公開する API の一覧です。 操作と�
 | `CreatePaletteTab(columns)` | ■ だけを並べた「代表色」のタブ |
 | `Configure(selector, ...)` / `ConfigureAll(selector, ...)` | 出すタブの選択（書式バーはテーマ・色名を出さず、設定画面はすべて出す） |
 
-## 5. `AnnotationFonts`（静的クラス）
+## 5. 書式バー（`StyledTextFormatBar`）
 
-| メンバー | 説明 |
-| --- | --- |
-| `All` | 選べるフォントの一覧（`TextDefaults.PreferredFontFamilies` を先頭に置く） |
+本文を編集中に本文の上へ出す書式バーは **`EsUtil.Ui.MewUI.StyledText` の `StyledTextFormatBar`** が提供します（文字単位の書式）。 注釈はバーを持たず、代表色の並びを渡して使います。
+
+| メンバー | 種別 | 説明 |
+| --- | --- | --- |
+| `FormatBarFactory` | property | 書式バーを作る処理（`IStyledTextFormatBarFactory`）。 **独自の GUI へ差し替える入口**である |
+| `FormatBarOptions` | property | バーの構成（フォントの一覧・色の選択・色の表記） |
+
+バーの API と差し替えの規則は [`../../StyledText/docs/SPEC_API.md`](../../StyledText/docs/SPEC_API.md) が所有します。

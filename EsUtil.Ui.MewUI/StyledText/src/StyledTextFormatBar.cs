@@ -4,11 +4,9 @@ using Aprillz.MewUI.Text;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Ui.MewUI.ColorSelector;
-using EsUtil.Feature.Annotation.Presenter.Editor;
-using EsUtil.Feature.StyledText;
 using EsUtil.Feature.StyledText.Core.Defaults;
 
-namespace EsUtil.Ui.MewUI.Annotation;
+namespace EsUtil.Ui.MewUI.StyledText;
 
 /// <summary>本文を編集中に本文の上へ出す書式バー（文字単位の書式）。</summary>
 /// <remarks>
@@ -17,13 +15,19 @@ namespace EsUtil.Ui.MewUI.Annotation;
 /// <b>項目名は出さない</b>: 幅が限られるため、意味は現在値（フォント名・大きさ）と装飾ボタンの文言で示す。<br/>
 /// <b>同じ値でも適用できる</b>: 文字単位で書式が混ざっている範囲を一律に揃えるため、選び直しただけでも適用する。
 /// </remarks>
-public sealed class AnnotationFormatBar : ContentControl
+public sealed class StyledTextFormatBar : ContentControl, IStyledTextFormatBar
 {
     /// <summary>バーのおおよその高さ（DIP。本文の上へ置く位置の計算に使う）。</summary>
     internal const double EstimatedHeight = 40;
 
-    /// <summary>編集対象のコントロール。</summary>
-    private readonly AnnotationLayerControl _layer;
+    /// <summary>書式を読み書きする相手（ホストが渡す）。</summary>
+    private readonly ITextFormatBarContext _context;
+
+    /// <summary>バーの構成（フォントの一覧・色のタブ）。</summary>
+    private readonly StyledTextFormatBarOptions _options;
+
+    /// <summary>選べるフォント名の一覧。</summary>
+    private readonly IReadOnlyList<string> _fonts;
 
     /// <summary>フォントの選択（枠と展開ボタンだけを描く）。</summary>
     private readonly ComboBox _font;
@@ -56,24 +60,27 @@ public sealed class AnnotationFormatBar : ContentControl
     private bool _isRefreshing;
 
     /// <summary>書式バーを初期化する。</summary>
-    /// <param name="layer">編集対象のコントロール。</param>
-    public AnnotationFormatBar(AnnotationLayerControl layer)
+    /// <param name="context">書式を読み書きする相手（ホストが実装する）。</param>
+    /// <param name="options">バーの構成（フォントの一覧・色のタブ）。 省略すると既定の構成を使う。</param>
+    public StyledTextFormatBar(ITextFormatBarContext context, StyledTextFormatBarOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(layer);
-        _layer = layer;
+        ArgumentNullException.ThrowIfNull(context);
+        _context = context;
+        _options = options ?? new StyledTextFormatBarOptions();
+        _fonts = _options.Fonts;
 
         // **フォント名は直接入力できる**: MewUI の ComboBox は読み取り専用のため、
         // コンボボックスが枠と展開ボタンを描き、その文字の位置へ**枠も背景も持たない文字入力**を重ねる
         // （EsUtil の色選択と同じ作り）
         // 標準のテキスト入力を使うため、Ctrl+C / Ctrl+V もそのまま使える。
-        _font = new ComboBox().Items([.. AnnotationFonts.All]);
+        _font = new ComboBox().Items([.. _fonts]);
         _font.Width = FontSelectorWidth;
         _font.SelectedIndex = 0;
         _font.OnSelectionChanged(_ =>
         {
             if (!_isRefreshing && _font.SelectedIndex >= 0)
             {
-                SetFontText(AnnotationFonts.All[_font.SelectedIndex]);
+                SetFontText(_fonts[_font.SelectedIndex]);
             }
 
             ApplyFont();
@@ -82,10 +89,10 @@ public sealed class AnnotationFormatBar : ContentControl
         // 文字の入力は**コンボボックスの内側**へ重ねる（入力欄の枠・▼はコンボボックスが描く）
         _fontText = new TextBox
         {
-            Text = AnnotationFonts.All.Count > 0 ? AnnotationFonts.All[0] : string.Empty,
+            Text = _fonts.Count > 0 ? _fonts[0] : string.Empty,
             Width = FontSelectorWidth - FontArrowAreaWidth,
-            MinHeight = AnnotationFormatBarLayout.ItemHeight,
-            Height = AnnotationFormatBarLayout.ItemHeight,
+            MinHeight = TextFormatBarLayout.ItemHeight,
+            Height = TextFormatBarLayout.ItemHeight,
             BorderThickness = 0,
             CornerRadius = 0,
             Background = Color.Transparent,
@@ -118,17 +125,17 @@ public sealed class AnnotationFormatBar : ContentControl
             Width = ColorSelectorWidth,
             HighlightBorderOnError = true,
         };
-        AnnotationPalette.Configure(_color, showPicker: true);
+        _options.ConfigureColorSelector?.Invoke(_color, _options.PaletteColumns);
         _color.SelectedColorChanged += (_, _) => ApplyColor();
 
-        // 高さはコア（AnnotationFormatBarLayout）が単一所有する。 項目ごとに高さが違うと縦位置が揃わない
-        _font.Height = AnnotationFormatBarLayout.ItemHeight;
-        _size.Height = AnnotationFormatBarLayout.ItemHeight;
-        _color.Height = AnnotationFormatBarLayout.ItemHeight;
+        // 高さはコア（TextFormatBarLayout）が単一所有する。 項目ごとに高さが違うと縦位置が揃わない
+        _font.Height = TextFormatBarLayout.ItemHeight;
+        _size.Height = TextFormatBarLayout.ItemHeight;
+        _color.Height = TextFormatBarLayout.ItemHeight;
 
         // **中の入力欄も同じ高さにする**: 色の選択の中の ComboBox は自分の高さを持ち、外側の高さでは
         // 伸びない。 揃えないと色の入力欄だけが低く見える
-        AnnotationEditorControls.AlignInputHeight(_color, AnnotationFormatBarLayout.ItemHeight);
+        _color.Height = TextFormatBarLayout.ItemHeight;
 
         _bold = CreateToggle("B", bold: true);
         _italic = CreateToggle("I", italic: true);
@@ -153,26 +160,26 @@ public sealed class AnnotationFormatBar : ContentControl
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        // 並び順はコア（AnnotationFormatBarLayout.Order）が単一所有する。
+        // 並び順はコア（TextFormatBarLayout.Order）が単一所有する。
         // ここで順を決めると 4 つの UI 版で操作の位置がずれる。
-        var items = new Dictionary<AnnotationFormatBarItem, Element>
+        var items = new Dictionary<TextFormatBarItem, Element>
         {
-            [AnnotationFormatBarItem.Bold] = _bold,
-            [AnnotationFormatBarItem.Italic] = _italic,
-            [AnnotationFormatBarItem.Underline] = _underline,
-            [AnnotationFormatBarItem.Strike] = _strike,
-            [AnnotationFormatBarItem.Font] = _fontCell,
-            [AnnotationFormatBarItem.Size] = _size,
-            [AnnotationFormatBarItem.Color] = _color,
+            [TextFormatBarItem.Bold] = _bold,
+            [TextFormatBarItem.Italic] = _italic,
+            [TextFormatBarItem.Underline] = _underline,
+            [TextFormatBarItem.Strike] = _strike,
+            [TextFormatBarItem.Font] = _fontCell,
+            [TextFormatBarItem.Size] = _size,
+            [TextFormatBarItem.Color] = _color,
         };
 
-        foreach (var item in AnnotationFormatBarLayout.Order)
+        foreach (var item in TextFormatBarLayout.Order)
         {
             // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる。
-            // 値は提示層の AnnotationFormatBarLayout.ItemHeight が単一所有する
+            // 値は提示層の TextFormatBarLayout.ItemHeight が単一所有する
             var element = (FrameworkElement)items[item];
-            element.Height = AnnotationFormatBarLayout.ItemHeight;
-            element.MinHeight = AnnotationFormatBarLayout.ItemHeight;
+            element.Height = TextFormatBarLayout.ItemHeight;
+            element.MinHeight = TextFormatBarLayout.ItemHeight;
             element.VerticalAlignment = VerticalAlignment.Center;
             controls.Add(element);
         }
@@ -183,17 +190,17 @@ public sealed class AnnotationFormatBar : ContentControl
     }
 
     /// <summary>フォントの選択の幅（DIP。 値はコアが単一所有する）。</summary>
-    internal const double FontSelectorWidth = AnnotationFormatBarLayout.FontSelectorWidth;
+    internal const double FontSelectorWidth = TextFormatBarLayout.FontSelectorWidth;
 
     /// <summary>大きさの入力の幅（DIP。 値はコアが単一所有する）。</summary>
-    internal const double SizeSelectorWidth = AnnotationFormatBarLayout.SizeSelectorWidth;
+    internal const double SizeSelectorWidth = TextFormatBarLayout.SizeSelectorWidth;
 
     /// <summary>色の選択の幅（DIP。 規則はコアが単一所有する）。</summary>
     internal static readonly double ColorSelectorWidth =
-        AnnotationFormatBarLayout.ResolveColorSelectorWidth(AnnotationTextMetrics.Measure);
+        TextFormatBarLayout.ResolveColorSelectorWidth(RichTextPainter.Measure);
 
     /// <summary>操作の間の余白（DIP）。</summary>
-    private const double ControlSpacing = AnnotationEditorLayout.RowSpacing;
+    private const double ControlSpacing = TextEditorLayout.ControlSpacing;
 
     /// <summary>コンボボックスの展開ボタンへ空ける幅（DIP。 文字入力が矢印へ重ならないようにする）。</summary>
     private const double FontArrowAreaWidth = 24;
@@ -212,7 +219,26 @@ public sealed class AnnotationFormatBar : ContentControl
     }
 
     /// <summary>装飾の切り替えボタンの幅（DIP）。</summary>
-    private const double ToggleWidth = AnnotationEditorLayout.ToggleWidth;
+    private const double ToggleWidth = TextEditorLayout.ToggleWidth;
+
+    /// <summary>バーの画面要素を取得する（ホストはこれをパネルへ載せる）。</summary>
+    public FrameworkElement View => this;
+
+    /// <summary>バーの幅（DIP）を取得する。</summary>
+    public double PreferredWidth => TextFormatBarLayout.FontSelectorWidth
+        + TextFormatBarLayout.SizeSelectorWidth
+        + (TextEditorLayout.ToggleWidth * 4);
+
+    /// <summary>本文のキー操作を転送する処理を設定する（MewUI 版は転送しない）。</summary>
+    /// <param name="forward">転送する処理（使わない）。</param>
+    public void SetKeyHandler(Func<Key, bool>? forward) => _ = forward;
+
+    /// <summary>本文へフォーカスを戻す処理を設定する。</summary>
+    /// <param name="request">フォーカスを戻す処理（<see langword="null"/> は何もしない）。</param>
+    public void SetFocusRequest(Action? request) => _requestFocus = request;
+
+    /// <summary>本文へフォーカスを戻す処理（ホストが設定する）。</summary>
+    private Action? _requestFocus;
 
     /// <summary>色の入力欄へ出す表記を取得または設定する。</summary>
     /// <value>色名 + 不透明度（<see cref="ColorTextFormat.NameWithAlpha"/>）。</value>
@@ -234,22 +260,22 @@ public sealed class AnnotationFormatBar : ContentControl
     /// </remarks>
     public void Refresh()
     {
-        var style = _layer.SelectedTextStyle;
+        var style = _context.SelectedTextStyle;
 
         _isRefreshing = true;
         try
         {
-            var index = AnnotationFonts.All.ToList().IndexOf(style.FontFamily);
+            var index = _fonts.ToList().IndexOf(style.FontFamily);
             _font.SelectedIndex = index >= 0 ? index : -1;
             SetFontText(style.FontFamily);
             _size.Value = style.FontSize;
-            _color.SelectedColor = AnnotationEditorControls.ToHex(style.Color);
+            _color.SelectedColor = style.Color.ToHexText();
 
             // 装飾は「選択範囲のすべてが同じ属性か」で押下状態を決める（一部だけ太字の範囲で押されて見えないように）
-            _bold.IsChecked = _layer.SelectedTextMatches(static textStyle => textStyle.IsBold);
-            _italic.IsChecked = _layer.SelectedTextMatches(static textStyle => textStyle.IsItalic);
-            _underline.IsChecked = _layer.SelectedTextMatches(static textStyle => textStyle.IsUnderline);
-            _strike.IsChecked = _layer.SelectedTextMatches(static textStyle => textStyle.IsStrike);
+            _bold.IsChecked = _context.SelectedTextMatches(static textStyle => textStyle.IsBold);
+            _italic.IsChecked = _context.SelectedTextMatches(static textStyle => textStyle.IsItalic);
+            _underline.IsChecked = _context.SelectedTextMatches(static textStyle => textStyle.IsUnderline);
+            _strike.IsChecked = _context.SelectedTextMatches(static textStyle => textStyle.IsStrike);
         }
         finally
         {
@@ -269,7 +295,7 @@ public sealed class AnnotationFormatBar : ContentControl
     private static ToggleButton CreateToggle(
         string text, bool bold = false, bool italic = false, bool underline = false, bool strike = false)
     {
-        const double height = AnnotationFormatBarLayout.ItemHeight;
+        const double height = TextFormatBarLayout.ItemHeight;
 
         // **記号自体にも装飾を描く**: 「U」「S」の文字だけでは意味が伝わらない。
         // 線は文字へ持たせる（MewUI の TextBlock は文字単位の装飾を Run で持てる）。 図形を重ねると
@@ -285,8 +311,8 @@ public sealed class AnnotationFormatBar : ContentControl
             Margin = new Thickness(0, -2, 0, 0),
 
             // **記号は行の文字より一回り大きくする**（値は提示層の AnnotationEditorLayout が単一所有する）
-            FontSize = AnnotationEditorLayout.ToggleFontSize,
-            FontFamily = AnnotationEditorLayout.ToggleFontFamily,
+            FontSize = TextEditorLayout.ToggleFontSize,
+            FontFamily = TextEditorLayout.ToggleFontFamily,
             TextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
         };
@@ -320,7 +346,7 @@ public sealed class AnnotationFormatBar : ContentControl
 
         // 一覧から選んだ値でも、直接入力した値でも同じように適用する
         var family = string.IsNullOrWhiteSpace(_fontText.Text)
-            ? _font.SelectedIndex >= 0 ? AnnotationFonts.All[_font.SelectedIndex] : null
+            ? _font.SelectedIndex >= 0 ? _fonts[_font.SelectedIndex] : null
             : _fontText.Text;
 
         if (string.IsNullOrWhiteSpace(family))
@@ -361,16 +387,14 @@ public sealed class AnnotationFormatBar : ContentControl
     /// </remarks>
     private void Apply(Func<TextStyle, TextStyle> change)
     {
-        _layer.TransformTextStyle(change);
+        _context.Transform(change);
         Refresh();
 
         // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする
-        RequestEditorFocus?.Invoke();
+        _requestFocus?.Invoke();
     }
 
-    /// <summary>本文コントロールへフォーカスを戻す処理を取得または設定する。</summary>
-    /// <value>フォーカスを戻す処理。 設定しない場合は何もしない。</value>
-    internal Action? RequestEditorFocus { get; set; }
+
 
     /// <summary>装飾を切り替える（適用先の先頭の書式で切り替えの向きを決める）。</summary>
     /// <param name="read">属性を読む関数。</param>
@@ -384,6 +408,6 @@ public sealed class AnnotationFormatBar : ContentControl
             return;
         }
 
-        Apply(style => write(style, !read(_layer.SelectedTextStyle)));
+        Apply(style => write(style, !read(_context.SelectedTextStyle)));
     }
 }

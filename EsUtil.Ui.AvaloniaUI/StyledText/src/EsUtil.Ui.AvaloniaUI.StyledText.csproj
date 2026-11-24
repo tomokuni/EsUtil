@@ -18,6 +18,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\EsUtil\Feature.StyledText.Core\src\EsUtil.Feature.StyledText.Core.csproj" />
     <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <!-- 書式バーの色の選択は UI の色選択コントロールを使う（色名・16 進・ピッカーの解釈を 1 つに集約する） -->
+    <ProjectReference Include="..\..\ColorSelector\src\EsUtil.Ui.AvaloniaUI.ColorSelector.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,6 +35,7 @@
     <Using Include="EsUtil.Feature.StyledText.Core.Text" />
     <Using Include="EsUtil.Feature.StyledText.Presenter.Drawing" />
     <Using Include="EsUtil.Feature.StyledText.Presenter.Editing" />
+    <Using Include="EsUtil.Feature.StyledText.Presenter.Formatting" />
   </ItemGroup>
 
 </Project>
