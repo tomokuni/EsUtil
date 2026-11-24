@@ -113,6 +113,17 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             {
                 _formatBar.Refresh();
                 ShowFormatBar();
+
+                // **フォーカスは編集の開始後に移す**: レイアウトの途中で移すと取り消される環境がある
+                Dispatcher.UIThread.Post(
+                    () =>
+                    {
+                        if (_layer.IsEditingText)
+                        {
+                            _textEditor.Focus();
+                        }
+                    },
+                    DispatcherPriority.Input);
                 return;
             }
 
@@ -154,6 +165,11 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 
         // 編集の開始・終了でも本文の描画先を切り替える
         _layer.EditingChanged += (_, _) => SyncTextEditor();
+
+        // **入力・編集・IME は本文コントロールが単一所有する**: 編集中は本コントロールへフォーカスを移し、
+        // キー・IME・キャレット・選択・クリップボードをすべてコントロールに任せる（レイヤーは図形だけを持つ）。
+        _textEditor.TextChanged += (_, _) => OnTextEditorChanged();
+        _textEditor.EditingChanged += (_, _) => OnTextEditorEditingChanged();
 
         // 変換中の文字列は本文コントロールが描くため、変わったら渡し直す
         _layer.PreeditChanged += (_, _) => SyncTextEditor();
@@ -813,6 +829,18 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         _textEditor.RenderScale = _layer.ViewScale;
         _textEditor.IsVisible = true;
         _textEditor.RefreshCaretBlink();
+
+        // **編集中だけ入力を受ける**: 入力・IME・キャレットはコントロールが持ち、編集していない間は
+        // レイヤーが本文を描き、押下もレイヤー（選択・移動・作成）へ渡す。
+        var editing = _layer.IsEditingText;
+        _textEditor.IsInputEnabled = editing;
+        _textEditor.Focusable = editing;
+        _textEditor.IsHitTestVisible = editing;
+        if (editing && !_textEditor.IsFocused)
+        {
+            _textEditor.Focus();
+        }
+
         _textEditor.InvalidateVisual();
 
         // レイヤーは同じ本文を描かない（二重に描くと縁が太り、位置も二重に見える）
@@ -827,6 +855,37 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         }
     }
 
+    /// <summary>本文コントロールで本文が変わったら、編集セッション（文書）へ書き戻す。</summary>
+    /// <remarks>
+    /// <b>文書は編集セッションが単一所有する</b>: コントロールは入力の入口であり、確定した本文は
+    /// セッションへ渡す（元に戻す・保存・他の表示は文書だけを見る）。 同じ本文なら何もしない
+    /// （<see cref="SyncTextEditor"/> が文書から写した値を書き戻して往復しない）。
+    /// </remarks>
+    private void OnTextEditorChanged()
+    {
+        if (!_layer.IsEditingText || _layer.Session.Selected is not BubbleAnnotation bubble)
+        {
+            return;
+        }
+
+        if (string.Equals(bubble.Text.PlainText, _textEditor.Text.PlainText, StringComparison.Ordinal)
+            && bubble.Text.Equals(_textEditor.Text))
+        {
+            return;
+        }
+
+        _layer.Session.ApplySelectedRichText(_textEditor.Text);
+    }
+
+    /// <summary>本文コントロールが編集を終えたら、編集セッションも終える。</summary>
+    private void OnTextEditorEditingChanged()
+    {
+        if (_layer.IsEditingText && !_textEditor.IsEditing)
+        {
+            _layer.Session.EndTextEditing();
+        }
+    }
+
     /// <summary>本文コントロールを隠し、レイヤーが本文を描く状態へ戻す。</summary>
     private void HideTextEditor()
     {
@@ -838,6 +897,9 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 
         _syncedTextId = null;
         _textEditor.IsVisible = false;
+        _textEditor.IsInputEnabled = false;
+        _textEditor.Focusable = false;
+        _textEditor.IsHitTestVisible = false;
         _layer.ExternalTextId = null;
 
         if (!_isInLayout)

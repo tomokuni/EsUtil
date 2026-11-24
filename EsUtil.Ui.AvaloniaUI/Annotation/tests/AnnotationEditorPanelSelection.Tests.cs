@@ -71,6 +71,40 @@ public class AnnotationEditorPanelSelectionTests
         GC.KeepAlive(window);
     }
 
+    /// <summary>編集中は本文コントロールが入力・IME・キャレットを所有することを検証する。</summary>
+    /// <remarks>
+    /// 注釈のレイヤーが入力を持つと、同じ編集の規則（キャレット・選択・変換中の文字列・確定）を
+    /// コントロールと二重に持ち、片方だけ直したときに食い違う。 編集を始めたらコントロールへ
+    /// フォーカスを移し、入力と IME の宛先をコントロールにする。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 編集中は本文コントロールが入力を持つ()
+    {
+        var window = CreateEditor(out var editor, out _, out var first, out _);
+        editor.Layer.Session.SelectedId = first;
+        Dispatcher.UIThread.RunJobs();
+        PumpLayout(editor);
+
+        Assert.False(editor.TextEditor.IsInputEnabled);
+
+        Assert.True(editor.Layer.BeginTextEditing());
+        Dispatcher.UIThread.RunJobs();
+        PumpLayout(editor);
+
+        Assert.True(editor.TextEditor.IsInputEnabled);
+        Assert.True(editor.TextEditor.Focusable);
+        Assert.True(editor.TextEditor.IsFocused);
+
+        // コントロールで書いた本文が文書へ入る（書き戻しの経路が 1 つ）
+        editor.TextEditor.ReplaceSelection("追記");
+        Assert.Contains(
+            "追記",
+            Assert.IsType<BubbleAnnotation>(editor.Layer.Document.Find(first)).Text.PlainText,
+            StringComparison.Ordinal);
+
+        GC.KeepAlive(window);
+    }
+
     /// <summary>選択を解除すると本文コントロールが隠れ、レイヤーが本文を描く状態へ戻ることを検証する。</summary>
     [AvaloniaFact]
     internal void 選択を解除すると本文コントロールが隠れる()

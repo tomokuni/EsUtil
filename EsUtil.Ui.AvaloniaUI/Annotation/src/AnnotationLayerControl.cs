@@ -124,10 +124,10 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         _marquee.SetCoordTransform(CoordinateTransform);
         _marquee.Subscribe(OnMarqueeNotice);
 
-        // 本文をその場で編集するため、IME（日本語入力）の窓口を渡す。
-        // フォーカスを得た時点で問い合わせが来るため、編集中かどうかで分けずに常に同じクライアントを返す
-        // （編集の開始時に問い合わせ直せないため。 編集中でなければ変換は受け取らない）。
-        TextInputMethodClientRequested += (_, e) => e.Client = TextInputClient;
+        // **本文を重ねている間は IME の窓口を出さない**: 変換中の文字列と候補の位置は本文コントロールが
+        // IME へ答える（同じ変換を 2 か所で扱うと、候補の位置と確定の宛先が食い違う）。 重ねていない間は
+        // レイヤー自身が窓口になる（変換は受け取らないが、フォーカス時に問い合わせが来る）。
+        TextInputMethodClientRequested += (_, e) => e.Client = _externalTextId is null ? TextInputClient : null;
 
         // 方向キーはフォーカス移動より先に受け取る（Avalonia は方向キーを XY ナビゲーションで処理済みにする）。
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -788,7 +788,11 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             return;
         }
 
-        Focus();
+        // **本文を重ねている間はフォーカスを奪わない**: 入力と IME の宛先は本文コントロールである
+        if (_externalTextId is null)
+        {
+            Focus();
+        }
 
         // 押下中の座標変換を固定する（ドラッグ中に倍率が変わってもカーソルと 1:1 で動かす）
         FreezeTransform();
@@ -799,16 +803,15 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
         var source = ToSource(point.Position);
 
-        // 本文の編集中は、本文の内側の押下をキャレットの移動・選択に使う（外側なら編集を終える）
+        // 本文の編集中は、本文の外側の押下で編集を終える（内側の押下は本文コントロールが受ける。
+        // キャレットの移動と選択はコントロールが単一所有する）。
         if (IsEditingText)
         {
-            if (Selected is BubbleAnnotation editingBubble && editingBubble.Bounds.Contains(source))
+            if (Selected is BubbleAnnotation editingBubble
+                && editingBubble.Bounds.Contains(source)
+                && _externalTextId is not null)
             {
-                CapturePointer(e);
                 _session.CancelChange();
-                _isSelectingText = true;
-                SetCaretFromPoint(source, (e.KeyModifiers & KeyModifiers.Shift) != 0);
-                InvalidateVisual();
                 return;
             }
 

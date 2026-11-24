@@ -35,7 +35,7 @@
 
 ```mermaid
 flowchart TB
-    LC["AnnotationLayerControl<br/>描画・入力・選択の同期"]
+    LC["AnnotationLayerControl<br/>図形の描画・選択・移動"]
     MP["MarqueePresenter（EsUtil.Feature.Marquee.Core）<br/>選択枠・ハンドル・nudge"]
     AP["AnnotationPresenter（EsUtil.Feature.Annotation）<br/>折り返し・しっぽ・描画計画"]
     PT["AnnotationPainter<br/>描画計画を Avalonia の描画 API へ写す"]
@@ -49,12 +49,13 @@ flowchart TB
 - **Marquee からの通知（選択矩形の変化）を文書へ書き戻します**（移動・サイズ変更の結果が `Document` に残る）。
 - **描画は元画像座標で行います**（表示倍率の変換を 1 回だけ掛ける。 枠線・文字の比率が保存画像と一致する）。
 - **本文は行のベースラインで揃えます**（行の高さは斜体を外した書式で測り、区間ごとの実寸では縦位置を決めません。 斜体にした区間だけが上下へずれたり、行の間隔が広がったりしないようにするため）。
+- **本文の入力・編集・IME は StyledTextControl が単一所有します**: 編集を始めると本文コントロールへフォーカスを移し、キー・IME・キャレット・選択・クリップボードをすべてコントロールが扱います（レイヤーは図形だけを持ち、同じ編集の規則を二重に持ちません）。 確定した本文は編集セッション（文書）へ書き戻します。
 
 ## 4. コンポーネント
 
 | コンポーネント | 分類 | 責務 |
 | --- | --- | --- |
-| `AnnotationLayerControl` | `public` | 画像の表示・注釈の描画・入力の受付・選択の同期・文書の変更通知・保存用の合成（`RenderComposedImage`） |
+| `AnnotationLayerControl` | `public` | 画像の表示・注釈の図形の描画・選択と移動の受付・文書の変更通知・保存用の合成（`RenderComposedImage`）。 **本文の入力・IME・キャレットは持たない**（`StyledTextControl` が単一所有する） |
 | `AnnotationEditorPanel` | `public` | 本文の表示・その場編集と書式バーを 1 つにまとめたコントロール（`Layer` を内側で持ち、編集の開始・終了と本文の位置に合わせてバーを配置する） |
 | `AnnotationFormatBar`（内部） | `internal` | 本文の上に出す書式バー（フォント・大きさ・色・B / I / U / S。 項目名は出さずツールチップで示す） |
 | `AnnotationPalette` | `public` | 注釈の色選択で使う代表色 40 色（色名付き）と、色の選択をその構成にする処理 |
@@ -62,7 +63,7 @@ flowchart TB
 | `AnnotationEditorControls` | `public` | 編集 UI の行の部品（見出し・項目名・色・数値・選択肢・装飾の切り替え）。 フライアウトとホストの設定ペインが共有する |
 | `AnnotationFonts` | `public` | 本文で選べるフォント名の一覧（優先フォントを先頭に置く） |
 | `AnnotationHistory`（コア） | `public` | 変更履歴（元に戻す・やり直す）。 不変の文書をそのまま積む（ドラッグ中の書き換えで過去が変わらない） |
-| `AnnotationTextInputClient`（内部） | `internal` | 本文の編集で IME（日本語入力）とやり取りする（変換候補の位置・選択範囲・変換中の文字列） |
+| `AnnotationTextInputClient`（内部） | `internal` | 本文を**重ねていない**ときの IME の窓口（本文を重ねている間は `StyledTextControl` が IME へ答える） |
 | `AnnotationPainter`（内部） | `internal` | 描画計画の写像（角丸・しっぽ・文字・下線/取り消し線）と文字の実寸計測 |
 | `AnnotationMarqueeEffects`（内部） | `internal` | Marquee が要求する効果（再描画・フォーカス・カーソル・キャプチャ）の写像 |
 
