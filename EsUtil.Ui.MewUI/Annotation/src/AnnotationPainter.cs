@@ -10,7 +10,7 @@ namespace EsUtil.Ui.MewUI.Annotation;
 /// <remarks>
 /// <b>計算を持たない</b>: 角丸・塗り・枠線・しっぽの多角形・行の位置は計画が解決済みである
 /// （4 つの UI 版で見た目がずれないよう、判断は Core / Presenter が単一所有する）。<br/>
-/// <b>文字の実寸だけは UI が測る</b>（<see cref="AnnotationTextMetrics"/>）。 折り返しは計画側が行う。
+/// <b>文字の描画と実寸は本文コントロールと同じ実装を使う</b>（<c>StyledText.RichTextPainter</c>）。 折り返しは計画側が行う。
 /// </remarks>
 internal static class AnnotationPainter
 {
@@ -22,8 +22,8 @@ internal static class AnnotationPainter
         IGraphicsContext context, AnnotationShapePlan shape, Func<string, TextStyle, ITextLayout> layouts)
     {
         ArgumentNullException.ThrowIfNull(layouts);
-        var fill = shape.HasFill ? AnnotationTextMetrics.ToMewColor(shape.Fill) : (Color?)null;
-        var border = AnnotationTextMetrics.ToMewColor(shape.Border);
+        var fill = shape.HasFill ? StyledText.RichTextPainter.ToMewColor(shape.Fill) : (Color?)null;
+        var border = StyledText.RichTextPainter.ToMewColor(shape.Border);
 
         if (shape.HasTail)
         {
@@ -54,7 +54,7 @@ internal static class AnnotationPainter
     /// <summary>色を MewUI の色へ変換する。</summary>
     /// <param name="color">色。</param>
     /// <returns>MewUI の色。</returns>
-    internal static Color ToColor(DrawingColor color) => AnnotationTextMetrics.ToMewColor(color);
+    internal static Color ToColor(DrawingColor color) => StyledText.RichTextPainter.ToMewColor(color);
 
     /// <summary>しっぽ（三角形）を描く。</summary>
     /// <param name="context">描画先。</param>

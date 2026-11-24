@@ -11,7 +11,7 @@ namespace EsUtil.Ui.AvaloniaUI.StyledText;
 /// <remarks>
 /// <b>状態と規則は <see cref="TextEditState"/> が単一所有する</b>: 本ファイルは UI のイベントをその API へ
 /// つなぎ、描画の更新と通知を行うだけである。 キーの割り当ても <see cref="TextEditKeyMap"/> が持つ。<br/>
-/// <b>本文の変更は <see cref="Text"/> へ書き戻す</b>: ホストは <see cref="TextChanged"/> を購読して文書へ写す。
+/// <b>本文の変更は <see cref="RichTextValue"/> へ書き戻す</b>: ホストは <see cref="RichTextChanged"/> を購読して文書へ写す。
 /// </remarks>
 public sealed partial class StyledTextControl
 {
@@ -106,7 +106,7 @@ public sealed partial class StyledTextControl
             return;
         }
 
-        _edit.Begin(Text.PlainText.Length);
+        _edit.Begin(RichTextValue.PlainText.Length);
         Focus();
         RestartCaretBlink();
         RaiseEditingChanged();
@@ -114,7 +114,7 @@ public sealed partial class StyledTextControl
         InvalidateVisual();
     }
 
-    /// <summary>本文の編集を終える（内容は既に <see cref="Text"/> へ入っている）。</summary>
+    /// <summary>本文の編集を終える（内容は既に <see cref="RichTextValue"/> へ入っている）。</summary>
     public void EndEditing()
     {
         if (!_edit.IsActive)
@@ -135,15 +135,14 @@ public sealed partial class StyledTextControl
     /// <param name="length">長さ（文字数。 0 は選択なし）。</param>
     public void Select(int start, int length)
     {
-        _edit.Select(start, length, Text.PlainText.Length);
+        _edit.Select(RichTextValue, start, length);
         AfterSelectionChanged();
     }
 
     /// <summary>本文をすべて選択する。</summary>
     public void SelectAll()
     {
-        var length = Text.PlainText.Length;
-        _edit.Select(0, length, length);
+        _edit.SelectAll(RichTextValue);
         AfterSelectionChanged();
     }
 
@@ -152,14 +151,7 @@ public sealed partial class StyledTextControl
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
     public void MoveCaret(int index, bool extend)
     {
-        var text = Text.PlainText;
-        var target = Math.Clamp(index, 0, text.Length);
-
-        // **キャレットは書記素クラスタの境界にだけ置く**（サロゲート ペア・結合文字の内側へ入れない）
-        target = target < _edit.CaretIndex
-            ? TextCursor.SnapBackward(text, target)
-            : TextCursor.SnapForward(text, target);
-        _edit.MoveTo(target, text.Length, extend);
+        _edit.MoveToCluster(RichTextValue, index, extend);
         AfterSelectionChanged();
     }
 
@@ -174,8 +166,8 @@ public sealed partial class StyledTextControl
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
     public void MoveCaretByLine(int delta, bool extend)
     {
-        _edit.MoveByLine(ResolveLineIndex(), Text.PlainText.Length, delta, extend);
-        SnapCaretToCluster(extend);
+        _edit.MoveByLine(ResolveLineIndex(), RichTextValue.PlainText.Length, delta, extend);
+        _edit.SnapCaretToCluster(RichTextValue, extend);
         AfterSelectionChanged();
     }
 
@@ -184,8 +176,8 @@ public sealed partial class StyledTextControl
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
     public void MoveCaretToLineEdge(bool first, bool extend)
     {
-        _edit.MoveToLineEdge(ResolveLineIndex(), Text.PlainText.Length, first, extend);
-        SnapCaretToCluster(extend);
+        _edit.MoveToLineEdge(ResolveLineIndex(), RichTextValue.PlainText.Length, first, extend);
+        _edit.SnapCaretToCluster(RichTextValue, extend);
         AfterSelectionChanged();
     }
 
@@ -199,14 +191,14 @@ public sealed partial class StyledTextControl
             return;
         }
 
-        _edit.SetCaretFromPoint(index, point, Text.PlainText.Length, extend, MeasureText);
+        _edit.SetCaretFromPoint(index, point, RichTextValue.PlainText.Length, extend, MeasureText);
         AfterSelectionChanged();
     }
 
     /// <summary>選択範囲を文字列で置き換える（選択が無ければ挿入）。</summary>
     /// <param name="text">挿入する文字列（空なら削除）。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
-    public bool ReplaceSelection(string text) => Apply(edit => edit.ReplaceSelection(Text, text));
+    public bool ReplaceSelection(string text) => Apply(edit => edit.ReplaceSelection(RichTextValue, text));
 
     /// <summary>指定した範囲を文字列で置き換える（ホストが範囲を指定する場合）。</summary>
     /// <param name="start">開始位置（文字数）。</param>
@@ -214,17 +206,17 @@ public sealed partial class StyledTextControl
     /// <param name="text">置き換える文字列（空なら削除）。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
     public bool ReplaceRange(int start, int end, string text)
-        => Apply(edit => edit.ReplaceRange(Text, start, end, text));
+        => Apply(edit => edit.ReplaceRange(RichTextValue, start, end, text));
 
     /// <summary>選択範囲、またはキャレットの前後の 1 クラスタを削除する。</summary>
     /// <param name="forward">キャレットの次の文字を削除する場合は <see langword="true"/>。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
-    public bool DeleteAtCaret(bool forward) => Apply(edit => edit.Delete(Text, forward));
+    public bool DeleteAtCaret(bool forward) => Apply(edit => edit.Delete(RichTextValue, forward));
 
     /// <summary>選択範囲の書式を丸ごと適用する（選択が無ければ以降の入力へ回す）。</summary>
     /// <param name="style">適用する書式。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
-    public bool ApplyTextStyle(TextStyle style) => Apply(edit => edit.ApplyStyle(Text, style));
+    public bool ApplyTextStyle(TextStyle style) => Apply(edit => edit.ApplyStyle(RichTextValue, style));
 
     /// <summary>指定した範囲の書式を丸ごと適用する（ホストが範囲を指定する場合）。</summary>
     /// <param name="start">開始位置（文字数）。</param>
@@ -236,8 +228,8 @@ public sealed partial class StyledTextControl
         ArgumentNullException.ThrowIfNull(style);
 
         var updated = TextStyleEdit.ResolveRange(start, length) is { } range
-            ? Text.ApplyStyle(range.Start, range.Length, style)
-            : Text;
+            ? RichTextValue.ApplyStyle(range.Start, range.Length, style)
+            : RichTextValue;
         _edit.Remember(style);
         return Commit(updated);
     }
@@ -246,7 +238,7 @@ public sealed partial class StyledTextControl
     /// <param name="transform">現在の書式を受け取って新しい書式を返す関数。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
     public bool TransformTextStyle(Func<TextStyle, TextStyle> transform)
-        => Apply(edit => edit.TransformStyle(Text, transform));
+        => Apply(edit => edit.TransformStyle(RichTextValue, transform));
 
     /// <summary>指定した範囲の書式を 1 属性だけ変換する（ホストが範囲を指定する場合）。</summary>
     /// <param name="start">開始位置（文字数）。</param>
@@ -257,29 +249,23 @@ public sealed partial class StyledTextControl
     {
         ArgumentNullException.ThrowIfNull(transform);
 
-        var at = Math.Clamp(start, 0, Text.PlainText.Length);
-        var next = transform(Text.StyleAt(at));
+        var at = Math.Clamp(start, 0, RichTextValue.PlainText.Length);
+        var next = transform(RichTextValue.StyleAt(at));
         _edit.Remember(next);
-        return Commit(Text.TransformStyle(start, length, _ => next));
+        return Commit(RichTextValue.TransformStyle(start, length, _ => next));
     }
 
     /// <summary>書式バーへ表示する書式を取得する（選択が無い間は覚えた書式）。</summary>
-    public TextStyle SelectedTextStyle => _edit.ResolveDisplayStyle(Text);
+    public TextStyle SelectedTextStyle => _edit.ResolveDisplayStyle(RichTextValue);
 
     /// <summary>選択範囲の文字がすべて条件を満たすかどうかを取得する。</summary>
     /// <param name="match">書式が条件を満たすかどうかを返す関数。</param>
     /// <returns>すべて満たす場合は <see langword="true"/>。</returns>
-    public bool SelectedTextMatches(Func<TextStyle, bool> match) => _edit.AllMatch(Text, match);
+    public bool SelectedTextMatches(Func<TextStyle, bool> match) => _edit.AllMatch(RichTextValue, match);
 
     /// <summary>選択中の文字列を取得する（クリップボードへ渡す）。</summary>
     /// <returns>選択中の文字列（選択が無い場合は空）。</returns>
-    public string SelectedText()
-    {
-        var text = Text.PlainText;
-        var start = Math.Clamp(SelectionStart, 0, text.Length);
-        var end = Math.Clamp(SelectionEnd, start, text.Length);
-        return text[start..end];
-    }
+    public string SelectedText() => _edit.GetSelectedText(RichTextValue);
 
     /// <summary>選択中の文字列をクリップボードへコピーする。</summary>
     /// <returns>コピーの非同期処理。</returns>
@@ -355,14 +341,14 @@ public sealed partial class StyledTextControl
     internal StyledTextInputClient InputClient => _textInputClient ??= new StyledTextInputClient(this);
 
     /// <summary>本文の文字列（IME へ渡す）。</summary>
-    internal string TextForInput => Text.PlainText;
+    internal string TextForInput => RichTextValue.PlainText;
 
     /// <summary>IME から選択範囲を設定する。</summary>
     /// <param name="start">開始位置（文字数）。</param>
     /// <param name="end">終了位置（文字数）。</param>
     internal void SetSelectionFromInput(int start, int end)
     {
-        var length = Text.PlainText.Length;
+        var length = RichTextValue.PlainText.Length;
         var from = Math.Clamp(start, 0, length);
         var to = Math.Clamp(end, from, length);
         _edit.Select(from, to - from, length);
@@ -541,19 +527,19 @@ public sealed partial class StyledTextControl
         return Commit(update(_edit));
     }
 
-    /// <summary>変更後の本文を <see cref="Text"/> へ書き戻し、通知する。</summary>
+    /// <summary>変更後の本文を <see cref="RichTextValue"/> へ書き戻し、通知する。</summary>
     /// <param name="updated">変更後の本文。</param>
     /// <returns>本文を変えた場合は <see langword="true"/>。</returns>
     private bool Commit(RichText updated)
     {
-        if (ReferenceEquals(updated, Text))
+        if (ReferenceEquals(updated, RichTextValue))
         {
             AfterSelectionChanged();
             return false;
         }
 
-        Text = updated;
-        TextChanged?.Invoke(this, EventArgs.Empty);
+        RichTextValue = updated;
+        RichTextChanged?.Invoke(this, EventArgs.Empty);
 
         // **本文が変わったことを IME へ知らせる**（周囲の文字列を渡し直し、変換の基準を最新にする）
         InputClient.NotifyTextChanged();
@@ -568,18 +554,6 @@ public sealed partial class StyledTextControl
         InputClient.NotifySelectionChanged();
         RaiseSelectionChanged();
         InvalidateVisual();
-    }
-
-    /// <summary>キャレットを書記素クラスタの境界へ揃える（行の移動で境界の内側に落ちたとき）。</summary>
-    /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
-    private void SnapCaretToCluster(bool extend)
-    {
-        var text = Text.PlainText;
-        var snapped = TextCursor.SnapBackward(text, _edit.CaretIndex);
-        if (snapped != _edit.CaretIndex)
-        {
-            _edit.MoveTo(snapped, text.Length, extend);
-        }
     }
 
     /// <summary>位置（このコントロールの DIP）を元画像ピクセルへ写す。</summary>

@@ -42,8 +42,12 @@ public static class RichTextMetrics
     /// <summary>色を XAML のブラシへ変換する。</summary>
     /// <param name="color">色。</param>
     /// <returns>単色のブラシ。</returns>
+    /// <remarks>
+    /// <b>変換とキャッシュは同一 UI の変換ブリッジが単一所有する</b>: 毎フレーム区間ごとに作ると
+    /// WinRT オブジェクトの割り当てが積み上がる。 同じ色は同じ実体を共有する。
+    /// </remarks>
     internal static SolidColorBrush ToBrush(System.Drawing.Color color)
-        => new(Windows.UI.Color.FromArgb(color.A, color.R, color.G, color.B));
+        => EsUtil.Ui.WinUI3.Interop.Drawing.SolidBrushCache.Get(color);
 
     /// <summary>区間の文字を置く要素を作る。</summary>
     /// <param name="segment">区間。</param>

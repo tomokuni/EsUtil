@@ -28,7 +28,7 @@ public class AnnotationEditorPanelTests
         Assert.Equal(bubbleId, editor.Layer.ExternalTextId);
         Assert.True(editor.TextEditor.IsVisible);
         Assert.Same(editor.Layer.Session.TextEditState, editor.TextEditor.EditState);
-        Assert.Equal("あいうえお", editor.TextEditor.Text.PlainText);
+        Assert.Equal("あいうえお", editor.TextEditor.RichTextValue.PlainText);
     }
 
     /// <summary>選択を解除すると本文の描画をレイヤーへ戻すことを検証する。</summary>

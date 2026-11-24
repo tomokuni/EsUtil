@@ -45,7 +45,7 @@ public sealed partial class AnnotationLayerControl
                     (float)(SourcePixelHeight * scale)));
         }
 
-        var plan = _presenter.ResolveDrawPlan(_session.Document, AnnotationTextMetrics.Measure, _session.SelectedId);
+        var plan = _presenter.ResolveDrawPlan(_session.Document, StyledText.RichTextPainter.Measure, _session.SelectedId);
         AnnotationPainter.Draw(graphics, plan, scale, offset.X, offset.Y, ExternalTextId);
 
         DrawSelection(graphics);

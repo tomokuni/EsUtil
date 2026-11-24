@@ -17,7 +17,9 @@ MewUI 版の注釈レイヤーが公開する API の一覧です。 操作と�
 | メンバー | 型 | 説明 |
 | --- | --- | --- |
 | `Layer` | `AnnotationLayerControl` | 画像・文書・選択を操作するレイヤー |
-| `IsEditingText` | `bool` | 本文を編集中かどうか |
+| `IsEditingText` | `bool` | 本文を編集中かどうか（書式バーは 1 文字以上を選んでいる間だけ出る） |
+| `ShowFormatBarWhileEditing` | property | 編集中に書式バーを自動で表示するか（既定は `true`。 ホストが独自にバーを出す場合は `false`） |
+| `IsFormatBarOpen` | property | 書式バーを表示中かどうか（編集中で 1 文字以上を選んでいる間だけ `true`） |
 | `TextFormat` | `ColorTextFormat` | 書式バーとフライアウトの色の表記（設定へ追随させる） |
 | `Log` / `LogPrefix` | `ILogger` / `string?` | ログの出力先と接頭辞（コアと提示層で共有する） |
 | `Presenter` | `AnnotationPresenter` | 描画計画を解決する提示層（ログと接頭辞を共有する） |
@@ -46,7 +48,7 @@ MewUI 版の注釈レイヤーが公開する API の一覧です。 操作と�
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | 元に戻す・やり直す（1 操作 = 1 手） |
 | `ShowStyleEditor()` | 外観・重なり順の編集パネルを要求する（`StyleEditorRequested` を発火する） |
 | `BeginTextEditing()` / `EndTextEditing()` / `IsEditingText` | 本文のその場編集の開始・終了 |
-| `CaretIndex` / `SelectionStart` / `SelectionEnd` / `HasTextSelection` | キャレットと選択範囲 |
+| `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `HasTextSelection` / `TextSelectionRange` | キャレットと選択範囲（文字数）。 `TextSelectionRange` は選択位置の写し（長さ 0 は選択なし） |
 | `GetSelectedBodyRect()` | 本文の矩形（元画像ピクセル。 書式バーの位置を決める） |
 | `RenderComposedImage()` | 画像と注釈を 1:1 で合成した画像（保存用。 選択枠・キャレットは描かない） |
 | `DocumentChanged` / `SelectionChanged` / `EditingChanged` / `TextSelectionChanged` / `StyleEditorRequested` | 変更・選択・編集開始終了・編集パネルの要求の通知 |

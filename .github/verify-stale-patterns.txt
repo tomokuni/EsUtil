@@ -15,3 +15,8 @@ ColorPickerControl\.AvaloniaUI
 SaveEvidence
 local-nuget
 verify-ui
+# StyledText の改名・統合で消した名前（本文の値と、Annotation 側にあった文字計測の写し）
+\bRichTextValueChanged\b
+\bTextSelection(Start|End|Length)\b
+\bAnnotationTextMetrics\b
+\bAnnotationTextLayoutCache\b

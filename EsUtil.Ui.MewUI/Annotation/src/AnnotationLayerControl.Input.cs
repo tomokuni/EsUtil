@@ -36,7 +36,7 @@ public sealed partial class AnnotationLayerControl
         // **測定と描画で同じ DPI を使う**: 文字のレイアウトは DPI によって送りが変わる。 画面の倍率を
         // 渡さないと、描画（実機の DPI）と測定（96 固定）で 1 文字あたり約 6.7% 食い違い、
         // 長い文字列ほど文字とキャレットがずれる。
-        AnnotationTextMetrics.DpiScale = context.DpiScale;
+        StyledText.RichTextPainter.DpiScale = context.DpiScale;
 
         context.Save();
         try
@@ -72,7 +72,7 @@ public sealed partial class AnnotationLayerControl
         if (_session.Document.Items.Length > 0)
         {
             // **変換中の文字列はここでは扱わない**: 編集中の本文は本文コントロールが描く
-            var plan = _presenter.ResolveDrawPlan(_session.Document, AnnotationTextMetrics.Measure, _session.SelectedId);
+            var plan = _presenter.ResolveDrawPlan(_session.Document, StyledText.RichTextPainter.Measure, _session.SelectedId);
             _selectedBodyRectSource = Selected is BubbleAnnotation bubble
                 ? bubble.ResolveBodyRect()
                 : null;
@@ -90,7 +90,7 @@ public sealed partial class AnnotationLayerControl
                 // **同じフレームでは同じレイアウト実体を使う**: 文字の描画とキャレット・選択範囲の
                 // 位置計算でレイアウトを作り直すと、丸めやキャッシュの差で位置が食い違う。
                 // 生成器を 1 つ渡す。
-                var layouts = new AnnotationTextLayoutCache();
+                var layouts = new StyledText.TextLayoutCache();
                 foreach (var shape in plan.Shapes)
                 {
                     AnnotationPainter.DrawShape(context, shape, layouts.Create);

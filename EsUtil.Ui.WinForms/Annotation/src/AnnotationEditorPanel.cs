@@ -62,7 +62,7 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         {
             IsInputEnabled = false,
             Visible = false,
-            MeasureText = AnnotationTextMetrics.Measure,
+            MeasureText = StyledText.RichTextPainter.Measure,
             EditState = _layer.Session.TextEditState,
         };
 
@@ -77,8 +77,8 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         {
             if (_layer.IsEditingText)
             {
-                _formatBar.Refresh();
-                ShowFormatBar();
+                // **バーは選択ができてから出す**: 編集中でも 1 文字以上を選ぶまでは出さない
+                UpdateFormatBarVisibility();
 
                 // **入力とフォーカスは本文コントロールが持つ**: 編集を始めたらコントロールへ移す
                 BeginInvoke(() =>
@@ -94,20 +94,11 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
             _formatBarPanel.Close();
         };
 
-        _layer.TextSelectionChanged += (_, _) =>
-        {
-            if (_layer.IsEditingText)
-            {
-                _formatBar.Refresh();
-            }
-        };
+        _layer.TextSelectionChanged += (_, _) => UpdateFormatBarVisibility();
 
         _layer.SelectionChanged += (_, _) =>
         {
-            if (_layer.IsEditingText)
-            {
-                _formatBar.Refresh();
-            }
+            UpdateFormatBarVisibility();
 
             // 外観パネルは「選んでいる注釈」を編集するため、選択が変わったら閉じる
             if (!_layer.IsEditingText)
@@ -127,6 +118,13 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
             {
                 _layer.Session.EndTextEditing();
             }
+        };
+
+        // **選択の変更は 2 か所へ伝える**: 書式バーの表示と、レイヤーの購読者（ホスト）への通知。
+        _textEditor.SelectionChanged += (_, _) =>
+        {
+            _layer.NotifyTextSelectionChanged();
+            UpdateFormatBarVisibility();
         };
 
         // 文書・選択・編集の状態が変わったら、重ねた本文コントロールの内容と位置を追随させる
@@ -201,13 +199,13 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
     /// <b>クリップボードの処理は本文コントロールが単一所有する</b>: 注釈のレイヤーは持ちません
     /// （キーと API の両方から同じ処理を呼べるよう、入口だけをここに置きます）。
     /// </remarks>
-    public void CopyTextSelection() => _textEditor.Copy();
+    public void CopyTextSelection() => _ = _textEditor.CopyAsync();
 
     /// <summary>選択中の本文をクリップボードへ切り取る。</summary>
-    public void CutTextSelection() => _textEditor.Cut();
+    public void CutTextSelection() => _ = _textEditor.CutAsync();
 
     /// <summary>クリップボードの文字列をキャレットの位置へ貼り付ける。</summary>
-    public void PasteText() => _textEditor.Paste();
+    public void PasteText() => _ = _textEditor.PasteAsync();
     /// <summary>書式バーを作る処理を取得または設定する（独自の GUI へ差し替える入口）。</summary>
     /// <value>既定は組み込みの書式バー（<see cref="StyledTextFormatBarFactory"/>）。</value>
     /// <remarks>差し替えはバーを出す前に行う（表示中のバーを入れ替えると位置と操作の対象が食い違う）。</remarks>
@@ -295,7 +293,25 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         set => _layer.LogPrefix = value;
     }
     /// <summary>本文を編集中かどうかを取得する。</summary>
+    /// <value>編集中の場合は <see langword="true"/>。 書式バーは 1 文字以上を選んでいる間だけ出る。</value>
     public bool IsEditingText => _layer.IsEditingText;
+
+    /// <summary>編集中に書式バーを自動で表示するかどうかを取得または設定する。</summary>
+    /// <value>自動で表示する場合は <see langword="true"/>（既定）。 ホストが独自にバーを出す場合は <see langword="false"/>。</value>
+    /// <remarks>
+    /// <b>表示の条件は本文コントロールが単一所有する</b>: 編集中であること・自動表示が有効であること・
+    /// 1 文字以上を選んでいることの 3 つを満たす間だけ表示する（<c>StyledTextControl.ShouldShowFormatBar</c>）。
+    /// </remarks>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public bool ShowFormatBarWhileEditing
+    {
+        get => _textEditor.ShowFormatBarWhileEditing;
+        set
+        {
+            _textEditor.ShowFormatBarWhileEditing = value;
+            UpdateFormatBarVisibility();
+        }
+    }
 
     /// <summary>書式バーの色の入力欄へ出す表記を取得または設定する。</summary>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
@@ -308,6 +324,10 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
             _layer.ColorTextFormat = value;
         }
     }
+
+    /// <summary>書式バーを表示中かどうかを取得する。</summary>
+    /// <value>編集中で 1 文字以上を選んでいる間は <see langword="true"/>。</value>
+    public bool IsFormatBarOpen => _formatBarPanel.IsOpen;
 
     /// <summary>外観の編集パネルが出ているかどうかを取得する。</summary>
     public bool IsStylePanelOpen => _stylePanel.IsOpen;
@@ -416,6 +436,23 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
 
     /// <summary>外観・重なり順の編集パネルを閉じる。</summary>
     public void CloseStylePanel() => _stylePanel.Close();
+
+    /// <summary>現在の編集状態に合わせて書式バーを出すか閉じるかを決める。</summary>
+    /// <remarks>
+    /// <b>条件は本文コントロールが持つ</b>: 編集中で、自動表示が有効で、1 文字以上を選んでいる間だけ出す。
+    /// 選択が無い（適用先が決まらない）間は出さない。 位置は <see cref="ShowFormatBar"/> が決める。
+    /// </remarks>
+    private void UpdateFormatBarVisibility()
+    {
+        if (!_textEditor.ShouldShowFormatBar)
+        {
+            _formatBarPanel.Close();
+            return;
+        }
+
+        _formatBar.Refresh();
+        ShowFormatBar();
+    }
 
     /// <summary>選択中の注釈を基準に、書式バーを本文の外へ出す。</summary>
     /// <remarks>

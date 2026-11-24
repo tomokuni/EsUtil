@@ -13,17 +13,20 @@
 
 | メンバー | 説明 |
 | --- | --- |
-| `Text` | 表示・編集する本文（`RichText`。 run 単位の書式） |
+| `RichTextValue` | 表示・編集する本文（`RichText`。 run 単位の書式） |
 | `MeasureText` | 文字列と書式から実寸を測る関数（既定は描画と同じエンジンで測る） |
 | `LineHeightFactor` | 行間の倍率（1 未満・非有限は 1） |
 | `RenderScale` | 画面の DIP への倍率（1 未満・非有限は 1） |
 | `EditState` | キャレット・選択・以降の入力へ効かせる書式の状態（`TextEditState`） |
+| `ShowFormatBarWhileEditing` | 編集中に書式バーを自動で表示するか（既定は `true`）。 ホストが独自にバーを出す場合は `false` |
+| `ShouldShowFormatBar` | いま書式バーを表示すべきか（編集中・自動表示が有効・1 文字以上を選択） |
 | `PreeditText` | IME の変換中の文字列（本文へは入れず、キャレットの位置へ描く） |
-| `TextChanged` / `SelectionChanged` / `EditingChanged` | 本文・選択範囲・編集の開始と終了の通知 |
+| `RichTextChanged` / `SelectionChanged` / `EditingChanged` | 本文・選択範囲・編集の開始と終了の通知 |
 
 - **座標は元画像ピクセル**です。 `RenderScale` を掛けて DIP へ写します。
-- **本文は `Text` が単一所有**します。 編集は新しい `RichText` を `Text` へ書き戻し、`TextChanged` を発生させます。
+- **本文は `RichTextValue` が単一所有**します。 編集は新しい `RichText` を `RichTextValue` へ書き戻し、`RichTextChanged` を発生させます。
 - **状態を 2 つ持たない**ため、ホストが状態を持っている場合は `EditState` に同じ実体を設定します。
+- **書式バーは 1 文字以上を選んだときだけ出す**（自動表示が有効でも、適用先が決まらない間は出さない）。
 
 ## 2. 編集の API
 
@@ -31,7 +34,7 @@
 | --- | --- |
 | `IsEditing` / `BeginEditing()` / `EndEditing()` | 編集の状態（開始時のキャレットは本文の末尾）。 本文を押すと編集が始まり、押した位置へキャレットを置く |
 | `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `HasSelection` | キャレットと選択 |
-| `Select(start, length)` / `SelectAll()` | 選択範囲の指定 |
+| `Select(start, length)` / `SelectAll()` | 選択範囲の指定（端は書記素クラスタの境界へ揃える） |
 | `MoveCaret(index, extend)` | キャレットの移動（書記素クラスタの境界へ丸める） |
 | `MoveCaretByCluster(direction, extend)` | 前後の 1 クラスタへ移動（選択は端へ畳む） |
 | `MoveCaretByLine(delta, extend)` / `MoveCaretToLineEdge(first, extend)` | 上下の行・行の先頭と末尾 |
@@ -55,7 +58,7 @@
 
 ## 4. 書式バー（`StyledTextFormatBar`）
 
-本文を編集中に本文の上へ出す**文字単位の書式**のバーです。 ホストは `View` をパネルへ載せ、本文の選択が変わったら `Refresh()` を呼びます。
+本文を編集中、**1 文字以上を選んだとき**に本文の上へ出す**文字単位の書式**のバーです。 ホストは `View` をパネルへ載せ、本文の選択が変わったら `Refresh()` を呼び、選択が無くなったら閉じます（表示の条件は `StyledTextControl.ShouldShowFormatBar` が単一所有する）。
 
 | メンバー | 説明 |
 | --- | --- |

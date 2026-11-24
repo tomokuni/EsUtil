@@ -72,9 +72,9 @@ public static class MainForm
                 TextDefaults.DefaultStyle with { Color = System.Drawing.Color.FromArgb(255, 0, 90, 200) })),
             ("書式を戻す", () => editor.ApplyTextStyle(TextDefaults.DefaultStyle))));
         methods.Controls.Add(SampleSettings.Buttons(
-            ("選択をコピー", editor.Copy),
-            ("選択を切り取り", editor.Cut),
-            ("貼り付け", editor.Paste)));
+            ("選択をコピー", () => _ = editor.CopyAsync()),
+            ("選択を切り取り", () => _ = editor.CutAsync()),
+            ("貼り付け", () => _ = editor.PasteAsync())));
 
         // ── サンプル設定（サンプルアプリの外観と状態） ──
         var samples = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true };

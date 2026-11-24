@@ -78,7 +78,7 @@ flowchart TB
 | `AnnotationPanelController` / `AnnotationPanelPlacement` / `AnnotationPanelAppearance` / `AnnotationPanelKind` / `AnnotationPanelMetrics` / `IAnnotationPanelHost` | Presenter | フローティング パネルの開閉・配置・外観（UI は `IAnnotationPanelHost` を実装する） |
 | `AnnotationSelectionPresenter` | Presenter | 選択中の注釈の外観・本文の余白・しっぽの差し替えの入口（文書を受け取り、変更後の文書を返す） |
 | `AnnotationEditSession` / `AnnotationEditChange` | Presenter | 文書・選択・変更履歴・本文の編集状態の単一所有（4 つの UI 版は本型の操作を呼び、変更を購読する） |
-| `TextEditState` | `EsUtil.Feature.StyledText.Core`（`.Presenter.Editing`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 文書も注釈の識別子も知らず、本文（`RichText`）を受け取って書き換えた本文を返す |
+| `TextEditState` | `EsUtil.Feature.StyledText.Core`（`.Presenter.Editing`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 文書も注釈の識別子も知らず、本文（`RichText`）を受け取って書き換えた本文を返す。 **書式バーを表示する条件（編集中・1 文字以上を選択）も単一所有する** |
 | `AnnotationViewTransform` | Core（`.Core.Geometry`） | 表示倍率と左上の位置、元画像ピクセルとローカル DIP の相互変換 |
 | `TextCursor` / `TextStyleEdit` / `TextCompositionPreview` / `TextCaretBlink` | `EsUtil.Feature.StyledText.Core`（`.Core.Text`） | 文字位置を書記素クラスタ（絵文字・結合文字）で扱う規則・入力の挿入・変換中の文字列・点滅 |
 | `AnnotationEditorLayout` / `AnnotationEditorText` / `AnnotationPaletteCatalog` / `AnnotationPaletteColor` / `AnnotationBubbleEdgeCatalog` | Presenter | 編集 UI の寸法・文言・代表色。 書式バーの並びと寸法・フォントの並べ方は書式付き文字列の編集層（`EsUtil.Feature.StyledText` の `Presenter.Formatting`）が所有する |
@@ -86,7 +86,7 @@ flowchart TB
 
 **選択枠（8 方向のハンドル）は本アセンブリの責務ではありません**（Marquee の提示層を再利用する。 枠とハンドルの見た目を 4 つの UI 版で揃えるため）。
 
-**ログ**: 本アセンブリはログの定義（`AnnotationLogMessage`。 接頭辞の既定値は `[Annotation]`）を持ちます。 レベルは頻度で決めます。 `Information` は利用者の明示的な操作（注釈ファイルの読み込み・保存・付随ファイルの削除）・設定（行間）の変更、`Debug` は生成（ファサード・提示層）と状態の変化（選択・本文の編集・書式の適用・履歴の移動・パネルの表示と位置・押下と解放）、`Trace` は高頻度の値（ドラッグ中の文書の変更）、`Error` は公開ファサードの操作で発生した例外です。 毎フレームの描画計画の解決と当たり判定は記録しません（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
+**ログ**: 本アセンブリはログの定義（`AnnotationLogMessage`。 接頭辞の既定値は `[Annotation]`）を持ちます。 レベルは頻度で決めます。 `Information` は利用者の明示的な操作（注釈ファイルの読み込み・保存・付随ファイルの削除）・設定（行間）の変更、`Debug` は生成（ファサード・提示層）と状態の変化（選択・本文の編集・本文の変更・書式の適用・履歴の移動・パネルの表示と位置・押下と解放）、`Trace` は高頻度の値（本文の選択・ドラッグ中の文書の変更）、`Error` は公開ファサードの操作で発生した例外です。 **本文を扱う `Debug` は操作の対象（キャレット・選択範囲・適用範囲）と値（本文の先頭 100 文字）を記録します**（本文は大きくなりうるため、整形は `AnnotationLogMessage` が単一所有する）。 毎フレームの描画計画の解決と当たり判定は記録しません（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
 
 ## 5. 依存関係
 

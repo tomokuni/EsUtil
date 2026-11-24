@@ -92,8 +92,12 @@ internal static class RichTextPainter
     /// <summary>色をブラシへ変換する。</summary>
     /// <param name="color">色。</param>
     /// <returns>単色のブラシ。</returns>
+    /// <remarks>
+    /// <b>変換とキャッシュは同一 UI の変換ブリッジが単一所有する</b>: 毎フレーム区間ごとに作ると
+    /// <c>SolidColorBrush</c> の割り当てが積み上がる。 同じ色は同じ実体を共有する。
+    /// </remarks>
     internal static IBrush ToBrush(DrawingColor color)
-        => new SolidColorBrush(Color.FromArgb(color.A, color.R, color.G, color.B));
+        => EsUtil.Ui.AvaloniaUI.Interop.Imaging.SolidColorBrushCache.GetOrCreate(color);
 
     /// <summary>使うフォント ファミリを解決する（無い場合は優先順の次のフォント）。</summary>
     /// <param name="fontFamily">指定されたフォント ファミリ名。</param>

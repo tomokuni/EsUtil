@@ -153,11 +153,7 @@ public sealed class AnnotationEditSession
         get => _edit.SelectionRange;
         set
         {
-            var text = SelectedPlainText;
-            var start = TextCursor.SnapBackward(text, value.Start);
-            var end = TextCursor.SnapForward(
-                text, Math.Max(start, value.Start + Math.Max(0, value.Length)));
-            _edit.Select(start, end - start, text.Length);
+            _edit.Select(SelectedRichText, value.Start, value.Length);
             NotifyTextSelectionIfChanged();
         }
     }
@@ -454,32 +450,24 @@ public sealed class AnnotationEditSession
     /// <param name="length">長さ（文字数）。</param>
     public void SelectText(int start, int length)
     {
-        var text = SelectedPlainText;
-        var from = TextCursor.SnapBackward(text, start);
-        var to = TextCursor.SnapForward(text, Math.Max(from, start + Math.Max(0, length)));
-        _edit.Select(from, to - from, text.Length);
+        _edit.Select(SelectedRichText, start, length);
         NotifyTextSelectionIfChanged();
     }
 
     /// <summary>本文全体を選択する。</summary>
     public void SelectAllText()
     {
-        var length = SelectedPlainText.Length;
-        _edit.Select(0, length, length);
+        _edit.SelectAll(SelectedRichText);
         NotifyTextSelectionIfChanged();
     }
 
     /// <summary>キャレットを指定位置へ移す。</summary>
     /// <param name="index">移動先（文字数。 範囲外は本文の範囲へ丸める）。</param>
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
+    /// <remarks>書記素クラスタの境界へ揃える規則は <see cref="TextEditState"/> が単一所有する。</remarks>
     public void MoveCaret(int index, bool extend)
     {
-        var text = SelectedPlainText;
-        var target = Math.Clamp(index, 0, text.Length);
-        target = target < _edit.CaretIndex
-            ? TextCursor.SnapBackward(text, target)
-            : TextCursor.SnapForward(text, target);
-        _edit.MoveTo(target, text.Length, extend);
+        _edit.MoveToCluster(SelectedRichText, index, extend);
         NotifyTextSelectionIfChanged();
     }
 
@@ -498,9 +486,8 @@ public sealed class AnnotationEditSession
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
     public void MoveCaretByLine(TextLineIndex? lines, int delta, bool extend)
     {
-        var text = SelectedPlainText;
-        _edit.MoveByLine(lines, text.Length, delta, extend);
-        SnapCaretToCluster(extend);
+        _edit.MoveByLine(lines, SelectedPlainText.Length, delta, extend);
+        _edit.SnapCaretToCluster(SelectedRichText, extend);
         NotifyTextSelectionIfChanged();
     }
 
@@ -511,7 +498,7 @@ public sealed class AnnotationEditSession
     public void MoveCaretToLineEdge(TextLineIndex? lines, bool first, bool extend)
     {
         _edit.MoveToLineEdge(lines, SelectedPlainText.Length, first, extend);
-        SnapCaretToCluster(extend);
+        _edit.SnapCaretToCluster(SelectedRichText, extend);
         NotifyTextSelectionIfChanged();
     }
 
@@ -535,7 +522,7 @@ public sealed class AnnotationEditSession
     public void ClampCaret()
     {
         _edit.Clamp(SelectedPlainText.Length);
-        SnapCaretToCluster(extend: true);
+        _edit.SnapCaretToCluster(SelectedRichText, extend: true);
         NotifyTextSelectionIfChanged();
     }
 
@@ -578,13 +565,7 @@ public sealed class AnnotationEditSession
 
     /// <summary>選択中の文字を取得する（クリップボードへ渡す）。</summary>
     /// <returns>選択中の文字列（選択が無い場合は空）。</returns>
-    public string SelectedText()
-    {
-        var text = SelectedPlainText;
-        var start = Math.Clamp(SelectionStart, 0, text.Length);
-        var end = Math.Clamp(SelectionEnd, start, text.Length);
-        return text[start..end];
-    }
+    public string SelectedText() => _edit.GetSelectedText(SelectedRichText);
 
     /// <summary>このセッションが対象とする画像の大きさを取得する。</summary>
     private EsSize ImageSize => AnnotationGeometry.ResolveImageSize(_document);
@@ -651,9 +632,16 @@ public sealed class AnnotationEditSession
         _document = after;
         _history.CommitChange(after);
         LogDocumentChanged();
+        var logger = _logger?.Invoke() ?? NullLogger.Instance;
+        if (!string.Equals(bubble.Text.PlainText, updated.PlainText, StringComparison.Ordinal))
+        {
+            // **操作の内容と値を残す**（入力・削除・貼り付けのどれか、変更後の本文の先頭）
+            logger.LogTextChanged(updated.PlainText.Length, updated.PlainText);
+        }
+
         if (styleRange is { } range)
         {
-            (_logger?.Invoke() ?? NullLogger.Instance).LogTextStyleApplied(range.Start, range.Length);
+            logger.LogTextStyleApplied(range.Start, range.Length, ResolveRangeText(updated, range));
         }
 
         Notify(AnnotationEditChange.Document | AnnotationEditChange.TextSelection);
@@ -666,6 +654,23 @@ public sealed class AnnotationEditSession
     /// <returns>文書が変わった場合は <see langword="true"/>。</returns>
     private bool ApplyTextEdit((int Start, int Length) range, Func<RichText, RichText> update)
         => ReplaceEdit(update, range);
+
+    /// <summary>書式を適用した範囲の文字を取得する（ログの記録に使う）。</summary>
+    /// <param name="text">適用後の本文。</param>
+    /// <param name="range">適用した範囲（長さ 0 は全体）。</param>
+    /// <returns>範囲の文字。 範囲が無い場合は本文全体。</returns>
+    private static string ResolveRangeText(RichText text, (int Start, int Length) range)
+    {
+        var plain = text.PlainText;
+        if (TextStyleEdit.ResolveRange(range.Start, range.Length) is not { } resolved)
+        {
+            return plain;
+        }
+
+        var start = Math.Clamp(resolved.Start, 0, plain.Length);
+        var end = Math.Clamp(start + resolved.Length, start, plain.Length);
+        return plain[start..end];
+    }
 
     /// <summary>履歴を 1 手動かす。</summary>
     /// <param name="redo">やり直す場合は <see langword="true"/>。</param>
@@ -709,18 +714,6 @@ public sealed class AnnotationEditSession
         _notices.Raise(change);
     }
 
-    /// <summary>キャレットを書記素クラスタの境界へ寄せる（行・選択の移動でクラスタを分割しない）。</summary>
-    /// <param name="extend">選択の起点を保つ場合は <see langword="true"/>。</param>
-    private void SnapCaretToCluster(bool extend)
-    {
-        var text = SelectedPlainText;
-        var snapped = TextCursor.SnapBackward(text, _edit.CaretIndex);
-        if (snapped != _edit.CaretIndex)
-        {
-            _edit.MoveTo(snapped, text.Length, extend);
-        }
-    }
-
     /// <summary>選択中の吹き出しの本文を取得する（編集の入口に渡す）。</summary>
     private RichText SelectedRichText
         => _document.Find(_selectedId) is BubbleAnnotation bubble ? bubble.Text : RichText.Empty;
@@ -735,6 +728,8 @@ public sealed class AnnotationEditSession
         }
 
         _lastTextSelection = current;
+        (_logger?.Invoke() ?? NullLogger.Instance).LogTextSelectionChanged(
+            _edit.CaretIndex, _edit.SelectionStart, _edit.SelectionLength, SelectedPlainText);
         Notify(AnnotationEditChange.TextSelection);
     }
 
@@ -742,7 +737,8 @@ public sealed class AnnotationEditSession
     private void NotifyEditStarted()
     {
         _lastTextSelection = _edit.SelectionRange;
-        (_logger?.Invoke() ?? NullLogger.Instance).LogEditingChanged(editing: true);
+        (_logger?.Invoke() ?? NullLogger.Instance).LogEditingChanged(
+            editing: true, _edit.CaretIndex, _edit.SelectionStart, _edit.SelectionLength, SelectedPlainText);
         Notify(AnnotationEditChange.Editing | AnnotationEditChange.TextSelection);
     }
 
@@ -750,7 +746,8 @@ public sealed class AnnotationEditSession
     private void NotifyEditEnded()
     {
         _lastTextSelection = _edit.SelectionRange;
-        (_logger?.Invoke() ?? NullLogger.Instance).LogEditingChanged(editing: false);
+        (_logger?.Invoke() ?? NullLogger.Instance).LogEditingChanged(
+            editing: false, _edit.CaretIndex, _edit.SelectionStart, _edit.SelectionLength, SelectedPlainText);
         Notify(AnnotationEditChange.Editing | AnnotationEditChange.TextSelection);
     }
 

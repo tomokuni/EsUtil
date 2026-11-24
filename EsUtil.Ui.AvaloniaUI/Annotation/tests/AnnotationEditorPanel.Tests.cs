@@ -30,7 +30,7 @@ public class AnnotationEditorPanelTests
         Assert.Equal(bubbleId, editor.Layer.ExternalTextId);
         Assert.True(editor.TextEditor.IsVisible);
         Assert.Same(editor.Layer.Session.TextEditState, editor.TextEditor.EditState);
-        Assert.Equal("あいうえお", editor.TextEditor.Text.PlainText);
+        Assert.Equal("あいうえお", editor.TextEditor.RichTextValue.PlainText);
         GC.KeepAlive(window);
     }
 
@@ -79,6 +79,48 @@ public class AnnotationEditorPanelTests
             Assert.InRange(actual.Y, expected.Y - 0.5, expected.Y + 0.5);
         }
 
+        GC.KeepAlive(window);
+    }
+
+    /// <summary>書式バーは編集中でも 1 文字以上を選ぶまで出さないことを検証する。</summary>
+    /// <remarks>
+    /// 適用先が決まらない状態でバーを出すと、押しても何も起きない操作が見えてしまう。
+    /// 表示の条件は本文コントロール（<c>ShouldShowFormatBar</c>）が単一所有する。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 書式バーは選択がある間だけ出る()
+    {
+        var window = CreateEditor(out var editor, out _, out var bubbleId);
+        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.BeginTextEditing();
+        PumpLayout(editor);
+
+        Assert.True(editor.IsEditingText);
+        Assert.False(editor.IsFormatBarOpen);
+
+        editor.TextEditor.Select(0, 2);
+
+        Assert.True(editor.IsFormatBarOpen);
+
+        editor.TextEditor.Select(0, 0);
+
+        Assert.False(editor.IsFormatBarOpen);
+        GC.KeepAlive(window);
+    }
+
+    /// <summary>自動表示を無効にすると選択しても書式バーを出さないことを検証する。</summary>
+    [AvaloniaFact]
+    internal void 自動表示を無効にすると書式バーを出さない()
+    {
+        var window = CreateEditor(out var editor, out _, out var bubbleId);
+        editor.ShowFormatBarWhileEditing = false;
+        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.BeginTextEditing();
+        PumpLayout(editor);
+
+        editor.TextEditor.Select(0, 2);
+
+        Assert.False(editor.IsFormatBarOpen);
         GC.KeepAlive(window);
     }
 

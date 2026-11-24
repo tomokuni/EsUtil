@@ -20,6 +20,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\EsUtil\Feature.StyledText.Core\src\EsUtil.Feature.StyledText.Core.csproj" />
     <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <!-- 色からブラシへの変換は同一 UI の変換ブリッジが単一所有する（写しを持つとキャッシュが二重になる） -->
+    <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.WinUI3.Interop.csproj" />
     <!-- 書式バーの色の選択は UI の色選択コントロールを使う -->
     <ProjectReference Include="..\..\ColorSelector\src\EsUtil.Ui.WinUI3.ColorSelector.csproj" />
   </ItemGroup>

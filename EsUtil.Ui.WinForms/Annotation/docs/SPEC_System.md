@@ -53,10 +53,10 @@ flowchart LR
 
 | 型 | 役割 |
 | --- | --- |
-| `AnnotationEditorPanel` | レイヤーと書式バーを重ね、編集の開始・終了でバーを出し入れする |
+| `AnnotationEditorPanel` | レイヤーと書式バーを重ね、選択の変化（1 文字以上を選んだとき）でバーを出し入れする |
 | `AnnotationLayerControl` | 画像・注釈の図形の表示と選択・移動の入力（`Input` の部分クラスへ分ける）。 **本文の入力・IME・キャレットは持たない**（`StyledTextControl` が単一所有する） |
 | `AnnotationPainter` | 描画計画を GDI+ の図形と文字へ写す（画面と保存で共有する） |
-| `AnnotationTextMetrics` | 本文の実寸（送り幅・行の高さ）を GDI+ で測る |
+| `RichTextPainter`（`EsUtil.Ui.WinForms.StyledText`） | 本文の描画・実寸（送り幅・行の高さ）を GDI+ で測る（本文コントロールと共有する） |
 | `StyledTextFormatBar`（`EsUtil.Ui.WinForms.StyledText`） | 文字単位の書式（B / I / U / S・色・大きさ・フォント）の操作。 ホストは `FormatBarFactory` で独自の GUI へ差し替えられる |
 | `AnnotationStylePanel` | 外観・しっぽ・重なり順の編集 |
 | `AnnotationEditorControls` | 編集 UI の部品（書式バーと外観パネルが共有する） |

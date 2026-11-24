@@ -55,7 +55,7 @@ flowchart LR
 
 | 型 | 役割 |
 | --- | --- |
-| `AnnotationEditorPanel` | レイヤーと書式バーを重ね、編集の開始・終了でバーを出し入れする |
+| `AnnotationEditorPanel` | レイヤーと書式バーを重ね、選択の変化（1 文字以上を選んだとき）でバーを出し入れする |
 | `AnnotationLayerControl` | 画像・注釈の図形の表示と選択・移動の入力（`Input` の部分クラスへ分ける）。 **本文の入力・IME・キャレットは持たない**（`StyledTextControl` が単一所有する） |
 | `AnnotationPainter` | 描画計画を XAML の図形（`Rectangle` / `Polygon`）と `TextBlock` へ写す |
 | `AnnotationComposer` | 保存用の合成画像を GDI+ で描く |

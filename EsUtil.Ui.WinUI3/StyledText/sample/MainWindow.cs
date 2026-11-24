@@ -27,14 +27,14 @@ public sealed class MainWindow : Window
         logger.LogInformation("サンプルを起動しました。");
 
         // 本文は run 単位の書式で持つ（色・太字を混ぜられる）。 本文はコントロールが単一所有する
-        _editor.Text = RichText.Create("ここが重要です。\n文字単位の書式は API でも変えられます。", TextDefaults.DefaultStyle)
+        _editor.RichTextValue = RichText.Create("ここが重要です。\n文字単位の書式は API でも変えられます。", TextDefaults.DefaultStyle)
             .ApplyStyle(6, 4, TextDefaults.DefaultStyle with
             {
                 IsBold = true,
                 Color = System.Drawing.Color.FromArgb(255, 200, 0, 0),
             });
         _editor.LineHeightFactor = 1.2;
-        _editor.TextChanged += (_, _) =>
+        _editor.RichTextChanged += (_, _) =>
         {
             logger.LogInformation("本文が変わりました。");
         };
@@ -90,7 +90,7 @@ public sealed class MainWindow : Window
             ("本文を初期化", () =>
             {
                 _editor.EndEditing();
-                _editor.Text = RichText.Create("ここが重要です。", TextDefaults.DefaultStyle);
+                _editor.RichTextValue = RichText.Create("ここが重要です。", TextDefaults.DefaultStyle);
             }
         )));
 

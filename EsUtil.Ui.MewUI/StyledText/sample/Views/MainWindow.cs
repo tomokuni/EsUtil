@@ -26,7 +26,7 @@ public static class MainWindow
         // 本文は run 単位の書式で持つ（色・太字を混ぜられる）。 本文はコントロールが単一所有する
         var editor = new StyledTextControl
         {
-            Text = RichText.Create("ここが重要です。\n文字単位の書式は API でも変えられます。", TextDefaults.DefaultStyle)
+            RichTextValue = RichText.Create("ここが重要です。\n文字単位の書式は API でも変えられます。", TextDefaults.DefaultStyle)
                 .ApplyStyle(6, 4, TextDefaults.DefaultStyle with
                 {
                     IsBold = true,
@@ -34,7 +34,7 @@ public static class MainWindow
                 }),
             LineHeightFactor = 1.2,
         };
-        editor.TextChanged += (_, _) =>
+        editor.RichTextChanged += (_, _) =>
         {
             logger.LogInformation("本文が変わりました。");
         };
@@ -72,9 +72,9 @@ public static class MainWindow
                 TextDefaults.DefaultStyle with { Color = System.Drawing.Color.FromArgb(255, 0, 90, 200) })),
             ("書式を戻す", () => editor.ApplyTextStyle(TextDefaults.DefaultStyle))));
         methods.Add(SampleSettings.Buttons(
-            ("選択をコピー", editor.Copy),
-            ("選択を切り取り", editor.Cut),
-            ("貼り付け", editor.Paste)));
+            ("選択をコピー", () => _ = editor.CopyAsync()),
+            ("選択を切り取り", () => _ = editor.CutAsync()),
+            ("貼り付け", () => _ = editor.PasteAsync())));
 
         // ── サンプル設定（サンプルアプリの外観と状態） ──
         var samples = new StackPanel().Spacing(6);
@@ -84,7 +84,7 @@ public static class MainWindow
             ("本文を初期化", () =>
             {
                 editor.EndEditing();
-                editor.Text = RichText.Create("ここが重要です。", TextDefaults.DefaultStyle);
+                editor.RichTextValue = RichText.Create("ここが重要です。", TextDefaults.DefaultStyle);
             }
         )));
 

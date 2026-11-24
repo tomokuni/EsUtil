@@ -38,14 +38,14 @@ public class StyledTextControlTests
     {
         var editor = CreateEditor("あいう");
         var changed = 0;
-        editor.TextChanged += (_, _) => changed++;
+        editor.RichTextChanged += (_, _) => changed++;
         editor.BeginEditing();
         editor.Select(1, 0);
 
         var updated = editor.ReplaceSelection("X");
 
         Assert.True(updated);
-        Assert.Equal("あXいう", editor.Text.PlainText);
+        Assert.Equal("あXいう", editor.RichTextValue.PlainText);
         Assert.Equal(2, editor.CaretIndex);
         Assert.Equal(1, changed);
     }
@@ -56,7 +56,7 @@ public class StyledTextControlTests
     {
         var editor = CreateEditor("あいう");
         var changed = 0;
-        editor.TextChanged += (_, _) => changed++;
+        editor.RichTextChanged += (_, _) => changed++;
         editor.BeginEditing();
         editor.Select(0, 0);
 
@@ -74,7 +74,7 @@ public class StyledTextControlTests
 
         editor.DeleteAtCaret(forward: false);
 
-        Assert.Equal("ab", editor.Text.PlainText);
+        Assert.Equal("ab", editor.RichTextValue.PlainText);
     }
 
     /// <summary>選択範囲の書式が適用され、選択が無ければ以降の入力へ回ることを検証する。</summary>
@@ -87,8 +87,8 @@ public class StyledTextControlTests
         editor.Select(1, 1);
 
         Assert.True(editor.ApplyTextStyle(bold));
-        Assert.True(editor.Text.StyleAt(1).IsBold);
-        Assert.False(editor.Text.StyleAt(0).IsBold);
+        Assert.True(editor.RichTextValue.StyleAt(1).IsBold);
+        Assert.False(editor.RichTextValue.StyleAt(0).IsBold);
 
         var italic = TextDefaults.DefaultStyle with { IsItalic = true };
         editor.Select(0, 0);
@@ -133,7 +133,7 @@ public class StyledTextControlTests
         editor.BeginEditing();
         editor.Select(5, 0);
 
-        editor.Text = RichText.Create("あ", TextDefaults.DefaultStyle);
+        editor.RichTextValue = RichText.Create("あ", TextDefaults.DefaultStyle);
 
         Assert.Equal(1, editor.CaretIndex);
         Assert.False(editor.HasSelection);
@@ -147,10 +147,10 @@ public class StyledTextControlTests
         var bold = TextDefaults.DefaultStyle with { IsBold = true };
 
         Assert.True(editor.ApplyTextStyle(1, 2, bold));
-        Assert.False(editor.Text.StyleAt(0).IsBold);
-        Assert.True(editor.Text.StyleAt(1).IsBold);
-        Assert.True(editor.Text.StyleAt(2).IsBold);
-        Assert.False(editor.Text.StyleAt(3).IsBold);
+        Assert.False(editor.RichTextValue.StyleAt(0).IsBold);
+        Assert.True(editor.RichTextValue.StyleAt(1).IsBold);
+        Assert.True(editor.RichTextValue.StyleAt(2).IsBold);
+        Assert.False(editor.RichTextValue.StyleAt(3).IsBold);
     }
 
     /// <summary>変換中の文字列が描画用の本文にだけ入り、本文へは入らないことを検証する。</summary>
@@ -168,7 +168,7 @@ public class StyledTextControlTests
         editor.PreeditText = "かき";
 
         // 本文は変わらず、表示用の値にだけ変換中の文字列が入る
-        Assert.Equal("あいう", editor.Text.PlainText);
+        Assert.Equal("あいう", editor.RichTextValue.PlainText);
         Assert.Equal("あかきいう", editor.DisplayText.PlainText);
 
         // 編集のキャレットは入力位置のまま（描画のキャレットだけ変換中の文字列の末尾へ進む）
@@ -301,7 +301,7 @@ public class StyledTextControlTests
     private static StyledTextControl CreateEditor(string text)
         => new()
         {
-            Text = RichText.Create(text, TextDefaults.DefaultStyle),
+            RichTextValue = RichText.Create(text, TextDefaults.DefaultStyle),
             Width = 300,
             Height = 100,
             MeasureText = FixedTextMetrics.Measure,

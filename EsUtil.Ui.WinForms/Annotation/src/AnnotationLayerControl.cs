@@ -531,7 +531,7 @@ public sealed partial class AnnotationLayerControl : Control
                 graphics.DrawImage(image, new Rectangle(0, 0, width, height));
             }
 
-            var plan = _presenter.ResolveDrawPlan(_session.Document, AnnotationTextMetrics.Measure, null);
+            var plan = _presenter.ResolveDrawPlan(_session.Document, StyledText.RichTextPainter.Measure, null);
             AnnotationPainter.Draw(graphics, plan, 1, 0, 0);
         }
 

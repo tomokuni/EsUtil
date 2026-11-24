@@ -352,7 +352,7 @@ public sealed partial class AnnotationLayerControl : Grid
     /// <returns>置き換えた場合は <see langword="true"/>。</returns>
     public bool SetSelectedText(string text) => _session.SetSelectedText(text);
 
-    /// <summary>選択中の本文へ書式を適用する（<see cref="TextSelectionStart"/> と <see cref="TextSelectionLength"/> の範囲）。</summary>
+    /// <summary>選択中の本文へ書式を適用する（<see cref="SelectionStart"/> と <see cref="SelectionLength"/> の範囲）。</summary>
     /// <param name="style">書式。</param>
     /// <returns>選択範囲へ適用した場合は <see langword="true"/>。 選択が無く以降の入力へ回した場合は <see langword="false"/>。</returns>
     /// <remarks>

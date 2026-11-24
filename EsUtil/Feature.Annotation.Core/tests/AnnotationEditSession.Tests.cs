@@ -147,6 +147,35 @@ public sealed class AnnotationEditSessionTests
         Assert.False(session.IsEditingText);
     }
 
+    /// <summary>本文の編集と書式の適用は、操作の内容と値をログへ残す。</summary>
+    /// <remarks>
+    /// 障害の切り分けでは「どの位置を・どの文字に対して操作したか」が要る。 本文は大きくなりうるため、
+    /// 先頭 100 文字へ切り詰める（整形はログ定義が単一所有する）。
+    /// </remarks>
+    [Fact]
+    internal void 本文の編集と書式の適用は値をログへ残す()
+    {
+        var logger = new RecordingLogger();
+        var session = new AnnotationEditSession(new AnnotationDocument(400, 300, "shot.png"), () => logger);
+        session.AddBubble(new EsRect(10, 10, 120, 80), "abcd");
+
+        Assert.True(session.BeginTextEditing());
+        session.SelectText(0, 2);
+        session.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
+        session.ReplaceSelection("X");
+
+        Assert.Contains(logger.Messages, message => message.Contains("本文の編集: 開始", StringComparison.Ordinal));
+        Assert.Contains(
+            logger.Messages,
+            message => message.Contains("本文の選択: キャレット=2 選択=(0, 2) 本文=abcd", StringComparison.Ordinal));
+        Assert.Contains(
+            logger.Messages,
+            message => message.Contains("書式を適用: 開始=0 長さ=2 本文=ab", StringComparison.Ordinal));
+        Assert.Contains(
+            logger.Messages,
+            message => message.Contains("本文を変更: 文字数=3 本文=Xcd", StringComparison.Ordinal));
+    }
+
     /// <summary>編集セッションを作る（画像は 400x300）。</summary>
     /// <returns>作成したセッション。</returns>
     private static AnnotationEditSession CreateSession()

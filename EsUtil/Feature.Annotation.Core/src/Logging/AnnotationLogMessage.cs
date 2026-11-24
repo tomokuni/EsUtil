@@ -207,18 +207,41 @@ public static partial class AnnotationLogMessage
         => logger.LogSelectionChangedCore(Prefix, id ?? "none");
 
     /// <summary>本文の編集の開始・終了を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 本文の編集: {State}</c></remarks>
+    /// <remarks>
+    /// LogLevel: Debug<br/>出力書式:
+    /// <c>[Annotation] 本文の編集: {State} キャレット={Caret} 選択=({SelectionStart}, {SelectionLength}) 本文={Preview}</c>
+    /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="state">状態（<c>開始</c> / <c>終了</c>）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 本文の編集: {State:l}")]
-    private static partial void LogEditingChangedCore(this ILogger logger, string prefix, string state);
+    /// <param name="caret">キャレットの位置（文字数）。</param>
+    /// <param name="selectionStart">選択範囲の開始位置（文字数）。</param>
+    /// <param name="selectionLength">選択範囲の長さ（文字数）。</param>
+    /// <param name="preview">本文の先頭（整形済み）。</param>
+    [LoggerMessage(
+        LogLevel.Debug,
+        "{Prefix:l} 本文の編集: {State:l} キャレット={Caret} 選択=({SelectionStart}, {SelectionLength}) 本文={Preview:l}")]
+    private static partial void LogEditingChangedCore(
+        this ILogger logger, string prefix, string state, int caret, int selectionStart, int selectionLength, string preview);
 
     /// <summary>本文の編集の開始・終了を記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="editing">編集中の場合は <see langword="true"/>。</param>
-    public static void LogEditingChanged(this ILogger logger, bool editing)
-        => logger.LogEditingChangedCore(Prefix, editing ? "開始" : "終了");
+    /// <param name="caret">キャレットの位置（文字数）。</param>
+    /// <param name="selectionStart">選択範囲の開始位置（文字数）。</param>
+    /// <param name="selectionLength">選択範囲の長さ（文字数）。</param>
+    /// <param name="text">本文（先頭 100 文字だけを記録する）。</param>
+    public static void LogEditingChanged(
+        this ILogger logger, bool editing, int caret, int selectionStart, int selectionLength, string text)
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogEditingChangedCore(
+            Prefix, editing ? "開始" : "終了", caret, selectionStart, selectionLength, ToPreview(text));
+    }
 
     /// <summary>履歴の移動（元に戻す・やり直す）を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 履歴: {Action} 戻せる={UndoCount} やり直せる={RedoCount}</c></remarks>
@@ -240,20 +263,109 @@ public static partial class AnnotationLogMessage
         => logger.LogHistoryMovedCore(Prefix, redo ? "やり直す" : "元に戻す", undoCount, redoCount);
 
     /// <summary>本文の書式の適用を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 書式を適用: 開始={Start} 長さ={Length}</c></remarks>
+    /// <remarks>
+    /// LogLevel: Debug<br/>出力書式:
+    /// <c>[Annotation] 書式を適用: 開始={Start} 長さ={Length} 本文={Preview}</c>
+    /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="start">適用する範囲の開始位置（文字数）。</param>
     /// <param name="length">適用する範囲の長さ（文字数）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 書式を適用: 開始={Start} 長さ={Length}")]
-    private static partial void LogTextStyleAppliedCore(this ILogger logger, string prefix, int start, int length);
+    /// <param name="preview">適用した範囲の文字（整形済み）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 書式を適用: 開始={Start} 長さ={Length} 本文={Preview:l}")]
+    private static partial void LogTextStyleAppliedCore(
+        this ILogger logger, string prefix, int start, int length, string preview);
 
     /// <summary>本文の書式の適用を記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="start">適用する範囲の開始位置（文字数）。</param>
     /// <param name="length">適用する範囲の長さ（文字数）。</param>
-    public static void LogTextStyleApplied(this ILogger logger, int start, int length)
-        => logger.LogTextStyleAppliedCore(Prefix, start, length);
+    /// <param name="text">適用した範囲の文字（先頭 100 文字だけを記録する）。</param>
+    public static void LogTextStyleApplied(this ILogger logger, int start, int length, string text)
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogTextStyleAppliedCore(Prefix, start, length, ToPreview(text));
+    }
+
+    /// <summary>本文の変更を記録する（生成メソッド）。</summary>
+    /// <remarks>
+    /// LogLevel: Debug<br/>出力書式: <c>[Annotation] 本文を変更: 文字数={Length} 本文={Preview}</c>
+    /// </remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="length">変更後の本文の文字数。</param>
+    /// <param name="preview">変更後の本文の先頭（整形済み）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 本文を変更: 文字数={Length} 本文={Preview:l}")]
+    private static partial void LogTextChangedCore(this ILogger logger, string prefix, int length, string preview);
+
+    /// <summary>本文の変更を記録する（入力・削除・貼り付けの結果）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="length">変更後の本文の文字数。</param>
+    /// <param name="text">変更後の本文（先頭 100 文字だけを記録する）。</param>
+    public static void LogTextChanged(this ILogger logger, int length, string text)
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogTextChangedCore(Prefix, length, ToPreview(text));
+    }
+
+    /// <summary>本文の選択範囲の変更を記録する（生成メソッド）。</summary>
+    /// <remarks>
+    /// LogLevel: Trace<br/>出力書式:
+    /// <c>[Annotation] 本文の選択: キャレット={Caret} 選択=({SelectionStart}, {SelectionLength}) 本文={Preview}</c>
+    /// </remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="caret">キャレットの位置（文字数）。</param>
+    /// <param name="selectionStart">選択範囲の開始位置（文字数）。</param>
+    /// <param name="selectionLength">選択範囲の長さ（文字数）。</param>
+    /// <param name="preview">本文の先頭（整形済み）。</param>
+    [LoggerMessage(
+        LogLevel.Trace,
+        "{Prefix:l} 本文の選択: キャレット={Caret} 選択=({SelectionStart}, {SelectionLength}) 本文={Preview:l}")]
+    private static partial void LogTextSelectionChangedCore(
+        this ILogger logger, string prefix, int caret, int selectionStart, int selectionLength, string preview);
+
+    /// <summary>本文の選択範囲の変更を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="caret">キャレットの位置（文字数）。</param>
+    /// <param name="selectionStart">選択範囲の開始位置（文字数）。</param>
+    /// <param name="selectionLength">選択範囲の長さ（文字数）。</param>
+    /// <param name="text">本文（先頭 100 文字だけを記録する）。</param>
+    public static void LogTextSelectionChanged(
+        this ILogger logger, int caret, int selectionStart, int selectionLength, string text)
+    {
+        if (!logger.IsEnabled(LogLevel.Trace))
+        {
+            return;
+        }
+
+        logger.LogTextSelectionChangedCore(Prefix, caret, selectionStart, selectionLength, ToPreview(text));
+    }
+
+    /// <summary>ログに載せる文字列を整形する（改行を 1 行にし、先頭 100 文字へ切り詰める）。</summary>
+    /// <param name="text">対象の文字列。</param>
+    /// <returns>整形した文字列。</returns>
+    /// <remarks>
+    /// <b>値は大きくなりうる</b>: 本文は自由入力であり、そのまま記録すると 1 行が数百 KB になる。
+    /// 障害の切り分けに要るのは先頭の内容だけであるため、100 文字で切って末尾に <c>…</c> を付ける。
+    /// </remarks>
+    internal static string ToPreview(string text)
+    {
+        const int MaxLength = 100;
+
+        var singleLine = text.Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Replace("\n", "\\n", StringComparison.Ordinal);
+        return singleLine.Length <= MaxLength ? singleLine : string.Concat(singleLine.AsSpan(0, MaxLength), "…");
+    }
 
     /// <summary>フローティング パネルの表示・終了を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] パネル: {Kind} {State}</c></remarks>

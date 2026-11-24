@@ -77,11 +77,11 @@ using EsUtil.Ui.WinUI3.StyledText;
 
 var editor = new StyledTextControl
 {
-    Text = RichText.Create("ここが重要です。", TextDefaults.DefaultStyle),
+    RichTextValue = RichText.Create("ここが重要です。", TextDefaults.DefaultStyle),
     LineHeightFactor = 1.2,
 };
 
-editor.TextChanged += (_, _) => Save(editor.Text);
+editor.RichTextChanged += (_, _) => Save(editor.RichTextValue);
 editor.BeginEditing();
 editor.Select(2, 4);
 editor.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });

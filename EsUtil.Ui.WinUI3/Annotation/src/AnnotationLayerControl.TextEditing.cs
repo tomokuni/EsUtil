@@ -23,22 +23,22 @@ public sealed partial class AnnotationLayerControl
     public int CaretIndex => _session.CaretIndex;
 
     /// <summary>本文の文字を選んでいるかどうかを取得する。</summary>
-    public bool HasTextSelection => IsEditingText && TextSelectionLength > 0;
+    public bool HasTextSelection => IsEditingText && SelectionLength > 0;
 
     /// <summary>選択範囲の開始位置（文字数）を取得する。</summary>
-    public int TextSelectionStart => _session.SelectionStart;
+    public int SelectionStart => _session.SelectionStart;
 
     /// <summary>選択範囲の終了位置（文字数）を取得する。</summary>
-    public int TextSelectionEnd => _session.SelectionEnd;
+    public int SelectionEnd => _session.SelectionEnd;
 
     /// <summary>選択範囲の長さ（文字数）を取得する。</summary>
-    public int TextSelectionLength => TextSelectionEnd - TextSelectionStart;
+    public int SelectionLength => SelectionEnd - SelectionStart;
 
     /// <summary>選択範囲（開始位置と長さ）を取得または設定する。</summary>
     /// <value>開始位置（文字数）と長さ（文字数）。 範囲は本文の範囲へ丸める。</value>
     public (int Start, int Length) TextSelectionRange
     {
-        get => (TextSelectionStart, TextSelectionLength);
+        get => (SelectionStart, SelectionLength);
         set => _session.TextSelectionRange = (value.Start, value.Length);
     }
 
@@ -66,4 +66,11 @@ public sealed partial class AnnotationLayerControl
     /// <summary>本文全体の書式を差し替える。</summary>
     /// <param name="style">新しい書式。</param>
     internal void ApplyFullStyle(TextStyle style) => ApplyTextStyle(style);
+
+    /// <summary>本文の選択範囲が変わったことを購読者へ通知する（本文コントロールの入力から呼ぶ）。</summary>
+    /// <remarks>
+    /// <b>入力の経路を 1 つにする</b>: 本文の入力は <c>StyledTextControl</c> が行い、状態は編集セッションと共有する。
+    /// セッションの通知は公開 API からの操作でしか出ないため、コントロールの変更も同じイベントへ流す。
+    /// </remarks>
+    internal void NotifyTextSelectionChanged() => TextSelectionChanged?.Invoke(this, EventArgs.Empty);
 }

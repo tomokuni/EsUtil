@@ -16,7 +16,9 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 | メンバー | 型 | 説明 |
 | --- | --- | --- |
 | `Layer` | `AnnotationLayerControl` | 画像・文書・選択を操作するレイヤー |
-| `IsEditingText` | `bool` | 本文を編集中かどうか |
+| `IsEditingText` | `bool` | 本文を編集中かどうか（書式バーは 1 文字以上を選んでいる間だけ出る） |
+| `ShowFormatBarWhileEditing` | property | 編集中に書式バーを自動で表示するか（既定は `true`。 ホストが独自にバーを出す場合は `false`） |
+| `IsFormatBarOpen` | property | 書式バーを表示中かどうか（編集中で 1 文字以上を選んでいる間だけ `true`） |
 | `TextFormat` | `ColorTextFormat` | 書式バーとフライアウトの色の表記（設定へ追随させる） |
 | `Log` / `LogPrefix` | `ILogger` / `string?` | ログの出力先と接頭辞（コアと提示層で共有する） |
 | `Presenter` | `AnnotationPresenter` | 描画計画を解決する提示層（ログと接頭辞を共有する） |
@@ -45,7 +47,7 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 | `MoveSelectedToFront()` / `MoveSelectedToBack()` | 重なり順の変更 |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | 元に戻す・やり直す（1 操作 = 1 手） |
 | `BeginTextEditing()` / `EndTextEditing()` / `IsEditingText` | 本文のその場編集の開始・終了（入力欄を重ねず、キャレットと選択範囲を描く） |
-| `TextSelectionStart` / `TextSelectionLength` / `TextSelectionRange` | 本文の選択範囲（文字数） |
+| `SelectionStart` / `SelectionEnd` / `SelectionLength` / `TextSelectionRange` | 本文の選択範囲（文字数） |
 | `GetSelectedBodyRect()` | 本文の矩形（DIP。 書式バーの位置を決める） |
 | `RenderComposedImage()` | 画像と注釈を 1:1 で合成した画像（保存用。 GDI+ で焼き込む） |
 | `DocumentChanged` / `SelectionChanged` / `EditingChanged` / `TextSelectionChanged` / `StyleEditorRequested` | 変更・選択・編集開始終了・編集パネルの要求の通知 |

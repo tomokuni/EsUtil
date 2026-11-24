@@ -82,7 +82,7 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             IsInputEnabled = false,
             IsHitTestVisible = false,
             IsVisible = false,
-            MeasureText = AnnotationTextMetrics.Measure,
+            MeasureText = StyledText.RichTextPainter.Measure,
             EditState = _layer.Session.TextEditState,
         };
 
@@ -97,8 +97,8 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         {
             if (_layer.IsEditingText)
             {
-                _formatBar.Refresh();
-                ShowFormatBar();
+                // **バーは選択ができてから出す**: 編集中でも 1 文字以上を選ぶまでは出さない
+                UpdateFormatBarVisibility();
 
                 // **入力と IME は本文コントロールが持つ**: 編集を始めたらコントロールへフォーカスを移す
                 if (Application.IsRunning && Application.Current is { } app && app.Dispatcher is { } dispatcher)
@@ -129,22 +129,10 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         };
 
         // 移動・サイズ変更で本文の位置が変わるため、バーの位置を追随させる
-        _layer.SelectionChanged += (_, _) =>
-        {
-            if (_formatBarPanel.IsOpen)
-            {
-                ShowFormatBar();
-            }
-        };
+        _layer.SelectionChanged += (_, _) => UpdateFormatBarVisibility();
 
-        // 選択範囲の変更で、書式バーの押下状態（太字・斜体・下線・取り消し線）を追随させる
-        _layer.TextSelectionChanged += (_, _) =>
-        {
-            if (_formatBarPanel.IsOpen)
-            {
-                _formatBar.Refresh();
-            }
-        };
+        // 選択範囲の変更で、書式バーの表示と押下状態（太字・斜体・下線・取り消し線）を追随させる
+        _layer.TextSelectionChanged += (_, _) => UpdateFormatBarVisibility();
 
         // **本文のフォーカスは本文コントロールが持つ**: 書式バーは操作後に本文へ戻すだけにする
 
@@ -161,13 +149,20 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         _layer.TextSelectionChanged += (_, _) => SyncTextEditor();
 
         // **確定した本文はセッション（文書）へ書き戻す**: 書き戻しの経路を 1 本にする
-        _textEditor.TextChanged += (_, _) => OnTextEditorChanged();
+        _textEditor.RichTextChanged += (_, _) => OnTextEditorChanged();
         _textEditor.EditingChanged += (_, _) =>
         {
             if (_layer.IsEditingText && !_textEditor.IsEditing)
             {
                 _layer.Session.EndTextEditing();
             }
+        };
+
+        // **選択の変更は 2 か所へ伝える**: 書式バーの表示と、レイヤーの購読者（ホスト）への通知。
+        _textEditor.SelectionChanged += (_, _) =>
+        {
+            _layer.NotifyTextSelectionChanged();
+            UpdateFormatBarVisibility();
         };
 
 
@@ -187,13 +182,13 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <b>クリップボードの処理は本文コントロールが単一所有する</b>: 注釈のレイヤーは持ちません
     /// （キーと API の両方から同じ処理を呼べるよう、入口だけをここに置きます）。
     /// </remarks>
-    public void CopyTextSelection() => _textEditor.Copy();
+    public void CopyTextSelection() => _ = _textEditor.CopyAsync();
 
     /// <summary>選択中の本文をクリップボードへ切り取る。</summary>
-    public void CutTextSelection() => _textEditor.Cut();
+    public void CutTextSelection() => _ = _textEditor.CutAsync();
 
     /// <summary>クリップボードの文字列をキャレットの位置へ貼り付ける。</summary>
-    public void PasteText() => _textEditor.Paste();
+    public void PasteText() => _ = _textEditor.PasteAsync();
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
     public AnnotationLayerControl Layer => _layer;
 
@@ -213,7 +208,24 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         set => _layer.LogPrefix = value;
     }
     /// <summary>本文を編集中かどうかを取得する。</summary>
+    /// <value>編集中の場合は <see langword="true"/>。 書式バーは 1 文字以上を選んでいる間だけ出る。</value>
     public bool IsEditingText => _layer.IsEditingText;
+
+    /// <summary>編集中に書式バーを自動で表示するかどうかを取得または設定する。</summary>
+    /// <value>自動で表示する場合は <see langword="true"/>（既定）。 ホストが独自にバーを出す場合は <see langword="false"/>。</value>
+    /// <remarks>
+    /// <b>表示の条件は本文コントロールが単一所有する</b>: 編集中であること・自動表示が有効であること・
+    /// 1 文字以上を選んでいることの 3 つを満たす間だけ表示する（<c>StyledTextControl.ShouldShowFormatBar</c>）。
+    /// </remarks>
+    public bool ShowFormatBarWhileEditing
+    {
+        get => _textEditor.ShowFormatBarWhileEditing;
+        set
+        {
+            _textEditor.ShowFormatBarWhileEditing = value;
+            UpdateFormatBarVisibility();
+        }
+    }
 
     /// <summary>書式バーの色の入力欄へ出す表記を取得または設定する。</summary>
     public ColorTextFormat TextFormat
@@ -438,11 +450,32 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         _stylePanel.Constrain(MeasurePanel(AnnotationPanelKind.StyleEditor));
     }
 
+    /// <summary>書式バーを表示中かどうかを取得する。</summary>
+    /// <value>編集中で 1 文字以上を選んでいる間は <see langword="true"/>。</value>
+    public bool IsFormatBarOpen => _formatBarPanel.IsOpen;
+
     /// <summary>外観の編集パネルが出ているかどうかを取得する。</summary>
     public bool IsStylePanelOpen => _stylePanel.IsOpen;
 
     /// <summary>外観の編集パネルを閉じる。</summary>
     public void CloseStylePanel() => _stylePanel.Close();
+
+    /// <summary>現在の編集状態に合わせて書式バーを出すか閉じるかを決める。</summary>
+    /// <remarks>
+    /// <b>条件は本文コントロールが持つ</b>: 編集中で、自動表示が有効で、1 文字以上を選んでいる間だけ出す。
+    /// 選択が無い（適用先が決まらない）間は出さない。 位置は <see cref="ShowFormatBar"/> が決める。
+    /// </remarks>
+    private void UpdateFormatBarVisibility()
+    {
+        if (!_textEditor.ShouldShowFormatBar)
+        {
+            _formatBarPanel.Close();
+            return;
+        }
+
+        _formatBar.Refresh();
+        ShowFormatBar();
+    }
 
     /// <summary>書式バーを本文の外（本文に被さらない位置）へ出し直す。</summary>
     /// <remarks>
@@ -681,12 +714,12 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             return;
         }
 
-        if (bubble.Text.Equals(_textEditor.Text))
+        if (bubble.Text.Equals(_textEditor.RichTextValue))
         {
             return;
         }
 
-        _layer.Session.ApplySelectedRichText(_textEditor.Text);
+        _layer.Session.ApplySelectedRichText(_textEditor.RichTextValue);
     }
 
     /// <summary>書式バーを作る処理を取得または設定する（独自の GUI へ差し替える入口）。</summary>
@@ -778,7 +811,7 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 
         // **変換中の文字列は本文コントロールが描く**: 本文へ混ぜて渡すと二重になるため、
         // 本文は文書の値のまま渡し、変換中の文字列は PreeditText で別に渡す。
-        _textEditor.Text = bubble.Text;
+        _textEditor.RichTextValue = bubble.Text;
         _textEditor.RenderScale = _layer.ViewScale;
         _textEditor.IsVisible = true;
         _textEditor.RefreshCaretBlink();

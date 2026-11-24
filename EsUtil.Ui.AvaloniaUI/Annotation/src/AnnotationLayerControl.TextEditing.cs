@@ -33,6 +33,9 @@ public sealed partial class AnnotationLayerControl
     /// <summary>選択範囲の終了位置（文字数）を取得する。</summary>
     public int SelectionEnd => _session.SelectionEnd;
 
+    /// <summary>選択範囲の長さ（文字数）を取得する。</summary>
+    public int SelectionLength => _session.SelectionLength;
+
     /// <summary>選択中の本文を編集する（表示中のレイアウトのまま、その場で入力する）。</summary>
     /// <returns>編集を始めた場合は <see langword="true"/>。 枠線を選んでいる場合は <see langword="false"/>。</returns>
     /// <remarks>
@@ -58,4 +61,11 @@ public sealed partial class AnnotationLayerControl
 
     /// <summary><see cref="TextSelectionChanged"/> を発生させる。</summary>
     private void RaiseTextSelectionChanged() => TextSelectionChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>本文の選択範囲が変わったことを購読者へ通知する（本文コントロールの入力から呼ぶ）。</summary>
+    /// <remarks>
+    /// <b>入力の経路を 1 つにする</b>: 本文の入力は <c>StyledTextControl</c> が行い、状態は編集セッションと共有する。
+    /// セッションの通知は公開 API からの操作でしか出ないため、コントロールの変更も同じイベントへ流す。
+    /// </remarks>
+    internal void NotifyTextSelectionChanged() => RaiseTextSelectionChanged();
 }

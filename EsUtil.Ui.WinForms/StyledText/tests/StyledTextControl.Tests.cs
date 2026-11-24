@@ -105,7 +105,7 @@ public class StyledTextControlTests
 
     /// <summary>本文を差し替えるとキャレットが本文の範囲へ収まることを検証する。</summary>
     [Fact]
-    internal void RichTextValue_差し替えでキャレットが範囲へ収まる()
+    internal void Text_差し替えでキャレットが範囲へ収まる()
     {
         var editor = CreateEditor("あいうえお");
         editor.BeginEditing();

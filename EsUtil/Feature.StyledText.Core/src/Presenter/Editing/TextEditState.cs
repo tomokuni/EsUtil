@@ -16,6 +16,10 @@ namespace EsUtil.Feature.StyledText.Presenter.Editing;
 /// </remarks>
 public sealed class TextEditState
 {
+    /// <summary>書式バーを表示する最小の選択文字数。</summary>
+    /// <value>1（1 文字以上を選んだときだけ表示する）。</value>
+    public const int FormatBarMinimumSelectionLength = 1;
+
     /// <summary>本文の編集中かどうか（キャレットと選択が有効か）。</summary>
     private bool _isActive;
 
@@ -52,6 +56,17 @@ public sealed class TextEditState
 
     /// <summary>本文の文字を選んでいるかどうかを取得する。</summary>
     public bool HasSelection => SelectionLength > 0;
+
+    /// <summary>書式バーを表示すべきかどうかを返す。</summary>
+    /// <param name="autoShow">編集中に書式バーを自動で表示する設定かどうか（ホストが決める）。</param>
+    /// <returns>表示する場合は <see langword="true"/>。</returns>
+    /// <remarks>
+    /// <b>表示の条件は 3 つ</b>である: 編集中であること・自動表示が有効であること・
+    /// <see cref="FormatBarMinimumSelectionLength"/> 文字以上を選んでいること。
+    /// 適用先が決まらない（選択が無い）状態でバーを出さないための規則であり、本クラスが単一所有する。
+    /// </remarks>
+    public bool ShouldShowFormatBar(bool autoShow)
+        => autoShow && IsActive && SelectionLength >= FormatBarMinimumSelectionLength;
 
     /// <summary>以降の入力へ効かせる書式を取得する。</summary>
     /// <value>まだ書式を変えていない場合は <see langword="null"/>。</value>
@@ -109,6 +124,87 @@ public sealed class TextEditState
         var to = Math.Clamp(from + Math.Max(0, length), from, Math.Max(0, textLength));
         _anchor = from;
         _caret = to;
+    }
+
+    /// <summary>選択範囲を書記素クラスタの境界へ揃えて指定する。</summary>
+    /// <param name="text">本文。</param>
+    /// <param name="start">開始位置（文字数）。</param>
+    /// <param name="length">長さ（文字数。 0 は選択なし）。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> が null の場合。</exception>
+    /// <remarks>
+    /// <b>端はクラスタの境界へ揃える</b>: サロゲート ペア・結合文字の内側を選択すると、
+    /// 書式の適用や削除で文字列が壊れる。 規則は <see cref="TextCursor"/> が単一所有する。
+    /// </remarks>
+    public void Select(RichText text, int start, int length)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        var plain = text.PlainText;
+        var from = TextCursor.SnapBackward(plain, Math.Clamp(start, 0, plain.Length));
+        var to = TextCursor.SnapForward(
+            plain, Math.Clamp(from + Math.Max(0, length), from, plain.Length));
+        _anchor = from;
+        _caret = to;
+    }
+
+    /// <summary>本文全体を選択する。</summary>
+    /// <param name="text">本文。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> が null の場合。</exception>
+    public void SelectAll(RichText text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        Select(text, 0, text.PlainText.Length);
+    }
+
+    /// <summary>キャレットを指定位置へ移す（書記素クラスタの境界へ揃える）。</summary>
+    /// <param name="text">本文。</param>
+    /// <param name="index">移動先（文字数。 範囲外は本文の範囲へ丸める）。</param>
+    /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> が null の場合。</exception>
+    /// <remarks>
+    /// <b>向きで揃える側を変える</b>: 前方（キャレットより前）へは手前の境界へ、後方へは次の境界へ揃える
+    /// （どちらもキャレットがクラスタを飛び越さない）。
+    /// </remarks>
+    public void MoveToCluster(RichText text, int index, bool extend)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        var plain = text.PlainText;
+        var target = Math.Clamp(index, 0, plain.Length);
+        target = target < _caret
+            ? TextCursor.SnapBackward(plain, target)
+            : TextCursor.SnapForward(plain, target);
+        MoveTo(target, plain.Length, extend);
+    }
+
+    /// <summary>キャレットを書記素クラスタの境界へ揃える（行の移動で境界の内側に落ちたとき）。</summary>
+    /// <param name="text">本文。</param>
+    /// <param name="extend">選択の起点を保つ場合は <see langword="true"/>。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> が null の場合。</exception>
+    public void SnapCaretToCluster(RichText text, bool extend)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        var plain = text.PlainText;
+        var snapped = TextCursor.SnapBackward(plain, _caret);
+        if (snapped != _caret)
+        {
+            MoveTo(snapped, plain.Length, extend);
+        }
+    }
+
+    /// <summary>選択中の文字列を取得する（選択が無い場合は空）。</summary>
+    /// <param name="text">本文。</param>
+    /// <returns>選択中の文字列。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> が null の場合。</exception>
+    public string GetSelectedText(RichText text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        var plain = text.PlainText;
+        var from = Math.Clamp(SelectionStart, 0, plain.Length);
+        var to = Math.Clamp(SelectionEnd, from, plain.Length);
+        return plain[from..to];
     }
 
     /// <summary>1 クラスタ分の移動でキャレットが向かう位置を求める。</summary>

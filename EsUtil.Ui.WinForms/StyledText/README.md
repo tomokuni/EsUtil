@@ -25,7 +25,7 @@
 | --- | --- |
 | 表示 | run 単位の書式（色・太字・斜体・下線・取り消し線）で本文を描く |
 | 編集 | 入力・削除・改行・キャレット移動・選択・すべて選択 |
-| 書式 | 選択範囲への適用と 1 属性だけの切り替え（選択が無ければ以降の入力へ回す） |
+| 書式 | 選択範囲への適用と 1 属性だけの切り替え（選択が無ければ以降の入力へ回す）。 書式バーは 1 文字以上を選んだときだけ出る |
 | クリップボード | コピー・切り取り・貼り付け |
 | 日本語入力 | IME の変換中の文字列をキャレットの位置へ描く（本文へは入れない） |
 | 状態 | キャレットと選択は `EsUtil.Feature.StyledText.Core` の `TextEditState` が所有する |
@@ -52,12 +52,12 @@ using EsUtil.Ui.WinForms.StyledText;
 
 var editor = new StyledTextControl
 {
-    Text = RichText.Create("ここが重要です。", TextDefaults.DefaultStyle),
+    RichTextValue = RichText.Create("ここが重要です。", TextDefaults.DefaultStyle),
     LineHeightFactor = 1.2,
 };
 
 // 本文が変わったらホストの値を更新する
-editor.TextChanged += (_, _) => Save(editor.Text);
+editor.RichTextChanged += (_, _) => Save(editor.RichTextValue);
 
 // 編集を始める（キャレットは本文の末尾）
 editor.BeginEditing();
@@ -88,6 +88,7 @@ editor.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
 | `LineHeightFactor` | 行間の倍率 |
 | `RenderScale` | 画面の DIP への倍率（拡大表示するとき） |
 | `EditState` | キャレット・選択の状態（ホストが既に持っている場合は同じ実体を設定する） |
+| `ShowFormatBarWhileEditing` | 編集中に書式バーを自動で表示するか（既定は `true`。 ホストが独自にバーを出す場合は `false`） |
 
 キャレットと選択範囲の色・太さは `EsUtil.Feature.StyledText.Core` の `TextEditorAppearance` が単一所有します（4 つの UI 版で同じ見た目にするため）。
 

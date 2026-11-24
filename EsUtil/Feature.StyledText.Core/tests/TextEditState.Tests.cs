@@ -193,6 +193,68 @@ public sealed class TextEditStateTests
         Assert.Equal((0, 0), edit.SelectionRange);
     }
 
+    /// <summary>書式バーは編集中で 1 文字以上を選んでいる間だけ表示する。</summary>
+    [Fact]
+    internal void ShouldShowFormatBar_選択がある間だけ表示する()
+    {
+        var edit = new TextEditState();
+
+        Assert.False(edit.ShouldShowFormatBar(autoShow: true));
+
+        edit.Begin(4);
+        Assert.False(edit.ShouldShowFormatBar(autoShow: true));
+
+        edit.Select(1, 1, 4);
+        Assert.True(edit.ShouldShowFormatBar(autoShow: true));
+        Assert.False(edit.ShouldShowFormatBar(autoShow: false));
+
+        edit.Select(1, 0, 4);
+        Assert.False(edit.ShouldShowFormatBar(autoShow: true));
+
+        edit.Select(1, 1, 4);
+        edit.End();
+        Assert.False(edit.ShouldShowFormatBar(autoShow: true));
+    }
+
+    /// <summary>選択とキャレットの移動は書記素クラスタの境界へ揃える。</summary>
+    [Fact]
+    internal void Select_クラスタの境界へ揃える()
+    {
+        var text = RichText.Create("a😀b", TextDefaults.DefaultStyle);
+        var edit = CreateEdit("a😀b");
+
+        // 😀 はサロゲート ペア（2 文字）であり、内側の位置は境界へ丸める
+        edit.Select(text, 2, 1);
+        Assert.Equal((1, 2), edit.SelectionRange);
+
+        // キャレットより前は手前の境界へ、後ろは次の境界へ揃える
+        edit.MoveToCluster(text, 2, extend: false);
+        Assert.Equal(1, edit.CaretIndex);
+
+        edit.MoveToCluster(text, 2, extend: false);
+        Assert.Equal(3, edit.CaretIndex);
+
+        edit.MoveToCluster(text, 3, extend: false);
+        Assert.Equal(3, edit.CaretIndex);
+    }
+
+    /// <summary>選択中の文字列を取得できる。</summary>
+    [Fact]
+    internal void GetSelectedText_選択範囲を返す()
+    {
+        var text = RichText.Create("a😀b", TextDefaults.DefaultStyle);
+        var edit = CreateEdit("a😀b");
+
+        edit.SelectAll(text);
+        Assert.Equal("a😀b", edit.GetSelectedText(text));
+
+        edit.Select(text, 1, 2);
+        Assert.Equal("😀", edit.GetSelectedText(text));
+
+        edit.Select(text, 2, 0);
+        Assert.Equal(string.Empty, edit.GetSelectedText(text));
+    }
+
     /// <summary>検証用の本文を生成する。</summary>
     /// <param name="text">本文。</param>
     /// <param name="bold">太字にする範囲（開始位置・長さ・書式）。</param>

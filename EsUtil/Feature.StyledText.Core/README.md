@@ -79,7 +79,7 @@ if (request.Command == TextEditCommand.CaretLeft)
 | `TextCursor` | 書記素クラスタの境界（移動・選択・削除・折り返しの単位） |
 | `TextStyleEdit` | 本文へ入力する文字列の挿入（以降の入力へ効かせる書式の反映） |
 | `TextCompositionPreview` / `TextCaretBlink` | IME の変換中文字列を入れた描画用の値・キャレットの点滅 |
-| `TextEditState` | 本文の編集状態（キャレット・選択・入力・削除・書式）。 本文を受け取って書き換えた本文を返す（編集する対象を知らない） |
+| `TextEditState` | 本文の編集状態（キャレット・選択・入力・削除・書式）。 本文を受け取って書き換えた本文を返す（編集する対象を知らない）。 書式バーを表示する条件（編集中・1 文字以上を選択）も本型が単一所有する |
 | `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand` | キーの割り当て（どのキーがどの操作になるか）。 4 つの UI 版はキーの型を写して本層の解決を呼ぶ |
 | `TextDefaults` / `TextLimits` | 既定値（フォントの優先順・大きさ・既定の書式）と安全域 |
 

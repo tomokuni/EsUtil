@@ -228,7 +228,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     }
 
     /// <summary>本文の書式を適用する範囲（文字数）を取得または設定する。</summary>
-    /// <value>開始位置と長さ（0 起点）。 長さ 0 は「全体」を表す。</value>
+    /// <value>開始位置と長さ（0 起点）。 長さ 0 は選択なし。</value>
     /// <remarks>
     /// 本文の入力欄はホストが持つため、入力欄の選択範囲をホストがここへ写す。
     /// 右クリックのフライアウトと <see cref="ApplyTextStyle(TextStyle)"/> は本値の範囲へ適用する。

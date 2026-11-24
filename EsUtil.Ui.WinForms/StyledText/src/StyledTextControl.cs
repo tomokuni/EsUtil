@@ -129,6 +129,19 @@ public sealed class StyledTextControl : Control
     /// <summary>本文を編集中かどうかを取得する。</summary>
     public bool IsEditing => _edit.IsActive;
 
+    /// <summary>編集中に書式バーを自動で表示するかどうかを取得または設定する。</summary>
+    /// <value>自動で表示する場合は <see langword="true"/>（既定）。 ホストが独自にバーを出す場合は <see langword="false"/>。</value>
+    /// <remarks>
+    /// <b>表示の判断は <see cref="ShouldShowFormatBar"/> が持つ</b>: 自動表示が有効でも、1 文字以上を選ぶまでは
+    /// 表示しない（適用先が決まらないため）。 ホスト（注釈のパネルなど）は本プロパティを読んでバーを出し入れする。
+    /// </remarks>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public bool ShowFormatBarWhileEditing { get; set; } = true;
+
+    /// <summary>いま書式バーを表示すべきかどうかを取得する。</summary>
+    /// <value>編集中で、自動表示が有効で、1 文字以上を選んでいる場合は <see langword="true"/>。</value>
+    public bool ShouldShowFormatBar => _edit.ShouldShowFormatBar(ShowFormatBarWhileEditing);
+
     /// <summary>入力を受け付けるかどうかを取得または設定する。</summary>
     /// <value>入力を受け付ける場合は <see langword="true"/>（既定）。 表示専用にする場合は <see langword="false"/>。</value>
     /// <remarks>
@@ -215,15 +228,14 @@ public sealed class StyledTextControl : Control
     /// <param name="length">長さ（文字数。 0 は選択なし）。</param>
     public void Select(int start, int length)
     {
-        _edit.Select(start, length, RichTextValue.PlainText.Length);
+        _edit.Select(RichTextValue, start, length);
         AfterSelectionChanged();
     }
 
     /// <summary>本文をすべて選択する。</summary>
     public void SelectAll()
     {
-        var length = RichTextValue.PlainText.Length;
-        _edit.Select(0, length, length);
+        _edit.SelectAll(RichTextValue);
         AfterSelectionChanged();
     }
 
@@ -232,14 +244,7 @@ public sealed class StyledTextControl : Control
     /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
     public void MoveCaret(int index, bool extend)
     {
-        var text = RichTextValue.PlainText;
-        var target = Math.Clamp(index, 0, text.Length);
-
-        // **キャレットは書記素クラスタの境界にだけ置く**
-        target = target < _edit.CaretIndex
-            ? TextCursor.SnapBackward(text, target)
-            : TextCursor.SnapForward(text, target);
-        _edit.MoveTo(target, text.Length, extend);
+        _edit.MoveToCluster(RichTextValue, index, extend);
         AfterSelectionChanged();
     }
 
@@ -255,7 +260,7 @@ public sealed class StyledTextControl : Control
     public void MoveCaretByLine(int delta, bool extend)
     {
         _edit.MoveByLine(ResolveLineIndex(), RichTextValue.PlainText.Length, delta, extend);
-        SnapCaretToCluster(extend);
+        _edit.SnapCaretToCluster(RichTextValue, extend);
         AfterSelectionChanged();
     }
 
@@ -265,7 +270,7 @@ public sealed class StyledTextControl : Control
     public void MoveCaretToLineEdge(bool first, bool extend)
     {
         _edit.MoveToLineEdge(ResolveLineIndex(), RichTextValue.PlainText.Length, first, extend);
-        SnapCaretToCluster(extend);
+        _edit.SnapCaretToCluster(RichTextValue, extend);
         AfterSelectionChanged();
     }
 
@@ -353,43 +358,44 @@ public sealed class StyledTextControl : Control
 
     /// <summary>選択中の文字列を取得する。</summary>
     /// <returns>選択中の文字列（選択が無い場合は空）。</returns>
-    public string SelectedText()
-    {
-        var text = RichTextValue.PlainText;
-        var start = Math.Clamp(SelectionStart, 0, text.Length);
-        var end = Math.Clamp(SelectionEnd, start, text.Length);
-        return text[start..end];
-    }
+    public string SelectedText() => _edit.GetSelectedText(RichTextValue);
 
     /// <summary>選択中の文字列をクリップボードへコピーする。</summary>
-    public void Copy()
+    /// <returns>コピーの非同期処理。</returns>
+    public Task CopyAsync()
     {
         var text = SelectedText();
         if (text.Length > 0)
         {
             Clipboard.SetText(text);
         }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>選択中の文字列を切り取る。</summary>
-    public void Cut()
+    /// <returns>切り取りの非同期処理。</returns>
+    public async Task CutAsync()
     {
         if (SelectedText().Length == 0)
         {
             return;
         }
 
-        Copy();
+        await CopyAsync();
         ReplaceSelection(string.Empty);
     }
 
     /// <summary>クリップボードの文字列を挿入する。</summary>
-    public void Paste()
+    /// <returns>貼り付けの非同期処理。</returns>
+    public Task PasteAsync()
     {
         if (Clipboard.ContainsText())
         {
             ReplaceSelection(NormalizeInput(Clipboard.GetText()));
         }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>キャレットの矩形（このコントロールの座標の DIP）を取得する。</summary>
@@ -553,13 +559,13 @@ public sealed class StyledTextControl : Control
                 SelectAll();
                 return true;
             case TextEditCommand.Copy:
-                Copy();
+                _ = CopyAsync();
                 return true;
             case TextEditCommand.Cut:
-                Cut();
+                _ = CutAsync();
                 return true;
             case TextEditCommand.Paste:
-                Paste();
+                _ = PasteAsync();
                 return true;
             default:
                 return false;
@@ -663,13 +669,10 @@ public sealed class StyledTextControl : Control
         return TextLineIndex.Create(ResolveLines(displayed), displayed.PlainText);
     }
 
-    /// <summary>表示倍率を取得する（1 未満・非有限は 1）。</summary>
+    /// <summary>表示倍率を取得する（無効な値は基準値へ正規化する）。</summary>
     /// <returns>表示倍率。</returns>
-    private double ResolveScale()
-    {
-        var scale = RenderScale;
-        return double.IsFinite(scale) && scale > 0 ? scale : 1.0;
-    }
+    /// <remarks>正規化の規則は <see cref="EsUtil.Platform.Core.Coord.DpiScaler.NormalizeScaling"/> が単一所有する。</remarks>
+    private double ResolveScale() => EsUtil.Platform.Core.Coord.DpiScaler.NormalizeScaling(RenderScale);
 
     /// <summary>変更後の本文を書き戻し、通知する。</summary>
     /// <param name="updated">変更後の本文。</param>
@@ -694,18 +697,6 @@ public sealed class StyledTextControl : Control
     {
         SelectionChanged?.Invoke(this, EventArgs.Empty);
         Invalidate();
-    }
-
-    /// <summary>キャレットを書記素クラスタの境界へ揃える。</summary>
-    /// <param name="extend">選択を広げる場合は <see langword="true"/>。</param>
-    private void SnapCaretToCluster(bool extend)
-    {
-        var text = RichTextValue.PlainText;
-        var snapped = TextCursor.SnapBackward(text, _edit.CaretIndex);
-        if (snapped != _edit.CaretIndex)
-        {
-            _edit.MoveTo(snapped, text.Length, extend);
-        }
     }
 
     /// <summary>位置（このコントロールの DIP）を元画像ピクセルへ写す。</summary>

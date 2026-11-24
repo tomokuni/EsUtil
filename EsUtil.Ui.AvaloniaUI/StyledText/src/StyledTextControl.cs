@@ -9,8 +9,8 @@ namespace EsUtil.Ui.AvaloniaUI.StyledText;
 /// <b>表示と編集を分けない</b>: 入力欄を重ねる方法では、書式（run 単位の色・太字）が反映されず、
 /// 書式バーを操作するたびにフォーカスと選択が外れる。 本コントロールは本文を自分で描き、キー入力のたびに
 /// 本文を書き換える（書式はその場で反映される）。<br/>
-/// <b>内容は <see cref="Text"/> が単一所有する</b>: 編集中も <see cref="Text"/> が真の値であり、変更のたびに
-/// <see cref="TextChanged"/> を発生させる（ホストは文書へ写すだけでよい）。<br/>
+/// <b>内容は <see cref="RichTextValue"/> が単一所有する</b>: 編集中も <see cref="RichTextValue"/> が真の値であり、変更のたびに
+/// <see cref="RichTextChanged"/> を発生させる（ホストは文書へ写すだけでよい）。<br/>
 /// <b>規則は提示層が単一所有する</b>: キャレット・選択・書式の適用は <see cref="TextEditState"/>、
 /// キーの割り当ては <see cref="TextEditKeyMap"/>、折り返しと行の配置は <see cref="TextLayout"/> が決める。
 /// 本コントロールはフレームワーク固有の描画・入力・IME・クリップボードの配線だけを行う。<br/>
@@ -43,9 +43,9 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     public bool HitTest(Point point)
         => IsVisible && IsHitTestVisible && new Rect(Bounds.Size).Contains(point);
     /// <summary>表示する本文。</summary>
-    public static readonly StyledProperty<RichText> TextProperty =
+    public static readonly StyledProperty<RichText> RichTextValueProperty =
         AvaloniaProperty.Register<StyledTextControl, RichText>(
-            nameof(Text), RichText.Empty, inherits: false);
+            nameof(RichTextValue), RichText.Empty, inherits: false);
 
     /// <summary>画面の DIP への倍率（1 以上で拡大）。</summary>
     public static readonly StyledProperty<double> RenderScaleProperty =
@@ -61,10 +61,10 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
             nameof(IsEditing), control => control.IsEditing);
 
     /// <summary>表示する本文を取得または設定する。</summary>
-    public RichText Text
+    public RichText RichTextValue
     {
-        get => GetValue(TextProperty);
-        set => SetValue(TextProperty, value);
+        get => GetValue(RichTextValueProperty);
+        set => SetValue(RichTextValueProperty, value);
     }
 
     /// <summary>画面の DIP への倍率を取得または設定する。</summary>
@@ -86,6 +86,18 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     /// <summary>本文を編集中かどうかを取得する。</summary>
     public bool IsEditing => _edit.IsActive;
 
+    /// <summary>編集中に書式バーを自動で表示するかどうかを取得または設定する。</summary>
+    /// <value>自動で表示する場合は <see langword="true"/>（既定）。 ホストが独自にバーを出す場合は <see langword="false"/>。</value>
+    /// <remarks>
+    /// <b>表示の判断は <see cref="ShouldShowFormatBar"/> が持つ</b>: 自動表示が有効でも、1 文字以上を選ぶまでは
+    /// 表示しない（適用先が決まらないため）。 ホスト（注釈のパネルなど）は本プロパティを読んでバーを出し入れする。
+    /// </remarks>
+    public bool ShowFormatBarWhileEditing { get; set; } = true;
+
+    /// <summary>いま書式バーを表示すべきかどうかを取得する。</summary>
+    /// <value>編集中で、自動表示が有効で、1 文字以上を選んでいる場合は <see langword="true"/>。</value>
+    public bool ShouldShowFormatBar => _edit.ShouldShowFormatBar(ShowFormatBarWhileEditing);
+
     /// <summary>文字列と書式から実寸を測る関数を取得または設定する。</summary>
     /// <value>既定は本コントロールの描画 API で測る関数。 描画と同じエンジンで測るため通常は変更しない。</value>
     /// <remarks>
@@ -96,8 +108,8 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
         = RichTextPainter.Measure;
 
     /// <summary>本文を書き換えたときに発生する。</summary>
-    /// <remarks>ホストは文書（または設定）へ写す。 写した結果を <see cref="Text"/> へ戻さないこと（往復する）。</remarks>
-    public event EventHandler? TextChanged;
+    /// <remarks>ホストは文書（または設定）へ写す。 写した結果を <see cref="RichTextValue"/> へ戻さないこと（往復する）。</remarks>
+    public event EventHandler? RichTextChanged;
 
     /// <summary>キャレットまたは選択範囲が変わったときに発生する。</summary>
     public event EventHandler? SelectionChanged;
@@ -106,12 +118,12 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     public event EventHandler? EditingChanged;
 
     /// <summary>描画に使う本文を取得する（変換中の文字列を含む）。</summary>
-    /// <value>変換中でなければ <see cref="Text"/>。 変換中は変換中の文字列を入れた描画用の値。</value>
+    /// <value>変換中でなければ <see cref="RichTextValue"/>。 変換中は変換中の文字列を入れた描画用の値。</value>
     /// <remarks>
     /// <b>変換中の文字列は本文へ入れない</b>: 表示だけに入れる（確定したときだけ本文が変わる）。
     /// 入れないと、入力中の文字が表示されず「入力が反映されていない」ように見える。
     /// </remarks>
-    internal RichText DisplayText => TextCompositionPreview.Apply(Text, _edit.CaretIndex, _preeditText);
+    internal RichText DisplayText => TextCompositionPreview.Apply(RichTextValue, _edit.CaretIndex, _preeditText);
 
     /// <summary>本文を折り返して行へ配置する（表示と編集で同じ結果を使う）。</summary>
     /// <param name="text">折り返す本文（変換中の文字列を含む表示用の値）。</param>
@@ -145,13 +157,10 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
         return TextLineIndex.Create(ResolveLines(displayed), displayed.PlainText);
     }
 
-    /// <summary>表示倍率を取得する（1 未満・非有限は 1）。</summary>
+    /// <summary>表示倍率を取得する（無効な値は基準値へ正規化する）。</summary>
     /// <returns>表示倍率。</returns>
-    private double ResolveScale()
-    {
-        var scale = RenderScale;
-        return double.IsFinite(scale) && scale > 0 ? scale : 1.0;
-    }
+    /// <remarks>正規化の規則は <see cref="EsUtil.Platform.Core.Coord.DpiScaler.NormalizeScaling"/> が単一所有する。</remarks>
+    private double ResolveScale() => EsUtil.Platform.Core.Coord.DpiScaler.NormalizeScaling(RenderScale);
 
     /// <summary>本文・選択範囲・キャレットを描く。</summary>
     /// <param name="context">描画先。</param>
@@ -208,13 +217,13 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     {
         base.OnPropertyChanged(change);
 
-        if (change.Property == TextProperty || change.Property == RenderScaleProperty
+        if (change.Property == RichTextValueProperty || change.Property == RenderScaleProperty
             || change.Property == LineHeightFactorProperty)
         {
             // **本文が外から変わったら編集位置を本文の範囲へ収める**（差し替えで範囲外に残さない）
-            if (change.Property == TextProperty && _edit.IsActive)
+            if (change.Property == RichTextValueProperty && _edit.IsActive)
             {
-                _edit.Clamp(Text.PlainText.Length);
+                _edit.Clamp(RichTextValue.PlainText.Length);
             }
 
             InvalidateVisual();

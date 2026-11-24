@@ -164,23 +164,28 @@
 | --- | --- |
 | `Begin(textLength)` / `End()` / `Reset()` | 編集の開始（キャレットは本文の末尾）・終了 / 状態の破棄（対象が変わったとき） |
 | `IsActive` | 編集中かどうか |
+| `FormatBarMinimumSelectionLength` / `ShouldShowFormatBar(autoShow)` | 書式バーを表示する最小の選択文字数（1）と、表示すべきかどうか（編集中・自動表示が有効・1 文字以上を選択） |
 | `CaretIndex` / `AnchorIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `SelectionRange` / `HasSelection` | キャレットと選択 |
 | `TypingStyle` | 以降の入力へ効かせる書式（未設定は `null`） |
-| `MoveTo(index, textLength, extend)` | キャレットを移す（`extend` なら選択を広げる） |
+| `MoveTo(index, textLength, extend)` / `MoveToCluster(text, index, extend)` | キャレットを移す（`extend` なら選択を広げる）。 `MoveToCluster` は書記素クラスタの境界へ揃える |
 | `ResolveClusterTarget(direction, extend)` | 前後の 1 クラスタへ動くときの移動先（**選択があるときは選択の端へ畳む**） |
 | `MoveByLine(lines, textLength, delta, extend)` | 上下の行の同じ桁へ移す |
 | `MoveToLineEdge(lines, textLength, first, extend)` | 行の先頭・末尾へ移す（行が無ければ本文の先頭・末尾） |
 | `SetCaretFromPoint(lines, point, textLength, extend, measureText)` | 位置に最も近い文字位置へ移す |
-| `Select(start, length, textLength)` / `Clamp(textLength)` | 選択範囲の指定 / 本文の範囲へ収める |
+| `SnapCaretToCluster(text, extend)` | キャレットを書記素クラスタの境界へ揃える |
+| `Select(start, length, textLength)` / `Select(text, start, length)` / `SelectAll(text)` | 選択範囲の指定（本文を渡す版は端を書記素クラスタの境界へ揃える） / 本文全体の選択 |
+| `Clamp(textLength)` | 選択範囲を本文の範囲へ収める |
 | `Remember(style)` | 以降の入力へ効かせる書式を覚える |
 | `ReplaceSelection(text, inserted)` / `ReplaceRange(text, start, end, inserted)` | 選択範囲（指定範囲）を文字列で置き換えた本文を返す |
 | `Delete(text, forward)` | 選択範囲、またはキャレットの前後の **1 書記素クラスタ**を削除した本文を返す |
 | `ApplyStyle(text, style)` / `TransformStyle(text, transform)` | 選択範囲の書式を差し替える / 1 属性だけ変換する（選択が無ければ以降の入力へ回す） |
 | `AllMatch(text, match)` / `ResolveDisplayStyle(text)` | 書式ボタンの押下状態 / 書式バーへ表示する書式 |
+| `GetSelectedText(text)` | 選択中の文字列（選択が無ければ空） |
 
 - **本文は不変**です。 編集は新しい `RichText` を返し、変化が無い場合は**同じ実体**を返します。
 - **選択が無いときの書式変更は以降の入力へ回します**（既存の文字は変えない）。
-- **削除・移動の単位は書記素クラスタ**です（サロゲート ペア・結合文字を半分に割らない）。
+- **削除・移動の単位は書記素クラスタ**です（サロゲート ペア・結合文字を半分に割らない）。 本文を渡す版（`MoveToCluster` / `Select` / `SnapCaretToCluster` / `GetSelectedText`）は境界への揃えを本クラスが行い、UI と注釈の両方が同じ規則を使う。
+- **書式バーの表示条件は本クラスが単一所有**します（`ShouldShowFormatBar`）。 編集中・自動表示が有効・1 文字以上を選択の 3 つを満たす間だけ表示し、適用先が決まらない間は出しません。
 
 ## 12. `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand`（静的クラス・列挙型）
 

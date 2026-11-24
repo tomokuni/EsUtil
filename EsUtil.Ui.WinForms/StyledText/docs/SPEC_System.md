@@ -31,7 +31,7 @@
 
 - **規則は提示層が単一所有します**: 折り返しと行の配置は `TextLayout`、行と文字位置の対応は `TextLineIndex` / `TextLineLayout`、書記素クラスタは `TextCursor`、編集の状態は `TextEditState`、キーの割り当ては `TextEditKeyMap` です。
 - **本コントロールはフレームワーク固有の配線だけを行います**: 描画・入力イベント・IME・クリップボード・フォーカス。
-- **本文は `Text` が単一所有します**: 編集の結果は新しい `RichText` として `Text` へ書き戻します。
+- **本文は `RichTextValue` が単一所有します**: 編集の結果は新しい `RichText` として `RichTextValue` へ書き戻します。
 
 ## 4. コンポーネント
 

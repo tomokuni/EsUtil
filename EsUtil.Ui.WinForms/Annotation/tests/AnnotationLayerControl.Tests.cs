@@ -76,8 +76,8 @@ public class AnnotationLayerControlTests
     {
         var style = TextDefaults.DefaultStyle with { FontSize = 20 };
 
-        var shortSize = AnnotationTextMetrics.Measure("あ", style);
-        var longSize = AnnotationTextMetrics.Measure("ああああ", style);
+        var shortSize = StyledText.RichTextPainter.Measure("あ", style);
+        var longSize = StyledText.RichTextPainter.Measure("ああああ", style);
 
         Assert.True(longSize.Width > shortSize.Width);
         Assert.True(shortSize.Height >= style.FontSize);
