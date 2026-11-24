@@ -6,8 +6,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
-using DrawingColor = System.Drawing.Color;
 using EsUtil.Feature.Annotation.Presenter.Panel;
+using EsUtil.Feature.Annotation.Logging;
 using EsUtil.Feature.StyledText;
 using EsUtil.Feature.StyledText.Presenter.Formatting;
 using EsUtil.Ui.WinUI3.StyledText;
@@ -178,13 +178,37 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
     /// <b>クリップボードの処理は本文コントロールが単一所有する</b>: 注釈のレイヤーは持ちません
     /// （キーと API の両方から同じ処理を呼べるよう、入口だけをここに置きます）。
     /// </remarks>
-    public void CopyTextSelection() => _ = _textEditor.CopyAsync();
+    public void CopyTextSelection()
+    {
+        _layer.Log.LogTextOperation(
+            "コピー", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.SelectedText());
+        _ = _textEditor.CopyAsync();
+    }
 
     /// <summary>選択中の本文をクリップボードへ切り取る。</summary>
-    public void CutTextSelection() => _ = _textEditor.CutAsync();
+    public void CutTextSelection()
+    {
+        _layer.Log.LogTextOperation(
+            "切り取り", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.SelectedText());
+        _ = _textEditor.CutAsync();
+    }
 
     /// <summary>クリップボードの文字列をキャレットの位置へ貼り付ける。</summary>
-    public void PasteText() => _ = _textEditor.PasteAsync();
+    public void PasteText() => _ = PasteAndLogAsync();
+
+    /// <summary>クリップボードの文字列を貼り付け、操作の内容と値を記録する。</summary>
+    /// <returns>貼り付けの非同期処理。</returns>
+    private async Task PasteAndLogAsync()
+    {
+        var inserted = await _textEditor.PasteAsync();
+        if (inserted is null)
+        {
+            return;
+        }
+
+        _layer.Log.LogTextOperation(
+            "貼り付け", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, inserted);
+    }
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
     public AnnotationLayerControl Layer => _layer;
 
@@ -218,7 +242,9 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
         get => _textEditor.ShowFormatBarWhileEditing;
         set
         {
+            var previous = _textEditor.ShowFormatBarWhileEditing;
             _textEditor.ShowFormatBarWhileEditing = value;
+            _layer.Log.LogSettingChanged(nameof(ShowFormatBarWhileEditing), previous, value);
             UpdateFormatBarVisibility();
         }
     }
@@ -327,8 +353,8 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
             root.Height = appearance.ResolvePanelHeight(appearance.FixedContentHeight);
         }
 
-        root.Background = ToBrush(appearance.Background);
-        root.BorderBrush = ToBrush(appearance.Border);
+        root.Background = StyledText.RichTextMetrics.ToBrush(appearance.Background);
+        root.BorderBrush = StyledText.RichTextMetrics.ToBrush(appearance.Border);
         root.BorderThickness = new Thickness(appearance.BorderThickness);
         root.CornerRadius = new CornerRadius(appearance.CornerRadius);
         root.Padding = new Thickness(
@@ -789,12 +815,6 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
     /// <returns>コントローラー。</returns>
     private AnnotationPanelController Controller(AnnotationPanelKind kind)
         => kind == AnnotationPanelKind.FormatBar ? _formatBarPanel : _stylePanel;
-
-    /// <summary>コアの色を WinUI のブラシへ変換する。</summary>
-    /// <param name="color">色。</param>
-    /// <returns>不透明な塗りつぶしのブラシ。</returns>
-    private static SolidColorBrush ToBrush(DrawingColor color)
-        => new(Windows.UI.Color.FromArgb(color.A, color.R, color.G, color.B));
 
     /// <summary>子要素の寸法を測る（レイヤーは全面、本文コントロールは本文の矩形）。</summary>
     /// <param name="availableSize">使える領域。</param>

@@ -31,7 +31,6 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 
 | メンバー | 説明 |
 | --- | --- |
-| `MeasureText` | 本文の実寸を測る関数（既定は `StyledText.RichTextMetrics.Measure`。 本文コントロールと同じエンジンで測る） |
 | `Source` / `SourcePixelWidth` / `SourcePixelHeight` | 表示する画像と元画像の画素数 |
 | `Document` / `SelectedId` / `Selected` | 注釈の文書と選択 |
 | `DraftDefaults` | 新規作成時の外観・書式 |

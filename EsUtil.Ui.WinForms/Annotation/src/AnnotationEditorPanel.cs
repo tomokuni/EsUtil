@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Feature.Annotation.Presenter.Panel;
-
+using EsUtil.Feature.Annotation.Logging;
 using EsUtil.Feature.StyledText;
 using EsUtil.Feature.StyledText.Presenter.Formatting;
 using EsUtil.Ui.WinForms.StyledText;
@@ -199,13 +199,37 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
     /// <b>クリップボードの処理は本文コントロールが単一所有する</b>: 注釈のレイヤーは持ちません
     /// （キーと API の両方から同じ処理を呼べるよう、入口だけをここに置きます）。
     /// </remarks>
-    public void CopyTextSelection() => _ = _textEditor.CopyAsync();
+    public void CopyTextSelection()
+    {
+        _layer.Log.LogTextOperation(
+            "コピー", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.SelectedText());
+        _ = _textEditor.CopyAsync();
+    }
 
     /// <summary>選択中の本文をクリップボードへ切り取る。</summary>
-    public void CutTextSelection() => _ = _textEditor.CutAsync();
+    public void CutTextSelection()
+    {
+        _layer.Log.LogTextOperation(
+            "切り取り", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.SelectedText());
+        _ = _textEditor.CutAsync();
+    }
 
     /// <summary>クリップボードの文字列をキャレットの位置へ貼り付ける。</summary>
-    public void PasteText() => _ = _textEditor.PasteAsync();
+    public void PasteText() => _ = PasteAndLogAsync();
+
+    /// <summary>クリップボードの文字列を貼り付け、操作の内容と値を記録する。</summary>
+    /// <returns>貼り付けの非同期処理。</returns>
+    private async Task PasteAndLogAsync()
+    {
+        var inserted = await _textEditor.PasteAsync();
+        if (inserted is null)
+        {
+            return;
+        }
+
+        _layer.Log.LogTextOperation(
+            "貼り付け", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, inserted);
+    }
     /// <summary>書式バーを作る処理を取得または設定する（独自の GUI へ差し替える入口）。</summary>
     /// <value>既定は組み込みの書式バー（<see cref="StyledTextFormatBarFactory"/>）。</value>
     /// <remarks>差し替えはバーを出す前に行う（表示中のバーを入れ替えると位置と操作の対象が食い違う）。</remarks>
@@ -308,7 +332,9 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         get => _textEditor.ShowFormatBarWhileEditing;
         set
         {
+            var previous = _textEditor.ShowFormatBarWhileEditing;
             _textEditor.ShowFormatBarWhileEditing = value;
+            _layer.Log.LogSettingChanged(nameof(ShowFormatBarWhileEditing), previous, value);
             UpdateFormatBarVisibility();
         }
     }

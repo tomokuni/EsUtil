@@ -28,7 +28,7 @@
 | 書式 | 選択範囲への適用と 1 属性だけの切り替え（選択が無ければ以降の入力へ回す）。 書式バーは 1 文字以上を選んだときだけ出る |
 | クリップボード | コピー・切り取り・貼り付け |
 | 日本語入力 | IME の変換中の文字列をキャレットの位置へ描く（本文へは入れない） |
-| 状態 | キャレットと選択は `EsUtil.Feature.StyledText.Core` の `TextEditState` が所有する |
+| 状態 | 本文の値とキャレット・選択は `EsUtil.Feature.StyledText.Core` の `TextEditor` が所有する（状態は `TextEditState`） |
 
 ## 3. システム要件
 
@@ -57,7 +57,7 @@ var editor = new StyledTextControl
 };
 
 // 本文が変わったらホストの値を更新する
-editor.RichRichTextChanged += (_, _) => Save(editor.RichTextValue);
+editor.RichTextChanged += (_, _) => Save(editor.RichTextValue);
 
 // 編集を始める（キャレットは本文の末尾）
 editor.BeginEditing();

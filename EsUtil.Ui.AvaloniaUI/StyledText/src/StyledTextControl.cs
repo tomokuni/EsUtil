@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.AvaloniaUI.StyledText;
 
@@ -9,9 +10,9 @@ namespace EsUtil.Ui.AvaloniaUI.StyledText;
 /// <b>表示と編集を分けない</b>: 入力欄を重ねる方法では、書式（run 単位の色・太字）が反映されず、
 /// 書式バーを操作するたびにフォーカスと選択が外れる。 本コントロールは本文を自分で描き、キー入力のたびに
 /// 本文を書き換える（書式はその場で反映される）。<br/>
-/// <b>内容は <see cref="RichTextValue"/> が単一所有する</b>: 編集中も <see cref="RichTextValue"/> が真の値であり、変更のたびに
+/// <b>内容は <see cref="TextEditor"/> が単一所有する</b>: 編集中も <see cref="TextEditor.Text"/> が真の値であり、<see cref="RichTextValue"/> へ写して変更のたびに
 /// <see cref="RichTextChanged"/> を発生させる（ホストは文書へ写すだけでよい）。<br/>
-/// <b>規則は提示層が単一所有する</b>: キャレット・選択・書式の適用は <see cref="TextEditState"/>、
+/// <b>規則は提示層が単一所有する</b>: 本文の値とキャレット・選択・書式の適用は <see cref="TextEditor"/>（状態は <see cref="TextEditState"/>）、
 /// キーの割り当ては <see cref="TextEditKeyMap"/>、折り返しと行の配置は <see cref="TextLayout"/> が決める。
 /// 本コントロールはフレームワーク固有の描画・入力・IME・クリップボードの配線だけを行う。<br/>
 /// <b>座標は元画像ピクセル</b>である: <see cref="RenderScale"/> で画面の DIP へ写すため、拡大しても
@@ -84,19 +85,11 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     }
 
     /// <summary>本文を編集中かどうかを取得する。</summary>
-    public bool IsEditing => _edit.IsActive;
-
-    /// <summary>編集中に書式バーを自動で表示するかどうかを取得または設定する。</summary>
-    /// <value>自動で表示する場合は <see langword="true"/>（既定）。 ホストが独自にバーを出す場合は <see langword="false"/>。</value>
-    /// <remarks>
-    /// <b>表示の判断は <see cref="ShouldShowFormatBar"/> が持つ</b>: 自動表示が有効でも、1 文字以上を選ぶまでは
-    /// 表示しない（適用先が決まらないため）。 ホスト（注釈のパネルなど）は本プロパティを読んでバーを出し入れする。
-    /// </remarks>
-    public bool ShowFormatBarWhileEditing { get; set; } = true;
+    public bool IsEditing => _editor.IsEditing;
 
     /// <summary>いま書式バーを表示すべきかどうかを取得する。</summary>
     /// <value>編集中で、自動表示が有効で、1 文字以上を選んでいる場合は <see langword="true"/>。</value>
-    public bool ShouldShowFormatBar => _edit.ShouldShowFormatBar(ShowFormatBarWhileEditing);
+    public bool ShouldShowFormatBar => _editor.ShouldShowFormatBar;
 
     /// <summary>文字列と書式から実寸を測る関数を取得または設定する。</summary>
     /// <value>既定は本コントロールの描画 API で測る関数。 描画と同じエンジンで測るため通常は変更しない。</value>
@@ -123,27 +116,20 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     /// <b>変換中の文字列は本文へ入れない</b>: 表示だけに入れる（確定したときだけ本文が変わる）。
     /// 入れないと、入力中の文字が表示されず「入力が反映されていない」ように見える。
     /// </remarks>
-    internal RichText DisplayText => TextCompositionPreview.Apply(RichTextValue, _edit.CaretIndex, _preeditText);
+    internal RichText DisplayText => _editor.DisplayText;
 
-    /// <summary>本文を折り返して行へ配置する（表示と編集で同じ結果を使う）。</summary>
-    /// <param name="text">折り返す本文（変換中の文字列を含む表示用の値）。</param>
-    /// <returns>行の並び（本文が空・大きさが 0 の場合は空）。</returns>
-    private IReadOnlyList<TextLinePlan> ResolveLines(RichText text)
+    /// <summary>本文の領域（元画像ピクセル）を取得する。</summary>
+    /// <returns>本文の領域。 まだ配置されていない場合は 0。</returns>
+    private EsSize ResolveBodySize()
     {
         var scale = ResolveScale();
-        var width = Bounds.Width / scale;
-        var height = Bounds.Height / scale;
-        if (width <= 0 || height <= 0)
-        {
-            return [];
-        }
-
-        return TextLayout.ResolveLines(
-            text,
-            new EsUtil.Platform.Core.Geometry.EsRect(0, 0, width, height),
-            MeasureText,
-            LineHeightFactor);
+        return new EsSize(Bounds.Width / scale, Bounds.Height / scale);
     }
+
+    /// <summary>本文を折り返して行へ配置する（表示と編集で同じ結果を使う）。</summary>
+    /// <returns>行の並び（本文が空・大きさが 0 の場合は空）。</returns>
+    private IReadOnlyList<TextLinePlan> ResolveLines()
+        => _editor.ResolveLines(ResolveBodySize(), MeasureText, LineHeightFactor);
 
     /// <summary>行と文字位置の対応を作る。</summary>
     /// <returns>対応。 行が無い場合は <see langword="null"/>。</returns>
@@ -152,10 +138,7 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     /// 確定後の位置と食い違う（入力位置から遠い場所に候補が出る）。
     /// </remarks>
     private TextLineIndex? ResolveLineIndex()
-    {
-        var displayed = DisplayText;
-        return TextLineIndex.Create(ResolveLines(displayed), displayed.PlainText);
-    }
+        => _editor.ResolveLineIndex(ResolveBodySize(), MeasureText, LineHeightFactor);
 
     /// <summary>表示倍率を取得する（無効な値は基準値へ正規化する）。</summary>
     /// <returns>表示倍率。</returns>
@@ -172,8 +155,7 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
         using var transform = context.PushTransform(Matrix.CreateScale(scale, scale));
 
         // **変換中の文字列も本文として描く**（重ねて描くと既存の文字と二重になる）
-        var displayed = DisplayText;
-        var lines = ResolveLines(displayed);
+        var lines = ResolveLines();
         foreach (var line in lines)
         {
             RichTextPainter.DrawLine(context, line);
@@ -184,7 +166,7 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
             return;
         }
 
-        var index = TextLineIndex.Create(lines, displayed.PlainText);
+        var index = TextLineIndex.Create(lines, DisplayText.PlainText);
         if (index is null)
         {
             return;
@@ -199,8 +181,7 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
 
         // **変換中はキャレットを変換中の文字列の末尾へ置く**: 末尾へ置かないと、変換中の文字が
         // キャレットの位置へ重なって見える。
-        var caretIndex = TextCompositionPreview.ResolveCaret(_edit.CaretIndex, _preeditText);
-        if (index.ResolveCaret(caretIndex, MeasureText) is not { } caret || !IsCaretVisible)
+        if (index.ResolveCaret(_editor.DisplayCaretIndex, MeasureText) is not { } caret || !IsCaretVisible)
         {
             return;
         }
@@ -221,9 +202,9 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
             || change.Property == LineHeightFactorProperty)
         {
             // **本文が外から変わったら編集位置を本文の範囲へ収める**（差し替えで範囲外に残さない）
-            if (change.Property == RichTextValueProperty && _edit.IsActive)
+            if (change.Property == RichTextValueProperty)
             {
-                _edit.Clamp(RichTextValue.PlainText.Length);
+                _editor.Text = RichTextValue;
             }
 
             InvalidateVisual();

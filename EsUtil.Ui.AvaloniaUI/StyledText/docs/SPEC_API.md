@@ -17,15 +17,15 @@
 | `MeasureText` | 文字列と書式から実寸を測る関数（既定は描画と同じエンジンで測る） |
 | `LineHeightFactor` | 行間の倍率（1 未満・非有限は 1） |
 | `RenderScale` | 画面の DIP への倍率（1 未満・非有限は 1） |
-| `EditState` | キャレット・選択・以降の入力へ効かせる書式の状態（`TextEditState`） |
+| `EditState` | キャレット・選択・以降の入力へ効かせる書式の状態（`TextEditor` が持つ `TextEditState`。 ホストと共有できる） |
 | `ShowFormatBarWhileEditing` | 編集中に書式バーを自動で表示するか（既定は `true`）。 ホストが独自にバーを出す場合は `false` |
 | `ShouldShowFormatBar` | いま書式バーを表示すべきか（編集中・自動表示が有効・1 文字以上を選択） |
 | `PreeditText` | IME の変換中の文字列（本文へは入れず、キャレットの位置へ描く） |
 | `IsInputEnabled` | 入力を受け付けるか（既定は受け付ける）。 表示専用にする場合は `false`（ホストが入力とフォーカスを持つ場合） |
-| `RichRichTextChanged` / `SelectionChanged` / `EditingChanged` | 本文・選択範囲・編集の開始と終了の通知 |
+| `RichTextChanged` / `SelectionChanged` / `EditingChanged` | 本文・選択範囲・編集の開始と終了の通知 |
 
 - **座標は元画像ピクセル**です。 `RenderScale` を掛けて DIP へ写します。
-- **本文は `RichTextValue` が単一所有**します。 編集は新しい `RichText` を `RichTextValue` へ書き戻し、`RichRichTextChanged` を発生させます。
+- **本文の値と編集の状態は `EsUtil.Feature.StyledText.Core` の `TextEditor` が単一所有**します。 編集は新しい `RichText` を `RichTextValue` へ書き戻し、`RichTextChanged` を発生させます。
 - **状態を 2 つ持たない**ため、ホストが状態を持っている場合は `EditState` に同じ実体を設定します。
 - **書式バーは 1 文字以上を選んだときだけ出す**（自動表示が有効でも、適用先が決まらない間は出さない）。
 
@@ -45,7 +45,7 @@
 | `ApplyTextStyle(style)` / `ApplyTextStyle(start, length, style)` | 選択範囲（指定範囲）の書式の差し替え |
 | `TransformTextStyle(transform)` / `TransformTextStyle(start, length, transform)` | 1 属性だけの変換 |
 | `SelectedTextStyle` / `SelectedTextMatches(match)` | 書式バーへ表示する値・押下状態 |
-| `SelectedText()` / `CopyAsync()` / `CutAsync()` / `PasteAsync()` | 選択文字とクリップボード |
+| `SelectedText()` / `CopyAsync()` / `CutAsync()` / `PasteAsync()` | 選択文字とクリップボード（`PasteAsync` は貼り付けた文字列を返し、無い場合は `null`） |
 | `CaretRect` | キャレットの矩形（DIP。 IME の変換候補の位置） |
 
 - **選択が無いときの書式変更は以降の入力へ回します**（既存の文字は変えない）。

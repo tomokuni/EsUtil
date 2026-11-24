@@ -234,10 +234,12 @@ public sealed partial class AnnotationLayerControl : Grid
     /// <value>色名 + 不透明度（既定）またはカラーコード（<c>#AARRGGBB</c>）。</value>
     public ColorTextFormat ColorTextFormat { get; set; } = ColorTextFormat.NameWithAlpha;
 
-    /// <summary>本文の実寸を測る関数を取得または設定する。</summary>
-    /// <value>文字列と書式から実寸（元画像ピクセル）を返す関数。 既定は文字数からの見積もり。</value>
-    /// <remarks>既定は XAML のテキスト エンジンで測る（<c>StyledText.RichTextMetrics.Measure</c>）。</remarks>
-    public Func<string, TextStyle, EsSize> MeasureText { get; set; } = StyledText.RichTextMetrics.Measure;
+    /// <summary>本文の実寸を測る（描画に使うテキスト エンジンに揃える）。</summary>
+    /// <param name="text">文字列。</param>
+    /// <param name="style">書式。</param>
+    /// <returns>実寸（元画像ピクセル）。</returns>
+    /// <remarks>文字を置く要素と同じエンジンで測る（<c>StyledText.RichTextMetrics.Measure</c>）。</remarks>
+    private static EsSize MeasureText(string text, TextStyle style) => StyledText.RichTextMetrics.Measure(text, style);
 
     /// <summary>文書・保存形式・ログの入口（本コントロールが使う唯一のファサード）を取得する。</summary>
     /// <value>本コントロールとロガーを共有するファサード。</value>
@@ -729,4 +731,3 @@ public sealed partial class AnnotationLayerControl : Grid
         ToClientDip,
         () => new EsSize(SourcePixelWidth, SourcePixelHeight));
 }
-

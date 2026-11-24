@@ -91,9 +91,6 @@ using EsUtil.Ui.WinUI3.Annotation;
 var editor = new AnnotationEditorPanel();
 var layer = editor.Layer;
 
-// 実寸は描くエンジンで測る（UI スレッドで設定する）
-layer.MeasureText = StyledText.RichTextMetrics.Measure;
-
 layer.Source = image;           // EsReadOnlyBitmap
 layer.SourcePixelWidth = 1920;
 layer.SourcePixelHeight = 1080;
@@ -117,7 +114,6 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 - **表示する画像はコアの具象型（`EsReadOnlyBitmap`）で渡します**（`Source`）。
 - **元画像の画素数を `SourcePixelWidth` / `SourcePixelHeight` で渡します**。
-- **本文の実寸は `MeasureText` に渡す関数で測ります**（`StyledText.RichTextMetrics.Measure` を使う。 描くエンジンの計測に揃える）。
 - **保存用の合成は `RenderComposedImage()`** が元画像ピクセルの 1:1 で作ります。
 
 ---
@@ -174,7 +170,6 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 - **書式バーの自動表示**: `AnnotationEditorPanel.ShowFormatBarWhileEditing`（既定は `true`。 `false` にすると自動では出さない）。 表示の条件（1 文字以上を選択）は本文の編集コントロールが単一所有します。
 
-- **実寸の計測**: `AnnotationLayerControl.MeasureText`（UI スレッドで設定する）。
 - **色の表記**: `AnnotationEditorPanel.TextFormat`。
 - **新規作成時の既定値**: `AnnotationLayerControl.DraftDefaults`。
 
@@ -186,12 +181,12 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 | レベル | 記録する内容 |
 | --- | --- |
-| `Information` | 注釈ファイルの読み込み・保存、ファサードの生成（プロセスで 1 度） |
-| `Debug` | 選択の変更、本文の編集の開始・終了、本文の変更（文字数・先頭 100 文字）、書式の適用（範囲と文字）、パネルの表示・終了、押下と解放、文書の作成、注釈の追加、提示層の生成 |
+| `Information` | 注釈ファイルの読み込み・保存・削除、設定（行間・書式バーの自動表示）の変更 |
+| `Debug` | 生成（ファサード・提示層・文書・注釈）、選択の変更、本文の編集の開始・終了、本文の変更（文字数・先頭 100 文字）、書式の適用（範囲と文字）、コピー・切り取り・貼り付け（キャレット・選択・先頭 100 文字）、パネルの表示・終了・位置、押下と解放 |
 | `Trace` | 本文の選択（キャレット・選択範囲）とドラッグ中の文書の変更（マウス移動のたびに届くため既定では出力しない） |
 | `Error` | 公開ファサードの操作で発生した例外（読み込み・保存の失敗） |
 
-**障害の切り分け**: 既定（`Information`）では操作の記録だけが出ます。 症状の報告を受けたら **`Debug`** で「選択・編集・書式・パネル・押下が起きたか」、**`Trace`** で「ドラッグが文書へ反映されているか」を確認できます。 描画計画の解決（毎フレーム）と当たり判定は記録しません。
+**障害の切り分け**: 既定（`Information`）では操作の記録だけが出ます。 症状の報告を受けたら **`Debug`** で「選択・編集・書式・コピーと貼り付け・パネル・押下が起きたか」、**`Trace`** で「ドラッグが文書へ反映されているか」を確認できます。 描画計画の解決（毎フレーム）と当たり判定は記録しません。
 
 定義はコア（`EsUtil.Feature.Annotation.Core` の `AnnotationLogMessage`）が単一所有し、本コントロールは同じロガーをコアと提示層へ渡します。
 

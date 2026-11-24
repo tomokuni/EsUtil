@@ -55,16 +55,16 @@ var (deleteStart, deleteLength) = TextCursor.ResolveDelete(inserted.PlainText, c
 var snapped = TextCursor.SnapBackward(text.PlainText, 3);
 
 // 6. 編集の状態（キャレット・選択・以降の入力へ効かせる書式）を持つ
-var edit = new TextEditState();
-edit.Begin(text.PlainText.Length);
-var afterTyping = edit.ReplaceSelection(text, "追記");
-var afterDelete = edit.Delete(afterTyping, forward: false);
+var editor = new TextEditor { Text = text };
+editor.Begin();
+_ = editor.ReplaceSelection("追記");
+var afterDelete = editor.DeleteAtCaret(forward: false);
 
 // 7. キーの割り当ては本層が決める（UI は自分のキーの型から写して実行するだけ）
 var request = TextEditKeyMap.Resolve(TextEditKey.Left, TextEditModifiers.Shift);
 if (request.Command == TextEditCommand.CaretLeft)
 {
-    edit.MoveTo(edit.ResolveClusterTarget(-1, request.Extend), text.PlainText.Length, request.Extend);
+    editor.MoveCaretByCluster(-1, request.Extend);
 }
 ```
 
@@ -79,7 +79,9 @@ if (request.Command == TextEditCommand.CaretLeft)
 | `TextCursor` | 書記素クラスタの境界（移動・選択・削除・折り返しの単位） |
 | `TextStyleEdit` | 本文へ入力する文字列の挿入（以降の入力へ効かせる書式の反映） |
 | `TextCompositionPreview` / `TextCaretBlink` | IME の変換中文字列を入れた描画用の値・キャレットの点滅 |
-| `TextEditState` | 本文の編集状態（キャレット・選択・入力・削除・書式）。 本文を受け取って書き換えた本文を返す（編集する対象を知らない）。 書式バーを表示する条件（編集中・1 文字以上を選択）も本型が単一所有する |
+| `TextEditor` | 編集中の本文の値と状態（キャレット・選択・入力・削除・書式・変換中の文字列）。 本文の操作・キーの実行・キャレット位置の解決をまとめ、書式バーを表示する条件（編集中・1 文字以上を選択）も本型が単一所有する |
+| `TextEditState` | 本文の状態（キャレット・選択・以降の入力へ効かせる書式）。 本文を受け取って書き換えた本文を返す（`TextEditor` が本文と組にして公開する） |
+| `TextInput` | 本文へ入れる文字列の正規化（改行を `\n` へ揃える） |
 | `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand` | キーの割り当て（どのキーがどの操作になるか）。 4 つの UI 版はキーの型を写して本層の解決を呼ぶ |
 | `TextDefaults` / `TextLimits` | 既定値（フォントの優先順・大きさ・既定の書式）と安全域 |
 
@@ -91,9 +93,9 @@ if (request.Command == TextEditCommand.CaretLeft)
 | --- | --- | --- |
 | `src/` 直下 | `EsUtil.Feature.StyledText` | 公開面（`RichText` / `TextRun` / `TextStyle` と、引数・戻り値に現れる値） |
 | `src/Core/Defaults` | `.Core.Defaults` | 既定値と安全域（`TextDefaults` / `TextLimits`） |
-| `src/Core/Text` | `.Core.Text` | 折り返しと行の配置・行と文字位置の対応・書記素クラスタ・入力の挿入・点滅・変換中の文字列 |
+| `src/Core/Text` | `.Core.Text` | 折り返しと行の配置・行と文字位置の対応・書記素クラスタ・入力の挿入と改行の正規化・点滅・変換中の文字列 |
 | `src/Core/Internal` | `.Core.Internal` | 折り返しの実装（`internal`） |
-| `src/Presenter/Editing` | `.Presenter.Editing` | 本文の編集状態（キャレット・選択・入力・削除・書式）と、キーの割り当て（どのキーがどの操作か） |
+| `src/Presenter/Editing` | `.Presenter.Editing` | 編集中の本文の値と状態（キャレット・選択・入力・削除・書式）と、キーの割り当て（どのキーがどの操作か）。 本文と状態は `TextEditor` が組にして持つ |
 
 ## 4. 依存
 

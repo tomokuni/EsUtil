@@ -154,7 +154,7 @@ public sealed class AnnotationEditSession
         set
         {
             _edit.Select(SelectedRichText, value.Start, value.Length);
-            NotifyTextSelectionIfChanged();
+            NotifyTextSelectionChanged();
         }
     }
 
@@ -209,7 +209,7 @@ public sealed class AnnotationEditSession
 
     /// <summary>吹き出しを追加する。</summary>
     /// <param name="bounds">本体の矩形（元画像ピクセル）。</param>
-    /// <param name="text">本文（書式を除く）。</param>
+    /// <param name="text">本文（改行は <c>\n</c> へ揃える）。</param>
     /// <returns>追加した注釈の識別子。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> が <see langword="null"/> の場合。</exception>
     /// <remarks>矩形もしっぽの先端も Core（<see cref="AnnotationGeometry.CreateBubble"/>）が画像の内側へ収める。</remarks>
@@ -219,7 +219,7 @@ public sealed class AnnotationEditSession
 
         var defaults = DraftDefaults;
         var bubble = AnnotationGeometry.CreateBubble(
-            bounds, RichText.Create(text, defaults.TextStyle), defaults, ImageSize);
+            bounds, RichText.Create(TextInput.Normalize(text), defaults.TextStyle), defaults, ImageSize);
         (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationCreated(AnnotationKind.Bubble, bubble.Id);
         ApplyChange(document => document.Add(bubble));
         Select(bubble.Id);
@@ -246,7 +246,7 @@ public sealed class AnnotationEditSession
     }
 
     /// <summary>選択中の吹き出しの本文を置き換える。</summary>
-    /// <param name="text">新しい本文（明示改行は <c>\n</c>）。</param>
+    /// <param name="text">新しい本文（改行は <c>\n</c> へ揃える）。</param>
     /// <returns>置き換えた場合は <see langword="true"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> が <see langword="null"/> の場合。</exception>
     /// <remarks><b>書式は文字位置で引き継ぐ</b>（<see cref="RichText.WithPlainText"/>）。 同じ文字列なら何もしない。</remarks>
@@ -259,13 +259,13 @@ public sealed class AnnotationEditSession
             return false;
         }
 
-        if (!ApplyChange(document => document.WithText(bubble.Id, bubble.Text.WithPlainText(text))))
+        if (!ApplyChange(document => document.WithText(bubble.Id, bubble.Text.WithPlainText(TextInput.Normalize(text)))))
         {
             return false;
         }
 
         _edit.Clamp(SelectedPlainText.Length);
-        NotifyTextSelectionIfChanged();
+        NotifyTextSelectionChanged();
         return true;
     }
 
@@ -451,14 +451,14 @@ public sealed class AnnotationEditSession
     public void SelectText(int start, int length)
     {
         _edit.Select(SelectedRichText, start, length);
-        NotifyTextSelectionIfChanged();
+        NotifyTextSelectionChanged();
     }
 
     /// <summary>本文全体を選択する。</summary>
     public void SelectAllText()
     {
         _edit.SelectAll(SelectedRichText);
-        NotifyTextSelectionIfChanged();
+        NotifyTextSelectionChanged();
     }
 
     /// <summary>キャレットを指定位置へ移す。</summary>
@@ -468,7 +468,7 @@ public sealed class AnnotationEditSession
     public void MoveCaret(int index, bool extend)
     {
         _edit.MoveToCluster(SelectedRichText, index, extend);
-        NotifyTextSelectionIfChanged();
+        NotifyTextSelectionChanged();
     }
 
     /// <summary>キャレットを前後の 1 クラスタへ移す（選択があるときは選択の端へ畳む）。</summary>
@@ -488,7 +488,7 @@ public sealed class AnnotationEditSession
     {
         _edit.MoveByLine(lines, SelectedPlainText.Length, delta, extend);
         _edit.SnapCaretToCluster(SelectedRichText, extend);
-        NotifyTextSelectionIfChanged();
+        NotifyTextSelectionChanged();
     }
 
     /// <summary>キャレットを行の先頭・末尾へ移す。</summary>
@@ -499,7 +499,7 @@ public sealed class AnnotationEditSession
     {
         _edit.MoveToLineEdge(lines, SelectedPlainText.Length, first, extend);
         _edit.SnapCaretToCluster(SelectedRichText, extend);
-        NotifyTextSelectionIfChanged();
+        NotifyTextSelectionChanged();
     }
 
     /// <summary>位置（元画像ピクセル）に最も近い文字位置へキャレットを移す。</summary>
@@ -515,7 +515,7 @@ public sealed class AnnotationEditSession
         ArgumentNullException.ThrowIfNull(measureText);
 
         _edit.SetCaretFromPoint(lines, point, SelectedPlainText.Length, extend, measureText);
-        NotifyTextSelectionIfChanged();
+        NotifyTextSelectionChanged();
     }
 
     /// <summary>キャレットと選択の起点を本文の範囲へ収める（履歴から戻したときなど）。</summary>
@@ -523,7 +523,7 @@ public sealed class AnnotationEditSession
     {
         _edit.Clamp(SelectedPlainText.Length);
         _edit.SnapCaretToCluster(SelectedRichText, extend: true);
-        NotifyTextSelectionIfChanged();
+        NotifyTextSelectionChanged();
     }
 
     /// <summary>選択範囲、またはキャレットの前後の 1 文字を削除する。</summary>
@@ -538,7 +538,7 @@ public sealed class AnnotationEditSession
     public bool ReplaceSelection(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        return ReplaceEdit(body => _edit.ReplaceSelection(body, text));
+        return ReplaceEdit(body => _edit.ReplaceSelection(body, TextInput.Normalize(text)));
     }
 
     /// <summary>指定した範囲を文字列で置き換える（ホストが範囲を指定する場合）。</summary>
@@ -550,7 +550,7 @@ public sealed class AnnotationEditSession
     public bool ReplaceRange(int start, int end, string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        return ReplaceEdit(body => _edit.ReplaceRange(body, start, end, text));
+        return ReplaceEdit(body => _edit.ReplaceRange(body, start, end, TextInput.Normalize(text)));
     }
 
     /// <summary>選択範囲の文字がすべて条件を満たすかどうかを返す（書式ボタンの押下状態に使う）。</summary>
@@ -644,6 +644,7 @@ public sealed class AnnotationEditSession
             logger.LogTextStyleApplied(range.Start, range.Length, ResolveRangeText(updated, range));
         }
 
+        _lastTextSelection = _edit.SelectionRange;
         Notify(AnnotationEditChange.Document | AnnotationEditChange.TextSelection);
         return true;
     }
@@ -698,6 +699,7 @@ public sealed class AnnotationEditSession
         }
 
         (_logger?.Invoke() ?? NullLogger.Instance).LogHistoryMoved(redo, _history.UndoCount, _history.RedoCount);
+        _lastTextSelection = _edit.SelectionRange;
         Notify(AnnotationEditChange.Document | AnnotationEditChange.TextSelection);
         return true;
     }
@@ -718,8 +720,9 @@ public sealed class AnnotationEditSession
     private RichText SelectedRichText
         => _document.Find(_selectedId) is BubbleAnnotation bubble ? bubble.Text : RichText.Empty;
 
-    /// <summary>本文の選択範囲が変わったときだけ通知する。</summary>
-    private void NotifyTextSelectionIfChanged()
+    /// <summary>本文の選択範囲が変わったときだけ記録して通知する。</summary>
+    /// <remarks>本文コントロールの入力からも呼ぶ（同じ範囲で通知を繰り返さない判定と <c>Trace</c> の記録をここへ集約する）。</remarks>
+    public void NotifyTextSelectionChanged()
     {
         var current = _edit.SelectionRange;
         if (current == _lastTextSelection)

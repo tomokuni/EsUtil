@@ -177,6 +177,21 @@ public static partial class AnnotationLogMessage
         logger.LogSettingChangedCore(Prefix, name, NumberText.Format(oldValue), NumberText.Format(newValue));
     }
 
+    /// <summary>真偽の設定値の変更を記録する（同値の再設定では出力しない）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="name">変更された設定名。</param>
+    /// <param name="oldValue">変更前の値。</param>
+    /// <param name="newValue">変更後の値。</param>
+    public static void LogSettingChanged(this ILogger logger, string name, bool oldValue, bool newValue)
+    {
+        if (oldValue == newValue || !logger.IsEnabled(LogLevel.Information))
+        {
+            return;
+        }
+
+        logger.LogSettingChangedCore(Prefix, name, oldValue.ToString(), newValue.ToString());
+    }
+
     /// <summary>公開ファサードの操作で例外が発生したことを記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Error<br/>出力書式: <c>[Annotation] {Operation} で例外が発生</c>（例外スタックトレース付き）</remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
@@ -314,6 +329,42 @@ public static partial class AnnotationLogMessage
         }
 
         logger.LogTextChangedCore(Prefix, length, ToPreview(text));
+    }
+
+    /// <summary>本文の操作（コピー・切り取り・貼り付け）を記録する（生成メソッド）。</summary>
+    /// <remarks>
+    /// LogLevel: Debug<br/>出力書式:
+    /// <c>[Annotation] 操作: {Operation} キャレット={Caret} 選択=({SelectionStart}, {SelectionLength}) 本文={Preview}</c>
+    /// </remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="operation">操作の名前（<c>コピー</c> / <c>切り取り</c> / <c>貼り付け</c>）。</param>
+    /// <param name="caret">操作時のキャレットの位置（文字数）。</param>
+    /// <param name="selectionStart">操作時の選択範囲の開始位置（文字数）。</param>
+    /// <param name="selectionLength">操作時の選択範囲の長さ（文字数）。</param>
+    /// <param name="preview">操作の対象または結果の文字列（整形済み）。</param>
+    [LoggerMessage(
+        LogLevel.Debug,
+        "{Prefix:l} 操作: {Operation:l} キャレット={Caret} 選択=({SelectionStart}, {SelectionLength}) 本文={Preview:l}")]
+    private static partial void LogTextOperationCore(
+        this ILogger logger, string prefix, string operation, int caret, int selectionStart, int selectionLength, string preview);
+
+    /// <summary>本文の操作（コピー・切り取り・貼り付け）を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="operation">操作の名前（<c>コピー</c> / <c>切り取り</c> / <c>貼り付け</c>）。</param>
+    /// <param name="caret">操作時のキャレットの位置（文字数）。</param>
+    /// <param name="selectionStart">操作時の選択範囲の開始位置（文字数）。</param>
+    /// <param name="selectionLength">操作時の選択範囲の長さ（文字数）。</param>
+    /// <param name="text">操作の対象または結果の文字列（先頭 100 文字だけを記録する）。</param>
+    public static void LogTextOperation(
+        this ILogger logger, string operation, int caret, int selectionStart, int selectionLength, string text)
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogTextOperationCore(Prefix, operation, caret, selectionStart, selectionLength, ToPreview(text));
     }
 
     /// <summary>本文の選択範囲の変更を記録する（生成メソッド）。</summary>

@@ -25,7 +25,7 @@ public sealed partial class StyledTextControl : ITextCompositionClient, ITextInp
 
     /// <summary>IME が変換中かどうかを取得する。</summary>
     /// <value>変換中の文字列を持っている場合は <see langword="true"/>。</value>
-    public bool IsComposing => _preeditText.Length > 0;
+    public bool IsComposing => PreeditText.Length > 0;
 
     /// <summary>指定した位置の文字の矩形（ウィンドウ座標）を取得する。</summary>
     /// <param name="charIndex">文字位置（文字数）。</param>
@@ -88,7 +88,7 @@ public sealed partial class StyledTextControl : ITextCompositionClient, ITextInp
         _compositionStart = CaretIndex;
         if (!string.IsNullOrEmpty(e.Text))
         {
-            ReplaceSelection(NormalizeInput(e.Text));
+            ReplaceSelection(EsUtil.Feature.StyledText.Core.Text.TextInput.Normalize(e.Text));
         }
         else
         {
@@ -110,7 +110,7 @@ public sealed partial class StyledTextControl : ITextCompositionClient, ITextInp
         // 変換の終了より先にここへ届く。 変換中だからと捨てると、確定した瞬間に文字が消える。
         PreeditText = string.Empty;
         _compositionStart = CaretIndex;
-        ReplaceSelection(NormalizeInput(e.Text));
+        ReplaceSelection(EsUtil.Feature.StyledText.Core.Text.TextInput.Normalize(e.Text));
         e.Handled = true;
     }
 }

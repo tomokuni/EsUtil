@@ -225,7 +225,8 @@
 | `BeginTextEditing()` / `EndTextEditing()` / `IsEditingText` | 本文の編集の開始・終了 |
 | `MoveCaret(...)` / `MoveCaretByLine(...)` / `MoveCaretToLineEdge(...)` / `SetCaretFromPoint(...)` | キャレットの移動（行の解決は `TextLineIndex` を使う） |
 | `DeleteAtCaret(forward)` / `ReplaceSelection(text)` / `ReplaceRange(start, end, text)` | 本文の削除・置き換え（キャレットを挿入した文字列の末尾へ移す） |
+| `NotifyTextSelectionChanged()` | 本文コントロールが行った選択の変更を記録して購読者へ通知する（同じ範囲では繰り返さない） |
 | `SelectedTextStyle` / `SelectedTextMatches(match)` / `SelectedText()` | 書式バーの表示値・押下状態・選択文字（クリップボード） |
 
 - **`AnnotationEditChange` はビットフラグ**です（1 回の操作で文書と選択が同時に変わることがあるため、種類ごとに購読を作らない）。
-- **ログ**: 選択・本文の編集・書式の適用・履歴の移動を記録します。 毎フレームの描画計画の解決は記録しません。
+- **ログ**: 選択・本文の編集・本文の変更・書式の適用・履歴の移動を記録します。 コピー・切り取り・貼り付けは UI 層が `AnnotationLogMessage.LogTextOperation` で記録します（操作名・キャレット・選択・本文の先頭）。 毎フレームの描画計画の解決は記録しません。

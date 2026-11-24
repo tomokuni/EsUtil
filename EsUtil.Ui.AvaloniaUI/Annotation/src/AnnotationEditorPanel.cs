@@ -9,7 +9,8 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
-using DrawingColor = System.Drawing.Color;
+using EsUtil.Feature.Annotation.Logging;
+using EsUtil.Ui.AvaloniaUI.Interop;
 using EsUtil.Feature.Annotation.Presenter.Panel;
 using EsUtil.Feature.StyledText;
 using EsUtil.Ui.AvaloniaUI.StyledText;
@@ -154,6 +155,12 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         {
             UpdateFormatBarVisibility();
             SyncTextEditor();
+
+            // 外観パネルは「選んでいる注釈」を編集するため、選択が変わったら閉じる
+            if (!_layer.IsEditingText)
+            {
+                _stylePanel.Close();
+            }
         };
 
         // 選択範囲の変更で、書式バーの表示と押下状態（太字・斜体・下線・取り消し線）を追随させる
@@ -187,13 +194,37 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <b>クリップボードの処理は本文コントロールが単一所有する</b>: 注釈のレイヤーは持ちません
     /// （キーと API の両方から同じ処理を呼べるよう、入口だけをここに置きます）。
     /// </remarks>
-    public void CopyTextSelection() => _ = _textEditor.CopyAsync();
+    public void CopyTextSelection()
+    {
+        _layer.Log.LogTextOperation(
+            "コピー", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.SelectedText());
+        _ = _textEditor.CopyAsync();
+    }
 
     /// <summary>選択中の本文をクリップボードへ切り取る。</summary>
-    public void CutTextSelection() => _ = _textEditor.CutAsync();
+    public void CutTextSelection()
+    {
+        _layer.Log.LogTextOperation(
+            "切り取り", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.SelectedText());
+        _ = _textEditor.CutAsync();
+    }
 
     /// <summary>クリップボードの文字列をキャレットの位置へ貼り付ける。</summary>
-    public void PasteText() => _ = _textEditor.PasteAsync();
+    public void PasteText() => _ = PasteAndLogAsync();
+
+    /// <summary>クリップボードの文字列を貼り付け、操作の内容と値を記録する。</summary>
+    /// <returns>貼り付けの非同期処理。</returns>
+    private async Task PasteAndLogAsync()
+    {
+        var inserted = await _textEditor.PasteAsync();
+        if (inserted is null)
+        {
+            return;
+        }
+
+        _layer.Log.LogTextOperation(
+            "貼り付け", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, inserted);
+    }
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
     /// <value>画像・文書・選択・元に戻すなどを操作する対象。</value>
     public AnnotationLayerControl Layer => _layer;
@@ -228,7 +259,9 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         get => _textEditor.ShowFormatBarWhileEditing;
         set
         {
+            var previous = _textEditor.ShowFormatBarWhileEditing;
             _textEditor.ShowFormatBarWhileEditing = value;
+            _layer.Log.LogSettingChanged(nameof(ShowFormatBarWhileEditing), previous, value);
             UpdateFormatBarVisibility();
         }
     }
@@ -394,8 +427,8 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             root.Width = MeasureFormatBar().Width;
         }
 
-        root.Background = ToBrush(appearance.Background);
-        root.BorderBrush = ToBrush(appearance.Border);
+        root.Background = AnnotationPainter.ToBrush(appearance.Background);
+        root.BorderBrush = AnnotationPainter.ToBrush(appearance.Border);
         root.BorderThickness = new Thickness(appearance.BorderThickness);
         root.CornerRadius = new CornerRadius(appearance.CornerRadius);
         root.Padding = new Thickness(
@@ -506,7 +539,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     private void ShowFormatBar()
     {
         EnsureOutsidePressHook();
-        var body = ToOverlayRect(ToEsRect(_layer.GetSelectedBoundsRect()));
+        var body = ToOverlayRect(_layer.GetSelectedBoundsRect().ToEsRect());
         _formatBarPanel.ShowOutside(
             AnnotationPanelKind.FormatBar, body, MeasureFormatBar(), AnnotationPanelMetrics.FormatBarGap);
 
@@ -690,10 +723,6 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         return new EsRect(origin.X, origin.Y, rect.Width, rect.Height);
     }
 
-    /// <summary>コントロールの矩形をコアの矩形へ変換する。</summary>
-    /// <param name="rect">コントロールの矩形。</param>
-    /// <returns>コアの矩形。</returns>
-    private static EsRect ToEsRect(Rect rect) => new(rect.X, rect.Y, rect.Width, rect.Height);
 
     /// <summary>パネルのドラッグを始める（余白を押したときだけ）。</summary>
     /// <param name="kind">パネルの種別。</param>
@@ -887,11 +916,6 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     private AnnotationPanelController Controller(AnnotationPanelKind kind)
         => kind == AnnotationPanelKind.FormatBar ? _formatBarPanel : _stylePanel;
 
-    /// <summary>コアの色を Avalonia のブラシへ変換する。</summary>
-    /// <param name="color">色。</param>
-    /// <returns>不透明な塗りつぶしのブラシ。</returns>
-    private static IBrush ToBrush(DrawingColor color)
-        => new SolidColorBrush(Color.FromArgb(color.A, color.R, color.G, color.B));
 
     /// <summary>子要素の寸法を測る（レイヤーは全面、本文コントロールは本文の矩形）。</summary>
     /// <param name="availableSize">使える領域。</param>

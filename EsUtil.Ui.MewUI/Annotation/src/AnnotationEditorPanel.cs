@@ -6,6 +6,7 @@ using EsUtil.Platform.Core.Palette;
 using MewUIColor = Aprillz.MewUI.Color;
 using EsUtil.Feature.Annotation.Core.Contract;
 using EsUtil.Feature.Annotation.Presenter.Panel;
+using EsUtil.Feature.Annotation.Logging;
 using EsUtil.Feature.StyledText;
 using EsUtil.Feature.StyledText.Presenter.Formatting;
 using EsUtil.Ui.MewUI.StyledText;
@@ -129,7 +130,16 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         };
 
         // 移動・サイズ変更で本文の位置が変わるため、バーの位置を追随させる
-        _layer.SelectionChanged += (_, _) => UpdateFormatBarVisibility();
+        _layer.SelectionChanged += (_, _) =>
+        {
+            UpdateFormatBarVisibility();
+
+            // 外観パネルは「選んでいる注釈」を編集するため、選択が変わったら閉じる
+            if (!_layer.IsEditingText)
+            {
+                _stylePanel.Close();
+            }
+        };
 
         // 選択範囲の変更で、書式バーの表示と押下状態（太字・斜体・下線・取り消し線）を追随させる
         _layer.TextSelectionChanged += (_, _) => UpdateFormatBarVisibility();
@@ -182,13 +192,37 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <b>クリップボードの処理は本文コントロールが単一所有する</b>: 注釈のレイヤーは持ちません
     /// （キーと API の両方から同じ処理を呼べるよう、入口だけをここに置きます）。
     /// </remarks>
-    public void CopyTextSelection() => _ = _textEditor.CopyAsync();
+    public void CopyTextSelection()
+    {
+        _layer.Log.LogTextOperation(
+            "コピー", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.SelectedText());
+        _ = _textEditor.CopyAsync();
+    }
 
     /// <summary>選択中の本文をクリップボードへ切り取る。</summary>
-    public void CutTextSelection() => _ = _textEditor.CutAsync();
+    public void CutTextSelection()
+    {
+        _layer.Log.LogTextOperation(
+            "切り取り", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.SelectedText());
+        _ = _textEditor.CutAsync();
+    }
 
     /// <summary>クリップボードの文字列をキャレットの位置へ貼り付ける。</summary>
-    public void PasteText() => _ = _textEditor.PasteAsync();
+    public void PasteText() => _ = PasteAndLogAsync();
+
+    /// <summary>クリップボードの文字列を貼り付け、操作の内容と値を記録する。</summary>
+    /// <returns>貼り付けの非同期処理。</returns>
+    private async Task PasteAndLogAsync()
+    {
+        var inserted = await _textEditor.PasteAsync();
+        if (inserted is null)
+        {
+            return;
+        }
+
+        _layer.Log.LogTextOperation(
+            "貼り付け", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, inserted);
+    }
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
     public AnnotationLayerControl Layer => _layer;
 
@@ -222,7 +256,9 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         get => _textEditor.ShowFormatBarWhileEditing;
         set
         {
+            var previous = _textEditor.ShowFormatBarWhileEditing;
             _textEditor.ShowFormatBarWhileEditing = value;
+            _layer.Log.LogSettingChanged(nameof(ShowFormatBarWhileEditing), previous, value);
             UpdateFormatBarVisibility();
         }
     }

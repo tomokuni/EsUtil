@@ -14,9 +14,11 @@
 - [8. `TextCursor`（静的クラス）](#8-textcursor静的クラス)
 - [9. `TextStyleEdit`（静的クラス）](#9-textstyleedit静的クラス)
 - [10. `TextCompositionPreview` / `TextCaretBlink`（静的クラス）](#10-textcompositionpreview--textcaretblink静的クラス)
-- [11. `TextEditState`（クラス）](#11-texteditstateクラス)
-- [12. `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand`（静的クラス・列挙型）](#12-texteditkeymap--texteditkey--texteditmodifiers--texteditcommand静的クラス列挙型)
-- [13. `TextDefaults` / `TextLimits`（静的クラス）](#13-textdefaults--textlimits静的クラス)
+- [11. `TextInput`（静的クラス）](#11-textinput静的クラス)
+- [12. `TextEditState`（クラス）](#12-texteditstateクラス)
+- [13. `TextEditor`（クラス）](#13-texteditorクラス)
+- [14. `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand`（静的クラス・列挙型）](#14-texteditkeymap--texteditkey--texteditmodifiers--texteditcommand静的クラス列挙型)
+- [15. `TextDefaults` / `TextLimits`（静的クラス）](#15-textdefaults--textlimits静的クラス)
 
 ## 1. 公開 API の可視性
 
@@ -27,7 +29,7 @@
 | 書式付きの文字列（`RichText` / `TextRun` / `TextStyle`） | `public` | 任意 |
 | 行の値（`TextLinePlan` / `TextSegmentPlan` / `TextLineMetrics` / `TextCaretRect`） | `public` | 任意 |
 | 計算（`TextLayout` / `TextLineIndex` / `TextLineLayout` / `TextCursor` / `TextStyleEdit` / `TextCompositionPreview` / `TextCaretBlink`） | `public` | 任意 |
-| 編集の状態（`TextEditState`）とキーの割り当て（`TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand` / `TextEditRequest`） | `public` | UI 層 |
+| 編集の状態（`TextEditState` / `TextEditor` / `TextEditChange`）とキーの割り当て（`TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand` / `TextEditRequest`） | `public` | UI 層 |
 | 既定値と安全域（`TextDefaults` / `TextLimits`） | `public` | 任意 |
 | 折り返しの実装（`TextWrap`） | `internal` | 同一アセンブリとテスト |
 
@@ -156,7 +158,15 @@
 | `TextCompositionPreview.ResolveCaret(caret, preedit)` | 変換中の文字列を入れたときのキャレットの位置 |
 | `TextCaretBlink.IntervalMilliseconds` / `IsVisible(elapsed)` | キャレットの点滅の間隔（`530` ms）と、経過時間からの表示の有無 |
 
-## 11. `TextEditState`（クラス）
+## 11. `TextInput`（静的クラス）
+
+**本文へ入れる文字列の正規化**（単一所有）です。 本文の改行は `\n` だけであり、折り返し・行の対応・保存する JSON が同じ規則を使います。 入力欄・貼り付け・IME の確定文字列は改行の表し方が異なるため、本文へ入れる前にここで揃えます。
+
+| メンバー | 説明 |
+| --- | --- |
+| `Normalize(text)` | 改行を本文の規則（`\n`）へ揃える（`\r\n` と `\r` を `\n` にする） |
+
+## 12. `TextEditState`（クラス）
 
 **本文の編集（キャレット・選択・入力・削除・書式）の状態と規則**です。 **編集する対象（文書・識別子）を知りません**。
 
@@ -185,9 +195,29 @@
 - **本文は不変**です。 編集は新しい `RichText` を返し、変化が無い場合は**同じ実体**を返します。
 - **選択が無いときの書式変更は以降の入力へ回します**（既存の文字は変えない）。
 - **削除・移動の単位は書記素クラスタ**です（サロゲート ペア・結合文字を半分に割らない）。 本文を渡す版（`MoveToCluster` / `Select` / `SnapCaretToCluster` / `GetSelectedText`）は境界への揃えを本クラスが行い、UI と注釈の両方が同じ規則を使う。
-- **書式バーの表示条件は本クラスが単一所有**します（`ShouldShowFormatBar`）。 編集中・自動表示が有効・1 文字以上を選択の 3 つを満たす間だけ表示し、適用先が決まらない間は出しません。
+- **書式バーの表示条件は本クラスが単一所有**します（`ShouldShowFormatBar`。 UI へは `TextEditor.ShouldShowFormatBar` が公開する）。 編集中・自動表示が有効・1 文字以上を選択の 3 つを満たす間だけ表示し、適用先が決まらない間は出しません。
 
-## 12. `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand`（静的クラス・列挙型）
+## 13. `TextEditor`（クラス）
+
+**編集中の本文（値・キャレット・選択・書式・変換中の文字列）の状態と操作**（単一所有）です。 UI は本クラスを操作し、描画と通知だけを行います（値と状態の写しを UI ごとに持ちません）。
+
+| メンバー | 説明 |
+| --- | --- |
+| `Text` / `EditState` | 編集している本文 / キャレット・選択・書式の状態（ホストと共有できる） |
+| `PreeditText` / `DisplayText` / `DisplayCaretIndex` | IME の変換中の文字列（本文へは入れない）・描画用の本文・描画用のキャレット |
+| `ShowFormatBarWhileEditing` / `ShouldShowFormatBar` | 書式バーの自動表示の設定 / 表示すべきか（編集中・自動表示が有効・1 文字以上を選択） |
+| `Begin()` / `End()` | 編集の開始（キャレットは本文の末尾）と終了 |
+| `Select` / `SelectRange` / `SelectAll` / `MoveCaret` / `MoveCaretByCluster` / `MoveCaretByLine` / `MoveCaretToLineEdge` / `SetCaretFromPoint` / `ClampCaret` | キャレットと選択（端は書記素クラスタの境界へ揃える） |
+| `ReplaceSelection` / `ReplaceRange` / `DeleteAtCaret` | 文字列の挿入・置き換え・削除 |
+| `ApplyStyle` / `TransformStyle` / `SelectedText` / `SelectedTextMatches` / `SelectedTextStyle` | 書式の適用・選択文字の取得・書式ボタンの状態 |
+| `TryExecute(request, resolveLines)` | キーの割り当てが返した操作のうち本文の操作を実行する（クリップボードと編集の終了は UI が行う） |
+| `ResolveLines` / `ResolveLineIndex` / `ResolveCaretRect` | 折り返しと行の配置・行と文字位置の対応・キャレットの矩形（元画像ピクセル） |
+
+- **操作は変わった内容（`TextEditChange`）を返します**（`Text` / `Selection` / `Editing`）。 UI は値に応じて描画の更新と通知を行います。
+- **本文は不変**です。 編集は新しい `RichText` を `Text` へ書き戻し、変化が無ければ同じ実体のままです。
+- **変換中の文字列は本文へ入れません**（`DisplayText` と `DisplayCaretIndex` にだけ反映する）。
+
+## 14. `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand`（静的クラス・列挙型）
 
 **キーの割り当て（どのキーがどの操作になるか）の単一所有**です。 UI は自分のキーの型を `TextEditKey` / `TextEditModifiers` へ写し、`Resolve` が返した操作を実行します。
 
@@ -211,7 +241,7 @@
 
 - **クリップボードと編集の終了は UI が実行します**（UI の仕組みを要するため、本層は要求だけを返す）。
 
-## 13. `TextDefaults` / `TextLimits`（静的クラス）
+## 15. `TextDefaults` / `TextLimits`（静的クラス）
 
 | メンバー | 説明 |
 | --- | --- |

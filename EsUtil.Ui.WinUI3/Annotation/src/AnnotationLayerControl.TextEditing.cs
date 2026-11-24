@@ -72,5 +72,5 @@ public sealed partial class AnnotationLayerControl
     /// <b>入力の経路を 1 つにする</b>: 本文の入力は <c>StyledTextControl</c> が行い、状態は編集セッションと共有する。
     /// セッションの通知は公開 API からの操作でしか出ないため、コントロールの変更も同じイベントへ流す。
     /// </remarks>
-    internal void NotifyTextSelectionChanged() => TextSelectionChanged?.Invoke(this, EventArgs.Empty);
+    internal void NotifyTextSelectionChanged() => _session.NotifyTextSelectionChanged();
 }

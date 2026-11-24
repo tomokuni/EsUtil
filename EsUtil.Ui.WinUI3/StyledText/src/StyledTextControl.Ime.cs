@@ -237,7 +237,7 @@ public sealed partial class StyledTextControl
         ClearImeSink();
         if (committed.Length > 0)
         {
-            ReplaceSelection(committed);
+            ReplaceSelection(EsUtil.Feature.StyledText.Core.Text.TextInput.Normalize(committed));
         }
 
         PlaceImeSink();

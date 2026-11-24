@@ -81,7 +81,7 @@ var editor = new StyledTextControl
     LineHeightFactor = 1.2,
 };
 
-editor.RichRichTextChanged += (_, _) => Save(editor.RichTextValue);
+editor.RichTextChanged += (_, _) => Save(editor.RichTextValue);
 editor.BeginEditing();
 editor.Select(2, 4);
 editor.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });

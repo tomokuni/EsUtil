@@ -176,6 +176,19 @@ public sealed class AnnotationEditSessionTests
             message => message.Contains("本文を変更: 文字数=3 本文=Xcd", StringComparison.Ordinal));
     }
 
+    /// <summary>本文の改行は本文の規則（<c>\n</c>）へ揃えて文書へ入れる。</summary>
+    [Fact]
+    internal void 本文の改行をLFへ揃える()
+    {
+        var session = CreateSession();
+
+        session.AddBubble(new EsRect(10, 10, 120, 80), "a\r\nb");
+        Assert.Equal("a\nb", session.SelectedPlainText);
+
+        Assert.True(session.SetSelectedText("c\r\nd"));
+        Assert.Equal("c\nd", session.SelectedPlainText);
+    }
+
     /// <summary>編集セッションを作る（画像は 400x300）。</summary>
     /// <returns>作成したセッション。</returns>
     private static AnnotationEditSession CreateSession()
