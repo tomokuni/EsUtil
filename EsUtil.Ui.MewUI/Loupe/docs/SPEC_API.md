@@ -158,11 +158,11 @@
 
 設定（`Options`）と寸法（`Options`）の数値項目は**コアの型が生成時に補正**するため、本コントロールは補正を登録しません（値の設定経路（オブジェクト初期化子・`with` 式・逆シリアル化・バインディング）によらず範囲内の値だけが保持されます）。
 
-Avalonia 版の再描画パイプライン（RequestRender / RenderCore / GenerateAsyncDone）に相当する Trace ログは持ちません（MewUI 版は同期描画のため）。
+Avalonia 版の再描画パイプライン（InvalidateRender / RenderCore / GenerateAsyncDone）に相当する Trace ログは持ちません（MewUI 版は同期描画のため）。
 
 ## 9. 非対応（今後の対応）
 
 | 項目 | 状況 |
 | --- | --- |
 | 座標変換ポート（`SetCoordTransform`） | 実装済み（`ToDip` = 対象 → 親領域 DIP。 表示位置の計算はコアのファサードが行い、コントロールは本ポートをファサードへ渡す） |
-| 再生成の要求メソッド（`Clear` / `RequestRender`） | 未実装（プロパティ変更で自動再描画される） |
+| 再生成の要求メソッド（`Clear` / `InvalidateRender`） | `InvalidateRender` は実装済み（`InvalidateVisual` へ委譲する）。 `Clear` は持たない（`IsVisible` と `Source` の解除で同じ結果になる） |

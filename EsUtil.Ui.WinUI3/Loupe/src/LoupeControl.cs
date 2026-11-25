@@ -127,7 +127,7 @@ public sealed partial class LoupeControl : Canvas
     /// プロパティの変更を伴わない再表示（DPI の変更・親の再配置など）を要求する入口である。<br/>
     /// 要素で描くため、描画の無効化ではなく同じ更新手順を直接呼ぶ。
     /// </remarks>
-    public void RequestRedraw() => ApplyVisual();
+    public void InvalidateRender() => ApplyVisual();
     /// <summary>ルーペの描画完了を通知するイベント（追加描画の入力先と描画計画を渡す）。</summary>
     /// <remarks>
     /// 描画計画と、追加描画を受け取る矩形の列（<see cref="LoupeRenderedEventArgs.AddRect"/>）を通知する。<br/>

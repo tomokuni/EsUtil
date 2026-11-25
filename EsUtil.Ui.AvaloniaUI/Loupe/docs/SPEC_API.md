@@ -25,7 +25,7 @@
     - [5.1.9 LogPrefix](#519-logprefix)
     - [5.1.10 CenterPointProvider（描画の直前の拡大中心の取り直し）](#5110-centerpointprovider描画の直前の拡大中心の取り直し)
   - [5.2 メソッド](#52-メソッド)
-    - [5.2.1 RequestRender](#521-requestrender)
+    - [5.2.1 InvalidateRender](#521-invalidaterender)
     - [5.2.2 Clear](#522-clear)
     - [5.2.3 SetCoordTransform](#523-setcoordtransform)
     - [5.2.4 RefreshPosition](#524-refreshposition)
@@ -357,10 +357,10 @@ loupe.CenterPointProvider = () => marquee.TryGetCurrentLoupePosition(out var pos
 
 ### 5.2 メソッド
 
-#### 5.2.1 RequestRender
+#### 5.2.1 InvalidateRender
 
 ```csharp
-void RequestRender()
+void InvalidateRender()
 ```
 
 現在の状態からルーペ画像の再生成を要求します（**プロパティ変更を伴わない再生成要求**）。
@@ -373,7 +373,7 @@ void RequestRender()
 
 ```csharp
 // 一覧の選択が変わったとき（ルーペの中心は変わらないが、破線を描き直したい）
-loupe.RequestRender();
+loupe.InvalidateRender();
 ```
 
 #### 5.2.2 Clear
@@ -480,7 +480,7 @@ loupe.Rendered += (_, e) =>
 };
 ```
 
-> プロパティ変更による再描画（`RequestRender`）では、最新状態のスナップショットに対して 1 回だけ発火します（連続変更は 1 フレームに 1 回に結合）。
+> プロパティ変更による再描画（`InvalidateRender`）では、最新状態のスナップショットに対して 1 回だけ発火します（連続変更は 1 フレームに 1 回に結合）。
 
 ### 5.5 型
 
@@ -503,7 +503,7 @@ StyledProperty は同ファイルに定義されます（Avalonia のバイン�
 - `Source` / `DisplaySource` の変更
 - `Options`（設定・寸法）または `Appearance`（外観）の変更
 - `IsVisible = true`（表示の開始）
-- `RequestRender()` の実行
+- `InvalidateRender()` の実行
 
 描画エラー（ホストが付加情報を描くハンドラーの例外等）は `Log` へ記録され、アプリは落ちません（そのフレームは下地までで終わり、例外は呼び出し元へ伝播しません）。
 
@@ -574,7 +574,7 @@ private void UpdateLoupe(Point imagePixelPoint, Point displayPoint)
 private void RefreshLoupe()
 {
     // 中心は変わらないが、ビットマップへ重ねる内容が変わった場合に再生成を要求する
-    _loupe.RequestRender();
+    _loupe.InvalidateRender();
 }
 ```
 
@@ -586,7 +586,7 @@ private void RefreshLoupe()
 - 高頻度更新では、利用側でポインター更新頻度を制限することを推奨します。
 - `Source` / `DisplaySource` に設定した画像は利用側が有効期間を管理してください。
 - 色（`Appearance`）・寸法（`Options`）の連続変更は、同一Dispatcher待機中である場合に1回へ集約されます。
-- `RequestRender()` は完了待機APIではありません。 完了は `Rendered` イベントで通知されます。
+- `InvalidateRender()` は完了待機APIではありません。 完了は `Rendered` イベントで通知されます。
 - 外部 `DrawingContext` へルーペを描画するAPIは提供しません。 必要な場合も `LoupeControl` をVisual Treeへ配置してください。
 
 ## 11. サンプルアプリケーション
@@ -605,5 +605,5 @@ dotnet run --project EsUtil.Ui.AvaloniaUI/Loupe/sample/EsUtil.Ui.AvaloniaUI.Loup
 - `Options`（`ZoomLevel` / `RequestedSize`）と `Appearance`（色・枠線の太さ・表示可否）・`ClientToPixelScaling`
 - 十字線・枠線の色変更（`Appearance`）
 - 外観（`Appearance`）と描画計画（`DrawPlanResolver`）による見た目の差し替え（`sample/Presentation/`。 格子線と四隅の鉤の例）
-- `IsVisible`、`Clear()`、`RequestRender()`
+- `IsVisible`、`Clear()`、`InvalidateRender()`
 - `Log`（描画エラーの通知先 ILogger 設定例）

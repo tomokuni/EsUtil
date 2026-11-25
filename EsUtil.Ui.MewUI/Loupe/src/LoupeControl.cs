@@ -280,6 +280,13 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     public LoupeLayout ResolveLayout(EsSize parentSize) => _presenter.ResolveLayout(parentSize);
 
+    /// <summary>今の状態で再描画する（プロパティの変更を伴わない再表示の要求）。</summary>
+    /// <remarks>
+    /// <b>プロパティを変えずに状態が変わったとき</b>（DPI の変更・親の再配置など）にホストが呼ぶ。
+    /// 4 つの UI 版で同じ名前の入口である（Marquee・Annotation のコントロールも同じ）。
+    /// </remarks>
+    public void InvalidateRender() => InvalidateVisual();
+
     /// <summary>ルーペコントロールを初期化する。</summary>
     /// <remarks>
     /// 図形の層（<see cref="ShapeLayer"/>）を子として加える（ラベル要素より先に加えるため常に最下になる）。<br/>

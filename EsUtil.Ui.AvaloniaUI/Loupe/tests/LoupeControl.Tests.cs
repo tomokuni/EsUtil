@@ -433,7 +433,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    internal async Task RequestRenderで再描画される()
+    internal async Task InvalidateRenderで再描画される()
     {
         var control = CreateControl();
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
@@ -444,7 +444,7 @@ public class LoupeControlTests
         // プロパティ変更を伴わない再描画要求（完了は Rendered で通知される）
         var rendered = 0;
         control.Rendered += (_, _) => rendered++;
-        control.RequestRender();
+        control.InvalidateRender();
         await control.WaitForRenderedAsync();
 
         Assert.Equal(1, rendered);
@@ -738,7 +738,7 @@ public class LoupeControlTests
     }
 
     [AvaloniaFact]
-    internal async Task RequestRender_描画経路の例外もログへ記録される()
+    internal async Task InvalidateRender_描画経路の例外もログへ記録される()
     {
         var control = CreateControl();
         var sink = new TestHelper.ListLogger();
@@ -748,8 +748,8 @@ public class LoupeControlTests
         control.Rendered += static (_, _) => throw new InvalidOperationException("付加情報の描画に失敗");
         var window = TestHelper.ShowInWindow(control);
 
-        // 明示的な再描画要求（RequestRender）経由の描画失敗もログへ記録される
-        control.RequestRender();
+        // 明示的な再描画要求（InvalidateRender）経由の描画失敗もログへ記録される
+        control.InvalidateRender();
         await WaitForErrorAsync(control, sink);
 
         Assert.True(sink.HasError);
@@ -773,7 +773,7 @@ public class LoupeControlTests
         Assert.Equal(0x0000FF, LoupePixelAt(window, control, 30, 30));
 
         control.IsVisible = false;
-        control.RequestRender();
+        control.InvalidateRender();
         // 非表示にした直後に残っている描画要求と画像の生成を流し切ってから判定する（静まるまで待つ）
         await AdvanceUntilQuietAsync(control);
 

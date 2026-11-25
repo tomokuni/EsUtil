@@ -50,11 +50,11 @@ dotnet run -c Release --project EsUtil.Ui.MewUI/Loupe/sample/EsUtil.Ui.MewUI.Lou
 | 色コンボボックス | `Appearance`（十字線 / 画像外 / 枠線。 「なし」で描画なし） |
 | 枠線の太さのスライダー | `Appearance.BorderThickness`（0〜8 DIP） |
 | 「座標ラベルを表示」チェック | `Appearance.ShowCoordLabel`（ルーペ左上の中心座標ラベル） |
-| 「再描画を要求」ボタン | `InvalidateVisual()`（プロパティ変更を伴わない再描画要求） |
+| 「再描画を要求」ボタン | `InvalidateRender()`（プロパティ変更を伴わない再描画要求） |
 | 「非表示にして解放」ボタン | Avalonia 版の `Clear()` と同じ結果（`IsVisible` を false にして `Source` を null にする。 「ルーペを表示」のチェックも外れる） |
 | 「ソースを設定して再表示」ボタン | `Source` へテスト画像を設定し、`IsVisible` を true に戻す（**解放した後の復帰はこのボタン**。 チェックだけを入れ直すと `Source` が null のため下地だけが描かれる） |
 | 「選択矩形を表示」チェック | 選択矩形の破線オーバーレイの表示切り替え（画像側とルーペ内の両方） |
-| 選択矩形の X / Y / W / H 入力 | 破線の位置・サイズ（対象座標 = 元画像ピクセル座標）。 変更は `InvalidateVisual()` でルーペへ反映する |
+| 選択矩形の X / Y / W / H 入力 | 破線の位置・サイズ（対象座標 = 元画像ピクセル座標）。 変更は `InvalidateRender()` でルーペへ反映する |
 | 「十字線の色と四隅の鉤を描く見本を表示」チェック | 差し替えた外観と描画計画のルーペ（見本）の表示切り替え |
 
 ## 4. 検証項目（動作確認チェックリスト）
@@ -126,8 +126,8 @@ DIP で書いた寸法は計画が持つ倍率（`LoupeDrawPlan.ScaleDipToPixel`
 | ルーペの配置 | ホストが `ResolveLayout` の結果で配置する（`Arrange`）。 コントロールは位置を持たない | コントロール自身が `RenderTransform` と `PositionOffset` で配置する |
 | 選択矩形の破線（画像側） | 破線を描く専用のキャンバス（`SelectionRectOverlay`）を重ねる | `Rectangle`（`StrokeDashArray`）とラベル要素を重ねる |
 | 選択矩形の破線（ルーペ内） | `Rendered` の Skia キャンバスへ描く | `Rendered` の書き込み可能な画像のピクセルへ描く |
-| 再描画の要求 | `InvalidateVisual()`（プロパティ変更を伴わない再描画要求） | `RequestRender()`（同左。 計画の破棄を含む） |
+| 再描画の要求 | `InvalidateRender()`（プロパティ変更を伴わない再描画要求） | `InvalidateRender()`（同左。 計画の破棄を含む） |
 | 文字の描画 | 実寸測定（`MewUITextMeasure`）した結果を要素として置く | `Border` + `TextBlock`（`FormattedText`）を置く |
 | 実行ファイルの対象 | `net10.0-windows10.0.17763.0`（Win32 のウィンドウ連携を使う） | `net10.0-windows10.0.17763.0`（`Avalonia.Desktop` を使う） |
 
-`Clear()` / `RequestRender()` は Avalonia 版の `LoupeControl` の公開 API です（MewUI 版は中間ビットマップを持たず同期描画するため、同 API を持ちません）。 本サンプルは同じ結果になる操作（`IsVisible` + `Source` の解除、`InvalidateVisual()`）をボタンへ割り当てています。
+`Clear()` は Avalonia 版だけの公開 API です（MewUI 版は中間ビットマップを持たず、`IsVisible` と `Source` の解除で同じ結果になります）。 再描画の要求は 4 つの UI 版とも `InvalidateRender()` です。

@@ -94,7 +94,7 @@ internal static class MainForm
             host.SetSelectionRect(selection.Rect, selection.IsVisible, selection.Label);
 
             // ルーペ内の破線も描き直す（プロパティに現れない入力のため、再描画を明示的に要求する）
-            loupe.Invalidate();
+            loupe.InvalidateRender();
         };
 
         // 初期状態を反映する（変更イベントは初回に発火しない）
@@ -203,7 +203,7 @@ internal static class MainForm
         var log = new SampleLogPanel(logging.Buffer);
         // ── API操作（対象コントロールのメソッド実行） ──
         var methods = Column(
-            SampleSettings.Buttons(("再描画を要求", () => loupe.Invalidate())));
+            SampleSettings.Buttons(("再描画を要求", () => loupe.InvalidateRender())));
 
         var form = SampleShell.Create("Loupe サンプル (WinForms)", properties, methods, samples, host, log);
 

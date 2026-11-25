@@ -251,7 +251,7 @@ dotnet run --project sample/EsUtil.Ui.AvaloniaUI.Loupe.Sample.csproj
 - 画像端から外れた部分の画像外の色（無地）
 - ズーム・サイズ・DPIスケール変更
 - 十字線・枠線の変更
-- `IsVisible`、`Clear()`、`RequestRender()`
+- `IsVisible`、`Clear()`、`InvalidateRender()`
 - `Log`（描画エラーの通知先 ILogger 設定例）
 
 詳細は [sample/README.md](sample/README.md) を参照してください。

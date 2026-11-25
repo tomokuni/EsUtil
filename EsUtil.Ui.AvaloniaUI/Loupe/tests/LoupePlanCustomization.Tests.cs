@@ -105,7 +105,7 @@ public class LoupePlanCustomizationTests
     }
 
     /// <summary>状態の変更で描画計画が再解決されることを検証する。</summary>
-    /// <remarks>計画に効く入力の変更は <see cref="LoupeControl.RequestRender"/> が保持中の計画を破棄する（描画経路が再解決する）。</remarks>
+    /// <remarks>計画に効く入力の変更は <see cref="LoupeControl.InvalidateRender"/> が保持中の計画を破棄する（描画経路が再解決する）。</remarks>
     [AvaloniaFact]
     internal async Task 状態の変更で描画計画が再解決される()
     {

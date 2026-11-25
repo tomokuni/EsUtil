@@ -97,7 +97,7 @@ internal static class MainWindow
         void ApplySelection()
         {
             host.SetSelectionRect(selection.Rect, selection.IsVisible, selection.Label);
-            loupe.InvalidateVisual();
+            loupe.InvalidateRender();
         }
 
         selection.Changed += (_, _) => ApplySelection();
@@ -203,7 +203,7 @@ internal static class MainWindow
 
         // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel().Vertical().Spacing(6).Children(
-            SampleSettings.Buttons(("再描画を要求", () => loupe.InvalidateVisual())));
+            SampleSettings.Buttons(("再描画を要求", () => loupe.InvalidateRender())));
 
         // ── サンプル設定（サンプルアプリの外観と状態） ──
         var samples = new StackPanel().Vertical().Spacing(6).Children(

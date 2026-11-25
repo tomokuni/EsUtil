@@ -120,8 +120,8 @@ flowchart TB
         CLog["LoupeLogMessage<br/>internal static partial class"]
     end
 
-    AP -->|"IsVisible / Source(EsReadOnlyBitmap) /<br/>DisplaySource(IImage。 省略可) / CenterPoint /<br/>Options / Appearance / ClientToPixelScaling /<br/>RequestRender / Clear / SetCoordTransform / PositionOffset"| Ctl
-    Ctl -->|"RequestRender / CancelAndRelease / ShouldApply"| Coh
+    AP -->|"IsVisible / Source(EsReadOnlyBitmap) /<br/>DisplaySource(IImage。 省略可) / CenterPoint /<br/>Options / Appearance / ClientToPixelScaling /<br/>InvalidateRender / Clear / SetCoordTransform / PositionOffset"| Ctl
+    Ctl -->|"InvalidateRender / CancelAndRelease / ShouldApply"| Coh
     Ctl -->|"ResolveDrawPlan（実寸測定関数を渡す）/ Appearance"| Pnt
     Ctl -->|"EsPoint / EsSize（境界の 1 行変換）"| Pos
     Ctl -->|"Coerce（ClientToPixelScaling）"| Coerce
@@ -159,7 +159,7 @@ flowchart TB
     - 表示サイズ・位置: `UpdatePosition` がコアのファサード `LoupeCore.ResolveLayout` を呼び、返された `LoupeLayout`（表示サイズと表示位置）を要素（`Width` / `Height`）と `RenderTransform` へ写すだけである（表示サイズの決定・オフセット加算・親領域内への位置の補正はコアが単一所有し、`UpdatePosition` は表示サイズの唯一の反映元になる）
     - 座標単位: `Options.RequestedSize` は DIP、描画計画へ渡す表示サイズと枠線の太さも DIP（物理ピクセルへの換算は提示層が `DpiScaler.ScaleToPixel` へ委譲する）
   - 値の補正: コアの設定値（`LoupeOptions`）は型の生成時に補正される（UI は関与しない）。 環境値の `ClientToPixelScaling` のみ `coerce` コールバックで矯正する
-- **公開API**: 入力（`Source: EsReadOnlyBitmap?`（拡大元のコア画像） / `DisplaySource: IImage?`（表示用の射影。 省略可） / `CenterPoint`）/ 設定（`Options`（コアの `LoupeOptions` が単一所有する基本サイズ・拡大率。 UI は設定値を保持しない）/ 外観（`Appearance`（`LoupeAppearance`。 `System.Drawing.Color` で受け取り描画時にブラシへ変換する）））/ 環境（`ClientToPixelScaling`）/ ログ（`Log`）/ イベント（`Rendered`・`LoupeRenderedEventArgs` で**描画先の `DrawingContext`** と描画計画（切り出し左上・拡大率・描画面のサイズ）を通知。 ホストが付加情報（線分・選択枠等）を描画 API で描ける）/ 操作（`Clear` / `RequestRender` / `SetCoordTransform` / `PositionOffset` / `RefreshPosition`）
+- **公開API**: 入力（`Source: EsReadOnlyBitmap?`（拡大元のコア画像） / `DisplaySource: IImage?`（表示用の射影。 省略可） / `CenterPoint`）/ 設定（`Options`（コアの `LoupeOptions` が単一所有する基本サイズ・拡大率。 UI は設定値を保持しない）/ 外観（`Appearance`（`LoupeAppearance`。 `System.Drawing.Color` で受け取り描画時にブラシへ変換する）））/ 環境（`ClientToPixelScaling`）/ ログ（`Log`）/ イベント（`Rendered`・`LoupeRenderedEventArgs` で**描画先の `DrawingContext`** と描画計画（切り出し左上・拡大率・描画面のサイズ）を通知。 ホストが付加情報（線分・選択枠等）を描画 API で描ける）/ 操作（`Clear` / `InvalidateRender` / `SetCoordTransform` / `PositionOffset` / `RefreshPosition`）
 - **依存**: LoupePresenter（描画計画と配置の写像）/ LoupeAppearance（`EsUtil.Feature.Loupe.Core`） / LoupeLogMessage（本プロジェクト） / LoupeContextPainter（本プロジェクト） / LoupeOptions / Loupe（`EsUtil.Feature.Loupe.Core`） / EsReadOnlyBitmap（`EsUtil.Platform.Core`） / DrawingContext（Avalonia） / Avalonia / ILogger
 
 ### 6.2 LoupeContextPainter（描画実装）
@@ -258,7 +258,7 @@ sequenceDiagram
     Ctl->>Ctl: 保留中の再描画要求を破棄（解放する中間ビットマップは無い）
 ```
 
-**描画計画は 1 フレーム 1 回だけ解決します。** 配置（`ArrangeOverride`。 ラベル要素の配置に使う）と描画（本図）は同じ表示サイズを渡すため、2 回目の解決はキャッシュを返します（十字線・枠線の矩形の導出とラベルの実寸測定をやり直しません）。 キャッシュのキーは表示サイズとスケーリング係数で、それ以外の入力（拡大中心・設定・外観・`DrawPlanResolver`）の変更は `RequestRender` が破棄します。
+**描画計画は 1 フレーム 1 回だけ解決します。** 配置（`ArrangeOverride`。 ラベル要素の配置に使う）と描画（本図）は同じ表示サイズを渡すため、2 回目の解決はキャッシュを返します（十字線・枠線の矩形の導出とラベルの実寸測定をやり直しません）。 キャッシュのキーは表示サイズとスケーリング係数で、それ以外の入力（拡大中心・設定・外観・`DrawPlanResolver`）の変更は `InvalidateRender` が破棄します。
 
 ## 9. 補正（coerce）一覧
 

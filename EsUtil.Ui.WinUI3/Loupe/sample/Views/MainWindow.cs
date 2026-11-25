@@ -254,7 +254,7 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
-                SampleSettings.Buttons(("再描画を要求", () => _loupe.RequestRedraw())),
+                SampleSettings.Buttons(("再描画を要求", () => _loupe.InvalidateRender())),
             },
         };
 
@@ -295,7 +295,7 @@ public sealed class MainWindow : Window
             _selectionLabel.Text = _selection.Label;
             _selectionLabelBox.Visibility = _selection.IsVisible ? Visibility.Visible : Visibility.Collapsed;
 
-            _loupe.RequestRedraw();
+            _loupe.InvalidateRender();
         }
 
         // ルーペをコアが解決した位置・サイズへ配置する

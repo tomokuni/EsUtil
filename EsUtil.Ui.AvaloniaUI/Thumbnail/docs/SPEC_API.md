@@ -40,7 +40,7 @@ Avalonia UI 版のサムネイル一覧コントロールが提供する公開 A
 | `ThumbnailControl()` | ctor | 生成 |
 | `SelectionChanged` | event | 選択中の添字が変わったときに発生する |
 | `ItemActivated` | event | 項目が 2 回押されたときに発生する（`ThumbnailActivatedEventArgs`） |
-| `Presentation` | property（get） | 提示層（設定・外観・描画計画の解決）。 取得だけを公開し、設定と外観は `Options` / `Appearance` を通して本プロパティの実体が保持する |
+| `Presentation` | property（get） | 提示層（設定・外観・描画計画の解決）。 取得だけを公開し、設定と外観は `Options` / `Appearance` を通して本プロパティの実体が保持する。 名前を `Presenter` にしないのは、AvaloniaUI の基底クラス（`ContentControl`）が `Presenter` を持つため（4 つの UI 版で同じ名前にする） |
 | `Options` | property | 計算に必要な設定（既定は `ThumbnailOptions.Default`）。 設定すると自動で配置を解き直す |
 | `Appearance` | property | 外観（既定は `ThumbnailAppearance.Default`）。 設定すると自動で描き直す |
 | `ImageWidth` | property | 画像の幅（DIP）。 **0 以下の指定は既定の下限へ引き上げられる**。 変更すると計測が無効化され、配置を解き直す |

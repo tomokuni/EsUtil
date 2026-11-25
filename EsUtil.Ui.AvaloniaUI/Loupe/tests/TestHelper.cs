@@ -113,7 +113,7 @@ public static class TestHelper
             for (var i = 0; i < PumpLimit && !rendered; i++)
             {
                 // 描画を要求してから 1 フレーム進める（要求は 1 フレーム 1 回の描画へ結合される）
-                control.RequestRender();
+                control.InvalidateRender();
                 Dispatcher.UIThread.RunJobs();
 
                 // 描画はフレーム（ヘッドレスでは明示的な 1 フレーム）で行われる

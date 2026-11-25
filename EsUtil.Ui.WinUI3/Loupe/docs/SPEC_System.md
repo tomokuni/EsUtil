@@ -124,7 +124,7 @@ classDiagram
         +string? LogPrefix
         +LoupeLayout ResolveLayout(parentSize)
         +SetCoordTransform(port) void
-        +RequestRedraw() void
+        +InvalidateRender() void
         +Rendered~LoupeRenderedEventArgs~
         +MeasureOverride(availableSize) Size
         -ApplyVisual() void

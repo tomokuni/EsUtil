@@ -33,6 +33,7 @@
 - **Marquee の `KeyDown(EsKey, EsPoint?)` を `HandleKeyDown(EsKey, EsPoint?)` に改名しました**（`MarqueeCore` / `MarqueePresenter`。 イベント名と同じ名前のメソッドを避け、動詞で始める）。
 - **本文の編集状態（`TextEditor` / `TextEditState` / `TextEditKeyMap` 等）を提示層からコアへ移しました**（`EsUtil.Feature.StyledText.Presenter.Editing` → `EsUtil.Feature.StyledText.Core.Editing`）。 本文の編集は描画に依存しない状態と計算であり、層の帰属（単体で成立する概念は Core）に合わせます。 提示層にはキャレットと選択範囲の見た目（`.Presenter.Drawing`）と書式バーの並び・寸法（`.Presenter.Formatting`）だけが残ります。
 - **注釈レイヤーの再描画要求を `InvalidateRender()` に揃えました**（4 つの UI 版。 WinUI 3 の `Redraw()` / `Invalidate()` は同じ処理の別名だったため削除）。 Marquee のコントロールと同じ名前になります。
+- **Loupe の再描画要求を 4 つの UI 版とも `InvalidateRender()` に揃えました**（AvaloniaUI の `RequestRender()` と WinUI 3 の `RequestRedraw()` を改名し、MewUI / WinForms にも追加）。 Marquee・Annotation と同じ名前になります（同じ役割に同じ名前を使う）。 **AvaloniaUI の `LoupeControl` に `ResolveLayout(EsSize)` を追加**し、4 つの UI 版で同じ入口にしました。
 - **AvaloniaUI の `AnnotationLayerControl.RenderComposedImage()` の戻り値を `EsBitmap` にしました**（従来は `RenderTargetBitmap`。 4 つの UI 版で同じ型を返し、保存形式の判定とエンコードは `EsBitmap.Save` が単一所有する）。 ホストは画素を写さずにそのまま保存できます。
 - **AvaloniaUI だけが持っていた書式バーの `PaletteColumns` / `ColorWidth` を削除しました**（`AnnotationEditorPanel` と `StyledTextFormatBar`。 他の UI 版には無く、利用箇所も無かったため）。
 

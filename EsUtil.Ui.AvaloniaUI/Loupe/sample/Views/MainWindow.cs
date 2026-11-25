@@ -262,7 +262,7 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
-                SampleSettings.Buttons(("再描画を要求", () => _loupe.RequestRender())),
+                SampleSettings.Buttons(("再描画を要求", () => _loupe.InvalidateRender())),
             },
         };
 
@@ -288,7 +288,7 @@ public sealed class MainWindow : Window
         {
             _appearance = value;
             _loupe.Appearance = value;
-            _loupe.RequestRender();
+            _loupe.InvalidateRender();
         }
 
         // 選択矩形の枠とラベルを更新する
@@ -307,7 +307,7 @@ public sealed class MainWindow : Window
                 $"({_selection.X:0}, {_selection.Y:0}) {_selection.Width:0}×{_selection.Height:0}");
             _selectionLabel.IsVisible = _selectionVisible;
 
-            _loupe.RequestRender();
+            _loupe.InvalidateRender();
         }
     }
 

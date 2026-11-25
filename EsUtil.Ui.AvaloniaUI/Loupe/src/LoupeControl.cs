@@ -55,7 +55,7 @@ namespace EsUtil.Ui.AvaloniaUI.Loupe;
 /// - 位置: <see cref="SetCoordTransform"/> / <see cref="PositionOffset"/> / <see cref="RefreshPosition"/><br/>
 /// - ログ: <see cref="Log"/><br/>
 /// - イベント: <see cref="Rendered"/>（描画完了時に描画済み Bitmap と表示情報を通知。 ホストが Bitmap に直接オーバーレイを描画できる）<br/>
-/// - 操作: <see cref="Clear()"/>（非表示にしてビットマップを解放） / <see cref="RequestRender()"/>（プロパティ変更を伴わない再生成要求）<br/>
+/// - 操作: <see cref="Clear()"/>（非表示にしてビットマップを解放） / <see cref="InvalidateRender()"/>（プロパティ変更を伴わない再生成要求）<br/>
 /// - 見た目のカスタマイズ: <see cref="Appearance"/>（色・太さ・表示可否） / <see cref="DrawPlanResolver"/>（矩形の並び・文言・位置） / <see cref="DrawPlan"/>（自前描画への既定描画の提供）
 /// </remarks>
 public sealed class LoupeControl : Panel
@@ -126,7 +126,7 @@ public sealed class LoupeControl : Panel
         set
         {
             field = value;
-            RequestRender();
+            InvalidateRender();
         }
     }
     /// <summary>描画計画を指定の描画面へ描く（計画どおりに描く）。</summary>
@@ -231,6 +231,12 @@ public sealed class LoupeControl : Panel
     /// </remarks>
     public void RefreshPosition() => UpdatePosition();
 
+    /// <summary>親領域のサイズから表示レイアウト（表示サイズと表示位置）を求める。</summary>
+    /// <param name="parentSize">親領域のサイズ（DIP）。 未確定（幅または高さが 0 以下）の場合は位置を補正しない。</param>
+    /// <returns>表示レイアウト（表示サイズと表示位置。 拡大中心未設定時と、親領域が表示サイズを収められない場合は位置が null）。</returns>
+    /// <remarks>配置の規則（オフセット・位置の補正）はコア（<see cref="LoupePresenter.ResolveLayout"/>）が単一所有する。</remarks>
+    public LoupeLayout ResolveLayout(EsSize parentSize) => _presenter.ResolveLayout(parentSize);
+
     /// <summary>表示位置と表示サイズを最新のレイアウトから再計算する。</summary>
     /// <remarks>
     /// 表示サイズ・位置の計算（要求サイズと、オフセット・親領域内への位置の補正）は<br/>
@@ -312,7 +318,7 @@ public sealed class LoupeControl : Panel
     /// どちらの経路も同じ表示サイズを渡すため（配置は割り当てサイズ、描画は <see cref="PositionOffset"/> と同じくコアのレイアウトが返す値）、<br/>
     /// <b>同じ入力ではキャッシュを返して 1 フレーム 1 回の解決に留める</b>（解決のたびに十字線・枠線の矩形とラベルの実寸測定をやり直さない）。<br/>
     /// キャッシュのキーは「表示サイズ」と「スケーリング係数」である（後者は計画の物理ピクセルへ効く入力のため）。<br/>
-    /// それ以外の入力（拡大中心・設定・外観・<see cref="DrawPlanResolver"/>）の変更は <see cref="RequestRender"/> が<br/>
+    /// それ以外の入力（拡大中心・設定・外観・<see cref="DrawPlanResolver"/>）の変更は <see cref="InvalidateRender"/> が<br/>
     /// <see cref="InvalidatePlan"/> で破棄する（同じ計画を保持し続けない）。
     /// </remarks>
     private LoupeDrawPlan ResolvePlan(double displaySize)
@@ -412,7 +418,7 @@ public sealed class LoupeControl : Panel
 
     /// <summary>入力（Source / CenterPoint / 設定）の変更で再描画を要求する。</summary>
     /// <remarks>
-    /// 各プロパティの変更は <see cref="RequestRender"/> を呼び出し、<br/>
+    /// 各プロパティの変更は <see cref="InvalidateRender"/> を呼び出し、<br/>
     /// 複数プロパティの連続変更を1回の再描画に結合する（バッチ化）。<br/>
     /// 設定（<see cref="LoupeOptions"/>）の変更は表示サイズ・外観も変わるため、表示サイズ・位置の再計算と<br/>
     /// 座標ラベルの更新も要求する（変更された項目の判定はコアの変更ログが単一所有する）。<br/>
@@ -422,15 +428,15 @@ public sealed class LoupeControl : Panel
         SourceProperty.Changed.AddClassHandler<LoupeControl>(static (o, e) =>
         {
             o.Log.LogSourceChanged(e.GetOldValue<EsReadOnlyBitmap?>(), e.GetNewValue<EsReadOnlyBitmap?>());
-            o.RequestRender();
+            o.InvalidateRender();
         });
         // 表示用の射影は表示（0 コピーのヒント）だけを変えるため、再描画だけを要求する
-        DisplaySourceProperty.Changed.AddClassHandler<LoupeControl>(static (o, _) => o.RequestRender());
+        DisplaySourceProperty.Changed.AddClassHandler<LoupeControl>(static (o, _) => o.InvalidateRender());
         // CenterPoint 変更時は再描画に加えて表示位置（RenderTransform）も更新する（コアが座標変換ポートと親パネルサイズから算出する）
         CenterPointProperty.Changed.AddClassHandler<LoupeControl>(static (o, e) =>
         {
             o._presenter.CenterPoint = ToEsPoint(e.NewValue as Point?);
-            o.RequestRender();
+            o.InvalidateRender();
             o.UpdatePosition();
             // 中心座標ラベルの文言は中心に依存するため、ラベル要素を配置し直す
             o.InvalidateArrange();
@@ -439,7 +445,7 @@ public sealed class LoupeControl : Panel
         OptionsProperty.Changed.AddClassHandler<LoupeControl>(static (o, e) =>
         {
             o._presenter.Options = e.GetNewValue<LoupeOptions>();
-            o.RequestRender();
+            o.InvalidateRender();
             o.UpdatePosition();
             // 表示サイズとラベルの外観が変わるため、ラベル要素を配置し直す（サイズが同じでも必要）
             o.InvalidateArrange();
@@ -448,7 +454,7 @@ public sealed class LoupeControl : Panel
         {
             // OldValue / NewValue は StyledProperty&lt;double&gt; により常に非 null（boxed double）
             o._presenter.ClientToPixelScaling = e.GetNewValue<double>();
-            o.RequestRender();
+            o.InvalidateRender();
             // ラベルの配置の基準（表示サイズ）が物理ピクセル換算で変わるため、配置し直す
             o.InvalidateArrange();
         });
@@ -458,7 +464,7 @@ public sealed class LoupeControl : Panel
         AppearanceProperty.Changed.AddClassHandler<LoupeControl>(static (o, e) =>
         {
             o._presenter.Appearance = e.GetNewValue<LoupeAppearance>();
-            o.RequestRender();
+            o.InvalidateRender();
             // 中心座標ラベルの色・体裁も外観が与えるため、ラベル要素を配置し直す
             o.InvalidateArrange();
         });
@@ -619,7 +625,7 @@ public sealed class LoupeControl : Panel
     /// 非表示中は描画を行わない（状態は保持し、次の表示で反映される）。<br/>
     /// <b>保持している描画計画も破棄する</b>（本メソッドは「計画に効く入力が変わった」ことを表す唯一の入口である。 <see cref="ResolvePlan"/>）。
     /// </remarks>
-    public void RequestRender()
+    public void InvalidateRender()
     {
         // 非表示中でも計画を破棄する（破棄しないと非表示中に変えた状態が次の表示で反映されない）
         InvalidatePlan();
@@ -736,7 +742,7 @@ public sealed class LoupeControl : Panel
     {
         if (e.GetNewValue<bool>())
         {
-            RequestRender();
+            InvalidateRender();
             UpdatePosition();
             return;
         }

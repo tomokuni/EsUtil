@@ -295,6 +295,13 @@ public sealed class LoupeControl : Control
     /// </remarks>
     public LoupeLayout ResolveLayout(EsSize parentSize) => _presenter.ResolveLayout(parentSize);
 
+    /// <summary>今の状態で再描画する（プロパティの変更を伴わない再表示の要求）。</summary>
+    /// <remarks>
+    /// <b>プロパティを変えずに状態が変わったとき</b>（DPI の変更・親の再配置など）にホストが呼ぶ。
+    /// 4 つの UI 版で同じ名前の入口である（Marquee・Annotation のコントロールも同じ）。
+    /// </remarks>
+    public void InvalidateRender() => Invalidate();
+
     /// <summary>DIP の長さを本コントロールのクライアント座標（物理ピクセル）へ換算する。</summary>
     /// <param name="dipValue">換算する長さ（DIP）。</param>
     /// <returns>物理ピクセル（切り上げ・最低 1）。</returns>
