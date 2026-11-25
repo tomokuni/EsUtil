@@ -37,6 +37,23 @@ public sealed class AnnotationLogMessageTests
         Assert.Contains("書式を適用: 開始=0 長さ=0 本文=abcdef", logger.Messages[1], StringComparison.Ordinal);
     }
 
+    /// <summary>注釈の削除と重なり順の変更は、操作の対象（種別・識別子）を Debug で記録する。</summary>
+    [Fact]
+    internal void LogAnnotationRemoved_LogOrderChanged_対象をDebugで出力する()
+    {
+        var logger = new RecordingLogger();
+
+        logger.LogAnnotationRemoved(AnnotationKind.Bubble, "abc");
+        logger.LogOrderChanged(toFront: true, "abc");
+        logger.LogOrderChanged(toFront: false, "abc");
+
+        Assert.Equal(3, logger.Messages.Count);
+        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Debug, level));
+        Assert.Contains("注釈を削除: 種別=Bubble 識別子=abc", logger.Messages[0], StringComparison.Ordinal);
+        Assert.Contains("重なり順: 最前面へ 識別子=abc", logger.Messages[1], StringComparison.Ordinal);
+        Assert.Contains("重なり順: 最背面へ 識別子=abc", logger.Messages[2], StringComparison.Ordinal);
+    }
+
     /// <summary>真偽の設定値は変化したときだけ出力する。</summary>
     [Fact]
     internal void LogSettingChanged_変化したときだけ出力する()

@@ -8,7 +8,7 @@ namespace EsUtil.Feature.Annotation.Logging;
 /// <remarks>
 /// <b>レベルは頻度で決める</b>（規則の所有者は <c>.github/ログ規約.md</c> §2）。<br/>
 /// - Information: 利用者の明示的な操作（注釈ファイルの読み込み・保存）・プロセスで 1 度だけの生成・設定（行間）の変更<br/>
-/// - Debug: 状態の変化（選択・本文の編集・本文の変更・本文の操作（コピー・切り取り・貼り付け）・書式の適用・履歴の移動・パネルの表示・押下と解放）と提示層の生成<br/>
+/// - Debug: 状態の変化（選択・本文の編集・本文の変更・本文の操作（コピー・切り取り・貼り付け）・書式の適用・注釈の削除・重なり順・履歴の移動・パネルの表示・押下と解放）と提示層の生成<br/>
 /// - Trace: 高頻度の値（ドラッグ中の文書の変更）<br/>
 /// - Error: 公開ファサードの操作で発生した例外<br/>
 /// <b>障害の切り分け</b>: 既定（Information）では操作の記録だけが出る。 利用者から症状の報告を受けたら、
@@ -124,6 +124,38 @@ public static partial class AnnotationLogMessage
     /// <param name="id">生成した注釈の識別子。</param>
     internal static void LogAnnotationCreated(this ILogger logger, AnnotationKind kind, string id)
         => logger.LogAnnotationCreatedCore(Prefix, kind.ToString(), id);
+
+    /// <summary>注釈の削除を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 注釈を削除: 種別={Kind} 識別子={Id}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="kind">注釈の種別。</param>
+    /// <param name="id">削除した注釈の識別子。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 注釈を削除: 種別={Kind:l} 識別子={Id:l}")]
+    private static partial void LogAnnotationRemovedCore(this ILogger logger, string prefix, string kind, string id);
+
+    /// <summary>注釈の削除を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="kind">注釈の種別。</param>
+    /// <param name="id">削除した注釈の識別子。</param>
+    internal static void LogAnnotationRemoved(this ILogger logger, AnnotationKind kind, string id)
+        => logger.LogAnnotationRemovedCore(Prefix, kind.ToString(), id);
+
+    /// <summary>重なり順の変更を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 重なり順: {Action} 識別子={Id}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="action">移動の向き（<c>最前面へ</c> / <c>最背面へ</c>）。</param>
+    /// <param name="id">移動した注釈の識別子。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 重なり順: {Action:l} 識別子={Id:l}")]
+    private static partial void LogOrderChangedCore(this ILogger logger, string prefix, string action, string id);
+
+    /// <summary>重なり順の変更を記録する。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="toFront">最前面へ移した場合は <see langword="true"/>。</param>
+    /// <param name="id">移動した注釈の識別子。</param>
+    internal static void LogOrderChanged(this ILogger logger, bool toFront, string id)
+        => logger.LogOrderChangedCore(Prefix, toFront ? "最前面へ" : "最背面へ", id);
 
     /// <summary>付随ファイルを削除したことを記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Information<br/>出力書式: <c>[Annotation] 削除: {FileName}</c></remarks>

@@ -180,6 +180,24 @@ public sealed class AnnotationEditSessionTests
             message => message.Contains("本文を変更: 文字数=3 本文=Xcd", StringComparison.Ordinal));
     }
 
+    /// <summary>本文の差し替え・重なり順・削除は、操作の内容と値を Debug で残す。</summary>
+    [Fact]
+    internal void 本文の差し替えと重なり順と削除をログへ残す()
+    {
+        var logger = new RecordingLogger();
+        var session = new AnnotationEditSession(new AnnotationDocument(400, 300, "shot.png"), () => logger);
+        session.AddFrame(new EsRect(10, 10, 40, 30));
+        var bubbleId = session.AddBubble(new EsRect(60, 10, 120, 80), "abcd");
+
+        Assert.True(session.SetSelectedText("xy"));
+        Assert.True(session.SendSelectedToBack());
+        Assert.True(session.DeleteSelected());
+
+        Assert.Contains(logger.Messages, message => message.Contains("本文を変更: 文字数=2 本文=xy", StringComparison.Ordinal));
+        Assert.Contains(logger.Messages, message => message.Contains($"重なり順: 最背面へ 識別子={bubbleId}", StringComparison.Ordinal));
+        Assert.Contains(logger.Messages, message => message.Contains($"注釈を削除: 種別=Bubble 識別子={bubbleId}", StringComparison.Ordinal));
+    }
+
     /// <summary>本文の改行は本文の規則（<c>\n</c>）へ揃えて文書へ入れる。</summary>
     [Fact]
     internal void 本文の改行をLFへ揃える()

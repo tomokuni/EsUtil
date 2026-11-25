@@ -49,6 +49,7 @@
 ### 修正
 
 - **4 つの UI 版の注釈レイヤーの公開面を揃えました**。 WinForms にも `GetSelectedBodyRect()` を追加し、MewUI の説明の座標系（元画像ピクセル → DIP）を実装に合わせました。
+- **注釈の削除・重なり順・本文の差し替えを `Debug` で記録するようにしました**（種別と識別子、差し替えた本文の先頭 100 文字）。 症状の切り分けで「どの注釈を・どの順へ動かしたか」を追えます。
 - **注釈レイヤーの矩形変換をコアの `AnnotationViewTransform.ToClient(EsRect)` へ統一しました**（各 UI が変換の式を書き写していました）。
 - **書式バーの大きさの計算を提示層の `AnnotationPanelAppearance.ResolvePanelSize` へ集約しました**（4 つの UI 版が余白と枠を足す計算を書き写していました）。 **MewUI / WinUI 3 でも高さの固定値が効く**ため、実測値の揺れでバーが注釈に重なることがなくなります（AvaloniaUI と同じ見た目）。
 - **注釈パネルを画面の作業領域へ収める計算を 4 つの UI 版で共有しました**。 同じ規則を各 UI が `Math.Clamp` で書き写していたため、`AnnotationPanelPlacement.Clamp` へ集約しました。

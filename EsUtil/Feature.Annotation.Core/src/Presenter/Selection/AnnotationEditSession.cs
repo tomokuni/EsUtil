@@ -231,12 +231,14 @@ public sealed class AnnotationEditSession
             return false;
         }
 
+        var kind = _document.Find(id) is FrameAnnotation ? AnnotationKind.Frame : AnnotationKind.Bubble;
         EndTextEditing();
         if (!ApplyChange(document => document.Remove(id)))
         {
             return false;
         }
 
+        (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationRemoved(kind, id);
         Select(null);
         return true;
     }
@@ -262,6 +264,11 @@ public sealed class AnnotationEditSession
 
         // 差し替えた本文の範囲へキャレットを収める（書記素クラスタの境界へ揃える規則は編集器が持つ）
         _ = _editor.ClampCaret();
+
+        // **操作の内容と値を残す**（差し替え後の本文の先頭。 本文は大きくなりうるため整形はログ定義が持つ）
+        var updated = SelectedPlainText;
+        (_logger?.Invoke() ?? NullLogger.Instance).LogTextChanged(updated.Length, updated);
+
         NotifyTextSelectionChanged();
         return true;
     }
@@ -359,13 +366,11 @@ public sealed class AnnotationEditSession
 
     /// <summary>選択中の注釈を最前面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool BringSelectedToFront()
-        => _selectedId is { } id && ApplyChange(document => document.BringToFront(id));
+    public bool BringSelectedToFront() => MoveSelectedInOrder(toFront: true);
 
     /// <summary>選択中の注釈を最背面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool SendSelectedToBack()
-        => _selectedId is { } id && ApplyChange(document => document.SendToBack(id));
+    public bool SendSelectedToBack() => MoveSelectedInOrder(toFront: false);
 
     /// <summary>選択中の注釈の矩形を差し替える（ドラッグ中の更新）。</summary>
     /// <param name="bounds">新しい矩形（元画像ピクセル）。</param>
@@ -459,6 +464,21 @@ public sealed class AnnotationEditSession
 
     /// <summary>このセッションが対象とする画像の大きさを取得する。</summary>
     private EsSize ImageSize => AnnotationGeometry.ResolveImageSize(_document);
+
+    /// <summary>選択中の注釈の重なり順を移し、操作を記録する。</summary>
+    /// <param name="toFront">最前面へ移す場合は <see langword="true"/>。</param>
+    /// <returns>移した場合は <see langword="true"/>。</returns>
+    private bool MoveSelectedInOrder(bool toFront)
+    {
+        if (_selectedId is not { } id
+            || !ApplyChange(document => toFront ? document.BringToFront(id) : document.SendToBack(id)))
+        {
+            return false;
+        }
+
+        (_logger?.Invoke() ?? NullLogger.Instance).LogOrderChanged(toFront, id);
+        return true;
+    }
 
     /// <summary>1 回の変更として文書を差し替える（履歴に 1 手として積む）。</summary>
     /// <param name="change">変更前の文書を受け取り、変更後の文書を返す関数（変更なしは同じ実体を返す）。</param>
