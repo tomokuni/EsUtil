@@ -18,8 +18,6 @@
 | `IsEditingText` | property | 本文を編集中かどうか（書式バーは 1 文字以上を選んでいる間だけ出る） |
 | `ShowFormatBarWhileEditing` | property | 編集中に書式バーを自動で表示するか（既定は `true`。 ホストが独自にバーを出す場合は `false`） |
 | `IsFormatBarOpen` | property | 書式バーを表示中かどうか（編集中で 1 文字以上を選んでいる間だけ `true`） |
-| `PaletteColumns` | property | 書式バーの代表色（■ の格子）の列数（1 以上。 既定 8 列） |
-| `ColorWidth` | property | 書式バーの色の選択の幅（「■ + 全角 4 文字 + 100%」と「■ + `#FFFFFFFF`」の広いほう） |
 | `TextFormat` | property | 書式バーと右クリックのフライアウトの色の表記（色名 + 不透明度 / カラーコード）。 カラーコードは `#AARRGGBB` |
 | `Log` / `LogPrefix` | property | ログの出力先と接頭辞（コアと提示層で共有する。 既定 `[Annotation]`） |
 | `Presenter` | property | 描画計画を解決する提示層（ログと接頭辞を共有する） |
@@ -65,7 +63,8 @@
 | `EditingChanged` | event | 本文の編集の開始・終了（書式バーの出し入れはパネルが行う） |
 | `TextSelectionChanged` | event | 本文の選択範囲（キャレット）の変更（書式バーの現在値を追随させる） |
 | `GetSelectedBodyRect()` | method | 本文の矩形（DIP）。 本文編集コントロールを重ねる位置と書式バーの位置を決める |
-| `RenderComposedImage()` | method | 画像と注釈を元画像ピクセルの 1:1 で合成した `RenderTargetBitmap` を作る（保存用。 選択枠・ハンドル・キャレットは描かない） |
+| `RenderComposedImage()` | method | 画像と注釈を元画像ピクセルの 1:1 で合成した `EsBitmap` を作る（保存用。 選択枠・ハンドル・キャレットは描かない。 所有権は呼び出し側） |
+| `InvalidateRender()` | method | 今の状態で再描画する（ホストが画像の位置や表示倍率を変えたときに呼ぶ） |
 | `DocumentChanged` / `SelectionChanged` / `EditTextRequested` | event | 文書の変更・選択の変更・本文の編集要求 |
 
 操作の割り当ては次のとおりです。
@@ -135,5 +134,5 @@
 - **書式バー・右クリックのフライアウト・設定ペインが同じ並びを使います**（画面ごとに色が違わない）。
 - 色の選択の入力欄は**「■ + 色名」**（現在色の四角 + 色名）で表示します。
 - タブは**「代表色」（■ の格子）と「ColorPicker」の 2 つ**を出し、テーマ・色名のタブは隠します。 設定ペインはテーマカラー・色名のタブも出します。
-- 代表色の列数は `AnnotationEditorPanel.PaletteColumns`（既定 8 列）で変えられます。
+- 代表色の列数は既定 8 列です（`AnnotationPalette.DefaultPaletteColumns`。 40 色なら 8 列 × 5 行）。
 - 16 進や色名を直接打ち込む入力欄は残します（代表色に無い色を指定できる）。

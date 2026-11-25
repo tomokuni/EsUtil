@@ -61,7 +61,7 @@
 | `Subscribe` | 通知（`MarqueeNotice`）の購読（`IDisposable`。 解除は `Dispose`）。 UI 層は自 UI の公開イベントへ転送する |
 | `HasSelection` / `SelectionSourceRect` / `CreateSnapshot(EsPoint?)` | 状態の読み取り |
 | `SetCoordTransform(ICoordTransform?)` / `ToSource(EsPoint)` / `ToDip(EsPoint)` | 座標変換（コアへ委譲） |
-| `Press(EsPoint, int)` / `Move(EsPoint)` / `Release(EsPoint)` / `KeyDown(EsKey, EsPoint?)` / `EndNudge()` | 入力の転送（コアへ委譲） |
+| `Press(EsPoint, int)` / `Move(EsPoint)` / `Release(EsPoint)` / `HandleKeyDown(EsKey, EsPoint?)` / `EndNudge()` | 入力の転送（コアへ委譲） |
 | `SetSelection(EsRect)` / `ResetSelection()` / `RequestConfirm()` / `RequestCancel()` | 外部操作の転送（コアへ委譲） |
 
 ### 2.3 `MarqueeDrawPlan` のメンバー

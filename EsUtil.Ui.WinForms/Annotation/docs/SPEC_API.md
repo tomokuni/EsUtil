@@ -49,6 +49,7 @@ WinForms 版の注釈レイヤーが公開する API の一覧です。 操作�
 | `SelectionStart` / `SelectionEnd` / `SelectionLength` / `TextSelectionRange` | 本文の選択範囲（文字数） |
 | `GetSelectedBodyRect()` | 本文の矩形（DIP）。 本文編集コントロールを重ねる位置と書式バーの位置を決める |
 | `RenderComposedImage()` | 画像と注釈を 1:1 で合成した画像（保存用） |
+| `InvalidateRender()` | 今の状態で再描画する（ホストが画像の位置や表示倍率を変えたときに呼ぶ） |
 | `DocumentChanged` / `SelectionChanged` / `EditingChanged` / `TextSelectionChanged` / `StyleEditorRequested` | 変更・選択・編集開始終了・編集パネルの要求の通知 |
 
 **元に戻す・やり直す**: 変更前の文書をそのまま積みます（`AnnotationHistory` が単一所有。 文書は不変）。 ドラッグは押下から離すまでで 1 手です。 本文の編集は入力のたびに 1 手として積みます。

@@ -125,7 +125,7 @@ public class MarqueeCoreGeometryTests
         marquee.Move(new EsPoint(50, 40));
 
         // ドラッグ中に矢印キーで矩形を動かす（nudge に入ると始点マーカーが可視になる）
-        Assert.True(marquee.KeyDown(EsKey.Right, cursorPosition: null));
+        Assert.True(marquee.HandleKeyDown(EsKey.Right, cursorPosition: null));
 
         var geometry = MarqueeCore.ResolveGeometry(marquee.CreateRequest(new EsSize(200, 100)));
 

@@ -143,7 +143,7 @@ classDiagram
         +Press(pos, clickCount) void
         +Move(pos) void
         +Release(pos) void
-        +KeyDown(key, cursorPos) bool
+        +HandleKeyDown(key, cursorPos) bool
         +EndNudge() void
         +SetSelection(rect) void
         +RequestConfirm() / RequestCancel() void
@@ -162,7 +162,7 @@ classDiagram
         +Press(pos, clickCount) MarqueeFeedback
         +Move(pos) MarqueeFeedback
         +Release(pos) MarqueeFeedback
-        +KeyDown(key, cursorPos) MarqueeFeedback
+        +HandleKeyDown(key, cursorPos) MarqueeFeedback
         +NudgeByKey(key, cursorPos) MarqueeFeedback
         +EndNudge() MarqueeFeedback
         +SetSelection(rect) MarqueeFeedback
@@ -337,8 +337,8 @@ sequenceDiagram
     Note over Ctl: 矢印キー押下（フォーカス保持時）
     Ctl->>Cur: TryGetCursorScreenPoint(out point)
     Ctl->>Ctl: ScreenToClient → 対象座標（基点の記録）
-    Ctl->>Fac: KeyDown(EsKey, cursorPosition)
-    Fac->>Ses: KeyDown
+    Ctl->>Fac: HandleKeyDown(EsKey, cursorPosition)
+    Fac->>Ses: HandleKeyDown
     alt nudge 未開始
         Ses->>St: IsNudgeActive = true
         Fac-->>Ctl: 効果（Hide: カーソル非表示）を IMarqueeEffects 経由で適用

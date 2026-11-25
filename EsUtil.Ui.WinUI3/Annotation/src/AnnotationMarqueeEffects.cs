@@ -27,7 +27,7 @@ internal sealed class AnnotationMarqueeEffects : IMarqueeEffects
     public void RequestFocus() => _ = _owner.Focus(FocusState.Pointer);
 
     /// <summary>再描画を要求する。</summary>
-    public void RequestRedraw() => _owner.Invalidate();
+    public void RequestRedraw() => _owner.InvalidateRender();
 
     /// <summary>カーソル形状を設定する（標準カーソルのままにする）。</summary>
     /// <param name="kind">Marquee のカーソル種別。</param>

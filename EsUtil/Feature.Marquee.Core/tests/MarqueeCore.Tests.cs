@@ -150,7 +150,7 @@ public class MarqueeCoreTests
     // ====================================================================
 
     [Fact]
-    internal void KeyDown_Enterは確定を通知し処理済みを返す()
+    internal void HandleKeyDown_Enterは確定を通知し処理済みを返す()
     {
         var marquee = CreateMarquee(out _);
         var notices = new List<MarqueeNotice>();
@@ -158,7 +158,7 @@ public class MarqueeCoreTests
         marquee.SetSelection(new EsRect(10, 20, 100, 50));
         notices.Clear();
 
-        var handled = marquee.KeyDown(EsKey.Enter, null);
+        var handled = marquee.HandleKeyDown(EsKey.Enter, null);
 
         Assert.True(handled);
         Assert.Equal([MarqueeNoticeKind.ConfirmRequested], notices.Select(n => n.Kind));
@@ -166,24 +166,24 @@ public class MarqueeCoreTests
     }
 
     [Fact]
-    internal void KeyDown_対象外のキーは処理しない()
+    internal void HandleKeyDown_対象外のキーは処理しない()
     {
         var marquee = CreateMarquee(out var effects);
 
-        var handled = marquee.KeyDown(EsKey.A, null);
+        var handled = marquee.HandleKeyDown(EsKey.A, null);
 
         Assert.False(handled);
         Assert.Empty(effects.Calls);
     }
 
     [Fact]
-    internal void KeyDown_矢印キーはnudgeを開始し始点を移動する()
+    internal void HandleKeyDown_矢印キーはnudgeを開始し始点を移動する()
     {
         var marquee = CreateMarquee(out var effects);
         var notices = new List<MarqueeNotice>();
         marquee.Subscribe(notice => notices.Add(notice));
 
-        var handled = marquee.KeyDown(EsKey.Right, new EsPoint(100, 100));
+        var handled = marquee.HandleKeyDown(EsKey.Right, new EsPoint(100, 100));
 
         // 未選択の nudge は始点を 1 対象ピクセル移動する（カーソルの非表示管理もコアが単一所有する）
         Assert.True(handled);
@@ -329,7 +329,7 @@ public class MarqueeCoreTests
         marquee.Press(new EsPoint(10, 20), clickCount: 1);
         marquee.Move(new EsPoint(50, 60));
         marquee.Release(new EsPoint(50, 60));
-        var handled = marquee.KeyDown(EsKey.Right, cursorPosition: null);
+        var handled = marquee.HandleKeyDown(EsKey.Right, cursorPosition: null);
 
         Assert.True(marquee.IsReadOnly);
         Assert.False(marquee.HasSelection);
@@ -397,7 +397,7 @@ public class MarqueeCoreTests
     internal void EndNudge_nudge中はカーソルを再表示する()
     {
         var marquee = CreateMarquee(out var effects);
-        marquee.KeyDown(EsKey.Right, new EsPoint(100, 100));
+        marquee.HandleKeyDown(EsKey.Right, new EsPoint(100, 100));
 
         marquee.EndNudge();
 

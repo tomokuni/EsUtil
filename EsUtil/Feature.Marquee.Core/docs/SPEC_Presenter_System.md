@@ -68,7 +68,7 @@ sequenceDiagram
     participant D as MarqueeDrawPlan（本層）
     participant H as ホスト
 
-    UI->>P: Press / Move / Release / KeyDown（対象座標）
+    UI->>P: Press / Move / Release / HandleKeyDown（対象座標）
     P->>M: 入力の転送
     M-->>P: 効果（IMarqueeEffects 経由）・通知
     P-->>UI: Subscribe の購読者へ通知

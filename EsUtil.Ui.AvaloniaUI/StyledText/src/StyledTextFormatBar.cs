@@ -70,7 +70,7 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
     private bool _isRefreshing;
 
     /// <summary>代表色の列数（■ を何列で並べるか）。</summary>
-    private int _paletteColumns = 8;
+    private readonly int _paletteColumns = 8;
 
     /// <summary>色の選択の幅（DIP。 <see cref="ResolveColorSelectorWidth"/> が決める）。</summary>
     private readonly double _colorWidth;
@@ -234,24 +234,6 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
     /// <summary>操作の間の余白（DIP）。</summary>
     private const double ControlSpacing = TextEditorLayout.ControlSpacing;
 
-    /// <summary>代表色の列数を取得または設定する（■ を何列で並べるか）。</summary>
-    /// <value>1 以上の列数。 既定は構成（<see cref="StyledTextFormatBarOptions.PaletteColumns"/>）の値。</value>
-    public int PaletteColumns
-    {
-        get => _paletteColumns;
-        set
-        {
-            var columns = Math.Max(1, value);
-            if (_paletteColumns == columns)
-            {
-                return;
-            }
-
-            _paletteColumns = columns;
-            ConfigurePalette();
-        }
-    }
-
     /// <summary>色の入力欄へ出す表記を取得または設定する。</summary>
     /// <value>色名 + 不透明度（<see cref="ColorTextFormat.NameWithAlpha"/>）。</value>
     /// <remarks>
@@ -261,13 +243,9 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
     /// </remarks>
     public ColorTextFormat TextFormat
     {
-        get => ColorTextFormat.NameWithAlpha;
+        get => _color.TextFormat;
         set => _color.TextFormat = value;
     }
-
-    /// <summary>色の選択の幅（DIP）を取得する。</summary>
-    /// <value>「■ + 全角 4 文字 + 100%」と「■ + <c>#FFFFFFFF</c>」の広いほうの幅。</value>
-    public double ColorWidth => _colorWidth;
 
     /// <summary>色の選択の幅を求める（「■ + 全角 4 文字 + 100%」と「■ + #FFFFFFFF」の広いほう）。</summary>
     /// <returns>幅（DIP）。 測れない場合は <see cref="ColorSelectorWidthFallback"/>。</returns>

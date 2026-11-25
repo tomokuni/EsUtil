@@ -186,7 +186,7 @@ classDiagram
     class MarqueePresenter {
         +ResolveDrawPlan()
         +Press()/Move()/Release()
-        +KeyDown()
+        +HandleKeyDown()
         +Subscribe()
     }
     class MarqueeEffectsBase {
@@ -275,7 +275,7 @@ sequenceDiagram
     Note over UI: フォーカスあり（IsTabStop）
     User->>UI: 矢印キー
     UI->>UI: カーソル位置を取得（画面物理 → 対象座標）
-    UI->>Core: KeyDown(キー, カーソル位置)
+    UI->>Core: HandleKeyDown(キー, カーソル位置)
     Core-->>UI: 効果（カーソル非表示・実カーソル移動・再描画）
     UI->>Cursor: ShowCursor(false) / TrySetCursorScreenPoint(...)
     UI->>UI: InvalidateRender()

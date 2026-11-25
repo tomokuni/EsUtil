@@ -245,7 +245,7 @@ public sealed partial class ThumbnailControl : Grid
     /// <summary>項目の外枠の矩形（内容の座標）を取得する。</summary>
     /// <param name="index">項目の添字。</param>
     /// <returns>外枠の矩形。 未レイアウト・範囲外の場合は空の矩形。</returns>
-    public EsRect SlotBounds(int index) => _canvas.Layout?.Slot(index) ?? EsRect.Empty;
+    public EsRect SlotBounds(int index) => _canvas.Layout?.GetSlot(index) ?? EsRect.Empty;
 
     /// <summary>一覧を空にする。</summary>
     public void ClearItems()
@@ -316,7 +316,7 @@ public sealed partial class ThumbnailControl : Grid
             return;
         }
 
-        var slot = layout.Slot(index);
+        var slot = layout.GetSlot(index);
         var top = _scroll.VerticalOffset;
         if (slot.Y < top)
         {
@@ -485,7 +485,7 @@ public sealed partial class ThumbnailControl : Grid
 
             for (var i = 0; i < owner._items.Count; i++)
             {
-                var slot = layout.Slot(i);
+                var slot = layout.GetSlot(i);
 
                 // 見た目は計測の前に適用する（配置で子の計測を無効化するとレイアウト サイクルになる）
                 owner.ApplyState(i);
@@ -507,7 +507,7 @@ public sealed partial class ThumbnailControl : Grid
 
             for (var i = 0; i < owner._items.Count; i++)
             {
-                var slot = layout.Slot(i);
+                var slot = layout.GetSlot(i);
                 owner._items[i].Arrange(new Rect(slot.X, slot.Y, slot.Width, slot.Height));
             }
 

@@ -1,7 +1,7 @@
 using EsUtil.Feature.StyledText.Core.Text;
 using EsUtil.Platform.Core.Geometry;
 
-namespace EsUtil.Feature.StyledText.Presenter.Editing;
+namespace EsUtil.Feature.StyledText.Core.Editing;
 
 /// <summary>編集中の本文（値・キャレット・選択・書式・変換中の文字列）の状態と操作（単一所有）。</summary>
 /// <remarks>

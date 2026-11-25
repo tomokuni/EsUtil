@@ -220,7 +220,7 @@ public sealed class ThumbnailControl : ScrollViewer
     /// <param name="index">項目の添字。</param>
     /// <returns>外枠の矩形。 未レイアウト・範囲外の場合は空の矩形。</returns>
     /// <remarks>表示の優先度（見えている項目を先に生成する）の計算に使う。</remarks>
-    public EsRect SlotBounds(int index) => _panel.Layout?.Slot(index) ?? EsRect.Empty;
+    public EsRect SlotBounds(int index) => _panel.Layout?.GetSlot(index) ?? EsRect.Empty;
 
     /// <summary>一覧を空にする。</summary>
     public void ClearItems()
@@ -291,7 +291,7 @@ public sealed class ThumbnailControl : ScrollViewer
             return;
         }
 
-        var slot = layout.Slot(index);
+        var slot = layout.GetSlot(index);
         var top = Offset.Y;
         var bottom = top + Viewport.Height;
         if (slot.Y < top)
@@ -513,7 +513,7 @@ public sealed class ThumbnailControl : ScrollViewer
 
             for (var i = 0; i < _items.Count; i++)
             {
-                var slot = layout.Slot(i);
+                var slot = layout.GetSlot(i);
 
                 // 見た目は計測の前に適用する（配置で子の計測を無効化するとレイアウト サイクルになる）
                 owner.ApplyState(i);
@@ -535,7 +535,7 @@ public sealed class ThumbnailControl : ScrollViewer
 
             for (var i = 0; i < _items.Count; i++)
             {
-                var slot = layout.Slot(i);
+                var slot = layout.GetSlot(i);
                 _items[i].Arrange(new Rect(slot.X, slot.Y, slot.Width, slot.Height));
             }
 

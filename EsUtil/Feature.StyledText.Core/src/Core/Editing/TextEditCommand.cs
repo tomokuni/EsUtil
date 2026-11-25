@@ -1,4 +1,4 @@
-namespace EsUtil.Feature.StyledText.Presenter.Editing;
+namespace EsUtil.Feature.StyledText.Core.Editing;
 
 /// <summary>本文の編集で実行する操作（キーの割り当てから解決する）。</summary>
 /// <remarks>

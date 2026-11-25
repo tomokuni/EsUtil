@@ -1,4 +1,4 @@
-namespace EsUtil.Feature.StyledText.Presenter.Editing;
+namespace EsUtil.Feature.StyledText.Core.Editing;
 
 /// <summary>キーの割り当て（どのキーがどの編集の操作になるか）の単一所有。</summary>
 /// <remarks>

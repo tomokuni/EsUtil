@@ -46,7 +46,7 @@ services.AddSingleton<IUserPreferenceService, WinUserPreferenceService>();
 | グループ | 型 |
 | --- | --- |
 | 窓口（ルート名前空間） | `EsInput` / `EsWindow` / `EsCapture` / `EsColor` / `EsErrors` / `EsCallbacks` / `EsImageCodec`（機能の型へ委譲する薄い入口。 `using EsUtil.Platform.Core;` だけで解釈・正規化・生成ができる） |
-| キーと入力（`Input.*`） | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser`（`"Ctrl + Shift + Q"` の解釈） |
+| キーと入力（`Input.*`） | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser`（`"Ctrl + Shift + Q"` の解釈）/ `DoubleClickTracker`（クリック回数を返さない UI のダブルクリック判定） |
 | ウィンドウ（`Window.*`） | `EsPlatformHandle`（ネイティブ ハンドル） / `EsWindowState` / `EsWindowPlacementMath`（復元可否・はみ出しの補正・DIP ⇔ 物理ピクセル） |
 | キャプチャ（`Capture.*`） | `CaptureType` / `CaptureMethod`（GDI / Windows.Graphics.Capture）/ `WindowsGraphicsCaptureSupport`（実行中の環境で WGC の画面撮影・ウィンドウ撮影・カーソル制御・枠の制御が使えるかを返す。 使えない理由の文言も単一所有） |
 | 小さな共通基盤（`Common.*`） | `EnumCanonical` / `BoundaryCatch` / `CallbackList<T>` / `NumberText` |

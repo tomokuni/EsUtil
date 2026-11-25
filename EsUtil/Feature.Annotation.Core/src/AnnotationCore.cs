@@ -96,7 +96,7 @@ public sealed class AnnotationCore(AnnotationPresenter? presenter = null)
 
         var resolved = defaults ?? AnnotationDraftDefaults.Default;
         var frame = AnnotationGeometry.CreateFrame(bounds, resolved.FrameAppearance, document.ImageSize);
-        _log.LogAnnotationCreated(AnnotationKind.Frame, frame.Id);
+        _log.LogAnnotationCreated(AnnotationKind.Frame, frame.Id, frame.Bounds);
         return frame;
     }
 
@@ -124,7 +124,7 @@ public sealed class AnnotationCore(AnnotationPresenter? presenter = null)
 
         var resolved = defaults ?? AnnotationDraftDefaults.Default;
         var bubble = AnnotationGeometry.CreateBubble(bounds, text, resolved, document.ImageSize, tail);
-        _log.LogAnnotationCreated(AnnotationKind.Bubble, bubble.Id);
+        _log.LogAnnotationCreated(AnnotationKind.Bubble, bubble.Id, bubble.Bounds);
         return bubble;
     }
 

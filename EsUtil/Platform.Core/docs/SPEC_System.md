@@ -111,6 +111,7 @@ graph LR
 | `EsUtil/Platform.Core/src/Geometry/EsSizeInt.cs` | UI フレームワーク非依存の整数サイズ（`EsSize` の整数版。 `IsEmpty`（0 以下）と `FromEsSize`、表示用の `ToSizeText`） |
 | `EsUtil/Platform.Core/src/Geometry/EsRectIntJsonConverter.cs` | `EsRectInt` の JSON の保存形式（`X` / `Y` / `Width` / `Height` のみ。 未知のプロパティは無視し、欠落は 0）の単一所有者 |
 | `EsUtil/Platform.Core/src/Input/HotKeyParser.cs` | ホットキーの文字列（`"Ctrl + Shift + Q"`）の解釈（修飾キー 1 つ以上・キー名は `EnumCanonical` で解決） |
+| `EsUtil/Platform.Core/src/Input/DoubleClickTracker.cs` | 続けて押された位置と時刻からダブルクリックを判定する（500 ms・4 DIP。 クリック回数を返さない UI が同じ規則を書き写さない） |
 | `EsUtil/Platform.Core/src/Window/EsWindowPlacementMath.cs` | ウィンドウ配置の規則と換算（復元可否・はみ出しの補正・枠の差し引き・DIP ⇔ 画面物理ピクセル）。 **OS を呼ばない** |
 | `EsUtil/Platform.Core/src/Native/Win/WinVirtualScreen.cs` | 全モニターを包含する仮想スクリーンの矩形と、モニターごとの矩形の照会（`GetSystemMetrics` / `EnumDisplayMonitors`。 ウィンドウ表示前でも安全） |
 | `EsUtil/Platform.Core/src/Capture/VirtualScreenComposition.cs` | モニター単位に撮影した画像を仮想スクリーン 1 枚へ合成する（撮影の実装を問わない。 **OS を呼ばない**） |

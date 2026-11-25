@@ -44,8 +44,8 @@ public class ThumbnailLayoutTests
         // 1 行目は高さ 40 と 100、2 行目は 40 と 40（2 列）
         var layout = Arrange([40, 100, 40, 40], width: 300);
 
-        var first = layout.Slot(0);
-        var second = layout.Slot(1);
+        var first = layout.GetSlot(0);
+        var second = layout.GetSlot(1);
 
         // 外枠の高さ = 画像 + 影の余白（片側 0）+ 名前の行（30）。 項目ごとの高さは自分の画像で決まる
         Assert.Equal(40 + 30, first.Height, 6);
@@ -61,8 +61,8 @@ public class ThumbnailLayoutTests
     {
         var layout = Arrange([40, 100], width: 300);
 
-        Assert.Equal(layout.Slot(0).Bottom, layout.Slot(1).Bottom, 6);
-        Assert.Equal(layout.Label(0).Bottom, layout.Label(1).Bottom, 6);
+        Assert.Equal(layout.GetSlot(0).Bottom, layout.GetSlot(1).Bottom, 6);
+        Assert.Equal(layout.GetLabelRect(0).Bottom, layout.GetLabelRect(1).Bottom, 6);
     }
 
     /// <summary>行間と列間が互いに独立して効くことを検証する。</summary>
@@ -76,12 +76,12 @@ public class ThumbnailLayoutTests
         Assert.Equal(2, layout.Columns);
 
         // 列間 = 列の間隔（外枠の右端から次の外枠の左端まで）
-        var first = layout.Slot(0);
-        var second = layout.Slot(1);
+        var first = layout.GetSlot(0);
+        var second = layout.GetSlot(1);
         Assert.Equal(4, second.X - first.Right, 6);
 
         // 行間 = 行の間隔（上の行の外枠の下端から次の行の外枠の下端まで - 行の高さ）
-        var third = layout.Slot(2);
+        var third = layout.GetSlot(2);
         Assert.Equal(20, third.Bottom - first.Bottom - first.Height, 6);
     }
 
@@ -90,11 +90,11 @@ public class ThumbnailLayoutTests
     public void 画像と名前の矩形は外枠の内側に置かれる()
     {
         var layout = Arrange([96], width: 300);
-        var slot = layout.Slot(0);
+        var slot = layout.GetSlot(0);
 
-        Assert.True(slot.Contains(layout.Image(0)));
-        Assert.True(slot.Contains(layout.Label(0)));
-        Assert.Equal(layout.Image(0).Bottom, layout.Label(0).Y, 6);
+        Assert.True(slot.Contains(layout.GetImageRect(0)));
+        Assert.True(slot.Contains(layout.GetLabelRect(0)));
+        Assert.Equal(layout.GetImageRect(0).Bottom, layout.GetLabelRect(0).Y, 6);
     }
 
     /// <summary>位置から項目の添字を求めることを検証する。</summary>
@@ -104,7 +104,7 @@ public class ThumbnailLayoutTests
         var layout = Arrange([96, 96, 96], width: 300);
 
         Assert.Equal(0, layout.IndexAt(new EsPoint(10, 10)));
-        Assert.Equal(1, layout.IndexAt(new EsPoint(layout.Slot(1).X + 1, layout.Slot(1).Y + 1)));
+        Assert.Equal(1, layout.IndexAt(new EsPoint(layout.GetSlot(1).X + 1, layout.GetSlot(1).Y + 1)));
         Assert.Equal(-1, layout.IndexAt(new EsPoint(10_000, 10_000)));
     }
 
@@ -122,7 +122,7 @@ public class ThumbnailLayoutTests
 
         for (var i = 0; i < layout.Count; i++)
         {
-            var slot = layout.Slot(i);
+            var slot = layout.GetSlot(i);
             var center = new EsPoint(slot.X + (slot.Width / 2), slot.Y + (slot.Height / 2));
             Assert.Equal(i, layout.IndexAt(center));
 
@@ -132,7 +132,7 @@ public class ThumbnailLayoutTests
         }
 
         // すべての項目より下は「どこにも当たらない」
-        var last = layout.Slot(layout.Count - 1);
+        var last = layout.GetSlot(layout.Count - 1);
         Assert.Equal(-1, layout.IndexAt(new EsPoint(last.X, last.Bottom + 1)));
     }
 
@@ -143,12 +143,12 @@ public class ThumbnailLayoutTests
         var layout = Arrange([96, 96, 96, 96], width: 300);
 
         // 1 行目（0・1）の高さの途中まで見えている
-        var range = layout.VisibleRange(0, layout.Slot(0).Height / 2);
+        var range = layout.VisibleRange(0, layout.GetSlot(0).Height / 2);
         Assert.Equal(0, range.First);
         Assert.Equal(1, range.Last);
 
         // 2 行目だけが見えている
-        var second = layout.Slot(2);
+        var second = layout.GetSlot(2);
         var onlySecond = layout.VisibleRange(second.Y, second.Height);
         Assert.Equal(2, onlySecond.First);
         Assert.Equal(3, onlySecond.Last);
@@ -211,7 +211,7 @@ public class ThumbnailLayoutTests
         var last = -1;
         for (var i = 0; i < layout.Count; i++)
         {
-            var slot = layout.Slot(i);
+            var slot = layout.GetSlot(i);
             if (slot.Bottom <= top || slot.Y >= bottom)
             {
                 continue;
@@ -229,7 +229,7 @@ public class ThumbnailLayoutTests
         {
             for (var i = 0; i < layout.Count; i++)
             {
-                var slot = layout.Slot(i);
+                var slot = layout.GetSlot(i);
                 if (slot.Y <= top && top < slot.Bottom)
                 {
                     return new ThumbnailRange(i, i);

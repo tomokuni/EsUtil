@@ -51,6 +51,7 @@ MewUI 版の注釈レイヤーが公開する API の一覧です。 操作と�
 | `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `HasTextSelection` / `TextSelectionRange` | キャレットと選択範囲（文字数）。 `TextSelectionRange` は選択位置の写し（長さ 0 は選択なし） |
 | `GetSelectedBodyRect()` | 本文の矩形（DIP）。 本文編集コントロールを重ねる位置と書式バーの位置を決める |
 | `RenderComposedImage()` | 画像と注釈を 1:1 で合成した画像（保存用。 選択枠・キャレットは描かない） |
+| `InvalidateRender()` | 今の状態で再描画する（ホストが画像の位置や表示倍率を変えたときに呼ぶ） |
 | `DocumentChanged` / `SelectionChanged` / `EditingChanged` / `TextSelectionChanged` / `StyleEditorRequested` | 変更・選択・編集開始終了・編集パネルの要求の通知 |
 
 **元に戻す・やり直す**: 変更前の文書をそのまま積みます（`AnnotationHistory` が単一所有。 文書は不変）。 ドラッグは押下から離すまでで 1 手です。 元に戻した後も**選択は識別子で引き継ぎます**。

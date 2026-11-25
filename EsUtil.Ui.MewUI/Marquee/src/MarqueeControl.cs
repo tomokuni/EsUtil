@@ -790,7 +790,7 @@ public sealed class MarqueeControl : Panel
     {
         base.OnKeyDown(e);
 
-        e.Handled = _marquee.KeyDown(e.Key.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
+        e.Handled = _marquee.HandleKeyDown(e.Key.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
     }
 
     /// <summary>現在のカーソル位置（対象座標）を取得する。</summary>

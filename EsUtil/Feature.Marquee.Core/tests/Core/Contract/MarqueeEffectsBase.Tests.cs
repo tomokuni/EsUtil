@@ -52,7 +52,7 @@ public class MarqueeEffectsBaseTests
         // カーソル操作を実装しなくても、基底の既定実装（移動しない・何もしない）で完結する（例外を投げない）
         var marquee = new MarqueeCore(new RedrawOnly(() => { }));
 
-        marquee.KeyDown(EsKey.Right, new EsPoint(10, 10));
+        marquee.HandleKeyDown(EsKey.Right, new EsPoint(10, 10));
 
         Assert.True(marquee.CreateSnapshot().IsNudgeActive, "nudge が開始していない");
     }

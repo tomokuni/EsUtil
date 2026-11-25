@@ -21,9 +21,16 @@
   - `AnnotationEditSession.MoveSelectedToFront/Back` → `BringSelectedToFront` / `SendSelectedToBack`（`AnnotationDocument.BringToFront` / `SendToBack` と同じ語にする。 4 つの UI 版のレイヤーも同じ）。
   - `AnnotationCore.SaveDocument(imagePath, document)` → `SaveForImage(imagePath, document)`（`Save(documentPath, document)` と対にする）。
   - `ThumbnailLayout.ImageHeight` / `ThumbnailPresenter.ImageHeight` → `ResolveImageHeight`（同じ型の `ResolveLayout` / `ResolveMetrics` と語を揃える）。
+- **`ThumbnailLayoutResult.Slot` / `Image` / `Label` を `GetSlot` / `GetImageRect` / `GetLabelRect` に改名しました**（取得は動詞で始める。 `Image` / `Label` は同じ型のプロパティ名と紛らわしかった）。
+- **Marquee の `KeyDown(EsKey, EsPoint?)` を `HandleKeyDown(EsKey, EsPoint?)` に改名しました**（`MarqueeCore` / `MarqueePresenter`。 イベント名と同じ名前のメソッドを避け、動詞で始める）。
+- **本文の編集状態（`TextEditor` / `TextEditState` / `TextEditKeyMap` 等）を提示層からコアへ移しました**（`EsUtil.Feature.StyledText.Presenter.Editing` → `EsUtil.Feature.StyledText.Core.Editing`）。 本文の編集は描画に依存しない状態と計算であり、層の帰属（単体で成立する概念は Core）に合わせます。 提示層にはキャレットと選択範囲の見た目（`.Presenter.Drawing`）と書式バーの並び・寸法（`.Presenter.Formatting`）だけが残ります。
+- **注釈レイヤーの再描画要求を `InvalidateRender()` に揃えました**（4 つの UI 版。 WinUI 3 の `Redraw()` / `Invalidate()` は同じ処理の別名だったため削除）。 Marquee のコントロールと同じ名前になります。
+- **AvaloniaUI の `AnnotationLayerControl.RenderComposedImage()` の戻り値を `EsBitmap` にしました**（従来は `RenderTargetBitmap`。 4 つの UI 版で同じ型を返し、保存形式の判定とエンコードは `EsBitmap.Save` が単一所有する）。 ホストは画素を写さずにそのまま保存できます。
+- **AvaloniaUI だけが持っていた書式バーの `PaletteColumns` / `ColorWidth` を削除しました**（`AnnotationEditorPanel` と `StyledTextFormatBar`。 他の UI 版には無く、利用箇所も無かったため）。
 
 ### 追加
 
+- **`EsUtil.Platform.Core.Input.DoubleClickTracker` を追加しました**。 入力の仕組みがクリック回数を返さない UI（WinForms / WinUI 3）が書き写していたダブルクリックの判定（500 ms・4 DIP）を 1 か所に集約します。
 - **`EsUtil.Platform.Core` に `WinMonitorWorkArea` を追加しました**（ウィンドウが載っているモニターの作業領域を画面物理ピクセルで返す）。 UI フレームワークごとに異なる API を 1 つの形へ揃え、フローティング パネルを画面の外へ出さない判定を共有します。
 - **本文の値と編集の状態を `EsUtil.Feature.StyledText.Core` の `TextEditor` へ集約しました**。 4 つの UI 版の `StyledTextControl` と注釈の `AnnotationEditSession` が同じ操作（入力・削除・キャレット・選択・書式・キーの実行・折り返しとキャレット位置の解決）を 1 つの型へ委ね、UI はフレームワーク固有の描画・入力・IME・クリップボードだけを、注釈は選択中の本文の差し替えと文書への書き戻しだけを持ちます。 改行の正規化は `TextInput.Normalize` が単一所有し、本文へ入れる入口（`ReplaceSelection` / `ReplaceRange`）が 1 回だけ適用します。
 - **書式バーの自動表示を `StyledTextControl.ShowFormatBarWhileEditing` で選べるようにし、表示の条件を「編集中・自動表示が有効・1 文字以上を選択」に揃えました**（`ShouldShowFormatBar` が単一所有する）。 注釈の編集パネルは `ShowFormatBarWhileEditing` を持ち、選択を畳むとバーを閉じます。
@@ -50,6 +57,7 @@
 
 - **4 つの UI 版の注釈レイヤーの公開面を揃えました**。 WinForms にも `GetSelectedBodyRect()` を追加し、MewUI の説明の座標系（元画像ピクセル → DIP）を実装に合わせました。
 - **注釈の削除・重なり順・本文の差し替えを `Debug` で記録するようにしました**（種別と識別子、差し替えた本文の先頭 100 文字）。 症状の切り分けで「どの注釈を・どの順へ動かしたか」を追えます。
+- **注釈の作成（位置と大きさ）と、ドラッグ中の位置と大きさ・しっぽ・外観・本文の余白の変更を値つきで記録するようにしました**（作成は `Debug`、1 歩ごとに届く変更は `Trace`）。 レベルを上げれば「どこへ動かしたか・どの値へ変えたか」を追えます。
 - **注釈レイヤーの矩形変換をコアの `AnnotationViewTransform.ToClient(EsRect)` へ統一しました**（各 UI が変換の式を書き写していました）。
 - **書式バーの大きさの計算を提示層の `AnnotationPanelAppearance.ResolvePanelSize` へ集約しました**（4 つの UI 版が余白と枠を足す計算を書き写していました）。 **MewUI / WinUI 3 でも高さの固定値が効く**ため、実測値の揺れでバーが注釈に重なることがなくなります（AvaloniaUI と同じ見た目）。
 - **注釈パネルを画面の作業領域へ収める計算を 4 つの UI 版で共有しました**。 同じ規則を各 UI が `Math.Clamp` で書き写していたため、`AnnotationPanelPlacement.Clamp` へ集約しました。

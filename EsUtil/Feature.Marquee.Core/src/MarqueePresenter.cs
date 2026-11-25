@@ -275,7 +275,7 @@ public sealed partial class MarqueePresenter
     /// <param name="key">押下されたキー。</param>
     /// <param name="cursorPosition">押下時点のカーソル位置（対象座標）。 取得できない場合は null。</param>
     /// <returns>入力が処理された場合は true。</returns>
-    public bool KeyDown(EsKey key, EsPoint? cursorPosition) => _core.KeyDown(key, cursorPosition);
+    public bool HandleKeyDown(EsKey key, EsPoint? cursorPosition) => _core.HandleKeyDown(key, cursorPosition);
 
     /// <summary>nudge を終了する（カーソルを再表示する）。</summary>
     public void EndNudge() => _core.EndNudge();

@@ -1,4 +1,4 @@
-namespace EsUtil.Feature.StyledText.Presenter.Editing;
+namespace EsUtil.Feature.StyledText.Core.Editing;
 
 /// <summary>押されたキーから解決した編集の要求（操作と、選択を広げるかどうか）。</summary>
 /// <param name="Command">実行する操作。</param>

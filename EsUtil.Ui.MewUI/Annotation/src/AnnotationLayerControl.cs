@@ -304,6 +304,9 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <summary>選択中の注釈を取得する。</summary>
     public AnnotationItem? Selected => _session.Selected;
 
+    /// <summary>今の状態で再描画する（ホストが画像の位置や表示倍率を変えたときに呼ぶ）。</summary>
+    public void InvalidateRender() => InvalidateVisual();
+
     /// <summary>選択中の本文の書式を取得する（選択範囲の先頭の書式）。</summary>
     /// <remarks>選択が無い間は、書式バーで選んだ書式（以降の入力へ効く値）を返す。</remarks>
     public TextStyle SelectedTextStyle

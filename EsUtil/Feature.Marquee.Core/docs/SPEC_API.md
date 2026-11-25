@@ -70,7 +70,7 @@
 | `SetCoordTransform(ICoordTransform?)` | method | 座標変換ポートの設定（null は等価変換） |
 | `ToSource(EsPoint)` / `ToDip(EsPoint)` | method | 座標変換 |
 | `Press(EsPoint, int)` / `Move(EsPoint)` / `Release(EsPoint)` | method | ポインター入力の通知（対象座標） |
-| `KeyDown(EsKey, EsPoint?)` | method | キー入力の通知。 処理済みの真偽を返す（`Escape` / `Enter`（`Return` 含む）/ 矢印キー） |
+| `HandleKeyDown(EsKey, EsPoint?)` | method | キー入力の通知。 処理済みの真偽を返す（`Escape` / `Enter`（`Return` 含む）/ 矢印キー） |
 | `EndNudge()` | method | nudge の終了（フォーカス喪失で使用） |
 | `SetSelection(EsRect)` / `ResetSelection()` | method | 選択の復元・対話状態の初期化 |
 | `RequestConfirm()` / `RequestCancel()` | method | 確定/キャンセルの要求（キー・ダブルクリックと同一経路） |
@@ -168,7 +168,7 @@
 | `Press` のダブルクリック | 選択矩形の内側なら確定、外側ならキャンセル |
 | `RequestConfirm` | ドラッグ中は無視。 選択があるときのみ確定し、確定後は選択を破棄する |
 | `RequestCancel` | ドラッグ中または選択がある場合は選択を破棄してから通知する |
-| `KeyDown` の矢印キー | 選択済みかつマウス非押下の場合は nudge しない（領域作成後の nudge はドラッグ中のみ） |
+| `HandleKeyDown` の矢印キー | 選択済みかつマウス非押下の場合は nudge しない（領域作成後の nudge はドラッグ中のみ） |
 | `Release` | 最小サイズ未満の矩形はキャンセル扱い |
 
 ## 4. 使用例
@@ -183,7 +183,7 @@ marquee.SetCoordTransform(CoordTransform.Identity);            // 対象の境�
 // 入力の通知（効果の適用までファサードが行う）
 marquee.Press(new EsPoint(100, 100), clickCount: 1);
 marquee.Move(new EsPoint(400, 300));
-var handled = marquee.KeyDown(EsKey.Right, cursorPosition: null);   // nudge・Escape・Enter
+var handled = marquee.HandleKeyDown(EsKey.Right, cursorPosition: null);   // nudge・Escape・Enter
 marquee.Release(new EsPoint(400, 300));
 
 // 1 フレーム分の幾何（描画領域のサイズを渡す。注目矩形・ハンドル・マーカー）

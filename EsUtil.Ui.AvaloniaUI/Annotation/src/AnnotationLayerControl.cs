@@ -8,6 +8,8 @@ using Avalonia.Media.Imaging;
 using EsUtil.Feature.Marquee;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
+using EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Feature.Annotation.Core.Contract;
 using EsUtil.Feature.Annotation.Core.Geometry;
@@ -596,19 +598,19 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     }
 
     /// <summary>画像と注釈を元画像ピクセルの 1:1 で合成したビットマップを作る（保存用）。</summary>
-    /// <returns>合成したビットマップ（<see cref="SourcePixelWidth"/> × <see cref="SourcePixelHeight"/>）。</returns>
+    /// <returns>合成したビットマップ（<see cref="SourcePixelWidth"/> × <see cref="SourcePixelHeight"/>）。 所有権は呼び出し側へ移る。</returns>
     /// <remarks>
     /// <b>選択枠・ハンドル・キャレットは描かない</b>（編集中の一時的な表示であり、保存する絵ではない）。<br/>
-    /// <b>座標は元画像ピクセル</b>である: 表示倍率を掛けず、注釈を 1:1 で描く（どの表示倍率でも同じ絵になる）。
-    /// 呼び出し側は返したビットマップを破棄する。
+    /// <b>座標は元画像ピクセル</b>である: 表示倍率を掛けず、注釈を 1:1 で描く（どの表示倍率でも同じ絵になる）。<br/>
+    /// <b>返す型は 4 つの UI 版で共通</b>である（保存形式の判定とエンコードは <see cref="EsBitmap.Save(string)"/> が単一所有する）。
     /// </remarks>
-    public RenderTargetBitmap RenderComposedImage()
+    public EsBitmap RenderComposedImage()
     {
         var width = Math.Max(1, SourcePixelWidth);
         var height = Math.Max(1, SourcePixelHeight);
 
         // DIP を 1:1 で描く（基準 DPI は共通基盤が単一所有する）
-        var bitmap = new RenderTargetBitmap(
+        using var bitmap = new RenderTargetBitmap(
             new PixelSize(width, height),
             new Vector(
                 EsUtil.Platform.Core.Coord.DpiScaler.StandardDpi,
@@ -630,8 +632,11 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             }
         }
 
-        return bitmap;
+        return bitmap.ToEsBitmap();
     }
+
+    /// <summary>今の状態で再描画する（ホストが画像の位置や表示倍率を変えたときに呼ぶ）。</summary>
+    public void InvalidateRender() => InvalidateVisual();
 
     /// <summary>本文の描画を別のコントロールへ任せる吹き出しの識別子を取得または設定する。</summary>
     /// <value>本文編集コントロールが描く吹き出しの識別子。 無い場合は <see langword="null"/>。</value>
@@ -1058,7 +1063,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         if (e.Key is Key.Left or Key.Right or Key.Up or Key.Down)
         {
             _session.BeginChange();
-            var handled = _marquee.KeyDown(ToEsKey(e.Key), _lastPointerSource);
+            var handled = _marquee.HandleKeyDown(ToEsKey(e.Key), _lastPointerSource);
             _session.CommitChange();
             InvalidateVisual();
             return handled;

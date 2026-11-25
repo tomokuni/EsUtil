@@ -16,7 +16,7 @@ using EsUtil.Feature.Annotation.Core.Interaction;
 using EsUtil.Feature.Annotation.Presenter.Selection;
 using EsUtil.Feature.StyledText;
 using EsUtil.Feature.StyledText.Core.Text;
-using EsUtil.Feature.StyledText.Presenter.Editing;
+using EsUtil.Feature.StyledText.Core.Editing;
 
 namespace EsUtil.Ui.WinForms.Annotation;
 
@@ -305,6 +305,9 @@ public sealed partial class AnnotationLayerControl : Control
 
     /// <summary>やり直すことができるかどうかを取得する。</summary>
     public bool CanRedo => _session.CanRedo;
+
+    /// <summary>今の状態で再描画する（ホストが画像の位置や表示倍率を変えたときに呼ぶ）。</summary>
+    public void InvalidateRender() => Invalidate();
 
     /// <summary>選択と本文の編集を解除する（注釈の外をクリックしたとき）。</summary>
     public void ClearSelection() => _session.Select(null);

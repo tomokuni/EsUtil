@@ -38,7 +38,7 @@
     <Using Include="EsUtil.Feature.StyledText" />
     <Using Include="EsUtil.Feature.StyledText.Core.Text" />
     <Using Include="EsUtil.Feature.StyledText.Presenter.Drawing" />
-    <Using Include="EsUtil.Feature.StyledText.Presenter.Editing" />
+    <Using Include="EsUtil.Feature.StyledText.Core.Editing" />
     <Using Include="EsUtil.Feature.StyledText.Presenter.Formatting" />
   </ItemGroup>
 

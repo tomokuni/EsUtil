@@ -300,25 +300,6 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         MeasureText = AnnotationPainter.Measure,
     };
 
-    /// <summary>書式バーの代表色（■ を並べる格子）の列数を取得または設定する。</summary>
-    /// <value>1 以上の列数。 既定は <see cref="AnnotationPalette.DefaultPaletteColumns"/>（8 列）。</value>
-    /// <remarks>組み込みの書式バーだけに効く（差し替えたバーは独自の設定に従う）。</remarks>
-    public int PaletteColumns
-    {
-        get => (_formatBar as StyledTextFormatBar)?.PaletteColumns ?? FormatBarOptions.PaletteColumns;
-        set
-        {
-            if (_formatBar is StyledTextFormatBar bar)
-            {
-                bar.PaletteColumns = value;
-            }
-        }
-    }
-
-    /// <summary>書式バーの色の選択の幅（DIP）を取得する。</summary>
-    /// <value>「■ + 全角 4 文字 + 100%」と「■ + <c>#FFFFFFFF</c>」の広いほうの幅。</value>
-    public double ColorWidth => (_formatBar as StyledTextFormatBar)?.ColorWidth ?? _formatBar.PreferredWidth;
-
     /// <summary>書式バーの色の入力欄へ出す表記を取得または設定する。</summary>
     /// <value>色名 + 不透明度（既定）またはカラーコード（<c>#AARRGGBB</c>）。</value>
     /// <remarks>

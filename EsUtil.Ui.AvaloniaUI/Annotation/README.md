@@ -187,8 +187,6 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 - **書式バーの自動表示**: `AnnotationEditorPanel.ShowFormatBarWhileEditing`（既定は `true`。 `false` にすると自動では出さない）。 表示の条件（1 文字以上を選択）は本文の編集コントロールが単一所有します。
 
-- **代表色の列数**: `AnnotationEditorPanel.PaletteColumns`（既定 8 列。 40 色なら 8 列 × 5 行）。
-- **書式バーの色の幅**: `AnnotationEditorPanel.ColorWidth`。
 - **色の表記**: `AnnotationEditorPanel.TextFormat`（色名 + 不透明度 / カラーコード `#AARRGGBB`）。
 - **任意の色を選ばせる**: `AnnotationPalette.ConfigureAll`（代表色 + 標準のタブ）。
 - **新規作成時の既定値**: `AnnotationLayerControl.DraftDefaults`（枠線・吹き出し・本文）。 既存の注釈は各注釈が持つ外観・書式で描きます。

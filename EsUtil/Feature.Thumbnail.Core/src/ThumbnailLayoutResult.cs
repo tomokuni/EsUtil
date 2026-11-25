@@ -86,17 +86,17 @@ public sealed class ThumbnailLayoutResult
     /// <summary>指定した項目の外枠の矩形を取得する。</summary>
     /// <param name="index">項目の添字。</param>
     /// <returns>外枠の矩形。 範囲外の場合は空の矩形。</returns>
-    public EsRect Slot(int index) => index >= 0 && index < _slots.Length ? _slots[index] : EsRect.Empty;
+    public EsRect GetSlot(int index) => index >= 0 && index < _slots.Length ? _slots[index] : EsRect.Empty;
 
     /// <summary>指定した項目の画像の矩形を取得する。</summary>
     /// <param name="index">項目の添字。</param>
     /// <returns>画像の矩形。 範囲外の場合は空の矩形。</returns>
-    public EsRect Image(int index) => index >= 0 && index < _images.Length ? _images[index] : EsRect.Empty;
+    public EsRect GetImageRect(int index) => index >= 0 && index < _images.Length ? _images[index] : EsRect.Empty;
 
     /// <summary>指定した項目の名前の矩形を取得する。</summary>
     /// <param name="index">項目の添字。</param>
     /// <returns>名前の矩形。 範囲外の場合は空の矩形。</returns>
-    public EsRect Label(int index) => index >= 0 && index < _labels.Length ? _labels[index] : EsRect.Empty;
+    public EsRect GetLabelRect(int index) => index >= 0 && index < _labels.Length ? _labels[index] : EsRect.Empty;
 
     /// <summary>指定した位置にある項目の添字を求める。</summary>
     /// <param name="position">一覧の内容の座標（スクロール位置を加えた座標）。</param>

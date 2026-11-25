@@ -17,11 +17,8 @@ namespace EsUtil.Ui.WinForms.Annotation;
 /// </remarks>
 public sealed partial class AnnotationLayerControl
 {
-    /// <summary>最後に押下した時刻（ダブルクリックの判定）。</summary>
-    private DateTime _lastPressedAt = DateTime.MinValue;
-
-    /// <summary>最後に押下した位置（ダブルクリックの判定）。</summary>
-    private Point _lastPressedPoint;
+    /// <summary>ダブルクリックの判定（時間と距離の規則は共通基盤が単一所有する）。</summary>
+    private readonly DoubleClickTracker _doubleClick = new();
 
     /// <summary>再描画と選択枠の更新を行う（画像・注釈・選択枠を今の状態へ合わせる）。</summary>
     protected override void OnPaint(PaintEventArgs e)
@@ -175,12 +172,7 @@ public sealed partial class AnnotationLayerControl
         _session.BeginChange();
 
         var source = ToSource(position);
-        var now = DateTime.UtcNow;
-        var isDoubleClick = now - _lastPressedAt < TimeSpan.FromMilliseconds(500)
-            && Math.Abs(position.X - _lastPressedPoint.X) < 4
-            && Math.Abs(position.Y - _lastPressedPoint.Y) < 4;
-        _lastPressedAt = now;
-        _lastPressedPoint = new Point((int)position.X, (int)position.Y);
+        var isDoubleClick = _doubleClick.Press(position, DateTimeOffset.UtcNow);
         _lastPointerSource = source;
 
         // 本文の編集中は、本文の外側の押下で編集を終える（内側の押下は本文コントロールが受ける）
@@ -399,7 +391,7 @@ public sealed partial class AnnotationLayerControl
         if (e.KeyCode is Keys.Left or Keys.Right or Keys.Up or Keys.Down)
         {
             _session.BeginChange();
-            e.Handled = _marquee.KeyDown(ToEsKey(e.KeyCode), _lastPointerSource);
+            e.Handled = _marquee.HandleKeyDown(ToEsKey(e.KeyCode), _lastPointerSource);
             Invalidate();
         }
     }

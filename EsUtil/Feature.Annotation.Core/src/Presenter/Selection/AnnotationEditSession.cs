@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using EsUtil.Feature.StyledText;
 using EsUtil.Feature.StyledText.Core.Text;
-using EsUtil.Feature.StyledText.Presenter.Editing;
+using EsUtil.Feature.StyledText.Core.Editing;
 
 namespace EsUtil.Feature.Annotation.Presenter.Selection;
 
@@ -197,7 +197,7 @@ public sealed class AnnotationEditSession
     public string AddFrame(EsRect bounds)
     {
         var frame = AnnotationGeometry.CreateFrame(bounds, DraftDefaults.FrameAppearance, ImageSize);
-        (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationCreated(AnnotationKind.Frame, frame.Id);
+        (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationCreated(AnnotationKind.Frame, frame.Id, frame.Bounds);
         ApplyChange(document => document.Add(frame));
         Select(frame.Id);
         return frame.Id;
@@ -216,7 +216,7 @@ public sealed class AnnotationEditSession
         var defaults = DraftDefaults;
         var bubble = AnnotationGeometry.CreateBubble(
             bounds, RichText.Create(TextInput.Normalize(text), defaults.TextStyle), defaults, ImageSize);
-        (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationCreated(AnnotationKind.Bubble, bubble.Id);
+        (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationCreated(AnnotationKind.Bubble, bubble.Id, bubble.Bounds);
         ApplyChange(document => document.Add(bubble));
         Select(bubble.Id);
         return bubble.Id;
@@ -336,21 +336,39 @@ public sealed class AnnotationEditSession
     {
         ArgumentNullException.ThrowIfNull(transform);
 
-        if (Selected is not { } item)
+        if (Selected is not { } item
+            || !ApplyChange(document => AnnotationSelectionPresenter.ApplyAppearance(
+                document, item.Id, transform(item.Appearance))))
         {
             return false;
         }
 
-        return ApplyChange(document => AnnotationSelectionPresenter.ApplyAppearance(
-            document, item.Id, transform(item.Appearance)));
+        if (_document.Find(item.Id) is { } updated)
+        {
+            (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationAppearanceChanged(updated.Appearance);
+        }
+
+        return true;
     }
 
     /// <summary>選択中の吹き出しの本文の余白を差し替える。</summary>
     /// <param name="padding">本文の余白（元画像ピクセル）。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
     public bool SetSelectedBodyPadding(double padding)
-        => _document.Find(_selectedId) is BubbleAnnotation bubble
-            && ApplyChange(document => AnnotationSelectionPresenter.SetBodyPadding(document, bubble.Id, padding));
+    {
+        if (_document.Find(_selectedId) is not BubbleAnnotation bubble
+            || !ApplyChange(document => AnnotationSelectionPresenter.SetBodyPadding(document, bubble.Id, padding)))
+        {
+            return false;
+        }
+
+        if (_document.Find(bubble.Id) is BubbleAnnotation updated)
+        {
+            (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationBodyPaddingChanged(updated.BodyPadding);
+        }
+
+        return true;
+    }
 
     /// <summary>選択中の吹き出しのしっぽを差し替える。</summary>
     /// <param name="transform">現在のしっぽを受け取って新しいしっぽを返す関数。</param>
@@ -360,8 +378,18 @@ public sealed class AnnotationEditSession
     {
         ArgumentNullException.ThrowIfNull(transform);
 
-        return _document.Find(_selectedId) is BubbleAnnotation bubble
-            && ApplyChange(document => document.WithTail(bubble.Id, transform(bubble.Tail)));
+        if (_document.Find(_selectedId) is not BubbleAnnotation bubble
+            || !ApplyChange(document => document.WithTail(bubble.Id, transform(bubble.Tail))))
+        {
+            return false;
+        }
+
+        if (_document.Find(bubble.Id) is BubbleAnnotation updated)
+        {
+            (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationTailChanged(updated.Tail);
+        }
+
+        return true;
     }
 
     /// <summary>選択中の注釈を最前面へ移す。</summary>
@@ -381,12 +409,18 @@ public sealed class AnnotationEditSession
     /// </remarks>
     public bool SetBounds(EsRect bounds)
     {
-        if (_document.Find(_selectedId) is not { } item)
+        if (_document.Find(_selectedId) is not { } item
+            || !SetDocumentWithoutHistory(_document.WithBounds(item.Id, bounds)))
         {
             return false;
         }
 
-        return SetDocumentWithoutHistory(_document.WithBounds(item.Id, bounds));
+        if (_document.Find(item.Id) is { } updated)
+        {
+            (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationBoundsChanged(updated.Bounds);
+        }
+
+        return true;
     }
 
     /// <summary>選択中の吹き出しのしっぽの先端を差し替える（ドラッグ中の更新）。</summary>
@@ -395,9 +429,21 @@ public sealed class AnnotationEditSession
     /// <returns>文書が変わった場合は <see langword="true"/>。</returns>
     /// <remarks>履歴への控えは <see cref="BeginChange"/> が持つ（<see cref="SetBounds"/> と同じ）。</remarks>
     public bool SetTailTip(EsPoint tip, double margin = 0)
-        => _document.Find(_selectedId) is BubbleAnnotation bubble
-            && SetDocumentWithoutHistory(
-                _document.WithTailTip(bubble.Id, AnnotationGeometry.ClampTailTip(tip, ImageSize, margin)));
+    {
+        if (_document.Find(_selectedId) is not BubbleAnnotation bubble
+            || !SetDocumentWithoutHistory(
+                _document.WithTailTip(bubble.Id, AnnotationGeometry.ClampTailTip(tip, ImageSize, margin))))
+        {
+            return false;
+        }
+
+        if (_document.Find(bubble.Id) is BubbleAnnotation updated)
+        {
+            (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationTailChanged(updated.Tail);
+        }
+
+        return true;
+    }
 
     /// <summary>これから変更することを履歴へ控える（押下の直前に呼ぶ）。</summary>
     /// <remarks>控え中に再度呼んでも最初の文書が 1 手の基準になる。</remarks>

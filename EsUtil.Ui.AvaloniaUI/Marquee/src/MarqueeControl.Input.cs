@@ -31,7 +31,7 @@ public partial class MarqueeControl
     /// </remarks>
     private void OnTopLevelKeyDown(object? sender, KeyEventArgs e)
     {
-        e.Handled = _marquee.KeyDown(e.Key.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
+        e.Handled = _marquee.HandleKeyDown(e.Key.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
     }
 
     /// <summary>フォーカスを失ったときに nudge を終了する。</summary>

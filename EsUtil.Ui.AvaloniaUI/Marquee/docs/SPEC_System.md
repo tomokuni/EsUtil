@@ -131,7 +131,7 @@ flowchart TB
 
     AP -->|等イベント購読 / SetCoordTransform / RequestConfirm / RequestCancel| Ctl
     AP -->|Rendered（付加情報の描画）| Lbl
-    Ctl -->|操作（Press / Move / Release / KeyDown / SetSelection）| Prs
+    Ctl -->|操作（Press / Move / Release / HandleKeyDown / SetSelection）| Prs
     Ctl -.->|効果の適用| Eff
     Ctl -->|描画計画の解決| Prs
     Ctl -->|描画| Painter
@@ -180,7 +180,7 @@ flowchart TB
 
 - **分類**: ファサードクラス（`public sealed class`・コア提供。 適用パターン: Facade）
 - **責務**: Marquee の**操作の唯一の窓口**。 UI 層とホストは本型だけを参照する
-  - 操作の提供: `Press` / `Move` / `Release` / `KeyDown` / `EndNudge` / `SetSelection` / `ResetSelection` / `RequestConfirm` / `RequestCancel` / `ResolveDrawPlan`
+  - 操作の提供: `Press` / `Move` / `Release` / `HandleKeyDown` / `EndNudge` / `SetSelection` / `ResetSelection` / `RequestConfirm` / `RequestCancel` / `ResolveDrawPlan`
   - 設定・環境値の保持: `Options` / `Appearance` / `ClientToSourceScaling` / `DisplayScaleScaling` / `SizeLabelOverrideProvider` / `Log` / `SetCoordTransform`
   - 効果の適用: `IMarqueeEffects`（UI が実装）へフォーカス・再描画・カーソル形状・ポインターキャプチャ・座標変換を要求する（適用順の単一所有）
   - ホイール操作はホストが行う（本コントロールは通知も要求も持たない。 コントロール化を前提とした処理は UI 層の責務である）
@@ -317,9 +317,9 @@ sequenceDiagram
 
     Note over Ctl,AP: マウスホイールは本コントロールが扱わない（ホストがビューポートへ転送する）
 
-    AP->>Ctl: 矢印キー（KeyDown）
-    Ctl->>Fac: KeyDown(EsKey, カーソル位置)
-    Fac->>Ses: KeyDown
+    AP->>Ctl: 矢印キー（キー入力）
+    Ctl->>Fac: HandleKeyDown(EsKey, カーソル位置)
+    Fac->>Ses: HandleKeyDown
     Ses->>Stt: Nudge（整数加算）
     Ctl-->>AP: SelectionChanged / LoupePositionMoved
 ```

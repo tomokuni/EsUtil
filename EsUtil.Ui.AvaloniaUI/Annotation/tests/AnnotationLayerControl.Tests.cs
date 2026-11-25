@@ -55,22 +55,17 @@ public class AnnotationLayerControlTests
 
         using var composed = layer.RenderComposedImage();
 
-        Assert.Equal(new PixelSize(width, height), composed.PixelSize);
+        Assert.Equal(width, composed.Width);
+        Assert.Equal(height, composed.Height);
 
         // 枠線が描かれている（背景の白だけではない）
-        using var target = new WriteableBitmap(composed.PixelSize, new Vector(96, 96));
-        using var buffer = target.Lock();
-        composed.CopyPixels(buffer);
-        var stride = buffer.RowBytes;
-        var row = new byte[stride];
         var hasAnnotationPixel = false;
         for (var y = 0; y < height && !hasAnnotationPixel; y++)
         {
-            System.Runtime.InteropServices.Marshal.Copy(buffer.Address + (y * stride), row, 0, stride);
             for (var x = 0; x < width; x++)
             {
-                var offset = x * 4;
-                if (row[offset] < 200 || row[offset + 1] < 200 || row[offset + 2] < 200)
+                var (b, g, r, _) = composed.GetPixel(x, y);
+                if (r < 200 || g < 200 || b < 200)
                 {
                     hasAnnotationPixel = true;
                     break;

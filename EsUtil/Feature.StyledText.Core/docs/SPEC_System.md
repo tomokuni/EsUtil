@@ -36,8 +36,8 @@
 flowchart TB
     H["利用側（注釈の提示層・UI 層）<br/>入力の受付・描画・実寸の計測"]
     F["公開面（src/ 直下）<br/>RichText / TextRun / TextStyle / 行の値"]
-    C["Core（src/Core のカテゴリ別）<br/>Defaults / Text / Internal"]
-    P["Presenter（src/Presenter のカテゴリ別）<br/>Editing（本文の値と状態・キーの割り当て）"]
+    C["Core（src/Core のカテゴリ別）<br/>Defaults / Text / Editing / Internal"]
+    P["Presenter（src/Presenter のカテゴリ別）<br/>Drawing（キャレットと選択範囲の見た目）/ Formatting（書式バーの並びと寸法）"]
     PC["EsUtil.Platform.Core<br/>EsRect / EsPoint / EsSize"]
     H --> F
     H --> C
@@ -51,8 +51,8 @@ flowchart TB
 - **折り返しと行の配置は 1 か所で決めます**（`TextLayout`。 折り返しの位置と行の縦位置は対であり、別々に実装するとキャレットの高さと食い違う）。
 - **文字の実寸だけを UI に委ねます**（描画エンジンによって字幅が違うため。 位置の決め方は本層が単一所有する）。
 - **文字位置の境界は `TextCursor` が単一所有します**（キャレット・選択・削除・折り返し・書式の範囲が同じ境界を使う）。
-- **編集している本文の値と状態（キャレット・選択・以降の入力へ効かせる書式）、キーの割り当ては提示層が単一所有します**（`TextEditor` / `TextEditKeyMap`）。 UI は自分のキーの型を写し、`TextEditor` を操作して描画と通知だけを行います。
-- **書式バーを出す条件は提示層が単一所有します**（`TextEditor.ShouldShowFormatBar`。 編集中・自動表示が有効・1 文字以上を選択）。 4 つの UI 版は本値だけを見てバーを出し入れし、条件を写しません。
+- **編集している本文の値と状態（キャレット・選択・以降の入力へ効かせる書式）、キーの割り当てはコアが単一所有します**（`TextEditor` / `TextEditKeyMap`。 `src/Core/Editing`）。 UI は自分のキーの型を写し、`TextEditor` を操作して描画と通知だけを行います。
+- **書式バーを出す条件はコアが単一所有します**（`TextEditor.ShouldShowFormatBar`。 編集中・自動表示が有効・1 文字以上を選択）。 4 つの UI 版は本値だけを見てバーを出し入れし、条件を写しません。
 - **公開面は `src/` 直下（名前空間 `EsUtil.Feature.StyledText`）に置き、層の内部は `src/Core/<カテゴリ>` / `src/Presenter/<カテゴリ>` へ置きます**（名前空間は `EsUtil.Feature.StyledText.Core.<カテゴリ>` / `.Presenter.<カテゴリ>`。 規則は [`.github/命名規約.md`](../../../.github/命名規約.md)）。 フォルダと名前空間の一覧は [`../README.md`](../README.md) §3 が持つ。
 
 ## 4. コンポーネント
@@ -67,11 +67,11 @@ flowchart TB
 | `TextLineIndex` / `TextLineLayout` | Core（`.Core.Text`） | 行と文字位置の対応（区間の原点からの距離で測る。 キャレット・選択範囲・位置から文字の特定） |
 | `TextStyleEdit` | Core（`.Core.Text`） | 入力する文字列の挿入（以降の入力へ効かせる書式の反映）と、書式を適用する範囲の規則 |
 | `TextCompositionPreview` / `TextCaretBlink` | Core（`.Core.Text`） | IME の変換中の文字列を入れた描画用の値・キャレットの点滅の規則 |
-| `TextEditor` | Presenter（`.Presenter.Editing`） | **編集中の本文の値と状態**（本文・キャレット・選択・以降の入力へ効かせる書式・変換中の文字列）。 本文の操作・キーの実行・折り返しとキャレット位置の解決を 1 か所にまとめ、**書式バーを表示する条件（編集中・1 文字以上を選択）も単一所有する**。 編集する対象（文書・識別子）を知らない |
-| `TextEditState` | Presenter（`.Presenter.Editing`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 本文を受け取って書き換えた本文を返し、編集する対象（文書・識別子）を知らない（`TextEditor` が本文と組にして公開する） |
-| `TextEditChange` | Presenter（`.Presenter.Editing`） | 編集で変わった内容（`Text` / `Selection` / `Editing`）。 UI が描画の更新と通知を選ぶ |
+| `TextEditor` | Core（`.Core.Editing`） | **編集中の本文の値と状態**（本文・キャレット・選択・以降の入力へ効かせる書式・変換中の文字列）。 本文の操作・キーの実行・折り返しとキャレット位置の解決を 1 か所にまとめ、**書式バーを表示する条件（編集中・1 文字以上を選択）も単一所有する**。 編集する対象（文書・識別子）を知らない |
+| `TextEditState` | Core（`.Core.Editing`） | 本文の編集状態（キャレット・選択・入力・削除・書式）。 本文を受け取って書き換えた本文を返し、編集する対象（文書・識別子）を知らない（`TextEditor` が本文と組にして公開する） |
+| `TextEditChange` | Core（`.Core.Editing`） | 編集で変わった内容（`Text` / `Selection` / `Editing`）。 UI が描画の更新と通知を選ぶ |
 | `TextInput` | Core（`.Core.Text`） | 本文へ入れる文字列の正規化（改行を `\n` へ揃える） |
-| `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand` / `TextEditRequest` | Presenter（`.Presenter.Editing`） | キーの割り当て（どのキーがどの操作になるか）。 修飾キーとキーの組み合わせを 1 か所で決める |
+| `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand` / `TextEditRequest` | Core（`.Core.Editing`） | キーの割り当て（どのキーがどの操作になるか）。 修飾キーとキーの組み合わせを 1 か所で決める |
 | `TextDefaults` / `TextLimits` | Core（`.Core.Defaults`） | 既定値（フォントの優先順・大きさ・既定の書式）と安全域（設定・JSON・入力の共通の補正） |
 
 **本アセンブリはログを出力しません**（純粋な計算のみを行うため。 記録は利用側が行う。 規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。

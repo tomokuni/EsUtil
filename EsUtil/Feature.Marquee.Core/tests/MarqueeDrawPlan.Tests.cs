@@ -132,7 +132,7 @@ public class MarqueeDrawPlanTests
         var presenter = CreatePresenter();
         presenter.Press(new EsPoint(10, 10), clickCount: 1);
         presenter.Move(new EsPoint(50, 40));
-        presenter.KeyDown(EsKey.Right, cursorPosition: null);   // nudge 中（マーカー可視）
+        presenter.HandleKeyDown(EsKey.Right, cursorPosition: null);   // nudge 中（マーカー可視）
 
         var plan = presenter.ResolveDrawPlan(new EsSize(200, 100), MeasureText);
 

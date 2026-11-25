@@ -1,6 +1,6 @@
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
-using EsUtil.Feature.StyledText.Presenter.Editing;
+using EsUtil.Feature.StyledText.Core.Editing;
 
 namespace EsUtil.Feature.StyledText.Core.Tests;
 

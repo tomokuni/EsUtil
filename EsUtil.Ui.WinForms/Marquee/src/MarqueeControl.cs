@@ -643,7 +643,7 @@ public sealed class MarqueeControl : Control
         ArgumentNullException.ThrowIfNull(e);
         base.OnKeyDown(e);
 
-        e.Handled = _marquee.KeyDown(e.KeyCode.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
+        e.Handled = _marquee.HandleKeyDown(e.KeyCode.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
         e.SuppressKeyPress = e.Handled;
     }
 

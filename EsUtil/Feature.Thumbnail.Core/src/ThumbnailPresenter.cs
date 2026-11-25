@@ -228,12 +228,12 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
 
         var highlighted = isSelected || isHovered;
         var shadow = _appearance.ShowShadow ? _appearance.Shadow : null;
-        var image = layout.Image(index);
+        var image = layout.GetImageRect(index);
         var shadowArea = shadow is null ? image : shadow.Expand(image);
 
         // 名前行は最大 2 行である（2 行に収まらない名前は拡張子を残して省略する）。
         // 文字を置ける幅と高さは行の矩形から余白を除いた値であり、太字は幅が広いため測定にも太字を渡す
-        var labelBounds = layout.Label(index);
+        var labelBounds = layout.GetLabelRect(index);
         var isBoldLabel = isSelected && _appearance.BoldSelectedLabel;
         var textWidth = Math.Max(0, labelBounds.Width - (_options.LabelHorizontalPadding * 2));
         var textHeight = Math.Max(0, labelBounds.Height - (_appearance.LabelVerticalPadding * 2));
@@ -253,7 +253,7 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
             : (shadow is null ? s_imageAndLabel : s_shadowImageAndLabel);
 
         return new ThumbnailDrawPlan(
-            index, layout.Slot(index), image, shadowArea, label, layers, highlight, shadow, isHovered, isSelected);
+            index, layout.GetSlot(index), image, shadowArea, label, layers, highlight, shadow, isHovered, isSelected);
     }
 
     /// <summary>画像の表示高さを求める（幅を固定し、縦横比を保つ）。</summary>

@@ -31,14 +31,11 @@ public sealed partial class AnnotationLayerControl
     /// <summary>注釈の無い場所でドラッグしている間かどうか（プレビューのパンへ渡す）。</summary>
     private bool _isPreviewDragging;
 
-    /// <summary>最後に押下した時刻（ダブルクリックの判定）。</summary>
-    private DateTimeOffset _lastPressedAt = DateTimeOffset.MinValue;
-
-    /// <summary>最後に押下した位置（ダブルクリックの判定）。</summary>
-    private EsPoint _lastPressedPoint;
+    /// <summary>ダブルクリックの判定（時間と距離の規則は共通基盤が単一所有する）。</summary>
+    private readonly DoubleClickTracker _doubleClick = new();
 
     /// <summary>再描画する（画像・注釈・選択枠を今の状態へ合わせる）。</summary>
-    public void Redraw()
+    public void InvalidateRender()
     {
         var (scale, offset) = ResolveImageTransform();
 
@@ -80,9 +77,6 @@ public sealed partial class AnnotationLayerControl
         };
 
     }
-
-    /// <summary>再描画を要求する。</summary>
-    public void Invalidate() => Redraw();
 
     /// <summary>表示用の画像を作り直す（同じ画像なら作り直さない）。</summary>
     private void ApplyImageSource()
@@ -255,12 +249,7 @@ public sealed partial class AnnotationLayerControl
         _session.BeginChange();
 
         var source = ToSource(position);
-        var now = DateTimeOffset.UtcNow;
-        var isDoubleClick = now - _lastPressedAt < TimeSpan.FromMilliseconds(500)
-            && Math.Abs(position.X - _lastPressedPoint.X) < 4
-            && Math.Abs(position.Y - _lastPressedPoint.Y) < 4;
-        _lastPressedAt = now;
-        _lastPressedPoint = position;
+        var isDoubleClick = _doubleClick.Press(position, DateTimeOffset.UtcNow);
 
         if (IsEditingText)
         {
@@ -362,14 +351,14 @@ public sealed partial class AnnotationLayerControl
             {
                 _isDraggingTail = false;
                 _session.CommitChange();
-                Redraw();
+                InvalidateRender();
                 return;
             }
 
             if (Selected is BubbleAnnotation)
             {
                 _session.SetTailTip(source, TailGrabMarginSource());
-                Redraw();
+                InvalidateRender();
             }
 
             return;
@@ -404,7 +393,7 @@ public sealed partial class AnnotationLayerControl
             ApplyHoverCursor(point.Position);
         }
 
-        Redraw();
+        InvalidateRender();
     }
 
     /// <summary>ポインターが離されたときの処理。</summary>
@@ -424,7 +413,7 @@ public sealed partial class AnnotationLayerControl
         if (_isSelectingText)
         {
             _isSelectingText = false;
-            Redraw();
+            InvalidateRender();
         }
         else if (_isPreviewDragging)
         {
@@ -435,7 +424,7 @@ public sealed partial class AnnotationLayerControl
         {
             _isDraggingTail = false;
             _session.CommitChange();
-            Redraw();
+            InvalidateRender();
         }
         else
         {
@@ -448,7 +437,7 @@ public sealed partial class AnnotationLayerControl
             _capturedPointer = null;
         }
 
-        Redraw();
+        InvalidateRender();
     }
 
     /// <summary>キーが押されたときの処理（本文の編集・削除・nudge）。</summary>
@@ -485,8 +474,8 @@ public sealed partial class AnnotationLayerControl
             case VirtualKey.Up:
             case VirtualKey.Down:
                 _session.BeginChange();
-                e.Handled = _marquee.KeyDown(ToEsKey(e.Key), _lastPointerSource);
-                Redraw();
+                e.Handled = _marquee.HandleKeyDown(ToEsKey(e.Key), _lastPointerSource);
+                InvalidateRender();
                 return;
         }
     }
@@ -666,7 +655,7 @@ public sealed partial class AnnotationLayerControl
             _isApplyingMarquee = false;
         }
 
-        Redraw();
+        InvalidateRender();
     }
 }
 

@@ -1,4 +1,4 @@
-namespace EsUtil.Feature.StyledText.Presenter.Editing;
+namespace EsUtil.Feature.StyledText.Core.Editing;
 
 /// <summary>本文の編集で押される修飾キー（UI の修飾キーの型に依存しない）。</summary>
 /// <remarks>

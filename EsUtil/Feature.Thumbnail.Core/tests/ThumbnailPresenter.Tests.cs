@@ -225,9 +225,9 @@ public class ThumbnailPresenterTests
         var layout = presenter.ResolveLayout(300, 96, [96, 40]);
         var plan = presenter.ResolveDrawPlan(layout, 1, "b", -1, -1);
 
-        Assert.Equal(layout.Slot(1), plan.Slot);
-        Assert.Equal(layout.Image(1), plan.Image);
-        Assert.Equal(layout.Label(1), plan.Label.Bounds);
+        Assert.Equal(layout.GetSlot(1), plan.Slot);
+        Assert.Equal(layout.GetImageRect(1), plan.Image);
+        Assert.Equal(layout.GetLabelRect(1), plan.Label.Bounds);
     }
 
     /// <summary>影の算法を差し替えてもレイアウトの余白が追従することを検証する。</summary>
@@ -248,7 +248,7 @@ public class ThumbnailPresenterTests
 
         var plan = presenter.ResolveDrawPlan(layout, 0, "a", -1, -1);
         Assert.Same(wide, plan.Shadow);
-        Assert.Equal(layout.Image(0).X - 40, plan.ShadowArea.X, 6);
+        Assert.Equal(layout.GetImageRect(0).X - 40, plan.ShadowArea.X, 6);
         Assert.Equal(ThumbnailHighlightKind.None, plan.Highlight);
         Assert.Contains(ThumbnailDrawLayer.Shadow, plan.Layers);
     }

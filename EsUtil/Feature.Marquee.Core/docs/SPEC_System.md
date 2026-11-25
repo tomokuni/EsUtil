@@ -69,7 +69,7 @@ sequenceDiagram
     participant P as 描画層（本コアを参照する上位の層）
     participant H as ホスト
 
-    UI->>M: Press / Move / Release / KeyDown（対象座標）
+    UI->>M: Press / Move / Release / HandleKeyDown（対象座標）
     M->>S: 入力の解釈を委譲
     S->>S: 状態遷移の判断（スナップ・クリック・nudge・最小サイズ）
     S-->>M: MarqueeFeedback（効果）
@@ -93,9 +93,9 @@ stateDiagram-v2
     NoSelection --> Dragging: Press（ハンドル外）
     Dragging --> Selected: Release（最小サイズ以上）
     Dragging --> NoSelection: Release（最小サイズ未満＝キャンセル）
-    NoSelection --> StartPointNudging: KeyDown（矢印）
-    Dragging --> DraggingNudging: KeyDown（矢印）
-    Selected --> SelectedNudging: KeyDown（矢印）
+    NoSelection --> StartPointNudging: HandleKeyDown（矢印）
+    Dragging --> DraggingNudging: HandleKeyDown（矢印）
+    Selected --> SelectedNudging: HandleKeyDown（矢印）
     StartPointNudging --> NoSelection: EndNudge / Press / Reset
     DraggingNudging --> Dragging: EndNudge / Press / Reset
     SelectedNudging --> Selected: EndNudge

@@ -15,7 +15,7 @@ using EsUtil.Feature.Annotation.Core.Interaction;
 using EsUtil.Feature.Annotation.Presenter.Selection;
 using EsUtil.Feature.StyledText;
 using EsUtil.Feature.StyledText.Core.Text;
-using EsUtil.Feature.StyledText.Presenter.Editing;
+using EsUtil.Feature.StyledText.Core.Editing;
 
 namespace EsUtil.Ui.WinUI3.Annotation;
 
@@ -117,8 +117,8 @@ public sealed partial class AnnotationLayerControl : Grid
         PointerReleased += OnPointerReleased;
         KeyDown += OnKeyDown;
 
-        SizeChanged += (_, _) => Redraw();
-        Loaded += (_, _) => Redraw();
+        SizeChanged += (_, _) => InvalidateRender();
+        Loaded += (_, _) => InvalidateRender();
     }
 
     /// <summary>外観・書式の編集パネルを要求する（ホストが表示する）。</summary>
@@ -162,7 +162,7 @@ public sealed partial class AnnotationLayerControl : Grid
 
             _imageSource = value;
             _imageBitmap = null;
-            Redraw();
+            InvalidateRender();
         }
     }
 
@@ -273,7 +273,7 @@ public sealed partial class AnnotationLayerControl : Grid
         set
         {
             _presenter.LineHeightFactor = value;
-            Redraw();
+            InvalidateRender();
         }
     }
 
@@ -284,7 +284,7 @@ public sealed partial class AnnotationLayerControl : Grid
         set
         {
             _marquee.Options = _marquee.Options with { HandleSize = value };
-            Redraw();
+            InvalidateRender();
         }
     }
 
@@ -303,7 +303,7 @@ public sealed partial class AnnotationLayerControl : Grid
         set
         {
             _session.Document = value;
-            Redraw();
+            InvalidateRender();
         }
     }
 
@@ -319,7 +319,7 @@ public sealed partial class AnnotationLayerControl : Grid
         {
             // 適用先の規則（選択が無ければ以降の入力へ回す）は編集セッションが単一所有する
             _session.SelectedTextStyle = value;
-            Redraw();
+            InvalidateRender();
         }
     }
 
@@ -524,7 +524,7 @@ public sealed partial class AnnotationLayerControl : Grid
             }
 
             _externalTextId = value;
-            Redraw();
+            InvalidateRender();
         }
     }
 
@@ -632,7 +632,7 @@ public sealed partial class AnnotationLayerControl : Grid
             if (!_session.IsEditingText)
             {
                 _isSelectingText = false;
-                Redraw();
+                InvalidateRender();
             }
             else
             {
@@ -670,7 +670,7 @@ public sealed partial class AnnotationLayerControl : Grid
             DocumentChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        Redraw();
+        InvalidateRender();
     }
 
     /// <summary>画像の表示倍率と位置を求める（縦横比を保って中央に置く）。</summary>

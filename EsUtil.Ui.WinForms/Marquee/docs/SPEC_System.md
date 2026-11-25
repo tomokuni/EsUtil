@@ -174,7 +174,7 @@ classDiagram
         <<提示層>>
         +ResolveDrawPlan(EsSize, Func)
         +Press / Move / Release
-        +KeyDown(EsKey, EsPoint)
+        +HandleKeyDown(EsKey, EsPoint)
     }
 
     MarqueeControl *-- Effects
@@ -231,8 +231,8 @@ sequenceDiagram
     User->>C: 矢印キー押下
     C->>C: 現在のカーソル位置を対象座標で取得する
     C->>C: Keys を EsKey へ変換する
-    C->>P: KeyDown(EsKey, カーソル位置)
-    P->>Core: KeyDown(EsKey, カーソル位置)
+    C->>P: HandleKeyDown(EsKey, カーソル位置)
+    P->>Core: HandleKeyDown(EsKey, カーソル位置)
     Core->>Cur: カーソルを非表示にする
     Core->>Cur: カーソルを移動する（画面物理座標）
     Core-->>C: 効果（再描画・カーソル形状）

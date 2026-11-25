@@ -317,14 +317,14 @@ public sealed partial class MarqueeCore
     /// キーの解釈（nudge の許可条件を含む）はセッションが単一所有し、返された効果を本クラスが UI へ適用する。<br/>
     /// 確定・キャンセルは常に処理済みとして扱われる（UI 層へキーを流さない）。
     /// </remarks>
-    public bool KeyDown(EsKey key, EsPoint? cursorPosition)
+    public bool HandleKeyDown(EsKey key, EsPoint? cursorPosition)
     {
-        if (IgnoreInputIfReadOnly(nameof(KeyDown)))
+        if (IgnoreInputIfReadOnly(nameof(HandleKeyDown)))
         {
             return false;
         }
 
-        var feedback = _session.KeyDown(key, cursorPosition);
+        var feedback = _session.HandleKeyDown(key, cursorPosition);
         Apply(feedback);
         return feedback.IsHandled;
     }

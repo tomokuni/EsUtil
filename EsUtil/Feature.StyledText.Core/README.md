@@ -29,7 +29,7 @@
 using EsUtil.Feature.StyledText;
 using EsUtil.Feature.StyledText.Core.Defaults;
 using EsUtil.Feature.StyledText.Core.Text;
-using EsUtil.Feature.StyledText.Presenter.Editing;
+using EsUtil.Feature.StyledText.Core.Editing;
 using EsUtil.Platform.Core.Geometry;
 
 // 1. 書式付きの文字列を作る（run が自分の文字列と書式を持つ）
@@ -95,7 +95,9 @@ if (request.Command == TextEditCommand.CaretLeft)
 | `src/Core/Defaults` | `.Core.Defaults` | 既定値と安全域（`TextDefaults` / `TextLimits`） |
 | `src/Core/Text` | `.Core.Text` | 折り返しと行の配置・行と文字位置の対応・書記素クラスタ・入力の挿入と改行の正規化・点滅・変換中の文字列 |
 | `src/Core/Internal` | `.Core.Internal` | 折り返しの実装（`internal`） |
-| `src/Presenter/Editing` | `.Presenter.Editing` | 編集中の本文の値と状態（キャレット・選択・入力・削除・書式）と、キーの割り当て（どのキーがどの操作か）。 本文と状態は `TextEditor` が組にして持つ |
+| `src/Core/Editing` | `.Core.Editing` | 編集中の本文の値と状態（キャレット・選択・入力・削除・書式）と、キーの割り当て（どのキーがどの操作か）。 本文と状態は `TextEditor` が組にして持つ |
+| `src/Presenter/Drawing` | `.Presenter.Drawing` | キャレットと選択範囲の見た目（`TextEditorAppearance`） |
+| `src/Presenter/Formatting` | `.Presenter.Formatting` | 書式バーの並び・寸法・フォントの並べ方（`TextFormatBarLayout` / `TextEditorLayout` / `TextFontCatalog` / `ITextFormatBarContext`） |
 
 ## 4. 依存
 

@@ -1,7 +1,7 @@
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Feature.StyledText.Core.Text;
 
-namespace EsUtil.Feature.StyledText.Presenter.Editing;
+namespace EsUtil.Feature.StyledText.Core.Editing;
 
 /// <summary>本文の編集（キャレット・選択・入力・削除・書式）の状態と規則（単一所有）。</summary>
 /// <remarks>

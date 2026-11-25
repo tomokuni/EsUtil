@@ -294,13 +294,13 @@ public class MarqueeSessionTests
     // ====================================================================
 
     [Fact]
-    internal void KeyDown_Escapeでキャンセル要求を通知し選択を破棄する()
+    internal void HandleKeyDown_Escapeでキャンセル要求を通知し選択を破棄する()
     {
         var session = CreateSession(out var notices);
         session.SetSelection(new EsRect(50, 50, 100, 80));
         notices.Clear();
 
-        var feedback = session.KeyDown(EsKey.Escape, null);
+        var feedback = session.HandleKeyDown(EsKey.Escape, null);
 
         Assert.True(feedback.IsHandled);
         Assert.True(feedback.ShouldRedraw);
@@ -311,13 +311,13 @@ public class MarqueeSessionTests
     [Theory]
     [InlineData(EsKey.Enter)]
     [InlineData(EsKey.Return)]
-    internal void KeyDown_EnterとReturnで確定要求を通知する(EsKey key)
+    internal void HandleKeyDown_EnterとReturnで確定要求を通知する(EsKey key)
     {
         var session = CreateSession(out var notices);
         session.SetSelection(new EsRect(50, 50, 100, 80));
         notices.Clear();
 
-        var feedback = session.KeyDown(key, null);
+        var feedback = session.HandleKeyDown(key, null);
 
         Assert.True(feedback.IsHandled);
         Assert.Equal([MarqueeNoticeKind.ConfirmRequested], Kinds(notices));
@@ -325,11 +325,11 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    internal void KeyDown_選択なしのEnterでも処理済みとして扱う()
+    internal void HandleKeyDown_選択なしのEnterでも処理済みとして扱う()
     {
         var session = CreateSession(out var notices);
 
-        var feedback = session.KeyDown(EsKey.Enter, null);
+        var feedback = session.HandleKeyDown(EsKey.Enter, null);
 
         // 確定要求は発火しないが、キーは処理済み（上位が既定動作へ流さない）
         Assert.True(feedback.IsHandled);
@@ -338,11 +338,11 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    internal void KeyDown_矢印キーでnudgeしカーソルを非表示にする()
+    internal void HandleKeyDown_矢印キーでnudgeしカーソルを非表示にする()
     {
         var session = CreateSession(out var notices);
 
-        var feedback = session.KeyDown(EsKey.Left, new EsPoint(100, 100));
+        var feedback = session.HandleKeyDown(EsKey.Left, new EsPoint(100, 100));
 
         Assert.True(feedback.IsHandled);
         Assert.True(feedback.ShouldRedraw);
@@ -354,13 +354,13 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    internal void KeyDown_選択確定後はnudgeしない()
+    internal void HandleKeyDown_選択確定後はnudgeしない()
     {
         var session = CreateSession(out var notices);
         session.SetSelection(new EsRect(50, 50, 100, 80));
         notices.Clear();
 
-        var feedback = session.KeyDown(EsKey.Left, null);
+        var feedback = session.HandleKeyDown(EsKey.Left, null);
 
         Assert.False(feedback.IsHandled);
         Assert.False(session.IsNudgeActive);
@@ -368,11 +368,11 @@ public class MarqueeSessionTests
     }
 
     [Fact]
-    internal void KeyDown_矢印キー以外は処理しない()
+    internal void HandleKeyDown_矢印キー以外は処理しない()
     {
         var session = CreateSession(out _);
 
-        var feedback = session.KeyDown(EsKey.A, null);
+        var feedback = session.HandleKeyDown(EsKey.A, null);
 
         Assert.False(feedback.IsHandled);
         Assert.False(session.IsNudgeActive);

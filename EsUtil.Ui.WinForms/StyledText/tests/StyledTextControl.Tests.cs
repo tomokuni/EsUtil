@@ -159,7 +159,7 @@ public class StyledTextControlTests
     [Fact]
     internal void Editor_共有した実体の本文を使う()
     {
-        var shared = new EsUtil.Feature.StyledText.Presenter.Editing.TextEditor
+        var shared = new EsUtil.Feature.StyledText.Core.Editing.TextEditor
         {
             Text = RichText.Create("共有", TextDefaults.DefaultStyle),
         };

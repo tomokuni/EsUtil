@@ -551,7 +551,7 @@ public sealed partial class AnnotationLayerControl
         if (e.Key is Key.Left or Key.Right or Key.Up or Key.Down)
         {
             _session.BeginChange();
-            e.Handled = _marquee.KeyDown(ToEsKey(e.Key), _lastPointerSource);
+            e.Handled = _marquee.HandleKeyDown(ToEsKey(e.Key), _lastPointerSource);
             InvalidateVisual();
         }
     }

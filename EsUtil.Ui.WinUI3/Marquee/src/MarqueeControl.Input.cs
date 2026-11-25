@@ -139,7 +139,7 @@ public sealed partial class MarqueeControl
     /// 本コントロールにフォーカスがある場合のみ呼ばれる（他の UI 版のフォーカス非依存 nudge とは異なる）。
     /// </remarks>
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
-        => e.Handled = _marquee.KeyDown(e.Key.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
+        => e.Handled = _marquee.HandleKeyDown(e.Key.ToEsKey(), CurrentCursorSourcePosition()) || e.Handled;
 
     /// <summary>フォーカスを失ったときに nudge を終了する。</summary>
     /// <param name="sender">イベント送信元（本コントロール）。</param>

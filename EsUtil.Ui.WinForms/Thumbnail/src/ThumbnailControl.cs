@@ -245,7 +245,7 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <param name="index">項目の添字。</param>
     /// <returns>外枠の矩形。 範囲外の場合は空の矩形。</returns>
     public Rectangle ItemBounds(int index)
-        => index >= 0 && index < _items.Count ? ToRect(EnsureLayout().Slot(index)) : Rectangle.Empty;
+        => index >= 0 && index < _items.Count ? ToRect(EnsureLayout().GetSlot(index)) : Rectangle.Empty;
 
     /// <summary>一覧を空にする。</summary>
     public void ClearItems()
@@ -322,7 +322,7 @@ public sealed class ThumbnailControl : ScrollableControl
             return;
         }
 
-        var slot = layout.Slot(index);
+        var slot = layout.GetSlot(index);
         var top = -AutoScrollPosition.Y;
         if (slot.Y < top)
         {

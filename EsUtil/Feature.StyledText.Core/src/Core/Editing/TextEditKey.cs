@@ -1,4 +1,4 @@
-namespace EsUtil.Feature.StyledText.Presenter.Editing;
+namespace EsUtil.Feature.StyledText.Core.Editing;
 
 /// <summary>本文の編集で意味を持つキー（UI のキーの型に依存しない）。</summary>
 /// <remarks>

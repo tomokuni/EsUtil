@@ -29,9 +29,9 @@
 
 ## 3. アーキテクチャ
 
-- **規則は提示層が単一所有します**: 折り返しと行の配置は `TextLayout`、行と文字位置の対応は `TextLineIndex` / `TextLineLayout`、書記素クラスタは `TextCursor`、本文の値と編集の状態は `TextEditor`（状態は `TextEditState`）、キーの割り当ては `TextEditKeyMap` です。
+- **規則は本コントロールが使う機能アセンブリ（`EsUtil.Feature.StyledText.Core`）が単一所有します**: 折り返しと行の配置は `TextLayout`、行と文字位置の対応は `TextLineIndex` / `TextLineLayout`、書記素クラスタは `TextCursor`、本文の値と編集の状態は `TextEditor`（状態は `TextEditState`）、キーの割り当ては `TextEditKeyMap` です。
 - **本コントロールはフレームワーク固有の配線だけを行います**: 描画・入力イベント・IME・クリップボード・フォーカス。
-- **本文の値と編集の状態は提示層の `TextEditor` が単一所有します**: コントロールは値と状態の写しを持たず、編集の結果は新しい `RichText` として `RichTextValue` へ書き戻します。
+- **本文の値と編集の状態はコアの `TextEditor` が単一所有します**: コントロールは値と状態の写しを持たず、編集の結果は新しい `RichText` として `RichTextValue` へ書き戻します。
 
 ## 4. コンポーネント
 

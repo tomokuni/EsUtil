@@ -333,7 +333,7 @@ internal sealed class MarqueeSession
     /// <b>Enter と Return は同一のキー</b>として扱う（UI フレームワークの <c>Key</c> は両者が同値のエイリアスのため、
     /// 名前ベースの相互変換では <c>Return</c> が得られ、UI ごとに届く値が異なる）。
     /// </remarks>
-    internal MarqueeFeedback KeyDown(EsKey key, EsPoint? cursorPosition)
+    internal MarqueeFeedback HandleKeyDown(EsKey key, EsPoint? cursorPosition)
     {
         if (key == EsKey.Escape)
         {

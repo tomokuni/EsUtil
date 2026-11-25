@@ -105,7 +105,7 @@ UI 層に残すのは「フレームワーク固有の型を使うもの」と�
 | `LoupeControl` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `AnnotationLayerControl` / `AnnotationEditorPanel` | あり | あり（提示 + 外観） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 | `ColorSelectorControl` | なし（色名・色文字列の規則は共通基盤の `Palette` が持つ） | なし | AvaloniaUI / MewUI / WinUI3 |
-| `StyledTextControl` | `EsUtil.Feature.StyledText.Core`（書式・折り返し・行対応・編集状態。 提示層は同アセンブリの `.Presenter.Editing`） | あり（提示は同アセンブリ） | AvaloniaUI / MewUI / WinUI3 / WinForms |
+| `StyledTextControl` | `EsUtil.Feature.StyledText.Core`（書式・折り返し・行対応・編集状態（同アセンブリの `.Core.Editing`）。 提示層は同アセンブリの `.Presenter.Drawing` / `.Presenter.Formatting`） | あり（提示は同アセンブリ） | AvaloniaUI / MewUI / WinUI3 / WinForms |
 
 **Core と Presenter の両方を持つ機能でも、プロジェクト（アセンブリ）は 1 つ**です（`EsUtil.Feature.<機能>.Core`。 公開面は `src/` 直下、層の内部は `src/Core/` と `src/Presenter/` で分ける）。
 

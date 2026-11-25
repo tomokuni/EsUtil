@@ -301,7 +301,7 @@ public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFor
     /// </remarks>
     public ColorTextFormat TextFormat
     {
-        get => ColorTextFormat.NameWithAlpha;
+        get => _color.TextFormat;
         set => _color.TextFormat = value;
     }
 

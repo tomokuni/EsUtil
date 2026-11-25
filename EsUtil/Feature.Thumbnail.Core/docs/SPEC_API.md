@@ -74,9 +74,9 @@
 | `Slots` | property | 項目の枠線（ホバー帯）の矩形（並び順） |
 | `Images` | property | 画像の矩形（並び順） |
 | `Labels` | property | 名前の矩形（並び順） |
-| `Slot(int index)` | method | 指定した項目の枠線の矩形。 **範囲外は `EsRect.Empty`** |
-| `Image(int index)` | method | 指定した項目の画像の矩形。 **範囲外は `EsRect.Empty`** |
-| `Label(int index)` | method | 指定した項目の名前の矩形。 **範囲外は `EsRect.Empty`** |
+| `GetSlot(int index)` | method | 指定した項目の枠線の矩形。 **範囲外は `EsRect.Empty`** |
+| `GetImageRect(int index)` | method | 指定した項目の画像の矩形。 **範囲外は `EsRect.Empty`** |
+| `GetLabelRect(int index)` | method | 指定した項目の名前の矩形。 **範囲外は `EsRect.Empty`** |
 | `IndexAt(EsPoint position)` | method | 指定した位置にある項目の添字。 **どの項目にも当たらない場合は -1** |
 | `VisibleRange(double offsetY, double viewportHeight)` | method | 見えている項目の範囲。 **項目が無い場合は `ThumbnailRange.Empty`** |
 
@@ -212,7 +212,7 @@ var layout = ThumbnailLayout.Resolve(availableWidth: 800, imageWidth, heights);
 var visible = layout.VisibleRange(scrollOffset, viewportHeight);
 for (var i = visible.First; i <= visible.Last; i++)
 {
-    CreateTile(i, layout.Slot(i));
+    CreateTile(i, layout.GetSlot(i));
 }
 
 // 入力は一覧の位置から判定する（子要素のヒット テストに依存しない）

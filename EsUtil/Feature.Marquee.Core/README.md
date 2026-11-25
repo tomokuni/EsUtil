@@ -36,7 +36,7 @@ marquee.SetCoordTransform(CoordTransform.Identity);            // 対象の境�
 // 入力の通知（効果の適用までファサードが行う）
 marquee.Press(new EsPoint(100, 100), clickCount: 1);
 marquee.Move(new EsPoint(400, 300));
-var handled = marquee.KeyDown(EsKey.Right, cursorPosition: null);   // nudge・Escape・Enter
+var handled = marquee.HandleKeyDown(EsKey.Right, cursorPosition: null);   // nudge・Escape・Enter
 marquee.Release(new EsPoint(400, 300));
 
 // 1 フレーム分の幾何（描画領域のサイズを渡す。注目矩形・ハンドル・マーカー）
@@ -73,7 +73,7 @@ var plan = presenter.ResolveDrawPlan(clientSize, measureText, pointerOver: true)
 ```
 
 - 外観（`MarqueeAppearance`）と描画計画（`MarqueeDrawPlan`）は提示層が単一所有します。
-- `Press` / `Move` / `Release` / `KeyDown` などの入力と `ResolveLayout` は提示層からコアへ委譲されます（UI は提示層だけを参照します）。
+- `Press` / `Move` / `Release` / `HandleKeyDown` などの入力と `ResolveLayout` は提示層からコアへ委譲されます（UI は提示層だけを参照します）。
 
 ## 3. 含まれるもの
 

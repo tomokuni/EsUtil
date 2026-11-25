@@ -1,4 +1,4 @@
-namespace EsUtil.Feature.StyledText.Presenter.Editing;
+namespace EsUtil.Feature.StyledText.Core.Editing;
 
 /// <summary>本文の編集で変わった内容（UI が描画と通知を選ぶための区別）。</summary>
 [Flags]

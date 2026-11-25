@@ -1,5 +1,6 @@
 using EsUtil.Platform.Core.Common;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Palette;
 using Microsoft.Extensions.Logging;
 
 namespace EsUtil.Feature.Annotation.Logging;
@@ -9,7 +10,7 @@ namespace EsUtil.Feature.Annotation.Logging;
 /// <b>レベルは頻度で決める</b>（規則の所有者は <c>.github/ログ規約.md</c> §2）。<br/>
 /// - Information: 利用者の明示的な操作（注釈ファイルの読み込み・保存）・プロセスで 1 度だけの生成・設定（行間）の変更<br/>
 /// - Debug: 状態の変化（選択・本文の編集・本文の変更・本文の操作（コピー・切り取り・貼り付け）・書式の適用・注釈の削除・重なり順・履歴の移動・パネルの表示・押下と解放）と提示層の生成<br/>
-/// - Trace: 高頻度の値（ドラッグ中の文書の変更）<br/>
+/// - Trace: 高頻度の値（ドラッグ中の文書の変更・位置と大きさ・しっぽ・外観・本文の余白の変更）<br/>
 /// - Error: 公開ファサードの操作で発生した例外<br/>
 /// <b>障害の切り分け</b>: 既定（Information）では操作の記録だけが出る。 利用者から症状の報告を受けたら、
 /// Debug で「どの操作が起きたか」、Trace で「ドラッグが文書へ反映されているか」を確認できる。<br/>
@@ -110,20 +111,45 @@ public static partial class AnnotationLogMessage
         => logger.LogDocumentSavedCore(Prefix, fileName, count);
 
     /// <summary>注釈の生成を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 注釈を作成: 種別={Kind} 識別子={Id}</c></remarks>
+    /// <remarks>
+    /// LogLevel: Debug<br/>出力書式:
+    /// <c>[Annotation] 注釈を作成: 種別={Kind} 識別子={Id} 位置=({X}, {Y}) 大きさ=({Width}, {Height})</c>
+    /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="kind">注釈の種別。</param>
     /// <param name="id">生成した注釈の識別子。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 注釈を作成: 種別={Kind:l} 識別子={Id:l}")]
-    private static partial void LogAnnotationCreatedCore(this ILogger logger, string prefix, string kind, string id);
+    /// <param name="x">左上の X（整形済み）。</param>
+    /// <param name="y">左上の Y（整形済み）。</param>
+    /// <param name="width">幅（整形済み）。</param>
+    /// <param name="height">高さ（整形済み）。</param>
+    [LoggerMessage(
+        LogLevel.Debug,
+        "{Prefix:l} 注釈を作成: 種別={Kind:l} 識別子={Id:l} 位置=({X:l}, {Y:l}) 大きさ=({Width:l}, {Height:l})")]
+    private static partial void LogAnnotationCreatedCore(
+        this ILogger logger, string prefix, string kind, string id, string x, string y, string width, string height);
 
     /// <summary>注釈の生成を記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="kind">注釈の種別。</param>
     /// <param name="id">生成した注釈の識別子。</param>
-    internal static void LogAnnotationCreated(this ILogger logger, AnnotationKind kind, string id)
-        => logger.LogAnnotationCreatedCore(Prefix, kind.ToString(), id);
+    /// <param name="bounds">生成した注釈の矩形（元画像ピクセル）。</param>
+    internal static void LogAnnotationCreated(this ILogger logger, AnnotationKind kind, string id, EsRect bounds)
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogAnnotationCreatedCore(
+            Prefix,
+            kind.ToString(),
+            id,
+            NumberText.Format(bounds.X),
+            NumberText.Format(bounds.Y),
+            NumberText.Format(bounds.Width),
+            NumberText.Format(bounds.Height));
+    }
 
     /// <summary>注釈の削除を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 注釈を削除: 種別={Kind} 識別子={Id}</c></remarks>
@@ -156,6 +182,130 @@ public static partial class AnnotationLogMessage
     /// <param name="id">移動した注釈の識別子。</param>
     internal static void LogOrderChanged(this ILogger logger, bool toFront, string id)
         => logger.LogOrderChangedCore(Prefix, toFront ? "最前面へ" : "最背面へ", id);
+
+    /// <summary>注釈の位置と大きさの変更を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Annotation] 位置と大きさ: 位置=({X}, {Y}) 大きさ=({Width}, {Height})</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="x">左上の X（元画像ピクセル。 整形済み）。</param>
+    /// <param name="y">左上の Y（元画像ピクセル。 整形済み）。</param>
+    /// <param name="width">幅（元画像ピクセル。 整形済み）。</param>
+    /// <param name="height">高さ（元画像ピクセル。 整形済み）。</param>
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} 位置と大きさ: 位置=({X:l}, {Y:l}) 大きさ=({Width:l}, {Height:l})")]
+    private static partial void LogAnnotationBoundsChangedCore(
+        this ILogger logger, string prefix, string x, string y, string width, string height);
+
+    /// <summary>注釈の位置と大きさの変更を記録する（ドラッグの 1 歩ごとに届くため Trace とする）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="bounds">変更後の矩形（元画像ピクセル）。</param>
+    internal static void LogAnnotationBoundsChanged(this ILogger logger, EsRect bounds)
+    {
+        if (!logger.IsEnabled(LogLevel.Trace))
+        {
+            return;
+        }
+
+        logger.LogAnnotationBoundsChangedCore(
+            Prefix,
+            NumberText.Format(bounds.X),
+            NumberText.Format(bounds.Y),
+            NumberText.Format(bounds.Width),
+            NumberText.Format(bounds.Height));
+    }
+
+    /// <summary>しっぽの変更を記録する（生成メソッド）。</summary>
+    /// <remarks>
+    /// LogLevel: Trace<br/>出力書式:
+    /// <c>[Annotation] しっぽ: 先端=({X}, {Y}) 辺={Edge} 付け根={Offset} 幅={Width}</c>
+    /// </remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="x">先端の X（元画像ピクセル。 整形済み）。</param>
+    /// <param name="y">先端の Y（元画像ピクセル。 整形済み）。</param>
+    /// <param name="edge">付け根の辺。</param>
+    /// <param name="offset">辺上の位置（整形済み）。</param>
+    /// <param name="width">付け根の幅（整形済み）。</param>
+    [LoggerMessage(
+        LogLevel.Trace,
+        "{Prefix:l} しっぽ: 先端=({X:l}, {Y:l}) 辺={Edge:l} 付け根={Offset:l} 幅={Width:l}")]
+    private static partial void LogAnnotationTailChangedCore(
+        this ILogger logger, string prefix, string x, string y, string edge, string offset, string width);
+
+    /// <summary>しっぽの変更を記録する（ドラッグの 1 歩ごとに届くため Trace とする）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="tail">変更後のしっぽ。</param>
+    internal static void LogAnnotationTailChanged(this ILogger logger, BubbleTail tail)
+    {
+        if (!logger.IsEnabled(LogLevel.Trace))
+        {
+            return;
+        }
+
+        logger.LogAnnotationTailChangedCore(
+            Prefix,
+            NumberText.Format(tail.Tip.X),
+            NumberText.Format(tail.Tip.Y),
+            tail.BaseEdge.ToString(),
+            NumberText.Format(tail.BaseOffset),
+            NumberText.Format(tail.Width));
+    }
+
+    /// <summary>外観の変更を記録する（生成メソッド）。</summary>
+    /// <remarks>
+    /// LogLevel: Trace<br/>出力書式:
+    /// <c>[Annotation] 外観: 枠線={Border} 太さ={Thickness} 内側={Fill} 角丸={Corner}</c>
+    /// </remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="border">枠線の色（<c>#AARRGGBB</c>）。</param>
+    /// <param name="thickness">枠線の太さ（整形済み）。</param>
+    /// <param name="fill">内側の色（<c>#AARRGGBB</c>）。</param>
+    /// <param name="corner">角丸の半径（整形済み）。</param>
+    [LoggerMessage(
+        LogLevel.Trace,
+        "{Prefix:l} 外観: 枠線={Border:l} 太さ={Thickness:l} 内側={Fill:l} 角丸={Corner:l}")]
+    private static partial void LogAnnotationAppearanceChangedCore(
+        this ILogger logger, string prefix, string border, string thickness, string fill, string corner);
+
+    /// <summary>外観の変更を記録する（スライダーの操作中は 1 歩ごとに届くため Trace とする）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="appearance">変更後の外観。</param>
+    internal static void LogAnnotationAppearanceChanged(this ILogger logger, AnnotationAppearance appearance)
+    {
+        if (!logger.IsEnabled(LogLevel.Trace))
+        {
+            return;
+        }
+
+        logger.LogAnnotationAppearanceChangedCore(
+            Prefix,
+            ColorString.ToArgbHex(appearance.Border),
+            NumberText.Format(appearance.BorderThickness),
+            ColorString.ToArgbHex(appearance.Fill),
+            NumberText.Format(appearance.CornerRadius));
+    }
+
+    /// <summary>本文の余白の変更を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Annotation] 本文の余白: {Padding}</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="padding">余白（元画像ピクセル。 整形済み）。</param>
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} 本文の余白: {Padding:l}")]
+    private static partial void LogAnnotationBodyPaddingChangedCore(
+        this ILogger logger, string prefix, string padding);
+
+    /// <summary>本文の余白の変更を記録する（スライダーの操作中は 1 歩ごとに届くため Trace とする）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="padding">余白（元画像ピクセル）。</param>
+    internal static void LogAnnotationBodyPaddingChanged(this ILogger logger, double padding)
+    {
+        if (!logger.IsEnabled(LogLevel.Trace))
+        {
+            return;
+        }
+
+        logger.LogAnnotationBodyPaddingChangedCore(Prefix, NumberText.Format(padding));
+    }
 
     /// <summary>付随ファイルを削除したことを記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Information<br/>出力書式: <c>[Annotation] 削除: {FileName}</c></remarks>

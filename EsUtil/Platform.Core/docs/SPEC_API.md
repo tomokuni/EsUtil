@@ -69,6 +69,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
   - [2.61 `Native.Win.WinGraphicsCaptureService`（sealed class : `ICaptureService`）](#261-nativewinwingraphicscaptureservicesealed-class--icaptureservice)
   - [2.62 `Native.Win.CaptureServiceFactory`（static class）](#262-nativewincaptureservicefactorystatic-class)
   - [2.63 `Native.Win.WinMonitorWorkArea`（static class）](#263-nativewinwinmonitorworkareastatic-class)
+  - [2.64 `Input.DoubleClickTracker`（sealed class）](#264-inputdoubleclicktrackersealed-class)
 - [3. 使用例](#3-使用例)
   - [3.1 幾何と座標変換](#31-幾何と座標変換)
   - [3.2 OS サービスの注入（上位のアプリ）](#32-os-サービスの注入上位のアプリ)
@@ -81,7 +82,7 @@ UI フレームワーク非依存の共有ライブラリが提供する公開 A
 | 名前空間 | 型 | 用途 |
 | --- | --- | --- |
 | `EsUtil.Platform.Core` | `EsInput` / `EsWindow` / `EsCapture` / `EsColor` / `EsErrors` / `EsCallbacks` / `EsImageCodec` | 機能フォルダの窓口（利用側が `using EsUtil.Platform.Core;` だけで解釈・正規化・生成を行えるようにする。 実装は持たず機能の型へ委譲する） |
-| `.Input` | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser` | キーとホットキー（正規化・文字列の解釈を含む） |
+| `.Input` | `EsKey` / `EsKeyExtensions` / `HotKeyModifiers` / `HotKeySetting` / `HotKeyParser` / `DoubleClickTracker` | キーとホットキー（正規化・文字列の解釈を含む）と、クリック回数を返さない UI 向けのダブルクリックの判定 |
 | `.Window` | `EsPlatformHandle` / `EsWindowState` / `EsWindowPlacementMath` | ネイティブ ハンドル・表示状態・ウィンドウ配置の規則（復元可否・はみ出しの補正・DIP ⇔ 物理ピクセル） |
 | `.Capture` | `CaptureType` / `CaptureMethod` / `WindowsGraphicsCaptureSupport` | キャプチャ種別・画面の取得方式・Windows.Graphics.Capture を実行中の環境で使えるかの判定 |
 | `.Common` | `BoundaryCatch` / `CallbackList<T>` / `EnumCanonical` / `NumberText` | 機能に閉じない小さな基盤（境界の判定・購読の一覧・別名を持つ列挙の解決・数値の自然な表記） |
@@ -1262,6 +1263,25 @@ Windows.Graphics.Capture で画面をキャプチャする `ICaptureService` の
 | メンバー | シグネチャ | 説明 |
 | --- | --- | --- |
 | `GetWorkArea` | `static EsRectInt? GetWorkArea(IntPtr windowHandle)` | ウィンドウが載っているモニターの作業領域。 ハンドルが 0・照会に失敗した場合は `null` |
+
+### 2.64 `Input.DoubleClickTracker`（sealed class）
+
+続けて押された位置と時刻から**ダブルクリック**を判定します。 入力の仕組みがクリック回数を返さない UI（WinForms / WinUI 3）が同じ値（500 ms・4 DIP）を書き写さないよう、規則を本型へ集約します。 座標はクライアント座標（DIP）です。
+
+| メンバー | シグネチャ | 説明 |
+| --- | --- | --- |
+| `DefaultInterval` | `static readonly TimeSpan` | ダブルクリックと見なす最大の間隔（500 ms） |
+| `DefaultDistance` | `const double` | ダブルクリックと見なす最大の移動距離（4 DIP） |
+| `Press` | `bool Press(EsPoint position, DateTimeOffset now)` | 押下を受け取り、直前の押下との関係からダブルクリックかを返す（直前の押下は常に更新する） |
+| `Reset` | `void Reset()` | 直前の押下の記録を捨てる（次の押下をダブルクリックと判定しない） |
+
+```csharp
+using EsUtil.Platform.Core.Input;
+
+var doubleClick = new DoubleClickTracker();
+var first = doubleClick.Press(new EsPoint(10, 10), DateTimeOffset.UtcNow);   // false
+var second = doubleClick.Press(new EsPoint(12, 11), DateTimeOffset.UtcNow);  // true（間隔・距離の内側）
+```
 
 ## 3. 使用例
 
