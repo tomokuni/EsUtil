@@ -226,7 +226,8 @@
 | `Editor` | 本文の値と編集の状態（`TextEditor`。 キャレット・選択・入力・削除・書式）。 UI は同じ実体を本文コントロールへ渡す |
 | `CommitTextEdit()` | 本文コントロールが `Editor` へ加えた変更を文書へ書き戻す（1 手として履歴へ積む） |
 | `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `HasTextSelection` | 本文のキャレットと選択（`TextEditor` の値） |
-| `TextSelectionRange` | 書式の適用先の範囲（文字数）。 ホストが本文の入力欄の選択位置を写すときに使う |
+| `TextSelectionRange` | 書式の適用先の範囲（文字数）。 取得だけを行い、指定は `SelectText` で行う |
+| `SelectText(start, length)` | 本文の選択範囲を指定する（ホストが本文の入力欄の選択位置を写すときに使う） |
 | `NotifyTextSelectionChanged()` | 本文コントロールが行った選択の変更を記録して購読者へ通知する（同じ範囲では繰り返さない） |
 | `SelectedTextStyle` / `SelectedTextMatches(match)` | 書式バーの表示値・押下状態 |
 

@@ -46,8 +46,8 @@
 - 項目の追加（`Add`）・画像の差し替え（`SetImage`）・名前の変更（`SetCaption`）・全消去（`ClearItems`）
 - ホバー帯・選択の強調（`IsDarkTheme` で明暗を切り替える）
 - 1 回押しの選択（`SelectionChanged`）と 2 回押しの通知（`ItemActivated`）
-- 可視範囲（`VisibleRange`）と項目の矩形（`ItemBounds`）の公開（見えている項目だけを先に作れる）
-- 末尾へのスクロール（`ScrollToIndex`）と配置のやり直し（`RefreshLayout`）
+- 可視範囲（`VisibleRange`）と項目の矩形（`SlotBounds`）の公開（見えている項目だけを先に作れる）
+- 末尾へのスクロール（`ScrollToIndex`）と配置のやり直し（`Refresh`）
 - 画像の幅（`ImageWidth`）・配置（`Options`）・外観（`Appearance`）の変更
 - 描画計画の差し替え（`DrawPlanResolver`）
 - `ILogger` によるログ（`Log` / `LogPrefix`）

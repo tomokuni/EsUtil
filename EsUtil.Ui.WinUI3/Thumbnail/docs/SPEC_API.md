@@ -43,7 +43,7 @@ WinUI 3 版のサムネイル一覧コントロールが提供する公開 API �
 | `ScrollChanged` | event | 一覧がスクロールされたときに発生する |
 | `SelectionChanged` | event | 選択中の添字が変わったときに発生する |
 | `ItemActivated` | event | 項目が 2 回押されたときに発生する（`ThumbnailActivatedEventArgs`） |
-| `Presentation` | property（get） | 提示層（設定・外観・描画計画の解決）。 派生した提示を使う場合は `Options` / `Appearance` ではなく本プロパティを設定する |
+| `Presentation` | property（get） | 提示層（設定・外観・描画計画の解決）。 取得だけを公開し、設定と外観は `Options` / `Appearance` を通して本プロパティの実体が保持する |
 | `Options` | property | 計算に必要な設定（既定は `ThumbnailOptions.Default`）。 設定すると自動で配置を解き直す |
 | `Appearance` | property | 外観（既定は `ThumbnailAppearance.Default`）。 設定すると自動で描き直す |
 | `ImageWidth` | property | 画像の幅（DIP。既定は 96）。 **0 以下の指定は既定の下限へ引き上げられる**。 **変更後は `Refresh()` を呼ぶ** |

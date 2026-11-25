@@ -161,17 +161,7 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <summary>指定した位置（DIP）を左上として枠線を追加する。</summary>
     /// <param name="dip">左上の位置（ローカル DIP）。</param>
     /// <returns>追加した注釈の識別子。</returns>
-    public string AddFrameAt(EsPoint dip) => AddFrameAt(new Point(dip.X, dip.Y));
-
-    /// <summary>指定した位置（DIP）を左上として枠線を追加する。</summary>
-    /// <param name="dip">左上の位置（ローカル DIP）。</param>
-    /// <returns>追加した注釈の識別子。</returns>
     public string AddFrameAt(Point dip) => AddFrame(ResolveDefaultBounds(ToSource(dip)));
-
-    /// <summary>指定した位置（DIP）を左上として吹き出しを追加する。</summary>
-    /// <param name="dip">左上の位置（ローカル DIP）。</param>
-    /// <returns>追加した注釈の識別子。</returns>
-    public string AddBubbleAt(EsPoint dip) => AddBubbleAt(new Point(dip.X, dip.Y));
 
     /// <summary>指定した位置（DIP）を左上として吹き出しを追加する。</summary>
     /// <param name="dip">左上の位置（ローカル DIP）。</param>
@@ -255,16 +245,18 @@ public sealed partial class AnnotationLayerControl : Panel
         }
     }
 
-    /// <summary>本文の書式を適用する範囲（文字数）を取得または設定する。</summary>
-    /// <value>開始位置と長さ（0 起点）。 長さ 0 は「全体」を表す。</value>
-    public (int Start, int Length) TextSelectionRange
+    /// <summary>本文の書式を適用する範囲（文字数）を取得する。</summary>
+    /// <value>開始位置と長さ（0 起点）。 長さ 0 は選択なし。</value>
+    /// <remarks>選択の指定は <see cref="SelectText(int, int)"/> で行う。</remarks>
+    public (int Start, int Length) TextSelectionRange => _session.TextSelectionRange;
+
+    /// <summary>本文の選択範囲を指定する（ホストが入力欄の選択位置を写すときに使う）。</summary>
+    /// <param name="start">開始位置（文字数）。</param>
+    /// <param name="length">長さ（文字数。 0 は選択なし）。</param>
+    public void SelectText(int start, int length)
     {
-        get => _session.TextSelectionRange;
-        set
-        {
-            _session.TextSelectionRange = value;
-            InvalidateVisual();
-        }
+        _session.SelectText(start, length);
+        InvalidateVisual();
     }
 
     /// <summary>選択枠のハンドルを掴む半径（DIP）を取得または設定する。</summary>
@@ -309,16 +301,7 @@ public sealed partial class AnnotationLayerControl : Panel
 
     /// <summary>選択中の本文の書式を取得する（選択範囲の先頭の書式）。</summary>
     /// <remarks>選択が無い間は、書式バーで選んだ書式（以降の入力へ効く値）を返す。</remarks>
-    public TextStyle SelectedTextStyle
-    {
-        get => _session.SelectedTextStyle;
-        set
-        {
-            // 適用先の規則（選択が無ければ以降の入力へ回す）は編集セッションが単一所有する
-            _session.SelectedTextStyle = value;
-            InvalidateVisual();
-        }
-    }
+    public TextStyle SelectedTextStyle => _session.SelectedTextStyle;
 
     /// <summary>消しゴム（元に戻す）ができるかどうかを取得する。</summary>
     public bool CanUndo => _session.CanUndo;
@@ -644,8 +627,8 @@ public sealed partial class AnnotationLayerControl : Panel
 
     /// <summary>画像の表示倍率と位置を求める（縦横比を保って中央に置く）。</summary>
     /// <returns>倍率と左上の位置（DIP）。</returns>
+    /// <remarks>表示矩形の検証と変換の式は <see cref="AnnotationViewTransform"/> が単一所有する（UI ごとに書き写さない）。</remarks>
     private AnnotationViewTransform ResolveImageTransform()
-        // 表示矩形の検証と変換の式はコアが単一所有する（4 つの UI 版で同じ結果にする）
         => AnnotationViewTransform.Resolve(
             new EsSize(RenderSize.Width, RenderSize.Height),
             new EsSize(SourcePixelWidth, SourcePixelHeight),

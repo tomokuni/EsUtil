@@ -141,27 +141,24 @@ public sealed class AnnotationEditSession
     /// <remarks>本文の操作は編集コントロールが <see cref="Editor"/> へ行うため、本メソッドはその結果を文書へ移すだけである。</remarks>
     public bool CommitTextEdit() => ReplaceEdit();
 
-    /// <summary>書式の適用先の範囲（文字数）を取得または設定する。</summary>
+    /// <summary>書式の適用先の範囲（文字数）を取得する。</summary>
     /// <value>開始位置と長さ（0 起点）。 長さ 0 は選択なし。</value>
-    /// <remarks>ホストが本文の入力欄の選択位置を写すときに使う（編集を始めていなくても書式を適用できる）。</remarks>
     public (int Start, int Length) TextSelectionRange
+        => (_editor.SelectionStart, _editor.SelectionLength);
+
+    /// <summary>本文の選択範囲を指定する（ホストが入力欄の選択位置を写すときに使う）。</summary>
+    /// <param name="start">開始位置（文字数。 範囲外は本文の範囲へ丸める）。</param>
+    /// <param name="length">長さ（文字数。 0 は選択なし）。</param>
+    /// <remarks>選択の変更は通知する（書式バーの表示条件が変わるため）。</remarks>
+    public void SelectText(int start, int length)
     {
-        get => (_editor.SelectionStart, _editor.SelectionLength);
-        set
-        {
-            _editor.Select(value.Start, value.Length);
-            NotifyTextSelectionChanged();
-        }
+        _editor.Select(start, length);
+        NotifyTextSelectionChanged();
     }
 
-    /// <summary>書式バーへ表示する書式を取得または設定する。</summary>
+    /// <summary>書式バーへ表示する書式を取得する。</summary>
     /// <value>選択範囲の先頭の書式。 選択が無い間は最後に選んだ書式。</value>
-    /// <remarks>設定すると <see cref="ApplyTextStyle(TextStyle)"/> と同じ規則で適用する（選択が無ければ以降の入力へ回す）。</remarks>
-    public TextStyle SelectedTextStyle
-    {
-        get => _editor.SelectedTextStyle;
-        set => _ = ApplyTextStyle(value);
-    }
+    public TextStyle SelectedTextStyle => _editor.SelectedTextStyle;
 
     /// <summary>変更の購読を追加する。</summary>
     /// <param name="notify">変更を受け取る処理。 null 不可。</param>

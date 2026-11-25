@@ -30,12 +30,6 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <summary>ツールヒント。</summary>
     private readonly ToolTip _toolTip = new();
 
-    /// <summary>計算に必要な設定。</summary>
-    private ThumbnailOptions _options = ThumbnailOptions.Default;
-
-    /// <summary>描画にだけ必要な外観。</summary>
-    private ThumbnailAppearance _appearance = ThumbnailAppearance.Default;
-
     /// <summary>提示層（設定・外観・描画計画の解決）。</summary>
     private readonly ThumbnailPresenter _presenter = new();
 
@@ -124,15 +118,22 @@ public sealed class ThumbnailControl : ScrollableControl
         }
     }
 
+    /// <summary>提示層（設定・外観・描画計画の解決）を取得する。</summary>
+    /// <value>本コントロールが使う提示層。 ロガーと接頭辞は本コントロールから伝搬する。</value>
+    /// <remarks>設定と外観は <see cref="Options"/> / <see cref="Appearance"/> を通して本プロパティの実体が保持する。</remarks>
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public ThumbnailPresenter Presentation => _presenter;
+
     /// <summary>計算に必要な設定を取得または設定する。</summary>
     /// <value>設定。 既定は <see cref="ThumbnailOptions.Default"/>。</value>
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public ThumbnailOptions Options
     {
-        get => _options;
+        get => _presenter.Options;
         set
         {
-            _options = value ?? ThumbnailOptions.Default;
+            _presenter.Options = value ?? ThumbnailOptions.Default;
             InvalidateLayout();
         }
     }
@@ -142,11 +143,10 @@ public sealed class ThumbnailControl : ScrollableControl
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public ThumbnailAppearance Appearance
     {
-        get => _appearance;
+        get => _presenter.Appearance;
         set
         {
-            _appearance = value ?? ThumbnailAppearance.Default;
-            _presenter.Appearance = _appearance;
+            _presenter.Appearance = value ?? ThumbnailAppearance.Default;
             InvalidateLayout();
         }
     }
@@ -211,7 +211,7 @@ public sealed class ThumbnailControl : ScrollableControl
             var previous = field;
             field = value;
             _log.LogSettingChangedTrace(nameof(ImageWidth), previous.ToString(System.Globalization.CultureInfo.InvariantCulture), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            RefreshLayout();
+            Refresh();
         }
     } = 96;
 
@@ -244,7 +244,7 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <summary>項目の外枠の矩形（内容の座標）を取得する。</summary>
     /// <param name="index">項目の添字。</param>
     /// <returns>外枠の矩形。 範囲外の場合は空の矩形。</returns>
-    public Rectangle ItemBounds(int index)
+    public Rectangle SlotBounds(int index)
         => index >= 0 && index < _items.Count ? ToRect(EnsureLayout().GetSlot(index)) : Rectangle.Empty;
 
     /// <summary>一覧を空にする。</summary>
@@ -335,7 +335,8 @@ public sealed class ThumbnailControl : ScrollableControl
     }
 
     /// <summary>配置を解決し直す。</summary>
-    public void RefreshLayout() => InvalidateLayout();
+    /// <summary>配置と見た目を解決し直す（基底の <see cref="Control.Refresh"/> は再描画だけのため、配置の解決も行う本メソッドで隠す）。</summary>
+    public new void Refresh() => InvalidateLayout();
 
     /// <summary>項目を描画する。</summary>
     /// <param name="e">描画のイベント引数。</param>
@@ -490,7 +491,7 @@ public sealed class ThumbnailControl : ScrollableControl
     {
         var text = ToArgb(ForeColor);
         var accent = ToArgb(SystemColors.Highlight);
-        return _appearance.ResolveHighlightArgb(plan.Highlight, text, accent);
+        return _presenter.Appearance.ResolveHighlightArgb(plan.Highlight, text, accent);
     }
 
     /// <summary>色を <c>0xAARRGGBB</c> にする。</summary>
@@ -688,8 +689,6 @@ public sealed class ThumbnailControl : ScrollableControl
             heights[i] = _items[i].ImageHeight;
         }
 
-        _presenter.Options = _options;
-        _presenter.Appearance = _appearance;
         var layout = _presenter.ResolveLayout(Math.Max(0, ClientSize.Width), ImageWidth, heights);
         _layout = layout;
         return layout;

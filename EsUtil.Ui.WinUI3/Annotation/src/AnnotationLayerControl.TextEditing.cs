@@ -34,13 +34,15 @@ public sealed partial class AnnotationLayerControl
     /// <summary>選択範囲の長さ（文字数）を取得する。</summary>
     public int SelectionLength => SelectionEnd - SelectionStart;
 
-    /// <summary>選択範囲（開始位置と長さ）を取得または設定する。</summary>
+    /// <summary>選択範囲（開始位置と長さ）を取得する。</summary>
     /// <value>開始位置（文字数）と長さ（文字数）。 範囲は本文の範囲へ丸める。</value>
-    public (int Start, int Length) TextSelectionRange
-    {
-        get => (SelectionStart, SelectionLength);
-        set => _session.TextSelectionRange = (value.Start, value.Length);
-    }
+    /// <remarks>選択の指定は <see cref="SelectText(int, int)"/> で行う。</remarks>
+    public (int Start, int Length) TextSelectionRange => (SelectionStart, SelectionLength);
+
+    /// <summary>本文の選択範囲を指定する（ホストが入力欄の選択位置を写すときに使う）。</summary>
+    /// <param name="start">開始位置（文字数）。</param>
+    /// <param name="length">長さ（文字数。 0 は選択なし）。</param>
+    public void SelectText(int start, int length) => _session.SelectText(start, length);
 
     /// <summary>本文の編集を始める（吹き出しを選んでいるときだけ）。</summary>
     /// <returns>編集を始めた場合は <see langword="true"/>。 枠線を選んでいる場合は <see langword="false"/>。</returns>

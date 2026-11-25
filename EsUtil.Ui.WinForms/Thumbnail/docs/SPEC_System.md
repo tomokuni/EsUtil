@@ -114,13 +114,13 @@ classDiagram
         +ItemCount int
         +SelectedIndex int
         +VisibleRange ThumbnailRange
-        +ItemBounds(index) Rectangle
+        +SlotBounds(index) Rectangle
         +ClearItems()
         +Add(image, caption, toolTip, tag) int
         +SetImage(index, image)
         +SetCaption(index, caption)
         +ScrollToIndex(index)
-        +RefreshLayout()
+        +Refresh()
     }
     class Item {
         +Image Bitmap
@@ -143,7 +143,7 @@ sequenceDiagram
     participant Presenter as ThumbnailPresenter
 
     Host->>Control: Add(image, caption, ...)
-    Host->>Control: RefreshLayout()
+    Host->>Control: Refresh()
     Control->>Presenter: ResolveLayout(幅, 画像の幅, 高さ)
     Control->>Control: AutoScrollMinSize = 内容の寸法
     Note over Control: ポインターの移動
@@ -152,7 +152,7 @@ sequenceDiagram
     Control->>Control: OnPaint で層の順に描く
 ```
 
-1. `RefreshLayout()` が配置を解き、スクロール範囲を設定します。
+1. `Refresh()` が配置を解き、スクロール範囲を設定します。
 2. ポインターの移動は位置から添字へ変換し、ホバーを切り替えて描き直します。
 3. 押下は選択、2 回押しは `ItemActivated` の通知になります。
 4. `OnPaint` は `AutoScrollPosition` だけ座標系を移し、**見えている項目だけ**を層の順に描きます（範囲は `ThumbnailLayoutResult.VisibleRange` が決めます。 全件を描くとフォルダーのファイル数に比例して GDI+ のオブジェクトを作ることになります）。

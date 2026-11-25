@@ -46,7 +46,8 @@
 | `Core` | property | 文書・保存形式・ログの入口（ファサード。 アプリは `Core.Load` / `Core.Save` を使う） |
 | `LineHeightFactor` | property | 行間の倍率（既定 1.25） |
 | `HandleHitRadius` / `HandleSize` | property | ハンドルを掴む半径・見えている一辺の大きさ（DIP。 描画と当たり判定で同じ値を共有する） |
-| `TextSelectionRange` | property | 本文の書式を適用する範囲（開始位置・長さ。 長さ 0 は選択なし）。 ホストが本文の選択範囲を写す |
+| `TextSelectionRange` | property | 本文の書式を適用する範囲（開始位置・長さ。 長さ 0 は選択なし） |
+| `SelectText(start, length)` | method | 本文の選択範囲を指定する（ホストが本文の選択範囲を写す） |
 | `SelectedTextStyle` | property | 選択中の本文の書式（範囲の先頭の文字。 フライアウトの初期表示） |
 | `SelectedTextMatches(match)` | method | 選択範囲の**すべての文字**が条件を満たすか（書式バーの押下状態。 選択が無ければキャレットの位置で判定） |
 | `AddFrame(bounds)` / `AddBubble(bounds, text)` | method | 注釈を追加し、追加した注釈を選択する（戻り値は識別子） |

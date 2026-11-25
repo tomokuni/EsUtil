@@ -81,12 +81,12 @@ public class ThumbnailControlTests
         using var control = new ThumbnailControl { Width = 400, Height = 300 };
         control.Add(null, "a");
 
-        control.RefreshLayout();
+        control.Refresh();
 
-        var bounds = control.ItemBounds(0);
+        var bounds = control.SlotBounds(0);
         Assert.True(bounds.Width > 0);
         Assert.True(bounds.Height > 0);
-        Assert.Equal(Rectangle.Empty, control.ItemBounds(5));
+        Assert.Equal(Rectangle.Empty, control.SlotBounds(5));
     }
 
     /// <summary>項目数の変更がログへ記録されることを検証する。</summary>

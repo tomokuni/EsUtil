@@ -22,6 +22,11 @@
   - `AnnotationCore.SaveDocument(imagePath, document)` → `SaveForImage(imagePath, document)`（`Save(documentPath, document)` と対にする）。
   - `ThumbnailLayout.ImageHeight` / `ThumbnailPresenter.ImageHeight` → `ResolveImageHeight`（同じ型の `ResolveLayout` / `ResolveMetrics` と語を揃える）。
 - **書式バーの表示可否を提示層へ移しました**（`EsUtil.Feature.StyledText.Presenter.Formatting.TextFormatBarVisibility`）。 **表示可否はコアに置かない**規則（`EsUtil/README.md` §3）に合わせるためです。 次の公開 API を削除しました: `TextEditor.ShowFormatBarWhileEditing` / `TextEditor.ShouldShowFormatBar` / `TextEditState.ShouldShowFormatBar(bool)` / `TextEditState.FormatBarMinimumSelectionLength`。 UI コントロール（`StyledTextControl`）の `ShowFormatBarWhileEditing` / `ShouldShowFormatBar` はそのまま使えます（条件は本判定が単一所有する）。
+- **本文の選択と書式の公開面を .NET の慣例へ揃えました**（値の設定で別の操作を起こさない。 `EsUtil/README.md` §9）。
+  - `AnnotationEditSession.SelectedTextStyle` / 4 つの UI の `AnnotationLayerControl.SelectedTextStyle` の setter を削除しました（書式は `ApplyTextStyle(style)` で適用する）。
+  - `AnnotationEditSession.TextSelectionRange` / 4 つの UI の `TextSelectionRange` の setter を削除し、`SelectText(start, length)` を追加しました（選択は意図を表すメソッドで指定する）。
+- **`AddFrameAt(EsPoint)` / `AddBubbleAt(EsPoint)` を削除しました**（AvaloniaUI は元画像ピクセル、MewUI は DIP として同じ引数を受け取っており、UI を移すと座標の意味が黙って変わるため）。 4 つの UI とも `AddFrameAt(Point dip)` / `AddBubbleAt(Point dip)`（ローカル DIP）だけを持ちます。
+- **WinForms の `ThumbnailControl` の公開面を他の UI 版へ揃えました**。 `ItemBounds(int)` → `SlotBounds(int)`、`RefreshLayout()` → `Refresh()`（基底の `Control.Refresh` を隠し、配置の解決も行う）。 `Presentation` を取得として公開し、`Options` / `Appearance` は提示層の実体が保持します（設定の写しを UI が持たない）。
 - **`ThumbnailLayoutResult.Slot` / `Image` / `Label` を `GetSlot` / `GetImageRect` / `GetLabelRect` に改名しました**（取得は動詞で始める。 `Image` / `Label` は同じ型のプロパティ名と紛らわしかった）。
 - **`ColumnPacker.GetLastColumnSegments()` の要素名を `StartIdx` / `EndIdx` から `StartIndex` / `EndIndex` に改名しました**（略語を使わない）。
 - **`ColumnPacker.ClearCache()` を `internal ClearMetrics()` にしました**（アイテムと余白は生成時に固定され、公開の利用者が計測を破棄する場面が無い。 名前も内部の実装都合（キャッシュ）を出さない）。

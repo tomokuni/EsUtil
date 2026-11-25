@@ -302,19 +302,10 @@ public sealed partial class AnnotationLayerControl : Control
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public AnnotationItem? Selected => _session.Selected;
 
-    /// <summary>選択中の本文の書式を取得または設定する（選択範囲の先頭の書式。 設定すると選択範囲へ適用する）。</summary>
+    /// <summary>選択中の本文の書式を取得する（選択範囲の先頭の書式）。</summary>
     /// <remarks>選択が無い間は、書式バーで選んだ書式（以降の入力へ効く値）を返す。</remarks>
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public TextStyle SelectedTextStyle
-    {
-        get => _session.SelectedTextStyle;
-        set
-        {
-            // 適用先の規則（選択が無ければ以降の入力へ回す）は編集セッションが単一所有する
-            _session.SelectedTextStyle = value;
-            Invalidate();
-        }
-    }
+    public TextStyle SelectedTextStyle => _session.SelectedTextStyle;
 
     /// <summary>元に戻すことができるかどうかを取得する。</summary>
     public bool CanUndo => _session.CanUndo;
@@ -615,8 +606,8 @@ public sealed partial class AnnotationLayerControl : Control
 
     /// <summary>画像の表示倍率と位置を求める（縦横比を保って中央に置く）。</summary>
     /// <returns>倍率と左上の位置（DIP）。</returns>
+    /// <remarks>表示矩形の検証と変換の式は <see cref="AnnotationViewTransform"/> が単一所有する（UI ごとに書き写さない）。</remarks>
     internal AnnotationViewTransform ResolveImageTransform()
-        // 表示矩形の検証と変換の式はコアが単一所有する（4 つの UI 版で同じ結果にする）
         => AnnotationViewTransform.Resolve(
             new EsSize(ClientSize.Width, ClientSize.Height),
             new EsSize(SourcePixelWidth, SourcePixelHeight),

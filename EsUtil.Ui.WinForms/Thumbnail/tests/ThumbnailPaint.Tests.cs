@@ -55,7 +55,7 @@ public class ThumbnailPaintTests
         }
 
         control.SetImage(0, image);
-        control.RefreshLayout();
+        control.Refresh();
 
         var red = CountPixels(control, 400, 300, static pixel => pixel.R > 200 && pixel.G < 60 && pixel.B < 60);
 
@@ -70,7 +70,7 @@ public class ThumbnailPaintTests
     {
         using var control = new ThumbnailControl { ImageWidth = 96, Width = 400, Height = 300 };
         control.Add(null, "a");
-        control.RefreshLayout();
+        control.Refresh();
 
         // 画像の所有権は一覧へ移る（テストから破棄しない）
         var red = new Bitmap(64, 48);
