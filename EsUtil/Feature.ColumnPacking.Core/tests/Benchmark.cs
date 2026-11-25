@@ -185,7 +185,7 @@ public class Benchmark
                 if (itemCount <= 1000)
                 {
                     // Solve計測
-                    layout.ClearCache();
+                    layout.ClearMetrics();
                     layout.CurrentMethod = Method.DynamicProgramming;
                     var swDpSolve = Stopwatch.StartNew();
                     (dpUsedWidth, dpMinHeight) = layout.Solve(WidthLimit);
@@ -196,7 +196,7 @@ public class Benchmark
                 }
 
                 // Greedy計測
-                layout.ClearCache();
+                layout.ClearMetrics();
                 layout.CurrentMethod = Method.Greedy;
                 var swGrSolve = Stopwatch.StartNew();
                 (grUsedWidth, grMinHeight) = layout.Solve(WidthLimit);
@@ -209,7 +209,7 @@ public class Benchmark
                 if (itemCount <= 1000000)
                 {
                     // Solve計測
-                    layout.ClearCache();
+                    layout.ClearMetrics();
                     layout.CurrentMethod = Method.BinarySearch;
                     var swBsSolve = Stopwatch.StartNew();
                     (bsUsedWidth, bsMinHeight) = layout.Solve(WidthLimit);

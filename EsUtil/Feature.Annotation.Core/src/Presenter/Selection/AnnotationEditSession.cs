@@ -186,9 +186,20 @@ public sealed class AnnotationEditSession
         _selectedId = id;
         ResetEditor();
         _lastTextSelection = default;
-        (_logger?.Invoke() ?? NullLogger.Instance).LogSelectionChanged(id);
+        (_logger?.Invoke() ?? NullLogger.Instance).LogSelectionChanged(ResolveKind(id), id);
         Notify(AnnotationEditChange.Selection | AnnotationEditChange.TextSelection);
     }
+
+    /// <summary>注釈の種別を求める（選択の記録に使う。 見つからない場合は <see langword="null"/>）。</summary>
+    /// <param name="id">注釈の識別子（無い場合は <see langword="null"/>）。</param>
+    /// <returns>注釈の種別。 識別子が無い・見つからない場合は <see langword="null"/>。</returns>
+    private AnnotationKind? ResolveKind(string? id)
+        => _document.Find(id) switch
+        {
+            FrameAnnotation => AnnotationKind.Frame,
+            BubbleAnnotation => AnnotationKind.Bubble,
+            _ => null,
+        };
 
     /// <summary>枠線を追加する。</summary>
     /// <param name="bounds">矩形（元画像ピクセル）。</param>

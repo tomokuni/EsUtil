@@ -262,7 +262,7 @@ internal sealed class BinarySearchLayoutStrategy(
         while (itemIdx < n && segmentCount < columnLimit)
         {
             // 列の開始インデックスを記録する
-            int colStartIdx = itemIdx;
+            int colStartIndex = itemIdx;
             double colHeight = 0.0;
             double colWidth = 0.0;
             int itemsInCol = 0;
@@ -295,11 +295,11 @@ internal sealed class BinarySearchLayoutStrategy(
 
             // メトリクスをキャッシュに登録
             metricsCache.SetMetrics(
-                new ColumnSegment(colStartIdx, itemIdx - 1),
+                new ColumnSegment(colStartIndex, itemIdx - 1),
                 new Size(colWidth, colHeight));
 
             // バッファに直接書き込み（GC なし）
-            outSegmentsBuffer[segmentCount] = new ColumnSegment(colStartIdx, itemIdx - 1);
+            outSegmentsBuffer[segmentCount] = new ColumnSegment(colStartIndex, itemIdx - 1);
             segmentCount++;
             totalWidth += colWidth;
 

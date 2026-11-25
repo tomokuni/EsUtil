@@ -59,7 +59,7 @@
 
 ## 4. 書式バー（`StyledTextFormatBar`）
 
-本文を編集中、**1 文字以上を選んだとき**に本文の上へ出す**文字単位の書式**のバーです。 ホストは `View` をパネルへ載せ、本文の選択が変わったら `Refresh()` を呼び、選択が無くなったら閉じます（表示の条件は `StyledTextControl.ShouldShowFormatBar` が単一所有する）。
+本文を編集中、**1 文字以上を選んだとき**に本文の上へ出す**文字単位の書式**のバーです。 ホストは `View` をパネルへ載せ、本文の選択が変わったら `Refresh()` を呼び、選択が無くなったら閉じます（表示の条件は `EsUtil.Feature.StyledText.Presenter.Formatting.TextFormatBarVisibility` が単一所有し、`StyledTextControl.ShouldShowFormatBar` が公開する）。
 
 | メンバー | 説明 |
 | --- | --- |

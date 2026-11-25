@@ -347,6 +347,6 @@ public class DPLayoutStrategyTests
         // Assert
         Assert.Equal(100.0, state.Height);
         Assert.Equal(50.0, state.Width);
-        Assert.Equal(0, state.BreakIdx);
+        Assert.Equal(0, state.BreakIndex);
     }
 }

@@ -90,7 +90,9 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
 
     /// <summary>いま書式バーを表示すべきかどうかを取得する。</summary>
     /// <value>編集中で、自動表示が有効で、1 文字以上を選んでいる場合は <see langword="true"/>。</value>
-    public bool ShouldShowFormatBar => _editor.ShouldShowFormatBar;
+    /// <remarks>判定の規則は <see cref="TextFormatBarVisibility.ShouldShow"/> が単一所有する（4 つの UI 版で共有する）。</remarks>
+    public bool ShouldShowFormatBar
+        => TextFormatBarVisibility.ShouldShow(ShowFormatBarWhileEditing, IsEditing, SelectionLength);
 
     /// <summary>文字列と書式から実寸を測る関数を取得または設定する。</summary>
     /// <value>既定は本コントロールの描画 API で測る関数。 描画と同じエンジンで測るため通常は変更しない。</value>

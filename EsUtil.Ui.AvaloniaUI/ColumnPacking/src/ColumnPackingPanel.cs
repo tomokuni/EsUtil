@@ -425,7 +425,7 @@ public class ColumnPackingPanel : DualSourceItemsPanel
 
         var segments = Layout.GetLastColumnSegments();
         LayoutColumnCount = segments.Length;
-        LayoutColumnSegments = "[" + string.Join(",", segments.Select(static segment => segment.EndIdx)) + "]";
+        LayoutColumnSegments = "[" + string.Join(",", segments.Select(static segment => segment.EndIndex)) + "]";
     }
 
     /// <summary>レイアウト結果が変化していれば記録する（同じ結果の繰り返しは記録しない）。</summary>
@@ -439,7 +439,7 @@ public class ColumnPackingPanel : DualSourceItemsPanel
 
         var result = Layout.GetLastResult();
         var segments = Layout.GetLastColumnSegments();
-        var segmentsText = "[" + string.Join(",", segments.Select(static segment => segment.EndIdx)) + "]";
+        var segmentsText = "[" + string.Join(",", segments.Select(static segment => segment.EndIndex)) + "]";
 
         // 丸めた値で比較する（レイアウトの再計算で同じ結果が繰り返し届くため、変化したときだけ記録する）
         var signature = string.Join(

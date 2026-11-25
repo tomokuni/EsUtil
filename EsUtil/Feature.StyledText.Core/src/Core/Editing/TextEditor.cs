@@ -5,7 +5,7 @@ namespace EsUtil.Feature.StyledText.Core.Editing;
 
 /// <summary>編集中の本文（値・キャレット・選択・書式・変換中の文字列）の状態と操作（単一所有）。</summary>
 /// <remarks>
-/// <b>編集の規則は提示層が単一所有する</b>: キャレット・選択・書式の適用は <see cref="TextEditState"/>、キーの割り当ては
+/// <b>編集の規則はコア（本アセンブリ）が単一所有する</b>: キャレット・選択・書式の適用は <see cref="TextEditState"/>、キーの割り当ては
 /// <see cref="TextEditKeyMap"/>、折り返しと行の配置は <see cref="TextLayout"/> が決める。 本クラスは「どの本文を編集しているか」を
 /// 1 か所に持ち、UI が同じ順序で同じ結果を得るための入口になる。<br/>
 /// <b>UI は本クラスを操作し、描画と通知だけを行う</b>: 値・状態の写しを UI ごとに持たない（写しは片方だけ直したときに食い違う）。<br/>
@@ -57,14 +57,6 @@ public sealed class TextEditor
         get => _preeditText;
         set => _preeditText = value ?? string.Empty;
     }
-
-    /// <summary>編集中に書式バーを自動で表示するかどうかを取得または設定する。</summary>
-    /// <value>自動で表示する場合は <see langword="true"/>（既定）。 ホストが独自にバーを出す場合は <see langword="false"/>。</value>
-    public bool ShowFormatBarWhileEditing { get; set; } = true;
-
-    /// <summary>いま書式バーを表示すべきかどうかを取得する。</summary>
-    /// <value>編集中で、自動表示が有効で、1 文字以上を選んでいる場合は <see langword="true"/>。</value>
-    public bool ShouldShowFormatBar => _state.ShouldShowFormatBar(ShowFormatBarWhileEditing);
 
     /// <summary>本文を編集中かどうかを取得する。</summary>
     public bool IsEditing => _state.IsActive;

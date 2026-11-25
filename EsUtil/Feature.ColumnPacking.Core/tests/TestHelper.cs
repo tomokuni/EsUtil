@@ -89,19 +89,19 @@ internal static class TestHelper
     /// <param name="segment">列セグメント配列</param>
     /// <param name="itemCount">アイテム総数</param>
     /// <returns>検証成功なら true</returns>
-    internal static bool ValidateColumnSegment((int StartIdx, int EndIdx)[] segment, int itemCount)
+    internal static bool ValidateColumnSegment((int StartIndex, int EndIndex)[] segment, int itemCount)
     {
         if (segment.Length == 0)
             return itemCount == 0;
 
         // 最初の列が 0 から開始、最後の列がアイテム終了で終了
-        if (segment[0].StartIdx != 0 || segment[^1].EndIdx != itemCount - 1)
+        if (segment[0].StartIndex != 0 || segment[^1].EndIndex != itemCount - 1)
             return false;
 
         // 全列が連続しているか確認
         for (int i = 1; i < segment.Length; i++)
         {
-            if (segment[i].StartIdx != segment[i - 1].EndIdx + 1)
+            if (segment[i].StartIndex != segment[i - 1].EndIndex + 1)
                 return false;
         }
 
@@ -289,11 +289,11 @@ internal static class TestHelper
     /// • 最大値が result.MinHeight と一致するか確認<br/>
     /// </summary>
     /// <param name="MinHeight">最小高さ</param>
-    /// <param name="segments">レイアウト計算結果の ColumnSegments（(StartIdx, EndIdx) 配列）</param>
+    /// <param name="segments">レイアウト計算結果の ColumnSegments（(StartIndex, EndIndex) 配列）</param>
     /// <param name="items">アイテムリスト</param>
     /// <param name="space">スペース設定</param>
     /// <returns>検証成功なら true</returns>
-    internal static bool ValidateMinHeight(double MinHeight, (int StartIdx, int EndIdx)[] segments, IReadOnlyList<(double Width, double Height)> items, (double Row, double Column) space)
+    internal static bool ValidateMinHeight(double MinHeight, (int StartIndex, int EndIndex)[] segments, IReadOnlyList<(double Width, double Height)> items, (double Row, double Column) space)
     {
         if (segments.Length == 0)
             return MinHeight == 0.0;
@@ -326,10 +326,10 @@ internal static class TestHelper
     /// • セグメントの順序が昇順<br/>
     /// • 各セグメント内のアイテムインデックスが有効範囲内<br/>
     /// </summary>
-    /// <param name="segments">レイアウト計算結果の ColumnSegments（(StartIdx, EndIdx) 配列）</param>
+    /// <param name="segments">レイアウト計算結果の ColumnSegments（(StartIndex, EndIndex) 配列）</param>
     /// <param name="itemCount">アイテム総数</param>
     /// <returns>検証成功なら true</returns>
-    internal static bool ValidateSegmentOrder((int StartIdx, int EndIdx)[] segments, int itemCount)
+    internal static bool ValidateSegmentOrder((int StartIndex, int EndIndex)[] segments, int itemCount)
     {
         if (segments.Length == 0)
             return itemCount == 0;
@@ -343,7 +343,7 @@ internal static class TestHelper
                 return false;
 
             // セグメントの順序チェック
-            if (i > 0 && segments[i - 1].EndIdx >= startIdx)
+            if (i > 0 && segments[i - 1].EndIndex >= startIdx)
                 return false;
         }
 
@@ -386,12 +386,12 @@ internal static class TestHelper
     /// </summary>
     /// <param name="MinHeight">最小高さ</param>
     /// <param name="UsedWidth">使用幅</param>
-    /// <param name="segments">レイアウト計算結果の ColumnSegments（(StartIdx, EndIdx) 配列）</param>
+    /// <param name="segments">レイアウト計算結果の ColumnSegments（(StartIndex, EndIndex) 配列）</param>
     /// <param name="items">アイテムリスト</param>
     /// <param name="space">スペース設定</param>
     /// <param name="widthLimit">幅の上限</param>
     /// <returns>全検証が成功したら true</returns>
-    internal static bool ValidateLayoutComprehensive(double MinHeight, double UsedWidth, (int StartIdx, int EndIdx)[] segments, IReadOnlyList<(double Width, double Height)> items, (double Row, double Column) space, double widthLimit)
+    internal static bool ValidateLayoutComprehensive(double MinHeight, double UsedWidth, (int StartIndex, int EndIndex)[] segments, IReadOnlyList<(double Width, double Height)> items, (double Row, double Column) space, double widthLimit)
     {
         // 検証1：セグメントの連続性
         if (!ValidateColumnSegment(segments, items.Count))

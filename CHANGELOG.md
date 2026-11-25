@@ -21,7 +21,10 @@
   - `AnnotationEditSession.MoveSelectedToFront/Back` → `BringSelectedToFront` / `SendSelectedToBack`（`AnnotationDocument.BringToFront` / `SendToBack` と同じ語にする。 4 つの UI 版のレイヤーも同じ）。
   - `AnnotationCore.SaveDocument(imagePath, document)` → `SaveForImage(imagePath, document)`（`Save(documentPath, document)` と対にする）。
   - `ThumbnailLayout.ImageHeight` / `ThumbnailPresenter.ImageHeight` → `ResolveImageHeight`（同じ型の `ResolveLayout` / `ResolveMetrics` と語を揃える）。
+- **書式バーの表示可否を提示層へ移しました**（`EsUtil.Feature.StyledText.Presenter.Formatting.TextFormatBarVisibility`）。 **表示可否はコアに置かない**規則（`EsUtil/README.md` §3）に合わせるためです。 次の公開 API を削除しました: `TextEditor.ShowFormatBarWhileEditing` / `TextEditor.ShouldShowFormatBar` / `TextEditState.ShouldShowFormatBar(bool)` / `TextEditState.FormatBarMinimumSelectionLength`。 UI コントロール（`StyledTextControl`）の `ShowFormatBarWhileEditing` / `ShouldShowFormatBar` はそのまま使えます（条件は本判定が単一所有する）。
 - **`ThumbnailLayoutResult.Slot` / `Image` / `Label` を `GetSlot` / `GetImageRect` / `GetLabelRect` に改名しました**（取得は動詞で始める。 `Image` / `Label` は同じ型のプロパティ名と紛らわしかった）。
+- **`ColumnPacker.GetLastColumnSegments()` の要素名を `StartIdx` / `EndIdx` から `StartIndex` / `EndIndex` に改名しました**（略語を使わない）。
+- **`ColumnPacker.ClearCache()` を `internal ClearMetrics()` にしました**（アイテムと余白は生成時に固定され、公開の利用者が計測を破棄する場面が無い。 名前も内部の実装都合（キャッシュ）を出さない）。
 - **Marquee の `KeyDown(EsKey, EsPoint?)` を `HandleKeyDown(EsKey, EsPoint?)` に改名しました**（`MarqueeCore` / `MarqueePresenter`。 イベント名と同じ名前のメソッドを避け、動詞で始める）。
 - **本文の編集状態（`TextEditor` / `TextEditState` / `TextEditKeyMap` 等）を提示層からコアへ移しました**（`EsUtil.Feature.StyledText.Presenter.Editing` → `EsUtil.Feature.StyledText.Core.Editing`）。 本文の編集は描画に依存しない状態と計算であり、層の帰属（単体で成立する概念は Core）に合わせます。 提示層にはキャレットと選択範囲の見た目（`.Presenter.Drawing`）と書式バーの並び・寸法（`.Presenter.Formatting`）だけが残ります。
 - **注釈レイヤーの再描画要求を `InvalidateRender()` に揃えました**（4 つの UI 版。 WinUI 3 の `Redraw()` / `Invalidate()` は同じ処理の別名だったため削除）。 Marquee のコントロールと同じ名前になります。
@@ -57,6 +60,8 @@
 
 - **4 つの UI 版の注釈レイヤーの公開面を揃えました**。 WinForms にも `GetSelectedBodyRect()` を追加し、MewUI の説明の座標系（元画像ピクセル → DIP）を実装に合わせました。
 - **注釈の削除・重なり順・本文の差し替えを `Debug` で記録するようにしました**（種別と識別子、差し替えた本文の先頭 100 文字）。 症状の切り分けで「どの注釈を・どの順へ動かしたか」を追えます。
+- **注釈の選択の記録に種別を加えました**（`選択: 種別={Kind} 識別子={Id}`）。 症状の切り分けで「どの種類の注釈を選んだか」を識別子だけで推測せずに済みます。
+- **WinForms の注釈レイヤーにも `HandleHitRadius` を追加しました**（他の 3 UI と同じく、選択枠のハンドルを掴む半径を設定できる）。
 - **注釈の作成（位置と大きさ）と、ドラッグ中の位置と大きさ・しっぽ・外観・本文の余白の変更を値つきで記録するようにしました**（作成は `Debug`、1 歩ごとに届く変更は `Trace`）。 レベルを上げれば「どこへ動かしたか・どの値へ変えたか」を追えます。
 - **注釈レイヤーの矩形変換をコアの `AnnotationViewTransform.ToClient(EsRect)` へ統一しました**（各 UI が変換の式を書き写していました）。
 - **書式バーの大きさの計算を提示層の `AnnotationPanelAppearance.ResolvePanelSize` へ集約しました**（4 つの UI 版が余白と枠を足す計算を書き写していました）。 **MewUI / WinUI 3 でも高さの固定値が効く**ため、実測値の揺れでバーが注釈に重なることがなくなります（AvaloniaUI と同じ見た目）。

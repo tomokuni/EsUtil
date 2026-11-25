@@ -119,15 +119,13 @@ public sealed partial class StyledTextControl : Panel
     /// <b>表示の判断は <see cref="ShouldShowFormatBar"/> が持つ</b>: 自動表示が有効でも、1 文字以上を選ぶまでは
     /// 表示しない（適用先が決まらないため）。 ホスト（注釈のパネルなど）は本プロパティを読んでバーを出し入れする。
     /// </remarks>
-    public bool ShowFormatBarWhileEditing
-    {
-        get => _editor.ShowFormatBarWhileEditing;
-        set => _editor.ShowFormatBarWhileEditing = value;
-    }
+    public bool ShowFormatBarWhileEditing { get; set; } = true;
 
     /// <summary>いま書式バーを表示すべきかどうかを取得する。</summary>
     /// <value>編集中で、自動表示が有効で、1 文字以上を選んでいる場合は <see langword="true"/>。</value>
-    public bool ShouldShowFormatBar => _editor.ShouldShowFormatBar;
+    /// <remarks>判定の規則は <see cref="TextFormatBarVisibility.ShouldShow"/> が単一所有する（4 つの UI 版で共有する）。</remarks>
+    public bool ShouldShowFormatBar
+        => TextFormatBarVisibility.ShouldShow(ShowFormatBarWhileEditing, IsEditing, SelectionLength);
 
     /// <summary>入力を受け付けるかどうかを取得または設定する。</summary>
     /// <value>入力を受け付ける場合は <see langword="true"/>（既定）。 表示専用にする場合は <see langword="false"/>。</value>

@@ -642,9 +642,9 @@ public class LayoutStrategyBaseTests
         Assert.True(itemLayouts[2].X >= itemLayouts[1].X);
     }
 
-    /// <summary>ClearCache_テスト</summary>
+    /// <summary>ClearMetrics_テスト</summary>
     [Fact]
-    internal void ClearCache_テスト()
+    internal void ClearMetrics_テスト()
     {
         // Arrange
         var items = TestHelper.GetSingleItem();
@@ -652,7 +652,7 @@ public class LayoutStrategyBaseTests
         layout.Solve(100.0);  // キャッシュを使用
 
         // Act
-        layout.ClearCache();
+        layout.ClearMetrics();
 
         // Assert
         // キャッシュがクリアされたことを確認（間接的に）

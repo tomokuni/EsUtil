@@ -19,6 +19,7 @@
 - [13. `TextEditor`（クラス）](#13-texteditorクラス)
 - [14. `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand`（静的クラス・列挙型）](#14-texteditkeymap--texteditkey--texteditmodifiers--texteditcommand静的クラス列挙型)
 - [15. `TextDefaults` / `TextLimits`（静的クラス）](#15-textdefaults--textlimits静的クラス)
+- [16. `TextFormatBarVisibility`（静的クラス）](#16-textformatbarvisibility静的クラス)
 
 ## 1. 公開 API の可視性
 
@@ -174,7 +175,6 @@
 | --- | --- |
 | `Begin(textLength)` / `End()` / `Reset()` | 編集の開始（キャレットは本文の末尾）・終了 / 状態の破棄（対象が変わったとき） |
 | `IsActive` | 編集中かどうか |
-| `FormatBarMinimumSelectionLength` / `ShouldShowFormatBar(autoShow)` | 書式バーを表示する最小の選択文字数（1）と、表示すべきかどうか（編集中・自動表示が有効・1 文字以上を選択） |
 | `CaretIndex` / `AnchorIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `SelectionRange` / `HasSelection` | キャレットと選択 |
 | `TypingStyle` | 以降の入力へ効かせる書式（未設定は `null`） |
 | `MoveTo(index, textLength, extend)` / `MoveToCluster(text, index, extend)` | キャレットを移す（`extend` なら選択を広げる）。 `MoveToCluster` は書記素クラスタの境界へ揃える |
@@ -195,7 +195,6 @@
 - **本文は不変**です。 編集は新しい `RichText` を返し、変化が無い場合は**同じ実体**を返します。
 - **選択が無いときの書式変更は以降の入力へ回します**（既存の文字は変えない）。
 - **削除・移動の単位は書記素クラスタ**です（サロゲート ペア・結合文字を半分に割らない）。 本文を渡す版（`MoveToCluster` / `Select` / `SnapCaretToCluster` / `GetSelectedText`）は境界への揃えを本クラスが行い、UI と注釈の両方が同じ規則を使う。
-- **書式バーの表示条件は本クラスが単一所有**します（`ShouldShowFormatBar`。 UI へは `TextEditor.ShouldShowFormatBar` が公開する）。 編集中・自動表示が有効・1 文字以上を選択の 3 つを満たす間だけ表示し、適用先が決まらない間は出しません。
 
 ## 13. `TextEditor`（クラス）
 
@@ -205,7 +204,6 @@
 | --- | --- |
 | `Text` / `EditState` | 編集している本文 / キャレット・選択・書式の状態（ホストと共有できる） |
 | `PreeditText` / `DisplayText` / `DisplayCaretIndex` | IME の変換中の文字列（本文へは入れない）・描画用の本文・描画用のキャレット |
-| `ShowFormatBarWhileEditing` / `ShouldShowFormatBar` | 書式バーの自動表示の設定 / 表示すべきか（編集中・自動表示が有効・1 文字以上を選択） |
 | `Begin()` / `End()` | 編集の開始（キャレットは本文の末尾）と終了 |
 | `Select` / `SelectRange` / `SelectAll` / `MoveCaret` / `MoveCaretByCluster` / `MoveCaretByLine` / `MoveCaretToLineEdge` / `SetCaretFromPoint` / `ClampCaret` | キャレットと選択（端は書記素クラスタの境界へ揃える） |
 | `ReplaceSelection` / `ReplaceRange` / `DeleteAtCaret` | 文字列の挿入・置き換え・削除 |
@@ -253,3 +251,15 @@
 
 - **値は元画像ピクセル**です（画面の DIP ではない）。
 - **既定値は 1 か所に置きます**（設定ページの初期値・新規作成時の値・JSON の欠落値が同じ値になる）。
+
+## 16. `TextFormatBarVisibility`（静的クラス）
+
+**書式バーを表示する条件の単一所有**です（提示層 `EsUtil.Feature.StyledText.Presenter.Formatting`）。 表示可否は UI 要素を出すかどうかの判断であり、本文の編集状態（コア）とは分けています。 4 つの UI 版は `StyledTextControl.ShouldShowFormatBar` から本判定だけを使い、条件を書き写しません。
+
+| メンバー | 説明 |
+| --- | --- |
+| `MinimumSelectionLength` | 書式バーを表示する最小の選択文字数（1） |
+| `ShouldShow(autoShow, isEditing, selectionLength)` | 自動表示が有効・編集中・1 文字以上を選択の 3 つを満たす間だけ `true` |
+
+- **適用先が決まらない間は出しません**（選択が無い状態でバーを出すと、操作しても効かない）。
+- **自動表示の設定は UI コントロールが持ちます**（`StyledTextControl.ShowFormatBarWhileEditing`。 既定は `true`）。 ホストが独自のバーを出す場合は `false` にします。

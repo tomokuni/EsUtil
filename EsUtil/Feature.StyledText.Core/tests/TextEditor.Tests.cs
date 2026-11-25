@@ -3,34 +3,10 @@ using EsUtil.Feature.StyledText.Core.Editing;
 
 namespace EsUtil.Feature.StyledText.Core.Tests;
 
-/// <summary><see cref="TextEditor"/> の規則（本文・選択・書式バーの表示条件・キーの実行）を検証する。</summary>
+/// <summary><see cref="TextEditor"/> の規則（本文・選択・キーの実行）を検証する。</summary>
 /// <remarks>UI を介さずに、4 つの UI 版が共有する本文の操作を固定する。</remarks>
 public sealed class TextEditorTests
 {
-    /// <summary>書式バーは編集中でも 1 文字以上を選ぶまで表示しない。</summary>
-    [Fact]
-    internal void ShouldShowFormatBar_選択ができるまで表示しない()
-    {
-        var editor = CreateEditor("abcd");
-
-        Assert.False(editor.ShouldShowFormatBar);
-        editor.Begin();
-        Assert.False(editor.ShouldShowFormatBar);
-
-        editor.Select(0, 1);
-        Assert.True(editor.ShouldShowFormatBar);
-
-        editor.ShowFormatBarWhileEditing = false;
-        Assert.False(editor.ShouldShowFormatBar);
-
-        editor.ShowFormatBarWhileEditing = true;
-        editor.Select(2, 0);
-        Assert.False(editor.ShouldShowFormatBar);
-
-        editor.End();
-        Assert.False(editor.ShouldShowFormatBar);
-    }
-
     /// <summary>選択は書記素クラスタの境界へ揃える。</summary>
     [Fact]
     internal void Select_サロゲートペアの内側を選ばない()

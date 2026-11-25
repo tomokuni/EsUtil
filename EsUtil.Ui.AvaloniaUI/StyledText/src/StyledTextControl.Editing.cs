@@ -70,11 +70,7 @@ public sealed partial class StyledTextControl
     /// <b>表示の判断は <see cref="ShouldShowFormatBar"/> が持つ</b>: 自動表示が有効でも、1 文字以上を選ぶまでは
     /// 表示しない（適用先が決まらないため）。 ホスト（注釈のパネルなど）は本プロパティを読んでバーを出し入れする。
     /// </remarks>
-    public bool ShowFormatBarWhileEditing
-    {
-        get => _editor.ShowFormatBarWhileEditing;
-        set => _editor.ShowFormatBarWhileEditing = value;
-    }
+    public bool ShowFormatBarWhileEditing { get; set; } = true;
 
     /// <summary>ポインターで文字を選んでいる最中かどうか。</summary>
     private bool _isSelectingText;

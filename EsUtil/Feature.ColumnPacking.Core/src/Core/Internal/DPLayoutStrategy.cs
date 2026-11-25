@@ -297,12 +297,12 @@ internal sealed class DPLayoutStrategy(
             while (currentJ > 0)
             {
                 int idx = currentI * (columnLimit + 1) + currentJ;
-                int breakIdx = dp[idx].BreakIdx;
+                int breakIndex = dp[idx].BreakIndex;
 
-                // [breakIdx, currentI-1] が currentJ 番目の列
-                segments[segmentIdx--] = new ColumnSegment(breakIdx, currentI - 1);
+                // [breakIndex, currentI-1] が currentJ 番目の列
+                segments[segmentIdx--] = new ColumnSegment(breakIndex, currentI - 1);
 
-                currentI = breakIdx;
+                currentI = breakIndex;
                 currentJ--;
             }
 
@@ -328,7 +328,7 @@ internal sealed class DPLayoutStrategy(
     /// 【制約】<br/>
     /// Height が正の無限大の場合、無効状態（<see cref="Invalid"/>）。<br/>
     /// </remarks>
-    internal readonly record struct DpState(double Height, double Width, int BreakIdx)
+    internal readonly record struct DpState(double Height, double Width, int BreakIndex)
     {
         /// <summary><b>無効な状態を取得します</b></summary>
         /// <remarks>テーブルの初期値（まだ遷移が無い状態）として使います。</remarks>
@@ -344,10 +344,10 @@ internal sealed class DPLayoutStrategy(
         /// </remarks>
         /// <param name="height">最大列高さ。</param>
         /// <param name="width">総幅。</param>
-        /// <param name="breakIdx">分割位置。</param>
+        /// <param name="breakIndex">分割位置。</param>
         /// <returns>新しい DpState インスタンス。</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static DpState Create(double height, double width, int breakIdx)
-            => new(height, width, breakIdx);
+        public static DpState Create(double height, double width, int breakIndex)
+            => new(height, width, breakIndex);
     }
 }

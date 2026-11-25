@@ -35,8 +35,8 @@ public class SizeTests
         Assert.Equal(100.0, result.UsedWidth);
         Assert.Equal(200.0, result.MinHeight);
         Assert.Equal(2, result.ColumnSegments.Length);
-        Assert.Equal(0, result.ColumnSegments[0].StartIdx);
-        Assert.Equal(1, result.ColumnSegments[0].EndIdx);
+        Assert.Equal(0, result.ColumnSegments[0].StartIndex);
+        Assert.Equal(1, result.ColumnSegments[0].EndIndex);
     }
 
 
@@ -48,8 +48,8 @@ public class SizeTests
         var segment = new ColumnSegment(5, 10);
 
         // Assert
-        Assert.Equal(5, segment.StartIdx);
-        Assert.Equal(10, segment.EndIdx);
+        Assert.Equal(5, segment.StartIndex);
+        Assert.Equal(10, segment.EndIndex);
     }
 
     /// <summary>ColumnSegment_等価性_テスト</summary>

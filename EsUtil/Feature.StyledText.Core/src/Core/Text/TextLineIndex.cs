@@ -4,7 +4,7 @@ namespace EsUtil.Feature.StyledText.Core.Text;
 
 /// <summary>本文の行と文字位置の対応（キャレット・選択範囲・位置から文字の特定）。</summary>
 /// <remarks>
-/// <b>折り返しは呼び出し側（注釈の提示層など）が解決する</b>: 本クラスは解決済みの行
+/// <b>折り返しは <see cref="TextLayout"/> が解決する</b>: 本クラスは解決済みの行
 /// （<see cref="TextLinePlan"/>）と本文の文字列から、文字位置と座標の対応だけを求める。<br/>
 /// <b>実寸は UI が測る</b>: 文字列の幅は <c>measureText</c>（文字列と書式から実寸を返す関数）で測る
 /// （描画に使うテキスト エンジンと測定を一致させるため、UI 層が渡す）。<br/>

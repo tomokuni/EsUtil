@@ -5,7 +5,7 @@ namespace EsUtil.Feature.StyledText.Core.Editing;
 
 /// <summary>本文の編集（キャレット・選択・入力・削除・書式）の状態と規則（単一所有）。</summary>
 /// <remarks>
-/// <b>状態の所有者は提示層</b>: 「いまどこを編集しているか（キャレット・選択）」は提示の状態であり、
+/// <b>状態の所有者はコア</b>: 「いまどこを編集しているか（キャレット・選択）」は本文の編集状態であり、
 /// UI 版が同じ規則で扱う。 UI は入力イベントを本クラスへ渡し、通知と描画だけを行う。<br/>
 /// <b>文字の操作は Core が持つ</b>: 文字列の挿入・削除・書式の適用は <see cref="RichText"/> と
 /// <see cref="TextStyleEdit"/> が単一所有する。 本クラスは「どの範囲へ・どこへキャレットを置くか」だけを決める。<br/>
@@ -16,10 +16,6 @@ namespace EsUtil.Feature.StyledText.Core.Editing;
 /// </remarks>
 public sealed class TextEditState
 {
-    /// <summary>書式バーを表示する最小の選択文字数。</summary>
-    /// <value>1（1 文字以上を選んだときだけ表示する）。</value>
-    public const int FormatBarMinimumSelectionLength = 1;
-
     /// <summary>本文の編集中かどうか（キャレットと選択が有効か）。</summary>
     private bool _isActive;
 
@@ -56,17 +52,6 @@ public sealed class TextEditState
 
     /// <summary>本文の文字を選んでいるかどうかを取得する。</summary>
     public bool HasSelection => SelectionLength > 0;
-
-    /// <summary>書式バーを表示すべきかどうかを返す。</summary>
-    /// <param name="autoShow">編集中に書式バーを自動で表示する設定かどうか（ホストが決める）。</param>
-    /// <returns>表示する場合は <see langword="true"/>。</returns>
-    /// <remarks>
-    /// <b>表示の条件は 3 つ</b>である: 編集中であること・自動表示が有効であること・
-    /// <see cref="FormatBarMinimumSelectionLength"/> 文字以上を選んでいること。
-    /// 適用先が決まらない（選択が無い）状態でバーを出さないための規則であり、本クラスが単一所有する。
-    /// </remarks>
-    public bool ShouldShowFormatBar(bool autoShow)
-        => autoShow && IsActive && SelectionLength >= FormatBarMinimumSelectionLength;
 
     /// <summary>以降の入力へ効かせる書式を取得する。</summary>
     /// <value>まだ書式を変えていない場合は <see langword="null"/>。</value>

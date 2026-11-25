@@ -390,18 +390,20 @@ public static partial class AnnotationLogMessage
     internal static void LogOperationError(this ILogger logger, Exception exception, string operation)
         => logger.LogOperationErrorCore(exception, Prefix, operation);
     /// <summary>注釈の選択の変更を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 選択: {Id}</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 選択: 種別={Kind} 識別子={Id}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="kind">選択した注釈の種別（解除は <c>none</c>）。</param>
     /// <param name="id">選択した注釈の識別子（解除は <c>none</c>）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 選択: {Id:l}")]
-    private static partial void LogSelectionChangedCore(this ILogger logger, string prefix, string id);
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 選択: 種別={Kind:l} 識別子={Id:l}")]
+    private static partial void LogSelectionChangedCore(this ILogger logger, string prefix, string kind, string id);
 
     /// <summary>注釈の選択の変更を記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="kind">選択した注釈の種別。 解除は <see langword="null"/>。</param>
     /// <param name="id">選択した注釈の識別子。 解除は <see langword="null"/>。</param>
-    public static void LogSelectionChanged(this ILogger logger, string? id)
-        => logger.LogSelectionChangedCore(Prefix, id ?? "none");
+    public static void LogSelectionChanged(this ILogger logger, AnnotationKind? kind, string? id)
+        => logger.LogSelectionChangedCore(Prefix, kind?.ToString() ?? "none", id ?? "none");
 
     /// <summary>本文の編集の開始・終了を記録する（生成メソッド）。</summary>
     /// <remarks>

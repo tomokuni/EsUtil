@@ -193,29 +193,6 @@ public sealed class TextEditStateTests
         Assert.Equal((0, 0), edit.SelectionRange);
     }
 
-    /// <summary>書式バーは編集中で 1 文字以上を選んでいる間だけ表示する。</summary>
-    [Fact]
-    internal void ShouldShowFormatBar_選択がある間だけ表示する()
-    {
-        var edit = new TextEditState();
-
-        Assert.False(edit.ShouldShowFormatBar(autoShow: true));
-
-        edit.Begin(4);
-        Assert.False(edit.ShouldShowFormatBar(autoShow: true));
-
-        edit.Select(1, 1, 4);
-        Assert.True(edit.ShouldShowFormatBar(autoShow: true));
-        Assert.False(edit.ShouldShowFormatBar(autoShow: false));
-
-        edit.Select(1, 0, 4);
-        Assert.False(edit.ShouldShowFormatBar(autoShow: true));
-
-        edit.Select(1, 1, 4);
-        edit.End();
-        Assert.False(edit.ShouldShowFormatBar(autoShow: true));
-    }
-
     /// <summary>選択とキャレットの移動は書記素クラスタの境界へ揃える。</summary>
     [Fact]
     internal void Select_クラスタの境界へ揃える()

@@ -34,6 +34,7 @@ WinForms 版の注釈レイヤーが公開する API の一覧です。 操作�
 | `Source` / `SourcePixelWidth` / `SourcePixelHeight` | 表示する画像と元画像の画素数 |
 | `Document` / `SelectedId` / `Selected` | 注釈の文書と選択 |
 | `DraftDefaults` | 新規作成時の外観・書式 |
+| `HandleSize` / `HandleHitRadius` | 選択枠のハンドルの一辺の大きさ・掴む半径（DIP） |
 | `ColorTextFormat` | 書式バーの色の表記 |
 | `Log` / `LogPrefix` | ログの出力先と接頭辞（コアと提示層で共有する） |
 | `Presenter` | 描画計画を解決する提示層（ログと接頭辞を共有する） |

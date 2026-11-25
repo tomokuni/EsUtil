@@ -89,12 +89,12 @@ internal sealed class ColumnMetricsCache(Size[] items, Space space, int estimate
     public Size CalcMetrics(ColumnSegment segment)
     {
         // セグメントの範囲が無効な場合はデフォルト値を返す
-        if (segment.StartIdx > segment.EndIdx)
+        if (segment.StartIndex > segment.EndIndex)
             return default;
 
         // 配列から ReadOnlySpan を切り出す（C# 14 の第一級 Span により、Span を通常の型と同様に扱える）
-        int length = segment.EndIdx - segment.StartIdx + 1;
-        ReadOnlySpan<Size> itemsSpan = items.AsSpan(segment.StartIdx, length);
+        int length = segment.EndIndex - segment.StartIndex + 1;
+        ReadOnlySpan<Size> itemsSpan = items.AsSpan(segment.StartIndex, length);
 
         // 行間スペースの合計を初期値として設定
         double totalHeight = (length - 1) * space.Row;

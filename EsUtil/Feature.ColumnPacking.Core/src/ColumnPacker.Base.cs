@@ -220,15 +220,15 @@ public partial class ColumnPacker
 
     /// <summary><b>最後の Solve() 実行時の各列のアイテム範囲セグメントを取得します</b></summary>
     /// <returns>各列のアイテム範囲セグメントの配列（タプル形式）</returns>
-    public (int StartIdx, int EndIdx)[] GetLastColumnSegments()
+    public (int StartIndex, int EndIndex)[] GetLastColumnSegments()
     {
         // セグメントを取得する
         var segments = _lastSolveResult.ColumnSegments;
-        var result = new (int StartIdx, int EndIdx)[segments.Length];
+        var result = new (int StartIndex, int EndIndex)[segments.Length];
         for (int i = 0; i < segments.Length; i++)
         {
             var seg = segments[i];
-            result[i] = (seg.StartIdx, seg.EndIdx);
+            result[i] = (seg.StartIndex, seg.EndIndex);
         }
         // 結果を返却する
         return result;
@@ -331,7 +331,7 @@ public partial class ColumnPacker
     /// 【注意点】<br/>
     /// Strategy インスタンスはそのまま。<br/>
     /// </remarks>
-    public void ClearCache()
+    internal void ClearMetrics()
     {
         // ColumnMetricsCache をクリアする
         _metricsCache.Clear();

@@ -269,6 +269,22 @@ public sealed partial class AnnotationLayerControl : Control
         }
     }
 
+    /// <summary>選択枠のハンドルを掴む半径（DIP）を取得または設定する。</summary>
+    /// <remarks>
+    /// <b>描画（カーソルの変化）と押下の当たり判定が同じ値を使う</b>（Marquee の <c>HandleHitRadius</c>）。
+    /// 見えているハンドルの大きさは <see cref="HandleSize"/> で別に決める。
+    /// </remarks>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public double HandleHitRadius
+    {
+        get => _marquee.Options.HandleHitRadius;
+        set
+        {
+            _marquee.Options = _marquee.Options with { HandleHitRadius = value };
+            Invalidate();
+        }
+    }
+
     /// <summary>注釈の文書を取得または設定する。</summary>
     /// <remarks>差し替えると選択を解除し、変更履歴を空にする（別の画像の注釈を引き継がない）。</remarks>
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]

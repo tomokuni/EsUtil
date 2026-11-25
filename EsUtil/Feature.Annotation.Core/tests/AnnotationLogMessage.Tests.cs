@@ -98,6 +98,21 @@ public sealed class AnnotationLogMessageTests
         Assert.Contains("外観: 枠線=#FFFF0000 太さ=3 内側=#00FFFFFF 角丸=4", logger.Messages[1], StringComparison.Ordinal);
     }
 
+    /// <summary>注釈の選択の変更は、操作の対象（種別・識別子）を Debug で記録する。</summary>
+    [Fact]
+    internal void LogSelectionChanged_対象をDebugで出力する()
+    {
+        var logger = new RecordingLogger();
+
+        logger.LogSelectionChanged(AnnotationKind.Bubble, "abc");
+        logger.LogSelectionChanged(kind: null, id: null);
+
+        Assert.Equal(2, logger.Messages.Count);
+        Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Debug, level));
+        Assert.Contains("選択: 種別=Bubble 識別子=abc", logger.Messages[0], StringComparison.Ordinal);
+        Assert.Contains("選択: 種別=none 識別子=none", logger.Messages[1], StringComparison.Ordinal);
+    }
+
     /// <summary>真偽の設定値は変化したときだけ出力する。</summary>
     [Fact]
     internal void LogSettingChanged_変化したときだけ出力する()

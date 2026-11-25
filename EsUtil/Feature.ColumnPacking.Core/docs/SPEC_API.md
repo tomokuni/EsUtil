@@ -38,9 +38,8 @@
 | `(double UsedWidth, double MinHeight) SolveSingleColumnLayout()` | 1 列で並べたときの結果を返します。 |
 | `void VerifyLayoutResult(double widthLimit)` | 直前の結果が幅の上限と単列配置の条件を満たすか検証します。 満たさない場合は例外を送出します。 |
 | `(double UsedWidth, double MinHeight) GetLastResult()` | 直前の結果を返します。 |
-| `(int StartIdx, int EndIdx)[] GetLastColumnSegments()` | 直前の列ごとのアイテム範囲（0 始まり・両端を含む）を返します。 |
+| `(int StartIndex, int EndIndex)[] GetLastColumnSegments()` | 直前の列ごとのアイテム範囲（0 始まり・両端を含む）を返します。 |
 | `IReadOnlyList<(double X, double Y, double Width, double Height)> GetLastItemLayouts()` | 直前のアイテムごとの矩形を返します。 |
-| `void ClearCache()` | 列の計測結果のキャッシュを破棄します（アイテムを変えた場合に呼びます）。 |
 | `Method CurrentMethod { get; set; }` | 使う算法を取得または設定します（既定は `BinarySearch`）。 |
 | `BinarySearchOptions CurrentBinarySearchOptions { get; set; }` | 二分探索の調整値を取得または設定します（設定時に妥当性を検証します）。 |
 | `string GetCurrentStrategyName()` | 現在の算法の名前（`Greedy` / `DynamicProgramming` / `BinarySearch`）を返します。 |
@@ -120,6 +119,6 @@ var optimal = engine.Solve(400.0, Method.DynamicProgramming);
 ## 5. 制限事項
 
 - **`Solve` はインスタンスの状態を更新します**（直前の結果・キャッシュ）。 同じインスタンスを複数スレッドから同時に使わないでください。
-- **アイテムを差し替える方法はありません**。 アイテムが変わった場合は新しいインスタンスを作ります（計測のキャッシュは `ClearCache` で破棄できます）。
+- **アイテムを差し替える方法はありません**。 アイテムが変わった場合は新しいインスタンスを作ります。
 - **列数は `columnLimit` を超えません**が、幅の上限が足りない場合は列数が減ります（1 列になることもあります）。
 - **本ライブラリは描画を行いません**。 返した矩形を UI のパネルへ反映するのは利用側です（例: [`EsUtil.Ui.WinUI3.ColumnPacking`](../../../EsUtil.Ui.WinUI3/ColumnPacking/README.md)）。
