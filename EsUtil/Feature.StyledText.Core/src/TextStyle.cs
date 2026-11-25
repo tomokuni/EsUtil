@@ -36,7 +36,7 @@ public sealed record TextStyle(
     /// <summary>安全域へ補正した書式を取得する。</summary>
     /// <returns>フォント名が空なら既定のフォント、大きさが範囲外なら最も近い境界へ補正した書式。</returns>
     /// <remarks>数値の安全域は <see cref="TextLimits"/> が単一所有する（設定・JSON・入力のどの経路でも同じ補正になる）。</remarks>
-    public TextStyle Normalized() => this with
+    public TextStyle Normalize() => this with
     {
         FontFamily = string.IsNullOrWhiteSpace(FontFamily)
             ? TextDefaults.PreferredFontFamilies[0]

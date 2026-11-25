@@ -92,7 +92,7 @@
 | `Tip` | しっぽの先端（絶対座標。 **本体と独立して動かせる**） |
 | `BaseEdge` / `BaseOffset` / `Width` | 付け根の辺・辺上の比率（0〜1）・付け根の幅（本体に追従する） |
 | `ResolveBase(body)` | 本体の矩形から付け根の 2 点を求める |
-| `Normalized()` | 幅と比率を安全域へ補正する |
+| `Normalize()` | 幅と比率を安全域へ補正する |
 
 ## 6. 文字の書式（`EsUtil.Feature.StyledText`）
 
@@ -113,7 +113,7 @@
 | `Border` / `BorderThickness` | 枠線の色と太さ（元画像ピクセル） |
 | `Fill` | 内側の色（透明なら塗らない） |
 | `CornerRadius` | 角丸の半径（元画像ピクセル。 設定可能） |
-| `Default` / `Normalized()` | 既定の外観 / 太さと角丸の補正 |
+| `Default` / `Normalize()` | 既定の外観 / 太さと角丸の補正 |
 
 ## 8. `AnnotationPresenter` / `AnnotationDrawPlan`（クラス・レコード）
 

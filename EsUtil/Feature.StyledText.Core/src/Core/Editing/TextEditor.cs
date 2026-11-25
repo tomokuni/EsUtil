@@ -88,28 +88,28 @@ public sealed class TextEditor
 
     /// <summary>本文の編集を始める（キャレットを本文の末尾へ置く）。</summary>
     /// <returns>変わった内容。 既に編集中の場合は <see cref="TextEditChange.None"/>。</returns>
-    public TextEditChange Begin()
+    public TextEditChange BeginEdit()
     {
         if (_state.IsActive)
         {
             return TextEditChange.None;
         }
 
-        _state.Begin(_text.PlainText.Length);
+        _state.BeginEdit(_text.PlainText.Length);
         _preeditText = string.Empty;
         return TextEditChange.Editing | TextEditChange.Selection;
     }
 
     /// <summary>本文の編集を終える（内容は既に <see cref="Text"/> へ入っている）。</summary>
     /// <returns>変わった内容。 編集中でない場合は <see cref="TextEditChange.None"/>。</returns>
-    public TextEditChange End()
+    public TextEditChange EndEdit()
     {
         if (!_state.IsActive)
         {
             return TextEditChange.None;
         }
 
-        _state.End();
+        _state.EndEdit();
         _preeditText = string.Empty;
         return TextEditChange.Editing | TextEditChange.Selection;
     }

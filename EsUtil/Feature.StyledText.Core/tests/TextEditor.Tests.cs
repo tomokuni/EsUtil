@@ -25,7 +25,7 @@ public sealed class TextEditorTests
     internal void PreeditText_本文を変えずに描画のキャレットを進める()
     {
         var editor = CreateEditor("ab");
-        editor.Begin();
+        editor.BeginEdit();
 
         editor.PreeditText = "xy";
 
@@ -39,7 +39,7 @@ public sealed class TextEditorTests
     internal void TryExecute_選択範囲の太字を切り替える()
     {
         var editor = CreateEditor("abcd");
-        editor.Begin();
+        editor.BeginEdit();
         editor.Select(0, 2);
 
         var change = editor.TryExecute(TextEditKeyMap.Resolve(TextEditKey.B, TextEditModifiers.Control));
@@ -54,7 +54,7 @@ public sealed class TextEditorTests
     internal void DeleteAtCaret_本文と選択の変更を返す()
     {
         var editor = CreateEditor("abcd");
-        editor.Begin();
+        editor.BeginEdit();
         editor.Select(1, 0);
 
         var change = editor.DeleteAtCaret(forward: true);
@@ -76,7 +76,7 @@ public sealed class TextEditorTests
     internal void ReplaceSelection_改行をLFへ揃えて挿入する()
     {
         var editor = CreateEditor("ab");
-        editor.Begin();
+        editor.BeginEdit();
         editor.Select(2, 0);
 
         editor.ReplaceSelection("c\r\nd");

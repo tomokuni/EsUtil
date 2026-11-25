@@ -24,7 +24,7 @@ public sealed record AnnotationAppearance(
 
     /// <summary>安全域へ補正した外観を取得する。</summary>
     /// <returns>枠線の太さと角丸の半径を安全域へ補正した外観。</returns>
-    public AnnotationAppearance Normalized() => this with
+    public AnnotationAppearance Normalize() => this with
     {
         BorderThickness = AnnotationLimits.CoerceBorderThickness(BorderThickness),
         CornerRadius = AnnotationLimits.CoerceCornerRadius(CornerRadius),

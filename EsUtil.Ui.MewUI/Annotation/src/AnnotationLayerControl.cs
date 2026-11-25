@@ -488,7 +488,7 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <remarks>
     /// <b>本文の描画を 2 か所に持たない</b>: 本文編集コントロールを重ねている間は、本レイヤーは本文を描かない。
     /// </remarks>
-    public string? ExternalTextId
+    internal string? ExternalTextId
     {
         get => _externalTextId;
         set

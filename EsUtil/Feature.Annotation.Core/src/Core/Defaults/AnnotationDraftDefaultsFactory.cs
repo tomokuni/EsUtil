@@ -45,16 +45,16 @@ public static class AnnotationDraftDefaultsFactory
                 Parse(frameBorderColor),
                 borderThickness,
                 Parse(frameFillColor),
-                cornerRadius).Normalized(),
+                cornerRadius).Normalize(),
             new AnnotationAppearance(
                 Parse(bubbleBorderColor),
                 borderThickness,
                 Parse(bubbleFillColor),
-                cornerRadius).Normalized(),
+                cornerRadius).Normalize(),
             new TextStyle(
                 TextDefaults.PreferredFontFamilies[0],
                 fontSize,
-                Parse(textColor)).Normalized(),
+                Parse(textColor)).Normalize(),
             AnnotationLimits.CoerceBodyPadding(bodyPadding),
             AnnotationLimits.CoerceTailWidth(tailWidth),
             tailEdge);

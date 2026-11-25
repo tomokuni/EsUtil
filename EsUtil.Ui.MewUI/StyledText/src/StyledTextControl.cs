@@ -170,7 +170,7 @@ public sealed partial class StyledTextControl : Panel
             return;
         }
 
-        if (_editor.Begin() == TextEditChange.None)
+        if (_editor.BeginEdit() == TextEditChange.None)
         {
             Focus();
             return;
@@ -184,7 +184,7 @@ public sealed partial class StyledTextControl : Panel
     /// <summary>本文の編集を終える（内容は既に <see cref="RichTextValue"/> へ入っている）。</summary>
     public void EndEditing()
     {
-        if (_editor.End() == TextEditChange.None)
+        if (_editor.EndEdit() == TextEditChange.None)
         {
             return;
         }

@@ -310,7 +310,7 @@ sequenceDiagram
 | `Debug` | `ColorSelectorLogMessage.LogSelectedColorChanged` | 選択色変更（変更前後） |
 | `Debug` | `ColorSelectorLogMessage.LogOpenFlyout` | カラーピッカー Flyout を開く（現在の選択色） |
 | `Debug` | `ColorSelectorLogMessage.LogFlyoutOk` | Flyout の OK で色確定 |
-| `Debug` | `ColorSelectorLogMessage.LogFlyoutCancel` | Flyout のキャンセル |
+| `Debug` | `ColorSelectorLogMessage.LogFlyoutCancel` | Flyout のキャンセル（キャンセルした時点の色） |
 | `Trace` | `ColorSelectorLogMessage.LogLostFocus` | フォーカス喪失（色と有効性） |
 
 ## 11. テスト

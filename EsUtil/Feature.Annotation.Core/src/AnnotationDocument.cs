@@ -156,7 +156,7 @@ public sealed record AnnotationDocument
             return this;
         }
 
-        var normalized = appearance.Normalized();
+        var normalized = appearance.Normalize();
         return item.Appearance == normalized ? this : Replace(item with { Appearance = normalized });
     }
 
@@ -243,7 +243,7 @@ public sealed record AnnotationDocument
     /// <returns>補正したしっぽ。</returns>
     private BubbleTail ClampTail(BubbleTail tail)
     {
-        var normalized = tail.Normalized();
+        var normalized = tail.Normalize();
         return normalized with { Tip = AnnotationGeometry.ClampTailTip(normalized.Tip, ImageSize) };
     }
 }

@@ -204,7 +204,7 @@ public sealed class StyledTextControl : Control
             return;
         }
 
-        if (_editor.Begin() == TextEditChange.None)
+        if (_editor.BeginEdit() == TextEditChange.None)
         {
             Focus();
             return;
@@ -218,7 +218,7 @@ public sealed class StyledTextControl : Control
     /// <summary>本文の編集を終える（内容は既に <see cref="RichTextValue"/> へ入っている）。</summary>
     public void EndEditing()
     {
-        if (_editor.End() == TextEditChange.None)
+        if (_editor.EndEdit() == TextEditChange.None)
         {
             return;
         }

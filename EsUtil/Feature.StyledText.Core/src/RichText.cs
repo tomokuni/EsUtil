@@ -154,12 +154,12 @@ public sealed class RichText
     /// <b>作成と読み込みの入口で 1 回だけ補正する</b>: 文字の大きさは元画像ピクセルであり、設定・JSON・入力のどの経路から来ても
     /// 同じ安全域（<see cref="TextLimits"/>）へ収める。 描画のたびに補正すると、保存した値と表示が食い違う。
     /// </remarks>
-    public RichText Normalized()
+    public RichText Normalize()
     {
         var runs = ImmutableArray.CreateBuilder<TextRun>();
         foreach (var run in Runs)
         {
-            var style = run.Style.Normalized();
+            var style = run.Style.Normalize();
             if (runs.Count > 0 && Equals(runs[^1].Style, style))
             {
                 runs[^1] = runs[^1] with { Text = runs[^1].Text + run.Text };

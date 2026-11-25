@@ -18,6 +18,7 @@
 | `LineHeightFactor` | 行間の倍率（0 以下・非有限は 1） |
 | `RenderScale` | 元画像ピクセルから画面の DIP への倍率（0 以下・非有限は 1） |
 | `Editor` | 本文の値と編集の状態（`TextEditor`。 キャレット・選択・以降の入力へ効かせる書式を含む）。 ホストと共有できる |
+| `IsInputEnabled` | 入力を受け付けるか（既定は受け付ける）。 表示専用にする場合は `false`（ホストが入力とフォーカスを持つ場合） |
 | `ShowFormatBarWhileEditing` | 編集中に書式バーを自動で表示するか（既定は `true`）。 ホストが独自にバーを出す場合は `false` |
 | `ShouldShowFormatBar` | いま書式バーを表示すべきか（編集中・自動表示が有効・1 文字以上を選択） |
 | `PreeditText` | IME の変換中の文字列（本文へは入れず、キャレットの位置へ描く） |
@@ -46,6 +47,7 @@
 | `SelectedTextStyle` / `SelectedTextMatches(match)` | 書式バーへ表示する値・押下状態 |
 | `GetSelectedText()` / `CopyAsync()` / `CutAsync()` / `PasteAsync()` | 選択文字とクリップボード（`PasteAsync` は貼り付けた文字列を返し、無い場合は `null`） |
 | `CaretRect` | キャレットの矩形（DIP。 IME の変換候補の位置） |
+| `RefreshCaretBlink()` | キャレットの点滅を点灯から始め直す（ホストが入力を所有する場合に呼ぶ） |
 
 - **選択が無いときの書式変更は以降の入力へ回します**（既存の文字は変えない）。
 - **キー入力は同じ API を呼びます**（キーの割り当ては `EsUtil.Feature.StyledText.Core` の `TextEditKeyMap` が単一所有する）。

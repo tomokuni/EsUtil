@@ -21,9 +21,11 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 | `IsFormatBarOpen` | property | 書式バーを表示中かどうか（編集中で 1 文字以上を選んでいる間だけ `true`） |
 | `TextFormat` | `ColorTextFormat` | 書式バーとフライアウトの色の表記（設定へ追随させる） |
 | `Log` / `LogPrefix` | `ILogger` / `string?` | ログの出力先と接頭辞（コアと提示層で共有する） |
-| `Presenter` | `AnnotationPresenter` | 描画計画を解決する提示層（ログと接頭辞を共有する） |
-| `Core` | `AnnotationCore` | 文書・保存形式・ログの入口（ファサード。 アプリは `Core.Load` / `Core.Save` を使う） |
-| `ShowStylePanel()` / `CloseStylePanel()` | `void` | 外観・重なり順の編集パネルの表示と終了（右クリックと同じ） |
+| `CopyTextSelection()` / `CutTextSelection()` / `PasteText()` | `void` | 本文の選択範囲をクリップボードとやり取りする（キーの割り当てと同じ処理） |
+| `FormatBarFactory` / `FormatBarOptions` | property | 書式バーの生成（`IStyledTextFormatBarFactory`）と構成（フォント・色・表記） |
+| `ShowStylePanel()` / `CloseStylePanel()` / `IsStylePanelOpen` | `void` / `bool` | 外観・重なり順の編集パネルの表示・終了・表示状態（右クリックと同じ） |
+
+- 描画計画の提示層とファサードは `Layer.Presenter` / `Layer.Core` で参照します。
 
 ## 2. `AnnotationLayerControl`（クラス）
 
@@ -32,6 +34,9 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 | メンバー | 説明 |
 | --- | --- |
 | `Source` / `SourcePixelWidth` / `SourcePixelHeight` | 表示する画像と元画像の画素数 |
+| `ShowImage` | 画像をレイヤーが描くか（`false` の場合は注釈だけを描く） |
+| `PreviewImageRect` / `ImageRectProvider` / `SetPreviewImageRect(rect)` | 画像の表示矩形（`ImageRectProvider` が優先。 動的なズーム・パンへ追従させる） |
+| `HitTestAt(point)` / `ClearSelection()` | 位置が注釈に当たるか / 選択の解除 |
 | `Document` / `SelectedId` / `Selected` | 注釈の文書と選択 |
 | `DraftDefaults` | 新規作成時の外観・書式 |
 | `HandleSize` / `HandleHitRadius` | 選択枠のハンドルの一辺の大きさ・掴む半径（DIP） |
@@ -42,7 +47,7 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 | `AddFrame(bounds)` / `AddBubble(bounds, text)` | 注釈の追加（追加した識別子を返す） |
 | `DeleteSelected()` / `SetSelectedText(text)` | 削除と本文の置き換え |
 | `ApplyTextStyle(...)` / `TransformTextStyle(...)` | 選択範囲の書式の差し替え・属性だけの変更 |
-| `SelectedTextMatches(match)` | 選択範囲のすべての文字が条件を満たすか |
+| `SelectedTextStyle` / `SelectedTextMatches(match)` | 選択範囲の書式（書式バーの現在値）・すべての文字が条件を満たすか |
 | `UpdateSelectedAppearance(...)` / `UpdateSelectedTail(...)` / `SetSelectedBodyPadding(...)` | 外観・しっぽ・本文の余白の変更 |
 | `BringSelectedToFront()` / `SendSelectedToBack()` | 重なり順の変更 |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | 元に戻す・やり直す（1 操作 = 1 手） |

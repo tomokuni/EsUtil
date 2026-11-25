@@ -105,7 +105,7 @@ flowchart TB
 | --- | --- |
 | JSON として解釈できない | `JsonException` を投げる（呼び出し側が利用者へ通知する） |
 | 未知の注釈種別 | `JsonException`（前方互換はスキーマ版で扱う） |
-| 値が安全域の外 | **例外にしない**。 `AnnotationLimits` / `Normalized()` が補正する（描画を止めない） |
+| 値が安全域の外 | **例外にしない**。 `AnnotationLimits` / `Normalize()` が補正する（描画を止めない） |
 | 引数が null | `ArgumentNullException`（公開メソッドの入口で 1 回だけ検証する） |
 | 付随ファイルを削除できない | `Error` を記録して再スローする（画像だけの状態と食い違うため、呼び出し側が利用者へ通知する） |
 

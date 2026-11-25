@@ -25,7 +25,7 @@ public sealed record BubbleTail(
 
     /// <summary>安全域へ補正したしっぽを取得する。</summary>
     /// <returns>幅と付け根の位置を安全域へ補正したしっぽ。</returns>
-    public BubbleTail Normalized() => this with
+    public BubbleTail Normalize() => this with
     {
         BaseOffset = AnnotationLimits.CoerceTailBaseOffset(BaseOffset),
         Width = AnnotationLimits.CoerceTailWidth(Width),

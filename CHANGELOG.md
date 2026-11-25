@@ -21,6 +21,9 @@
   - `AnnotationEditSession.MoveSelectedToFront/Back` → `BringSelectedToFront` / `SendSelectedToBack`（`AnnotationDocument.BringToFront` / `SendToBack` と同じ語にする。 4 つの UI 版のレイヤーも同じ）。
   - `AnnotationCore.SaveDocument(imagePath, document)` → `SaveForImage(imagePath, document)`（`Save(documentPath, document)` と対にする）。
   - `ThumbnailLayout.ImageHeight` / `ThumbnailPresenter.ImageHeight` → `ResolveImageHeight`（同じ型の `ResolveLayout` / `ResolveMetrics` と語を揃える）。
+  - `TextEditor.Begin()` / `End()` → `BeginEdit()` / `EndEdit()`（`TextEditState.Begin(textLength)` / `End()` も同じ。 `IEditableObject` の名前へ揃える）。
+  - `RichText.Normalized()` / `TextStyle.Normalized()` / `AnnotationAppearance.Normalized()` / `BubbleTail.Normalized()` → `Normalize()`（メソッドは動詞で始める。 `TextInput.Normalize` と同じ語にする）。
+- **`AnnotationLayerControl.ExternalTextId` を `internal` にしました**（4 つの UI 版。 本文を重ねるコントロールとレイヤーの間の実装都合であり、ホストが使う値ではない）。
 - **書式バーの表示可否を提示層へ移しました**（`EsUtil.Feature.StyledText.Presenter.Formatting.TextFormatBarVisibility`）。 **表示可否はコアに置かない**規則（`EsUtil/README.md` §3）に合わせるためです。 次の公開 API を削除しました: `TextEditor.ShowFormatBarWhileEditing` / `TextEditor.ShouldShowFormatBar` / `TextEditState.ShouldShowFormatBar(bool)` / `TextEditState.FormatBarMinimumSelectionLength`。 UI コントロール（`StyledTextControl`）の `ShowFormatBarWhileEditing` / `ShouldShowFormatBar` はそのまま使えます（条件は本判定が単一所有する）。
 - **本文の選択と書式の公開面を .NET の慣例へ揃えました**（値の設定で別の操作を起こさない。 `EsUtil/README.md` §9）。
   - `AnnotationEditSession.SelectedTextStyle` / 4 つの UI の `AnnotationLayerControl.SelectedTextStyle` の setter を削除しました（書式は `ApplyTextStyle(style)` で適用する）。
@@ -66,7 +69,9 @@
 
 - **本文をドラッグで選択している間に書式バーがちらつく不具合を修正しました**（4 つの UI 版）。 選択が変わるたびにパネルを作り直していたため、ウィンドウの非表示と再表示が挟まっていました。 表示中の種別は作り直さず位置だけを移します。
 - **4 つの UI 版の注釈レイヤーの公開面を揃えました**。 WinForms にも `GetSelectedBodyRect()` を追加し、MewUI の説明の座標系（元画像ピクセル → DIP）を実装に合わせました。
-- **注釈の削除・重なり順・本文の差し替えを `Debug` で記録するようにしました**（種別と識別子、差し替えた本文の先頭 100 文字）。 症状の切り分けで「どの注釈を・どの順へ動かしたか」を追えます。
+- **注釈の削除・重なり順・本文の差し替えを `Debug` で記録するようにしました**（種別と識別子、削除する注釈の位置・大きさ・本文の先頭 100 文字、差し替えた本文の先頭 100 文字）。 症状の切り分けで「どの注釈を・どの順へ動かしたか」を追えます。
+- **キャンセル要求の記録に操作内容と値を加えました**。 Marquee はドラッグ中か・選択の有無・選択範囲、ColorSelector はキャンセルした時点の色を残します（`Debug` で何をキャンセルしたかを追える）。
+- **書式バーの自動表示の設定は、値が変わったときだけ記録するようにしました**（同じ値の設定でログを増やさない）。
 - **注釈の選択の記録に種別を加えました**（`選択: 種別={Kind} 識別子={Id}`）。 症状の切り分けで「どの種類の注釈を選んだか」を識別子だけで推測せずに済みます。
 - **WinForms の注釈レイヤーにも `HandleHitRadius` を追加しました**（他の 3 UI と同じく、選択枠のハンドルを掴む半径を設定できる）。
 - **注釈の作成（位置と大きさ）と、ドラッグ中の位置と大きさ・しっぽ・外観・本文の余白の変更を値つきで記録するようにしました**（作成は `Debug`、1 歩ごとに届く変更は `Trace`）。 レベルを上げれば「どこへ動かしたか・どの値へ変えたか」を追えます。

@@ -628,7 +628,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <b>本文の描画を 2 か所に持たない</b>: 本文編集コントロールを重ねている間は、本レイヤーは本文を描かない
     /// （同じ文字を二重に描くと、縁が太り位置も二重に見える）。
     /// </remarks>
-    public string? ExternalTextId
+    internal string? ExternalTextId
     {
         get => _externalTextId;
         set

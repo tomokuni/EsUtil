@@ -54,7 +54,7 @@
 | `WithPlainText(text)` | 書式を**文字位置で引き継いで**文字列だけを差し替える |
 | `Insert(index, text)` | 指定位置へ文字列を挿入する（**直前の文字**の書式を引き継ぐ） |
 | `Remove(start, length)` | 指定範囲の文字を除く（残りの書式は保つ） |
-| `Normalized()` | 各 run の書式を安全域へ補正し、同じ書式の run を連結する（作成・読み込みの入口で 1 回だけ使う） |
+| `Normalize()` | 各 run の書式を安全域へ補正し、同じ書式の run を連結する（作成・読み込みの入口で 1 回だけ使う） |
 
 - **範囲の端は書記素クラスタの境界へ揃えます**（`TextCursor.SnapBackward` / `SnapForward`）。 半分に割れたサロゲート ペアを作りません。
 - **切り替えの判断は呼び出し側で 1 回だけ行います**（`TransformStyle` は run ごとに `transform` を呼ぶため、範囲の先頭で決めた値を渡す）。
@@ -68,7 +68,7 @@
 | `TextStyle.FontSize` | 文字の大きさ（**元画像ピクセル**） |
 | `TextStyle.Color` | 文字色（不透明度を含む） |
 | `TextStyle.IsBold` / `IsItalic` / `IsUnderline` / `IsStrike` | 装飾（下線・取り消し線は UI が描く） |
-| `TextStyle.Default` / `Normalized()` | 既定の書式 / 安全域への補正（フォント名が空なら既定、大きさは `TextLimits.CoerceFontSize`） |
+| `TextStyle.Default` / `Normalize()` | 既定の書式 / 安全域への補正（フォント名が空なら既定、大きさは `TextLimits.CoerceFontSize`） |
 
 - **書式は解決済みで保存します**（既定の書式を後から変えても、保存済みの値の見た目は変わりません）。
 
@@ -173,7 +173,7 @@
 
 | メンバー | 説明 |
 | --- | --- |
-| `Begin(textLength)` / `End()` / `Reset()` | 編集の開始（キャレットは本文の末尾）・終了 / 状態の破棄（対象が変わったとき） |
+| `BeginEdit(textLength)` / `EndEdit()` / `Reset()` | 編集の開始（キャレットは本文の末尾）・終了 / 状態の破棄（対象が変わったとき） |
 | `IsActive` | 編集中かどうか |
 | `CaretIndex` / `AnchorIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `SelectionRange` / `HasSelection` | キャレットと選択 |
 | `TypingStyle` | 以降の入力へ効かせる書式（未設定は `null`） |
@@ -204,7 +204,7 @@
 | --- | --- |
 | `Text` / `EditState` | 編集している本文 / キャレット・選択・書式の状態（ホストと共有できる） |
 | `PreeditText` / `DisplayText` / `DisplayCaretIndex` | IME の変換中の文字列（本文へは入れない）・描画用の本文・描画用のキャレット |
-| `Begin()` / `End()` | 編集の開始（キャレットは本文の末尾）と終了 |
+| `BeginEdit()` / `EndEdit()` | 編集の開始（キャレットは本文の末尾）と終了 |
 | `Select` / `SelectRange` / `SelectAll` / `MoveCaret` / `MoveCaretByCluster` / `MoveCaretByLine` / `MoveCaretToLineEdge` / `SetCaretFromPoint` / `ClampCaret` | キャレットと選択（端は書記素クラスタの境界へ揃える） |
 | `ReplaceSelection` / `ReplaceRange` / `DeleteAtCaret` | 文字列の挿入・置き換え・削除 |
 | `ApplyStyle` / `TransformStyle` / `GetSelectedText` / `SelectedTextMatches` / `SelectedTextStyle` | 書式の適用・選択文字の取得・書式ボタンの状態 |

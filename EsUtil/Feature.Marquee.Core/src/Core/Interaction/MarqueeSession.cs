@@ -477,7 +477,7 @@ internal sealed class MarqueeSession
     /// <remarks>ドラッグ中または選択ありの場合は選択を破棄した後にキャンセル要求を通知する。</remarks>
     internal MarqueeFeedback RequestCancel()
     {
-        Log.LogCancelRequested();
+        LogCancelRequest();
         // キャンセルは nudge も終了させる（nudge 位置の十字マーカーとカーソル非表示を残留させない）
         var feedback = WithNudgeEnded(new MarqueeFeedback { ShouldRedraw = false });
         if (_state.IsDragging || _state.HasSelection)
@@ -488,6 +488,11 @@ internal sealed class MarqueeSession
         NotifyEmpty(MarqueeNoticeKind.CancelRequested);
         return feedback;
     }
+
+    /// <summary>キャンセル要求の操作内容（ドラッグ中か・選択の有無・選択範囲）を記録する。</summary>
+    private void LogCancelRequest()
+        => Log.LogCancelRequested(
+            _state.IsDragging, _state.HasSelection, _state.HasSelection ? _state.SelectionSourceRect : null);
 
     /// <summary>対象の境界外の選択の禁止設定の変更を現在の選択矩形へ適用する。</summary>
     /// <returns>UI 層が適用する効果（再描画）。</returns>
@@ -568,7 +573,7 @@ internal sealed class MarqueeSession
             return new MarqueeFeedback { ShouldRedraw = true, Cursor = cursor };
         }
 
-        Log.LogCancelRequested();
+        LogCancelRequest();
         NotifyEmpty(MarqueeNoticeKind.CancelRequested);
         return new MarqueeFeedback { Cursor = cursor };
     }

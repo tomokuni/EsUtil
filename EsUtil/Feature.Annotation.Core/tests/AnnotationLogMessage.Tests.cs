@@ -38,19 +38,21 @@ public sealed class AnnotationLogMessageTests
         Assert.Contains("書式を適用: 開始=0 長さ=0 本文=abcdef", logger.Messages[1], StringComparison.Ordinal);
     }
 
-    /// <summary>注釈の削除と重なり順の変更は、操作の対象（種別・識別子）を Debug で記録する。</summary>
+    /// <summary>注釈の削除と重なり順の変更は、操作の対象（種別・識別子）と値を Debug で記録する。</summary>
     [Fact]
-    internal void LogAnnotationRemoved_LogOrderChanged_対象をDebugで出力する()
+    internal void LogAnnotationRemoved_LogOrderChanged_対象と値をDebugで出力する()
     {
         var logger = new RecordingLogger();
 
-        logger.LogAnnotationRemoved(AnnotationKind.Bubble, "abc");
+        logger.LogAnnotationRemoved(AnnotationKind.Bubble, "abc", new EsRect(10, 20, 30, 40), "xy");
         logger.LogOrderChanged(toFront: true, "abc");
         logger.LogOrderChanged(toFront: false, "abc");
 
         Assert.Equal(3, logger.Messages.Count);
         Assert.All(logger.Levels, level => Assert.Equal(LogLevel.Debug, level));
-        Assert.Contains("注釈を削除: 種別=Bubble 識別子=abc", logger.Messages[0], StringComparison.Ordinal);
+        Assert.Contains(
+            "注釈を削除: 種別=Bubble 識別子=abc 位置=(10, 20) 大きさ=(30, 40) 本文=xy",
+            logger.Messages[0], StringComparison.Ordinal);
         Assert.Contains("重なり順: 最前面へ 識別子=abc", logger.Messages[1], StringComparison.Ordinal);
         Assert.Contains("重なり順: 最背面へ 識別子=abc", logger.Messages[2], StringComparison.Ordinal);
     }

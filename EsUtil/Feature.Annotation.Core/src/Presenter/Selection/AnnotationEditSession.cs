@@ -239,14 +239,20 @@ public sealed class AnnotationEditSession
             return false;
         }
 
-        var kind = _document.Find(id) is FrameAnnotation ? AnnotationKind.Frame : AnnotationKind.Bubble;
+        if (_document.Find(id) is not { } removed)
+        {
+            return false;
+        }
+
+        var kind = removed is FrameAnnotation ? AnnotationKind.Frame : AnnotationKind.Bubble;
+        var text = (removed as BubbleAnnotation)?.Text.PlainText ?? string.Empty;
         EndTextEditing();
         if (!ApplyChange(document => document.Remove(id)))
         {
             return false;
         }
 
-        (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationRemoved(kind, id);
+        (_logger?.Invoke() ?? NullLogger.Instance).LogAnnotationRemoved(kind, id, removed.Bounds, text);
         Select(null);
         return true;
     }
@@ -487,7 +493,7 @@ public sealed class AnnotationEditSession
         }
 
         SyncEditorText();
-        _editor.Begin();
+        _editor.BeginEdit();
         NotifyEditStarted();
         return true;
     }
@@ -495,7 +501,7 @@ public sealed class AnnotationEditSession
     /// <summary>本文の編集を終える（内容は既に文書へ入っている）。</summary>
     public void EndTextEditing()
     {
-        if (_editor.End() == TextEditChange.None)
+        if (_editor.EndEdit() == TextEditChange.None)
         {
             return;
         }

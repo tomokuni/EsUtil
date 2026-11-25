@@ -59,7 +59,7 @@ public sealed class TextEditState
 
     /// <summary>本文の編集を始める（キャレットを本文の末尾へ置く）。</summary>
     /// <param name="textLength">本文の文字数。</param>
-    public void Begin(int textLength)
+    public void BeginEdit(int textLength)
     {
         _isActive = true;
         _caret = Math.Max(0, textLength);
@@ -68,7 +68,7 @@ public sealed class TextEditState
 
     /// <summary>本文の編集を終える（選択の対象は保つ）。</summary>
     /// <remarks>編集を終えても選択中の対象の書式は変えられるため、対象は解除しない。</remarks>
-    public void End()
+    public void EndEdit()
     {
         _isActive = false;
         _caret = 0;

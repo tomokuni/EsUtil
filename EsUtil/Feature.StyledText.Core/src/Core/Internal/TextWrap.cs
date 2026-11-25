@@ -52,7 +52,7 @@ internal static class TextWrap
                 continue;
             }
 
-            var style = run.Style.Normalized();
+            var style = run.Style.Normalize();
             var starts = TextCursor.Boundaries(run.Text);
             for (var i = 0; i < starts.Length; i++)
             {

@@ -13,11 +13,11 @@ public sealed class TextEditStateTests
 {
     /// <summary>編集を始めるとキャレットが本文の末尾へ置かれる。</summary>
     [Fact]
-    internal void Begin_キャレットを末尾へ置く()
+    internal void BeginEdit_キャレットを末尾へ置く()
     {
         var edit = new TextEditState();
 
-        edit.Begin(4);
+        edit.BeginEdit(4);
 
         Assert.True(edit.IsActive);
         Assert.Equal(4, edit.CaretIndex);
@@ -181,12 +181,12 @@ public sealed class TextEditStateTests
 
     /// <summary>編集を終えると状態が初期化される。</summary>
     [Fact]
-    internal void End_状態を初期化する()
+    internal void EndEdit_状態を初期化する()
     {
         var edit = CreateEdit("abcd");
         edit.SetTypingStyle(TextDefaults.DefaultStyle);
 
-        edit.End();
+        edit.EndEdit();
 
         Assert.False(edit.IsActive);
         Assert.Null(edit.TypingStyle);
@@ -263,7 +263,7 @@ public sealed class TextEditStateTests
     private static TextEditState CreateEdit(string text)
     {
         var edit = new TextEditState();
-        edit.Begin(text.Length);
+        edit.BeginEdit(text.Length);
         return edit;
     }
 

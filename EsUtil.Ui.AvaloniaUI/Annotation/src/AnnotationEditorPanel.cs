@@ -260,8 +260,12 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         set
         {
             var previous = _textEditor.ShowFormatBarWhileEditing;
-            _textEditor.ShowFormatBarWhileEditing = value;
-            _layer.Log.LogSettingChanged(nameof(ShowFormatBarWhileEditing), previous, value);
+            if (previous != value)
+            {
+                _textEditor.ShowFormatBarWhileEditing = value;
+                _layer.Log.LogSettingChanged(nameof(ShowFormatBarWhileEditing), previous, value);
+            }
+
             UpdateFormatBarVisibility();
         }
     }

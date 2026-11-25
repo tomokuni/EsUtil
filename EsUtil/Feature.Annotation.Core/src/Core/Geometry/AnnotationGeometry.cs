@@ -118,7 +118,7 @@ public static class AnnotationGeometry
     /// <param name="imageSize">画像の大きさ（元画像ピクセル）。</param>
     /// <returns>画像の内側に収まった枠線。</returns>
     public static FrameAnnotation CreateFrame(EsRect bounds, AnnotationAppearance appearance, EsSize imageSize)
-        => new() { Bounds = ClampRect(bounds, imageSize), Appearance = appearance.Normalized() };
+        => new() { Bounds = ClampRect(bounds, imageSize), Appearance = appearance.Normalize() };
 
     /// <summary>吹き出しの注釈を作る（本文の矩形もしっぽの先端も画像の内側へ収める）。</summary>
     /// <param name="bounds">本文の矩形（元画像ピクセル）。</param>
@@ -151,10 +151,10 @@ public static class AnnotationGeometry
         return new BubbleAnnotation
         {
             Bounds = clamped,
-            Appearance = defaults.BubbleAppearance.Normalized(),
+            Appearance = defaults.BubbleAppearance.Normalize(),
             BodyPadding = AnnotationLimits.CoerceBodyPadding(defaults.BodyPadding),
-            Text = text.Normalized(),
-            Tail = (resolved with { Tip = ClampTailTip(resolved.Tip, imageSize) }).Normalized(),
+            Text = text.Normalize(),
+            Tail = (resolved with { Tip = ClampTailTip(resolved.Tip, imageSize) }).Normalize(),
         };
     }
 

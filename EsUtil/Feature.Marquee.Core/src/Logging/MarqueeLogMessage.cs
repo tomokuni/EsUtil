@@ -248,14 +248,30 @@ internal static partial class MarqueeLogMessage
         => logger.LogConfirmRequestedCore(Prefix, rect);
 
     /// <summary>キャンセル要求（Escape・枠外ダブルクリック・API 呼び出し）のログ。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] キャンセルが要求されました</c></remarks>
+    /// <remarks>
+    /// LogLevel: Debug<br/>出力書式:
+    /// <c>[Marquee] キャンセルが要求されました: ドラッグ中={WasDragging} 選択あり={HasSelection} 範囲={Rect}</c>
+    /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} キャンセルが要求されました")]
-    private static partial void LogCancelRequestedCore(this ILogger logger, string prefix);
+    /// <param name="wasDragging">ドラッグ中だったかどうか。</param>
+    /// <param name="hasSelection">選択矩形の有無。</param>
+    /// <param name="rect">キャンセルした時点の選択矩形（対象座標。 未選択は <c>null</c>）。</param>
+    [LoggerMessage(
+        LogLevel.Debug,
+        "{Prefix:l} キャンセルが要求されました: ドラッグ中={WasDragging} 選択あり={HasSelection} 範囲={Rect}")]
+    private static partial void LogCancelRequestedCore(
+        this ILogger logger, string prefix, bool wasDragging, bool hasSelection, string rect);
 
-    internal static void LogCancelRequested(this ILogger logger)
-        => logger.LogCancelRequestedCore(Prefix);
+    internal static void LogCancelRequested(this ILogger logger, bool wasDragging, bool hasSelection, EsRect? rect)
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogCancelRequestedCore(Prefix, wasDragging, hasSelection, FormatRect(rect));
+    }
 
     /// <summary>設定値変更のログ（変更前後）。</summary>
     /// <remarks>LogLevel: Information<br/>出力書式: <c>[Marquee] 設定: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>

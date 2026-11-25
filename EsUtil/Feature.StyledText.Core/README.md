@@ -56,7 +56,7 @@ var snapped = TextCursor.SnapBackward(text.PlainText, 3);
 
 // 6. 編集の状態（キャレット・選択・以降の入力へ効かせる書式）を持つ
 var editor = new TextEditor { Text = text };
-editor.Begin();
+editor.BeginEdit();
 _ = editor.ReplaceSelection("追記");
 var afterDelete = editor.DeleteAtCaret(forward: false);
 

@@ -20,8 +20,12 @@
 | `IsFormatBarOpen` | property | 書式バーを表示中かどうか（編集中で 1 文字以上を選んでいる間だけ `true`） |
 | `TextFormat` | property | 書式バーと右クリックのフライアウトの色の表記（色名 + 不透明度 / カラーコード）。 カラーコードは `#AARRGGBB` |
 | `Log` / `LogPrefix` | property | ログの出力先と接頭辞（コアと提示層で共有する。 既定 `[Annotation]`） |
-| `Presenter` | property | 描画計画を解決する提示層（ログと接頭辞を共有する） |
-| `Core` | property | 文書・保存形式・ログの入口（ファサード。 アプリは `Core.Load` / `Core.Save` を使う） |
+| `CopyTextSelection()` / `CutTextSelection()` / `PasteText()` | method | 本文の選択範囲をクリップボードとやり取りする（キーの割り当てと同じ処理） |
+| `FormatBarFactory` / `FormatBarOptions` | property | 書式バーの生成（`IStyledTextFormatBarFactory`）と構成（フォント・色・表記） |
+| `ShowStylePanel(x, y)` / `CloseStylePanel()` / `IsStylePanelOpen` | method / property | 外観・重なり順の編集パネルの表示・終了・表示状態 |
+| `AvailableArea` / `CreatePanel(...)` / `MovePanel(...)` / `DestroyPanel(...)` / `GetPanelPosition(...)` / `GetPanelSize(...)` | property / method | 提示層（`IAnnotationPanelHost`）がパネルを置く領域を問い合わせ、作成・移動・破棄する入口 |
+
+- 描画計画の提示層とファサードは `Layer.Presenter` / `Layer.Core` で参照します。
 
 - **書式バーは内側で出し入れします**（`Layer.EditingChanged` と `Layer.TextSelectionChanged` を購読し、**1 文字以上を選んでいる間だけ**出す）。 ホストがバーを置く必要はありません。
 - **配置**: レイヤーは与えられた領域いっぱい、書式バーは**本文に被さらない位置**（本文の上・下・左右の外側）へ出す。 バーの大きさは**中身に合わせる**（説明の行と「完了」は置かない）。
@@ -37,6 +41,9 @@
 | --- | --- | --- |
 | `Source` | property | 表示する画像（`IImage`）。 null の場合は注釈だけを描く |
 | `SourcePixelWidth` / `SourcePixelHeight` | property | 元画像の画素数（縦横比を保って中央へ表示する） |
+| `ShowImage` | property | 画像をレイヤーが描くか（`false` の場合は注釈だけを描く） |
+| `PreviewImageRect` / `ImageRectProvider` / `SetPreviewImageRect(rect)` | property / method | 画像の表示矩形（`ImageRectProvider` が優先。 動的なズーム・パンへ追従させる） |
+| `HitTestAt(point)` / `ClearSelection()` | method | 位置が注釈に当たるか / 選択の解除 |
 | `Document` | property | 注釈の文書。 差し替えると選択を解除する |
 | `SelectedId` / `Selected` | property | 選択中の注釈（識別子・実体） |
 | `DraftDefaults` | property | 新規作成時の既定値（`AnnotationDraftDefaults`。 既存の注釈は変わらない） |
@@ -66,7 +73,7 @@
 | `GetSelectedBodyRect()` | method | 本文の矩形（DIP）。 本文編集コントロールを重ねる位置と書式バーの位置を決める |
 | `RenderComposedImage()` | method | 画像と注釈を元画像ピクセルの 1:1 で合成した `EsBitmap` を作る（保存用。 選択枠・ハンドル・キャレットは描かない。 所有権は呼び出し側） |
 | `InvalidateRender()` | method | 今の状態で再描画する（ホストが画像の位置や表示倍率を変えたときに呼ぶ） |
-| `DocumentChanged` / `SelectionChanged` / `EditTextRequested` | event | 文書の変更・選択の変更・本文の編集要求 |
+| `DocumentChanged` / `SelectionChanged` / `PreviewGestureRequested` / `AddMenuRequested` / `StyleEditorRequested` | event | 文書の変更・選択の変更・注釈の無い場所の操作・注釈の追加メニュー・外観の編集要求 |
 
 操作の割り当ては次のとおりです。
 

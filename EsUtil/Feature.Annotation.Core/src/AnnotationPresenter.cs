@@ -169,7 +169,7 @@ public sealed class AnnotationPresenter
     /// <returns>描画計画。</returns>
     private static AnnotationShapePlan ResolveFrame(AnnotationItem item)
     {
-        var appearance = item.Appearance.Normalized();
+        var appearance = item.Appearance.Normalize();
         return new AnnotationShapePlan(
             item.Id,
             AnnotationKind.Frame,
@@ -190,12 +190,12 @@ public sealed class AnnotationPresenter
     private static AnnotationShapePlan ResolveBubble(
         BubbleAnnotation bubble, Func<string, TextStyle, EsSize> measureText, double lineHeightFactor)
     {
-        var appearance = bubble.Appearance.Normalized();
+        var appearance = bubble.Appearance.Normalize();
         var body = bubble.ResolveBodyRect();
 
         // 折り返しと行の配置は文字の計算層が単一所有する（4 つの UI 版で同じ位置に折り返す）
         var lines = TextLayout.ResolveLines(bubble.Text, body, measureText, lineHeightFactor);
-        var tail = bubble.Tail.Normalized();
+        var tail = bubble.Tail.Normalize();
         var (from, to) = tail.ResolveBase(bubble.Bounds);
         var polygon = new List<EsPoint>(3) { tail.Tip, from, to };
 

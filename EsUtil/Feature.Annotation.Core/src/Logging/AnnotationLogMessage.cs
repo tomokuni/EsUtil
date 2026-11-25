@@ -152,20 +152,49 @@ public static partial class AnnotationLogMessage
     }
 
     /// <summary>注釈の削除を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 注釈を削除: 種別={Kind} 識別子={Id}</c></remarks>
+    /// <remarks>
+    /// LogLevel: Debug<br/>出力書式:
+    /// <c>[Annotation] 注釈を削除: 種別={Kind} 識別子={Id} 位置=({X}, {Y}) 大きさ=({Width}, {Height}) 本文={Preview}</c>
+    /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
     /// <param name="kind">注釈の種別。</param>
     /// <param name="id">削除した注釈の識別子。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 注釈を削除: 種別={Kind:l} 識別子={Id:l}")]
-    private static partial void LogAnnotationRemovedCore(this ILogger logger, string prefix, string kind, string id);
+    /// <param name="x">左上の X（整形済み）。</param>
+    /// <param name="y">左上の Y（整形済み）。</param>
+    /// <param name="width">幅（整形済み）。</param>
+    /// <param name="height">高さ（整形済み）。</param>
+    /// <param name="preview">本文の先頭（整形済み。 枠線は空）。</param>
+    [LoggerMessage(
+        LogLevel.Debug,
+        "{Prefix:l} 注釈を削除: 種別={Kind:l} 識別子={Id:l} 位置=({X:l}, {Y:l}) 大きさ=({Width:l}, {Height:l}) 本文={Preview:l}")]
+    private static partial void LogAnnotationRemovedCore(
+        this ILogger logger, string prefix, string kind, string id, string x, string y, string width, string height, string preview);
 
-    /// <summary>注釈の削除を記録する。</summary>
+    /// <summary>注釈の削除を記録する（削除後は値が引けなくなるため、位置・大きさ・本文を削除前に渡す）。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="kind">注釈の種別。</param>
     /// <param name="id">削除した注釈の識別子。</param>
-    internal static void LogAnnotationRemoved(this ILogger logger, AnnotationKind kind, string id)
-        => logger.LogAnnotationRemovedCore(Prefix, kind.ToString(), id);
+    /// <param name="bounds">削除した注釈の矩形（元画像ピクセル）。</param>
+    /// <param name="text">削除した吹き出しの本文（枠線は空）。 先頭 100 文字だけを記録する。</param>
+    internal static void LogAnnotationRemoved(
+        this ILogger logger, AnnotationKind kind, string id, EsRect bounds, string text)
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogAnnotationRemovedCore(
+            Prefix,
+            kind.ToString(),
+            id,
+            NumberText.Format(bounds.X),
+            NumberText.Format(bounds.Y),
+            NumberText.Format(bounds.Width),
+            NumberText.Format(bounds.Height),
+            ToPreview(text));
+    }
 
     /// <summary>重なり順の変更を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 重なり順: {Action} 識別子={Id}</c></remarks>

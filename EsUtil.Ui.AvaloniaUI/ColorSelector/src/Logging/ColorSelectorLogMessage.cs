@@ -83,15 +83,16 @@ internal static partial class ColorSelectorLogMessage
     /// <summary>Flyout のキャンセルボタンでキャンセルされたログ。</summary>
     /// <remarks>
     /// LogLevel: Debug <br/>
-    /// 出力書式: <c>[ColorSelector] ポップアップ: キャンセル</c>
+    /// 出力書式: <c>[ColorSelector] ポップアップ: キャンセル: 色={Color}</c>
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ポップアップ: キャンセル")]
-    private static partial void LogFlyoutCancelCore(this ILogger logger, string prefix);
+    /// <param name="color">キャンセルした時点の色（整形済み）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ポップアップ: キャンセル: 色={Color:l}")]
+    private static partial void LogFlyoutCancelCore(this ILogger logger, string prefix, string color);
 
-    public static void LogFlyoutCancel(this ILogger logger)
-        => logger.LogFlyoutCancelCore(Prefix);
+    public static void LogFlyoutCancel(this ILogger logger, string color)
+        => logger.LogFlyoutCancelCore(Prefix, color);
 
     /// <summary>フォーカス喪失時のログ（無効色の復帰等）。</summary>
     /// <remarks>

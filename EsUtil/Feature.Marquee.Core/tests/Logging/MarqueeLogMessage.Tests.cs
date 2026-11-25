@@ -50,7 +50,8 @@ public class MarqueeLogMessageTests
         Assert.Equal("[Marquee] ドラッグ開始: ハンドル=Move 位置=(10, 20)", logger.Messages[5]);
         Assert.Equal("[Marquee] キー押下: キー=Left 処理済み=True", logger.Messages[6]);
         Assert.Equal("[Marquee] 確定が要求されました: 範囲=(10, 20, 30, 40)", logger.Messages[7]);
-        Assert.Equal("[Marquee] キャンセルが要求されました", logger.Messages[8]);
+        Assert.Equal(
+            "[Marquee] キャンセルが要求されました: ドラッグ中=True 選択あり=True 範囲=(10, 20, 30, 40)", logger.Messages[8]);
         Assert.Equal("[Marquee] 設定: MinSelectionSize 3 → 5", logger.Messages[9]);
     }
 
@@ -205,7 +206,7 @@ public class MarqueeLogMessageTests
         MarqueeLogMessage.LogDragStart(logger, "Move", 10, 20);
         MarqueeLogMessage.LogKeyDown(logger, "Left", true);
         MarqueeLogMessage.LogConfirmRequested(logger, new EsRect(10, 20, 30, 40));
-        MarqueeLogMessage.LogCancelRequested(logger);
+        MarqueeLogMessage.LogCancelRequested(logger, wasDragging: true, hasSelection: true, new EsRect(10, 20, 30, 40));
         MarqueeLogMessage.LogSettingChanged(logger, "MinSelectionSize", "3", "5");
     }
 }

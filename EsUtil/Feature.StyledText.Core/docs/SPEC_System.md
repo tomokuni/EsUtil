@@ -93,7 +93,7 @@ flowchart TB
 
 | 場面 | 扱い |
 | --- | --- |
-| 値が安全域の外 | **例外にしない**。 `TextLimits` / `TextStyle.Normalized()` が補正する（描画を止めない） |
+| 値が安全域の外 | **例外にしない**。 `TextLimits` / `TextStyle.Normalize()` が補正する（描画を止めない） |
 | 引数が null | `ArgumentNullException`（公開メソッドの入口で 1 回だけ検証する） |
 | 文字位置が範囲外 | **例外にしない**。 本文の範囲へ丸める（クラスタの境界へ揃える） |
 | 行が無い | `TextLineIndex.Create` は `null`、`ResolveCaret` は `null` を返す（空の本文は正常な状態である） |

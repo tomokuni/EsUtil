@@ -132,10 +132,12 @@ internal static class ColorSelectorFlyoutFactory
             close();
         };
 
-        // キャンセル: 何もせず閉じる
+        // キャンセル: 何もせず閉じる（キャンセルした時点の色を記録する）
         cancelButton.Click += (_, _) =>
         {
-            log.LogFlyoutCancel();
+            log.LogFlyoutCancel(
+                ColorString.ToArgbHex(System.Drawing.Color.FromArgb(
+                    colorView.Color.A, colorView.Color.R, colorView.Color.G, colorView.Color.B)));
             close();
         };
 
