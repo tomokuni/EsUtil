@@ -44,7 +44,7 @@
 | `ApplyTextStyle(style)` / `ApplyTextStyle(start, length, style)` | 選択範囲（指定範囲）の書式の差し替え |
 | `TransformTextStyle(transform)` / `TransformTextStyle(start, length, transform)` | 1 属性だけの変換 |
 | `SelectedTextStyle` / `SelectedTextMatches(match)` | 書式バーへ表示する値・押下状態 |
-| `SelectedText()` / `CopyAsync()` / `CutAsync()` / `PasteAsync()` | 選択文字とクリップボード（`PasteAsync` は貼り付けた文字列を返し、無い場合は `null`） |
+| `GetSelectedText()` / `CopyAsync()` / `CutAsync()` / `PasteAsync()` | 選択文字とクリップボード（`PasteAsync` は貼り付けた文字列を返し、無い場合は `null`） |
 | `CaretRect` | キャレットの矩形（DIP。 IME の変換候補の位置） |
 
 - **選択が無いときの書式変更は以降の入力へ回します**（既存の文字は変えない）。

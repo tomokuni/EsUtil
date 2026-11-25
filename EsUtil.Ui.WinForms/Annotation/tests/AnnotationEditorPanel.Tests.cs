@@ -25,7 +25,7 @@ public class AnnotationEditorPanelTests
 
         Assert.Equal(bubbleId, editor.Layer.ExternalTextId);
         Assert.True(editor.TextEditor.Visible);
-        Assert.Same(editor.Layer.Session.TextEditor, editor.TextEditor.Editor);
+        Assert.Same(editor.Layer.Session.Editor, editor.TextEditor.Editor);
         Assert.Equal("あいうえお", editor.TextEditor.RichTextValue.PlainText);
         GC.KeepAlive(document);
     }

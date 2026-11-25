@@ -83,7 +83,7 @@ internal sealed class AnnotationStylePanel : Panel
             Location = new Point(6, y),
             Font = new Font(AnnotationEditorControls.UiFontFamily, AnnotationEditorControls.FontSize),
         };
-        front.Click += (_, _) => _layer.MoveSelectedToFront();
+        front.Click += (_, _) => _layer.BringSelectedToFront();
         Controls.Add(front);
 
         var back = new Button
@@ -94,7 +94,7 @@ internal sealed class AnnotationStylePanel : Panel
             Location = new Point(110, y),
             Font = new Font(AnnotationEditorControls.UiFontFamily, AnnotationEditorControls.FontSize),
         };
-        back.Click += (_, _) => _layer.MoveSelectedToBack();
+        back.Click += (_, _) => _layer.SendSelectedToBack();
         Controls.Add(back);
         y += 28;
 

@@ -461,11 +461,11 @@ public sealed partial class AnnotationLayerControl : Grid
 
     /// <summary>選択中の注釈を最前面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool MoveSelectedToFront() => _session.MoveSelectedToFront();
+    public bool BringSelectedToFront() => _session.BringSelectedToFront();
 
     /// <summary>選択中の注釈を最背面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool MoveSelectedToBack() => _session.MoveSelectedToBack();
+    public bool SendSelectedToBack() => _session.SendSelectedToBack();
 
     /// <summary>変更を元に戻す。</summary>
     /// <returns>戻した場合は <see langword="true"/>。</returns>
@@ -499,36 +499,14 @@ public sealed partial class AnnotationLayerControl : Grid
     /// （本文で判定するとバーが枠線の上へ数ピクセル重なる）
     /// </remarks>
     public EsRect GetSelectedBoundsRect()
-    {
-        if (Selected is not { } item)
-        {
-            return default;
-        }
+        => Selected is { } item ? ResolveImageTransform().ToClient(item.Bounds) : default;
 
-        var (scale, offset) = ResolveImageTransform();
-        return new EsRect(
-            (item.Bounds.X * scale) + offset.X,
-            (item.Bounds.Y * scale) + offset.Y,
-            item.Bounds.Width * scale,
-            item.Bounds.Height * scale);
-    }
     /// <summary>選択中の本文の矩形（DIP）を取得する。</summary>
     /// <returns>本文の矩形。 吹き出しを選んでいない場合は空の矩形。</returns>
     public EsRect GetSelectedBodyRect()
-    {
-        if (Selected is not BubbleAnnotation bubble)
-        {
-            return default;
-        }
-
-        var body = bubble.ResolveBodyRect();
-        var (scale, offset) = ResolveImageTransform();
-        return new EsRect(
-            (body.X * scale) + offset.X,
-            (body.Y * scale) + offset.Y,
-            body.Width * scale,
-            body.Height * scale);
-    }
+        => Selected is BubbleAnnotation bubble
+            ? ResolveImageTransform().ToClient(bubble.ResolveBodyRect())
+            : default;
 
     /// <summary>本文の描画を別のコントロールへ任せる吹き出しの識別子を取得または設定する。</summary>
     /// <value>本文編集コントロールが描く吹き出しの識別子。 無い場合は <see langword="null"/>。</value>
@@ -562,14 +540,10 @@ public sealed partial class AnnotationLayerControl : Grid
     /// <summary>元画像ピクセルの矩形を、このコントロールの座標（DIP）の矩形へ変換する。</summary>
     /// <param name="source">矩形（元画像ピクセル）。</param>
     /// <returns>矩形（このコントロールの座標の DIP）。</returns>
-    public Windows.Foundation.Rect GetClientRect(EsRect source)
+    internal Windows.Foundation.Rect GetClientRect(EsRect source)
     {
-        var (scale, offset) = ResolveImageTransform();
-        return new Windows.Foundation.Rect(
-            offset.X + (source.X * scale),
-            offset.Y + (source.Y * scale),
-            source.Width * scale,
-            source.Height * scale);
+        var rect = ResolveImageTransform().ToClient(source);
+        return new Windows.Foundation.Rect(rect.X, rect.Y, rect.Width, rect.Height);
     }
 
     /// <summary>画像と注釈を元画像ピクセルの 1:1 で合成した画像を作る（保存用）。</summary>

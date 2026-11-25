@@ -46,7 +46,7 @@
 | `CreateFrame(document, bounds, defaults)` | 枠線の注釈を作る（文書へは追加しない。 矩形は画像の内側へ収める） |
 | `CreateBubble(document, bounds, text, defaults, tail)` | 吹き出しの注釈を作る（文書へは追加しない。 矩形としっぽを画像の内側へ収める） |
 | `Load(documentPath)` / `Save(documentPath, document)` | 注釈ファイルの読み書き（UTF-8・BOM なし。 件数を `Information` で記録する） |
-| `SaveDocument(imagePath, document)` | 元画像のパスを指定して書き出す（注釈ファイルのパスは本クラスが決める。 ホストはパスを組み立てない） |
+| `SaveForImage(imagePath, document)` | 元画像のパスを指定して書き出す（注釈ファイルのパスは本クラスが決める。 ホストはパスを組み立てない） |
 | `SaveOrRemoveCompanionFiles(imagePath, document, saveComposedImage)` | 注釈が 0 件なら付随ファイルを削除し、あれば注釈ファイルを書いてから合成画像を書き出す（描画は `saveComposedImage` が行う） |
 | `RemoveCompanionFiles(imagePath)` | 注釈ファイルと合成画像を削除する（注釈が 0 件になったときの後始末。 1 つでも消した場合は `true`） |
 
@@ -219,12 +219,12 @@
 | `DeleteSelected()` / `SetSelectedText(text)` | 選択中の注釈の削除・本文の差し替え |
 | `ApplyTextStyle(...)` / `TransformTextStyle(...)` | 選択範囲の書式の差し替え・変換（選択が無ければ以降の入力へ回す） |
 | `UpdateSelectedAppearance(transform)` / `SetSelectedBodyPadding(padding)` / `UpdateSelectedTail(transform)` | 選択中の注釈の外観・余白・しっぽの変更 |
-| `MoveSelectedToFront()` / `MoveSelectedToBack()` | 重なり順の変更（変わらない場合は `false` を返し、履歴に積まない） |
+| `BringSelectedToFront()` / `SendSelectedToBack()` | 重なり順の変更（変わらない場合は `false` を返し、履歴に積まない） |
 | `BeginChange()` / `SetBounds(bounds)` / `SetTailTip(tip)` / `CommitChange()` | ドラッグ 1 手の記録（押下で控え、移動のたびに反映し、最初の変更で 1 手として積む） |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | 変更履歴（編集中はキャレットを本文の範囲へ収める） |
 | `BeginTextEditing()` / `EndTextEditing()` / `IsEditingText` | 本文の編集の開始・終了 |
-| `TextEditor` | 本文の値と編集の状態（キャレット・選択・入力・削除・書式）。 UI は同じ実体を本文コントロールへ渡す |
-| `ApplySelectedRichText(text)` | 本文コントロールが編集した本文を文書へ書き戻す（1 手として履歴へ積む） |
+| `Editor` | 本文の値と編集の状態（`TextEditor`。 キャレット・選択・入力・削除・書式）。 UI は同じ実体を本文コントロールへ渡す |
+| `CommitTextEdit()` | 本文コントロールが `Editor` へ加えた変更を文書へ書き戻す（1 手として履歴へ積む） |
 | `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `HasTextSelection` | 本文のキャレットと選択（`TextEditor` の値） |
 | `TextSelectionRange` | 書式の適用先の範囲（文字数）。 ホストが本文の入力欄の選択位置を写すときに使う |
 | `NotifyTextSelectionChanged()` | 本文コントロールが行った選択の変更を記録して購読者へ通知する（同じ範囲では繰り返さない） |

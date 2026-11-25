@@ -185,7 +185,7 @@
 | `SnapCaretToCluster(text, extend)` | キャレットを書記素クラスタの境界へ揃える |
 | `Select(start, length, textLength)` / `Select(text, start, length)` / `SelectAll(text)` | 選択範囲の指定（本文を渡す版は端を書記素クラスタの境界へ揃える） / 本文全体の選択 |
 | `Clamp(textLength)` | 選択範囲を本文の範囲へ収める |
-| `Remember(style)` | 以降の入力へ効かせる書式を覚える |
+| `SetTypingStyle(style)` | 以降の入力へ効かせる書式を設定する |
 | `ReplaceSelection(text, inserted)` / `ReplaceRange(text, start, end, inserted)` | 選択範囲（指定範囲）を文字列で置き換えた本文を返す |
 | `Delete(text, forward)` | 選択範囲、またはキャレットの前後の **1 書記素クラスタ**を削除した本文を返す |
 | `ApplyStyle(text, style)` / `TransformStyle(text, transform)` | 選択範囲の書式を差し替える / 1 属性だけ変換する（選択が無ければ以降の入力へ回す） |
@@ -209,7 +209,7 @@
 | `Begin()` / `End()` | 編集の開始（キャレットは本文の末尾）と終了 |
 | `Select` / `SelectRange` / `SelectAll` / `MoveCaret` / `MoveCaretByCluster` / `MoveCaretByLine` / `MoveCaretToLineEdge` / `SetCaretFromPoint` / `ClampCaret` | キャレットと選択（端は書記素クラスタの境界へ揃える） |
 | `ReplaceSelection` / `ReplaceRange` / `DeleteAtCaret` | 文字列の挿入・置き換え・削除 |
-| `ApplyStyle` / `TransformStyle` / `SelectedText` / `SelectedTextMatches` / `SelectedTextStyle` | 書式の適用・選択文字の取得・書式ボタンの状態 |
+| `ApplyStyle` / `TransformStyle` / `GetSelectedText` / `SelectedTextMatches` / `SelectedTextStyle` | 書式の適用・選択文字の取得・書式ボタンの状態 |
 | `TryExecute(request, resolveLines)` | キーの割り当てが返した操作のうち本文の操作を実行する（クリップボードと編集の終了は UI が行う） |
 | `ResolveLines` / `ResolveLineIndex` / `ResolveCaretRect` | 折り返しと行の配置・行と文字位置の対応・キャレットの矩形（元画像ピクセル） |
 

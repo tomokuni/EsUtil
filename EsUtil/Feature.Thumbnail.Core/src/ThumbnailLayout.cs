@@ -132,7 +132,7 @@ public static class ThumbnailLayout
     /// <remarks>
     /// 幅だけを与えて縦横比のまま縮小する（横長の画像は低く、縦長の画像は高い項目になる）。
     /// </remarks>
-    public static double ImageHeight(double width, int pixelWidth, int pixelHeight)
+    public static double ResolveImageHeight(double width, int pixelWidth, int pixelHeight)
     {
         if (width <= 0 || pixelWidth <= 0 || pixelHeight <= 0)
         {

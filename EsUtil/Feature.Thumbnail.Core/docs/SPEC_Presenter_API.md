@@ -56,7 +56,7 @@
 | `ResolveLayout(double availableWidth, double imageWidth, ReadOnlySpan<double> imageHeights)` | method | 配置を解決する（外観から求めた寸法を `ThumbnailLayout.Resolve` へ渡す） |
 | `ResolveMetrics()` | method | 外観から決まる寸法（影の余白 `ThumbnailMetrics.SlotInset`・名前の行の高さ `ThumbnailMetrics.LabelHeight`）を求める。 名前の行の高さは**2 行ぶん + 上下の余白**であり、影を描かない外観では `SlotInset` は 0 になる |
 | `ResolveDrawPlan(ThumbnailLayoutResult layout, int index, string text, int selectedIndex, int hoveredIndex, ThumbnailTextMeasure? measureText = null)` | virtual method | 1 件分の描画計画を解決する。 `measureText` は名前を折り返した実寸を測る関数（null は文字数からの見積もり）。 **添字が範囲外の場合は空の計画** |
-| `ImageHeight(double width, int pixelWidth, int pixelHeight)` | static method | 縦横比を保つ画像の高さ（コアの `ThumbnailLayout.ImageHeight` へ委譲） |
+| `ResolveImageHeight(double width, int pixelWidth, int pixelHeight)` | static method | 縦横比を保つ画像の高さ（コアの `ThumbnailLayout.ResolveImageHeight` へ委譲） |
 | `Log` | property | ログの出力先（null は `NullLogger`）。 設定・外観の変更を本クラスが記録する。 初回の設定時に生成を 1 度だけ（Debug）記録する |
 | `LogPrefix` | property | ログの接頭辞（null または空白は既定値 `[Thumbnail]` へ戻す） |
 

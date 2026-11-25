@@ -261,6 +261,6 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
     /// <param name="pixelWidth">元画像の幅（ピクセル）。</param>
     /// <param name="pixelHeight">元画像の高さ（ピクセル）。</param>
     /// <returns>表示高さ（DIP）。</returns>
-    public static double ImageHeight(double width, int pixelWidth, int pixelHeight)
-        => ThumbnailLayout.ImageHeight(width, pixelWidth, pixelHeight);
+    public static double ResolveImageHeight(double width, int pixelWidth, int pixelHeight)
+        => ThumbnailLayout.ResolveImageHeight(width, pixelWidth, pixelHeight);
 }

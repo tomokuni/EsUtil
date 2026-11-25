@@ -37,9 +37,8 @@ public sealed partial class AnnotationLayerControl
     /// <summary>最後に押下した位置（ダブルクリックの判定）。</summary>
     private EsPoint _lastPressedPoint;
 
-
     /// <summary>再描画する（画像・注釈・選択枠を今の状態へ合わせる）。</summary>
-    public void Redraw()
+    private void Redraw()
     {
         var (scale, offset) = ResolveImageTransform();
 
@@ -83,7 +82,7 @@ public sealed partial class AnnotationLayerControl
     }
 
     /// <summary>再描画を要求する。</summary>
-    public void Invalidate() => Redraw();
+    internal void Invalidate() => Redraw();
 
     /// <summary>表示用の画像を作り直す（同じ画像なら作り直さない）。</summary>
     private void ApplyImageSource()

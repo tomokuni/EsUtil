@@ -60,7 +60,7 @@ public sealed class TextEditStateTests
         var bold = TextDefaults.DefaultStyle with { IsBold = true };
         var text = CreateText("ab");
         var edit = CreateEdit("ab");
-        edit.Remember(bold);
+        edit.SetTypingStyle(bold);
 
         var updated = edit.ReplaceSelection(text, "X");
 
@@ -184,7 +184,7 @@ public sealed class TextEditStateTests
     internal void End_状態を初期化する()
     {
         var edit = CreateEdit("abcd");
-        edit.Remember(TextDefaults.DefaultStyle);
+        edit.SetTypingStyle(TextDefaults.DefaultStyle);
 
         edit.End();
 
@@ -272,7 +272,7 @@ public sealed class TextEditStateTests
         var bold = TextDefaults.DefaultStyle with { IsBold = true };
         var text = RichText.Create("あい", TextDefaults.DefaultStyle);
         var edit = CreateEdit("あい");
-        edit.Remember(bold);
+        edit.SetTypingStyle(bold);
 
         Assert.Equal(bold, edit.ResolveDisplayStyle(text));
 

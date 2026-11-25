@@ -103,7 +103,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             IsVisible = false,
             MeasureText = AnnotationPainter.Measure,
             LineHeightFactor = _layer.LineHeightFactor,
-            Editor = _layer.Session.TextEditor,
+            Editor = _layer.Session.Editor,
         };
 
         Children.Add(_layer);
@@ -197,7 +197,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     public void CopyTextSelection()
     {
         _layer.Log.LogTextOperation(
-            "コピー", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.SelectedText());
+            "コピー", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.GetSelectedText());
         _ = _textEditor.CopyAsync();
     }
 
@@ -205,7 +205,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     public void CutTextSelection()
     {
         _layer.Log.LogTextOperation(
-            "切り取り", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.SelectedText());
+            "切り取り", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.GetSelectedText());
         _ = _textEditor.CutAsync();
     }
 
@@ -971,7 +971,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// </remarks>
     private void SyncTextEditor()
     {
-        _textEditor.Editor = _layer.Session.TextEditor;
+        _textEditor.Editor = _layer.Session.Editor;
         _textEditor.LineHeightFactor = _layer.LineHeightFactor;
 
         if (_layer.Session.Selected is not BubbleAnnotation bubble)
@@ -1031,7 +1031,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             return;
         }
 
-        _layer.Session.ApplySelectedRichText(_textEditor.RichTextValue);
+        _layer.Session.CommitTextEdit();
     }
 
     /// <summary>本文コントロールが編集を終えたら、編集セッションも終える。</summary>

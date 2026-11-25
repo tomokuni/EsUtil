@@ -431,7 +431,7 @@ public sealed class ThumbnailControl : Panel
                 var source = owner._items[i].Source;
                 heights[i] = source is null || source.IsDisposed
                     ? owner.ImageWidth
-                    : ThumbnailLayout.ImageHeight(owner.ImageWidth, source.Width, source.Height);
+                    : ThumbnailLayout.ResolveImageHeight(owner.ImageWidth, source.Width, source.Height);
             }
 
             var layout = owner.Presentation.ResolveLayout(width, owner.ImageWidth, heights);

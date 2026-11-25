@@ -103,7 +103,7 @@ EsUtil/Feature.Thumbnail.Core/
 classDiagram
     class ThumbnailLayout {
         +Resolve(availableWidth, imageWidth, imageHeights, options)$ ThumbnailLayoutResult
-        +ImageHeight(width, pixelWidth, pixelHeight)$ double
+        +ResolveImageHeight(width, pixelWidth, pixelHeight)$ double
     }
     class ThumbnailLayoutResult {
         +ImageWidth double

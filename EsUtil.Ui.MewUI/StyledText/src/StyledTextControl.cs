@@ -290,13 +290,13 @@ public sealed partial class StyledTextControl : Panel
 
     /// <summary>選択中の文字列を取得する。</summary>
     /// <returns>選択中の文字列（選択が無い場合は空）。</returns>
-    public string SelectedText() => _editor.SelectedText();
+    public string GetSelectedText() => _editor.GetSelectedText();
 
     /// <summary>選択中の文字列をクリップボードへコピーする。</summary>
     /// <returns>コピーの非同期処理。</returns>
     public Task CopyAsync()
     {
-        var text = SelectedText();
+        var text = GetSelectedText();
         if (text.Length > 0)
         {
             _ = RichTextClipboard.TrySetText(text);
@@ -309,7 +309,7 @@ public sealed partial class StyledTextControl : Panel
     /// <returns>切り取りの非同期処理。</returns>
     public async Task CutAsync()
     {
-        if (SelectedText().Length == 0)
+        if (GetSelectedText().Length == 0)
         {
             return;
         }

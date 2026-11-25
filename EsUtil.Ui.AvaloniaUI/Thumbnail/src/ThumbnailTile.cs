@@ -135,7 +135,7 @@ internal sealed class ThumbnailTile : Panel
     {
         ImageHeight = _source is null
             ? _imageWidth
-            : ThumbnailPresenter.ImageHeight(_imageWidth, (int)_source.Size.Width, (int)_source.Size.Height);
+            : ThumbnailPresenter.ResolveImageHeight(_imageWidth, (int)_source.Size.Width, (int)_source.Size.Height);
         InvalidateMeasure();
     }
 

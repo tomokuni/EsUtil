@@ -124,9 +124,9 @@ internal static class AnnotationStyleFlyout
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
         var front = new Button { Content = AnnotationEditorText.MoveToFront };
-        front.Click += (_, _) => owner.MoveSelectedToFront();
+        front.Click += (_, _) => owner.BringSelectedToFront();
         var back = new Button { Content = AnnotationEditorText.MoveToBack };
-        back.Click += (_, _) => owner.MoveSelectedToBack();
+        back.Click += (_, _) => owner.SendSelectedToBack();
         row.Children.Add(front);
         row.Children.Add(back);
         return row;

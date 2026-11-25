@@ -79,9 +79,9 @@ internal sealed partial class AnnotationStylePanel : ContentControl
         panel.Children.Add(AnnotationEditorControls.Divider());
         var order = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
         var front = new Button { Content = AnnotationEditorText.MoveToFront, FontSize = AnnotationEditorControls.FontSize };
-        front.Click += (_, _) => _layer.MoveSelectedToFront();
+        front.Click += (_, _) => _layer.BringSelectedToFront();
         var back = new Button { Content = AnnotationEditorText.MoveToBack, FontSize = AnnotationEditorControls.FontSize };
-        back.Click += (_, _) => _layer.MoveSelectedToBack();
+        back.Click += (_, _) => _layer.SendSelectedToBack();
         order.Children.Add(front);
         order.Children.Add(back);
         panel.Children.Add(order);

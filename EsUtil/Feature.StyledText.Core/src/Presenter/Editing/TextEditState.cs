@@ -296,10 +296,10 @@ public sealed class TextEditState
         _anchor = Math.Clamp(_anchor, 0, length);
     }
 
-    /// <summary>以降の入力へ効かせる書式を覚える。</summary>
+    /// <summary>以降の入力へ効かせる書式を設定する。</summary>
     /// <param name="style">書式。</param>
     /// <exception cref="ArgumentNullException"><paramref name="style"/> が <see langword="null"/> の場合。</exception>
-    public void Remember(TextStyle style)
+    public void SetTypingStyle(TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(style);
         _typingStyle = style;
@@ -395,7 +395,7 @@ public sealed class TextEditState
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(style);
 
-        Remember(style);
+        SetTypingStyle(style);
         return TextStyleEdit.ResolveRange(SelectionStart, SelectionLength) is { } selection
             ? text.ApplyStyle(selection.Start, selection.Length, style)
             : text;
@@ -416,7 +416,7 @@ public sealed class TextEditState
         ArgumentNullException.ThrowIfNull(transform);
 
         var next = transform(ResolveDisplayStyle(text));
-        Remember(next);
+        SetTypingStyle(next);
         return HasSelection ? text.TransformStyle(SelectionStart, SelectionLength, _ => next) : text;
     }
 

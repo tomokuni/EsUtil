@@ -95,8 +95,8 @@ internal static class MainForm
                 ("本文を編集", () => layer.BeginTextEditing()),
                 ("元に戻す", () => layer.Undo()),
                 ("やり直す", () => layer.Redo()),
-                ("最前面へ", () => layer.MoveSelectedToFront()),
-                ("最背面へ", () => layer.MoveSelectedToBack()),
+                ("最前面へ", () => layer.BringSelectedToFront()),
+                ("最背面へ", () => layer.SendSelectedToBack()),
                 ("本文を差し替える", () => layer.SetSelectedText("差し替えた本文")),
                 ("選択を解除", () => layer.ClearSelection()),
                 ("注釈を保存", () => SaveAnnotations()),
@@ -146,7 +146,7 @@ internal static class MainForm
 
         void SaveAnnotations()
         {
-            core.SaveDocument(s_imagePath, layer.Document);
+            core.SaveForImage(s_imagePath, layer.Document);
             status.Text = $"保存: {AnnotationJson.GetDocumentPath(s_imagePath)}";
         }
 

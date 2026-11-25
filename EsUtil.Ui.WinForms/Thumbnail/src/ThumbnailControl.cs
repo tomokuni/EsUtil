@@ -734,6 +734,6 @@ public sealed class ThumbnailControl : ScrollableControl
         public void UpdateHeight(double imageWidth)
             => ImageHeight = Image is null
                 ? imageWidth
-                : ThumbnailPresenter.ImageHeight(imageWidth, Image.Width, Image.Height);
+                : ThumbnailPresenter.ResolveImageHeight(imageWidth, Image.Width, Image.Height);
     }
 }

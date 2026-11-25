@@ -492,11 +492,11 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
     /// <summary>選択中の注釈を最前面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool MoveSelectedToFront() => _session.MoveSelectedToFront();
+    public bool BringSelectedToFront() => _session.BringSelectedToFront();
 
     /// <summary>選択中の注釈を最背面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool MoveSelectedToBack() => _session.MoveSelectedToBack();
+    public bool SendSelectedToBack() => _session.SendSelectedToBack();
 
     /// <summary>元に戻せるかどうかを取得する。</summary>
     /// <value>変更履歴に戻せる状態がある場合は <see langword="true"/>。</value>
@@ -530,17 +530,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <returns>本文の矩形（DIP）。 吹き出しを選んでいない場合は空の矩形。</returns>
     /// <remarks>ホストが入力欄を重ねる位置に使う（コントロールは子要素を持たない）。</remarks>
     public Rect GetSelectedBodyRect()
-    {
-        if (Selected is not BubbleAnnotation bubble)
-        {
-            return default;
-        }
-
-        var body = bubble.ResolveBodyRect();
-        var topLeft = ToClientDip(body.TopLeft);
-        var bottomRight = ToClientDip(body.BottomRight);
-        return new Rect(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
-    }
+        => Selected is BubbleAnnotation bubble ? ToClientRect(bubble.ResolveBodyRect()) : default;
 
     /// <summary>選択中の注釈の矩形（DIP）を取得する。</summary>
     /// <returns>矩形（DIP）。 選択していない場合は空。</returns>
@@ -549,15 +539,16 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// （本文で判定するとバーが枠線の上へ数ピクセル重なる）。
     /// </remarks>
     public Rect GetSelectedBoundsRect()
-    {
-        if (Selected is not { } item)
-        {
-            return default;
-        }
+        => Selected is { } item ? ToClientRect(item.Bounds) : default;
 
-        var topLeft = ToClientDip(item.Bounds.TopLeft);
-        var bottomRight = ToClientDip(item.Bounds.BottomRight);
-        return new Rect(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
+    /// <summary>元画像ピクセルの矩形を、このコントロールの座標（DIP）の矩形へ変換する。</summary>
+    /// <param name="source">矩形（元画像ピクセル）。</param>
+    /// <returns>矩形（このコントロールの座標の DIP）。</returns>
+    /// <remarks>変換の式は <see cref="AnnotationViewTransform"/> が単一所有する（UI ごとに書き写さない）。</remarks>
+    private Rect ToClientRect(EsRect source)
+    {
+        var rect = ResolveImageTransform().ToClient(source);
+        return new Rect(rect.X, rect.Y, rect.Width, rect.Height);
     }
 
     /// <summary>しっぽのハンドルの中心（DIP）を取得する（描画と当たり判定で共有する）。</summary>
@@ -675,15 +666,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>元画像ピクセルの矩形を、このコントロールの座標（DIP）の矩形へ変換する。</summary>
     /// <param name="source">矩形（元画像ピクセル）。</param>
     /// <returns>矩形（このコントロールの座標の DIP）。</returns>
-    public Rect GetClientRect(EsRect source)
-    {
-        var (scale, offset) = ResolveImageTransform();
-        return new Rect(
-            offset.X + (source.X * scale),
-            offset.Y + (source.Y * scale),
-            source.Width * scale,
-            source.Height * scale);
-    }
+    internal Rect GetClientRect(EsRect source) => ToClientRect(source);
 
     /// <summary>描画する（画像 → 注釈 → 選択枠 → しっぽのハンドルの順）。</summary>
     /// <param name="context">描画先。</param>

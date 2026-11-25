@@ -455,11 +455,11 @@ public sealed partial class AnnotationLayerControl : Panel
 
     /// <summary>選択中の注釈を最前面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool MoveSelectedToFront() => _session.MoveSelectedToFront();
+    public bool BringSelectedToFront() => _session.BringSelectedToFront();
 
     /// <summary>選択中の注釈を最背面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool MoveSelectedToBack() => _session.MoveSelectedToBack();
+    public bool SendSelectedToBack() => _session.SendSelectedToBack();
 
     /// <summary>変更を元に戻す。</summary>
     /// <returns>戻した場合は <see langword="true"/>。</returns>
@@ -484,19 +484,9 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <summary>選択中の本文の矩形（DIP）を取得する。</summary>
     /// <returns>本文の矩形。 吹き出しを選んでいない場合は空の矩形。</returns>
     public EsRect GetSelectedBodyRect()
-    {
-        if (_selectedBodyRectSource is { } body)
-        {
-            var (scale, offset) = ResolveImageTransform();
-            return new EsRect(
-                (body.X * scale) + offset.X,
-                (body.Y * scale) + offset.Y,
-                body.Width * scale,
-                body.Height * scale);
-        }
-
-        return default;
-    }
+        => Selected is BubbleAnnotation bubble
+            ? ResolveImageTransform().ToClient(bubble.ResolveBodyRect())
+            : default;
 
     /// <summary>選択中の注釈の矩形（このコントロールの座標）を取得する。</summary>
     /// <returns>矩形。 選択していない場合は空。</returns>
@@ -505,22 +495,7 @@ public sealed partial class AnnotationLayerControl : Panel
     /// （本文で判定するとバーが枠線の上へ数ピクセル重なる）
     /// </remarks>
     public EsRect GetSelectedBoundsRect()
-    {
-        if (Selected is not { } item)
-        {
-            return default;
-        }
-
-        var (scale, offset) = ResolveImageTransform();
-        return new EsRect(
-            (item.Bounds.X * scale) + offset.X,
-            (item.Bounds.Y * scale) + offset.Y,
-            item.Bounds.Width * scale,
-            item.Bounds.Height * scale);
-    }
-
-    /// <summary>選択中の吹き出しの本文の矩形（元画像ピクセル。 描画のたびに更新する）。</summary>
-    private EsRect? _selectedBodyRectSource;
+        => Selected is { } item ? ResolveImageTransform().ToClient(item.Bounds) : default;
 
     /// <summary>本文の描画を別のコントロールへ任せる吹き出しの識別子を取得または設定する。</summary>
     /// <value>本文編集コントロールが描く吹き出しの識別子。 無い場合は <see langword="null"/>。</value>

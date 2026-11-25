@@ -186,7 +186,7 @@ public sealed class AnnotationCore(AnnotationPresenter? presenter = null)
     /// <b>保存の経路を 1 つにする</b>: ホストがパスを組み立てて書き込むと、記録（件数・失敗）と文字コードの
     /// 指定がホストごとにずれる。 保存の入口は本メソッドと <see cref="Save"/> に限る。
     /// </remarks>
-    public void SaveDocument(string imagePath, AnnotationDocument document)
+    public void SaveForImage(string imagePath, AnnotationDocument document)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(imagePath);
         ArgumentNullException.ThrowIfNull(document);
@@ -221,7 +221,7 @@ public sealed class AnnotationCore(AnnotationPresenter? presenter = null)
             return;
         }
 
-        SaveDocument(imagePath, document);
+        SaveForImage(imagePath, document);
 
         try
         {

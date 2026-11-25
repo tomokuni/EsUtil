@@ -57,14 +57,14 @@
 | `ApplyTextStyle(style)` / `ApplyTextStyle(start, length, style)` / `TransformTextStyle(transform)` / `TransformTextStyle(start, length, transform)` | method | 本文へ書式を適用する（`TextSelectionRange` の範囲、または指定した範囲。 **文字単位**。 長さ 0 は全体）。 `ApplyTextStyle` は**書式を丸ごと差し替える**、`TransformTextStyle` は**指定した属性だけを書く**（他の属性を保つ） |
 | `UpdateSelectedAppearance(transform)` | method | 外観（枠線・内側・角丸）を差し替える |
 | `SetSelectedBodyPadding(padding)` / `UpdateSelectedTail(transform)` | method | 吹き出しの本文の余白・しっぽ（幅・辺）を差し替える |
-| `MoveSelectedToFront()` / `MoveSelectedToBack()` | method | 重なり順を変える |
+| `BringSelectedToFront()` / `SendSelectedToBack()` | method | 重なり順を変える |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | method / property | 元に戻す・やり直す（変更の単位は 1 操作。 ドラッグは押下から離すまでで 1 手。 選択は識別子で引き継ぐ） |
 | `ShowStyleEditor()` | method | 外観・書式・重なり順の編集フライアウトを表示する（右クリックと同じ） |
 | `BeginTextEditing()` / `EndTextEditing()` / `IsEditingText` | method / property | 本文を**その場で編集**する（キャレット・選択範囲を本文のレイアウトのまま描く。 入力欄を重ねない） |
 | `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` | property | キャレットと選択範囲（文字数） |
 | `EditingChanged` | event | 本文の編集の開始・終了（書式バーの出し入れはパネルが行う） |
 | `TextSelectionChanged` | event | 本文の選択範囲（キャレット）の変更（書式バーの現在値を追随させる） |
-| `GetSelectedBodyRect()` | method | 本文の矩形（DIP）。 ホストが書式バーを置く位置に使う |
+| `GetSelectedBodyRect()` | method | 本文の矩形（DIP）。 本文編集コントロールを重ねる位置と書式バーの位置を決める |
 | `RenderComposedImage()` | method | 画像と注釈を元画像ピクセルの 1:1 で合成した `RenderTargetBitmap` を作る（保存用。 選択枠・ハンドル・キャレットは描かない） |
 | `DocumentChanged` / `SelectionChanged` / `EditTextRequested` | event | 文書の変更・選択の変更・本文の編集要求 |
 

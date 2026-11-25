@@ -63,5 +63,5 @@ API は `AnnotationEditorPanel` の `Layer`（`AnnotationLayerControl`）を操�
 | # | 操作（API / GUI） | 期待結果 | 自動化 |
 | --- | --- | --- | --- |
 | 27 | API: `layer.EndTextEditing()` / GUI: 注釈の外をクリックする | 編集が終わり、変更が文書へ入る（元に戻すで戻せる） | 一部可 |
-| 28 | API: `layer.Core.SaveDocument` と読み込み / GUI: 保存して開き直す | 編集した内容と書式が残る | 可 |
+| 28 | API: `layer.Core.SaveForImage` と読み込み / GUI: 保存して開き直す | 編集した内容と書式が残る | 可 |
 | 29 | API: `layer.SelectedId = otherId` / GUI: 編集中に別の吹き出しを選ぶ | 前の本文の変更が確定し、新しい吹き出しの本文が表示される | 可 |

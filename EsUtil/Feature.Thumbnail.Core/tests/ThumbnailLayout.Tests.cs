@@ -257,9 +257,9 @@ public class ThumbnailLayoutTests
     [Fact]
     public void 画像の表示高さは縦横比を保つ()
     {
-        Assert.Equal(48, ThumbnailLayout.ImageHeight(96, 200, 100), 6);
-        Assert.Equal(192, ThumbnailLayout.ImageHeight(96, 100, 200), 6);
-        Assert.Equal(96, ThumbnailLayout.ImageHeight(96, 0, 0), 6);
+        Assert.Equal(48, ThumbnailLayout.ResolveImageHeight(96, 200, 100), 6);
+        Assert.Equal(192, ThumbnailLayout.ResolveImageHeight(96, 100, 200), 6);
+        Assert.Equal(96, ThumbnailLayout.ResolveImageHeight(96, 0, 0), 6);
     }
 
     /// <summary>負の画像の高さを拒否することを検証する。</summary>

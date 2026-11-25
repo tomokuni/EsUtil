@@ -136,9 +136,9 @@ public sealed class AnnotationStylePanel : ContentControl
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
         var front = CreateButton(AnnotationEditorText.MoveToFront);
-        front.OnClick(() => layer.MoveSelectedToFront());
+        front.OnClick(() => layer.BringSelectedToFront());
         var back = CreateButton(AnnotationEditorText.MoveToBack);
-        back.OnClick(() => layer.MoveSelectedToBack());
+        back.OnClick(() => layer.SendSelectedToBack());
 
         row.Add(front);
         row.Add(back);

@@ -43,6 +43,26 @@ public class AnnotationLayerControlTests
         Assert.Single(layer.Document.Items);
     }
 
+    /// <summary>選択中の本文の矩形は、枠線と余白を除いた本文の範囲を DIP で返す。</summary>
+    /// <remarks>本文編集コントロールと書式バーはこの矩形へ置く（枠線を含む矩形と取り違えると本文の上に重なる）。</remarks>
+    [Fact]
+    internal void 選択中の本文の矩形は本文の範囲をDIPで返す()
+    {
+        using var layer = CreateLayer(200, 120);
+        layer.AddBubble(new EsRect(10, 20, 100, 60), "本文");
+        var bubble = Assert.IsType<BubbleAnnotation>(layer.Selected);
+
+        var bounds = layer.GetSelectedBoundsRect();
+        var body = layer.GetSelectedBodyRect();
+        var expected = bubble.ResolveBodyRect();
+
+        Assert.Equal((float)expected.X, body.X, 3);
+        Assert.Equal((float)expected.Y, body.Y, 3);
+        Assert.Equal((float)expected.Width, body.Width, 3);
+        Assert.Equal((float)expected.Height, body.Height, 3);
+        Assert.True(body.Width < bounds.Width, $"body={body} bounds={bounds}");
+    }
+
     /// <summary>吹き出しを追加すると本文が入る。</summary>
     [Fact]
     internal void 吹き出しを追加すると本文が入る()

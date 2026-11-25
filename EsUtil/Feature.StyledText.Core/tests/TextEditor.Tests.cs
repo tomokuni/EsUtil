@@ -39,7 +39,7 @@ public sealed class TextEditorTests
 
         editor.Select(2, 1);
 
-        Assert.Equal("😀", editor.SelectedText());
+        Assert.Equal("😀", editor.GetSelectedText());
         Assert.Equal(1, editor.SelectionStart);
         Assert.Equal(2, editor.SelectionLength);
     }

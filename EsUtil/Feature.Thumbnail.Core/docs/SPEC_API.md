@@ -53,7 +53,7 @@
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
 | `Resolve(double availableWidth, double imageWidth, ReadOnlySpan<double> imageHeights, ThumbnailOptions? options = null, ThumbnailMetrics metrics = default)` | static method | 一覧の配置を解決する。 `availableWidth` は一覧の幅、`imageWidth` は画像の幅、`imageHeights` は項目ごとの画像の高さ（DIP）。 `options` が null の場合は `ThumbnailOptions.Default`。 `metrics` は外観から決まる寸法（省略すると影の余白も名前の行も確保しない） |
-| `ImageHeight(double width, int pixelWidth, int pixelHeight)` | static method | 幅を固定して縦横比を保つ画像の高さを求める。 画像の寸法が不正（0 以下）な場合は `width` をそのまま返す（正方形） |
+| `ResolveImageHeight(double width, int pixelWidth, int pixelHeight)` | static method | 幅を固定して縦横比を保つ画像の高さを求める。 画像の寸法が不正（0 以下）な場合は `width` をそのまま返す（正方形） |
 
 - `Resolve` は **`ArgumentOutOfRangeException`** を送出します（`imageHeights` に負の値が含まれる場合）。
 - `availableWidth` が 0 以下の場合は **1 列**で並べます（幅の確定後に呼び直す）。
@@ -203,7 +203,7 @@ using EsUtil.Feature.Thumbnail;
 
 // 画像の高さは幅を固定して縦横比から求める
 var imageWidth = 96.0;
-var heights = files.Select(f => ThumbnailLayout.ImageHeight(imageWidth, f.PixelWidth, f.PixelHeight)).ToArray();
+var heights = files.Select(f => ThumbnailLayout.ResolveImageHeight(imageWidth, f.PixelWidth, f.PixelHeight)).ToArray();
 
 // 幅が未確定（0 以下）なら 1 列で返る。 確定後に呼び直す
 var layout = ThumbnailLayout.Resolve(availableWidth: 800, imageWidth, heights);

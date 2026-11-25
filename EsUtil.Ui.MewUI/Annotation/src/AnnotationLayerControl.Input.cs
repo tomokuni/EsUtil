@@ -73,9 +73,6 @@ public sealed partial class AnnotationLayerControl
         {
             // **変換中の文字列はここでは扱わない**: 編集中の本文は本文コントロールが描く
             var plan = _presenter.ResolveDrawPlan(_session.Document, StyledText.RichTextPainter.Measure, _session.SelectedId);
-            _selectedBodyRectSource = Selected is BubbleAnnotation bubble
-                ? bubble.ResolveBodyRect()
-                : null;
 
             context.Save();
             try

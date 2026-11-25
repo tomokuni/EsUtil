@@ -13,6 +13,14 @@
 - **WinUI 3 の `AnnotationLayerControl.MeasureText` を削除しました**（本文の実寸は描画に使うテキスト エンジンが決めるため、ホストが差し替える入口を置きません）。
 - **`StyledTextControl.EditState` を `Editor` に置き換えました**（4 つの UI 版）。 状態だけでなく本文も含めて 1 つの `TextEditor` を共有するためです（別の実体を持つと本文とキャレットが食い違います）。 状態だけを差し替えていたホストは `Editor` へ `TextEditor` を渡します。
 - **`AnnotationEditSession.TextEditState` を `TextEditor` に置き換え、本文の操作 API を削除しました**（`SelectText` / `SelectAllText` / `MoveCaret` / `MoveCaretByCluster` / `MoveCaretByLine` / `MoveCaretToLineEdge` / `SetCaretFromPoint` / `ClampCaret` / `DeleteAtCaret` / `ReplaceSelection` / `ReplaceRange` / `SelectedText`）。 本文の操作は `TextEditor` が単一所有し、セッションは選択中の本文を揃えて文書へ書き戻すだけにしました（操作の規則を 2 か所に持たない）。
+- **公開 API の名前を .NET の慣例へ揃えました**（同じ役割に同じ名前を使い、メソッドは動詞で始める）。
+  - `TextEditor.SelectedText()` → `GetSelectedText()`（4 つの UI 版の `StyledTextControl` も同じ）。
+  - `TextEditState.Remember(style)` → `SetTypingStyle(style)`。
+  - `AnnotationEditSession.TextEditor` → `Editor`（`StyledTextControl.Editor` と同じ名前にする）。
+  - `AnnotationEditSession.ApplySelectedRichText(text)` → `CommitTextEdit()`（共有する編集器の結果を文書へ書き戻す）。
+  - `AnnotationEditSession.MoveSelectedToFront/Back` → `BringSelectedToFront` / `SendSelectedToBack`（`AnnotationDocument.BringToFront` / `SendToBack` と同じ語にする。 4 つの UI 版のレイヤーも同じ）。
+  - `AnnotationCore.SaveDocument(imagePath, document)` → `SaveForImage(imagePath, document)`（`Save(documentPath, document)` と対にする）。
+  - `ThumbnailLayout.ImageHeight` / `ThumbnailPresenter.ImageHeight` → `ResolveImageHeight`（同じ型の `ResolveLayout` / `ResolveMetrics` と語を揃える）。
 
 ### 追加
 
@@ -40,6 +48,8 @@
 
 ### 修正
 
+- **4 つの UI 版の注釈レイヤーの公開面を揃えました**。 WinForms にも `GetSelectedBodyRect()` を追加し、MewUI の説明の座標系（元画像ピクセル → DIP）を実装に合わせました。
+- **注釈レイヤーの矩形変換をコアの `AnnotationViewTransform.ToClient(EsRect)` へ統一しました**（各 UI が変換の式を書き写していました）。
 - **書式バーの大きさの計算を提示層の `AnnotationPanelAppearance.ResolvePanelSize` へ集約しました**（4 つの UI 版が余白と枠を足す計算を書き写していました）。 **MewUI / WinUI 3 でも高さの固定値が効く**ため、実測値の揺れでバーが注釈に重なることがなくなります（AvaloniaUI と同じ見た目）。
 - **注釈パネルを画面の作業領域へ収める計算を 4 つの UI 版で共有しました**。 同じ規則を各 UI が `Math.Clamp` で書き写していたため、`AnnotationPanelPlacement.Clamp` へ集約しました。
 - **WinUI 3 の注釈の色の整形とテンキー 5 の判定を単一所有へ揃えました**（色は `DrawingColorExtensions.ToHexText`、キーは名前付きの定数を使います）。

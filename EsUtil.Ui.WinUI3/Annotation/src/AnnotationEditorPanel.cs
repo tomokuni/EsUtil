@@ -97,7 +97,7 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
             MeasureText = StyledText.RichTextMetrics.Measure,
-            Editor = _layer.Session.TextEditor,
+            Editor = _layer.Session.Editor,
         };
 
         Children.Add(_layer);
@@ -181,7 +181,7 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
     public void CopyTextSelection()
     {
         _layer.Log.LogTextOperation(
-            "コピー", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.SelectedText());
+            "コピー", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.GetSelectedText());
         _ = _textEditor.CopyAsync();
     }
 
@@ -189,7 +189,7 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
     public void CutTextSelection()
     {
         _layer.Log.LogTextOperation(
-            "切り取り", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.SelectedText());
+            "切り取り", _textEditor.CaretIndex, _textEditor.SelectionStart, _textEditor.SelectionLength, _textEditor.GetSelectedText());
         _ = _textEditor.CutAsync();
     }
 
@@ -854,7 +854,7 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
             return;
         }
 
-        _layer.Session.ApplySelectedRichText(_textEditor.RichTextValue);
+        _layer.Session.CommitTextEdit();
     }
 
     /// <summary>書式バーを作る処理を取得または設定する（独自の GUI へ差し替える入口）。</summary>
@@ -932,7 +932,7 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
     /// </remarks>
     internal void SyncTextEditor()
     {
-        _textEditor.Editor = _layer.Session.TextEditor;
+        _textEditor.Editor = _layer.Session.Editor;
         _textEditor.LineHeightFactor = _layer.LineHeightFactor;
 
         if (_layer.Session.Selected is not BubbleAnnotation bubble)

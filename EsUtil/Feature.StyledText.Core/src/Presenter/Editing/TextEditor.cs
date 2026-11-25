@@ -268,7 +268,7 @@ public sealed class TextEditor
     {
         ArgumentNullException.ThrowIfNull(style);
 
-        _state.Remember(style);
+        _state.SetTypingStyle(style);
         return TextStyleEdit.ResolveRange(start, length) is { } range
             ? Commit(_text.ApplyStyle(range.Start, range.Length, style))
             : TextEditChange.None;
@@ -293,13 +293,13 @@ public sealed class TextEditor
 
         var at = Math.Clamp(start, 0, _text.PlainText.Length);
         var next = transform(_text.StyleAt(at));
-        _state.Remember(next);
+        _state.SetTypingStyle(next);
         return Commit(_text.TransformStyle(start, length, _ => next));
     }
 
     /// <summary>選択中の文字列を取得する（クリップボードへ渡す）。</summary>
     /// <returns>選択中の文字列（選択が無い場合は空）。</returns>
-    public string SelectedText() => _state.GetSelectedText(_text);
+    public string GetSelectedText() => _state.GetSelectedText(_text);
 
     /// <summary>選択範囲の文字がすべて条件を満たすかどうかを返す（書式ボタンの押下状態に使う）。</summary>
     /// <param name="match">書式が条件を満たすかどうかを返す関数。</param>

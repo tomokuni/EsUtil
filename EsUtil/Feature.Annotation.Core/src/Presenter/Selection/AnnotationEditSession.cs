@@ -134,20 +134,12 @@ public sealed class AnnotationEditSession
     /// <b>編集器を 2 つ持たない</b>: UI の編集コントロールが自前の編集器を持つと、本文・キャレット・選択が
     /// 文書と食い違う。 UI は本プロパティの実体を渡し（<c>StyledTextControl.Editor</c>）、描画と入力の入口としてだけ使う。
     /// </remarks>
-    public TextEditor TextEditor => _editor;
+    public TextEditor Editor => _editor;
 
-    /// <summary>選択中の吹き出しの本文を丸ごと差し替える（編集コントロールからの書き戻し）。</summary>
-    /// <param name="text">新しい本文（書式を含む）。</param>
+    /// <summary>編集コントロールが書き換えた本文を文書へ書き戻す（1 手として履歴へ積む）。</summary>
     /// <returns>文書が変わった場合は <see langword="true"/>。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="text"/> が <see langword="null"/> の場合。</exception>
-    /// <remarks>本文の計算は編集コントロールが行うため、本メソッドは受け取った値を編集対象へ入れて履歴へ記録するだけである。</remarks>
-    public bool ApplySelectedRichText(RichText text)
-    {
-        ArgumentNullException.ThrowIfNull(text);
-
-        _editor.Text = text;
-        return ReplaceEdit();
-    }
+    /// <remarks>本文の操作は編集コントロールが <see cref="Editor"/> へ行うため、本メソッドはその結果を文書へ移すだけである。</remarks>
+    public bool CommitTextEdit() => ReplaceEdit();
 
     /// <summary>書式の適用先の範囲（文字数）を取得または設定する。</summary>
     /// <value>開始位置と長さ（0 起点）。 長さ 0 は選択なし。</value>
@@ -367,12 +359,12 @@ public sealed class AnnotationEditSession
 
     /// <summary>選択中の注釈を最前面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool MoveSelectedToFront()
+    public bool BringSelectedToFront()
         => _selectedId is { } id && ApplyChange(document => document.BringToFront(id));
 
     /// <summary>選択中の注釈を最背面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool MoveSelectedToBack()
+    public bool SendSelectedToBack()
         => _selectedId is { } id && ApplyChange(document => document.SendToBack(id));
 
     /// <summary>選択中の注釈の矩形を差し替える（ドラッグ中の更新）。</summary>

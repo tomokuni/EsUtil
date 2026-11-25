@@ -113,7 +113,7 @@ classDiagram
         +ResolveLayout(availableWidth, imageWidth, imageHeights) ThumbnailLayoutResult
         +ResolveMetrics() ThumbnailMetrics
         +ResolveDrawPlan(layout, index, text, selectedIndex, hoveredIndex) ThumbnailDrawPlan
-        +ImageHeight(width, pixelWidth, pixelHeight)$ double
+        +ResolveImageHeight(width, pixelWidth, pixelHeight)$ double
     }
     class ThumbnailAppearance {
         +LabelFontSize double

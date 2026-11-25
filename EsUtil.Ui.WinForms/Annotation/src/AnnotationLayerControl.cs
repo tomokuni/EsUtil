@@ -445,11 +445,11 @@ public sealed partial class AnnotationLayerControl : Control
 
     /// <summary>選択中の注釈を最前面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool MoveSelectedToFront() => _session.MoveSelectedToFront();
+    public bool BringSelectedToFront() => _session.BringSelectedToFront();
 
     /// <summary>選択中の注釈を最背面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
-    public bool MoveSelectedToBack() => _session.MoveSelectedToBack();
+    public bool SendSelectedToBack() => _session.SendSelectedToBack();
 
     /// <summary>変更を元に戻す。</summary>
     /// <returns>戻した場合は <see langword="true"/>。</returns>
@@ -504,14 +504,10 @@ public sealed partial class AnnotationLayerControl : Control
     /// <summary>元画像ピクセルの矩形を、このコントロールの座標（DIP）の矩形へ変換する。</summary>
     /// <param name="source">矩形（元画像ピクセル）。</param>
     /// <returns>矩形（このコントロールの座標の DIP）。</returns>
-    public RectangleF GetClientRect(EsRect source)
+    internal RectangleF GetClientRect(EsRect source)
     {
-        var (scale, offset) = ResolveImageTransform();
-        return new RectangleF(
-            (float)(offset.X + (source.X * scale)),
-            (float)(offset.Y + (source.Y * scale)),
-            (float)(source.Width * scale),
-            (float)(source.Height * scale));
+        var rect = ResolveImageTransform().ToClient(source);
+        return new RectangleF((float)rect.X, (float)rect.Y, (float)rect.Width, (float)rect.Height);
     }
 
     /// <summary>画像と注釈を元画像ピクセルの 1:1 で合成した画像を作る（保存用）。</summary>
@@ -631,20 +627,13 @@ public sealed partial class AnnotationLayerControl : Control
     /// （本文で判定するとバーが枠線の上へ数ピクセル重なる）
     /// </remarks>
     public RectangleF GetSelectedBoundsRect()
-    {
-        if (Selected is not { } item)
-        {
-            return default;
-        }
+        => Selected is { } item ? GetClientRect(item.Bounds) : default;
 
-        var topLeft = ToClientDip(item.Bounds.TopLeft);
-        var bottomRight = ToClientDip(item.Bounds.BottomRight);
-        return new RectangleF(
-            (float)topLeft.X,
-            (float)topLeft.Y,
-            (float)(bottomRight.X - topLeft.X),
-            (float)(bottomRight.Y - topLeft.Y));
-    }
+    /// <summary>選択中の吹き出しの本文の矩形（DIP）を取得する。</summary>
+    /// <returns>本文の矩形（DIP）。 吹き出しを選んでいない場合は空の矩形。</returns>
+    /// <remarks>ホストが本文編集コントロールを重ねる位置に使う（レイヤーは子要素を持たない）。</remarks>
+    public RectangleF GetSelectedBodyRect()
+        => Selected is BubbleAnnotation bubble ? GetClientRect(bubble.ResolveBodyRect()) : default;
 
     /// <summary>Marquee へ渡す座標変換ポート（変換の規則が変わらないため 1 度だけ作る）。</summary>
     private readonly ICoordTransform _coordinateTransform;

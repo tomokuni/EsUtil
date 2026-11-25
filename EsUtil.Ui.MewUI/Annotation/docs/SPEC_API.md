@@ -44,12 +44,12 @@ MewUI 版の注釈レイヤーが公開する API の一覧です。 操作と�
 | `ApplyTextStyle(...)` / `TransformTextStyle(...)` | 選択範囲の書式の差し替え・属性だけの変更 |
 | `SelectedTextMatches(match)` | 選択範囲のすべての文字が条件を満たすか（書式バーの押下状態） |
 | `UpdateSelectedAppearance(...)` / `UpdateSelectedTail(...)` / `SetSelectedBodyPadding(...)` | 外観・しっぽ・本文の余白の変更 |
-| `MoveSelectedToFront()` / `MoveSelectedToBack()` | 重なり順の変更 |
+| `BringSelectedToFront()` / `SendSelectedToBack()` | 重なり順の変更 |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | 元に戻す・やり直す（1 操作 = 1 手） |
 | `ShowStyleEditor()` | 外観・重なり順の編集パネルを要求する（`StyleEditorRequested` を発火する） |
 | `BeginTextEditing()` / `EndTextEditing()` / `IsEditingText` | 本文のその場編集の開始・終了 |
 | `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` / `HasTextSelection` / `TextSelectionRange` | キャレットと選択範囲（文字数）。 `TextSelectionRange` は選択位置の写し（長さ 0 は選択なし） |
-| `GetSelectedBodyRect()` | 本文の矩形（元画像ピクセル。 書式バーの位置を決める） |
+| `GetSelectedBodyRect()` | 本文の矩形（DIP）。 本文編集コントロールを重ねる位置と書式バーの位置を決める |
 | `RenderComposedImage()` | 画像と注釈を 1:1 で合成した画像（保存用。 選択枠・キャレットは描かない） |
 | `DocumentChanged` / `SelectionChanged` / `EditingChanged` / `TextSelectionChanged` / `StyleEditorRequested` | 変更・選択・編集開始終了・編集パネルの要求の通知 |
 
