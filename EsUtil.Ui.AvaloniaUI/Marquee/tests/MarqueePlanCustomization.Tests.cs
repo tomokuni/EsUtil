@@ -4,7 +4,6 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
 using EsUtil.Platform.Core.Geometry;
 using Xunit;
-using AvaloniaRect = Avalonia.Rect;
 
 namespace EsUtil.Ui.AvaloniaUI.Marquee.Tests;
 
@@ -35,7 +34,7 @@ public class MarqueePlanCustomizationTests
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
-        control.SetSelection(new AvaloniaRect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         Dispatcher.UIThread.RunJobs();
         window.CaptureRenderedFrame();
         Dispatcher.UIThread.RunJobs();
@@ -74,7 +73,7 @@ public class MarqueePlanCustomizationTests
         MarqueeDrawPlan? captured = null;
         control.Rendered += (_, e) => captured = e.Content;
 
-        control.SetSelection(new AvaloniaRect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         Dispatcher.UIThread.RunJobs();
         window.CaptureRenderedFrame();
         Dispatcher.UIThread.RunJobs();
@@ -110,7 +109,7 @@ public class MarqueePlanCustomizationTests
         MarqueeDrawPlan? captured = null;
         control.Rendered += (_, e) => captured = e.Content;
 
-        control.SetSelection(new AvaloniaRect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         Dispatcher.UIThread.RunJobs();
         window.CaptureRenderedFrame();
         Dispatcher.UIThread.RunJobs();
@@ -142,7 +141,7 @@ public class MarqueePlanCustomizationTests
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
-        control.SetSelection(new AvaloniaRect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         Dispatcher.UIThread.RunJobs();
         window.CaptureRenderedFrame();
         Dispatcher.UIThread.RunJobs();

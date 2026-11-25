@@ -6,7 +6,7 @@ namespace EsUtil.Ui.AvaloniaUI.Marquee;
 /// <remarks>
 /// 矩形（<see cref="Rect"/>）に加え、通知時点のスナップショット（<see cref="Snapshot"/>）を含む。<br/>
 /// スクロール補正はイベント引数では行わず、座標変換ポート（<see cref="EsUtil.Platform.Core.Coord.ICoordTransform"/>）方式が担う
-/// （<c>CoordTransform.ClientToSource</c> に倍率と境界を与えて変換に組み込む）。
+/// （<c>CoordTransform.CreateClientToSource</c> に倍率と境界を与えて変換に組み込む）。
 /// </remarks>
 /// <param name="rect">通知対象の矩形（対象座標）。</param>
 /// <param name="snapshot">通知時点のスナップショット。</param>

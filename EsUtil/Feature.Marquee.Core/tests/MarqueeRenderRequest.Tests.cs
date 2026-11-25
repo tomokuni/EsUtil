@@ -42,7 +42,7 @@ public class MarqueeRenderRequestTests
     {
         var options = MarqueeOptions.Default with { HandleSize = 14.0 };
         var highlight = new EsRect(1, 2, 3, 4);
-        var port = CoordTransform.ClientToSource(() => 2.0);
+        var port = CoordTransform.CreateClientToSource(() => 2.0);
 
         var request = MarqueeRenderRequest.Create(
             options,
@@ -101,7 +101,7 @@ public class MarqueeRenderRequestTests
     {
         var logical = new EsRect(20, 40, 40, 80);
 
-        var result = MarqueeRenderRequest.ToDipRect(logical, CoordTransform.ClientToSource(() => 2.0));
+        var result = MarqueeRenderRequest.ToDipRect(logical, CoordTransform.CreateClientToSource(() => 2.0));
 
         // ToDip = 対象 ÷ 2（左上 (20,40) → (10,20)、右下 (60,120) → (30,60)）
         Assert.Equal(new EsRect(10, 20, 20, 40), result);
@@ -154,7 +154,7 @@ public class MarqueeRenderRequestTests
     {
         var dip = new EsRect(10, 20, 30, 40);
 
-        var result = MarqueeRenderRequest.ToSourceRect(dip, CoordTransform.ClientToSource(() => 2.0));
+        var result = MarqueeRenderRequest.ToSourceRect(dip, CoordTransform.CreateClientToSource(() => 2.0));
 
         // ToSource = DIP × 2（左上 (10,20) → (20,40)、右下 (40,60) → (80,120)）
         Assert.Equal(new EsRect(20, 40, 60, 80), result);
@@ -232,7 +232,7 @@ public class MarqueeRenderRequestTests
     [Fact]
     internal void ResolvePort_ポート指定時はポートを返す()
     {
-        var port = CoordTransform.ClientToSource(() => 2.0);
+        var port = CoordTransform.CreateClientToSource(() => 2.0);
 
         var result = MarqueeRenderRequest.ResolvePort(port, dipToSourceScaling: 3.0);
 
@@ -267,7 +267,7 @@ public class MarqueeRenderRequestTests
     [Fact]
     internal void ResolvedPort_ポート指定時はそのポートを返す()
     {
-        var port = CoordTransform.ClientToSource(() => 3.0);
+        var port = CoordTransform.CreateClientToSource(() => 3.0);
 
         var request = CreateRequest(port: port, scaling: 2.0);
 

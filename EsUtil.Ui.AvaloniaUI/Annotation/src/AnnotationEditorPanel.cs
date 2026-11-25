@@ -10,7 +10,6 @@ using Avalonia.VisualTree;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Feature.Annotation.Logging;
-using EsUtil.Ui.AvaloniaUI.Interop;
 using EsUtil.Feature.Annotation.Presenter.Panel;
 using EsUtil.Feature.StyledText;
 using EsUtil.Ui.AvaloniaUI.StyledText;
@@ -524,7 +523,7 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     private void ShowFormatBar()
     {
         EnsureOutsidePressHook();
-        var body = ToOverlayRect(_layer.GetSelectedBoundsRect().ToEsRect());
+        var body = ToOverlayRect(_layer.GetSelectedBoundsRect());
 
         // **表示中は位置だけ移す**: 表示し直すとパネルの再作成（ウィンドウの再表示）が挟まり、
         // 選択のたびに書式バーがちらつく。

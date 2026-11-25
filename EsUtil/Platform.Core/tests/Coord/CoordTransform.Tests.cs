@@ -4,7 +4,7 @@ using Xunit;
 
 namespace EsUtil.Platform.Core.Tests.Coord;
 
-/// <summary><see cref="CoordTransform"/> のファクトリ（<see cref="CoordTransform.ClientToSource"/>）と、座標の純粋計算（原点基準の等方スケーリング）の単体テスト。</summary>
+/// <summary><see cref="CoordTransform"/> のファクトリ（<see cref="CoordTransform.CreateClientToSource"/>）と、座標の純粋計算（原点基準の等方スケーリング）の単体テスト。</summary>
 /// <remarks>
 /// コア幾何型（<see cref="EsPoint"/> / <see cref="EsSize"/>）のみを使用するため、<br/>
 /// UI フレームワークの初期化に依存せず <c>[Fact]</c> で並列実行できる。
@@ -16,26 +16,26 @@ public class CoordTransformTests
     // ====================================================================
 
     [Fact]
-    internal void ClientToSource_倍率2はDIPを2倍して対象にする()
+    internal void CreateClientToSource_倍率2はDIPを2倍して対象にする()
     {
-        var port = CoordTransform.ClientToSource(() => 2.0);
+        var port = CoordTransform.CreateClientToSource(() => 2.0);
 
         // 対象 = ローカル DIP × 倍率（125% DPI なら対象は物理ピクセルで DIP の 1.25 倍）
         Assert.Equal(new EsPoint(200, 300), port.ToSource(new EsPoint(100, 150)));
     }
 
     [Fact]
-    internal void ClientToSource_対象を倍率で除算してDIPにする()
+    internal void CreateClientToSource_対象を倍率で除算してDIPにする()
     {
-        var port = CoordTransform.ClientToSource(() => 2.0);
+        var port = CoordTransform.CreateClientToSource(() => 2.0);
 
         Assert.Equal(new EsPoint(100, 150), port.ToDip(new EsPoint(200, 300)));
     }
 
     [Fact]
-    internal void ClientToSource_往復で元の座標に戻る()
+    internal void CreateClientToSource_往復で元の座標に戻る()
     {
-        var port = CoordTransform.ClientToSource(() => 1.5);
+        var port = CoordTransform.CreateClientToSource(() => 1.5);
         var p = new EsPoint(123.4, 456.7);
 
         var roundTrip = port.ToDip(port.ToSource(p));
@@ -45,10 +45,10 @@ public class CoordTransformTests
     }
 
     [Fact]
-    internal void ClientToSource_プロバイダは呼び出し毎に評価される()
+    internal void CreateClientToSource_プロバイダは呼び出し毎に評価される()
     {
         var factor = 1.0;
-        var port = CoordTransform.ClientToSource(() => factor);
+        var port = CoordTransform.CreateClientToSource(() => factor);
         Assert.Equal(new EsPoint(100, 100), port.ToSource(new EsPoint(100, 100)));
 
         factor = 2.0;
@@ -59,35 +59,35 @@ public class CoordTransformTests
     [InlineData(0.0)]
     [InlineData(-1.0)]
     [InlineData(double.NaN)]
-    internal void ClientToSource_倍率が0以下なら等倍として扱う(double sourcePerDip)
+    internal void CreateClientToSource_倍率が0以下なら等倍として扱う(double sourcePerDip)
     {
-        var port = CoordTransform.ClientToSource(() => sourcePerDip);
+        var port = CoordTransform.CreateClientToSource(() => sourcePerDip);
 
         Assert.Equal(new EsPoint(10, 20), port.ToSource(new EsPoint(10, 20)));
         Assert.Equal(new EsPoint(10, 20), port.ToDip(new EsPoint(10, 20)));
     }
 
     [Fact]
-    internal void ClientToSource_境界を省略すると無制限になる()
+    internal void CreateClientToSource_境界を省略すると無制限になる()
     {
-        var port = CoordTransform.ClientToSource(() => 2.0);
+        var port = CoordTransform.CreateClientToSource(() => 2.0);
 
         Assert.Null(port.SourceArea);
     }
 
     [Fact]
-    internal void ClientToSource_境界を指定すると対象の境界を返す()
+    internal void CreateClientToSource_境界を指定すると対象の境界を返す()
     {
-        var port = CoordTransform.ClientToSource(() => 2.0, () => new EsSize(1920, 1080));
+        var port = CoordTransform.CreateClientToSource(() => 2.0, () => new EsSize(1920, 1080));
 
         Assert.Equal(new EsSize(1920, 1080), port.SourceArea);
     }
 
     [Fact]
-    internal void ClientToSource_境界は呼び出し毎に評価される()
+    internal void CreateClientToSource_境界は呼び出し毎に評価される()
     {
         var bounds = new EsSize(100, 100);
-        var port = CoordTransform.ClientToSource(() => 1.0, () => bounds);
+        var port = CoordTransform.CreateClientToSource(() => 1.0, () => bounds);
 
         Assert.Equal(new EsSize(100, 100), port.SourceArea);
 

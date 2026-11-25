@@ -22,7 +22,7 @@ public class LoupePlanCustomizationTests
         {
             Options = LoupeOptions.Default with { RequestedSize = 100 },
             IsVisible = true,
-            CenterPoint = new Avalonia.Point(10, 10),
+            CenterPoint = new EsPoint(10, 10),
             DrawPlanResolver = static plan => plan with
             {
                 Label = new LoupeLabelPlacement(new EsRect(1, 2, 30, 20), 2, 2, "差し替え", 12, DrawingColor.White, DrawingColor.Black, 2, IsVisible: true),
@@ -53,7 +53,7 @@ public class LoupePlanCustomizationTests
             IsVisible = true,
             Appearance = LoupeAppearance.Default with { ShowCrosshair = false, ShowBorder = false },
             Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue),
-            CenterPoint = new Avalonia.Point(100, 100),
+            CenterPoint = new EsPoint(100, 100),
         };
         var window = TestHelper.ShowInWindow(control, 200);
 
@@ -88,7 +88,7 @@ public class LoupePlanCustomizationTests
         {
             Options = LoupeOptions.Default with { RequestedSize = 100, ZoomLevel = 2 },
             IsVisible = true,
-            CenterPoint = new Avalonia.Point(50, 50),
+            CenterPoint = new EsPoint(50, 50),
             Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue),
             DrawPlanResolver = plan => { calls++; return plan; },
         };
@@ -114,7 +114,7 @@ public class LoupePlanCustomizationTests
         {
             Options = LoupeOptions.Default with { RequestedSize = 100, ZoomLevel = 2 },
             IsVisible = true,
-            CenterPoint = new Avalonia.Point(50, 50),
+            CenterPoint = new EsPoint(50, 50),
             Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue),
             DrawPlanResolver = plan => { calls++; return plan; },
         };

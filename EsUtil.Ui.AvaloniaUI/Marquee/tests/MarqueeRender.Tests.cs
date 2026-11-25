@@ -3,6 +3,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Threading;
+using EsUtil.Platform.Core.Geometry;
 using Xunit;
 using Rect = Avalonia.Rect;
 
@@ -74,7 +75,7 @@ public class MarqueeRenderTests
         };
 
         // 選択を作る（状態の変更 → 図形の再描画要求）
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         Dispatcher.UIThread.RunJobs();
         window.CaptureRenderedFrame();
         Dispatcher.UIThread.RunJobs();
@@ -100,7 +101,7 @@ public class MarqueeRenderTests
         };
         var window = new Window { Width = 200, Height = 200, Content = control };
         window.Show();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         Dispatcher.UIThread.RunJobs();
 
         var texts = LabelTexts(control);

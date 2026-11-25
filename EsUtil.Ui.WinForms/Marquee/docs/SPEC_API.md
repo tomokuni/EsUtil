@@ -258,7 +258,7 @@ var marquee = new MarqueeControl
 };
 
 // 対象座標 = 画像ピクセル（表示は等倍）
-marquee.SetCoordTransform(CoordTransform.ClientToSource(() => 1.0, () => new EsSize(1920, 1080)));
+marquee.SetCoordTransform(CoordTransform.CreateClientToSource(() => 1.0, () => new EsSize(1920, 1080)));
 
 marquee.SelectionCompleted += (_, e) => Console.WriteLine($"確定: {e.Rect}");
 marquee.ConfirmRequested += (_, e) => Console.WriteLine($"Enter で確定: {e.Rect}");

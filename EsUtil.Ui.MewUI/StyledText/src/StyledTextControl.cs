@@ -332,7 +332,7 @@ public sealed partial class StyledTextControl : Panel
     }
 
     /// <summary>キャレットの矩形（このコントロールの座標の DIP）を取得する。</summary>
-    public Rect CaretRect
+    internal Rect CaretRect
     {
         get
         {

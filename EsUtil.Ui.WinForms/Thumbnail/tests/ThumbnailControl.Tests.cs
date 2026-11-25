@@ -76,7 +76,7 @@ public class ThumbnailControlTests
 
     /// <summary>レイアウト後の項目の矩形が内容の座標で返ることを検証する。</summary>
     [Fact]
-    internal void ItemBounds_レイアウト後に矩形を返す()
+    internal void SlotBounds_レイアウト後に矩形を返す()
     {
         using var control = new ThumbnailControl { Width = 400, Height = 300 };
         control.Add(null, "a");
@@ -86,7 +86,7 @@ public class ThumbnailControlTests
         var bounds = control.SlotBounds(0);
         Assert.True(bounds.Width > 0);
         Assert.True(bounds.Height > 0);
-        Assert.Equal(Rectangle.Empty, control.SlotBounds(5));
+        Assert.True(control.SlotBounds(5).IsEmpty);
     }
 
     /// <summary>項目数の変更がログへ記録されることを検証する。</summary>

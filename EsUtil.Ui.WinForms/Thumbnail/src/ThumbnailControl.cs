@@ -244,8 +244,8 @@ public sealed class ThumbnailControl : ScrollableControl
     /// <summary>項目の外枠の矩形（内容の座標）を取得する。</summary>
     /// <param name="index">項目の添字。</param>
     /// <returns>外枠の矩形。 範囲外の場合は空の矩形。</returns>
-    public Rectangle SlotBounds(int index)
-        => index >= 0 && index < _items.Count ? ToRect(EnsureLayout().GetSlot(index)) : Rectangle.Empty;
+    public EsRect SlotBounds(int index)
+        => index >= 0 && index < _items.Count ? EnsureLayout().GetSlot(index) : default;
 
     /// <summary>一覧を空にする。</summary>
     public void ClearItems()

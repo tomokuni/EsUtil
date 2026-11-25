@@ -164,7 +164,7 @@ public sealed class LoupeControl : Panel
     /// 取り直しの可否（ポインターを追従している最中かどうか）はホストが判断する（本コントロールは理由を知らない）。<br/>
     /// 実カーソルの取得と対象座標への変換もホストの責務である。
     /// </remarks>
-    public Func<Point?>? CenterPointProvider { get; set; }
+    public Func<EsPoint?>? CenterPointProvider { get; set; }
 
     /// <summary>描画の直前に拡大中心を <see cref="CenterPointProvider"/> から取り直す。</summary>
     /// <remarks>
@@ -435,7 +435,7 @@ public sealed class LoupeControl : Panel
         // CenterPoint 変更時は再描画に加えて表示位置（RenderTransform）も更新する（コアが座標変換ポートと親パネルサイズから算出する）
         CenterPointProperty.Changed.AddClassHandler<LoupeControl>(static (o, e) =>
         {
-            o._presenter.CenterPoint = ToEsPoint(e.NewValue as Point?);
+            o._presenter.CenterPoint = e.NewValue as EsPoint?;
             o.InvalidateRender();
             o.UpdatePosition();
             // 中心座標ラベルの文言は中心に依存するため、ラベル要素を配置し直す
@@ -487,8 +487,8 @@ public sealed class LoupeControl : Panel
         AvaloniaProperty.Register<LoupeControl, IImage?>(nameof(DisplaySource));
 
     /// <summary><see cref="CenterPoint"/> 依存関係プロパティ。</summary>
-    public static readonly StyledProperty<Point?> CenterPointProperty =
-        AvaloniaProperty.Register<LoupeControl, Point?>(nameof(CenterPoint));
+    public static readonly StyledProperty<EsPoint?> CenterPointProperty =
+        AvaloniaProperty.Register<LoupeControl, EsPoint?>(nameof(CenterPoint));
 
     /// <summary>表示DIPを物理ピクセルへ変換するスケーリング係数。</summary>
     /// <remarks>
@@ -550,7 +550,7 @@ public sealed class LoupeControl : Panel
     }
 
     /// <summary>拡大表示する中心座標（元画像ピクセル座標）。 Binding で与える。</summary>
-    public Point? CenterPoint
+    public EsPoint? CenterPoint
     {
         get => GetValue(CenterPointProperty);
         set => SetValue(CenterPointProperty, value);
@@ -598,12 +598,6 @@ public sealed class LoupeControl : Panel
         get => GetValue(ClientToPixelScalingProperty);
         set => SetValue(ClientToPixelScalingProperty, value);
     }
-
-    /// <summary>ログ用に Avalonia 座標をコア座標へ変換する。</summary>
-    /// <param name="point">変換する座標。 未設定は null。</param>
-    /// <returns>コア座標。 未設定は null。</returns>
-    /// <remarks>値の書式（<c>(X, Y)</c>）はコア（<c>LoupeLogMessage.LogCenterPointChanged</c>）が単一所有する。</remarks>
-    private static EsPoint? ToEsPoint(Point? point) => point?.ToEsPoint();
 
     // ====================================================================
     // 公開メソッド（操作）

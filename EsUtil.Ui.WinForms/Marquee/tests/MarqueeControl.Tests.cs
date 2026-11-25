@@ -216,7 +216,7 @@ public sealed class MarqueeControlTests
     {
         using var control = new MarqueeControl();
 
-        control.SetCoordTransform(CoordTransform.ClientToSource(() => 2.0));
+        control.SetCoordTransform(CoordTransform.CreateClientToSource(() => 2.0));
         control.SetCoordTransform(CoordTransform.Identity);
         control.SetCoordTransform(null);
 
@@ -233,7 +233,7 @@ public sealed class MarqueeControlTests
     {
         using var control = new MarqueeControl();
 
-        control.SetCoordTransform(CoordTransform.ClientToSource(() => 1.0, () => new EsSize(100, 100)));
+        control.SetCoordTransform(CoordTransform.CreateClientToSource(() => 1.0, () => new EsSize(100, 100)));
         control.SetSelection(new EsRect(50, 50, 200, 200));
 
         var rect = control.SelectionSourceRect;

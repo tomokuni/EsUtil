@@ -416,7 +416,7 @@ public static partial class AnnotationLogMessage
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="exception">発生した例外。</param>
     /// <param name="operation">操作名（<c>nameof(操作)</c>）。</param>
-    internal static void LogOperationError(this ILogger logger, Exception exception, string operation)
+    public static void LogOperationError(this ILogger logger, Exception exception, string operation)
         => logger.LogOperationErrorCore(exception, Prefix, operation);
     /// <summary>注釈の選択の変更を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 選択: 種別={Kind} 識別子={Id}</c></remarks>

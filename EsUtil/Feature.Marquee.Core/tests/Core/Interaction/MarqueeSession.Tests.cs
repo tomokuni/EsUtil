@@ -791,7 +791,7 @@ public class MarqueeSessionTests
     {
         var session = CreateSession(out _);
         // 表示スケール 2.0（1 DIP = 0.5 対象）のポート
-        session.SetPort(CoordTransform.ClientToSource(() => 0.5));
+        session.SetPort(CoordTransform.CreateClientToSource(() => 0.5));
 
         Assert.Equal(new EsPoint(5, 10), session.ToSource(new EsPoint(10, 20)));
         Assert.Equal(new EsPoint(20, 40), session.ToDip(new EsPoint(10, 20)));
@@ -810,7 +810,7 @@ public class MarqueeSessionTests
     {
         var session = CreateSession(out _);
         // 表示スケール 2.0（1 DIP = 0.5 対象）にヒット半径 12 DIP を設定する（対象半径 6）
-        session.SetPort(CoordTransform.ClientToSource(() => 0.5));
+        session.SetPort(CoordTransform.CreateClientToSource(() => 0.5));
         session.ApplyOptions(session.Options with { HandleHitRadius = 12.0 });
         session.SetSelection(new EsRect(50, 50, 100, 80));
 

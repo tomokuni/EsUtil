@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using EsUtil.Feature.Marquee;
+using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
@@ -515,8 +516,8 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>選択中の吹き出しの本文の矩形（DIP）を取得する。</summary>
     /// <returns>本文の矩形（DIP）。 吹き出しを選んでいない場合は空の矩形。</returns>
     /// <remarks>ホストが入力欄を重ねる位置に使う（コントロールは子要素を持たない）。</remarks>
-    public Rect GetSelectedBodyRect()
-        => Selected is BubbleAnnotation bubble ? ToClientRect(bubble.ResolveBodyRect()) : default;
+    public EsRect GetSelectedBodyRect()
+        => Selected is BubbleAnnotation bubble ? ToClientEsRect(bubble.ResolveBodyRect()) : default;
 
     /// <summary>選択中の注釈の矩形（DIP）を取得する。</summary>
     /// <returns>矩形（DIP）。 選択していない場合は空。</returns>
@@ -524,16 +525,21 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <b>書式バーを注釈に被せないための対象矩形</b>である。 本文の矩形ではなく枠線を含む矩形を使う
     /// （本文で判定するとバーが枠線の上へ数ピクセル重なる）。
     /// </remarks>
-    public Rect GetSelectedBoundsRect()
-        => Selected is { } item ? ToClientRect(item.Bounds) : default;
+    public EsRect GetSelectedBoundsRect()
+        => Selected is { } item ? ToClientEsRect(item.Bounds) : default;
 
     /// <summary>元画像ピクセルの矩形を、このコントロールの座標（DIP）の矩形へ変換する。</summary>
     /// <param name="source">矩形（元画像ピクセル）。</param>
     /// <returns>矩形（このコントロールの座標の DIP）。</returns>
     /// <remarks>変換の式は <see cref="AnnotationViewTransform"/> が単一所有する（UI ごとに書き写さない）。</remarks>
+    private EsRect ToClientEsRect(EsRect source) => ResolveImageTransform().ToClient(source);
+
+    /// <summary>元画像ピクセルの矩形を、このコントロールの座標（DIP）の矩形へ変換する。</summary>
+    /// <param name="source">矩形（元画像ピクセル）。</param>
+    /// <returns>矩形（このコントロールの座標の DIP）。</returns>
     private Rect ToClientRect(EsRect source)
     {
-        var rect = ResolveImageTransform().ToClient(source);
+        var rect = ToClientEsRect(source);
         return new Rect(rect.X, rect.Y, rect.Width, rect.Height);
     }
 
@@ -586,37 +592,47 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <remarks>
     /// <b>選択枠・ハンドル・キャレットは描かない</b>（編集中の一時的な表示であり、保存する絵ではない）。<br/>
     /// <b>座標は元画像ピクセル</b>である: 表示倍率を掛けず、注釈を 1:1 で描く（どの表示倍率でも同じ絵になる）。<br/>
-    /// <b>返す型は 4 つの UI 版で共通</b>である（保存形式の判定とエンコードは <see cref="EsBitmap.Save(string)"/> が単一所有する）。
+    /// <b>返す型は 4 つの UI 版で共通</b>である（保存形式の判定とエンコードは <see cref="EsBitmap.Save(string)"/> が単一所有する）。<br/>
+    /// <b>生成できない場合は例外</b>である（合成画像を書けなかったことを黙って握りつぶさない）。
     /// </remarks>
+    /// <exception cref="InvalidOperationException">合成した画像を生成できなかった場合。</exception>
     public EsBitmap RenderComposedImage()
     {
-        var width = Math.Max(1, SourcePixelWidth);
-        var height = Math.Max(1, SourcePixelHeight);
-
-        // DIP を 1:1 で描く（基準 DPI は共通基盤が単一所有する）
-        using var bitmap = new RenderTargetBitmap(
-            new PixelSize(width, height),
-            new Vector(
-                EsUtil.Platform.Core.Coord.DpiScaler.StandardDpi,
-                EsUtil.Platform.Core.Coord.DpiScaler.StandardDpi));
-        using (var context = bitmap.CreateDrawingContext())
+        try
         {
-            if (Source is { } image)
-            {
-                context.DrawImage(image, new Rect(0, 0, width, height));
-            }
+            var width = Math.Max(1, SourcePixelWidth);
+            var height = Math.Max(1, SourcePixelHeight);
 
-            if (_session.Document.Items.Length > 0)
+            // DIP を 1:1 で描く（基準 DPI は共通基盤が単一所有する）
+            using var bitmap = new RenderTargetBitmap(
+                new PixelSize(width, height),
+                new Vector(
+                    EsUtil.Platform.Core.Coord.DpiScaler.StandardDpi,
+                    EsUtil.Platform.Core.Coord.DpiScaler.StandardDpi));
+            using (var context = bitmap.CreateDrawingContext())
             {
-                var plan = _presenter.ResolveDrawPlan(_session.Document, MeasureText, selectedId: null);
-                foreach (var shape in plan.Shapes)
+                if (Source is { } image)
                 {
-                    AnnotationPainter.DrawShape(context, shape);
+                    context.DrawImage(image, new Rect(0, 0, width, height));
+                }
+
+                if (_session.Document.Items.Length > 0)
+                {
+                    var plan = _presenter.ResolveDrawPlan(_session.Document, MeasureText, selectedId: null);
+                    foreach (var shape in plan.Shapes)
+                    {
+                        AnnotationPainter.DrawShape(context, shape);
+                    }
                 }
             }
-        }
 
-        return bitmap.ToEsBitmap();
+            return bitmap.ToEsBitmap();
+        }
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
+        {
+            Log.LogOperationError(ex, nameof(RenderComposedImage));
+            throw;
+        }
     }
 
     /// <summary>今の状態で再描画する（ホストが画像の位置や表示倍率を変えたときに呼ぶ）。</summary>

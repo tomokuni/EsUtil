@@ -356,7 +356,7 @@ public sealed partial class StyledTextControl : Canvas
     }
 
     /// <summary>キャレットの矩形（このコントロールの座標の DIP）を取得する。</summary>
-    public Windows.Foundation.Rect CaretRect
+    internal Windows.Foundation.Rect CaretRect
     {
         get
         {

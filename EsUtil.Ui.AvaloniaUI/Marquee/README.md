@@ -150,7 +150,7 @@ marquee.Rendered += (_, e) =>
 };
 
 // 座標ポートを設定（対象 = 画像ピクセル等）。ポート生成は EsUtil.Platform.Core の CoordTransform ファクトリを使用する。
-marquee.SetCoordTransform(CoordTransform.ClientToSource(() => 2.0)); // 例: DPI 200%（ToSource = DIP→対象 × 2）
+marquee.SetCoordTransform(CoordTransform.CreateClientToSource(() => 2.0)); // 例: DPI 200%（ToSource = DIP→対象 × 2）
 // 第 2 引数に境界（画像サイズ等）を与えると選択を対象外へ出さない（省略すると無制限）
 
 panel.Children.Add(marquee);

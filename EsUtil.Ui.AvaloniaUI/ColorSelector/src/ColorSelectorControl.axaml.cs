@@ -34,7 +34,7 @@ namespace EsUtil.Ui.AvaloniaUI.ColorSelector;
 ///   <see cref="ShowPickerTab"/> / <see cref="ShowTabTitles"/> / <see cref="CustomTabs"/><br/>
 /// - 検証: <see cref="HasValidationError"/> / <see cref="ValidationErrorMessage"/> / <see cref="HighlightBorderOnError"/><br/>
 /// - 外観（入力欄の文字サイズ）: <see cref="TextFontSize"/><br/>
-/// - イベント: <see cref="ColorApplied"/>（同じ色を選び直したときも発生する）<br/>
+/// - イベント: <see cref="SelectedColorChanged"/>（同じ色では発生しない） / <see cref="ColorApplied"/>（同じ色を選び直したときも発生する）<br/>
 /// - ログ: <see cref="Log"/><br/>
 /// - 関連型: <see cref="ColorSortMode"/>（コア）/ <see cref="ColorTextFormat"/>（コア）/ <see cref="StringToBrushConverter"/> /
 ///   <see cref="ColorString"/>（コア）/ <see cref="ColorEntry"/>（コア）
@@ -253,10 +253,14 @@ public sealed partial class ColorSelectorControl : UserControl
     // イベント
     // ====================================================================
 
+    /// <summary>選択中の色が変わったときに発生する。</summary>
+    /// <remarks><b>同じ値では発生しない</b>: 同じ色を選び直したことを知るには <see cref="ColorApplied"/> を使う。</remarks>
+    public event EventHandler? SelectedColorChanged;
+
     /// <summary>一覧・カラーピッカーで色を確定したときに発生する。</summary>
     /// <remarks>
     /// <b>同じ色を選び直したときも発生する</b>: 文字単位で色が混ざった範囲を一律にそろえる用途では、
-    /// <see cref="SelectedColor"/> の変更（同じ値では通知されない）だけでは足りない。
+    /// <see cref="SelectedColorChanged"/>（同じ値では通知されない）だけでは足りない。
     /// 入力欄へ打ち込んだ場合は発生しない（確定はフォーカスを外したとき）。
     /// </remarks>
     public event EventHandler? ColorApplied;
@@ -522,6 +526,7 @@ public sealed partial class ColorSelectorControl : UserControl
             }
 
             Log.LogSelectedColorChanged((string)change.OldValue!, color);
+            RaiseSelectedColorChanged();
 
             // 解析は 1 回だけ行い、最終有効値の追跡とバリデーション更新で共有する（二重解析の排除）。
             // **利用者が付けた色名も有効として扱う**: 入力欄にはその名前（例: 「黒」）が出るため、
@@ -1170,6 +1175,9 @@ public sealed partial class ColorSelectorControl : UserControl
         flyout.Hide();
         RaiseColorApplied();
     }
+
+    /// <summary><see cref="SelectedColorChanged"/> を発生させる。</summary>
+    private void RaiseSelectedColorChanged() => SelectedColorChanged?.Invoke(this, EventArgs.Empty);
 
     /// <summary><see cref="ColorApplied"/> を発生させる。</summary>
     private void RaiseColorApplied() => ColorApplied?.Invoke(this, EventArgs.Empty);

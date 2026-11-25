@@ -81,8 +81,6 @@ public class AnnotationLayerControlTests
         layer.AddFrame(new EsRect(20, 10, 80, 60));
 
         using var composed = layer.RenderComposedImage();
-
-        Assert.NotNull(composed);
         Assert.Equal(200, composed.Width);
         Assert.Equal(120, composed.Height);
         Assert.True(CountPixels(composed, s_borderColor) > 100, "枠線の画素が見つかりません。");
@@ -95,8 +93,6 @@ public class AnnotationLayerControlTests
         var layer = CreateLayer(64, 32);
 
         using var composed = layer.RenderComposedImage();
-
-        Assert.NotNull(composed);
         Assert.Equal(64, composed.Width);
         Assert.Equal(32, composed.Height);
     }

@@ -36,7 +36,7 @@ public class LoupeControlTests
     /// <param name="display">表示用の射影（省略可）。 渡すと切り出しの複製を作らない経路になる。</param>
     /// <returns>生成したコントロール。</returns>
     private static LoupeControl CreatePlainControl(
-        EsReadOnlyBitmap? source = null, Point? centerPoint = null, IImage? display = null)
+        EsReadOnlyBitmap? source = null, EsPoint? centerPoint = null, IImage? display = null)
         => new()
         {
             Options = LoupeOptions.Default with { RequestedSize = 100, ZoomLevel = 2 },
@@ -161,7 +161,7 @@ public class LoupeControlTests
     {
         var control = CreateControl();
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         var window = TestHelper.ShowInWindow(control);
 
         await control.WaitForRenderedAsync();
@@ -178,7 +178,7 @@ public class LoupeControlTests
         // 表示用の射影をそのまま使って描画される（切り出しの複製を作らない経路の検証）。
         using var read = TestHelper.CreateSource(200, 200, DrawingColor.FromArgb(255, 200, 30, 30));
         using var image = new EsBitmapAdapter(read);
-        var control = CreatePlainControl(read, new Point(100, 100), display: image);
+        var control = CreatePlainControl(read, new EsPoint(100, 100), display: image);
         var window = TestHelper.ShowInWindow(control);
 
         await control.WaitForRenderedAsync();
@@ -192,7 +192,7 @@ public class LoupeControlTests
     {
         // 表示用の射影（DisplaySource）は省略可能である。 省略した場合は拡大元の画素（0 コピーのビュー）から描く。
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        var control = CreatePlainControl(source, new Point(100, 100));
+        var control = CreatePlainControl(source, new EsPoint(100, 100));
         var window = TestHelper.ShowInWindow(control);
 
         await control.WaitForRenderedAsync();
@@ -209,8 +209,8 @@ public class LoupeControlTests
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         using var projection = new EsBitmapAdapter(source);
 
-        var withDisplay = CreatePlainControl(source, new Point(100, 100), display: projection);
-        var withoutDisplay = CreatePlainControl(source, new Point(100, 100));
+        var withDisplay = CreatePlainControl(source, new EsPoint(100, 100), display: projection);
+        var withoutDisplay = CreatePlainControl(source, new EsPoint(100, 100));
         var firstWindow = TestHelper.ShowInWindow(withDisplay);
         var secondWindow = TestHelper.ShowInWindow(withoutDisplay);
 
@@ -235,7 +235,7 @@ public class LoupeControlTests
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         using var smaller = TestHelper.CreateSource(100, 100, DrawingColor.Red);
         using var projection = new EsBitmapAdapter(smaller);
-        var control = CreatePlainControl(source, new Point(100, 100), display: projection);
+        var control = CreatePlainControl(source, new EsPoint(100, 100), display: projection);
         var window = TestHelper.ShowInWindow(control);
 
         await control.WaitForRenderedAsync();
@@ -252,7 +252,7 @@ public class LoupeControlTests
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         var dead = TestHelper.CreateSource(200, 200, DrawingColor.Red);
         var projection = new EsBitmapAdapter(dead);
-        var control = CreatePlainControl(source, new Point(100, 100), display: projection);
+        var control = CreatePlainControl(source, new EsPoint(100, 100), display: projection);
         dead.Dispose();
         var window = TestHelper.ShowInWindow(control);
 
@@ -267,7 +267,7 @@ public class LoupeControlTests
     {
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         using var projection = new EsBitmapAdapter(source);
-        var control = CreatePlainControl(source, new Point(100, 100));
+        var control = CreatePlainControl(source, new EsPoint(100, 100));
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
 
@@ -287,7 +287,7 @@ public class LoupeControlTests
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         using var red = TestHelper.CreateSource(200, 200, DrawingColor.Red);
         using var projection = new EsBitmapAdapter(red);
-        var control = CreatePlainControl(source, new Point(100, 100), display: projection);
+        var control = CreatePlainControl(source, new EsPoint(100, 100), display: projection);
         var window = TestHelper.ShowInWindow(control);
 
         await control.WaitForRenderedAsync();
@@ -302,7 +302,7 @@ public class LoupeControlTests
         // 拡大元（コア画像）が描画の真実である。 射影だけを渡しても切り出す元が無いため下地のみを描く。
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         using var projection = new EsBitmapAdapter(source);
-        var control = CreatePlainControl(centerPoint: new Point(100, 100), display: projection);
+        var control = CreatePlainControl(centerPoint: new EsPoint(100, 100), display: projection);
         var window = TestHelper.ShowInWindow(control);
 
         await control.WaitForRenderedAsync();
@@ -316,7 +316,7 @@ public class LoupeControlTests
     {
         // 拡大元の外側は描かない（交差する部分だけを描く）ため、画像外の色（下地）が見える。
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        var control = CreatePlainControl(source, new Point(2, 2));
+        var control = CreatePlainControl(source, new EsPoint(2, 2));
         var window = TestHelper.ShowInWindow(control);
 
         await control.WaitForRenderedAsync();
@@ -333,7 +333,7 @@ public class LoupeControlTests
     {
         using var blue = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         using var red = TestHelper.CreateSource(200, 200, DrawingColor.Red);
-        var control = CreatePlainControl(blue, new Point(100, 100));
+        var control = CreatePlainControl(blue, new EsPoint(100, 100));
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
         Assert.Equal(0x0000FF, LoupePixelAt(window, control, 30, 30));
@@ -350,7 +350,7 @@ public class LoupeControlTests
     {
         // 破棄済みの画像は下地のみになるが、新しい画像へ差し替えると描画が戻る（破棄済みを保持し続けない）。
         var dead = TestHelper.CreateSource(200, 200, DrawingColor.Red);
-        var control = CreatePlainControl(dead, new Point(100, 100));
+        var control = CreatePlainControl(dead, new EsPoint(100, 100));
         dead.Dispose();
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
@@ -377,7 +377,7 @@ public class LoupeControlTests
         for (var i = 0; i < 5; i++)
         {
             control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-            control.CenterPoint = new Point(100 + i, 100);
+            control.CenterPoint = new EsPoint(100 + i, 100);
         }
 
         control.RenderOnce();
@@ -389,7 +389,7 @@ public class LoupeControlTests
     [AvaloniaFact]
     internal async Task Source未設定でも下地のみ描画される()
     {
-        var control = CreatePlainControl(centerPoint: new Point(50, 50));
+        var control = CreatePlainControl(centerPoint: new EsPoint(50, 50));
         var window = TestHelper.ShowInWindow(control);
 
         await control.WaitForRenderedAsync();
@@ -417,13 +417,13 @@ public class LoupeControlTests
     internal async Task CenterPoint変更で再描画される()
     {
         var control = CreatePlainControl(
-            TestHelper.CreateSource(200, 200, DrawingColor.Blue), new Point(100, 100));
+            TestHelper.CreateSource(200, 200, DrawingColor.Blue), new EsPoint(100, 100));
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
 
         EsPoint? firstTopLeft = null;
         control.Rendered += (_, e) => firstTopLeft = e.Content.CaptureTopLeft;
-        control.CenterPoint = new Point(120, 120);
+        control.CenterPoint = new EsPoint(120, 120);
         await control.WaitForRenderedAsync();
 
         // 中心の変更で切り出し領域が動く（同じ中心で描かれる）
@@ -437,7 +437,7 @@ public class LoupeControlTests
     {
         var control = CreateControl();
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
 
@@ -456,7 +456,7 @@ public class LoupeControlTests
     {
         var control = CreateControl();
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
 
@@ -479,7 +479,7 @@ public class LoupeControlTests
     {
         var control = CreateControl();
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
         Assert.Equal(0x0000FF, LoupePixelAt(window, control, 30, 30));
@@ -499,13 +499,13 @@ public class LoupeControlTests
     {
         var control = CreateControl();
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
         Assert.Equal(0x0000FF, LoupePixelAt(window, control, 30, 30));
 
         control.IsVisible = false;
-        control.CenterPoint = new Point(120, 120);
+        control.CenterPoint = new EsPoint(120, 120);
         // 非表示にした直後に残っている描画要求と画像の生成を流し切ってから判定する（静まるまで待つ）
         await AdvanceUntilQuietAsync(control);
 
@@ -519,13 +519,13 @@ public class LoupeControlTests
     {
         var control = CreateControl();
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
 
         control.IsVisible = false;
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         await AdvanceUntilQuietAsync(control);
 
         // 非表示のため描画は行われない（状態は保持され、表示時に反映される）
@@ -538,7 +538,7 @@ public class LoupeControlTests
     internal async Task IsVisible_trueで表示して描画する()
     {
         var control = CreatePlainControl(
-            TestHelper.CreateSource(200, 200, DrawingColor.Blue), new Point(100, 100));
+            TestHelper.CreateSource(200, 200, DrawingColor.Blue), new EsPoint(100, 100));
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
 
@@ -599,7 +599,7 @@ public class LoupeControlTests
     {
         // ホストは Rendered の Content（描画計画）をそのまま渡して既定の描画を行える。
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        var control = CreatePlainControl(source, new Point(100, 100));
+        var control = CreatePlainControl(source, new EsPoint(100, 100));
         var window = TestHelper.ShowInWindow(control);
 
         var calls = 0;
@@ -623,7 +623,7 @@ public class LoupeControlTests
         // 省略可能な引数（表示用の射影）を渡す経路も描画が成立する（射影は切り出しの複製を省くヒントである）。
         using var source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
         using var projection = new EsBitmapAdapter(source);
-        var control = CreatePlainControl(source, new Point(100, 100));
+        var control = CreatePlainControl(source, new EsPoint(100, 100));
         var window = TestHelper.ShowInWindow(control);
 
         var calls = 0;
@@ -644,7 +644,7 @@ public class LoupeControlTests
     internal async Task DrawPlan_拡大元が無くても描画できる()
     {
         // 拡大元が null（画像なし）でも描画は成立する（下地のみを描く）。
-        var control = CreatePlainControl(centerPoint: new Point(100, 100));
+        var control = CreatePlainControl(centerPoint: new EsPoint(100, 100));
         var window = TestHelper.ShowInWindow(control);
 
         var calls = 0;
@@ -679,11 +679,11 @@ public class LoupeControlTests
     {
         var control = CreateControl();
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         var window = TestHelper.ShowInWindow(control);
 
         // ポインター移動イベントの座標より新しい位置（実カーソル）を返す
-        control.CenterPointProvider = () => new Point(120, 130);
+        control.CenterPointProvider = () => new EsPoint(120, 130);
 
         LoupeRenderedEventArgs? rendered = null;
         control.Rendered += (_, e) => rendered = e;
@@ -692,7 +692,7 @@ public class LoupeControlTests
 
         // 取り直した中心がプロパティと拡大画像（切り出し領域）の両方へ反映される
         // （要求サイズ 100・拡大率 2 の可視域は 50x50 のため、切り出し領域の左上は中心 - 25）
-        Assert.Equal(new Point(120, 130), control.CenterPoint);
+        Assert.Equal(new EsPoint(120, 130), control.CenterPoint);
         Assert.NotNull(rendered);
         Assert.Equal(new EsPoint(95, 105), rendered.Content.CaptureTopLeft);
         window.Close();
@@ -703,13 +703,13 @@ public class LoupeControlTests
     {
         var control = CreateControl();
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         control.CenterPointProvider = () => null;
         var window = TestHelper.ShowInWindow(control);
 
         await control.WaitForRenderedAsync();
 
-        Assert.Equal(new Point(100, 100), control.CenterPoint);
+        Assert.Equal(new EsPoint(100, 100), control.CenterPoint);
         window.Close();
     }
 
@@ -724,7 +724,7 @@ public class LoupeControlTests
         var sink = new TestHelper.ListLogger();
         control.Log = sink;
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
 
         // 付加情報を描くホストのハンドラーが例外を投げても、アプリを落とさずログへ記録される
         // （描画の経路が例外を吸収する。 拡大元の型は型で保証されるため、未対応型の例外は起こらない）
@@ -744,7 +744,7 @@ public class LoupeControlTests
         var sink = new TestHelper.ListLogger();
         control.Log = sink;
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         control.Rendered += static (_, _) => throw new InvalidOperationException("付加情報の描画に失敗");
         var window = TestHelper.ShowInWindow(control);
 
@@ -765,7 +765,7 @@ public class LoupeControlTests
     {
         var control = CreateControl();
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
 
@@ -886,7 +886,7 @@ public class LoupeControlTests
     {
         var control = CreateControl();
         control.Appearance = control.Appearance with { ShowCoordLabel = true };
-        control.CenterPoint = new Point(123, 456);
+        control.CenterPoint = new EsPoint(123, 456);
 
         Layout(control);
 
@@ -899,7 +899,7 @@ public class LoupeControlTests
     {
         var control = CreateControl();
         control.Appearance = control.Appearance with { ShowCoordLabel = false };
-        control.CenterPoint = new Point(123, 456);
+        control.CenterPoint = new EsPoint(123, 456);
 
         Layout(control);
 
@@ -913,7 +913,7 @@ public class LoupeControlTests
     internal void 座標ラベルはルーペ左上の内側に実測幅で配置される()
     {
         var control = CreateControl();
-        control.CenterPoint = new Point(12, 34);
+        control.CenterPoint = new EsPoint(12, 34);
 
         Layout(control);
 
@@ -946,7 +946,7 @@ public class LoupeControlTests
             CoordLabelFontSize = 16,
             CoordLabelCornerRadius = 8,
         };
-        control.CenterPoint = new Point(10, 20);
+        control.CenterPoint = new EsPoint(10, 20);
 
         Layout(control);
 
@@ -972,11 +972,11 @@ public class LoupeControlTests
         var window = new Window { Content = panel };
         window.Show();
 
-        control.CenterPoint = new Point(1, 2);
+        control.CenterPoint = new EsPoint(1, 2);
         await TestHelper.PumpAsync();
         Assert.Equal("(1, 2)", LabelText(control));
 
-        control.CenterPoint = new Point(3, 4);
+        control.CenterPoint = new EsPoint(3, 4);
         await TestHelper.PumpAsync();
 
         Assert.Equal("(3, 4)", LabelText(control));
@@ -995,7 +995,7 @@ public class LoupeControlTests
         panel.Children.Add(control);
         var window = new Window { Content = panel };
         window.Show();
-        control.CenterPoint = new Point(50, 50);
+        control.CenterPoint = new EsPoint(50, 50);
 
         // オフセット 0 → カーソル位置（50,50）に表示
         var before = control.RenderTransform;
@@ -1017,7 +1017,7 @@ public class LoupeControlTests
         panel.Children.Add(control);
         var window = new Window { Content = panel };
         window.Show();
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
 
         // 対象 = DIP × 2（拡大）→ 中心 (100,100) は DIP (50,50) に変換される
         control.SetCoordTransform(new CoordTransform(
@@ -1037,7 +1037,7 @@ public class LoupeControlTests
         panel.Children.Add(control);
         var window = new Window { Content = panel };
         window.Show();
-        control.CenterPoint = new Point(50, 50);
+        control.CenterPoint = new EsPoint(50, 50);
 
         // null 設定 → 等価変換にフォールバック（例外なく表示位置が計算される）
         control.SetCoordTransform(null);
@@ -1054,7 +1054,7 @@ public class LoupeControlTests
         panel.Children.Add(control);
         var window = new Window { Content = panel };
         window.Show();
-        control.CenterPoint = new Point(50, 50);
+        control.CenterPoint = new EsPoint(50, 50);
 
         // サイズ 0 ではクランプせず基本サイズのまま表示位置を計算する（例外なし）
         control.PositionOffset = 10;
@@ -1071,7 +1071,7 @@ public class LoupeControlTests
         panel.Children.Add(control);
         var window = new Window { Content = panel };
         window.Show();
-        control.CenterPoint = new Point(50, 50);
+        control.CenterPoint = new EsPoint(50, 50);
 
         // 要求サイズは領域に合わせて縮小しない（要素サイズは要求サイズのまま）
         Assert.Equal(400, control.Width);
@@ -1095,7 +1095,7 @@ public class LoupeControlTests
         panel.Children.Add(control);
         var window = new Window { Content = panel };
         window.Show();
-        control.CenterPoint = new Point(50, 50);
+        control.CenterPoint = new EsPoint(50, 50);
 
         var pixelSize = 0;
         control.Rendered += (_, e) => pixelSize = e.Content.ClientPixelSize;
@@ -1120,7 +1120,7 @@ public class LoupeControlTests
         panel.Children.Add(control);
         var window = new Window { Content = panel };
         window.Show();
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
 
         // 変換係数を後から変更できるよう、可変な係数を使う（パン・ズーム等の動的変化の模擬）
         var factor = 2.0;
@@ -1147,7 +1147,7 @@ public class LoupeControlTests
     internal async Task 破棄済みSourceは下地のみで描画される()
     {
         var bitmap = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        var control = CreatePlainControl(bitmap, new Point(100, 100));
+        var control = CreatePlainControl(bitmap, new EsPoint(100, 100));
         bitmap.Dispose(); // 破棄済み Bitmap（生存検証で ObjectDisposedException）
         var window = TestHelper.ShowInWindow(control);
 
@@ -1162,7 +1162,7 @@ public class LoupeControlTests
     internal async Task 描画中にSourceが破棄されると下地のみで描画される()
     {
         var bitmap = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        var control = CreatePlainControl(bitmap, new Point(100, 100));
+        var control = CreatePlainControl(bitmap, new EsPoint(100, 100));
         var window = TestHelper.ShowInWindow(control);
 
         // 描画の前にソースを破棄すると、ソース解決が破棄済みを検知して切り出しを行わない
@@ -1182,7 +1182,7 @@ public class LoupeControlTests
 
         // 再設定（OldValue が null でない）→ 変更ログの両分岐が実行される
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(50, 50);
+        control.CenterPoint = new EsPoint(50, 50);
         control.Options = control.Options with { RequestedSize = 120 };
         control.ClientToPixelScaling = 1.5;
         control.Options = control.Options with { ZoomLevel = 8 };
@@ -1199,7 +1199,7 @@ public class LoupeControlTests
 
         // 初回設定（OldValue = null）と再設定（NewValue あり）の両経路で LogSettingChanged を実行する
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
 
         // null 設定（NewValue = null）で LogSettingChanged の null 分岐を実行する
@@ -1230,7 +1230,7 @@ public class LoupeControlTests
         control.Rendered += (_, e) => args = e;
 
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
 
@@ -1257,7 +1257,7 @@ public class LoupeControlTests
         control.Rendered += (_, e) => args = e;
 
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
 
@@ -1293,14 +1293,14 @@ public class LoupeControlTests
     {
         var control = CreateControl();
         control.Source = TestHelper.CreateSource(200, 200, DrawingColor.Blue);
-        control.CenterPoint = new Point(100, 100);
+        control.CenterPoint = new EsPoint(100, 100);
         var window = TestHelper.ShowInWindow(control);
         await control.WaitForRenderedAsync();
 
         var count = 0;
         control.Rendered += (_, _) => count++;
 
-        control.CenterPoint = new Point(120, 120);
+        control.CenterPoint = new EsPoint(120, 120);
         await control.WaitForRenderedAsync();
 
         Assert.Equal(1, count);

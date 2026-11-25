@@ -3,6 +3,8 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using EsUtil.Feature.Marquee;
+using EsUtil.Feature.Annotation.Logging;
+using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
@@ -514,44 +516,53 @@ public sealed partial class AnnotationLayerControl : Control
     /// <summary>元画像ピクセルの矩形を、このコントロールの座標（DIP）の矩形へ変換する。</summary>
     /// <param name="source">矩形（元画像ピクセル）。</param>
     /// <returns>矩形（このコントロールの座標の DIP）。</returns>
-    internal RectangleF GetClientRect(EsRect source)
-    {
-        var rect = ResolveImageTransform().ToClient(source);
-        return new RectangleF((float)rect.X, (float)rect.Y, (float)rect.Width, (float)rect.Height);
-    }
+    /// <remarks>変換の式は <see cref="AnnotationViewTransform"/> が単一所有する（UI ごとに書き写さない）。</remarks>
+    internal EsRect GetClientRect(EsRect source) => ResolveImageTransform().ToClient(source);
 
     /// <summary>画像と注釈を元画像ピクセルの 1:1 で合成した画像を作る（保存用）。</summary>
-    /// <returns>合成した画像。 破棄は呼び出し側。 作れない場合は <see langword="null"/>。</returns>
-    /// <remarks>選択枠・ハンドル・キャレットは描かない（編集中の一時的な表示であり、保存する絵ではない）。</remarks>
-    public EsBitmap? RenderComposedImage()
+    /// <returns>合成した画像。 破棄は呼び出し側。</returns>
+    /// <remarks>
+    /// 選択枠・ハンドル・キャレットは描かない（編集中の一時的な表示であり、保存する絵ではない）。<br/>
+    /// <b>生成できない場合は例外</b>である（合成画像を書けなかったことを黙って握りつぶさない）。
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">合成した画像を生成できなかった場合。</exception>
+    public EsBitmap RenderComposedImage()
     {
-        var width = Math.Max(1, SourcePixelWidth);
-        var height = Math.Max(1, SourcePixelHeight);
-
-        using var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-        using (var graphics = Graphics.FromImage(bitmap))
-        {
-            graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            if (_image is { } image)
-            {
-                graphics.DrawImage(image, new Rectangle(0, 0, width, height));
-            }
-
-            var plan = _presenter.ResolveDrawPlan(_session.Document, StyledText.RichTextPainter.Measure, null);
-            AnnotationPainter.Draw(graphics, plan, 1, 0, 0);
-        }
-
-        var data = bitmap.LockBits(
-            new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
         try
         {
-            var pixels = new byte[data.Stride * height];
-            Marshal.Copy(data.Scan0, pixels, 0, pixels.Length);
-            return EsBitmap.FromPixelCopy(width, height, pixels);
+            var width = Math.Max(1, SourcePixelWidth);
+            var height = Math.Max(1, SourcePixelHeight);
+
+            using var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            using (var graphics = Graphics.FromImage(bitmap))
+            {
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                if (_image is { } image)
+                {
+                    graphics.DrawImage(image, new Rectangle(0, 0, width, height));
+                }
+
+                var plan = _presenter.ResolveDrawPlan(_session.Document, StyledText.RichTextPainter.Measure, null);
+                AnnotationPainter.Draw(graphics, plan, 1, 0, 0);
+            }
+
+            var data = bitmap.LockBits(
+                new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            try
+            {
+                var pixels = new byte[data.Stride * height];
+                Marshal.Copy(data.Scan0, pixels, 0, pixels.Length);
+                return EsBitmap.FromPixelCopy(width, height, pixels);
+            }
+            finally
+            {
+                bitmap.UnlockBits(data);
+            }
         }
-        finally
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
-            bitmap.UnlockBits(data);
+            Log.LogOperationError(ex, nameof(RenderComposedImage));
+            throw;
         }
     }
 
@@ -636,13 +647,13 @@ public sealed partial class AnnotationLayerControl : Control
     /// <b>書式バーを注釈に被せないための対象矩形</b>である。 本文の矩形ではなく枠線を含む矩形を使う
     /// （本文で判定するとバーが枠線の上へ数ピクセル重なる）
     /// </remarks>
-    public RectangleF GetSelectedBoundsRect()
+    public EsRect GetSelectedBoundsRect()
         => Selected is { } item ? GetClientRect(item.Bounds) : default;
 
     /// <summary>選択中の吹き出しの本文の矩形（DIP）を取得する。</summary>
     /// <returns>本文の矩形（DIP）。 吹き出しを選んでいない場合は空の矩形。</returns>
     /// <remarks>ホストが本文編集コントロールを重ねる位置に使う（レイヤーは子要素を持たない）。</remarks>
-    public RectangleF GetSelectedBodyRect()
+    public EsRect GetSelectedBodyRect()
         => Selected is BubbleAnnotation bubble ? GetClientRect(bubble.ResolveBodyRect()) : default;
 
     /// <summary>Marquee へ渡す座標変換ポート（変換の規則が変わらないため 1 度だけ作る）。</summary>

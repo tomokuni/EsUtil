@@ -130,7 +130,7 @@ public sealed class MainWindow : Window
         // 倍率は「対象座標 / ローカル DIP」。 ズームは背景を倍率ぶん大きく描くため、1 DIP が覆う対象座標は 1 / ズームになる
         _marquee.ClientToSourceScaling = 1.0 / _zoom;
         _marquee.SetCoordTransform(
-            CoordTransform.ClientToSource(() => 1.0 / _zoom, () => new EsSize(SourceWidth, SourceHeight)));
+            CoordTransform.CreateClientToSource(() => 1.0 / _zoom, () => new EsSize(SourceWidth, SourceHeight)));
         ApplyZoom(_zoom);
 
         // 選択の状態を画面へ出す（ログとは別に、常に見える形で残す）

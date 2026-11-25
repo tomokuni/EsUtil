@@ -106,7 +106,7 @@ var marquee = new MarqueeControl
 pictureBox.Controls.Add(marquee);
 
 // 3. 座標変換ポートを設定する（ToSource = ローカル DIP → 対象 / SourceArea = 対象の境界）
-marquee.SetCoordTransform(CoordTransform.ClientToSource(() => 1.0, () => new EsSize(1920, 1080)));
+marquee.SetCoordTransform(CoordTransform.CreateClientToSource(() => 1.0, () => new EsSize(1920, 1080)));
 
 // 4. イベントを購読する
 marquee.SelectionChanged += (_, e) => Console.WriteLine($"選択: {e.Rect}");

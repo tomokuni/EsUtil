@@ -120,7 +120,7 @@ using EsUtil.Ui.WinUI3.Marquee;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 
-var transform = CoordTransform.ClientToSource(
+var transform = CoordTransform.CreateClientToSource(
     sourcePerDip: () => 1.0,                                  // 対象座標 = ローカル DIP × 倍率（ズームはホストが決める）
     sourceArea: () => new EsSize(800, 600));                  // 選択の境界（元画像の寸法）
 

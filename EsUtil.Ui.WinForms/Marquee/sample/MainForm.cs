@@ -243,7 +243,7 @@ internal static class MainForm
             // 倍率は「対象座標 / ローカル DIP」。 ズームは画像を倍率ぶん大きく描くため、1 DIP が覆う対象座標は 1 / ズームになる
             marquee.ClientToSourceScaling = 1.0 / value;
             marquee.SetCoordTransform(
-                CoordTransform.ClientToSource(() => 1.0 / zoom, () => new EsSize(ImageWidth, ImageHeight)));
+                CoordTransform.CreateClientToSource(() => 1.0 / zoom, () => new EsSize(ImageWidth, ImageHeight)));
         }
     }
 

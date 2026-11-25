@@ -140,7 +140,7 @@ var loupe = new LoupeControl
     Source = sourceBitmap,
     // 省略可。 ホストが表示に使っている Avalonia の画像を渡すと、切り出しの複製を作らずに描ける
     DisplaySource = source,
-    CenterPoint = new Point(400, 300),
+    CenterPoint = new EsPoint(400, 300),
     Options = LoupeOptions.Default with { RequestedSize = 240, ZoomLevel = 4 },
     ClientToPixelScaling = 1.0,
     IsHitTestVisible = false,
@@ -161,7 +161,7 @@ public EsReadOnlyBitmap SourceBitmap { get; } = sourceBitmap;   // ルーペの�
 
 public IImage DisplaySource { get; } = displayImage;            // 省略可（表示用の射影）
 
-public Point? CenterPoint { get; set; } = new(400, 300);
+public EsPoint? CenterPoint { get; set; } = new(400, 300);
 
 public bool IsLoupeVisible { get; set; } = true;
 ```
@@ -217,7 +217,7 @@ loupe.DisplaySource = displayBitmap;               // 表示用の射影（ホ�
 
 | 項目 | 内容 |
 | --- | --- |
-| 型 | `Point?` |
+| 型 | `EsPoint?` |
 | 単位 | **対象座標系**（元画像の物理ピクセル座標） |
 | 既定値 | `null` |
 | 用途 | 拡大表示の中心座標 |
@@ -283,7 +283,7 @@ PixelSize = ceil(表示サイズ × ClientToPixelScaling)
 | `Options` | `LoupeOptions` | コアの既定値 | ルーペの基本サイズと拡大率。 `with` 式で部分変更する。 数値項目はコアの `LoupeOptions` が生成時に安全域へ補正する |
 | `Appearance` | `LoupeAppearance`（`EsUtil.Feature.Loupe`） | `LoupeAppearance.Default` | 枠線の太さ・表示可否（十字線・枠線・ラベル）と描画に使う色（ペーストボード（画像外）・枠線・十字線・中心座標ラベルの 6 色）・ラベルのフォントサイズ・角丸。 `LoupeAppearance.Default with { ... }` で部分変更する |
 | `DrawPlanResolver` | `Func<LoupeDrawPlan, LoupeDrawPlan>?` | `null` | **描画計画の差し替え点**（装飾の矩形・ラベルの文言と配置）。 設定すると保持中の計画を破棄して再解決する（配置と描画の両方に適用され、同じ入力では 1 フレーム 1 回だけ解決されるため、呼び出しの時点に依存しない純粋関数にすること） |
-| `CenterPointProvider` | `Func<Point?>?` | `null` | **描画の直前に拡大中心を取り直す関数**（[5.1.10](#5110-centerpointprovider描画の直前の拡大中心の取り直し)）。 null または null の戻り値は取り直さない |
+| `CenterPointProvider` | `Func<EsPoint?>?` | `null` | **描画の直前に拡大中心を取り直す関数**（[5.1.10](#5110-centerpointprovider描画の直前の拡大中心の取り直し)）。 null または null の戻り値は取り直さない |
 
 `Options`（コアの `LoupeOptions`）の項目（詳細は `EsUtil.Feature.Loupe.Core` の `docs/SPEC_API.md` を参照）:
 
@@ -341,7 +341,7 @@ Avalonia標準の `Visual.IsVisible` を使用します。 初期値は `false`�
 
 | 項目 | 内容 |
 | --- | --- |
-| 型 | `Func<Point?>?` |
+| 型 | `Func<EsPoint?>?` |
 | 既定値 | `null`（取り直さない） |
 | 用途 | 描画の直前に拡大中心を取り直す関数。 **返した中心は `CenterPoint` へ反映する**（中心座標ラベル・表示位置・拡大画像を同じ中心で揃える） |
 

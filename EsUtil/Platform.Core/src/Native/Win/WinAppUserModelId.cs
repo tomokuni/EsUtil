@@ -14,9 +14,13 @@ namespace EsUtil.Platform.Core.Native.Win;
 /// </remarks>
 public static class WinAppUserModelId
 {
-    /// <summary>プロセスの AUMID を設定する。</summary>
-    /// <param name="appUserModelId">アプリ ユーザー モデル ID（逆ドメイン形式）。</param>
-    /// <returns>設定できた場合は <see langword="true"/>。</returns>
-    public static bool SetProcessId(string appUserModelId)
-        => PInvoke.SetCurrentProcessExplicitAppUserModelID(appUserModelId).Succeeded;
+    /// <summary>プロセスのアプリ ユーザー モデル ID を設定する（設定できなくても続行できる）。</summary>
+    /// <param name="appUserModelId">アプリ ユーザー モデル ID（逆ドメイン形式。 null 不可）。</param>
+    /// <returns>設定できた場合は <see langword="true"/>。 設定できなかった場合は <see langword="false"/>。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="appUserModelId"/> が <see langword="null"/> の場合。</exception>
+    public static bool TrySetProcessAppUserModelId(string appUserModelId)
+    {
+        ArgumentNullException.ThrowIfNull(appUserModelId);
+        return PInvoke.SetCurrentProcessExplicitAppUserModelID(appUserModelId).Succeeded;
+    }
 }

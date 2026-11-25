@@ -597,7 +597,7 @@ public sealed partial class MarqueeControl : Panel
     /// （ヒットテストの結果であり、ポインターを捕まえている間は枠の状態も含めてフレームワークが決める。 コントロールの外では追従位置を進めない）。<br/>
     /// 追従位置の採用は呼び出し側が決める（本メソッドは状態を変えない）。
     /// </remarks>
-    public bool TryGetCurrentLoupePosition(out Point position)
+    public bool TryGetCurrentLoupePosition(out EsPoint position)
     {
         position = default;
 
@@ -612,7 +612,7 @@ public sealed partial class MarqueeControl : Panel
             return false;
         }
 
-        position = sourcePosition.ToAvaloniaPoint();
+        position = sourcePosition;
         return true;
     }
 
@@ -620,7 +620,7 @@ public sealed partial class MarqueeControl : Panel
     /// <param name="port">座標変換ポート（ToSource = DIP→対象 / ToDip = 対象→DIP / SourceArea = 対象の境界）。 null の場合は等価変換。</param>
     /// <remarks>
     /// ホスト（上位 AP）がモードに応じた変換ポートを設定する（AreaSelect: 仮想スクリーンピクセル / Crop: 元画像ピクセル）。<br/>
-    /// ポートの生成はコアの <see cref="EsUtil.Platform.Core.Coord.CoordTransform"/> のファクトリ（<c>Identity</c> / <c>ClientToSource</c> 等）で行う。<br/>
+    /// ポートの生成はコアの <see cref="EsUtil.Platform.Core.Coord.CoordTransform"/> のファクトリ（<c>Identity</c> / <c>CreateClientToSource</c> 等）で行う。<br/>
     /// 未設定時は等価変換（1 対象ピクセル = 1 DIP・無制限）。<br/>
     /// 変換関数は呼び出し毎に評価されるため、ズーム・スクロール等の動的変化を反映できる。<br/>
     /// 座標変換の変更は描画（選択矩形・ハンドル・十字線）へ即時反映されるため、再描画を要求する。
@@ -645,11 +645,11 @@ public sealed partial class MarqueeControl : Panel
     /// 状態の更新と通知はコア（ファサード）が担う（<see cref="MarqueeOptions.ClampToSourceBounds"/> が有効な場合は境界内へクリップしてから設定する）。<br/>
     /// 設定後は <see cref="SelectionChanged"/> が発火し、再描画される。
     /// </remarks>
-    public void SetSelection(Rect rect)
+    public void SetSelection(EsRect rect)
     {
         try
         {
-            _marquee.SetSelection(rect.ToEsRect());
+            _marquee.SetSelection(rect);
         }
         catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
@@ -782,7 +782,7 @@ public sealed partial class MarqueeControl : Panel
     /// <param name="notice">通知。</param>
     /// <returns>通知座標（DIP）とスナップショットを含むイベント引数。</returns>
     private static MarqueePointEventArgs ToPointArgs(MarqueeNotice notice)
-        => new(notice.Position.ToAvaloniaPoint(), notice.Snapshot);
+        => new(notice.Position, notice.Snapshot);
 
     /// <summary>通知を選択矩形のイベント引数へ変換する。</summary>
     /// <param name="notice">通知。</param>

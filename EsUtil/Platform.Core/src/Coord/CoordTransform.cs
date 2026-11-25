@@ -32,7 +32,7 @@ public sealed class CoordTransform(
     /// 逆数（ローカル DIP / 対象）を渡す入口は設けない（同じ変換が 2 通りの数値で書ける状態を残さない）。<br/>
     /// 境界は選択を対象外へ出さないためのクランプに使われる（境界が不要なホストは省略する）。
     /// </remarks>
-    public static ICoordTransform ClientToSource(
+    public static ICoordTransform CreateClientToSource(
         Func<double> sourcePerDip,
         Func<EsSize?>? sourceArea = null)
     {

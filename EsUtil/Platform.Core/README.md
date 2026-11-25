@@ -30,7 +30,7 @@ var center = rect.Center;                             // EsPoint
 var inside = rect.ClampToArea(new EsSize(200, 100));  // 領域内へクランプ
 
 // 座標系の変換ポート（対象座標 = ローカル DIP × 倍率）
-var port = CoordTransform.ClientToSource(() => 2.0);
+var port = CoordTransform.CreateClientToSource(() => 2.0);
 var source = port.ToSource(new EsPoint(100, 100));
 ```
 

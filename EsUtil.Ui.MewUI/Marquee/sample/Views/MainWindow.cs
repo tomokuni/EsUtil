@@ -18,7 +18,7 @@ namespace EsUtil.Ui.MewUI.Marquee.Sample.Views;
 /// ドラッグ選択・ズーム表示・外観の変更・確定/キャンセルの流れを組める。<br/>
 /// <br/>
 /// <b>座標系</b>: 選択矩形は対象座標（元画像ピクセル）で扱う。 表示のズームは座標変換ポート
-/// （<c>CoordTransform.ClientToSource</c>）が担うため、コントロールはズームを知らない。<br/>
+/// （<c>CoordTransform.CreateClientToSource</c>）が担うため、コントロールはズームを知らない。<br/>
 /// <br/>
 /// <b>配置</b>: サンプル共通の <see cref="SampleShell"/>（左: 設定 / 右上: 画像 / 右下: ログ）を使う。<br/>
 /// <b>ログ</b>: Serilog の出力を非同期に表示する（<see cref="SampleLogging"/>）。<br/>
@@ -111,7 +111,7 @@ internal static class MainWindow
         // 倍率は「対象座標 / ローカル DIP」。 ズームは画像を倍率ぶん大きく描くため、1 DIP が覆う対象座標は 1 / ズームになる
         marquee.ClientToSourceScaling = 1.0 / zoom;
         marquee.SetCoordTransform(
-            CoordTransform.ClientToSource(() => 1.0 / zoom, () => new EsSize(ImageWidth, ImageHeight)));
+            CoordTransform.CreateClientToSource(() => 1.0 / zoom, () => new EsSize(ImageWidth, ImageHeight)));
 
         // 起動直後に枠線・ハンドル・ラベルが見えるように、選択を 1 つ与えておく
         marquee.SetSelection(new EsRect(120, 80, 240, 180));

@@ -70,8 +70,8 @@
 | `CaretIndex` / `SelectionStart` / `SelectionEnd` / `SelectionLength` | property | キャレットと選択範囲（文字数） |
 | `EditingChanged` | event | 本文の編集の開始・終了（書式バーの出し入れはパネルが行う） |
 | `TextSelectionChanged` | event | 本文の選択範囲（キャレット）の変更（書式バーの現在値を追随させる） |
-| `GetSelectedBodyRect()` | method | 本文の矩形（DIP）。 本文編集コントロールを重ねる位置と書式バーの位置を決める |
-| `RenderComposedImage()` | method | 画像と注釈を元画像ピクセルの 1:1 で合成した `EsBitmap` を作る（保存用。 選択枠・ハンドル・キャレットは描かない。 所有権は呼び出し側） |
+| `GetSelectedBodyRect()` / `GetSelectedBoundsRect()` | method | 選択中の本文・注釈の矩形（コアの `EsRect`・DIP）。 本文編集コントロールを重ねる位置と書式バーの位置を決める |
+| `RenderComposedImage()` | method | 画像と注釈を元画像ピクセルの 1:1 で合成した `EsBitmap` を作る（保存用。 選択枠・ハンドル・キャレットは描かない。 所有権は呼び出し側。 生成できなければ `InvalidOperationException`） |
 | `InvalidateRender()` | method | 今の状態で再描画する（ホストが画像の位置や表示倍率を変えたときに呼ぶ） |
 | `DocumentChanged` / `SelectionChanged` / `PreviewGestureRequested` / `AddMenuRequested` / `StyleEditorRequested` | event | 文書の変更・選択の変更・注釈の無い場所の操作・注釈の追加メニュー・外観の編集要求 |
 

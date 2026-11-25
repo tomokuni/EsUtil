@@ -176,11 +176,11 @@ marquee.Rendered += (_, e) =>
 
 ### 4.3 座標ポートの設定
 
-選択状態と nudge は対象座標で動作し、マウス入力・描画はコントロールローカル DIP で動作します。 両者を変換する座標ポート（`ICoordTransform`）をホストが設定します。 軸は「対象座標 ↔ ローカル DIP」の 1 つだけで、ポートの生成は `EsUtil.Platform.Core`（`EsUtil.Platform.Core.Coord`）の `CoordTransform` ファクトリ（`Identity` / `ClientToSource`）やホスト固有の実装で行います。 座標はコア幾何型（`EsPoint` / `EsSize`）で扱うため、Avalonia 型を渡す場合は相互変換（`.ToEsSize()` 等）します。
+選択状態と nudge は対象座標で動作し、マウス入力・描画はコントロールローカル DIP で動作します。 両者を変換する座標ポート（`ICoordTransform`）をホストが設定します。 軸は「対象座標 ↔ ローカル DIP」の 1 つだけで、ポートの生成は `EsUtil.Platform.Core`（`EsUtil.Platform.Core.Coord`）の `CoordTransform` ファクトリ（`Identity` / `CreateClientToSource`）やホスト固有の実装で行います。 座標はコア幾何型（`EsPoint` / `EsSize`）で扱うため、Avalonia 型を渡す場合は相互変換（`.ToEsSize()` 等）します。
 
 ```csharp
 // AreaSelect 例: 対象 = 仮想スクリーンピクセル（= DIP × scaling・動的評価）
-control.SetCoordTransform(CoordTransform.ClientToSource(() => scaling));
+control.SetCoordTransform(CoordTransform.CreateClientToSource(() => scaling));
 
 // 等価変換（1 対象 = 1 DIP）
 control.SetCoordTransform(null);
@@ -261,7 +261,7 @@ control.ResetSelection();           // 状態と nudge の初期化
 | `CurrentSnapshot` | `MarqueeSnapshot` | - | 現在の選択状態のスナップショット（**ポーリング不要の完全状態**。 `readonly record struct`）。 `State` / `SelectionSourceRect` / `ActiveTarget` / `MousePosition` / `IsMouseDown` / `IsNudgeActive` / `HasSelection` / `IsMarkerFollowingPointer` を公開。 イベント引数の Snapshot と同一形式。 選択状態の判定（確定・キャンセル等の操作分岐）は `CurrentSnapshot.HasSelection` を使用 |
 | `HasSelection` | `bool` | `false` | 選択矩形があるかどうか（スナップショットの生成を伴わない軽量な読み取り。 描画のたびに参照する） |
 | `SelectionSourceRect` | `EsRect` | `0x0` | 現在の選択矩形（対象座標。 未選択時は 0x0） |
-| `TryGetCurrentLoupePosition(out Point)` | `bool` | - | 追従位置（ルーペ中心。 対象座標）を**実カーソルから取り直す**。 取り直した場合は `true` と位置を返す。 追従していない場合（ドラッグ中・nudge 中。 判断はコアの `MarqueeSnapshot.IsMarkerFollowingPointer`）とポインターがコントロールの外にある場合（`InputElement.IsPointerOver`）とカーソル位置を取得できない場合は `false`（状態は変えない。 採用は呼び出し側が決める） |
+| `TryGetCurrentLoupePosition(out EsPoint)` | `bool` | - | 追従位置（ルーペ中心。 対象座標）を**実カーソルから取り直す**。 取り直した場合は `true` と位置を返す。 追従していない場合（ドラッグ中・nudge 中。 判断はコアの `MarqueeSnapshot.IsMarkerFollowingPointer`）とポインターがコントロールの外にある場合（`InputElement.IsPointerOver`）とカーソル位置を取得できない場合は `false`（状態は変えない。 採用は呼び出し側が決める） |
 
 #### 5.1.3 ログ
 
@@ -289,7 +289,7 @@ marquee.Appearance = MarqueeAppearance.Default with { BorderColor = Colors.White
 
 | メソッド | 説明 |
 | --- | --- |
-| `SetSelection(Rect)` | 選択矩形を対象座標で復元する（`SelectionChanged` で通知。 `Options.ClampToSourceBounds` 有効時は境界内へクリップ） |
+| `SetSelection(EsRect)` | 選択矩形を対象座標で復元する（`SelectionChanged` で通知。 `Options.ClampToSourceBounds` 有効時は境界内へクリップ） |
 | `ResetSelection()` | 選択状態と nudge 状態を初期化する |
 | `SetCoordTransform(ICoordTransform?)` | 対象↔DIP 座標変換ポートを設定する（null = 等価変換） |
 | `InvalidateRender()` | 表示（パン・ズーム・表示サイズ）の変化へ追従する（再描画とルーペ位置の再計算を要求。 選択の状態は変更しない） |
@@ -344,7 +344,7 @@ StyledProperty は同ファイルに定義されます（Avalonia のバイン�
 | `MarqueeInteractionState` enum | 操作状態（NoSelection / StartPointNudging / Dragging / DraggingNudging / Selected / SelectedNudging）。 コアが所有 |
 | `MarqueeSnapshot` readonly record struct | 状態 Snapshot（State / SelectionSourceRect / ActiveTarget / MousePosition / IsMouseDown / IsNudgeActive。 `HasSelection` は導出プロパティ）。 値セマンティクスで比較可能。 **`SelectionSourceRect` は `EsRect`、`MousePosition` は `EsPoint`**（UI 非依存）。 ドラッグ中かどうかは `State`（`Dragging` / `DraggingNudging`）で判定する |
 | `SelectionRectEventArgs` | 選択矩形通知（`Rect` は Avalonia 型・対象座標系。 `Snapshot` を同梱） |
-| `MarqueePointEventArgs` | 座標通知（`Point` は Avalonia 型・対象座標系。 `Snapshot` を同梱） |
+| `MarqueePointEventArgs` | 座標通知（`Point` はコアの `EsPoint`・対象座標系。 `Snapshot` を同梱） |
 | `MarqueeRenderedEventArgs` | 描画完了通知（`Context` = `DrawingContext`（描画中のみ有効）/ `Content` = `MarqueeDrawPlan`（外観・注目矩形・装飾矩形・ハンドル・マーカー・層の順序・ラベル配置）） |
 | `MarqueeHitTarget` enum | ドラッグハンドル種別（カーソル形状マッピング用）。 コアが所有 |
 

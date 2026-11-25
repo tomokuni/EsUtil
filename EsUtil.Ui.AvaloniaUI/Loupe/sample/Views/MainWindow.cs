@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using EsUtil.Ui.AvaloniaUI.Interop;
 using EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 using EsUtil.Ui.AvaloniaUI.Loupe.Sample.Imaging;
 using EsUtil.Ui.AvaloniaUI.Loupe.Sample.Presentation;
@@ -124,7 +125,7 @@ public sealed class MainWindow : Window
             PositionOffset = 24,
             Options = LoupeOptions.Default with { ZoomLevel = 4, RequestedSize = 160 },
             Appearance = _appearance,
-            CenterPoint = new Point(120, 120),
+            CenterPoint = new EsPoint(120, 120),
             Log = logger,
             LogPrefix = "[Loupe]",
         };
@@ -135,7 +136,7 @@ public sealed class MainWindow : Window
             PositionOffset = 0,
             Options = LoupeOptions.Default with { ZoomLevel = 6, RequestedSize = 150 },
             Appearance = GridLoupePlan.Appearance,
-            CenterPoint = new Point(70, 60),
+            CenterPoint = new EsPoint(70, 60),
             DrawPlanResolver = static plan => GridLoupePlan.Resolve(in plan),
             Log = logger,
             // 接頭辞はプロセス内の全インスタンスで共有される（設定パネルの「ログ接頭辞」が全ルーペへ効く）
@@ -147,7 +148,7 @@ public sealed class MainWindow : Window
         canvas.Children.Remove(_selectionLabel);
         canvas.Children.Add(_selectionLabel);
 
-        canvas.PointerMoved += (_, e) => _loupe.CenterPoint = e.GetPosition(image);
+        canvas.PointerMoved += (_, e) => _loupe.CenterPoint = e.GetPosition(image).ToEsPoint();
 
         // ルーペ画像上の破線は、描画完了直後に同じ描画コンテキストへ描く（Rendered の用途）
         _loupe.Rendered += (_, e) =>
@@ -175,8 +176,8 @@ public sealed class MainWindow : Window
                 SampleSettings.Slider("拡大率", 4, 1, 16, 1, true, value => _loupe.Options = _loupe.Options with { ZoomLevel = (int)value }),
                 SampleSettings.Slider("ルーペ サイズ", 160, 80, 480, 10, true, value => _loupe.Options = _loupe.Options with { RequestedSize = (int)value }),
                 SampleSettings.Slider("位置オフセット", 0, 0, 64, 4, true, value => _loupe.PositionOffset = value),
-                SampleSettings.Slider("中心 X", 120, 0, ImageWidth, 10, true, value => _loupe.CenterPoint = new Point(value, _loupe.CenterPoint?.Y ?? 0)),
-                SampleSettings.Slider("中心 Y", 120, 0, ImageHeight, 10, true, value => _loupe.CenterPoint = new Point(_loupe.CenterPoint?.X ?? 0, value)),
+                SampleSettings.Slider("中心 X", 120, 0, ImageWidth, 10, true, value => _loupe.CenterPoint = new EsPoint(value, _loupe.CenterPoint?.Y ?? 0)),
+                SampleSettings.Slider("中心 Y", 120, 0, ImageHeight, 10, true, value => _loupe.CenterPoint = new EsPoint(_loupe.CenterPoint?.X ?? 0, value)),
                 SampleSettings.Buttons(
                     ("ソースを設定", () => _loupe.Source = _source),
                     ("ソースを解除（描画資源を解放）", () =>

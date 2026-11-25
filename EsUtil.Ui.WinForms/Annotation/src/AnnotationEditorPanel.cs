@@ -166,7 +166,8 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         // **編集中だけ入力を受ける**: 編集していない間はレイヤーが本文を描き、押下もレイヤーへ渡す
         _textEditor.IsInputEnabled = _layer.IsEditingText;
         _textEditor.TabStop = _layer.IsEditingText;
-        _textEditor.Bounds = Rectangle.Round(_layer.GetSelectedBodyRect());
+        var body = _layer.GetSelectedBodyRect();
+        _textEditor.Bounds = Rectangle.Round(new RectangleF((float)body.X, (float)body.Y, (float)body.Width, (float)body.Height));
         _textEditor.Visible = true;
 
         // レイヤーは同じ本文を描かない（二重に描くと縁が太り、位置も二重に見える）
@@ -491,8 +492,7 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
     /// </remarks>
     private void ShowFormatBar()
     {
-        var bounds = _layer.GetSelectedBoundsRect();
-        var body = new EsRect(bounds.X, bounds.Y, bounds.Width, bounds.Height);
+        var body = _layer.GetSelectedBoundsRect();
 
         // **表示中は位置だけ移す**: 表示し直すとパネルの再作成が挟まり、選択のたびに書式バーがちらつく。
         if (_formatBarPanel.IsOpen)

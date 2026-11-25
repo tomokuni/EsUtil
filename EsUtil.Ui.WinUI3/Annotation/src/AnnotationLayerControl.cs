@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 using EsUtil.Feature.Marquee;
+using EsUtil.Feature.Annotation.Logging;
+using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
@@ -538,49 +540,59 @@ public sealed partial class AnnotationLayerControl : Grid
     }
 
     /// <summary>画像と注釈を元画像ピクセルの 1:1 で合成した画像を作る（保存用）。</summary>
-    /// <returns>合成した画像。 破棄は呼び出し側。 作れない場合は <see langword="null"/>。</returns>
+    /// <returns>合成した画像。 破棄は呼び出し側。</returns>
     /// <remarks>
     /// <b>選択枠・ハンドル・キャレットは描かない</b>（編集中の一時的な表示であり、保存する絵ではない）。<br/>
     /// <b>GDI+ で焼き込む</b>: XAML の要素は表示倍率の影響を受け、1:1 の画素を得られないため、
-    /// 保存用の絵は元画像ピクセルの座標系で描く（形式は PNG）。
+    /// 保存用の絵は元画像ピクセルの座標系で描く（形式は PNG）。<br/>
+    /// <b>生成できない場合は例外</b>である（合成画像を書けなかったことを黙って握りつぶさない）。
     /// </remarks>
-    public EsBitmap? RenderComposedImage()
+    /// <exception cref="InvalidOperationException">合成した画像を生成できなかった場合。</exception>
+    public EsBitmap RenderComposedImage()
     {
-        var width = Math.Max(1, SourcePixelWidth);
-        var height = Math.Max(1, SourcePixelHeight);
-
-        using var bitmap = new System.Drawing.Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-        using (var graphics = System.Drawing.Graphics.FromImage(bitmap))
-        {
-            graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-
-            if (Source is { } source)
-            {
-                using var image = ToDrawingBitmap(source);
-                graphics.DrawImage(image, new System.Drawing.Rectangle(0, 0, width, height));
-            }
-
-            var plan = _presenter.ResolveDrawPlan(_session.Document, MeasureText, null);
-            foreach (var shape in plan.Shapes)
-            {
-                AnnotationComposer.DrawShape(graphics, shape, MeasureText);
-            }
-        }
-
-        var data = bitmap.LockBits(
-            new System.Drawing.Rectangle(0, 0, width, height),
-            System.Drawing.Imaging.ImageLockMode.ReadOnly,
-            System.Drawing.Imaging.PixelFormat.Format32bppArgb);
         try
         {
-            var pixels = new byte[data.Stride * height];
-            Marshal.Copy(data.Scan0, pixels, 0, pixels.Length);
-            return EsBitmap.FromPixelCopy(width, height, pixels);
+            var width = Math.Max(1, SourcePixelWidth);
+            var height = Math.Max(1, SourcePixelHeight);
+
+            using var bitmap = new System.Drawing.Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            using (var graphics = System.Drawing.Graphics.FromImage(bitmap))
+            {
+                graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+
+                if (Source is { } source)
+                {
+                    using var image = ToDrawingBitmap(source);
+                    graphics.DrawImage(image, new System.Drawing.Rectangle(0, 0, width, height));
+                }
+
+                var plan = _presenter.ResolveDrawPlan(_session.Document, MeasureText, null);
+                foreach (var shape in plan.Shapes)
+                {
+                    AnnotationComposer.DrawShape(graphics, shape, MeasureText);
+                }
+            }
+
+            var data = bitmap.LockBits(
+                new System.Drawing.Rectangle(0, 0, width, height),
+                System.Drawing.Imaging.ImageLockMode.ReadOnly,
+                System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            try
+            {
+                var pixels = new byte[data.Stride * height];
+                Marshal.Copy(data.Scan0, pixels, 0, pixels.Length);
+                return EsBitmap.FromPixelCopy(width, height, pixels);
+            }
+            finally
+            {
+                bitmap.UnlockBits(data);
+            }
         }
-        finally
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
-            bitmap.UnlockBits(data);
+            Log.LogOperationError(ex, nameof(RenderComposedImage));
+            throw;
         }
     }
 

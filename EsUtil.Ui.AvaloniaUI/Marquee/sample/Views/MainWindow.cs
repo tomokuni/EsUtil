@@ -159,7 +159,7 @@ public sealed class MainWindow : Window
         };
 
         // 初期の選択（枠線・ハンドル・ラベルが見える状態）
-        _marquee.SetSelection(new Rect(120, 80, 240, 180));
+        _marquee.SetSelection(new EsRect(120, 80, 240, 180));
 
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
         var properties = new StackPanel
@@ -177,7 +177,7 @@ public sealed class MainWindow : Window
                     surface.Height = ImageHeight * value;
 
                     // 倍率は「対象座標 / ローカル DIP」。 ズームは画像を倍率ぶん大きく描くため、1 DIP が覆う対象座標は 1 / ズームになる
-                    _marquee.SetCoordTransform(CoordTransform.ClientToSource(() => 1.0 / zoom, () => new EsSize(ImageWidth, ImageHeight)));
+                    _marquee.SetCoordTransform(CoordTransform.CreateClientToSource(() => 1.0 / zoom, () => new EsSize(ImageWidth, ImageHeight)));
                 }),
                 SampleSettings.Check("ハンドルを表示", true, value => Apply(appearance with { ShowHandles = value })),
                 ColorChoice("ハンドルの色", 0, index => Apply(appearance with { HandleColor = ResolveColor(index) })),
@@ -223,7 +223,7 @@ public sealed class MainWindow : Window
             {
                 SampleSettings.Buttons(
                     ("選択をクリア", () => _marquee.ResetSelection()),
-                    ("矩形を設定", () => _marquee.SetSelection(new Rect(250, 180, 300, 200))),
+                    ("矩形を設定", () => _marquee.SetSelection(new EsRect(250, 180, 300, 200))),
                     ("確定を要求", () => _marquee.RequestConfirm()),
                     ("キャンセルを要求", () => _marquee.RequestCancel())),
             },

@@ -186,7 +186,7 @@ if (colorPicker.HasValidationError)
 
 | イベント | 説明 |
 | --- | --- |
-| `SelectedColor` の PropertyChanged | `AvaloniaPropertyChangedEventArgs` で選択色の変更を通知（双方向バインドで利用） |
+| `SelectedColorChanged` | 選択中の色が変わったときに発生する（**同じ値では発生しない**。 双方向バインドでも受け取れる） |
 | `ColorApplied` | 一覧・カラーピッカーで色を確定したときに発生する（**同じ色を選び直したときも発生**。 `SelectedColor` は変わらないため変更通知では足りない用途向け）。 入力欄へ打ち込んだ場合は発生しない（確定はフォーカスを外したとき） |
 
 `SelectedColor` の変更通知だけでは「同じ色を選び直した」ことを表せません（文字単位で色が混ざった範囲を一律にそろえる用途では確定の通知が要ります）。

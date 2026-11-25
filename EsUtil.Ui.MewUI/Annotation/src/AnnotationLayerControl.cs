@@ -4,6 +4,8 @@ using Aprillz.MewUI.Controls;
 using Aprillz.MewUI.Rendering;
 using EsUtil.Feature.StyledText;
 using EsUtil.Feature.Marquee;
+using EsUtil.Feature.Annotation.Logging;
+using EsUtil.Platform.Core;
 using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
@@ -514,33 +516,43 @@ public sealed partial class AnnotationLayerControl : Panel
     internal double ViewScale => ResolveImageTransform().Scale;
 
     /// <summary>画像と注釈を元画像ピクセルの 1:1 で合成した画像を作る（保存用）。</summary>
-    /// <returns>合成した画像。 破棄は呼び出し側。 描けない場合は <see langword="null"/>。</returns>
+    /// <returns>合成した画像。 破棄は呼び出し側。</returns>
     /// <remarks>
     /// <b>選択枠・ハンドル・キャレットは描かない</b>（編集中の一時的な表示であり、保存する絵ではない）。<br/>
-    /// 形式は PNG になり、拡張子は呼び出し側が決める（コアの保存は拡張子が形式を決める）。
+    /// 形式は PNG になり、拡張子は呼び出し側が決める（コアの保存は拡張子が形式を決める）。<br/>
+    /// <b>生成できない場合は例外</b>である（合成画像を書けなかったことを黙って握りつぶさない）。
     /// </remarks>
-    public EsBitmap? RenderComposedImage()
+    /// <exception cref="InvalidOperationException">合成した画像の画素を読み出せなかった場合。</exception>
+    public EsBitmap RenderComposedImage()
     {
-        var width = Math.Max(1, SourcePixelWidth);
-        var height = Math.Max(1, SourcePixelHeight);
-
-        var factory = Application.DefaultGraphicsFactory;
-        using var surface = factory.CreateSurface(RenderSurfaceDescriptor.CpuPixels(width, height, 1.0, true, "annotation"));
-        using (var context = factory.CreateContext(surface))
+        try
         {
-            context.BeginFrame(surface);
-            DrawAll(context, includeSelection: false, scale: 1.0, offset: default);
-            context.EndFrame();
-        }
+            var width = Math.Max(1, SourcePixelWidth);
+            var height = Math.Max(1, SourcePixelHeight);
 
-        var stride = width * 4;
-        var pixels = new byte[stride * height];
-        if (!factory.TryReadPixels(surface, pixels, stride))
+            var factory = Application.DefaultGraphicsFactory;
+            using var surface = factory.CreateSurface(RenderSurfaceDescriptor.CpuPixels(width, height, 1.0, true, "annotation"));
+            using (var context = factory.CreateContext(surface))
+            {
+                context.BeginFrame(surface);
+                DrawAll(context, includeSelection: false, scale: 1.0, offset: default);
+                context.EndFrame();
+            }
+
+            var stride = width * 4;
+            var pixels = new byte[stride * height];
+            if (!factory.TryReadPixels(surface, pixels, stride))
+            {
+                throw new InvalidOperationException("合成した画像の画素を読み出せませんでした。");
+            }
+
+            return EsBitmap.FromPixelCopy(width, height, pixels);
+        }
+        catch (Exception ex) when (EsErrors.IsRecoverable(ex))
         {
-            return null;
+            Log.LogOperationError(ex, nameof(RenderComposedImage));
+            throw;
         }
-
-        return EsBitmap.FromPixelCopy(width, height, pixels);
     }
 
     /// <summary>選択と本文の編集を解除する（注釈の外をクリックしたとき）。</summary>

@@ -123,7 +123,7 @@ public readonly record struct MarqueeRenderRequest(
         }
 
         return DpiScaler.IsValidScaling(dipToSourceScaling) && dipToSourceScaling != 1.0
-            ? CoordTransform.ClientToSource(() => dipToSourceScaling)
+            ? CoordTransform.CreateClientToSource(() => dipToSourceScaling)
             : CoordTransform.Identity;
     }
 

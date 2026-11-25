@@ -155,7 +155,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(50, 50, 100, 80));
+        control.SetSelection(new EsRect(50, 50, 100, 80));
         // リサイズドラッグ中（PointerMoved 時点）のスナップショットを記録する
         SelectionRectEventArgs? duringResize = null;
         control.SelectionChanged += (_, e) => duringResize = e;
@@ -311,7 +311,7 @@ public class MarqueeControlTests
 
         // HandleColor = default（透明）→ DrawHandles は白にフォールバックする
         control.Appearance = control.Appearance with { HandleColor = default };
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         control.InvalidateVisual();
         window.CaptureRenderedFrame();
 
@@ -324,7 +324,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        var positions = new List<Point>();
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // ドラッグ開始
@@ -363,7 +363,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         var confirmed = false;
         control.ConfirmRequested += (_, _) => confirmed = true;
 
@@ -380,7 +380,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         var cancelled = false;
         control.CancelRequested += (_, _) => cancelled = true;
 
@@ -448,7 +448,7 @@ public class MarqueeControlTests
         control.SetCoordTransform(new CoordTransform(_ => new EsPoint(0, 0), p => p, () => null));
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
 
         // TopLeft ハンドル位置（20,20）で押下 → ヒットテスト成功（フォールバック半径）→ リサイズドラッグ
         control.RaiseEvent(new PointerPressedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(20, 20)), 0UL, LeftPressed(), KeyModifiers.None, 1));
@@ -468,7 +468,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         var rects = new List<Rect>();
         control.SelectionChanged += (_, e) => rects.Add(e.Rect);
 
@@ -488,7 +488,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         var rects = new List<Rect>();
         control.SelectionChanged += (_, e) => rects.Add(e.Rect);
 
@@ -508,7 +508,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         var rects = new List<Rect>();
         control.SelectionChanged += (_, e) => rects.Add(e.Rect);
 
@@ -529,7 +529,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
 
         // 枠内（50,50）にホバー → Move ハンドル → SizeAll カーソル
         control.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, control, pointer, window,
@@ -546,7 +546,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60)); // 20,20 〜 80,80
+        control.SetSelection(new EsRect(20, 20, 60, 60)); // 20,20 〜 80,80
 
         void Hover(Point dip, string expected)
         {
@@ -577,7 +577,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         var rects = new List<Rect>();
         control.SelectionChanged += (_, e) => rects.Add(e.Rect);
 
@@ -597,7 +597,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         var rects = new List<Rect>();
         control.SelectionChanged += (_, e) => rects.Add(e.Rect);
 
@@ -617,7 +617,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         var rects = new List<Rect>();
         control.SelectionChanged += (_, e) => rects.Add(e.Rect);
 
@@ -637,7 +637,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         var rects = new List<Rect>();
         control.SelectionChanged += (_, e) => rects.Add(e.Rect);
 
@@ -657,7 +657,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         var rects = new List<Rect>();
         control.SelectionChanged += (_, e) => rects.Add(e.Rect);
 
@@ -677,7 +677,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         var rects = new List<Rect>();
         control.SelectionChanged += (_, e) => rects.Add(e.Rect);
 
@@ -699,7 +699,7 @@ public class MarqueeControlTests
         control.SetCoordTransform(new CoordTransform(p => p, p => p, () => new EsSize(200, 200)));
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         var rects = new List<Rect>();
         control.SelectionChanged += (_, e) => rects.Add(e.Rect);
 
@@ -722,7 +722,7 @@ public class MarqueeControlTests
     {
         var control = CreateControl();
         var window = Show(control);
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
         var rects = new List<Rect>();
         control.SelectionChanged += (_, e) => rects.Add(e.Rect);
 
@@ -740,7 +740,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        var positions = new List<Point>();
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // ドラッグ開始（nudge 許可: マウス Down 中）
@@ -763,7 +763,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        var positions = new List<Point>();
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // ドラッグ開始（コントロールはフォーカスなし。 OnKeyDown は呼ばれない）
@@ -818,7 +818,7 @@ public class MarqueeControlTests
     {
         var control = CreateControl();
         var window = Show(control);
-        control.SetSelection(new Rect(10, 10, 50, 40));
+        control.SetSelection(new EsRect(10, 10, 50, 40));
         var confirmed = false;
         control.ConfirmRequested += (_, _) => confirmed = true;
 
@@ -853,8 +853,8 @@ public class MarqueeControlTests
     {
         var control = CreateControl();
         var window = Show(control);
-        control.SetSelection(new Rect(10, 10, 50, 40));
-        var positions = new List<Point>();
+        control.SetSelection(new EsRect(10, 10, 50, 40));
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // フォーカスを取得した状態で矢印キー（OnKeyDown 経由）→ 選択確定後は nudge 無効
@@ -870,8 +870,8 @@ public class MarqueeControlTests
     {
         var control = CreateControl();
         var window = Show(control);
-        control.SetSelection(new Rect(10, 10, 50, 40));
-        var positions = new List<Point>();
+        control.SetSelection(new EsRect(10, 10, 50, 40));
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // 選択確定後（マウス Down なし）の矢印キー → nudge 無効（ルーペ位置は通知されない）
@@ -895,7 +895,7 @@ public class MarqueeControlTests
         Assert.False(mock.IsVisible);
 
         // nudge 中に外部から SetSelection → カーソルが再表示される（非表示残留の防止）
-        control.SetSelection(new Rect(10, 10, 50, 40));
+        control.SetSelection(new EsRect(10, 10, 50, 40));
         Assert.True(mock.IsVisible);
         window.Close();
     }
@@ -952,8 +952,8 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
-        var positions = new List<Point>();
+        control.SetSelection(new EsRect(20, 20, 60, 60));
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // 左上ハンドル（20,20 付近）を押下してリサイズ開始（ActiveTarget = TopLeft）
@@ -964,7 +964,7 @@ public class MarqueeControlTests
 
         // 十字マーカーは「ドラッグ中のハンドル（左上）」を追従する（固定コーナーではない）
         Assert.NotEmpty(positions);
-        Assert.Equal(new Point(21, 20), positions[^1]);
+        Assert.Equal(new EsPoint(21, 20), positions[^1]);
         window.Close();
     }
 
@@ -974,7 +974,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        var positions = new List<Point>();
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // (10,10) から (50,50) へドラッグして新規選択中にする（終点 = 50,50）
@@ -986,7 +986,7 @@ public class MarqueeControlTests
 
         // 十字マーカーは終点（ドラッグ中の位置）を追従する
         Assert.NotEmpty(positions);
-        Assert.Equal(new Point(51, 50), positions[^1]);
+        Assert.Equal(new EsPoint(51, 50), positions[^1]);
         window.Close();
     }
 
@@ -1004,7 +1004,7 @@ public class MarqueeControlTests
         var screenPt = ScreenConverter.LocalDipToScreen(control, new Point(300, 200));
         mock.Position = screenPt.ToEsPointInt();
 
-        var positions = new List<Point>();
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // 矩形未作成状態（StartPoint が未設定）で矢印キー Right を押す
@@ -1012,7 +1012,7 @@ public class MarqueeControlTests
 
         // マーカーは「カーソル位置 (300,200) + 1px 右」を追従する（StartPoint が (0,0) のままなら (1,0) に飛ぶ）
         Assert.NotEmpty(positions);
-        Assert.Equal(new Point(301, 200), positions[^1]);
+        Assert.Equal(new EsPoint(301, 200), positions[^1]);
         window.Close();
     }
 
@@ -1032,7 +1032,7 @@ public class MarqueeControlTests
         control.RaiseEvent(new PointerReleasedEventArgs(control, new Pointer(1, PointerType.Mouse, true), window,
             ToScreenPoint(control, new Point(301, 200)), 0UL, LeftReleased(), KeyModifiers.None, MouseButton.Left));
 
-        var positions = new List<Point>();
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // 2 回目の nudge セッション: ユーザーがマウスを (800,600) へ移動してから Right を押す
@@ -1042,7 +1042,7 @@ public class MarqueeControlTests
         // 基点は古い nudge 位置 (301,200) ではなく、新しいカーソル位置 (800,600) に同期される
         // （同期されないと (302,200) にジャンプする）
         Assert.NotEmpty(positions);
-        Assert.Equal(new Point(801, 600), positions[^1]);
+        Assert.Equal(new EsPoint(801, 600), positions[^1]);
         window.Close();
     }
 
@@ -1060,7 +1060,7 @@ public class MarqueeControlTests
         // カーソル位置 (300,200) に固定（2 回目以降の再評価でも同じ位置を返す = 移動を相殺する）
         mock.Position = ScreenConverter.LocalDipToScreen(control, new Point(300, 200)).ToEsPointInt();
 
-        var positions = new List<Point>();
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // 1 回目のキー押下（セッション開始）: カーソル位置 (300,200) から Right → (301,200)
@@ -1071,7 +1071,7 @@ public class MarqueeControlTests
         control.RaiseEvent(new KeyEventArgs { Key = Key.Right, RoutedEvent = InputElement.KeyDownEvent });
 
         Assert.Equal(2, positions.Count);
-        Assert.Equal(new Point(302, 200), positions[^1]);
+        Assert.Equal(new EsPoint(302, 200), positions[^1]);
         window.Close();
     }
 
@@ -1081,7 +1081,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        var positions = new List<Point>();
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // 新規選択ドラッグ開始（(10,10) → (50,50)。 終点 = 50,50）
@@ -1098,7 +1098,7 @@ public class MarqueeControlTests
         control.RaiseEvent(new PointerReleasedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(80, 80)), 0UL, LeftReleased(), KeyModifiers.None, MouseButton.Left));
 
         Assert.NotEmpty(positions);
-        Assert.Equal(new Point(51, 50), positions[^1]);
+        Assert.Equal(new EsPoint(51, 50), positions[^1]);
         window.Close();
     }
 
@@ -1196,7 +1196,7 @@ public class MarqueeControlTests
         var control = CreateControl(mock);
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
 
         // 右下ハンドル中心 (80,80) からズレた位置 (85,90) で Down（ヒット半径 12 内）
         control.RaiseEvent(new PointerPressedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(85, 90)), 0UL, LeftPressed(), KeyModifiers.None, 1));
@@ -1216,7 +1216,7 @@ public class MarqueeControlTests
         var control = CreateControl(mock);
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
 
         // 矩形中心 (50,50) で Down（Move ハンドル。 ヒット半径 12 から離れている）→ 掴んだ位置を維持するためスナップなし
         control.RaiseEvent(new PointerPressedEventArgs(control, pointer, window, ToScreenPoint(control, new Point(50, 50)), 0UL, LeftPressed(), KeyModifiers.None, 1));
@@ -1234,8 +1234,8 @@ public class MarqueeControlTests
         // クリップ有効（境界 200x200）。 マウス位置と矩形の角がずれる状況を作る
         control.Options = control.Options with { ClampToSourceBounds = true };
         control.SetCoordTransform(new CoordTransform(p => p, p => p, () => new EsSize(200, 200)));
-        control.SetSelection(new Rect(20, 20, 60, 60));
-        var positions = new List<Point>();
+        control.SetSelection(new EsRect(20, 20, 60, 60));
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // 右下ハンドル（80,80）を押下してリサイズ開始（スナップ位置 = 同じ）
@@ -1245,7 +1245,7 @@ public class MarqueeControlTests
 
         // ルーペ中心はマウス位置 (250,250) ではなく、アクティブハンドル（右下 (200,200)）を追従する
         Assert.NotEmpty(positions);
-        Assert.Equal(new Point(200, 200), positions[^1]);
+        Assert.Equal(new EsPoint(200, 200), positions[^1]);
         window.Close();
     }
 
@@ -1255,8 +1255,8 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        control.SetSelection(new Rect(20, 20, 60, 60));
-        var positions = new List<Point>();
+        control.SetSelection(new EsRect(20, 20, 60, 60));
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // 矩形内のオフセット位置 (40,40) を押下（Move 判定。 ヒット半径 12 から離れている。 スナップなし）
@@ -1266,7 +1266,7 @@ public class MarqueeControlTests
         control.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, control, pointer, window, ToScreenPoint(control, new Point(60, 60)), 0UL, LeftPressed(), KeyModifiers.None));
 
         Assert.NotEmpty(positions);
-        Assert.Equal(new Point(60, 60), positions[^1]);
+        Assert.Equal(new EsPoint(60, 60), positions[^1]);
         window.Close();
     }
 
@@ -1276,7 +1276,7 @@ public class MarqueeControlTests
         var control = CreateControl();
         var window = Show(control);
         var pointer = CreatePointer();
-        var positions = new List<Point>();
+        var positions = new List<EsPoint>();
         control.LoupePositionMoved += (_, e) => positions.Add(e.Point);
 
         // (10,10) から (50,50) へドラッグ（終点 = 50,50）
@@ -1284,7 +1284,7 @@ public class MarqueeControlTests
         control.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, control, pointer, window, ToScreenPoint(control, new Point(50, 50)), 0UL, LeftPressed(), KeyModifiers.None));
 
         Assert.NotEmpty(positions);
-        Assert.Equal(new Point(50, 50), positions[^1]);
+        Assert.Equal(new EsPoint(50, 50), positions[^1]);
         window.Close();
     }
 
@@ -1336,7 +1336,7 @@ public class MarqueeControlTests
         var window = Show(control);
 
         // 選択矩形を作成して描画（枠線 + 8 方向ハンドルが描画される）
-        control.SetSelection(new Rect(20, 20, 100, 80));
+        control.SetSelection(new EsRect(20, 20, 100, 80));
         control.InvalidateVisual();
         window.CaptureRenderedFrame();
 
@@ -1383,7 +1383,7 @@ public class MarqueeControlTests
     {
         var control = CreateControl();
         var window = Show(control);
-        control.SetSelection(new Rect(20, 20, 100, 80));
+        control.SetSelection(new EsRect(20, 20, 100, 80));
 
         // ブラシ/ペンキャッシュの容量（CapacityLimitedCache の既定容量）を超える色で描画を繰り返し、
         // 容量超過（全クリア）分岐を実行する（無制限メモリ増加の防止と正しさの両立）
@@ -1501,7 +1501,7 @@ public class MarqueeControlTests
     {
         var control = CreateControl();
         var window = Show(control);
-        control.SetSelection(new Rect(20, 20, 60, 60));
+        control.SetSelection(new EsRect(20, 20, 60, 60));
 
         var resolves = 0;
         control.SizeLabelOverrideProvider = () =>
@@ -1566,7 +1566,7 @@ public class MarqueeControlTests
             },
         };
         var window = Show(control);
-        control.SetSelection(new Rect(40, 60, 100, 80));
+        control.SetSelection(new EsRect(40, 60, 100, 80));
         await PumpLayoutAsync();
 
         // 表示されている（要素が可視の）ラベルはサイズラベルだけである
@@ -1616,7 +1616,7 @@ public class MarqueeControlTests
         mock.Position = ScreenConverter.LocalDipToScreen(control, new Point(120, 130)).ToEsPointInt();
 
         Assert.True(control.TryGetCurrentLoupePosition(out var position), "実カーソルからの取り直しが行われていない");
-        Assert.Equal(new Point(120, 130), position);
+        Assert.Equal(new EsPoint(120, 130), position);
         window.Close();
     }
 

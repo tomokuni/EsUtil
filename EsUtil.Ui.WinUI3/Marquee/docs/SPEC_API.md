@@ -174,7 +174,7 @@ using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 
 // 対象座標 = ローカル DIP × 倍率（倍率はホストが決める）。 境界を与えて選択を外へ出さない
-Marquee.SetCoordTransform(CoordTransform.ClientToSource(() => zoom, () => new EsSize(800, 600)));
+Marquee.SetCoordTransform(CoordTransform.CreateClientToSource(() => zoom, () => new EsSize(800, 600)));
 
 // 選択の復元と通知の購読（座標はすべて対象座標）
 Marquee.SetSelection(new EsRect(100, 100, 200, 150));

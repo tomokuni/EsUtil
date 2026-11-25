@@ -104,7 +104,7 @@ public class MarqueeControlStateTests
         Assert.False(snap0.IsNudgeActive);
 
         // 選択時: State=Selected / SelectionSourceRect 反映 / HasSelection=true
-        control.SetSelection(new Rect(10, 10, 50, 40));
+        control.SetSelection(new EsRect(10, 10, 50, 40));
         var snap1 = control.CurrentSnapshot;
         Assert.Equal(MarqueeInteractionState.Selected, snap1.State);
         Assert.Equal(new EsRect(10, 10, 50, 40), snap1.SelectionSourceRect);
@@ -191,7 +191,7 @@ public class MarqueeControlStateTests
         SelectionRectEventArgs? raised = null;
         control.SelectionChanged += (_, e) => raised = e;
 
-        control.SetSelection(new Rect(10, 10, 50, 40));
+        control.SetSelection(new EsRect(10, 10, 50, 40));
 
         Assert.NotNull(raised);
         Assert.Equal(new Rect(10, 10, 50, 40), raised!.Rect);
@@ -207,7 +207,7 @@ public class MarqueeControlStateTests
         control.SelectionChanged += (_, e) => raised = e;
 
         // 画像外にはみ出す矩形（右下が 200 超え）を復元 → 境界内 (200,200) にクリップされる
-        control.SetSelection(new Rect(150, 150, 100, 100));
+        control.SetSelection(new EsRect(150, 150, 100, 100));
 
         Assert.NotNull(raised);
         Assert.Equal(new Rect(150, 150, 50, 50), raised!.Rect);
@@ -225,7 +225,7 @@ public class MarqueeControlStateTests
         control.Options = control.Options with { ClampToSourceBounds = false };
 
         // 画像外にはみ出す矩形（左上が負・右下が 200 超え）を選択状態にする（OFF のためクリップされない）
-        control.SetSelection(new Rect(-50, -30, 300, 260));
+        control.SetSelection(new EsRect(-50, -30, 300, 260));
         Assert.Equal(new Rect(-50, -30, 300, 260), rects[^1]);
 
         // ON に切り替えた瞬間に境界内 (0,0)-(200,200) へクリップされる
@@ -242,7 +242,7 @@ public class MarqueeControlStateTests
         var rects = new List<Rect>();
         control.SelectionChanged += (_, e) => rects.Add(e.Rect);
 
-        control.SetSelection(new Rect(20, 20, 100, 80));
+        control.SetSelection(new EsRect(20, 20, 100, 80));
         Assert.Single(rects);
 
         // 境界内の矩形なので、ON に切り替えてもクリップされない（SelectionChanged は再発火しない）
@@ -259,7 +259,7 @@ public class MarqueeControlStateTests
         SelectionRectEventArgs? raised = null;
         control.SelectionChanged += (_, e) => raised = e;
 
-        control.SetSelection(new Rect(10, 10, 50, 40));
+        control.SetSelection(new EsRect(10, 10, 50, 40));
 
         Assert.NotNull(raised);
         // Snapshot はイベント引数の Rect と同一の選択矩形（対象座標）を保持する
@@ -276,7 +276,7 @@ public class MarqueeControlStateTests
     internal void ResetSelection_選択状態を初期化する()
     {
         var control = CreateControl();
-        control.SetSelection(new Rect(10, 10, 50, 40));
+        control.SetSelection(new EsRect(10, 10, 50, 40));
 
         control.ResetSelection();
 
@@ -291,7 +291,7 @@ public class MarqueeControlStateTests
         SelectionRectEventArgs? raised = null;
         control.ConfirmRequested += (_, e) => raised = e;
 
-        control.SetSelection(new Rect(10, 10, 50, 40));
+        control.SetSelection(new EsRect(10, 10, 50, 40));
         control.RequestConfirm();
 
         Assert.NotNull(raised);
@@ -303,7 +303,7 @@ public class MarqueeControlStateTests
     {
         var control = CreateControl();
 
-        control.SetSelection(new Rect(10, 10, 50, 40));
+        control.SetSelection(new EsRect(10, 10, 50, 40));
         Assert.True(control.CurrentSnapshot.HasSelection);
 
         // 確定（RequestConfirm）後は選択状態がクリアされる（Marquee の残留を防ぐ）
@@ -332,7 +332,7 @@ public class MarqueeControlStateTests
         var raised = false;
         control.CancelRequested += (_, _) => raised = true;
 
-        control.SetSelection(new Rect(10, 10, 50, 40));
+        control.SetSelection(new EsRect(10, 10, 50, 40));
         control.RequestCancel();
 
         Assert.True(raised);

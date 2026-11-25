@@ -24,6 +24,18 @@
   - `TextEditor.Begin()` / `End()` → `BeginEdit()` / `EndEdit()`（`TextEditState.Begin(textLength)` / `End()` も同じ。 `IEditableObject` の名前へ揃える）。
   - `RichText.Normalized()` / `TextStyle.Normalized()` / `AnnotationAppearance.Normalized()` / `BubbleTail.Normalized()` → `Normalize()`（メソッドは動詞で始める。 `TextInput.Normalize` と同じ語にする）。
 - **`AnnotationLayerControl.ExternalTextId` を `internal` にしました**（4 つの UI 版。 本文を重ねるコントロールとレイヤーの間の実装都合であり、ホストが使う値ではない）。
+- **注釈レイヤーの矩形の取得を 4 つの UI 版ともコアの `EsRect`（DIP）に揃えました**（`GetSelectedBodyRect()` / `GetSelectedBoundsRect()`）。 同じクラスが画像の表示矩形を `EsRect` で公開しているのに、この 2 つだけフレームワークの矩形型を返していました（AvaloniaUI は `Rect`、WinForms は `RectangleF`）。
+- **注釈レイヤーの `RenderComposedImage()` を 4 つの UI 版とも `EsBitmap`（非 null）に揃え、生成できない場合は `InvalidOperationException` にしました**（従来は AvaloniaUI だけが非 null で、他の 3 版は `null`。 合成画像を書けなかったことを黙って握りつぶすと、古い合成画像が残ります）。 失敗は境界で `Error` ログへ記録して再スローします。
+- **`ThumbnailControl.SlotBounds(int)` を 4 つの UI 版ともコアの `EsRect` に揃えました**（WinForms だけ `System.Drawing.Rectangle`）。
+- **AvaloniaUI の Marquee / Loupe がフレームワークの座標型を公開していた箇所をコアの座標型へ揃えました**（他の 3 版と同じ契約にするため）。
+  - `MarqueeControl.SetSelection(EsRect)`（従来は `Rect`）。
+  - `MarqueeControl.TryGetCurrentLoupePosition(out EsPoint)`（従来は `out Point`）。
+  - `MarqueePointEventArgs.Point` が `EsPoint`（従来は `Point`）。
+  - `LoupeControl.CenterPoint` が `EsPoint?`、`CenterPointProvider` が `Func<EsPoint?>?`（従来は `Point?`）。
+- **`StyledTextControl.CaretRect` を `internal` にしました**（4 つの UI 版。 IME の変換候補の位置に使う実装値であり、ホストが使う値ではない）。
+- **`WinAppUserModelId.SetProcessId` を `TrySetProcessAppUserModelId` に改名しました**（設定するのはプロセス ID ではなくアプリ ユーザー モデル ID であり、成否を返すため `Try` を付ける）。
+- **`CoordTransform.ClientToSource` を `CreateClientToSource` に改名しました**（生成は動詞 `Create` で始める規則に合わせる）。
+- **`AnnotationLogMessage.LogOperationError` を公開しました**（UI 層が公開操作の例外を Error で記録して再スローできるようにする。 ログ定義はアセンブリに 1 つという規則を保つ）。
 - **書式バーの表示可否を提示層へ移しました**（`EsUtil.Feature.StyledText.Presenter.Formatting.TextFormatBarVisibility`）。 **表示可否はコアに置かない**規則（`EsUtil/README.md` §3）に合わせるためです。 次の公開 API を削除しました: `TextEditor.ShowFormatBarWhileEditing` / `TextEditor.ShouldShowFormatBar` / `TextEditState.ShouldShowFormatBar(bool)` / `TextEditState.FormatBarMinimumSelectionLength`。 UI コントロール（`StyledTextControl`）の `ShowFormatBarWhileEditing` / `ShouldShowFormatBar` はそのまま使えます（条件は本判定が単一所有する）。
 - **本文の選択と書式の公開面を .NET の慣例へ揃えました**（値の設定で別の操作を起こさない。 `EsUtil/README.md` §9）。
   - `AnnotationEditSession.SelectedTextStyle` / 4 つの UI の `AnnotationLayerControl.SelectedTextStyle` の setter を削除しました（書式は `ApplyTextStyle(style)` で適用する）。
@@ -42,6 +54,7 @@
 
 ### 追加
 
+- **AvaloniaUI の `ColorSelectorControl` に `SelectedColorChanged` を追加しました**（他の UI 版と同じ契約。 同じ値では発生せず、同じ色を選び直したことは `ColorApplied` で知ります）。
 - **`EsUtil.Platform.Core.Input.DoubleClickTracker` を追加しました**。 入力の仕組みがクリック回数を返さない UI（WinForms / WinUI 3）が書き写していたダブルクリックの判定（500 ms・4 DIP）を 1 か所に集約します。
 - **`EsUtil.Platform.Core` に `WinMonitorWorkArea` を追加しました**（ウィンドウが載っているモニターの作業領域を画面物理ピクセルで返す）。 UI フレームワークごとに異なる API を 1 つの形へ揃え、フローティング パネルを画面の外へ出さない判定を共有します。
 - **本文の値と編集の状態を `EsUtil.Feature.StyledText.Core` の `TextEditor` へ集約しました**。 4 つの UI 版の `StyledTextControl` と注釈の `AnnotationEditSession` が同じ操作（入力・削除・キャレット・選択・書式・キーの実行・折り返しとキャレット位置の解決）を 1 つの型へ委ね、UI はフレームワーク固有の描画・入力・IME・クリップボードだけを、注釈は選択中の本文の差し替えと文書への書き戻しだけを持ちます。 改行の正規化は `TextInput.Normalize` が単一所有し、本文へ入れる入口（`ReplaceSelection` / `ReplaceRange`）が 1 回だけ適用します。

@@ -365,7 +365,7 @@ public sealed class StyledTextControl : Control
     }
 
     /// <summary>キャレットの矩形（このコントロールの座標の DIP）を取得する。</summary>
-    public RectangleF CaretRect
+    internal RectangleF CaretRect
     {
         get
         {
