@@ -521,6 +521,15 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     {
         EnsureOutsidePressHook();
         var body = ToOverlayRect(_layer.GetSelectedBoundsRect().ToEsRect());
+
+        // **表示中は位置だけ移す**: 表示し直すとパネルの再作成（ウィンドウの再表示）が挟まり、
+        // 選択のたびに書式バーがちらつく。
+        if (_formatBarPanel.IsOpen)
+        {
+            _formatBarPanel.RepositionOutside(body, AnnotationPanelMetrics.FormatBarGap);
+            return;
+        }
+
         _formatBarPanel.ShowOutside(
             AnnotationPanelKind.FormatBar, body, MeasureFormatBar(), AnnotationPanelMetrics.FormatBarGap);
 

@@ -687,6 +687,30 @@ public static partial class AnnotationLogMessage
             NumberText.Format(available.Height));
     }
 
+    /// <summary>パネルを移動した位置を記録する（生成メソッド）。</summary>
+    /// <remarks>LogLevel: Trace<br/>出力書式: <c>[Annotation] パネル移動: {Kind} 位置=({X}, {Y})</c></remarks>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
+    /// <param name="kind">パネルの種別。</param>
+    /// <param name="x">左上の X（整形済み）。</param>
+    /// <param name="y">左上の Y（整形済み）。</param>
+    [LoggerMessage(LogLevel.Trace, "{Prefix:l} パネル移動: {Kind:l} 位置=({X:l}, {Y:l})")]
+    private static partial void LogPanelMovedCore(this ILogger logger, string prefix, string kind, string x, string y);
+
+    /// <summary>パネルを移動した位置を記録する（選択のたびに届くため Trace とする）。</summary>
+    /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="kind">パネルの種別（<c>nameof</c> で渡す）。</param>
+    /// <param name="position">左上の位置（DIP）。</param>
+    internal static void LogPanelMoved(this ILogger logger, string kind, EsPoint position)
+    {
+        if (!logger.IsEnabled(LogLevel.Trace))
+        {
+            return;
+        }
+
+        logger.LogPanelMovedCore(Prefix, kind, NumberText.Format(position.X), NumberText.Format(position.Y));
+    }
+
     /// <summary>注釈への押下を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 押下: 位置=({X}, {Y}) クリック回数={ClickCount}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>

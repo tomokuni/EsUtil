@@ -41,6 +41,24 @@ public sealed class AnnotationPanelControllerTests
         Assert.Equal(500 - 8 - 40, host.LastCreatePosition.Y);
     }
 
+    /// <summary>表示中に同じ種別をもう一度出すと、作り直さずに位置だけを移す（選択のたびのちらつきを防ぐ）。</summary>
+    [Fact]
+    internal void ShowOutside_表示中は作り直さずに位置だけ移す()
+    {
+        var host = new HostSpy();
+        var controller = new AnnotationPanelController(host);
+
+        controller.ShowOutside(
+            AnnotationPanelKind.FormatBar, new EsRect(400, 500, 200, 100), new EsSize(300, 40), 8);
+        controller.ShowOutside(
+            AnnotationPanelKind.FormatBar, new EsRect(400, 420, 200, 100), new EsSize(300, 40), 8);
+
+        Assert.Equal(1, host.CreateCount);
+        Assert.Equal(0, host.DestroyCount);
+        Assert.Equal(1, host.MoveCount);
+        Assert.Equal(420 - 8 - 40, host.LastMovePosition.Y);
+    }
+
     /// <summary>閉じるとホストへ破棄が伝わる（2 回目は何もしない）。</summary>
     [Fact]
     internal void Close_ホストへ破棄を伝える()

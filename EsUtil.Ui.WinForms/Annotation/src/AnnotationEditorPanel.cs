@@ -489,6 +489,14 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
     {
         var bounds = _layer.GetSelectedBoundsRect();
         var body = new EsRect(bounds.X, bounds.Y, bounds.Width, bounds.Height);
+
+        // **表示中は位置だけ移す**: 表示し直すとパネルの再作成が挟まり、選択のたびに書式バーがちらつく。
+        if (_formatBarPanel.IsOpen)
+        {
+            _formatBarPanel.RepositionOutside(body, AnnotationPanelMetrics.FormatBarGap);
+            return;
+        }
+
         _formatBarPanel.ShowOutside(
             AnnotationPanelKind.FormatBar, body, MeasurePanel(AnnotationPanelKind.FormatBar),
             AnnotationPanelMetrics.FormatBarGap);

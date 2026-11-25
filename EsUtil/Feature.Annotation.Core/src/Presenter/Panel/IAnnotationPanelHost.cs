@@ -38,7 +38,7 @@ public interface IAnnotationPanelHost
     /// <remarks>種別ごとに答える理由は <see cref="GetPanelPosition"/> と同じ。</remarks>
     EsSize GetPanelSize(AnnotationPanelKind kind);
 
-    /// <summary>パネルを作って表示する（既に出ている場合は作り直す）。</summary>
+    /// <summary>パネルを作って表示する（表示中の種別は作り直さない。 表示の判断は呼び出し側が持つ）。</summary>
     /// <param name="kind">パネルの種別（中身を決める）。</param>
     /// <param name="appearance">外観（枠・余白・幅。 そのまま適用する）。</param>
     /// <param name="position">左上の位置（アプリの画面の左上を原点とする DIP）。</param>

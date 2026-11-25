@@ -75,7 +75,7 @@ flowchart TB
 | `AnnotationDrawPlan` / `AnnotationShapePlan` | Presenter | UI へ渡す 1 フレーム分の描画契約（行は `TextLinePlan` / `TextSegmentPlan`。 `EsUtil.Feature.StyledText.Core` が所有する） |
 | `TextLineIndex` / `TextLineLayout` | `EsUtil.Feature.StyledText.Core`（`.Core.Text`） | 行と文字位置の対応（キャレット・選択範囲・位置から文字の特定） |
 | `AnnotationEditingOutline` / `AnnotationEditorAppearance` / `AnnotationMarqueeMetrics` | Presenter | 編集中の枠・キャレットと選択範囲の色・選択枠の実寸近似の見た目と規則 |
-| `AnnotationPanelController` / `AnnotationPanelPlacement` / `AnnotationPanelAppearance` / `AnnotationPanelKind` / `AnnotationPanelMetrics` / `IAnnotationPanelHost` | Presenter | フローティング パネルの開閉・配置・外観（UI は `IAnnotationPanelHost` を実装する） |
+| `AnnotationPanelController` / `AnnotationPanelPlacement` / `AnnotationPanelAppearance` / `AnnotationPanelKind` / `AnnotationPanelMetrics` / `IAnnotationPanelHost` | Presenter | フローティング パネルの開閉・配置・外観（UI は `IAnnotationPanelHost` を実装する）。 **表示中の種別は作り直さず位置だけを移す**（選択のたびに作り直すとウィンドウの再表示が挟まり、書式バーがちらつく） |
 | `AnnotationSelectionPresenter` | Presenter | 選択中の注釈の外観・本文の余白・しっぽの差し替えの入口（文書を受け取り、変更後の文書を返す） |
 | `AnnotationEditSession` / `AnnotationEditChange` | Presenter | 文書・選択・変更履歴・本文の編集状態の単一所有（4 つの UI 版は本型の操作を呼び、変更を購読する）。 本文のキャレット・選択・入力・書式は `TextEditor` へ委譲し、本型は編集対象の本文を選択中の注釈へ揃えて結果を文書へ書き戻す |
 | `TextEditor` | `EsUtil.Feature.StyledText.Core`（`.Core.Editing`） | 本文の値と編集の状態（キャレット・選択・入力・削除・書式）。 文書も注釈の識別子も知らず、本文（`RichText`）を受け取って書き換えた本文を返す。 書式バーの表示条件は書式付き文字列の提示層（`TextFormatBarVisibility`）が持つ。 UI は同じ実体を本文コントロールへ渡す |

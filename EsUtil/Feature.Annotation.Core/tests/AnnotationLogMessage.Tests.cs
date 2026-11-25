@@ -113,6 +113,19 @@ public sealed class AnnotationLogMessageTests
         Assert.Contains("選択: 種別=none 識別子=none", logger.Messages[1], StringComparison.Ordinal);
     }
 
+    /// <summary>本文をドラッグで選択している間に書式バーが移動した位置を Trace で記録する。</summary>
+    [Fact]
+    internal void LogPanelMoved_移動先をTraceで出力する()
+    {
+        var logger = new RecordingLogger();
+
+        logger.LogPanelMoved("FormatBar", new EsPoint(10, 20));
+
+        var message = Assert.Single(logger.Messages);
+        Assert.Equal(LogLevel.Trace, Assert.Single(logger.Levels));
+        Assert.Contains("パネル移動: FormatBar 位置=(10, 20)", message, StringComparison.Ordinal);
+    }
+
     /// <summary>真偽の設定値は変化したときだけ出力する。</summary>
     [Fact]
     internal void LogSettingChanged_変化したときだけ出力する()

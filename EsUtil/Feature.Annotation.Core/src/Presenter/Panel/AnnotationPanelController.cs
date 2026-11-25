@@ -59,7 +59,7 @@ public sealed class AnnotationPanelController
     /// <value>ドラッグ中の場合は <see langword="true"/>。</value>
     public bool IsDragging { get; private set; }
 
-    /// <summary>アンカーの位置へパネルを表示する（既に出ている場合は作り直す）。</summary>
+    /// <summary>アンカーの位置へパネルを表示する（既に出ている場合は位置を移す）。</summary>
     /// <param name="kind">パネルの種別。</param>
     /// <param name="anchor">左上にする位置（DIP）。</param>
     public void Show(AnnotationPanelKind kind, EsPoint anchor)
@@ -100,15 +100,33 @@ public sealed class AnnotationPanelController
             return;
         }
 
-        _host.MovePanel(
-            kind, AnnotationPanelPlacement.ResolveOutside(target, size, _host.AvailableArea, gap));
+        var position = AnnotationPanelPlacement.ResolveOutside(target, size, _host.AvailableArea, gap);
+        if (_host.GetPanelPosition(kind) == position)
+        {
+            // **同じ位置なら動かさない**: 選択のたびにウィンドウを動かすと、見た目が揺れる。
+            return;
+        }
+
+        _host.MovePanel(kind, position);
+        (_logger?.Invoke() ?? NullLogger.Instance).LogPanelMoved(kind.ToString(), position);
     }
 
     /// <summary>位置を指定してパネルを表示する。</summary>
     /// <param name="kind">パネルの種別。</param>
     /// <param name="position">左上の位置（DIP）。</param>
+    /// <remarks>
+    /// <b>表示中は作り直さない</b>: 作り直すとウィンドウの非表示と再表示が挟まり、選択のたびに
+    /// 書式バーがちらつく（中身の状態・フォーカスも失われる）。 同じ種別が既に出ている場合は位置だけを移す。
+    /// </remarks>
     private void ShowAt(AnnotationPanelKind kind, EsPoint position)
     {
+        if (IsOpen && Kind == kind)
+        {
+            _host.MovePanel(kind, position);
+            (_logger?.Invoke() ?? NullLogger.Instance).LogPanelMoved(kind.ToString(), position);
+            return;
+        }
+
         if (IsOpen)
         {
             Close();
@@ -229,6 +247,7 @@ public sealed class AnnotationPanelController
         }
 
         _host.MovePanel(kind, moved);
+        (_logger?.Invoke() ?? NullLogger.Instance).LogPanelMoved(kind.ToString(), moved);
     }
 
     /// <summary>パネルのドラッグを終える。</summary>
