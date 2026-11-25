@@ -43,6 +43,9 @@ public sealed class StyledTextFormatBar : Panel, IStyledTextFormatBar
     /// <summary>通知による更新中かどうか（利用者の操作と区別する）。</summary>
     private bool _refreshing;
 
+    /// <summary>書式バーに出す項目の組み合わせ。</summary>
+    private readonly TextFormatBarItemVisibility _items;
+
     /// <summary>書式バーを初期化する。</summary>
     /// <param name="context">書式を読み書きする相手（ホストが実装する）。</param>
     /// <param name="options">バーの構成（フォントの一覧・色のボタン）。 省略すると既定の構成を使う。</param>
@@ -53,6 +56,7 @@ public sealed class StyledTextFormatBar : Panel, IStyledTextFormatBar
         _context = context;
         _options = options ?? new StyledTextFormatBarOptions();
         _fonts = _options.Fonts;
+        _items = _options.Items;
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
         BackColor = Color.FromArgb(250, 250, 250);
@@ -125,7 +129,8 @@ public sealed class StyledTextFormatBar : Panel, IStyledTextFormatBar
             [TextFormatBarItem.Color] = _color,
         };
 
-        foreach (var item in TextFormatBarLayout.Order)
+        // **出さない項目は場所ごと詰める**: 空の枠を残すと、押せない余白が挟まって間延びしたバーになる
+        foreach (var item in _items.VisibleItems)
         {
             Controls.Add(items[item]);
         }
@@ -145,9 +150,7 @@ public sealed class StyledTextFormatBar : Panel, IStyledTextFormatBar
 
     /// <summary>バーの幅（DIP）を取得する。</summary>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
-    public double PreferredWidth => TextFormatBarLayout.FontSelectorWidth
-        + TextFormatBarLayout.SizeSelectorWidth
-        + TextEditorLayout.ToggleWidth * 4;
+    public double PreferredWidth => TextFormatBarLayout.ResolveWidth(_items, _color.Width);
 
     /// <summary>本文のキー操作を転送する処理を設定する。</summary>
     /// <param name="forward">転送する処理（<see langword="null"/> は転送しない）。</param>

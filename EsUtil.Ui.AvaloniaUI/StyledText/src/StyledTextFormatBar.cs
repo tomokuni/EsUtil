@@ -24,9 +24,6 @@ namespace EsUtil.Ui.AvaloniaUI.StyledText;
 /// </remarks>
 public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
 {
-    /// <summary>バーの幅（DIP。画像の内側へ収める計算に使う）。</summary>
-    internal const double BarWidth = 720;
-
     /// <summary>バーのおおよその高さ（DIP。本文の上へ置く位置の計算に使う）。</summary>
     internal const double EstimatedHeight = 40;
 
@@ -69,6 +66,9 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
     /// <summary>表示を更新している最中かどうか（操作の再入を防ぐ）。</summary>
     private bool _isRefreshing;
 
+    /// <summary>書式バーに出す項目の組み合わせ。</summary>
+    private readonly TextFormatBarItemVisibility _items;
+
     /// <summary>代表色の列数（■ を何列で並べるか）。</summary>
     private readonly int _paletteColumns = 8;
 
@@ -79,7 +79,8 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
     public Control View => this;
 
     /// <summary>バーの幅（DIP。 置く位置の計算に使う）。</summary>
-    public double PreferredWidth => BarWidth;
+    /// <remarks>出す項目だけで求める（出さない項目の幅を足さない。 規則はコアの <see cref="TextFormatBarLayout.ResolveWidth"/> が単一所有する）。</remarks>
+    public double PreferredWidth => TextFormatBarLayout.ResolveWidth(_items, _colorWidth);
 
     /// <summary>本文のキー操作を転送する処理を取得または設定する。</summary>
     private Func<Key, KeyModifiers, bool>? _forwardKey;
@@ -105,6 +106,7 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
         _context = context;
         _options = options ?? new StyledTextFormatBarOptions();
         _fonts = _options.Fonts;
+        _items = _options.Items;
         _paletteColumns = _options.PaletteColumns;
         _colorWidth = ResolveColorSelectorWidth(_options.MeasureText);
         // バーは本文と同じ画面の子として重ねるが、バーへフォーカスが移ると本文のキー操作が止まる。
@@ -206,7 +208,8 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
             [TextFormatBarItem.Color] = _color,
         };
 
-        foreach (var item in TextFormatBarLayout.Order)
+        // **出さない項目は場所ごと詰める**: 空の枠を残すと、押せない余白が挟まって間延びしたバーになる
+        foreach (var item in _items.VisibleItems)
         {
             // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる。
             // 値は提示層の TextFormatBarLayout.ItemHeight が単一所有する

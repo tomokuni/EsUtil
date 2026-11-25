@@ -20,6 +20,7 @@
 - [14. `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand`（静的クラス・列挙型）](#14-texteditkeymap--texteditkey--texteditmodifiers--texteditcommand静的クラス列挙型)
 - [15. `TextDefaults` / `TextLimits`（静的クラス）](#15-textdefaults--textlimits静的クラス)
 - [16. `TextFormatBarVisibility`（静的クラス）](#16-textformatbarvisibility静的クラス)
+- [17. `TextFormatBarItemVisibility`（レコード）](#17-textformatbaritemvisibilityレコード)
 
 ## 1. 公開 API の可視性
 
@@ -259,7 +260,24 @@
 | メンバー | 説明 |
 | --- | --- |
 | `MinimumSelectionLength` | 書式バーを表示する最小の選択文字数（1） |
-| `ShouldShow(autoShow, isEditing, selectionLength)` | 自動表示が有効・編集中・1 文字以上を選択の 3 つを満たす間だけ `true` |
+| `ShouldShow(autoShow, isEditing, selectionLength, items)` | 自動表示が有効・編集中・1 文字以上を選択・出す項目がある の 4 つを満たす間だけ `true` |
 
 - **適用先が決まらない間は出しません**（選択が無い状態でバーを出すと、操作しても効かない）。
+- **出す項目が無い間は出しません**（すべて非表示にすると、操作できない枠だけが本文に重なる）。
 - **自動表示の設定は UI コントロールが持ちます**（`StyledTextControl.ShowFormatBarWhileEditing`。 既定は `true`）。 ホストが独自のバーを出す場合は `false` にします。
+
+## 17. `TextFormatBarItemVisibility`（レコード）
+
+**書式バーに出す項目の組み合わせの単一所有**です（提示層 `EsUtil.Feature.StyledText.Presenter.Formatting`。 4 つの UI 版の書式バーが共有する）。
+
+| メンバー | 説明 |
+| --- | --- |
+| `Default` | すべての項目を出す既定 |
+| `ShowBold` / `ShowItalic` / `ShowUnderline` / `ShowStrike` | 装飾の切り替えを出すか（既定は `true`） |
+| `ShowColor` / `ShowFontSize` / `ShowFont` | 色・フォントの大きさ・フォント名を出すか（既定は `true`） |
+| `HasAny` | 1 つ以上の項目を出すか（すべて出さない場合は `false`） |
+| `VisibleItems` | 出す項目の並び（`TextFormatBarLayout.Order` の順。 出さない項目を含まない） |
+| `ShouldShow(item)` | 指定した項目を出すか |
+
+- **出さない項目は場所ごと詰めます**（空の枠を残さない。 バーの幅は `TextFormatBarLayout.ResolveWidth` が求める）。
+- **値は不変**です（部分更新は `with` 式）。 すべて出さない場合は `TextFormatBarVisibility.ShouldShow` が `false` を返すため、バー自体を表示しません。

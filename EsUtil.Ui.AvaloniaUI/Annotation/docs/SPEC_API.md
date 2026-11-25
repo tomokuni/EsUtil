@@ -17,6 +17,7 @@
 | `Layer` | property | 内側の `AnnotationLayerControl`（画像・文書・選択・元に戻すはここから操作する） |
 | `IsEditingText` | property | 本文を編集中かどうか（書式バーは 1 文字以上を選んでいる間だけ出る） |
 | `ShowFormatBarWhileEditing` | property | 編集中に書式バーを自動で表示するか（既定は `true`。 ホストが独自にバーを出す場合は `false`） |
+| `FormatBarItems` | property | 書式バーに出す項目（太字・斜体・下線・取り消し線・色・大きさ・フォント名）の組み合わせ。 非表示の項目は詰めて並べ、すべて非表示のときはバー自体を出さない（差し替えはバーを出す前に行う） |
 | `IsFormatBarOpen` | property | 書式バーを表示中かどうか（編集中で 1 文字以上を選んでいる間だけ `true`） |
 | `TextFormat` | property | 書式バーと右クリックのフライアウトの色の表記（色名 + 不透明度 / カラーコード）。 カラーコードは `#AARRGGBB` |
 | `Log` / `LogPrefix` | property | ログの出力先と接頭辞（コアと提示層で共有する。 既定 `[Annotation]`） |

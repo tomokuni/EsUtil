@@ -1,5 +1,6 @@
 using Xunit;
 using EsUtil.Feature.StyledText.Core.Defaults;
+using EsUtil.Feature.StyledText.Presenter.Formatting;
 using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.WinForms.StyledText.Tests;
@@ -148,6 +149,29 @@ public class StyledTextControlTests
 
         editor.Select(0, 1);
         editor.ShowFormatBarWhileEditing = false;
+        Assert.False(editor.ShouldShowFormatBar);
+    }
+    /// <summary>書式バーの項目をすべて出さない場合は、選んでいても表示しないことを検証する。</summary>
+    [Fact]
+    internal void ShouldShowFormatBar_項目をすべて出さない場合は表示しない()
+    {
+        var editor = CreateEditor("あいう");
+        editor.BeginEditing();
+        editor.Select(0, 1);
+
+        Assert.True(editor.ShouldShowFormatBar);
+
+        editor.FormatBarItems = new TextFormatBarItemVisibility
+        {
+            ShowBold = false,
+            ShowItalic = false,
+            ShowUnderline = false,
+            ShowStrike = false,
+            ShowColor = false,
+            ShowFontSize = false,
+            ShowFont = false,
+        };
+
         Assert.False(editor.ShouldShowFormatBar);
     }
 

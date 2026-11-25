@@ -33,6 +33,9 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <summary>書式バーを作る処理（差し替えの入口）。</summary>
     private IStyledTextFormatBarFactory _formatBarFactory = new StyledTextFormatBarFactory();
 
+    /// <summary>書式バーに出す項目の組み合わせ（保持する値）。</summary>
+    private TextFormatBarItemVisibility _formatBarItems = TextFormatBarItemVisibility.Default;
+
     /// <summary>注釈の表示と編集を担うレイヤー。</summary>
     private readonly AnnotationLayerControl _layer;
 
@@ -794,11 +797,43 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         PaletteColumns = AnnotationPalette.DefaultPaletteColumns,
     };
 
+    /// <summary>書式バーに出す項目の組み合わせを取得または設定する。</summary>
+    /// <value>既定はすべての項目を出す（<see cref="TextFormatBarItemVisibility.Default"/>）。</value>
+    /// <remarks>
+    /// <b>出さない項目は場所ごと詰める</b>: バーの幅は出す項目だけで決まる（空の枠を残さない）。<br/>
+    /// <b>すべて出さない場合はバーを表示しない</b>: 操作できない枠だけが本文に重なるのを避ける。<br/>
+    /// <b>差し替えはバーを出す前に行う</b>: 表示中は <see cref="InvalidOperationException"/> になる。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><see langword="null"/> を設定した場合。</exception>
+    /// <exception cref="InvalidOperationException">書式バーを表示中に設定した場合。</exception>
+    public TextFormatBarItemVisibility FormatBarItems
+    {
+        get => _formatBarItems;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (_formatBarItems == value)
+            {
+                return;
+            }
+
+            if (_formatBarPanel.IsOpen)
+            {
+                throw new InvalidOperationException("書式バーを表示中は差し替えできません。");
+            }
+
+            _formatBarItems = value;
+            _textEditor.FormatBarItems = value;
+            _roots.Remove(AnnotationPanelKind.FormatBar);
+            _formatBar = CreateFormatBar();
+            UpdateFormatBarVisibility();
+        }
+    }
     /// <summary>書式バーを作り、本文へのフォーカスの戻し先を配線する。</summary>
     /// <returns>書式バー。</returns>
     private IStyledTextFormatBar CreateFormatBar()
     {
-        var bar = _formatBarFactory.Create(new LayerFormatBarContext(_layer), FormatBarOptions);
+        var bar = _formatBarFactory.Create(new LayerFormatBarContext(_layer), FormatBarOptions with { Items = _formatBarItems });
 
         // **キーとフォーカスは本文コントロールが持つ**: バーは操作を転送し、適用後に本文へ戻すだけにする
         bar.SetKeyHandler(_textEditor.TryHandleEditingKey);

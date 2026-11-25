@@ -23,8 +23,11 @@ public sealed class StyledTextFormatBar : ContentControl, IStyledTextFormatBar
     /// <summary>書式を読み書きする相手（ホストが渡す）。</summary>
     private readonly ITextFormatBarContext _context;
 
-    /// <summary>バーの構成（フォントの一覧・色のタブ）。</summary>
+    /// <summary>バーの構成（フォントの一覧・色のタブ・出す項目）。</summary>
     private readonly StyledTextFormatBarOptions _options;
+
+    /// <summary>書式バーに出す項目の組み合わせ。</summary>
+    private readonly TextFormatBarItemVisibility _items;
 
     /// <summary>選べるフォント名の一覧。</summary>
     private readonly IReadOnlyList<string> _fonts;
@@ -68,6 +71,7 @@ public sealed class StyledTextFormatBar : ContentControl, IStyledTextFormatBar
         _context = context;
         _options = options ?? new StyledTextFormatBarOptions();
         _fonts = _options.Fonts;
+        _items = _options.Items;
 
         // **フォント名は直接入力できる**: MewUI の ComboBox は読み取り専用のため、
         // コンボボックスが枠と展開ボタンを描き、その文字の位置へ**枠も背景も持たない文字入力**を重ねる
@@ -179,7 +183,8 @@ public sealed class StyledTextFormatBar : ContentControl, IStyledTextFormatBar
             [TextFormatBarItem.Color] = _color,
         };
 
-        foreach (var item in TextFormatBarLayout.Order)
+        // **出さない項目は場所ごと詰める**: 空の枠を残すと、押せない余白が挟まって間延びしたバーになる
+        foreach (var item in _items.VisibleItems)
         {
             // **高さは項目ごとに違ってはいけない**: 揃えないと縦位置がずれ、押す位置も変わる。
             // 値は提示層の TextFormatBarLayout.ItemHeight が単一所有する
@@ -231,9 +236,8 @@ public sealed class StyledTextFormatBar : ContentControl, IStyledTextFormatBar
     public FrameworkElement View => this;
 
     /// <summary>バーの幅（DIP）を取得する。</summary>
-    public double PreferredWidth => TextFormatBarLayout.FontSelectorWidth
-        + TextFormatBarLayout.SizeSelectorWidth
-        + (TextEditorLayout.ToggleWidth * 4);
+    /// <remarks>出す項目だけで求める（規則はコアの <see cref="TextFormatBarLayout.ResolveWidth"/> が単一所有する）。</remarks>
+    public double PreferredWidth => TextFormatBarLayout.ResolveWidth(_items, ColorSelectorWidth);
 
     /// <summary>本文のキー操作を転送する処理を設定する。</summary>
     /// <param name="forward">転送する処理（キーの引数を受け取る。<see langword="null"/> は転送しない）。</param>

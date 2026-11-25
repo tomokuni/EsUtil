@@ -1,11 +1,12 @@
 namespace EsUtil.Feature.StyledText.Presenter.Formatting;
 
-/// <summary>書式バーを表示する条件（編集中・自動表示が有効・1 文字以上を選択）を単一所有する。</summary>
+/// <summary>書式バーを表示する条件（編集中・自動表示が有効・1 文字以上を選択・出す項目がある）を単一所有する。</summary>
 /// <remarks>
 /// <b>表示可否は提示層が決める</b>: 本文の編集状態（キャレット・選択・入力）はコアが持ち、
 /// UI 要素を出すかどうかは描画にだけ必要な判断であるため本層が持つ（層の帰属の規則は `EsUtil/README.md` が持つ）。<br/>
 /// <b>4 つの UI 版は本判定だけを使う</b>: 条件を UI ごとに書き写すと、選択の畳み方の違いでバーの出方が食い違う。<br/>
-/// <b>適用先が決まらない間は出さない</b>: 選択が無い状態でバーを出すと、操作しても効かない。
+/// <b>適用先が決まらない間は出さない</b>: 選択が無い状態でバーを出すと、操作しても効かない。<br/>
+/// <b>出す項目が無い間は出さない</b>: 空のバーを出すと、操作できない枠だけが本文に重なる。
 /// </remarks>
 public static class TextFormatBarVisibility
 {
@@ -17,7 +18,13 @@ public static class TextFormatBarVisibility
     /// <param name="autoShow">編集中に書式バーを自動で表示する設定かどうか。 利用者・ホストが決める。</param>
     /// <param name="isEditing">本文を編集中かどうか。</param>
     /// <param name="selectionLength">選択している文字数。</param>
-    /// <returns>自動表示が有効で、編集中で、<see cref="MinimumSelectionLength"/> 文字以上を選んでいる場合は <see langword="true"/>。</returns>
-    public static bool ShouldShow(bool autoShow, bool isEditing, int selectionLength)
-        => autoShow && isEditing && selectionLength >= MinimumSelectionLength;
+    /// <param name="items">書式バーに出す項目の組み合わせ。</param>
+    /// <returns>自動表示が有効で、編集中で、<see cref="MinimumSelectionLength"/> 文字以上を選んでおり、出す項目がある場合は <see langword="true"/>。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="items"/> が null の場合。</exception>
+    public static bool ShouldShow(bool autoShow, bool isEditing, int selectionLength, TextFormatBarItemVisibility items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        return autoShow && isEditing && selectionLength >= MinimumSelectionLength && items.HasAny;
+    }
 }

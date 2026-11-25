@@ -54,6 +54,7 @@
 
 ### 追加
 
+- **書式バーに出す項目を選べるようにしました**（4 つの UI 版。 `TextFormatBarItemVisibility`）。 太字・斜体・下線・取り消し線・色・フォントの大きさ・フォント名のそれぞれを表示するか決められます（`StyledTextControl.FormatBarItems` / `AnnotationEditorPanel.FormatBarItems` / `StyledTextFormatBarOptions.Items`）。 **出さない項目は場所ごと詰めて並べ**、バーの幅も出す項目だけで決まります（空の枠を残しません）。 **すべて出さない場合は書式バー自体を表示しません**。 差し替えはバーを出す前に行います（表示中は `InvalidOperationException`）。
 - **AvaloniaUI の `ColorSelectorControl` に `SelectedColorChanged` を追加しました**（他の UI 版と同じ契約。 同じ値では発生せず、同じ色を選び直したことは `ColorApplied` で知ります）。
 - **`EsUtil.Platform.Core.Input.DoubleClickTracker` を追加しました**。 入力の仕組みがクリック回数を返さない UI（WinForms / WinUI 3）が書き写していたダブルクリックの判定（500 ms・4 DIP）を 1 か所に集約します。
 - **`EsUtil.Platform.Core` に `WinMonitorWorkArea` を追加しました**（ウィンドウが載っているモニターの作業領域を画面物理ピクセルで返す）。 UI フレームワークごとに異なる API を 1 つの形へ揃え、フローティング パネルを画面の外へ出さない判定を共有します。

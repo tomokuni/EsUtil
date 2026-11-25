@@ -33,6 +33,9 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
         TextInputMethodClientRequested += (_, e) => e.Client = InputClient;
     }
 
+    /// <summary>書式バーに出す項目の組み合わせ（保持する値）。</summary>
+    private TextFormatBarItemVisibility _formatBarItems = TextFormatBarItemVisibility.Default;
+
     /// <summary>本文の範囲を押下の対象にする。</summary>
     /// <param name="point">コントロールの座標。</param>
     /// <returns>押下を受け付ける場合は <see langword="true"/>。</returns>
@@ -89,10 +92,24 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     public bool IsEditing => _editor.IsEditing;
 
     /// <summary>いま書式バーを表示すべきかどうかを取得する。</summary>
-    /// <value>編集中で、自動表示が有効で、1 文字以上を選んでいる場合は <see langword="true"/>。</value>
+    /// <value>編集中で、自動表示が有効で、1 文字以上を選んでおり、出す項目がある場合は <see langword="true"/>。</value>
     /// <remarks>判定の規則は <see cref="TextFormatBarVisibility.ShouldShow"/> が単一所有する（4 つの UI 版で共有する）。</remarks>
     public bool ShouldShowFormatBar
-        => TextFormatBarVisibility.ShouldShow(ShowFormatBarWhileEditing, IsEditing, SelectionLength);
+        => TextFormatBarVisibility.ShouldShow(ShowFormatBarWhileEditing, IsEditing, SelectionLength, FormatBarItems);
+
+    /// <summary>書式バーに出す項目の組み合わせを取得または設定する。</summary>
+    /// <value>既定はすべての項目を出す（<see cref="TextFormatBarItemVisibility.Default"/>）。</value>
+    /// <remarks>
+    /// <b>すべて出さない場合はバーを表示しない</b>: 空のバーを出すと、操作できない枠だけが本文に重なる
+    /// （判定は <see cref="ShouldShowFormatBar"/>）。<br/>
+    /// <b>ホストがバーを置く場合に使う</b>: ホストは本値と同じ組み合わせを書式バーの構成（<c>Items</c>）へ渡す。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><see langword="null"/> を設定した場合。</exception>
+    public TextFormatBarItemVisibility FormatBarItems
+    {
+        get => _formatBarItems;
+        set => _formatBarItems = value ?? throw new ArgumentNullException(nameof(value));
+    }
 
     /// <summary>文字列と書式から実寸を測る関数を取得または設定する。</summary>
     /// <value>既定は本コントロールの描画 API で測る関数。 描画と同じエンジンで測るため通常は変更しない。</value>

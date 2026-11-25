@@ -89,6 +89,7 @@ editor.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
 | `RenderScale` | 画面の DIP への倍率（拡大表示するとき） |
 | `Editor` | 本文の値と編集の状態（ホストが既に持っている場合は同じ実体を設定する） |
 | `ShowFormatBarWhileEditing` | 編集中に書式バーを自動で表示するか（既定は `true`。 ホストが独自にバーを出す場合は `false`） |
+| `FormatBarItems` | 書式バーに出す項目の組み合わせ（太字・斜体・下線・取り消し線・色・大きさ・フォント名）。 非表示の項目は詰めて並べ、すべて非表示のときはバー自体を出さない |
 
 キャレットと選択範囲の色・太さは `EsUtil.Feature.StyledText.Core` の `TextEditorAppearance` が単一所有します（4 つの UI 版で同じ見た目にするため）。
 

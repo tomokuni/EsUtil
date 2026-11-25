@@ -4,6 +4,7 @@ using Avalonia.Threading;
 using Xunit;
 using EsUtil.Feature.StyledText;
 using EsUtil.Feature.StyledText.Core.Defaults;
+using EsUtil.Feature.StyledText.Presenter.Formatting;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Platform.Core.Geometry;
 
@@ -118,6 +119,47 @@ public class AnnotationEditorPanelTests
         editor.Layer.Session.BeginTextEditing();
         PumpLayout(editor);
 
+        editor.TextEditor.Select(0, 2);
+
+        Assert.False(editor.IsFormatBarOpen);
+        GC.KeepAlive(window);
+    }
+
+    /// <summary>書式バーの項目をすべて出さない場合は、選択してもバーを出さないことを検証する。</summary>
+    /// <remarks>操作できない枠だけが本文に重なるのを避ける（判定は <c>ShouldShowFormatBar</c> が単一所有する）。</remarks>
+    [AvaloniaFact]
+    internal void 書式バーの項目をすべて出さない場合はバーを出さない()
+    {
+        var window = CreateEditor(out var editor, out _, out var bubbleId);
+        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.BeginTextEditing();
+        PumpLayout(editor);
+        editor.TextEditor.Select(0, 2);
+        Assert.True(editor.IsFormatBarOpen);
+
+        // 表示中は差し替えられない（表示中に組み合わせを変えると位置と操作の対象が食い違う）
+        Assert.Throws<InvalidOperationException>(() => editor.FormatBarItems = new TextFormatBarItemVisibility
+        {
+            ShowBold = false,
+            ShowItalic = false,
+            ShowUnderline = false,
+            ShowStrike = false,
+            ShowColor = false,
+            ShowFontSize = false,
+            ShowFont = false,
+        });
+
+        editor.TextEditor.Select(0, 0);
+        editor.FormatBarItems = new TextFormatBarItemVisibility
+        {
+            ShowBold = false,
+            ShowItalic = false,
+            ShowUnderline = false,
+            ShowStrike = false,
+            ShowColor = false,
+            ShowFontSize = false,
+            ShowFont = false,
+        };
         editor.TextEditor.Select(0, 2);
 
         Assert.False(editor.IsFormatBarOpen);

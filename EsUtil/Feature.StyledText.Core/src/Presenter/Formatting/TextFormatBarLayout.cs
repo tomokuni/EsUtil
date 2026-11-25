@@ -83,6 +83,43 @@ public static class TextFormatBarLayout
         return Math.Ceiling(ColorSwatchIndent + Math.Max(nameWidth, hexWidth) + ColorToggleWidth);
     }
 
+    /// <summary>出す項目だけで並べたときのバーの幅（DIP）を求める。</summary>
+    /// <param name="items">出す項目の組み合わせ。</param>
+    /// <param name="colorSelectorWidth">色の入力欄の幅（DIP。<see cref="ResolveColorSelectorWidth"/> が決める）。</param>
+    /// <returns>幅（DIP）。 すべて出さない場合は 0。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="items"/> が null の場合。</exception>
+    /// <remarks>
+    /// <b>出さない項目の幅を足さない</b>: 足すと、項目を減らしてもバーの幅だけが残り、右側に押せない余白が空く。
+    /// 幅の規則を UI ごとに書き写すと、同じ組み合わせでも UI 間でバーの長さが変わる。
+    /// </remarks>
+    public static double ResolveWidth(TextFormatBarItemVisibility items, double colorSelectorWidth)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        var visible = items.VisibleItems;
+        var width = 0.0;
+        foreach (var item in visible)
+        {
+            width += ResolveItemWidth(item, colorSelectorWidth);
+        }
+
+        return visible.Length > 1 ? width + (TextEditorLayout.ControlSpacing * (visible.Length - 1)) : width;
+    }
+
+    /// <summary>項目 1 つの幅（DIP）を求める。</summary>
+    /// <param name="item">項目。</param>
+    /// <param name="colorSelectorWidth">色の入力欄の幅（DIP）。</param>
+    /// <returns>幅（DIP）。</returns>
+    private static double ResolveItemWidth(TextFormatBarItem item, double colorSelectorWidth) => item switch
+    {
+        TextFormatBarItem.Bold or TextFormatBarItem.Italic or TextFormatBarItem.Underline or TextFormatBarItem.Strike
+            => TextEditorLayout.ToggleWidth,
+        TextFormatBarItem.Font => FontSelectorWidth,
+        TextFormatBarItem.Size => SizeSelectorWidth,
+        TextFormatBarItem.Color => colorSelectorWidth,
+        _ => 0,
+    };
+
     /// <summary>色の入力欄の幅（DIP）を求める（カラーコードだけを収める）。</summary>
     /// <param name="measureText">文字列と書式から実寸を測る関数（UI が渡す）。</param>
     /// <returns>幅（DIP）。</returns>

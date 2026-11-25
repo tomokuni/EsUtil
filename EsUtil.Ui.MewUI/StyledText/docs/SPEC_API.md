@@ -20,7 +20,8 @@
 | `Editor` | 本文の値と編集の状態（`TextEditor`。 キャレット・選択・以降の入力へ効かせる書式を含む）。 ホストと共有できる |
 | `IsInputEnabled` | 入力を受け付けるか（既定は受け付ける）。 表示専用にする場合は `false`（ホストが入力とフォーカスを持つ場合） |
 | `ShowFormatBarWhileEditing` | 編集中に書式バーを自動で表示するか（既定は `true`）。 ホストが独自にバーを出す場合は `false` |
-| `ShouldShowFormatBar` | いま書式バーを表示すべきか（編集中・自動表示が有効・1 文字以上を選択） |
+| `FormatBarItems` | 書式バーに出す項目の組み合わせ（既定はすべて表示）。 すべて非表示にするとバー自体を出さない |
+| `ShouldShowFormatBar` | いま書式バーを表示すべきか（編集中・自動表示が有効・1 文字以上を選択・出す項目がある） |
 | `PreeditText` | IME の変換中の文字列（本文へは入れず、キャレットの位置へ描く） |
 | `RichTextChanged` / `SelectionChanged` / `EditingChanged` | 本文・選択範囲・編集の開始と終了の通知 |
 
@@ -60,7 +61,7 @@
 
 ## 4. 書式バー（`StyledTextFormatBar`）
 
-本文を編集中、**1 文字以上を選んだとき**に本文の上へ出す**文字単位の書式**のバーです。 ホストは `View` をパネルへ載せ、本文の選択が変わったら `Refresh()` を呼び、選択が無くなったら閉じます（表示の条件は `EsUtil.Feature.StyledText.Presenter.Formatting.TextFormatBarVisibility` が単一所有し、`StyledTextControl.ShouldShowFormatBar` が公開する）。
+本文を編集中、**1 文字以上を選んだとき**に本文の上へ出す**文字単位の書式**のバーです。 ホストは `View` をパネルへ載せ、本文の選択が変わったら `Refresh()` を呼び、選択が無くなったら閉じます（表示の条件は `EsUtil.Feature.StyledText.Presenter.Formatting.TextFormatBarVisibility` が単一所有し、`StyledTextControl.ShouldShowFormatBar` が公開する）。 **出さない項目は詰めて並べ、すべて非表示のときはバー自体を出しません**（`FormatBarItems`）。
 
 | メンバー | 説明 |
 | --- | --- |
@@ -69,6 +70,6 @@
 | `Refresh()` | 現在の選択範囲の書式を表示へ反映する |
 | `SetKeyHandler(forward)` / `SetFocusRequest(request)` | バーがフォーカスを持つ間のキー転送と、操作後に本文へフォーカスを戻す処理（**4 つの UI 版で同じ挙動**。 バー内の入力欄では転送しない） |
 | `ITextFormatBarContext`（計算層） | バーが書式を読み書きする相手（`SelectedTextStyle` / `SelectedTextMatches` / `Transform` / `Apply` / `HasTextSelection`）。 ホストが自分の編集状態へつなぐ |
-| `StyledTextFormatBarOptions` | フォントの一覧・色の選択（`ConfigureColorSelector` / `CreateColorButton` / `CreateColorSelector`）・色の表記 |
+| `StyledTextFormatBarOptions` | フォントの一覧・色の選択（`ConfigureColorSelector` / `CreateColorButton` / `CreateColorSelector`）・色の表記・出す項目（`Items`。 非表示の項目は詰めて並べる） |
 
 **差し替えの入口**: ホストは `IStyledTextFormatBarFactory` を実装し、`IStyledTextFormatBar`（`View` / `Refresh` / `TextFormat` / キーとフォーカスの設定）を返します。 既定は `StyledTextFormatBarFactory`（組み込みのバー）です。 差し替えはバーを出す前に行います（表示中の入れ替えは位置と操作の対象が食い違うため）。

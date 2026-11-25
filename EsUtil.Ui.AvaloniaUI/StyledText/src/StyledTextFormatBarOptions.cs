@@ -4,13 +4,19 @@ using EsUtil.Ui.AvaloniaUI.ColorSelector;
 
 namespace EsUtil.Ui.AvaloniaUI.StyledText;
 
-/// <summary>書式バーの構成（フォントの一覧・色のタブ・色の表記）。</summary>
+/// <summary>書式バーの構成（フォントの一覧・色のタブ・色の表記・出す項目）。</summary>
 /// <remarks>
 /// <b>ホストが自分の色の並びを渡せる</b>: 代表色やカラーピッカーの有無はアプリごとに違うため、
-/// 本クラスで受け取る（バーが特定のアプリの色の一覧を持たない）。
+/// 本クラスで受け取る（バーが特定のアプリの色の一覧を持たない）。<br/>
+/// <b>出す項目は <see cref="Items"/> が単一所有する</b>: 出さない項目は場所ごと詰める（空の枠を残さない）。
 /// </remarks>
-public sealed class StyledTextFormatBarOptions
+public sealed record StyledTextFormatBarOptions
 {
+    /// <summary>書式バーに出す項目の組み合わせを取得または設定する。</summary>
+    /// <value>既定はすべての項目を出す（<see cref="TextFormatBarItemVisibility.Default"/>）。</value>
+    /// <remarks>すべて出さない場合は書式バー自体を表示しない（判定は <see cref="TextFormatBarVisibility.ShouldShow"/> が持つ）。</remarks>
+    public TextFormatBarItemVisibility Items { get; init; } = TextFormatBarItemVisibility.Default;
+
     /// <summary>選べるフォント名の一覧を取得または設定する。</summary>
     /// <value>既定は環境のフォント（<see cref="StyledTextFonts.All"/>）。</value>
     public IReadOnlyList<string> Fonts { get; init; } = StyledTextFonts.All;
