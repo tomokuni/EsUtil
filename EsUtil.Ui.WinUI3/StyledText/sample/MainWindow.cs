@@ -162,9 +162,10 @@ public sealed class MainWindow : Window
         // **動作確認用**: 起動しただけでポップアップの書式バーを出す（README の検証手順で使う）
         if (Environment.GetCommandLineArgs().Contains("--popup-format-bar", StringComparer.Ordinal))
         {
-            // ウィンドウは FrameworkElement ではないため（Loaded を持たない）、表示後の Activated で 1 度だけ行う
+            // **読み込まれてから行う**: ウィンドウの Activated は中身が読み込まれる前に届き、
+            // その時点では XamlRoot が無いためポップアップを出せない（実測）
             var applied = false;
-            Activated += (_, _) =>
+            _editor.Loaded += (_, _) =>
             {
                 if (applied)
                 {

@@ -59,6 +59,14 @@ public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFor
     /// </remarks>
     private const double NumberBoxTextTrim = 2.4;
 
+    /// <summary>色の入力欄の幅（DIP）。</summary>
+    /// <remarks>
+    /// <b>幅はコアが単一所有する</b>: 色名とカラーコードの表記の長さから決める（UI ごとに決めると
+    /// 同じ表記でもバーの長さが変わる）。
+    /// </remarks>
+    private static readonly double ColorSelectorWidth =
+        TextFormatBarLayout.ResolveColorSelectorWidth(RichTextMetrics.Measure);
+
     /// <summary>通知による更新中かどうか（利用者の操作と区別する）。</summary>
     private bool _refreshing;
 
@@ -221,7 +229,7 @@ public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFor
 
     /// <summary>バーの幅（DIP）を取得する。</summary>
     /// <remarks>出す項目だけで求める（規則はコアの <see cref="TextFormatBarLayout.ResolveWidth"/> が単一所有する）。</remarks>
-    public double PreferredWidth => TextFormatBarLayout.ResolveWidth(_items, _color.ActualWidth > 0 ? _color.ActualWidth : _color.Width);
+    public double PreferredWidth => TextFormatBarLayout.ResolveWidth(_items, ColorSelectorWidth);
 
     /// <summary>本文のキー操作を転送する処理を設定する。</summary>
     /// <param name="forward">転送する処理（キーの引数を受け取る。<see langword="null"/> は転送しない）。</param>
@@ -292,7 +300,7 @@ public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFor
         {
             SelectedColor = color,
             TextFormat = textFormat,
-            Width = 240,
+            Width = ColorSelectorWidth,
             FontSize = StyledTextFormatBarControls.FontSize,
         };
 

@@ -57,6 +57,10 @@ public sealed partial class StyledTextControl : Canvas
         PointerReleased += OnEditorPointerReleased;
         CharacterReceived += OnEditorCharacterReceived;
         SizeChanged += (_, _) => Redraw();
+
+        // **読み込まれたら書式バーを出し直す**: 読み込まれる前は XamlRoot が無く、ポップアップを
+        // 出せない（実測）。 その間に選択が変わっていても、読み込まれた時点で追い付く
+        Loaded += (_, _) => UpdateFormatBarHost();
     }
 
     /// <summary>表示する本文を取得または設定する。</summary>
