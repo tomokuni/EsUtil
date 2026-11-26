@@ -10,12 +10,18 @@ namespace EsUtil.Ui.MewUI.StyledText;
 /// <see cref="TextFormatBarPlacement"/> が決める（4 つの UI 版で同じ結果になる）。<br/>
 /// <b>出す条件は本文コントロールが単一所有する</b>: ホストがバーを置く場合と同じ判断
 /// （<see cref="StyledTextControl.ShouldShowFormatBar"/>）を使う。<br/>
+/// <b>ウィンドウの中身は 1 度だけ決める</b>: バーは項目の変更で作り直されるため、そのたびに
+/// ウィンドウの中身を差し替えると要素の付け替えが重なって「既に親がある」で落ちる。 中身は変わらない根
+/// （<see cref="Border"/>）を 1 度だけ載せ、根の子だけを差し替える。<br/>
 /// <b>枠なしのウィンドウへ載せる</b>: ポップアップへ載せると、その中から開く色の選択が使えない。
 /// 枠なしのウィンドウなら、中から開く一覧は普通のウィンドウの子になり、そのまま使える。
 /// </remarks>
 /// <param name="owner">書式バーを所有する本文コントロール。</param>
 internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
 {
+    /// <summary>バーの入れ物（ウィンドウの中身。 1 度だけ載せる）。</summary>
+    private readonly Border _root = new();
+
     /// <summary>バーを載せる枠なしのウィンドウ（初回の表示で作る）。</summary>
     private Window? _window;
 
@@ -38,10 +44,7 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         bar.Refresh();
 
         var window = EnsureWindow();
-
-        // **バーは 1 つの場所にしか置けない**: ホストのレイアウトに残っていれば外してから載せる
-        DetachFromParent(bar.View);
-        window.Content = bar.View;
+        SetBar(bar);
 
         var barSize = MeasureBar(bar);
         window.WindowSize = WindowSize.Fixed(barSize.Width, barSize.Height);
@@ -66,30 +69,44 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     /// <summary>バーを閉じる（出ていなければ何もしない）。</summary>
     public void Close()
     {
+        // **中身を先に外す**: 隠したウィンドウに要素を残すと、次に載せるときに「既に親がある」で落ちる
+        _root.Child = null;
+
         if (_shown)
         {
-            // **中身を外す**: ホストが埋め込みへ戻せるよう、バーをウィンドウから切り離す
-            if (_window is { } window)
-            {
-                window.Content = null;
-                window.Hide();
-            }
-
+            _window?.Hide();
             _shown = false;
         }
+    }
+
+    /// <summary>根へバーを載せる（既に載っていれば何もしない）。</summary>
+    /// <param name="bar">書式バー。</param>
+    private void SetBar(IStyledTextFormatBar bar)
+    {
+        if (ReferenceEquals(_root.Child, bar.View))
+        {
+            return;
+        }
+
+        // **1 つの要素は 1 つの親しか持てない**: ホストのレイアウトに残っていれば外してから載せる
+        DetachFromParent(bar.View);
+        _root.Child = bar.View;
     }
 
     /// <summary>バーを以前の親から外す（1 つの要素は 1 つの親しか持てない）。</summary>
     /// <param name="view">バーの画面要素。</param>
     private static void DetachFromParent(FrameworkElement view)
     {
-        if (view.Parent is Border border && ReferenceEquals(border.Child, view))
+        switch (view.Parent)
         {
-            border.Child = null;
-        }
-        else if (view.Parent is Panel panel)
-        {
-            panel.Remove(view);
+            case Border border when ReferenceEquals(border.Child, view):
+                border.Child = null;
+                break;
+            case Panel panel:
+                panel.Remove(view);
+                break;
+            default:
+                break;
         }
     }
 
@@ -101,6 +118,7 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
             Borderless = true,
             BorderThickness = 0,
             Title = "書式バー",
+            Content = _root,
         };
 
     /// <summary>バーの実寸（DIP）を測る。</summary>

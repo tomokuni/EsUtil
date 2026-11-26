@@ -11,12 +11,18 @@ namespace EsUtil.Ui.AvaloniaUI.StyledText;
 /// <b>出す条件は本文コントロールが単一所有する</b>: ホストがバーを置く場合と同じ判断
 /// （<see cref="StyledTextControl.ShouldShowFormatBar"/>）を使う。<br/>
 /// <b>バーは本文コントロールが所有する</b>: 本クラスは画面要素を置き、位置を合わせるだけである。<br/>
+/// <b>ウィンドウの中身は 1 度だけ決める</b>: バーは項目の変更で作り直されるため、そのたびに
+/// ウィンドウの中身を差し替えると要素の付け替えが重なって「既に親がある」で落ちる。 中身は変わらない根
+/// （<see cref="Border"/>）を 1 度だけ載せ、根の子だけを差し替える。<br/>
 /// <b>枠なしのウィンドウへ載せる</b>: ポップアップへ載せると、その中から開く色の一覧が潰れて使えない。
 /// 枠なしのウィンドウなら、中から開く一覧は普通のウィンドウの子になり、そのまま使える。
 /// </remarks>
 /// <param name="owner">書式バーを所有する本文コントロール。</param>
 internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
 {
+    /// <summary>バーの入れ物（ウィンドウの中身。 1 度だけ載せる）。</summary>
+    private readonly Border _root = new();
+
     /// <summary>バーを載せる枠なしのウィンドウ（初回の表示で作る）。</summary>
     private Window? _window;
 
@@ -39,11 +45,7 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         bar.Refresh();
 
         var window = EnsureWindow(main);
-
-        // **バーは作り直される**: 項目や構成が変わっても出ているバーが古くならないよう、毎回付け直す
-        // **1 つの要素は 1 つの親しか持てない**: ホストのレイアウトに残っていれば外してから載せる
-        DetachFromParent(bar.View);
-        window.Content = bar.View;
+        SetBar(bar);
 
         var barSize = MeasureBar(bar);
         window.Width = Math.Max(1, barSize.Width);
@@ -73,15 +75,28 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     public void Close()
     {
         UnhookMain();
-        if (_window is { } window)
+
+        // **中身を外す**: ホストが埋め込みへ戻せるよう、バーを根から切り離す
+        _root.Child = null;
+
+        if (_window is { IsVisible: true } window)
         {
-            // **中身を外す**: ホストが埋め込みへ戻せるよう、バーをウィンドウから切り離す
-            window.Content = null;
-            if (window.IsVisible)
-            {
-                window.Hide();
-            }
+            window.Hide();
         }
+    }
+
+    /// <summary>根へバーを載せる（既に載っていれば何もしない）。</summary>
+    /// <param name="bar">書式バー。</param>
+    private void SetBar(IStyledTextFormatBar bar)
+    {
+        if (ReferenceEquals(_root.Child, bar.View))
+        {
+            return;
+        }
+
+        // **1 つの要素は 1 つの親しか持てない**: ホストのレイアウトに残っていれば外してから載せる
+        DetachFromParent(bar.View);
+        _root.Child = bar.View;
     }
 
     /// <summary>バーを以前の親から外す（1 つの要素は 1 つの親しか持てない）。</summary>
@@ -133,6 +148,7 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
             SizeToContent = SizeToContent.Manual,
             WindowStartupLocation = WindowStartupLocation.Manual,
             Topmost = false,
+            Content = _root,
         };
         return _window;
     }

@@ -469,6 +469,103 @@ public class StyledTextControlTests
         }
     }
 
+    /// <summary>ホストが既にバーを置いている状態からポップアップへ切り替えても落ちないことを検証する。</summary>
+    /// <remarks>
+    /// バーの要素は 1 つの親しか持てない。 ホストのレイアウトに置かれたままポップアップのウィンドウへ
+    /// 載せようとすると <see cref="InvalidOperationException"/> になるため、載せる前に外す。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void FormatBarHosting_ホストが置いている状態からポップアップへ切り替えられる()
+    {
+        var editor = CreateEditor("あいう");
+        var host = new Border { Child = editor.FormatBar.View };
+        var window = new Window
+        {
+            Width = 300,
+            Height = 100,
+            Content = new StackPanel { Children = { host, editor } },
+        };
+        window.Show();
+        try
+        {
+            editor.FormatBarHosting = TextFormatBarHosting.Popup;
+            editor.BeginEditing();
+            editor.Select(0, 2);
+            Pump();
+
+            Assert.True(editor.IsFormatBarOpen);
+            Assert.True(
+                host.Child is null,
+                $"host.Child = {host.Child?.GetType().Name}, parent = {editor.FormatBar.View.Parent?.GetType().Name}");
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>ポップアップのまま同じバーを表示し直しても落ちないことを検証する。</summary>
+    /// <remarks>選択が変わるたびに表示し直すため、要素の付け替えが繰り返し起きる。</remarks>
+    [AvaloniaFact]
+    internal void FormatBarHosting_ポップアップのまま選択を変えても落ちない()
+    {
+        var editor = CreateEditor("あいうえお");
+        var window = new Window { Width = 300, Height = 100, Content = editor };
+        window.Show();
+        try
+        {
+            editor.FormatBarHosting = TextFormatBarHosting.Popup;
+            editor.BeginEditing();
+
+            editor.Select(0, 1);
+            Pump();
+            editor.Select(1, 2);
+            Pump();
+            editor.Select(0, 0);
+            Pump();
+            editor.Select(2, 2);
+            Pump();
+
+            Assert.True(editor.IsFormatBarOpen);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>ポップアップのままバーを作り直しても落ちないことを検証する。</summary>
+    /// <remarks>
+    /// バーの項目を変えるとバーは作り直される。 そのたびにウィンドウの中身を差し替えると、要素の付け替えが
+    /// 重なって「既に親がある」で落ちるため、中身は変わらない根へ載せ替える。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void FormatBarHosting_ポップアップのままバーを作り直しても落ちない()
+    {
+        var editor = CreateEditor("あいうえお");
+        var window = new Window { Width = 300, Height = 100, Content = editor };
+        window.Show();
+        try
+        {
+            editor.FormatBarHosting = TextFormatBarHosting.Popup;
+            editor.BeginEditing();
+            editor.Select(0, 2);
+            Pump();
+            Assert.True(editor.IsFormatBarOpen);
+
+            var first = editor.FormatBar.View;
+            editor.FormatBarItems = editor.FormatBarItems with { ShowColor = false };
+            Pump();
+
+            Assert.True(editor.IsFormatBarOpen);
+            Assert.NotSame(first, editor.FormatBar.View);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     /// <summary>レイアウトと保留中の処理を流す。</summary>
     private static void Pump() => Dispatcher.UIThread.RunJobs();
 

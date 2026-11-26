@@ -11,12 +11,18 @@ namespace EsUtil.Ui.WinUI3.StyledText;
 /// <see cref="TextFormatBarPlacement"/> が決める（4 つの UI 版で同じ結果になる）。<br/>
 /// <b>出す条件は本文コントロールが単一所有する</b>: ホストがバーを置く場合と同じ判断
 /// （<see cref="StyledTextControl.ShouldShowFormatBar"/>）を使う。<br/>
-/// <b>ポップアップはウィンドウの外へも出せる</b>: <c>ShouldConstrainToRootBounds</c> を切ると、
-/// ウィンドウの内側に収まらない位置でも表示できる（位置は本クラスがウィンドウの内側へ収める）。
+/// <b>ポップアップの中身は 1 度だけ決める</b>: バーは項目の変更で作り直されるため、そのたびに
+/// ポップアップの中身を差し替えると要素の付け替えが重なって「既に親がある」で落ちる。 中身は変わらない根
+/// （<see cref="Border"/>）を 1 度だけ載せ、根の子だけを差し替える。<br/>
+/// <b>ウィンドウの外へも出せる</b>: <c>ShouldConstrainToRootBounds</c> を切ると、ウィンドウの内側に
+/// 収まらない位置でも表示できる（位置は本クラスがウィンドウの内側へ収める）。
 /// </remarks>
 /// <param name="owner">書式バーを所有する本文コントロール。</param>
 internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
 {
+    /// <summary>バーの入れ物（ポップアップの中身。 1 度だけ載せる）。</summary>
+    private readonly Border _root = new();
+
     /// <summary>バーを載せるポップアップ（初回の表示で作る）。</summary>
     private Popup? _popup;
 
@@ -36,13 +42,10 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         bar.Refresh();
 
         var popup = EnsurePopup(root);
-
-        // **1 つの要素は 1 つの親しか持てない**: ホストのレイアウトに残っていれば外してから載せる
-        DetachFromParent(bar.View);
-        popup.Child = bar.View;
+        SetBar(bar);
 
         var barSize = MeasureBar(bar);
-        var origin = ResolveOrigin(root);
+        var origin = ResolveOrigin();
         var position = TextFormatBarPlacement.ResolvePopupPosition(
             ToEsRect(owner.SelectionBounds),
             barSize,
@@ -58,13 +61,27 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     /// <summary>バーを閉じる（出ていなければ何もしない）。</summary>
     public void Close()
     {
-        if (_popup is { } popup)
+        // **中身を先に外す**: 閉じたポップアップに要素を残すと、次に載せるときに「既に親がある」で落ちる
+        _root.Child = null;
+
+        if (_popup is { IsOpen: true } popup)
         {
             popup.IsOpen = false;
-
-            // **中身を外す**: ホストが埋め込みへ戻せるよう、バーをポップアップから切り離す
-            popup.Child = null;
         }
+    }
+
+    /// <summary>根へバーを載せる（既に載っていれば何もしない）。</summary>
+    /// <param name="bar">書式バー。</param>
+    private void SetBar(IStyledTextFormatBar bar)
+    {
+        if (ReferenceEquals(_root.Child, bar.View))
+        {
+            return;
+        }
+
+        // **1 つの要素は 1 つの親しか持てない**: ホストのレイアウトに残っていれば外してから載せる
+        DetachFromParent(bar.View);
+        _root.Child = bar.View;
     }
 
     /// <summary>バーを以前の親から外す（1 つの要素は 1 つの親しか持てない）。</summary>
@@ -103,23 +120,15 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
             XamlRoot = root,
             ShouldConstrainToRootBounds = false,
             IsLightDismissEnabled = false,
+            Child = _root,
         };
         return _popup;
     }
 
     /// <summary>このコントロールの左上（ウィンドウの座標の DIP）を求める。</summary>
-    /// <param name="root">XAML のルート。</param>
     /// <returns>左上の位置。 求められない場合は原点。</returns>
-    private Windows.Foundation.Point ResolveOrigin(XamlRoot root)
-    {
-        if (owner.TransformToVisual(null) is not { } transform)
-        {
-            return default;
-        }
-
-        _ = root;
-        return transform.TransformPoint(default);
-    }
+    private Windows.Foundation.Point ResolveOrigin()
+        => owner.TransformToVisual(null) is { } transform ? transform.TransformPoint(default) : default;
 
     /// <summary>バーの実寸（DIP）を測る。</summary>
     /// <param name="bar">書式バー。</param>
