@@ -21,7 +21,7 @@
 - [15. `TextDefaults` / `TextLimits`（静的クラス）](#15-textdefaults--textlimits静的クラス)
 - [16. `TextFormatBarVisibility`（静的クラス）](#16-textformatbarvisibility静的クラス)
 - [17. `TextFormatBarItemVisibility`（レコード）](#17-textformatbaritemvisibilityレコード)
-- [18. `TextFormatBarHosting` / `FloatingPanelPlacement`（列挙型・静的クラス）](#18-textformatbarhosting--floatingpanelplacement列挙型静的クラス)
+- [18. `TextFormatBarHosting` / `FloatingPanelPlacement` / `FloatingPanelAppearance`](#18-textformatbarhosting--floatingpanelplacement--floatingpanelappearance)
 
 ## 1. 公開 API の可視性
 
@@ -283,7 +283,7 @@
 - **出さない項目は場所ごと詰めます**（空の枠を残さない。 バーの幅は TextFormatBarLayout.ResolveWidth が求める）。
 - **値は不変**です（部分更新は with 式）。 すべて出さない場合は TextFormatBarVisibility.ShouldShow が alse を返すため、バー自体を表示しません。
 
-## 18. `TextFormatBarHosting` / `FloatingPanelPlacement`（列挙型・静的クラス）
+## 18. `TextFormatBarHosting` / `FloatingPanelPlacement` / `FloatingPanelAppearance`
 
 **書式バーの画面要素をどこへ置くか**の単一所有です（提示層 EsUtil.Feature.StyledText.Presenter.Formatting）。 バーの生成・項目の反映・キーとフォーカスの転送は 4 つの UI 版の StyledTextControl が行い、本値は**置く場所**だけを決めます。
 
@@ -296,6 +296,8 @@
 | FloatingPanelPlacement.ResolveDrag(origin, cursorOrigin, cursorCurrent) | ドラッグ中の左上を求める（ポインターの移動量だけ動かす） |
 | FloatingPanelPlacement.Clamp(position, width, height, available) | 置ける領域からはみ出さない位置へ補正する |
 | FloatingPanelPlacement.ResolveAvailableArea(target, visible, allowance) | 置ける領域を求める（対象の外側へ広げ、見えている範囲との交わりを取る） |
+| FloatingPanelAppearance.FormatBar | 書式バーの枠・余白・角丸・固定の高さ（4 つの UI 版が共有する） |
+| FloatingPanelAppearance.ResolvePanelSize(content) / ResolvePanelHeight(height) | 中身の実寸からパネルの大きさを求める（枠と余白を足す計算を UI ごとに書き写さない） |
 
 - **位置の規則は 4 つの UI 版で共通**です（UI ごとに書き写すと、同じ選択でも出る場所が変わる）。
 - **選択範囲に被せません**（上に出し、入りきらない場合は下へ回る）。

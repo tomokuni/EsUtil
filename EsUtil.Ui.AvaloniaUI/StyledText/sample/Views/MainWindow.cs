@@ -181,6 +181,20 @@ public sealed class MainWindow : Window
 
         UpdateStatus();
         Closed += (_, _) => _logging.Dispose();
+
+        // **動作確認用**: 起動しただけでポップアップの書式バーを出す（README の検証手順で使う）
+        if (Environment.GetCommandLineArgs().Contains("--popup-format-bar", StringComparer.Ordinal))
+        {
+            Opened += (_, _) =>
+            {
+                UpdateHosting(popup: true);
+                _editor.BeginEditing();
+                _editor.Select(0, 5);
+                UpdateFormatBar();
+                UpdateStatus();
+            };
+        }
+
         return;
 
         // 書式バーを出すか隠すかを決める（条件は本文コントロールが単一所有する）

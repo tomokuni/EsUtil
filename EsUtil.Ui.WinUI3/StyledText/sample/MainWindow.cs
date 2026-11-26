@@ -158,6 +158,28 @@ public sealed class MainWindow : Window
         SampleShell.ApplyWindowSize(this);
         Title = "StyledText サンプル (WinUI3)";
         Closed += (_, _) => _logging.Dispose();
+
+        // **動作確認用**: 起動しただけでポップアップの書式バーを出す（README の検証手順で使う）
+        if (Environment.GetCommandLineArgs().Contains("--popup-format-bar", StringComparer.Ordinal))
+        {
+            // ウィンドウは FrameworkElement ではないため（Loaded を持たない）、表示後の Activated で 1 度だけ行う
+            var applied = false;
+            Activated += (_, _) =>
+            {
+                if (applied)
+                {
+                    return;
+                }
+
+                applied = true;
+                UpdateHosting(popup: true);
+                _editor.BeginEditing();
+                _editor.Select(0, 5);
+                UpdateFormatBar();
+                UpdateStatus();
+            };
+        }
+
         return;
 
         // 書式バーの出し方を変える（自前で埋め込む / コントロールがポップアップで出す）

@@ -113,27 +113,32 @@ public sealed record AnnotationPanelAppearance(
             + (StyleEditorBorder * 2);
 
     /// <summary>書式バーの外観を取得する。</summary>
-    /// <value>下地 <c>#FFFFFF</c> / 枠 <c>#999999</c> / 枠 1 DIP / 角丸 0 DIP / 余白 6,3 DIP / 幅は中身に合わせる / 幅の上限 2400 DIP / 高さの上限 200 DIP。</value>
+    /// <value>値は <see cref="FloatingPanelAppearance.FormatBar"/> が単一所有する（書式バーは本文コントロールの部品であり、外観もそちらが持つ）。</value>
     /// <remarks>
-    /// <b>幅を固定しない</b>: 中身（フォント名・大きさ・色）で幅が決まる。 固定すると項目が枠から
-    /// はみ出す。<br/>
-    /// <b>角を丸めない</b>: 高さが低いため、丸めると項目の角が欠けて見える。<br/>
-    /// <b>中身の高さは項目の高さと同じにする</b>: 項目の高さは
-    /// <see cref="TextFormatBarLayout.ItemHeight"/> が単一所有する。 これより低いと中身が
-    /// 枠からはみ出して上下の枠線が切れ、高いと余白が空く。 固定値も同じ値に揃える。
+    /// <b>同じ見た目を 2 つ持たない</b>: 書式バーの枠・余白・高さは StyledText の提示層が決める。
+    /// 本クラスは注釈のパネルとして置くための入れ物（<see cref="AnnotationPanelAppearance"/>）へ
+    /// その値を写すだけである。
     /// </remarks>
-    public static AnnotationPanelAppearance FormatBar { get; } = new(
-        Background: DrawingColor.FromArgb(255, 255, 255, 255),
-        Border: DrawingColor.FromArgb(255, 153, 153, 153),
-        BorderThickness: 1,
-        CornerRadius: 0,
-        Padding: 6,
-        VerticalPadding: 3,
-        ContentWidth: 0,
-        MaxWidth: 2400,
-        MaxContentHeight: 200,
-        MinContentHeight: TextFormatBarLayout.ItemHeight)
+    public static AnnotationPanelAppearance FormatBar { get; } = CreateFormatBar();
+
+    /// <summary>書式バーの外観を StyledText の値から作る。</summary>
+    /// <returns>注釈のパネルとして置くための外観。</returns>
+    private static AnnotationPanelAppearance CreateFormatBar()
     {
-        FixedContentHeight = TextFormatBarLayout.ItemHeight,
-    };
+        var bar = FloatingPanelAppearance.FormatBar;
+        return new AnnotationPanelAppearance(
+            Background: bar.Background,
+            Border: bar.Border,
+            BorderThickness: bar.BorderThickness,
+            CornerRadius: bar.CornerRadius,
+            Padding: bar.Padding,
+            VerticalPadding: bar.VerticalPadding,
+            ContentWidth: 0,
+            MaxWidth: bar.MaxWidth,
+            MaxContentHeight: bar.MaxContentHeight,
+            MinContentHeight: bar.FixedContentHeight)
+        {
+            FixedContentHeight = bar.FixedContentHeight,
+        };
+    }
 }

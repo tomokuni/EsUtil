@@ -220,6 +220,12 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     /// <value>表示中の場合は <see langword="true"/>（<see cref="TextFormatBarHosting.Custom"/> のときは常に <see langword="false"/>）。</value>
     public bool IsFormatBarOpen => _formatBarHost?.IsOpen ?? false;
 
+    /// <summary>利用者が動かした後の書式バーの左上（DIP）を取得する（テスト用）。</summary>
+    internal EsPoint? FormatBarManualPosition => _formatBarHost?.ManualPosition;
+
+    /// <summary>書式バーを載せているウィンドウを取得する（テストが実入力の経路を確かめるために使う）。</summary>
+    internal Window? FormatBarPopupWindow => _formatBarHost?.Window;
+
     /// <summary>文字列と書式から実寸を測る関数を取得または設定する。</summary>
     /// <value>既定は本コントロールの描画 API で測る関数。 描画と同じエンジンで測るため通常は変更しない。</value>
     /// <remarks>

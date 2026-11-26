@@ -140,8 +140,23 @@ public static class MainWindow
             ("本文を初期化", ResetText)));
 
         UpdateStatus();
-        return SampleShell.Create(
+
+        var window = SampleShell.Create(
             "StyledText サンプル (MewUI)", properties, methods, samples, content, log);
+
+        // **動作確認用**: 起動しただけでポップアップの書式バーを出す（README の検証手順で使う）
+        if (Environment.GetCommandLineArgs().Contains("--popup-format-bar", StringComparer.Ordinal))
+        {
+            window.Loaded += () =>
+            {
+                UpdateHosting(popup: true);
+                editor.BeginEditing();
+                editor.Select(0, 5);
+                UpdateFormatBar();
+            };
+        }
+
+        return window;
 
         // 書式バーの出し方を変える（自前で埋め込む / コントロールがポップアップで出す）
         void UpdateHosting(bool popup)

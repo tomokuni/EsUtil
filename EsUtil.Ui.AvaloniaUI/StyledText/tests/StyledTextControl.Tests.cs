@@ -566,6 +566,82 @@ public class StyledTextControlTests
         }
     }
 
+    /// <summary>パネルの余白を掴んでドラッグすると、バーが移動することを検証する（実入力の経路）。</summary>
+    /// <remarks>
+    /// <b>実ヒットテストを通す</b>: ハンドラーを直接呼ばず、ウィンドウ経由の入力で確かめる。
+    /// 余白（枠の内側の何も無いところ）を掴めないと、利用者はバーを動かせない。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void FormatBarHosting_ポップアップの余白をドラッグするとバーが動く()
+    {
+        var editor = CreateEditor("あいうえお");
+        var main = new Window { Width = 400, Height = 200, Content = editor };
+        main.Show();
+        try
+        {
+            editor.FormatBarHosting = TextFormatBarHosting.Popup;
+            editor.BeginEditing();
+            editor.Select(0, 2);
+            Pump();
+
+            var popup = editor.FormatBarPopupWindow;
+            Assert.NotNull(popup);
+            Assert.True(popup!.IsVisible, "書式バーのウィンドウが出ていない");
+
+            // 余白の中央（枠 1 DIP + 余白 3/6 DIP の内側で、中身に掛からない位置）を掴んで 20 DIP 動かす
+            var before = editor.FormatBarManualPosition;
+            var grab = new Point(4, 4);
+            popup.MouseMove(grab);
+            popup.MouseDown(grab, MouseButton.Left);
+            popup.MouseMove(new Point(grab.X + 20, grab.Y + 20));
+            popup.MouseUp(new Point(grab.X + 20, grab.Y + 20), MouseButton.Left);
+            Pump();
+
+            Assert.True(editor.FormatBarManualPosition is not null, "余白のドラッグが書式バーへ届いていない");
+            if (before is { } start)
+            {
+                Assert.Equal(20, editor.FormatBarManualPosition!.Value.X - start.X, 1);
+                Assert.Equal(20, editor.FormatBarManualPosition!.Value.Y - start.Y, 1);
+            }
+        }
+        finally
+        {
+            main.Close();
+        }
+    }
+
+    /// <summary>パネルの枠（下地と枠線）が外観どおりに付くことを検証する。</summary>
+    /// <remarks>枠が無いと余白の範囲が分からず、掴む場所も見えない。</remarks>
+    [AvaloniaFact]
+    internal void FormatBarHosting_ポップアップに枠と余白が付く()
+    {
+        var editor = CreateEditor("あいうえお");
+        var main = new Window { Width = 400, Height = 200, Content = editor };
+        main.Show();
+        try
+        {
+            editor.FormatBarHosting = TextFormatBarHosting.Popup;
+            editor.BeginEditing();
+            editor.Select(0, 2);
+            Pump();
+
+            var popup = editor.FormatBarPopupWindow;
+            Assert.NotNull(popup);
+            var root = Assert.IsType<Border>(popup!.Content);
+            Assert.NotNull(root.Background);
+            Assert.NotNull(root.BorderBrush);
+            Assert.True(root.BorderThickness.Left > 0, "枠線が無い");
+            Assert.True(root.Padding.Left > 0, "掴む余白が無い");
+            Assert.True(
+                popup.Width >= editor.FormatBar.View.Bounds.Width + root.Padding.Left + root.Padding.Right,
+                $"パネルの幅に余白が含まれていない（window={popup.Width}）");
+        }
+        finally
+        {
+            main.Close();
+        }
+    }
+
     /// <summary>レイアウトと保留中の処理を流す。</summary>
     private static void Pump() => Dispatcher.UIThread.RunJobs();
 

@@ -17,12 +17,21 @@ namespace EsUtil.Ui.WinForms.StyledText;
 /// <param name="owner">書式バーを所有する本文コントロール。</param>
 internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
 {
-    /// <summary>バーの入れ物（ウィンドウの中身。 1 度だけ載せる）。</summary>
+    /// <summary>パネルの外観（枠・余白・高さ）。</summary>
+    private static readonly FloatingPanelAppearance s_appearance = FloatingPanelAppearance.FormatBar;
+
+    /// <summary>バーの入れ物（ウィンドウの中身。 1 度だけ載せる）。 枠と余白は外観が決める。</summary>
     private readonly Panel _root = new()
     {
         Dock = DockStyle.Fill,
         AutoSize = true,
         AutoSizeMode = AutoSizeMode.GrowAndShrink,
+        BackColor = Color.FromArgb(
+            s_appearance.Background.A, s_appearance.Background.R,
+            s_appearance.Background.G, s_appearance.Background.B),
+        Padding = new Padding(
+            (int)Math.Round(s_appearance.Padding), (int)Math.Round(s_appearance.VerticalPadding),
+            (int)Math.Round(s_appearance.Padding), (int)Math.Round(s_appearance.VerticalPadding)),
     };
 
     /// <summary>バーを載せる枠なしのウィンドウ（初回の表示で作る）。</summary>
@@ -58,15 +67,15 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         var window = EnsureWindow();
         SetBar(bar);
 
-        var barSize = MeasureBar(bar);
+        var panelSize = s_appearance.ResolvePanelSize(MeasureBar(bar));
         var origin = owner.PointToScreen(Point.Empty);
         var available = ResolveAvailableArea(origin);
 
         // **動かした位置を選択より優先する**: 選択が変わるたびに元の位置へ戻すと、動かした意味が無くなる
         var position = _manualPosition is { } manual
-            ? FloatingPanelPlacement.Clamp(manual, barSize.Width, barSize.Height, available)
+            ? FloatingPanelPlacement.Clamp(manual, panelSize.Width, panelSize.Height, available)
             : FloatingPanelPlacement.ResolveOutside(
-                ToEsRect(owner.SelectionBounds), barSize, available, FloatingPanelPlacement.FormatBarGap);
+                ToEsRect(owner.SelectionBounds), panelSize, available, FloatingPanelPlacement.FormatBarGap);
 
         window.Location = new Point(
             origin.X + (int)Math.Round(position.X),
@@ -125,10 +134,10 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         }
 
         var moved = FloatingPanelPlacement.ResolveDrag(_dragOrigin, _dragOriginCursor, ToLocal(Cursor.Position));
-        var barSize = MeasureBar(owner.FormatBar);
+        var panelSize = s_appearance.ResolvePanelSize(MeasureBar(owner.FormatBar));
         var origin = owner.PointToScreen(Point.Empty);
         _manualPosition = FloatingPanelPlacement.Clamp(
-            moved, barSize.Width, barSize.Height, ResolveAvailableArea(origin));
+            moved, panelSize.Width, panelSize.Height, ResolveAvailableArea(origin));
         window.Location = new Point(
             origin.X + (int)Math.Round(_manualPosition.Value.X),
             origin.Y + (int)Math.Round(_manualPosition.Value.Y));
@@ -165,6 +174,10 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         // **1 つの要素は 1 つの親しか持てない**: ホストのレイアウトに残っていれば外してから載せる
         DetachFromParent(bar.View);
         _root.Controls.Clear();
+
+        // **余白の内側へ収める**: WinForms の余白は Dock した子にだけ効くため、Fill で詰める
+        // （左上へ置くと余白の上へ重なり、掴む場所が無くなる）
+        bar.View.Dock = DockStyle.Fill;
         _root.Controls.Add(bar.View);
     }
 
@@ -197,6 +210,21 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
             TopMost = false,
             Padding = Padding.Empty,
         };
+        // **枠を描く**: WinForms の Panel は枠の色を持たないため、外観の枠を自分で描く
+        _root.Paint += (_, e) =>
+        {
+            var border = s_appearance.Border;
+            using var pen = new Pen(
+                Color.FromArgb(border.A, border.R, border.G, border.B),
+                (float)Math.Max(1, s_appearance.BorderThickness));
+            var half = pen.Width / 2;
+            e.Graphics.DrawRectangle(
+                pen, half, half,
+                Math.Max(0, _root.ClientSize.Width - pen.Width),
+                Math.Max(0, _root.ClientSize.Height - pen.Width));
+        };
+        _root.Cursor = Cursors.SizeAll;
+
         _window.Controls.Add(_root);
 
         // **余白を掴んで動かせるようにする**: 中身（ボタン・入力欄）は押下を処理済みにするため、

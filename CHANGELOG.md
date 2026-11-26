@@ -58,6 +58,9 @@
 - **注釈の書式バーの差し替えを表示中でもできるようにしました**（4 つの UI 版の `AnnotationEditorPanel`）。 `FormatBarItems` / `FormatBarFactory` を書式バーの表示中に設定しても `InvalidOperationException` になりません（バーを作り直し、詰めた幅を測り直して出し直します）。 ホストに「出す前かどうか」を判断させると、判断を UI ごとに間違えて表示中に設定しただけで落ちるためです。
 - **注釈の `AnnotationEditorPanel.TextFormat` の値を `AnnotationLayerControl.ColorTextFormat` が単一所有するようにしました**（4 つの UI 版）。 右クリックの外観フライアウトと同じ値を使い、書式バーを作り直しても値が失われません（従来はバーの値だけを読み書きしており、作り直すと既定へ戻りました）。
 - **`AnnotationLogMessage.LogSettingChanged(string, string, string)` を公開しました**（列挙や組み合わせなど、数値・真偽で表せない設定値の変更を UI 層から記録できるようにする。 ログ定義はアセンブリに 1 つという規則を保つ）。
+- **書式バーのパネル（枠・余白・高さ）を StyledText 側へ移しました**（`EsUtil.Feature.StyledText.Presenter.Formatting.FloatingPanelAppearance`）。 書式バーの枠と余白は Annotation のパネル外観が持っていましたが、バーの部品は StyledText のものであるため、見た目も StyledText が単一所有します（`AnnotationPanelAppearance.FormatBar` は同じ値を注釈のパネルへ写すだけ）。 余白を 8,6 DIP へ広げ、枠と余白が見えるようにしました（掴む場所にもなります）。
+- **ポップアップの書式バーを余白で掴んで動かせるようにしました**（AvaloniaUI / WinForms は実マウス入力で確認済み）。 動かした位置は閉じるまで選択より優先し、置ける領域へ収めます。 MewUI は枠の余白の押下が要素へ届かないため**未対応**（枠は表示されます。 ボタン操作は従来どおり）。
+- **サンプルへ動作確認用の起動オプション `--popup-format-bar` を追加しました**（4 つの UI 版）。 起動しただけでポップアップの書式バーを出した状態になります。
 - **書式バーの位置とドラッグの規則を StyledText 側へ移しました**（EsUtil.Feature.StyledText.Presenter.Formatting.FloatingPanelPlacement）。 対象に被せない配置・置ける領域への収め・ドラッグの規則を 1 か所が所有し、注釈のフローティング パネル（AnnotationPanelPlacement）も同じ規則を使います（規則を 2 つ持たない）。 ポップアップの書式バーは**余白を掴んで動かせます**（動かした位置は閉じるまで選択より優先）。
 - **書式バーの余白を 6 DIP から 24 DIP へ広げました**（FloatingPanelPlacement.FormatBarGap。 実寸のずれで対象に重なるのを防ぐ注釈の値へ揃える）。
 - **書式バーを本文コントロールが所有するようにしました**（4 つの UI 版の StyledTextControl）。 FormatBar（生成・項目の反映・キーとフォーカスの転送・内容の更新をコントロールが行う）・FormatBarFactory・FormatBarOptions・FormatBarHosting・IsFormatBarOpen を追加しました。 ホストは FormatBar.View を置くだけでよく、同じ配線を書き写す必要がありません。
