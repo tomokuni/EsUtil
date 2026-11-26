@@ -236,10 +236,30 @@ public sealed class MainWindow : Window
                     ("矩形を設定", () => _marquee.SetSelection(new EsRect(250, 180, 300, 200))),
                     ("確定を要求", () => _marquee.RequestConfirm()),
                     ("キャンセルを要求", () => _marquee.RequestCancel())),
+                SampleSettings.Buttons(
+                    ("状態をログへ（CurrentSnapshot）", ShowSnapshot),
+                    ("実カーソルから追従位置を取り直す", ShowLoupePosition)),
+                SampleSettings.Buttons(
+                    ("ポインターが上にあるか", () => Write($"ポインターが上にある: {_marquee.IsPointerOver}"))),
             },
         };
 
         // ── サンプル設定（サンプルアプリの外観と状態） ──
+        // スナップショット（現在の状態）をログへ出す
+        void ShowSnapshot()
+        {
+            var snapshot = _marquee.CurrentSnapshot;
+            var rect = _marquee.SelectionSourceRect;
+            Write($"状態: 選択あり={_marquee.HasSelection} " +
+                $"矩形=({rect.X:0.#}, {rect.Y:0.#}, {rect.Width:0.#}, {rect.Height:0.#}) " +
+                $"追従中={snapshot.IsMarkerFollowingPointer}");
+        }
+
+        // 実カーソルから追従位置を取り直す（取り直せないときはその旨を出す）
+        void ShowLoupePosition() =>
+            Write(_marquee.TryGetCurrentLoupePosition(out var position)
+                ? $"追従位置（実カーソル）: ({position.X:0.#}, {position.Y:0.#})"
+                : "追従位置を取り直せません（ドラッグ中・nudge 中・ポインターが外にある）");
         var samples = new StackPanel
         {
             Spacing = 6,

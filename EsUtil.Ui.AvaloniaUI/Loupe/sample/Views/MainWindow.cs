@@ -6,6 +6,7 @@ using EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 using EsUtil.Ui.AvaloniaUI.Loupe.Sample.Imaging;
 using EsUtil.Ui.AvaloniaUI.Loupe.Sample.Presentation;
 using EsUtil.Ui.AvaloniaUI.SampleKit;
+using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using Microsoft.Extensions.Logging;
@@ -82,6 +83,9 @@ public sealed class MainWindow : Window
 
     /// <summary>選択矩形の表示可否。</summary>
     private bool _selectionVisible = true;
+
+    /// <summary>レイアウトの解決結果を出す文言。</summary>
+    private readonly TextBlock _layoutStatus = new() { FontSize = SampleSettings.FontSize };
 
     /// <summary>選択矩形（対象座標）。</summary>
     private EsRect _selection = new(250, 180, 300, 200);
@@ -217,6 +221,17 @@ public sealed class MainWindow : Window
                 SampleSettings.Text("ログ接頭辞", "[Loupe]", value => _loupe.LogPrefix = value),
                 SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
                     _loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null),
+                SampleSettings.Check("座標変換（拡大率に追従）", false, value =>
+                {
+                    _loupe.SetCoordTransform(value
+                        ? CoordTransform.CreateClientToSource(() => 1.0 / _loupe.Options.ZoomLevel)
+                        : null);
+                    _loupe.RefreshPosition();
+                }),
+                SampleSettings.Check("描画直前に中心を取り直す", false, value =>
+                    _loupe.CenterPointProvider = value
+                        ? () => new EsPoint(_selection.X + (_selection.Width / 2), _selection.Y + (_selection.Height / 2))
+                        : null),
             },
         };
 
@@ -227,6 +242,7 @@ public sealed class MainWindow : Window
             Children =
             {
                 SampleSettings.LogLevel(_logging),
+                _layoutStatus,
                 SampleSettings.Buttons(("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）"))),
                 SampleSettings.Check("選択矩形を表示", true, value =>
                 {
@@ -263,7 +279,10 @@ public sealed class MainWindow : Window
             Spacing = 6,
             Children =
             {
-                SampleSettings.Buttons(("再描画を要求", () => _loupe.InvalidateRender())),
+                SampleSettings.Buttons(
+                    ("再描画を要求", () => _loupe.InvalidateRender()),
+                    ("位置を再計算", () => _loupe.RefreshPosition()),
+                    ("レイアウトを解決（ログへ）", ShowLayout)),
             },
         };
 
@@ -283,6 +302,14 @@ public sealed class MainWindow : Window
         };
 
         return;
+
+        // 親領域の大きさから求めたレイアウトを状態へ出す（ResolveLayout の公開 API）
+        void ShowLayout()
+        {
+            var layout = _loupe.ResolveLayout(new EsSize(ImageWidth, ImageHeight));
+            var position = layout.Position is { } p ? $"({p.X}, {p.Y})" : "なし";
+            _layoutStatus.Text = $"レイアウト: クライアント={layout.ClientSize:0.#} 位置={position}";
+        }
 
         // 外観を更新してルーペへ反映し、再描画を要求する（計画に効く入力のため）
         void Apply(LoupeAppearance value)

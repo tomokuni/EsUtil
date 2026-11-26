@@ -40,6 +40,8 @@ dotnet run --project EsUtil.Ui.WinUI3/ColorSelector/sample/EsUtil.Ui.WinUI3.Colo
 | 一覧のタブ | 「「カスタム」タブを出す」「テーマカラーのタブを出す」「色名のタブを出す」「ColorPicker のタブを出す」「タブの題名を出す」「「代表色パレット」「代表色」タブを追加」を切り替える（すべての行へ反映） |
 | ツールチップ | 入力欄に「色名 + 不透明度」と「#AARRGGBB」が 2 行で出る |
 | フォーカスを外す | 無効な入力を最後の有効値へ戻す |
+| 「先頭をテーマ色へ（SelectedThemeColor）」/「テーマ色名を解決（TryResolveThemeColor）」/「テーマ色の一覧を状態へ（ThemeColorKeys）」ボタン | 先頭の行をテーマ色へ切り替え（`SelectedThemeColor`）、テーマ色名を色へ解決し（`TryResolveThemeColor`）、テーマ色の一覧（`ThemeColorKeys`）を状態の行へ出す |
+| 重複した API の確認 | 同じ色を選び直したときも `ColorApplied`、値が変わったときだけ `SelectedColorChanged` が発生する（状態の行で確認できる） |
 
 ## 4. 検証項目（動作確認チェックリスト）
 

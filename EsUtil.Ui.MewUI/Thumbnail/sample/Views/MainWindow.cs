@@ -52,6 +52,11 @@ internal static class MainWindow
             status.Text = $"選択: {thumbnails.SelectedIndex}（{thumbnails.ItemCount} 件中）";
         };
         thumbnails.ItemActivated += (_, e) => status.Text = $"確定: {e.Index}";
+        thumbnails.ScrollChanged += (_, _) =>
+        {
+            var range = thumbnails.VisibleRange;
+            status.Text = $"スクロール: 可視範囲 {range.First}〜{range.Last}";
+        };
 
         // プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通）
         var properties = new StackPanel().Vertical().Spacing(6).Children(
@@ -89,7 +94,34 @@ internal static class MainWindow
                     thumbnails.SelectedIndex = 0;
                 }
         ),
-                ("末尾へスクロール", () => thumbnails.ScrollToIndex(thumbnails.ItemCount - 1))));
+                ("末尾へスクロール", () => thumbnails.ScrollToIndex(thumbnails.ItemCount - 1))),
+            SampleSettings.Buttons(
+                ("先頭の説明を変える", () => thumbnails.SetCaption(0, $"説明を変更 {DateTime.Now:HH:mm:ss}")),
+                ("先頭の画像を差し替える", () => thumbnails.SetImage(0, EsReadOnlyBitmap.FromBitmap(s_images[0]))),
+                ("先頭の矩形を状態へ（SlotBounds）", ShowSlotBounds),
+                ("可視範囲を状態へ（VisibleRange）", ShowVisibleRange),
+                ("提示層の状態を出す（Presentation）", ShowPresentation)));
+
+        // 項目の外枠の矩形を状態へ出す（SlotBounds の公開 API）
+        void ShowSlotBounds()
+        {
+            var bounds = thumbnails.SlotBounds(0);
+            status.Text = $"先頭の矩形: x={bounds.X:0.#} y={bounds.Y:0.#} w={bounds.Width:0.#} h={bounds.Height:0.#}";
+        }
+
+        // 見えている項目の範囲を状態へ出す（VisibleRange の公開 API）
+        void ShowVisibleRange()
+        {
+            var range = thumbnails.VisibleRange;
+            status.Text = $"可視範囲: {range.First}〜{range.Last}（{range.Count} 件 / 全 {thumbnails.ItemCount} 件）";
+        }
+
+        // 提示層（設定・外観）の状態を出す（Presentation の公開 API）
+        void ShowPresentation() =>
+            status.Text =
+                $"提示層: 行間={thumbnails.Presentation.Options.RowSpace:0.#} " +
+                $"ラベルの文字サイズ={thumbnails.Presentation.Appearance.LabelFontSize:0.#} " +
+                $"選択の背景={thumbnails.Presentation.Appearance.ShowSelectionBackground}";
 
         // サンプル設定（サンプルアプリの外観と状態）
         var samples = new StackPanel().Vertical().Spacing(6).Children(

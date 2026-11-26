@@ -226,7 +226,25 @@ internal static class MainWindow
                 ("選択をクリア", () => marquee.ResetSelection()),
                 ("矩形を設定", () => marquee.SetSelection(new EsRect(250, 180, 300, 200))),
                 ("確定を要求", () => marquee.RequestConfirm()),
-                ("キャンセルを要求", () => marquee.RequestCancel())));
+                ("キャンセルを要求", () => marquee.RequestCancel())),
+            SampleSettings.Buttons(
+                ("再描画を要求", () => marquee.InvalidateRender()),
+                ("状態をログへ（CurrentSnapshot）", ShowSnapshot),
+                ("実カーソルから追従位置を取り直す", ShowLoupePosition)));
+
+        // スナップショット（現在の状態）をログへ出す
+        void ShowSnapshot()
+        {
+            var snapshot = marquee.CurrentSnapshot;
+            var rect = marquee.SelectionSourceRect;
+            WriteLog($"状態: 選択あり={marquee.HasSelection} 矩形=({rect.X:0.#}, {rect.Y:0.#}, {rect.Width:0.#}, {rect.Height:0.#}) 追従中={snapshot.IsMarkerFollowingPointer}");
+        }
+
+        // 実カーソルから追従位置を取り直す（取り直せないときはその旨を出す）
+        void ShowLoupePosition() =>
+            WriteLog(marquee.TryGetCurrentLoupePosition(out var position)
+                ? $"追従位置（実カーソル）: ({position.X:0.#}, {position.Y:0.#})"
+                : "追従位置を取り直せません（ドラッグ中・nudge 中・ポインターが外にある）");
 
         // ── サンプル設定（サンプルアプリの外観と状態） ──
         var samples = new StackPanel().Vertical().Spacing(6).Children(

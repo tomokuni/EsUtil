@@ -63,6 +63,7 @@ dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Marquee/sample/EsUtil.Ui.Av
 | 「固定矩形」ボタン | `SetSelection()` による外部復元 |
 | 「確定要求」ボタン | `RequestConfirm()`（Enter キーと同じ条件）を呼び出し |
 | 「キャンセル要求」ボタン | `RequestCancel()`（Escape キーと同じ条件）を呼び出し |
+| 「状態を状態欄へ出す（CurrentSnapshot）」ボタン | CurrentSnapshot（選択の有無・矩形・マーカーの追従）と HasSelection を状態の行へ出し、TryGetCurrentLoupePosition でルーペの現在位置も出す |
 | 「画像外の選択を禁止」チェックボックス | `Options.ClampToSourceBounds` を ON/OFF（ON: 領域選択・移動・nudge を画像境界内にクリップ / OFF: 画像外も選択可能） |
 | 「ログクリア」ボタン | ログ表示領域をクリア |
 | ログ表示領域 | `MarqueeControl` 内部の操作ログ（MouseDown / KeyDown / Nudge 等）を時分秒ミリ秒付きで表示 |

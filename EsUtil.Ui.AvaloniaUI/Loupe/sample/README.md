@@ -53,6 +53,11 @@ dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/Loupe/sample/EsUtil.Ui.Aval
 | 「ソースを設定」ボタン | `Source` を設定し直す |
 | 「ソースを解除（描画資源を解放）」ボタン | `Clear()` を呼び出して非表示にし、`Source` を解放する |
 | 「再描画を要求」ボタン | `InvalidateRender()` を呼び出し、プロパティ変更を伴わない再描画を要求 |
+| 「座標変換（拡大率に追従）」チェック | SetCoordTransform で独自の座標変換を渡す（拡大率の変更に追従する） |
+| 「見本の描画計画（格子線・四隅の鉤）」チェック | DrawPlanResolver で描画計画を差し替える |
+| 「位置を再計算」ボタン | RefreshPosition() で拡大の中心を取り直す |
+| 「レイアウトを解決」ボタン | ResolveLayout(EsSize) の結果（クライアントの大きさと中心）を状態の行へ出す |
+| 「描画直前に中心を取り直す」チェック | CenterPointProvider で描画のたびに中心を問い合わせる |
 | 「ソースを設定して再表示」ボタン | `Source` を設定し、非表示でも再表示する |
 | 「ログ レベル」 | ログの表示レベル（Trace / Debug / Information / Warning / Error）。 既定は Debug（Trace は入力のたびに出るため） |
 | 「ログ接頭辞」 | `LogPrefix`（全ルーペ共通。 変更すると以降のログの接頭辞が変わる） |

@@ -3,6 +3,7 @@ using Aprillz.MewUI.Controls;
 using EsUtil.Ui.MewUI.Loupe.Sample.Imaging;
 using EsUtil.Ui.MewUI.Loupe.Sample.Presentation;
 using EsUtil.Ui.MewUI.SampleKit;
+using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 using DrawingColor = System.Drawing.Color;
@@ -199,7 +200,11 @@ internal static class MainWindow
             }),
             SampleSettings.Text("ログ接頭辞", "[Loupe]", value => loupe.LogPrefix = value),
             SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
-                loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null));
+                loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null),
+            SampleSettings.Check("座標変換（拡大率に追従）", false, value =>
+                loupe.SetCoordTransform(value
+                    ? CoordTransform.CreateClientToSource(() => 1.0 / loupe.Options.ZoomLevel)
+                    : null)));
 
         // ── API操作（対象コントロールのメソッド実行） ──
         var methods = new StackPanel().Vertical().Spacing(6).Children(

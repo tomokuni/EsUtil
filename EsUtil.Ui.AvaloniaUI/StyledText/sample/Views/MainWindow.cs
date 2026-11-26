@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using EsUtil.Feature.StyledText.Presenter.Formatting;
+using EsUtil.Platform.Core.Geometry;
 using EsUtil.Ui.AvaloniaUI.SampleKit;
 using Microsoft.Extensions.Logging;
 
@@ -10,6 +12,8 @@ namespace EsUtil.Ui.AvaloniaUI.StyledText.Sample.Views;
 /// <remarks>
 /// <b>示すこと</b>: 本文を入力欄で覆わず、その場で表示・編集できること。 すべての操作
 /// （キャレット・選択・入力・削除・書式・クリップボード）を API から行えること。<br/>
+/// <b>書式バー</b>: 本文の上へ <see cref="StyledTextFormatBar"/> を出し、選択範囲の書式を操作する。
+/// 出す項目（太字・色など）は <see cref="StyledTextControl.FormatBarItems"/> で切り替える（すべて出さないとバーは出ない）。<br/>
 /// <b>配置</b>: サンプル共通の <see cref="SampleShell"/>（左: 設定 / 右上: 本文 / 右下: ログ）を使う。
 /// </remarks>
 public sealed class MainWindow : Window
@@ -19,6 +23,15 @@ public sealed class MainWindow : Window
 
     /// <summary>ログ（Serilog + 非同期表示）。</summary>
     private readonly SampleLogging _logging = new();
+
+    /// <summary>書式バーを載せる場所（表示すべき間だけ見せる）。</summary>
+    private readonly Border _barHost = new() { IsVisible = false, Margin = new Thickness(0, 0, 0, 8) };
+
+    /// <summary>キャレット・選択・書式の状態を出す文言。</summary>
+    private readonly TextBlock _status = new() { FontSize = SampleSettings.FontSize, TextWrapping = TextWrapping.Wrap };
+
+    /// <summary>書式バー（出す項目を変えるたびに作り直す）。</summary>
+    private IStyledTextFormatBar _formatBar = null!;
 
     /// <summary>メイン ウィンドウを初期化する。</summary>
     public MainWindow()
@@ -37,23 +50,36 @@ public sealed class MainWindow : Window
         _editor.RichTextChanged += (_, _) =>
         {
             logger.LogInformation("本文が変わりました。");
+            UpdateStatus();
         };
         _editor.SelectionChanged += (_, _) =>
         {
             logger.LogDebug("選択が変わりました。");
+            UpdateFormatBar();
+            UpdateStatus();
         };
         _editor.EditingChanged += (_, _) =>
         {
             logger.LogInformation("編集の状態が変わりました。");
+            UpdateFormatBar();
+            UpdateStatus();
         };
 
-        var content = new Border
+        RebuildFormatBar();
+
+        var content = new Grid();
+        content.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+        content.RowDefinitions.Add(new RowDefinition(new GridLength(1, GridUnitType.Star)));
+        content.Children.Add(_barHost);
+        var editorHost = new Border
         {
             Background = new SolidColorBrush(Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF)),
             BorderBrush = new SolidColorBrush(Color.FromArgb(0xFF, 0xC0, 0xC0, 0xC0)),
             BorderThickness = new Thickness(1),
             Child = _editor,
         };
+        Grid.SetRow(editorHost, 1);
+        content.Children.Add(editorHost);
 
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
         var properties = new StackPanel
@@ -65,6 +91,19 @@ public sealed class MainWindow : Window
                 SampleSettings.Slider("表示倍率", 1.0, 0.5, 2.0, 0.1, true, value => _editor.RenderScale = value),
                 SampleSettings.Slider("文字サイズ", 20, 8, 48, 1, true, value =>
                     _editor.ApplyTextStyle(0, 0, TextDefaults.DefaultStyle with { FontSize = value })),
+                SampleSettings.Check("入力を受け付ける", true, value => _editor.IsInputEnabled = value),
+                SampleSettings.Check("編集中に書式バーを自動表示", true, value =>
+                {
+                    _editor.ShowFormatBarWhileEditing = value;
+                    UpdateFormatBar();
+                }),
+                SampleSettings.Check("書式バー: 太字", true, value => UpdateItems(items => items with { ShowBold = value })),
+                SampleSettings.Check("書式バー: 斜体", true, value => UpdateItems(items => items with { ShowItalic = value })),
+                SampleSettings.Check("書式バー: 下線", true, value => UpdateItems(items => items with { ShowUnderline = value })),
+                SampleSettings.Check("書式バー: 取り消し線", true, value => UpdateItems(items => items with { ShowStrike = value })),
+                SampleSettings.Check("書式バー: 色", true, value => UpdateItems(items => items with { ShowColor = value })),
+                SampleSettings.Check("書式バー: 文字サイズ", true, value => UpdateItems(items => items with { ShowFontSize = value })),
+                SampleSettings.Check("書式バー: フォント名", true, value => UpdateItems(items => items with { ShowFont = value })),
             },
         };
 
@@ -79,6 +118,23 @@ public sealed class MainWindow : Window
                     ("編集を終了", () => _editor.EndEditing()),
                     ("すべて選択", () => _editor.SelectAll())),
                 SampleSettings.Buttons(
+                    ("先頭 5 文字を選択", () => _editor.Select(0, 5)),
+                    ("キャレットを先頭へ", () => _editor.MoveCaret(0, extend: false)),
+                    ("キャレットを末尾へ", () => _editor.MoveCaret(int.MaxValue, extend: false)),
+                    ("位置 (0,0) からキャレット", () => _editor.SetCaretFromPoint(new EsPoint(0, 0), extend: false))),
+                SampleSettings.Buttons(
+                    ("前の 1 文字へ", () => _editor.MoveCaretByCluster(-1, extend: false)),
+                    ("次の 1 文字へ", () => _editor.MoveCaretByCluster(1, extend: false)),
+                    ("行頭へ", () => _editor.MoveCaretToLineEdge(first: true, extend: false)),
+                    ("行末へ", () => _editor.MoveCaretToLineEdge(first: false, extend: false)),
+                    ("上の行へ", () => _editor.MoveCaretByLine(-1, extend: false)),
+                    ("下の行へ", () => _editor.MoveCaretByLine(1, extend: false))),
+                SampleSettings.Buttons(
+                    ("選択を「置換」で置き換え", () => _editor.ReplaceSelection("置換")),
+                    ("範囲 1〜3 を「範囲」で置き換え", () => _editor.ReplaceRange(1, 3, "範囲")),
+                    ("前を削除", () => _editor.DeleteAtCaret(forward: false)),
+                    ("後を削除", () => _editor.DeleteAtCaret(forward: true))),
+                SampleSettings.Buttons(
                     ("太字の切替", () => _editor.TransformTextStyle(static style => style with { IsBold = !style.IsBold })),
                     ("斜体の切替", () => _editor.TransformTextStyle(static style => style with { IsItalic = !style.IsItalic })),
                     ("下線の切替", () => _editor.TransformTextStyle(static style => style with { IsUnderline = !style.IsUnderline }))),
@@ -91,6 +147,10 @@ public sealed class MainWindow : Window
                     ("選択をコピー", () => _ = _editor.CopyAsync()),
                     ("選択を切り取り", () => _ = _editor.CutAsync()),
                     ("貼り付け", () => _ = _editor.PasteAsync())),
+                SampleSettings.Buttons(
+                    ("選択文字を状態へ出す", ShowSelectedText),
+                    ("選択が太字か調べる", ShowSelectedBold),
+                    ("キャレットの点滅を戻す", () => _editor.RefreshCaretBlink())),
             },
         };
 
@@ -101,6 +161,7 @@ public sealed class MainWindow : Window
             Children =
             {
                 SampleSettings.LogLevel(_logging),
+                _status,
                 SampleSettings.Buttons(
                     ("テスト ログを出力（非同期）", () => logger.LogInformation("テスト ログ（非同期）")),
                     ("本文を初期化", ResetText)),
@@ -118,14 +179,66 @@ public sealed class MainWindow : Window
         MinHeight = window.MinHeight;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
+        UpdateStatus();
         Closed += (_, _) => _logging.Dispose();
         return;
+
+        // 書式バーを作り直す（出す項目は作るときに決まる。 差し替えはバーを隠してから行う）
+        void RebuildFormatBar()
+        {
+            _barHost.IsVisible = false;
+            _formatBar = new StyledTextFormatBarFactory().Create(
+                new StyledTextFormatBarContext(_editor),
+                new StyledTextFormatBarOptions { Items = _editor.FormatBarItems });
+            _formatBar.SetFocusRequest(() => _editor.Focus());
+            _barHost.Child = _formatBar.View;
+            UpdateFormatBar();
+        }
+
+        // 書式バーを出すか隠すかを決める（条件は本文コントロールが単一所有する）
+        void UpdateFormatBar()
+        {
+            if (!_editor.ShouldShowFormatBar)
+            {
+                _barHost.IsVisible = false;
+                return;
+            }
+
+            _formatBar.Refresh();
+            _barHost.IsVisible = true;
+        }
+
+        // 書式バーに出す項目を変える（作るときに決まるため作り直す）
+        void UpdateItems(Func<TextFormatBarItemVisibility, TextFormatBarItemVisibility> update)
+        {
+            _editor.FormatBarItems = update(_editor.FormatBarItems);
+            RebuildFormatBar();
+        }
+
+        // キャレット・選択・書式の状態を 1 行で出す
+        void UpdateStatus() => _status.Text =
+            $"編集中: {_editor.IsEditing} / 選択あり: {_editor.HasSelection}\n" +
+            $"キャレット: {_editor.CaretIndex} / 選択: ({_editor.SelectionStart}, {_editor.SelectionLength})\n" +
+            $"選択の書式: 太字={_editor.SelectedTextStyle.IsBold} 斜体={_editor.SelectedTextStyle.IsItalic} " +
+            $"大きさ={_editor.SelectedTextStyle.FontSize:0.#}";
+
+        // 選択中の文字列を状態へ出す（長い場合は先頭 20 文字に切る）
+        void ShowSelectedText()
+        {
+            var text = _editor.GetSelectedText();
+            _status.Text = $"選択文字: {text[..Math.Min(20, text.Length)]}";
+        }
+
+        // 選択範囲のすべてが太字かを状態へ出す（書式ボタンの押下状態と同じ判定）
+        void ShowSelectedBold() =>
+            _status.Text = $"選択はすべて太字: {_editor.SelectedTextMatches(static style => style.IsBold)}";
 
         // 本文を先頭の 1 行へ戻す（編集の状態も捨てる）
         void ResetText()
         {
             _editor.EndEditing();
             _editor.RichTextValue = RichText.Create("ここが重要です。", TextDefaults.DefaultStyle);
+            UpdateStatus();
         }
     }
 }

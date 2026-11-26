@@ -66,6 +66,8 @@ dotnet run --project EsUtil.Ui.WinUI3/Marquee/sample/EsUtil.Ui.WinUI3.Marquee.Sa
 | 「ハイライト切替」ボタン | **表示専用の注目矩形**を設定する（`HighlightSourceRect`）／解除する。 選択（`SetSelection`）とは別で、**ハンドルを出さず、ドラッグやキー操作も受け付けない**（確定・キャンセルの対象にもならない）。 注目矩形はハイライトが優先されるため、外側マスク・枠線・サイズ ラベルもハイライト一つになる |
 | 「表示倍率」 | 対象座標と表示 DIP の倍率を変える（選択の座標は対象座標のまま） |
 | 「描画計画を差し替える（破線・ガイド線）」 | 描画計画を差し替える |
+| 「状態を状態欄へ出す（CurrentSnapshot）」ボタン | CurrentSnapshot（選択の有無・矩形・マーカーの追従）と HasSelection を状態の行へ出し、TryGetCurrentLoupePosition でルーペの現在位置も出す |
+| 「ポインターが上にあるか」ボタン | `IsPointerOver`（ポインターがコントロールの上にあるか）を状態の行へ出す |
 
 **キー入力の前提**: 矢印キー・Enter・Escape はコントロールにフォーカスがある間だけ届きます（ステージを一度クリックしてから押してください）。
 

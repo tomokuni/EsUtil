@@ -114,6 +114,23 @@ public sealed class MainWindow : Window
             logger.Log(level, default, line, null, static (state, _) => state);
         }
 
+        // スナップショット（現在の状態）を状態欄へ出す
+        void ShowSnapshot()
+        {
+            var snapshot = _marquee.CurrentSnapshot;
+            var rect = _marquee.SelectionSourceRect;
+            _status.Text =
+                $"選択あり: {_marquee.HasSelection} / " +
+                $"矩形: x={rect.X:0.#}, y={rect.Y:0.#}, w={rect.Width:0.#}, h={rect.Height:0.#} / " +
+                $"追従中: {snapshot.IsMarkerFollowingPointer}";
+        }
+
+        // 実カーソルから追従位置を取り直す（取り直せないときはその旨を出す）
+        void ShowLoupePosition() =>
+            _status.Text = _marquee.TryGetCurrentLoupePosition(out var position)
+                ? $"追従位置（実カーソル）: X={position.X:0.#} Y={position.Y:0.#}"
+                : "追従位置を取り直せません（ドラッグ中・nudge 中・ポインターが外にある）";
+
         void UpdateStatus(MarqueeSnapshot snapshot)
         {
             var rect = snapshot.SelectionSourceRect;
@@ -226,6 +243,9 @@ public sealed class MainWindow : Window
                     ("矩形を設定", () => _marquee.SetSelection(new EsRect(250, 180, 300, 200))),
                     ("確定を要求", () => _marquee.RequestConfirm()),
                     ("キャンセルを要求", () => _marquee.RequestCancel())),
+                SampleSettings.Buttons(
+                    ("状態を状態欄へ出す（CurrentSnapshot）", ShowSnapshot),
+                    ("実カーソルから追従位置を取り直す", ShowLoupePosition)),
             },
         };
 

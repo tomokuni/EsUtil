@@ -1,6 +1,7 @@
 using EsUtil.Ui.WinForms.Loupe.Sample.Imaging;
 using EsUtil.Ui.WinForms.Loupe.Sample.Presentation;
 using EsUtil.Ui.WinForms.SampleKit;
+using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using Microsoft.Extensions.Logging;
 using DrawingColor = System.Drawing.Color;
@@ -187,7 +188,11 @@ internal static class MainForm
             SampleSettings.Slider("座標ラベルの間隔", 2, 0, 24, 1, true, value => ApplyAppearance(appearance with { CoordLabelOffset = value })),
             SampleSettings.Text("ログ接頭辞", "[Loupe]", value => loupe.LogPrefix = value),
             SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
-                loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null));
+                loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null),
+            SampleSettings.Check("座標変換（拡大率に追従）", false, value =>
+                loupe.SetCoordTransform(value
+                    ? CoordTransform.CreateClientToSource(() => 1.0 / loupe.Options.ZoomLevel)
+                    : null)));
 
         // ── サンプル設定（サンプル固有の操作。 並びは他 UI と共通） ──
         var samples = Column(

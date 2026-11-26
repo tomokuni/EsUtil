@@ -41,6 +41,11 @@ dotnet run -c Release --project EsUtil.Ui.MewUI/Thumbnail/sample/EsUtil.Ui.MewUI
 | 「追加」ボタン | 画像を 1 件生成して末尾へ追加（`Add`） |
 | 「12 件に戻す」ボタン | 一覧を空にして 12 件を作り直す（`ClearItems` ＋ `Add`） |
 | 「末尾へスクロール」ボタン | `ScrollToIndex(ItemCount - 1)` |
+| 「先頭の説明を変える」ボタン | SetCaption(0, ...)（項目のラベルの差し替え） |
+| 「先頭の画像を差し替える」ボタン | SetImage(0, ...)（項目の画像の差し替え） |
+| 「先頭の矩形を状態へ（SlotBounds）」ボタン | SlotBounds(0)（項目の外枠の矩形）を状態の行へ出す |
+| 「可視範囲を状態へ（VisibleRange）」ボタン | VisibleRange（見えている項目の範囲）を状態の行へ出す |
+| 「提示層の状態を出す（Presentation）」ボタン | Presentation（設定と外観）の値を状態の行へ出す |
 | 「表示テーマ」選択（共通の設定行） | `SampleTheme`（コントロールは明暗をフレームワークのテーマから自分で読むため、指定は不要） |
 | 項目を 1 回押す | 選択（`SelectedIndex` と `SelectionChanged`） |
 | 項目を 2 回押す | 確定（`ItemActivated`。 状態表示に添字を出す） |
@@ -59,6 +64,8 @@ dotnet run -c Release --project EsUtil.Ui.MewUI/Thumbnail/sample/EsUtil.Ui.MewUI
 - [ ] 項目へマウスを重ねるとホバー帯が付く（表示テーマをダークにすると色が変わる）
 - [ ] 「表示テーマ」をダークにすると背景・ホバー・選択の色が暗色向けに変わる
 - [ ] 「末尾へスクロール」で最後の項目が見える位置へ移動する
+- [ ] 「先頭の矩形を状態へ（SlotBounds）」で矩形が、「可視範囲を状態へ（VisibleRange）」で範囲が状態の行に出る
+- [ ] 「先頭の説明を変える」「先頭の画像を差し替える」で先頭の項目の見た目が変わる
 - [ ] 「追加」で項目が 1 件増え、状態表示の件数が増える
 - [ ] ウィンドウを縮めても項目が切れず、スクロールで全件へ到達できる
 

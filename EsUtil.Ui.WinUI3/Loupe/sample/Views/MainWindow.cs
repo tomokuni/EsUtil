@@ -1,3 +1,4 @@
+using EsUtil.Platform.Core.Coord;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Ui.WinUI3.Loupe.Sample.Imaging;
@@ -218,6 +219,10 @@ public sealed class MainWindow : Window
                 SampleSettings.Text("ログ接頭辞", "[Loupe]", value => _loupe.LogPrefix = value),
                 SampleSettings.Check("見本の描画計画（格子線・四隅の鉤）", false, value =>
                     _loupe.DrawPlanResolver = value ? static plan => GridLoupePlan.Resolve(in plan) : null),
+                SampleSettings.Check("座標変換（拡大率に追従）", false, value =>
+                    _loupe.SetCoordTransform(value
+                        ? CoordTransform.CreateClientToSource(() => 1.0 / _loupe.Options.ZoomLevel)
+                        : null)),
             },
         };
 

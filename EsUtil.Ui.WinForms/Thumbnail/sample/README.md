@@ -42,7 +42,13 @@ dotnet run -c Release --project EsUtil.Ui.WinForms/Thumbnail/sample/EsUtil.Ui.Wi
 | 「追加」ボタン | 画像を 1 件生成して末尾へ追加（`Add`） |
 | 「12 件に戻す」ボタン | 一覧を空にして 12 件を作り直す（`ClearItems` ＋ `Add`） |
 | 「末尾へスクロール」ボタン | `ScrollToIndex(ItemCount - 1)` |
+| 「先頭の説明を変える」ボタン | SetCaption(0, ...)（項目のラベルの差し替え） |
+| 「先頭の画像を差し替える」ボタン | SetImage(0, ...)（項目の画像の差し替え） |
+| 「先頭の矩形を状態へ（SlotBounds）」ボタン | SlotBounds(0)（項目の外枠の矩形）を状態の行へ出す |
+| 「可視範囲を状態へ（VisibleRange）」ボタン | VisibleRange（見えている項目の範囲）を状態の行へ出す |
+| 「提示層の状態を出す（Presentation）」ボタン | Presentation（設定と外観）の値を状態の行へ出す |
 | 「暗色テーマ」チェック（プロパティ設定） | `IsDarkTheme` ＋ `Refresh()`（WinForms はテーマを持たないため、明暗はホストが指定する） |
+| 「暗色テーマか（IsDarkTheme）」ボタン | `IsDarkTheme` の現在値を状態の行へ出す |
 | 項目を 1 回押す | 選択（`SelectedIndex` と `SelectionChanged`） |
 | 項目を 2 回押す | 確定（`ItemActivated`。 状態表示に添字を出す） |
 | 項目へマウスを重ねる | ホバー帯の表示 |
@@ -57,6 +63,8 @@ dotnet run -c Release --project EsUtil.Ui.WinForms/Thumbnail/sample/EsUtil.Ui.Wi
 - [ ] 項目へマウスを重ねるとホバー帯が付く（暗色テーマでは色が変わる）
 - [ ] 「暗色テーマ」を切り替えると背景・ホバー・選択の色が暗色向けに変わる
 - [ ] 「末尾へスクロール」で最後の項目が見える位置へ移動する
+- [ ] 「先頭の矩形を状態へ（SlotBounds）」で矩形が、「可視範囲を状態へ（VisibleRange）」で範囲が状態の行に出る
+- [ ] 「先頭の説明を変える」「先頭の画像を差し替える」で先頭の項目の見た目が変わる
 - [ ] 「追加」で項目が 1 件増え、状態表示の件数が増える
 - [ ] ウィンドウを縮めても項目が切れず、スクロールで全件へ到達できる
 

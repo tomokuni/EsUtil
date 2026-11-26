@@ -55,6 +55,8 @@ dotnet run -c Release --project EsUtil.Ui.MewUI/Marquee/sample/EsUtil.Ui.MewUI.M
 | 「選択をクリア」/「矩形を設定」ボタン | `ResetSelection()` / `SetSelection(new EsRect(250, 180, 300, 200))` |
 | 「ハイライト切替」ボタン | **表示専用の注目矩形**を設定する（`HighlightSourceRect`）／解除する。 選択（`SetSelection`）とは別で、**ハンドルを出さず、ドラッグやキー操作も受け付けない**（確定・キャンセルの対象にもならない）。 注目矩形はハイライトが優先されるため、外側マスク・枠線・サイズ ラベルもハイライト一つになる |
 | 「確定を要求」/「キャンセルを要求」ボタン | `RequestConfirm()` / `RequestCancel()`（選択がある場合だけ確定要求が発火する） |
+| 「状態を状態欄へ出す（CurrentSnapshot）」ボタン | CurrentSnapshot（選択の有無・矩形・マーカーの追従）と HasSelection を状態の行へ出し、TryGetCurrentLoupePosition でルーペの現在位置も出す |
+| 「再描画を要求」ボタン | `InvalidateRender()`（プロパティ変更を伴わない再描画要求） |
 | 「描画計画を差し替える（破線・ガイド線）」チェック | 見本の描画計画の適用（枠線の代わりに破線、内側に三分割のガイド線） |
 
 ## 4. 検証項目（動作確認チェックリスト）

@@ -49,6 +49,11 @@ public sealed class MainWindow : Window
             _status.Text = $"選択: {_thumbnails.SelectedIndex}（{_thumbnails.ItemCount} 件中）";
         };
         _thumbnails.ItemActivated += (_, e) => _status.Text = $"確定: {e.Index}";
+        _thumbnails.ScrollChanged += (_, _) =>
+        {
+            var range = _thumbnails.VisibleRange;
+            _status.Text = $"スクロール: 可視範囲 {range.First}〜{range.Last}";
+        };
 
         var appearance = ThumbnailAppearance.Default;
 
@@ -88,9 +93,35 @@ public sealed class MainWindow : Window
                     ("追加", AddItem),
                     ("12 件に戻す", ResetItems),
                     ("末尾へスクロール", () => _thumbnails.ScrollToIndex(_thumbnails.ItemCount - 1))),
+                SampleSettings.Buttons(
+                    ("先頭の説明を変える", () => _thumbnails.SetCaption(0, $"説明を変更 {DateTime.Now:HH:mm:ss}")),
+                    ("先頭の画像を差し替える", () => _thumbnails.SetImage(0, EsReadOnlyBitmap.FromBitmap(_images[0]))),
+                    ("先頭の矩形を状態へ（SlotBounds）", ShowSlotBounds),
+                    ("可視範囲を状態へ（VisibleRange）", ShowVisibleRange),
+                    ("提示層の状態を出す（Presentation）", ShowPresentation)),
             },
         };
 
+        // 項目の外枠の矩形を状態へ出す（SlotBounds の公開 API）
+        void ShowSlotBounds()
+        {
+            var bounds = _thumbnails.SlotBounds(0);
+            _status.Text = $"先頭の矩形: x={bounds.X:0.#} y={bounds.Y:0.#} w={bounds.Width:0.#} h={bounds.Height:0.#}";
+        }
+
+        // 見えている項目の範囲を状態へ出す（VisibleRange の公開 API）
+        void ShowVisibleRange()
+        {
+            var range = _thumbnails.VisibleRange;
+            _status.Text = $"可視範囲: {range.First}〜{range.Last}（{range.Count} 件 / 全 {_thumbnails.ItemCount} 件）";
+        }
+
+        // 提示層（設定・外観）の状態を出す（Presentation の公開 API）
+        void ShowPresentation() =>
+            _status.Text =
+                $"提示層: 行間={_thumbnails.Presentation.Options.RowSpace:0.#} " +
+                $"ラベルの文字サイズ={_thumbnails.Presentation.Appearance.LabelFontSize:0.#} " +
+                $"選択の背景={_thumbnails.Presentation.Appearance.ShowSelectionBackground}";
         // ── サンプル設定（サンプルアプリの外観と状態） ──
         var samples = new StackPanel
         {

@@ -93,6 +93,8 @@ public sealed class MainWindow : Window
 
                 UpdateStatus();
             };
+            // 同じ色を選び直したときも発生する（ColorApplied の公開イベント）
+            control.ColorApplied += (_, _) => _status.Text = $"確定: {control.SelectedColor}（テーマ色: {control.SelectedThemeColor ?? "なし"}）";
 
             var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
             row.Children.Add(new TextBlock
@@ -195,6 +197,14 @@ public sealed class MainWindow : Window
                     TextWrapping = TextWrapping.Wrap,
                 },
                 SampleSettings.Buttons(("保存値を初期値へ戻す", ResetValues)),
+                SampleSettings.Buttons(
+                    ("先頭をテーマ色へ（SelectedThemeColor）", () => _controls[0].SelectedThemeColor = ColorSelectorControl.ThemeColorKeys[0]),
+                    ("テーマ色名を解決（TryResolveThemeColor）", () =>
+                        _status.Text = ColorSelectorControl.ThemeColorKeys[0] is var key && _controls[0].TryResolveThemeColor(key, out var hex)
+                            ? $"テーマ色の解決: {key} = {hex}"
+                            : $"テーマ色の解決に失敗: {key}"),
+                    ("テーマ色の一覧を状態へ（ThemeColorKeys）", () =>
+                        _status.Text = $"テーマ色 {ColorSelectorControl.ThemeColorKeys.Count} 件: {string.Join(", ", ColorSelectorControl.ThemeColorKeys.Take(6))} …")),
                 _status,
                 _error,
             },

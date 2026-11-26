@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.StyledText;
 using EsUtil.Feature.StyledText.Core.Defaults;
+using EsUtil.Feature.StyledText.Presenter.Formatting;
+using EsUtil.Platform.Core.Palette;
 
 namespace EsUtil.Ui.MewUI.Annotation.Sample.Views;
 
@@ -90,7 +92,18 @@ internal static class MainWindow
                 value => ApplyDraft(draft => draft with { FrameAppearance = draft.FrameAppearance with { BorderThickness = value } })),
             SampleSettings.Slider("本文の文字サイズ", defaults.TextStyle.FontSize, 8, 96, 1, true,
                 value => ApplyDraft(draft => draft with { TextStyle = draft.TextStyle with { FontSize = value } })),
-            SampleSettings.Text("ログ接頭辞", "[Annotation]", value => layer.LogPrefix = value));
+            SampleSettings.Text("ログ接頭辞", "[Annotation]", value => layer.LogPrefix = value),
+            SampleSettings.Check("編集中に書式バーを自動表示", true, value => editor.ShowFormatBarWhileEditing = value),
+            SampleSettings.Check("書式バー: 太字", true, value => UpdateItems(items => items with { ShowBold = value })),
+            SampleSettings.Check("書式バー: 斜体", true, value => UpdateItems(items => items with { ShowItalic = value })),
+            SampleSettings.Check("書式バー: 下線", true, value => UpdateItems(items => items with { ShowUnderline = value })),
+            SampleSettings.Check("書式バー: 取り消し線", true, value => UpdateItems(items => items with { ShowStrike = value })),
+            SampleSettings.Check("書式バー: 色", true, value => UpdateItems(items => items with { ShowColor = value })),
+            SampleSettings.Check("書式バー: 文字サイズ", true, value => UpdateItems(items => items with { ShowFontSize = value })),
+            SampleSettings.Check("書式バー: フォント名", true, value => UpdateItems(items => items with { ShowFont = value })),
+            SampleSettings.Choice("色の表記", ["色名 + 不透明度", "カラーコード"], 0, index =>
+                editor.TextFormat = index == 1 ? ColorTextFormat.HexCode : ColorTextFormat.NameWithAlpha),
+            SampleSettings.Check("画像を表示", true, value => layer.ShowImage = value));
 
         // API操作（対象コントロールのメソッド実行）
         var methods = new StackPanel().Vertical().Spacing(6).Children(
@@ -106,7 +119,29 @@ internal static class MainWindow
                 ("選択を解除", () => layer.ClearSelection()),
                 ("注釈を保存", () => SaveAnnotations()),
                 ("注釈を読み込む", () => LoadAnnotations()),
-                ("削除", () => layer.DeleteSelected())));
+                ("削除", () => layer.DeleteSelected())),
+            SampleSettings.Buttons(
+                ("枠線を追加（位置指定）", () => layer.AddFrameAt(new Point(160, 160))),
+                ("吹き出しを追加（位置指定）", () => layer.AddBubbleAt(new Point(260, 120)))),
+            SampleSettings.Buttons(
+                ("選択の書式を太字に", () => layer.ApplyTextStyle(layer.SelectedTextStyle with { IsBold = true })),
+                ("選択の太字を切替", () => layer.TransformTextStyle(static style => style with { IsBold = !style.IsBold })),
+                ("本文の 0〜5 を選択", () => layer.SelectText(0, 5))),
+            SampleSettings.Buttons(
+                ("本文の余白を 12 に", () => layer.SetSelectedBodyPadding(12)),
+                ("しっぽの幅を 30 に", () => layer.UpdateSelectedTail(static tail => tail with { Width = 30 })),
+                ("外観の枠線を 3 に", () => layer.UpdateSelectedAppearance(static appearance => appearance with { BorderThickness = 3 }))),
+            SampleSettings.Buttons(
+                ("外観パネルを表示", () => layer.ShowStyleEditor()),
+                ("外観パネルを閉じる", () => editor.CloseStylePanel()),
+                ("選択をコピー", () => editor.CopyTextSelection())),
+            SampleSettings.Buttons(
+                ("切り取り", () => editor.CutTextSelection()),
+                ("貼り付け", () => editor.PasteText()),
+                ("再描画を要求", () => layer.InvalidateRender())),
+            SampleSettings.Buttons(
+                ("合成画像を保存", () => SaveComposed()),
+                ("当たり判定（位置 200,200）", () => ShowHitTest())));
 
         // ── サンプル設定（サンプルアプリの外観と状態） ──
         var samples = new StackPanel().Vertical().Spacing(6).Children(
@@ -141,10 +176,32 @@ internal static class MainWindow
             layer.DraftDefaults = defaults;
         }
 
+        // 書式バーに出す項目を変える（バーの作り直しはパネルが行う。 表示中は差し替えできない）
+        void UpdateItems(Func<TextFormatBarItemVisibility, TextFormatBarItemVisibility> update)
+        {
+            editor.FormatBarItems = update(editor.FormatBarItems);
+        }
+
         // 件数・選択・履歴の状態をまとめて出す（どの操作が効いたかを 1 行で確かめられる）
         void UpdateStatus() => status.Text =
             $"{layer.Document.Items.Length} 件 / 選択: {ShortId(layer.Selected?.Id)}\n" +
-            $"元に戻せる: {layer.CanUndo} / やり直せる: {layer.CanRedo}";
+            $"元に戻せる: {layer.CanUndo} / やり直せる: {layer.CanRedo}\n" +
+            $"書式バー: {(editor.IsFormatBarOpen ? "表示" : "非表示")} / 外観パネル: {(editor.IsStylePanelOpen ? "表示" : "非表示")}\n" +
+            $"選択の書式: 太字={layer.SelectedTextStyle.IsBold} 大きさ={layer.SelectedTextStyle.FontSize:0.#} " +
+            $"枠線の太さ={layer.SelectedAppearance?.BorderThickness:0.#}";
+
+        // 合成画像を書き出し、保存先を状態へ出す（選択枠・キャレットは描かない）
+        void SaveComposed()
+        {
+            using var composed = layer.RenderComposedImage();
+            var path = AnnotationJson.GetComposedPath(s_imagePath);
+            composed.Save(path);
+            status.Text = $"合成画像: {path}";
+        }
+
+        // 位置が注釈に当たるかを状態へ出す（当たり判定の公開 API）
+        void ShowHitTest() =>
+            status.Text = $"位置 (200, 200) は注釈に当たる: {layer.HitTestAt(new Point(200, 200))}";
 
         void SaveAnnotations()
         {

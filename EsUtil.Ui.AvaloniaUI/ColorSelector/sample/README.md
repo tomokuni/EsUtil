@@ -50,6 +50,8 @@ dotnet run -c Release --project EsUtil.Ui.AvaloniaUI/ColorSelector/sample/EsUtil
 | バリデーション状態表示 | メインの ColorSelectorControl から `HasValidationError` / `ValidationErrorMessage` を読み取り表示 |
 | 設定パネル | `ColorSortMode` 切替 / `TextFormat` 切替 / `HighlightBorderOnError` ON/OFF / `TextMinWidth` スライダー / 現在値の表示 |
 | カラーピッカーボタン | 各 ColorSelectorControl 右側の「…」ボタンから ColorView Flyout を起動 |
+| 「先頭をテーマ色へ（SelectedThemeColor）」/「テーマ色名を解決（TryResolveThemeColor）」/「テーマ色の一覧を状態へ（ThemeColorKeys）」ボタン | 先頭の行をテーマ色へ切り替え（`SelectedThemeColor`）、テーマ色名を色へ解決し（`TryResolveThemeColor`）、テーマ色の一覧（`ThemeColorKeys`）を状態の行へ出す |
+| 重複した API の確認 | 同じ色を選び直したときも `ColorApplied`、値が変わったときだけ `SelectedColorChanged` が発生する（状態の行で確認できる） |
 
 ---
 

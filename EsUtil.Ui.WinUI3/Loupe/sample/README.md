@@ -51,6 +51,8 @@ dotnet run -c Release --project EsUtil.Ui.WinUI3/Loupe/sample/EsUtil.Ui.WinUI3.L
 | 枠線の太さのスライダー | `Appearance.BorderThickness`（0〜8 DIP） |
 | 「座標ラベルを表示」チェック | `Appearance.ShowCoordLabel`（ルーペ左上の中心座標ラベル） |
 | 「再描画を要求」ボタン | `Loupe.Invalidate()`（プロパティ変更を伴わない再描画要求） |
+| 「座標変換（拡大率に追従）」チェック | SetCoordTransform で独自の座標変換を渡す（拡大率の変更に追従する） |
+| 「見本の描画計画（格子線・四隅の鉤）」チェック | DrawPlanResolver で描画計画を差し替える |
 | 「非表示にして解放」ボタン | ルーペを非表示にして `Source` を null にする（未設定時の下地の確認） |
 | 「ソースを再設定」ボタン | `Source` へテスト画像を設定し、表示を戻す |
 | 「選択矩形を表示」チェック | 選択矩形の破線オーバーレイの表示切り替え（画像側とルーペ内の両方） |
