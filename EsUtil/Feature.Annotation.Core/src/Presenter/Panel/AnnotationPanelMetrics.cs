@@ -1,3 +1,5 @@
+using EsUtil.Feature.StyledText.Presenter.Formatting;
+
 namespace EsUtil.Feature.Annotation.Presenter.Panel;
 
 /// <summary>書式バーと注釈（編集中の本文を囲む矩形）の間の余白（DIP）を所有する。</summary>
@@ -9,7 +11,7 @@ namespace EsUtil.Feature.Annotation.Presenter.Panel;
 public static class AnnotationPanelMetrics
 {
     /// <summary>書式バーと注釈の間の余白（DIP）。</summary>
-    public const double FormatBarGap = 24;
+    public const double FormatBarGap = FloatingPanelPlacement.FormatBarGap;
 
     /// <summary>レイヤーの範囲より外側へパネルを置ける余白（DIP）。</summary>
     /// <remarks>
@@ -17,5 +19,5 @@ public static class AnnotationPanelMetrics
     /// 書式バーが内側へ押し戻され、本文に重なる。 広げた範囲は見えている範囲
     /// （<see cref="AnnotationPanelPlacement.ResolveAvailableArea"/>）との交わりで切られる。
     /// </remarks>
-    public const double OutsideAllowance = 240;
+    public const double OutsideAllowance = FloatingPanelPlacement.OutsideAllowance;
 }

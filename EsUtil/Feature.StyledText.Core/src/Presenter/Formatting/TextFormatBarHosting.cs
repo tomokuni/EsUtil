@@ -17,7 +17,7 @@ public enum TextFormatBarHosting
     /// <summary>本文コントロールが選択範囲の近くへポップアップとして出す。</summary>
     /// <remarks>
     /// <b>置く場所を用意しなくてよい</b>: 本文の外へ出すため、編集中の文字に重なりにくい。
-    /// 出す位置は <see cref="TextFormatBarPlacement"/> が単一所有する（4 つの UI 版で同じ規則）。
+    /// 出す位置は <see cref="FloatingPanelPlacement"/> が単一所有する（4 つの UI 版で同じ規則）。
     /// </remarks>
     Popup = 1,
 }

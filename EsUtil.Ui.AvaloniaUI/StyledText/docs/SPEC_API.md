@@ -61,10 +61,11 @@
 - **IME は制御できません**（変換候補の表示位置と内容は OS と入力方式が決める）。 本コントロールは位置と文字列を渡すだけです。
 - **キャレットと選択範囲の色・太さは変更できません**（`EsUtil.Feature.StyledText.Core` の `TextEditorAppearance` が単一所有する。 4 つの UI 版で同じ見た目にするため）。
 - **書式は run 単位**です（文字単位の任意の属性は持たない）。
+- **色の選択はカラーピッカーのテーマをホストが読み込みます**（Avalonia.Controls.ColorPicker の Fluent.xaml）。 読み込まないと ColorView の中身が描かれません（枠とタブだけが出ます）。 書式バーは ColorSelectorControl を使うため、アプリの Application.Styles へ StyleInclude で加えてください。
 
 ## 4. 書式バー（`StyledTextFormatBar`）
 
-本文を編集中、**1 文字以上を選んだとき**に出す**文字単位の書式**のバーです。 **バーは本文コントロールが所有します**（生成・項目の反映・キーとフォーカスの転送・内容の更新は `StyledTextControl` が行う）。 ホストは出し方を 2 つから選べます。 `FormatBarHosting` が `Custom`（既定）なら `FormatBar.View` を自分のレイアウトへ置き、`ShouldShowFormatBar` で出し入れします（`Refresh` はコントロールが行う）。 `Popup` ならコントロールが選択範囲の近くへ出し入れし、位置は `EsUtil.Feature.StyledText.Presenter.Formatting.TextFormatBarPlacement` が単一所有します。 表示の条件は `TextFormatBarVisibility` が単一所有し、`StyledTextControl.ShouldShowFormatBar` が公開します。 **出さない項目は詰めて並べ、すべて非表示のときはバー自体を出しません**（`FormatBarItems`）。
+本文を編集中、**1 文字以上を選んだとき**に出す**文字単位の書式**のバーです。 **バーは本文コントロールが所有します**（生成・項目の反映・キーとフォーカスの転送・内容の更新は `StyledTextControl` が行う）。 ホストは出し方を 2 つから選べます。 `FormatBarHosting` が `Custom`（既定）なら `FormatBar.View` を自分のレイアウトへ置き、`ShouldShowFormatBar` で出し入れします（`Refresh` はコントロールが行う）。 `Popup` ならコントロールが選択範囲の近くへ出し入れし、位置は `EsUtil.Feature.StyledText.Presenter.Formatting.FloatingPanelPlacement` が単一所有します（上・下・右・左の順に探し、置ける領域へ収める）。 バーは**余白を掴んで動かせます**（動かした位置は閉じるまで選択より優先し、位置は置ける領域へ収めます）。 表示の条件は `TextFormatBarVisibility` が単一所有し、`StyledTextControl.ShouldShowFormatBar` が公開します。 **出さない項目は詰めて並べ、すべて非表示のときはバー自体を出しません**（`FormatBarItems`）。
 
 | メンバー | 説明 |
 | --- | --- |

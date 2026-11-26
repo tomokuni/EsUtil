@@ -5,7 +5,7 @@ namespace EsUtil.Ui.WinForms.StyledText;
 /// <summary>書式バーを選択範囲の近くへポップアップで出す（<see cref="TextFormatBarHosting.Popup"/>）。</summary>
 /// <remarks>
 /// <b>位置の規則は提示層が単一所有する</b>: 選択の上・下の判断と置ける領域への収めは
-/// <see cref="TextFormatBarPlacement"/> が決める（4 つの UI 版で同じ結果になる）。<br/>
+/// <see cref="FloatingPanelPlacement"/> が決める（4 つの UI 版で同じ結果になる）。<br/>
 /// <b>出す条件は本文コントロールが単一所有する</b>: ホストがバーを置く場合と同じ判断
 /// （<see cref="StyledTextControl.ShouldShowFormatBar"/>）を使う。<br/>
 /// <b>ウィンドウの中身は 1 度だけ決める</b>: バーは項目の変更で作り直されるため、そのたびに
@@ -28,6 +28,18 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     /// <summary>バーを載せる枠なしのウィンドウ（初回の表示で作る）。</summary>
     private Form? _window;
 
+    /// <summary>利用者が動かした後の左上（このコントロールの座標の DIP。 まだ動かしていない場合は <see langword="null"/>）。</summary>
+    private EsPoint? _manualPosition;
+
+    /// <summary>ドラッグ開始時のバーの左上（このコントロールの座標の DIP）。</summary>
+    private EsPoint _dragOrigin;
+
+    /// <summary>ドラッグ開始時のポインターの位置（このコントロールの座標の DIP）。</summary>
+    private EsPoint _dragOriginCursor;
+
+    /// <summary>ドラッグ中かどうか。</summary>
+    private bool _dragging;
+
     /// <summary>バーをポップアップで表示中かどうかを取得する。</summary>
     public bool IsOpen => _window is { Visible: true };
 
@@ -48,11 +60,13 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
 
         var barSize = MeasureBar(bar);
         var origin = owner.PointToScreen(Point.Empty);
-        var position = TextFormatBarPlacement.ResolvePopupPosition(
-            ToEsRect(owner.SelectionBounds),
-            barSize,
-            ResolveAvailableArea(origin),
-            TextFormatBarPlacement.Gap);
+        var available = ResolveAvailableArea(origin);
+
+        // **動かした位置を選択より優先する**: 選択が変わるたびに元の位置へ戻すと、動かした意味が無くなる
+        var position = _manualPosition is { } manual
+            ? FloatingPanelPlacement.Clamp(manual, barSize.Width, barSize.Height, available)
+            : FloatingPanelPlacement.ResolveOutside(
+                ToEsRect(owner.SelectionBounds), barSize, available, FloatingPanelPlacement.FormatBarGap);
 
         window.Location = new Point(
             origin.X + (int)Math.Round(position.X),
@@ -73,10 +87,70 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         // **中身を先に外す**: 隠したウィンドウに要素を残すと、次に載せるときに「既に親がある」で落ちる
         _root.Controls.Clear();
 
+        // **動かした位置は捨てる**: 次に出したときは選択の位置から出す
+        _manualPosition = null;
+        _dragging = false;
+
         if (_window is { Visible: true } window)
         {
             window.Hide();
         }
+    }
+
+    /// <summary>バーの余白を掴んで動かし始める。</summary>
+    /// <param name="sender">送信元。</param>
+    /// <param name="e">マウスの引数。</param>
+    private void OnBarMouseDown(object? sender, MouseEventArgs e)
+    {
+        _ = sender;
+        if (_window is not { } window || e.Button != MouseButtons.Left)
+        {
+            return;
+        }
+
+        _dragging = true;
+        _dragOrigin = _manualPosition ?? ToLocal(window.Location);
+        _dragOriginCursor = ToLocal(Cursor.Position);
+    }
+
+    /// <summary>バーをドラッグして動かす。</summary>
+    /// <param name="sender">送信元。</param>
+    /// <param name="e">マウスの引数。</param>
+    private void OnBarMouseMove(object? sender, MouseEventArgs e)
+    {
+        _ = sender;
+        if (!_dragging || _window is not { } window || e.Button != MouseButtons.Left)
+        {
+            return;
+        }
+
+        var moved = FloatingPanelPlacement.ResolveDrag(_dragOrigin, _dragOriginCursor, ToLocal(Cursor.Position));
+        var barSize = MeasureBar(owner.FormatBar);
+        var origin = owner.PointToScreen(Point.Empty);
+        _manualPosition = FloatingPanelPlacement.Clamp(
+            moved, barSize.Width, barSize.Height, ResolveAvailableArea(origin));
+        window.Location = new Point(
+            origin.X + (int)Math.Round(_manualPosition.Value.X),
+            origin.Y + (int)Math.Round(_manualPosition.Value.Y));
+    }
+
+    /// <summary>バーのドラッグを終える。</summary>
+    /// <param name="sender">送信元。</param>
+    /// <param name="e">マウスの引数。</param>
+    private void OnBarMouseUp(object? sender, MouseEventArgs e)
+    {
+        _ = sender;
+        _ = e;
+        _dragging = false;
+    }
+
+    /// <summary>画面の座標をこのコントロールの座標（DIP）へ写す。</summary>
+    /// <param name="screen">画面の座標（ピクセル）。</param>
+    /// <returns>このコントロールの座標。</returns>
+    private EsPoint ToLocal(Point screen)
+    {
+        var local = owner.PointToClient(screen);
+        return new EsPoint(local.X, local.Y);
     }
 
     /// <summary>根へバーを載せる（既に載っていれば何もしない）。</summary>
@@ -124,6 +198,12 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
             Padding = Padding.Empty,
         };
         _window.Controls.Add(_root);
+
+        // **余白を掴んで動かせるようにする**: 中身（ボタン・入力欄）は押下を処理済みにするため、
+        // 本ハンドラーは余白を掴んだときだけ呼ばれる
+        _root.MouseDown += OnBarMouseDown;
+        _root.MouseMove += OnBarMouseMove;
+        _root.MouseUp += OnBarMouseUp;
         return _window;
     }
 

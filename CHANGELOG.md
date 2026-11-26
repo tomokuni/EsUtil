@@ -58,6 +58,8 @@
 - **注釈の書式バーの差し替えを表示中でもできるようにしました**（4 つの UI 版の `AnnotationEditorPanel`）。 `FormatBarItems` / `FormatBarFactory` を書式バーの表示中に設定しても `InvalidOperationException` になりません（バーを作り直し、詰めた幅を測り直して出し直します）。 ホストに「出す前かどうか」を判断させると、判断を UI ごとに間違えて表示中に設定しただけで落ちるためです。
 - **注釈の `AnnotationEditorPanel.TextFormat` の値を `AnnotationLayerControl.ColorTextFormat` が単一所有するようにしました**（4 つの UI 版）。 右クリックの外観フライアウトと同じ値を使い、書式バーを作り直しても値が失われません（従来はバーの値だけを読み書きしており、作り直すと既定へ戻りました）。
 - **`AnnotationLogMessage.LogSettingChanged(string, string, string)` を公開しました**（列挙や組み合わせなど、数値・真偽で表せない設定値の変更を UI 層から記録できるようにする。 ログ定義はアセンブリに 1 つという規則を保つ）。
+- **書式バーの位置とドラッグの規則を StyledText 側へ移しました**（EsUtil.Feature.StyledText.Presenter.Formatting.FloatingPanelPlacement）。 対象に被せない配置・置ける領域への収め・ドラッグの規則を 1 か所が所有し、注釈のフローティング パネル（AnnotationPanelPlacement）も同じ規則を使います（規則を 2 つ持たない）。 ポップアップの書式バーは**余白を掴んで動かせます**（動かした位置は閉じるまで選択より優先）。
+- **書式バーの余白を 6 DIP から 24 DIP へ広げました**（FloatingPanelPlacement.FormatBarGap。 実寸のずれで対象に重なるのを防ぐ注釈の値へ揃える）。
 - **書式バーを本文コントロールが所有するようにしました**（4 つの UI 版の StyledTextControl）。 FormatBar（生成・項目の反映・キーとフォーカスの転送・内容の更新をコントロールが行う）・FormatBarFactory・FormatBarOptions・FormatBarHosting・IsFormatBarOpen を追加しました。 ホストは FormatBar.View を置くだけでよく、同じ配線を書き写す必要がありません。
 - **書式バーをポップアップで出せるようにしました**（4 つの UI 版。 TextFormatBarHosting.Popup）。 置く場所を用意しなくても、選択範囲の近くへ出ます（位置は提示層の TextFormatBarPlacement が単一所有し、4 つの UI 版で同じ規則）。 既定は Custom（従来どおりホストが置く）です。
 - **`StyledTextFormatBarContext` を追加しました**（4 つの UI 版の `EsUtil.Ui.<UI>.StyledText`）。 `StyledTextControl` の上に書式バーを置くための公開の適合（`ITextFormatBarContext`）です。 サンプルと同じ組み立てをホストが書けるようになります。
@@ -87,6 +89,7 @@
 
 ### 修正
 
+- **AvaloniaUI の書式バーの色でカラーピッカーが空になる不具合を修正しました**（サンプル）。 ColorView はカラーピッカーのテーマ（Avalonia.Controls.ColorPicker の Fluent.xaml）が無いと中身が描かれません。 サンプルがテーマを読み込むようにし、ホストの前提として SPEC_API.md へ明記しました。
 - **ポップアップで出す書式バーを操作すると例外になる不具合を修正しました**（4 つの UI 版）。 バーを作り直すたびにウィンドウの中身を差し替えていたため、要素の付け替えが重なって `InvalidOperationException`（既に親がある）で落ちていました。 中身は変わらない根を 1 度だけ載せ、根の子だけを差し替えるようにしました。 中身は隠す前に外します（隠したウィンドウに要素を残すと次に載せられない）。
 - **本文をドラッグで選択している間に書式バーがちらつく不具合を修正しました**（4 つの UI 版）。 選択が変わるたびにパネルを作り直していたため、ウィンドウの非表示と再表示が挟まっていました。 表示中の種別は作り直さず位置だけを移します。
 - **4 つの UI 版の注釈レイヤーの公開面を揃えました**。 WinForms にも `GetSelectedBodyRect()` を追加し、MewUI の説明の座標系（元画像ピクセル → DIP）を実装に合わせました。

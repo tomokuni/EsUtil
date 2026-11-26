@@ -144,7 +144,7 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     /// <b>バーはどちらの場合も本コントロールが持つ</b>: 生成・項目の反映・キーとフォーカスの転送・内容の更新は
     /// 本コントロールが行う（<see cref="FormatBar"/>）。 本値が決めるのは画面要素をどこへ置くかだけである。<br/>
     /// <b><see cref="TextFormatBarHosting.Popup"/> は置く場所を用意しなくてよい</b>: 選択範囲の近くへ
-    /// ポップアップで出す（位置は <see cref="TextFormatBarPlacement"/> が単一所有する）。
+    /// ポップアップで出す（位置は <see cref="FloatingPanelPlacement"/> が単一所有する）。
     /// </remarks>
     public TextFormatBarHosting FormatBarHosting
     {
