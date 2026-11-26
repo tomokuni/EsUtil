@@ -1264,6 +1264,31 @@ foreach ($f in @(Get-ChildItem -Path (Join-Path $repoRoot '.github/workflows') -
 Add-Result 'ワークフローの失敗の握りつぶし' ($workflowIssues.Count -eq 0) "$($workflowIssues.Count) 件"
 $workflowIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
 
+# 8w) GUI を持つプロジェクトの手動確認書（ドキュメント規約 §12）
+#     `EsUtil.Ui.<UI>.<機能>` のうち、変換だけの `Interop` とサンプル共通の `SampleKit` を除く
+#     プロジェクトは GUI（コントロール）を持つため、`docs/SPEC_ManualTest.md` を必ず置く。
+#     H1 は `<プロジェクト名> 手動確認書` にする（体裁は 8f、H1 の形式は 8n が見る）。
+$manualIssues = [System.Collections.Generic.List[string]]::new()
+$manualChecked = 0
+foreach ($f in @($allCsproj)) {
+    $full = $f.FullName.Replace('\', '/')
+    if ($full -notmatch '/EsUtil\.Ui\.[^/]+/(?<feature>[^/]+)/src/[^/]+\.csproj$') { continue }
+    $feature = $Matches['feature']
+    if ($feature -in @('Interop', 'SampleKit')) { continue }
+    $manualChecked++
+    $project = [IO.Path]::GetFileNameWithoutExtension($f.Name)
+    $docPath = Join-Path (Split-Path (Split-Path $f.FullName -Parent) -Parent) 'docs/SPEC_ManualTest.md'
+    $rel = $docPath.Substring($repoRoot.Length + 1).Replace('\', '/')
+    if (-not (Test-Path -LiteralPath $docPath)) { $manualIssues.Add(("{0}  GUI を持つが手動確認書が無い（{1}）" -f $rel, $project)); continue }
+    $docHeadings = Get-MdHeadings $docPath
+    $first = @($docHeadings | Where-Object { $_.Level -eq 1 } | Select-Object -First 1)
+    if ($first.Count -eq 0 -or $first[0].Text -ne "$project 手動確認書") {
+        $manualIssues.Add(("{0}:1  H1 が「{1} 手動確認書」でない" -f $rel, $project))
+    }
+}
+Add-Result 'GUI の手動確認書' ($manualIssues.Count -eq 0) "対象 $manualChecked 件 / 不備 $($manualIssues.Count) 件"
+$manualIssues | Select-Object -First 10 | ForEach-Object { "      $_" }
+
 # ============================================================
 # 9. 改行コード
 # ============================================================
