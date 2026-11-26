@@ -58,6 +58,7 @@
 - **注釈の書式バーの差し替えを表示中でもできるようにしました**（4 つの UI 版の `AnnotationEditorPanel`）。 `FormatBarItems` / `FormatBarFactory` を書式バーの表示中に設定しても `InvalidOperationException` になりません（バーを作り直し、詰めた幅を測り直して出し直します）。 ホストに「出す前かどうか」を判断させると、判断を UI ごとに間違えて表示中に設定しただけで落ちるためです。
 - **注釈の `AnnotationEditorPanel.TextFormat` の値を `AnnotationLayerControl.ColorTextFormat` が単一所有するようにしました**（4 つの UI 版）。 右クリックの外観フライアウトと同じ値を使い、書式バーを作り直しても値が失われません（従来はバーの値だけを読み書きしており、作り直すと既定へ戻りました）。
 - **`AnnotationLogMessage.LogSettingChanged(string, string, string)` を公開しました**（列挙や組み合わせなど、数値・真偽で表せない設定値の変更を UI 層から記録できるようにする。 ログ定義はアセンブリに 1 つという規則を保つ）。
+- **WinForms の書式バーの枠と余白をパネル（`FloatingPanelAppearance`）が単一所有するようにしました**。 バー自身が枠と余白を持っていたため二重になり、ポップアップの高さが他の UI 版（46 DIP）と揃っていませんでした（実測 55 DIP）。 大きさも外観の値で固定します（中身に合わせて広げない）。
 - **WinUI 3 の書式バーのポップアップが表示されない不具合を直しました**。 読み込まれる前（ウィンドウの `Activated` の時点）は `XamlRoot` が無く、ポップアップを出せません（実測）。 本文コントロールは `Loaded` で出し直し、サンプルの起動オプションも読み込み後に切り替えます。
 - **WinUI 3 の書式バーのドラッグを直しました**（ポップアップ）。 ポインターの引数から取った位置は、ポップアップが別のウィンドウに載るため動かしても変わりません（実測）。 画面のカーソル位置（`ICursorService`）から取り、規則は `FloatingPanelPlacement.ResolveDrag` に委ねます。
 - **WinUI 3 の書式バーの色の入力欄の幅をコアの規則から決めるようにしました**（`TextFormatBarLayout.ResolveColorSelectorWidth`。 240 DIP の固定をやめる）。 同じ表記でも UI によってバーの長さが変わらないようにします。

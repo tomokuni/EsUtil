@@ -24,8 +24,6 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     private readonly Panel _root = new()
     {
         Dock = DockStyle.Fill,
-        AutoSize = true,
-        AutoSizeMode = AutoSizeMode.GrowAndShrink,
         BackColor = Color.FromArgb(
             s_appearance.Background.A, s_appearance.Background.R,
             s_appearance.Background.G, s_appearance.Background.B),
@@ -67,7 +65,12 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         var window = EnsureWindow();
         SetBar(bar);
 
+        // **大きさは外観が単一所有する**: 中身に合わせて広げると、枠と余白の分だけ UI ごとに
+        // 高さが変わる（実測。 他の UI 版は外観の値で固定している）
         var panelSize = s_appearance.ResolvePanelSize(MeasureBar(bar));
+        window.ClientSize = new Size(
+            (int)Math.Round(panelSize.Width), (int)Math.Round(panelSize.Height));
+
         var origin = owner.PointToScreen(Point.Empty);
         var available = ResolveAvailableArea(origin);
 
@@ -205,8 +208,6 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
             FormBorderStyle = FormBorderStyle.None,
             ShowInTaskbar = false,
             StartPosition = FormStartPosition.Manual,
-            AutoSize = true,
-            AutoSizeMode = AutoSizeMode.GrowAndShrink,
             TopMost = false,
             Padding = Padding.Empty,
         };

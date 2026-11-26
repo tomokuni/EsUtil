@@ -60,8 +60,6 @@ public sealed class StyledTextFormatBar : Panel, IStyledTextFormatBar
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
         BackColor = Color.FromArgb(250, 250, 250);
-        BorderStyle = BorderStyle.FixedSingle;
-        Padding = new Padding(4);
 
         _bold = StyledTextFormatBarControls.Toggle("B", false, value => Toggle(style => style with { IsBold = value }), bold: true);
         _italic = StyledTextFormatBarControls.Toggle("I", false, value => Toggle(style => style with { IsItalic = value }), italic: true);
