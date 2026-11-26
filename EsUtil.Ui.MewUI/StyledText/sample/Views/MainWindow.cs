@@ -11,8 +11,9 @@ namespace EsUtil.Ui.MewUI.StyledText.Sample.Views;
 /// <remarks>
 /// <b>示すこと</b>: 本文を入力欄で覆わず、その場で表示・編集できること。 すべての操作
 /// （キャレット・選択・入力・削除・書式・クリップボード）を API から行えること。<br/>
-/// <b>書式バー</b>: 本文の上へ <see cref="StyledTextFormatBar"/> を出し、選択範囲の書式を操作する。
-/// 出す項目（太字・色など）は <see cref="StyledTextControl.FormatBarItems"/> で切り替える（すべて出さないとバーは出ない）。<br/>
+/// <b>書式バー</b>: バーは本文コントロールが所有し、サンプルは「自前で埋め込む」と「ポップアップで出す」を
+/// <see cref="StyledTextControl.FormatBarHosting"/> で切り替える。 出す項目（太字・色など）は
+/// <see cref="StyledTextControl.FormatBarItems"/> で切り替える（すべて出さないとバーは出ない）。<br/>
 /// <b>配置</b>: サンプル共通の <see cref="SampleShell"/>（左: 設定 / 右上: 本文 / 右下: ログ）を使う。
 /// </remarks>
 public static class MainWindow
@@ -41,7 +42,6 @@ public static class MainWindow
 
         // 書式バーを載せる場所（表示すべき間だけ見せる）
         var barHost = new Border { IsVisible = false, Margin = new Thickness(0, 0, 0, 8) };
-        IStyledTextFormatBar formatBar = null!;
 
         // 状態の表示
         var status = new TextBlock { FontSize = SampleSettings.FontSize };
@@ -64,7 +64,7 @@ public static class MainWindow
             UpdateStatus();
         };
 
-        RebuildFormatBar();
+        UpdateFormatBar();
 
         var editorHost = new Border().BorderThickness(1).BorderBrush(new Color(0xC0, 0xC0, 0xC0)).Child(editor);
         var content = new Grid().Columns("*").Rows("Auto,*").Children(barHost, editorHost);
@@ -76,6 +76,7 @@ public static class MainWindow
         properties.Add(SampleSettings.Slider("文字サイズ", 20, 8, 48, 1, true, value =>
             editor.ApplyTextStyle(0, 0, TextDefaults.DefaultStyle with { FontSize = value })));
         properties.Add(SampleSettings.Check("入力を受け付ける", true, value => editor.IsInputEnabled = value));
+        properties.Add(SampleSettings.Choice("書式バーの出し方", ["自前で埋め込む（カスタム）", "ポップアップで出す"], 0, index => UpdateHosting(index == 1)));
         properties.Add(SampleSettings.Check("編集中に書式バーを自動表示", true, value =>
         {
             editor.ShowFormatBarWhileEditing = value;
@@ -142,36 +143,33 @@ public static class MainWindow
         return SampleShell.Create(
             "StyledText サンプル (MewUI)", properties, methods, samples, content, log);
 
-        // 書式バーを作り直す（出す項目は作るときに決まる。 差し替えはバーを隠してから行う）
-        void RebuildFormatBar()
+        // 書式バーの出し方を変える（自前で埋め込む / コントロールがポップアップで出す）
+        void UpdateHosting(bool popup)
         {
-            barHost.IsVisible = false;
-            formatBar = new StyledTextFormatBarFactory().Create(
-                new StyledTextFormatBarContext(editor),
-                new StyledTextFormatBarOptions { Items = editor.FormatBarItems });
-            formatBar.SetFocusRequest(() => editor.Focus());
-            barHost.Child = formatBar.View;
+            editor.FormatBarHosting = popup ? TextFormatBarHosting.Popup : TextFormatBarHosting.Custom;
             UpdateFormatBar();
         }
 
         // 書式バーを出すか隠すかを決める（条件は本文コントロールが単一所有する）
+        // ポップアップを選んだときは、コントロールが自分で出すため埋め込みの場所は使わない
         void UpdateFormatBar()
         {
-            if (!editor.ShouldShowFormatBar)
+            if (editor.FormatBarHosting == TextFormatBarHosting.Popup)
             {
                 barHost.IsVisible = false;
                 return;
             }
 
-            formatBar.Refresh();
-            barHost.IsVisible = true;
+            // バーはコントロールが所有する（作る・項目の反映・内容の更新もコントロールの仕事）
+            barHost.Child = editor.FormatBar.View;
+            barHost.IsVisible = editor.ShouldShowFormatBar;
         }
 
-        // 書式バーに出す項目を変える（作るときに決まるため作り直す）
+        // 書式バーに出す項目を変える（バーの作り直しはコントロールが行う）
         void UpdateItems(Func<TextFormatBarItemVisibility, TextFormatBarItemVisibility> update)
         {
             editor.FormatBarItems = update(editor.FormatBarItems);
-            RebuildFormatBar();
+            UpdateFormatBar();
         }
 
         // キャレット・選択・書式の状態を 1 行で出す

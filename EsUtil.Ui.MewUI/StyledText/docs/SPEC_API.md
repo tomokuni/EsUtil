@@ -22,6 +22,10 @@
 | `ShowFormatBarWhileEditing` | 編集中に書式バーを自動で表示するか（既定は `true`）。 ホストが独自にバーを出す場合は `false` |
 | `FormatBarItems` | 書式バーに出す項目の組み合わせ（既定はすべて表示）。 すべて非表示にするとバー自体を出さない |
 | `ShouldShowFormatBar` | いま書式バーを表示すべきか（編集中・自動表示が有効・1 文字以上を選択・出す項目がある） |
+| FormatBar | コントロールが単一所有する書式バー（初回の取得で作る）。 ホストは View を置くだけでよい |
+| FormatBarHosting | バーをどこへ出すか（Custom = ホストが置く（既定） / Popup = 選択範囲の近くへコントロールが出す） |
+| FormatBarFactory / FormatBarOptions | バーの生成（IStyledTextFormatBarFactory）と構成（フォント・色・表記）。 差し替えると作り直す |
+| IsFormatBarOpen | ポップアップで表示中か（Custom のときは常に alse） |
 | `PreeditText` | IME の変換中の文字列（本文へは入れず、キャレットの位置へ描く） |
 | `RichTextChanged` / `SelectionChanged` / `EditingChanged` | 本文・選択範囲・編集の開始と終了の通知 |
 
@@ -61,7 +65,7 @@
 
 ## 4. 書式バー（`StyledTextFormatBar`）
 
-本文を編集中、**1 文字以上を選んだとき**に本文の上へ出す**文字単位の書式**のバーです。 ホストは `View` をパネルへ載せ、本文の選択が変わったら `Refresh()` を呼び、選択が無くなったら閉じます（表示の条件は `EsUtil.Feature.StyledText.Presenter.Formatting.TextFormatBarVisibility` が単一所有し、`StyledTextControl.ShouldShowFormatBar` が公開する）。 **出さない項目は詰めて並べ、すべて非表示のときはバー自体を出しません**（`FormatBarItems`）。
+本文を編集中、**1 文字以上を選んだとき**に出す**文字単位の書式**のバーです。 **バーは本文コントロールが所有します**（生成・項目の反映・キーとフォーカスの転送・内容の更新は `StyledTextControl` が行う）。 ホストは出し方を 2 つから選べます。 `FormatBarHosting` が `Custom`（既定）なら `FormatBar.View` を自分のレイアウトへ置き、`ShouldShowFormatBar` で出し入れします（`Refresh` はコントロールが行う）。 `Popup` ならコントロールが選択範囲の近くへ出し入れし、位置は `EsUtil.Feature.StyledText.Presenter.Formatting.TextFormatBarPlacement` が単一所有します。 表示の条件は `TextFormatBarVisibility` が単一所有し、`StyledTextControl.ShouldShowFormatBar` が公開します。 **出さない項目は詰めて並べ、すべて非表示のときはバー自体を出しません**（`FormatBarItems`）。
 
 | メンバー | 説明 |
 | --- | --- |

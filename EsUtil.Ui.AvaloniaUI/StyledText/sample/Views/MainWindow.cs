@@ -12,8 +12,9 @@ namespace EsUtil.Ui.AvaloniaUI.StyledText.Sample.Views;
 /// <remarks>
 /// <b>示すこと</b>: 本文を入力欄で覆わず、その場で表示・編集できること。 すべての操作
 /// （キャレット・選択・入力・削除・書式・クリップボード）を API から行えること。<br/>
-/// <b>書式バー</b>: 本文の上へ <see cref="StyledTextFormatBar"/> を出し、選択範囲の書式を操作する。
-/// 出す項目（太字・色など）は <see cref="StyledTextControl.FormatBarItems"/> で切り替える（すべて出さないとバーは出ない）。<br/>
+/// <b>書式バー</b>: バーは本文コントロールが所有し、サンプルは「自前で埋め込む」と「ポップアップで出す」を
+/// <see cref="StyledTextControl.FormatBarHosting"/> で切り替える。 出す項目（太字・色など）は
+/// <see cref="StyledTextControl.FormatBarItems"/> で切り替える（すべて出さないとバーは出ない）。<br/>
 /// <b>配置</b>: サンプル共通の <see cref="SampleShell"/>（左: 設定 / 右上: 本文 / 右下: ログ）を使う。
 /// </remarks>
 public sealed class MainWindow : Window
@@ -30,8 +31,6 @@ public sealed class MainWindow : Window
     /// <summary>キャレット・選択・書式の状態を出す文言。</summary>
     private readonly TextBlock _status = new() { FontSize = SampleSettings.FontSize, TextWrapping = TextWrapping.Wrap };
 
-    /// <summary>書式バー（出す項目を変えるたびに作り直す）。</summary>
-    private IStyledTextFormatBar _formatBar = null!;
 
     /// <summary>メイン ウィンドウを初期化する。</summary>
     public MainWindow()
@@ -65,7 +64,7 @@ public sealed class MainWindow : Window
             UpdateStatus();
         };
 
-        RebuildFormatBar();
+        UpdateFormatBar();
 
         var content = new Grid();
         content.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
@@ -97,6 +96,7 @@ public sealed class MainWindow : Window
                     _editor.ShowFormatBarWhileEditing = value;
                     UpdateFormatBar();
                 }),
+                SampleSettings.Choice("書式バーの出し方", ["自前で埋め込む（カスタム）", "ポップアップで出す"], 0, index => UpdateHosting(index == 1)),
                 SampleSettings.Check("書式バー: 太字", true, value => UpdateItems(items => items with { ShowBold = value })),
                 SampleSettings.Check("書式バー: 斜体", true, value => UpdateItems(items => items with { ShowItalic = value })),
                 SampleSettings.Check("書式バー: 下線", true, value => UpdateItems(items => items with { ShowUnderline = value })),
@@ -183,36 +183,33 @@ public sealed class MainWindow : Window
         Closed += (_, _) => _logging.Dispose();
         return;
 
-        // 書式バーを作り直す（出す項目は作るときに決まる。 差し替えはバーを隠してから行う）
-        void RebuildFormatBar()
-        {
-            _barHost.IsVisible = false;
-            _formatBar = new StyledTextFormatBarFactory().Create(
-                new StyledTextFormatBarContext(_editor),
-                new StyledTextFormatBarOptions { Items = _editor.FormatBarItems });
-            _formatBar.SetFocusRequest(() => _editor.Focus());
-            _barHost.Child = _formatBar.View;
-            UpdateFormatBar();
-        }
-
         // 書式バーを出すか隠すかを決める（条件は本文コントロールが単一所有する）
+        // ポップアップを選んだときは、コントロールが自分で出すため埋め込みの場所は使わない
         void UpdateFormatBar()
         {
-            if (!_editor.ShouldShowFormatBar)
+            if (_editor.FormatBarHosting == TextFormatBarHosting.Popup)
             {
                 _barHost.IsVisible = false;
                 return;
             }
 
-            _formatBar.Refresh();
-            _barHost.IsVisible = true;
+            // バーはコントロールが所有する（作る・項目の反映・内容の更新もコントロールの仕事）
+            _barHost.Child = _editor.FormatBar.View;
+            _barHost.IsVisible = _editor.ShouldShowFormatBar;
         }
 
-        // 書式バーに出す項目を変える（作るときに決まるため作り直す）
+        // 書式バーに出す項目を変える（バーの作り直しはコントロールが行う）
         void UpdateItems(Func<TextFormatBarItemVisibility, TextFormatBarItemVisibility> update)
         {
             _editor.FormatBarItems = update(_editor.FormatBarItems);
-            RebuildFormatBar();
+            UpdateFormatBar();
+        }
+
+        // 書式バーの出し方を変える（自前で埋め込む / コントロールがポップアップで出す）
+        void UpdateHosting(bool popup)
+        {
+            _editor.FormatBarHosting = popup ? TextFormatBarHosting.Popup : TextFormatBarHosting.Custom;
+            UpdateFormatBar();
         }
 
         // キャレット・選択・書式の状態を 1 行で出す

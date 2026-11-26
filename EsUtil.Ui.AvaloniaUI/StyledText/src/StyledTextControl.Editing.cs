@@ -70,7 +70,23 @@ public sealed partial class StyledTextControl
     /// <b>表示の判断は <see cref="ShouldShowFormatBar"/> が持つ</b>: 自動表示が有効でも、1 文字以上を選ぶまでは
     /// 表示しない（適用先が決まらないため）。 ホスト（注釈のパネルなど）は本プロパティを読んでバーを出し入れする。
     /// </remarks>
-    public bool ShowFormatBarWhileEditing { get; set; } = true;
+    public bool ShowFormatBarWhileEditing
+    {
+        get => _showFormatBarWhileEditing;
+        set
+        {
+            if (_showFormatBarWhileEditing == value)
+            {
+                return;
+            }
+
+            _showFormatBarWhileEditing = value;
+            UpdateFormatBarHost();
+        }
+    }
+
+    /// <summary>編集中に書式バーを自動で表示するか（保持する値）。</summary>
+    private bool _showFormatBarWhileEditing = true;
 
     /// <summary>ポインターで文字を選んでいる最中かどうか。</summary>
     private bool _isSelectingText;
@@ -481,6 +497,9 @@ public sealed partial class StyledTextControl
         InputClient.NotifySelectionChanged();
         RaiseSelectionChanged();
         InvalidateVisual();
+
+        // **ポップアップは選択に追随する**: 選択が無くなったら閉じ、位置が変わったら置き直す
+        UpdateFormatBarHost();
     }
 
     /// <summary>IME の変換中の文字列を設定し、描画と IME へ知らせる。</summary>

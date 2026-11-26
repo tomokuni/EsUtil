@@ -21,6 +21,7 @@
 - [15. `TextDefaults` / `TextLimits`（静的クラス）](#15-textdefaults--textlimits静的クラス)
 - [16. `TextFormatBarVisibility`（静的クラス）](#16-textformatbarvisibility静的クラス)
 - [17. `TextFormatBarItemVisibility`（レコード）](#17-textformatbaritemvisibilityレコード)
+- [18. `TextFormatBarHosting` / `TextFormatBarPlacement`（列挙型・静的クラス）](#18-textformatbarhosting--textformatbarplacement列挙型静的クラス)
 
 ## 1. 公開 API の可視性
 
@@ -279,5 +280,20 @@
 | `VisibleItems` | 出す項目の並び（`TextFormatBarLayout.Order` の順。 出さない項目を含まない） |
 | `ShouldShow(item)` | 指定した項目を出すか |
 
-- **出さない項目は場所ごと詰めます**（空の枠を残さない。 バーの幅は `TextFormatBarLayout.ResolveWidth` が求める）。
-- **値は不変**です（部分更新は `with` 式）。 すべて出さない場合は `TextFormatBarVisibility.ShouldShow` が `false` を返すため、バー自体を表示しません。
+- **出さない項目は場所ごと詰めます**（空の枠を残さない。 バーの幅は TextFormatBarLayout.ResolveWidth が求める）。
+- **値は不変**です（部分更新は with 式）。 すべて出さない場合は TextFormatBarVisibility.ShouldShow が alse を返すため、バー自体を表示しません。
+
+## 18. `TextFormatBarHosting` / `TextFormatBarPlacement`（列挙型・静的クラス）
+
+**書式バーの画面要素をどこへ置くか**の単一所有です（提示層 EsUtil.Feature.StyledText.Presenter.Formatting）。 バーの生成・項目の反映・キーとフォーカスの転送は 4 つの UI 版の StyledTextControl が行い、本値は**置く場所**だけを決めます。
+
+| メンバー | 説明 |
+| --- | --- |
+| TextFormatBarHosting.Custom | ホストが FormatBar.View を自分のレイアウトへ置く（既定） |
+| TextFormatBarHosting.Popup | 本文コントロールが選択範囲の近くへポップアップで出す |
+| TextFormatBarPlacement.Gap | 選択範囲とバーの間の余白（6 DIP） |
+| TextFormatBarPlacement.ResolvePopupPosition(anchor, bar, available, gap) | ポップアップの左上を求める（上・下の順に探し、置ける領域へ収める） |
+
+- **位置の規則は 4 つの UI 版で共通**です（UI ごとに書き写すと、同じ選択でも出る場所が変わる）。
+- **選択範囲に被せません**（上に出し、入りきらない場合は下へ回る）。
+- **置ける領域の外へは出しません**（はみ出すと切れて押せなくなる）。

@@ -364,6 +364,114 @@ public class StyledTextControlTests
         Assert.Equal(2, editor.CaretIndex);
     }
 
+    /// <summary>書式バーは本コントロールが単一所有し、項目を変えると作り直されることを検証する。</summary>
+    /// <remarks>ホストは <c>FormatBar.View</c> を置くだけでよい（生成と配線を書き写さない）。</remarks>
+    [AvaloniaFact]
+    internal void FormatBar_コントロールが所有し項目を変えると作り直す()
+    {
+        var editor = CreateEditor("あいう");
+
+        var first = editor.FormatBar;
+        Assert.Same(first, editor.FormatBar);
+
+        editor.FormatBarItems = TextFormatBarItemVisibility.Default with { ShowColor = false };
+
+        Assert.NotSame(first, editor.FormatBar);
+        Assert.Same(editor.FormatBar.View, editor.FormatBar.View);
+    }
+
+    /// <summary>ポップアップで出す設定では、1 文字以上を選んでいる間だけバーを出すことを検証する。</summary>
+    /// <remarks>出す条件はホストが置く場合と同じ（<c>ShouldShowFormatBar</c>）である。</remarks>
+    [AvaloniaFact]
+    internal void FormatBarHosting_ポップアップは選択がある間だけ出す()
+    {
+        var editor = CreateEditor("あいう");
+        var window = new Window { Content = editor, Width = 300, Height = 100 };
+        window.Show();
+        try
+        {
+            editor.FormatBarHosting = TextFormatBarHosting.Popup;
+            editor.BeginEditing();
+            Pump();
+
+            Assert.False(editor.IsFormatBarOpen);
+
+            editor.Select(0, 2);
+            Pump();
+
+            Assert.True(editor.IsFormatBarOpen);
+
+            editor.Select(0, 0);
+            Pump();
+
+            Assert.False(editor.IsFormatBarOpen);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>自前で置く設定では、コントロールがポップアップを出さないことを検証する。</summary>
+    [AvaloniaFact]
+    internal void FormatBarHosting_自前で置く場合はポップアップを出さない()
+    {
+        var editor = CreateEditor("あいう");
+        var window = new Window { Content = editor, Width = 300, Height = 100 };
+        window.Show();
+        try
+        {
+            editor.BeginEditing();
+            editor.Select(0, 2);
+            Pump();
+
+            Assert.Equal(TextFormatBarHosting.Custom, editor.FormatBarHosting);
+            Assert.True(editor.ShouldShowFormatBar);
+            Assert.False(editor.IsFormatBarOpen);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>自前で置く設定へ戻すと、ポップアップから外したバーを自分のレイアウトへ置き直せることを検証する。</summary>
+    /// <remarks>バーの要素は 1 つの親しか持てないため、出し方を切り替えても付け替えで失敗しない。</remarks>
+    [AvaloniaFact]
+    internal void FormatBarHosting_自前へ戻すとバーを置き直せる()
+    {
+        var editor = CreateEditor("あいう");
+        var host = new Border();
+        var window = new Window
+        {
+            Width = 300,
+            Height = 100,
+            Content = new StackPanel { Children = { host, editor } },
+        };
+        window.Show();
+        try
+        {
+            editor.FormatBarHosting = TextFormatBarHosting.Popup;
+            editor.BeginEditing();
+            editor.Select(0, 2);
+            Pump();
+            Assert.True(editor.IsFormatBarOpen);
+
+            editor.FormatBarHosting = TextFormatBarHosting.Custom;
+
+            Assert.False(editor.IsFormatBarOpen);
+            host.Child = editor.FormatBar.View;
+            Assert.Same(host, editor.FormatBar.View.Parent);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>レイアウトと保留中の処理を流す。</summary>
+    private static void Pump() => Dispatcher.UIThread.RunJobs();
+
     /// <summary>本文と大きさを持つコントロールを作る。</summary>
     /// <param name="text">本文。</param>
     /// <returns>コントロール。</returns>

@@ -58,6 +58,8 @@
 - **注釈の書式バーの差し替えを表示中でもできるようにしました**（4 つの UI 版の `AnnotationEditorPanel`）。 `FormatBarItems` / `FormatBarFactory` を書式バーの表示中に設定しても `InvalidOperationException` になりません（バーを作り直し、詰めた幅を測り直して出し直します）。 ホストに「出す前かどうか」を判断させると、判断を UI ごとに間違えて表示中に設定しただけで落ちるためです。
 - **注釈の `AnnotationEditorPanel.TextFormat` の値を `AnnotationLayerControl.ColorTextFormat` が単一所有するようにしました**（4 つの UI 版）。 右クリックの外観フライアウトと同じ値を使い、書式バーを作り直しても値が失われません（従来はバーの値だけを読み書きしており、作り直すと既定へ戻りました）。
 - **`AnnotationLogMessage.LogSettingChanged(string, string, string)` を公開しました**（列挙や組み合わせなど、数値・真偽で表せない設定値の変更を UI 層から記録できるようにする。 ログ定義はアセンブリに 1 つという規則を保つ）。
+- **書式バーを本文コントロールが所有するようにしました**（4 つの UI 版の StyledTextControl）。 FormatBar（生成・項目の反映・キーとフォーカスの転送・内容の更新をコントロールが行う）・FormatBarFactory・FormatBarOptions・FormatBarHosting・IsFormatBarOpen を追加しました。 ホストは FormatBar.View を置くだけでよく、同じ配線を書き写す必要がありません。
+- **書式バーをポップアップで出せるようにしました**（4 つの UI 版。 TextFormatBarHosting.Popup）。 置く場所を用意しなくても、選択範囲の近くへ出ます（位置は提示層の TextFormatBarPlacement が単一所有し、4 つの UI 版で同じ規則）。 既定は Custom（従来どおりホストが置く）です。
 - **`StyledTextFormatBarContext` を追加しました**（4 つの UI 版の `EsUtil.Ui.<UI>.StyledText`）。 `StyledTextControl` の上に書式バーを置くための公開の適合（`ITextFormatBarContext`）です。 サンプルと同じ組み立てをホストが書けるようになります。
 - **AvaloniaUI の `ColorSelectorControl` に `SelectedColorChanged` を追加しました**（他の UI 版と同じ契約。 同じ値では発生せず、同じ色を選び直したことは `ColorApplied` で知ります）。
 - **`EsUtil.Platform.Core.Input.DoubleClickTracker` を追加しました**。 入力の仕組みがクリック回数を返さない UI（WinForms / WinUI 3）が書き写していたダブルクリックの判定（500 ms・4 DIP）を 1 か所に集約します。

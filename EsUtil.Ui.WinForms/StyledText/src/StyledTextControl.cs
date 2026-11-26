@@ -136,7 +136,23 @@ public sealed class StyledTextControl : Control
     /// 表示しない（適用先が決まらないため）。 ホスト（注釈のパネルなど）は本プロパティを読んでバーを出し入れする。
     /// </remarks>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
-    public bool ShowFormatBarWhileEditing { get; set; } = true;
+    public bool ShowFormatBarWhileEditing
+    {
+        get => _showFormatBarWhileEditing;
+        set
+        {
+            if (_showFormatBarWhileEditing == value)
+            {
+                return;
+            }
+
+            _showFormatBarWhileEditing = value;
+            UpdateFormatBarHost();
+        }
+    }
+
+    /// <summary>編集中に書式バーを自動で表示するか（保持する値）。</summary>
+    private bool _showFormatBarWhileEditing = true;
 
     /// <summary>いま書式バーを表示すべきかどうかを取得する。</summary>
     /// <value>編集中で、自動表示が有効で、1 文字以上を選んでおり、出す項目がある場合は <see langword="true"/>。</value>
@@ -149,18 +165,227 @@ public sealed class StyledTextControl : Control
     /// <remarks>
     /// <b>すべて出さない場合はバーを表示しない</b>: 空のバーを出すと、操作できない枠だけが本文に重なる
     /// （判定は <see cref="ShouldShowFormatBar"/>）。<br/>
-    /// <b>ホストがバーを置く場合に使う</b>: ホストは本値と同じ組み合わせを書式バーの構成（<c>Items</c>）へ渡す。
+    /// <b>バーは本コントロールが作り直す</b>: ホストが置く場合（<see cref="TextFormatBarHosting.Custom"/>）は
+    /// <see cref="FormatBar"/> の <c>View</c> を置き直せばよい。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><see langword="null"/> を設定した場合。</exception>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public TextFormatBarItemVisibility FormatBarItems
     {
         get => _formatBarItems;
-        set => _formatBarItems = value ?? throw new ArgumentNullException(nameof(value));
+        set
+        {
+            var items = value ?? throw new ArgumentNullException(nameof(value));
+            if (_formatBarItems == items)
+            {
+                return;
+            }
+
+            _formatBarItems = items;
+            RebuildFormatBar();
+            UpdateFormatBarHost();
+        }
     }
+
+    /// <summary>書式バーをどこへ出すかを取得または設定する。</summary>
+    /// <value>既定はホストが置く <see cref="TextFormatBarHosting.Custom"/>。</value>
+    /// <remarks>
+    /// <b>バーはどちらの場合も本コントロールが持つ</b>: 生成・項目の反映・キーとフォーカスの転送・内容の更新は
+    /// 本コントロールが行う（<see cref="FormatBar"/>）。 本値が決めるのは画面要素をどこへ置くかだけである。
+    /// </remarks>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public TextFormatBarHosting FormatBarHosting
+    {
+        get => _formatBarHosting;
+        set
+        {
+            if (_formatBarHosting == value)
+            {
+                return;
+            }
+
+            _formatBarHosting = value;
+            if (value != TextFormatBarHosting.Popup)
+            {
+                _formatBarHost?.Close();
+            }
+
+            UpdateFormatBarHost();
+        }
+    }
+
+    /// <summary>書式バーを作る処理を取得または設定する（独自の GUI へ差し替える入口）。</summary>
+    /// <value>既定は組み込みの書式バー（<see cref="StyledTextFormatBarFactory"/>）。</value>
+    /// <remarks>差し替えるとバーを作り直す（表示中なら新しいバーへ差し替わる）。</remarks>
+    /// <exception cref="ArgumentNullException"><see langword="null"/> を設定した場合。</exception>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public IStyledTextFormatBarFactory FormatBarFactory
+    {
+        get => _formatBarFactory;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (ReferenceEquals(_formatBarFactory, value))
+            {
+                return;
+            }
+
+            _formatBarFactory = value;
+            RebuildFormatBar();
+            UpdateFormatBarHost();
+        }
+    }
+
+    /// <summary>書式バーの構成（フォントの一覧・色のボタン・色の表記）を取得または設定する。</summary>
+    /// <value>既定の構成。</value>
+    /// <remarks>差し替えるとバーを作り直す（表示中なら新しい構成のバーへ差し替わる）。</remarks>
+    /// <exception cref="ArgumentNullException"><see langword="null"/> を設定した場合。</exception>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public StyledTextFormatBarOptions FormatBarOptions
+    {
+        get => _formatBarOptions;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (_formatBarOptions == value)
+            {
+                return;
+            }
+
+            _formatBarOptions = value;
+            RebuildFormatBar();
+            UpdateFormatBarHost();
+        }
+    }
+
+    /// <summary>書式バーを取得する（本コントロールが単一所有する実体）。</summary>
+    /// <value>初回の取得で作り、<see cref="FormatBarItems"/> などの変更で作り直される。</value>
+    /// <remarks>ホストは <c>FormatBar.View</c> を置くだけでよい（配線は本コントロールが行う）。</remarks>
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public IStyledTextFormatBar FormatBar => _formatBar ??= CreateFormatBar();
+
+    /// <summary>書式バーをポップアップで表示中かどうかを取得する。</summary>
+    /// <value>表示中の場合は <see langword="true"/>（<see cref="TextFormatBarHosting.Custom"/> のときは常に <see langword="false"/>）。</value>
+    public bool IsFormatBarOpen => _formatBarHost?.IsOpen ?? false;
 
     /// <summary>書式バーに出す項目の組み合わせ（保持する値）。</summary>
     private TextFormatBarItemVisibility _formatBarItems = TextFormatBarItemVisibility.Default;
+
+    /// <summary>書式バーをどこへ出すか（保持する値）。</summary>
+    private TextFormatBarHosting _formatBarHosting = TextFormatBarHosting.Custom;
+
+    /// <summary>書式バーを作る処理（保持する値）。</summary>
+    private IStyledTextFormatBarFactory _formatBarFactory = new StyledTextFormatBarFactory();
+
+    /// <summary>書式バーの構成（保持する値）。</summary>
+    private StyledTextFormatBarOptions _formatBarOptions = new();
+
+    /// <summary>本コントロールが所有する書式バー（初回の取得で作る）。</summary>
+    private IStyledTextFormatBar? _formatBar;
+
+    /// <summary>書式バーをポップアップで出す処理（<see cref="TextFormatBarHosting.Popup"/> のときだけ作る）。</summary>
+    private StyledTextFormatBarPopup? _formatBarHost;
+
+    /// <summary>書式バーを作る（キーとフォーカスの転送を配線する）。</summary>
+    /// <returns>作ったバー。</returns>
+    private IStyledTextFormatBar CreateFormatBar()
+    {
+        var bar = _formatBarFactory.Create(
+            new StyledTextFormatBarContext(this), _formatBarOptions with { Items = _formatBarItems });
+
+        // **キー操作とフォーカスは本コントロールが持つ**: バーは操作を転送し、適用後に本文へ戻すだけにする
+        bar.SetKeyHandler(TryHandleEditingKey);
+        bar.SetFocusRequest(() =>
+        {
+            if (IsInputEnabled)
+            {
+                Focus();
+            }
+        });
+        return bar;
+    }
+
+    /// <summary>書式バーを作り直す（出す項目・生成・構成の変更を反映する）。</summary>
+    private void RebuildFormatBar()
+    {
+        if (_formatBar is null)
+        {
+            return;
+        }
+
+        _formatBar = CreateFormatBar();
+    }
+
+    /// <summary>書式バーの内容と、ポップアップの出し入れを、いまの状態に合わせて更新する。</summary>
+    private void UpdateFormatBarHost()
+    {
+        if (_formatBarHosting == TextFormatBarHosting.Popup)
+        {
+            _formatBarHost ??= new StyledTextFormatBarPopup(this);
+            _formatBarHost.Update();
+            return;
+        }
+
+        _formatBar?.Refresh();
+    }
+
+    /// <summary>ポップアップで出す書式バーを閉じる（コントロールの破棄時）。</summary>
+    private void CloseFormatBarHost()
+    {
+        _formatBarHost?.Close();
+        _formatBarHost = null;
+    }
+
+    /// <summary>コントロールを破棄するときに、枠なしのウィンドウも閉じる。</summary>
+    /// <param name="disposing">マネージド リソースを解放する場合は <see langword="true"/>。</param>
+    /// <remarks><b>ウィンドウは別のトップ レベル</b>であるため、閉じないと画面に取り残される。</remarks>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            CloseFormatBarHost();
+        }
+
+        base.Dispose(disposing);
+    }
+
+    /// <summary>選択範囲の矩形（このコントロールの座標の DIP）を取得する。</summary>
+    /// <value>選択範囲の外接矩形。 選択が無い・解決できない場合は <see cref="CaretRect"/>。</value>
+    internal RectangleF SelectionBounds
+    {
+        get
+        {
+            if (SelectionLength <= 0 || ResolveLineIndex() is not { } index)
+            {
+                return CaretRect;
+            }
+
+            var rects = index.ResolveSelectionRects(SelectionStart, SelectionEnd, MeasureText);
+            if (rects.Count == 0)
+            {
+                return CaretRect;
+            }
+
+            var scale = ResolveScale();
+            var left = double.MaxValue;
+            var top = double.MaxValue;
+            var right = double.MinValue;
+            var bottom = double.MinValue;
+            foreach (var rect in rects)
+            {
+                left = Math.Min(left, rect.X);
+                top = Math.Min(top, rect.Y);
+                right = Math.Max(right, rect.X + rect.Width);
+                bottom = Math.Max(bottom, rect.Y + rect.Height);
+            }
+
+            return new RectangleF(
+                (float)(left * scale),
+                (float)(top * scale),
+                (float)((right - left) * scale),
+                (float)((bottom - top) * scale));
+        }
+    }
 
     /// <summary>入力を受け付けるかどうかを取得または設定する。</summary>
     /// <value>入力を受け付ける場合は <see langword="true"/>（既定）。 表示専用にする場合は <see langword="false"/>。</value>
@@ -653,6 +878,9 @@ public sealed class StyledTextControl : Control
     {
         SelectionChanged?.Invoke(this, EventArgs.Empty);
         Invalidate();
+
+        // **ポップアップは選択に追随する**: 選択が無くなったら閉じ、位置が変わったら置き直す
+        UpdateFormatBarHost();
     }
 
     /// <summary>位置（このコントロールの DIP）を元画像ピクセルへ写す。</summary>

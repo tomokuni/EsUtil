@@ -36,6 +36,21 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     /// <summary>書式バーに出す項目の組み合わせ（保持する値）。</summary>
     private TextFormatBarItemVisibility _formatBarItems = TextFormatBarItemVisibility.Default;
 
+    /// <summary>書式バーをどこへ出すか（保持する値）。</summary>
+    private TextFormatBarHosting _formatBarHosting = TextFormatBarHosting.Custom;
+
+    /// <summary>書式バーを作る処理（保持する値）。</summary>
+    private IStyledTextFormatBarFactory _formatBarFactory = new StyledTextFormatBarFactory();
+
+    /// <summary>書式バーの構成（保持する値）。</summary>
+    private StyledTextFormatBarOptions _formatBarOptions = new();
+
+    /// <summary>本コントロールが所有する書式バー（初回の取得で作る）。</summary>
+    private IStyledTextFormatBar? _formatBar;
+
+    /// <summary>書式バーをポップアップで出す処理（<see cref="TextFormatBarHosting.Popup"/> のときだけ作る）。</summary>
+    private StyledTextFormatBarPopup? _formatBarHost;
+
     /// <summary>本文の範囲を押下の対象にする。</summary>
     /// <param name="point">コントロールの座標。</param>
     /// <returns>押下を受け付ける場合は <see langword="true"/>。</returns>
@@ -102,14 +117,108 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     /// <remarks>
     /// <b>すべて出さない場合はバーを表示しない</b>: 空のバーを出すと、操作できない枠だけが本文に重なる
     /// （判定は <see cref="ShouldShowFormatBar"/>）。<br/>
-    /// <b>ホストがバーを置く場合に使う</b>: ホストは本値と同じ組み合わせを書式バーの構成（<c>Items</c>）へ渡す。
+    /// <b>バーは本コントロールが作り直す</b>: ホストが置く場合（<see cref="TextFormatBarHosting.Custom"/>）は
+    /// <see cref="FormatBar"/> の <c>View</c> を置き直せばよい。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><see langword="null"/> を設定した場合。</exception>
     public TextFormatBarItemVisibility FormatBarItems
     {
         get => _formatBarItems;
-        set => _formatBarItems = value ?? throw new ArgumentNullException(nameof(value));
+        set
+        {
+            var items = value ?? throw new ArgumentNullException(nameof(value));
+            if (_formatBarItems == items)
+            {
+                return;
+            }
+
+            _formatBarItems = items;
+            RebuildFormatBar();
+            UpdateFormatBarHost();
+        }
     }
+
+    /// <summary>書式バーをどこへ出すかを取得または設定する。</summary>
+    /// <value>既定はホストが置く <see cref="TextFormatBarHosting.Custom"/>。</value>
+    /// <remarks>
+    /// <b>バーはどちらの場合も本コントロールが持つ</b>: 生成・項目の反映・キーとフォーカスの転送・内容の更新は
+    /// 本コントロールが行う（<see cref="FormatBar"/>）。 本値が決めるのは画面要素をどこへ置くかだけである。<br/>
+    /// <b><see cref="TextFormatBarHosting.Popup"/> は置く場所を用意しなくてよい</b>: 選択範囲の近くへ
+    /// ポップアップで出す（位置は <see cref="TextFormatBarPlacement"/> が単一所有する）。
+    /// </remarks>
+    public TextFormatBarHosting FormatBarHosting
+    {
+        get => _formatBarHosting;
+        set
+        {
+            if (_formatBarHosting == value)
+            {
+                return;
+            }
+
+            _formatBarHosting = value;
+            if (value != TextFormatBarHosting.Popup)
+            {
+                _formatBarHost?.Close();
+            }
+
+            UpdateFormatBarHost();
+        }
+    }
+
+    /// <summary>書式バーを作る処理を取得または設定する（独自の GUI へ差し替える入口）。</summary>
+    /// <value>既定は組み込みの書式バー（<see cref="StyledTextFormatBarFactory"/>）。</value>
+    /// <remarks>差し替えるとバーを作り直す（表示中なら新しいバーへ差し替わる）。</remarks>
+    /// <exception cref="ArgumentNullException"><see langword="null"/> を設定した場合。</exception>
+    public IStyledTextFormatBarFactory FormatBarFactory
+    {
+        get => _formatBarFactory;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (ReferenceEquals(_formatBarFactory, value))
+            {
+                return;
+            }
+
+            _formatBarFactory = value;
+            RebuildFormatBar();
+            UpdateFormatBarHost();
+        }
+    }
+
+    /// <summary>書式バーの構成（フォントの一覧・色の選択・色の表記）を取得または設定する。</summary>
+    /// <value>既定の構成。</value>
+    /// <remarks>差し替えるとバーを作り直す（表示中なら新しい構成のバーへ差し替わる）。</remarks>
+    /// <exception cref="ArgumentNullException"><see langword="null"/> を設定した場合。</exception>
+    public StyledTextFormatBarOptions FormatBarOptions
+    {
+        get => _formatBarOptions;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (_formatBarOptions == value)
+            {
+                return;
+            }
+
+            _formatBarOptions = value;
+            RebuildFormatBar();
+            UpdateFormatBarHost();
+        }
+    }
+
+    /// <summary>書式バーを取得する（本コントロールが単一所有する実体）。</summary>
+    /// <value>初回の取得で作り、<see cref="FormatBarItems"/> などの変更で作り直される。</value>
+    /// <remarks>
+    /// <b>ホストは <c>FormatBar.View</c> を置くだけでよい</b>: 出す項目の反映・キーとフォーカスの転送・
+    /// 内容の更新は本コントロールが行う（ホストが同じ配線を書き写さない）。
+    /// </remarks>
+    public IStyledTextFormatBar FormatBar => _formatBar ??= CreateFormatBar();
+
+    /// <summary>書式バーをポップアップで表示中かどうかを取得する。</summary>
+    /// <value>表示中の場合は <see langword="true"/>（<see cref="TextFormatBarHosting.Custom"/> のときは常に <see langword="false"/>）。</value>
+    public bool IsFormatBarOpen => _formatBarHost?.IsOpen ?? false;
 
     /// <summary>文字列と書式から実寸を測る関数を取得または設定する。</summary>
     /// <value>既定は本コントロールの描画 API で測る関数。 描画と同じエンジンで測るため通常は変更しない。</value>
@@ -144,6 +253,92 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     {
         var scale = ResolveScale();
         return new EsSize(Bounds.Width / scale, Bounds.Height / scale);
+    }
+
+    /// <summary>書式バーを作る（キーとフォーカスの転送を配線する）。</summary>
+    /// <returns>作ったバー。</returns>
+    private IStyledTextFormatBar CreateFormatBar()
+    {
+        var bar = _formatBarFactory.Create(
+            new StyledTextFormatBarContext(this), _formatBarOptions with { Items = _formatBarItems });
+
+        // **キー操作とフォーカスは本コントロールが持つ**: バーは操作を転送し、適用後に本文へ戻すだけにする
+        bar.SetKeyHandler(TryHandleEditingKey);
+        bar.SetFocusRequest(() => Focus());
+        return bar;
+    }
+
+    /// <summary>書式バーを作り直す（出す項目・生成・構成の変更を反映する）。</summary>
+    /// <remarks>まだ誰もバーを要求していない場合は作らない（使わないバーを生成しない）。</remarks>
+    private void RebuildFormatBar()
+    {
+        if (_formatBar is null)
+        {
+            return;
+        }
+
+        _formatBar = CreateFormatBar();
+    }
+
+    /// <summary>書式バーの内容と、ポップアップの出し入れを、いまの状態に合わせて更新する。</summary>
+    /// <remarks>
+    /// <b>出す条件は <see cref="ShouldShowFormatBar"/> が単一所有する</b>: ホストが置く場合と同じ判断を使う
+    /// （ポップアップだけ別の条件にすると UI 間で挙動が食い違う）。<br/>
+    /// <b>内容の更新は本コントロールの仕事</b>: ホストが置く場合も、選択のたびにバーの表示を追随させる
+    /// （ホストに <c>Refresh</c> を呼ばせると、呼び忘れで古い書式が表示される）。
+    /// </remarks>
+    private void UpdateFormatBarHost()
+    {
+        if (_formatBarHosting == TextFormatBarHosting.Popup)
+        {
+            _formatBarHost ??= new StyledTextFormatBarPopup(this);
+            _formatBarHost.Update();
+            return;
+        }
+
+        _formatBar?.Refresh();
+    }
+
+    /// <summary>ポップアップで出す書式バーを閉じる（要素から外れたとき）。</summary>
+    private void CloseFormatBarHost()
+    {
+        _formatBarHost?.Close();
+        _formatBarHost = null;
+    }
+
+    /// <summary>選択範囲の矩形（このコントロールの座標の DIP）を取得する。</summary>
+    /// <value>選択範囲の外接矩形。 選択が無い・解決できない場合は <see cref="CaretRect"/>。</value>
+    /// <remarks>ポップアップの位置を決めるのに使う（選択の上へ出せば編集中の文字に重ならない）。</remarks>
+    internal Rect SelectionBounds
+    {
+        get
+        {
+            if (SelectionLength <= 0 || ResolveLineIndex() is not { } index)
+            {
+                return CaretRect;
+            }
+
+            var rects = index.ResolveSelectionRects(SelectionStart, SelectionEnd, MeasureText);
+            if (rects.Count == 0)
+            {
+                return CaretRect;
+            }
+
+            var scale = ResolveScale();
+            var left = double.MaxValue;
+            var top = double.MaxValue;
+            var right = double.MinValue;
+            var bottom = double.MinValue;
+            foreach (var rect in rects)
+            {
+                left = Math.Min(left, rect.X);
+                top = Math.Min(top, rect.Y);
+                right = Math.Max(right, rect.X + rect.Width);
+                bottom = Math.Max(bottom, rect.Y + rect.Height);
+            }
+
+            return new Rect(left * scale, top * scale, (right - left) * scale, (bottom - top) * scale);
+        }
     }
 
     /// <summary>本文を折り返して行へ配置する（表示と編集で同じ結果を使う）。</summary>
@@ -228,6 +423,25 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
             }
 
             InvalidateVisual();
+
+            // **ポップアップは選択位置に追随する**: 本文・倍率・行間が変わると選択の位置も変わる
+            UpdateFormatBarHost();
         }
+    }
+
+    /// <summary>要素へ繋がったときに、ポップアップの出し直しを行う。</summary>
+    /// <param name="e">引数。</param>
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        UpdateFormatBarHost();
+    }
+
+    /// <summary>要素から外れたときに、ポップアップを閉じる（取り残さない）。</summary>
+    /// <param name="e">引数。</param>
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        CloseFormatBarHost();
+        base.OnDetachedFromVisualTree(e);
     }
 }
