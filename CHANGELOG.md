@@ -9,6 +9,7 @@
 
 ### 破壊的な変更
 
+- **書式付き文字列の編集操作をログへ記録するようにしました**（`TextLogMessage`。 4 つの UI 版の `StyledTextControl` に `Log` / `LogPrefix` を追加）。 定義はコアが単一所有し、接頭辞は `[StyledText]` です。 本文は先頭 100 文字へ切り詰めて記録します。
 - **`PasteAsync` が貼り付けた文字列を返すようにしました**（`Task<string?>`。 貼り付ける文字列が無い場合は `null`）。 呼び出し側の `_ = PasteAsync()` はそのまま使えます。
 - **WinUI 3 の `AnnotationLayerControl.MeasureText` を削除しました**（本文の実寸は描画に使うテキスト エンジンが決めるため、ホストが差し替える入口を置きません）。
 - **`StyledTextControl.EditState` を `Editor` に置き換えました**（4 つの UI 版）。 状態だけでなく本文も含めて 1 つの `TextEditor` を共有するためです（別の実体を持つと本文とキャレットが食い違います）。 状態だけを差し替えていたホストは `Editor` へ `TextEditor` を渡します。

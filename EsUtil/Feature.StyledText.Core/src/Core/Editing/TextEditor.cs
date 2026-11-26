@@ -1,5 +1,8 @@
 using EsUtil.Feature.StyledText.Core.Text;
+using EsUtil.Feature.StyledText.Logging;
 using EsUtil.Platform.Core.Geometry;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EsUtil.Feature.StyledText.Core.Editing;
 
@@ -22,6 +25,12 @@ public sealed class TextEditor
 
     /// <summary>IME の変換中の文字列（本文へは入れない）。</summary>
     private string _preeditText = string.Empty;
+
+    /// <summary>ログの出力先（既定は何も出力しない）。</summary>
+    private ILogger _log = NullLogger.Instance;
+
+    /// <summary>ホストが設定した接頭辞（未設定は null）。</summary>
+    private string? _logPrefix;
 
     /// <summary>編集している本文を取得または設定する。</summary>
     /// <value>表示・編集する本文。 設定すると編集位置を本文の範囲へ収める。</value>
@@ -56,6 +65,27 @@ public sealed class TextEditor
     {
         get => _preeditText;
         set => _preeditText = value ?? string.Empty;
+    }
+
+    /// <summary>ログの出力先を取得または設定する。</summary>
+    /// <value>ロガー。 null を設定すると出力しない。</value>
+    /// <remarks>編集操作の記録（本文の変更・書式の適用・選択）は <see cref="TextLogMessage"/> が単一所有する。</remarks>
+    public ILogger Log
+    {
+        get => _log;
+        set => _log = value ?? NullLogger.Instance;
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する。</summary>
+    /// <value>接頭辞（例: <c>[StyledText]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    public string? LogPrefix
+    {
+        get => _logPrefix;
+        set
+        {
+            _logPrefix = value;
+            TextLogMessage.Prefix = string.IsNullOrWhiteSpace(value) ? TextLogMessage.DefaultPrefix : value;
+        }
     }
 
     /// <summary>本文を編集中かどうかを取得する。</summary>
@@ -97,6 +127,7 @@ public sealed class TextEditor
 
         _state.BeginEdit(_text.PlainText.Length);
         _preeditText = string.Empty;
+        _log.LogEditingStarted(_state.CaretIndex, _text.PlainText);
         return TextEditChange.Editing | TextEditChange.Selection;
     }
 
@@ -111,6 +142,7 @@ public sealed class TextEditor
 
         _state.EndEdit();
         _preeditText = string.Empty;
+        _log.LogEditingEnded(_state.CaretIndex, _state.SelectionStart, _state.SelectionLength);
         return TextEditChange.Editing | TextEditChange.Selection;
     }
 
@@ -121,6 +153,7 @@ public sealed class TextEditor
     public TextEditChange Select(int start, int length)
     {
         _state.Select(_text, start, length);
+        LogSelection();
         return TextEditChange.Selection;
     }
 
@@ -129,6 +162,7 @@ public sealed class TextEditor
     public TextEditChange SelectAll()
     {
         _state.SelectAll(_text);
+        LogSelection();
         return TextEditChange.Selection;
     }
 
@@ -142,6 +176,7 @@ public sealed class TextEditor
         var from = Math.Clamp(start, 0, length);
         var to = Math.Clamp(end, from, length);
         _state.Select(_text, from, to - from);
+        LogSelection();
         return TextEditChange.Selection;
     }
 
@@ -152,6 +187,7 @@ public sealed class TextEditor
     public TextEditChange MoveCaret(int index, bool extend)
     {
         _state.MoveToCluster(_text, index, extend);
+        LogSelection();
         return TextEditChange.Selection;
     }
 
@@ -171,6 +207,7 @@ public sealed class TextEditor
     {
         _state.MoveByLine(lines, _text.PlainText.Length, delta, extend);
         _state.SnapCaretToCluster(_text, extend);
+        LogSelection();
         return TextEditChange.Selection;
     }
 
@@ -183,6 +220,7 @@ public sealed class TextEditor
     {
         _state.MoveToLineEdge(lines, _text.PlainText.Length, first, extend);
         _state.SnapCaretToCluster(_text, extend);
+        LogSelection();
         return TextEditChange.Selection;
     }
 
@@ -200,6 +238,7 @@ public sealed class TextEditor
         ArgumentNullException.ThrowIfNull(measureText);
 
         _state.SetCaretFromPoint(lines, point, _text.PlainText.Length, extend, measureText);
+        LogSelection();
         return TextEditChange.Selection;
     }
 
@@ -209,6 +248,7 @@ public sealed class TextEditor
     {
         _state.Clamp(_text.PlainText.Length);
         _state.SnapCaretToCluster(_text, extend: true);
+        LogSelection();
         return TextEditChange.Selection;
     }
 
@@ -220,7 +260,7 @@ public sealed class TextEditor
     public TextEditChange ReplaceSelection(string inserted)
     {
         ArgumentNullException.ThrowIfNull(inserted);
-        return Commit(_state.ReplaceSelection(_text, TextInput.Normalize(inserted)));
+        return CommitText(_state.ReplaceSelection(_text, TextInput.Normalize(inserted)));
     }
 
     /// <summary>指定した範囲を文字列で置き換える（ホストが範囲を指定する場合）。</summary>
@@ -232,13 +272,13 @@ public sealed class TextEditor
     public TextEditChange ReplaceRange(int start, int end, string inserted)
     {
         ArgumentNullException.ThrowIfNull(inserted);
-        return Commit(_state.ReplaceRange(_text, start, end, TextInput.Normalize(inserted)));
+        return CommitText(_state.ReplaceRange(_text, start, end, TextInput.Normalize(inserted)));
     }
 
     /// <summary>選択範囲、またはキャレットの前後の 1 クラスタを削除する。</summary>
     /// <param name="forward">キャレットの次の文字を削除する場合は <see langword="true"/>。</param>
     /// <returns>変わった内容。 本文が変わらない場合は <see cref="TextEditChange.Selection"/>。</returns>
-    public TextEditChange DeleteAtCaret(bool forward) => Commit(_state.Delete(_text, forward));
+    public TextEditChange DeleteAtCaret(bool forward) => CommitText(_state.Delete(_text, forward));
 
     /// <summary>選択範囲の書式を丸ごと適用する（選択が無ければ以降の入力へ回す）。</summary>
     /// <param name="style">適用する書式。</param>
@@ -247,7 +287,10 @@ public sealed class TextEditor
     public TextEditChange ApplyStyle(TextStyle style)
     {
         ArgumentNullException.ThrowIfNull(style);
-        return Commit(_state.ApplyStyle(_text, style));
+
+        var change = Commit(_state.ApplyStyle(_text, style));
+        LogStyleApplied(SelectionStart, SelectionLength, change);
+        return change;
     }
 
     /// <summary>指定した範囲の書式を丸ごと適用する（ホストが範囲を指定する場合）。</summary>
@@ -261,9 +304,14 @@ public sealed class TextEditor
         ArgumentNullException.ThrowIfNull(style);
 
         _state.SetTypingStyle(style);
-        return TextStyleEdit.ResolveRange(start, length) is { } range
-            ? Commit(_text.ApplyStyle(range.Start, range.Length, style))
-            : TextEditChange.None;
+        if (TextStyleEdit.ResolveRange(start, length) is not { } range)
+        {
+            return TextEditChange.None;
+        }
+
+        var change = Commit(_text.ApplyStyle(range.Start, range.Length, style));
+        LogStyleApplied(range.Start, range.Length, change);
+        return change;
     }
 
     /// <summary>選択範囲の書式を 1 属性だけ変換する（選択が無ければ以降の入力へ回す）。</summary>
@@ -271,7 +319,11 @@ public sealed class TextEditor
     /// <returns>変わった内容。 本文が変わらない場合は <see cref="TextEditChange.Selection"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="transform"/> が null の場合。</exception>
     public TextEditChange TransformStyle(Func<TextStyle, TextStyle> transform)
-        => Commit(_state.TransformStyle(_text, transform));
+    {
+        var change = Commit(_state.TransformStyle(_text, transform));
+        LogStyleApplied(SelectionStart, SelectionLength, change);
+        return change;
+    }
 
     /// <summary>指定した範囲の書式を 1 属性だけ変換する（ホストが範囲を指定する場合）。</summary>
     /// <param name="start">開始位置（文字数）。</param>
@@ -286,7 +338,9 @@ public sealed class TextEditor
         var at = Math.Clamp(start, 0, _text.PlainText.Length);
         var next = transform(_text.StyleAt(at));
         _state.SetTypingStyle(next);
-        return Commit(_text.TransformStyle(start, length, _ => next));
+        var change = Commit(_text.TransformStyle(start, length, _ => next));
+        LogStyleApplied(start, length, change);
+        return change;
     }
 
     /// <summary>選択中の文字列を取得する（クリップボードへ渡す）。</summary>
@@ -405,6 +459,36 @@ public sealed class TextEditor
         => ResolveLineIndex(bodySize, measureText, lineHeightFactor) is { } index
             ? index.ResolveCaret(DisplayCaretIndex, measureText)
             : null;
+
+    /// <summary>本文の変更を記録する（文字が変わった場合だけ）。</summary>
+    /// <param name="updated">変更後の本文。</param>
+    /// <returns>変わった内容。</returns>
+    private TextEditChange CommitText(RichText updated)
+    {
+        var change = Commit(updated);
+        if ((change & TextEditChange.Text) != 0)
+        {
+            _log.LogTextChanged(Text.PlainText.Length, Text.PlainText);
+        }
+
+        return change;
+    }
+
+    /// <summary>書式の適用を記録する（書式が変わった場合だけ）。</summary>
+    /// <param name="start">適用する範囲の開始位置（文字数）。</param>
+    /// <param name="length">適用する範囲の長さ（文字数）。</param>
+    /// <param name="change">変わった内容。</param>
+    private void LogStyleApplied(int start, int length, TextEditChange change)
+    {
+        if ((change & TextEditChange.Text) != 0)
+        {
+            _log.LogTextStyleApplied(Text.PlainText, start, length);
+        }
+    }
+
+    /// <summary>キャレットと選択範囲を記録する。</summary>
+    private void LogSelection()
+        => _log.LogTextSelectionChanged(_state.CaretIndex, _state.SelectionStart, _state.SelectionLength);
 
     /// <summary>変更後の本文を書き戻す。</summary>
     /// <param name="updated">変更後の本文。</param>

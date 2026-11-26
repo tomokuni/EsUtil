@@ -36,6 +36,7 @@ public static class MainForm
                     Color = System.Drawing.Color.FromArgb(255, 200, 0, 0),
                 }),
             LineHeightFactor = 1.2,
+            Log = logger,
             Dock = DockStyle.Fill,
         };
 
@@ -47,18 +48,18 @@ public static class MainForm
 
         editor.RichTextChanged += (_, _) =>
         {
-            logger.LogInformation("本文が変わりました。");
+            logger.LogTextChanged(editor.RichTextValue.PlainText.Length);
             UpdateStatus();
         };
         editor.SelectionChanged += (_, _) =>
         {
-            logger.LogDebug("選択が変わりました。");
+            logger.LogSelectionChanged(editor.SelectionStart, editor.SelectionLength);
             UpdateFormatBar();
             UpdateStatus();
         };
         editor.EditingChanged += (_, _) =>
         {
-            logger.LogInformation("編集の状態が変わりました。");
+            logger.LogEditingChanged(editor.IsEditing);
             UpdateFormatBar();
             UpdateStatus();
         };

@@ -1,6 +1,9 @@
-using System.Runtime.InteropServices;
 using System.Text;
+using EsUtil.Feature.StyledText.Logging;
+using EsUtil.Ui.WinForms.Interop.Native;
 using EsUtil.Platform.Core.Geometry;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EsUtil.Ui.WinForms.StyledText;
 
@@ -21,6 +24,9 @@ public sealed class StyledTextControl : Control
 
     /// <summary>本文の値と編集の状態（規則は提示層が単一所有する）。</summary>
     private TextEditor _editor = new();
+
+    /// <summary>ログの出力先（既定は何も出力しない）。</summary>
+    private ILogger _log = NullLogger.Instance;
 
     /// <summary>キャレットの点滅を始めた時刻。</summary>
     private DateTimeOffset _caretBlinkStart = DateTimeOffset.UtcNow;
@@ -104,8 +110,35 @@ public sealed class StyledTextControl : Control
             }
 
             _editor = value;
+            _editor.Log = _log;
             Invalidate();
         }
+    }
+
+    /// <summary>ログの出力先を取得または設定する。</summary>
+    /// <value>ロガー。 null を設定すると出力しない。</value>
+    /// <remarks>定義はコアの <see cref="TextLogMessage"/> が単一所有する。 設定すると現在の設定値を 1 行記録する。</remarks>
+    [System.ComponentModel.Browsable(false)]
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public ILogger Log
+    {
+        get => _log;
+        set
+        {
+            _log = value ?? NullLogger.Instance;
+            _editor.Log = _log;
+            _log.LogControlCreated(SourceToClientScaling, LineHeightFactor, FormatBarHosting);
+        }
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[StyledText]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    [System.ComponentModel.Browsable(false)]
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public string? LogPrefix
+    {
+        get => _editor.LogPrefix;
+        set => _editor.LogPrefix = value;
     }
 
     /// <summary>IME の変換中の文字列を取得または設定する（本文へは入れない）。</summary>
@@ -146,6 +179,7 @@ public sealed class StyledTextControl : Control
                 return;
             }
 
+            _log.LogSettingChanged(nameof(ShowFormatBarWhileEditing), _showFormatBarWhileEditing, value);
             _showFormatBarWhileEditing = value;
             UpdateFormatBarHost();
         }
@@ -181,6 +215,7 @@ public sealed class StyledTextControl : Control
                 return;
             }
 
+            _log.LogSettingChanged(nameof(FormatBarItems), _formatBarItems, items);
             _formatBarItems = items;
             RebuildFormatBar();
             UpdateFormatBarHost();
@@ -204,6 +239,7 @@ public sealed class StyledTextControl : Control
                 return;
             }
 
+            _log.LogSettingChanged(nameof(FormatBarHosting), _formatBarHosting.ToString(), value.ToString());
             _formatBarHosting = value;
             if (value != TextFormatBarHosting.Popup)
             {
@@ -572,25 +608,33 @@ public sealed class StyledTextControl : Control
     public Task CopyAsync()
     {
         var text = GetSelectedText();
-        if (text.Length > 0)
+        if (text.Length == 0)
         {
-            Clipboard.SetText(text);
+            return Task.CompletedTask;
         }
 
+        Clipboard.SetText(text);
+        _log.LogTextOperation("コピー", CaretIndex, SelectionStart, SelectionLength, text);
         return Task.CompletedTask;
     }
 
     /// <summary>選択中の文字列を切り取る。</summary>
     /// <returns>切り取りの非同期処理。</returns>
-    public async Task CutAsync()
+    public Task CutAsync()
     {
-        if (GetSelectedText().Length == 0)
+        var text = GetSelectedText();
+        if (text.Length == 0)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        await CopyAsync();
+        var caret = CaretIndex;
+        var selectionStart = SelectionStart;
+        var selectionLength = SelectionLength;
+        Clipboard.SetText(text);
         ReplaceSelection(string.Empty);
+        _log.LogTextOperation("切り取り", caret, selectionStart, selectionLength, text);
+        return Task.CompletedTask;
     }
 
     /// <summary>クリップボードの文字列を挿入する。</summary>
@@ -602,8 +646,12 @@ public sealed class StyledTextControl : Control
             return Task.FromResult<string?>(null);
         }
 
+        var caret = CaretIndex;
+        var selectionStart = SelectionStart;
+        var selectionLength = SelectionLength;
         var normalized = EsUtil.Feature.StyledText.Core.Text.TextInput.Normalize(Clipboard.GetText());
         ReplaceSelection(normalized);
+        _log.LogTextOperation("貼り付け", caret, selectionStart, selectionLength, normalized);
         return Task.FromResult<string?>(normalized);
     }
 
@@ -974,13 +1022,13 @@ public sealed class StyledTextControl : Control
     {
         switch (m.Msg)
         {
-            case WmImeStartComposition:
+            case ImeInterop.WmImeStartComposition:
                 SetPreedit(string.Empty);
                 break;
-            case WmImeEndComposition:
+            case ImeInterop.WmImeEndComposition:
                 SetPreedit(string.Empty);
                 break;
-            case WmImeComposition:
+            case ImeInterop.WmImeComposition:
                 HandleImeComposition((int)m.LParam);
                 break;
             default:
@@ -999,9 +1047,9 @@ public sealed class StyledTextControl : Control
             return;
         }
 
-        if ((flags & GcsResultStr) != 0)
+        if ((flags & ImeInterop.GcsResultStr) != 0)
         {
-            var committed = ReadCompositionString(GcsResultStr);
+            var committed = ReadCompositionString(ImeInterop.GcsResultStr);
             SetPreedit(string.Empty);
             if (committed.Length > 0)
             {
@@ -1011,9 +1059,9 @@ public sealed class StyledTextControl : Control
             }
         }
 
-        if ((flags & GcsCompStr) != 0)
+        if ((flags & ImeInterop.GcsCompStr) != 0)
         {
-            SetPreedit(ReadCompositionString(GcsCompStr));
+            SetPreedit(ReadCompositionString(ImeInterop.GcsCompStr));
             PositionCompositionWindow();
         }
     }
@@ -1025,7 +1073,7 @@ public sealed class StyledTextControl : Control
     /// </remarks>
     private void PositionCompositionWindow()
     {
-        var context = ImmGetContext(Handle);
+        var context = ImeInterop.GetContext(Handle);
         if (context == IntPtr.Zero)
         {
             return;
@@ -1034,21 +1082,21 @@ public sealed class StyledTextControl : Control
         try
         {
             var caret = CaretRect;
-            var form = new CompositionForm
+            var form = new ImeInterop.CompositionForm
             {
-                dwStyle = CfsPoint,
-                ptCurrentPos = new NativePoint
+                Style = ImeInterop.CfsPoint,
+                CurrentPosition = new ImeInterop.NativePoint
                 {
                     X = (int)Math.Round(caret.X),
                     Y = (int)Math.Round(caret.Bottom),
                 },
             };
 
-            _ = ImmSetCompositionWindow(context, ref form);
+            _ = ImeInterop.SetCompositionWindow(context, ref form);
         }
         finally
         {
-            _ = ImmReleaseContext(Handle, context);
+            _ = ImeInterop.ReleaseContext(Handle, context);
         }
     }
 
@@ -1057,7 +1105,7 @@ public sealed class StyledTextControl : Control
     /// <returns>読み取った文字列（取得できない場合は空）。</returns>
     private string ReadCompositionString(int kind)
     {
-        var context = ImmGetContext(Handle);
+        var context = ImeInterop.GetContext(Handle);
         if (context == IntPtr.Zero)
         {
             return string.Empty;
@@ -1065,99 +1113,23 @@ public sealed class StyledTextControl : Control
 
         try
         {
-            var size = ImmGetCompositionStringW(context, kind, null, 0);
+            var size = ImeInterop.GetCompositionString(context, kind, null, 0);
             if (size <= 0)
             {
                 return string.Empty;
             }
 
             var buffer = new byte[size];
-            var read = ImmGetCompositionStringW(context, kind, buffer, size);
+            var read = ImeInterop.GetCompositionString(context, kind, buffer, size);
             return read <= 0 ? string.Empty : Encoding.Unicode.GetString(buffer, 0, read);
         }
         finally
         {
-            _ = ImmReleaseContext(Handle, context);
+            _ = ImeInterop.ReleaseContext(Handle, context);
         }
     }
 
     /// <summary>IME の変換中の文字列を設定する（本文へは入れない）。</summary>
     /// <param name="value">変換中の文字列。</param>
     private void SetPreedit(string value) => PreeditText = value;
-
-    /// <summary>IME の変換開始（<c>WM_IME_STARTCOMPOSITION</c>）。</summary>
-    private const int WmImeStartComposition = 0x0105;
-
-    /// <summary>IME の変換終了（<c>WM_IME_ENDCOMPOSITION</c>）。</summary>
-    private const int WmImeEndComposition = 0x0106;
-
-    /// <summary>IME の変換内容（<c>WM_IME_COMPOSITION</c>）。</summary>
-    private const int WmImeComposition = 0x010F;
-
-    /// <summary>確定した文字列（<c>GCS_RESULTSTR</c>）。</summary>
-    private const int GcsResultStr = 0x0800;
-
-    /// <summary>変換中の文字列（<c>GCS_COMPSTR</c>）。</summary>
-    private const int GcsCompStr = 0x0008;
-
-    /// <summary>変換候補の位置を指定する（<c>CFS_POINT</c>）。</summary>
-    private const int CfsPoint = 0x0002;
-
-    /// <summary>キャレットの矩形を渡すための引数。</summary>
-    [StructLayout(LayoutKind.Sequential)]
-    private struct CompositionForm
-    {
-        /// <summary>指定の種類（<c>CFS_POINT</c> など）。</summary>
-        public int dwStyle;
-
-        /// <summary>候補の位置。</summary>
-        public NativePoint ptCurrentPos;
-
-        /// <summary>除外する矩形（使わない）。</summary>
-        public NativeRectangle rcArea;
-    }
-
-    /// <summary>整数の点。</summary>
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativePoint
-    {
-        /// <summary>X 座標。</summary>
-        public int X;
-
-        /// <summary>Y 座標。</summary>
-        public int Y;
-    }
-
-    /// <summary>整数の矩形。</summary>
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativeRectangle
-    {
-        /// <summary>左端。</summary>
-        public int Left;
-
-        /// <summary>上端。</summary>
-        public int Top;
-
-        /// <summary>右端。</summary>
-        public int Right;
-
-        /// <summary>下端。</summary>
-        public int Bottom;
-    }
-
-    [DllImport("imm32.dll")]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern IntPtr ImmGetContext(IntPtr hWnd);
-
-    [DllImport("imm32.dll")]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern bool ImmReleaseContext(IntPtr hWnd, IntPtr hIMC);
-
-    [DllImport("imm32.dll", CharSet = CharSet.Unicode, EntryPoint = "ImmGetCompositionStringW")]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern int ImmGetCompositionStringW(IntPtr hIMC, int dwIndex, byte[]? lpBuf, int dwBufLen);
-
-    [DllImport("imm32.dll")]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern bool ImmSetCompositionWindow(IntPtr hIMC, ref CompositionForm lpCompositionForm);
 }

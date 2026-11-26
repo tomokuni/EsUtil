@@ -3,7 +3,10 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Threading;
+using EsUtil.Feature.StyledText.Logging;
 using EsUtil.Platform.Core.Geometry;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EsUtil.Ui.AvaloniaUI.StyledText;
 
@@ -17,6 +20,9 @@ public sealed partial class StyledTextControl
 {
     /// <summary>本文の値と編集の状態（規則は提示層が単一所有する）。</summary>
     private TextEditor _editor = new();
+
+    /// <summary>ログの出力先（既定は何も出力しない）。</summary>
+    private ILogger _log = NullLogger.Instance;
 
     /// <summary>本文の値と編集の状態を取得または設定する。</summary>
     /// <value>既定は本コントロールが作った実体。 ホストが既に編集器を持っている場合はその実体を設定する。</value>
@@ -39,12 +45,35 @@ public sealed partial class StyledTextControl
             }
 
             _editor = value;
+            _editor.Log = _log;
 
             // **本文のプロパティも共有した実体へ揃える**: 表示は本文のプロパティから読むため、
             // 揃えないと編集器の本文と画面の本文が食い違う。
             SetCurrentValue(RichTextValueProperty, value.Text);
             InvalidateVisual();
         }
+    }
+
+    /// <summary>ログの出力先を取得または設定する。</summary>
+    /// <value>ロガー。 null を設定すると出力しない。</value>
+    /// <remarks>定義はコアの <see cref="TextLogMessage"/> が単一所有する。 設定すると現在の設定値を 1 行記録する。</remarks>
+    public ILogger Log
+    {
+        get => _log;
+        set
+        {
+            _log = value ?? NullLogger.Instance;
+            _editor.Log = _log;
+            _log.LogControlCreated(SourceToClientScaling, LineHeightFactor, FormatBarHosting);
+        }
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[StyledText]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    public string? LogPrefix
+    {
+        get => _editor.LogPrefix;
+        set => _editor.LogPrefix = value;
     }
 
     /// <summary>IME の変換中の文字列を取得または設定する（本文へは入れない）。</summary>
@@ -80,6 +109,7 @@ public sealed partial class StyledTextControl
                 return;
             }
 
+            _log.LogSettingChanged(nameof(ShowFormatBarWhileEditing), _showFormatBarWhileEditing, value);
             _showFormatBarWhileEditing = value;
             UpdateFormatBarHost();
         }
@@ -260,6 +290,7 @@ public sealed partial class StyledTextControl
         if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
         {
             await clipboard.SetTextAsync(text);
+            _log.LogTextOperation("コピー", CaretIndex, SelectionStart, SelectionLength, text);
         }
     }
 
@@ -267,13 +298,22 @@ public sealed partial class StyledTextControl
     /// <returns>切り取りの非同期処理。</returns>
     public async Task CutAsync()
     {
-        if (GetSelectedText().Length == 0)
+        var text = GetSelectedText();
+        if (text.Length == 0)
         {
             return;
         }
 
-        await CopyAsync();
+        var caret = CaretIndex;
+        var selectionStart = SelectionStart;
+        var selectionLength = SelectionLength;
+        if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
+        {
+            await clipboard.SetTextAsync(text);
+        }
+
         ReplaceSelection(string.Empty);
+        _log.LogTextOperation("切り取り", caret, selectionStart, selectionLength, text);
     }
 
     /// <summary>クリップボードの文字列を挿入する。</summary>
@@ -291,8 +331,12 @@ public sealed partial class StyledTextControl
             return null;
         }
 
+        var caret = CaretIndex;
+        var selectionStart = SelectionStart;
+        var selectionLength = SelectionLength;
         var normalized = EsUtil.Feature.StyledText.Core.Text.TextInput.Normalize(text);
         ReplaceSelection(normalized);
+        _log.LogTextOperation("貼り付け", caret, selectionStart, selectionLength, normalized);
         return normalized;
     }
 

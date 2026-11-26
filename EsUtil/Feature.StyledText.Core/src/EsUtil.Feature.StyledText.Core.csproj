@@ -15,6 +15,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- 編集操作のログ定義（LoggerMessage ソース生成）を本コアが所有する -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="EsUtil.Feature.StyledText.Core.Tests" />
   </ItemGroup>
 

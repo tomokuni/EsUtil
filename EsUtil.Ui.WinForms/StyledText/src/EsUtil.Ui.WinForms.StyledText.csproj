@@ -12,6 +12,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\EsUtil\Feature.StyledText.Core\src\EsUtil.Feature.StyledText.Core.csproj" />
     <ProjectReference Include="..\..\..\EsUtil\Platform.Core\src\EsUtil.Platform.Core.csproj" />
+    <!-- IME（imm32）の P/Invoke と構造体は Interop が単一所有する -->
+    <ProjectReference Include="..\..\Interop\src\EsUtil.Ui.WinForms.Interop.csproj" />
   </ItemGroup>
 
   <ItemGroup>

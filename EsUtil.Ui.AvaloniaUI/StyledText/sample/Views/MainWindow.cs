@@ -37,6 +37,7 @@ public sealed class MainWindow : Window
     {
         var logger = _logging.Logger;
         logger.LogInformation("サンプルを起動しました。");
+        _editor.Log = logger;
 
         // 本文は run 単位の書式で持つ（色・太字を混ぜられる）。 本文はコントロールが単一所有する
         _editor.RichTextValue = RichText.Create("ここが重要です。\n文字単位の書式は API でも変えられます。", TextDefaults.DefaultStyle)
@@ -48,18 +49,18 @@ public sealed class MainWindow : Window
         _editor.LineHeightFactor = 1.2;
         _editor.RichTextChanged += (_, _) =>
         {
-            logger.LogInformation("本文が変わりました。");
+            logger.LogTextChanged(_editor.RichTextValue.PlainText.Length);
             UpdateStatus();
         };
         _editor.SelectionChanged += (_, _) =>
         {
-            logger.LogDebug("選択が変わりました。");
+            logger.LogSelectionChanged(_editor.SelectionStart, _editor.SelectionLength);
             UpdateFormatBar();
             UpdateStatus();
         };
         _editor.EditingChanged += (_, _) =>
         {
-            logger.LogInformation("編集の状態が変わりました。");
+            logger.LogEditingChanged(_editor.IsEditing);
             UpdateFormatBar();
             UpdateStatus();
         };

@@ -23,6 +23,7 @@
 - [17. `TextFormatBarItemVisibility`（レコード）](#17-textformatbaritemvisibilityレコード)
 - [18. `TextFormatBarHosting` / `FloatingPanelPlacement` / `FloatingPanelAppearance`](#18-textformatbarhosting--floatingpanelplacement--floatingpanelappearance)
 - [19. `TextEditorAppearance` / `TextDrawingAppearance`（静的クラス）](#19-texteditorappearance--textdrawingappearance静的クラス)
+- [20. `TextLogMessage`（静的クラス）](#20-textlogmessage静的クラス)
 
 ## 1. 公開 API の可視性
 
@@ -35,6 +36,7 @@
 | 計算（`TextLayout` / `TextLineIndex` / `TextLineLayout` / `TextCursor` / `TextStyleEdit` / `TextCompositionPreview` / `TextCaretBlink`） | `public` | 任意 |
 | 編集の状態（`TextEditState` / `TextEditor` / `TextEditChange`）とキーの割り当て（`TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand` / `TextEditRequest`） | `public` | UI 層 |
 | 既定値と安全域（`TextDefaults` / `TextLimits`） | `public` | 任意 |
+| ログ定義（`TextLogMessage`） | `public` | UI 層 |
 | 折り返しの実装（`TextWrap`） | `internal` | 同一アセンブリとテスト |
 
 - **文字位置はすべて「本文の先頭からの文字数」**（0 起点）です。 バイト数でもクラスタ数でもありません。
@@ -213,6 +215,7 @@
 | `ApplyStyle` / `TransformStyle` / `GetSelectedText` / `SelectedTextMatches` / `SelectedTextStyle` | 書式の適用・選択文字の取得・書式ボタンの状態 |
 | `TryExecute(request, resolveLines)` | キーの割り当てが返した操作のうち本文の操作を実行する（クリップボードと編集の終了は UI が行う） |
 | `ResolveLines` / `ResolveLineIndex` / `ResolveCaretRect` | 折り返しと行の配置・行と文字位置の対応・キャレットの矩形（元画像ピクセル） |
+| `Log` / `LogPrefix` | ログの出力先と接頭辞（定義は `TextLogMessage` が単一所有する） |
 
 - **操作は変わった内容（`TextEditChange`）を返します**（`Text` / `Selection` / `Editing`）。 UI は値に応じて描画の更新と通知を行います。
 - **本文は不変**です。 編集は新しい `RichText` を `Text` へ書き戻し、変化が無ければ同じ実体のままです。
@@ -312,3 +315,21 @@
 - **位置の規則は 4 つの UI 版で共通**です（UI ごとに書き写すと、同じ選択でも出る場所が変わる）。
 - **選択範囲に被せません**（上に出し、入りきらない場合は下へ回る）。
 - **置ける領域の外へは出しません**（はみ出すと切れて押せなくなる）。
+
+## 20. `TextLogMessage`（静的クラス）
+
+編集操作を記録するログ定義（`.Logging`）です。 **アセンブリごとに 1 つ**であり、4 つの UI 版は本定義を共有します（定義を複製すると接頭辞と書式が二重所有になる）。 接頭辞の既定値は `[StyledText]` で、ホストが `TextEditor.LogPrefix` で設定します。
+
+| メンバー | レベル | 出力書式 |
+| --- | --- | --- |
+| `LogControlCreated(scaling, lineHeightFactor, hosting)` | Debug | `[StyledText] コントロールを作成: 倍率={Scaling} 行間={LineHeightFactor} 書式バー={Hosting}` |
+| `LogEditingStarted(caret, text)` / `LogEditingEnded(caret, selectionStart, selectionLength)` | Debug | `[StyledText] 編集を開始: キャレット={Caret} 本文={Preview}` / `編集を終了: …` |
+| `LogTextChanged(length, text)` | Debug | `[StyledText] 本文を変更: 文字数={Length} 本文={Preview}` |
+| `LogTextStyleApplied(text, start, length)` | Debug | `[StyledText] 書式を適用: 開始={Start} 長さ={Length} 本文={Preview}` |
+| `LogTextOperation(operation, caret, selectionStart, selectionLength, text)` | Debug | `[StyledText] 操作: {Operation} キャレット={Caret} 選択=({SelectionStart}, {SelectionLength}) 本文={Preview}` |
+| `LogTextSelectionChanged(caret, selectionStart, selectionLength)` | Trace | `[StyledText] 本文の選択: キャレット={Caret} 選択=({SelectionStart}, {SelectionLength})` |
+| `LogSettingChanged(name, oldValue, newValue)` | Information | `[StyledText] 設定: {Name} {OldValue} → {NewValue}` |
+
+- **`Debug` の行には操作内容と値を書きます**（規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md) §2）。
+- **本文は先頭 100 文字へ切り詰め、改行を 1 行にします**（`Preview`）。 整形は本クラスの内部ヘルパーが単一所有します。
+- **整形を伴う定義は `IsEnabled` でゲートしてから整形します**（引数は呼び出し前に評価されるため）。

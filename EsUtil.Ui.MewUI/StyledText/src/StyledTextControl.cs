@@ -1,8 +1,11 @@
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using Aprillz.MewUI.Rendering;
+using EsUtil.Feature.StyledText.Logging;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Native.Win;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EsUtil.Ui.MewUI.StyledText;
 
@@ -25,6 +28,9 @@ public sealed partial class StyledTextControl : Panel
 
     /// <summary>本文の値と編集の状態（規則は提示層が単一所有する）。</summary>
     private TextEditor _editor = new();
+
+    /// <summary>ログの出力先（既定は何も出力しない）。</summary>
+    private ILogger _log = NullLogger.Instance;
 
     /// <summary>キャレットの点滅を始めた時刻。</summary>
     private DateTimeOffset _caretBlinkStart = DateTimeOffset.UtcNow;
@@ -93,8 +99,31 @@ public sealed partial class StyledTextControl : Panel
             }
 
             _editor = value;
+            _editor.Log = _log;
             InvalidateVisual();
         }
+    }
+
+    /// <summary>ログの出力先を取得または設定する。</summary>
+    /// <value>ロガー。 null を設定すると出力しない。</value>
+    /// <remarks>定義はコアの <see cref="TextLogMessage"/> が単一所有する。 設定すると現在の設定値を 1 行記録する。</remarks>
+    public ILogger Log
+    {
+        get => _log;
+        set
+        {
+            _log = value ?? NullLogger.Instance;
+            _editor.Log = _log;
+            _log.LogControlCreated(SourceToClientScaling, LineHeightFactor, FormatBarHosting);
+        }
+    }
+
+    /// <summary>ログの接頭辞を取得または設定する（ロガーと一緒に設定する）。</summary>
+    /// <value>接頭辞（例: <c>[StyledText]</c>）。 null または空白を設定すると既定値へ戻す。</value>
+    public string? LogPrefix
+    {
+        get => _editor.LogPrefix;
+        set => _editor.LogPrefix = value;
     }
 
     /// <summary>IME の変換中の文字列を取得または設定する（本文へは入れない）。</summary>
@@ -133,6 +162,7 @@ public sealed partial class StyledTextControl : Panel
                 return;
             }
 
+            _log.LogSettingChanged(nameof(ShowFormatBarWhileEditing), _showFormatBarWhileEditing, value);
             _showFormatBarWhileEditing = value;
             UpdateFormatBarHost();
         }
@@ -167,6 +197,7 @@ public sealed partial class StyledTextControl : Panel
                 return;
             }
 
+            _log.LogSettingChanged(nameof(FormatBarItems), _formatBarItems, items);
             _formatBarItems = items;
             RebuildFormatBar();
             UpdateFormatBarHost();
@@ -189,6 +220,7 @@ public sealed partial class StyledTextControl : Panel
                 return;
             }
 
+            _log.LogSettingChanged(nameof(FormatBarHosting), _formatBarHosting.ToString(), value.ToString());
             _formatBarHosting = value;
             if (value != TextFormatBarHosting.Popup)
             {
@@ -520,25 +552,33 @@ public sealed partial class StyledTextControl : Panel
     public Task CopyAsync()
     {
         var text = GetSelectedText();
-        if (text.Length > 0)
+        if (text.Length == 0)
         {
-            _ = s_clipboard.TryWriteText(text);
+            return Task.CompletedTask;
         }
 
+        _ = s_clipboard.TryWriteText(text);
+        _log.LogTextOperation("コピー", CaretIndex, SelectionStart, SelectionLength, text);
         return Task.CompletedTask;
     }
 
     /// <summary>選択中の文字列を切り取る。</summary>
     /// <returns>切り取りの非同期処理。</returns>
-    public async Task CutAsync()
+    public Task CutAsync()
     {
-        if (GetSelectedText().Length == 0)
+        var text = GetSelectedText();
+        if (text.Length == 0)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        await CopyAsync();
+        var caret = CaretIndex;
+        var selectionStart = SelectionStart;
+        var selectionLength = SelectionLength;
+        _ = s_clipboard.TryWriteText(text);
         ReplaceSelection(string.Empty);
+        _log.LogTextOperation("切り取り", caret, selectionStart, selectionLength, text);
+        return Task.CompletedTask;
     }
 
     /// <summary>クリップボードの文字列を挿入する。</summary>
@@ -551,8 +591,12 @@ public sealed partial class StyledTextControl : Panel
             return Task.FromResult<string?>(null);
         }
 
+        var caret = CaretIndex;
+        var selectionStart = SelectionStart;
+        var selectionLength = SelectionLength;
         var normalized = EsUtil.Feature.StyledText.Core.Text.TextInput.Normalize(text);
         ReplaceSelection(normalized);
+        _log.LogTextOperation("貼り付け", caret, selectionStart, selectionLength, normalized);
         return Task.FromResult<string?>(normalized);
     }
 

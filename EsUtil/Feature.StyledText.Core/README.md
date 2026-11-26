@@ -85,6 +85,7 @@ if (request.Command == TextEditCommand.CaretLeft)
 | `TextEditKeyMap` / `TextEditKey` / `TextEditModifiers` / `TextEditCommand` | キーの割り当て（どのキーがどの操作になるか）。 4 つの UI 版はキーの型を写して本層の解決を呼ぶ |
 | `TextDefaults` / `TextLimits` | 既定値（フォントの優先順・大きさ・既定の書式）と安全域 |
 | `TextFormatBarVisibility` | 書式バーを表示する条件（自動表示が有効・編集中・1 文字以上を選択）。 4 つの UI 版は `StyledTextControl.ShouldShowFormatBar` から本判定だけを使う |
+| `TextLogMessage` | 編集操作のログ定義（接頭辞 `[StyledText]`）。 4 つの UI 版は本定義を共有する |
 
 ## 3. 構成（名前空間とフォルダ）
 
@@ -99,10 +100,11 @@ if (request.Command == TextEditCommand.CaretLeft)
 | `src/Core/Editing` | `.Core.Editing` | 編集中の本文の値と状態（キャレット・選択・入力・削除・書式）と、キーの割り当て（どのキーがどの操作か）。 本文と状態は `TextEditor` が組にして持つ |
 | `src/Presenter/Drawing` | `.Presenter.Drawing` | キャレットと選択範囲の見た目・文字の描画で使う外観の値（`TextEditorAppearance` / `TextDrawingAppearance`） |
 | `src/Presenter/Formatting` | `.Presenter.Formatting` | 書式バーの並び・寸法・フォントの並べ方（`TextFormatBarLayout` / `TextEditorLayout` / `TextFontCatalog` / `ITextFormatBarContext`） |
+| `src/Logging` | `.Logging` | 編集操作のログ定義（`TextLogMessage`。 アセンブリごとに 1 つ） |
 
 ## 4. 依存
 
-`EsUtil.Platform.Core` だけを参照します（値型とエラー境界）。 UI フレームワークには依存しません。 規則は [`.github/依存関係.md`](../../.github/依存関係.md)。
+プロジェクト参照は `EsUtil.Platform.Core` だけです（値型とエラー境界）。 ログの定義には `Microsoft.Extensions.Logging.Abstractions` を参照します（実装はホストが持ち込みます）。 UI フレームワークには依存しません。 規則は [`.github/依存関係.md`](../../.github/依存関係.md)。
 
 ## 5. テスト
 

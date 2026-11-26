@@ -18,6 +18,7 @@
 | `LineHeightFactor` | 行間の倍率（0 以下・非有限は 1） |
 | `SourceToClientScaling` | 元画像ピクセルから画面の DIP への倍率（0 以下・非有限は 1） |
 | `Editor` | 本文の値と編集の状態（`TextEditor`。 キャレット・選択・以降の入力へ効かせる書式を含む）。 ホストと共有できる |
+| `Log` / `LogPrefix` | ログの出力先と接頭辞（定義はコアの `TextLogMessage`。 設定すると現在の設定値を 1 行記録する） |
 | `IsInputEnabled` | 入力を受け付けるか（既定は受け付ける）。 表示専用にする場合は `false`（ホストが入力とフォーカスを持つ場合） |
 | `ShowFormatBarWhileEditing` | 編集中に書式バーを自動で表示するか（既定は `true`）。 ホストが独自にバーを出す場合は `false` |
 | `FormatBarItems` | 書式バーに出す項目の組み合わせ（既定はすべて表示）。 すべて非表示にするとバー自体を出さない |

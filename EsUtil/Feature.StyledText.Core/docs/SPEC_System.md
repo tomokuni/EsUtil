@@ -77,8 +77,9 @@ flowchart TB
 | `TextEditorAppearance` | Presenter（`.Presenter.Drawing`） | キャレットと選択範囲の見た目（色・太さ。 4 つの UI 版で同じ見た目にする） |
 | `TextDrawingAppearance` | Presenter（`.Presenter.Drawing`） | 文字の描画で使う外観の値（行の実寸を測る代表の文字・下線と取り消し線の太さ。 4 つの UI 版で同じ見た目にする） |
 | `TextFormatBarLayout` / `TextEditorLayout` / `TextFontCatalog` / `ITextFormatBarContext` | Presenter（`.Presenter.Formatting`） | 書式バーの並び順・寸法・フォントの並べ方と、バーが書式を読み書きする相手 |
+| `TextLogMessage` | Logging（`.Logging`） | 編集操作のログ定義（接頭辞 `[StyledText]`。 本文は先頭 100 文字へ切り詰める） |
 
-**本アセンブリはログを出力しません**（純粋な計算のみを行うため。 記録は利用側が行う。 規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。
+**ログ**: 編集操作（編集の開始と終了・本文の変更・書式の適用・選択）を `TextLogMessage`（`.Logging`）が記録します。 **接頭辞は `[StyledText]`** で、ホストが `TextEditor.LogPrefix` で設定します。 本文は先頭 100 文字へ切り詰めて記録します（整形は定義クラスが単一所有する）。 規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md) です。
 
 ## 5. 依存関係
 

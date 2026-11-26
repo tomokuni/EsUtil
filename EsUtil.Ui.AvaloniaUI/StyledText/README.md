@@ -99,7 +99,7 @@ editor.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
 
 ## 8. ログ
 
-本コントロールはログを出力しません（表示と入力の部品であり、記録は利用側が行います）。 規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)。
+本コントロールは `Log` / `LogPrefix` を受け取り、コアの `TextLogMessage`（接頭辞 `[StyledText]`）で編集・選択・クリップボード操作を記録します。 生成と設定の変更はコントロールが記録します。 規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)。
 
 ## 9. 未対応
 

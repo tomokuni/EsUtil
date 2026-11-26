@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using EsUtil.Feature.StyledText.Logging;
 using EsUtil.Platform.Core.Geometry;
 
 namespace EsUtil.Ui.AvaloniaUI.StyledText;
@@ -132,6 +133,7 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
                 return;
             }
 
+            _log.LogSettingChanged(nameof(FormatBarItems), _formatBarItems, items);
             _formatBarItems = items;
             RebuildFormatBar();
             UpdateFormatBarHost();
@@ -156,6 +158,7 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
                 return;
             }
 
+            _log.LogSettingChanged(nameof(FormatBarHosting), _formatBarHosting.ToString(), value.ToString());
             _formatBarHosting = value;
             if (value != TextFormatBarHosting.Popup)
             {
