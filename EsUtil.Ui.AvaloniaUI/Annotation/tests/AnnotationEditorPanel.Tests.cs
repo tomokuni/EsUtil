@@ -137,19 +137,8 @@ public class AnnotationEditorPanelTests
         editor.TextEditor.Select(0, 2);
         Assert.True(editor.IsFormatBarOpen);
 
-        // 表示中は差し替えられない（表示中に組み合わせを変えると位置と操作の対象が食い違う）
-        Assert.Throws<InvalidOperationException>(() => editor.FormatBarItems = new TextFormatBarItemVisibility
-        {
-            ShowBold = false,
-            ShowItalic = false,
-            ShowUnderline = false,
-            ShowStrike = false,
-            ShowColor = false,
-            ShowFontSize = false,
-            ShowFont = false,
-        });
-
-        editor.TextEditor.Select(0, 0);
+        // **表示中でも差し替えられる**: 出したまま差し替えると操作の対象が食い違うため作り直して出し直す
+        // （すべて出さないため、作り直した後は閉じる）
         editor.FormatBarItems = new TextFormatBarItemVisibility
         {
             ShowBold = false,
@@ -160,9 +149,37 @@ public class AnnotationEditorPanelTests
             ShowFontSize = false,
             ShowFont = false,
         };
+
+        Assert.False(editor.IsFormatBarOpen);
+
+        editor.TextEditor.Select(0, 0);
         editor.TextEditor.Select(0, 2);
 
         Assert.False(editor.IsFormatBarOpen);
+        GC.KeepAlive(window);
+    }
+
+    /// <summary>書式バーの項目を表示中に差し替えても、出す項目が残っていれば出したままにすることを検証する。</summary>
+    /// <remarks>
+    /// ホストは設定の切り替えを「バーが出ているか」で分けられない（分けさせると、表示中に設定しただけで
+    /// 落ちる）。 差し替えの判断は本パネルが単一所有する。
+    /// </remarks>
+    [AvaloniaFact]
+    internal void 表示中に書式バーの項目を差し替えてもバーを出したままにする()
+    {
+        var window = CreateEditor(out var editor, out _, out var bubbleId);
+        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.BeginTextEditing();
+        PumpLayout(editor);
+        editor.TextEditor.Select(0, 2);
+        Assert.True(editor.IsFormatBarOpen);
+
+        var items = editor.FormatBarItems with { ShowColor = false };
+        editor.FormatBarItems = items;
+
+        Assert.True(editor.IsFormatBarOpen);
+        Assert.Equal(items, editor.FormatBarItems);
+        Assert.Equal(items, editor.TextEditor.FormatBarItems);
         GC.KeepAlive(window);
     }
 

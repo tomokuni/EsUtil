@@ -18,12 +18,12 @@ WinForms 版の注釈レイヤーが公開する API の一覧です。 操作�
 | `Layer` | `AnnotationLayerControl` | 画像・文書・選択を操作するレイヤー |
 | `IsEditingText` | `bool` | 本文を編集中かどうか（書式バーは 1 文字以上を選んでいる間だけ出る） |
 | `ShowFormatBarWhileEditing` | property | 編集中に書式バーを自動で表示するか（既定は `true`。 ホストが独自にバーを出す場合は `false`） |
-| `FormatBarItems` | property | 書式バーに出す項目（太字・斜体・下線・取り消し線・色・大きさ・フォント名）の組み合わせ。 非表示の項目は詰めて並べ、すべて非表示のときはバー自体を出さない（差し替えはバーを出す前に行う） |
+| `FormatBarItems` | property | 書式バーに出す項目（太字・斜体・下線・取り消し線・色・大きさ・フォント名）の組み合わせ。 非表示の項目は詰めて並べ、すべて非表示のときはバー自体を出さない（表示中でも差し替えられ、作り直して出し直す） |
 | `IsFormatBarOpen` | property | 書式バーを表示中かどうか（編集中で 1 文字以上を選んでいる間だけ `true`） |
-| `TextFormat` | `ColorTextFormat` | 書式バーの色の表記（保持だけする） |
+| `TextFormat` | `ColorTextFormat` | 書式バーとフライアウトの色の表記。 値は `AnnotationLayerControl.ColorTextFormat` が単一所有する（バーを作り直しても失われない） |
 | `Log` / `LogPrefix` | `ILogger` / `string?` | ログの出力先と接頭辞（コアと提示層で共有する） |
 | `CopyTextSelection()` / `CutTextSelection()` / `PasteText()` | `void` | 本文の選択範囲をクリップボードとやり取りする（キーの割り当てと同じ処理） |
-| `FormatBarFactory` / `FormatBarOptions` | property | 書式バーの生成（`IStyledTextFormatBarFactory`）と構成（フォント・色・表記） |
+| `FormatBarFactory` / `FormatBarOptions` | property | 書式バーの生成（`IStyledTextFormatBarFactory`）と構成（フォント・色・表記）。 生成は表示中でも差し替えられる（作り直して出し直す） |
 | `ShowStylePanel()` / `CloseStylePanel()` / `IsStylePanelOpen` | `void` / `bool` | 外観・重なり順の編集パネルの表示・終了・表示状態（右クリックと同じ） |
 
 - 描画計画の提示層とファサードは `Layer.Presenter` / `Layer.Core` で参照します。

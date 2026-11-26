@@ -360,12 +360,13 @@ public static partial class AnnotationLogMessage
     [LoggerMessage(LogLevel.Information, "{Prefix:l} 設定: {Name:l} {OldValue:l} → {NewValue:l}")]
     private static partial void LogSettingChangedCore(this ILogger logger, string prefix, string name, string oldValue, string newValue);
 
-    /// <summary>設定値の変更を記録する。</summary>
+    /// <summary>設定値の変更を記録する（整形済みの文字列を渡す）。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="name">変更された設定名。</param>
     /// <param name="oldValue">変更前の値（整形済み）。</param>
     /// <param name="newValue">変更後の値（整形済み）。</param>
-    internal static void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue)
+    /// <remarks>列挙や組み合わせなど、数値・真偽で表せない設定値を記録するために UI 層からも使う。</remarks>
+    public static void LogSettingChanged(this ILogger logger, string name, string oldValue, string newValue)
         => logger.LogSettingChangedCore(Prefix, name, oldValue, newValue);
 
     /// <summary>実数設定値の変更を記録する（同値の再設定では出力しない）。</summary>

@@ -236,7 +236,12 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
     }
     /// <summary>書式バーを作る処理を取得または設定する（独自の GUI へ差し替える入口）。</summary>
     /// <value>既定は組み込みの書式バー（<see cref="StyledTextFormatBarFactory"/>）。</value>
-    /// <remarks>差し替えはバーを出す前に行う（表示中のバーを入れ替えると位置と操作の対象が食い違う）。</remarks>
+    /// <remarks>
+    /// <b>差し替えはいつでもできる</b>: 表示中なら作り直して出し直す（出す条件は変えない）。
+    /// ホストに「出す前かどうか」を判断させると、判断を UI ごとに間違える（表示中に設定しただけで
+    /// 例外になる）。 バーの寿命は本パネルが単一所有するため、作り直しも本パネルが行う。
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><see langword="null"/> を設定した場合。</exception>
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public IStyledTextFormatBarFactory FormatBarFactory
     {
@@ -244,18 +249,21 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         set
         {
             ArgumentNullException.ThrowIfNull(value);
-            if (_formatBarPanel.IsOpen)
+            if (ReferenceEquals(_formatBarFactory, value))
             {
-                throw new InvalidOperationException("書式バーを表示中は差し替えできません。");
+                return;
             }
 
+            _layer.Log.LogSettingChanged(
+                nameof(FormatBarFactory), _formatBarFactory.GetType().Name, value.GetType().Name);
             _formatBarFactory = value;
-            _formatBar = CreateFormatBar();
+            RebuildFormatBar();
         }
     }
 
     /// <summary>書式バーの構成（フォントの一覧・色のボタン・色の表記）を取得する。</summary>
     /// <value>注釈の代表色を書式バーの色のボタンへ渡す構成。</value>
+    /// <remarks>出す項目は <see cref="FormatBarItems"/>、色の表記は <see cref="TextFormat"/> が決める（本値の <c>Items</c> と <c>TextFormat</c> は使わない）。</remarks>
     public StyledTextFormatBarOptions FormatBarOptions { get; } = new()
     {
         CreateColorButton = (color, apply) => AnnotationEditorControls.ColorButton(color, apply),
@@ -266,10 +274,10 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
     /// <remarks>
     /// <b>出さない項目は場所ごと詰める</b>: バーの幅は出す項目だけで決まる（空の枠を残さない）。<br/>
     /// <b>すべて出さない場合はバーを表示しない</b>: 操作できない枠だけが本文に重なるのを避ける。<br/>
-    /// <b>差し替えはバーを出す前に行う</b>: 表示中は <see cref="InvalidOperationException"/> になる。
+    /// <b>差し替えはいつでもできる</b>: 表示中なら作り直して出し直す（出す条件は変えない。 詰めた幅も
+    /// 測り直すため、空の枠は残らない）。
     /// </remarks>
     /// <exception cref="ArgumentNullException"><see langword="null"/> を設定した場合。</exception>
-    /// <exception cref="InvalidOperationException">書式バーを表示中に設定した場合。</exception>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public TextFormatBarItemVisibility FormatBarItems
     {
@@ -282,17 +290,32 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
                 return;
             }
 
-            if (_formatBarPanel.IsOpen)
-            {
-                throw new InvalidOperationException("書式バーを表示中は差し替えできません。");
-            }
-
+            _layer.Log.LogSettingChanged(
+                nameof(FormatBarItems), DescribeItems(_formatBarItems), DescribeItems(value));
             _formatBarItems = value;
             _textEditor.FormatBarItems = value;
-            _formatBar = CreateFormatBar();
-            UpdateFormatBarVisibility();
+            RebuildFormatBar();
         }
     }
+
+    /// <summary>書式バーを作り直し、いまの状態に合わせて出し直す。</summary>
+    /// <remarks>
+    /// <b>出したまま差し替えない</b>: 中身と位置が食い違うため、いったん閉じてから出す
+    /// （閉じる・出すの判断は <see cref="UpdateFormatBarVisibility"/> が単一所有する。
+    /// 詰めた幅の測り直しもそこで行われる）。
+    /// </remarks>
+    private void RebuildFormatBar()
+    {
+        _formatBarPanel.Close();
+        _formatBar = CreateFormatBar();
+        UpdateFormatBarVisibility();
+    }
+
+    /// <summary>出す項目の組み合わせをログ用の短い文字列へ整形する。</summary>
+    /// <param name="items">出す項目の組み合わせ。</param>
+    /// <returns>項目名を並べた文字列（すべて出さない場合は「なし」）。</returns>
+    private static string DescribeItems(TextFormatBarItemVisibility items)
+        => items.HasAny ? string.Join(",", items.VisibleItems) : "なし";
 
     /// <summary>書式バーを作る。</summary>
     /// <returns>書式バー。</returns>
@@ -309,7 +332,7 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
                 _textEditor.Focus();
             }
         });
-        bar.TextFormat = FormatBarOptions.TextFormat;
+        bar.TextFormat = _layer.ColorTextFormat;
         return bar;
     }
 
@@ -381,14 +404,25 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
     }
 
     /// <summary>書式バーの色の入力欄へ出す表記を取得または設定する。</summary>
+    /// <remarks>
+    /// <b>値は注釈レイヤーが単一所有する</b>: 右クリックの外観フライアウトと同じ値を使う
+    /// （書式バーとフライアウトで色の見え方が食い違わない）。 バーを作り直しても値は失われない。
+    /// </remarks>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public ColorTextFormat TextFormat
     {
-        get => _formatBar.TextFormat;
+        get => _layer.ColorTextFormat;
         set
         {
-            _formatBar.TextFormat = value;
+            if (_layer.ColorTextFormat == value)
+            {
+                return;
+            }
+
+            _layer.Log.LogSettingChanged(
+                nameof(TextFormat), _layer.ColorTextFormat.ToString(), value.ToString());
             _layer.ColorTextFormat = value;
+            _formatBar.TextFormat = value;
         }
     }
 

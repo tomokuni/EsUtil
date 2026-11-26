@@ -211,7 +211,7 @@ public sealed class MainWindow : Window
         void AddFrame() => layer.AddFrame(new EsRect(120, 320, 300, 200));
         void AddBubble() => layer.AddBubble(new EsRect(300, 80, 320, 140), "新しい吹き出し");
 
-        // 書式バーに出す項目を変える（バーの作り直しはパネルが行う。 表示中は差し替えできない）
+        // 書式バーに出す項目を変える（作り直しと出し直しはパネルが行う。 表示中でも差し替えられる）
         void UpdateItems(Func<TextFormatBarItemVisibility, TextFormatBarItemVisibility> update)
         {
             editor.FormatBarItems = update(editor.FormatBarItems);

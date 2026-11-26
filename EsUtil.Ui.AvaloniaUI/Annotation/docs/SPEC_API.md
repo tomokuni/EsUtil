@@ -17,12 +17,12 @@
 | `Layer` | property | 内側の `AnnotationLayerControl`（画像・文書・選択・元に戻すはここから操作する） |
 | `IsEditingText` | property | 本文を編集中かどうか（書式バーは 1 文字以上を選んでいる間だけ出る） |
 | `ShowFormatBarWhileEditing` | property | 編集中に書式バーを自動で表示するか（既定は `true`。 ホストが独自にバーを出す場合は `false`） |
-| `FormatBarItems` | property | 書式バーに出す項目（太字・斜体・下線・取り消し線・色・大きさ・フォント名）の組み合わせ。 非表示の項目は詰めて並べ、すべて非表示のときはバー自体を出さない（差し替えはバーを出す前に行う） |
+| `FormatBarItems` | property | 書式バーに出す項目（太字・斜体・下線・取り消し線・色・大きさ・フォント名）の組み合わせ。 非表示の項目は詰めて並べ、すべて非表示のときはバー自体を出さない（表示中でも差し替えられ、作り直して出し直す） |
 | `IsFormatBarOpen` | property | 書式バーを表示中かどうか（編集中で 1 文字以上を選んでいる間だけ `true`） |
-| `TextFormat` | property | 書式バーと右クリックのフライアウトの色の表記（色名 + 不透明度 / カラーコード）。 カラーコードは `#AARRGGBB` |
+| `TextFormat` | property | 書式バーと右クリックのフライアウトの色の表記（色名 + 不透明度 / カラーコード）。 カラーコードは `#AARRGGBB`。 値は `AnnotationLayerControl.ColorTextFormat` が単一所有する（バーを作り直しても失われない） |
 | `Log` / `LogPrefix` | property | ログの出力先と接頭辞（コアと提示層で共有する。 既定 `[Annotation]`） |
 | `CopyTextSelection()` / `CutTextSelection()` / `PasteText()` | method | 本文の選択範囲をクリップボードとやり取りする（キーの割り当てと同じ処理） |
-| `FormatBarFactory` / `FormatBarOptions` | property | 書式バーの生成（`IStyledTextFormatBarFactory`）と構成（フォント・色・表記） |
+| `FormatBarFactory` / `FormatBarOptions` | property | 書式バーの生成（`IStyledTextFormatBarFactory`）と構成（フォント・色・表記）。 生成は表示中でも差し替えられる（作り直して出し直す） |
 | `ShowStylePanel(x, y)` / `CloseStylePanel()` / `IsStylePanelOpen` | method / property | 外観・重なり順の編集パネルの表示・終了・表示状態 |
 | `AvailableArea` / `CreatePanel(...)` / `MovePanel(...)` / `DestroyPanel(...)` / `GetPanelPosition(...)` / `GetPanelSize(...)` | property / method | 提示層（`IAnnotationPanelHost`）がパネルを置く領域を問い合わせ、作成・移動・破棄する入口 |
 
