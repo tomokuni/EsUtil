@@ -59,7 +59,8 @@
 - **注釈の `AnnotationEditorPanel.TextFormat` の値を `AnnotationLayerControl.ColorTextFormat` が単一所有するようにしました**（4 つの UI 版）。 右クリックの外観フライアウトと同じ値を使い、書式バーを作り直しても値が失われません（従来はバーの値だけを読み書きしており、作り直すと既定へ戻りました）。
 - **`AnnotationLogMessage.LogSettingChanged(string, string, string)` を公開しました**（列挙や組み合わせなど、数値・真偽で表せない設定値の変更を UI 層から記録できるようにする。 ログ定義はアセンブリに 1 つという規則を保つ）。
 - **書式バーのパネル（枠・余白・高さ）を StyledText 側へ移しました**（`EsUtil.Feature.StyledText.Presenter.Formatting.FloatingPanelAppearance`）。 書式バーの枠と余白は Annotation のパネル外観が持っていましたが、バーの部品は StyledText のものであるため、見た目も StyledText が単一所有します（`AnnotationPanelAppearance.FormatBar` は同じ値を注釈のパネルへ写すだけ）。 余白を 8,6 DIP へ広げ、枠と余白が見えるようにしました（掴む場所にもなります）。
-- **ポップアップの書式バーを余白で掴んで動かせるようにしました**（AvaloniaUI / WinForms は実マウス入力で確認済み）。 動かした位置は閉じるまで選択より優先し、置ける領域へ収めます。 MewUI は枠の余白の押下が要素へ届かないため**未対応**（枠は表示されます。 ボタン操作は従来どおり）。
+- **ポップアップの書式バーを余白で掴んで動かせるようにしました**（4 つの UI 版）。 動かした位置は閉じるまで選択より優先し、置ける領域へ収めます。 枠なしのウィンドウは移動のつまみを持たないため、**移動は OS の移動の仕組み（`Window.DragMove`）に任せます**（要素へ届く移動の通知で動かすと、ウィンドウが動いた分だけ基準も動いて移動量が増幅されます。 実測）。
+- **注釈のパネル（書式バー・外観）を余白で掴んで動かせるようにしました**（MewUI 版）。 押下の通知では `LeftButton` が押す前の状態（`false`）で入るため、押下の判定に使うとドラッグが始まりません（実測）。 押下自体を「押された」とみなし、移動は OS の移動の仕組みに任せます。
 - **サンプルへ動作確認用の起動オプション `--popup-format-bar` を追加しました**（4 つの UI 版）。 起動しただけでポップアップの書式バーを出した状態になります。
 - **書式バーの位置とドラッグの規則を StyledText 側へ移しました**（EsUtil.Feature.StyledText.Presenter.Formatting.FloatingPanelPlacement）。 対象に被せない配置・置ける領域への収め・ドラッグの規則を 1 か所が所有し、注釈のフローティング パネル（AnnotationPanelPlacement）も同じ規則を使います（規則を 2 つ持たない）。 ポップアップの書式バーは**余白を掴んで動かせます**（動かした位置は閉じるまで選択より優先）。
 - **書式バーの余白を 6 DIP から 24 DIP へ広げました**（FloatingPanelPlacement.FormatBarGap。 実寸のずれで対象に重なるのを防ぐ注釈の値へ揃える）。

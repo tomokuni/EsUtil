@@ -65,7 +65,6 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     private bool _frameHook;
 
     /// <summary>ドラッグ中のパネルの根（押下を受けた要素）。</summary>
-    private UIElement? _draggingRoot;
 
     /// <summary>本文の表示を担うコントロール（選択中の吹き出しの本文の上へ重ねる）。</summary>
     private readonly StyledText.StyledTextControl _textEditor;
@@ -427,10 +426,8 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             : size.Height;
 
         // 余白（中身の無いところ）を押したまま動かすとパネルが動く。
-        // MewUI のイベントは子から親へ伝播しないため、子（ボタン・入力欄）の押下はここへ来ない
+        // 中身（ボタン・入力欄）の押下は根へ届かない（実測）。 余白かどうかの判定は BeginPanelDrag が行う
         root.OnMouseDown(e => BeginPanelDrag(kind, root, owner, e));
-        root.OnMouseMove(e => ContinuePanelDrag(kind, root, owner, e));
-        root.OnMouseUp(_ => EndPanelDrag(kind));
 
         // **別ウィンドウへ載せる**: ポップアップ（<see cref="Popup"/>）へ載せると、その中から開く
         // 色選択やカラーピッカーの**入れ子のポップアップが入力も描画も受け取れません**。
@@ -675,54 +672,47 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
         return new EsRect(origin.X, origin.Y, rect.Width, rect.Height);
     }
 
-    /// <summary>パネルのドラッグを始める（余白を押したときだけ）。</summary>
+    /// <summary>パネルの余白を掴んで動かす（余白を押したときだけ）。</summary>
     /// <param name="kind">パネルの種別。</param>
     /// <param name="root">パネルの根。</param>
     /// <param name="owner">重ねた先のウィンドウ。</param>
     /// <param name="e">押下の引数。</param>
-    private void BeginPanelDrag(
-        AnnotationPanelKind kind, Border root, Window owner, MouseEventArgs e)
+    /// <remarks>
+    /// <b>移動は OS の移動の仕組みに任せる</b>: 枠なしのウィンドウは移動のつまみを持たないため
+    /// <see cref="Window.DragMove"/> を使う。<br/>
+    /// <b>押下の可否は LeftButton で判定しない</b>: 押下の通知には押す前の状態が入っており、
+    /// ここで弾くとドラッグが始まらない（実測）。 押下の通知自体が「押された」ことを表す。
+    /// </remarks>
+    private void BeginPanelDrag(AnnotationPanelKind kind, Border root, Window owner, MouseEventArgs e)
     {
-        if (!e.LeftButton)
+        // **動かすのは余白の輪（中身の外側）だけ**: 中身（ボタン・入力欄）の押下は根へ届かない
+        // （実測）が、届いた場合にボタンの操作を奪わないよう、位置でも判定する
+        var appearance = kind == AnnotationPanelKind.FormatBar
+            ? AnnotationPanelAppearance.FormatBar
+            : AnnotationPanelAppearance.StyleEditor;
+        var position = e.GetPosition(root);
+        if (position.X > appearance.Padding
+            && position.X < root.Width - appearance.Padding
+            && position.Y > appearance.VerticalPadding
+            && position.Y < root.Height - appearance.VerticalPadding)
         {
             return;
         }
 
-        _draggingRoot = root;
-        var position = e.GetPosition(owner);
-        Controller(kind).BeginDrag(new EsPoint(position.X, position.Y));
-    }
-
-    /// <summary>パネルをドラッグして動かす。</summary>
-    /// <param name="kind">パネルの種別。</param>
-    /// <param name="root">パネルの根。</param>
-    /// <param name="owner">重ねた先のウィンドウ。</param>
-    /// <param name="e">ポインターの引数。</param>
-    private void ContinuePanelDrag(
-        AnnotationPanelKind kind, Border root, Window owner, MouseEventArgs e)
-    {
-        if (!ReferenceEquals(_draggingRoot, root))
+        if (!_windows.TryGetValue(kind, out var window))
         {
             return;
         }
 
-        var position = e.GetPosition(owner);
-        Controller(kind).DragTo(new EsPoint(position.X, position.Y));
-    }
+        // **押したウィンドウを有効にしてから動かす**: 有効でないウィンドウでは、押したままの
+        // 移動の通知が届かない（実測。 最初の 1 回だけ動かない）
+        window.Activate();
+        window.DragMove();
 
-    /// <summary>パネルのドラッグを終える。</summary>
-    /// <param name="kind">パネルの種別。</param>
-    private void EndPanelDrag(AnnotationPanelKind kind)
-    {
-        _draggingRoot = null;
-        Controller(kind).EndDrag();
+        // **動かした位置をコアへ返す**: 位置はコアが決める（置ける領域へ収める）
+        MovePanel(kind, new EsPoint(
+            window.Position.X - owner.Position.X, window.Position.Y - owner.Position.Y));
     }
-
-    /// <summary>種別ごとのコントローラーを取得する。</summary>
-    /// <param name="kind">パネルの種別。</param>
-    /// <returns>コントローラー。</returns>
-    private AnnotationPanelController Controller(AnnotationPanelKind kind)
-        => kind == AnnotationPanelKind.FormatBar ? _formatBarPanel : _stylePanel;
 
     /// <summary>コアの色を MewUI の色へ変換する。</summary>
     /// <param name="color">色。</param>

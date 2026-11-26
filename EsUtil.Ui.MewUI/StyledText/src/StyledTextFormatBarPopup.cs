@@ -10,8 +10,7 @@ namespace EsUtil.Ui.MewUI.StyledText;
 /// <see cref="FloatingPanelPlacement"/>、枠・余白・高さは <see cref="FloatingPanelAppearance.FormatBar"/> が
 /// 決める（4 つの UI 版で同じ結果になる）。<br/>
 /// <b>枠なしのウィンドウへ載せる</b>: 注釈のパネルと同じ作りにする（同じ見た目）。<br/>
-/// <b>位置は画面の座標で持つ</b>: ウィンドウを動かすと、ウィンドウを基準にした座標は動いた分だけ戻る。
-/// 画面の座標で持てば、動かしても基準が変わらない。<br/>
+/// <b>位置は本文のウィンドウの内側の座標で持つ</b>: ウィンドウを動かしてもバーが付いてくる。<br/>
 /// <b>ドラッグの差はカーソルの画面位置から取る</b>: イベントの座標は要素やウィンドウの座標系であり、
 /// 動かすと基準も動く（移動量が増幅される。 実測）。
 /// </remarks>
@@ -20,6 +19,9 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
 {
     /// <summary>パネルの外観（枠・余白・高さ）。</summary>
     private static readonly FloatingPanelAppearance s_appearance = FloatingPanelAppearance.FormatBar;
+
+    /// <summary>いまのパネルの大きさ（DIP）。 押した位置が中身かどうかの判定に使う。</summary>
+    private static EsSize s_panelSize;
 
     /// <summary>バーの入れ物（ウィンドウの中身。 枠と余白は外観が決める）。</summary>
     private readonly Border _root = new()
@@ -36,21 +38,19 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     /// <summary>ウィンドウを表示したかどうか（<c>Show</c> は 1 度だけ呼ぶ）。</summary>
     private bool _shown;
 
-    /// <summary>利用者が動かした量（DIP。 まだ動かしていない場合は原点）。</summary>
+    /// <summary>利用者が動かした後の左上（本文のウィンドウの内側の DIP。 まだ動かしていない場合は <see langword="null"/>）。</summary>
     /// <remarks>
     /// <b>動かした位置を選択より優先する</b>: 選択が変わるたびに元の位置へ戻すと、動かした意味が無くなる。
     /// 閉じたときに捨てる（次に出したときは選択の位置から出す）。
     /// </remarks>
-    private EsPoint _manualOffset;
+    private EsPoint? _manualPosition;
 
-    /// <summary>ドラッグ開始時のバーの左上（画面の DIP）。</summary>
-    private EsPoint _dragOrigin;
-
-    /// <summary>直前に見たカーソルの位置（画面の物理ピクセル）。</summary>
-    private EsPoint _lastCursor;
-
-    /// <summary>ドラッグ中かどうか。</summary>
-    private bool _dragging;
+    /// <summary>こちらが最後に置いたバーの左上（画面の DIP）。</summary>
+    /// <remarks>
+    /// <b>利用者が動かしたことを見分ける</b>: 枠なしのウィンドウは OS の移動の仕組みが動かし、
+    /// 終わりも知らせない。 最後に置いた位置と違えば利用者が動かしたとみなす。
+    /// </remarks>
+    private EsPoint _appliedScreen;
 
     /// <summary>バーをポップアップで表示中かどうかを取得する。</summary>
     public bool IsOpen => _shown && _window is not null;
@@ -71,23 +71,37 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         SetBar(bar);
 
         var panelSize = s_appearance.ResolvePanelSize(MeasureBar(bar));
+        s_panelSize = panelSize;
         window.WindowSize = WindowSize.Fixed(panelSize.Width, panelSize.Height);
 
         if (!_shown)
         {
             window.Show(main);
             _shown = true;
+            _appliedScreen = new EsPoint(window.Position.X, window.Position.Y);
+        }
+        else if (WasMovedByUser(window))
+        {
+            // **動かした位置を選択より優先する**: 次の更新で選択の位置へ戻さない
+            _manualPosition = new EsPoint(
+                window.Position.X - main.Position.X, window.Position.Y - main.Position.Y);
         }
 
-        MoveToScreen(window, ResolvePosition(main, panelSize));
+        ApplyPosition(window, ResolvePosition(main, panelSize));
     }
+
+    /// <summary>バーが利用者に動かされたかどうかを返す。</summary>
+    /// <param name="window">バーのウィンドウ。</param>
+    /// <returns>最後に置いた位置と違えば <see langword="true"/>。</returns>
+    private bool WasMovedByUser(Window window)
+        => Math.Abs(window.Position.X - _appliedScreen.X) > 0.5
+            || Math.Abs(window.Position.Y - _appliedScreen.Y) > 0.5;
 
     /// <summary>バーを閉じる（出ていなければ何もしない）。</summary>
     public void Close()
     {
         // **動かした位置は捨てる**: 次に出したときは選択の位置から出す
-        _manualOffset = default;
-        _dragging = false;
+        _manualPosition = null;
 
         // **中身を先に外す**: 隠したウィンドウに要素を残すと、次に載せるときに「既に親がある」で落ちる
         _root.Child = null;
@@ -146,10 +160,10 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         var selection = owner.SelectionBounds;
         var available = new EsRect(0, 0, main.ClientSize.Width, main.ClientSize.Height);
 
-        if (_dragging || _manualOffset.X != 0 || _manualOffset.Y != 0)
+        if (_manualPosition is { } manual)
         {
             var kept = FloatingPanelPlacement.Clamp(
-                _manualOffset, panelSize.Width, panelSize.Height, available);
+                manual, panelSize.Width, panelSize.Height, available);
             return new EsPoint(main.Position.X + kept.X, main.Position.Y + kept.Y);
         }
 
@@ -161,70 +175,56 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         return new EsPoint(main.Position.X + placed.X, main.Position.Y + placed.Y);
     }
 
-    /// <summary>バーを画面の位置へ移す。</summary>
+    /// <summary>押した位置が中身（ボタン・入力欄）の範囲かどうかを返す。</summary>
+    /// <param name="position">根を基準にした位置（DIP）。</param>
+    /// <returns>中身の範囲なら <see langword="true"/>。</returns>
+    private static bool IsInsideContent(Point position)
+    {
+        var panel = s_panelSize;
+        return position.X > s_appearance.Padding
+            && position.X < panel.Width - s_appearance.Padding
+            && position.Y > s_appearance.VerticalPadding
+            && position.Y < panel.Height - s_appearance.VerticalPadding;
+    }
+
+    /// <summary>バーを画面の位置へ移し、置いた位置を覚える。</summary>
     /// <param name="window">バーのウィンドウ。</param>
     /// <param name="position">左上の位置（画面の DIP）。</param>
-    private static void MoveToScreen(Window window, EsPoint position)
-        => window.MoveTo((int)Math.Round(position.X), (int)Math.Round(position.Y));
+    private void ApplyPosition(Window window, EsPoint position)
+    {
+        var left = (int)Math.Round(position.X);
+        var top = (int)Math.Round(position.Y);
+        window.MoveTo(left, top);
+        _appliedScreen = new EsPoint(left, top);
+    }
 
     /// <summary>バーの余白を掴んで動かし始める。</summary>
     /// <param name="e">マウスの引数。</param>
     /// <remarks>
+    /// <b>移動は OS の移動の仕組みに任せる</b>: 枠なしのウィンドウは移動のつまみを持たないため
+    /// <see cref="Window.DragMove"/> を使う（MewUI の案内どおり）。 要素へ届く移動の通知で動かすと、
+    /// ウィンドウが動いた分だけ基準も動き、移動量が増幅される（実測）。<br/>
     /// <b>押下の可否は LeftButton で判定しない</b>: 押下の通知には押す前の状態が入っており、
     /// ここで弾くとドラッグが始まらない（実測）。 押下の通知自体が「押された」ことを表す。
     /// </remarks>
     private void BeginDrag(MouseEventArgs e)
     {
-        _ = e;
+        // **動かすのは余白の輪（中身の外側）だけ**: 中身（ボタン・入力欄）の押下は根へ届かない
+        // （実測）が、届いた場合にボタンの操作を奪わないよう、位置でも判定する
         if (_window is not { } window || owner.HostWindow is not { } main
-            || !NativeCursor.TryGetPosition(out var x, out var y))
+            || IsInsideContent(e.GetPosition(_root)))
         {
             return;
         }
 
-        var scale = main.DpiScale > 0 ? main.DpiScale : 1;
-        _dragOrigin = new EsPoint(window.Position.X / scale, window.Position.Y / scale);
-        _lastCursor = new EsPoint(x, y);
-        _dragging = true;
-    }
+        // **押したウィンドウを有効にしてから動かす**: 有効でないウィンドウでは、押したままの
+        // 移動の通知が届かない（実測。 最初の 1 回だけ動かない）
+        window.Activate();
+        window.DragMove();
 
-    /// <summary>バーをドラッグして動かす。</summary>
-    /// <param name="e">マウスの引数。</param>
-    private void ContinueDrag(MouseEventArgs e)
-    {
-        _ = e;
-        if (!_dragging || _window is not { } window || owner.HostWindow is not { } main
-            || !NativeCursor.TryGetPosition(out var x, out var y))
-        {
-            return;
-        }
-
-        var cursor = new EsPoint(x, y);
-        var scale = main.DpiScale > 0 ? main.DpiScale : 1;
-        var delta = new EsPoint((cursor.X - _lastCursor.X) / scale, (cursor.Y - _lastCursor.Y) / scale);
-        _lastCursor = cursor;
-
-        if (Math.Abs(delta.X) < 0.01 && Math.Abs(delta.Y) < 0.01)
-        {
-            return;
-        }
-
-        var panelSize = s_appearance.ResolvePanelSize(MeasureBar(owner.FormatBar));
-        var available = new EsRect(0, 0, main.ClientSize.Width, main.ClientSize.Height);
-        _manualOffset = FloatingPanelPlacement.Clamp(
-            new EsPoint(_manualOffset.X + delta.X, _manualOffset.Y + delta.Y),
-            panelSize.Width,
-            panelSize.Height,
-            available);
-
-        MoveToScreen(window, new EsPoint(_dragOrigin.X + _manualOffset.X, _dragOrigin.Y + _manualOffset.Y));
-    }
-
-    /// <summary>バーのドラッグを終える。</summary>
-    private void EndDrag()
-    {
-        _dragging = false;
-        _lastCursor = default;
+        // **動かした位置を覚える**: 次の更新で選択の位置へ戻さない
+        _manualPosition = new EsPoint(
+            window.Position.X - main.Position.X, window.Position.Y - main.Position.Y);
     }
 
     /// <summary>バーを載せるウィンドウを用意する。</summary>
@@ -236,20 +236,22 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
             return existing;
         }
 
+        // **ウィンドウの飾りを残さない**: 枠と余白はパネル（根）が持つ。 ウィンドウ側に残すと
+        // 枠が二重になり、押下もウィンドウの余白に吸われる（注釈のパネルと同じ設定にする）
         _window = new Window
         {
             Borderless = true,
             BorderThickness = 0,
+            BorderBrush = Aprillz.MewUI.Color.Transparent,
+            Padding = Thickness.Zero,
             Title = "書式バー",
             Content = _root,
         };
 
-        // **余白を掴んで動かせるようにする**: 中身（ボタン・入力欄）は押下を処理済みにするため、
-        // 本ハンドラーは余白を掴んだときだけ呼ばれる
+        // **余白を掴んで動かせるようにする**: 中身（ボタン・入力欄）の押下は根へ届かない（実測）。
+        // 余白かどうかの判定は BeginDrag が行う
         _root.Cursor = CursorType.SizeAll;
-        _root.OnMouseDown(BeginDrag);
-        _root.OnMouseMove(ContinueDrag);
-        _root.OnMouseUp(_ => EndDrag());
+        _root.OnMouseDown(e => BeginDrag(e));
         return _window;
     }
 
