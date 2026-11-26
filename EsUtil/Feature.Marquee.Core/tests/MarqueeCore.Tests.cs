@@ -444,8 +444,8 @@ public class MarqueeCoreTests
         Assert.Equal(
             [
                 "[Marquee] ファサードを作成しました: HandleSize=14, MinSelectionSize=9",
-                "[Marquee] ロガーを接続しました",
-                "[Marquee] ロガーを接続しました",
+                "[Marquee] ロガーを接続しました: 接頭辞=[Marquee]",
+                "[Marquee] ロガーを接続しました: 接頭辞=[Marquee]",
             ],
             logger.Messages);
     }
@@ -466,7 +466,7 @@ public class MarqueeCoreTests
         Assert.Equal(
             [
                 "[Marquee] ファサードを作成しました: HandleSize=14, MinSelectionSize=6",
-                "[Marquee] ロガーを接続しました",
+                "[Marquee] ロガーを接続しました: 接頭辞=[Marquee]",
             ],
             logger.Messages);
 

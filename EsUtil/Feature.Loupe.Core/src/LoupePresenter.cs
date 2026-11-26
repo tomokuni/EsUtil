@@ -260,7 +260,7 @@ public sealed partial class LoupePresenter
         }
 
         _createdLogged = true;
-        _core.Log.LogPresenterCreated();
+        _core.Log.LogPresenterCreated(Appearance);
     }
 
     /// <summary>描く層だけを描画順に並べる。</summary>

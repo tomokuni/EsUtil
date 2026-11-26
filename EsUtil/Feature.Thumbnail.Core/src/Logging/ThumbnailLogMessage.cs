@@ -49,31 +49,66 @@ internal static partial class ThumbnailLogMessage
     }
 
     /// <summary>提示層の生成を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Thumbnail] 提示層を作成しました</c><br/>
-    /// 一覧のページを開くたびに作られるため Debug で記録する（規則の所有者は <c>.github/ログ規約.md</c> §2・§6）。</remarks>
+    /// <remarks>
+    /// LogLevel: Debug<br/>出力書式:
+    /// <c>[Thumbnail] 提示層を作成しました: 間隔=({RowSpace}, {ColumnSpace}) 影={ShowShadow} ホバー={ShowHoverBackground} 選択={ShowSelectionBackground}</c><br/>
+    /// 一覧のページを開くたびに作られるため Debug で記録する（規則の所有者は <c>.github/ログ規約.md</c> §2・§6）。
+    /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 提示層を作成しました")]
-    private static partial void LogPresenterCreatedCore(this ILogger logger, string prefix);
+    /// <param name="rowSpace">行間（整形済み）。</param>
+    /// <param name="columnSpace">列間（整形済み）。</param>
+    /// <param name="showShadow">影を描くかどうか。</param>
+    /// <param name="showHoverBackground">ホバーの背景を描くかどうか。</param>
+    /// <param name="showSelectionBackground">選択の背景を描くかどうか。</param>
+    [LoggerMessage(
+        LogLevel.Debug,
+        "{Prefix:l} 提示層を作成しました: 間隔=({RowSpace:l}, {ColumnSpace:l}) 影={ShowShadow} ホバー={ShowHoverBackground} 選択={ShowSelectionBackground}")]
+    private static partial void LogPresenterCreatedCore(
+        this ILogger logger,
+        string prefix,
+        string rowSpace,
+        string columnSpace,
+        bool showShadow,
+        bool showHoverBackground,
+        bool showSelectionBackground);
 
     /// <summary>提示層の生成を記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
+    /// <param name="options">生成時の設定。</param>
+    /// <param name="appearance">生成時の外観。</param>
     /// <remarks>生成時点では出力先が未設定のため、ロガーが設定された時点で 1 度だけ記録する。</remarks>
-    internal static void LogPresenterCreated(this ILogger logger)
-        => logger.LogPresenterCreatedCore(Prefix);
+    internal static void LogPresenterCreated(
+        this ILogger logger, ThumbnailOptions options, ThumbnailAppearance appearance)
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogPresenterCreatedCore(
+            Prefix,
+            NumberText.Format(options.RowSpace),
+            NumberText.Format(options.ColumnSpace),
+            appearance.ShowShadow,
+            appearance.ShowHoverBackground,
+            appearance.ShowSelectionBackground);
+    }
 
     /// <summary>出力先（ロガー）の設定を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Thumbnail] ロガーを接続しました</c></remarks>
+    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Thumbnail] ロガーを接続しました: 接頭辞={AttachedPrefix}</c></remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ロガーを接続しました")]
-    private static partial void LogLoggerAttachedCore(this ILogger logger, string prefix);
+    /// <param name="attachedPrefix">接続時点の接頭辞（整形済み）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ロガーを接続しました: 接頭辞={AttachedPrefix:l}")]
+    private static partial void LogLoggerAttachedCore(
+        this ILogger logger, string prefix, string attachedPrefix);
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <remarks>ロガーの設定を開始した契機を残す（以降の変更ログがどの時点から有効かを追えるようにする）。</remarks>
     internal static void LogLoggerAttached(this ILogger logger)
-        => logger.LogLoggerAttachedCore(Prefix);
+        => logger.LogLoggerAttachedCore(Prefix, Prefix);
 
     /// <summary>設定変更のログ（生成メソッド）。</summary>
     /// <remarks>LogLevel: Information<br/>出力書式: <c>[Thumbnail] 設定: {Name:l} {OldValue:l} → {NewValue:l}</c></remarks>

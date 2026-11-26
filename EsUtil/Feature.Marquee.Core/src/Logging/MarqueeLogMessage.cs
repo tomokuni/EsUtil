@@ -77,30 +77,56 @@ internal static partial class MarqueeLogMessage
     }
 
     /// <summary>提示層の生成を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] 提示層を作成しました</c><br/>
-    /// 撮影のたびに作られるため Debug で記録する（規則の所有者は <c>.github/ログ規約.md</c> §2・§6）。</remarks>
+    /// <remarks>
+    /// LogLevel: Debug<br/>出力書式:
+    /// <c>[Marquee] 提示層を作成しました: ハンドル={HandleSize} 表示=ハンドル:{ShowHandles}/マーカー:{ShowMarker}/サイズ:{ShowSizeLabel}</c><br/>
+    /// 撮影のたびに作られるため Debug で記録する（規則の所有者は <c>.github/ログ規約.md</c> §2・§6）。
+    /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 提示層を作成しました")]
-    private static partial void LogPresenterCreatedCore(this ILogger logger, string prefix);
+    /// <param name="handleSize">ハンドルの一辺の大きさ（整形済み）。</param>
+    /// <param name="showHandles">ハンドルを描くかどうか。</param>
+    /// <param name="showMarker">マーカーを描くかどうか。</param>
+    /// <param name="showSizeLabel">サイズラベルを描くかどうか。</param>
+    [LoggerMessage(
+        LogLevel.Debug,
+        "{Prefix:l} 提示層を作成しました: ハンドル={HandleSize:l} 表示=ハンドル:{ShowHandles}/マーカー:{ShowMarker}/サイズ:{ShowSizeLabel}")]
+    private static partial void LogPresenterCreatedCore(
+        this ILogger logger, string prefix, string handleSize, bool showHandles, bool showMarker, bool showSizeLabel);
 
     /// <summary>提示層の生成を記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    internal static void LogPresenterCreated(this ILogger logger)
-        => logger.LogPresenterCreatedCore(Prefix);
+    /// <param name="handleSize">生成時のハンドルの一辺の大きさ（DIP）。</param>
+    /// <param name="appearance">生成時の外観。</param>
+    internal static void LogPresenterCreated(this ILogger logger, double handleSize, MarqueeAppearance appearance)
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogPresenterCreatedCore(
+            Prefix,
+            NumberText.Format(handleSize),
+            appearance.ShowHandles,
+            appearance.ShowMarker,
+            appearance.ShowSizeLabel);
+    }
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
     /// <remarks>
-    /// LogLevel: Debug<br/>出力書式: <c>[Marquee] ロガーを接続しました</c><br/>
+    /// LogLevel: Debug<br/>出力書式: <c>[Marquee] ロガーを接続しました: 接頭辞={AttachedPrefix}</c><br/>
     /// ログの出力を開始した契機を残す（以降の設定変更のログがどの時点から有効かを追えるようにする）。
     /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ロガーを接続しました")]
-    private static partial void LogLoggerAttachedCore(this ILogger logger, string prefix);
+    /// <param name="attachedPrefix">接続時点の接頭辞（整形済み）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ロガーを接続しました: 接頭辞={AttachedPrefix:l}")]
+    private static partial void LogLoggerAttachedCore(
+        this ILogger logger, string prefix, string attachedPrefix);
 
     internal static void LogLoggerAttached(this ILogger logger)
-        => logger.LogLoggerAttachedCore(Prefix);
+        => logger.LogLoggerAttachedCore(Prefix, Prefix);
 
     /// <summary>ポインター押下（マウス Down）のログ。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Marquee] マウス押下: 位置=({X}, {Y}) クリック回数={ClickCount} 選択あり={HasSelection}</c></remarks>

@@ -44,7 +44,7 @@ public class LoupeLogMessageTests
         InvokeAll(logger);
 
         Assert.Equal("[Loupe] ファサードを作成しました: RequestedSize=160, ZoomLevel=4", logger.Messages[0]);
-        Assert.Equal("[Loupe] ロガーを接続しました", logger.Messages[1]);
+        Assert.Equal("[Loupe] ロガーを接続しました: 接頭辞=[Loupe]", logger.Messages[1]);
         Assert.Equal("[Loupe] 設定: ZoomLevel 4 → 8", logger.Messages[2]);
         Assert.Equal("[Loupe] 設定: RequestedSize 160 → 240", logger.Messages[3]);
         Assert.Equal("[Loupe] 設定: CenterPoint (1.5, 2.5) → null", logger.Messages[4]);

@@ -116,7 +116,7 @@ internal static partial class ColumnPackingLogMessage
     /// <param name="columns">列数。</param>
     /// <param name="segments">列の区切り。</param>
     internal static void LogLayoutChanged(this ILogger logger, double usedWidth, double minHeight, int columns, string segments)
-        => logger.LogLayoutChangedCore(Prefix, usedWidth, minHeight, columns, segments);
+        => logger.LogLayoutChangedCore(Prefix, usedWidth, minHeight, columns, ToPreview(segments));
 
     /// <summary>項目ごとの配置を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Trace<br/>出力書式: <c>[ColumnPacking] レイアウト項目: Y={Y:l}</c></remarks>
@@ -142,7 +142,24 @@ internal static partial class ColumnPackingLogMessage
 
         logger.LogLayoutItemsCore(
             Prefix,
-            string.Join(", ", itemY.Select(static value => Format(value))));
+            ToPreview(string.Join(", ", itemY.Select(static value => Format(value)))));
+    }
+
+    /// <summary>ログに載せる文字列を整形する（改行を 1 行にし、先頭 100 文字へ切り詰める）。</summary>
+    /// <param name="text">対象の文字列。</param>
+    /// <returns>整形した文字列。</returns>
+    /// <remarks>
+    /// <b>値は大きくなりうる</b>: 列の区切りと項目ごとの Y 座標は項目数に比例して長くなる。 障害の切り分けに要るのは
+    /// 先頭の内容だけであるため、100 文字で切って末尾に <c>…</c> を付ける（規則は <c>.github/ログ規約.md</c> §2）。
+    /// </remarks>
+    internal static string ToPreview(string text)
+    {
+        const int MaxLength = 100;
+
+        var singleLine = text.Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Replace("\n", "\\n", StringComparison.Ordinal);
+        return singleLine.Length <= MaxLength ? singleLine : string.Concat(singleLine.AsSpan(0, MaxLength), "…");
     }
 
     /// <summary>数値をログ用の文字列（自然な小数表記）へ整形する。</summary>

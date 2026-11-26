@@ -279,6 +279,6 @@ public sealed class AnnotationCore(AnnotationPresenter? presenter = null)
         }
 
         _createdLogged = true;
-        _log.LogFacadeCreated();
+        _log.LogFacadeCreated(Presenter.LineHeightFactor);
     }
 }

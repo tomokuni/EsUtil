@@ -20,9 +20,9 @@ public class ThumbnailPresenterLoggingTests
         presenter.Log = logger;
 
         Assert.Equal(LogLevel.Debug, logger.Levels[0]);
-        Assert.Equal("[Thumbnail] 提示層を作成しました", logger.Messages[0]);
-        Assert.Equal(1, logger.Messages.Count(message => message.EndsWith("提示層を作成しました", StringComparison.Ordinal)));
-        Assert.Equal(2, logger.Messages.Count(message => message.EndsWith("ロガーを接続しました", StringComparison.Ordinal)));
+        Assert.Equal("[Thumbnail] 提示層を作成しました: 間隔=(8, 8) 影=True ホバー=True 選択=True", logger.Messages[0]);
+        Assert.Equal(1, logger.Messages.Count(message => message.Contains("提示層を作成しました", StringComparison.Ordinal)));
+        Assert.Equal(2, logger.Messages.Count(message => message.Contains("ロガーを接続しました", StringComparison.Ordinal)));
     }
 
     /// <summary>null のロガーを設定しても <see cref="NullLogger"/> へ吸収されることを検証する。</summary>

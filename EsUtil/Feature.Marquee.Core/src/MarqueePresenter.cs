@@ -437,7 +437,7 @@ public sealed partial class MarqueePresenter
         }
 
         _createdLogged = true;
-        Log.LogPresenterCreated();
+        Log.LogPresenterCreated(Options.HandleSize, Appearance);
     }
 
 

@@ -96,7 +96,7 @@ public sealed class AnnotationPresenter
         }
 
         _createdLogged = true;
-        _log.LogPresenterCreated();
+        _log.LogPresenterCreated(_lineHeightFactor);
     }
 
     /// <summary>描画計画を解決する。</summary>

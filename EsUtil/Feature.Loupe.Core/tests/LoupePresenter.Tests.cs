@@ -70,9 +70,9 @@ public class LoupePresenterTests
         Assert.Equal(
             [
                 "[Loupe] ファサードを作成しました: RequestedSize=160, ZoomLevel=4",
-                "[Loupe] ロガーを接続しました",
-                "[Loupe] 提示層を作成しました",
-                "[Loupe] ロガーを接続しました",
+                "[Loupe] ロガーを接続しました: 接頭辞=[Loupe]",
+                "[Loupe] 提示層を作成しました: 枠線=2 十字線=True 枠=True 座標=True",
+                "[Loupe] ロガーを接続しました: 接頭辞=[Loupe]",
             ],
             logger.Messages);
     }
@@ -89,8 +89,8 @@ public class LoupePresenterTests
         Assert.Equal(
             [
                 "[Loupe] ファサードを作成しました: RequestedSize=160, ZoomLevel=4",
-                "[Loupe] ロガーを接続しました",
-                "[Loupe] 提示層を作成しました",
+                "[Loupe] ロガーを接続しました: 接頭辞=[Loupe]",
+                "[Loupe] 提示層を作成しました: 枠線=2 十字線=True 枠=True 座標=True",
             ],
             logger.Messages);
 

@@ -27,40 +27,68 @@ public static partial class AnnotationLogMessage
     internal static string Prefix { get; set; } = DefaultPrefix;
 
     /// <summary>ファサードの生成を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] ファサードを作成しました</c></remarks>
+    /// <remarks>
+    /// LogLevel: Debug<br/>出力書式: <c>[Annotation] ファサードを作成しました: 行間={LineHeightFactor}</c>
+    /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ファサードを作成しました")]
-    private static partial void LogFacadeCreatedCore(this ILogger logger, string prefix);
+    /// <param name="lineHeightFactor">行間の倍率（整形済み）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ファサードを作成しました: 行間={LineHeightFactor:l}")]
+    private static partial void LogFacadeCreatedCore(
+        this ILogger logger, string prefix, string lineHeightFactor);
 
     /// <summary>ファサードの生成を記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    internal static void LogFacadeCreated(this ILogger logger)
-        => logger.LogFacadeCreatedCore(Prefix);
+    /// <param name="lineHeightFactor">生成時の行間の倍率。</param>
+    internal static void LogFacadeCreated(this ILogger logger, double lineHeightFactor)
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogFacadeCreatedCore(Prefix, NumberText.Format(lineHeightFactor));
+    }
 
     /// <summary>提示層の生成を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 提示層を作成しました</c></remarks>
+    /// <remarks>
+    /// LogLevel: Debug<br/>出力書式: <c>[Annotation] 提示層を作成しました: 行間={LineHeightFactor}</c>
+    /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 提示層を作成しました")]
-    private static partial void LogPresenterCreatedCore(this ILogger logger, string prefix);
+    /// <param name="lineHeightFactor">行間の倍率（整形済み）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} 提示層を作成しました: 行間={LineHeightFactor:l}")]
+    private static partial void LogPresenterCreatedCore(
+        this ILogger logger, string prefix, string lineHeightFactor);
 
     /// <summary>提示層の生成を記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
-    internal static void LogPresenterCreated(this ILogger logger)
-        => logger.LogPresenterCreatedCore(Prefix);
+    /// <param name="lineHeightFactor">生成時の行間の倍率。</param>
+    internal static void LogPresenterCreated(this ILogger logger, double lineHeightFactor)
+    {
+        if (!logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        logger.LogPresenterCreatedCore(Prefix, NumberText.Format(lineHeightFactor));
+    }
 
     /// <summary>出力先（ロガー）の設定を記録する（生成メソッド）。</summary>
-    /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] ロガーを接続しました</c></remarks>
+    /// <remarks>
+    /// LogLevel: Debug<br/>出力書式: <c>[Annotation] ロガーを接続しました: 接頭辞={AttachedPrefix}</c>
+    /// </remarks>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     /// <param name="prefix">接頭辞（公開ラッパーが <see cref="Prefix"/> を渡す）。</param>
-    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ロガーを接続しました")]
-    private static partial void LogLoggerAttachedCore(this ILogger logger, string prefix);
+    /// <param name="attachedPrefix">接続時点の接頭辞（整形済み）。</param>
+    [LoggerMessage(LogLevel.Debug, "{Prefix:l} ロガーを接続しました: 接頭辞={AttachedPrefix:l}")]
+    private static partial void LogLoggerAttachedCore(
+        this ILogger logger, string prefix, string attachedPrefix);
 
     /// <summary>出力先（ロガー）の設定を記録する。</summary>
     /// <param name="logger">ロガー（拡張メソッドのレシーバー。 呼び出し側で省略できる）。</param>
     internal static void LogLoggerAttached(this ILogger logger)
-        => logger.LogLoggerAttachedCore(Prefix);
+        => logger.LogLoggerAttachedCore(Prefix, Prefix);
 
     /// <summary>注釈の文書の生成を記録する（生成メソッド）。</summary>
     /// <remarks>LogLevel: Debug<br/>出力書式: <c>[Annotation] 文書を作成: {Width}x{Height}</c></remarks>

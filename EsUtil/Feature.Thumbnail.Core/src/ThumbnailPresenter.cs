@@ -150,7 +150,7 @@ public class ThumbnailPresenter(ThumbnailOptions? options = null, ThumbnailAppea
         }
 
         _createdLogged = true;
-        _log.LogPresenterCreated();
+        _log.LogPresenterCreated(Options, Appearance);
     }
 
     /// <summary>一覧の配置を解決する。</summary>

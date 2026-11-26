@@ -127,8 +127,8 @@ dotnet test EsUtil/Feature.Loupe.Core/tests/EsUtil.Feature.Loupe.Core.Tests.cspr
 
 | 契機 | 出力 | レベル |
 | --- | --- | --- |
-| 生成（コンストラクター注入時、または `Log` の初回設定時） | `提示層を作成しました` | Debug |
-| `Log` の set | `ロガーを接続しました`（初回のみ） | Debug |
+| 生成（コンストラクター注入時、または `Log` の初回設定時） | `提示層を作成しました: 枠線={BorderThickness} 十字線={ShowCrosshair} 枠={ShowBorder} 座標={ShowCoordLabel}` | Debug |
+| `Log` の set | `ロガーを接続しました: 接頭辞={AttachedPrefix}`（初回のみ） | Debug |
 | `Appearance` の set | 変化した項目だけ（`LogAppearanceChanged`。 書式 `Setting: {Name} {OldValue} → {NewValue}`） | Information |
 | `Options` / `ClientToPixelScaling` / `CenterPoint` / `PositionOffset` / `SetCoordTransform` | コアが記録する（本層は何も出力しない） | — |
 | `ResolveLayout` / `ResolveDrawPlan` | 出力しない（毎フレーム呼ばれる） | — |

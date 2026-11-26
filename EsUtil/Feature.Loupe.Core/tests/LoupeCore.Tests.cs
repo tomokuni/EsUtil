@@ -372,8 +372,8 @@ public class LoupeCoreTests
         Assert.Equal(
             [
                 "[Loupe] ファサードを作成しました: RequestedSize=200, ZoomLevel=8",
-                "[Loupe] ロガーを接続しました",
-                "[Loupe] ロガーを接続しました",
+                "[Loupe] ロガーを接続しました: 接頭辞=[Loupe]",
+                "[Loupe] ロガーを接続しました: 接頭辞=[Loupe]",
             ],
             logger.Messages);
     }
@@ -393,7 +393,7 @@ public class LoupeCoreTests
         Assert.Equal(
             [
                 "[Loupe] ファサードを作成しました: RequestedSize=200, ZoomLevel=8",
-                "[Loupe] ロガーを接続しました",
+                "[Loupe] ロガーを接続しました: 接頭辞=[Loupe]",
             ],
             logger.Messages);
 
@@ -403,8 +403,8 @@ public class LoupeCoreTests
         Assert.Equal(
             [
                 "[Loupe] ファサードを作成しました: RequestedSize=200, ZoomLevel=8",
-                "[Loupe] ロガーを接続しました",
-                "[Loupe] ロガーを接続しました",
+                "[Loupe] ロガーを接続しました: 接頭辞=[Loupe]",
+                "[Loupe] ロガーを接続しました: 接頭辞=[Loupe]",
             ],
             logger.Messages);
     }

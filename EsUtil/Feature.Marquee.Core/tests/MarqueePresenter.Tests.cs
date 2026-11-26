@@ -108,9 +108,9 @@ public class MarqueePresenterTests
         Assert.Equal(
             [
                 "[Marquee] ファサードを作成しました: HandleSize=10, MinSelectionSize=6",
-                "[Marquee] ロガーを接続しました",
-                "[Marquee] 提示層を作成しました",
-                "[Marquee] ロガーを接続しました",
+                "[Marquee] ロガーを接続しました: 接頭辞=[Marquee]",
+                "[Marquee] 提示層を作成しました: ハンドル=10 表示=ハンドル:True/マーカー:True/サイズ:True",
+                "[Marquee] ロガーを接続しました: 接頭辞=[Marquee]",
             ],
             logger.Messages);
     }
@@ -127,8 +127,8 @@ public class MarqueePresenterTests
         Assert.Equal(
             [
                 "[Marquee] ファサードを作成しました: HandleSize=10, MinSelectionSize=6",
-                "[Marquee] ロガーを接続しました",
-                "[Marquee] 提示層を作成しました",
+                "[Marquee] ロガーを接続しました: 接頭辞=[Marquee]",
+                "[Marquee] 提示層を作成しました: ハンドル=10 表示=ハンドル:True/マーカー:True/サイズ:True",
             ],
             logger.Messages);
 
