@@ -464,7 +464,7 @@ public sealed partial class StyledTextControl
         if ((change & TextEditChange.Text) != 0)
         {
             RichTextValue = _editor.Text;
-            RichTextChanged?.Invoke(this, EventArgs.Empty);
+            RaiseRichTextChanged();
 
             // **本文が変わったことを IME へ知らせる**（周囲の文字列を渡し直し、変換の基準を最新にする）
             InputClient.NotifyTextChanged();
@@ -583,6 +583,9 @@ public sealed partial class StyledTextControl
 
     /// <summary><see cref="EditingChanged"/> を発生させる。</summary>
     private void RaiseEditingChanged() => EditingChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary><see cref="RichTextChanged"/> を発生させる。</summary>
+    private void RaiseRichTextChanged() => RichTextChanged?.Invoke(this, EventArgs.Empty);
 
     /// <summary>UI の修飾キーを本層の修飾キーへ写す。</summary>
     /// <param name="modifiers">UI の修飾キー。</param>

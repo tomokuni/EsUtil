@@ -174,7 +174,7 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         // **変換中の文字列は本文コントロールが描く**: 本文へ混ぜて渡すと二重になるため、
         // 本文は文書の値のまま渡し、変換中の文字列は PreeditText で別に渡す。
         _textEditor.RichTextValue = bubble.Text;
-        _textEditor.RenderScale = _layer.ViewScale;
+        _textEditor.SourceToClientScaling = _layer.SourceToClientScaling;
 
         // **編集中だけ入力を受ける**: 編集していない間はレイヤーが本文を描き、押下もレイヤーへ渡す
         _textEditor.IsInputEnabled = _layer.IsEditingText;
@@ -273,7 +273,7 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
 
     /// <summary>書式バーの構成（フォントの一覧・色のボタン・色の表記）を取得する。</summary>
     /// <value>注釈の代表色を書式バーの色のボタンへ渡す構成。</value>
-    /// <remarks>出す項目は <see cref="FormatBarItems"/>、色の表記は <see cref="TextFormat"/> が決める（本値の <c>Items</c> と <c>TextFormat</c> は使わない）。</remarks>
+    /// <remarks>出す項目は <see cref="FormatBarItems"/>、色の表記は <see cref="ColorTextFormat"/> が決める（本値の <c>Items</c> と <c>TextFormat</c> は使わない）。</remarks>
     public StyledTextFormatBarOptions FormatBarOptions { get; } = new()
     {
         CreateColorButton = (color, apply) => AnnotationEditorControls.ColorButton(color, apply),
@@ -360,10 +360,10 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         public bool SelectedTextMatches(Func<TextStyle, bool> match) => layer.Session.SelectedTextMatches(match);
 
         /// <inheritdoc/>
-        public bool Transform(Func<TextStyle, TextStyle> transform) => layer.Session.TransformTextStyle(transform);
+        public bool TransformTextStyle(Func<TextStyle, TextStyle> transform) => layer.Session.TransformTextStyle(transform);
 
         /// <inheritdoc/>
-        public bool Apply(TextStyle style) => layer.Session.ApplyTextStyle(style);
+        public bool ApplyTextStyle(TextStyle style) => layer.Session.ApplyTextStyle(style);
     }
 
     /// <summary>注釈の表示と編集を担うレイヤーを取得する。</summary>
@@ -419,7 +419,7 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
     /// （書式バーとフライアウトで色の見え方が食い違わない）。 バーを作り直しても値は失われない。
     /// </remarks>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
-    public ColorTextFormat TextFormat
+    public ColorTextFormat ColorTextFormat
     {
         get => _layer.ColorTextFormat;
         set
@@ -430,7 +430,7 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
             }
 
             _layer.Log.LogSettingChanged(
-                nameof(TextFormat), _layer.ColorTextFormat.ToString(), value.ToString());
+                nameof(ColorTextFormat), _layer.ColorTextFormat.ToString(), value.ToString());
             _layer.ColorTextFormat = value;
             _formatBar.TextFormat = value;
         }

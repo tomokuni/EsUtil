@@ -15,7 +15,7 @@
 | --- | --- |
 | 目的 | 書式付きの本文を、入力欄を重ねずにその場で表示・編集する |
 | 対象 UI | Avalonia UI |
-| 座標 | 元画像ピクセル（`RenderScale` で DIP へ写す） |
+| 座標 | 元画像ピクセル（`SourceToClientScaling` で DIP へ写す） |
 | 文字位置 | 本文の先頭からの文字数（移動・削除は書記素クラスタの境界） |
 
 ## 2. 技術スタック
@@ -23,7 +23,7 @@
 | 項目 | 内容 |
 | --- | --- |
 | 対象フレームワーク | `net10.0-windows10.0.17763.0` |
-| 参照 | `EsUtil.Feature.StyledText.Core` / `EsUtil.Platform.Core` / 同一 UI の `Interop`（色の変換とブラシのキャッシュ） |
+| 参照 | `EsUtil.Feature.StyledText.Core` / `EsUtil.Platform.Core` / 同一 UI の `Interop`（色の変換とブラシのキャッシュ） / `EsUtil.Ui.AvaloniaUI.ColorSelector`（書式バーの色の選択） |
 | 描画 | Avalonia の `DrawingContext`（`FormattedText`） |
 | テスト | xUnit v3（Avalonia ヘッドレス） |
 
@@ -47,7 +47,7 @@
 
 | 方向 | 内容 |
 | --- | --- |
-| 許可 | 本アセンブリ → `EsUtil.Feature.StyledText.Core` / `EsUtil.Platform.Core` / 同一 UI の `Interop`（色の変換とブラシのキャッシュ） |
+| 許可 | 本アセンブリ → `EsUtil.Feature.StyledText.Core` / `EsUtil.Platform.Core` / 同一 UI の `Interop`（色の変換とブラシのキャッシュ） / `EsUtil.Ui.AvaloniaUI.ColorSelector` |
 | 許可 | 注釈の UI 層（同一 UI の別コントロール）→ 本アセンブリ |
 | 禁止 | 本アセンブリ → 注釈の機能（特定の機能の語彙に依存しない） |
 

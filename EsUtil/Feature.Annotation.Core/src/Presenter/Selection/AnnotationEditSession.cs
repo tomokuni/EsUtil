@@ -82,14 +82,10 @@ public sealed class AnnotationEditSession
         }
     }
 
-    /// <summary>選択中の注釈の識別子を取得または設定する。</summary>
+    /// <summary>選択中の注釈の識別子を取得する。</summary>
     /// <value>選択中の注釈の識別子。 解除は <see langword="null"/>。</value>
-    /// <remarks>設定すると本文の編集を終え、書式の適用先を新しい注釈へ切り替える。</remarks>
-    public string? SelectedId
-    {
-        get => _selectedId;
-        set => Select(value);
-    }
+    /// <remarks>選択の変更は <see cref="Select"/> で行う（本文の編集を終える等の副作用を setter へ持たせない）。</remarks>
+    public string? SelectedId => _selectedId;
 
     /// <summary>選択中の注釈を取得する。</summary>
     /// <value>選択が無い場合は <see langword="null"/>。</value>

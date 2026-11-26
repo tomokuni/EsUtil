@@ -24,7 +24,7 @@ public class AnnotationEditorPanelTests
     {
         var window = CreateEditor(out var editor, out _, out var bubbleId);
 
-        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.Select(bubbleId);
         editor.Layer.ExternalTextId = null;
         PumpLayout(editor);
 
@@ -40,10 +40,10 @@ public class AnnotationEditorPanelTests
     internal void 選択を解除するとレイヤーが本文を描く()
     {
         var window = CreateEditor(out var editor, out _, out var bubbleId);
-        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.Select(bubbleId);
         PumpLayout(editor);
 
-        editor.Layer.Session.SelectedId = null;
+        editor.Layer.Session.Select(null);
         PumpLayout(editor);
 
         Assert.Null(editor.Layer.ExternalTextId);
@@ -61,7 +61,7 @@ public class AnnotationEditorPanelTests
     {
         var window = CreateEditor(out var editor, out _, out var bubbleId);
 
-        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.Select(bubbleId);
         PumpLayout(editor);
 
         var bubble = Assert.IsType<BubbleAnnotation>(editor.Layer.Session.Document.Find(bubbleId));
@@ -92,7 +92,7 @@ public class AnnotationEditorPanelTests
     internal void 書式バーは選択がある間だけ出る()
     {
         var window = CreateEditor(out var editor, out _, out var bubbleId);
-        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.Select(bubbleId);
         editor.Layer.Session.BeginTextEditing();
         PumpLayout(editor);
 
@@ -115,7 +115,7 @@ public class AnnotationEditorPanelTests
     {
         var window = CreateEditor(out var editor, out _, out var bubbleId);
         editor.ShowFormatBarWhileEditing = false;
-        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.Select(bubbleId);
         editor.Layer.Session.BeginTextEditing();
         PumpLayout(editor);
 
@@ -131,7 +131,7 @@ public class AnnotationEditorPanelTests
     internal void 書式バーの項目をすべて出さない場合はバーを出さない()
     {
         var window = CreateEditor(out var editor, out _, out var bubbleId);
-        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.Select(bubbleId);
         editor.Layer.Session.BeginTextEditing();
         PumpLayout(editor);
         editor.TextEditor.Select(0, 2);
@@ -168,7 +168,7 @@ public class AnnotationEditorPanelTests
     internal void 表示中に書式バーの項目を差し替えてもバーを出したままにする()
     {
         var window = CreateEditor(out var editor, out _, out var bubbleId);
-        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.Select(bubbleId);
         editor.Layer.Session.BeginTextEditing();
         PumpLayout(editor);
         editor.TextEditor.Select(0, 2);

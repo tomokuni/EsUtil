@@ -25,7 +25,7 @@ public class AnnotationEditorPanelSelectionTests
         var window = CreateEditor(out var editor, out var document, out var first, out var second);
 
         // 1 つ目を選び、レイアウトを確定させる
-        editor.Layer.Session.SelectedId = first;
+        editor.Layer.Session.Select(first);
         Dispatcher.UIThread.RunJobs();
         PumpLayout(editor);
         var firstRect = BodyRect(editor, document, first);
@@ -34,7 +34,7 @@ public class AnnotationEditorPanelSelectionTests
 
         // 2 つ目へ切り替える。 位置は選択に依存するため、**測り直しが要求される**こと（同期的に無効になる）と、
         // その後のレイアウトで選んだ側の矩形へ移ることを見る
-        editor.Layer.Session.SelectedId = second;
+        editor.Layer.Session.Select(second);
         Assert.False(editor.IsMeasureValid);
         Dispatcher.UIThread.RunJobs();
         PumpLayout(editor);
@@ -55,7 +55,7 @@ public class AnnotationEditorPanelSelectionTests
     internal void 選択中の吹き出しを動かすと本文コントロールが追随する()
     {
         var window = CreateEditor(out var editor, out var document, out var first, out _);
-        editor.Layer.Session.SelectedId = first;
+        editor.Layer.Session.Select(first);
         Dispatcher.UIThread.RunJobs();
         PumpLayout(editor);
         AssertBounds(BodyRect(editor, document, first), editor.TextEditor.Bounds);
@@ -81,7 +81,7 @@ public class AnnotationEditorPanelSelectionTests
     internal void 編集中は本文コントロールが入力を持つ()
     {
         var window = CreateEditor(out var editor, out _, out var first, out _);
-        editor.Layer.Session.SelectedId = first;
+        editor.Layer.Session.Select(first);
         Dispatcher.UIThread.RunJobs();
         PumpLayout(editor);
 
@@ -110,11 +110,11 @@ public class AnnotationEditorPanelSelectionTests
     internal void 選択を解除すると本文コントロールが隠れる()
     {
         var window = CreateEditor(out var editor, out _, out var first, out _);
-        editor.Layer.Session.SelectedId = first;
+        editor.Layer.Session.Select(first);
         Dispatcher.UIThread.RunJobs();
         PumpLayout(editor);
 
-        editor.Layer.Session.SelectedId = null;
+        editor.Layer.Session.Select(null);
         Dispatcher.UIThread.RunJobs();
         PumpLayout(editor);
 

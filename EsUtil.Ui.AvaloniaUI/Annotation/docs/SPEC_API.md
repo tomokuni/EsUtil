@@ -19,7 +19,7 @@
 | `ShowFormatBarWhileEditing` | property | 編集中に書式バーを自動で表示するか（既定は `true`。 ホストが独自にバーを出す場合は `false`） |
 | `FormatBarItems` | property | 書式バーに出す項目（太字・斜体・下線・取り消し線・色・大きさ・フォント名）の組み合わせ。 非表示の項目は詰めて並べ、すべて非表示のときはバー自体を出さない（表示中でも差し替えられ、作り直して出し直す） |
 | `IsFormatBarOpen` | property | 書式バーを表示中かどうか（編集中で 1 文字以上を選んでいる間だけ `true`） |
-| `TextFormat` | property | 書式バーと右クリックのフライアウトの色の表記（色名 + 不透明度 / カラーコード）。 カラーコードは `#AARRGGBB`。 値は `AnnotationLayerControl.ColorTextFormat` が単一所有する（バーを作り直しても失われない） |
+| `ColorTextFormat` | property | 書式バーと右クリックのフライアウトの色の表記（色名 + 不透明度 / カラーコード）。 カラーコードは `#AARRGGBB`。 値は `AnnotationLayerControl.ColorTextFormat` が単一所有する（バーを作り直しても失われない） |
 | `Log` / `LogPrefix` | property | ログの出力先と接頭辞（コアと提示層で共有する。 既定 `[Annotation]`） |
 | `CopyTextSelection()` / `CutTextSelection()` / `PasteText()` | method | 本文の選択範囲をクリップボードとやり取りする（キーの割り当てと同じ処理） |
 | `FormatBarFactory` / `FormatBarOptions` | property | 書式バーの生成（`IStyledTextFormatBarFactory`）と構成（フォント・色・表記）。 生成は表示中でも差し替えられる（作り直して出し直す） |
@@ -48,7 +48,7 @@
 | `Document` | property | 注釈の文書。 差し替えると選択を解除する |
 | `SelectedId` / `Selected` | property | 選択中の注釈（識別子・実体） |
 | `DraftDefaults` | property | 新規作成時の既定値（`AnnotationDraftDefaults`。 既存の注釈は変わらない） |
-| `ColorTextFormat` | property | 色の入力欄へ出す表記（色名 + 不透明度 / カラーコード）。 `AnnotationEditorPanel.TextFormat` が同じ値を写す |
+| `ColorTextFormat` | property | 色の入力欄へ出す表記（色名 + 不透明度 / カラーコード）。 `AnnotationEditorPanel.ColorTextFormat` が同じ値を写す |
 | `Log` / `LogPrefix` | property | ログの出力先と接頭辞（コアと提示層で共有する） |
 | `Presenter` | property | 描画計画を解決する提示層（ログと接頭辞を共有する） |
 | `Core` | property | 文書・保存形式・ログの入口（ファサード。 アプリは `Core.Load` / `Core.Save` を使う） |

@@ -87,7 +87,7 @@ public sealed class MainWindow : Window
             Children =
             {
                 SampleSettings.Slider("行間", 1.2, 0.8, 2.0, 0.1, true, value => _editor.LineHeightFactor = value),
-                SampleSettings.Slider("表示倍率", 1.0, 0.5, 2.0, 0.1, true, value => _editor.RenderScale = value),
+                SampleSettings.Slider("表示倍率", 1.0, 0.5, 2.0, 0.1, true, value => _editor.SourceToClientScaling = value),
                 SampleSettings.Slider("文字サイズ", 20, 8, 48, 1, true, value =>
                     _editor.ApplyTextStyle(0, 0, TextDefaults.DefaultStyle with { FontSize = value })),
                 SampleSettings.Check("入力を受け付ける", true, value => _editor.IsInputEnabled = value),

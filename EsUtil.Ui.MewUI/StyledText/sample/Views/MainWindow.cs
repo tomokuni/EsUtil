@@ -72,7 +72,7 @@ public static class MainWindow
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
         var properties = new StackPanel().Spacing(6);
         properties.Add(SampleSettings.Slider("行間", 1.2, 0.8, 2.0, 0.1, true, value => editor.LineHeightFactor = value));
-        properties.Add(SampleSettings.Slider("表示倍率", 1.0, 0.5, 2.0, 0.1, true, value => editor.RenderScale = value));
+        properties.Add(SampleSettings.Slider("表示倍率", 1.0, 0.5, 2.0, 0.1, true, value => editor.SourceToClientScaling = value));
         properties.Add(SampleSettings.Slider("文字サイズ", 20, 8, 48, 1, true, value =>
             editor.ApplyTextStyle(0, 0, TextDefaults.DefaultStyle with { FontSize = value })));
         properties.Add(SampleSettings.Check("入力を受け付ける", true, value => editor.IsInputEnabled = value));

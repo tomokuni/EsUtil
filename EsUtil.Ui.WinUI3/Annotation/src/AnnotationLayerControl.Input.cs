@@ -515,7 +515,7 @@ public sealed partial class AnnotationLayerControl
             _session.Select(null);
             if (AnnotationGeometry.Contains(source, _session.Document.ImageSize))
             {
-                AddMenuRequested?.Invoke(this, new AnnotationAddMenuRequestedEventArgs(position.X, position.Y));
+                RaiseAddMenuRequested(position.X, position.Y);
             }
 
             return;

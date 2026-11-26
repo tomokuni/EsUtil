@@ -344,7 +344,7 @@ public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFor
     /// <param name="applyToModel">本文へ適用する処理。</param>
     private void ApplyDecoration(Func<TextStyle, TextStyle> applyToModel)
     {
-        _context.Transform(applyToModel);
+        _context.TransformTextStyle(applyToModel);
         Refresh();
 
         // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする
@@ -355,7 +355,7 @@ public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFor
     /// <param name="change">書式を変える処理。</param>
     private void ApplyFull(Func<TextStyle, TextStyle> change)
     {
-        _context.Apply(change(_context.SelectedTextStyle));
+        _context.ApplyTextStyle(change(_context.SelectedTextStyle));
         Refresh();
 
         // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする

@@ -221,7 +221,7 @@ public sealed partial class AnnotationLayerControl : Grid
     public string? SelectedId
     {
         get => _session.SelectedId;
-        set => _session.SelectedId = value;
+        set => _session.Select(value);
     }
 
     /// <summary>新規作成時の既定値を取得または設定する。</summary>
@@ -481,8 +481,7 @@ public sealed partial class AnnotationLayerControl : Grid
         }
 
         _ = Focus(FocusState.Programmatic);
-        StyleEditorRequested?.Invoke(
-            this, new AnnotationStyleEditorRequestedEventArgs(_styleEditorX, _styleEditorY, isFromPointer));
+        RaiseStyleEditorRequested(isFromPointer);
     }
 
     /// <summary>選択中の注釈の矩形（このコントロールの座標）を取得する。</summary>
@@ -528,7 +527,7 @@ public sealed partial class AnnotationLayerControl : Grid
     internal AnnotationEditSession Session => _session;
 
     /// <summary>画像の表示倍率（元画像ピクセル → DIP）を取得する。</summary>
-    internal double ViewScale => ResolveImageTransform().Scale;
+    internal double SourceToClientScaling => ResolveImageTransform().Scale;
 
     /// <summary>元画像ピクセルの矩形を、このコントロールの座標（DIP）の矩形へ変換する。</summary>
     /// <param name="source">矩形（元画像ピクセル）。</param>
@@ -642,7 +641,7 @@ public sealed partial class AnnotationLayerControl : Grid
                 _marquee.ResetSelection();
             }
 
-            EditingChanged?.Invoke(this, EventArgs.Empty);
+            RaiseEditingChanged();
         }
 
         if ((change & AnnotationEditChange.Selection) != 0)
@@ -660,17 +659,17 @@ public sealed partial class AnnotationLayerControl : Grid
                 _marquee.ResetSelection();
             }
 
-            SelectionChanged?.Invoke(this, EventArgs.Empty);
+            RaiseSelectionChanged();
         }
 
         if ((change & AnnotationEditChange.TextSelection) != 0)
         {
-            TextSelectionChanged?.Invoke(this, EventArgs.Empty);
+            RaiseTextSelectionChanged();
         }
 
         if ((change & AnnotationEditChange.Document) != 0)
         {
-            DocumentChanged?.Invoke(this, EventArgs.Empty);
+            RaiseDocumentChanged();
         }
 
         InvalidateRender();
@@ -707,4 +706,28 @@ public sealed partial class AnnotationLayerControl : Grid
         ToSource,
         ToClientDip,
         () => new EsSize(SourcePixelWidth, SourcePixelHeight));
+
+    /// <summary><see cref="StyleEditorRequested"/> を発生させる。</summary>
+    /// <param name="isFromPointer">ポインターの押下から出した要求かどうか。</param>
+    private void RaiseStyleEditorRequested(bool isFromPointer)
+        => StyleEditorRequested?.Invoke(
+            this, new AnnotationStyleEditorRequestedEventArgs(_styleEditorX, _styleEditorY, isFromPointer));
+
+    /// <summary><see cref="AddMenuRequested"/> を発生させる。</summary>
+    /// <param name="x">右クリックした位置（ローカル DIP）。</param>
+    /// <param name="y">右クリックした位置（ローカル DIP）。</param>
+    private void RaiseAddMenuRequested(double x, double y)
+        => AddMenuRequested?.Invoke(this, new AnnotationAddMenuRequestedEventArgs(x, y));
+
+    /// <summary><see cref="EditingChanged"/> を発生させる。</summary>
+    private void RaiseEditingChanged() => EditingChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary><see cref="SelectionChanged"/> を発生させる。</summary>
+    private void RaiseSelectionChanged() => SelectionChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary><see cref="TextSelectionChanged"/> を発生させる。</summary>
+    private void RaiseTextSelectionChanged() => TextSelectionChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary><see cref="DocumentChanged"/> を発生させる。</summary>
+    private void RaiseDocumentChanged() => DocumentChanged?.Invoke(this, EventArgs.Empty);
 }

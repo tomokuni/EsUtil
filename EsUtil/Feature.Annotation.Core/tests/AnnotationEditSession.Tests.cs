@@ -47,7 +47,7 @@ public sealed class AnnotationEditSessionTests
         Assert.Empty(session.Document.Items);
 
         Assert.True(session.Undo());
-        session.SelectedId = id;
+        session.Select(id);
         Assert.NotNull(session.Selected);
     }
 
@@ -88,11 +88,11 @@ public sealed class AnnotationEditSessionTests
         var first = session.AddBubble(new EsRect(10, 10, 120, 80), "abc");
         var second = session.AddFrame(new EsRect(150, 10, 40, 30));
 
-        session.SelectedId = first;
+        session.Select(first);
         Assert.True(session.BeginTextEditing());
         Assert.True(session.IsEditingText);
 
-        session.SelectedId = second;
+        session.Select(second);
 
         Assert.False(session.IsEditingText);
         Assert.Equal(second, session.SelectedId);

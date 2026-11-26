@@ -420,7 +420,7 @@ public sealed class StyledTextFormatBar : ContentControl, IStyledTextFormatBar
     /// </remarks>
     private void Apply(Func<TextStyle, TextStyle> change)
     {
-        _context.Transform(change);
+        _context.TransformTextStyle(change);
         Refresh();
 
         // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする

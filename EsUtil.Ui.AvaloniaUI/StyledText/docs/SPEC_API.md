@@ -16,20 +16,20 @@
 | `RichTextValue` | 表示・編集する本文（`RichText`。 run 単位の書式） |
 | `MeasureText` | 文字列と書式から実寸を測る関数（既定は描画と同じエンジンで測る） |
 | `LineHeightFactor` | 行間の倍率（0 以下・非有限は 1） |
-| `RenderScale` | 元画像ピクセルから画面の DIP への倍率（0 以下・非有限は 1） |
+| `SourceToClientScaling` | 元画像ピクセルから画面の DIP への倍率（0 以下・非有限は 1） |
 | `Editor` | 本文の値と編集の状態（`TextEditor`。 キャレット・選択・以降の入力へ効かせる書式を含む）。 ホストと共有できる |
 | `ShowFormatBarWhileEditing` | 編集中に書式バーを自動で表示するか（既定は `true`）。 ホストが独自にバーを出す場合は `false` |
 | `FormatBarItems` | 書式バーに出す項目の組み合わせ（既定はすべて表示）。 すべて非表示にするとバー自体を出さない |
 | `ShouldShowFormatBar` | いま書式バーを表示すべきか（編集中・自動表示が有効・1 文字以上を選択・出す項目がある） |
-| FormatBar | コントロールが単一所有する書式バー（初回の取得で作る）。 ホストは View を置くだけでよい |
-| FormatBarHosting | バーをどこへ出すか（Custom = ホストが置く（既定） / Popup = 選択範囲の近くへコントロールが出す） |
-| FormatBarFactory / FormatBarOptions | バーの生成（IStyledTextFormatBarFactory）と構成（フォント・色・表記）。 差し替えると作り直す |
-| IsFormatBarOpen | ポップアップで表示中か（Custom のときは常に alse） |
+| `FormatBar` | コントロールが単一所有する書式バー（初回の取得で作る）。 ホストは `View` を置くだけでよい |
+| `FormatBarHosting` | バーをどこへ出すか（`Custom` = ホストが置く（既定） / `Popup` = 選択範囲の近くへコントロールが出す） |
+| `FormatBarFactory` / `FormatBarOptions` | バーの生成（`IStyledTextFormatBarFactory`）と構成（フォント・色・表記）。 差し替えると作り直す |
+| `IsFormatBarOpen` | ポップアップで表示中か（`Custom` のときは常に `false`） |
 | `PreeditText` | IME の変換中の文字列（本文へは入れず、キャレットの位置へ描く） |
 | `IsInputEnabled` | 入力を受け付けるか（既定は受け付ける）。 表示専用にする場合は `false`（ホストが入力とフォーカスを持つ場合） |
 | `RichTextChanged` / `SelectionChanged` / `EditingChanged` | 本文・選択範囲・編集の開始と終了の通知 |
 
-- **座標は元画像ピクセル**です。 `RenderScale` を掛けて DIP へ写します。
+- **座標は元画像ピクセル**です。 `SourceToClientScaling` を掛けて DIP へ写します。
 - **本文の値と編集の状態は `EsUtil.Feature.StyledText.Core` の `TextEditor` が単一所有**します。 編集は新しい `RichText` を `RichTextValue` へ書き戻し、`RichTextChanged` を発生させます。
 - **編集器を 2 つ持たない**ため、ホストが本文と状態を持っている場合は `Editor` に同じ実体を設定します。
 - **書式バーは 1 文字以上を選んだときだけ出す**（自動表示が有効でも、適用先が決まらない間は出さない）。
@@ -73,7 +73,7 @@
 | `TextFormat` | 色の入力欄へ出す表記（色名 + 不透明度 / カラーコード） |
 | `Refresh()` | 現在の選択範囲の書式を表示へ反映する |
 | `SetKeyHandler(forward)` / `SetFocusRequest(request)` | バーがフォーカスを持つ間のキー転送と、操作後に本文へフォーカスを戻す処理（**4 つの UI 版で同じ挙動**。 バー内の入力欄では転送しない） |
-| `ITextFormatBarContext`（計算層） | バーが書式を読み書きする相手（`SelectedTextStyle` / `SelectedTextMatches` / `Transform` / `Apply` / `HasTextSelection`）。 ホストが自分の編集状態へつなぐ |
+| `ITextFormatBarContext`（計算層） | バーが書式を読み書きする相手（`SelectedTextStyle` / `SelectedTextMatches` / `TransformTextStyle` / `ApplyTextStyle` / `HasTextSelection`）。 ホストが自分の編集状態へつなぐ |
 | `StyledTextFormatBarContext` | `StyledTextControl` をバーの相手にする既定の接続（ホストはバーを作るときにこれを渡すだけでよい） |
 | `StyledTextFormatBarOptions` | フォントの一覧・色の選択（`ConfigureColorSelector` / `CreateColorButton` / `CreateColorSelector`）・色の表記・出す項目（`Items`。 非表示の項目は詰めて並べる） |
 

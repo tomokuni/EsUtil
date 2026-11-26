@@ -83,7 +83,7 @@ public sealed class MainWindow : Window
         // ── プロパティ設定（対象コントロールの公開プロパティ。 並びは他 UI と共通） ──
         var properties = new StackPanel { Spacing = 6 };
         properties.Children.Add(SampleSettings.Slider("行間", 1.2, 0.8, 2.0, 0.1, true, value => _editor.LineHeightFactor = value));
-        properties.Children.Add(SampleSettings.Slider("表示倍率", 1.0, 0.5, 2.0, 0.1, true, value => _editor.RenderScale = value));
+        properties.Children.Add(SampleSettings.Slider("表示倍率", 1.0, 0.5, 2.0, 0.1, true, value => _editor.SourceToClientScaling = value));
         properties.Children.Add(SampleSettings.Slider("文字サイズ", 20, 8, 48, 1, true, value =>
             _editor.ApplyTextStyle(0, 0, TextDefaults.DefaultStyle with { FontSize = value })));
         properties.Children.Add(SampleSettings.Check("入力を受け付ける", true, value => _editor.IsInputEnabled = value));

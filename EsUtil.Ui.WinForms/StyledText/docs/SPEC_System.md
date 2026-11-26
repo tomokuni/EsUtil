@@ -15,7 +15,7 @@
 | --- | --- |
 | 目的 | 書式付きの本文を、入力欄を重ねずにその場で表示・編集する |
 | 対象 UI | WinForms |
-| 座標 | 元画像ピクセル（`RenderScale` で DIP へ写す） |
+| 座標 | 元画像ピクセル（`SourceToClientScaling` で DIP へ写す） |
 | 文字位置 | 本文の先頭からの文字数（移動・削除は書記素クラスタの境界） |
 
 ## 2. 技術スタック
@@ -25,7 +25,7 @@
 | 対象フレームワーク | `net10.0-windows10.0.17763.0` |
 | 参照 | `EsUtil.Feature.StyledText.Core` / `EsUtil.Platform.Core` |
 | 描画 | GDI+ |
-| テスト | xUnit v3（Avalonia ヘッドレス） |
+| テスト | xUnit v3 |
 
 ## 3. アーキテクチャ
 
@@ -37,9 +37,9 @@
 
 | コンポーネント | 責務 |
 | --- | --- |
-| `StyledTextControl` | 本文の描画・入力の受付・API の公開（部分クラスで編集の配線を分ける） |
-| `RichTextPainter`（内部） | 解決済みの行を Avalonia の描画 API へ写す・実寸の計測・フォントの解決 |
-| `StyledTextInputClient`（内部） | IME とのやり取り（変換候補の位置・選択範囲・変換中の文字列） |
+| `StyledTextControl` | 本文の描画・入力の受付・API の公開（IME は IMM32 を直接呼ぶ） |
+| `RichTextPainter`（内部） | 解決済みの行を GDI+ の描画 API へ写す・実寸の計測・フォントの解決 |
+| `StyledTextFormatBarControls`（内部） | 書式バーの行の部品（数値・選択肢・装飾の切り替え） |
 
 **ログ**: 本アセンブリはログを出力しません（計算と描画の部品であり、記録は利用側が行う）。
 

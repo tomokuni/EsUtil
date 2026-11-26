@@ -114,7 +114,7 @@ public sealed partial class StyledTextControl
         var style = SelectedTextStyle;
 
         sink.Height = Math.Max(1, caret.Height);
-        sink.FontSize = Math.Max(1, style.FontSize * RenderScale);
+        sink.FontSize = Math.Max(1, style.FontSize * SourceToClientScaling);
         Canvas.SetLeft(sink, Math.Max(0, caret.X));
         Canvas.SetTop(sink, Math.Max(0, caret.Y + caret.Height + PickerCandidateOffset));
     }

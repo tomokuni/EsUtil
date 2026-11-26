@@ -13,9 +13,6 @@ namespace EsUtil.Ui.WinForms.StyledText;
 /// </remarks>
 internal static class RichTextPainter
 {
-    /// <summary>下線・取り消し線の太さの比率（文字の大きさに対する比）。</summary>
-    private const double DecorationThicknessRatio = 0.06;
-
     /// <summary>測定に使う書式（文字の送りだけを測る）。</summary>
     private static readonly StringFormat s_measureFormat = new(StringFormat.GenericTypographic)
     {
@@ -119,7 +116,7 @@ internal static class RichTextPainter
         }
 
         var width = (float)(segment.Bounds.Width > 0 ? segment.Bounds.Width : Measure(segment.Text, style).Width);
-        var thickness = (float)Math.Max(1.0, style.FontSize * DecorationThicknessRatio);
+        var thickness = (float)Math.Max(1.0, style.FontSize * TextDrawingAppearance.DecorationThicknessRatio);
         var height = (float)metrics.Height;
         using var pen = new Pen(style.Color, thickness);
         if (style.IsUnderline)

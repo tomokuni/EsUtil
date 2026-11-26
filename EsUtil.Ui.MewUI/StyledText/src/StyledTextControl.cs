@@ -2,6 +2,7 @@ using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using Aprillz.MewUI.Rendering;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Native.Win;
 
 namespace EsUtil.Ui.MewUI.StyledText;
 
@@ -12,10 +13,13 @@ namespace EsUtil.Ui.MewUI.StyledText;
 /// 本文を書き換える（書式はその場で反映される）。<br/>
 /// <b>規則は提示層が単一所有する</b>: 本文の値とキャレット・選択・書式の適用は <see cref="TextEditor"/>（状態は <see cref="TextEditState"/>）、
 /// キーの割り当ては <see cref="TextEditKeyMap"/>、折り返しと行の配置は <see cref="TextLayout"/> が決める。<br/>
-/// <b>座標は元画像ピクセル</b>である: <see cref="RenderScale"/> で画面の DIP へ写す。
+/// <b>座標は元画像ピクセル</b>である: <see cref="SourceToClientScaling"/> で画面の DIP へ写す。
 /// </remarks>
 public sealed partial class StyledTextControl : Panel
 {
+    /// <summary>クリップボードの読み書き（開閉と解放の順序はコアが単一所有する）。</summary>
+    private static readonly WinClipboard s_clipboard = new();
+
     /// <summary>キャレットの点滅を進めるタイマー（編集中だけ動かす）。</summary>
     private readonly DispatcherTimer _caretTimer;
 
@@ -58,7 +62,7 @@ public sealed partial class StyledTextControl : Panel
 
     /// <summary>画面の DIP への倍率を取得または設定する。</summary>
     /// <value>元画像ピクセルから画面の DIP への倍率。 0 以下・非有限は 1 として扱う。</value>
-    public double RenderScale { get; set; } = 1.0;
+    public double SourceToClientScaling { get; set; } = 1.0;
 
     /// <summary>行間の倍率を取得または設定する。</summary>
     /// <value>行間の倍率。 0 以下・非有限は 1 として扱う。</value>
@@ -518,7 +522,7 @@ public sealed partial class StyledTextControl : Panel
         var text = GetSelectedText();
         if (text.Length > 0)
         {
-            _ = RichTextClipboard.TrySetText(text);
+            _ = s_clipboard.TryWriteText(text);
         }
 
         return Task.CompletedTask;
@@ -541,7 +545,7 @@ public sealed partial class StyledTextControl : Panel
     /// <returns>挿入した文字列（貼り付ける文字列が無い場合は <see langword="null"/>）。</returns>
     public Task<string?> PasteAsync()
     {
-        var text = RichTextClipboard.GetText();
+        var text = s_clipboard.TryReadText(out var read) ? read ?? string.Empty : string.Empty;
         if (text.Length == 0)
         {
             return Task.FromResult<string?>(null);
@@ -789,7 +793,7 @@ public sealed partial class StyledTextControl : Panel
     /// <summary>表示倍率を取得する（無効な値は基準値へ正規化する）。</summary>
     /// <returns>表示倍率。</returns>
     /// <remarks>正規化の規則は <see cref="EsUtil.Platform.Core.Coord.DpiScaler.NormalizeScaling"/> が単一所有する。</remarks>
-    private double ResolveScale() => EsUtil.Platform.Core.Coord.DpiScaler.NormalizeScaling(RenderScale);
+    private double ResolveScale() => EsUtil.Platform.Core.Coord.DpiScaler.NormalizeScaling(SourceToClientScaling);
 
     /// <summary>編集の結果を通知して描画を更新する。</summary>
     /// <param name="change">変わった内容。</param>
@@ -797,13 +801,13 @@ public sealed partial class StyledTextControl : Panel
     {
         if ((change & TextEditChange.Text) != 0)
         {
-            RichTextChanged?.Invoke(this, EventArgs.Empty);
+            RaiseRichTextChanged();
             RestartCaretBlink();
         }
 
         if ((change & TextEditChange.Editing) != 0)
         {
-            EditingChanged?.Invoke(this, EventArgs.Empty);
+            RaiseEditingChanged();
         }
 
         if (change != TextEditChange.None)
@@ -811,6 +815,15 @@ public sealed partial class StyledTextControl : Panel
             AfterSelectionChanged();
         }
     }
+
+    /// <summary><see cref="RichTextChanged"/> を発生させる。</summary>
+    private void RaiseRichTextChanged() => RichTextChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary><see cref="EditingChanged"/> を発生させる。</summary>
+    private void RaiseEditingChanged() => EditingChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary><see cref="SelectionChanged"/> を発生させる。</summary>
+    private void RaiseSelectionChanged() => SelectionChanged?.Invoke(this, EventArgs.Empty);
 
     /// <summary>本文が変わったかを返す（変わった内容を通知する）。</summary>
     /// <param name="change">変わった内容。</param>
@@ -824,7 +837,7 @@ public sealed partial class StyledTextControl : Panel
     /// <summary>選択範囲が変わったことを通知して描画を更新する。</summary>
     private void AfterSelectionChanged()
     {
-        SelectionChanged?.Invoke(this, EventArgs.Empty);
+        RaiseSelectionChanged();
         InvalidateVisual();
 
         // **ポップアップは選択に追随する**: 選択が無くなったら閉じ、位置が変わったら置き直す

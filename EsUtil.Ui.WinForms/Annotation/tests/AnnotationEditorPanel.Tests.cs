@@ -18,7 +18,7 @@ public class AnnotationEditorPanelTests
     {
         var editor = CreateEditor(out var document, out var bubbleId);
 
-        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.Select(bubbleId);
         editor.Layer.ExternalTextId = null;
         editor.PerformLayout();
         editor.SyncTextEditor();
@@ -35,11 +35,11 @@ public class AnnotationEditorPanelTests
     internal void 選択を解除するとレイヤーが本文を描く()
     {
         var editor = CreateEditor(out _, out var bubbleId);
-        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.Select(bubbleId);
         editor.PerformLayout();
         editor.SyncTextEditor();
 
-        editor.Layer.Session.SelectedId = null;
+        editor.Layer.Session.Select(null);
         editor.PerformLayout();
         editor.SyncTextEditor();
 
@@ -52,7 +52,7 @@ public class AnnotationEditorPanelTests
     internal void 編集コントロールの矩形が本文の矩形と一致する()
     {
         var editor = CreateEditor(out var document, out var bubbleId);
-        editor.Layer.Session.SelectedId = bubbleId;
+        editor.Layer.Session.Select(bubbleId);
         editor.PerformLayout();
         editor.SyncTextEditor();
 

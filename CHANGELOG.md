@@ -51,9 +51,14 @@
 - **Loupe の再描画要求を 4 つの UI 版とも `InvalidateRender()` に揃えました**（AvaloniaUI の `RequestRender()` と WinUI 3 の `RequestRedraw()` を改名し、MewUI / WinForms にも追加）。 Marquee・Annotation と同じ名前になります（同じ役割に同じ名前を使う）。 **AvaloniaUI の `LoupeControl` に `ResolveLayout(EsSize)` を追加**し、4 つの UI 版で同じ入口にしました。
 - **AvaloniaUI の `AnnotationLayerControl.RenderComposedImage()` の戻り値を `EsBitmap` にしました**（従来は `RenderTargetBitmap`。 4 つの UI 版で同じ型を返し、保存形式の判定とエンコードは `EsBitmap.Save` が単一所有する）。 ホストは画素を写さずにそのまま保存できます。
 - **AvaloniaUI だけが持っていた書式バーの `PaletteColumns` / `ColorWidth` を削除しました**（`AnnotationEditorPanel` と `StyledTextFormatBar`。 他の UI 版には無く、利用箇所も無かったため）。
+- **倍率の名前へ向きを含めました**（4 つの UI 版の `StyledTextControl`）。 `RenderScale` → `SourceToClientScaling`（元画像ピクセル → DIP の倍率であることを名前で示す。 名前の規則は [`命名規約.md`](.github/命名規約.md) が単一所有する）。 注釈レイヤーの内部値 `ViewScale` も同じ名前に揃えました。
+- **書式バーが書式を読み書きする相手のメソッド名を役割が分かる名前にしました**（`ITextFormatBarContext`。 4 つの UI 版）。 `Transform` → `TransformTextStyle`、`Apply` → `ApplyTextStyle`（本文コントロールの同じ役割のメソッドと同じ名前にする）。
+- **`AnnotationEditorPanel.TextFormat` を `ColorTextFormat` に改名しました**（4 つの UI 版）。 本文の書式（太字・色など）と紛らわしく、同じ役割の `AnnotationLayerControl.ColorTextFormat` と名前が食い違っていたためです。
+- **`AnnotationEditSession.SelectedId` の setter を削除しました**（選択は `Select(id)` で行う。 §9「仕様の状態はプロパティに副作用を持たせない」に合わせる。 4 つの UI の `AnnotationLayerControl.SelectedId` はバインド可能なプロパティとして残る）。
 
 ### 追加
 
+- **文字の描画で使う外観の値（`TextDrawingAppearance`）を追加しました**（`EsUtil.Feature.StyledText.Presenter.Drawing`）。 行の実寸を測る代表の文字列と下線・取り消し線の太さの比率を単一所有し、4 つの UI 版が同じ値を使います（各 UI に同じ定数を書き写さない）。
 - **書式バーに出す項目を選べるようにしました**（4 つの UI 版。 `TextFormatBarItemVisibility`）。 太字・斜体・下線・取り消し線・色・フォントの大きさ・フォント名のそれぞれを表示するか決められます（`StyledTextControl.FormatBarItems` / `AnnotationEditorPanel.FormatBarItems` / `StyledTextFormatBarOptions.Items`）。 **出さない項目は場所ごと詰めて並べ**、バーの幅も出す項目だけで決まります（空の枠を残しません）。 **すべて出さない場合は書式バー自体を表示しません**。
 - **注釈の書式バーの差し替えを表示中でもできるようにしました**（4 つの UI 版の `AnnotationEditorPanel`）。 `FormatBarItems` / `FormatBarFactory` を書式バーの表示中に設定しても `InvalidOperationException` になりません（バーを作り直し、詰めた幅を測り直して出し直します）。 ホストに「出す前かどうか」を判断させると、判断を UI ごとに間違えて表示中に設定しただけで落ちるためです。
 - **注釈の `AnnotationEditorPanel.TextFormat` の値を `AnnotationLayerControl.ColorTextFormat` が単一所有するようにしました**（4 つの UI 版）。 右クリックの外観フライアウトと同じ値を使い、書式バーを作り直しても値が失われません（従来はバーの値だけを読み書きしており、作り直すと既定へ戻りました）。
@@ -98,6 +103,7 @@
 
 ### 修正
 
+- **MewUI の本文コントロールのクリップボード操作をコアの `WinClipboard` へ寄せました**。 開く・ロックする・解放する・閉じるの順序を UI 側へ書き写さず、`EsUtil.Platform.Core` の単一実装を使います。
 - **AvaloniaUI の書式バーの色でカラーピッカーが空になる不具合を修正しました**（サンプル）。 ColorView はカラーピッカーのテーマ（Avalonia.Controls.ColorPicker の Fluent.xaml）が無いと中身が描かれません。 サンプルがテーマを読み込むようにし、ホストの前提として SPEC_API.md へ明記しました。
 - **ポップアップで出す書式バーを操作すると例外になる不具合を修正しました**（4 つの UI 版）。 バーを作り直すたびにウィンドウの中身を差し替えていたため、要素の付け替えが重なって `InvalidOperationException`（既に親がある）で落ちていました。 中身は変わらない根を 1 度だけ載せ、根の子だけを差し替えるようにしました。 中身は隠す前に外します（隠したウィンドウに要素を残すと次に載せられない）。
 - **本文をドラッグで選択している間に書式バーがちらつく不具合を修正しました**（4 つの UI 版）。 選択が変わるたびにパネルを作り直していたため、ウィンドウの非表示と再表示が挟まっていました。 表示中の種別は作り直さず位置だけを移します。

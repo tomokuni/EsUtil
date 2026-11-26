@@ -29,6 +29,7 @@ Avalonia UI / MewUI / WinUI 3 / WinForms の 4 つの UI 実装で、同じ計�
 | マーキー（ドラッグ矩形） | [`EsUtil.Ui.<UI>/Marquee/README.md`](EsUtil.Ui.AvaloniaUI/Marquee/README.md) |
 | サムネイル一覧 | [`EsUtil.Ui.<UI>/Thumbnail/README.md`](EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) |
 | 注釈（枠線・吹き出し） | [`EsUtil.Ui.<UI>/Annotation/README.md`](EsUtil.Ui.AvaloniaUI/Annotation/README.md) |
+| 書式付きの文字列（表示とその場編集・書式バー） | [`EsUtil.Ui.<UI>/StyledText/README.md`](EsUtil.Ui.AvaloniaUI/StyledText/README.md) |
 | 複数列の配置 | [`EsUtil.Ui.<UI>/ColumnPacking/README.md`](EsUtil.Ui.AvaloniaUI/ColumnPacking/README.md) |
 | 色選択（Avalonia UI / MewUI / WinUI 3） | [`EsUtil.Ui.<UI>/ColorSelector/README.md`](EsUtil.Ui.AvaloniaUI/ColorSelector/README.md) |
 | 全角・半角・かなの変換 | [`EsUtil/Feature.ZenHan.Core/README.md`](EsUtil/Feature.ZenHan.Core/README.md) |
@@ -56,6 +57,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Feature.Marquee.Core`](EsUtil/Feature.Marquee.Core/README.md) | ドラッグ矩形の計算層（Core）+ 外観・描画計画（Presenter） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Marquee.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Marquee.Core) |
 | [`EsUtil.Feature.Thumbnail.Core`](EsUtil/Feature.Thumbnail.Core/README.md) | 折り返し配置の計算層（Core）+ 外観・影・描画計画（Presenter） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Thumbnail.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Thumbnail.Core) |
 | [`EsUtil.Feature.Annotation.Core`](EsUtil/Feature.Annotation.Core/README.md) | 注釈（枠線・吹き出し）の計算層（Core）+ 外観・描画計画（Presenter） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.Annotation.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.Annotation.Core) |
+| [`EsUtil.Feature.StyledText.Core`](EsUtil/Feature.StyledText.Core/README.md) | 書式付き文字列（折り返し・行と文字位置の対応・編集状態）の計算層（Core）+ 外観・書式バー（Presenter） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.StyledText.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.StyledText.Core) |
 | [`EsUtil.Feature.ColumnPacking.Core`](EsUtil/Feature.ColumnPacking.Core/README.md) | 複数列の配置（最大列高さの最小化）の計算層 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.ColumnPacking.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.ColumnPacking.Core) |
 | [`EsUtil.Feature.ZenHan.Core`](EsUtil/Feature.ZenHan.Core/README.md) | 全角・半角・ひらがな・カタカナ・記号の相互変換 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Feature.ZenHan.Core.svg)](https://www.nuget.org/packages/EsUtil.Feature.ZenHan.Core) |
 
@@ -71,6 +73,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Ui.AvaloniaUI.Marquee`](EsUtil.Ui.AvaloniaUI/Marquee/README.md) | マーキー（ドラッグ矩形） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Marquee) |
 | [`EsUtil.Ui.AvaloniaUI.Thumbnail`](EsUtil.Ui.AvaloniaUI/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Thumbnail) |
 | [`EsUtil.Ui.AvaloniaUI.Annotation`](EsUtil.Ui.AvaloniaUI/Annotation/README.md) | 注釈（枠線・吹き出し） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.Annotation.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.Annotation) |
+| [`EsUtil.Ui.AvaloniaUI.StyledText`](EsUtil.Ui.AvaloniaUI/StyledText/README.md) | 書式付き文字列の表示とその場編集（書式バー） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.StyledText.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.StyledText) |
 | [`EsUtil.Ui.AvaloniaUI.ColumnPacking`](EsUtil.Ui.AvaloniaUI/ColumnPacking/README.md) | 複数列の配置（パネル） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.AvaloniaUI.ColumnPacking.svg)](https://www.nuget.org/packages/EsUtil.Ui.AvaloniaUI.ColumnPacking) |
 
 ### 3.3 `EsUtil.Ui.MewUI`（MewUI 版）
@@ -85,6 +88,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Ui.MewUI.Marquee`](EsUtil.Ui.MewUI/Marquee/README.md) | マーキー（ドラッグ矩形） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Marquee) |
 | [`EsUtil.Ui.MewUI.Thumbnail`](EsUtil.Ui.MewUI/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Thumbnail) |
 | [`EsUtil.Ui.MewUI.Annotation`](EsUtil.Ui.MewUI/Annotation/README.md) | 注釈（枠線・吹き出し） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.Annotation.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.Annotation) |
+| [`EsUtil.Ui.MewUI.StyledText`](EsUtil.Ui.MewUI/StyledText/README.md) | 書式付き文字列の表示とその場編集（書式バー） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.StyledText.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.StyledText) |
 | [`EsUtil.Ui.MewUI.ColumnPacking`](EsUtil.Ui.MewUI/ColumnPacking/README.md) | 複数列の配置（パネル） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.MewUI.ColumnPacking.svg)](https://www.nuget.org/packages/EsUtil.Ui.MewUI.ColumnPacking) |
 
 ### 3.4 `EsUtil.Ui.WinUI3`（WinUI 3 版）
@@ -99,6 +103,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Ui.WinUI3.Marquee`](EsUtil.Ui.WinUI3/Marquee/README.md) | マーキー（ドラッグ矩形） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Marquee) |
 | [`EsUtil.Ui.WinUI3.Thumbnail`](EsUtil.Ui.WinUI3/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Thumbnail) |
 | [`EsUtil.Ui.WinUI3.Annotation`](EsUtil.Ui.WinUI3/Annotation/README.md) | 注釈（枠線・吹き出し） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.Annotation.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.Annotation) |
+| [`EsUtil.Ui.WinUI3.StyledText`](EsUtil.Ui.WinUI3/StyledText/README.md) | 書式付き文字列の表示とその場編集（書式バー） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.StyledText.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.StyledText) |
 | [`EsUtil.Ui.WinUI3.ColumnPacking`](EsUtil.Ui.WinUI3/ColumnPacking/README.md) | 複数列の配置（パネル） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinUI3.ColumnPacking.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinUI3.ColumnPacking) |
 
 ### 3.5 `EsUtil.Ui.WinForms`（WinForms 版）
@@ -112,6 +117,7 @@ UI に依存しない層です。 4 つの UI 版が共有します。
 | [`EsUtil.Ui.WinForms.Marquee`](EsUtil.Ui.WinForms/Marquee/README.md) | マーキー（ドラッグ矩形） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Marquee.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.Marquee) |
 | [`EsUtil.Ui.WinForms.Thumbnail`](EsUtil.Ui.WinForms/Thumbnail/README.md) | サムネイル一覧 | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Thumbnail.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.Thumbnail) |
 | [`EsUtil.Ui.WinForms.Annotation`](EsUtil.Ui.WinForms/Annotation/README.md) | 注釈（枠線・吹き出し） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.Annotation.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.Annotation) |
+| [`EsUtil.Ui.WinForms.StyledText`](EsUtil.Ui.WinForms/StyledText/README.md) | 書式付き文字列の表示とその場編集（書式バー） | [![NuGet](https://img.shields.io/nuget/v/EsUtil.Ui.WinForms.StyledText.svg)](https://www.nuget.org/packages/EsUtil.Ui.WinForms.StyledText) |
 
 色選択（`ColorSelector`）は **WinForms 版だけありません**（WinForms には相当するコントロールが無く、作る予定もありません）。
 

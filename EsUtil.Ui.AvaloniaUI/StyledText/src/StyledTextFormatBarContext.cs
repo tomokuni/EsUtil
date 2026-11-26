@@ -21,8 +21,8 @@ public sealed class StyledTextFormatBarContext(StyledTextControl control) : ITex
     public bool SelectedTextMatches(Func<TextStyle, bool> match) => control.SelectedTextMatches(match);
 
     /// <inheritdoc/>
-    public bool Transform(Func<TextStyle, TextStyle> transform) => control.TransformTextStyle(transform);
+    public bool TransformTextStyle(Func<TextStyle, TextStyle> transform) => control.TransformTextStyle(transform);
 
     /// <inheritdoc/>
-    public bool Apply(TextStyle style) => control.ApplyTextStyle(style);
+    public bool ApplyTextStyle(TextStyle style) => control.ApplyTextStyle(style);
 }

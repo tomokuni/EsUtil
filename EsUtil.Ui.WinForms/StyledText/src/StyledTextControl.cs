@@ -12,7 +12,7 @@ namespace EsUtil.Ui.WinForms.StyledText;
 /// <b>規則は提示層が単一所有する</b>: 本文の値とキャレット・選択・書式の適用は <see cref="TextEditor"/>（状態は <see cref="TextEditState"/>）、
 /// キーの割り当ては <see cref="TextEditKeyMap"/>、折り返しと行の配置は <see cref="TextLayout"/> が決める。
 /// 本コントロールは GDI+ の描画・入力・クリップボードの配線だけを行う。<br/>
-/// <b>座標は元画像ピクセル</b>である: <see cref="RenderScale"/> で画面の DIP へ写す。
+/// <b>座標は元画像ピクセル</b>である: <see cref="SourceToClientScaling"/> で画面の DIP へ写す。
 /// </remarks>
 public sealed class StyledTextControl : Control
 {
@@ -70,7 +70,7 @@ public sealed class StyledTextControl : Control
     /// <summary>画面の DIP への倍率を取得または設定する。</summary>
     /// <value>元画像ピクセルから画面の DIP への倍率。 0 以下・非有限は 1 として扱う。</value>
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
-    public double RenderScale { get; set; } = 1.0;
+    public double SourceToClientScaling { get; set; } = 1.0;
 
     /// <summary>行間の倍率を取得または設定する。</summary>
     /// <value>行間の倍率。 0 以下・非有限は 1 として扱う。</value>
@@ -841,7 +841,7 @@ public sealed class StyledTextControl : Control
     /// <summary>表示倍率を取得する（無効な値は基準値へ正規化する）。</summary>
     /// <returns>表示倍率。</returns>
     /// <remarks>正規化の規則は <see cref="EsUtil.Platform.Core.Coord.DpiScaler.NormalizeScaling"/> が単一所有する。</remarks>
-    private double ResolveScale() => EsUtil.Platform.Core.Coord.DpiScaler.NormalizeScaling(RenderScale);
+    private double ResolveScale() => EsUtil.Platform.Core.Coord.DpiScaler.NormalizeScaling(SourceToClientScaling);
 
     /// <summary>編集の結果を通知して描画を更新する。</summary>
     /// <param name="change">変わった内容。</param>
@@ -849,13 +849,13 @@ public sealed class StyledTextControl : Control
     {
         if ((change & TextEditChange.Text) != 0)
         {
-            RichTextChanged?.Invoke(this, EventArgs.Empty);
+            RaiseRichTextChanged();
             RestartCaretBlink();
         }
 
         if ((change & TextEditChange.Editing) != 0)
         {
-            EditingChanged?.Invoke(this, EventArgs.Empty);
+            RaiseEditingChanged();
         }
 
         if (change != TextEditChange.None)
@@ -863,6 +863,15 @@ public sealed class StyledTextControl : Control
             AfterSelectionChanged();
         }
     }
+
+    /// <summary><see cref="RichTextChanged"/> を発生させる。</summary>
+    private void RaiseRichTextChanged() => RichTextChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary><see cref="EditingChanged"/> を発生させる。</summary>
+    private void RaiseEditingChanged() => EditingChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary><see cref="SelectionChanged"/> を発生させる。</summary>
+    private void RaiseSelectionChanged() => SelectionChanged?.Invoke(this, EventArgs.Empty);
 
     /// <summary>本文が変わったかを返す（変わった内容を通知する）。</summary>
     /// <param name="change">変わった内容。</param>
@@ -876,7 +885,7 @@ public sealed class StyledTextControl : Control
     /// <summary>選択範囲が変わったことを通知して描画を更新する。</summary>
     private void AfterSelectionChanged()
     {
-        SelectionChanged?.Invoke(this, EventArgs.Empty);
+        RaiseSelectionChanged();
         Invalidate();
 
         // **ポップアップは選択に追随する**: 選択が無くなったら閉じ、位置が変わったら置き直す

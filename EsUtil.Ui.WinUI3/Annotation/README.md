@@ -170,7 +170,7 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 - **書式バーの自動表示**: `AnnotationEditorPanel.ShowFormatBarWhileEditing`（既定は `true`。 `false` にすると自動では出さない）。 表示の条件（1 文字以上を選択）は書式付き文字列の提示層（`TextFormatBarVisibility`）が単一所有し、本文コントロールが `ShouldShowFormatBar` で公開します。
 
-- **色の表記**: `AnnotationEditorPanel.TextFormat`。
+- **色の表記**: `AnnotationEditorPanel.ColorTextFormat`。
 - **新規作成時の既定値**: `AnnotationLayerControl.DraftDefaults`。
 
 ---

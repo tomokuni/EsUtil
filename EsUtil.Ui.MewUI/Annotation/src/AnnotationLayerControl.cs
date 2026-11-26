@@ -195,7 +195,7 @@ public sealed partial class AnnotationLayerControl : Panel
     public string? SelectedId
     {
         get => _session.SelectedId;
-        set => _session.SelectedId = value;
+        set => _session.Select(value);
     }
 
     /// <summary>新規作成時の既定値を取得または設定する。</summary>
@@ -466,7 +466,7 @@ public sealed partial class AnnotationLayerControl : Panel
         }
 
         Focus();
-        StyleEditorRequested?.Invoke(this, new AnnotationStyleEditorRequestedEventArgs(_styleEditorX, _styleEditorY));
+        RaiseStyleEditorRequested();
     }
 
     /// <summary>選択中の本文の矩形（DIP）を取得する。</summary>
@@ -513,7 +513,7 @@ public sealed partial class AnnotationLayerControl : Panel
 
 
     /// <summary>画像の表示倍率（元画像ピクセル → DIP）を取得する。</summary>
-    internal double ViewScale => ResolveImageTransform().Scale;
+    internal double SourceToClientScaling => ResolveImageTransform().Scale;
 
     /// <summary>画像と注釈を元画像ピクセルの 1:1 で合成した画像を作る（保存用）。</summary>
     /// <returns>合成した画像。 破棄は呼び出し側。</returns>
@@ -574,7 +574,7 @@ public sealed partial class AnnotationLayerControl : Panel
                 _marquee.ResetSelection();
             }
 
-            EditingChanged?.Invoke(this, EventArgs.Empty);
+            RaiseEditingChanged();
         }
 
         if ((change & AnnotationEditChange.Selection) != 0)
@@ -592,17 +592,17 @@ public sealed partial class AnnotationLayerControl : Panel
                 _marquee.ResetSelection();
             }
 
-            SelectionChanged?.Invoke(this, EventArgs.Empty);
+            RaiseSelectionChanged();
         }
 
         if ((change & AnnotationEditChange.TextSelection) != 0)
         {
-            TextSelectionChanged?.Invoke(this, EventArgs.Empty);
+            RaiseTextSelectionChanged();
         }
 
         if ((change & AnnotationEditChange.Document) != 0)
         {
-            DocumentChanged?.Invoke(this, EventArgs.Empty);
+            RaiseDocumentChanged();
         }
 
         InvalidateVisual();
@@ -685,5 +685,27 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <returns>文字数。</returns>
     /// <remarks>数え方はコアが単一所有する（<see cref="TextLineLayout.Length"/>）。</remarks>
     internal static int LineTextLength(TextLinePlan line) => TextLineLayout.Length(line);
+
+    /// <summary><see cref="StyleEditorRequested"/> を発生させる。</summary>
+    private void RaiseStyleEditorRequested()
+        => StyleEditorRequested?.Invoke(this, new AnnotationStyleEditorRequestedEventArgs(_styleEditorX, _styleEditorY));
+
+    /// <summary><see cref="AddMenuRequested"/> を発生させる。</summary>
+    /// <param name="x">右クリックした位置（ローカル DIP）。</param>
+    /// <param name="y">右クリックした位置（ローカル DIP）。</param>
+    private void RaiseAddMenuRequested(double x, double y)
+        => AddMenuRequested?.Invoke(this, new AnnotationAddMenuRequestedEventArgs(x, y));
+
+    /// <summary><see cref="EditingChanged"/> を発生させる。</summary>
+    private void RaiseEditingChanged() => EditingChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary><see cref="SelectionChanged"/> を発生させる。</summary>
+    private void RaiseSelectionChanged() => SelectionChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary><see cref="TextSelectionChanged"/> を発生させる。</summary>
+    private void RaiseTextSelectionChanged() => TextSelectionChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary><see cref="DocumentChanged"/> を発生させる。</summary>
+    private void RaiseDocumentChanged() => DocumentChanged?.Invoke(this, EventArgs.Empty);
 }
 

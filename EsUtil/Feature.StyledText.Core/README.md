@@ -97,7 +97,7 @@ if (request.Command == TextEditCommand.CaretLeft)
 | `src/Core/Text` | `.Core.Text` | 折り返しと行の配置・行と文字位置の対応・書記素クラスタ・入力の挿入と改行の正規化・点滅・変換中の文字列 |
 | `src/Core/Internal` | `.Core.Internal` | 折り返しの実装（`internal`） |
 | `src/Core/Editing` | `.Core.Editing` | 編集中の本文の値と状態（キャレット・選択・入力・削除・書式）と、キーの割り当て（どのキーがどの操作か）。 本文と状態は `TextEditor` が組にして持つ |
-| `src/Presenter/Drawing` | `.Presenter.Drawing` | キャレットと選択範囲の見た目（`TextEditorAppearance`） |
+| `src/Presenter/Drawing` | `.Presenter.Drawing` | キャレットと選択範囲の見た目・文字の描画で使う外観の値（`TextEditorAppearance` / `TextDrawingAppearance`） |
 | `src/Presenter/Formatting` | `.Presenter.Formatting` | 書式バーの並び・寸法・フォントの並べ方（`TextFormatBarLayout` / `TextEditorLayout` / `TextFontCatalog` / `ITextFormatBarContext`） |
 
 ## 4. 依存

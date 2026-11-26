@@ -15,7 +15,7 @@ namespace EsUtil.Ui.AvaloniaUI.StyledText;
 /// <b>規則は提示層が単一所有する</b>: 本文の値とキャレット・選択・書式の適用は <see cref="TextEditor"/>（状態は <see cref="TextEditState"/>）、
 /// キーの割り当ては <see cref="TextEditKeyMap"/>、折り返しと行の配置は <see cref="TextLayout"/> が決める。
 /// 本コントロールはフレームワーク固有の描画・入力・IME・クリップボードの配線だけを行う。<br/>
-/// <b>座標は元画像ピクセル</b>である: <see cref="RenderScale"/> で画面の DIP へ写すため、拡大しても
+/// <b>座標は元画像ピクセル</b>である: <see cref="SourceToClientScaling"/> で画面の DIP へ写すため、拡大しても
 /// 保存画像と同じ比率で文字が並ぶ。
 /// </remarks>
 public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICustomHitTest
@@ -67,8 +67,8 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
             nameof(RichTextValue), RichText.Empty, inherits: false);
 
     /// <summary>画面の DIP への倍率（1 以上で拡大）。</summary>
-    public static readonly StyledProperty<double> RenderScaleProperty =
-        AvaloniaProperty.Register<StyledTextControl, double>(nameof(RenderScale), 1.0);
+    public static readonly StyledProperty<double> SourceToClientScalingProperty =
+        AvaloniaProperty.Register<StyledTextControl, double>(nameof(SourceToClientScaling), 1.0);
 
     /// <summary>行間の倍率。</summary>
     public static readonly StyledProperty<double> LineHeightFactorProperty =
@@ -89,10 +89,10 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
 
     /// <summary>画面の DIP への倍率を取得または設定する。</summary>
     /// <value>元画像ピクセルから画面の DIP への倍率。 0 以下・非有限は 1 として扱う。</value>
-    public double RenderScale
+    public double SourceToClientScaling
     {
-        get => GetValue(RenderScaleProperty);
-        set => SetValue(RenderScaleProperty, value);
+        get => GetValue(SourceToClientScalingProperty);
+        set => SetValue(SourceToClientScalingProperty, value);
     }
 
     /// <summary>行間の倍率を取得または設定する。</summary>
@@ -364,7 +364,7 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     /// <summary>表示倍率を取得する（無効な値は基準値へ正規化する）。</summary>
     /// <returns>表示倍率。</returns>
     /// <remarks>正規化の規則は <see cref="EsUtil.Platform.Core.Coord.DpiScaler.NormalizeScaling"/> が単一所有する。</remarks>
-    private double ResolveScale() => EsUtil.Platform.Core.Coord.DpiScaler.NormalizeScaling(RenderScale);
+    private double ResolveScale() => EsUtil.Platform.Core.Coord.DpiScaler.NormalizeScaling(SourceToClientScaling);
 
     /// <summary>本文・選択範囲・キャレットを描く。</summary>
     /// <param name="context">描画先。</param>
@@ -419,7 +419,7 @@ public sealed partial class StyledTextControl : Control, Avalonia.Rendering.ICus
     {
         base.OnPropertyChanged(change);
 
-        if (change.Property == RichTextValueProperty || change.Property == RenderScaleProperty
+        if (change.Property == RichTextValueProperty || change.Property == SourceToClientScalingProperty
             || change.Property == LineHeightFactorProperty)
         {
             // **本文が外から変わったら編集位置を本文の範囲へ収める**（差し替えで範囲外に残さない）

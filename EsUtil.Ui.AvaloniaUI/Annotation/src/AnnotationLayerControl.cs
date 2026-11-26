@@ -510,7 +510,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <remarks>選択中の注釈を編集する。 項目は枠線・吹き出しの外観、本文の書式、重なり順である。</remarks>
     public void ShowStyleEditor()
     {
-        StyleEditorRequested?.Invoke(this, new AnnotationStyleEditorRequestedEventArgs(_styleEditorX, _styleEditorY));
+        RaiseStyleEditorRequested();
     }
 
     /// <summary>選択中の吹き出しの本文の矩形（DIP）を取得する。</summary>
@@ -666,7 +666,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     internal AnnotationEditSession Session => _session;
 
     /// <summary>画像の表示倍率（元画像ピクセル → DIP）を取得する。</summary>
-    internal double ViewScale => ResolveImageTransform().Scale;
+    internal double SourceToClientScaling => ResolveImageTransform().Scale;
 
     /// <summary>元画像ピクセルの矩形を、このコントロールの座標（DIP）の矩形へ変換する。</summary>
     /// <param name="source">矩形（元画像ピクセル）。</param>
@@ -1100,8 +1100,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
             _session.Select(null);
             if (AnnotationGeometry.Contains(source, _session.Document.ImageSize))
             {
-                AddMenuRequested?.Invoke(
-                    this, new AnnotationAddMenuRequestedEventArgs(position.X, position.Y));
+                RaiseAddMenuRequested(position.X, position.Y);
             }
 
             return;
@@ -1377,7 +1376,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
                 _marquee.ResetSelection();
             }
 
-            SelectionChanged?.Invoke(this, EventArgs.Empty);
+            RaiseSelectionChanged();
         }
 
         if ((change & AnnotationEditChange.TextSelection) != 0)
@@ -1387,7 +1386,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
         if ((change & AnnotationEditChange.Document) != 0)
         {
-            DocumentChanged?.Invoke(this, EventArgs.Empty);
+            RaiseDocumentChanged();
         }
 
         InvalidateVisual();
@@ -1401,8 +1400,24 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
 
         if (change.Property == SelectedIdProperty)
         {
-            _session.SelectedId = change.GetNewValue<string?>();
+            _session.Select(change.GetNewValue<string?>());
         }
     }
+
+    /// <summary><see cref="StyleEditorRequested"/> を発生させる。</summary>
+    private void RaiseStyleEditorRequested()
+        => StyleEditorRequested?.Invoke(this, new AnnotationStyleEditorRequestedEventArgs(_styleEditorX, _styleEditorY));
+
+    /// <summary><see cref="AddMenuRequested"/> を発生させる。</summary>
+    /// <param name="x">右クリックした位置（ローカル DIP）。</param>
+    /// <param name="y">右クリックした位置（ローカル DIP）。</param>
+    private void RaiseAddMenuRequested(double x, double y)
+        => AddMenuRequested?.Invoke(this, new AnnotationAddMenuRequestedEventArgs(x, y));
+
+    /// <summary><see cref="SelectionChanged"/> を発生させる。</summary>
+    private void RaiseSelectionChanged() => SelectionChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary><see cref="DocumentChanged"/> を発生させる。</summary>
+    private void RaiseDocumentChanged() => DocumentChanged?.Invoke(this, EventArgs.Empty);
 }
 

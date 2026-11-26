@@ -19,12 +19,6 @@ internal static class RichTextPainter
     /// <summary>文字の実寸を測る基準の DPI。</summary>
     private const uint BaseDpi = (uint)EsUtil.Platform.Core.Coord.DpiScaler.StandardDpi;
 
-    /// <summary>行の高さとベースラインを測るための文字列。</summary>
-    private const string LineMetricsText = "Ag";
-
-    /// <summary>下線・取り消し線の太さの比率（文字の大きさに対する比）。</summary>
-    private const double DecorationThicknessRatio = 0.06;
-
     /// <summary>レイアウトを作るときの画面の倍率を取得または設定する。</summary>
     /// <value>画面の DPI 倍率（125% なら 1.25）。 既定は 1.0。</value>
     internal static double DpiScale { get; set; } = 1.0;
@@ -44,7 +38,7 @@ internal static class RichTextPainter
     /// <returns>行の実寸。</returns>
     internal static TextLineMetrics MeasureLineMetrics(TextStyle style)
     {
-        var layout = CreateLayout(LineMetricsText, style, ignoreItalic: true);
+        var layout = CreateLayout(TextDrawingAppearance.LineMetricsText, style, ignoreItalic: true);
         var height = layout.MeasuredSize.Height;
         var baseline = layout.Lines.Count > 0 ? layout.Lines[0].Baseline : height;
         return new TextLineMetrics(height, baseline);
@@ -112,7 +106,7 @@ internal static class RichTextPainter
             return;
         }
 
-        var thickness = Math.Max(1.0, segment.Style.FontSize * DecorationThicknessRatio);
+        var thickness = Math.Max(1.0, segment.Style.FontSize * TextDrawingAppearance.DecorationThicknessRatio);
         var color = ToMewColor(segment.Style.Color);
         var left = segment.Bounds.X;
         var right = segment.Bounds.X + layout.MeasuredSize.Width;

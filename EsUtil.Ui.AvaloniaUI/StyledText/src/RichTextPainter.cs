@@ -16,13 +16,6 @@ namespace EsUtil.Ui.AvaloniaUI.StyledText;
 /// </remarks>
 internal static class RichTextPainter
 {
-    /// <summary>下線・取り消し線の太さの比率（文字の大きさに対する比）。</summary>
-    private const double DecorationThicknessRatio = 0.06;
-
-    /// <summary>行の高さを測るための文字列（上端と下端が揃った字）。</summary>
-    /// <remarks>行の高さは文字によらず書式で決まるため、代表の 2 文字で測る（全文字を測る必要はない）。</remarks>
-    private const string LineMetricsText = "Ag";
-
     /// <summary>文字列を描画できる形へ変換する。</summary>
     /// <param name="text">文字列。</param>
     /// <param name="style">書式。</param>
@@ -59,7 +52,7 @@ internal static class RichTextPainter
     /// <b>斜体を外す</b>: 斜体は字を傾けるだけで行の高さを変えない（合成斜体では実寸が変わる環境がある）。
     /// </remarks>
     internal static FormattedText CreateLineMetrics(TextStyle style)
-        => CreateText(LineMetricsText, style with { IsItalic = false });
+        => CreateText(TextDrawingAppearance.LineMetricsText, style with { IsItalic = false });
 
     /// <summary>行の実寸（高さとベースライン）を測る（斜体を外した書式で測る）。</summary>
     /// <param name="style">書式。</param>
@@ -134,7 +127,7 @@ internal static class RichTextPainter
             return;
         }
 
-        var thickness = Math.Max(1.0, segment.Style.FontSize * DecorationThicknessRatio);
+        var thickness = Math.Max(1.0, segment.Style.FontSize * TextDrawingAppearance.DecorationThicknessRatio);
         var pen = new Pen(ToBrush(segment.Style.Color), thickness);
         var left = segment.Bounds.X;
         var right = segment.Bounds.X + formatted.Width;

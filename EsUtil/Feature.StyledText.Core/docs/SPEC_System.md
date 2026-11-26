@@ -75,6 +75,7 @@ flowchart TB
 | `TextDefaults` / `TextLimits` | Core（`.Core.Defaults`） | 既定値（フォントの優先順・大きさ・既定の書式）と安全域（設定・JSON・入力の共通の補正） |
 | `TextFormatBarVisibility` | Presenter（`.Presenter.Formatting`） | **書式バーを表示する条件**（自動表示が有効・編集中・1 文字以上を選択）。 UI コントロールは本判定を `ShouldShowFormatBar` として公開する |
 | `TextEditorAppearance` | Presenter（`.Presenter.Drawing`） | キャレットと選択範囲の見た目（色・太さ。 4 つの UI 版で同じ見た目にする） |
+| `TextDrawingAppearance` | Presenter（`.Presenter.Drawing`） | 文字の描画で使う外観の値（行の実寸を測る代表の文字・下線と取り消し線の太さ。 4 つの UI 版で同じ見た目にする） |
 | `TextFormatBarLayout` / `TextEditorLayout` / `TextFontCatalog` / `ITextFormatBarContext` | Presenter（`.Presenter.Formatting`） | 書式バーの並び順・寸法・フォントの並べ方と、バーが書式を読み書きする相手 |
 
 **本アセンブリはログを出力しません**（純粋な計算のみを行うため。 記録は利用側が行う。 規則は [`.github/ログ規約.md`](../../../.github/ログ規約.md)）。

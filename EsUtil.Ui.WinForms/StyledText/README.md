@@ -9,13 +9,13 @@
 ![UI](https://img.shields.io/badge/UI-WinForms-8B44AC)
 ![License](https://img.shields.io/badge/License-MIT-3DA639)
 
-書式付きの文字列（run 単位の色・太字・斜体・下線・取り消し線）を**表示し、その場で編集する** Avalonia UI 版のコントロールです。
+書式付きの文字列（run 単位の色・太字・斜体・下線・取り消し線）を**表示し、その場で編集する** WinForms 版のコントロールです。
 入力欄を重ねず、本文を自分で描きます（書式が反映され、書式バーを操作してもフォーカスと選択が外れません）。
 
 ## 1. 概要
 
 - **本文は `RichText`**（run 単位の書式）で受け渡しします。
-- **座標と文字の大きさは元画像ピクセル**です（`RenderScale` で画面の DIP へ写す）。
+- **座標と文字の大きさは元画像ピクセル**です（`SourceToClientScaling` で画面の DIP へ写す）。
 - **折り返し・行の配置・キャレットの位置・削除の単位は `EsUtil.Feature.StyledText.Core` が単一所有**します（本コントロールは描画・入力・IME・クリップボードの配線だけを行います）。
 - **すべての操作を API で行えます**（キー入力は同じ API を呼びます）。 IME だけは例外です（変換候補の表示は OS が決めるため）。
 
@@ -86,14 +86,14 @@ editor.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
 | --- | --- |
 | `MeasureText` | 文字列と書式から実寸を測る関数（既定は描画と同じエンジンで測る） |
 | `LineHeightFactor` | 行間の倍率 |
-| `RenderScale` | 画面の DIP への倍率（拡大表示するとき） |
+| `SourceToClientScaling` | 元画像ピクセルから画面の DIP への倍率（拡大表示するとき） |
 | `Editor` | 本文の値と編集の状態（ホストが既に持っている場合は同じ実体を設定する） |
 | `ShowFormatBarWhileEditing` | 編集中に書式バーを自動で表示するか（既定は `true`。 ホストが独自にバーを出す場合は `false`） |
 | `FormatBarItems` | 書式バーに出す項目の組み合わせ（太字・斜体・下線・取り消し線・色・大きさ・フォント名）。 非表示の項目は詰めて並べ、すべて非表示のときはバー自体を出さない |
-| FormatBar | コントロールが単一所有する書式バー（初回の取得で作る）。 ホストは View を置くだけでよい |
-| FormatBarHosting | バーをどこへ出すか（Custom = ホストが置く（既定） / Popup = 選択範囲の近くへコントロールが出す） |
-| FormatBarFactory / FormatBarOptions | バーの生成と構成（フォント・色・表記）。 差し替えると作り直す |
-| IsFormatBarOpen | ポップアップで表示中か（Custom のときは常に alse） |
+| `FormatBar` | コントロールが単一所有する書式バー（初回の取得で作る）。 ホストは `View` を置くだけでよい |
+| `FormatBarHosting` | バーをどこへ出すか（`Custom` = ホストが置く（既定） / `Popup` = 選択範囲の近くへコントロールが出す） |
+| `FormatBarFactory` / `FormatBarOptions` | バーの生成と構成（フォント・色・表記）。 差し替えると作り直す |
+| `IsFormatBarOpen` | ポップアップで表示中か（`Custom` のときは常に `false`） |
 
 キャレットと選択範囲の色・太さは `EsUtil.Feature.StyledText.Core` の `TextEditorAppearance` が単一所有します（4 つの UI 版で同じ見た目にするため）。
 
@@ -107,7 +107,7 @@ editor.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
 
 ## 10. サンプルアプリケーション
 
-注釈のサンプル（[`../Annotation/sample`](../Annotation/sample)）が本コントロールを使って本文を表示・編集します。
+[`sample/`](sample/README.md) が本コントロールの操作を一通り確認できるサンプルです。 注釈のサンプル（[`../Annotation/sample`](../Annotation/sample)）も本コントロールを使って本文を表示・編集します。
 
 ## 11. ドキュメント
 
@@ -121,7 +121,8 @@ editor.ApplyTextStyle(TextDefaults.DefaultStyle with { IsBold = true });
 | フォルダ | 内容 |
 | --- | --- |
 | `src/` | コントロール本体 |
-| `tests/` | 単体テスト（xUnit v3・Avalonia ヘッドレス） |
+| `sample/` | 操作を確認できるサンプル |
+| `tests/` | 単体テスト（xUnit v3） |
 | `docs/` | API リファレンスとシステム仕様書 |
 
 ## 13. テスト

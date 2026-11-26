@@ -97,7 +97,7 @@ internal static class MainForm
             SampleSettings.Check("書式バー: 文字サイズ", true, value => UpdateItems(items => items with { ShowFontSize = value })),
             SampleSettings.Check("書式バー: フォント名", true, value => UpdateItems(items => items with { ShowFont = value })),
             SampleSettings.Choice("色の表記", ["色名 + 不透明度", "カラーコード"], 0, index =>
-                editor.TextFormat = index == 1 ? ColorTextFormat.HexCode : ColorTextFormat.NameWithAlpha),
+                editor.ColorTextFormat = index == 1 ? ColorTextFormat.HexCode : ColorTextFormat.NameWithAlpha),
             SampleSettings.Check("画像を表示", true, value => layer.ShowImage = value));
 
         // ── API操作（対象コントロールのメソッド実行） ──

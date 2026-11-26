@@ -247,7 +247,7 @@ public sealed class StyledTextFormatBar : Panel, IStyledTextFormatBar
             return;
         }
 
-        _context.Transform(change);
+        _context.TransformTextStyle(change);
         RefreshState();
 
         // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする
@@ -263,7 +263,7 @@ public sealed class StyledTextFormatBar : Panel, IStyledTextFormatBar
             return;
         }
 
-        _context.Apply(change(_context.SelectedTextStyle));
+        _context.ApplyTextStyle(change(_context.SelectedTextStyle));
         RefreshState();
 
         // バーの操作でフォーカスが移るため、本文へ戻して続けて入力できるようにする

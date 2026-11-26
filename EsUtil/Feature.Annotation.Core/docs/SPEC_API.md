@@ -212,7 +212,7 @@
 | メンバー | 説明 |
 | --- | --- |
 | `Document` | 表示・編集する文書。 差し替えると選択・編集・履歴を解除する |
-| `SelectedId` / `Selected` | 選択中の注釈（設定すると本文の編集を終え、書式の適用先を切り替える） |
+| `SelectedId` / `Selected` | 選択中の注釈（選択の変更は `Select` で行い、本文の編集を終えて書式の適用先を切り替える） |
 | `DraftDefaults` | 新規作成時の既定値（既存の注釈には影響しない） |
 | `Subscribe(notify)` | 変更（`Document` / `Selection` / `Editing` / `TextSelection`）の購読。 戻り値の破棄で解除する |
 | `AddFrame(bounds)` / `AddBubble(bounds, text)` | 注釈の追加（画像の内側へ収め、追加した注釈を選択する） |

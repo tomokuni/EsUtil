@@ -15,9 +15,6 @@ namespace EsUtil.Ui.WinUI3.StyledText;
 /// </remarks>
 public static class RichTextMetrics
 {
-    /// <summary>行の高さを測るための文字列。</summary>
-    private const string LineMetricsText = "Ag";
-
     /// <summary>測定に使う要素（初回に生成して使い回す）。</summary>
     private static TextBlock? s_probe;
 
@@ -34,7 +31,7 @@ public static class RichTextMetrics
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(style);
 
-        var height = MeasureSize(LineMetricsText, style with { IsItalic = false }).Height;
+        var height = MeasureSize(TextDrawingAppearance.LineMetricsText, style with { IsItalic = false }).Height;
         var width = text.Length == 0 ? 0 : MeasureSize(text, style).Width;
         return new EsSize(width, height);
     }
