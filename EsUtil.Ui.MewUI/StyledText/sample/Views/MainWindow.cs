@@ -156,6 +156,8 @@ public static class MainWindow
         {
             if (editor.FormatBarHosting == TextFormatBarHosting.Popup)
             {
+                // **バーは 1 か所にしか置けない**: ポップアップが載せられるよう、埋め込みから外す
+                barHost.Child = null;
                 barHost.IsVisible = false;
                 return;
             }
