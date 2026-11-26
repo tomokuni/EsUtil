@@ -49,16 +49,16 @@ internal sealed partial class AnnotationStylePanel : ContentControl
         var appearance = item.Appearance;
         panel.Children.Add(AnnotationEditorControls.ColorRow(
             AnnotationEditorText.BorderColor, AnnotationEditorControls.ToHex(appearance.Border), _layer.ColorTextFormat,
-            value => _layer.UpdateSelectedAppearance(current => current with { Border = ParseColor(value, current.Border) })));
+            value => _layer.TransformSelectedAppearance(current => current with { Border = ParseColor(value, current.Border) })));
         panel.Children.Add(AnnotationEditorControls.NumberRow(
             AnnotationEditorText.BorderThickness, appearance.BorderThickness, AnnotationLimits.BorderThicknessMin, AnnotationLimits.BorderThicknessMax,
-            value => _layer.UpdateSelectedAppearance(current => current with { BorderThickness = value })));
+            value => _layer.TransformSelectedAppearance(current => current with { BorderThickness = value })));
         panel.Children.Add(AnnotationEditorControls.ColorRow(
             AnnotationEditorText.FillColor, AnnotationEditorControls.ToHex(appearance.Fill), _layer.ColorTextFormat,
-            value => _layer.UpdateSelectedAppearance(current => current with { Fill = ParseColor(value, current.Fill) })));
+            value => _layer.TransformSelectedAppearance(current => current with { Fill = ParseColor(value, current.Fill) })));
         panel.Children.Add(AnnotationEditorControls.NumberRow(
             AnnotationEditorText.CornerRadius, appearance.CornerRadius, 0, AnnotationLimits.CornerRadiusMax,
-            value => _layer.UpdateSelectedAppearance(current => current with { CornerRadius = value })));
+            value => _layer.TransformSelectedAppearance(current => current with { CornerRadius = value })));
 
         if (item is BubbleAnnotation bubble)
         {
@@ -68,12 +68,12 @@ internal sealed partial class AnnotationStylePanel : ContentControl
                 AnnotationEditorText.BodyPadding, bubble.BodyPadding, 0, AnnotationLimits.BodyPaddingMax, value => _layer.SetSelectedBodyPadding(value)));
             panel.Children.Add(AnnotationEditorControls.NumberRow(
                 AnnotationEditorText.TailWidth, bubble.Tail.Width, AnnotationLimits.TailWidthMin, AnnotationLimits.TailWidthMax,
-                value => _layer.UpdateSelectedTail(tail => tail with { Width = value })));
+                value => _layer.TransformSelectedTail(tail => tail with { Width = value })));
             panel.Children.Add(AnnotationEditorControls.ChoiceRow(
                 AnnotationBubbleEdgeCatalog.Label,
                 AnnotationBubbleEdgeCatalog.Options,
                 (int)bubble.Tail.BaseEdge,
-                value => _layer.UpdateSelectedTail(tail => tail with { BaseEdge = (BubbleEdge)value })));
+                value => _layer.TransformSelectedTail(tail => tail with { BaseEdge = (BubbleEdge)value })));
         }
 
         panel.Children.Add(AnnotationEditorControls.Divider());

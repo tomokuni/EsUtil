@@ -56,13 +56,13 @@ internal sealed class AnnotationStylePanel : Panel
 
         var appearance = item.Appearance;
         AddColor(AnnotationEditorText.BorderColor, appearance.Border, ref y,
-            value => _layer.UpdateSelectedAppearance(current => current with { Border = value }));
+            value => _layer.TransformSelectedAppearance(current => current with { Border = value }));
         AddNumber(AnnotationEditorText.BorderThickness, appearance.BorderThickness, AnnotationLimits.BorderThicknessMin, AnnotationLimits.BorderThicknessMax, ref y,
-            value => _layer.UpdateSelectedAppearance(current => current with { BorderThickness = value }));
+            value => _layer.TransformSelectedAppearance(current => current with { BorderThickness = value }));
         AddColor(AnnotationEditorText.FillColor, appearance.Fill, ref y,
-            value => _layer.UpdateSelectedAppearance(current => current with { Fill = value }));
+            value => _layer.TransformSelectedAppearance(current => current with { Fill = value }));
         AddNumber(AnnotationEditorText.CornerRadius, appearance.CornerRadius, 0, AnnotationLimits.CornerRadiusMax, ref y,
-            value => _layer.UpdateSelectedAppearance(current => current with { CornerRadius = value }));
+            value => _layer.TransformSelectedAppearance(current => current with { CornerRadius = value }));
 
         if (item is BubbleAnnotation bubble)
         {
@@ -70,9 +70,9 @@ internal sealed class AnnotationStylePanel : Panel
             AddNumber(AnnotationEditorText.BodyPadding, bubble.BodyPadding, 0, AnnotationLimits.BodyPaddingMax, ref y,
                 value => _layer.SetSelectedBodyPadding(value));
             AddNumber(AnnotationEditorText.TailWidth, bubble.Tail.Width, AnnotationLimits.TailWidthMin, AnnotationLimits.TailWidthMax, ref y,
-                value => _layer.UpdateSelectedTail(tail => tail with { Width = value }));
+                value => _layer.TransformSelectedTail(tail => tail with { Width = value }));
             AddChoice(AnnotationBubbleEdgeCatalog.Label, [.. AnnotationBubbleEdgeCatalog.Options], (int)bubble.Tail.BaseEdge, ref y,
-                value => _layer.UpdateSelectedTail(tail => tail with { BaseEdge = (BubbleEdge)value }));
+                value => _layer.TransformSelectedTail(tail => tail with { BaseEdge = (BubbleEdge)value }));
         }
 
         var front = new Button

@@ -36,7 +36,7 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 | --- | --- |
 | `Source` / `SourcePixelWidth` / `SourcePixelHeight` | 表示する画像と元画像の画素数 |
 | `ShowImage` | 画像をレイヤーが描くか（`false` の場合は注釈だけを描く） |
-| `PreviewImageRect` / `ImageRectProvider` / `SetPreviewImageRect(rect)` | 画像の表示矩形（`ImageRectProvider` が優先。 動的なズーム・パンへ追従させる） |
+| `PreviewImageRect` / `ImageRectProvider` | 画像の表示矩形（`ImageRectProvider` が優先。 動的なズーム・パンへ追従させる） |
 | `HitTestAt(point)` / `ClearSelection()` | 位置が注釈に当たるか / 選択の解除 |
 | `Document` / `SelectedId` / `Selected` | 注釈の文書と選択 |
 | `DraftDefaults` | 新規作成時の外観・書式 |
@@ -49,7 +49,7 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 | `DeleteSelected()` / `SetSelectedText(text)` | 削除と本文の置き換え |
 | `ApplyTextStyle(...)` / `TransformTextStyle(...)` | 選択範囲の書式の差し替え・属性だけの変更 |
 | `SelectedTextStyle` / `SelectedTextMatches(match)` | 選択範囲の書式（書式バーの現在値）・すべての文字が条件を満たすか |
-| `UpdateSelectedAppearance(...)` / `UpdateSelectedTail(...)` / `SetSelectedBodyPadding(...)` | 外観・しっぽ・本文の余白の変更 |
+| `TransformSelectedAppearance(...)` / `TransformSelectedTail(...)` / `SetSelectedBodyPadding(...)` | 外観・しっぽ・本文の余白の変更 |
 | `BringSelectedToFront()` / `SendSelectedToBack()` | 重なり順の変更 |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | 元に戻す・やり直す（1 操作 = 1 手） |
 | `BeginTextEditing()` / `EndTextEditing()` / `IsEditingText` | 本文のその場編集の開始・終了（入力欄を重ねず、キャレットと選択範囲を描く） |

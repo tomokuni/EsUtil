@@ -342,7 +342,7 @@ public sealed class AnnotationEditSession
     /// <param name="transform">現在の外観を受け取って新しい外観を返す関数。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="transform"/> が <see langword="null"/> の場合。</exception>
-    public bool UpdateSelectedAppearance(Func<AnnotationAppearance, AnnotationAppearance> transform)
+    public bool TransformSelectedAppearance(Func<AnnotationAppearance, AnnotationAppearance> transform)
     {
         ArgumentNullException.ThrowIfNull(transform);
 
@@ -384,7 +384,7 @@ public sealed class AnnotationEditSession
     /// <param name="transform">現在のしっぽを受け取って新しいしっぽを返す関数。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
     /// <exception cref="ArgumentNullException"><paramref name="transform"/> が <see langword="null"/> の場合。</exception>
-    public bool UpdateSelectedTail(Func<BubbleTail, BubbleTail> transform)
+    public bool TransformSelectedTail(Func<BubbleTail, BubbleTail> transform)
     {
         ArgumentNullException.ThrowIfNull(transform);
 

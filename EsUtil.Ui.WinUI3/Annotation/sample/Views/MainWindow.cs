@@ -141,8 +141,8 @@ public sealed class MainWindow : Window
                     ("本文の 0〜5 を選択", () => layer.SelectText(0, 5))),
                 SampleSettings.Buttons(
                     ("本文の余白を 12 に", () => layer.SetSelectedBodyPadding(12)),
-                    ("しっぽの幅を 30 に", () => layer.UpdateSelectedTail(static tail => tail with { Width = 30 })),
-                    ("外観の枠線を 3 に", () => layer.UpdateSelectedAppearance(static appearance => appearance with { BorderThickness = 3 }))),
+                    ("しっぽの幅を 30 に", () => layer.TransformSelectedTail(static tail => tail with { Width = 30 })),
+                    ("外観の枠線を 3 に", () => layer.TransformSelectedAppearance(static appearance => appearance with { BorderThickness = 3 }))),
                 SampleSettings.Buttons(
                     ("外観パネルを表示", () => layer.ShowStyleEditor()),
                     ("外観パネルを閉じる", () => editor.CloseStylePanel()),

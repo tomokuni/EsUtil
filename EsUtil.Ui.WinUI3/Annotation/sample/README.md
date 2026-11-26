@@ -55,7 +55,7 @@ dotnet run -c Release --project EsUtil.Ui.WinUI3/Annotation/sample/EsUtil.Ui.Win
 | 「プロパティ設定」の「色の表記」「画像を表示」 | 本文の色の表記（色名 + 不透明度 / カラーコード）と、画像の表示の切り替え |
 | 「API操作」の「枠線を追加（位置指定）」「吹き出しを追加（位置指定）」 | 位置を指定して注釈を追加する（AddFrameAt / AddBubbleAt） |
 | 「API操作」の「選択の書式を太字に」「選択の太字を切替」「本文の 0〜5 を選択」 | 本文の書式の適用・切り替えと、範囲の選択（ApplyTextStyle / TransformTextStyle / SelectText） |
-| 「API操作」の「本文の余白を 12 に」「しっぽの幅を 30 に」「外観の枠線を 3 に」 | 選択中の注釈の本文の余白・しっぽ・外観の変更（SetSelectedBodyPadding / UpdateSelectedTail / UpdateSelectedAppearance） |
+| 「API操作」の「本文の余白を 12 に」「しっぽの幅を 30 に」「外観の枠線を 3 に」 | 選択中の注釈の本文の余白・しっぽ・外観の変更（SetSelectedBodyPadding / TransformSelectedTail / TransformSelectedAppearance） |
 | 「API操作」の「外観パネルを表示」「外観パネルを閉じる」 | 外観パネルの表示と終了（ShowStyleEditor / CloseStylePanel） |
 | 「API操作」の「選択をコピー」「切り取り」「貼り付け」 | 編集中の本文のクリップボード操作（CopyTextSelection / CutTextSelection / PasteText） |
 | 「API操作」の「再描画を要求」「合成画像を保存」「当たり判定（位置 200,200）」 | 再描画の要求（InvalidateRender）、合成画像の書き出し（RenderComposedImage）、位置から注釈を引く（HitTestAt） |

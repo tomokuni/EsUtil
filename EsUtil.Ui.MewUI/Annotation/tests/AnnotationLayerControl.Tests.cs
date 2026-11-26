@@ -133,7 +133,7 @@ public class AnnotationLayerControlTests
         var layer = CreateLayer(200, 120);
         layer.AddFrame(new EsRect(20, 10, 80, 60));
 
-        Assert.True(layer.UpdateSelectedAppearance(
+        Assert.True(layer.TransformSelectedAppearance(
             appearance => appearance with { BorderThickness = 0, CornerRadius = double.NaN }));
 
         var item = layer.Selected;
@@ -150,7 +150,7 @@ public class AnnotationLayerControlTests
         layer.AddBubble(new EsRect(10, 10, 100, 60), "本文");
         var before = Assert.IsType<BubbleAnnotation>(layer.Selected).Bounds;
 
-        Assert.True(layer.UpdateSelectedTail(tail => tail with { Tip = new EsPoint(90, 20), Width = 0 }));
+        Assert.True(layer.TransformSelectedTail(tail => tail with { Tip = new EsPoint(90, 20), Width = 0 }));
 
         var after = Assert.IsType<BubbleAnnotation>(layer.Selected);
         Assert.Equal(before, after.Bounds);

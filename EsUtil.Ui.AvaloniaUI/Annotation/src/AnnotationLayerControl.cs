@@ -39,10 +39,14 @@ namespace EsUtil.Ui.AvaloniaUI.Annotation;
 /// </remarks>
 public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering.ICustomHitTest
 {
-    /// <summary>画像を取得または設定する。</summary>
+    /// <summary>画像を取得または設定する（コアの読み取り専用画像。 Binding で与える）。</summary>
     /// <value>背景に表示する画像。 null の場合は注釈だけを描く。</value>
-    public static readonly StyledProperty<IImage?> SourceProperty =
-        AvaloniaProperty.Register<AnnotationLayerControl, IImage?>(nameof(Source));
+    /// <remarks>
+    /// <b>型はコアの具象型である</b>（4 つの UI 版で同じ契約。 `EsUtil/README.md` §5）: ホストは表示境界の画像を
+    /// コアの画像へ変換して渡す。 <b>本コントロールは破棄しない</b>（所有権はホストにある）。
+    /// </remarks>
+    public static readonly StyledProperty<EsReadOnlyBitmap?> SourceProperty =
+        AvaloniaProperty.Register<AnnotationLayerControl, EsReadOnlyBitmap?>(nameof(Source));
 
     /// <summary>画像を自分で描くかどうかを取得または設定する。</summary>
     /// <value>プレビューへ重ねるときは <see langword="false"/>（画像と影はプレビューが描く）。</value>
@@ -51,7 +55,11 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>プレビュー内の画像の表示矩形（DIP）を取得または設定する。</summary>
     /// <value>プレビューが画像を表示している矩形。 未設定の場合は自分の領域いっぱいへ中央寄せで表示する。</value>
     /// <remarks><b>プレビューのズーム・パンへ追従する</b>: ホストがズームの変化のたびに設定する。</remarks>
-    public EsRect? PreviewImageRect => ImageRectProvider?.Invoke() ?? _previewImageRect;
+    public EsRect? PreviewImageRect
+    {
+        get => ImageRectProvider?.Invoke() ?? _previewImageRect;
+        set => _previewImageRect = value;
+    }
 
     /// <summary>画像の表示矩形を取り直す関数（ホストが設定する）。</summary>
     /// <remarks>
@@ -61,12 +69,11 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// </remarks>
     public Func<EsRect?>? ImageRectProvider { get; set; }
 
-    /// <summary>画像の表示矩形を設定する（<see cref="ImageRectProvider"/> が無い場合だけ使う）。</summary>
-    /// <param name="rect">矩形（このコントロールの座標）。</param>
-    public void SetPreviewImageRect(EsRect? rect) => _previewImageRect = rect;
-
     /// <summary>ホストから渡された画像の表示矩形。</summary>
     private EsRect? _previewImageRect;
+
+    /// <summary>拡大元の表示用の射影（初回だけ作る。 所有権は本コントロール）。</summary>
+    private Bitmap? _sourceProjection;
     /// <summary>元画像の幅（ピクセル）を取得または設定する。</summary>
     public static readonly StyledProperty<int> SourcePixelWidthProperty =
         AvaloniaProperty.Register<AnnotationLayerControl, int>(nameof(SourcePixelWidth), 1);
@@ -131,8 +138,8 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
     }
 
-    /// <summary>画像を取得または設定する。</summary>
-    public IImage? Source
+    /// <summary>画像を取得または設定する（コアの読み取り専用画像）。</summary>
+    public EsReadOnlyBitmap? Source
     {
         get => GetValue(SourceProperty);
         set => SetValue(SourceProperty, value);
@@ -230,8 +237,6 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         }
     }
 
-    /// <summary>本文の書式を適用する範囲（文字数）を取得または設定する。</summary>
-    /// <value>開始位置と長さ（0 起点）。 長さ 0 は選択なし。</value>
     /// <summary>本文の書式を適用する範囲（文字数）を取得する。</summary>
     /// <value>開始位置と長さ（0 起点）。 長さ 0 は選択なし。</value>
     /// <remarks>
@@ -414,15 +419,15 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         {
             if (value is { } appearance)
             {
-                _ = UpdateSelectedAppearance(_ => appearance);
+                _ = TransformSelectedAppearance(_ => appearance);
             }
         }
     }
     /// <summary>選択中の注釈の外観を差し替える。</summary>
     /// <param name="transform">現在の外観を受け取って新しい外観を返す関数。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
-    public bool UpdateSelectedAppearance(Func<AnnotationAppearance, AnnotationAppearance> transform)
-        => _session.UpdateSelectedAppearance(transform);
+    public bool TransformSelectedAppearance(Func<AnnotationAppearance, AnnotationAppearance> transform)
+        => _session.TransformSelectedAppearance(transform);
 
     /// <summary>選択中の吹き出しの本文の余白を取得または設定する（元画像ピクセル）。</summary>
     /// <value>余白。 吹き出しを選んでいない場合は <see langword="null"/>。 設定するとその吹き出しの余白を変える。</value>
@@ -447,7 +452,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         {
             if (value is { } width)
             {
-                _ = UpdateSelectedTail(tail => tail with { Width = width });
+                _ = TransformSelectedTail(tail => tail with { Width = width });
             }
         }
     }
@@ -461,7 +466,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         {
             if (value is { } edge)
             {
-                _ = UpdateSelectedTail(tail => tail with { BaseEdge = edge });
+                _ = TransformSelectedTail(tail => tail with { BaseEdge = edge });
             }
         }
     }
@@ -474,8 +479,8 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
     /// <summary>選択中の吹き出しのしっぽの太さ・辺を差し替える。</summary>
     /// <param name="transform">現在のしっぽを受け取って新しいしっぽを返す関数。</param>
     /// <returns>適用した場合は <see langword="true"/>。</returns>
-    public bool UpdateSelectedTail(Func<BubbleTail, BubbleTail> transform)
-        => _session.UpdateSelectedTail(transform);
+    public bool TransformSelectedTail(Func<BubbleTail, BubbleTail> transform)
+        => _session.TransformSelectedTail(transform);
 
     /// <summary>選択中の注釈を最前面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>
@@ -611,7 +616,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
                     EsUtil.Platform.Core.Coord.DpiScaler.StandardDpi));
             using (var context = bitmap.CreateDrawingContext())
             {
-                if (Source is { } image)
+                if (ResolveSourceImage() is { } image)
                 {
                     context.DrawImage(image, new Rect(0, 0, width, height));
                 }
@@ -680,7 +685,7 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         base.Render(context);
 
         var (scale, offset) = ResolveImageTransform();
-        if (ShowImage && Source is { } image)
+        if (ShowImage && ResolveSourceImage() is { } image)
         {
             context.DrawImage(image, new Rect(offset.X, offset.Y, SourcePixelWidth * scale, SourcePixelHeight * scale));
         }
@@ -1402,6 +1407,38 @@ public sealed partial class AnnotationLayerControl : Control, Avalonia.Rendering
         {
             _session.Select(change.GetNewValue<string?>());
         }
+        else if (change.Property == SourceProperty)
+        {
+            DisposeSourceProjection();
+            InvalidateVisual();
+        }
+    }
+
+    /// <summary>コントロールが画面から外れたら、表示用の射影を解放する。</summary>
+    /// <param name="e">接続解除の引数。</param>
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        DisposeSourceProjection();
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    /// <summary>表示用の射影（初回だけ作る）を解放する。</summary>
+    private void DisposeSourceProjection()
+    {
+        _sourceProjection?.Dispose();
+        _sourceProjection = null;
+    }
+
+    /// <summary>拡大元の画像を Avalonia の描画 API で使える形へ変換する（同じ画像なら作り直さない）。</summary>
+    /// <returns>表示用の射影。 拡大元が無い場合・破棄済みの場合は <see langword="null"/>。</returns>
+    private Bitmap? ResolveSourceImage()
+    {
+        if (Source is not { IsDisposed: false } source)
+        {
+            return null;
+        }
+
+        return _sourceProjection ??= source.ToAvaloniaBitmap();
     }
 
     /// <summary><see cref="StyleEditorRequested"/> を発生させる。</summary>

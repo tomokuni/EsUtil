@@ -1,8 +1,6 @@
-using Avalonia;
 using Avalonia.Headless.XUnit;
-using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Imaging;
 using Xunit;
 using EsUtil.Feature.Annotation.Core.Defaults;
 using EsUtil.Feature.Annotation.Core.Geometry;
@@ -30,12 +28,9 @@ public class AnnotationLayerControlTests
         const int width = 64;
         const int height = 48;
 
-        // 白い画像（IImage）を用意する
-        using var source = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
-        using (var context = source.CreateDrawingContext())
-        {
-            context.FillRectangle(Brushes.White, new Rect(0, 0, width, height));
-        }
+        // 白い画像（コアの画像）を用意する
+        using var bitmap = EsBitmap.Create(width, height, System.Drawing.Color.White);
+        using var source = EsReadOnlyBitmap.FromBitmap(bitmap);
 
         var layer = new AnnotationLayerControl
         {
@@ -126,7 +121,7 @@ public class AnnotationLayerControlTests
         var layer = CreateLayer(200, 120);
         layer.AddFrame(new EsRect(20, 10, 80, 60));
 
-        Assert.True(layer.UpdateSelectedAppearance(
+        Assert.True(layer.TransformSelectedAppearance(
             appearance => appearance with { BorderThickness = 0, CornerRadius = double.NaN }));
 
         var item = layer.Selected;
@@ -143,7 +138,7 @@ public class AnnotationLayerControlTests
         layer.AddBubble(new EsRect(10, 10, 100, 60), "本文");
         var before = Assert.IsType<BubbleAnnotation>(layer.Selected).Bounds;
 
-        Assert.True(layer.UpdateSelectedTail(tail => tail with { Tip = new EsPoint(90, 20), Width = 0 }));
+        Assert.True(layer.TransformSelectedTail(tail => tail with { Tip = new EsPoint(90, 20), Width = 0 }));
 
         var after = Assert.IsType<BubbleAnnotation>(layer.Selected);
         Assert.Equal(before, after.Bounds);

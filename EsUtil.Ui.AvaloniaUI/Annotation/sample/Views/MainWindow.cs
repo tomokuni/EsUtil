@@ -3,7 +3,6 @@ using Avalonia.Controls;
 using EsUtil.Platform.Core.Geometry;
 using EsUtil.Platform.Core.Imaging;
 using EsUtil.Ui.AvaloniaUI.Annotation.Sample.Imaging;
-using EsUtil.Ui.AvaloniaUI.Interop.Imaging;
 using EsUtil.Ui.AvaloniaUI.SampleKit;
 using Microsoft.Extensions.Logging;
 using EsUtil.Feature.Annotation.Core.Defaults;
@@ -24,6 +23,9 @@ public sealed class MainWindow : Window
 {
     /// <summary>生成した画像（コントロールが参照するため保持する）。</summary>
     private readonly EsBitmap _image = TestImageFactory.Create();
+
+    /// <summary>コントロールへ渡す読み取り専用の画像（元画像の画素を共有する）。</summary>
+    private readonly EsReadOnlyBitmap _source;
 
     /// <summary>ログ（Serilog + 非同期表示）。</summary>
     private readonly SampleLogging _logging = new();
@@ -49,8 +51,9 @@ public sealed class MainWindow : Window
         layer.LogPrefix = "[Annotation]";
 
         // 画像と文書を設定する（注釈の座標は元画像ピクセル）
-        var bitmap = EsBitmapAdapter.Adopt(_image);
-        layer.Source = bitmap;
+        _image.SetReadOnly();
+        _source = EsReadOnlyBitmap.FromBitmap(_image);
+        layer.Source = _source;
         layer.SourcePixelWidth = _image.Width;
         layer.SourcePixelHeight = _image.Height;
 
@@ -143,8 +146,8 @@ public sealed class MainWindow : Window
                     ("本文の 0〜5 を選択", () => layer.SelectText(0, 5))),
                 SampleSettings.Buttons(
                     ("本文の余白を 12 に", () => layer.SetSelectedBodyPadding(12)),
-                    ("しっぽの幅を 30 に", () => layer.UpdateSelectedTail(static tail => tail with { Width = 30 })),
-                    ("外観の枠線を 3 に", () => layer.UpdateSelectedAppearance(static appearance => appearance with { BorderThickness = 3 }))),
+                    ("しっぽの幅を 30 に", () => layer.TransformSelectedTail(static tail => tail with { Width = 30 })),
+                    ("外観の枠線を 3 に", () => layer.TransformSelectedAppearance(static appearance => appearance with { BorderThickness = 3 }))),
                 SampleSettings.Buttons(
                     ("外観パネルを表示", () => layer.ShowStyleEditor()),
                     ("外観パネルを閉じる", () => editor.CloseStylePanel()),
@@ -196,6 +199,7 @@ public sealed class MainWindow : Window
         Closed += (_, _) =>
         {
             _logging.Dispose();
+            _source.Dispose();
             _image.Dispose();
         };
 

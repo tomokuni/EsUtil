@@ -102,7 +102,7 @@ using EsUtil.Ui.AvaloniaUI.Annotation;
 // 本文の表示・その場編集と書式バーをまとめたコントロール（これ 1 つを置く）
 var editor = new AnnotationEditorPanel { Width = 1920, Height = 1080 };
 var layer = editor.Layer;
-layer.Source = image;           // IImage（例: EsBitmapAdapter）
+layer.Source = source;          // EsReadOnlyBitmap（表示境界の画像から変換して渡す）
 layer.SourcePixelWidth = 1920;
 layer.SourcePixelHeight = 1080;
 layer.Document = new AnnotationDocument(1920, 1080, "shot.png");
@@ -127,7 +127,7 @@ composed.Save(AnnotationJson.GetComposedPath(imagePath)); // PNG
 
 ## 6. 画像の受け渡し
 
-- **表示する画像は UI の型（`IImage`）で渡します**（`Source`）。 表示用の射影であり、コントロールは画素を読みません。
+- **表示する画像はコアの型（`EsReadOnlyBitmap`）で渡します**（`Source`。 4 つの UI 版で同じ契約）。 表示境界の画像しか持たないホストは、コアの画像へ変換してから設定します。
 - **元画像の画素数を `SourcePixelWidth` / `SourcePixelHeight` で渡します**（注釈は元画像ピクセルで保持するため）。 画像は縦横比を保って中央へ表示します。
 - **保存用の合成は `RenderComposedImage()`** が元画像ピクセルの 1:1 で行います（選択枠・キャレットは描きません）。
 

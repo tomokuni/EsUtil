@@ -40,10 +40,10 @@
 
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
-| `Source` | property | 表示する画像（`IImage`）。 null の場合は注釈だけを描く |
+| `Source` | property | 表示する画像（`EsReadOnlyBitmap`。 4 つの UI 版で同じ契約）。 null の場合は注釈だけを描く |
 | `SourcePixelWidth` / `SourcePixelHeight` | property | 元画像の画素数（縦横比を保って中央へ表示する） |
 | `ShowImage` | property | 画像をレイヤーが描くか（`false` の場合は注釈だけを描く） |
-| `PreviewImageRect` / `ImageRectProvider` / `SetPreviewImageRect(rect)` | property / method | 画像の表示矩形（`ImageRectProvider` が優先。 動的なズーム・パンへ追従させる） |
+| `PreviewImageRect` / `ImageRectProvider` | property / method | 画像の表示矩形（`ImageRectProvider` が優先。 動的なズーム・パンへ追従させる） |
 | `HitTestAt(point)` / `ClearSelection()` | method | 位置が注釈に当たるか / 選択の解除 |
 | `Document` | property | 注釈の文書。 差し替えると選択を解除する |
 | `SelectedId` / `Selected` | property | 選択中の注釈（識別子・実体） |
@@ -62,8 +62,8 @@
 | `DeleteSelected()` | method | 選択中の注釈を削除する |
 | `SetSelectedText(text)` | method | 選択中の吹き出しの本文を置き換える（**書式は文字位置で引き継ぐ**） |
 | `ApplyTextStyle(style)` / `ApplyTextStyle(start, length, style)` / `TransformTextStyle(transform)` / `TransformTextStyle(start, length, transform)` | method | 本文へ書式を適用する（`TextSelectionRange` の範囲、または指定した範囲。 **文字単位**。 長さ 0 は全体）。 `ApplyTextStyle` は**書式を丸ごと差し替える**、`TransformTextStyle` は**指定した属性だけを書く**（他の属性を保つ） |
-| `UpdateSelectedAppearance(transform)` | method | 外観（枠線・内側・角丸）を差し替える |
-| `SetSelectedBodyPadding(padding)` / `UpdateSelectedTail(transform)` | method | 吹き出しの本文の余白・しっぽ（幅・辺）を差し替える |
+| `TransformSelectedAppearance(transform)` | method | 外観（枠線・内側・角丸）を差し替える |
+| `SetSelectedBodyPadding(padding)` / `TransformSelectedTail(transform)` | method | 吹き出しの本文の余白・しっぽ（幅・辺）を差し替える |
 | `BringSelectedToFront()` / `SendSelectedToBack()` | method | 重なり順を変える |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | method / property | 元に戻す・やり直す（変更の単位は 1 操作。 ドラッグは押下から離すまでで 1 手。 選択は識別子で引き継ぐ） |
 | `ShowStyleEditor()` | method | 外観・書式・重なり順の編集フライアウトを表示する（右クリックと同じ） |

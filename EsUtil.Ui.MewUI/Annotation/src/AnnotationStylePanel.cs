@@ -76,25 +76,25 @@ public sealed class AnnotationStylePanel : ContentControl
         panel.Add(AnnotationEditorControls.ColorRow(
             AnnotationEditorText.BorderColor,
             appearance.Border,
-            color => layer.UpdateSelectedAppearance(a => a with { Border = color }),
+            color => layer.TransformSelectedAppearance(a => a with { Border = color }),
             layer.ColorTextFormat));
         panel.Add(AnnotationEditorControls.NumberRow(
             AnnotationEditorText.BorderThickness,
             appearance.BorderThickness,
             AnnotationLimits.BorderThicknessMin,
             AnnotationLimits.BorderThicknessMax,
-            value => layer.UpdateSelectedAppearance(a => a with { BorderThickness = value })));
+            value => layer.TransformSelectedAppearance(a => a with { BorderThickness = value })));
         panel.Add(AnnotationEditorControls.ColorRow(
             AnnotationEditorText.FillColor,
             appearance.Fill,
-            color => layer.UpdateSelectedAppearance(a => a with { Fill = color }),
+            color => layer.TransformSelectedAppearance(a => a with { Fill = color }),
             layer.ColorTextFormat));
         panel.Add(AnnotationEditorControls.NumberRow(
             AnnotationEditorText.CornerRadius,
             appearance.CornerRadius,
             0,
             AnnotationLimits.CornerRadiusMax,
-            value => layer.UpdateSelectedAppearance(a => a with { CornerRadius = value })));
+            value => layer.TransformSelectedAppearance(a => a with { CornerRadius = value })));
 
         return panel;
     }
@@ -119,12 +119,12 @@ public sealed class AnnotationStylePanel : ContentControl
             bubble.Tail.Width,
             AnnotationLimits.TailWidthMin,
             AnnotationLimits.TailWidthMax,
-            value => layer.UpdateSelectedTail(tail => tail with { Width = value })));
+            value => layer.TransformSelectedTail(tail => tail with { Width = value })));
         panel.Add(AnnotationEditorControls.ChoiceRow(
             AnnotationBubbleEdgeCatalog.Label,
             [.. AnnotationBubbleEdgeCatalog.Options],
             (int)bubble.Tail.BaseEdge,
-            index => layer.UpdateSelectedTail(tail => tail with { BaseEdge = (BubbleEdge)index })));
+            index => layer.TransformSelectedTail(tail => tail with { BaseEdge = (BubbleEdge)index })));
 
         return panel;
     }

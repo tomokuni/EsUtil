@@ -64,25 +64,25 @@ internal static class AnnotationStyleFlyout
         panel.Children.Add(AnnotationEditorControls.ColorRow(
             AnnotationEditorText.BorderColor,
             appearance.Border,
-            color => owner.UpdateSelectedAppearance(a => a with { Border = color }),
+            color => owner.TransformSelectedAppearance(a => a with { Border = color }),
             owner.ColorTextFormat));
         panel.Children.Add(AnnotationEditorControls.NumberRow(
             AnnotationEditorText.BorderThickness,
             appearance.BorderThickness,
             AnnotationLimits.BorderThicknessMin,
             AnnotationLimits.BorderThicknessMax,
-            value => owner.UpdateSelectedAppearance(a => a with { BorderThickness = value })));
+            value => owner.TransformSelectedAppearance(a => a with { BorderThickness = value })));
         panel.Children.Add(AnnotationEditorControls.ColorRow(
             AnnotationEditorText.FillColor,
             appearance.Fill,
-            color => owner.UpdateSelectedAppearance(a => a with { Fill = color }),
+            color => owner.TransformSelectedAppearance(a => a with { Fill = color }),
             owner.ColorTextFormat));
         panel.Children.Add(AnnotationEditorControls.NumberRow(
             AnnotationEditorText.CornerRadius,
             appearance.CornerRadius,
             0,
             AnnotationLimits.CornerRadiusMax,
-            value => owner.UpdateSelectedAppearance(a => a with { CornerRadius = value })));
+            value => owner.TransformSelectedAppearance(a => a with { CornerRadius = value })));
 
         return panel;
     }
@@ -107,12 +107,12 @@ internal static class AnnotationStyleFlyout
             bubble.Tail.Width,
             AnnotationLimits.TailWidthMin,
             AnnotationLimits.TailWidthMax,
-            value => owner.UpdateSelectedTail(tail => tail with { Width = value })));
+            value => owner.TransformSelectedTail(tail => tail with { Width = value })));
         panel.Children.Add(AnnotationEditorControls.ChoiceRow(
             AnnotationBubbleEdgeCatalog.Label,
             [.. AnnotationBubbleEdgeCatalog.Options],
             (int)bubble.Tail.BaseEdge,
-            index => owner.UpdateSelectedTail(tail => tail with { BaseEdge = (BubbleEdge)index })));
+            index => owner.TransformSelectedTail(tail => tail with { BaseEdge = (BubbleEdge)index })));
 
         return panel;
     }

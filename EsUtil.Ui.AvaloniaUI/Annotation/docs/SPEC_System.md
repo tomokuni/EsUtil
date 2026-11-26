@@ -29,7 +29,7 @@
 | UI | Avalonia（`Control` を継承した自前描画。 XAML のテンプレートを持たない） |
 | 選択枠 | `EsUtil.Feature.Marquee.Core` の提示層（`MarqueePresenter`） |
 | 色の選択 | `EsUtil.Ui.AvaloniaUI.ColorSelector`（`ColorSelectorControl`。 注釈では代表色 40 色のタブと ColorPicker を出す） |
-| 画像 | `IImage`（ホストが `EsBitmapAdapter` 等で用意する） |
+| 画像 | `EsReadOnlyBitmap`（ホストが表示境界の画像から変換して渡す） |
 
 ## 3. アーキテクチャ
 

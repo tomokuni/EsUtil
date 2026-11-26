@@ -9,6 +9,9 @@
 
 ### 破壊的な変更
 
+- **注釈の外観・しっぽの変更を `TransformSelectedAppearance` / `TransformSelectedTail` に改名しました**（`AnnotationEditSession` と 4 つの UI 版の `AnnotationLayerControl`）。 関数を受け取って新しい値を返す操作は `TransformTextStyle` と同じ語に揃えます（同じ役割に同じ名前を使う）。
+- **`AnnotationLayerControl.SetPreviewImageRect(rect)` を削除し、`PreviewImageRect` を取得または設定できるプロパティにしました**（4 つの UI 版）。 同じ値を取得するプロパティと設定するメソッドを並べないためです。
+- **AvaloniaUI の `AnnotationLayerControl.Source` を `EsReadOnlyBitmap?` にしました**（従来は `IImage?`）。 拡大元・切り出し元の画像を 4 つの UI 版で同じ契約にするためです（`EsUtil/README.md` §5）。 表示境界の画像しか持たないホストは、コアの画像へ変換してから設定します。
 - **書式付き文字列の編集操作をログへ記録するようにしました**（`TextLogMessage`。 4 つの UI 版の `StyledTextControl` に `Log` / `LogPrefix` を追加）。 定義はコアが単一所有し、接頭辞は `[StyledText]` です。 本文は先頭 100 文字へ切り詰めて記録します。
 - **`PasteAsync` が貼り付けた文字列を返すようにしました**（`Task<string?>`。 貼り付ける文字列が無い場合は `null`）。 呼び出し側の `_ = PasteAsync()` はそのまま使えます。
 - **WinUI 3 の `AnnotationLayerControl.MeasureText` を削除しました**（本文の実寸は描画に使うテキスト エンジンが決めるため、ホストが差し替える入口を置きません）。

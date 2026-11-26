@@ -150,15 +150,15 @@ public sealed partial class AnnotationLayerControl : Panel
     /// 取得すると、その後ウィンドウやツール バーの寸法が変わって画像の位置がずれる）。 値を持ち回すと
     /// 注釈だけが画像からずれるため、使うたびに取り直す。
     /// </remarks>
-    public EsRect? PreviewImageRect => ImageRectProvider?.Invoke() ?? _previewImageRect;
+    public EsRect? PreviewImageRect
+    {
+        get => ImageRectProvider?.Invoke() ?? _previewImageRect;
+        set => _previewImageRect = value;
+    }
 
     /// <summary>画像の表示矩形を取り直す関数（ホストが設定する）。</summary>
-    /// <remarks>null の場合は <see cref="SetPreviewImageRect"/> で与えた値を使う。</remarks>
+    /// <remarks>null の場合は <see cref="PreviewImageRect"/> へ設定した値を使う。</remarks>
     public Func<EsRect?>? ImageRectProvider { get; set; }
-
-    /// <summary>画像の表示矩形を設定する（<see cref="ImageRectProvider"/> が無い場合だけ使う）。</summary>
-    /// <param name="rect">矩形（このコントロールの座標）。</param>
-    public void SetPreviewImageRect(EsRect? rect) => _previewImageRect = rect;
 
     /// <summary>指定した位置（DIP）を左上として枠線を追加する。</summary>
     /// <param name="dip">左上の位置（ローカル DIP）。</param>
@@ -378,15 +378,15 @@ public sealed partial class AnnotationLayerControl : Panel
         {
             if (value is { } appearance)
             {
-                _ = UpdateSelectedAppearance(_ => appearance);
+                _ = TransformSelectedAppearance(_ => appearance);
             }
         }
     }
     /// <summary>選択中の注釈の外観を差し替える。</summary>
     /// <param name="transform">外観を変える処理。</param>
     /// <returns>変えた場合は <see langword="true"/>。</returns>
-    public bool UpdateSelectedAppearance(Func<AnnotationAppearance, AnnotationAppearance> transform)
-        => _session.UpdateSelectedAppearance(transform);
+    public bool TransformSelectedAppearance(Func<AnnotationAppearance, AnnotationAppearance> transform)
+        => _session.TransformSelectedAppearance(transform);
 
     /// <summary>選択中の吹き出しの本文の余白を取得または設定する（元画像ピクセル）。</summary>
     /// <value>余白。 吹き出しを選んでいない場合は ``null``。 設定するとその吹き出しの余白を変える。</value>
@@ -412,7 +412,7 @@ public sealed partial class AnnotationLayerControl : Panel
         {
             if (value is { } width)
             {
-                _ = UpdateSelectedTail(tail => tail with { Width = width });
+                _ = TransformSelectedTail(tail => tail with { Width = width });
             }
         }
     }
@@ -426,7 +426,7 @@ public sealed partial class AnnotationLayerControl : Panel
         {
             if (value is { } edge)
             {
-                _ = UpdateSelectedTail(tail => tail with { BaseEdge = edge });
+                _ = TransformSelectedTail(tail => tail with { BaseEdge = edge });
             }
         }
     }
@@ -439,7 +439,7 @@ public sealed partial class AnnotationLayerControl : Panel
     /// <param name="transform">しっぽを変える処理。</param>
     /// <returns>変えた場合は <see langword="true"/>。</returns>
     /// <remarks>先端はコア（<see cref="AnnotationDocument.WithTail"/>）が画像の内側へ収める。</remarks>
-    public bool UpdateSelectedTail(Func<BubbleTail, BubbleTail> transform) => _session.UpdateSelectedTail(transform);
+    public bool TransformSelectedTail(Func<BubbleTail, BubbleTail> transform) => _session.TransformSelectedTail(transform);
 
     /// <summary>選択中の注釈を最前面へ移す。</summary>
     /// <returns>移した場合は <see langword="true"/>。</returns>

@@ -52,7 +52,8 @@
       "esutil.feature.styledtext.core": {
         "type": "Project",
         "dependencies": {
-          "EsUtil.Platform.Core": "[0.8.8, )"
+          "EsUtil.Platform.Core": "[0.8.8, )",
+          "Microsoft.Extensions.Logging.Abstractions": "[10.0.0, )"
         }
       },
       "esutil.platform.core": {
@@ -68,7 +69,8 @@
         "type": "Project",
         "dependencies": {
           "EsUtil.Feature.StyledText.Core": "[0.8.8, )",
-          "EsUtil.Platform.Core": "[0.8.8, )"
+          "EsUtil.Platform.Core": "[0.8.8, )",
+          "EsUtil.Ui.WinForms.Interop": "[0.8.8, )"
         }
       }
     }

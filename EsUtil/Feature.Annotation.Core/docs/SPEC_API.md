@@ -218,7 +218,7 @@
 | `AddFrame(bounds)` / `AddBubble(bounds, text)` | 注釈の追加（画像の内側へ収め、追加した注釈を選択する） |
 | `DeleteSelected()` / `SetSelectedText(text)` | 選択中の注釈の削除・本文の差し替え |
 | `ApplyTextStyle(...)` / `TransformTextStyle(...)` | 選択範囲の書式の差し替え・変換（選択が無ければ以降の入力へ回す） |
-| `UpdateSelectedAppearance(transform)` / `SetSelectedBodyPadding(padding)` / `UpdateSelectedTail(transform)` | 選択中の注釈の外観・余白・しっぽの変更 |
+| `TransformSelectedAppearance(transform)` / `SetSelectedBodyPadding(padding)` / `TransformSelectedTail(transform)` | 選択中の注釈の外観・余白・しっぽの変更 |
 | `BringSelectedToFront()` / `SendSelectedToBack()` | 重なり順の変更（変わらない場合は `false` を返し、履歴に積まない） |
 | `BeginChange()` / `SetBounds(bounds)` / `SetTailTip(tip)` / `CommitChange()` | ドラッグ 1 手の記録（押下で控え、移動のたびに反映し、最初の変更で 1 手として積む） |
 | `Undo()` / `Redo()` / `CanUndo` / `CanRedo` | 変更履歴（編集中はキャレットを本文の範囲へ収める） |
