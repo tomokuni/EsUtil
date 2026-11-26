@@ -6,15 +6,14 @@ namespace EsUtil.Ui.MewUI.StyledText;
 
 /// <summary>書式バーを選択範囲の近くへポップアップで出す（<see cref="TextFormatBarHosting.Popup"/>）。</summary>
 /// <remarks>
-/// <b>位置の規則は提示層が単一所有する</b>: 選択の上・下の判断と置ける領域への収めは
-/// <see cref="FloatingPanelPlacement"/> が決める（4 つの UI 版で同じ結果になる）。<br/>
-/// <b>出す条件は本文コントロールが単一所有する</b>: ホストがバーを置く場合と同じ判断
-/// （<see cref="StyledTextControl.ShouldShowFormatBar"/>）を使う。<br/>
-/// <b>ウィンドウの中身は 1 度だけ決める</b>: バーは項目の変更で作り直されるため、そのたびに
-/// ウィンドウの中身を差し替えると要素の付け替えが重なって「既に親がある」で落ちる。 中身は変わらない根
-/// （<see cref="Border"/>）を 1 度だけ載せ、根の子だけを差し替える。<br/>
-/// <b>枠なしのウィンドウへ載せる</b>: ポップアップへ載せると、その中から開く色の選択が使えない。
-/// 枠なしのウィンドウなら、中から開く一覧は普通のウィンドウの子になり、そのまま使える。
+/// <b>位置と枠は提示層が単一所有する</b>: 対象に被せない配置・置ける領域への収め・ドラッグの規則は
+/// <see cref="FloatingPanelPlacement"/>、枠・余白・高さは <see cref="FloatingPanelAppearance.FormatBar"/> が
+/// 決める（4 つの UI 版で同じ結果になる）。<br/>
+/// <b>枠なしのウィンドウへ載せる</b>: 注釈のパネルと同じ作りにする（同じ見た目）。<br/>
+/// <b>位置は画面の座標で持つ</b>: ウィンドウを動かすと、ウィンドウを基準にした座標は動いた分だけ戻る。
+/// 画面の座標で持てば、動かしても基準が変わらない。<br/>
+/// <b>ドラッグの差はカーソルの画面位置から取る</b>: イベントの座標は要素やウィンドウの座標系であり、
+/// 動かすと基準も動く（移動量が増幅される。 実測）。
 /// </remarks>
 /// <param name="owner">書式バーを所有する本文コントロール。</param>
 internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
@@ -22,16 +21,13 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     /// <summary>パネルの外観（枠・余白・高さ）。</summary>
     private static readonly FloatingPanelAppearance s_appearance = FloatingPanelAppearance.FormatBar;
 
-    /// <summary>バーの入れ物（ウィンドウの中身。 1 度だけ載せる）。 枠と余白は外観が決める。</summary>
+    /// <summary>バーの入れ物（ウィンドウの中身。 枠と余白は外観が決める）。</summary>
     private readonly Border _root = new()
     {
         Background = RichTextPainter.ToMewColor(s_appearance.Background),
         BorderBrush = RichTextPainter.ToMewColor(s_appearance.Border),
         BorderThickness = s_appearance.BorderThickness,
         CornerRadius = s_appearance.CornerRadius,
-        Padding = new Thickness(
-            s_appearance.Padding, s_appearance.VerticalPadding,
-            s_appearance.Padding, s_appearance.VerticalPadding),
     };
 
     /// <summary>バーを載せる枠なしのウィンドウ（初回の表示で作る）。</summary>
@@ -40,15 +36,21 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     /// <summary>ウィンドウを表示したかどうか（<c>Show</c> は 1 度だけ呼ぶ）。</summary>
     private bool _shown;
 
-    /// <summary>利用者が動かした後の左上（DIP。 まだ動かしていない場合は <see langword="null"/>）。</summary>
-    private EsPoint? _manualPosition;
-
-    /// <summary>直前に見たポインターの位置（ウィンドウの内側の DIP）。</summary>
+    /// <summary>利用者が動かした量（DIP。 まだ動かしていない場合は原点）。</summary>
     /// <remarks>
-    /// <b>前回との差だけを使う</b>: ウィンドウを動かすと、動いた先で同じカーソル位置の通知がまた届く。
-    /// 開始位置からの差で動かすと、その通知のたびに余計に動いて移動量が増幅される。
+    /// <b>動かした位置を選択より優先する</b>: 選択が変わるたびに元の位置へ戻すと、動かした意味が無くなる。
+    /// 閉じたときに捨てる（次に出したときは選択の位置から出す）。
     /// </remarks>
+    private EsPoint _manualOffset;
+
+    /// <summary>ドラッグ開始時のバーの左上（画面の DIP）。</summary>
+    private EsPoint _dragOrigin;
+
+    /// <summary>直前に見たカーソルの位置（画面の物理ピクセル）。</summary>
     private EsPoint _lastCursor;
+
+    /// <summary>ドラッグ中かどうか。</summary>
+    private bool _dragging;
 
     /// <summary>バーをポップアップで表示中かどうかを取得する。</summary>
     public bool IsOpen => _shown && _window is not null;
@@ -71,39 +73,24 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         var panelSize = s_appearance.ResolvePanelSize(MeasureBar(bar));
         window.WindowSize = WindowSize.Fixed(panelSize.Width, panelSize.Height);
 
-        // **位置はウィンドウ座標**: コントロールの Bounds はウィンドウ基準であるため、そのまま足せる
-        var anchor = ToEsRect(owner.SelectionBounds);
-        var available = new EsRect(0, 0, main.ClientSize.Width, main.ClientSize.Height);
-
-        // **動かした位置を選択より優先する**: 選択が変わるたびに元の位置へ戻すと、動かした意味が無くなる
-        var position = _manualPosition is { } manual
-            ? FloatingPanelPlacement.Clamp(manual, panelSize.Width, panelSize.Height, available)
-            : FloatingPanelPlacement.ResolveOutside(
-                new EsRect(anchor.X + owner.Bounds.X, anchor.Y + owner.Bounds.Y, anchor.Width, anchor.Height),
-                panelSize,
-                available,
-                FloatingPanelPlacement.FormatBarGap);
-
         if (!_shown)
         {
             window.Show(main);
             _shown = true;
         }
 
-        // **位置は画面の座標**: 求めた位置はウィンドウの内側の DIP であるため、ウィンドウの位置を足す
-        window.MoveTo(
-            (int)Math.Round(main.Position.X + position.X),
-            (int)Math.Round(main.Position.Y + position.Y));
+        MoveToScreen(window, ResolvePosition(main, panelSize));
     }
 
     /// <summary>バーを閉じる（出ていなければ何もしない）。</summary>
     public void Close()
     {
+        // **動かした位置は捨てる**: 次に出したときは選択の位置から出す
+        _manualOffset = default;
+        _dragging = false;
+
         // **中身を先に外す**: 隠したウィンドウに要素を残すと、次に載せるときに「既に親がある」で落ちる
         _root.Child = null;
-
-        // **動かした位置は捨てる**: 次に出したときは選択の位置から出す
-        _manualPosition = null;
 
         if (_shown)
         {
@@ -123,6 +110,12 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
 
         // **1 つの要素は 1 つの親しか持てない**: ホストのレイアウトに残っていれば外してから載せる
         DetachFromParent(bar.View);
+
+        // **余白は中身の外側に空ける**: MewUI の Border は余白（Padding）の範囲を押下の対象に
+        // しないため、余白を Margin にして下地の上へ出す（掴めるようにする）
+        bar.View.Margin = new Thickness(
+            s_appearance.Padding, s_appearance.VerticalPadding,
+            s_appearance.Padding, s_appearance.VerticalPadding);
         _root.Child = bar.View;
     }
 
@@ -141,6 +134,97 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
             default:
                 break;
         }
+    }
+
+    /// <summary>バーの左上（画面の DIP）を求める。</summary>
+    /// <param name="main">本文のウィンドウ。</param>
+    /// <param name="panelSize">パネルの大きさ（DIP）。</param>
+    /// <returns>左上の位置（画面の DIP）。</returns>
+    private EsPoint ResolvePosition(Window main, EsSize panelSize)
+    {
+        var bounds = owner.Bounds;
+        var selection = owner.SelectionBounds;
+        var available = new EsRect(0, 0, main.ClientSize.Width, main.ClientSize.Height);
+
+        if (_dragging || _manualOffset.X != 0 || _manualOffset.Y != 0)
+        {
+            var kept = FloatingPanelPlacement.Clamp(
+                _manualOffset, panelSize.Width, panelSize.Height, available);
+            return new EsPoint(main.Position.X + kept.X, main.Position.Y + kept.Y);
+        }
+
+        // **座標は本文のウィンドウの内側の DIP**（MewUI の Bounds はウィンドウ基準）
+        var anchor = new EsRect(
+            bounds.X + selection.X, bounds.Y + selection.Y, selection.Width, selection.Height);
+        var placed = FloatingPanelPlacement.ResolveOutside(
+            anchor, panelSize, available, FloatingPanelPlacement.FormatBarGap);
+        return new EsPoint(main.Position.X + placed.X, main.Position.Y + placed.Y);
+    }
+
+    /// <summary>バーを画面の位置へ移す。</summary>
+    /// <param name="window">バーのウィンドウ。</param>
+    /// <param name="position">左上の位置（画面の DIP）。</param>
+    private static void MoveToScreen(Window window, EsPoint position)
+        => window.MoveTo((int)Math.Round(position.X), (int)Math.Round(position.Y));
+
+    /// <summary>バーの余白を掴んで動かし始める。</summary>
+    /// <param name="e">マウスの引数。</param>
+    /// <remarks>
+    /// <b>押下の可否は LeftButton で判定しない</b>: 押下の通知には押す前の状態が入っており、
+    /// ここで弾くとドラッグが始まらない（実測）。 押下の通知自体が「押された」ことを表す。
+    /// </remarks>
+    private void BeginDrag(MouseEventArgs e)
+    {
+        _ = e;
+        if (_window is not { } window || owner.HostWindow is not { } main
+            || !NativeCursor.TryGetPosition(out var x, out var y))
+        {
+            return;
+        }
+
+        var scale = main.DpiScale > 0 ? main.DpiScale : 1;
+        _dragOrigin = new EsPoint(window.Position.X / scale, window.Position.Y / scale);
+        _lastCursor = new EsPoint(x, y);
+        _dragging = true;
+    }
+
+    /// <summary>バーをドラッグして動かす。</summary>
+    /// <param name="e">マウスの引数。</param>
+    private void ContinueDrag(MouseEventArgs e)
+    {
+        _ = e;
+        if (!_dragging || _window is not { } window || owner.HostWindow is not { } main
+            || !NativeCursor.TryGetPosition(out var x, out var y))
+        {
+            return;
+        }
+
+        var cursor = new EsPoint(x, y);
+        var scale = main.DpiScale > 0 ? main.DpiScale : 1;
+        var delta = new EsPoint((cursor.X - _lastCursor.X) / scale, (cursor.Y - _lastCursor.Y) / scale);
+        _lastCursor = cursor;
+
+        if (Math.Abs(delta.X) < 0.01 && Math.Abs(delta.Y) < 0.01)
+        {
+            return;
+        }
+
+        var panelSize = s_appearance.ResolvePanelSize(MeasureBar(owner.FormatBar));
+        var available = new EsRect(0, 0, main.ClientSize.Width, main.ClientSize.Height);
+        _manualOffset = FloatingPanelPlacement.Clamp(
+            new EsPoint(_manualOffset.X + delta.X, _manualOffset.Y + delta.Y),
+            panelSize.Width,
+            panelSize.Height,
+            available);
+
+        MoveToScreen(window, new EsPoint(_dragOrigin.X + _manualOffset.X, _dragOrigin.Y + _manualOffset.Y));
+    }
+
+    /// <summary>バーのドラッグを終える。</summary>
+    private void EndDrag()
+    {
+        _dragging = false;
+        _lastCursor = default;
     }
 
     /// <summary>バーを載せるウィンドウを用意する。</summary>
@@ -162,73 +246,21 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
 
         // **余白を掴んで動かせるようにする**: 中身（ボタン・入力欄）は押下を処理済みにするため、
         // 本ハンドラーは余白を掴んだときだけ呼ばれる
+        _root.Cursor = CursorType.SizeAll;
         _root.OnMouseDown(BeginDrag);
         _root.OnMouseMove(ContinueDrag);
         _root.OnMouseUp(_ => EndDrag());
         return _window;
     }
 
-    /// <summary>バーの実寸（DIP）を測る。</summary>
+    /// <summary>バーの中身の実寸（DIP）を測る。</summary>
     /// <param name="bar">書式バー。</param>
     /// <returns>実寸。 測れない場合は希望寸法。</returns>
     private static EsSize MeasureBar(IStyledTextFormatBar bar)
     {
         var desired = bar.View.DesiredSize;
         var width = desired.Width > 0 ? desired.Width : bar.PreferredWidth;
-        var height = desired.Height > 0 ? desired.Height : TextFormatBarLayout.ItemHeight;
+        var height = s_appearance.ResolveContentHeight(desired.Height);
         return new EsSize(Math.Max(1, width), Math.Max(1, height));
     }
-
-    /// <summary>バーの余白を掴んで動かし始める。</summary>
-    /// <param name="e">マウスの引数。</param>
-    private void BeginDrag(MouseEventArgs e)
-    {
-        if (!e.LeftButton || owner.HostWindow is not { } main)
-        {
-            return;
-        }
-
-        // **ウィンドウの内側の座標で測る**: 動かすのはバーのウィンドウであり、本文のウィンドウは動かない
-        var cursor = e.GetPosition(main);
-        _manualPosition ??= new EsPoint(
-            _window is { } window ? window.Position.X - main.Position.X : 0,
-            _window is { } w2 ? w2.Position.Y - main.Position.Y : 0);
-        _lastCursor = new EsPoint(cursor.X, cursor.Y);
-    }
-
-    /// <summary>バーをドラッグして動かす。</summary>
-    /// <param name="e">マウスの引数。</param>
-    private void ContinueDrag(MouseEventArgs e)
-    {
-        if (!e.LeftButton || _window is not { } window || owner.HostWindow is not { } main)
-        {
-            return;
-        }
-
-        var cursor = e.GetPosition(main);
-        var current = new EsPoint(cursor.X, cursor.Y);
-        var delta = new EsPoint(current.X - _lastCursor.X, current.Y - _lastCursor.Y);
-        _lastCursor = current;
-
-        if (Math.Abs(delta.X) < 0.01 && Math.Abs(delta.Y) < 0.01)
-        {
-            return;
-        }
-
-        var panelSize = s_appearance.ResolvePanelSize(MeasureBar(owner.FormatBar));
-        var available = new EsRect(0, 0, main.ClientSize.Width, main.ClientSize.Height);
-        var moved = new EsPoint(_manualPosition!.Value.X + delta.X, _manualPosition.Value.Y + delta.Y);
-        _manualPosition = FloatingPanelPlacement.Clamp(moved, panelSize.Width, panelSize.Height, available);
-        window.MoveTo(
-            (int)Math.Round(main.Position.X + _manualPosition.Value.X),
-            (int)Math.Round(main.Position.Y + _manualPosition.Value.Y));
-    }
-
-    /// <summary>バーのドラッグを終える。</summary>
-    private void EndDrag() => _lastCursor = default;
-
-    /// <summary>MewUI の矩形を本層の矩形へ写す。</summary>
-    /// <param name="rect">MewUI の矩形。</param>
-    /// <returns>本層の矩形。</returns>
-    private static EsRect ToEsRect(Rect rect) => new(rect.X, rect.Y, rect.Width, rect.Height);
 }
