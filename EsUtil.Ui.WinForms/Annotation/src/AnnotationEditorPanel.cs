@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Microsoft.Extensions.Logging;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Input;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Feature.Annotation.Presenter.Panel;
 using EsUtil.Feature.Annotation.Logging;
@@ -50,6 +51,15 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
 
     /// <summary>パネルを置いた位置（種別ごと。 このコントロールの左上を原点とする DIP）。</summary>
     private readonly Dictionary<AnnotationPanelKind, EsPoint> _positions = [];
+
+    /// <summary>押したままの書式バーの根（まだドラッグが始まっていない押下を含む）。</summary>
+    private Control? _pressedBar;
+
+    /// <summary>押した位置（このコントロールの座標の DIP）。 ドラッグの開始の判定に使う。</summary>
+    private EsPoint _pressPosition;
+
+    /// <summary>書式バーをドラッグ中かどうか（<see cref="DragThreshold"/> を超えて動いた後）。</summary>
+    private bool _isBarDragging;
 
     /// <summary>注釈の本文編集と書式バーをまとめたコントロールを初期化する。</summary>
     public AnnotationEditorPanel()
@@ -616,11 +626,18 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
     /// <param name="kind">パネルの種別。</param>
     /// <param name="content">中身。</param>
     /// <remarks>
-    /// ボタンや入力欄の上では子のコントロールが押下を受けるため、余白を掴んだときだけ動く
-    /// （4 つの UI 版で同じ）。
+    /// <b>書式バーは全域を掴める</b>: ボタンや入力欄の部品へも繋ぎ、動かしたときだけドラッグとする<br/>
+    /// <b>外観のパネルは余白だけ</b>: 中身にはスライダーがあり、ドラッグが値の変更と競合する
+    /// （ボタンや入力欄の上では子のコントロールが押下を受けるため、余白を掴んだときだけ動く）。
     /// </remarks>
     private void HookDrag(AnnotationPanelKind kind, Control content)
     {
+        if (kind == AnnotationPanelKind.FormatBar)
+        {
+            HookBarDrag(content);
+            return;
+        }
+
         content.MouseDown += (_, e) =>
         {
             if (e.Button == MouseButtons.Left)
@@ -638,6 +655,105 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
         };
 
         content.MouseUp += (_, _) => Controller(kind).EndDrag();
+    }
+
+    /// <summary>書式バーの全域（部品を含む）をドラッグで動かせるようにする。</summary>
+    /// <param name="bar">書式バーの根。</param>
+    /// <remarks>
+    /// <b>部品ごとに繋ぐ理由</b>: WinForms のマウス メッセージは押された部品にだけ届き、親へは伝わらない。
+    /// 繋がないと、ボタンや入力欄の上からは動かせない。<br/>
+    /// <b>動かしたときはクリックと見なさない</b>: 閾値を超えた時点で根がマウスを捕捉し、部品は
+    /// 解放を受け取らない（クリックにならない）。
+    /// </remarks>
+    private void HookBarDrag(Control bar)
+    {
+        bar.MouseDown += OnBarMouseDown;
+        bar.MouseMove += OnBarMouseMove;
+        bar.MouseUp += OnBarMouseUp;
+
+        foreach (Control child in bar.Controls)
+        {
+            HookBarDrag(child);
+        }
+    }
+
+    /// <summary>書式バーを押した（まだドラッグは始めない）。</summary>
+    /// <param name="sender">送信元。</param>
+    /// <param name="e">マウスの引数。</param>
+    private void OnBarMouseDown(object? sender, MouseEventArgs e)
+    {
+        if (sender is not Control bar || e.Button != MouseButtons.Left)
+        {
+            return;
+        }
+
+        _pressedBar = bar;
+        _isBarDragging = false;
+        _pressPosition = ToLocal(bar.PointToScreen(e.Location));
+    }
+
+    /// <summary>書式バーをドラッグして動かす（動きが閾値を超えてから）。</summary>
+    /// <param name="sender">送信元。</param>
+    /// <param name="e">マウスの引数。</param>
+    private void OnBarMouseMove(object? sender, MouseEventArgs e)
+    {
+        if (sender is not Control bar || _pressedBar is null)
+        {
+            return;
+        }
+
+        if ((Control.MouseButtons & MouseButtons.Left) == 0)
+        {
+            EndBarPress();
+            return;
+        }
+
+        var position = ToLocal(bar.PointToScreen(e.Location));
+        if (!_isBarDragging)
+        {
+            if (!DragThreshold.IsExceeded(_pressPosition, position))
+            {
+                return;
+            }
+
+            _isBarDragging = true;
+            Controller(AnnotationPanelKind.FormatBar).BeginDrag(_pressPosition);
+            _pressedBar.Capture = true;
+        }
+
+        Controller(AnnotationPanelKind.FormatBar).DragTo(position);
+    }
+
+    /// <summary>書式バーを離した。</summary>
+    /// <param name="sender">送信元。</param>
+    /// <param name="e">マウスの引数。</param>
+    private void OnBarMouseUp(object? sender, MouseEventArgs e)
+    {
+        _ = sender;
+        _ = e;
+        if (_pressedBar is null)
+        {
+            return;
+        }
+
+        EndBarPress();
+    }
+
+    /// <summary>書式バーの押下の状態を終える（ドラッグも終える）。</summary>
+    private void EndBarPress()
+    {
+        if (_isBarDragging)
+        {
+            Controller(AnnotationPanelKind.FormatBar).EndDrag();
+        }
+
+        if (_pressedBar is { Capture: true } bar)
+        {
+            bar.Capture = false;
+        }
+
+        _pressedBar = null;
+        _isBarDragging = false;
     }
 
     /// <summary>パネルを画面の作業領域の内側へ収めて置く。</summary>

@@ -1,9 +1,11 @@
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Input;
 using EsUtil.Platform.Core.Native;
 using EsUtil.Platform.Core.Native.Win;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
 
 namespace EsUtil.Ui.WinUI3.StyledText;
 
@@ -43,13 +45,19 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     /// <summary>利用者が動かした後の左上（ウィンドウの座標の DIP。 まだ動かしていない場合は <see langword="null"/>）。</summary>
     private EsPoint? _manualPosition;
 
-    /// <summary>ドラッグ開始時のバーの左上（ウィンドウの座標の DIP）。</summary>
+    /// <summary>押した位置（画面の DIP）。 ドラッグの開始の判定に使う。</summary>
+    private EsPoint _pressCursor;
+
+    /// <summary>ドラッグ開始時のバーの左上（コントロールの座標の DIP）。</summary>
     private EsPoint _dragOrigin;
 
     /// <summary>ドラッグ開始時のカーソルの位置（画面の DIP）。</summary>
     private EsPoint _dragOriginCursor;
 
-    /// <summary>ドラッグ中かどうか。</summary>
+    /// <summary>押したままかどうか（まだドラッグが始まっていない押下を含む）。</summary>
+    private bool _pressed;
+
+    /// <summary>ドラッグ中かどうか（<see cref="DragThreshold"/> を超えて動いた後）。</summary>
     private bool _dragging;
 
     /// <summary>カーソルの位置（画面の物理ピクセル）を取得する手段。</summary>
@@ -109,46 +117,61 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         }
     }
 
-    /// <summary>バーの余白を掴んで動かし始める。</summary>
+    /// <summary>バーを押した（まだドラッグは始めない）。</summary>
     /// <param name="sender">送信元。</param>
     /// <param name="e">ポインターの引数。</param>
     /// <remarks>
-    /// <b>動かすのは余白の輪（中身の外側）だけ</b>: 中身の押下はボタンと入力欄が処理するため、
-    /// 本ハンドラーは余白を掴んだときにだけ呼ばれる（届いた場合も位置で弾く）。
+    /// <b>押下では動かさない</b>: 押しただけで動かすと、ボタンの操作ができなくなる。 押した位置を覚えるだけで、
+    /// <b>動きが <see cref="DragThreshold"/> を超えた時点</b>で初めて動かす（<see cref="OnBarPointerMoved"/>）。<br/>
+    /// <b>処理済みの押下も受ける</b>: 中身（ボタン・入力欄）は押下を処理済みにするため、通常の購読では届かない。
+    /// バーの全域を掴めるようにするため、処理済みも受ける。
     /// </remarks>
     private void OnBarPointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
         _ = sender;
         if (_popup is not { } popup
-            || !_cursor.TryGetCursorScreenPoint(out var screen)
-            || IsInsideContent(e.GetCurrentPoint(_root).Position))
-        {
-            return;
-        }
-
-        // **開始位置から動かす**（前回の移動量へ足し込まない。 足し込むと 2 回目で飛ぶ）
-        // 位置はコントロールの座標で持つ（置ける領域と同じ座標系にする）
-        var origin = ResolveOrigin();
-        _dragOrigin = new EsPoint(popup.HorizontalOffset - origin.X, popup.VerticalOffset - origin.Y);
-        _dragOriginCursor = ToDip(screen);
-        _dragging = true;
-        _root.CapturePointer(e.Pointer);
-        e.Handled = true;
-    }
-
-    /// <summary>バーをドラッグして動かす。</summary>
-    /// <param name="sender">送信元。</param>
-    /// <param name="e">ポインターの引数。</param>
-    private void OnBarPointerMoved(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
-    {
-        _ = sender;
-        if (!_dragging || _popup is not { } popup || owner.XamlRoot is not { } root
             || !_cursor.TryGetCursorScreenPoint(out var screen))
         {
             return;
         }
 
-        var moved = FloatingPanelPlacement.ResolveDrag(_dragOrigin, _dragOriginCursor, ToDip(screen));
+        // **項目の押下は妨げない**: ここでは処理済みにせず、捕捉もしない（ドラッグが始まるまで項目が使える）
+        // 位置はコントロールの座標で持つ（置ける領域と同じ座標系にする）
+        var origin = ResolveOrigin();
+        _dragOrigin = new EsPoint(popup.HorizontalOffset - origin.X, popup.VerticalOffset - origin.Y);
+        _pressCursor = ToDip(screen);
+        _pressed = true;
+        _dragging = false;
+    }
+
+    /// <summary>バーをドラッグして動かす（動きが閾値を超えてから）。</summary>
+    /// <param name="sender">送信元。</param>
+    /// <param name="e">ポインターの引数。</param>
+    private void OnBarPointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        _ = sender;
+        if (!_pressed || _popup is not { } popup || owner.XamlRoot is not { } root
+            || !_cursor.TryGetCursorScreenPoint(out var screen))
+        {
+            return;
+        }
+
+        var cursor = ToDip(screen);
+        if (!_dragging)
+        {
+            if (!DragThreshold.IsExceeded(_pressCursor, cursor))
+            {
+                return;
+            }
+
+            // **ドラッグが始まったら押下を項目から取り上げる**: 取り上げると項目は「押された」状態を
+            // 失うため、離してもクリックにならない（ドラッグをボタンの操作と見なさない）
+            _dragging = true;
+            _dragOriginCursor = _pressCursor;
+            _root.CapturePointer(e.Pointer);
+        }
+
+        var moved = FloatingPanelPlacement.ResolveDrag(_dragOrigin, _dragOriginCursor, cursor);
         var panelSize = s_appearance.ResolvePanelSize(MeasureBar(owner.FormatBar));
         var origin = ResolveOrigin();
         var available = new EsRect(-origin.X, -origin.Y, root.Size.Width, root.Size.Height);
@@ -160,30 +183,34 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         e.Handled = true;
     }
 
-    /// <summary>バーのドラッグを終える。</summary>
+    /// <summary>バーを離した。</summary>
     /// <param name="sender">送信元。</param>
     /// <param name="e">ポインターの引数。</param>
-    private void OnBarPointerReleased(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    /// <remarks>
+    /// <b>ドラッグはクリックと見なさない</b>: ドラッグ中だった場合は処理済みにして、項目の解放処理
+    /// （クリック）へ届かせない。
+    /// </remarks>
+    private void OnBarPointerReleased(object sender, PointerRoutedEventArgs e)
     {
         _ = sender;
+        if (!_pressed)
+        {
+            return;
+        }
+
+        var wasDragging = _dragging;
+        _pressed = false;
         _dragging = false;
         _root.ReleasePointerCapture(e.Pointer);
-        e.Handled = true;
+
+        if (wasDragging)
+        {
+            e.Handled = true;
+        }
     }
 
 
-    /// <summary>押した位置が中身（ボタン・入力欄）の範囲かどうかを返す。</summary>
-    /// <param name="position">根を基準にした位置（DIP）。</param>
-    /// <returns>中身の範囲なら <see langword="true"/>。</returns>
-    private bool IsInsideContent(Windows.Foundation.Point position)
-    {
-        // **余白を掴んだときだけ動かす**: 中身の押下が届いた場合にボタンの操作を奪わない
-        var panel = s_appearance.ResolvePanelSize(MeasureBar(owner.FormatBar));
-        return position.X > s_appearance.Padding
-            && position.X < panel.Width - s_appearance.Padding
-            && position.Y > s_appearance.VerticalPadding
-            && position.Y < panel.Height - s_appearance.VerticalPadding;
-    }
+
 
     /// <summary>画面の位置（物理ピクセル）を DIP へ写す。</summary>
     /// <param name="screen">画面の位置（物理ピクセル）。</param>
@@ -250,9 +277,11 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
 
         // **余白を掴んで動かせるようにする**: 中身（ボタン・入力欄）は押下を処理済みにするため、
         // 本ハンドラーは余白を掴んだときだけ呼ばれる
-        _root.PointerPressed += OnBarPointerPressed;
-        _root.PointerMoved += OnBarPointerMoved;
-        _root.PointerReleased += OnBarPointerReleased;
+        // **バーのどこを掴んでも動かせるようにする**: 中身（ボタン・入力欄）は押下を処理済みにするため、
+        // 通常の購読では届かない。 処理済みも受け、動かしたときだけドラッグとする
+        _root.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnBarPointerPressed), handledEventsToo: true);
+        _root.AddHandler(UIElement.PointerMovedEvent, new PointerEventHandler(OnBarPointerMoved), handledEventsToo: true);
+        _root.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnBarPointerReleased), handledEventsToo: true);
         return _popup;
     }
 

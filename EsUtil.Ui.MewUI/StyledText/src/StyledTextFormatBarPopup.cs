@@ -1,6 +1,7 @@
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Input;
 
 namespace EsUtil.Ui.MewUI.StyledText;
 
@@ -20,8 +21,6 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     /// <summary>パネルの外観（枠・余白・高さ）。</summary>
     private static readonly FloatingPanelAppearance s_appearance = FloatingPanelAppearance.FormatBar;
 
-    /// <summary>いまのパネルの大きさ（DIP）。 押した位置が中身かどうかの判定に使う。</summary>
-    private static EsSize s_panelSize;
 
     /// <summary>バーの入れ物（ウィンドウの中身。 枠と余白は外観が決める）。</summary>
     private readonly Border _root = new()
@@ -45,12 +44,16 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     /// </remarks>
     private EsPoint? _manualPosition;
 
-    /// <summary>こちらが最後に置いたバーの左上（画面の DIP）。</summary>
+    /// <summary>押していない間に見た最後の位置（根の座標の DIP）。 押した位置の代わりに使う。</summary>
     /// <remarks>
-    /// <b>利用者が動かしたことを見分ける</b>: 枠なしのウィンドウは OS の移動の仕組みが動かし、
-    /// 終わりも知らせない。 最後に置いた位置と違えば利用者が動かしたとみなす。
+    /// <b>押下の通知からは取らない</b>: 押した位置は、押していないときの移動の位置で足りる。 MewUI の
+    /// 押下の通知は要素へ届かないが、移動の通知はウィンドウへ届く（実測）。 押下の通知には押す前の状態が
+    /// 入っており（<c>LeftButton</c> が false）、そのままでは押したことを見分けられない。
     /// </remarks>
-    private EsPoint _appliedScreen;
+    private EsPoint _restPosition;
+
+    /// <summary>OS の移動の仕組みが動いている間かどうか。</summary>
+    private bool _dragging;
 
     /// <summary>バーをポップアップで表示中かどうかを取得する。</summary>
     public bool IsOpen => _shown && _window is not null;
@@ -71,31 +74,17 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         SetBar(bar);
 
         var panelSize = s_appearance.ResolvePanelSize(MeasureBar(bar));
-        s_panelSize = panelSize;
         window.WindowSize = WindowSize.Fixed(panelSize.Width, panelSize.Height);
 
         if (!_shown)
         {
             window.Show(main);
             _shown = true;
-            _appliedScreen = new EsPoint(window.Position.X, window.Position.Y);
-        }
-        else if (WasMovedByUser(window))
-        {
-            // **動かした位置を選択より優先する**: 次の更新で選択の位置へ戻さない
-            _manualPosition = new EsPoint(
-                window.Position.X - main.Position.X, window.Position.Y - main.Position.Y);
         }
 
         ApplyPosition(window, ResolvePosition(main, panelSize));
     }
 
-    /// <summary>バーが利用者に動かされたかどうかを返す。</summary>
-    /// <param name="window">バーのウィンドウ。</param>
-    /// <returns>最後に置いた位置と違えば <see langword="true"/>。</returns>
-    private bool WasMovedByUser(Window window)
-        => Math.Abs(window.Position.X - _appliedScreen.X) > 0.5
-            || Math.Abs(window.Position.Y - _appliedScreen.Y) > 0.5;
 
     /// <summary>バーを閉じる（出ていなければ何もしない）。</summary>
     public void Close()
@@ -175,54 +164,54 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         return new EsPoint(main.Position.X + placed.X, main.Position.Y + placed.Y);
     }
 
-    /// <summary>押した位置が中身（ボタン・入力欄）の範囲かどうかを返す。</summary>
-    /// <param name="position">根を基準にした位置（DIP）。</param>
-    /// <returns>中身の範囲なら <see langword="true"/>。</returns>
-    private static bool IsInsideContent(Point position)
-    {
-        var panel = s_panelSize;
-        return position.X > s_appearance.Padding
-            && position.X < panel.Width - s_appearance.Padding
-            && position.Y > s_appearance.VerticalPadding
-            && position.Y < panel.Height - s_appearance.VerticalPadding;
-    }
 
-    /// <summary>バーを画面の位置へ移し、置いた位置を覚える。</summary>
+    /// <summary>バーを画面の位置へ移す。</summary>
     /// <param name="window">バーのウィンドウ。</param>
     /// <param name="position">左上の位置（画面の DIP）。</param>
-    private void ApplyPosition(Window window, EsPoint position)
-    {
-        var left = (int)Math.Round(position.X);
-        var top = (int)Math.Round(position.Y);
-        window.MoveTo(left, top);
-        _appliedScreen = new EsPoint(left, top);
-    }
+    private static void ApplyPosition(Window window, EsPoint position)
+        => window.MoveTo((int)Math.Round(position.X), (int)Math.Round(position.Y));
 
-    /// <summary>バーの余白を掴んで動かし始める。</summary>
+    /// <summary>バーを押したまま動かしたら、OS の移動の仕組みで動かす（動きが閾値を超えてから）。</summary>
     /// <param name="e">マウスの引数。</param>
     /// <remarks>
+    /// <b>バーのどこを掴んでも動かせる</b>: 移動の通知はウィンドウへ届くため（実測）、中身（ボタン・入力欄）の
+    /// 上からでも動かせる。 要素ごとにハンドラーを繋ぐ必要がない。<br/>
+    /// <b>押下では動かさない</b>: 動きが <see cref="DragThreshold"/> を超えた時点で初めて動かす。 動かさなければ
+    /// 従来どおり項目の操作になる（OS の移動の仕組みは押下を項目から取り上げるため、クリックにならない）。<br/>
     /// <b>移動は OS の移動の仕組みに任せる</b>: 枠なしのウィンドウは移動のつまみを持たないため
     /// <see cref="Window.DragMove"/> を使う（MewUI の案内どおり）。 要素へ届く移動の通知で動かすと、
-    /// ウィンドウが動いた分だけ基準も動き、移動量が増幅される（実測）。<br/>
-    /// <b>押下の可否は LeftButton で判定しない</b>: 押下の通知には押す前の状態が入っており、
-    /// ここで弾くとドラッグが始まらない（実測）。 押下の通知自体が「押された」ことを表す。
+    /// ウィンドウが動いた分だけ基準も動き、移動量が増幅される（実測）。
     /// </remarks>
-    private void BeginDrag(MouseEventArgs e)
+    private void OnWindowMouseMove(MouseEventArgs e)
     {
-        // **動かすのは余白の輪（中身の外側）だけ**: 中身（ボタン・入力欄）の押下は根へ届かない
-        // （実測）が、届いた場合にボタンの操作を奪わないよう、位置でも判定する
-        if (_window is not { } window || owner.HostWindow is not { } main
-            || IsInsideContent(e.GetPosition(_root)))
+        if (_window is not { } window || owner.HostWindow is not { } main)
+        {
+            return;
+        }
+
+        var point = e.GetPosition(_root);
+        var position = new EsPoint(point.X, point.Y);
+
+        // **押していない間の位置を覚える**: 押した位置はこの位置で表す（押下の通知は要素へ届かない）
+        if (!e.LeftButton)
+        {
+            _restPosition = position;
+            return;
+        }
+
+        if (_dragging || !DragThreshold.IsExceeded(_restPosition, position))
         {
             return;
         }
 
         // **押したウィンドウを有効にしてから動かす**: 有効でないウィンドウでは、押したままの
         // 移動の通知が届かない（実測。 最初の 1 回だけ動かない）
+        _dragging = true;
         window.Activate();
         window.DragMove();
+        _dragging = false;
 
-        // **動かした位置を覚える**: 次の更新で選択の位置へ戻さない
+        // **動かした位置を覚える**: 次の更新で選択の位置へ戻さない（離すまで戻らないので、ここで終わる）
         _manualPosition = new EsPoint(
             window.Position.X - main.Position.X, window.Position.Y - main.Position.Y);
     }
@@ -248,10 +237,9 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
             Content = _root,
         };
 
-        // **余白を掴んで動かせるようにする**: 中身（ボタン・入力欄）の押下は根へ届かない（実測）。
-        // 余白かどうかの判定は BeginDrag が行う
+        // **バーのどこを掴んでも動かせるようにする**: 移動の通知はウィンドウへ届く（実測）
         _root.Cursor = CursorType.SizeAll;
-        _root.OnMouseDown(e => BeginDrag(e));
+        _window.OnMouseMove(OnWindowMouseMove);
         return _window;
     }
 

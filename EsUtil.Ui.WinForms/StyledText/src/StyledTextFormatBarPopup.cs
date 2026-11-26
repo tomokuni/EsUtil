@@ -1,4 +1,5 @@
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Input;
 
 namespace EsUtil.Ui.WinForms.StyledText;
 
@@ -8,6 +9,9 @@ namespace EsUtil.Ui.WinForms.StyledText;
 /// <see cref="FloatingPanelPlacement"/> が決める（4 つの UI 版で同じ結果になる）。<br/>
 /// <b>出す条件は本文コントロールが単一所有する</b>: ホストがバーを置く場合と同じ判断
 /// （<see cref="StyledTextControl.ShouldShowFormatBar"/>）を使う。<br/>
+/// <b>バーのどこを掴んでも動かせる</b>: 余白だけでなく、ボタンや入力欄の上からでも動かせる。 ただし
+/// <b>動かしたときはクリックと見なさない</b>（<see cref="DragThreshold"/> を超えて動いた時点で押下を
+/// 部品から取り上げる）。 動かさなければ従来どおり部品の操作になる。<br/>
 /// <b>ウィンドウの中身は 1 度だけ決める</b>: バーは項目の変更で作り直されるため、そのたびに
 /// ウィンドウの中身を差し替えると要素の付け替えが重なって「既に親がある」で落ちる。 中身は変わらない根
 /// （<see cref="Panel"/>）を 1 度だけ載せ、根の子だけを差し替える。<br/>
@@ -44,8 +48,14 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     /// <summary>ドラッグ開始時のポインターの位置（このコントロールの座標の DIP）。</summary>
     private EsPoint _dragOriginCursor;
 
-    /// <summary>ドラッグ中かどうか。</summary>
+    /// <summary>押したままかどうか（まだドラッグが始まっていない押下を含む）。</summary>
+    private bool _pressed;
+
+    /// <summary>ドラッグ中かどうか（<see cref="DragThreshold"/> を超えて動いた後）。</summary>
     private bool _dragging;
+
+    /// <summary>押した位置（このコントロールの座標の DIP）。 ドラッグの開始の判定に使う。</summary>
+    private EsPoint _pressCursor;
 
     /// <summary>バーをポップアップで表示中かどうかを取得する。</summary>
     public bool IsOpen => _window is { Visible: true };
@@ -101,7 +111,7 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
 
         // **動かした位置は捨てる**: 次に出したときは選択の位置から出す
         _manualPosition = null;
-        _dragging = false;
+        EndPress(root: _root);
 
         if (_window is { Visible: true } window)
         {
@@ -109,34 +119,64 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         }
     }
 
-    /// <summary>バーの余白を掴んで動かし始める。</summary>
+    /// <summary>バーを押した（まだドラッグは始めない）。</summary>
     /// <param name="sender">送信元。</param>
     /// <param name="e">マウスの引数。</param>
+    /// <remarks>
+    /// <b>押下では動かさない</b>: 押しただけで動かすと、ボタンの操作ができなくなる。 押した位置を覚えるだけで、
+    /// <b>動きが <see cref="DragThreshold"/> を超えた時点</b>で初めて動かす（<see cref="OnBarMouseMove"/>）。<br/>
+    /// <b>中身の部品にも同じハンドラーを繋ぐ</b>: WinForms のマウス メッセージは押された部品にだけ届き、
+    /// 親へは伝わらない。 バーの全域を掴めるよう、載せた部品すべてへ繋ぐ（<see cref="HookDrag"/>）。
+    /// </remarks>
     private void OnBarMouseDown(object? sender, MouseEventArgs e)
     {
         _ = sender;
-        if (_window is not { } window || e.Button != MouseButtons.Left)
+        if (_window is null || e.Button != MouseButtons.Left)
         {
             return;
         }
 
-        _dragging = true;
-        _dragOrigin = _manualPosition ?? ToLocal(window.Location);
-        _dragOriginCursor = ToLocal(Cursor.Position);
+        // **項目の押下は妨げない**: 捕捉もしない（ドラッグが始まるまで項目が使える）
+        _pressed = true;
+        _dragging = false;
+        _pressCursor = ToLocal(Cursor.Position);
     }
 
-    /// <summary>バーをドラッグして動かす。</summary>
+    /// <summary>バーをドラッグして動かす（動きが閾値を超えてから）。</summary>
     /// <param name="sender">送信元。</param>
     /// <param name="e">マウスの引数。</param>
     private void OnBarMouseMove(object? sender, MouseEventArgs e)
     {
         _ = sender;
-        if (!_dragging || _window is not { } window || e.Button != MouseButtons.Left)
+        if (!_pressed || _window is not { } window)
         {
             return;
         }
 
-        var moved = FloatingPanelPlacement.ResolveDrag(_dragOrigin, _dragOriginCursor, ToLocal(Cursor.Position));
+        // ボタンを離した後の通知が来たら押下を終える（ウィンドウの外で離した場合に押したままにならない）
+        if ((Control.MouseButtons & MouseButtons.Left) == 0)
+        {
+            EndPress(root: _root);
+            return;
+        }
+
+        var cursor = ToLocal(Cursor.Position);
+        if (!_dragging)
+        {
+            if (!DragThreshold.IsExceeded(_pressCursor, cursor))
+            {
+                return;
+            }
+
+            // **ドラッグが始まったら押下を項目から取り上げる**: 取り上げると項目は「押された」状態を
+            // 失うため、離してもクリックにならない（ドラッグをボタンの操作と見なさない）
+            _dragging = true;
+            _dragOrigin = _manualPosition ?? ToLocal(window.Location);
+            _dragOriginCursor = _pressCursor;
+            _root.Capture = true;
+        }
+
+        var moved = FloatingPanelPlacement.ResolveDrag(_dragOrigin, _dragOriginCursor, cursor);
         var panelSize = s_appearance.ResolvePanelSize(MeasureBar(owner.FormatBar));
         var origin = owner.PointToScreen(Point.Empty);
         _manualPosition = FloatingPanelPlacement.Clamp(
@@ -146,14 +186,53 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
             origin.Y + (int)Math.Round(_manualPosition.Value.Y));
     }
 
-    /// <summary>バーのドラッグを終える。</summary>
+    /// <summary>バーを離した。</summary>
     /// <param name="sender">送信元。</param>
     /// <param name="e">マウスの引数。</param>
+    /// <remarks>
+    /// <b>ドラッグはクリックと見なさない</b>: ドラッグ中は押下を項目から取り上げているため、
+    /// 項目は解放を受け取らず、クリックにならない。
+    /// </remarks>
     private void OnBarMouseUp(object? sender, MouseEventArgs e)
     {
         _ = sender;
         _ = e;
+        if (!_pressed)
+        {
+            return;
+        }
+
+        EndPress(root: _root);
+    }
+
+    /// <summary>押下の状態を終える（ドラッグも終える）。</summary>
+    /// <param name="root">マウスを捕捉している場合はその相手。</param>
+    private void EndPress(Control? root)
+    {
+        _pressed = false;
         _dragging = false;
+        if (root is { Capture: true })
+        {
+            root.Capture = false;
+        }
+    }
+
+    /// <summary>バーと中身のすべての部品へ、ドラッグのハンドラーを繋ぐ。</summary>
+    /// <param name="control">繋ぐ部品（根から再帰する）。</param>
+    /// <remarks>
+    /// <b>部品ごとに繋ぐ理由</b>: WinForms のマウス メッセージは押された部品にだけ届き、親へは伝わらない。
+    /// 繋がないと、ボタンや入力欄の上からは動かせない。
+    /// </remarks>
+    private void HookDrag(Control control)
+    {
+        control.MouseDown += OnBarMouseDown;
+        control.MouseMove += OnBarMouseMove;
+        control.MouseUp += OnBarMouseUp;
+
+        foreach (Control child in control.Controls)
+        {
+            HookDrag(child);
+        }
     }
 
     /// <summary>画面の座標をこのコントロールの座標（DIP）へ写す。</summary>
@@ -182,6 +261,9 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         // （左上へ置くと余白の上へ重なり、掴む場所が無くなる）
         bar.View.Dock = DockStyle.Fill;
         _root.Controls.Add(bar.View);
+
+        // **中身の部品の上からも掴めるようにする**: マウス メッセージは部品にだけ届くため、すべてへ繋ぐ
+        HookDrag(bar.View);
     }
 
     /// <summary>バーを以前の親から外す（1 つの要素は 1 つの親しか持てない）。</summary>
@@ -228,11 +310,8 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
 
         _window.Controls.Add(_root);
 
-        // **余白を掴んで動かせるようにする**: 中身（ボタン・入力欄）は押下を処理済みにするため、
-        // 本ハンドラーは余白を掴んだときだけ呼ばれる
-        _root.MouseDown += OnBarMouseDown;
-        _root.MouseMove += OnBarMouseMove;
-        _root.MouseUp += OnBarMouseUp;
+        // **バーのどこを掴んでも動かせるようにする**: 根へ繋ぎ、載せた部品へは SetBar が繋ぐ
+        HookDrag(_root);
         return _window;
     }
 

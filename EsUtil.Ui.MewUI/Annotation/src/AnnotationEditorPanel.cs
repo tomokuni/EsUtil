@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Aprillz.MewUI;
 using Aprillz.MewUI.Controls;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Input;
 using EsUtil.Platform.Core.Palette;
 using MewUIColor = Aprillz.MewUI.Color;
 using EsUtil.Feature.Annotation.Core.Contract;
@@ -425,9 +426,11 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             ? appearance.ResolvePanelHeight(appearance.FixedContentHeight)
             : size.Height;
 
-        // 余白（中身の無いところ）を押したまま動かすとパネルが動く。
-        // 中身（ボタン・入力欄）の押下は根へ届かない（実測）。 余白かどうかの判定は BeginPanelDrag が行う
-        root.OnMouseDown(e => BeginPanelDrag(kind, root, owner, e));
+        // **外観のパネルは余白だけ掴める**（中身のスライダーと競合させない）
+        if (kind != AnnotationPanelKind.FormatBar)
+        {
+            root.OnMouseDown(e => BeginPanelDrag(kind, root, owner, e));
+        }
 
         // **別ウィンドウへ載せる**: ポップアップ（<see cref="Popup"/>）へ載せると、その中から開く
         // 色選択やカラーピッカーの**入れ子のポップアップが入力も描画も受け取れません**。
@@ -441,6 +444,13 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
                 ShowInTaskbar = false,
                 Title = kind == AnnotationPanelKind.FormatBar ? "書式バー" : "外観",
             };
+
+            // **書式バーは全域を掴める**: 移動の通知はウィンドウへ届くため（実測）、中身（ボタン・入力欄）の
+            // 上からでも動かせる。 窓は種別ごとに使い回すため、繋ぐのは作るときの 1 回だけにする
+            if (kind == AnnotationPanelKind.FormatBar)
+            {
+                window.OnMouseMove(e => ContinueBarDrag(kind, root, window, e));
+            }
 
             _windows[kind] = window;
         }
@@ -670,6 +680,61 @@ public sealed partial class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     {
         var origin = ToOverlayPoint(new Point(rect.X, rect.Y));
         return new EsRect(origin.X, origin.Y, rect.Width, rect.Height);
+    }
+
+    /// <summary>押していない間に見た書式バーの位置（根の座標の DIP）。 押した位置の代わりに使う。</summary>
+    /// <remarks>
+    /// <b>押下の通知からは取らない</b>: 押した位置は、押していないときの移動の位置で足りる。 MewUI の
+    /// 押下の通知は要素へ届かないが、移動の通知はウィンドウへ届く（実測）。
+    /// </remarks>
+    private EsPoint _restPosition;
+
+    /// <summary>OS の移動の仕組みが動いている間かどうか。</summary>
+    private bool _isBarDragging;
+
+    /// <summary>書式バーを押したまま動かしたら、OS の移動の仕組みで動かす（動きが閾値を超えてから）。</summary>
+    /// <param name="kind">パネルの種別。</param>
+    /// <param name="root">パネルの根。</param>
+    /// <param name="owner">重ねた先のウィンドウ。</param>
+    /// <param name="e">マウスの引数。</param>
+    /// <remarks>
+    /// <b>押下では動かさない</b>: 動きが <see cref="DragThreshold"/> を超えた時点で初めて動かす。 動かさなければ
+    /// 従来どおり項目の操作になる（OS の移動の仕組みは押下を項目から取り上げるため、クリックにならない）。
+    /// </remarks>
+    private void ContinueBarDrag(AnnotationPanelKind kind, Border root, Window owner, MouseEventArgs e)
+    {
+        var point = e.GetPosition(root);
+        var position = new EsPoint(point.X, point.Y);
+
+        // **押していない間の位置を覚える**: 押した位置はこの位置で表す（押下の通知は要素へ届かない）
+        if (!e.LeftButton)
+        {
+            _restPosition = position;
+            return;
+        }
+
+        if (_isBarDragging || !DragThreshold.IsExceeded(_restPosition, position))
+        {
+            return;
+        }
+
+        if (!_windows.TryGetValue(kind, out var window))
+        {
+            return;
+        }
+
+        // **押したウィンドウを有効にしてから動かす**: 有効でないウィンドウでは、押したままの
+        // 移動の通知が届かない（実測。 最初の 1 回だけ動かない）
+        _isBarDragging = true;
+        window.Activate();
+        window.DragMove();
+        _isBarDragging = false;
+
+        // **動かした位置をコアへ返す**: 位置はコアが決める（置ける領域へ収める）
+        MovePanel(kind, new EsPoint(
+            window.Position.X - owner.Position.X, window.Position.Y - owner.Position.Y));
+
+        _restPosition = position;
     }
 
     /// <summary>パネルの余白を掴んで動かす（余白を押したときだけ）。</summary>

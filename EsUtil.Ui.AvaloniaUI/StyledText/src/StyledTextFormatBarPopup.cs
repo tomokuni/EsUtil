@@ -1,7 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Input;
 
 namespace EsUtil.Ui.AvaloniaUI.StyledText;
 
@@ -13,8 +15,9 @@ namespace EsUtil.Ui.AvaloniaUI.StyledText;
 /// <b>出す条件は本文コントロールが単一所有する</b>: ホストがバーを置く場合と同じ判断
 /// （<see cref="StyledTextControl.ShouldShowFormatBar"/>）を使う。<br/>
 /// <b>バーは本文コントロールが所有する</b>: 本クラスは枠を作り、バーを載せ、位置を合わせるだけである。<br/>
-/// <b>パネルの余白を掴んで動かせる</b>: 中身（ボタン・入力欄）は押下を処理済みにするため、本クラスの
-/// ドラッグは余白と項目の間でだけ始まる（中身の操作を奪わない）。<br/>
+/// <b>バーのどこを掴んでも動かせる</b>: 余白だけでなく、ボタンや入力欄の上からでも動かせる。 ただし
+/// <b>動かしたときはクリックと見なさない</b>（<see cref="DragThreshold"/> を超えて動いた時点で押下を
+/// 項目から取り上げる）。 動かさなければ従来どおり項目の操作になる。<br/>
 /// <b>ウィンドウの中身は 1 度だけ決める</b>: バーは項目の変更で作り直されるため、そのたびに
 /// ウィンドウの中身を差し替えると要素の付け替えが重なって「既に親がある」で落ちる。 中身は変わらない根
 /// （<see cref="Border"/>）を 1 度だけ載せ、根の子だけを差し替える。<br/>
@@ -37,6 +40,9 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     /// </remarks>
     private EsPoint? _manualPosition;
 
+    /// <summary>押した位置（画面の物理ピクセル）。 ドラッグの開始の判定に使う。</summary>
+    private PixelPoint _pressCursorScreen;
+
     /// <summary>直前に見たポインターの位置（画面の物理ピクセル）。</summary>
     /// <remarks>
     /// <b>前回との差だけを使う</b>: ウィンドウを動かすと、動いた先で同じカーソル位置の通知がまた届く。
@@ -45,7 +51,10 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     /// </remarks>
     private PixelPoint _lastCursorScreen;
 
-    /// <summary>ドラッグ中かどうか。</summary>
+    /// <summary>押したままかどうか（まだドラッグが始まっていない押下を含む）。</summary>
+    private bool _pressed;
+
+    /// <summary>ドラッグ中かどうか（<see cref="DragThreshold"/> を超えて動いた後）。</summary>
     private bool _dragging;
 
     /// <summary>バーを載せる枠なしのウィンドウ（初回の表示で作る）。</summary>
@@ -161,12 +170,14 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         }
     }
 
-    /// <summary>パネルの余白を掴んで動かし始める。</summary>
+    /// <summary>バーを押した（まだドラッグは始めない）。</summary>
     /// <param name="sender">送信元。</param>
     /// <param name="e">ポインターの引数。</param>
     /// <remarks>
-    /// <b>中身の操作を奪わない</b>: ボタンや入力欄は押下を処理済みにするため、本ハンドラーは呼ばれない
-    /// （余白を掴んだときだけ動く）。
+    /// <b>押下では動かさない</b>: 押しただけで動かすと、ボタンの操作ができなくなる。 押した位置を覚えるだけで、
+    /// <b>動きが <see cref="DragThreshold"/> を超えた時点</b>で初めて動かす（<see cref="OnBarPointerMoved"/>）。<br/>
+    /// <b>処理済みの押下も受ける</b>: 中身（ボタン・入力欄）は押下を処理済みにするため、通常の購読では届かない。
+    /// バーの全域を掴めるようにするため、トンネル段階で処理済みも受ける。
     /// </remarks>
     private void OnBarPointerPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -176,28 +187,53 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
             return;
         }
 
-        _dragging = true;
+        // **項目の押下は妨げない**: ここでは処理済みにせず、捕捉もしない（ドラッグが始まるまで項目が使える）
+        _pressed = true;
+        _dragging = false;
+        _pressCursorScreen = GetCursorScreen(window, e);
+        _lastCursorScreen = _pressCursorScreen;
         _manualPosition ??= ResolveCurrentPosition(window);
-        _lastCursorScreen = GetCursorScreen(window, e);
-        e.Pointer.Capture(_root);
-        e.Handled = true;
     }
 
-    /// <summary>パネルをドラッグして動かす。</summary>
+    /// <summary>バーをドラッグして動かす（動きが閾値を超えてから）。</summary>
     /// <param name="sender">送信元。</param>
     /// <param name="e">ポインターの引数。</param>
     private void OnBarPointerMoved(object? sender, PointerEventArgs e)
     {
         _ = sender;
-        if (!_dragging || _window is not { } window || TopLevel.GetTopLevel(owner) is not Window main)
+        if (!_pressed || _window is not { } window || TopLevel.GetTopLevel(owner) is not Window main)
         {
             return;
         }
 
+        // ボタンを離した後の通知が来たら押下を終える（ウィンドウの外で離した場合に押したままにならない）
+        if (!e.GetCurrentPoint(_root).Properties.IsLeftButtonPressed)
+        {
+            EndPress();
+            return;
+        }
+
+        var scale = main.RenderScaling > 0 ? main.RenderScaling : 1;
+        var cursor = GetCursorScreen(window, e);
+
+        if (!_dragging)
+        {
+            var press = new EsPoint(_pressCursorScreen.X / scale, _pressCursorScreen.Y / scale);
+            var current = new EsPoint(cursor.X / scale, cursor.Y / scale);
+            if (!DragThreshold.IsExceeded(press, current))
+            {
+                return;
+            }
+
+            // **ドラッグが始まったら押下を項目から取り上げる**: 取り上げると項目は「押された」状態を
+            // 失うため、離してもクリックにならない（ドラッグをボタンの操作と見なさない）
+            _dragging = true;
+            e.Pointer.Capture(_root);
+            _lastCursorScreen = _pressCursorScreen;
+        }
+
         // **前回の位置との差だけ動かす**: ウィンドウが動くと、動いた先で同じカーソル位置の通知が
         // また届く。 開始位置からの差で動かすと、そのたびに余計に動いて増幅する。
-        var cursor = GetCursorScreen(window, e);
-        var scale = main.RenderScaling > 0 ? main.RenderScaling : 1;
         var delta = new EsPoint(
             (cursor.X - _lastCursorScreen.X) / scale,
             (cursor.Y - _lastCursorScreen.Y) / scale);
@@ -215,24 +251,41 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
         e.Handled = true;
     }
 
-    /// <summary>パネルのドラッグを終える。</summary>
+    /// <summary>バーを離した。</summary>
     /// <param name="sender">送信元。</param>
     /// <param name="e">ポインターの引数。</param>
+    /// <remarks>
+    /// <b>ドラッグはクリックと見なさない</b>: ドラッグ中だった場合は処理済みにして、項目の解放処理
+    /// （クリック）へ届かせない。<br/>
+    /// <b>処理済みの解放も受ける</b>: 項目が解放を処理済みにしても、押下の状態を確実に終える。
+    /// </remarks>
     private void OnBarPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         _ = sender;
-        if (!_dragging)
+        if (!_pressed)
         {
             return;
         }
 
-        _dragging = false;
+        var wasDragging = _dragging;
+        EndPress();
+
         if (ReferenceEquals(e.Pointer.Captured, _root))
         {
             e.Pointer.Capture(null);
         }
 
-        e.Handled = true;
+        if (wasDragging)
+        {
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>押下の状態を終える（ドラッグも終える）。</summary>
+    private void EndPress()
+    {
+        _pressed = false;
+        _dragging = false;
     }
 
     /// <summary>パネルの左上（アプリのウィンドウの DIP）を求める。</summary>
@@ -340,11 +393,17 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
 
         ApplyFrame(_root);
 
-        // **余白を掴んで動かせるようにする**: 中身（ボタン・入力欄）は押下を処理済みにするため、
-        // 本ハンドラーは余白を掴んだときだけ呼ばれる
-        _root.PointerPressed += OnBarPointerPressed;
-        _root.PointerMoved += OnBarPointerMoved;
-        _root.PointerReleased += OnBarPointerReleased;
+        // **バーのどこを掴んでも動かせるようにする**: 中身（ボタン・入力欄）は押下を処理済みにするため、
+        // 通常の購読では届かない。 トンネル段階で処理済みも受け、動かしたときだけドラッグとする
+        _root.AddHandler(
+            InputElement.PointerPressedEvent, OnBarPointerPressed,
+            RoutingStrategies.Tunnel, handledEventsToo: true);
+        _root.AddHandler(
+            InputElement.PointerMovedEvent, OnBarPointerMoved,
+            RoutingStrategies.Tunnel, handledEventsToo: true);
+        _root.AddHandler(
+            InputElement.PointerReleasedEvent, OnBarPointerReleased,
+            RoutingStrategies.Tunnel, handledEventsToo: true);
 
         _window = new Window
         {

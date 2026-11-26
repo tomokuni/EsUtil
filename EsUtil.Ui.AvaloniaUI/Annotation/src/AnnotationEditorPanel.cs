@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using EsUtil.Platform.Core.Geometry;
+using EsUtil.Platform.Core.Input;
 using EsUtil.Platform.Core.Palette;
 using EsUtil.Feature.Annotation.Logging;
 using EsUtil.Feature.Annotation.Presenter.Panel;
@@ -64,7 +65,14 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
 
 
     /// <summary>ドラッグ中のパネルの根（押下を受けた要素）。</summary>
+    /// <summary>押したままのパネルの根（まだドラッグが始まっていない押下を含む）。</summary>
+    private Border? _pressedRoot;
+
+    /// <summary>ドラッグ中のパネルの根（<see cref="DragThreshold"/> を超えて動いた後）。</summary>
     private Border? _draggingRoot;
+
+    /// <summary>押した位置（重ねた先の座標の DIP）。 ドラッグの開始の判定に使う。</summary>
+    private EsPoint _pressPosition;
 
     /// <summary>外側の押下を監視している最上位（繋ぎ直しの判定に使う）。</summary>
     private TopLevel? _hookedTop;
@@ -463,10 +471,17 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
             appearance.Padding, appearance.VerticalPadding,
             appearance.Padding, appearance.VerticalPadding);
 
-        // 余白（中身の無いところ）を押したまま動かすとパネルが動く
-        root.PointerPressed += (_, e) => BeginPanelDrag(kind, root, e);
-        root.PointerMoved += (_, e) => ContinuePanelDrag(kind, root, e);
-        root.PointerReleased += (_, e) => EndPanelDrag(kind, e);
+        // **パネルのどこを掴んでも動かせる**: 中身（ボタン・入力欄）は押下を処理済みにするため、
+        // 通常の購読では届かない。 トンネル段階で処理済みも受け、動かしたときだけドラッグとする
+        root.AddHandler(
+            PointerPressedEvent, (_, e) => BeginPanelDrag(kind, root, e),
+            RoutingStrategies.Tunnel, handledEventsToo: true);
+        root.AddHandler(
+            PointerMovedEvent, (_, e) => ContinuePanelDrag(kind, root, e),
+            RoutingStrategies.Tunnel, handledEventsToo: true);
+        root.AddHandler(
+            PointerReleasedEvent, (_, e) => EndPanelDrag(kind, e),
+            RoutingStrategies.Tunnel, handledEventsToo: true);
 
         // **別ウィンドウへ載せる**: ポップアップ（<see cref="Popup"/>）の子にすると、書式バーの列が
         // 潰れて中身（色・大きさ・フォント）が欠ける。 枠なしのウィンドウなら
@@ -782,32 +797,41 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     }
 
 
-    /// <summary>パネルのドラッグを始める（余白を押したときだけ）。</summary>
+    /// <summary>パネルを押した（まだドラッグは始めない）。</summary>
     /// <param name="kind">パネルの種別。</param>
     /// <param name="root">パネルの根。</param>
     /// <param name="e">押下の引数。</param>
+    /// <remarks>
+    /// <b>押下では動かさない</b>: 押しただけで動かすと、ボタンの操作ができなくなる。 押した位置を覚えるだけで、
+    /// <b>動きが <see cref="DragThreshold"/> を超えた時点</b>で初めて動かす（<see cref="ContinuePanelDrag"/>）。
+    /// </remarks>
     private void BeginPanelDrag(AnnotationPanelKind kind, Border root, PointerPressedEventArgs e)
     {
-        // 中身（ボタン・入力欄）の押下では動かさない（操作を奪わない）。
-        // 余白（中身の無い面・ラベル）の押下は動かす（根そのものを押すとは限らない）。
-        if (IsInteractiveSource(e.Source, root)
-            || !e.GetCurrentPoint(root).Properties.IsLeftButtonPressed)
+        _ = kind;
+        if (!e.GetCurrentPoint(root).Properties.IsLeftButtonPressed)
         {
             return;
         }
 
-        _draggingRoot = root;
-        Controller(kind).BeginDrag(ToOverlayPoint(e.GetPosition(this)));
-        e.Pointer.Capture(root);
-        e.Handled = true;
+        // **書式バーは全域を掴める**: ボタンや入力欄の上からでも動かせる（動かしたときだけ動かす）。
+        // **外観のパネルは余白だけ**: 中身にはスライダーがあり、ドラッグが値の変更と競合する
+        if (kind != AnnotationPanelKind.FormatBar && IsInteractiveSource(e.Source, root))
+        {
+            return;
+        }
+
+        // **項目の押下は妨げない**: ここでは処理済みにせず、捕捉もしない（ドラッグが始まるまで項目が使える）
+        _pressedRoot = root;
+        _draggingRoot = null;
+        _pressPosition = ToOverlayPoint(e.GetPosition(this));
     }
 
-    /// <summary>押下の発生元が操作可能な要素かどうかを判定する（パネルのドラッグ可否）。</summary>
+    /// <summary>押下の発生元が操作可能な要素かどうかを判定する（外観パネルのドラッグ可否）。</summary>
     /// <param name="source">押下の発生元。</param>
     /// <param name="root">パネルの根。</param>
     /// <returns>操作可能な要素（フォーカスを持つ要素）から始まった場合は <see langword="true"/>。</returns>
     /// <remarks>
-    /// <b>根そのものを押すとは限らない</b>: 書式バーの余白やラベルを押すと発生元は子要素になる。
+    /// <b>根そのものを押すとは限らない</b>: パネルの余白やラベルを押すと発生元は子要素になる。
     /// 発生元がフォーカスを持つ要素（ボタン・入力欄・一覧など）のときだけドラッグを止める。
     /// </remarks>
     private static bool IsInteractiveSource(object? source, Border root)
@@ -948,12 +972,34 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <param name="e">ポインターの引数。</param>
     private void ContinuePanelDrag(AnnotationPanelKind kind, Border root, PointerEventArgs e)
     {
-        if (!ReferenceEquals(_draggingRoot, root))
+        if (!ReferenceEquals(_pressedRoot, root))
         {
             return;
         }
 
-        Controller(kind).DragTo(ToOverlayPoint(e.GetPosition(this)));
+        // ボタンを離した後の通知が来たら押下を終える（パネルの外で離した場合に押したままにならない）
+        if (!e.GetCurrentPoint(root).Properties.IsLeftButtonPressed)
+        {
+            EndPress(kind);
+            return;
+        }
+
+        var position = ToOverlayPoint(e.GetPosition(this));
+        if (_draggingRoot is null)
+        {
+            if (!DragThreshold.IsExceeded(_pressPosition, position))
+            {
+                return;
+            }
+
+            // **ドラッグが始まったら押下を項目から取り上げる**: 取り上げると項目は「押された」状態を
+            // 失うため、離してもクリックにならない（ドラッグをボタンの操作と見なさない）
+            _draggingRoot = root;
+            Controller(kind).BeginDrag(_pressPosition);
+            e.Pointer.Capture(root);
+        }
+
+        Controller(kind).DragTo(position);
         e.Handled = true;
     }
 
@@ -962,10 +1008,32 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <param name="e">ポインターの引数。</param>
     private void EndPanelDrag(AnnotationPanelKind kind, PointerReleasedEventArgs e)
     {
-        _draggingRoot = null;
-        Controller(kind).EndDrag();
+        if (_pressedRoot is null)
+        {
+            return;
+        }
+
+        var wasDragging = _draggingRoot is not null;
+        EndPress(kind);
         e.Pointer.Capture(null);
-        e.Handled = true;
+
+        if (wasDragging)
+        {
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>押下の状態を終える（ドラッグも終える）。</summary>
+    /// <param name="kind">パネルの種別。</param>
+    private void EndPress(AnnotationPanelKind kind)
+    {
+        if (_draggingRoot is not null)
+        {
+            Controller(kind).EndDrag();
+        }
+
+        _pressedRoot = null;
+        _draggingRoot = null;
     }
 
     /// <summary>種別ごとのコントローラーを取得する。</summary>
