@@ -70,9 +70,6 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
     /// <summary>書式バーに出す項目の組み合わせ。</summary>
     private readonly TextFormatBarItemVisibility _items;
 
-    /// <summary>代表色の列数（■ を何列で並べるか）。</summary>
-    private readonly int _paletteColumns = 8;
-
     /// <summary>色の選択の幅（DIP。 <see cref="ResolveColorSelectorWidth"/> が決める）。</summary>
     private readonly double _colorWidth;
 
@@ -108,7 +105,6 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
         _options = options ?? new StyledTextFormatBarOptions();
         _fonts = _options.Fonts;
         _items = _options.Items;
-        _paletteColumns = _options.PaletteColumns;
         _colorWidth = ResolveColorSelectorWidth(_options.MeasureText);
         // バーは本文と同じ画面の子として重ねるが、バーへフォーカスが移ると本文のキー操作が止まる。
         // 本文の編集キー（カーソル移動・Shift+矢印の選択など）は本文へ転送する。
@@ -154,14 +150,12 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
         _size.ValueChanged += (_, _) => ApplySize();
         ToolTip.SetTip(_size, "大きさ");
 
-        _color = new ColorSelectorControl
-        {
-            Width = _colorWidth,
-            HighlightBorderOnError = true,
-        };
+        _color = (_options.CreateColorInput ?? CreateDefaultColorInput)(
+            TextDefaults.DefaultStyle.Color.ToHexText(), _options.TextFormat);
 
-        // **タブは「代表色」と「ColorPicker」の 2 つ**（規則は提示層の AnnotationPaletteCatalog が単一所有する）
-        ConfigurePalette();
+        // **幅はバーが決める**: 置く位置の計算（PreferredWidth）と同じ幅にする（主の幅が違うと切れる）
+        _color.Width = _colorWidth;
+        _color.HighlightBorderOnError = true;
         _color.PropertyChanged += (_, e) =>
         {
             if (e.Property == ColorSelectorControl.SelectedColorProperty)
@@ -266,8 +260,18 @@ public sealed class StyledTextFormatBar : Border, IStyledTextFormatBar
         return width > 0 ? width : ColorSelectorWidthFallback;
     }
 
-    /// <summary>代表色のタブを色の選択へ反映する。</summary>
-    private void ConfigurePalette() => _options.ConfigureColorSelector?.Invoke(_color, _paletteColumns);
+    /// <summary>既定の色の入力を作る（標準のタブだけの色選択）。</summary>
+    /// <param name="color">現在の色（<c>#AARRGGBB</c>）。</param>
+    /// <param name="textFormat">入力欄の表記。</param>
+    /// <returns>色の選択。</returns>
+    private ColorSelectorControl CreateDefaultColorInput(string color, ColorTextFormat textFormat)
+        => new()
+        {
+            SelectedColor = color,
+            TextFormat = textFormat,
+            Width = _colorWidth,
+            HighlightBorderOnError = true,
+        };
 
     /// <summary>現在の書式を表示へ反映する（選択範囲の先頭の書式）。</summary>
     /// <remarks>

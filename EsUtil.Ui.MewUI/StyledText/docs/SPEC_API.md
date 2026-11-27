@@ -76,6 +76,6 @@
 | `SetKeyHandler(forward)` / `SetFocusRequest(request)` | バーがフォーカスを持つ間のキー転送と、操作後に本文へフォーカスを戻す処理（**4 つの UI 版で同じ挙動**。 バー内の入力欄では転送しない） |
 | `ITextFormatBarContext`（計算層） | バーが書式を読み書きする相手（`SelectedTextStyle` / `SelectedTextMatches` / `TransformStyle` / `ApplyStyle` / `HasSelection`）。 ホストが自分の編集状態へつなぐ |
 | `StyledTextFormatBarContext` | `StyledTextControl` をバーの相手にする既定の接続（ホストはバーを作るときにこれを渡すだけでよい） |
-| `StyledTextFormatBarOptions` | フォントの一覧・色の選択（`ConfigureColorSelector` / `CreateColorButton` / `CreateColorSelector`）・色の表記・出す項目（`Items`。 非表示の項目は詰めて並べる） |
+| `StyledTextFormatBarOptions` | フォントの一覧・色の入力を作る処理（`CreateColorInput`）・色の表記・出す項目（`Items`。 非表示の項目は詰めて並べる） |
 
 **差し替えの入口**: ホストは `IStyledTextFormatBarFactory` を実装し、`IStyledTextFormatBar`（`View` / `Refresh` / `TextFormat` / キーとフォーカスの設定）を返します。 既定は `StyledTextFormatBarFactory`（組み込みのバー）です。 差し替えはバーを出す前に行います（表示中の入れ替えは位置と操作の対象が食い違うため）。

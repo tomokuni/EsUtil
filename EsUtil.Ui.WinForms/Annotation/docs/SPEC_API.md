@@ -68,7 +68,7 @@ WinForms 版の注釈レイヤーが公開する API の一覧です。 操作�
 
 | メンバー | 説明 |
 | --- | --- |
-| `RepresentativeColors` | 代表色（色名と色） |
+| `RepresentativeColors` | 代表色（`IReadOnlyList<AnnotationPaletteColor>`（色名と保存値 `#AARRGGBB`）。 色へ変換するのは使う側） |
 
 ## 4. 書式バー（`StyledTextFormatBar`）
 

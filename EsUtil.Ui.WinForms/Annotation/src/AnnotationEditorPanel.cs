@@ -276,7 +276,7 @@ public sealed class AnnotationEditorPanel : UserControl, IAnnotationPanelHost
     /// <remarks>出す項目は <see cref="FormatBarItems"/>、色の表記は <see cref="ColorTextFormat"/> が決める（本値の <c>Items</c> と <c>TextFormat</c> は使わない）。</remarks>
     public StyledTextFormatBarOptions FormatBarOptions { get; } = new()
     {
-        CreateColorButton = (color, apply) => AnnotationEditorControls.ColorButton(color, apply),
+        CreateColorInput = (color, apply) => AnnotationEditorControls.ColorButton(color, apply),
     };
 
     /// <summary>書式バーに出す項目の組み合わせを取得または設定する。</summary>

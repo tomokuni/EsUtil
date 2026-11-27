@@ -311,8 +311,12 @@ public sealed class AnnotationEditorPanel : Panel, IAnnotationPanelHost
     /// <remarks>出す項目は <see cref="FormatBarItems"/>、色の表記は <see cref="ColorTextFormat"/> が決める（本値の <c>Items</c> と <c>TextFormat</c> は使わない）。</remarks>
     public StyledTextFormatBarOptions FormatBarOptions { get; } = new()
     {
-        ConfigureColorSelector = (selector, columns) => AnnotationPalette.Configure(selector, columns, showPicker: true),
-        PaletteColumns = AnnotationPalette.DefaultPaletteColumns,
+        // 色の選択は代表色のタブを持つ（構成は AnnotationEditorControls.CreateSelector が単一所有する）
+        CreateColorInput = (color, textFormat) => AnnotationEditorControls.CreateSelector(
+            EsUtil.Platform.Core.Imaging.DrawingColorExtensions.TryParseHexText(color, out var parsed)
+                ? parsed
+                : EsUtil.Feature.StyledText.Core.Defaults.TextDefaults.DefaultStyle.Color,
+            textFormat: textFormat),
         MeasureText = AnnotationPainter.Measure,
     };
 

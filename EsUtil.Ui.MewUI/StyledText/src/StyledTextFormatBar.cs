@@ -124,12 +124,12 @@ public sealed class StyledTextFormatBar : ContentControl, IStyledTextFormatBar
         _size.Value = TextDefaults.FontSizeDefault;
         _size.OnValueChanged(_ => ApplySize());
 
-        _color = new ColorSelectorControl
-        {
-            Width = ColorSelectorWidth,
-            HighlightBorderOnError = true,
-        };
-        _options.ConfigureColorSelector?.Invoke(_color, _options.PaletteColumns);
+        _color = (_options.CreateColorInput ?? CreateDefaultColorInput)(
+            TextDefaults.DefaultStyle.Color.ToHexText(), _options.TextFormat);
+
+        // **幅はバーが決める**: 置く位置の計算（PreferredWidth）と同じ幅にする（主の幅が違うと切れる）
+        _color.Width = ColorSelectorWidth;
+        _color.HighlightBorderOnError = true;
         _color.SelectedColorChanged += (_, _) => ApplyColor();
 
         // 高さはコア（TextFormatBarLayout）が単一所有する。 項目ごとに高さが違うと縦位置が揃わない
@@ -286,6 +286,18 @@ public sealed class StyledTextFormatBar : ContentControl, IStyledTextFormatBar
         set => _color.TextFormat = value;
     }
 
+    /// <summary>既定の色の入力を作る（標準のタブだけの色選択）。</summary>
+    /// <param name="color">現在の色（<c>#AARRGGBB</c>）。</param>
+    /// <param name="textFormat">入力欄の表記。</param>
+    /// <returns>色の選択。</returns>
+    private static ColorSelectorControl CreateDefaultColorInput(string color, ColorTextFormat textFormat)
+        => new()
+        {
+            SelectedColor = color,
+            TextFormat = textFormat,
+            Width = ColorSelectorWidth,
+            HighlightBorderOnError = true,
+        };
     /// <summary>現在の書式を表示へ反映する（選択範囲の先頭の書式）。</summary>
     /// <remarks>
     /// <b>文字を選んでいなくても操作できる</b>: 選択が無いときに選んだ書式は、以降の入力へ効く

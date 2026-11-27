@@ -83,7 +83,7 @@ MewUI 版の注釈レイヤーが公開する API の一覧です。 操作と�
 
 | メンバー | 説明 |
 | --- | --- |
-| `RepresentativeColors` | 代表色（40 色） |
+| `RepresentativeColors` | 代表色（40 色。 `IReadOnlyList<AnnotationPaletteColor>`（色名と保存値 `#AARRGGBB`）） |
 | `CreatePaletteTab(columns)` | ■ だけを並べた「代表色」のタブ |
 | `Configure(selector, ...)` / `ConfigureAll(selector, ...)` | 出すタブの選択（書式バーはテーマ・色名を出さず、設定画面はすべて出す） |
 

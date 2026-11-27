@@ -1,4 +1,3 @@
-using EsUtil.Platform.Core.Imaging;
 using EsUtil.Feature.Annotation.Presenter.Editor;
 
 namespace EsUtil.Ui.WinForms.Annotation;
@@ -10,22 +9,8 @@ namespace EsUtil.Ui.WinForms.Annotation;
 /// </remarks>
 public static class AnnotationPalette
 {
-    /// <summary>代表色の並び（色名と色）を取得する。</summary>
-    public static IReadOnlyList<(string Name, Color Value)> RepresentativeColors { get; } = Build();
-
-    /// <summary>コアの定義（色名と保存値）から色を作る。</summary>
-    /// <returns>代表色の並び。</returns>
-    private static IReadOnlyList<(string Name, Color Value)> Build()
-    {
-        var colors = new List<(string, Color)>(AnnotationPaletteCatalog.RepresentativeColors.Count);
-        foreach (var entry in AnnotationPaletteCatalog.RepresentativeColors)
-        {
-            if (DrawingColorExtensions.TryParseHexText(entry.Value, out var color))
-            {
-                colors.Add((entry.Name, color));
-            }
-        }
-
-        return colors;
-    }
+    /// <summary>代表色の並び（色名と保存値 <c>#AARRGGBB</c>）を取得する。</summary>
+    /// <remarks>色へ変換するのは使う側（メニューの項目を作るとき）である。</remarks>
+    public static IReadOnlyList<AnnotationPaletteColor> RepresentativeColors { get; } =
+        AnnotationPaletteCatalog.RepresentativeColors;
 }

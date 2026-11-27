@@ -86,9 +86,14 @@ internal static class AnnotationEditorControls
     private static void ShowColorMenu(Button owner, Color current, Action<Color> apply)
     {
         var menu = new ContextMenuStrip { ShowImageMargin = false };
-        foreach (var (name, value) in AnnotationPalette.RepresentativeColors)
+        foreach (var entry in AnnotationPalette.RepresentativeColors)
         {
-            var item = new ToolStripMenuItem(name) { BackColor = value };
+            if (!EsUtil.Platform.Core.Imaging.DrawingColorExtensions.TryParseHexText(entry.Value, out var value))
+            {
+                continue;
+            }
+
+            var item = new ToolStripMenuItem(entry.Name) { BackColor = value };
             item.Click += (_, _) =>
             {
                 owner.BackColor = value;

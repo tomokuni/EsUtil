@@ -111,7 +111,7 @@ public sealed class StyledTextFormatBar : Panel, IStyledTextFormatBar
         _size = StyledTextFormatBarControls.NumberBox(
             TextDefaults.FontSizeDefault, 6, 512,
             value => ApplyFull(style => style with { FontSize = value }));
-        _color = (_options.CreateColorButton ?? CreateDefaultColorButton)(
+        _color = (_options.CreateColorInput ?? CreateDefaultColorButton)(
             TextDefaults.DefaultStyle.Color, color => ApplyFull(style => style with { Color = color }));
 
         // 並び順はコア（TextFormatBarLayout.Order）が単一所有する。

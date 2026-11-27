@@ -176,7 +176,7 @@ public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFor
             ApplyFull(style => style with { FontSize = e.NewValue });
         };
 
-        _color = (_options.CreateColorSelector ?? CreateDefaultSelector)(
+        _color = (_options.CreateColorInput ?? CreateDefaultSelector)(
             TextDefaults.DefaultStyle.Color.ToHexText(), ColorTextFormat.NameWithAlpha);
         _color.SelectedColorChanged += (_, _) =>
         {

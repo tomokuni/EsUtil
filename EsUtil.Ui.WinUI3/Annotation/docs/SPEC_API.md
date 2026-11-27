@@ -68,7 +68,7 @@ WinUI 3 版の注釈レイヤーが公開する API の一覧です。 操作と
 
 | メンバー | 説明 |
 | --- | --- |
-| `RepresentativeColors` | 代表色（40 色） |
+| `RepresentativeColors` | 代表色（40 色。 `IReadOnlyList<AnnotationPaletteColor>`（色名と保存値 `#AARRGGBB`）） |
 | `CreatePaletteTab(columns)` | 書式バー用の「代表色」のタブ（ColorPicker は別のフラグで出す） |
 | `Configure(selector, ...)` / `ConfigureAll(selector, ...)` | 出すタブの選択 |
 

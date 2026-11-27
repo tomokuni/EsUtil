@@ -133,12 +133,12 @@
 
 | メンバー | 種別 | 説明 |
 | --- | --- | --- |
-| `RepresentativeColors` | property | 代表色の並び（`IReadOnlyList<ColorSelectorCustomColor>`。 無彩色 → 赤系 → 橙・黄系 → 緑系 → 青系 → 紫・桃系の順。 40 色すべて異なる値） |
+| `RepresentativeColors` | property | 代表色の並び（`IReadOnlyList<AnnotationPaletteColor>`。 色名と保存値 `#AARRGGBB`。 無彩色 → 赤系 → 橙・黄系 → 緑系 → 青系 → 紫・桃系の順。 40 色すべて異なる値） |
 | `DefaultPaletteColumns` | const | 代表色の既定の列数（8。 40 色なら 8 列 × 5 行） |
 | `PaletteTabTitle` | const | タブの題名（`代表色`） |
 | `CreatePaletteTab(columns)` | method | ■ だけを指定した列数で並べるタブの定義を作る |
 | `ConfigureAll(selector, columns)` | method | 色の選択を「代表色 + テーマカラー・色名・ColorPicker」の構成にする（設定画面向け） |
-| `GetHex(name)` / `TryGetColor(name, out color)` | method | 色名から保存値（`#AARRGGBB`）・色を取得する |
+| `Configure(selector, columns, showPicker)` | method | 色の選択を「代表色（+ ColorPicker）」の構成にする（注釈の画面向け） |
 
 - **書式バー・右クリックのフライアウト・設定ペインが同じ並びを使います**（画面ごとに色が違わない）。
 - 色の選択の入力欄は**「■ + 色名」**（現在色の四角 + 色名）で表示します。

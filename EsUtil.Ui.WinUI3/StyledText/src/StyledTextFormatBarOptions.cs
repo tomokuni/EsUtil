@@ -19,9 +19,10 @@ public sealed record StyledTextFormatBarOptions
     /// <value>既定は代表的なフォント（<see cref="StyledTextFonts.All"/>）。</value>
     public IReadOnlyList<string> Fonts { get; init; } = StyledTextFonts.All;
 
-    /// <summary>色の選択を作る処理を取得または設定する。</summary>
-    /// <value>現在の色と表記を受け取る処理。 設定しない場合は標準のタブだけの色選択を使う。</value>
-    public Func<string, ColorTextFormat, ColorSelectorControl>? CreateColorSelector { get; init; }
+    /// <summary>色の入力を作る処理を取得または設定する。</summary>
+    /// <value>現在の色（<c>#AARRGGBB</c>）と表記を受け取る処理。 設定しない場合は標準のタブだけの色選択を作る。</value>
+    /// <remarks>代表色のタブなどを出す場合は、構成した色の選択を返す（構成はホストが決める）。</remarks>
+    public Func<string, ColorTextFormat, ColorSelectorControl>? CreateColorInput { get; init; }
 
     /// <summary>色の入力欄へ出す表記を取得または設定する。</summary>
     public ColorTextFormat TextFormat { get; init; } = ColorTextFormat.NameWithAlpha;

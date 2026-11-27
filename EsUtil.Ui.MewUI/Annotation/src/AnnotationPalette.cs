@@ -17,19 +17,17 @@ public static class AnnotationPalette
     public const string PaletteTabTitle = AnnotationPaletteCatalog.PaletteTabTitle;
 
     /// <summary>代表色の並び（色名と保存値 <c>#AARRGGBB</c>）。</summary>
-    /// <remarks>
-    /// 無彩色 → 赤系 → 橙・黄系 → 緑系 → 青系 → 紫・桃系の順に並べる（同じ系統の色を続けて選びやすくする）。
-    /// 値は 40 色すべて異なる。
-    /// </remarks>
-    /// <summary>代表色の並び（色名と保存値 <c>#AARRGGBB</c>）。</summary>
     /// <remarks>定義はコアが単一所有する（<see cref="AnnotationPaletteCatalog.RepresentativeColors"/>）。</remarks>
-    public static IReadOnlyList<ColorSelectorCustomColor> RepresentativeColors { get; } =
-        [.. AnnotationPaletteCatalog.RepresentativeColors.Select(color => new ColorSelectorCustomColor(color.Name, color.Value))];
+    public static IReadOnlyList<AnnotationPaletteColor> RepresentativeColors { get; } =
+        AnnotationPaletteCatalog.RepresentativeColors;
     /// <summary>代表色のタブ（■ だけを指定した列数で並べる）を作る。</summary>
     /// <param name="columns">■ の列数（1 以上。 既定は <see cref="DefaultPaletteColumns"/>）。</param>
     /// <returns>■ だけの格子のタブ。</returns>
     public static ColorSelectorCustomTab CreatePaletteTab(int columns = DefaultPaletteColumns)
-        => new(PaletteTabTitle, RepresentativeColors, Math.Max(1, columns));
+        => new(
+            PaletteTabTitle,
+            [.. RepresentativeColors.Select(color => new ColorSelectorCustomColor(color.Name, color.Value))],
+            Math.Max(1, columns));
 
     /// <summary>色の選択を注釈向けの構成にする（「代表色」と「ColorPicker」のタブだけを出す）。</summary>
     /// <param name="selector">構成する色の選択。</param>

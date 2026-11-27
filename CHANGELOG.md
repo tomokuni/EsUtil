@@ -9,6 +9,11 @@
 
 ### 破壊的な変更
 
+- **書式バーの色の入力を差し替えるメンバーを 4 つの UI 版とも `CreateColorInput` にしました**（従来は AvaloniaUI / MewUI が `ConfigureColorSelector` + `PaletteColumns`、WinUI 3 が `CreateColorSelector`、WinForms が `CreateColorButton`。 同じ役割に 4 つの名前があり、UI を替えると読み替えが要りました）。 AvaloniaUI / MewUI は「作って構成する」から「作る」へ変わりました（構成は返す処理の中で行う。 代表色の列数はホストが自分で決める）。
+- **`AnnotationPalette.RepresentativeColors` を 4 つの UI 版とも `IReadOnlyList<AnnotationPaletteColor>`（コアの型）にしました**（AvaloniaUI / MewUI / WinUI 3 は `ColorSelectorCustomColor`、WinForms は `(string Name, Color Value)` と、同じ役割で型が 3 通りありました）。 色の選択用の型への変換は `CreatePaletteTab` が行い、WinForms は色へ変換してからメニューへ並べます。
+- **`AnnotationPalette.Configure` を AvaloniaUI でも公開しました**（MewUI / WinUI 3 と同じ公開面にする）。
+- **AvaloniaUI の `AnnotationPalette.GetHex` / `TryGetColor` を削除しました**（コアの `AnnotationPaletteCatalog` と同じ実装の重複で、利用箇所がありませんでした）。
+
 - **注釈の外観・しっぽの変更を `TransformSelectedAppearance` / `TransformSelectedTail` に改名しました**（`AnnotationEditSession` と 4 つの UI 版の `AnnotationLayerControl`）。 関数を受け取って新しい値を返す操作は `TransformStyle` と同じ語に揃えます（同じ役割に同じ名前を使う）。
 - **`AnnotationLayerControl.SetPreviewImageRect(rect)` を削除し、`PreviewImageRect` を取得または設定できるプロパティにしました**（4 つの UI 版）。 同じ値を取得するプロパティと設定するメソッドを並べないためです。
 - **AvaloniaUI の `AnnotationLayerControl.Source` を `EsReadOnlyBitmap?` にしました**（従来は `IImage?`）。 拡大元・切り出し元の画像を 4 つの UI 版で同じ契約にするためです（`EsUtil/README.md` §5）。 表示境界の画像しか持たないホストは、コアの画像へ変換してから設定します。
