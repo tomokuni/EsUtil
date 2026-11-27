@@ -244,12 +244,6 @@ public sealed class ThumbnailControl : ScrollableControl
     public ThumbnailRange VisibleRange
         => EnsureLayout().VisibleRange(-AutoScrollPosition.Y, ClientSize.Height);
 
-    /// <summary>最後に解決した配置を取得する。</summary>
-    /// <value>一覧の配置。 未レイアウトの場合は <see langword="null"/>。</value>
-    /// <remarks>外枠の矩形・可視範囲はこの配置から引く（配置を 2 度解かない）。</remarks>
-    [Browsable(false)]
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public new ThumbnailLayoutResult? Layout => _layout;
 
     /// <summary>項目の外枠の矩形（内容の座標）を取得する。</summary>
     /// <param name="index">項目の添字。</param>
