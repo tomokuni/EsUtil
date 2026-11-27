@@ -13,7 +13,7 @@ namespace EsUtil.Ui.WinUI3.StyledText;
 /// <b>UI スレッドから呼ぶ</b>: 測定はツリー外の <see cref="TextBlock"/> を作るため、XAML の UI スレッドで行う。<br/>
 /// <b>行の高さは斜体で変えない</b>: 行の高さは斜体を外した書式で測る（UI 版で同じ規則）。
 /// </remarks>
-public static class RichTextMetrics
+internal static class RichTextPainter
 {
     /// <summary>測定に使う要素（初回に生成して使い回す）。</summary>
     private static TextBlock? s_probe;

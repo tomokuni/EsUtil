@@ -65,7 +65,7 @@ public sealed partial class StyledTextFormatBar : ContentControl, IStyledTextFor
     /// 同じ表記でもバーの長さが変わる）。
     /// </remarks>
     private static readonly double ColorSelectorWidth =
-        TextFormatBarLayout.ResolveColorSelectorWidth(RichTextMetrics.Measure);
+        TextFormatBarLayout.ResolveColorSelectorWidth(RichTextPainter.Measure);
 
     /// <summary>通知による更新中かどうか（利用者の操作と区別する）。</summary>
     private bool _refreshing;

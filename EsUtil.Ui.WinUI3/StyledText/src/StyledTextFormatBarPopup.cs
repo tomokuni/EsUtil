@@ -30,8 +30,8 @@ internal sealed class StyledTextFormatBarPopup(StyledTextControl owner)
     /// <summary>バーの入れ物（ポップアップの中身。 1 度だけ載せる）。 枠と余白は外観が決める。</summary>
     private readonly Border _root = new()
     {
-        Background = RichTextMetrics.ToBrush(s_appearance.Background),
-        BorderBrush = RichTextMetrics.ToBrush(s_appearance.Border),
+        Background = RichTextPainter.ToBrush(s_appearance.Background),
+        BorderBrush = RichTextPainter.ToBrush(s_appearance.Border),
         BorderThickness = new Thickness(s_appearance.BorderThickness),
         CornerRadius = new CornerRadius(s_appearance.CornerRadius),
         Padding = new Thickness(

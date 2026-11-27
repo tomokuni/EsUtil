@@ -250,8 +250,8 @@ public sealed partial class AnnotationLayerControl : Grid
     /// <param name="text">文字列。</param>
     /// <param name="style">書式。</param>
     /// <returns>実寸（元画像ピクセル）。</returns>
-    /// <remarks>文字を置く要素と同じエンジンで測る（<c>StyledText.RichTextMetrics.Measure</c>）。</remarks>
-    private static EsSize MeasureText(string text, TextStyle style) => StyledText.RichTextMetrics.Measure(text, style);
+    /// <remarks>文字を置く要素と同じエンジンで測る（<c>StyledText.RichTextPainter.Measure</c>）。</remarks>
+    private static EsSize MeasureText(string text, TextStyle style) => StyledText.RichTextPainter.Measure(text, style);
 
     /// <summary>文書・保存形式・ログの入口（本コントロールが使う唯一のファサード）を取得する。</summary>
     /// <value>本コントロールとロガーを共有するファサード。</value>

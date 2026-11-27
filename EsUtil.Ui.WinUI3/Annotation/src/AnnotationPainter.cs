@@ -65,8 +65,8 @@ internal static class AnnotationPainter
         Func<string, TextStyle, EsSize> measureText)
     {
         ArgumentNullException.ThrowIfNull(measureText);
-        var stroke = StyledText.RichTextMetrics.ToBrush(shape.Border);
-        var fill = shape.HasFill ? StyledText.RichTextMetrics.ToBrush(shape.Fill) : null;
+        var stroke = StyledText.RichTextPainter.ToBrush(shape.Border);
+        var fill = shape.HasFill ? StyledText.RichTextPainter.ToBrush(shape.Fill) : null;
         var thickness = Math.Max(0.5, shape.BorderThickness * scale);
 
         // しっぽは本体より先に置く（本体の塗りと枠線が付け根を隠す）
@@ -114,9 +114,9 @@ internal static class AnnotationPainter
         {
             foreach (var segment in line.Segments)
             {
-                var text = StyledText.RichTextMetrics.CreateText(segment, scale);
+                var text = StyledText.RichTextPainter.CreateText(segment, scale);
                 Canvas.SetLeft(text, (segment.Bounds.X * scale) + offsetX);
-                Canvas.SetTop(text, (StyledText.RichTextMetrics.ResolveTextTop(line, segment) * scale) + offsetY);
+                Canvas.SetTop(text, (StyledText.RichTextPainter.ResolveTextTop(line, segment) * scale) + offsetY);
                 canvas.Children.Add(text);
             }
         }
@@ -142,7 +142,7 @@ internal static class AnnotationPainter
 
         canvas.Children.Clear();
 
-        var border = StyledText.RichTextMetrics.ToBrush(borderColor);
+        var border = StyledText.RichTextPainter.ToBrush(borderColor);
         foreach (var rect in borderRects)
         {
             var line = new Rectangle
@@ -161,8 +161,8 @@ internal static class AnnotationPainter
             return;
         }
 
-        var fill = StyledText.RichTextMetrics.ToBrush(handleColor);
-        var stroke = StyledText.RichTextMetrics.ToBrush(handleBorderColor);
+        var fill = StyledText.RichTextPainter.ToBrush(handleColor);
+        var stroke = StyledText.RichTextPainter.ToBrush(handleBorderColor);
         foreach (var rect in handleRects)
         {
             var handle = new Rectangle

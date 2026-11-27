@@ -107,7 +107,7 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
             Visibility = Visibility.Collapsed,
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
-            MeasureText = StyledText.RichTextMetrics.Measure,
+            MeasureText = StyledText.RichTextPainter.Measure,
             Editor = _layer.Session.Editor,
         };
 
@@ -383,8 +383,8 @@ public sealed partial class AnnotationEditorPanel : Grid, IAnnotationPanelHost
             root.Height = appearance.ResolvePanelHeight(appearance.FixedContentHeight);
         }
 
-        root.Background = StyledText.RichTextMetrics.ToBrush(appearance.Background);
-        root.BorderBrush = StyledText.RichTextMetrics.ToBrush(appearance.Border);
+        root.Background = StyledText.RichTextPainter.ToBrush(appearance.Background);
+        root.BorderBrush = StyledText.RichTextPainter.ToBrush(appearance.Border);
         root.BorderThickness = new Thickness(appearance.BorderThickness);
         root.CornerRadius = new CornerRadius(appearance.CornerRadius);
         root.Padding = new Thickness(

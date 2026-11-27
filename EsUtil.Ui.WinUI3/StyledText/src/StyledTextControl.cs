@@ -90,7 +90,7 @@ public sealed partial class StyledTextControl : Canvas
 
     /// <summary>文字列と書式から実寸を測る関数を取得または設定する。</summary>
     /// <value>既定は XAML のテキスト エンジンで測る関数。</value>
-    public Func<string, TextStyle, EsSize> MeasureText { get; set; } = RichTextMetrics.Measure;
+    public Func<string, TextStyle, EsSize> MeasureText { get; set; } = RichTextPainter.Measure;
 
     /// <summary>本文の値と編集の状態を取得または設定する。</summary>
     /// <value>既定は本コントロールが作った実体。 ホストが既に編集器を持っている場合はその実体を設定する。</value>
@@ -661,9 +661,9 @@ public sealed partial class StyledTextControl : Canvas
         {
             foreach (var segment in line.Segments)
             {
-                var text = RichTextMetrics.CreateText(segment, scale);
+                var text = RichTextPainter.CreateText(segment, scale);
                 SetLeft(text, segment.Bounds.X * scale);
-                SetTop(text, RichTextMetrics.ResolveTextTop(line, segment) * scale);
+                SetTop(text, RichTextPainter.ResolveTextTop(line, segment) * scale);
                 Children.Add(text);
             }
         }
@@ -673,7 +673,7 @@ public sealed partial class StyledTextControl : Canvas
             return;
         }
 
-        var selectionBrush = RichTextMetrics.ToBrush(TextEditorAppearance.SelectionColor);
+        var selectionBrush = RichTextPainter.ToBrush(TextEditorAppearance.SelectionColor);
         foreach (var rect in index.ResolveSelectionRects(SelectionStart, SelectionEnd, MeasureText))
         {
             var selection = new Rectangle
@@ -698,7 +698,7 @@ public sealed partial class StyledTextControl : Canvas
         {
             Width = TextEditorAppearance.CaretThicknessDip,
             Height = caret.Height * scale,
-            Fill = RichTextMetrics.ToBrush(TextEditorAppearance.CaretColor),
+            Fill = RichTextPainter.ToBrush(TextEditorAppearance.CaretColor),
             IsHitTestVisible = false,
         };
         SetLeft(caretShape, caret.X * scale);

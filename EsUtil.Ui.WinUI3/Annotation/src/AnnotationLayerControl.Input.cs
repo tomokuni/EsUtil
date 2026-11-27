@@ -149,7 +149,7 @@ public sealed partial class AnnotationLayerControl
             {
                 Width = outline.Width,
                 Height = outline.Height,
-                Stroke = StyledText.RichTextMetrics.ToBrush(s_marqueeAppearance.BorderColor),
+                Stroke = StyledText.RichTextPainter.ToBrush(s_marqueeAppearance.BorderColor),
                 StrokeThickness = AnnotationEditingOutline.Thickness,
                 StrokeDashArray = [.. AnnotationEditingOutline.DashPattern],
             };
@@ -192,8 +192,8 @@ public sealed partial class AnnotationLayerControl
         {
             Width = size,
             Height = size,
-            Fill = StyledText.RichTextMetrics.ToBrush(plan.Appearance.HandleColor),
-            Stroke = StyledText.RichTextMetrics.ToBrush(plan.Appearance.HandleBorderColor),
+            Fill = StyledText.RichTextPainter.ToBrush(plan.Appearance.HandleColor),
+            Stroke = StyledText.RichTextPainter.ToBrush(plan.Appearance.HandleBorderColor),
             StrokeThickness = 1,
         };
 

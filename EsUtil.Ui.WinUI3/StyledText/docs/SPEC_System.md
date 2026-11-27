@@ -38,7 +38,7 @@
 | コンポーネント | 責務 |
 | --- | --- |
 | `StyledTextControl` | 本文の描画・入力の受付・API の公開（IME の配線は部分クラスへ分ける） |
-| `RichTextMetrics`（内部） | XAML のテキスト エンジンで実寸を測る（公開の `MeasureText` の既定） |
+| `RichTextPainter`（内部） | XAML のテキスト エンジンで実寸を測る（公開の `MeasureText` の既定） |
 | `StyledTextFormatBarControls`（内部） | 書式バーの行の部品（数値・選択肢・装飾の切り替え） |
 
 **ログ**: 定義は本アセンブリではなくコアの `TextLogMessage` が単一所有します（接頭辞 `[StyledText]`）。 コントロールの `Log` / `LogPrefix` は編集器（`TextEditor`）へ渡し、生成と設定の変更をコントロールが、編集・選択・クリップボード操作をコアが記録します。
